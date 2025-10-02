@@ -1,4 +1,4 @@
-import * as dagre from '@dagrejs/dagre';
+import dagre from '@dagrejs/dagre';
 import { DiagramType, NodeDatum, EdgeDatum, DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig, LayoutResult, LayoutMetrics } from './types';
 

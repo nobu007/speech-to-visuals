@@ -56,31 +56,36 @@ export class DiagramDetector {
     const text = segment.text.toLowerCase();
     const keyphrases = segment.keyphrases.map(kp => kp.toLowerCase());
 
-    // Define keyword patterns for different diagram types
+    // Define keyword patterns for different diagram types with weights
     const patterns = {
-      flow: [
-        'process', 'step', 'flow', 'sequence', 'procedure', 'workflow', 'pipeline',
-        'first', 'next', 'then', 'finally', 'after', 'before', 'follows'
-      ],
-      tree: [
-        'hierarchy', 'organization', 'structure', 'parent', 'child', 'branch',
-        'root', 'category', 'classification', 'taxonomy', 'breakdown'
-      ],
-      timeline: [
-        'timeline', 'chronology', 'history', 'evolution', 'development',
-        'year', 'month', 'date', 'time', 'period', 'era', 'phase'
-      ],
-      matrix: [
-        'comparison', 'matrix', 'table', 'versus', 'against', 'compare',
-        'criteria', 'features', 'properties', 'characteristics'
-      ],
-      cycle: [
-        'cycle', 'loop', 'circular', 'recurring', 'repeat', 'iteration',
-        'continuous', 'ongoing', 'cyclical', 'returns'
-      ]
+      flow: {
+        primary: ['process', 'workflow', 'pipeline', 'procedure', 'sequence'],
+        secondary: ['step', 'flow', 'first', 'next', 'then', 'finally', 'after', 'before', 'follows'],
+        context: ['data', 'information', 'system', 'through', 'input', 'output']
+      },
+      tree: {
+        primary: ['hierarchy', 'organization', 'structure', 'taxonomy'],
+        secondary: ['parent', 'child', 'branch', 'root', 'category', 'classification', 'breakdown'],
+        context: ['levels', 'components', 'parts', 'subdivide', 'organize']
+      },
+      timeline: {
+        primary: ['timeline', 'chronology', 'history', 'evolution'],
+        secondary: ['development', 'year', 'month', 'date', 'time', 'period', 'era', 'phase'],
+        context: ['when', 'during', 'since', 'until', 'progress', 'stages']
+      },
+      matrix: {
+        primary: ['comparison', 'matrix', 'table', 'versus'],
+        secondary: ['against', 'compare', 'criteria', 'features', 'properties', 'characteristics'],
+        context: ['different', 'similar', 'options', 'alternatives', 'choices']
+      },
+      cycle: {
+        primary: ['cycle', 'loop', 'circular', 'recurring'],
+        secondary: ['repeat', 'iteration', 'continuous', 'ongoing', 'cyclical', 'returns'],
+        context: ['back', 'again', 'repeatedly', 'continuous', 'infinite']
+      }
     };
 
-    // Calculate scores for each diagram type
+    // Calculate weighted scores for each diagram type
     const scores: Record<DiagramType, number> = {
       flow: 0,
       tree: 0,
@@ -89,13 +94,36 @@ export class DiagramDetector {
       cycle: 0
     };
 
-    for (const [diagramType, keywords] of Object.entries(patterns)) {
-      for (const keyword of keywords) {
+    for (const [diagramType, patternSet] of Object.entries(patterns)) {
+      const type = diagramType as DiagramType;
+
+      // Primary keywords (highest weight)
+      for (const keyword of patternSet.primary) {
         if (text.includes(keyword)) {
-          scores[diagramType as DiagramType] += 1;
+          scores[type] += 5;
         }
         if (keyphrases.some(kp => kp.includes(keyword))) {
-          scores[diagramType as DiagramType] += 2; // Higher weight for keyphrases
+          scores[type] += 8; // Even higher for keyphrases
+        }
+      }
+
+      // Secondary keywords (medium weight)
+      for (const keyword of patternSet.secondary) {
+        if (text.includes(keyword)) {
+          scores[type] += 2;
+        }
+        if (keyphrases.some(kp => kp.includes(keyword))) {
+          scores[type] += 4;
+        }
+      }
+
+      // Context keywords (lower weight)
+      for (const keyword of patternSet.context) {
+        if (text.includes(keyword)) {
+          scores[type] += 1;
+        }
+        if (keyphrases.some(kp => kp.includes(keyword))) {
+          scores[type] += 2;
         }
       }
     }
@@ -109,14 +137,20 @@ export class DiagramDetector {
     // Extract entities and relationships
     const { nodes, edges } = await this.extractEntitiesAndRelationships(segment, bestType.type);
 
-    const confidence = Math.min(bestType.score / 10, 1); // Normalize score
+    // Improved confidence calculation
+    const maxPossibleScore = 8 + 4 + 2; // Max primary + secondary + context
+    const confidence = Math.min(bestType.score / maxPossibleScore, 1);
+
+    // Boost confidence if multiple diagram indicators are present
+    const nonZeroScores = Object.values(scores).filter(s => s > 0).length;
+    const adjustedConfidence = nonZeroScores === 1 ? confidence * 1.2 : confidence;
 
     return {
       type: bestType.type,
-      confidence,
+      confidence: Math.min(adjustedConfidence, 1),
       nodes,
       edges,
-      reasoning: `Rule-based detection: ${bestType.score} matches for ${bestType.type} patterns`
+      reasoning: `Weighted detection: ${bestType.score} points for ${bestType.type} (confidence: ${(adjustedConfidence * 100).toFixed(1)}%)`
     };
   }
 
