@@ -128,7 +128,7 @@ export const RemotionRoot: React.FC = () => {
           scenes: testScenes,
           audioUrl: '',
           totalDuration: totalDuration,
-        } as VideoProps}
+        }}
       />
     </>
   );

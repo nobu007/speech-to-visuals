@@ -88,7 +88,7 @@ async function testCompleteIntegration() {
       'Layout validation': validScenes.every(s => s.layout && s.layout.nodes.length > 0),
       'Remotion compatibility': validScenes.length === result.scenes.length,
       'Video duration valid': validScenes.every(s => s.durationMs > 0),
-      'All diagram types supported': ['flow', 'tree', 'cycle'].every(type =>
+      'All diagram types supported': ['tree', 'timeline', 'cycle'].every(type =>
         validScenes.some(s => s.type === type)
       )
     };

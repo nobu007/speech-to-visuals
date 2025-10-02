@@ -2,7 +2,7 @@ import { useCurrentFrame, useVideoConfig, Audio, interpolate, Sequence } from 'r
 import { VideoProps } from './Root';
 import { DiagramScene } from './DiagramScene';
 
-export const DiagramVideo: React.FC<VideoProps> = ({ scenes, audioUrl, totalDuration }) => {
+export const DiagramVideo: React.FC<any> = ({ scenes = [], audioUrl = '', totalDuration = 0 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 

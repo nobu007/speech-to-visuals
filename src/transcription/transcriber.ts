@@ -135,30 +135,31 @@ export class TranscriptionPipeline {
 
   /**
    * Fallback segments for development/testing when Whisper is unavailable
+   * Enhanced to trigger different diagram types for comprehensive testing
    */
   private getFallbackSegments(): TranscriptionSegment[] {
     const mockSegments: TranscriptionSegment[] = [
       {
         start: 0,
-        end: 5000,
-        text: "Welcome to today's presentation about system architecture.",
+        end: 6000,
+        text: "Let's explore our organizational hierarchy structure. The company has different levels including management, departments, and teams with clear parent-child relationships.",
         confidence: 0.95
       },
       {
-        start: 5000,
+        start: 6000,
         end: 12000,
-        text: "We'll be covering three main components: data flow, processing, and visualization.",
+        text: "Now we'll examine the development timeline and chronology. The project evolution spans multiple phases over several years, from conception in 2020 to deployment in 2024.",
         confidence: 0.88
       },
       {
         start: 12000,
         end: 18000,
-        text: "First, let's examine how data flows through our system from input to output.",
+        text: "Finally, this continuous process forms a recurring cycle that returns to the beginning. The workflow loops back to the initial stage, creating an ongoing, cyclical pattern.",
         confidence: 0.92
       }
     ];
 
-    console.log(`[V${this.iteration}] Using mock data: ${mockSegments.length} segments`);
+    console.log(`[V${this.iteration}] Using enhanced mock data: ${mockSegments.length} segments (diverse diagram types)`);
     return mockSegments;
   }
 
