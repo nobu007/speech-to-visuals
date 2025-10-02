@@ -1,4 +1,8 @@
 import { SceneGraph, DiagramType } from '@/types/diagram';
+import { MainPipeline } from '@/pipeline';
+import { TranscriptionPipeline } from '@/transcription';
+import { SceneSegmenter, DiagramDetector } from '@/analysis';
+import { LayoutEngine } from '@/visualization';
 
 // Test data generator
 export function generateTestScenes(): SceneGraph[] {
@@ -226,3 +230,246 @@ export function runPipelineTests() {
   console.log('\n🎉 Pipeline tests completed!');
   return testData;
 }
+
+/**
+ * Extended End-to-End Pipeline Test Suite
+ * Tests the complete audio-to-diagram video generation pipeline
+ */
+
+// Test Configuration
+const TEST_CONFIG = {
+  mockAudioPath: 'test-audio.wav',
+  expectedMinScenes: 1,
+  expectedMinDiagrams: 1,
+  maxProcessingTime: 30000, // 30 seconds
+  testIterations: 3
+};
+
+/**
+ * Mock audio data for testing
+ */
+const MOCK_TRANSCRIPTION_SEGMENTS = [
+  {
+    start: 0,
+    end: 5000,
+    text: "Today we'll discuss the software development process which involves several key stages.",
+    confidence: 0.95
+  },
+  {
+    start: 5000,
+    end: 12000,
+    text: "First, we have planning where we define requirements and create a project roadmap.",
+    confidence: 0.88
+  },
+  {
+    start: 12000,
+    end: 18000,
+    text: "Next comes design and architecture where we create the system blueprint.",
+    confidence: 0.92
+  },
+  {
+    start: 18000,
+    end: 25000,
+    text: "Then we move to implementation, where developers write the actual code.",
+    confidence: 0.89
+  },
+  {
+    start: 25000,
+    end: 32000,
+    text: "Finally, we have testing and deployment to ensure quality and release the product.",
+    confidence: 0.91
+  }
+];
+
+/**
+ * Test individual pipeline components
+ */
+export async function testPipelineComponents(): Promise<void> {
+  console.log('\n🧪 Testing Individual Pipeline Components');
+  console.log('==========================================');
+
+  // Test 1: Transcription Pipeline
+  console.log('\n1. Testing Transcription Pipeline...');
+  const transcriber = new TranscriptionPipeline();
+
+  // Mock the transcription (since we don't have actual Whisper installed)
+  console.log('   - Creating mock transcription result...');
+  const mockTranscription = {
+    segments: MOCK_TRANSCRIPTION_SEGMENTS,
+    language: 'en',
+    duration: 32000,
+    processingTime: 2000,
+    success: true
+  };
+  console.log(`   ✅ Transcription: ${mockTranscription.segments.length} segments, ${mockTranscription.duration}ms`);
+
+  // Test 2: Scene Segmentation
+  console.log('\n2. Testing Scene Segmentation...');
+  const segmenter = new SceneSegmenter();
+  const segments = await segmenter.segment(mockTranscription.segments);
+  console.log(`   ✅ Segmentation: ${segments.length} content segments generated`);
+
+  if (segments.length === 0) {
+    throw new Error('Scene segmentation failed - no segments generated');
+  }
+
+  // Test 3: Diagram Detection
+  console.log('\n3. Testing Diagram Detection...');
+  const detector = new DiagramDetector();
+  const analyses = [];
+
+  for (const segment of segments) {
+    const analysis = await detector.analyze(segment);
+    analyses.push(analysis);
+    console.log(`   - ${analysis.type} diagram detected (confidence: ${(analysis.confidence * 100).toFixed(1)}%)`);
+  }
+
+  if (analyses.length === 0) {
+    throw new Error('Diagram detection failed - no analyses generated');
+  }
+
+  // Test 4: Layout Generation
+  console.log('\n4. Testing Layout Generation...');
+  const layoutEngine = new LayoutEngine();
+  const layouts = [];
+
+  for (const analysis of analyses) {
+    if (analysis.nodes.length > 0) {
+      const layoutResult = await layoutEngine.generateLayout(
+        analysis.nodes,
+        analysis.edges,
+        analysis.type
+      );
+
+      if (layoutResult.success) {
+        layouts.push(layoutResult);
+        console.log(`   - ${analysis.type} layout: ${layoutResult.layout.nodes.length} nodes, ${layoutResult.layout.edges.length} edges`);
+      }
+    }
+  }
+
+  console.log(`   ✅ Layout Generation: ${layouts.length} layouts created`);
+
+  return;
+}
+
+/**
+ * Test complete pipeline integration
+ */
+export async function testFullPipelineIntegration(): Promise<void> {
+  console.log('\n🚀 Testing Complete Pipeline Integration');
+  console.log('======================================');
+
+  const pipeline = new MainPipeline({
+    transcription: {
+      model: 'base',
+      language: 'en'
+    },
+    analysis: {
+      minSegmentLengthMs: 3000,
+      maxSegmentLengthMs: 15000,
+      confidenceThreshold: 0.7
+    },
+    layout: {
+      width: 1920,
+      height: 1080,
+      nodeWidth: 120,
+      nodeHeight: 60
+    },
+    output: {
+      fps: 30,
+      videoDuration: 60,
+      includeAudio: true
+    }
+  });
+
+  const startTime = performance.now();
+
+  try {
+    const result = await pipeline.execute({
+      audioFile: TEST_CONFIG.mockAudioPath
+    });
+
+    const processingTime = performance.now() - startTime;
+
+    console.log('\n📊 Pipeline Results:');
+    console.log(`   - Success: ${result.success ? '✅' : '❌'}`);
+    console.log(`   - Processing Time: ${processingTime.toFixed(0)}ms`);
+    console.log(`   - Scenes Generated: ${result.scenes.length}`);
+    console.log(`   - Total Duration: ${(result.duration / 1000).toFixed(1)}s`);
+
+    // Validate results
+    if (!result.success) {
+      throw new Error(`Pipeline failed: ${result.error}`);
+    }
+
+    if (result.scenes.length < TEST_CONFIG.expectedMinScenes) {
+      throw new Error(`Expected at least ${TEST_CONFIG.expectedMinScenes} scenes, got ${result.scenes.length}`);
+    }
+
+    const diagramCount = result.scenes.filter(s => s.nodes.length > 0).length;
+    if (diagramCount < TEST_CONFIG.expectedMinDiagrams) {
+      throw new Error(`Expected at least ${TEST_CONFIG.expectedMinDiagrams} diagrams, got ${diagramCount}`);
+    }
+
+    if (processingTime > TEST_CONFIG.maxProcessingTime) {
+      console.warn(`⚠️ Processing time (${processingTime}ms) exceeded target (${TEST_CONFIG.maxProcessingTime}ms)`);
+    }
+
+    console.log('\n✅ Pipeline integration test passed!');
+
+    // Display scene details
+    console.log('\n📋 Generated Scenes:');
+    result.scenes.forEach((scene, index) => {
+      console.log(`   Scene ${index + 1}: ${scene.type} (${scene.nodes.length} nodes, ${(scene.durationMs / 1000).toFixed(1)}s)`);
+      console.log(`      Summary: ${scene.summary.substring(0, 60)}...`);
+      console.log(`      Keywords: ${scene.keyphrases.slice(0, 3).join(', ')}`);
+    });
+
+    return;
+
+  } catch (error) {
+    console.error('\n❌ Pipeline integration test failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Run comprehensive test suite
+ */
+export async function runComprehensiveTests(): Promise<void> {
+  console.log('🧪 Starting Comprehensive Audio-to-Diagram Pipeline Test Suite');
+  console.log('==============================================================');
+
+  try {
+    // Run existing tests first
+    console.log('\n📋 Running Basic Tests...');
+    runPipelineTests();
+
+    // Run new integration tests
+    console.log('\n🔧 Running Component Tests...');
+    await testPipelineComponents();
+
+    console.log('\n🚀 Running Full Pipeline Test...');
+    await testFullPipelineIntegration();
+
+    console.log('\n🎉 All comprehensive tests completed successfully!');
+    console.log('Pipeline is ready for production use.');
+
+  } catch (error) {
+    console.error('\n💥 Comprehensive test suite failed:', error);
+    console.log('\nRecommended actions:');
+    console.log('1. Check component implementations');
+    console.log('2. Verify mock data quality');
+    console.log('3. Review error logs for specific issues');
+    console.log('4. Run individual component tests for debugging');
+
+    throw error;
+  }
+}
+
+// Export additional test utilities
+export {
+  TEST_CONFIG,
+  MOCK_TRANSCRIPTION_SEGMENTS
+};

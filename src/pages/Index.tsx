@@ -3,7 +3,9 @@ import { AudioUploader } from '@/components/AudioUploader';
 import { ProcessingStatus } from '@/components/ProcessingStatus';
 import { DiagramPreview } from '@/components/DiagramPreview';
 import { VideoRenderer } from '@/components/VideoRenderer';
+import { PipelineInterface } from '@/components/pipeline-interface';
 import { ProcessingStatus as StatusType, ProcessingResult } from '@/types/diagram';
+import { MainPipeline } from '@/pipeline';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Sparkles } from 'lucide-react';
@@ -13,6 +15,7 @@ const Index = () => {
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState('');
   const [result, setResult] = useState<ProcessingResult | null>(null);
+  const [useNewPipeline, setUseNewPipeline] = useState(true);
 
   const handleUpload = async (file: File) => {
     try {
@@ -133,29 +136,35 @@ const Index = () => {
         </div>
 
         {/* Main Content */}
-        {status === 'idle' && (
-          <AudioUploader onUpload={handleUpload} isProcessing={false} />
-        )}
-
-        {(status !== 'idle' && status !== 'complete') && (
-          <ProcessingStatus 
-            status={status} 
-            progress={progress} 
-            currentStep={currentStep}
-          />
-        )}
-
-        {result && status === 'complete' && (
+        {useNewPipeline ? (
+          <PipelineInterface />
+        ) : (
           <>
-            <DiagramPreview
-              scenes={result.scenes}
-              onRender={handleRender}
-              isRendering={false}
-            />
-            <VideoRenderer
-              scenes={result.scenes}
-              audioUrl={result.audioUrl}
-            />
+            {status === 'idle' && (
+              <AudioUploader onUpload={handleUpload} isProcessing={false} />
+            )}
+
+            {(status !== 'idle' && status !== 'complete') && (
+              <ProcessingStatus
+                status={status}
+                progress={progress}
+                currentStep={currentStep}
+              />
+            )}
+
+            {result && status === 'complete' && (
+              <>
+                <DiagramPreview
+                  scenes={result.scenes}
+                  onRender={handleRender}
+                  isRendering={false}
+                />
+                <VideoRenderer
+                  scenes={result.scenes}
+                  audioUrl={result.audioUrl}
+                />
+              </>
+            )}
           </>
         )}
 
