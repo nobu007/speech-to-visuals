@@ -2,6 +2,7 @@ import { SceneGraph } from '@/types/diagram';
 import { TranscriptionPipeline } from '@/transcription';
 import { SceneSegmenter, DiagramDetector } from '@/analysis';
 import { LayoutEngine } from '@/visualization';
+import { qualityMonitor, QualityAssessment } from '@/quality';
 import {
   PipelineInput,
   PipelineConfig,
@@ -119,6 +120,10 @@ export class MainPipeline {
 
       const totalTime = performance.now() - startTime;
       const result = this.createSuccessResult(scenes, input, totalTime);
+
+      // Perform comprehensive quality assessment
+      const qualityAssessment = await qualityMonitor.assessPipelineQuality(result);
+      result.qualityAssessment = qualityAssessment;
 
       await this.logResults(result);
       return result;
@@ -419,10 +424,21 @@ export class MainPipeline {
     this.config = { ...this.config, ...configUpdates };
 
     // Update component iterations
-    if (this.transcriber) this.transcriber.nextIteration();
-    if (this.segmenter) this.segmenter.nextIteration();
-    if (this.detector) this.detector.nextIteration();
-    if (this.layoutEngine) this.layoutEngine.nextIteration();
+    if (this.transcriber && typeof this.transcriber.nextIteration === 'function') {
+      this.transcriber.nextIteration();
+    }
+    if (this.segmenter && typeof this.segmenter.nextIteration === 'function') {
+      this.segmenter.nextIteration();
+    }
+    if (this.detector && typeof this.detector.nextIteration === 'function') {
+      this.detector.nextIteration();
+    }
+    if (this.layoutEngine && typeof this.layoutEngine.nextIteration === 'function') {
+      this.layoutEngine.nextIteration();
+    }
+
+    // Update quality monitor iteration
+    qualityMonitor.nextIteration();
 
     console.log(`\n🔄 Moving to pipeline iteration ${this.iteration}`);
   }

@@ -2,6 +2,7 @@ import { SceneGraph, ProcessingStatus } from '@/types/diagram';
 import { TranscriptionResult } from '@/transcription/types';
 import { ContentSegment, DiagramAnalysis } from '@/analysis/types';
 import { LayoutResult } from '@/visualization/types';
+import { QualityAssessment } from '@/quality';
 
 export interface PipelineInput {
   audioFile: File | string;
@@ -48,6 +49,7 @@ export interface PipelineResult {
   processingTime: number;
   stages: PipelineStage[];
   error?: string;
+  qualityAssessment?: QualityAssessment;
 }
 
 export interface PipelineMetrics {
