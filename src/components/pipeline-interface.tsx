@@ -46,37 +46,36 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
       setStages([]);
 
       console.log('🚀 Starting pipeline processing...');
+      console.log(`📁 File: ${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(2)} MB)`);
 
-      // Simulate progress updates
-      const progressInterval = setInterval(() => {
-        setProgress(prev => {
-          const newProgress = Math.min(prev + Math.random() * 10, 90);
+      // Save file to temporary location for processing
+      const tempAudioPath = await saveAudioFile(selectedFile);
+      console.log(`💾 Saved audio to: ${tempAudioPath}`);
 
-          // Update stage based on progress
-          if (newProgress < 25) {
-            setCurrentStage('transcribing');
-            setStatus('transcribing');
-          } else if (newProgress < 50) {
-            setCurrentStage('analyzing');
-            setStatus('analyzing');
-          } else if (newProgress < 75) {
-            setCurrentStage('generating');
-            setStatus('generating');
-          } else {
-            setCurrentStage('finalizing');
-            setStatus('generating');
-          }
+      // Real-time progress tracking based on pipeline stages
+      const stageProgressMap = {
+        'transcription': { start: 0, duration: 40 },
+        'analysis': { start: 40, duration: 30 },
+        'layout': { start: 70, duration: 20 },
+        'preparation': { start: 90, duration: 10 }
+      };
 
-          return newProgress;
-        });
-      }, 500);
-
-      // Execute the pipeline
+      // Execute the pipeline with real file
       const pipelineResult = await pipeline.execute({
-        audioFile: selectedFile
+        audioFile: tempAudioPath
       });
 
-      clearInterval(progressInterval);
+      // Update progress based on completed stages
+      if (pipelineResult.stages.length > 0) {
+        let totalProgress = 0;
+        pipelineResult.stages.forEach(stage => {
+          const stageInfo = stageProgressMap[stage.name as keyof typeof stageProgressMap];
+          if (stageInfo && stage.status === 'complete') {
+            totalProgress += stageInfo.duration;
+          }
+        });
+        setProgress(Math.min(totalProgress, 100));
+      }
 
       if (pipelineResult.success) {
         setProgress(100);
@@ -85,6 +84,7 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
         setStages(pipelineResult.stages);
         setCurrentStage('Complete');
         console.log('✅ Pipeline completed successfully');
+        console.log(`📊 Generated ${pipelineResult.scenes.length} scenes in ${(pipelineResult.processingTime / 1000).toFixed(1)}s`);
       } else {
         setStatus('error');
         setError(pipelineResult.error || 'Pipeline processing failed');
@@ -98,6 +98,17 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
       console.error('Pipeline error:', err);
     }
   }, [selectedFile, pipeline]);
+
+  // Helper function to save audio file to a temporary location
+  const saveAudioFile = async (file: File): Promise<string> => {
+    // Create a temporary URL for the file
+    const audioUrl = URL.createObjectURL(file);
+
+    // In a real implementation, you might save this to a temporary directory
+    // For now, we'll return the blob URL which our Whisper integration can handle
+    console.log(`🔗 Created temporary audio URL: ${audioUrl}`);
+    return audioUrl;
+  };
 
   const handleDownloadVideo = useCallback(() => {
     if (result) {

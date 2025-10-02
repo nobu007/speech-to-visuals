@@ -1,4 +1,4 @@
-import { runComprehensiveTests } from './src/test/pipeline-test';
+import { runComprehensiveTests } from './src/test/pipeline-test.js';
 
 // Run the comprehensive test suite
 console.log('🧪 Starting Audio-to-Diagram Pipeline Test Suite');
