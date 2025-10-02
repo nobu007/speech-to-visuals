@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AudioUploader } from '@/components/AudioUploader';
 import { ProcessingStatus } from '@/components/ProcessingStatus';
 import { DiagramPreview } from '@/components/DiagramPreview';
+import { VideoRenderer } from '@/components/VideoRenderer';
 import { ProcessingStatus as StatusType, ProcessingResult } from '@/types/diagram';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -108,7 +109,8 @@ const Index = () => {
   };
 
   const handleRender = async () => {
-    toast.info('動画レンダリング機能は開発中です');
+    // This will be handled by the VideoRenderer component now
+    toast.info('動画レンダリングコンポーネントをご利用ください');
   };
 
   return (
@@ -144,11 +146,17 @@ const Index = () => {
         )}
 
         {result && status === 'complete' && (
-          <DiagramPreview 
-            scenes={result.scenes}
-            onRender={handleRender}
-            isRendering={false}
-          />
+          <>
+            <DiagramPreview
+              scenes={result.scenes}
+              onRender={handleRender}
+              isRendering={false}
+            />
+            <VideoRenderer
+              scenes={result.scenes}
+              audioUrl={result.audioUrl}
+            />
+          </>
         )}
 
         {/* Features */}
