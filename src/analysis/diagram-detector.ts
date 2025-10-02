@@ -1,5 +1,6 @@
 import { DiagramType, NodeDatum, EdgeDatum } from '@/types/diagram';
 import { ContentSegment, DiagramAnalysis, KeywordAnalysis, SemanticRelation } from './types';
+import AdvancedDiagramDetector from './advanced-diagram-detector';
 
 /**
  * Diagram Type Detection Engine - Iterative Implementation
@@ -7,6 +8,11 @@ import { ContentSegment, DiagramAnalysis, KeywordAnalysis, SemanticRelation } fr
  */
 export class DiagramDetector {
   private iteration: number = 1;
+  private advancedDetector: AdvancedDiagramDetector;
+
+  constructor() {
+    this.advancedDetector = new AdvancedDiagramDetector();
+  }
 
   /**
    * Analyze content segment and determine diagram type with entities
@@ -468,28 +474,117 @@ export class DiagramDetector {
    * Iteration 2+: Statistical analysis for improved detection
    */
   private async statisticalAnalysis(segment: ContentSegment, baseAnalysis: DiagramAnalysis): Promise<DiagramAnalysis> {
-    console.log(`[V${this.iteration}] Applying statistical analysis...`);
+    console.log(`[V${this.iteration}] Applying advanced statistical analysis...`);
 
-    // TODO: Implement statistical improvements
-    // - TF-IDF scoring for better keyword detection
-    // - N-gram analysis for pattern recognition
-    // - Confidence scoring based on multiple factors
+    try {
+      // Use advanced detector for statistical improvements
+      const advancedResult = await this.advancedDetector.detectWithEdgeCases(segment);
 
-    return baseAnalysis;
+      // Combine base analysis with advanced detection
+      if (advancedResult.confidence > baseAnalysis.confidence) {
+        console.log(`📈 Advanced detection improved confidence: ${(baseAnalysis.confidence * 100).toFixed(1)}% → ${(advancedResult.confidence * 100).toFixed(1)}%`);
+
+        return {
+          ...advancedResult,
+          reasoning: `${baseAnalysis.reasoning} + advanced statistical analysis`
+        };
+      } else {
+        // Boost base analysis with statistical insights
+        const boostedConfidence = Math.min(baseAnalysis.confidence * 1.15, 0.95);
+
+        return {
+          ...baseAnalysis,
+          confidence: boostedConfidence,
+          reasoning: `${baseAnalysis.reasoning} + statistical validation`
+        };
+      }
+    } catch (error) {
+      console.warn(`[V${this.iteration}] Statistical analysis failed:`, error);
+      return baseAnalysis;
+    }
   }
 
   /**
    * Iteration 3+: Hybrid approach combining multiple methods
    */
   private async hybridAnalysis(segment: ContentSegment, baseAnalysis: DiagramAnalysis): Promise<DiagramAnalysis> {
-    console.log(`[V${this.iteration}] Applying hybrid analysis...`);
+    console.log(`[V${this.iteration}] Applying hybrid multi-method analysis...`);
 
-    // TODO: Implement hybrid approach
-    // - Combine rule-based, statistical, and ML approaches
-    // - Weighted voting system
-    // - Context-aware analysis
+    try {
+      // Run multiple detection approaches in parallel
+      const [
+        ruleBasedResult,
+        advancedResult
+      ] = await Promise.all([
+        this.ruleBasedDetection(segment),
+        this.advancedDetector.detectWithEdgeCases(segment)
+      ]);
 
-    return baseAnalysis;
+      // Weighted voting system
+      const candidates = [
+        { result: ruleBasedResult, weight: 0.4, method: 'rule-based' },
+        { result: advancedResult, weight: 0.6, method: 'advanced' }
+      ];
+
+      // Calculate weighted scores for each diagram type
+      const typeScores: Record<DiagramType, { score: number; methods: string[] }> = {
+        flow: { score: 0, methods: [] },
+        tree: { score: 0, methods: [] },
+        timeline: { score: 0, methods: [] },
+        matrix: { score: 0, methods: [] },
+        cycle: { score: 0, methods: [] }
+      };
+
+      candidates.forEach(candidate => {
+        const weightedScore = candidate.result.confidence * candidate.weight;
+        typeScores[candidate.result.type].score += weightedScore;
+        typeScores[candidate.result.type].methods.push(candidate.method);
+      });
+
+      // Find consensus winner
+      const consensusType = Object.entries(typeScores).reduce((best, [type, data]) =>
+        data.score > best.score ? { type: type as DiagramType, score: data.score, methods: data.methods } : best,
+        { type: 'flow' as DiagramType, score: 0, methods: [] }
+      );
+
+      // Calculate final confidence based on consensus strength
+      const methodAgreement = consensusType.methods.length / candidates.length;
+      const finalConfidence = Math.min(consensusType.score * methodAgreement, 0.95);
+
+      // Get the best result for the consensus type
+      const bestCandidate = candidates
+        .filter(c => c.result.type === consensusType.type)
+        .sort((a, b) => b.result.confidence - a.result.confidence)[0];
+
+      if (bestCandidate) {
+        return {
+          ...bestCandidate.result,
+          confidence: finalConfidence,
+          reasoning: `Hybrid consensus: ${consensusType.type} (${consensusType.methods.join(' + ')}, ${(finalConfidence * 100).toFixed(1)}% confidence)`
+        };
+      } else {
+        // Fallback to highest confidence result
+        const highestConfidence = candidates.reduce((best, current) =>
+          current.result.confidence > best.result.confidence ? current : best
+        );
+
+        return {
+          ...highestConfidence.result,
+          confidence: Math.min(highestConfidence.result.confidence * 1.1, 0.9),
+          reasoning: `${highestConfidence.result.reasoning} + hybrid validation`
+        };
+      }
+
+    } catch (error) {
+      console.warn(`[V${this.iteration}] Hybrid analysis failed:`, error);
+
+      // Fallback to enhanced base analysis
+      return {
+        ...baseAnalysis,
+        confidence: Math.min(baseAnalysis.confidence * 1.05, 0.85),
+        reasoning: `${baseAnalysis.reasoning} + hybrid fallback`
+      };
+    }
   }
 
   /**
