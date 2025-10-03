@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import QualityDashboard from '@/components/QualityDashboard';
 import PipelineMonitor from '@/components/PipelineMonitor';
+import { RealTimeStreamingInterface } from '@/components/RealTimeStreamingInterface';
 import {
   Activity,
   Settings,
@@ -79,7 +80,7 @@ export function Dashboard() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview" className="flex items-center space-x-2">
               <BarChart3 className="h-4 w-4" />
               <span>Overview</span>
@@ -88,12 +89,16 @@ export function Dashboard() {
               <FileAudio className="h-4 w-4" />
               <span>Pipeline</span>
             </TabsTrigger>
+            <TabsTrigger value="realtime" className="flex items-center space-x-2">
+              <Zap className="h-4 w-4" />
+              <span>Real-Time</span>
+            </TabsTrigger>
             <TabsTrigger value="quality" className="flex items-center space-x-2">
               <Target className="h-4 w-4" />
               <span>Quality Monitor</span>
             </TabsTrigger>
             <TabsTrigger value="optimization" className="flex items-center space-x-2">
-              <Zap className="h-4 w-4" />
+              <Brain className="h-4 w-4" />
               <span>Optimization</span>
             </TabsTrigger>
           </TabsList>
@@ -253,6 +258,11 @@ export function Dashboard() {
               onStartPipeline={handlePipelineStart}
               onStopPipeline={handlePipelineStop}
             />
+          </TabsContent>
+
+          {/* Real-Time Streaming Tab */}
+          <TabsContent value="realtime">
+            <RealTimeStreamingInterface />
           </TabsContent>
 
           {/* Quality Monitor Tab */}
