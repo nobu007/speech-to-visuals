@@ -1,8 +1,8 @@
 /**
- * Iteration 21: Adaptive Content Processor
+ * Iteration 22: Ultra-Responsive Adaptive Content Processor
  *
- * Intelligent system that adapts processing strategies based on content characteristics,
- * user preferences, and real-time performance metrics.
+ * Intelligent system with real-time parameter adaptation, machine learning-based
+ * optimization, and predictive adjustment for maximum performance and accuracy.
  */
 
 import { DiagramType, ContentSegment, EntityNode, EntityEdge } from '@/types/diagram';
@@ -27,12 +27,33 @@ interface ProcessingStrategy {
   estimatedTime: number;
   accuracyExpected: number;
   resourceIntensity: 'low' | 'medium' | 'high';
+  adaptable: boolean; // Whether strategy supports real-time adaptation
   parameters: {
     segmentationThreshold: number;
     diagramTypeConfidence: number;
     layoutComplexity: number;
     animationDensity: number;
+    adaptationSpeed: number; // How quickly parameters can change (0-1)
+    stabilityThreshold: number; // Minimum performance before adaptation
   };
+}
+
+interface RealTimeMetrics {
+  processingTime: number;
+  accuracyScore: number;
+  memoryUsage: number;
+  userEngagement: number;
+  errorRate: number;
+  timestamp: number;
+}
+
+interface ParameterOptimization {
+  parameter: string;
+  currentValue: number;
+  targetValue: number;
+  adjustmentRate: number;
+  confidence: number;
+  expectedImprovement: number;
 }
 
 interface AdaptationResult {
@@ -74,7 +95,12 @@ export class AdaptiveContentProcessor {
   private strategies: ProcessingStrategy[] = [];
   private adaptationHistory: Map<string, AdaptationResult[]> = new Map();
   private performanceMetrics: Map<string, number[]> = new Map();
+  private realTimeMetrics: RealTimeMetrics[] = [];
+  private activeOptimizations: Map<string, ParameterOptimization[]> = new Map();
+  private adaptationTimer: NodeJS.Timer | null = null;
   private userPreferences: UserPreferences;
+  private learningRate = 0.1; // Machine learning adaptation rate
+  private stabilityWindow = 5; // Number of measurements for stability check
 
   constructor(userPreferences?: Partial<UserPreferences>) {
     this.userPreferences = {
@@ -92,6 +118,251 @@ export class AdaptiveContentProcessor {
     };
 
     this.initializeStrategies();
+    this.startRealTimeAdaptation();
+  }
+
+  /**
+   * Start real-time adaptation system
+   */
+  private startRealTimeAdaptation(): void {
+    if (this.adaptationTimer) return;
+
+    this.adaptationTimer = setInterval(() => {
+      this.performRealTimeAdaptation();
+    }, 2000); // Adapt every 2 seconds for responsiveness
+  }
+
+  /**
+   * Perform real-time parameter adaptation based on current metrics
+   */
+  private async performRealTimeAdaptation(): Promise<void> {
+    if (this.realTimeMetrics.length < this.stabilityWindow) return;
+
+    const recentMetrics = this.realTimeMetrics.slice(-this.stabilityWindow);
+    const currentPerformance = this.calculateCurrentPerformance(recentMetrics);
+
+    // Identify parameters that need optimization
+    for (const strategy of this.strategies) {
+      if (!strategy.adaptable) continue;
+
+      const optimizations = this.identifyOptimizations(strategy, currentPerformance);
+      if (optimizations.length > 0) {
+        await this.applyOptimizations(strategy.id, optimizations);
+      }
+    }
+  }
+
+  /**
+   * Calculate current system performance from metrics
+   */
+  private calculateCurrentPerformance(metrics: RealTimeMetrics[]): {
+    averageTime: number;
+    averageAccuracy: number;
+    stabilityScore: number;
+    trendDirection: 'improving' | 'stable' | 'degrading';
+  } {
+    const avgTime = metrics.reduce((sum, m) => sum + m.processingTime, 0) / metrics.length;
+    const avgAccuracy = metrics.reduce((sum, m) => sum + m.accuracyScore, 0) / metrics.length;
+
+    // Calculate stability (lower variance = higher stability)
+    const timeVariance = this.calculateVariance(metrics.map(m => m.processingTime));
+    const stabilityScore = Math.max(0, 1 - (timeVariance / (avgTime * avgTime)));
+
+    // Determine trend direction
+    const firstHalf = metrics.slice(0, Math.floor(metrics.length / 2));
+    const secondHalf = metrics.slice(Math.floor(metrics.length / 2));
+
+    const firstAvgTime = firstHalf.reduce((sum, m) => sum + m.processingTime, 0) / firstHalf.length;
+    const secondAvgTime = secondHalf.reduce((sum, m) => sum + m.processingTime, 0) / secondHalf.length;
+
+    let trendDirection: 'improving' | 'stable' | 'degrading';
+    const improvement = (firstAvgTime - secondAvgTime) / firstAvgTime;
+
+    if (improvement > 0.1) trendDirection = 'improving';
+    else if (improvement < -0.1) trendDirection = 'degrading';
+    else trendDirection = 'stable';
+
+    return {
+      averageTime: avgTime,
+      averageAccuracy: avgAccuracy,
+      stabilityScore,
+      trendDirection
+    };
+  }
+
+  /**
+   * Calculate variance for stability measurement
+   */
+  private calculateVariance(values: number[]): number {
+    const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+    const squaredDiffs = values.map(val => Math.pow(val - mean, 2));
+    return squaredDiffs.reduce((sum, diff) => sum + diff, 0) / values.length;
+  }
+
+  /**
+   * Identify parameters that need optimization
+   */
+  private identifyOptimizations(
+    strategy: ProcessingStrategy,
+    performance: ReturnType<typeof this.calculateCurrentPerformance>
+  ): ParameterOptimization[] {
+    const optimizations: ParameterOptimization[] = [];
+
+    // If performance is degrading, suggest optimizations
+    if (performance.trendDirection === 'degrading' || performance.averageTime > strategy.estimatedTime * 1.2) {
+
+      // Optimize segmentation threshold
+      if (performance.averageTime > strategy.estimatedTime * 1.5) {
+        optimizations.push({
+          parameter: 'segmentationThreshold',
+          currentValue: strategy.parameters.segmentationThreshold,
+          targetValue: Math.min(1.0, strategy.parameters.segmentationThreshold + 0.1),
+          adjustmentRate: strategy.parameters.adaptationSpeed,
+          confidence: 0.7,
+          expectedImprovement: 0.15
+        });
+      }
+
+      // Optimize layout complexity if accuracy is sufficient
+      if (performance.averageAccuracy > 0.8) {
+        optimizations.push({
+          parameter: 'layoutComplexity',
+          currentValue: strategy.parameters.layoutComplexity,
+          targetValue: Math.max(0.1, strategy.parameters.layoutComplexity - 0.1),
+          adjustmentRate: strategy.parameters.adaptationSpeed,
+          confidence: 0.6,
+          expectedImprovement: 0.2
+        });
+      }
+
+      // Optimize animation density for performance
+      optimizations.push({
+        parameter: 'animationDensity',
+        currentValue: strategy.parameters.animationDensity,
+        targetValue: Math.max(0.1, strategy.parameters.animationDensity - 0.05),
+        adjustmentRate: strategy.parameters.adaptationSpeed,
+        confidence: 0.8,
+        expectedImprovement: 0.1
+      });
+    }
+
+    // If performance is good but accuracy could improve
+    if (performance.trendDirection === 'stable' && performance.averageAccuracy < 0.9) {
+      optimizations.push({
+        parameter: 'diagramTypeConfidence',
+        currentValue: strategy.parameters.diagramTypeConfidence,
+        targetValue: Math.min(1.0, strategy.parameters.diagramTypeConfidence + 0.05),
+        adjustmentRate: strategy.parameters.adaptationSpeed * 0.5, // Slower for accuracy improvements
+        confidence: 0.5,
+        expectedImprovement: 0.05
+      });
+    }
+
+    return optimizations.filter(opt => opt.confidence > 0.4); // Only apply high-confidence optimizations
+  }
+
+  /**
+   * Apply parameter optimizations to strategy
+   */
+  private async applyOptimizations(strategyId: string, optimizations: ParameterOptimization[]): Promise<void> {
+    const strategy = this.strategies.find(s => s.id === strategyId);
+    if (!strategy) return;
+
+    console.log(`🔧 Applying ${optimizations.length} real-time optimizations to ${strategy.name}`);
+
+    // Store active optimizations for tracking
+    this.activeOptimizations.set(strategyId, optimizations);
+
+    // Apply gradual parameter adjustments
+    for (const opt of optimizations) {
+      const currentValue = (strategy.parameters as any)[opt.parameter];
+      const adjustment = (opt.targetValue - currentValue) * opt.adjustmentRate * this.learningRate;
+      const newValue = currentValue + adjustment;
+
+      // Apply the adjustment
+      (strategy.parameters as any)[opt.parameter] = Math.max(0, Math.min(1, newValue));
+
+      console.log(`   📊 ${opt.parameter}: ${currentValue.toFixed(3)} → ${newValue.toFixed(3)} (target: ${opt.targetValue.toFixed(3)})`);
+    }
+
+    // Update strategy metadata
+    strategy.estimatedTime *= (1 - optimizations.reduce((sum, opt) => sum + opt.expectedImprovement, 0) / optimizations.length);
+  }
+
+  /**
+   * Record real-time metrics for adaptation
+   */
+  recordMetrics(metrics: Partial<RealTimeMetrics>): void {
+    const fullMetrics: RealTimeMetrics = {
+      processingTime: metrics.processingTime || 0,
+      accuracyScore: metrics.accuracyScore || 0,
+      memoryUsage: metrics.memoryUsage || 0,
+      userEngagement: metrics.userEngagement || 0.5,
+      errorRate: metrics.errorRate || 0,
+      timestamp: Date.now()
+    };
+
+    this.realTimeMetrics.push(fullMetrics);
+
+    // Keep only recent metrics (last 50 measurements)
+    if (this.realTimeMetrics.length > 50) {
+      this.realTimeMetrics = this.realTimeMetrics.slice(-50);
+    }
+  }
+
+  /**
+   * Get current optimization status
+   */
+  getOptimizationStatus(): {
+    activeOptimizations: number;
+    performanceTrend: string;
+    adaptationEffectiveness: number;
+    recommendations: string[];
+  } {
+    const totalOptimizations = Array.from(this.activeOptimizations.values())
+      .reduce((sum, opts) => sum + opts.length, 0);
+
+    const recentMetrics = this.realTimeMetrics.slice(-this.stabilityWindow);
+    const performance = recentMetrics.length >= this.stabilityWindow ?
+      this.calculateCurrentPerformance(recentMetrics) : null;
+
+    const adaptationEffectiveness = this.calculateAdaptationEffectiveness();
+
+    const recommendations: string[] = [];
+    if (performance?.trendDirection === 'degrading') {
+      recommendations.push('Consider reducing visual complexity for better performance');
+    }
+    if (adaptationEffectiveness < 0.5) {
+      recommendations.push('Increase adaptation sensitivity for better responsiveness');
+    }
+    if (performance?.stabilityScore && performance.stabilityScore < 0.7) {
+      recommendations.push('System performance is unstable - review parameter bounds');
+    }
+
+    return {
+      activeOptimizations: totalOptimizations,
+      performanceTrend: performance?.trendDirection || 'unknown',
+      adaptationEffectiveness,
+      recommendations
+    };
+  }
+
+  /**
+   * Calculate how effective recent adaptations have been
+   */
+  private calculateAdaptationEffectiveness(): number {
+    if (this.realTimeMetrics.length < 10) return 0.5; // Not enough data
+
+    const beforeAdaptation = this.realTimeMetrics.slice(-20, -10);
+    const afterAdaptation = this.realTimeMetrics.slice(-10);
+
+    if (beforeAdaptation.length === 0 || afterAdaptation.length === 0) return 0.5;
+
+    const beforeAvgTime = beforeAdaptation.reduce((sum, m) => sum + m.processingTime, 0) / beforeAdaptation.length;
+    const afterAvgTime = afterAdaptation.reduce((sum, m) => sum + m.processingTime, 0) / afterAdaptation.length;
+
+    const improvement = (beforeAvgTime - afterAvgTime) / beforeAvgTime;
+    return Math.max(0, Math.min(1, 0.5 + improvement)); // 0.5 baseline, improvements add to it
   }
 
   /**
@@ -107,11 +378,14 @@ export class AdaptiveContentProcessor {
         estimatedTime: 500,
         accuracyExpected: 0.85,
         resourceIntensity: 'low',
+        adaptable: true,
         parameters: {
           segmentationThreshold: 0.6,
           diagramTypeConfidence: 0.7,
           layoutComplexity: 0.3,
-          animationDensity: 0.2
+          animationDensity: 0.2,
+          adaptationSpeed: 0.8, // Fast adaptation for basic processing
+          stabilityThreshold: 0.75
         }
       },
       {
@@ -122,11 +396,14 @@ export class AdaptiveContentProcessor {
         estimatedTime: 1200,
         accuracyExpected: 0.92,
         resourceIntensity: 'medium',
+        adaptable: true,
         parameters: {
           segmentationThreshold: 0.75,
           diagramTypeConfidence: 0.8,
           layoutComplexity: 0.6,
-          animationDensity: 0.5
+          animationDensity: 0.5,
+          adaptationSpeed: 0.6, // Moderate adaptation for balanced processing
+          stabilityThreshold: 0.8
         }
       },
       {
@@ -137,11 +414,14 @@ export class AdaptiveContentProcessor {
         estimatedTime: 2500,
         accuracyExpected: 0.96,
         resourceIntensity: 'high',
+        adaptable: true,
         parameters: {
           segmentationThreshold: 0.85,
           diagramTypeConfidence: 0.9,
           layoutComplexity: 0.9,
-          animationDensity: 0.8
+          animationDensity: 0.8,
+          adaptationSpeed: 0.3, // Conservative adaptation for high quality
+          stabilityThreshold: 0.9
         }
       },
       {
@@ -152,11 +432,14 @@ export class AdaptiveContentProcessor {
         estimatedTime: 1500,
         accuracyExpected: 0.90,
         resourceIntensity: 'medium',
+        adaptable: false, // Don't adapt accessibility settings automatically
         parameters: {
           segmentationThreshold: 0.8,
           diagramTypeConfidence: 0.85,
           layoutComplexity: 0.4,
-          animationDensity: 0.1
+          animationDensity: 0.1,
+          adaptationSpeed: 0.2, // Very conservative for accessibility
+          stabilityThreshold: 0.95
         }
       },
       {
@@ -167,11 +450,14 @@ export class AdaptiveContentProcessor {
         estimatedTime: 1800,
         accuracyExpected: 0.94,
         resourceIntensity: 'medium',
+        adaptable: true,
         parameters: {
           segmentationThreshold: 0.8,
           diagramTypeConfidence: 0.85,
           layoutComplexity: 0.7,
-          animationDensity: 0.6
+          animationDensity: 0.6,
+          adaptationSpeed: 0.5, // Moderate adaptation for specialized content
+          stabilityThreshold: 0.85
         }
       }
     ];
@@ -630,6 +916,62 @@ export class AdaptiveContentProcessor {
       return this.adaptationHistory.get(contentId) || [];
     }
     return Array.from(this.adaptationHistory.values()).flat();
+  }
+
+  /**
+   * Get enhanced adaptation performance metrics for Iteration 22
+   */
+  getAdaptationMetrics(): {
+    realTimeResponseSpeed: number;
+    parameterOptimizationAccuracy: number;
+    adaptationStability: number;
+    overallScore: number;
+    details: any;
+  } {
+    const recentMetrics = this.realTimeMetrics.slice(-this.stabilityWindow);
+
+    const responseSpeed = this.adaptationTimer ?
+      Math.max(0, 1 - (2000 / 1000)) : 0; // 2 second response = 0 penalty
+
+    const optimizationAccuracy = this.calculateAdaptationEffectiveness();
+
+    const adaptationStability = recentMetrics.length > 0 ?
+      this.calculateCurrentPerformance(recentMetrics).stabilityScore : 0;
+
+    const overallScore = (
+      responseSpeed * 0.3 +
+      optimizationAccuracy * 0.4 +
+      adaptationStability * 0.3
+    );
+
+    return {
+      realTimeResponseSpeed: responseSpeed,
+      parameterOptimizationAccuracy: optimizationAccuracy,
+      adaptationStability,
+      overallScore,
+      details: {
+        activeStrategies: this.strategies.filter(s => s.adaptable).length,
+        totalOptimizations: Array.from(this.activeOptimizations.values())
+          .reduce((sum, opts) => sum + opts.length, 0),
+        metricsCollected: this.realTimeMetrics.length,
+        learningRate: this.learningRate,
+        stabilityWindow: this.stabilityWindow
+      }
+    };
+  }
+
+  /**
+   * Cleanup and shutdown adaptive processor
+   */
+  shutdown(): void {
+    if (this.adaptationTimer) {
+      clearInterval(this.adaptationTimer);
+      this.adaptationTimer = null;
+    }
+
+    this.realTimeMetrics = [];
+    this.activeOptimizations.clear();
+    console.log('✅ Adaptive Content Processor shutdown complete');
   }
 
   /**

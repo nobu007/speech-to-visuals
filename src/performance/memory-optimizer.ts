@@ -1,6 +1,7 @@
 /**
- * Memory Optimization Engine - Iteration 10
- * Advanced memory management with streaming processing and efficient data structures
+ * Memory Optimization Engine - Iteration 22
+ * Ultra-advanced memory management with intelligent cleanup, object pooling,
+ * and predictive garbage collection for maximum performance
  */
 
 export interface MemoryUsage {
@@ -16,6 +17,8 @@ export interface StreamingConfig {
   maxBufferSize: number;
   compressionLevel: number;
   enableGC: boolean;
+  adaptiveChunking: boolean;
+  memoryThreshold: number;
 }
 
 export interface MemoryPool<T> {
@@ -30,13 +33,196 @@ export class MemoryOptimizer {
   private memoryHistory: MemoryUsage[] = [];
   private objectPools: Map<string, MemoryPool<any>> = new Map();
   private streamingConfigs: Map<string, StreamingConfig> = new Map();
-  private gcThreshold: number = 100 * 1024 * 1024; // 100MB
+  private gcThreshold: number = 50 * 1024 * 1024; // 50MB (reduced for better performance)
   private lastGC: number = Date.now();
+  private gcTimer: NodeJS.Timer | null = null;
+  private memoryPressureLevel: 'low' | 'medium' | 'high' = 'low';
+  private adaptiveCleanupEnabled = true;
+  private performanceMetrics = {
+    gcTriggers: 0,
+    poolHits: 0,
+    poolMisses: 0,
+    cleanupCycles: 0,
+    memoryReclaimed: 0
+  };
 
   constructor() {
-    console.log('🧠 Memory Optimizer initialized');
+    console.log('🧠 Enhanced Memory Optimizer initialized');
     this.initializeObjectPools();
     this.startMemoryMonitoring();
+    this.startAdaptiveCleanup();
+  }
+
+  /**
+   * Start adaptive cleanup system for proactive memory management
+   */
+  private startAdaptiveCleanup(): void {
+    if (this.gcTimer) return;
+
+    this.gcTimer = setInterval(() => {
+      if (this.adaptiveCleanupEnabled) {
+        this.performAdaptiveCleanup();
+      }
+    }, 30000); // Every 30 seconds
+  }
+
+  /**
+   * Adaptive cleanup based on memory pressure and usage patterns
+   */
+  private async performAdaptiveCleanup(): Promise<void> {
+    const currentMemory = this.getCurrentMemoryUsage();
+    this.updateMemoryPressureLevel(currentMemory);
+
+    // Adaptive cleanup based on pressure level
+    switch (this.memoryPressureLevel) {
+      case 'high':
+        await this.aggressiveCleanup();
+        break;
+      case 'medium':
+        await this.moderateCleanup();
+        break;
+      case 'low':
+        await this.gentleCleanup();
+        break;
+    }
+
+    this.performanceMetrics.cleanupCycles++;
+  }
+
+  /**
+   * Update memory pressure level based on current usage
+   */
+  private updateMemoryPressureLevel(usage: MemoryUsage): void {
+    const pressureRatio = usage.heapUsed / usage.heapTotal;
+
+    if (pressureRatio > 0.8) {
+      this.memoryPressureLevel = 'high';
+    } else if (pressureRatio > 0.6) {
+      this.memoryPressureLevel = 'medium';
+    } else {
+      this.memoryPressureLevel = 'low';
+    }
+  }
+
+  /**
+   * Aggressive cleanup for high memory pressure
+   */
+  private async aggressiveCleanup(): Promise<void> {
+    console.log('🔥 Performing aggressive memory cleanup');
+    const beforeMemory = this.getCurrentMemoryUsage().heapUsed;
+
+    // Clear all object pools
+    for (const [poolName, pool] of this.objectPools.entries()) {
+      pool.available = [];
+      pool.inUse.clear();
+    }
+
+    // Trigger immediate garbage collection if available
+    if (global.gc) {
+      global.gc();
+      this.performanceMetrics.gcTriggers++;
+    }
+
+    // Clear old memory history
+    this.memoryHistory = this.memoryHistory.slice(-10);
+
+    const afterMemory = this.getCurrentMemoryUsage().heapUsed;
+    this.performanceMetrics.memoryReclaimed += Math.max(0, beforeMemory - afterMemory);
+  }
+
+  /**
+   * Moderate cleanup for medium memory pressure
+   */
+  private async moderateCleanup(): Promise<void> {
+    console.log('⚡ Performing moderate memory cleanup');
+    const beforeMemory = this.getCurrentMemoryUsage().heapUsed;
+
+    // Reduce object pool sizes by 50%
+    for (const [poolName, pool] of this.objectPools.entries()) {
+      const halfSize = Math.floor(pool.available.length / 2);
+      pool.available = pool.available.slice(0, halfSize);
+    }
+
+    // Clear old memory history (keep more than aggressive)
+    this.memoryHistory = this.memoryHistory.slice(-20);
+
+    const afterMemory = this.getCurrentMemoryUsage().heapUsed;
+    this.performanceMetrics.memoryReclaimed += Math.max(0, beforeMemory - afterMemory);
+  }
+
+  /**
+   * Gentle cleanup for low memory pressure
+   */
+  private async gentleCleanup(): Promise<void> {
+    // Only clean up truly old entries
+    this.memoryHistory = this.memoryHistory.slice(-50);
+
+    // Clean up unused pool objects (keep minimum)
+    for (const [poolName, pool] of this.objectPools.entries()) {
+      const minSize = Math.floor(pool.maxSize * 0.1);
+      if (pool.available.length > minSize) {
+        pool.available = pool.available.slice(0, minSize);
+      }
+    }
+  }
+
+  /**
+   * Predictive garbage collection based on usage patterns
+   */
+  private predictiveGC(): void {
+    const now = Date.now();
+    const timeSinceLastGC = now - this.lastGC;
+    const currentMemory = this.getCurrentMemoryUsage();
+
+    // Predict if GC is needed based on trends
+    if (this.memoryHistory.length >= 3) {
+      const recentUsage = this.memoryHistory.slice(-3);
+      const growthRate = (recentUsage[2].heapUsed - recentUsage[0].heapUsed) / 2;
+
+      // If memory is growing rapidly, trigger GC proactively
+      if (growthRate > 10 * 1024 * 1024 && // Growing more than 10MB per sample
+          timeSinceLastGC > 60000 && // At least 1 minute since last GC
+          currentMemory.heapUsed > this.gcThreshold) {
+
+        if (global.gc) {
+          console.log('🔮 Predictive garbage collection triggered');
+          global.gc();
+          this.lastGC = now;
+          this.performanceMetrics.gcTriggers++;
+        }
+      }
+    }
+  }
+
+  /**
+   * Enhanced object pool management with adaptive sizing
+   */
+  private optimizeObjectPools(): void {
+    for (const [poolName, pool] of this.objectPools.entries()) {
+      const hitRate = this.performanceMetrics.poolHits /
+        (this.performanceMetrics.poolHits + this.performanceMetrics.poolMisses);
+
+      // Adjust pool size based on hit rate
+      if (hitRate > 0.8 && pool.available.length < pool.maxSize) {
+        // High hit rate: increase pool size
+        const newSize = Math.min(pool.maxSize, pool.available.length + 10);
+        this.expandPool(pool, newSize);
+      } else if (hitRate < 0.3 && pool.available.length > 10) {
+        // Low hit rate: decrease pool size
+        const newSize = Math.max(10, pool.available.length - 5);
+        pool.available = pool.available.slice(0, newSize);
+      }
+    }
+  }
+
+  /**
+   * Expand object pool to target size
+   */
+  private expandPool<T>(pool: MemoryPool<T>, targetSize: number): void {
+    while (pool.available.length < targetSize) {
+      const newItem = pool.factory();
+      pool.available.push(newItem);
+    }
   }
 
   /**
@@ -107,7 +293,7 @@ export class MemoryOptimizer {
   }
 
   /**
-   * Get object from pool or create new one
+   * Get object from pool or create new one with enhanced tracking
    */
   getPooledObject<T>(poolName: string): T {
     const pool = this.objectPools.get(poolName) as MemoryPool<T>;
@@ -119,11 +305,20 @@ export class MemoryOptimizer {
 
     if (pool.available.length > 0) {
       item = pool.available.pop()!;
+      this.performanceMetrics.poolHits++;
     } else {
       item = pool.factory();
+      this.performanceMetrics.poolMisses++;
     }
 
     pool.inUse.add(item);
+
+    // Trigger optimization if pool utilization is high
+    const utilization = pool.inUse.size / (pool.inUse.size + pool.available.length);
+    if (utilization > 0.9) {
+      this.optimizeObjectPools();
+    }
+
     return item;
   }
 
@@ -196,6 +391,8 @@ export class MemoryOptimizer {
       maxBufferSize: 1000,
       compressionLevel: 1,
       enableGC: true,
+      adaptiveChunking: true,
+      memoryThreshold: 75 * 1024 * 1024, // 75MB
       ...config
     };
 
@@ -346,7 +543,7 @@ export class MemoryOptimizer {
   }
 
   /**
-   * Monitor memory usage trends
+   * Monitor memory usage trends with predictive analysis
    */
   private startMemoryMonitoring(): void {
     setInterval(() => {
@@ -358,9 +555,17 @@ export class MemoryOptimizer {
         this.memoryHistory.shift();
       }
 
+      // Trigger predictive GC analysis
+      this.predictiveGC();
+
       // Trigger optimization if memory usage is high
       if (usage.heapUsed > this.gcThreshold) {
         this.performMemoryOptimization();
+      }
+
+      // Optimize object pools periodically
+      if (this.memoryHistory.length % 6 === 0) { // Every minute
+        this.optimizeObjectPools();
       }
 
     }, 10000); // Every 10 seconds
@@ -474,10 +679,58 @@ export class MemoryOptimizer {
   }
 
   /**
+   * Get enhanced performance metrics for Iteration 22
+   */
+  getEnhancedMetrics(): {
+    memoryEfficiency: number;
+    poolPerformance: number;
+    gcEffectiveness: number;
+    overallScore: number;
+    details: any;
+  } {
+    const currentUsage = this.getCurrentMemoryUsage();
+    const memoryEfficiency = Math.max(0, 1 - (currentUsage.heapUsed / (100 * 1024 * 1024)));
+
+    const totalPoolOperations = this.performanceMetrics.poolHits + this.performanceMetrics.poolMisses;
+    const poolPerformance = totalPoolOperations > 0 ?
+      this.performanceMetrics.poolHits / totalPoolOperations : 0;
+
+    const gcEffectiveness = this.performanceMetrics.memoryReclaimed > 0 ?
+      Math.min(1, this.performanceMetrics.memoryReclaimed / (50 * 1024 * 1024)) : 0;
+
+    const overallScore = (
+      memoryEfficiency * 0.4 +
+      poolPerformance * 0.3 +
+      gcEffectiveness * 0.3
+    );
+
+    return {
+      memoryEfficiency,
+      poolPerformance,
+      gcEffectiveness,
+      overallScore,
+      details: {
+        memoryPressure: this.memoryPressureLevel,
+        cleanupCycles: this.performanceMetrics.cleanupCycles,
+        gcTriggers: this.performanceMetrics.gcTriggers,
+        memoryReclaimed: this.performanceMetrics.memoryReclaimed,
+        poolHitRate: poolPerformance,
+        currentMemoryMB: Math.round(currentUsage.heapUsed / 1024 / 1024)
+      }
+    };
+  }
+
+  /**
    * Cleanup and shutdown
    */
   async shutdown(): Promise<void> {
     console.log('🔄 Shutting down memory optimizer...');
+
+    // Clear adaptive cleanup timer
+    if (this.gcTimer) {
+      clearInterval(this.gcTimer);
+      this.gcTimer = null;
+    }
 
     // Clean up all object pools
     this.objectPools.forEach(pool => {

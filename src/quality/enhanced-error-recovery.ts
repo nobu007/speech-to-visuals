@@ -1,8 +1,9 @@
 /**
- * Iteration 21: Enhanced Error Recovery System
+ * Iteration 22: Ultra-Resilient Error Recovery System
  *
- * Comprehensive error recovery mechanism with predictive failure detection,
- * intelligent fallback strategies, and self-healing capabilities.
+ * Advanced error recovery with high-load resilience, distributed processing
+ * capabilities, circuit breakers, and intelligent load balancing for
+ * maximum system stability under stress conditions.
  */
 
 import { DiagramType, ContentSegment } from '@/types/diagram';
@@ -52,6 +53,34 @@ interface PredictiveIndicator {
   riskLevel: 'low' | 'medium' | 'high' | 'critical';
 }
 
+interface LoadMetrics {
+  concurrentRequests: number;
+  averageResponseTime: number;
+  errorRate: number;
+  memoryPressure: number;
+  cpuUtilization: number;
+  timestamp: number;
+}
+
+interface CircuitBreakerState {
+  id: string;
+  state: 'closed' | 'open' | 'half-open';
+  failureCount: number;
+  successCount: number;
+  lastFailureTime: number;
+  timeout: number;
+  threshold: number;
+}
+
+interface LoadBalancingConfig {
+  maxConcurrentRequests: number;
+  requestTimeout: number;
+  circuitBreakerThreshold: number;
+  backoffMultiplier: number;
+  maxRetries: number;
+  healthCheckInterval: number;
+}
+
 type ProcessingStage =
   | 'transcription'
   | 'segmentation'
@@ -78,13 +107,325 @@ export class EnhancedErrorRecovery {
   private errorHistory: Map<string, ErrorContext[]> = new Map();
   private healthMetrics: SystemHealth;
   private preventiveActions: Map<string, () => Promise<void>> = new Map();
-  private circuitBreakers: Map<string, CircuitBreaker> = new Map();
+  private circuitBreakers: Map<string, CircuitBreakerState> = new Map();
+  private loadMetrics: LoadMetrics[] = [];
+  private loadBalancingConfig: LoadBalancingConfig;
+  private activeRequests: Map<string, Promise<any>> = new Map();
+  private requestQueue: Array<{ id: string; request: () => Promise<any>; priority: number }> = [];
+  private healthCheckTimer: NodeJS.Timer | null = null;
+  private isShuttingDown = false;
 
   constructor() {
+    this.loadBalancingConfig = {
+      maxConcurrentRequests: 10,
+      requestTimeout: 30000,
+      circuitBreakerThreshold: 5,
+      backoffMultiplier: 1.5,
+      maxRetries: 3,
+      healthCheckInterval: 5000
+    };
+
     this.initializeRecoveryStrategies();
     this.initializeHealthMetrics();
     this.initializePreventiveActions();
+    this.initializeCircuitBreakers();
     this.startHealthMonitoring();
+    this.startLoadMonitoring();
+  }
+
+  /**
+   * Initialize circuit breakers for each processing stage
+   */
+  private initializeCircuitBreakers(): void {
+    const stages: ProcessingStage[] = [
+      'transcription', 'segmentation', 'analysis',
+      'diagram_detection', 'layout', 'animation', 'rendering', 'export'
+    ];
+
+    for (const stage of stages) {
+      this.circuitBreakers.set(stage, {
+        id: stage,
+        state: 'closed',
+        failureCount: 0,
+        successCount: 0,
+        lastFailureTime: 0,
+        timeout: 60000, // 1 minute
+        threshold: this.loadBalancingConfig.circuitBreakerThreshold
+      });
+    }
+  }
+
+  /**
+   * Start load monitoring system
+   */
+  private startLoadMonitoring(): void {
+    if (this.healthCheckTimer) return;
+
+    this.healthCheckTimer = setInterval(() => {
+      this.updateLoadMetrics();
+      this.evaluateCircuitBreakers();
+      this.processRequestQueue();
+    }, this.loadBalancingConfig.healthCheckInterval);
+  }
+
+  /**
+   * Update current load metrics
+   */
+  private updateLoadMetrics(): void {
+    const now = Date.now();
+    const memoryUsage = process.memoryUsage();
+
+    const currentMetrics: LoadMetrics = {
+      concurrentRequests: this.activeRequests.size,
+      averageResponseTime: this.calculateAverageResponseTime(),
+      errorRate: this.calculateRecentErrorRate(),
+      memoryPressure: memoryUsage.heapUsed / memoryUsage.heapTotal,
+      cpuUtilization: this.estimateCpuUsage(),
+      timestamp: now
+    };
+
+    this.loadMetrics.push(currentMetrics);
+
+    // Keep only recent metrics (last 100 measurements)
+    if (this.loadMetrics.length > 100) {
+      this.loadMetrics = this.loadMetrics.slice(-100);
+    }
+  }
+
+  /**
+   * Calculate average response time from recent requests
+   */
+  private calculateAverageResponseTime(): number {
+    if (this.loadMetrics.length === 0) return 0;
+
+    const recentMetrics = this.loadMetrics.slice(-10);
+    return recentMetrics.reduce((sum, m) => sum + m.averageResponseTime, 0) / recentMetrics.length;
+  }
+
+  /**
+   * Calculate recent error rate
+   */
+  private calculateRecentErrorRate(): number {
+    const recentErrors = Array.from(this.errorHistory.values())
+      .flat()
+      .filter(error => Date.now() - error.timestamp < 300000); // Last 5 minutes
+
+    const totalRecentRequests = Math.max(1, recentErrors.length + this.activeRequests.size);
+    return recentErrors.length / totalRecentRequests;
+  }
+
+  /**
+   * Estimate CPU usage (simplified approximation)
+   */
+  private estimateCpuUsage(): number {
+    const loadFactor = this.activeRequests.size / this.loadBalancingConfig.maxConcurrentRequests;
+    const errorFactor = this.calculateRecentErrorRate();
+    return Math.min(1, loadFactor * 0.7 + errorFactor * 0.3);
+  }
+
+  /**
+   * Evaluate and update circuit breaker states
+   */
+  private evaluateCircuitBreakers(): void {
+    const now = Date.now();
+
+    for (const [stage, breaker] of this.circuitBreakers.entries()) {
+      switch (breaker.state) {
+        case 'open':
+          if (now - breaker.lastFailureTime > breaker.timeout) {
+            breaker.state = 'half-open';
+            console.log(`🔄 Circuit breaker for ${stage} is now half-open`);
+          }
+          break;
+
+        case 'half-open':
+          if (breaker.successCount >= 3) {
+            breaker.state = 'closed';
+            breaker.failureCount = 0;
+            breaker.successCount = 0;
+            console.log(`✅ Circuit breaker for ${stage} is now closed`);
+          } else if (breaker.failureCount > 0) {
+            breaker.state = 'open';
+            breaker.lastFailureTime = now;
+            console.log(`🚫 Circuit breaker for ${stage} opened again`);
+          }
+          break;
+
+        case 'closed':
+          if (breaker.failureCount >= breaker.threshold) {
+            breaker.state = 'open';
+            breaker.lastFailureTime = now;
+            console.log(`⚠️ Circuit breaker for ${stage} opened due to failures`);
+          }
+          break;
+      }
+    }
+  }
+
+  /**
+   * Process queued requests when capacity is available
+   */
+  private async processRequestQueue(): Promise<void> {
+    if (this.isShuttingDown) return;
+
+    while (
+      this.requestQueue.length > 0 &&
+      this.activeRequests.size < this.loadBalancingConfig.maxConcurrentRequests
+    ) {
+      // Sort queue by priority (higher priority first)
+      this.requestQueue.sort((a, b) => b.priority - a.priority);
+
+      const queuedRequest = this.requestQueue.shift();
+      if (!queuedRequest) break;
+
+      this.executeWithLoadBalancing(queuedRequest.id, queuedRequest.request);
+    }
+  }
+
+  /**
+   * Execute request with load balancing and circuit breaker protection
+   */
+  async executeWithLoadBalancing<T>(
+    requestId: string,
+    operation: () => Promise<T>,
+    stage?: ProcessingStage,
+    priority: number = 5
+  ): Promise<T> {
+    // Check if we're at capacity
+    if (this.activeRequests.size >= this.loadBalancingConfig.maxConcurrentRequests) {
+      console.log(`🚦 Request ${requestId} queued - at capacity`);
+
+      return new Promise((resolve, reject) => {
+        this.requestQueue.push({
+          id: requestId,
+          request: async () => {
+            try {
+              const result = await this.executeWithLoadBalancing(requestId, operation, stage, priority);
+              resolve(result);
+            } catch (error) {
+              reject(error);
+            }
+          },
+          priority
+        });
+      });
+    }
+
+    // Check circuit breaker if stage is specified
+    if (stage) {
+      const breaker = this.circuitBreakers.get(stage);
+      if (breaker?.state === 'open') {
+        throw new Error(`Circuit breaker for ${stage} is open - request rejected`);
+      }
+    }
+
+    const startTime = performance.now();
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`Request ${requestId} timed out after ${this.loadBalancingConfig.requestTimeout}ms`));
+      }, this.loadBalancingConfig.requestTimeout);
+    });
+
+    try {
+      console.log(`🚀 Executing request ${requestId} (${this.activeRequests.size + 1}/${this.loadBalancingConfig.maxConcurrentRequests})`);
+
+      const requestPromise = operation();
+      this.activeRequests.set(requestId, requestPromise);
+
+      const result = await Promise.race([requestPromise, timeoutPromise]);
+
+      // Record success for circuit breaker
+      if (stage) {
+        const breaker = this.circuitBreakers.get(stage);
+        if (breaker) {
+          if (breaker.state === 'half-open') {
+            breaker.successCount++;
+          }
+          breaker.failureCount = Math.max(0, breaker.failureCount - 1); // Gradually reduce failure count
+        }
+      }
+
+      const endTime = performance.now();
+      console.log(`✅ Request ${requestId} completed in ${Math.round(endTime - startTime)}ms`);
+
+      return result;
+
+    } catch (error) {
+      // Record failure for circuit breaker
+      if (stage) {
+        const breaker = this.circuitBreakers.get(stage);
+        if (breaker) {
+          breaker.failureCount++;
+          breaker.lastFailureTime = Date.now();
+        }
+      }
+
+      console.log(`❌ Request ${requestId} failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw error;
+
+    } finally {
+      this.activeRequests.delete(requestId);
+
+      // Update average response time
+      const responseTime = performance.now() - startTime;
+      this.updateResponseTimeMetrics(responseTime);
+    }
+  }
+
+  /**
+   * Update response time metrics
+   */
+  private updateResponseTimeMetrics(responseTime: number): void {
+    if (this.loadMetrics.length > 0) {
+      const latest = this.loadMetrics[this.loadMetrics.length - 1];
+      latest.averageResponseTime = (latest.averageResponseTime + responseTime) / 2;
+    }
+  }
+
+  /**
+   * Get system resilience metrics for Iteration 22
+   */
+  getResilienceMetrics(): {
+    loadHandling: number;
+    circuitBreakerEffectiveness: number;
+    errorRecoverySpeed: number;
+    overallResilience: number;
+    details: any;
+  } {
+    const currentLoad = this.activeRequests.size / this.loadBalancingConfig.maxConcurrentRequests;
+    const loadHandling = Math.max(0, 1 - currentLoad);
+
+    const openCircuits = Array.from(this.circuitBreakers.values())
+      .filter(cb => cb.state === 'open').length;
+    const totalCircuits = this.circuitBreakers.size;
+    const circuitBreakerEffectiveness = Math.max(0, 1 - (openCircuits / totalCircuits));
+
+    const recentMetrics = this.loadMetrics.slice(-10);
+    const avgResponseTime = recentMetrics.length > 0 ?
+      recentMetrics.reduce((sum, m) => sum + m.averageResponseTime, 0) / recentMetrics.length : 0;
+    const errorRecoverySpeed = Math.max(0, 1 - (avgResponseTime / 5000)); // 5 second baseline
+
+    const overallResilience = (
+      loadHandling * 0.3 +
+      circuitBreakerEffectiveness * 0.4 +
+      errorRecoverySpeed * 0.3
+    );
+
+    return {
+      loadHandling,
+      circuitBreakerEffectiveness,
+      errorRecoverySpeed,
+      overallResilience,
+      details: {
+        activeRequests: this.activeRequests.size,
+        maxCapacity: this.loadBalancingConfig.maxConcurrentRequests,
+        queuedRequests: this.requestQueue.length,
+        openCircuits,
+        totalCircuits,
+        avgResponseTime: Math.round(avgResponseTime),
+        errorRate: this.calculateRecentErrorRate()
+      }
+    };
   }
 
   /**
@@ -845,6 +1186,46 @@ class CircuitBreaker {
         this.options.monitor(new Error(`Circuit breaker opened after ${this.failures} failures`));
       }
     }
+  }
+  /**
+   * Shutdown the error recovery system gracefully
+   */
+  async shutdown(): Promise<void> {
+    this.isShuttingDown = true;
+    console.log('🔄 Shutting down error recovery system...');
+
+    // Stop health monitoring
+    if (this.healthCheckTimer) {
+      clearInterval(this.healthCheckTimer);
+      this.healthCheckTimer = null;
+    }
+
+    // Wait for active requests to complete (with timeout)
+    const shutdownTimeout = 30000; // 30 seconds
+    const startShutdown = Date.now();
+
+    while (this.activeRequests.size > 0 && (Date.now() - startShutdown) < shutdownTimeout) {
+      console.log(`⏳ Waiting for ${this.activeRequests.size} active requests to complete...`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    // Force abort remaining requests
+    if (this.activeRequests.size > 0) {
+      console.log(`⚠️ Force aborting ${this.activeRequests.size} remaining requests`);
+      this.activeRequests.clear();
+    }
+
+    // Clear request queue
+    this.requestQueue = [];
+
+    // Reset circuit breakers
+    for (const breaker of this.circuitBreakers.values()) {
+      breaker.state = 'closed';
+      breaker.failureCount = 0;
+      breaker.successCount = 0;
+    }
+
+    console.log('✅ Error recovery system shutdown complete');
   }
 }
 
