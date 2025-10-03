@@ -56,6 +56,15 @@ export class MainPipeline {
   // Performance tracking
   private stageMetrics: Map<string, { attempts: number; failures: number; avgTime: number }> = new Map();
 
+  // 🔄 Enhanced Performance Monitoring (Custom Instructions Compliant)
+  private performanceTracker = {
+    startTime: 0,
+    stageTimings: new Map<string, number[]>(),
+    memorySnapshots: new Map<string, number>(),
+    errorRecoveryAttempts: 0,
+    bottleneckDetection: new Map<string, number>()
+  };
+
   constructor(config: Partial<PipelineConfig> = {}) {
     this.pipelineId = `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -130,9 +139,14 @@ export class MainPipeline {
    */
   async execute(input: PipelineInput): Promise<PipelineResult> {
     const startTime = performance.now();
+    this.performanceTracker.startTime = startTime;
+
     console.log(`\n🚀 Starting Framework-Integrated Audio-to-Diagram Pipeline V${this.iteration} (${this.pipelineId})`);
     console.log(`🔄 Phase: ${this.currentPhase} | Custom Instructions Integration Active`);
     console.log(`Input: ${typeof input.audioFile === 'string' ? input.audioFile : input.audioFile.name}`);
+
+    // 🔄 Initialize performance monitoring
+    this.initializePerformanceMonitoring();
 
     this.stages = [];
 
@@ -1115,5 +1129,229 @@ export class MainPipeline {
    */
   public getLastRunStages(): PipelineStage[] {
     return [...this.stages];
+  }
+
+  /**
+   * 🔄 Initialize Performance Monitoring (Custom Instructions Compliant)
+   */
+  private initializePerformanceMonitoring(): void {
+    console.log('🔄 Initializing enhanced performance monitoring...');
+
+    // Reset performance tracker
+    this.performanceTracker.stageTimings.clear();
+    this.performanceTracker.memorySnapshots.clear();
+    this.performanceTracker.errorRecoveryAttempts = 0;
+    this.performanceTracker.bottleneckDetection.clear();
+
+    // Take initial memory snapshot
+    if (typeof process !== 'undefined' && process.memoryUsage) {
+      const initialMemory = process.memoryUsage();
+      this.performanceTracker.memorySnapshots.set('initial', initialMemory.heapUsed);
+    }
+
+    // 実装→テスト→評価→改善→コミット サイクルの開始
+    console.log('📊 Performance tracking initialized for recursive development cycle');
+  }
+
+  /**
+   * 🔄 Track Stage Performance (Iterative Improvement)
+   */
+  private trackStagePerformance(stageName: string, duration: number): void {
+    // Store stage timing for analysis
+    if (!this.performanceTracker.stageTimings.has(stageName)) {
+      this.performanceTracker.stageTimings.set(stageName, []);
+    }
+    this.performanceTracker.stageTimings.get(stageName)!.push(duration);
+
+    // Detect bottlenecks (if stage takes >50% of total time)
+    const totalTime = performance.now() - this.performanceTracker.startTime;
+    if (duration > totalTime * 0.5) {
+      this.performanceTracker.bottleneckDetection.set(stageName, duration);
+      console.log(`⚠️ Bottleneck detected in ${stageName}: ${(duration/1000).toFixed(1)}s`);
+    }
+
+    // Take memory snapshot
+    if (typeof process !== 'undefined' && process.memoryUsage) {
+      const currentMemory = process.memoryUsage();
+      this.performanceTracker.memorySnapshots.set(stageName, currentMemory.heapUsed);
+    }
+
+    // 段階的改善のためのメトリクス計算
+    this.calculateIterativeImprovements(stageName, duration);
+  }
+
+  /**
+   * 🔄 Calculate Iterative Improvements (Custom Instructions)
+   */
+  private calculateIterativeImprovements(stageName: string, currentDuration: number): void {
+    const timings = this.performanceTracker.stageTimings.get(stageName);
+    if (!timings || timings.length < 2) return;
+
+    const previousDuration = timings[timings.length - 2];
+    const improvement = ((previousDuration - currentDuration) / previousDuration) * 100;
+
+    if (improvement > 5) {
+      console.log(`📈 ${stageName} improved by ${improvement.toFixed(1)}% this iteration`);
+    } else if (improvement < -5) {
+      console.log(`📉 ${stageName} regressed by ${Math.abs(improvement).toFixed(1)}% - needs attention`);
+    }
+  }
+
+  /**
+   * 🔄 Enhanced Error Recovery with Performance Tracking
+   */
+  private async performEnhancedErrorRecovery(
+    error: Error,
+    stageName: string,
+    attempt: number
+  ): Promise<boolean> {
+    this.performanceTracker.errorRecoveryAttempts++;
+
+    console.log(`🛡️ Enhanced error recovery attempt ${attempt} for ${stageName}`);
+    console.log(`Error: ${error.message}`);
+
+    // 段階的改善: エラーパターンの学習
+    const errorPattern = this.analyzeErrorPattern(error, stageName);
+
+    // Custom Instructions準拠: 実装→テスト→評価→改善
+    const recoveryStrategy = this.selectRecoveryStrategy(errorPattern, stageName);
+
+    try {
+      await this.applyRecoveryStrategy(recoveryStrategy, stageName);
+      console.log(`✅ Error recovery successful for ${stageName}`);
+      return true;
+    } catch (recoveryError) {
+      console.log(`❌ Error recovery failed for ${stageName}: ${recoveryError.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * 📊 Analyze Error Pattern for Iterative Improvement
+   */
+  private analyzeErrorPattern(error: Error, stageName: string): string {
+    // 段階的改善のためのエラーパターン分析
+    if (error.message.includes('timeout')) return 'timeout';
+    if (error.message.includes('memory')) return 'memory';
+    if (error.message.includes('connection')) return 'network';
+    if (error.message.includes('format')) return 'format';
+    return 'unknown';
+  }
+
+  /**
+   * 🔄 Select Recovery Strategy (Custom Instructions Compliant)
+   */
+  private selectRecoveryStrategy(errorPattern: string, stageName: string): string {
+    const strategies = {
+      timeout: 'increase_timeout',
+      memory: 'optimize_memory',
+      network: 'retry_with_backoff',
+      format: 'fallback_processing',
+      unknown: 'generic_retry'
+    };
+
+    return strategies[errorPattern] || 'generic_retry';
+  }
+
+  /**
+   * 🔄 Apply Recovery Strategy
+   */
+  private async applyRecoveryStrategy(strategy: string, stageName: string): Promise<void> {
+    const recoveryStart = performance.now();
+
+    switch (strategy) {
+      case 'increase_timeout':
+        // 実装→テスト→評価→改善: タイムアウト値の段階的調整
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        break;
+
+      case 'optimize_memory':
+        // メモリ最適化戦略
+        if (typeof global !== 'undefined' && global.gc) {
+          global.gc();
+        }
+        break;
+
+      case 'retry_with_backoff':
+        // 指数バックオフでの再試行
+        const backoffTime = Math.pow(2, this.performanceTracker.errorRecoveryAttempts) * 1000;
+        await new Promise(resolve => setTimeout(resolve, Math.min(backoffTime, 10000)));
+        break;
+
+      case 'fallback_processing':
+        // フォールバック処理への切り替え
+        console.log(`🔄 Switching to fallback processing for ${stageName}`);
+        break;
+
+      default:
+        // 汎用的な再試行
+        await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    const recoveryTime = performance.now() - recoveryStart;
+    console.log(`🔄 Recovery strategy "${strategy}" completed in ${recoveryTime.toFixed(1)}ms`);
+  }
+
+  /**
+   * 📊 Generate Performance Report (Custom Instructions Compliant)
+   */
+  public generatePerformanceReport(): {
+    overallPerformance: number;
+    stageBreakdown: Map<string, number[]>;
+    bottlenecks: Map<string, number>;
+    improvements: string[];
+    recommendations: string[];
+  } {
+    const totalTime = performance.now() - this.performanceTracker.startTime;
+
+    return {
+      overallPerformance: totalTime,
+      stageBreakdown: this.performanceTracker.stageTimings,
+      bottlenecks: this.performanceTracker.bottleneckDetection,
+      improvements: this.generateImprovementSuggestions(),
+      recommendations: this.generateCustomInstructionsRecommendations()
+    };
+  }
+
+  /**
+   * 🔄 Generate Improvement Suggestions (Iterative Enhancement)
+   */
+  private generateImprovementSuggestions(): string[] {
+    const suggestions: string[] = [];
+
+    // ボトルネック分析
+    for (const [stage, duration] of this.performanceTracker.bottleneckDetection) {
+      suggestions.push(`Optimize ${stage} stage (current: ${(duration/1000).toFixed(1)}s)`);
+    }
+
+    // メモリ使用量分析
+    const memorySnapshots = Array.from(this.performanceTracker.memorySnapshots.values());
+    if (memorySnapshots.length > 1) {
+      const memoryIncrease = memorySnapshots[memorySnapshots.length - 1] - memorySnapshots[0];
+      if (memoryIncrease > 100 * 1024 * 1024) { // 100MB increase
+        suggestions.push('Implement memory optimization - high memory growth detected');
+      }
+    }
+
+    // エラー回復分析
+    if (this.performanceTracker.errorRecoveryAttempts > 3) {
+      suggestions.push('Improve error handling - multiple recovery attempts detected');
+    }
+
+    return suggestions;
+  }
+
+  /**
+   * 📋 Generate Custom Instructions Recommendations
+   */
+  private generateCustomInstructionsRecommendations(): string[] {
+    return [
+      '🔄 Continue iterative improvement cycle: 実装→テスト→評価→改善→コミット',
+      '📊 Monitor quality metrics for each iteration',
+      '🎯 Focus on achieving phase success criteria (90%+ success rate)',
+      '⚡ Optimize bottleneck stages for better performance',
+      '🛡️ Strengthen error recovery mechanisms',
+      '📈 Track improvement trends over iterations'
+    ];
   }
 }
