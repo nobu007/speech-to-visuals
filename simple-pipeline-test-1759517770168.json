@@ -1,0 +1,34 @@
+{
+  "timestamp": "2025-10-03T18:56:10.168Z",
+  "success": true,
+  "processingTime": 1002.058803,
+  "sceneCount": 4,
+  "diagramCount": 4,
+  "testData": {
+    "input": {
+      "audioFile": "test-audio.wav",
+      "config": {
+        "transcription": {
+          "model": "base",
+          "language": "en"
+        },
+        "analysis": {
+          "minSegmentLengthMs": 3000,
+          "confidenceThreshold": 0.7
+        },
+        "layout": {
+          "width": 1920,
+          "height": 1080
+        },
+        "output": {
+          "fps": 30,
+          "includeAudio": true
+        }
+      }
+    },
+    "output": {
+      "scenes": 4,
+      "duration": 20000
+    }
+  }
+}
