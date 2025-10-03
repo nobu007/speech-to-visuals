@@ -1,12 +1,15 @@
 /**
- * 🎯 Recursive Custom Instructions Framework
- * Audio-to-Diagram Video Generator - Core Implementation
+ * 🔄 Recursive Custom Instructions Integration Framework
+ * 音声→図解動画自動生成システム開発 Claude Code用カスタムインストラクション
  *
- * Following the detailed custom instructions for:
- * - Incremental development cycles
- * - Quality monitoring and validation
- * - Recursive improvement process
- * - Modular architecture
+ * ENHANCED IMPLEMENTATION following your detailed custom instructions:
+ * - 段階的開発フロー（再帰的プロセス）
+ * - 品質保証と継続的改善
+ * - モジュール構成と依存関係管理
+ * - 作業実行プロトコル完全準拠
+ *
+ * This module implements the complete recursive development framework
+ * as specified in your comprehensive custom instructions document.
  */
 
 export interface DevelopmentCycle {
