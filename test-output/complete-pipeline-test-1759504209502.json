@@ -1,0 +1,42 @@
+{
+  "phases": {
+    "audioProcessing": {
+      "success": true,
+      "duration": 0.1669760000000018,
+      "segments": 4,
+      "captions": 4,
+      "avgConfidence": 0.915
+    },
+    "contentAnalysis": {
+      "success": true,
+      "duration": 0.18232499999999874,
+      "scenes": 2,
+      "diagramTypes": 2,
+      "relationships": 2
+    },
+    "visualization": {
+      "success": true,
+      "duration": 0.26528199999999913,
+      "nodes": 4,
+      "edges": 4,
+      "animations": 2
+    },
+    "videoGeneration": {
+      "success": true,
+      "duration": 0.323522999999998,
+      "remotionAvailable": true,
+      "compositionReady": true,
+      "renderCommandReady": true
+    },
+    "errorRecovery": {
+      "success": true,
+      "duration": 300.65551,
+      "fallbacksWorking": true,
+      "recoveryWorking": true,
+      "statePreserved": true
+    }
+  },
+  "totalDuration": 303.868844,
+  "success": true,
+  "errors": []
+}

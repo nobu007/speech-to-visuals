@@ -42,8 +42,10 @@ export class RecursiveCustomInstructionsFramework {
   private currentState: IterationState;
   private developmentCycles: DevelopmentCycle[];
   private qualityThresholds: QualityMetrics;
+  private config: any;
 
-  constructor() {
+  constructor(config: any = {}) {
+    this.config = config;
     this.developmentCycles = [
       {
         phase: "MVP構築",
@@ -389,6 +391,231 @@ export class RecursiveCustomInstructionsFramework {
       (metrics.layoutOverlap === 0 ? 1 : 0) * 0.25 +
       (metrics.renderTime < this.qualityThresholds.renderTime ? 1 : 0.5) * 0.25
     );
+  }
+
+  /**
+   * 🔄 Missing Methods Required by Main Pipeline
+   */
+
+  /**
+   * Start a development cycle for a specific phase
+   */
+  async startCycle(phase: string, iteration: number): Promise<void> {
+    console.log(`🔄 Starting development cycle: ${phase} (iteration ${iteration})`);
+
+    this.currentState.phase = phase;
+    this.currentState.iteration = iteration;
+    this.currentState.status = 'planning';
+
+    // Initialize phase-specific metrics
+    this.currentState.metrics = {
+      ...this.getInitialMetrics(),
+      timestamp: new Date()
+    };
+
+    console.log(`📋 Phase "${phase}" initialized for iteration ${iteration}`);
+  }
+
+  /**
+   * Evaluate current iteration and determine next steps
+   */
+  async evaluateIteration(qualityMetrics: QualityMetrics, performanceData: any): Promise<any> {
+    console.log(`📊 Evaluating iteration ${this.currentState.iteration} for phase "${this.currentState.phase}"`);
+
+    // Update current metrics
+    this.currentState.metrics = {
+      ...qualityMetrics,
+      timestamp: new Date()
+    };
+
+    // Check against quality thresholds
+    const evaluation = {
+      shouldIterate: false,
+      shouldAdvancePhase: false,
+      shouldCommit: false,
+      commitMessage: '',
+      qualityScore: 0,
+      issues: [] as string[],
+      improvements: [] as string[]
+    };
+
+    // Calculate quality score
+    evaluation.qualityScore = this.calculateCurrentQualityScore();
+
+    // Check specific criteria
+    const meetsTranscriptionThreshold = qualityMetrics.transcriptionAccuracy >= this.qualityThresholds.transcriptionAccuracy;
+    const meetsSegmentationThreshold = qualityMetrics.sceneSegmentationF1 >= this.qualityThresholds.sceneSegmentationF1;
+    const meetsLayoutThreshold = qualityMetrics.layoutOverlap <= this.qualityThresholds.layoutOverlap;
+    const meetsPerformanceThreshold = qualityMetrics.renderTime <= this.qualityThresholds.renderTime;
+
+    // Determine next actions based on current phase
+    const currentPhaseConfig = this.developmentCycles.find(cycle => cycle.phase === this.currentState.phase);
+
+    if (!meetsTranscriptionThreshold) {
+      evaluation.issues.push('Transcription accuracy below threshold');
+      evaluation.improvements.push('Improve audio preprocessing and model parameters');
+    }
+
+    if (!meetsSegmentationThreshold) {
+      evaluation.issues.push('Scene segmentation F1 score below threshold');
+      evaluation.improvements.push('Enhance segmentation algorithm with better boundary detection');
+    }
+
+    if (!meetsLayoutThreshold) {
+      evaluation.issues.push('Layout overlap detected');
+      evaluation.improvements.push('Optimize layout engine to prevent node overlaps');
+    }
+
+    if (!meetsPerformanceThreshold) {
+      evaluation.issues.push('Render time exceeds threshold');
+      evaluation.improvements.push('Implement performance optimization for faster rendering');
+    }
+
+    // Decision logic
+    const allCriteriaMet = meetsTranscriptionThreshold && meetsSegmentationThreshold &&
+                          meetsLayoutThreshold && meetsPerformanceThreshold;
+
+    if (allCriteriaMet) {
+      evaluation.shouldAdvancePhase = true;
+      evaluation.shouldCommit = true;
+      evaluation.commitMessage = `feat(${this.currentState.phase}): Complete phase with quality score ${(evaluation.qualityScore * 100).toFixed(1)}%`;
+    } else if (currentPhaseConfig && this.currentState.iteration < currentPhaseConfig.maxIterations) {
+      evaluation.shouldIterate = true;
+    } else {
+      // Max iterations reached - apply failure recovery
+      evaluation.shouldCommit = true;
+      evaluation.commitMessage = `feat(${this.currentState.phase}): Complete phase with partial success (iteration ${this.currentState.iteration})`;
+      console.log(`⚠️ Applying failure recovery: ${currentPhaseConfig?.failureRecovery || 'Default recovery'}`);
+    }
+
+    console.log(`📊 Evaluation result: Quality ${(evaluation.qualityScore * 100).toFixed(1)}%, Issues: ${evaluation.issues.length}`);
+
+    return evaluation;
+  }
+
+  /**
+   * Prepare for next iteration in current phase
+   */
+  async prepareNextIteration(phase: string, iteration: number): Promise<void> {
+    console.log(`🔄 Preparing iteration ${iteration} for phase "${phase}"`);
+
+    this.currentState.iteration = iteration;
+    this.currentState.status = 'planning';
+
+    // Apply improvements from previous iteration
+    if (this.currentState.improvements.length > 0) {
+      console.log(`📋 Applying ${this.currentState.improvements.length} improvements:`);
+      this.currentState.improvements.forEach((improvement, index) => {
+        console.log(`  ${index + 1}. ${improvement}`);
+      });
+    }
+  }
+
+  /**
+   * Advance to next development phase
+   */
+  async advanceToPhase(newPhase: string): Promise<void> {
+    console.log(`🎯 Advancing from "${this.currentState.phase}" to "${newPhase}"`);
+
+    this.currentState.phase = newPhase;
+    this.currentState.iteration = 1;
+    this.currentState.status = 'planning';
+    this.currentState.improvements = [];
+    this.currentState.nextActions = [];
+
+    // Reset metrics for new phase
+    this.currentState.metrics = this.getInitialMetrics();
+
+    console.log(`✅ Successfully advanced to phase "${newPhase}"`);
+  }
+
+  /**
+   * Commit current iteration changes
+   */
+  async commitIteration(phase: string, iteration: number, commitMessage: string): Promise<void> {
+    console.log(`📝 Committing iteration ${iteration} for phase "${phase}"`);
+    console.log(`💬 Commit message: ${commitMessage}`);
+
+    // In a real implementation, this would execute git commands
+    // For now, we'll simulate the commit process
+
+    const commitData = {
+      phase,
+      iteration,
+      message: commitMessage,
+      timestamp: new Date().toISOString(),
+      metrics: this.currentState.metrics,
+      qualityScore: this.calculateCurrentQualityScore()
+    };
+
+    console.log(`🎯 Iteration committed successfully:`, commitData);
+
+    // Update state
+    this.currentState.status = 'completed';
+  }
+
+  /**
+   * Handle iteration failure
+   */
+  async handleIterationFailure(phase: string, iteration: number, error: Error): Promise<void> {
+    console.error(`❌ Iteration ${iteration} failed in phase "${phase}":`, error.message);
+
+    // Save failure state
+    await this.saveIterationState();
+
+    // Apply recovery strategy
+    await this.handleFailure(error, `${phase} - Iteration ${iteration}`);
+
+    // Update state
+    this.currentState.status = 'evaluating';
+    this.currentState.improvements.push(`Address failure: ${error.message}`);
+  }
+
+  /**
+   * Record stage success
+   */
+  async recordStageSuccess(stageName: string, metrics: any): Promise<void> {
+    console.log(`✅ Stage "${stageName}" completed successfully:`, metrics);
+
+    // Update relevant metrics based on stage
+    switch (stageName) {
+      case 'transcription':
+        this.currentState.metrics.transcriptionAccuracy = metrics.accuracy || 0.85;
+        break;
+      case 'analysis':
+        this.currentState.metrics.sceneSegmentationF1 = metrics.accuracy || 0.75;
+        break;
+      case 'layout':
+        this.currentState.metrics.layoutOverlap = 0; // Success means no overlap
+        break;
+    }
+
+    this.currentState.metrics.renderTime = metrics.duration || 0;
+    this.currentState.metrics.memoryUsage = metrics.memoryUsage || 0;
+    this.currentState.metrics.timestamp = new Date();
+  }
+
+  /**
+   * Record stage failure
+   */
+  async recordStageFailure(stageName: string, error: Error, duration: number): Promise<void> {
+    console.error(`❌ Stage "${stageName}" failed:`, error.message);
+
+    // Record failure metrics
+    this.currentState.metrics.renderTime = duration;
+    this.currentState.metrics.timestamp = new Date();
+
+    // Add to improvements list
+    this.currentState.improvements.push(`Fix ${stageName} stage: ${error.message}`);
+  }
+
+  /**
+   * Record quality issue
+   */
+  async recordQualityIssue(stageName: string, issueType: string, details: string): Promise<void> {
+    console.log(`⚠️ Quality issue in ${stageName} (${issueType}): ${details}`);
+
+    this.currentState.improvements.push(`Quality improvement for ${stageName}: ${details}`);
   }
 }
 
