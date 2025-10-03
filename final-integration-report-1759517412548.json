@@ -1,0 +1,358 @@
+{
+  "timestamp": "2025-10-03T18:50:12.548Z",
+  "iteration": 49,
+  "testResults": {
+    "transcription": true,
+    "analysis": true,
+    "visualization": true,
+    "remotionIntegration": true,
+    "overallSuccess": false
+  },
+  "qualityMetrics": {
+    "transcriptionAccuracy": 0.8324999999999999,
+    "sceneSegmentationF1": 0.92,
+    "layoutOverlap": 0,
+    "renderTime": 1.161847999999999,
+    "memoryUsage": 4535560,
+    "timestamp": "2025-10-03T18:50:12.548Z"
+  },
+  "remotionData": {
+    "compositionId": "AudioDiagramVideo",
+    "fps": 30,
+    "durationInFrames": 1440,
+    "width": 1920,
+    "height": 1080,
+    "scenes": [
+      {
+        "id": "scene-0",
+        "startFrame": 0,
+        "endFrame": 360,
+        "layout": {
+          "sceneIndex": 0,
+          "type": "flow",
+          "width": 1920,
+          "height": 1080,
+          "nodes": [
+            {
+              "id": "node-0",
+              "x": 200,
+              "y": 200,
+              "width": 120,
+              "height": 60,
+              "label": "Node 1"
+            },
+            {
+              "id": "node-1",
+              "x": 500,
+              "y": 200,
+              "width": 120,
+              "height": 60,
+              "label": "Node 2"
+            },
+            {
+              "id": "node-2",
+              "x": 800,
+              "y": 200,
+              "width": 120,
+              "height": 60,
+              "label": "Node 3"
+            }
+          ],
+          "edges": [
+            {
+              "id": "edge-0",
+              "source": "node-0",
+              "target": "node-1",
+              "path": "M200,230 L500,230"
+            },
+            {
+              "id": "edge-1",
+              "source": "node-1",
+              "target": "node-2",
+              "path": "M500,230 L800,230"
+            }
+          ],
+          "efficiency": 0.9608719163090521
+        },
+        "transcript": {
+          "start": 0,
+          "end": 8000,
+          "text": "Today we'll explore machine learning algorithms and their practical applications in software engineering and data science.",
+          "confidence": 0.92
+        },
+        "analysis": {
+          "segmentIndex": 0,
+          "diagramType": "flow",
+          "confidence": 0.75,
+          "nodes": 3,
+          "edges": 2,
+          "keywords": [
+            "today",
+            "we'll",
+            "explore",
+            "machine"
+          ]
+        }
+      },
+      {
+        "id": "scene-1",
+        "startFrame": 360,
+        "endFrame": 720,
+        "layout": {
+          "sceneIndex": 1,
+          "type": "tree",
+          "width": 1920,
+          "height": 1080,
+          "nodes": [
+            {
+              "id": "node-0",
+              "x": 200,
+              "y": 200,
+              "width": 120,
+              "height": 60,
+              "label": "Node 1"
+            },
+            {
+              "id": "node-1",
+              "x": 500,
+              "y": 200,
+              "width": 120,
+              "height": 60,
+              "label": "Node 2"
+            },
+            {
+              "id": "node-2",
+              "x": 800,
+              "y": 200,
+              "width": 120,
+              "height": 60,
+              "label": "Node 3"
+            },
+            {
+              "id": "node-3",
+              "x": 200,
+              "y": 450,
+              "width": 120,
+              "height": 60,
+              "label": "Node 4"
+            }
+          ],
+          "edges": [
+            {
+              "id": "edge-0",
+              "source": "node-0",
+              "target": "node-1",
+              "path": "M200,230 L500,230"
+            },
+            {
+              "id": "edge-1",
+              "source": "node-1",
+              "target": "node-2",
+              "path": "M500,230 L800,230"
+            },
+            {
+              "id": "edge-2",
+              "source": "node-2",
+              "target": "node-3",
+              "path": "M800,230 L1100,230"
+            }
+          ],
+          "efficiency": 0.9646528782600644
+        },
+        "transcript": {
+          "start": 8000,
+          "end": 18000,
+          "text": "We begin with supervised learning methods including decision trees, random forests, and neural networks for classification tasks.",
+          "confidence": 0.88
+        },
+        "analysis": {
+          "segmentIndex": 1,
+          "diagramType": "tree",
+          "confidence": 0.88,
+          "nodes": 4,
+          "edges": 3,
+          "keywords": [
+            "we",
+            "begin",
+            "with",
+            "supervised"
+          ]
+        }
+      },
+      {
+        "id": "scene-2",
+        "startFrame": 720,
+        "endFrame": 1080,
+        "layout": {
+          "sceneIndex": 2,
+          "type": "tree",
+          "width": 1920,
+          "height": 1080,
+          "nodes": [
+            {
+              "id": "node-0",
+              "x": 200,
+              "y": 200,
+              "width": 120,
+              "height": 60,
+              "label": "Node 1"
+            },
+            {
+              "id": "node-1",
+              "x": 500,
+              "y": 200,
+              "width": 120,
+              "height": 60,
+              "label": "Node 2"
+            },
+            {
+              "id": "node-2",
+              "x": 800,
+              "y": 200,
+              "width": 120,
+              "height": 60,
+              "label": "Node 3"
+            }
+          ],
+          "edges": [
+            {
+              "id": "edge-0",
+              "source": "node-0",
+              "target": "node-1",
+              "path": "M200,230 L500,230"
+            },
+            {
+              "id": "edge-1",
+              "source": "node-1",
+              "target": "node-2",
+              "path": "M500,230 L800,230"
+            }
+          ],
+          "efficiency": 0.9183210132162198
+        },
+        "transcript": {
+          "start": 18000,
+          "end": 28000,
+          "text": "The hierarchical structure of decision trees allows us to visualize the decision-making process through branching logic.",
+          "confidence": 0.85
+        },
+        "analysis": {
+          "segmentIndex": 2,
+          "diagramType": "tree",
+          "confidence": 0.88,
+          "nodes": 3,
+          "edges": 2,
+          "keywords": [
+            "the",
+            "hierarchical",
+            "structure",
+            "of"
+          ]
+        }
+      },
+      {
+        "id": "scene-3",
+        "startFrame": 1080,
+        "endFrame": 1440,
+        "layout": {
+          "sceneIndex": 3,
+          "type": "cluster",
+          "width": 1920,
+          "height": 1080,
+          "nodes": [
+            {
+              "id": "node-0",
+              "x": 200,
+              "y": 200,
+              "width": 120,
+              "height": 60,
+              "label": "Node 1"
+            },
+            {
+              "id": "node-1",
+              "x": 500,
+              "y": 200,
+              "width": 120,
+              "height": 60,
+              "label": "Node 2"
+            },
+            {
+              "id": "node-2",
+              "x": 800,
+              "y": 200,
+              "width": 120,
+              "height": 60,
+              "label": "Node 3"
+            },
+            {
+              "id": "node-3",
+              "x": 200,
+              "y": 450,
+              "width": 120,
+              "height": 60,
+              "label": "Node 4"
+            },
+            {
+              "id": "node-4",
+              "x": 500,
+              "y": 450,
+              "width": 120,
+              "height": 60,
+              "label": "Node 5"
+            }
+          ],
+          "edges": [
+            {
+              "id": "edge-0",
+              "source": "node-0",
+              "target": "node-1",
+              "path": "M200,230 L500,230"
+            },
+            {
+              "id": "edge-1",
+              "source": "node-1",
+              "target": "node-2",
+              "path": "M500,230 L800,230"
+            },
+            {
+              "id": "edge-2",
+              "source": "node-2",
+              "target": "node-3",
+              "path": "M800,230 L1100,230"
+            }
+          ],
+          "efficiency": 0.9226967532516224
+        },
+        "transcript": {
+          "start": 28000,
+          "end": 38000,
+          "text": "Moving to unsupervised learning, we examine clustering algorithms that group similar data points together in feature space.",
+          "confidence": 0.9
+        },
+        "analysis": {
+          "segmentIndex": 3,
+          "diagramType": "cluster",
+          "confidence": 0.82,
+          "nodes": 5,
+          "edges": 3,
+          "keywords": [
+            "moving",
+            "to",
+            "unsupervised",
+            "learning,"
+          ]
+        }
+      }
+    ]
+  },
+  "improvements": [
+    "robust_transcription_fallback",
+    "enhanced_error_recovery",
+    "intelligent_mock_data",
+    "seamless_integration"
+  ],
+  "nextIterationTargets": [
+    "fix_failing_components",
+    "improve_error_handling"
+  ]
+}
