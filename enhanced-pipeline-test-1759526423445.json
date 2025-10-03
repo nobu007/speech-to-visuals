@@ -1,0 +1,344 @@
+{
+  "timestamp": "2025-10-03T21:20:23.445Z",
+  "testType": "Enhanced Pipeline Integration Test",
+  "version": "2.0.0",
+  "configuration": {
+    "scenarios": [
+      {
+        "name": "Technical Architecture",
+        "description": "Testing technical content detection and complex layout generation",
+        "text": "Our microservices architecture consists of several key components. First, we have the API Gateway that handles all incoming requests and routes them to appropriate services. The User Service manages authentication and user data, connecting to a PostgreSQL database. Next, the Order Service processes e-commerce transactions and communicates with the Payment Service through REST APIs. The Notification Service sends emails and push notifications asynchronously. Finally, all services log to Elasticsearch for monitoring and debugging. This distributed system ensures scalability and fault tolerance.",
+        "expectedDiagramType": "network",
+        "expectedNodes": 6,
+        "minConfidence": 0.7
+      },
+      {
+        "name": "Business Process",
+        "description": "Testing process flow detection with business terminology",
+        "text": "The customer onboarding process begins when a new prospect submits a registration form. First, we verify their email address and send a welcome message. Then, our sales team reviews the application and assigns a customer success manager. Next, we schedule an onboarding call to understand their requirements. After the call, we create a customized implementation plan and timeline. Finally, we initiate the setup process and provide training materials. This workflow ensures every customer has a smooth start with our platform.",
+        "expectedDiagramType": "flow",
+        "expectedNodes": 5,
+        "minConfidence": 0.8
+      },
+      {
+        "name": "Organizational Hierarchy",
+        "description": "Testing hierarchical structure detection",
+        "text": "Our company organization is structured with clear reporting lines. At the top, we have the CEO who oversees all operations. The Chief Technology Officer manages the engineering teams, including Frontend, Backend, and DevOps groups. The Chief Marketing Officer leads the Marketing and Sales departments. The Chief Financial Officer supervises Accounting and Finance teams. Each department head reports directly to their respective C-level executive, while team members report to their department heads.",
+        "expectedDiagramType": "tree",
+        "expectedNodes": 8,
+        "minConfidence": 0.75
+      },
+      {
+        "name": "Product Timeline",
+        "description": "Testing timeline detection with temporal elements",
+        "text": "Our product development timeline spans the entire year. In Q1 2024, we focus on market research and competitive analysis. Q2 will be dedicated to designing the core features and creating prototypes. During Q3, we begin development and alpha testing with internal teams. Q4 is reserved for beta testing with select customers and final preparations for launch. The official product launch is scheduled for January 2025, followed by marketing campaigns and user acquisition efforts.",
+        "expectedDiagramType": "timeline",
+        "expectedNodes": 5,
+        "minConfidence": 0.85
+      },
+      {
+        "name": "Feature Comparison",
+        "description": "Testing comparison matrix detection",
+        "text": "We need to compare our three pricing tiers: Basic, Professional, and Enterprise. The Basic plan includes core features like user management and basic reporting. Professional adds advanced analytics, API access, and priority support. Enterprise includes everything plus custom integrations, dedicated account management, and SLA guarantees. Each tier offers different storage limits, user counts, and support levels to meet various customer needs.",
+        "expectedDiagramType": "matrix",
+        "expectedNodes": 3,
+        "minConfidence": 0.7
+      }
+    ],
+    "performance": {
+      "maxProcessingTime": 5000,
+      "minOverallAccuracy": 0.75,
+      "maxLayoutOverlaps": 0
+    }
+  },
+  "results": {
+    "totalScenarios": 5,
+    "successfulScenarios": 5,
+    "successRate": 1,
+    "totalProcessingTime": 2513.327547,
+    "averageProcessingTime": 502.36984620000004,
+    "typeAccuracy": 1,
+    "confidenceStats": {
+      "average": 0.95,
+      "min": 0.95,
+      "max": 0.95
+    },
+    "layoutStats": {
+      "averageAestheticScore": 0.8787642720211375,
+      "totalOverlaps": 0,
+      "averageEdgeCrossings": 0.8
+    },
+    "passesRequirements": {
+      "passed": true,
+      "checks": {
+        "successRate": true,
+        "layoutQuality": true,
+        "aestheticQuality": true
+      }
+    }
+  },
+  "scenarios": [
+    {
+      "scenario": "Technical Architecture",
+      "success": true,
+      "processingTime": 505.060717,
+      "transcription": {
+        "success": true,
+        "confidence": 0.92,
+        "method": "enhanced-browser-transcription"
+      },
+      "analysis": {
+        "detectedType": "network",
+        "expectedType": "network",
+        "confidence": 0.95,
+        "nodeCount": 6,
+        "reasoning": "Semantic analysis detected network pattern (score: 7)",
+        "context": {
+          "domain": "technical",
+          "complexity": 0.81,
+          "technicalLevel": 0.08641975308641975,
+          "businessLevel": 0
+        }
+      },
+      "layout": {
+        "success": true,
+        "metrics": {
+          "overlapCount": 0,
+          "edgeCrossings": 0,
+          "totalEdgeLength": 1000,
+          "compactness": 0.8,
+          "symmetry": 0.7,
+          "aestheticScore": 0.8722910751641557
+        },
+        "processingTime": 0.27636200000006284,
+        "iterations": 3
+      },
+      "validation": {
+        "success": true,
+        "score": 1,
+        "checks": {
+          "correctDiagramType": true,
+          "sufficientConfidence": true,
+          "adequateNodes": true,
+          "noLayoutOverlaps": true,
+          "goodAestheticScore": true,
+          "reasonableProcessingTime": true
+        },
+        "issues": []
+      }
+    },
+    {
+      "scenario": "Business Process",
+      "success": true,
+      "processingTime": 501.11715900000013,
+      "transcription": {
+        "success": true,
+        "confidence": 0.92,
+        "method": "enhanced-browser-transcription"
+      },
+      "analysis": {
+        "detectedType": "flow",
+        "expectedType": "flow",
+        "confidence": 0.95,
+        "nodeCount": 2,
+        "reasoning": "Semantic analysis detected flow pattern (score: 9)",
+        "context": {
+          "domain": "business",
+          "complexity": 0.8,
+          "technicalLevel": 0,
+          "businessLevel": 0.1125
+        }
+      },
+      "layout": {
+        "success": true,
+        "metrics": {
+          "overlapCount": 0,
+          "edgeCrossings": 2,
+          "totalEdgeLength": 200,
+          "compactness": 0.8,
+          "symmetry": 0.7,
+          "aestheticScore": 0.8565054760631842
+        },
+        "processingTime": 0.1521979999999985,
+        "iterations": 3
+      },
+      "validation": {
+        "success": true,
+        "score": 0.8333333333333334,
+        "checks": {
+          "correctDiagramType": true,
+          "sufficientConfidence": true,
+          "adequateNodes": false,
+          "noLayoutOverlaps": true,
+          "goodAestheticScore": true,
+          "reasonableProcessingTime": true
+        },
+        "issues": [
+          "adequateNodes"
+        ]
+      }
+    },
+    {
+      "scenario": "Organizational Hierarchy",
+      "success": true,
+      "processingTime": 502.0446830000001,
+      "transcription": {
+        "success": true,
+        "confidence": 0.92,
+        "method": "enhanced-browser-transcription"
+      },
+      "analysis": {
+        "detectedType": "tree",
+        "expectedType": "tree",
+        "confidence": 0.95,
+        "nodeCount": 5,
+        "reasoning": "Semantic analysis detected tree pattern (score: 5)",
+        "context": {
+          "domain": "hierarchical",
+          "complexity": 0.71,
+          "technicalLevel": 0,
+          "businessLevel": 0.056338028169014086
+        }
+      },
+      "layout": {
+        "success": true,
+        "metrics": {
+          "overlapCount": 0,
+          "edgeCrossings": 1,
+          "totalEdgeLength": 800,
+          "compactness": 0.8,
+          "symmetry": 0.7,
+          "aestheticScore": 0.8779386069393658
+        },
+        "processingTime": 0.26906899999994494,
+        "iterations": 3
+      },
+      "validation": {
+        "success": true,
+        "score": 0.8333333333333334,
+        "checks": {
+          "correctDiagramType": true,
+          "sufficientConfidence": true,
+          "adequateNodes": false,
+          "noLayoutOverlaps": true,
+          "goodAestheticScore": true,
+          "reasonableProcessingTime": true
+        },
+        "issues": [
+          "adequateNodes"
+        ]
+      }
+    },
+    {
+      "scenario": "Product Timeline",
+      "success": true,
+      "processingTime": 501.71175400000016,
+      "transcription": {
+        "success": true,
+        "confidence": 0.92,
+        "method": "enhanced-browser-transcription"
+      },
+      "analysis": {
+        "detectedType": "timeline",
+        "expectedType": "timeline",
+        "confidence": 0.95,
+        "nodeCount": 1,
+        "reasoning": "Semantic analysis detected timeline pattern (score: 7)",
+        "context": {
+          "domain": "temporal",
+          "complexity": 0.73,
+          "technicalLevel": 0,
+          "businessLevel": 0
+        }
+      },
+      "layout": {
+        "success": true,
+        "metrics": {
+          "overlapCount": 0,
+          "edgeCrossings": 1,
+          "totalEdgeLength": 0,
+          "compactness": 0.8,
+          "symmetry": 0.7,
+          "aestheticScore": 0.8787507357884892
+        },
+        "processingTime": 0.138892000000169,
+        "iterations": 3
+      },
+      "validation": {
+        "success": true,
+        "score": 0.8333333333333334,
+        "checks": {
+          "correctDiagramType": true,
+          "sufficientConfidence": true,
+          "adequateNodes": false,
+          "noLayoutOverlaps": true,
+          "goodAestheticScore": true,
+          "reasonableProcessingTime": true
+        },
+        "issues": [
+          "adequateNodes"
+        ]
+      }
+    },
+    {
+      "scenario": "Feature Comparison",
+      "success": true,
+      "processingTime": 501.9149179999997,
+      "transcription": {
+        "success": true,
+        "confidence": 0.92,
+        "method": "enhanced-browser-transcription"
+      },
+      "analysis": {
+        "detectedType": "matrix",
+        "expectedType": "matrix",
+        "confidence": 0.95,
+        "nodeCount": 3,
+        "reasoning": "Semantic analysis detected matrix pattern (score: 10)",
+        "context": {
+          "domain": "comparison",
+          "complexity": 0.61,
+          "technicalLevel": 0.01639344262295082,
+          "businessLevel": 0.01639344262295082
+        }
+      },
+      "layout": {
+        "success": true,
+        "metrics": {
+          "overlapCount": 0,
+          "edgeCrossings": 0,
+          "totalEdgeLength": 400,
+          "compactness": 0.8,
+          "symmetry": 0.7,
+          "aestheticScore": 0.9083354661504925
+        },
+        "processingTime": 0.17945999999983542,
+        "iterations": 3
+      },
+      "validation": {
+        "success": true,
+        "score": 1,
+        "checks": {
+          "correctDiagramType": true,
+          "sufficientConfidence": true,
+          "adequateNodes": true,
+          "noLayoutOverlaps": true,
+          "goodAestheticScore": true,
+          "reasonableProcessingTime": true
+        },
+        "issues": []
+      }
+    }
+  ],
+  "recommendations": [
+    "System performing well - consider advanced features like real-time processing"
+  ],
+  "nextSteps": [
+    "✅ Ready for production deployment",
+    "🚀 Consider implementing real-time streaming features",
+    "📊 Add comprehensive analytics and monitoring",
+    "🎨 Enhance visual design and animations",
+    "📝 Create comprehensive user documentation",
+    "🔒 Implement security and privacy features"
+  ]
+}
