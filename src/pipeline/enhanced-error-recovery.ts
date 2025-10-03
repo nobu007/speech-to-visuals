@@ -47,7 +47,9 @@ export class EnhancedErrorRecovery {
 
   constructor() {
     this.initializeRecoveryStrategies();
+    this.initializeAdvancedRecoveryStrategies();
     console.log(`[Error Recovery V${this.iteration}] Initialized with ${this.strategies.length} recovery strategies`);
+    console.log(`🔄 Enhanced Error Recovery: Following Custom Instructions recursive framework`);
   }
 
   /**
@@ -492,6 +494,282 @@ export class EnhancedErrorRecovery {
     } else {
       console.log('❌ Test recovery failed');
     }
+  }
+
+  /**
+   * 🔄 Advanced Recovery Strategies - Custom Instructions Compliant
+   * Following: 実装→テスト→評価→改善→コミット approach
+   */
+  private initializeAdvancedRecoveryStrategies(): void {
+    console.log('🔄 [Advanced Recovery] Initializing enhanced recovery strategies...');
+
+    // 🔄 実装段階: Real-time streaming recovery
+    this.addStrategy({
+      name: 'streaming-buffer-recovery',
+      priority: 1,
+      condition: (error, context) => {
+        return context.stage.includes('streaming') ||
+               error.message.includes('buffer') ||
+               error.message.includes('stream');
+      },
+      recovery: async (error, context) => {
+        console.log('🔄 [Streaming Recovery] Attempting buffer reset...');
+
+        // Clear any corrupted buffers
+        if (global.gc) global.gc();
+
+        // Implement progressive buffer size reduction
+        const originalBufferSize = context.metadata.bufferSize || 8192;
+        const reducedBufferSize = Math.max(1024, originalBufferSize / 2);
+
+        console.log(`📊 Buffer size: ${originalBufferSize} → ${reducedBufferSize}`);
+
+        return {
+          success: true,
+          data: {
+            bufferSize: reducedBufferSize,
+            streamReset: true,
+            recoveryMethod: 'buffer-reduction'
+          }
+        };
+      },
+      maxRetries: 3
+    });
+
+    // 🔄 実装段階: Memory-based recovery
+    this.addStrategy({
+      name: 'memory-optimization-recovery',
+      priority: 2,
+      condition: (error, context) => {
+        return error.message.includes('memory') ||
+               error.message.includes('heap') ||
+               context.metadata.memoryUsage > 400 * 1024 * 1024;
+      },
+      recovery: async (error, context) => {
+        console.log('🔄 [Memory Recovery] Optimizing memory usage...');
+
+        // Force garbage collection if available
+        if (global.gc) {
+          console.log('🧹 Running garbage collection...');
+          global.gc();
+        }
+
+        // Implement progressive quality reduction
+        const currentQuality = context.metadata.quality || 'high';
+        const reducedQuality = this.reduceQuality(currentQuality);
+
+        console.log(`🎯 Quality: ${currentQuality} → ${reducedQuality}`);
+
+        return {
+          success: true,
+          data: {
+            quality: reducedQuality,
+            memoryOptimized: true,
+            recoveryMethod: 'quality-reduction'
+          }
+        };
+      },
+      maxRetries: 2
+    });
+
+    // 🔄 実装段階: Multilingual transcription recovery
+    this.addStrategy({
+      name: 'multilingual-fallback-recovery',
+      priority: 3,
+      condition: (error, context) => {
+        return context.stage.includes('transcription') &&
+               (error.message.includes('language') ||
+                error.message.includes('recognition') ||
+                context.metadata.confidence < 0.5);
+      },
+      recovery: async (error, context) => {
+        console.log('🔄 [Multilingual Recovery] Attempting language fallback...');
+
+        const currentLang = context.metadata.language || 'en-US';
+        const fallbackLanguages = ['en-US', 'ja-JP', 'es-ES', 'fr-FR'];
+        const nextLang = this.getNextLanguage(currentLang, fallbackLanguages);
+
+        console.log(`🌐 Language: ${currentLang} → ${nextLang}`);
+
+        return {
+          success: true,
+          data: {
+            language: nextLang,
+            transcriptionMethod: 'fallback',
+            recoveryMethod: 'language-switch'
+          }
+        };
+      },
+      maxRetries: 4
+    });
+
+    // 🔄 実装段階: Diagram layout recovery
+    this.addStrategy({
+      name: 'layout-algorithm-recovery',
+      priority: 4,
+      condition: (error, context) => {
+        return context.stage.includes('layout') ||
+               context.stage.includes('visualization') ||
+               error.message.includes('overlap') ||
+               error.message.includes('collision');
+      },
+      recovery: async (error, context) => {
+        console.log('🔄 [Layout Recovery] Switching layout algorithm...');
+
+        const currentAlgorithm = context.metadata.layoutAlgorithm || 'dagre';
+        const algorithms = ['dagre', 'force-directed', 'hierarchical', 'circular'];
+        const nextAlgorithm = this.getNextAlgorithm(currentAlgorithm, algorithms);
+
+        console.log(`📐 Algorithm: ${currentAlgorithm} → ${nextAlgorithm}`);
+
+        return {
+          success: true,
+          data: {
+            layoutAlgorithm: nextAlgorithm,
+            layoutReset: true,
+            recoveryMethod: 'algorithm-switch'
+          }
+        };
+      },
+      maxRetries: 3
+    });
+
+    // 🔄 実装段階: Real-time performance recovery
+    this.addStrategy({
+      name: 'performance-degradation-recovery',
+      priority: 5,
+      condition: (error, context) => {
+        return context.metadata.processingTime > 30000 || // > 30 seconds
+               error.message.includes('timeout') ||
+               error.message.includes('performance');
+      },
+      recovery: async (error, context) => {
+        console.log('🔄 [Performance Recovery] Optimizing processing pipeline...');
+
+        // Implement progressive optimization
+        const optimizations = {
+          enableParallelProcessing: false,
+          reducedFrameRate: 15, // From 30 FPS
+          lowerResolution: true,
+          skipAdvancedEffects: true
+        };
+
+        console.log('⚡ Performance optimizations applied');
+
+        return {
+          success: true,
+          data: {
+            ...optimizations,
+            recoveryMethod: 'performance-optimization'
+          }
+        };
+      },
+      maxRetries: 2
+    });
+
+    console.log(`✅ Advanced Recovery: Added ${this.strategies.length - 5} enhanced strategies`);
+  }
+
+  /**
+   * 🔄 Helper Methods for Advanced Recovery
+   */
+  private reduceQuality(currentQuality: string): string {
+    const qualityLevels = ['ultra', 'high', 'medium', 'low', 'minimal'];
+    const currentIndex = qualityLevels.indexOf(currentQuality);
+    return qualityLevels[Math.min(currentIndex + 1, qualityLevels.length - 1)] || 'low';
+  }
+
+  private getNextLanguage(current: string, available: string[]): string {
+    const currentIndex = available.indexOf(current);
+    return available[(currentIndex + 1) % available.length] || 'en-US';
+  }
+
+  private getNextAlgorithm(current: string, available: string[]): string {
+    const currentIndex = available.indexOf(current);
+    return available[(currentIndex + 1) % available.length] || 'dagre';
+  }
+
+  /**
+   * 🔄 Advanced Error Pattern Analysis
+   */
+  private analyzeErrorPatterns(): {
+    criticalPatterns: string[];
+    recommendations: string[];
+    systemHealth: number;
+  } {
+    const recentErrors = this.errorHistory.slice(-20);
+    const patterns: string[] = [];
+    const recommendations: string[] = [];
+
+    // Detect recurring error patterns
+    const errorMessages = recentErrors.map(e => e.metadata.errorMessage);
+    const messageFrequency = errorMessages.reduce((acc, msg) => {
+      acc[msg] = (acc[msg] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Identify critical patterns
+    Object.entries(messageFrequency).forEach(([message, count]) => {
+      if (count >= 3) {
+        patterns.push(`Recurring error: ${message} (${count} times)`);
+        recommendations.push(`Investigate root cause of: ${message}`);
+      }
+    });
+
+    // Calculate system health score
+    const successRate = this.metrics.totalErrors > 0
+      ? this.metrics.successfulRecoveries / this.metrics.totalErrors
+      : 1.0;
+    const recentErrorRate = recentErrors.length / 20;
+    const systemHealth = Math.round((successRate * 0.7 + (1 - recentErrorRate) * 0.3) * 100);
+
+    return {
+      criticalPatterns: patterns,
+      recommendations,
+      systemHealth
+    };
+  }
+
+  /**
+   * 🔄 Enhanced Diagnostic Report
+   */
+  async generateAdvancedDiagnosticReport(): Promise<{
+    timestamp: Date;
+    systemHealth: number;
+    errorAnalysis: any;
+    recoveryEffectiveness: number;
+    recommendations: string[];
+  }> {
+    console.log('🔄 [Advanced Diagnostics] Generating comprehensive system report...');
+
+    const errorAnalysis = this.analyzeErrorPatterns();
+    const recoveryEffectiveness = this.metrics.totalErrors > 0
+      ? (this.metrics.successfulRecoveries / this.metrics.totalErrors) * 100
+      : 100;
+
+    const report = {
+      timestamp: new Date(),
+      systemHealth: errorAnalysis.systemHealth,
+      errorAnalysis: {
+        totalErrors: this.metrics.totalErrors,
+        successfulRecoveries: this.metrics.successfulRecoveries,
+        failedRecoveries: this.metrics.failedRecoveries,
+        averageRecoveryTime: this.metrics.averageRecoveryTime,
+        criticalPatterns: errorAnalysis.criticalPatterns,
+        mostCommonErrors: this.metrics.mostCommonErrors
+      },
+      recoveryEffectiveness,
+      recommendations: [
+        ...errorAnalysis.recommendations,
+        `System Health Score: ${errorAnalysis.systemHealth}%`,
+        `Recovery Success Rate: ${recoveryEffectiveness.toFixed(1)}%`
+      ]
+    };
+
+    console.log(`📊 System Health: ${errorAnalysis.systemHealth}%`);
+    console.log(`🔧 Recovery Effectiveness: ${recoveryEffectiveness.toFixed(1)}%`);
+
+    return report;
   }
 }
 
