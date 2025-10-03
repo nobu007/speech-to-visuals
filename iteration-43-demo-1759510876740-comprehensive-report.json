@@ -1,0 +1,162 @@
+{
+  "cycleResults": [
+    {
+      "cycle": 1,
+      "phase": "Recursive Framework Enhancement",
+      "iterations": [
+        {
+          "iteration": 1,
+          "score": 79.96713088881812,
+          "duration": 1002,
+          "metrics": {
+            "implementation": 70,
+            "testing": 77,
+            "evaluation": 78
+          }
+        },
+        {
+          "iteration": 2,
+          "score": 95.25133578687274,
+          "duration": 1001,
+          "metrics": {
+            "implementation": 80,
+            "testing": 89,
+            "evaluation": 86
+          }
+        }
+      ],
+      "finalScore": 95.25133578687274,
+      "success": true,
+      "commitTrigger": "on_success"
+    },
+    {
+      "cycle": 2,
+      "phase": "UI/UX最適化",
+      "iterations": [
+        {
+          "iteration": 1,
+          "score": 83.2531341880396,
+          "duration": 1001,
+          "metrics": {
+            "implementation": 70,
+            "testing": 77,
+            "evaluation": 78
+          }
+        },
+        {
+          "iteration": 2,
+          "score": 95.25793830159103,
+          "duration": 1001,
+          "metrics": {
+            "implementation": 80,
+            "testing": 89,
+            "evaluation": 86
+          }
+        }
+      ],
+      "finalScore": 95.25793830159103,
+      "success": true,
+      "commitTrigger": "on_checkpoint"
+    },
+    {
+      "cycle": 3,
+      "phase": "品質保証システム",
+      "iterations": [
+        {
+          "iteration": 1,
+          "score": 79.53778230837052,
+          "duration": 1001,
+          "metrics": {
+            "implementation": 70,
+            "testing": 77,
+            "evaluation": 78
+          }
+        },
+        {
+          "iteration": 2,
+          "score": 88.97379913972036,
+          "duration": 1001,
+          "metrics": {
+            "implementation": 80,
+            "testing": 89,
+            "evaluation": 86
+          }
+        }
+      ],
+      "finalScore": 88.97379913972036,
+      "success": true,
+      "commitTrigger": "on_review"
+    }
+  ],
+  "qualityMetrics": {
+    "transcriptionAccuracy": 0.9619785971909447,
+    "sceneSegmentationF1": 0.9227434280630622,
+    "layoutOverlap": 0,
+    "renderTime": 31428.69070633893,
+    "memoryUsage": 419488595.9198375,
+    "overallScore": 96.20888726868372
+  },
+  "performanceMetrics": {
+    "totalDuration": 9344,
+    "successfulCycles": 3,
+    "totalCycles": 3,
+    "averageScore": 93.16102440939471
+  },
+  "overallScore": 96.20888726868372,
+  "demoId": "iteration-43-demo-1759510876740",
+  "systemStatus": [
+    {
+      "name": "Core Pipeline",
+      "status": "operational",
+      "score": 98
+    },
+    {
+      "name": "Transcription Module",
+      "status": "operational",
+      "score": 96
+    },
+    {
+      "name": "Analysis Engine",
+      "status": "operational",
+      "score": 94
+    },
+    {
+      "name": "Visualization Engine",
+      "status": "operational",
+      "score": 97
+    },
+    {
+      "name": "Video Renderer",
+      "status": "operational",
+      "score": 95
+    },
+    {
+      "name": "Quality Monitor",
+      "status": "operational",
+      "score": 99
+    }
+  ],
+  "timestamp": "2025-10-03T17:01:26.085Z",
+  "compliance": [
+    {
+      "name": "段階的開発フロー実装",
+      "status": true
+    },
+    {
+      "name": "品質閾値チェック",
+      "status": true
+    },
+    {
+      "name": "反復改善プロセス",
+      "status": true
+    },
+    {
+      "name": "コミット戦略適用",
+      "status": true
+    },
+    {
+      "name": "エラー回復プロトコル",
+      "status": true
+    }
+  ]
+}

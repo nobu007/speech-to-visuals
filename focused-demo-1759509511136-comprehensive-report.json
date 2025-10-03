@@ -1,0 +1,229 @@
+{
+  "timestamp": "2025-10-03T16:38:31.136Z",
+  "demoId": "focused-demo-1759509511136",
+  "phases": [
+    {
+      "name": "Core Pipeline Validation",
+      "status": "passed",
+      "startTime": 20.106243,
+      "details": [
+        "✅ src directory exists",
+        "✅ src/transcription directory exists",
+        "✅ src/analysis directory exists",
+        "✅ src/visualization directory exists",
+        "✅ src/pipeline directory exists",
+        "✅ remotion dependency found",
+        "✅ @remotion/captions dependency found",
+        "✅ @dagrejs/dagre dependency found",
+        "✅ whisper-node dependency found",
+        "✅ src/types/diagram.ts exists",
+        "✅ src/transcription/transcriber.ts exists",
+        "✅ src/analysis/index.ts exists",
+        "✅ src/visualization/index.ts exists"
+      ],
+      "metrics": {
+        "validationScore": 95
+      },
+      "duration": 0.9309720000000006
+    },
+    {
+      "name": "Mock Audio Processing",
+      "status": "passed",
+      "startTime": 21.151761,
+      "details": [
+        "✅ Generated 4 transcription segments",
+        "✅ Total duration: 24.0 seconds",
+        "✅ Average confidence: 91.0%",
+        "✅ Content analysis: hierarchical, process, temporal, cyclical"
+      ],
+      "metrics": {
+        "segmentCount": 4,
+        "totalDuration": 24000,
+        "avgConfidence": 0.91,
+        "contentTypes": 4
+      },
+      "duration": 0.2312979999999989
+    },
+    {
+      "name": "Content Analysis",
+      "status": "passed",
+      "startTime": 21.477267,
+      "details": [
+        "✅ hierarchical: detected tree (90.0% confidence)",
+        "✅ process: detected flow (80.0% confidence)",
+        "✅ temporal: detected timeline (85.0% confidence)",
+        "✅ cyclical: detected cycle (88.0% confidence)",
+        "✅ Overall detection accuracy: 100.0%"
+      ],
+      "metrics": {
+        "scenariosAnalyzed": 4,
+        "averageConfidence": 0.8575,
+        "detectionAccuracy": 1,
+        "totalEntities": 20,
+        "totalRelationships": 16
+      },
+      "duration": 0.3388019999999976
+    },
+    {
+      "name": "Visualization Generation",
+      "status": "passed",
+      "startTime": 21.916699,
+      "details": [
+        "✅ flow layout: 4 nodes, 3 edges",
+        "  - Layout quality: 95.0%",
+        "✅ tree layout: 5 nodes, 4 edges",
+        "  - Layout quality: 95.0%",
+        "✅ Average layout quality: 95.0%",
+        "✅ Total overlaps detected: 0"
+      ],
+      "metrics": {
+        "layoutsGenerated": 2,
+        "averageQuality": 0.95,
+        "totalOverlaps": 0,
+        "totalNodes": 9,
+        "totalEdges": 7
+      },
+      "duration": 0.37509999999999977
+    },
+    {
+      "name": "Remotion Integration",
+      "status": "passed",
+      "startTime": 22.373514,
+      "details": [
+        "✅ Generated 3 caption segments",
+        "✅ Total caption duration: 9 seconds",
+        "✅ Composition configured: 900 frames at 30fps",
+        "✅ Resolution: 1920x1080",
+        "✅ Animation timeline: 11 keyframes"
+      ],
+      "metrics": {
+        "captionCount": 3,
+        "compositionDuration": 30,
+        "animationFrames": 11,
+        "resolution": "1920x1080",
+        "fps": 30
+      },
+      "duration": 0.2248449999999984
+    },
+    {
+      "name": "System Performance Analysis",
+      "status": "passed",
+      "startTime": 22.684482,
+      "details": [
+        "✅ Memory usage: 4.40 MB",
+        "✅ Success rate: 100.0%",
+        "✅ Average phase time: 0ms",
+        "✅ transcriptionSpeed: Real-time capable (mock)",
+        "✅ analysisLatency: < 100ms per segment",
+        "✅ layoutGeneration: < 50ms per diagram",
+        "✅ memoryEfficiency: Excellent"
+      ],
+      "metrics": {
+        "memoryUsage": {
+          "rss": 45867008,
+          "heapTotal": 4952064,
+          "heapUsed": 4609120,
+          "external": 1740136,
+          "arrayBuffers": 48415
+        },
+        "cpuUsage": {
+          "user": 19213,
+          "system": 6067
+        },
+        "totalPhases": 5,
+        "successRate": 1,
+        "averagePhaseTime": 0.42020339999999906
+      },
+      "duration": 0.2741889999999998
+    },
+    {
+      "name": "Improvement Recommendations",
+      "status": "passed",
+      "startTime": 23.061616,
+      "details": [
+        "✅ HIGH: Performance Optimization",
+        "  - Implement WebGL-accelerated rendering for large diagrams",
+        "  - Add caching layer for frequently generated layouts",
+        "  - Optimize animation timeline calculations",
+        "  - Implement progressive loading for large audio files",
+        "✅ MEDIUM: Advanced Features",
+        "  - Implement AI-powered content summarization",
+        "  - Add custom diagram theme support",
+        "  - Implement real-time collaboration features",
+        "  - Add export to multiple video formats",
+        "✅ HIGH: Recursive Custom Instructions Integration",
+        "  - Add automated quality monitoring with defined thresholds",
+        "  - Implement iteration-based improvement tracking",
+        "  - Add automated commit generation with quality gates",
+        "  - Create comprehensive development metrics dashboard",
+        "✅ MEDIUM: User Experience Enhancement",
+        "  - Add real-time processing progress indicators",
+        "  - Implement audio waveform visualization",
+        "  - Add diagram preview before video generation",
+        "  - Create interactive diagram editing interface"
+      ],
+      "metrics": {
+        "totalRecommendations": 4,
+        "criticalCount": 0,
+        "highCount": 2,
+        "mediumCount": 2
+      },
+      "duration": 0.1185539999999996
+    }
+  ],
+  "metrics": {
+    "totalDuration": 3.1721629999999976,
+    "successfulPhases": 7,
+    "totalPhases": 7
+  },
+  "recommendations": [
+    {
+      "priority": "high",
+      "category": "optimization",
+      "title": "Performance Optimization",
+      "description": "System is stable. Focus on performance enhancements and advanced features.",
+      "actions": [
+        "Implement WebGL-accelerated rendering for large diagrams",
+        "Add caching layer for frequently generated layouts",
+        "Optimize animation timeline calculations",
+        "Implement progressive loading for large audio files"
+      ]
+    },
+    {
+      "priority": "medium",
+      "category": "features",
+      "title": "Advanced Features",
+      "description": "Add sophisticated analysis and customization options.",
+      "actions": [
+        "Implement AI-powered content summarization",
+        "Add custom diagram theme support",
+        "Implement real-time collaboration features",
+        "Add export to multiple video formats"
+      ]
+    },
+    {
+      "priority": "high",
+      "category": "architecture",
+      "title": "Recursive Custom Instructions Integration",
+      "description": "Implement the recursive development framework more deeply.",
+      "actions": [
+        "Add automated quality monitoring with defined thresholds",
+        "Implement iteration-based improvement tracking",
+        "Add automated commit generation with quality gates",
+        "Create comprehensive development metrics dashboard"
+      ]
+    },
+    {
+      "priority": "medium",
+      "category": "user-experience",
+      "title": "User Experience Enhancement",
+      "description": "Improve the overall user interaction and workflow.",
+      "actions": [
+        "Add real-time processing progress indicators",
+        "Implement audio waveform visualization",
+        "Add diagram preview before video generation",
+        "Create interactive diagram editing interface"
+      ]
+    }
+  ]
+}

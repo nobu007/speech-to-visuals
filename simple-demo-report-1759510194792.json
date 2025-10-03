@@ -1,0 +1,39 @@
+{
+  "demoId": "simple-demo-1759510194792",
+  "timestamp": "2025-10-03T16:49:56.799Z",
+  "executionTime": 2007,
+  "phases": {
+    "transcription": {
+      "status": "success",
+      "segments": 4,
+      "confidence": 0.95,
+      "textLength": 199
+    },
+    "analysis": {
+      "status": "success",
+      "diagramType": "flowchart",
+      "scenes": 4,
+      "keyPhrases": 10
+    },
+    "layout": {
+      "status": "success",
+      "nodes": 10,
+      "edges": 9,
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      }
+    },
+    "video": {
+      "status": "success",
+      "duration": 12000,
+      "fps": 30,
+      "outputPath": "demo-output/video_simple-demo-1759510194792.mp4"
+    }
+  },
+  "summary": {
+    "success": true,
+    "message": "Complete audio-to-diagram pipeline executed successfully",
+    "recommendation": "System ready for production use with real audio files"
+  }
+}
