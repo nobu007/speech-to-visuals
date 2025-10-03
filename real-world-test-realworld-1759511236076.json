@@ -1,0 +1,570 @@
+{
+  "timestamp": "2025-10-03T17:07:16.076Z",
+  "testId": "realworld-1759511236076",
+  "phases": [
+    {
+      "name": "Component Loading",
+      "startTime": 20.876861,
+      "tests": [
+        {
+          "name": "transcription module",
+          "success": true,
+          "message": "Module directory accessible"
+        },
+        {
+          "name": "analysis module",
+          "success": true,
+          "message": "Module directory accessible"
+        },
+        {
+          "name": "visualization module",
+          "success": true,
+          "message": "Module directory accessible"
+        },
+        {
+          "name": "pipeline module",
+          "success": true,
+          "message": "Module directory accessible"
+        },
+        {
+          "name": "dependency: @remotion/captions",
+          "success": true,
+          "message": "Successfully imported"
+        },
+        {
+          "name": "dependency: @dagrejs/dagre",
+          "success": true,
+          "message": "Successfully imported"
+        },
+        {
+          "name": "dependency: remotion",
+          "success": true,
+          "message": "Successfully imported"
+        }
+      ],
+      "success": true,
+      "endTime": 106.373731,
+      "duration": 85.49687
+    },
+    {
+      "name": "Mock Data Pipeline",
+      "startTime": 106.61128,
+      "tests": [
+        {
+          "name": "Mock Transcription",
+          "success": true,
+          "data": {
+            "success": true,
+            "segments": [
+              {
+                "text": "Welcome to our presentation on system architecture",
+                "startMs": 0,
+                "endMs": 4000,
+                "confidence": 0.95
+              },
+              {
+                "text": "Today we will explore the hierarchical structure of our organization",
+                "startMs": 4000,
+                "endMs": 8000,
+                "confidence": 0.88
+              },
+              {
+                "text": "The workflow consists of multiple sequential steps",
+                "startMs": 8000,
+                "endMs": 12000,
+                "confidence": 0.92
+              },
+              {
+                "text": "First we process the input data through validation",
+                "startMs": 12000,
+                "endMs": 16000,
+                "confidence": 0.89
+              },
+              {
+                "text": "Then we apply transformation algorithms to generate output",
+                "startMs": 16000,
+                "endMs": 20000,
+                "confidence": 0.91
+              }
+            ],
+            "accuracy": 0.91,
+            "processingTime": 2800
+          },
+          "message": "Generated 5 segments with 91.0% accuracy"
+        },
+        {
+          "name": "Mock Analysis",
+          "success": true,
+          "data": {
+            "success": true,
+            "scenes": [
+              {
+                "startMs": 0,
+                "endMs": 8000,
+                "summary": "Introduction to organizational hierarchy",
+                "diagramType": "hierarchy",
+                "confidence": 0.87,
+                "entities": [
+                  "Organization",
+                  "Management",
+                  "Teams",
+                  "Employees"
+                ],
+                "relationships": [
+                  {
+                    "from": 0,
+                    "to": 1
+                  },
+                  {
+                    "from": 1,
+                    "to": 2
+                  },
+                  {
+                    "from": 2,
+                    "to": 3
+                  }
+                ]
+              },
+              {
+                "startMs": 8000,
+                "endMs": 20000,
+                "summary": "Sequential workflow process description",
+                "diagramType": "flow",
+                "confidence": 0.93,
+                "entities": [
+                  "Input",
+                  "Validation",
+                  "Processing",
+                  "Transformation",
+                  "Output"
+                ],
+                "relationships": [
+                  {
+                    "from": 0,
+                    "to": 1
+                  },
+                  {
+                    "from": 1,
+                    "to": 2
+                  },
+                  {
+                    "from": 2,
+                    "to": 3
+                  },
+                  {
+                    "from": 3,
+                    "to": 4
+                  }
+                ]
+              }
+            ],
+            "sceneCount": 2,
+            "diagramTypes": [
+              "hierarchy",
+              "flow"
+            ],
+            "averageConfidence": 0.9,
+            "processingTime": 1900
+          },
+          "message": "Detected 2 scenes with 2 diagram types"
+        },
+        {
+          "name": "Mock Visualization",
+          "success": true,
+          "data": {
+            "success": true,
+            "layouts": [
+              {
+                "sceneId": 0,
+                "nodes": [
+                  {
+                    "id": "node-0",
+                    "label": "Organization",
+                    "x": 100,
+                    "y": 200,
+                    "width": 120,
+                    "height": 60
+                  },
+                  {
+                    "id": "node-1",
+                    "label": "Management",
+                    "x": 250,
+                    "y": 200,
+                    "width": 120,
+                    "height": 60
+                  },
+                  {
+                    "id": "node-2",
+                    "label": "Teams",
+                    "x": 400,
+                    "y": 200,
+                    "width": 120,
+                    "height": 60
+                  },
+                  {
+                    "id": "node-3",
+                    "label": "Employees",
+                    "x": 550,
+                    "y": 200,
+                    "width": 120,
+                    "height": 60
+                  }
+                ],
+                "edges": [
+                  {
+                    "from": "node-0",
+                    "to": "node-1",
+                    "points": [
+                      {
+                        "x": 220,
+                        "y": 230
+                      },
+                      {
+                        "x": 250,
+                        "y": 230
+                      }
+                    ]
+                  },
+                  {
+                    "from": "node-1",
+                    "to": "node-2",
+                    "points": [
+                      {
+                        "x": 370,
+                        "y": 230
+                      },
+                      {
+                        "x": 400,
+                        "y": 230
+                      }
+                    ]
+                  },
+                  {
+                    "from": "node-2",
+                    "to": "node-3",
+                    "points": [
+                      {
+                        "x": 520,
+                        "y": 230
+                      },
+                      {
+                        "x": 550,
+                        "y": 230
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "sceneId": 1,
+                "nodes": [
+                  {
+                    "id": "node-0",
+                    "label": "Input",
+                    "x": 100,
+                    "y": 200,
+                    "width": 120,
+                    "height": 60
+                  },
+                  {
+                    "id": "node-1",
+                    "label": "Validation",
+                    "x": 250,
+                    "y": 200,
+                    "width": 120,
+                    "height": 60
+                  },
+                  {
+                    "id": "node-2",
+                    "label": "Processing",
+                    "x": 400,
+                    "y": 200,
+                    "width": 120,
+                    "height": 60
+                  },
+                  {
+                    "id": "node-3",
+                    "label": "Transformation",
+                    "x": 550,
+                    "y": 200,
+                    "width": 120,
+                    "height": 60
+                  },
+                  {
+                    "id": "node-4",
+                    "label": "Output",
+                    "x": 700,
+                    "y": 200,
+                    "width": 120,
+                    "height": 60
+                  }
+                ],
+                "edges": [
+                  {
+                    "from": "node-0",
+                    "to": "node-1",
+                    "points": [
+                      {
+                        "x": 220,
+                        "y": 230
+                      },
+                      {
+                        "x": 250,
+                        "y": 230
+                      }
+                    ]
+                  },
+                  {
+                    "from": "node-1",
+                    "to": "node-2",
+                    "points": [
+                      {
+                        "x": 370,
+                        "y": 230
+                      },
+                      {
+                        "x": 400,
+                        "y": 230
+                      }
+                    ]
+                  },
+                  {
+                    "from": "node-2",
+                    "to": "node-3",
+                    "points": [
+                      {
+                        "x": 520,
+                        "y": 230
+                      },
+                      {
+                        "x": 550,
+                        "y": 230
+                      }
+                    ]
+                  },
+                  {
+                    "from": "node-3",
+                    "to": "node-4",
+                    "points": [
+                      {
+                        "x": 670,
+                        "y": 230
+                      },
+                      {
+                        "x": 700,
+                        "y": 230
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "layoutCount": 2,
+            "overlapCount": 0,
+            "readabilityScore": 0.95,
+            "processingTime": 600
+          },
+          "message": "Generated 2 layouts with 0 overlaps"
+        },
+        {
+          "name": "End-to-End Simulation",
+          "success": true,
+          "data": {
+            "success": true,
+            "steps": [
+              {
+                "name": "Audio Input Validation",
+                "duration": 50,
+                "success": true
+              },
+              {
+                "name": "Transcription Processing",
+                "duration": 280,
+                "success": true
+              },
+              {
+                "name": "Content Analysis",
+                "duration": 190,
+                "success": true
+              },
+              {
+                "name": "Scene Segmentation",
+                "duration": 120,
+                "success": true
+              },
+              {
+                "name": "Diagram Detection",
+                "duration": 80,
+                "success": true
+              },
+              {
+                "name": "Layout Generation",
+                "duration": 60,
+                "success": true
+              },
+              {
+                "name": "Video Preparation",
+                "duration": 100,
+                "success": true
+              },
+              {
+                "name": "Final Rendering",
+                "duration": 200,
+                "success": true
+              }
+            ],
+            "stepCount": 8,
+            "totalTime": "1082",
+            "successfulSteps": 8
+          },
+          "message": "Complete pipeline simulation: 8 steps in 1082ms"
+        }
+      ],
+      "success": true,
+      "endTime": 1540.545764,
+      "duration": 1433.9344839999999
+    },
+    {
+      "name": "System Integration",
+      "startTime": 1540.786941,
+      "tests": [
+        {
+          "name": "System Configuration",
+          "success": true,
+          "data": {
+            "success": true,
+            "validConfigs": 4,
+            "totalConfigs": 4,
+            "configStatus": {
+              "package.json": "valid",
+              "tsconfig.json": "valid",
+              "remotion.config.ts": "valid",
+              "vite.config.ts": "valid"
+            }
+          },
+          "message": "4/4 configuration files validated"
+        },
+        {
+          "name": "File Structure",
+          "success": true,
+          "data": {
+            "success": true,
+            "foundPaths": 8,
+            "expectedPaths": 8,
+            "pathStatus": {
+              "src": "exists",
+              "src/components": "exists",
+              "src/pages": "exists",
+              "src/transcription": "exists",
+              "src/analysis": "exists",
+              "src/visualization": "exists",
+              "src/pipeline": "exists",
+              "src/types": "exists"
+            }
+          },
+          "message": "8/8 required paths found"
+        },
+        {
+          "name": "Component Communication",
+          "success": true,
+          "data": {
+            "success": true,
+            "connections": [
+              {
+                "from": "TranscriptionPipeline",
+                "to": "SceneSegmenter",
+                "success": true
+              },
+              {
+                "from": "SceneSegmenter",
+                "to": "DiagramDetector",
+                "success": true
+              },
+              {
+                "from": "DiagramDetector",
+                "to": "LayoutEngine",
+                "success": true
+              },
+              {
+                "from": "LayoutEngine",
+                "to": "VideoRenderer",
+                "success": true
+              },
+              {
+                "from": "QualityMonitor",
+                "to": "All Components",
+                "success": true
+              }
+            ],
+            "successfulConnections": 5,
+            "totalConnections": 5
+          },
+          "message": "5/5 component connections successful"
+        }
+      ],
+      "success": true,
+      "endTime": 1541.536268,
+      "duration": 0.7493269999999939
+    },
+    {
+      "name": "Performance Validation",
+      "startTime": 1541.691281,
+      "tests": [
+        {
+          "name": "Memory Usage",
+          "success": true,
+          "data": {
+            "success": true,
+            "usedMemory": 9563224,
+            "memoryLimit": 536870912,
+            "withinLimits": true,
+            "utilizationPercentage": "1.8"
+          },
+          "message": "Memory usage: 9.1MB (within limits)"
+        },
+        {
+          "name": "Processing Speed",
+          "success": true,
+          "data": {
+            "success": true,
+            "avgProcessingTime": 150.28805399999996,
+            "benchmark": 200,
+            "meetsBenchmark": true,
+            "times": [
+              150.35313499999984,
+              150.27205200000003,
+              150.25741400000015,
+              150.32376000000022,
+              150.23390899999958
+            ]
+          },
+          "message": "Average processing time: 150.3ms (meets benchmark)"
+        },
+        {
+          "name": "System Throughput",
+          "success": true,
+          "data": {
+            "success": true,
+            "itemsPerSecond": 6.654862347256875,
+            "targetThroughput": 5,
+            "meetsTarget": true,
+            "totalTime": 1.502660683
+          },
+          "message": "Throughput: 6.65 items/sec (meets target)"
+        }
+      ],
+      "success": true,
+      "endTime": 3796.278694,
+      "duration": 2254.587413
+    }
+  ],
+  "summary": {
+    "totalPhases": 4,
+    "successfulPhases": 4,
+    "successRate": 100,
+    "totalTests": 17,
+    "successfulTests": 17,
+    "testSuccessRate": 100,
+    "systemReadiness": "EXCELLENT"
+  }
+}

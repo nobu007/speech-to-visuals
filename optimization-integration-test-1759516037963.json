@@ -1,0 +1,184 @@
+{
+  "timestamp": "2025-10-03T18:27:17.962Z",
+  "iteration": 46,
+  "totalDuration": 220.007598,
+  "results": {
+    "testCases": [
+      {
+        "testCase": "Technical Content - High Complexity",
+        "characteristics": {
+          "speechRate": 61.33333333333333,
+          "complexity": "high",
+          "domain": "technical",
+          "audioQuality": 0.85,
+          "keywordDensity": 0.06521739130434782,
+          "diagramLikelihood": 0.6
+        },
+        "optimization": {
+          "parameters": {
+            "confidenceThreshold": 0.85,
+            "segmentMinLength": 5000,
+            "segmentMaxLength": 40000,
+            "processingMode": "fast",
+            "layoutDensity": 0.6
+          },
+          "expectedPerformance": {
+            "accuracy": 0.820224,
+            "speed": 6.7860000000000005,
+            "reliability": 0.95
+          },
+          "confidence": 0.9199999999999999
+        },
+        "actualPerformance": {
+          "accuracy": 0.8071245517831008,
+          "speed": 6.8182047531690815,
+          "reliability": 0.9337074769098764
+        },
+        "duration": 51.649588,
+        "improvement": {
+          "accuracy": -1.570176611816966,
+          "speed": 31.119322176328485,
+          "reliability": 2.6052172428435605
+        },
+        "status": "success"
+      },
+      {
+        "testCase": "Business Process - Medium Complexity",
+        "characteristics": {
+          "speechRate": 78,
+          "complexity": "high",
+          "domain": "business",
+          "audioQuality": 0.9,
+          "keywordDensity": 0.10256410256410256,
+          "diagramLikelihood": 0.4
+        },
+        "optimization": {
+          "parameters": {
+            "confidenceThreshold": 0.7999999999999999,
+            "segmentMinLength": 5000,
+            "segmentMaxLength": 40000,
+            "processingMode": "fast",
+            "layoutDensity": 0.6
+          },
+          "expectedPerformance": {
+            "accuracy": 0.801792,
+            "speed": 6.9030000000000005,
+            "reliability": 0.95
+          },
+          "confidence": 0.9299999999999999
+        },
+        "actualPerformance": {
+          "accuracy": 0.8562499700490611,
+          "speed": 7.407229896321731,
+          "reliability": 0.9330218939327731
+        },
+        "duration": 69.28202099999999,
+        "improvement": {
+          "accuracy": 4.420728054763557,
+          "speed": 42.44672877541789,
+          "reliability": 2.52987845415089
+        },
+        "status": "success"
+      },
+      {
+        "testCase": "Educational Content - Simple Flow",
+        "characteristics": {
+          "speechRate": 117,
+          "complexity": "low",
+          "domain": "educational",
+          "audioQuality": 0.95,
+          "keywordDensity": 0.10256410256410256,
+          "diagramLikelihood": 0.4
+        },
+        "optimization": {
+          "parameters": {
+            "confidenceThreshold": 0.65,
+            "segmentMinLength": 5000,
+            "segmentMaxLength": 40000,
+            "processingMode": "fast",
+            "layoutDensity": 0.8
+          },
+          "expectedPerformance": {
+            "accuracy": 0.7776,
+            "speed": 8.06,
+            "reliability": 0.95
+          },
+          "confidence": 0.94
+        },
+        "actualPerformance": {
+          "accuracy": 0.7969565752324642,
+          "speed": 8.17012526818531,
+          "reliability": 0.9232868499411231
+        },
+        "duration": 96.330678,
+        "improvement": {
+          "accuracy": -2.8101737521385046,
+          "speed": 57.11779361894824,
+          "reliability": 1.460093400123413
+        },
+        "status": "success"
+      }
+    ],
+    "performance": {
+      "averages": {
+        "accuracy": 0.8201103656882087,
+        "speed": 7.465186639225373,
+        "reliability": 0.9300054069279242
+      },
+      "improvements": {
+        "accuracy": 0.013459230269362063,
+        "speed": 43.561281523564865,
+        "reliability": 2.1983963657059546
+      },
+      "successful": 3,
+      "total": 3
+    },
+    "optimization": {},
+    "quality": {
+      "score": 70,
+      "criteria": {
+        "accuracyTarget": false,
+        "speedImprovement": true,
+        "reliabilityMaintained": true,
+        "allTestsPassed": true
+      },
+      "recommendations": [
+        "Improve accuracy: target 89%, achieved 82.0%"
+      ],
+      "status": "FAIR"
+    },
+    "iterations": 3,
+    "baseline": {
+      "accuracy": 0.82,
+      "speed": 5.2,
+      "reliability": 0.91,
+      "memoryUsage": 209715200
+    }
+  },
+  "systemStatus": "FAIR - Significant improvements required",
+  "nextActions": [
+    "Address quality issues identified in optimization tests",
+    "Improve accuracy: target 89%, achieved 82.0%",
+    "Improve parameter tuning for accuracy gains"
+  ],
+  "customInstructionsCompliance": {
+    "score": 100,
+    "checks": {
+      "modularImplementation": true,
+      "functionalVerification": true,
+      "iterativeImprovement": {
+        "accuracy": 0.013459230269362063,
+        "speed": 43.561281523564865,
+        "reliability": 2.1983963657059546
+      },
+      "processTransparency": {
+        "accuracyTarget": false,
+        "speedImprovement": true,
+        "reliabilityMaintained": true,
+        "allTestsPassed": true
+      }
+    },
+    "methodology": "実装→テスト→評価→改善の繰り返し",
+    "status": "FULLY_COMPLIANT"
+  }
+}
