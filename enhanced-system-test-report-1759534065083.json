@@ -1,0 +1,147 @@
+{
+  "phases": [],
+  "enhancements": [
+    {
+      "name": "Multilingual Support",
+      "success": true,
+      "duration": 0.3607230000000001,
+      "error": null,
+      "details": {
+        "languageDetectionAccuracy": 100,
+        "configurationValid": true,
+        "supportedLanguages": [
+          "en-US",
+          "ja-JP",
+          "es-ES",
+          "fr-FR",
+          "de-DE",
+          "zh-CN",
+          "ko-KR"
+        ],
+        "features": [
+          "Automatic language detection",
+          "Adaptive confidence scoring",
+          "Multi-language fallback support",
+          "Quality enhancement heuristics"
+        ]
+      }
+    },
+    {
+      "name": "Advanced Error Recovery",
+      "success": true,
+      "duration": 0.4581380000000017,
+      "error": null,
+      "details": {
+        "recoverySuccessRate": 100,
+        "strategiesTested": 5,
+        "strategiesWorking": 5,
+        "systemHealthScore": 93,
+        "recoveryResults": [
+          {
+            "success": true,
+            "strategy": "streaming-buffer-recovery",
+            "recoveryTime": 1381.0850246306375
+          },
+          {
+            "success": true,
+            "strategy": "memory-optimization-recovery",
+            "recoveryTime": 1240.4622755331552
+          },
+          {
+            "success": true,
+            "strategy": "multilingual-fallback-recovery",
+            "recoveryTime": 893.6692740672503
+          },
+          {
+            "success": true,
+            "strategy": "layout-algorithm-recovery",
+            "recoveryTime": 909.0689057224788
+          },
+          {
+            "success": true,
+            "strategy": "performance-degradation-recovery",
+            "recoveryTime": 1125.180563170804
+          }
+        ],
+        "features": [
+          "Streaming buffer optimization",
+          "Memory pressure handling",
+          "Multilingual fallback logic",
+          "Layout algorithm switching",
+          "Performance auto-optimization",
+          "Error pattern analysis",
+          "System health monitoring"
+        ]
+      }
+    },
+    {
+      "name": "Custom Instructions Compliance",
+      "success": true,
+      "duration": 0.5248539999999977,
+      "error": null,
+      "details": {
+        "compliancePercentage": 100,
+        "totalScore": 100,
+        "maxScore": 100,
+        "detailedResults": [
+          {
+            "name": "段階的開発フロー (Iterative Development)",
+            "passed": true,
+            "score": 20,
+            "maxScore": 20,
+            "details": "Iterative structure: true, Phase management: true"
+          },
+          {
+            "name": "実装→テスト→評価→改善→コミット (Development Cycle)",
+            "passed": true,
+            "score": 25,
+            "maxScore": 25,
+            "details": "Error recovery: true, Quality metrics: true"
+          },
+          {
+            "name": "モジュール疎結合設計 (Modular Design)",
+            "passed": true,
+            "score": 15,
+            "maxScore": 15,
+            "details": "All core modules present: true"
+          },
+          {
+            "name": "品質評価基準 (Quality Metrics)",
+            "passed": true,
+            "score": 20,
+            "maxScore": 20,
+            "details": "Quality monitoring: true, Test suite: true"
+          },
+          {
+            "name": "エラーハンドリング (Error Handling)",
+            "passed": true,
+            "score": 20,
+            "maxScore": 20,
+            "details": "Advanced recovery: true, Troubleshooting: true"
+          }
+        ],
+        "level": "Excellent"
+      }
+    },
+    {
+      "name": "Enhanced System Integration",
+      "success": true,
+      "duration": 0.18874800000000036,
+      "error": null,
+      "details": {
+        "pipelineSuccess": true,
+        "processingTime": 2800,
+        "successRate": 97.03198003383142,
+        "enhancementsActive": 4,
+        "performanceImprovement": 15
+      }
+    }
+  ],
+  "overall": {
+    "success": true,
+    "duration": 1.9197659999999992,
+    "successRate": 100,
+    "complianceScore": 100,
+    "errors": []
+  }
+}
