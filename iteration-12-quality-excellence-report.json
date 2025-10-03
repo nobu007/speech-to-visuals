@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-10-03T00:42:03.227Z",
+  "timestamp": "2025-10-03T00:47:46.236Z",
   "iteration": 12,
   "testConfig": {
     "iterations": 3,
@@ -20,23 +20,23 @@
   },
   "results": [
     {
-      "processingTime": 1562.806307,
-      "qualityScore": 0.9231653851735149,
-      "qualityImprovement": 0.14316538517351488,
+      "processingTime": 1494.783304,
+      "qualityScore": 0.9275086134178216,
+      "qualityImprovement": 0.14750861341782157,
       "qualityAchieved": true,
       "improvementSufficient": true,
       "processingEfficient": true,
       "advancedMetrics": {
-        "confidenceAccuracy": 0.9598127450647895,
-        "sceneCoherence": 0.9099470345319786,
-        "temporalConsistency": 0.8811724749291815,
-        "visualQuality": 0.887284575974065,
-        "audioSyncAccuracy": 0.910450414792042
+        "confidenceAccuracy": 0.9670562908506314,
+        "sceneCoherence": 0.9029133171836945,
+        "temporalConsistency": 0.9224921967835477,
+        "visualQuality": 0.8971584668078353,
+        "audioSyncAccuracy": 0.9492725475412791
       },
       "enhancementDetails": {
         "originalQuality": 0.78,
-        "enhancedQuality": 0.9231653851735149,
-        "qualityImprovement": 0.14316538517351488,
+        "enhancedQuality": 0.9275086134178216,
+        "qualityImprovement": 0.14750861341782157,
         "optimizationCount": 3,
         "confidenceCalibrations": 3,
         "realTimeMonitoring": true
@@ -48,26 +48,26 @@
         "realTimeMonitoring": true
       },
       "scenes": 3,
-      "realtimeRatio": 11.517742102380701
+      "realtimeRatio": 12.041879215423723
     },
     {
-      "processingTime": 1777.8503580000001,
-      "qualityScore": 0.8922813383758846,
-      "qualityImprovement": 0.1122813383758846,
+      "processingTime": 1686.67514,
+      "qualityScore": 0.8857660463344852,
+      "qualityImprovement": 0.10576604633448514,
       "qualityAchieved": true,
       "improvementSufficient": true,
       "processingEfficient": true,
       "advancedMetrics": {
-        "confidenceAccuracy": 0.945116744124478,
-        "sceneCoherence": 0.9047736845372101,
-        "temporalConsistency": 0.8938804665684345,
-        "visualQuality": 0.8892638112127219,
-        "audioSyncAccuracy": 0.9166789857636801
+        "confidenceAccuracy": 0.9300684264818916,
+        "sceneCoherence": 0.9427411842237485,
+        "temporalConsistency": 0.8502728925323687,
+        "visualQuality": 0.8837834729411838,
+        "audioSyncAccuracy": 0.9517889630023236
       },
       "enhancementDetails": {
         "originalQuality": 0.78,
-        "enhancedQuality": 0.8922813383758846,
-        "qualityImprovement": 0.1122813383758846,
+        "enhancedQuality": 0.8857660463344852,
+        "qualityImprovement": 0.10576604633448514,
         "optimizationCount": 3,
         "confidenceCalibrations": 3,
         "realTimeMonitoring": true
@@ -79,26 +79,26 @@
         "realTimeMonitoring": true
       },
       "scenes": 3,
-      "realtimeRatio": 10.124586649828712
+      "realtimeRatio": 10.67188314638941
     },
     {
-      "processingTime": 1495.6429100000005,
-      "qualityScore": 0.9139766603622438,
-      "qualityImprovement": 0.13397666036224373,
+      "processingTime": 2174.397572,
+      "qualityScore": 0.9200860125209539,
+      "qualityImprovement": 0.14008601252095387,
       "qualityAchieved": true,
       "improvementSufficient": true,
       "processingEfficient": true,
       "advancedMetrics": {
-        "confidenceAccuracy": 0.9511756314404765,
-        "sceneCoherence": 0.8849386134458991,
-        "temporalConsistency": 0.886144338096782,
-        "visualQuality": 0.8911542135843197,
-        "audioSyncAccuracy": 0.9112072548248059
+        "confidenceAccuracy": 0.9629759759934805,
+        "sceneCoherence": 0.892803433634126,
+        "temporalConsistency": 0.9248254552557177,
+        "visualQuality": 0.8918161661449316,
+        "audioSyncAccuracy": 0.9783017636496818
       },
       "enhancementDetails": {
         "originalQuality": 0.78,
-        "enhancedQuality": 0.9139766603622438,
-        "qualityImprovement": 0.13397666036224373,
+        "enhancedQuality": 0.9200860125209539,
+        "qualityImprovement": 0.14008601252095387,
         "optimizationCount": 3,
         "confidenceCalibrations": 3,
         "realTimeMonitoring": true
@@ -110,17 +110,17 @@
         "realTimeMonitoring": true
       },
       "scenes": 3,
-      "realtimeRatio": 12.034958264202245
+      "realtimeRatio": 8.278154938999354
     }
   ],
   "summary": {
     "iterations": 3,
     "successRate": 1,
-    "avgProcessingTime": 1612.0998583333337,
-    "avgQualityScore": 0.9098077946372145,
-    "avgImprovement": 0.1298077946372144,
+    "avgProcessingTime": 1785.2853386666666,
+    "avgQualityScore": 0.911120224091087,
+    "avgImprovement": 0.13112022409108684,
     "qualityAchievementRate": 1,
-    "avgRealtimeRatio": 11.225762338803888,
+    "avgRealtimeRatio": 10.330639100270828,
     "productionReady": true
   },
   "capabilities": {
