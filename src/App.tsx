@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Iteration43Interface from "./components/Iteration43Interface";
+import TutorialSystem from "./components/TutorialSystem";
+import ProductionDashboard from "./components/ProductionDashboard";
 
 const queryClient = new QueryClient();
 
@@ -14,10 +16,12 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <TutorialSystem />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/iteration43" element={<Iteration43Interface />} />
+          <Route path="/production" element={<ProductionDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

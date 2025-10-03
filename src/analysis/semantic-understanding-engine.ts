@@ -10,7 +10,8 @@
  * 3. 疎結合設計 (Loosely coupled design)
  */
 
-import { performance } from 'perf_hooks';
+// Use browser-compatible performance API
+const getPerformanceNow = () => typeof performance !== 'undefined' ? performance.now() : Date.now();
 
 export interface SemanticConcept {
   id: string;
@@ -63,7 +64,7 @@ export class SemanticUnderstandingEngine {
    * Main semantic analysis entry point
    */
   async analyze(text: string, context: string = 'general'): Promise<SemanticAnalysisResult> {
-    const startTime = performance.now();
+    const startTime = getPerformanceNow();
 
     console.log('🧠 Starting semantic analysis...');
 
@@ -83,7 +84,7 @@ export class SemanticUnderstandingEngine {
       // Phase 5: Diagram Type Suggestion
       const suggestedDiagramType = await this.suggestDiagramType(graph);
 
-      const processingTime = performance.now() - startTime;
+      const processingTime = getPerformanceNow() - startTime;
 
       const result: SemanticAnalysisResult = {
         graph,
