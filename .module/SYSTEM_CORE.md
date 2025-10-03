@@ -1,6 +1,6 @@
-# System Core Architecture
+# AutoDiagram Video Generator - System Core Architecture
 
-## Audio-to-Diagram Video Generator - Core Definitions
+## Audio-to-Diagram Video Generator - Core Definitions (Updated per Custom Instructions)
 
 ### Project Metadata
 - **Name**: AutoDiagram Video Generator

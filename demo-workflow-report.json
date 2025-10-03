@@ -1,0 +1,33 @@
+{
+  "timestamp": "2025-10-03T00:24:00.936Z",
+  "stages": [
+    {
+      "name": "dependencies",
+      "status": "complete",
+      "duration": 50
+    },
+    {
+      "name": "audio-processing",
+      "status": "complete",
+      "duration": 1000
+    },
+    {
+      "name": "pipeline-integration",
+      "status": "complete",
+      "duration": 1300
+    },
+    {
+      "name": "video-generation",
+      "status": "complete",
+      "duration": 1750
+    },
+    {
+      "name": "sample-output",
+      "status": "complete",
+      "duration": 200
+    }
+  ],
+  "totalTime": 4058.533041,
+  "success": true,
+  "sampleOutput": "demo-output/sample-scene.json"
+}

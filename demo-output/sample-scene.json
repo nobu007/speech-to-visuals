@@ -1,0 +1,185 @@
+{
+  "type": "flow",
+  "nodes": [
+    {
+      "id": "input",
+      "label": "Audio Input"
+    },
+    {
+      "id": "transcribe",
+      "label": "Transcription"
+    },
+    {
+      "id": "analyze",
+      "label": "Analysis"
+    },
+    {
+      "id": "generate",
+      "label": "Diagram Generation"
+    },
+    {
+      "id": "render",
+      "label": "Video Render"
+    },
+    {
+      "id": "output",
+      "label": "Final Video"
+    }
+  ],
+  "edges": [
+    {
+      "from": "input",
+      "to": "transcribe"
+    },
+    {
+      "from": "transcribe",
+      "to": "analyze"
+    },
+    {
+      "from": "analyze",
+      "to": "generate"
+    },
+    {
+      "from": "generate",
+      "to": "render"
+    },
+    {
+      "from": "render",
+      "to": "output"
+    }
+  ],
+  "layout": {
+    "nodes": [
+      {
+        "id": "input",
+        "label": "Audio Input",
+        "x": 150,
+        "y": 400,
+        "w": 200,
+        "h": 80
+      },
+      {
+        "id": "transcribe",
+        "label": "Transcription",
+        "x": 400,
+        "y": 400,
+        "w": 200,
+        "h": 80
+      },
+      {
+        "id": "analyze",
+        "label": "Analysis",
+        "x": 650,
+        "y": 400,
+        "w": 200,
+        "h": 80
+      },
+      {
+        "id": "generate",
+        "label": "Diagram Generation",
+        "x": 900,
+        "y": 400,
+        "w": 200,
+        "h": 80
+      },
+      {
+        "id": "render",
+        "label": "Video Render",
+        "x": 1150,
+        "y": 400,
+        "w": 200,
+        "h": 80
+      },
+      {
+        "id": "output",
+        "label": "Final Video",
+        "x": 1400,
+        "y": 400,
+        "w": 200,
+        "h": 80
+      }
+    ],
+    "edges": [
+      {
+        "from": "input",
+        "to": "transcribe",
+        "points": [
+          {
+            "x": 350,
+            "y": 440
+          },
+          {
+            "x": 400,
+            "y": 440
+          }
+        ]
+      },
+      {
+        "from": "transcribe",
+        "to": "analyze",
+        "points": [
+          {
+            "x": 600,
+            "y": 440
+          },
+          {
+            "x": 650,
+            "y": 440
+          }
+        ]
+      },
+      {
+        "from": "analyze",
+        "to": "generate",
+        "points": [
+          {
+            "x": 850,
+            "y": 440
+          },
+          {
+            "x": 900,
+            "y": 440
+          }
+        ]
+      },
+      {
+        "from": "generate",
+        "to": "render",
+        "points": [
+          {
+            "x": 1100,
+            "y": 440
+          },
+          {
+            "x": 1150,
+            "y": 440
+          }
+        ]
+      },
+      {
+        "from": "render",
+        "to": "output",
+        "points": [
+          {
+            "x": 1350,
+            "y": 440
+          },
+          {
+            "x": 1400,
+            "y": 440
+          }
+        ]
+      }
+    ]
+  },
+  "startMs": 0,
+  "durationMs": 15000,
+  "summary": "Speech-to-Visuals Processing Pipeline",
+  "keyphrases": [
+    "audio",
+    "transcription",
+    "analysis",
+    "diagram",
+    "video"
+  ]
+}
