@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 import Iteration43Interface from "./components/Iteration43Interface";
 import TutorialSystem from "./components/TutorialSystem";
 import ProductionDashboard from "./components/ProductionDashboard";
+import ErrorAlertSystem from "./components/ErrorAlertSystem";
 
 const queryClient = new QueryClient();
 
@@ -17,6 +18,10 @@ const App = () => (
       <Toaster />
       <Sonner />
       <TutorialSystem />
+      {/* Production Error Monitoring */}
+      <div className="fixed top-4 right-4 z-50 max-w-md">
+        <ErrorAlertSystem autoHide={true} />
+      </div>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
