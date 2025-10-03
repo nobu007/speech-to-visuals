@@ -1,6 +1,7 @@
 import { TranscriptionResult, TranscriptionConfig, TranscriptionSegment, TranscriptionMetrics } from './types';
 import AudioPreprocessor from './audio-preprocessor';
 import TextPostProcessor from './text-postprocessor';
+import { Caption } from '@remotion/captions';
 
 /**
  * Whisper-based transcription service with iterative improvement capabilities
@@ -273,13 +274,34 @@ export class TranscriptionPipeline {
     metrics: TranscriptionMetrics,
     startTime: number
   ): Promise<TranscriptionResult> {
+    // Generate Remotion captions from segments
+    const captions = await this.generateRemotionCaptions(segments);
+
     return {
       segments,
       language: 'en', // TODO: Auto-detect
       duration: metrics.duration,
       processingTime: performance.now() - startTime,
-      success: true
+      success: true,
+      captions // Add captions to result
     };
+  }
+
+  /**
+   * Generate Remotion-compatible captions from transcription segments
+   */
+  private async generateRemotionCaptions(segments: TranscriptionSegment[]): Promise<Caption[]> {
+    console.log(`[V${this.iteration}] Generating Remotion captions from ${segments.length} segments...`);
+
+    const captions: Caption[] = segments.map((segment, index) => ({
+      text: segment.text,
+      startMs: segment.start,
+      endMs: segment.end,
+      confidence: segment.confidence || 0.9
+    }));
+
+    console.log(`✅ Generated ${captions.length} Remotion-compatible captions`);
+    return captions;
   }
 
   /**

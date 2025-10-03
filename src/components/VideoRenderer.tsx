@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Play, Download, ExternalLink, Settings } from 'lucide-react';
 import { SceneGraph } from '@/types/diagram';
 import { videoRenderer, VideoRenderProgress } from '@/lib/videoRenderer';
+import { Player } from '@remotion/player';
 import { toast } from 'sonner';
 
 interface VideoRendererProps {

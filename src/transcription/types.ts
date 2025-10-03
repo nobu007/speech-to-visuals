@@ -1,3 +1,5 @@
+import { Caption } from '@remotion/captions';
+
 export interface TranscriptionSegment {
   start: number;
   end: number;
@@ -12,6 +14,7 @@ export interface TranscriptionResult {
   processingTime: number;
   success: boolean;
   error?: string;
+  captions?: Caption[]; // Add Remotion captions support
 }
 
 export interface TranscriptionConfig {
