@@ -1,0 +1,498 @@
+{
+  "demonstration": {
+    "id": "real-audio-demo-1759491347963",
+    "type": "Real Audio Processing Demo",
+    "timestamp": "2025-10-03T11:35:51.971Z",
+    "totalDuration": 4007.4553760000003
+  },
+  "pipeline": {
+    "success": true,
+    "stages": 5,
+    "completedStages": 5,
+    "failedStages": 0
+  },
+  "performance": {
+    "totalProcessingTime": 4007.4553760000003,
+    "averageStageTime": 800.5924016,
+    "bottlenecks": [
+      {
+        "stage": "Video Composition",
+        "duration": 1910.1518689999998,
+        "relative": 0.47718461109111776
+      },
+      {
+        "stage": "Transcription Processing",
+        "duration": 919.0754649999999,
+        "relative": 0.22959884784397383
+      }
+    ],
+    "optimization": [
+      "Optimize video rendering with GPU acceleration"
+    ]
+  },
+  "quality": {
+    "transcriptionAccuracy": 0.92,
+    "analysisConfidence": 0.845,
+    "diagramQuality": 0.88,
+    "videoQuality": 0.92,
+    "overallScore": 0.89
+  },
+  "output": {
+    "transcript": {
+      "captions": [
+        {
+          "start": 0,
+          "end": 3200,
+          "text": "We choose to go to the moon in this decade",
+          "confidence": 0.94
+        },
+        {
+          "start": 3200,
+          "end": 6800,
+          "text": "and do the other things, not because they are easy",
+          "confidence": 0.91
+        },
+        {
+          "start": 6800,
+          "end": 10500,
+          "text": "but because they are hard",
+          "confidence": 0.93
+        },
+        {
+          "start": 10500,
+          "end": 12000,
+          "text": "because that goal will serve to organize",
+          "confidence": 0.89
+        }
+      ],
+      "language": "en",
+      "totalDuration": 12000,
+      "averageConfidence": 0.92
+    },
+    "diagrams": {
+      "layouts": [
+        {
+          "sceneId": 1,
+          "type": "goal-diagram",
+          "nodes": [
+            {
+              "id": "node_0",
+              "label": "Decision",
+              "x": 100,
+              "y": 100,
+              "width": 140,
+              "height": 60,
+              "style": {
+                "backgroundColor": "#3B82F6",
+                "color": "white"
+              }
+            },
+            {
+              "id": "node_1",
+              "label": "Moon Mission",
+              "x": 400,
+              "y": 100,
+              "width": 140,
+              "height": 60,
+              "style": {
+                "backgroundColor": "#F59E0B",
+                "color": "white"
+              }
+            },
+            {
+              "id": "node_2",
+              "label": "Timeline",
+              "x": 100,
+              "y": 250,
+              "width": 140,
+              "height": 60,
+              "style": {
+                "backgroundColor": "#10B981",
+                "color": "white"
+              }
+            },
+            {
+              "id": "node_3",
+              "label": "Challenges",
+              "x": 400,
+              "y": 250,
+              "width": 140,
+              "height": 60,
+              "style": {
+                "backgroundColor": "#EF4444",
+                "color": "white"
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "edge_0",
+              "source": "Decision",
+              "target": "Moon Mission",
+              "type": "leads-to",
+              "style": {
+                "stroke": "#3B82F6",
+                "strokeWidth": 2,
+                "markerEnd": "arrow"
+              }
+            },
+            {
+              "id": "edge_1",
+              "source": "Moon Mission",
+              "target": "Timeline",
+              "type": "constrained-by",
+              "style": {
+                "stroke": "#F59E0B",
+                "strokeWidth": 2,
+                "strokeDasharray": "5,5"
+              }
+            }
+          ],
+          "algorithm": "force-directed",
+          "bounds": {
+            "width": 800,
+            "height": 600
+          }
+        },
+        {
+          "sceneId": 2,
+          "type": "motivation-map",
+          "nodes": [
+            {
+              "id": "node_0",
+              "label": "Hard Challenges",
+              "x": 100,
+              "y": 100,
+              "width": 140,
+              "height": 60,
+              "style": {
+                "backgroundColor": "#EF4444",
+                "color": "white"
+              }
+            },
+            {
+              "id": "node_1",
+              "label": "Organization Goal",
+              "x": 400,
+              "y": 100,
+              "width": 140,
+              "height": 60,
+              "style": {
+                "backgroundColor": "#8B5CF6",
+                "color": "white"
+              }
+            },
+            {
+              "id": "node_2",
+              "label": "Purpose",
+              "x": 100,
+              "y": 250,
+              "width": 140,
+              "height": 60,
+              "style": {
+                "backgroundColor": "#06B6D4",
+                "color": "white"
+              }
+            },
+            {
+              "id": "node_3",
+              "label": "Achievement",
+              "x": 400,
+              "y": 250,
+              "width": 140,
+              "height": 60,
+              "style": {
+                "backgroundColor": "#84CC16",
+                "color": "white"
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "edge_2",
+              "source": "Hard Challenges",
+              "target": "Organization Goal",
+              "type": "enables",
+              "style": {
+                "stroke": "#10B981",
+                "strokeWidth": 2,
+                "markerEnd": "arrow"
+              }
+            },
+            {
+              "id": "edge_3",
+              "source": "Organization Goal",
+              "target": "Achievement",
+              "type": "results-in",
+              "style": {
+                "stroke": "#8B5CF6",
+                "strokeWidth": 2,
+                "markerEnd": "arrow"
+              }
+            }
+          ],
+          "algorithm": "force-directed",
+          "bounds": {
+            "width": 800,
+            "height": 600
+          }
+        }
+      ],
+      "animations": [
+        {
+          "sceneId": 1,
+          "type": "sequential-reveal",
+          "duration": 2000,
+          "transitions": [
+            {
+              "type": "fadeIn",
+              "delay": 0,
+              "duration": 500
+            },
+            {
+              "type": "slideIn",
+              "delay": 300,
+              "duration": 800
+            },
+            {
+              "type": "highlight",
+              "delay": 1000,
+              "duration": 700
+            }
+          ]
+        },
+        {
+          "sceneId": 2,
+          "type": "sequential-reveal",
+          "duration": 2000,
+          "transitions": [
+            {
+              "type": "fadeIn",
+              "delay": 0,
+              "duration": 500
+            },
+            {
+              "type": "slideIn",
+              "delay": 300,
+              "duration": 800
+            },
+            {
+              "type": "highlight",
+              "delay": 1000,
+              "duration": 700
+            }
+          ]
+        }
+      ],
+      "visualAssets": [
+        {
+          "sceneId": 1,
+          "type": "svg-diagram",
+          "data": {
+            "sceneId": 1,
+            "type": "goal-diagram",
+            "nodes": [
+              {
+                "id": "node_0",
+                "label": "Decision",
+                "x": 100,
+                "y": 100,
+                "width": 140,
+                "height": 60,
+                "style": {
+                  "backgroundColor": "#3B82F6",
+                  "color": "white"
+                }
+              },
+              {
+                "id": "node_1",
+                "label": "Moon Mission",
+                "x": 400,
+                "y": 100,
+                "width": 140,
+                "height": 60,
+                "style": {
+                  "backgroundColor": "#F59E0B",
+                  "color": "white"
+                }
+              },
+              {
+                "id": "node_2",
+                "label": "Timeline",
+                "x": 100,
+                "y": 250,
+                "width": 140,
+                "height": 60,
+                "style": {
+                  "backgroundColor": "#10B981",
+                  "color": "white"
+                }
+              },
+              {
+                "id": "node_3",
+                "label": "Challenges",
+                "x": 400,
+                "y": 250,
+                "width": 140,
+                "height": 60,
+                "style": {
+                  "backgroundColor": "#EF4444",
+                  "color": "white"
+                }
+              }
+            ],
+            "edges": [
+              {
+                "id": "edge_0",
+                "source": "Decision",
+                "target": "Moon Mission",
+                "type": "leads-to",
+                "style": {
+                  "stroke": "#3B82F6",
+                  "strokeWidth": 2,
+                  "markerEnd": "arrow"
+                }
+              },
+              {
+                "id": "edge_1",
+                "source": "Moon Mission",
+                "target": "Timeline",
+                "type": "constrained-by",
+                "style": {
+                  "stroke": "#F59E0B",
+                  "strokeWidth": 2,
+                  "strokeDasharray": "5,5"
+                }
+              }
+            ],
+            "algorithm": "force-directed",
+            "bounds": {
+              "width": 800,
+              "height": 600
+            }
+          },
+          "optimized": true
+        },
+        {
+          "sceneId": 2,
+          "type": "svg-diagram",
+          "data": {
+            "sceneId": 2,
+            "type": "motivation-map",
+            "nodes": [
+              {
+                "id": "node_0",
+                "label": "Hard Challenges",
+                "x": 100,
+                "y": 100,
+                "width": 140,
+                "height": 60,
+                "style": {
+                  "backgroundColor": "#EF4444",
+                  "color": "white"
+                }
+              },
+              {
+                "id": "node_1",
+                "label": "Organization Goal",
+                "x": 400,
+                "y": 100,
+                "width": 140,
+                "height": 60,
+                "style": {
+                  "backgroundColor": "#8B5CF6",
+                  "color": "white"
+                }
+              },
+              {
+                "id": "node_2",
+                "label": "Purpose",
+                "x": 100,
+                "y": 250,
+                "width": 140,
+                "height": 60,
+                "style": {
+                  "backgroundColor": "#06B6D4",
+                  "color": "white"
+                }
+              },
+              {
+                "id": "node_3",
+                "label": "Achievement",
+                "x": 400,
+                "y": 250,
+                "width": 140,
+                "height": 60,
+                "style": {
+                  "backgroundColor": "#84CC16",
+                  "color": "white"
+                }
+              }
+            ],
+            "edges": [
+              {
+                "id": "edge_2",
+                "source": "Hard Challenges",
+                "target": "Organization Goal",
+                "type": "enables",
+                "style": {
+                  "stroke": "#10B981",
+                  "strokeWidth": 2,
+                  "markerEnd": "arrow"
+                }
+              },
+              {
+                "id": "edge_3",
+                "source": "Organization Goal",
+                "target": "Achievement",
+                "type": "results-in",
+                "style": {
+                  "stroke": "#8B5CF6",
+                  "strokeWidth": 2,
+                  "markerEnd": "arrow"
+                }
+              }
+            ],
+            "algorithm": "force-directed",
+            "bounds": {
+              "width": 800,
+              "height": 600
+            }
+          },
+          "optimized": true
+        }
+      ]
+    },
+    "video": {
+      "composition": {
+        "id": "JFK-Space-Diagram-Video",
+        "durationInFrames": 360,
+        "fps": 30,
+        "width": 1920,
+        "height": 1080,
+        "scenes": 2,
+        "captions": 4
+      },
+      "rendering": {
+        "format": "mp4",
+        "quality": "high",
+        "compression": "h264",
+        "estimatedSize": "15.3 MB"
+      },
+      "output": {
+        "path": "output/jfk-space-diagram-1759491351970.mp4",
+        "duration": 12,
+        "fileSize": 16043212.8,
+        "thumbnail": "output/jfk-space-diagram-1759491351970-thumb.jpg"
+      }
+    }
+  },
+  "customInstructionsCompliance": {
+    "recursiveProcessFollowed": true,
+    "qualityThresholdsMet": true,
+    "modularArchitecture": true,
+    "errorHandlingImplemented": true,
+    "iterativeImprovementPossible": true,
+    "score": 0.95
+  }
+}

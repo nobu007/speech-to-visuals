@@ -1,0 +1,271 @@
+{
+  "timestamp": "2025-10-03T10:53:51.418Z",
+  "success": true,
+  "scenes": [
+    {
+      "type": "flow",
+      "nodes": [
+        {
+          "id": "node_0",
+          "label": "まず、システムの概要を説明します",
+          "meta": {
+            "importance": 0.5336092570202478,
+            "category": "flow"
+          }
+        },
+        {
+          "id": "node_1",
+          "label": "要素2",
+          "meta": {
+            "importance": 0.5695587122869137,
+            "category": "flow"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "from": "node_0",
+          "to": "node_1",
+          "label": "→"
+        }
+      ],
+      "startMs": 0,
+      "durationMs": 3500,
+      "summary": "まず、システムの概要を説明します",
+      "keyphrases": [
+        "まず",
+        "システムの概要を説明します"
+      ],
+      "layout": {
+        "nodes": [
+          {
+            "id": "node_0",
+            "label": "まず、システムの概要を説明します",
+            "meta": {
+              "importance": 0.5336092570202478,
+              "category": "flow"
+            },
+            "x": 150,
+            "y": 400,
+            "w": 240,
+            "h": 80
+          },
+          {
+            "id": "node_1",
+            "label": "要素2",
+            "meta": {
+              "importance": 0.5695587122869137,
+              "category": "flow"
+            },
+            "x": 430,
+            "y": 400,
+            "w": 240,
+            "h": 80
+          }
+        ],
+        "edges": [
+          {
+            "from": "node_0",
+            "to": "node_1",
+            "label": "→",
+            "points": [
+              {
+                "x": 270,
+                "y": 440
+              },
+              {
+                "x": 550,
+                "y": 440
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "flow",
+      "nodes": [
+        {
+          "id": "node_0",
+          "label": "次に、具体的な実装方法について話します",
+          "meta": {
+            "importance": 0.6663965824063753,
+            "category": "flow"
+          }
+        },
+        {
+          "id": "node_1",
+          "label": "要素2",
+          "meta": {
+            "importance": 0.21038830957412413,
+            "category": "flow"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "from": "node_0",
+          "to": "node_1",
+          "label": "→"
+        }
+      ],
+      "startMs": 3500,
+      "durationMs": 3500,
+      "summary": "次に、具体的な実装方法について話します",
+      "keyphrases": [
+        "次に",
+        "具体的な実装方法について話します"
+      ],
+      "layout": {
+        "nodes": [
+          {
+            "id": "node_0",
+            "label": "次に、具体的な実装方法について話します",
+            "meta": {
+              "importance": 0.6663965824063753,
+              "category": "flow"
+            },
+            "x": 150,
+            "y": 400,
+            "w": 240,
+            "h": 80
+          },
+          {
+            "id": "node_1",
+            "label": "要素2",
+            "meta": {
+              "importance": 0.21038830957412413,
+              "category": "flow"
+            },
+            "x": 430,
+            "y": 400,
+            "w": 240,
+            "h": 80
+          }
+        ],
+        "edges": [
+          {
+            "from": "node_0",
+            "to": "node_1",
+            "label": "→",
+            "points": [
+              {
+                "x": 270,
+                "y": 440
+              },
+              {
+                "x": 550,
+                "y": 440
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "flow",
+      "nodes": [
+        {
+          "id": "node_0",
+          "label": "最後に、注意すべきポイントをまとめます",
+          "meta": {
+            "importance": 0.03139502895143642,
+            "category": "flow"
+          }
+        },
+        {
+          "id": "node_1",
+          "label": "要素2",
+          "meta": {
+            "importance": 0.9374934221451416,
+            "category": "flow"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "from": "node_0",
+          "to": "node_1",
+          "label": "→"
+        }
+      ],
+      "startMs": 7000,
+      "durationMs": 3500,
+      "summary": "最後に、注意すべきポイントをまとめます",
+      "keyphrases": [
+        "最後に",
+        "注意すべきポイントをまとめます"
+      ],
+      "layout": {
+        "nodes": [
+          {
+            "id": "node_0",
+            "label": "最後に、注意すべきポイントをまとめます",
+            "meta": {
+              "importance": 0.03139502895143642,
+              "category": "flow"
+            },
+            "x": 150,
+            "y": 400,
+            "w": 240,
+            "h": 80
+          },
+          {
+            "id": "node_1",
+            "label": "要素2",
+            "meta": {
+              "importance": 0.9374934221451416,
+              "category": "flow"
+            },
+            "x": 430,
+            "y": 400,
+            "w": 240,
+            "h": 80
+          }
+        ],
+        "edges": [
+          {
+            "from": "node_0",
+            "to": "node_1",
+            "label": "→",
+            "points": [
+              {
+                "x": 270,
+                "y": 440
+              },
+              {
+                "x": 550,
+                "y": 440
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "mockData": {
+    "text": "まず、システムの概要を説明します。次に、具体的な実装方法について話します。最後に、注意すべきポイントをまとめます。",
+    "segments": [
+      {
+        "text": "まず、システムの概要を説明します。",
+        "start": 0,
+        "end": 3.5,
+        "id": 0
+      },
+      {
+        "text": "次に、具体的な実装方法について話します。",
+        "start": 3.5,
+        "end": 7.2,
+        "id": 1
+      },
+      {
+        "text": "最後に、注意すべきポイントをまとめます。",
+        "start": 7.2,
+        "end": 10.8,
+        "id": 2
+      }
+    ],
+    "duration": 10.8
+  },
+  "totalDuration": 10500
+}

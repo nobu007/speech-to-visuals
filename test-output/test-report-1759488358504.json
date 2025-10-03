@@ -1,0 +1,619 @@
+{
+  "timestamp": "2025-10-03T10:45:58.504Z",
+  "totalTime": 7914.5035419999995,
+  "results": [
+    {
+      "phase": "System Initialization",
+      "success": true,
+      "duration": 300.961342,
+      "result": {
+        "dependencies": [
+          "@remotion/captions",
+          "@dagrejs/dagre",
+          "kuromoji",
+          "whisper-node"
+        ],
+        "status": "initialized"
+      }
+    },
+    {
+      "phase": "Transcription Pipeline",
+      "success": true,
+      "duration": 1001.6009160000001,
+      "result": {
+        "success": true,
+        "segments": [
+          {
+            "start": 0,
+            "end": 6000,
+            "text": "Let's explore our organizational hierarchy structure. The company has different levels including management, departments, and teams with clear parent-child relationships.",
+            "confidence": 0.95
+          },
+          {
+            "start": 6000,
+            "end": 12000,
+            "text": "Now we'll examine the development timeline and chronology. The project evolution spans multiple phases over several years, from conception in 2020 to deployment in 2024.",
+            "confidence": 0.88
+          },
+          {
+            "start": 12000,
+            "end": 18000,
+            "text": "Finally, this continuous process forms a recurring cycle that returns to the beginning. The workflow loops back to the initial stage, creating an ongoing, cyclical pattern.",
+            "confidence": 0.92
+          }
+        ],
+        "language": "en",
+        "duration": 18000,
+        "processingTime": 1000
+      }
+    },
+    {
+      "phase": "Content Analysis",
+      "success": true,
+      "duration": 801.3298289999998,
+      "result": {
+        "scenes": [
+          {
+            "id": "scene-0",
+            "startTime": 0,
+            "endTime": 6000,
+            "duration": 6000,
+            "title": "Testing hierarchy analysis...",
+            "content": "Testing hierarchy analysis",
+            "diagramType": "tree",
+            "confidence": 0.9,
+            "entities": [
+              {
+                "id": "entity-0",
+                "name": "Testing",
+                "type": "concept",
+                "importance": 0.8,
+                "attributes": {}
+              }
+            ],
+            "relationships": [],
+            "complexity": "moderate",
+            "keywords": [
+              "testing",
+              "hierarchy",
+              "analysis"
+            ],
+            "summary": "Testing hierarchy analysis..."
+          },
+          {
+            "id": "scene-1",
+            "startTime": 6000,
+            "endTime": 12000,
+            "duration": 6000,
+            "title": "Timeline analysis test...",
+            "content": "Timeline analysis test",
+            "diagramType": "timeline",
+            "confidence": 0.8,
+            "entities": [
+              {
+                "id": "entity-0",
+                "name": "Timeline",
+                "type": "concept",
+                "importance": 0.8,
+                "attributes": {}
+              }
+            ],
+            "relationships": [],
+            "complexity": "moderate",
+            "keywords": [
+              "timeline",
+              "analysis"
+            ],
+            "summary": "Timeline analysis test..."
+          }
+        ],
+        "totalDuration": 18000,
+        "overallComplexity": "moderate",
+        "dominantDiagramType": "flow",
+        "confidence": 0.92,
+        "processingTime": 800,
+        "metadata": {
+          "segmentCount": 2,
+          "entityCount": 6,
+          "relationshipCount": 3,
+          "keywordDensity": 4.5
+        }
+      }
+    },
+    {
+      "phase": "Diagram Detection",
+      "success": true,
+      "duration": 0.2715330000000904,
+      "result": {
+        "results": [
+          {
+            "text": "organizational hierarchy structure with parent child relationships",
+            "detected": "tree",
+            "expected": "tree",
+            "success": true
+          },
+          {
+            "text": "timeline evolution spanning multiple phases over years",
+            "detected": "timeline",
+            "expected": "timeline",
+            "success": true
+          },
+          {
+            "text": "continuous process forms recurring cycle that loops back",
+            "detected": "cycle",
+            "expected": "cycle",
+            "success": true
+          }
+        ],
+        "accuracy": 1
+      }
+    },
+    {
+      "phase": "Layout Generation",
+      "success": true,
+      "duration": 2404.190056,
+      "result": [
+        {
+          "type": "flow",
+          "result": {
+            "layout": {
+              "nodes": [
+                {
+                  "id": "node1",
+                  "label": "Start Process",
+                  "x": 100,
+                  "y": 100,
+                  "w": 200,
+                  "h": 80
+                },
+                {
+                  "id": "node2",
+                  "label": "Analysis Phase",
+                  "x": 350,
+                  "y": 100,
+                  "w": 200,
+                  "h": 80
+                },
+                {
+                  "id": "node3",
+                  "label": "Final Result",
+                  "x": 600,
+                  "y": 100,
+                  "w": 200,
+                  "h": 80
+                }
+              ],
+              "edges": [
+                {
+                  "from": "node1",
+                  "to": "node2",
+                  "label": "flows to",
+                  "points": [
+                    {
+                      "x": 150,
+                      "y": 150
+                    },
+                    {
+                      "x": 350,
+                      "y": 150
+                    }
+                  ]
+                },
+                {
+                  "from": "node2",
+                  "to": "node3",
+                  "label": "produces",
+                  "points": [
+                    {
+                      "x": 150,
+                      "y": 150
+                    },
+                    {
+                      "x": 350,
+                      "y": 150
+                    }
+                  ]
+                }
+              ]
+            },
+            "bounds": {
+              "width": 800,
+              "height": 600,
+              "minX": 100,
+              "minY": 100,
+              "maxX": 900,
+              "maxY": 700
+            },
+            "processingTime": 600,
+            "success": true
+          }
+        },
+        {
+          "type": "tree",
+          "result": {
+            "layout": {
+              "nodes": [
+                {
+                  "id": "node1",
+                  "label": "Start Process",
+                  "x": 100,
+                  "y": 100,
+                  "w": 200,
+                  "h": 80
+                },
+                {
+                  "id": "node2",
+                  "label": "Analysis Phase",
+                  "x": 350,
+                  "y": 100,
+                  "w": 200,
+                  "h": 80
+                },
+                {
+                  "id": "node3",
+                  "label": "Final Result",
+                  "x": 600,
+                  "y": 100,
+                  "w": 200,
+                  "h": 80
+                }
+              ],
+              "edges": [
+                {
+                  "from": "node1",
+                  "to": "node2",
+                  "label": "flows to",
+                  "points": [
+                    {
+                      "x": 150,
+                      "y": 150
+                    },
+                    {
+                      "x": 350,
+                      "y": 150
+                    }
+                  ]
+                },
+                {
+                  "from": "node2",
+                  "to": "node3",
+                  "label": "produces",
+                  "points": [
+                    {
+                      "x": 150,
+                      "y": 150
+                    },
+                    {
+                      "x": 350,
+                      "y": 150
+                    }
+                  ]
+                }
+              ]
+            },
+            "bounds": {
+              "width": 800,
+              "height": 600,
+              "minX": 100,
+              "minY": 100,
+              "maxX": 900,
+              "maxY": 700
+            },
+            "processingTime": 600,
+            "success": true
+          }
+        },
+        {
+          "type": "timeline",
+          "result": {
+            "layout": {
+              "nodes": [
+                {
+                  "id": "node1",
+                  "label": "Start Process",
+                  "x": 100,
+                  "y": 100,
+                  "w": 200,
+                  "h": 80
+                },
+                {
+                  "id": "node2",
+                  "label": "Analysis Phase",
+                  "x": 350,
+                  "y": 100,
+                  "w": 200,
+                  "h": 80
+                },
+                {
+                  "id": "node3",
+                  "label": "Final Result",
+                  "x": 600,
+                  "y": 100,
+                  "w": 200,
+                  "h": 80
+                }
+              ],
+              "edges": [
+                {
+                  "from": "node1",
+                  "to": "node2",
+                  "label": "flows to",
+                  "points": [
+                    {
+                      "x": 150,
+                      "y": 150
+                    },
+                    {
+                      "x": 350,
+                      "y": 150
+                    }
+                  ]
+                },
+                {
+                  "from": "node2",
+                  "to": "node3",
+                  "label": "produces",
+                  "points": [
+                    {
+                      "x": 150,
+                      "y": 150
+                    },
+                    {
+                      "x": 350,
+                      "y": 150
+                    }
+                  ]
+                }
+              ]
+            },
+            "bounds": {
+              "width": 800,
+              "height": 600,
+              "minX": 100,
+              "minY": 100,
+              "maxX": 900,
+              "maxY": 700
+            },
+            "processingTime": 600,
+            "success": true
+          }
+        },
+        {
+          "type": "cycle",
+          "result": {
+            "layout": {
+              "nodes": [
+                {
+                  "id": "node1",
+                  "label": "Start Process",
+                  "x": 100,
+                  "y": 100,
+                  "w": 200,
+                  "h": 80
+                },
+                {
+                  "id": "node2",
+                  "label": "Analysis Phase",
+                  "x": 350,
+                  "y": 100,
+                  "w": 200,
+                  "h": 80
+                },
+                {
+                  "id": "node3",
+                  "label": "Final Result",
+                  "x": 600,
+                  "y": 100,
+                  "w": 200,
+                  "h": 80
+                }
+              ],
+              "edges": [
+                {
+                  "from": "node1",
+                  "to": "node2",
+                  "label": "flows to",
+                  "points": [
+                    {
+                      "x": 150,
+                      "y": 150
+                    },
+                    {
+                      "x": 350,
+                      "y": 150
+                    }
+                  ]
+                },
+                {
+                  "from": "node2",
+                  "to": "node3",
+                  "label": "produces",
+                  "points": [
+                    {
+                      "x": 150,
+                      "y": 150
+                    },
+                    {
+                      "x": 350,
+                      "y": 150
+                    }
+                  ]
+                }
+              ]
+            },
+            "bounds": {
+              "width": 800,
+              "height": 600,
+              "minX": 100,
+              "minY": 100,
+              "maxX": 900,
+              "maxY": 700
+            },
+            "processingTime": 600,
+            "success": true
+          }
+        }
+      ]
+    },
+    {
+      "phase": "Video Preparation",
+      "success": true,
+      "duration": 400.9092220000002,
+      "result": [
+        {
+          "type": "flow",
+          "nodes": [
+            {
+              "id": "test",
+              "label": "Test Node"
+            }
+          ],
+          "edges": [],
+          "layout": {
+            "nodes": [
+              {
+                "id": "test",
+                "label": "Test Node",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 80
+              }
+            ],
+            "edges": []
+          },
+          "startMs": 0,
+          "durationMs": 5000,
+          "summary": "Test Scene",
+          "keyphrases": [
+            "test",
+            "scene"
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "End-to-End Integration",
+      "success": true,
+      "duration": 3004.1365459999997,
+      "result": {
+        "success": true,
+        "scenes": [
+          {
+            "type": "tree",
+            "nodes": [
+              {
+                "id": "entity-0",
+                "name": "Let's",
+                "type": "concept",
+                "importance": 0.8,
+                "attributes": {}
+              }
+            ],
+            "edges": [],
+            "layout": {
+              "nodes": [
+                {
+                  "id": "entity-0",
+                  "name": "Let's",
+                  "type": "concept",
+                  "importance": 0.8,
+                  "attributes": {},
+                  "x": 100,
+                  "y": 100,
+                  "w": 200,
+                  "h": 80
+                }
+              ],
+              "edges": []
+            },
+            "startMs": 0,
+            "durationMs": 6000,
+            "summary": "Let's explore our organizational hierarchy structure...",
+            "keyphrases": [
+              "explore",
+              "organizational",
+              "hierarchy",
+              "structure",
+              "company"
+            ]
+          },
+          {
+            "type": "cycle",
+            "nodes": [
+              {
+                "id": "entity-0",
+                "name": "Finally,",
+                "type": "concept",
+                "importance": 0.8,
+                "attributes": {}
+              }
+            ],
+            "edges": [],
+            "layout": {
+              "nodes": [
+                {
+                  "id": "entity-0",
+                  "name": "Finally,",
+                  "type": "concept",
+                  "importance": 0.8,
+                  "attributes": {},
+                  "x": 100,
+                  "y": 100,
+                  "w": 200,
+                  "h": 80
+                }
+              ],
+              "edges": []
+            },
+            "startMs": 12000,
+            "durationMs": 6000,
+            "summary": "Finally, this continuous process forms a recurring cycle that returns to the beginning...",
+            "keyphrases": [
+              "finally",
+              "continuous",
+              "process",
+              "forms",
+              "recurring"
+            ]
+          }
+        ],
+        "audioUrl": "./mock-jfk.wav",
+        "duration": 18000,
+        "processingTime": 3003.7092170000005,
+        "stages": [
+          {
+            "name": "transcription",
+            "status": "complete",
+            "startTime": 4930.598905,
+            "endTime": 5930.598905
+          },
+          {
+            "name": "analysis",
+            "status": "complete",
+            "startTime": 5930.598905,
+            "endTime": 6730.598905
+          },
+          {
+            "name": "layout",
+            "status": "complete",
+            "startTime": 6730.598905,
+            "endTime": 7330.598905
+          },
+          {
+            "name": "preparation",
+            "status": "complete",
+            "startTime": 7330.598905,
+            "endTime": 3003.7092170000005
+          }
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "totalTests": 7,
+    "successRate": 1
+  }
+}

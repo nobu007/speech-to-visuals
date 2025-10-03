@@ -1,0 +1,254 @@
+{
+  "success": true,
+  "scenes": [
+    {
+      "type": "flow",
+      "nodes": [
+        {
+          "id": "node_0",
+          "label": "要素1",
+          "meta": {
+            "importance": 0.8
+          }
+        },
+        {
+          "id": "node_1",
+          "label": "要素2",
+          "meta": {
+            "importance": 0.7
+          }
+        }
+      ],
+      "edges": [
+        {
+          "from": "node_0",
+          "to": "node_1",
+          "label": "→"
+        }
+      ],
+      "layout": {
+        "nodes": [
+          {
+            "id": "node_0",
+            "label": "要素1",
+            "meta": {
+              "importance": 0.8
+            },
+            "x": 150,
+            "y": 400,
+            "w": 240,
+            "h": 80
+          },
+          {
+            "id": "node_1",
+            "label": "要素2",
+            "meta": {
+              "importance": 0.7
+            },
+            "x": 450,
+            "y": 400,
+            "w": 240,
+            "h": 80
+          }
+        ],
+        "edges": [
+          {
+            "from": "node_0",
+            "to": "node_1",
+            "label": "→",
+            "points": [
+              {
+                "x": 300,
+                "y": 440
+              },
+              {
+                "x": 600,
+                "y": 440
+              }
+            ]
+          }
+        ]
+      },
+      "startMs": 0,
+      "durationMs": 4200,
+      "summary": "まず、システムアーキテクチャについて説明します。",
+      "keyphrases": [
+        "キーワード1",
+        "キーワード2"
+      ]
+    },
+    {
+      "type": "flow",
+      "nodes": [
+        {
+          "id": "node_0",
+          "label": "要素1",
+          "meta": {
+            "importance": 0.8
+          }
+        },
+        {
+          "id": "node_1",
+          "label": "要素2",
+          "meta": {
+            "importance": 0.7
+          }
+        }
+      ],
+      "edges": [
+        {
+          "from": "node_0",
+          "to": "node_1",
+          "label": "→"
+        }
+      ],
+      "layout": {
+        "nodes": [
+          {
+            "id": "node_0",
+            "label": "要素1",
+            "meta": {
+              "importance": 0.8
+            },
+            "x": 150,
+            "y": 400,
+            "w": 240,
+            "h": 80
+          },
+          {
+            "id": "node_1",
+            "label": "要素2",
+            "meta": {
+              "importance": 0.7
+            },
+            "x": 450,
+            "y": 400,
+            "w": 240,
+            "h": 80
+          }
+        ],
+        "edges": [
+          {
+            "from": "node_0",
+            "to": "node_1",
+            "label": "→",
+            "points": [
+              {
+                "x": 300,
+                "y": 440
+              },
+              {
+                "x": 600,
+                "y": 440
+              }
+            ]
+          }
+        ]
+      },
+      "startMs": 4200,
+      "durationMs": 3900,
+      "summary": "次に、データフローの詳細について話します。",
+      "keyphrases": [
+        "キーワード1",
+        "キーワード2"
+      ]
+    },
+    {
+      "type": "flow",
+      "nodes": [
+        {
+          "id": "node_0",
+          "label": "要素1",
+          "meta": {
+            "importance": 0.8
+          }
+        },
+        {
+          "id": "node_1",
+          "label": "要素2",
+          "meta": {
+            "importance": 0.7
+          }
+        }
+      ],
+      "edges": [
+        {
+          "from": "node_0",
+          "to": "node_1",
+          "label": "→"
+        }
+      ],
+      "layout": {
+        "nodes": [
+          {
+            "id": "node_0",
+            "label": "要素1",
+            "meta": {
+              "importance": 0.8
+            },
+            "x": 150,
+            "y": 400,
+            "w": 240,
+            "h": 80
+          },
+          {
+            "id": "node_1",
+            "label": "要素2",
+            "meta": {
+              "importance": 0.7
+            },
+            "x": 450,
+            "y": 400,
+            "w": 240,
+            "h": 80
+          }
+        ],
+        "edges": [
+          {
+            "from": "node_0",
+            "to": "node_1",
+            "label": "→",
+            "points": [
+              {
+                "x": 300,
+                "y": 440
+              },
+              {
+                "x": 600,
+                "y": 440
+              }
+            ]
+          }
+        ]
+      },
+      "startMs": 8100,
+      "durationMs": 4400,
+      "summary": "最後に、パフォーマンス最適化の方法をまとめます。",
+      "keyphrases": [
+        "キーワード1",
+        "キーワード2"
+      ]
+    }
+  ],
+  "audioUrl": "mock-audio.wav",
+  "duration": 12500,
+  "processingTime": 0.9944409999999984,
+  "stages": [
+    {
+      "name": "transcription",
+      "status": "complete"
+    },
+    {
+      "name": "segmentation",
+      "status": "complete"
+    },
+    {
+      "name": "analysis",
+      "status": "complete"
+    },
+    {
+      "name": "layout",
+      "status": "complete"
+    }
+  ]
+}
