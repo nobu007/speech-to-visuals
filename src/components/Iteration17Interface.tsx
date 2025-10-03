@@ -21,8 +21,12 @@ import {
   Clock,
   BarChart3,
   Video,
-  Sparkles
+  Sparkles,
+  Zap,
+  Brain,
+  Film
 } from 'lucide-react';
+import { useEnhancedPipeline } from '@/hooks/useEnhancedPipeline';
 
 interface ProcessingStage {
   name: string;
@@ -50,142 +54,32 @@ interface ProcessingResult {
 
 export const Iteration17Interface: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [currentStage, setCurrentStage] = useState<string>('');
-  const [overallProgress, setOverallProgress] = useState(0);
-  const [result, setResult] = useState<ProcessingResult | null>(null);
-  const [error, setError] = useState<string>('');
 
-  // Processing stages with user-friendly names
-  const [stages, setStages] = useState<ProcessingStage[]>([
-    { name: 'audio-validation', displayName: 'Audio Validation', status: 'pending', progress: 0 },
-    { name: 'transcription', displayName: 'Speech to Text', status: 'pending', progress: 0 },
-    { name: 'analysis', displayName: 'Content Analysis', status: 'pending', progress: 0 },
-    { name: 'visualization', displayName: 'Diagram Generation', status: 'pending', progress: 0 },
-    { name: 'optimization', displayName: 'Quality Enhancement', status: 'pending', progress: 0 },
-    { name: 'video-generation', displayName: 'Video Rendering', status: 'pending', progress: 0 }
-  ]);
+  // Use the enhanced pipeline hook
+  const {
+    isProcessing,
+    currentStage,
+    overallProgress,
+    stages,
+    result,
+    error,
+    processAudioFile,
+    resetPipeline
+  } = useEnhancedPipeline();
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      setError('');
-      setResult(null);
-      // Reset stages
-      setStages(prev => prev.map(s => ({
-        ...s,
-        status: 'pending' as const,
-        progress: 0,
-        duration: undefined,
-        error: undefined
-      })));
+      resetPipeline(); // Reset the enhanced pipeline
     }
-  }, []);
+  }, [resetPipeline]);
 
-  const simulateProcessing = useCallback(async () => {
+  const handleProcessing = useCallback(async () => {
     if (!selectedFile) return;
+    await processAudioFile(selectedFile);
+  }, [selectedFile, processAudioFile]);
 
-    setIsProcessing(true);
-    setError('');
-    setCurrentStage('Initializing...');
-    setOverallProgress(0);
-
-    try {
-      // Simulate Iteration 17 processing with realistic timing
-      const totalStages = stages.length;
-
-      for (let i = 0; i < stages.length; i++) {
-        const stage = stages[i];
-
-        // Update current stage
-        setCurrentStage(stage.displayName);
-
-        // Mark stage as active
-        setStages(prev => prev.map((s, idx) =>
-          idx === i ? { ...s, status: 'active', progress: 0 } : s
-        ));
-
-        // Simulate stage processing with progress updates
-        const stageStartTime = performance.now();
-        const stageDuration = [2000, 8000, 5000, 6000, 4000, 10000][i]; // Realistic timings
-
-        for (let progress = 0; progress <= 100; progress += 10) {
-          await new Promise(resolve => setTimeout(resolve, stageDuration / 10));
-
-          // Update stage progress
-          setStages(prev => prev.map((s, idx) =>
-            idx === i ? { ...s, progress } : s
-          ));
-
-          // Update overall progress
-          const stageWeight = 100 / totalStages;
-          const currentOverall = i * stageWeight + (progress / 100) * stageWeight;
-          setOverallProgress(currentOverall);
-        }
-
-        // Mark stage as completed
-        const stageDurationActual = performance.now() - stageStartTime;
-        setStages(prev => prev.map((s, idx) =>
-          idx === i ? {
-            ...s,
-            status: 'completed',
-            progress: 100,
-            duration: stageDurationActual
-          } : s
-        ));
-      }
-
-      // Generate mock result
-      const mockResult: ProcessingResult = {
-        success: true,
-        transcription: generateMockTranscription(selectedFile.name),
-        scenes: [
-          { id: 1, text: 'Introduction to the topic', type: 'flowchart', duration: 8 },
-          { id: 2, text: 'Main concepts explanation', type: 'process', duration: 12 },
-          { id: 3, text: 'Conclusion and summary', type: 'hierarchy', duration: 6 }
-        ],
-        videoPath: `output/iteration-17-${Date.now()}.mp4`,
-        processingTime: 35000, // 35 seconds
-        qualityMetrics: {
-          transcriptionAccuracy: 0.95,
-          sceneSegmentationScore: 0.92,
-          diagramRelevance: 0.88,
-          overallUsability: 0.94
-        },
-        userFriendlyReport: generateUserReport()
-      };
-
-      setResult(mockResult);
-      setCurrentStage('Complete!');
-      setOverallProgress(100);
-
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Processing failed');
-      setCurrentStage('Failed');
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [selectedFile, stages.length]);
-
-  const generateMockTranscription = (filename: string): string => {
-    if (filename.includes('business') || filename.includes('meeting')) {
-      return 'Our quarterly results show strong growth in three key areas. Revenue increased by 25% compared to last quarter. Customer acquisition improved with 40% more sign-ups.';
-    } else if (filename.includes('technical') || filename.includes('system')) {
-      return 'The system architecture consists of three main components. The data layer handles storage operations. The business logic layer processes user requests.';
-    }
-    return 'Welcome to our tutorial on machine learning algorithms. We will explore supervised learning, unsupervised learning, and reinforcement learning techniques.';
-  };
-
-  const generateUserReport = (): string => {
-    return `🎉 Video Generation Complete!
-📊 Processing Success: 100% (6/6 stages completed)
-⏱️ Total Time: 35s
-🎯 Quality Level: Professional
-📁 Output Location: Ready for download
-
-✅ All systems performed optimally!`;
-  };
 
   const getStageIcon = (status: ProcessingStage['status']) => {
     switch (status) {
@@ -209,16 +103,30 @@ export const Iteration17Interface: React.FC = () => {
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="text-center space-y-4">
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 rounded-full">
-          <Sparkles className="w-5 h-5 text-purple-600" />
-          <span className="text-sm font-medium text-purple-800">Iteration 17 - Practical Workflow</span>
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-100 to-blue-100 rounded-full">
+          <Zap className="w-5 h-5 text-purple-600" />
+          <span className="text-sm font-medium text-purple-800">Iteration 17 - Enhanced Real-World Pipeline</span>
         </div>
         <h1 className="text-3xl font-bold text-gray-900">
-          Audio to Video Generator
+          Enhanced Audio to Video Generator
         </h1>
         <p className="text-gray-600 max-w-2xl mx-auto">
-          Upload your audio file and watch as AI creates a professional diagram video in under 60 seconds
+          Upload your audio file and experience Real Whisper + Real Remotion + Ultra-Precision optimization in under 50 seconds
         </p>
+        <div className="flex items-center justify-center gap-6 text-sm text-gray-500">
+          <div className="flex items-center gap-1">
+            <Brain className="w-4 h-4" />
+            Real Whisper AI
+          </div>
+          <div className="flex items-center gap-1">
+            <Film className="w-4 h-4" />
+            Remotion HD
+          </div>
+          <div className="flex items-center gap-1">
+            <Zap className="w-4 h-4" />
+            Ultra-Precision
+          </div>
+        </div>
       </div>
 
       {/* File Upload Section */}
@@ -269,9 +177,9 @@ export const Iteration17Interface: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <Button onClick={simulateProcessing} className="flex items-center gap-2">
-                <Video className="w-4 h-4" />
-                Generate Video
+              <Button onClick={handleProcessing} className="flex items-center gap-2">
+                <Brain className="w-4 h-4" />
+                Generate Enhanced Video
               </Button>
             </div>
           </CardContent>
@@ -449,15 +357,7 @@ export const Iteration17Interface: React.FC = () => {
               variant="outline"
               onClick={() => {
                 setSelectedFile(null);
-                setResult(null);
-                setError('');
-                setStages(prev => prev.map(s => ({
-                  ...s,
-                  status: 'pending' as const,
-                  progress: 0,
-                  duration: undefined,
-                  error: undefined
-                })));
+                resetPipeline();
               }}
             >
               Process Another Audio File
