@@ -177,10 +177,11 @@ export class AdvancedDiagramDetector {
         data: { keywords: ['input', 'output', 'transform', 'convert', 'generate'], weight: 7 }
       },
       tree: {
-        structure: { keywords: ['hierarchy', 'structure', 'organization', 'taxonomy'], weight: 10 },
-        relationship: { keywords: ['parent', 'child', 'branch', 'root', 'category'], weight: 8 },
-        classification: { keywords: ['classify', 'categorize', 'group', 'organize'], weight: 6 },
-        levels: { keywords: ['level', 'tier', 'layer', 'component', 'subdivision'], weight: 7 }
+        structure: { keywords: ['hierarchy', 'structure', 'organization', 'taxonomy', 'chart'], weight: 10 },
+        relationship: { keywords: ['parent', 'child', 'branch', 'root', 'category', 'reports to', 'manages'], weight: 8 },
+        classification: { keywords: ['classify', 'categorize', 'group', 'organize', 'department', 'division'], weight: 6 },
+        levels: { keywords: ['level', 'tier', 'layer', 'component', 'subdivision', 'rank'], weight: 7 },
+        roles: { keywords: ['manager', 'director', 'executive', 'head', 'lead', 'officer', 'supervisor'], weight: 9 }
       },
       timeline: {
         temporal: { keywords: ['timeline', 'chronology', 'history', 'evolution'], weight: 10 },
@@ -474,8 +475,17 @@ export class AdvancedDiagramDetector {
   }
 
   private findHierarchicalIndicators(text: string): string[] {
-    const hierarchical = ['level', 'under', 'above', 'parent', 'child', 'sub', 'main', 'category'];
-    return hierarchical.filter(indicator => text.includes(indicator));
+    const hierarchical = [
+      // Organizational hierarchy
+      'level', 'under', 'above', 'parent', 'child', 'sub', 'main', 'category',
+      'manager', 'director', 'executive', 'officer', 'head', 'lead', 'senior',
+      'reports to', 'supervises', 'oversees', 'manages', 'leads',
+      'department', 'division', 'team', 'group', 'unit', 'section',
+      // Structural indicators
+      'hierarchy', 'structure', 'organization', 'chart', 'tree',
+      'branch', 'root', 'node', 'tier', 'rank', 'position'
+    ];
+    return hierarchical.filter(indicator => text.toLowerCase().includes(indicator.toLowerCase()));
   }
 
   private findProcessIndicators(text: string): string[] {
@@ -601,7 +611,61 @@ export class AdvancedDiagramDetector {
   }
 
   private detectHierarchicalPattern(sentences: string[]): number {
-    return 0.5; // Simplified
+    let hierarchicalScore = 0;
+    const totalSentences = sentences.length;
+
+    if (totalSentences === 0) return 0;
+
+    for (const sentence of sentences) {
+      const lowerSentence = sentence.toLowerCase();
+
+      // Organizational structure patterns
+      const orgPatterns = [
+        /(\w+)\s+(reports to|manages|supervises|oversees)\s+(\w+)/gi,
+        /(\w+)\s+is\s+(under|above|below)\s+(\w+)/gi,
+        /(\w+)\s+(department|division|team|group)/gi,
+        /(ceo|cto|vp|director|manager)\s+of\s+(\w+)/gi,
+        /organizational\s+(chart|structure|hierarchy)/gi
+      ];
+
+      // Hierarchical relationship patterns
+      const hierarchyPatterns = [
+        /level\s+\d+/gi,
+        /tier\s+\d+/gi,
+        /(top|middle|bottom)\s+(level|tier)/gi,
+        /(parent|child)\s+(node|element|category)/gi,
+        /sub[-\s]?(category|division|department)/gi
+      ];
+
+      // Count pattern matches
+      let sentenceScore = 0;
+
+      orgPatterns.forEach(pattern => {
+        const matches = lowerSentence.match(pattern);
+        if (matches) sentenceScore += matches.length * 0.3;
+      });
+
+      hierarchyPatterns.forEach(pattern => {
+        const matches = lowerSentence.match(pattern);
+        if (matches) sentenceScore += matches.length * 0.2;
+      });
+
+      // Keyword density bonus
+      const hierarchicalKeywords = [
+        'hierarchy', 'structure', 'organization', 'chart', 'tree',
+        'manager', 'director', 'executive', 'head', 'lead',
+        'department', 'division', 'team', 'reports', 'supervises'
+      ];
+
+      const keywordCount = hierarchicalKeywords.filter(keyword =>
+        lowerSentence.includes(keyword)
+      ).length;
+
+      sentenceScore += keywordCount * 0.1;
+      hierarchicalScore += Math.min(sentenceScore, 1.0);
+    }
+
+    return Math.min(hierarchicalScore / totalSentences, 1.0);
   }
 
   private detectTemporalPattern(sentences: string[]): number {
