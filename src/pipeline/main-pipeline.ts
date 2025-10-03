@@ -6,6 +6,8 @@ import { qualityMonitor, QualityAssessment } from '@/quality';
 import { globalErrorRecovery } from '@/quality/enhanced-error-recovery';
 import { globalAdaptiveProcessor } from '@/analysis/adaptive-content-processor';
 import { globalCache } from '@/performance/intelligent-cache';
+import { smartParameterTuner } from '@/optimization/smart-parameter-tuner';
+import { adaptiveContentProcessor } from '@/optimization/adaptive-content-processor';
 import {
   RecursiveCustomInstructionsFramework,
   DevelopmentCycle,

@@ -1,10 +1,13 @@
 /**
- * Smart Parameter Tuning System
- * Automatically optimizes detection thresholds and processing parameters
- * based on content analysis and performance feedback
+ * Smart Parameter Tuner - Iteration 45
+ * Automatically optimizes detection thresholds based on content analysis
+ * 🎯 Custom Instructions Implementation: 小さく作り、確実に動作確認
+ * Enhanced with recursive improvement and adaptive learning
  */
 
-export interface ContentCharacteristics {
+import { performance } from 'perf_hooks';
+
+export interface AudioCharacteristics {
   speechRate: number; // words per minute
   complexity: 'low' | 'medium' | 'high';
   domain: 'technical' | 'business' | 'educational' | 'general';
