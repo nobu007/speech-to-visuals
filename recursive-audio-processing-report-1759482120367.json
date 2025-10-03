@@ -1,0 +1,57 @@
+{
+  "timestamp": "2025-10-03T09:02:00.367Z",
+  "testType": "Recursive Audio Processing",
+  "totalExecutionTime": 24.069975999999997,
+  "initialReadiness": 0.9539360827652751,
+  "processingStages": [
+    {
+      "name": "Transcription",
+      "success": true,
+      "finalScore": 0.9269095981030057,
+      "iterations": 1
+    },
+    {
+      "name": "Analysis",
+      "success": true,
+      "finalScore": 0.9405856950997609,
+      "iterations": 2
+    },
+    {
+      "name": "Visualization",
+      "success": true,
+      "finalScore": 0.9381470994772504,
+      "iterations": 1
+    },
+    {
+      "name": "Animation",
+      "success": true,
+      "finalScore": 0.9133554935021335,
+      "iterations": 1
+    }
+  ],
+  "integrationValidation": {
+    "passed": true,
+    "score": 0.9126515553688236
+  },
+  "finalAssessment": {
+    "overallScore": 0.8273301419683368,
+    "commitDecision": false,
+    "commitMessage": "fix(recursive-audio): 高品質処理達成 [スコア: 82.7%]\n\n- 高品質処理達成\n- システム安定性強化\n\n🔄 Recursive Custom Instructions Framework Applied\n🎯 動作→評価→改善→コミット cycle completed\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\nCo-Authored-By: Claude <noreply@anthropic.com>"
+  },
+  "totalIterations": 5,
+  "successfulStages": 4,
+  "totalStages": 4,
+  "recommendations": [
+    "🔄 Continue recursive improvement cycles",
+    "📊 Implement real-time quality monitoring",
+    "🎯 Optimize stage transition performance",
+    "🚀 Enhance user experience feedback loop",
+    "⚠️ Additional improvement cycles required"
+  ],
+  "nextSteps": [
+    "📈 Set up continuous monitoring pipeline",
+    "🎯 Define production KPI thresholds",
+    "🔄 Schedule regular improvement reviews",
+    "🚀 Plan gradual deployment strategy"
+  ]
+}

@@ -1,0 +1,254 @@
+{
+  "timestamp": "2025-10-03T10:04:59.825Z",
+  "customInstructionsCompliance": {
+    "systemOverview": {
+      "score": 0.875,
+      "details": [
+        {
+          "name": "Project definition matches custom instructions",
+          "score": 0.5,
+          "message": "Project definition could be clearer"
+        },
+        {
+          "name": "Working directory is ~/speech-to-visuals",
+          "score": 1,
+          "message": "Working in correct directory"
+        },
+        {
+          "name": "Target libraries installed (Remotion, Dagre, TypeScript)",
+          "score": 1,
+          "message": "4/4 required libraries installed: remotion, @dagrejs/dagre, typescript, @remotion/captions"
+        },
+        {
+          "name": "Development principles (incremental, recursive, modular, testable, transparent)",
+          "score": 1,
+          "message": "Modular structure: 100% complete. Found: ai, analysis, animation, components, framework, hooks, integrations, lib, monitoring, optimization, pages, performance, pipeline, quality, remotion, test, transcription, types, visualization"
+        }
+      ]
+    },
+    "developmentPhases": {
+      "score": 0.4375,
+      "details": [
+        {
+          "name": "MVP構築",
+          "score": 0.5,
+          "message": "Phase implementation: 50%",
+          "details": [
+            "✅ pipeline/main-pipeline.ts exists",
+            "✅ transcription/ exists"
+          ],
+          "criteria": [
+            "音声入力→字幕付き動画出力が動作"
+          ]
+        },
+        {
+          "name": "内容分析",
+          "score": 0.5,
+          "message": "Phase implementation: 50%",
+          "details": [
+            "✅ analysis/scene-segmenter.ts exists",
+            "✅ analysis/diagram-detector.ts exists"
+          ],
+          "criteria": [
+            "シーン分割精度80%",
+            "図解タイプ判定70%"
+          ]
+        },
+        {
+          "name": "図解生成",
+          "score": 0.25,
+          "message": "Phase implementation: 25%",
+          "details": [
+            "✅ visualization/ exists",
+            "❌ layout/ missing"
+          ],
+          "criteria": [
+            "レイアウト破綻0",
+            "ラベル可読性100%"
+          ]
+        },
+        {
+          "name": "品質向上",
+          "score": 0.5,
+          "message": "Phase implementation: 50%",
+          "details": [
+            "✅ quality/ exists",
+            "✅ performance/ exists"
+          ],
+          "criteria": [
+            "処理成功率>90%",
+            "平均処理時間<60秒"
+          ]
+        }
+      ]
+    },
+    "recursiveFramework": {
+      "score": 1,
+      "details": [
+        {
+          "name": "Recursive Development Framework exists",
+          "score": 1,
+          "message": "Recursive framework file exists"
+        },
+        {
+          "name": "RecursiveIntegrationPipeline exists",
+          "score": 1,
+          "message": "Recursive integration pipeline exists"
+        },
+        {
+          "name": "Development cycles defined (MVP構築, 内容分析, 図解生成, 品質向上)",
+          "score": 1,
+          "message": "4/4 development cycles defined: MVP構築, 内容分析, 図解生成, 品質向上"
+        },
+        {
+          "name": "Quality thresholds configured",
+          "score": 1,
+          "message": "5/5 quality metrics configured"
+        },
+        {
+          "name": "Commit strategies implemented",
+          "score": 1,
+          "message": "3/3 commit strategies implemented"
+        }
+      ]
+    },
+    "qualityAssurance": {
+      "score": 1,
+      "details": [
+        {
+          "name": "Quality monitoring system exists",
+          "score": 1,
+          "message": "Quality monitoring directory found"
+        },
+        {
+          "name": "Iteration log exists and is maintained",
+          "score": 1,
+          "message": "Iteration log quality: Recent entries: true, Quality tracking: true"
+        },
+        {
+          "name": "Automatic quality checks implemented",
+          "score": 1,
+          "message": "Quality assessment: true, Metrics: true"
+        },
+        {
+          "name": "Success criteria validation",
+          "score": 1,
+          "message": "Success criteria checking: true, Quality validation: true"
+        }
+      ]
+    },
+    "moduleStructure": {
+      "score": 1,
+      "details": [
+        {
+          "name": ".module/",
+          "score": 1,
+          "message": "4/4 expected files found",
+          "details": [
+            "✅ ITERATION_LOG.md",
+            "✅ SYSTEM_CORE.md",
+            "✅ PIPELINE_FLOW.md",
+            "✅ QUALITY_METRICS.md"
+          ]
+        },
+        {
+          "name": "src/transcription/",
+          "score": 1,
+          "message": "2/2 expected files found",
+          "details": [
+            "✅ transcriber.ts",
+            "✅ types.ts"
+          ]
+        },
+        {
+          "name": "src/analysis/",
+          "score": 1,
+          "message": "3/3 expected files found",
+          "details": [
+            "✅ scene-segmenter.ts",
+            "✅ diagram-detector.ts",
+            "✅ types.ts"
+          ]
+        },
+        {
+          "name": "src/visualization/",
+          "score": 1,
+          "message": "2/2 expected files found",
+          "details": [
+            "✅ layout-generator.ts",
+            "✅ types.ts"
+          ]
+        },
+        {
+          "name": "src/animation/",
+          "score": 1,
+          "message": "1/1 expected files found",
+          "details": [
+            "✅ animation-composer.ts"
+          ]
+        },
+        {
+          "name": "src/pipeline/",
+          "score": 1,
+          "message": "3/3 expected files found",
+          "details": [
+            "✅ main-pipeline.ts",
+            "✅ recursive-integration-pipeline.ts",
+            "✅ types.ts"
+          ]
+        },
+        {
+          "name": "src/framework/",
+          "score": 1,
+          "message": "1/1 expected files found",
+          "details": [
+            "✅ recursive-development-framework.ts"
+          ]
+        }
+      ]
+    }
+  },
+  "technicalValidation": {
+    "coreComponents": {
+      "score": 1,
+      "details": [
+        {
+          "name": "Recursive framework can be instantiated",
+          "score": 1,
+          "message": "Framework structure: Class defined: true, Properly exported: true"
+        },
+        {
+          "name": "Pipeline integration works",
+          "score": 1,
+          "message": "Pipeline integration: Class exists: true, Execution method: true"
+        },
+        {
+          "name": "Package.json scripts match custom instructions",
+          "score": 1,
+          "message": "4/4 required scripts found: dev, build, remotion:studio, remotion:render"
+        }
+      ]
+    },
+    "integrationTesting": {
+      "score": 0,
+      "details": []
+    },
+    "performanceMetrics": {
+      "score": 0,
+      "details": []
+    }
+  },
+  "overallCompliance": 0.8854166666666666,
+  "recommendations": [
+    {
+      "priority": "medium",
+      "category": "Development Phases",
+      "suggestion": "Complete missing phase implementations: ensure all expected directories and files exist"
+    },
+    {
+      "priority": "medium",
+      "category": "Improvement",
+      "suggestion": "Good compliance achieved. Focus on completing missing components and enhancing quality metrics."
+    }
+  ]
+}
