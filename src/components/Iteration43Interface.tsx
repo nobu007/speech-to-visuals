@@ -370,7 +370,7 @@ const Iteration43Interface: React.FC = () => {
                 <div className="text-2xl font-bold text-purple-600">
                   {(qualityMetrics.renderTime / 1000).toFixed(1)}s
                 </div>
-                <p className="text-sm text-gray-600">閾値: <60s</p>
+                <p className="text-sm text-gray-600">閾値: &lt;60s</p>
               </CardContent>
             </Card>
 
@@ -382,7 +382,7 @@ const Iteration43Interface: React.FC = () => {
                 <div className="text-2xl font-bold text-orange-600">
                   {(qualityMetrics.memoryUsage / 1024 / 1024).toFixed(0)}MB
                 </div>
-                <p className="text-sm text-gray-600">閾値: <512MB</p>
+                <p className="text-sm text-gray-600">閾値: &lt;512MB</p>
               </CardContent>
             </Card>
 
@@ -394,7 +394,7 @@ const Iteration43Interface: React.FC = () => {
                 <div className="text-2xl font-bold text-indigo-600">
                   {qualityMetrics.overallScore.toFixed(1)}%
                 </div>
-                <p className="text-sm text-gray-600">目標: >95%</p>
+                <p className="text-sm text-gray-600">目標: &gt;95%</p>
               </CardContent>
             </Card>
           </div>
