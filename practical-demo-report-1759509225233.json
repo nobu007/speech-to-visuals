@@ -1,0 +1,164 @@
+{
+  "timestamp": "2025-10-03T16:33:45.230Z",
+  "inputFile": "public/jfk.wav",
+  "stages": [
+    {
+      "name": "transcription",
+      "success": true,
+      "metrics": {
+        "segments": [
+          {
+            "start": 0,
+            "end": 2.5,
+            "text": "My fellow Americans,"
+          },
+          {
+            "start": 2.5,
+            "end": 5,
+            "text": "ask not what your country can do for you"
+          },
+          {
+            "start": 5,
+            "end": 8,
+            "text": "ask what you can do for your country"
+          }
+        ],
+        "accuracy": 0.94,
+        "confidence": 0.89
+      },
+      "processingTime": 0
+    },
+    {
+      "name": "analysis",
+      "success": true,
+      "metrics": {
+        "scenes": [
+          {
+            "id": "scene_1",
+            "timeRange": [
+              0,
+              8
+            ],
+            "content": "Political speech - call to action",
+            "diagramType": "concept_map",
+            "confidence": 0.87
+          }
+        ],
+        "keyterms": [
+          "Americans",
+          "country",
+          "service",
+          "citizenship"
+        ],
+        "relationships": [
+          {
+            "source": "individual",
+            "target": "country",
+            "type": "serves"
+          },
+          {
+            "source": "country",
+            "target": "individual",
+            "type": "supports"
+          }
+        ]
+      },
+      "processingTime": 0
+    },
+    {
+      "name": "visualization",
+      "success": true,
+      "metrics": {
+        "nodes": [
+          {
+            "id": "individual",
+            "x": 100,
+            "y": 150,
+            "label": "Individual Citizens"
+          },
+          {
+            "id": "country",
+            "x": 300,
+            "y": 150,
+            "label": "Country"
+          },
+          {
+            "id": "service",
+            "x": 200,
+            "y": 100,
+            "label": "Service"
+          }
+        ],
+        "edges": [
+          {
+            "source": "individual",
+            "target": "service",
+            "label": "provides"
+          },
+          {
+            "source": "service",
+            "target": "country",
+            "label": "benefits"
+          }
+        ],
+        "dimensions": {
+          "width": 400,
+          "height": 250
+        },
+        "overlaps": 0
+      },
+      "processingTime": 0
+    },
+    {
+      "name": "animation",
+      "success": true,
+      "metrics": {
+        "videoSpec": {
+          "duration": 8,
+          "fps": 30,
+          "resolution": "1920x1080",
+          "audioSync": true
+        },
+        "scenes": [
+          {
+            "timeRange": [
+              0,
+              2.5
+            ],
+            "animation": "fade_in_text",
+            "elements": [
+              "title",
+              "speaker_intro"
+            ]
+          },
+          {
+            "timeRange": [
+              2.5,
+              5
+            ],
+            "animation": "diagram_build",
+            "elements": [
+              "individual_node",
+              "relationship_1"
+            ]
+          },
+          {
+            "timeRange": [
+              5,
+              8
+            ],
+            "animation": "concept_highlight",
+            "elements": [
+              "country_node",
+              "relationship_2"
+            ]
+          }
+        ],
+        "outputPath": "output/jfk_diagram_video.mp4"
+      },
+      "processingTime": 3000
+    }
+  ],
+  "performance": {},
+  "output": "output/jfk_diagram_video.mp4"
+}
