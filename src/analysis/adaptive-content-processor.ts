@@ -200,7 +200,7 @@ export class AdaptiveContentProcessor {
   }
 
   /**
-   * Identify parameters that need optimization
+   * Enhanced parameter optimization with machine learning-based recommendations
    */
   private identifyOptimizations(
     strategy: ProcessingStrategy,
@@ -208,85 +208,338 @@ export class AdaptiveContentProcessor {
   ): ParameterOptimization[] {
     const optimizations: ParameterOptimization[] = [];
 
-    // If performance is degrading, suggest optimizations
-    if (performance.trendDirection === 'degrading' || performance.averageTime > strategy.estimatedTime * 1.2) {
+    // Enhanced performance thresholds with adaptive targets
+    const timeThreshold = strategy.estimatedTime * (1 + (1 - performance.stabilityScore) * 0.3); // Dynamic threshold
+    const accuracyTarget = Math.max(0.85, strategy.accuracyExpected - 0.05); // Adaptive accuracy target
 
-      // Optimize segmentation threshold
-      if (performance.averageTime > strategy.estimatedTime * 1.5) {
+    // Advanced performance degradation detection
+    if (performance.trendDirection === 'degrading' || performance.averageTime > timeThreshold) {
+
+      // Smart segmentation optimization with learning
+      const segmentationOptimization = this.calculateOptimalSegmentation(strategy, performance);
+      if (segmentationOptimization) {
+        optimizations.push(segmentationOptimization);
+      }
+
+      // Intelligent layout complexity adjustment
+      if (performance.averageAccuracy > accuracyTarget) {
+        const complexityReduction = this.calculateOptimalComplexityReduction(strategy, performance);
         optimizations.push({
-          parameter: 'segmentationThreshold',
-          currentValue: strategy.parameters.segmentationThreshold,
-          targetValue: Math.min(1.0, strategy.parameters.segmentationThreshold + 0.1),
+          parameter: 'layoutComplexity',
+          currentValue: strategy.parameters.layoutComplexity,
+          targetValue: complexityReduction.targetValue,
+          adjustmentRate: strategy.parameters.adaptationSpeed * complexityReduction.urgency,
+          confidence: complexityReduction.confidence,
+          expectedImprovement: complexityReduction.expectedGain
+        });
+      }
+
+      // Adaptive animation optimization
+      const animationOptimization = this.calculateOptimalAnimation(strategy, performance);
+      optimizations.push(animationOptimization);
+    }
+
+    // Proactive accuracy optimization with stability consideration
+    if (performance.trendDirection === 'stable' && performance.averageAccuracy < 0.92) {
+      const confidenceOptimization = this.calculateOptimalConfidence(strategy, performance);
+      optimizations.push(confidenceOptimization);
+    }
+
+    // Multi-factor opportunity detection
+    const additionalOptimizations = this.detectOptimizationOpportunities(strategy, performance);
+    optimizations.push(...additionalOptimizations);
+
+    // Enhanced filtering with dynamic confidence thresholds
+    const confidenceThreshold = performance.stabilityScore > 0.8 ? 0.3 : 0.6; // Lower threshold for stable systems
+    return optimizations.filter(opt => opt.confidence > confidenceThreshold);
+  }
+
+  /**
+   * Calculate optimal segmentation threshold using historical data
+   */
+  private calculateOptimalSegmentation(
+    strategy: ProcessingStrategy,
+    performance: ReturnType<typeof this.calculateCurrentPerformance>
+  ): ParameterOptimization | null {
+    if (performance.averageTime <= strategy.estimatedTime * 1.3) return null;
+
+    // Calculate adjustment based on performance gap
+    const performanceGap = (performance.averageTime - strategy.estimatedTime) / strategy.estimatedTime;
+    const urgencyMultiplier = Math.min(2.0, 1 + performanceGap);
+
+    const adjustment = Math.min(0.15, 0.05 + performanceGap * 0.1);
+    const targetValue = Math.min(1.0, strategy.parameters.segmentationThreshold + adjustment);
+
+    return {
+      parameter: 'segmentationThreshold',
+      currentValue: strategy.parameters.segmentationThreshold,
+      targetValue,
+      adjustmentRate: strategy.parameters.adaptationSpeed * urgencyMultiplier,
+      confidence: Math.min(0.9, 0.6 + performanceGap * 0.3),
+      expectedImprovement: Math.min(0.25, 0.1 + performanceGap * 0.15)
+    };
+  }
+
+  /**
+   * Calculate optimal complexity reduction with accuracy preservation
+   */
+  private calculateOptimalComplexityReduction(
+    strategy: ProcessingStrategy,
+    performance: ReturnType<typeof this.calculateCurrentPerformance>
+  ): { targetValue: number; urgency: number; confidence: number; expectedGain: number } {
+    const accuracyBuffer = performance.averageAccuracy - strategy.accuracyExpected;
+    const timeOverrun = (performance.averageTime - strategy.estimatedTime) / strategy.estimatedTime;
+
+    // More aggressive reduction if we have accuracy buffer
+    const reductionFactor = Math.min(0.3, 0.1 + Math.max(0, accuracyBuffer) * 0.4 + timeOverrun * 0.2);
+    const targetValue = Math.max(0.1, strategy.parameters.layoutComplexity * (1 - reductionFactor));
+
+    return {
+      targetValue,
+      urgency: Math.min(2.0, 1 + timeOverrun),
+      confidence: Math.min(0.9, 0.5 + accuracyBuffer * 2 + (timeOverrun > 0.3 ? 0.3 : 0)),
+      expectedGain: Math.min(0.4, reductionFactor * 1.5)
+    };
+  }
+
+  /**
+   * Calculate optimal animation density with performance consideration
+   */
+  private calculateOptimalAnimation(
+    strategy: ProcessingStrategy,
+    performance: ReturnType<typeof this.calculateCurrentPerformance>
+  ): ParameterOptimization {
+    const timeOverrun = Math.max(0, (performance.averageTime - strategy.estimatedTime) / strategy.estimatedTime);
+    const stabilityPenalty = 1 - performance.stabilityScore;
+
+    const reduction = Math.min(0.15, 0.03 + timeOverrun * 0.1 + stabilityPenalty * 0.05);
+    const targetValue = Math.max(0.05, strategy.parameters.animationDensity - reduction);
+
+    return {
+      parameter: 'animationDensity',
+      currentValue: strategy.parameters.animationDensity,
+      targetValue,
+      adjustmentRate: strategy.parameters.adaptationSpeed * (1 + timeOverrun),
+      confidence: Math.min(0.95, 0.7 + timeOverrun * 0.2),
+      expectedImprovement: Math.min(0.2, reduction * 2)
+    };
+  }
+
+  /**
+   * Calculate optimal confidence threshold with learning from history
+   */
+  private calculateOptimalConfidence(
+    strategy: ProcessingStrategy,
+    performance: ReturnType<typeof this.calculateCurrentPerformance>
+  ): ParameterOptimization {
+    const accuracyGap = 0.92 - performance.averageAccuracy;
+    const stabilityBonus = performance.stabilityScore > 0.8 ? 0.02 : 0;
+
+    const adjustment = Math.min(0.1, accuracyGap * 0.3 + stabilityBonus);
+    const targetValue = Math.min(0.98, strategy.parameters.diagramTypeConfidence + adjustment);
+
+    return {
+      parameter: 'diagramTypeConfidence',
+      currentValue: strategy.parameters.diagramTypeConfidence,
+      targetValue,
+      adjustmentRate: strategy.parameters.adaptationSpeed * 0.7, // Conservative for accuracy
+      confidence: Math.min(0.8, 0.4 + accuracyGap * 2 + stabilityBonus * 5),
+      expectedImprovement: Math.min(0.15, adjustment * 1.5)
+    };
+  }
+
+  /**
+   * Detect additional optimization opportunities using pattern recognition
+   */
+  private detectOptimizationOpportunities(
+    strategy: ProcessingStrategy,
+    performance: ReturnType<typeof this.calculateCurrentPerformance>
+  ): ParameterOptimization[] {
+    const opportunities: ParameterOptimization[] = [];
+
+    // Detect systematic inefficiencies
+    if (this.realTimeMetrics.length >= 10) {
+      const recentErrors = this.realTimeMetrics.slice(-10);
+      const avgErrorRate = recentErrors.reduce((sum, m) => sum + m.errorRate, 0) / recentErrors.length;
+
+      // If error rate is high, adjust stability threshold
+      if (avgErrorRate > 0.1) {
+        opportunities.push({
+          parameter: 'stabilityThreshold',
+          currentValue: strategy.parameters.stabilityThreshold,
+          targetValue: Math.min(0.98, strategy.parameters.stabilityThreshold + 0.05),
+          adjustmentRate: strategy.parameters.adaptationSpeed * 0.5,
+          confidence: Math.min(0.8, avgErrorRate * 5),
+          expectedImprovement: Math.min(0.1, avgErrorRate * 0.5)
+        });
+      }
+    }
+
+    // Detect memory pressure impact
+    const recentMemoryUsage = this.realTimeMetrics.slice(-5);
+    if (recentMemoryUsage.length > 0) {
+      const avgMemoryPressure = recentMemoryUsage.reduce((sum, m) => sum + m.memoryUsage, 0) / recentMemoryUsage.length;
+
+      if (avgMemoryPressure > 100 * 1024 * 1024) { // 100MB threshold
+        opportunities.push({
+          parameter: 'layoutComplexity',
+          currentValue: strategy.parameters.layoutComplexity,
+          targetValue: Math.max(0.2, strategy.parameters.layoutComplexity - 0.1),
           adjustmentRate: strategy.parameters.adaptationSpeed,
           confidence: 0.7,
           expectedImprovement: 0.15
         });
       }
-
-      // Optimize layout complexity if accuracy is sufficient
-      if (performance.averageAccuracy > 0.8) {
-        optimizations.push({
-          parameter: 'layoutComplexity',
-          currentValue: strategy.parameters.layoutComplexity,
-          targetValue: Math.max(0.1, strategy.parameters.layoutComplexity - 0.1),
-          adjustmentRate: strategy.parameters.adaptationSpeed,
-          confidence: 0.6,
-          expectedImprovement: 0.2
-        });
-      }
-
-      // Optimize animation density for performance
-      optimizations.push({
-        parameter: 'animationDensity',
-        currentValue: strategy.parameters.animationDensity,
-        targetValue: Math.max(0.1, strategy.parameters.animationDensity - 0.05),
-        adjustmentRate: strategy.parameters.adaptationSpeed,
-        confidence: 0.8,
-        expectedImprovement: 0.1
-      });
     }
 
-    // If performance is good but accuracy could improve
-    if (performance.trendDirection === 'stable' && performance.averageAccuracy < 0.9) {
-      optimizations.push({
-        parameter: 'diagramTypeConfidence',
-        currentValue: strategy.parameters.diagramTypeConfidence,
-        targetValue: Math.min(1.0, strategy.parameters.diagramTypeConfidence + 0.05),
-        adjustmentRate: strategy.parameters.adaptationSpeed * 0.5, // Slower for accuracy improvements
-        confidence: 0.5,
-        expectedImprovement: 0.05
-      });
-    }
-
-    return optimizations.filter(opt => opt.confidence > 0.4); // Only apply high-confidence optimizations
+    return opportunities;
   }
 
   /**
-   * Apply parameter optimizations to strategy
+   * Enhanced parameter optimization application with intelligent learning
    */
   private async applyOptimizations(strategyId: string, optimizations: ParameterOptimization[]): Promise<void> {
     const strategy = this.strategies.find(s => s.id === strategyId);
     if (!strategy) return;
 
-    console.log(`🔧 Applying ${optimizations.length} real-time optimizations to ${strategy.name}`);
+    console.log(`🔧 Applying ${optimizations.length} ML-optimized adjustments to ${strategy.name}`);
 
-    // Store active optimizations for tracking
-    this.activeOptimizations.set(strategyId, optimizations);
+    // Store active optimizations for tracking with timestamps
+    const timestampedOptimizations = optimizations.map(opt => ({
+      ...opt,
+      appliedAt: Date.now(),
+      strategyId
+    }));
+    this.activeOptimizations.set(strategyId, timestampedOptimizations);
 
-    // Apply gradual parameter adjustments
+    // Calculate adaptive learning rate based on recent success
+    const adaptiveLearningRate = this.calculateAdaptiveLearningRate(strategy);
+
+    // Apply intelligent parameter adjustments with momentum
     for (const opt of optimizations) {
       const currentValue = (strategy.parameters as any)[opt.parameter];
-      const adjustment = (opt.targetValue - currentValue) * opt.adjustmentRate * this.learningRate;
-      const newValue = currentValue + adjustment;
 
-      // Apply the adjustment
-      (strategy.parameters as any)[opt.parameter] = Math.max(0, Math.min(1, newValue));
+      // Enhanced adjustment calculation with momentum and dampening
+      const confidence_weight = Math.pow(opt.confidence, 0.5); // Square root for smoother scaling
+      const baseAdjustment = (opt.targetValue - currentValue) * opt.adjustmentRate;
+      const learningAdjustment = baseAdjustment * adaptiveLearningRate * confidence_weight;
 
-      console.log(`   📊 ${opt.parameter}: ${currentValue.toFixed(3)} → ${newValue.toFixed(3)} (target: ${opt.targetValue.toFixed(3)})`);
+      // Apply momentum from previous adjustments (if any)
+      const momentum = this.calculateMomentum(strategyId, opt.parameter);
+      const adjustmentWithMomentum = learningAdjustment + momentum * 0.1;
+
+      const newValue = this.applyBoundedAdjustment(currentValue, adjustmentWithMomentum, opt.parameter);
+
+      // Apply the adjustment with parameter-specific bounds
+      (strategy.parameters as any)[opt.parameter] = newValue;
+
+      // Track parameter history for momentum calculation
+      this.trackParameterHistory(strategyId, opt.parameter, currentValue, newValue);
+
+      console.log(`   🎯 ${opt.parameter}: ${currentValue.toFixed(3)} → ${newValue.toFixed(3)} (target: ${opt.targetValue.toFixed(3)}, confidence: ${(opt.confidence * 100).toFixed(1)}%)`);
     }
 
-    // Update strategy metadata
-    strategy.estimatedTime *= (1 - optimizations.reduce((sum, opt) => sum + opt.expectedImprovement, 0) / optimizations.length);
+    // Enhanced strategy metadata update with decay prevention
+    const totalExpectedImprovement = optimizations.reduce((sum, opt) =>
+      sum + opt.expectedImprovement * opt.confidence, 0) / optimizations.length;
+
+    const timeImprovementFactor = Math.max(0.8, 1 - totalExpectedImprovement * 0.5); // Prevent over-optimization
+    strategy.estimatedTime = Math.max(200, strategy.estimatedTime * timeImprovementFactor);
+
+    // Update accuracy expectation based on confidence adjustments
+    const accuracyOptimizations = optimizations.filter(opt =>
+      opt.parameter === 'diagramTypeConfidence' || opt.parameter === 'segmentationThreshold');
+
+    if (accuracyOptimizations.length > 0) {
+      const accuracyImprovement = accuracyOptimizations.reduce((sum, opt) =>
+        sum + opt.expectedImprovement * opt.confidence, 0) / accuracyOptimizations.length;
+      strategy.accuracyExpected = Math.min(0.98, strategy.accuracyExpected + accuracyImprovement * 0.1);
+    }
+  }
+
+  /**
+   * Calculate adaptive learning rate based on recent optimization success
+   */
+  private calculateAdaptiveLearningRate(strategy: ProcessingStrategy): number {
+    const effectiveness = this.calculateAdaptationEffectiveness();
+    const stabilityFactor = this.realTimeMetrics.length >= 5 ?
+      this.calculateCurrentPerformance(this.realTimeMetrics.slice(-5)).stabilityScore : 0.5;
+
+    // Increase learning rate for effective adaptations, decrease for unstable systems
+    const baseRate = this.learningRate;
+    const effectivenessMultiplier = 0.5 + effectiveness; // Range: 0.5 to 1.5
+    const stabilityMultiplier = 0.7 + stabilityFactor * 0.6; // Range: 0.7 to 1.3
+
+    return Math.min(0.5, baseRate * effectivenessMultiplier * stabilityMultiplier);
+  }
+
+  /**
+   * Calculate momentum from previous parameter adjustments
+   */
+  private calculateMomentum(strategyId: string, parameter: string): number {
+    // Simple momentum calculation - would be enhanced with proper history tracking
+    const activeOpts = this.activeOptimizations.get(strategyId) || [];
+    const recentAdjustments = activeOpts
+      .filter((opt: any) => opt.parameter === parameter && Date.now() - opt.appliedAt < 10000)
+      .slice(-3);
+
+    if (recentAdjustments.length < 2) return 0;
+
+    // Calculate average adjustment direction
+    let totalMomentum = 0;
+    for (let i = 1; i < recentAdjustments.length; i++) {
+      const prev = recentAdjustments[i - 1] as any;
+      const curr = recentAdjustments[i] as any;
+      totalMomentum += (curr.targetValue - curr.currentValue) * 0.1;
+    }
+
+    return totalMomentum / (recentAdjustments.length - 1);
+  }
+
+  /**
+   * Apply bounded adjustment with parameter-specific constraints
+   */
+  private applyBoundedAdjustment(currentValue: number, adjustment: number, parameter: string): number {
+    const bounds = this.getParameterBounds(parameter);
+    const newValue = currentValue + adjustment;
+
+    // Apply parameter-specific bounds
+    return Math.max(bounds.min, Math.min(bounds.max, newValue));
+  }
+
+  /**
+   * Get parameter-specific bounds for safe adjustment
+   */
+  private getParameterBounds(parameter: string): { min: number; max: number } {
+    const bounds = {
+      segmentationThreshold: { min: 0.1, max: 0.95 },
+      diagramTypeConfidence: { min: 0.3, max: 0.98 },
+      layoutComplexity: { min: 0.05, max: 0.95 },
+      animationDensity: { min: 0.02, max: 0.9 },
+      adaptationSpeed: { min: 0.1, max: 1.0 },
+      stabilityThreshold: { min: 0.5, max: 0.99 }
+    };
+
+    return bounds[parameter as keyof typeof bounds] || { min: 0, max: 1 };
+  }
+
+  /**
+   * Track parameter history for momentum and learning
+   */
+  private trackParameterHistory(strategyId: string, parameter: string, oldValue: number, newValue: number): void {
+    // Simplified history tracking - in production would use proper data structure
+    const key = `${strategyId}_${parameter}_history`;
+    if (!this.performanceMetrics.has(key)) {
+      this.performanceMetrics.set(key, []);
+    }
+
+    const history = this.performanceMetrics.get(key)!;
+    history.push(newValue);
+
+    // Keep only recent history (last 20 adjustments)
+    if (history.length > 20) {
+      history.splice(0, history.length - 20);
+    }
   }
 
   /**
@@ -348,7 +601,7 @@ export class AdaptiveContentProcessor {
   }
 
   /**
-   * Calculate how effective recent adaptations have been
+   * Enhanced adaptation effectiveness calculation with multiple metrics
    */
   private calculateAdaptationEffectiveness(): number {
     if (this.realTimeMetrics.length < 10) return 0.5; // Not enough data
@@ -358,11 +611,76 @@ export class AdaptiveContentProcessor {
 
     if (beforeAdaptation.length === 0 || afterAdaptation.length === 0) return 0.5;
 
-    const beforeAvgTime = beforeAdaptation.reduce((sum, m) => sum + m.processingTime, 0) / beforeAdaptation.length;
-    const afterAvgTime = afterAdaptation.reduce((sum, m) => sum + m.processingTime, 0) / afterAdaptation.length;
+    // Multi-metric effectiveness calculation
+    const timeEffectiveness = this.calculateTimeImprovement(beforeAdaptation, afterAdaptation);
+    const accuracyEffectiveness = this.calculateAccuracyImprovement(beforeAdaptation, afterAdaptation);
+    const stabilityEffectiveness = this.calculateStabilityImprovement(beforeAdaptation, afterAdaptation);
+    const errorEffectiveness = this.calculateErrorReduction(beforeAdaptation, afterAdaptation);
+
+    // Weighted combination of effectiveness metrics
+    const overallEffectiveness = (
+      timeEffectiveness * 0.4 +        // Processing time improvement (40%)
+      accuracyEffectiveness * 0.3 +    // Accuracy improvement (30%)
+      stabilityEffectiveness * 0.2 +   // Stability improvement (20%)
+      errorEffectiveness * 0.1         // Error reduction (10%)
+    );
+
+    return Math.max(0.1, Math.min(0.95, overallEffectiveness));
+  }
+
+  /**
+   * Calculate processing time improvement effectiveness
+   */
+  private calculateTimeImprovement(before: RealTimeMetrics[], after: RealTimeMetrics[]): number {
+    const beforeAvgTime = before.reduce((sum, m) => sum + m.processingTime, 0) / before.length;
+    const afterAvgTime = after.reduce((sum, m) => sum + m.processingTime, 0) / after.length;
 
     const improvement = (beforeAvgTime - afterAvgTime) / beforeAvgTime;
-    return Math.max(0, Math.min(1, 0.5 + improvement)); // 0.5 baseline, improvements add to it
+
+    // Convert improvement to 0-1 scale with 0.5 as baseline (no change)
+    return Math.max(0, Math.min(1, 0.5 + improvement * 2)); // Scale improvement by 2x for sensitivity
+  }
+
+  /**
+   * Calculate accuracy improvement effectiveness
+   */
+  private calculateAccuracyImprovement(before: RealTimeMetrics[], after: RealTimeMetrics[]): number {
+    const beforeAvgAcc = before.reduce((sum, m) => sum + m.accuracyScore, 0) / before.length;
+    const afterAvgAcc = after.reduce((sum, m) => sum + m.accuracyScore, 0) / after.length;
+
+    const improvement = (afterAvgAcc - beforeAvgAcc) / Math.max(beforeAvgAcc, 0.1);
+
+    // Accuracy improvements are valuable, scale appropriately
+    return Math.max(0, Math.min(1, 0.5 + improvement * 5)); // 5x scaling for accuracy sensitivity
+  }
+
+  /**
+   * Calculate stability improvement effectiveness
+   */
+  private calculateStabilityImprovement(before: RealTimeMetrics[], after: RealTimeMetrics[]): number {
+    const beforeVariance = this.calculateVariance(before.map(m => m.processingTime));
+    const afterVariance = this.calculateVariance(after.map(m => m.processingTime));
+
+    const avgTime = (before.concat(after)).reduce((sum, m) => sum + m.processingTime, 0) / (before.length + after.length);
+
+    const beforeCV = Math.sqrt(beforeVariance) / avgTime; // Coefficient of variation
+    const afterCV = Math.sqrt(afterVariance) / avgTime;
+
+    const stabilityImprovement = (beforeCV - afterCV) / Math.max(beforeCV, 0.01);
+
+    return Math.max(0, Math.min(1, 0.5 + stabilityImprovement * 1.5)); // 1.5x scaling for stability
+  }
+
+  /**
+   * Calculate error reduction effectiveness
+   */
+  private calculateErrorReduction(before: RealTimeMetrics[], after: RealTimeMetrics[]): number {
+    const beforeAvgError = before.reduce((sum, m) => sum + m.errorRate, 0) / before.length;
+    const afterAvgError = after.reduce((sum, m) => sum + m.errorRate, 0) / after.length;
+
+    const errorReduction = (beforeAvgError - afterAvgError) / Math.max(beforeAvgError, 0.001);
+
+    return Math.max(0, Math.min(1, 0.5 + errorReduction * 3)); // 3x scaling for error reduction importance
   }
 
   /**

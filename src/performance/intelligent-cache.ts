@@ -152,7 +152,7 @@ export class IntelligentCache {
   }
 
   /**
-   * Calculate entry priority for LRU-W algorithm
+   * Calculate entry priority for LRU-W algorithm with enhanced optimization
    */
   private calculatePriority(entry: CacheEntry): number {
     const now = Date.now();
@@ -161,13 +161,35 @@ export class IntelligentCache {
     const frequency = Math.log(entry.accessCount + 1);
     const performance = entry.metadata.performanceScore;
 
-    // Weighted priority: recent access (40%), frequency (30%), performance (20%), age (10%)
-    return (
-      (1 - Math.min(recency / 24, 1)) * 0.4 +
-      Math.min(frequency / 5, 1) * 0.3 +
-      performance * 0.2 +
-      (1 - age) * 0.1
-    );
+    // Enhanced priority calculation with access pattern consideration
+    const accessPatternMultiplier = this.getAccessPatternMultiplier(entry.metadata.accessPattern);
+    const complexityBonus = Math.min(entry.metadata.complexity * 0.15, 0.15); // Bonus for complex content
+    const compressionBonus = entry.compressed ? 0.05 : 0; // Bonus for compressed entries
+
+    // Optimized weighted priority: recency (35%), frequency (25%), performance (20%),
+    // access pattern (10%), complexity (5%), compression (3%), age (2%)
+    return Math.min(1.0, (
+      (1 - Math.min(recency / 12, 1)) * 0.35 + // Reduced time window for better recency detection
+      Math.min(frequency / 4, 1) * 0.25 + // Adjusted frequency curve
+      performance * 0.20 +
+      accessPatternMultiplier * 0.10 +
+      complexityBonus +
+      compressionBonus +
+      (1 - age) * 0.02
+    ));
+  }
+
+  /**
+   * Get access pattern multiplier for priority calculation
+   */
+  private getAccessPatternMultiplier(pattern: 'frequent' | 'recent' | 'mixed' | 'cold'): number {
+    switch (pattern) {
+      case 'frequent': return 1.0;
+      case 'recent': return 0.8;
+      case 'mixed': return 0.9;
+      case 'cold': return 0.3;
+      default: return 0.5;
+    }
   }
 
   /**
@@ -182,25 +204,64 @@ export class IntelligentCache {
   }
 
   /**
-   * Predictive preloading based on access patterns
+   * Enhanced predictive preloading with intelligent selection
    */
   private async predictivePreload(fingerprint: ContentFingerprint): Promise<void> {
-    if (this.preloadQueue.size > 10) return; // Limit preload queue size
+    if (this.preloadQueue.size > 15) { // Increased queue size for better performance
+      // Intelligent queue management: remove least valuable preloads
+      this.optimizePreloadQueue();
+      return;
+    }
 
+    const candidates: Array<{key: string; similarity: number; priority: number}> = [];
+
+    // Collect and evaluate candidates more efficiently
     for (const [key, cachedFingerprint] of this.fingerprints.entries()) {
       if (this.preloadQueue.has(key)) continue;
 
       const similarity = this.calculateSimilarity(fingerprint, cachedFingerprint);
       if (similarity > this.preloadThreshold && similarity < this.similarityThreshold) {
-        this.preloadQueue.add(key);
-
-        // Simulate preloading by warming up the entry
         const entry = this.cache.get(key);
         if (entry) {
-          entry.metadata.accessPattern = this.determineAccessPattern(entry);
+          const priority = this.calculatePriority(entry);
+          candidates.push({ key, similarity, priority });
         }
       }
     }
+
+    // Sort by combined similarity and priority score
+    candidates
+      .sort((a, b) => (b.similarity * 0.6 + b.priority * 0.4) - (a.similarity * 0.6 + a.priority * 0.4))
+      .slice(0, 5) // Take top 5 candidates
+      .forEach(candidate => {
+        this.preloadQueue.add(candidate.key);
+
+        // Enhanced preloading: update entry metadata for better tracking
+        const entry = this.cache.get(candidate.key);
+        if (entry) {
+          entry.metadata.accessPattern = this.determineAccessPattern(entry);
+          entry.priority = this.calculatePriority(entry); // Recalculate with latest data
+        }
+      });
+  }
+
+  /**
+   * Optimize preload queue by removing least valuable entries
+   */
+  private optimizePreloadQueue(): void {
+    const queueEntries = Array.from(this.preloadQueue)
+      .map(key => {
+        const entry = this.cache.get(key);
+        return {
+          key,
+          priority: entry ? this.calculatePriority(entry) : 0
+        };
+      })
+      .sort((a, b) => a.priority - b.priority); // Sort by priority (lowest first)
+
+    // Remove lowest priority entries to make room
+    const toRemove = queueEntries.slice(0, 5);
+    toRemove.forEach(item => this.preloadQueue.delete(item.key));
   }
 
   /**
@@ -219,7 +280,7 @@ export class IntelligentCache {
   }
 
   /**
-   * Advanced cleanup with LRU-W algorithm
+   * Advanced cleanup with optimized LRU-W algorithm and intelligent eviction
    */
   private async advancedCleanup(): Promise<void> {
     const now = Date.now();
@@ -232,25 +293,55 @@ export class IntelligentCache {
       }
     }
 
-    // Second pass: LRU-W eviction if still over limit
+    // Second pass: Intelligent LRU-W eviction if still over limit
     if (this.cache.size - toDelete.length >= this.maxSize) {
       const entries = Array.from(this.cache.entries())
         .map(([key, entry]) => ({
           key,
           entry,
-          priority: this.calculatePriority(entry)
+          priority: this.calculatePriority(entry),
+          // Additional factors for smarter eviction
+          accessDensity: entry.accessCount / Math.max((now - entry.timestamp) / (60 * 60 * 1000), 1),
+          memoryScore: entry.compressed ? entry.compressedSize : JSON.stringify(entry.data).length,
+          utilityScore: this.calculateUtilityScore(entry)
         }))
-        .sort((a, b) => a.priority - b.priority); // Sort by priority (lowest first)
+        .sort((a, b) => {
+          // Multi-factor sorting: priority first, then utility, then memory efficiency
+          const priorityDiff = a.priority - b.priority;
+          if (Math.abs(priorityDiff) > 0.1) return priorityDiff;
+
+          const utilityDiff = a.utilityScore - b.utilityScore;
+          if (Math.abs(utilityDiff) > 0.05) return utilityDiff;
+
+          return b.memoryScore - a.memoryScore; // Prefer to evict larger entries when other factors are equal
+        });
+
+      // Adaptive eviction size based on memory pressure
+      const memoryPressure = this.stats.memoryUsage / (50 * 1024 * 1024); // Relative to 50MB target
+      const baseEvictionRate = memoryPressure > 0.8 ? 0.25 : 0.15; // More aggressive when under pressure
 
       const numToEvict = Math.min(
-        Math.floor(this.maxSize * 0.2), // Evict up to 20%
-        this.cache.size - toDelete.length - Math.floor(this.maxSize * 0.8)
+        Math.floor(this.maxSize * baseEvictionRate),
+        this.cache.size - toDelete.length - Math.floor(this.maxSize * 0.75) // Maintain 75% capacity
       );
 
-      for (let i = 0; i < numToEvict; i++) {
-        if (entries[i]) {
-          toDelete.push(entries[i].key);
+      // Smart eviction: avoid evicting recently successful entries
+      let evicted = 0;
+      for (let i = 0; i < entries.length && evicted < numToEvict; i++) {
+        const entry = entries[i];
+
+        // Protection for high-value entries
+        if (entry.priority > 0.8 || entry.utilityScore > 0.9) {
+          continue; // Skip high-value entries
         }
+
+        // Protection for recently accessed entries
+        if ((now - entry.entry.lastAccessed) < 30 * 60 * 1000) { // Less than 30 minutes
+          continue; // Skip recently accessed
+        }
+
+        toDelete.push(entry.key);
+        evicted++;
       }
     }
 
@@ -273,18 +364,50 @@ export class IntelligentCache {
   }
 
   /**
-   * Update performance score based on multiple metrics
+   * Calculate utility score for intelligent eviction decisions
+   */
+  private calculateUtilityScore(entry: CacheEntry): number {
+    const now = Date.now();
+    const ageHours = (now - entry.timestamp) / (60 * 60 * 1000);
+    const accessFrequency = entry.accessCount / Math.max(ageHours, 1);
+    const recentAccess = Math.max(0, 1 - (now - entry.lastAccessed) / (24 * 60 * 60 * 1000));
+    const complexityValue = entry.metadata.complexity; // Complex content might be expensive to recreate
+    const performanceBonus = entry.metadata.performanceScore;
+
+    return (
+      accessFrequency * 0.3 +
+      recentAccess * 0.25 +
+      complexityValue * 0.2 +
+      performanceBonus * 0.15 +
+      (entry.compressed ? 0.1 : 0) // Compressed entries are more valuable
+    );
+  }
+
+  /**
+   * Enhanced performance score calculation with optimized weightings
    */
   private updatePerformanceScore(): void {
-    const { hitRate, averageRetrievalTime, compressionRatio, memoryUsage } = this.stats;
+    const { hitRate, averageRetrievalTime, compressionRatio, memoryUsage, preloadHits, evictionCount } = this.stats;
     const maxMemory = 50 * 1024 * 1024; // 50MB target
-    const maxRetrievalTime = 50; // 50ms target
+    const maxRetrievalTime = 30; // Optimized target: 30ms
+    const totalRequests = this.stats.hitRate + this.stats.missRate + 1;
 
+    // Enhanced scoring with additional factors
+    const hitRateScore = Math.min(hitRate * 1.2, 1); // Bonus for high hit rates
+    const speedScore = Math.max(0, 1 - averageRetrievalTime / maxRetrievalTime);
+    const memoryEfficiencyScore = Math.max(0, 1 - memoryUsage / maxMemory);
+    const compressionEfficiencyScore = Math.min(compressionRatio * 1.5, 1); // Enhanced compression value
+    const preloadEffectivenessScore = totalRequests > 0 ? Math.min(preloadHits / totalRequests * 2, 1) : 0;
+    const stabilityScore = Math.max(0, 1 - evictionCount / Math.max(this.cache.size, 1));
+
+    // Optimized weighted performance calculation
     this.stats.performanceScore = Math.max(0, Math.min(1,
-      hitRate * 0.4 +
-      Math.max(0, 1 - averageRetrievalTime / maxRetrievalTime) * 0.3 +
-      compressionRatio * 0.2 +
-      Math.max(0, 1 - memoryUsage / maxMemory) * 0.1
+      hitRateScore * 0.35 +                    // Increased hit rate importance
+      speedScore * 0.25 +                      // Speed is critical
+      memoryEfficiencyScore * 0.15 +           // Memory management
+      compressionEfficiencyScore * 0.10 +      // Compression benefits
+      preloadEffectivenessScore * 0.10 +       // Preloading effectiveness
+      stabilityScore * 0.05                    // Cache stability
     ));
   }
 
