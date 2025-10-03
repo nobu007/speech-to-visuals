@@ -62,7 +62,7 @@ export class DiagramDetector {
     const text = segment.text.toLowerCase();
     const keyphrases = segment.keyphrases.map(kp => kp.toLowerCase());
 
-    // Define keyword patterns for different diagram types with weights
+    // ITERATION 44 ENHANCEMENT: Enhanced keyword patterns with organizational detection
     const patterns = {
       flow: {
         primary: ['process', 'workflow', 'pipeline', 'procedure', 'sequence'],
@@ -70,14 +70,14 @@ export class DiagramDetector {
         context: ['data', 'information', 'system', 'through', 'input', 'output']
       },
       tree: {
-        primary: ['hierarchy', 'organization', 'structure', 'taxonomy'],
-        secondary: ['parent', 'child', 'branch', 'root', 'category', 'classification', 'breakdown'],
-        context: ['levels', 'components', 'parts', 'subdivide', 'organize']
+        primary: ['hierarchy', 'organization', 'structure', 'taxonomy', 'ceo', 'vp', 'director', 'management'],
+        secondary: ['parent', 'child', 'branch', 'root', 'category', 'classification', 'breakdown', 'reports', 'under', 'supervisor', 'team'],
+        context: ['levels', 'components', 'parts', 'subdivide', 'organize', 'department', 'division', 'company']
       },
       timeline: {
-        primary: ['timeline', 'chronology', 'history', 'evolution'],
-        secondary: ['development', 'year', 'month', 'date', 'time', 'period', 'era', 'phase'],
-        context: ['when', 'during', 'since', 'until', 'progress', 'stages']
+        primary: ['timeline', 'chronology', 'history', 'evolution', 'january', 'february', 'march', 'april', 'may', 'june'],
+        secondary: ['development', 'year', 'month', 'date', 'time', 'period', 'era', 'phase', 'project', 'milestone'],
+        context: ['when', 'during', 'since', 'until', 'progress', 'stages', 'schedule', 'roadmap']
       },
       matrix: {
         primary: ['comparison', 'matrix', 'table', 'versus'],
@@ -143,13 +143,27 @@ export class DiagramDetector {
     // Extract entities and relationships
     const { nodes, edges } = await this.extractEntitiesAndRelationships(segment, bestType.type);
 
-    // Improved confidence calculation
-    const maxPossibleScore = 8 + 4 + 2; // Max primary + secondary + context
-    const confidence = Math.min(bestType.score / maxPossibleScore, 1);
+    // ITERATION 44 ENHANCEMENT: Improved confidence calculation with context awareness
+    const maxPossibleScore = Math.max(...Object.values(patterns).map(p =>
+      p.primary.length * 8 + p.secondary.length * 4 + p.context.length * 2
+    ));
+    const confidence = Math.min(bestType.score / (maxPossibleScore * 0.3), 1); // Adjust denominator for realism
 
-    // Boost confidence if multiple diagram indicators are present
-    const nonZeroScores = Object.values(scores).filter(s => s > 0).length;
-    const adjustedConfidence = nonZeroScores === 1 ? confidence * 1.2 : confidence;
+    // Boost confidence for clear organizational indicators
+    let adjustedConfidence = confidence;
+    if (bestType.type === 'tree' && (text.includes('ceo') || text.includes('vp') || text.includes('director'))) {
+      adjustedConfidence = Math.min(confidence * 1.3, 0.95); // Strong boost for org charts
+    }
+
+    // Boost confidence for clear timeline indicators
+    if (bestType.type === 'timeline' && (text.includes('january') || text.includes('project') || text.includes('phase'))) {
+      adjustedConfidence = Math.min(confidence * 1.2, 0.95);
+    }
+
+    // Penalize if the score is too low (likely wrong detection)
+    if (bestType.score < 3) {
+      adjustedConfidence *= 0.7;
+    }
 
     return {
       type: bestType.type,

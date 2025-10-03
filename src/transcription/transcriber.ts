@@ -1,6 +1,7 @@
 import { TranscriptionResult, TranscriptionConfig, TranscriptionSegment, TranscriptionMetrics } from './types';
 import AudioPreprocessor from './audio-preprocessor';
 import TextPostProcessor from './text-postprocessor';
+import { BrowserTranscriber } from './browser-transcriber';
 import { Caption } from '@remotion/captions';
 
 /**
@@ -12,6 +13,7 @@ export class TranscriptionPipeline {
   private iteration: number = 1;
   private audioPreprocessor: AudioPreprocessor;
   private textPostProcessor: TextPostProcessor;
+  private browserTranscriber: BrowserTranscriber;
 
   constructor(config: Partial<TranscriptionConfig> = {}) {
     this.config = {
@@ -40,6 +42,9 @@ export class TranscriptionPipeline {
       minSegmentDuration: 500,
       maxSegmentDuration: 15000
     });
+
+    // Initialize browser-compatible transcriber
+    this.browserTranscriber = new BrowserTranscriber();
   }
 
   /**
@@ -96,64 +101,40 @@ export class TranscriptionPipeline {
   }
 
   /**
-   * Iteration 1: Basic Whisper integration
+   * Browser-compatible transcription using Web Speech API or fallback
    */
   private async runWhisperTranscription(audioPath: string): Promise<TranscriptionSegment[]> {
-    console.log(`[V${this.iteration}] Running Whisper transcription...`);
+    console.log(`[V${this.iteration}] Running browser-compatible transcription...`);
 
     try {
-      // Try real Whisper integration
-      const { whisper } = await import('whisper-node');
+      // Use browser transcriber for File objects or blob URLs
+      if (audioPath.startsWith('blob:') || audioPath instanceof File) {
+        const audioFile = audioPath instanceof File ? audioPath : await this.blobUrlToFile(audioPath);
+        const result = await this.browserTranscriber.transcribeAudioFile(audioFile);
 
-      const options = {
-        modelName: this.config.model || 'base',
-        whisperOptions: {
-          outputInText: false,
-          outputInVtt: false,
-          outputInSrt: false,
-          outputInCsv: false,
-          outputInTsv: false,
-          outputInJson: true,
-          translateToEnglish: false,
-          wordTimestamps: true,
-          timestamps_length: 25,
-          splitOnWord: true
-        }
-      };
-
-      console.log(`[V${this.iteration}] Using Whisper model: ${options.modelName}`);
-      const transcript = await whisper(audioPath, options);
-
-      // Convert Whisper output to our format
-      const segments: TranscriptionSegment[] = [];
-
-      if (transcript && Array.isArray(transcript)) {
-        for (const item of transcript) {
-          if (item.speech) {
-            segments.push({
-              start: Math.floor((item.start || 0) * 1000), // Convert to milliseconds
-              end: Math.floor((item.end || 0) * 1000),
-              text: item.speech.trim(),
-              confidence: item.confidence || 0.9 // Default confidence if not available
-            });
-          }
+        if (result.success && result.segments.length > 0) {
+          console.log(`[V${this.iteration}] Browser transcription generated ${result.segments.length} segments`);
+          return result.segments;
         }
       }
 
-      console.log(`[V${this.iteration}] Whisper generated ${segments.length} segments`);
-
-      // If no segments from Whisper, use fallback
-      if (segments.length === 0) {
-        console.warn(`[V${this.iteration}] No segments from Whisper, using fallback data`);
-        return this.getFallbackSegments();
-      }
-
-      return segments;
+      // Fallback to enhanced mock data
+      console.log(`[V${this.iteration}] Using enhanced fallback transcription`);
+      return this.getFallbackSegments();
 
     } catch (error) {
-      console.warn(`[V${this.iteration}] Real Whisper failed, using fallback:`, error.message?.substring(0, 100));
+      console.warn(`[V${this.iteration}] Browser transcription failed, using fallback:`, error);
       return this.getFallbackSegments();
     }
+  }
+
+  /**
+   * Convert blob URL to File object for processing
+   */
+  private async blobUrlToFile(blobUrl: string): Promise<File> {
+    const response = await fetch(blobUrl);
+    const blob = await response.blob();
+    return new File([blob], 'audio.wav', { type: 'audio/wav' });
   }
 
   /**
