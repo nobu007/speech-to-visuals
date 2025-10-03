@@ -5,6 +5,7 @@ export interface TranscriptionSegment {
   end: number;
   text: string;
   confidence?: number;
+  speaker?: string;
 }
 
 export interface TranscriptionResult {

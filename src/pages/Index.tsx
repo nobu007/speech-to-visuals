@@ -4,6 +4,7 @@ import { ProcessingStatus } from '@/components/ProcessingStatus';
 import { DiagramPreview } from '@/components/DiagramPreview';
 import { VideoRenderer } from '@/components/VideoRenderer';
 import { PipelineInterface } from '@/components/pipeline-interface';
+import { StreamingProcessor } from '@/components/StreamingProcessor';
 import { ProcessingStatus as StatusType, ProcessingResult } from '@/types/diagram';
 import { MainPipeline } from '@/pipeline';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,6 +17,7 @@ const Index = () => {
   const [currentStep, setCurrentStep] = useState('');
   const [result, setResult] = useState<ProcessingResult | null>(null);
   const [useNewPipeline, setUseNewPipeline] = useState(true);
+  const [useStreamingMode, setUseStreamingMode] = useState(false);
 
   const handleUpload = async (file: File) => {
     try {
@@ -135,8 +137,62 @@ const Index = () => {
           </p>
         </div>
 
+        {/* Processing Mode Toggle */}
+        <div className="flex justify-center gap-4 mb-8">
+          <button
+            onClick={() => {
+              setUseNewPipeline(true);
+              setUseStreamingMode(false);
+            }}
+            className={`px-6 py-3 rounded-lg transition-all ${
+              useNewPipeline && !useStreamingMode
+                ? 'bg-primary text-primary-foreground shadow-lg'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            }`}
+          >
+            Standard Pipeline
+          </button>
+          <button
+            onClick={() => {
+              setUseNewPipeline(true);
+              setUseStreamingMode(true);
+            }}
+            className={`px-6 py-3 rounded-lg transition-all ${
+              useNewPipeline && useStreamingMode
+                ? 'bg-primary text-primary-foreground shadow-lg'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            }`}
+          >
+            ✨ Real-Time Streaming
+          </button>
+          <button
+            onClick={() => {
+              setUseNewPipeline(false);
+              setUseStreamingMode(false);
+            }}
+            className={`px-6 py-3 rounded-lg transition-all ${
+              !useNewPipeline
+                ? 'bg-primary text-primary-foreground shadow-lg'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            }`}
+          >
+            Legacy Pipeline
+          </button>
+        </div>
+
         {/* Main Content */}
-        {useNewPipeline ? (
+        {useNewPipeline && useStreamingMode ? (
+          <StreamingProcessor
+            onSceneGenerated={(scene) => {
+              console.log('🎯 Real-time scene generated:', scene);
+              toast.success(`新しいシーンが生成されました: ${scene.type}`);
+            }}
+            onComplete={(scenes) => {
+              console.log('🎉 Streaming processing complete:', scenes);
+              toast.success(`ストリーミング処理完了: ${scenes.length}シーン`);
+            }}
+          />
+        ) : useNewPipeline ? (
           <PipelineInterface />
         ) : (
           <>
