@@ -1,42 +1,42 @@
 {
   "iteration": 19,
   "testSuite": "Next-Generation Intelligence",
-  "timestamp": "2025-10-03T04:31:06.240Z",
+  "timestamp": "2025-10-03T04:43:33.399Z",
   "tests": [
     {
       "category": "AI Analysis",
       "name": "Narrative Structure Detection",
       "success": true,
-      "accuracy": 0.858191092659403,
-      "duration": 202.098707,
+      "accuracy": 0.8622663060093477,
+      "duration": 209.943646,
       "details": {
-        "narrativeElements": 13,
-        "conceptualDepth": 0.07480339200311437,
-        "emotionalInsights": 3
+        "narrativeElements": 10,
+        "conceptualDepth": 0.8608346935230027,
+        "emotionalInsights": 4
       }
     },
     {
       "category": "AI Analysis",
       "name": "Conceptual Framework Analysis",
       "success": false,
-      "accuracy": 0.7514534974307477,
-      "duration": 126.280091,
+      "accuracy": 0.7584477744948604,
+      "duration": 278.391168,
       "details": {
         "narrativeElements": 11,
-        "conceptualDepth": 0.5845785313560259,
-        "emotionalInsights": 4
+        "conceptualDepth": 0.0011323164287735388,
+        "emotionalInsights": 7
       }
     },
     {
       "category": "AI Analysis",
       "name": "Emotional Tone Recognition",
       "success": false,
-      "accuracy": 0.7231249780955478,
-      "duration": 247.427703,
+      "accuracy": 0.7468491448434488,
+      "duration": 204.50868899999995,
       "details": {
-        "narrativeElements": 10,
-        "conceptualDepth": 0.4294242653907008,
-        "emotionalInsights": 5
+        "narrativeElements": 5,
+        "conceptualDepth": 0.09756903575432618,
+        "emotionalInsights": 4
       }
     },
     {
@@ -44,11 +44,11 @@
       "name": "Contextual Enhancement Suggestions",
       "success": true,
       "accuracy": null,
-      "duration": 231.44108300000005,
+      "duration": 140.29728799999998,
       "details": {
-        "narrativeElements": 12,
-        "conceptualDepth": 0.4173061801498352,
-        "emotionalInsights": 6
+        "narrativeElements": 14,
+        "conceptualDepth": 0.21321604867495814,
+        "emotionalInsights": 5
       }
     },
     {
@@ -56,11 +56,11 @@
       "name": "Visual Style Adaptation",
       "success": false,
       "accuracy": null,
-      "duration": 214.5109420000001,
+      "duration": 144.353117,
       "details": {
-        "narrativeElements": 5,
-        "conceptualDepth": 0.6979489107990633,
-        "emotionalInsights": 6
+        "narrativeElements": 12,
+        "conceptualDepth": 0.6323458736685992,
+        "emotionalInsights": 7
       }
     },
     {
@@ -69,38 +69,38 @@
       "success": true,
       "count": 6,
       "intelligence": 0.9,
-      "duration": 219.47873099999993
+      "duration": 208.49236199999996
     },
     {
       "category": "Intelligent Generation",
       "name": "Intelligent Transitions",
       "success": true,
-      "count": 4,
+      "count": 5,
       "intelligence": 0.95,
-      "duration": 228.45587899999987
+      "duration": 210.49206400000003
     },
     {
       "category": "Intelligent Generation",
       "name": "Adaptive Visual Elements",
-      "success": false,
-      "count": 10,
-      "intelligence": 0.78,
-      "duration": 427.2900260000001
+      "success": true,
+      "count": 11,
+      "intelligence": 0.8500000000000001,
+      "duration": 250.444162
     },
     {
       "category": "Intelligent Generation",
       "name": "Contextual Overlays",
-      "success": false,
-      "count": 7,
-      "intelligence": 0.83,
-      "duration": 321.59422600000016
+      "success": true,
+      "count": 6,
+      "intelligence": 0.9,
+      "duration": 197.49821299999985
     },
     {
       "category": "Real-time Optimization",
       "name": "Scene Timing Optimization",
       "success": true,
       "improvement": 0.15,
-      "duration": 104.33446200000026,
+      "duration": 153.36276299999986,
       "optimizations": [
         "timing_adjustment",
         "visual_balance",
@@ -110,9 +110,9 @@
     {
       "category": "Real-time Optimization",
       "name": "Visual Balance Optimization",
-      "success": true,
-      "improvement": 0.18,
-      "duration": 107.29036300000007,
+      "success": false,
+      "improvement": 0.13999999999999999,
+      "duration": 119.32642199999987,
       "optimizations": [
         "timing_adjustment",
         "visual_balance",
@@ -124,7 +124,7 @@
       "name": "Transition Smoothing",
       "success": true,
       "improvement": 0.15,
-      "duration": 186.18001800000002,
+      "duration": 104.259501,
       "optimizations": [
         "timing_adjustment",
         "visual_balance",
@@ -134,9 +134,9 @@
     {
       "category": "Real-time Optimization",
       "name": "Performance Enhancement",
-      "success": false,
-      "improvement": 0.13999999999999999,
-      "duration": 85.25100499999962,
+      "success": true,
+      "improvement": 0.18,
+      "duration": 139.30771700000014,
       "optimizations": [
         "timing_adjustment",
         "visual_balance",
@@ -146,9 +146,9 @@
     {
       "category": "Real-time Optimization",
       "name": "Quality Improvement",
-      "success": true,
-      "improvement": 0.18,
-      "duration": 121.26932399999987,
+      "success": false,
+      "improvement": 0.13999999999999999,
+      "duration": 113.26878799999986,
       "optimizations": [
         "timing_adjustment",
         "visual_balance",
@@ -159,8 +159,8 @@
       "category": "User Adaptation",
       "name": "Audience Level Adaptation",
       "success": true,
-      "adaptationScore": 0.3537044587268395,
-      "duration": 179.44404299999997,
+      "adaptationScore": 0.3511968245488232,
+      "duration": 142.4176269999998,
       "adaptations": [
         "audience_level",
         "visual_style",
@@ -171,8 +171,8 @@
       "category": "User Adaptation",
       "name": "Visual Style Personalization",
       "success": true,
-      "adaptationScore": 0.836194470366051,
-      "duration": 281.429541,
+      "adaptationScore": 0.8214133218793163,
+      "duration": 282.46869000000015,
       "adaptations": [
         "audience_level",
         "visual_style",
@@ -183,8 +183,8 @@
       "category": "User Adaptation",
       "name": "Learning Efficiency Optimization",
       "success": true,
-      "adaptationScore": 0.8100056985838083,
-      "duration": 242.9075359999997,
+      "adaptationScore": 0.831368857384879,
+      "duration": 297.02515600000015,
       "adaptations": [
         "audience_level",
         "visual_style",
@@ -194,9 +194,9 @@
     {
       "category": "User Adaptation",
       "name": "Content Relevance Enhancement",
-      "success": false,
-      "adaptationScore": 0.7861148503200764,
-      "duration": 222.36693699999978,
+      "success": true,
+      "adaptationScore": 0.8200324624079318,
+      "duration": 253.40452099999993,
       "adaptations": [
         "audience_level",
         "visual_style",
@@ -206,9 +206,9 @@
     {
       "category": "Adaptive Features",
       "name": "Difficulty Scaling",
-      "success": false,
-      "adaptationScore": 0.84,
-      "duration": 213.43369299999995,
+      "success": true,
+      "adaptationScore": 0.89,
+      "duration": 219.46524300000056,
       "features": [
         "dynamic_scaling",
         "real_time_adjustment",
@@ -220,7 +220,7 @@
       "name": "Pacing Adaptation",
       "success": true,
       "adaptationScore": 0.8400000000000001,
-      "duration": 209.35455300000012,
+      "duration": 148.29150500000014,
       "features": [
         "dynamic_scaling",
         "real_time_adjustment",
@@ -230,9 +230,9 @@
     {
       "category": "Adaptive Features",
       "name": "Visual Density Control",
-      "success": true,
-      "adaptationScore": 0.79,
-      "duration": 226.36648100000002,
+      "success": false,
+      "adaptationScore": 0.74,
+      "duration": 170.31233599999996,
       "features": [
         "dynamic_scaling",
         "real_time_adjustment",
@@ -242,9 +242,9 @@
     {
       "category": "Adaptive Features",
       "name": "Context-Aware Enhancement",
-      "success": false,
-      "adaptationScore": 0.8099999999999999,
-      "duration": 155.2839130000002,
+      "success": true,
+      "adaptationScore": 0.86,
+      "duration": 116.27883999999995,
       "features": [
         "dynamic_scaling",
         "real_time_adjustment",
@@ -254,20 +254,20 @@
   ],
   "performance": {},
   "intelligence": {
-    "content_understanding": 0.9290368224890645,
-    "visual_intelligence": 0.8725838531554966,
-    "adaptation_capability": 0.9163466195749869,
-    "contextual_accuracy": 0.8810659263383264,
-    "user_relevance": 0.8699011380606442,
-    "overall_intelligence": 0.8973517065649832,
-    "overall_score": 0.8989304735816745
+    "content_understanding": 0.8688583944164878,
+    "visual_intelligence": 0.8667723916621534,
+    "adaptation_capability": 0.8836565417767853,
+    "contextual_accuracy": 0.8773600280654114,
+    "user_relevance": 0.8632752398407073,
+    "overall_intelligence": 0.855885579953988,
+    "overall_score": 0.8708204714811909
   },
   "summary": {
     "totalTests": 22,
-    "passedTests": 13,
-    "successRate": 59.09090909090909,
-    "averageDuration": 206.97678440909093,
-    "overallIntelligence": 0.8989304735816745,
+    "passedTests": 16,
+    "successRate": 72.72727272727273,
+    "averageDuration": 186.527719,
+    "overallIntelligence": 0.8708204714811909,
     "recommendations": [
       "Review failed test cases for optimization opportunities"
     ]
