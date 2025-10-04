@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Upload, Play, Download, AlertCircle, CheckCircle, Loader2, Video, Activity, TrendingUp, Clock, Target } from 'lucide-react';
+import { Upload, Play, Download, AlertCircle, CheckCircle, Loader2, Video, Activity, TrendingUp, Clock, Target, Eye, Layers, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { simplePipeline, SimplePipelineResult } from '@/pipeline/simple-pipeline';
 import { SceneGraph } from '@/types/diagram';
 import { toast } from 'sonner';
@@ -34,6 +35,15 @@ export const SimplePipelineInterface: React.FC = () => {
   const [result, setResult] = useState<SimplePipelineResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [includeVideo, setIncludeVideo] = useState(true);
+
+  // Real-time preview states (リアルタイムプレビュー状態)
+  const [realtimePreview, setRealtimePreview] = useState({
+    transcript: '',
+    currentScene: null as SceneGraph | null,
+    detectedDiagramTypes: [] as Array<{type: string, confidence: number}>,
+    processingStages: [] as ProcessingStep[],
+    showPreview: false
+  });
 
   // Enhanced real-time metrics (段階的改善メトリクス)
   const [metrics, setMetrics] = useState<ProgressMetrics>({
@@ -156,6 +166,21 @@ export const SimplePipelineInterface: React.FC = () => {
       confidence: 0.7
     });
 
+    // Initialize real-time preview (リアルタイムプレビュー初期化)
+    setRealtimePreview({
+      transcript: '',
+      currentScene: null,
+      detectedDiagramTypes: [],
+      processingStages: [
+        { name: '音声認識', progress: 0, status: 'pending' },
+        { name: 'シーン分析', progress: 0, status: 'pending' },
+        { name: '図解検出', progress: 0, status: 'pending' },
+        { name: 'レイアウト生成', progress: 0, status: 'pending' },
+        { name: '動画生成', progress: 0, status: 'pending' }
+      ],
+      showPreview: true
+    });
+
     try {
       console.log('🚀 Starting pipeline processing with SimplePipeline');
 
@@ -173,6 +198,30 @@ export const SimplePipelineInterface: React.FC = () => {
             setMetrics(prev => ({
               ...prev,
               currentStage: step
+            }));
+
+            // Update real-time preview stages (リアルタイムプレビューステージ更新)
+            setRealtimePreview(prev => ({
+              ...prev,
+              processingStages: prev.processingStages.map(stage => {
+                if (step.includes('音声') || step.includes('Transcrib')) {
+                  return stage.name === '音声認識' ?
+                    { ...stage, status: 'active', progress: progressValue } : stage;
+                } else if (step.includes('分析') || step.includes('Analysis')) {
+                  return stage.name === 'シーン分析' ?
+                    { ...stage, status: 'active', progress: progressValue } : stage;
+                } else if (step.includes('図解') || step.includes('Detect')) {
+                  return stage.name === '図解検出' ?
+                    { ...stage, status: 'active', progress: progressValue } : stage;
+                } else if (step.includes('レイアウト') || step.includes('Layout')) {
+                  return stage.name === 'レイアウト生成' ?
+                    { ...stage, status: 'active', progress: progressValue } : stage;
+                } else if (step.includes('動画') || step.includes('Video')) {
+                  return stage.name === '動画生成' ?
+                    { ...stage, status: 'active', progress: progressValue } : stage;
+                }
+                return stage;
+              })
             }));
           }
 
@@ -348,25 +397,83 @@ export const SimplePipelineInterface: React.FC = () => {
                 <Progress value={progress} className="w-full" />
               </div>
 
-              {/* Step indicators */}
+              {/* Real-time Processing Stages (リアルタイム処理ステージ) */}
               <div className="grid grid-cols-5 gap-2">
-                {processingSteps.map((step, index) => (
+                {realtimePreview.processingStages.map((stage, index) => (
                   <div key={index} className="text-center">
-                    <div className={`w-8 h-8 rounded-full mx-auto mb-1 flex items-center justify-center text-xs font-medium
-                      ${progress >= step.progress
-                        ? 'bg-primary text-primary-foreground'
+                    <div className={`w-8 h-8 rounded-full mx-auto mb-1 flex items-center justify-center text-xs font-medium transition-all duration-300
+                      ${stage.status === 'completed'
+                        ? 'bg-green-500 text-white'
+                        : stage.status === 'active'
+                        ? 'bg-blue-500 text-white animate-pulse'
                         : 'bg-muted text-muted-foreground'
                       }`}>
-                      {progress >= step.progress ? (
+                      {stage.status === 'completed' ? (
                         <CheckCircle className="w-4 h-4" />
+                      ) : stage.status === 'active' ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
                         index + 1
                       )}
                     </div>
-                    <div className="text-xs text-muted-foreground">{step.name}</div>
+                    <div className="text-xs text-muted-foreground">{stage.name}</div>
+                    {stage.status === 'active' && (
+                      <div className="text-xs text-blue-600 font-medium">
+                        {stage.progress}%
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
+
+              {/* Real-time Preview Content (リアルタイムプレビューコンテンツ) */}
+              {realtimePreview.showPreview && (
+                <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border-2 border-dashed border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Eye className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">リアルタイムプレビュー</span>
+                  </div>
+
+                  {/* Transcript Preview */}
+                  {realtimePreview.transcript && (
+                    <div className="mb-3">
+                      <Badge variant="outline" className="mb-2">音声認識結果</Badge>
+                      <div className="text-sm p-2 bg-white dark:bg-gray-800 rounded border max-h-20 overflow-y-auto">
+                        {realtimePreview.transcript}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Detected Diagram Types */}
+                  {realtimePreview.detectedDiagramTypes.length > 0 && (
+                    <div className="mb-3">
+                      <Badge variant="outline" className="mb-2">検出された図解タイプ</Badge>
+                      <div className="flex flex-wrap gap-2">
+                        {realtimePreview.detectedDiagramTypes.map((type, idx) => (
+                          <div key={idx} className="flex items-center gap-1 bg-white dark:bg-gray-800 px-2 py-1 rounded text-sm">
+                            <Layers className="w-3 h-3" />
+                            {type.type}
+                            <span className="text-blue-600">({(type.confidence * 100).toFixed(0)}%)</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Current Scene Preview */}
+                  {realtimePreview.currentScene && (
+                    <div>
+                      <Badge variant="outline" className="mb-2">現在のシーン</Badge>
+                      <div className="text-sm p-2 bg-white dark:bg-gray-800 rounded border">
+                        <div className="font-medium mb-1">タイプ: {realtimePreview.currentScene.type}</div>
+                        <div className="text-gray-600 dark:text-gray-400 text-xs">
+                          信頼度: {((realtimePreview.currentScene.confidence || 0) * 100).toFixed(0)}%
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Enhanced Real-time Metrics (段階的改善メトリクス表示) */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4 border-t">
