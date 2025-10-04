@@ -9,6 +9,7 @@ import { SceneSegmenter, DiagramDetector } from '@/analysis';
 import { LayoutEngine } from '@/visualization';
 import { SceneGraph } from '@/types/diagram';
 import { VideoGenerator, VideoGenerationOptions } from './video-generator';
+import { continuousLearner } from '@/framework/continuous-learner';
 
 export interface SimplePipelineInput {
   audioFile: File;
@@ -109,8 +110,28 @@ export class SimplePipeline {
 
       onProgress?.('Transcribing audio', 20);
 
-      // Step 2: Transcription
+      // Step 2: Transcription with Continuous Learning Integration
+      const transcriptionStartTime = Date.now();
       const transcriptionResult = await this.transcription.transcribe(audioUrl);
+
+      const transcriptionProcessingTime = Date.now() - transcriptionStartTime;
+      const transcriptionQuality = transcriptionResult.success && transcriptionResult.segments?.length > 0 ? 0.9 : 0.3;
+
+      // Custom Instructions: Learn from transcription results
+      await continuousLearner.learnFromProcessingResult(
+        'transcription',
+        { audioUrl, fileSize: input.audioFile.size },
+        transcriptionResult,
+        transcriptionProcessingTime,
+        transcriptionQuality,
+        transcriptionResult.success,
+        transcriptionResult.success ? [] : ['transcription_failed'],
+        {
+          audioFileType: input.audioFile.type,
+          audioFileName: input.audioFile.name,
+          customInstructionsPhase: 'MVP構築'
+        }
+      );
 
       if (!transcriptionResult.success || !transcriptionResult.segments) {
         throw new Error('Transcription failed');
@@ -122,9 +143,30 @@ export class SimplePipeline {
 
       onProgress?.('Analyzing content', 50);
 
-      // Step 3: Scene Segmentation
+      // Step 3: Scene Segmentation with Continuous Learning Integration
+      const segmentationStartTime = Date.now();
       const sceneResult = await this.segmenter.segment(
         transcriptionResult.segments
+      );
+
+      const segmentationProcessingTime = Date.now() - segmentationStartTime;
+      const segmentationQuality = sceneResult.success && sceneResult.scenes?.length > 0 ?
+        Math.min(0.95, 0.7 + (sceneResult.scenes.length / 10) * 0.25) : 0.3;
+
+      // Custom Instructions: Learn from scene segmentation results
+      await continuousLearner.learnFromProcessingResult(
+        'scene_segmentation',
+        { segments: transcriptionResult.segments },
+        sceneResult,
+        segmentationProcessingTime,
+        segmentationQuality,
+        sceneResult.success,
+        sceneResult.success ? [] : ['scene_segmentation_failed'],
+        {
+          segmentCount: transcriptionResult.segments?.length || 0,
+          sceneCount: sceneResult.scenes?.length || 0,
+          customInstructionsPhase: '内容分析'
+        }
       );
 
       if (!sceneResult.success || !sceneResult.scenes) {
@@ -133,22 +175,65 @@ export class SimplePipeline {
 
       onProgress?.('Detecting diagram types', 70);
 
-      // Step 4: Diagram Detection & Layout
+      // Step 4: Diagram Detection & Layout with Continuous Learning Integration
       const scenes: SceneGraph[] = [];
+      const diagramDetectionStartTime = Date.now();
 
       for (const scene of sceneResult.scenes) {
+        const sceneStartTime = Date.now();
+
         // Detect diagram type for this scene
         const diagramAnalysis = await this.detector.detectDiagramType(
           scene.content
         );
 
+        const diagramDetectionTime = Date.now() - sceneStartTime;
+
+        // Custom Instructions: Learn from diagram detection
+        await continuousLearner.learnFromProcessingResult(
+          'diagram_detection',
+          { content: scene.content },
+          diagramAnalysis,
+          diagramDetectionTime,
+          diagramAnalysis.confidence,
+          diagramAnalysis.confidence > 0.6,
+          diagramAnalysis.confidence <= 0.6 ? ['low_confidence_detection'] : [],
+          {
+            sceneId: scene.id,
+            detectedType: diagramAnalysis.type,
+            customInstructionsPhase: '図解生成'
+          }
+        );
+
         // Generate layout
+        const layoutStartTime = Date.now();
         const layoutResult = await this.layoutEngine.generateLayout({
           type: diagramAnalysis.type,
           content: scene.content,
           nodes: diagramAnalysis.nodes || [],
           relationships: diagramAnalysis.relationships || []
         });
+
+        const layoutProcessingTime = Date.now() - layoutStartTime;
+        const layoutQuality = layoutResult.success && layoutResult.layout ?
+          Math.min(0.95, 0.8 + ((layoutResult.confidence || 0) * 0.15)) : 0.3;
+
+        // Custom Instructions: Learn from layout generation
+        await continuousLearner.learnFromProcessingResult(
+          'layout_generation',
+          { type: diagramAnalysis.type, nodeCount: diagramAnalysis.nodes?.length || 0 },
+          layoutResult,
+          layoutProcessingTime,
+          layoutQuality,
+          layoutResult.success,
+          layoutResult.success ? [] : ['layout_generation_failed'],
+          {
+            sceneId: scene.id,
+            diagramType: diagramAnalysis.type,
+            nodeCount: diagramAnalysis.nodes?.length || 0,
+            customInstructionsPhase: '図解生成'
+          }
+        );
 
         if (layoutResult.success && layoutResult.layout) {
           scenes.push({
@@ -166,11 +251,32 @@ export class SimplePipeline {
         }
       }
 
-      // Step 5: Video Generation (optional)
+      const totalDiagramProcessingTime = Date.now() - diagramDetectionStartTime;
+
+      // Custom Instructions: Learn from overall diagram pipeline performance
+      await continuousLearner.learnFromProcessingResult(
+        'diagram_pipeline',
+        { sceneCount: sceneResult.scenes.length },
+        { scenes, totalScenes: scenes.length },
+        totalDiagramProcessingTime,
+        scenes.length > 0 ? 0.9 : 0.3,
+        scenes.length > 0,
+        scenes.length === 0 ? ['no_scenes_generated'] : [],
+        {
+          inputScenes: sceneResult.scenes.length,
+          outputScenes: scenes.length,
+          successRate: scenes.length / sceneResult.scenes.length,
+          customInstructionsPhase: '図解生成'
+        }
+      );
+
+      // Step 5: Video Generation (optional) with Continuous Learning Integration
       let videoUrl: string | undefined;
 
       if (input.options?.includeVideoGeneration) {
         onProgress?.('Generating video', 85);
+
+        const videoGenerationStartTime = Date.now();
 
         const pipelineResult: SimplePipelineResult = {
           success: true,
@@ -184,6 +290,25 @@ export class SimplePipeline {
           pipelineResult,
           (stage, progress) => {
             onProgress?.(stage, 85 + (progress * 0.15)); // 85-100%
+          }
+        );
+
+        const videoProcessingTime = Date.now() - videoGenerationStartTime;
+        const videoQuality = videoResult.success ? 0.95 : 0.3;
+
+        // Custom Instructions: Learn from video generation
+        await continuousLearner.learnFromProcessingResult(
+          'video_generation',
+          { sceneCount: scenes.length, audioUrl },
+          videoResult,
+          videoProcessingTime,
+          videoQuality,
+          videoResult.success,
+          videoResult.success ? [] : ['video_generation_failed'],
+          {
+            sceneCount: scenes.length,
+            outputFormat: 'mp4',
+            customInstructionsPhase: '品質向上'
           }
         );
 
@@ -206,6 +331,33 @@ export class SimplePipeline {
         videoUrl
       });
 
+      // Custom Instructions: Learn from overall pipeline performance
+      await continuousLearner.learnFromProcessingResult(
+        'pipeline_complete',
+        {
+          audioFile: input.audioFile.name,
+          options: input.options,
+          includeVideo: input.options?.includeVideoGeneration
+        },
+        {
+          transcript,
+          scenes,
+          videoUrl,
+          qualityScore
+        },
+        processingTime,
+        qualityScore,
+        true,
+        [],
+        {
+          totalScenes: scenes.length,
+          transcriptLength: transcript.length,
+          includeVideoGeneration: input.options?.includeVideoGeneration || false,
+          customInstructionsPhase: '品質向上',
+          recursiveDevelopmentSuccess: true
+        }
+      );
+
       // Track performance for progressive enhancement
       this.performanceHistory.push({
         timestamp: new Date().toISOString(),
@@ -219,6 +371,8 @@ export class SimplePipeline {
       this.qualityMetrics.set('averageProcessingTime',
         this.performanceHistory.reduce((sum, h) => sum + h.processingTime, 0) / this.performanceHistory.length
       );
+
+      console.log(`🎯 Custom Instructions Compliance: Pipeline completed with quality score ${(qualityScore * 100).toFixed(1)}%`);
 
       return {
         success: true,
@@ -234,17 +388,42 @@ export class SimplePipeline {
 
       // Enhanced error handling with recovery strategies
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const failureProcessingTime = Date.now() - startTime;
+
+      // Custom Instructions: Learn from pipeline failures
+      await continuousLearner.learnFromProcessingResult(
+        'pipeline_failure',
+        {
+          audioFile: input.audioFile.name,
+          options: input.options,
+          errorMessage
+        },
+        { error: errorMessage },
+        failureProcessingTime,
+        0.0, // Quality score 0 for failures
+        false,
+        [errorMessage, 'pipeline_failure'],
+        {
+          inputFileSize: input.audioFile.size,
+          inputFileType: input.audioFile.type,
+          inputFileName: input.audioFile.name,
+          customInstructionsPhase: 'エラー回復',
+          recursiveDevelopmentNeeded: true,
+          iterationNumber: this.iterationCount
+        }
+      );
 
       // Log detailed error information for debugging (including input metadata)
       console.error('Error details:', {
         timestamp: new Date().toISOString(),
-        processingTime: Date.now() - startTime,
+        processingTime: failureProcessingTime,
         stack: error instanceof Error ? error.stack : undefined,
         inputFileSize: input.audioFile.size,
         inputFileType: input.audioFile.type,
         inputFileName: input.audioFile.name,
         inputLastModified: new Date(input.audioFile.lastModified).toISOString(),
-        optionsProvided: input.options ? Object.keys(input.options) : []
+        optionsProvided: input.options ? Object.keys(input.options) : [],
+        customInstructionsIteration: this.iterationCount
       });
 
       // Attempt graceful degradation
@@ -260,10 +439,18 @@ export class SimplePipeline {
         console.warn('Cleanup warning:', cleanupError);
       }
 
+      // Track failure for progressive enhancement
+      this.performanceHistory.push({
+        timestamp: new Date().toISOString(),
+        processingTime: failureProcessingTime,
+        success: false,
+        qualityScore: 0
+      });
+
       return {
         success: false,
         error: `Pipeline failed: ${errorMessage}`,
-        processingTime: Date.now() - startTime
+        processingTime: failureProcessingTime
       };
     }
   }
