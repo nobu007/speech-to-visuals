@@ -1,0 +1,96 @@
+{
+  "timestamp": "2025-10-04T01:47:55.021Z",
+  "phase": "phase-3-simplePipeline-accuracy-test",
+  "results": {
+    "accuracy": 100,
+    "avgConfidence": 0.9800000000000001,
+    "targetAchieved": true,
+    "iterativeImprovement": 0,
+    "criteria": {
+      "diagramAccuracy80": true,
+      "avgConfidence75": true,
+      "iterativeImprovement": false,
+      "processingPerformance": true
+    },
+    "overallSuccess": true
+  },
+  "testDetails": [
+    {
+      "testId": "flow_process",
+      "description": "システムログインプロセス",
+      "expected": "flow",
+      "actual": "flow",
+      "expectedConfidence": 0.8,
+      "actualConfidence": 1,
+      "correct": true,
+      "confidenceMet": true,
+      "accurate": true,
+      "processingTime": "0"
+    },
+    {
+      "testId": "tree_org",
+      "description": "企業組織構造",
+      "expected": "tree",
+      "actual": "tree",
+      "expectedConfidence": 0.85,
+      "actualConfidence": 0.95,
+      "correct": true,
+      "confidenceMet": true,
+      "accurate": true,
+      "processingTime": "0"
+    },
+    {
+      "testId": "timeline_project",
+      "description": "プロジェクト進行",
+      "expected": "timeline",
+      "actual": "timeline",
+      "expectedConfidence": 0.9,
+      "actualConfidence": 0.95,
+      "correct": true,
+      "confidenceMet": true,
+      "accurate": true,
+      "processingTime": "0"
+    },
+    {
+      "testId": "cycle_improvement",
+      "description": "継続的改善プロセス",
+      "expected": "cycle",
+      "actual": "cycle",
+      "expectedConfidence": 0.8,
+      "actualConfidence": 1,
+      "correct": true,
+      "confidenceMet": true,
+      "accurate": true,
+      "processingTime": "0"
+    },
+    {
+      "testId": "matrix_comparison",
+      "description": "製品比較",
+      "expected": "matrix",
+      "actual": "matrix",
+      "expectedConfidence": 0.75,
+      "actualConfidence": 1,
+      "correct": true,
+      "confidenceMet": true,
+      "accurate": true,
+      "processingTime": "0"
+    }
+  ],
+  "iterationAnalysis": [
+    {
+      "iteration": 1,
+      "accuracy": 100,
+      "confidence": 0.9499999999999998
+    },
+    {
+      "iteration": 2,
+      "accuracy": 100,
+      "confidence": 0.9499999999999998
+    },
+    {
+      "iteration": 3,
+      "accuracy": 100,
+      "confidence": 0.9499999999999998
+    }
+  ]
+}

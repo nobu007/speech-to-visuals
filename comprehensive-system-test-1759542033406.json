@@ -1,0 +1,139 @@
+{
+  "timestamp": "2025-10-04T01:40:33.404Z",
+  "testName": "SimplePipeline MVP Comprehensive Test",
+  "phases": [
+    {
+      "name": "Project Structure",
+      "tests": [
+        {
+          "file": "package.json",
+          "status": "passed",
+          "message": "File exists"
+        },
+        {
+          "file": "src/pipeline/simple-pipeline.ts",
+          "status": "passed",
+          "message": "File exists"
+        },
+        {
+          "file": "src/components/SimplePipelineInterface.tsx",
+          "status": "passed",
+          "message": "File exists"
+        },
+        {
+          "file": "src/transcription/index.ts",
+          "status": "passed",
+          "message": "File exists"
+        },
+        {
+          "file": "src/analysis/index.ts",
+          "status": "passed",
+          "message": "File exists"
+        },
+        {
+          "file": "src/visualization/index.ts",
+          "status": "passed",
+          "message": "File exists"
+        },
+        {
+          "file": "src/App.tsx",
+          "status": "passed",
+          "message": "File exists"
+        }
+      ],
+      "status": "completed"
+    },
+    {
+      "name": "Dependencies",
+      "tests": [
+        {
+          "dependency": "@remotion/captions",
+          "status": "passed",
+          "version": "^4.0.355"
+        },
+        {
+          "dependency": "@remotion/media-utils",
+          "status": "passed",
+          "version": "^4.0.355"
+        },
+        {
+          "dependency": "@remotion/install-whisper-cpp",
+          "status": "passed",
+          "version": "^4.0.355"
+        },
+        {
+          "dependency": "@dagrejs/dagre",
+          "status": "passed",
+          "version": "^1.1.5"
+        },
+        {
+          "dependency": "kuromoji",
+          "status": "passed",
+          "version": "^0.1.2"
+        },
+        {
+          "dependency": "remotion",
+          "status": "passed",
+          "version": "^4.0.355"
+        },
+        {
+          "script": "remotion:studio",
+          "status": "passed",
+          "command": "remotion studio"
+        },
+        {
+          "script": "remotion:render",
+          "status": "passed",
+          "command": "remotion render"
+        },
+        {
+          "script": "remotion:preview",
+          "status": "passed",
+          "command": "remotion preview"
+        }
+      ],
+      "status": "completed"
+    },
+    {
+      "name": "Component Integration",
+      "tests": [
+        {
+          "module": "SimplePipeline",
+          "status": "passed",
+          "message": "Module exports detected"
+        },
+        {
+          "module": "SimplePipelineInterface",
+          "status": "passed",
+          "message": "Module exports detected"
+        },
+        {
+          "module": "TranscriptionPipeline",
+          "status": "warning",
+          "message": "Unclear export structure"
+        },
+        {
+          "module": "SceneSegmenter",
+          "status": "warning",
+          "message": "Unclear export structure"
+        },
+        {
+          "module": "LayoutEngine",
+          "status": "warning",
+          "message": "Unclear export structure"
+        }
+      ],
+      "status": "completed"
+    }
+  ],
+  "summary": {
+    "totalTests": 21,
+    "passed": 18,
+    "failed": 0,
+    "warnings": 3
+  },
+  "recommendations": [
+    "⚠️ Review warnings to optimize system configuration",
+    "✅ System is ready for testing and staging"
+  ]
+}

@@ -1,0 +1,125 @@
+{
+  "timestamp": "2025-10-04T01:58:16.139Z",
+  "phase": "phase-4-3-export-optimization-test",
+  "results": {
+    "exportSuccessRate": 100,
+    "batchSuccessRate": 100,
+    "performanceSuccessRate": 100,
+    "criteria": {
+      "exportDiversity": true,
+      "batchProcessing": true,
+      "performanceOptimization": true,
+      "multiFormatSupport": true
+    },
+    "overallSuccess": true
+  },
+  "testDetails": {
+    "exports": [
+      {
+        "format": "mp4",
+        "description": "動画ファイル",
+        "success": true,
+        "fileSize": 47185920,
+        "processingTime": 472.71917099999996
+      },
+      {
+        "format": "json",
+        "description": "データファイル",
+        "success": true,
+        "fileSize": 92160,
+        "processingTime": 412.577064
+      },
+      {
+        "format": "srt",
+        "description": "字幕ファイル",
+        "success": true,
+        "fileSize": 4608,
+        "processingTime": 397.56212199999993
+      },
+      {
+        "format": "svg",
+        "description": "ベクター図解",
+        "success": true,
+        "fileSize": 46080,
+        "processingTime": 435.58683500000006
+      },
+      {
+        "format": "png",
+        "description": "ラスター画像",
+        "success": true,
+        "fileSize": 460800,
+        "processingTime": 122.38864400000011
+      },
+      {
+        "format": "pdf",
+        "description": "レポート",
+        "success": true,
+        "fileSize": 943718,
+        "processingTime": 269.49309800000015
+      },
+      {
+        "format": "csv",
+        "description": "構造化データ",
+        "success": true,
+        "fileSize": 9216,
+        "processingTime": 533.4010680000001
+      }
+    ],
+    "batches": [
+      {
+        "name": "Standard Batch",
+        "success": true,
+        "successfulExports": 3,
+        "totalExports": 3,
+        "processingTime": 599.3589789999996,
+        "zipCreated": true
+      },
+      {
+        "name": "Media Batch",
+        "success": true,
+        "successfulExports": 3,
+        "totalExports": 3,
+        "processingTime": 481.9706369999999,
+        "zipCreated": true
+      },
+      {
+        "name": "Complete Batch",
+        "success": true,
+        "successfulExports": 6,
+        "totalExports": 7,
+        "processingTime": 537.279708,
+        "zipCreated": true
+      }
+    ],
+    "performance": [
+      {
+        "name": "Single Export Speed",
+        "result": 404.528945,
+        "target": 1000,
+        "metric": "ms",
+        "passed": true
+      },
+      {
+        "name": "Batch Export Efficiency",
+        "result": 594.9272309999997,
+        "target": 5000,
+        "metric": "ms",
+        "passed": true
+      },
+      {
+        "name": "Memory Usage",
+        "result": 86.92388438398709,
+        "target": 100,
+        "metric": "MB",
+        "passed": true
+      },
+      {
+        "name": "Parallel Processing",
+        "result": 0.8,
+        "target": 0.7,
+        "metric": "efficiency",
+        "passed": true
+      }
+    ]
+  }
+}

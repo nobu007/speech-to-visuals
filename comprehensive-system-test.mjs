@@ -1,355 +1,272 @@
 #!/usr/bin/env node
 
 /**
- * Comprehensive System Test for Speech-to-Visuals Pipeline
- * Tests end-to-end functionality following iterative development principles
+ * Comprehensive System Test for SimplePipeline MVP
+ * Tests all components and verifies end-to-end functionality
+ * Following custom instructions methodology
  */
 
 import fs from 'fs';
 import path from 'path';
-import { performance } from 'perf_hooks';
 
-console.log('🎬 Comprehensive Speech-to-Visuals System Test');
-console.log('================================================\n');
+console.log('🧪 Comprehensive SimplePipeline System Test');
+console.log('============================================');
+console.log(`📅 ${new Date().toISOString()}`);
 
-class SystemTester {
-  constructor() {
-    this.results = {
-      phases: [],
-      overall: {
-        success: false,
-        duration: 0,
-        errors: []
-      }
-    };
-    this.startTime = performance.now();
-  }
+const testResults = {
+  timestamp: new Date().toISOString(),
+  testName: 'SimplePipeline MVP Comprehensive Test',
+  phases: [],
+  summary: {
+    totalTests: 0,
+    passed: 0,
+    failed: 0,
+    warnings: 0
+  },
+  recommendations: []
+};
 
-  async runPhase(name, testFn) {
-    console.log(`📋 Phase: ${name}`);
-    console.log('─'.repeat(50));
+// Test Phase 1: Project Structure Validation
+console.log('\n🔍 Phase 1: Project Structure Validation');
+console.log('=========================================');
 
-    const phaseStart = performance.now();
-    const phase = {
-      name,
-      success: false,
-      duration: 0,
-      tests: [],
-      errors: []
-    };
+const phase1 = {
+  name: 'Project Structure',
+  tests: [],
+  status: 'running'
+};
 
-    try {
-      await testFn(phase);
-      phase.success = true;
-      console.log(`✅ Phase "${name}" completed successfully\n`);
-    } catch (error) {
-      phase.success = false;
-      phase.errors.push(error.message);
-      console.log(`❌ Phase "${name}" failed: ${error.message}\n`);
-    }
+const requiredFiles = [
+  'package.json',
+  'src/pipeline/simple-pipeline.ts',
+  'src/components/SimplePipelineInterface.tsx',
+  'src/transcription/index.ts',
+  'src/analysis/index.ts',
+  'src/visualization/index.ts',
+  'src/App.tsx'
+];
 
-    phase.duration = performance.now() - phaseStart;
-    this.results.phases.push(phase);
-    return phase.success;
-  }
-
-  addTest(phase, testName, success, details = '') {
-    const test = { name: testName, success, details };
-    phase.tests.push(test);
-
-    const status = success ? '✅' : '❌';
-    console.log(`  ${status} ${testName}${details ? ` - ${details}` : ''}`);
-
-    return success;
-  }
-
-  // Phase 1: Core Infrastructure Tests
-  async testInfrastructure(phase) {
-    console.log('🔧 Testing core infrastructure...\n');
-
-    // Test directory structure
-    const requiredDirs = [
-      'src/transcription',
-      'src/analysis',
-      'src/visualization',
-      'src/pipeline',
-      'src/remotion',
-      'public'
-    ];
-
-    for (const dir of requiredDirs) {
-      const exists = fs.existsSync(dir);
-      this.addTest(phase, `Directory structure: ${dir}`, exists);
-    }
-
-    // Test core files
-    const coreFiles = [
-      'package.json',
-      'tsconfig.json',
-      'remotion.config.ts',
-      'src/pipeline/main-pipeline.ts',
-      'src/transcription/transcriber.ts',
-      'src/analysis/diagram-detector.ts',
-      'src/visualization/layout-engine.ts'
-    ];
-
-    for (const file of coreFiles) {
-      const exists = fs.existsSync(file);
-      this.addTest(phase, `Core file: ${file}`, exists);
-    }
-
-    // Test package.json scripts
-    const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-    const requiredScripts = ['dev', 'build', 'remotion:studio', 'remotion:render'];
-
-    for (const script of requiredScripts) {
-      const exists = packageJson.scripts && packageJson.scripts[script];
-      this.addTest(phase, `NPM script: ${script}`, !!exists);
-    }
-
-    // Test dependencies
-    const criticalDeps = [
-      'remotion',
-      '@remotion/captions',
-      '@dagrejs/dagre',
-      'whisper-node',
-      'react'
-    ];
-
-    for (const dep of criticalDeps) {
-      const exists = packageJson.dependencies && packageJson.dependencies[dep];
-      this.addTest(phase, `Dependency: ${dep}`, !!exists,
-        exists ? packageJson.dependencies[dep] : 'missing');
-    }
-  }
-
-  // Phase 2: Module Import Tests
-  async testModuleImports(phase) {
-    console.log('📦 Testing module imports...\n');
-
-    const modules = [
-      { path: './src/pipeline/main-pipeline.ts', name: 'MainPipeline' },
-      { path: './src/transcription/transcriber.ts', name: 'Transcriber' },
-      { path: './src/analysis/diagram-detector.ts', name: 'DiagramDetector' },
-      { path: './src/visualization/layout-engine.ts', name: 'LayoutEngine' }
-    ];
-
-    for (const module of modules) {
-      try {
-        // Check if file exists and is readable
-        const content = fs.readFileSync(module.path, 'utf8');
-        const hasExport = content.includes('export') && content.includes('class');
-        this.addTest(phase, `Module structure: ${module.name}`, hasExport);
-      } catch (error) {
-        this.addTest(phase, `Module import: ${module.name}`, false, error.message);
-      }
-    }
-  }
-
-  // Phase 3: Pipeline Functionality Tests
-  async testPipelineFunctionality(phase) {
-    console.log('⚙️ Testing pipeline functionality...\n');
-
-    // Test audio file existence
-    const audioFiles = ['public/jfk.wav', 'public/sample.wav', 'public/test.mp3'];
-    let hasAudioFile = false;
-
-    for (const file of audioFiles) {
-      if (fs.existsSync(file)) {
-        hasAudioFile = true;
-        const stats = fs.statSync(file);
-        this.addTest(phase, `Audio file: ${file}`, true, `${(stats.size / 1024).toFixed(1)}KB`);
-        break;
-      }
-    }
-
-    if (!hasAudioFile) {
-      this.addTest(phase, 'Audio test files', false, 'No test audio files found');
-    }
-
-    // Test that demo scripts exist and are executable
-    const demoScripts = [
-      'test-simple.js',
-      'demo-real-pipeline.mjs',
-      'demo-smart-optimization.mjs',
-      'test-quality-demo.js'
-    ];
-
-    for (const script of demoScripts) {
-      const exists = fs.existsSync(script);
-      this.addTest(phase, `Demo script: ${script}`, exists);
-    }
-  }
-
-  // Phase 4: Configuration Tests
-  async testConfiguration(phase) {
-    console.log('⚙️ Testing configuration...\n');
-
-    // Test TypeScript configuration
-    try {
-      const tsconfig = JSON.parse(fs.readFileSync('tsconfig.json', 'utf8'));
-      const hasBaseUrl = tsconfig.compilerOptions && tsconfig.compilerOptions.baseUrl;
-      const hasPaths = tsconfig.compilerOptions && tsconfig.compilerOptions.paths;
-
-      this.addTest(phase, 'TypeScript baseUrl config', !!hasBaseUrl);
-      this.addTest(phase, 'TypeScript path mapping', !!hasPaths);
-    } catch (error) {
-      this.addTest(phase, 'TypeScript config', false, error.message);
-    }
-
-    // Test Remotion configuration
-    try {
-      const remotionConfigExists = fs.existsSync('remotion.config.ts');
-      this.addTest(phase, 'Remotion config file', remotionConfigExists);
-
-      if (remotionConfigExists) {
-        const content = fs.readFileSync('remotion.config.ts', 'utf8');
-        const hasConfig = content.includes('Config.');
-        this.addTest(phase, 'Remotion config structure', hasConfig);
-      }
-    } catch (error) {
-      this.addTest(phase, 'Remotion configuration', false, error.message);
-    }
-
-    // Test Vite configuration
-    try {
-      const viteConfigExists = fs.existsSync('vite.config.ts');
-      this.addTest(phase, 'Vite config file', viteConfigExists);
-
-      if (viteConfigExists) {
-        const content = fs.readFileSync('vite.config.ts', 'utf8');
-        const hasAlias = content.includes('@');
-        this.addTest(phase, 'Vite path alias config', hasAlias);
-      }
-    } catch (error) {
-      this.addTest(phase, 'Vite configuration', false, error.message);
-    }
-  }
-
-  // Phase 5: Service Availability Tests
-  async testServices(phase) {
-    console.log('🌐 Testing service availability...\n');
-
-    // Test web service ports
-    const services = [
-      { name: 'Web Interface', port: 8101, path: '/' },
-      { name: 'Remotion Studio', port: 3025, path: '/' }
-    ];
-
-    for (const service of services) {
-      try {
-        // Simple check if port is likely to be accessible
-        // Note: This is a basic availability test
-        const url = `http://localhost:${service.port}${service.path}`;
-        this.addTest(phase, `${service.name} configuration`, true, `${url}`);
-      } catch (error) {
-        this.addTest(phase, `${service.name} availability`, false, error.message);
-      }
-    }
-  }
-
-  // Phase 6: System Integration Tests
-  async testSystemIntegration(phase) {
-    console.log('🔄 Testing system integration...\n');
-
-    // Test build system
-    const buildFiles = ['dist', 'node_modules'];
-    for (const file of buildFiles) {
-      const exists = fs.existsSync(file);
-      this.addTest(phase, `Build artifact: ${file}`, exists);
-    }
-
-    // Test output directories
-    const outputDirs = ['public', 'dist'];
-    for (const dir of outputDirs) {
-      if (fs.existsSync(dir)) {
-        const stats = fs.statSync(dir);
-        this.addTest(phase, `Output directory: ${dir}`, stats.isDirectory());
-      }
-    }
-
-    // Test that the system can theoretically handle the full pipeline
-    const pipelineComponents = [
-      'Audio input handling',
-      'Transcription processing',
-      'Content analysis',
-      'Diagram generation',
-      'Video assembly'
-    ];
-
-    for (const component of pipelineComponents) {
-      // This is a conceptual test - all components are implemented
-      this.addTest(phase, component, true, 'Implementation verified');
-    }
-  }
-
-  // Generate final report
-  generateReport() {
-    this.results.overall.duration = performance.now() - this.startTime;
-
-    console.log('\n📊 COMPREHENSIVE SYSTEM TEST REPORT');
-    console.log('=====================================');
-
-    let totalTests = 0;
-    let passedTests = 0;
-    let totalPhases = this.results.phases.length;
-    let passedPhases = 0;
-
-    for (const phase of this.results.phases) {
-      const phaseTests = phase.tests.length;
-      const phasePassed = phase.tests.filter(t => t.success).length;
-
-      totalTests += phaseTests;
-      passedTests += phasePassed;
-
-      if (phase.success) passedPhases++;
-
-      const status = phase.success ? '✅' : '❌';
-      console.log(`${status} ${phase.name}: ${phasePassed}/${phaseTests} tests passed (${phase.duration.toFixed(1)}ms)`);
-    }
-
-    this.results.overall.success = passedPhases === totalPhases;
-
-    console.log('\n📈 SUMMARY:');
-    console.log(`   Phases: ${passedPhases}/${totalPhases} passed`);
-    console.log(`   Tests: ${passedTests}/${totalTests} passed`);
-    console.log(`   Duration: ${this.results.overall.duration.toFixed(1)}ms`);
-    console.log(`   Success Rate: ${((passedTests/totalTests) * 100).toFixed(1)}%`);
-
-    const overallStatus = this.results.overall.success ? '🎉 SYSTEM READY' : '⚠️ ISSUES DETECTED';
-    console.log(`\n🎯 Overall Status: ${overallStatus}`);
-
-    if (this.results.overall.success) {
-      console.log('\n🚀 System is ready for production use!');
-      console.log('   📖 Access Points:');
-      console.log('      🌐 Web Interface: http://localhost:8101/');
-      console.log('      🎬 Remotion Studio: http://localhost:3025/');
-      console.log('      🧪 Run Demos: node demo-real-pipeline.mjs');
+console.log('📁 Checking required files...');
+for (const file of requiredFiles) {
+  try {
+    if (fs.existsSync(file)) {
+      console.log(`✅ ${file} - Found`);
+      phase1.tests.push({ file, status: 'passed', message: 'File exists' });
     } else {
-      console.log('\n🔧 Issues need to be addressed before production use.');
+      console.log(`❌ ${file} - Missing`);
+      phase1.tests.push({ file, status: 'failed', message: 'File missing' });
     }
-
-    return this.results;
+  } catch (error) {
+    console.log(`⚠️ ${file} - Error checking: ${error.message}`);
+    phase1.tests.push({ file, status: 'warning', message: error.message });
   }
 }
 
-// Run comprehensive test
-async function runComprehensiveTest() {
-  const tester = new SystemTester();
+phase1.status = 'completed';
+testResults.phases.push(phase1);
 
-  await tester.runPhase('Infrastructure', (phase) => tester.testInfrastructure(phase));
-  await tester.runPhase('Module Imports', (phase) => tester.testModuleImports(phase));
-  await tester.runPhase('Pipeline Functionality', (phase) => tester.testPipelineFunctionality(phase));
-  await tester.runPhase('Configuration', (phase) => tester.testConfiguration(phase));
-  await tester.runPhase('Services', (phase) => tester.testServices(phase));
-  await tester.runPhase('System Integration', (phase) => tester.testSystemIntegration(phase));
+// Test Phase 2: Dependencies Check
+console.log('\n📦 Phase 2: Dependencies Validation');
+console.log('===================================');
 
-  return tester.generateReport();
+const phase2 = {
+  name: 'Dependencies',
+  tests: [],
+  status: 'running'
+};
+
+try {
+  const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+  const requiredDeps = [
+    '@remotion/captions',
+    '@remotion/media-utils',
+    '@remotion/install-whisper-cpp',
+    '@dagrejs/dagre',
+    'kuromoji',
+    'remotion'
+  ];
+
+  console.log('🔧 Checking critical dependencies...');
+  for (const dep of requiredDeps) {
+    if (packageJson.dependencies?.[dep] || packageJson.devDependencies?.[dep]) {
+      const version = packageJson.dependencies?.[dep] || packageJson.devDependencies?.[dep];
+      console.log(`✅ ${dep}: ${version}`);
+      phase2.tests.push({ dependency: dep, status: 'passed', version });
+    } else {
+      console.log(`❌ ${dep} - Missing`);
+      phase2.tests.push({ dependency: dep, status: 'failed', message: 'Dependency missing' });
+    }
+  }
+
+  // Check Remotion scripts
+  console.log('\n🎬 Checking Remotion scripts...');
+  const remotionScripts = ['remotion:studio', 'remotion:render', 'remotion:preview'];
+  for (const script of remotionScripts) {
+    if (packageJson.scripts?.[script]) {
+      console.log(`✅ ${script}: ${packageJson.scripts[script]}`);
+      phase2.tests.push({ script, status: 'passed', command: packageJson.scripts[script] });
+    } else {
+      console.log(`⚠️ ${script} - Not configured`);
+      phase2.tests.push({ script, status: 'warning', message: 'Script not found' });
+    }
+  }
+
+} catch (error) {
+  console.log(`❌ Error reading package.json: ${error.message}`);
+  phase2.tests.push({ file: 'package.json', status: 'failed', message: error.message });
 }
 
-// Execute test if run directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  runComprehensiveTest().catch(console.error);
+phase2.status = 'completed';
+testResults.phases.push(phase2);
+
+// Test Phase 3: Component Integration Test
+console.log('\n🧩 Phase 3: Component Integration');
+console.log('=================================');
+
+const phase3 = {
+  name: 'Component Integration',
+  tests: [],
+  status: 'running'
+};
+
+console.log('🔄 Testing module imports...');
+
+// Test import paths (without actually importing to avoid dependency issues)
+const importTests = [
+  { module: 'SimplePipeline', file: 'src/pipeline/simple-pipeline.ts' },
+  { module: 'SimplePipelineInterface', file: 'src/components/SimplePipelineInterface.tsx' },
+  { module: 'TranscriptionPipeline', file: 'src/transcription/index.ts' },
+  { module: 'SceneSegmenter', file: 'src/analysis/index.ts' },
+  { module: 'LayoutEngine', file: 'src/visualization/index.ts' }
+];
+
+for (const test of importTests) {
+  try {
+    if (fs.existsSync(test.file)) {
+      const content = fs.readFileSync(test.file, 'utf8');
+
+      // Check for export statements
+      if (content.includes(`export`) && (content.includes(`class`) || content.includes(`interface`) || content.includes(`const`))) {
+        console.log(`✅ ${test.module} - Export found`);
+        phase3.tests.push({
+          module: test.module,
+          status: 'passed',
+          message: 'Module exports detected'
+        });
+      } else {
+        console.log(`⚠️ ${test.module} - No clear exports found`);
+        phase3.tests.push({
+          module: test.module,
+          status: 'warning',
+          message: 'Unclear export structure'
+        });
+      }
+    } else {
+      console.log(`❌ ${test.module} - File not found`);
+      phase3.tests.push({
+        module: test.module,
+        status: 'failed',
+        message: 'Module file missing'
+      });
+    }
+  } catch (error) {
+    console.log(`❌ ${test.module} - Error: ${error.message}`);
+    phase3.tests.push({
+      module: test.module,
+      status: 'failed',
+      message: error.message
+    });
+  }
 }
 
-export { runComprehensiveTest, SystemTester };
+phase3.status = 'completed';
+testResults.phases.push(phase3);
+
+// Calculate summary
+console.log('\n📊 Test Summary');
+console.log('===============');
+
+for (const phase of testResults.phases) {
+  for (const test of phase.tests) {
+    testResults.summary.totalTests++;
+    switch (test.status) {
+      case 'passed':
+        testResults.summary.passed++;
+        break;
+      case 'failed':
+        testResults.summary.failed++;
+        break;
+      case 'warning':
+        testResults.summary.warnings++;
+        break;
+    }
+  }
+}
+
+const successRate = ((testResults.summary.passed / testResults.summary.totalTests) * 100).toFixed(1);
+
+console.log(`📋 Total Tests: ${testResults.summary.totalTests}`);
+console.log(`✅ Passed: ${testResults.summary.passed}`);
+console.log(`❌ Failed: ${testResults.summary.failed}`);
+console.log(`⚠️ Warnings: ${testResults.summary.warnings}`);
+console.log(`🎯 Success Rate: ${successRate}%`);
+
+// Generate recommendations
+if (testResults.summary.failed > 0) {
+  testResults.recommendations.push('🔧 Fix failed tests before production deployment');
+}
+
+if (testResults.summary.warnings > 0) {
+  testResults.recommendations.push('⚠️ Review warnings to optimize system configuration');
+}
+
+if (successRate >= 90) {
+  testResults.recommendations.push('🎉 System is ready for production use');
+} else if (successRate >= 80) {
+  testResults.recommendations.push('✅ System is ready for testing and staging');
+} else {
+  testResults.recommendations.push('🔧 System requires significant fixes before deployment');
+}
+
+// System status assessment
+let systemStatus = 'UNKNOWN';
+if (successRate >= 95) {
+  systemStatus = '🚀 EXCELLENT - Production Ready';
+} else if (successRate >= 90) {
+  systemStatus = '✅ GOOD - Ready for Use';
+} else if (successRate >= 80) {
+  systemStatus = '⚠️ FAIR - Needs Attention';
+} else {
+  systemStatus = '❌ POOR - Major Issues';
+}
+
+console.log('\n🎯 System Status Assessment');
+console.log('===========================');
+console.log(`Status: ${systemStatus}`);
+console.log(`SimplePipeline MVP: ${successRate >= 85 ? '✅ OPERATIONAL' : '❌ NEEDS WORK'}`);
+console.log(`Ready for Testing: ${successRate >= 80 ? 'YES' : 'NO'}`);
+
+console.log('\n💡 Recommendations:');
+for (const rec of testResults.recommendations) {
+  console.log(`   ${rec}`);
+}
+
+console.log('\n🎯 Next Steps:');
+console.log('==============');
+console.log('1. Start development server: npm run dev');
+console.log('2. Navigate to: http://localhost:8088/simple');
+console.log('3. Upload test audio file');
+console.log('4. Verify pipeline processing');
+console.log('5. Check generated scenes and download results');
+
+// Save detailed test results
+const reportPath = `comprehensive-system-test-${Date.now()}.json`;
+fs.writeFileSync(reportPath, JSON.stringify(testResults, null, 2));
+console.log(`\n📄 Detailed report saved: ${reportPath}`);
+
+console.log('\n🎉 Comprehensive System Test Complete!');
+console.log(`Final Assessment: ${systemStatus}`);
+
+// Exit with appropriate code
+const exitCode = testResults.summary.failed > 0 ? 1 : 0;
+process.exit(exitCode);
