@@ -8,6 +8,7 @@ import { TranscriptionPipeline } from '@/transcription';
 import { SceneSegmenter, DiagramDetector } from '@/analysis';
 import { LayoutEngine } from '@/visualization';
 import { SceneGraph } from '@/types/diagram';
+import { VideoGenerator, VideoGenerationOptions } from './video-generator';
 
 export interface SimplePipelineInput {
   audioFile: File;
@@ -15,6 +16,8 @@ export interface SimplePipelineInput {
     language?: string;
     maxScenes?: number;
     layoutType?: 'flow' | 'tree' | 'timeline' | 'auto';
+    includeVideoGeneration?: boolean;
+    videoOptions?: Partial<VideoGenerationOptions>;
   };
 }
 
@@ -41,6 +44,7 @@ export class SimplePipeline {
   private segmenter: SceneSegmenter;
   private detector: DiagramDetector;
   private layoutEngine: LayoutEngine;
+  private videoGenerator: VideoGenerator;
 
   constructor() {
     // Initialize components with basic configurations
@@ -65,6 +69,14 @@ export class SimplePipeline {
       width: 1920,
       height: 1080,
       margin: 40
+    });
+
+    this.videoGenerator = new VideoGenerator({
+      outputFormat: 'mp4',
+      quality: 'high',
+      resolution: '1080p',
+      fps: 30,
+      includeAudio: true
     });
   }
 
@@ -143,10 +155,33 @@ export class SimplePipeline {
         }
       }
 
-      onProgress?.('Generating video', 90);
+      // Step 5: Video Generation (optional)
+      let videoUrl: string | undefined;
 
-      // Step 5: Video generation would happen here
-      // For now, return the structured data
+      if (input.options?.includeVideoGeneration) {
+        onProgress?.('Generating video', 85);
+
+        const pipelineResult: SimplePipelineResult = {
+          success: true,
+          audioUrl,
+          transcript,
+          scenes,
+          processingTime: 0 // Will be updated later
+        };
+
+        const videoResult = await this.videoGenerator.generateVideo(
+          pipelineResult,
+          (stage, progress) => {
+            onProgress?.(stage, 85 + (progress * 0.15)); // 85-100%
+          }
+        );
+
+        if (videoResult.success) {
+          videoUrl = videoResult.videoUrl;
+        } else {
+          console.warn('Video generation failed:', videoResult.error);
+        }
+      }
 
       onProgress?.('Complete', 100);
 
@@ -157,6 +192,7 @@ export class SimplePipeline {
         audioUrl,
         transcript,
         scenes,
+        videoUrl,
         processingTime
       };
 

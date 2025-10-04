@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { Upload, Play, Download, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { Upload, Play, Download, AlertCircle, CheckCircle, Loader2, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
 import { simplePipeline, SimplePipelineResult } from '@/pipeline/simple-pipeline';
 import { SceneGraph } from '@/types/diagram';
 import { toast } from 'sonner';
@@ -21,6 +22,7 @@ export const SimplePipelineInterface: React.FC = () => {
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<SimplePipelineResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [includeVideo, setIncludeVideo] = useState(true);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -29,7 +31,7 @@ export const SimplePipelineInterface: React.FC = () => {
     { name: 'Transcription', progress: 30, status: 'pending' },
     { name: 'Scene Analysis', progress: 60, status: 'pending' },
     { name: 'Diagram Generation', progress: 80, status: 'pending' },
-    { name: 'Layout Optimization', progress: 100, status: 'pending' }
+    ...(includeVideo ? [{ name: 'Video Generation', progress: 100, status: 'pending' as const }] : [])
   ];
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,7 +72,12 @@ export const SimplePipelineInterface: React.FC = () => {
       console.log('🚀 Starting pipeline processing with SimplePipeline');
 
       const result = await simplePipeline.processWithRetry(
-        { audioFile: file },
+        {
+          audioFile: file,
+          options: {
+            includeVideoGeneration: includeVideo
+          }
+        },
         (step: string, progressValue: number) => {
           setCurrentStep(step);
           setProgress(progressValue);
@@ -195,14 +202,27 @@ export const SimplePipelineInterface: React.FC = () => {
                   サイズ: {(file.size / 1024 / 1024).toFixed(2)} MB
                 </p>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={resetPipeline}>
-                  キャンセル
-                </Button>
-                <Button onClick={handleProcess}>
-                  <Play className="w-4 h-4 mr-2" />
-                  処理開始
-                </Button>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="includeVideo"
+                    checked={includeVideo}
+                    onCheckedChange={(checked) => setIncludeVideo(checked as boolean)}
+                  />
+                  <label htmlFor="includeVideo" className="text-sm font-medium">
+                    動画を生成する (MP4形式)
+                  </label>
+                  <Video className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={resetPipeline}>
+                    キャンセル
+                  </Button>
+                  <Button onClick={handleProcess}>
+                    <Play className="w-4 h-4 mr-2" />
+                    処理開始
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -297,6 +317,22 @@ export const SimplePipelineInterface: React.FC = () => {
               </div>
             </div>
 
+            {/* Video Preview */}
+            {result.videoUrl && (
+              <div>
+                <h4 className="font-medium mb-2">生成された動画</h4>
+                <div className="p-3 bg-muted rounded-lg">
+                  <video
+                    controls
+                    className="w-full max-w-md mx-auto rounded"
+                    src={result.videoUrl}
+                  >
+                    お使いのブラウザは動画の再生に対応していません。
+                  </video>
+                </div>
+              </div>
+            )}
+
             {/* Transcript Preview */}
             {result.transcript && (
               <div>
@@ -331,11 +367,23 @@ export const SimplePipelineInterface: React.FC = () => {
             )}
 
             {/* Actions */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button onClick={downloadResults}>
                 <Download className="w-4 h-4 mr-2" />
-                結果をダウンロード
+                データをダウンロード
               </Button>
+              {result.videoUrl && (
+                <Button variant="secondary" onClick={() => {
+                  const a = document.createElement('a');
+                  a.href = result.videoUrl!;
+                  a.download = `diagram-video-${Date.now()}.mp4`;
+                  a.click();
+                  toast.success('動画をダウンロードしました');
+                }}>
+                  <Video className="w-4 h-4 mr-2" />
+                  動画をダウンロード
+                </Button>
+              )}
               <Button variant="outline" onClick={resetPipeline}>
                 新しいファイルを処理
               </Button>
