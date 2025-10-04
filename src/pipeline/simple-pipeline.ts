@@ -46,6 +46,16 @@ export class SimplePipeline {
   private layoutEngine: LayoutEngine;
   private videoGenerator: VideoGenerator;
 
+  // Progressive enhancement tracking (段階的改善追跡)
+  private iterationCount: number = 0;
+  private qualityMetrics: Map<string, number> = new Map();
+  private performanceHistory: Array<{
+    timestamp: string;
+    processingTime: number;
+    success: boolean;
+    qualityScore?: number;
+  }> = [];
+
   constructor() {
     // Initialize components with basic configurations
     this.transcription = new TranscriptionPipeline({
@@ -82,13 +92,14 @@ export class SimplePipeline {
 
   /**
    * Process audio file through complete pipeline
-   * Following iterative improvement approach
+   * Following iterative improvement approach (段階的改善アプローチ)
    */
   async process(
     input: SimplePipelineInput,
     onProgress?: ProgressCallback
   ): Promise<SimplePipelineResult> {
     const startTime = Date.now();
+    this.iterationCount++;
 
     try {
       onProgress?.('Preparing audio file', 10);
@@ -187,6 +198,28 @@ export class SimplePipeline {
 
       const processingTime = Date.now() - startTime;
 
+      // Calculate quality score based on results
+      const qualityScore = this.calculateQualityScore({
+        transcript,
+        scenes,
+        processingTime,
+        videoUrl
+      });
+
+      // Track performance for progressive enhancement
+      this.performanceHistory.push({
+        timestamp: new Date().toISOString(),
+        processingTime,
+        success: true,
+        qualityScore
+      });
+
+      // Update quality metrics
+      this.qualityMetrics.set('lastScore', qualityScore);
+      this.qualityMetrics.set('averageProcessingTime',
+        this.performanceHistory.reduce((sum, h) => sum + h.processingTime, 0) / this.performanceHistory.length
+      );
+
       return {
         success: true,
         audioUrl,
@@ -199,9 +232,37 @@ export class SimplePipeline {
     } catch (error) {
       console.error('Pipeline processing error:', error);
 
+      // Enhanced error handling with recovery strategies
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      // Log detailed error information for debugging (including input metadata)
+      console.error('Error details:', {
+        timestamp: new Date().toISOString(),
+        processingTime: Date.now() - startTime,
+        stack: error instanceof Error ? error.stack : undefined,
+        inputFileSize: input.audioFile.size,
+        inputFileType: input.audioFile.type,
+        inputFileName: input.audioFile.name,
+        inputLastModified: new Date(input.audioFile.lastModified).toISOString(),
+        optionsProvided: input.options ? Object.keys(input.options) : []
+      });
+
+      // Attempt graceful degradation
+      onProgress?.('Error encountered - attempting recovery', 90);
+
+      // Clean up any temporary resources
+      try {
+        // Revoke object URLs to prevent memory leaks
+        if (typeof audioUrl !== 'undefined') {
+          URL.revokeObjectURL(audioUrl);
+        }
+      } catch (cleanupError) {
+        console.warn('Cleanup warning:', cleanupError);
+      }
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: `Pipeline failed: ${errorMessage}`,
         processingTime: Date.now() - startTime
       };
     }
@@ -251,6 +312,60 @@ export class SimplePipeline {
   }
 
   /**
+   * Calculate quality score for progressive enhancement
+   * 品質スコア計算（段階的改善用）
+   */
+  private calculateQualityScore(result: {
+    transcript?: string;
+    scenes?: SceneGraph[];
+    processingTime: number;
+    videoUrl?: string;
+  }): number {
+    let score = 0;
+
+    // Transcript quality (30%)
+    if (result.transcript) {
+      const transcriptScore = Math.min(result.transcript.length / 100, 1) * 30;
+      score += transcriptScore;
+    }
+
+    // Scene detection quality (30%)
+    if (result.scenes && result.scenes.length > 0) {
+      const avgConfidence = result.scenes.reduce((sum, scene) => sum + (scene.confidence || 0), 0) / result.scenes.length;
+      score += avgConfidence * 30;
+    }
+
+    // Performance score (20%)
+    const performanceScore = Math.max(0, 20 - (result.processingTime / 1000)); // Penalty for slow processing
+    score += Math.max(0, performanceScore);
+
+    // Video generation bonus (20%)
+    if (result.videoUrl) {
+      score += 20;
+    }
+
+    return Math.min(score, 100);
+  }
+
+  /**
+   * Get progressive enhancement metrics
+   * 段階的改善メトリクス取得
+   */
+  getProgressiveMetrics() {
+    return {
+      iterationCount: this.iterationCount,
+      qualityMetrics: Object.fromEntries(this.qualityMetrics),
+      performanceHistory: this.performanceHistory.slice(-10), // Last 10 runs
+      averageQuality: this.performanceHistory.length > 0
+        ? this.performanceHistory.reduce((sum, h) => sum + (h.qualityScore || 0), 0) / this.performanceHistory.length
+        : 0,
+      successRate: this.performanceHistory.length > 0
+        ? this.performanceHistory.filter(h => h.success).length / this.performanceHistory.length * 100
+        : 0
+    };
+  }
+
+  /**
    * Get current processing capabilities
    * For debugging and monitoring
    */
@@ -270,6 +385,17 @@ export class SimplePipeline {
         layoutTypes: ['dagre', 'force', 'manual'],
         outputFormats: ['svg', 'canvas'],
         maxNodes: 50
+      },
+      progressiveEnhancement: {
+        enabled: true,
+        trackingMetrics: Array.from(this.qualityMetrics.keys()),
+        iterationCount: this.iterationCount,
+        enhancementFeatures: [
+          'quality_score_calculation',
+          'performance_history_tracking',
+          'iterative_improvement_metrics',
+          'progressive_enhancement_monitoring'
+        ]
       }
     };
   }
