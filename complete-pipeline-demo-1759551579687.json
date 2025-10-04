@@ -1,0 +1,645 @@
+{
+  "timestamp": "2025-10-04T04:19:39.687Z",
+  "system": "Audio-to-Visuals Pipeline",
+  "version": "1.0.0-MVP",
+  "testType": "Complete End-to-End Demo",
+  "results": {
+    "pipeline": {
+      "transcription": {
+        "segments": [
+          {
+            "start": 0,
+            "end": 6000,
+            "text": "Let's explore our organizational hierarchy structure. The company has different levels including management, departments, and teams with clear parent-child relationships.",
+            "confidence": 0.95
+          },
+          {
+            "start": 6000,
+            "end": 12000,
+            "text": "Now we'll examine the development timeline and chronology. The project evolution spans multiple phases over several years, from conception in 2020 to deployment in 2024.",
+            "confidence": 0.88
+          },
+          {
+            "start": 12000,
+            "end": 18000,
+            "text": "Finally, this continuous process forms a recurring cycle that returns to the beginning. The workflow loops back to the initial stage, creating an ongoing, cyclical pattern.",
+            "confidence": 0.92
+          }
+        ],
+        "language": "en",
+        "success": true,
+        "processingTime": 1200
+      },
+      "sceneAnalysis": {
+        "scenes": [
+          {
+            "id": "scene-1",
+            "startTime": 0,
+            "endTime": 6000,
+            "content": "Let's explore our organizational hierarchy structure. The company has different levels including management, departments, and teams with clear parent-child relationships.",
+            "topicType": "organizational_structure",
+            "keyEntities": [
+              "company",
+              "management",
+              "departments",
+              "teams"
+            ],
+            "relationships": [
+              "parent-child",
+              "hierarchy"
+            ]
+          },
+          {
+            "id": "scene-2",
+            "startTime": 6000,
+            "endTime": 12000,
+            "content": "Now we'll examine the development timeline and chronology. The project evolution spans multiple phases over several years, from conception in 2020 to deployment in 2024.",
+            "topicType": "timeline_chronology",
+            "keyEntities": [
+              "project",
+              "phases",
+              "conception",
+              "deployment"
+            ],
+            "relationships": [
+              "temporal",
+              "sequential"
+            ]
+          },
+          {
+            "id": "scene-3",
+            "startTime": 12000,
+            "endTime": 18000,
+            "content": "Finally, this continuous process forms a recurring cycle that returns to the beginning. The workflow loops back to the initial stage, creating an ongoing, cyclical pattern.",
+            "topicType": "cyclical_process",
+            "keyEntities": [
+              "process",
+              "cycle",
+              "workflow",
+              "stage"
+            ],
+            "relationships": [
+              "cyclical",
+              "recursive"
+            ]
+          }
+        ],
+        "success": true
+      },
+      "diagramDetection": {
+        "scenes": [
+          {
+            "id": "scene-1",
+            "startTime": 0,
+            "endTime": 6000,
+            "content": "Let's explore our organizational hierarchy structure. The company has different levels including management, departments, and teams with clear parent-child relationships.",
+            "topicType": "organizational_structure",
+            "keyEntities": [
+              "company",
+              "management",
+              "departments",
+              "teams"
+            ],
+            "relationships": [
+              "parent-child",
+              "hierarchy"
+            ],
+            "diagramType": "hierarchy",
+            "confidence": 0.92,
+            "nodes": [
+              {
+                "id": "node-0",
+                "label": "company",
+                "type": "concept"
+              },
+              {
+                "id": "node-1",
+                "label": "management",
+                "type": "concept"
+              },
+              {
+                "id": "node-2",
+                "label": "departments",
+                "type": "concept"
+              },
+              {
+                "id": "node-3",
+                "label": "teams",
+                "type": "concept"
+              }
+            ],
+            "edges": [
+              {
+                "id": "edge-0",
+                "type": "parent-child",
+                "source": "node-0",
+                "target": "node-1"
+              },
+              {
+                "id": "edge-1",
+                "type": "hierarchy",
+                "source": "node-1",
+                "target": "node-2"
+              }
+            ]
+          },
+          {
+            "id": "scene-2",
+            "startTime": 6000,
+            "endTime": 12000,
+            "content": "Now we'll examine the development timeline and chronology. The project evolution spans multiple phases over several years, from conception in 2020 to deployment in 2024.",
+            "topicType": "timeline_chronology",
+            "keyEntities": [
+              "project",
+              "phases",
+              "conception",
+              "deployment"
+            ],
+            "relationships": [
+              "temporal",
+              "sequential"
+            ],
+            "diagramType": "timeline",
+            "confidence": 0.89,
+            "nodes": [
+              {
+                "id": "node-0",
+                "label": "project",
+                "type": "concept"
+              },
+              {
+                "id": "node-1",
+                "label": "phases",
+                "type": "concept"
+              },
+              {
+                "id": "node-2",
+                "label": "conception",
+                "type": "concept"
+              },
+              {
+                "id": "node-3",
+                "label": "deployment",
+                "type": "concept"
+              }
+            ],
+            "edges": [
+              {
+                "id": "edge-0",
+                "type": "temporal",
+                "source": "node-0",
+                "target": "node-1"
+              },
+              {
+                "id": "edge-1",
+                "type": "sequential",
+                "source": "node-1",
+                "target": "node-2"
+              }
+            ]
+          },
+          {
+            "id": "scene-3",
+            "startTime": 12000,
+            "endTime": 18000,
+            "content": "Finally, this continuous process forms a recurring cycle that returns to the beginning. The workflow loops back to the initial stage, creating an ongoing, cyclical pattern.",
+            "topicType": "cyclical_process",
+            "keyEntities": [
+              "process",
+              "cycle",
+              "workflow",
+              "stage"
+            ],
+            "relationships": [
+              "cyclical",
+              "recursive"
+            ],
+            "diagramType": "cycle",
+            "confidence": 0.94,
+            "nodes": [
+              {
+                "id": "node-0",
+                "label": "process",
+                "type": "concept"
+              },
+              {
+                "id": "node-1",
+                "label": "cycle",
+                "type": "concept"
+              },
+              {
+                "id": "node-2",
+                "label": "workflow",
+                "type": "concept"
+              },
+              {
+                "id": "node-3",
+                "label": "stage",
+                "type": "concept"
+              }
+            ],
+            "edges": [
+              {
+                "id": "edge-0",
+                "type": "cyclical",
+                "source": "node-0",
+                "target": "node-1"
+              },
+              {
+                "id": "edge-1",
+                "type": "recursive",
+                "source": "node-1",
+                "target": "node-2"
+              }
+            ]
+          }
+        ],
+        "averageConfidence": 0.917
+      },
+      "layoutGeneration": {
+        "scenes": [
+          {
+            "id": "scene-1",
+            "startTime": 0,
+            "endTime": 6000,
+            "content": "Let's explore our organizational hierarchy structure. The company has different levels including management, departments, and teams with clear parent-child relationships.",
+            "topicType": "organizational_structure",
+            "keyEntities": [
+              "company",
+              "management",
+              "departments",
+              "teams"
+            ],
+            "relationships": [
+              "parent-child",
+              "hierarchy"
+            ],
+            "diagramType": "hierarchy",
+            "confidence": 0.92,
+            "nodes": [
+              {
+                "id": "node-0",
+                "label": "company",
+                "type": "concept"
+              },
+              {
+                "id": "node-1",
+                "label": "management",
+                "type": "concept"
+              },
+              {
+                "id": "node-2",
+                "label": "departments",
+                "type": "concept"
+              },
+              {
+                "id": "node-3",
+                "label": "teams",
+                "type": "concept"
+              }
+            ],
+            "edges": [
+              {
+                "id": "edge-0",
+                "type": "parent-child",
+                "source": "node-0",
+                "target": "node-1"
+              },
+              {
+                "id": "edge-1",
+                "type": "hierarchy",
+                "source": "node-1",
+                "target": "node-2"
+              }
+            ],
+            "layout": {
+              "width": 1920,
+              "height": 1080,
+              "nodes": [
+                {
+                  "id": "node-0",
+                  "label": "company",
+                  "type": "concept",
+                  "x": 200,
+                  "y": 300,
+                  "width": 120,
+                  "height": 60
+                },
+                {
+                  "id": "node-1",
+                  "label": "management",
+                  "type": "concept",
+                  "x": 500,
+                  "y": 384.1470984807896,
+                  "width": 120,
+                  "height": 60
+                },
+                {
+                  "id": "node-2",
+                  "label": "departments",
+                  "type": "concept",
+                  "x": 800,
+                  "y": 390.9297426825682,
+                  "width": 120,
+                  "height": 60
+                },
+                {
+                  "id": "node-3",
+                  "label": "teams",
+                  "type": "concept",
+                  "x": 1100,
+                  "y": 314.1120008059867,
+                  "width": 120,
+                  "height": 60
+                }
+              ],
+              "edges": [
+                {
+                  "id": "edge-0",
+                  "type": "parent-child",
+                  "source": "node-0",
+                  "target": "node-1",
+                  "path": "M500.3044906228974,350 Q600,250 875.9909194713551,350"
+                },
+                {
+                  "id": "edge-1",
+                  "type": "hierarchy",
+                  "source": "node-1",
+                  "target": "node-2",
+                  "path": "M320.11970215510337,350 Q600,250 1033.8310200523288,350"
+                }
+              ]
+            }
+          },
+          {
+            "id": "scene-2",
+            "startTime": 6000,
+            "endTime": 12000,
+            "content": "Now we'll examine the development timeline and chronology. The project evolution spans multiple phases over several years, from conception in 2020 to deployment in 2024.",
+            "topicType": "timeline_chronology",
+            "keyEntities": [
+              "project",
+              "phases",
+              "conception",
+              "deployment"
+            ],
+            "relationships": [
+              "temporal",
+              "sequential"
+            ],
+            "diagramType": "timeline",
+            "confidence": 0.89,
+            "nodes": [
+              {
+                "id": "node-0",
+                "label": "project",
+                "type": "concept"
+              },
+              {
+                "id": "node-1",
+                "label": "phases",
+                "type": "concept"
+              },
+              {
+                "id": "node-2",
+                "label": "conception",
+                "type": "concept"
+              },
+              {
+                "id": "node-3",
+                "label": "deployment",
+                "type": "concept"
+              }
+            ],
+            "edges": [
+              {
+                "id": "edge-0",
+                "type": "temporal",
+                "source": "node-0",
+                "target": "node-1"
+              },
+              {
+                "id": "edge-1",
+                "type": "sequential",
+                "source": "node-1",
+                "target": "node-2"
+              }
+            ],
+            "layout": {
+              "width": 1920,
+              "height": 1080,
+              "nodes": [
+                {
+                  "id": "node-0",
+                  "label": "project",
+                  "type": "concept",
+                  "x": 200,
+                  "y": 300,
+                  "width": 120,
+                  "height": 60
+                },
+                {
+                  "id": "node-1",
+                  "label": "phases",
+                  "type": "concept",
+                  "x": 500,
+                  "y": 384.1470984807896,
+                  "width": 120,
+                  "height": 60
+                },
+                {
+                  "id": "node-2",
+                  "label": "conception",
+                  "type": "concept",
+                  "x": 800,
+                  "y": 390.9297426825682,
+                  "width": 120,
+                  "height": 60
+                },
+                {
+                  "id": "node-3",
+                  "label": "deployment",
+                  "type": "concept",
+                  "x": 1100,
+                  "y": 314.1120008059867,
+                  "width": 120,
+                  "height": 60
+                }
+              ],
+              "edges": [
+                {
+                  "id": "edge-0",
+                  "type": "temporal",
+                  "source": "node-0",
+                  "target": "node-1",
+                  "path": "M556.5425987189267,350 Q600,250 896.9605593993599,350"
+                },
+                {
+                  "id": "edge-1",
+                  "type": "sequential",
+                  "source": "node-1",
+                  "target": "node-2",
+                  "path": "M579.3937282507832,350 Q600,250 811.0120676090759,350"
+                }
+              ]
+            }
+          },
+          {
+            "id": "scene-3",
+            "startTime": 12000,
+            "endTime": 18000,
+            "content": "Finally, this continuous process forms a recurring cycle that returns to the beginning. The workflow loops back to the initial stage, creating an ongoing, cyclical pattern.",
+            "topicType": "cyclical_process",
+            "keyEntities": [
+              "process",
+              "cycle",
+              "workflow",
+              "stage"
+            ],
+            "relationships": [
+              "cyclical",
+              "recursive"
+            ],
+            "diagramType": "cycle",
+            "confidence": 0.94,
+            "nodes": [
+              {
+                "id": "node-0",
+                "label": "process",
+                "type": "concept"
+              },
+              {
+                "id": "node-1",
+                "label": "cycle",
+                "type": "concept"
+              },
+              {
+                "id": "node-2",
+                "label": "workflow",
+                "type": "concept"
+              },
+              {
+                "id": "node-3",
+                "label": "stage",
+                "type": "concept"
+              }
+            ],
+            "edges": [
+              {
+                "id": "edge-0",
+                "type": "cyclical",
+                "source": "node-0",
+                "target": "node-1"
+              },
+              {
+                "id": "edge-1",
+                "type": "recursive",
+                "source": "node-1",
+                "target": "node-2"
+              }
+            ],
+            "layout": {
+              "width": 1920,
+              "height": 1080,
+              "nodes": [
+                {
+                  "id": "node-0",
+                  "label": "process",
+                  "type": "concept",
+                  "x": 200,
+                  "y": 300,
+                  "width": 120,
+                  "height": 60
+                },
+                {
+                  "id": "node-1",
+                  "label": "cycle",
+                  "type": "concept",
+                  "x": 500,
+                  "y": 384.1470984807896,
+                  "width": 120,
+                  "height": 60
+                },
+                {
+                  "id": "node-2",
+                  "label": "workflow",
+                  "type": "concept",
+                  "x": 800,
+                  "y": 390.9297426825682,
+                  "width": 120,
+                  "height": 60
+                },
+                {
+                  "id": "node-3",
+                  "label": "stage",
+                  "type": "concept",
+                  "x": 1100,
+                  "y": 314.1120008059867,
+                  "width": 120,
+                  "height": 60
+                }
+              ],
+              "edges": [
+                {
+                  "id": "edge-0",
+                  "type": "cyclical",
+                  "source": "node-0",
+                  "target": "node-1",
+                  "path": "M401.6208866218329,350 Q600,250 931.7797098914012,350"
+                },
+                {
+                  "id": "edge-1",
+                  "type": "recursive",
+                  "source": "node-1",
+                  "target": "node-2",
+                  "path": "M338.9219548027851,350 Q600,250 1076.6217108288558,350"
+                }
+              ]
+            }
+          }
+        ],
+        "totalNodes": 12,
+        "totalEdges": 6
+      },
+      "videoGeneration": {
+        "outputPath": "/tmp/generated-video-1759551579686.mp4",
+        "duration": 18000,
+        "resolution": "1920x1080",
+        "fps": 30,
+        "sceneTransitions": [
+          "fade",
+          "slide",
+          "morph"
+        ],
+        "audioSync": true,
+        "success": true
+      },
+      "processingTime": 7510,
+      "success": true
+    },
+    "metrics": {
+      "qualityScore": 92.38666666666667,
+      "performanceScore": 49.86000000000001,
+      "innovationScore": 91.5,
+      "userExperienceScore": 93.1,
+      "overallScore": 81.71166666666667
+    },
+    "recommendations": {
+      "immediate": [
+        "Test with real audio files for validation",
+        "Implement error recovery mechanisms",
+        "Add batch processing capabilities"
+      ],
+      "shortTerm": [
+        "Optimize Whisper integration for better accuracy",
+        "Enhance diagram detection with ML models",
+        "Implement progressive enhancement features"
+      ],
+      "longTerm": [
+        "Add multi-language support",
+        "Implement real-time processing",
+        "Develop custom diagram types"
+      ]
+    }
+  }
+}

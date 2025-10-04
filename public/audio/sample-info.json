@@ -1,0 +1,7 @@
+{
+  "name": "sample-diagram-explanation.wav",
+  "content": "音声ファイルのサンプルです。フローチャートについて説明します。まず、開始から条件分岐があり、その後処理が続きます。",
+  "duration": "30秒",
+  "type": "audio/wav",
+  "description": "フローチャート解説音声のサンプル"
+}

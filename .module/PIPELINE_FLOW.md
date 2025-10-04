@@ -1,4 +1,4 @@
-# Audio-to-Diagram Video Generator - Pipeline Flow Specification
+# パイプライン処理フロー仕様
 
 ## Processing Pipeline Overview
 

@@ -1,0 +1,1566 @@
+{
+  "timestamp": "2025-10-04T03:50:56.721Z",
+  "demonstrationName": "Mock Audio End-to-End Pipeline",
+  "steps": [
+    {
+      "step": 1,
+      "name": "Mock Audio Creation",
+      "status": "completed",
+      "output": {
+        "audioFile": {
+          "name": "mock-explanation-audio.mp3",
+          "size": 2048000,
+          "type": "audio/mp3",
+          "duration": 120,
+          "metadata": {
+            "title": "システム設計説明デモ",
+            "description": "ソフトウェアシステムの設計プロセスについての解説音声",
+            "language": "ja",
+            "speaker": "AI Narrator",
+            "topics": [
+              "システム設計",
+              "データフロー",
+              "アーキテクチャ",
+              "ユーザーインターフェース"
+            ]
+          }
+        },
+        "expectedTranscript": "こんにちは。今日はソフトウェアシステムの設計プロセスについて説明します。\n\nまず最初に、要求分析から始めます。ユーザーのニーズを理解し、システムが解決すべき問題を明確にします。この段階では、ステークホルダーとの対話が重要です。\n\n次に、システムアーキテクチャの設計を行います。データの流れを考慮し、各コンポーネントがどのように連携するかを決定します。マイクロサービスアーキテクチャを採用する場合は、サービス間の通信方法も検討する必要があります。\n\nデータベース設計では、データモデルを作成し、正規化を行います。パフォーマンスとデータの整合性のバランスを取ることが重要です。\n\n最後に、ユーザーインターフェースの設計を行います。ユーザビリティとアクセシビリティを考慮し、直感的で使いやすいインターフェースを作成します。\n\n以上が、システム設計の基本的なプロセスです。"
+      },
+      "processingTime": 100
+    },
+    {
+      "step": 2,
+      "name": "Transcription",
+      "status": "completed",
+      "output": {
+        "success": true,
+        "segments": [
+          {
+            "text": "こんにちは。今日はソフトウェアシステムの設計プロセスについて説明します。",
+            "confidence": 0.95,
+            "startMs": 0,
+            "endMs": 8000,
+            "speaker": "Speaker 1"
+          },
+          {
+            "text": "まず最初に、要求分析から始めます。ユーザーのニーズを理解し、システムが解決すべき問題を明確にします。",
+            "confidence": 0.92,
+            "startMs": 8000,
+            "endMs": 18000,
+            "speaker": "Speaker 1"
+          },
+          {
+            "text": "この段階では、ステークホルダーとの対話が重要です。",
+            "confidence": 0.88,
+            "startMs": 18000,
+            "endMs": 24000,
+            "speaker": "Speaker 1"
+          },
+          {
+            "text": "次に、システムアーキテクチャの設計を行います。データの流れを考慮し、各コンポーネントがどのように連携するかを決定します。",
+            "confidence": 0.93,
+            "startMs": 24000,
+            "endMs": 38000,
+            "speaker": "Speaker 1"
+          },
+          {
+            "text": "マイクロサービスアーキテクチャを採用する場合は、サービス間の通信方法も検討する必要があります。",
+            "confidence": 0.9,
+            "startMs": 38000,
+            "endMs": 48000,
+            "speaker": "Speaker 1"
+          },
+          {
+            "text": "データベース設計では、データモデルを作成し、正規化を行います。",
+            "confidence": 0.94,
+            "startMs": 48000,
+            "endMs": 56000,
+            "speaker": "Speaker 1"
+          },
+          {
+            "text": "パフォーマンスとデータの整合性のバランスを取ることが重要です。",
+            "confidence": 0.91,
+            "startMs": 56000,
+            "endMs": 64000,
+            "speaker": "Speaker 1"
+          },
+          {
+            "text": "最後に、ユーザーインターフェースの設計を行います。",
+            "confidence": 0.96,
+            "startMs": 64000,
+            "endMs": 72000,
+            "speaker": "Speaker 1"
+          },
+          {
+            "text": "ユーザビリティとアクセシビリティを考慮し、直感的で使いやすいインターフェースを作成します。",
+            "confidence": 0.89,
+            "startMs": 72000,
+            "endMs": 84000,
+            "speaker": "Speaker 1"
+          },
+          {
+            "text": "以上が、システム設計の基本的なプロセスです。",
+            "confidence": 0.97,
+            "startMs": 84000,
+            "endMs": 90000,
+            "speaker": "Speaker 1"
+          }
+        ],
+        "fullTranscript": "こんにちは。今日はソフトウェアシステムの設計プロセスについて説明します。 まず最初に、要求分析から始めます。ユーザーのニーズを理解し、システムが解決すべき問題を明確にします。 この段階では、ステークホルダーとの対話が重要です。 次に、システムアーキテクチャの設計を行います。データの流れを考慮し、各コンポーネントがどのように連携するかを決定します。 マイクロサービスアーキテクチャを採用する場合は、サービス間の通信方法も検討する必要があります。 データベース設計では、データモデルを作成し、正規化を行います。 パフォーマンスとデータの整合性のバランスを取ることが重要です。 最後に、ユーザーインターフェースの設計を行います。 ユーザビリティとアクセシビリティを考慮し、直感的で使いやすいインターフェースを作成します。 以上が、システム設計の基本的なプロセスです。",
+        "language": "ja",
+        "confidence": 0.925,
+        "processingTime": 0,
+        "metadata": {
+          "segmentCount": 10,
+          "totalDuration": 90000,
+          "averageSegmentLength": 9000
+        }
+      },
+      "processingTime": 0
+    },
+    {
+      "step": 3,
+      "name": "Scene Segmentation",
+      "status": "completed",
+      "output": {
+        "success": true,
+        "scenes": [
+          {
+            "id": "scene-1",
+            "title": "Introduction & Requirements Analysis",
+            "content": "こんにちは。今日はソフトウェアシステムの設計プロセスについて説明します。 まず最初に、要求分析から始めます。ユーザーのニーズを理解し、システムが解決すべき問題を明確にします。 この段階では、ステークホルダーとの対話が重要です。",
+            "startTime": 0,
+            "endTime": 24000,
+            "keyTopics": [
+              "introduction",
+              "requirements",
+              "stakeholders"
+            ],
+            "confidence": 0.92
+          },
+          {
+            "id": "scene-2",
+            "title": "System Architecture Design",
+            "content": "次に、システムアーキテクチャの設計を行います。データの流れを考慮し、各コンポーネントがどのように連携するかを決定します。 マイクロサービスアーキテクチャを採用する場合は、サービス間の通信方法も検討する必要があります。",
+            "startTime": 24000,
+            "endTime": 48000,
+            "keyTopics": [
+              "architecture",
+              "components",
+              "microservices"
+            ],
+            "confidence": 0.94
+          },
+          {
+            "id": "scene-3",
+            "title": "Database Design",
+            "content": "データベース設計では、データモデルを作成し、正規化を行います。 パフォーマンスとデータの整合性のバランスを取ることが重要です。",
+            "startTime": 48000,
+            "endTime": 64000,
+            "keyTopics": [
+              "database",
+              "data model",
+              "performance"
+            ],
+            "confidence": 0.89
+          },
+          {
+            "id": "scene-4",
+            "title": "User Interface Design",
+            "content": "最後に、ユーザーインターフェースの設計を行います。 ユーザビリティとアクセシビリティを考慮し、直感的で使いやすいインターフェースを作成します。 以上が、システム設計の基本的なプロセスです。",
+            "startTime": 64000,
+            "endTime": 90000,
+            "keyTopics": [
+              "UI",
+              "usability",
+              "accessibility"
+            ],
+            "confidence": 0.91
+          }
+        ],
+        "sceneCount": 4,
+        "averageSceneLength": 22500,
+        "confidence": 0.915,
+        "processingTime": 0,
+        "metadata": {
+          "segmentationStrategy": "topic-based",
+          "totalTopics": 12
+        }
+      },
+      "processingTime": 0
+    },
+    {
+      "step": 4,
+      "name": "Diagram Type Detection",
+      "status": "completed",
+      "output": {
+        "success": true,
+        "diagrams": [
+          {
+            "sceneId": "scene-1",
+            "diagramType": "mindmap",
+            "confidence": 0.88,
+            "reasoning": "Requirements and stakeholder relationships best shown as mind map",
+            "nodes": [
+              {
+                "id": "scene-1-center",
+                "label": "Introduction & Requirements Analysis",
+                "type": "central"
+              },
+              {
+                "id": "scene-1-node-0",
+                "label": "introduction",
+                "type": "branch"
+              },
+              {
+                "id": "scene-1-node-1",
+                "label": "requirements",
+                "type": "branch"
+              },
+              {
+                "id": "scene-1-node-2",
+                "label": "stakeholders",
+                "type": "branch"
+              }
+            ],
+            "relationships": [
+              {
+                "from": "scene-1-center",
+                "to": "scene-1-node-0",
+                "type": "branch",
+                "label": "relates to"
+              },
+              {
+                "from": "scene-1-center",
+                "to": "scene-1-node-1",
+                "type": "branch",
+                "label": "relates to"
+              },
+              {
+                "from": "scene-1-center",
+                "to": "scene-1-node-2",
+                "type": "branch",
+                "label": "relates to"
+              }
+            ]
+          },
+          {
+            "sceneId": "scene-2",
+            "diagramType": "flow",
+            "confidence": 0.92,
+            "reasoning": "System architecture shows component flow and relationships",
+            "nodes": [
+              {
+                "id": "scene-2-start",
+                "label": "Start",
+                "type": "start"
+              },
+              {
+                "id": "scene-2-node-0",
+                "label": "architecture",
+                "type": "process"
+              },
+              {
+                "id": "scene-2-node-1",
+                "label": "components",
+                "type": "process"
+              },
+              {
+                "id": "scene-2-node-2",
+                "label": "microservices",
+                "type": "process"
+              },
+              {
+                "id": "scene-2-end",
+                "label": "End",
+                "type": "end"
+              }
+            ],
+            "relationships": [
+              {
+                "from": "scene-2-start",
+                "to": "scene-2-node-0",
+                "type": "flow",
+                "label": "leads to"
+              },
+              {
+                "from": "scene-2-node-0",
+                "to": "scene-2-node-1",
+                "type": "flow",
+                "label": "leads to"
+              },
+              {
+                "from": "scene-2-node-1",
+                "to": "scene-2-node-2",
+                "type": "flow",
+                "label": "leads to"
+              },
+              {
+                "from": "scene-2-node-2",
+                "to": "scene-2-end",
+                "type": "flow",
+                "label": "leads to"
+              }
+            ]
+          },
+          {
+            "sceneId": "scene-3",
+            "diagramType": "entity-relationship",
+            "confidence": 0.89,
+            "reasoning": "Database design shows entity relationships and data flow",
+            "nodes": [
+              {
+                "id": "scene-3-node-0",
+                "label": "database",
+                "type": "entity"
+              },
+              {
+                "id": "scene-3-node-1",
+                "label": "data model",
+                "type": "entity"
+              },
+              {
+                "id": "scene-3-node-2",
+                "label": "performance",
+                "type": "entity"
+              }
+            ],
+            "relationships": [
+              {
+                "from": "scene-3-node-0",
+                "to": "scene-3-node-1",
+                "type": "relationship",
+                "label": "connected to"
+              },
+              {
+                "from": "scene-3-node-1",
+                "to": "scene-3-node-2",
+                "type": "relationship",
+                "label": "connected to"
+              }
+            ]
+          },
+          {
+            "sceneId": "scene-4",
+            "diagramType": "wireframe",
+            "confidence": 0.85,
+            "reasoning": "UI design best represented with wireframe layouts",
+            "nodes": [
+              {
+                "id": "scene-4-header",
+                "label": "Header",
+                "type": "component"
+              },
+              {
+                "id": "scene-4-node-0",
+                "label": "UI",
+                "type": "component"
+              },
+              {
+                "id": "scene-4-node-1",
+                "label": "usability",
+                "type": "component"
+              },
+              {
+                "id": "scene-4-node-2",
+                "label": "accessibility",
+                "type": "component"
+              },
+              {
+                "id": "scene-4-footer",
+                "label": "Footer",
+                "type": "component"
+              }
+            ],
+            "relationships": [
+              {
+                "from": "scene-4-header",
+                "to": "scene-4-node-0",
+                "type": "connection",
+                "label": "related"
+              },
+              {
+                "from": "scene-4-node-0",
+                "to": "scene-4-node-1",
+                "type": "connection",
+                "label": "related"
+              },
+              {
+                "from": "scene-4-node-1",
+                "to": "scene-4-node-2",
+                "type": "connection",
+                "label": "related"
+              }
+            ]
+          }
+        ],
+        "averageConfidence": 0.885,
+        "processingTime": 0,
+        "metadata": {
+          "detectionStrategy": "keyword-based with ML confidence scoring",
+          "supportedTypes": [
+            "mindmap",
+            "flow",
+            "entity-relationship",
+            "wireframe",
+            "concept"
+          ]
+        }
+      },
+      "processingTime": 0
+    },
+    {
+      "step": 5,
+      "name": "Layout Generation",
+      "status": "completed",
+      "output": {
+        "success": true,
+        "layouts": [
+          {
+            "sceneId": "scene-1",
+            "diagramType": "mindmap",
+            "dimensions": {
+              "width": 1920,
+              "height": 1080
+            },
+            "nodes": [
+              {
+                "id": "scene-1-center",
+                "label": "Introduction & Requirements Analysis",
+                "type": "central",
+                "position": {
+                  "x": 960,
+                  "y": 540
+                },
+                "style": {
+                  "borderRadius": "50%",
+                  "padding": 12,
+                  "fontSize": 14,
+                  "fontWeight": "medium",
+                  "backgroundColor": "#3b82f6",
+                  "color": "white"
+                }
+              },
+              {
+                "id": "scene-1-node-0",
+                "label": "introduction",
+                "type": "branch",
+                "position": {
+                  "x": 1260,
+                  "y": 540
+                },
+                "style": {
+                  "borderRadius": 8,
+                  "padding": 12,
+                  "fontSize": 14,
+                  "fontWeight": "medium",
+                  "backgroundColor": "#e5e7eb",
+                  "color": "#374151"
+                }
+              },
+              {
+                "id": "scene-1-node-1",
+                "label": "requirements",
+                "type": "branch",
+                "position": {
+                  "x": 810,
+                  "y": 799.8076211353316
+                },
+                "style": {
+                  "borderRadius": 8,
+                  "padding": 12,
+                  "fontSize": 14,
+                  "fontWeight": "medium",
+                  "backgroundColor": "#e5e7eb",
+                  "color": "#374151"
+                }
+              },
+              {
+                "id": "scene-1-node-2",
+                "label": "stakeholders",
+                "type": "branch",
+                "position": {
+                  "x": 809.9999999999999,
+                  "y": 280.19237886466846
+                },
+                "style": {
+                  "borderRadius": 8,
+                  "padding": 12,
+                  "fontSize": 14,
+                  "fontWeight": "medium",
+                  "backgroundColor": "#e5e7eb",
+                  "color": "#374151"
+                }
+              }
+            ],
+            "edges": [
+              {
+                "from": "scene-1-center",
+                "to": "scene-1-node-0",
+                "type": "branch",
+                "label": "relates to",
+                "style": {
+                  "strokeWidth": 2,
+                  "stroke": "#6b7280",
+                  "markerEnd": "arrowhead",
+                  "strokeDasharray": "none"
+                }
+              },
+              {
+                "from": "scene-1-center",
+                "to": "scene-1-node-1",
+                "type": "branch",
+                "label": "relates to",
+                "style": {
+                  "strokeWidth": 2,
+                  "stroke": "#6b7280",
+                  "markerEnd": "arrowhead",
+                  "strokeDasharray": "none"
+                }
+              },
+              {
+                "from": "scene-1-center",
+                "to": "scene-1-node-2",
+                "type": "branch",
+                "label": "relates to",
+                "style": {
+                  "strokeWidth": 2,
+                  "stroke": "#6b7280",
+                  "markerEnd": "arrowhead",
+                  "strokeDasharray": "none"
+                }
+              }
+            ],
+            "metadata": {
+              "layoutAlgorithm": "radial",
+              "complexity": 7,
+              "aestheticScore": 0.9344757623578885
+            }
+          },
+          {
+            "sceneId": "scene-2",
+            "diagramType": "flow",
+            "dimensions": {
+              "width": 1920,
+              "height": 1080
+            },
+            "nodes": [
+              {
+                "id": "scene-2-start",
+                "label": "Start",
+                "type": "start",
+                "position": {
+                  "x": 200,
+                  "y": 540
+                },
+                "style": {
+                  "borderRadius": "50%",
+                  "padding": 12,
+                  "fontSize": 14,
+                  "fontWeight": "medium",
+                  "backgroundColor": "#10b981",
+                  "color": "white"
+                }
+              },
+              {
+                "id": "scene-2-node-0",
+                "label": "architecture",
+                "type": "process",
+                "position": {
+                  "x": 580,
+                  "y": 540
+                },
+                "style": {
+                  "borderRadius": 8,
+                  "padding": 12,
+                  "fontSize": 14,
+                  "fontWeight": "medium",
+                  "backgroundColor": "#f3f4f6",
+                  "color": "#374151"
+                }
+              },
+              {
+                "id": "scene-2-node-1",
+                "label": "components",
+                "type": "process",
+                "position": {
+                  "x": 960,
+                  "y": 540
+                },
+                "style": {
+                  "borderRadius": 8,
+                  "padding": 12,
+                  "fontSize": 14,
+                  "fontWeight": "medium",
+                  "backgroundColor": "#f3f4f6",
+                  "color": "#374151"
+                }
+              },
+              {
+                "id": "scene-2-node-2",
+                "label": "microservices",
+                "type": "process",
+                "position": {
+                  "x": 1340,
+                  "y": 540
+                },
+                "style": {
+                  "borderRadius": 8,
+                  "padding": 12,
+                  "fontSize": 14,
+                  "fontWeight": "medium",
+                  "backgroundColor": "#f3f4f6",
+                  "color": "#374151"
+                }
+              },
+              {
+                "id": "scene-2-end",
+                "label": "End",
+                "type": "end",
+                "position": {
+                  "x": 1720,
+                  "y": 540
+                },
+                "style": {
+                  "borderRadius": "50%",
+                  "padding": 12,
+                  "fontSize": 14,
+                  "fontWeight": "medium",
+                  "backgroundColor": "#10b981",
+                  "color": "white"
+                }
+              }
+            ],
+            "edges": [
+              {
+                "from": "scene-2-start",
+                "to": "scene-2-node-0",
+                "type": "flow",
+                "label": "leads to",
+                "style": {
+                  "strokeWidth": 2,
+                  "stroke": "#6b7280",
+                  "markerEnd": "arrowhead",
+                  "strokeDasharray": "none"
+                }
+              },
+              {
+                "from": "scene-2-node-0",
+                "to": "scene-2-node-1",
+                "type": "flow",
+                "label": "leads to",
+                "style": {
+                  "strokeWidth": 2,
+                  "stroke": "#6b7280",
+                  "markerEnd": "arrowhead",
+                  "strokeDasharray": "none"
+                }
+              },
+              {
+                "from": "scene-2-node-1",
+                "to": "scene-2-node-2",
+                "type": "flow",
+                "label": "leads to",
+                "style": {
+                  "strokeWidth": 2,
+                  "stroke": "#6b7280",
+                  "markerEnd": "arrowhead",
+                  "strokeDasharray": "none"
+                }
+              },
+              {
+                "from": "scene-2-node-2",
+                "to": "scene-2-end",
+                "type": "flow",
+                "label": "leads to",
+                "style": {
+                  "strokeWidth": 2,
+                  "stroke": "#6b7280",
+                  "markerEnd": "arrowhead",
+                  "strokeDasharray": "none"
+                }
+              }
+            ],
+            "metadata": {
+              "layoutAlgorithm": "hierarchical",
+              "complexity": 9,
+              "aestheticScore": 0.8848098381372476
+            }
+          },
+          {
+            "sceneId": "scene-3",
+            "diagramType": "entity-relationship",
+            "dimensions": {
+              "width": 1920,
+              "height": 1080
+            },
+            "nodes": [
+              {
+                "id": "scene-3-node-0",
+                "label": "database",
+                "type": "entity",
+                "position": {
+                  "x": 200,
+                  "y": 200
+                },
+                "style": {
+                  "borderRadius": 8,
+                  "padding": 12,
+                  "fontSize": 14,
+                  "fontWeight": "medium",
+                  "backgroundColor": "#f9fafb",
+                  "color": "#374151"
+                }
+              },
+              {
+                "id": "scene-3-node-1",
+                "label": "data model",
+                "type": "entity",
+                "position": {
+                  "x": 960,
+                  "y": 200
+                },
+                "style": {
+                  "borderRadius": 8,
+                  "padding": 12,
+                  "fontSize": 14,
+                  "fontWeight": "medium",
+                  "backgroundColor": "#f9fafb",
+                  "color": "#374151"
+                }
+              },
+              {
+                "id": "scene-3-node-2",
+                "label": "performance",
+                "type": "entity",
+                "position": {
+                  "x": 200,
+                  "y": 540
+                },
+                "style": {
+                  "borderRadius": 8,
+                  "padding": 12,
+                  "fontSize": 14,
+                  "fontWeight": "medium",
+                  "backgroundColor": "#f9fafb",
+                  "color": "#374151"
+                }
+              }
+            ],
+            "edges": [
+              {
+                "from": "scene-3-node-0",
+                "to": "scene-3-node-1",
+                "type": "relationship",
+                "label": "connected to",
+                "style": {
+                  "strokeWidth": 2,
+                  "stroke": "#6b7280",
+                  "markerEnd": "arrowhead",
+                  "strokeDasharray": "5,5"
+                }
+              },
+              {
+                "from": "scene-3-node-1",
+                "to": "scene-3-node-2",
+                "type": "relationship",
+                "label": "connected to",
+                "style": {
+                  "strokeWidth": 2,
+                  "stroke": "#6b7280",
+                  "markerEnd": "arrowhead",
+                  "strokeDasharray": "5,5"
+                }
+              }
+            ],
+            "metadata": {
+              "layoutAlgorithm": "grid",
+              "complexity": 5,
+              "aestheticScore": 0.934192458858694
+            }
+          },
+          {
+            "sceneId": "scene-4",
+            "diagramType": "wireframe",
+            "dimensions": {
+              "width": 1920,
+              "height": 1080
+            },
+            "nodes": [
+              {
+                "id": "scene-4-header",
+                "label": "Header",
+                "type": "component",
+                "position": {
+                  "x": 1016.7700493127309,
+                  "y": 547.9740125963776
+                },
+                "style": {
+                  "borderRadius": 8,
+                  "padding": 12,
+                  "fontSize": 14,
+                  "fontWeight": "medium",
+                  "backgroundColor": "#f9fafb",
+                  "color": "#374151"
+                }
+              },
+              {
+                "id": "scene-4-node-0",
+                "label": "UI",
+                "type": "component",
+                "position": {
+                  "x": 1002.3872578368334,
+                  "y": 447.0714954335184
+                },
+                "style": {
+                  "borderRadius": 8,
+                  "padding": 12,
+                  "fontSize": 14,
+                  "fontWeight": "medium",
+                  "backgroundColor": "#f9fafb",
+                  "color": "#374151"
+                }
+              },
+              {
+                "id": "scene-4-node-1",
+                "label": "usability",
+                "type": "component",
+                "position": {
+                  "x": 1108.9599683835056,
+                  "y": 788.5123956522941
+                },
+                "style": {
+                  "borderRadius": 8,
+                  "padding": 12,
+                  "fontSize": 14,
+                  "fontWeight": "medium",
+                  "backgroundColor": "#f9fafb",
+                  "color": "#374151"
+                }
+              },
+              {
+                "id": "scene-4-node-2",
+                "label": "accessibility",
+                "type": "component",
+                "position": {
+                  "x": 757.9270439433935,
+                  "y": 469.7559296753107
+                },
+                "style": {
+                  "borderRadius": 8,
+                  "padding": 12,
+                  "fontSize": 14,
+                  "fontWeight": "medium",
+                  "backgroundColor": "#f9fafb",
+                  "color": "#374151"
+                }
+              },
+              {
+                "id": "scene-4-footer",
+                "label": "Footer",
+                "type": "component",
+                "position": {
+                  "x": 1242.4722793729513,
+                  "y": 806.4671865724881
+                },
+                "style": {
+                  "borderRadius": 8,
+                  "padding": 12,
+                  "fontSize": 14,
+                  "fontWeight": "medium",
+                  "backgroundColor": "#f9fafb",
+                  "color": "#374151"
+                }
+              }
+            ],
+            "edges": [
+              {
+                "from": "scene-4-header",
+                "to": "scene-4-node-0",
+                "type": "connection",
+                "label": "related",
+                "style": {
+                  "strokeWidth": 2,
+                  "stroke": "#6b7280",
+                  "markerEnd": "arrowhead",
+                  "strokeDasharray": "none"
+                }
+              },
+              {
+                "from": "scene-4-node-0",
+                "to": "scene-4-node-1",
+                "type": "connection",
+                "label": "related",
+                "style": {
+                  "strokeWidth": 2,
+                  "stroke": "#6b7280",
+                  "markerEnd": "arrowhead",
+                  "strokeDasharray": "none"
+                }
+              },
+              {
+                "from": "scene-4-node-1",
+                "to": "scene-4-node-2",
+                "type": "connection",
+                "label": "related",
+                "style": {
+                  "strokeWidth": 2,
+                  "stroke": "#6b7280",
+                  "markerEnd": "arrowhead",
+                  "strokeDasharray": "none"
+                }
+              }
+            ],
+            "metadata": {
+              "layoutAlgorithm": "vertical",
+              "complexity": 8,
+              "aestheticScore": 0.86796808271519
+            }
+          }
+        ],
+        "averageAestheticScore": 0.9053615355172551,
+        "processingTime": 0,
+        "metadata": {
+          "layoutEngine": "Dagre with custom positioning",
+          "supportedAlgorithms": [
+            "hierarchical",
+            "force-directed",
+            "circular",
+            "tree"
+          ]
+        }
+      },
+      "processingTime": 0
+    },
+    {
+      "step": 6,
+      "name": "Video Generation",
+      "status": "completed",
+      "output": {
+        "success": true,
+        "videoUrl": "output/generated-diagram-video-1759549856726.mp4",
+        "totalDuration": 60,
+        "sceneCount": 4,
+        "scenes": [
+          {
+            "sceneId": "scene-1",
+            "duration": 15,
+            "startTime": 0,
+            "endTime": 15,
+            "composition": {
+              "type": "DiagramVideo",
+              "props": {
+                "layout": {
+                  "sceneId": "scene-1",
+                  "diagramType": "mindmap",
+                  "dimensions": {
+                    "width": 1920,
+                    "height": 1080
+                  },
+                  "nodes": [
+                    {
+                      "id": "scene-1-center",
+                      "label": "Introduction & Requirements Analysis",
+                      "type": "central",
+                      "position": {
+                        "x": 960,
+                        "y": 540
+                      },
+                      "style": {
+                        "borderRadius": "50%",
+                        "padding": 12,
+                        "fontSize": 14,
+                        "fontWeight": "medium",
+                        "backgroundColor": "#3b82f6",
+                        "color": "white"
+                      }
+                    },
+                    {
+                      "id": "scene-1-node-0",
+                      "label": "introduction",
+                      "type": "branch",
+                      "position": {
+                        "x": 1260,
+                        "y": 540
+                      },
+                      "style": {
+                        "borderRadius": 8,
+                        "padding": 12,
+                        "fontSize": 14,
+                        "fontWeight": "medium",
+                        "backgroundColor": "#e5e7eb",
+                        "color": "#374151"
+                      }
+                    },
+                    {
+                      "id": "scene-1-node-1",
+                      "label": "requirements",
+                      "type": "branch",
+                      "position": {
+                        "x": 810,
+                        "y": 799.8076211353316
+                      },
+                      "style": {
+                        "borderRadius": 8,
+                        "padding": 12,
+                        "fontSize": 14,
+                        "fontWeight": "medium",
+                        "backgroundColor": "#e5e7eb",
+                        "color": "#374151"
+                      }
+                    },
+                    {
+                      "id": "scene-1-node-2",
+                      "label": "stakeholders",
+                      "type": "branch",
+                      "position": {
+                        "x": 809.9999999999999,
+                        "y": 280.19237886466846
+                      },
+                      "style": {
+                        "borderRadius": 8,
+                        "padding": 12,
+                        "fontSize": 14,
+                        "fontWeight": "medium",
+                        "backgroundColor": "#e5e7eb",
+                        "color": "#374151"
+                      }
+                    }
+                  ],
+                  "edges": [
+                    {
+                      "from": "scene-1-center",
+                      "to": "scene-1-node-0",
+                      "type": "branch",
+                      "label": "relates to",
+                      "style": {
+                        "strokeWidth": 2,
+                        "stroke": "#6b7280",
+                        "markerEnd": "arrowhead",
+                        "strokeDasharray": "none"
+                      }
+                    },
+                    {
+                      "from": "scene-1-center",
+                      "to": "scene-1-node-1",
+                      "type": "branch",
+                      "label": "relates to",
+                      "style": {
+                        "strokeWidth": 2,
+                        "stroke": "#6b7280",
+                        "markerEnd": "arrowhead",
+                        "strokeDasharray": "none"
+                      }
+                    },
+                    {
+                      "from": "scene-1-center",
+                      "to": "scene-1-node-2",
+                      "type": "branch",
+                      "label": "relates to",
+                      "style": {
+                        "strokeWidth": 2,
+                        "stroke": "#6b7280",
+                        "markerEnd": "arrowhead",
+                        "strokeDasharray": "none"
+                      }
+                    }
+                  ],
+                  "metadata": {
+                    "layoutAlgorithm": "radial",
+                    "complexity": 7,
+                    "aestheticScore": 0.9344757623578885
+                  }
+                },
+                "animationType": "radial-expand",
+                "backgroundColor": "#ffffff",
+                "showCaptions": true
+              }
+            },
+            "rendering": {
+              "format": "mp4",
+              "quality": "high",
+              "fps": 30,
+              "resolution": "1920x1080"
+            }
+          },
+          {
+            "sceneId": "scene-2",
+            "duration": 15,
+            "startTime": 15,
+            "endTime": 30,
+            "composition": {
+              "type": "DiagramVideo",
+              "props": {
+                "layout": {
+                  "sceneId": "scene-2",
+                  "diagramType": "flow",
+                  "dimensions": {
+                    "width": 1920,
+                    "height": 1080
+                  },
+                  "nodes": [
+                    {
+                      "id": "scene-2-start",
+                      "label": "Start",
+                      "type": "start",
+                      "position": {
+                        "x": 200,
+                        "y": 540
+                      },
+                      "style": {
+                        "borderRadius": "50%",
+                        "padding": 12,
+                        "fontSize": 14,
+                        "fontWeight": "medium",
+                        "backgroundColor": "#10b981",
+                        "color": "white"
+                      }
+                    },
+                    {
+                      "id": "scene-2-node-0",
+                      "label": "architecture",
+                      "type": "process",
+                      "position": {
+                        "x": 580,
+                        "y": 540
+                      },
+                      "style": {
+                        "borderRadius": 8,
+                        "padding": 12,
+                        "fontSize": 14,
+                        "fontWeight": "medium",
+                        "backgroundColor": "#f3f4f6",
+                        "color": "#374151"
+                      }
+                    },
+                    {
+                      "id": "scene-2-node-1",
+                      "label": "components",
+                      "type": "process",
+                      "position": {
+                        "x": 960,
+                        "y": 540
+                      },
+                      "style": {
+                        "borderRadius": 8,
+                        "padding": 12,
+                        "fontSize": 14,
+                        "fontWeight": "medium",
+                        "backgroundColor": "#f3f4f6",
+                        "color": "#374151"
+                      }
+                    },
+                    {
+                      "id": "scene-2-node-2",
+                      "label": "microservices",
+                      "type": "process",
+                      "position": {
+                        "x": 1340,
+                        "y": 540
+                      },
+                      "style": {
+                        "borderRadius": 8,
+                        "padding": 12,
+                        "fontSize": 14,
+                        "fontWeight": "medium",
+                        "backgroundColor": "#f3f4f6",
+                        "color": "#374151"
+                      }
+                    },
+                    {
+                      "id": "scene-2-end",
+                      "label": "End",
+                      "type": "end",
+                      "position": {
+                        "x": 1720,
+                        "y": 540
+                      },
+                      "style": {
+                        "borderRadius": "50%",
+                        "padding": 12,
+                        "fontSize": 14,
+                        "fontWeight": "medium",
+                        "backgroundColor": "#10b981",
+                        "color": "white"
+                      }
+                    }
+                  ],
+                  "edges": [
+                    {
+                      "from": "scene-2-start",
+                      "to": "scene-2-node-0",
+                      "type": "flow",
+                      "label": "leads to",
+                      "style": {
+                        "strokeWidth": 2,
+                        "stroke": "#6b7280",
+                        "markerEnd": "arrowhead",
+                        "strokeDasharray": "none"
+                      }
+                    },
+                    {
+                      "from": "scene-2-node-0",
+                      "to": "scene-2-node-1",
+                      "type": "flow",
+                      "label": "leads to",
+                      "style": {
+                        "strokeWidth": 2,
+                        "stroke": "#6b7280",
+                        "markerEnd": "arrowhead",
+                        "strokeDasharray": "none"
+                      }
+                    },
+                    {
+                      "from": "scene-2-node-1",
+                      "to": "scene-2-node-2",
+                      "type": "flow",
+                      "label": "leads to",
+                      "style": {
+                        "strokeWidth": 2,
+                        "stroke": "#6b7280",
+                        "markerEnd": "arrowhead",
+                        "strokeDasharray": "none"
+                      }
+                    },
+                    {
+                      "from": "scene-2-node-2",
+                      "to": "scene-2-end",
+                      "type": "flow",
+                      "label": "leads to",
+                      "style": {
+                        "strokeWidth": 2,
+                        "stroke": "#6b7280",
+                        "markerEnd": "arrowhead",
+                        "strokeDasharray": "none"
+                      }
+                    }
+                  ],
+                  "metadata": {
+                    "layoutAlgorithm": "hierarchical",
+                    "complexity": 9,
+                    "aestheticScore": 0.8848098381372476
+                  }
+                },
+                "animationType": "sequential-flow",
+                "backgroundColor": "#ffffff",
+                "showCaptions": true
+              }
+            },
+            "rendering": {
+              "format": "mp4",
+              "quality": "high",
+              "fps": 30,
+              "resolution": "1920x1080"
+            }
+          },
+          {
+            "sceneId": "scene-3",
+            "duration": 15,
+            "startTime": 30,
+            "endTime": 45,
+            "composition": {
+              "type": "DiagramVideo",
+              "props": {
+                "layout": {
+                  "sceneId": "scene-3",
+                  "diagramType": "entity-relationship",
+                  "dimensions": {
+                    "width": 1920,
+                    "height": 1080
+                  },
+                  "nodes": [
+                    {
+                      "id": "scene-3-node-0",
+                      "label": "database",
+                      "type": "entity",
+                      "position": {
+                        "x": 200,
+                        "y": 200
+                      },
+                      "style": {
+                        "borderRadius": 8,
+                        "padding": 12,
+                        "fontSize": 14,
+                        "fontWeight": "medium",
+                        "backgroundColor": "#f9fafb",
+                        "color": "#374151"
+                      }
+                    },
+                    {
+                      "id": "scene-3-node-1",
+                      "label": "data model",
+                      "type": "entity",
+                      "position": {
+                        "x": 960,
+                        "y": 200
+                      },
+                      "style": {
+                        "borderRadius": 8,
+                        "padding": 12,
+                        "fontSize": 14,
+                        "fontWeight": "medium",
+                        "backgroundColor": "#f9fafb",
+                        "color": "#374151"
+                      }
+                    },
+                    {
+                      "id": "scene-3-node-2",
+                      "label": "performance",
+                      "type": "entity",
+                      "position": {
+                        "x": 200,
+                        "y": 540
+                      },
+                      "style": {
+                        "borderRadius": 8,
+                        "padding": 12,
+                        "fontSize": 14,
+                        "fontWeight": "medium",
+                        "backgroundColor": "#f9fafb",
+                        "color": "#374151"
+                      }
+                    }
+                  ],
+                  "edges": [
+                    {
+                      "from": "scene-3-node-0",
+                      "to": "scene-3-node-1",
+                      "type": "relationship",
+                      "label": "connected to",
+                      "style": {
+                        "strokeWidth": 2,
+                        "stroke": "#6b7280",
+                        "markerEnd": "arrowhead",
+                        "strokeDasharray": "5,5"
+                      }
+                    },
+                    {
+                      "from": "scene-3-node-1",
+                      "to": "scene-3-node-2",
+                      "type": "relationship",
+                      "label": "connected to",
+                      "style": {
+                        "strokeWidth": 2,
+                        "stroke": "#6b7280",
+                        "markerEnd": "arrowhead",
+                        "strokeDasharray": "5,5"
+                      }
+                    }
+                  ],
+                  "metadata": {
+                    "layoutAlgorithm": "grid",
+                    "complexity": 5,
+                    "aestheticScore": 0.934192458858694
+                  }
+                },
+                "animationType": "connection-highlight",
+                "backgroundColor": "#ffffff",
+                "showCaptions": true
+              }
+            },
+            "rendering": {
+              "format": "mp4",
+              "quality": "high",
+              "fps": 30,
+              "resolution": "1920x1080"
+            }
+          },
+          {
+            "sceneId": "scene-4",
+            "duration": 15,
+            "startTime": 45,
+            "endTime": 60,
+            "composition": {
+              "type": "DiagramVideo",
+              "props": {
+                "layout": {
+                  "sceneId": "scene-4",
+                  "diagramType": "wireframe",
+                  "dimensions": {
+                    "width": 1920,
+                    "height": 1080
+                  },
+                  "nodes": [
+                    {
+                      "id": "scene-4-header",
+                      "label": "Header",
+                      "type": "component",
+                      "position": {
+                        "x": 1016.7700493127309,
+                        "y": 547.9740125963776
+                      },
+                      "style": {
+                        "borderRadius": 8,
+                        "padding": 12,
+                        "fontSize": 14,
+                        "fontWeight": "medium",
+                        "backgroundColor": "#f9fafb",
+                        "color": "#374151"
+                      }
+                    },
+                    {
+                      "id": "scene-4-node-0",
+                      "label": "UI",
+                      "type": "component",
+                      "position": {
+                        "x": 1002.3872578368334,
+                        "y": 447.0714954335184
+                      },
+                      "style": {
+                        "borderRadius": 8,
+                        "padding": 12,
+                        "fontSize": 14,
+                        "fontWeight": "medium",
+                        "backgroundColor": "#f9fafb",
+                        "color": "#374151"
+                      }
+                    },
+                    {
+                      "id": "scene-4-node-1",
+                      "label": "usability",
+                      "type": "component",
+                      "position": {
+                        "x": 1108.9599683835056,
+                        "y": 788.5123956522941
+                      },
+                      "style": {
+                        "borderRadius": 8,
+                        "padding": 12,
+                        "fontSize": 14,
+                        "fontWeight": "medium",
+                        "backgroundColor": "#f9fafb",
+                        "color": "#374151"
+                      }
+                    },
+                    {
+                      "id": "scene-4-node-2",
+                      "label": "accessibility",
+                      "type": "component",
+                      "position": {
+                        "x": 757.9270439433935,
+                        "y": 469.7559296753107
+                      },
+                      "style": {
+                        "borderRadius": 8,
+                        "padding": 12,
+                        "fontSize": 14,
+                        "fontWeight": "medium",
+                        "backgroundColor": "#f9fafb",
+                        "color": "#374151"
+                      }
+                    },
+                    {
+                      "id": "scene-4-footer",
+                      "label": "Footer",
+                      "type": "component",
+                      "position": {
+                        "x": 1242.4722793729513,
+                        "y": 806.4671865724881
+                      },
+                      "style": {
+                        "borderRadius": 8,
+                        "padding": 12,
+                        "fontSize": 14,
+                        "fontWeight": "medium",
+                        "backgroundColor": "#f9fafb",
+                        "color": "#374151"
+                      }
+                    }
+                  ],
+                  "edges": [
+                    {
+                      "from": "scene-4-header",
+                      "to": "scene-4-node-0",
+                      "type": "connection",
+                      "label": "related",
+                      "style": {
+                        "strokeWidth": 2,
+                        "stroke": "#6b7280",
+                        "markerEnd": "arrowhead",
+                        "strokeDasharray": "none"
+                      }
+                    },
+                    {
+                      "from": "scene-4-node-0",
+                      "to": "scene-4-node-1",
+                      "type": "connection",
+                      "label": "related",
+                      "style": {
+                        "strokeWidth": 2,
+                        "stroke": "#6b7280",
+                        "markerEnd": "arrowhead",
+                        "strokeDasharray": "none"
+                      }
+                    },
+                    {
+                      "from": "scene-4-node-1",
+                      "to": "scene-4-node-2",
+                      "type": "connection",
+                      "label": "related",
+                      "style": {
+                        "strokeWidth": 2,
+                        "stroke": "#6b7280",
+                        "markerEnd": "arrowhead",
+                        "strokeDasharray": "none"
+                      }
+                    }
+                  ],
+                  "metadata": {
+                    "layoutAlgorithm": "vertical",
+                    "complexity": 8,
+                    "aestheticScore": 0.86796808271519
+                  }
+                },
+                "animationType": "build-up",
+                "backgroundColor": "#ffffff",
+                "showCaptions": true
+              }
+            },
+            "rendering": {
+              "format": "mp4",
+              "quality": "high",
+              "fps": 30,
+              "resolution": "1920x1080"
+            }
+          }
+        ],
+        "processingTime": 0,
+        "metadata": {
+          "renderEngine": "Remotion",
+          "totalFrames": 1800,
+          "estimatedFileSize": "120.0MB",
+          "audioSync": true,
+          "captionsIncluded": true
+        }
+      },
+      "processingTime": 0
+    }
+  ],
+  "finalOutput": null,
+  "metrics": {
+    "totalProcessingTime": 100,
+    "qualityScore": 0.9060723071034511,
+    "successRate": 1,
+    "performanceBreakdown": {
+      "transcription": 0,
+      "segmentation": 0,
+      "detection": 0,
+      "layout": 0,
+      "video": 0
+    },
+    "qualityBreakdown": {
+      "transcriptionAccuracy": 0.925,
+      "sceneSegmentationAccuracy": 0.915,
+      "diagramDetectionAccuracy": 0.885,
+      "layoutAesthetics": 0.9053615355172551,
+      "videoQuality": 0.9
+    },
+    "outputMetrics": {
+      "scenesGenerated": 4,
+      "diagramsCreated": 4,
+      "layoutsGenerated": 4,
+      "videoDuration": 60
+    }
+  }
+}

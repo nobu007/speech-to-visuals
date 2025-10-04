@@ -1,4 +1,4 @@
-import { useCurrentFrame, useVideoConfig, Audio, interpolate, Sequence } from 'remotion';
+import { useCurrentFrame, useVideoConfig, Audio, interpolate, Sequence, Composition } from 'remotion';
 import { VideoProps } from './Root';
 import { DiagramScene } from './DiagramScene';
 

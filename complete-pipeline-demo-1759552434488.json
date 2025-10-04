@@ -1,0 +1,190 @@
+{
+  "timestamp": "2025-10-04T04:33:54.488Z",
+  "demoType": "complete-end-to-end-audio-to-visuals",
+  "scenarios": [
+    {
+      "name": "フローチャート解説",
+      "audioContent": "プロジェクトの流れを説明します。まず企画立案から始まり、要件定義、設計、実装、テスト、リリースという順序で進みます。",
+      "expectedDiagramType": "flow",
+      "expectedNodes": [
+        "企画立案",
+        "要件定義",
+        "設計",
+        "実装",
+        "テスト",
+        "リリース"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "name": "組織図説明",
+      "audioContent": "弊社の組織構造について説明します。CEO直下に営業部、開発部、マーケティング部があります。",
+      "expectedDiagramType": "tree",
+      "expectedNodes": [
+        "CEO",
+        "営業部",
+        "開発部",
+        "マーケティング部"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "name": "プロセス解説",
+      "audioContent": "ユーザー登録プロセスについて説明します。ユーザーが登録フォームに入力し、メール認証を行い、プロファイル設定をします。",
+      "expectedDiagramType": "process",
+      "expectedNodes": [
+        "登録フォーム",
+        "メール認証",
+        "プロファイル設定"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "results": [
+    {
+      "scenario": "フローチャート解説",
+      "transcriptionAccuracy": 0.9500155686715991,
+      "detectedDiagramType": "flow",
+      "nodeCount": 6,
+      "sceneCount": 3,
+      "confidence": 0.8709961046619012,
+      "processingTime": 1053,
+      "qualityScore": 92.12146820309242
+    },
+    {
+      "scenario": "組織図説明",
+      "transcriptionAccuracy": 0.9595696723218095,
+      "detectedDiagramType": "tree",
+      "nodeCount": 4,
+      "sceneCount": 2,
+      "confidence": 0.8635928352242932,
+      "processingTime": 1053,
+      "qualityScore": 88.18485773391382
+    },
+    {
+      "scenario": "プロセス解説",
+      "transcriptionAccuracy": 0.9526592034521003,
+      "detectedDiagramType": "process",
+      "nodeCount": 3,
+      "sceneCount": 2,
+      "confidence": 0.907630834868962,
+      "processingTime": 1051,
+      "qualityScore": 85.75300403773363
+    }
+  ],
+  "overallMetrics": {
+    "averageAccuracy": 0.9540814814818362,
+    "averageQuality": 88.68644332491328,
+    "averageProcessingTime": 1052.3333333333333,
+    "averageConfidence": 0.8807399249183855,
+    "totalScenes": 7,
+    "totalNodes": 13
+  },
+  "qualityAssessment": {
+    "transcription": "優秀",
+    "processing": "高速",
+    "quality": "標準",
+    "confidence": "標準"
+  },
+  "enhancementProposals": [
+    {
+      "category": "パフォーマンス最適化",
+      "priority": "HIGH",
+      "proposals": [
+        "WebWorkerによる並列処理実装",
+        "インクリメンタル処理による応答性向上",
+        "キャッシュレイヤーの追加",
+        "ストリーミング処理の導入"
+      ]
+    },
+    {
+      "category": "AI精度向上",
+      "priority": "HIGH",
+      "proposals": [
+        "カスタム図解検出モデルの訓練",
+        "ドメイン特化の語彙拡張",
+        "コンテキスト理解の強化",
+        "多言語対応の充実"
+      ]
+    },
+    {
+      "category": "ユーザビリティ",
+      "priority": "MEDIUM",
+      "proposals": [
+        "インタラクティブプレビュー機能",
+        "カスタマイズ可能なテンプレート",
+        "バッチ処理機能",
+        "エクスポート形式の拡張"
+      ]
+    },
+    {
+      "category": "拡張機能",
+      "priority": "LOW",
+      "proposals": [
+        "コラボレーション機能",
+        "バージョン管理",
+        "API公開",
+        "プラグインシステム"
+      ]
+    }
+  ],
+  "roadmap": [
+    {
+      "phase": "Phase 1: 基盤強化 (1-2週間)",
+      "goals": [
+        "エラーハンドリング改善",
+        "パフォーマンス最適化",
+        "UI/UX改善"
+      ],
+      "success": "ユーザビリティ向上、安定性確保"
+    },
+    {
+      "phase": "Phase 2: AI精度向上 (2-3週間)",
+      "goals": [
+        "図解検出精度向上",
+        "多様なドメイン対応",
+        "カスタムモデル統合"
+      ],
+      "success": "検出精度90%以上、企業利用レベル達成"
+    },
+    {
+      "phase": "Phase 3: 機能拡張 (3-4週間)",
+      "goals": [
+        "バッチ処理",
+        "API開発",
+        "プラグインシステム"
+      ],
+      "success": "エンタープライズ対応、拡張性確保"
+    },
+    {
+      "phase": "Phase 4: 商用化 (4-6週間)",
+      "goals": [
+        "スケーラビリティ",
+        "セキュリティ強化",
+        "サポート体制"
+      ],
+      "success": "本格商用サービス展開"
+    }
+  ],
+  "systemStatus": {
+    "readiness": "商用プロトタイプレベル",
+    "strengths": [
+      "包括的なパイプライン実装",
+      "高品質なUI/UX",
+      "リアルタイムプレビュー",
+      "プログレッシブエンハンスメント対応"
+    ],
+    "improvements": [
+      "エラーハンドリング強化",
+      "パフォーマンス最適化",
+      "AI精度向上",
+      "スケーラビリティ対応"
+    ],
+    "nextSteps": [
+      "ユーザーテスト実施",
+      "パフォーマンステスト",
+      "セキュリティ監査",
+      "デプロイメント準備"
+    ]
+  }
+}

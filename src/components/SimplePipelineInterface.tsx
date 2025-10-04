@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Upload, Play, Download, AlertCircle, CheckCircle, Loader2, Video, Activity, TrendingUp, Clock, Target, Eye, Layers, Zap } from 'lucide-react';
+import { Upload, Play, Download, AlertCircle, CheckCircle, Loader2, Video, Activity, TrendingUp, Clock, Target, Eye, Layers, Zap, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -301,6 +301,167 @@ export const SimplePipelineInterface: React.FC = () => {
     }
   };
 
+  // Demo functionality (デモ機能)
+  const runDemo = async () => {
+    console.log('🎯 Running demo with mock data...');
+
+    setIsProcessing(true);
+    setError(null);
+    setProgress(0);
+    setCurrentStep('デモを開始しています...');
+
+    // Initialize enhanced metrics (拡張メトリクス初期化)
+    const processingStartTime = Date.now();
+    setStartTime(processingStartTime);
+    setStageStartTime(processingStartTime);
+    setMetrics({
+      currentStage: 'デモ初期化中...',
+      qualityScore: 80,
+      processingSpeed: 0,
+      timeElapsed: 0,
+      estimatedRemaining: 15000, // 15 seconds for demo
+      confidence: 0.9
+    });
+
+    // Initialize real-time preview (リアルタイムプレビュー初期化)
+    setRealtimePreview({
+      transcript: '',
+      currentScene: null,
+      detectedDiagramTypes: [],
+      processingStages: [
+        { name: '音声認識', progress: 0, status: 'pending' },
+        { name: 'シーン分析', progress: 0, status: 'pending' },
+        { name: '図解検出', progress: 0, status: 'pending' },
+        { name: 'レイアウト生成', progress: 0, status: 'pending' },
+        { name: '動画生成', progress: 0, status: 'pending' }
+      ],
+      showPreview: true
+    });
+
+    try {
+      // Simulate transcription stage (音声認識シミュレーション)
+      setCurrentStep('音声を認識中...');
+      setProgress(10);
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      setRealtimePreview(prev => ({
+        ...prev,
+        transcript: 'フローチャートについて説明します。まず開始点があり、その後条件分岐があります。',
+        processingStages: prev.processingStages.map((stage, idx) =>
+          idx === 0 ? { ...stage, status: 'completed', progress: 100 } : stage
+        )
+      }));
+
+      // Simulate scene analysis (シーン分析シミュレーション)
+      setCurrentStep('シーンを分析中...');
+      setProgress(30);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      setRealtimePreview(prev => ({
+        ...prev,
+        processingStages: prev.processingStages.map((stage, idx) =>
+          idx === 1 ? { ...stage, status: 'completed', progress: 100 } : stage
+        )
+      }));
+
+      // Simulate diagram detection (図解検出シミュレーション)
+      setCurrentStep('図解タイプを検出中...');
+      setProgress(50);
+      await new Promise(resolve => setTimeout(resolve, 1200));
+
+      setRealtimePreview(prev => ({
+        ...prev,
+        detectedDiagramTypes: [
+          { type: 'フローチャート', confidence: 0.95 },
+          { type: 'プロセス図', confidence: 0.88 }
+        ],
+        processingStages: prev.processingStages.map((stage, idx) =>
+          idx === 2 ? { ...stage, status: 'completed', progress: 100 } : stage
+        )
+      }));
+
+      // Simulate layout generation (レイアウト生成シミュレーション)
+      setCurrentStep('レイアウトを生成中...');
+      setProgress(70);
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      const mockScene: SceneGraph = {
+        id: 'demo-scene-1',
+        startTime: 0,
+        endTime: 30,
+        content: 'フローチャートについて説明します。まず開始点があり、その後条件分岐があります。条件に応じて異なる処理が実行されます。',
+        type: 'flow',
+        confidence: 0.92,
+        layout: {
+          nodes: [
+            { id: '開始', x: 200, y: 300, width: 120, height: 60, label: '開始' },
+            { id: '条件分岐', x: 400, y: 300, width: 120, height: 60, label: '条件分岐' },
+            { id: '処理A', x: 300, y: 450, width: 120, height: 60, label: '処理A' },
+            { id: '処理B', x: 500, y: 450, width: 120, height: 60, label: '処理B' }
+          ],
+          edges: [
+            { id: 'edge-1', from: '開始', to: '条件分岐', type: 'flow' },
+            { id: 'edge-2', from: '条件分岐', to: '処理A', type: 'conditional', label: 'Yes' },
+            { id: 'edge-3', from: '条件分岐', to: '処理B', type: 'conditional', label: 'No' }
+          ]
+        }
+      };
+
+      setRealtimePreview(prev => ({
+        ...prev,
+        currentScene: mockScene,
+        processingStages: prev.processingStages.map((stage, idx) =>
+          idx === 3 ? { ...stage, status: 'completed', progress: 100 } : stage
+        )
+      }));
+
+      // Simulate video generation if enabled
+      if (includeVideo) {
+        setCurrentStep('動画を生成中...');
+        setProgress(85);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        setRealtimePreview(prev => ({
+          ...prev,
+          processingStages: prev.processingStages.map((stage, idx) =>
+            idx === 4 ? { ...stage, status: 'completed', progress: 100 } : stage
+          )
+        }));
+      }
+
+      // Complete demo
+      setCurrentStep('デモ完了！');
+      setProgress(100);
+
+      const processingTime = Date.now() - processingStartTime;
+
+      // Create mock result
+      const demoResult: SimplePipelineResult = {
+        success: true,
+        audioUrl: 'demo://sample-audio',
+        transcript: 'フローチャートについて説明します。まず開始点があり、その後条件分岐があります。条件に応じて異なる処理が実行されます。',
+        scenes: [mockScene],
+        processingTime,
+        ...(includeVideo && { videoUrl: 'demo://sample-video.mp4' })
+      };
+
+      setResult(demoResult);
+      toast.success(`デモが完了しました！処理時間: ${(processingTime / 1000).toFixed(1)}秒`);
+
+      // Get progressive enhancement metrics from SimplePipeline
+      const pipelineMetrics = simplePipeline.getProgressiveMetrics();
+      console.log('📈 Demo Progressive Enhancement Metrics:', pipelineMetrics);
+
+    } catch (error) {
+      console.error('❌ Demo failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'デモの実行に失敗しました';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
@@ -333,9 +494,25 @@ export const SimplePipelineInterface: React.FC = () => {
                 onChange={handleFileSelect}
                 className="hidden"
               />
-              <Button onClick={() => fileInputRef.current?.click()}>
-                ファイルを選択
-              </Button>
+              <div className="space-y-3">
+                <Button onClick={() => fileInputRef.current?.click()}>
+                  ファイルを選択
+                </Button>
+
+                {/* Demo Button (デモボタン) */}
+                <div className="flex items-center justify-center gap-4 pt-4 border-t border-muted-foreground/20">
+                  <span className="text-sm text-muted-foreground">または</span>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={runDemo}
+                  className="w-full bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 border-2 border-dashed border-blue-200 dark:border-blue-800 hover:from-blue-100 hover:to-purple-100 dark:hover:from-blue-900 dark:hover:to-purple-900"
+                >
+                  <Sparkles className="w-4 h-4 mr-2 text-blue-600" />
+                  デモを実行する
+                  <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(サンプルデータで試す)</span>
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

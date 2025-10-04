@@ -7,7 +7,7 @@ Config.setOverwriteOutput(true);
 
 // Performance settings
 Config.setConcurrency(2);
-Config.setFrameRange([0, 1500]);
+// Config.setFrameRange([0, 1500]); // Removed to allow dynamic composition duration
 
 // Quality settings
 Config.setPixelFormat('yuv420p');

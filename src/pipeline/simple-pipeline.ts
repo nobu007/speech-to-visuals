@@ -71,10 +71,7 @@ export class SimplePipeline {
       confidenceThreshold: 0.6
     });
 
-    this.detector = new DiagramDetector({
-      defaultType: 'flow',
-      confidenceThreshold: 0.5
-    });
+    this.detector = new DiagramDetector();
 
     this.layoutEngine = new LayoutEngine({
       width: 1920,
@@ -145,31 +142,31 @@ export class SimplePipeline {
 
       // Step 3: Scene Segmentation with Continuous Learning Integration
       const segmentationStartTime = Date.now();
-      const sceneResult = await this.segmenter.segment(
+      const contentSegments = await this.segmenter.segment(
         transcriptionResult.segments
       );
 
       const segmentationProcessingTime = Date.now() - segmentationStartTime;
-      const segmentationQuality = sceneResult.success && sceneResult.scenes?.length > 0 ?
-        Math.min(0.95, 0.7 + (sceneResult.scenes.length / 10) * 0.25) : 0.3;
+      const segmentationQuality = contentSegments && contentSegments.length > 0 ?
+        Math.min(0.95, 0.7 + (contentSegments.length / 10) * 0.25) : 0.3;
 
       // Custom Instructions: Learn from scene segmentation results
       await continuousLearner.learnFromProcessingResult(
         'scene_segmentation',
         { segments: transcriptionResult.segments },
-        sceneResult,
+        { segments: contentSegments, success: contentSegments.length > 0 },
         segmentationProcessingTime,
         segmentationQuality,
-        sceneResult.success,
-        sceneResult.success ? [] : ['scene_segmentation_failed'],
+        contentSegments.length > 0,
+        contentSegments.length === 0 ? ['scene_segmentation_failed'] : [],
         {
           segmentCount: transcriptionResult.segments?.length || 0,
-          sceneCount: sceneResult.scenes?.length || 0,
+          sceneCount: contentSegments?.length || 0,
           customInstructionsPhase: '内容分析'
         }
       );
 
-      if (!sceneResult.success || !sceneResult.scenes) {
+      if (!contentSegments || contentSegments.length === 0) {
         throw new Error('Scene segmentation failed');
       }
 
@@ -179,27 +176,25 @@ export class SimplePipeline {
       const scenes: SceneGraph[] = [];
       const diagramDetectionStartTime = Date.now();
 
-      for (const scene of sceneResult.scenes) {
+      for (const segment of contentSegments) {
         const sceneStartTime = Date.now();
 
         // Detect diagram type for this scene
-        const diagramAnalysis = await this.detector.detectDiagramType(
-          scene.content
-        );
+        const diagramAnalysis = await this.detector.analyze(segment);
 
         const diagramDetectionTime = Date.now() - sceneStartTime;
 
         // Custom Instructions: Learn from diagram detection
         await continuousLearner.learnFromProcessingResult(
           'diagram_detection',
-          { content: scene.content },
+          { content: segment.text },
           diagramAnalysis,
           diagramDetectionTime,
           diagramAnalysis.confidence,
           diagramAnalysis.confidence > 0.6,
           diagramAnalysis.confidence <= 0.6 ? ['low_confidence_detection'] : [],
           {
-            sceneId: scene.id,
+            segmentId: `scene-${Date.now()}-${Math.random()}`,
             detectedType: diagramAnalysis.type,
             customInstructionsPhase: '図解生成'
           }
@@ -207,12 +202,11 @@ export class SimplePipeline {
 
         // Generate layout
         const layoutStartTime = Date.now();
-        const layoutResult = await this.layoutEngine.generateLayout({
-          type: diagramAnalysis.type,
-          content: scene.content,
-          nodes: diagramAnalysis.nodes || [],
-          relationships: diagramAnalysis.relationships || []
-        });
+        const layoutResult = await this.layoutEngine.generateLayout(
+          diagramAnalysis.nodes || [],
+          diagramAnalysis.edges || [],
+          diagramAnalysis.type
+        );
 
         const layoutProcessingTime = Date.now() - layoutStartTime;
         const layoutQuality = layoutResult.success && layoutResult.layout ?
@@ -228,7 +222,7 @@ export class SimplePipeline {
           layoutResult.success,
           layoutResult.success ? [] : ['layout_generation_failed'],
           {
-            sceneId: scene.id,
+            segmentId: `scene-${Date.now()}-${Math.random()}`,
             diagramType: diagramAnalysis.type,
             nodeCount: diagramAnalysis.nodes?.length || 0,
             customInstructionsPhase: '図解生成'
@@ -236,11 +230,12 @@ export class SimplePipeline {
         );
 
         if (layoutResult.success && layoutResult.layout) {
+          const sceneId = `scene-${Date.now()}-${Math.random()}`;
           scenes.push({
-            id: scene.id,
-            startTime: scene.startTime,
-            endTime: scene.endTime,
-            content: scene.content,
+            id: sceneId,
+            startTime: segment.startMs / 1000, // Convert ms to seconds
+            endTime: segment.endMs / 1000,     // Convert ms to seconds
+            content: segment.text,
             type: diagramAnalysis.type,
             layout: layoutResult.layout,
             confidence: Math.min(
@@ -256,16 +251,16 @@ export class SimplePipeline {
       // Custom Instructions: Learn from overall diagram pipeline performance
       await continuousLearner.learnFromProcessingResult(
         'diagram_pipeline',
-        { sceneCount: sceneResult.scenes.length },
+        { segmentCount: contentSegments.length },
         { scenes, totalScenes: scenes.length },
         totalDiagramProcessingTime,
         scenes.length > 0 ? 0.9 : 0.3,
         scenes.length > 0,
         scenes.length === 0 ? ['no_scenes_generated'] : [],
         {
-          inputScenes: sceneResult.scenes.length,
+          inputSegments: contentSegments.length,
           outputScenes: scenes.length,
-          successRate: scenes.length / sceneResult.scenes.length,
+          successRate: scenes.length / contentSegments.length,
           customInstructionsPhase: '図解生成'
         }
       );

@@ -1,0 +1,239 @@
+{
+  "timestamp": "2025-10-04T04:30:21.445Z",
+  "testType": "pipeline-functionality-test",
+  "mockData": {
+    "transcription": {
+      "segments": [
+        {
+          "id": 1,
+          "start": 0,
+          "end": 10,
+          "text": "フローチャートについて説明します。"
+        },
+        {
+          "id": 2,
+          "start": 10,
+          "end": 20,
+          "text": "まず開始点があり、その後条件分岐があります。"
+        },
+        {
+          "id": 3,
+          "start": 20,
+          "end": 30,
+          "text": "条件に応じて異なる処理が実行されます。"
+        }
+      ]
+    },
+    "scenes": [
+      {
+        "id": "scene-1",
+        "startTime": 0,
+        "endTime": 10,
+        "content": "フローチャートについて説明します。",
+        "type": "introduction",
+        "confidence": 0.95
+      },
+      {
+        "id": "scene-2",
+        "startTime": 10,
+        "endTime": 20,
+        "content": "まず開始点があり、その後条件分岐があります。",
+        "type": "flow",
+        "confidence": 0.88
+      },
+      {
+        "id": "scene-3",
+        "startTime": 20,
+        "endTime": 30,
+        "content": "条件に応じて異なる処理が実行されます。",
+        "type": "flow",
+        "confidence": 0.92
+      }
+    ],
+    "diagrams": [
+      {
+        "sceneId": "scene-1",
+        "type": "concept",
+        "confidence": 0.95,
+        "nodes": [
+          "フローチャート"
+        ],
+        "relationships": []
+      },
+      {
+        "sceneId": "scene-2",
+        "type": "flow",
+        "confidence": 0.88,
+        "nodes": [
+          "開始",
+          "条件分岐"
+        ],
+        "relationships": [
+          {
+            "from": "開始",
+            "to": "条件分岐",
+            "type": "flow"
+          }
+        ]
+      },
+      {
+        "sceneId": "scene-3",
+        "type": "flow",
+        "confidence": 0.92,
+        "nodes": [
+          "条件分岐",
+          "処理A",
+          "処理B"
+        ],
+        "relationships": [
+          {
+            "from": "条件分岐",
+            "to": "処理A",
+            "type": "conditional",
+            "label": "Yes"
+          },
+          {
+            "from": "条件分岐",
+            "to": "処理B",
+            "type": "conditional",
+            "label": "No"
+          }
+        ]
+      }
+    ],
+    "layouts": [
+      {
+        "sceneId": "scene-1",
+        "type": "concept",
+        "width": 1920,
+        "height": 1080,
+        "nodes": [
+          {
+            "id": "フローチャート",
+            "x": 200,
+            "y": 400,
+            "width": 150,
+            "height": 80,
+            "label": "フローチャート"
+          }
+        ],
+        "edges": []
+      },
+      {
+        "sceneId": "scene-2",
+        "type": "flow",
+        "width": 1920,
+        "height": 1080,
+        "nodes": [
+          {
+            "id": "開始",
+            "x": 200,
+            "y": 400,
+            "width": 150,
+            "height": 80,
+            "label": "開始"
+          },
+          {
+            "id": "条件分岐",
+            "x": 500,
+            "y": 400,
+            "width": 150,
+            "height": 80,
+            "label": "条件分岐"
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge-0",
+            "from": "開始",
+            "to": "条件分岐",
+            "type": "flow",
+            "label": ""
+          }
+        ]
+      },
+      {
+        "sceneId": "scene-3",
+        "type": "flow",
+        "width": 1920,
+        "height": 1080,
+        "nodes": [
+          {
+            "id": "条件分岐",
+            "x": 200,
+            "y": 400,
+            "width": 150,
+            "height": 80,
+            "label": "条件分岐"
+          },
+          {
+            "id": "処理A",
+            "x": 500,
+            "y": 400,
+            "width": 150,
+            "height": 80,
+            "label": "処理A"
+          },
+          {
+            "id": "処理B",
+            "x": 800,
+            "y": 400,
+            "width": 150,
+            "height": 80,
+            "label": "処理B"
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge-0",
+            "from": "条件分岐",
+            "to": "処理A",
+            "type": "conditional",
+            "label": "Yes"
+          },
+          {
+            "id": "edge-1",
+            "from": "条件分岐",
+            "to": "処理B",
+            "type": "conditional",
+            "label": "No"
+          }
+        ]
+      }
+    ]
+  },
+  "qualityMetrics": {
+    "transcription": {
+      "accuracy": 0.95,
+      "wordCount": 3,
+      "totalDuration": 30
+    },
+    "sceneSegmentation": {
+      "sceneCount": 3,
+      "averageConfidence": 0.9166666666666666,
+      "averageSceneDuration": 10
+    },
+    "diagramDetection": {
+      "detectedTypes": [
+        "concept",
+        "flow"
+      ],
+      "averageConfidence": 0.9166666666666666,
+      "totalNodes": 6,
+      "totalRelationships": 3
+    }
+  },
+  "processingTimes": {
+    "transcription": 5000,
+    "sceneSegmentation": 2000,
+    "diagramDetection": 3000,
+    "layoutGeneration": 1500,
+    "videoGeneration": 8000
+  },
+  "summary": {
+    "totalScenes": 3,
+    "uniqueDiagramTypes": 2,
+    "totalProcessingTime": 19500,
+    "averageQualityScore": 0.9277777777777777
+  }
+}
