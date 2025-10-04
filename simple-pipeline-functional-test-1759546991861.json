@@ -1,0 +1,53 @@
+{
+  "timestamp": "2025-10-04T03:03:11.861Z",
+  "testDuration": 979.029122,
+  "testResults": {
+    "basicProcessing": true,
+    "videoGeneration": true,
+    "progressTracking": true,
+    "errorHandling": true
+  },
+  "performanceMetrics": {
+    "avgProcessingTime": 343,
+    "qualityScore": 74.807,
+    "successRate": 100
+  },
+  "capabilities": {
+    "transcription": {
+      "model": "mock-whisper",
+      "supportedFormats": [
+        "wav",
+        "mp3"
+      ],
+      "maxDuration": "30 minutes"
+    },
+    "analysis": {
+      "sceneDetection": true,
+      "diagramTypes": [
+        "flow",
+        "erd",
+        "concept"
+      ],
+      "languageSupport": [
+        "ja",
+        "en"
+      ]
+    },
+    "visualization": {
+      "layoutTypes": [
+        "dagre",
+        "force"
+      ],
+      "outputFormats": [
+        "svg"
+      ],
+      "maxNodes": 50
+    },
+    "progressiveEnhancement": {
+      "enabled": true,
+      "trackingMetrics": [],
+      "iterationCount": 0
+    }
+  },
+  "overallSuccess": true
+}
