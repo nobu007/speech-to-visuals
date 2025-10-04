@@ -55,6 +55,9 @@ export class ProductionErrorHandler {
   private sessionId: string;
   private errorCallbacks: Map<string, Function[]> = new Map();
   private recoveryAttempts: Map<string, number> = new Map();
+  private metricsIntervalId: NodeJS.Timeout | null = null;
+  private globalErrorHandler: ((event: ErrorEvent) => void) | null = null;
+  private unhandledRejectionHandler: ((event: PromiseRejectionEvent) => void) | null = null;
 
   constructor() {
     this.sessionId = this.generateSessionId();
@@ -74,20 +77,22 @@ export class ProductionErrorHandler {
    */
   private initializeGlobalErrorHandling(): void {
     // Catch unhandled promise rejections
-    window.addEventListener('unhandledrejection', (event) => {
+    this.unhandledRejectionHandler = (event) => {
       this.handleError(
         new Error(`Unhandled Promise Rejection: ${event.reason}`),
         { component: 'GlobalHandler' }
       );
-    });
+    };
+    window.addEventListener('unhandledrejection', this.unhandledRejectionHandler);
 
     // Catch global JavaScript errors
-    window.addEventListener('error', (event) => {
+    this.globalErrorHandler = (event) => {
       this.handleError(
         new Error(`Global Error: ${event.message}`),
         { component: 'GlobalHandler' }
       );
-    });
+    };
+    window.addEventListener('error', this.globalErrorHandler);
 
     console.log('🛡️ Production error handler initialized');
   }
@@ -96,10 +101,39 @@ export class ProductionErrorHandler {
    * Start metrics collection timer
    */
   private startMetricsCollection(): void {
-    setInterval(() => {
+    this.metricsIntervalId = setInterval(() => {
       this.updateMetrics();
       this.checkErrorThresholds();
     }, 30000); // Every 30 seconds
+  }
+
+  /**
+   * Clean up resources and stop monitoring
+   */
+  public destroy(): void {
+    // Clear intervals
+    if (this.metricsIntervalId) {
+      clearInterval(this.metricsIntervalId);
+      this.metricsIntervalId = null;
+    }
+
+    // Remove event listeners
+    if (this.globalErrorHandler) {
+      window.removeEventListener('error', this.globalErrorHandler);
+      this.globalErrorHandler = null;
+    }
+
+    if (this.unhandledRejectionHandler) {
+      window.removeEventListener('unhandledrejection', this.unhandledRejectionHandler);
+      this.unhandledRejectionHandler = null;
+    }
+
+    // Clear data structures
+    this.errorQueue.length = 0;
+    this.errorCallbacks.clear();
+    this.recoveryAttempts.clear();
+
+    console.log('🛡️ Production error handler destroyed and cleaned up');
   }
 
   /**

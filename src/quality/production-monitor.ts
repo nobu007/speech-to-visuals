@@ -64,6 +64,7 @@ export class ProductionMonitor extends EventEmitter {
     quality: { transcriptionAccuracy: 0, analysisAccuracy: 0, layoutQuality: 0, overallQuality: 0, userSatisfaction: 0 },
     reliability: { uptime: 0, mtbf: 0, mttr: 0, availabilityPercent: 100 }
   };
+  private intervalIds: NodeJS.Timeout[] = [];
 
   private alerts: Alert[] = [];
   private recommendations: OptimizationRecommendation[] = [];
@@ -123,7 +124,7 @@ export class ProductionMonitor extends EventEmitter {
   private startMonitoring(interval: number): void {
     this.isMonitoring = true;
 
-    setInterval(async () => {
+    this.intervalIds.push(setInterval(async () => {
       if (this.isMonitoring) {
         await this.collectMetrics();
         await this.analyzePerformance();

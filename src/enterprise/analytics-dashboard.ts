@@ -77,6 +77,7 @@ export interface BusinessIntelligence {
 
 export class EnterpriseAnalyticsDashboard {
   private metrics: Map<string, AnalyticsMetric> = new Map();
+  private intervalIds: NodeJS.Timeout[] = [];
   private widgets: Map<string, DashboardWidget> = new Map();
   private alertRules: Map<string, AlertRule> = new Map();
   private historicalData: Map<string, any[]> = new Map();
@@ -411,7 +412,7 @@ export class EnterpriseAnalyticsDashboard {
   }
 
   private startDataCollection(): void {
-    this.refreshInterval = setInterval(() => {
+    this.refreshInterval = this.intervalIds.push(setInterval(() => {
       this.updateAllMetrics();
       this.checkAlertRules();
       this.broadcastUpdate();

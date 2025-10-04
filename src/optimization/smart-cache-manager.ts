@@ -24,6 +24,7 @@ export interface CacheMetrics {
 
 export class SmartCacheManager {
   private cache = new Map<string, CacheEntry<any>>();
+  private intervalIds: NodeJS.Timeout[] = [];
   private accessHistory = new Map<string, number[]>();
   private maxMemoryMB: number;
   private maxAge: number;
@@ -194,7 +195,7 @@ export class SmartCacheManager {
    * Maintenance and optimization
    */
   private startMaintenanceLoop(): void {
-    setInterval(() => {
+    this.intervalIds.push(setInterval(() => {
       this.runMaintenance();
     }, 5 * 60 * 1000); // Every 5 minutes
   }

@@ -93,6 +93,7 @@ export interface HealthMetric {
  */
 export class ProductionMonitoringExcellence {
   private metrics = new Map<string, any>();
+  private intervalIds: NodeJS.Timeout[] = [];
   private alerts: any[] = [];
   private insights: PredictiveInsight[] = [];
   private monitoringEnabled = true;
@@ -166,7 +167,7 @@ export class ProductionMonitoringExcellence {
     console.log('⚡ Setting up real-time optimization engine...');
 
     // Start optimization loop
-    setInterval(() => {
+    this.intervalIds.push(setInterval(() => {
       this.executeRealTimeOptimization();
     }, 5000); // Optimize every 5 seconds
   }
@@ -505,4 +506,12 @@ export const globalProductionMonitoring = new ProductionMonitoringExcellence();
 export async function executeMonitoringEnhancement(): Promise<MonitoringEnhancement> {
   console.log('🚀 Executing Iteration 25 Phase 2: Monitoring Excellence Enhancement...');
   return await globalProductionMonitoring.enhanceMonitoringSystem();
+
+  /**
+   * Clean up intervals and prevent memory leaks
+   */
+  public destroy(): void {
+    this.intervalIds.forEach(id => clearInterval(id));
+    this.intervalIds = [];
+  }
 }

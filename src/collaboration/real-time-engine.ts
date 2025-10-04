@@ -91,6 +91,7 @@ export interface ConflictResolution {
 
 export class RealTimeCollaborationEngine {
   private sessions: Map<string, CollaborationSession>;
+  private intervalIds: NodeJS.Timeout[] = [];
   private websockets: Map<string, WebSocket>;
   private operationHistory: Map<string, CollaborationOperation[]>;
   private conflictResolver: ConflictResolver;
@@ -466,7 +467,7 @@ export class RealTimeCollaborationEngine {
    * Initialize fallback polling mechanism
    */
   private initializeFallbackPolling(): void {
-    setInterval(() => {
+    this.intervalIds.push(setInterval(() => {
       this.pollForOperations();
     }, 2000); // Poll every 2 seconds
 
@@ -593,5 +594,13 @@ export class CollaborationMetrics {
 
   static calculateLatency(operation: CollaborationOperation): number {
     return Date.now() - operation.timestamp.getTime();
+  }
+
+  /**
+   * Clean up intervals and prevent memory leaks
+   */
+  public destroy(): void {
+    this.intervalIds.forEach(id => clearInterval(id));
+    this.intervalIds = [];
   }
 }

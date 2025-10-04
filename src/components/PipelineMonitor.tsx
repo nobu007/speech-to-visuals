@@ -191,27 +191,27 @@ export function PipelineMonitor({ onStartPipeline, onStopPipeline, audioFile }: 
     }
   };
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-    }
+    }, [])
   };
 
-  const handleStart = () => {
+  const handleStart = useCallback(() => {
     if (selectedFile) {
       onStartPipeline?.(selectedFile);
       simulatePipeline();
-    }
+    }, [])
   };
 
-  const handleStop = () => {
+  const handleStop = useCallback(() => {
     onStopPipeline?.();
     setPipelineState(prev => ({
       ...prev,
       isRunning: false,
       currentStage: null
-    }));
+    }, [])));
   };
 
   const getStageIcon = (stageName: string) => {

@@ -51,6 +51,7 @@ export interface ResourceAllocation {
 
 export class MultiTenantManager {
   private tenants: Map<string, TenantConfig> = new Map();
+  private intervalIds: NodeJS.Timeout[] = [];
   private metrics: Map<string, TenantMetrics> = new Map();
   private resourceAllocations: Map<string, ResourceAllocation> = new Map();
   private isolationNamespaces: Map<string, string> = new Map();
@@ -371,7 +372,7 @@ export class MultiTenantManager {
 
   private startMetricsCollection(): void {
     // Reset hourly API call counters
-    setInterval(() => {
+    this.intervalIds.push(setInterval(() => {
       for (const [tenantId, metrics] of this.metrics.entries()) {
         metrics.apiCallsThisHour = 0;
         this.metrics.set(tenantId, metrics);
@@ -379,7 +380,7 @@ export class MultiTenantManager {
     }, 60 * 60 * 1000); // Every hour
 
     // Reset daily processing minutes
-    setInterval(() => {
+    this.intervalIds.push(setInterval(() => {
       for (const [tenantId, metrics] of this.metrics.entries()) {
         metrics.processingMinutesToday = 0;
         this.metrics.set(tenantId, metrics);

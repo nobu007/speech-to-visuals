@@ -139,6 +139,12 @@ const Index = () => {
 
         {/* Processing Mode Toggle */}
         <div className="flex justify-center gap-4 mb-8">
+          <a
+            href="/simple"
+            className="px-6 py-3 rounded-lg transition-all bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
+          >
+            🚀 Simple Pipeline (MVP)
+          </a>
           <button
             onClick={() => {
               setUseNewPipeline(true);

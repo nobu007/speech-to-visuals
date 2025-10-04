@@ -1,0 +1,1616 @@
+{
+  "timestamp": "2025-10-04T01:08:26.419Z",
+  "analysis": {
+    "codebase": {
+      "totalFiles": 217,
+      "totalLines": 89023,
+      "modules": {
+        "ai": {
+          "totalFiles": 6,
+          "totalLines": 6744,
+          "modules": {},
+          "fileTypes": {
+            ".ts": 6
+          }
+        },
+        "analysis": {
+          "totalFiles": 14,
+          "totalLines": 8425,
+          "modules": {},
+          "fileTypes": {
+            ".ts": 14
+          }
+        },
+        "animation": {
+          "totalFiles": 2,
+          "totalLines": 1642,
+          "modules": {},
+          "fileTypes": {
+            ".ts": 2
+          }
+        },
+        "collaboration": {
+          "totalFiles": 2,
+          "totalLines": 1100,
+          "modules": {},
+          "fileTypes": {
+            ".tsx": 1,
+            ".ts": 1
+          }
+        },
+        "components": {
+          "totalFiles": 65,
+          "totalLines": 10342,
+          "modules": {
+            "ui": {
+              "totalFiles": 49,
+              "totalLines": 4003,
+              "modules": {},
+              "fileTypes": {
+                ".tsx": 48,
+                ".ts": 1
+              }
+            }
+          },
+          "fileTypes": {
+            ".tsx": 16
+          }
+        },
+        "config": {
+          "totalFiles": 1,
+          "totalLines": 471,
+          "modules": {},
+          "fileTypes": {
+            ".ts": 1
+          }
+        },
+        "enterprise": {
+          "totalFiles": 4,
+          "totalLines": 2268,
+          "modules": {},
+          "fileTypes": {
+            ".ts": 4
+          }
+        },
+        "export": {
+          "totalFiles": 3,
+          "totalLines": 1917,
+          "modules": {},
+          "fileTypes": {
+            ".ts": 2,
+            ".tsx": 1
+          }
+        },
+        "framework": {
+          "totalFiles": 13,
+          "totalLines": 4929,
+          "modules": {},
+          "fileTypes": {
+            ".ts": 13
+          }
+        },
+        "hooks": {
+          "totalFiles": 3,
+          "totalLines": 496,
+          "modules": {},
+          "fileTypes": {
+            ".tsx": 1,
+            ".ts": 2
+          }
+        },
+        "integrations": {
+          "totalFiles": 2,
+          "totalLines": 202,
+          "modules": {
+            "supabase": {
+              "totalFiles": 2,
+              "totalLines": 202,
+              "modules": {},
+              "fileTypes": {
+                ".ts": 2
+              }
+            }
+          },
+          "fileTypes": {}
+        },
+        "lib": {
+          "totalFiles": 2,
+          "totalLines": 159,
+          "modules": {},
+          "fileTypes": {
+            ".ts": 2
+          }
+        },
+        "monitoring": {
+          "totalFiles": 3,
+          "totalLines": 1748,
+          "modules": {},
+          "fileTypes": {
+            ".ts": 3
+          }
+        },
+        "optimization": {
+          "totalFiles": 25,
+          "totalLines": 13796,
+          "modules": {},
+          "fileTypes": {
+            ".ts": 25
+          }
+        },
+        "pages": {
+          "totalFiles": 4,
+          "totalLines": 691,
+          "modules": {},
+          "fileTypes": {
+            ".tsx": 4
+          }
+        },
+        "performance": {
+          "totalFiles": 5,
+          "totalLines": 3247,
+          "modules": {},
+          "fileTypes": {
+            ".ts": 5
+          }
+        },
+        "pipeline": {
+          "totalFiles": 21,
+          "totalLines": 12247,
+          "modules": {},
+          "fileTypes": {
+            ".ts": 21
+          }
+        },
+        "quality": {
+          "totalFiles": 9,
+          "totalLines": 5057,
+          "modules": {},
+          "fileTypes": {
+            ".ts": 9
+          }
+        },
+        "remotion": {
+          "totalFiles": 5,
+          "totalLines": 657,
+          "modules": {},
+          "fileTypes": {
+            ".tsx": 4,
+            ".ts": 1
+          }
+        },
+        "templates": {
+          "totalFiles": 2,
+          "totalLines": 1503,
+          "modules": {},
+          "fileTypes": {
+            ".ts": 1,
+            ".tsx": 1
+          }
+        },
+        "test": {
+          "totalFiles": 2,
+          "totalLines": 1095,
+          "modules": {},
+          "fileTypes": {
+            ".ts": 2
+          }
+        },
+        "transcription": {
+          "totalFiles": 11,
+          "totalLines": 4591,
+          "modules": {},
+          "fileTypes": {
+            ".ts": 11
+          }
+        },
+        "types": {
+          "totalFiles": 1,
+          "totalLines": 63,
+          "modules": {},
+          "fileTypes": {
+            ".ts": 1
+          }
+        },
+        "visualization": {
+          "totalFiles": 9,
+          "totalLines": 5586,
+          "modules": {},
+          "fileTypes": {
+            ".ts": 9
+          }
+        }
+      },
+      "complexity": {
+        "avgLinesPerFile": 410.2442396313364,
+        "moduleCount": 24,
+        "complexityScore": 144.46049508014423
+      },
+      "coverage": {
+        "testFiles": 2,
+        "sourceFiles": 217,
+        "estimatedCoverage": 0.9216589861751152
+      },
+      "quality": {
+        "duplicateCode": {
+          "count": 0,
+          "files": []
+        },
+        "largeFiles": [
+          {
+            "file": "src/ai/enhanced-neural-analyzer.ts",
+            "lines": 1643
+          },
+          {
+            "file": "src/ai/enhanced-context-engine.ts",
+            "lines": 1586
+          },
+          {
+            "file": "src/quality/enhanced-error-recovery.ts",
+            "lines": 1483
+          },
+          {
+            "file": "src/ai/ai-integration-pipeline.ts",
+            "lines": 1451
+          },
+          {
+            "file": "src/pipeline/main-pipeline.ts",
+            "lines": 1357
+          },
+          {
+            "file": "src/analysis/adaptive-content-processor.ts",
+            "lines": 1313
+          },
+          {
+            "file": "src/animation/scene-animator.ts",
+            "lines": 1203
+          },
+          {
+            "file": "src/optimization/ultra-parallel-processor.ts",
+            "lines": 1062
+          },
+          {
+            "file": "src/ai/recursive-development-framework.ts",
+            "lines": 997
+          },
+          {
+            "file": "src/templates/template-library.ts",
+            "lines": 986
+          },
+          {
+            "file": "src/visualization/layout-engine.ts",
+            "lines": 972
+          },
+          {
+            "file": "src/visualization/smart-layout-optimizer.ts",
+            "lines": 961
+          },
+          {
+            "file": "src/analysis/diagram-detector.ts",
+            "lines": 943
+          },
+          {
+            "file": "src/performance/memory-optimizer.ts",
+            "lines": 923
+          },
+          {
+            "file": "src/visualization/complex-layout-engine.ts",
+            "lines": 923
+          },
+          {
+            "file": "src/transcription/enhanced-browser-transcriber.ts",
+            "lines": 908
+          },
+          {
+            "file": "src/performance/intelligent-cache.ts",
+            "lines": 903
+          },
+          {
+            "file": "src/visualization/zero-overlap-layout-engine.ts",
+            "lines": 900
+          },
+          {
+            "file": "src/analysis/advanced-semantic-detector.ts",
+            "lines": 875
+          },
+          {
+            "file": "src/optimization/ultra-intelligent-cache.ts",
+            "lines": 867
+          },
+          {
+            "file": "src/analysis/content-analyzer.ts",
+            "lines": 802
+          },
+          {
+            "file": "src/pipeline/framework-integrated-pipeline.ts",
+            "lines": 800
+          },
+          {
+            "file": "src/pipeline/iteration-18-advanced-ux-pipeline.ts",
+            "lines": 791
+          },
+          {
+            "file": "src/quality/quality-monitor.ts",
+            "lines": 789
+          },
+          {
+            "file": "src/pipeline/iteration-19-next-gen-intelligence.ts",
+            "lines": 781
+          },
+          {
+            "file": "src/pipeline/iteration-14-ultra-high-performance-pipeline.ts",
+            "lines": 780
+          },
+          {
+            "file": "src/pipeline/enhanced-error-recovery.ts",
+            "lines": 776
+          },
+          {
+            "file": "src/pipeline/audio-diagram-pipeline.ts",
+            "lines": 772
+          },
+          {
+            "file": "src/export/enhanced-export-engine.ts",
+            "lines": 751
+          },
+          {
+            "file": "src/optimization/predictive-error-prevention.ts",
+            "lines": 741
+          },
+          {
+            "file": "src/transcription/multilingual-optimizer.ts",
+            "lines": 740
+          },
+          {
+            "file": "src/optimization/predictive-cache.ts",
+            "lines": 732
+          },
+          {
+            "file": "src/optimization/ultra-adaptive-processor.ts",
+            "lines": 725
+          },
+          {
+            "file": "src/analysis/advanced-diagram-detector.ts",
+            "lines": 724
+          },
+          {
+            "file": "src/enterprise/analytics-dashboard.ts",
+            "lines": 711
+          },
+          {
+            "file": "src/pipeline/ai-enhanced-pipeline.ts",
+            "lines": 706
+          },
+          {
+            "file": "src/analysis/ml-enhanced-diagram-detector.ts",
+            "lines": 702
+          },
+          {
+            "file": "src/pipeline/iteration-17-practical-workflow-pipeline.ts",
+            "lines": 693
+          },
+          {
+            "file": "src/components/StreamingProcessor.tsx",
+            "lines": 689
+          },
+          {
+            "file": "src/ai/dynamic-style-adapter.ts",
+            "lines": 669
+          },
+          {
+            "file": "src/transcription/ultra-fast-transcriber.ts",
+            "lines": 669
+          },
+          {
+            "file": "src/components/Iteration18Interface.tsx",
+            "lines": 657
+          },
+          {
+            "file": "src/export/production-exporter.ts",
+            "lines": 657
+          },
+          {
+            "file": "src/components/AdvancedVisualControl.tsx",
+            "lines": 644
+          },
+          {
+            "file": "src/components/ui/sidebar.tsx",
+            "lines": 638
+          },
+          {
+            "file": "src/optimization/ultra-precision-parameter-optimizer.ts",
+            "lines": 636
+          },
+          {
+            "file": "src/analysis/ultra-fast-streaming-analyzer.ts",
+            "lines": 635
+          },
+          {
+            "file": "src/monitoring/performance-dashboard.ts",
+            "lines": 623
+          },
+          {
+            "file": "src/optimization/intelligent-cache.ts",
+            "lines": 623
+          },
+          {
+            "file": "src/framework/recursive-custom-instructions.ts",
+            "lines": 622
+          },
+          {
+            "file": "src/visualization/advanced-visual-engine.ts",
+            "lines": 622
+          },
+          {
+            "file": "src/optimization/intelligent-caching.ts",
+            "lines": 621
+          },
+          {
+            "file": "src/test/comprehensive-test-suite.ts",
+            "lines": 620
+          },
+          {
+            "file": "src/monitoring/production-error-handler.ts",
+            "lines": 617
+          },
+          {
+            "file": "src/enterprise/enterprise-integration.ts",
+            "lines": 610
+          },
+          {
+            "file": "src/visualization/layout-generator.ts",
+            "lines": 604
+          },
+          {
+            "file": "src/quality/automated-quality-monitor.ts",
+            "lines": 603
+          },
+          {
+            "file": "src/collaboration/real-time-engine.ts",
+            "lines": 597
+          },
+          {
+            "file": "src/optimization/ultra-parameter-optimizer.ts",
+            "lines": 593
+          },
+          {
+            "file": "src/pipeline/troubleshooting-protocol.ts",
+            "lines": 585
+          },
+          {
+            "file": "src/pipeline/iteration-13-smart-optimization-pipeline.ts",
+            "lines": 576
+          },
+          {
+            "file": "src/visualization/advanced-layouts.ts",
+            "lines": 561
+          },
+          {
+            "file": "src/pipeline/realtime-enhanced-processor.ts",
+            "lines": 560
+          },
+          {
+            "file": "src/quality/production-monitor.ts",
+            "lines": 559
+          },
+          {
+            "file": "src/enterprise/global-deployment.ts",
+            "lines": 555
+          },
+          {
+            "file": "src/components/ProductionDashboard.tsx",
+            "lines": 554
+          },
+          {
+            "file": "src/optimization/adaptive-processor.ts",
+            "lines": 553
+          },
+          {
+            "file": "src/optimization/predictive-maintenance.ts",
+            "lines": 551
+          },
+          {
+            "file": "src/quality/advanced-quality-controller.ts",
+            "lines": 545
+          },
+          {
+            "file": "src/framework/framework-integration-test.ts",
+            "lines": 542
+          },
+          {
+            "file": "src/transcription/text-postprocessor.ts",
+            "lines": 536
+          },
+          {
+            "file": "src/performance/batch-processor.ts",
+            "lines": 533
+          },
+          {
+            "file": "src/analysis/multimodal-analyzer.ts",
+            "lines": 532
+          },
+          {
+            "file": "src/optimization/index.ts",
+            "lines": 531
+          },
+          {
+            "file": "src/analysis/scene-segmenter.ts",
+            "lines": 527
+          },
+          {
+            "file": "src/optimization/smart-pipeline.ts",
+            "lines": 521
+          },
+          {
+            "file": "src/templates/template-ui.tsx",
+            "lines": 517
+          },
+          {
+            "file": "src/framework/iteration-manager.ts",
+            "lines": 516
+          },
+          {
+            "file": "src/framework/recursive-development-framework.ts",
+            "lines": 515
+          },
+          {
+            "file": "src/optimization/predictive-monitor.ts",
+            "lines": 510
+          },
+          {
+            "file": "src/export/export-ui.tsx",
+            "lines": 509
+          },
+          {
+            "file": "src/monitoring/production-monitoring-excellence.ts",
+            "lines": 508
+          },
+          {
+            "file": "src/pipeline/iteration-15-next-gen-intelligence-pipeline.ts",
+            "lines": 504
+          },
+          {
+            "file": "src/pipeline/iteration-20-precision-optimization.ts",
+            "lines": 504
+          },
+          {
+            "file": "src/collaboration/collaboration-ui.tsx",
+            "lines": 503
+          }
+        ],
+        "complexFunctions": [
+          {
+            "file": "src/components/AudioUploader.tsx",
+            "name": "const AudioUploader = ({ onUpload, isProcessing }: AudioUploaderProps) =>",
+            "line": 13,
+            "lines": 123,
+            "complexity": 12
+          },
+          {
+            "file": "src/components/PipelineMonitor.tsx",
+            "name": "function PipelineMonitor",
+            "line": 45,
+            "lines": 423,
+            "complexity": 24
+          },
+          {
+            "file": "src/components/QualityDashboard.tsx",
+            "name": "function QualityDashboard",
+            "line": 24,
+            "lines": 354,
+            "complexity": 58
+          },
+          {
+            "file": "src/hooks/useEnhancedPipeline.ts",
+            "name": "const useEnhancedPipeline = () =>",
+            "line": 37,
+            "lines": 136,
+            "complexity": 13
+          },
+          {
+            "file": "src/hooks/useEnhancedPipeline.ts",
+            "name": "const processAudioFile = useCallback(async (file: File) =>",
+            "line": 68,
+            "lines": 93,
+            "complexity": 13
+          },
+          {
+            "file": "src/optimization/predictive-maintenance.ts",
+            "name": "entries(currentMetrics).forEach(([key, value]) =>",
+            "line": 415,
+            "lines": 34,
+            "complexity": 11
+          },
+          {
+            "file": "src/pages/Dashboard.tsx",
+            "name": "function Dashboard",
+            "line": 30,
+            "lines": 355,
+            "complexity": 33
+          },
+          {
+            "file": "src/pages/Index.tsx",
+            "name": "const Index = () =>",
+            "line": 14,
+            "lines": 252,
+            "complexity": 17
+          },
+          {
+            "file": "src/transcription/streaming-transcriber.ts",
+            "name": "Promise((resolve, reject) =>",
+            "line": 187,
+            "lines": 60,
+            "complexity": 15
+          }
+        ],
+        "unusedImports": [
+          {
+            "file": "src/App.tsx",
+            "unused": [
+              "Toaster as Sonner"
+            ]
+          },
+          {
+            "file": "src/components/ProcessingStatus.tsx",
+            "unused": [
+              "ProcessingStatus as Status"
+            ]
+          },
+          {
+            "file": "src/components/ui/alert.tsx",
+            "unused": [
+              "type VariantProps"
+            ]
+          },
+          {
+            "file": "src/components/ui/badge.tsx",
+            "unused": [
+              "type VariantProps"
+            ]
+          },
+          {
+            "file": "src/components/ui/button.tsx",
+            "unused": [
+              "type VariantProps"
+            ]
+          },
+          {
+            "file": "src/components/ui/command.tsx",
+            "unused": [
+              "type DialogProps",
+              "Command as CommandPrimitive"
+            ]
+          },
+          {
+            "file": "src/components/ui/drawer.tsx",
+            "unused": [
+              "Drawer as DrawerPrimitive"
+            ]
+          },
+          {
+            "file": "src/components/ui/label.tsx",
+            "unused": [
+              "type VariantProps"
+            ]
+          },
+          {
+            "file": "src/components/ui/sheet.tsx",
+            "unused": [
+              "type VariantProps"
+            ]
+          },
+          {
+            "file": "src/components/ui/sonner.tsx",
+            "unused": [
+              "Toaster as Sonner"
+            ]
+          },
+          {
+            "file": "src/components/ui/toast.tsx",
+            "unused": [
+              "type VariantProps"
+            ]
+          },
+          {
+            "file": "src/components/ui/toggle-group.tsx",
+            "unused": [
+              "type VariantProps"
+            ]
+          },
+          {
+            "file": "src/components/ui/toggle.tsx",
+            "unused": [
+              "type VariantProps"
+            ]
+          },
+          {
+            "file": "src/lib/utils.ts",
+            "unused": [
+              "type ClassValue"
+            ]
+          },
+          {
+            "file": "src/pages/Index.tsx",
+            "unused": [
+              "ProcessingStatus as StatusType"
+            ]
+          },
+          {
+            "file": "src/pipeline/main-pipeline.ts",
+            "unused": [
+              "QualityMetrics as FrameworkQualityMetrics"
+            ]
+          }
+        ]
+      }
+    },
+    "performance": {
+      "bundleSize": {
+        "estimated": 1222907,
+        "hasBuiltVersion": true
+      },
+      "renderingOptimization": {
+        "unnecessaryRerenders": 2,
+        "missingMemoization": 21,
+        "heavyComponents": 23
+      },
+      "memorylUsage": [
+        {
+          "file": "src/ai/enhanced-neural-analyzer.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/analysis/adaptive-content-processor.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/analysis/advanced-semantic-detector.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/analysis/content-analyzer.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/analysis/diagram-detector.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/analysis/enhanced-diagram-detector.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/analysis/multimodal-analyzer.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/analysis/scene-segmenter.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/analysis/semantic-understanding-engine.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/collaboration/real-time-engine.ts",
+          "issue": "Potential interval leak"
+        },
+        {
+          "file": "src/components/Iteration18Interface.tsx",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/components/StreamingProcessor.tsx",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/components/TutorialSystem.tsx",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/enterprise/analytics-dashboard.ts",
+          "issue": "Potential interval leak"
+        },
+        {
+          "file": "src/enterprise/analytics-dashboard.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/enterprise/enterprise-integration.ts",
+          "issue": "Potential interval leak"
+        },
+        {
+          "file": "src/enterprise/enterprise-integration.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/enterprise/global-deployment.ts",
+          "issue": "Potential interval leak"
+        },
+        {
+          "file": "src/enterprise/global-deployment.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/enterprise/multi-tenant-manager.ts",
+          "issue": "Potential interval leak"
+        },
+        {
+          "file": "src/enterprise/multi-tenant-manager.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/export/enhanced-export-engine.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/export/production-exporter.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/framework/dependency-injection.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/framework/enhanced-recursive-excellence.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/framework/framework-integration-test.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/framework/iteration-manager.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/framework/universal-framework-integrator.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/hooks/use-toast.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/monitoring/performance-dashboard.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/monitoring/production-error-handler.ts",
+          "issue": "Potential interval leak"
+        },
+        {
+          "file": "src/monitoring/production-error-handler.ts",
+          "issue": "Potential event listener leak"
+        },
+        {
+          "file": "src/monitoring/production-monitoring-excellence.ts",
+          "issue": "Potential interval leak"
+        },
+        {
+          "file": "src/monitoring/production-monitoring-excellence.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/optimization/intelligent-cache.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/optimization/intelligent-caching.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/optimization/next-gen-intelligence-optimizer.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/optimization/predictive-cache.ts",
+          "issue": "Potential interval leak"
+        },
+        {
+          "file": "src/optimization/predictive-cache.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/optimization/predictive-error-prevention.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/optimization/predictive-maintenance.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/optimization/predictive-monitor.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/optimization/semantic-cache.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/optimization/smart-cache-manager.ts",
+          "issue": "Potential interval leak"
+        },
+        {
+          "file": "src/optimization/smart-cache-manager.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/optimization/smart-optimizer.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/optimization/smart-parameter-optimizer.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/optimization/threshold-optimizer.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/optimization/ultra-adaptive-processor.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/optimization/ultra-intelligent-cache.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/optimization/ultra-parallel-processor.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/optimization/ultra-parameter-optimizer.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/performance/batch-processor.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/performance/intelligent-cache.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/performance/memory-optimizer.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/performance/parallel-processor.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/performance/production-optimized-cache.ts",
+          "issue": "Potential interval leak"
+        },
+        {
+          "file": "src/performance/production-optimized-cache.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/pipeline/ai-enhanced-pipeline.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/pipeline/enhanced-error-handler.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/pipeline/framework-integrated-pipeline.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/pipeline/iteration-13-smart-optimization-pipeline.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/pipeline/iteration-17-practical-workflow-pipeline.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/pipeline/iteration-18-advanced-ux-pipeline.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/pipeline/iteration-20-precision-optimization.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/pipeline/main-pipeline.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/pipeline/realtime-enhanced-processor.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/pipeline/realtime-processor.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/pipeline/troubleshooting-protocol.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/quality/enhanced-error-recovery.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/quality/production-monitor.ts",
+          "issue": "Potential interval leak"
+        },
+        {
+          "file": "src/templates/template-library.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/transcription/audio-preprocessor.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/transcription/enhanced-browser-transcriber.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/transcription/multilingual-optimizer.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/transcription/robust-transcriber.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/transcription/streaming-transcriber.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/transcription/ultra-fast-transcriber.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/visualization/advanced-layouts.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/visualization/advanced-visual-engine.ts",
+          "issue": "Large array allocation"
+        },
+        {
+          "file": "src/visualization/smart-layout-optimizer.ts",
+          "issue": "Large array allocation"
+        }
+      ],
+      "asyncPatterns": [
+        {
+          "file": "src/ai/ai-integration-pipeline.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/ai/enhanced-context-engine.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/ai/enhanced-neural-analyzer.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/ai/recursive-development-framework.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/analysis/advanced-diagram-detector.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/analysis/diagram-detector.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/analysis/ml-enhanced-diagram-detector.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/analysis/scene-segmenter.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/analysis/semantic-understanding-engine.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/analysis/ultra-fast-streaming-analyzer.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/collaboration/real-time-engine.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/enterprise/enterprise-integration.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/export/enhanced-export-engine.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/export/production-exporter.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/framework/enhanced-development-protocol.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/framework/enhanced-recursive-excellence.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/framework/framework-integration-test.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/framework/iteration-43-development-cycle.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/framework/iteration-manager.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/framework/quality-enhancement.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/framework/recursive-custom-instructions.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/framework/recursive-development-framework.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/monitoring/production-error-handler.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/monitoring/production-monitoring-excellence.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/optimization/index.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/optimization/intelligent-cache.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/optimization/intelligent-caching.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/optimization/next-gen-intelligence-optimizer.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/optimization/predictive-cache.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/optimization/predictive-error-prevention.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/optimization/predictive-maintenance.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/optimization/predictive-monitor.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/optimization/semantic-cache.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/optimization/smart-cache-manager.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/optimization/smart-optimizer.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/optimization/smart-parameter-optimizer.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/optimization/smart-parameter-tuning.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/optimization/ultra-adaptive-processor.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/optimization/ultra-intelligent-cache.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/optimization/ultra-parallel-processor.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/optimization/ultra-parameter-optimizer.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/optimization/ultra-precision-parameter-optimizer.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/performance/intelligent-cache.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/performance/memory-optimizer.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/performance/parallel-processor.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/performance/production-optimized-cache.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/pipeline/ai-enhanced-pipeline.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/pipeline/audio-diagram-pipeline.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/pipeline/framework-integrated-pipeline.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/pipeline/iteration-13-smart-optimization-pipeline.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/pipeline/iteration-14-ultra-high-performance-pipeline.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/pipeline/iteration-15-next-gen-intelligence-pipeline.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/pipeline/iteration-17-practical-workflow-pipeline.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/pipeline/iteration-18-advanced-ux-pipeline.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/pipeline/iteration-19-next-gen-intelligence.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/pipeline/iteration-20-precision-optimization.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/pipeline/main-pipeline.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/pipeline/realtime-enhanced-processor.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/pipeline/realtime-processor.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/pipeline/recursive-integration-pipeline.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/pipeline/troubleshooting-protocol.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/quality/advanced-quality-controller.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/quality/enhanced-error-recovery.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/quality/enhanced-quality-monitor.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/quality/production-monitor.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/quality/quality-monitor.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/test/comprehensive-test-suite.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/transcription/audio-preprocessor.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/transcription/enhanced-browser-transcriber.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/transcription/text-postprocessor.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/transcription/transcriber.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/transcription/ultra-fast-transcriber.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/visualization/complex-layout-engine.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/visualization/layout-engine.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/visualization/layout-generator.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/visualization/smart-layout-optimizer.ts",
+          "issue": "High number of async functions - consider batching"
+        },
+        {
+          "file": "src/visualization/zero-overlap-layout-engine.ts",
+          "issue": "High number of async functions - consider batching"
+        }
+      ]
+    },
+    "architecture": {
+      "modularity": {
+        "moduleCount": 24,
+        "avgFilesPerModule": 9.041666666666666,
+        "modularityScore": 2.654377880184332
+      },
+      "coupling": {
+        "totalImports": 630,
+        "avgImportsPerFile": 2.903225806451613,
+        "couplingScore": 2.903225806451613
+      },
+      "cohesion": {
+        "modules": [
+          {
+            "module": "src",
+            "files": 3,
+            "score": 3
+          },
+          {
+            "module": "ai",
+            "files": 6,
+            "score": 6
+          },
+          {
+            "module": "analysis",
+            "files": 14,
+            "score": 14
+          },
+          {
+            "module": "animation",
+            "files": 2,
+            "score": 2
+          },
+          {
+            "module": "collaboration",
+            "files": 2,
+            "score": 2
+          },
+          {
+            "module": "components",
+            "files": 16,
+            "score": 16
+          },
+          {
+            "module": "ui",
+            "files": 49,
+            "score": 49
+          },
+          {
+            "module": "config",
+            "files": 1,
+            "score": 1
+          },
+          {
+            "module": "enterprise",
+            "files": 4,
+            "score": 4
+          },
+          {
+            "module": "export",
+            "files": 3,
+            "score": 3
+          },
+          {
+            "module": "framework",
+            "files": 13,
+            "score": 13
+          },
+          {
+            "module": "hooks",
+            "files": 3,
+            "score": 3
+          },
+          {
+            "module": "supabase",
+            "files": 2,
+            "score": 2
+          },
+          {
+            "module": "lib",
+            "files": 2,
+            "score": 2
+          },
+          {
+            "module": "monitoring",
+            "files": 3,
+            "score": 3
+          },
+          {
+            "module": "optimization",
+            "files": 25,
+            "score": 25
+          },
+          {
+            "module": "pages",
+            "files": 4,
+            "score": 4
+          },
+          {
+            "module": "performance",
+            "files": 5,
+            "score": 5
+          },
+          {
+            "module": "pipeline",
+            "files": 21,
+            "score": 21
+          },
+          {
+            "module": "quality",
+            "files": 9,
+            "score": 9
+          },
+          {
+            "module": "remotion",
+            "files": 5,
+            "score": 5
+          },
+          {
+            "module": "templates",
+            "files": 2,
+            "score": 2
+          },
+          {
+            "module": "test",
+            "files": 2,
+            "score": 2
+          },
+          {
+            "module": "transcription",
+            "files": 11,
+            "score": 11
+          },
+          {
+            "module": "types",
+            "files": 1,
+            "score": 1
+          },
+          {
+            "module": "visualization",
+            "files": 9,
+            "score": 9
+          }
+        ],
+        "avgCohesion": 8.346153846153847
+      },
+      "patterns": {
+        "singleton": 1,
+        "factory": 2,
+        "observer": 3,
+        "strategy": 64,
+        "facade": 142
+      }
+    },
+    "dependencies": {
+      "production": 58,
+      "development": 20,
+      "total": 78,
+      "heavyDependencies": [
+        "@dagrejs/dagre",
+        "@remotion/captions",
+        "@remotion/install-whisper-cpp",
+        "@remotion/media-utils",
+        "@remotion/player",
+        "kuromoji",
+        "remotion",
+        "whisper-node"
+      ],
+      "outdated": []
+    },
+    "optimization": {}
+  },
+  "recommendations": [
+    {
+      "category": "Code Quality",
+      "priority": "Medium",
+      "issue": "Found 85 large files",
+      "solution": "Break down large files into smaller, focused modules",
+      "impact": "Improved maintainability and readability"
+    },
+    {
+      "category": "Code Quality",
+      "priority": "High",
+      "issue": "Found 9 complex functions",
+      "solution": "Refactor complex functions into smaller, single-responsibility functions",
+      "impact": "Reduced cognitive load and improved testability"
+    },
+    {
+      "category": "Performance",
+      "priority": "High",
+      "issue": "21 components missing memoization",
+      "solution": "Add React.memo, useMemo, and useCallback for expensive operations",
+      "impact": "Reduced unnecessary re-renders and improved UI responsiveness"
+    },
+    {
+      "category": "Performance",
+      "priority": "High",
+      "issue": "Found 81 potential memory leaks",
+      "solution": "Add proper cleanup for intervals, event listeners, and subscriptions",
+      "impact": "Improved memory usage and application stability"
+    },
+    {
+      "category": "Dependencies",
+      "priority": "Low",
+      "issue": "Large number of dependencies",
+      "solution": "Audit and remove unused dependencies, consider tree-shaking",
+      "impact": "Reduced bundle size and faster build times"
+    }
+  ],
+  "metrics": {
+    "overall": {
+      "healthScore": 30.430107526881716,
+      "maintainabilityIndex": 74.8882822892206,
+      "performanceScore": 0,
+      "architectureScore": 100
+    },
+    "detailed": {
+      "codeComplexity": 144.46049508014423,
+      "testCoverage": 0.9216589861751152,
+      "bundleEfficiency": 60,
+      "modularity": 2.654377880184332
+    }
+  }
+}

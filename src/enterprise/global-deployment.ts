@@ -60,6 +60,7 @@ export interface GlobalMetrics {
 
 export class GlobalDeploymentManager {
   private regions: Map<string, CDNRegion> = new Map();
+  private intervalIds: NodeJS.Timeout[] = [];
   private loadBalancingRules: LoadBalancingRule[] = [];
   private globalMetrics: GlobalMetrics;
   private healthCheckInterval: NodeJS.Timeout;
@@ -523,7 +524,7 @@ export class GlobalDeploymentManager {
   }
 
   private startHealthChecking(): void {
-    this.healthCheckInterval = setInterval(() => {
+    this.healthCheckInterval = this.intervalIds.push(setInterval(() => {
       this.performHealthChecks();
     }, this.config.regions.healthCheckIntervalMs);
 

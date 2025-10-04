@@ -1,4 +1,5 @@
 export { MainPipeline } from './main-pipeline';
+export { SimplePipeline, simplePipeline } from './simple-pipeline';
 export type {
   PipelineInput,
   PipelineConfig,
@@ -6,3 +7,8 @@ export type {
   PipelineStage,
   PipelineMetrics
 } from './types';
+export type {
+  SimplePipelineInput,
+  SimplePipelineResult,
+  ProgressCallback
+} from './simple-pipeline';

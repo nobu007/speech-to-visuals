@@ -66,6 +66,7 @@ export interface EnterpriseConfig {
 
 export class EnterpriseIntegration {
   private config: EnterpriseConfig;
+  private intervalIds: NodeJS.Timeout[] = [];
   private requestQueue: Map<string, EnterpriseRequest> = new Map();
   private responseCache: Map<string, any> = new Map();
   private auditLog: any[] = [];
@@ -586,7 +587,7 @@ export class EnterpriseIntegration {
 
   private startCleanupRoutines(): void {
     // Clean up old cache entries every 5 minutes
-    setInterval(() => {
+    this.intervalIds.push(setInterval(() => {
       const cacheSize = this.responseCache.size;
       if (cacheSize > 1000) {
         // Clear oldest 20% of cache entries
@@ -597,7 +598,7 @@ export class EnterpriseIntegration {
     }, 300000); // 5 minutes
 
     // Cleanup old audit logs every hour
-    setInterval(() => {
+    this.intervalIds.push(setInterval(() => {
       if (this.auditLog.length > 5000) {
         this.auditLog.splice(0, this.auditLog.length - 5000);
         console.log('🧹 Audit log cleanup completed');

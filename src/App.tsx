@@ -9,6 +9,7 @@ import Iteration43Interface from "./components/Iteration43Interface";
 import TutorialSystem from "./components/TutorialSystem";
 import ProductionDashboard from "./components/ProductionDashboard";
 import ErrorAlertSystem from "./components/ErrorAlertSystem";
+import SimplePipelineInterface from "./components/SimplePipelineInterface";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/simple" element={<SimplePipelineInterface />} />
           <Route path="/iteration43" element={<Iteration43Interface />} />
           <Route path="/production" element={<ProductionDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

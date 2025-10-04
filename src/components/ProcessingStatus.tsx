@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react';
 import { ProcessingStatus as Status } from '@/types/diagram';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -18,11 +19,15 @@ const statusConfig = {
   generating: { icon: Sparkles, label: '図解生成中...', color: 'text-accent' },
   complete: { icon: CheckCircle2, label: '完了！', color: 'text-green-500' },
   error: { icon: XCircle, label: 'エラーが発生しました', color: 'text-destructive' },
-};
+} as const;
 
-export const ProcessingStatus = ({ status, progress, currentStep }: ProcessingStatusProps) => {
-  const config = statusConfig[status];
+export const ProcessingStatus = memo(({ status, progress, currentStep }: ProcessingStatusProps) => {
+  const config = useMemo(() => statusConfig[status], [status]);
   const Icon = config.icon;
+
+  const isAnimated = useMemo(() => status !== 'complete' && status !== 'error', [status]);
+  const showProgress = useMemo(() => status !== 'complete' && status !== 'error', [status]);
+  const roundedProgress = useMemo(() => Math.round(progress), [progress]);
 
   if (status === 'idle') return null;
 
@@ -31,12 +36,12 @@ export const ProcessingStatus = ({ status, progress, currentStep }: ProcessingSt
       <div className="space-y-4">
         <div className="flex items-center gap-4">
           <div className={cn('relative', config.color)}>
-            {status !== 'complete' && status !== 'error' ? (
+            {isAnimated ? (
               <Icon className="w-8 h-8 animate-spin" />
             ) : (
               <Icon className="w-8 h-8" />
             )}
-            {status !== 'complete' && status !== 'error' && (
+            {isAnimated && (
               <div className="absolute inset-0 animate-ping opacity-20">
                 <Icon className="w-8 h-8" />
               </div>
@@ -49,17 +54,17 @@ export const ProcessingStatus = ({ status, progress, currentStep }: ProcessingSt
             )}
           </div>
           <div className="text-2xl font-bold text-primary">
-            {Math.round(progress)}%
+            {roundedProgress}%
           </div>
         </div>
 
-        {status !== 'complete' && status !== 'error' && (
-          <Progress 
-            value={progress} 
+        {showProgress && (
+          <Progress
+            value={progress}
             className="h-2 bg-muted"
           />
         )}
       </div>
     </Card>
   );
-};
+});

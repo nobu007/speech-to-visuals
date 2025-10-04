@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback, memo } from 'react';
 import { Upload, FileAudio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -10,47 +10,55 @@ type AudioUploaderProps = {
   isProcessing: boolean;
 };
 
-export const AudioUploader = ({ onUpload, isProcessing }: AudioUploaderProps) => {
+export const AudioUploader = memo(({ onUpload, isProcessing }: AudioUploaderProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
-  };
+  }, []);
 
-  const handleDragLeave = () => {
+  const handleDragLeave = useCallback(() => {
     setIsDragging(false);
-  };
+  }, []);
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const files = Array.from(e.dataTransfer.files);
     const audioFile = files.find(f => f.type.startsWith('audio/'));
-    
+
     if (audioFile) {
       setSelectedFile(audioFile);
     } else {
       toast.error('音声ファイルを選択してください');
     }
-  };
+  }, []);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
     }
-  };
+  }, []);
 
-  const handleUpload = () => {
+  const handleUpload = useCallback(() => {
     if (selectedFile) {
       onUpload(selectedFile);
       setSelectedFile(null);
     }
-  };
+  }, [selectedFile, onUpload]);
+
+  const handleFileClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleCancelFile = useCallback(() => {
+    setSelectedFile(null);
+  }, []);
 
   return (
     <Card className="w-full max-w-2xl mx-auto p-8 bg-card shadow-lg">
@@ -96,7 +104,7 @@ export const AudioUploader = ({ onUpload, isProcessing }: AudioUploaderProps) =>
               <div className="flex gap-3 justify-center pt-2">
                 <Button
                   variant="outline"
-                  onClick={() => setSelectedFile(null)}
+                  onClick={handleCancelFile}
                   disabled={isProcessing}
                 >
                   キャンセル
@@ -120,7 +128,7 @@ export const AudioUploader = ({ onUpload, isProcessing }: AudioUploaderProps) =>
               </p>
               <Button
                 variant="outline"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={handleFileClick}
                 disabled={isProcessing}
                 className="mt-4"
               >
@@ -132,4 +140,4 @@ export const AudioUploader = ({ onUpload, isProcessing }: AudioUploaderProps) =>
       </div>
     </Card>
   );
-};
+});

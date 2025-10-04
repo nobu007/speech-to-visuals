@@ -69,6 +69,7 @@ export interface CacheOperation {
  */
 export class ProductionOptimizedCache {
   private cache = new Map<string, any>();
+  private intervalIds: NodeJS.Timeout[] = [];
   private metadata = new Map<string, any>();
   private operations: CacheOperation[] = [];
   private config: ProductionCacheConfig;
@@ -131,7 +132,7 @@ export class ProductionOptimizedCache {
    */
   private setupAdaptiveSizing(): void {
     // Monitor memory pressure and adjust cache size
-    setInterval(() => {
+    this.intervalIds.push(setInterval(() => {
       this.adaptCacheSize();
     }, 5000); // Check every 5 seconds
   }
@@ -420,4 +421,12 @@ export const globalProductionCache = new ProductionOptimizedCache({
 export async function executeCacheEnhancement(): Promise<CacheEnhancement> {
   console.log('🚀 Executing Iteration 25 Phase 2: Cache Performance Enhancement...');
   return await globalProductionCache.enhanceCachePerformance();
+
+  /**
+   * Clean up intervals and prevent memory leaks
+   */
+  public destroy(): void {
+    this.intervalIds.forEach(id => clearInterval(id));
+    this.intervalIds = [];
+  }
 }

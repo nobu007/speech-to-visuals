@@ -55,6 +55,7 @@ export interface AccessPattern {
  */
 export class PredictiveCache {
   private layers: Map<string, Map<string, CacheEntry>> = new Map();
+  private intervalIds: NodeJS.Timeout[] = [];
   private layerConfigs: Map<string, CacheLayer> = new Map();
   private accessPatterns: Map<string, AccessPattern> = new Map();
   private predictionModel: Map<string, number> = new Map();
@@ -516,7 +517,7 @@ export class PredictiveCache {
    * Start predictive engine background process
    */
   private startPredictiveEngine(): void {
-    setInterval(() => {
+    this.intervalIds.push(setInterval(() => {
       this.updatePredictionModel();
       this.optimizeLayerDistribution();
       this.cleanupExpiredEntries();
