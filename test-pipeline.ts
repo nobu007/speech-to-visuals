@@ -1,21 +1,17 @@
-#!/usr/bin/env node
-
 /**
  * Test script for the Audio-to-Diagram Pipeline
  * Following the recursive development approach from custom instructions
  */
 
-async function testPipeline() {
+import { AudioDiagramPipeline } from './src/pipeline/audio-diagram-pipeline';
+import * as fs from 'fs';
+
+async function testPipeline(): Promise<boolean> {
   console.log('🚀 Testing Audio-to-Diagram Pipeline');
   console.log('=' .repeat(50));
 
   try {
-    // Since we're working with ES modules, let's test the import path first
-    console.log('📦 Testing module imports...');
-
-    // Try to import the pipeline
-    const { AudioDiagramPipeline } = await import('./src/pipeline/audio-diagram-pipeline.ts');
-    console.log('✅ Successfully imported AudioDiagramPipeline');
+    console.log('📦 Initializing AudioDiagramPipeline...');
 
     // Initialize pipeline with default config
     const pipeline = new AudioDiagramPipeline({
@@ -42,7 +38,7 @@ async function testPipeline() {
     console.log('✅ Pipeline initialized successfully');
 
     // Test with a simulated audio file path
-    const mockAudioPath = '/tmp/test-audio.wav';
+    const mockAudioPath = '/tmp/test-system-overview.wav';
     console.log(`📁 Testing with mock audio: ${mockAudioPath}`);
 
     // Execute the full pipeline
@@ -58,20 +54,32 @@ async function testPipeline() {
       console.log(`   • Visualization: ${result.phases.visualization.metrics.layoutCount} layouts`);
       console.log(`   • Video Output: ${result.output.outputPath}`);
 
+      // Print detailed scene analysis
+      console.log('\n📋 Scene Analysis:');
+      result.phases.analysis.scenes.forEach((scene: any, index: number) => {
+        console.log(`   Scene ${index + 1}: ${scene.type} (${scene.duration}ms) - "${scene.text.substring(0, 50)}..."`);
+      });
+
+      // Print diagram types detected
+      console.log('\n🎯 Diagram Types Detected:');
+      result.phases.analysis.diagramTypes.forEach((diagramType: any, index: number) => {
+        console.log(`   Scene ${diagramType.sceneId}: ${diagramType.diagramType} (confidence: ${(diagramType.confidence * 100).toFixed(1)}%)`);
+      });
+
       // Save detailed results
-      const fs = await import('fs');
       const reportPath = `pipeline-test-report-${Date.now()}.json`;
       await fs.promises.writeFile(reportPath, JSON.stringify(result, null, 2));
-      console.log(`📋 Detailed report saved to: ${reportPath}`);
+      console.log(`\n📋 Detailed report saved to: ${reportPath}`);
 
       return true;
     } else {
       console.log('\n❌ Pipeline Test FAILED');
       console.error('Error:', result.error);
+      console.error('Framework Report:', result.framework);
       return false;
     }
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('\n💥 Pipeline Test CRASHED');
     console.error('Error:', error.message);
     console.error('Stack:', error.stack);
