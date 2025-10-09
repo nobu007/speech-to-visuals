@@ -79,7 +79,7 @@ class SmartParameterTuner {
     console.log('[SmartTuner] Optimizing parameters for content characteristics:', characteristics);
 
     // Base parameters
-    let parameters: ParameterSet = {
+    const parameters: ParameterSet = {
       confidenceThreshold: 0.75,
       segmentMinLength: 5000,
       segmentMaxLength: 30000,

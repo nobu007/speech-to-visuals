@@ -176,7 +176,7 @@ function generateEnhancedResult(file: File, processingTime: number): ProcessingR
   const filename = file.name.toLowerCase();
 
   // Enhanced transcription based on filename
-  let transcription = getEnhancedTranscription(filename);
+  const transcription = getEnhancedTranscription(filename);
   let diagramType = 'educational-flow';
 
   if (filename.includes('business') || filename.includes('meeting')) {

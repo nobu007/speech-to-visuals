@@ -276,7 +276,7 @@ export class SmartParameterTuner {
   private generateSettingsFromRules(characteristics: AudioCharacteristics): OptimalSettings {
     console.log('🔧 Applying rule-based optimization...');
 
-    let settings = { ...this.defaultSettings };
+    const settings = { ...this.defaultSettings };
 
     // ルール1: 発話速度に基づくセグメント長調整
     if (characteristics.speechRate > 200) {

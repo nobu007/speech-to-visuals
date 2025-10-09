@@ -95,7 +95,7 @@ export const SimplePipelineInterface: React.FC = () => {
 
   // Calculate dynamic quality score (動的品質スコア計算)
   const calculateDynamicQuality = (currentProgress: number, elapsed: number, stage: string): number => {
-    let baseScore = 70; // Base quality score
+    const baseScore = 70; // Base quality score
 
     // Progress bonus (smooth progress indicates good processing)
     const progressBonus = Math.min(20, currentProgress / 5);

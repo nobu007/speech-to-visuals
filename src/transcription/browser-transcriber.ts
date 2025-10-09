@@ -92,7 +92,7 @@ export class BrowserTranscriber {
 
       const segments: TranscriptionSegment[] = [];
       let currentSegmentStart = 0;
-      let currentText = '';
+      const currentText = '';
 
       // Create audio element to play the file
       const audio = new Audio();

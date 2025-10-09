@@ -266,7 +266,7 @@ export class QualityEnhancement {
       };
 
       let weightedScore = 0;
-      let improvements = {};
+      const improvements = {};
 
       for (const [metric, score] of Object.entries(enhancedCompliance)) {
         weightedScore += score * weights[metric];

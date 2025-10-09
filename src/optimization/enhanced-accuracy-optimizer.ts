@@ -122,7 +122,7 @@ export class EnhancedAccuracyOptimizer {
     bottlenecks: string[]
   ): AccuracyEnhancement['parameterAdjustments'] {
 
-    let adjustments: AccuracyEnhancement['parameterAdjustments'] = {
+    const adjustments: AccuracyEnhancement['parameterAdjustments'] = {
       confidenceThreshold: 0.75, // Base threshold
       segmentationStrategy: 'adaptive',
       modelSelection: 'optimized',

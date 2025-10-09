@@ -134,7 +134,7 @@ export class AdaptiveContentProcessor {
       }
 
       // Select base strategy based on processing mode
-      let selectedStrategy = this.strategies[parameters.processingMode];
+      const selectedStrategy = this.strategies[parameters.processingMode];
 
       // Customize strategy based on content characteristics
       const customizedStrategy = this.customizeStrategy(selectedStrategy, characteristics, parameters);

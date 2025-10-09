@@ -1,0 +1,300 @@
+{
+  "timestamp": "2025-10-09T15:35:32.969Z",
+  "demo": "MVP Audio-to-Diagram Pipeline",
+  "version": "1.0.0",
+  "results": [
+    {
+      "success": true,
+      "processingTime": 5222,
+      "totalScenes": 4,
+      "averageConfidence": 0.8925,
+      "scenes": [
+        {
+          "id": "scene-1",
+          "startTime": 0,
+          "endTime": 8,
+          "content": "今日はフローチャートについて説明します。プロセスには開始、処理、判断、終了の要素があります。",
+          "diagramType": "flow",
+          "confidence": 0.92,
+          "layout": {
+            "success": true,
+            "type": "flow",
+            "nodes": [
+              {
+                "id": "start",
+                "label": "開始",
+                "x": 540,
+                "y": 100,
+                "width": 140,
+                "height": 70
+              },
+              {
+                "id": "process",
+                "label": "処理",
+                "x": 540,
+                "y": 220,
+                "width": 140,
+                "height": 70
+              },
+              {
+                "id": "decision",
+                "label": "判断",
+                "x": 540,
+                "y": 340,
+                "width": 140,
+                "height": 70
+              },
+              {
+                "id": "end",
+                "label": "終了",
+                "x": 540,
+                "y": 460,
+                "width": 140,
+                "height": 70
+              }
+            ],
+            "edges": [
+              {
+                "id": "e1",
+                "from": "start",
+                "to": "process"
+              },
+              {
+                "id": "e2",
+                "from": "process",
+                "to": "decision"
+              },
+              {
+                "id": "e3",
+                "from": "decision",
+                "to": "end"
+              }
+            ]
+          },
+          "nodeCount": 4,
+          "edgeCount": 3
+        },
+        {
+          "id": "scene-2",
+          "startTime": 8,
+          "endTime": 16,
+          "content": "組織構造について見てみましょう。階層があり、各部門の下にチームが配置されています。",
+          "diagramType": "tree",
+          "confidence": 0.88,
+          "layout": {
+            "success": true,
+            "type": "tree",
+            "nodes": [
+              {
+                "id": "root",
+                "label": "組織",
+                "x": 540,
+                "y": 100,
+                "width": 140,
+                "height": 70
+              },
+              {
+                "id": "dept1",
+                "label": "開発部",
+                "x": 440,
+                "y": 220,
+                "width": 140,
+                "height": 70
+              },
+              {
+                "id": "dept2",
+                "label": "営業部",
+                "x": 640,
+                "y": 220,
+                "width": 140,
+                "height": 70
+              },
+              {
+                "id": "team1",
+                "label": "チーム1",
+                "x": 440,
+                "y": 340,
+                "width": 140,
+                "height": 70
+              }
+            ],
+            "edges": [
+              {
+                "id": "e1",
+                "from": "root",
+                "to": "dept1"
+              },
+              {
+                "id": "e2",
+                "from": "root",
+                "to": "dept2"
+              },
+              {
+                "id": "e3",
+                "from": "dept1",
+                "to": "team1"
+              }
+            ]
+          },
+          "nodeCount": 4,
+          "edgeCount": 3
+        },
+        {
+          "id": "scene-3",
+          "startTime": 16,
+          "endTime": 24,
+          "content": "時系列で見ると、プロジェクトは計画、開発、テスト、デプロイの段階を経て進行します。",
+          "diagramType": "timeline",
+          "confidence": 0.85,
+          "layout": {
+            "success": true,
+            "type": "timeline",
+            "nodes": [
+              {
+                "id": "plan",
+                "label": "計画",
+                "x": 200,
+                "y": 300,
+                "width": 140,
+                "height": 70
+              },
+              {
+                "id": "dev",
+                "label": "開発",
+                "x": 400,
+                "y": 300,
+                "width": 140,
+                "height": 70
+              },
+              {
+                "id": "test",
+                "label": "テスト",
+                "x": 600,
+                "y": 300,
+                "width": 140,
+                "height": 70
+              },
+              {
+                "id": "deploy",
+                "label": "デプロイ",
+                "x": 800,
+                "y": 300,
+                "width": 140,
+                "height": 70
+              }
+            ],
+            "edges": [
+              {
+                "id": "e1",
+                "from": "plan",
+                "to": "dev"
+              },
+              {
+                "id": "e2",
+                "from": "dev",
+                "to": "test"
+              },
+              {
+                "id": "e3",
+                "from": "test",
+                "to": "deploy"
+              }
+            ]
+          },
+          "nodeCount": 4,
+          "edgeCount": 3
+        },
+        {
+          "id": "scene-4",
+          "startTime": 24,
+          "endTime": 32,
+          "content": "このプロセスは継続的に繰り返され、サイクルを形成して改善を続けていきます。",
+          "diagramType": "flow",
+          "confidence": 0.92,
+          "layout": {
+            "success": true,
+            "type": "flow",
+            "nodes": [
+              {
+                "id": "start",
+                "label": "開始",
+                "x": 540,
+                "y": 100,
+                "width": 140,
+                "height": 70
+              },
+              {
+                "id": "process",
+                "label": "処理",
+                "x": 540,
+                "y": 220,
+                "width": 140,
+                "height": 70
+              },
+              {
+                "id": "decision",
+                "label": "判断",
+                "x": 540,
+                "y": 340,
+                "width": 140,
+                "height": 70
+              },
+              {
+                "id": "end",
+                "label": "終了",
+                "x": 540,
+                "y": 460,
+                "width": 140,
+                "height": 70
+              }
+            ],
+            "edges": [
+              {
+                "id": "e1",
+                "from": "start",
+                "to": "process"
+              },
+              {
+                "id": "e2",
+                "from": "process",
+                "to": "decision"
+              },
+              {
+                "id": "e3",
+                "from": "decision",
+                "to": "end"
+              }
+            ]
+          },
+          "nodeCount": 4,
+          "edgeCount": 3
+        }
+      ],
+      "metadata": {
+        "transcriptionSegments": 4,
+        "totalWords": 4,
+        "totalDuration": 32,
+        "diagramTypes": [
+          "flow",
+          "tree",
+          "timeline"
+        ],
+        "totalNodes": 16,
+        "totalEdges": 12
+      }
+    }
+  ],
+  "capabilities": {
+    "transcription": "Browser-based speech recognition",
+    "diagramDetection": "Keyword-based type detection",
+    "layoutGeneration": "Type-specific positioning",
+    "pipelineIntegration": "End-to-end processing"
+  },
+  "customInstructionsCompliance": {
+    "smallImplementation": true,
+    "reliableOperation": true,
+    "iterativeImprovement": true,
+    "modularDesign": true,
+    "processVisualization": true
+  }
+}

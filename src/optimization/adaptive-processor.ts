@@ -161,7 +161,7 @@ class AdaptiveProcessor {
     console.log('[AdaptiveProcessor] Context:', context);
 
     // Filter strategies based on hard constraints
-    let candidateStrategies = this.filterByConstraints(context);
+    const candidateStrategies = this.filterByConstraints(context);
 
     // Score strategies based on content characteristics and context
     const scoredStrategies = candidateStrategies.map(strategy => ({

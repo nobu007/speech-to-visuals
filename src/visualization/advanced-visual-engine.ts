@@ -498,10 +498,10 @@ export class AdvancedVisualEngine {
     if (nodes.length === 0) return 0;
 
     // Check for reasonable spacing
-    let spacingScore = 0.7;
+    const spacingScore = 0.7;
 
     // Check for visual hierarchy
-    let hierarchyScore = 0.8;
+    const hierarchyScore = 0.8;
 
     return (spacingScore + hierarchyScore) / 2;
   }

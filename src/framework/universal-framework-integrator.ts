@@ -85,7 +85,7 @@ export class UniversalFrameworkIntegrator {
     let iteration = 1;
     let bestResult: T | null = null;
     let bestQuality = 0;
-    let improvements: string[] = [];
+    const improvements: string[] = [];
 
     while (iteration <= this.config.maxIterations) {
       try {

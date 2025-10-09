@@ -213,7 +213,7 @@ export class MultimodalAnalyzer {
     correlation: number
   ): { enhancedDiagramType: DiagramType; confidence: number; insights: string[] } {
     const insights: string[] = [];
-    let scores = {
+    const scores = {
       flow: 0,
       tree: 0,
       timeline: 0,
