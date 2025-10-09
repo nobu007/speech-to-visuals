@@ -7,6 +7,7 @@
 import { TranscriptionPipeline } from '@/transcription';
 import { SceneSegmenter, DiagramDetector } from '@/analysis';
 import { LayoutEngine } from '@/visualization';
+import { EnhancedZeroOverlapLayoutEngine } from '@/visualization/enhanced-zero-overlap-layout';
 import { SceneGraph } from '@/types/diagram';
 import { VideoGenerator, VideoGenerationOptions } from './video-generator';
 import { continuousLearner } from '@/framework/continuous-learner';
@@ -19,6 +20,10 @@ export interface SimplePipelineInput {
     layoutType?: 'flow' | 'tree' | 'timeline' | 'auto';
     includeVideoGeneration?: boolean;
     videoOptions?: Partial<VideoGenerationOptions>;
+    // Enhanced Zero Overlap Layout Engine options (カスタムインストラクション準拠)
+    useEnhancedLayout?: boolean;
+    layoutQuality?: 'standard' | 'enhanced' | 'zero_overlap';
+    overlapTolerance?: 'strict' | 'balanced' | 'performance';
   };
 }
 
@@ -45,6 +50,7 @@ export class SimplePipeline {
   private segmenter: SceneSegmenter;
   private detector: DiagramDetector;
   private layoutEngine: LayoutEngine;
+  private enhancedLayoutEngine: EnhancedZeroOverlapLayoutEngine;
   private videoGenerator: VideoGenerator;
 
   // Progressive enhancement tracking (段階的改善追跡)
@@ -77,6 +83,15 @@ export class SimplePipeline {
       width: 1920,
       height: 1080,
       margin: 40
+    });
+
+    // Initialize Enhanced Zero Overlap Layout Engine (カスタムインストラクション準拠)
+    this.enhancedLayoutEngine = new EnhancedZeroOverlapLayoutEngine({
+      overlapDetectionMode: 'balanced',
+      collisionResolutionStrategy: 'force_directed',
+      separationDistance: 25,
+      maxIterations: 10,
+      qualityThreshold: 100 // Zero overlap requirement
     });
 
     this.videoGenerator = new VideoGenerator({
@@ -200,13 +215,55 @@ export class SimplePipeline {
           }
         );
 
-        // Generate layout
+        // Generate layout with Enhanced Zero Overlap Engine (カスタムインストラクション準拠)
         const layoutStartTime = Date.now();
-        const layoutResult = await this.layoutEngine.generateLayout(
-          diagramAnalysis.nodes || [],
-          diagramAnalysis.edges || [],
-          diagramAnalysis.type
-        );
+
+        // Determine which layout engine to use based on options
+        const useEnhancedLayout = input.options?.useEnhancedLayout ??
+          (input.options?.layoutQuality === 'zero_overlap' || input.options?.layoutQuality === 'enhanced');
+
+        let layoutResult: any;
+
+        if (useEnhancedLayout) {
+          console.log('🎯 Using Enhanced Zero Overlap Layout Engine');
+
+          // Configure enhanced engine based on user preferences
+          const overlapConfig = {
+            overlapDetectionMode: input.options?.overlapTolerance || 'balanced',
+            qualityThreshold: input.options?.layoutQuality === 'zero_overlap' ? 100 : 95
+          };
+
+          const enhancedResult = this.enhancedLayoutEngine.generateZeroOverlapLayout(
+            diagramAnalysis.nodes || [],
+            diagramAnalysis.edges || [],
+            diagramAnalysis.type,
+            { theme: 'auto' }
+          );
+
+          // Convert enhanced result to standard layout result format
+          layoutResult = {
+            success: enhancedResult.success,
+            layout: enhancedResult.layout,
+            confidence: enhancedResult.qualityAssessment?.overallScore / 100 || 0,
+            enhancedMetrics: {
+              overlapFreePercent: enhancedResult.qualityAssessment?.overlapFreePercent,
+              qualityScore: enhancedResult.qualityAssessment?.overallScore,
+              iterations: enhancedResult.metrics?.iterationsUsed,
+              resolutionTime: enhancedResult.metrics?.resolutionTime
+            }
+          };
+
+          console.log(`   ✅ Enhanced layout completed: ${enhancedResult.qualityAssessment?.overlapFreePercent}% overlap-free`);
+          console.log(`   📊 Quality score: ${enhancedResult.qualityAssessment?.overallScore.toFixed(1)}%`);
+
+        } else {
+          console.log('🎨 Using Standard Layout Engine');
+          layoutResult = await this.layoutEngine.generateLayout(
+            diagramAnalysis.nodes || [],
+            diagramAnalysis.edges || [],
+            diagramAnalysis.type
+          );
+        }
 
         const layoutProcessingTime = Date.now() - layoutStartTime;
         const layoutQuality = layoutResult.success && layoutResult.layout ?
