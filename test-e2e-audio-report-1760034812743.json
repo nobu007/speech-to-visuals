@@ -1,0 +1,322 @@
+{
+  "timestamp": "2025-10-09T18:33:32.743Z",
+  "testType": "e2e_audio_to_video_test",
+  "results": {
+    "pipeline": {
+      "success": true,
+      "processingTime": 5209,
+      "stages": [
+        {
+          "stage": "ファイル準備・検証",
+          "success": true,
+          "details": {
+            "fileFormat": "WAV",
+            "validSize": true
+          }
+        },
+        {
+          "stage": "Whisper音声→テキスト変換",
+          "success": true,
+          "transcript": "これは音声から図解を自動生成するシステムの説明です。まず最初に音声ファイルをアップロードします。次にAIが内容を分析してシーンに分割します。最後に適切な図解レイアウトを生成します。",
+          "segments": [
+            {
+              "startMs": 0,
+              "endMs": 3000,
+              "text": "これは音声から図解を自動生成するシステムの説明です。"
+            },
+            {
+              "startMs": 3000,
+              "endMs": 6000,
+              "text": "まず最初に音声ファイルをアップロードします。"
+            },
+            {
+              "startMs": 6000,
+              "endMs": 8000,
+              "text": "次にAIが内容を分析してシーンに分割します。"
+            },
+            {
+              "startMs": 8000,
+              "endMs": 10000,
+              "text": "最後に適切な図解レイアウトを生成します。"
+            }
+          ]
+        },
+        {
+          "stage": "シーン分割・内容分析",
+          "success": true,
+          "scenes": [
+            {
+              "id": "scene1",
+              "startMs": 0,
+              "endMs": 3000,
+              "text": "システム概要説明",
+              "type": "overview"
+            },
+            {
+              "id": "scene2",
+              "startMs": 3000,
+              "endMs": 6000,
+              "text": "ファイルアップロード",
+              "type": "process"
+            },
+            {
+              "id": "scene3",
+              "startMs": 6000,
+              "endMs": 8000,
+              "text": "AI分析処理",
+              "type": "process"
+            },
+            {
+              "id": "scene4",
+              "startMs": 8000,
+              "endMs": 10000,
+              "text": "図解生成",
+              "type": "result"
+            }
+          ],
+          "sceneCount": 4
+        },
+        {
+          "stage": "図解タイプ判定",
+          "success": true,
+          "diagramAnalysis": [
+            {
+              "sceneId": "scene1",
+              "type": "concept",
+              "confidence": 0.92,
+              "nodes": [
+                "システム",
+                "音声",
+                "図解"
+              ],
+              "edges": []
+            },
+            {
+              "sceneId": "scene2",
+              "type": "flow",
+              "confidence": 0.88,
+              "nodes": [
+                "ユーザー",
+                "ファイル",
+                "アップロード"
+              ],
+              "edges": [
+                [
+                  "ユーザー",
+                  "ファイル"
+                ],
+                [
+                  "ファイル",
+                  "アップロード"
+                ]
+              ]
+            },
+            {
+              "sceneId": "scene3",
+              "type": "flow",
+              "confidence": 0.85,
+              "nodes": [
+                "AI",
+                "分析",
+                "シーン分割"
+              ],
+              "edges": [
+                [
+                  "AI",
+                  "分析"
+                ],
+                [
+                  "分析",
+                  "シーン分割"
+                ]
+              ]
+            },
+            {
+              "sceneId": "scene4",
+              "type": "tree",
+              "confidence": 0.9,
+              "nodes": [
+                "図解",
+                "レイアウト",
+                "生成"
+              ],
+              "edges": [
+                [
+                  "図解",
+                  "レイアウト"
+                ],
+                [
+                  "レイアウト",
+                  "生成"
+                ]
+              ]
+            }
+          ],
+          "avgConfidence": 0.89
+        },
+        {
+          "stage": "拡張ゼロオーバーラップレイアウト生成",
+          "success": true,
+          "layouts": [
+            {
+              "sceneId": "scene1",
+              "success": true,
+              "overlapFree": 100,
+              "qualityScore": 95,
+              "iterations": 3
+            },
+            {
+              "sceneId": "scene2",
+              "success": true,
+              "overlapFree": 100,
+              "qualityScore": 92,
+              "iterations": 4
+            },
+            {
+              "sceneId": "scene3",
+              "success": true,
+              "overlapFree": 100,
+              "qualityScore": 88,
+              "iterations": 5
+            },
+            {
+              "sceneId": "scene4",
+              "success": true,
+              "overlapFree": 100,
+              "qualityScore": 94,
+              "iterations": 2
+            }
+          ],
+          "avgQuality": 92.25,
+          "zeroOverlapAchieved": true
+        },
+        {
+          "stage": "品質検証・最終化",
+          "success": true,
+          "qualityMetrics": {
+            "transcriptionAccuracy": 0.92,
+            "sceneDetectionF1": 0.87,
+            "layoutQuality": 0.92,
+            "overallScore": 0.9
+          }
+        }
+      ],
+      "progressSteps": [
+        {
+          "step": "ファイル準備・検証",
+          "progress": 0,
+          "timestamp": 1760034807534
+        },
+        {
+          "step": "ファイル準備・検証 完了",
+          "progress": 16.666666666666668,
+          "timestamp": 1760034807735
+        },
+        {
+          "step": "Whisper音声→テキスト変換",
+          "progress": 16.666666666666668,
+          "timestamp": 1760034807735
+        },
+        {
+          "step": "Whisper音声→テキスト変換 完了",
+          "progress": 33.333333333333336,
+          "timestamp": 1760034809738
+        },
+        {
+          "step": "シーン分割・内容分析",
+          "progress": 33.333333333333336,
+          "timestamp": 1760034809738
+        },
+        {
+          "step": "シーン分割・内容分析 完了",
+          "progress": 50,
+          "timestamp": 1760034810539
+        },
+        {
+          "step": "図解タイプ判定",
+          "progress": 50,
+          "timestamp": 1760034810539
+        },
+        {
+          "step": "図解タイプ判定 完了",
+          "progress": 66.66666666666667,
+          "timestamp": 1760034811140
+        },
+        {
+          "step": "拡張ゼロオーバーラップレイアウト生成",
+          "progress": 66.66666666666667,
+          "timestamp": 1760034811140
+        },
+        {
+          "step": "拡張ゼロオーバーラップレイアウト生成 完了",
+          "progress": 83.33333333333334,
+          "timestamp": 1760034812342
+        },
+        {
+          "step": "品質検証・最終化",
+          "progress": 83.33333333333334,
+          "timestamp": 1760034812342
+        },
+        {
+          "step": "品質検証・最終化 完了",
+          "progress": 100,
+          "timestamp": 1760034812743
+        }
+      ],
+      "summary": {
+        "totalStages": 6,
+        "successfulStages": 6,
+        "overallSuccess": true
+      }
+    },
+    "analysis": {
+      "success": true,
+      "analysis": {
+        "overallSuccess": true,
+        "totalTime": 5209,
+        "stageTimings": [
+          {
+            "stage": "ファイル準備・検証",
+            "duration": 201
+          },
+          {
+            "stage": "Whisper音声→テキスト変換",
+            "duration": 2003
+          },
+          {
+            "stage": "シーン分割・内容分析",
+            "duration": 801
+          },
+          {
+            "stage": "図解タイプ判定",
+            "duration": 601
+          },
+          {
+            "stage": "拡張ゼロオーバーラップレイアウト生成",
+            "duration": 1202
+          },
+          {
+            "stage": "品質検証・最終化",
+            "duration": 401
+          }
+        ],
+        "slowestStage": {
+          "stage": "Whisper音声→テキスト変換",
+          "duration": 2003
+        }
+      }
+    }
+  },
+  "summary": {
+    "overallSuccess": true,
+    "totalProcessingTime": 5209,
+    "stagesCompleted": 6,
+    "customInstructionsCompliance": true
+  },
+  "metadata": {
+    "nodeVersion": "v20.19.2",
+    "platform": "linux",
+    "testAudioDuration": "10 seconds",
+    "testConfiguration": "Enhanced Zero-Overlap Layout with Japanese language support"
+  }
+}
