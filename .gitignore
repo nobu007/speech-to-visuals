@@ -46,10 +46,15 @@ uploads/
 *-demo.js
 test-*.ts
 test-*.js
-!tests/**/*.ts
-!tests/**/*.js
+!src/test/**/*.ts
+!src/test/**/*.js
 mock-*.wav
 simple-test.*
+
+# Deprecated documentation
+QUICK_START.md
+*_OLD.md
+*_DEPRECATED.md
 
 # Editor directories and files
 .vscode/*
