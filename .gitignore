@@ -31,6 +31,15 @@ ITERATION_*_*.md
 demo-output/
 test-output/
 out/
+uploads/
+
+# Development logs and reports
+.module/
+.cache/
+*.tmp
+*.bak
+*.old
+*.swp
 
 # Demo and test files
 *-demo.tsx
