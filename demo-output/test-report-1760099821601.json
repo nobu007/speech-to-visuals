@@ -1,0 +1,66 @@
+{
+  "suiteName": "Audio-to-Diagram Pipeline E2E",
+  "tests": [
+    {
+      "name": "Audio Transcriber - Mock Fallback",
+      "passed": false,
+      "duration": 3.5372440000000154,
+      "error": "Assertion failed: Transcription should succeed"
+    },
+    {
+      "name": "Diagram Detector - Flow Chart",
+      "passed": true,
+      "duration": 1.4366309999999771,
+      "details": {
+        "type": "flow",
+        "confidence": 0.95,
+        "nodes": 5,
+        "edges": 5
+      }
+    },
+    {
+      "name": "Diagram Detector - Tree Structure",
+      "passed": true,
+      "duration": 0.8661240000000134,
+      "details": {
+        "type": "tree",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "Diagram Detector - Timeline",
+      "passed": false,
+      "duration": 0.21792100000001824,
+      "error": "Assertion failed: Should detect timeline (got: flow)"
+    },
+    {
+      "name": "Complete Pipeline - E2E Flow",
+      "passed": false,
+      "duration": 1.5423199999999895,
+      "error": "Assertion failed: Pipeline should succeed"
+    },
+    {
+      "name": "Scene Segmentation - Quality Check",
+      "passed": false,
+      "duration": 0.5616590000000201,
+      "error": "Assertion failed: Pipeline should succeed"
+    },
+    {
+      "name": "Diagram Elements - Quality Check",
+      "passed": false,
+      "duration": 0.3621140000000196,
+      "error": "Assertion failed: Pipeline should succeed"
+    },
+    {
+      "name": "Performance - Processing Speed",
+      "passed": false,
+      "duration": 0.41317000000000803,
+      "error": "Assertion failed: Pipeline should succeed"
+    }
+  ],
+  "totalTests": 8,
+  "passedTests": 2,
+  "failedTests": 6,
+  "successRate": 25,
+  "totalDuration": 10.075822999999986
+}

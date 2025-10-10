@@ -52,7 +52,9 @@ export class SimpleDiagramDetector {
 
   private timelineKeywords = [
     'timeline', 'chronology', 'history', 'year', 'month', 'period',
-    'before', 'after', 'when', 'during', 'time', 'sequence'
+    'before', 'after', 'when', 'during', 'time', 'sequence',
+    '2020', '2021', '2022', '2023', '2024', '2025', // Add year patterns
+    'started', 'developed', 'launched' // Common timeline verbs
   ];
 
   private cycleKeywords = [

@@ -1,0 +1,83 @@
+{
+  "suiteName": "Audio-to-Diagram Pipeline E2E",
+  "tests": [
+    {
+      "name": "Audio Transcriber - Mock Fallback",
+      "passed": true,
+      "duration": 6.528731999999991,
+      "details": {
+        "segments": 4,
+        "confidence": 0.91
+      }
+    },
+    {
+      "name": "Diagram Detector - Flow Chart",
+      "passed": true,
+      "duration": 1.2828209999999842,
+      "details": {
+        "type": "flow",
+        "confidence": 0.95,
+        "nodes": 5,
+        "edges": 5
+      }
+    },
+    {
+      "name": "Diagram Detector - Tree Structure",
+      "passed": true,
+      "duration": 0.7278230000000008,
+      "details": {
+        "type": "tree",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "Diagram Detector - Timeline",
+      "passed": true,
+      "duration": 0.208753999999999,
+      "details": {
+        "type": "timeline",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "Complete Pipeline - E2E Flow",
+      "passed": false,
+      "duration": 5.033640999999989,
+      "error": "Assertion failed: Should have confidence metrics"
+    },
+    {
+      "name": "Scene Segmentation - Quality Check",
+      "passed": true,
+      "duration": 3.7614389999999958,
+      "details": {
+        "scenes": 2,
+        "avgDuration": 6.5
+      }
+    },
+    {
+      "name": "Diagram Elements - Quality Check",
+      "passed": true,
+      "duration": 3.631453999999991,
+      "details": {
+        "totalNodes": 10,
+        "totalEdges": 10,
+        "avgNodesPerScene": 5,
+        "avgEdgesPerScene": 5
+      }
+    },
+    {
+      "name": "Performance - Processing Speed",
+      "passed": true,
+      "duration": 3.661069999999995,
+      "details": {
+        "processingTime": 3.2233939999999848,
+        "throughput": 620.4640202221663
+      }
+    }
+  ],
+  "totalTests": 8,
+  "passedTests": 7,
+  "failedTests": 1,
+  "successRate": 87.5,
+  "totalDuration": 25.42174
+}

@@ -1,0 +1,87 @@
+{
+  "suiteName": "Audio-to-Diagram Pipeline E2E",
+  "tests": [
+    {
+      "name": "Audio Transcriber - Mock Fallback",
+      "passed": true,
+      "duration": 6.193950999999998,
+      "details": {
+        "segments": 4,
+        "confidence": 0.91
+      }
+    },
+    {
+      "name": "Diagram Detector - Flow Chart",
+      "passed": true,
+      "duration": 1.239799999999974,
+      "details": {
+        "type": "flow",
+        "confidence": 0.95,
+        "nodes": 5,
+        "edges": 5
+      }
+    },
+    {
+      "name": "Diagram Detector - Tree Structure",
+      "passed": true,
+      "duration": 0.7383729999999957,
+      "details": {
+        "type": "tree",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "Diagram Detector - Timeline",
+      "passed": true,
+      "duration": 0.21162900000001628,
+      "details": {
+        "type": "timeline",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "Complete Pipeline - E2E Flow",
+      "passed": true,
+      "duration": 5.130313000000001,
+      "details": {
+        "scenes": 2,
+        "avgConfidence": 0,
+        "processingTime": 4.056766999999979
+      }
+    },
+    {
+      "name": "Scene Segmentation - Quality Check",
+      "passed": true,
+      "duration": 3.6626329999999996,
+      "details": {
+        "scenes": 2,
+        "avgDuration": 6.5
+      }
+    },
+    {
+      "name": "Diagram Elements - Quality Check",
+      "passed": true,
+      "duration": 3.831571999999994,
+      "details": {
+        "totalNodes": 10,
+        "totalEdges": 10,
+        "avgNodesPerScene": 5,
+        "avgEdgesPerScene": 5
+      }
+    },
+    {
+      "name": "Performance - Processing Speed",
+      "passed": true,
+      "duration": 3.6222469999999873,
+      "details": {
+        "processingTime": 3.1203789999999856,
+        "throughput": 640.9477823046525
+      }
+    }
+  ],
+  "totalTests": 8,
+  "passedTests": 8,
+  "failedTests": 0,
+  "successRate": 100,
+  "totalDuration": 25.246351000000004
+}
