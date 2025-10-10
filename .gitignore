@@ -12,6 +12,20 @@ dist
 dist-ssr
 *.local
 
+# Test and demo scripts
+*.mjs
+!vite.config.mjs
+!remotion.config.mjs
+
+# Test reports and temporary files
+*-report-*.json
+*-test-*.json
+*-validation-*.json
+*-demo-*.json
+*-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].json
+*-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].md
+development-summary-*.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
