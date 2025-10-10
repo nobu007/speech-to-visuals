@@ -1,73 +1,77 @@
-# Welcome to your Lovable project
+# Speech-to-Visuals: 音声→図解動画自動生成システム
 
-## Project info
+音声ファイルから自動的に図解とアニメーション動画を生成するシステムです。
 
-**URL**: https://lovable.dev/projects/4ea1af07-6b55-49b9-bec3-12b13807e5ec
+## 主要機能
 
-## How can I edit this code?
+- **音声認識**: Whisper + Web Speech API による高精度文字起こし
+- **図解自動生成**: AI による内容分析と図解タイプ自動検出
+- **動画作成**: Remotion による高品質アニメーション動画出力
+- **リアルタイムUI**: 処理進捗とメトリクスのリアルタイム表示
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/4ea1af07-6b55-49b9-bec3-12b13807e5ec) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## クイックスタート
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# 1. 依存関係のインストール
+npm install
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# 2. 開発サーバーの起動
 npm run dev
+
+# 3. ブラウザでアクセス
+# http://localhost:8080/simple (推奨 - Simple Pipeline)
+# http://localhost:8080/ (標準インターフェース)
 ```
 
-**Edit a file directly in GitHub**
+詳細は [QUICK_START.md](QUICK_START.md) を参照してください。
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 技術スタック
 
-**Use GitHub Codespaces**
+### フロントエンド
+- **React** + **TypeScript**: UI構築
+- **Vite**: 高速ビルドツール
+- **Tailwind CSS** + **shadcn-ui**: スタイリング
+- **Remotion**: 動画生成
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### バックエンド・処理
+- **Whisper**: 音声文字起こし
+- **Web Speech API**: ブラウザ音声認識
+- **Dagre**: グラフレイアウト生成
 
-## What technologies are used for this project?
+## 対応ファイル形式
 
-This project is built with:
+- **音声**: MP3, WAV, OGG, M4A (最大50MB)
+- **出力**: JSON (図解データ), MP4 (動画)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 図解タイプ
 
-## How can I deploy this project?
+- マインドマップ (概念関係性)
+- フローチャート (プロセス説明)
+- ツリー構造 (階層関係)
+- タイムライン (時系列)
+- 概念図 (一般的関係)
 
-Simply open [Lovable](https://lovable.dev/projects/4ea1af07-6b55-49b9-bec3-12b13807e5ec) and click on Share -> Publish.
+## 開発コマンド
 
-## Can I connect a custom domain to my Lovable project?
+```sh
+# 開発サーバー起動
+npm run dev
 
-Yes, you can!
+# ビルド
+npm run build
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+# 型チェック
+npm run type-check
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+# Remotion Studio
+npm run remotion:studio
+```
+
+## ドキュメント
+
+- [QUICK_START.md](QUICK_START.md) - クイックスタートガイド
+- [TESTING_GUIDE.md](TESTING_GUIDE.md) - テストガイド
+
+## ライセンス
+
+MIT License

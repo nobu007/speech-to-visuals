@@ -19,14 +19,14 @@
 
 ### 3. システム検証
 ```bash
-# 完全システムテスト（30秒）
-node test-audio-to-visuals-system.mjs
+# Web UIでの手動テスト
+npm run dev
 
-# モックデモンストレーション（10秒）
-node mock-audio-demonstration.mjs
+# ビルド検証
+npm run build
 
-# 包括的パイプラインテスト（1分）
-node demo-complete-pipeline-test.mjs
+# 型チェック
+npm run type-check
 ```
 
 ## システム状態
@@ -86,8 +86,8 @@ node demo-complete-pipeline-test.mjs
 
 ### サポート
 - システムログ: ブラウザの開発者コンソール
-- 詳細レポート: `test-audio-to-visuals-system.mjs` 実行
-- デモテスト: `mock-audio-demonstration.mjs` 実行
+- テストガイド: `TESTING_GUIDE.md` 参照
+- Web UI: http://localhost:8080/simple でテスト
 
 ## 次のステップ
 
