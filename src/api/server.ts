@@ -12,6 +12,7 @@ import authRoutes from '../routes/auth.routes';
 import apiRoutes from '../routes/api.routes';
 import workspaceRoutes from '../routes/workspace.routes';
 import { openAPISpec } from './openapi';
+import { qualityMonitor } from '../services/quality-monitor';
 
 // Load environment variables
 dotenv.config();
@@ -49,12 +50,15 @@ export function createApp(): Application {
     next();
   });
 
-  // Request logging middleware
+  // Request logging & quality monitoring middleware
   app.use((req, res, next) => {
     const start = Date.now();
     res.on('finish', () => {
       const duration = Date.now() - start;
       console.log(`[API] ${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`);
+
+      // Record response time for quality monitoring
+      qualityMonitor.recordResponseTime(duration);
     });
     next();
   });
@@ -73,6 +77,15 @@ export function createApp(): Application {
         uptime: process.uptime(),
         version: process.env.npm_package_version || '1.0.0',
       },
+    });
+  });
+
+  // Quality monitoring endpoint (Iteration 67.B2)
+  app.get('/api/v1/quality', (req, res) => {
+    const report = qualityMonitor.getQualityReport();
+    res.json({
+      success: true,
+      data: report
     });
   });
 
