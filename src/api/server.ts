@@ -10,6 +10,7 @@ import dotenv from 'dotenv';
 import { errorHandler, notFoundHandler } from '../middleware/error-handler';
 import authRoutes from '../routes/auth.routes';
 import apiRoutes from '../routes/api.routes';
+import workspaceRoutes from '../routes/workspace.routes';
 import { openAPISpec } from './openapi';
 
 // Load environment variables
@@ -83,6 +84,7 @@ export function createApp(): Application {
   // API v1 routes
   app.use('/api/v1/auth', authRoutes);
   app.use('/api/v1', apiRoutes);
+  app.use('/api/v1/workspaces', workspaceRoutes);
 
   // ============================================================================
   // Error Handling
@@ -122,6 +124,16 @@ export function startServer(port: number = 3001): void {
     console.log('  GET    /api/v1/jobs               - Get all user jobs');
     console.log('  GET    /api/v1/quota              - Get quota information');
     console.log('  GET    /api/v1/health             - Health check');
+    console.log('\n🏢 Workspace Endpoints (Phase B1):');
+    console.log('  POST   /api/v1/workspaces                         - Create workspace');
+    console.log('  GET    /api/v1/workspaces                         - List workspaces');
+    console.log('  GET    /api/v1/workspaces/:id                     - Get workspace');
+    console.log('  PATCH  /api/v1/workspaces/:id                     - Update workspace');
+    console.log('  DELETE /api/v1/workspaces/:id                     - Delete workspace');
+    console.log('  POST   /api/v1/workspaces/:id/members/invite      - Invite member');
+    console.log('  PATCH  /api/v1/workspaces/:id/members/:userId/role - Update member role');
+    console.log('  DELETE /api/v1/workspaces/:id/members/:userId     - Remove member');
+    console.log('  GET    /api/v1/workspaces/:id/activities          - Get activities');
     console.log('═══════════════════════════════════════════════════════════════\n');
   });
 }
