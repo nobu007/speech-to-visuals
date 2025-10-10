@@ -85,44 +85,40 @@ export class AudioDiagramPipeline {
   async processAudio(audioPath: string): Promise<any> {
     console.log('🎵 Phase 1: Audio Processing & Transcription');
 
-    return await this.framework.executeDevelopmentCycle(
-      'Audio Processing',
-      async () => {
-        const startTime = performance.now();
+    const startTime = performance.now();
 
-        try {
-          // 1. Audio preprocessing
-          console.log('🔧 Preprocessing audio...');
-          const preprocessedAudio = await this.preprocessAudio(audioPath);
+    try {
+      // 1. Audio preprocessing
+      console.log('🔧 Preprocessing audio...');
+      const preprocessedAudio = await this.preprocessAudio(audioPath);
 
-          // 2. Whisper transcription
-          console.log('🎤 Running Whisper transcription...');
-          const transcription = await this.runWhisperTranscription(preprocessedAudio);
+      // 2. Whisper transcription
+      console.log('🎤 Running Whisper transcription...');
+      const transcription = await this.runWhisperTranscription(preprocessedAudio);
 
-          // 3. Post-processing
-          console.log('✨ Post-processing transcript...');
-          const processedTranscript = await this.postprocessTranscript(transcription);
+      // 3. Post-processing
+      console.log('✨ Post-processing transcript...');
+      const processedTranscript = await this.postprocessTranscript(transcription);
 
-          const duration = performance.now() - startTime;
-          console.log(`✅ Audio processing completed in ${duration.toFixed(0)}ms`);
+      const duration = performance.now() - startTime;
+      console.log(`✅ Audio processing completed in ${duration.toFixed(0)}ms`);
 
-          return {
-            success: true,
-            transcript: processedTranscript,
-            duration,
-            metrics: {
-              captionCount: processedTranscript.captions?.length || 0,
-              averageConfidence: this.calculateAverageConfidence(processedTranscript),
-              processingTime: duration
-            }
-          };
-
-        } catch (error) {
-          console.error('❌ Audio processing failed:', error);
-          throw error;
+      return {
+        success: true,
+        transcript: processedTranscript,
+        audioPath,
+        duration,
+        metrics: {
+          captionCount: processedTranscript.captions?.length || 0,
+          averageConfidence: this.calculateAverageConfidence(processedTranscript),
+          processingTime: duration
         }
-      }
-    );
+      };
+
+    } catch (error) {
+      console.error('❌ Audio processing failed:', error);
+      throw error;
+    }
   }
 
   private async preprocessAudio(audioPath: string): Promise<string> {
@@ -198,47 +194,42 @@ export class AudioDiagramPipeline {
   async analyzeContent(transcript: any): Promise<any> {
     console.log('🔍 Phase 2: Content Analysis & Scene Segmentation');
 
-    return await this.framework.executeDevelopmentCycle(
-      'Content Analysis',
-      async () => {
-        const startTime = performance.now();
+    const startTime = performance.now();
 
-        try {
-          // 1. Scene segmentation
-          console.log('📋 Segmenting scenes...');
-          const scenes = await this.segmentScenes(transcript);
+    try {
+      // 1. Scene segmentation
+      console.log('📋 Segmenting scenes...');
+      const scenes = await this.segmentScenes(transcript);
 
-          // 2. Diagram type detection
-          console.log('🎯 Detecting diagram types...');
-          const diagramTypes = await this.detectDiagramTypes(scenes);
+      // 2. Diagram type detection
+      console.log('🎯 Detecting diagram types...');
+      const diagramTypes = await this.detectDiagramTypes(scenes);
 
-          // 3. Relationship extraction
-          console.log('🔗 Extracting relationships...');
-          const relationships = await this.extractRelationships(scenes);
+      // 3. Relationship extraction
+      console.log('🔗 Extracting relationships...');
+      const relationships = await this.extractRelationships(scenes);
 
-          const duration = performance.now() - startTime;
-          console.log(`✅ Content analysis completed in ${duration.toFixed(0)}ms`);
+      const duration = performance.now() - startTime;
+      console.log(`✅ Content analysis completed in ${duration.toFixed(0)}ms`);
 
-          return {
-            success: true,
-            scenes,
-            diagramTypes,
-            relationships,
-            duration,
-            metrics: {
-              sceneCount: scenes.length,
-              avgSceneDuration: scenes.reduce((sum: number, scene: any) => sum + scene.duration, 0) / scenes.length,
-              relationshipCount: relationships.length,
-              processingTime: duration
-            }
-          };
-
-        } catch (error) {
-          console.error('❌ Content analysis failed:', error);
-          throw error;
+      return {
+        success: true,
+        scenes,
+        diagramTypes,
+        relationships,
+        duration,
+        metrics: {
+          sceneCount: scenes.length,
+          avgSceneDuration: scenes.reduce((sum: number, scene: any) => sum + scene.duration, 0) / scenes.length,
+          relationshipCount: relationships.length,
+          processingTime: duration
         }
-      }
-    );
+      };
+
+    } catch (error) {
+      console.error('❌ Content analysis failed:', error);
+      throw error;
+    }
   }
 
   private async segmentScenes(transcript: any): Promise<any[]> {
@@ -439,47 +430,42 @@ export class AudioDiagramPipeline {
   async generateVisualization(analysisResult: any): Promise<any> {
     console.log('🎨 Phase 3: Visualization & Layout Generation');
 
-    return await this.framework.executeDevelopmentCycle(
-      'Visualization Generation',
-      async () => {
-        const startTime = performance.now();
+    const startTime = performance.now();
 
-        try {
-          // 1. Layout calculation
-          console.log('📐 Calculating optimal layouts...');
-          const layouts = await this.calculateLayouts(analysisResult);
+    try {
+      // 1. Layout calculation
+      console.log('📐 Calculating optimal layouts...');
+      const layouts = await this.calculateLayouts(analysisResult);
 
-          // 2. Animation planning
-          console.log('🎬 Planning animations...');
-          const animations = await this.planAnimations(layouts, analysisResult);
+      // 2. Animation planning
+      console.log('🎬 Planning animations...');
+      const animations = await this.planAnimations(layouts, analysisResult);
 
-          // 3. Asset generation
-          console.log('🎯 Generating visual assets...');
-          const assets = await this.generateAssets(layouts, animations);
+      // 3. Asset generation
+      console.log('🎯 Generating visual assets...');
+      const assets = await this.generateAssets(layouts, animations);
 
-          const duration = performance.now() - startTime;
-          console.log(`✅ Visualization generation completed in ${duration.toFixed(0)}ms`);
+      const duration = performance.now() - startTime;
+      console.log(`✅ Visualization generation completed in ${duration.toFixed(0)}ms`);
 
-          return {
-            success: true,
-            layouts,
-            animations,
-            assets,
-            duration,
-            metrics: {
-              layoutCount: layouts.length,
-              animationCount: animations.length,
-              assetCount: assets.length,
-              processingTime: duration
-            }
-          };
-
-        } catch (error) {
-          console.error('❌ Visualization generation failed:', error);
-          throw error;
+      return {
+        success: true,
+        layouts,
+        animations,
+        assets,
+        duration,
+        metrics: {
+          layoutCount: layouts.length,
+          animationCount: animations.length,
+          assetCount: assets.length,
+          processingTime: duration
         }
-      }
-    );
+      };
+
+    } catch (error) {
+      console.error('❌ Visualization generation failed:', error);
+      throw error;
+    }
   }
 
   private async calculateLayouts(analysisResult: any): Promise<any[]> {
@@ -627,56 +613,67 @@ export class AudioDiagramPipeline {
   async generateVideo(transcriptResult: any, analysisResult: any, visualizationResult: any): Promise<any> {
     console.log('🎬 Phase 4: Video Generation with Remotion');
 
-    return await this.framework.executeDevelopmentCycle(
-      'Video Generation',
-      async () => {
-        const startTime = performance.now();
+    const startTime = performance.now();
 
-        try {
-          // 1. Prepare Remotion composition
-          console.log('🎬 Preparing Remotion composition...');
-          const composition = await this.prepareComposition(transcriptResult, analysisResult, visualizationResult);
+    try {
+      // 1. Prepare Remotion composition
+      console.log('🎬 Preparing Remotion composition...');
+      const composition = await this.prepareComposition(transcriptResult, analysisResult, visualizationResult);
 
-          // 2. Render video
-          console.log('🎥 Rendering video...');
-          const videoResult = await this.renderVideo(composition);
+      // 2. Render video
+      console.log('🎥 Rendering video...');
+      const videoResult = await this.renderVideo(composition);
 
-          const duration = performance.now() - startTime;
-          console.log(`✅ Video generation completed in ${duration.toFixed(0)}ms`);
+      const duration = performance.now() - startTime;
+      console.log(`✅ Video generation completed in ${duration.toFixed(0)}ms`);
 
-          return {
-            success: true,
-            composition,
-            videoResult,
-            duration,
-            metrics: {
-              compositionDuration: composition.durationInFrames,
-              renderTime: duration,
-              outputPath: videoResult.outputPath,
-              fileSize: videoResult.fileSize
-            }
-          };
-
-        } catch (error) {
-          console.error('❌ Video generation failed:', error);
-          throw error;
+      return {
+        success: true,
+        composition,
+        videoResult,
+        duration,
+        metrics: {
+          compositionDuration: composition.durationInFrames,
+          renderTime: duration,
+          outputPath: videoResult.outputPath,
+          fileSize: videoResult.fileSize
         }
-      }
-    );
+      };
+
+    } catch (error) {
+      console.error('❌ Video generation failed:', error);
+      throw error;
+    }
   }
 
   private async prepareComposition(transcriptResult: any, analysisResult: any, visualizationResult: any): Promise<any> {
     console.log('🎬 Preparing Remotion composition...');
 
+    // Extract the transcript data
+    const transcript = transcriptResult.transcript;
+
+    // Validate required data
+    if (!transcript || !transcript.duration || !transcript.captions) {
+      throw new Error('Invalid transcript data in prepareComposition');
+    }
+
+    if (!analysisResult.scenes) {
+      throw new Error('Invalid analysis data in prepareComposition - scenes missing');
+    }
+
+    if (!visualizationResult.layouts || !visualizationResult.animations) {
+      throw new Error('Invalid visualization data in prepareComposition');
+    }
+
     const composition = {
       id: 'AudioDiagramVideo',
-      durationInFrames: Math.ceil(transcriptResult.transcript.duration / 1000 * this.config.output.fps),
+      durationInFrames: Math.ceil(transcript.duration / 1000 * this.config.output.fps),
       fps: this.config.output.fps,
       width: this.config.output.width,
       height: this.config.output.height,
       scenes: this.combineSceneData(analysisResult.scenes, visualizationResult.layouts, visualizationResult.animations),
-      captions: transcriptResult.transcript.captions,
-      audio: transcriptResult.audioPath
+      captions: transcript.captions,
+      audio: transcriptResult.audioPath || 'public/audio/test-presentation.mp3'
     };
 
     return composition;
@@ -726,14 +723,35 @@ export class AudioDiagramPipeline {
       // Phase 1: Audio Processing
       const transcriptResult = await this.processAudio(audioPath);
 
+      // Validate transcriptResult structure
+      if (!transcriptResult || !transcriptResult.success || !transcriptResult.transcript) {
+        throw new Error('Audio processing failed or returned invalid data');
+      }
+
       // Phase 2: Content Analysis
+      // Pass the transcript object (which contains captions, language, duration)
       const analysisResult = await this.analyzeContent(transcriptResult.transcript);
+
+      // Validate analysisResult structure
+      if (!analysisResult || !analysisResult.success) {
+        throw new Error('Content analysis failed or returned invalid data');
+      }
 
       // Phase 3: Visualization
       const visualizationResult = await this.generateVisualization(analysisResult);
 
+      // Validate visualizationResult structure
+      if (!visualizationResult || !visualizationResult.success) {
+        throw new Error('Visualization generation failed or returned invalid data');
+      }
+
       // Phase 4: Video Generation
       const videoResult = await this.generateVideo(transcriptResult, analysisResult, visualizationResult);
+
+      // Validate videoResult structure
+      if (!videoResult || !videoResult.success || !videoResult.videoResult) {
+        throw new Error('Video generation failed or returned invalid data');
+      }
 
       const totalDuration = performance.now() - pipelineStart;
 
@@ -741,6 +759,7 @@ export class AudioDiagramPipeline {
         success: true,
         pipeline: 'AudioDiagramPipeline',
         totalDuration,
+        audioPath,
         phases: {
           transcription: transcriptResult,
           analysis: analysisResult,
@@ -759,11 +778,14 @@ export class AudioDiagramPipeline {
     } catch (error) {
       console.error('❌ Pipeline execution failed:', error);
 
+      const totalDuration = performance.now() - pipelineStart;
+
       return {
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         framework: this.framework.generateProgressReport(),
-        duration: performance.now() - pipelineStart
+        duration: totalDuration,
+        audioPath
       };
     }
   }
