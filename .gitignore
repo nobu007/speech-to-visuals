@@ -25,6 +25,22 @@ dist-ssr
 *-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].json
 *-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].md
 development-summary-*.md
+ITERATION_*_*.md
+
+# Output directories
+demo-output/
+test-output/
+out/
+
+# Demo and test files
+*-demo.tsx
+*-demo.js
+test-*.ts
+test-*.js
+!tests/**/*.ts
+!tests/**/*.js
+mock-*.wav
+simple-test.*
 
 # Editor directories and files
 .vscode/*
