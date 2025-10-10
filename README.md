@@ -11,6 +11,8 @@
 
 ## クイックスタート
 
+### 即座に始める（5分で動作確認）
+
 ```sh
 # 1. 依存関係のインストール
 npm install
@@ -19,11 +21,18 @@ npm install
 npm run dev
 
 # 3. ブラウザでアクセス
-# http://localhost:8080/simple (推奨 - Simple Pipeline)
-# http://localhost:8080/ (標準インターフェース)
+http://localhost:8080/simple  (推奨 - Simple Pipeline)
+http://localhost:8080/        (標準インターフェース)
 ```
 
-詳細は [QUICK_START.md](QUICK_START.md) を参照してください。
+### 使用方法
+
+1. `/simple` にアクセス
+2. 音声ファイルをアップロード（MP3/WAV/OGG/M4A, 最大50MB）
+3. 「動画を生成する」チェック（お好みで）
+4. 「処理開始」ボタンクリック
+5. リアルタイム進捗を確認
+6. 結果をダウンロード（JSON + MP4）
 
 ## 技術スタック
 
@@ -69,7 +78,6 @@ npm run remotion:studio
 
 ## ドキュメント
 
-- [QUICK_START.md](QUICK_START.md) - クイックスタートガイド
 - [TESTING_GUIDE.md](TESTING_GUIDE.md) - テストガイド
 
 ## ライセンス
