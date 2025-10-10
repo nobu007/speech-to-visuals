@@ -1,9 +1,9 @@
 import { lazy } from 'react';
 
-export const const Iteration43InterfaceLazy = lazy(() =>
+export const Iteration43InterfaceLazy = lazy(() =>
   import('./Iteration43Interface').then(module => ({
     default: module.default
   }))
 );
 
-export default const Iteration43InterfaceLazy;
+export default Iteration43InterfaceLazy;

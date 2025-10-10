@@ -1,9 +1,9 @@
 import { lazy } from 'react';
 
-export const const ProductionDashboardLazy = lazy(() =>
+export const ProductionDashboardLazy = lazy(() =>
   import('./ProductionDashboard').then(module => ({
     default: module.default
   }))
 );
 
-export default const ProductionDashboardLazy;
+export default ProductionDashboardLazy;

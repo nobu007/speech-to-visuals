@@ -113,7 +113,7 @@ export class SimpleDiagramDetector {
    */
   private calculateScore(text: string, keywords: string[]): number {
     let matches = 0;
-    let totalWords = text.split(/\s+/).length;
+    const totalWords = text.split(/\s+/).length;
 
     for (const keyword of keywords) {
       const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
