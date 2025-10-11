@@ -33,9 +33,10 @@ test-output/
 out/
 uploads/
 
-# Development logs and reports
+# Build and cache directories
 .module/
 .cache/
+.turbo/
 *.tmp
 *.bak
 *.old

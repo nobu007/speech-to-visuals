@@ -85,7 +85,6 @@ npm run type-check
 
 ## Resources
 
-- **Quick Start Guide**: `QUICK_START.md`
 - **Main Documentation**: `README.md`
 - **Test Audio**: `test-audio/` directory
 
