@@ -1,1 +1,0 @@
-Today I will explain the audio-to-diagram conversion system. First, we convert audio data to text, then analyze the content and divide it into scenes. Finally, we select appropriate diagram types and generate layouts.
