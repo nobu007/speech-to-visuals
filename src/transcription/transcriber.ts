@@ -1,6 +1,4 @@
 import { TranscriptionResult, TranscriptionConfig, TranscriptionSegment, TranscriptionMetrics } from './types';
-import AudioPreprocessor from './audio-preprocessor';
-import TextPostProcessor from './text-postprocessor';
 import { BrowserTranscriber } from './browser-transcriber';
 import { WhisperTranscriber } from './whisper-transcriber';
 import { Caption } from '@remotion/captions';
@@ -12,8 +10,6 @@ import { Caption } from '@remotion/captions';
 export class TranscriptionPipeline {
   private config: TranscriptionConfig;
   private iteration: number = 1;
-  private audioPreprocessor: AudioPreprocessor;
-  private textPostProcessor: TextPostProcessor;
   private browserTranscriber: BrowserTranscriber;
   private whisperTranscriber: WhisperTranscriber;
 
@@ -26,24 +22,6 @@ export class TranscriptionPipeline {
       chunkSizeMs: 30000, // 30 seconds
       ...config
     };
-
-    // Initialize advanced processing modules
-    this.audioPreprocessor = new AudioPreprocessor({
-      enableNoiseReduction: true,
-      enableNormalization: true,
-      enableVAD: true,
-      targetSampleRate: 16000,
-      confidenceThreshold: 0.7
-    });
-
-    this.textPostProcessor = new TextPostProcessor({
-      enableConfidenceFiltering: true,
-      enableTextCorrection: true,
-      enableSegmentMerging: true,
-      confidenceThreshold: 0.6,
-      minSegmentDuration: 500,
-      maxSegmentDuration: 15000
-    });
 
     // Initialize browser-compatible transcriber
     this.browserTranscriber = new BrowserTranscriber();
@@ -69,18 +47,11 @@ export class TranscriptionPipeline {
       // Step 1: Validate input
       await this.validateAudioFile(audioPath);
 
-      // Step 2: Preprocess audio (iteration 2+)
-      const processedPath = this.iteration > 1
-        ? await this.preprocessAudio(audioPath)
-        : audioPath;
+      // Step 2: Run Whisper transcription
+      const segments = await this.runWhisperTranscription(audioPath);
 
-      // Step 3: Run Whisper transcription
-      const segments = await this.runWhisperTranscription(processedPath);
-
-      // Step 4: Post-process results (iteration 2+)
-      const finalSegments = this.iteration > 1
-        ? await this.postprocessSegments(segments)
-        : segments;
+      // Step 3: Use segments directly (simplified pipeline)
+      const finalSegments = segments;
 
       // Step 5: Calculate metrics and evaluate
       const metrics = this.calculateMetrics(finalSegments, startTime);
@@ -195,51 +166,6 @@ export class TranscriptionPipeline {
     return mockSegments;
   }
 
-  /**
-   * Iteration 2+: Audio preprocessing for better quality
-   */
-  private async preprocessAudio(audioPath: string): Promise<string> {
-    console.log(`[V${this.iteration}] Preprocessing audio with advanced techniques...`);
-
-    try {
-      const result = await this.audioPreprocessor.processAudio(audioPath);
-
-      console.log('📊 Audio preprocessing metrics:');
-      console.log(`  - Quality score: ${(result.metrics.qualityScore * 100).toFixed(1)}%`);
-      console.log(`  - Noise reduced: ${result.metrics.noiseReduced ? 'Yes' : 'No'}`);
-      console.log(`  - Silence removed: ${result.metrics.silenceRemoved}ms`);
-      console.log(`  - Gain adjustment: ${result.metrics.gainAdjustment.toFixed(2)}dB`);
-
-      return result.processedPath;
-    } catch (error) {
-      console.warn(`[V${this.iteration}] Audio preprocessing failed, using original:`, error);
-      return audioPath;
-    }
-  }
-
-  /**
-   * Iteration 2+: Post-processing for better accuracy
-   */
-  private async postprocessSegments(segments: TranscriptionSegment[]): Promise<TranscriptionSegment[]> {
-    console.log(`[V${this.iteration}] Post-processing segments with advanced techniques...`);
-
-    try {
-      const result = await this.textPostProcessor.processSegments(segments);
-
-      console.log('📊 Text post-processing metrics:');
-      console.log(`  - Original segments: ${result.metrics.originalSegmentCount}`);
-      console.log(`  - Final segments: ${result.metrics.finalSegmentCount}`);
-      console.log(`  - Segments merged: ${result.metrics.segmentsMerged}`);
-      console.log(`  - Segments filtered: ${result.metrics.segmentsFiltered}`);
-      console.log(`  - Text corrections: ${result.metrics.textCorrections}`);
-      console.log(`  - Overall improvement: ${(result.metrics.overallImprovement * 100).toFixed(1)}%`);
-
-      return result.segments;
-    } catch (error) {
-      console.warn(`[V${this.iteration}] Text post-processing failed, using original:`, error);
-      return segments;
-    }
-  }
 
   private async validateAudioFile(audioPath: string): Promise<void> {
     // Basic validation - in real implementation, check file exists, format, etc.
