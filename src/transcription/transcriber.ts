@@ -10,8 +10,9 @@ import { Caption } from '@remotion/captions';
 export class TranscriptionPipeline {
   private config: TranscriptionConfig;
   private iteration: number = 1;
-  private browserTranscriber: BrowserTranscriber;
+  private browserTranscriber?: BrowserTranscriber;
   private whisperTranscriber: WhisperTranscriber;
+  private isBrowser: boolean;
 
   constructor(config: Partial<TranscriptionConfig> = {}) {
     this.config = {
@@ -23,8 +24,16 @@ export class TranscriptionPipeline {
       ...config
     };
 
-    // Initialize browser-compatible transcriber
-    this.browserTranscriber = new BrowserTranscriber();
+    // Detect environment
+    this.isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
+
+    // Initialize browser-compatible transcriber only in browser environment
+    if (this.isBrowser) {
+      console.log('🌐 Browser environment detected - initializing browser transcriber');
+      this.browserTranscriber = new BrowserTranscriber();
+    } else {
+      console.log('🖥️ Node.js environment detected - browser transcriber disabled');
+    }
 
     // Initialize enhanced Whisper transcriber
     this.whisperTranscriber = new WhisperTranscriber({
@@ -105,8 +114,8 @@ export class TranscriptionPipeline {
         return whisperResult.segments;
       }
 
-      // Priority 2: Fallback to browser transcriber
-      if (audioPath.startsWith('blob:') || audioPath instanceof File) {
+      // Priority 2: Fallback to browser transcriber (only in browser environment)
+      if (this.isBrowser && this.browserTranscriber && (audioPath.startsWith('blob:') || audioPath instanceof File)) {
         console.log('🔄 Fallback to browser transcription...');
         const audioFile = audioPath instanceof File ? audioPath : await this.blobUrlToFile(audioPath);
         const result = await this.browserTranscriber.transcribeAudioFile(audioFile);
