@@ -8,7 +8,6 @@
 
 import { DiagramType, ContentSegment } from '@/types/diagram';
 import { globalCache } from '../performance/intelligent-cache';
-import { globalAdaptiveProcessor } from '../analysis/adaptive-content-processor';
 
 interface ErrorContext {
   stage: ProcessingStage;

@@ -4,7 +4,6 @@ import { SceneSegmenter, DiagramDetector } from '@/analysis';
 import { LayoutEngine } from '@/visualization';
 import { qualityMonitor, QualityAssessment } from '@/quality';
 import { globalErrorRecovery } from '@/quality/enhanced-error-recovery';
-import { globalAdaptiveProcessor } from '@/analysis/adaptive-content-processor';
 import { globalCache } from '@/performance/intelligent-cache';
 import { smartParameterTuner } from '@/optimization/smart-parameter-tuner';
 import { adaptiveContentProcessor } from '@/optimization/adaptive-content-processor';
@@ -189,14 +188,8 @@ export class MainPipeline {
       }
     });
 
-    // Record adaptive processor metrics
-    globalAdaptiveProcessor.recordMetrics({
-      processingTime: 0,
-      accuracyScore: 0.8,
-      memoryUsage: process.memoryUsage().heapUsed,
-      userEngagement: 0.5,
-      errorRate: 0
-    });
+    // Record adaptive processor metrics (using new implementation)
+    // adaptiveContentProcessor handles metrics internally
   }
 
   /**
@@ -554,16 +547,8 @@ export class MainPipeline {
     }
 
     try {
-      // Execute with adaptive parameters from global processor
-      const characteristics = await globalAdaptiveProcessor.analyzeContent(
-        `Processing ${stageName} stage for pipeline ${this.pipelineId}`
-      );
-
-      const strategy = await globalAdaptiveProcessor.selectStrategy(characteristics);
-      const adaptationResult = await globalAdaptiveProcessor.adaptStrategy(strategy, characteristics);
-
-      // Apply adapted parameters to stage execution
-      const result = await this.executeWithAdaptation(stageFunction, adaptationResult);
+      // Execute stage function directly (adaptive processor deprecated)
+      const result = await stageFunction();
 
       stage.status = 'complete';
       stage.endTime = performance.now();
@@ -575,15 +560,6 @@ export class MainPipeline {
       if (metrics) {
         metrics.avgTime = (metrics.avgTime + duration) / Math.max(metrics.attempts, 1);
       }
-
-      // Record performance for adaptive processor
-      globalAdaptiveProcessor.recordMetrics({
-        processingTime: duration,
-        accuracyScore: 0.9, // Assume success has good accuracy
-        memoryUsage: process.memoryUsage().heapUsed,
-        userEngagement: 0.8, // Stage completion indicates engagement
-        errorRate: 0
-      });
 
       console.log(`✅ ${stageName} completed in ${duration.toFixed(0)}ms`);
       return result;
@@ -598,40 +574,15 @@ export class MainPipeline {
         metrics.failures++;
       }
 
-      // Record failure for adaptive processor
-      globalAdaptiveProcessor.recordMetrics({
-        processingTime: stage.endTime! - stage.startTime!,
-        accuracyScore: 0.1, // Low accuracy for failures
-        memoryUsage: process.memoryUsage().heapUsed,
-        userEngagement: 0.2,
-        errorRate: 1.0
-      });
-
       console.error(`❌ ${stageName} failed:`, stage.error);
       throw error;
     }
   }
 
   /**
-   * Execute stage function with adaptation parameters
+   * Execute stage function with adaptation parameters (deprecated)
    */
-  private async executeWithAdaptation<T>(
-    stageFunction: () => Promise<T>,
-    adaptationResult: any
-  ): Promise<T> {
-    // Apply adaptation parameters to improve execution
-    // This could involve timeout adjustments, quality settings, etc.
-    const timeout = adaptationResult.estimatedPerformance.processingTime * 1.5;
-
-    return Promise.race([
-      stageFunction(),
-      new Promise<never>((_, reject) => {
-        setTimeout(() => {
-          reject(new Error(`Stage execution timed out after ${timeout}ms`));
-        }, timeout);
-      })
-    ]);
-  }
+  // Note: executeWithAdaptation() removed as adaptive processor deprecated
 
   /**
    * Enhanced audio transcription with caching
@@ -664,22 +615,8 @@ export class MainPipeline {
    * Enhanced content analysis with adaptive processing
    */
   private async analyzeContentEnhanced(transcriptionResult: any) {
-    const startTime = performance.now();
-
     try {
       const result = await this.analyzeContent(transcriptionResult);
-
-      // Apply adaptive processing optimizations
-      const processingTime = performance.now() - startTime;
-      globalAdaptiveProcessor.recordMetrics({
-        processingTime,
-        accuracyScore: result.diagramAnalyses.reduce((avg, analysis) =>
-          avg + analysis.analysis.confidence, 0) / result.diagramAnalyses.length,
-        memoryUsage: process.memoryUsage().heapUsed,
-        userEngagement: 0.7,
-        errorRate: 0
-      });
-
       return result;
     } catch (error) {
       console.error('Enhanced analysis failed, falling back to basic analysis');
