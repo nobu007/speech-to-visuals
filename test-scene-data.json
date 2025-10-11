@@ -1,0 +1,157 @@
+{
+  "scenes": [
+    {
+      "id": "scene-1",
+      "startTime": 0,
+      "endTime": 5,
+      "content": "フローチャートについて説明します。まず開始点があり、その後条件分岐があります。",
+      "type": "flow",
+      "confidence": 0.92,
+      "layout": {
+        "nodes": [
+          {
+            "id": "start",
+            "x": 400,
+            "y": 200,
+            "width": 120,
+            "height": 60,
+            "label": "開始"
+          },
+          {
+            "id": "condition",
+            "x": 700,
+            "y": 200,
+            "width": 120,
+            "height": 60,
+            "label": "条件分岐"
+          },
+          {
+            "id": "processA",
+            "x": 550,
+            "y": 350,
+            "width": 120,
+            "height": 60,
+            "label": "処理A"
+          },
+          {
+            "id": "processB",
+            "x": 850,
+            "y": 350,
+            "width": 120,
+            "height": 60,
+            "label": "処理B"
+          },
+          {
+            "id": "end",
+            "x": 700,
+            "y": 500,
+            "width": 120,
+            "height": 60,
+            "label": "終了"
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge-1",
+            "from": "start",
+            "to": "condition",
+            "type": "flow"
+          },
+          {
+            "id": "edge-2",
+            "from": "condition",
+            "to": "processA",
+            "type": "conditional",
+            "label": "Yes"
+          },
+          {
+            "id": "edge-3",
+            "from": "condition",
+            "to": "processB",
+            "type": "conditional",
+            "label": "No"
+          },
+          {
+            "id": "edge-4",
+            "from": "processA",
+            "to": "end",
+            "type": "flow"
+          },
+          {
+            "id": "edge-5",
+            "from": "processB",
+            "to": "end",
+            "type": "flow"
+          }
+        ]
+      },
+      "durationMs": 5000
+    },
+    {
+      "id": "scene-2",
+      "startTime": 5,
+      "endTime": 10,
+      "content": "次に階層構造について説明します。親ノードから子ノードへと展開されます。",
+      "type": "tree",
+      "confidence": 0.88,
+      "layout": {
+        "nodes": [
+          {
+            "id": "root",
+            "x": 700,
+            "y": 150,
+            "width": 120,
+            "height": 60,
+            "label": "ルート"
+          },
+          {
+            "id": "child1",
+            "x": 450,
+            "y": 300,
+            "width": 120,
+            "height": 60,
+            "label": "子ノード1"
+          },
+          {
+            "id": "child2",
+            "x": 700,
+            "y": 300,
+            "width": 120,
+            "height": 60,
+            "label": "子ノード2"
+          },
+          {
+            "id": "child3",
+            "x": 950,
+            "y": 300,
+            "width": 120,
+            "height": 60,
+            "label": "子ノード3"
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge-1",
+            "from": "root",
+            "to": "child1",
+            "type": "hierarchy"
+          },
+          {
+            "id": "edge-2",
+            "from": "root",
+            "to": "child2",
+            "type": "hierarchy"
+          },
+          {
+            "id": "edge-3",
+            "from": "root",
+            "to": "child3",
+            "type": "hierarchy"
+          }
+        ]
+      },
+      "durationMs": 5000
+    }
+  ],
+  "audioUrl": null
+}
