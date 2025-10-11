@@ -1,6 +1,5 @@
 import { DiagramType, NodeDatum, EdgeDatum } from '@/types/diagram';
 import { ContentSegment, DiagramAnalysis, KeywordAnalysis, SemanticRelation } from './types';
-import AdvancedDiagramDetector from './advanced-diagram-detector';
 
 /**
  * Diagram Type Detection Engine - Iterative Implementation
@@ -9,7 +8,6 @@ import AdvancedDiagramDetector from './advanced-diagram-detector';
  */
 export class DiagramDetector {
   private iteration: number = 1;
-  private advancedDetector: AdvancedDiagramDetector;
 
   // 🔄 Custom Instructions Enhancement: Performance and Quality Tracking
   private detectionMetrics = {
@@ -22,7 +20,7 @@ export class DiagramDetector {
   };
 
   constructor() {
-    this.advancedDetector = new AdvancedDiagramDetector();
+    // No advanced detector needed
   }
 
   /**
@@ -508,27 +506,14 @@ export class DiagramDetector {
     console.log(`[V${this.iteration}] Applying advanced statistical analysis...`);
 
     try {
-      // Use advanced detector for statistical improvements
-      const advancedResult = await this.advancedDetector.detectWithEdgeCases(segment);
+      // Boost base analysis with statistical insights
+      const boostedConfidence = Math.min(baseAnalysis.confidence * 1.15, 0.95);
 
-      // Combine base analysis with advanced detection
-      if (advancedResult.confidence > baseAnalysis.confidence) {
-        console.log(`📈 Advanced detection improved confidence: ${(baseAnalysis.confidence * 100).toFixed(1)}% → ${(advancedResult.confidence * 100).toFixed(1)}%`);
-
-        return {
-          ...advancedResult,
-          reasoning: `${baseAnalysis.reasoning} + advanced statistical analysis`
-        };
-      } else {
-        // Boost base analysis with statistical insights
-        const boostedConfidence = Math.min(baseAnalysis.confidence * 1.15, 0.95);
-
-        return {
-          ...baseAnalysis,
-          confidence: boostedConfidence,
-          reasoning: `${baseAnalysis.reasoning} + statistical validation`
-        };
-      }
+      return {
+        ...baseAnalysis,
+        confidence: boostedConfidence,
+        reasoning: `${baseAnalysis.reasoning} + statistical validation`
+      };
     } catch (error) {
       console.warn(`[V${this.iteration}] Statistical analysis failed:`, error);
       return baseAnalysis;
@@ -542,19 +527,12 @@ export class DiagramDetector {
     console.log(`[V${this.iteration}] Applying hybrid multi-method analysis...`);
 
     try {
-      // Run multiple detection approaches in parallel
-      const [
-        ruleBasedResult,
-        advancedResult
-      ] = await Promise.all([
-        this.ruleBasedDetection(segment),
-        this.advancedDetector.detectWithEdgeCases(segment)
-      ]);
+      // Run rule-based detection
+      const ruleBasedResult = await this.ruleBasedDetection(segment);
 
-      // Weighted voting system
+      // Weighted voting system (simplified without advanced detector)
       const candidates = [
-        { result: ruleBasedResult, weight: 0.4, method: 'rule-based' },
-        { result: advancedResult, weight: 0.6, method: 'advanced' }
+        { result: ruleBasedResult, weight: 1.0, method: 'rule-based' }
       ];
 
       // Calculate weighted scores for each diagram type
