@@ -85,52 +85,14 @@ export class LayoutEngine extends BaseLayoutEngine {
     console.log(`🎯 Custom Instructions: Target <5s processing, zero overlaps`);
 
     try {
-      // For complex diagrams (20+ nodes), use specialized complex layout engine
       if (nodes.length >= 20) {
-        console.log('🔧 Using complex layout engine for large diagram...');
-        return await this.complexEngine.generateComplexLayout(nodes, edges, diagramType);
+        return await this._handleComplexDiagrams(nodes, edges, diagramType);
       }
 
       // For smaller diagrams, use enhanced approach
-      // Iteration 1: Basic Dagre layout
-      let layout = await this.basicDagreLayout(nodes, edges, diagramType);
+      let layout = await this._applyBasicLayoutAndOptimizations(nodes, edges, diagramType);
 
-      // 🎯 Custom Instructions: MANDATORY Zero Overlap Check + Resolution
-      layout = await this.overlapResolver.ensureZeroOverlaps(layout, diagramType);
-
-      // Iteration 2+: Type-specific optimizations
-      if (this.iteration > 1) {
-        layout = await this.layoutOptimizer.optimizeForDiagramType(layout, diagramType);
-      }
-
-      // Iteration 3+: Advanced layout improvements
-      if (this.iteration > 2) {
-        layout = await this.layoutOptimizer.advancedOptimizations(layout, diagramType);
-      }
-
-      // 🎯 Custom Instructions: Final Zero Overlap Guarantee
-      layout = await this.overlapResolver.finalOverlapResolution(layout);
-
-      const bounds = this.calculateBounds(layout);
-      const processingTime = performance.now() - startTime;
-
-      // 🎯 Custom Instructions: Performance Check (5s requirement)
-      if (processingTime > 5000) {
-        console.warn(`⚠️ Layout processing exceeded 5s limit: ${(processingTime / 1000).toFixed(1)}s`);
-      } else {
-        console.log(`✅ Layout completed within performance target: ${processingTime.toFixed(0)}ms`);
-      }
-
-      const result: LayoutResult = {
-        layout,
-        bounds,
-        processingTime,
-        success: true,
-        confidence: this.layoutEvaluator.calculateLayoutConfidence(layout, processingTime)
-      };
-
-      await this.layoutEvaluator.evaluateLayoutWithCustomInstructions(result, diagramType);
-      return result;
+      return await this._logAndEvaluateLayout(layout, startTime, diagramType);
 
     } catch (error) {
       console.error('[Layout Engine] Error:', error);
@@ -212,6 +174,78 @@ export class LayoutEngine extends BaseLayoutEngine {
       console.log(`[V${this.iteration}] Dagre failed, using fallback layout...`);
       return this.fallbackLayoutStrategy.fallbackLayout(nodes, edges, diagramType);
     }
+  }
+
+  /**
+   * Handles layout generation for complex diagrams using the complex layout engine.
+   */
+  private async _handleComplexDiagrams(
+    nodes: NodeDatum[],
+    edges: EdgeDatum[],
+    diagramType: DiagramType
+  ): Promise<LayoutResult> {
+    console.log('🔧 Using complex layout engine for large diagram...');
+    return await this.complexEngine.generateComplexLayout(nodes, edges, diagramType);
+  }
+
+  /**
+   * Applies basic Dagre layout, overlap resolution, and type-specific optimizations.
+   */
+  private async _applyBasicLayoutAndOptimizations(
+    nodes: NodeDatum[],
+    edges: EdgeDatum[],
+    diagramType: DiagramType
+  ): Promise<DiagramLayout> {
+    // Iteration 1: Basic Dagre layout
+    let layout = await this.basicDagreLayout(nodes, edges, diagramType);
+
+    // 🎯 Custom Instructions: MANDATORY Zero Overlap Check + Resolution
+    layout = await this.overlapResolver.ensureZeroOverlaps(layout, diagramType);
+
+    // Iteration 2+: Type-specific optimizations
+    if (this.iteration > 1) {
+      layout = await this.layoutOptimizer.optimizeForDiagramType(layout, diagramType);
+    }
+
+    // Iteration 3+: Advanced layout improvements
+    if (this.iteration > 2) {
+      layout = await this.layoutOptimizer.advancedOptimizations(layout, diagramType);
+    }
+
+    // 🎯 Custom Instructions: Final Zero Overlap Guarantee
+    layout = await this.overlapResolver.finalOverlapResolution(layout);
+
+    return layout;
+  }
+
+  /**
+   * Logs performance metrics and evaluates the layout.
+   */
+  private async _logAndEvaluateLayout(
+    layout: DiagramLayout,
+    startTime: number,
+    diagramType: DiagramType
+  ): Promise<LayoutResult> {
+    const bounds = this.calculateBounds(layout);
+    const processingTime = performance.now() - startTime;
+
+    // 🎯 Custom Instructions: Performance Check (5s requirement)
+    if (processingTime > 5000) {
+      console.warn(`⚠️ Layout processing exceeded 5s limit: ${(processingTime / 1000).toFixed(1)}s`);
+    } else {
+      console.log(`✅ Layout completed within performance target: ${processingTime.toFixed(0)}ms`);
+    }
+
+    const result: LayoutResult = {
+      layout,
+      bounds,
+      processingTime,
+      success: true,
+      confidence: this.layoutEvaluator.calculateLayoutConfidence(layout, processingTime)
+    };
+
+    await this.layoutEvaluator.evaluateLayoutWithCustomInstructions(result, diagramType);
+    return result;
   }
 
 
