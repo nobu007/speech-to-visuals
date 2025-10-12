@@ -91,18 +91,7 @@ export class LayoutEngine extends BaseLayoutEngine {
 
     try {
       if (this.config.isSimpleMode) {
-        this.logger.info('🔧 Using simple layout mode...');
-        let layout = await this.dagreLayoutStrategy.applyLayout(nodes, edges, diagramType);
-        layout = await this.overlapResolver.ensureZeroOverlaps(layout, diagramType);
-        const bounds = this.calculateBounds(layout);
-        const processingTime = performance.now() - startTime;
-        return {
-          layout,
-          bounds,
-          processingTime,
-          success: true,
-          confidence: 1.0 // Simple mode assumes high confidence for basic layout
-        };
+        return await this._handleSimpleModeLayout(nodes, edges, diagramType, startTime);
       }
 
       if (nodes.length >= 20) {
@@ -168,7 +157,7 @@ export class LayoutEngine extends BaseLayoutEngine {
     startTime: number,
     diagramType: DiagramType
   ): Promise<LayoutResult> {
-    const bounds = this.calculateBounds(layout);
+    const bounds = this.calculateBounds(layout.nodes);
     const processingTime = performance.now() - startTime;
 
     // 🎯 Custom Instructions: Performance Check (5s requirement)
@@ -216,6 +205,26 @@ export class LayoutEngine extends BaseLayoutEngine {
 
 
 
+
+  private async _handleSimpleModeLayout(
+    nodes: NodeDatum[],
+    edges: EdgeDatum[],
+    diagramType: DiagramType,
+    startTime: number
+  ): Promise<LayoutResult> {
+    this.logger.info('🔧 Using simple layout mode...');
+    let layout = await this.dagreLayoutStrategy.applyLayout(nodes, edges, diagramType);
+    layout = await this.overlapResolver.ensureZeroOverlaps(layout, diagramType);
+    const bounds = this.calculateBounds(layout.nodes);
+    const processingTime = performance.now() - startTime;
+    return {
+      layout,
+      bounds,
+      processingTime,
+      success: true,
+      confidence: 1.0 // Simple mode assumes high confidence for basic layout
+    };
+  }
 
   /**
    * Update configuration
