@@ -44,13 +44,15 @@ export class ContentAnalyzer {
     }
 
     const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
-    const prompt = `以下のテキストを分析し、内容を最もよく表す図解を生成するためのJSONデータを作成してください。\n` +
-      `JSONの形式は {title, type, nodes, edges}。\n` +
-      `- type は 'flowchart' | 'mindmap' | 'timeline' | 'orgchart' のいずれか\n` +
-      `- nodes は {id, label} の配列\n` +
-      `- edges は {from, to, label?} の配列\n` +
-      `JSONのみを返してください。コードブロックは不要です。\n\n` +
-      `テキスト:\n"${text}"`;
+    const prompt = `以下のテキストを分析し、内容を最もよく表す図解を生成するためのJSONデータを作成してください。
+JSONの形式は {title, type, nodes, edges}。
+- type は 'flowchart' | 'mindmap' | 'timeline' | 'orgchart' のいずれか
+- nodes は {id, label} の配列
+- edges は {from, to, label?} の配列
+JSONのみを返してください。コードブロックは不要です。
+
+テキスト:
+"${text}"`;
 
     try {
       const result = await model.generateContent({ contents: [{ role: "user", parts: [{ text: prompt }] }] });
