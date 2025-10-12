@@ -91,7 +91,8 @@ export class LayoutEngine extends BaseLayoutEngine {
 
     try {
       if (nodes.length >= 20) {
-        return await this._handleComplexDiagrams(nodes, edges, diagramType);
+        console.log('🔧 Using complex layout engine for large diagram...');
+        return await this.complexEngine.generateComplexLayout(nodes, edges, diagramType);
       }
 
       // For smaller diagrams, use enhanced approach
@@ -112,14 +113,6 @@ export class LayoutEngine extends BaseLayoutEngine {
   }
 
 
-  private async _handleComplexDiagrams(
-    nodes: NodeDatum[],
-    edges: EdgeDatum[],
-    diagramType: DiagramType
-  ): Promise<LayoutResult> {
-    console.log('🔧 Using complex layout engine for large diagram...');
-    return await this.complexEngine.generateComplexLayout(nodes, edges, diagramType);
-  }
 
   /**
    * Applies basic Dagre layout, overlap resolution, and type-specific optimizations.
