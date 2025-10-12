@@ -12,6 +12,7 @@ import { FallbackLayoutStrategy } from './strategies/FallbackLayoutStrategy';
 import { OverlapResolver } from './strategies/OverlapResolver';
 import { LayoutOptimizer } from './strategies/LayoutOptimizer';
 import { LayoutEvaluator } from './strategies/LayoutEvaluator';
+import { getGraphConfig } from './layout-utils';
 
 export class LayoutEngine extends BaseLayoutEngine {
   private iteration: number = 1;
@@ -156,7 +157,7 @@ export class LayoutEngine extends BaseLayoutEngine {
     try {
       // Try to use Dagre layout
       const g = new dagre.graphlib.Graph();
-      const graphConfig = this.getGraphConfig(diagramType);
+      const graphConfig = getGraphConfig(diagramType, this.config);
       g.setGraph(graphConfig);
       g.setDefaultEdgeLabel(() => ({}));
 
@@ -215,54 +216,6 @@ export class LayoutEngine extends BaseLayoutEngine {
 
 
 
-
-  /**
-   * Get Dagre configuration based on diagram type
-   */
-  private getGraphConfig(diagramType: DiagramType) {
-    const baseConfig = {
-      nodesep: this.config.nodeSeparation,
-      edgesep: this.config.edgeSeparation,
-      ranksep: this.config.rankSeparation,
-      marginx: this.config.marginX,
-      marginy: this.config.marginY
-    };
-
-    switch (diagramType) {
-      case 'flow':
-        return {
-          ...baseConfig,
-          rankdir: 'TB', // Top to bottom for flow diagrams
-          align: 'UL'
-        };
-      case 'tree':
-        return {
-          ...baseConfig,
-          rankdir: 'TB', // Top to bottom for hierarchies
-          ranker: 'longest-path'
-        };
-      case 'timeline':
-        return {
-          ...baseConfig,
-          rankdir: 'LR', // Left to right for timelines
-          ranker: 'tight-tree'
-        };
-      case 'matrix':
-        return {
-          ...baseConfig,
-          rankdir: 'TB',
-          ranker: 'network-simplex'
-        };
-      case 'cycle':
-        return {
-          ...baseConfig,
-          rankdir: 'TB',
-          ranker: 'longest-path'
-        };
-      default:
-        return baseConfig;
-    }
-  }
 
 
 

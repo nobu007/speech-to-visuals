@@ -69,3 +69,51 @@ export function generateEdgePoints(
 
   return [sourceCenter, targetCenter];
 }
+
+/**
+ * Get Dagre configuration based on diagram type
+ */
+export function getGraphConfig(diagramType: DiagramType, config: LayoutConfig) {
+  const baseConfig = {
+    nodesep: config.nodeSeparation,
+    edgesep: config.edgeSeparation,
+    ranksep: config.rankSeparation,
+    marginx: config.marginX,
+    marginy: config.marginY
+  };
+
+  switch (diagramType) {
+    case 'flow':
+      return {
+        ...baseConfig,
+        rankdir: 'TB', // Top to bottom for flow diagrams
+        align: 'UL'
+      };
+    case 'tree':
+      return {
+        ...baseConfig,
+        rankdir: 'TB', // Top to bottom for hierarchies
+        ranker: 'longest-path'
+      };
+    case 'timeline':
+      return {
+        ...baseConfig,
+        rankdir: 'LR', // Left to right for timelines
+        ranker: 'tight-tree'
+      };
+    case 'matrix':
+      return {
+        ...baseConfig,
+        rankdir: 'TB',
+        ranker: 'network-simplex'
+      };
+    case 'cycle':
+      return {
+        ...baseConfig,
+        rankdir: 'TB',
+        ranker: 'longest-path'
+      };
+    default:
+      return baseConfig;
+  }
+}
