@@ -44,16 +44,6 @@ export class LayoutEngine extends BaseLayoutEngine {
     };
   }
 
-    // Initialize complex layout engine for large diagrams
-    this.complexEngine = new ComplexLayoutEngine({
-      ...this.config,
-      enableClustering: true,
-      enableForceDirected: true,
-      enableOverlapResolution: true,
-      enableEdgeOptimization: true
-    });
-  }
-
   /**
    * Generate layout for a diagram
    * 🎯 Custom Instructions Phase 4: Zero Overlap + 5s Processing Requirement
