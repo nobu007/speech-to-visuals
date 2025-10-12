@@ -4,6 +4,8 @@ import { LayoutConfig, Point } from './types';
 export interface NodeDimensionsConfig {
   nodeWidth: number;
   nodeHeight: number;
+  charWidth: number;
+  padding: number;
 }
 
 export class LayoutUtils {
@@ -14,8 +16,8 @@ export class LayoutUtils {
   static calculateNodeWidth(node: NodeDatum, config: NodeDimensionsConfig): number {
     const baseWidth = config.nodeWidth;
     const labelLength = node.label?.length || 0;
-    const charWidth = 8; // Approximate character width in pixels
-    const padding = 20; // Total padding
+    const charWidth = config.charWidth;
+    const padding = config.padding;
 
     const textWidth = labelLength * charWidth + padding;
     return Math.max(baseWidth, Math.min(textWidth, baseWidth * 2));
