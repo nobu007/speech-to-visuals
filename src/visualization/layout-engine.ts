@@ -12,6 +12,7 @@ import { FallbackLayoutStrategy } from './strategies/FallbackLayoutStrategy';
 import { OverlapResolver } from './strategies/OverlapResolver';
 import { LayoutOptimizer } from './strategies/LayoutOptimizer';
 import { LayoutEvaluator } from './strategies/LayoutEvaluator';
+import { DagreLayoutStrategy } from './strategies/DagreLayoutStrategy'; // Added
 import { getGraphConfig } from './layout-utils';
 
 export class LayoutEngine extends BaseLayoutEngine {
@@ -21,6 +22,7 @@ export class LayoutEngine extends BaseLayoutEngine {
   private overlapResolver: OverlapResolver;
   private layoutOptimizer: LayoutOptimizer;
   private layoutEvaluator: LayoutEvaluator;
+  private dagreLayoutStrategy: DagreLayoutStrategy; // Added
 
   constructor(config: Partial<LayoutConfig> = {}) {
     super(config); // Call the constructor of BaseLayoutEngine
@@ -36,6 +38,9 @@ export class LayoutEngine extends BaseLayoutEngine {
 
     // Initialize fallback layout strategy
     this.fallbackLayoutStrategy = new FallbackLayoutStrategy(this.config);
+
+    // Initialize Dagre layout strategy
+    this.dagreLayoutStrategy = new DagreLayoutStrategy(this.config, this.fallbackLayoutStrategy); // Added
 
     // Initialize overlap resolver
     this.overlapResolver = new OverlapResolver(
@@ -106,79 +111,7 @@ export class LayoutEngine extends BaseLayoutEngine {
     }
   }
 
-  /**
-   * Iteration 1: Basic Dagre layout implementation with fallback
-   */
-  private async basicDagreLayout(
-    nodes: NodeDatum[],
-    edges: EdgeDatum[],
-    diagramType: DiagramType
-  ): Promise<DiagramLayout> {
-    console.log(`[V${this.iteration}] Applying basic Dagre layout...`);
 
-    try {
-      // Try to use Dagre layout
-      const g = new dagre.graphlib.Graph();
-      const graphConfig = getGraphConfig(diagramType, this.config);
-      g.setGraph(graphConfig);
-      g.setDefaultEdgeLabel(() => ({}));
-
-      nodes.forEach(node => {
-        g.setNode(node.id, {
-          label: node.label,
-          width: this.calculateNodeWidth(node),
-          height: this.config.nodeHeight
-        });
-      });
-
-      edges.forEach(edge => {
-        g.setEdge(edge.from, edge.to, {
-          label: edge.label || ''
-        });
-      });
-
-      // Run the layout algorithm
-      dagre.layout(g);
-
-      // Convert Dagre output to our format
-      const positionedNodes: PositionedNode[] = nodes.map(node => {
-        const dagreNode = g.node(node.id);
-        return {
-          ...node,
-          x: dagreNode.x - dagreNode.width / 2,
-          y: dagreNode.y - dagreNode.height / 2,
-          w: dagreNode.width,
-          h: dagreNode.height
-        };
-      });
-
-      const layoutEdges: LayoutEdge[] = edges.map(edge => {
-        const dagreEdge = g.edge(edge.from, edge.to);
-        return {
-          from: edge.from,
-          to: edge.to,
-          points: dagreEdge.points || [
-            { x: g.node(edge.from).x, y: g.node(edge.from).y },
-            { x: g.node(edge.to).x, y: g.node(edge.to).y }
-          ],
-          label: edge.label
-        };
-      });
-
-      return {
-        nodes: positionedNodes,
-        edges: layoutEdges
-      };
-
-    } catch (error) {
-      console.log(`[V${this.iteration}] Dagre failed, using fallback layout...`);
-      return this.fallbackLayoutStrategy.fallbackLayout(nodes, edges, diagramType);
-    }
-  }
-
-  /**
-   * Handles layout generation for complex diagrams using the complex layout engine.
-   */
   private async _handleComplexDiagrams(
     nodes: NodeDatum[],
     edges: EdgeDatum[],
@@ -197,7 +130,7 @@ export class LayoutEngine extends BaseLayoutEngine {
     diagramType: DiagramType
   ): Promise<DiagramLayout> {
     // Iteration 1: Basic Dagre layout
-    let layout = await this.basicDagreLayout(nodes, edges, diagramType);
+    let layout = await this.dagreLayoutStrategy.applyLayout(nodes, edges, diagramType); // Updated
 
     // 🎯 Custom Instructions: MANDATORY Zero Overlap Check + Resolution
     layout = await this.overlapResolver.ensureZeroOverlaps(layout, diagramType);
