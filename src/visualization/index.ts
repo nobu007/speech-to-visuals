@@ -1,4 +1,10 @@
 export { LayoutEngine } from './layout-engine';
+export { SimpleLayoutEngine } from './simple-layout-engine';
+export { ComplexLayoutEngine } from './complex-layout-engine';
+export { ZeroOverlapLayoutEngine } from './zero-overlap-layout-engine';
+export { EnhancedZeroOverlapLayoutEngine } from './enhanced-zero-overlap-layout-engine';
+export { AdvancedVisualEngine } from './advanced-visual-engine';
+export { AdvancedLayouts } from './advanced-layouts';
 export type {
   LayoutConfig,
   LayoutResult,
