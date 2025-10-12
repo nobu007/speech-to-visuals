@@ -163,7 +163,7 @@ export class LayoutEngine extends BaseLayoutEngine {
       nodes.forEach(node => {
         g.setNode(node.id, {
           label: node.label,
-          width: this.calculateNodeWidth(node.label),
+          width: this.calculateNodeWidth(node),
           height: this.config.nodeHeight
         });
       });
