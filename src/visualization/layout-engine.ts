@@ -11,6 +11,7 @@ import { BaseLayoutEngine } from './base/BaseLayoutEngine';
 import { FallbackLayoutStrategy } from './strategies/FallbackLayoutStrategy';
 import { OverlapResolver } from './strategies/OverlapResolver';
 import { LayoutOptimizer } from './strategies/LayoutOptimizer';
+import { LayoutEvaluator } from './strategies/LayoutEvaluator';
 
 export class LayoutEngine extends BaseLayoutEngine {
   private iteration: number = 1;
@@ -18,6 +19,7 @@ export class LayoutEngine extends BaseLayoutEngine {
   private fallbackLayoutStrategy: FallbackLayoutStrategy;
   private overlapResolver: OverlapResolver;
   private layoutOptimizer: LayoutOptimizer;
+  private layoutEvaluator: LayoutEvaluator;
 
   constructor(config: Partial<LayoutConfig> = {}) {
     super(config); // Call the constructor of BaseLayoutEngine
@@ -43,6 +45,12 @@ export class LayoutEngine extends BaseLayoutEngine {
 
     // Initialize layout optimizer
     this.layoutOptimizer = new LayoutOptimizer(this.config);
+
+    // Initialize layout evaluator
+    this.layoutEvaluator = new LayoutEvaluator(
+      this.config,
+      this.calculateLayoutMetrics.bind(this)
+    );
   }
 
   /**
@@ -119,10 +127,10 @@ export class LayoutEngine extends BaseLayoutEngine {
         bounds,
         processingTime,
         success: true,
-        confidence: this.calculateLayoutConfidence(layout, processingTime)
+        confidence: this.layoutEvaluator.calculateLayoutConfidence(layout, processingTime)
       };
 
-      await this.evaluateLayoutWithCustomInstructions(result, diagramType);
+      await this.layoutEvaluator.evaluateLayoutWithCustomInstructions(result, diagramType);
       return result;
 
     } catch (error) {
@@ -264,37 +272,6 @@ export class LayoutEngine extends BaseLayoutEngine {
 
 
 
-  /**
-   * Evaluate layout quality
-   */
-  private async evaluateLayout(result: LayoutResult, diagramType: DiagramType): Promise<void> {
-    const metrics = this.calculateLayoutMetrics(result.layout.nodes, result.layout.edges);
-
-    console.log('\n📊 Layout Metrics:');
-    console.log(`- Type: ${diagramType}`);
-    console.log(`- Bounds: ${result.bounds.width.toFixed(0)}x${result.bounds.height.toFixed(0)}`);
-    console.log(`- Node Count: ${result.layout.nodes.length}`);
-    console.log(`- Edge Count: ${result.layout.edges.length}`);
-    console.log(`- Overlaps: ${metrics.overlapCount}`);
-    console.log(`- Processing Time: ${result.processingTime.toFixed(0)}ms`);
-
-    const successCriteria = {
-      hasNodes: result.layout.nodes.length > 0,
-      noOverlaps: metrics.overlapCount === 0,
-      withinBounds: result.bounds.width <= this.config.width && result.bounds.height <= this.config.height,
-      fastProcessing: result.processingTime < 5000
-    };
-
-    const success = Object.values(successCriteria).every(v => v);
-    console.log(success ? '✅ Layout successful' : '⚠️ Layout needs improvement');
-
-    if (!success) {
-      console.log('Failed criteria:');
-      Object.entries(successCriteria).forEach(([key, passed]) => {
-        if (!passed) console.log(`  - ${key}: FAILED`);
-      });
-    }
-  }
 
 
 
@@ -308,78 +285,10 @@ export class LayoutEngine extends BaseLayoutEngine {
 
 
 
-  /**
-   * Calculate layout confidence based on quality metrics
-   */
-  private calculateLayoutConfidence(layout: DiagramLayout, processingTime: number): number {
-    const metrics = this.calculateLayoutMetrics(layout.nodes, layout.edges);
-    let confidence = 0.8; // Base confidence
 
-    // Zero overlaps is mandatory for high confidence
-    if (metrics.overlapCount === 0) {
-      confidence += 0.15;
-    } else {
-      confidence -= metrics.overlapCount * 0.1; // Heavy penalty for overlaps
-    }
 
-    // Performance bonus
-    if (processingTime < 2000) {
-      confidence += 0.05; // Fast processing bonus
-    } else if (processingTime > 5000) {
-      confidence -= 0.1; // Slow processing penalty
-    }
 
-    // Structure quality
-    if (layout.nodes.length > 0 && layout.edges.length > 0) {
-      confidence += 0.05; // Has valid structure
-    }
 
-    return Math.max(0, Math.min(1, confidence));
-  }
-
-  /**
-   * 🎯 Custom Instructions: Enhanced Layout Evaluation
-   * Evaluates against Custom Instructions Phase 4 requirements
-   */
-  private async evaluateLayoutWithCustomInstructions(result: LayoutResult, diagramType: DiagramType): Promise<void> {
-    const metrics = this.calculateLayoutMetrics(result.layout.nodes, result.layout.edges);
-
-    console.log('\n🎯 Custom Instructions Phase 4 Evaluation:');
-    console.log(`- Zero Overlaps: ${metrics.overlapCount === 0 ? '✅ PASSED' : '❌ FAILED'} (${metrics.overlapCount} overlaps)`);
-    console.log(`- Processing Time: ${result.processingTime < 5000 ? '✅ PASSED' : '❌ FAILED'} (${(result.processingTime / 1000).toFixed(1)}s)`);
-    console.log(`- Layout Quality: ${result.confidence ? (result.confidence * 100).toFixed(1) + '%' : 'N/A'}`);
-    console.log(`- Diagram Type: ${diagramType}`);
-    console.log(`- Node Count: ${result.layout.nodes.length}`);
-    console.log(`- Edge Count: ${result.layout.edges.length}`);
-
-    // Custom Instructions compliance check
-    const compliance = {
-      zeroOverlaps: metrics.overlapCount === 0,
-      fastProcessing: result.processingTime < 5000,
-      hasValidStructure: result.layout.nodes.length > 0,
-      withinBounds: result.bounds.width <= this.config.width && result.bounds.height <= this.config.height
-    };
-
-    const complianceScore = Object.values(compliance).filter(v => v).length / Object.keys(compliance).length;
-    const passed = complianceScore >= 0.75; // 75% compliance required
-
-    console.log(`\n🎯 Custom Instructions Compliance: ${(complianceScore * 100).toFixed(1)}%`);
-    console.log(`🎯 Overall Assessment: ${passed ? '✅ COMPLIANT' : '❌ NEEDS IMPROVEMENT'}`);
-
-    if (!passed) {
-      console.log('🔧 Failed Requirements:');
-      Object.entries(compliance).forEach(([requirement, passed]) => {
-        if (!passed) {
-          console.log(`  - ${requirement}: FAILED`);
-        }
-      });
-    }
-
-    // Trigger improvement if needed
-    if (!compliance.zeroOverlaps) {
-      console.log('🚨 CRITICAL: Zero overlap requirement not met - triggering emergency resolution');
-    }
-  }
 
   /**
    * Method to increment iteration for testing improvements
