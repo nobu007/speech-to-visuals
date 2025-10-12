@@ -194,32 +194,7 @@ import { LayoutUtils } from './layout-utils';
     return overlaps;
   }
 
-  /**
-   * Check if two nodes overlap
-   * Includes minimum spacing requirement
-   */
-  protected nodesOverlap(
-    node1: PositionedNode,
-    node2: PositionedNode,
-    spacing: number = 0
-  ): boolean {
-    const left1 = node1.x - spacing / 2;
-    const right1 = node1.x + node1.w + spacing / 2;
-    const top1 = node1.y - spacing / 2;
-    const bottom1 = node1.y + node1.h + spacing / 2;
 
-    const left2 = node2.x - spacing / 2;
-    const right2 = node2.x + node2.w + spacing / 2;
-    const top2 = node2.y - spacing / 2;
-    const bottom2 = node2.y + node2.h + spacing / 2;
-
-    return !(
-      right1 <= left2 ||
-      left1 >= right2 ||
-      bottom1 <= top2 ||
-      top1 >= bottom2
-    );
-  }
 
   /**
    * Count total overlaps in layout
@@ -277,14 +252,7 @@ import { LayoutUtils } from './layout-utils';
   // BOUNDS CONSTRAINTS
   // ============================================================
 
-  /**
-   * Constrain node position to canvas bounds
-   * Ensures nodes don't go off-canvas
-   */
-  protected constrainNodeToBounds(node: PositionedNode, margin: number = 10): void {
-    node.x = Math.max(margin, Math.min(node.x, this.config.width - node.w - margin));
-    node.y = Math.max(margin, Math.min(node.y, this.config.height - node.h - margin));
-  }
+
 
   /**
    * Constrain all nodes to canvas bounds

@@ -38,9 +38,7 @@ export class LayoutEngine extends BaseLayoutEngine {
 
     // Initialize overlap resolver
     this.overlapResolver = new OverlapResolver(
-      this.config,
-      this.nodesOverlap.bind(this),
-      this.constrainNodeToBounds.bind(this)
+      this.config
     );
 
     // Initialize layout optimizer
