@@ -88,53 +88,42 @@ export abstract class BaseLayoutEngine {
     };
   }
 
+import { LayoutUtils } from './layout-utils';
+
   /**
    * Calculate node width based on label and config
    * Single source of truth for node width calculation
    */
   protected calculateNodeWidth(node: NodeDatum): number {
-    const baseWidth = this.config.nodeWidth;
-    const labelLength = node.label?.length || 0;
-    const charWidth = 8; // Approximate character width in pixels
-    const padding = 20; // Total padding
-
-    const textWidth = labelLength * charWidth + padding;
-    return Math.max(baseWidth, Math.min(textWidth, baseWidth * 2));
+    return LayoutUtils.calculateNodeWidth(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
   }
 
   /**
    * Calculate node height (currently fixed, but extensible)
    */
   protected calculateNodeHeight(node: NodeDatum): number {
-    return this.config.nodeHeight;
+    return LayoutUtils.calculateNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
   }
 
   /**
    * Calculate center point of a node
    */
   protected calculateNodeCenter(node: PositionedNode): Point {
-    return {
-      x: node.x + node.w / 2,
-      y: node.y + node.h / 2
-    };
+    return LayoutUtils.calculateNodeCenter(node);
   }
 
   /**
    * Calculate distance between two points
    */
   protected calculateDistance(p1: Point, p2: Point): number {
-    const dx = p2.x - p1.x;
-    const dy = p2.y - p1.y;
-    return Math.sqrt(dx * dx + dy * dy);
+    return LayoutUtils.calculateDistance(p1, p2);
   }
 
   /**
    * Calculate distance between two node centers
    */
   protected calculateNodeDistance(node1: PositionedNode, node2: PositionedNode): number {
-    const center1 = this.calculateNodeCenter(node1);
-    const center2 = this.calculateNodeCenter(node2);
-    return this.calculateDistance(center1, center2);
+    return LayoutUtils.calculateNodeDistance(node1, node2);
   }
 
   // ============================================================
@@ -251,10 +240,7 @@ export abstract class BaseLayoutEngine {
     source: PositionedNode,
     target: PositionedNode
   ): Point[] {
-    const sourceCenter = this.calculateNodeCenter(source);
-    const targetCenter = this.calculateNodeCenter(target);
-
-    return [sourceCenter, targetCenter];
+    return LayoutUtils.generateEdgePoints(source, target);
   }
 
   /**

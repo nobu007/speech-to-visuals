@@ -11,6 +11,8 @@
 
 import dagre from '@dagrejs/dagre';
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { LayoutUtils } from './layout-utils';
+import { Point } from './types';
 
 export interface ZeroOverlapConfig {
   // Canvas configuration
@@ -18,12 +20,10 @@ export interface ZeroOverlapConfig {
   canvasHeight: number;
 
   // Node configuration
-  nodeDefaults: {
-    width: number;
-    height: number;
-    padding: number;
-    borderWidth: number;
-  };
+  nodeWidth: number;
+  nodeHeight: number;
+  nodePadding: number;
+  nodeBorderWidth: number;
 
   // Spacing guarantees
   minimumSpacing: {
@@ -102,16 +102,14 @@ export class ZeroOverlapLayoutEngine {
       canvasWidth: 1920,
       canvasHeight: 1080,
 
-      nodeDefaults: {
-        width: 120,
-        height: 60,
-        padding: 10,
-        borderWidth: 2
-      },
+      nodeWidth: 120,
+      nodeHeight: 60,
+      nodePadding: 10,
+      nodeBorderWidth: 2,
 
       minimumSpacing: {
         nodeToNode: 40,      // 40px minimum between nodes
-        nodeToEdge: 20,      // 20px minimum from node to edge
+        nodeToEdge: 20,      // 20px minimum from node to crossing edge
         labelToElement: 15   // 15px minimum label spacing
       },
 
@@ -244,8 +242,8 @@ export class ZeroOverlapLayoutEngine {
 
     // Add nodes with proper sizing
     nodes.forEach(node => {
-      const width = this.calculateNodeWidth(node);
-      const height = this.calculateNodeHeight(node);
+      const width = LayoutUtils.calculateNodeWidth(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
+      const height = LayoutUtils.calculateNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
 
       g.setNode(node.id, {
         width,
@@ -277,7 +275,7 @@ export class ZeroOverlapLayoutEngine {
     // Extract layout edges
     const layoutEdges: LayoutEdge[] = edges.map(edge => ({
       ...edge,
-      points: this.generateEdgePoints(
+      points: LayoutUtils.generateEdgePoints(
         g.node(edge.source),
         g.node(edge.target)
       )
@@ -322,8 +320,8 @@ export class ZeroOverlapLayoutEngine {
     const baseY = this.config.canvasHeight / 2;
 
     const positionedNodes: PositionedNode[] = sortedNodes.map((node, index) => {
-      const width = this.calculateNodeWidth(node);
-      const height = this.calculateNodeHeight(node);
+      const width = LayoutUtils.calculateNodeWidth(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
+      const height = LayoutUtils.calculateNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
 
       return {
         ...node,
@@ -364,8 +362,8 @@ export class ZeroOverlapLayoutEngine {
 
     // Position left side nodes
     leftNodes.forEach((node, index) => {
-      const width = this.calculateNodeWidth(node);
-      const height = this.calculateNodeHeight(node);
+      const width = LayoutUtils.calculateNodeWidth(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
+      const height = LayoutUtils.calculateNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
       const y = (this.config.canvasHeight / (leftNodes.length + 1)) * (index + 1) - height / 2;
 
       positionedNodes.push({
@@ -379,8 +377,8 @@ export class ZeroOverlapLayoutEngine {
 
     // Position right side nodes
     rightNodes.forEach((node, index) => {
-      const width = this.calculateNodeWidth(node);
-      const height = this.calculateNodeHeight(node);
+      const width = LayoutUtils.calculateNodeWidth(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
+      const height = LayoutUtils.calculateNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
       const y = (this.config.canvasHeight / (rightNodes.length + 1)) * (index + 1) - height / 2;
 
       positionedNodes.push({
@@ -394,7 +392,7 @@ export class ZeroOverlapLayoutEngine {
 
     const layoutEdges: LayoutEdge[] = edges.map(edge => ({
       ...edge,
-      points: this.generateEdgePoints(
+      points: LayoutUtils.generateEdgePoints(
         positionedNodes.find(n => n.id === edge.source)!,
         positionedNodes.find(n => n.id === edge.target)!
       )
@@ -424,7 +422,7 @@ export class ZeroOverlapLayoutEngine {
 
     const layoutEdges: LayoutEdge[] = edges.map(edge => ({
       ...edge,
-      points: this.generateEdgePoints(
+      points: LayoutUtils.generateEdgePoints(
         positionedNodes.find(n => n.id === edge.source)!,
         positionedNodes.find(n => n.id === edge.target)!
       )
@@ -451,8 +449,8 @@ export class ZeroOverlapLayoutEngine {
     const cellHeight = this.config.canvasHeight / gridSize;
 
     return nodes.map((node, index) => {
-      const width = this.calculateNodeWidth(node);
-      const height = this.calculateNodeHeight(node);
+      const width = LayoutUtils.calculateNodeWidth(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
+      const height = LayoutUtils.calculateNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
 
       // Start with grid positions to avoid initial clustering
       const row = Math.floor(index / gridSize);
@@ -632,8 +630,8 @@ export class ZeroOverlapLayoutEngine {
       const row = Math.floor(index / cols);
       const col = index % cols;
 
-      const width = this.calculateNodeWidth(node);
-      const height = this.calculateNodeHeight(node);
+      const width = LayoutUtils.calculateNodeWidth(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
+      const height = LayoutUtils.calculateNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
 
       return {
         ...node,
@@ -646,7 +644,7 @@ export class ZeroOverlapLayoutEngine {
 
     const layoutEdges: LayoutEdge[] = edges.map(edge => ({
       ...edge,
-      points: this.generateEdgePoints(
+      points: LayoutUtils.generateEdgePoints(
         positionedNodes.find(n => n.id === edge.source)!,
         positionedNodes.find(n => n.id === edge.target)!
       )
@@ -687,7 +685,7 @@ export class ZeroOverlapLayoutEngine {
     // Regenerate edges for new positions
     const updatedEdges = layout.edges.map(edge => ({
       ...edge,
-      points: this.generateEdgePoints(
+      points: LayoutUtils.generateEdgePoints(
         currentNodes.find(n => n.id === edge.source)!,
         currentNodes.find(n => n.id === edge.target)!
       )
@@ -868,7 +866,7 @@ export class ZeroOverlapLayoutEngine {
 
     const adjustedEdges = layout.edges.map(edge => ({
       ...edge,
-      points: this.generateEdgePoints(
+      points: LayoutUtils.generateEdgePoints(
         adjustedNodes.find(n => n.id === edge.source)!,
         adjustedNodes.find(n => n.id === edge.target)!
       )
@@ -951,26 +949,7 @@ export class ZeroOverlapLayoutEngine {
     };
   }
 
-  /**
-   * Helper methods for calculations
-   */
-  private calculateNodeWidth(node: NodeDatum): number {
-    // Calculate width based on label length and padding
-    const baseWidth = this.config.nodeDefaults.width;
-    const labelLength = node.label?.length || 0;
-    return Math.max(baseWidth, labelLength * 8 + this.config.nodeDefaults.padding * 2);
-  }
 
-  private calculateNodeHeight(node: NodeDatum): number {
-    return this.config.nodeDefaults.height;
-  }
-
-  private generateEdgePoints(source: PositionedNode, target: PositionedNode): { x: number; y: number }[] {
-    return [
-      { x: source.x + source.width / 2, y: source.y + source.height / 2 },
-      { x: target.x + target.width / 2, y: target.y + target.height / 2 }
-    ];
-  }
 
   private findRootNode(nodes: NodeDatum[], edges: EdgeDatum[]): string {
     const hasIncoming = new Set(edges.map(e => e.target));
@@ -1066,17 +1045,27 @@ export class ZeroOverlapLayoutEngine {
       }
     });
 
-    // Apply forces with bounds checking (カスタム指示: エラー防止)
+    // Apply forces with enhanced damping and bounds checking
     nodes.forEach(node => {
       const force = forces.get(node.id)!;
       const damping = 0.1;
+
+      // Apply force with velocity limiting
+      const maxVelocity = optimalSpacing / 4;
+      const velocity = Math.sqrt(force.x * force.x + force.y * force.y);
+
+      if (velocity > maxVelocity) {
+        force.x = (force.x / velocity) * maxVelocity;
+        force.y = (force.y / velocity) * maxVelocity;
+      }
 
       node.x += force.x * damping;
       node.y += force.y * damping;
 
       // Keep within bounds
-      node.x = Math.max(0, Math.min(this.config.canvasWidth - node.width, node.x));
-      node.y = Math.max(0, Math.min(this.config.canvasHeight - node.height, node.y));
+      const margin = 20;
+      node.x = Math.max(margin, Math.min(this.config.canvasWidth - node.width - margin, node.x));
+      node.y = Math.max(margin, Math.min(this.config.canvasHeight - node.height - margin, node.y));
     });
   }
 
