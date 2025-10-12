@@ -47,3 +47,10 @@ export interface SemanticRelation {
   object: string;
   confidence: number;
 }
+
+export interface DiagramData {
+  title?: string;
+  type: "flowchart" | "mindmap" | "timeline" | "orgchart";
+  nodes: { id: string; label: string }[];
+  edges: { from: string; to: string; label?: string }[];
+}
