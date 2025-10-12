@@ -15,6 +15,7 @@
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig, LayoutResult, LayoutMetrics } from '../types';
 import { calculateNodeWidth, calculateNodeHeight, calculateNodeCenter, calculateDistance, calculateNodeDistance, generateEdgePoints, nodesOverlap } from '../layout-utils';
+import { logger } from '@/utils/logger';
 
 export interface Point {
   x: number;
@@ -41,6 +42,7 @@ export interface OverlapPair {
  */
 export abstract class BaseLayoutEngine {
   protected config: LayoutConfig;
+  protected logger = logger;
 
   constructor(config: Partial<LayoutConfig> = {}) {
     this.config = this.getDefaultConfig(config);
@@ -239,7 +241,7 @@ export abstract class BaseLayoutEngine {
       const target = nodes.find(n => n.id === edge.to);
 
       if (!source || !target) {
-        console.warn(`Edge ${edge.from} -> ${edge.to} missing nodes`);
+        this.logger.warn(`Edge ${edge.from} -> ${edge.to} missing nodes`);
         return {
           from: edge.from,
           to: edge.to,
@@ -373,15 +375,15 @@ export abstract class BaseLayoutEngine {
     diagramType: DiagramType,
     result: LayoutResult
   ): void {
-    console.log(`\n📊 Layout Evaluation: ${diagramType}`);
-    console.log(`  Nodes: ${result.layout.nodes.length}`);
-    console.log(`  Edges: ${result.layout.edges.length}`);
-    console.log(`  Bounds: ${result.bounds.width.toFixed(0)}x${result.bounds.height.toFixed(0)}`);
-    console.log(`  Processing: ${result.processingTime.toFixed(0)}ms`);
-    console.log(`  Success: ${result.success ? '✅' : '❌'}`);
+    this.logger.info(`\n📊 Layout Evaluation: ${diagramType}`);
+    this.logger.info(`  Nodes: ${result.layout.nodes.length}`);
+    this.logger.info(`  Edges: ${result.layout.edges.length}`);
+    this.logger.info(`  Bounds: ${result.bounds.width.toFixed(0)}x${result.bounds.height.toFixed(0)}`);
+    this.logger.info(`  Processing: ${result.processingTime.toFixed(0)}ms`);
+    this.logger.info(`  Success: ${result.success ? '✅' : '❌'}`);
 
     if (result.confidence !== undefined) {
-      console.log(`  Confidence: ${(result.confidence * 100).toFixed(1)}%`);
+      this.logger.info(`  Confidence: ${(result.confidence * 100).toFixed(1)}%`);
     }
   }
 
@@ -406,7 +408,7 @@ export abstract class BaseLayoutEngine {
    */
   public updateConfig(newConfig: Partial<LayoutConfig>): void {
     this.config = { ...this.config, ...newConfig };
-    console.log('📐 Layout configuration updated');
+    this.logger.info('📐 Layout configuration updated');
   }
 
   /**
