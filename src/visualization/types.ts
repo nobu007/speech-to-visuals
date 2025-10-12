@@ -1,5 +1,24 @@
 import { DiagramType, NodeDatum, EdgeDatum, DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
 
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export interface BoundingBox {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+  width: number;
+  height: number;
+}
+
+export interface OverlapPair {
+  node1: PositionedNode;
+  node2: PositionedNode;
+}
+
 export interface LayoutConfig {
   width: number;
   height: number;

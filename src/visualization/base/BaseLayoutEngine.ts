@@ -13,28 +13,9 @@
  */
 
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
-import { LayoutConfig, LayoutResult, LayoutMetrics } from '../types';
+import { LayoutConfig, LayoutResult, LayoutMetrics, Point, BoundingBox, OverlapPair } from '../types';
 import { calculateNodeWidth, calculateNodeHeight, calculateNodeCenter, calculateDistance, calculateNodeDistance, generateEdgePoints, nodesOverlap } from '../layout-utils';
 import { logger } from '@/utils/logger';
-
-export interface Point {
-  x: number;
-  y: number;
-}
-
-export interface BoundingBox {
-  minX: number;
-  minY: number;
-  maxX: number;
-  maxY: number;
-  width: number;
-  height: number;
-}
-
-export interface OverlapPair {
-  node1: PositionedNode;
-  node2: PositionedNode;
-}
 
 /**
  * Abstract base class for all layout engines
