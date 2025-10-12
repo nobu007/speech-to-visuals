@@ -13,7 +13,12 @@
     "remotion:render": "remotion render",
     "remotion:preview": "remotion preview",
     "api:server": "tsx src/api/index.ts",
-    "api:dev": "tsx watch src/api/index.ts"
+    "api:dev": "tsx watch src/api/index.ts",
+    "pipeline:test:e2e": "tsx scripts/test-e2e-with-audio.ts",
+    "pipeline:test:audio": "tsx scripts/test-complete-audio-pipeline.ts",
+    "pipeline:batch": "tsx scripts/batch-audio-pipeline.ts ./public/audio ./test-batch-output --no-video",
+    "phase1:verify": "tsx scripts/verify-phase1.ts",
+    "transcribe": "tsx scripts/transcribe.ts public/jfk.wav"
   },
   "dependencies": {
     "@dagrejs/dagre": "^1.1.5",
