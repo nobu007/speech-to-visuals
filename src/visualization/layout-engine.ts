@@ -96,7 +96,14 @@ export class LayoutEngine extends BaseLayoutEngine {
 
       if (nodes.length >= 20) {
         this.logger.info('🔧 Using complex layout engine for large diagram...');
-        return await this.complexEngine!.generateComplexLayout(nodes, edges, diagramType);
+        // Safely check if complexEngine is initialized
+        if (this.complexEngine) {
+          return await this.complexEngine.generateComplexLayout(nodes, edges, diagramType);
+        } else {
+          // Fallback to simple mode if complexEngine is not initialized (e.g., in simple mode)
+          this.logger.warn('Complex engine not initialized, falling back to simple mode layout.');
+          return await this._handleSimpleModeLayout(nodes, edges, diagramType, startTime);
+        }
       }
 
       // For smaller diagrams, use enhanced approach
