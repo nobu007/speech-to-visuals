@@ -44,7 +44,7 @@ export class SimpleLayoutEngine extends BaseLayoutEngine {
     diagramType: DiagramType
   ): Promise<LayoutResult> {
     const startTime = performance.now();
-    console.log(`🎨 Generating ${diagramType} layout for ${nodes.length} nodes...`);
+    this.logger.info(`🎨 Generating ${diagramType} layout for ${nodes.length} nodes...`);
 
     try {
       let positionedNodes: PositionedNode[] = [];
@@ -103,7 +103,7 @@ export class SimpleLayoutEngine extends BaseLayoutEngine {
       return result;
 
     } catch (error) {
-      console.error('❌ Layout generation failed:', error);
+      this.logger.error('❌ Layout generation failed:', error);
       return this.createErrorResult(error);
     }
   }
