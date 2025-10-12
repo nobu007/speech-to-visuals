@@ -7,7 +7,6 @@
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { BaseLayoutEngine } from './base/BaseLayoutEngine';
 import { LayoutConfig, LayoutResult } from './types';
-// Removed SimpleNode, SimpleEdge import as they will be replaced by NodeDatum, EdgeDatum
 
 /**
  * Simple deterministic layout engine
