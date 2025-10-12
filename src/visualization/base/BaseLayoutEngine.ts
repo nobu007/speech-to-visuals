@@ -14,7 +14,7 @@
 
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig, LayoutResult, LayoutMetrics } from '../types';
-import { LayoutUtils } from '../layout-utils';
+import { calculateNodeWidth, calculateNodeHeight, calculateNodeCenter, calculateDistance, calculateNodeDistance, generateEdgePoints } from '../layout-utils';
 
 export interface Point {
   x: number;
@@ -94,28 +94,28 @@ export abstract class BaseLayoutEngine {
    * Single source of truth for node width calculation
    */
   protected calculateNodeHeight(node: NodeDatum): number {
-    return LayoutUtils.calculateNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
+    return calculateNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
   }
 
   /**
    * Calculate center point of a node
    */
   protected calculateNodeCenter(node: PositionedNode): Point {
-    return LayoutUtils.calculateNodeCenter(node);
+    return calculateNodeCenter(node);
   }
 
   /**
    * Calculate distance between two points
    */
   protected calculateDistance(p1: Point, p2: Point): number {
-    return LayoutUtils.calculateDistance(p1, p2);
+    return calculateDistance(p1, p2);
   }
 
   /**
    * Calculate distance between two node centers
    */
   protected calculateNodeDistance(node1: PositionedNode, node2: PositionedNode): number {
-    return LayoutUtils.calculateNodeDistance(node1, node2);
+    return calculateNodeDistance(node1, node2);
   }
 
   // ============================================================
@@ -207,7 +207,7 @@ export abstract class BaseLayoutEngine {
     source: PositionedNode,
     target: PositionedNode
   ): Point[] {
-    return LayoutUtils.generateEdgePoints(source, target);
+    return generateEdgePoints(source, target);
   }
 
   /**
