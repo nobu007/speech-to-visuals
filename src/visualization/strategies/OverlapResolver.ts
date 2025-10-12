@@ -46,16 +46,6 @@ export class OverlapResolver {
     node.y = Math.max(margin, Math.min(node.y, this.config.height - node.h - margin));
   }
 
-  constructor(
-    config: LayoutConfig,
-    nodesOverlap: (node1: PositionedNode, node2: PositionedNode) => boolean,
-    constrainNodeToBounds: (node: PositionedNode) => void
-  ) {
-    this.config = config;
-    this.nodesOverlap = nodesOverlap;
-    this.constrainNodeToBounds = constrainNodeToBounds;
-  }
-
   /**
    * 🎯 Custom Instructions: Ensure Zero Overlaps (MANDATORY)
    * Phase 4 requirement: Zero tolerance for overlaps
