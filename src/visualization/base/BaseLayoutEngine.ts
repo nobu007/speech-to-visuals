@@ -98,6 +98,23 @@ export abstract class BaseLayoutEngine {
   }
 
   /**
+   * Calculate node width based on label and config
+   * Single source of truth for node width calculation
+   */
+  protected calculateNodeWidth(node: NodeDatum): number {
+    // Provide default values for charWidth and padding, as they are not in LayoutConfig
+    const DEFAULT_CHAR_WIDTH = 8; // px per character
+    const DEFAULT_PADDING = 20; // px padding
+
+    return calculateNodeWidth(node, {
+      nodeWidth: this.config.nodeWidth,
+      nodeHeight: this.config.nodeHeight, // nodeHeight is also part of NodeDimensionsConfig
+      charWidth: DEFAULT_CHAR_WIDTH,
+      padding: DEFAULT_PADDING,
+    });
+  }
+
+  /**
    * Calculate center point of a node
    */
   protected calculateNodeCenter(node: PositionedNode): Point {
