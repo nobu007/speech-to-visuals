@@ -14,6 +14,7 @@
 
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig, LayoutResult, LayoutMetrics } from '../types';
+import { LayoutUtils } from '../layout-utils';
 
 export interface Point {
   x: number;
@@ -88,18 +89,9 @@ export abstract class BaseLayoutEngine {
     };
   }
 
-import { LayoutUtils } from './layout-utils';
-
   /**
    * Calculate node width based on label and config
    * Single source of truth for node width calculation
-   */
-  protected calculateNodeWidth(node: NodeDatum): number {
-    return LayoutUtils.calculateNodeWidth(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
-  }
-
-  /**
-   * Calculate node height (currently fixed, but extensible)
    */
   protected calculateNodeHeight(node: NodeDatum): number {
     return LayoutUtils.calculateNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
