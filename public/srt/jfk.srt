@@ -1,0 +1,11 @@
+1
+00:00:00,000 --> 00:00:06,000
+Let's explore our organizational hierarchy structure. The company has different levels including management, departments, and teams with clear parent-child relationships.
+
+2
+00:00:06,000 --> 00:00:12,000
+Now we'll examine the development timeline and chronology. The project evolution spans multiple phases over several years, from conception in 2020 to deployment in 2024.
+
+3
+00:00:12,000 --> 00:00:18,000
+Finally, this continuous process forms a recurring cycle that returns to the beginning. The workflow loops back to the initial stage, creating an ongoing, cyclical pattern.
