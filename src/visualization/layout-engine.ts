@@ -2,18 +2,34 @@ import dagre from '@dagrejs/dagre';
 import { DiagramType, NodeDatum, EdgeDatum, DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig, LayoutResult, LayoutMetrics } from './types';
 import ComplexLayoutEngine from './complex-layout-engine';
+import { BaseLayoutEngine } from './base/BaseLayoutEngine';
 
 /**
  * Diagram Layout Engine - Iterative Implementation
  * Uses Dagre for automatic graph layout with diagram-specific optimizations
  */
-export class LayoutEngine {
-  private config: LayoutConfig;
+export class LayoutEngine extends BaseLayoutEngine {
   private iteration: number = 1;
   private complexEngine: ComplexLayoutEngine;
 
   constructor(config: Partial<LayoutConfig> = {}) {
-    this.config = {
+    super(config); // Call the constructor of BaseLayoutEngine
+
+    // Initialize complex layout engine for large diagrams
+    this.complexEngine = new ComplexLayoutEngine({
+      ...this.config,
+      enableClustering: true,
+      enableForceDirected: true,
+      enableOverlapResolution: true,
+      enableEdgeOptimization: true
+    });
+  }
+
+  /**
+   * Get default configuration with overrides
+   */
+  protected getDefaultConfig(override: Partial<LayoutConfig>): LayoutConfig {
+    return {
       width: 1920,
       height: 1080,
       nodeWidth: 120,
@@ -24,8 +40,9 @@ export class LayoutEngine {
       nodeSeparation: 50,
       edgeSeparation: 10,
       rankSeparation: 50,
-      ...config
+      ...override
     };
+  }
 
     // Initialize complex layout engine for large diagrams
     this.complexEngine = new ComplexLayoutEngine({
@@ -458,17 +475,7 @@ export class LayoutEngine {
     }
   }
 
-  /**
-   * Calculate dynamic node width based on text content
-   */
-  private calculateNodeWidth(label: string): number {
-    const baseWidth = this.config.nodeWidth;
-    const charWidth = 8; // Approximate character width
-    const padding = 20;
 
-    const textWidth = label.length * charWidth + padding;
-    return Math.max(baseWidth, Math.min(textWidth, baseWidth * 2));
-  }
 
   /**
    * Iteration 2+: Diagram type-specific optimizations
@@ -833,37 +840,13 @@ export class LayoutEngine {
     }
   }
 
-  /**
-   * Calculate layout bounds
-   */
-  private calculateBounds(layout: DiagramLayout) {
-    if (layout.nodes.length === 0) {
-      return { width: 0, height: 0, minX: 0, minY: 0, maxX: 0, maxY: 0 };
-    }
 
-    const xs = layout.nodes.map(n => [n.x, n.x + n.w]).flat();
-    const ys = layout.nodes.map(n => [n.y, n.y + n.h]).flat();
-
-    const minX = Math.min(...xs);
-    const maxX = Math.max(...xs);
-    const minY = Math.min(...ys);
-    const maxY = Math.max(...ys);
-
-    return {
-      width: maxX - minX,
-      height: maxY - minY,
-      minX,
-      minY,
-      maxX,
-      maxY
-    };
-  }
 
   /**
    * Evaluate layout quality
    */
   private async evaluateLayout(result: LayoutResult, diagramType: DiagramType): Promise<void> {
-    const metrics = this.calculateLayoutMetrics(result.layout);
+    const metrics = this.calculateLayoutMetrics(result.layout.nodes, result.layout.edges);
 
     console.log('\n📊 Layout Metrics:');
     console.log(`- Type: ${diagramType}`);
@@ -891,84 +874,13 @@ export class LayoutEngine {
     }
   }
 
-  /**
-   * Calculate detailed layout metrics
-   */
-  private calculateLayoutMetrics(layout: DiagramLayout): LayoutMetrics {
-    // Check for node overlaps
-    let overlapCount = 0;
-    for (let i = 0; i < layout.nodes.length; i++) {
-      for (let j = i + 1; j < layout.nodes.length; j++) {
-        const node1 = layout.nodes[i];
-        const node2 = layout.nodes[j];
 
-        if (this.nodesOverlap(node1, node2)) {
-          overlapCount++;
-        }
-      }
-    }
 
-    // Calculate other metrics
-    const totalArea = layout.nodes.reduce((sum, node) => sum + node.w * node.h, 0);
 
-    return {
-      overlapCount,
-      edgeCrossings: 0, // TODO: Implement edge crossing detection
-      totalArea,
-      nodeSpacing: this.calculateAverageNodeSpacing(layout.nodes),
-      layoutBalance: this.calculateLayoutBalance(layout.nodes)
-    };
-  }
 
-  /**
-   * Check if two nodes overlap
-   */
-  private nodesOverlap(node1: PositionedNode, node2: PositionedNode): boolean {
-    return !(node1.x + node1.w < node2.x ||
-             node2.x + node2.w < node1.x ||
-             node1.y + node1.h < node2.y ||
-             node2.y + node2.h < node1.y);
-  }
 
-  /**
-   * Calculate average spacing between nodes
-   */
-  private calculateAverageNodeSpacing(nodes: PositionedNode[]): number {
-    if (nodes.length < 2) return 0;
 
-    let totalDistance = 0;
-    let pairCount = 0;
 
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        const dx = (nodes[i].x + nodes[i].w / 2) - (nodes[j].x + nodes[j].w / 2);
-        const dy = (nodes[i].y + nodes[i].h / 2) - (nodes[j].y + nodes[j].h / 2);
-        totalDistance += Math.sqrt(dx * dx + dy * dy);
-        pairCount++;
-      }
-    }
-
-    return totalDistance / pairCount;
-  }
-
-  /**
-   * Calculate layout balance (how evenly distributed nodes are)
-   */
-  private calculateLayoutBalance(nodes: PositionedNode[]): number {
-    if (nodes.length === 0) return 1;
-
-    const centerX = nodes.reduce((sum, node) => sum + node.x + node.w / 2, 0) / nodes.length;
-    const centerY = nodes.reduce((sum, node) => sum + node.y + node.h / 2, 0) / nodes.length;
-
-    const variance = nodes.reduce((sum, node) => {
-      const dx = (node.x + node.w / 2) - centerX;
-      const dy = (node.y + node.h / 2) - centerY;
-      return sum + dx * dx + dy * dy;
-    }, 0) / nodes.length;
-
-    // Normalize variance to a 0-1 scale (higher = more balanced)
-    return Math.max(0, 1 - variance / 100000);
-  }
 
   /**
    * 🎯 Custom Instructions: Ensure Zero Overlaps (MANDATORY)
@@ -1172,20 +1084,13 @@ export class LayoutEngine {
     return !otherNodes.some(node => this.nodesOverlap(testNode, node));
   }
 
-  /**
-   * Constrain node to layout bounds
-   */
-  private constrainNodeToBounds(node: PositionedNode): void {
-    const margin = 10;
-    node.x = Math.max(margin, Math.min(node.x, this.config.width - node.w - margin));
-    node.y = Math.max(margin, Math.min(node.y, this.config.height - node.h - margin));
-  }
+
 
   /**
    * Calculate layout confidence based on quality metrics
    */
   private calculateLayoutConfidence(layout: DiagramLayout, processingTime: number): number {
-    const metrics = this.calculateLayoutMetrics(layout);
+    const metrics = this.calculateLayoutMetrics(layout.nodes, layout.edges);
     let confidence = 0.8; // Base confidence
 
     // Zero overlaps is mandatory for high confidence
@@ -1215,7 +1120,7 @@ export class LayoutEngine {
    * Evaluates against Custom Instructions Phase 4 requirements
    */
   private async evaluateLayoutWithCustomInstructions(result: LayoutResult, diagramType: DiagramType): Promise<void> {
-    const metrics = this.calculateLayoutMetrics(result.layout);
+    const metrics = this.calculateLayoutMetrics(result.layout.nodes, result.layout.edges);
 
     console.log('\n🎯 Custom Instructions Phase 4 Evaluation:');
     console.log(`- Zero Overlaps: ${metrics.overlapCount === 0 ? '✅ PASSED' : '❌ FAILED'} (${metrics.overlapCount} overlaps)`);
