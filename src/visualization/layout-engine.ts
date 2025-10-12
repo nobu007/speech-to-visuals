@@ -44,7 +44,7 @@ export class LayoutEngine extends BaseLayoutEngine {
         enableForceDirected: true,
         enableOverlapResolution: true,
         enableEdgeOptimization: true
-      });
+      }, this.overlapResolver, this.layoutOptimizer);
 
       // Initialize layout optimizer
       this.layoutOptimizer = new LayoutOptimizer(this.config);

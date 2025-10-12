@@ -9,6 +9,8 @@ import dagre from '@dagrejs/dagre';
 import { DiagramType, NodeDatum, EdgeDatum, DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig, LayoutResult } from './types';
 import { nodesOverlap } from './layout-utils';
+import { OverlapResolver } from './strategies/OverlapResolver';
+import { LayoutOptimizer } from './strategies/LayoutOptimizer';
 
 export interface ComplexLayoutConfig extends LayoutConfig {
   // Node clustering settings
@@ -75,7 +77,11 @@ export interface ForceDirectedState {
 export class ComplexLayoutEngine {
   private config: ComplexLayoutConfig;
 
-  constructor(config: Partial<ComplexLayoutConfig> = {}) {
+  constructor(
+    config: Partial<ComplexLayoutConfig> = {},
+    private overlapResolver?: any, // Will be OverlapResolver
+    private layoutOptimizer?: any // Will be LayoutOptimizer
+  ) {
     this.config = {
       // Basic layout config
       width: 1920,
@@ -154,12 +160,12 @@ export class ComplexLayoutEngine {
       }
 
       // Post-processing optimizations
-      if (this.config.enableOverlapResolution) {
-        layout = await this.resolveOverlaps(layout);
+      if (this.config.enableOverlapResolution && this.overlapResolver) {
+        layout = await this.overlapResolver.ensureZeroOverlaps(layout, diagramType);
       }
 
-      if (this.config.enableEdgeOptimization) {
-        layout = await this.optimizeEdges(layout, diagramType);
+      if (this.config.enableEdgeOptimization && this.layoutOptimizer) {
+        layout = await this.layoutOptimizer.optimizeForDiagramType(layout, diagramType);
       }
 
       // Final validation and bounds calculation
@@ -423,64 +429,9 @@ export class ComplexLayoutEngine {
     });
   }
 
-  /**
-   * Resolve node overlaps using force-based separation
-   */
-  private async resolveOverlaps(layout: DiagramLayout): Promise<DiagramLayout> {
-    console.log('🔧 Resolving node overlaps...');
 
-    const nodes = [...layout.nodes];
-    const maxIterations = 50;
-    let hasOverlaps = true;
 
-    for (let iteration = 0; iteration < maxIterations && hasOverlaps; iteration++) {
-      hasOverlaps = false;
 
-      // Check all pairs for overlaps
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          if (nodesOverlap(nodes[i], nodes[j])) {
-            hasOverlaps = true;
-            this.separateNodes(nodes[i], nodes[j]);
-          }
-        }
-      }
-    }
-
-    console.log(`✅ Overlap resolution completed in ${hasOverlaps ? 'max' : 'fewer'} iterations`);
-
-    return { ...layout, nodes };
-  }
-
-  /**
-   * Optimize edge routing to minimize crossings
-   */
-  private async optimizeEdges(layout: DiagramLayout, diagramType: DiagramType): Promise<DiagramLayout> {
-    console.log('🔧 Optimizing edge routing...');
-
-    if (!this.config.minimizeCrossings) {
-      return layout;
-    }
-
-    // Simple edge optimization - can be enhanced with more sophisticated algorithms
-    const optimizedEdges = layout.edges.map(edge => {
-      const fromNode = layout.nodes.find(n => n.id === edge.from);
-      const toNode = layout.nodes.find(n => n.id === edge.to);
-
-      if (!fromNode || !toNode) return edge;
-
-      // Calculate best connection points to minimize crossings
-      const fromPoint = this.getBestConnectionPoint(fromNode, toNode, layout.nodes);
-      const toPoint = this.getBestConnectionPoint(toNode, fromNode, layout.nodes);
-
-      return {
-        ...edge,
-        points: [fromPoint, toPoint]
-      };
-    });
-
-    return { ...layout, edges: optimizedEdges };
-  }
 
   /**
    * Create adaptive grid layout for fallback
@@ -556,34 +507,9 @@ export class ComplexLayoutEngine {
 
 
 
-  private separateNodes(node1: PositionedNode, node2: PositionedNode): void {
-    const dx = (node1.x + node1.w / 2) - (node2.x + node2.w / 2);
-    const dy = (node1.y + node1.h / 2) - (node2.y + node2.h / 2);
-    const distance = Math.sqrt(dx * dx + dy * dy);
 
-    if (distance === 0) return;
 
-    const separation = 20; // Minimum separation distance
-    const unitX = dx / distance;
-    const unitY = dy / distance;
 
-    node1.x += unitX * separation / 2;
-    node1.y += unitY * separation / 2;
-    node2.x -= unitX * separation / 2;
-    node2.y -= unitY * separation / 2;
-  }
-
-  private getBestConnectionPoint(
-    fromNode: PositionedNode,
-    toNode: PositionedNode,
-    allNodes: PositionedNode[]
-  ): { x: number; y: number } {
-    // Simple implementation - can be enhanced with crossing minimization
-    return {
-      x: fromNode.x + fromNode.w / 2,
-      y: fromNode.y + fromNode.h / 2
-    };
-  }
 
   // Placeholder implementations for complex algorithms
   private async standardLayout(nodes: NodeDatum[], edges: EdgeDatum[], type: DiagramType): Promise<DiagramLayout> {
