@@ -44,8 +44,7 @@ export class LayoutEngine extends BaseLayoutEngine {
 
     // Initialize layout evaluator
     this.layoutEvaluator = new LayoutEvaluator(
-      this.config,
-      this.calculateLayoutMetrics.bind(this)
+      this.config
     );
   }
 
