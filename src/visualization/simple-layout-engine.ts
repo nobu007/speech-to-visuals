@@ -7,15 +7,29 @@
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { BaseLayoutEngine } from './base/BaseLayoutEngine';
 import { LayoutConfig, LayoutResult } from './types';
+import { DagreLayoutStrategy } from './strategies/DagreLayoutStrategy';
+import { OverlapResolver } from './strategies/OverlapResolver';
+import { FallbackLayoutStrategy } from './strategies/FallbackLayoutStrategy';
 
 /**
  * Simple deterministic layout engine
  * MVP: Predictable layouts, no complex algorithms
  */
 export class SimpleLayoutEngine extends BaseLayoutEngine {
+  private dagreLayoutStrategy: DagreLayoutStrategy;
+  private overlapResolver: OverlapResolver;
 
   constructor(config: Partial<LayoutConfig> = {}) {
     super(config);
+
+    // Initialize fallback layout strategy (can be a simple one for this engine)
+    const fallbackLayoutStrategy = new FallbackLayoutStrategy(this.config);
+
+    // Initialize Dagre layout strategy
+    this.dagreLayoutStrategy = new DagreLayoutStrategy(this.config, fallbackLayoutStrategy);
+
+    // Initialize overlap resolver
+    this.overlapResolver = new OverlapResolver(this.config);
   }
 
   protected getDefaultConfig(override: Partial<LayoutConfig>): LayoutConfig {
@@ -35,8 +49,7 @@ export class SimpleLayoutEngine extends BaseLayoutEngine {
   }
 
   /**
-   * Generate layout based on diagram type
-   * 🔄 Custom Instructions: タイプ別の最適化
+   * Generate layout based on diagram type using Dagre and OverlapResolver
    */
   async generateLayout(
     nodes: NodeDatum[],
@@ -47,52 +60,24 @@ export class SimpleLayoutEngine extends BaseLayoutEngine {
     this.logger.info(`🎨 Generating ${diagramType} layout for ${nodes.length} nodes...`);
 
     try {
-      let positionedNodes: PositionedNode[] = [];
-      let layoutEdges: LayoutEdge[] = [];
+      // Apply basic Dagre layout
+      let layout = await this.dagreLayoutStrategy.applyLayout(nodes, edges, diagramType);
 
-      // Convert NodeDatum to PositionedNode with initial width/height
-      const initialNodes: PositionedNode[] = nodes.map(node => ({
-        ...node,
-        x: 0, y: 0,
-        w: this.calculateNodeWidth(node),
-        h: this.calculateNodeHeight(node)
-      }));
-
-      switch (diagramType) {
-        case 'flow':
-          ({ nodes: positionedNodes, edges: layoutEdges } = this.generateFlowLayout(initialNodes, edges));
-          break;
-        case 'tree':
-          ({ nodes: positionedNodes, edges: layoutEdges } = this.generateTreeLayout(initialNodes, edges));
-          break;
-        case 'timeline':
-          ({ nodes: positionedNodes, edges: layoutEdges } = this.generateTimelineLayout(initialNodes, edges));
-          break;
-        case 'cycle':
-          ({ nodes: positionedNodes, edges: layoutEdges } = this.generateCycleLayout(initialNodes, edges));
-          break;
-        case 'network':
-          ({ nodes: positionedNodes, edges: layoutEdges } = this.generateNetworkLayout(initialNodes, edges));
-          break;
-        default:
-          ({ nodes: positionedNodes, edges: layoutEdges } = this.generateDefaultLayout(initialNodes, edges));
-      }
-
-      // Ensure all nodes are within bounds using BaseLayoutEngine's method
-      this.constrainAllNodesToBounds(positionedNodes, this.config.marginX);
+      // Ensure zero overlaps
+      layout = await this.overlapResolver.ensureZeroOverlaps(layout, diagramType);
 
       // Generate edges using BaseLayoutEngine's method
-      layoutEdges = this.generateAllEdges(edges, positionedNodes);
+      const layoutEdges = this.generateAllEdges(edges, layout.nodes);
 
       const endTime = performance.now();
       const processingTime = endTime - startTime; // Convert to milliseconds
 
-      const bounds = this.calculateBounds(positionedNodes);
-      const metrics = this.calculateLayoutMetrics(positionedNodes, layoutEdges);
+      const bounds = this.calculateBounds(layout.nodes);
+      const metrics = this.calculateLayoutMetrics(layout.nodes, layoutEdges);
       const confidence = this.calculateConfidence(metrics, processingTime);
 
       const result: LayoutResult = {
-        layout: { nodes: positionedNodes, edges: layoutEdges },
+        layout: { nodes: layout.nodes, edges: layoutEdges },
         bounds: bounds,
         processingTime: processingTime,
         success: true,
@@ -106,208 +91,6 @@ export class SimpleLayoutEngine extends BaseLayoutEngine {
       this.logger.error('❌ Layout generation failed:', error);
       return this.createErrorResult(error);
     }
-  }
-
-  /**
-   * Generate flow chart layout (top to bottom)
-   */
-  private generateFlowLayout(nodes: PositionedNode[], edges: EdgeDatum[]): {
-    nodes: PositionedNode[];
-    edges: LayoutEdge[];
-  } {
-    const positionedNodes: PositionedNode[] = [];
-    const centerX = this.calculateCenterX();
-    const startY = this.config.marginY;
-
-    // Arrange nodes vertically
-    nodes.forEach((node, index) => {
-      positionedNodes.push({
-        ...node,
-        x: centerX - node.w / 2,
-        y: startY + index * (node.h + this.config.nodeSeparation),
-      });
-    });
-
-    // Edges will be generated by BaseLayoutEngine's generateAllEdges
-    return { nodes: positionedNodes, edges: [] };
-  }
-
-  /**
-   * Generate tree layout (hierarchical)
-   */
-  private generateTreeLayout(nodes: PositionedNode[], edges: EdgeDatum[]): {
-    nodes: PositionedNode[];
-    edges: LayoutEdge[];
-  } {
-    const positionedNodes: PositionedNode[] = [];
-    const levels = this.organizeLevels(nodes, edges);
-
-    levels.forEach((levelNodes, levelIndex) => {
-      const levelY = this.config.marginY + levelIndex * (this.config.nodeHeight + this.config.nodeSeparation);
-      const totalLevelWidth = levelNodes.reduce((sum, node) => sum + node.w + this.config.nodeSeparation, 0) - this.config.nodeSeparation;
-      const startX = (this.config.width - totalLevelWidth) / 2;
-
-      let currentX = startX;
-      levelNodes.forEach((node, nodeIndex) => {
-        positionedNodes.push({
-          ...node,
-          x: currentX,
-          y: levelY,
-        });
-        currentX += node.w + this.config.nodeSeparation;
-      });
-    });
-
-    return { nodes: positionedNodes, edges: [] };
-  }
-
-  /**
-   * Generate timeline layout (horizontal)
-   */
-  private generateTimelineLayout(nodes: PositionedNode[], edges: EdgeDatum[]): {
-    nodes: PositionedNode[];
-    edges: LayoutEdge[];
-  } {
-    const positionedNodes: PositionedNode[] = [];
-    const centerY = this.calculateCenterY();
-    const startX = this.config.marginX;
-
-    // Arrange nodes horizontally
-    nodes.forEach((node, index) => {
-      positionedNodes.push({
-        ...node,
-        x: startX + index * (node.w + this.config.nodeSeparation),
-        y: centerY - node.h / 2,
-      });
-    });
-
-    return { nodes: positionedNodes, edges: [] };
-  }
-
-  /**
-   * Generate cycle layout (circular)
-   */
-  private generateCycleLayout(nodes: PositionedNode[], edges: EdgeDatum[]): {
-    nodes: PositionedNode[];
-    edges: LayoutEdge[];
-  } {
-    const positionedNodes: PositionedNode[] = [];
-    const centerX = this.calculateCenterX();
-    const centerY = this.calculateCenterY();
-    const radius = Math.min(this.config.width, this.config.height) / 3;
-
-    // Arrange nodes in a circle
-    nodes.forEach((node, index) => {
-      const angle = (index / nodes.length) * 2 * Math.PI - Math.PI / 2; // Start from top
-      const x = centerX + Math.cos(angle) * radius - node.w / 2;
-      const y = centerY + Math.sin(angle) * radius - node.h / 2;
-
-      positionedNodes.push({
-        ...node,
-        x,
-        y,
-      });
-    });
-
-    return { nodes: positionedNodes, edges: [] };
-  }
-
-  /**
-   * Generate network layout (distributed)
-   */
-  private generateNetworkLayout(nodes: PositionedNode[], edges: EdgeDatum[]): {
-    nodes: PositionedNode[];
-    edges: LayoutEdge[];
-  } {
-    const positionedNodes: PositionedNode[] = [];
-    const cols = Math.ceil(Math.sqrt(nodes.length));
-    const rows = Math.ceil(nodes.length / cols);
-
-    const cellWidth = (this.config.width - 2 * this.config.marginX) / cols;
-    const cellHeight = (this.config.height - 2 * this.config.marginY) / rows;
-
-    nodes.forEach((node, index) => {
-      const col = index % cols;
-      const row = Math.floor(index / cols);
-
-      positionedNodes.push({
-        ...node,
-        x: this.config.marginX + col * cellWidth + (cellWidth - node.w) / 2,
-        y: this.config.marginY + row * cellHeight + (cellHeight - node.h) / 2,
-      });
-    });
-
-    return { nodes: positionedNodes, edges: [] };
-  }
-
-  /**
-   * Generate default layout (grid)
-   */
-  private generateDefaultLayout(nodes: PositionedNode[], edges: EdgeDatum[]): {
-    nodes: PositionedNode[];
-    edges: LayoutEdge[];
-  } {
-    return this.generateNetworkLayout(nodes, edges);
-  }
-
-  /**
-   * Organize nodes into hierarchical levels
-   */
-  private organizeLevels(nodes: PositionedNode[], edges: EdgeDatum[]): PositionedNode[][] {
-    const levels: PositionedNode[][] = [];
-    const processed = new Set<string>();
-
-    // Find root nodes (no incoming edges)
-    const hasIncoming = new Set(edges.map(e => e.to));
-    const roots = nodes.filter(node => !hasIncoming.has(node.id));
-
-    if (roots.length === 0) {
-      // If no clear root, start with first node
-      levels.push([nodes[0]]);
-      processed.add(nodes[0].id);
-    } else {
-      levels.push(roots);
-      roots.forEach(root => processed.add(root.id));
-    }
-
-    // Build levels based on edges
-    let currentLevel = 0;
-    while (processed.size < nodes.length && currentLevel < levels.length) {
-      const nextLevel: PositionedNode[] = [];
-
-      for (const edge of edges) {
-        if (processed.has(edge.from) && !processed.has(edge.to)) {
-          const targetNode = nodes.find(n => n.id === edge.to);
-          if (targetNode && !nextLevel.find(n => n.id === targetNode.id)) {
-            nextLevel.push(targetNode);
-            processed.add(targetNode.id);
-          }
-        }
-      }
-
-      if (nextLevel.length > 0) {
-        levels.push(nextLevel);
-      } else {
-        // Add remaining unprocessed nodes
-        const remaining = nodes.filter(n => !processed.has(n.id));
-        if (remaining.length > 0) {
-          levels.push(remaining);
-          remaining.forEach(n => processed.add(n.id));
-        }
-      }
-
-      currentLevel++;
-      if (currentLevel > 10) break; // Prevent infinite loop
-    }
-
-    return levels;
-  }
-
-
-
-
-
-
-}
+  }}
 
 export const simpleLayoutEngine = new SimpleLayoutEngine();
