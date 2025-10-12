@@ -19,6 +19,13 @@ export interface OverlapPair {
   node2: PositionedNode;
 }
 
+export interface NodeDimensionsConfig {
+  nodeWidth: number;
+  nodeHeight: number;
+  charWidth: number;
+  padding: number;
+}
+
 export interface LayoutConfig {
   width: number;
   height: number;
@@ -30,6 +37,7 @@ export interface LayoutConfig {
   nodeSeparation: number;
   edgeSeparation: number;
   rankSeparation: number;
+  isSimpleMode?: boolean;
 }
 
 export interface LayoutResult {

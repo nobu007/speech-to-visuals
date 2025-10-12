@@ -16,17 +16,14 @@ import { DagreLayoutStrategy } from './strategies/DagreLayoutStrategy'; // Added
 import { getGraphConfig } from './layout-utils';
 
 export class LayoutEngine extends BaseLayoutEngine {
+  private complexEngine?: ComplexLayoutEngine;
+  private fallbackLayoutStrategy: FallbackLayoutStrategy;
+  private dagreLayoutStrategy: DagreLayoutStrategy;
+  private overlapResolver: OverlapResolver;
+  private layoutOptimizer?: LayoutOptimizer;
+  private layoutEvaluator?: LayoutEvaluator;
   constructor(config: Partial<LayoutConfig> = {}) {
     super(config); // Call the constructor of BaseLayoutEngine
-
-    // Initialize complex layout engine for large diagrams
-    this.complexEngine = new ComplexLayoutEngine({
-      ...this.config,
-      enableClustering: true,
-      enableForceDirected: true,
-      enableOverlapResolution: true,
-      enableEdgeOptimization: true
-    });
 
     // Initialize fallback layout strategy
     this.fallbackLayoutStrategy = new FallbackLayoutStrategy(this.config);
@@ -39,13 +36,24 @@ export class LayoutEngine extends BaseLayoutEngine {
       this.config
     );
 
-    // Initialize layout optimizer
-    this.layoutOptimizer = new LayoutOptimizer(this.config);
+    if (!this.config.isSimpleMode) {
+      // Initialize complex layout engine for large diagrams
+      this.complexEngine = new ComplexLayoutEngine({
+        ...this.config,
+        enableClustering: true,
+        enableForceDirected: true,
+        enableOverlapResolution: true,
+        enableEdgeOptimization: true
+      });
 
-    // Initialize layout evaluator
-    this.layoutEvaluator = new LayoutEvaluator(
-      this.config
-    );
+      // Initialize layout optimizer
+      this.layoutOptimizer = new LayoutOptimizer(this.config);
+
+      // Initialize layout evaluator
+      this.layoutEvaluator = new LayoutEvaluator(
+        this.config
+      );
+    }
   }
 
   /**
@@ -78,13 +86,28 @@ export class LayoutEngine extends BaseLayoutEngine {
     iteration: number // Added iteration parameter
   ): Promise<LayoutResult> {
     const startTime = performance.now();
-    console.log(`[Layout Engine V${iteration}] Generating ${diagramType} layout for ${nodes.length} nodes, ${edges.length} edges`);
-    console.log(`🎯 Custom Instructions: Target <5s processing, zero overlaps`);
+    this.logger.info(`[Layout Engine V${iteration}] Generating ${diagramType} layout for ${nodes.length} nodes, ${edges.length} edges`);
+    this.logger.info(`🎯 Custom Instructions: Target <5s processing, zero overlaps`);
 
     try {
+      if (this.config.isSimpleMode) {
+        this.logger.info('🔧 Using simple layout mode...');
+        let layout = await this.dagreLayoutStrategy.applyLayout(nodes, edges, diagramType);
+        layout = await this.overlapResolver.ensureZeroOverlaps(layout, diagramType);
+        const bounds = this.calculateBounds(layout);
+        const processingTime = performance.now() - startTime;
+        return {
+          layout,
+          bounds,
+          processingTime,
+          success: true,
+          confidence: 1.0 // Simple mode assumes high confidence for basic layout
+        };
+      }
+
       if (nodes.length >= 20) {
-        console.log('🔧 Using complex layout engine for large diagram...');
-        return await this.complexEngine.generateComplexLayout(nodes, edges, diagramType);
+        this.logger.info('🔧 Using complex layout engine for large diagram...');
+        return await this.complexEngine!.generateComplexLayout(nodes, edges, diagramType);
       }
 
       // For smaller diagrams, use enhanced approach
@@ -93,7 +116,7 @@ export class LayoutEngine extends BaseLayoutEngine {
       return await this._logAndEvaluateLayout(layout, startTime, diagramType);
 
     } catch (error) {
-      console.error('[Layout Engine] Error:', error);
+      this.logger.error('[Layout Engine] Error:', error);
       return {
         layout: { nodes: [], edges: [] },
         bounds: { width: 0, height: 0, minX: 0, minY: 0, maxX: 0, maxY: 0 },
@@ -150,9 +173,9 @@ export class LayoutEngine extends BaseLayoutEngine {
 
     // 🎯 Custom Instructions: Performance Check (5s requirement)
     if (processingTime > 5000) {
-      console.warn(`⚠️ Layout processing exceeded 5s limit: ${(processingTime / 1000).toFixed(1)}s`);
+      this.logger.warn(`⚠️ Layout processing exceeded 5s limit: ${(processingTime / 1000).toFixed(1)}s`);
     } else {
-      console.log(`✅ Layout completed within performance target: ${processingTime.toFixed(0)}ms`);
+      this.logger.info(`✅ Layout completed within performance target: ${processingTime.toFixed(0)}ms`);
     }
 
     const result: LayoutResult = {
@@ -199,6 +222,6 @@ export class LayoutEngine extends BaseLayoutEngine {
    */
   public updateConfig(newConfig: Partial<LayoutConfig>): void {
     this.config = { ...this.config, ...newConfig };
-    console.log('📐 Layout configuration updated');
+    this.logger.info('📐 Layout configuration updated');
   }
 }

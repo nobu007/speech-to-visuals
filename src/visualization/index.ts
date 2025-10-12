@@ -1,5 +1,6 @@
 export { LayoutEngine } from './layout-engine';
-export { SimpleLayoutEngine } from './simple-layout-engine';
+import { LayoutEngine } from './layout-engine';
+export const simpleLayoutEngineInstance = new LayoutEngine({ isSimpleMode: true });
 export { ComplexLayoutEngine } from './complex-layout-engine';
 export { ZeroOverlapLayoutEngine } from './zero-overlap-layout-engine';
 export { EnhancedZeroOverlapLayoutEngine } from './enhanced-zero-overlap-layout-engine';
