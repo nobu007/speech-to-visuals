@@ -637,7 +637,8 @@ export class MainPipeline {
           const layoutResult = await this.layoutEngine.generateLayout(
             analysis.nodes,
             analysis.edges,
-            analysis.type
+            analysis.type,
+            this.iteration // Pass current iteration
           );
 
           if (layoutResult.success) {
@@ -855,7 +856,8 @@ export class MainPipeline {
         const layoutResult = await this.layoutEngine.generateLayout(
           analysis.nodes,
           analysis.edges,
-          analysis.type
+          analysis.type,
+          this.iteration // Pass current iteration
         );
 
         if (layoutResult.success) {
@@ -1044,10 +1046,6 @@ export class MainPipeline {
     if (this.detector && typeof this.detector.nextIteration === 'function') {
       this.detector.nextIteration();
     }
-    if (this.layoutEngine && typeof this.layoutEngine.nextIteration === 'function') {
-      this.layoutEngine.nextIteration();
-    }
-
     // Update quality monitor iteration
     qualityMonitor.nextIteration();
 

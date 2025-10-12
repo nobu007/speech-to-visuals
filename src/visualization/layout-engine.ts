@@ -16,14 +16,6 @@ import { DagreLayoutStrategy } from './strategies/DagreLayoutStrategy'; // Added
 import { getGraphConfig } from './layout-utils';
 
 export class LayoutEngine extends BaseLayoutEngine {
-  private iteration: number = 1;
-  private complexEngine: ComplexLayoutEngine;
-  private fallbackLayoutStrategy: FallbackLayoutStrategy;
-  private overlapResolver: OverlapResolver;
-  private layoutOptimizer: LayoutOptimizer;
-  private layoutEvaluator: LayoutEvaluator;
-  private dagreLayoutStrategy: DagreLayoutStrategy; // Added
-
   constructor(config: Partial<LayoutConfig> = {}) {
     super(config); // Call the constructor of BaseLayoutEngine
 
@@ -83,10 +75,11 @@ export class LayoutEngine extends BaseLayoutEngine {
   async generateLayout(
     nodes: NodeDatum[],
     edges: EdgeDatum[],
-    diagramType: DiagramType
+    diagramType: DiagramType,
+    iteration: number // Added iteration parameter
   ): Promise<LayoutResult> {
     const startTime = performance.now();
-    console.log(`[Layout Engine V${this.iteration}] Generating ${diagramType} layout for ${nodes.length} nodes, ${edges.length} edges`);
+    console.log(`[Layout Engine V${iteration}] Generating ${diagramType} layout for ${nodes.length} nodes, ${edges.length} edges`);
     console.log(`🎯 Custom Instructions: Target <5s processing, zero overlaps`);
 
     try {
@@ -96,7 +89,7 @@ export class LayoutEngine extends BaseLayoutEngine {
       }
 
       // For smaller diagrams, use enhanced approach
-      let layout = await this._applyBasicLayoutAndOptimizations(nodes, edges, diagramType);
+      let layout = await this._applyBasicLayoutAndOptimizations(nodes, edges, diagramType, iteration); // Pass iteration
 
       return await this._logAndEvaluateLayout(layout, startTime, diagramType);
 
@@ -120,7 +113,8 @@ export class LayoutEngine extends BaseLayoutEngine {
   private async _applyBasicLayoutAndOptimizations(
     nodes: NodeDatum[],
     edges: EdgeDatum[],
-    diagramType: DiagramType
+    diagramType: DiagramType,
+    iteration: number // Added iteration parameter
   ): Promise<DiagramLayout> {
     // Iteration 1: Basic Dagre layout
     let layout = await this.dagreLayoutStrategy.applyLayout(nodes, edges, diagramType); // Updated
@@ -129,12 +123,12 @@ export class LayoutEngine extends BaseLayoutEngine {
     layout = await this.overlapResolver.ensureZeroOverlaps(layout, diagramType);
 
     // Iteration 2+: Type-specific optimizations
-    if (this.iteration > 1) {
+    if (iteration > 1) {
       layout = await this.layoutOptimizer.optimizeForDiagramType(layout, diagramType);
     }
 
     // Iteration 3+: Advanced layout improvements
-    if (this.iteration > 2) {
+    if (iteration > 2) {
       layout = await this.layoutOptimizer.advancedOptimizations(layout, diagramType);
     }
 
@@ -200,14 +194,6 @@ export class LayoutEngine extends BaseLayoutEngine {
 
 
 
-
-  /**
-   * Method to increment iteration for testing improvements
-   */
-  public nextIteration(): void {
-    this.iteration++;
-    console.log(`🔄 Moving to layout iteration ${this.iteration}`);
-  }
 
   /**
    * Update configuration
