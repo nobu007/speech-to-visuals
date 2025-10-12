@@ -44,7 +44,7 @@ export class SimpleLayoutEngine extends BaseLayoutEngine {
     edges: EdgeDatum[],
     diagramType: DiagramType
   ): Promise<LayoutResult> {
-    const startTime = process.hrtime.bigint();
+    const startTime = performance.now();
     console.log(`🎨 Generating ${diagramType} layout for ${nodes.length} nodes...`);
 
     try {
@@ -85,8 +85,8 @@ export class SimpleLayoutEngine extends BaseLayoutEngine {
       // Generate edges using BaseLayoutEngine's method
       layoutEdges = this.generateAllEdges(edges, positionedNodes);
 
-      const endTime = process.hrtime.bigint();
-      const processingTime = Number(endTime - startTime) / 1_000_000; // Convert to milliseconds
+      const endTime = performance.now();
+      const processingTime = endTime - startTime; // Convert to milliseconds
 
       const bounds = this.calculateBounds(positionedNodes);
       const metrics = this.calculateLayoutMetrics(positionedNodes, layoutEdges);
