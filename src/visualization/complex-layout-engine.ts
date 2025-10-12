@@ -8,6 +8,7 @@
 import dagre from '@dagrejs/dagre';
 import { DiagramType, NodeDatum, EdgeDatum, DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig, LayoutResult } from './types';
+import { nodesOverlap } from './layout-utils';
 
 export interface ComplexLayoutConfig extends LayoutConfig {
   // Node clustering settings
@@ -438,7 +439,7 @@ export class ComplexLayoutEngine {
       // Check all pairs for overlaps
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
-          if (this.nodesOverlap(nodes[i], nodes[j])) {
+          if (nodesOverlap(nodes[i], nodes[j])) {
             hasOverlaps = true;
             this.separateNodes(nodes[i], nodes[j]);
           }
@@ -553,13 +554,7 @@ export class ComplexLayoutEngine {
     return { width: maxX - minX, height: maxY - minY, minX, minY, maxX, maxY };
   }
 
-  private nodesOverlap(node1: PositionedNode, node2: PositionedNode): boolean {
-    const tolerance = this.config.overlapTolerance;
-    return !(node1.x + node1.w + tolerance < node2.x ||
-             node2.x + node2.w + tolerance < node1.x ||
-             node1.y + node1.h + tolerance < node2.y ||
-             node2.y + node2.h + tolerance < node1.y);
-  }
+
 
   private separateNodes(node1: PositionedNode, node2: PositionedNode): void {
     const dx = (node1.x + node1.w / 2) - (node2.x + node2.w / 2);

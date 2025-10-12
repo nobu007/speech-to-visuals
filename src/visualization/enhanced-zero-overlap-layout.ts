@@ -11,7 +11,7 @@
 
 import dagre from '@dagrejs/dagre';
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
-import { calculateNodeWidth, calculateNodeHeight, calculateNodeCenter, calculateDistance, calculateNodeDistance, generateEdgePoints } from './layout-utils';
+import { calculateNodeWidth, calculateNodeHeight, calculateNodeCenter, calculateDistance, calculateNodeDistance, generateEdgePoints, nodesOverlap } from './layout-utils';
 import { Point } from './types';
 
 export interface ZeroOverlapConfig {
@@ -677,7 +677,7 @@ export class ZeroOverlapLayoutEngine {
 
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
-        if (this.nodesOverlap(nodes[i], nodes[j])) {
+        if (nodesOverlap(nodes[i], nodes[j])) {
           overlaps.push({ node1: nodes[i], node2: nodes[j] });
         }
       }
@@ -686,24 +686,7 @@ export class ZeroOverlapLayoutEngine {
     return overlaps;
   }
 
-  /**
-   * Check if two nodes overlap
-   */
-  private nodesOverlap(node1: PositionedNode, node2: PositionedNode): boolean {
-    const spacing = this.config.minimumSpacing.nodeToNode;
 
-    const left1 = node1.x - spacing / 2;
-    const right1 = node1.x + node1.width + spacing / 2;
-    const top1 = node1.y - spacing / 2;
-    const bottom1 = node1.y + node1.height + spacing / 2;
-
-    const left2 = node2.x - spacing / 2;
-    const right2 = node2.x + node2.width + spacing / 2;
-    const top2 = node2.y - spacing / 2;
-    const bottom2 = node2.y + node2.height + spacing / 2;
-
-    return !(right1 <= left2 || left1 >= right2 || bottom1 <= top2 || top1 >= bottom2);
-  }
 
   /**
    * Resolve a batch of overlaps by repositioning nodes
@@ -1138,7 +1121,7 @@ export class ZeroOverlapLayoutEngine {
     grid.forEach(cellNodes => {
       for (let i = 0; i < cellNodes.length; i++) {
         for (let j = i + 1; j < cellNodes.length; j++) {
-          if (cellNodes[i].id !== cellNodes[j].id && this.nodesOverlap(cellNodes[i], cellNodes[j])) {
+          if (cellNodes[i].id !== cellNodes[j].id && nodesOverlap(cellNodes[i], cellNodes[j])) {
             overlaps.push({ node1: cellNodes[i], node2: cellNodes[j] });
           }
         }

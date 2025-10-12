@@ -1,5 +1,6 @@
 import { DiagramLayout, PositionedNode, DiagramType } from '@/types/diagram';
 import { LayoutConfig } from '../types';
+import { nodesOverlap } from '../layout-utils';
 
 export class OverlapResolver {
   private config: LayoutConfig;
@@ -8,33 +9,6 @@ export class OverlapResolver {
     config: LayoutConfig
   ) {
     this.config = config;
-  }
-
-  /**
-   * Check if two nodes overlap
-   * Includes minimum spacing requirement
-   */
-  private nodesOverlap(
-    node1: PositionedNode,
-    node2: PositionedNode,
-    spacing: number = 0
-  ): boolean {
-    const left1 = node1.x - spacing / 2;
-    const right1 = node1.x + node1.w + spacing / 2;
-    const top1 = node1.y - spacing / 2;
-    const bottom1 = node1.y + node1.h + spacing / 2;
-
-    const left2 = node2.x - spacing / 2;
-    const right2 = node2.x + node2.w + spacing / 2;
-    const top2 = node2.y - spacing / 2;
-    const bottom2 = node2.y + node2.h + spacing / 2;
-
-    return !(
-      right1 <= left2 ||
-      left1 >= right2 ||
-      bottom1 <= top2 ||
-      top1 >= bottom2
-    );
   }
 
   /**
@@ -63,7 +37,7 @@ export class OverlapResolver {
 
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
-          if (this.nodesOverlap(nodes[i], nodes[j])) {
+          if (nodesOverlap(nodes[i], nodes[j])) {
             overlapCount++;
             await this.resolveSpecificOverlap(nodes[i], nodes[j], diagramType);
           }
@@ -102,7 +76,7 @@ export class OverlapResolver {
     // Final verification pass
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
-        if (this.nodesOverlap(nodes[i], nodes[j])) {
+        if (nodesOverlap(nodes[i], nodes[j])) {
           remainingOverlaps++;
           // Force immediate separation
           await this.forceSeparateNodes(nodes[i], nodes[j]);
@@ -209,7 +183,7 @@ export class OverlapResolver {
 
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
-        if (this.nodesOverlap(nodes[i], nodes[j])) {
+        if (nodesOverlap(nodes[i], nodes[j])) {
           await this.forceSeparateNodes(nodes[i], nodes[j]);
         }
       }
@@ -245,6 +219,6 @@ export class OverlapResolver {
    * Check if a position is safe (no overlaps)
    */
   private isPositionSafe(testNode: PositionedNode, otherNodes: PositionedNode[]): boolean {
-    return !otherNodes.some(node => this.nodesOverlap(testNode, node));
+    return !otherNodes.some(node => nodesOverlap(testNode, node));
   }
 }

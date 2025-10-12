@@ -14,7 +14,7 @@
 
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig, LayoutResult, LayoutMetrics } from '../types';
-import { calculateNodeWidth, calculateNodeHeight, calculateNodeCenter, calculateDistance, calculateNodeDistance, generateEdgePoints } from '../layout-utils';
+import { calculateNodeWidth, calculateNodeHeight, calculateNodeCenter, calculateDistance, calculateNodeDistance, generateEdgePoints, nodesOverlap } from '../layout-utils';
 
 export interface Point {
   x: number;
@@ -194,7 +194,7 @@ export abstract class BaseLayoutEngine {
 
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
-        if (this.nodesOverlap(nodes[i], nodes[j], minSpacing)) {
+        if (nodesOverlap(nodes[i], nodes[j], minSpacing)) {
           overlaps.push({ node1: nodes[i], node2: nodes[j] });
         }
       }
