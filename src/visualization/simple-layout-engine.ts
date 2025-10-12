@@ -19,19 +19,19 @@ export class SimpleLayoutEngine extends BaseLayoutEngine {
   }
 
   protected getDefaultConfig(override: Partial<LayoutConfig>): LayoutConfig {
-    return {
+    const defaultConfig: LayoutConfig = {
       width: 1920,
       height: 1080,
       nodeWidth: 160,
       nodeHeight: 80,
-      nodeSeparation: 120, // Renamed from spacing
-      marginX: 100, // Renamed from margin
-      marginY: 100, // Renamed from margin
-      rankDirection: 'TB', // Default value
-      edgeSeparation: 30, // Default value
-      rankSeparation: 50, // Default value
-      ...override
+      nodeSeparation: 120,
+      marginX: 100,
+      marginY: 100,
+      rankDirection: 'TB',
+      edgeSeparation: 30,
+      rankSeparation: 50,
     };
+    return { ...defaultConfig, ...override };
   }
 
   /**
