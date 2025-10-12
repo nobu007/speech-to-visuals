@@ -36,6 +36,14 @@ export class LayoutEngine extends BaseLayoutEngine {
       this.config
     );
 
+    // Initialize layout optimizer
+    this.layoutOptimizer = new LayoutOptimizer(this.config);
+
+    // Initialize layout evaluator
+    this.layoutEvaluator = new LayoutEvaluator(
+      this.config
+    );
+
     if (!this.config.isSimpleMode) {
       // Initialize complex layout engine for large diagrams
       this.complexEngine = new ComplexLayoutEngine({
@@ -45,14 +53,6 @@ export class LayoutEngine extends BaseLayoutEngine {
         enableOverlapResolution: true,
         enableEdgeOptimization: true
       }, this.overlapResolver, this.layoutOptimizer);
-
-      // Initialize layout optimizer
-      this.layoutOptimizer = new LayoutOptimizer(this.config);
-
-      // Initialize layout evaluator
-      this.layoutEvaluator = new LayoutEvaluator(
-        this.config
-      );
     }
   }
 
