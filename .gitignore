@@ -77,3 +77,6 @@ test-output-*
 # Temporary commit message files
 commit_message.temp
 commit_message.txt
+
+# Generated scene files
+public/scenes/
