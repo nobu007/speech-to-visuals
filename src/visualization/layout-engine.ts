@@ -242,7 +242,29 @@ export class LayoutEngine extends BaseLayoutEngine {
    * Update configuration
    */
   public updateConfig(newConfig: Partial<LayoutConfig>): void {
+    const oldIsSimpleMode = this.config.isSimpleMode;
     this.config = { ...this.config, ...newConfig };
     this.logger.info('📐 Layout configuration updated');
+
+    // Dynamically manage complexEngine based on isSimpleMode change
+    if (oldIsSimpleMode && !this.config.isSimpleMode) {
+      // Switched from simple mode to complex mode, initialize complexEngine
+      if (!this.complexEngine) {
+        this.complexEngine = new ComplexLayoutEngine({
+          ...this.config,
+          enableClustering: true,
+          enableForceDirected: true,
+          enableOverlapResolution: true,
+          enableEdgeOptimization: true
+        }, this.overlapResolver, this.layoutOptimizer, this.dagreLayoutStrategy);
+        this.logger.info('🔧 Complex layout engine initialized due to config change.');
+      }
+    } else if (!oldIsSimpleMode && this.config.isSimpleMode) {
+      // Switched from complex mode to simple mode, dispose of complexEngine
+      if (this.complexEngine) {
+        this.complexEngine = undefined;
+        this.logger.info('🔧 Complex layout engine disposed due to config change.');
+      }
+    }
   }
 }
