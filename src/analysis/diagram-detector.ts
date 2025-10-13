@@ -193,7 +193,7 @@ export class DiagramDetector {
 
     // ITERATION 44 ENHANCEMENT: Improved confidence calculation with context awareness
     const maxPossibleScore = Math.max(...Object.values(patterns).map(p =>
-      p.primary.length * 8 + p.secondary.length * 4 + p.context.length * 2
+      p.primary.length * PRIMARY_KEYPHRASE_WEIGHT + p.secondary.length * SECONDARY_KEYPHRASE_WEIGHT + p.context.length * CONTEXT_KEYPHRASE_WEIGHT
     ));
     const confidence = Math.min(bestType.score / (maxPossibleScore * 0.3), 1); // Adjust denominator for realism
 
