@@ -18,12 +18,17 @@ export class SceneSegmenter {
     qualityScores: new Map<number, number>() // iteration -> score
   };
 
+  private readonly DEFAULT_MIN_SEGMENT_LENGTH_MS = 3000;
+  private readonly DEFAULT_MAX_SEGMENT_LENGTH_MS = 15000;
+  private readonly DEFAULT_CONFIDENCE_THRESHOLD = 0.7;
+  private readonly DEFAULT_KEYWORD_DENSITY_THRESHOLD = 0.3;
+
   constructor(config: Partial<AnalysisConfig> = {}) {
     this.config = {
-      minSegmentLengthMs: 3000, // 3 seconds minimum
-      maxSegmentLengthMs: 15000, // 15 seconds maximum
-      confidenceThreshold: 0.7,
-      keywordDensityThreshold: 0.3,
+      minSegmentLengthMs: this.DEFAULT_MIN_SEGMENT_LENGTH_MS, // 3 seconds minimum
+      maxSegmentLengthMs: this.DEFAULT_MAX_SEGMENT_LENGTH_MS, // 15 seconds maximum
+      confidenceThreshold: this.DEFAULT_CONFIDENCE_THRESHOLD,
+      keywordDensityThreshold: this.DEFAULT_KEYWORD_DENSITY_THRESHOLD,
       enableSemanticAnalysis: false, // Enable in iteration 2+
       ...config
     };
