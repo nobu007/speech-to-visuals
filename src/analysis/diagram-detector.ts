@@ -24,6 +24,17 @@ export class DiagramDetector {
   private readonly TEST_QUALITY_THRESHOLD = 0.75;
   private readonly EVALUATION_IMPROVEMENT_THRESHOLD = 0.8;
 
+  private readonly MIN_NODES_FOR_VALID_STRUCTURE = 2;
+  private readonly MIN_EDGES_FOR_VALID_STRUCTURE = 1;
+  private readonly STRUCTURAL_VALIDITY_SCORE_FULL = 1.0;
+  private readonly STRUCTURAL_VALIDITY_SCORE_PARTIAL = 0.3;
+
+  private readonly SEMANTIC_RELEVANCE_SCORE_HIGH = 0.9;
+  private readonly SEMANTIC_RELEVANCE_SCORE_LOW = 0.5;
+
+  private readonly TYPE_APPROPRIATENESS_CONFIDENCE_THRESHOLD = 0.8;
+  private readonly TYPE_APPROPRIATENESS_SCORE_FULL = 1.0;
+
   constructor() {
     this.gemini = new GeminiAnalyzer();
   }
@@ -855,9 +866,9 @@ export class DiagramDetector {
   }
 
   private async testStructuralValidity(analysis: DiagramAnalysis): Promise<{ passed: boolean; score: number; name: string }> {
-    const hasValidStructure = analysis.nodes.length >= 2 && analysis.edges.length >= 1;
+    const hasValidStructure = analysis.nodes.length >= this.MIN_NODES_FOR_VALID_STRUCTURE && analysis.edges.length >= this.MIN_EDGES_FOR_VALID_STRUCTURE;
     const passed = hasValidStructure;
-    const score = hasValidStructure ? 1.0 : 0.3;
+    const score = hasValidStructure ? this.STRUCTURAL_VALIDITY_SCORE_FULL : this.STRUCTURAL_VALIDITY_SCORE_PARTIAL;
     return { passed, score, name: 'Structural Validity' };
   }
 
@@ -867,7 +878,7 @@ export class DiagramDetector {
       segment.summary.toLowerCase().includes(node.label.toLowerCase())
     );
     const passed = hasRelevantNodes;
-    const score = hasRelevantNodes ? 0.9 : 0.5;
+    const score = hasRelevantNodes ? this.SEMANTIC_RELEVANCE_SCORE_HIGH : this.SEMANTIC_RELEVANCE_SCORE_LOW;
     return { passed, score, name: 'Semantic Relevance' };
   }
 
@@ -884,8 +895,8 @@ export class DiagramDetector {
 
     const keywords = typeKeywords[analysis.type] || [];
     const hasTypeKeywords = keywords.some(keyword => text.includes(keyword));
-    const passed = hasTypeKeywords || analysis.confidence > 0.8;
-    const score = hasTypeKeywords ? 1.0 : analysis.confidence;
+    const passed = hasTypeKeywords || analysis.confidence > this.TYPE_APPROPRIATENESS_CONFIDENCE_THRESHOLD;
+    const score = hasTypeKeywords ? this.TYPE_APPROPRIATENESS_SCORE_FULL : analysis.confidence;
     return { passed, score, name: 'Type Appropriateness' };
   }
 
