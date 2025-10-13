@@ -73,3 +73,7 @@ QUICK_START.md
 test-batch-*
 test-output-*
 .env
+
+# Temporary commit message files
+commit_message.temp
+commit_message.txt
