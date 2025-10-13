@@ -72,3 +72,4 @@ QUICK_START.md
 # Test files
 test-batch-*
 test-output-*
+.env
