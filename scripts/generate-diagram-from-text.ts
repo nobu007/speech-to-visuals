@@ -46,8 +46,7 @@ function readTextFromFile(filePath: string): string {
 function ruleBasedExtract(text: string): { nodes: DiagramNode[]; edges: DiagramEdge[]; type: string; title?: string } {
   // Simple baseline: split sentences into nodes, connect sequentially
   const sentences = text
-    .split(/[。\.\!\?\n]+/)
-    .map((s) => s.trim())
+    .split(/[。.!?\n]+/)    .map((s) => s.trim())
     .filter(Boolean)
     .slice(0, 10);
 
