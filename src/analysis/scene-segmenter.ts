@@ -54,6 +54,31 @@ export class SceneSegmenter {
   private readonly TEST_SEMANTIC_COHERENCE_SCORE_PASS = 0.9;
   private readonly TEST_SEMANTIC_COHERENCE_SCORE_FAIL = 0.6;
 
+  private readonly EVAL_SEGMENT_COUNT_OPTIMAL_MIN = 3;
+  private readonly EVAL_SEGMENT_COUNT_OPTIMAL_MAX = 10;
+  private readonly EVAL_SEGMENT_COUNT_ACCEPTABLE_MIN = 2;
+  private readonly EVAL_SEGMENT_COUNT_ACCEPTABLE_MAX = 12;
+  private readonly EVAL_SEGMENT_COUNT_SCORE_HIGH = 1.0;
+  private readonly EVAL_SEGMENT_COUNT_SCORE_MEDIUM = 0.8;
+  private readonly EVAL_SEGMENT_COUNT_SCORE_LOW = 0.5;
+
+  private readonly EVAL_LENGTH_DISTRIBUTION_OPTIMAL_MIN = 5000;
+  private readonly EVAL_LENGTH_DISTRIBUTION_OPTIMAL_MAX = 12000;
+  private readonly EVAL_LENGTH_DISTRIBUTION_ACCEPTABLE_MIN = 3000;
+  private readonly EVAL_LENGTH_DISTRIBUTION_ACCEPTABLE_MAX = 15000;
+  private readonly EVAL_LENGTH_DISTRIBUTION_SCORE_HIGH = 1.0;
+  private readonly EVAL_LENGTH_DISTRIBUTION_SCORE_MEDIUM = 0.8;
+  private readonly EVAL_LENGTH_DISTRIBUTION_SCORE_LOW = 0.5;
+
+  private readonly EVAL_KEYPHRASE_QUALITY_DIVISOR = 3;
+  private readonly EVAL_KEYPHRASE_QUALITY_SCORE_CAP = 1.0;
+
+  private readonly EVAL_PERFORMANCE_QUALITY_FAST_THRESHOLD = 1000;
+  private readonly EVAL_PERFORMANCE_QUALITY_MEDIUM_THRESHOLD = 3000;
+  private readonly EVAL_PERFORMANCE_QUALITY_SCORE_HIGH = 1.0;
+  private readonly EVAL_PERFORMANCE_QUALITY_SCORE_MEDIUM = 0.8;
+  private readonly EVAL_PERFORMANCE_QUALITY_SCORE_LOW = 0.5;
+
   constructor(config: Partial<AnalysisConfig> = {}) {
     this.config = {
       minSegmentLengthMs: this.DEFAULT_MIN_SEGMENT_LENGTH_MS, // 3 seconds minimum
@@ -493,19 +518,19 @@ export class SceneSegmenter {
   }
 
   private evaluateSegmentCount(count: number): number {
-    if (count >= 3 && count <= 10) return 1.0;
-    if (count >= 2 && count <= 12) return 0.8;
-    return 0.5;
+    if (count >= this.EVAL_SEGMENT_COUNT_OPTIMAL_MIN && count <= this.EVAL_SEGMENT_COUNT_OPTIMAL_MAX) return this.EVAL_SEGMENT_COUNT_SCORE_HIGH;
+    if (count >= this.EVAL_SEGMENT_COUNT_ACCEPTABLE_MIN && count <= this.EVAL_SEGMENT_COUNT_ACCEPTABLE_MAX) return this.EVAL_SEGMENT_COUNT_SCORE_MEDIUM;
+    return this.EVAL_SEGMENT_COUNT_SCORE_LOW;
   }
 
   private evaluateLengthDistribution(avgLength: number): number {
-    if (avgLength >= 5000 && avgLength <= 12000) return 1.0;
-    if (avgLength >= 3000 && avgLength <= 15000) return 0.8;
-    return 0.5;
+    if (avgLength >= this.EVAL_LENGTH_DISTRIBUTION_OPTIMAL_MIN && avgLength <= this.EVAL_LENGTH_DISTRIBUTION_OPTIMAL_MAX) return this.EVAL_LENGTH_DISTRIBUTION_SCORE_HIGH;
+    if (avgLength >= this.EVAL_LENGTH_DISTRIBUTION_ACCEPTABLE_MIN && avgLength <= this.EVAL_LENGTH_DISTRIBUTION_ACCEPTABLE_MAX) return this.EVAL_LENGTH_DISTRIBUTION_SCORE_MEDIUM;
+    return this.EVAL_LENGTH_DISTRIBUTION_SCORE_LOW;
   }
 
   private evaluateKeyphraseQuality(avgKeyphrases: number): number {
-    return Math.min(avgKeyphrases / 3, 1.0);
+    return Math.min(avgKeyphrases / this.EVAL_KEYPHRASE_QUALITY_DIVISOR, this.EVAL_KEYPHRASE_QUALITY_SCORE_CAP);
   }
 
   private evaluateConfidenceQuality(avgConfidence: number): number {
@@ -513,9 +538,9 @@ export class SceneSegmenter {
   }
 
   private evaluatePerformanceQuality(processingTime: number): number {
-    if (processingTime < 1000) return 1.0;
-    if (processingTime < 3000) return 0.8;
-    return 0.5;
+    if (processingTime < this.EVAL_PERFORMANCE_QUALITY_FAST_THRESHOLD) return this.EVAL_PERFORMANCE_QUALITY_SCORE_HIGH;
+    if (processingTime < this.EVAL_PERFORMANCE_QUALITY_MEDIUM_THRESHOLD) return this.EVAL_PERFORMANCE_QUALITY_SCORE_MEDIUM;
+    return this.EVAL_PERFORMANCE_QUALITY_SCORE_LOW;
   }
 
   private generateImprovementSuggestions(qualityFactors: any, metrics: any): string[] {
