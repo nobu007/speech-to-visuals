@@ -551,11 +551,24 @@ export class ComplexLayoutEngine {
   }
 
   private calculateClusterCentroid(nodes: NodeDatum[]): { x: number; y: number } {
-    return { x: 0, y: 0 }; // Simplified
+    if (nodes.length === 0) {
+      return { x: 0, y: 0 };
+    }
+    const totalX = nodes.reduce((sum, node) => sum + (node.x || 0), 0);
+    const totalY = nodes.reduce((sum, node) => sum + (node.y || 0), 0);
+    return { x: totalX / nodes.length, y: totalY / nodes.length };
   }
 
   private calculateClusterBounds(nodes: NodeDatum[]): { width: number; height: number } {
-    return { width: 100, height: 100 }; // Simplified
+    if (nodes.length === 0) {
+      return { width: 0, height: 0 };
+    }
+    const minX = Math.min(...nodes.map(node => node.x || 0));
+    const maxX = Math.max(...nodes.map(node => (node.x || 0) + (node.w || 0)));
+    const minY = Math.min(...nodes.map(node => node.y || 0));
+    const maxY = Math.max(...nodes.map(node => (node.y || 0) + (node.h || 0)));
+
+    return { width: maxX - minX, height: maxY - minY };
   }
 
   private calculateClusterImportance(nodes: NodeDatum[]): number {
