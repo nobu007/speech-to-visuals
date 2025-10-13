@@ -31,7 +31,7 @@ export class GeminiAnalyzer {
 
     try {
       const genAI = new GoogleGenerativeAI(this.apiKey!);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 
       const prompt = `以下のテキストを分析し、内容を最もよく表す図解を生成するためのJSONデータを作成してください。\n` +
         `JSON形式: {title, type, nodes, edges}\n` +
