@@ -79,6 +79,16 @@ export class SceneSegmenter {
   private readonly EVAL_PERFORMANCE_QUALITY_SCORE_MEDIUM = 0.8;
   private readonly EVAL_PERFORMANCE_QUALITY_SCORE_LOW = 0.5;
 
+  private readonly SUGGESTION_QUALITY_THRESHOLD = 0.8;
+  private readonly SUGGESTION_SEGMENT_COUNT_LOW_THRESHOLD = 3;
+  private readonly SUGGESTION_SEGMENT_COUNT_HIGH_THRESHOLD = 10;
+
+  private readonly SEMANTIC_ANALYSIS_ENABLE_THRESHOLD = 0.8;
+  private readonly TEST_SEGMENTATION_OVERALL_SCORE_THRESHOLD = 0.8;
+
+  private readonly ITERATIVE_IMPROVEMENT_POSITIVE_THRESHOLD = 2;
+  private readonly ITERATIVE_IMPROVEMENT_NEGATIVE_THRESHOLD = -2;
+
   constructor(config: Partial<AnalysisConfig> = {}) {
     this.config = {
       minSegmentLengthMs: this.DEFAULT_MIN_SEGMENT_LENGTH_MS, // 3 seconds minimum
@@ -371,7 +381,7 @@ export class SceneSegmenter {
 
     const testResults = await Promise.all(tests);
     const overallScore = testResults.reduce((sum, result) => sum + result.score, 0) / testResults.length;
-    const passed = overallScore > 0.8; // 80% threshold
+    const passed = overallScore > this.TEST_SEGMENTATION_OVERALL_SCORE_THRESHOLD; // 80% threshold
 
     console.log(`🧪 Test Results: ${testResults.filter(r => r.passed).length}/${testResults.length} passed`);
     console.log(`🧪 Overall Test Score: ${(overallScore * 100).toFixed(1)}%`);
@@ -468,9 +478,9 @@ export class SceneSegmenter {
       const previousQuality = this.segmentationMetrics.qualityScores.get(this.iteration - 1) || 0;
       const improvement = ((qualityScore - previousQuality) / previousQuality) * 100;
 
-      if (improvement > 2) {
+      if (improvement > this.ITERATIVE_IMPROVEMENT_POSITIVE_THRESHOLD) {
         console.log(`📈 Quality improved by ${improvement.toFixed(1)}% this iteration`);
-      } else if (improvement < -2) {
+      } else if (improvement < this.ITERATIVE_IMPROVEMENT_NEGATIVE_THRESHOLD) {
         console.log(`📉 Quality regressed by ${Math.abs(improvement).toFixed(1)}% - needs attention`);
       }
     }
@@ -479,7 +489,7 @@ export class SceneSegmenter {
   // Helper methods for quality evaluation
   private shouldEnableSemanticAnalysis(): boolean {
     const previousScores = Array.from(this.segmentationMetrics.qualityScores.values());
-    return previousScores.length === 0 || Math.max(...previousScores) < 0.8;
+    return previousScores.length === 0 || Math.max(...previousScores) < this.SEMANTIC_ANALYSIS_ENABLE_THRESHOLD;
   }
 
   private async enhancedSemanticSegmentation(segments: ContentSegment[]): Promise<ContentSegment[]> {
@@ -546,19 +556,19 @@ export class SceneSegmenter {
   private generateImprovementSuggestions(qualityFactors: any, metrics: any): string[] {
     const suggestions: string[] = [];
 
-    if (qualityFactors.segmentCountQuality < 0.8) {
-      if (metrics.segmentCount < 3) {
+    if (qualityFactors.segmentCountQuality < this.SUGGESTION_QUALITY_THRESHOLD) {
+      if (metrics.segmentCount < this.SUGGESTION_SEGMENT_COUNT_LOW_THRESHOLD) {
         suggestions.push('split_long_segments');
-      } else if (metrics.segmentCount > 10) {
+      } else if (metrics.segmentCount > this.SUGGESTION_SEGMENT_COUNT_HIGH_THRESHOLD) {
         suggestions.push('merge_short_segments');
       }
     }
 
-    if (qualityFactors.keyphraseQuality < 0.8) {
+    if (qualityFactors.keyphraseQuality < this.SUGGESTION_QUALITY_THRESHOLD) {
       suggestions.push('enhance_keyphrases');
     }
 
-    if (qualityFactors.confidenceQuality < 0.8) {
+    if (qualityFactors.confidenceQuality < this.SUGGESTION_QUALITY_THRESHOLD) {
       suggestions.push('improve_confidence');
     }
 
