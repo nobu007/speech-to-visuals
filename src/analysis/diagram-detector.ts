@@ -35,6 +35,26 @@ export class DiagramDetector {
   private readonly TYPE_APPROPRIATENESS_CONFIDENCE_THRESHOLD = 0.8;
   private readonly TYPE_APPROPRIATENESS_SCORE_FULL = 1.0;
 
+  private readonly STRUCTURAL_QUALITY_NODE_THRESHOLD = 2;
+  private readonly STRUCTURAL_QUALITY_EDGE_THRESHOLD = 1;
+  private readonly STRUCTURAL_QUALITY_SCORE_HIGH = 1.0;
+  private readonly STRUCTURAL_QUALITY_SCORE_MEDIUM = 0.6;
+  private readonly STRUCTURAL_QUALITY_SCORE_LOW = 0.3;
+
+  private readonly COMPLEXITY_QUALITY_OPTIMAL_MIN = 0.3;
+  private readonly COMPLEXITY_QUALITY_OPTIMAL_MAX = 1.5;
+  private readonly COMPLEXITY_QUALITY_ACCEPTABLE_MIN = 0.1;
+  private readonly COMPLEXITY_QUALITY_ACCEPTABLE_MAX = 2.0;
+  private readonly COMPLEXITY_QUALITY_SCORE_HIGH = 1.0;
+  private readonly COMPLEXITY_QUALITY_SCORE_MEDIUM = 0.8;
+  private readonly COMPLEXITY_QUALITY_SCORE_LOW = 0.5;
+
+  private readonly PERFORMANCE_QUALITY_FAST_THRESHOLD = 500;
+  private readonly PERFORMANCE_QUALITY_MEDIUM_THRESHOLD = 1500;
+  private readonly PERFORMANCE_QUALITY_SCORE_HIGH = 1.0;
+  private readonly PERFORMANCE_QUALITY_SCORE_MEDIUM = 0.8;
+  private readonly PERFORMANCE_QUALITY_SCORE_LOW = 0.5;
+
   constructor() {
     this.gemini = new GeminiAnalyzer();
   }
@@ -905,21 +925,21 @@ export class DiagramDetector {
   }
 
   private evaluateStructuralQuality(nodeCount: number, edgeCount: number): number {
-    if (nodeCount >= 2 && edgeCount >= 1) return 1.0;
-    if (nodeCount >= 1) return 0.6;
-    return 0.3;
+    if (nodeCount >= this.STRUCTURAL_QUALITY_NODE_THRESHOLD && edgeCount >= this.STRUCTURAL_QUALITY_EDGE_THRESHOLD) return this.STRUCTURAL_QUALITY_SCORE_HIGH;
+    if (nodeCount >= 1) return this.STRUCTURAL_QUALITY_SCORE_MEDIUM;
+    return this.STRUCTURAL_QUALITY_SCORE_LOW;
   }
 
   private evaluateComplexityQuality(structuralComplexity: number): number {
-    if (structuralComplexity >= 0.3 && structuralComplexity <= 1.5) return 1.0;
-    if (structuralComplexity >= 0.1 && structuralComplexity <= 2.0) return 0.8;
-    return 0.5;
+    if (structuralComplexity >= this.COMPLEXITY_QUALITY_OPTIMAL_MIN && structuralComplexity <= this.COMPLEXITY_QUALITY_OPTIMAL_MAX) return this.COMPLEXITY_QUALITY_SCORE_HIGH;
+    if (structuralComplexity >= this.COMPLEXITY_QUALITY_ACCEPTABLE_MIN && structuralComplexity <= this.COMPLEXITY_QUALITY_ACCEPTABLE_MAX) return this.COMPLEXITY_QUALITY_SCORE_MEDIUM;
+    return this.COMPLEXITY_QUALITY_SCORE_LOW;
   }
 
   private evaluateDetectionPerformanceQuality(processingTime: number): number {
-    if (processingTime < 500) return 1.0;
-    if (processingTime < 1500) return 0.8;
-    return 0.5;
+    if (processingTime < this.PERFORMANCE_QUALITY_FAST_THRESHOLD) return this.PERFORMANCE_QUALITY_SCORE_HIGH;
+    if (processingTime < this.PERFORMANCE_QUALITY_MEDIUM_THRESHOLD) return this.PERFORMANCE_QUALITY_SCORE_MEDIUM;
+    return this.PERFORMANCE_QUALITY_SCORE_LOW;
   }
 
   private evaluateTypeRelevance(analysis: DiagramAnalysis): number {
