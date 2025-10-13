@@ -23,9 +23,10 @@ export class ContentAnalyzer {
       .filter(Boolean)
       .slice(0, 10);
 
+    const MAX_SENTENCE_LENGTH = 60;
     const nodes = sentences.map((s, i) => ({
       id: `n${i + 1}`,
-      label: s.length > 60 ? s.slice(0, 57) + "…" : s,
+      label: s.length > MAX_SENTENCE_LENGTH ? s.slice(0, MAX_SENTENCE_LENGTH - 3) + "…" : s,
     }));
     const edges = nodes.slice(1).map((_, i) => ({ from: `n${i + 1}`, to: `n${i + 2}` }));
 
