@@ -42,21 +42,18 @@ export interface ComplexLayoutConfig extends LayoutConfig {
   useWebWorkers: boolean;
 
   // ✨ Iteration 50: Cultural Layout Adaptation
+
+
+  // ✨ Real-time optimization features
+  enableRealTimeOptimization: boolean;
+  adaptiveThresholds: boolean;
+  // ✨ Iteration 50: Cultural Layout Adaptation
   culturalAdaptation?: {
     languageCode: string;
     readingPattern: 'ltr' | 'rtl' | 'ttb';
     hierarchyPreference: 'strong' | 'moderate' | 'flat';
     visualStyle: 'minimalist' | 'expressive' | 'technical';
     colorHarmony: string[];
-  };
-
-  // ✨ Real-time optimization features
-  enableRealTimeOptimization: boolean;
-  adaptiveThresholds: boolean;
-  performanceTargets: {
-    maxLayoutTime: number;
-    targetFPS: number;
-    memoryLimit: number;
   };
 }
 
@@ -75,14 +72,18 @@ export interface ForceDirectedState {
   converged: boolean;
 }
 
+import { CulturalLayoutAdapter } from './strategies/CulturalLayoutAdapter';
+
 export class ComplexLayoutEngine {
   private config: ComplexLayoutConfig;
+  private culturalLayoutAdapter: CulturalLayoutAdapter;
 
   constructor(
     config: Partial<ComplexLayoutConfig> = {},
     private overlapResolver?: any, // Will be OverlapResolver
     private layoutOptimizer?: any, // Will be LayoutOptimizer
-    private dagreLayoutStrategy?: DagreLayoutStrategy // Added
+    private dagreLayoutStrategy?: DagreLayoutStrategy, // Added
+    culturalLayoutAdapter?: CulturalLayoutAdapter // Added
   ) {
     this.config = {
       // Basic layout config
@@ -130,6 +131,7 @@ export class ComplexLayoutEngine {
 
       ...config
     };
+    this.culturalLayoutAdapter = culturalLayoutAdapter || new CulturalLayoutAdapter(this.config);
   }
 
   /**
@@ -170,7 +172,10 @@ export class ComplexLayoutEngine {
         layout = await this.layoutOptimizer.optimizeForDiagramType(layout, diagramType);
       }
 
-      // Final validation and bounds calculation
+      // ✨ Iteration 50: Cultural Layout Adaptation
+      if (this.config.culturalAdaptation) {
+        layout = await this.culturalLayoutAdapter.applyCulturalAdaptation(layout, this.config.culturalAdaptation);
+      }
       const bounds = this.calculateBounds(layout);
       const processingTime = performance.now() - startTime;
 
@@ -557,154 +562,7 @@ export class ComplexLayoutEngine {
     return nodes.reduce((sum, node) => sum + (node.meta?.importance || 1), 0);
   }
 
-  // ✨ Iteration 50: Cultural Layout Adaptation Methods
 
-  /**
-   * Apply cultural adaptations to layout based on language and preferences
-   */
-  async applyCulturalAdaptation(
-    layout: DiagramLayout,
-    culturalConfig: ComplexLayoutConfig['culturalAdaptation']
-  ): Promise<DiagramLayout> {
-    if (!culturalConfig) return layout;
-
-    console.log(`🎨 Applying cultural adaptation for ${culturalConfig.languageCode}...`);
-
-    let adaptedLayout = { ...layout };
-
-    // Apply reading pattern adjustments
-    if (culturalConfig.readingPattern === 'rtl') {
-      adaptedLayout = await this.applyRTLLayout(adaptedLayout);
-    } else if (culturalConfig.readingPattern === 'ttb') {
-      adaptedLayout = await this.applyVerticalLayout(adaptedLayout);
-    }
-
-    // Apply hierarchy preferences
-    if (culturalConfig.hierarchyPreference === 'strong') {
-      adaptedLayout = await this.emphasizeHierarchy(adaptedLayout);
-    } else if (culturalConfig.hierarchyPreference === 'flat') {
-      adaptedLayout = await this.flattenHierarchy(adaptedLayout);
-    }
-
-    // Apply visual style adjustments
-    adaptedLayout = await this.applyVisualStyle(adaptedLayout, culturalConfig.visualStyle);
-
-    console.log(`✅ Cultural adaptation applied for ${culturalConfig.languageCode}`);
-    return adaptedLayout;
-  }
-
-  /**
-   * Apply right-to-left layout adjustments
-   */
-  private async applyRTLLayout(layout: DiagramLayout): Promise<DiagramLayout> {
-    const bounds = this.calculateBounds(layout);
-    const centerX = bounds.width / 2;
-
-    const flippedNodes = layout.nodes.map(node => ({
-      ...node,
-      x: centerX + (centerX - node.x - node.w)
-    }));
-
-    const flippedEdges = layout.edges.map(edge => ({
-      ...edge,
-      points: edge.points.map(point => ({
-        x: centerX + (centerX - point.x),
-        y: point.y
-      }))
-    }));
-
-    return { nodes: flippedNodes, edges: flippedEdges };
-  }
-
-  /**
-   * Apply top-to-bottom (vertical) layout for CJK languages
-   */
-  private async applyVerticalLayout(layout: DiagramLayout): Promise<DiagramLayout> {
-    // For TTB layouts, we might want to arrange nodes in columns
-    const verticalSpacing = 80;
-    const horizontalSpacing = 150;
-
-    const sortedNodes = layout.nodes.sort((a, b) => a.y - b.y);
-    const columns = 3; // Adjustable based on content
-
-    const verticalNodes = sortedNodes.map((node, index) => {
-      const col = index % columns;
-      const row = Math.floor(index / columns);
-
-      return {
-        ...node,
-        x: this.config.marginX + col * horizontalSpacing,
-        y: this.config.marginY + row * verticalSpacing
-      };
-    });
-
-    return { ...layout, nodes: verticalNodes };
-  }
-
-  /**
-   * Emphasize hierarchical relationships
-   */
-  private async emphasizeHierarchy(layout: DiagramLayout): Promise<DiagramLayout> {
-    // Increase vertical spacing to emphasize levels
-    const hierarchyMultiplier = 1.5;
-
-    const emphasized = layout.nodes.map(node => ({
-      ...node,
-      y: node.y * hierarchyMultiplier
-    }));
-
-    return { ...layout, nodes: emphasized };
-  }
-
-  /**
-   * Flatten hierarchy for cultures preferring equality
-   */
-  private async flattenHierarchy(layout: DiagramLayout): Promise<DiagramLayout> {
-    // Reduce vertical spacing and arrange more horizontally
-    const flatteningFactor = 0.7;
-
-    const flattened = layout.nodes.map(node => ({
-      ...node,
-      y: node.y * flatteningFactor
-    }));
-
-    return { ...layout, nodes: flattened };
-  }
-
-  /**
-   * Apply visual style based on cultural preferences
-   */
-  private async applyVisualStyle(
-    layout: DiagramLayout,
-    style: 'minimalist' | 'expressive' | 'technical'
-  ): Promise<DiagramLayout> {
-    // This would affect spacing, sizing, and visual elements
-    let spacingMultiplier = 1.0;
-    let sizeMultiplier = 1.0;
-
-    switch (style) {
-      case 'minimalist':
-        spacingMultiplier = 1.3; // More white space
-        sizeMultiplier = 0.9;    // Smaller elements
-        break;
-      case 'expressive':
-        spacingMultiplier = 1.1; // Moderate spacing
-        sizeMultiplier = 1.1;    // Larger elements
-        break;
-      case 'technical':
-        spacingMultiplier = 0.9; // Compact spacing
-        sizeMultiplier = 1.0;    // Standard size
-        break;
-    }
-
-    const styledNodes = layout.nodes.map(node => ({
-      ...node,
-      w: node.w * sizeMultiplier,
-      h: node.h * sizeMultiplier
-    }));
-
-    return { ...layout, nodes: styledNodes };
-  }
 
   // ✨ Real-time Optimization Methods
 
