@@ -21,6 +21,9 @@ export class DiagramDetector {
     qualityScores: new Map<number, number>() // iteration -> score
   };
 
+  private readonly TEST_QUALITY_THRESHOLD = 0.75;
+  private readonly EVALUATION_IMPROVEMENT_THRESHOLD = 0.8;
+
   constructor() {
     this.gemini = new GeminiAnalyzer();
   }
@@ -718,7 +721,7 @@ export class DiagramDetector {
 
     const testResults = await Promise.all(tests);
     const overallScore = testResults.reduce((sum, result) => sum + result.score, 0) / testResults.length;
-    const passed = overallScore > 0.75; // 75% threshold
+    const passed = overallScore > this.TEST_QUALITY_THRESHOLD; // 75% threshold
 
     console.log(`🧪 Detection Test Results: ${testResults.filter(r => r.passed).length}/${testResults.length} passed`);
     console.log(`🧪 Overall Test Score: ${(overallScore * 100).toFixed(1)}%`);
@@ -760,7 +763,7 @@ export class DiagramDetector {
 
     // Generate improvement suggestions
     const suggestions = this.generateDetectionImprovementSuggestions(qualityFactors, metrics);
-    const needsImprovement = qualityScore < 0.8; // 80% threshold for improvement
+    const needsImprovement = qualityScore < this.EVALUATION_IMPROVEMENT_THRESHOLD; // 80% threshold for improvement
 
     console.log(`📊 Detection Quality Evaluation Complete: ${(qualityScore * 100).toFixed(1)}%`);
 
