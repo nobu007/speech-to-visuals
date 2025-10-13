@@ -67,6 +67,12 @@ export class SimpleDiagramDetector {
     'node', 'edge', 'graph', 'web', 'connect'
   ];
 
+  private readonly CONFIDENCE_SCALE_FACTOR = 2;
+  private readonly MAX_CONFIDENCE_CAP = 0.95;
+
+  private readonly NORMALIZATION_FACTOR = 0.1;
+  private readonly MIN_NORMALIZATION_DIVISOR = 1;
+
   /**
    * Analyze text segment and detect diagram type
    * 🔄 Custom Instructions: 最小実装で動作確認
@@ -90,7 +96,7 @@ export class SimpleDiagramDetector {
       current[1] > best[1] ? current : best
     )[0] as DiagramType;
 
-    const confidence = Math.min(scores[bestType] * 2, 0.95); // Scale up confidence
+    const confidence = Math.min(scores[bestType] * this.CONFIDENCE_SCALE_FACTOR, this.MAX_CONFIDENCE_CAP); // Scale up confidence
 
     // Generate simple nodes and edges based on detected type
     const { nodes, edges } = this.generateSimpleElements(text, bestType);
@@ -122,7 +128,7 @@ export class SimpleDiagramDetector {
     }
 
     // Normalize by text length
-    return Math.min(matches / Math.max(totalWords * 0.1, 1), 1);
+    return Math.min(matches / Math.max(totalWords * this.NORMALIZATION_FACTOR, this.MIN_NORMALIZATION_DIVISOR), 1);
   }
 
   /**
