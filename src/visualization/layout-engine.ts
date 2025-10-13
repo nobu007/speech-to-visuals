@@ -13,6 +13,7 @@ import { OverlapResolver } from './strategies/OverlapResolver';
 import { LayoutOptimizer } from './strategies/LayoutOptimizer';
 import { LayoutEvaluator } from './strategies/LayoutEvaluator';
 import { DagreLayoutStrategy } from './strategies/DagreLayoutStrategy'; // Added
+import { LayoutOptimizationPipeline } from './strategies/LayoutOptimizationPipeline';
 import { getGraphConfig } from './layout-utils';
 
 export class LayoutEngine extends BaseLayoutEngine {
@@ -22,6 +23,7 @@ export class LayoutEngine extends BaseLayoutEngine {
   private overlapResolver: OverlapResolver;
   private layoutOptimizer?: LayoutOptimizer;
   private layoutEvaluator?: LayoutEvaluator;
+  private layoutOptimizationPipeline: LayoutOptimizationPipeline; // Added
   constructor(config: Partial<LayoutConfig> = {}) {
     super(config); // Call the constructor of BaseLayoutEngine
 
@@ -43,6 +45,14 @@ export class LayoutEngine extends BaseLayoutEngine {
     this.layoutEvaluator = new LayoutEvaluator(
       this.config
     );
+
+    // Initialize layout optimization pipeline
+    if (this.layoutOptimizer) {
+      this.layoutOptimizationPipeline = new LayoutOptimizationPipeline(this.layoutOptimizer);
+    } else {
+      // Handle case where layoutOptimizer is not initialized (should not happen if config is correct)
+      throw new Error("LayoutOptimizer must be initialized before LayoutOptimizationPipeline.");
+    }
 
     if (!this.config.isSimpleMode) {
       // Initialize complex layout engine for large diagrams
@@ -135,25 +145,18 @@ export class LayoutEngine extends BaseLayoutEngine {
     iteration: number // Added iteration parameter
   ): Promise<DiagramLayout> {
     // Iteration 1: Basic Dagre layout
-    let layout = await this.dagreLayoutStrategy.applyLayout(nodes, edges, diagramType); // Updated
+    const initialLayout = await this.dagreLayoutStrategy.applyLayout(nodes, edges, diagramType);
 
     // 🎯 Custom Instructions: MANDATORY Zero Overlap Check + Resolution
-    layout = await this.overlapResolver.ensureZeroOverlaps(layout, diagramType);
+    const layoutAfterOverlapResolution = await this.overlapResolver.ensureZeroOverlaps(initialLayout, diagramType);
 
-    // Iteration 2+: Type-specific optimizations
-    if (iteration > 1) {
-      layout = await this.layoutOptimizer.optimizeForDiagramType(layout, diagramType);
-    }
-
-    // Iteration 3+: Advanced layout improvements
-    if (iteration > 2) {
-      layout = await this.layoutOptimizer.advancedOptimizations(layout, diagramType);
-    }
+    // Iteration 2+: Apply optimizations via pipeline
+    const layoutAfterOptimizations = await this.layoutOptimizationPipeline.applyOptimizations(layoutAfterOverlapResolution, diagramType, iteration);
 
     // 🎯 Custom Instructions: Final Zero Overlap Guarantee
-    layout = await this.overlapResolver.finalOverlapResolution(layout);
+    const finalLayout = await this.overlapResolver.finalOverlapResolution(layoutAfterOptimizations);
 
-    return layout;
+    return finalLayout;
   }
 
   /**
