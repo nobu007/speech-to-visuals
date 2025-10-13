@@ -117,7 +117,7 @@ export class LayoutEngine extends BaseLayoutEngine {
       }
 
       // For smaller diagrams, use enhanced approach
-      let layout = await this._applyBasicLayoutAndOptimizations(nodes, edges, diagramType, iteration); // Pass iteration
+      const layout = await this._applyBasicLayoutAndOptimizations(nodes, edges, diagramType, iteration); // Pass iteration
 
       return await this._logAndEvaluateLayout(layout, startTime, diagramType);
 
