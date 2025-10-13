@@ -77,10 +77,13 @@ export interface ForceDirectedState {
 export class ComplexLayoutEngine {
   private config: ComplexLayoutConfig;
 
+import { DagreLayoutStrategy } from './strategies/DagreLayoutStrategy'; // Added
+
   constructor(
     config: Partial<ComplexLayoutConfig> = {},
     private overlapResolver?: any, // Will be OverlapResolver
-    private layoutOptimizer?: any // Will be LayoutOptimizer
+    private layoutOptimizer?: any, // Will be LayoutOptimizer
+    private dagreLayoutStrategy?: DagreLayoutStrategy // Added
   ) {
     this.config = {
       // Basic layout config
@@ -514,7 +517,12 @@ export class ComplexLayoutEngine {
   // Placeholder implementations for complex algorithms
   private async standardLayout(nodes: NodeDatum[], edges: EdgeDatum[], type: DiagramType): Promise<DiagramLayout> {
     // Use basic Dagre layout for smaller graphs
-    return this.createAdaptiveGrid(nodes, edges);
+    if (this.dagreLayoutStrategy) {
+      return this.dagreLayoutStrategy.applyLayout(nodes, edges, type);
+    } else {
+      // Fallback to adaptive grid if dagreLayoutStrategy is not provided
+      return this.createAdaptiveGrid(nodes, edges);
+    }
   }
 
   private async coarsenGraph(nodes: NodeDatum[], edges: EdgeDatum[]): Promise<any[]> {

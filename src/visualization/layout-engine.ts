@@ -52,7 +52,7 @@ export class LayoutEngine extends BaseLayoutEngine {
         enableForceDirected: true,
         enableOverlapResolution: true,
         enableEdgeOptimization: true
-      }, this.overlapResolver, this.layoutOptimizer);
+      }, this.overlapResolver, this.layoutOptimizer, this.dagreLayoutStrategy);
     }
   }
 
