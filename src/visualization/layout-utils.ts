@@ -1,12 +1,5 @@
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
-import { LayoutConfig, Point } from './types';
-
-export interface NodeDimensionsConfig {
-  nodeWidth: number;
-  nodeHeight: number;
-  charWidth: number;
-  padding: number;
-}
+import { LayoutConfig, Point, NodeDimensionsConfig } from './types';
 
 /**
  * Calculate node width based on label and config

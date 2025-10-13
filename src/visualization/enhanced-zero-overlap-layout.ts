@@ -1308,3 +1308,6 @@ export class ZeroOverlapLayoutEngine {
     console.log('🧹 [ZeroOverlap] Cleanup complete');
   }
 }
+
+// Backwards-compatible alias to match imports in pipeline
+export const EnhancedZeroOverlapLayoutEngine = ZeroOverlapLayoutEngine;

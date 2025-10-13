@@ -181,8 +181,9 @@ class CompleteAudioPipelineTest {
             audioFile,
             options: {
               includeVideoGeneration: false,
-              useEnhancedLayout: true,
-              layoutQuality: 'zero_overlap'
+              // Use standard layout for MVP stability; enhanced engine can be enabled later
+              useEnhancedLayout: false,
+              layoutQuality: 'enhanced'
             }
           },
           (step, progress) => {

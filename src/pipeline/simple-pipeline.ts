@@ -233,35 +233,35 @@ export class SimplePipeline {
             qualityThreshold: input.options?.layoutQuality === 'zero_overlap' ? 100 : 95
           };
 
-          const enhancedResult = this.enhancedLayoutEngine.generateZeroOverlapLayout(
-            diagramAnalysis.nodes || [],
-            diagramAnalysis.edges || [],
+          const enhancedResult = await this.enhancedLayoutEngine.generateZeroOverlapLayout(
             diagramAnalysis.type,
-            { theme: 'auto' }
+            diagramAnalysis.nodes || [],
+            diagramAnalysis.edges || []
           );
 
           // Convert enhanced result to standard layout result format
           layoutResult = {
             success: enhancedResult.success,
-            layout: enhancedResult.layout,
-            confidence: enhancedResult.qualityAssessment?.overallScore / 100 || 0,
-            enhancedMetrics: {
-              overlapFreePercent: enhancedResult.qualityAssessment?.overlapFreePercent,
-              qualityScore: enhancedResult.qualityAssessment?.overallScore,
-              iterations: enhancedResult.metrics?.iterationsUsed,
-              resolutionTime: enhancedResult.metrics?.resolutionTime
-            }
+            layout: { nodes: enhancedResult.nodes, edges: enhancedResult.edges },
+            confidence: (enhancedResult.qualityMetrics?.aestheticScore ?? 0.8)
           };
 
-          console.log(`   ✅ Enhanced layout completed: ${enhancedResult.qualityAssessment?.overlapFreePercent}% overlap-free`);
-          console.log(`   📊 Quality score: ${enhancedResult.qualityAssessment?.overallScore.toFixed(1)}%`);
+          console.log(
+            `   ✅ Enhanced layout completed: overlapCount=${enhancedResult.qualityMetrics?.overlapCount ?? 'N/A'}`
+          );
+          if (enhancedResult.qualityMetrics?.aestheticScore !== undefined) {
+            console.log(
+              `   📊 Aesthetic score: ${(enhancedResult.qualityMetrics.aestheticScore * 100).toFixed(1)}%`
+            );
+          }
 
         } else {
           console.log('🎨 Using Standard Layout Engine');
           layoutResult = await this.layoutEngine.generateLayout(
             diagramAnalysis.nodes || [],
             diagramAnalysis.edges || [],
-            diagramAnalysis.type
+            diagramAnalysis.type,
+            this.iterationCount
           );
         }
 
