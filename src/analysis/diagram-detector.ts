@@ -195,22 +195,30 @@ export class DiagramDetector {
     const maxPossibleScore = Math.max(...Object.values(patterns).map(p =>
       p.primary.length * PRIMARY_KEYPHRASE_WEIGHT + p.secondary.length * SECONDARY_KEYPHRASE_WEIGHT + p.context.length * CONTEXT_KEYPHRASE_WEIGHT
     ));
-    const confidence = Math.min(bestType.score / (maxPossibleScore * 0.3), 1); // Adjust denominator for realism
+    const CONFIDENCE_DENOMINATOR_FACTOR = 0.3;
+    const MAX_CONFIDENCE = 1;
+    const ORG_CHART_BOOST_FACTOR = 1.3;
+    const TIMELINE_BOOST_FACTOR = 1.2;
+    const HIGH_CONFIDENCE_CAP = 0.95;
+    const LOW_SCORE_THRESHOLD = 3;
+    const LOW_SCORE_PENALTY_FACTOR = 0.7;
+
+    const confidence = Math.min(bestType.score / (maxPossibleScore * CONFIDENCE_DENOMINATOR_FACTOR), MAX_CONFIDENCE); // Adjust denominator for realism
 
     // Boost confidence for clear organizational indicators
     let adjustedConfidence = confidence;
     if (bestType.type === 'tree' && (text.includes('ceo') || text.includes('vp') || text.includes('director'))) {
-      adjustedConfidence = Math.min(confidence * 1.3, 0.95); // Strong boost for org charts
+      adjustedConfidence = Math.min(confidence * ORG_CHART_BOOST_FACTOR, HIGH_CONFIDENCE_CAP); // Strong boost for org charts
     }
 
     // Boost confidence for clear timeline indicators
     if (bestType.type === 'timeline' && (text.includes('january') || text.includes('project') || text.includes('phase'))) {
-      adjustedConfidence = Math.min(confidence * 1.2, 0.95);
+      adjustedConfidence = Math.min(confidence * TIMELINE_BOOST_FACTOR, HIGH_CONFIDENCE_CAP);
     }
 
     // Penalize if the score is too low (likely wrong detection)
-    if (bestType.score < 3) {
-      adjustedConfidence *= 0.7;
+    if (bestType.score < LOW_SCORE_THRESHOLD) {
+      adjustedConfidence *= LOW_SCORE_PENALTY_FACTOR;
     }
 
     return {
