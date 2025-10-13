@@ -49,16 +49,7 @@ export class LayoutEngine extends BaseLayoutEngine {
     // Initialize layout optimization pipeline
     this.layoutOptimizationPipeline = new LayoutOptimizationPipeline(this.layoutOptimizer);
 
-    if (!this.config.isSimpleMode) {
-      // Initialize complex layout engine for large diagrams
-      this.complexEngine = new ComplexLayoutEngine({
-        ...this.config,
-        enableClustering: true,
-        enableForceDirected: true,
-        enableOverlapResolution: true,
-        enableEdgeOptimization: true
-      }, this.overlapResolver, this.layoutOptimizer, this.dagreLayoutStrategy);
-    }
+    this._manageComplexEngine();
   }
 
   /**
@@ -239,16 +230,10 @@ export class LayoutEngine extends BaseLayoutEngine {
   }
 
   /**
-   * Update configuration
+   * Manages the initialization or disposal of the complexEngine based on the current config.isSimpleMode.
    */
-  public updateConfig(newConfig: Partial<LayoutConfig>): void {
-    const oldIsSimpleMode = this.config.isSimpleMode;
-    this.config = { ...this.config, ...newConfig };
-    this.logger.info('📐 Layout configuration updated');
-
-    // Dynamically manage complexEngine based on isSimpleMode change
-    if (oldIsSimpleMode && !this.config.isSimpleMode) {
-      // Switched from simple mode to complex mode, initialize complexEngine
+  private _manageComplexEngine(): void {
+    if (!this.config.isSimpleMode) {
       if (!this.complexEngine) {
         this.complexEngine = new ComplexLayoutEngine({
           ...this.config,
@@ -257,14 +242,25 @@ export class LayoutEngine extends BaseLayoutEngine {
           enableOverlapResolution: true,
           enableEdgeOptimization: true
         }, this.overlapResolver, this.layoutOptimizer, this.dagreLayoutStrategy);
-        this.logger.info('🔧 Complex layout engine initialized due to config change.');
+        this.logger.info('🔧 Complex layout engine initialized.');
       }
-    } else if (!oldIsSimpleMode && this.config.isSimpleMode) {
-      // Switched from complex mode to simple mode, dispose of complexEngine
+    } else {
       if (this.complexEngine) {
         this.complexEngine = undefined;
-        this.logger.info('🔧 Complex layout engine disposed due to config change.');
+        this.logger.info('🔧 Complex layout engine disposed.');
       }
     }
+  }
+
+  /**
+   * Update configuration
+   */
+  public updateConfig(newConfig: Partial<LayoutConfig>): void {
+    const oldIsSimpleMode = this.config.isSimpleMode;
+    this.config = { ...this.config, ...newConfig };
+    this.logger.info('📐 Layout configuration updated');
+
+    // Dynamically manage complexEngine based on isSimpleMode change
+    this._manageComplexEngine();
   }
 }
