@@ -73,6 +73,9 @@ export class SimpleDiagramDetector {
   private readonly NORMALIZATION_FACTOR = 0.1;
   private readonly MIN_NORMALIZATION_DIVISOR = 1;
 
+  private readonly TEST_START_MS = 0;
+  private readonly TEST_END_MS = 5000;
+
   /**
    * Analyze text segment and detect diagram type
    * 🔄 Custom Instructions: 最小実装で動作確認
@@ -365,8 +368,8 @@ export class SimpleDiagramDetector {
     for (const testCase of testCases) {
       const result = await this.analyze({
         text: testCase.text,
-        startMs: 0,
-        endMs: 5000
+        startMs: this.TEST_START_MS,
+        endMs: this.TEST_END_MS
       });
 
       const success = result.type === testCase.expected;
