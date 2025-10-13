@@ -55,6 +55,21 @@ export class DiagramDetector {
   private readonly PERFORMANCE_QUALITY_SCORE_MEDIUM = 0.8;
   private readonly PERFORMANCE_QUALITY_SCORE_LOW = 0.5;
 
+  private readonly STATISTICAL_ANALYSIS_ENABLE_THRESHOLD = 0.85;
+  private readonly ENHANCED_STATISTICAL_BOOST_FACTOR = 1.1;
+  private readonly BOOST_CONFIDENCE_FACTOR = 1.15;
+  private readonly HYBRID_CONFIDENCE_CAP = 0.95;
+  private readonly HYBRID_FALLBACK_BOOST_FACTOR = 1.05;
+  private readonly HYBRID_FALLBACK_CONFIDENCE_CAP = 0.85;
+  private readonly HYBRID_HIGHEST_CONFIDENCE_BOOST_FACTOR = 1.1;
+  private readonly HYBRID_HIGHEST_CONFIDENCE_CAP = 0.9;
+
+  private readonly FALLBACK_NODES_MAIN_TOPIC_IMPORTANCE = 1;
+  private readonly FALLBACK_NODES_SUB_TOPIC_IMPORTANCE = 0.8;
+  private readonly FALLBACK_NODES_KEYPHRASE_LIMIT = 3;
+  private readonly FALLBACK_NODES_KEYPHRASE_BASE_IMPORTANCE = 0.7;
+  private readonly FALLBACK_NODES_KEYPHRASE_IMPORTANCE_DECREMENT = 0.1;
+
   constructor() {
     this.gemini = new GeminiAnalyzer();
   }
@@ -558,16 +573,16 @@ export class DiagramDetector {
   private addFallbackNodes(nodes: NodeDatum[], keyphrases: string[]): void {
     if (keyphrases.length === 0) {
       nodes.push(
-        { id: 'node_0', label: 'Main Topic', meta: { importance: 1 } },
-        { id: 'node_1', label: 'Sub Topic', meta: { importance: 0.8 } }
+        { id: 'node_0', label: 'Main Topic', meta: { importance: this.FALLBACK_NODES_MAIN_TOPIC_IMPORTANCE } },
+        { id: 'node_1', label: 'Sub Topic', meta: { importance: this.FALLBACK_NODES_SUB_TOPIC_IMPORTANCE } }
       );
     } else {
-      keyphrases.slice(0, 3).forEach((phrase, index) => {
+      keyphrases.slice(0, this.FALLBACK_NODES_KEYPHRASE_LIMIT).forEach((phrase, index) => {
         if (!nodes.some(n => n.label === phrase)) {
           nodes.push({
             id: `node_${nodes.length}`,
             label: phrase,
-            meta: { importance: 0.7 - index * 0.1 }
+            meta: { importance: this.FALLBACK_NODES_KEYPHRASE_BASE_IMPORTANCE - index * this.FALLBACK_NODES_KEYPHRASE_IMPORTANCE_DECREMENT }
           });
         }
       });
@@ -633,7 +648,7 @@ export class DiagramDetector {
 
       // Calculate final confidence based on consensus strength
       const methodAgreement = consensusType.methods.length / candidates.length;
-      const finalConfidence = Math.min(consensusType.score * methodAgreement, 0.95);
+      const finalConfidence = Math.min(consensusType.score * methodAgreement, this.HYBRID_CONFIDENCE_CAP);
 
       // Get the best result for the consensus type
       const bestCandidate = candidates
@@ -654,7 +669,7 @@ export class DiagramDetector {
 
         return {
           ...highestConfidence.result,
-          confidence: Math.min(highestConfidence.result.confidence * 1.1, 0.9),
+          confidence: Math.min(highestConfidence.result.confidence * this.HYBRID_HIGHEST_CONFIDENCE_BOOST_FACTOR, this.HYBRID_HIGHEST_CONFIDENCE_CAP),
           reasoning: `${highestConfidence.result.reasoning} + hybrid validation`
         };
       }
@@ -665,7 +680,7 @@ export class DiagramDetector {
       // Fallback to enhanced base analysis
       return {
         ...baseAnalysis,
-        confidence: Math.min(baseAnalysis.confidence * 1.05, 0.85),
+        confidence: Math.min(baseAnalysis.confidence * this.HYBRID_FALLBACK_BOOST_FACTOR, this.HYBRID_FALLBACK_CONFIDENCE_CAP),
         reasoning: `${baseAnalysis.reasoning} + hybrid fallback`
       };
     }
@@ -863,14 +878,14 @@ export class DiagramDetector {
   // Helper methods for quality evaluation and improvement
   private shouldEnableStatisticalAnalysis(): boolean {
     const previousScores = Array.from(this.detectionMetrics.qualityScores.values());
-    return previousScores.length === 0 || Math.max(...previousScores) < 0.85;
+    return previousScores.length === 0 || Math.max(...previousScores) < this.STATISTICAL_ANALYSIS_ENABLE_THRESHOLD;
   }
 
   private async enhancedStatisticalAnalysis(segment: ContentSegment, baseAnalysis: DiagramAnalysis): Promise<DiagramAnalysis> {
     console.log('🔄 Applying enhanced statistical analysis...');
 
     // Apply learned improvements from previous iterations
-    const enhancedConfidence = Math.min(baseAnalysis.confidence * 1.1, 0.95);
+    const enhancedConfidence = Math.min(baseAnalysis.confidence * this.ENHANCED_STATISTICAL_BOOST_FACTOR, this.HYBRID_CONFIDENCE_CAP);
 
     return {
       ...baseAnalysis,
@@ -972,7 +987,7 @@ export class DiagramDetector {
   // Improvement implementation methods (simplified for demo)
   private async boostDetectionConfidence(analysis: DiagramAnalysis, segment: ContentSegment): Promise<DiagramAnalysis> {
     console.log('🔄 Boosting detection confidence...');
-    const boostedConfidence = Math.min(analysis.confidence * 1.15, 0.95);
+    const boostedConfidence = Math.min(analysis.confidence * this.BOOST_CONFIDENCE_FACTOR, this.HYBRID_CONFIDENCE_CAP);
     return { ...analysis, confidence: boostedConfidence };
   }
 
