@@ -11,6 +11,7 @@ import { LayoutConfig, LayoutResult } from './types';
 import { nodesOverlap } from './layout-utils';
 import { OverlapResolver } from './strategies/OverlapResolver';
 import { LayoutOptimizer } from './strategies/LayoutOptimizer';
+import { DagreLayoutStrategy } from './strategies/DagreLayoutStrategy';
 
 export interface ComplexLayoutConfig extends LayoutConfig {
   // Node clustering settings
@@ -76,8 +77,6 @@ export interface ForceDirectedState {
 
 export class ComplexLayoutEngine {
   private config: ComplexLayoutConfig;
-
-import { DagreLayoutStrategy } from './strategies/DagreLayoutStrategy'; // Added
 
   constructor(
     config: Partial<ComplexLayoutConfig> = {},
@@ -189,7 +188,10 @@ import { DagreLayoutStrategy } from './strategies/DagreLayoutStrategy'; // Added
       console.error('❌ Complex layout failed:', error);
 
       // Fallback to simple grid layout
-      const fallbackLayout = this.createAdaptiveGrid(nodes, edges);
+      if (!this.dagreLayoutStrategy) {
+        throw new Error("DagreLayoutStrategy is not initialized for fallback in ComplexLayoutEngine.");
+      }
+      const fallbackLayout = await this.dagreLayoutStrategy.applyLayout(nodes, edges, diagramType);
       const bounds = this.calculateBounds(fallbackLayout);
 
       return {
@@ -436,60 +438,7 @@ import { DagreLayoutStrategy } from './strategies/DagreLayoutStrategy'; // Added
 
 
 
-  /**
-   * Create adaptive grid layout for fallback
-   */
-  private createAdaptiveGrid(nodes: NodeDatum[], edges: EdgeDatum[]): DiagramLayout {
-    console.log('🔧 Creating adaptive grid layout (fallback)...');
 
-    const cols = Math.ceil(Math.sqrt(nodes.length));
-    const rows = Math.ceil(nodes.length / cols);
-
-    const nodeWidth = Math.min(150, (this.config.width - 2 * this.config.marginX) / cols - 20);
-    const nodeHeight = Math.min(80, (this.config.height - 2 * this.config.marginY) / rows - 20);
-
-    const cellWidth = (this.config.width - 2 * this.config.marginX) / cols;
-    const cellHeight = (this.config.height - 2 * this.config.marginY) / rows;
-
-    const positionedNodes: PositionedNode[] = nodes.map((node, index) => {
-      const row = Math.floor(index / cols);
-      const col = index % cols;
-
-      return {
-        ...node,
-        x: this.config.marginX + col * cellWidth + (cellWidth - nodeWidth) / 2,
-        y: this.config.marginY + row * cellHeight + (cellHeight - nodeHeight) / 2,
-        w: nodeWidth,
-        h: nodeHeight
-      };
-    });
-
-    const layoutEdges: LayoutEdge[] = edges.map(edge => {
-      const fromNode = positionedNodes.find(n => n.id === edge.from);
-      const toNode = positionedNodes.find(n => n.id === edge.to);
-
-      if (!fromNode || !toNode) {
-        return {
-          from: edge.from,
-          to: edge.to,
-          points: [{ x: 0, y: 0 }, { x: 0, y: 0 }],
-          label: edge.label
-        };
-      }
-
-      return {
-        from: edge.from,
-        to: edge.to,
-        points: [
-          { x: fromNode.x + fromNode.w / 2, y: fromNode.y + fromNode.h / 2 },
-          { x: toNode.x + toNode.w / 2, y: toNode.y + toNode.h / 2 }
-        ],
-        label: edge.label
-      };
-    });
-
-    return { nodes: positionedNodes, edges: layoutEdges };
-  }
 
   // Helper methods...
   private calculateBounds(layout: DiagramLayout) {
@@ -517,12 +466,10 @@ import { DagreLayoutStrategy } from './strategies/DagreLayoutStrategy'; // Added
   // Placeholder implementations for complex algorithms
   private async standardLayout(nodes: NodeDatum[], edges: EdgeDatum[], type: DiagramType): Promise<DiagramLayout> {
     // Use basic Dagre layout for smaller graphs
-    if (this.dagreLayoutStrategy) {
-      return this.dagreLayoutStrategy.applyLayout(nodes, edges, type);
-    } else {
-      // Fallback to adaptive grid if dagreLayoutStrategy is not provided
-      return this.createAdaptiveGrid(nodes, edges);
+    if (!this.dagreLayoutStrategy) {
+      throw new Error("DagreLayoutStrategy is not initialized in ComplexLayoutEngine.");
     }
+    return this.dagreLayoutStrategy.applyLayout(nodes, edges, type);
   }
 
   private async coarsenGraph(nodes: NodeDatum[], edges: EdgeDatum[]): Promise<any[]> {
@@ -531,11 +478,18 @@ import { DagreLayoutStrategy } from './strategies/DagreLayoutStrategy'; // Added
   }
 
   private async layoutCoarsestLevel(level: any, type: DiagramType): Promise<DiagramLayout> {
-    return this.createAdaptiveGrid(level.nodes, level.edges);
+    if (!this.dagreLayoutStrategy) {
+      throw new Error("DagreLayoutStrategy is not initialized for layoutCoarsestLevel in ComplexLayoutEngine.");
+    }
+    return this.dagreLayoutStrategy.applyLayout(level.nodes, level.edges, type);
   }
 
   private async uncoarsenAndRefine(layout: DiagramLayout, level: any, type: DiagramType): Promise<DiagramLayout> {
-    return layout;
+    if (!this.dagreLayoutStrategy) {
+      throw new Error("DagreLayoutStrategy is not initialized for uncoarsenAndRefine in ComplexLayoutEngine.");
+    }
+    // For now, just re-layout the refined graph using dagre. This is a placeholder for a more sophisticated uncoarsening and refinement process.
+    return this.dagreLayoutStrategy.applyLayout(level.nodes, level.edges, type);
   }
 
   private initializeForceDirectedState(nodes: NodeDatum[]): ForceDirectedState {
