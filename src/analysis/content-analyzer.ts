@@ -18,8 +18,7 @@ export class ContentAnalyzer {
   // Iteration 1: simple rule-based baseline using sentence splitting
   analyzeV1(text: string): DiagramData {
     const sentences = text
-      .split(/[。\.\!\?\n]+/)
-      .map((s) => s.trim())
+      .split(/[。.!?\n]+/)      .map((s) => s.trim())
       .filter(Boolean)
       .slice(0, 10);
 
