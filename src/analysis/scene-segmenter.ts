@@ -23,6 +23,11 @@ export class SceneSegmenter {
   private readonly DEFAULT_CONFIDENCE_THRESHOLD = 0.7;
   private readonly DEFAULT_KEYWORD_DENSITY_THRESHOLD = 0.3;
 
+  private readonly MIN_KEYWORD_LENGTH = 3;
+  private readonly MIN_KEYWORD_FREQUENCY = 1;
+  private readonly MAX_KEYWORDS_TO_EXTRACT = 5;
+  private readonly STOP_WORDS = new Set(['this', 'that', 'with', 'have', 'will', 'from', 'they', 'been', 'were', 'said', 'each', 'which', 'their', 'time', 'about']);
+
   constructor(config: Partial<AnalysisConfig> = {}) {
     this.config = {
       minSegmentLengthMs: this.DEFAULT_MIN_SEGMENT_LENGTH_MS, // 3 seconds minimum
@@ -133,10 +138,10 @@ export class SceneSegmenter {
     const words = text.toLowerCase()
       .replace(/[^\w\s]/g, '')
       .split(/\s+/)
-      .filter(word => word.length > 3);
+      .filter(word => word.length > this.MIN_KEYWORD_LENGTH);
 
     // Filter out common stop words
-    const stopWords = new Set(['this', 'that', 'with', 'have', 'will', 'from', 'they', 'been', 'were', 'said', 'each', 'which', 'their', 'time', 'about']);
+    const stopWords = this.STOP_WORDS;
 
     const filteredWords = words.filter(word => !stopWords.has(word));
 
@@ -147,9 +152,9 @@ export class SceneSegmenter {
     });
 
     return Array.from(wordCount.entries())
-      .filter(([_, count]) => count >= 1)
+      .filter(([_, count]) => count >= this.MIN_KEYWORD_FREQUENCY)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
+      .slice(0, this.MAX_KEYWORDS_TO_EXTRACT)
       .map(([word]) => word);
   }
 
