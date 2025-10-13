@@ -1,16 +1,9 @@
 import 'dotenv/config';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { DiagramType, NodeDatum, EdgeDatum } from "@/types/diagram";
-import type { DiagramAnalysis } from "./types";
+import type { DiagramAnalysis, DiagramData } from "./types";
 
-type GeminiDiagramType = "flowchart" | "mindmap" | "timeline" | "orgchart";
-
-interface GeminiDiagramData {
-  title?: string;
-  type: GeminiDiagramType;
-  nodes: { id: string; label: string }[];
-  edges: { from: string; to: string; label?: string }[];
-}
+type GeminiDiagramType = DiagramData['type'];
 
 const typeMap: Record<GeminiDiagramType, DiagramType> = {
   flowchart: "flow",
@@ -55,7 +48,7 @@ export class GeminiAnalyzer {
       // Cleanup potential code fences
       jsonText = jsonText.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
 
-      const parsed = JSON.parse(jsonText) as GeminiDiagramData;
+      const parsed = JSON.parse(jsonText) as DiagramData;
       const mappedType: DiagramType = typeMap[parsed.type] ?? "flow";
 
       const nodes: NodeDatum[] = (parsed.nodes || []).map((n) => ({ id: n.id, label: n.label }));
