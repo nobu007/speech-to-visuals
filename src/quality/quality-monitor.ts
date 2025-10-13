@@ -264,15 +264,20 @@ export class QualityMonitor {
     score += sceneScore * 0.2;
     maxScore += 0.2;
 
-    // Layout quality assessment (40% of accuracy score)
+    // Layout quality assessment (30% of accuracy score)
     const layoutScore = this.assessLayoutQuality(result.scenes);
-    score += layoutScore * 0.4;
-    maxScore += 0.4;
+    score += layoutScore * 0.3;
+    maxScore += 0.3;
 
-    // Content relevance assessment (40% of accuracy score)
+    // Content relevance assessment (30% of accuracy score)
     const contentScore = this.assessContentRelevance(result.scenes);
-    score += contentScore * 0.4;
-    maxScore += 0.4;
+    score += contentScore * 0.3;
+    maxScore += 0.3;
+
+    // LLM extraction quality (20% of accuracy score) — entity and relation quality
+    const llmScore = this.assessLLMExtractionQuality(result);
+    score += llmScore * 0.2;
+    maxScore += 0.2;
 
     const normalizedScore = maxScore > 0 ? score / maxScore : 0;
 
@@ -280,9 +285,40 @@ export class QualityMonitor {
     console.log(`   - Scenes: ${(sceneScore * 100).toFixed(1)}%`);
     console.log(`   - Layout: ${(layoutScore * 100).toFixed(1)}%`);
     console.log(`   - Content: ${(contentScore * 100).toFixed(1)}%`);
+    console.log(`   - LLM Extract: ${(llmScore * 100).toFixed(1)}%`);
 
     return normalizedScore;
   }
+
+  /**
+   * Assess LLM extraction quality if metrics are available; otherwise infer from scene structure.
+   */
+  private assessLLMExtractionQuality(result: PipelineResult): number {
+    const m = result.metrics as any;
+
+    const hasEntity = typeof m?.entityExtractionF1Score === 'number';
+    const hasRelation = typeof m?.relationAccuracy === 'number';
+
+    if (hasEntity || hasRelation) {
+      const parts: number[] = [];
+      if (hasEntity) parts.push(this.clamp01(m.entityExtractionF1Score));
+      if (hasRelation) parts.push(this.clamp01(m.relationAccuracy));
+      return parts.length ? parts.reduce((a, b) => a + b, 0) / parts.length : 0;
+    }
+
+    // Heuristic fallback: infer a proxy score from scene structure
+    const scenes = result.scenes || [];
+    if (scenes.length === 0) return 0;
+
+    const avgNodes = scenes.reduce((a, s) => a + (s.nodes?.length || 0), 0) / scenes.length;
+    const anyEdges = scenes.some(s => (s.edges?.length || 0) > 0);
+
+    const entityScore = avgNodes >= 2 ? 0.8 : avgNodes >= 1 ? 0.6 : 0.3;
+    const relationScore = anyEdges ? 0.8 : 0.5;
+    return (entityScore + relationScore) / 2;
+  }
+
+  private clamp01(v: number): number { return Math.max(0, Math.min(1, v)); }
 
   /**
    * Assess scene generation quality

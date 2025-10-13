@@ -50,6 +50,10 @@ export interface PipelineResult {
   stages: PipelineStage[];
   error?: string;
   qualityAssessment?: QualityAssessment;
+  /**
+   * Optional extended metrics captured during the run
+   */
+  metrics?: ExtendedPipelineMetrics;
 }
 
 export interface PipelineMetrics {
@@ -61,4 +65,17 @@ export interface PipelineMetrics {
   segmentCount: number;
   diagramCount: number;
   successRate: number;
+}
+
+/**
+ * Extended metrics including LLM-specific quality indicators.
+ * All fields are optional to remain backward-compatible with existing pipeline outputs.
+ */
+export interface ExtendedPipelineMetrics extends PipelineMetrics {
+  /** Peak process memory usage in bytes */
+  memoryUsage?: number;
+  /** Entity extraction F1 score (0.0 - 1.0), if ground truth is available */
+  entityExtractionF1Score?: number;
+  /** Relation extraction accuracy (0.0 - 1.0), if ground truth is available */
+  relationAccuracy?: number;
 }
