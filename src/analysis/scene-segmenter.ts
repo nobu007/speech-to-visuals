@@ -32,6 +32,13 @@ export class SceneSegmenter {
   private readonly SUMMARY_TRUNCATE_LENGTH = 100;
   private readonly SUMMARY_ELLIPSIS_LENGTH = 3;
 
+  private readonly MS_TO_SECONDS_DIVISOR = 1000;
+  private readonly MIN_SEGMENTS_FOR_SUCCESS = 0;
+  private readonly REASONABLE_LENGTH_MIN_MS = 3000;
+  private readonly REASONABLE_LENGTH_MAX_MS = 20000;
+  private readonly MIN_KEYPHRASES_FOR_SUCCESS = 1;
+  private readonly GOOD_CONFIDENCE_THRESHOLD = 0.6;
+
   constructor(config: Partial<AnalysisConfig> = {}) {
     this.config = {
       minSegmentLengthMs: this.DEFAULT_MIN_SEGMENT_LENGTH_MS, // 3 seconds minimum
@@ -255,17 +262,17 @@ export class SceneSegmenter {
 
     console.log('\n📊 Segmentation Metrics:');
     console.log(`- Segments: ${metrics.segmentCount}`);
-    console.log(`- Avg Length: ${(metrics.avgSegmentLength / 1000).toFixed(1)}s`);
+    console.log(`- Avg Length: ${(metrics.avgSegmentLength / this.MS_TO_SECONDS_DIVISOR).toFixed(1)}s`);
     console.log(`- Avg Keyphrases: ${metrics.avgKeyphraseCount.toFixed(1)}`);
     console.log(`- Avg Confidence: ${(metrics.avgConfidence * 100).toFixed(1)}%`);
     console.log(`- Processing Time: ${metrics.processingTime.toFixed(0)}ms`);
 
     // Success criteria
     const successCriteria = {
-      hasSegments: metrics.segmentCount > 0,
-      reasonableLength: metrics.avgSegmentLength > 3000 && metrics.avgSegmentLength < 20000,
-      hasKeyphrases: metrics.avgKeyphraseCount > 1,
-      goodConfidence: metrics.avgConfidence > 0.6
+      hasSegments: metrics.segmentCount > this.MIN_SEGMENTS_FOR_SUCCESS,
+      reasonableLength: metrics.avgSegmentLength > this.REASONABLE_LENGTH_MIN_MS && metrics.avgSegmentLength < this.REASONABLE_LENGTH_MAX_MS,
+      hasKeyphrases: metrics.avgKeyphrases > this.MIN_KEYPHRASES_FOR_SUCCESS,
+      goodConfidence: metrics.avgConfidence > this.GOOD_CONFIDENCE_THRESHOLD
     };
 
     const success = Object.values(successCriteria).every(v => v);
