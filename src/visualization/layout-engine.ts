@@ -131,6 +131,18 @@ export class LayoutEngine extends BaseLayoutEngine {
 
 
   /**
+   * Applies initial Dagre layout and resolves overlaps.
+   */
+  private async _applyInitialLayoutAndOverlapResolution(
+    nodes: NodeDatum[],
+    edges: EdgeDatum[],
+    diagramType: DiagramType
+  ): Promise<DiagramLayout> {
+    const initialLayout = await this.dagreLayoutStrategy.applyLayout(nodes, edges, diagramType);
+    return await this.overlapResolver.ensureZeroOverlaps(initialLayout, diagramType);
+  }
+
+  /**
    * Applies basic Dagre layout, overlap resolution, and type-specific optimizations.
    */
   private async _applyBasicLayoutAndOptimizations(
@@ -139,11 +151,7 @@ export class LayoutEngine extends BaseLayoutEngine {
     diagramType: DiagramType,
     iteration: number // Added iteration parameter
   ): Promise<DiagramLayout> {
-    // Iteration 1: Basic Dagre layout
-    const initialLayout = await this.dagreLayoutStrategy.applyLayout(nodes, edges, diagramType);
-
-    // 🎯 Custom Instructions: MANDATORY Zero Overlap Check + Resolution
-    const layoutAfterOverlapResolution = await this.overlapResolver.ensureZeroOverlaps(initialLayout, diagramType);
+    const layoutAfterOverlapResolution = await this._applyInitialLayoutAndOverlapResolution(nodes, edges, diagramType);
 
     // Iteration 2+: Apply optimizations via pipeline
     const layoutAfterOptimizations = await this.layoutOptimizationPipeline.applyOptimizations(layoutAfterOverlapResolution, diagramType, iteration);
@@ -218,8 +226,7 @@ export class LayoutEngine extends BaseLayoutEngine {
     startTime: number
   ): Promise<LayoutResult> {
     this.logger.info('🔧 Using simple layout mode...');
-    let layout = await this.dagreLayoutStrategy.applyLayout(nodes, edges, diagramType);
-    layout = await this.overlapResolver.ensureZeroOverlaps(layout, diagramType);
+    const layout = await this._applyInitialLayoutAndOverlapResolution(nodes, edges, diagramType);
     const bounds = this.calculateBounds(layout.nodes);
     const processingTime = performance.now() - startTime;
     return {
