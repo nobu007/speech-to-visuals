@@ -28,6 +28,10 @@ export class SceneSegmenter {
   private readonly MAX_KEYWORDS_TO_EXTRACT = 5;
   private readonly STOP_WORDS = new Set(['this', 'that', 'with', 'have', 'will', 'from', 'they', 'been', 'were', 'said', 'each', 'which', 'their', 'time', 'about']);
 
+  private readonly BASIC_CONFIDENCE_ITERATION_1 = 0.8;
+  private readonly SUMMARY_TRUNCATE_LENGTH = 100;
+  private readonly SUMMARY_ELLIPSIS_LENGTH = 3;
+
   constructor(config: Partial<AnalysisConfig> = {}) {
     this.config = {
       minSegmentLengthMs: this.DEFAULT_MIN_SEGMENT_LENGTH_MS, // 3 seconds minimum
@@ -189,7 +193,7 @@ export class SceneSegmenter {
       text: fullText,
       summary,
       keyphrases: Array.from(workingSegment.keyphrases),
-      confidence: 0.8 // Basic confidence for iteration 1
+      confidence: this.BASIC_CONFIDENCE_ITERATION_1 // Basic confidence for iteration 1
     };
   }
 
@@ -201,12 +205,12 @@ export class SceneSegmenter {
 
     if (sentences.length > 0) {
       const firstSentence = sentences[0].trim();
-      return firstSentence.length > 100 ?
-        firstSentence.substring(0, 97) + '...' :
+      return firstSentence.length > this.SUMMARY_TRUNCATE_LENGTH ?
+        firstSentence.substring(0, this.SUMMARY_TRUNCATE_LENGTH - this.SUMMARY_ELLIPSIS_LENGTH) + '...' :
         firstSentence;
     }
 
-    return text.length > 100 ? text.substring(0, 97) + '...' : text;
+    return text.length > this.SUMMARY_TRUNCATE_LENGTH ? text.substring(0, this.SUMMARY_TRUNCATE_LENGTH - this.SUMMARY_ELLIPSIS_LENGTH) + '...' : text;
   }
 
   /**
