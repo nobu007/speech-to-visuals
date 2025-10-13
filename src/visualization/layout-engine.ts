@@ -47,12 +47,7 @@ export class LayoutEngine extends BaseLayoutEngine {
     );
 
     // Initialize layout optimization pipeline
-    if (this.layoutOptimizer) {
-      this.layoutOptimizationPipeline = new LayoutOptimizationPipeline(this.layoutOptimizer);
-    } else {
-      // Handle case where layoutOptimizer is not initialized (should not happen if config is correct)
-      throw new Error("LayoutOptimizer must be initialized before LayoutOptimizationPipeline.");
-    }
+    this.layoutOptimizationPipeline = new LayoutOptimizationPipeline(this.layoutOptimizer);
 
     if (!this.config.isSimpleMode) {
       // Initialize complex layout engine for large diagrams
