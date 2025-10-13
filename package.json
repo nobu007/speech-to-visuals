@@ -18,10 +18,13 @@
     "pipeline:test:audio": "tsx scripts/test-complete-audio-pipeline.ts",
     "pipeline:batch": "tsx scripts/batch-audio-pipeline.ts ./public/audio ./test-batch-output --no-video",
     "phase1:verify": "tsx scripts/verify-phase1.ts",
-    "transcribe": "tsx scripts/transcribe.ts public/jfk.wav"
+    "transcribe": "tsx scripts/transcribe.ts public/jfk.wav",
+    "quality:check": "tsx tests/quality-check.ts",
+    "diagram:from-text": "tsx scripts/generate-diagram-from-text.ts"
   },
   "dependencies": {
     "@dagrejs/dagre": "^1.1.5",
+    "@google/generative-ai": "0.21.0",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",

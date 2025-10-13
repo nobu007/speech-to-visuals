@@ -45,6 +45,28 @@ npm run dev
 http://localhost:8080/simple  (推奨 - Simple Pipeline)
 ```
 
+### 環境変数（Gemini API）
+
+Gemini を用いた内容分析を有効化するには、環境変数に API キーを設定してください。
+
+```sh
+# Linux/macOS (一時)
+export GOOGLE_API_KEY="<your-api-key>"
+
+# .env に追記（推奨・鍵は公開しないこと）
+GOOGLE_API_KEY="<your-api-key>"
+```
+
+CLI からは次のように図解 JSON を生成できます。
+
+```sh
+# テキストから図解 JSON を生成（Gemini→ルールベースの順でフォールバック）
+npx tsx scripts/generate-diagram-from-text.ts --text "プロセスAの後にBを実行し..."
+
+# またはファイル入力
+npx tsx scripts/generate-diagram-from-text.ts ./public/scenes/sample.txt
+```
+
 **使用方法**:
 1. 音声ファイルをアップロード（MP3/WAV/OGG/M4A, 最大50MB）
 2. 「動画を生成する」にチェック
