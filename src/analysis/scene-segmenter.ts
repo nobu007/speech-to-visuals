@@ -39,6 +39,21 @@ export class SceneSegmenter {
   private readonly MIN_KEYPHRASES_FOR_SUCCESS = 1;
   private readonly GOOD_CONFIDENCE_THRESHOLD = 0.6;
 
+  private readonly TEST_SEGMENT_LENGTH_MIN_MS = 3000;
+  private readonly TEST_SEGMENT_LENGTH_MAX_MS = 15000;
+  private readonly TEST_SEGMENT_LENGTH_SCORE_PASS = 1.0;
+  private readonly TEST_SEGMENT_LENGTH_SCORE_FAIL = 0.5;
+
+  private readonly TEST_KEYPHRASE_MIN_COUNT = 2;
+  private readonly TEST_KEYPHRASE_DIVISOR = 3;
+  private readonly TEST_KEYPHRASE_SCORE_CAP = 1.0;
+
+  private readonly TEST_CONFIDENCE_MIN_SCORE = 0.7;
+
+  private readonly TEST_SEMANTIC_COHERENCE_MIN_SUMMARY_LENGTH = 10;
+  private readonly TEST_SEMANTIC_COHERENCE_SCORE_PASS = 0.9;
+  private readonly TEST_SEMANTIC_COHERENCE_SCORE_FAIL = 0.6;
+
   constructor(config: Partial<AnalysisConfig> = {}) {
     this.config = {
       minSegmentLengthMs: this.DEFAULT_MIN_SEGMENT_LENGTH_MS, // 3 seconds minimum
@@ -450,30 +465,30 @@ export class SceneSegmenter {
 
   private async testSegmentLengthDistribution(segments: ContentSegment[]): Promise<{ passed: boolean; score: number; name: string }> {
     const avgLength = segments.reduce((sum, seg) => sum + (seg.endMs - seg.startMs), 0) / segments.length;
-    const passed = avgLength >= 3000 && avgLength <= 15000;
-    const score = passed ? 1.0 : 0.5;
+    const passed = avgLength >= this.TEST_SEGMENT_LENGTH_MIN_MS && avgLength <= this.TEST_SEGMENT_LENGTH_MAX_MS;
+    const score = passed ? this.TEST_SEGMENT_LENGTH_SCORE_PASS : this.TEST_SEGMENT_LENGTH_SCORE_FAIL;
     return { passed, score, name: 'Segment Length Distribution' };
   }
 
   private async testKeyphraseQuality(segments: ContentSegment[]): Promise<{ passed: boolean; score: number; name: string }> {
     const avgKeyphrases = segments.reduce((sum, seg) => sum + seg.keyphrases.length, 0) / segments.length;
-    const passed = avgKeyphrases >= 2;
-    const score = Math.min(avgKeyphrases / 3, 1.0);
+    const passed = avgKeyphrases >= this.TEST_KEYPHRASE_MIN_COUNT;
+    const score = Math.min(avgKeyphrases / this.TEST_KEYPHRASE_DIVISOR, this.TEST_KEYPHRASE_SCORE_CAP);
     return { passed, score, name: 'Keyphrase Quality' };
   }
 
   private async testConfidenceScores(segments: ContentSegment[]): Promise<{ passed: boolean; score: number; name: string }> {
     const avgConfidence = segments.reduce((sum, seg) => sum + seg.confidence, 0) / segments.length;
-    const passed = avgConfidence >= 0.7;
+    const passed = avgConfidence >= this.TEST_CONFIDENCE_MIN_SCORE;
     const score = avgConfidence;
     return { passed, score, name: 'Confidence Scores' };
   }
 
   private async testSemanticCoherence(segments: ContentSegment[]): Promise<{ passed: boolean; score: number; name: string }> {
     // Simplified semantic coherence test
-    const hasCoherentSummaries = segments.every(seg => seg.summary && seg.summary.length > 10);
+    const hasCoherentSummaries = segments.every(seg => seg.summary && seg.summary.length > this.TEST_SEMANTIC_COHERENCE_MIN_SUMMARY_LENGTH);
     const passed = hasCoherentSummaries;
-    const score = passed ? 0.9 : 0.6;
+    const score = passed ? this.TEST_SEMANTIC_COHERENCE_SCORE_PASS : this.TEST_SEMANTIC_COHERENCE_SCORE_FAIL;
     return { passed, score, name: 'Semantic Coherence' };
   }
 
