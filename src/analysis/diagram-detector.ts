@@ -1,5 +1,6 @@
 import { DiagramType, NodeDatum, EdgeDatum } from '@/types/diagram';
 import { ContentSegment, DiagramAnalysis, KeywordAnalysis, SemanticRelation } from './types';
+import { GeminiAnalyzer } from './gemini-analyzer';
 
 /**
  * Diagram Type Detection Engine - Iterative Implementation
@@ -8,6 +9,7 @@ import { ContentSegment, DiagramAnalysis, KeywordAnalysis, SemanticRelation } fr
  */
 export class DiagramDetector {
   private iteration: number = 1;
+  private gemini: GeminiAnalyzer;
 
   // 🔄 Custom Instructions Enhancement: Performance and Quality Tracking
   private detectionMetrics = {
@@ -20,7 +22,7 @@ export class DiagramDetector {
   };
 
   constructor() {
-    // No advanced detector needed
+    this.gemini = new GeminiAnalyzer();
   }
 
   /**
@@ -33,8 +35,32 @@ export class DiagramDetector {
     console.log(`🔄 Custom Instructions: Starting recursive detection cycle`);
 
     try {
-      // 🔄 実装段階: Apply iterative detection improvements
-      let analysis = await this.applyIterativeDetection(segment);
+      // Prefer LLM (Gemini) analysis if enabled; fallback to iterative rule-based
+      let analysis: DiagramAnalysis | null = null;
+
+      if (this.gemini.isEnabled()) {
+        console.log('🔗 Gemini enabled: attempting LLM-based structural extraction');
+        const llm = await this.gemini.analyzeText(segment.text);
+        if (llm) {
+          analysis = {
+            type: llm.type,
+            confidence: llm.confidence ?? 0.9,
+            nodes: llm.nodes || [],
+            edges: llm.edges || [],
+            reasoning: llm.reasoning || 'LLM (Gemini) 解析結果に基づく構造化データ'
+          };
+          console.log(`✅ Gemini produced ${analysis.nodes.length} nodes / ${analysis.edges.length} edges (type: ${analysis.type})`);
+        } else {
+          console.log('⚙️  Gemini returned null; falling back to rule-based detection');
+        }
+      } else {
+        console.log('⚙️  Gemini disabled or no API key; using rule-based detection');
+      }
+
+      // 🔄 実装段階: Apply iterative detection improvements (used when LLM is unavailable or as enhancement)
+      if (!analysis || analysis.nodes.length === 0) {
+        analysis = await this.applyIterativeDetection(segment);
+      }
 
       // 🔄 テスト段階: Validate detection quality
       const testResults = await this.testDetectionQuality(analysis, segment);
@@ -118,33 +144,40 @@ export class DiagramDetector {
     for (const [diagramType, patternSet] of Object.entries(patterns)) {
       const type = diagramType as DiagramType;
 
+    const PRIMARY_KEYWORD_WEIGHT = 5;
+    const PRIMARY_KEYPHRASE_WEIGHT = 8;
+    const SECONDARY_KEYWORD_WEIGHT = 2;
+    const SECONDARY_KEYPHRASE_WEIGHT = 4;
+    const CONTEXT_KEYWORD_WEIGHT = 1;
+    const CONTEXT_KEYPHRASE_WEIGHT = 2;
+
       // Primary keywords (highest weight)
       for (const keyword of patternSet.primary) {
         if (text.includes(keyword)) {
-          scores[type] += 5;
+          scores[type] += PRIMARY_KEYWORD_WEIGHT;
         }
         if (keyphrases.some(kp => kp.includes(keyword))) {
-          scores[type] += 8; // Even higher for keyphrases
+          scores[type] += PRIMARY_KEYPHRASE_WEIGHT; // Even higher for keyphrases
         }
       }
 
       // Secondary keywords (medium weight)
       for (const keyword of patternSet.secondary) {
         if (text.includes(keyword)) {
-          scores[type] += 2;
+          scores[type] += SECONDARY_KEYWORD_WEIGHT;
         }
         if (keyphrases.some(kp => kp.includes(keyword))) {
-          scores[type] += 4;
+          scores[type] += SECONDARY_KEYPHRASE_WEIGHT;
         }
       }
 
       // Context keywords (lower weight)
       for (const keyword of patternSet.context) {
         if (text.includes(keyword)) {
-          scores[type] += 1;
+          scores[type] += CONTEXT_KEYWORD_WEIGHT;
         }
         if (keyphrases.some(kp => kp.includes(keyword))) {
-          scores[type] += 2;
+          scores[type] += CONTEXT_KEYPHRASE_WEIGHT;
         }
       }
     }
