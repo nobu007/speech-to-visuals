@@ -48,9 +48,10 @@ export interface SemanticRelation {
   confidence: number;
 }
 
+// PHASE 46 ENHANCEMENT: Added matrix and cycle types
 export interface DiagramData {
   title?: string;
-  type: "flowchart" | "mindmap" | "timeline" | "orgchart";
+  type: "flowchart" | "mindmap" | "timeline" | "orgchart" | "matrix" | "cycle";
   nodes: { id: string; label: string }[];
   edges: { from: string; to: string; label?: string }[];
 }

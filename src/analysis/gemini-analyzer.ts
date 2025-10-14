@@ -37,11 +37,14 @@ import { getGeminiAnalyzerPrompt, type Language } from "./prompt-templates";
 
 type GeminiDiagramType = DiagramData['type'];
 
+// PHASE 46 ENHANCEMENT: Added matrix and cycle type mappings
 const typeMap: Record<GeminiDiagramType, DiagramType> = {
   flowchart: "flow",
   mindmap: "tree",
   timeline: "timeline",
   orgchart: "tree",
+  matrix: "matrix", // NEW: Direct mapping for matrix type
+  cycle: "cycle", // NEW: Direct mapping for cycle type
 };
 
 const INITIAL_LLM_CONFIDENCE = 0.9;

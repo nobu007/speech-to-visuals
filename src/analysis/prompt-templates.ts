@@ -39,7 +39,7 @@ const GEMINI_ANALYZER_PROMPT_JA = (text: string) => `あなたは構造化デー
 
 {
   "title": "テキストの主題（30文字以内）",
-  "type": "flowchart" | "mindmap" | "timeline" | "orgchart",
+  "type": "flowchart" | "mindmap" | "timeline" | "orgchart" | "matrix" | "cycle",
   "nodes": [
     {"id": "n1", "label": "ノード名（60文字以内）"},
     {"id": "n2", "label": "別のノード"}
@@ -48,6 +48,14 @@ const GEMINI_ANALYZER_PROMPT_JA = (text: string) => `あなたは構造化デー
     {"from": "n1", "to": "n2", "label": "関係性のラベル（省略可）"}
   ]
 }
+
+## 図解タイプの選択ガイド:
+- **flowchart**: プロセス・手順・ワークフロー（A→B→C の順次処理）
+- **mindmap**: 階層構造・分類・ツリー（中心から放射状）
+- **timeline**: 時系列・歴史・進化（時間軸に沿った配置）
+- **orgchart**: 組織図・役職階層（CEO→VP→マネージャー）
+- **matrix**: 比較表・対比分析（複数選択肢の評価）
+- **cycle**: 循環・ループ・繰り返し（最後が最初に戻る）
 
 ## 出力制約:
 - ノード数: 最大10個
@@ -94,7 +102,7 @@ Output in the following JSON format (no explanatory text or code blocks):
 
 {
   "title": "Main topic (max 30 chars)",
-  "type": "flowchart" | "mindmap" | "timeline" | "orgchart",
+  "type": "flowchart" | "mindmap" | "timeline" | "orgchart" | "matrix" | "cycle",
   "nodes": [
     {"id": "n1", "label": "Node name (max 60 chars)"},
     {"id": "n2", "label": "Another node"}
@@ -103,6 +111,14 @@ Output in the following JSON format (no explanatory text or code blocks):
     {"from": "n1", "to": "n2", "label": "Relationship label (optional)"}
   ]
 }
+
+## Diagram Type Selection Guide:
+- **flowchart**: Process/procedure/workflow (A→B→C sequential processing)
+- **mindmap**: Hierarchy/classification/tree (radiating from center)
+- **timeline**: Chronological/history/evolution (arranged along time axis)
+- **orgchart**: Organizational chart/role hierarchy (CEO→VP→Manager)
+- **matrix**: Comparison table/contrast analysis (evaluating multiple options)
+- **cycle**: Circular/loop/iterative (final state returns to initial)
 
 ## Output Constraints:
 - Node count: Maximum 10
@@ -129,9 +145,17 @@ JSON:`;
 const CONTENT_ANALYZER_PROMPT_JA = (text: string) => `以下のテキストを分析し、内容を最もよく表す図解を生成するためのJSONデータを作成してください。
 
 JSONの形式は {title, type, nodes, edges}。
-- type は 'flowchart' | 'mindmap' | 'timeline' | 'orgchart' のいずれか
+- type は 'flowchart' | 'mindmap' | 'timeline' | 'orgchart' | 'matrix' | 'cycle' のいずれか
 - nodes は {id, label} の配列
 - edges は {from, to, label?} の配列
+
+図解タイプの選択:
+- flowchart: プロセス・手順
+- mindmap: 階層・ツリー
+- timeline: 時系列・歴史
+- orgchart: 組織図
+- matrix: 比較・対比
+- cycle: 循環・ループ
 
 重要な指示:
 1. JSONのみを返してください（コードブロック不要）
@@ -149,9 +173,17 @@ JSONの形式は {title, type, nodes, edges}。
 const CONTENT_ANALYZER_PROMPT_EN = (text: string) => `Analyze the following text and create JSON data to generate a diagram that best represents the content.
 
 JSON format: {title, type, nodes, edges}.
-- type: 'flowchart' | 'mindmap' | 'timeline' | 'orgchart'
+- type: 'flowchart' | 'mindmap' | 'timeline' | 'orgchart' | 'matrix' | 'cycle'
 - nodes: array of {id, label}
 - edges: array of {from, to, label?}
+
+Diagram type selection:
+- flowchart: Process/procedure
+- mindmap: Hierarchy/tree
+- timeline: Chronological/history
+- orgchart: Organizational chart
+- matrix: Comparison/contrast
+- cycle: Circular/loop
 
 Important instructions:
 1. Return JSON only (no code blocks)
