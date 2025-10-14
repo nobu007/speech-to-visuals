@@ -21,10 +21,16 @@ export class GeminiAnalyzer {
   private cache: LLMCache<DiagramAnalysis>;
   private requestCount: number = 0;
   private lastRequestTime: number = 0;
+  private responseTimeHistory: number[] = [];
+  private readonly MAX_HISTORY_SIZE = 20;
 
   constructor(apiKey?: string) {
     this.apiKey = apiKey || process.env.GOOGLE_API_KEY;
-    this.cache = new LLMCache<DiagramAnalysis>({ maxSize: 200, ttlMinutes: 120 });
+    this.cache = new LLMCache<DiagramAnalysis>({
+      maxSize: 200,
+      ttlMinutes: 120,
+      persistPath: '.cache/llm/gemini-cache.json'
+    });
   }
 
   isEnabled(): boolean {
@@ -68,7 +74,40 @@ export class GeminiAnalyzer {
     this.requestCount++;
   }
 
-  async analyzeText(text: string, timeoutMs: number = 30000): Promise<DiagramAnalysis | null> {
+  /**
+   * Calculate adaptive timeout based on historical response times
+   */
+  private getAdaptiveTimeout(): number {
+    const DEFAULT_TIMEOUT = 30000; // 30 seconds
+    const MIN_TIMEOUT = 15000; // 15 seconds minimum
+    const MAX_TIMEOUT = 60000; // 60 seconds maximum
+
+    if (this.responseTimeHistory.length === 0) {
+      return DEFAULT_TIMEOUT;
+    }
+
+    // Calculate average response time
+    const avgResponseTime = this.responseTimeHistory.reduce((sum, time) => sum + time, 0) / this.responseTimeHistory.length;
+
+    // Use 3x average as timeout (with min/max bounds)
+    const adaptiveTimeout = Math.max(MIN_TIMEOUT, Math.min(MAX_TIMEOUT, avgResponseTime * 3));
+
+    return Math.round(adaptiveTimeout);
+  }
+
+  /**
+   * Record response time for adaptive timeout calculation
+   */
+  private recordResponseTime(timeMs: number): void {
+    this.responseTimeHistory.push(timeMs);
+
+    // Keep only recent history
+    if (this.responseTimeHistory.length > this.MAX_HISTORY_SIZE) {
+      this.responseTimeHistory.shift();
+    }
+  }
+
+  async analyzeText(text: string, timeoutMs?: number): Promise<DiagramAnalysis | null> {
     if (!this.isEnabled()) return null;
 
     // Check cache first
@@ -78,9 +117,17 @@ export class GeminiAnalyzer {
       return cached;
     }
 
+    // Use adaptive timeout if not explicitly specified
+    const effectiveTimeout = timeoutMs ?? this.getAdaptiveTimeout();
+    if (!timeoutMs && this.responseTimeHistory.length > 0) {
+      console.log(`⏱️  Using adaptive timeout: ${(effectiveTimeout / 1000).toFixed(1)}s (based on ${this.responseTimeHistory.length} historical samples)`);
+    }
+
     const genAI = new GoogleGenerativeAI(this.apiKey!);
 
     const executeRequest = async (modelName: string, attempt: number = 0): Promise<DiagramAnalysis | null> => {
+      const requestStartTime = Date.now();
+
       // Apply rate limiting
       await this.checkRateLimit();
 
@@ -120,13 +167,17 @@ JSON:`; // Limit input text to 1000 chars for faster processing
 
       // Add timeout wrapper
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
+        setTimeout(() => reject(new Error('Request timeout')), effectiveTimeout)
       );
 
       const result = await Promise.race([
         model.generateContent({ contents: [{ role: "user", parts: [{ text: prompt }] }] }),
         timeoutPromise
       ]);
+
+      // Record response time for adaptive timeout
+      const responseTime = Date.now() - requestStartTime;
+      this.recordResponseTime(responseTime);
 
       const response = await result.response;
       let responseText: string;
@@ -238,9 +289,18 @@ JSON:`; // Limit input text to 1000 chars for faster processing
    * Get cache statistics for monitoring
    */
   getCacheStats() {
+    const avgResponseTime = this.responseTimeHistory.length > 0
+      ? this.responseTimeHistory.reduce((sum, time) => sum + time, 0) / this.responseTimeHistory.length
+      : 0;
+
     return {
       ...this.cache.getStats(),
       totalRequests: this.requestCount,
+      adaptiveTimeout: {
+        currentTimeoutMs: this.getAdaptiveTimeout(),
+        avgResponseTimeMs: Math.round(avgResponseTime),
+        historySamples: this.responseTimeHistory.length,
+      },
     };
   }
 }

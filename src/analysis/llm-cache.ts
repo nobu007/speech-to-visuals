@@ -3,9 +3,12 @@
  * - Reduces redundant API calls
  * - Memory-efficient with TTL and size limits
  * - Hash-based key generation for consistent lookups
+ * - Persistent file-based storage for cross-session efficiency
  */
 
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 
 interface CacheEntry<T> {
   data: T;
@@ -17,10 +20,19 @@ export class LLMCache<T> {
   private cache: Map<string, CacheEntry<T>> = new Map();
   private maxSize: number;
   private ttlMs: number;
+  private persistPath?: string;
+  private persistEnabled: boolean;
 
-  constructor(options: { maxSize?: number; ttlMinutes?: number } = {}) {
+  constructor(options: { maxSize?: number; ttlMinutes?: number; persistPath?: string } = {}) {
     this.maxSize = options.maxSize ?? 100;
     this.ttlMs = (options.ttlMinutes ?? 60) * 60 * 1000;
+    this.persistPath = options.persistPath;
+    this.persistEnabled = Boolean(this.persistPath);
+
+    // Load persisted cache on initialization
+    if (this.persistEnabled) {
+      this.loadFromDisk();
+    }
   }
 
   /**
@@ -90,6 +102,11 @@ export class LLMCache<T> {
       timestamp: Date.now(),
       hits: 0,
     });
+
+    // Persist to disk if enabled
+    if (this.persistEnabled) {
+      this.saveToDisk();
+    }
   }
 
   /**
@@ -124,6 +141,100 @@ export class LLMCache<T> {
       if (!this.isValid(entry)) {
         this.cache.delete(key);
       }
+    }
+
+    if (this.persistEnabled) {
+      this.saveToDisk();
+    }
+  }
+
+  /**
+   * Save cache to disk (persistent storage)
+   */
+  private saveToDisk(): void {
+    if (!this.persistPath) return;
+
+    try {
+      // Ensure cache directory exists
+      const cacheDir = path.dirname(this.persistPath);
+      if (!fs.existsSync(cacheDir)) {
+        fs.mkdirSync(cacheDir, { recursive: true });
+      }
+
+      // Convert Map to serializable object
+      const serializable = {
+        version: '1.0',
+        timestamp: Date.now(),
+        entries: Array.from(this.cache.entries()).map(([key, entry]) => ({
+          key,
+          data: entry.data,
+          timestamp: entry.timestamp,
+          hits: entry.hits,
+        })),
+      };
+
+      // Write to disk atomically (write to temp file, then rename)
+      const tempPath = `${this.persistPath}.tmp`;
+      fs.writeFileSync(tempPath, JSON.stringify(serializable, null, 2), 'utf8');
+      fs.renameSync(tempPath, this.persistPath);
+
+    } catch (error) {
+      console.warn('⚠️  Failed to persist LLM cache to disk:', error);
+    }
+  }
+
+  /**
+   * Load cache from disk (persistent storage)
+   */
+  private loadFromDisk(): void {
+    if (!this.persistPath) return;
+
+    try {
+      if (!fs.existsSync(this.persistPath)) {
+        return; // No cache file yet, start fresh
+      }
+
+      const content = fs.readFileSync(this.persistPath, 'utf8');
+      const parsed = JSON.parse(content);
+
+      // Validate version
+      if (parsed.version !== '1.0') {
+        console.warn('⚠️  Cache version mismatch, starting fresh');
+        return;
+      }
+
+      // Load entries and filter expired ones
+      let loadedCount = 0;
+      let expiredCount = 0;
+
+      for (const entry of parsed.entries) {
+        const cacheEntry: CacheEntry<T> = {
+          data: entry.data,
+          timestamp: entry.timestamp,
+          hits: entry.hits,
+        };
+
+        if (this.isValid(cacheEntry)) {
+          this.cache.set(entry.key, cacheEntry);
+          loadedCount++;
+        } else {
+          expiredCount++;
+        }
+      }
+
+      console.log(`💾 Loaded ${loadedCount} cached LLM entries from disk (${expiredCount} expired, discarded)`);
+
+    } catch (error) {
+      console.warn('⚠️  Failed to load LLM cache from disk:', error);
+    }
+  }
+
+  /**
+   * Manually trigger cache persistence
+   */
+  persist(): void {
+    if (this.persistEnabled) {
+      this.saveToDisk();
     }
   }
 }
