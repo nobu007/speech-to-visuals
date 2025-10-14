@@ -30,7 +30,8 @@
     "test:multilingual": "tsx scripts/test-multilingual-prompts.ts",
     "validate:llm": "tsx scripts/validate-llm-integration.ts",
     "test:phase33": "tsx scripts/test-phase33.ts",
-    "test:phase34": "tsx scripts/test-phase34.ts"
+    "test:phase34": "tsx scripts/test-phase34.ts",
+    "test:phase37": "tsx scripts/test-phase37.ts"
   },
   "dependencies": {
     "@dagrejs/dagre": "^1.1.5",
