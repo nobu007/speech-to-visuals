@@ -308,6 +308,9 @@ export class RecursiveCustomInstructionsFramework {
       case 'performance':
         await this.optimizeBottleneck();
         break;
+      case 'api_error':
+        await this.handleApiFailure(error);
+        break;
       default:
         await this.minimalFallback();
     }
@@ -319,6 +322,14 @@ export class RecursiveCustomInstructionsFramework {
     }
     if (error.message.includes('performance') || error.message.includes('timeout')) {
       return 'performance';
+    }
+    // API/Gemini related errors
+    if (
+      /quota|rate limit|429|api key|unauthorized|permission|network|ECONN|ENET|fetch failed|5\d{2}/i.test(
+        error.message
+      )
+    ) {
+      return 'api_error';
     }
     return 'logic';
   }
@@ -344,10 +355,27 @@ export class RecursiveCustomInstructionsFramework {
   }
 
   /**
+   * API/LLM failure handler
+   * - Disables Gemini-backed analysis for the current run
+   * - Instructs the system to use rule-based fallback paths
+   * - Can be extended to add exponential backoff / retry policies
+   */
+  private async handleApiFailure(error: Error): Promise<void> {
+    console.log('🌐 Handling API error; switching to fallback analysis...', { error: error.message });
+    // Disable Gemini-backed analysis via env flag for the remainder of the process
+    // The analysis layer reads ANALYSIS_DISABLE_GEMINI to skip LLM calls
+    (process as any).env.ANALYSIS_DISABLE_GEMINI = '1';
+
+    // Optional: add simple backoff marker/state if needed in the future
+    this.currentState.improvements.push('Switched to rule-based analysis due to API error');
+  }
+
+  /**
    * 💾 State Management
    */
   private async saveIterationState(): Promise<void> {
-    const stateFile = `.module/iteration-state-${Date.now()}.json`;
+    // Use fixed path (no timestamp) to avoid proliferating files
+    const stateFile = `.module/iteration-state.json`;
     const state = {
       ...this.currentState,
       timestamp: new Date().toISOString(),

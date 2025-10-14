@@ -92,6 +92,19 @@ npx tsx scripts/batch-audio-pipeline.ts ./audio ./output --parallel --max-parall
 # 📦 ファイルサイズ: 5.2 MB
 ```
 
+### LLMベース最小フロー（テキスト→図解→動画）
+
+```sh
+# 1) テキストから図解JSONを生成（Gemini→ルールベース）
+npm run diagram:from-text -- --text "A→B→C→D の処理フロー"
+
+# 2) 図解JSONをシーンデータに変換（自動レイアウト）
+npm run diagram:to-scenes -- public/scenes/diagram.json public/scenes/scene-data.json
+
+# 3) Remotionで動画化（MP4）
+npm run render:video -- public/scenes/scene-data.json public/diagram-output.mp4
+```
+
 ## 技術スタック
 
 ### フロントエンド

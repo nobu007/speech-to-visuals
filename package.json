@@ -21,11 +21,16 @@
     "phase1:verify": "tsx scripts/verify-phase1.ts",
     "transcribe": "tsx scripts/transcribe.ts public/jfk.wav",
     "quality:check": "tsx tests/quality-check.ts",
-    "diagram:from-text": "tsx scripts/generate-diagram-from-text.ts"
+    "diagram:from-text": "tsx scripts/generate-diagram-from-text.ts",
+    "diagram:to-scenes": "tsx scripts/diagram-to-scenes.ts",
+    "pipeline:run": "tsx scripts/run-pipeline.ts",
+    "render:video": "tsx scripts/render-video.ts public/scenes/scene-data.json public/diagram-output.mp4",
+    "type-check": "tsc -p tsconfig.json --noEmit",
+    "test:llm-parsing": "tsx tests/llm-parsing.ts"
   },
   "dependencies": {
     "@dagrejs/dagre": "^1.1.5",
-    "@google/generative-ai": "0.21.0",
+    "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
@@ -100,9 +105,9 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@eslint/js": "^9.32.0",
-    "@remotion/bundler": "^4.0.355",
-    "@remotion/cli": "^4.0.355",
+    "@eslint/js": "^9.37.0",
+    "@remotion/bundler": "^4.0.357",
+    "@remotion/cli": "^4.0.357",
     "@tailwindcss/typography": "^0.5.16",
     "@types/node": "^22.18.9",
     "@types/react": "^18.3.23",

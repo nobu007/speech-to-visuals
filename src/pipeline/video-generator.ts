@@ -460,9 +460,9 @@ export class VideoGenerator {
   }
 
   private generateOutputPath(): string {
-    const timestamp = Date.now();
-    const filename = `diagram-video-${timestamp}.mp4`;
-    return `/tmp/video-output/${filename}`; // 実際の環境では適切なパス
+    // 固定パス・上書きポリシーに従い、一定の出力先を使用
+    // 実行環境がLinux系の場合の一時領域に配置（実環境では適切な出力先に変更可能）
+    return `/tmp/speech-to-visuals-renders/diagram-video.mp4`;
   }
 
   private getResolutionWidth(): number {

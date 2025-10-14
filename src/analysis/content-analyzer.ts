@@ -4,6 +4,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 
 import { DiagramData } from "./types";
+import { parseJsonFromLLMText } from "./llm-utils";
 
 export class ContentAnalyzer {
   private genAI?: GoogleGenerativeAI;
@@ -57,12 +58,7 @@ JSONのみを返してください。コードブロックは不要です。
     try {
       const result = await model.generateContent({ contents: [{ role: "user", parts: [{ text: prompt }] }] });
       const response = await result.response;
-      const raw = response.text().trim()
-        .replace(/^```json\s*/i, "")
-        .replace(/```\s*$/i, "")
-        .trim();
-
-      const parsed = JSON.parse(raw) as DiagramData;
+      const parsed = parseJsonFromLLMText<DiagramData>(response.text());
       // Shallow validation
       if (!parsed || !Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) {
         throw new Error("Invalid JSON structure from LLM");
@@ -78,4 +74,3 @@ JSONのみを返してください。コードブロックは不要です。
     return this.analyzeV2(text);
   }
 }
-

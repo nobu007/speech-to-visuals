@@ -241,9 +241,14 @@ export class DiagramDetector {
     const { nodes, edges } = await this.extractEntitiesAndRelationships(segment, bestType.type);
 
     // ITERATION 44 ENHANCEMENT: Improved confidence calculation with context awareness
-    const maxPossibleScore = Math.max(...Object.values(patterns).map(p =>
-      p.primary.length * PRIMARY_KEYPHRASE_WEIGHT + p.secondary.length * SECONDARY_KEYPHRASE_WEIGHT + p.context.length * CONTEXT_KEYPHRASE_WEIGHT
-    ));
+    // Avoid potential closure/TS transpile issues by aliasing weights locally
+    // Use literal values to avoid scope issues
+    const PKW = 8;  // PRIMARY_KEYPHRASE_WEIGHT
+    const SKW = 4;  // SECONDARY_KEYPHRASE_WEIGHT
+    const CKW = 2;  // CONTEXT_KEYPHRASE_WEIGHT
+    const maxPossibleScore = Math.max(
+      ...Object.values(patterns).map((p) => p.primary.length * PKW + p.secondary.length * SKW + p.context.length * CKW)
+    );
     const CONFIDENCE_DENOMINATOR_FACTOR = 0.3;
     const MAX_CONFIDENCE = 1;
     const ORG_CHART_BOOST_FACTOR = 1.3;

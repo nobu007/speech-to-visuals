@@ -53,6 +53,7 @@ export class ContinuousLearner {
   private detectedPatterns: LearningPattern[] = [];
   private optimizationStrategies: OptimizationStrategy[] = [];
   private systemInsights: SystemInsight[] = [];
+  private iterationCount: number = 0;
 
   // 学習設定
   private readonly LEARNING_CONFIG = {
@@ -188,6 +189,7 @@ export class ContinuousLearner {
 
     this.analysisInterval = setInterval(async () => {
       try {
+        this.iterationCount++;
         await this.performComprehensiveAnalysis();
         await this.updateOptimizationStrategies();
         await this.generateSystemInsights();
@@ -196,6 +198,62 @@ export class ContinuousLearner {
         console.error('❌ Error in learning process:', error);
       }
     }, this.LEARNING_CONFIG.patternAnalysisInterval);
+  }
+
+  /**
+   * システムインサイト生成
+   */
+  private async generateSystemInsights(): Promise<void> {
+    // システム全体の状態を分析してインサイトを生成
+    const recentData = this.getRecentData(100);
+
+    if (recentData.length < 10) return; // データ不足
+
+    // 全体的なパフォーマンス評価
+    const avgProcessingTime = recentData.reduce((sum, d) => sum + d.processingTime, 0) / recentData.length;
+    const avgQuality = recentData.reduce((sum, d) => sum + d.qualityScore, 0) / recentData.length;
+    const successRate = recentData.filter(d => d.success).length / recentData.length;
+
+    // パフォーマンスインサイト
+    if (avgProcessingTime > 20000) { // 20秒以上
+      this.systemInsights.push({
+        type: 'performance',
+        description: 'System processing time is above optimal threshold',
+        evidence: recentData.filter(d => d.processingTime > 20000).slice(-5),
+        confidence: 0.85,
+        actionable: true,
+        recommendation: 'Consider implementing caching or parallel processing'
+      });
+    }
+
+    // 品質インサイト
+    if (avgQuality < 0.85) {
+      this.systemInsights.push({
+        type: 'quality',
+        description: 'Overall quality score below target threshold',
+        evidence: recentData.filter(d => d.qualityScore < 0.85).slice(-5),
+        confidence: 0.9,
+        actionable: true,
+        recommendation: 'Review and enhance quality control mechanisms'
+      });
+    }
+
+    // 信頼性インサイト
+    if (successRate < 0.95) {
+      this.systemInsights.push({
+        type: 'reliability',
+        description: 'Success rate below production-ready threshold',
+        evidence: recentData.filter(d => !d.success).slice(-5),
+        confidence: 0.88,
+        actionable: true,
+        recommendation: 'Strengthen error handling and recovery strategies'
+      });
+    }
+
+    // インサイトの数を制限（最新の10件のみ保持）
+    if (this.systemInsights.length > 10) {
+      this.systemInsights = this.systemInsights.slice(-10);
+    }
   }
 
   /**
