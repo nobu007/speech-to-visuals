@@ -196,13 +196,23 @@ async function runValidation(): Promise<void> {
       // Extract entities from nodes
       const extractedEntities = diagramData.nodes.map(n => n.label);
 
+      // Build ID-to-label map for edge resolution
+      const idToLabel = new Map(diagramData.nodes.map(n => [n.id, n.label]));
+
+      // Resolve edges from IDs to labels for accurate comparison
+      const resolvedEdges = diagramData.edges.map(edge => ({
+        from: idToLabel.get(edge.from) || edge.from,
+        to: idToLabel.get(edge.to) || edge.to,
+        label: edge.label
+      }));
+
       // Calculate metrics
       const entityF1 = testCase.expected.expectedEntities
         ? calculateEntityF1(extractedEntities, testCase.expected.expectedEntities)
         : 1.0;
 
       const relationAccuracy = calculateRelationAccuracy(
-        diagramData.edges,
+        resolvedEdges,
         testCase.expected.expectedRelations
       );
 

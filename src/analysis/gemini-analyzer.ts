@@ -151,7 +151,7 @@ export class GeminiAnalyzer {
         }
       });
 
-      // Optimize prompt for faster processing and more reliable JSON output
+      // Optimize prompt for faster processing and more reliable JSON output with emphasis on relationship extraction
       const prompt = `あなたはデータアナリストです。以下のテキストを分析し、図解データをJSON形式で出力してください。
 
 必須フィールド:
@@ -166,6 +166,9 @@ export class GeminiAnalyzer {
 3. 有効なJSON形式のみを返してください
 4. ノードは最大10個まで
 5. ラベルは60文字以内
+6. **関係性を正確に抽出してください**: テキスト中の「次に」「その後」「から」「により」「を経て」「によって」などの接続語に注目し、ノード間の依存関係を edges で正確に表現してください
+7. **順序を保持**: 時系列や手順がある場合、edges で順序関係を必ず表現してください
+8. **階層を表現**: 組織図や分類の場合、上位→下位の関係を edges で明確に表現してください
 
 テキスト:
 ${text.slice(0, 1000)}
