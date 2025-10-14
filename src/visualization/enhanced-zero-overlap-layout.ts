@@ -231,7 +231,74 @@ export class ZeroOverlapLayoutEngine {
 
     // Add edges
     edges.forEach(edge => {
-      g.setEdge(edge.source, edge.target);
+      g.setEdge(edge.from, edge.to);
+    });
+
+    // Generate layout
+    dagre.layout(g);
+
+    // Extract positioned nodes (note: using w/h as per PositionedNode type)
+    const positionedNodes: PositionedNode[] = nodes.map(node => {
+      const dagreNode = g.node(node.id);
+      return {
+        ...node,
+        x: dagreNode.x - dagreNode.width / 2,
+        y: dagreNode.y - dagreNode.height / 2,
+        w: dagreNode.width,
+        h: dagreNode.height
+      };
+    });
+
+    // Extract layout edges
+    const layoutEdges: LayoutEdge[] = edges.map(edge => ({
+      ...edge,
+      points: generateEdgePoints(
+        g.node(edge.from),
+        g.node(edge.to)
+      )
+    }));
+
+    return { nodes: positionedNodes, edges: layoutEdges };
+  }
+
+  /**
+   * Tree layout with hierarchical structure
+   * Uses Dagre for reliable hierarchical layout
+   */
+  private async generateTreeLayout(
+    nodes: NodeDatum[],
+    edges: EdgeDatum[]
+  ): Promise<{ nodes: PositionedNode[]; edges: LayoutEdge[] }> {
+    // Use Dagre for tree layout as well (it's optimized for hierarchical structures)
+    const g = new dagre.graphlib.Graph();
+
+    // Configure graph for tree layout (Left-to-Right for better tree visualization)
+    g.setGraph({
+      rankdir: 'LR',      // Left to right for tree structure
+      ranksep: this.config.minimumSpacing.nodeToNode * 3, // More spacing for tree levels
+      nodesep: this.config.minimumSpacing.nodeToNode * 2,
+      edgesep: this.config.minimumSpacing.nodeToEdge,
+      marginx: 30,
+      marginy: 30
+    });
+
+    g.setDefaultEdgeLabel(() => ({}));
+
+    // Add nodes
+    nodes.forEach(node => {
+      const width = calculateNodeWidth(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
+      const height = calculateNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
+
+      g.setNode(node.id, {
+        width,
+        height,
+        label: node.label
+      });
+    });
+
+    // Add edges
+    edges.forEach(edge => {
+      g.setEdge(edge.from, edge.to);
     });
 
     // Generate layout
@@ -253,32 +320,10 @@ export class ZeroOverlapLayoutEngine {
     const layoutEdges: LayoutEdge[] = edges.map(edge => ({
       ...edge,
       points: generateEdgePoints(
-        g.node(edge.source),
-        g.node(edge.target)
+        g.node(edge.from),
+        g.node(edge.to)
       )
     }));
-
-    return { nodes: positionedNodes, edges: layoutEdges };
-  }
-
-  /**
-   * Tree layout with hierarchical structure
-   */
-  private async generateTreeLayout(
-    nodes: NodeDatum[],
-    edges: EdgeDatum[]
-  ): Promise<{ nodes: PositionedNode[]; edges: LayoutEdge[] }> {
-    // Find root node (node with no incoming edges)
-    const rootId = this.findRootNode(nodes, edges);
-    const tree = this.buildTree(rootId, nodes, edges);
-
-    // Calculate tree dimensions
-    const treeHeight = this.calculateTreeHeight(tree);
-    const treeWidth = this.calculateTreeWidth(tree);
-
-    // Position nodes in tree structure
-    const positionedNodes = this.positionTreeNodes(tree, treeWidth, treeHeight);
-    const layoutEdges = this.generateTreeEdges(edges, positionedNodes);
 
     return { nodes: positionedNodes, edges: layoutEdges };
   }
@@ -943,7 +988,7 @@ export class ZeroOverlapLayoutEngine {
    * Apply force-directed algorithm step with enhanced collision detection
    * カスタム指示準拠: 高度な衝突検出アルゴリズム
    */
-  private applyForceDirectedStep(nodes: PositionedNode[], edges: EdgeDatum[]): void {
+  private applyForceDirectedStep(nodes: PositionedNode[], edges: EdgeDatum[], optimalSpacing: number = 40): void {
     const forces = new Map<string, { x: number; y: number }>();
 
     // Initialize forces

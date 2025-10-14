@@ -115,8 +115,8 @@ export class LLMService {
     proResponseTimes: [] as number[]
   };
 
-  // Rate limiting configuration
-  private readonly MIN_REQUEST_INTERVAL = 500; // 500ms between requests
+  // Rate limiting configuration (Phase 30: Optimized for faster processing)
+  private readonly MIN_REQUEST_INTERVAL = 200; // 200ms between requests (reduced from 500ms for 60% speed improvement)
 
   constructor(apiKey?: string, options?: {
     cacheSize?: number;
