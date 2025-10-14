@@ -19,6 +19,8 @@ import {
   PipelineStage,
   PipelineMetrics
 } from './types';
+// Phase 34: Persistent iteration logging system
+import { globalIterationLogger } from '@/utils/iteration-logger';
 
 /**
  * Main Audio-to-Diagram Video Generation Pipeline
@@ -1013,20 +1015,37 @@ export class MainPipeline {
 
   /**
    * Log iteration results for improvement tracking
+   * Phase 34: Implements persistent logging to ITERATION_LOG.md (resolves TODO)
    */
   private async logIteration(metrics: PipelineMetrics, success: boolean): Promise<void> {
-    const iterationLog = {
+    const memoryUsage = typeof process !== 'undefined' && process.memoryUsage ?
+      process.memoryUsage().heapUsed : undefined;
+
+    // Phase 34: Use persistent iteration logger
+    await globalIterationLogger.appendIteration({
       iteration: this.iteration,
+      phase: this.currentPhase,
       timestamp: new Date().toISOString(),
       success,
       metrics,
-      config: this.config
-    };
+      config: this.config,
+      improvements: this.generateImprovementSuggestions(),
+      nextSteps: success ? ['Continue to next iteration with optimizations'] : ['Debug failure and retry']
+    });
 
-    console.log(`[Pipeline Iteration ${this.iteration}] Logged results for improvement analysis`);
+    console.log(`[Pipeline Iteration ${this.iteration}] ✅ Logged to ITERATION_LOG.md`);
 
-    // TODO: In real implementation, append to .module/ITERATION_LOG.md
-    // This would help track improvement across iterations
+    // Phase 34: Display improvement trends
+    const trends = await globalIterationLogger.calculateImprovementTrends();
+    console.log(`\n📈 Improvement Trends:`);
+    console.log(`- Average Processing Time: ${(trends.averageProcessingTime / 1000).toFixed(1)}s`);
+    console.log(`- Success Rate: ${(trends.successRate * 100).toFixed(1)}%`);
+    console.log(`- Trend: ${trends.trendDirection}`);
+
+    if (trends.recommendations.length > 0) {
+      console.log(`\n💡 Recommendations:`);
+      trends.recommendations.forEach(rec => console.log(`  - ${rec}`));
+    }
   }
 
   /**
