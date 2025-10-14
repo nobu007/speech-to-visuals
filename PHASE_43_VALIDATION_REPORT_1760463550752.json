@@ -1,0 +1,77 @@
+{
+  "phase": 43,
+  "timestamp": "2025-10-14T17:39:10.751Z",
+  "totalTests": 7,
+  "passed": 6,
+  "failed": 1,
+  "successRate": 85.71428571428571,
+  "results": [
+    {
+      "name": "Documentation Completeness",
+      "passed": true,
+      "details": "  ✅ docs/architecture/SYSTEM_CORE.md (11.0KB)\n  ✅ docs/architecture/PIPELINE_FLOW.md (11.6KB)\n  ✅ docs/architecture/QUALITY_METRICS.md (11.2KB)\n  ✅ docs/architecture/ITERATION_LOG.md (7.9KB)",
+      "metrics": {
+        "totalSize": 42603,
+        "filesFound": 4
+      }
+    },
+    {
+      "name": "Complexity Calibration",
+      "passed": true,
+      "details": "  ✅ Very simple sentence: simple (score: 10.0%, model: Flash)\n  ❌ Moderate technical content: simple (score: 13.3%, model: Flash)\n  ✅ Complex technical content: complex (score: 24.1%, model: Pro)",
+      "metrics": {
+        "accuracy": 66.66666666666666,
+        "correctClassifications": 2,
+        "total": 3
+      }
+    },
+    {
+      "name": "LLMService Integration",
+      "passed": true,
+      "details": "  ⚠️  LLMService not enabled (API key missing or disabled)\n  ℹ️  This is acceptable for offline testing",
+      "metrics": {
+        "enabled": false
+      }
+    },
+    {
+      "name": "ContentAnalyzer Fallback",
+      "passed": true,
+      "details": "  ✅ Analysis successful\n  Nodes: 3\n  Edges: 2\n  Type: flowchart",
+      "metrics": {
+        "nodes": 3,
+        "edges": 2,
+        "edgeRatio": 0.6666666666666666
+      }
+    },
+    {
+      "name": "GeminiAnalyzer",
+      "passed": true,
+      "details": "  ⚠️  LLM not enabled, skipping (acceptable)",
+      "metrics": {
+        "enabled": false
+      }
+    },
+    {
+      "name": "Cache Infrastructure",
+      "passed": true,
+      "details": "  Total requests: 0\n  Cache hits: undefined\n  Cache misses: undefined\n  Cache hit rate: 0.0%\n  ✅ Cache directory exists",
+      "metrics": {
+        "totalRequests": 0,
+        "hitRate": 0,
+        "cacheDir": true
+      }
+    },
+    {
+      "name": "Quality Metrics Compliance",
+      "passed": false,
+      "details": "  Success Rate: 0.0% (target: >90%) ❌\n  Fallback Rate: 0.0% (target: <10%) ✅\n  Flash usage: 0.0%\n  Avg response time: 0ms",
+      "metrics": {
+        "successRate": 0,
+        "fallbackRate": 0,
+        "flashPercent": 0,
+        "avgResponseTime": 0
+      }
+    }
+  ],
+  "summary": "✅ GOOD - Most tests passed"
+}

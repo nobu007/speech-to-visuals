@@ -34,6 +34,7 @@
     "test:phase37": "tsx scripts/test-phase37.ts",
     "test:phase38": "tsx scripts/phase38-custom-instructions-validation.ts",
     "test:phase43": "tsx scripts/test-phase43.ts",
+    "test:phase44": "tsx scripts/test-phase44-e2e.ts",
     "cache:warmup": "tsx scripts/cache-warmup.ts"
   },
   "dependencies": {
