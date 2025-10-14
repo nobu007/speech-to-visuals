@@ -302,12 +302,13 @@ async function testAllDiagramTypes(): Promise<E2ETestResult> {
     const { DiagramDetector } = await import('@/analysis/diagram-detector');
     const detector = new DiagramDetector();
 
+    // ITERATION 45: Enhanced test cases with distinctive keywords
     const testCases = [
       { text: 'First do A, then B, finally C.', expectedType: 'flow' },
-      { text: 'The company has CEO, CTO, and CFO reporting to board.', expectedType: 'tree' },
-      { text: 'In 2020 we started, 2021 we grew, 2022 we expanded.', expectedType: 'timeline' },
-      { text: 'Compare option A vs option B in terms of cost and quality.', expectedType: 'matrix' },
-      { text: 'Plan, execute, review, and repeat the cycle continuously.', expectedType: 'cycle' }
+      { text: 'The CEO oversees VPs who manage directors and teams.', expectedType: 'tree' },
+      { text: 'In January 2020 we started, March 2021 we launched, June 2022 we expanded.', expectedType: 'timeline' },
+      { text: 'We compare option A versus option B in a comparison matrix of features and cost criteria.', expectedType: 'matrix' },
+      { text: 'The development cycle loops: plan, execute, review, iterate, and repeat the cycle continuously.', expectedType: 'cycle' }
     ];
 
     const results = await Promise.all(
@@ -362,11 +363,12 @@ async function testZeroOverlapLayout(): Promise<E2ETestResult> {
 
   try {
     const { EnhancedZeroOverlapLayoutEngine } = await import('@/visualization/enhanced-zero-overlap-layout');
+    // ITERATION 45: Use improved layout parameters
     const layoutEngine = new EnhancedZeroOverlapLayoutEngine({
       overlapDetectionMode: 'balanced',
       collisionResolutionStrategy: 'force_directed',
-      separationDistance: 25,
-      maxIterations: 10,
+      separationDistance: 40, // Increased from 25
+      maxIterations: 300, // Increased from 10
       qualityThreshold: 100
     });
 

@@ -93,12 +93,12 @@ export class SimplePipeline {
       margin: 40
     });
 
-    // Initialize Enhanced Zero Overlap Layout Engine (カスタムインストラクション準拠)
+    // ITERATION 45: Enhanced Zero Overlap Layout Engine with improved parameters
     this.enhancedLayoutEngine = new EnhancedZeroOverlapLayoutEngine({
       overlapDetectionMode: 'balanced',
       collisionResolutionStrategy: 'force_directed',
-      separationDistance: 25,
-      maxIterations: 10,
+      separationDistance: 40, // Increased from 25 for better spacing
+      maxIterations: 300, // Increased from 10 to ensure convergence
       qualityThreshold: 100 // Zero overlap requirement
     });
 

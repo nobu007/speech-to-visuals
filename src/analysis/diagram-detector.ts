@@ -152,32 +152,37 @@ export class DiagramDetector {
     const text = segment.text.toLowerCase();
     const keyphrases = segment.keyphrases.map(kp => kp.toLowerCase());
 
-    // ITERATION 44 ENHANCEMENT: Enhanced keyword patterns with organizational detection
+    // ITERATION 45 ENHANCEMENT: Enhanced matrix/cycle keyword detection with negative keywords
     const patterns = {
       flow: {
         primary: ['process', 'workflow', 'pipeline', 'procedure', 'sequence'],
         secondary: ['step', 'flow', 'first', 'next', 'then', 'finally', 'after', 'before', 'follows'],
-        context: ['data', 'information', 'system', 'through', 'input', 'output']
+        context: ['data', 'information', 'system', 'through', 'input', 'output'],
+        negative: ['comparison', 'matrix', 'versus', 'cycle', 'loop', 'circular'] // Penalize flow if these appear
       },
       tree: {
         primary: ['hierarchy', 'organization', 'structure', 'taxonomy', 'ceo', 'vp', 'director', 'management'],
         secondary: ['parent', 'child', 'branch', 'root', 'category', 'classification', 'breakdown', 'reports', 'under', 'supervisor', 'team'],
-        context: ['levels', 'components', 'parts', 'subdivide', 'organize', 'department', 'division', 'company']
+        context: ['levels', 'components', 'parts', 'subdivide', 'organize', 'department', 'division', 'company'],
+        negative: ['comparison', 'versus', 'cycle', 'loop']
       },
       timeline: {
         primary: ['timeline', 'chronology', 'history', 'evolution', 'january', 'february', 'march', 'april', 'may', 'june'],
         secondary: ['development', 'year', 'month', 'date', 'time', 'period', 'era', 'phase', 'project', 'milestone'],
-        context: ['when', 'during', 'since', 'until', 'progress', 'stages', 'schedule', 'roadmap']
+        context: ['when', 'during', 'since', 'until', 'progress', 'stages', 'schedule', 'roadmap'],
+        negative: ['comparison', 'versus', 'cycle', 'loop', 'circular']
       },
       matrix: {
-        primary: ['comparison', 'matrix', 'table', 'versus'],
-        secondary: ['against', 'compare', 'criteria', 'features', 'properties', 'characteristics'],
-        context: ['different', 'similar', 'options', 'alternatives', 'choices']
+        primary: ['comparison', 'matrix', 'table', 'versus', 'compare', 'against', 'vs', 'vs.'],
+        secondary: ['criteria', 'features', 'properties', 'characteristics', 'options', 'alternatives', 'evaluate', 'assessment'],
+        context: ['different', 'similar', 'choices', 'contrasting', 'weighing', 'pros', 'cons'],
+        negative: [] // No negative keywords for matrix
       },
       cycle: {
-        primary: ['cycle', 'loop', 'circular', 'recurring'],
-        secondary: ['repeat', 'iteration', 'continuous', 'ongoing', 'cyclical', 'returns'],
-        context: ['back', 'again', 'repeatedly', 'continuous', 'infinite']
+        primary: ['cycle', 'loop', 'circular', 'recurring', 'repeat', 'continuous', 'iterative'],
+        secondary: ['iteration', 'ongoing', 'cyclical', 'returns', 'repeatedly', 'feedback', 'recursive'],
+        context: ['back', 'again', 'continuously', 'infinite', 'perpetual', 'round'],
+        negative: [] // No negative keywords for cycle
       }
     };
 
@@ -199,6 +204,7 @@ export class DiagramDetector {
     const SECONDARY_KEYPHRASE_WEIGHT = 4;
     const CONTEXT_KEYWORD_WEIGHT = 1;
     const CONTEXT_KEYPHRASE_WEIGHT = 2;
+    const NEGATIVE_KEYWORD_PENALTY = -10; // Strong penalty for negative keywords
 
       // Primary keywords (highest weight)
       for (const keyword of patternSet.primary) {
@@ -227,6 +233,18 @@ export class DiagramDetector {
         }
         if (keyphrases.some(kp => kp.includes(keyword))) {
           scores[type] += CONTEXT_KEYPHRASE_WEIGHT;
+        }
+      }
+
+      // ITERATION 45: Negative keywords (penalty for wrong type)
+      if ('negative' in patternSet && Array.isArray(patternSet.negative)) {
+        for (const negKeyword of patternSet.negative) {
+          if (text.includes(negKeyword)) {
+            scores[type] += NEGATIVE_KEYWORD_PENALTY;
+          }
+          if (keyphrases.some(kp => kp.includes(negKeyword))) {
+            scores[type] += NEGATIVE_KEYWORD_PENALTY * 1.5; // Even stronger penalty for keyphrases
+          }
         }
       }
     }

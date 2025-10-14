@@ -85,13 +85,13 @@ export class ZeroOverlapLayoutEngine {
       nodeBorderWidth: 2,
 
       minimumSpacing: {
-        nodeToNode: 40,      // 40px minimum between nodes
+        nodeToNode: 40,      // ITERATION 45: Optimal spacing (validated from Phase 44)
         nodeToEdge: 20,      // 20px minimum from node to crossing edge
         labelToElement: 15   // 15px minimum label spacing
       },
 
       optimization: {
-        maxIterations: 200,  // Increased from 100 for better convergence
+        maxIterations: 300,  // ITERATION 45: Increased from 200 for zero-overlap guarantee
         convergenceThreshold: 0.01,
         forceStrength: 0.5,
         aestheticWeight: 0.3
@@ -698,7 +698,10 @@ export class ZeroOverlapLayoutEngine {
         break;
       }
 
-      console.log(`   🔧 Iteration ${iteration + 1}: Resolving ${overlaps.length} overlaps`);
+      // ITERATION 45: Log progress less frequently to reduce noise
+      if (iteration % 50 === 0 || iteration < 10) {
+        console.log(`   🔧 Iteration ${iteration + 1}: Resolving ${overlaps.length} overlaps`);
+      }
       currentNodes = this.resolveOverlapsBatch(currentNodes, overlaps);
       iteration++;
     }
@@ -762,8 +765,8 @@ export class ZeroOverlapLayoutEngine {
       const { node1, node2 } = overlap;
       const separation = this.calculateOptimalSeparation(node1, node2);
 
-      // Calculate move vector with extra margin to prevent oscillation
-      const moveVector = this.calculateMoveVector(node1, node2, separation * 1.5);
+      // ITERATION 45: More aggressive separation with larger margin
+      const moveVector = this.calculateMoveVector(node1, node2, separation * 2.0); // Increased from 1.5
 
       // Accumulate forces
       const force1 = forces.get(node1.id)!;
@@ -779,8 +782,8 @@ export class ZeroOverlapLayoutEngine {
     adjustedNodes.forEach((node, index) => {
       const force = forces.get(node.id)!;
 
-      // Apply damping to prevent overshooting
-      const damping = 0.8;
+      // ITERATION 45: Reduced damping for more aggressive movement
+      const damping = 0.9; // Increased from 0.8 for stronger push
       const adjustedX = node.x + force.x * damping;
       const adjustedY = node.y + force.y * damping;
 
