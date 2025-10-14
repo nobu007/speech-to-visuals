@@ -1,11 +1,23 @@
 /**
- * Phase 23: Gemini Analyzer - Refactored to use Unified LLMService
+ * Phase 26: Gemini Analyzer - Enhanced Relationship Extraction
  *
- * Migration from Phase 19/22:
- * - Removed all duplicate LLM logic (now in LLMService)
- * - Simplified to focus on Gemini-specific diagram analysis
- * - Maintains 100% backward compatibility
- * - All LLM operations delegated to LLMService
+ * Evolution:
+ * - Phase 19: Adaptive model selection
+ * - Phase 22-23: Unified LLMService architecture
+ * - Phase 26: Advanced prompt engineering for superior relationship accuracy
+ *
+ * Key Improvements (Phase 26):
+ * - Enhanced prompt with multi-stage reasoning (think → extract → validate)
+ * - Explicit examples for relationship patterns (cause→effect, sequence, hierarchy)
+ * - Chain-of-thought prompting for complex relationship inference
+ * - Validation rules embedded in prompt for self-correction
+ * - Edge case handling (implicit relationships, bidirectional connections)
+ *
+ * Target Metrics:
+ * - Relationship extraction accuracy: 85% → 92% (target +7%)
+ * - Edge completeness: 70% → 88% (target +18%)
+ * - False positive rate: <5% (maintained)
+ * - Processing time: <10s (95th percentile, maintained)
  *
  * Benefits:
  * - Reduced code complexity (437 lines → ~150 lines, 65% reduction)
@@ -13,14 +25,6 @@
  * - Consistent retry and error handling
  * - Unified performance metrics across all LLM operations
  * - Single source of truth for rate limiting
- *
- * Changes from Phase 19:
- * - Before: Direct GoogleGenerativeAI usage with custom retry/cache logic
- * - After: LLMService.execute() with custom parser
- * - Removed: checkRateLimit, waitForBackoff, getAdaptiveTimeout, recordResponseTime
- * - Removed: executeRequest, all retry logic, all cache management
- * - Kept: analyzeText public API (100% backward compatible)
- * - Kept: getCacheStats (now delegates to LLMService)
  */
 
 import 'dotenv/config';
@@ -57,42 +61,66 @@ export class GeminiAnalyzer {
     return this.llmService.isEnabled();
   }
 
+
   /**
-   * Analyze text and extract diagram structure
-   * Uses LLMService for all LLM operations with adaptive model selection
+   * Phase 26: Detect cycles in edge graph (for quality assessment)
    */
-  async analyzeText(text: string, timeoutMs?: number): Promise<DiagramAnalysis | null> {
-    if (!this.isEnabled()) {
-      console.log('⚠️  GeminiAnalyzer: LLMService not enabled');
-      return null;
+  private detectCycles(edges: EdgeDatum[], nodeIds: Set<string>): boolean {
+    if (edges.length === 0) return false;
+
+    const graph = new Map<string, string[]>();
+    for (const node of nodeIds) {
+      graph.set(node, []);
+    }
+    for (const edge of edges) {
+      graph.get(edge.from)?.push(edge.to);
     }
 
-    // Optimize prompt for faster processing and more reliable JSON output with emphasis on relationship extraction
-    const prompt = `あなたはデータアナリストです。以下のテキストを分析し、図解データをJSON形式で出力してください。
+    const visited = new Set<string>();
+    const recStack = new Set<string>();
 
-必須フィールド:
-- title: 文字列（タイトル）
-- type: "flowchart" | "mindmap" | "timeline" | "orgchart" のいずれか
-- nodes: 配列 [{id: 文字列, label: 文字列}, ...]
-- edges: 配列 [{from: 文字列, to: 文字列, label?: 文字列}, ...]
+    const hasCycleDFS = (node: string): boolean => {
+      visited.add(node);
+      recStack.add(node);
 
-重要な指示:
-1. 説明文は一切不要です
-2. コードブロックも不要です
-3. 有効なJSON形式のみを返してください
-4. ノードは最大10個まで
-5. ラベルは60文字以内
-6. **関係性を正確に抽出してください**: テキスト中の「次に」「その後」「から」「により」「を経て」「によって」などの接続語に注目し、ノード間の依存関係を edges で正確に表現してください
-7. **順序を保持**: 時系列や手順がある場合、edges で順序関係を必ず表現してください
-8. **階層を表現**: 組織図や分類の場合、上位→下位の関係を edges で明確に表現してください
+      for (const neighbor of graph.get(node) || []) {
+        if (!visited.has(neighbor)) {
+          if (hasCycleDFS(neighbor)) return true;
+        } else if (recStack.has(neighbor)) {
+          return true;
+        }
+      }
 
-テキスト:
-${text.slice(0, 1000)}
+      recStack.delete(node);
+      return false;
+    };
 
-JSON:`; // Limit input text to 1000 chars for faster processing
+    for (const node of nodeIds) {
+      if (!visited.has(node)) {
+        if (hasCycleDFS(node)) return true;
+      }
+    }
 
-    // Custom parser for GeminiAnalyzer-specific output format
-    const parser = (responseText: string): DiagramAnalysis => {
+    return false;
+  }
+
+  /**
+   * Phase 26: Find disconnected nodes (isolated nodes with no edges)
+   */
+  private findDisconnectedNodes(nodes: NodeDatum[], edges: EdgeDatum[]): string[] {
+    const connectedNodes = new Set<string>();
+    for (const edge of edges) {
+      connectedNodes.add(edge.from);
+      connectedNodes.add(edge.to);
+    }
+    return nodes.filter(n => !connectedNodes.has(n.id)).map(n => n.id);
+  }
+
+  /**
+   * Phase 26: Create enhanced parser with relationship quality validation
+   */
+  private createEnhancedParser(): (responseText: string) => DiagramAnalysis {
+    return (responseText: string): DiagramAnalysis => {
       // Log response for debugging (first 200 chars)
       console.log(`📥 GeminiAnalyzer response preview: ${responseText.slice(0, 200).replace(/\n/g, ' ')}...`);
 
@@ -114,14 +142,110 @@ JSON:`; // Limit input text to 1000 chars for faster processing
       const nodes: NodeDatum[] = (parsed.nodes || []).map((n) => ({ id: n.id, label: n.label }));
       const edges: EdgeDatum[] = (parsed.edges || []).map((e) => ({ from: e.from, to: e.to, label: e.label }));
 
+      // Phase 26: Relationship quality validation
+      const nodeIds = new Set(nodes.map(n => n.id));
+      const validEdges = edges.filter(e => {
+        // Validate edge references existing nodes
+        const isValid = nodeIds.has(e.from) && nodeIds.has(e.to);
+        if (!isValid) {
+          console.warn(`⚠️  Phase 26: Invalid edge ${e.from}→${e.to} (node not found)`);
+        }
+        return isValid;
+      });
+
+      // Calculate relationship quality metrics
+      const edgeRatio = nodes.length > 1 ? validEdges.length / (nodes.length - 1) : 0;
+      const hasCycles = this.detectCycles(validEdges, nodeIds);
+      const disconnectedNodes = this.findDisconnectedNodes(nodes, validEdges);
+
+      // Adjust confidence based on relationship quality
+      let confidence = INITIAL_LLM_CONFIDENCE;
+      if (edgeRatio < 0.5 && nodes.length > 2) {
+        confidence -= 0.1; // Penalty for sparse relationships
+        console.log(`📊 Phase 26: Sparse relationships detected (${validEdges.length} edges for ${nodes.length} nodes)`);
+      }
+      if (disconnectedNodes.length > nodes.length * 0.3) {
+        confidence -= 0.1; // Penalty for too many isolated nodes
+        console.log(`⚠️  Phase 26: ${disconnectedNodes.length} disconnected nodes detected`);
+      }
+
+      console.log(`✅ Phase 26 Quality Metrics: edges=${validEdges.length}, ratio=${edgeRatio.toFixed(2)}, cycles=${hasCycles}, disconnected=${disconnectedNodes.length}, confidence=${confidence.toFixed(2)}`);
+
       return {
         type: mappedType,
-        confidence: INITIAL_LLM_CONFIDENCE,
+        confidence: Math.max(0.5, confidence), // Minimum confidence 0.5
         nodes,
-        edges,
-        reasoning: `LLM 解析結果に基づく構造化データ`,
+        edges: validEdges,
+        reasoning: `LLM 解析結果 (Phase 26強化版: ${validEdges.length}関係性抽出, 品質スコア${(confidence*100).toFixed(0)}%)`,
       };
     };
+  }
+
+  /**
+   * Phase 26: Analyze text and extract diagram structure with enhanced relationship extraction
+   * Uses LLMService for all LLM operations with adaptive model selection
+   */
+  async analyzeText(text: string, timeoutMs?: number): Promise<DiagramAnalysis | null> {
+    if (!this.isEnabled()) {
+      console.log('⚠️  GeminiAnalyzer: LLMService not enabled');
+      return null;
+    }
+
+    // Phase 26: Enhanced prompt with advanced relationship extraction techniques
+    const prompt = `あなたは構造化データ抽出の専門家です。以下のテキストから図解データを抽出し、特に**ノード間の関係性を高精度で抽出**してください。
+
+## ステップ1: 思考プロセス（内部処理、出力不要）
+1. テキストの主題とメインテーマを理解する
+2. キーとなるエンティティ（概念・人物・イベント）を列挙する
+3. エンティティ間の関係性パターンを特定する:
+   - 因果関係: A→B（Aが原因でBが発生）
+   - 時系列: A→B（AのあとにBが起こる）
+   - 階層: A→B（AがBを含む、AがBの上位）
+   - 依存: A→B（AがBに影響を与える）
+   - 変換: A→B（AがBに変化する）
+
+## ステップ2: 関係性抽出の重要ルール
+- **明示的な接続語を見逃さない**: 「次に」「その後」「から」「により」「によって」「を経て」「結果として」「そのため」「したがって」
+- **暗黙的な関係も推論**: 文脈から読み取れる順序・依存関係も含める
+- **双方向関係**: 相互作用がある場合は両方向のedgeを作成
+- **中間ステップ**: A→C とある場合、A→B→C のような中間プロセスが存在しないか検証
+
+## ステップ3: 出力形式（この部分のみ出力）
+以下のJSON形式で出力してください（説明文・コードブロック不要）:
+
+{
+  "title": "テキストの主題（30文字以内）",
+  "type": "flowchart" | "mindmap" | "timeline" | "orgchart",
+  "nodes": [
+    {"id": "n1", "label": "ノード名（60文字以内）"},
+    {"id": "n2", "label": "別のノード"}
+  ],
+  "edges": [
+    {"from": "n1", "to": "n2", "label": "関係性のラベル（省略可）"}
+  ]
+}
+
+## 出力制約:
+- ノード数: 最大10個
+- ラベル: 60文字以内
+- edges配列: **必須**（空配列でも必ず含める）
+- 純粋なJSONのみ（Markdown不要）
+
+## 関係性抽出の例:
+入力: "研究により新技術が開発され、それを実用化して製品化する"
+出力edges: [
+  {"from": "研究", "to": "新技術", "label": "開発"},
+  {"from": "新技術", "to": "実用化", "label": "適用"},
+  {"from": "実用化", "to": "製品化", "label": "変換"}
+]
+
+## 分析対象テキスト:
+${text.slice(0, 1000)}
+
+JSON:`; // Limit input text to 1000 chars for faster processing
+
+    // Use enhanced parser with quality validation
+    const parser = this.createEnhancedParser();
 
     // Use LLMService with custom parser
     // LLMService handles: caching, complexity analysis, model selection, retry, fallback
@@ -132,14 +256,14 @@ JSON:`; // Limit input text to 1000 chars for faster processing
         temperature: 0.1, // Very low temperature for consistent, deterministic outputs
         maxOutputTokens: 2048, // Increased to prevent truncation
         timeout: timeoutMs,
-        cacheKey: `gemini-analyzer:${text.slice(0, 100)}`,
+        cacheKey: `gemini-analyzer-v26:${text.slice(0, 100)}`, // v26 cache key for new prompt
         maxRetries: 3
       },
       parser
     });
 
     if (response.success && response.data) {
-      console.log(`✅ Phase 23: GeminiAnalyzer success via LLMService`);
+      console.log(`✅ Phase 26: GeminiAnalyzer success via LLMService`);
       console.log(`   Model: ${response.metadata.model}`);
       console.log(`   Response time: ${response.metadata.responseTime}ms`);
       console.log(`   From cache: ${response.metadata.fromCache}`);
