@@ -1,5 +1,6 @@
 import { DiagramData } from "./types";
 import { LLMService, llmService } from "./llm-service";
+import { getContentAnalyzerPrompt, type Language } from "./prompt-templates";
 
 /**
  * Phase 22: Content Analyzer - Refactored to use Unified LLMService
@@ -18,10 +19,20 @@ import { LLMService, llmService } from "./llm-service";
  */
 export class ContentAnalyzer {
   private llmService: LLMService;
+  private preferredLanguage: Language;
 
-  constructor(apiKey?: string, llmServiceInstance?: LLMService) {
+  constructor(apiKey?: string, llmServiceInstance?: LLMService, preferredLanguage: Language = 'auto') {
     // Use provided LLMService or create new one (for testing)
     this.llmService = llmServiceInstance || (apiKey ? new LLMService(apiKey) : llmService);
+    this.preferredLanguage = preferredLanguage;
+  }
+
+  /**
+   * Phase 32: Set preferred language for prompts
+   */
+  setLanguage(language: Language): void {
+    this.preferredLanguage = language;
+    console.log(`🌐 ContentAnalyzer language preference set to: ${language}`);
   }
 
   // Iteration 1: simple rule-based baseline using sentence splitting
@@ -54,22 +65,8 @@ export class ContentAnalyzer {
       return this.analyzeV1(text);
     }
 
-    const prompt = `以下のテキストを分析し、内容を最もよく表す図解を生成するためのJSONデータを作成してください。
-
-JSONの形式は {title, type, nodes, edges}。
-- type は 'flowchart' | 'mindmap' | 'timeline' | 'orgchart' のいずれか
-- nodes は {id, label} の配列
-- edges は {from, to, label?} の配列
-
-重要な指示:
-1. JSONのみを返してください（コードブロック不要）
-2. **関係性を正確に抽出**: テキスト中の「次に」「その後」「から」「により」「を経て」「その下に」などの接続語から、ノード間の依存関係を edges で正確に表現してください
-3. **順序を保持**: 時系列や手順がある場合、edges で順序関係を必ず含めてください
-4. **階層を表現**: 組織図や分類の場合、上位→下位の関係を edges で明確に表現してください
-5. すべての重要なノードに少なくとも1つの接続（edge）を作成してください
-
-テキスト:
-"${text}"`;
+    // Phase 32: Use adaptive multilingual prompts
+    const prompt = getContentAnalyzerPrompt(text, this.preferredLanguage);
 
     // Use LLMService for execution (handles caching, retry, fallback automatically)
     const response = await this.llmService.execute<DiagramData>({

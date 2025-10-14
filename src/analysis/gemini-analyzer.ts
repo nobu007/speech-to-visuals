@@ -33,6 +33,7 @@ import type { DiagramAnalysis, DiagramData } from "./types";
 import { parseJsonFromLLMText } from "./llm-utils";
 import { LLMService, llmService } from "./llm-service";
 import { getQualityMonitor } from "@/pipeline/quality-monitor";
+import { getGeminiAnalyzerPrompt, type Language } from "./prompt-templates";
 
 type GeminiDiagramType = DiagramData['type'];
 
@@ -51,15 +52,25 @@ const INITIAL_LLM_CONFIDENCE = 0.9;
  */
 export class GeminiAnalyzer {
   private llmService: LLMService;
+  private preferredLanguage: Language;
 
-  constructor(apiKey?: string, llmServiceInstance?: LLMService) {
+  constructor(apiKey?: string, llmServiceInstance?: LLMService, preferredLanguage: Language = 'auto') {
     // Use provided LLMService or create new one (for testing)
     // Default to singleton llmService for shared caching
     this.llmService = llmServiceInstance || (apiKey ? new LLMService(apiKey) : llmService);
+    this.preferredLanguage = preferredLanguage;
   }
 
   isEnabled(): boolean {
     return this.llmService.isEnabled();
+  }
+
+  /**
+   * Phase 32: Set preferred language for prompts
+   */
+  setLanguage(language: Language): void {
+    this.preferredLanguage = language;
+    console.log(`🌐 GeminiAnalyzer language preference set to: ${language}`);
   }
 
 
@@ -204,58 +215,8 @@ export class GeminiAnalyzer {
       return null;
     }
 
-    // Phase 26: Enhanced prompt with advanced relationship extraction techniques
-    const prompt = `あなたは構造化データ抽出の専門家です。以下のテキストから図解データを抽出し、特に**ノード間の関係性を高精度で抽出**してください。
-
-## ステップ1: 思考プロセス（内部処理、出力不要）
-1. テキストの主題とメインテーマを理解する
-2. キーとなるエンティティ（概念・人物・イベント）を列挙する
-3. エンティティ間の関係性パターンを特定する:
-   - 因果関係: A→B（Aが原因でBが発生）
-   - 時系列: A→B（AのあとにBが起こる）
-   - 階層: A→B（AがBを含む、AがBの上位）
-   - 依存: A→B（AがBに影響を与える）
-   - 変換: A→B（AがBに変化する）
-
-## ステップ2: 関係性抽出の重要ルール
-- **明示的な接続語を見逃さない**: 「次に」「その後」「から」「により」「によって」「を経て」「結果として」「そのため」「したがって」
-- **暗黙的な関係も推論**: 文脈から読み取れる順序・依存関係も含める
-- **双方向関係**: 相互作用がある場合は両方向のedgeを作成
-- **中間ステップ**: A→C とある場合、A→B→C のような中間プロセスが存在しないか検証
-
-## ステップ3: 出力形式（この部分のみ出力）
-以下のJSON形式で出力してください（説明文・コードブロック不要）:
-
-{
-  "title": "テキストの主題（30文字以内）",
-  "type": "flowchart" | "mindmap" | "timeline" | "orgchart",
-  "nodes": [
-    {"id": "n1", "label": "ノード名（60文字以内）"},
-    {"id": "n2", "label": "別のノード"}
-  ],
-  "edges": [
-    {"from": "n1", "to": "n2", "label": "関係性のラベル（省略可）"}
-  ]
-}
-
-## 出力制約:
-- ノード数: 最大10個
-- ラベル: 60文字以内
-- edges配列: **必須**（空配列でも必ず含める）
-- 純粋なJSONのみ（Markdown不要）
-
-## 関係性抽出の例:
-入力: "研究により新技術が開発され、それを実用化して製品化する"
-出力edges: [
-  {"from": "研究", "to": "新技術", "label": "開発"},
-  {"from": "新技術", "to": "実用化", "label": "適用"},
-  {"from": "実用化", "to": "製品化", "label": "変換"}
-]
-
-## 分析対象テキスト:
-${text.slice(0, 1000)}
-
-JSON:`; // Limit input text to 1000 chars for faster processing
+    // Phase 32: Use adaptive multilingual prompts
+    const prompt = getGeminiAnalyzerPrompt(text, this.preferredLanguage);
 
     // Use enhanced parser with quality validation
     const parser = this.createEnhancedParser();
