@@ -2,6 +2,7 @@ import { TranscriptionResult, TranscriptionConfig, TranscriptionSegment, Transcr
 import { BrowserTranscriber } from './browser-transcriber';
 import { WhisperTranscriber } from './whisper-transcriber';
 import { Caption } from '@remotion/captions';
+import { detectLanguage, type Language } from '@/analysis/language-detector';
 
 /**
  * Whisper-based transcription service with iterative improvement capabilities
@@ -221,14 +222,49 @@ export class TranscriptionPipeline {
     // Generate Remotion captions from segments
     const captions = await this.generateRemotionCaptions(segments);
 
+    // Phase 33: Auto-detect language from transcribed text
+    const detectedLanguage = this.detectLanguageFromSegments(segments);
+
     return {
       segments,
-      language: 'en', // TODO: Auto-detect
+      language: detectedLanguage,
       duration: metrics.duration,
       processingTime: performance.now() - startTime,
       success: true,
       captions // Add captions to result
     };
+  }
+
+  /**
+   * Phase 33: Auto-detect language from transcription segments
+   * Uses character-based detection from Phase 32 language detector
+   */
+  private detectLanguageFromSegments(segments: TranscriptionSegment[]): string {
+    if (segments.length === 0) {
+      return 'unknown';
+    }
+
+    // Combine first few segments for language detection (up to 500 chars for performance)
+    const sampleText = segments
+      .slice(0, Math.min(3, segments.length))
+      .map(seg => seg.text)
+      .join(' ')
+      .substring(0, 500);
+
+    const detection = detectLanguage(sampleText);
+
+    // Map Language type to full language codes
+    const languageMap: Record<Language, string> = {
+      'ja': 'ja',
+      'en': 'en',
+      'auto': 'unknown'
+    };
+
+    const detectedLang = languageMap[detection.language];
+
+    console.log(`📝 [Phase 33] Transcription language auto-detected: ${detectedLang} (confidence: ${(detection.confidence * 100).toFixed(1)}%)`);
+
+    return detectedLang;
   }
 
   /**

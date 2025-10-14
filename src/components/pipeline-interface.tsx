@@ -22,6 +22,9 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
   const [error, setError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [stages, setStages] = useState<PipelineStage[]>([]);
+  // Phase 33: Real-time streaming progress
+  const [streamingProgress, setStreamingProgress] = useState<string>('');
+  const [showStreamingDetails, setShowStreamingDetails] = useState(false);
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -205,6 +208,34 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
           <CardContent>
             <div className="space-y-4">
               <Progress value={progress} className="w-full" />
+
+              {/* Phase 33: Real-time Streaming Progress Indicator */}
+              {streamingProgress && (
+                <div className="space-y-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-blue-700">
+                      🌊 LLM Streaming ({progress.toFixed(0)}%)
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowStreamingDetails(!showStreamingDetails)}
+                      className="h-6 text-xs"
+                    >
+                      {showStreamingDetails ? 'Hide' : 'Show'} Details
+                    </Button>
+                  </div>
+                  {showStreamingDetails && (
+                    <div className="text-xs text-blue-600 font-mono bg-white p-2 rounded max-h-32 overflow-y-auto">
+                      {streamingProgress.substring(0, 300)}
+                      {streamingProgress.length > 300 && '...'}
+                    </div>
+                  )}
+                  <div className="text-xs text-blue-600">
+                    Received {streamingProgress.length} characters
+                  </div>
+                </div>
+              )}
 
               {/* Stage Details */}
               {stages.length > 0 && (

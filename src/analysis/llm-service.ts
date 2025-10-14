@@ -23,6 +23,12 @@ import { ComplexityDetector, ComplexityAnalysis } from "./complexity-detector";
 import { parseJsonFromLLMText } from "./llm-utils";
 
 /**
+ * Phase 33: Streaming progress callback
+ * Called with partial results as they stream in
+ */
+export type StreamingCallback = (partialText: string, progress: number) => void;
+
+/**
  * LLM Request configuration
  */
 export interface LLMRequest<T = any> {
@@ -35,6 +41,9 @@ export interface LLMRequest<T = any> {
     timeout?: number;
     maxRetries?: number;
     cacheKey?: string;
+    // Phase 33: Enable streaming responses
+    enableStreaming?: boolean;
+    onStream?: StreamingCallback;
   };
   parser?: (text: string) => T; // Custom parser function
 }
@@ -223,7 +232,9 @@ export class LLMService {
             maxOutputTokens: request.options?.maxOutputTokens || 2048
           },
           timeout,
-          attempt
+          attempt,
+          // Phase 33: Pass streaming callback if enabled
+          request.options?.enableStreaming ? request.options.onStream : undefined
         );
 
         const responseTime = Date.now() - startTime;
@@ -318,7 +329,9 @@ export class LLMService {
             maxOutputTokens: request.options?.maxOutputTokens || 2048
           },
           timeout,
-          attempt
+          attempt,
+          // Phase 33: Pass streaming callback if enabled (fallback also supports streaming)
+          request.options?.enableStreaming ? request.options.onStream : undefined
         );
 
         const responseTime = Date.now() - startTime;
@@ -389,13 +402,15 @@ export class LLMService {
 
   /**
    * Execute a single LLM request to a specific model
+   * Phase 33: Enhanced with streaming support
    */
   private async executeRequest(
     modelName: string,
     prompt: string,
     generationConfig: { temperature: number; maxOutputTokens: number },
     timeout: number,
-    attempt: number
+    attempt: number,
+    streamingCallback?: StreamingCallback
   ): Promise<string> {
     // Apply rate limiting
     await this.checkRateLimit();
@@ -412,6 +427,11 @@ export class LLMService {
       }
     });
 
+    // Phase 33: Use streaming API if callback provided
+    if (streamingCallback) {
+      return this.executeStreamingRequest(model, prompt, timeout, streamingCallback);
+    }
+
     // Add timeout wrapper
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('Request timeout')), timeout)
@@ -427,6 +447,61 @@ export class LLMService {
 
     if (!responseText || responseText.trim().length === 0) {
       throw new Error('Empty response from LLM');
+    }
+
+    return responseText;
+  }
+
+  /**
+   * Phase 33: Execute streaming LLM request with real-time progress updates
+   * Provides partial results as they arrive for better perceived performance
+   */
+  private async executeStreamingRequest(
+    model: any,
+    prompt: string,
+    timeout: number,
+    onStream: StreamingCallback
+  ): Promise<string> {
+    console.log('🌊 [Phase 33] Streaming LLM request initiated...');
+
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Request timeout')), timeout)
+    );
+
+    let fullText = '';
+    let lastProgress = 0;
+
+    const streamingPromise = (async () => {
+      const result = await model.generateContentStream({
+        contents: [{ role: "user", parts: [{ text: prompt }] }]
+      });
+
+      for await (const chunk of result.stream) {
+        const chunkText = chunk.text();
+        fullText += chunkText;
+
+        // Calculate progress (estimate based on max tokens)
+        const progress = Math.min(95, (fullText.length / 2048) * 100);
+
+        // Only call callback if progress has meaningfully changed (reduce noise)
+        if (progress - lastProgress > 5 || fullText.length < 100) {
+          console.log(`🌊 [Phase 33] Streaming progress: ${progress.toFixed(1)}% (${fullText.length} chars)`);
+          onStream(fullText, progress);
+          lastProgress = progress;
+        }
+      }
+
+      // Final progress update
+      onStream(fullText, 100);
+      console.log(`✅ [Phase 33] Streaming complete: ${fullText.length} chars`);
+
+      return fullText;
+    })();
+
+    const responseText = await Promise.race([streamingPromise, timeoutPromise]);
+
+    if (!responseText || responseText.trim().length === 0) {
+      throw new Error('Empty response from streaming LLM');
     }
 
     return responseText;
