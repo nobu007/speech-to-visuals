@@ -237,24 +237,24 @@ export class ZeroOverlapLayoutEngine {
     // Generate layout
     dagre.layout(g);
 
-    // Extract positioned nodes (note: using w/h as per PositionedNode type)
+    // Extract positioned nodes (note: using width/height as per PositionedNode type)
     const positionedNodes: PositionedNode[] = nodes.map(node => {
       const dagreNode = g.node(node.id);
       return {
         ...node,
         x: dagreNode.x - dagreNode.width / 2,
         y: dagreNode.y - dagreNode.height / 2,
-        w: dagreNode.width,
-        h: dagreNode.height
+        width: dagreNode.width,
+        height: dagreNode.height
       };
     });
 
-    // Extract layout edges
+    // Extract layout edges (must use positioned nodes, not Dagre nodes)
     const layoutEdges: LayoutEdge[] = edges.map(edge => ({
       ...edge,
       points: generateEdgePoints(
-        g.node(edge.from),
-        g.node(edge.to)
+        positionedNodes.find(n => n.id === edge.from)!,
+        positionedNodes.find(n => n.id === edge.to)!
       )
     }));
 

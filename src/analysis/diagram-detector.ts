@@ -914,8 +914,9 @@ export class DiagramDetector {
 
   private async testSemanticRelevance(analysis: DiagramAnalysis, segment: ContentSegment): Promise<{ passed: boolean; score: number; name: string }> {
     // Simplified semantic relevance test
+    const text = (segment.summary || segment.text || '').toLowerCase();
     const hasRelevantNodes = analysis.nodes.some(node =>
-      segment.summary.toLowerCase().includes(node.label.toLowerCase())
+      node.label && text.includes(node.label.toLowerCase())
     );
     const passed = hasRelevantNodes;
     const score = hasRelevantNodes ? this.SEMANTIC_RELEVANCE_SCORE_HIGH : this.SEMANTIC_RELEVANCE_SCORE_LOW;
@@ -924,7 +925,7 @@ export class DiagramDetector {
 
   private async testTypeAppropriateность(analysis: DiagramAnalysis, segment: ContentSegment): Promise<{ passed: boolean; score: number; name: string }> {
     // Test if the detected type is appropriate for the content
-    const text = segment.summary.toLowerCase();
+    const text = (segment.summary || segment.text || '').toLowerCase();
     const typeKeywords = {
       flow: ['process', 'step', 'flow', 'procedure'],
       tree: ['hierarchy', 'structure', 'tree', 'branch'],

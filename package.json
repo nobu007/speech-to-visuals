@@ -31,7 +31,8 @@
     "validate:llm": "tsx scripts/validate-llm-integration.ts",
     "test:phase33": "tsx scripts/test-phase33.ts",
     "test:phase34": "tsx scripts/test-phase34.ts",
-    "test:phase37": "tsx scripts/test-phase37.ts"
+    "test:phase37": "tsx scripts/test-phase37.ts",
+    "test:phase38": "tsx scripts/phase38-custom-instructions-validation.ts"
   },
   "dependencies": {
     "@dagrejs/dagre": "^1.1.5",
