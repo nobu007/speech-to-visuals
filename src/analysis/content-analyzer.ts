@@ -54,7 +54,13 @@ export class ContentAnalyzer {
       return cached;
     }
 
-    const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
+    const model = this.genAI.getGenerativeModel({
+      model: "gemini-2.0-flash-exp",
+      generationConfig: {
+        temperature: 0.1,
+        maxOutputTokens: 2048,
+      }
+    });
     const prompt = `以下のテキストを分析し、内容を最もよく表す図解を生成するためのJSONデータを作成してください。
 JSONの形式は {title, type, nodes, edges}。
 - type は 'flowchart' | 'mindmap' | 'timeline' | 'orgchart' のいずれか

@@ -76,6 +76,7 @@ export class GeminiAnalyzer {
 
   /**
    * Calculate adaptive timeout based on historical response times
+   * Uses P95 (95th percentile) for more robust timeout estimation
    */
   private getAdaptiveTimeout(): number {
     const DEFAULT_TIMEOUT = 30000; // 30 seconds
@@ -86,11 +87,17 @@ export class GeminiAnalyzer {
       return DEFAULT_TIMEOUT;
     }
 
-    // Calculate average response time
+    // Calculate P95 (95th percentile) for more robust estimation
+    const sorted = [...this.responseTimeHistory].sort((a, b) => a - b);
+    const p95Index = Math.ceil(sorted.length * 0.95) - 1;
+    const p95ResponseTime = sorted[Math.max(0, p95Index)];
+
+    // Also calculate average for logging
     const avgResponseTime = this.responseTimeHistory.reduce((sum, time) => sum + time, 0) / this.responseTimeHistory.length;
 
-    // Use 3x average as timeout (with min/max bounds)
-    const adaptiveTimeout = Math.max(MIN_TIMEOUT, Math.min(MAX_TIMEOUT, avgResponseTime * 3));
+    // Use P95 + 50% buffer as timeout (with min/max bounds)
+    // This ensures 95% of requests complete within timeout while providing safety margin
+    const adaptiveTimeout = Math.max(MIN_TIMEOUT, Math.min(MAX_TIMEOUT, p95ResponseTime * 1.5));
 
     return Math.round(adaptiveTimeout);
   }
@@ -293,12 +300,24 @@ JSON:`; // Limit input text to 1000 chars for faster processing
       ? this.responseTimeHistory.reduce((sum, time) => sum + time, 0) / this.responseTimeHistory.length
       : 0;
 
+    // Calculate P50, P95, P99 for comprehensive monitoring
+    let p50 = 0, p95 = 0, p99 = 0;
+    if (this.responseTimeHistory.length > 0) {
+      const sorted = [...this.responseTimeHistory].sort((a, b) => a - b);
+      p50 = sorted[Math.floor(sorted.length * 0.5)] || 0;
+      p95 = sorted[Math.ceil(sorted.length * 0.95) - 1] || 0;
+      p99 = sorted[Math.ceil(sorted.length * 0.99) - 1] || 0;
+    }
+
     return {
       ...this.cache.getStats(),
       totalRequests: this.requestCount,
       adaptiveTimeout: {
         currentTimeoutMs: this.getAdaptiveTimeout(),
         avgResponseTimeMs: Math.round(avgResponseTime),
+        p50ResponseTimeMs: Math.round(p50),
+        p95ResponseTimeMs: Math.round(p95),
+        p99ResponseTimeMs: Math.round(p99),
         historySamples: this.responseTimeHistory.length,
       },
     };
