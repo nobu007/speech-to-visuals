@@ -15,6 +15,10 @@ export interface VideoGenerationOptions {
   includeAudio: boolean;
   backgroundColor?: string;
   animationStyle: 'smooth' | 'instant' | 'bounce';
+  // Phase 14: Remotion rendering optimizations
+  concurrency?: number; // Number of CPU cores to use (default: 50% of available cores)
+  enableMultithreadedRendering?: boolean; // Default: true
+  enableGpuAcceleration?: boolean; // Default: true if available
 }
 
 export interface VideoGenerationResult {
@@ -67,6 +71,11 @@ export class VideoGenerator {
   };
 
   constructor(private options: Partial<VideoGenerationOptions> = {}) {
+    // Phase 14: Calculate optimal concurrency based on available CPU cores
+    const optimalConcurrency = typeof navigator !== 'undefined' && navigator.hardwareConcurrency
+      ? Math.max(1, Math.floor(navigator.hardwareConcurrency * 0.5))
+      : 2; // Fallback to 2 threads
+
     // デフォルト設定
     this.options = {
       outputFormat: 'mp4',
@@ -76,8 +85,14 @@ export class VideoGenerator {
       includeAudio: true,
       backgroundColor: '#0f0f23',
       animationStyle: 'smooth',
+      // Phase 14: Performance optimizations
+      concurrency: optimalConcurrency,
+      enableMultithreadedRendering: true,
+      enableGpuAcceleration: true,
       ...options
     };
+
+    console.log(`[Video Generator] Phase 14: Initialized with concurrency=${this.options.concurrency}, GPU=${this.options.enableGpuAcceleration}`);
   }
 
   /**
@@ -279,6 +294,7 @@ export class VideoGenerator {
 
   /**
    * Remotionレンダリング設定準備
+   * Phase 14: Added performance optimization settings
    */
   private async prepareRenderConfiguration(data: any) {
     return {
@@ -294,8 +310,32 @@ export class VideoGenerator {
         height: this.getResolutionHeight(),
         fps: this.options.fps || 30,
         durationInFrames: Math.ceil((data.totalDuration / 1000) * (this.options.fps || 30))
+      },
+      // Phase 14: Performance optimization settings
+      renderOptions: {
+        concurrency: this.options.concurrency || 2,
+        enableMultithreading: this.options.enableMultithreadedRendering !== false,
+        enableGpu: this.options.enableGpuAcceleration !== false,
+        // Additional Remotion-specific optimizations
+        imageFormat: 'jpeg', // Faster than png
+        jpegQuality: this.getJpegQualityFromQualitySetting(),
+        enforceAudioTrack: this.options.includeAudio,
+        muted: !this.options.includeAudio,
       }
     };
+  }
+
+  /**
+   * Helper: Convert quality setting to JPEG quality
+   */
+  private getJpegQualityFromQualitySetting(): number {
+    const qualityMap: { [key: string]: number } = {
+      low: 60,
+      medium: 75,
+      high: 85,
+      ultra: 95
+    };
+    return qualityMap[this.options.quality || 'high'] || 85;
   }
 
   /**

@@ -24,6 +24,9 @@ export interface SimplePipelineInput {
     useEnhancedLayout?: boolean;
     layoutQuality?: 'standard' | 'enhanced' | 'zero_overlap';
     overlapTolerance?: 'strict' | 'balanced' | 'performance';
+    // Phase 14: Parallel processing options
+    enableParallelProcessing?: boolean; // Default: true
+    maxConcurrency?: number; // Default: 4 (unlimited if not specified in implementation)
   };
 }
 
@@ -187,121 +190,174 @@ export class SimplePipeline {
 
       onProgress?.('Detecting diagram types', 70);
 
-      // Step 4: Diagram Detection & Layout with Continuous Learning Integration
+      // Step 4: Diagram Detection & Layout with PARALLEL Processing (Phase 14 Optimization)
       const scenes: SceneGraph[] = [];
       const diagramDetectionStartTime = Date.now();
 
-      for (const segment of contentSegments) {
+      // Phase 14: Check if parallel processing is enabled (default: true)
+      const enableParallel = input.options?.enableParallelProcessing !== false;
+      const maxConcurrency = input.options?.maxConcurrency || 4;
+
+      console.log(`🚀 Phase 14: Processing ${contentSegments.length} scenes ${enableParallel ? 'in PARALLEL' : 'SEQUENTIALLY'}`);
+      if (enableParallel) {
+        console.log(`   📊 Max concurrency: ${maxConcurrency} concurrent scenes`);
+      }
+
+      // Determine which layout engine to use based on options
+      const useEnhancedLayout = input.options?.useEnhancedLayout ??
+        (input.options?.layoutQuality === 'zero_overlap' || input.options?.layoutQuality === 'enhanced');
+
+      // Helper function to process a single scene
+      const processScene = async (segment: any, index: number): Promise<SceneGraph | null> => {
         const sceneStartTime = Date.now();
 
-        // Detect diagram type for this scene
-        const diagramAnalysis = await this.detector.analyze(segment);
+        try {
+          // Detect diagram type for this scene
+          const diagramAnalysis = await this.detector.analyze(segment);
 
-        const diagramDetectionTime = Date.now() - sceneStartTime;
+          const diagramDetectionTime = Date.now() - sceneStartTime;
 
-        // Custom Instructions: Learn from diagram detection
-        await continuousLearner.learnFromProcessingResult(
-          'diagram_detection',
-          { content: segment.text },
-          diagramAnalysis,
-          diagramDetectionTime,
-          diagramAnalysis.confidence,
-          diagramAnalysis.confidence > 0.6,
-          diagramAnalysis.confidence <= 0.6 ? ['low_confidence_detection'] : [],
-          {
-            segmentId: `scene-${Date.now()}-${Math.random()}`,
-            detectedType: diagramAnalysis.type,
-            customInstructionsPhase: '図解生成'
-          }
-        );
-
-        // Generate layout with Enhanced Zero Overlap Engine (カスタムインストラクション準拠)
-        const layoutStartTime = Date.now();
-
-        // Determine which layout engine to use based on options
-        const useEnhancedLayout = input.options?.useEnhancedLayout ??
-          (input.options?.layoutQuality === 'zero_overlap' || input.options?.layoutQuality === 'enhanced');
-
-        let layoutResult: any;
-
-        if (useEnhancedLayout) {
-          console.log('🎯 Using Enhanced Zero Overlap Layout Engine');
-
-          // Configure enhanced engine based on user preferences
-          const overlapConfig = {
-            overlapDetectionMode: input.options?.overlapTolerance || 'balanced',
-            qualityThreshold: input.options?.layoutQuality === 'zero_overlap' ? 100 : 95
-          };
-
-          const enhancedResult = await this.enhancedLayoutEngine.generateZeroOverlapLayout(
-            diagramAnalysis.type,
-            diagramAnalysis.nodes || [],
-            diagramAnalysis.edges || []
+          // Custom Instructions: Learn from diagram detection
+          await continuousLearner.learnFromProcessingResult(
+            'diagram_detection',
+            { content: segment.text },
+            diagramAnalysis,
+            diagramDetectionTime,
+            diagramAnalysis.confidence,
+            diagramAnalysis.confidence > 0.6,
+            diagramAnalysis.confidence <= 0.6 ? ['low_confidence_detection'] : [],
+            {
+              segmentId: `scene-${index}`,
+              detectedType: diagramAnalysis.type,
+              customInstructionsPhase: '図解生成',
+              parallelProcessing: true
+            }
           );
 
-          // Convert enhanced result to standard layout result format
-          layoutResult = {
-            success: enhancedResult.success,
-            layout: { nodes: enhancedResult.nodes, edges: enhancedResult.edges },
-            confidence: (enhancedResult.qualityMetrics?.aestheticScore ?? 0.8)
-          };
+          // Generate layout with Enhanced Zero Overlap Engine (カスタムインストラクション準拠)
+          const layoutStartTime = Date.now();
 
-          console.log(
-            `   ✅ Enhanced layout completed: overlapCount=${enhancedResult.qualityMetrics?.overlapCount ?? 'N/A'}`
-          );
-          if (enhancedResult.qualityMetrics?.aestheticScore !== undefined) {
+          let layoutResult: any;
+
+          if (useEnhancedLayout) {
+            console.log(`🎯 [Scene ${index + 1}] Using Enhanced Zero Overlap Layout Engine`);
+
+            const enhancedResult = await this.enhancedLayoutEngine.generateZeroOverlapLayout(
+              diagramAnalysis.type,
+              diagramAnalysis.nodes || [],
+              diagramAnalysis.edges || []
+            );
+
+            // Convert enhanced result to standard layout result format
+            layoutResult = {
+              success: enhancedResult.success,
+              layout: { nodes: enhancedResult.nodes, edges: enhancedResult.edges },
+              confidence: (enhancedResult.qualityMetrics?.aestheticScore ?? 0.8)
+            };
+
             console.log(
-              `   📊 Aesthetic score: ${(enhancedResult.qualityMetrics.aestheticScore * 100).toFixed(1)}%`
+              `   ✅ [Scene ${index + 1}] Enhanced layout completed: overlapCount=${enhancedResult.qualityMetrics?.overlapCount ?? 'N/A'}`
+            );
+          } else {
+            console.log(`🎨 [Scene ${index + 1}] Using Standard Layout Engine`);
+            layoutResult = await this.layoutEngine.generateLayout(
+              diagramAnalysis.nodes || [],
+              diagramAnalysis.edges || [],
+              diagramAnalysis.type,
+              this.iterationCount
             );
           }
 
-        } else {
-          console.log('🎨 Using Standard Layout Engine');
-          layoutResult = await this.layoutEngine.generateLayout(
-            diagramAnalysis.nodes || [],
-            diagramAnalysis.edges || [],
-            diagramAnalysis.type,
-            this.iterationCount
+          const layoutProcessingTime = Date.now() - layoutStartTime;
+          const layoutQuality = layoutResult.success && layoutResult.layout ?
+            Math.min(0.95, 0.8 + ((layoutResult.confidence || 0) * 0.15)) : 0.3;
+
+          // Custom Instructions: Learn from layout generation
+          await continuousLearner.learnFromProcessingResult(
+            'layout_generation',
+            { type: diagramAnalysis.type, nodeCount: diagramAnalysis.nodes?.length || 0 },
+            layoutResult,
+            layoutProcessingTime,
+            layoutQuality,
+            layoutResult.success,
+            layoutResult.success ? [] : ['layout_generation_failed'],
+            {
+              segmentId: `scene-${index}`,
+              diagramType: diagramAnalysis.type,
+              nodeCount: diagramAnalysis.nodes?.length || 0,
+              customInstructionsPhase: '図解生成',
+              parallelProcessing: true
+            }
           );
+
+          if (layoutResult.success && layoutResult.layout) {
+            const sceneId = `scene-${index}`;
+            return {
+              id: sceneId,
+              startTime: segment.startMs / 1000, // Convert ms to seconds
+              endTime: segment.endMs / 1000,     // Convert ms to seconds
+              content: segment.text,
+              type: diagramAnalysis.type,
+              layout: layoutResult.layout,
+              confidence: Math.min(
+                diagramAnalysis.confidence,
+                layoutResult.confidence || 1
+              )
+            } as SceneGraph;
+          }
+
+          return null;
+        } catch (error) {
+          console.error(`❌ [Scene ${index + 1}] Processing failed:`, error);
+          return null;
+        }
+      };
+
+      // Process scenes based on parallel processing setting
+      let sceneResults: (SceneGraph | null)[];
+
+      if (enableParallel) {
+        // Parallel processing with controlled concurrency
+        // Split into batches to avoid overwhelming the API
+        const batches: any[][] = [];
+        for (let i = 0; i < contentSegments.length; i += maxConcurrency) {
+          batches.push(contentSegments.slice(i, i + maxConcurrency));
         }
 
-        const layoutProcessingTime = Date.now() - layoutStartTime;
-        const layoutQuality = layoutResult.success && layoutResult.layout ?
-          Math.min(0.95, 0.8 + ((layoutResult.confidence || 0) * 0.15)) : 0.3;
+        sceneResults = [];
+        let processedCount = 0;
 
-        // Custom Instructions: Learn from layout generation
-        await continuousLearner.learnFromProcessingResult(
-          'layout_generation',
-          { type: diagramAnalysis.type, nodeCount: diagramAnalysis.nodes?.length || 0 },
-          layoutResult,
-          layoutProcessingTime,
-          layoutQuality,
-          layoutResult.success,
-          layoutResult.success ? [] : ['layout_generation_failed'],
-          {
-            segmentId: `scene-${Date.now()}-${Math.random()}`,
-            diagramType: diagramAnalysis.type,
-            nodeCount: diagramAnalysis.nodes?.length || 0,
-            customInstructionsPhase: '図解生成'
-          }
-        );
+        for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+          const batch = batches[batchIndex];
+          console.log(`   🔄 Processing batch ${batchIndex + 1}/${batches.length} (${batch.length} scenes)...`);
 
-        if (layoutResult.success && layoutResult.layout) {
-          const sceneId = `scene-${Date.now()}-${Math.random()}`;
-          scenes.push({
-            id: sceneId,
-            startTime: segment.startMs / 1000, // Convert ms to seconds
-            endTime: segment.endMs / 1000,     // Convert ms to seconds
-            content: segment.text,
-            type: diagramAnalysis.type,
-            layout: layoutResult.layout,
-            confidence: Math.min(
-              diagramAnalysis.confidence,
-              layoutResult.confidence || 1
-            )
+          const batchPromises = batch.map((segment, batchItemIndex) => {
+            const globalIndex = batchIndex * maxConcurrency + batchItemIndex;
+            return processScene(segment, globalIndex);
           });
+
+          const batchResults = await Promise.all(batchPromises);
+          sceneResults.push(...batchResults);
+          processedCount += batch.length;
+
+          console.log(`   ✅ Batch ${batchIndex + 1}/${batches.length} complete (${processedCount}/${contentSegments.length} total)`);
+        }
+      } else {
+        // Sequential processing (fallback for compatibility)
+        console.log('   ℹ️  Using sequential processing mode');
+        sceneResults = [];
+        for (let i = 0; i < contentSegments.length; i++) {
+          const result = await processScene(contentSegments[i], i);
+          sceneResults.push(result);
+          console.log(`   ✅ Scene ${i + 1}/${contentSegments.length} complete`);
         }
       }
+
+      // Filter out null results and add to scenes array
+      scenes.push(...sceneResults.filter((scene): scene is SceneGraph => scene !== null));
+
+      console.log(`✅ Phase 14: Completed ${scenes.length}/${contentSegments.length} scenes in parallel`);
+      console.log(`⏱️  Total parallel processing time: ${((Date.now() - diagramDetectionStartTime) / 1000).toFixed(2)}s`);
 
       const totalDiagramProcessingTime = Date.now() - diagramDetectionStartTime;
 

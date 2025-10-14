@@ -18,6 +18,10 @@ interface PerformanceMetrics {
     layoutTime: number;
     renderTime: number;
     totalTime: number;
+    // Phase 14: Parallel processing metrics
+    parallelScenes?: number;
+    parallelBatches?: number;
+    parallelSpeedup?: number; // Ratio of sequential to parallel time
   };
   cache: {
     hitRate: number;
@@ -34,6 +38,13 @@ interface PerformanceMetrics {
     successRate: number;
     errorRate: number;
     accuracyScore: number;
+  };
+  // Phase 14: Optimization metrics
+  optimization?: {
+    llmConcurrency: number;
+    videoConcurrency: number;
+    enabledOptimizations: string[];
+    performanceGain: number; // Percentage improvement
   };
 }
 
