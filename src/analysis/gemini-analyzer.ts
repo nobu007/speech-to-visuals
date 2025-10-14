@@ -3,6 +3,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { DiagramType, NodeDatum, EdgeDatum } from "@/types/diagram";
 import type { DiagramAnalysis, DiagramData } from "./types";
 import { parseJsonFromLLMText } from "./llm-utils";
+import { LLMCache } from "./llm-cache";
 
 type GeminiDiagramType = DiagramData['type'];
 
@@ -17,9 +18,13 @@ const INITIAL_LLM_CONFIDENCE = 0.9;
 
 export class GeminiAnalyzer {
   private apiKey?: string;
+  private cache: LLMCache<DiagramAnalysis>;
+  private requestCount: number = 0;
+  private lastRequestTime: number = 0;
 
   constructor(apiKey?: string) {
     this.apiKey = apiKey || process.env.GOOGLE_API_KEY;
+    this.cache = new LLMCache<DiagramAnalysis>({ maxSize: 200, ttlMinutes: 120 });
   }
 
   isEnabled(): boolean {
@@ -27,12 +32,61 @@ export class GeminiAnalyzer {
     return Boolean(this.apiKey);
   }
 
+  /**
+   * Exponential backoff delay calculation
+   */
+  private async waitForBackoff(attempt: number): Promise<void> {
+    if (attempt === 0) return;
+
+    const baseDelay = 1000; // 1 second
+    const maxDelay = 32000; // 32 seconds
+    const delay = Math.min(baseDelay * Math.pow(2, attempt - 1), maxDelay);
+
+    // Add jitter to prevent thundering herd
+    const jitter = Math.random() * 0.3 * delay;
+    const finalDelay = delay + jitter;
+
+    console.log(`⏳ Waiting ${(finalDelay / 1000).toFixed(1)}s before retry (attempt ${attempt})...`);
+    await new Promise(resolve => setTimeout(resolve, finalDelay));
+  }
+
+  /**
+   * Rate limit check and throttle
+   */
+  private async checkRateLimit(): Promise<void> {
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequestTime;
+
+    // Enforce minimum 500ms between requests
+    const minInterval = 500;
+    if (timeSinceLastRequest < minInterval) {
+      const waitTime = minInterval - timeSinceLastRequest;
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+
+    this.lastRequestTime = Date.now();
+    this.requestCount++;
+  }
+
   async analyzeText(text: string, timeoutMs: number = 30000): Promise<DiagramAnalysis | null> {
     if (!this.isEnabled()) return null;
 
+    // Check cache first
+    const cached = this.cache.get(text, 'gemini');
+    if (cached) {
+      console.log('✨ Using cached LLM analysis');
+      return cached;
+    }
+
     const genAI = new GoogleGenerativeAI(this.apiKey!);
 
-    const executeRequest = async (modelName: string): Promise<DiagramAnalysis | null> => {
+    const executeRequest = async (modelName: string, attempt: number = 0): Promise<DiagramAnalysis | null> => {
+      // Apply rate limiting
+      await this.checkRateLimit();
+
+      // Apply exponential backoff if retry
+      await this.waitForBackoff(attempt);
+
       const model = genAI.getGenerativeModel({
         model: modelName,
         generationConfig: {
@@ -61,7 +115,20 @@ export class GeminiAnalyzer {
       ]);
 
       const response = await result.response;
-      const parsed = parseJsonFromLLMText<DiagramData>(response.text());
+      const responseText = response.text();
+
+      // Check for empty or invalid response
+      if (!responseText || responseText.trim().length === 0) {
+        throw new Error('Empty response from LLM');
+      }
+
+      const parsed = parseJsonFromLLMText<DiagramData>(responseText);
+
+      // Validate parsed data structure
+      if (!parsed || !parsed.type || !Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) {
+        throw new Error('Invalid diagram data structure from LLM');
+      }
+
       const mappedType: DiagramType = typeMap[parsed.type] ?? "flow";
 
       const nodes: NodeDatum[] = (parsed.nodes || []).map((n) => ({ id: n.id, label: n.label }));
@@ -76,29 +143,73 @@ export class GeminiAnalyzer {
       };
     };
 
-    try {
-      // 1. Primary model: gemini-2.5-pro
-      return await executeRequest("gemini-2.5-pro");
-    } catch (err: any) {
-      const isRateLimit = err.status === 429 || (err.errorDetails && err.errorDetails.some((d: any) => d['@type']?.includes('QuotaFailure')));
-      const isTimeout = err.message === 'Request timeout';
+    const maxRetries = 3;
+    let lastError: any = null;
 
-      // 2. Fallback on rate limit or timeout error
-      if (isRateLimit || isTimeout) {
-        const reason = isRateLimit ? 'Rate limit' : 'Timeout';
-        console.warn(`${reason} hit with primary model. Retrying with flash model...`);
-        try {
-          // 2a. Retry with faster flash model and shorter timeout
-          return await executeRequest("gemini-2.5-flash");
-        } catch (retryErr: any) {
-          console.warn("Gemini analysis failed on retry with flash model.", retryErr.message || retryErr);
-          return null;
+    // Try primary model with retries
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const result = await executeRequest("gemini-2.5-pro", attempt);
+        // Cache successful result
+        if (result) {
+          this.cache.set(text, result, 'gemini');
+        }
+        return result;
+      } catch (err: any) {
+        lastError = err;
+        const isRateLimit = err.status === 429 || (err.errorDetails && err.errorDetails.some((d: any) => d['@type']?.includes('QuotaFailure')));
+        const isTimeout = err.message === 'Request timeout';
+
+        if (isRateLimit || isTimeout) {
+          const reason = isRateLimit ? 'Rate limit' : 'Timeout';
+          console.warn(`${reason} with gemini-2.5-pro (attempt ${attempt + 1}/${maxRetries})`);
+
+          if (attempt < maxRetries - 1) {
+            continue; // Retry with backoff
+          } else {
+            // Exhausted retries, try flash model
+            console.warn('Switching to gemini-2.5-flash...');
+            break;
+          }
+        }
+
+        // For other errors, fail immediately
+        console.warn("Gemini analysis failed with error:", err.message || err);
+        return null;
+      }
+    }
+
+    // Try flash model as final fallback with retries
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const result = await executeRequest("gemini-2.5-flash", attempt);
+        // Cache successful result
+        if (result) {
+          this.cache.set(text, result, 'gemini');
+        }
+        return result;
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`Flash model failed (attempt ${attempt + 1}/${maxRetries}):`, err.message || err);
+
+        if (attempt < maxRetries - 1) {
+          continue; // Retry with backoff
         }
       }
-
-      // 3. Handle other errors
-      console.warn("Gemini analysis failed with a non-recoverable error.", err.message || err);
-      return null;
     }
+
+    // All retries exhausted
+    console.warn("All Gemini retry attempts exhausted. Last error:", lastError?.message || lastError);
+    return null;
+  }
+
+  /**
+   * Get cache statistics for monitoring
+   */
+  getCacheStats() {
+    return {
+      ...this.cache.getStats(),
+      totalRequests: this.requestCount,
+    };
   }
 }
