@@ -24,8 +24,9 @@ export interface ComplexityAnalysis {
 }
 
 export class ComplexityDetector {
-  private readonly SIMPLE_THRESHOLD = 0.25;  // Lowered from 0.35 (more sensitive)
-  private readonly COMPLEX_THRESHOLD = 0.45; // Lowered from 0.65 (more realistic)
+  // Phase 43: Calibrated thresholds for optimal model selection
+  private readonly SIMPLE_THRESHOLD = 0.15;  // Simple content (Flash model)
+  private readonly COMPLEX_THRESHOLD = 0.20; // Complex content (Pro model) - Phase 43 calibration
 
   // Weight factors for complexity scoring (rebalanced for better discrimination)
   private readonly WEIGHTS = {
