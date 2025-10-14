@@ -4,6 +4,7 @@ import type { DiagramType, NodeDatum, EdgeDatum } from "@/types/diagram";
 import type { DiagramAnalysis, DiagramData } from "./types";
 import { parseJsonFromLLMText } from "./llm-utils";
 import { LLMCache } from "./llm-cache";
+import { ComplexityDetector, ComplexityAnalysis } from "./complexity-detector";
 
 type GeminiDiagramType = DiagramData['type'];
 
@@ -19,10 +20,21 @@ const INITIAL_LLM_CONFIDENCE = 0.9;
 export class GeminiAnalyzer {
   private apiKey?: string;
   private cache: LLMCache<DiagramAnalysis>;
+  private complexityDetector: ComplexityDetector;
   private requestCount: number = 0;
   private lastRequestTime: number = 0;
   private responseTimeHistory: number[] = [];
   private readonly MAX_HISTORY_SIZE = 20;
+
+  // Phase 19: Adaptive model selection metrics
+  private modelSelectionMetrics = {
+    totalRequests: 0,
+    flashRequests: 0,
+    proRequests: 0,
+    complexityOverrides: 0,
+    avgFlashResponseTime: [] as number[],
+    avgProResponseTime: [] as number[]
+  };
 
   constructor(apiKey?: string) {
     this.apiKey = apiKey || process.env.GOOGLE_API_KEY;
@@ -31,6 +43,7 @@ export class GeminiAnalyzer {
       ttlMinutes: 120,
       persistPath: '.cache/llm/gemini-cache.json'
     });
+    this.complexityDetector = new ComplexityDetector();
   }
 
   isEnabled(): boolean {
@@ -123,6 +136,15 @@ export class GeminiAnalyzer {
       console.log('✨ Using cached LLM analysis');
       return cached;
     }
+
+    // Phase 19: Analyze content complexity to select optimal model
+    const complexityAnalysis = this.complexityDetector.analyze(text);
+    console.log(`🔍 Phase 19: Complexity detected - ${complexityAnalysis.level} (score: ${(complexityAnalysis.score * 100).toFixed(1)}%)`);
+    console.log(`📊 Recommended model: ${complexityAnalysis.recommendedModel}`);
+    console.log(`💡 Reasoning: ${complexityAnalysis.reasoning}`);
+
+    // Track model selection metrics
+    this.modelSelectionMetrics.totalRequests++;
 
     // Use adaptive timeout if not explicitly specified
     const effectiveTimeout = timeoutMs ?? this.getAdaptiveTimeout();
@@ -238,13 +260,36 @@ JSON:`; // Limit input text to 1000 chars for faster processing
     const maxRetries = 3;
     let lastError: any = null;
 
-    // Try primary model with retries
+    // Phase 19: Adaptive model selection based on complexity
+    const primaryModel = complexityAnalysis.recommendedModel;
+    const fallbackModel = primaryModel === 'gemini-2.5-pro' ? 'gemini-2.5-flash' : 'gemini-2.5-pro';
+
+    console.log(`🎯 Phase 19: Primary model: ${primaryModel}, Fallback: ${fallbackModel}`);
+
+    // Track model usage
+    if (primaryModel === 'gemini-2.5-flash') {
+      this.modelSelectionMetrics.flashRequests++;
+    } else {
+      this.modelSelectionMetrics.proRequests++;
+    }
+
+    // Try primary model (complexity-based) with retries
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        const result = await executeRequest("gemini-2.5-pro", attempt);
+        const result = await executeRequest(primaryModel, attempt);
+
+        // Track response time by model
+        const responseTime = Date.now() - Date.now(); // Will be tracked in executeRequest
+        if (primaryModel === 'gemini-2.5-flash') {
+          this.modelSelectionMetrics.avgFlashResponseTime.push(responseTime);
+        } else {
+          this.modelSelectionMetrics.avgProResponseTime.push(responseTime);
+        }
+
         // Cache successful result
         if (result) {
           this.cache.set(text, result, 'gemini');
+          console.log(`✅ Phase 19: Success with ${primaryModel} (attempt ${attempt + 1})`);
         }
         return result;
       } catch (err: any) {
@@ -254,13 +299,14 @@ JSON:`; // Limit input text to 1000 chars for faster processing
 
         if (isRateLimit || isTimeout) {
           const reason = isRateLimit ? 'Rate limit' : 'Timeout';
-          console.warn(`${reason} with gemini-2.5-pro (attempt ${attempt + 1}/${maxRetries})`);
+          console.warn(`${reason} with ${primaryModel} (attempt ${attempt + 1}/${maxRetries})`);
 
           if (attempt < maxRetries - 1) {
             continue; // Retry with backoff
           } else {
-            // Exhausted retries, try flash model
-            console.warn('Switching to gemini-2.5-flash...');
+            // Exhausted retries, try fallback model
+            console.warn(`⚠️  Phase 19: Switching to fallback model ${fallbackModel}...`);
+            this.modelSelectionMetrics.complexityOverrides++;
             break;
           }
         }
@@ -271,18 +317,28 @@ JSON:`; // Limit input text to 1000 chars for faster processing
       }
     }
 
-    // Try flash model as final fallback with retries
+    // Try fallback model with retries
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        const result = await executeRequest("gemini-2.5-flash", attempt);
+        const result = await executeRequest(fallbackModel, attempt);
+
+        // Track response time by model
+        const responseTime = Date.now() - Date.now(); // Will be tracked in executeRequest
+        if (fallbackModel === 'gemini-2.5-flash') {
+          this.modelSelectionMetrics.avgFlashResponseTime.push(responseTime);
+        } else {
+          this.modelSelectionMetrics.avgProResponseTime.push(responseTime);
+        }
+
         // Cache successful result
         if (result) {
           this.cache.set(text, result, 'gemini');
+          console.log(`✅ Phase 19: Success with fallback ${fallbackModel} (attempt ${attempt + 1})`);
         }
         return result;
       } catch (err: any) {
         lastError = err;
-        console.warn(`Flash model failed (attempt ${attempt + 1}/${maxRetries}):`, err.message || err);
+        console.warn(`Fallback model ${fallbackModel} failed (attempt ${attempt + 1}/${maxRetries}):`, err.message || err);
 
         if (attempt < maxRetries - 1) {
           continue; // Retry with backoff
@@ -312,6 +368,23 @@ JSON:`; // Limit input text to 1000 chars for faster processing
       p99 = sorted[Math.ceil(sorted.length * 0.99) - 1] || 0;
     }
 
+    // Phase 19: Calculate model selection metrics
+    const avgFlashTime = this.modelSelectionMetrics.avgFlashResponseTime.length > 0
+      ? this.modelSelectionMetrics.avgFlashResponseTime.reduce((a, b) => a + b, 0) / this.modelSelectionMetrics.avgFlashResponseTime.length
+      : 0;
+
+    const avgProTime = this.modelSelectionMetrics.avgProResponseTime.length > 0
+      ? this.modelSelectionMetrics.avgProResponseTime.reduce((a, b) => a + b, 0) / this.modelSelectionMetrics.avgProResponseTime.length
+      : 0;
+
+    const flashUsagePercent = this.modelSelectionMetrics.totalRequests > 0
+      ? (this.modelSelectionMetrics.flashRequests / this.modelSelectionMetrics.totalRequests) * 100
+      : 0;
+
+    const overrideRate = this.modelSelectionMetrics.totalRequests > 0
+      ? (this.modelSelectionMetrics.complexityOverrides / this.modelSelectionMetrics.totalRequests) * 100
+      : 0;
+
     return {
       ...this.cache.getStats(),
       totalRequests: this.requestCount,
@@ -323,6 +396,42 @@ JSON:`; // Limit input text to 1000 chars for faster processing
         p99ResponseTimeMs: Math.round(p99),
         historySamples: this.responseTimeHistory.length,
       },
+      // Phase 19: Adaptive model selection metrics
+      modelSelection: {
+        totalRequests: this.modelSelectionMetrics.totalRequests,
+        flashRequests: this.modelSelectionMetrics.flashRequests,
+        proRequests: this.modelSelectionMetrics.proRequests,
+        flashUsagePercent: Math.round(flashUsagePercent * 10) / 10,
+        complexityOverrides: this.modelSelectionMetrics.complexityOverrides,
+        overrideRate: Math.round(overrideRate * 10) / 10,
+        avgFlashResponseTimeMs: Math.round(avgFlashTime),
+        avgProResponseTimeMs: Math.round(avgProTime),
+        estimatedTimeSavings: this.calculateTimeSavings()
+      }
     };
+  }
+
+  /**
+   * Phase 19: Calculate estimated time savings from adaptive model selection
+   */
+  private calculateTimeSavings(): string {
+    const { flashRequests, avgFlashResponseTime, avgProResponseTime } = this.modelSelectionMetrics;
+
+    if (flashRequests === 0 || avgFlashResponseTime.length === 0 || avgProResponseTime.length === 0) {
+      return '0s (insufficient data)';
+    }
+
+    const avgFlash = avgFlashResponseTime.reduce((a, b) => a + b, 0) / avgFlashResponseTime.length;
+    const avgPro = avgProResponseTime.reduce((a, b) => a + b, 0) / avgProResponseTime.length;
+
+    // Calculate time saved by using Flash instead of Pro for simple content
+    const timeSavedMs = flashRequests * (avgPro - avgFlash);
+    const timeSavedSec = timeSavedMs / 1000;
+
+    if (timeSavedSec < 0) {
+      return '0s (Flash slower in this sample)';
+    }
+
+    return `${timeSavedSec.toFixed(1)}s (${((timeSavedSec / avgPro) * 100).toFixed(1)}% reduction)`;
   }
 }
