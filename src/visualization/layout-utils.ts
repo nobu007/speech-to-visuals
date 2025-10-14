@@ -26,8 +26,8 @@ export function calculateNodeHeight(node: NodeDatum, config: NodeDimensionsConfi
  */
 export function calculateNodeCenter(node: PositionedNode): Point {
   return {
-    x: node.x + node.w / 2,
-    y: node.y + node.h / 2
+    x: node.x + node.width / 2,
+    y: node.y + node.height / 2
   };
 }
 
@@ -73,14 +73,14 @@ export function nodesOverlap(
   spacing: number = 0
 ): boolean {
   const left1 = node1.x - spacing / 2;
-  const right1 = node1.x + node1.w + spacing / 2;
+  const right1 = node1.x + node1.width + spacing / 2;
   const top1 = node1.y - spacing / 2;
-  const bottom1 = node1.y + node1.h + spacing / 2;
+  const bottom1 = node1.y + node1.height + spacing / 2;
 
   const left2 = node2.x - spacing / 2;
-  const right2 = node2.x + node2.w + spacing / 2;
-  const top2 = node2.y + spacing / 2;
-  const bottom2 = node2.y + node2.h + spacing / 2;
+  const right2 = node2.x + node2.width + spacing / 2;
+  const top2 = node2.y - spacing / 2;
+  const bottom2 = node2.y + node2.height + spacing / 2;
 
   return !(
     right1 <= left2 ||

@@ -91,7 +91,7 @@ export class ZeroOverlapLayoutEngine {
       },
 
       optimization: {
-        maxIterations: 100,
+        maxIterations: 200,  // Increased from 100 for better convergence
         convergenceThreshold: 0.01,
         forceStrength: 0.5,
         aestheticWeight: 0.3
@@ -355,8 +355,13 @@ export class ZeroOverlapLayoutEngine {
     });
 
     const layoutEdges: LayoutEdge[] = edges.map(edge => {
-      const sourceNode = positionedNodes.find(n => n.id === edge.source)!;
-      const targetNode = positionedNodes.find(n => n.id === edge.target)!;
+      const sourceNode = positionedNodes.find(n => n.id === (edge.source || edge.from));
+      const targetNode = positionedNodes.find(n => n.id === (edge.target || edge.to));
+
+      if (!sourceNode || !targetNode) {
+        console.warn(`⚠️  [Timeline] Missing node for edge`);
+        return { ...edge, points: [] };
+      }
 
       return {
         ...edge,
@@ -365,7 +370,7 @@ export class ZeroOverlapLayoutEngine {
           { x: targetNode.x + targetNode.width / 2, y: targetNode.y + targetNode.height / 2 }
         ]
       };
-    });
+    }).filter(edge => edge.points && edge.points.length > 0);
 
     return { nodes: positionedNodes, edges: layoutEdges };
   }
@@ -415,8 +420,8 @@ export class ZeroOverlapLayoutEngine {
     const layoutEdges: LayoutEdge[] = edges.map(edge => ({
       ...edge,
       points: generateEdgePoints(
-        positionedNodes.find(n => n.id === edge.source)!,
-        positionedNodes.find(n => n.id === edge.target)!
+        positionedNodes.find(n => n.id === (edge.source || edge.from))!,
+        positionedNodes.find(n => n.id === (edge.target || edge.to))!
       )
     }));
 
@@ -443,8 +448,8 @@ export class ZeroOverlapLayoutEngine {
     const layoutEdges: LayoutEdge[] = edges.map(edge => ({
       ...edge,
       points: generateEdgePoints(
-        positionedNodes.find(n => n.id === edge.source)!,
-        positionedNodes.find(n => n.id === edge.target)!
+        positionedNodes.find(n => n.id === (edge.source || edge.from))!,
+        positionedNodes.find(n => n.id === (edge.target || edge.to))!
       )
     }));
 
@@ -582,8 +587,8 @@ export class ZeroOverlapLayoutEngine {
 
     // Attractive forces along edges with optimal distance target
     edges.forEach(edge => {
-      const source = nodes.find(n => n.id === edge.source);
-      const target = nodes.find(n => n.id === edge.target);
+      const source = nodes.find(n => n.id === (edge.source || edge.from));
+      const target = nodes.find(n => n.id === (edge.target || edge.to));
 
       if (source && target) {
         const dx = (target.x + target.width / 2) - (source.x + source.width / 2);
@@ -665,8 +670,8 @@ export class ZeroOverlapLayoutEngine {
     const layoutEdges: LayoutEdge[] = edges.map(edge => ({
       ...edge,
       points: generateEdgePoints(
-        positionedNodes.find(n => n.id === edge.source)!,
-        positionedNodes.find(n => n.id === edge.target)!
+        positionedNodes.find(n => n.id === (edge.source || edge.from))!,
+        positionedNodes.find(n => n.id === (edge.target || edge.to))!
       )
     }));
 
@@ -706,8 +711,8 @@ export class ZeroOverlapLayoutEngine {
     const updatedEdges = layout.edges.map(edge => ({
       ...edge,
       points: generateEdgePoints(
-        currentNodes.find(n => n.id === edge.source)!,
-        currentNodes.find(n => n.id === edge.target)!
+        currentNodes.find(n => n.id === (edge.source || edge.from))!,
+        currentNodes.find(n => n.id === (edge.target || edge.to))!
       )
     }));
 
@@ -716,13 +721,16 @@ export class ZeroOverlapLayoutEngine {
 
   /**
    * Detect all overlapping elements in the layout
+   * Includes minimum spacing requirement
    */
   private detectAllOverlaps(nodes: PositionedNode[]): { node1: PositionedNode; node2: PositionedNode }[] {
     const overlaps: { node1: PositionedNode; node2: PositionedNode }[] = [];
+    const minSpacing = this.config.minimumSpacing.nodeToNode;
 
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
-        if (nodesOverlap(nodes[i], nodes[j])) {
+        // Check if nodes overlap OR are too close (within minimum spacing)
+        if (nodesOverlap(nodes[i], nodes[j], minSpacing)) {
           overlaps.push({ node1: nodes[i], node2: nodes[j] });
         }
       }
@@ -735,43 +743,52 @@ export class ZeroOverlapLayoutEngine {
 
   /**
    * Resolve a batch of overlaps by repositioning nodes
+   * Uses accumulated forces to prevent oscillation
    */
   private resolveOverlapsBatch(
     nodes: PositionedNode[],
     overlaps: { node1: PositionedNode; node2: PositionedNode }[]
   ): PositionedNode[] {
     const adjustedNodes = [...nodes];
+    const forces = new Map<string, { x: number; y: number }>();
 
+    // Initialize forces for all nodes
+    adjustedNodes.forEach(node => {
+      forces.set(node.id, { x: 0, y: 0 });
+    });
+
+    // Accumulate forces from all overlaps
     overlaps.forEach(overlap => {
       const { node1, node2 } = overlap;
       const separation = this.calculateOptimalSeparation(node1, node2);
 
-      // Move nodes apart by half the required distance each
-      const moveVector = this.calculateMoveVector(node1, node2, separation / 2);
+      // Calculate move vector with extra margin to prevent oscillation
+      const moveVector = this.calculateMoveVector(node1, node2, separation * 1.5);
 
-      // Find and update node positions
-      const index1 = adjustedNodes.findIndex(n => n.id === node1.id);
-      const index2 = adjustedNodes.findIndex(n => n.id === node2.id);
+      // Accumulate forces
+      const force1 = forces.get(node1.id)!;
+      const force2 = forces.get(node2.id)!;
 
-      if (index1 !== -1) {
-        adjustedNodes[index1] = {
-          ...adjustedNodes[index1],
-          x: Math.max(0, Math.min(this.config.canvasWidth - node1.width,
-                                 adjustedNodes[index1].x - moveVector.x)),
-          y: Math.max(0, Math.min(this.config.canvasHeight - node1.height,
-                                 adjustedNodes[index1].y - moveVector.y))
-        };
-      }
+      force1.x -= moveVector.x;
+      force1.y -= moveVector.y;
+      force2.x += moveVector.x;
+      force2.y += moveVector.y;
+    });
 
-      if (index2 !== -1) {
-        adjustedNodes[index2] = {
-          ...adjustedNodes[index2],
-          x: Math.max(0, Math.min(this.config.canvasWidth - node2.width,
-                                 adjustedNodes[index2].x + moveVector.x)),
-          y: Math.max(0, Math.min(this.config.canvasHeight - node2.height,
-                                 adjustedNodes[index2].y + moveVector.y))
-        };
-      }
+    // Apply accumulated forces to nodes
+    adjustedNodes.forEach((node, index) => {
+      const force = forces.get(node.id)!;
+
+      // Apply damping to prevent overshooting
+      const damping = 0.8;
+      const adjustedX = node.x + force.x * damping;
+      const adjustedY = node.y + force.y * damping;
+
+      adjustedNodes[index] = {
+        ...node,
+        x: Math.max(0, Math.min(this.config.canvasWidth - node.width, adjustedX)),
+        y: Math.max(0, Math.min(this.config.canvasHeight - node.height, adjustedY))
+      };
     });
 
     return adjustedNodes;
@@ -870,8 +887,8 @@ export class ZeroOverlapLayoutEngine {
     const adjustedEdges = layout.edges.map(edge => ({
       ...edge,
       points: generateEdgePoints(
-        adjustedNodes.find(n => n.id === edge.source)!,
-        adjustedNodes.find(n => n.id === edge.target)!
+        adjustedNodes.find(n => n.id === (edge.source || edge.from))!,
+        adjustedNodes.find(n => n.id === (edge.target || edge.to))!
       )
     }));
 
@@ -1024,8 +1041,8 @@ export class ZeroOverlapLayoutEngine {
 
     // Attractive forces along edges (構造維持)
     edges.forEach(edge => {
-      const source = nodes.find(n => n.id === edge.source);
-      const target = nodes.find(n => n.id === edge.target);
+      const source = nodes.find(n => n.id === (edge.source || edge.from));
+      const target = nodes.find(n => n.id === (edge.target || edge.to));
 
       if (source && target) {
         const dx = (target.x + target.width / 2) - (source.x + source.width / 2);

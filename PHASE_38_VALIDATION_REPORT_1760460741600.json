@@ -1,0 +1,193 @@
+{
+  "totalTests": 14,
+  "passed": 13,
+  "failed": 1,
+  "skipped": 0,
+  "results": [
+    {
+      "category": "MVP構築",
+      "test": "Remotion インストール確認",
+      "status": "PASS",
+      "message": "Remotion が正しくインストールされています",
+      "metrics": {
+        "version": "4.0.361",
+        "compositionAvailable": true
+      },
+      "duration": 104
+    },
+    {
+      "category": "MVP構築",
+      "test": "Dagre レイアウトエンジン確認",
+      "status": "PASS",
+      "message": "Dagre レイアウトエンジンが正常に動作",
+      "metrics": {
+        "graphCreated": true,
+        "nodeAdded": true
+      },
+      "duration": 2
+    },
+    {
+      "category": "MVP構築",
+      "test": "プロジェクト構造確認",
+      "status": "PASS",
+      "message": "必須ディレクトリがすべて存在します",
+      "metrics": {
+        "requiredDirs": 8,
+        "projectRoot": "/home/jinno/speech-to-visuals"
+      },
+      "duration": 0
+    },
+    {
+      "category": "LLM統合",
+      "test": "GOOGLE_API_KEY 環境変数確認",
+      "status": "PASS",
+      "message": "GOOGLE_API_KEY が正しく設定されています",
+      "metrics": {
+        "keyLength": 39,
+        "keyPrefix": "AIzaSyANdX..."
+      },
+      "duration": 0
+    },
+    {
+      "category": "LLM統合",
+      "test": "GeminiAnalyzer 初期化と基本動作",
+      "status": "PASS",
+      "message": "GeminiAnalyzer が正常に動作しています",
+      "metrics": {
+        "nodesExtracted": 3,
+        "edgesExtracted": 2,
+        "diagramType": "flow",
+        "confidence": 0.9
+      },
+      "duration": 6659
+    },
+    {
+      "category": "LLM統合",
+      "test": "ContentAnalyzer LLM統合動作",
+      "status": "PASS",
+      "message": "ContentAnalyzer が正常に動作しています",
+      "metrics": {
+        "nodesExtracted": 3,
+        "edgesExtracted": 2,
+        "diagramType": "mindmap",
+        "title": "人工知能の分類"
+      },
+      "duration": 8378
+    },
+    {
+      "category": "LLM統合",
+      "test": "LLMService キャッシュ機能",
+      "status": "PASS",
+      "message": "LLMService のキャッシュが動作しています",
+      "metrics": {
+        "totalRequests": 2,
+        "hitRate": "NaN%",
+        "avgResponseTime": 7517
+      },
+      "duration": 1
+    },
+    {
+      "category": "図解生成",
+      "test": "ゼロオーバーラップレイアウトエンジン",
+      "status": "FAIL",
+      "message": "レイアウト生成失敗またはオーバーラップ検出: N/A",
+      "duration": 10
+    },
+    {
+      "category": "図解生成",
+      "test": "DiagramDetector 図解タイプ判定",
+      "status": "PASS",
+      "message": "DiagramDetector が正常に動作しています",
+      "metrics": {
+        "detectedType": "flow",
+        "confidence": 0.9,
+        "nodeCount": 3,
+        "edgeCount": 2
+      },
+      "duration": 8714
+    },
+    {
+      "category": "図解生成",
+      "test": "5種類の図解タイプサポート確認",
+      "status": "PASS",
+      "message": "全5種類の図解タイプがサポートされています",
+      "metrics": {
+        "supportedTypes": [
+          "flow",
+          "tree",
+          "timeline",
+          "matrix",
+          "cycle"
+        ],
+        "successCount": 5,
+        "results": {
+          "flow": true,
+          "tree": true,
+          "timeline": true,
+          "matrix": true,
+          "cycle": true
+        }
+      },
+      "duration": 6
+    },
+    {
+      "category": "品質保証",
+      "test": "QualityMonitor 動作確認",
+      "status": "PASS",
+      "message": "QualityMonitor が正常に動作しています",
+      "metrics": {
+        "overallScore": 100,
+        "metricsRecorded": 12
+      },
+      "duration": 1
+    },
+    {
+      "category": "品質保証",
+      "test": "イテレーションログ機能",
+      "status": "PASS",
+      "message": "イテレーションログが正しく記録されています",
+      "metrics": {
+        "logSize": 4948,
+        "hasHistory": true,
+        "logPath": "/home/jinno/speech-to-visuals/.module/ITERATION_LOG.md"
+      },
+      "duration": 0
+    },
+    {
+      "category": "E2E統合",
+      "test": "SimplePipeline 初期化",
+      "status": "PASS",
+      "message": "SimplePipeline が正常に初期化されました",
+      "metrics": {
+        "transcriptionModel": "whisper-base",
+        "supportedFormats": "mp3, wav, ogg, m4a",
+        "diagramTypes": "flow, tree, timeline, concept"
+      },
+      "duration": 1
+    },
+    {
+      "category": "E2E統合",
+      "test": "テストオーディオファイル確認",
+      "status": "PASS",
+      "message": "テストオーディオファイルが存在します: public/jfk.wav",
+      "metrics": {
+        "path": "public/jfk.wav",
+        "fullPath": "/home/jinno/speech-to-visuals/public/jfk.wav",
+        "size": 352078,
+        "sizeKB": "343.83 KB"
+      },
+      "duration": 0
+    }
+  ],
+  "overallScore": 93,
+  "timestamp": "2025-10-14T16:52:21.599Z",
+  "systemMetrics": {
+    "nodeVersion": "v20.19.2",
+    "platform": "linux",
+    "memory": {
+      "total": 19,
+      "used": 17,
+      "free": 2
+    }
+  }
+}
