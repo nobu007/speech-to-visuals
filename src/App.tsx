@@ -10,6 +10,7 @@ import TutorialSystem from "./components/TutorialSystem";
 import ProductionDashboard from "./components/ProductionDashboard";
 import ErrorAlertSystem from "./components/ErrorAlertSystem";
 import SimplePipelineInterface from "./components/SimplePipelineInterface";
+import FrameworkDashboardPage from "./components/FrameworkDashboardPage";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/simple" element={<SimplePipelineInterface />} />
           <Route path="/iteration43" element={<Iteration43Interface />} />
           <Route path="/production" element={<ProductionDashboard />} />
+          <Route path="/framework" element={<FrameworkDashboardPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
