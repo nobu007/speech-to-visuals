@@ -90,19 +90,33 @@ export class GeminiAnalyzer {
       const model = genAI.getGenerativeModel({
         model: modelName,
         generationConfig: {
-          temperature: 0.3, // Lower temperature for more consistent outputs
-          maxOutputTokens: 1024, // Limit output size for faster responses
+          temperature: 0.1, // Very low temperature for consistent, deterministic outputs
+          maxOutputTokens: 2048, // Increased to prevent truncation
+          topP: 0.95,
+          topK: 40,
         }
       });
 
-      // Optimize prompt for faster processing
-      const prompt = `以下のテキストを分析し、内容を最もよく表す図解を生成するためのJSONデータを作成してください。\n` +
-        `JSON形式: {title, type, nodes, edges}\n` +
-        `- typeは flowchart | mindmap | timeline | orgchart のいずれか\n` +
-        `- nodes: {id, label}[]\n` +
-        `- edges: {from, to, label?}[]\n` +
-        `JSONのみを返してください。コードブロックは不要です。\n\n` +
-        `テキスト:\n${text.slice(0, 1000)}`; // Limit input text to 1000 chars for faster processing
+      // Optimize prompt for faster processing and more reliable JSON output
+      const prompt = `あなたはデータアナリストです。以下のテキストを分析し、図解データをJSON形式で出力してください。
+
+必須フィールド:
+- title: 文字列（タイトル）
+- type: "flowchart" | "mindmap" | "timeline" | "orgchart" のいずれか
+- nodes: 配列 [{id: 文字列, label: 文字列}, ...]
+- edges: 配列 [{from: 文字列, to: 文字列, label?: 文字列}, ...]
+
+重要な指示:
+1. 説明文は一切不要です
+2. コードブロックも不要です
+3. 有効なJSON形式のみを返してください
+4. ノードは最大10個まで
+5. ラベルは60文字以内
+
+テキスト:
+${text.slice(0, 1000)}
+
+JSON:`; // Limit input text to 1000 chars for faster processing
 
       // Add timeout wrapper
       const timeoutPromise = new Promise<never>((_, reject) =>
@@ -115,18 +129,35 @@ export class GeminiAnalyzer {
       ]);
 
       const response = await result.response;
-      const responseText = response.text();
+      let responseText: string;
+
+      try {
+        responseText = response.text();
+      } catch (textErr) {
+        console.error(`Failed to extract text from ${modelName} response:`, textErr);
+        throw new Error(`Failed to get text from LLM response: ${textErr}`);
+      }
 
       // Check for empty or invalid response
       if (!responseText || responseText.trim().length === 0) {
+        console.error(`${modelName} returned empty response`);
         throw new Error('Empty response from LLM');
       }
 
+      // Log response for debugging (first 200 chars)
+      console.log(`📥 ${modelName} response preview: ${responseText.slice(0, 200).replace(/\n/g, ' ')}...`);
+
       const parsed = parseJsonFromLLMText<DiagramData>(responseText);
 
-      // Validate parsed data structure
-      if (!parsed || !parsed.type || !Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) {
+      // Validate parsed data structure (edges may be missing in truncated responses)
+      if (!parsed || !parsed.type || !Array.isArray(parsed.nodes)) {
         throw new Error('Invalid diagram data structure from LLM');
+      }
+
+      // Normalize missing or invalid edges array
+      if (!parsed.edges || !Array.isArray(parsed.edges)) {
+        console.warn('⚠️  Missing edges field in LLM response, defaulting to empty array');
+        parsed.edges = [];
       }
 
       const mappedType: DiagramType = typeMap[parsed.type] ?? "flow";
