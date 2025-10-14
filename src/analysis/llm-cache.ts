@@ -4,16 +4,19 @@
  * - Memory-efficient with TTL and size limits
  * - Hash-based key generation for consistent lookups
  * - Persistent file-based storage for cross-session efficiency
+ * - Semantic similarity matching for fuzzy cache hits (Phase 17)
  */
 
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import { calculateSemanticSimilarity, SemanticMetricsTracker } from './semantic-similarity';
 
 interface CacheEntry<T> {
   data: T;
   timestamp: number;
   hits: number;
+  originalText?: string; // Store original text for semantic matching
 }
 
 export class LLMCache<T> {
@@ -22,12 +25,24 @@ export class LLMCache<T> {
   private ttlMs: number;
   private persistPath?: string;
   private persistEnabled: boolean;
+  private semanticThreshold: number;
+  private semanticEnabled: boolean;
+  private semanticMetrics: SemanticMetricsTracker;
 
-  constructor(options: { maxSize?: number; ttlMinutes?: number; persistPath?: string } = {}) {
+  constructor(options: {
+    maxSize?: number;
+    ttlMinutes?: number;
+    persistPath?: string;
+    semanticThreshold?: number;
+    enableSemantic?: boolean;
+  } = {}) {
     this.maxSize = options.maxSize ?? 100;
     this.ttlMs = (options.ttlMinutes ?? 60) * 60 * 1000;
     this.persistPath = options.persistPath;
     this.persistEnabled = Boolean(this.persistPath);
+    this.semanticThreshold = options.semanticThreshold ?? 0.80; // 80% similarity threshold
+    this.semanticEnabled = options.enableSemantic ?? true;
+    this.semanticMetrics = new SemanticMetricsTracker();
 
     // Load persisted cache on initialization
     if (this.persistEnabled) {
@@ -74,33 +89,88 @@ export class LLMCache<T> {
 
   /**
    * Get cached result if available and valid
+   * Now with semantic similarity fallback for fuzzy matching
    */
   get(text: string, prefix?: string): T | null {
     const key = this.generateKey(text, prefix);
     const entry = this.cache.get(key);
 
-    if (!entry) return null;
-
-    if (!this.isValid(entry)) {
-      this.cache.delete(key);
-      return null;
+    // Exact match found
+    if (entry && this.isValid(entry)) {
+      entry.hits++;
+      this.semanticMetrics.recordExactHit();
+      return entry.data;
     }
 
-    entry.hits++;
-    return entry.data;
+    // Clean up invalid entry if exists
+    if (entry && !this.isValid(entry)) {
+      this.cache.delete(key);
+    }
+
+    // Try semantic similarity matching if enabled
+    if (this.semanticEnabled) {
+      return this.getSemanticMatch(text, prefix);
+    }
+
+    this.semanticMetrics.recordMiss();
+    return null;
+  }
+
+  /**
+   * Find semantically similar cached entry
+   * @private
+   */
+  private getSemanticMatch(text: string, prefix?: string): T | null {
+    const normalized = text.trim().toLowerCase().slice(0, 2000);
+    let bestMatch: { entry: CacheEntry<T>; similarity: number } | null = null;
+
+    // Iterate through all valid cache entries
+    for (const [cachedKey, entry] of this.cache.entries()) {
+      // Skip if wrong prefix or expired
+      if (prefix && !cachedKey.startsWith(`${prefix}:`)) continue;
+      if (!this.isValid(entry)) continue;
+      if (!entry.originalText) continue;
+
+      this.semanticMetrics.recordComparison();
+
+      // Calculate similarity
+      const similarity = calculateSemanticSimilarity(normalized, entry.originalText);
+
+      // Update best match if this is better
+      if (similarity >= this.semanticThreshold) {
+        if (!bestMatch || similarity > bestMatch.similarity) {
+          bestMatch = { entry, similarity };
+        }
+      }
+    }
+
+    // Return best match if found
+    if (bestMatch) {
+      bestMatch.entry.hits++;
+      this.semanticMetrics.recordSemanticHit(bestMatch.similarity);
+      console.log(`🔍 Semantic cache hit (similarity: ${(bestMatch.similarity * 100).toFixed(1)}%)`);
+      return bestMatch.entry.data;
+    }
+
+    this.semanticMetrics.recordMiss();
+    return null;
   }
 
   /**
    * Store result in cache
+   * Now stores original text for semantic matching
    */
   set(text: string, data: T, prefix?: string): void {
     this.evictOldest();
 
     const key = this.generateKey(text, prefix);
+    const normalized = text.trim().toLowerCase().slice(0, 2000);
+
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
       hits: 0,
+      originalText: this.semanticEnabled ? normalized : undefined,
     });
 
     // Persist to disk if enabled
@@ -111,11 +181,18 @@ export class LLMCache<T> {
 
   /**
    * Get cache statistics
+   * Now includes semantic matching metrics
    */
   getStats() {
     const entries = Array.from(this.cache.values());
     const validEntries = entries.filter(e => this.isValid(e));
     const totalHits = entries.reduce((sum, e) => sum + e.hits, 0);
+    const semanticMetrics = this.semanticMetrics.getMetrics();
+
+    const totalRequests = semanticMetrics.exactHits + semanticMetrics.semanticHits + semanticMetrics.misses;
+    const overallHitRate = totalRequests > 0
+      ? ((semanticMetrics.exactHits + semanticMetrics.semanticHits) / totalRequests) * 100
+      : 0;
 
     return {
       size: this.cache.size,
@@ -123,6 +200,16 @@ export class LLMCache<T> {
       totalHits,
       avgHitsPerEntry: entries.length > 0 ? totalHits / entries.length : 0,
       hitRate: totalHits > 0 ? (totalHits / (totalHits + entries.length)) * 100 : 0,
+      semantic: {
+        enabled: this.semanticEnabled,
+        threshold: this.semanticThreshold,
+        exactHits: semanticMetrics.exactHits,
+        semanticHits: semanticMetrics.semanticHits,
+        misses: semanticMetrics.misses,
+        overallHitRate,
+        avgSimilarityScore: semanticMetrics.avgSimilarityScore,
+        totalComparisons: semanticMetrics.totalComparisons,
+      },
     };
   }
 
@@ -163,13 +250,14 @@ export class LLMCache<T> {
 
       // Convert Map to serializable object
       const serializable = {
-        version: '1.0',
+        version: '2.0', // Updated version for semantic cache support
         timestamp: Date.now(),
         entries: Array.from(this.cache.entries()).map(([key, entry]) => ({
           key,
           data: entry.data,
           timestamp: entry.timestamp,
           hits: entry.hits,
+          originalText: entry.originalText,
         })),
       };
 
@@ -197,8 +285,8 @@ export class LLMCache<T> {
       const content = fs.readFileSync(this.persistPath, 'utf8');
       const parsed = JSON.parse(content);
 
-      // Validate version
-      if (parsed.version !== '1.0') {
+      // Support both v1.0 (without semantic) and v2.0 (with semantic)
+      if (parsed.version !== '1.0' && parsed.version !== '2.0') {
         console.warn('⚠️  Cache version mismatch, starting fresh');
         return;
       }
@@ -212,6 +300,7 @@ export class LLMCache<T> {
           data: entry.data,
           timestamp: entry.timestamp,
           hits: entry.hits,
+          originalText: entry.originalText, // May be undefined for v1.0 caches
         };
 
         if (this.isValid(cacheEntry)) {
@@ -222,7 +311,8 @@ export class LLMCache<T> {
         }
       }
 
-      console.log(`💾 Loaded ${loadedCount} cached LLM entries from disk (${expiredCount} expired, discarded)`);
+      const semanticSupport = parsed.version === '2.0' ? ' (with semantic support)' : '';
+      console.log(`💾 Loaded ${loadedCount} cached LLM entries from disk${semanticSupport} (${expiredCount} expired, discarded)`);
 
     } catch (error) {
       console.warn('⚠️  Failed to load LLM cache from disk:', error);
