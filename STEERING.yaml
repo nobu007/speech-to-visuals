@@ -1,0 +1,43 @@
+program_purpose: "音声から得た内容を解析し、カスタムレイアウトで重なりのない図解と動画を自動生成する"
+
+core_domain:
+  SimplePipeline: "音声から動画までの処理パイプライン"
+  Transcription: "音声の文字起こし処理"
+  SceneSegment: "シーン分割ロジック"
+  DiagramDetection: "図解タイプ検出"
+  LayoutEngine: "標準レイアウトエンジン"
+  ZeroOverlapLayout: "重なりゼロの強化レイアウトエンジン"
+  SceneGraph: "シーン構造データ"
+  VideoGenerator: "Remotionベースの動画生成器"
+  ContinuousLearning: "処理結果から学習する継続学習サービス"
+
+invariants:
+  - "レイアウト結果は最終的にノードの重なりがゼロでなければならず、残存する場合は強制分離が行われる"
+  - "配置されたノードはキャンバス幅・高さとマージン内にクランプされ、画面外へ出てはいけない"
+  - "シーン分割が1件も生成できない場合はパイプラインを継続せずに失敗扱いとする"
+  - "動画生成は音声URLとシーン配列を含む成功済みパイプライン結果にのみ適用される"
+
+external_contracts:
+  api:
+    - name: "continuousLearner.learnFromProcessingResult"
+      purpose: "各処理ステップのメトリクスを送信し継続学習する"
+      inputs: "(domain: string, context: object, result: object, timeMs: number, qualityScore: number, success: boolean, errors: string[], metadata: object)"
+    - name: "actualVideoRenderer.renderVideo"
+      module: "@/lib/actualVideoRenderer"
+      environment: "Node.js / Remotion"
+      outputs: "指定パスに動画ファイルを生成し進捗をコールバックする"
+  files:
+    input_audio: "ブラウザのFileオブジェクト（URL.createObjectURLで利用可能な音声: mp3/wavなど）"
+    output_video: "mp4を既定とし、webm/gifへ切り替え可能 (Remotion JSON仕様に従う)"
+
+performance_targets:
+  response_time_ms:
+    layout_average: 2000
+    layout_p95: 4000
+    layout_max: 5000
+  throughput:
+    scenes_parallel: 4
+    video_render_concurrency: "利用可能CPUコアの50% (最低2)"
+  resources:
+    canvas_resolution: "1920x1080"
+    memory_mb: 512
