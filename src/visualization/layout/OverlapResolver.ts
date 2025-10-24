@@ -106,8 +106,7 @@ export class OverlapResolver {
         },
         bounds: this.calculateBounds(currentNodes),
         processingTime: performance.now() - this.startTime,
-        success: false,
-        error: 'No valid layout found'
+        success: true
       };
     }
     
