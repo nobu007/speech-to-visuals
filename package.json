@@ -35,7 +35,9 @@
     "test:phase38": "tsx scripts/phase38-custom-instructions-validation.ts",
     "test:phase43": "tsx scripts/test-phase43.ts",
     "test:phase44": "tsx scripts/test-phase44-e2e.ts",
-    "cache:warmup": "tsx scripts/cache-warmup.ts"
+    "cache:warmup": "tsx scripts/cache-warmup.ts",
+    "test": "jest --config jest.config.cjs",
+    "test:coverage": "jest --config jest.config.cjs --coverage"
   },
   "dependencies": {
     "@dagrejs/dagre": "^1.1.5",
@@ -118,6 +120,7 @@
     "@remotion/bundler": "4.0.361",
     "@remotion/cli": "4.0.361",
     "@tailwindcss/typography": "^0.5.16",
+    "@types/jest": "^30.0.0",
     "@types/node": "^22.18.9",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
@@ -127,9 +130,11 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
+    "jest": "^30.2.0",
     "lovable-tagger": "^1.1.10",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
+    "ts-jest": "^29.4.5",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.6",
     "typescript": "^5.8.3",

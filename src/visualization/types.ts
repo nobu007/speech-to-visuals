@@ -53,6 +53,7 @@ export interface LayoutResult {
   processingTime: number;
   success: boolean;
   error?: string;
+  metrics?: LayoutMetrics;
 }
 
 export interface LayoutMetrics {
