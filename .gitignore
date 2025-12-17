@@ -80,3 +80,9 @@ commit_message.txt
 
 # Generated scene files
 public/scenes/
+
+# python
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
