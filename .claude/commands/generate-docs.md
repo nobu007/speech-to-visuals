@@ -108,7 +108,7 @@ npm run test:coverage # With coverage
 
 ## 📝 Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md)
+コントリビューションについては、プロジェクトルートの CONTRIBUTING.md または GitHubの標準的なコントリビューションガイドラインを参照してください。
 ```
 
 ### 3. アーキテクチャ図生成

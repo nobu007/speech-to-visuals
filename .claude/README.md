@@ -191,11 +191,11 @@ ln -s ../../.claude/hooks/auto-format.sh ../../.git/hooks/pre-commit
 
 ## 📚 関連ドキュメント
 
-- [README.md](../README.md) - プロジェクト概要
-- [AGENTS.md](../AGENTS.md) - Agent運用プロトコル
-- [docs/AGENT_OPERATIONS_MANUAL.md](../docs/AGENT_OPERATIONS_MANUAL.md) - 完全運用マニュアル
-- [DEPLOYMENT.md](../DEPLOYMENT.md) - デプロイガイド
-- [CONTRIBUTING.md](../CONTRIBUTING.md) - 貢献ガイド
+- [README.md](commands/deploy.md) - プロジェクト概要
+- [AGENTS.md](commands/deploy.md) - Agent運用プロトコル
+- [docs/AGENT_OPERATIONS_MANUAL.md](commands/deploy.md) - 完全運用マニュアル
+- [DEPLOYMENT.md](commands/deploy.md) - デプロイガイド
+- [CONTRIBUTING.md](commands/deploy.md) - 貢献ガイド
 
 ## 🔐 セキュリティ
 

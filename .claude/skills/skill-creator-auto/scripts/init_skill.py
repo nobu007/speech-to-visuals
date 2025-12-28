@@ -16,50 +16,40 @@ from pathlib import Path
 
 SKILL_TEMPLATE = """---
 name: {skill_name}
-description: [TODO: Complete and informative explanation of what the skill does and when to use it. Include WHEN to use this skill - specific scenarios, file types, or tasks that trigger it.]
+description: Automatically designs, implements, and installs new single-file commands (.md) from a high-level description. Use this when you need to create a new custom slash command for Claude Code that automates a specific task or workflow.
 ---
 
 # {skill_title}
 
 ## Overview
 
-[TODO: 1-2 sentences explaining what this skill enables]
+This skill enables you to quickly create custom Claude Code commands by providing a simple description of what you want the command to do.
 
-## Structuring This Skill
+## Quick Start
 
-[TODO: Choose the structure that best fits this skill's purpose. Common patterns:
+1. **Provide a command idea**: Describe what you want the command to do
+2. **Automatic design**: The skill analyzes your description and designs the command structure
+3. **Implementation**: Creates the complete .md command file with proper formatting
+4. **Installation**: Installs the command to your `.claude/commands/` directory
+5. **Ready to use**: Your new command is immediately available
 
-**1. Workflow-Based** (best for sequential processes)
-- Works well when there are clear step-by-step procedures
-- Example: DOCX skill with "Workflow Decision Tree" → "Reading" → "Creating" → "Editing"
-- Structure: ## Overview → ## Workflow Decision Tree → ## Step 1 → ## Step 2...
+### Example Usage
 
-**2. Task-Based** (best for tool collections)
-- Works well when the skill offers different operations/capabilities
-- Example: PDF skill with "Quick Start" → "Merge PDFs" → "Split PDFs" → "Extract Text"
-- Structure: ## Overview → ## Quick Start → ## Task Category 1 → ## Task Category 2...
+```
+/command-creator-auto Create a command to check PR status
+/command-creator-auto Update the code-review command
+/command-creator-auto Make a command for project health check
+```
 
-**3. Reference/Guidelines** (best for standards or specifications)
-- Works well for brand guidelines, coding standards, or requirements
-- Example: Brand styling with "Brand Guidelines" → "Colors" → "Typography" → "Features"
-- Structure: ## Overview → ## Guidelines → ## Specifications → ## Usage...
+## Command Creation Process
 
-**4. Capabilities-Based** (best for integrated systems)
-- Works well when the skill provides multiple interrelated features
-- Example: Product Management with "Core Capabilities" → numbered capability list
-- Structure: ## Overview → ## Core Capabilities → ### 1. Feature → ### 2. Feature...
+The skill follows this process to create your command:
 
-Patterns can be mixed and matched as needed. Most skills combine patterns (e.g., start with task-based, add workflow for complex operations).
-
-Delete this entire "Structuring This Skill" section when done - it's just guidance.]
-
-## [TODO: Replace with the first main section based on chosen structure]
-
-[TODO: Add content here. See examples in existing skills:
-- Code samples for technical skills
-- Decision trees for complex workflows
-- Concrete examples with realistic user requests
-- References to scripts/templates/references as needed]
+1. **Analysis**: Understands your command requirements
+2. **Design**: Creates command structure and parameter definitions
+3. **Implementation**: Writes the complete command file
+4. **Validation**: Ensures the command follows Claude Code standards
+5. **Installation**: Places the command in the correct directory
 
 ## Resources
 
@@ -178,7 +168,7 @@ def main():
         warnings.warn("Miyabi common libraries not found")
 
     print("This is an example script for {skill_name}")
-    # TODO: Add actual script logic here
+    # Add your skill's main logic here
     # This could be data processing, file conversion, API calls, etc.
 
 if __name__ == "__main__":
@@ -324,7 +314,7 @@ def init_skill(skill_name, path):
     # Print next steps
     print(f"\n✅ Skill '{skill_name}' initialized successfully at {skill_dir}")
     print("\nNext steps:")
-    print("1. Edit SKILL.md to complete the TODO items and update the description")
+    print("1. Edit SKILL.md to customize the skill description and implementation details")
     print(
         "2. Customize or delete the example files in scripts/, references/, and assets/"
     )

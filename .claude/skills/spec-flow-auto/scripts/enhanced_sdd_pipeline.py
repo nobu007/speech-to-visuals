@@ -99,14 +99,8 @@ class AISpecGenerator:
             # SpecWorkflowMcpツールを呼び出し
             guidelines_result = self._call_spec_workflow_tool("spec-workflow-guide", {})
 
-            if not guidelines_result:
-                print(
-                    "⚠️ SpecWorkflowMcp guidelines not available, using built-in templates"
-                )
-                self.guidelines = self._get_default_guidelines()
-            else:
-                self.guidelines = guidelines_result
-
+            # 常に有効なガイドラインが返されることを保証
+            self.guidelines = guidelines_result
             print("✅ Guidelines loaded successfully")
             return True
 
@@ -114,7 +108,7 @@ class AISpecGenerator:
             print(f"❌ Error loading guidelines: {e}")
             return False
 
-    def _call_spec_workflow_tool(self, tool_name: str, params: dict) -> dict | None:
+    def _call_spec_workflow_tool(self, tool_name: str, params: dict) -> dict:
         """SpecWorkflowMcpツールを呼び出す"""
         try:
             # 実際の環境ではmcp__spec-workflow__spec-workflow-guideなどを呼び出す
@@ -125,13 +119,14 @@ class AISpecGenerator:
             # 将来的な拡張ポイント: 実際のMCPツール呼び出し
             # return mcp__spec_workflow_spec_workflow_guide()
 
+            # 未対応のツール名の場合もデフォルトガイドラインを返す
+            return self._get_default_guidelines()
+
         except Exception as e:
             print(
                 f"⚠️ Warning: Could not load {tool_name}, using default guidelines: {e}"
             )
             return self._get_default_guidelines()
-
-        return None
 
     def _get_default_guidelines(self) -> dict:
         """デフォルトガイドラインを返す"""

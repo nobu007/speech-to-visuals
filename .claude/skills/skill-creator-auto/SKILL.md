@@ -12,7 +12,7 @@ license: Complete terms in LICENSE.txt
 
 このスキルは、**1行レベルの「やりたいこと」から、フルオートでスキルを作り切る**ためのメタスキルです。
 
-通常の `skill-creator` は「人間とClaudeが協力してスキルを作る」前提ですが、この `skill-autl-creator` は:
+通常の `skill-creator` は「人間とClaudeが協力してスキルを作る」前提ですが、この `skill-auto-creator` は:
 
 - 目的の聞き出し
 - ユースケースの洗い出し
