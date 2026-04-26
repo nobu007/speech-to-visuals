@@ -2,10 +2,123 @@ import { DiagramType, NodeDatum, EdgeDatum } from '@/types/diagram';
 import { ContentSegment, DiagramAnalysis, KeywordAnalysis, SemanticRelation } from './types';
 import { GeminiAnalyzer } from './gemini-analyzer';
 
+// ========================================
+// TASK-0021: Diagram Detection Result Types
+// ========================================
+
+export interface DiagramScore {
+  type: DiagramType;
+  score: number;
+  confidence: number;
+}
+
+export interface DiagramDetectionResult {
+  primaryType: DiagramType;
+  confidence: number;
+  alternatives: DiagramScore[];
+  isComplex: boolean;
+  secondaryTypes: DiagramType[];
+  fusionStrategy: string;
+  reasoning: string;
+}
+
+export interface TextFeatures {
+  keywordHits: Record<DiagramType, string[]>;
+  keywordFrequency: Record<DiagramType, number>;
+  totalKeywords: number;
+  relationPatterns: Record<DiagramType, number>;
+}
+
+// ========================================
+// Japanese + English keyword patterns for TASK-0021
+// ========================================
+
+const DIAGRAM_KEYWORDS: Record<DiagramType, {
+  primary: string[];
+  secondary: string[];
+  context: string[];
+  negative: string[];
+}> = {
+  flow: {
+    primary: ['process', 'workflow', 'pipeline', 'procedure', 'sequence',
+      'プロセス'],
+    secondary: [
+      'step', 'flow', 'first', 'next', 'then', 'finally', 'after', 'before', 'follows',
+      // Japanese keywords
+      '手順', 'フロー', 'まず', '次に', '最後に', 'そして', 'その後', '順序',
+      'ステップ', '工程', '流れ', '段階', '最初に', '手続き', '順で', '順に',
+      '進む', '進み', '進め',
+    ],
+    context: ['data', 'information', 'system', 'through', 'input', 'output',
+      'データ', '入力', '出力', 'システム', '進め方',
+    ],
+    negative: ['comparison', 'matrix', 'versus', 'cycle', 'loop', 'circular',
+      '比較', 'サイクル', '循環',
+    ],
+  },
+  tree: {
+    primary: ['hierarchy', 'organization', 'structure', 'taxonomy', 'ceo', 'vp', 'director', 'management'],
+    secondary: ['parent', 'child', 'branch', 'root', 'category', 'classification', 'breakdown', 'reports', 'under', 'supervisor', 'team',
+      // Japanese keywords - include conjugated forms
+      '階層', '分類', 'カテゴリ', '属する', '属し', '分類さ', '階層構造', '親', '子', 'グループ',
+      '組織', '部門', '枝分かれ', '含まれる', '含まれ', '含む', '種類', 'ツリー',
+      'に分類', 'が属し', 'が属する',
+    ],
+    context: ['levels', 'components', 'parts', 'subdivide', 'organize', 'department', 'division', 'company',
+      '構成', '部分', '要素', 'まとめ',
+    ],
+    negative: ['comparison', 'versus', 'cycle', 'loop',
+      '比較', 'サイクル',
+    ],
+  },
+  timeline: {
+    primary: ['timeline', 'chronology', 'history', 'evolution', 'january', 'february', 'march', 'april', 'may', 'june'],
+    secondary: ['development', 'year', 'month', 'date', 'time', 'period', 'era', 'phase', 'project', 'milestone',
+      // Japanese keywords
+      '年', '月', '日', '時系列', '以降', 'から', 'まで', '期間', '時期', '変遷',
+      '開始', '終了', 'リリース', '予定', 'フェーズ', '履歴', '歴史', '進行',
+      'に開始', '年に', '月に',
+    ],
+    context: ['when', 'during', 'since', 'until', 'progress', 'stages', 'schedule', 'roadmap',
+      '段階', '進捗', '経過',
+    ],
+    negative: ['comparison', 'versus', 'cycle', 'loop', 'circular',
+      '比較', 'サイクル',
+    ],
+  },
+  matrix: {
+    primary: ['comparison', 'matrix', 'table', 'versus', 'compare', 'against', 'vs', 'vs.',
+      'comparing', 'compared'],
+    secondary: ['criteria', 'features', 'properties', 'characteristics', 'options', 'alternatives', 'evaluate', 'assessment',
+      // Japanese keywords
+      '比較', '対比', '一方', 'に対して', 'vs', '比較すると', '優位', '上回る', '下回る',
+      '違い', '差異', '長所', '短所', 'メリット', 'デメリット', '検討', '評価',
+      'と比較', 'は優位', 'が上回る',
+    ],
+    context: ['different', 'similar', 'choices', 'contrasting', 'weighing', 'pros', 'cons',
+      '選択肢', '案', '方法', 'option',
+    ],
+    negative: [],
+  },
+  cycle: {
+    primary: ['cycle', 'loop', 'circular', 'recurring', 'repeat', 'continuous', 'iterative'],
+    secondary: ['iteration', 'ongoing', 'cyclical', 'returns', 'repeatedly', 'feedback', 'recursive',
+      // Japanese keywords
+      '繰り返し', 'サイクル', '循環', '反復', 'フィードバック', 'ループ', '回帰',
+      '継続', '反復する', '繰り返す', '戻る', '周回', '巡回',
+      'を繰り返し', 'サイクルで',
+    ],
+    context: ['back', 'again', 'continuously', 'infinite', 'perpetual', 'round',
+      '再び', '何度も', 'いつまでも',
+    ],
+    negative: [],
+  },
+};
+
 /**
  * Diagram Type Detection Engine - Iterative Implementation
  * Analyzes content segments to determine appropriate diagram types and extract entities/relationships
- * 🔄 Enhanced with Custom Instructions Recursive Development Framework
+ * Enhanced with Custom Instructions Recursive Development Framework
  */
 export class DiagramDetector {
   private iteration: number = 1;
@@ -744,6 +857,223 @@ export class DiagramDetector {
   public nextIteration(): void {
     this.iteration++;
     console.log(`🔄 Moving to detection iteration ${this.iteration}`);
+  }
+
+  // ========================================
+  // TASK-0021: detect(), calculateConfidence(), complex type handling
+  // ========================================
+
+  /**
+   * TASK-0021: Detect diagram type from analysis result and segments.
+   * Hybrid approach: rule-based keyword scoring + optional LLM recommendation bonus.
+   */
+  detect(
+    analysisResult: DiagramAnalysis | null,
+    segments: ContentSegment[]
+  ): DiagramDetectionResult {
+    // Combine all segment text for analysis
+    const combinedText = segments.map(s => s.text).join(' ');
+    const lowerText = combinedText.toLowerCase();
+
+    // Also combine keyphrases
+    const keyphrases = segments.flatMap(s => s.keyphrases).map(kp => kp.toLowerCase());
+
+    // Extract text features
+    const features = this.extractTextFeatures(lowerText, keyphrases);
+
+    // Calculate confidence for each type using calculateConfidence
+    const allScores: DiagramScore[] = (['flow', 'tree', 'timeline', 'matrix', 'cycle'] as DiagramType[]).map(type => {
+      const confidence = this.calculateConfidence(type, features);
+      return {
+        type,
+        score: features.keywordFrequency[type] + features.relationPatterns[type] * 5,
+        confidence,
+      };
+    });
+
+    // Sort by confidence descending
+    allScores.sort((a, b) => b.confidence - a.confidence);
+
+    // LLM recommendation bonus: if analysisResult suggests a type, boost it
+    if (analysisResult && analysisResult.type) {
+      const llmRecommended = analysisResult.type;
+      const matchEntry = allScores.find(s => s.type === llmRecommended);
+      if (matchEntry) {
+        matchEntry.confidence = Math.min(matchEntry.confidence * 1.15, 0.95);
+      }
+    }
+
+    // Re-sort after LLM bonus
+    allScores.sort((a, b) => b.confidence - a.confidence);
+
+    const primary = allScores[0];
+    const primaryType = primary.type;
+
+    // Detect complex types: 2+ types with confidence >= 0.5
+    const highConfidenceTypes = allScores.filter(s => s.confidence >= 0.5);
+    const isComplex = highConfidenceTypes.length >= 2;
+
+    const secondaryTypes: DiagramType[] = isComplex
+      ? highConfidenceTypes
+          .filter(s => s.type !== primaryType)
+          .map(s => s.type)
+      : [];
+
+    // Build fusion strategy description
+    let fusionStrategy = 'single';
+    if (isComplex) {
+      const typeNames = [primaryType, ...secondaryTypes];
+      fusionStrategy = this.buildFusionStrategy(typeNames);
+    }
+
+    return {
+      primaryType,
+      confidence: primary.confidence,
+      alternatives: allScores.slice(1),
+      isComplex,
+      secondaryTypes,
+      fusionStrategy,
+      reasoning: `Detected ${primaryType} with confidence ${(primary.confidence * 100).toFixed(1)}%${isComplex ? ` (complex: ${secondaryTypes.join(', ')})` : ''}`,
+    };
+  }
+
+  /**
+   * TASK-0021: Extract text features for confidence calculation
+   */
+  extractTextFeatures(text: string, keyphrases: string[]): TextFeatures {
+    const keywordHits: Record<DiagramType, string[]> = {
+      flow: [],
+      tree: [],
+      timeline: [],
+      matrix: [],
+      cycle: [],
+    };
+    const keywordFrequency: Record<DiagramType, number> = {
+      flow: 0,
+      tree: 0,
+      timeline: 0,
+      matrix: 0,
+      cycle: 0,
+    };
+    const relationPatterns: Record<DiagramType, number> = {
+      flow: 0,
+      tree: 0,
+      timeline: 0,
+      matrix: 0,
+      cycle: 0,
+    };
+
+    let totalKeywords = 0;
+
+    for (const diagramType of Object.keys(DIAGRAM_KEYWORDS) as DiagramType[]) {
+      const kw = DIAGRAM_KEYWORDS[diagramType];
+      const allKw = [...kw.primary, ...kw.secondary, ...kw.context];
+
+      for (const keyword of allKw) {
+        const lowerKeyword = keyword.toLowerCase();
+        // Count occurrences
+        const regex = new RegExp(lowerKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        const matches = text.match(regex);
+        if (matches && matches.length > 0) {
+          keywordHits[diagramType].push(keyword);
+          keywordFrequency[diagramType] += matches.length;
+          totalKeywords += matches.length;
+        }
+      }
+
+      // Relation pattern detection
+      const relationIndicators: Record<DiagramType, string[]> = {
+        flow: ['→', 'leads to', 'results in', 'followed by', 'してから', 'した後'],
+        tree: ['includes', 'contains', 'part of', '属する', '含まれる', '分類'],
+        timeline: ['before', 'after', 'during', 'から', 'まで', '以降'],
+        matrix: ['versus', 'compared to', 'against', 'に対して', '比較', '一方'],
+        cycle: ['returns to', 'cycles back', 'repeats', '繰り返し', '循環', '戻る'],
+      };
+
+      for (const pattern of relationIndicators[diagramType]) {
+        const lowerPattern = pattern.toLowerCase();
+        if (text.includes(lowerPattern)) {
+          relationPatterns[diagramType]++;
+        }
+      }
+    }
+
+    return { keywordHits, keywordFrequency, totalKeywords, relationPatterns };
+  }
+
+  /**
+   * TASK-0021: Calculate confidence score for a specific diagram type
+   * Based on keyword frequency + relation patterns + variety of keyword hits
+   */
+  calculateConfidence(type: DiagramType, features: TextFeatures): number {
+    const hits = features.keywordHits[type];
+    const freq = features.keywordFrequency[type];
+    const relPattern = features.relationPatterns[type];
+    const total = Math.max(features.totalKeywords, 1);
+
+    if (freq === 0 && relPattern === 0) {
+      return 0;
+    }
+
+    // Get the total number of keywords available for this type for proportional scaling
+    const kw = DIAGRAM_KEYWORDS[type];
+    const totalAvailableKeywords = kw.primary.length + kw.secondary.length + kw.context.length;
+
+    // Factor 1: Keyword variety ratio (0-0.35)
+    // What fraction of this type's keywords were found?
+    const varietyRatio = Math.min(hits.length / Math.min(totalAvailableKeywords, 10), 1.0);
+    const varietyScore = varietyRatio * 0.35;
+
+    // Factor 2: Keyword frequency strength (0-0.35)
+    // Logarithmic scaling: even 1-2 hits give meaningful score
+    const frequencyStrength = Math.min(1 - Math.exp(-freq / 3), 1.0);
+    const frequencyScore = frequencyStrength * 0.35;
+
+    // Factor 3: Relation pattern bonus (0-0.3)
+    const relationScore = Math.min(relPattern / 2, 1.0) * 0.3;
+
+    // Combined score
+    let confidence = varietyScore + frequencyScore + relationScore;
+
+    // Cap at 0.95
+    confidence = Math.min(confidence, 0.95);
+
+    // Floor: ensure minimum confidence for strong matches
+    if (hits.length >= 3 && freq >= 5) {
+      confidence = Math.max(confidence, 0.8);
+    } else if (hits.length >= 2 && freq >= 3) {
+      confidence = Math.max(confidence, 0.7);
+    }
+
+    // Dampen for very weak signals (only 1 hit, low frequency, no relation patterns)
+    if (hits.length === 1 && freq <= 2 && relPattern === 0) {
+      confidence = Math.min(confidence, 0.45);
+    }
+
+    return confidence;
+  }
+
+  /**
+   * TASK-0021: Build fusion strategy for complex diagram types
+   */
+  private buildFusionStrategy(types: DiagramType[]): string {
+    const strategyMap: Record<string, string> = {
+      'flow,timeline': '時系列フローチャート',
+      'timeline,flow': '時系列フローチャート',
+      'tree,matrix': '分類比較表',
+      'matrix,tree': '分類比較表',
+      'flow,cycle': '反復プロセスフロー',
+      'cycle,flow': '反復プロセスフロー',
+      'tree,flow': '階層フロー',
+      'flow,tree': '階層フロー',
+      'timeline,matrix': '時系列比較',
+      'matrix,timeline': '時系列比較',
+      'cycle,timeline': '循環タイムライン',
+      'timeline,cycle': '循環タイムライン',
+    };
+
+    const key = types.join(',');
+    return strategyMap[key] || `${types.join('+')}の複合図解`;
   }
 
   /**

@@ -12,7 +12,7 @@
 export interface ComplexityAnalysis {
   score: number; // 0-1 scale (0 = simple, 1 = complex)
   level: 'simple' | 'moderate' | 'complex';
-  recommendedModel: 'gemini-2.5-flash' | 'gemini-2.5-pro';
+  recommendedModel: string;
   factors: {
     vocabularyComplexity: number;
     structuralComplexity: number;
@@ -21,6 +21,16 @@ export interface ComplexityAnalysis {
     relationshipDensity: number;
   };
   reasoning: string;
+}
+
+/**
+ * TASK-0016: Complexity factor representing a single dimension of complexity.
+ */
+export interface ComplexityFactor {
+  type: 'text_length' | 'sentence_complexity' | 'technical_density' | 'data_content' | 'abstractness';
+  weight: number;    // Pre-defined weight for this factor type (0-1)
+  contribution: number; // Actual contribution to the complexity score (0-1)
+  description: string;
 }
 
 export class ComplexityDetector {
@@ -38,10 +48,14 @@ export class ComplexityDetector {
   };
 
   /**
-   * Analyze text complexity and recommend optimal LLM model
+   * Analyze text complexity and recommend optimal LLM model.
+   *
+   * TASK-0016: Uses identifyComplexityFactors for score calculation and
+   * selectModel for model recommendation (consistent with TASK-0016 spec).
    */
   analyze(text: string): ComplexityAnalysis {
-    const factors = {
+    // Compute legacy factor dimensions for backward compatibility
+    const legacyFactors = {
       vocabularyComplexity: this.analyzeVocabularyComplexity(text),
       structuralComplexity: this.analyzeStructuralComplexity(text),
       semanticDensity: this.analyzeSemanticDensity(text),
@@ -49,36 +63,32 @@ export class ComplexityDetector {
       relationshipDensity: this.analyzeRelationshipDensity(text)
     };
 
-    // Calculate weighted complexity score
-    const score =
-      factors.vocabularyComplexity * this.WEIGHTS.vocabularyComplexity +
-      factors.structuralComplexity * this.WEIGHTS.structuralComplexity +
-      factors.semanticDensity * this.WEIGHTS.semanticDensity +
-      factors.entityCount * this.WEIGHTS.entityCount +
-      factors.relationshipDensity * this.WEIGHTS.relationshipDensity;
+    // TASK-0016: Use new factor-based scoring for the overall score
+    const complexityFactors = this.identifyComplexityFactors(text);
+    const score = complexityFactors.reduce(
+      (sum, f) => sum + f.weight * f.contribution, 0
+    );
 
     // Determine complexity level
     let level: 'simple' | 'moderate' | 'complex';
-    let recommendedModel: 'gemini-2.5-flash' | 'gemini-2.5-pro';
-
     if (score < this.SIMPLE_THRESHOLD) {
       level = 'simple';
-      recommendedModel = 'gemini-2.5-flash';
     } else if (score < this.COMPLEX_THRESHOLD) {
       level = 'moderate';
-      recommendedModel = 'gemini-2.5-flash'; // Flash can handle moderate complexity
     } else {
       level = 'complex';
-      recommendedModel = 'gemini-2.5-pro';
     }
 
-    const reasoning = this.generateReasoning(level, factors);
+    // TASK-0016: Delegate model selection to selectModel (handles env vars)
+    const recommendedModel = this.selectModel(score);
+
+    const reasoning = this.generateReasoning(level, legacyFactors);
 
     return {
       score,
       level,
       recommendedModel,
-      factors,
+      factors: legacyFactors,
       reasoning
     };
   }
@@ -290,5 +300,204 @@ export class ComplexityDetector {
       modelDistribution,
       levelDistribution
     };
+  }
+
+  // =========================================================================
+  // TASK-0016: Model selection with environment variable support
+  // =========================================================================
+
+  /**
+   * Select the optimal LLM model based on complexity score.
+   *
+   * Rules:
+   * - score < 0.2 → 'gemini-2.5-flash' (fast, cost-effective)
+   * - score >= 0.2 → 'gemini-2.5-pro' (accurate, slower)
+   * - DISABLE_GEMINI env → 'rule-based'
+   * - GEMINI_MODEL_OVERRIDE env → override value (highest priority)
+   */
+  selectModel(score: number): string {
+    // Highest priority: explicit override
+    const override = process.env.GEMINI_MODEL_OVERRIDE;
+    if (override) {
+      return override;
+    }
+
+    // Second priority: disable Gemini entirely
+    if (process.env.DISABLE_GEMINI) {
+      return 'rule-based';
+    }
+
+    // Default: score-based selection with 20% threshold
+    const threshold = parseFloat(process.env.COMPLEXITY_THRESHOLD ?? '0.2');
+    return score < threshold ? 'gemini-2.5-flash' : 'gemini-2.5-pro';
+  }
+
+  // =========================================================================
+  // TASK-0016: Complexity factor identification
+  // =========================================================================
+
+  /**
+   * Factor weights as specified in TASK-0016:
+   * - text_length: 0.15
+   * - sentence_complexity: 0.25
+   * - technical_density: 0.30
+   * - data_content: 0.15
+   * - abstractness: 0.15
+   */
+  private readonly FACTOR_WEIGHTS: Record<ComplexityFactor['type'], number> = {
+    text_length: 0.15,
+    sentence_complexity: 0.25,
+    technical_density: 0.30,
+    data_content: 0.15,
+    abstractness: 0.15,
+  };
+
+  /**
+   * Identify individual complexity factors contributing to the overall score.
+   * Each factor has a fixed weight and a computed contribution based on text content.
+   */
+  identifyComplexityFactors(text: string): ComplexityFactor[] {
+    const factors: ComplexityFactor[] = [];
+
+    // 1. text_length: longer text is more complex
+    const textLengthScore = this.computeTextLength(text);
+    factors.push({
+      type: 'text_length',
+      weight: this.FACTOR_WEIGHTS.text_length,
+      contribution: textLengthScore,
+      description: textLengthScore > 0.5
+        ? 'Long text increases processing complexity'
+        : 'Text length is within normal range',
+    });
+
+    // 2. sentence_complexity: longer and nested sentences
+    const sentenceComplexityScore = this.computeSentenceComplexity(text);
+    factors.push({
+      type: 'sentence_complexity',
+      weight: this.FACTOR_WEIGHTS.sentence_complexity,
+      contribution: sentenceComplexityScore,
+      description: sentenceComplexityScore > 0.5
+        ? 'Complex sentence structure detected'
+        : 'Sentence structure is relatively simple',
+    });
+
+    // 3. technical_density: specialized terminology and jargon
+    const technicalDensityScore = this.computeTechnicalDensity(text);
+    factors.push({
+      type: 'technical_density',
+      weight: this.FACTOR_WEIGHTS.technical_density,
+      contribution: technicalDensityScore,
+      description: technicalDensityScore > 0.5
+        ? 'High density of technical terminology'
+        : 'Low technical term density',
+    });
+
+    // 4. data_content: numbers, percentages, statistics
+    const dataContentScore = this.computeDataContent(text);
+    factors.push({
+      type: 'data_content',
+      weight: this.FACTOR_WEIGHTS.data_content,
+      contribution: dataContentScore,
+      description: dataContentScore > 0.3
+        ? 'Contains quantitative data and statistics'
+        : 'Minimal quantitative content',
+    });
+
+    // 5. abstractness: abstract concepts and theoretical content
+    const abstractnessScore = this.computeAbstractness(text);
+    factors.push({
+      type: 'abstractness',
+      weight: this.FACTOR_WEIGHTS.abstractness,
+      contribution: abstractnessScore,
+      description: abstractnessScore > 0.3
+        ? 'Contains abstract concepts'
+        : 'Content is concrete',
+    });
+
+    return factors;
+  }
+
+  // -------------------------------------------------------------------------
+  // Private helpers for factor computation
+  // -------------------------------------------------------------------------
+
+  private computeTextLength(text: string): number {
+    if (text.length === 0) return 0;
+    // Normalize: 500+ chars → max complexity
+    return Math.min(text.length / 500, 1);
+  }
+
+  private computeSentenceComplexity(text: string): number {
+    // Split on sentence-ending punctuation
+    const sentences = text.split(/[。.!?\n]+/).filter(s => s.trim().length > 0);
+    if (sentences.length === 0) return 0;
+
+    // Average sentence length
+    const avgLen = text.length / sentences.length;
+    const lenScore = Math.min(avgLen / 100, 1);
+
+    // Comma / conjunction count indicates nesting
+    const commas = (text.match(/[、,;；]/g) || []).length;
+    const commaScore = Math.min(commas / 5, 1);
+
+    return lenScore * 0.6 + commaScore * 0.4;
+  }
+
+  private computeTechnicalDensity(text: string): number {
+    const lower = text.toLowerCase();
+    const technicalTerms = [
+      // English
+      'algorithm', 'api', 'architecture', 'async', 'await',
+      'callback', 'class', 'closure', 'compiler', 'component',
+      'concurrent', 'database', 'debugging', 'deploy', 'dependency',
+      'encryption', 'endpoint', 'event loop', 'exception', 'framework',
+      'function', 'garbage collection', 'generator', 'heap', 'http',
+      'inheritance', 'interface', 'iterator', 'lambda', 'library',
+      'middleware', 'module', 'mutex', 'node', 'object',
+      'promise', 'protocol', 'queue', 'recursion', 'refactoring',
+      'runtime', 'scheduler', 'scope', 'server', 'stack',
+      'stream', 'thread', 'token', 'type', 'variable',
+      // Japanese equivalents
+      'アルゴリズム', 'アーキテクチャ', '非同期', 'コールバック',
+      'クロージャ', 'コンパイラ', 'コンポーネント', 'データベース',
+      'デバッグ', 'デプロイ', '依存', '暗号化', 'イベントループ',
+      '例外', 'フレームワーク', 'ガベージコレクション', 'ヒープ',
+      '継承', 'インターフェース', 'イテレータ', 'ミドルウェア',
+      'モジュール', 'プロミス', 'プロトコル', 'キュー', '再帰',
+      'リファクタリング', 'ランタイム', 'スケジューラ', 'サーバー',
+      'スタック', 'ストリーム', 'スレッド', 'マイクロタスク',
+    ];
+
+    const matchCount = technicalTerms.filter(t => lower.includes(t)).length;
+    return Math.min(matchCount / 5, 1);
+  }
+
+  private computeDataContent(text: string): number {
+    // Count numeric patterns: percentages, monetary values, quantities
+    const percentages = (text.match(/\d+(?:\.\d+)?%/g) || []).length;
+    const numbers = (text.match(/\d+(?:\.\d+)?/g) || []).length;
+    const dataIndicators = (text.match(/[图表グラフチャート]/g) || []).length;
+
+    // Normalize: 3+ data points → high data content
+    const dataScore = Math.min((percentages * 2 + numbers + dataIndicators) / 6, 1);
+    return dataScore;
+  }
+
+  private computeAbstractness(text: string): number {
+    const lower = text.toLowerCase();
+
+    const abstractTerms = [
+      // English
+      'abstract', 'concept', 'conceptual', 'fundamental', 'intrinsic',
+      'metaphor', 'ontolog', 'paradigm', 'phenomenon', 'philosophy',
+      'principle', 'qualitative', 'quantum', 'semantic', 'structuralism',
+      'theoretical', 'transcend', 'universal',
+      // Japanese
+      '概念', '抽象', '原理', '哲学', '理論', '本質', '普遍',
+      'パラダイム', '存在論', '現象', '仮説', '意味論',
+    ];
+
+    const matchCount = abstractTerms.filter(t => lower.includes(t)).length;
+    return Math.min(matchCount / 3, 1);
   }
 }

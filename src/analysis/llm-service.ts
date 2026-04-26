@@ -698,5 +698,136 @@ export class LLMService {
   }
 }
 
+// =========================================================================
+// TASK-0017: Response Parser (standalone export)
+// =========================================================================
+
+/** Valid diagram types for validation */
+const VALID_DIAGRAM_TYPES = ['flow', 'tree', 'timeline', 'matrix', 'cycle'] as const;
+type ValidDiagramType = typeof VALID_DIAGRAM_TYPES[number];
+
+/** Default AnalysisResult returned when parsing fails entirely */
+const DEFAULT_ANALYSIS_RESULT: AnalysisResult = {
+  entities: [],
+  relations: [],
+  diagramType: { type: 'flow', confidence: 0.0 },
+  summary: '',
+};
+
+/** Parsed analysis result from LLM response */
+export interface AnalysisResult {
+  entities: Array<{ id: string; label: string; type: string }>;
+  relations: Array<{ from: string; to: string; label: string; type: string }>;
+  diagramType: { type: string; confidence: number };
+  summary: string;
+}
+
+/**
+ * TASK-0017: Parse raw LLM response string into a typed AnalysisResult.
+ *
+ * Features:
+ * - Extracts JSON from markdown code blocks (```json ... ```)
+ * - Validates required fields (entities, relations, diagramType)
+ * - Falls back to default values on parse failure (no error thrown)
+ * - Validates entity format (id, label, type)
+ * - Validates relation format (from, to, label, type)
+ * - Validates diagram type against known types
+ */
+export function parseResponse(rawResponse: string): AnalysisResult {
+  // Handle empty or null-ish input
+  if (!rawResponse || typeof rawResponse !== 'string' || rawResponse.trim().length === 0) {
+    return { ...DEFAULT_ANALYSIS_RESULT };
+  }
+
+  try {
+    // Use the existing JSON extraction utility
+    const parsed = parseJsonFromLLMText<any>(rawResponse);
+
+    if (!parsed || typeof parsed !== 'object') {
+      return { ...DEFAULT_ANALYSIS_RESULT };
+    }
+
+    // Build result with defaults for each field
+    const result: AnalysisResult = {
+      entities: extractEntities(parsed),
+      relations: extractRelations(parsed),
+      diagramType: extractDiagramType(parsed),
+      summary: extractSummary(parsed),
+    };
+
+    return result;
+  } catch {
+    // On any parse error, return defaults -- do NOT throw
+    return { ...DEFAULT_ANALYSIS_RESULT };
+  }
+}
+
+/**
+ * Extract and validate entities from parsed JSON.
+ */
+function extractEntities(parsed: any): AnalysisResult['entities'] {
+  if (!Array.isArray(parsed.entities)) {
+    return [];
+  }
+
+  return parsed.entities
+    .filter((e: any) => e && typeof e === 'object')
+    .map((e: any, i: number) => ({
+      id: typeof e.id === 'string' ? e.id : `entity_${i}`,
+      label: typeof e.label === 'string' ? e.label : String(e.label || ''),
+      type: typeof e.type === 'string' ? e.type : 'unknown',
+    }));
+}
+
+/**
+ * Extract and validate relations from parsed JSON.
+ */
+function extractRelations(parsed: any): AnalysisResult['relations'] {
+  if (!Array.isArray(parsed.relations)) {
+    return [];
+  }
+
+  return parsed.relations
+    .filter((r: any) => r && typeof r === 'object')
+    .map((r: any) => ({
+      from: typeof r.from === 'string' ? r.from : '',
+      to: typeof r.to === 'string' ? r.to : '',
+      label: typeof r.label === 'string' ? r.label : '',
+      type: typeof r.type === 'string' ? r.type : 'unknown',
+    }));
+}
+
+/**
+ * Extract and validate diagram type from parsed JSON.
+ */
+function extractDiagramType(parsed: any): AnalysisResult['diagramType'] {
+  const defaultDiagram = { type: 'flow', confidence: 0.5 };
+
+  if (!parsed.diagramType || typeof parsed.diagramType !== 'object') {
+    return defaultDiagram;
+  }
+
+  const dt = parsed.diagramType;
+  const type = typeof dt.type === 'string' ? dt.type : 'flow';
+  const confidence = typeof dt.confidence === 'number' ? dt.confidence : 0.5;
+
+  // Validate diagram type
+  if (!(VALID_DIAGRAM_TYPES as readonly string[]).includes(type)) {
+    return defaultDiagram;
+  }
+
+  return { type, confidence: Math.max(0, Math.min(1, confidence)) };
+}
+
+/**
+ * Extract summary from parsed JSON.
+ */
+function extractSummary(parsed: any): string {
+  if (typeof parsed.summary === 'string') {
+    return parsed.summary;
+  }
+  return '';
+}
+
 // Export singleton instance for easy use
 export const llmService = new LLMService();
