@@ -1,0 +1,413 @@
+# speech-to-visuals API エンドポイント仕様
+
+**作成日**: 2026-04-27
+**関連設計**: [architecture.md](architecture.md)
+**関連要件定義**: [requirements.md](../../spec/speech-to-visuals/requirements.md)
+
+**【信頼性レベル凡例】**:
+- 🔵 **青信号**: 要件定義書・設計文書・既存API仕様を参考にした確実な定義
+- 🟡 **黄信号**: 要件定義書・設計文書・既存API仕様から妥当な推測による定義
+- 🔴 **赤信号**: 参照資料にない自動推定による定義
+
+---
+
+## 共通仕様
+
+### アーキテクチャ 🔵
+
+**信頼性**: 🔵 *src/api/batch-processing-api.ts・supabase/functions/ より*
+
+APIは2種類の実装で構成:
+1. **Express REST API**: バッチ処理・ジョブ管理（`src/api/batch-processing-api.ts`）
+2. **Supabase Edge Functions**: 動画レンダリング・文字起こし・シーン生成（`supabase/functions/`）
+
+### 認証 🔵
+
+**信頼性**: 🔵 *要件定義NFR-102・supabase/migrations/ RLSより*
+
+- Express API: Supabase Auth JWT（Authorization: Bearer {token}）
+- Edge Functions: Supabase Auth コンテキスト
+- 未認証アクセスは401エラー
+
+### セキュリティ 🔵
+
+**信頼性**: 🔵 *要件定義NFR-103・package.json 依存関係より*
+
+- express-rate-limit: レート制限
+- helmet: セキュリティヘッダー（CSP, HSTS, X-Frame-Options 等）
+- CORS: 許可オリジン設定
+
+### エラーレスポンス共通フォーマット 🔵
+
+**信頼性**: 🔵 *src/types/api/・PIPELINE_FLOW.md §7.2 より*
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "エラーメッセージ",
+    "details": {}
+  }
+}
+```
+
+---
+
+## Express REST API エンドポイント
+
+### ベースURL 🔵
+
+**信頼性**: 🔵 *src/api/batch-processing-api.ts より*
+
+```
+http://localhost:3001/api/v1
+```
+
+起動コマンド: `npm run api:dev`
+
+---
+
+### バッチジョブ管理
+
+#### POST /api/v1/batch/jobs 🔵
+
+**信頼性**: 🔵 *要件定義REQ-201・src/api/batch-processing-api.ts より*
+
+**関連要件**: REQ-201
+
+**説明**: バッチ処理ジョブの作成
+
+**リクエスト**:
+```json
+{
+  "files": [
+    {
+      "path": "/path/to/audio1.mp3",
+      "options": {
+        "language": "auto",
+        "model": "base"
+      }
+    },
+    {
+      "path": "/path/to/audio2.wav"
+    }
+  ],
+  "concurrency": 3,
+  "options": {
+    "rendering": {
+      "fps": 30,
+      "resolution": "1080p",
+      "codec": "h264"
+    }
+  }
+}
+```
+
+**レスポンス（成功）**:
+```json
+{
+  "success": true,
+  "data": {
+    "jobId": "batch-job-uuid",
+    "status": "queued",
+    "totalFiles": 2,
+    "createdAt": "2026-04-27T10:00:00Z"
+  }
+}
+```
+
+**エラーコード**:
+- `VALIDATION_ERROR`: リクエストパラメータ不正
+- `TOO_MANY_FILES`: ファイル数制限超過
+
+---
+
+#### GET /api/v1/batch/jobs/:jobId 🔵
+
+**信頼性**: 🔵 *要件定義REQ-201・src/api/batch-processing-api.ts より*
+
+**関連要件**: REQ-201
+
+**説明**: バッチジョブのステータス取得
+
+**パスパラメータ**:
+- `jobId`: ジョブID
+
+**レスポンス（成功）**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "batch-job-uuid",
+    "status": "processing",
+    "progress": 45,
+    "eta": 30,
+    "files": [
+      {
+        "filename": "audio1.mp3",
+        "status": "complete",
+        "qualityScore": 0.92
+      },
+      {
+        "filename": "audio2.wav",
+        "status": "analyzing",
+        "qualityScore": null
+      }
+    ],
+    "createdAt": "2026-04-27T10:00:00Z",
+    "updatedAt": "2026-04-27T10:00:30Z"
+  }
+}
+```
+
+**エラーコード**:
+- `JOB_NOT_FOUND`: ジョブが見つからない
+
+---
+
+#### POST /api/v1/batch/jobs/:jobId/cancel 🔵
+
+**信頼性**: 🔵 *src/api/batch-processing-api.ts より*
+
+**説明**: バッチジョブのキャンセル
+
+**パスパラメータ**:
+- `jobId`: ジョブID
+
+**レスポンス（成功）**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "batch-job-uuid",
+    "status": "cancelled"
+  }
+}
+```
+
+**エラーコード**:
+- `JOB_NOT_FOUND`: ジョブが見つからない
+- `JOB_ALREADY_COMPLETED`: ジョブは既に完了している
+
+---
+
+## Supabase Edge Functions
+
+### POST /functions/v1/transcribe-audio 🔵
+
+**信頼性**: 🔵 *supabase/functions/・PIPELINE_FLOW.md Stage 1・要件定義REQ-001より*
+
+**関連要件**: REQ-001, REQ-003, REQ-004
+
+**説明**: 音声ファイルの文字起こし
+
+**リクエスト**:
+```json
+{
+  "audioUrl": "supabase-storage://audio/user-id/file.mp3",
+  "options": {
+    "model": "base",
+    "language": "auto"
+  }
+}
+```
+
+**レスポンス（成功）**:
+```json
+{
+  "success": true,
+  "data": {
+    "transcript": "文字起こしされたテキスト...",
+    "srt": "1\n00:00:00,000 --> 00:00:03,500\nこんにちは...",
+    "language": "ja",
+    "segments": [
+      {
+        "startMs": 0,
+        "endMs": 3500,
+        "text": "こんにちは"
+      }
+    ],
+    "durationMs": 60000
+  }
+}
+```
+
+**エラーコード**:
+- `INVALID_AUDIO_FORMAT`: 対応外の音声形式
+- `FILE_TOO_LARGE`: 50MB超過
+- `EMPTY_FILE`: 空ファイル
+- `TRANSCRIPTION_FAILED`: 文字起こし失敗
+
+---
+
+### POST /functions/v1/generate-scenes 🔵
+
+**信頼性**: 🔵 *supabase/functions/・PIPELINE_FLOW.md Stage 2・要件定義REQ-006より*
+
+**関連要件**: REQ-005, REQ-006, REQ-007, REQ-008
+
+**説明**: テキストから図解シーンデータの生成
+
+**リクエスト**:
+```json
+{
+  "transcript": "文字起こしテキスト...",
+  "language": "ja",
+  "options": {
+    "preferredModel": "auto",
+    "enableCache": true
+  }
+}
+```
+
+**レスポンス（成功）**:
+```json
+{
+  "success": true,
+  "data": {
+    "scenes": [
+      {
+        "type": "flow",
+        "nodes": [
+          { "id": "n1", "label": "開始" },
+          { "id": "n2", "label": "処理" }
+        ],
+        "edges": [
+          { "from": "n1", "to": "n2", "label": "実行" }
+        ],
+        "startMs": 0,
+        "durationMs": 15000,
+        "summary": "プロセスの開始から処理まで",
+        "keyphrases": ["開始", "処理"]
+      }
+    ],
+    "metadata": {
+      "model": "gemini-2.5-flash",
+      "fromCache": false,
+      "complexity": {
+        "score": 0.15,
+        "recommendedModel": "gemini-2.5-flash"
+      }
+    }
+  }
+}
+```
+
+**エラーコード**:
+- `LLM_TIMEOUT`: LLM API タイムアウト
+- `LLM_RATE_LIMITED`: レートリミット（429）
+- `FALLBACK_USED`: フォールバック使用（成功）
+
+---
+
+### POST /functions/v1/render-video 🔵
+
+**信頼性**: 🔵 *supabase/functions/・PIPELINE_FLOW.md Stage 4-5・要件定義REQ-301より*
+
+**関連要件**: REQ-301
+
+**説明**: シーンデータから動画レンダリング
+
+**リクエスト**:
+```json
+{
+  "scenes": [...],
+  "audioUrl": "supabase-storage://audio/user-id/file.mp3",
+  "srt": "1\n00:00:00,000 --> ...",
+  "options": {
+    "fps": 30,
+    "resolution": "1080p",
+    "codec": "h264"
+  }
+}
+```
+
+**レスポンス（成功）**:
+```json
+{
+  "success": true,
+  "data": {
+    "videoUrl": "supabase-storage://videos/user-id/output.mp4",
+    "duration": 60,
+    "fileSize": 5242880,
+    "resolution": "1920x1080",
+    "fps": 30,
+    "codec": "h264"
+  }
+}
+```
+
+**エラーコード**:
+- `RENDER_FAILED`: レンダリング失敗
+- `LOW_QUALITY_RETRY`: 低品質設定で再試行中
+
+---
+
+## WebSocket イベント（Socket.IO）
+
+### クライアント → サーバー 🔵
+
+**信頼性**: 🔵 *src/api/batch-processing-api.ts・package.json Socket.IO より*
+
+| イベント | ペイロード | 説明 |
+|---------|-----------|------|
+| `join:job` | `{ jobId: string }` | ジョブ進捗のリアルタイム監視開始 |
+| `leave:job` | `{ jobId: string }` | ジョブ監視の終了 |
+
+### サーバー → クライアント 🔵
+
+**信頼性**: 🔵 *要件定義NFR-202・src/api/ より*
+
+| イベント | ペイロード | 説明 |
+|---------|-----------|------|
+| `job:progress` | `{ jobId, progress, eta, currentFile, stage }` | ジョブ進捗更新 |
+| `job:complete` | `{ jobId, results: BatchFile[] }` | ジョブ完了通知 |
+| `job:error` | `{ jobId, error }` | ジョブエラー通知 |
+| `file:status` | `{ jobId, filename, status, qualityScore }` | ファイル処理ステータス |
+| `stage:progress` | `{ jobId, filename, stage, progress }` | ステージ別進捗（transcribing/analyzing/generating） |
+
+---
+
+## レート制限 🟡
+
+**信頼性**: 🟡 *要件定義NFR-103・package.json express-rate-limit より*
+
+- 認証済みユーザー: 100リクエスト/15分
+- バッチジョブ: 最大10ファイル/ジョブ
+
+レート制限超過時のレスポンス:
+```json
+{
+  "success": false,
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "レート制限を超過しました",
+    "details": {
+      "retryAfter": 900
+    }
+  }
+}
+```
+
+## CORS設定 🔵
+
+**信頼性**: 🔵 *要件定義NFR-103・src/api/ より*
+
+許可オリジン: `http://localhost:8080`（開発環境）、本番URL（本番環境）
+
+## 関連文書
+
+- **アーキテクチャ**: [architecture.md](architecture.md)
+- **型定義**: [interfaces.ts](interfaces.ts)
+- **データフロー**: [dataflow.md](dataflow.md)
+- **DBスキーマ**: [database-schema.sql](database-schema.sql)
+- **要件定義**: [requirements.md](../../spec/speech-to-visuals/requirements.md)
+
+## 信頼性レベルサマリー
+
+- 🔵 青信号: 21件 (91%)
+- 🟡 黄信号: 2件 (9%)
+- 🔴 赤信号: 0件 (0%)
+
+**品質評価**: 高品質 - 実装済みAPI仕様に基づいている
