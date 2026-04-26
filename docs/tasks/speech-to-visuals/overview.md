@@ -33,7 +33,7 @@
 ## 全体進捗
 
 - [x] Phase 1: 基盤・データ層
-- [ ] Phase 2: AI・処理モジュール
+- [x] Phase 2: AI・処理モジュール
 - [ ] Phase 3: レイアウト・可視化
 - [ ] Phase 4: レンダリング・フロントエンド
 - [ ] Phase 5: 統合・テスト
@@ -86,18 +86,18 @@ TASK-0006 → TASK-0008
 
 ### タスク一覧
 
-- [ ] [TASK-0011: Whisper音声認識モジュール](TASK-0011.md) - 16h (TDD) 🔵
-- [ ] [TASK-0012: Web Speech API ブラウザ文字起こし](TASK-0012.md) - 8h (TDD) 🔵
-- [ ] [TASK-0013: SRTキャプション生成モジュール](TASK-0013.md) - 8h (TDD) 🔵
-- [ ] [TASK-0014: 言語検出モジュール](TASK-0014.md) - 8h (TDD) 🔵
-- [ ] [TASK-0015: シーンセグメンター](TASK-0015.md) - 8h (TDD) 🔵
-- [ ] [TASK-0016: 複雑度検出モジュール](TASK-0016.md) - 8h (TDD) 🔵
-- [ ] [TASK-0017: Gemini LLM分析サービス](TASK-0017.md) - 16h (TDD) 🔵
-- [ ] [TASK-0018: 3層フォールバック機構](TASK-0018.md) - 8h (TDD) 🔵
-- [ ] [TASK-0019: ジッタ付き指数バックオフリトライ](TASK-0019.md) - 8h (TDD) 🔵
-- [ ] [TASK-0020: セマンティックキャッシュ](TASK-0020.md) - 8h (TDD) 🔵
-- [ ] [TASK-0021: 図解タイプ検出モジュール](TASK-0021.md) - 8h (TDD) 🔵
-- [ ] [TASK-0022: ルールベースV1フォールバック](TASK-0022.md) - 8h (TDD) 🔵
+- [x] [TASK-0011: Whisper音声認識モジュール](TASK-0011.md) - 16h (TDD) 🔵
+- [x] [TASK-0012: Web Speech API ブラウザ文字起こし](TASK-0012.md) - 8h (TDD) 🔵
+- [x] [TASK-0013: SRTキャプション生成モジュール](TASK-0013.md) - 8h (TDD) 🔵
+- [x] [TASK-0014: 言語検出モジュール](TASK-0014.md) - 8h (TDD) 🔵
+- [x] [TASK-0015: シーンセグメンター](TASK-0015.md) - 8h (TDD) 🔵
+- [x] [TASK-0016: 複雑度検出モジュール](TASK-0016.md) - 8h (TDD) 🔵
+- [x] [TASK-0017: Gemini LLM分析サービス](TASK-0017.md) - 16h (TDD) 🔵
+- [x] [TASK-0018: 3層フォールバック機構](TASK-0018.md) - 8h (TDD) 🔵
+- [x] [TASK-0019: ジッタ付き指数バックオフリトライ](TASK-0019.md) - 8h (TDD) 🔵
+- [x] [TASK-0020: セマンティックキャッシュ](TASK-0020.md) - 8h (TDD) 🔵
+- [x] [TASK-0021: 図解タイプ検出モジュール](TASK-0021.md) - 8h (TDD) 🔵
+- [x] [TASK-0022: ルールベースV1フォールバック](TASK-0022.md) - 8h (TDD) 🔵
 
 ### 依存関係
 
