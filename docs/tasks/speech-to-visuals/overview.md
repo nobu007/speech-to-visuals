@@ -32,7 +32,7 @@
 
 ## 全体進捗
 
-- [ ] Phase 1: 基盤・データ層
+- [x] Phase 1: 基盤・データ層
 - [ ] Phase 2: AI・処理モジュール
 - [ ] Phase 3: レイアウト・可視化
 - [ ] Phase 4: レンダリング・フロントエンド
@@ -56,16 +56,16 @@
 
 ### タスク一覧
 
-- [ ] [TASK-0001: 環境設定・依存パッケージ整備](TASK-0001.md) - 4h (DIRECT) 🔵
-- [ ] [TASK-0002: TypeScript型定義実装](TASK-0002.md) - 8h (TDD) 🔵
-- [ ] [TASK-0003: Supabase データベーススキーマ・RLS設定](TASK-0003.md) - 8h (DIRECT) 🔵
-- [ ] [TASK-0004: Supabase Storage バケット設定](TASK-0004.md) - 4h (DIRECT) 🔵
-- [ ] [TASK-0005: 環境変数・設定管理モジュール](TASK-0005.md) - 4h (DIRECT) 🔵
-- [ ] [TASK-0006: Express API サーバー基本セットアップ](TASK-0006.md) - 8h (DIRECT) 🔵
-- [ ] [TASK-0007: Supabase 認証・クライアント統合](TASK-0007.md) - 8h (TDD) 🔵
-- [ ] [TASK-0008: API エラーハンドリング・セキュリティミドルウェア](TASK-0008.md) - 8h (TDD) 🔵
-- [ ] [TASK-0009: テストユーティリティ・モック基盤](TASK-0009.md) - 8h (DIRECT) 🔵
-- [ ] [TASK-0010: CI/CD・ビルドパイプライン設定](TASK-0010.md) - 4h (DIRECT) 🟡
+- [x] [TASK-0001: 環境設定・依存パッケージ整備](TASK-0001.md) - 4h (DIRECT) 🔵
+- [x] [TASK-0002: TypeScript型定義実装](TASK-0002.md) - 8h (TDD) 🔵
+- [x] [TASK-0003: Supabase データベーススキーマ・RLS設定](TASK-0003.md) - 8h (DIRECT) 🔵
+- [x] [TASK-0004: Supabase Storage バケット設定](TASK-0004.md) - 4h (DIRECT) 🔵
+- [x] [TASK-0005: 環境変数・設定管理モジュール](TASK-0005.md) - 4h (DIRECT) 🔵
+- [x] [TASK-0006: Express API サーバー基本セットアップ](TASK-0006.md) - 8h (DIRECT) 🔵
+- [x] [TASK-0007: Supabase 認証・クライアント統合](TASK-0007.md) - 8h (TDD) 🔵
+- [x] [TASK-0008: API エラーハンドリング・セキュリティミドルウェア](TASK-0008.md) - 8h (TDD) 🔵
+- [x] [TASK-0009: テストユーティリティ・モック基盤](TASK-0009.md) - 8h (DIRECT) 🔵
+- [x] [TASK-0010: CI/CD・ビルドパイプライン設定](TASK-0010.md) - 4h (DIRECT) 🟡
 
 ### 依存関係
 

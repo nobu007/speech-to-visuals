@@ -25,7 +25,7 @@
     "diagram:to-scenes": "tsx scripts/diagram-to-scenes.ts",
     "pipeline:run": "tsx scripts/run-pipeline.ts",
     "render:video": "tsx scripts/render-video.ts public/scenes/scene-data.json public/diagram-output.mp4",
-    "type-check": "tsc -p tsconfig.json --noEmit",
+    "type-check": "tsc -p tsconfig.app.json --noEmit",
     "test:llm-parsing": "tsx tests/llm-parsing.ts",
     "test:multilingual": "tsx scripts/test-multilingual-prompts.ts",
     "validate:llm": "tsx scripts/validate-llm-integration.ts",

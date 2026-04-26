@@ -79,6 +79,8 @@ export default defineConfig(({ mode }) => ({
   define: {
     // Polyfills for Node.js globals in browser
     global: 'globalThis',
-    'process.env.NODE_ENV': JSON.stringify(mode)
+    'process.env.NODE_ENV': JSON.stringify(mode),
+    'process.env.SUPABASE_URL': JSON.stringify(process.env.SUPABASE_URL || ''),
+    'process.env.SUPABASE_ANON_KEY': JSON.stringify(process.env.SUPABASE_ANON_KEY || ''),
   }
 }));

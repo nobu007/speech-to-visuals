@@ -166,28 +166,28 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
   return (
     <Card className={`w-full max-w-2xl ${className}`}>
       <CardHeader>
-        <CardTitle className=\"flex items-center gap-2\">
-          <Download className=\"h-5 w-5\" />
+        <CardTitle className="flex items-center gap-2">
+          <Download className="h-5 w-5" />
           Export Video
           {exportResult?.success && (
-            <Badge variant=\"secondary\" className=\"ml-auto\">
+            <Badge variant="secondary" className="ml-auto">
               Ready
             </Badge>
           )}
         </CardTitle>
       </CardHeader>
 
-      <CardContent className=\"space-y-6\">
-        <Tabs defaultValue=\"format\" className=\"w-full\">
-          <TabsList className=\"grid w-full grid-cols-3\">
-            <TabsTrigger value=\"format\">Format</TabsTrigger>
-            <TabsTrigger value=\"quality\">Quality</TabsTrigger>
-            <TabsTrigger value=\"advanced\">Advanced</TabsTrigger>
+      <CardContent className="space-y-6">
+        <Tabs defaultValue="format" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="format">Format</TabsTrigger>
+            <TabsTrigger value="quality">Quality</TabsTrigger>
+            <TabsTrigger value="advanced">Advanced</TabsTrigger>
           </TabsList>
 
           {/* Format Selection */}
-          <TabsContent value=\"format\" className=\"space-y-4\">
-            <div className=\"grid grid-cols-1 gap-3\">
+          <TabsContent value="format" className="space-y-4">
+            <div className="grid grid-cols-1 gap-3">
               {formatOptions.map((format) => {
                 const Icon = format.icon;
                 return (
@@ -198,14 +198,14 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                     }`}
                     onClick={() => updateConfig({ format: format.value as ExportFormat })}
                   >
-                    <div className=\"flex items-center gap-3\">
-                      <Icon className=\"h-5 w-5\" />
-                      <div className=\"flex-1\">
-                        <div className=\"font-medium\">{format.label}</div>
-                        <div className=\"text-sm text-muted-foreground\">{format.description}</div>
+                    <div className="flex items-center gap-3">
+                      <Icon className="h-5 w-5" />
+                      <div className="flex-1">
+                        <div className="font-medium">{format.label}</div>
+                        <div className="text-sm text-muted-foreground">{format.description}</div>
                       </div>
                       {config.format === format.value && (
-                        <Badge variant=\"default\">Selected</Badge>
+                        <Badge variant="default">Selected</Badge>
                       )}
                     </div>
                   </div>
@@ -215,10 +215,10 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           </TabsContent>
 
           {/* Quality Settings */}
-          <TabsContent value=\"quality\" className=\"space-y-4\">
-            <div className=\"space-y-4\">
+          <TabsContent value="quality" className="space-y-4">
+            <div className="space-y-4">
               {/* Resolution */}
-              <div className=\"space-y-2\">
+              <div className="space-y-2">
                 <Label>Resolution</Label>
                 <Select
                   value={config.quality.resolution}
@@ -232,9 +232,9 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                   <SelectContent>
                     {resolutionOptions.map((res) => (
                       <SelectItem key={res.value} value={res.value}>
-                        <div className=\"flex items-center justify-between w-full\">
+                        <div className="flex items-center justify-between w-full">
                           <span>{res.label}</span>
-                          <span className=\"text-muted-foreground ml-2\">{res.size}</span>
+                          <span className="text-muted-foreground ml-2">{res.size}</span>
                         </div>
                       </SelectItem>
                     ))}
@@ -243,7 +243,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
               </div>
 
               {/* Frame Rate */}
-              <div className=\"space-y-2\">
+              <div className="space-y-2">
                 <Label>Frame Rate</Label>
                 <Select
                   value={config.quality.fps.toString()}
@@ -255,15 +255,15 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value=\"24\">24 FPS (Cinema)</SelectItem>
-                    <SelectItem value=\"30\">30 FPS (Standard)</SelectItem>
-                    <SelectItem value=\"60\">60 FPS (Smooth)</SelectItem>
+                    <SelectItem value="24">24 FPS (Cinema)</SelectItem>
+                    <SelectItem value="30">30 FPS (Standard)</SelectItem>
+                    <SelectItem value="60">60 FPS (Smooth)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {/* Bitrate */}
-              <div className=\"space-y-2\">
+              <div className="space-y-2">
                 <Label>Quality</Label>
                 <Select
                   value={config.quality.bitrate}
@@ -275,21 +275,21 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value=\"auto\">Auto (Recommended)</SelectItem>
-                    <SelectItem value=\"low\">Low (Smaller file)</SelectItem>
-                    <SelectItem value=\"medium\">Medium</SelectItem>
-                    <SelectItem value=\"high\">High (Better quality)</SelectItem>
-                    <SelectItem value=\"lossless\">Lossless (Largest file)</SelectItem>
+                    <SelectItem value="auto">Auto (Recommended)</SelectItem>
+                    <SelectItem value="low">Low (Smaller file)</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High (Better quality)</SelectItem>
+                    <SelectItem value="lossless">Lossless (Largest file)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {/* HDR */}
               {['mp4', 'webm'].includes(config.format) && (
-                <div className=\"flex items-center justify-between\">
-                  <div className=\"space-y-0.5\">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
                     <Label>HDR (High Dynamic Range)</Label>
-                    <div className=\"text-sm text-muted-foreground\">
+                    <div className="text-sm text-muted-foreground">
                       Enhanced color and brightness
                     </div>
                   </div>
@@ -305,13 +305,13 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           </TabsContent>
 
           {/* Advanced Settings */}
-          <TabsContent value=\"advanced\" className=\"space-y-4\">
-            <div className=\"space-y-4\">
+          <TabsContent value="advanced" className="space-y-4">
+            <div className="space-y-4">
               {/* Audio */}
-              <div className=\"flex items-center justify-between\">
-                <div className=\"space-y-0.5\">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
                   <Label>Include Audio</Label>
-                  <div className=\"text-sm text-muted-foreground\">
+                  <div className="text-sm text-muted-foreground">
                     Include original audio track
                   </div>
                 </div>
@@ -324,10 +324,10 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
               </div>
 
               {/* Loop */}
-              <div className=\"flex items-center justify-between\">
-                <div className=\"space-y-0.5\">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
                   <Label>Loop Video</Label>
-                  <div className=\"text-sm text-muted-foreground\">
+                  <div className="text-sm text-muted-foreground">
                     Automatically restart when finished
                   </div>
                 </div>
@@ -340,10 +340,10 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
               </div>
 
               {/* Watermark */}
-              <div className=\"flex items-center justify-between\">
-                <div className=\"space-y-0.5\">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
                   <Label>Add Watermark</Label>
-                  <div className=\"text-sm text-muted-foreground\">
+                  <div className="text-sm text-muted-foreground">
                     Include branding watermark
                   </div>
                 </div>
@@ -356,7 +356,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
               </div>
 
               {/* Compression */}
-              <div className=\"space-y-2\">
+              <div className="space-y-2">
                 <Label>Compression Level</Label>
                 <Select
                   value={config.settings.compression}
@@ -368,17 +368,17 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value=\"none\">None (Largest)</SelectItem>
-                    <SelectItem value=\"low\">Low</SelectItem>
-                    <SelectItem value=\"medium\">Medium (Recommended)</SelectItem>
-                    <SelectItem value=\"high\">High</SelectItem>
-                    <SelectItem value=\"maximum\">Maximum (Smallest)</SelectItem>
+                    <SelectItem value="none">None (Largest)</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium (Recommended)</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="maximum">Maximum (Smallest)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {/* Optimization */}
-              <div className=\"space-y-2\">
+              <div className="space-y-2">
                 <Label>Optimization Priority</Label>
                 <Select
                   value={config.settings.optimization}
@@ -390,10 +390,10 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value=\"speed\">Speed (Faster export)</SelectItem>
-                    <SelectItem value=\"balanced\">Balanced (Recommended)</SelectItem>
-                    <SelectItem value=\"quality\">Quality (Better output)</SelectItem>
-                    <SelectItem value=\"size\">Size (Smaller file)</SelectItem>
+                    <SelectItem value="speed">Speed (Faster export)</SelectItem>
+                    <SelectItem value="balanced">Balanced (Recommended)</SelectItem>
+                    <SelectItem value="quality">Quality (Better output)</SelectItem>
+                    <SelectItem value="size">Size (Smaller file)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -404,28 +404,28 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         <Separator />
 
         {/* Export Summary */}
-        <div className=\"space-y-3\">
-          <h3 className=\"font-medium\">Export Summary</h3>
-          <div className=\"grid grid-cols-3 gap-4 text-sm\">
-            <div className=\"flex items-center gap-2\">
-              <HardDrive className=\"h-4 w-4 text-muted-foreground\" />
+        <div className="space-y-3">
+          <h3 className="font-medium">Export Summary</h3>
+          <div className="grid grid-cols-3 gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <HardDrive className="h-4 w-4 text-muted-foreground" />
               <div>
-                <div className=\"font-medium\">{getEstimatedFileSize()}</div>
-                <div className=\"text-muted-foreground\">Estimated size</div>
+                <div className="font-medium">{getEstimatedFileSize()}</div>
+                <div className="text-muted-foreground">Estimated size</div>
               </div>
             </div>
-            <div className=\"flex items-center gap-2\">
-              <Clock className=\"h-4 w-4 text-muted-foreground\" />
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-muted-foreground" />
               <div>
-                <div className=\"font-medium\">{getEstimatedTime()}</div>
-                <div className=\"text-muted-foreground\">Processing time</div>
+                <div className="font-medium">{getEstimatedTime()}</div>
+                <div className="text-muted-foreground">Processing time</div>
               </div>
             </div>
-            <div className=\"flex items-center gap-2\">
-              <Zap className=\"h-4 w-4 text-muted-foreground\" />
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-muted-foreground" />
               <div>
-                <div className=\"font-medium\">{config.quality.resolution}</div>
-                <div className=\"text-muted-foreground\">{config.quality.fps} FPS</div>
+                <div className="font-medium">{config.quality.resolution}</div>
+                <div className="text-muted-foreground">{config.quality.fps} FPS</div>
               </div>
             </div>
           </div>
@@ -433,15 +433,15 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
 
         {/* Export Progress */}
         {isExporting && exportProgress && (
-          <div className=\"space-y-3\">
-            <div className=\"flex items-center justify-between\">
-              <span className=\"font-medium\">Exporting...</span>
-              <span className=\"text-sm text-muted-foreground\">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="font-medium">Exporting...</span>
+              <span className="text-sm text-muted-foreground">
                 {exportProgress.progress.toFixed(0)}%
               </span>
             </div>
-            <Progress value={exportProgress.progress} className=\"w-full\" />
-            <div className=\"text-sm text-muted-foreground\">
+            <Progress value={exportProgress.progress} className="w-full" />
+            <div className="text-sm text-muted-foreground">
               {exportProgress.details || `Stage: ${exportProgress.stage}`}
             </div>
           </div>
@@ -452,26 +452,26 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           <div className={`p-4 rounded-lg ${
             exportResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
           }`}>
-            <div className=\"flex items-center gap-2\">
+            <div className="flex items-center gap-2">
               {exportResult.success ? (
                 <>
-                  <Download className=\"h-5 w-5 text-green-600\" />
-                  <div className=\"flex-1\">
-                    <div className=\"font-medium text-green-900\">Export Complete!</div>
-                    <div className=\"text-sm text-green-700\">
+                  <Download className="h-5 w-5 text-green-600" />
+                  <div className="flex-1">
+                    <div className="font-medium text-green-900">Export Complete!</div>
+                    <div className="text-sm text-green-700">
                       File size: {exportResult.outputSize ? `${(exportResult.outputSize / 1024 / 1024).toFixed(1)}MB` : 'Unknown'}
                       {exportResult.duration && ` • Duration: ${exportResult.duration.toFixed(1)}s`}
                     </div>
                   </div>
-                  <Button size=\"sm\" className=\"bg-green-600 hover:bg-green-700\">
+                  <Button size="sm" className="bg-green-600 hover:bg-green-700">
                     Download
                   </Button>
                 </>
               ) : (
                 <>
-                  <div className=\"flex-1\">
-                    <div className=\"font-medium text-red-900\">Export Failed</div>
-                    <div className=\"text-sm text-red-700\">{exportResult.error}</div>
+                  <div className="flex-1">
+                    <div className="font-medium text-red-900">Export Failed</div>
+                    <div className="text-sm text-red-700">{exportResult.error}</div>
                   </div>
                 </>
               )}
@@ -483,24 +483,24 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         <Button
           onClick={handleExport}
           disabled={isExporting || !sceneData}
-          className=\"w-full\"
-          size=\"lg\"
+          className="w-full"
+          size="lg"
         >
           {isExporting ? (
             <>
-              <div className=\"w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2\" />
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
               Exporting...
             </>
           ) : (
             <>
-              <Download className=\"h-4 w-4 mr-2\" />
+              <Download className="h-4 w-4 mr-2" />
               Export Video
             </>
           )}
         </Button>
 
         {/* Format Info */}
-        <div className=\"text-xs text-muted-foreground text-center\">
+        <div className="text-xs text-muted-foreground text-center">
           Exporting as {config.format.toUpperCase()} • {config.quality.resolution} @ {config.quality.fps}fps
         </div>
       </CardContent>
