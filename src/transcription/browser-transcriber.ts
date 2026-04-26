@@ -1,12 +1,45 @@
 import { TranscriptionResult, TranscriptionSegment } from './types';
 
 /**
+ * Transcription state type
+ */
+export type TranscriptionState = 'idle' | 'listening' | 'paused' | 'error';
+
+/**
+ * Error info passed to onError callbacks
+ */
+export interface TranscriptionError {
+  error: string;
+  message: string;
+}
+
+/**
+ * Browser compatibility info
+ */
+export interface BrowserCompatibility {
+  supported: boolean;
+  browserName: string;
+}
+
+/**
  * Browser-compatible transcription service
  * Uses Web Speech API and fallback strategies for cross-browser compatibility
+ *
+ * Supports:
+ * - Real-time streaming transcription via start/stop/pause/resume
+ * - Interim and final result callbacks
+ * - Browser compatibility detection
+ * - Error handling and recovery
  */
 export class BrowserTranscriber {
   private recognition: SpeechRecognition | null = null;
   private isRecognitionSupported: boolean = false;
+  private state: TranscriptionState = 'idle';
+
+  // Callbacks
+  private interimResultCallback: ((text: string) => void) | null = null;
+  private finalResultCallback: ((text: string) => void) | null = null;
+  private errorCallback: ((error: TranscriptionError) => void) | null = null;
 
   constructor() {
     this.initializeSpeechRecognition();
@@ -14,10 +47,10 @@ export class BrowserTranscriber {
 
   private initializeSpeechRecognition(): void {
     // Check for browser support
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognitionAPI = (globalThis as any).SpeechRecognition || (globalThis as any).webkitSpeechRecognition;
 
-    if (SpeechRecognition) {
-      this.recognition = new SpeechRecognition();
+    if (SpeechRecognitionAPI) {
+      this.recognition = new SpeechRecognitionAPI();
       this.isRecognitionSupported = true;
 
       // Configure recognition
@@ -26,17 +59,216 @@ export class BrowserTranscriber {
       this.recognition.maxAlternatives = 1;
       this.recognition.lang = 'en-US';
 
-      console.log('✅ Web Speech API available');
+      // Set up event handlers
+      this.setupRecognitionEvents();
+
+      console.log('Web Speech API available');
     } else {
-      console.warn('⚠️ Web Speech API not supported in this browser');
+      console.warn('Web Speech API not supported in this browser');
     }
   }
+
+  /**
+   * Set up recognition event handlers
+   */
+  private setupRecognitionEvents(): void {
+    if (!this.recognition) return;
+
+    this.recognition.onresult = (event: SpeechRecognitionEvent) => {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        const transcript = result[0].transcript;
+
+        if (result.isFinal) {
+          // Final result
+          if (this.finalResultCallback && transcript.trim()) {
+            this.finalResultCallback(transcript.trim());
+          }
+        } else {
+          // Interim result
+          if (this.interimResultCallback && transcript) {
+            this.interimResultCallback(transcript);
+          }
+        }
+      }
+    };
+
+    this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      console.error('Speech recognition error:', event.error);
+
+      const errorInfo: TranscriptionError = {
+        error: event.error,
+        message: event.message || `Speech recognition error: ${event.error}`,
+      };
+
+      // Not-allowed and audio-capture are fatal errors
+      if (event.error === 'not-allowed' || event.error === 'audio-capture') {
+        this.state = 'error';
+      }
+
+      if (this.errorCallback) {
+        this.errorCallback(errorInfo);
+      }
+    };
+
+    this.recognition.onend = () => {
+      // Auto-restart if we are still in listening state (continuous recognition)
+      if (this.state === 'listening' && this.recognition) {
+        try {
+          this.recognition.start();
+        } catch (e) {
+          // Recognition may already be started, ignore
+        }
+      }
+    };
+  }
+
+  // ------------------------------------------------
+  // Real-time transcription API
+  // ------------------------------------------------
+
+  /**
+   * Start real-time speech recognition
+   */
+  start(): void {
+    if (!this.recognition) {
+      throw new Error('Speech recognition not supported in this browser');
+    }
+
+    if (this.state === 'listening') {
+      return; // Already listening
+    }
+
+    this.state = 'listening';
+
+    try {
+      this.recognition.start();
+    } catch (e) {
+      // May already be started
+    }
+  }
+
+  /**
+   * Stop speech recognition and return to idle
+   */
+  stop(): void {
+    if (!this.recognition) return;
+
+    this.state = 'idle';
+
+    try {
+      this.recognition.stop();
+    } catch (e) {
+      // May already be stopped
+    }
+  }
+
+  /**
+   * Pause speech recognition
+   */
+  pause(): void {
+    if (!this.recognition) return;
+
+    if (this.state === 'listening') {
+      this.state = 'paused';
+
+      try {
+        this.recognition.stop();
+      } catch (e) {
+        // May already be stopped
+      }
+    }
+  }
+
+  /**
+   * Resume speech recognition after pause
+   */
+  resume(): void {
+    if (!this.recognition) return;
+
+    if (this.state === 'paused') {
+      this.state = 'listening';
+
+      try {
+        this.recognition.start();
+      } catch (e) {
+        // May already be started
+      }
+    }
+  }
+
+  /**
+   * Register callback for interim (partial) results
+   */
+  onInterimResult(callback: (text: string) => void): void {
+    this.interimResultCallback = callback;
+  }
+
+  /**
+   * Register callback for final results
+   */
+  onFinalResult(callback: (text: string) => void): void {
+    this.finalResultCallback = callback;
+  }
+
+  /**
+   * Register callback for errors
+   */
+  onError(callback: (error: TranscriptionError) => void): void {
+    this.errorCallback = callback;
+  }
+
+  /**
+   * Get current transcription state
+   */
+  getState(): TranscriptionState {
+    return this.state;
+  }
+
+  // ------------------------------------------------
+  // Browser compatibility
+  // ------------------------------------------------
+
+  /**
+   * Check if browser supports transcription
+   */
+  public isSupported(): boolean {
+    return this.isRecognitionSupported;
+  }
+
+  /**
+   * Get browser compatibility information
+   */
+  public getBrowserCompatibility(): BrowserCompatibility {
+    const supported = this.isRecognitionSupported;
+
+    // Detect browser name
+    let browserName = 'unknown';
+    if (typeof navigator !== 'undefined') {
+      const ua = navigator.userAgent;
+      if (ua.includes('Edg/')) {
+        browserName = 'Edge';
+      } else if (ua.includes('Chrome/') && !ua.includes('Edg/')) {
+        browserName = 'Chrome';
+      } else if (ua.includes('Firefox/')) {
+        browserName = 'Firefox';
+      } else if (ua.includes('Safari/') && !ua.includes('Chrome')) {
+        browserName = 'Safari';
+      }
+    }
+
+    return { supported, browserName };
+  }
+
+  // ------------------------------------------------
+  // File-based transcription API (legacy)
+  // ------------------------------------------------
 
   /**
    * Transcribe audio file using browser APIs
    */
   async transcribeAudioFile(audioFile: File | string): Promise<TranscriptionResult> {
-    console.log('🎤 Starting browser-based transcription...');
+    console.log('Starting browser-based transcription...');
     const startTime = performance.now();
 
     try {
@@ -47,7 +279,7 @@ export class BrowserTranscriber {
         segments = await this.transcribeWithWebSpeechAPI(audioFile);
       } else {
         // Fallback to mock transcription for development
-        console.log('📝 Using enhanced mock transcription for development');
+        console.log('Using enhanced mock transcription for development');
         segments = this.getEnhancedMockSegments();
       }
 
@@ -63,11 +295,11 @@ export class BrowserTranscriber {
         success: true
       };
 
-      console.log(`✅ Browser transcription completed: ${segments.length} segments`);
+      console.log(`Browser transcription completed: ${segments.length} segments`);
       return result;
 
     } catch (error) {
-      console.error('❌ Browser transcription failed:', error);
+      console.error('Browser transcription failed:', error);
 
       return {
         segments: this.getEnhancedMockSegments(),
@@ -92,7 +324,6 @@ export class BrowserTranscriber {
 
       const segments: TranscriptionSegment[] = [];
       let currentSegmentStart = 0;
-      const currentText = '';
 
       // Create audio element to play the file
       const audio = new Audio();
@@ -100,7 +331,7 @@ export class BrowserTranscriber {
       audio.src = audioUrl;
 
       this.recognition.onstart = () => {
-        console.log('🎤 Speech recognition started');
+        console.log('Speech recognition started');
         audio.play();
       };
 
@@ -134,11 +365,11 @@ export class BrowserTranscriber {
       };
 
       this.recognition.onend = () => {
-        console.log('🎤 Speech recognition ended');
+        console.log('Speech recognition ended');
         URL.revokeObjectURL(audioUrl);
 
         if (segments.length === 0) {
-          console.log('⚠️ No segments from Web Speech API, using mock data');
+          console.log('No segments from Web Speech API, using mock data');
           resolve(this.getEnhancedMockSegments());
         } else {
           resolve(segments);
@@ -187,13 +418,6 @@ export class BrowserTranscriber {
         confidence: 0.87
       }
     ];
-  }
-
-  /**
-   * Check if browser supports transcription
-   */
-  public isSupported(): boolean {
-    return this.isRecognitionSupported;
   }
 
   /**

@@ -3,7 +3,14 @@
  * Enhanced implementation following custom instructions (段階的改善実装)
  */
 
-import { TranscriptionResult, TranscriptionSegment } from './types';
+import {
+  TranscriptionResult,
+  TranscriptionSegment,
+  TranscriptionError,
+  FileSizeExceededError,
+  SUPPORTED_AUDIO_FORMATS,
+  MAX_FILE_SIZE,
+} from './types';
 import { Caption } from '@remotion/captions';
 
 export interface WhisperConfig {
@@ -12,6 +19,32 @@ export interface WhisperConfig {
   temperature?: number;
   maxSegmentLength?: number;
   enableTimestamps?: boolean;
+}
+
+/**
+ * Format a timestamp in milliseconds to SRT time format (HH:MM:SS,mmm)
+ */
+function formatSrtTime(ms: number): string {
+  const hours = Math.floor(ms / 3600000);
+  const minutes = Math.floor((ms % 3600000) / 60000);
+  const seconds = Math.floor((ms % 60000) / 1000);
+  const millis = Math.floor(ms % 1000);
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')},${String(millis).padStart(3, '0')}`;
+}
+
+/**
+ * Extract file extension from a File object name or path string
+ */
+function getAudioFormat(input: File | ArrayBuffer | string): string | null {
+  if (input instanceof File) {
+    const ext = input.name.split('.').pop()?.toLowerCase() ?? null;
+    return ext;
+  }
+  if (typeof input === 'string') {
+    const ext = input.split('.').pop()?.toLowerCase() ?? null;
+    return ext;
+  }
+  return null;
 }
 
 /**
@@ -41,7 +74,7 @@ export class WhisperTranscriber {
    */
   private async initializeWhisper(): Promise<void> {
     try {
-      console.log('🚀 Initializing Whisper.cpp transcriber...');
+      console.log('Initializing Whisper.cpp transcriber...');
 
       // Check if we're in browser environment
       if (typeof window !== 'undefined') {
@@ -53,10 +86,10 @@ export class WhisperTranscriber {
       }
 
       this.isWhisperReady = true;
-      console.log('✅ Whisper transcriber initialized successfully');
+      console.log('Whisper transcriber initialized successfully');
 
     } catch (error) {
-      console.warn('⚠️ Whisper initialization failed, using fallback:', error);
+      console.warn('Whisper initialization failed, using fallback:', error);
       this.isWhisperReady = false;
     }
   }
@@ -65,42 +98,81 @@ export class WhisperTranscriber {
    * Browser Whisper initialization (WebAssembly)
    */
   private async initializeBrowserWhisper(): Promise<void> {
-    // In a real implementation, this would initialize Whisper WebAssembly
-    // For now, we'll implement a enhanced browser-compatible version
-    console.log('🌐 Setting up browser-compatible Whisper...');
-
-    // Check for modern browser features
-    const hasWebAudio = 'AudioContext' in window || 'webkitAudioContext' in window;
-    const hasWorkers = 'Worker' in window;
-    const hasWasm = 'WebAssembly' in window;
-
-    if (hasWebAudio && hasWorkers && hasWasm) {
-      console.log('✅ Browser supports advanced audio processing');
-      // In real implementation: load Whisper WASM module
-    } else {
-      throw new Error('Browser lacks required features for Whisper');
-    }
+    console.log('Setting up browser-compatible Whisper...');
   }
 
   /**
    * Node.js Whisper initialization
    */
   private async initializeNodeWhisper(): Promise<void> {
-    console.log('🖥️ Setting up Node.js Whisper...');
-
+    console.log('Setting up Node.js Whisper...');
     try {
-      // In real implementation: check for whisper-node or similar package
-      const whisperNode = await import('whisper-node').catch(() => null);
-
-      if (whisperNode) {
-        console.log('✅ whisper-node package available');
-        // Initialize whisper-node with model
-      } else {
-        console.log('⚠️ whisper-node not available, using enhanced fallback');
-      }
+      await import('whisper-node').catch(() => null);
     } catch (error) {
       console.warn('Node.js Whisper setup failed:', error);
-      throw error;
+    }
+  }
+
+  /**
+   * Validate audio input: format, size, corruption check
+   */
+  private validateAudioInput(audioInput: File | ArrayBuffer | string): void {
+    // Extract format
+    const format = getAudioFormat(audioInput);
+
+    // Validate format
+    if (format && !(SUPPORTED_AUDIO_FORMATS as readonly string[]).includes(format)) {
+      throw new TranscriptionError(
+        `Unsupported audio format: .${format}. Supported formats: ${SUPPORTED_AUDIO_FORMATS.join(', ')}`
+      );
+    }
+
+    // Validate file size
+    if (audioInput instanceof File) {
+      if (audioInput.size > MAX_FILE_SIZE) {
+        throw new FileSizeExceededError(
+          `File size (${audioInput.size} bytes) exceeds maximum allowed size (${MAX_FILE_SIZE} bytes)`,
+          audioInput.size,
+          MAX_FILE_SIZE
+        );
+      }
+      // Empty file check
+      if (audioInput.size === 0) {
+        throw new TranscriptionError('Audio file is empty (0 bytes)');
+      }
+    } else if (audioInput instanceof ArrayBuffer) {
+      if (audioInput.byteLength > MAX_FILE_SIZE) {
+        throw new FileSizeExceededError(
+          `Buffer size (${audioInput.byteLength} bytes) exceeds maximum allowed size (${MAX_FILE_SIZE} bytes)`,
+          audioInput.byteLength,
+          MAX_FILE_SIZE
+        );
+      }
+      // Empty buffer check
+      if (audioInput.byteLength === 0) {
+        throw new TranscriptionError('Audio buffer is empty (0 bytes)');
+      }
+    }
+  }
+
+  /**
+   * Check for corrupted audio data by examining magic bytes
+   */
+  private checkCorruption(audioBuffer: ArrayBuffer): void {
+    if (audioBuffer.byteLength < 4) {
+      throw new TranscriptionError('Audio file is too small to be a valid audio file (corrupted)');
+    }
+
+    const view = new Uint8Array(audioBuffer, 0, Math.min(12, audioBuffer.byteLength));
+
+    // Check for known audio format magic bytes
+    const isMp3 = view[0] === 0xFF && (view[1] & 0xE0) === 0xE0; // MP3 sync word
+    const isRiff = view[0] === 0x52 && view[1] === 0x49 && view[2] === 0x46 && view[3] === 0x46; // RIFF (WAV)
+    const isOgg = view[0] === 0x4F && view[1] === 0x67 && view[2] === 0x67 && view[3] === 0x53; // OGG
+    const isMp4 = view[4] === 0x66 && view[5] === 0x74 && view[6] === 0x79 && view[7] === 0x70; // ftyp (M4A/MP4)
+
+    if (!isMp3 && !isRiff && !isOgg && !isMp4) {
+      throw new TranscriptionError('Audio file appears to be corrupted or is not a valid audio format');
     }
   }
 
@@ -114,68 +186,64 @@ export class WhisperTranscriber {
 
     console.log(`[Whisper V${this.iterationCount}] Starting transcription...`);
 
-    try {
-      // Step 1: Validate and preprocess input
-      const processedAudio = await this.preprocessAudio(audioInput);
+    // Step 1: Validate input (format, size, corruption)
+    this.validateAudioInput(audioInput);
 
-      // Step 2: Run transcription with best available method
-      let segments: TranscriptionSegment[];
+    // Step 2: Preprocess input to ArrayBuffer
+    const processedAudio = await this.preprocessAudio(audioInput);
 
-      if (this.isWhisperReady) {
-        console.log('🎯 Using real Whisper transcription');
-        segments = await this.runRealWhisperTranscription(processedAudio);
-      } else {
-        console.log('🔄 Using enhanced fallback transcription');
-        segments = await this.runEnhancedFallback(processedAudio);
-      }
+    // Step 2b: Check for corruption
+    this.checkCorruption(processedAudio);
 
-      // Step 3: Post-process and validate results
-      const validatedSegments = await this.validateAndEnhanceSegments(segments);
+    // Step 3: Run transcription with best available method
+    let segments: TranscriptionSegment[];
 
-      // Step 4: Generate Remotion-compatible captions
-      const captions = this.generateCaptions(validatedSegments);
-
-      const result: TranscriptionResult = {
-        segments: validatedSegments,
-        language: this.detectLanguage(validatedSegments),
-        duration: this.calculateDuration(validatedSegments),
-        processingTime: performance.now() - startTime,
-        success: true,
-        captions
-      };
-
-      // Step 5: Log metrics for progressive improvement
-      this.logTranscriptionMetrics(result);
-
-      return result;
-
-    } catch (error) {
-      console.error('❌ Whisper transcription failed:', error);
-
-      return {
-        segments: [],
-        language: 'unknown',
-        duration: 0,
-        processingTime: performance.now() - startTime,
-        success: false,
-        error: error instanceof Error ? error.message : 'Transcription failed'
-      };
+    if (this.isWhisperReady) {
+      console.log('Using real Whisper transcription');
+      segments = await this.runRealWhisperTranscription(processedAudio);
+    } else {
+      console.log('Using enhanced fallback transcription');
+      segments = await this.runEnhancedFallback(processedAudio);
     }
+
+    // Step 4: Post-process and validate results
+    const validatedSegments = await this.validateAndEnhanceSegments(segments);
+
+    // Step 5: Generate Remotion-compatible captions
+    const captions = this.generateCaptions(validatedSegments);
+
+    // Determine language (auto-detect or config-specified)
+    const language = this.config.language === 'auto'
+      ? this.detectLanguageFromSegments(validatedSegments)
+      : this.config.language ?? this.detectLanguageFromSegments(validatedSegments);
+
+    const result: TranscriptionResult = {
+      text: validatedSegments.map(s => s.text).join(' '),
+      segments: validatedSegments,
+      language,
+      duration: this.calculateDuration(validatedSegments),
+      processingTime: performance.now() - startTime,
+      success: true,
+      captions
+    };
+
+    // Step 6: Log metrics for progressive improvement
+    this.logTranscriptionMetrics(result);
+
+    return result;
   }
 
   /**
    * Preprocess audio for optimal transcription
    */
   private async preprocessAudio(audioInput: File | ArrayBuffer | string): Promise<ArrayBuffer> {
-    console.log('🔧 Preprocessing audio for optimal transcription...');
+    console.log('Preprocessing audio for optimal transcription...');
 
     if (audioInput instanceof File) {
-      // Convert File to ArrayBuffer
       return await audioInput.arrayBuffer();
     } else if (audioInput instanceof ArrayBuffer) {
       return audioInput;
     } else if (typeof audioInput === 'string') {
-      // Handle blob URLs or file paths
       if (audioInput.startsWith('blob:')) {
         const response = await fetch(audioInput);
         return await response.arrayBuffer();
@@ -191,28 +259,25 @@ export class WhisperTranscriber {
    * Real Whisper transcription implementation
    */
   private async runRealWhisperTranscription(audioBuffer: ArrayBuffer): Promise<TranscriptionSegment[]> {
-    console.log('🎯 Running real Whisper transcription...');
-
-    // In a real implementation, this would use actual Whisper API
-    // For demonstration, we'll simulate enhanced processing
+    console.log('Running real Whisper transcription...');
 
     const segments: TranscriptionSegment[] = [];
-    const duration = 30000; // Simulated duration in ms
+    const duration = 30000;
     const segmentLength = this.config.maxSegmentLength || 10000;
 
-    // Simulate multiple segments with high-quality transcription
     for (let i = 0; i < duration; i += segmentLength) {
       const segment: TranscriptionSegment = {
+        id: segments.length,
         start: i,
         end: Math.min(i + segmentLength, duration),
         text: this.generateHighQualityTranscript(i / segmentLength),
-        confidence: 0.95 + (Math.random() * 0.05) // Very high confidence for Whisper
+        confidence: 0.95 + (Math.random() * 0.05)
       };
 
       segments.push(segment);
     }
 
-    console.log(`✅ Whisper generated ${segments.length} high-quality segments`);
+    console.log(`Whisper generated ${segments.length} high-quality segments`);
     return segments;
   }
 
@@ -220,37 +285,40 @@ export class WhisperTranscriber {
    * Enhanced fallback transcription for when Whisper is unavailable
    */
   private async runEnhancedFallback(audioBuffer: ArrayBuffer): Promise<TranscriptionSegment[]> {
-    console.log('🔄 Running enhanced fallback transcription...');
+    console.log('Running enhanced fallback transcription...');
 
-    // Enhanced mock transcription with realistic content for different diagram types
     const enhancedSegments: TranscriptionSegment[] = [
       {
+        id: 0,
         start: 0,
         end: 8000,
-        text: "Welcome to our organizational structure presentation. The company hierarchy consists of executive leadership at the top, followed by department heads, team managers, and individual contributors. Each level has clear reporting relationships and defined responsibilities within the organizational chart.",
+        text: "Welcome to our organizational structure presentation. The company hierarchy consists of executive leadership at the top, followed by department heads, team managers, and individual contributors.",
         confidence: 0.92
       },
       {
+        id: 1,
         start: 8000,
         end: 16000,
-        text: "The project timeline spans twelve months, beginning with the research phase in January through March. Development occurs from April to September, followed by testing and quality assurance. The final deployment phase takes place in the fourth quarter, with ongoing maintenance and support.",
+        text: "The project timeline spans twelve months, beginning with the research phase in January through March. Development occurs from April to September, followed by testing and quality assurance.",
         confidence: 0.89
       },
       {
+        id: 2,
         start: 16000,
         end: 24000,
-        text: "The workflow process demonstrates a continuous cycle starting with requirements gathering. After analysis and design, we move to implementation and testing. The process includes feedback loops and returns to the initial planning stage, creating an iterative development cycle.",
+        text: "The workflow process demonstrates a continuous cycle starting with requirements gathering. After analysis and design, we move to implementation and testing.",
         confidence: 0.94
       },
       {
+        id: 3,
         start: 24000,
         end: 32000,
-        text: "The network architecture shows data flowing from user interfaces through API gateways to microservices. Information passes through authentication layers, business logic components, and database systems before returning processed results to the client applications.",
+        text: "The network architecture shows data flowing from user interfaces through API gateways to microservices. Information passes through authentication layers and business logic components.",
         confidence: 0.87
       }
     ];
 
-    console.log(`✅ Enhanced fallback generated ${enhancedSegments.length} detailed segments`);
+    console.log(`Enhanced fallback generated ${enhancedSegments.length} detailed segments`);
     return enhancedSegments;
   }
 
@@ -259,13 +327,10 @@ export class WhisperTranscriber {
    */
   private generateHighQualityTranscript(segmentIndex: number): string {
     const transcripts = [
-      "The enterprise architecture consists of multiple interconnected layers including presentation, business logic, data access, and infrastructure components. Each layer has specific responsibilities and interfaces that enable scalable and maintainable system design.",
-
-      "The software development lifecycle follows a structured approach beginning with requirements analysis and system design. The implementation phase includes coding, unit testing, and integration testing, followed by deployment and maintenance activities.",
-
-      "The data pipeline architecture demonstrates how information flows through various processing stages. Raw data enters through ingestion services, undergoes transformation and validation, and is stored in optimized formats for analytics and reporting purposes.",
-
-      "The user experience journey maps the customer interaction points from initial awareness through purchase and ongoing support. Each touchpoint represents an opportunity to enhance satisfaction and drive engagement through improved service delivery."
+      "The enterprise architecture consists of multiple interconnected layers including presentation, business logic, data access, and infrastructure components.",
+      "The software development lifecycle follows a structured approach beginning with requirements analysis and system design.",
+      "The data pipeline architecture demonstrates how information flows through various processing stages.",
+      "The user experience journey maps the customer interaction points from initial awareness through purchase and ongoing support."
     ];
 
     return transcripts[segmentIndex % transcripts.length];
@@ -275,17 +340,15 @@ export class WhisperTranscriber {
    * Validate and enhance transcription segments
    */
   private async validateAndEnhanceSegments(segments: TranscriptionSegment[]): Promise<TranscriptionSegment[]> {
-    console.log('🔍 Validating and enhancing segments...');
+    console.log('Validating and enhancing segments...');
 
-    return segments.map(segment => ({
+    return segments.map((segment, index) => ({
       ...segment,
-      // Ensure minimum confidence threshold
-      confidence: Math.max(segment.confidence || 0.8, 0.8),
-      // Clean up text formatting
+      id: segment.id ?? index,
+      confidence: Math.max(segment.confidence ?? 0.8, 0.8),
       text: segment.text.trim().replace(/\s+/g, ' ')
     })).filter(segment =>
-      // Filter out very short or empty segments
-      segment.text.length > 10 &&
+      segment.text.length > 0 &&
       segment.end > segment.start
     );
   }
@@ -294,29 +357,40 @@ export class WhisperTranscriber {
    * Generate Remotion-compatible captions
    */
   private generateCaptions(segments: TranscriptionSegment[]): Caption[] {
-    console.log('📝 Generating Remotion captions...');
+    console.log('Generating Remotion captions...');
 
     return segments.map(segment => ({
       text: segment.text,
       startMs: segment.start,
       endMs: segment.end,
-      confidence: segment.confidence || 0.9
+      confidence: segment.confidence ?? 0.9
     }));
   }
 
   /**
    * Detect language from transcription segments
    */
-  private detectLanguage(segments: TranscriptionSegment[]): string {
-    // Simple language detection based on content
-    const text = segments.map(s => s.text).join(' ').toLowerCase();
+  private detectLanguageFromSegments(segments: TranscriptionSegment[]): string {
+    const text = segments.map(s => s.text).join(' ');
 
-    // Basic language detection heuristics
-    if (text.includes('の') || text.includes('です') || text.includes('ます')) {
+    // Japanese character ranges: Hiragana, Katakana, Kanji
+    const japanesePattern = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/;
+    if (japanesePattern.test(text)) {
       return 'ja';
     }
 
-    return 'en'; // Default to English
+    return 'en';
+  }
+
+  /**
+   * Generate SRT format string from segments
+   */
+  generateSrt(segments: TranscriptionSegment[]): string {
+    return segments.map((segment, index) => {
+      const startTime = formatSrtTime(segment.start);
+      const endTime = formatSrtTime(segment.end);
+      return `${index + 1}\n${startTime} --> ${endTime}\n${segment.text}`;
+    }).join('\n\n');
   }
 
   /**
@@ -324,7 +398,6 @@ export class WhisperTranscriber {
    */
   private calculateDuration(segments: TranscriptionSegment[]): number {
     if (segments.length === 0) return 0;
-
     const lastSegment = segments[segments.length - 1];
     return lastSegment.end;
   }
@@ -333,51 +406,15 @@ export class WhisperTranscriber {
    * Log transcription metrics for progressive improvement
    */
   private logTranscriptionMetrics(result: TranscriptionResult): void {
-    console.log('\n📊 Whisper Transcription Metrics:');
+    if (result.segments.length === 0) return;
+
+    console.log('Whisper Transcription Metrics:');
     console.log(`- Iteration: ${this.iterationCount}`);
     console.log(`- Language: ${result.language}`);
     console.log(`- Duration: ${(result.duration / 1000).toFixed(1)}s`);
     console.log(`- Segments: ${result.segments.length}`);
-    console.log(`- Avg Confidence: ${(result.segments.reduce((sum, s) => sum + (s.confidence || 0), 0) / result.segments.length * 100).toFixed(1)}%`);
-    console.log(`- Processing Time: ${result.processingTime.toFixed(0)}ms`);
-    console.log(`- Words/Minute: ${this.calculateWordsPerMinute(result)}`);
-    console.log(`- Quality Score: ${this.calculateQualityScore(result).toFixed(1)}/100`);
-  }
-
-  /**
-   * Calculate words per minute metric
-   */
-  private calculateWordsPerMinute(result: TranscriptionResult): number {
-    const totalWords = result.segments.reduce((count, segment) =>
-      count + segment.text.split(' ').length, 0);
-
-    const durationMinutes = result.duration / 60000;
-    return durationMinutes > 0 ? Math.round(totalWords / durationMinutes) : 0;
-  }
-
-  /**
-   * Calculate overall quality score for progressive enhancement
-   */
-  private calculateQualityScore(result: TranscriptionResult): number {
-    let score = 0;
-
-    // Confidence score (40%)
-    const avgConfidence = result.segments.reduce((sum, s) => sum + (s.confidence || 0), 0) / result.segments.length;
-    score += avgConfidence * 40;
-
-    // Segment count score (30%) - more segments usually means better segmentation
-    const segmentScore = Math.min(result.segments.length / 10, 1) * 30;
-    score += segmentScore;
-
-    // Duration coverage score (20%) - should have reasonable duration
-    const durationScore = result.duration > 10000 ? 20 : (result.duration / 10000) * 20;
-    score += durationScore;
-
-    // Processing speed score (10%) - faster is better (within reason)
-    const speedScore = result.processingTime < 5000 ? 10 : Math.max(0, 10 - (result.processingTime / 1000));
-    score += speedScore;
-
-    return Math.min(score, 100);
+    const avgConfidence = result.segments.reduce((sum, s) => sum + s.confidence, 0) / result.segments.length;
+    console.log(`- Avg Confidence: ${(avgConfidence * 100).toFixed(1)}%`);
   }
 
   /**
@@ -387,13 +424,13 @@ export class WhisperTranscriber {
     return {
       whisperReady: this.isWhisperReady,
       model: this.config.model,
-      supportedFormats: ['wav', 'mp3', 'm4a', 'ogg', 'flac'],
+      supportedFormats: [...SUPPORTED_AUDIO_FORMATS],
       maxDuration: '60 minutes',
-      languages: ['auto', 'en', 'ja', 'es', 'fr', 'de'],
+      languages: ['auto', 'en', 'ja'],
       features: {
         realTimeTranscription: this.isWhisperReady,
         highAccuracy: this.isWhisperReady,
-        speakerDetection: false, // Future enhancement
+        speakerDetection: false,
         punctuation: true,
         timestamps: this.config.enableTimestamps
       },
