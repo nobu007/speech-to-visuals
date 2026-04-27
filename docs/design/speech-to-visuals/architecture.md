@@ -50,7 +50,10 @@
 - **UIライブラリ**: Tailwind CSS 3.4 + shadcn/ui（20+ Radix UI コンポーネント）
 - **ルーティング**: React Router DOM 6.30
 - **動画プレビュー**: Remotion 4.0 Player
-- **主要コンポーネント**: SimplePipelineInterface（メインUI）、EnhancedFileUploader（D&D）、進捗表示、ビデオプレビュー
+- **スキーマ検証**: Zod 3.25 🔵 *package.json より*
+- **グラフ可視化**: Recharts 2.15 🔵 *src/monitoring/performance-dashboard.tsx より*
+- **通知**: Sonner 1.7 🔵 *package.json より*
+- **主要コンポーネント**: SimplePipelineInterface（メインUI）、EnhancedFileUploader（D&D）、ProcessingStatus、VideoRenderer、EnhancedVideoPreview、AudioUploader
 
 ### バックエンド 🔵
 
@@ -61,6 +64,7 @@
 - **認証方式**: Supabase Auth（JWT ベース）
 - **API設計**: REST（バッチ処理API）+ Supabase Edge Functions
 - **ミドルウェア**: express-rate-limit（レート制限）、Helmet（セキュリティヘッダー）、CORS
+- **API構成**: src/api/middleware/（rate-limit, error-handler, auth）、src/api/routes/（ルート定義）🔵 *src/api/ より*
 
 ### AI・処理モジュール 🔵
 
@@ -71,6 +75,7 @@
 - **ブラウザ音声認識**: Web Speech API
 - **形態素解析**: Kuromoji（日本語）
 - **グラフレイアウト**: @dagrejs/dagre 1.1
+- **形態素解析**: Kuromoji 0.1（日本語）
 
 ### データベース 🔵
 
@@ -118,6 +123,23 @@
 - **適応型コンテンツ処理**: コンテンツ特性に応じた処理パラメータの動的調整
 - **インテリジェントキャッシュ**: セマンティックキャッシュ（類似度0.9、200エントリ）と処理結果キャッシュ
 
+### 可視化戦略 🔵
+
+**信頼性**: 🔵 *src/visualization/strategies/（21ファイル）・ZERO_OVERLAP_DESIGN.md より*
+
+**コア5戦略**（Phase 3 実装）:
+- FlowStrategy, TreeStrategy, TimelineStrategy, MatrixStrategy, CycleStrategy
+
+**拡張戦略**:
+- NetworkLayoutStrategy, ConceptMapLayoutStrategy, ComparisonLayoutStrategy
+- DagreLayoutStrategy, FlowchartLayoutStrategy, CulturalLayoutAdapter
+- FallbackLayoutStrategy, LayoutEvaluator, LayoutOptimizer, OverlapResolver
+
+**レイアウトエンジン**:
+- layout-engine.ts, layout-engine-v2.ts, complex-layout-engine.ts
+- enhanced-zero-overlap-layout.ts, overlap-resolver.ts, spatial-hash.ts
+- canvas-calculator.ts, strategy-selector.ts
+
 ## システム構成図
 
 ```mermaid
@@ -158,12 +180,15 @@ graph TB
 ├── src/
 │   ├── analysis/           # 内容分析（LLM、Gemini、図解検出、言語検出、複雑度）
 │   ├── api/                # REST API（バッチ処理）
+│   │   ├── middleware/     # レート制限、エラーハンドラー、認証 🔵
+│   │   └── routes/         # API ルート定義 🔵
 │   ├── components/         # React UI（20+コンポーネント）
 │   ├── config/             # 設定（プロダクション設定）
 │   ├── export/             # エクスポート（SVG/PNG/PDF/JSON）
 │   ├── framework/          # 再帰的改善フレームワーク
 │   ├── hooks/              # React Hooks
 │   ├── integrations/       # Supabase 統合
+│   ├── lib/                # ユーティリティライブラリ 🔵
 │   ├── monitoring/         # プロダクション監視
 │   ├── optimization/       # パラメータチューニング
 │   ├── pages/              # React Router ページ
@@ -175,15 +200,18 @@ graph TB
 │   ├── transcription/      # 音声認識（Whisper/Streaming/Browser）
 │   ├── types/              # TypeScript 型定義
 │   ├── utils/              # ユーティリティ
-│   └── visualization/      # 図解レイアウト（14+戦略）
+│   └── visualization/      # 図解レイアウト（15+戦略、21ファイル）
+│       ├── base/           # ベース可視化コンポーネント 🔵
+│       ├── layout/         # レイアウト固有コード 🔵
+│       └── strategies/     # レイアウト戦略（21ファイル）🔵
 ├── supabase/
 │   ├── migrations/         # DB マイグレーション
-│   └── functions/          # Edge Functions
+│   └── functions/          # Edge Functions（3関数）
 ├── docs/
 │   ├── architecture/       # 旧アーキテクチャ文書（統合元）
 │   ├── spec/               # 要件定義書
 │   └── design/             # 設計文書（本ファイル群）
-├── tests/                  # テストスイート
+├── tests/                  # テストスイート（41ファイル）
 ├── scripts/                # ユーティリティスクリプト
 └── public/                 # 静的アセット
 ```
@@ -316,8 +344,8 @@ Fallback LLM
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 33件 (94%)
-- 🟡 黄信号: 2件 (6%)
+- 🔵 青信号: 40件 (95%)
+- 🟡 黄信号: 2件 (5%)
 - 🔴 赤信号: 0件 (0%)
 
 **品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている

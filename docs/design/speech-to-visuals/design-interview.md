@@ -224,6 +224,109 @@
 
 ---
 
+### A13: 新規ディレクトリ src/lib/ の確認
+
+**分析日時**: 2026-04-27
+**カテゴリ**: アーキテクチャ
+**背景**: 設計文書に記載されていない `src/lib/` ディレクトリが実装に存在するか確認が必要だった
+
+**判断**: `src/lib/` はユーティリティライブラリを格納するディレクトリ。`src/utils/` と類似の役割だが、より汎用的なライブラリコードを配置。architecture.md のディレクトリ構造に追加。
+
+**根拠**: src/lib/ ディレクトリの存在確認
+
+**信頼性への影響**:
+- architecture.md のディレクトリ構造を更新（信頼性レベル: 🔵）
+
+---
+
+### A14: 可視化戦略の拡大確認
+
+**分析日時**: 2026-04-27
+**カテゴリ**: レイアウト
+**背景**: 設計文書では14+戦略としていたが、src/visualization/strategies/ に21ファイルが存在。実態を確認する必要があった
+
+**判断**: 15以上のレイアウト戦略が実装済み。コア5戦略（Flow/Tree/Timeline/Matrix/Cycle）に加え、NetworkLayout/ConceptMap/Comparison/Dagre/Flowchart/CulturalAdapter/Fallback/LayoutEvaluator/LayoutOptimizer/OverlapResolver が追加実装されている。また layout-engine-v2.ts, complex-layout-engine.ts 等のエンジン拡張も確認。
+
+**根拠**: src/visualization/strategies/ の21ファイル、src/visualization/ の8エンジンファイル
+
+**信頼性への影響**:
+- architecture.md に可視化戦略セクションを追加（信頼性レベル: 🔵）
+- dataflow.md の戦略テーブルを更新（信頼性レベル: 🔵）
+
+---
+
+### A15: API ミドルウェア・ルート構成の確認
+
+**分析日時**: 2026-04-27
+**カテゴリ**: バックエンド
+**背景**: src/api/ 配下に middleware/, routes/ サブディレクトリが追加されていた
+
+**判断**: APIモジュールがより構造化されている。middleware/ に rate-limit, error-handler, auth が、routes/ にルート定義が配置。architecture.md のバックエンドセクションを更新。
+
+**根拠**: src/api/middleware/, src/api/routes/ の存在確認
+
+**信頼性への影響**:
+- architecture.md のバックエンドセクションにAPI構成を追加（信頼性レベル: 🔵）
+
+---
+
+### A16: 新しい依存関係の確認
+
+**分析日時**: 2026-04-27
+**カテゴリ**: 技術スタック
+**背景**: 設計文書作成後に追加された依存関係（zod, recharts, sonner 等）を確認
+
+**判断**: 以下の依存関係が追加:
+- **Zod 3.25**: スキーマ検証（API バリデーション、設定検証）
+- **Recharts 2.15**: グラフ可視化（パフォーマンスダッシュボード）
+- **Sonner 1.7**: トースト通知（UI フィードバック）
+- **Socket.IO 4.8**: リアルタイム通信（バッチ進捗）
+- **Kuromoji 0.1**: 日本語形態素解析
+
+**根拠**: package.json の依存関係確認
+
+**信頼性への影響**:
+- architecture.md のフロントエンド・バックエンドセクションを更新（信頼性レベル: 🔵）
+
+---
+
+### A17: 新しい型定義ファイルの確認
+
+**分析日時**: 2026-04-27
+**カテゴリ**: データモデル
+**背景**: src/types/ 配下に新しい型ファイルが追加されていた
+
+**判断**: 以下の型定義ファイルが追加:
+- types/llm.ts: LLM サービス関連型
+- types/quality.ts: 品質メトリクス関連型
+- types/workspace.ts: ワークスペース・コラボレーション型
+- types/cache.ts: キャッシュ関連型
+- types/api.ts (api/index.ts): API 関連型
+
+interfaces.ts には既にこれらの主要型が反映済み。
+
+**根拠**: src/types/ ディレクトリの構造確認
+
+**信頼性への影響**:
+- interfaces.ts は更新不要（主要型は既に反映済み）
+
+---
+
+### A18: テストインフラストラクチャの拡大確認
+
+**分析日時**: 2026-04-27
+**カテゴリ**: 品質管理
+**背景**: テストファイルが大幅に追加されたか確認が必要だった
+
+**判断**: 41テストファイルが tests/ ディレクトリに存在。Jest 30 + ts-jest 29 で実行。モックデータも src/test/mocks/ に整理されている。全主要モジュール（analysis, visualization, pipeline, transcription, export, quality）をカバー。
+
+**根拠**: tests/ ディレクトリの構造確認、jest.config.cjs の存在確認
+
+**信頼性への影響**:
+- architecture.md のディレクトリ構造を更新（信頼性レベル: 🔵）
+
+---
+
 ## 分析結果サマリー
 
 ### 確認できた事項
@@ -263,7 +366,7 @@
 
 **分析後**:
 
-- 🔵 青信号: 50 (+50)
+- 🔵 青信号: 58 (+58)
 - 🟡 黄信号: 3 (+3)
 - 🔴 赤信号: 0 (±0)
 

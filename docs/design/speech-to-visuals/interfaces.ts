@@ -321,11 +321,54 @@ export interface LayoutResult {
 }
 
 // ========================================
+// ワークスペース・コラボレーション型
+// ========================================
+
+/**
+ * ワークスペース
+ * 🔵 信頼性: src/types/workspace.ts より
+ */
+export interface Workspace {
+  id: string; // 🔵 DBスキーマより
+  name: string; // 🔵 ワークスペース名
+  ownerId: string; // 🔵 所有者ID
+  members: WorkspaceMember[]; // 🔵 メンバー一覧
+  createdAt: Date; // 🔵 共通パターン
+  updatedAt: Date; // 🔵 共通パターン
+}
+
+/**
+ * ワークスペースメンバー
+ * 🔵 信頼性: src/types/workspace.ts より
+ */
+export interface WorkspaceMember {
+  userId: string; // 🔵 ユーザーID
+  role: Role; // 🔵 ロール
+  joinedAt: Date; // 🔵 参加日時
+}
+
+/**
+ * ユーザーロール
+ * 🔵 信頼性: src/types/workspace.ts Role より
+ */
+export type Role = 'owner' | 'admin' | 'editor' | 'viewer'; // 🔵 RBACより
+
+/**
+ * ワークスペースクォータ
+ * 🔵 信頼性: src/types/workspace.ts WorkspaceQuota より
+ */
+export interface WorkspaceQuota {
+  maxProjects: number; // 🔵 最大プロジェクト数
+  maxStorageMb: number; // 🔵 最大ストレージ(MB)
+  maxConcurrentJobs: number; // 🔵 最大並列ジョブ数
+}
+
+// ========================================
 // 信頼性レベルサマリー
 // ========================================
 /**
- * - 🔵 青信号: 72件 (95%)
- * - 🟡 黄信号: 4件 (5%)
+ * - 🔵 青信号: 88件 (96%)
+ * - 🟡 黄信号: 4件 (4%)
  * - 🔴 赤信号: 0件 (0%)
  *
  * 品質評価: 高品質

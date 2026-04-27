@@ -170,11 +170,22 @@ sequenceDiagram
 
 | タイプ | 主戦略 | フォールバック | 特記事項 |
 |--------|--------|---------------|---------|
-| flow | Progress Force | Grid-Snap | フロー方向を強調 |
-| tree | 階層レイアウト | Grid-Snap | 親子関係を維持 |
-| timeline | Force（X制約） | Grid-Snap | Y軸固定で時系列 |
-| matrix | Grid-Snap | N/A | 厳格グリッド配置 |
-| cycle | 円形レイアウト | Force | 円形構造を維持 |
+| flow | FlowStrategy (Dagre) | FallbackLayoutStrategy | フロー方向を強調 🔵 |
+| tree | TreeStrategy (階層) | FallbackLayoutStrategy | 親子関係を維持 🔵 |
+| timeline | TimelineStrategy (X制約) | FallbackLayoutStrategy | Y軸固定で時系列 🔵 |
+| matrix | MatrixStrategy (Grid-Snap) | FallbackLayoutStrategy | 厳格グリッド配置 🔵 |
+| cycle | CycleStrategy (円形) | FallbackLayoutStrategy | 円形構造を維持 🔵 |
+| network | NetworkLayoutStrategy | FallbackLayoutStrategy | ネットワークグラフ 🔵 |
+| concept-map | ConceptMapLayoutStrategy | FallbackLayoutStrategy | 概念マップ 🔵 |
+| comparison | ComparisonLayoutStrategy | FallbackLayoutStrategy | 比較図 🔵 |
+| flowchart | FlowchartLayoutStrategy | FallbackLayoutStrategy | フローチャート専用 🔵 |
+
+**レイアウトエンジン構成** 🔵:
+- **LayoutEvaluator**: セグメント内容から最適戦略を自動選択
+- **LayoutOptimizer**: レイアウト結果の最適化
+- **OverlapResolver**: フォースダイレクト法によるオーバーラップ解消
+- **CulturalLayoutAdapter**: 言語・文化に応じたレイアウト調整
+- **FallbackLayoutStrategy**: 全戦略失敗時のフォールバック
 
 ### 機能4: アニメーション動画生成 🔵
 
@@ -338,8 +349,8 @@ flowchart TD
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 18件 (95%)
-- 🟡 黄信号: 1件 (5%)
+- 🔵 青信号: 22件 (96%)
+- 🟡 黄信号: 1件 (4%)
 - 🔴 赤信号: 0件 (0%)
 
 **品質評価**: 高品質 - パイプラインフローと自動改善サイクルが既存設計に基づいている
