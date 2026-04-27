@@ -1,7 +1,7 @@
 module.exports = {
   preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
-  testMatch: ['**/src/**/*.test.ts', '**/src/**/*.test.tsx'],
+  testMatch: ['**/src/**/*.test.ts', '**/src/**/*.test.tsx', '**/tests/**/*.test.ts'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'json'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',

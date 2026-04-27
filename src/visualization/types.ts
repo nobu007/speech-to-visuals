@@ -63,3 +63,37 @@ export interface LayoutMetrics {
   nodeSpacing: number;
   layoutBalance: number;
 }
+
+// --- Phase 3: Strategy-based Layout Architecture ---
+
+export interface LayoutStrategy {
+  readonly name: string;
+  apply(nodes: NodeDatum[], edges: EdgeDatum[]): StrategyLayoutResult;
+  readonly canEscapeLocalMinimum: boolean;
+  estimateComplexity(nodes: NodeDatum[]): number;
+}
+
+export interface StrategyLayoutResult {
+  nodes: PositionedNode[];
+  edges: LayoutEdge[];
+  canvas: CanvasSize;
+  metrics: StrategyLayoutMetrics;
+}
+
+export interface CanvasSize {
+  width: number;
+  height: number;
+}
+
+export interface StrategyLayoutMetrics {
+  overlapCount: number;
+  edgeCrossings: number;
+  aspectRatio: number;
+}
+
+export interface StrategyRegistry {
+  register(diagramType: DiagramType, strategy: LayoutStrategy): void;
+  getStrategy(diagramType: DiagramType): LayoutStrategy;
+  hasStrategy(diagramType: DiagramType): boolean;
+  getAllStrategies(): Map<DiagramType, LayoutStrategy>;
+}

@@ -1,0 +1,257 @@
+/**
+ * Cycle Layout Strategy
+ *
+ * Arranges nodes in a circle with equal angular spacing.
+ * Uses Force-Directed fallback if overlaps are detected after initial placement.
+ *
+ * Algorithm:
+ * 1. Calculate circle radius based on node count and max node size
+ * 2. Position nodes equally spaced around the circle
+ * 3. If overlaps persist, apply Force-Directed repulsion to resolve them
+ */
+
+import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import {
+  LayoutStrategy,
+  StrategyLayoutResult,
+  CanvasSize,
+  StrategyLayoutMetrics,
+} from '@/visualization/types';
+import { calculateCanvasSize, calculateMetrics } from '@/visualization/layout-engine-v2';
+
+const DEFAULT_CANVAS_WIDTH = 1920;
+const DEFAULT_CANVAS_HEIGHT = 1080;
+const DEFAULT_NODE_WIDTH = 120;
+const DEFAULT_NODE_HEIGHT = 60;
+const MIN_RADIUS = 200;
+const OVERLAP_SPACING_FACTOR = 1.2;
+const FORCE_DIRECTED_ITERATIONS = 50;
+const FORCE_DIRECTED_STRENGTH = 100;
+
+interface ForceNode {
+  positioned: PositionedNode;
+  vx: number;
+  vy: number;
+}
+
+export class CycleLayoutStrategy implements LayoutStrategy {
+  readonly name = 'cycle';
+  readonly canEscapeLocalMinimum = true;
+
+  apply(nodes: NodeDatum[], edges: EdgeDatum[]): StrategyLayoutResult {
+    if (nodes.length === 0) {
+      return {
+        nodes: [],
+        edges: [],
+        canvas: { width: DEFAULT_CANVAS_WIDTH, height: DEFAULT_CANVAS_HEIGHT },
+        metrics: { overlapCount: 0, edgeCrossings: 0, aspectRatio: DEFAULT_CANVAS_WIDTH / DEFAULT_CANVAS_HEIGHT },
+      };
+    }
+
+    const positioned = this.positionNodesOnCircle(nodes);
+    const hasOverlaps = this.detectOverlaps(positioned);
+
+    let finalNodes: PositionedNode[];
+    if (hasOverlaps) {
+      finalNodes = this.applyForceDirectedFallback(positioned);
+    } else {
+      finalNodes = positioned;
+    }
+
+    const layoutEdges = this.generateEdges(edges, finalNodes);
+    const canvas = calculateCanvasSize(finalNodes);
+    const metrics = calculateMetrics(finalNodes, layoutEdges);
+
+    return { nodes: finalNodes, edges: layoutEdges, canvas, metrics };
+  }
+
+  estimateComplexity(nodes: NodeDatum[]): number {
+    const n = nodes.length;
+    // Circle positioning is O(n), force-directed fallback is O(n^2 * iterations)
+    return n * n * FORCE_DIRECTED_ITERATIONS;
+  }
+
+  private positionNodesOnCircle(nodes: NodeDatum[]): PositionedNode[] {
+    const n = nodes.length;
+
+    if (n === 1) {
+      const node = nodes[0];
+      const w = node.width ?? DEFAULT_NODE_WIDTH;
+      const h = node.height ?? DEFAULT_NODE_HEIGHT;
+      return [
+        {
+          ...node,
+          x: DEFAULT_CANVAS_WIDTH / 2 - w / 2,
+          y: DEFAULT_CANVAS_HEIGHT / 2 - h / 2,
+          width: w,
+          height: h,
+        },
+      ];
+    }
+
+    const maxNodeWidth = Math.max(...nodes.map((n) => n.width ?? DEFAULT_NODE_WIDTH));
+    const maxNodeHeight = Math.max(...nodes.map((n) => n.height ?? DEFAULT_NODE_HEIGHT));
+    const circumferenceNeeded = n * Math.max(maxNodeWidth, maxNodeHeight) * OVERLAP_SPACING_FACTOR;
+    const minRadius = circumferenceNeeded / (2 * Math.PI);
+    const radius = Math.max(minRadius, MIN_RADIUS);
+
+    const centerX = DEFAULT_CANVAS_WIDTH / 2;
+    const centerY = DEFAULT_CANVAS_HEIGHT / 2;
+
+    const positioned: PositionedNode[] = [];
+    for (let i = 0; i < n; i++) {
+      const node = nodes[i];
+      const w = node.width ?? DEFAULT_NODE_WIDTH;
+      const h = node.height ?? DEFAULT_NODE_HEIGHT;
+      const angle = (2 * Math.PI * i) / n;
+
+      const x = centerX + radius * Math.cos(angle) - w / 2;
+      const y = centerY + radius * Math.sin(angle) - h / 2;
+
+      positioned.push({
+        ...node,
+        x,
+        y,
+        width: w,
+        height: h,
+      });
+    }
+
+    return positioned;
+  }
+
+  private detectOverlaps(nodes: PositionedNode[]): boolean {
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        if (this.nodesOverlap(nodes[i], nodes[j])) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private nodesOverlap(a: PositionedNode, b: PositionedNode): boolean {
+    return (
+      a.x < b.x + b.width &&
+      a.x + a.width > b.x &&
+      a.y < b.y + b.height &&
+      a.y + a.height > b.y
+    );
+  }
+
+  private applyForceDirectedFallback(nodes: PositionedNode[]): PositionedNode[] {
+    const centerX = DEFAULT_CANVAS_WIDTH / 2;
+    const centerY = DEFAULT_CANVAS_HEIGHT / 2;
+
+    const forceNodes: ForceNode[] = nodes.map((n) => ({
+      positioned: { ...n },
+      vx: 0,
+      vy: 0,
+    }));
+
+    for (let iter = 0; iter < FORCE_DIRECTED_ITERATIONS; iter++) {
+      // Apply repulsive forces between overlapping nodes
+      for (let i = 0; i < forceNodes.length; i++) {
+        for (let j = i + 1; j < forceNodes.length; j++) {
+          const a = forceNodes[i].positioned;
+          const b = forceNodes[j].positioned;
+
+          if (this.nodesOverlap(a, b)) {
+            const aCx = a.x + a.width / 2;
+            const aCy = a.y + a.height / 2;
+            const bCx = b.x + b.width / 2;
+            const bCy = b.y + b.height / 2;
+
+            let dx = bCx - aCx;
+            let dy = bCy - aCy;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
+            dx = dx / dist;
+            dy = dy / dist;
+
+            const force = FORCE_DIRECTED_STRENGTH / (iter + 1);
+
+            forceNodes[i].vx -= dx * force;
+            forceNodes[i].vy -= dy * force;
+            forceNodes[j].vx += dx * force;
+            forceNodes[j].vy += dy * force;
+          }
+        }
+      }
+
+      // Apply light attraction toward circle position to keep circular shape
+      for (let i = 0; i < forceNodes.length; i++) {
+        const n = forceNodes[i].positioned;
+        const ncx = n.x + n.width / 2;
+        const ncy = n.y + n.height / 2;
+
+        const angle = (2 * Math.PI * i) / forceNodes.length;
+        const maxNodeWidth = Math.max(...nodes.map((nd) => nd.width));
+        const maxNodeHeight = Math.max(...nodes.map((nd) => nd.height));
+        const circumferenceNeeded = forceNodes.length * Math.max(maxNodeWidth, maxNodeHeight) * OVERLAP_SPACING_FACTOR;
+        const minRadius = circumferenceNeeded / (2 * Math.PI);
+        const radius = Math.max(minRadius, MIN_RADIUS);
+
+        const targetX = centerX + radius * Math.cos(angle);
+        const targetY = centerY + radius * Math.sin(angle);
+
+        forceNodes[i].vx += (targetX - ncx) * 0.01;
+        forceNodes[i].vy += (targetY - ncy) * 0.01;
+      }
+
+      // Apply velocities
+      for (const fn of forceNodes) {
+        fn.positioned.x += fn.vx;
+        fn.positioned.y += fn.vy;
+        fn.vx *= 0.5; // damping
+        fn.vy *= 0.5;
+      }
+    }
+
+    return forceNodes.map((fn) => fn.positioned);
+  }
+
+  private generateEdges(edges: EdgeDatum[], nodes: PositionedNode[]): LayoutEdge[] {
+    const nodeMap = new Map<string, PositionedNode>();
+    for (const node of nodes) {
+      nodeMap.set(node.id, node);
+    }
+
+    return edges.map((edge) => {
+      const source = nodeMap.get(edge.from);
+      const target = nodeMap.get(edge.to);
+
+      if (!source || !target) {
+        return {
+          from: edge.from,
+          to: edge.to,
+          points: [],
+          label: edge.label,
+          id: edge.id,
+        };
+      }
+
+      const sourcePoint = {
+        x: source.x + source.width / 2,
+        y: source.y + source.height / 2,
+      };
+
+      const targetPoint = {
+        x: target.x + target.width / 2,
+        y: target.y + target.height / 2,
+      };
+
+      return {
+        from: edge.from,
+        to: edge.to,
+        points: [sourcePoint, targetPoint],
+        label: edge.label,
+        id: edge.id,
+      };
+    });
+  }
+}
+
+/** Alias for StrategySelector compatibility */
+export const CycleStrategy = CycleLayoutStrategy;
