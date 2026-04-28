@@ -1,7 +1,7 @@
 # speech-to-visuals データフロー図
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-29
+**最終更新**: 2026-04-29（Phase 4 反映）
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](../../spec/speech-to-visuals/requirements.md)
 
@@ -190,28 +190,85 @@ sequenceDiagram
 
 ### 機能4: アニメーション動画生成 🔵
 
-**信頼性**: 🔵 *PIPELINE_FLOW.md Stage 4-5・ユーザーストーリー3.2より*
+**信頼性**: 🔵 *PIPELINE_FLOW.md Stage 4-5・ユーザーストーリー3.2・Phase 4 実装より*
 
-**関連要件**: REQ-301
+**関連要件**: REQ-025, REQ-026, REQ-027, REQ-028, REQ-029, REQ-030, REQ-301
 
 ```mermaid
 sequenceDiagram
     participant P as Pipeline
+    participant SRTParser as SRT Parser
     participant Sync as Scene Synchronizer
-    participant Anim as Animation Engine
+    participant AnimStrat as Animation Strategies
+    participant NodeAnim as NodeAnimation
+    participant EdgeAnim as EdgeAnimation
     participant Rem as Remotion Renderer
     participant Out as 出力
 
-    P->>Sync: レイアウトデータ + SRTキャプション
+    P->>SRTParser: SRTファイル
+    SRTParser->>SRTParser: タイムスタンプ→ms変換
+    SRTParser->>SRTParser: フレーム番号計算
+    SRTParser->>SRTParser: SRT整合性検証
+    P->>Sync: レイアウトデータ + パース済みSRT
     Sync->>Sync: シーン同期（精度±50ms）
-    Sync->>Anim: 同期済みシーンデータ
-    Anim->>Anim: ノードフェードイン（0.3秒）
-    Anim->>Anim: エッジ描画アニメーション（0.5秒）
-    Anim->>Rem: React コンポーネント生成
-    Rem->>Rem: 1080p 30fps レンダリング
+    Sync->>Sync: ドリフト検出
+    Sync->>AnimStrat: 同期済みシーンデータ
+    AnimStrat->>AnimStrat: 図解タイプ別戦略選択（flow/tree/timeline/matrix/cycle）
+    AnimStrat->>NodeAnim: ノードアニメーション適用（0.3秒フェードイン）
+    AnimStrat->>EdgeAnim: エッジアニメーション適用（0.5秒SVG描画）
+    AnimStrat->>Rem: React コンポーネント生成
+    Rem->>Rem: 指定解像度/FPS/コーデックでレンダリング
     Rem->>Rem: 音声トラック統合
-    Rem-->>Out: MP4 動画（5-10MB/分）
+    Rem-->>Out: MP4/WebM 動画（5-10MB/分）
 ```
+
+**Phase 4 実装詳細**:
+1. SRTパーサーがタイムスタンプをミリ秒に変換し、フレーム番号を計算 🔵
+2. シーン同期がキャプションとアニメーションを±50ms精度で同期 🔵
+3. 5種図解タイプ別のアニメーション戦略がノード・エッジのタイミングを制御 🔵
+4. ノードフェードイン（0.3秒）とエッジSVG描画（0.5秒）の段階的アニメーション 🔵
+5. Remotion renderMedia()で720p/1080p/4K、30/60fps、H.264/H.265/VP9出力 🔵
+
+### 機能5: パイプラインUI処理フロー 🔵
+
+**信頼性**: 🔵 *src/components/SimplePipelineInterface.tsx・src/pages/SimplePipeline.tsx・Phase 4 実装より*
+
+**関連要件**: REQ-031, REQ-032, REQ-033, REQ-034, REQ-035
+
+```mermaid
+sequenceDiagram
+    participant U as ユーザー
+    participant FE as SimplePipeline UI
+    participant FU as FileUploader
+    participant PP as PipelineProgress
+    participant VP as VideoPreview
+
+    U->>FE: /pipeline ページアクセス
+    U->>FU: 音声ファイルD&D or Ctrl+O
+    FU->>FU: ファイル検証（形式/サイズ/50MB以下）
+    FU->>FE: 有効ファイル通知
+    U->>FE: Ctrl+Enter で処理開始
+    FE->>FE: 状態遷移: idle → uploading
+    FE->>PP: Stage 1: Transcribing 開始
+    PP-->>U: 進捗表示（Transcribe進行中）
+    FE->>PP: Stage 2: Analyzing 開始
+    PP-->>U: 進捗表示（Analyze 進行中 + ETA）
+    FE->>PP: Stage 3: Layout 開始
+    PP-->>U: 進捗表示（Layout 進行中）
+    FE->>PP: Stage 4: Render 開始
+    PP-->>U: 進捗表示（Render 進行中 + 品質スコア）
+    FE->>FE: 状態遷移: generating → complete
+    FE->>VP: ビデオプレビュー表示
+    VP->>U: 再生コントロール（シーク/解像度/速度）
+    U->>FE: Esc でリセット
+    FE->>FE: 状態遷移: complete → idle
+```
+
+**Phase 4 Pipeline UI 実装詳細**:
+1. ドラッグ＆ドロップ + キーボードショートカット（Ctrl+O/Ctrl+Enter/Esc）対応 🔵
+2. 4段階リアルタイム進捗（ETA・品質スコア・ステージ別表示）🔵
+3. 処理完了後のビデオプレビュー（Remotion Player・シークバー・解像度切替）🔵
+4. 結果表示（シーン一覧・トランスクリプト・品質メトリクス）🔵
 
 ## データ処理パターン
 
@@ -381,8 +438,8 @@ flowchart TD
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 30件 (97%)
-- 🟡 黄信号: 1件 (3%)
+- 🔵 青信号: 46件 (98%)
+- 🟡 黄信号: 1件 (2%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - パイプラインフローと自動改善サイクルが既存設計に基づいている
+**品質評価**: 高品質 - Phase 4 アニメーション・レンダリング・Pipeline UI フローを反映

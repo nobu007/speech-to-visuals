@@ -1,7 +1,7 @@
 # speech-to-visuals アーキテクチャ設計
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-29
+**最終更新**: 2026-04-29（Phase 4 反映）
 **関連要件定義**: [requirements.md](../../spec/speech-to-visuals/requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -145,6 +145,41 @@
 - **適応型コンテンツ処理**: コンテンツ特性に応じた処理パラメータの動的調整
 - **インテリジェントキャッシュ**: セマンティックキャッシュ（類似度0.9、200エントリ）と処理結果キャッシュ
 
+### Remotion 動画モジュール 🔵
+
+**信頼性**: 🔵 *src/remotion/・PIPELINE_FLOW.md Stage 4-5・要件定義REQ-025~REQ-030 より*
+
+Phase 4 で実装された Remotion 4.0 ベースのアニメーション・レンダリングモジュール:
+
+- **DiagramVideo.tsx**: メイン動画コンポジション（シーン切り替え・音声統合）🔵 *src/remotion/DiagramVideo.tsx より*
+- **DiagramScene.tsx**: 図解シーンレンダラー（戦略ベースのアニメーション適用）🔵 *src/remotion/DiagramScene.tsx より*
+- **NodeAnimation.tsx**: ノードフェードインアニメーション（0.3秒、opacity 0→1、scale 0.8→1.0）🔵 *src/remotion/NodeAnimation.tsx・要件定義REQ-025 より*
+- **EdgeAnimation.tsx**: エッジSVGパス描画アニメーション（0.5秒、stroke-dasharray/dashoffset）🔵 *src/remotion/EdgeAnimation.tsx・要件定義REQ-026 より*
+- **CaptionOverlay.tsx**: SRTキャプションオーバーレイ表示（フレーム精度）🔵 *src/remotion/CaptionOverlay.tsx より*
+- **animation-strategies.ts**: 図解タイプ別（flow/tree/timeline/matrix/cycle）アニメーション戦略自動選択 🔵 *src/remotion/animation-strategies.ts・要件定義REQ-027 より*
+- **scene-synchronizer.ts**: SRTキャプションとシーンアニメーションの同期（精度±50ms、ドリフト検出）🔵 *src/remotion/scene-synchronizer.ts・要件定義REQ-029 より*
+- **srt-parser.ts**: SRTファイルパーサー（タイムスタンプ→フレーム番号変換、整合性検証）🔵 *src/remotion/srt-parser.ts・要件定義REQ-028 より*
+- **renderer.ts**: Remotion renderMedia() による動画レンダリング（720p/1080p/4K、30/60fps、H.264/H.265/VP9）🔵 *src/remotion/renderer.ts・要件定義REQ-030 より*
+
+### Pipeline UI コンポーネント 🔵
+
+**信頼性**: 🔵 *src/components/・src/pages/・要件定義REQ-031~REQ-035 より*
+
+Phase 4 で実装されたパイプラインUI:
+
+- **SimplePipelineInterface.tsx**: メインパイプラインUI（ファイルアップロード→文字起こし→分析→動画生成の統合インターフェース）🔵 *要件定義REQ-031 より*
+- **SimplePipelineStateMachine.ts**: パイプライン状態管理（idle→uploading→transcribing→analyzing→generating→complete/error）🔵 *要件定義NFR-202 より*
+- **EnhancedFileUploader.tsx**: ドラッグ＆ドロップファイルアップロード（MP3/WAV/OGG/M4A、50MB バリデーション、プログレスアニメーション）🔵 *要件定義REQ-032・NFR-201 より*
+- **PipelineProgress.tsx**: 4段階リアルタイム進捗表示（Transcribe→Analyze→Layout→Render、ETA・品質スコア付き）🔵 *要件定義REQ-033 より*
+- **StageIndicator.tsx**: 個別ステージ状態表示（アイコン・プログレスバー・経過時間）🔵 *src/components/StageIndicator.tsx より*
+- **VideoPreview.tsx**: Remotion Player ラッパー（再生コントロール・シークバー・解像度切替・再生速度制御）🔵 *要件定義REQ-035 より*
+- **SimplePipeline.tsx** (pages): /pipeline ルートページラッパー 🔵 *src/pages/SimplePipeline.tsx より*
+
+**キーボードショートカット** 🔵 *要件定義REQ-034 より*:
+- Ctrl+O: ファイル選択
+- Ctrl+Enter: 処理開始
+- Esc: リセット
+
 ### 可視化戦略 🔵
 
 **信頼性**: 🔵 *src/visualization/strategies/（21ファイル）・ZERO_OVERLAP_DESIGN.md より*
@@ -208,7 +243,7 @@ graph TB
 │   ├── api/                # REST API（バッチ処理）
 │   │   ├── middleware/     # レート制限、エラーハンドラー、認証 🔵
 │   │   └── routes/         # API ルート定義 🔵
-│   ├── components/         # React UI（20+コンポーネント）
+│   ├── components/         # React UI（20+コンポーネント: Pipeline UI, VideoPreview, FileUploader等）🔵
 │   ├── config/             # 設定（プロダクション設定）
 │   ├── export/             # エクスポート（4ファイル: multi-format/enhanced/production/UI）🔵
 │   ├── framework/          # 再帰的改善フレームワーク（4ファイル）
@@ -221,7 +256,7 @@ graph TB
 │   ├── performance/        # キャッシュ
 │   ├── pipeline/           # パイプライン（9ファイル: Simple/Main/Framework/Adaptive/VideoGenerator等）🔵
 │   ├── quality/            # 品質保証・エラー回復（6ファイル）
-│   ├── remotion/           # Remotion 動画コンポーネント
+│   ├── remotion/           # Remotion 動画コンポーネント（12ファイル: Animation/Scene/Renderer/SRT/Caption）🔵
 │   ├── test/               # テストユーティリティ
 │   ├── transcription/      # 音声認識（Whisper/Streaming/Browser）
 │   ├── types/              # TypeScript 型定義（7ファイル: diagram/workspace/api/llm/cache/quality/pipeline）🔵
@@ -370,8 +405,8 @@ Fallback LLM
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 56件 (97%)
+- 🔵 青信号: 74件 (97%)
 - 🟡 黄信号: 2件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（Phase 4 反映済）

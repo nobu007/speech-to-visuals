@@ -2,7 +2,7 @@
  * speech-to-visuals 型定義
  *
  * 作成日: 2026-04-27
- * 最終更新: 2026-04-29
+ * 最終更新: 2026-04-29（Phase 4 反映）
  * 関連設計: architecture.md
  *
  * 信頼性レベル:
@@ -368,11 +368,11 @@ export interface WorkspaceQuota {
 // 信頼性レベルサマリー
 // ========================================
 /**
- * - 🔵 青信号: 108件 (96%)
- * - 🟡 黄信号: 4件 (4%)
+ * - 🔵 青信号: 168件 (97%)
+ * - 🟡 黄信号: 4件 (3%)
  * - 🔴 赤信号: 0件 (0%)
  *
- * 品質評価: 高品質
+ * 品質評価: 高品質（Phase 4 反映済）
  */
 
 // ========================================
@@ -455,4 +455,123 @@ export interface RemotionSceneData {
     from: string; // 🔵 開始ノードID
     to: string; // 🔵 終了ノードID
   }>;
+}
+
+// ========================================
+// Phase 4 アニメーション・レンダリング型
+// ========================================
+
+/**
+ * アニメーション戦略タイプ
+ * 🔵 信頼性: src/remotion/animation-strategies.ts・要件定義REQ-027 より
+ */
+export type AnimationStrategyType = 'flow' | 'tree' | 'timeline' | 'matrix' | 'cycle';
+
+/**
+ * アニメーション戦略設定
+ * 🔵 信頼性: src/remotion/animation-strategies.ts より
+ */
+export interface AnimationStrategy {
+  type: AnimationStrategyType; // 🔵 図解タイプ
+  nodeAnimation: {
+    durationFrames: number; // 🔵 ノードアニメーションフレーム数（0.3秒=9フレーム@30fps）
+    staggerFrames: number; // 🔵 ノード間の遅延フレーム数
+    startOpacity: number; // 🔵 開始不透明度（0）
+    endOpacity: number; // 🔵 終了不透明度（1）
+    startScale: number; // 🔵 開始スケール（0.8）
+    endScale: number; // 🔵 終了スケール（1.0）
+  };
+  edgeAnimation: {
+    durationFrames: number; // 🔵 エッジアニメーションフレーム数（0.5秒=15フレーム@30fps）
+    staggerFrames: number; // 🔵 エッジ間の遅延フレーム数
+  };
+}
+
+/**
+ * SRTキャプションエントリ
+ * 🔵 信頼性: src/remotion/srt-parser.ts・要件定義REQ-028 より
+ */
+export interface CaptionEntry {
+  index: number; // 🔵 SRTインデックス
+  startMs: number; // 🔵 開始タイムスタンプ（ms）
+  endMs: number; // 🔵 終了タイムスタンプ（ms）
+  text: string; // 🔵 キャプションテキスト
+  startFrame?: number; // 🔵 開始フレーム番号
+  endFrame?: number; // 🔵 終了フレーム番号
+}
+
+/**
+ * SRTパース結果
+ * 🔵 信頼性: src/remotion/srt-parser.ts より
+ */
+export interface ParsedSRT {
+  entries: CaptionEntry[]; // 🔵 キャプションエントリ配列
+  totalDuration: number; // 🔵 総時間（ms）
+  isValid: boolean; // 🔵 SRT整合性検証結果
+}
+
+/**
+ * レンダリング設定
+ * 🔵 信頼性: src/remotion/renderer.ts・要件定義REQ-030・REQ-301 より
+ */
+export interface RenderingConfig {
+  resolution: '720p' | '1080p' | '4k'; // 🔵 出力解像度
+  fps: 30 | 60; // 🔵 フレームレート
+  codec: 'h264' | 'h265' | 'vp9'; // 🔵 動画コーデック
+  outputPath?: string; // 🔵 出力ファイルパス
+}
+
+/**
+ * レンダリング結果
+ * 🔵 信頼性: src/remotion/renderer.ts より
+ */
+export interface RenderingResult {
+  success: boolean; // 🔵 成功フラグ
+  outputUrl?: string; // 🔵 出力ファイルURL
+  duration?: number; // 🔵 動画時間（秒）
+  fileSize?: number; // 🔵 ファイルサイズ（バイト）
+  resolution?: string; // 🔵 実際の解像度
+  fps?: number; // 🔵 実際のFPS
+  codec?: string; // 🔵 実際のコーデック
+  estimatedFileSize?: number; // 🔵 推定ファイルサイズ
+  error?: string; // 🔵 エラーメッセージ
+}
+
+/**
+ * シーン同期結果
+ * 🔵 信頼性: src/remotion/scene-synchronizer.ts・要件定義REQ-029 より
+ */
+export interface SceneSyncResult {
+  scenes: RemotionSceneData[]; // 🔵 同期済みシーン配列
+  captions: CaptionEntry[]; // 🔵 同期済みキャプション配列
+  maxDriftMs: number; // 🔵 最大ドリフト（ms、許容±50ms）
+  isValid: boolean; // 🔵 同期検証結果
+}
+
+// ========================================
+// Phase 4 Pipeline UI 型
+// ========================================
+
+/**
+ * パイプライン進捗ステージ
+ * 🔵 信頼性: src/components/PipelineProgress.tsx・要件定義REQ-033 より
+ */
+export interface PipelineStageProgress {
+  stage: 'transcribe' | 'analyze' | 'layout' | 'render'; // 🔵 ステージ名
+  status: 'pending' | 'in_progress' | 'completed' | 'error'; // 🔵 ステージ状態
+  progress: number; // 🔵 進捗率（0-100）
+  elapsedMs?: number; // 🔵 経過時間（ms）
+  error?: string; // 🔵 エラーメッセージ
+}
+
+/**
+ * パイプライン結果
+ * 🔵 信頼性: src/components/SimplePipelineInterface.tsx・要件定義REQ-035 より
+ */
+export interface PipelineResult {
+  scenes: RemotionSceneData[]; // 🔵 生成シーン
+  transcript: string; // 🔵 文字起こしテキスト
+  srt: ParsedSRT; // 🔵 SRTキャプション
+  metrics: QualityMetrics; // 🔵 品質メトリクス
+  videoUrl?: string; // 🔵 生成動画URL
 }
