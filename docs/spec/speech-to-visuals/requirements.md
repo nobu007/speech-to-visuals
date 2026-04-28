@@ -4,7 +4,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 1-3 完了（基盤・AI処理・レイアウト）、Phase 4-5 未着手（レンダリング・統合テスト）
+**実装状況**: Phase 1-4 完了（基盤・AI処理・レイアウト・レンダリング・FE）、Phase 5 未着手（統合テスト）
 
 ## 関連文書
 
@@ -69,6 +69,23 @@
 - REQ-023: システムは処理時間・成功率・エラー率のリアルタイムダッシュボードを提供しなければならない 🔵 *src/monitoring/performance-dashboard.ts・src/monitoring/production-monitor.ts より*
 - REQ-024: システムはパフォーマンス指標の P50/P95/P99 レイテンシを計測・記録しなければならない 🔵 *src/monitoring/real-time-performance-monitor.ts より*
 
+#### 動画レンダリング・アニメーション ✅実装済
+
+- REQ-025: システムは Remotion 4.0 を用いて図解ノードのフェードイン（0.3秒）・スケールアニメーションを生成しなければならない 🔵 *src/remotion/NodeAnimation.tsx・src/remotion/EdgeAnimation.tsx より* 【Phase 4 完了】
+- REQ-026: システムはエッジの SVG パス描画アニメーション（0.5秒、stroke-dasharray/dashoffset 方式）を生成しなければならない 🔵 *src/remotion/EdgeAnimation.tsx より* 【Phase 4 完了】
+- REQ-027: システムは図解タイプ別（flow/tree/timeline/matrix/cycle）のアニメーション戦略を自動選択し、ノード・エッジのタイミング・シーケンスを制御しなければならない 🔵 *src/remotion/animation-strategies.ts より* 【Phase 4 完了】
+- REQ-028: システムは SRT キャプションファイルをパースし、タイムスタンプをフレーム番号に変換してキャプションオーバーレイを表示しなければならない 🔵 *src/remotion/srt-parser.ts・src/remotion/CaptionOverlay.tsx より* 【Phase 4 完了】
+- REQ-029: システムは SRT キャプションとシーンアニメーションを同期し、±50ms の許容誤差でドリフトを検出しなければならない 🔵 *src/remotion/scene-synchronizer.ts より* 【Phase 4 完了】
+- REQ-030: システムは Remotion renderMedia() API を用いて 720p/1080p/4K 解像度、30/60 FPS、H.264/H.265/VP9 コーデックで動画をレンダリングしなければならない 🔵 *src/remotion/renderer.ts より* 【Phase 4 完了】
+
+#### パイプライン UI ✅実装済
+
+- REQ-031: システムは SimplePipeline インターフェース（ファイルアップロード→文字起こし→分析→動画生成）を提供し、4段階の進捗表示を行わなければならない 🔵 *src/components/SimplePipelineInterface.tsx・src/components/SimplePipelineStateMachine.ts より* 【Phase 4 完了】
+- REQ-032: システムはドラッグ＆ドロップによる音声ファイルアップロード（MP3/WAV/OGG/M4A、最大50MB バリデーション付き）をサポートしなければならない 🔵 *src/components/EnhancedFileUploader.tsx・src/components/SimplePipelineInterface.tsx より* 【Phase 4 完了】
+- REQ-033: システムはパイプライン処理の進捗表示（アップロード→文字起こし→分析→生成）をリアルタイムで可視化しなければならない 🔵 *src/components/PipelineProgress.tsx・src/components/SimplePipelineInterface.tsx より* 【Phase 4 完了】
+- REQ-034: システムはキーボードショートカット（Ctrl+O ファイル選択、Ctrl+Enter 処理開始、Esc リセット）をサポートしなければならない 🔵 *src/components/SimplePipelineInterface.tsx より* 【Phase 4 完了】
+- REQ-035: システムはパイプライン結果（シーン、トランスクリプト、メトリクス）を表示し、ビデオプレビューを提供しなければならない 🔵 *src/components/VideoPreview.tsx・src/components/SimplePipelineInterface.tsx より* 【Phase 4 完了】
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より* 【Phase 2 完了】
@@ -84,9 +101,10 @@
 
 ### オプション要件
 
-- REQ-301: システムは動画レンダリング時に解像度（1080p/720p/4K）、FPS（30/60）、コーデック（H.264/H.265/VP9）を設定できるようにしてもよい 🔵 *PIPELINE_FLOW.md §8.2 PipelineOptions より*
-- REQ-302: システムは図解データを SVG/PNG/PDF 形式でエクスポートしてもよい 🔵 *src/export/multi-format-exporter.ts より*
+- REQ-301: システムは動画レンダリング時に解像度（1080p/720p/4K）、FPS（30/60）、コーデック（H.264/H.265/VP9）を設定できるようにしてもよい 🔵 *PIPELINE_FLOW.md §8.2 PipelineOptions・src/remotion/renderer.ts より* 【Phase 4 完了】
+- REQ-302: システムは図解データを SVG/PNG/PDF 形式でエクスポートしてもよい 🔵 *src/export/multi-format-exporter.ts より* 【Phase 4 完了】
 - REQ-303: システムは多言語対応として ES/FR/DE/ZH を追加してもよい 🟡 *QUALITY_METRICS.md §6.2・SYSTEM_CORE.md §9 Phase 44-45 より*
+- REQ-304: システムはモバイルデバイス向けにレスポンシブ UI を提供してもよい 🟡 *docs/tasks/speech-to-visuals/TASK-0042.md より*
 
 ### 制約要件
 
@@ -141,7 +159,7 @@
 - EDGE-001: 空の音声ファイルがアップロードされた場合、システムは即座にエラーを返し処理を中止しなければならない 🔵 *PIPELINE_FLOW.md §7.2 Abort Conditions より*
 - EDGE-002: 破損した音声ファイルがアップロードされた場合、システムはエラーを検出しユーザーに通知しなければならない 🔵 *PIPELINE_FLOW.md §7.2 より*
 - EDGE-003: LLM API がレートリミットを返した場合、システムはジッタ付き指数バックオフで最大3回リトライし、失敗時はフォールバックしなければならない 🔵 *PIPELINE_FLOW.md §4.2 より*
-- EDGE-004: Remotion レンダリングが失敗した場合、システムは低品質設定で再試行しなければならない 🟡 *PIPELINE_FLOW.md §4.1 Table より*
+- EDGE-004: Remotion レンダリングが失敗した場合、システムは低品質設定で再試行しなければならない 🔵 *PIPELINE_FLOW.md §4.1 Table・src/remotion/renderer.ts より* 【Phase 4 完了】
 - EDGE-005: 品質スコアが閾値を下回った場合、システムは低品質設定で自動再試行しなければならない 🔵 *src/quality/enhanced-error-recovery.ts より*
 
 ### 境界値
@@ -157,5 +175,5 @@
 | Phase 1: 基盤・データ層 | ✅完了 | TASK-0001~0010 | 10/10 |
 | Phase 2: AI・処理モジュール | ✅完了 | TASK-0011~0022 | 12/12 |
 | Phase 3: レイアウト・可視化 | ✅完了 | TASK-0023~0031 | 9/9 |
-| Phase 4: レンダリング・FE | ⬜未着手 | TASK-0032~0042 | 0/11 |
+| Phase 4: レンダリング・FE | ✅完了 | TASK-0032~0042 | 11/11 |
 | Phase 5: 統合・テスト | ⬜未着手 | TASK-0043~0052 | 0/10 |

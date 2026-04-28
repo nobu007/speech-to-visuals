@@ -35,7 +35,7 @@
 - [x] Phase 1: 基盤・データ層
 - [x] Phase 2: AI・処理モジュール
 - [x] Phase 3: レイアウト・可視化
-- [ ] Phase 4: レンダリング・フロントエンド
+- [x] Phase 4: レンダリング・フロントエンド
 - [ ] Phase 5: 統合・テスト
 
 ## マイルストーン
@@ -152,17 +152,17 @@ TASK-0023, TASK-0029, TASK-0030 → TASK-0031
 
 ### タスク一覧
 
-- [ ] [TASK-0032: Remotion基本コンポーネント](TASK-0032.md) - 8h (TDD) 🔵
-- [ ] [TASK-0033: DiagramScene アニメーション](TASK-0033.md) - 16h (TDD) 🔵
-- [ ] [TASK-0034: キャプション同期機構](TASK-0034.md) - 8h (TDD) 🔵
-- [ ] [TASK-0035: 動画レンダリング設定・出力](TASK-0035.md) - 8h (TDD) 🔵
-- [ ] [TASK-0036: SimplePipelineInterface メインUI](TASK-0036.md) - 16h (TDD) 🔵
-- [ ] [TASK-0037: EnhancedFileUploader D&D実装](TASK-0037.md) - 8h (TDD) 🔵
-- [ ] [TASK-0038: 進捗表示コンポーネント](TASK-0038.md) - 8h (TDD) 🔵
-- [ ] [TASK-0039: ビデオプレビュー・Remotion Player統合](TASK-0039.md) - 8h (TDD) 🔵
-- [ ] [TASK-0040: エラー表示・リカバリUI](TASK-0040.md) - 8h (TDD) 🟡
-- [ ] [TASK-0041: エクスポート機能（SVG/PNG/PDF/JSON）](TASK-0041.md) - 8h (TDD) 🔵
-- [ ] [TASK-0042: モバイル対応・レスポンシブUI](TASK-0042.md) - 8h (TDD) 🟡
+- [x] [TASK-0032: Remotion基本コンポーネント](TASK-0032.md) - 8h (TDD) 🔵
+- [x] [TASK-0033: DiagramScene アニメーション](TASK-0033.md) - 16h (TDD) 🔵
+- [x] [TASK-0034: キャプション同期機構](TASK-0034.md) - 8h (TDD) 🔵
+- [x] [TASK-0035: 動画レンダリング設定・出力](TASK-0035.md) - 8h (TDD) 🔵
+- [x] [TASK-0036: SimplePipelineInterface メインUI](TASK-0036.md) - 16h (TDD) 🔵
+- [x] [TASK-0037: EnhancedFileUploader D&D実装](TASK-0037.md) - 8h (TDD) 🔵
+- [x] [TASK-0038: 進捗表示コンポーネント](TASK-0038.md) - 8h (TDD) 🔵
+- [x] [TASK-0039: ビデオプレビュー・Remotion Player統合](TASK-0039.md) - 8h (TDD) 🔵
+- [x] [TASK-0040: エラー表示・リカバリUI](TASK-0040.md) - 8h (TDD) 🟡
+- [x] [TASK-0041: エクスポート機能（SVG/PNG/PDF/JSON）](TASK-0041.md) - 8h (TDD) 🔵
+- [x] [TASK-0042: モバイル対応・レスポンシブUI](TASK-0042.md) - 8h (TDD) 🟡
 
 ### 依存関係
 
