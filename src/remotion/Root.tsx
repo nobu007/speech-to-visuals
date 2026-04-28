@@ -1,33 +1,39 @@
 /**
  * Remotion Root Component
- * 動画コンポジションの定義
+ * Composition registration and metadata definition
+ * Default: 1920x1080 (1080p), 30fps
  */
 
 import React from 'react';
 import { Composition } from 'remotion';
-import { DiagramVideo } from './DiagramVideo';
-import { SceneGraph } from '@/types/diagram';
+import {
+  SpeechToVisualsVideo,
+  defaultVideoProps,
+  calculateTotalFrames,
+  DEFAULT_FPS,
+  DEFAULT_WIDTH,
+  DEFAULT_HEIGHT,
+  type VideoProps,
+} from './Video';
 
-export interface DiagramVideoProps {
-  scenes: SceneGraph[];
-  audioUrl?: string;
-  backgroundColor?: string;
-}
+// Re-export VideoProps for backward compatibility
+export type { VideoProps as DiagramVideoProps } from './Video';
 
+/** Composition ID for the Speech-to-Visuals video */
+export const COMPOSITION_ID = 'SpeechToVisualsVideo';
+
+/** Remotion Root - registers the main Composition */
 export const RemotionRoot: React.FC = () => {
   return (
     <>
       <Composition
-        id="DiagramVideo"
-        component={DiagramVideo}
-        durationInFrames={300} // デフォルト10秒 (30fps)
-        fps={30}
-        width={1920}
-        height={1080}
-        defaultProps={{
-          scenes: [],
-          backgroundColor: '#0f0f23',
-        }}
+        id={COMPOSITION_ID}
+        component={SpeechToVisualsVideo}
+        durationInFrames={calculateTotalFrames(defaultVideoProps.scenes)}
+        fps={DEFAULT_FPS}
+        width={DEFAULT_WIDTH}
+        height={DEFAULT_HEIGHT}
+        defaultProps={defaultVideoProps}
       />
     </>
   );

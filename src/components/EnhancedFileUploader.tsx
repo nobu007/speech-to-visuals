@@ -8,6 +8,9 @@
  * - Progressive file upload animation
  * - Accessibility support (ARIA labels, keyboard navigation)
  * - Mobile-optimized touch support
+ *
+ * Supported formats: MP3 (audio/mpeg), WAV (audio/wav), OGG (audio/ogg), M4A (audio/mp4, audio/x-m4a)
+ * Max file size: 50MB (52428800 bytes)
  */
 
 import React, { useState, useCallback, useRef, DragEvent } from 'react';
@@ -18,23 +21,90 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 
+// Default accepted MIME types per specification
+export const DEFAULT_ACCEPTED_FORMATS = [
+  'audio/mpeg',   // MP3
+  'audio/wav',    // WAV
+  'audio/ogg',    // OGG
+  'audio/mp4',    // M4A
+  'audio/x-m4a',  // M4A (alternate)
+];
+
+// 50MB in bytes
+export const MAX_FILE_SIZE_BYTES = 52428800;
+export const DEFAULT_MAX_SIZE_MB = 50;
+
+// Valid audio file extensions
+const VALID_EXTENSIONS = /\.(mp3|wav|ogg|m4a)$/i;
+
 interface EnhancedFileUploaderProps {
-  onFileSelect: (file: File) => void;
+  /** Callback invoked when a valid file is selected (via drop or click) */
+  onFileSelect?: (file: File) => void;
+  /** Alias for onFileSelect - callback invoked when a valid file is selected */
+  onFileSelected?: (file: File) => void;
+  /** List of accepted MIME types. Defaults to audio/mpeg, audio/wav, audio/ogg, audio/mp4, audio/x-m4a */
   acceptedFormats?: string[];
+  /** Maximum file size in MB. Defaults to 50 */
   maxSizeMB?: number;
+  /** Whether the uploader is disabled */
   disabled?: boolean;
 }
 
-interface FileValidationResult {
+export interface FileValidationResult {
   isValid: boolean;
   error?: string;
   file?: File;
 }
 
+/**
+ * Standalone file validation function (exported for testing).
+ * Validates file MIME type, extension, and size.
+ */
+export function validateAudioFile(
+  file: File,
+  acceptedFormats: string[] = DEFAULT_ACCEPTED_FORMATS,
+  maxSizeMB: number = DEFAULT_MAX_SIZE_MB
+): FileValidationResult {
+  // Check file type by MIME and extension
+  const isMimeTypeAccepted = acceptedFormats.includes(file.type);
+  const isExtensionValid = VALID_EXTENSIONS.test(file.name);
+
+  if (!isMimeTypeAccepted && !isExtensionValid) {
+    return {
+      isValid: false,
+      error: `サポートされていないファイル形式です。\n対応形式: MP3, WAV, OGG, M4A`
+    };
+  }
+
+  // Check file size (convert maxSizeMB to bytes for precise comparison)
+  const maxBytes = maxSizeMB * 1024 * 1024;
+  if (file.size > maxBytes) {
+    const fileSizeMB = file.size / (1024 * 1024);
+    return {
+      isValid: false,
+      error: `ファイルサイズが制限を超えています。\n最大サイズ: ${maxSizeMB}MB (現在: ${fileSizeMB.toFixed(2)}MB)`
+    };
+  }
+
+  // Check if file is empty
+  if (file.size === 0) {
+    return {
+      isValid: false,
+      error: 'ファイルが空です。有効な音声ファイルを選択してください。'
+    };
+  }
+
+  return {
+    isValid: true,
+    file
+  };
+}
+
 export const EnhancedFileUploader: React.FC<EnhancedFileUploaderProps> = ({
   onFileSelect,
-  acceptedFormats = ['audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/mpeg'],
-  maxSizeMB = 50,
+  onFileSelected,
+  acceptedFormats = DEFAULT_ACCEPTED_FORMATS,
+  maxSizeMB = DEFAULT_MAX_SIZE_MB,
   disabled = false
 }) => {
   const [isDragging, setIsDragging] = useState(false);
@@ -46,46 +116,19 @@ export const EnhancedFileUploader: React.FC<EnhancedFileUploaderProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
-  // File validation
-  const validateFile = useCallback((file: File): FileValidationResult => {
-    // Check file type
-    if (!acceptedFormats.includes(file.type) && !file.name.match(/\.(mp3|wav|ogg|m4a)$/i)) {
-      return {
-        isValid: false,
-        error: `サポートされていないファイル形式です。\n対応形式: MP3, WAV, OGG, M4A`
-      };
-    }
+  // Resolve callback: support both onFileSelect and onFileSelected
+  const handleFileCallback = useCallback((file: File) => {
+    onFileSelect?.(file);
+    onFileSelected?.(file);
+  }, [onFileSelect, onFileSelected]);
 
-    // Check file size
-    const fileSizeMB = file.size / (1024 * 1024);
-    if (fileSizeMB > maxSizeMB) {
-      return {
-        isValid: false,
-        error: `ファイルサイズが制限を超えています。\n最大サイズ: ${maxSizeMB}MB (現在: ${fileSizeMB.toFixed(2)}MB)`
-      };
-    }
-
-    // Check if file is empty
-    if (file.size === 0) {
-      return {
-        isValid: false,
-        error: 'ファイルが空です。有効な音声ファイルを選択してください。'
-      };
-    }
-
-    return {
-      isValid: true,
-      file
-    };
-  }, [acceptedFormats, maxSizeMB]);
-
-  // Handle file selection
+  // Handle file selection with validation and progress
   const handleFileSelection = useCallback((file: File) => {
     setValidationError(null);
     setIsProcessing(true);
+    setUploadProgress(0);
 
     // Simulate progressive upload animation
-    setUploadProgress(0);
     const progressInterval = setInterval(() => {
       setUploadProgress(prev => {
         if (prev >= 100) {
@@ -96,9 +139,9 @@ export const EnhancedFileUploader: React.FC<EnhancedFileUploaderProps> = ({
       });
     }, 50);
 
-    // Validate file
+    // Validate file after brief delay for UX
     setTimeout(() => {
-      const validation = validateFile(file);
+      const validation = validateAudioFile(file, acceptedFormats, maxSizeMB);
 
       clearInterval(progressInterval);
       setUploadProgress(100);
@@ -113,9 +156,9 @@ export const EnhancedFileUploader: React.FC<EnhancedFileUploaderProps> = ({
       setSelectedFile(file);
       setIsProcessing(false);
       toast.success(`ファイル「${file.name}」が正常に読み込まれました`);
-      onFileSelect(file);
+      handleFileCallback(file);
     }, 500);
-  }, [validateFile, onFileSelect]);
+  }, [acceptedFormats, maxSizeMB, handleFileCallback]);
 
   // Drag and drop handlers
   const handleDragEnter = useCallback((e: DragEvent<HTMLDivElement>) => {
@@ -150,8 +193,7 @@ export const EnhancedFileUploader: React.FC<EnhancedFileUploaderProps> = ({
 
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
-      const file = files[0];
-      handleFileSelection(file);
+      handleFileSelection(files[0]);
     } else {
       toast.error('ファイルが見つかりません');
     }
