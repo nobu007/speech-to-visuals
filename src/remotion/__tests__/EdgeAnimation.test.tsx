@@ -1,0 +1,307 @@
+/**
+ * Tests for EdgeAnimation.tsx
+ * Edge drawing animation: 0.5s = 15 frames at 30fps
+ * Uses SVG stroke-dasharray/dashoffset technique
+ */
+
+import * as React from 'react';
+import {
+  EdgeAnimation,
+  calculateEdgeProgress,
+  EDGE_DRAW_DURATION_SEC,
+  calculatePathLength,
+  generatePathD,
+} from '../EdgeAnimation';
+import { LayoutEdge, PositionedNode } from '@/types/diagram';
+import { EDGE_DRAW_DURATION_FRAMES } from '../animation-strategies';
+
+// Mock remotion hooks
+let mockFrame = 0;
+let mockFps = 30;
+
+jest.mock('remotion', () => {
+  const originalModule = jest.requireActual('remotion');
+  return {
+    ...originalModule,
+    useCurrentFrame: () => mockFrame,
+    useVideoConfig: () => ({ fps: mockFps, width: 1920, height: 1080 }),
+  };
+});
+
+// Helper factories
+function makeEdge(overrides: Partial<LayoutEdge> = {}): LayoutEdge {
+  return {
+    from: 'node-1',
+    to: 'node-2',
+    points: [
+      { x: 160, y: 130 },
+      { x: 360, y: 130 },
+    ],
+    ...overrides,
+  };
+}
+
+function makeNode(overrides: Partial<PositionedNode> = {}): PositionedNode {
+  return {
+    id: 'test-node',
+    label: 'Test Node',
+    x: 100,
+    y: 200,
+    width: 120,
+    height: 60,
+    ...overrides,
+  };
+}
+
+// Helper: call EdgeAnimation FC directly and return the rendered element
+function renderEdge(element: React.ReactElement): React.ReactElement {
+  // For function components, call them directly
+  if (typeof element.type === 'function') {
+    return (element.type as Function)(element.props) as React.ReactElement;
+  }
+  return element;
+}
+
+describe('EdgeAnimation', () => {
+  beforeEach(() => {
+    mockFrame = 0;
+    mockFps = 30;
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('constants', () => {
+    it('should export EDGE_DRAW_DURATION_SEC as 0.5', () => {
+      expect(EDGE_DRAW_DURATION_SEC).toBe(0.5);
+    });
+  });
+
+  describe('calculatePathLength', () => {
+    it('should calculate length of a straight horizontal line', () => {
+      const points = [
+        { x: 0, y: 0 },
+        { x: 100, y: 0 },
+      ];
+      expect(calculatePathLength(points)).toBe(100);
+    });
+
+    it('should calculate length of a straight vertical line', () => {
+      const points = [
+        { x: 0, y: 0 },
+        { x: 0, y: 50 },
+      ];
+      expect(calculatePathLength(points)).toBe(50);
+    });
+
+    it('should calculate length of a diagonal line', () => {
+      const points = [
+        { x: 0, y: 0 },
+        { x: 30, y: 40 },
+      ];
+      expect(calculatePathLength(points)).toBeCloseTo(50, 1);
+    });
+
+    it('should calculate total length of multi-segment path', () => {
+      const points = [
+        { x: 0, y: 0 },
+        { x: 100, y: 0 },
+        { x: 100, y: 100 },
+      ];
+      expect(calculatePathLength(points)).toBe(200);
+    });
+
+    it('should return 0 for a single point', () => {
+      expect(calculatePathLength([{ x: 50, y: 50 }])).toBe(0);
+    });
+
+    it('should return 0 for empty points', () => {
+      expect(calculatePathLength([])).toBe(0);
+    });
+  });
+
+  describe('calculateEdgeProgress', () => {
+    it('should return 0 at frame 0 with no delay', () => {
+      expect(calculateEdgeProgress(0, 0, 30)).toBe(0);
+    });
+
+    it('should return 1 at frame 15 (0.5s at 30fps) with no delay', () => {
+      expect(calculateEdgeProgress(15, 0, 30)).toBe(1);
+    });
+
+    it('should return 0.5 at approximately frame 7.5', () => {
+      const progress = calculateEdgeProgress(7.5, 0, 30);
+      expect(progress).toBeCloseTo(0.5, 1);
+    });
+
+    it('should respect delay frames', () => {
+      expect(calculateEdgeProgress(4, 5, 30)).toBe(0);
+      const progress = calculateEdgeProgress(12, 5, 30);
+      expect(progress).toBeGreaterThan(0);
+      expect(progress).toBeLessThan(1);
+    });
+
+    it('should complete at delay + 15 frames', () => {
+      expect(calculateEdgeProgress(20, 5, 30)).toBe(1);
+    });
+
+    it('should clamp to 0 before start', () => {
+      expect(calculateEdgeProgress(3, 5, 30)).toBe(0);
+    });
+
+    it('should clamp to 1 after completion', () => {
+      expect(calculateEdgeProgress(100, 5, 30)).toBe(1);
+    });
+  });
+
+  describe('generatePathD', () => {
+    it('should generate SVG path for two points', () => {
+      const points = [
+        { x: 10, y: 20 },
+        { x: 30, y: 40 },
+      ];
+      const d = generatePathD(points);
+      expect(d).toBe('M10,20 L30,40');
+    });
+
+    it('should generate SVG path for multiple points', () => {
+      const points = [
+        { x: 0, y: 0 },
+        { x: 100, y: 50 },
+        { x: 200, y: 0 },
+      ];
+      const d = generatePathD(points);
+      expect(d).toBe('M0,0 L100,50 L200,0');
+    });
+
+    it('should return empty string for empty points', () => {
+      expect(generatePathD([])).toBe('');
+    });
+
+    it('should return M command for single point', () => {
+      expect(generatePathD([{ x: 10, y: 20 }])).toBe('M10,20');
+    });
+  });
+
+  describe('EdgeAnimation component rendering', () => {
+    it('should render an SVG element', () => {
+      mockFrame = 20;
+      const edge = makeEdge();
+      const element = React.createElement(EdgeAnimation, {
+        edge,
+        edgeIndex: 0,
+        delayFrames: 0,
+        durationFrames: EDGE_DRAW_DURATION_FRAMES,
+        pathLength: 200,
+      });
+      const rendered = renderEdge(element);
+
+      expect(rendered.type).toBe('svg');
+    });
+
+    it('should have stroke-dasharray equal to pathLength', () => {
+      mockFrame = 0;
+      const edge = makeEdge();
+      const element = React.createElement(EdgeAnimation, {
+        edge,
+        edgeIndex: 0,
+        delayFrames: 0,
+        durationFrames: EDGE_DRAW_DURATION_FRAMES,
+        pathLength: 200,
+      });
+      const rendered = renderEdge(element);
+
+      // Find the path element inside the SVG
+      const pathElement = rendered.props.children;
+      expect(pathElement.props.strokeDasharray).toBe(200);
+    });
+
+    it('should have stroke-dashoffset equal to pathLength at frame 0', () => {
+      mockFrame = 0;
+      const edge = makeEdge();
+      const element = React.createElement(EdgeAnimation, {
+        edge,
+        edgeIndex: 0,
+        delayFrames: 0,
+        durationFrames: EDGE_DRAW_DURATION_FRAMES,
+        pathLength: 200,
+      });
+      const rendered = renderEdge(element);
+      const pathElement = rendered.props.children;
+
+      expect(pathElement.props.strokeDashoffset).toBe(200);
+    });
+
+    it('should have stroke-dashoffset of 0 after animation completes', () => {
+      mockFrame = 20;
+      const edge = makeEdge();
+      const element = React.createElement(EdgeAnimation, {
+        edge,
+        edgeIndex: 0,
+        delayFrames: 0,
+        durationFrames: EDGE_DRAW_DURATION_FRAMES,
+        pathLength: 200,
+      });
+      const rendered = renderEdge(element);
+      const pathElement = rendered.props.children;
+
+      expect(pathElement.props.strokeDashoffset).toBe(0);
+    });
+
+    it('should have partial stroke-dashoffset mid-animation', () => {
+      mockFrame = 7.5;
+      const edge = makeEdge();
+      const element = React.createElement(EdgeAnimation, {
+        edge,
+        edgeIndex: 0,
+        delayFrames: 0,
+        durationFrames: EDGE_DRAW_DURATION_FRAMES,
+        pathLength: 200,
+      });
+      const rendered = renderEdge(element);
+      const pathElement = rendered.props.children;
+
+      // At 50% progress, dashoffset should be 100
+      expect(pathElement.props.strokeDashoffset).toBeCloseTo(100, 0);
+    });
+
+    it('should respect delay frames', () => {
+      mockFrame = 3;
+      const edge = makeEdge();
+      const element = React.createElement(EdgeAnimation, {
+        edge,
+        edgeIndex: 0,
+        delayFrames: 5,
+        durationFrames: EDGE_DRAW_DURATION_FRAMES,
+        pathLength: 200,
+      });
+      const rendered = renderEdge(element);
+      const pathElement = rendered.props.children;
+
+      // Before delay: dashoffset should be full (200)
+      expect(pathElement.props.strokeDashoffset).toBe(200);
+    });
+
+    it('should render path with correct d attribute', () => {
+      mockFrame = 20;
+      const edge = makeEdge({
+        points: [
+          { x: 10, y: 20 },
+          { x: 110, y: 20 },
+        ],
+      });
+      const element = React.createElement(EdgeAnimation, {
+        edge,
+        edgeIndex: 0,
+        delayFrames: 0,
+        durationFrames: EDGE_DRAW_DURATION_FRAMES,
+        pathLength: 100,
+      });
+      const rendered = renderEdge(element);
+      const pathElement = rendered.props.children;
+
+      expect(pathElement.props.d).toBe('M10,20 L110,20');
+    });
+  });
+});
