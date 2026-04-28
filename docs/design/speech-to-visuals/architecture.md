@@ -1,6 +1,7 @@
 # speech-to-visuals アーキテクチャ設計
 
 **作成日**: 2026-04-27
+**最終更新**: 2026-04-29
 **関連要件定義**: [requirements.md](../../spec/speech-to-visuals/requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -95,6 +96,27 @@
 - **イテレーション管理**: Phase ベースの改善サイクル管理（現在 Phase 42+）
 - **再帰的指示処理**: カスタムインストラクションの再帰的な適用と最適化
 
+### パイプラインモジュール 🔵
+
+**信頼性**: 🔵 *src/pipeline/・PIPELINE_FLOW.md より*
+
+- **SimplePipeline**: 基本パイプライン（文字起こし→分析→レイアウト）
+- **MainPipeline**: 拡張パイプライン（品質監視・エラー回復付き）
+- **FrameworkIntegratedPipeline**: イテレーション管理と自動改善エンジンを統合した自律パイプライン 🔵 *src/pipeline/framework-integrated-pipeline.ts より*
+- **AdaptiveQualityPresets**: 処理品質プリセット（fast/balanced/quality/custom）による品質・速度トレードオフ 🔵 *src/pipeline/adaptive-quality-presets.ts より*
+- **ImprovementDetector**: パイプライン結果から改善機会を自動検出 🔵 *src/pipeline/improvement-detector.ts より*
+- **VideoGenerator**: SimplePipeline → Remotion 統合による動画生成 🔵 *src/pipeline/video-generator.ts より*
+- **QualityMonitor**: ステージ別品質スコア追跡と品質ゲート判定 🔵 *src/pipeline/quality-monitor.ts より*
+
+### エクスポートモジュール 🔵
+
+**信頼性**: 🔵 *src/export/・PIPELINE_FLOW.md Stage 5 より*
+
+- **MultiFormatExporter**: JSON/MP4/SVG/PNG/PDF の多形式エクスポート
+- **EnhancedExportEngine**: 高度なエクスポートエンジン（フォーマット選択・プレビュー付き）🔵 *src/export/enhanced-export-engine.ts より*
+- **ProductionExporter**: 本番環境向けエクスポート処理 🔵 *src/export/production-exporter.ts より*
+- **ExportPanel**: React UI エクスポートコンポーネント（フォーマット選択・進捗表示・プレビュー）🔵 *src/export/export-ui.tsx より*
+
 ### 品質保証システム 🔵
 
 **信頼性**: 🔵 *src/quality/・PIPELINE_FLOW.md §6-7・QUALITY_METRICS.md より*
@@ -129,6 +151,10 @@
 
 **コア5戦略**（Phase 3 実装）:
 - FlowStrategy, TreeStrategy, TimelineStrategy, MatrixStrategy, CycleStrategy
+
+**新コア5戦略**（Phase 3 追加実装）:
+- flow-strategy.ts, tree-strategy.ts, timeline-strategy.ts, matrix-strategy.ts, cycle-strategy.ts 🔵 *Phase 3 TASK-0023~0031 実装より*
+- base-strategy.ts: StrategyRegistry パターンによる戦略登録・管理基盤 🔵 *src/visualization/strategies/base-strategy.ts より*
 
 **拡張戦略**:
 - NetworkLayoutStrategy, ConceptMapLayoutStrategy, ComparisonLayoutStrategy
@@ -184,26 +210,26 @@ graph TB
 │   │   └── routes/         # API ルート定義 🔵
 │   ├── components/         # React UI（20+コンポーネント）
 │   ├── config/             # 設定（プロダクション設定）
-│   ├── export/             # エクスポート（SVG/PNG/PDF/JSON）
-│   ├── framework/          # 再帰的改善フレームワーク
+│   ├── export/             # エクスポート（4ファイル: multi-format/enhanced/production/UI）🔵
+│   ├── framework/          # 再帰的改善フレームワーク（4ファイル）
 │   ├── hooks/              # React Hooks
 │   ├── integrations/       # Supabase 統合
 │   ├── lib/                # ユーティリティライブラリ 🔵
-│   ├── monitoring/         # プロダクション監視
+│   ├── monitoring/         # プロダクション監視（6ファイル）
 │   ├── optimization/       # パラメータチューニング
 │   ├── pages/              # React Router ページ
 │   ├── performance/        # キャッシュ
-│   ├── pipeline/           # パイプライン（Simple/Main/Framework）
-│   ├── quality/            # 品質保証・エラー回復
+│   ├── pipeline/           # パイプライン（9ファイル: Simple/Main/Framework/Adaptive/VideoGenerator等）🔵
+│   ├── quality/            # 品質保証・エラー回復（6ファイル）
 │   ├── remotion/           # Remotion 動画コンポーネント
 │   ├── test/               # テストユーティリティ
 │   ├── transcription/      # 音声認識（Whisper/Streaming/Browser）
-│   ├── types/              # TypeScript 型定義
+│   ├── types/              # TypeScript 型定義（7ファイル: diagram/workspace/api/llm/cache/quality/pipeline）🔵
 │   ├── utils/              # ユーティリティ
 │   └── visualization/      # 図解レイアウト（15+戦略、21ファイル）
 │       ├── base/           # ベース可視化コンポーネント 🔵
 │       ├── layout/         # レイアウト固有コード 🔵
-│       └── strategies/     # レイアウト戦略（21ファイル）🔵
+│       └── strategies/     # レイアウト戦略（21ファイル: コア5+新コア5+拡張+補助）🔵
 ├── supabase/
 │   ├── migrations/         # DB マイグレーション
 │   └── functions/          # Edge Functions（3関数）
@@ -344,8 +370,8 @@ Fallback LLM
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 40件 (95%)
-- 🟡 黄信号: 2件 (5%)
+- 🔵 青信号: 56件 (97%)
+- 🟡 黄信号: 2件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
 **品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている

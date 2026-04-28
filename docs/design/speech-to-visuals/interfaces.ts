@@ -2,6 +2,7 @@
  * speech-to-visuals 型定義
  *
  * 作成日: 2026-04-27
+ * 最終更新: 2026-04-29
  * 関連設計: architecture.md
  *
  * 信頼性レベル:
@@ -367,9 +368,91 @@ export interface WorkspaceQuota {
 // 信頼性レベルサマリー
 // ========================================
 /**
- * - 🔵 青信号: 88件 (96%)
+ * - 🔵 青信号: 108件 (96%)
  * - 🟡 黄信号: 4件 (4%)
  * - 🔴 赤信号: 0件 (0%)
  *
  * 品質評価: 高品質
  */
+
+// ========================================
+// パイプライン拡張型（Phase 3 追加）
+// ========================================
+
+/**
+ * 品質プリセット
+ * 🔵 信頼性: src/pipeline/adaptive-quality-presets.ts・PIPELINE_FLOW.md §8.2 より
+ */
+export type QualityPreset = 'fast' | 'balanced' | 'quality' | 'custom';
+
+/**
+ * プリセット設定
+ * 🔵 信頼性: src/pipeline/adaptive-quality-presets.ts より
+ */
+export interface PresetConfiguration {
+  name: QualityPreset; // 🔵 プリセット名
+  description: string; // 🔵 プリセット説明
+  targetProcessingTime: number; // 🔵 目標処理時間（秒）
+  parameters: {
+    transcriptionModel: 'tiny' | 'base' | 'small' | 'medium'; // 🔵 Whisperモデル選択
+    videoResolution: '720p' | '1080p' | '4k'; // 🔵 出力解像度
+    videoFps: 24 | 30 | 60; // 🔵 出力FPS
+    layoutQuality: 'standard' | 'enhanced' | 'zero_overlap'; // 🔵 レイアウト品質
+    enableLLMCache: boolean; // 🔵 キャッシュ有無
+  };
+}
+
+/**
+ * 動画生成オプション
+ * 🔵 信頼性: src/pipeline/video-generator.ts・要件定義REQ-301 より
+ */
+export interface VideoGenerationOptions {
+  outputFormat: 'mp4' | 'webm' | 'gif'; // 🔵 出力形式
+  quality: 'low' | 'medium' | 'high' | 'ultra'; // 🔵 品質レベル
+  resolution: '720p' | '1080p' | '4k'; // 🔵 解像度
+  fps: 24 | 30 | 60; // 🔵 フレームレート
+  includeAudio: boolean; // 🔵 音声トラック統合
+  animationStyle: 'smooth' | 'instant' | 'bounce'; // 🔵 アニメーションスタイル
+  concurrency?: number; // 🔵 CPU並列数
+  enableMultithreadedRendering?: boolean; // 🔵 マルチスレッド
+  enableGpuAcceleration?: boolean; // 🔵 GPU アクセラレーション
+}
+
+/**
+ * 動画生成結果
+ * 🔵 信頼性: src/pipeline/video-generator.ts より
+ */
+export interface VideoGenerationResult {
+  success: boolean; // 🔵 成功フラグ
+  videoUrl?: string; // 🔵 動画URL
+  thumbnailUrl?: string; // 🔵 サムネイルURL
+  duration?: number; // 🔵 動画長（秒）
+  fileSize?: number; // 🔵 ファイルサイズ（バイト）
+  resolution?: string; // 🔵 解像度
+  processingTime?: number; // 🔵 処理時間（ms）
+  error?: string; // 🔵 エラーメッセージ
+}
+
+/**
+ * Remotionシーンデータ
+ * 🔵 信頼性: src/pipeline/video-generator.ts より
+ */
+export interface RemotionSceneData {
+  id: string; // 🔵 シーンID
+  startMs: number; // 🔵 開始時間（ms）
+  durationMs: number; // 🔵 継続時間（ms）
+  diagramType: string; // 🔵 図解タイプ
+  title: string; // 🔵 シーンタイトル
+  nodes: Array<{
+    id: string; // 🔵 ノードID
+    label: string; // 🔵 ノードラベル
+    x: number; // 🔵 X座標
+    y: number; // 🔵 Y座標
+    type: string; // 🔵 ノード種別
+    color?: string; // 🔵 ノード色
+  }>;
+  edges: Array<{
+    from: string; // 🔵 開始ノードID
+    to: string; // 🔵 終了ノードID
+  }>;
+}

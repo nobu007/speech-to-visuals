@@ -1,11 +1,14 @@
 # speech-to-visuals 設計自動分析記録
 
 **作成日**: 2026-04-27
+**最終更新**: 2026-04-29
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 
 ## 分析目的
 
 既存の要件定義・設計文書（docs/architecture/ 配下の7ファイル）・実装（src/ 配下の148ファイル）を確認し、不明点や曖昧な部分を明確化するための自動分析を実施しました。
+
+**最終更新（2026-04-29）**: Phase 3 完了に伴う要件定義更新（REQ-015~REQ-024 追加）と、新規モジュール（Pipeline拡張・Export UI・適応型品質プリセット・StrategyRegistry）の差分反映を実施。
 
 ## 分析項目と判断
 
@@ -327,6 +330,82 @@ interfaces.ts には既にこれらの主要型が反映済み。
 
 ---
 
+### A19: パイプラインモジュール拡張の確認
+
+**分析日時**: 2026-04-29
+**カテゴリ**: アーキテクチャ
+**背景**: Phase 3 完了後、パイプラインモジュールが Simple/Main の2構成から9ファイルに拡張されていた
+
+**判断**: パイプラインモジュールは以下の9ファイルに拡張:
+- **SimplePipeline**: 基本パイプライン（文字起こし→分析→レイアウト）
+- **MainPipeline**: 拡張パイプライン（品質監視・エラー回復付き）
+- **FrameworkIntegratedPipeline**: MainPipeline + IterationManager + AutoImprovementEngine の統合
+- **AdaptiveQualityPresets**: Fast/Balanced/Quality/Custom の4プリセットによる品質・速度トレードオフ制御
+- **ImprovementDetector**: パイプライン結果から改善機会を自動検出
+- **VideoGenerator**: SimplePipeline→Remotion 統合による動画生成（MP4/WebM/GIF対応）
+- **QualityMonitor**: ステージ別品質スコア追跡と品質ゲート判定
+- **index.ts / types.ts**: エクスポート管理とパイプライン型定義
+
+**根拠**: src/pipeline/ ディレクトリの9ファイル確認
+
+**信頼性への影響**:
+- architecture.md にパイプラインモジュールセクションを追加（信頼性レベル: 🔵）
+- dataflow.md に適応型品質プリセットフローを追加（信頼性レベル: 🔵）
+
+---
+
+### A20: エクスポートモジュール拡張の確認
+
+**分析日時**: 2026-04-29
+**カテゴリ**: UI・エクスポート
+**背景**: エクスポートモジュールが multi-format-exporter 1ファイルから4ファイルに拡張されていた
+
+**判断**: エクスポートモジュールは以下の4ファイルに拡張:
+- **MultiFormatExporter**: JSON/MP4/SVG/PNG/PDF の多形式エクスポート（従来）
+- **EnhancedExportEngine**: 高度なエクスポートエンジン（フォーマット選択・プレビュー・進捗表示付き）
+- **ProductionExporter**: 本番環境向けエクスポート処理
+- **ExportPanel**: React UI エクスポートコンポーネント（shadcn/ui 使用、フォーマット選択・品質設定・進捗バー付き）
+
+**根拠**: src/export/ ディレクトリの4ファイル確認
+
+**信頼性への影響**:
+- architecture.md にエクスポートモジュールの詳細セクションを追加（信頼性レベル: 🔵）
+
+---
+
+### A21: StrategyRegistry パターンの確認
+
+**分析日時**: 2026-04-29
+**カテゴリ**: レイアウト
+**背景**: Phase 3 で新たに StrategyRegistry パターンが導入され、レイアウト戦略の登録・管理が構造化されていた
+
+**判断**: base-strategy.ts に DefaultStrategyRegistry クラスが実装され、DiagramType → LayoutStrategy のマッピングを管理する StrategyRegistry インターフェースが導入された。新コア5戦略がレジストリパターンで登録・管理される構造に進化。
+
+**根拠**: src/visualization/strategies/base-strategy.ts、新コア5戦略ファイル
+
+**信頼性への影響**:
+- architecture.md の可視化戦略セクションに新コア5戦略と StrategyRegistry パターンを追加（信頼性レベル: 🔵）
+
+---
+
+### A22: 型定義モジュールの拡張確認
+
+**分析日時**: 2026-04-29
+**カテゴリ**: データモデル
+**背景**: src/types/ に quality.ts と pipeline.ts が追加されていた
+
+**判断**: 型定義モジュールが7ファイルに拡張:
+- diagram.ts, workspace.ts, api.ts, llm.ts, cache.ts（従来）
+- quality.ts（品質メトリクス型）🔵 *Phase 3 追加*
+- pipeline.ts（パイプライン型）🔵 *Phase 3 追加*
+
+**根拠**: src/types/ ディレクトリの7ファイル確認
+
+**信頼性への影響**:
+- architecture.md のディレクトリ構造を更新（信頼性レベル: 🔵）
+
+---
+
 ## 分析結果サマリー
 
 ### 確認できた事項
@@ -338,9 +417,12 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - 型定義・DBスキーマ・API が実装済みで文書化可能
 - 非機能要件が全て実績値で達成済み
 - 自動改善フレームワーク（4ファイル）が実装済み
-- 品質保証システム（5ファイル）が実装済み
+- 品質保証システム（6ファイル）が実装済み
 - プロダクション監視（6ファイル）が実装済み
 - 最適化・パフォーマンスモジュール（3ファイル）が実装済み
+- パイプラインモジュール（9ファイル）が拡張済み（FrameworkIntegratedPipeline, AdaptiveQualityPresets, VideoGenerator等追加）🔵 *2026-04-29 追記*
+- エクスポートモジュール（4ファイル）が拡張済み（EnhancedExportEngine, ExportPanel UI追加）🔵 *2026-04-29 追記*
+- StrategyRegistry パターンによるレイアウト戦略の構造化管理が導入済み 🔵 *2026-04-29 追記*
 
 ### 設計方針の決定事項
 
@@ -348,6 +430,7 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - 実装済みシステムの設計文書化として位置づけ（新規設計ではない）
 - 全信頼性レベルの根拠を既存文書・実装に紐付け
 - 追加モジュール（framework, quality, monitoring, optimization）を architecture.md に追記
+- Phase 3 完了に伴う新規モジュール（Pipeline拡張, Export拡張, StrategyRegistry）の設計反映 🔵 *2026-04-29 追記*
 
 ### 残課題
 
@@ -366,8 +449,14 @@ interfaces.ts には既にこれらの主要型が反映済み。
 
 **分析後**:
 
-- 🔵 青信号: 58 (+58)
+- 🔵 青信号: 78 (+78)
 - 🟡 黄信号: 3 (+3)
+- 🔴 赤信号: 0 (±0)
+
+**2026-04-29 更新後**:
+
+- 🔵 青信号: 98 (+20)
+- 🟡 黄信号: 3 (±0)
 - 🔴 赤信号: 0 (±0)
 
 ## 関連文書

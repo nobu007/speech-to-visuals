@@ -1,6 +1,7 @@
 # speech-to-visuals データフロー図
 
 **作成日**: 2026-04-27
+**最終更新**: 2026-04-29
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](../../spec/speech-to-visuals/requirements.md)
 
@@ -313,7 +314,7 @@ stateDiagram-v2
 
 ## 自動改善サイクル 🔵
 
-**信頼性**: 🔵 *src/framework/・SYSTEM_CORE.md §5・ITERATION_LOG より*
+**信頼性**: 🔵 *src/framework/・src/pipeline/framework-integrated-pipeline.ts・SYSTEM_CORE.md §5・ITERATION_LOG より*
 
 ```mermaid
 flowchart TD
@@ -339,6 +340,37 @@ flowchart TD
 3. 改善点が検出された場合、パラメータを自動最適化
 4. リグレッション検出（>5%劣化）でデプロイブロック
 
+**FrameworkIntegratedPipeline フロー** 🔵:
+- MainPipeline + IterationManager + AutoImprovementEngine の統合パイプライン
+- 自動フェーズ管理（MVP構築→機能拡張→品質改善→最適化）
+- 品質閾値に基づく自動コミット判定
+
+## 適応型品質プリセットフロー 🔵
+
+**信頼性**: 🔵 *src/pipeline/adaptive-quality-presets.ts・PIPELINE_FLOW.md §8.2 より*
+
+```mermaid
+flowchart TD
+    A[ユーザー入力] --> B{品質プリセット選択}
+    B -->|Fast| C1[高速処理: tinyモデル・720p・低反復]
+    B -->|Balanced| C2[バランス: baseモデル・1080p・標準反復]
+    B -->|Quality| C3[高品質: mediumモデル・1080p・高反復]
+    B -->|Custom| C4[カスタム設定]
+    C1 --> D[パイプライン実行]
+    C2 --> D
+    C3 --> D
+    C4 --> D
+    D --> E[品質スコア評価]
+```
+
+**品質プリセット構成** 🔵:
+| プリセット | 文字起こしモデル | 解像度 | FPS | レイアウト品質 | キャッシュ |
+|-----------|----------------|--------|-----|--------------|----------|
+| Fast | tiny | 720p | 24 | standard | 有効 |
+| Balanced | base | 1080p | 30 | enhanced | 有効 |
+| Quality | medium | 1080p | 30 | zero_overlap | 有効 |
+| Custom | ユーザー指定 | ユーザー指定 | ユーザー指定 | ユーザー指定 | ユーザー指定 |
+
 ## 関連文書
 
 - **アーキテクチャ**: [architecture.md](architecture.md)
@@ -349,8 +381,8 @@ flowchart TD
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 22件 (96%)
-- 🟡 黄信号: 1件 (4%)
+- 🔵 青信号: 30件 (97%)
+- 🟡 黄信号: 1件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
 **品質評価**: 高品質 - パイプラインフローと自動改善サイクルが既存設計に基づいている
