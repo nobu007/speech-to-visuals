@@ -1,0 +1,198 @@
+/**
+ * Main Video Component for Speech-to-Visuals
+ * シーン配列を受け取りフレームに応じて適切なシーンをレンダリング
+ * シーン間のトランジション処理を含む
+ */
+
+import React from 'react';
+import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, Audio } from 'remotion';
+import { SceneGraph } from '@/types/diagram';
+import { DiagramScene } from './DiagramScene';
+
+/** Video component props */
+export interface VideoProps {
+  scenes: SceneGraph[];
+  audioUrl?: string;
+  backgroundColor?: string;
+}
+
+/** Default video properties for Composition defaultProps */
+export const defaultVideoProps: VideoProps = {
+  scenes: [],
+  backgroundColor: '#0f0f23',
+};
+
+/** Default FPS for the composition */
+export const DEFAULT_FPS = 30;
+
+/** Default width for the composition (1080p) */
+export const DEFAULT_WIDTH = 1920;
+
+/** Default height for the composition (1080p) */
+export const DEFAULT_HEIGHT = 1080;
+
+/** Fade transition duration in frames */
+const FADE_DURATION_FRAMES = 15;
+
+/**
+ * Calculate total frames needed for all scenes
+ * @param scenes - Array of SceneGraph objects
+ * @param fps - Frames per second (default: 30)
+ * @returns Total number of frames across all scenes
+ */
+export function calculateTotalFrames(scenes: SceneGraph[], fps: number = DEFAULT_FPS): number {
+  if (!scenes || scenes.length === 0) {
+    return DEFAULT_FPS * 10; // Default 10 seconds at 30fps
+  }
+
+  const totalMs = scenes.reduce((sum, scene) => sum + scene.durationMs, 0);
+  return Math.ceil((totalMs / 1000) * fps);
+}
+
+/**
+ * Find the scene that should be displayed at a given time (in ms)
+ * @param scenes - Array of SceneGraph objects
+ * @param currentTimeMs - Current time in milliseconds
+ * @returns Object with the current scene, its index, and time within the scene
+ */
+export function findSceneAtTime(
+  scenes: SceneGraph[],
+  currentTimeMs: number
+): { scene: SceneGraph; index: number; timeInScene: number } | null {
+  let elapsed = 0;
+  for (let i = 0; i < scenes.length; i++) {
+    const sceneEnd = elapsed + scenes[i].durationMs;
+    if (currentTimeMs >= elapsed && currentTimeMs < sceneEnd) {
+      return {
+        scene: scenes[i],
+        index: i,
+        timeInScene: currentTimeMs - elapsed,
+      };
+    }
+    elapsed = sceneEnd;
+  }
+  return null;
+}
+
+/**
+ * Main Video Component
+ * Renders scenes with transitions based on the current frame
+ */
+export const SpeechToVisualsVideo: React.FC<VideoProps> = ({
+  scenes,
+  audioUrl,
+  backgroundColor = '#0f0f23',
+}) => {
+  const frame = useCurrentFrame();
+  const { fps, durationInFrames } = useVideoConfig();
+
+  // Calculate current time in milliseconds
+  const currentTimeMs = (frame / fps) * 1000;
+
+  // Find the current scene
+  const sceneInfo = findSceneAtTime(scenes, currentTimeMs);
+
+  // Calculate fade in/out opacity
+  const opacity = interpolate(
+    frame,
+    [0, FADE_DURATION_FRAMES, durationInFrames - FADE_DURATION_FRAMES, durationInFrames],
+    [0, 1, 1, 0],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
+  );
+
+  // Scene transition fade (fade between scenes)
+  const SCENE_FADE_FRAMES = 5;
+  let sceneTransitionOpacity = 1;
+  if (sceneInfo) {
+    const sceneStartFrame = Math.round((sceneInfo.timeInScene / 1000) * fps);
+    const sceneRemainingFrames = Math.round((sceneInfo.scene.durationMs / 1000) * fps) - sceneStartFrame;
+
+    // Fade in at scene start
+    const fadeIn = interpolate(sceneStartFrame, [0, SCENE_FADE_FRAMES], [0, 1], {
+      extrapolateLeft: 'clamp',
+      extrapolateRight: 'clamp',
+    });
+
+    // Fade out at scene end
+    const fadeOut = interpolate(sceneRemainingFrames, [0, SCENE_FADE_FRAMES], [0, 1], {
+      extrapolateLeft: 'clamp',
+      extrapolateRight: 'clamp',
+    });
+
+    sceneTransitionOpacity = Math.min(fadeIn, fadeOut);
+  }
+
+  return (
+    <AbsoluteFill style={{ backgroundColor }}>
+      {/* Audio track */}
+      {audioUrl && <Audio src={audioUrl} />}
+
+      {/* Main content */}
+      <div style={{ opacity }}>
+        {sceneInfo ? (
+          <div style={{ opacity: sceneTransitionOpacity }}>
+            <DiagramScene
+              scene={sceneInfo.scene}
+              sceneIndex={sceneInfo.index}
+              currentTime={currentTimeMs}
+            />
+          </div>
+        ) : (
+          <AbsoluteFill
+            style={{
+              justifyContent: 'center',
+              alignItems: 'center',
+              color: 'white',
+              fontSize: 48,
+              fontFamily: 'sans-serif',
+            }}
+          >
+            <div>Preparing...</div>
+          </AbsoluteFill>
+        )}
+      </div>
+
+      {/* Progress bar */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 20,
+          left: 40,
+          right: 40,
+          height: 4,
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          borderRadius: 2,
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            height: '100%',
+            backgroundColor: '#3b82f6',
+            width: `${(frame / Math.max(durationInFrames - 1, 1)) * 100}%`,
+            transition: 'width 0.3s ease',
+          }}
+        />
+      </div>
+
+      {/* Scene counter */}
+      {sceneInfo && scenes.length > 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 20,
+            right: 40,
+            color: 'white',
+            fontSize: 14,
+            fontFamily: 'monospace',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            padding: '8px 12px',
+            borderRadius: 4,
+          }}
+        >
+          Scene {sceneInfo.index + 1} / {scenes.length}
+        </div>
+      )}
+    </AbsoluteFill>
+  );
+};
