@@ -4,7 +4,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 1-4 完了（基盤・AI処理・レイアウト・レンダリング・FE）、Phase 5 進行中（統合テスト・パイプラインオーケストレーション・245ファイル）
+**実装状況**: Phase 1-4 完了（基盤・AI処理・レイアウト・レンダリング・FE）、Phase 5 進行中（統合テスト・パイプラインオーケストレーション・WebSocket・最適化ユーティリティ・248ファイル）
 
 ## 関連文書
 
@@ -116,6 +116,16 @@
 - REQ-044: システムは Supabase Edge Functions 向けに JWT ベースの共有認証モジュール（Bearer トークン抽出・検証・期限切れ検出）を提供し、全 Edge Function で共通利用しなければならない 🔵 *supabase/functions/_shared/auth.ts より*
 - REQ-045: システムは Edge Functions 向けに統一エラーレスポンス（CORS ヘッダー管理・エラー分類・AbortController タイムアウト・必須フィールド検証）を提供しなければならない 🔵 *supabase/functions/_shared/error-handler.ts より*
 
+#### WebSocket リアルタイム通知 🔵実装済
+
+- REQ-046: システムは Socket.IO を用いて WebSocket ベースのリアルタイム進捗通知（ジョブ進捗・完了・エラー・ファイルステータス・ステージ進捗・ストリーミングセグメント・エラー回復イベント）を提供し、JWT 認証で接続を保護し、ジョブルーム（join:job/leave:job）による購読管理を行わなければならない 🔵 *src/api/websocket-handler.ts より*
+
+#### 最適化ユーティリティ 🔵実装済
+
+- REQ-047: システムは並列チャンク処理によるバッチ最適化（設定可能な並列度・チャンクサイズ・フェイルファスト・進捗コールバック）を提供し、大量データの効率的な処理をサポートしなければならない 🔵 *src/optimization/batch-optimizer.ts より*
+- REQ-048: システムは高コストな計算結果のメモ化キャッシュ（TTL有効期限・タグベース無効化・LRU退行・最大200エントリ）と、汎用LRUメモリキャッシュ（設定可能サイズ・TTL・定期クリーンアップ・ヒット率統計）を提供しなければならない 🔵 *src/optimization/computation-cache.ts・src/optimization/memory-cache.ts より*
+- REQ-049: システムは重いモジュールの遅延読み込み（動的インポートキャッシュ・同時ロード重複排除・プリロード・無効化・統計情報）を提供し、初期ロード時間を最適化しなければならない 🔵 *src/optimization/lazy-loader.ts より*
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より* 【Phase 2 完了】
@@ -206,4 +216,4 @@
 | Phase 2: AI・処理モジュール | ✅完了 | TASK-0011~0022 | 12/12 |
 | Phase 3: レイアウト・可視化 | ✅完了 | TASK-0023~0031 | 9/9 |
 | Phase 4: レンダリング・FE | ✅完了 | TASK-0032~0042 | 11/11 |
-| Phase 5: 統合・テスト | 🔄進行中 | TASK-0043~0052 | 進行中 |
+| Phase 5: 統合・テスト | 🔄進行中 | TASK-0043~0052 | 進行中（WebSocket・最適化ユーティリティ追加済） |
