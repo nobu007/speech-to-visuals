@@ -3,7 +3,7 @@
 -- ========================================
 --
 -- 作成日: 2026-04-27
--- 最終更新: 2026-04-29
+-- 最終更新: 2026-04-30（第17回更新: 実装スキーマとの完全同期）
 -- 関連設計: architecture.md
 --
 -- 信頼性レベル:
@@ -20,15 +20,20 @@
 -- ========================================
 
 -- diagram_projects: 図解プロジェクト
--- 🔵 信頼性: supabase/migrations/・要件定義REQ-405・NFR-102より
+-- 🔵 信頼性: supabase/migrations/00001_create_diagram_projects.sql・要件定義REQ-405・NFR-102より
 CREATE TABLE diagram_projects (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- 🔵 既存スキーマの共通パターン
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL, -- 🔵 RLS認証より
-    audio_url TEXT NOT NULL, -- 🔵 Supabase Storage URL
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, -- 🔵 RLS認証より
+    title TEXT NOT NULL, -- 🔵 プロジェクトタイトル
+    audio_file_path TEXT, -- 🔵 Supabase Storage 内の音声ファイルパス
+    audio_duration_ms INTEGER, -- 🔵 音声再生時間（ms）
+    status TEXT NOT NULL DEFAULT 'idle', -- 🔵 パイプライン処理状態（idle/transcribing/analyzing/generating/complete/error）
+    transcription JSONB, -- 🔵 Whisper文字起こし結果（SRT形式）
     scenes JSONB, -- 🔵 SceneGraph[] の JSON 表現
-    duration_ms INTEGER, -- 🔵 音声再生時間（ms）
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP, -- 🔵 共通パターン
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP -- 🔵 共通パターン
+    video_url TEXT, -- 🔵 生成動画のURL
+    quality_score NUMERIC, -- 🔵 品質スコア（0.0-1.0）
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(), -- 🔵 共通パターン
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now() -- 🔵 共通パターン
 );
 
 -- ========================================
@@ -41,25 +46,26 @@ ALTER TABLE diagram_projects ENABLE ROW LEVEL SECURITY;
 
 -- 認証済みユーザーは自分のプロジェクトのみ閲覧可能
 -- 🔵 信頼性: supabase/migrations/ RLSポリシーより
-CREATE POLICY "Users can view own projects"
+CREATE POLICY "diagram_projects_select_own"
     ON diagram_projects FOR SELECT
     USING (auth.uid() = user_id);
 
 -- 認証済みユーザーは自分のプロジェクトのみ作成可能
 -- 🔵 信頼性: supabase/migrations/ RLSポリシーより
-CREATE POLICY "Users can create own projects"
+CREATE POLICY "diagram_projects_insert_own"
     ON diagram_projects FOR INSERT
     WITH CHECK (auth.uid() = user_id);
 
 -- 認証済みユーザーは自分のプロジェクトのみ更新可能
 -- 🔵 信頼性: supabase/migrations/ RLSポリシーより
-CREATE POLICY "Users can update own projects"
+CREATE POLICY "diagram_projects_update_own"
     ON diagram_projects FOR UPDATE
-    USING (auth.uid() = user_id);
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
 
 -- 認証済みユーザーは自分のプロジェクトのみ削除可能
 -- 🔵 信頼性: supabase/migrations/ RLSポリシーより
-CREATE POLICY "Users can delete own projects"
+CREATE POLICY "diagram_projects_delete_own"
     ON diagram_projects FOR DELETE
     USING (auth.uid() = user_id);
 
@@ -100,6 +106,10 @@ CREATE POLICY "Authenticated users can delete own audio"
 -- 🔵 信頼性: パフォーマンス要件NFR-001・既存スキーマより
 CREATE INDEX idx_diagram_projects_user_id ON diagram_projects(user_id); -- 🔵 頻繁な検索条件より
 
+-- ステータス別プロジェクト検索の最適化
+-- 🔵 信頼性: supabase/migrations/00001_create_diagram_projects.sqlより
+CREATE INDEX idx_diagram_projects_status ON diagram_projects(status); -- 🔵 パイプライン状態フィルタ
+
 -- 作成日時順のソート最適化
 -- 🔵 信頼性: 一覧表示パフォーマンス向上より
 CREATE INDEX idx_diagram_projects_created_at ON diagram_projects(created_at DESC); -- 🔵 ソート順序より
@@ -109,19 +119,19 @@ CREATE INDEX idx_diagram_projects_created_at ON diagram_projects(created_at DESC
 -- ========================================
 
 -- updated_at 自動更新トリガー
--- 🔵 信頼性: 既存DBスキーマの共通パターンより
-CREATE OR REPLACE FUNCTION update_updated_at_column()
+-- 🔵 信頼性: supabase/migrations/00001_create_diagram_projects.sqlより
+CREATE OR REPLACE FUNCTION public.set_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
+    NEW.updated_at = now();
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$ LANGUAGE plpgsql;
 
-CREATE TRIGGER update_diagram_projects_updated_at
+CREATE TRIGGER diagram_projects_set_updated_at
     BEFORE UPDATE ON diagram_projects
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column(); -- 🔵 共通パターン
+    EXECUTE FUNCTION public.set_updated_at(); -- 🔵 共通パターン
 
 -- ========================================
 -- JSONB スキーマ検証（ scenes カラム）
@@ -153,8 +163,8 @@ CREATE INDEX idx_diagram_projects_scenes_type ON diagram_projects
 -- ========================================
 -- 信頼性レベルサマリー
 -- ========================================
--- - 🔵 青信号: 24件 (100%)
+-- - 🔵 青信号: 31件 (100%)
 -- - 🟡 黄信号: 0件 (0%)
 -- - 🔴 赤信号: 0件 (0%)
 --
--- 品質評価: 高品質 - 全定義が既存マイグレーションと完全に一致
+-- 品質評価: 高品質 - 全定義が supabase/migrations/ と完全に一致
