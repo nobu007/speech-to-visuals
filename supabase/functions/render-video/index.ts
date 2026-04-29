@@ -1,120 +1,150 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { authenticateRequest, SupabaseAuthClient } from '../_shared/auth.ts';
+import {
+  corsResponse,
+  optionsResponse,
+  errorResponse,
+  validateRequired,
+} from '../_shared/error-handler.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+export const RENDER_TIMEOUT_MS = 120000;
+
+const QUALITY_SETTINGS: Record<string, { scale: number; crf: number; preset: string }> = {
+  low: { scale: 720, crf: 28, preset: 'fast' },
+  medium: { scale: 1080, crf: 23, preset: 'medium' },
+  high: { scale: 1080, crf: 18, preset: 'slow' },
 };
+
+const VALID_FORMATS = ['mp4', 'webm'];
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+export interface RenderVideoRequest {
+  scenes: unknown[];
+  audioUrl?: string;
+  totalDuration?: number;
+  quality?: string;
+  outputFormat?: string;
+}
+
+export interface RenderVideoResponse {
+  success: boolean;
+  videoUrl: string;
+  metadata: {
+    duration: number;
+    frames: number;
+    fps: number;
+    quality: string;
+    scenes: number;
+    format: string;
+    createdAt: string;
+  };
+}
+
+// ─── Validation ──────────────────────────────────────────────────────────────
+
+export function validateRenderRequest(body: RenderVideoRequest): void {
+  validateRequired(body as Record<string, unknown>, ['scenes']);
+
+  if (!Array.isArray(body.scenes)) {
+    throw new Error('scenes must be an array');
+  }
+
+  if (body.scenes.length === 0) {
+    throw new Error('scenes array must not be empty');
+  }
+
+  if (body.quality && !QUALITY_SETTINGS[body.quality]) {
+    throw new Error('quality must be one of low, medium, high');
+  }
+
+  if (body.outputFormat && !VALID_FORMATS.includes(body.outputFormat)) {
+    throw new Error(`outputFormat must be one of ${VALID_FORMATS.join(', ')}`);
+  }
+}
+
+// ─── Handler (testable, extracted from serve) ────────────────────────────────
+
+export async function handleRenderVideo(
+  body: RenderVideoRequest,
+  userId: string
+): Promise<RenderVideoResponse> {
+  validateRenderRequest(body);
+
+  const { scenes, audioUrl, totalDuration = 0, quality = 'medium', outputFormat = 'mp4' } = body;
+
+  console.log(`User ${userId}: Starting video render for ${scenes.length} scenes`);
+
+  // Calculate video parameters
+  const fps = 30;
+  const duration = totalDuration || scenes.length * 5000; // Default 5s per scene
+  const totalFrames = Math.ceil((duration / 1000) * fps);
+  const outputName = `diagram-video-${Date.now()}`;
+  const settings = QUALITY_SETTINGS[quality] || QUALITY_SETTINGS.medium;
+
+  console.log(`User ${userId}: Render settings:`, {
+    totalFrames,
+    fps,
+    quality: settings,
+    outputName,
+    format: outputFormat,
+  });
+
+  // In a real implementation, this would:
+  // 1. Call Remotion's renderMedia function
+  // 2. Upload the result to storage
+  // 3. Return the public URL
+
+  // Simulated render process
+  const renderResult: RenderVideoResponse = {
+    success: true,
+    videoUrl: `https://example.com/videos/${outputName}.${outputFormat}`,
+    metadata: {
+      duration,
+      frames: totalFrames,
+      fps,
+      quality,
+      scenes: scenes.length,
+      format: outputFormat,
+      createdAt: new Date().toISOString(),
+    },
+  };
+
+  console.log(`User ${userId}: Video render completed:`, renderResult.videoUrl);
+
+  return renderResult;
+}
+
+// ─── Deno serve entry point ──────────────────────────────────────────────────
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(optionsResponse().body, {
+      status: optionsResponse().status,
+      headers: optionsResponse().headers,
+    });
   }
 
   try {
-    const { scenes, audioUrl, totalDuration, quality = 'medium' } = await req.json();
+    // Auth check
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+    const supabaseClient: SupabaseAuthClient = createClient(supabaseUrl, supabaseAnonKey);
+    const { userId } = await authenticateRequest(req, supabaseClient);
 
-    if (!scenes || !Array.isArray(scenes)) {
-      throw new Error('Scenes array is required');
-    }
+    // Parse body
+    const body: RenderVideoRequest = await req.json();
 
-    console.log('Starting video render for', scenes.length, 'scenes');
+    // Process
+    const result = await handleRenderVideo(body, userId);
 
-    // Calculate video parameters
-    const fps = 30;
-    const totalFrames = Math.ceil((totalDuration / 1000) * fps);
-    const outputName = `diagram-video-${Date.now()}`;
-
-    // Quality settings
-    const qualitySettings = {
-      low: { scale: 720, crf: 28, preset: 'fast' },
-      medium: { scale: 1080, crf: 23, preset: 'medium' },
-      high: { scale: 1080, crf: 18, preset: 'slow' }
-    };
-
-    const settings = qualitySettings[quality as keyof typeof qualitySettings] || qualitySettings.medium;
-
-    console.log('Render settings:', {
-      totalFrames,
-      fps,
-      quality: settings,
-      outputName
-    });
-
-    // In a real implementation, this would:
-    // 1. Call Remotion's renderMedia function
-    // 2. Upload the result to storage
-    // 3. Return the public URL
-
-    // For now, simulate the render process
-    const renderResult = {
-      success: true,
-      videoUrl: `https://example.com/videos/${outputName}.mp4`,
-      metadata: {
-        duration: totalDuration,
-        frames: totalFrames,
-        fps,
-        quality,
-        scenes: scenes.length,
-        createdAt: new Date().toISOString()
-      }
-    };
-
-    console.log('Video render completed:', renderResult);
-
-    return new Response(
-      JSON.stringify(renderResult),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
-  } catch (error) {
-    console.error('Render error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown render error';
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: errorMessage,
-        details: error instanceof Error ? error.stack : undefined
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    const resp = corsResponse(result);
+    return new Response(resp.body, { status: resp.status, headers: resp.headers });
+  } catch (err) {
+    const resp = errorResponse(err);
+    return new Response(resp.body, { status: resp.status, headers: resp.headers });
   }
 });
-
-// Note: In a production environment, you would need to:
-// 1. Install Remotion in the Deno environment
-// 2. Set up video encoding dependencies (FFmpeg)
-// 3. Configure storage for output videos
-// 4. Handle authentication and rate limiting
-// 5. Implement proper error handling and logging
-
-// Example of how the actual Remotion rendering would work:
-/*
-import { renderMedia, selectComposition } from '@remotion/renderer';
-
-async function renderVideoWithRemotion(inputProps: any) {
-  const composition = await selectComposition({
-    serveUrl: bundleLocation,
-    id: 'DiagramVideo',
-    inputProps,
-  });
-
-  const outputLocation = `/tmp/${outputName}.mp4`;
-
-  await renderMedia({
-    composition,
-    serveUrl: bundleLocation,
-    codec: 'h264',
-    outputLocation,
-    inputProps,
-    onProgress: ({ renderedFrames, totalFrames }) => {
-      console.log(`Rendered ${renderedFrames} of ${totalFrames} frames`);
-    },
-  });
-
-  return outputLocation;
-}
-*/

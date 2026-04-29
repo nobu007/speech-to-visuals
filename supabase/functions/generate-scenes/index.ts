@@ -1,9 +1,16 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { authenticateRequest, SupabaseAuthClient } from '../_shared/auth.ts';
+import {
+  corsResponse,
+  optionsResponse,
+  errorResponse,
+  validateRequired,
+} from '../_shared/error-handler.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+export const GENERATE_TIMEOUT_MS = 60000;
 
 // Cue words for diagram type detection
 const CUE = {
@@ -17,7 +24,48 @@ const CUE = {
 
 const SPLIT_SIGNALS = ['まず', '次に', '最後に', 'まとめ', '結論', '一方', 'しかし'];
 
-function decideType(text: string): string {
+// ─── Scene Types ─────────────────────────────────────────────────────────────
+
+export interface SceneNode {
+  id: string;
+  label: string;
+  x?: number;
+  y?: number;
+  w?: number;
+  h?: number;
+}
+
+export interface SceneEdge {
+  from: string;
+  to: string;
+  points?: { x: number; y: number }[];
+}
+
+export interface SceneData {
+  type: string;
+  nodes: SceneNode[];
+  edges: SceneEdge[];
+  layout: { nodes: SceneNode[]; edges: SceneEdge[] };
+  startMs: number;
+  durationMs: number;
+  summary: string;
+  keyphrases: string[];
+}
+
+export interface GenerateScenesRequest {
+  transcript: string;
+  segments?: Array<{ start: number; end: number; text: string }>;
+}
+
+export interface GenerateScenesResponse {
+  scenes: SceneData[];
+  totalDurationMs: number;
+  sceneCount: number;
+}
+
+// ─── Pure Logic Functions (exported for testing) ─────────────────────────────
+
+export function decideType(text: string): string {
   const hit = (arr: string[]) => arr.some((w) => text.includes(w));
   if (hit(CUE.cycle)) return 'cycle';
   if (hit(CUE.compare)) return 'matrix';
@@ -28,7 +76,7 @@ function decideType(text: string): string {
   return 'flow';
 }
 
-function splitSentences(text: string): string[] {
+export function splitSentences(text: string): string[] {
   return text
     .replace(/\s+/g, ' ')
     .split(/。|！|？/g)
@@ -36,10 +84,13 @@ function splitSentences(text: string): string[] {
     .filter(Boolean);
 }
 
-function extractNodesAndEdges(text: string, type: string) {
+export function extractNodesAndEdges(text: string, type: string): {
+  nodes: SceneNode[];
+  edges: SceneEdge[];
+} {
   const sentences = splitSentences(text);
-  const nodes: any[] = [];
-  const edges: any[] = [];
+  const nodes: SceneNode[] = [];
+  const edges: SceneEdge[] = [];
 
   if (type === 'flow') {
     sentences.forEach((s, i) => {
@@ -76,7 +127,6 @@ function extractNodesAndEdges(text: string, type: string) {
       edges.push({ from: `p${i}`, to: `p${(i + 1) % steps.length}` });
     }
   } else if (type === 'matrix') {
-    // Simple 2x2 matrix
     ['A項目', 'B項目', 'C項目', 'D項目'].forEach((label, i) => {
       nodes.push({ id: `m${i}`, label });
     });
@@ -85,12 +135,15 @@ function extractNodesAndEdges(text: string, type: string) {
   return { nodes, edges };
 }
 
-function calculateLayout(nodes: any[], edges: any[], type: string) {
-  const positioned: any[] = [];
-  const laidEdges: any[] = [];
+export function calculateLayout(
+  nodes: SceneNode[],
+  edges: SceneEdge[],
+  type: string
+): { nodes: SceneNode[]; edges: SceneEdge[] } {
+  const positioned: SceneNode[] = [];
+  const laidEdges: SceneEdge[] = [];
 
   if (type === 'flow') {
-    // Left to right flow
     const gap = 280;
     nodes.forEach((n, i) => {
       positioned.push({
@@ -108,14 +161,13 @@ function calculateLayout(nodes: any[], edges: any[], type: string) {
         laidEdges.push({
           ...e,
           points: [
-            { x: fromNode.x + fromNode.w, y: fromNode.y + fromNode.h / 2 },
-            { x: toNode.x, y: toNode.y + toNode.h / 2 },
+            { x: fromNode.x! + fromNode.w!, y: fromNode.y! + fromNode.h! / 2 },
+            { x: toNode.x!, y: toNode.y! + toNode.h! / 2 },
           ],
         });
       }
     });
   } else if (type === 'tree') {
-    // Root at top, children below
     const root = nodes.find((n) => n.id === 'root');
     if (root) {
       positioned.push({ ...root, x: 960, y: 200, w: 280, h: 80 });
@@ -136,7 +188,6 @@ function calculateLayout(nodes: any[], edges: any[], type: string) {
       });
     }
   } else if (type === 'timeline') {
-    // Horizontal timeline with alternating positions
     const gap = 280;
     nodes.forEach((n, i) => {
       const x = 150 + i * gap;
@@ -150,14 +201,13 @@ function calculateLayout(nodes: any[], edges: any[], type: string) {
         laidEdges.push({
           ...e,
           points: [
-            { x: fromNode.x + fromNode.w / 2, y: fromNode.y + fromNode.h },
-            { x: toNode.x + toNode.w / 2, y: toNode.y },
+            { x: fromNode.x! + fromNode.w! / 2, y: fromNode.y! + fromNode.h! },
+            { x: toNode.x! + toNode.w! / 2, y: toNode.y! },
           ],
         });
       }
     });
   } else if (type === 'cycle') {
-    // Circular layout
     const cx = 960;
     const cy = 400;
     const radius = 260;
@@ -178,14 +228,13 @@ function calculateLayout(nodes: any[], edges: any[], type: string) {
         laidEdges.push({
           ...e,
           points: [
-            { x: fromNode.x, y: fromNode.y },
-            { x: toNode.x, y: toNode.y },
+            { x: fromNode.x!, y: fromNode.y! },
+            { x: toNode.x!, y: toNode.y! },
           ],
         });
       }
     });
   } else if (type === 'matrix') {
-    // 2x2 grid
     const cellW = 300;
     const cellH = 200;
     const startX = 660;
@@ -206,85 +255,102 @@ function calculateLayout(nodes: any[], edges: any[], type: string) {
   return { nodes: positioned, edges: laidEdges };
 }
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+// ─── Handler (testable, extracted from serve) ────────────────────────────────
 
-  try {
-    const { transcript } = await req.json();
+export async function handleGenerateScenes(
+  body: GenerateScenesRequest,
+  userId: string
+): Promise<GenerateScenesResponse> {
+  validateRequired(body as Record<string, unknown>, ['transcript']);
 
-    if (!transcript) {
-      throw new Error('Transcript is required');
-    }
+  const { transcript, segments: _segments } = body;
 
-    console.log('Processing transcript, length:', transcript.length);
+  console.log(`User ${userId}: Processing transcript, length: ${transcript.length}`);
 
-    // Simple scene splitting based on signals
-    const paragraphs = transcript.split(/\n+/).filter((p: string) => p.trim().length > 0);
-    const scenes: any[] = [];
-    let currentTime = 0;
+  // Scene splitting based on signals
+  const paragraphs = transcript.split(/\n+/).filter((p: string) => p.trim().length > 0);
+  const scenes: SceneData[] = [];
+  let currentTime = 0;
 
-    for (const para of paragraphs) {
-      const shouldSplit = SPLIT_SIGNALS.some((signal) => para.includes(signal));
-      
-      if (shouldSplit || scenes.length === 0) {
-        const type = decideType(para);
-        const { nodes, edges } = extractNodesAndEdges(para, type);
-        const layout = calculateLayout(nodes, edges, type);
-        
-        const sentences = splitSentences(para);
-        const duration = Math.max(3000, Math.min(8000, sentences.length * 1500));
+  for (const para of paragraphs) {
+    const shouldSplit = SPLIT_SIGNALS.some((signal) => para.includes(signal));
 
-        scenes.push({
-          type,
-          nodes,
-          edges,
-          layout,
-          startMs: currentTime,
-          durationMs: duration,
-          summary: sentences[0] || `シーン ${scenes.length + 1}`,
-          keyphrases: sentences.slice(0, 3),
-        });
-
-        currentTime += duration;
-      }
-    }
-
-    // Ensure we have at least one scene
-    if (scenes.length === 0) {
-      const type = 'flow';
-      const { nodes, edges } = extractNodesAndEdges(transcript, type);
+    if (shouldSplit || scenes.length === 0) {
+      const type = decideType(para);
+      const { nodes, edges } = extractNodesAndEdges(para, type);
       const layout = calculateLayout(nodes, edges, type);
+
+      const sentences = splitSentences(para);
+      const duration = Math.max(3000, Math.min(8000, sentences.length * 1500));
+
       scenes.push({
         type,
         nodes,
         edges,
         layout,
-        startMs: 0,
-        durationMs: 5000,
-        summary: 'シーン 1',
-        keyphrases: splitSentences(transcript).slice(0, 3),
+        startMs: currentTime,
+        durationMs: duration,
+        summary: sentences[0] || `シーン ${scenes.length + 1}`,
+        keyphrases: sentences.slice(0, 3),
       });
+
+      currentTime += duration;
     }
+  }
 
-    console.log(`Generated ${scenes.length} scenes`);
+  // Ensure we have at least one scene
+  if (scenes.length === 0) {
+    const type = 'flow';
+    const { nodes, edges } = extractNodesAndEdges(transcript, type);
+    const layout = calculateLayout(nodes, edges, type);
+    scenes.push({
+      type,
+      nodes,
+      edges,
+      layout,
+      startMs: 0,
+      durationMs: 5000,
+      summary: 'シーン 1',
+      keyphrases: splitSentences(transcript).slice(0, 3),
+    });
+  }
 
-    return new Response(
-      JSON.stringify({ scenes }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
-  } catch (error) {
-    console.error('Error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+  console.log(`User ${userId}: Generated ${scenes.length} scenes`);
+
+  return {
+    scenes,
+    totalDurationMs: scenes.reduce((sum, s) => sum + s.durationMs, 0),
+    sceneCount: scenes.length,
+  };
+}
+
+// ─── Deno serve entry point ──────────────────────────────────────────────────
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(optionsResponse().body, {
+      status: optionsResponse().status,
+      headers: optionsResponse().headers,
+    });
+  }
+
+  try {
+    // Auth check
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+    const supabaseClient: SupabaseAuthClient = createClient(supabaseUrl, supabaseAnonKey);
+    const { userId } = await authenticateRequest(req, supabaseClient);
+
+    // Parse body
+    const body: GenerateScenesRequest = await req.json();
+
+    // Process
+    const result = await handleGenerateScenes(body, userId);
+
+    const resp = corsResponse(result);
+    return new Response(resp.body, { status: resp.status, headers: resp.headers });
+  } catch (err) {
+    const resp = errorResponse(err);
+    return new Response(resp.body, { status: resp.status, headers: resp.headers });
   }
 });
