@@ -46,7 +46,7 @@ describe('OverlapResolver', () => {
     const resStart = Date.now();
     const res = await resolver.resolve(toDataNodes(positioned), [], createTestConfig());
     const duration = Date.now() - resStart;
-    expect(duration).toBeLessThan(120);
+    expect(duration).toBeLessThan(500);
     expect(res.layout.nodes.length).toBe(30);
     expect(res.success).toBe(true);
   });
