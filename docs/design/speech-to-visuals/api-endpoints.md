@@ -1,7 +1,7 @@
 # speech-to-visuals API エンドポイント仕様
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-29
+**最終更新**: 2026-04-30（REQ-046~049 反映）
 **関連設計**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](../../spec/speech-to-visuals/requirements.md)
 
@@ -478,9 +478,23 @@ http://localhost:3001/api/v1
 
 ## WebSocket イベント（Socket.IO）
 
+### 認証 🔵
+
+**信頼性**: 🔵 *src/api/websocket-handler.ts・要件定義REQ-046 より*
+
+WebSocket 接続時には JWT 認証が必須です:
+
+```javascript
+const socket = io(SERVER_URL, {
+  auth: { token: jwtToken }
+});
+```
+
+未認証接続は `Authentication required` エラーで拒否されます。
+
 ### クライアント → サーバー 🔵
 
-**信頼性**: 🔵 *src/api/batch-processing-api.ts・package.json Socket.IO より*
+**信頼性**: 🔵 *src/api/websocket-handler.ts・要件定義REQ-046 より*
 
 | イベント | ペイロード | 説明 |
 |---------|-----------|------|
@@ -489,15 +503,16 @@ http://localhost:3001/api/v1
 
 ### サーバー → クライアント 🔵
 
-**信頼性**: 🔵 *要件定義NFR-202・src/api/ より*
+**信頼性**: 🔵 *src/api/websocket-handler.ts・要件定義REQ-046 より*
 
 | イベント | ペイロード | 説明 |
 |---------|-----------|------|
-| `job:progress` | `{ jobId, progress, eta, currentFile, stage }` | ジョブ進捗更新 |
-| `job:complete` | `{ jobId, results: BatchFile[] }` | ジョブ完了通知 |
-| `job:error` | `{ jobId, error }` | ジョブエラー通知 |
-| `file:status` | `{ jobId, filename, status, qualityScore }` | ファイル処理ステータス |
-| `stage:progress` | `{ jobId, filename, stage, progress }` | ステージ別進捗（transcribing/analyzing/generating） |
+| `job:joined` | `{ jobId }` | ルーム参加確認 |
+| `job:progress` | `{ jobId, total, completed, failed, percentage }` | ジョブ進捗更新 |
+| `job:complete` | `{ jobId, timestamp, progress }` | ジョブ完了通知 |
+| `job:error` | `{ jobId, error, fileId? }` | ジョブエラー通知 |
+| `file:status` | `{ jobId, fileId, status, qualityScore? }` | ファイル処理ステータス |
+| `stage:progress` | `{ jobId, fileId, stage, progress }` | ステージ別進捗（transcription/visualization等） |
 | `streaming:segment` | `{ sessionId, segment, confidence, progress }` | ストリーミング文字起こしセグメント通知 🔵 *REQ-036* |
 | `streaming:complete` | `{ sessionId, fullTranscript, statistics }` | ストリーミング文字起こし完了 🔵 *REQ-036* |
 | `error:recovery` | `{ errorId, category, severity, strategies }` | エラー回復オプション通知 🔵 *REQ-037* |
@@ -542,11 +557,11 @@ http://localhost:3001/api/v1
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 38件 (95%)
+- 🔵 青信号: 42件 (95%)
 - 🟡 黄信号: 2件 (5%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - Phase 5 バッチ API・Edge Functions 共通基盤（REQ-043~045）反映済
+**品質評価**: 高品質 - Phase 5 バッチ API・Edge Functions 共通基盤（REQ-043~049）反映済
 
 ---
 

@@ -2,7 +2,7 @@
  * speech-to-visuals 型定義
  *
  * 作成日: 2026-04-27
- * 最終更新: 2026-04-29（Phase 5 モジュール REQ-040~045 反映）
+ * 最終更新: 2026-04-30（Phase 5 モジュール REQ-046~049 反映）
  * 関連設計: architecture.md
  *
  * 信頼性レベル:
@@ -368,11 +368,11 @@ export interface WorkspaceQuota {
 // 信頼性レベルサマリー
 // ========================================
 /**
- * - 🔵 青信号: 218件 (97%)
+ * - 🔵 青信号: 270件 (97%)
  * - 🟡 黄信号: 4件 (3%)
  * - 🔴 赤信号: 0件 (0%)
  *
- * 品質評価: 高品質（Phase 5 モジュール REQ-040~045 反映済）
+ * 品質評価: 高品質（Phase 5 モジュール REQ-040~049 反映済）
  */
 
 // ========================================
@@ -959,3 +959,199 @@ export interface EdgeErrorResponse {
 export interface TimeoutController {
   signal: AbortSignal; // 🔵 中断シグナル
   clear(): void; // 🔵 タイムアウト解除
+}
+
+// ========================================
+// Phase 5 WebSocket 型（REQ-046）
+// ========================================
+
+/**
+ * 認証済みソケット
+ * 🔵 信頼性: src/api/websocket-handler.ts・要件定義REQ-046 より
+ */
+export interface AuthenticatedSocket {
+  id: string; // 🔵 ソケットID
+  user: { userId: string; email?: string }; // 🔵 JWT デコード済みユーザー情報
+}
+
+/**
+ * ジョブ進捗ペイロード
+ * 🔵 信頼性: src/api/websocket-handler.ts より
+ */
+export interface JobProgressPayload {
+  jobId: string; // 🔵 ジョブID
+  total: number; // 🔵 総ファイル数
+  completed: number; // 🔵 完了ファイル数
+  failed: number; // 🔵 失敗ファイル数
+  percentage: number; // 🔵 進捗率 (0-100)
+}
+
+/**
+ * ジョブ完了ペイロード
+ * 🔵 信頼性: src/api/websocket-handler.ts より
+ */
+export interface JobCompletePayload {
+  jobId: string; // 🔵 ジョブID
+  timestamp: string; // 🔵 完了日時
+  progress: JobProgressPayload; // 🔵 最終進捗
+}
+
+/**
+ * ジョブエラーペイロード
+ * 🔵 信頼性: src/api/websocket-handler.ts より
+ */
+export interface JobErrorPayload {
+  jobId: string; // 🔵 ジョブID
+  error: string; // 🔵 エラーメッセージ
+  fileId?: string; // 🔵 ファイルID（オプション）
+}
+
+/**
+ * ファイルステータス ペイロード
+ * 🔵 信頼性: src/api/websocket-handler.ts より
+ */
+export interface FileStatusPayload {
+  jobId: string; // 🔵 ジョブID
+  fileId: string; // 🔵 ファイルID
+  status: string; // 🔵 ファイルステータス
+  qualityScore?: number; // 🔵 品質スコア
+}
+
+/**
+ * ステージ進捗ペイロード
+ * 🔵 信頼性: src/api/websocket-handler.ts より
+ */
+export interface StageProgressPayload {
+  jobId: string; // 🔵 ジョブID
+  fileId: string; // 🔵 ファイルID
+  stage: string; // 🔵 ステージ名（transcription/visualization等）
+  progress: number; // 🔵 進捗率 (0-100)
+}
+
+/**
+ * ストリーミングセグメントペイロード
+ * 🔵 信頼性: src/api/websocket-handler.ts・要件定義REQ-046 より
+ */
+export interface StreamingSegmentPayload {
+  sessionId: string; // 🔵 セッションID
+  segment: string; // 🔵 セグメントテキスト
+  confidence: number; // 🔵 信頼度スコア
+  progress: { processedDuration: number; totalDuration: number }; // 🔵 進捗
+}
+
+/**
+ * エラー回復ペイロード
+ * 🔵 信頼性: src/api/websocket-handler.ts・要件定義REQ-046 より
+ */
+export interface WsErrorRecoveryPayload {
+  errorId: string; // 🔵 エラーID
+  category: string; // 🔵 エラーカテゴリ
+  severity: string; // 🔵 深刻度
+  strategies: Array<{ id: string; name: string; automated: boolean }>; // 🔵 回復戦略
+}
+
+// ========================================
+// Phase 5 最適化ユーティリティ型（REQ-047~049）
+// ========================================
+
+/**
+ * バッチ最適化設定
+ * 🔵 信頼性: src/optimization/batch-optimizer.ts・要件定義REQ-047 より
+ */
+export interface BatchOptimizerOptions {
+  concurrency: number; // 🔵 最大並列チャンク数（デフォルト: 4）
+  chunkSize: number; // 🔵 チャンクサイズ（デフォルト: 50）
+  failFast: boolean; // 🔵 フェイルファスト（デフォルト: false）
+  onProgress?: (completed: number, total: number) => void; // 🔵 進捗コールバック
+}
+
+/**
+ * バッチ処理結果
+ * 🔵 信頼性: src/optimization/batch-optimizer.ts より
+ */
+export interface BatchResult<T> {
+  results: (T | undefined)[]; // 🔵 結果配列（元の順序）
+  errors: (Error | undefined)[]; // 🔵 エラー配列（元の順序）
+  stats: {
+    total: number; // 🔵 総アイテム数
+    succeeded: number; // 🔵 成功数
+    failed: number; // 🔵 失敗数
+    processingTimeMs: number; // 🔵 処理時間（ms）
+  };
+}
+
+/**
+ * 計算キャッシュ設定
+ * 🔵 信頼性: src/optimization/computation-cache.ts・要件定義REQ-048 より
+ */
+export interface ComputationCacheOptions {
+  maxSize?: number; // 🔵 最大エントリ数（デフォルト: 200）
+  ttlMs?: number; // 🔵 TTL（デフォルト: 600000ms = 10分）
+}
+
+/**
+ * キャッシュエントリメタデータ
+ * 🔵 信頼性: src/optimization/computation-cache.ts より
+ */
+export interface CacheEntryMeta {
+  createdAt: number; // 🔵 作成日時
+  accessCount: number; // 🔵 アクセス回数
+  computeTimeMs: number; // 🔵 計算時間（ms）
+  tags?: string[]; // 🔵 関連タグ
+}
+
+/**
+ * 計算キャッシュ統計
+ * 🔵 信頼性: src/optimization/computation-cache.ts より
+ */
+export interface ComputationCacheStats {
+  size: number; // 🔵 現在のエントリ数
+  hits: number; // 🔵 ヒット数
+  misses: number; // 🔵 ミス数
+  hitRate: number; // 🔵 ヒット率
+  evictions: number; // 🔵 退行数
+  totalComputeTimeMs: number; // 🔵 総計算時間
+}
+
+/**
+ * メモリキャッシュ設定
+ * 🔵 信頼性: src/optimization/memory-cache.ts・要件定義REQ-048 より
+ */
+export interface MemoryCacheOptions {
+  maxSize: number; // 🔵 最大エントリ数（デフォルト: 100）
+  defaultTtlMs: number; // 🔵 デフォルトTTL（デフォルト: 300000ms = 5分）
+  cleanupIntervalMs: number; // 🔵 クリーンアップ間隔（デフォルト: 60000ms = 1分）
+}
+
+/**
+ * メモリキャッシュ統計
+ * 🔵 信頼性: src/optimization/memory-cache.ts より
+ */
+export interface MemoryCacheStats {
+  size: number; // 🔵 現在のエントリ数
+  hits: number; // 🔵 ヒット数
+  misses: number; // 🔵 ミス数
+  hitRate: number; // 🔵 ヒット率
+  evictions: number; // 🔵 退行数
+}
+
+/**
+ * 遅延ロードモジュール
+ * 🔵 信頼性: src/optimization/lazy-loader.ts・要件定義REQ-049 より
+ */
+export interface LazyModule<T> {
+  module: T; // 🔵 ロード済みモジュール
+  loadTimeMs: number; // 🔵 ロード時間（ms）
+}
+
+/**
+ * 遅延ローダー統計
+ * 🔵 信頼性: src/optimization/lazy-loader.ts より
+ */
+export interface LazyLoaderStats {
+  totalLoads: number; // 🔵 総ロード回数
+  cacheHits: number; // 🔵 キャッシュヒット数
+  cacheMisses: number; // 🔵 キャッシュミス数
+  averageLoadTimeMs: number; // 🔵 平均ロード時間（ms）
+  loadedModules: number; // 🔵 ロード済みモジュール数
+}

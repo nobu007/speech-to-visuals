@@ -1,7 +1,7 @@
 # speech-to-visuals アーキテクチャ設計
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-29（A41 設計検証反映）
+**最終更新**: 2026-04-30（REQ-046~049 WebSocket・最適化ユーティリティ反映）
 **関連要件定義**: [requirements.md](../../spec/speech-to-visuals/requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -61,12 +61,13 @@
 **信頼性**: 🔵 *note.md・package.json・src/api/ より*
 
 - **フレームワーク**: Express 5.1（REST API サーバー）
-- **リアルタイム通信**: Socket.IO 4.8
+- **リアルタイム通信**: Socket.IO 4.8（WebSocket ハンドラーで JWT 認証付きジョブルーム管理）🔵 *src/api/websocket-handler.ts・要件定義REQ-046 より*
 - **認証方式**: Supabase Auth（JWT ベース）
 - **API設計**: REST（バッチ処理API）+ Supabase Edge Functions
 - **ミドルウェア**: express-rate-limit（レート制限）、Helmet（セキュリティヘッダー）、CORS
 - **API構成**: src/api/middleware/（rate-limit, error-handler, auth）、src/api/routes/（batch, health ルート定義）🔵 *src/api/ より*
 - **バッチ処理API**: REST エンドポイント（POST /batch/jobs でジョブ作成→HTTP 202、GET /batch/jobs/:id でステータス取得、DELETE /batch/jobs/:id でキャンセル）、セマフォパターンで最大3並列ジョブ制御 🔵 *src/api/routes/batch.ts・要件定義REQ-043 より*
+- **WebSocket リアルタイム通知**: Socket.IO ベースのジョブ進捗・完了・エラー・ファイルステータス・ステージ進捗・ストリーミングセグメント・エラー回復イベントのリアルタイム配信。JWT 認証で接続保護、ジョブルーム（join:job/leave:job）による購読管理 🔵 *src/api/websocket-handler.ts・要件定義REQ-046 より*
 
 ### AI・処理モジュール 🔵
 
@@ -150,6 +151,10 @@
 - **スマートパラメータチューニング**: 音声特性分析（語速・複雑度・ドメイン・音質・キーワード密度）に基づくパラメータ自動最適化、履歴学習（learningRate=0.1）付き 🔵 *src/optimization/smart-parameter-tuner.ts・要件定義REQ-039 より*
 - **適応型コンテンツ処理**: コンテンツ特性に応じた処理戦略自動選択（fast/balanced/accurate）、指紋ベース戦略キャッシュ付き 🔵 *src/optimization/adaptive-content-processor.ts・要件定義REQ-039 より*
 - **インテリジェントキャッシュ**: セマンティックキャッシュ（類似度0.9、200エントリ）と処理結果キャッシュ
+- **バッチ最適化**: 並列チャンク処理（設定可能な並列度・チャンクサイズ・フェイルファスト・進捗コールバック）による大量データの効率的処理 🔵 *src/optimization/batch-optimizer.ts・要件定義REQ-047 より*
+- **計算キャッシュ**: 高コストな計算結果のメモ化（TTL有効期限・タグベース無効化・LRU退行・最大200エントリ）、async/sync両対応 🔵 *src/optimization/computation-cache.ts・要件定義REQ-048 より*
+- **メモリキャッシュ**: 汎用LRUメモリキャッシュ（設定可能最大サイズ・TTL・定期クリーンアップ・ヒット率統計）🔵 *src/optimization/memory-cache.ts・要件定義REQ-048 より*
+- **遅延ローダー**: 重いモジュールの動的インポートキャッシュ（同時ロード重複排除・プリロード・無効化・統計情報）🔵 *src/optimization/lazy-loader.ts・要件定義REQ-049 より*
 
 ### Remotion 動画モジュール 🔵
 
@@ -265,10 +270,10 @@ graph TB
 │   ├── integrations/       # Supabase 統合
 │   ├── lib/                # ユーティリティライブラリ 🔵
 │   ├── monitoring/         # プロダクション監視（6ファイル）
-│   ├── optimization/       # パラメータチューニング
+│   ├── optimization/       # パラメータチューニング・バッチ最適化・キャッシュ・遅延ローダー（6ファイル）🔵
 │   ├── pages/              # React Router ページ
 │   ├── performance/        # キャッシュ
-│   ├── pipeline/           # パイプライン（10ファイル: Simple/Main/Framework/Adaptive/VideoGenerator/Orchestrator等）🔵
+│   ├── pipeline/           # パイプライン（11ファイル: Simple/Main/Framework/Adaptive/VideoGenerator/Orchestrator等）🔵
 │   ├── quality/            # 品質保証・エラー回復（8ファイル: ErrorClassifier/QualityGate含む）
 │   ├── remotion/           # Remotion 動画コンポーネント（12ファイル: Animation/Scene/Renderer/SRT/Caption）🔵
 │   ├── test/               # テストユーティリティ
@@ -428,8 +433,8 @@ Fallback LLM
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 92件 (97%)
+- 🔵 青信号: 100件 (97%)
 - 🟡 黄信号: 2件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（Phase 5 モジュール REQ-040~045 反映済）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（Phase 5 モジュール REQ-040~049 反映済）

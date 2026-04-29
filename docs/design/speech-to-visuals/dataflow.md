@@ -1,7 +1,7 @@
 # speech-to-visuals データフロー図
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-29（Phase 5 モジュール REQ-040~045 反映）
+**最終更新**: 2026-04-30（Phase 5 モジュール REQ-046~049 反映）
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](../../spec/speech-to-visuals/requirements.md)
 
@@ -716,6 +716,156 @@ sequenceDiagram
 - **認証（auth.ts）**: JWT抽出・検証・期限切れ検出・ユーザー情報返却
 - **エラーハンドリング（error-handler.ts）**: CORS ヘッダー管理・エラー分類（AuthError/TimeoutError/ValidationError）・AbortController タイムアウト（デフォルト30秒）・必須フィールド検証
 
+### WebSocket リアルタイム通知フロー 🔵
+
+**信頼性**: 🔵 *src/api/websocket-handler.ts・要件定義REQ-046 より*
+
+**関連要件**: REQ-046
+
+```mermaid
+sequenceDiagram
+    participant Client as クライアント（Socket.IO）
+    participant Auth as WS Auth Middleware
+    participant Handler as WebSocket Handler
+    participant Room as Job Room (join:job)
+
+    Client->>Auth: 接続 + JWT トークン (socket.handshake.auth.token)
+    alt トークンなし
+        Auth-->>Client: Error: Authentication required
+    else 有効トークン
+        Auth-->>Client: 認証成功 (AuthenticatedSocket)
+        Client->>Room: join:job {jobId}
+        Room-->>Client: job:joined {jobId}
+
+        loop リアルタイム通知
+            Handler->>Room: job:progress {jobId, total, completed, failed, percentage}
+            Handler->>Room: job:complete {jobId, timestamp, progress}
+            Handler->>Room: job:error {jobId, error, fileId?}
+            Handler->>Room: file:status {jobId, fileId, status, qualityScore?}
+            Handler->>Room: stage:progress {jobId, fileId, stage, progress}
+            Handler->>Room: streaming:segment {sessionId, segment, confidence, progress}
+            Handler->>Room: error:recovery {errorId, category, severity, strategies}
+        end
+
+        Client->>Room: leave:job {jobId}
+    end
+```
+
+**WebSocket イベント一覧** 🔵:
+
+| イベント | 方向 | ペイロード | 説明 |
+|---------|------|-----------|------|
+| join:job | Client→Server | `{jobId}` | ジョブルーム参加 |
+| leave:job | Client→Server | `{jobId}` | ジョブルーム離脱 |
+| job:joined | Server→Client | `{jobId}` | ルーム参加確認 |
+| job:progress | Server→Client | `{jobId, total, completed, failed, percentage}` | ジョブ進捗 |
+| job:complete | Server→Client | `{jobId, timestamp, progress}` | ジョブ完了 |
+| job:error | Server→Client | `{jobId, error, fileId?}` | ジョブエラー |
+| file:status | Server→Client | `{jobId, fileId, status, qualityScore?}` | ファイルステータス |
+| stage:progress | Server→Client | `{jobId, fileId, stage, progress}` | ステージ進捗 |
+| streaming:segment | Server→Client | `{sessionId, segment, confidence, progress}` | ストリーミングセグメント |
+| streaming:complete | Server→Client | `{sessionId, fullTranscript, statistics}` | ストリーミング完了 |
+| error:recovery | Server→Client | `{errorId, category, severity, strategies}` | エラー回復オプション |
+| error:recovered | Server→Client | `{errorId, strategy, success}` | エラー回復結果 |
+
+### バッチ最適化フロー 🔵
+
+**信頼性**: 🔵 *src/optimization/batch-optimizer.ts・要件定義REQ-047 より*
+
+**関連要件**: REQ-047
+
+```mermaid
+flowchart TD
+    A[大量アイテム入力] --> B[BatchOptimizer.process]
+    B --> C[アイテムをチャンクに分割]
+    C --> D[設定された並列度で並列処理]
+    D --> E{フェイルファスト?}
+    E -->|Yes| F[最初のエラーで中断]
+    E -->|No| G[全チャンク処理継続]
+    G --> H[成功結果を元の順序で格納]
+    G --> I[失敗をエラー配列に格納]
+    F --> J[BatchResult返却]
+    H --> J
+    I --> J
+    J --> K[統計情報: 処理時間・成功率]
+    D --> L[onProgress コールバック]
+    L --> M[進捗通知: completed/total]
+```
+
+**BatchOptimizer 設定** 🔵:
+| パラメータ | 既定値 | 説明 |
+|-----------|--------|------|
+| concurrency | 4 | 最大並列チャンク数 |
+| chunkSize | 50 | チャンクあたりのアイテム数 |
+| failFast | false | 最初のエラーで中断するか |
+| onProgress | - | 進捗コールバック (completed, total) |
+
+### 計算キャッシュ・メモリキャッシュフロー 🔵
+
+**信頼性**: 🔵 *src/optimization/computation-cache.ts・memory-cache.ts・要件定義REQ-048 より*
+
+**関連要件**: REQ-048
+
+```mermaid
+flowchart TD
+    A[キャッシュアクセス] --> B{キャッシュヒット?}
+    B -->|Yes| C[キャッシュから値を返却]
+    B -->|No| D[compute 関数を実行]
+    D --> E[TTL設定でエントリ保存]
+    E --> F[タグインデックスに登録]
+    F --> G{最大サイズ超過?}
+    G -->|Yes| H[LRU退行で最古エントリ削除]
+    G -->|No| I[値を返却]
+    H --> I
+    C --> J[統計: ヒット数更新]
+    I --> K[統計: ミス数更新]
+
+    L[タグベース無効化] --> M[invalidateByTag]
+    M --> N[該当タグの全エントリ削除]
+
+    O[定期クリーンアップ] --> P[MemoryCache.cleanup]
+    P --> Q[TTL期限切れエントリ自動削除]
+```
+
+**キャッシュ構成** 🔵:
+| キャッシュ | 最大サイズ | TTL | 特記事項 |
+|-----------|-----------|-----|---------|
+| ComputationCache | 200 | 10分 | タグベース無効化・async/sync両対応 |
+| MemoryCache | 100 | 5分 | LRU退行・定期クリーンアップ・ヒット率統計 |
+
+### 遅延ローダーフロー 🔵
+
+**信頼性**: 🔵 *src/optimization/lazy-loader.ts・要件定義REQ-049 より*
+
+**関連要件**: REQ-049
+
+```mermaid
+flowchart TD
+    A[load(key, loader) 呼び出し] --> B{キャッシュにあり?}
+    B -->|Yes| C[キャッシュから即座に返却]
+    B -->|No| D{同時ロード中?}
+    D -->|Yes| E[既存の Promise を再利用]
+    D -->|No| F[loader 関数を実行]
+    F --> G[モジュールをキャッシュに保存]
+    G --> H[ロード時間を記録]
+    H --> I[モジュールを返却]
+    E --> I
+
+    J[preload(key, loader)] --> K[非同期でロード]
+    K --> L[エラーは無視]
+    L --> G
+
+    M[createHandle(key, loader)] --> N[再利用可能なハンドル生成]
+    N --> O[handle.load() で随时ロード]
+```
+
+**遅延ローダー機能** 🔵:
+- 動的インポートキャッシュ: 同一キーの重複ロード防止
+- 同時ロード重複排除: 複数コンポーネントからの同時要求を1回に束ねる
+- プリロード: 非同期で事前キャッシュ（エラーは無視）
+- ハンドルファクトリ: `createHandle()` でカプセル化されたアクセス提供
+- 統計情報: ロード回数・キャッシュヒット率・平均ロード時間
+
 ## 関連文書
 
 - **アーキテクチャ**: [architecture.md](architecture.md)
@@ -726,8 +876,8 @@ sequenceDiagram
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 82件 (99%)
+- 🔵 青信号: 94件 (99%)
 - 🟡 黄信号: 1件 (1%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - Phase 5 モジュール（エラー分類・品質ゲート・オーケストレーター・バッチAPI・共有認証・統一エラー処理）フローを反映
+**品質評価**: 高品質 - Phase 5 モジュール（エラー分類・品質ゲート・オーケストレーター・バッチAPI・共有認証・統一エラー処理・WebSocket・最適化ユーティリティ）フローを反映
