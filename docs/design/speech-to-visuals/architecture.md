@@ -1,7 +1,7 @@
 # speech-to-visuals アーキテクチャ設計
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-30（第14回更新: REQ-050/051 グレースフルシャットダウン・型ガード・11種図解タイプ反映）
+**最終更新**: 2026-04-30（第15回更新: 第15回設計検証・全ファイル整合性確認）
 **関連要件定義**: [requirements.md](../../spec/speech-to-visuals/requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
