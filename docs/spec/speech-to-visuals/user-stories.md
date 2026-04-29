@@ -1,7 +1,7 @@
 # Speech-to-Visuals ユーザストーリー
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-30（第14回検証・ストーリー変更なし・現状維持）
+**最終更新**: 2026-04-30（第15回検証・ストーリー変更なし・現状維持）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [interview-record.md](interview-record.md)
 
