@@ -2,7 +2,7 @@
  * speech-to-visuals 型定義
  *
  * 作成日: 2026-04-27
- * 最終更新: 2026-04-30（Phase 5 モジュール REQ-046~049 反映）
+ * 最終更新: 2026-04-30（第14回更新: REQ-050/051 グレースフルシャットダウン・型ガード・11種図解タイプ反映）
  * 関連設計: architecture.md
  *
  * 信頼性レベル:
@@ -19,7 +19,9 @@
  * 図解タイプ
  * 🔵 信頼性: 要件定義REQ-007・src/types/diagram.ts より
  */
-export type DiagramType = 'flow' | 'tree' | 'timeline' | 'matrix' | 'cycle';
+export type DiagramType =
+  | 'flow' | 'tree' | 'timeline' | 'matrix' | 'cycle'
+  | 'flowchart' | 'comparison' | 'network' | 'conceptmap' | 'mindmap' | 'general';
 
 /**
  * ノードデータ
@@ -368,11 +370,11 @@ export interface WorkspaceQuota {
 // 信頼性レベルサマリー
 // ========================================
 /**
- * - 🔵 青信号: 270件 (97%)
+ * - 🔵 青信号: 280件 (97%)
  * - 🟡 黄信号: 4件 (3%)
  * - 🔴 赤信号: 0件 (0%)
  *
- * 品質評価: 高品質（Phase 5 モジュール REQ-040~049 反映済）
+ * 品質評価: 高品質（REQ-050~051 グレースフルシャットダウン・型ガード・11種図解タイプ反映済）
  */
 
 // ========================================
@@ -1154,4 +1156,43 @@ export interface LazyLoaderStats {
   cacheMisses: number; // 🔵 キャッシュミス数
   averageLoadTimeMs: number; // 🔵 平均ロード時間（ms）
   loadedModules: number; // 🔵 ロード済みモジュール数
+}
+
+// ========================================
+// グレースフルシャットダウン・型安全性（REQ-050~051）
+// ========================================
+
+/**
+ * シャットダウン状態
+ * 🔵 信頼性: src/quality/enhanced-error-recovery.ts shutdown()・要件定義REQ-050 より
+ */
+export type ShutdownState = 'running' | 'shutting_down' | 'stopped'; // 🔵 シャットダウン状態
+
+/**
+ * シャットダウン結果
+ * 🔵 信頼性: src/quality/enhanced-error-recovery.ts shutdown()・要件定義REQ-050 より
+ */
+export interface ShutdownResult {
+  state: ShutdownState; // 🔵 最終状態
+  activeRequestsCompleted: number; // 🔵 完了したアクティブリクエスト数
+  forcedTerminations: number; // 🔵 強制終了したリクエスト数
+  shutdownDurationMs: number; // 🔵 シャットダウン所要時間（ms）
+  timedOut: boolean; // 🔵 タイムアウトしたかどうか（30秒）
+}
+
+/**
+ * 型ガード関数: DiagramType の実行時検証
+ * 🔵 信頼性: src/types/diagram.ts isDiagramType()・要件定義REQ-051 より
+ *
+ * 11種類の有効な DiagramType 値を検証する:
+ * flow, tree, timeline, matrix, cycle,
+ * flowchart, comparison, network, conceptmap, mindmap, general
+ */
+export function isDiagramType(value: unknown): value is DiagramType { // 🔵 src/types/diagram.ts より
+  return typeof value === 'string' && (
+    value === 'flow' || value === 'tree' || value === 'timeline' ||
+    value === 'matrix' || value === 'cycle' || value === 'flowchart' ||
+    value === 'comparison' || value === 'network' || value === 'conceptmap' ||
+    value === 'mindmap' || value === 'general'
+  );
 }

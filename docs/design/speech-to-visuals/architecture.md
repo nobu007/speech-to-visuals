@@ -1,7 +1,7 @@
 # speech-to-visuals アーキテクチャ設計
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-30（第13回更新: A49検証でコードベース250ファイルとの完全整合確認）
+**最終更新**: 2026-04-30（第14回更新: REQ-050/051 グレースフルシャットダウン・型ガード・11種図解タイプ反映）
 **関連要件定義**: [requirements.md](../../spec/speech-to-visuals/requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -17,7 +17,7 @@
 
 **信頼性**: 🔵 *要件定義書・SYSTEM_CORE.md・README.md より*
 
-音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
+音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
 **主要実績値**（Phase 42）:
 - エンドツーエンド処理時間: 25.2秒（1分音声、目標60秒以内）
@@ -133,6 +133,8 @@
 - **ユーザー主導エラー回復**: エラー発生時のユーザーガイダンス提供（11カテゴリのエラー分類、自動/手動回復戦略の選択、回復成功率追跡）🔵 *src/quality/user-guided-error-recovery.ts・要件定義REQ-037 より*
 - **エラー分類器**: 11種類のエラータイプ（FILE_FORMAT_INVALID/FILE_SIZE_EXCEEDED/LLM_API_ERROR/LLM_RATE_LIMITED/LLM_TIMEOUT/RENDERING_ERROR/RENDERING_OOM/NETWORK_ERROR/STORAGE_ERROR/QUALITY_GATE_FAILED/UNKNOWN）を4段階重大度（low/medium/high/critical）で分類、復旧可能性判定・推奨アクション生成・分類統計追跡 🔵 *src/quality/error-classifier.ts・要件定義REQ-040 より*
 - **品質ゲート評価器**: 5段階パイプライン（文字起こし→分析→レイアウト→レンダリング準備→レンダリング）の各ステージに対して品質ゲート評価、基準未達時のブロック・フォールバックアクション実行、5%以上の品質低下でリグレッション検出 🔵 *src/quality/quality-gate.ts・要件定義REQ-041 より*
+- **グレースフルシャットダウン**: シャットダウン要求時にアクティブリクエストの完了を最大30秒待機、ヘルスモニタリング停止・リクエストキュークリア・サーキットブレーカーリセットによる安全終了 🔵 *src/quality/enhanced-error-recovery.ts shutdown()・要件定義REQ-050 より*
+- **型ガード・型安全性**: DiagramType（11種類）の実行時検証を行う isDiagramType() 関数により、不正な図解タイプ値を検出・排除 🔵 *src/types/diagram.ts・要件定義REQ-051 より*
 
 ### プロダクション監視 🔵
 
@@ -433,8 +435,8 @@ Fallback LLM
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 100件 (97%)
-- 🟡 黄信号: 2件 (3%)
+- 🔵 青信号: 104件 (98%)
+- 🟡 黄信号: 2件 (2%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第13回更新: A49検証で完全整合確認）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第14回更新: REQ-050/051 グレースフルシャットダウン・型ガード反映）
