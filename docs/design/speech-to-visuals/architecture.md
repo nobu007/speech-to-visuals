@@ -1,7 +1,7 @@
 # speech-to-visuals アーキテクチャ設計
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-29（Phase 5 モジュール REQ-040~045 反映）
+**最終更新**: 2026-04-29（A41 設計検証反映）
 **関連要件定義**: [requirements.md](../../spec/speech-to-visuals/requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -273,12 +273,12 @@ graph TB
 │   ├── remotion/           # Remotion 動画コンポーネント（12ファイル: Animation/Scene/Renderer/SRT/Caption）🔵
 │   ├── test/               # テストユーティリティ
 │   ├── transcription/      # 音声認識（Whisper/Streaming/Browser）
-│   ├── types/              # TypeScript 型定義（7ファイル: diagram/workspace/api/llm/cache/quality/pipeline）🔵
+│   ├── types/              # TypeScript 型定義（9ファイル: diagram/workspace/api/api.index/llm/cache/quality/pipeline/index）🔵
 │   ├── utils/              # ユーティリティ
 │   └── visualization/      # 図解レイアウト（15+戦略、21ファイル）
 │       ├── base/           # ベース可視化コンポーネント 🔵
 │       ├── layout/         # レイアウト固有コード 🔵
-│       └── strategies/     # レイアウト戦略（21ファイル: コア5+新コア5+拡張+補助）🔵
+│       └── strategies/     # レイアウト戦略（20ファイル: コア5+新コア5+拡張+補助）🔵
 ├── supabase/
 │   ├── migrations/         # DB マイグレーション
 │   └── functions/          # Edge Functions（3関数）
