@@ -542,8 +542,49 @@ http://localhost:3001/api/v1
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 32件 (94%)
-- 🟡 黄信号: 2件 (6%)
+- 🔵 青信号: 38件 (95%)
+- 🟡 黄信号: 2件 (5%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 実装済みAPI仕様に基づいている（拡張モジュール REQ-036~037 反映済）
+**品質評価**: 高品質 - Phase 5 バッチ API・Edge Functions 共通基盤（REQ-043~045）反映済
+
+---
+
+## Phase 5 追加エンドポイント
+
+### DELETE /api/v1/batch/jobs/:jobId 🔵
+
+**信頼性**: 🔵 *src/api/routes/batch.ts・要件定義REQ-043 より*
+
+**関連要件**: REQ-043
+
+**説明**: バッチジョブのキャンセル（DELETE メソッド版）
+
+**パスパラメータ**:
+- `jobId`: ジョブID（UUID v4）
+
+**レスポンス（成功）**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "batch-job-uuid",
+    "status": "cancelled"
+  }
+}
+```
+
+**エラーコード**:
+- `JOB_NOT_FOUND`: ジョブが見つからない（HTTP 404）
+- `JOB_ALREADY_COMPLETED`: 完了済みジョブはキャンセル不可（HTTP 409）
+
+---
+
+### バッチ処理アーキテクチャ 🔵
+
+**信頼性**: 🔵 *src/api/routes/batch.ts・要件定義REQ-043 より*
+
+- **BatchJobManager**: インメモリジョブ管理（セマフォパターン）
+- **並列制御**: 最大3並列ジョブ、4件目以降はキューイング
+- **ジョブID**: UUID v4 による一意識別
+- **エラー分類**: BatchValidationError, TooManyFilesError, JobNotFoundError, JobAlreadyCompletedError

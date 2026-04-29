@@ -2,7 +2,7 @@
  * speech-to-visuals 型定義
  *
  * 作成日: 2026-04-27
- * 最終更新: 2026-04-29（Phase 4 反映）
+ * 最終更新: 2026-04-29（Phase 5 モジュール REQ-040~045 反映）
  * 関連設計: architecture.md
  *
  * 信頼性レベル:
@@ -368,11 +368,11 @@ export interface WorkspaceQuota {
 // 信頼性レベルサマリー
 // ========================================
 /**
- * - 🔵 青信号: 168件 (97%)
+ * - 🔵 青信号: 218件 (97%)
  * - 🟡 黄信号: 4件 (3%)
  * - 🔴 赤信号: 0件 (0%)
  *
- * 品質評価: 高品質（Phase 4 反映済）
+ * 品質評価: 高品質（Phase 5 モジュール REQ-040~045 反映済）
  */
 
 // ========================================
@@ -742,3 +742,220 @@ export interface AdaptiveResult {
   confidence: number; // 🔵 選択信頼度 (0.6-0.95)
   reasoning: string[]; // 🔵 選択理由
   expectedImprovement: number; // 🔵 期待改善率 (%)
+}
+
+// ========================================
+// Phase 5 エラー分類・品質ゲート・オーケストレーター型（REQ-040~042）
+// ========================================
+
+/**
+ * エラー分類タイプ（11種類）
+ * 🔵 信頼性: src/quality/error-classifier.ts・要件定義REQ-040 より
+ */
+export type ErrorType =
+  | 'FILE_FORMAT_INVALID' | 'FILE_SIZE_EXCEEDED'
+  | 'LLM_API_ERROR' | 'LLM_RATE_LIMITED' | 'LLM_TIMEOUT'
+  | 'RENDERING_ERROR' | 'RENDERING_OOM'
+  | 'NETWORK_ERROR' | 'STORAGE_ERROR'
+  | 'QUALITY_GATE_FAILED' | 'UNKNOWN'; // 🔵 11種類のエラータイプ
+
+/**
+ * エラー重大度（4段階）
+ * 🔵 信頼性: src/quality/error-classifier.ts・要件定義REQ-040 より
+ */
+export type ErrorSeverityLevel = 'low' | 'medium' | 'high' | 'critical'; // 🔵 4段階
+
+/**
+ * 分類済みエラー
+ * 🔵 信頼性: src/quality/error-classifier.ts・要件定義REQ-040 より
+ */
+export interface ClassifiedError {
+  type: ErrorType; // 🔵 エラータイプ
+  severity: ErrorSeverityLevel; // 🔵 重大度
+  stage: string; // 🔵 発生ステージ
+  originalError: Error; // 🔵 元のエラーオブジェクト
+  userMessage: string; // 🔵 ユーザー向けメッセージ
+  recoverable: boolean; // 🔵 復旧可能性
+  suggestedAction: string; // 🔵 推奨アクション
+}
+
+/**
+ * エラー分類コンテキスト
+ * 🔵 信頼性: src/quality/error-classifier.ts より
+ */
+export interface ClassifyContext {
+  stage?: string; // 🔵 発生ステージ名
+  operation?: string; // 🔵 実行中の操作
+  input?: unknown; // 🔵 入力データ
+  timestamp?: number; // 🔵 発生時刻
+}
+
+/**
+ * エラー分類統計
+ * 🔵 信頼性: src/quality/error-classifier.ts より
+ */
+export interface ClassificationStatistics {
+  total: number; // 🔵 総分類数
+  byType: Record<ErrorType, number>; // 🔵 タイプ別件数
+  bySeverity: Record<ErrorSeverityLevel, number>; // 🔵 重大度別件数
+  recoveryRate: number; // 🔵 復旧率
+}
+
+/**
+ * 品質ゲート基準
+ * 🔵 信頼性: src/quality/quality-gate.ts・要件定義REQ-041 より
+ */
+export interface QualityCriterion {
+  name: string; // 🔵 基準名
+  field: string; // 🔵 評価対象フィールド
+  operator: '>=' | '<=' | '==' | '!=' | '>' | '<'; // 🔵 比較演算子
+  threshold: number | string | boolean; // 🔵 閾値
+  unit?: string; // 🔵 単位
+}
+
+/**
+ * 品質ゲート設定
+ * 🔵 信頼性: src/quality/quality-gate.ts・要件定義REQ-041 より
+ */
+export interface QualityGateConfig {
+  stage: number; // 🔵 ステージ番号 (1-5)
+  name: string; // 🔵 ステージ名
+  criteria: QualityCriterion[]; // 🔵 品質基準リスト
+  blockingOnFailure: boolean; // 🔵 失敗時ブロック有無
+  fallbackAction?: 'retry' | 'skip' | 'abort'; // 🔵 フォールバックアクション
+}
+
+/**
+ * ステージ評価結果
+ * 🔵 信頼性: src/quality/quality-gate.ts より
+ */
+export interface StageEvaluationResult {
+  stage: number; // 🔵 ステージ番号
+  passed: boolean; // 🔵 通過判定
+  results: StageCriterionResult[]; // 🔵 基準別結果
+  blocking: boolean; // 🔵 ブロック判定
+  fallbackAction?: 'retry' | 'skip' | 'abort'; // 🔵 フォールバックアクション
+}
+
+/**
+ * 基準評価結果
+ * 🔵 信頼性: src/quality/quality-gate.ts より
+ */
+export interface StageCriterionResult {
+  criterion: string; // 🔵 基準名
+  passed: boolean; // 🔵 通過判定
+  actual: number | string | boolean; // 🔵 実測値
+  expected: number | string | boolean; // 🔵 期待値
+  unit?: string; // 🔵 単位
+}
+
+/**
+ * パイプライン進捗
+ * 🔵 信頼性: src/pipeline/pipeline-orchestrator.ts・要件定義REQ-042 より
+ */
+export interface PipelineProgress {
+  stage: number; // 🔵 ステージ番号 (1-5)
+  stageName: string; // 🔵 ステージ名
+  progress: number; // 🔵 進捗率 (0-100)
+  status: 'running' | 'completed' | 'failed' | 'fallback'; // 🔵 ステータス
+  message?: string; // 🔵 メッセージ
+}
+
+/**
+ * パイプラインオーケストレーター設定
+ * 🔵 信頼性: src/pipeline/pipeline-orchestrator.ts より
+ */
+export interface PipelineOrchestratorConfig {
+  maxRetries?: number; // 🔵 最大リトライ回数
+  timeout?: number; // 🔵 タイムアウト (ms)
+  enableQualityGates?: boolean; // 🔵 品質ゲート有効化
+  enableFallbacks?: boolean; // 🔵 フォールバック有効化
+  onProgress?: (progress: PipelineProgress) => void; // 🔵 進捗コールバック
+}
+
+/**
+ * パイプライン結果
+ * 🔵 信頼性: src/pipeline/pipeline-orchestrator.ts より
+ */
+export interface PipelineOrchestrationResult {
+  success: boolean; // 🔵 成功フラグ
+  videoUrl?: string; // 🔵 動画URL
+  qualityReport: StageEvaluationResult[]; // 🔵 品質レポート
+  metrics: QualityMetrics; // 🔵 品質メトリクス
+  errors: ClassifiedError[]; // 🔵 発生エラー一覧
+  totalDuration: number; // 🔵 総処理時間 (ms)
+}
+
+// ========================================
+// Phase 5 バッチ API・Edge Functions 型（REQ-043~045）
+// ========================================
+
+/**
+ * バッチジョブ状態
+ * 🔵 信頼性: src/api/routes/batch.ts・要件定義REQ-043 より
+ */
+export type JobState = 'queued' | 'processing' | 'completed' | 'failed' | 'cancelled'; // 🔵 5状態
+
+/**
+ * バッチジョブ進捗
+ * 🔵 信頼性: src/api/routes/batch.ts より
+ */
+export interface JobProgress {
+  totalFiles: number; // 🔵 総ファイル数
+  completedFiles: number; // 🔵 完了ファイル数
+  failedFiles: number; // 🔵 失敗ファイル数
+  currentFile?: string; // 🔵 現在処理中のファイル
+  stageProgress?: number; // 🔵 現在のステージ進捗 (0-100)
+  estimatedTimeRemaining?: number; // 🔵 推定残り時間 (秒)
+}
+
+/**
+ * バッチジョブステータス
+ * 🔵 信頼性: src/api/routes/batch.ts・要件定義REQ-043 より
+ */
+export interface BatchJobStatus {
+  jobId: string; // 🔵 UUID ジョブID
+  status: JobState; // 🔵 ジョブ状態
+  progress: JobProgress; // 🔵 進捗情報
+  startedAt?: string; // 🔵 開始日時
+  completedAt?: string; // 🔵 完了日時
+  preset?: string; // 🔵 品質プリセット
+  options?: Record<string, unknown>; // 🔵 オプション設定
+}
+
+/**
+ * Edge Function 認証結果
+ * 🔵 信頼性: supabase/functions/_shared/auth.ts・要件定義REQ-044 より
+ */
+export interface AuthResult {
+  userId: string; // 🔵 ユーザーID
+  email?: string; // 🔵 メールアドレス
+}
+
+/**
+ * Edge Function 認証エラー
+ * 🔵 信頼性: supabase/functions/_shared/auth.ts より
+ */
+export interface AuthError {
+  error: string; // 🔵 エラーメッセージ
+  code: string; // 🔵 エラーコード (AUTH_MISSING_HEADER/AUTH_MISSING_TOKEN/AUTH_TOKEN_EXPIRED/AUTH_INVALID_TOKEN/AUTH_USER_NOT_FOUND)
+  status: number; // 🔵 HTTP ステータスコード
+}
+
+/**
+ * Edge Function 統一エラーレスポンス
+ * 🔵 信頼性: supabase/functions/_shared/error-handler.ts・要件定義REQ-045 より
+ */
+export interface EdgeErrorResponse {
+  error: string; // 🔵 エラーメッセージ
+  code: string; // 🔵 エラーコード
+  details?: string; // 🔵 エラー詳細
+}
+
+/**
+ * タイムアウトコントローラー
+ * 🔵 信頼性: supabase/functions/_shared/error-handler.ts より
+ */
+export interface TimeoutController {
+  signal: AbortSignal; // 🔵 中断シグナル
+  clear(): void; // 🔵 タイムアウト解除

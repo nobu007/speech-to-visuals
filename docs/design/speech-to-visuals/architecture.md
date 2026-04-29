@@ -1,7 +1,7 @@
 # speech-to-visuals アーキテクチャ設計
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-29（Phase 4 + 拡張モジュール REQ-036~039 反映）
+**最終更新**: 2026-04-29（Phase 5 モジュール REQ-040~045 反映）
 **関連要件定義**: [requirements.md](../../spec/speech-to-visuals/requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -66,6 +66,7 @@
 - **API設計**: REST（バッチ処理API）+ Supabase Edge Functions
 - **ミドルウェア**: express-rate-limit（レート制限）、Helmet（セキュリティヘッダー）、CORS
 - **API構成**: src/api/middleware/（rate-limit, error-handler, auth）、src/api/routes/（ルート定義）🔵 *src/api/ より*
+- **バッチ処理API**: REST エンドポイント（POST /batch/jobs でジョブ作成→HTTP 202、GET /batch/jobs/:id でステータス取得、DELETE /batch/jobs/:id でキャンセル）、セマフォパターンで最大3並列ジョブ制御 🔵 *src/api/routes/batch.ts・要件定義REQ-043 より*
 
 ### AI・処理モジュール 🔵
 
@@ -85,6 +86,8 @@
 - **DBMS**: Supabase（PostgreSQL）
 - **ストレージ**: Supabase Storage（`audio` バケット）
 - **Edge Functions**: render-video, transcribe-audio, generate-scenes
+- **共有認証モジュール**: JWT ベースの共有認証（Bearer トークン抽出・検証・期限切れ検出）、全 Edge Function で共通利用 🔵 *supabase/functions/_shared/auth.ts・要件定義REQ-044 より*
+- **統一エラーハンドリング**: CORS ヘッダー管理・エラー分類・AbortController タイムアウト（デフォルト30秒）・必須フィールド検証 🔵 *supabase/functions/_shared/error-handler.ts・要件定義REQ-045 より*
 - **セキュリティ**: Row Level Security（RLS）
 
 ### 自動改善フレームワーク 🔵
@@ -107,6 +110,7 @@
 - **ImprovementDetector**: パイプライン結果から改善機会を自動検出 🔵 *src/pipeline/improvement-detector.ts より*
 - **VideoGenerator**: SimplePipeline → Remotion 統合による動画生成 🔵 *src/pipeline/video-generator.ts より*
 - **QualityMonitor**: ステージ別品質スコア追跡と品質ゲート判定 🔵 *src/pipeline/quality-monitor.ts より*
+- **PipelineOrchestrator**: 5段階パイプライン（文字起こし→内容分析→レイアウト生成→動画準備→動画レンダリング）の統合実行、各ステージでの品質ゲート評価とフォールバック戦略実行、進捗コールバック通知 🔵 *src/pipeline/pipeline-orchestrator.ts・要件定義REQ-042 より*
 
 ### エクスポートモジュール 🔵
 
@@ -126,6 +130,8 @@
 - **適応型品質ゲート**: コンテンツ複雑度に応じた動的な品質基準調整
 - **リグレッション検出**: >5%劣化でデプロイブロック、>2%でクリティカルアラート
 - **ユーザー主導エラー回復**: エラー発生時のユーザーガイダンス提供（11カテゴリのエラー分類、自動/手動回復戦略の選択、回復成功率追跡）🔵 *src/quality/user-guided-error-recovery.ts・要件定義REQ-037 より*
+- **エラー分類器**: 11種類のエラータイプ（FILE_FORMAT_INVALID/FILE_SIZE_EXCEEDED/LLM_API_ERROR/LLM_RATE_LIMITED/LLM_TIMEOUT/RENDERING_ERROR/RENDERING_OOM/NETWORK_ERROR/STORAGE_ERROR/QUALITY_GATE_FAILED/UNKNOWN）を4段階重大度（low/medium/high/critical）で分類、復旧可能性判定・推奨アクション生成・分類統計追跡 🔵 *src/quality/error-classifier.ts・要件定義REQ-040 より*
+- **品質ゲート評価器**: 5段階パイプライン（文字起こし→分析→レイアウト→レンダリング準備→レンダリング）の各ステージに対して品質ゲート評価、基準未達時のブロック・フォールバックアクション実行、5%以上の品質低下でリグレッション検出 🔵 *src/quality/quality-gate.ts・要件定義REQ-041 より*
 
 ### プロダクション監視 🔵
 
@@ -422,8 +428,8 @@ Fallback LLM
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 86件 (97%)
+- 🔵 青信号: 92件 (97%)
 - 🟡 黄信号: 2件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（Phase 4 + 拡張モジュール REQ-036~039 反映済）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（Phase 5 モジュール REQ-040~045 反映済）

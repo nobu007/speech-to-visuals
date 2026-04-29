@@ -654,6 +654,7 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - Phase 3 完了に伴う新規モジュール（Pipeline拡張, Export拡張, StrategyRegistry）の設計反映 🔵 *2026-04-29 追記*
 - Phase 4 完了に伴う新規モジュール（Remotion Animation, Renderer, SRT Parser, Pipeline UI）の設計反映 🔵 *2026-04-29 追記*
 - 拡張モジュール（Streaming, ErrorRecovery, ConfigValidation, ParameterTuning）の設計反映 🔵 *2026-04-29 拡張モジュール追記*
+- Phase 5 モジュール（ErrorClassifier, QualityGateEvaluator, PipelineOrchestrator, BatchAPI, SharedAuth, SharedErrorHandler）の設計反映 🔵 *2026-04-29 Phase 5 追記*
 
 ### 残課題
 
@@ -694,7 +695,13 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - 🟡 黄信号: 3 (±0)
 - 🔴 赤信号: 0 (±0)
 
-**変化なし**: 全6設計ファイルの再検証を実施。全要件（REQ-001~039）と全モジュール（241ファイル）のカバレッジ100%を確認。新規ギャップなし。
+**2026-04-29 Phase 5 モジュール更新（第7回更新）**:
+
+- 🔵 青信号: 196 (+34)
+- 🟡 黄信号: 3 (±0)
+- 🔴 赤信号: 0 (±0)
+
+**Phase 5 モジュール（REQ-040~045）反映完了**: エラー分類器・品質ゲート・パイプラインオーケストレーター・バッチAPI・共有認証・統一エラーハンドリングの6モジュール（計2,281行）の実装確認を完了し、全6設計ファイルに反映。
 
 ---
 
@@ -718,6 +725,143 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - 新規ギャップなし - 既存設計文書が現在の要件とコードベースに完全整合
 - 信頼性レベル分布に変化なし（全体: 🔵537件 (97%)、🟡15件 (3%)、🔴0件 (0%)）
 - Phase 5 統合テスト開始に向けた設計文書の完全性を確認
+
+---
+
+### A34: エラー分類システム（ErrorClassifier）の実装確認
+
+**分析日時**: 2026-04-29
+**カテゴリ**: 品質管理
+**背景**: 要件定義REQ-040で追加されたエラー分類器（src/quality/error-classifier.ts, 259行）の実装確認
+
+**判断**: ErrorClassifier は以下を実装:
+- 11種類のエラータイプ（FILE_FORMAT_INVALID/FILE_SIZE_EXCEEDED/LLM_API_ERROR/LLM_RATE_LIMITED/LLM_TIMEOUT/RENDERING_ERROR/RENDERING_OOM/NETWORK_ERROR/STORAGE_ERROR/QUALITY_GATE_FAILED/UNKNOWN）のパターンマッチング分類 🔵
+- 4段階の重大度（low/medium/high/critical）と復旧可能性の自動判定 🔵
+- ユーザー向けメッセージと推奨アクションの自動生成 🔵
+- 分類履歴追跡とバッチ分類サポート 🔵
+- ClassificationStatistics による統計集計 🔵
+
+**根拠**: src/quality/error-classifier.ts、要件定義REQ-040
+
+**信頼性への影響**:
+- architecture.md にエラー分類器セクションを追加（信頼性: 🔵）
+- dataflow.md にエラー分類フローを追加（信頼性: 🔵）
+- interfaces.ts に ErrorType, ErrorSeverityLevel, ClassifiedError, ClassifyContext, ClassificationStatistics 型を追加（信頼性: 🔵）
+
+---
+
+### A35: 5段階品質ゲート（QualityGateEvaluator）の実装確認
+
+**分析日時**: 2026-04-29
+**カテゴリ**: 品質管理
+**背景**: 要件定義REQ-041で追加された品質ゲート評価器（src/quality/quality-gate.ts, 603行）の実装確認
+
+**判断**: QualityGateEvaluator は以下を実装:
+- 5ステージ品質ゲート（文字起こし→分析→レイアウト→準備→レンダリング）🔵
+- 各ステージの基準評価（音声長≥1秒、エンティティ抽出率≥80%、オーバーラップ=0等）🔵
+- 基準未達時のブロック・フォールバックアクション（retry/skip/abort）実行 🔵
+- 5%以上の品質低下でリグレッション検出・ブロック 🔵
+- createDefaultQualityGates() ファクトリ関数による5段階デフォルト設定 🔵
+
+**根拠**: src/quality/quality-gate.ts、要件定義REQ-041
+
+**信頼性への影響**:
+- architecture.md の品質保証セクションに品質ゲート評価器を追加（信頼性: 🔵）
+- dataflow.md に品質ゲート評価フローを追加（信頼性: 🔵）
+- interfaces.ts に QualityCriterion, QualityGateConfig, StageEvaluationResult, StageCriterionResult 型を追加（信頼性: 🔵）
+
+---
+
+### A36: パイプラインオーケストレーター（PipelineOrchestrator）の実装確認
+
+**分析日時**: 2026-04-29
+**カテゴリ**: パイプライン
+**背景**: 要件定義REQ-042で追加されたパイプラインオーケストレーター（src/pipeline/pipeline-orchestrator.ts, 684行）の実装確認
+
+**判断**: PipelineOrchestrator は以下を実装:
+- 5段階パイプラインの統合実行（文字起こし→分析→レイアウト→準備→レンダリング）🔵
+- QualityGateEvaluator による各ステージでの品質ゲート評価 🔵
+- 3層フォールバックチェーン（プライマリ→フォールバック→ルールベース）🔵
+- PipelineProgress コールバックによる進捗通知 🔵
+- StreamingTranscriber（REQ-036）とSmartParameterTuner（REQ-039）の統合 🔵
+- ConfigSchema バリデーションによる起動時設定検証 🔵
+- ErrorClassifier によるエラー分類 🔵
+
+**根拠**: src/pipeline/pipeline-orchestrator.ts、要件定義REQ-042
+
+**信頼性への影響**:
+- architecture.md のパイプラインモジュールセクションに PipelineOrchestrator を追加（信頼性: 🔵）
+- dataflow.md にパイプラインオーケストレーションフローを追加（信頼性: 🔵）
+- interfaces.ts に PipelineProgress, PipelineOrchestratorConfig, PipelineOrchestrationResult 型を追加（信頼性: 🔵）
+
+---
+
+### A37: バッチ処理 REST API（BatchJobManager）の実装確認
+
+**分析日時**: 2026-04-29
+**カテゴリ**: バックエンド API
+**背景**: 要件定義REQ-043で追加されたバッチ処理 REST API（src/api/routes/batch.ts, 314行）の実装確認
+
+**判断**: createBatchRouter() は以下を実装:
+- POST /batch/jobs でジョブ作成 → HTTP 202 Accepted + UUID jobId 🔵
+- GET /batch/jobs/:jobId でステータス取得 → ジョブ状態・進捗・ファイル別状況 🔵
+- DELETE /batch/jobs/:jobId でキャンセル 🔵
+- BatchJobManager によるセマフォパターン最大3並列ジョブ制御 🔵
+- 4件目以降のジョブはキューイング 🔵
+- カスタムエラークラス（BatchValidationError, TooManyFilesError, JobNotFoundError, JobAlreadyCompletedError）🔵
+
+**根拠**: src/api/routes/batch.ts、要件定義REQ-043
+
+**信頼性への影響**:
+- architecture.md のバックエンドセクションにバッチ処理 API を追加（信頼性: 🔵）
+- api-endpoints.md に Phase 5 バッチ API エンドポイントを追加（信頼性: 🔵）
+- interfaces.ts に JobState, JobProgress, BatchJobStatus 型を追加（信頼性: 🔵）
+
+---
+
+### A38: Edge Functions 共有認証モジュール（auth.ts）の実装確認
+
+**分析日時**: 2026-04-29
+**カテゴリ**: 認証・セキュリティ
+**背景**: 要件定義REQ-044で追加された共有認証モジュール（supabase/functions/_shared/auth.ts, 120行）の実装確認
+
+**判断**: auth.ts は以下を実装:
+- extractToken(): Authorization ヘッダーから Bearer トークン抽出 🔵
+- validateToken(): Supabase auth クライアントで JWT 検証 🔵
+- authenticateRequest(): 抽出 + 検証の統合関数 🔵
+- エラーコード: AUTH_MISSING_HEADER, AUTH_MISSING_TOKEN, AUTH_TOKEN_EXPIRED, AUTH_INVALID_TOKEN, AUTH_USER_NOT_FOUND 🔵
+- Deno/Jest 両環境対応のテスタブル設計 🔵
+
+**根拠**: supabase/functions/_shared/auth.ts、要件定義REQ-044
+
+**信頼性への影響**:
+- architecture.md のデータベースセクションに共有認証モジュールを追加（信頼性: 🔵）
+- dataflow.md に Edge Functions 共通基盤フローを追加（信頼性: 🔵）
+- interfaces.ts に AuthResult, AuthError 型を追加（信頼性: 🔵）
+
+---
+
+### A39: Edge Functions 統一エラーハンドリング（error-handler.ts）の実装確認
+
+**分析日時**: 2026-04-29
+**カテゴリ**: エラーハンドリング
+**背景**: 要件定義REQ-045で追加された統一エラーハンドラー（supabase/functions/_shared/error-handler.ts, 301行）の実装確認
+
+**判断**: error-handler.ts は以下を実装:
+- CORS_HEADERS 定数 + withCors()/corsResponse()/optionsResponse() 🔵
+- classifyError(): AuthError/TimeoutError/ValidationError の型ガード分類 🔵
+- errorResponse(): 統一エラーレスポンス生成（CORS ヘッダー付き）🔵
+- createTimeout(): AbortController ベースのタイムアウト（デフォルト30秒）🔵
+- fetchWithTimeout(): タイムアウト付き fetch ラッパー 🔵
+- validateRequired(): 必須フィールド検証 🔵
+- 11種のエラーコード（AUTH_* / VALIDATION_ERROR / TIMEOUT_ERROR / INTERNAL_ERROR / EXTERNAL_API_ERROR）🔵
+
+**根拠**: supabase/functions/_shared/error-handler.ts、要件定義REQ-045
+
+**信頼性への影響**:
+- architecture.md のデータベースセクションに統一エラーハンドリングを追加（信頼性: 🔵）
+- dataflow.md に Edge Functions 共通基盤フローを追加（信頼性: 🔵）
+- interfaces.ts に EdgeErrorResponse, TimeoutController 型を追加（信頼性: 🔵）
 
 ---
 

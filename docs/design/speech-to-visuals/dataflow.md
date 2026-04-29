@@ -1,7 +1,7 @@
 # speech-to-visuals データフロー図
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-29（Phase 4 + 拡張モジュール REQ-036~039 反映）
+**最終更新**: 2026-04-29（Phase 5 モジュール REQ-040~045 反映）
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](../../spec/speech-to-visuals/requirements.md)
 
@@ -520,6 +520,202 @@ flowchart TD
 | Quality | medium | 1080p | 30 | zero_overlap | 有効 |
 | Custom | ユーザー指定 | ユーザー指定 | ユーザー指定 | ユーザー指定 | ユーザー指定 |
 
+## パイプラインオーケストレーションフロー 🔵
+
+**信頼性**: 🔵 *src/pipeline/pipeline-orchestrator.ts・要件定義REQ-042 より*
+
+**関連要件**: REQ-040, REQ-041, REQ-042
+
+```mermaid
+sequenceDiagram
+    participant User as ユーザー/クライアント
+    participant PO as PipelineOrchestrator
+    participant QG as QualityGateEvaluator
+    participant EC as ErrorClassifier
+    participant FB as FallbackStrategy
+
+    User->>PO: 音声ファイル + オプション設定
+    PO->>PO: validateInput() 入力バリデーション
+    PO->>PO: ConfigSchema バリデーション
+
+    rect rgb(230, 245, 255)
+    Note over PO: Stage 1: 文字起こし
+    PO->>PO: executeStage(1, transcribe)
+    PO->>QG: evaluate(1, transcriptionResult)
+    QG->>QG: 音声長≥1秒 / サンプリングレート≥16kHz / ノイズ<-30dB
+    alt 品質ゲート通過
+        QG-->>PO: PASS
+    else 品質ゲート失敗
+        QG-->>PO: FAIL + fallbackAction
+        PO->>FB: execute(stage1, error)
+        FB-->>PO: フォールバック結果
+    end
+    PO-->>User: 進捗コールバック (stage=1, progress)
+    end
+
+    rect rgb(230, 255, 230)
+    Note over PO: Stage 2: 内容分析
+    PO->>PO: executeStage(2, analyze)
+    PO->>QG: evaluate(2, analysisResult)
+    QG->>QG: エンティティ抽出率≥80% / 関係性完全性≥70% / スキーマ適合率=100%
+    alt 品質ゲート通過
+        QG-->>PO: PASS
+    else 品質ゲート失敗
+        PO->>FB: フォールバック実行
+    end
+    PO-->>User: 進捗コールバック (stage=2, progress)
+    end
+
+    rect rgb(255, 255, 230)
+    Note over PO: Stage 3: レイアウト生成
+    PO->>PO: executeStage(3, layout)
+    PO->>QG: evaluate(3, layoutResult)
+    QG->>QG: オーバーラップ=0 / タイムライン連続性=1.0 / セグメント正規化=1.0
+    PO-->>User: 進捗コールバック (stage=3, progress)
+    end
+
+    rect rgb(255, 230, 230)
+    Note over PO: Stage 4-5: 動画準備 → レンダリング
+    PO->>PO: executeStage(4, prepare)
+    PO->>QG: evaluate(4, preparationResult)
+    QG->>QG: キャプション同期≤50ms / レイアウト一貫性≥0.9
+    PO->>PO: executeStage(5, render)
+    PO->>QG: evaluate(5, renderResult)
+    QG->>QG: 解像度高さ≥720p / FPS=30 / 音声同期≤50ms
+    PO-->>User: 進捗コールバック (stage=5, progress)
+    end
+
+    PO->>EC: 分類（エラー発生時のみ）
+    EC-->>PO: ClassifiedError（タイプ・重大度・復旧可能性）
+
+    PO-->>User: PipelineResult（動画URL + 品質レポート + メトリクス）
+```
+
+**パイプラインオーケストレーター構成** 🔵:
+- 5段階パイプラインの統合実行（文字起こし→分析→レイアウト→準備→レンダリング）
+- 各ステージでの品質ゲート評価（QualityGateEvaluator）
+- 品質ゲート失敗時のフォールバック戦略（3層チェーン）
+- 進捗コールバック（各ステージの progress 0-100%）
+- ErrorClassifier による構造化エラー分類
+- StreamingTranscriber（REQ-036）とSmartParameterTuner（REQ-039）の統合
+
+### 品質ゲート評価フロー 🔵
+
+**信頼性**: 🔵 *src/quality/quality-gate.ts・要件定義REQ-041 より*
+
+**関連要件**: REQ-041
+
+```mermaid
+flowchart TD
+    A[ステージ完了] --> B[QualityGateEvaluator.evaluate]
+    B --> C[StageQualityGate.evaluate]
+    C --> D{全基準 pass?}
+    D -->|Yes| E[品質ゲート通過]
+    D -->|No| F{blockingOnFailure?}
+    F -->|Yes| G[ブロック + fallbackAction 実行]
+    F -->|No| H[警告付き通過]
+    G --> I{fallbackAction}
+    I -->|retry| J[ステージ再実行]
+    I -->|skip| K[スキップして次ステージ]
+    I -->|abort| L[パイプライン中止]
+    E --> M[リグレッション検出]
+    M --> N{品質低下 > 5%?}
+    N -->|Yes| O[リグレッションとしてブロック]
+    N -->|No| P[次ステージへ]
+    J --> A
+    K --> P
+```
+
+**5段階品質ゲート基準** 🔵:
+| ステージ | 基準 | 閾値 |
+|---------|------|------|
+| 1（文字起こし） | audioDuration, sampleRate, noiseLevel | ≥1秒, ≥16kHz, <-30dB |
+| 2（分析） | entityExtractionRate, relationCompleteness, schemaConformance | ≥80%, ≥70%, =100% |
+| 3（レイアウト） | zeroOverlap, timelineContinuity, segmentNormalization | =0, =1.0, =1.0 |
+| 4（準備） | captionSync, layoutConsistency | ≤50ms, ≥0.9 |
+| 5（レンダリング） | resolution, fps, audioSync | ≥720p, =30, ≤50ms |
+
+### エラー分類フロー 🔵
+
+**信頼性**: 🔵 *src/quality/error-classifier.ts・要件定義REQ-040 より*
+
+**関連要件**: REQ-040
+
+```mermaid
+flowchart TD
+    A[エラー発生] --> B[ErrorClassifier.classify]
+    B --> C[パターンマッチング]
+    C --> D{エラータイプ特定}
+    D --> E[11種類のいずれかに分類]
+    E --> F[重大度判定: low/medium/high/critical]
+    F --> G[復旧可能性判定: recoverable]
+    G --> H[ユーザー向けメッセージ生成]
+    H --> I[推奨アクション提示]
+    I --> J[ClassifiedError 返却]
+    J --> K[分類統計に記録]
+```
+
+**エラータイプ一覧** 🔵:
+| エラータイプ | 重大度 | 復旧可能 | 対象ステージ |
+|------------|--------|---------|------------|
+| FILE_FORMAT_INVALID | medium | false | transcription |
+| FILE_SIZE_EXCEEDED | medium | false | transcription |
+| LLM_API_ERROR | high | true | analysis |
+| LLM_RATE_LIMITED | high | true | analysis |
+| LLM_TIMEOUT | high | true | analysis |
+| RENDERING_ERROR | high | true | rendering |
+| RENDERING_OOM | critical | true | rendering |
+| NETWORK_ERROR | medium | true | all |
+| STORAGE_ERROR | high | true | all |
+| QUALITY_GATE_FAILED | medium | true | quality |
+| UNKNOWN | low | false | all |
+
+### Edge Functions 共通基盤フロー 🔵
+
+**信頼性**: 🔵 *supabase/functions/_shared/auth.ts・_shared/error-handler.ts・要件定義REQ-044~045 より*
+
+**関連要件**: REQ-044, REQ-045
+
+```mermaid
+sequenceDiagram
+    participant Client as クライアント
+    participant EF as Edge Function
+    participant Auth as _shared/auth.ts
+    participant EH as _shared/error-handler.ts
+
+    Client->>EF: HTTP Request + Authorization Header
+    EF->>Auth: authenticateRequest(req, supabaseClient)
+    Auth->>Auth: extractToken() Bearer抽出
+    alt トークンなし
+        Auth-->>EH: AUTH_MISSING_HEADER (401)
+    else トークン期限切れ
+        Auth-->>EH: AUTH_TOKEN_EXPIRED (401)
+    else 無効トークン
+        Auth-->>EH: AUTH_INVALID_TOKEN (401)
+    else 有効トークン
+        Auth-->>EF: AuthResult {userId, email}
+    end
+
+    EF->>EF: ビジネスロジック実行
+    EF->>EH: validateRequired(body, requiredFields)
+    alt 必須フィールド欠落
+        EH-->>Client: VALIDATION_ERROR (400) + CORS
+    end
+
+    EF->>EH: fetchWithTimeout(url, options, 30000)
+    alt タイムアウト
+        EH-->>Client: TIMEOUT_ERROR (504) + CORS
+    else 成功
+        EH-->>Client: JSON Response + CORS Headers
+    end
+
+    Note over EH: 全レスポンスに CORS_HEADERS を付与
+```
+
+**共通基盤機能** 🔵:
+- **認証（auth.ts）**: JWT抽出・検証・期限切れ検出・ユーザー情報返却
+- **エラーハンドリング（error-handler.ts）**: CORS ヘッダー管理・エラー分類（AuthError/TimeoutError/ValidationError）・AbortController タイムアウト（デフォルト30秒）・必須フィールド検証
+
 ## 関連文書
 
 - **アーキテクチャ**: [architecture.md](architecture.md)
@@ -530,8 +726,8 @@ flowchart TD
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 65件 (98%)
-- 🟡 黄信号: 1件 (2%)
+- 🔵 青信号: 82件 (99%)
+- 🟡 黄信号: 1件 (1%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - Phase 4 + 拡張モジュール（ストリーミング/エラー回復/設定検証/パラメータチューニング）フローを反映
+**品質評価**: 高品質 - Phase 5 モジュール（エラー分類・品質ゲート・オーケストレーター・バッチAPI・共有認証・統一エラー処理）フローを反映
