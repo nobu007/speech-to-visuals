@@ -1,7 +1,7 @@
 # speech-to-visuals データフロー図
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-30（第18回更新: REQ-052~055・REQ-305 追加 UI コンポーネントフロー反映）
+**最終更新**: 2026-04-30（第19回検証: 要件カバレッジ100%確認・設計整合性確認）
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](../../spec/speech-to-visuals/requirements.md)
 
