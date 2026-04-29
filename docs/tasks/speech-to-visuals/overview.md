@@ -1,7 +1,7 @@
 # speech-to-visuals タスク概要
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-29（REQ-036~039 拡張モジュール対応）
+**最終更新**: 2026-04-29（REQ-040~045 Phase 5 モジュール要件参照追加）
 **プロジェクト期間**: 2026-04-27 - 2026-09-26（153日）
 **推定工数**: 484時間
 **総タスク数**: 52件
@@ -49,6 +49,19 @@ Phase 1-4で実装済みの拡張モジュール（REQ-036~039）は、Phase 5�
 | REQ-037 | UserGuidedErrorRecovery | TASK-0045, TASK-0047, TASK-0049 | ユーザー主導エラー回復・11カテゴリ分類・WebSocketイベント |
 | REQ-038 | ConfigSchema (Zod) | TASK-0043, TASK-0049 | 設定バリデーション統合・起動時検証テスト |
 | REQ-039 | SmartParameterTuner | TASK-0043, TASK-0049, TASK-0052 | パラメータ自動チューニング・性能測定 |
+
+## REQ-040~045 Phase 5 モジュール対応状況
+
+Phase 5 で追加された要件（REQ-040~045）に対応するタスクへの参照：
+
+| 要件 | モジュール | 対応タスク | 内容 |
+|------|-----------|-----------|------|
+| REQ-040 | ErrorClassifier | TASK-0045, TASK-0049 | 11種類エラー分類・4段階重大度・復旧可能性判定 |
+| REQ-041 | QualityGate (5段階) | TASK-0044, TASK-0049 | 5ステージ品質ゲート評価・基準未達ブロック |
+| REQ-042 | PipelineOrchestrator | TASK-0043, TASK-0049 | 5段階パイプライン統合実行・品質ゲート・フォールバック統合 |
+| REQ-043 | Batch REST API | TASK-0046, TASK-0050 | POST/GET/DELETE バッチジョブ・セマフォ3並列制御 |
+| REQ-044 | Edge Functions Auth | TASK-0048 | JWT Bearer 認証・トークン検証・期限切れ検出 |
+| REQ-045 | Edge Functions Error Handler | TASK-0048 | CORS・エラー分類・AbortController タイムアウト |
 
 ## マイルストーン
 
@@ -193,8 +206,8 @@ TASK-0036, TASK-0035 → TASK-0039, TASK-0041
 ## Phase 5: 統合・テスト
 
 **期間**: 2026-07-27 ~ 2026-08-22
-**目標**: パイプライン統合・API統合・E2Eテスト・パフォーマンス最適化（REQ-036~039 拡張モジュール統合含む）
-**成果物**: Pipeline Orchestrator, バッチAPI, Edge Functions, 統合テスト, パフォーマンス検証
+**目標**: パイプライン統合・API統合・E2Eテスト・パフォーマンス最適化（REQ-036~039 拡張モジュール + REQ-040~045 Phase 5モジュール統合含む）
+**成果物**: Pipeline Orchestrator (REQ-042), QualityGate (REQ-041), ErrorClassifier (REQ-040), Batch API (REQ-043), Edge Functions Auth+Error (REQ-044/045), 統合テスト, パフォーマンス検証
 
 ### タスク一覧
 
