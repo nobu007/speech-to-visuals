@@ -1,7 +1,7 @@
 # speech-to-visuals データフロー図
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-30（第15回更新: 第15回設計検証・全ファイル整合性確認）
+**最終更新**: 2026-04-30（第16回更新: 第16回設計検証・変更なし確認）
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](../../spec/speech-to-visuals/requirements.md)
 

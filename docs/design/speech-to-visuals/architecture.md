@@ -1,7 +1,7 @@
 # speech-to-visuals アーキテクチャ設計
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-30（第15回更新: 第15回設計検証・全ファイル整合性確認）
+**最終更新**: 2026-04-30（第16回更新: visualization ファイル数修正 21→39）
 **関連要件定義**: [requirements.md](../../spec/speech-to-visuals/requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -195,7 +195,7 @@ Phase 4 で実装されたパイプラインUI:
 
 ### 可視化戦略 🔵
 
-**信頼性**: 🔵 *src/visualization/strategies/（21ファイル）・ZERO_OVERLAP_DESIGN.md より*
+**信頼性**: 🔵 *src/visualization/strategies/（20ファイル）+ base/ + layout/（計39ファイル）・ZERO_OVERLAP_DESIGN.md より*
 
 **コア5戦略**（Phase 3 実装）:
 - FlowStrategy, TreeStrategy, TimelineStrategy, MatrixStrategy, CycleStrategy
@@ -282,7 +282,7 @@ graph TB
 │   ├── transcription/      # 音声認識（10ファイル: Whisper/Streaming/Browser）🔵
 │   ├── types/              # TypeScript 型定義（15ファイル: diagram/workspace/api/llm/cache/quality/pipeline等）🔵
 │   ├── utils/              # ユーティリティ
-│   └── visualization/      # 図解レイアウト（15+戦略、21ファイル）
+│   └── visualization/      # 図解レイアウト（20+戦略、39ファイル）
 │       ├── base/           # ベース可視化コンポーネント 🔵
 │       ├── layout/         # レイアウト固有コード 🔵
 │       └── strategies/     # レイアウト戦略（20ファイル: コア5+新コア5+拡張+補助）🔵
