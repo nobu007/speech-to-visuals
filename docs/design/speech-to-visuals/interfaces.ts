@@ -575,3 +575,170 @@ export interface PipelineResult {
   metrics: QualityMetrics; // 🔵 品質メトリクス
   videoUrl?: string; // 🔵 生成動画URL
 }
+
+// ========================================
+// 拡張モジュール型（REQ-036~039）
+// ========================================
+
+/**
+ * ストリーミング文字起こし設定
+ * 🔵 信頼性: src/transcription/streaming-transcriber.ts・要件定義REQ-036 より
+ */
+export interface StreamingTranscriptionConfig {
+  chunkSizeMs?: number; // 🔵 チャンクサイズ（デフォルト: 3000ms）
+  overlapMs?: number; // 🔵 チャンク間オーバーラップ（デフォルト: 500ms）
+  minConfidence?: number; // 🔵 最小信頼度閾値（デフォルト: 0.7）
+  enableLiveUpdate?: boolean; // 🔵 リアルタイムUI更新（デフォルト: true）
+}
+
+/**
+ * ストリーミング進捗
+ * 🔵 信頼性: src/transcription/streaming-transcriber.ts より
+ */
+export interface StreamingProgress {
+  processedDuration: number; // 🔵 処理済み時間（ms）
+  totalDuration: number; // 🔵 総時間（ms）
+  currentSegment: string; // 🔵 現在のセグメントテキスト
+  segmentCount: number; // 🔵 処理済みセグメント数
+  averageConfidence: number; // 🔵 平均信頼度スコア
+}
+
+/**
+ * エラーカテゴリ
+ * 🔵 信頼性: src/quality/user-guided-error-recovery.ts・要件定義REQ-037 より
+ */
+export type ErrorCategory =
+  | 'file_format' | 'file_size' | 'transcription'
+  | 'analysis' | 'layout' | 'rendering'
+  | 'api' | 'network' | 'memory' | 'timeout' | 'unknown'; // 🔵 11カテゴリ
+
+/**
+ * エラー深刻度
+ * 🔵 信頼性: src/quality/user-guided-error-recovery.ts より
+ */
+export type ErrorSeverity = 'low' | 'medium' | 'high' | 'critical'; // 🔵 4段階
+
+/**
+ * 回復戦略
+ * 🔵 信頼性: src/quality/user-guided-error-recovery.ts より
+ */
+export interface RecoveryStrategy {
+  id: string; // 🔵 戦略ID
+  name: string; // 🔵 戦略名
+  description: string; // 🔵 戦略説明
+  automated: boolean; // 🔵 自動回復可能フラグ
+  steps: string[]; // 🔵 手動回復ステップ
+  estimatedTime: number; // 🔵 推定所要時間（秒）
+  successRate: number; // 🔵 成功率（0-1）
+}
+
+/**
+ * エラーガイダンス
+ * 🔵 信頼性: src/quality/user-guided-error-recovery.ts より
+ */
+export interface ErrorGuidance {
+  category: ErrorCategory; // 🔵 エラーカテゴリ
+  severity: ErrorSeverity; // 🔵 深刻度
+  userMessage: string; // 🔵 ユーザー向けメッセージ
+  technicalDetails: string; // 🔵 技術的詳細
+  recoveryStrategies: RecoveryStrategy[]; // 🔵 回復戦略一覧
+  preventionTips: string[]; // 🔵 予防ティップス
+  documentationLinks: string[]; // 🔵 関連ドキュメントリンク
+}
+
+/**
+ * 設定バリデーションエラー
+ * 🔵 信頼性: src/config/validate.ts・要件定義REQ-038 より
+ */
+export interface ConfigValidationError {
+  field: string; // 🔵 フィールド名
+  message: string; // 🔵 エラーメッセージ
+}
+
+/**
+ * 設定スキーマ
+ * 🔵 信頼性: src/config/schema.ts・要件定義REQ-038 より
+ */
+export interface ConfigSchema {
+  googleApiKey: string; // 🔵 Google API キー（必須）
+  supabaseUrl: string; // 🔵 Supabase URL（必須）
+  supabaseAnonKey: string; // 🔵 Supabase Anon Key（必須）
+  analysisDisableGemini: boolean; // 🔵 Gemini分析無効フラグ
+  geminiModelOverride?: string; // 🔵 カスタムモデル指定
+  complexityThreshold: number; // 🔵 複雑度閾値 (0-1)
+  cacheSize: number; // 🔵 キャッシュサイズ (1-10000)
+  cacheTtlMinutes: number; // 🔵 キャッシュTTL (1-10080分)
+  similarityThreshold: number; // 🔵 類似度閾値 (0-1)
+  port: number; // 🔵 ポート番号 (1024-65535)
+  nodeEnv: 'development' | 'production' | 'test'; // 🔵 環境
+}
+
+/**
+ * コンテンツ特性分析結果
+ * 🔵 信頼性: src/optimization/smart-parameter-tuner.ts・要件定義REQ-039 より
+ */
+export interface ContentCharacteristics {
+  speechRate: number; // 🔵 語速（WPM）
+  complexity: 'low' | 'medium' | 'high'; // 🔵 コンテンツ複雑度
+  domain: 'technical' | 'business' | 'educational' | 'general'; // 🔵 ドメイン分類
+  audioQuality: number; // 🔵 音質スコア (0-1)
+  keywordDensity: number; // 🔵 キーワード密度
+  diagramLikelihood: number; // 🔵 図解可能性 (0-1)
+}
+
+/**
+ * 最適化パラメータセット
+ * 🔵 信頼性: src/optimization/smart-parameter-tuner.ts より
+ */
+export interface ParameterSet {
+  confidenceThreshold: number; // 🔵 信頼度閾値
+  segmentMinLength: number; // 🔵 セグメント最小長
+  segmentMaxLength: number; // 🔵 セグメント最大長
+  keywordWeights: Record<string, number>; // 🔵 キーワード重み
+  layoutDensity: number; // 🔵 レイアウト密度
+  processingMode: 'fast' | 'balanced' | 'accurate'; // 🔵 処理モード
+}
+
+/**
+ * 最適化結果
+ * 🔵 信頼性: src/optimization/smart-parameter-tuner.ts より
+ */
+export interface OptimizationResult {
+  parameters: ParameterSet; // 🔵 最適化パラメータ
+  expectedAccuracy: number; // 🔵 期待精度
+  expectedSpeed: number; // 🔵 期待速度
+  expectedReliability: number; // 🔵 期待信頼性
+  confidence: number; // 🔵 最適化の信頼度
+}
+
+/**
+ * 処理戦略設定
+ * 🔵 信頼性: src/optimization/adaptive-content-processor.ts より
+ */
+export interface ProcessingStrategy {
+  transcriptionConfig: {
+    model: 'base' | 'small' | 'medium' | 'large'; // 🔵 Whisperモデル
+    combineWindow: number; // 🔵 結合ウィンドウ
+    retryCount: number; // 🔵 リトライ回数
+  };
+  analysisConfig: {
+    segmentationMode: 'fixed' | 'adaptive'; // 🔵 セグメンテーションモード
+    diagramDetectionSensitivity: number; // 🔵 図解検出感度
+    complexityThreshold: number; // 🔵 複雑度閾値
+  };
+  layoutConfig: {
+    algorithm: 'dagre' | 'force' | 'hierarchical'; // 🔵 レイアウトアルゴリズム
+    spacing: number; // 🔵 ノード間隔
+    iterations: number; // 🔵 反復回数
+  };
+}
+
+/**
+ * 適応処理結果
+ * 🔵 信頼性: src/optimization/adaptive-content-processor.ts より
+ */
+export interface AdaptiveResult {
+  strategy: ProcessingStrategy; // 🔵 選択された戦略
+  confidence: number; // 🔵 選択信頼度 (0.6-0.95)
+  reasoning: string[]; // 🔵 選択理由
+  expectedImprovement: number; // 🔵 期待改善率 (%)

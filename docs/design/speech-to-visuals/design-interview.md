@@ -3,6 +3,7 @@
 **作成日**: 2026-04-27
 **最終更新**: 2026-04-29
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
+**最終更新**: 2026-04-29（拡張モジュール REQ-036~039 反映）
 
 ## 分析目的
 
@@ -532,6 +533,96 @@ interfaces.ts には既にこれらの主要型が反映済み。
 
 ---
 
+### A29: ストリーミング文字起こしモジュールの実装確認
+
+**分析日時**: 2026-04-29
+**カテゴリ**: 処理モジュール
+**背景**: 要件定義REQ-036で追加されたストリーミング文字起こし機能の実装確認
+
+**判断**: src/transcription/streaming-transcriber.ts は以下を実装:
+- StreamingTranscriber クラスによるチャンク単位の逐次音声処理 🔵
+- チャンクサイズ3秒・オーバーラップ500msのデフォルト設定 🔵
+- 信頼度閾値0.7による品質フィルタリング 🔵
+- onProgress/onSegment コールバックによるリアルタイムUI更新 🔵
+- 個別チャンク失敗時の継続処理（全体停止なし）🔵
+- Web Speech API サポート検証（validateStreamingSupport）🔵
+
+**根拠**: src/transcription/streaming-transcriber.ts、要件定義REQ-036
+
+**信頼性への影響**:
+- REQ-036 の信頼性を 🔵（青信号）に設定
+- dataflow.md にストリーミングデータフロー追加
+
+---
+
+### A30: ユーザー主導エラー回復モジュールの実装確認
+
+**分析日時**: 2026-04-29
+**カテゴリ**: 品質保証
+**背景**: 要件定義REQ-037で追加された対話型エラー回復機能の実装確認
+
+**判断**: src/quality/user-guided-error-recovery.ts は以下を実装:
+- 11カテゴリのエラー分類（file_format, file_size, transcription, analysis, layout, rendering, api, network, memory, timeout, unknown）🔵
+- 4段階の深刻度評価（low/medium/high/critical）🔵
+- RecoveryStrategy に基づく自動/手動回復（成功率順ソート）🔵
+- ErrorGuidance による包括的エラー情報（ユーザーメッセージ・技術詳細・予防ティップス・ドキュメントリンク）🔵
+- エラー統計追跡（カテゴリ別・回復率・最多エラー）🔵
+- シングルトンパターンによる全体統一エラー管理 🔵
+
+**根拠**: src/quality/user-guided-error-recovery.ts、要件定義REQ-037
+
+**信頼性への影響**:
+- REQ-037 の信頼性を 🔵（青信号）に設定
+- architecture.md の品質保証セクションを拡張
+- dataflow.md にユーザー主導エラー回復フロー追加
+
+---
+
+### A31: 設定バリデーションモジュールの実装確認
+
+**分析日時**: 2026-04-29
+**カテゴリ**: インフラストラクチャ
+**背景**: 要件定義REQ-038で追加されたZod起動時バリデーションの実装確認
+
+**判断**: src/config/ は以下を実装:
+- ConfigSchema（src/config/schema.ts）による型安全な設定定義 🔵
+- googleApiKey, supabaseUrl, supabaseAnonKey の必須検証 🔵
+- URL形式検証、数値範囲検証、列挙型検証 🔵
+- 全エラー一括返却（最初のエラーで停止しない）🔵
+- 不正設定時の即座エラー終了 🔵
+
+**根拠**: src/config/validate.ts、src/config/schema.ts、要件定義REQ-038
+
+**信頼性への影響**:
+- REQ-038 の信頼性を 🔵（青信号）に設定
+- architecture.md に設定バリデーションセクション追加
+- dataflow.md に設定バリデーションフロー追加
+
+---
+
+### A32: スマートパラメータチューニング・適応型処理の実装確認
+
+**分析日時**: 2026-04-29
+**カテゴリ**: 最適化
+**背景**: 要件定義REQ-039で追加されたパラメータ自動チューニングの実装確認
+
+**判断**: src/optimization/ は以下を実装:
+- SmartParameterTuner: 音声特性分析（語速・複雑度・ドメイン・音質・キーワード密度）に基づくパラメータ最適化 🔵
+- 履歴学習システム（learningRate=0.1、accuracy>0.8&&reliability>0.9の条件付き保存）🔵
+- AdaptiveContentProcessor: fast/balanced/accurate の3戦略自動選択 🔵
+- 指紋ベース戦略キャッシュによる再利用最適化 🔵
+- 音質悪化時の大モデル自動選択・高速語速時の短窓設定 🔵
+- 処理結果に基づくパラメータフィードバック更新 🔵
+
+**根拠**: src/optimization/smart-parameter-tuner.ts、src/optimization/adaptive-content-processor.ts、要件定義REQ-039
+
+**信頼性への影響**:
+- REQ-039 の信頼性を 🔵（青信号）に設定
+- architecture.md の最適化セクションを拡張
+- interfaces.ts にチューニング関連型追加
+
+---
+
 ## 分析結果サマリー
 
 ### 確認できた事項
@@ -549,6 +640,10 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - パイプラインモジュール（9ファイル）が拡張済み（FrameworkIntegratedPipeline, AdaptiveQualityPresets, VideoGenerator等追加）🔵 *2026-04-29 追記*
 - エクスポートモジュール（4ファイル）が拡張済み（EnhancedExportEngine, ExportPanel UI追加）🔵 *2026-04-29 追記*
 - StrategyRegistry パターンによるレイアウト戦略の構造化管理が導入済み 🔵 *2026-04-29 追記*
+- ストリーミング文字起こし（StreamingTranscriber）が実装済み 🔵 *2026-04-29 拡張モジュール追記*
+- ユーザー主導エラー回復（UserGuidedErrorRecovery）が実装済み 🔵 *2026-04-29 拡張モジュール追記*
+- Zod設定バリデーション（ConfigSchema + validateConfig）が実装済み 🔵 *2026-04-29 拡張モジュール追記*
+- スマートパラメータチューニング + 適応型コンテンツ処理が実装済み 🔵 *2026-04-29 拡張モジュール追記*
 
 ### 設計方針の決定事項
 
@@ -558,6 +653,7 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - 追加モジュール（framework, quality, monitoring, optimization）を architecture.md に追記
 - Phase 3 完了に伴う新規モジュール（Pipeline拡張, Export拡張, StrategyRegistry）の設計反映 🔵 *2026-04-29 追記*
 - Phase 4 完了に伴う新規モジュール（Remotion Animation, Renderer, SRT Parser, Pipeline UI）の設計反映 🔵 *2026-04-29 追記*
+- 拡張モジュール（Streaming, ErrorRecovery, ConfigValidation, ParameterTuning）の設計反映 🔵 *2026-04-29 拡張モジュール追記*
 
 ### 残課題
 
@@ -583,6 +679,12 @@ interfaces.ts には既にこれらの主要型が反映済み。
 **2026-04-29 更新後**:
 
 - 🔵 青信号: 128 (+30)
+- 🟡 黄信号: 3 (±0)
+- 🔴 赤信号: 0 (±0)
+
+**2026-04-29 拡張モジュール更新後**:
+
+- 🔵 青信号: 162 (+34)
 - 🟡 黄信号: 3 (±0)
 - 🔴 赤信号: 0 (±0)
 

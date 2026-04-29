@@ -1,7 +1,7 @@
 # speech-to-visuals データフロー図
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-29（Phase 4 反映）
+**最終更新**: 2026-04-29（Phase 4 + 拡張モジュール REQ-036~039 反映）
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](../../spec/speech-to-visuals/requirements.md)
 
@@ -83,6 +83,43 @@ sequenceDiagram
 4. タイムスタンプ精度 ±50ms でセグメント分割
 5. SRT キャプションファイルとプレーンテキストを出力
 6. 処理進捗をリアルタイムで UI に表示
+
+### 機能1-B: ストリーミング音声文字起こし 🔵
+
+**信頼性**: 🔵 *src/transcription/streaming-transcriber.ts・要件定義REQ-036・ユーザーストーリー4.0より*
+
+**関連要件**: REQ-036
+
+```mermaid
+sequenceDiagram
+    participant U as ユーザー
+    participant FE as フロントエンド
+    participant ST as StreamingTranscriber
+    participant WSP as Web Speech API
+
+    U->>FE: 音声ストリーミング開始
+    FE->>ST: transcribeStream(audioFile, onProgress, onSegment)
+    ST->>ST: validateStreamingSupport()
+    ST->>ST: 音声を3秒チャンクに分割（500msオーバーラップ）
+    loop 各チャンク
+        ST->>WSP: チャンク音声送信
+        WSP-->>ST: チャンク文字起こし結果
+        ST->>ST: 信頼度チェック（閾値0.7）
+        ST-->>FE: onSegment(currentSegment) コールバック
+        ST-->>FE: onProgress(processedDuration/totalDuration)
+    end
+    ST-->>FE: 完全な文字起こし結果 + 統計
+    FE-->>U: 段階的テキスト表示 + 進捗バー
+```
+
+**詳細ステップ**:
+
+1. ブラウザの Web Speech API サポートを検証 🔵
+2. 音声データを3秒チャンク（500msオーバーラップ）に分割 🔵
+3. 各チャンクを逐次処理し、リアルタイムコールバックでUI更新 🔵
+4. 信頼度スコア（デフォルト閾値0.7）による品質フィルタリング 🔵
+5. 個別チャンク失敗時は継続（全体停止しない） 🔵
+6. 処理統計（平均信頼度・セグメント数・処理時間）を返却 🔵
 
 ### 機能2: LLM 内容分析とフォールバック 🔵
 
@@ -328,6 +365,61 @@ flowchart TD
     O -->|No| K
 ```
 
+### ユーザー主導エラー回復フロー 🔵
+
+**信頼性**: 🔵 *src/quality/user-guided-error-recovery.ts・要件定義REQ-037より*
+
+**関連要件**: REQ-037
+
+```mermaid
+flowchart TD
+    A[エラー発生] --> B[UserGuidedErrorRecovery.analyzeError]
+    B --> C[エラー分類: 11カテゴリ]
+    C --> D[深刻度評価: low/medium/high/critical]
+    D --> E[ErrorGuidance 生成]
+    E --> F[ユーザーメッセージ表示]
+    E --> G[回復戦略一覧提示]
+    G --> H{自動回復可能?}
+    H -->|Yes| I[自動回復実行]
+    I --> J{回復成功?}
+    J -->|Yes| K[処理継続]
+    J -->|No| L[次戦略または手動選択]
+    H -->|No| M[手動回復ステップ表示]
+    M --> N[ユーザー選択]
+    N --> O[選択された回復アクション実行]
+    O --> K
+    L --> N
+    E --> P[予防ティップス表示]
+    E --> Q[ドキュメントリンク提供]
+```
+
+**エラーカテゴリ** 🔵:
+- file_format, file_size, transcription, analysis, layout, rendering
+- api, network, memory, timeout, unknown
+
+### 設定バリデーションフロー 🔵
+
+**信頼性**: 🔵 *src/config/validate.ts・src/config/schema.ts・要件定義REQ-038より*
+
+**関連要件**: REQ-038
+
+```mermaid
+flowchart TD
+    A[アプリケーション起動] --> B[環境変数読み込み]
+    B --> C[validateConfig(config)]
+    C --> D{バリデーション結果}
+    D -->|エラーなし| E[ConfigSchema 型として設定利用]
+    D -->|ValidationErrorあり| F[全エラー一覧表示]
+    F --> G[プロセス終了 exit 1]
+    E --> H[パイプライン処理開始]
+```
+
+**バリデーションルール** 🔵:
+- 必須フィールド: googleApiKey, supabaseUrl, supabaseAnonKey
+- URL形式検証: supabaseUrl
+- 数値範囲: complexityThreshold (0-1), similarityThreshold (0-1), port (1024-65535), cacheSize (1-10000), cacheTtlMinutes (1-10080)
+- 列挙型: nodeEnv (development/production/test)
+
 ## 状態管理フロー
 
 ### フロントエンド状態管理 🔵
@@ -438,8 +530,8 @@ flowchart TD
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 46件 (98%)
+- 🔵 青信号: 65件 (98%)
 - 🟡 黄信号: 1件 (2%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - Phase 4 アニメーション・レンダリング・Pipeline UI フローを反映
+**品質評価**: 高品質 - Phase 4 + 拡張モジュール（ストリーミング/エラー回復/設定検証/パラメータチューニング）フローを反映

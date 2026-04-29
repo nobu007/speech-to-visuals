@@ -1,7 +1,7 @@
 # speech-to-visuals アーキテクチャ設計
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-29（Phase 4 反映）
+**最終更新**: 2026-04-29（Phase 4 + 拡張モジュール REQ-036~039 反映）
 **関連要件定義**: [requirements.md](../../spec/speech-to-visuals/requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -74,9 +74,9 @@
 - **LLM**: Google Gemini AI（gemini-2.5-flash / gemini-2.5-pro）
 - **音声認識**: Whisper（@remotion/install-whisper-cpp）
 - **ブラウザ音声認識**: Web Speech API
-- **形態素解析**: Kuromoji（日本語）
-- **グラフレイアウト**: @dagrejs/dagre 1.1
+- **ストリーミング文字起こし**: StreamingTranscriber（チャンク単位逐次処理、3秒チャンク・500msオーバーラップ）🔵 *src/transcription/streaming-transcriber.ts・要件定義REQ-036 より*
 - **形態素解析**: Kuromoji 0.1（日本語）
+- **グラフレイアウト**: @dagrejs/dagre 1.1
 
 ### データベース 🔵
 
@@ -125,7 +125,7 @@
 - **エラー回復**: 拡張エラー回復（3層フォールバック + 低品質設定再試行）
 - **適応型品質ゲート**: コンテンツ複雑度に応じた動的な品質基準調整
 - **リグレッション検出**: >5%劣化でデプロイブロック、>2%でクリティカルアラート
-- **ユーザー主導エラー回復**: エラー発生時のユーザーガイダンス提供
+- **ユーザー主導エラー回復**: エラー発生時のユーザーガイダンス提供（11カテゴリのエラー分類、自動/手動回復戦略の選択、回復成功率追跡）🔵 *src/quality/user-guided-error-recovery.ts・要件定義REQ-037 より*
 
 ### プロダクション監視 🔵
 
@@ -141,8 +141,8 @@
 
 **信頼性**: 🔵 *src/optimization/・src/performance/・QUALITY_METRICS.md より*
 
-- **スマートパラメータチューニング**: LLM パラメータの自動最適化
-- **適応型コンテンツ処理**: コンテンツ特性に応じた処理パラメータの動的調整
+- **スマートパラメータチューニング**: 音声特性分析（語速・複雑度・ドメイン・音質・キーワード密度）に基づくパラメータ自動最適化、履歴学習（learningRate=0.1）付き 🔵 *src/optimization/smart-parameter-tuner.ts・要件定義REQ-039 より*
+- **適応型コンテンツ処理**: コンテンツ特性に応じた処理戦略自動選択（fast/balanced/accurate）、指紋ベース戦略キャッシュ付き 🔵 *src/optimization/adaptive-content-processor.ts・要件定義REQ-039 より*
 - **インテリジェントキャッシュ**: セマンティックキャッシュ（類似度0.9、200エントリ）と処理結果キャッシュ
 
 ### Remotion 動画モジュール 🔵
@@ -208,6 +208,7 @@ graph TB
     User[ユーザー] --> UI[React Web UI]
     UI --> |ファイルアップロード| Pipeline[Pipeline Layer]
     Pipeline --> |Stage 1| Whisper[Whisper 文字起こし]
+    Pipeline --> |Stage 1-Streaming| Streaming[StreamingTranscriber]
     Pipeline --> |Stage 2| LLM[Gemini LLM 分析]
     Pipeline --> |Stage 2-Fallback| RuleBased[ルールベース V1]
     Pipeline --> |Stage 3| Layout[レイアウトエンジン]
@@ -215,6 +216,7 @@ graph TB
 
     LLM --> |キャッシュ| Cache[セマンティックキャッシュ]
     Whisper --> |SRT + Text| LLM
+    Streaming --> |チャンクText| LLM
     LLM --> |DiagramData| Layout
     Layout --> |Positioned Nodes| Remotion
 
@@ -224,6 +226,12 @@ graph TB
 
     Pipeline --> |品質メトリクス| Framework[自動改善FW]
     Framework --> |パラメータ最適化| Pipeline
+
+    Pipeline --> |エラー分類| ErrorRecovery[ユーザー主導エラー回復]
+    ErrorRecovery --> |回復戦略| Pipeline
+
+    ConfigValidator[設定バリデーション] --> |起動時検証| Pipeline
+    ParamTuner[パラメータチューニング] --> |自動最適化| Pipeline
 
     API[Express API] --> Pipeline
     API --> |バッチジョブ| Batch[バッチ処理]
@@ -244,7 +252,7 @@ graph TB
 │   │   ├── middleware/     # レート制限、エラーハンドラー、認証 🔵
 │   │   └── routes/         # API ルート定義 🔵
 │   ├── components/         # React UI（20+コンポーネント: Pipeline UI, VideoPreview, FileUploader等）🔵
-│   ├── config/             # 設定（プロダクション設定）
+│   ├── config/             # 設定（プロダクション設定 + Zod バリデーション）🔵 *要件定義REQ-038*
 │   ├── export/             # エクスポート（4ファイル: multi-format/enhanced/production/UI）🔵
 │   ├── framework/          # 再帰的改善フレームワーク（4ファイル）
 │   ├── hooks/              # React Hooks
@@ -283,7 +291,7 @@ graph TB
 
 | Stage | 名前 | 入力 | 出力 | 主要モジュール |
 |-------|------|------|------|--------------|
-| 1 | 文字起こし | 音声ファイル | SRT + プレーンテキスト | whisper-transcriber, browser-transcriber |
+| 1 | 文字起こし | 音声ファイル | SRT + プレーンテキスト | whisper-transcriber, browser-transcriber, streaming-transcriber 🔵 *REQ-036* |
 | 2 | 内容分析 | テキスト | DiagramData + エンティティ/関係性 | gemini-analyzer, diagram-detector, llm-service |
 | 3 | レイアウト生成 | DiagramData | 位置付きノード/エッジ | layout-engine, strategies/* |
 | 4 | アニメーション | レイアウト + SRT | Remotion コンポーネント | DiagramScene, DiagramVideo |
@@ -392,6 +400,15 @@ Fallback LLM
 - 1ファイル1責務
 - 開発原則: SDEC×2SCV×ACR（CLAUDE.mdより）
 
+### 設定バリデーション 🔵
+
+**信頼性**: 🔵 *src/config/validate.ts・src/config/schema.ts・要件定義REQ-038 より*
+
+- **Zod スキーマ**: ConfigSchema による型安全な設定定義（googleApiKey, supabaseUrl, supabaseAnonKey 必須）
+- **起動時バリデーション**: URL形式・数値範囲・列挙型の包括的検証
+- **不正設定時動作**: 全エラー一括返却、不正設定時は即座にエラーで終了
+- **検証ルール**: complexityThreshold/similarityThreshold (0-1)、port (1024-65535)、cacheSize (1-10000)、cacheTtlMinutes (1-10080)
+
 ## 関連文書
 
 - **データフロー**: [dataflow.md](dataflow.md)
@@ -405,8 +422,8 @@ Fallback LLM
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 74件 (97%)
+- 🔵 青信号: 86件 (97%)
 - 🟡 黄信号: 2件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（Phase 4 反映済）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（Phase 4 + 拡張モジュール REQ-036~039 反映済）

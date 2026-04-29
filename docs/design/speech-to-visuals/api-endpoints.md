@@ -345,6 +345,137 @@ http://localhost:3001/api/v1
 
 ---
 
+### POST /api/v1/transcribe/streaming 🔵
+
+**信頼性**: 🔵 *src/transcription/streaming-transcriber.ts・要件定義REQ-036より*
+
+**関連要件**: REQ-036
+
+**説明**: ストリーミング音声文字起こし（チャンク単位逐次処理）
+
+**リクエスト**:
+```json
+{
+  "audioData": "base64-encoded-audio-chunk",
+  "chunkIndex": 0,
+  "totalChunks": 10,
+  "options": {
+    "chunkSizeMs": 3000,
+    "overlapMs": 500,
+    "minConfidence": 0.7,
+    "language": "auto"
+  }
+}
+```
+
+**レスポンス（成功）**:
+```json
+{
+  "success": true,
+  "data": {
+    "segment": "文字起こしされたテキスト",
+    "confidence": 0.92,
+    "progress": {
+      "processedDuration": 3000,
+      "totalDuration": 60000,
+      "segmentCount": 1,
+      "averageConfidence": 0.92
+    }
+  }
+}
+```
+
+**エラーコード**:
+- `STREAMING_NOT_SUPPORTED`: ブラウザがストリーミング非対応
+- `CHUNK_PROCESSING_FAILED`: チャンク処理失敗（継続可能）
+
+---
+
+### POST /api/v1/errors/:errorId/recover 🔵
+
+**信頼性**: 🔵 *src/quality/user-guided-error-recovery.ts・要件定義REQ-037より*
+
+**関連要件**: REQ-037
+
+**説明**: エラー回復アクションの実行
+
+**パスパラメータ**:
+- `errorId`: エラーID
+
+**リクエスト**:
+```json
+{
+  "strategyId": "retry-with-fallback",
+  "userChoice": "auto",
+  "context": {
+    "pipelineStage": "analysis",
+    "originalError": "LLM_TIMEOUT"
+  }
+}
+```
+
+**レスポンス（成功）**:
+```json
+{
+  "success": true,
+  "data": {
+    "recovered": true,
+    "strategyUsed": "fallback-llm",
+    "processingResumed": true
+  }
+}
+```
+
+**エラーコード**:
+- `RECOVERY_FAILED`: 回復失敗
+- `INVALID_STRATEGY`: 無効な戦略ID
+
+---
+
+### GET /api/v1/errors/:errorId/options 🔵
+
+**信頼性**: 🔵 *src/quality/user-guided-error-recovery.ts・要件定義REQ-037より*
+
+**関連要件**: REQ-037
+
+**説明**: エラーに対する回復オプション一覧取得
+
+**パスパラメータ**:
+- `errorId`: エラーID
+
+**レスポンス（成功）**:
+```json
+{
+  "success": true,
+  "data": {
+    "category": "analysis",
+    "severity": "high",
+    "userMessage": "内容分析に失敗しました",
+    "recoveryStrategies": [
+      {
+        "id": "retry-fallback",
+        "name": "フォールバックモデルで再試行",
+        "description": "より軽量なモデルで再分析します",
+        "automated": true,
+        "estimatedTime": 10,
+        "successRate": 0.85
+      },
+      {
+        "id": "rule-based",
+        "name": "ルールベース処理",
+        "description": "AIを使わずルールベースで図解を生成します",
+        "automated": true,
+        "estimatedTime": 2,
+        "successRate": 0.99
+      }
+    ],
+    "preventionTips": ["音声品質を確認してください"]
+  }
+}
+```
+
+---
+
 ## WebSocket イベント（Socket.IO）
 
 ### クライアント → サーバー 🔵
@@ -367,6 +498,10 @@ http://localhost:3001/api/v1
 | `job:error` | `{ jobId, error }` | ジョブエラー通知 |
 | `file:status` | `{ jobId, filename, status, qualityScore }` | ファイル処理ステータス |
 | `stage:progress` | `{ jobId, filename, stage, progress }` | ステージ別進捗（transcribing/analyzing/generating） |
+| `streaming:segment` | `{ sessionId, segment, confidence, progress }` | ストリーミング文字起こしセグメント通知 🔵 *REQ-036* |
+| `streaming:complete` | `{ sessionId, fullTranscript, statistics }` | ストリーミング文字起こし完了 🔵 *REQ-036* |
+| `error:recovery` | `{ errorId, category, severity, strategies }` | エラー回復オプション通知 🔵 *REQ-037* |
+| `error:recovered` | `{ errorId, strategy, success }` | エラー回復結果通知 🔵 *REQ-037* |
 
 ---
 
@@ -407,8 +542,8 @@ http://localhost:3001/api/v1
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 21件 (91%)
-- 🟡 黄信号: 2件 (9%)
+- 🔵 青信号: 32件 (94%)
+- 🟡 黄信号: 2件 (6%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 実装済みAPI仕様に基づいている
+**品質評価**: 高品質 - 実装済みAPI仕様に基づいている（拡張モジュール REQ-036~037 反映済）
