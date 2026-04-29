@@ -548,6 +548,48 @@ export class QualityMonitor {
     return { improved, regressed, stable };
   }
 
+  // ------- TASK-0044 Regression Detection -------
+
+  private regressionBaselines: Map<string, number> = new Map();
+
+  /**
+   * Set a baseline quality score for a given identifier.
+   */
+  setRegressionBaseline(id: string, score: number): void {
+    this.regressionBaselines.set(id, score);
+  }
+
+  /**
+   * Detect regression by comparing current score against stored baseline.
+   * Blocks if quality degrades >5% from baseline.
+   */
+  detectRegression(id: string, currentScore: number): PipelineRegressionResult {
+    const previousScore = this.regressionBaselines.get(id) ?? 0;
+
+    if (previousScore === 0) {
+      return {
+        isRegression: false,
+        previousScore: 0,
+        currentScore,
+        degradationPercent: 0,
+        shouldBlock: false,
+      };
+    }
+
+    const degradationPercent =
+      ((previousScore - currentScore) / previousScore) * 100;
+
+    const isRegression = degradationPercent > 5;
+
+    return {
+      isRegression,
+      previousScore,
+      currentScore,
+      degradationPercent: Math.max(0, degradationPercent),
+      shouldBlock: isRegression,
+    };
+  }
+
   /**
    * Set current phase/iteration for tracking
    */
@@ -564,6 +606,20 @@ export class QualityMonitor {
     this.iterationHistory = [];
     this.currentIteration = 1;
   }
+}
+
+/**
+ * Detect quality regression by comparing current score against a stored baseline.
+ * Blocks if quality degrades >5% from baseline.
+ *
+ * This is the TASK-0044 regression detection enhancement.
+ */
+export interface PipelineRegressionResult {
+  isRegression: boolean;
+  previousScore: number;
+  currentScore: number;
+  degradationPercent: number;
+  shouldBlock: boolean;
 }
 
 /**

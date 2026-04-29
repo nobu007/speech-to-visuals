@@ -94,6 +94,57 @@ type ProcessingStage =
   | 'rendering'
   | 'export';
 
+/**
+ * TASK-0045: Retry with exponential backoff options
+ */
+export interface RetryOptions {
+  maxRetries: number;
+  initialDelayMs: number;
+  backoffMultiplier: number;
+  maxDelayMs: number;
+}
+
+/**
+ * TASK-0045: Result of a retry operation
+ */
+export interface RetryResult<T = any> {
+  success: boolean;
+  result?: T;
+  attempts: number;
+  lastError?: Error;
+}
+
+/**
+ * TASK-0045: Result of a fallback execution
+ */
+export interface FallbackResult<T = any> {
+  success: boolean;
+  result?: T;
+  fallbackUsed: boolean;
+  primaryError?: Error;
+}
+
+/**
+ * TASK-0045: Fallback execution context
+ */
+export interface FallbackContext {
+  stage?: ProcessingStage;
+  [key: string]: any;
+}
+
+/**
+ * TASK-0045: User notification payload
+ */
+export interface NotificationPayload {
+  message: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  stage: string;
+  timestamp: number;
+  recoverable: boolean;
+  requiresUserAction: boolean;
+  suggestedActions: string[];
+}
+
 interface SystemHealth {
   overall: number;
   stages: Record<ProcessingStage, number>;
@@ -1388,6 +1439,166 @@ export class EnhancedErrorRecovery {
    */
   getHealthReport(): SystemHealth {
     return { ...this.healthMetrics };
+  }
+
+  // ========================================
+  // TASK-0045: Retry with Exponential Backoff
+  // ========================================
+
+  /**
+   * Execute an operation with retry and exponential backoff.
+   *
+   * @param operation - The async operation to attempt
+   * @param options - Retry configuration (optional, uses sensible defaults)
+   * @returns RetryResult indicating success/failure and attempt count
+   */
+  async retryWithBackoff<T>(
+    operation: () => Promise<T>,
+    options?: Partial<RetryOptions>
+  ): Promise<RetryResult<T>> {
+    const opts: RetryOptions = {
+      maxRetries: options?.maxRetries ?? 3,
+      initialDelayMs: options?.initialDelayMs ?? 100,
+      backoffMultiplier: options?.backoffMultiplier ?? 2,
+      maxDelayMs: options?.maxDelayMs ?? 5000,
+    };
+
+    let lastError: Error | undefined;
+    let attempts = 0;
+
+    // Initial attempt + retries
+    const maxAttempts = 1 + opts.maxRetries;
+
+    for (let i = 0; i < maxAttempts; i++) {
+      attempts++;
+      try {
+        const result = await operation();
+        return { success: true, result, attempts };
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        // Don't wait after the last attempt
+        if (i < maxAttempts - 1) {
+          const delay = Math.min(
+            opts.initialDelayMs * Math.pow(opts.backoffMultiplier, i),
+            opts.maxDelayMs
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    return { success: false, attempts, lastError };
+  }
+
+  // ========================================
+  // TASK-0045: Fallback Processing
+  // ========================================
+
+  /**
+   * Execute a primary operation with a fallback if it fails.
+   *
+   * @param primaryOperation - The primary async operation
+   * @param fallbackOperation - The fallback async operation
+   * @param context - Contextual information about the operation
+   * @returns FallbackResult indicating whether fallback was used
+   */
+  async executeWithFallback<T>(
+    primaryOperation: () => Promise<T>,
+    fallbackOperation: () => Promise<T>,
+    context: FallbackContext = {}
+  ): Promise<FallbackResult<T>> {
+    try {
+      const result = await primaryOperation();
+      return { success: true, result, fallbackUsed: false };
+    } catch (primaryError) {
+      const primaryErr = primaryError instanceof Error ? primaryError : new Error(String(primaryError));
+      console.log(`⚠️ Primary operation failed at stage "${context.stage || 'unknown'}": ${primaryErr.message}`);
+
+      try {
+        const result = await fallbackOperation();
+        return { success: true, result, fallbackUsed: true, primaryError: primaryErr };
+      } catch (fallbackError) {
+        const fallbackErr = fallbackError instanceof Error ? fallbackError : new Error(String(fallbackError));
+        console.log(`❌ Fallback operation also failed: ${fallbackErr.message}`);
+        return { success: false, fallbackUsed: true, primaryError: primaryErr };
+      }
+    }
+  }
+
+  // ========================================
+  // TASK-0045: User Notification Integration
+  // ========================================
+
+  /**
+   * Create a user notification payload from an error.
+   *
+   * @param error - The error that occurred
+   * @param context - Context including stage and severity
+   * @returns NotificationPayload for user display
+   */
+  createErrorNotification(
+    error: Error,
+    context: { stage?: string; severity: 'low' | 'medium' | 'high' | 'critical' }
+  ): NotificationPayload {
+    const message = error.message;
+    const severity = context.severity;
+    const stage = context.stage ?? 'unknown';
+    const isCritical = severity === 'critical';
+
+    const suggestedActions = this.getNotificationSuggestedActions(message, severity);
+    const recoverable = this.isRecoverableError(message);
+
+    return {
+      message,
+      severity,
+      stage,
+      timestamp: Date.now(),
+      recoverable,
+      requiresUserAction: isCritical || !recoverable,
+      suggestedActions,
+    };
+  }
+
+  /**
+   * Determine suggested actions based on error message.
+   */
+  private getNotificationSuggestedActions(message: string, severity: string): string[] {
+    const actions: string[] = [];
+    const lowerMessage = message.toLowerCase();
+
+    if (lowerMessage.includes('rate limit') || lowerMessage.includes('quota')) {
+      actions.push('Wait a few seconds and retry');
+      actions.push('Reduce the frequency of requests');
+    } else if (lowerMessage.includes('network') || lowerMessage.includes('connection')) {
+      actions.push('Check your internet connection');
+      actions.push('Retry the operation');
+    } else if (lowerMessage.includes('memory') || lowerMessage.includes('heap')) {
+      actions.push('Close other applications to free memory');
+      actions.push('Try processing a smaller file');
+    } else if (lowerMessage.includes('timeout')) {
+      actions.push('Retry with a shorter input');
+      actions.push('Increase the processing timeout');
+    } else {
+      actions.push('Retry the operation');
+      if (severity === 'high' || severity === 'critical') {
+        actions.push('Contact support if the issue persists');
+      }
+    }
+
+    return actions;
+  }
+
+  /**
+   * Check if an error message indicates a recoverable error.
+   */
+  private isRecoverableError(message: string): boolean {
+    const unrecoverablePatterns = [
+      /invalid api key/i,
+      /authentication failed/i,
+      /permission denied/i,
+    ];
+    return !unrecoverablePatterns.some((pattern) => pattern.test(message));
   }
 }
 

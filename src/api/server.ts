@@ -3,6 +3,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { healthRouter } from './routes/health';
+import { createBatchRouter } from './routes/batch';
+import { errorHandler } from './middleware/error-handler';
 
 const app = express();
 
@@ -30,6 +32,10 @@ app.use(rateLimit({
 
 // Routes
 app.use('/api/v1', healthRouter);
+app.use('/api/v1/batch', createBatchRouter());
+
+// Error handler (must be after routes)
+app.use(errorHandler);
 
 // Root health check (direct path)
 app.get('/api/v1/health', (_req, res) => {

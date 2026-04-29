@@ -5,3 +5,29 @@ export type {
   QualityThresholds,
   IterationComparison
 } from './quality-monitor';
+
+// TASK-0045: Error Classification and Recovery
+export { ErrorClassifier } from './error-classifier';
+export type {
+  ErrorType,
+  ErrorSeverity,
+  ClassifiedError,
+  ClassifyContext,
+  ClassificationStatistics,
+} from './error-classifier';
+
+export { EnhancedErrorRecovery, globalErrorRecovery } from './enhanced-error-recovery';
+export type {
+  RetryOptions,
+  RetryResult,
+  FallbackResult,
+  FallbackContext,
+  NotificationPayload,
+} from './enhanced-error-recovery';
+
+export { UserGuidedErrorRecovery, userGuidedErrorRecovery } from './user-guided-error-recovery';
+export type {
+  ErrorCategory,
+  ErrorGuidance,
+  RecoveryStrategy,
+} from './user-guided-error-recovery';

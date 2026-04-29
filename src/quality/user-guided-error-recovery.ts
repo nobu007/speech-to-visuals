@@ -148,12 +148,12 @@ export class UserGuidedErrorRecovery {
   private categorizeError(error: Error, context?: Record<string, any>): ErrorCategory {
     const message = error.message.toLowerCase();
 
-    // File-related errors
+    // File-related errors - check size before format (size messages often contain "file")
+    if (message.includes('too large') || message.includes('size limit') || message.includes('size exceeds') || message.includes('exceeds maximum size') || message.includes('file size')) {
+      return 'file_size';
+    }
     if (message.includes('file') || message.includes('format') || message.includes('unsupported')) {
       return 'file_format';
-    }
-    if (message.includes('too large') || message.includes('size limit')) {
-      return 'file_size';
     }
 
     // Processing errors
@@ -536,6 +536,43 @@ export class UserGuidedErrorRecovery {
         break;
       // ... other strategies
     }
+  }
+
+  /**
+   * TASK-0045: Select a recovery strategy based on mode preference.
+   *
+   * @param guidance - The error guidance containing available strategies
+   * @param mode - 'auto' for automated strategies, 'manual' for manual strategies,
+   *               'best' for highest success rate regardless of mode
+   * @returns The best matching recovery strategy, or undefined if none found
+   */
+  selectRecoveryStrategy(
+    guidance: ErrorGuidance,
+    mode: 'auto' | 'manual' | 'best' = 'best'
+  ): RecoveryStrategy | undefined {
+    const strategies = guidance.recoveryStrategies;
+    if (strategies.length === 0) return undefined;
+
+    let candidates: RecoveryStrategy[];
+
+    if (mode === 'auto') {
+      candidates = strategies.filter((s) => s.automated);
+    } else if (mode === 'manual') {
+      candidates = strategies.filter((s) => !s.automated);
+    } else {
+      // 'best' mode: consider all strategies
+      candidates = strategies;
+    }
+
+    if (candidates.length === 0) {
+      // Fall back to all strategies if filter yields nothing
+      candidates = strategies;
+    }
+
+    // Return the strategy with the highest success rate
+    return candidates.reduce((best, current) =>
+      current.successRate > best.successRate ? current : best
+    );
   }
 
   /**
