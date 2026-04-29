@@ -552,6 +552,26 @@ http://localhost:3001/api/v1
 
 ## Phase 5 追加エンドポイント
 
+### GET /api/v1/health 🔵
+
+**信頼性**: 🔵 *src/api/routes/health.ts より*
+
+**説明**: API サーバーのヘルスチェック
+
+**レスポンス（成功）**:
+```json
+{
+  "success": true,
+  "data": {
+    "status": "healthy",
+    "uptime": 3600,
+    "timestamp": "2026-04-29T10:00:00Z"
+  }
+}
+```
+
+---
+
 ### DELETE /api/v1/batch/jobs/:jobId 🔵
 
 **信頼性**: 🔵 *src/api/routes/batch.ts・要件定義REQ-043 より*

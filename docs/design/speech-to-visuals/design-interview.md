@@ -703,6 +703,14 @@ interfaces.ts には既にこれらの主要型が反映済み。
 
 **Phase 5 モジュール（REQ-040~045）反映完了**: エラー分類器・品質ゲート・パイプラインオーケストレーター・バッチAPI・共有認証・統一エラーハンドリングの6モジュール（計2,281行）の実装確認を完了し、全6設計ファイルに反映。
 
+**2026-04-29 第8回更新（A40 検証）**:
+
+- 🔵 青信号: 200 (+4)
+- 🟡 黄信号: 3 (±0)
+- 🔴 赤信号: 0 (±0)
+
+**更新統合内容**: architecture.md（ディレクトリ構造ファイル数修正）、api-endpoints.md（health エンドポイント追記）、design-interview.md（A40 分析項目追加）
+
 ---
 
 ### A33: 全設計文書の網羅的再検証（2026-04-29 第6回更新）
@@ -875,3 +883,24 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - **要件定義**: [requirements.md](../../spec/speech-to-visuals/requirements.md)
 - **旧アーキテクチャ**: [../../architecture/SYSTEM_CORE.md](../../architecture/SYSTEM_CORE.md)
 - **旧パイプライン**: [../../architecture/PIPELINE_FLOW.md](../../architecture/PIPELINE_FLOW.md)
+
+---
+
+### A40: 設計文書の定期検証と更新統合（2026-04-29 第8回更新）
+
+**分析日時**: 2026-04-29
+**カテゴリ**: 設計品質検証
+**背景**: kairo-design フローによる定期設計検証。コードベースが243ファイル（65,507行）に拡大し、設計文書の記載との整合性確認が必要
+
+**判断**: 全6設計ファイルの再検証を実施。主な差分:
+- **architecture.md**: ディレクトリ構造のファイル数記載を更新（pipeline 9→10、quality 6→8、analysis 18ファイル明記、config 5ファイル明記、API routes に health.ts 追記）
+- **api-endpoints.md**: health チェックエンドポイント（GET /api/v1/health）を追記
+- **design-interview.md**: 本分析項目（A40）を追加
+- **interfaces.ts**, **dataflow.md**, **database-schema.sql**: 更新不要（Phase 5 REQ-040~045 まで完全反映済み）
+
+**根拠**: src/ 全243ファイルのディレクトリ構造確認、docs/design/ 全6ファイルの内容確認、要件定義書（REQ-001~045）との突合せ
+
+**信頼性への影響**:
+- 設計文書のファイル数記載が実装と完全一致
+- 新規ギャップなし - 既存設計文書が現在の要件とコードベースに完全整合
+- 信頼性レベル分布に変化なし

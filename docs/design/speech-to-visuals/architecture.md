@@ -65,7 +65,7 @@
 - **認証方式**: Supabase Auth（JWT ベース）
 - **API設計**: REST（バッチ処理API）+ Supabase Edge Functions
 - **ミドルウェア**: express-rate-limit（レート制限）、Helmet（セキュリティヘッダー）、CORS
-- **API構成**: src/api/middleware/（rate-limit, error-handler, auth）、src/api/routes/（ルート定義）🔵 *src/api/ より*
+- **API構成**: src/api/middleware/（rate-limit, error-handler, auth）、src/api/routes/（batch, health ルート定義）🔵 *src/api/ より*
 - **バッチ処理API**: REST エンドポイント（POST /batch/jobs でジョブ作成→HTTP 202、GET /batch/jobs/:id でステータス取得、DELETE /batch/jobs/:id でキャンセル）、セマフォパターンで最大3並列ジョブ制御 🔵 *src/api/routes/batch.ts・要件定義REQ-043 より*
 
 ### AI・処理モジュール 🔵
@@ -253,12 +253,12 @@ graph TB
 ```
 ./
 ├── src/
-│   ├── analysis/           # 内容分析（LLM、Gemini、図解検出、言語検出、複雑度）
+│   ├── analysis/           # 内容分析（18ファイル: LLM、Gemini、図解検出、言語検出、複雑度、フォールバックチェーン、プロンプト構築、リトライ戦略）
 │   ├── api/                # REST API（バッチ処理）
 │   │   ├── middleware/     # レート制限、エラーハンドラー、認証 🔵
 │   │   └── routes/         # API ルート定義 🔵
 │   ├── components/         # React UI（20+コンポーネント: Pipeline UI, VideoPreview, FileUploader等）🔵
-│   ├── config/             # 設定（プロダクション設定 + Zod バリデーション）🔵 *要件定義REQ-038*
+│   ├── config/             # 設定（5ファイル: プロダクション設定 + Zod バリデーション + 環境変数管理）🔵 *要件定義REQ-038*
 │   ├── export/             # エクスポート（4ファイル: multi-format/enhanced/production/UI）🔵
 │   ├── framework/          # 再帰的改善フレームワーク（4ファイル）
 │   ├── hooks/              # React Hooks
@@ -268,8 +268,8 @@ graph TB
 │   ├── optimization/       # パラメータチューニング
 │   ├── pages/              # React Router ページ
 │   ├── performance/        # キャッシュ
-│   ├── pipeline/           # パイプライン（9ファイル: Simple/Main/Framework/Adaptive/VideoGenerator等）🔵
-│   ├── quality/            # 品質保証・エラー回復（6ファイル）
+│   ├── pipeline/           # パイプライン（10ファイル: Simple/Main/Framework/Adaptive/VideoGenerator/Orchestrator等）🔵
+│   ├── quality/            # 品質保証・エラー回復（8ファイル: ErrorClassifier/QualityGate含む）
 │   ├── remotion/           # Remotion 動画コンポーネント（12ファイル: Animation/Scene/Renderer/SRT/Caption）🔵
 │   ├── test/               # テストユーティリティ
 │   ├── transcription/      # 音声認識（Whisper/Streaming/Browser）
