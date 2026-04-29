@@ -1,7 +1,7 @@
 # speech-to-visuals データフロー図
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-30（第16回更新: 第16回設計検証・変更なし確認）
+**最終更新**: 2026-04-30（第18回更新: REQ-052~055・REQ-305 追加 UI コンポーネントフロー反映）
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](../../spec/speech-to-visuals/requirements.md)
 
@@ -934,10 +934,178 @@ flowchart TD
 - **API仕様**: [api-endpoints.md](api-endpoints.md)
 - **旧パイプライン仕様（統合元）**: [../../architecture/PIPELINE_FLOW.md](../../architecture/PIPELINE_FLOW.md)
 
+## 追加 UI コンポーネントデータフロー
+
+### 機能6: チュートリアルシステムオンボーディングフロー 🔵
+
+**信頼性**: 🔵 *src/components/TutorialSystem.tsx・要件定義REQ-052・ユーザーストーリー8.1より*
+
+**関連要件**: REQ-052
+
+```mermaid
+sequenceDiagram
+    participant U as ユーザー
+    participant TS as TutorialSystem
+    participant LS as LocalStorage
+
+    U->>TS: 初回アクセス（自動検出）
+    TS->>LS: isFirstVisit チェック
+    alt 初回アクセス
+        LS-->>TS: isFirstVisit = true
+        TS->>U: チュートリアル自動表示
+    else 再アクセス
+        LS-->>TS: isFirstVisit = false
+        U->>TS: チュートリアル手動表示
+    end
+    TS->>TS: カテゴリ一覧表示（概要/パイプライン/可視化/エクスポート）
+    U->>TS: カテゴリ選択
+    TS->>U: ステップ表示（難易度: 初級/中級/上級）
+    loop 各ステップ
+        U->>TS: ステップ完了
+        TS->>LS: 進捗保存（completedSteps 更新）
+    end
+    TS->>U: カテゴリ完了表示
+```
+
+**詳細ステップ**:
+1. 初回アクセス時、LocalStorage で isFirstVisit をチェック 🔵
+2. カテゴリ別チュートリアル一覧（概要/パイプライン/可視化/エクスポート）を表示 🔵
+3. 各ステップは難易度（初級/中級/上級）に分類 🔵
+4. 完了したステップは LocalStorage に永続化 🔵
+
+### 機能7: マルチモードパイプライン選択フロー 🔵
+
+**信頼性**: 🔵 *src/pages/Index.tsx・src/components/StreamingProcessor.tsx・要件定義REQ-053・ユーザーストーリー8.2より*
+
+**関連要件**: REQ-053
+
+```mermaid
+sequenceDiagram
+    participant U as ユーザー
+    participant IX as Index Page
+    participant SP as StreamingProcessor
+    participant PL as Pipeline
+
+    U->>IX: トップページアクセス
+    IX->>IX: モード選択UI表示
+    alt Standard モード
+        U->>IX: ファイルアップロード
+        IX->>PL: パイプライン実行（一括処理）
+        PL-->>IX: 処理結果
+    else Streaming モード
+        U->>IX: マイク録音開始
+        IX->>SP: ライブ音声処理
+        loop リアルタイム処理
+            SP->>SP: 音声チャンク処理
+            SP-->>IX: onSceneGenerated（プログレッシブシーン）
+        end
+        SP-->>IX: onComplete（全シーン統合）
+    end
+    IX-->>U: 動画プレビュー表示
+```
+
+**詳細ステップ**:
+1. トップページで Standard/Streaming モードを切替 🔵
+2. Standard: ファイルアップロード→一括処理→動画生成 🔵
+3. Streaming: マイク録音→リアルタイム文字起こし→プログレッシブシーン生成 🔵
+4. どちらのモードでも最終的に図解動画が生成される 🔵
+
+### 機能8: フレームワークダッシュボードフロー 🔵
+
+**信頼性**: 🔵 *src/components/FrameworkDashboard.tsx・FrameworkDashboardPage.tsx・要件定義REQ-054・ユーザーストーリー8.3より*
+
+**関連要件**: REQ-054
+
+```mermaid
+sequenceDiagram
+    participant U as 開発者
+    participant FDP as FrameworkDashboardPage
+    participant FD as FrameworkDashboard
+    participant FW as FrameworkPipeline
+
+    U->>FDP: /framework ルートアクセス
+    FDP->>FW: useFrameworkPipeline フック初期化
+    FW-->>FDP: パイプライン状態（イテレーション・品質・フェーズ）
+    FDP->>FD: ダッシュボード表示
+    FD->>FD: フェーズ別成功基準評価可視化
+    FD->>FD: 品質メトリクス表示
+    FD->>FD: 改善推奨表示
+    U->>FDP: 手動コミット実行
+    FDP->>FW: コミットトリガー
+    FW-->>FDP: コミット結果
+```
+
+**設定** 🔵:
+- enableAutoCommit: false（ユーザーが手動コミット）
+- maxImprovementCycles: 5
+- targetQualityScore: 95
+
+### 機能9: プロダクション設定ダッシュボードフロー 🔵
+
+**信頼性**: 🔵 *src/components/ProductionDashboard.tsx・要件定義REQ-055・ユーザーストーリー8.4より*
+
+**関連要件**: REQ-055
+
+```mermaid
+sequenceDiagram
+    participant U as システム管理者
+    participant PD as ProductionDashboard
+    participant Config as ProductionConfig
+
+    U->>PD: /production ルートアクセス
+    PD->>Config: 現在の設定取得
+    Config-->>PD: ProductionEnvironment 設定
+    PD->>U: 設定表示
+    U->>PD: 設定変更
+    PD->>PD: unsavedChanges フラグ設定
+    PD->>U: 変更プレビュー表示
+    U->>PD: 保存実行
+    PD->>Config: 設定保存
+    PD->>PD: パフォーマンスレポート生成
+    PD->>U: レポート・最適化ステータス表示
+```
+
+**管理項目** 🔵:
+- API キー・エンドポイント・閾値設定
+- パフォーマンスレポート
+- 最適化ステータス
+
+### 機能10: グローバルエラーアラートシステムフロー 🔵
+
+**信頼性**: 🔵 *src/components/ErrorAlertSystem.tsx・要件定義REQ-305・App.tsxより*
+
+**関連要件**: REQ-305
+
+```mermaid
+flowchart TD
+    A[エラー発生] --> B[ErrorAlertSystem]
+    B --> C[エラー通知表示]
+    C --> D{エラー分類: 11カテゴリ}
+    D --> E[重大度表示]
+    E --> F{回復アクションあり?}
+    F -->|Yes| G[回復ボタン表示]
+    F -->|No| H[閉じるボタンのみ]
+    G --> I[ユーザー回復実行]
+    I --> J{回復成功?}
+    J -->|Yes| K[アラート解除]
+    J -->|No| L[エラー更新]
+    H --> M[手動解除 or 自動非表示]
+    B --> N[エラーメトリクス更新]
+```
+
+**機能** 🔵:
+- リアルタイムエラー通知: 全パイプラインエラーを即座にUIに表示
+- 回復アクション実行: executingRecovery 経由でユーザー主導回復
+- エラーメトリクス可視化: カテゴリ別・重大度別の統計表示
+- 自動非表示: autoHide=true で自動的にアラートを非表示
+- アラート展開/解除: expandedAlerts/dismissedAlerts で表示制御
+
+## 関連文書（旧）
+
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 104件 (99%)
+- 🔵 青信号: 130件 (99%)
 - 🟡 黄信号: 1件 (1%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - REQ-050/051 グレースフルシャットダウン・型ガード・11種図解タイプフローを反映
+**品質評価**: 高品質 - REQ-052~055・REQ-305 追加 UI コンポーネントフローを反映

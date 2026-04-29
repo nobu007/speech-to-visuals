@@ -1,7 +1,7 @@
 # speech-to-visuals アーキテクチャ設計
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-30（第17回更新: DBスキーマ実装同期確認）
+**最終更新**: 2026-04-30（第18回更新: REQ-052~055 追加 UI コンポーネント反映）
 **関連要件定義**: [requirements.md](../../spec/speech-to-visuals/requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -193,6 +193,27 @@ Phase 4 で実装されたパイプラインUI:
 - Ctrl+Enter: 処理開始
 - Esc: リセット
 
+### 追加 UI コンポーネント 🔵
+
+**信頼性**: 🔵 *src/components/・src/pages/・要件定義REQ-052~055・REQ-305 より*
+
+Phase 4~5 で追加実装された UI コンポーネント:
+
+- **TutorialSystem.tsx**: インタラクティブチュートリアルシステム（マルチステップ・カテゴリ別（概要/パイプライン/可視化/エクスポート）・難易度別（初級/中級/上級）・LocalStorage進捗永続化・初回アクセス自動表示）🔵 *要件定義REQ-052より*
+- **StreamingProcessor.tsx**: リアルタイムストリーミングプロセッサー（ライブ音声録音・リアルタイム文字起こしストリーミング・プログレッシブシーン生成・処理モード切替（file/live/idle）・セグメント統計追跡）🔵 *要件定義REQ-053・src/pages/Index.tsxより*
+- **FrameworkDashboard.tsx**: フレームワークパイプラインダッシュボード（イテレーション追跡・品質メトリクス・フェーズ別成功基準評価・自動コミットトリガー監視・改善推奨可視化）🔵 *要件定義REQ-054・src/framework/ より*
+- **FrameworkDashboardPage.tsx**: フレームワークダッシュボードページ（useFrameworkPipeline フック統合・手動コミット制御・改善サイクル設定・品質目標設定）🔵 *要件定義REQ-054より*
+- **ProductionDashboard.tsx**: プロダクション設定ダッシュボード（設定管理・パフォーマンスレポート生成・リアルタイム監視・最適化ステータス・未保存変更追跡）🔵 *要件定義REQ-055・src/config/ より*
+- **ErrorAlertSystem.tsx**: グローバルエラーアラートシステム（リアルタイムエラー通知・回復アクション実行・エラーメトリクス可視化・自動非表示・アラート展開/解除）🔵 *要件定義REQ-305・src/monitoring/ より*
+
+**ページルート構成** 🔵 *src/pages/・src/App.tsx より*:
+| ルート | コンポーネント | 説明 |
+|--------|-------------|------|
+| / | Index.tsx | メインページ（Standard/Streaming モード切替）🔵 |
+| /pipeline | SimplePipeline.tsx | パイプラインUI 🔵 |
+| /framework | FrameworkDashboardPage.tsx | フレームワークダッシュボード 🔵 |
+| /production | ProductionDashboard.tsx | プロダクション設定ダッシュボード 🔵 |
+
 ### 可視化戦略 🔵
 
 **信頼性**: 🔵 *src/visualization/strategies/（20ファイル）+ base/ + layout/（計39ファイル）・ZERO_OVERLAP_DESIGN.md より*
@@ -264,7 +285,7 @@ graph TB
 │   ├── api/                # REST API・WebSocket（10ファイル: バッチ処理、リアルタイム通知）🔵
 │   │   ├── middleware/     # レート制限、エラーハンドラー、認証 🔵
 │   │   └── routes/         # API ルート定義 🔵
-│   ├── components/         # React UI（46コンポーネント: Pipeline UI, VideoPreview, FileUploader等）🔵
+│   ├── components/         # React UI（52コンポーネント: Pipeline UI, VideoPreview, FileUploader, TutorialSystem, StreamingProcessor, Dashboards, ErrorAlert等）🔵
 │   ├── config/             # 設定（7ファイル: プロダクション設定 + Zod バリデーション + 環境変数管理）🔵 *要件定義REQ-038*
 │   ├── export/             # エクスポート（4ファイル: multi-format/enhanced/production/UI）🔵
 │   ├── framework/          # 再帰的改善フレームワーク（4ファイル）
@@ -435,8 +456,8 @@ Fallback LLM
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 104件 (98%)
+- 🔵 青信号: 120件 (98%)
 - 🟡 黄信号: 2件 (2%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第14回更新: REQ-050/051 グレースフルシャットダウン・型ガード反映）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第18回更新: REQ-052~055・REQ-305 追加 UI コンポーネント反映）

@@ -2,7 +2,7 @@
  * speech-to-visuals 型定義
  *
  * 作成日: 2026-04-27
- * 最終更新: 2026-04-30（第16回更新: 第16回設計検証・変更なし確認）
+ * 最終更新: 2026-04-30（第18回更新: REQ-052~055・REQ-305 追加 UI コンポーネント型定義）
  * 関連設計: architecture.md
  *
  * 信頼性レベル:
@@ -370,11 +370,11 @@ export interface WorkspaceQuota {
 // 信頼性レベルサマリー
 // ========================================
 /**
- * - 🔵 青信号: 280件 (97%)
+ * - 🔵 青信号: 340件 (97%)
  * - 🟡 黄信号: 4件 (3%)
  * - 🔴 赤信号: 0件 (0%)
  *
- * 品質評価: 高品質（REQ-050~051 グレースフルシャットダウン・型ガード・11種図解タイプ反映済）
+ * 品質評価: 高品質（REQ-052~055・REQ-305 追加 UI コンポーネント型定義反映済）
  */
 
 // ========================================
@@ -1195,4 +1195,133 @@ export function isDiagramType(value: unknown): value is DiagramType { // 🔵 sr
     value === 'comparison' || value === 'network' || value === 'conceptmap' ||
     value === 'mindmap' || value === 'general'
   );
+}
+
+// ========================================
+// 追加 UI コンポーネント型（REQ-052~055, REQ-305）
+// ========================================
+
+/**
+ * チュートリアルカテゴリ
+ * 🔵 信頼性: src/components/TutorialSystem.tsx・要件定義REQ-052 より
+ */
+export type TutorialCategory = 'overview' | 'pipeline' | 'visualization' | 'export'; // 🔵 4カテゴリ
+
+/**
+ * チュートリアル難易度
+ * 🔵 信頼性: src/components/TutorialSystem.tsx より
+ */
+export type TutorialDifficulty = 'beginner' | 'intermediate' | 'advanced'; // 🔵 3段階
+
+/**
+ * チュートリアルステップ
+ * 🔵 信頼性: src/components/TutorialSystem.tsx・要件定義REQ-052 より
+ */
+export interface TutorialStep {
+  id: string; // 🔵 ステップID
+  title: string; // 🔵 ステップタイトル
+  description: string; // 🔵 ステップ説明
+  category: TutorialCategory; // 🔵 カテゴリ
+  difficulty: TutorialDifficulty; // 🔵 難易度
+  completed: boolean; // 🔵 完了フラグ
+}
+
+/**
+ * チュートリアル進捗
+ * 🔵 信頼性: src/components/TutorialSystem.tsx より
+ */
+export interface TutorialProgress {
+  completedSteps: string[]; // 🔵 完了済みステップID配列
+  isFirstVisit: boolean; // 🔵 初回アクセスフラグ
+}
+
+/**
+ * ストリーミング処理モード
+ * 🔵 信頼性: src/components/StreamingProcessor.tsx・要件定義REQ-053 より
+ */
+export type ProcessingMode = 'file' | 'live' | 'idle'; // 🔵 3モード
+
+/**
+ * ストリーミングステータス
+ * 🔵 信頼性: src/components/StreamingProcessor.tsx より
+ */
+export type StreamingStatus = 'idle' | 'recording' | 'processing' | 'paused' | 'complete' | 'error'; // 🔵 6状態
+
+/**
+ * ストリーミング統計
+ * 🔵 信頼性: src/components/StreamingProcessor.tsx より
+ */
+export interface StreamingStatistics {
+  segmentCount: number; // 🔵 処理済みセグメント数
+  averageConfidence: number; // 🔵 平均信頼度
+  processingSpeed: number; // 🔵 処理速度（セグメント/秒）
+}
+
+/**
+ * フレームワークフェーズ情報
+ * 🔵 信頼性: src/components/FrameworkDashboard.tsx・要件定義REQ-054 より
+ */
+export interface PhaseInfo {
+  name: string; // 🔵 フェーズ名
+  maxIterations: number; // 🔵 最大イテレーション数
+  successCriteria: string; // 🔵 成功基準
+  currentIteration: number; // 🔵 現在のイテレーション
+  status: 'pending' | 'active' | 'completed' | 'failed'; // 🔵 フェーズ状態
+}
+
+/**
+ * フレームワークパイプライン設定
+ * 🔵 信頼性: src/components/FrameworkDashboardPage.tsx より
+ */
+export interface FrameworkPipelineConfig {
+  enableAutoCommit: boolean; // 🔵 自動コミット（デフォルト: false）
+  maxImprovementCycles: number; // 🔵 最大改善サイクル（デフォルト: 5）
+  targetQualityScore: number; // 🔵 目標品質スコア（デフォルト: 95）
+}
+
+/**
+ * プロダクション環境設定
+ * 🔵 信頼性: src/components/ProductionDashboard.tsx・要件定義REQ-055 より
+ */
+export interface ProductionEnvironment {
+  apiEndpoint: string; // 🔵 API エンドポイント
+  apiKeyConfigured: boolean; // 🔵 API キー設定状態
+  optimizationLevel: 'low' | 'medium' | 'high'; // 🔵 最適化レベル
+  monitoringEnabled: boolean; // 🔵 監視有無
+}
+
+/**
+ * パフォーマンスレポート
+ * 🔵 信頼性: src/components/ProductionDashboard.tsx より
+ */
+export interface PerformanceReport {
+  averageProcessingTime: number; // 🔵 平均処理時間（ms）
+  successRate: number; // 🔵 成功率（%）
+  qualityScore: number; // 🔵 品質スコア
+  generatedAt: string; // 🔵 レポート生成日時
+}
+
+/**
+ * エラーアラート
+ * 🔵 信頼性: src/components/ErrorAlertSystem.tsx・要件定義REQ-305 より
+ */
+export interface ErrorAlert {
+  id: string; // 🔵 アラートID
+  category: ErrorCategory; // 🔵 エラーカテゴリ（11種）
+  severity: ErrorSeverity; // 🔵 深刻度（4段階）
+  message: string; // 🔵 エラーメッセージ
+  timestamp: number; // 🔵 発生時刻
+  recoveryAction?: string; // 🔵 回復アクション
+  dismissed: boolean; // 🔵 解除フラグ
+}
+
+/**
+ * エラーアラートメトリクス
+ * 🔵 信頼性: src/components/ErrorAlertSystem.tsx より
+ */
+export interface ErrorAlertMetrics {
+  totalAlerts: number; // 🔵 総アラート数
+  byCategory: Record<ErrorCategory, number>; // 🔵 カテゴリ別件数
+  bySeverity: Record<ErrorSeverity, number>; // 🔵 深刻度別件数
+  recoveryRate: number; // 🔵 回復率
 }
