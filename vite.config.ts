@@ -48,10 +48,18 @@ export default defineConfig(({ mode }) => ({
         }
       },
       external: (id) => {
+        // Exclude native binaries from bundling
+        if (id.includes('swc.linux-x64-gnu.node') || id.includes('@swc/core-linux')) {
+          return true;
+        }
+        // Remotion server-side modules should not be browser-bundled
+        if (id.includes('@remotion/renderer') || id.includes('@remotion/bundler') || id.includes('@remotion/cli')) {
+          return true;
+        }
         // Mark Node.js modules as external for better browser compatibility
         if (mode === 'production') {
-          return ['path', 'fs', 'os', 'util', 'assert'].some(nodeModule =>
-            id === nodeModule || id.startsWith(`${nodeModule}/`)
+          return ['path', 'fs', 'os', 'util', 'assert', 'module', 'child_process', 'stream', 'worker_threads', 'crypto', 'url', 'http', 'https', 'net', 'tls'].some(nodeModule =>
+            id === nodeModule || id.startsWith(`${nodeModule}/`) || id.startsWith(`node:${nodeModule}`)
           );
         }
         return false;
@@ -73,7 +81,9 @@ export default defineConfig(({ mode }) => ({
     // Exclude problematic Node.js dependencies from optimization
     exclude: [
       'whisper-node',
-      'kuromoji'
+      'kuromoji',
+      '@swc/core',
+      '@swc/core-linux-x64-gnu'
     ]
   },
   define: {
