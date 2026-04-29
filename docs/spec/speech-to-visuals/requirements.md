@@ -4,7 +4,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 1-5 完了（基盤・AI処理・レイアウト・レンダリング・FE・統合テスト・パイプラインオーケストレーション・WebSocket・最適化ユーティリティ・250ファイル）・型エラー解消（237件→0件）・図解タイプ拡張（5→11種）・第16回要件検証完了（2026-04-30）
+**実装状況**: Phase 1-5 完了（基盤・AI処理・レイアウト・レンダリング・FE・統合テスト・パイプラインオーケストレーション・WebSocket・最適化ユーティリティ・250ファイル）・型エラー解消（237件→0件）・図解タイプ拡張（5→11種）・第18回要件検証完了（2026-04-30）
 
 ## 関連文書
 
@@ -134,6 +134,13 @@
 
 - REQ-051: システムは図解タイプ（DiagramType）の型ガード関数（isDiagramType）を提供し、実行時に不正な図解タイプ値を検出・排除しなければならない 🔵 *src/types/diagram.ts より*
 
+#### 追加 UI 機能 🔵実装済
+
+- REQ-052: システムはインタラクティブなチュートリアルシステム（マルチステップ・カテゴリ分け・難易度別・進捗追跡・LocalStorage永続化）を提供し、新規ユーザーのオンボーディングをサポートしなければならない 🔵 *src/components/TutorialSystem.tsx より*
+- REQ-053: システムは Standard/Streaming の2つのパイプライン実行モードを提供し、ユーザーがモード切替可能なマルチモードパイプラインインターフェースを提供しなければならない 🔵 *src/pages/Index.tsx・src/components/StreamingProcessor.tsx より*
+- REQ-054: システムはフレームワークパイプラインの実行状況（イテレーション追跡・品質メトリクス・フェーズ評価・改善推奨可視化）をリアルタイムで表示するダッシュボードを提供しなければならない 🔵 *src/components/FrameworkDashboard.tsx・src/components/FrameworkDashboardPage.tsx より*
+- REQ-055: システムはプロダクション設定の管理・監視・最適化を行うダッシュボード（設定編集・パフォーマンスレポート・最適化ステータス）を提供しなければならない 🔵 *src/components/ProductionDashboard.tsx より*
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より* 【Phase 2 完了】
@@ -153,6 +160,7 @@
 - REQ-302: システムは図解データを SVG/PNG/PDF 形式でエクスポートしてもよい 🔵 *src/export/multi-format-exporter.ts より* 【Phase 4 完了】
 - REQ-303: システムは多言語対応として ES/FR/DE/ZH を追加してもよい 🟡 *QUALITY_METRICS.md §6.2・SYSTEM_CORE.md §9 Phase 44-45 より*
 - REQ-304: システムはモバイルデバイス向けにレスポンシブ UI を提供してもよい 🟡 *docs/tasks/speech-to-visuals/TASK-0042.md より*
+- REQ-305: システムはグローバルエラーアラートシステム（自動非表示・11カテゴリ分類・エラー重大度表示）を提供してもよい 🔵 *src/components/ErrorAlertSystem.tsx・App.tsx より*
 
 ### 制約要件
 
