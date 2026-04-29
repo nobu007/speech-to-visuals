@@ -4,7 +4,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 1-5 完了（基盤・AI処理・レイアウト・レンダリング・FE・統合テスト・パイプラインオーケストレーション・WebSocket・最適化ユーティリティ・250ファイル）
+**実装状況**: Phase 1-5 完了（基盤・AI処理・レイアウト・レンダリング・FE・統合テスト・パイプラインオーケストレーション・WebSocket・最適化ユーティリティ・250ファイル）・型エラー解消（237件→0件）・図解タイプ拡張（5→11種）
 
 ## 関連文書
 
@@ -35,7 +35,7 @@
 
 - REQ-005: システムは文字起こしテキストを意味単位のセグメント（3-15秒）に分割しなければならない 🔵 *PIPELINE_FLOW.md Stage 2・src/analysis/scene-segmenter.ts より* 【Phase 2 完了】
 - REQ-006: システムは Gemini LLM（gemini-2.5-flash / gemini-2.5-pro）を用いて内容分析を行い、エンティティ抽出・関係性抽出・図解タイプ検出を実行しなければならない 🔵 *SYSTEM_CORE.md §4.1・src/analysis/gemini-analyzer.ts より* 【Phase 2 完了】
-- REQ-007: システムは図解タイプとして flow/tree/timeline/matrix/cycle の5種類を検出・判定しなければならない 🔵 *README.md 図解タイプ・src/analysis/diagram-detector.ts より* 【Phase 2 完了】
+- REQ-007: システムは図解タイプとして flow/tree/timeline/matrix/cycle の5種類に加え、flowchart/comparison/network/conceptmap/mindmap/general の6種類（計11種類）を検出・判定しなければならない 🔵 *README.md 図解タイプ・src/analysis/diagram-detector.ts・src/types/diagram.ts より* 【Phase 2 完了・型エラー修正時に6種追加】
 - REQ-008: システムはコンテンツの複雑さをスコアリングし、スコア20%未満は Flash、20%以上は Pro を自動選択しなければならない 🔵 *PIPELINE_FLOW.md §5.3・src/analysis/complexity-detector.ts より* 【Phase 2 完了】
 
 #### フォールバック・耐障害性 ✅実装済
@@ -46,7 +46,7 @@
 
 #### 図解レイアウト ✅実装済
 
-- REQ-012: システムは検出された図解タイプに応じて最適なレイアウト戦略（Flow/Tree/Timeline/Matrix/Cycle）を自動選択し、ノード配置を計算しなければならない 🔵 *src/visualization/strategy-selector.ts・PIPELINE_FLOW.md Stage 3 より* 【Phase 3 完了】
+- REQ-012: システムは検出された図解タイプに応じて最適なレイアウト戦略（Flow/Tree/Timeline/Matrix/Cycle）を自動選択し、ノード配置を計算しなければならない。反復パラメータ（iteration）を指定して段階的にレイアウトを改善できること 🔵 *src/visualization/strategy-selector.ts・src/visualization/base/BaseLayoutEngine.ts・PIPELINE_FLOW.md Stage 3 より* 【Phase 3 完了】
 - REQ-013: システムは全ノードペアのオーバーラップを検出し、フォースダイレクト法（最大100回反復）でオーバーラップをゼロに解消しなければならない 🔵 *src/visualization/overlap-resolver.ts・QUALITY_METRICS.md §3.3 より* 【Phase 3 完了】
 - REQ-014: システムはキャンバスサイズ（1920x1080基準）を自動計算し、全要素をセンタリングして出力しなければならない 🔵 *src/visualization/canvas-calculator.ts・PIPELINE_FLOW.md Stage 3 より* 【Phase 3 完了】
 
@@ -61,7 +61,7 @@
 - REQ-018: システムは各処理ステージの品質スコアを追跡し、ステージ間の品質ゲートを通過確認しなければならない 🔵 *src/quality/quality-monitor.ts・src/quality/adaptive-quality-gates.ts より*
 - REQ-019: システムはコンテンツ複雑度に応じて品質閾値を動的に調整する適応型品質ゲートを提供しなければならない 🔵 *src/quality/adaptive-quality-gates.ts より*
 - REQ-020: システムは5%を超える品質低下（リグレッション）を検出し、デプロイをブロックしなければならない 🔵 *src/quality/regression-detector.ts より*
-- REQ-021: システムは3層フォールバックに加えて低品質設定での再試行による多層エラー回復を提供しなければならない 🔵 *src/quality/enhanced-error-recovery.ts より*
+- REQ-021: システムは3層フォールバックに加えて低品質設定での再試行による多層エラー回復を提供し、CircuitBreaker パターンによる障害検知とグレースフルシャットダウン（30秒タイムアウト）をサポートしなければならない 🔵 *src/quality/enhanced-error-recovery.ts より*
 
 #### プロダクション監視 🔵実装済
 
@@ -125,6 +125,14 @@
 - REQ-047: システムは並列チャンク処理によるバッチ最適化（設定可能な並列度・チャンクサイズ・フェイルファスト・進捗コールバック）を提供し、大量データの効率的な処理をサポートしなければならない 🔵 *src/optimization/batch-optimizer.ts より*
 - REQ-048: システムは高コストな計算結果のメモ化キャッシュ（TTL有効期限・タグベース無効化・LRU退行・最大200エントリ）と、汎用LRUメモリキャッシュ（設定可能サイズ・TTL・定期クリーンアップ・ヒット率統計）を提供しなければならない 🔵 *src/optimization/computation-cache.ts・src/optimization/memory-cache.ts より*
 - REQ-049: システムは重いモジュールの遅延読み込み（動的インポートキャッシュ・同時ロード重複排除・プリロード・無効化・統計情報）を提供し、初期ロード時間を最適化しなければならない 🔵 *src/optimization/lazy-loader.ts より*
+
+#### グレースフルシャットダウン 🔵実装済
+
+- REQ-050: システムはシャットダウン要求時にアクティブリクエストの完了を待機（最大30秒タイムアウト）し、ヘルスモニタリングの停止・リクエストキューのクリア・サーキットブレーカーのリセットを実行して安全に終了しなければならない 🔵 *src/quality/enhanced-error-recovery.ts shutdown() メソッドより*
+
+#### 型ガード・型安全性 🔵実装済
+
+- REQ-051: システムは図解タイプ（DiagramType）の型ガード関数（isDiagramType）を提供し、実行時に不正な図解タイプ値を検出・排除しなければならない 🔵 *src/types/diagram.ts より*
 
 ### 条件付き要件
 
@@ -217,3 +225,4 @@
 | Phase 3: レイアウト・可視化 | ✅完了 | TASK-0023~0031 | 9/9 |
 | Phase 4: レンダリング・FE | ✅完了 | TASK-0032~0042 | 11/11 |
 | Phase 5: 統合・テスト | ✅完了 | TASK-0043~0055 | 13/13（全Phase完了） |
+| 型エラー解消・拡張 | ✅完了 | 44ファイル修正 | 237件→0件・図解11種化・シャットダウン追加 |
