@@ -1,10 +1,10 @@
 # speech-to-visuals タスク概要
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-30（第17回検証完了: 設計文書第17回更新（DBスキーマ実装同期確認）との整合性確認・全Phase完了・要件カバレッジ100%確認済み・完全再利用判定）
+**最終更新**: 2026-04-30（第18回更新: REQ-052~055・REQ-305 追加 UI コンポーネント検証タスク追加・要件カバレッジ100%確認済み）
 **プロジェクト期間**: 2026-04-27 - 2026-09-26（153日）
-**推定工数**: 508時間
-**総タスク数**: 55件
+**推定工数**: 528時間
+**総タスク数**: 60件
 
 ## 関連文書
 
@@ -24,12 +24,12 @@
 | Phase 2 | 2026-05-12 ~ 2026-06-06 | AI・処理モジュール | 12 | 112h | [TASK-0011~0022](#phase-2-ai処理モジュール) |
 | Phase 3 | 2026-06-08 ~ 2026-06-27 | レイアウト・可視化 | 9 | 88h | [TASK-0023~0031](#phase-3-レイアウト可視化) |
 | Phase 4 | 2026-06-29 ~ 2026-07-25 | レンダリング・フロントエンド | 11 | 104h | [TASK-0032~0042](#phase-4-レンダリングフロントエンド) |
-| Phase 5 | 2026-07-27 ~ 2026-08-22 | 統合・テスト | 13 | 136h | [TASK-0043~0055](#phase-5-統合テスト) |
+| Phase 5 | 2026-07-27 ~ 2026-08-22 | 統合・テスト | 18 | 156h | [TASK-0043~0060](#phase-5-統合テスト) |
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0055
-**次回開始番号**: TASK-0056
+**使用済みタスク番号**: TASK-0001 ~ TASK-0060
+**次回開始番号**: TASK-0061
 
 ## 全体進捗
 
@@ -73,6 +73,18 @@ Phase 5 で追加された要件（REQ-046~049）に対応するタスクへの�
 | REQ-047 | BatchOptimizer | TASK-0053, TASK-0052 | 並列チャンク処理・フェイルファスト・進捗コールバック・統計情報 |
 | REQ-048 | ComputationCache + MemoryCache | TASK-0054, TASK-0052 | TTL・タグ無効化・LRU退行・定期クリーンアップ・ヒット率統計 |
 | REQ-049 | LazyLoader | TASK-0055, TASK-0052 | 動的インポートキャッシュ・同時ロード重複排除・プリロード・ハンドルファクトリ |
+
+## REQ-052~055・REQ-305 追加 UI コンポーネント対応状況
+
+Phase 5 で追加された要件（REQ-052~055, REQ-305）に対応するタスクへの参照：
+
+| 要件 | モジュール | 対応タスク | 内容 |
+|------|-----------|-----------|------|
+| REQ-052 | TutorialSystem | TASK-0056 | マルチステップチュートリアル・4カテゴリ・3段階難易度・LocalStorage進捗 |
+| REQ-053 | StreamingProcessor | TASK-0057 | Standard/Streaming モード切替・ライブ録音・リアルタイム文字起こし |
+| REQ-054 | FrameworkDashboard | TASK-0058 | イテレーション追跡・品質メトリクス・フェーズ評価・改善推奨 |
+| REQ-055 | ProductionDashboard | TASK-0059 | 設定管理・パフォーマンスレポート・監視・最適化ステータス |
+| REQ-305 | ErrorAlertSystem | TASK-0060 | グローバルエラーアラート・11カテゴリ分類・自動非表示・重大度表示 |
 
 ## マイルストーン
 
@@ -217,8 +229,8 @@ TASK-0036, TASK-0035 → TASK-0039, TASK-0041
 ## Phase 5: 統合・テスト
 
 **期間**: 2026-07-27 ~ 2026-08-22
-**目標**: パイプライン統合・API統合・E2Eテスト・パフォーマンス最適化（REQ-036~039 拡張モジュール + REQ-040~045 Phase 5モジュール + REQ-046~049 WebSocket・最適化ユーティリティ統合含む）
-**成果物**: Pipeline Orchestrator (REQ-042), QualityGate (REQ-041), ErrorClassifier (REQ-040), Batch API (REQ-043), Edge Functions Auth+Error (REQ-044/045), WebSocket (REQ-046), BatchOptimizer (REQ-047), Cache (REQ-048), LazyLoader (REQ-049), 統合テスト, パフォーマンス検証
+**目標**: パイプライン統合・API統合・E2Eテスト・パフォーマンス最適化（REQ-036~039 拡張モジュール + REQ-040~045 Phase 5モジュール + REQ-046~049 WebSocket・最適化ユーティリティ統合 + REQ-052~055 追加 UI コンポーネント検証 + REQ-305 エラーアラート検証含む）
+**成果物**: Pipeline Orchestrator (REQ-042), QualityGate (REQ-041), ErrorClassifier (REQ-040), Batch API (REQ-043), Edge Functions Auth+Error (REQ-044/045), WebSocket (REQ-046), BatchOptimizer (REQ-047), Cache (REQ-048), LazyLoader (REQ-049), 統合テスト, パフォーマンス検証, UI検証 (REQ-052~055, REQ-305)
 
 ### タスク一覧
 
@@ -235,6 +247,11 @@ TASK-0036, TASK-0035 → TASK-0039, TASK-0041
 - [x] [TASK-0053: バッチ最適化ユーティリティ実装](TASK-0053.md) - 8h (TDD) 🔵
 - [x] [TASK-0054: 計算キャッシュ・メモリキャッシュ実装](TASK-0054.md) - 8h (TDD) 🔵
 - [x] [TASK-0055: 遅延ローダー実装](TASK-0055.md) - 8h (TDD) 🔵
+- [ ] [TASK-0056: TutorialSystem 実装検証](TASK-0056.md) - 4h (DIRECT) 🔵
+- [ ] [TASK-0057: StreamingProcessor マルチモード検証](TASK-0057.md) - 4h (DIRECT) 🔵
+- [ ] [TASK-0058: FrameworkDashboard 検証](TASK-0058.md) - 4h (DIRECT) 🔵
+- [ ] [TASK-0059: ProductionDashboard 検証](TASK-0059.md) - 4h (DIRECT) 🔵
+- [ ] [TASK-0060: ErrorAlertSystem 検証](TASK-0060.md) - 4h (DIRECT) 🔵
 
 ### 依存関係
 
@@ -250,6 +267,11 @@ TASK-0046, TASK-0009 → TASK-0050
 TASK-0050 → TASK-0051
 TASK-0009 → TASK-0053, TASK-0054, TASK-0055
 TASK-0010, TASK-0044, TASK-0049, TASK-0051, TASK-0053, TASK-0054, TASK-0055 → TASK-0052
+TASK-0036 → TASK-0056
+TASK-0036, TASK-0011 → TASK-0057
+TASK-0036 → TASK-0058
+TASK-0036 → TASK-0059
+TASK-0040 → TASK-0060
 ```
 
 ---
@@ -258,8 +280,8 @@ TASK-0010, TASK-0044, TASK-0049, TASK-0051, TASK-0053, TASK-0054, TASK-0055 → 
 
 ### 全タスク統計
 
-- **総タスク数**: 55件
-- 🔵 **青信号**: 51件 (93%)
+- **総タスク数**: 60件
+- 🔵 **青信号**: 56件 (93%)
 - 🟡 **黄信号**: 4件 (7%)
 - 🔴 **赤信号**: 0件 (0%)
 
@@ -271,9 +293,9 @@ TASK-0010, TASK-0044, TASK-0049, TASK-0051, TASK-0053, TASK-0054, TASK-0055 → 
 | Phase 2 | 12 | 0 | 0 | 12 |
 | Phase 3 | 9 | 0 | 0 | 9 |
 | Phase 4 | 9 | 2 | 0 | 11 |
-| Phase 5 | 12 | 1 | 0 | 13 |
+| Phase 5 | 17 | 1 | 0 | 18 |
 
-**品質評価**: 高品質 - 93%のタスクが既存設計文書・実装に基づいている
+**品質評価**: 高品質 - 93%のタスクが既存設計文書・実装に基づいている（第18回更新: REQ-052~055・REQ-305 追加 UI コンポーネント検証タスク反映）
 
 ## クリティカルパス
 
