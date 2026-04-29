@@ -7,7 +7,7 @@ import { PipelineInterface } from '@/components/pipeline-interface';
 import { StreamingProcessor } from '@/components/StreamingProcessor';
 import { ProcessingStatus as StatusType, ProcessingResult } from '@/types/diagram';
 import { MainPipeline } from '@/pipeline';
-import { supabase } from '@/integrations/supabase/client';
+import { getSupabaseClient } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Sparkles } from 'lucide-react';
 
@@ -27,7 +27,7 @@ const Index = () => {
 
       // Upload to storage (anonymous upload)
       const fileName = `${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await getSupabaseClient().storage
         .from('audio')
         .upload(fileName, file);
 
@@ -36,7 +36,7 @@ const Index = () => {
         throw new Error('ファイルのアップロードに失敗しました');
       }
 
-      const { data: { publicUrl } } = supabase.storage
+      const { data: { publicUrl } } = getSupabaseClient().storage
         .from('audio')
         .getPublicUrl(fileName);
 

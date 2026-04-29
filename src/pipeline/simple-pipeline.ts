@@ -54,7 +54,7 @@ export class SimplePipeline {
   private segmenter: SceneSegmenter;
   private detector: DiagramDetector;
   private layoutEngine: LayoutEngine;
-  private enhancedLayoutEngine: EnhancedZeroOverlapLayoutEngine;
+  private enhancedLayoutEngine: InstanceType<typeof EnhancedZeroOverlapLayoutEngine>;
   private videoGenerator: VideoGenerator;
 
   // Progressive enhancement tracking (段階的改善追跡)
@@ -80,8 +80,8 @@ export class SimplePipeline {
     });
 
     this.segmenter = new SceneSegmenter({
-      minSceneLength: 30,
-      maxSceneLength: 180,
+      minSegmentLengthMs: 30,
+      maxSegmentLengthMs: 180,
       confidenceThreshold: 0.6
     });
 
@@ -90,7 +90,8 @@ export class SimplePipeline {
     this.layoutEngine = new LayoutEngine({
       width: 1920,
       height: 1080,
-      margin: 40
+      marginX: 40,
+      marginY: 40
     });
 
     // ITERATION 45: Enhanced Zero Overlap Layout Engine with improved parameters
@@ -122,11 +123,12 @@ export class SimplePipeline {
     const startTime = Date.now();
     this.iterationCount++;
 
+    let audioUrl: string | undefined;
     try {
       onProgress?.('Preparing audio file', 10);
 
       // Step 1: Create audio URL for processing
-      const audioUrl = URL.createObjectURL(input.audioFile);
+      audioUrl = URL.createObjectURL(input.audioFile);
 
       onProgress?.('Transcribing audio', 20);
 
@@ -610,7 +612,7 @@ export class SimplePipeline {
       // Clean up any temporary resources
       try {
         // Revoke object URLs to prevent memory leaks
-        if (typeof audioUrl !== 'undefined') {
+        if (audioUrl) {
           URL.revokeObjectURL(audioUrl);
         }
       } catch (cleanupError) {

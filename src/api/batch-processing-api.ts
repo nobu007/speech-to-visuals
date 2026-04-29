@@ -415,10 +415,3 @@ export class BatchProcessingAPI {
 
 // Export singleton instance
 export const batchProcessingAPI = new BatchProcessingAPI();
-
-// Export types for API consumers
-export type {
-  BatchJobRequest,
-  BatchJobStatus,
-  BatchJobResult,
-};

@@ -6,7 +6,7 @@
  * Includes LRU eviction, compression, and predictive preloading.
  */
 
-import { DiagramType, ContentSegment, EntityNode, EntityEdge } from '@/types/diagram';
+import { DiagramType } from '@/types/diagram';
 
 interface CacheEntry {
   id: string;
@@ -38,6 +38,16 @@ interface CacheStats {
   evictionCount: number;
   preloadHits: number;
   performanceScore: number;
+  /** Alias for totalEntries – current cache size */
+  currentSize?: number;
+  /** Maximum cache capacity */
+  maxSize?: number;
+  /** Total number of cache hits */
+  totalHits?: number;
+  /** Total number of cache misses */
+  totalMisses?: number;
+  /** Alias for evictionCount */
+  evictions?: number;
 }
 
 interface ContentFingerprint {
@@ -894,7 +904,8 @@ export function cached(keyGenerator?: (args: any[]) => string) {
         contentType: 'flow', // Default type
         duration: performance.now(),
         complexity: 0.5,
-        performanceScore: 0.8
+        performanceScore: 0.8,
+        accessPattern: 'mixed'
       });
 
       return result;

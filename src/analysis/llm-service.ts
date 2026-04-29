@@ -581,8 +581,8 @@ export class LLMService {
    */
   getStats(): LLMServiceStats {
     const cacheStats = this.cache.getStats();
-    const cacheHitRate = cacheStats.hits + cacheStats.misses > 0
-      ? (cacheStats.hits / (cacheStats.hits + cacheStats.misses)) * 100
+    const cacheHitRate = cacheStats.totalHits + cacheStats.semantic.misses > 0
+      ? (cacheStats.totalHits / (cacheStats.totalHits + cacheStats.semantic.misses)) * 100
       : 0;
 
     const avgFlashTime = this.modelMetrics.flashResponseTimes.length > 0
@@ -620,8 +620,8 @@ export class LLMService {
 
     return {
       totalRequests: this.modelMetrics.totalRequests,
-      cacheHits: cacheStats.hits,
-      cacheMisses: cacheStats.misses,
+      cacheHits: cacheStats.totalHits,
+      cacheMisses: cacheStats.semantic.misses,
       cacheHitRate: Math.round(cacheHitRate * 10) / 10,
       modelUsage: {
         flash: this.modelMetrics.flashRequests,

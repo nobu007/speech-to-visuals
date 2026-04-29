@@ -36,7 +36,8 @@ export abstract class BaseLayoutEngine {
   abstract generateLayout(
     nodes: NodeDatum[],
     edges: EdgeDatum[],
-    diagramType: DiagramType
+    diagramType: DiagramType,
+    iteration?: number
   ): Promise<LayoutResult>;
 
   /**
@@ -251,6 +252,26 @@ export abstract class BaseLayoutEngine {
    */
   protected constrainAllNodesToBounds(nodes: PositionedNode[], margin: number = 10): void {
     nodes.forEach(node => this.constrainNodeToBounds(node, margin));
+  }
+
+  /**
+   * Constrain a single node to canvas bounds
+   */
+  protected constrainNodeToBounds(node: PositionedNode, margin: number = 10): void {
+    const w = node.w ?? node.width ?? 0;
+    const h = node.h ?? node.height ?? 0;
+    if (node.x - w / 2 < margin) {
+      node.x = w / 2 + margin;
+    }
+    if (node.y - h / 2 < margin) {
+      node.y = h / 2 + margin;
+    }
+    if (node.x + w / 2 > this.config.width - margin) {
+      node.x = this.config.width - w / 2 - margin;
+    }
+    if (node.y + h / 2 > this.config.height - margin) {
+      node.y = this.config.height - h / 2 - margin;
+    }
   }
 
   // ============================================================

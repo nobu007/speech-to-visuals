@@ -146,17 +146,11 @@ export class StreamingTranscriber {
 
       const result: TranscriptionResult = {
         segments: mergedSegments,
-        fullText: mergedSegments.map(s => s.text).join(' '),
+        text: mergedSegments.map(s => s.text).join(' '),
         duration: audioDuration * 1000,
-        confidence: this.calculateAverageConfidence(mergedSegments),
         language: 'ja',
-        processingTimeMs: Date.now() - performance.now(),
-        metadata: {
-          chunkCount: chunks.length,
-          totalSegments: mergedSegments.length,
-          averageChunkTime: audioDuration / chunks.length,
-          processingMethod: 'streaming'
-        }
+        processingTime: Date.now() - performance.now(),
+        success: true
       };
 
       console.log(`✅ Streaming transcription complete: ${mergedSegments.length} segments`);

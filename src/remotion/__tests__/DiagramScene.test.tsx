@@ -71,7 +71,7 @@ function renderDiagramScene(
     scene: SceneGraph;
     sceneIndex: number;
     currentTime: number;
-  }>)({ scene, sceneIndex, currentTime });
+  }>)({ scene, sceneIndex, currentTime }) as React.ReactElement;
 }
 
 describe('DiagramScene', () => {

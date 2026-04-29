@@ -1,4 +1,4 @@
-import { DiagramType, NodeDatum, EdgeDatum } from '@/types/diagram';
+import { DiagramType, NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult, CanvasSize, StrategyRegistry } from './types';
 import { DefaultStrategyRegistry } from './strategies/base-strategy';
 import { OverlapResolver } from './overlap-resolver';
@@ -130,13 +130,15 @@ export async function executeLayout(
   return result;
 }
 
-function calculateBoundingBox(nodes: { x: number; y: number; width: number; height: number }[]) {
+function calculateBoundingBox(nodes: PositionedNode[]) {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const n of nodes) {
+    const w = n.w ?? n.width ?? 0;
+    const h = n.h ?? n.height ?? 0;
     if (n.x < minX) minX = n.x;
     if (n.y < minY) minY = n.y;
-    if (n.x + n.width > maxX) maxX = n.x + n.width;
-    if (n.y + n.height > maxY) maxY = n.y + n.height;
+    if (n.x + w > maxX) maxX = n.x + w;
+    if (n.y + h > maxY) maxY = n.y + h;
   }
   return { minX, minY, maxX, maxY, width: maxX - minX, height: maxY - minY };
 }

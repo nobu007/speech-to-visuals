@@ -18,7 +18,7 @@ interface ErrorContext {
   errorId: string;
 }
 
-interface ErrorMetrics {
+export interface ErrorMetrics {
   errorRate: number;
   meanTimeToRecovery: number;
   affectedUsers: number;
@@ -34,7 +34,7 @@ interface RecoveryStrategy {
   estimatedTime: number; // seconds
 }
 
-interface ErrorAlert {
+export interface ErrorAlert {
   id: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
   message: string;

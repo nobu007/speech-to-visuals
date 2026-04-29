@@ -28,7 +28,7 @@ export const RemotionRoot: React.FC = () => {
     <>
       <Composition
         id={COMPOSITION_ID}
-        component={SpeechToVisualsVideo}
+        component={SpeechToVisualsVideo as unknown as React.ComponentType<Record<string, unknown>>}
         durationInFrames={calculateTotalFrames(defaultVideoProps.scenes)}
         fps={DEFAULT_FPS}
         width={DEFAULT_WIDTH}

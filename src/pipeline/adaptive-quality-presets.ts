@@ -250,7 +250,7 @@ export class AdaptiveQualityPresetsManager {
         layoutQuality: params.layoutQuality,
         videoOptions: {
           outputFormat: 'mp4',
-          quality: params.videoQuality,
+          quality: params.videoQuality as any,
           resolution: params.videoResolution,
           fps: params.videoFps,
           includeAudio: true,

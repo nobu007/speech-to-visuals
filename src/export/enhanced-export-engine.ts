@@ -310,7 +310,7 @@ export class EnhancedExportEngine {
   private async postProcess(job: ExportJob, video: EncodedVideo): Promise<ProcessedVideo> {
     this.updateProgress(job, 'post-processing', 85, 'Post-processing video...');
 
-    const processed = { ...video };
+    const processed: ProcessedVideo = { ...video };
 
     // Apply watermark if enabled
     if (job.config.settings.watermark) {

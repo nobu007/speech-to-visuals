@@ -461,7 +461,7 @@ export class SceneSegmenter {
     const successCriteria = {
       hasSegments: metrics.segmentCount > this.MIN_SEGMENTS_FOR_SUCCESS,
       reasonableLength: metrics.avgSegmentLength > this.REASONABLE_LENGTH_MIN_MS && metrics.avgSegmentLength < this.REASONABLE_LENGTH_MAX_MS,
-      hasKeyphrases: metrics.avgKeyphrases > this.MIN_KEYPHRASES_FOR_SUCCESS,
+      hasKeyphrases: metrics.avgKeyphraseCount > this.MIN_KEYPHRASES_FOR_SUCCESS,
       goodConfidence: metrics.avgConfidence > this.GOOD_CONFIDENCE_THRESHOLD
     };
 

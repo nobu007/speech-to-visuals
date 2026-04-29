@@ -34,13 +34,7 @@ export const FrameworkDashboardPage: React.FC = () => {
 
     // Create dummy input for demo (replace with real audio file upload)
     const dummyInput: PipelineInput = {
-      audioPath: '/public/audio/sample.wav',
-      outputPath: '/public/output/',
-      options: {
-        quality: 'high',
-        enableCache: true,
-        parallelScenes: true
-      }
+      audioFile: '/public/audio/sample.wav',
     };
 
     await execute(dummyInput);

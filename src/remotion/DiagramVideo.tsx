@@ -19,7 +19,7 @@ export const DiagramVideo: React.FC<DiagramVideoProps> = ({
   // 現在のフレームに対応するシーンを検索
   const currentTime = (frame / fps) * 1000; // ミリ秒
   const currentScene = scenes.find(
-    (scene) => currentTime >= scene.startTime * 1000 && currentTime < scene.endTime * 1000
+    (scene) => currentTime >= (scene.startTime ?? 0) * 1000 && currentTime < (scene.endTime ?? (scene.startTime ?? 0) + scene.durationMs / 1000) * 1000
   );
 
   // シーンインデックス

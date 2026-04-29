@@ -22,8 +22,8 @@ export interface OverlapPair {
 export interface NodeDimensionsConfig {
   nodeWidth: number;
   nodeHeight: number;
-  charWidth: number;
-  padding: number;
+  charWidth?: number;
+  padding?: number;
 }
 
 export interface LayoutConfig {
@@ -54,6 +54,7 @@ export interface LayoutResult {
   success: boolean;
   error?: string;
   metrics?: LayoutMetrics;
+  confidence?: number;
 }
 
 export interface LayoutMetrics {

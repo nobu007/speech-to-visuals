@@ -113,6 +113,42 @@ const DIAGRAM_KEYWORDS: Record<DiagramType, {
     ],
     negative: [],
   },
+  flowchart: {
+    primary: [],
+    secondary: [],
+    context: [],
+    negative: [],
+  },
+  comparison: {
+    primary: [],
+    secondary: [],
+    context: [],
+    negative: [],
+  },
+  network: {
+    primary: [],
+    secondary: [],
+    context: [],
+    negative: [],
+  },
+  conceptmap: {
+    primary: [],
+    secondary: [],
+    context: [],
+    negative: [],
+  },
+  mindmap: {
+    primary: [],
+    secondary: [],
+    context: [],
+    negative: [],
+  },
+  general: {
+    primary: [],
+    secondary: [],
+    context: [],
+    negative: [],
+  },
 };
 
 /**
@@ -302,10 +338,16 @@ export class DiagramDetector {
     // Calculate weighted scores for each diagram type
     const scores: Record<DiagramType, number> = {
       flow: 0,
+      flowchart: 0,
       tree: 0,
       timeline: 0,
       matrix: 0,
-      cycle: 0
+      cycle: 0,
+      comparison: 0,
+      network: 0,
+      conceptmap: 0,
+      mindmap: 0,
+      general: 0,
     };
 
     for (const [diagramType, patternSet] of Object.entries(patterns)) {
@@ -565,12 +607,18 @@ export class DiagramDetector {
   }
 
   private getDefaultEdgeLabel(diagramType: DiagramType): string {
-    const labels = {
+    const labels: Record<DiagramType, string> = {
       flow: 'leads to',
+      flowchart: 'leads to',
       tree: 'contains',
       timeline: 'followed by',
       matrix: 'relates to',
-      cycle: 'continues to'
+      cycle: 'continues to',
+      comparison: 'compared to',
+      network: 'connects to',
+      conceptmap: 'relates to',
+      mindmap: 'branches to',
+      general: 'connected to',
     };
     return labels[diagramType] || 'connected to';
   }
@@ -621,12 +669,18 @@ export class DiagramDetector {
     const relationships: SemanticRelation[] = [];
 
     // Define relationship patterns based on diagram type
-    const relationPatterns = {
+    const relationPatterns: Record<DiagramType, string[]> = {
       flow: ['leads to', 'results in', 'followed by', 'then', 'next'],
+      flowchart: ['leads to', 'results in', 'followed by', 'then', 'next'],
       tree: ['contains', 'includes', 'part of', 'under', 'parent'],
       timeline: ['before', 'after', 'during', 'preceded by', 'followed by'],
       matrix: ['versus', 'compared to', 'against', 'different from'],
-      cycle: ['returns to', 'cycles back', 'repeats', 'continues to']
+      cycle: ['returns to', 'cycles back', 'repeats', 'continues to'],
+      comparison: ['versus', 'compared to', 'against', 'different from'],
+      network: ['connects to', 'linked to', 'related to'],
+      conceptmap: ['relates to', 'connected to', 'associated with'],
+      mindmap: ['branches to', 'subtopic of', 'expands into'],
+      general: [],
     };
 
     const patterns = relationPatterns[diagramType] || relationPatterns.flow;
@@ -675,12 +729,18 @@ export class DiagramDetector {
 
   private categorizeEntity(term: string, diagramType: DiagramType): string {
     // Simple categorization based on diagram type
-    const categories = {
+    const categories: Record<DiagramType, string> = {
       flow: 'process',
+      flowchart: 'process',
       tree: 'node',
       timeline: 'event',
       matrix: 'item',
-      cycle: 'stage'
+      cycle: 'stage',
+      comparison: 'item',
+      network: 'node',
+      conceptmap: 'concept',
+      mindmap: 'topic',
+      general: 'entity',
     };
     return categories[diagramType] || 'entity';
   }
@@ -764,10 +824,16 @@ export class DiagramDetector {
       // Calculate weighted scores for each diagram type
       const typeScores: Record<DiagramType, { score: number; methods: string[] }> = {
         flow: { score: 0, methods: [] },
+        flowchart: { score: 0, methods: [] },
         tree: { score: 0, methods: [] },
         timeline: { score: 0, methods: [] },
         matrix: { score: 0, methods: [] },
-        cycle: { score: 0, methods: [] }
+        cycle: { score: 0, methods: [] },
+        comparison: { score: 0, methods: [] },
+        network: { score: 0, methods: [] },
+        conceptmap: { score: 0, methods: [] },
+        mindmap: { score: 0, methods: [] },
+        general: { score: 0, methods: [] },
       };
 
       candidates.forEach(candidate => {
@@ -882,7 +948,7 @@ export class DiagramDetector {
     const features = this.extractTextFeatures(lowerText, keyphrases);
 
     // Calculate confidence for each type using calculateConfidence
-    const allScores: DiagramScore[] = (['flow', 'tree', 'timeline', 'matrix', 'cycle'] as DiagramType[]).map(type => {
+    const allScores: DiagramScore[] = (['flow', 'flowchart', 'tree', 'timeline', 'matrix', 'cycle', 'comparison', 'network', 'conceptmap', 'mindmap', 'general'] as DiagramType[]).map(type => {
       const confidence = this.calculateConfidence(type, features);
       return {
         type,
@@ -943,24 +1009,42 @@ export class DiagramDetector {
   extractTextFeatures(text: string, keyphrases: string[]): TextFeatures {
     const keywordHits: Record<DiagramType, string[]> = {
       flow: [],
+      flowchart: [],
       tree: [],
       timeline: [],
       matrix: [],
       cycle: [],
+      comparison: [],
+      network: [],
+      conceptmap: [],
+      mindmap: [],
+      general: [],
     };
     const keywordFrequency: Record<DiagramType, number> = {
       flow: 0,
+      flowchart: 0,
       tree: 0,
       timeline: 0,
       matrix: 0,
       cycle: 0,
+      comparison: 0,
+      network: 0,
+      conceptmap: 0,
+      mindmap: 0,
+      general: 0,
     };
     const relationPatterns: Record<DiagramType, number> = {
       flow: 0,
+      flowchart: 0,
       tree: 0,
       timeline: 0,
       matrix: 0,
       cycle: 0,
+      comparison: 0,
+      network: 0,
+      conceptmap: 0,
+      mindmap: 0,
+      general: 0,
     };
 
     let totalKeywords = 0;
@@ -984,10 +1068,16 @@ export class DiagramDetector {
       // Relation pattern detection
       const relationIndicators: Record<DiagramType, string[]> = {
         flow: ['→', 'leads to', 'results in', 'followed by', 'してから', 'した後'],
+        flowchart: [],
         tree: ['includes', 'contains', 'part of', '属する', '含まれる', '分類'],
         timeline: ['before', 'after', 'during', 'から', 'まで', '以降'],
         matrix: ['versus', 'compared to', 'against', 'に対して', '比較', '一方'],
         cycle: ['returns to', 'cycles back', 'repeats', '繰り返し', '循環', '戻る'],
+        comparison: [],
+        network: [],
+        conceptmap: [],
+        mindmap: [],
+        general: [],
       };
 
       for (const pattern of relationIndicators[diagramType]) {

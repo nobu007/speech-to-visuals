@@ -6,7 +6,7 @@
  * maximum system stability under stress conditions.
  */
 
-import { DiagramType, ContentSegment } from '@/types/diagram';
+import { DiagramType } from '@/types/diagram';
 import { globalCache } from '../performance/intelligent-cache';
 
 interface ErrorContext {
@@ -161,12 +161,12 @@ export class EnhancedErrorRecovery {
   private errorHistory: Map<string, ErrorContext[]> = new Map();
   private healthMetrics: SystemHealth;
   private preventiveActions: Map<string, () => Promise<void>> = new Map();
-  private circuitBreakers: Map<string, CircuitBreakerState> = new Map();
+  private circuitBreakers: Map<string, CircuitBreaker> = new Map();
   private loadMetrics: LoadMetrics[] = [];
   private loadBalancingConfig: LoadBalancingConfig;
   private activeRequests: Map<string, { promise: Promise<any>; startTime: number; stage?: ProcessingStage; priority: number }> = new Map();
   private requestQueue: Array<{ id: string; request: () => Promise<any>; priority: number; queuedAt: number; timeout: number; stage?: ProcessingStage }> = [];
-  private healthCheckTimer: NodeJS.Timer | null = null;
+  private healthCheckTimer: NodeJS.Timeout | null = null;
   private isShuttingDown = false;
   private dynamicCapacity: number;
   private requestStats: { completed: number; failed: number; avgResponseTime: number } = { completed: 0, failed: 0, avgResponseTime: 0 };
@@ -201,19 +201,14 @@ export class EnhancedErrorRecovery {
   private initializeCircuitBreakers(): void {
     const stages: ProcessingStage[] = [
       'transcription', 'segmentation', 'analysis',
-      'diagram_detection', 'layout', 'animation', 'rendering', 'export'
+      'diagram_detection', 'layout_generation', 'animation', 'rendering', 'export'
     ];
 
     for (const stage of stages) {
-      this.circuitBreakers.set(stage, {
-        id: stage,
-        state: 'closed',
-        failureCount: 0,
-        successCount: 0,
-        lastFailureTime: 0,
-        timeout: 60000, // 1 minute
-        threshold: this.loadBalancingConfig.circuitBreakerThreshold
-      });
+      this.circuitBreakers.set(stage, new CircuitBreaker({
+        threshold: this.loadBalancingConfig.circuitBreakerThreshold,
+        timeout: 60000
+      }));
     }
   }
 
@@ -1396,7 +1391,7 @@ export class EnhancedErrorRecovery {
   /**
    * Execute preventive actions
    */
-  private async executePreventiveActions(): void {
+  private async executePreventiveActions(): Promise<void> {
     // Check if preventive actions are needed
     const highRiskIndicators = this.healthMetrics.indicators.filter(i => i.riskLevel === 'high');
 
@@ -1439,6 +1434,47 @@ export class EnhancedErrorRecovery {
    */
   getHealthReport(): SystemHealth {
     return { ...this.healthMetrics };
+  }
+
+  /**
+   * Shutdown the error recovery system gracefully
+   */
+  async shutdown(): Promise<void> {
+    this.isShuttingDown = true;
+    console.log('🔄 Shutting down error recovery system...');
+
+    // Stop health monitoring
+    if (this.healthCheckTimer) {
+      clearInterval(this.healthCheckTimer);
+      this.healthCheckTimer = null;
+    }
+
+    // Wait for active requests to complete (with timeout)
+    const shutdownTimeout = 30000; // 30 seconds
+    const startShutdown = Date.now();
+
+    while (this.activeRequests.size > 0 && (Date.now() - startShutdown) < shutdownTimeout) {
+      console.log(`⏳ Waiting for ${this.activeRequests.size} active requests to complete...`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    // Force abort remaining requests
+    if (this.activeRequests.size > 0) {
+      console.log(`⚠️ Force aborting ${this.activeRequests.size} remaining requests`);
+      this.activeRequests.clear();
+    }
+
+    // Clear request queue
+    this.requestQueue = [];
+
+    // Reset circuit breakers
+    for (const breaker of this.circuitBreakers.values()) {
+      breaker.state = 'closed';
+      if ('failureCount' in breaker) breaker.failureCount = 0;
+      if ('successCount' in breaker) breaker.successCount = 0;
+    }
+
+    console.log('✅ Error recovery system shutdown complete');
   }
 
   // ========================================
@@ -1606,9 +1642,10 @@ export class EnhancedErrorRecovery {
  * Simple circuit breaker implementation
  */
 class CircuitBreaker {
-  private failures = 0;
-  private lastFailureTime = 0;
-  private state: 'closed' | 'open' | 'half-open' = 'closed';
+  private _failures = 0;
+  private _lastFailureTime = 0;
+  private _state: 'closed' | 'open' | 'half-open' = 'closed';
+  private _successCount = 0;
 
   constructor(
     private options: {
@@ -1618,10 +1655,52 @@ class CircuitBreaker {
     }
   ) {}
 
+  /** Current state of the circuit breaker */
+  get state(): 'closed' | 'open' | 'half-open' {
+    return this._state;
+  }
+  set state(value: 'closed' | 'open' | 'half-open') {
+    this._state = value;
+  }
+
+  /** Number of consecutive failures */
+  get failureCount(): number {
+    return this._failures;
+  }
+  set failureCount(value: number) {
+    this._failures = value;
+  }
+
+  /** Number of consecutive successes (used in half-open state) */
+  get successCount(): number {
+    return this._successCount;
+  }
+  set successCount(value: number) {
+    this._successCount = value;
+  }
+
+  /** Timestamp of the last failure */
+  get lastFailureTime(): number {
+    return this._lastFailureTime;
+  }
+  set lastFailureTime(value: number) {
+    this._lastFailureTime = value;
+  }
+
+  /** Failure threshold to open the breaker */
+  get threshold(): number {
+    return this.options.threshold;
+  }
+
+  /** Recovery timeout in milliseconds */
+  get timeout(): number {
+    return this.options.timeout;
+  }
+
   isOpen(): boolean {
-    if (this.state === 'open') {
-      if (Date.now() - this.lastFailureTime > this.options.timeout) {
-        this.state = 'half-open';
+    if (this._state === 'open') {
+      if (Date.now() - this._lastFailureTime > this.options.timeout) {
+        this._state = 'half-open';
         return false;
       }
       return true;
@@ -1630,60 +1709,21 @@ class CircuitBreaker {
   }
 
   recordSuccess(): void {
-    this.failures = 0;
-    this.state = 'closed';
+    this._failures = 0;
+    this._state = 'closed';
+    this._successCount = 0;
   }
 
   recordFailure(): void {
-    this.failures++;
-    this.lastFailureTime = Date.now();
+    this._failures++;
+    this._lastFailureTime = Date.now();
 
-    if (this.failures >= this.options.threshold) {
-      this.state = 'open';
+    if (this._failures >= this.options.threshold) {
+      this._state = 'open';
       if (this.options.monitor) {
-        this.options.monitor(new Error(`Circuit breaker opened after ${this.failures} failures`));
+        this.options.monitor(new Error(`Circuit breaker opened after ${this._failures} failures`));
       }
     }
-  }
-  /**
-   * Shutdown the error recovery system gracefully
-   */
-  async shutdown(): Promise<void> {
-    this.isShuttingDown = true;
-    console.log('🔄 Shutting down error recovery system...');
-
-    // Stop health monitoring
-    if (this.healthCheckTimer) {
-      clearInterval(this.healthCheckTimer);
-      this.healthCheckTimer = null;
-    }
-
-    // Wait for active requests to complete (with timeout)
-    const shutdownTimeout = 30000; // 30 seconds
-    const startShutdown = Date.now();
-
-    while (this.activeRequests.size > 0 && (Date.now() - startShutdown) < shutdownTimeout) {
-      console.log(`⏳ Waiting for ${this.activeRequests.size} active requests to complete...`);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-
-    // Force abort remaining requests
-    if (this.activeRequests.size > 0) {
-      console.log(`⚠️ Force aborting ${this.activeRequests.size} remaining requests`);
-      this.activeRequests.clear();
-    }
-
-    // Clear request queue
-    this.requestQueue = [];
-
-    // Reset circuit breakers
-    for (const breaker of this.circuitBreakers.values()) {
-      breaker.state = 'closed';
-      breaker.failureCount = 0;
-      breaker.successCount = 0;
-    }
-
-    console.log('✅ Error recovery system shutdown complete');
   }
 }
 

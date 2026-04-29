@@ -5,7 +5,7 @@
  */
 
 import { performance } from 'perf_hooks';
-import type { AudioCharacteristics, OptimalParameters } from './smart-parameter-tuner';
+import type { AudioCharacteristics, ParameterSet as OptimalParameters } from './smart-parameter-tuner';
 
 export interface ProcessingStrategy {
   name: string;
@@ -188,7 +188,7 @@ export class AdaptiveContentProcessor {
     const customized = JSON.parse(JSON.stringify(baseStrategy)); // Deep copy
 
     // Customize transcription config
-    if (characteristics.clarity && characteristics.clarity < 0.6) {
+    if (characteristics.audioQuality && characteristics.audioQuality < 0.6) {
       // Poor audio quality - use larger model and more retries
       customized.transcriptionConfig.model = 'medium';
       customized.transcriptionConfig.retryCount = Math.max(3, customized.transcriptionConfig.retryCount);
@@ -201,7 +201,7 @@ export class AdaptiveContentProcessor {
     }
 
     // Customize analysis config
-    customized.analysisConfig.diagramDetectionSensitivity = parameters.diagramSensitivity;
+    customized.analysisConfig.diagramDetectionSensitivity = (parameters as any).diagramSensitivity ?? parameters.confidenceThreshold;
 
     if (characteristics.complexity === 'high') {
       customized.analysisConfig.segmentationMode = 'adaptive';

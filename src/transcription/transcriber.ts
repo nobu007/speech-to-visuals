@@ -116,9 +116,9 @@ export class TranscriptionPipeline {
       }
 
       // Priority 2: Fallback to browser transcriber (only in browser environment)
-      if (this.isBrowser && this.browserTranscriber && (audioPath.startsWith('blob:') || audioPath instanceof File)) {
+      if (this.isBrowser && this.browserTranscriber && (audioPath.startsWith('blob:') || (audioPath as any) instanceof File)) {
         console.log('🔄 Fallback to browser transcription...');
-        const audioFile = audioPath instanceof File ? audioPath : await this.blobUrlToFile(audioPath);
+        const audioFile = (audioPath as any) instanceof File ? audioPath : await this.blobUrlToFile(audioPath);
         const result = await this.browserTranscriber.transcribeAudioFile(audioFile);
 
         if (result.success && result.segments.length > 0) {
@@ -277,6 +277,7 @@ export class TranscriptionPipeline {
       text: segment.text,
       startMs: segment.start,
       endMs: segment.end,
+      timestampMs: segment.start,
       confidence: segment.confidence || 0.9
     }));
 

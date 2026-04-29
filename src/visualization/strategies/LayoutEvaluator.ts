@@ -1,5 +1,5 @@
-import { DiagramLayout, DiagramType, LayoutResult, PositionedNode, LayoutEdge } from '@/types/diagram';
-import { LayoutConfig, LayoutMetrics, Point, OverlapPair, BoundingBox } from '../types';
+import { DiagramLayout, DiagramType, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { LayoutConfig, LayoutResult, LayoutMetrics, Point, OverlapPair, BoundingBox } from '../types';
 import { nodesOverlap, calculateNodeCenter, calculateNodeDistance } from '../layout-utils';
 
 export class LayoutEvaluator {

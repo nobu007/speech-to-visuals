@@ -26,6 +26,24 @@ import { renderMedia } from '@remotion/renderer';
 
 const mockedRenderMedia = renderMedia as jest.MockedFunction<typeof renderMedia>;
 
+interface RenderOptionsComposition {
+  id: string;
+  width: number;
+  height: number;
+  fps: number;
+  durationInFrames: number;
+}
+
+interface RenderOptions {
+  codec: string;
+  composition: RenderOptionsComposition;
+  crf: number;
+  outputLocation: string;
+  serveUrl: string;
+  audioBitrate: string | null;
+  onProgress?: unknown;
+}
+
 /**
  * Helper: create a valid RenderConfig with sensible defaults for testing
  */
@@ -38,6 +56,11 @@ function makeConfig(overrides: Partial<RenderConfig> = {}): RenderConfig {
     quality: 23,
     ...overrides,
   };
+}
+
+/** Cast buildRenderOptions result to typed interface for assertions */
+function buildOptions(config: RenderConfig, params: Parameters<typeof buildRenderOptions>[1]): RenderOptions {
+  return buildRenderOptions(config, params) as unknown as RenderOptions;
 }
 
 describe('renderer', () => {
@@ -200,86 +223,86 @@ describe('renderer', () => {
 
     it('should build options with correct codec for h264', () => {
       const config = makeConfig({ codec: 'h264' });
-      const options = buildRenderOptions(config, baseParams);
+      const options = buildOptions(config, baseParams);
       expect(options.codec).toBe('h264');
     });
 
     it('should build options with correct codec for h265', () => {
       const config = makeConfig({ codec: 'h265' });
-      const options = buildRenderOptions(config, baseParams);
+      const options = buildOptions(config, baseParams);
       expect(options.codec).toBe('h265');
     });
 
     it('should build options with correct codec for vp9', () => {
       const config = makeConfig({ codec: 'vp9' });
-      const options = buildRenderOptions(config, baseParams);
+      const options = buildOptions(config, baseParams);
       expect(options.codec).toBe('vp9');
     });
 
     it('should set composition dimensions to match resolution preset', () => {
       const config = makeConfig({ resolution: '720p' });
-      const options = buildRenderOptions(config, baseParams);
+      const options = buildOptions(config, baseParams);
       expect(options.composition.width).toBe(1280);
       expect(options.composition.height).toBe(720);
     });
 
     it('should set composition fps from config', () => {
       const config = makeConfig({ fps: 60 });
-      const options = buildRenderOptions(config, baseParams);
+      const options = buildOptions(config, baseParams);
       expect(options.composition.fps).toBe(60);
     });
 
     it('should set CRF from quality field', () => {
       const config = makeConfig({ quality: 25 });
-      const options = buildRenderOptions(config, baseParams);
+      const options = buildOptions(config, baseParams);
       expect(options.crf).toBe(25);
     });
 
     it('should set outputLocation from params', () => {
       const config = makeConfig();
-      const options = buildRenderOptions(config, baseParams);
+      const options = buildOptions(config, baseParams);
       expect(options.outputLocation).toBe('/tmp/output.mp4');
     });
 
     it('should set serveUrl from params', () => {
       const config = makeConfig();
-      const options = buildRenderOptions(config, baseParams);
+      const options = buildOptions(config, baseParams);
       expect(options.serveUrl).toBe('http://localhost:3000');
     });
 
     it('should set durationInFrames from params', () => {
       const config = makeConfig();
-      const options = buildRenderOptions(config, baseParams);
+      const options = buildOptions(config, baseParams);
       expect(options.composition.durationInFrames).toBe(300);
     });
 
     it('should set composition id from params', () => {
       const config = makeConfig();
-      const options = buildRenderOptions(config, baseParams);
+      const options = buildOptions(config, baseParams);
       expect(options.composition.id).toBe('TestComposition');
     });
 
     it('should set audioBitrate when includeAudio is true', () => {
       const config = makeConfig({ includeAudio: true });
-      const options = buildRenderOptions(config, baseParams);
+      const options = buildOptions(config, baseParams);
       expect(options.audioBitrate).toBe('256k');
     });
 
     it('should use custom audioBitrate when provided', () => {
       const config = makeConfig({ includeAudio: true, audioBitrate: '320k' });
-      const options = buildRenderOptions(config, baseParams);
+      const options = buildOptions(config, baseParams);
       expect(options.audioBitrate).toBe('320k');
     });
 
     it('should not set audioBitrate when includeAudio is false', () => {
       const config = makeConfig({ includeAudio: false });
-      const options = buildRenderOptions(config, baseParams);
+      const options = buildOptions(config, baseParams);
       expect(options.audioBitrate).toBeNull();
     });
 
     it('should build correct options for 4k resolution', () => {
       const config = makeConfig({ resolution: '4k', fps: 60, codec: 'h265' });
-      const options = buildRenderOptions(config, baseParams);
+      const options = buildOptions(config, baseParams);
       expect(options.composition.width).toBe(3840);
       expect(options.composition.height).toBe(2160);
       expect(options.composition.fps).toBe(60);

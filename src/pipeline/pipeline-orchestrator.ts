@@ -130,7 +130,8 @@ export class PipelineOrchestrator {
     this.layoutEngine = new LayoutEngine({
       width: 1920,
       height: 1080,
-      margin: 40,
+      marginX: 40,
+      marginY: 40,
     });
 
     this.tuner = new SmartParameterTuner();

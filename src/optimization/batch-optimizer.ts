@@ -112,16 +112,9 @@ export class BatchOptimizer {
           // Re-check by attempting to see if settled (already resolved promises resolve immediately)
           // We use a simple approach: await all settled ones in order
         }
-        // Simpler: just await one and compact
-        const settled = await Promise.allSettled(executing);
-        const stillRunning: Promise<void>[] = [];
-        for (let i = 0; i < settled.length; i++) {
-          if (settled[i].status === 'pending') {
-            stillRunning.push(executing[i]);
-          }
-        }
+        // Simpler: just await all and clear
+        await Promise.allSettled(executing);
         executing.length = 0;
-        executing.push(...stillRunning);
       }
     }
 

@@ -203,7 +203,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
       <div className="relative w-full overflow-hidden rounded-lg bg-black">
         <Player
           ref={playerRef}
-          component={SpeechToVisualsVideo}
+          component={SpeechToVisualsVideo as unknown as React.ComponentType<Record<string, unknown>>}
           durationInFrames={totalFrames}
           compositionWidth={resolutionSize.width}
           compositionHeight={resolutionSize.height}

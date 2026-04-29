@@ -5,7 +5,7 @@ import { LayoutEngine } from '@/visualization';
 import { qualityMonitor, QualityAssessment } from '@/quality';
 import { globalErrorRecovery } from '@/quality/enhanced-error-recovery';
 import { globalCache } from '@/performance/intelligent-cache';
-import { smartParameterTuner } from '@/optimization/smart-parameter-tuner';
+import SmartParameterTuner from '@/optimization/smart-parameter-tuner';
 import { adaptiveContentProcessor } from '@/optimization/adaptive-content-processor';
 import {
   RecursiveCustomInstructionsFramework,
@@ -264,8 +264,8 @@ export class MainPipeline {
       // Update framework metrics
       this.qualityMetrics = {
         transcriptionAccuracy: transcriptionResult.accuracy || 0.85,
-        sceneSegmentationF1: analysisResult.segmentationScore || 0.75,
-        layoutOverlap: layoutResult.overlapCount || 0,
+        sceneSegmentationF1: (analysisResult as any).segmentationScore || 0.75,
+        layoutOverlap: (layoutResult as any).overlapCount || 0,
         renderTime: totalTime,
         memoryUsage: process.memoryUsage().heapUsed,
         timestamp: new Date()
@@ -328,7 +328,7 @@ export class MainPipeline {
     const evaluation = await this.framework.evaluateIteration(this.qualityMetrics, {
       processingTime: totalTime,
       success: result.success,
-      qualityScore: result.metrics?.quality || 0.8
+      qualityScore: (result.metrics as any)?.quality || 0.8
     });
 
     console.log(`🔄 [${this.currentPhase}] Iteration ${this.iteration} evaluation:`, evaluation);
@@ -604,9 +604,12 @@ export class MainPipeline {
 
     // Cache successful results
     if (result.success) {
-      await globalCache.set(cacheKey, result, 'transcription', {
+      await globalCache.store(cacheKey, result, {
+        contentType: 'flow' as any,
+        duration: 0,
         complexity: result.segments.length / 10,
-        performanceScore: 0.8
+        performanceScore: 0.8,
+        accessPattern: 'recent'
       });
     }
 
@@ -758,7 +761,7 @@ export class MainPipeline {
     return {
       ...baseAssessment,
       preCheck,
-      enhancedScore: (baseAssessment.overall + preCheck.averageConfidence) / 2,
+      enhancedScore: (baseAssessment.overallScore + preCheck.averageConfidence) / 2,
       processingEfficiency: this.calculateProcessingEfficiency()
     };
   }

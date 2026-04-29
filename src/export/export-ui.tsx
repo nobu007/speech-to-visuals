@@ -105,7 +105,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
     }
   };
 
-  const updateConfig = (updates: Partial<ExportConfiguration>) => {
+  const updateConfig = (updates: { format?: ExportFormat; quality?: Partial<VideoQuality>; settings?: Partial<ExportSettings> }) => {
     setConfig(prev => ({
       ...prev,
       ...updates,

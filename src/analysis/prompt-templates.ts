@@ -7,6 +7,8 @@
 
 import { Language, detectLanguage } from './language-detector';
 
+export type { Language };
+
 export interface PromptTemplate {
   systemMessage: string;
   userMessage: (text: string) => string;

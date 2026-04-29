@@ -264,10 +264,16 @@ export const CYCLE_STRATEGY: AnimationStrategy = {
 /** Map of all strategies by diagram type */
 const STRATEGY_MAP: Record<DiagramType, AnimationStrategy> = {
   flow: FLOW_STRATEGY,
+  flowchart: FLOW_STRATEGY,
   tree: TREE_STRATEGY,
   timeline: TIMELINE_STRATEGY,
   matrix: MATRIX_STRATEGY,
   cycle: CYCLE_STRATEGY,
+  comparison: MATRIX_STRATEGY,
+  network: FLOW_STRATEGY,
+  conceptmap: TREE_STRATEGY,
+  mindmap: TREE_STRATEGY,
+  general: FLOW_STRATEGY,
 };
 
 /**

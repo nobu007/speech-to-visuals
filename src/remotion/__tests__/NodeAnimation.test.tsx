@@ -56,7 +56,7 @@ function renderAndGetStyle(
     delayFrames,
     durationFrames,
     children: React.createElement('div', null, 'Test Content'),
-  });
+  }) as React.ReactElement;
   return element.props.style as React.CSSProperties;
 }
 

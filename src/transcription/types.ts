@@ -21,11 +21,11 @@ export interface TranscriptionResult {
 }
 
 export interface TranscriptionConfig {
-  model: 'tiny' | 'base' | 'small' | 'medium' | 'large';
+  model?: 'tiny' | 'base' | 'small' | 'medium' | 'large';
   language?: string;
-  outputFormat: 'json' | 'srt' | 'vtt';
+  outputFormat?: 'json' | 'srt' | 'vtt';
   combineMs?: number;
-  maxRetries: number;
+  maxRetries?: number;
   chunkSizeMs?: number;
 }
 

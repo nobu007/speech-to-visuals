@@ -16,6 +16,8 @@ export interface AudioCharacteristics {
   diagramLikelihood: number;
 }
 
+export type ContentCharacteristics = AudioCharacteristics;
+
 export interface ParameterSet {
   confidenceThreshold: number;
   segmentMinLength: number;

@@ -47,6 +47,14 @@ export interface ComplexLayoutConfig extends LayoutConfig {
   // ✨ Real-time optimization features
   enableRealTimeOptimization: boolean;
   adaptiveThresholds: boolean;
+
+  // Performance targets (used by constructor defaults)
+  performanceTargets?: {
+    maxLayoutTime: number;
+    targetFPS: number;
+    memoryLimit: number;
+  };
+
   // ✨ Iteration 50: Cultural Layout Adaptation
   culturalAdaptation?: {
     languageCode: string;
@@ -554,8 +562,8 @@ export class ComplexLayoutEngine {
     if (nodes.length === 0) {
       return { x: 0, y: 0 };
     }
-    const totalX = nodes.reduce((sum, node) => sum + (node.x || 0), 0);
-    const totalY = nodes.reduce((sum, node) => sum + (node.y || 0), 0);
+    const totalX = nodes.reduce((sum, node) => sum + ((node as any).x || 0), 0);
+    const totalY = nodes.reduce((sum, node) => sum + ((node as any).y || 0), 0);
     return { x: totalX / nodes.length, y: totalY / nodes.length };
   }
 
@@ -563,10 +571,10 @@ export class ComplexLayoutEngine {
     if (nodes.length === 0) {
       return { width: 0, height: 0 };
     }
-    const minX = Math.min(...nodes.map(node => node.x || 0));
-    const maxX = Math.max(...nodes.map(node => (node.x || 0) + (node.w || 0)));
-    const minY = Math.min(...nodes.map(node => node.y || 0));
-    const maxY = Math.max(...nodes.map(node => (node.y || 0) + (node.h || 0)));
+    const minX = Math.min(...nodes.map(node => (node as any).x || 0));
+    const maxX = Math.max(...nodes.map(node => ((node as any).x || 0) + ((node as any).w || 0)));
+    const minY = Math.min(...nodes.map(node => (node as any).y || 0));
+    const maxY = Math.max(...nodes.map(node => ((node as any).y || 0) + ((node as any).h || 0)));
 
     return { width: maxX - minX, height: maxY - minY };
   }

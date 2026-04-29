@@ -30,7 +30,7 @@ import {
   validateStreamingSupport
 } from '@/transcription/streaming-transcriber';
 import { TranscriptionSegment } from '@/transcription/types';
-import { SceneGraph } from '@/types/diagram';
+import { SceneGraph, DiagramType, isDiagramType, EdgeDatum } from '@/types/diagram';
 
 export interface StreamingProcessorProps {
   onSceneGenerated?: (scene: SceneGraph) => void;
@@ -82,6 +82,9 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
 
   // Configuration
   const [config, setConfig] = useState<StreamingTranscriptionConfig>({
+    model: 'base',
+    outputFormat: 'json',
+    maxRetries: 2,
     chunkSizeMs: 3000,
     overlapMs: 500,
     minConfidence: 0.7,
@@ -265,24 +268,17 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
     // Simple diagram type detection for real-time processing
     const diagramType = detectDiagramType(combinedText);
 
-    if (diagramType !== 'unknown') {
+    if (diagramType !== 'unknown' && isDiagramType(diagramType)) {
       const scene: SceneGraph = {
-        id: `scene-${Date.now()}`,
         type: diagramType,
-        title: `Scene ${allSegments.length}`,
         summary: segment.text.substring(0, 100) + '...',
         nodes: extractNodes(combinedText),
         edges: extractEdges(combinedText),
-        startTime: segment.start,
-        endTime: segment.end,
+        startMs: segment.start * 1000,
         durationMs: (segment.end - segment.start) * 1000,
         keyphrases: extractKeyphrases(segment.text),
-        confidence: segment.confidence,
-        metadata: {
-          segmentIndex: allSegments.length - 1,
-          processingTime: performance.now() - startTime.current,
-          realtime: true
-        }
+        startTime: segment.start,
+        endTime: segment.end,
       };
 
       setScenes(prev => {
@@ -595,7 +591,7 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
           <CardContent>
             <div className="space-y-3 max-h-60 overflow-y-auto">
               {scenes.slice(-5).map((scene, index) => (
-                <div key={scene.id} className="p-3 border rounded-lg">
+                <div key={`scene-${index}`} className="p-3 border rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <Badge variant="outline">{scene.type}</Badge>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -668,7 +664,7 @@ function extractNodes(text: string): Array<{ id: string; label: string; type?: s
   return nodes.slice(0, 6); // Limit to 6 nodes for real-time processing
 }
 
-function extractEdges(text: string): Array<{ source: string; target: string; label?: string }> {
+function extractEdges(text: string): EdgeDatum[] {
   // Simple edge extraction - this would be more sophisticated in production
   return [];
 }

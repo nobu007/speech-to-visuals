@@ -32,6 +32,31 @@ export interface ZeroOverlapConfig {
   qualityThreshold: number; // 0-100% overlap-free requirement
   spatialIndexing: boolean; // 空間インデックス有効化 (Phase 60 Enhancement 1)
   adaptiveStrategy: boolean; // 適応的戦略選択 (Phase 60 Enhancement 2)
+
+  // Advanced spacing and optimization (used by constructor defaults)
+  minimumSpacing?: {
+    nodeToNode: number;
+    nodeToEdge: number;
+    labelToElement: number;
+  };
+  optimization?: {
+    maxIterations: number;
+    convergenceThreshold: number;
+    forceStrength: number;
+    aestheticWeight: number;
+  };
+  qualityTargets?: {
+    overlapCount: number;
+    edgeCrossings: number;
+    aspectRatio: number;
+    utilization: number;
+  };
+  features?: {
+    enableAdaptiveSpacing: boolean;
+    enableHierarchicalLayout: boolean;
+    enableSymmetryOptimization: boolean;
+    enableEdgeRoutingOptimization: boolean;
+  };
 }
 
 export interface CollisionBox {
@@ -83,6 +108,14 @@ export class ZeroOverlapLayoutEngine {
       nodeHeight: 60,
       nodePadding: 10,
       nodeBorderWidth: 2,
+
+      overlapDetectionMode: 'balanced',
+      collisionResolutionStrategy: 'adaptive',
+      separationDistance: 20,
+      maxIterations: 300,
+      qualityThreshold: 100,
+      spatialIndexing: true,
+      adaptiveStrategy: true,
 
       minimumSpacing: {
         nodeToNode: 40,      // ITERATION 45: Optimal spacing (validated from Phase 44)
@@ -320,8 +353,8 @@ export class ZeroOverlapLayoutEngine {
     const layoutEdges: LayoutEdge[] = edges.map(edge => ({
       ...edge,
       points: generateEdgePoints(
-        g.node(edge.from),
-        g.node(edge.to)
+        g.node(edge.from) as unknown as PositionedNode,
+        g.node(edge.to) as unknown as PositionedNode
       )
     }));
 

@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import type { ProcessingResult } from '@/pipeline/simple-pipeline';
+import type { SimplePipelineResult as ProcessingResult } from '@/pipeline/simple-pipeline';
 import type { ExportConfiguration, ExportFormat, VideoQuality } from '@/export/enhanced-export-engine';
 import { EnhancedExportEngine } from '@/export/enhanced-export-engine';
 

@@ -35,6 +35,8 @@ export interface PipelineConfig {
 export interface PipelineStage {
   name: string;
   status: ProcessingStatus;
+  /** Whether this stage completed successfully */
+  success?: boolean;
   startTime?: number;
   endTime?: number;
   error?: string;
@@ -50,6 +52,8 @@ export interface PipelineResult {
   stages: PipelineStage[];
   error?: string;
   qualityAssessment?: QualityAssessment;
+  /** Output file path, if generated */
+  outputPath?: string;
   /**
    * Optional extended metrics captured during the run
    */

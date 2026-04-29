@@ -363,6 +363,7 @@ export class WhisperTranscriber {
       text: segment.text,
       startMs: segment.start,
       endMs: segment.end,
+      timestampMs: segment.start,
       confidence: segment.confidence ?? 0.9
     }));
   }

@@ -21,10 +21,16 @@ interface DiagramSceneProps {
 /** Map diagram types to Japanese titles */
 const DIAGRAM_TITLES: Record<SceneGraph['type'], string> = {
   flow: 'プロセスフロー',
+  flowchart: 'フローチャート',
   tree: '階層構造',
   timeline: 'タイムライン',
   matrix: '比較表',
   cycle: '循環プロセス',
+  comparison: '比較',
+  network: 'ネットワーク',
+  conceptmap: 'コンセプトマップ',
+  mindmap: 'マインドマップ',
+  general: '一般',
 };
 
 export const DiagramScene: React.FC<DiagramSceneProps> = ({ scene, sceneIndex, currentTime }) => {
