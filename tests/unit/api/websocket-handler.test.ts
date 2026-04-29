@@ -43,7 +43,7 @@ interface MockRoom { emit: jest.Mock }
 // Tests
 // ---------------------------------------------------------------------------
 
-describe.skip('WebSocket Handler', () => {
+describe('WebSocket Handler', () => {
   let mockIo: MockIo;
   let mockSocket: MockSocket;
 
