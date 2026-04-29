@@ -1,7 +1,7 @@
 # speech-to-visuals アーキテクチャ設計
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-30（REQ-046~049 WebSocket・最適化ユーティリティ反映・テストスイート更新）
+**最終更新**: 2026-04-30（第12回更新: ディレクトリファイル数修正・A48検証反映）
 **関連要件定義**: [requirements.md](../../spec/speech-to-visuals/requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -258,12 +258,12 @@ graph TB
 ```
 ./
 ├── src/
-│   ├── analysis/           # 内容分析（18ファイル: LLM、Gemini、図解検出、言語検出、複雑度、フォールバックチェーン、プロンプト構築、リトライ戦略）
-│   ├── api/                # REST API（バッチ処理）
+│   ├── analysis/           # 内容分析（28ファイル: LLM、Gemini、図解検出、言語検出、複雑度、フォールバックチェーン、プロンプト構築、リトライ戦略）🔵
+│   ├── api/                # REST API・WebSocket（10ファイル: バッチ処理、リアルタイム通知）🔵
 │   │   ├── middleware/     # レート制限、エラーハンドラー、認証 🔵
 │   │   └── routes/         # API ルート定義 🔵
-│   ├── components/         # React UI（20+コンポーネント: Pipeline UI, VideoPreview, FileUploader等）🔵
-│   ├── config/             # 設定（5ファイル: プロダクション設定 + Zod バリデーション + 環境変数管理）🔵 *要件定義REQ-038*
+│   ├── components/         # React UI（46コンポーネント: Pipeline UI, VideoPreview, FileUploader等）🔵
+│   ├── config/             # 設定（7ファイル: プロダクション設定 + Zod バリデーション + 環境変数管理）🔵 *要件定義REQ-038*
 │   ├── export/             # エクスポート（4ファイル: multi-format/enhanced/production/UI）🔵
 │   ├── framework/          # 再帰的改善フレームワーク（4ファイル）
 │   ├── hooks/              # React Hooks
@@ -273,12 +273,12 @@ graph TB
 │   ├── optimization/       # パラメータチューニング・バッチ最適化・キャッシュ・遅延ローダー（6ファイル）🔵
 │   ├── pages/              # React Router ページ
 │   ├── performance/        # キャッシュ
-│   ├── pipeline/           # パイプライン（11ファイル: Simple/Main/Framework/Adaptive/VideoGenerator/Orchestrator等）🔵
+│   ├── pipeline/           # パイプライン（10ファイル: Simple/Main/Framework/Adaptive/VideoGenerator/Orchestrator等）🔵
 │   ├── quality/            # 品質保証・エラー回復（8ファイル: ErrorClassifier/QualityGate含む）
 │   ├── remotion/           # Remotion 動画コンポーネント（12ファイル: Animation/Scene/Renderer/SRT/Caption）🔵
 │   ├── test/               # テストユーティリティ
-│   ├── transcription/      # 音声認識（Whisper/Streaming/Browser）
-│   ├── types/              # TypeScript 型定義（9ファイル: diagram/workspace/api/api.index/llm/cache/quality/pipeline/index）🔵
+│   ├── transcription/      # 音声認識（10ファイル: Whisper/Streaming/Browser）🔵
+│   ├── types/              # TypeScript 型定義（15ファイル: diagram/workspace/api/llm/cache/quality/pipeline等）🔵
 │   ├── utils/              # ユーティリティ
 │   └── visualization/      # 図解レイアウト（15+戦略、21ファイル）
 │       ├── base/           # ベース可視化コンポーネント 🔵
@@ -437,4 +437,4 @@ Fallback LLM
 - 🟡 黄信号: 2件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（Phase 5 モジュール REQ-040~049 反映済）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第12回更新: ディレクトリファイル数修正反映済）
