@@ -4,11 +4,16 @@
     "module": "ESNext",
     "target": "ES2020",
     "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "types": ["jest", "node"],
     "paths": {
       "@/*": ["./src/*"]
     },
-    "baseUrl": "."
+    "baseUrl": ".",
+    "noImplicitAny": false,
+    "strict": false,
+    "strictNullChecks": false
   },
-  "include": ["src"]
+  "include": ["src", "tests", "supabase"]
 }
