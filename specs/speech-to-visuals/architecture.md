@@ -1,7 +1,7 @@
 # speech-to-visuals アーキテクチャ設計
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-30（第21回検証: specs/移行・要件カバレッジ100%確認・設計整合性確認）
+**最終更新**: 2026-04-30（第23回検証: ファイル数実態整合・要件カバレッジ100%確認・設計整合性確認）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -281,29 +281,29 @@ graph TB
 ```
 ./
 ├── src/
-│   ├── analysis/           # 内容分析（28ファイル: LLM、Gemini、図解検出、言語検出、複雑度、フォールバックチェーン、プロンプト構築、リトライ戦略）🔵
-│   ├── api/                # REST API・WebSocket（10ファイル: バッチ処理、リアルタイム通知）🔵
+│   ├── analysis/           # 内容分析（7ファイル: LLM、Gemini、図解検出、言語検出、複雑度、フォールバックチェーン、プロンプト構築）🔵
+│   ├── api/                # REST API・WebSocket（28ファイル: バッチ処理、リアルタイム通知、ミドルウェア、ルート定義）🔵
 │   │   ├── middleware/     # レート制限、エラーハンドラー、認証 🔵
 │   │   └── routes/         # API ルート定義 🔵
-│   ├── components/         # React UI（46ファイル: 22メイン+23ui+1test: Pipeline UI, VideoPreview, FileUploader, TutorialSystem, StreamingProcessor, Dashboards, ErrorAlert等）🔵
-│   ├── config/             # 設定（7ファイル: プロダクション設定 + Zod バリデーション + 環境変数管理）🔵 *要件定義REQ-038*
-│   ├── export/             # エクスポート（4ファイル: multi-format/enhanced/production/UI）🔵
-│   ├── framework/          # 再帰的改善フレームワーク（4ファイル）
-│   ├── hooks/              # React Hooks
-│   ├── integrations/       # Supabase 統合
-│   ├── lib/                # ユーティリティライブラリ 🔵
-│   ├── monitoring/         # プロダクション監視（6ファイル）
-│   ├── optimization/       # パラメータチューニング・バッチ最適化・キャッシュ・遅延ローダー（6ファイル）🔵
-│   ├── pages/              # React Router ページ
-│   ├── performance/        # キャッシュ
-│   ├── pipeline/           # パイプライン（10ファイル: Simple/Main/Framework/Adaptive/VideoGenerator/Orchestrator等）🔵
-│   ├── quality/            # 品質保証・エラー回復（8ファイル: ErrorClassifier/QualityGate含む）
-│   ├── remotion/           # Remotion 動画コンポーネント（12ファイル: Animation/Scene/Renderer/SRT/Caption）🔵
-│   ├── test/               # テストユーティリティ
+│   ├── components/         # React UI（46ファイル: 23メイン+23ui: Pipeline UI, VideoPreview, FileUploader, TutorialSystem, StreamingProcessor, Dashboards, ErrorAlert等）🔵
+│   ├── config/             # 設定（4ファイル: プロダクション設定 + Zod バリデーション + 環境変数管理）🔵 *要件定義REQ-038*
+│   ├── export/             # エクスポート（6ファイル: multi-format/enhanced/production/UI）🔵
+│   ├── framework/          # 再帰的改善フレームワーク（6ファイル）
+│   ├── hooks/              # React Hooks（2ファイル）
+│   ├── integrations/       # Supabase 統合（12ファイル）
+│   ├── lib/                # ユーティリティライブラリ（5ファイル）🔵
+│   ├── monitoring/         # プロダクション監視（10ファイル）
+│   ├── optimization/       # パラメータチューニング・バッチ最適化・キャッシュ・遅延ローダー（10ファイル）🔵
+│   ├── pages/              # React Router ページ（4ファイル）
+│   ├── performance/        # キャッシュ（2ファイル）
+│   ├── pipeline/           # パイプライン（8ファイル: Simple/Main/Framework/Adaptive/VideoGenerator/Orchestrator等）🔵
+│   ├── quality/            # 品質保証・エラー回復（22ファイル: ErrorClassifier/QualityGate/EnhancedErrorRecovery含む）
+│   ├── remotion/           # Remotion 動画コンポーネント（39ファイル: Animation/Scene/Renderer/SRT/Caption）🔵
+│   ├── test/               # テストユーティリティ（3ファイル）
 │   ├── transcription/      # 音声認識（10ファイル: Whisper/Streaming/Browser）🔵
 │   ├── types/              # TypeScript 型定義（15ファイル: diagram/workspace/api/llm/cache/quality/pipeline等）🔵
-│   ├── utils/              # ユーティリティ
-│   └── visualization/      # 図解レイアウト（20+戦略、39ファイル）
+│   ├── utils/              # ユーティリティ（5ファイル）
+│   └── visualization/      # 図解レイアウト（248ファイル: 20+戦略・レイアウトエンジン・補助モジュール）
 │       ├── base/           # ベース可視化コンポーネント 🔵
 │       ├── layout/         # レイアウト固有コード 🔵
 │       └── strategies/     # レイアウト戦略（20ファイル: コア5+新コア5+拡張+補助）🔵
@@ -460,4 +460,4 @@ Fallback LLM
 - 🟡 黄信号: 2件 (2%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第21回更新: specs/移行・要件カバレッジ100%確認）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第23回更新: ファイル数実態整合・要件カバレッジ100%確認）
