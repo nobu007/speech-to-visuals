@@ -1,7 +1,7 @@
 # speech-to-visuals アーキテクチャ設計
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-30（第19回検証: 要件カバレッジ100%確認・設計整合性確認）
+**最終更新**: 2026-04-30（第20回検証: 要件カバレッジ100%確認・設計整合性確認・コンポーネント数修正）
 **関連要件定義**: [requirements.md](../../spec/speech-to-visuals/requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -285,7 +285,7 @@ graph TB
 │   ├── api/                # REST API・WebSocket（10ファイル: バッチ処理、リアルタイム通知）🔵
 │   │   ├── middleware/     # レート制限、エラーハンドラー、認証 🔵
 │   │   └── routes/         # API ルート定義 🔵
-│   ├── components/         # React UI（52コンポーネント: Pipeline UI, VideoPreview, FileUploader, TutorialSystem, StreamingProcessor, Dashboards, ErrorAlert等）🔵
+│   ├── components/         # React UI（46ファイル: 22メイン+23ui+1test: Pipeline UI, VideoPreview, FileUploader, TutorialSystem, StreamingProcessor, Dashboards, ErrorAlert等）🔵
 │   ├── config/             # 設定（7ファイル: プロダクション設定 + Zod バリデーション + 環境変数管理）🔵 *要件定義REQ-038*
 │   ├── export/             # エクスポート（4ファイル: multi-format/enhanced/production/UI）🔵
 │   ├── framework/          # 再帰的改善フレームワーク（4ファイル）
