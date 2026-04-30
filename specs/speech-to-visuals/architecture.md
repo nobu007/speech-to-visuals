@@ -1,7 +1,7 @@
 # speech-to-visuals アーキテクチャ設計
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-01（第33回検証: kairo-design包括差分分析・legacy docs完全統合確認・全ファイル数一致確認）
+**最終更新**: 2026-05-01（第34回検証: kairo-design包括差分分析・コンポーネント数修正(46→45)・API endpoint実態確認・legacy docs完全統合維持確認）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -285,7 +285,7 @@ graph TB
 │   ├── api/                # REST API・WebSocket（10ファイル: バッチ処理、リアルタイム通知、ミドルウェア、ルート定義）🔵
 │   │   ├── middleware/     # レート制限、エラーハンドラー、認証 🔵
 │   │   └── routes/         # API ルート定義 🔵
-│   ├── components/         # React UI（46ファイル: 23メイン+23ui: Pipeline UI, VideoPreview, FileUploader, TutorialSystem, StreamingProcessor, Dashboards, ErrorAlert等）🔵
+│   ├── components/         # React UI（45ファイル: 22メイン+23ui: Pipeline UI, VideoPreview, FileUploader, TutorialSystem, StreamingProcessor, Dashboards, ErrorAlert等）🔵
 │   ├── config/             # 設定（7ファイル: プロダクション設定 + Zod バリデーション + 環境変数管理）🔵 *要件定義REQ-038*
 │   ├── export/             # エクスポート（4ファイル: multi-format/enhanced/production/UI）🔵
 │   ├── framework/          # 再帰的改善フレームワーク（4ファイル）
@@ -460,4 +460,4 @@ Fallback LLM
 - 🟡 黄信号: 2件 (2%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第33回更新: legacy docs完全統合確認・全ディレクトリファイル数一致確認）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第34回更新: コンポーネント数修正・API endpoint実態確認・legacy docs完全統合維持確認）
