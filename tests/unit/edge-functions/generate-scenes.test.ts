@@ -244,7 +244,7 @@ describe('handleGenerateScenes', () => {
 
   it('should throw validation error when transcript is missing', async () => {
     await expect(
-      handleGenerateScenes({} as any, USER_ID)
+      handleGenerateScenes({} as Record<string, unknown>, USER_ID)
     ).rejects.toThrow('transcript is required');
   });
 

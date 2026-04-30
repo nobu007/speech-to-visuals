@@ -257,8 +257,8 @@ async function runValidation(): Promise<void> {
         console.log('\n⚠️  PARTIAL PASS (Some metrics below threshold)');
       }
 
-    } catch (error: any) {
-      console.error(`\n❌ FAILED: ${error.message}`);
+    } catch (error: unknown) {
+      console.error(`\n❌ FAILED: ${error instanceof Error ? error.message : String(error)}`);
       results.push({
         entityExtractionF1: 0,
         relationAccuracy: 0,

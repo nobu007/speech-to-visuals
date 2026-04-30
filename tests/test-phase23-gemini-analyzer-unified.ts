@@ -94,11 +94,11 @@ async function runTests() {
       'GeminiAnalyzer accepts custom LLMService instance for testing'
     );
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     logTest(
       'Test 1: Basic Instantiation',
       false,
-      `Failed: ${err.message}`
+      `Failed: ${err instanceof Error ? err.message : String(err)}`
     );
   }
 
@@ -149,11 +149,11 @@ async function runTests() {
       );
     }
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     logTest(
       'Test 2: analyzeText API Compatibility',
       false,
-      `Failed: ${err.message}`
+      `Failed: ${err instanceof Error ? err.message : String(err)}`
     );
   }
 
@@ -190,11 +190,11 @@ async function runTests() {
       `Flash: ${stats.modelSelection.flashRequests}, Pro: ${stats.modelSelection.proRequests}`
     );
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     logTest(
       'Test 3: getCacheStats API Compatibility',
       false,
-      `Failed: ${err.message}`
+      `Failed: ${err instanceof Error ? err.message : String(err)}`
     );
   }
 
@@ -262,11 +262,11 @@ async function runTests() {
       );
     }
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     logTest(
       'Test 4: Cross-Analyzer Cache Sharing',
       false,
-      `Failed: ${err.message}`
+      `Failed: ${err instanceof Error ? err.message : String(err)}`
     );
   }
 
@@ -318,11 +318,11 @@ async function runTests() {
       );
     }
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     logTest(
       'Test 5: Model Selection',
       false,
-      `Failed: ${err.message}`
+      `Failed: ${err instanceof Error ? err.message : String(err)}`
     );
   }
 
@@ -392,11 +392,11 @@ async function runTests() {
       usesLLMService ? 'Uses unified LLMService.execute() method' : 'Does not use LLMService'
     );
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     logTest(
       'Test 6: Code Reduction Validation',
       false,
-      `Failed: ${err.message}`
+      `Failed: ${err instanceof Error ? err.message : String(err)}`
     );
   }
 
@@ -439,11 +439,11 @@ async function runTests() {
       'Legacy stats format preserved for backward compatibility'
     );
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     logTest(
       'Test 7: Backward Compatibility',
       false,
-      `Failed: ${err.message}`
+      `Failed: ${err instanceof Error ? err.message : String(err)}`
     );
   }
 

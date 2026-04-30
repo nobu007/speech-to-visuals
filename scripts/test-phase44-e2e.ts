@@ -217,7 +217,7 @@ async function testAudioTranscription(): Promise<E2ETestResult> {
       },
       error: result.error
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       phase: 'phase-44',
       timestamp: new Date().toISOString(),
@@ -232,7 +232,7 @@ async function testAudioTranscription(): Promise<E2ETestResult> {
         layoutOverlapCount: 0,
         videoGenerated: false
       },
-      error: error.message
+      error: error instanceof Error ? error.message : String(error)
     };
   }
 }
@@ -274,7 +274,7 @@ async function testLLMAnalysis(): Promise<E2ETestResult> {
       },
       llmStats: analyzer.getStats()
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       phase: 'phase-44',
       timestamp: new Date().toISOString(),
@@ -289,7 +289,7 @@ async function testLLMAnalysis(): Promise<E2ETestResult> {
         layoutOverlapCount: 0,
         videoGenerated: false
       },
-      error: error.message
+      error: error instanceof Error ? error.message : String(error)
     };
   }
 }
@@ -318,7 +318,7 @@ async function testAllDiagramTypes(): Promise<E2ETestResult> {
 
     const detectedTypes = results.map(r => r.type);
     const allTypesDetected = ['flow', 'tree', 'timeline', 'matrix', 'cycle']
-      .every(type => detectedTypes.includes(type as any));
+      .every(type => detectedTypes.includes(type as DiagramType));
 
     const processingTime = Date.now() - startTime;
 
@@ -337,7 +337,7 @@ async function testAllDiagramTypes(): Promise<E2ETestResult> {
         videoGenerated: false
       }
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       phase: 'phase-44',
       timestamp: new Date().toISOString(),
@@ -352,7 +352,7 @@ async function testAllDiagramTypes(): Promise<E2ETestResult> {
         layoutOverlapCount: 0,
         videoGenerated: false
       },
-      error: error.message
+      error: error instanceof Error ? error.message : String(error)
     };
   }
 }
@@ -407,7 +407,7 @@ async function testZeroOverlapLayout(): Promise<E2ETestResult> {
         videoGenerated: false
       }
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       phase: 'phase-44',
       timestamp: new Date().toISOString(),
@@ -422,7 +422,7 @@ async function testZeroOverlapLayout(): Promise<E2ETestResult> {
         layoutOverlapCount: -1,
         videoGenerated: false
       },
-      error: error.message
+      error: error instanceof Error ? error.message : String(error)
     };
   }
 }
@@ -471,7 +471,7 @@ async function testCompletePipeline(): Promise<E2ETestResult> {
       },
       error: result.error
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       phase: 'phase-44',
       timestamp: new Date().toISOString(),
@@ -486,7 +486,7 @@ async function testCompletePipeline(): Promise<E2ETestResult> {
         layoutOverlapCount: 0,
         videoGenerated: false
       },
-      error: error.message
+      error: error instanceof Error ? error.message : String(error)
     };
   }
 }
@@ -522,7 +522,7 @@ async function testPerformanceMetrics(): Promise<E2ETestResult> {
       },
       llmStats: stats
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       phase: 'phase-44',
       timestamp: new Date().toISOString(),
@@ -537,7 +537,7 @@ async function testPerformanceMetrics(): Promise<E2ETestResult> {
         layoutOverlapCount: 0,
         videoGenerated: false
       },
-      error: error.message
+      error: error instanceof Error ? error.message : String(error)
     };
   }
 }

@@ -12,7 +12,7 @@ import {
   PipelineProgress,
   PipelineOrchestratorConfig,
 } from '@/pipeline/pipeline-orchestrator';
-import { PipelineInput, PipelineResult } from '@/pipeline/types';
+import { PipelineInput, PipelineResult, PipelineConfig } from '@/pipeline/types';
 import {
   QualityGateEvaluator,
   StageEvaluationResult,
@@ -292,7 +292,7 @@ describe('PipelineOrchestrator Integration', () => {
       const passingGate: QualityGate = {
         stageIndex: 0,
         name: 'Test Gate',
-        validate: (_output: any) => ({ passed: true }),
+        validate: (_output: unknown) => ({ passed: true }),
       };
 
       const orchestrator = new PipelineOrchestrator({
@@ -688,7 +688,7 @@ describe('PipelineOrchestrator Integration', () => {
   describe('Config Validation', () => {
     it('throws when audioFile is missing', () => {
       const orchestrator = new PipelineOrchestrator();
-      expect(() => orchestrator.validateInput({ audioFile: '' as any })).toThrow(
+      expect(() => orchestrator.validateInput({ audioFile: '' })).toThrow(
         'audioFile is required'
       );
     });
@@ -696,7 +696,7 @@ describe('PipelineOrchestrator Integration', () => {
     it('throws when audioFile is null/undefined', () => {
       const orchestrator = new PipelineOrchestrator();
       expect(() =>
-        orchestrator.validateInput({ audioFile: null as any })
+        orchestrator.validateInput({ audioFile: null as unknown as string })
       ).toThrow('audioFile is required');
     });
 
@@ -707,7 +707,7 @@ describe('PipelineOrchestrator Integration', () => {
           audioFile: '/test/audio.wav',
           config: {
             ...createValidInput().config,
-            transcription: { model: 'invalid-model' as any },
+            transcription: { model: 'invalid-model' as PipelineConfig['transcription']['model'] },
           },
         })
       ).toThrow('Invalid transcription model');

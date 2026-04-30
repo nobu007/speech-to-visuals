@@ -17,7 +17,7 @@ import { PipelineInput, PipelineResult, PipelineStage, PipelineConfig } from '@/
 
 // ---------- Mock Factories ----------
 
-function makeMockTranscriptionResult(overrides: Partial<any> = {}) {
+function makeMockTranscriptionResult(overrides: Record<string, unknown> = {}) {
   return {
     success: true,
     segments: [
@@ -128,7 +128,7 @@ describe('PipelineOrchestrator', () => {
       const badInput: PipelineInput = {
         audioFile: 'test.wav',
         config: {
-          transcription: { model: 'invalid-model' as any },
+          transcription: { model: 'invalid-model' as unknown as 'base' | 'tiny' | 'small' | 'medium' | 'large' },
           analysis: {
             minSegmentLengthMs: -1,
             maxSegmentLengthMs: 500,

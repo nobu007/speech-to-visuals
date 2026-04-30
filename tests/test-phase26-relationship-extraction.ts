@@ -144,8 +144,8 @@ async function runTests() {
         });
       }
 
-    } catch (err: any) {
-      console.log(`   ❌ ERROR: ${err.message}`);
+    } catch (err: unknown) {
+      console.log(`   ❌ ERROR: ${err instanceof Error ? err.message : String(err)}`);
       results.failed++;
     }
   }

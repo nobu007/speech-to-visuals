@@ -21,13 +21,13 @@ describe('validateRenderRequest', () => {
 
   it('should throw when scenes is missing', () => {
     expect(() =>
-      validateRenderRequest({} as any)
+      validateRenderRequest({} as Record<string, unknown>)
     ).toThrow('scenes is required');
   });
 
   it('should throw when scenes is not an array', () => {
     expect(() =>
-      validateRenderRequest({ scenes: 'not-array' } as any)
+      validateRenderRequest({ scenes: 'not-array' } as unknown as import('../../../supabase/functions/render-video/index').RenderVideoRequest)
     ).toThrow('scenes must be an array');
   });
 

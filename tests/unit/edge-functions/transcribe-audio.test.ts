@@ -89,7 +89,7 @@ describe('handleTranscribe', () => {
 
   it('should throw validation error when audioUrl is missing', async () => {
     await expect(
-      handleTranscribe({} as any, USER_ID, VALID_ENV)
+      handleTranscribe({} as Partial<import('../../../supabase/functions/transcribe-audio/index').TranscribeRequest> as import('../../../supabase/functions/transcribe-audio/index').TranscribeRequest, USER_ID, VALID_ENV)
     ).rejects.toThrow('audioUrl is required');
   });
 

@@ -16,6 +16,7 @@ import type {
   WebSocketEvents,
 } from '@/types/api/index';
 import { AppError, errorHandler } from '@/api/middleware/error-handler';
+import type { Request, Response, NextFunction } from 'express';
 
 // ---------------------------------------------------------------------------
 // Mocks for heavy pipeline dependencies
@@ -524,16 +525,16 @@ describe('Batch Routes - Express Router', () => {
 
 describe('Error Handler Middleware', () => {
   function createMockRes() {
-    const res: any = {
+    const res: Record<string, unknown> = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn().mockReturnThis(),
     };
-    return res;
+    return res as unknown as Response;
   }
 
   test('handles AppError with correct status code and code', () => {
     const err = new AppError(400, 'VALIDATION_ERROR', 'Invalid input');
-    const req = {} as any;
+    const req = {} as Request;
     const res = createMockRes();
     const next = jest.fn();
 
@@ -553,7 +554,7 @@ describe('Error Handler Middleware', () => {
 
   test('handles unknown errors with 500 status', () => {
     const err = new Error('Something unexpected');
-    const req = {} as any;
+    const req = {} as Request;
     const res = createMockRes();
     const next = jest.fn();
 
@@ -573,7 +574,7 @@ describe('Error Handler Middleware', () => {
 
   test('includes details when present on AppError', () => {
     const err = new AppError(422, 'VALIDATION_ERROR', 'Field missing', { field: 'email' });
-    const req = {} as any;
+    const req = {} as Request;
     const res = createMockRes();
     const next = jest.fn();
 

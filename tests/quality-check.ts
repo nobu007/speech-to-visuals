@@ -26,7 +26,7 @@ async function main() {
       renderTime: 0,
       memoryUsage: 128 * 1024 * 1024,
     },
-  } as any;
+  } as unknown as PipelineResult;
 
   const assessment = await qualityMonitor.assessPipelineQuality(mockResult);
   console.log('✅ Quality check completed.');

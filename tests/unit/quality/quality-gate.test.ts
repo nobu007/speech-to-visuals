@@ -26,7 +26,7 @@ import type {
 // Helper factories
 // ---------------------------------------------------------------------------
 
-function makeTranscriptionInput(overrides: Record<string, any> = {}) {
+function makeTranscriptionInput(overrides: Record<string, unknown> = {}) {
   return {
     audioDuration: 5.0,        // seconds
     sampleRate: 44100,          // Hz
@@ -39,7 +39,7 @@ function makeTranscriptionInput(overrides: Record<string, any> = {}) {
   };
 }
 
-function makeAnalysisInput(overrides: Record<string, any> = {}) {
+function makeAnalysisInput(overrides: Record<string, unknown> = {}) {
   return {
     entities: [
       { id: 'e1', name: 'Entity1', type: 'concept' },
@@ -60,7 +60,7 @@ function makeAnalysisInput(overrides: Record<string, any> = {}) {
   };
 }
 
-function makeLayoutInput(overrides: Record<string, any> = {}) {
+function makeLayoutInput(overrides: Record<string, unknown> = {}) {
   return {
     nodes: [
       { id: 'n1', x: 0, y: 0, w: 120, h: 60 },
@@ -79,7 +79,7 @@ function makeLayoutInput(overrides: Record<string, any> = {}) {
   };
 }
 
-function makeRenderInput(overrides: Record<string, any> = {}) {
+function makeRenderInput(overrides: Record<string, unknown> = {}) {
   return {
     captionSyncOffsetMs: 30,
     layoutConsistencyScore: 0.95,
@@ -531,12 +531,15 @@ describe('StageQualityGate - Custom Config', () => {
         {
           name: 'customCheck',
           threshold: 0.9,
-          evaluate: (input: any): QualityResult => ({
-            passed: input.confidence >= 0.9,
-            score: input.confidence,
+          evaluate: (input: unknown): QualityResult => {
+            const inp = input as Record<string, unknown>;
+            return {
+            passed: (inp.confidence as number) >= 0.9,
+            score: inp.confidence as number,
             threshold: 0.9,
-            details: `Confidence ${input.confidence} vs threshold 0.9`,
-          }),
+            details: `Confidence ${inp.confidence} vs threshold 0.9`,
+          };
+          },
         },
       ],
       blockingOnFailure: true,
