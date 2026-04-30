@@ -1,7 +1,7 @@
 # speech-to-visuals アーキテクチャ設計
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-01（第37回検証: コンポーネント数修正(47ファイル:21メイン+26ui)・可視化戦略数修正(18ファイル)・第36回安定状態確認を反映）
+**最終更新**: 2026-05-01（第38回検証: コンポーネント数修正(46ファイル:21メイン+2補助+23ui)・可視化戦略数修正(20ファイル)・第37回安定状態確認を反映）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -222,7 +222,7 @@ Phase 4~5 で追加実装された UI コンポーネント:
 
 ### 可視化戦略 🔵
 
-**信頼性**: 🔵 *src/visualization/strategies/（18ファイル）+ base/ + layout/（計39ファイル）・ZERO_OVERLAP_DESIGN.md より*
+**信頼性**: 🔵 *src/visualization/strategies/（20ファイル）+ base/ + layout/（計39ファイル）・ZERO_OVERLAP_DESIGN.md より*
 
 **コア5戦略**（Phase 3 実装）:
 - FlowStrategy, TreeStrategy, TimelineStrategy, MatrixStrategy, CycleStrategy
