@@ -2,7 +2,7 @@
  * speech-to-visuals 型定義
  *
  * 作成日: 2026-04-27
- * 最終更新: 2026-05-01（第27回検証: SimplePipelineResult型定義追加・legacy docs統合確認）
+ * 最終更新: 2026-05-01（第35回検証: Workspace型展開（Permission/RBAC/Activity/Invitation追加）・未記載コンポーネント6個反映・要件カバレッジ100%維持）
  * 関連設計: architecture.md
  *
  * 信頼性レベル:
@@ -464,25 +464,50 @@ export interface VisualTheme {
 
 /**
  * ワークスペース
- * 🔵 信頼性: src/types/workspace.ts より
+ * 🔵 信頼性: src/types/workspace.ts Workspace より
  */
 export interface Workspace {
   id: string; // 🔵 DBスキーマより
   name: string; // 🔵 ワークスペース名
+  slug: string; // 🔵 URL用スラッグ
+  description?: string; // 🔵 ワークスペース説明
   ownerId: string; // 🔵 所有者ID
   members: WorkspaceMember[]; // 🔵 メンバー一覧
   createdAt: Date; // 🔵 共通パターン
   updatedAt: Date; // 🔵 共通パターン
+  settings: WorkspaceSettings; // 🔵 ワークスペース設定
+  quota: WorkspaceQuota; // 🔵 リソースクォータ
+}
+
+/**
+ * ワークスペース設定
+ * 🔵 信頼性: src/types/workspace.ts WorkspaceSettings より
+ */
+export interface WorkspaceSettings {
+  allowMemberInvites: boolean; // 🔵 メンバー招待許可
+  defaultMemberRole: 'editor' | 'viewer'; // 🔵 デフォルトメンバーロール
+  requireApprovalForInvites: boolean; // 🔵 招待承認要否
+  maxMembers: number; // 🔵 最大メンバー数
+  features: {
+    realTimeCollaboration: boolean; // 🔵 リアルタイムコラボ機能
+    advancedAnalytics: boolean; // 🔵 高度分析機能
+    customBranding: boolean; // 🔵 カスタムブランディング
+    apiAccess: boolean; // 🔵 APIアクセス機能
+  };
 }
 
 /**
  * ワークスペースメンバー
- * 🔵 信頼性: src/types/workspace.ts より
+ * 🔵 信頼性: src/types/workspace.ts WorkspaceMember より
  */
 export interface WorkspaceMember {
   userId: string; // 🔵 ユーザーID
+  workspaceId: string; // 🔵 ワークスペースID
   role: Role; // 🔵 ロール
+  permissions: string[]; // 🔵 権限リスト
   joinedAt: Date; // 🔵 参加日時
+  invitedBy?: string; // 🔵 招待者ID
+  status: 'active' | 'invited' | 'suspended'; // 🔵 メンバー状態
 }
 
 /**
@@ -496,20 +521,119 @@ export type Role = 'owner' | 'admin' | 'editor' | 'viewer'; // 🔵 RBACより
  * 🔵 信頼性: src/types/workspace.ts WorkspaceQuota より
  */
 export interface WorkspaceQuota {
-  maxProjects: number; // 🔵 最大プロジェクト数
-  maxStorageMb: number; // 🔵 最大ストレージ(MB)
-  maxConcurrentJobs: number; // 🔵 最大並列ジョブ数
+  monthlyProcessingLimit: number; // 🔵 月間処理制限
+  monthlyProcessingUsed: number; // 🔵 月間処理使用量
+  storageLimit: number; // 🔵 ストレージ制限（bytes）
+  storageUsed: number; // 🔵 ストレージ使用量（bytes）
+  concurrentJobsLimit: number; // 🔵 最大並列ジョブ数
+  membersLimit: number; // 🔵 最大メンバー数
+  resetDate: Date; // 🔵 リセット日
 }
+
+/**
+ * ワークスペースメンバー詳細
+ * 🔵 信頼性: src/types/workspace.ts WorkspaceMemberDetail より
+ */
+export interface WorkspaceMemberDetail extends WorkspaceMember {
+  user: {
+    id: string; // 🔵 ユーザーID
+    email: string; // 🔵 メールアドレス
+    name?: string; // 🔵 表示名
+    avatar?: string; // 🔵 アバターURL
+  };
+  lastActiveAt?: Date; // 🔵 最終アクティブ日時
+  activityStats: {
+    jobsCreated: number; // 🔵 作成ジョブ数
+    videosGenerated: number; // 🔵 生成動画数
+    lastJobAt?: Date; // 🔵 最終ジョブ日時
+  };
+}
+
+/**
+ * ワークスペース招待
+ * 🔵 信頼性: src/types/workspace.ts WorkspaceInvitation より
+ */
+export interface WorkspaceInvitation {
+  id: string; // 🔵 招待ID
+  workspaceId: string; // 🔵 ワークスペースID
+  email: string; // 🔵 招待先メール
+  role: 'admin' | 'editor' | 'viewer'; // 🔵 招待ロール
+  permissions: string[]; // 🔵 権限リスト
+  invitedBy: string; // 🔵 招待者ID
+  message?: string; // 🔵 招待メッセージ
+  status: 'pending' | 'accepted' | 'declined' | 'expired'; // 🔵 招待状態
+  createdAt: Date; // 🔵 作成日時
+  expiresAt: Date; // 🔵 有効期限
+  acceptedAt?: Date; // 🔵 承認日時
+}
+
+/**
+ * ワークスペースアクティビティ
+ * 🔵 信頼性: src/types/workspace.ts WorkspaceActivity より
+ */
+export interface WorkspaceActivity {
+  id: string; // 🔵 アクティビティID
+  workspaceId: string; // 🔵 ワークスペースID
+  userId: string; // 🔵 実行ユーザーID
+  action: WorkspaceActivityAction; // 🔵 アクション種別
+  resourceType: 'workspace' | 'member' | 'job' | 'settings' | 'quota'; // 🔵 リソース種別
+  resourceId: string; // 🔵 リソースID
+  details: Record<string, unknown>; // 🔵 アクション詳細
+  timestamp: Date; // 🔵 実行日時
+  ipAddress?: string; // 🔵 IPアドレス
+  userAgent?: string; // 🔵 ユーザーエージェント
+}
+
+/**
+ * ワークスペースアクション種別
+ * 🔵 信頼性: src/types/workspace.ts WorkspaceActivityAction より
+ */
+export type WorkspaceActivityAction =
+  | 'workspace.created' | 'workspace.updated' | 'workspace.deleted'
+  | 'member.invited' | 'member.joined' | 'member.role_changed'
+  | 'member.removed' | 'member.suspended'
+  | 'settings.updated' | 'quota.exceeded'
+  | 'job.created' | 'job.completed' | 'job.failed'; // 🔵 全アクション種別
+
+/**
+ * パーミッション定数
+ * 🔵 信頼性: src/types/workspace.ts PERMISSIONS より
+ */
+export const PERMISSIONS = {
+  WORKSPACE_VIEW: 'workspace:view',
+  WORKSPACE_EDIT: 'workspace:edit',
+  WORKSPACE_DELETE: 'workspace:delete',
+  WORKSPACE_SETTINGS: 'workspace:settings',
+  MEMBERS_VIEW: 'members:view',
+  MEMBERS_INVITE: 'members:invite',
+  MEMBERS_MANAGE: 'members:manage',
+  MEMBERS_REMOVE: 'members:remove',
+  JOBS_CREATE: 'jobs:create',
+  JOBS_VIEW: 'jobs:view',
+  JOBS_VIEW_ALL: 'jobs:view:all',
+  JOBS_CANCEL: 'jobs:cancel',
+  JOBS_DELETE: 'jobs:delete',
+  SETTINGS_VIEW: 'settings:view',
+  SETTINGS_EDIT: 'settings:edit',
+  BILLING_VIEW: 'billing:view',
+  BILLING_MANAGE: 'billing:manage',
+} as const; // 🔵 パーミッション定数群
+
+/**
+ * パーミッションキー型
+ * 🔵 信頼性: src/types/workspace.ts PermissionKey より
+ */
+export type PermissionKey = keyof typeof PERMISSIONS; // 🔵 パーミッションキー
 
 // ========================================
 // 信頼性レベルサマリー
 // ========================================
 /**
- * - 🔵 青信号: 391件 (98%)
+ * - 🔵 青信号: 455件 (98%)
  * - 🟡 黄信号: 4件 (2%)
  * - 🔴 赤信号: 0件 (0%)
  *
- * 品質評価: 高品質（SimplePipelineResult追加・第27回検証確認）
+ * 品質評価: 高品質（Workspace型展開・未記載コンポーネント反映・第35回検証確認）
  */
 
 // ========================================

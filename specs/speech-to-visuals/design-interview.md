@@ -1,7 +1,7 @@
 # speech-to-visuals 設計自動分析記録
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-01（第34回検証: kairo-design包括差分分析・コンポーネント数修正(46→45)・API endpoint実態確認・legacy docs完全統合維持確認）
+**最終更新**: 2026-05-01（第35回検証: 未記載コンポーネント6個追加・Workspace型13型展開・要件カバレッジ100%維持確認）
 **最終更新**: 2026-05-01（第29回検証: ディレクトリ別ファイル数の実態整合・要件カバレッジ100%維持）
 **最終更新**: 2026-05-01（第27回検証: SimplePipelineResult型定義追加・legacy docs統合確認・要件カバレッジ100%維持）
 **最終更新**: 2026-05-01（第24回検証: Kairo設計再検証・要件カバレッジ100%維持確認・設計整合性確認）
@@ -1833,3 +1833,53 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - 🔴 赤信号: 0 (±0)
 
 **更新統合内容**: architecture.md（コンポーネント数 46→45 修正・ヘッダー検証ラウンド更新）、design-interview.md（第34回検証項目 A63 追加）
+
+---
+
+### A35: 第35回検証: 未記載コンポーネント・Workspace型展開
+
+**分析日時**: 2026-05-01
+**カテゴリ**: アーキテクチャ・データモデル
+**背景**: kairo-design 第35回実行。設計文書と実装の差分を再検証し、未記載のUIコンポーネントとWorkspace型の詳細化を確認した。
+
+**判断**:
+
+1. **未記載コンポーネント6個を特定・追加**:
+   - DiagramPreview.tsx: 図解プレビュー（シーングラフ一覧・タイプ別ラベル・レンダリングトリガー）
+   - InteractiveResultViewer.tsx: インタラクティブ結果表示（Iteration 66 Phase B・シーンプレビュー・ズーム/再生操作・エクスポート）
+   - VideoGenerationPanel.tsx: 動画生成パネル（Iteration 66 Phase C・品質設定・カスタマイズ・アニメーション制御）
+   - Iteration43Interface.tsx: カスタムインストラクション適合性UI（再帰的開発フェーズ追跡・品質メトリクス・イテレーション管理）
+   - PerformanceMetricsVisualization.tsx: パフォーマンスメトリクス可視化（Phase 15・ステージ別チャート・品質スコア指標）
+   - pipeline-interface.tsx (PipelineInterface): MainPipeline統合UI（ファイル選択・パイプライン実行・ストリーミング進捗・ステージメトリクス）
+
+2. **Workspace型の展開**:
+   - interfaces.ts の Workspace 型を基本4型から13型に展開
+   - 追加型: WorkspaceSettings, WorkspaceMemberDetail, WorkspaceInvitation, WorkspaceActivity, WorkspaceActivityAction, PERMISSIONS 定数, PermissionKey
+   - src/types/workspace.ts の実装と完全一致
+
+3. **ファイル数・ソースコード不変確認**:
+   - src/: 248ファイル（不変）
+   - tests/: 50ファイル（不変）
+   - types/: 15ファイル（不変）
+   - components/: 46ファイル（22メイン+23ui+1__tests__、設計上はテスト除外で45）
+
+**根拠**:
+- `find src/components/ -name '*.ts' -o -name '*.tsx'` → 46ファイル（22メイン+23ui+1test）
+- `find src/types/ -name '*.ts'` → 15ファイル
+- src/types/workspace.ts の全型定義と interfaces.ts の照合
+- 各未記載コンポーネントのソースコードヘッダー確認
+
+**信頼性への影響**:
+- architecture.md: 未記載コンポーネント6個の記載追加（信頼性: 🔵）
+- interfaces.ts: Workspace型展開（64件→128件、信頼性: 🔵）
+- 信頼性レベル分布: 🔵 青信号増加（391→455件）、🟡・🔴 不変
+- 要件カバレッジ100%維持
+- ソースコード変更なし（248ファイル不変）
+
+**2026-05-01 第35回更新（A35 検証）**:
+
+- 🔵 青信号: 455 (+64)
+- 🟡 黄信号: 4 (±0)
+- 🔴 赤信号: 0 (±0)
+
+**更新統合内容**: architecture.md（未記載コンポーネント6個追加・PipelineInterface追加・ヘッダー検証ラウンド更新）、interfaces.ts（Workspace型13型展開・ヘッダー更新・信頼性サマリー更新）、design-interview.md（第35回検証項目 A35 追加）
