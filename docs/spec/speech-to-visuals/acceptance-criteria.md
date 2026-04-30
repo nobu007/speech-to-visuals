@@ -1,7 +1,7 @@
 # Speech-to-Visuals 受け入れ基準
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-30（第19回検証・要件カバレッジ100%維持確認・現状維持）
+**最終更新**: 2026-04-30（第20回検証・要件カバレッジ100%維持確認・現状維持）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
