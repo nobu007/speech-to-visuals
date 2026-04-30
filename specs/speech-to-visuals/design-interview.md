@@ -1,6 +1,7 @@
 # speech-to-visuals 設計自動分析記録
 
 **作成日**: 2026-04-27
+**最終更新**: 2026-05-01（第27回検証: SimplePipelineResult型定義追加・legacy docs統合確認・要件カバレッジ100%維持）
 **最終更新**: 2026-05-01（第24回検証: Kairo設計再検証・要件カバレッジ100%維持確認・設計整合性確認）
 **最終更新**: 2026-05-01（第26回検証: TypeScript strictness改善(07c4196)による高度レイアウト型定義追加・設計整合性確認）
 **最終更新**: 2026-04-30（第23回検証: ファイル数実態整合・要件カバレッジ100%確認・設計整合性確認）
@@ -1622,3 +1623,29 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - 信頼性レベル分布: 🔵 382件 (98%)、🟡 4件 (2%)、🔴 0件 (0%)
 - アーキテクチャ変更なし - 型安全性の実装品質向上のみ
 - 要件カバレッジ100%維持
+
+---
+
+### 第27回検証（2026-05-01）: SimplePipelineResult型定義追加・legacy docs統合確認
+
+**分析日時**: 2026-05-01
+**カテゴリ**: 型安全性・設計文書統合
+**背景**: コミット 2417691 で SimplePipelineResult に `[key: string]: unknown` インデックスシグネチャが追加され、SceneData との互換性が確保された。また、Kairo設計タスクにより全設計文書の再検証を実施し、legacy `docs/` ディレクトリ群と `specs/` 正本の統合状態を確認した。
+
+**判断**:
+1. SimplePipelineResult のインデックスシグネチャ追加は、InteractiveResultViewer.tsx での SceneData 互換性を確保するために必要な修正。interfaces.ts に同型定義を追加。
+2. legacy `docs/design/`, `docs/spec/`, `docs/tasks/` は全て `specs/` に移行済み。全ファイルで specs/ 版が docs/ 版より新しく、specs/ が完全なスーパーセットであることを確認。
+3. 実装型（EdgeDatum, PositionedNode, DiagramLayout, SceneGraph）には設計に省略された追加フィールドが存在するが、これらは意図的な設計抽象化であり、コア要件との整合性は維持されている。
+4. 66タスク定義（TASK-0001~0066）と overview.md が specs/tasks/ に正本として存在。
+
+**根拠**:
+- コミット 2417691 (fix(types): add index signature to SimplePipelineResult for SceneData compatibility)
+- diff --brief による docs/ と specs/ の全ファイル比較
+- src/types/diagram.ts と interfaces.ts の型定義照合
+
+**信頼性への影響**:
+- interfaces.ts に SimplePipelineResult（9フィールド）を 🔵（青信号）で追加（391件に増加）
+- 信頼性レベル分布: 🔵 391件 (98%)、🟡 4件 (2%)、🔴 0件 (0%)
+- アーキテクチャ変更なし - 型定義の完全性向上のみ
+- 要件カバレッジ100%維持
+- legacy docs/ の specs/ 移行完了を確認

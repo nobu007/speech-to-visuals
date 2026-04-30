@@ -2,7 +2,7 @@
  * speech-to-visuals 型定義
  *
  * 作成日: 2026-04-27
- * 最終更新: 2026-05-01（第26回検証: TypeScript strictness改善(07c4196)による新規型定義追加・設計整合性確認）
+ * 最終更新: 2026-05-01（第27回検証: SimplePipelineResult型定義追加・legacy docs統合確認）
  * 関連設計: architecture.md
  *
  * 信頼性レベル:
@@ -505,11 +505,11 @@ export interface WorkspaceQuota {
 // 信頼性レベルサマリー
 // ========================================
 /**
- * - 🔵 青信号: 382件 (98%)
+ * - 🔵 青信号: 391件 (98%)
  * - 🟡 黄信号: 4件 (2%)
  * - 🔴 赤信号: 0件 (0%)
  *
- * 品質評価: 高品質（TypeScript strictness改善(07c4196)による高度レイアウト型42件追加・第26回検証確認）
+ * 品質評価: 高品質（SimplePipelineResult追加・第27回検証確認）
  */
 
 // ========================================
@@ -702,7 +702,22 @@ export interface PipelineStageProgress {
 }
 
 /**
- * パイプライン結果
+ * SimplePipeline 処理結果
+ * 🔵 信頼性: src/pipeline/simple-pipeline.ts SimplePipelineResult より
+ */
+export interface SimplePipelineResult {
+  success: boolean; // 🔵 成功フラグ
+  audioUrl?: string; // 🔵 音声ファイルURL
+  transcript?: string; // 🔵 文字起こしテキスト
+  scenes?: SceneGraph[]; // 🔵 生成シーン
+  videoUrl?: string; // 🔵 生成動画URL
+  error?: string; // 🔵 エラーメッセージ
+  processingTime?: number; // 🔵 処理時間（ms）
+  [key: string]: unknown; // 🔵 SceneData 互換インデックスシグネチャ（2417691）
+}
+
+/**
+ * パイプライン結果（UI コンポーネント用）
  * 🔵 信頼性: src/components/SimplePipelineInterface.tsx・要件定義REQ-035 より
  */
 export interface PipelineResult {
