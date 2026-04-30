@@ -65,7 +65,6 @@ describe('createMockResponse', () => {
   test('setHeader is a jest fn that returns this for chaining', () => {
     const res = createMockResponse();
     expect(res.setHeader).toBeDefined();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const setHeaderFn = res.setHeader as unknown as (...args: unknown[]) => unknown;
     const result = setHeaderFn('Content-Type', 'application/json');
     expect(result).toBe(res);

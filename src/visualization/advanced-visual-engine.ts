@@ -32,7 +32,7 @@ export interface AnimationSequence {
     duration: number;
     easing: string;
   };
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 }
 
 export interface BackgroundConfig {
@@ -179,7 +179,7 @@ export class AdvancedVisualEngine {
   /**
    * Enhance layout with visual styling considerations
    */
-  private async enhanceLayout(scene: SceneGraph, style: VisualStyle): Promise<any> {
+  private async enhanceLayout(scene: SceneGraph, style: VisualStyle): Promise<Record<string, unknown>> {
     const baseLayout = scene.layout;
 
     // Apply visual enhancements to nodes
@@ -327,7 +327,7 @@ export class AdvancedVisualEngine {
   /**
    * Get node color based on style and context
    */
-  private getNodeColor(node: any, style: VisualStyle): string {
+  private getNodeColor(node: Record<string, unknown>, style: VisualStyle): string {
     const palette = this.colorPalettes[style.colorScheme];
 
     // Apply contextual coloring based on node type or importance
@@ -399,7 +399,7 @@ export class AdvancedVisualEngine {
   /**
    * Get edge pattern based on context
    */
-  private getEdgePattern(edge: any, style: VisualStyle): string | undefined {
+  private getEdgePattern(edge: Record<string, unknown>, style: VisualStyle): string | undefined {
     if (edge.type === 'dashed' || edge.style === 'dashed') {
       return '5,5';
     }
@@ -416,7 +416,7 @@ export class AdvancedVisualEngine {
   /**
    * Get shadow configuration
    */
-  private getShadowConfig(style: VisualStyle): any {
+  private getShadowConfig(style: VisualStyle): { offsetX: number; offsetY: number; blur: number; color: string } | null {
     if (style.theme === 'minimal') return null;
 
     return {
@@ -562,7 +562,7 @@ export class AdvancedVisualEngine {
   async exportForRendering(
     scenes: EnhancedSceneGraph[],
     options: RenderOptions
-  ): Promise<any> {
+  ): Promise<Record<string, unknown>> {
     console.log(`📤 Exporting ${scenes.length} enhanced scenes for rendering`);
 
     const exportData = {
@@ -606,7 +606,7 @@ export class AdvancedVisualEngine {
   /**
    * Get visual enhancement statistics
    */
-  public getStatistics(): any {
+  public getStatistics(): Record<string, unknown> {
     return {
       iteration: this.iteration,
       qualityMetrics: Object.fromEntries(this.qualityMetrics),

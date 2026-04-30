@@ -296,10 +296,10 @@ export class ImprovementDetector {
    * Assess overall system health
    */
   private assessOverallHealth(
-    qualityReport: any,
-    trends: any
+    qualityReport: unknown,
+    trends: unknown
   ): ImprovementReport['overallHealth'] {
-    const criticalViolations = qualityReport.violations.filter((v: any) => v.severity === 'critical');
+    const criticalViolations = qualityReport.violations.filter((v: Record<string, unknown>) => v.severity === 'critical');
     const degradingCount = trends.degrading.length;
 
     if (criticalViolations.length > 0 || degradingCount > 3) {
@@ -319,7 +319,7 @@ export class ImprovementDetector {
    */
   private prioritizeNextSteps(
     opportunities: ImprovementOpportunity[],
-    trends: any
+    trends: unknown
   ): string[] {
     const nextSteps: string[] = [];
 

@@ -95,6 +95,7 @@ export const InteractiveResultViewer: React.FC<InteractiveResultViewerProps> = (
    */
   useEffect(() => {
     generateThumbnails();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result]);
 
   /**
@@ -144,7 +145,7 @@ export const InteractiveResultViewer: React.FC<InteractiveResultViewerProps> = (
   /**
    * Generate thumbnail for a single scene
    */
-  const generateSceneThumbnail = async (scene: any, index: number): Promise<string> => {
+  const generateSceneThumbnail = async (scene: Record<string, unknown>, index: number): Promise<string> => {
     // Simplified thumbnail generation
     // In production, this would render the actual scene to a canvas
     const canvas = document.createElement('canvas');

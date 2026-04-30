@@ -243,7 +243,7 @@ export class VideoGenerator {
   /**
    * データ変換品質検証
    */
-  private async validateRemotionData(data: any): Promise<{
+  private async validateRemotionData(data: unknown): Promise<{
     isValid: boolean;
     errors: string[];
     warnings: string[];
@@ -296,7 +296,7 @@ export class VideoGenerator {
    * Remotionレンダリング設定準備
    * Phase 14: Added performance optimization settings
    */
-  private async prepareRenderConfiguration(data: any) {
+  private async prepareRenderConfiguration(data: unknown) {
     return {
       composition: 'DiagramVideo',
       inputProps: {
@@ -343,7 +343,7 @@ export class VideoGenerator {
    * @remotion/rendererを使用した実際のレンダリング
    */
   private async executeRemotionRender(
-    config: any,
+    config: unknown,
     onProgress?: (stage: string, progress: number) => void
   ) {
     console.log('[Video Generation] Executing actual Remotion render...');
@@ -397,7 +397,7 @@ export class VideoGenerator {
    * 模擬レンダリング（ブラウザ環境用）
    */
   private async executeMockRender(
-    config: any,
+    config: unknown,
     onProgress?: (stage: string, progress: number) => void
   ) {
     console.log('[Video Generation] Executing mock render for browser...');
@@ -438,7 +438,7 @@ export class VideoGenerator {
   /**
    * 動画生成最終処理
    */
-  private async finalizeVideoGeneration(renderInfo: any): Promise<VideoGenerationResult> {
+  private async finalizeVideoGeneration(renderInfo: unknown): Promise<VideoGenerationResult> {
     // サムネイル生成（模擬）
     const thumbnailUrl = renderInfo.path.replace('.mp4', '_thumb.jpg');
 
@@ -523,7 +523,7 @@ export class VideoGenerator {
     return resolutions[this.options.resolution || '1080p'] || 1080;
   }
 
-  private estimateFileSize(config: any): number {
+  private estimateFileSize(config: unknown): number {
     // 簡易ファイルサイズ推定（品質・解像度・時間を考慮）
     const baseSizePerSecond = {
       low: 1024 * 1024,     // 1MB/秒

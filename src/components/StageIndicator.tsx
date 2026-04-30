@@ -123,6 +123,7 @@ export const StageIndicator: FC<StageIndicatorProps> = memo(
 
     const elapsed = useMemo(
       () => calcElapsed(stage),
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       [stage.startedAt, stage.completedAt],
     );
 

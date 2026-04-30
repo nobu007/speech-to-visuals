@@ -116,13 +116,13 @@ export class OverlapResolver {
       const gridStrategy = new GridSnapStrategy();
       const fallbackEdges = bestResult.layout.edges.map(e => ({
         id: e.id as string,
-        from: (e as any).from ?? e.source!,
-        to: (e as any).to ?? e.target!,
-        label: (e as any).label,
+        from: ('from' in e ? (e as Record<string, unknown>).from : e.source) as string,
+        to: ('to' in e ? (e as Record<string, unknown>).to : e.target) as string,
+        label: ('label' in e ? (e as Record<string, unknown>).label : undefined) as string | undefined,
       }));
       bestResult = await gridStrategy.apply(
-        bestResult.layout.nodes as any,
-        fallbackEdges as any,
+        bestResult.layout.nodes as unknown as PositionedNode[],
+        fallbackEdges as unknown as LayoutEdge[],
         config,
         bestResult.layout
       );
@@ -163,7 +163,7 @@ export class OverlapResolver {
     
     // Race the strategy against the timeout
     return Promise.race([
-      strategy.apply(nodes as any, edges as any, config, existingLayout),
+      strategy.apply(nodes as unknown as PositionedNode[], edges as unknown as LayoutEdge[], config, existingLayout),
       timeoutPromise
     ]);
   }

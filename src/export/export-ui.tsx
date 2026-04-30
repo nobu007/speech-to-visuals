@@ -41,7 +41,7 @@ import {
 } from './enhanced-export-engine';
 
 interface ExportPanelProps {
-  sceneData: any;
+  sceneData: Record<string, unknown> | null;
   onExportComplete?: (result: ExportResult) => void;
   className?: string;
 }

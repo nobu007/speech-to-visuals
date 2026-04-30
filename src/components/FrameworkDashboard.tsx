@@ -57,7 +57,7 @@ interface IterationMetrics {
   phase: string;
   status: 'success' | 'failure';
   duration: number;
-  metrics: Record<string, any>;
+  metrics: Record<string, unknown>;
   timestamp: string;
 }
 
@@ -154,6 +154,7 @@ export const FrameworkDashboard: React.FC<FrameworkDashboardProps> = ({
     }, refreshInterval);
 
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRefresh, executionStatus.isRunning, refreshInterval]);
 
   /**

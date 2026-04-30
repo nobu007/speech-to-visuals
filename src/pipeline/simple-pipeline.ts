@@ -216,7 +216,7 @@ export class SimplePipeline {
         (input.options?.layoutQuality === 'zero_overlap' || input.options?.layoutQuality === 'enhanced');
 
       // Helper function to process a single scene
-      const processScene = async (segment: any, index: number): Promise<SceneGraph | null> => {
+      const processScene = async (segment: unknown, index: number): Promise<SceneGraph | null> => {
         const sceneStartTime = Date.now();
 
         try {
@@ -245,7 +245,7 @@ export class SimplePipeline {
           // Generate layout with Enhanced Zero Overlap Engine (カスタムインストラクション準拠)
           const layoutStartTime = Date.now();
 
-          let layoutResult: any;
+          let layoutResult: unknown;
 
           if (useEnhancedLayout) {
             console.log(`🎯 [Scene ${index + 1}] Using Enhanced Zero Overlap Layout Engine`);
@@ -327,7 +327,7 @@ export class SimplePipeline {
       if (enableParallel) {
         // Parallel processing with controlled concurrency
         // Split into batches to avoid overwhelming the API
-        const batches: any[][] = [];
+        const batches: unknown[][] = [];
         for (let i = 0; i < contentSegments.length; i += maxConcurrency) {
           batches.push(contentSegments.slice(i, i + maxConcurrency));
         }
@@ -451,8 +451,8 @@ export class SimplePipeline {
       const qualityMonitor = getQualityMonitor();
       qualityMonitor.recordMetrics({
         processingTime,
-        memoryUsage: (performance as any).memory?.usedJSHeapSize
-          ? (performance as any).memory.usedJSHeapSize / (1024 * 1024)
+        memoryUsage: (performance as unknown).memory?.usedJSHeapSize
+          ? (performance as unknown).memory.usedJSHeapSize / (1024 * 1024)
           : 0,
         transcriptionAccuracy: transcript.length > 0 ? 0.9 : 0,
         sceneSegmentationF1: scenes.length > 0 ? 0.85 : 0,
@@ -545,8 +545,8 @@ export class SimplePipeline {
       const qualityMonitor = getQualityMonitor();
       qualityMonitor.recordMetrics({
         processingTime: failureProcessingTime,
-        memoryUsage: (performance as any).memory?.usedJSHeapSize
-          ? (performance as any).memory.usedJSHeapSize / (1024 * 1024)
+        memoryUsage: (performance as unknown).memory?.usedJSHeapSize
+          ? (performance as unknown).memory.usedJSHeapSize / (1024 * 1024)
           : 0,
         layoutOverlap: 0,
         errorCount: 1,

@@ -40,7 +40,7 @@ export interface PipelineStage {
   startTime?: number;
   endTime?: number;
   error?: string;
-  result?: any;
+  result?: SceneGraph | LayoutResult | ContentSegment[] | TranscriptionResult | unknown;
 }
 
 export interface PipelineResult {

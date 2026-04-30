@@ -98,6 +98,7 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
     return () => {
       stopAllProcessing();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config]);
 
   // Statistics update timer
@@ -192,6 +193,7 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
       setError(err instanceof Error ? err.message : 'Processing failed');
       console.error('Streaming processing error:', err);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scenes, onComplete]);
 
   /**
@@ -251,6 +253,7 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
       setError(err instanceof Error ? err.message : 'Live processing failed');
       console.error('Live processing error:', err);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [browserSupport, scenes]);
 
   /**

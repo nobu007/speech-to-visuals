@@ -12,12 +12,12 @@ import { globalCache } from '../performance/intelligent-cache';
 interface ErrorContext {
   stage: ProcessingStage;
   component: string;
-  input: any;
+  input: unknown;
   error: Error;
   timestamp: number;
   retryCount: number;
   userContext: {
-    preferences: any;
+    preferences: unknown;
     sessionId: string;
     previousSuccesses: number;
   };
@@ -35,7 +35,7 @@ interface RecoveryStrategy {
 
 interface RecoveryResult {
   success: boolean;
-  result?: any;
+  result?: unknown;
   fallbackUsed: boolean;
   timeSpent: number;
   strategy: string;
@@ -107,7 +107,7 @@ export interface RetryOptions {
 /**
  * TASK-0045: Result of a retry operation
  */
-export interface RetryResult<T = any> {
+export interface RetryResult<T = unknown> {
   success: boolean;
   result?: T;
   attempts: number;
@@ -117,7 +117,7 @@ export interface RetryResult<T = any> {
 /**
  * TASK-0045: Result of a fallback execution
  */
-export interface FallbackResult<T = any> {
+export interface FallbackResult<T = unknown> {
   success: boolean;
   result?: T;
   fallbackUsed: boolean;
@@ -129,7 +129,7 @@ export interface FallbackResult<T = any> {
  */
 export interface FallbackContext {
   stage?: ProcessingStage;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -164,9 +164,10 @@ export class EnhancedErrorRecovery {
   private circuitBreakers: Map<string, CircuitBreaker> = new Map();
   private loadMetrics: LoadMetrics[] = [];
   private loadBalancingConfig: LoadBalancingConfig;
-  private activeRequests: Map<string, { promise: Promise<any>; startTime: number; stage?: ProcessingStage; priority: number }> = new Map();
-  private requestQueue: Array<{ id: string; request: () => Promise<any>; priority: number; queuedAt: number; timeout: number; stage?: ProcessingStage }> = [];
+  private activeRequests: Map<string, { promise: Promise<unknown>; startTime: number; stage?: ProcessingStage; priority: number }> = new Map();
+  private requestQueue: Array<{ id: string; request: () => Promise<unknown>; priority: number; queuedAt: number; timeout: number; stage?: ProcessingStage }> = [];
   private healthCheckTimer: NodeJS.Timeout | null = null;
+  private healthMonitoringTimer: NodeJS.Timeout | null = null;
   private isShuttingDown = false;
   private dynamicCapacity: number;
   private requestStats: { completed: number; failed: number; avgResponseTime: number } = { completed: 0, failed: 0, avgResponseTime: 0 };
@@ -646,7 +647,7 @@ export class EnhancedErrorRecovery {
     adaptiveCapacityScore: number;
     queueManagementScore: number;
     overallResilience: number;
-    details: any;
+    details: unknown;
   } {
     // Enhanced load handling with dynamic capacity consideration
     const currentLoad = this.activeRequests.size / this.dynamicCapacity;
@@ -1009,7 +1010,9 @@ export class EnhancedErrorRecovery {
    * Start health monitoring background process
    */
   private startHealthMonitoring(): void {
-    setInterval(() => {
+    if (this.healthMonitoringTimer) return;
+
+    this.healthMonitoringTimer = setInterval(() => {
       this.updateHealthMetrics();
       this.checkPredictiveIndicators();
       this.executePreventiveActions();
@@ -1079,7 +1082,7 @@ export class EnhancedErrorRecovery {
   /**
    * Predictive failure detection
    */
-  async predictFailureRisk(stage: ProcessingStage, input: any): Promise<{
+  async predictFailureRisk(stage: ProcessingStage, input: unknown): Promise<{
     riskLevel: 'low' | 'medium' | 'high' | 'critical';
     confidence: number;
     indicators: string[];
@@ -1187,9 +1190,9 @@ export class EnhancedErrorRecovery {
    */
   private async adaptParametersForRetry(
     context: ErrorContext,
-    failurePattern: any
-  ): Promise<Record<string, any>> {
-    const adaptedParams: Record<string, any> = {};
+    failurePattern: unknown
+  ): Promise<Record<string, unknown>> {
+    const adaptedParams: Record<string, unknown> = {};
 
     // Based on failure frequency, adjust conservativeness
     if (failurePattern.frequency > 2) {
@@ -1222,8 +1225,8 @@ export class EnhancedErrorRecovery {
    */
   private async executeWithAdaptedParams(
     context: ErrorContext,
-    adaptedParams: Record<string, any>
-  ): Promise<any> {
+    adaptedParams: Record<string, unknown>
+  ): Promise<unknown> {
     // This would delegate to the actual processing function
     // with the adapted parameters
     console.log(`Retrying ${context.stage} with adapted params:`, adaptedParams);
@@ -1238,7 +1241,7 @@ export class EnhancedErrorRecovery {
   /**
    * Generate degraded quality parameters
    */
-  private generateDegradedParams(context: ErrorContext): Record<string, any> {
+  private generateDegradedParams(context: ErrorContext): Record<string, unknown> {
     return {
       quality: 'low',
       resolution: 'reduced',
@@ -1252,8 +1255,8 @@ export class EnhancedErrorRecovery {
    */
   private async executeWithDegradedQuality(
     context: ErrorContext,
-    degradedParams: Record<string, any>
-  ): Promise<any> {
+    degradedParams: Record<string, unknown>
+  ): Promise<unknown> {
     console.log(`Executing ${context.stage} with degraded quality:`, degradedParams);
 
     // Simulate degraded processing
@@ -1265,7 +1268,7 @@ export class EnhancedErrorRecovery {
   /**
    * Adapt cached result to current context
    */
-  private async adaptCachedResult(cachedData: any, context: ErrorContext): Promise<any> {
+  private async adaptCachedResult(cachedData: unknown, context: ErrorContext): Promise<unknown> {
     console.log(`Adapting cached result for ${context.stage}`);
 
     // Simulate adaptation logic
@@ -1279,7 +1282,7 @@ export class EnhancedErrorRecovery {
   /**
    * Execute alternative algorithm
    */
-  private async executeAlternativeAlgorithm(context: ErrorContext): Promise<any> {
+  private async executeAlternativeAlgorithm(context: ErrorContext): Promise<unknown> {
     console.log(`Using alternative algorithm for ${context.stage}`);
 
     // Simulate alternative processing
@@ -1291,7 +1294,7 @@ export class EnhancedErrorRecovery {
   /**
    * Generate minimal viable output
    */
-  private async generateMinimalOutput(context: ErrorContext): Promise<any> {
+  private async generateMinimalOutput(context: ErrorContext): Promise<unknown> {
     console.log(`Generating minimal output for ${context.stage}`);
 
     // Return very basic output to avoid complete failure
@@ -1420,7 +1423,7 @@ export class EnhancedErrorRecovery {
   /**
    * Assess input complexity
    */
-  private assessInputComplexity(input: any): number {
+  private assessInputComplexity(input: unknown): number {
     // Simple complexity assessment
     const inputString = JSON.stringify(input);
     const length = inputString.length;
@@ -1437,6 +1440,27 @@ export class EnhancedErrorRecovery {
   }
 
   /**
+   * Destroy the error recovery system, clearing all timers.
+   * Use this in test afterEach/afterAll hooks to prevent resource leaks.
+   */
+  destroy(): void {
+    this.isShuttingDown = true;
+
+    if (this.healthCheckTimer) {
+      clearInterval(this.healthCheckTimer);
+      this.healthCheckTimer = null;
+    }
+
+    if (this.healthMonitoringTimer) {
+      clearInterval(this.healthMonitoringTimer);
+      this.healthMonitoringTimer = null;
+    }
+
+    this.requestQueue = [];
+    this.activeRequests.clear();
+  }
+
+  /**
    * Shutdown the error recovery system gracefully
    */
   async shutdown(): Promise<void> {
@@ -1447,6 +1471,12 @@ export class EnhancedErrorRecovery {
     if (this.healthCheckTimer) {
       clearInterval(this.healthCheckTimer);
       this.healthCheckTimer = null;
+    }
+
+    // Stop health metrics monitoring
+    if (this.healthMonitoringTimer) {
+      clearInterval(this.healthMonitoringTimer);
+      this.healthMonitoringTimer = null;
     }
 
     // Wait for active requests to complete (with timeout)

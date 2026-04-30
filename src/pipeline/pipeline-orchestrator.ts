@@ -52,7 +52,7 @@ export interface QualityGate {
   /** 0-based stage index to which this gate applies */
   stageIndex: number;
   /** Validation function receiving the stage output */
-  validate: (stageOutput: any) => QualityGateResult;
+  validate: (stageOutput: unknown) => QualityGateResult;
   /** Human-readable name for logging */
   name: string;
 }
@@ -63,7 +63,7 @@ export interface FallbackStrategy {
   /** Human-readable name */
   name: string;
   /** Fallback executor – returns a replacement stage output */
-  execute: (originalInput: any, error?: any) => Promise<any>;
+  execute: (originalInput: unknown, error?: unknown) => Promise<unknown>;
 }
 
 export interface PipelineOrchestratorConfig {
@@ -186,14 +186,14 @@ export class PipelineOrchestrator {
     };
 
     const stages: PipelineStage[] = [];
-    let audioUrl: string =
+    const audioUrl: string =
       typeof input.audioFile === 'string' ? input.audioFile : '';
 
     // Intermediate results between stages
-    let transcriptionResult: any;
-    let contentSegments: any[];
-    let diagramAnalyses: any[];
-    let layoutResults: any[];
+    let transcriptionResult: unknown;
+    let contentSegments: unknown[];
+    let diagramAnalyses: unknown[];
+    let layoutResults: unknown[];
     let scenes: SceneGraph[];
 
     try {
@@ -295,7 +295,7 @@ export class PipelineOrchestrator {
   private async runTranscription(
     input: PipelineInput,
     config: PipelineConfig
-  ): Promise<any> {
+  ): Promise<unknown> {
     const audioPath =
       typeof input.audioFile === 'string' ? input.audioFile : 'temp_audio.wav';
 
@@ -330,9 +330,9 @@ export class PipelineOrchestrator {
     }
   }
 
-  private async runAnalysis(transcriptionResult: any): Promise<{
-    segments: any[];
-    diagrams: any[];
+  private async runAnalysis(transcriptionResult: unknown): Promise<{
+    segments: unknown[];
+    diagrams: unknown[];
   }> {
     const segments = transcriptionResult?.segments ?? [];
 
@@ -355,10 +355,10 @@ export class PipelineOrchestrator {
   }
 
   private async runLayout(
-    diagrams: any[],
-    segments: any[]
-  ): Promise<any[]> {
-    const results: any[] = [];
+    diagrams: unknown[],
+    segments: unknown[]
+  ): Promise<unknown[]> {
+    const results: unknown[] = [];
 
     for (let i = 0; i < diagrams.length; i++) {
       const diag = diagrams[i];
@@ -405,9 +405,9 @@ export class PipelineOrchestrator {
   }
 
   private async runPreparation(
-    segments: any[],
-    diagrams: any[],
-    layouts: any[]
+    segments: unknown[],
+    diagrams: unknown[],
+    layouts: unknown[]
   ): Promise<SceneGraph[]> {
     const scenes: SceneGraph[] = layouts.map((item, index) => {
       const segment = item.segment ?? segments[index];
@@ -451,11 +451,11 @@ export class PipelineOrchestrator {
    */
   private async executeStageWithGates(
     stageIndex: number,
-    stageFn: () => Promise<any>,
+    stageFn: () => Promise<unknown>,
     cb?: (progress: PipelineProgress) => void
-  ): Promise<any> {
+  ): Promise<unknown> {
     // Execute the stage
-    let result: any;
+    let result: unknown;
     try {
       result = await stageFn();
     } catch (error) {
@@ -513,15 +513,15 @@ export class PipelineOrchestrator {
    */
   private async tryFallbacks(
     stageIndex: number,
-    gateFailure: { result: any; reason?: string } | null,
-    stageError: any,
+    gateFailure: { result: unknown; reason?: string } | null,
+    stageError: unknown,
     cb?: (progress: PipelineProgress) => void
-  ): Promise<any | undefined> {
+  ): Promise<unknown | undefined> {
     const strategies = (this.config.fallbackStrategies ?? []).filter(
       (s) => s.stageIndex === stageIndex
     );
 
-    let lastError: any = stageError;
+    let lastError: unknown = stageError;
 
     for (const strategy of strategies) {
       try {
@@ -556,7 +556,7 @@ export class PipelineOrchestrator {
    */
   private validatePipelineConfig(config: PipelineConfig): void {
     const validModels = ['tiny', 'base', 'small', 'medium', 'large'];
-    if (!validModels.includes(config.transcription.model as any)) {
+    if (!validModels.includes(config.transcription.model as string)) {
       throw new Error(
         `Invalid transcription model: ${config.transcription.model}`
       );
@@ -597,14 +597,14 @@ export class PipelineOrchestrator {
   private makeStage(name: string, status: string): PipelineStage {
     return {
       name,
-      status: status as any,
+      status: status as string,
       startTime: Date.now(),
       endTime: Date.now(),
     };
   }
 
-  private createFallbackLayout(nodes: any[], edges: any[]): any {
-    const layoutNodes = (nodes ?? []).map((node: any, index: number) => ({
+  private createFallbackLayout(nodes: unknown[], edges: unknown[]): unknown {
+    const layoutNodes = (nodes ?? []).map((node: Record<string, unknown>, index: number) => ({
       ...node,
       x: 100 + (index % 3) * 250,
       y: 100 + Math.floor(index / 3) * 150,
@@ -612,7 +612,7 @@ export class PipelineOrchestrator {
       h: 60,
     }));
 
-    const layoutEdges = (edges ?? []).map((edge: any) => ({
+    const layoutEdges = (edges ?? []).map((edge: Record<string, unknown>) => ({
       ...edge,
       points: [{ x: 200, y: 150 }, { x: 350, y: 150 }],
     }));
@@ -620,7 +620,7 @@ export class PipelineOrchestrator {
     return { nodes: layoutNodes, edges: layoutEdges };
   }
 
-  private makeDefaultTranscriptionResult(): any {
+  private makeDefaultTranscriptionResult(): unknown {
     return {
       success: true,
       segments: [
@@ -645,8 +645,8 @@ export class PipelineOrchestrator {
   }
 
   private makeDefaultAnalysisResult(): {
-    segments: any[];
-    diagrams: any[];
+    segments: unknown[];
+    diagrams: unknown[];
   } {
     const segments = [
       {

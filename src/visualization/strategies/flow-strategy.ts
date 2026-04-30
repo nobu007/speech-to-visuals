@@ -1,5 +1,5 @@
 import * as dagreLib from '@dagrejs/dagre';
-const dagre = (dagreLib as any).default ?? dagreLib;
+const dagre = (dagreLib as unknown as { default?: typeof dagreLib }).default ?? dagreLib;
 import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult, CanvasSize, StrategyLayoutMetrics } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';

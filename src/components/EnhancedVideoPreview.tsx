@@ -94,6 +94,7 @@ export const EnhancedVideoPreview: React.FC<EnhancedVideoPreviewProps> = ({
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       video.removeEventListener('ended', handleEnded);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoPlay, isSeeking]);
 
   // Update current scene based on playback time

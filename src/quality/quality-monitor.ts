@@ -294,7 +294,7 @@ export class QualityMonitor {
    * Assess LLM extraction quality if metrics are available; otherwise infer from scene structure.
    */
   private assessLLMExtractionQuality(result: PipelineResult): number {
-    const m = result.metrics as any;
+    const m = result.metrics as unknown;
 
     const hasEntity = typeof m?.entityExtractionF1Score === 'number';
     const hasRelation = typeof m?.relationAccuracy === 'number';
@@ -375,7 +375,7 @@ export class QualityMonitor {
   /**
    * Detect overlapping nodes in layout
    */
-  private detectOverlaps(nodes: any[]): boolean {
+  private detectOverlaps(nodes: unknown[]): boolean {
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
         const node1 = nodes[i];
@@ -392,7 +392,7 @@ export class QualityMonitor {
   /**
    * Check if two nodes overlap
    */
-  private nodesOverlap(node1: any, node2: any): boolean {
+  private nodesOverlap(node1: unknown, node2: Record<string, unknown>): boolean {
     const margin = 10; // Minimum margin between nodes
 
     return !(
@@ -406,7 +406,7 @@ export class QualityMonitor {
   /**
    * Assess positioning quality of nodes
    */
-  private assessPositioning(nodes: any[]): number {
+  private assessPositioning(nodes: unknown[]): number {
     if (nodes.length === 0) return 1.0;
 
     // Check for reasonable distribution

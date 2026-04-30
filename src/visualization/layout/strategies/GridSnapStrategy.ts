@@ -302,7 +302,7 @@ export class GridSnapStrategy extends BaseLayoutStrategy {
   }
   
   // Override the default overlap detection since we guarantee no overlaps
-  detectOverlaps(nodes: PositionedNode[]): any[] {
+  detectOverlaps(_nodes: PositionedNode[]): { node1: PositionedNode; node2: PositionedNode }[] {
     return []; // No overlaps by design
   }
 }

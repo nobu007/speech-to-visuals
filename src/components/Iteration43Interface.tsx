@@ -80,6 +80,7 @@ const Iteration43Interface: React.FC = () => {
       setAudioFile(file);
       addIterationLog(`📁 Audio file uploaded: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const addIterationLog = useCallback((message: string) => {
@@ -162,6 +163,7 @@ const Iteration43Interface: React.FC = () => {
       ...prev,
       completedCriteria: prev.successCriteria.length
     }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioFile, developmentCycle.currentIteration, processingPhases.length, qualityMetrics.overallScore]);
 
   const getPhaseIcon = (status: string) => {

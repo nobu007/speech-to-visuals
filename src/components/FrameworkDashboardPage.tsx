@@ -9,6 +9,7 @@ import React from 'react';
 import { FrameworkDashboard } from './FrameworkDashboard';
 import { useFrameworkPipeline } from '@/hooks/useFrameworkPipeline';
 import { PipelineInput } from '@/pipeline/types';
+import { DEVELOPMENT_CYCLES } from '@/framework/iteration-manager';
 
 export const FrameworkDashboardPage: React.FC = () => {
   const {
@@ -30,7 +31,7 @@ export const FrameworkDashboardPage: React.FC = () => {
    */
   const handleExecute = async (phase: string) => {
     // Set phase first
-    setPhase(phase as any);
+    setPhase(phase as keyof typeof DEVELOPMENT_CYCLES);
 
     // Create dummy input for demo (replace with real audio file upload)
     const dummyInput: PipelineInput = {

@@ -32,7 +32,7 @@ export interface ClassifiedError {
 
 export interface ClassifyContext {
   stage?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ClassificationStatistics {

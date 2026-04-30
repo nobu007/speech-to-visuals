@@ -63,7 +63,7 @@ export class UserGuidedErrorRecovery {
   /**
    * Analyze error and provide guidance
    */
-  analyzeError(error: Error, context?: Record<string, any>): ErrorGuidance {
+  analyzeError(error: Error, context?: Record<string, unknown>): ErrorGuidance {
     console.log(`🔍 Phase 37: Analyzing error for user guidance`);
 
     const category = this.categorizeError(error, context);
@@ -99,8 +99,8 @@ export class UserGuidedErrorRecovery {
    */
   async attemptRecovery(
     guidance: ErrorGuidance,
-    retryFunction: () => Promise<any>
-  ): Promise<{ success: boolean; result?: any; error?: Error }> {
+    retryFunction: () => Promise<unknown>
+  ): Promise<{ success: boolean; result?: unknown; error?: Error }> {
     console.log(`🔄 Phase 37: Attempting automatic error recovery`);
 
     const automatedStrategies = guidance.recoveryStrategies.filter((s) => s.automated);
@@ -145,7 +145,7 @@ export class UserGuidedErrorRecovery {
   /**
    * Categorize error
    */
-  private categorizeError(error: Error, context?: Record<string, any>): ErrorCategory {
+  private categorizeError(error: Error, context?: Record<string, unknown>): ErrorCategory {
     const message = error.message.toLowerCase();
 
     // File-related errors - check size before format (size messages often contain "file")
@@ -234,7 +234,7 @@ export class UserGuidedErrorRecovery {
   /**
    * Generate technical details
    */
-  private generateTechnicalDetails(error: Error, context?: Record<string, any>): string {
+  private generateTechnicalDetails(error: Error, context?: Record<string, unknown>): string {
     let details = `Error: ${error.message}\n`;
     if (error.stack) {
       details += `\nStack Trace:\n${error.stack.split('\n').slice(0, 3).join('\n')}\n`;

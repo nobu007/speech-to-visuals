@@ -36,10 +36,10 @@ export interface IterationMetrics {
   successCriteria: {
     criterion: string;
     met: boolean;
-    value?: any;
-    threshold?: any;
+    value?: unknown;
+    threshold?: unknown;
   }[];
-  metrics: Record<string, any>;
+  metrics: Record<string, unknown>;
   error?: string;
   nextSteps?: string[];
 }
@@ -88,7 +88,7 @@ export class IterationManager {
    */
   async completeIteration(
     status: IterationStatus,
-    metrics: Record<string, any>,
+    metrics: Record<string, unknown>,
     error?: string
   ): Promise<IterationMetrics> {
     const duration = Date.now() - this.startTime;
@@ -124,7 +124,7 @@ export class IterationManager {
   /**
    * Evaluate if current iteration meets success criteria
    */
-  evaluateSuccessCriteria(metrics: Record<string, any>): {
+  evaluateSuccessCriteria(metrics: Record<string, unknown>): {
     allMet: boolean;
     results: { criterion: string; met: boolean; reason?: string }[];
   } {
@@ -151,7 +151,7 @@ export class IterationManager {
   /**
    * Check if a specific criterion is met
    */
-  private checkCriterion(criterion: string, metrics: Record<string, any>): boolean {
+  private checkCriterion(criterion: string, metrics: Record<string, unknown>): boolean {
     // Extract threshold from criterion string (e.g., "accuracy > 80%" -> 80)
     const percentMatch = criterion.match(/(\d+)%/);
     const numberMatch = criterion.match(/(\d+)/);

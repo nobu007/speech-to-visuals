@@ -24,6 +24,7 @@ import {
   EnhancedErrorRecovery,
   RetryResult,
   FallbackResult,
+  globalErrorRecovery,
 } from '@/quality/enhanced-error-recovery';
 
 // ---------------------------------------------------------------------------
@@ -798,6 +799,7 @@ describe('PipelineOrchestrator Integration', () => {
     });
 
     afterEach(() => {
+      errorRecovery.destroy();
       consoleSpy.mockRestore();
     });
 
@@ -1149,4 +1151,9 @@ describe('ErrorClassifier Integration', () => {
     expect(stats.total).toBe(3);
     expect(stats.mostCommonType).toBe('LLM_API_ERROR');
   });
+});
+
+// Clean up the module-level singleton to prevent timer leaks
+afterAll(() => {
+  globalErrorRecovery.destroy();
 });

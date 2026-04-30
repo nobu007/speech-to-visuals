@@ -14,7 +14,7 @@ interface CacheEntry {
   timestamp: number;
   accessCount: number;
   lastAccessed: number;
-  data: any;
+  data: unknown;
   compressed: boolean;
   compressedSize: number;
   priority: number; // For LRU-W (Weighted) algorithm
@@ -89,7 +89,7 @@ export class IntelligentCache {
   /**
    * Compress data using simple LZ-like compression for memory efficiency
    */
-  private compressData(data: any): { compressed: string; originalSize: number; compressedSize: number } {
+  private compressData(data: unknown): { compressed: string; originalSize: number; compressedSize: number } {
     const jsonString = JSON.stringify(data);
     const originalSize = jsonString.length;
 
@@ -137,7 +137,7 @@ export class IntelligentCache {
   /**
    * Decompress data
    */
-  private decompressData(compressed: string, originalSize: number): any {
+  private decompressData(compressed: string, originalSize: number): unknown {
     if (compressed.length === originalSize) {
       return JSON.parse(compressed);
     }
@@ -686,7 +686,7 @@ export class IntelligentCache {
   /**
    * Store content in cache with compression and optimization
    */
-  async store(content: string, data: any, metadata: CacheEntry['metadata']): Promise<void> {
+  async store(content: string, data: unknown, metadata: CacheEntry['metadata']): Promise<void> {
     const key = this.generateCacheKey(content);
     const fingerprint = this.generateFingerprint(content);
 
@@ -741,7 +741,7 @@ export class IntelligentCache {
   /**
    * Retrieve exact match from cache with decompression
    */
-  async get(content: string): Promise<any | null> {
+  async get(content: string): Promise<unknown | null> {
     const key = this.generateCacheKey(content);
     const entry = this.cache.get(key);
 
@@ -875,11 +875,11 @@ export const globalCache = new IntelligentCache();
 /**
  * Decorator for caching function results
  */
-export function cached(keyGenerator?: (args: any[]) => string) {
-  return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
+export function cached(keyGenerator?: (args: unknown[]) => string) {
+  return function (target: unknown, propertyName: string, descriptor: PropertyDescriptor) {
     const method = descriptor.value;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       const cacheKey = keyGenerator ?
         keyGenerator(args) :
         `${propertyName}_${JSON.stringify(args).slice(0, 100)}`;

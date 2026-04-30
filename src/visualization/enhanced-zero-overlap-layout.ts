@@ -1012,20 +1012,20 @@ export class ZeroOverlapLayoutEngine {
     return nodes.find(n => !hasIncoming.has(n.id))?.id || nodes[0].id;
   }
 
-  private buildTree(rootId: string, nodes: NodeDatum[], edges: EdgeDatum[]): any {
+  private buildTree(rootId: string, _nodes: NodeDatum[], _edges: EdgeDatum[]): { id: string; children: unknown[] } {
     // Simplified tree building
     return { id: rootId, children: [] };
   }
 
-  private calculateTreeHeight(tree: any): number {
+  private calculateTreeHeight(_tree: unknown): number {
     return 300; // Simplified
   }
 
-  private calculateTreeWidth(tree: any): number {
+  private calculateTreeWidth(_tree: unknown): number {
     return 600; // Simplified
   }
 
-  private positionTreeNodes(tree: any, width: number, height: number): PositionedNode[] {
+  private positionTreeNodes(_tree: unknown, _width: number, _height: number): PositionedNode[] {
     // Simplified tree positioning
     return [];
   }

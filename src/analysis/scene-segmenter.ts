@@ -507,7 +507,7 @@ export class SceneSegmenter {
    */
   private async testSegmentationQuality(segments: ContentSegment[]): Promise<{
     passed: boolean;
-    testResults: any[];
+    testResults: Array<{ name: string; passed: boolean; score: number }>;
     overallScore: number;
   }> {
     console.log('🧪 Testing segmentation quality...');
@@ -693,7 +693,7 @@ export class SceneSegmenter {
     return this.EVAL_PERFORMANCE_QUALITY_SCORE_LOW;
   }
 
-  private generateImprovementSuggestions(qualityFactors: any, metrics: any): string[] {
+  private generateImprovementSuggestions(qualityFactors: Record<string, number>, metrics: Record<string, number>): string[] {
     const suggestions: string[] = [];
 
     if (qualityFactors.segmentCountQuality < this.SUGGESTION_QUALITY_THRESHOLD) {

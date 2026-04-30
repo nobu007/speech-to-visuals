@@ -25,7 +25,7 @@ export interface QualityResult {
 
 export interface QualityCriterion {
   name: string;
-  evaluate: (input: any) => QualityResult;
+  evaluate: (input: unknown) => QualityResult;
   threshold: number;
 }
 
@@ -99,7 +99,7 @@ export class StageQualityGate {
     return this.config.fallbackAction;
   }
 
-  evaluate(input: any): StageEvaluationResult {
+  evaluate(input: unknown): StageEvaluationResult {
     const results: StageCriterionResult[] = this.config.criteria.map(
       (criterion) => {
         const r = criterion.evaluate(input);
@@ -152,7 +152,7 @@ export class QualityGateEvaluator {
   /**
    * Evaluate quality for a given stage (1-5).
    */
-  evaluateStage(stage: number, input: any): StageEvaluationResult {
+  evaluateStage(stage: number, input: unknown): StageEvaluationResult {
     const gate = this.gates.get(stage);
     if (!gate) {
       return {
@@ -271,7 +271,7 @@ function createTranscriptionCriteria(): QualityCriterion[] {
     {
       name: 'audioDuration',
       threshold: 1.0,
-      evaluate: (input: any): QualityResult => {
+      evaluate: (input: unknown): QualityResult => {
         const duration = input.audioDuration ?? 0;
         return {
           passed: duration >= 1.0,
@@ -284,7 +284,7 @@ function createTranscriptionCriteria(): QualityCriterion[] {
     {
       name: 'sampleRate',
       threshold: 16000,
-      evaluate: (input: any): QualityResult => {
+      evaluate: (input: unknown): QualityResult => {
         const rate = input.sampleRate ?? 0;
         return {
           passed: rate >= 16000,
@@ -297,7 +297,7 @@ function createTranscriptionCriteria(): QualityCriterion[] {
     {
       name: 'noiseLevel',
       threshold: -30,
-      evaluate: (input: any): QualityResult => {
+      evaluate: (input: unknown): QualityResult => {
         const noise = input.noiseLevelDb ?? 0;
         return {
           passed: noise < -30,
@@ -318,7 +318,7 @@ function createAnalysisCriteria(): QualityCriterion[] {
     {
       name: 'entityExtractionRate',
       threshold: 0.8,
-      evaluate: (input: any): QualityResult => {
+      evaluate: (input: unknown): QualityResult => {
         const entities = input.entities ?? [];
         const expected = input.expectedEntities ?? entities.length;
         if (expected === 0) {
@@ -341,7 +341,7 @@ function createAnalysisCriteria(): QualityCriterion[] {
     {
       name: 'relationCompleteness',
       threshold: 0.7,
-      evaluate: (input: any): QualityResult => {
+      evaluate: (input: unknown): QualityResult => {
         const relations = input.relations ?? [];
         const expected = input.expectedRelations ?? relations.length;
         if (expected === 0) {
@@ -364,7 +364,7 @@ function createAnalysisCriteria(): QualityCriterion[] {
     {
       name: 'schemaConformance',
       threshold: 1.0,
-      evaluate: (input: any): QualityResult => {
+      evaluate: (input: unknown): QualityResult => {
         const valid = input.schemaValid ?? false;
         return {
           passed: valid,
@@ -387,7 +387,7 @@ function createLayoutCriteria(): QualityCriterion[] {
     {
       name: 'zeroOverlap',
       threshold: 0,
-      evaluate: (input: any): QualityResult => {
+      evaluate: (input: unknown): QualityResult => {
         const nodes = input.nodes ?? [];
         let overlapCount = 0;
         for (let i = 0; i < nodes.length; i++) {
@@ -411,7 +411,7 @@ function createLayoutCriteria(): QualityCriterion[] {
     {
       name: 'timelineContinuity',
       threshold: 1.0,
-      evaluate: (input: any): QualityResult => {
+      evaluate: (input: unknown): QualityResult => {
         const segments = input.segments ?? [];
         if (segments.length <= 1) {
           return {
@@ -423,7 +423,7 @@ function createLayoutCriteria(): QualityCriterion[] {
         }
         // Sort by startMs and check for gaps
         const sorted = [...segments].sort(
-          (a: any, b: any) => (a.startMs ?? 0) - (b.startMs ?? 0)
+          (a: unknown, b: Record<string, unknown>) => (a.startMs ?? 0) - (b.startMs ?? 0)
         );
         let gaps = 0;
         for (let i = 1; i < sorted.length; i++) {
@@ -448,7 +448,7 @@ function createLayoutCriteria(): QualityCriterion[] {
     {
       name: 'segmentNormalization',
       threshold: 1.0,
-      evaluate: (input: any): QualityResult => {
+      evaluate: (input: unknown): QualityResult => {
         const segments = input.segments ?? [];
         if (segments.length === 0) {
           return {
@@ -458,7 +458,7 @@ function createLayoutCriteria(): QualityCriterion[] {
             details: 'No segments to validate',
           };
         }
-        const invalid = segments.filter((s: any) => {
+        const invalid = segments.filter((s: Record<string, unknown>) => {
           const dur = s.durationMs ?? (s.endMs != null && s.startMs != null ? s.endMs - s.startMs : 0);
           return dur <= 0;
         });
@@ -484,7 +484,7 @@ function createRenderPrepCriteria(): QualityCriterion[] {
     {
       name: 'captionSync',
       threshold: 50,
-      evaluate: (input: any): QualityResult => {
+      evaluate: (input: unknown): QualityResult => {
         const offset = Math.abs(input.captionSyncOffsetMs ?? 0);
         return {
           passed: offset <= 50,
@@ -497,7 +497,7 @@ function createRenderPrepCriteria(): QualityCriterion[] {
     {
       name: 'layoutConsistency',
       threshold: 0.9,
-      evaluate: (input: any): QualityResult => {
+      evaluate: (input: unknown): QualityResult => {
         const score = input.layoutConsistencyScore ?? 0;
         return {
           passed: score >= 0.9,
@@ -518,7 +518,7 @@ function createRenderFinalCriteria(): QualityCriterion[] {
     {
       name: 'resolution',
       threshold: 720,
-      evaluate: (input: any): QualityResult => {
+      evaluate: (input: unknown): QualityResult => {
         const height = input.resolution?.height ?? 0;
         const width = input.resolution?.width ?? 0;
         // 720p = height >= 720 (also covers 1080p etc.)
@@ -533,7 +533,7 @@ function createRenderFinalCriteria(): QualityCriterion[] {
     {
       name: 'fps',
       threshold: 30,
-      evaluate: (input: any): QualityResult => {
+      evaluate: (input: unknown): QualityResult => {
         const fps = input.fps ?? 0;
         return {
           passed: fps === 30,
@@ -546,7 +546,7 @@ function createRenderFinalCriteria(): QualityCriterion[] {
     {
       name: 'audioSync',
       threshold: 50,
-      evaluate: (input: any): QualityResult => {
+      evaluate: (input: unknown): QualityResult => {
         const offset = Math.abs(input.audioSyncOffsetMs ?? 0);
         return {
           passed: offset <= 50,

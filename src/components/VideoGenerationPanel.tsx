@@ -123,6 +123,7 @@ export const VideoGenerationPanel: React.FC<VideoGenerationPanelProps> = ({
    */
   useEffect(() => {
     validateConfiguration();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config]);
 
   const validateConfiguration = useCallback(() => {
@@ -234,7 +235,7 @@ export const VideoGenerationPanel: React.FC<VideoGenerationPanelProps> = ({
         <Label>Video Bitrate</Label>
         <Select
           value={config.quality.bitrate}
-          onValueChange={(value) => updateConfig('quality', { bitrate: value as any })}
+          onValueChange={(value) => updateConfig('quality', { bitrate: value as VideoQuality['bitrate'] })}
         >
           <SelectTrigger>
             <SelectValue />

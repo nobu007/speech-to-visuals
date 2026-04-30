@@ -38,13 +38,55 @@ export interface IterationState {
   nextActions: string[];
 }
 
+interface TranscriptionQualityResult {
+  accuracy: number;
+  confidence: number;
+  duration: number;
+  issues: string[];
+}
+
+interface AnalysisQualityResult {
+  sceneSegmentation: number;
+  diagramDetection: number;
+  relationshipExtraction: number;
+  issues: string[];
+}
+
+interface VisualizationQualityResult {
+  layoutQuality: number;
+  labelReadability: number;
+  renderPerformance: number;
+  issues: string[];
+}
+
+interface IntegrationQualityResult {
+  pipelineFlow: number;
+  errorHandling: number;
+  memoryUsage: number;
+  issues: string[];
+}
+
+interface QualityCheckResults {
+  transcription: TranscriptionQualityResult;
+  analysis: AnalysisQualityResult;
+  visualization: VisualizationQualityResult;
+  integration: IntegrationQualityResult;
+}
+
+interface EvaluationResult {
+  passed: boolean;
+  score: number;
+  issues: string[];
+  suggestions: string[];
+}
+
 export class RecursiveCustomInstructionsFramework {
   private currentState: IterationState;
   private developmentCycles: DevelopmentCycle[];
   private qualityThresholds: QualityMetrics;
-  private config: any;
+  private config: Record<string, unknown>;
 
-  constructor(config: any = {}) {
+  constructor(config: Record<string, unknown> = {}) {
     this.config = config;
     this.developmentCycles = [
       {
@@ -105,7 +147,7 @@ export class RecursiveCustomInstructionsFramework {
    */
   async executeDevelopmentCycle(
     phase: string,
-    implementation: () => Promise<any>
+    implementation: () => Promise<unknown>
   ): Promise<IterationState> {
     console.log(`🚀 Starting ${phase} - Iteration ${this.currentState.iteration}`);
 
@@ -154,7 +196,7 @@ export class RecursiveCustomInstructionsFramework {
   /**
    * 🔍 Quality Check System
    */
-  private async runQualityChecks(): Promise<any> {
+  private async runQualityChecks(): Promise<QualityCheckResults> {
     console.log('🔍 Running comprehensive quality checks...');
 
     const checks = {
@@ -167,7 +209,7 @@ export class RecursiveCustomInstructionsFramework {
     return checks;
   }
 
-  private async checkTranscriptionQuality(): Promise<any> {
+  private async checkTranscriptionQuality(): Promise<TranscriptionQualityResult> {
     // Implement transcription quality validation
     return {
       accuracy: 0.9,
@@ -177,7 +219,7 @@ export class RecursiveCustomInstructionsFramework {
     };
   }
 
-  private async checkAnalysisQuality(): Promise<any> {
+  private async checkAnalysisQuality(): Promise<AnalysisQualityResult> {
     // Implement analysis quality validation
     return {
       sceneSegmentation: 0.82,
@@ -187,7 +229,7 @@ export class RecursiveCustomInstructionsFramework {
     };
   }
 
-  private async checkVisualizationQuality(): Promise<any> {
+  private async checkVisualizationQuality(): Promise<VisualizationQualityResult> {
     // Implement visualization quality validation
     return {
       layoutQuality: 0.95,
@@ -197,7 +239,7 @@ export class RecursiveCustomInstructionsFramework {
     };
   }
 
-  private async checkIntegrationQuality(): Promise<any> {
+  private async checkIntegrationQuality(): Promise<IntegrationQualityResult> {
     // Implement integration quality validation
     return {
       pipelineFlow: 0.93,
@@ -210,7 +252,7 @@ export class RecursiveCustomInstructionsFramework {
   /**
    * 📊 Evaluation System
    */
-  private async evaluateResults(testResults: any): Promise<any> {
+  private async evaluateResults(testResults: QualityCheckResults): Promise<EvaluationResult> {
     const overallScore = this.calculateOverallScore(testResults);
     const passed = overallScore >= 0.8; // 80% threshold
 
@@ -226,7 +268,7 @@ export class RecursiveCustomInstructionsFramework {
     return evaluation;
   }
 
-  private calculateOverallScore(testResults: any): number {
+  private calculateOverallScore(testResults: QualityCheckResults): number {
     const weights = {
       transcription: 0.25,
       analysis: 0.30,
@@ -246,16 +288,16 @@ export class RecursiveCustomInstructionsFramework {
     return totalScore;
   }
 
-  private calculateModuleScore(moduleResults: any): number {
+  private calculateModuleScore(moduleResults: Record<string, unknown>): number {
     const metrics = Object.values(moduleResults).filter(v => typeof v === 'number');
     return metrics.length > 0
       ? metrics.reduce((sum: number, val: number) => sum + val, 0) / metrics.length
       : 0;
   }
 
-  private extractIssues(testResults: any): string[] {
+  private extractIssues(testResults: QualityCheckResults): string[] {
     const allIssues: string[] = [];
-    Object.values(testResults).forEach((result: any) => {
+    Object.values(testResults).forEach((result: { issues: string[] }) => {
       if (result?.issues) {
         allIssues.push(...result.issues);
       }
@@ -263,7 +305,7 @@ export class RecursiveCustomInstructionsFramework {
     return allIssues;
   }
 
-  private generateSuggestions(testResults: any): string[] {
+  private generateSuggestions(testResults: QualityCheckResults): string[] {
     const suggestions: string[] = [];
 
     if (testResults.transcription?.accuracy < 0.85) {
@@ -364,7 +406,7 @@ export class RecursiveCustomInstructionsFramework {
     console.log('🌐 Handling API error; switching to fallback analysis...', { error: error.message });
     // Disable Gemini-backed analysis via env flag for the remainder of the process
     // The analysis layer reads ANALYSIS_DISABLE_GEMINI to skip LLM calls
-    (process as any).env.ANALYSIS_DISABLE_GEMINI = '1';
+    (process as unknown as { env: Record<string, string> }).env.ANALYSIS_DISABLE_GEMINI = '1';
 
     // Optional: add simple backoff marker/state if needed in the future
     this.currentState.improvements.push('Switched to rule-based analysis due to API error');
@@ -397,7 +439,7 @@ export class RecursiveCustomInstructionsFramework {
   /**
    * 📈 Progress Reporting
    */
-  public generateProgressReport(): any {
+  public generateProgressReport(): Record<string, unknown> {
     return {
       framework: 'Recursive Custom Instructions',
       currentPhase: this.currentState.phase,
@@ -447,7 +489,7 @@ export class RecursiveCustomInstructionsFramework {
   /**
    * Evaluate current iteration and determine next steps
    */
-  async evaluateIteration(qualityMetrics: QualityMetrics, performanceData: any): Promise<any> {
+  async evaluateIteration(qualityMetrics: QualityMetrics, performanceData: Record<string, unknown>): Promise<EvaluationResult & { shouldIterate: boolean; shouldAdvancePhase: boolean; shouldCommit: boolean; commitMessage: string; qualityScore: number; issues: string[]; improvements: string[] }> {
     console.log(`📊 Evaluating iteration ${this.currentState.iteration} for phase "${this.currentState.phase}"`);
 
     // Update current metrics
@@ -602,7 +644,7 @@ export class RecursiveCustomInstructionsFramework {
   /**
    * Record stage success
    */
-  async recordStageSuccess(stageName: string, metrics: any): Promise<void> {
+  async recordStageSuccess(stageName: string, metrics: Record<string, number>): Promise<void> {
     console.log(`✅ Stage "${stageName}" completed successfully:`, metrics);
 
     // Update relevant metrics based on stage

@@ -400,7 +400,7 @@ export const SimplePipelineInterface: React.FC = () => {
               <div>
                 <h4 className="font-medium mb-2">生成されたシーン</h4>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {result.scenes.map((scene: any, index: number) => (
+                  {result.scenes.map((scene: Record<string, unknown>, index: number) => (
                     <div key={scene.id || index} className="p-3 border rounded-lg">
                       <div className="flex justify-between items-start mb-1">
                         <span className="font-medium">シーン {index + 1}: {scene.type}</span>

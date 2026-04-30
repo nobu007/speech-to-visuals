@@ -264,8 +264,8 @@ export class MainPipeline {
       // Update framework metrics
       this.qualityMetrics = {
         transcriptionAccuracy: transcriptionResult.accuracy || 0.85,
-        sceneSegmentationF1: (analysisResult as any).segmentationScore || 0.75,
-        layoutOverlap: (layoutResult as any).overlapCount || 0,
+        sceneSegmentationF1: (analysisResult as unknown).segmentationScore || 0.75,
+        layoutOverlap: (layoutResult as unknown).overlapCount || 0,
         renderTime: totalTime,
         memoryUsage: process.memoryUsage().heapUsed,
         timestamp: new Date()
@@ -328,7 +328,7 @@ export class MainPipeline {
     const evaluation = await this.framework.evaluateIteration(this.qualityMetrics, {
       processingTime: totalTime,
       success: result.success,
-      qualityScore: (result.metrics as any)?.quality || 0.8
+      qualityScore: (result.metrics as unknown)?.quality || 0.8
     });
 
     console.log(`🔄 [${this.currentPhase}] Iteration ${this.iteration} evaluation:`, evaluation);
@@ -363,7 +363,7 @@ export class MainPipeline {
   /**
    * Execute pipeline stages in parallel for better performance
    */
-  private async executeParallelPipeline(transcriptionResult: any, input: PipelineInput, startTime: number): Promise<PipelineResult> {
+  private async executeParallelPipeline(transcriptionResult: unknown, input: PipelineInput, startTime: number): Promise<PipelineResult> {
     // Stage 2: Content Analysis & Scene Segmentation
     const analysisResult = await this.executeStageWithRecovery(
       'analysis',
@@ -402,7 +402,7 @@ export class MainPipeline {
   /**
    * Execute pipeline stages sequentially (fallback)
    */
-  private async executeSequentialPipeline(transcriptionResult: any, input: PipelineInput, startTime: number): Promise<PipelineResult> {
+  private async executeSequentialPipeline(transcriptionResult: unknown, input: PipelineInput, startTime: number): Promise<PipelineResult> {
     const analysisResult = await this.executeStageWithRecovery(
       'analysis',
       () => this.analyzeContentEnhanced(transcriptionResult),
@@ -434,14 +434,14 @@ export class MainPipeline {
   /**
    * Handle pipeline failure with intelligent recovery
    */
-  private async handlePipelineFailure(error: any, startTime: number): Promise<PipelineResult> {
+  private async handlePipelineFailure(error: unknown, startTime: number): Promise<PipelineResult> {
     const totalTime = performance.now() - startTime;
     console.error('[Enhanced Pipeline] Error:', error);
 
     // Try to recover using error recovery system
     try {
       const recoveryContext = {
-        stage: 'analysis' as any,
+        stage: 'analysis' as unknown,
         component: 'MainPipeline',
         input: { pipelineId: this.pipelineId },
         error: error instanceof Error ? error : new Error(String(error)),
@@ -521,7 +521,7 @@ export class MainPipeline {
     return await globalErrorRecovery.executeWithLoadBalancing(
       requestId,
       () => this.executeStageInternal(stageName, stageFunction),
-      stageName as any,
+      stageName as unknown,
       priority
     );
   }
@@ -605,7 +605,7 @@ export class MainPipeline {
     // Cache successful results
     if (result.success) {
       await globalCache.store(cacheKey, result, {
-        contentType: 'flow' as any,
+        contentType: 'flow' as unknown,
         duration: 0,
         complexity: result.segments.length / 10,
         performanceScore: 0.8,
@@ -619,7 +619,7 @@ export class MainPipeline {
   /**
    * Enhanced content analysis with adaptive processing
    */
-  private async analyzeContentEnhanced(transcriptionResult: any) {
+  private async analyzeContentEnhanced(transcriptionResult: unknown) {
     try {
       const result = await this.analyzeContent(transcriptionResult);
       return result;
@@ -632,7 +632,7 @@ export class MainPipeline {
   /**
    * Enhanced layout generation with parallel processing
    */
-  private async generateLayoutsEnhanced(analysisResult: any) {
+  private async generateLayoutsEnhanced(analysisResult: unknown) {
     const { diagramAnalyses } = analysisResult;
 
     // Process layouts in parallel for better performance
@@ -678,7 +678,7 @@ export class MainPipeline {
   /**
    * Enhanced scene preparation with optimization
    */
-  private async prepareScenesEnhanced(analysisResult: any, layouts: any[]): Promise<SceneGraph[]> {
+  private async prepareScenesEnhanced(analysisResult: unknown, layouts: unknown[]): Promise<SceneGraph[]> {
     console.log('Preparing optimized scene graphs for video rendering...');
 
     const scenes: SceneGraph[] = layouts.map((item, index) => {
@@ -735,7 +735,7 @@ export class MainPipeline {
   /**
    * Perform quality pre-check for parallel execution
    */
-  private async performQualityPreCheck(analysisResult: any): Promise<any> {
+  private async performQualityPreCheck(analysisResult: unknown): Promise<unknown> {
     // Quick quality assessment to identify potential issues early
     const { diagramAnalyses } = analysisResult;
 
@@ -754,7 +754,7 @@ export class MainPipeline {
   /**
    * Enhanced quality assessment combining pre-check and final assessment
    */
-  private async performEnhancedQualityAssessment(result: PipelineResult, preCheck: any): Promise<any> {
+  private async performEnhancedQualityAssessment(result: PipelineResult, preCheck: unknown): Promise<unknown> {
     const baseAssessment = await qualityMonitor.assessPipelineQuality(result);
 
     // Combine with pre-check data for more comprehensive assessment
@@ -825,7 +825,7 @@ export class MainPipeline {
   /**
    * Stage 2: Analyze content and segment into scenes
    */
-  private async analyzeContent(transcriptionResult: any) {
+  private async analyzeContent(transcriptionResult: unknown) {
     console.log('Segmenting content into scenes...');
     const contentSegments = await this.segmenter.segment(transcriptionResult.segments);
 
@@ -851,7 +851,7 @@ export class MainPipeline {
   /**
    * Stage 3: Generate layouts for each diagram
    */
-  private async generateLayouts(analysisResult: any) {
+  private async generateLayouts(analysisResult: unknown) {
     console.log('Generating diagram layouts...');
     const { diagramAnalyses } = analysisResult;
     const layouts = [];
@@ -886,7 +886,7 @@ export class MainPipeline {
   /**
    * Stage 4: Prepare final scene graphs for video rendering
    */
-  private async prepareScenes(analysisResult: any, layouts: any[]): Promise<SceneGraph[]> {
+  private async prepareScenes(analysisResult: unknown, layouts: unknown[]): Promise<SceneGraph[]> {
     console.log('Preparing scene graphs for video rendering...');
 
     const scenes: SceneGraph[] = layouts.map((item, index) => {
@@ -911,7 +911,7 @@ export class MainPipeline {
   /**
    * Create a fallback layout when automatic layout fails
    */
-  private createFallbackLayout(nodes: any[], edges: any[]) {
+  private createFallbackLayout(nodes: unknown[], edges: unknown[]) {
     const layoutNodes = nodes.map((node, index) => ({
       ...node,
       x: 100 + (index % 3) * 200,
@@ -1229,11 +1229,12 @@ export class MainPipeline {
         }
         break;
 
-      case 'retry_with_backoff':
+      case 'retry_with_backoff': {
         // 指数バックオフでの再試行
         const backoffTime = Math.pow(2, this.performanceTracker.errorRecoveryAttempts) * 1000;
         await new Promise(resolve => setTimeout(resolve, Math.min(backoffTime, 10000)));
         break;
+      }
 
       case 'fallback_processing':
         // フォールバック処理への切り替え

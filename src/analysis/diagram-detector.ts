@@ -1196,7 +1196,7 @@ export class DiagramDetector {
     segment: ContentSegment
   ): Promise<{
     passed: boolean;
-    testResults: any[];
+    testResults: Array<{ name: string; passed: boolean; score: number }>;
     overallScore: number;
   }> {
     console.log('🧪 Testing detection quality...');
@@ -1406,7 +1406,7 @@ export class DiagramDetector {
     return analysis.confidence;
   }
 
-  private generateDetectionImprovementSuggestions(qualityFactors: any, metrics: any): string[] {
+  private generateDetectionImprovementSuggestions(qualityFactors: Record<string, number>, metrics: Record<string, number>): string[] {
     const suggestions: string[] = [];
 
     if (qualityFactors.confidenceQuality < 0.8) {

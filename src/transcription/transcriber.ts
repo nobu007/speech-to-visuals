@@ -38,7 +38,7 @@ export class TranscriptionPipeline {
 
     // Initialize enhanced Whisper transcriber
     this.whisperTranscriber = new WhisperTranscriber({
-      model: this.config.model as any,
+      model: this.config.model as 'tiny' | 'base' | 'small' | 'medium' | 'large',
       enableTimestamps: true,
       maxSegmentLength: this.config.chunkSizeMs
     });
@@ -116,9 +116,9 @@ export class TranscriptionPipeline {
       }
 
       // Priority 2: Fallback to browser transcriber (only in browser environment)
-      if (this.isBrowser && this.browserTranscriber && (audioPath.startsWith('blob:') || (audioPath as any) instanceof File)) {
+      if (this.isBrowser && this.browserTranscriber && (audioPath.startsWith('blob:') || (audioPath as unknown) instanceof File)) {
         console.log('🔄 Fallback to browser transcription...');
-        const audioFile = (audioPath as any) instanceof File ? audioPath : await this.blobUrlToFile(audioPath);
+        const audioFile = (audioPath as unknown) instanceof File ? audioPath : await this.blobUrlToFile(audioPath);
         const result = await this.browserTranscriber.transcribeAudioFile(audioFile);
 
         if (result.success && result.segments.length > 0) {

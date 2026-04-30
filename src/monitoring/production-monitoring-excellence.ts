@@ -92,9 +92,9 @@ export interface HealthMetric {
  * Production monitoring system with AI-driven excellence
  */
 export class ProductionMonitoringExcellence {
-  private metrics = new Map<string, any>();
+  private metrics = new Map<string, unknown>();
   private intervalIds: NodeJS.Timeout[] = [];
-  private alerts: any[] = [];
+  private alerts: Array<{ id: number; severity: string }> = [];
   private insights: PredictiveInsight[] = [];
   private monitoringEnabled = true;
   private aiModelVersion = 'v2.5-enhanced';
@@ -447,7 +447,7 @@ export class ProductionMonitoringExcellence {
     // console.log(`⚡ Executed ${optimizations} real-time optimizations`);
   }
 
-  private async detectAnomalies(): Promise<any[]> {
+  private async detectAnomalies(): Promise<Array<{ id: number; severity: string }>> {
     // Simulate anomaly detection
     await new Promise(resolve => setTimeout(resolve, 85));
     return Array(Math.floor(Math.random() * 3)).fill(null).map((_, i) => ({ id: i, severity: 'medium' }));

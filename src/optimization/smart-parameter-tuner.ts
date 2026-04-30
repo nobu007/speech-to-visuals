@@ -45,7 +45,7 @@ class SmartParameterTuner {
   /**
    * Analyze audio content characteristics
    */
-  async analyzeContent(transcript: string, audioMetadata: any): Promise<ContentCharacteristics> {
+  async analyzeContent(transcript: string, audioMetadata: { duration?: number; format?: string; sampleRate?: number }): Promise<ContentCharacteristics> {
     const words = transcript.split(/\s+/).filter(w => w.length > 0);
     const duration = audioMetadata.duration || 60; // fallback duration
 

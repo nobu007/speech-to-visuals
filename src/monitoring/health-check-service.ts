@@ -25,7 +25,7 @@ export interface ComponentHealth {
   message: string;
   latency?: number;
   lastChecked: number;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export interface ReadinessProbe {

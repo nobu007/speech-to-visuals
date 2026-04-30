@@ -47,7 +47,7 @@ export class BrowserTranscriber {
 
   private initializeSpeechRecognition(): void {
     // Check for browser support
-    const SpeechRecognitionAPI = (globalThis as any).SpeechRecognition || (globalThis as any).webkitSpeechRecognition;
+    const SpeechRecognitionAPI = (globalThis as Record<string, unknown>).SpeechRecognition || (globalThis as Record<string, unknown>).webkitSpeechRecognition;
 
     if (SpeechRecognitionAPI) {
       this.recognition = new SpeechRecognitionAPI();
@@ -448,10 +448,10 @@ declare global {
     interimResults: boolean;
     lang: string;
     maxAlternatives: number;
-    onstart: ((this: SpeechRecognition, ev: Event) => any) | null;
-    onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null;
-    onerror: ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => any) | null;
-    onend: ((this: SpeechRecognition, ev: Event) => any) | null;
+    onstart: ((this: SpeechRecognition, ev: Event) => void) | null;
+    onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => void) | null;
+    onerror: ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => void) | null;
+    onend: ((this: SpeechRecognition, ev: Event) => void) | null;
     start(): void;
     stop(): void;
     abort(): void;

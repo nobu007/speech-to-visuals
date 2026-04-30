@@ -116,7 +116,7 @@ describe('WhisperTranscriber', () => {
   describe('auto language detection', () => {
     it('should detect Japanese when segments contain Japanese characters', async () => {
       // Create transcriber with mock that returns Japanese text
-      const jaTranscriber = new (WhisperTranscriber as any)() as WhisperTranscriber & {
+      const jaTranscriber = new (WhisperTranscriber as unknown as new () => WhisperTranscriber)() as WhisperTranscriber & {
         validateAndEnhanceSegments(segments: TranscriptionSegment[]): Promise<TranscriptionSegment[]>;
       };
 

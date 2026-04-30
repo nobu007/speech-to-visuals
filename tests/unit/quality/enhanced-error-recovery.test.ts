@@ -10,6 +10,7 @@ import {
   RetryOptions,
   FallbackResult,
   NotificationPayload,
+  globalErrorRecovery,
 } from '@/quality/enhanced-error-recovery';
 
 describe('EnhancedErrorRecovery - Retry with Exponential Backoff', () => {
@@ -17,6 +18,10 @@ describe('EnhancedErrorRecovery - Retry with Exponential Backoff', () => {
 
   beforeEach(() => {
     recovery = new EnhancedErrorRecovery();
+  });
+
+  afterEach(() => {
+    recovery.destroy();
   });
 
   describe('retryWithBackoff', () => {
@@ -211,4 +216,9 @@ describe('EnhancedErrorRecovery - Retry with Exponential Backoff', () => {
       expect(notification.suggestedActions.length).toBeGreaterThan(0);
     });
   });
+});
+
+// Clean up the module-level singleton to prevent timer leaks
+afterAll(() => {
+  globalErrorRecovery.destroy();
 });

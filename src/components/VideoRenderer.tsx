@@ -97,7 +97,7 @@ export const VideoRenderer: React.FC<VideoRendererProps> = ({ scenes, audioUrl }
           <div className="p-4 bg-muted/50 rounded-lg border space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">画質設定</label>
-              <Select value={quality} onValueChange={(value: any) => setQuality(value)}>
+              <Select value={quality} onValueChange={(value: string) => setQuality(value as 'low' | 'medium' | 'high')}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>

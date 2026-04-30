@@ -34,7 +34,7 @@ interface IterationData {
   phase: string;
   status: 'success' | 'failure';
   duration: number;
-  metrics: Record<string, any>;
+  metrics: Record<string, unknown>;
   timestamp: string;
 }
 
@@ -69,8 +69,8 @@ interface UseFrameworkPipelineReturn {
 
   // Metrics
   getReport: () => string;
-  getIterationSummary: () => any;
-  getImprovementHistory: () => any[];
+  getIterationSummary: () => Record<string, unknown> | null;
+  getImprovementHistory: () => Record<string, unknown>[];
 }
 
 /**
@@ -268,12 +268,12 @@ export function useFrameworkPipeline(
       setExecutionState(prev => ({ ...prev, progress: 100, isRunning: false }));
       console.log('✅ Pipeline execution completed successfully');
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Pipeline execution failed:', error);
       setExecutionState(prev => ({
         ...prev,
         isRunning: false,
-        error: error.message || 'Unknown error',
+        error: error instanceof Error ? error.message : 'Unknown error',
         progress: 0
       }));
 
@@ -283,7 +283,7 @@ export function useFrameworkPipeline(
         phase: executionState.currentPhase,
         status: 'failure',
         duration: Date.now() - startTimeRef.current,
-        metrics: { error: error.message },
+        metrics: { error: error instanceof Error ? error.message : 'Unknown error' },
         timestamp: new Date().toISOString()
       };
 
@@ -314,7 +314,7 @@ export function useFrameworkPipeline(
   /**
    * Get iteration summary
    */
-  const getIterationSummary = useCallback((): any => {
+  const getIterationSummary = useCallback((): Record<string, unknown> | null => {
     if (!pipelineRef.current) return null;
     return pipelineRef.current.getIterationSummary();
   }, []);
@@ -322,7 +322,7 @@ export function useFrameworkPipeline(
   /**
    * Get improvement history
    */
-  const getImprovementHistory = useCallback((): any[] => {
+  const getImprovementHistory = useCallback((): Record<string, unknown>[] => {
     if (!pipelineRef.current) return [];
     return pipelineRef.current.getImprovementHistory();
   }, []);
@@ -366,8 +366,8 @@ export function useIterationLog() {
 
       const text = await response.text();
       setLog(text);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
       console.error('Failed to fetch iteration log:', err);
     } finally {
       setLoading(false);

@@ -67,8 +67,8 @@ export class FrameworkIntegratedPipeline {
    */
   async execute(input: PipelineInput): Promise<{
     result: PipelineResult;
-    iterationMetrics: any;
-    qualityAnalysis: any;
+    iterationMetrics: unknown;
+    qualityAnalysis: unknown;
     shouldCommit: boolean;
     commitMessage?: string;
   }> {
@@ -379,7 +379,7 @@ export class FrameworkIntegratedPipeline {
   private displayExecutionSummary(
     result: PipelineResult,
     metrics: QualityMetrics,
-    evaluation: any,
+    evaluation: unknown,
     shouldCommit: boolean
   ): void {
     console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
@@ -438,14 +438,14 @@ export class FrameworkIntegratedPipeline {
   /**
    * Get iteration summary
    */
-  getIterationSummary(): any {
+  getIterationSummary(): unknown {
     return this.iterationManager?.getSummary();
   }
 
   /**
    * Get improvement history
    */
-  getImprovementHistory(): any[] {
+  getImprovementHistory(): unknown[] {
     return this.improvementEngine.getImprovementHistory();
   }
 

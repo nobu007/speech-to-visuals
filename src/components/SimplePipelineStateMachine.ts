@@ -23,7 +23,7 @@ export interface SimplePipelineResult {
   success: boolean;
   audioUrl?: string;
   transcript?: string;
-  scenes?: any[];
+  scenes?: Record<string, unknown>[];
   videoUrl?: string;
   error?: string;
   processingTime?: number;

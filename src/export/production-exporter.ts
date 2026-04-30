@@ -60,6 +60,44 @@ export interface ExportPreset {
 }
 
 /**
+ * Internal types for production exporter pipeline
+ */
+interface PreparedScene extends EnhancedSceneGraph {
+  renderConfig: {
+    width: number;
+    height: number;
+    fps: number;
+    quality: string;
+    animations: import('@/visualization/advanced-visual-engine').AnimationSequence[];
+  };
+}
+
+interface RenderFrameData {
+  background: unknown;
+  nodes: Array<Record<string, unknown>>;
+  edges: Array<Record<string, unknown>>;
+  animations: unknown[];
+  quality: number;
+}
+
+interface RenderResult {
+  scenes: Array<{
+    sceneIndex: number;
+    frameCount: number;
+    duration: number;
+    renderData: RenderFrameData;
+  }>;
+  totalFrames: number;
+  metadata: {
+    resolution: string;
+    fps: number;
+    quality: string;
+  };
+  encoding?: Record<string, unknown>;
+  estimatedSize?: number;
+}
+
+/**
  * Production-Ready Export System for professional video generation
  * Implements batch processing, quality optimization, and format conversion
  */
@@ -249,7 +287,7 @@ export class ProductionExporter {
   private async prepareScenes(
     scenes: EnhancedSceneGraph[],
     options: RenderOptions
-  ): Promise<any> {
+  ): Promise<PreparedScene[]> {
     console.log(`🎬 Preparing ${scenes.length} scenes for ${options.quality} quality`);
 
     // Optimize scenes based on render options
@@ -277,7 +315,7 @@ export class ProductionExporter {
   /**
    * Render scenes to video frames
    */
-  private async renderScenes(preparedScenes: any, options: RenderOptions): Promise<any> {
+  private async renderScenes(preparedScenes: PreparedScene[], options: RenderOptions): Promise<RenderResult> {
     console.log(`🎨 Rendering ${preparedScenes.length} scenes at ${options.fps}fps`);
 
     // Simulate professional rendering process
@@ -318,7 +356,7 @@ export class ProductionExporter {
   /**
    * Generate render data for a scene
    */
-  private generateSceneRenderData(scene: any, options: RenderOptions): any {
+  private generateSceneRenderData(scene: PreparedScene, options: RenderOptions): RenderFrameData {
     // Create render instructions for each frame
     return {
       background: scene.background,
@@ -338,7 +376,7 @@ export class ProductionExporter {
   /**
    * Optimize node rendering based on quality settings
    */
-  private optimizeNodeForRender(node: any, options: RenderOptions): any {
+  private optimizeNodeForRender(node: Record<string, unknown> & { style?: Record<string, unknown> }, options: RenderOptions): Record<string, unknown> {
     const qualityMultiplier = this.getQualityMultiplier(options.quality);
 
     return {
@@ -353,7 +391,7 @@ export class ProductionExporter {
   /**
    * Optimize edge rendering based on quality settings
    */
-  private optimizeEdgeForRender(edge: any, options: RenderOptions): any {
+  private optimizeEdgeForRender(edge: Record<string, unknown> & { style?: Record<string, unknown> }, options: RenderOptions): Record<string, unknown> {
     return {
       ...edge.style,
       renderQuality: this.getQualityMultiplier(options.quality),
@@ -378,7 +416,7 @@ export class ProductionExporter {
   /**
    * Encode rendered frames to video
    */
-  private async encodeVideo(renderResult: any, options: RenderOptions): Promise<any> {
+  private async encodeVideo(renderResult: RenderResult, options: RenderOptions): Promise<RenderResult> {
     console.log(`🔧 Encoding to ${options.format.toUpperCase()} format`);
 
     // Simulate encoding process with different parameters
@@ -398,7 +436,7 @@ export class ProductionExporter {
   /**
    * Get encoding settings based on options
    */
-  private getEncodingSettings(options: RenderOptions): any {
+  private getEncodingSettings(options: RenderOptions): Record<string, unknown> {
     const baseSettings = {
       width: options.width,
       height: options.height,
@@ -458,7 +496,7 @@ export class ProductionExporter {
   /**
    * Calculate encoded file size
    */
-  private calculateEncodedSize(renderResult: any, options: RenderOptions): number {
+  private calculateEncodedSize(renderResult: RenderResult, options: RenderOptions): number {
     const duration = renderResult.totalFrames / options.fps;
     const bitrate = this.calculateBitrate(options);
 
@@ -469,7 +507,7 @@ export class ProductionExporter {
   /**
    * Finalize export with metadata and optimization
    */
-  private async finalizeExport(encodedResult: any, job: ExportJob): Promise<any> {
+  private async finalizeExport(encodedResult: RenderResult, job: ExportJob): Promise<{ outputPath: string; metadata: Record<string, unknown>; success: boolean }> {
     console.log(`📁 Finalizing export: ${job.name}`);
 
     const outputPath = `/exports/${job.id}.${job.options.format}`;
@@ -633,7 +671,7 @@ export class ProductionExporter {
   /**
    * Get export statistics
    */
-  getStatistics(): any {
+  getStatistics(): Record<string, unknown> {
     const jobs = Array.from(this.jobs.values());
     const completed = jobs.filter(j => j.status === 'complete');
     const failed = jobs.filter(j => j.status === 'error');
