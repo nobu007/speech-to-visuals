@@ -39,6 +39,7 @@ export interface SimplePipelineResult {
   videoUrl?: string;
   error?: string;
   processingTime?: number;
+  [key: string]: unknown;
 }
 
 export interface ProgressCallback {
