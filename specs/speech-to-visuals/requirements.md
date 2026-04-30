@@ -15,7 +15,7 @@
 - **受け入れ基準**: [acceptance-criteria.md](acceptance-criteria.md)
 - **コンテキストノート**: [note.md](note.md)
 - **準備タスク**: [prep.md](prep.md)
-- **設計文書**: [../../docs/design/speech-to-visuals/architecture.md](../../docs/design/speech-to-visuals/architecture.md)
+- **設計文書**: [architecture.md](architecture.md)
 
 ## 機能要件（EARS記法）
 
