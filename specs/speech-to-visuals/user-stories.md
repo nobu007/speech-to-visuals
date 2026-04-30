@@ -1,7 +1,7 @@
 # Speech-to-Visuals ユーザストーリー
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-04-30（第21回: specs/移行版・要件カバレッジ100%維持確認）
+**最終更新**: 2026-04-30（第22回: Kairo要件再生成による現状維持確認・要件カバレッジ100%維持確認）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [interview-record.md](interview-record.md)
 
