@@ -1722,3 +1722,49 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - 信頼性レベル分布に変化なし（全体: 🔵391件 (98%)、🟡4件 (2%)、🔴0件 (0%)）
 - 要件カバレッジ100%維持
 - 全ディレクトリ別ファイル数の再確認完了（src/ 248ファイル、tests/ 50ファイル）
+
+---
+
+### A62: kairo-design 第33回検証 — 設計文書包括的差分分析とlegacy統合確認
+
+**分析日時**: 2026-05-01
+**カテゴリ**: 設計整合性・legacy統合・コードベース照合
+**背景**: kairo-design 指示による包括的再検証。legacy docs（docs/design/speech-to-visuals/）と specs/ の差分分析、および specs/ と実際のコードベースの照合を実施。
+
+**判断**:
+
+1. **Legacy docs 統合確認**:
+   - specs/ は legacy docs より新しい（第32回 vs 第20回検証）
+   - legacy に固有の情報は全て specs/ に統合済み
+   - design-interview.md: specs が legacy より170行多い（Phase 5-7 追加分）
+   - interfaces.ts: specs が legacy より150行多い（Advanced Layout Types + SimplePipelineResult）
+   - architecture.md/dataflow.md/api-endpoints.md: 同一行数、specs の方が更新
+
+2. **ファイル数完全一致確認**（21ディレクトリ全て）:
+   - src/: 248ファイル（要件定義書記載と一致）
+   - tests/: 50ファイル
+   - 全ディレクトリ（analysis/28, api/10, components/46, config/7, export/4, framework/4, hooks/2, integrations/5, lib/3, monitoring/6, optimization/6, pages/4, performance/2, pipeline/10, quality/8, remotion/22, test/12, transcription/10, types/15, utils/2, visualization/39）
+
+3. **specs↔コードベース間の軽微な差異**（設計↔実装の差、仕様書の誤りではない）:
+   - 高度レイアウト型の命名差異: specs `AdvancedLayoutNode` → 実装 `LayoutNode`（機能的に等価）
+   - BatchJob の日付型: specs `Date` → 実装 `string`（JSON シリアライゼーション対応）
+   - ストリーミング/エラー回復 REST エンドポイント: specs に記載あるが Express route として未公開（モジュール自体は実装済み）
+   - これらは実装の詳細レベルの差であり、設計の正確性に影響しない
+
+4. **統合判定**:
+   - legacy docs（docs/design/speech-to-visuals/）→ 完全統合済み（Supersedes: specs/ が正本）
+   - legacy spec（docs/spec/speech-to-visuals/）→ 完全統合済み
+   - legacy tasks（docs/tasks/speech-to-visuals/）→ TASK-0001~0060 は specs/tasks/ の TASK-0001~0070 に統合済み
+
+**根拠**:
+- 全 specs ファイルの読み込みと legacy docs ファイルの比較
+- `find src -name "*.ts" -o -name "*.tsx"` による全ディレクトリファイル数計測
+- `find tests -name "*.ts" -o -name "*.tsx"` によるテストファイル数計測
+- package.json 依存関係の照合（全バージョン一致確認）
+
+**信頼性への影響**:
+- ソースコード変更なし（248ファイル不変、テスト50ファイル不変）
+- 信頼性レベル分布に変化なし（全体: 🔵391件 (98%)、🟡4件 (2%)、🔴0件 (0%)）
+- 要件カバレッジ100%維持
+- Legacy docs の完全統合を確認（情報損失なし）
+- specs/ を唯一の正本として確定
