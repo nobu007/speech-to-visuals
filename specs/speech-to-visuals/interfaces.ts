@@ -2,7 +2,7 @@
  * speech-to-visuals 型定義
  *
  * 作成日: 2026-04-27
- * 最終更新: 2026-05-01（第24回検証: Kairo設計再検証・要件カバレッジ100%維持確認・設計整合性確認）
+ * 最終更新: 2026-05-01（第26回検証: TypeScript strictness改善(07c4196)による新規型定義追加・設計整合性確認）
  * 関連設計: architecture.md
  *
  * 信頼性レベル:
@@ -324,6 +324,141 @@ export interface LayoutResult {
 }
 
 // ========================================
+// 高度レイアウト型（TypeScript strictness改善: 07c4196）
+// ========================================
+
+/**
+ * 座標点
+ * 🔵 信頼性: src/visualization/advanced-layouts.ts Point より
+ */
+export interface Point {
+  x: number; // 🔵 X座標
+  y: number; // 🔵 Y座標
+}
+
+/**
+ * ノードアニメーション設定
+ * 🔵 信頼性: src/visualization/advanced-layouts.ts NodeAnimation より
+ */
+export interface NodeAnimation {
+  entrance: string; // 🔵 入場アニメーション種別
+  duration: number; // 🔵 アニメーション時間（ms）
+}
+
+/**
+ * レイアウト付きノード（NodeDatum拡張）
+ * 🔵 信頼性: src/visualization/advanced-layouts.ts LayoutNode より
+ */
+export interface AdvancedLayoutNode extends NodeDatum {
+  x: number; // 🔵 X座標
+  y: number; // 🔵 Y座標
+  width: number; // 🔵 ノード幅
+  height: number; // 🔵 ノード高さ
+  shape: 'circle' | 'rectangle' | 'diamond' | 'hexagon'; // 🔵 ノード形状
+  borderRadius: number; // 🔵 角丸半径
+  gradient: boolean; // 🔵 グラデーション有無
+  shadow: boolean; // 🔵 シャドウ有無
+  animation: NodeAnimation; // 🔵 アニメーション設定
+}
+
+/**
+ * レイアウト付きエッジ（EdgeDatum拡張）
+ * 🔵 信頼性: src/visualization/advanced-layouts.ts LayoutEdgeDatum より
+ */
+export interface AdvancedLayoutEdge extends EdgeDatum {
+  style: 'solid' | 'dashed' | 'dotted' | 'gradient'; // 🔵 エッジスタイル
+  animated: boolean; // 🔵 アニメーション有無
+  thickness: number; // 🔵 太さ
+  arrowHead: string; // 🔵 矢印種別
+  points: Point[]; // 🔵 経路ポイント
+}
+
+/**
+ * レイアウトキャンバス
+ * 🔵 信頼性: src/visualization/advanced-layouts.ts LayoutCanvas より
+ */
+export interface AdvancedLayoutCanvas {
+  width: number; // 🔵 キャンバス幅
+  height: number; // 🔵 キャンバス高さ
+}
+
+/**
+ * 高度レイアウト結果
+ * 🔵 信頼性: src/visualization/advanced-layouts.ts AdvancedLayoutOutput より
+ */
+export interface AdvancedLayoutOutput {
+  nodes: AdvancedLayoutNode[]; // 🔵 レイアウト済みノード
+  edges: AdvancedLayoutEdge[]; // 🔵 レイアウト済みエッジ
+  canvas: AdvancedLayoutCanvas; // 🔵 キャンバスサイズ
+  theme: VisualTheme; // 🔵 ビジュアルテーマ
+}
+
+/**
+ * アニメーション設定
+ * 🔵 信頼性: src/visualization/advanced-layouts.ts Animations より
+ */
+export interface Animations {
+  nodeEntrance: { duration: number; easing: string }; // 🔵 ノード入場アニメーション
+  edgeDrawing: { duration: number; easing: string }; // 🔵 エッジ描画アニメーション
+  textFadeIn: { duration: number; delay: number }; // 🔵 テキストフェードイン
+}
+
+/**
+ * ビジュアルエフェクト設定
+ * 🔵 信頼性: src/visualization/advanced-layouts.ts VisualEffects より
+ */
+export interface VisualEffects {
+  nodeGlow: boolean; // 🔵 ノードグロー効果
+  edgePulse: boolean; // 🔵 エッジパルス効果
+  shadowDepth: number; // 🔵 シャドウ深度
+  gradientNodes: boolean; // 🔵 グラデーションノード
+}
+
+/**
+ * トランジション設定
+ * 🔵 信頼性: src/visualization/advanced-layouts.ts Transitions より
+ */
+export interface Transitions {
+  sceneTransition: string; // 🔵 シーン遷移タイプ
+  nodeTransition: string; // 🔵 ノード遷移タイプ
+  edgeTransition: string; // 🔵 エッジ遷移タイプ
+}
+
+/**
+ * インタラクション設定
+ * 🔵 信頼性: src/visualization/advanced-layouts.ts Interactions より
+ */
+export interface Interactions {
+  nodeHover: boolean; // 🔵 ノードホバー有効
+  clickHighlight: boolean; // 🔵 クリックハイライト有効
+  zoomableCanvas: boolean; // 🔵 ズーム可能キャンバス
+}
+
+/**
+ * 総合ビジュアル拡張設定
+ * 🔵 信頼性: src/visualization/advanced-layouts.ts VisualEnhancements より
+ */
+export interface VisualEnhancements {
+  theme: VisualTheme; // 🔵 ビジュアルテーマ
+  animations: Animations; // 🔵 アニメーション設定
+  effects: VisualEffects; // 🔵 エフェクト設定
+  transitions: Transitions; // 🔵 トランジション設定
+  interactions: Interactions; // 🔵 インタラクション設定
+}
+
+/**
+ * ビジュアルテーマ
+ * 🔵 信頼性: src/visualization/advanced-layouts.ts VisualTheme より
+ */
+export interface VisualTheme {
+  primaryColor: string; // 🔵 プライマリカラー
+  secondaryColor: string; // 🔵 セカンダリカラー
+  backgroundColor: string; // 🔵 背景色
+  textColor: string; // 🔵 テキスト色
+  accentColor: string; // 🔵 アクセントカラー
+}
+
+// ========================================
 // ワークスペース・コラボレーション型
 // ========================================
 
@@ -370,11 +505,11 @@ export interface WorkspaceQuota {
 // 信頼性レベルサマリー
 // ========================================
 /**
- * - 🔵 青信号: 340件 (97%)
- * - 🟡 黄信号: 4件 (3%)
+ * - 🔵 青信号: 382件 (98%)
+ * - 🟡 黄信号: 4件 (2%)
  * - 🔴 赤信号: 0件 (0%)
  *
- * 品質評価: 高品質（REQ-052~055・REQ-305 追加 UI コンポーネント型定義反映済・第24回検証確認）
+ * 品質評価: 高品質（TypeScript strictness改善(07c4196)による高度レイアウト型42件追加・第26回検証確認）
  */
 
 // ========================================

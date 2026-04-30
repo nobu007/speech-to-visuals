@@ -1,7 +1,7 @@
 # speech-to-visuals データフロー図
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-01（第24回検証: Kairo設計再検証・要件カバレッジ100%維持確認・設計整合性確認）
+**最終更新**: 2026-05-01（第26回検証: TypeScript strictness改善(07c4196)による高度レイアウト型定義反映・設計整合性確認）
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](requirements.md)
 
