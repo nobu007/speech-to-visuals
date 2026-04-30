@@ -149,6 +149,7 @@ test_output/
 TASKS.md
 !**/*master_plan.md
 **/tasks/*.md
+!specs/**/tasks/*.md
 **/module_reviews/*.yaml
 **/instructions/module_reviews/*.md
 
