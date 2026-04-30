@@ -1,7 +1,7 @@
 # speech-to-visuals アーキテクチャ設計
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-01（第35回検証: 未記載コンポーネント6個追加(DiagramPreview/InteractiveResultViewer/VideoGenerationPanel/Iteration43Interface/PerformanceMetricsVisualization/PipelineInterface)・Workspace型展開・要件カバレッジ100%維持確認）
+**最終更新**: 2026-05-01（第37回検証: コンポーネント数修正(47ファイル:21メイン+26ui)・可視化戦略数修正(18ファイル)・第36回安定状態確認を反映）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -222,7 +222,7 @@ Phase 4~5 で追加実装された UI コンポーネント:
 
 ### 可視化戦略 🔵
 
-**信頼性**: 🔵 *src/visualization/strategies/（20ファイル）+ base/ + layout/（計39ファイル）・ZERO_OVERLAP_DESIGN.md より*
+**信頼性**: 🔵 *src/visualization/strategies/（18ファイル）+ base/ + layout/（計39ファイル）・ZERO_OVERLAP_DESIGN.md より*
 
 **コア5戦略**（Phase 3 実装）:
 - FlowStrategy, TreeStrategy, TimelineStrategy, MatrixStrategy, CycleStrategy
@@ -291,7 +291,7 @@ graph TB
 │   ├── api/                # REST API・WebSocket（10ファイル: バッチ処理、リアルタイム通知、ミドルウェア、ルート定義）🔵
 │   │   ├── middleware/     # レート制限、エラーハンドラー、認証 🔵
 │   │   └── routes/         # API ルート定義 🔵
-│   ├── components/         # React UI（45ファイル: 22メイン+23ui: Pipeline UI, VideoPreview, FileUploader, TutorialSystem, StreamingProcessor, Dashboards, ErrorAlert等）🔵
+│   ├── components/         # React UI（47ファイル: 21メイン+26ui: Pipeline UI, VideoPreview, FileUploader, TutorialSystem, StreamingProcessor, Dashboards, ErrorAlert等）🔵
 │   ├── config/             # 設定（7ファイル: プロダクション設定 + Zod バリデーション + 環境変数管理）🔵 *要件定義REQ-038*
 │   ├── export/             # エクスポート（4ファイル: multi-format/enhanced/production/UI）🔵
 │   ├── framework/          # 再帰的改善フレームワーク（4ファイル）
@@ -309,10 +309,10 @@ graph TB
 │   ├── transcription/      # 音声認識（10ファイル: Whisper/Streaming/Browser）🔵
 │   ├── types/              # TypeScript 型定義（15ファイル: diagram/workspace/api/llm/cache/quality/pipeline等）🔵
 │   ├── utils/              # ユーティリティ（2ファイル）
-│   └── visualization/      # 図解レイアウト（39ファイル: 20+戦略・レイアウトエンジン・補助モジュール）
+│   └── visualization/      # 図解レイアウト（39ファイル: 18戦略・レイアウトエンジン・補助モジュール）
 │       ├── base/           # ベース可視化コンポーネント 🔵
 │       ├── layout/         # レイアウト固有コード 🔵
-│       └── strategies/     # レイアウト戦略（20ファイル: コア5+新コア5+拡張+補助）🔵
+│       └── strategies/     # レイアウト戦略（18ファイル: コア5+新コア5+拡張+補助）🔵
 ├── supabase/
 │   ├── migrations/         # DB マイグレーション
 │   └── functions/          # Edge Functions（3関数）
@@ -466,4 +466,4 @@ Fallback LLM
 - 🟡 黄信号: 2件 (2%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第35回更新: 未記載コンポーネント6個追加・Workspace型展開・要件カバレッジ100%維持確認）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第37回更新: コンポーネント数・戦略数修正・安定状態確認反映）
