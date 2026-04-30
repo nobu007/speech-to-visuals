@@ -82,8 +82,8 @@ describe('RetryStrategy', () => {
       let callCount = 0;
       const errorFn = async () => {
         callCount++;
-        const err = new Error('Server error');
-        (err as any).status = 500;
+        const err: Error & { status?: number } = new Error('Server error');
+        err.status = 500;
         throw err;
       };
 
@@ -103,8 +103,8 @@ describe('RetryStrategy', () => {
       const intermittentFn = async () => {
         callCount++;
         if (callCount <= 2) {
-          const err = new Error('Rate limited');
-          (err as any).status = 429;
+          const err: Error & { status?: number } = new Error('Rate limited');
+          err.status = 429;
           throw err;
         }
         return 'success';
@@ -125,44 +125,44 @@ describe('RetryStrategy', () => {
 
   describe('isRetryable', () => {
     it('should identify 429 as retryable', () => {
-      const err = new Error('Rate limited');
-      (err as any).status = 429;
+      const err: Error & { status?: number } = new Error('Rate limited');
+      err.status = 429;
       expect(isRetryable(err)).toBe(true);
     });
 
     it('should identify 500 as retryable', () => {
-      const err = new Error('Server error');
-      (err as any).status = 500;
+      const err: Error & { status?: number } = new Error('Server error');
+      err.status = 500;
       expect(isRetryable(err)).toBe(true);
     });
 
     it('should identify 502 as retryable', () => {
-      const err = new Error('Bad gateway');
-      (err as any).status = 502;
+      const err: Error & { status?: number } = new Error('Bad gateway');
+      err.status = 502;
       expect(isRetryable(err)).toBe(true);
     });
 
     it('should identify 401 as non-retryable', () => {
-      const err = new Error('Unauthorized');
-      (err as any).status = 401;
+      const err: Error & { status?: number } = new Error('Unauthorized');
+      err.status = 401;
       expect(isRetryable(err)).toBe(false);
     });
 
     it('should identify 403 as non-retryable', () => {
-      const err = new Error('Forbidden');
-      (err as any).status = 403;
+      const err: Error & { status?: number } = new Error('Forbidden');
+      err.status = 403;
       expect(isRetryable(err)).toBe(false);
     });
 
     it('should identify 404 as non-retryable', () => {
-      const err = new Error('Not found');
-      (err as any).status = 404;
+      const err: Error & { status?: number } = new Error('Not found');
+      err.status = 404;
       expect(isRetryable(err)).toBe(false);
     });
 
     it('should identify network errors as retryable', () => {
-      const err = new Error('Connection reset');
-      (err as any).code = 'ECONNRESET';
+      const err: Error & { code?: string } = new Error('Connection reset');
+      err.code = 'ECONNRESET';
       expect(isRetryable(err)).toBe(true);
     });
   });
@@ -172,8 +172,8 @@ describe('RetryStrategy', () => {
       let callCount = 0;
       const authErrorFn = async () => {
         callCount++;
-        const err = new Error('Unauthorized');
-        (err as any).status = 401;
+        const err: Error & { status?: number } = new Error('Unauthorized');
+        err.status = 401;
         throw err;
       };
 

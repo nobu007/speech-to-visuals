@@ -293,8 +293,8 @@ async function runPhase28Demo(): Promise<Phase28Report> {
     // ================================================================
     const totalTime = Date.now() - startTime;
     report.performanceMetrics.processingTime = totalTime;
-    report.performanceMetrics.memoryUsage = (performance as any).memory?.usedJSHeapSize
-      ? (performance as any).memory.usedJSHeapSize / (1024 * 1024)
+    report.performanceMetrics.memoryUsage = (performance as unknown as { memory?: { usedJSHeapSize?: number } }).memory?.usedJSHeapSize
+      ? (performance as unknown as { memory: { usedJSHeapSize: number } }).memory.usedJSHeapSize / (1024 * 1024)
       : 0;
 
     console.log('╔════════════════════════════════════════════════════════════════╗');

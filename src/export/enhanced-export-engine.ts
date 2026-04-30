@@ -136,7 +136,7 @@ export class EnhancedExportEngine {
    * Following recursive development: implement → test → evaluate → improve
    */
   async exportVideo(
-    sceneData: any,
+    sceneData: SceneData,
     config: ExportConfiguration,
     onProgress?: (progress: ExportProgress) => void
   ): Promise<ExportResult> {
@@ -461,7 +461,7 @@ export class EnhancedExportEngine {
   /**
    * Helper methods for export processing
    */
-  private renderFrame(sceneData: any, time: number, quality: VideoQuality): Promise<FrameData> {
+  private renderFrame(sceneData: SceneData, time: number, quality: VideoQuality): Promise<FrameData> {
     // Simulate frame rendering
     return Promise.resolve({
       data: new Uint8Array(1920 * 1080 * 4), // RGBA data
@@ -484,7 +484,7 @@ export class EnhancedExportEngine {
     return new Uint8Array(mockSize);
   }
 
-  private generateInteractiveHTML(sceneData: any, frames: FrameData[]): string {
+  private generateInteractiveHTML(sceneData: SceneData, frames: FrameData[]): string {
     return `
 <!DOCTYPE html>
 <html>
@@ -524,7 +524,7 @@ export class EnhancedExportEngine {
     return new Uint8Array(frames.length * 2000); // 2KB per frame
   }
 
-  private generateAnimatedSVG(sceneData: any, frames: FrameData[]): string {
+  private generateAnimatedSVG(sceneData: SceneData, frames: FrameData[]): string {
     return `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
     <defs>
@@ -540,7 +540,7 @@ export class EnhancedExportEngine {
 </svg>`;
   }
 
-  private generateLottieAnimation(sceneData: any, frames: FrameData[]): any {
+  private generateLottieAnimation(sceneData: SceneData, frames: FrameData[]): Record<string, unknown> {
     return {
       v: "5.7.4",
       fr: 30,
@@ -566,7 +566,7 @@ export class EnhancedExportEngine {
     }
   }
 
-  private optimizeSettings(config: ExportConfiguration): any {
+  private optimizeSettings(config: ExportConfiguration): Record<string, unknown> {
     // Return optimized settings based on format and quality
     return {
       ...config,
@@ -615,9 +615,9 @@ export class EnhancedExportEngine {
     return resolutions[resolution] || 1080;
   }
 
-  private calculateDuration(sceneData: any): number {
+  private calculateDuration(sceneData: SceneData): number {
     // Calculate total duration from scene data
-    return sceneData.scenes?.reduce((total: number, scene: any) => total + (scene.duration || 3), 0) || 10;
+    return sceneData.scenes?.reduce((total: number, scene: { duration?: number; [key: string]: unknown }) => total + (scene.duration || 3), 0) || 10;
   }
 
   private updateProgress(job: ExportJob, stage: ExportStage, progress: number, details?: string): void {
@@ -686,16 +686,27 @@ export class EnhancedExportEngine {
 }
 
 // Supporting interfaces
+interface SceneData {
+  scenes?: { duration?: number; [key: string]: unknown }[];
+  [key: string]: unknown;
+}
+
+interface CodecSettings {
+  profile: string;
+  preset: string;
+  crf: number;
+}
+
 interface ExportJob {
   id: string;
-  sceneData: any;
+  sceneData: SceneData;
   config: ExportConfiguration;
   status: ExportStage;
   progress: number;
   startTime: Date;
   outputPath?: string;
-  optimizedSettings?: any;
-  codecSettings?: any;
+  optimizedSettings?: Record<string, unknown>;
+  codecSettings?: CodecSettings;
   onProgress?: (progress: ExportProgress) => void;
   resolve?: (result: ExportResult) => void;
 }

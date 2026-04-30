@@ -21,7 +21,7 @@ interface Stage {
   duration?: number;
   success?: boolean;
   error?: string;
-  metrics?: Record<string, any>;
+  metrics?: Record<string, unknown>;
 }
 
 interface TestResult {
@@ -65,7 +65,7 @@ class CompleteAudioPipelineTest {
     return stage;
   }
 
-  private endStage(stage: Stage, success: boolean, error?: string, metrics?: Record<string, any>) {
+  private endStage(stage: Stage, success: boolean, error?: string, metrics?: Record<string, unknown>) {
     stage.endTime = performance.now();
     stage.duration = stage.endTime - stage.startTime;
     stage.success = success;
@@ -170,7 +170,7 @@ class CompleteAudioPipelineTest {
 
       // Stage 4: Run SimplePipeline (without video)
       const stage4 = this.startStage('Stage 4: SimplePipeline Processing (Analysis Only)');
-      let pipelineResult: any;
+      let pipelineResult: Record<string, unknown>;
       try {
         // Dynamic import to avoid module issues
         const { simplePipeline } = await import('../src/pipeline/simple-pipeline');
@@ -279,7 +279,7 @@ class CompleteAudioPipelineTest {
             result.outputs.videoFile = videoOutputPath;
 
             // Calculate rendering FPS
-            const totalFrames = pipelineResult.scenes.reduce((sum: number, scene: any) => {
+            const totalFrames = (pipelineResult.scenes as Record<string, unknown>[]).reduce((sum: number, scene: Record<string, unknown>) => {
               const duration = scene.endTime - scene.startTime;
               return sum + (duration * 30); // 30fps
             }, 0);

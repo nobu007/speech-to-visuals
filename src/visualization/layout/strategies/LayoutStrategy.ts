@@ -86,12 +86,12 @@ export abstract class BaseLayoutStrategy implements LayoutStrategy {
       const layoutEdges: LayoutEdge[] = edges.map(edge => ({
         id: edge.id,
         // ensure required from/to while mirroring source/target
-        from: (edge as any).from ?? edge.source!,
-        to: (edge as any).to ?? edge.target!,
-        source: edge.source ?? (edge as any).from,
-        target: edge.target ?? (edge as any).to,
-        label: (edge as any).label,
-        type: (edge as any).type,
+        from: edge.from ?? edge.source!,
+        to: edge.to ?? edge.target!,
+        source: edge.source ?? edge.from,
+        target: edge.target ?? edge.to,
+        label: edge.label,
+        type: edge.type,
         points: []
       }));
       
@@ -136,12 +136,12 @@ export abstract class BaseLayoutStrategy implements LayoutStrategy {
           })),
           edges: edges.map(edge => ({
             id: edge.id,
-            from: (edge as any).from ?? edge.source!,
-            to: (edge as any).to ?? edge.target!,
-            source: edge.source ?? (edge as any).from,
-            target: edge.target ?? (edge as any).to,
-            label: (edge as any).label,
-            type: (edge as any).type,
+            from: edge.from ?? edge.source!,
+            to: edge.to ?? edge.target!,
+            source: edge.source ?? edge.from,
+            target: edge.target ?? edge.to,
+            label: edge.label,
+            type: edge.type,
             points: []
           }))
         },

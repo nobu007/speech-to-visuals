@@ -57,7 +57,7 @@ function makeNode(overrides: Partial<PositionedNode> = {}): PositionedNode {
 function renderEdge(element: React.ReactElement): React.ReactElement {
   // For function components, call them directly
   if (typeof element.type === 'function') {
-    return (element.type as Function)(element.props) as React.ReactElement;
+    return (element.type as (...args: unknown[]) => unknown)(element.props) as React.ReactElement;
   }
   return element;
 }

@@ -4,6 +4,8 @@
  * Following iterative improvement philosophy
  */
 
+import type { NodeDatum, EdgeDatum } from '@/types/diagram';
+
 export interface AdvancedLayoutOptions {
   theme: 'dark' | 'light' | 'auto';
   animationStyle: 'smooth' | 'bouncy' | 'minimal';
@@ -18,6 +20,92 @@ export interface VisualTheme {
   edgeColor: string;
   textColor: string;
   accentColor: string;
+}
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+interface NodeAnimation {
+  entrance: string;
+  duration: number;
+}
+
+interface LayoutNode extends NodeDatum {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  shape: AdvancedLayoutOptions['nodeShape'];
+  borderRadius: number;
+  gradient: boolean;
+  shadow: boolean;
+  animation: NodeAnimation;
+}
+
+interface LayoutEdgeDatum extends EdgeDatum {
+  style: AdvancedLayoutOptions['edgeStyle'];
+  animated: boolean;
+  thickness: number;
+  arrowHead: string;
+  points: Point[];
+}
+
+interface LayoutCanvas {
+  width: number;
+  height: number;
+}
+
+interface LayoutResult {
+  nodes: LayoutNode[];
+  edges: LayoutEdgeDatum[];
+  canvas: LayoutCanvas;
+}
+
+interface Animations {
+  nodeEntrance: { duration: number; easing: string };
+  edgeDrawing: { duration: number; easing: string };
+  textFadeIn: { duration: number; delay: number };
+}
+
+interface VisualEffects {
+  nodeGlow: boolean;
+  edgePulse: boolean;
+  shadowDepth: number;
+  gradientNodes: boolean;
+}
+
+interface Transitions {
+  sceneTransition: string;
+  nodeTransition: string;
+  edgeTransition: string;
+}
+
+interface Interactions {
+  nodeHover: boolean;
+  clickHighlight: boolean;
+  zoomableCanvas: boolean;
+}
+
+interface VisualEnhancements {
+  theme: VisualTheme;
+  animations: Animations;
+  effects: VisualEffects;
+  transitions: Transitions;
+  interactions: Interactions;
+}
+
+interface AdvancedLayoutCanvas {
+  width: number;
+  height: number;
+}
+
+interface AdvancedLayoutOutput {
+  nodes: LayoutNode[];
+  edges: LayoutEdgeDatum[];
+  canvas: AdvancedLayoutCanvas;
+  theme: VisualTheme;
 }
 
 /**
@@ -38,14 +126,14 @@ export class AdvancedLayoutEngine {
    * Generate enhanced layout with advanced visual features
    */
   generateAdvancedLayout(
-    nodes: any[],
-    edges: any[],
+    nodes: NodeDatum[],
+    edges: EdgeDatum[],
     diagramType: string,
     options: Partial<AdvancedLayoutOptions> = {}
   ): {
     success: boolean;
-    layout: any;
-    visualEnhancements: any;
+    layout: AdvancedLayoutOutput;
+    visualEnhancements: VisualEnhancements;
     performance: {
       layoutTime: number;
       optimizationLevel: number;
@@ -158,12 +246,12 @@ export class AdvancedLayoutEngine {
    * Optimize nodes based on diagram type and iteration learnings
    */
   private optimizeNodes(
-    nodes: any[],
+    nodes: NodeDatum[],
     diagramType: string,
     config: AdvancedLayoutOptions
-  ): any[] {
+  ): LayoutNode[] {
     return nodes.map((node, index) => {
-      const optimizedNode = { ...node };
+      const optimizedNode = { ...node } as LayoutNode;
 
       // Apply diagram-specific optimizations
       switch (diagramType) {
@@ -201,12 +289,12 @@ export class AdvancedLayoutEngine {
    * Optimize edges based on diagram type
    */
   private optimizeEdges(
-    edges: any[],
+    edges: EdgeDatum[],
     diagramType: string,
     config: AdvancedLayoutOptions
-  ): any[] {
+  ): LayoutEdgeDatum[] {
     return edges.map(edge => {
-      const optimizedEdge = { ...edge };
+      const optimizedEdge = { ...edge } as LayoutEdgeDatum;
 
       // Apply edge style optimizations
       optimizedEdge.style = config.edgeStyle;
@@ -224,12 +312,12 @@ export class AdvancedLayoutEngine {
    * Calculate advanced layout positions
    */
   private calculateAdvancedLayout(
-    nodes: any[],
-    edges: any[],
+    nodes: LayoutNode[],
+    edges: LayoutEdgeDatum[],
     diagramType: string
-  ): { nodes: any[]; edges: any[]; canvas: any } {
-    let layoutNodes: any[];
-    let layoutEdges: any[];
+  ): LayoutResult {
+    let layoutNodes: LayoutNode[];
+    let layoutEdges: LayoutEdgeDatum[];
 
     switch (diagramType) {
       case 'flow':
@@ -258,7 +346,7 @@ export class AdvancedLayoutEngine {
   /**
    * Flow diagram layout with improved spacing
    */
-  private calculateFlowLayout(nodes: any[], edges: any[]): { nodes: any[]; edges: any[] } {
+  private calculateFlowLayout(nodes: LayoutNode[], edges: LayoutEdgeDatum[]): { nodes: LayoutNode[]; edges: LayoutEdgeDatum[] } {
     const layoutNodes = nodes.map((node, index) => ({
       ...node,
       x: 200 + (index % 3) * 300,
@@ -279,7 +367,7 @@ export class AdvancedLayoutEngine {
   /**
    * Tree diagram layout with improved hierarchy
    */
-  private calculateTreeLayout(nodes: any[], edges: any[]): { nodes: any[]; edges: any[] } {
+  private calculateTreeLayout(nodes: LayoutNode[], edges: LayoutEdgeDatum[]): { nodes: LayoutNode[]; edges: LayoutEdgeDatum[] } {
     const levels = this.calculateTreeLevels(nodes, edges);
     const layoutNodes = nodes.map(node => {
       const level = levels.get(node.id) || 0;
@@ -309,7 +397,7 @@ export class AdvancedLayoutEngine {
   /**
    * Timeline layout with chronological positioning
    */
-  private calculateTimelineLayout(nodes: any[], edges: any[]): { nodes: any[]; edges: any[] } {
+  private calculateTimelineLayout(nodes: LayoutNode[], edges: LayoutEdgeDatum[]): { nodes: LayoutNode[]; edges: LayoutEdgeDatum[] } {
     const layoutNodes = nodes.map((node, index) => ({
       ...node,
       x: 200 + index * 200,
@@ -330,7 +418,7 @@ export class AdvancedLayoutEngine {
   /**
    * Cycle layout with circular positioning
    */
-  private calculateCycleLayout(nodes: any[], edges: any[]): { nodes: any[]; edges: any[] } {
+  private calculateCycleLayout(nodes: LayoutNode[], edges: LayoutEdgeDatum[]): { nodes: LayoutNode[]; edges: LayoutEdgeDatum[] } {
     const centerX = 960;
     const centerY = 540;
     const radius = 250;
@@ -359,7 +447,7 @@ export class AdvancedLayoutEngine {
   /**
    * Grid layout for matrix-style diagrams
    */
-  private calculateGridLayout(nodes: any[], edges: any[]): { nodes: any[]; edges: any[] } {
+  private calculateGridLayout(nodes: LayoutNode[], edges: LayoutEdgeDatum[]): { nodes: LayoutNode[]; edges: LayoutEdgeDatum[] } {
     const cols = Math.ceil(Math.sqrt(nodes.length));
     const rows = Math.ceil(nodes.length / cols);
 
@@ -384,10 +472,10 @@ export class AdvancedLayoutEngine {
    * Generate visual enhancements
    */
   private generateVisualEnhancements(
-    layout: any,
+    layout: LayoutResult,
     theme: VisualTheme,
     config: AdvancedLayoutOptions
-  ): any {
+  ): VisualEnhancements {
     return {
       theme: theme,
       animations: this.generateAnimations(config.animationStyle),
@@ -397,7 +485,7 @@ export class AdvancedLayoutEngine {
     };
   }
 
-  private generateAnimations(style: string): any {
+  private generateAnimations(style: string): Animations {
     const animations = {
       nodeEntrance: { duration: 800, easing: 'easeOutCubic' },
       edgeDrawing: { duration: 1200, easing: 'easeInOutQuad' },
@@ -417,7 +505,7 @@ export class AdvancedLayoutEngine {
     return animations;
   }
 
-  private generateVisualEffects(): any {
+  private generateVisualEffects(): VisualEffects {
     return {
       nodeGlow: this.iteration >= 3,
       edgePulse: this.iteration >= 2,
@@ -426,7 +514,7 @@ export class AdvancedLayoutEngine {
     };
   }
 
-  private generateTransitions(): any {
+  private generateTransitions(): Transitions {
     return {
       sceneTransition: 'fade',
       nodeTransition: 'scale',
@@ -434,7 +522,7 @@ export class AdvancedLayoutEngine {
     };
   }
 
-  private generateInteractions(): any {
+  private generateInteractions(): Interactions {
     return {
       nodeHover: true,
       clickHighlight: true,
@@ -467,7 +555,7 @@ export class AdvancedLayoutEngine {
     }
   }
 
-  private getNodeAnimation(style: string): any {
+  private getNodeAnimation(style: string): NodeAnimation {
     return {
       entrance: style,
       duration: style === 'minimal' ? 300 : 600
@@ -487,12 +575,12 @@ export class AdvancedLayoutEngine {
     return Math.min(100, 60 + (this.iteration * 10));
   }
 
-  private findNodePosition(nodeId: string, nodes: any[]): { x: number; y: number } {
+  private findNodePosition(nodeId: string, nodes: LayoutNode[]): Point {
     const node = nodes.find(n => n.id === nodeId || n.label === nodeId);
     return node ? { x: node.x, y: node.y } : { x: 0, y: 0 };
   }
 
-  private calculateBezierCurve(from: any, to: any): any[] {
+  private calculateBezierCurve(from: Point, to: Point): Point[] {
     const midX = (from.x + to.x) / 2;
     const midY = (from.y + to.y) / 2;
     return [
@@ -503,7 +591,7 @@ export class AdvancedLayoutEngine {
     ];
   }
 
-  private calculateTreeLevels(nodes: any[], edges: any[]): Map<string, number> {
+  private calculateTreeLevels(nodes: LayoutNode[], edges: LayoutEdgeDatum[]): Map<string, number> {
     const levels = new Map<string, number>();
     const processed = new Set<string>();
 
@@ -532,7 +620,7 @@ export class AdvancedLayoutEngine {
     return levels;
   }
 
-  private calculateTreeEdgePath(from: any, to: any): any[] {
+  private calculateTreeEdgePath(from: Point, to: Point): Point[] {
     return [
       from,
       { x: from.x, y: (from.y + to.y) / 2 },
@@ -541,7 +629,7 @@ export class AdvancedLayoutEngine {
     ];
   }
 
-  private calculateCurvedPath(from: any, to: any, center: any): any[] {
+  private calculateCurvedPath(from: Point, to: Point, center: { centerX: number; centerY: number }): Point[] {
     const controlX = center.centerX;
     const controlY = center.centerY;
     return [

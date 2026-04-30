@@ -6,8 +6,9 @@
 
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { SimplePipeline } from '@/pipeline/simple-pipeline';
-import { llmService } from '@/analysis/llm-service';
+import { llmService, type LLMServiceStats } from '@/analysis/llm-service';
 import { globalIterationLogger } from '@/utils/iteration-logger';
+import type { DiagramType } from '@/types/diagram';
 
 interface E2ETestResult {
   phase: string;
@@ -23,7 +24,7 @@ interface E2ETestResult {
     layoutOverlapCount: number;
     videoGenerated: boolean;
   };
-  llmStats?: any;
+  llmStats?: LLMServiceStats;
   error?: string;
 }
 

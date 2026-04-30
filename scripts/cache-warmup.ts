@@ -237,8 +237,8 @@ async function warmupCache(): Promise<void> {
       // Rate limiting: 200ms between requests (as per LLMService config)
       await new Promise(resolve => setTimeout(resolve, 250));
 
-    } catch (error: any) {
-      console.error(`  ❌ Failed: ${error.message}`);
+    } catch (error: unknown) {
+      console.error(`  ❌ Failed: ${error instanceof Error ? error.message : String(error)}`);
       failureCount++;
     }
   }

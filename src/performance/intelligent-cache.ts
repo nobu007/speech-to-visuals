@@ -465,7 +465,7 @@ export class IntelligentCache {
       content.includes('first') && content.includes('then') ? 'sequential' : '',
       content.includes('because') || content.includes('therefore') ? 'causal' : '',
       content.includes('versus') || content.includes('compared to') ? 'comparative' : '',
-      content.match(/\d+[\.\)]/g) ? 'enumerated' : '',
+      content.match(/\d+[.)]/g) ? 'enumerated' : '',
       content.includes('step') && content.includes('process') ? 'procedural' : ''
     ].filter(p => p);
 

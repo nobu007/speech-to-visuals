@@ -88,8 +88,8 @@ export class ComplexLayoutEngine {
 
   constructor(
     config: Partial<ComplexLayoutConfig> = {},
-    private overlapResolver?: any, // Will be OverlapResolver
-    private layoutOptimizer?: any, // Will be LayoutOptimizer
+    private overlapResolver?: OverlapResolver,
+    private layoutOptimizer?: LayoutOptimizer,
     private dagreLayoutStrategy?: DagreLayoutStrategy, // Added
     culturalLayoutAdapter?: CulturalLayoutAdapter // Added
   ) {
@@ -485,19 +485,19 @@ export class ComplexLayoutEngine {
     return this.dagreLayoutStrategy.applyLayout(nodes, edges, type);
   }
 
-  private async coarsenGraph(nodes: NodeDatum[], edges: EdgeDatum[]): Promise<any[]> {
+  private async coarsenGraph(nodes: NodeDatum[], edges: EdgeDatum[]): Promise<Array<{ nodes: NodeDatum[]; edges: EdgeDatum[] }>> {
     // Placeholder for graph coarsening algorithm
     return [{ nodes, edges }];
   }
 
-  private async layoutCoarsestLevel(level: any, type: DiagramType): Promise<DiagramLayout> {
+  private async layoutCoarsestLevel(level: { nodes: NodeDatum[]; edges: EdgeDatum[] }, type: DiagramType): Promise<DiagramLayout> {
     if (!this.dagreLayoutStrategy) {
       throw new Error("DagreLayoutStrategy is not initialized for layoutCoarsestLevel in ComplexLayoutEngine.");
     }
     return this.dagreLayoutStrategy.applyLayout(level.nodes, level.edges, type);
   }
 
-  private async uncoarsenAndRefine(layout: DiagramLayout, level: any, type: DiagramType): Promise<DiagramLayout> {
+  private async uncoarsenAndRefine(layout: DiagramLayout, level: { nodes: NodeDatum[]; edges: EdgeDatum[] }, type: DiagramType): Promise<DiagramLayout> {
     if (!this.dagreLayoutStrategy) {
       throw new Error("DagreLayoutStrategy is not initialized for uncoarsenAndRefine in ComplexLayoutEngine.");
     }
@@ -562,8 +562,8 @@ export class ComplexLayoutEngine {
     if (nodes.length === 0) {
       return { x: 0, y: 0 };
     }
-    const totalX = nodes.reduce((sum, node) => sum + ((node as any).x || 0), 0);
-    const totalY = nodes.reduce((sum, node) => sum + ((node as any).y || 0), 0);
+    const totalX = nodes.reduce((sum, node) => sum + ((node as unknown as PositionedNode).x || 0), 0);
+    const totalY = nodes.reduce((sum, node) => sum + ((node as unknown as PositionedNode).y || 0), 0);
     return { x: totalX / nodes.length, y: totalY / nodes.length };
   }
 
@@ -571,10 +571,10 @@ export class ComplexLayoutEngine {
     if (nodes.length === 0) {
       return { width: 0, height: 0 };
     }
-    const minX = Math.min(...nodes.map(node => (node as any).x || 0));
-    const maxX = Math.max(...nodes.map(node => ((node as any).x || 0) + ((node as any).w || 0)));
-    const minY = Math.min(...nodes.map(node => (node as any).y || 0));
-    const maxY = Math.max(...nodes.map(node => ((node as any).y || 0) + ((node as any).h || 0)));
+    const minX = Math.min(...nodes.map(node => (node as unknown as PositionedNode).x || 0));
+    const maxX = Math.max(...nodes.map(node => ((node as unknown as PositionedNode).x || 0) + ((node as unknown as PositionedNode).w || 0)));
+    const minY = Math.min(...nodes.map(node => (node as unknown as PositionedNode).y || 0));
+    const maxY = Math.max(...nodes.map(node => ((node as unknown as PositionedNode).y || 0) + ((node as unknown as PositionedNode).h || 0)));
 
     return { width: maxX - minX, height: maxY - minY };
   }

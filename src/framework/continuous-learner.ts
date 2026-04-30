@@ -9,14 +9,14 @@ interface LearningData {
   id: string;
   timestamp: Date;
   component: string;
-  input: any;
-  output: any;
+  input: unknown;
+  output: unknown;
   processingTime: number;
   qualityScore: number;
   userFeedback?: number;    // 1-5 rating
   success: boolean;
   errors: string[];
-  context: Record<string, any>;
+  context: Record<string, unknown>;
 }
 
 interface LearningPattern {
@@ -78,13 +78,13 @@ export class ContinuousLearner {
    */
   async learnFromProcessingResult(
     component: string,
-    input: any,
-    output: any,
+    input: unknown,
+    output: unknown,
     processingTime: number,
     qualityScore: number,
     success: boolean,
     errors: string[] = [],
-    context: Record<string, any> = {}
+    context: Record<string, unknown> = {}
   ): Promise<void> {
 
     const learningData: LearningData = {
@@ -830,7 +830,7 @@ export class ContinuousLearner {
   /**
    * MVP改善適用
    */
-  private async applyMVPImprovements(component: string, compliance: any): Promise<void> {
+  private async applyMVPImprovements(component: string, compliance: { score: number; compliance: string; recommendations: string[] }): Promise<void> {
     console.log(`🚀 Applying MVP improvements for ${component} - Custom Instructions Phase 1`);
 
     for (const recommendation of compliance.recommendations) {
@@ -847,7 +847,7 @@ export class ContinuousLearner {
   /**
    * 内容分析改善適用
    */
-  private async applyContentAnalysisImprovements(component: string, compliance: any): Promise<void> {
+  private async applyContentAnalysisImprovements(component: string, compliance: { score: number; compliance: string; recommendations: string[] }): Promise<void> {
     console.log(`📊 Applying content analysis improvements for ${component} - Custom Instructions Phase 2`);
 
     // Custom Instructions: Iterative approach for content analysis
@@ -859,7 +859,7 @@ export class ContinuousLearner {
   /**
    * 図解生成改善適用
    */
-  private async applyDiagramGenerationImprovements(component: string, compliance: any): Promise<void> {
+  private async applyDiagramGenerationImprovements(component: string, compliance: { score: number; compliance: string; recommendations: string[] }): Promise<void> {
     console.log(`🎨 Applying diagram generation improvements for ${component} - Custom Instructions Phase 3`);
 
     // Custom Instructions: Layout optimization with zero tolerance for overlaps
@@ -871,7 +871,7 @@ export class ContinuousLearner {
   /**
    * 品質向上改善適用
    */
-  private async applyQualityEnhancementImprovements(component: string, compliance: any): Promise<void> {
+  private async applyQualityEnhancementImprovements(component: string, compliance: { score: number; compliance: string; recommendations: string[] }): Promise<void> {
     console.log(`💎 Applying quality enhancement improvements for ${component} - Custom Instructions Phase 4`);
 
     // Custom Instructions: Production excellence targets

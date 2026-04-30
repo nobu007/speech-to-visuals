@@ -165,13 +165,14 @@ export class OverlapResolver {
         node2.x += separation / 2;
         node2.y += separation;
         break;
-      default:
+      default: {
         // Random displacement for other types
         const angle = Math.random() * 2 * Math.PI;
         node1.x += Math.cos(angle) * separation;
         node1.y += Math.sin(angle) * separation;
         node2.x -= Math.cos(angle) * separation;
         node2.y -= Math.sin(angle) * separation;
+      }
     }
   }
 

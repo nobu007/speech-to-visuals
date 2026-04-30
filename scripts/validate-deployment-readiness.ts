@@ -294,8 +294,8 @@ class DeploymentValidator {
         status: 'pass',
         message: '✅ No type errors',
       });
-    } catch (error: any) {
-      const errorOutput = error.stdout || error.stderr || error.message;
+    } catch (error: unknown) {
+      const errorOutput = (error as { stdout?: string; stderr?: string; message?: string }).stdout || (error as { stdout?: string; stderr?: string; message?: string }).stderr || (error instanceof Error ? error.message : String(error));
       checks.push({
         name: 'TypeScript Compilation',
         status: 'fail',

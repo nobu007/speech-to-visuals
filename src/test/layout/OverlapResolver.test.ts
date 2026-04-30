@@ -1,18 +1,31 @@
 import OverlapResolver from '../../visualization/layout/OverlapResolver';
+import { LayoutStrategy } from '../../visualization/layout/strategies/LayoutStrategy';
 import { createTestConfig, createEdgeDatum, createDatumNode, createOverlappingPositioned, toDataNodes } from './test-utils';
+
+/** Type helper to access OverlapResolver private members in tests */
+type OverlapResolverInternals = {
+  maxTimePerStrategy: number;
+  maxTotalTime: number;
+  strategies: LayoutStrategy[];
+};
+
+/** Cast resolver to access private fields for test configuration */
+function internals(r: OverlapResolver): OverlapResolverInternals {
+  return r as unknown as OverlapResolverInternals;
+}
 
 describe('OverlapResolver', () => {
   let resolver: OverlapResolver;
 
   beforeEach(() => {
-    resolver = new OverlapResolver() as any;
+    resolver = new OverlapResolver();
     // Shorten timeouts for tests via private access
-    (resolver as any).maxTimePerStrategy = 200;
-    (resolver as any).maxTotalTime = 800;
+    internals(resolver).maxTimePerStrategy = 200;
+    internals(resolver).maxTotalTime = 800;
   });
 
   it('initializes with default strategies in order', () => {
-    const strategies = (resolver as any).strategies as any[];
+    const strategies = internals(resolver).strategies;
     expect(strategies?.length).toBeGreaterThanOrEqual(3);
     expect(strategies[0].name).toBeDefined();
   });
@@ -40,8 +53,8 @@ describe('OverlapResolver', () => {
   });
 
   it('respects very short total time limit', async () => {
-    (resolver as any).maxTimePerStrategy = 10;
-    (resolver as any).maxTotalTime = 30;
+    internals(resolver).maxTimePerStrategy = 10;
+    internals(resolver).maxTotalTime = 30;
     const positioned = createOverlappingPositioned(30);
     const resStart = Date.now();
     const res = await resolver.resolve(toDataNodes(positioned), [], createTestConfig());
@@ -54,19 +67,24 @@ describe('OverlapResolver', () => {
   });
 
   it('uses fallback strategy when a strategy throws', async () => {
-    const original = (resolver as any).strategies as any[];
-    const failing = {
+    const original = internals(resolver).strategies;
+    const failing: LayoutStrategy = {
       name: 'failing',
       canEscapeLocalMinimum: false,
       apply: jest.fn().mockRejectedValue(new Error('boom')),
+      estimateComplexity: jest.fn().mockReturnValue(0),
+      calculateMetrics: jest.fn(),
+      detectOverlaps: jest.fn().mockReturnValue([]),
+      calculateBoundingBox: jest.fn(),
+      getDefaultConfig: jest.fn(),
     };
-    (resolver as any).strategies = [failing, ...original];
+    internals(resolver).strategies = [failing, ...original];
 
     const positioned = createOverlappingPositioned(3);
     const res = await resolver.resolve(toDataNodes(positioned), [], createTestConfig());
 
     expect(failing.apply).toHaveBeenCalled();
     expect(res.success).toBe(true);
-    (resolver as any).strategies = original;
+    internals(resolver).strategies = original;
   });
 });

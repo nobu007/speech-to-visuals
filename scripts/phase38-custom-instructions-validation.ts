@@ -29,7 +29,7 @@ interface ValidationResult {
   test: string;
   status: 'PASS' | 'FAIL' | 'SKIP';
   message: string;
-  metrics?: Record<string, any>;
+  metrics?: Record<string, unknown>;
   duration?: number;
 }
 
@@ -437,7 +437,7 @@ class CustomInstructionsValidator {
         for (const type of supportedTypes) {
           try {
             const testResult = await engine.generateZeroOverlapLayout(
-              type as any,
+              type as 'flow' | 'tree' | 'timeline' | 'matrix' | 'cycle',
               [{ id: 'n1', label: 'Test' }],
               []
             );
@@ -658,7 +658,7 @@ class CustomInstructionsValidator {
   private async runTest(
     category: string,
     testName: string,
-    testFn: () => Promise<{ status: 'PASS' | 'FAIL' | 'SKIP'; message: string; metrics?: any }>
+    testFn: () => Promise<{ status: 'PASS' | 'FAIL' | 'SKIP'; message: string; metrics?: Record<string, unknown> }>
   ): Promise<void> {
     const testStartTime = Date.now();
 

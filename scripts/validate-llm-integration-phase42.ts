@@ -26,7 +26,7 @@ interface ValidationResult {
   passed: boolean;
   details: string;
   duration: number;
-  metrics?: any;
+  metrics?: Record<string, unknown>;
 }
 
 const results: ValidationResult[] = [];

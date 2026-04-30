@@ -31,7 +31,7 @@ export type StreamingCallback = (partialText: string, progress: number) => void;
 /**
  * LLM Request configuration
  */
-export interface LLMRequest<T = any> {
+export interface LLMRequest<T = unknown> {
   prompt: string;
   context: string; // For caching and complexity analysis
   options?: {
@@ -51,7 +51,7 @@ export interface LLMRequest<T = any> {
 /**
  * LLM Response with metadata
  */
-export interface LLMResponse<T = any> {
+export interface LLMResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -100,7 +100,7 @@ export interface LLMServiceStats {
  */
 export class LLMService {
   private genAI?: GoogleGenerativeAI;
-  private cache: LLMCache<any>;
+  private cache: LLMCache<unknown>;
   private complexityDetector: ComplexityDetector;
 
   // Request tracking
@@ -137,7 +137,7 @@ export class LLMService {
       this.genAI = new GoogleGenerativeAI(key);
     }
 
-    this.cache = new LLMCache<any>({
+    this.cache = new LLMCache<unknown>({
       maxSize: options?.cacheSize || 200,
       ttlMinutes: options?.cacheTTL || 120,
       persistPath: options?.cachePersistPath || '.cache/llm/unified-cache.json'
@@ -157,7 +157,7 @@ export class LLMService {
   /**
    * Execute LLM request with adaptive model selection
    */
-  async execute<T = any>(request: LLMRequest<T>): Promise<LLMResponse<T>> {
+  async execute<T = unknown>(request: LLMRequest<T>): Promise<LLMResponse<T>> {
     const startTime = Date.now();
     this.modelMetrics.totalRequests++;
 
@@ -219,7 +219,7 @@ export class LLMService {
     const maxRetries = request.options?.maxRetries || 3;
 
     let retryCount = 0;
-    let lastError: any = null;
+    let lastError: unknown = null;
 
     // Try primary model with retries
     for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -274,14 +274,17 @@ export class LLMService {
           }
         };
 
-      } catch (err: any) {
+      } catch (err: unknown) {
         lastError = err;
         retryCount = attempt + 1;
         this.modelMetrics.totalRetries++;
 
-        const isRateLimit = err.status === 429 ||
-          (err.errorDetails && err.errorDetails.some((d: any) => d['@type']?.includes('QuotaFailure')));
-        const isTimeout = err.message === 'Request timeout';
+        const errObj = err as Record<string, unknown>;
+        const errMessage = err instanceof Error ? err.message : String(err);
+        const isRateLimit = (errObj as Record<string, unknown>).status === 429 ||
+          (Array.isArray((errObj as Record<string, unknown>).errorDetails) &&
+            ((errObj as Record<string, unknown>).errorDetails as Record<string, unknown>[]).some((d: Record<string, unknown>) => String(d['@type'] ?? '').includes('QuotaFailure')));
+        const isTimeout = errMessage === 'Request timeout';
 
         if (isRateLimit || isTimeout) {
           const reason = isRateLimit ? 'Rate limit' : 'Timeout';
@@ -297,12 +300,12 @@ export class LLMService {
         }
 
         // For other errors, fail immediately
-        console.error(`❌ LLMService: ${primaryModel} failed:`, err.message || err);
+        console.error(`❌ LLMService: ${primaryModel} failed:`, errMessage);
         this.modelMetrics.failureCount++;
 
         return {
           success: false,
-          error: err.message || 'LLM request failed',
+          error: errMessage || 'LLM request failed',
           metadata: {
             model: primaryModel,
             responseTime: Date.now() - startTime,
@@ -371,10 +374,11 @@ export class LLMService {
           }
         };
 
-      } catch (err: any) {
+      } catch (err: unknown) {
         lastError = err;
         this.modelMetrics.totalRetries++;
-        console.warn(`❌ LLMService: Fallback ${fallbackModel} failed (attempt ${attempt + 1}/${maxRetries}):`, err.message);
+        const errMessage = err instanceof Error ? err.message : String(err);
+        console.warn(`❌ LLMService: Fallback ${fallbackModel} failed (attempt ${attempt + 1}/${maxRetries}):`, errMessage);
 
         if (attempt < maxRetries - 1) {
           continue; // Retry with backoff
@@ -384,11 +388,12 @@ export class LLMService {
 
     // All retries exhausted
     this.modelMetrics.failureCount++;
-    console.error('❌ LLMService: All retry attempts exhausted. Last error:', lastError?.message || lastError);
+    const lastErrorMessage = lastError instanceof Error ? lastError.message : (lastError ? String(lastError) : 'Unknown error');
+    console.error('❌ LLMService: All retry attempts exhausted. Last error:', lastErrorMessage);
 
     return {
       success: false,
-      error: `All retries exhausted. Last error: ${lastError?.message || 'Unknown error'}`,
+      error: `All retries exhausted. Last error: ${lastErrorMessage}`,
       metadata: {
         model: `${primaryModel}+${fallbackModel}`,
         responseTime: Date.now() - startTime,
@@ -457,7 +462,7 @@ export class LLMService {
    * Provides partial results as they arrive for better perceived performance
    */
   private async executeStreamingRequest(
-    model: any,
+    model: ReturnType<GoogleGenerativeAI['getGenerativeModel']>,
     prompt: string,
     timeout: number,
     onStream: StreamingCallback
@@ -674,7 +679,7 @@ export class LLMService {
    * Clear cache
    */
   clearCache(): void {
-    this.cache = new LLMCache<any>({ maxSize: 200, ttlMinutes: 120 });
+    this.cache = new LLMCache<unknown>({ maxSize: 200, ttlMinutes: 120 });
     console.log('✅ LLMService: Cache cleared');
   }
 
@@ -741,7 +746,7 @@ export function parseResponse(rawResponse: string): AnalysisResult {
 
   try {
     // Use the existing JSON extraction utility
-    const parsed = parseJsonFromLLMText<any>(rawResponse);
+    const parsed = parseJsonFromLLMText<Record<string, unknown>>(rawResponse);
 
     if (!parsed || typeof parsed !== 'object') {
       return { ...DEFAULT_ANALYSIS_RESULT };
@@ -765,49 +770,55 @@ export function parseResponse(rawResponse: string): AnalysisResult {
 /**
  * Extract and validate entities from parsed JSON.
  */
-function extractEntities(parsed: any): AnalysisResult['entities'] {
+function extractEntities(parsed: Record<string, unknown>): AnalysisResult['entities'] {
   if (!Array.isArray(parsed.entities)) {
     return [];
   }
 
   return parsed.entities
-    .filter((e: any) => e && typeof e === 'object')
-    .map((e: any, i: number) => ({
-      id: typeof e.id === 'string' ? e.id : `entity_${i}`,
-      label: typeof e.label === 'string' ? e.label : String(e.label || ''),
-      type: typeof e.type === 'string' ? e.type : 'unknown',
-    }));
+    .filter((e: unknown) => e && typeof e === 'object')
+    .map((e: unknown, i: number) => {
+      const entity = e as Record<string, unknown>;
+      return {
+        id: typeof entity.id === 'string' ? entity.id : `entity_${i}`,
+        label: typeof entity.label === 'string' ? entity.label : String(entity.label || ''),
+        type: typeof entity.type === 'string' ? entity.type : 'unknown',
+      };
+    });
 }
 
 /**
  * Extract and validate relations from parsed JSON.
  */
-function extractRelations(parsed: any): AnalysisResult['relations'] {
+function extractRelations(parsed: Record<string, unknown>): AnalysisResult['relations'] {
   if (!Array.isArray(parsed.relations)) {
     return [];
   }
 
   return parsed.relations
-    .filter((r: any) => r && typeof r === 'object')
-    .map((r: any) => ({
-      from: typeof r.from === 'string' ? r.from : '',
-      to: typeof r.to === 'string' ? r.to : '',
-      label: typeof r.label === 'string' ? r.label : '',
-      type: typeof r.type === 'string' ? r.type : 'unknown',
-    }));
+    .filter((r: unknown) => r && typeof r === 'object')
+    .map((r: unknown) => {
+      const rel = r as Record<string, unknown>;
+      return {
+        from: typeof rel.from === 'string' ? rel.from : '',
+        to: typeof rel.to === 'string' ? rel.to : '',
+        label: typeof rel.label === 'string' ? rel.label : '',
+        type: typeof rel.type === 'string' ? rel.type : 'unknown',
+      };
+    });
 }
 
 /**
  * Extract and validate diagram type from parsed JSON.
  */
-function extractDiagramType(parsed: any): AnalysisResult['diagramType'] {
+function extractDiagramType(parsed: Record<string, unknown>): AnalysisResult['diagramType'] {
   const defaultDiagram = { type: 'flow', confidence: 0.5 };
 
   if (!parsed.diagramType || typeof parsed.diagramType !== 'object') {
     return defaultDiagram;
   }
 
-  const dt = parsed.diagramType;
+  const dt = parsed.diagramType as Record<string, unknown>;
   const type = typeof dt.type === 'string' ? dt.type : 'flow';
   const confidence = typeof dt.confidence === 'number' ? dt.confidence : 0.5;
 
@@ -822,7 +833,7 @@ function extractDiagramType(parsed: any): AnalysisResult['diagramType'] {
 /**
  * Extract summary from parsed JSON.
  */
-function extractSummary(parsed: any): string {
+function extractSummary(parsed: Record<string, unknown>): string {
   if (typeof parsed.summary === 'string') {
     return parsed.summary;
   }

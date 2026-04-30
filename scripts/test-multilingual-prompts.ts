@@ -40,7 +40,7 @@ const testCases = [
 ];
 
 let passedTests = 0;
-let totalTests = testCases.length;
+const totalTests = testCases.length;
 
 testCases.forEach((testCase, index) => {
   console.log(`\n📋 Test ${index + 1}: ${testCase.name}`);

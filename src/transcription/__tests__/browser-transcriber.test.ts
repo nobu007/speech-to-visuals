@@ -43,22 +43,22 @@ const MockSpeechRecognition = jest.fn().mockImplementation(() => {
 });
 
 // Save original window properties
-const originalWindowSpeechRecognition = (globalThis as any).SpeechRecognition;
-const originalWindowWebkitSpeechRecognition = (globalThis as any).webkitSpeechRecognition;
+const originalWindowSpeechRecognition = (globalThis as Record<string, unknown>).SpeechRecognition as jest.Mock | undefined;
+const originalWindowWebkitSpeechRecognition = (globalThis as Record<string, unknown>).webkitSpeechRecognition as jest.Mock | undefined;
 
 // ---------- Test Suite ----------
 
 describe('BrowserTranscriber', () => {
   let BrowserTranscriber: typeof import('../browser-transcriber').BrowserTranscriber;
 
-  const setSpeechRecognitionAPI = (api: any) => {
-    (globalThis as any).SpeechRecognition = api;
-    (globalThis as any).webkitSpeechRecognition = api;
+  const setSpeechRecognitionAPI = (api: jest.Mock) => {
+    (globalThis as Record<string, unknown>).SpeechRecognition = api;
+    (globalThis as Record<string, unknown>).webkitSpeechRecognition = api;
   };
 
   const removeSpeechRecognitionAPI = () => {
-    delete (globalThis as any).SpeechRecognition;
-    delete (globalThis as any).webkitSpeechRecognition;
+    delete (globalThis as Record<string, unknown>).SpeechRecognition;
+    delete (globalThis as Record<string, unknown>).webkitSpeechRecognition;
   };
 
   beforeEach(() => {
@@ -73,14 +73,14 @@ describe('BrowserTranscriber', () => {
   afterEach(() => {
     // Restore original window properties
     if (originalWindowSpeechRecognition !== undefined) {
-      (globalThis as any).SpeechRecognition = originalWindowSpeechRecognition;
+      (globalThis as Record<string, unknown>).SpeechRecognition = originalWindowSpeechRecognition;
     } else {
-      delete (globalThis as any).SpeechRecognition;
+      delete (globalThis as Record<string, unknown>).SpeechRecognition;
     }
     if (originalWindowWebkitSpeechRecognition !== undefined) {
-      (globalThis as any).webkitSpeechRecognition = originalWindowWebkitSpeechRecognition;
+      (globalThis as Record<string, unknown>).webkitSpeechRecognition = originalWindowWebkitSpeechRecognition;
     } else {
-      delete (globalThis as any).webkitSpeechRecognition;
+      delete (globalThis as Record<string, unknown>).webkitSpeechRecognition;
     }
   });
 
@@ -150,7 +150,7 @@ describe('BrowserTranscriber', () => {
               confidence: 0.85,
             },
           },
-        } as any,
+        } as unknown as SpeechRecognitionResultList,
       } as unknown as SpeechRecognitionEvent;
 
       if (mockRecognitionInstance.onresult) {

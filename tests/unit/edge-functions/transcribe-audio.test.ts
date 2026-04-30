@@ -11,10 +11,7 @@ jest.mock('../../../supabase/functions/_shared/error-handler', () => {
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { fetchWithTimeout } = require('../../../supabase/functions/_shared/error-handler') as {
-  fetchWithTimeout: jest.Mock;
-};
+import { fetchWithTimeout } from '../../../supabase/functions/_shared/error-handler';
 
 const VALID_ENV = { LOVABLE_API_KEY: 'test-api-key' };
 const USER_ID = 'user-test-001';

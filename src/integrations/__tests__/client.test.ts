@@ -11,6 +11,7 @@ jest.mock('@supabase/supabase-js', () => ({
 function importClientModule(): Record<string, any> {
   let moduleExports: Record<string, any> = {};
   jest.isolateModules(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     moduleExports = require('@/integrations/supabase/client') as Record<string, any>;
   });
   return moduleExports;

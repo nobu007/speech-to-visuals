@@ -69,7 +69,7 @@ const testCases: TestCase[] = [
 class LLMIntegrationTest {
   private geminiAnalyzer: GeminiAnalyzer;
   private contentAnalyzer: ContentAnalyzer;
-  private results: any[] = [];
+  private results: Record<string, unknown>[] = [];
 
   constructor() {
     this.geminiAnalyzer = new GeminiAnalyzer();

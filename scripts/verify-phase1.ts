@@ -8,7 +8,7 @@ import path from 'node:path';
 
 type Criteria = Record<string, boolean>;
 
-function checkDep(pkg: any, name: string): boolean {
+function checkDep(pkg: Record<string, unknown>, name: string): boolean {
   return Boolean(
     (pkg.dependencies && pkg.dependencies[name]) ||
       (pkg.devDependencies && pkg.devDependencies[name])

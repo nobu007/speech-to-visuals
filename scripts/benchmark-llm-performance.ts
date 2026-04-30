@@ -141,9 +141,9 @@ async function runBenchmark(): Promise<void> {
           errorMessage
         });
 
-      } catch (error: any) {
+      } catch (error: unknown) {
         const duration = Date.now() - testStart;
-        errorMessage = error.message || String(error);
+        errorMessage = error instanceof Error ? error.message : String(error);
         console.log(`  ❌ ${testInput.name}: ${duration}ms | ${errorMessage}`);
 
         results.push({

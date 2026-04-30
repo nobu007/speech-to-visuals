@@ -404,9 +404,10 @@ class AdaptiveQualityGatesSystem {
         // Use P10 as adaptive threshold (allows for some variance)
         return Math.min(baseThreshold * 1.2, sorted[Math.floor(sorted.length * 0.1)] * 0.9);
 
-      case 'gte': // For metrics where higher or equal is better (e.g., success rate)
+      case 'gte': { // For metrics where higher or equal is better (e.g., success rate)
         const p10 = sorted[Math.floor(sorted.length * 0.1)];
         return Math.min(baseThreshold * 1.2, p10 * 0.9); // At most 120% of base, but allow 10% below P10
+      }
 
       case 'eq': // For metrics that must equal a specific value
         return baseThreshold; // No adaptation for equality checks

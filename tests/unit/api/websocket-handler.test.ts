@@ -16,6 +16,15 @@ import { createMockIo, createMockSocket, MockIo, MockSocket } from '../../__mock
 // We will import after mock setup. Use dynamic import below.
 let registerWebSocketHandler: typeof import('../../../src/api/websocket-handler').registerWebSocketHandler;
 let createWsAuthMiddleware: typeof import('../../../src/api/websocket-handler').createWsAuthMiddleware;
+let emitJobProgress: typeof import('../../../src/api/websocket-handler').emitJobProgress;
+let emitJobComplete: typeof import('../../../src/api/websocket-handler').emitJobComplete;
+let emitJobError: typeof import('../../../src/api/websocket-handler').emitJobError;
+let emitFileStatus: typeof import('../../../src/api/websocket-handler').emitFileStatus;
+let emitStageProgress: typeof import('../../../src/api/websocket-handler').emitStageProgress;
+let emitStreamingSegment: typeof import('../../../src/api/websocket-handler').emitStreamingSegment;
+let emitStreamingComplete: typeof import('../../../src/api/websocket-handler').emitStreamingComplete;
+let emitErrorRecovery: typeof import('../../../src/api/websocket-handler').emitErrorRecovery;
+let emitErrorRecovered: typeof import('../../../src/api/websocket-handler').emitErrorRecovered;
 
 // Mock jsonwebtoken before importing
 jest.mock('jsonwebtoken', () => ({
@@ -34,6 +43,15 @@ async function importModule() {
   const mod = await import('../../../src/api/websocket-handler');
   registerWebSocketHandler = mod.registerWebSocketHandler;
   createWsAuthMiddleware = mod.createWsAuthMiddleware;
+  emitJobProgress = mod.emitJobProgress;
+  emitJobComplete = mod.emitJobComplete;
+  emitJobError = mod.emitJobError;
+  emitFileStatus = mod.emitFileStatus;
+  emitStageProgress = mod.emitStageProgress;
+  emitStreamingSegment = mod.emitStreamingSegment;
+  emitStreamingComplete = mod.emitStreamingComplete;
+  emitErrorRecovery = mod.emitErrorRecovery;
+  emitErrorRecovered = mod.emitErrorRecovered;
 }
 
 /** Shape returned by mockIo.to() */
@@ -258,7 +276,6 @@ describe('WebSocket Handler', () => {
       } satisfies MockRoom);
 
       // Call the helper: emitJobProgress
-      const { emitJobProgress } = require('../../../src/api/websocket-handler');
       emitJobProgress(mockIo as unknown as Parameters<typeof emitJobProgress>[0], progressData);
 
       expect(mockIo.to).toHaveBeenCalledWith('job:job-abc-123');
@@ -288,7 +305,6 @@ describe('WebSocket Handler', () => {
       const emitMock = jest.fn();
       mockIo.to.mockReturnValue({ emit: emitMock } satisfies MockRoom);
 
-      const { emitJobComplete } = require('../../../src/api/websocket-handler');
       emitJobComplete(mockIo as unknown as Parameters<typeof emitJobComplete>[0], completeData);
 
       expect(mockIo.to).toHaveBeenCalledWith('job:job-abc-123');
@@ -316,7 +332,6 @@ describe('WebSocket Handler', () => {
       const emitMock = jest.fn();
       mockIo.to.mockReturnValue({ emit: emitMock } satisfies MockRoom);
 
-      const { emitJobError } = require('../../../src/api/websocket-handler');
       emitJobError(mockIo as unknown as Parameters<typeof emitJobError>[0], errorData);
 
       expect(mockIo.to).toHaveBeenCalledWith('job:job-abc-123');
@@ -343,7 +358,6 @@ describe('WebSocket Handler', () => {
       const emitMock = jest.fn();
       mockIo.to.mockReturnValue({ emit: emitMock } satisfies MockRoom);
 
-      const { emitFileStatus } = require('../../../src/api/websocket-handler');
       emitFileStatus(mockIo as unknown as Parameters<typeof emitFileStatus>[0], fileStatusData);
 
       expect(mockIo.to).toHaveBeenCalledWith('job:job-abc-123');
@@ -370,7 +384,6 @@ describe('WebSocket Handler', () => {
       const emitMock = jest.fn();
       mockIo.to.mockReturnValue({ emit: emitMock } satisfies MockRoom);
 
-      const { emitStageProgress } = require('../../../src/api/websocket-handler');
       emitStageProgress(mockIo as unknown as Parameters<typeof emitStageProgress>[0], stageData);
 
       expect(mockIo.to).toHaveBeenCalledWith('job:job-abc-123');
@@ -399,7 +412,6 @@ describe('WebSocket Handler', () => {
       const emitMock = jest.fn();
       mockIo.to.mockReturnValue({ emit: emitMock } satisfies MockRoom);
 
-      const { emitStreamingSegment } = require('../../../src/api/websocket-handler');
       emitStreamingSegment(mockIo as unknown as Parameters<typeof emitStreamingSegment>[0], segmentData);
 
       expect(mockIo.to).toHaveBeenCalledWith('job:job-abc-123');
@@ -420,7 +432,6 @@ describe('WebSocket Handler', () => {
       const emitMock = jest.fn();
       mockIo.to.mockReturnValue({ emit: emitMock } satisfies MockRoom);
 
-      const { emitStreamingComplete } = require('../../../src/api/websocket-handler');
       emitStreamingComplete(mockIo as unknown as Parameters<typeof emitStreamingComplete>[0], completeData);
 
       expect(mockIo.to).toHaveBeenCalledWith('job:job-abc-123');
@@ -453,7 +464,6 @@ describe('WebSocket Handler', () => {
       const emitMock = jest.fn();
       mockIo.to.mockReturnValue({ emit: emitMock } satisfies MockRoom);
 
-      const { emitErrorRecovery } = require('../../../src/api/websocket-handler');
       emitErrorRecovery(mockIo as unknown as Parameters<typeof emitErrorRecovery>[0], recoveryData);
 
       expect(mockIo.to).toHaveBeenCalledWith('job:job-abc-123');
@@ -473,7 +483,6 @@ describe('WebSocket Handler', () => {
       const emitMock = jest.fn();
       mockIo.to.mockReturnValue({ emit: emitMock } satisfies MockRoom);
 
-      const { emitErrorRecovered } = require('../../../src/api/websocket-handler');
       emitErrorRecovered(mockIo as unknown as Parameters<typeof emitErrorRecovered>[0], recoveredData);
 
       expect(mockIo.to).toHaveBeenCalledWith('job:job-abc-123');

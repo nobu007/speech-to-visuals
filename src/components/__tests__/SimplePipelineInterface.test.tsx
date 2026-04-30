@@ -390,7 +390,7 @@ describe('SimplePipelineInterface State Machine', () => {
     });
 
     it('uploading stage has correct step text', () => {
-      let state = pipelineReducer(initialPipelineState, { type: 'START_PROCESSING' });
+      const state = pipelineReducer(initialPipelineState, { type: 'START_PROCESSING' });
       expect(state.currentStep).toContain('開始');
     });
 

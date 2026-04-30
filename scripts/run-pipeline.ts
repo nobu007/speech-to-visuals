@@ -32,11 +32,11 @@ async function createNodeFile(audioPath: string): Promise<File> {
   const blob = new Blob([buf], { type });
 
   // If global File exists (Node >= 20), use it. Otherwise attach props to Blob.
-  const FileCtor: any = (globalThis as any).File;
+  const FileCtor: unknown = (globalThis as Record<string, unknown>).File;
   if (typeof FileCtor === 'function') {
-    return new FileCtor([blob], path.basename(audioPath), { type, lastModified: stat.mtimeMs });
+    return new (FileCtor as new (parts: Blob[], name: string, opts?: { type?: string; lastModified?: number }) => File)([blob], path.basename(audioPath), { type, lastModified: stat.mtimeMs });
   }
-  const fileLike: any = blob;
+  const fileLike: Record<string, unknown> = blob as Record<string, unknown>;
   fileLike.name = path.basename(audioPath);
   fileLike.type = type;
   fileLike.lastModified = stat.mtimeMs;

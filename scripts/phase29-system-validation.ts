@@ -24,12 +24,12 @@ interface ValidationResult {
   outputs: {
     transcription?: string;
     sceneCount?: number;
-    diagramData?: any;
+    diagramData?: Record<string, unknown> | null;
     videoPath?: string;
   };
-  metrics: any;
-  qualityReport: any;
-  improvementOpportunities: any;
+  metrics: Record<string, unknown>;
+  qualityReport: Record<string, unknown>;
+  improvementOpportunities: Record<string, unknown>;
 }
 
 async function runSystemValidation(): Promise<ValidationResult> {
@@ -312,7 +312,7 @@ function generateValidationReport(validation: ValidationResult): string {
     if (qr.violations && qr.violations.length > 0) {
       report.push('### Quality Violations');
       report.push('');
-      qr.violations.forEach((v: any) => {
+      qr.violations.forEach((v: Record<string, unknown>) => {
         report.push(`- **${v.metric}**: ${v.severity.toUpperCase()}`);
         report.push(`  - Actual: ${v.actual.toFixed(3)}, Expected: ${v.expected.toFixed(3)}`);
         report.push(`  - Impact: ${v.impact}`);
@@ -331,7 +331,7 @@ function generateValidationReport(validation: ValidationResult): string {
 
       report.push('### Priority Opportunities (Top 5)');
       report.push('');
-      ops.opportunities.slice(0, 5).forEach((opp: any, idx: number) => {
+      ops.opportunities.slice(0, 5).forEach((opp: Record<string, unknown>, idx: number) => {
         report.push(`${idx + 1}. **${opp.area}** (${opp.priority.toUpperCase()})`);
         report.push(`   - Impact: ${opp.impact}`);
         report.push(`   - Current: ${opp.currentValue}, Target: ${opp.targetValue}`);

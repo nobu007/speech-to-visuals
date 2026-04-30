@@ -260,7 +260,7 @@ class BatchAudioPipeline {
   /**
    * 結果を保存
    */
-  private async saveResults(fileName: string, result: any, processingTime: number): Promise<void> {
+  private async saveResults(fileName: string, result: Record<string, unknown>, processingTime: number): Promise<void> {
     const baseName = path.basename(fileName, path.extname(fileName));
     const outputBase = path.join(this.config.outputDir, baseName);
 

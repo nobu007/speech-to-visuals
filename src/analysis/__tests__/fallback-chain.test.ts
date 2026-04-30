@@ -183,8 +183,8 @@ describe('FallbackChain', () => {
       );
 
       // Execute 10 requests - 7 primary, 2 fallback, 1 rule-based
-      let primaryCount = 0;
-      let fallbackCount = 0;
+      const primaryCount = 0;
+      const fallbackCount = 0;
 
       for (let i = 0; i < 10; i++) {
         // Create a chain with specific behavior per iteration

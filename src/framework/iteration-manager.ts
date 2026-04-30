@@ -211,11 +211,12 @@ export class IterationManager {
       case 'on_success':
         return lastIteration?.status === 'success';
 
-      case 'on_checkpoint':
+      case 'on_checkpoint': {
         // Commit every N successful iterations or at max iterations
         const successCount = this.history.filter(i => i.status === 'success').length;
         return successCount > 0 && (successCount % 3 === 0 ||
                this.cycle.currentIteration >= this.cycle.maxIterations);
+      }
 
       case 'on_review':
         // Only commit at phase completion

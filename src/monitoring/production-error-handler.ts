@@ -53,7 +53,7 @@ export class ProductionErrorHandler {
     warningCount: 0
   };
   private sessionId: string;
-  private errorCallbacks: Map<string, Function[]> = new Map();
+  private errorCallbacks: Map<string, ((...args: unknown[]) => unknown)[]> = new Map();
   private recoveryAttempts: Map<string, number> = new Map();
   private metricsIntervalId: NodeJS.Timeout | null = null;
   private globalErrorHandler: ((event: ErrorEvent) => void) | null = null;
