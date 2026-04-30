@@ -250,22 +250,23 @@ export class VideoGenerator {
   }> {
     const errors: string[] = [];
     const warnings: string[] = [];
+    const d = data as Record<string, unknown>;
 
     // 必須フィールド検証
-    if (!data.audioUrl) {
+    if (!d.audioUrl) {
       errors.push('Audio URL is missing');
     }
 
-    if (!data.scenes || data.scenes.length === 0) {
+    if (!d.scenes || (d.scenes as RemotionSceneData[]).length === 0) {
       errors.push('No scenes provided');
     }
 
-    if (data.totalDuration <= 0) {
+    if ((d.totalDuration as number) <= 0) {
       errors.push('Invalid total duration');
     }
 
     // シーン検証
-    data.scenes?.forEach((scene: RemotionSceneData, index: number) => {
+    (d.scenes as RemotionSceneData[] | undefined)?.forEach((scene: RemotionSceneData, index: number) => {
       if (!scene.id) {
         errors.push(`Scene ${index}: Missing ID`);
       }
@@ -297,19 +298,20 @@ export class VideoGenerator {
    * Phase 14: Added performance optimization settings
    */
   private async prepareRenderConfiguration(data: unknown) {
+    const d = data as Record<string, unknown>;
     return {
       composition: 'DiagramVideo',
       inputProps: {
-        scenes: data.scenes,
-        audioUrl: data.audioUrl,
-        totalDuration: data.totalDuration
+        scenes: d.scenes,
+        audioUrl: d.audioUrl,
+        totalDuration: d.totalDuration
       },
       outputLocation: this.generateOutputPath(),
       config: {
         width: this.getResolutionWidth(),
         height: this.getResolutionHeight(),
         fps: this.options.fps || 30,
-        durationInFrames: Math.ceil((data.totalDuration / 1000) * (this.options.fps || 30))
+        durationInFrames: Math.ceil(((d.totalDuration as number) / 1000) * (this.options.fps || 30))
       },
       // Phase 14: Performance optimization settings
       renderOptions: {
@@ -347,6 +349,9 @@ export class VideoGenerator {
     onProgress?: (stage: string, progress: number) => void
   ) {
     console.log('[Video Generation] Executing actual Remotion render...');
+    const cfg = config as Record<string, unknown>;
+    const inputProps = cfg.inputProps as Record<string, unknown>;
+    const renderConfig = cfg.config as Record<string, unknown>;
 
     try {
       // Node.js環境でのみ実行可能
@@ -358,12 +363,12 @@ export class VideoGenerator {
       // 実際のレンダリング（サーバーサイド）
       const { actualVideoRenderer } = await import('@/lib/actualVideoRenderer');
 
-      const outputPath = config.outputLocation;
+      const outputPath = cfg.outputLocation as string;
 
       await actualVideoRenderer.renderVideo(
         {
-          scenes: config.inputProps.scenes,
-          audioUrl: config.inputProps.audioUrl,
+          scenes: inputProps.scenes as SceneGraph[],
+          audioUrl: inputProps.audioUrl as string,
           outputPath,
           quality: 'medium',
         },
@@ -376,10 +381,10 @@ export class VideoGenerator {
 
       const videoInfo = {
         path: outputPath,
-        duration: config.inputProps.totalDuration,
+        duration: inputProps.totalDuration as number,
         fileSize: this.estimateFileSize(config),
-        resolution: `${config.config.width}x${config.config.height}`,
-        fps: config.config.fps
+        resolution: `${renderConfig.width as number}x${renderConfig.height as number}`,
+        fps: renderConfig.fps as number
       };
 
       console.log('[Video Generation] Render complete:', videoInfo);
@@ -401,6 +406,9 @@ export class VideoGenerator {
     onProgress?: (stage: string, progress: number) => void
   ) {
     console.log('[Video Generation] Executing mock render for browser...');
+    const cfg = config as Record<string, unknown>;
+    const inputProps = cfg.inputProps as Record<string, unknown>;
+    const renderCfg = cfg.config as Record<string, unknown>;
 
     const renderSteps = [
       'Preparing composition',
@@ -421,13 +429,13 @@ export class VideoGenerator {
     }
 
     // 模擬レンダリング結果
-    const outputPath = config.outputLocation;
+    const outputPath = cfg.outputLocation as string;
     const videoInfo = {
       path: outputPath,
-      duration: config.inputProps.totalDuration,
+      duration: inputProps.totalDuration as number,
       fileSize: this.estimateFileSize(config),
-      resolution: `${config.config.width}x${config.config.height}`,
-      fps: config.config.fps
+      resolution: `${renderCfg.width as number}x${renderCfg.height as number}`,
+      fps: renderCfg.fps as number
     };
 
     console.log('[Video Generation] Mock render complete:', videoInfo);
@@ -439,19 +447,20 @@ export class VideoGenerator {
    * 動画生成最終処理
    */
   private async finalizeVideoGeneration(renderInfo: unknown): Promise<VideoGenerationResult> {
+    const info = renderInfo as Record<string, unknown>;
     // サムネイル生成（模擬）
-    const thumbnailUrl = renderInfo.path.replace('.mp4', '_thumb.jpg');
+    const thumbnailUrl = (info.path as string).replace('.mp4', '_thumb.jpg');
 
     // 動画URLの生成（実際の環境では適切なURL生成）
-    const videoUrl = renderInfo.path;
+    const videoUrl = info.path as string;
 
     return {
       success: true,
       videoUrl,
       thumbnailUrl,
-      duration: renderInfo.duration,
-      fileSize: renderInfo.fileSize,
-      resolution: renderInfo.resolution
+      duration: info.duration as number,
+      fileSize: info.fileSize as number,
+      resolution: info.resolution as string
     };
   }
 
@@ -533,7 +542,9 @@ export class VideoGenerator {
     };
 
     const quality = this.options.quality || 'high';
-    const durationSeconds = config.inputProps.totalDuration / 1000;
+    const cfg = config as Record<string, unknown>;
+    const inputProps = cfg.inputProps as Record<string, unknown>;
+    const durationSeconds = (inputProps.totalDuration as number) / 1000;
 
     return baseSizePerSecond[quality] * durationSeconds;
   }

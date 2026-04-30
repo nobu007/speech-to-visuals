@@ -500,6 +500,9 @@ export class RecursiveCustomInstructionsFramework {
 
     // Check against quality thresholds
     const evaluation = {
+      passed: false,
+      score: 0,
+      suggestions: [] as string[],
       shouldIterate: false,
       shouldAdvancePhase: false,
       shouldCommit: false,
@@ -511,6 +514,7 @@ export class RecursiveCustomInstructionsFramework {
 
     // Calculate quality score
     evaluation.qualityScore = this.calculateCurrentQualityScore();
+    evaluation.score = evaluation.qualityScore;
 
     // Check specific criteria
     const meetsTranscriptionThreshold = qualityMetrics.transcriptionAccuracy >= this.qualityThresholds.transcriptionAccuracy;
@@ -548,9 +552,11 @@ export class RecursiveCustomInstructionsFramework {
     if (allCriteriaMet) {
       evaluation.shouldAdvancePhase = true;
       evaluation.shouldCommit = true;
+      evaluation.passed = true;
       evaluation.commitMessage = `feat(${this.currentState.phase}): Complete phase with quality score ${(evaluation.qualityScore * 100).toFixed(1)}%`;
     } else if (currentPhaseConfig && this.currentState.iteration < currentPhaseConfig.maxIterations) {
       evaluation.shouldIterate = true;
+      evaluation.suggestions = evaluation.improvements;
     } else {
       // Max iterations reached - apply failure recovery
       evaluation.shouldCommit = true;

@@ -132,7 +132,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
   ];
 
   const getEstimatedFileSize = (): string => {
-    const duration = sceneData?.duration || 10;
+    const duration = (sceneData?.duration as number) || 10;
     const { resolution, fps, bitrate } = config.quality;
 
     let baseSizeMB = 1;
@@ -150,7 +150,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
   };
 
   const getEstimatedTime = (): string => {
-    const duration = sceneData?.duration || 10;
+    const duration = (sceneData?.duration as number) || 10;
     let processingRatio = 0.5; // 50% of video duration
 
     if (config.quality.resolution === '4k') processingRatio *= 3;

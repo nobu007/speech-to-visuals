@@ -22,10 +22,10 @@ import {
   PipelineMetrics,
   ExtendedPipelineMetrics,
 } from './types';
-import { TranscriptionPipeline } from '@/transcription';
+import { TranscriptionPipeline, TranscriptionSegment } from '@/transcription';
 import { SceneSegmenter, DiagramDetector } from '@/analysis';
 import { LayoutEngine } from '@/visualization';
-import { SceneGraph } from '@/types/diagram';
+import { SceneGraph, ProcessingStatus, NodeDatum, EdgeDatum, DiagramType, DiagramLayout } from '@/types/diagram';
 import { validateConfig, ValidationError } from '@/config/validate';
 import type { ConfigSchema } from '@/config/schema';
 import SmartParameterTuner from '@/optimization/smart-parameter-tuner';
@@ -218,8 +218,8 @@ export class PipelineOrchestrator {
         cb
       );
 
-      contentSegments = analysisResult.segments;
-      diagramAnalyses = analysisResult.diagrams;
+      contentSegments = (analysisResult as Record<string, unknown>).segments as unknown[];
+      diagramAnalyses = (analysisResult as Record<string, unknown>).diagrams as unknown[];
 
       this.emitProgress(cb, 2, 'analysis', 100, 'completed');
       stages.push(this.makeStage('analysis', 'complete'));
@@ -233,7 +233,7 @@ export class PipelineOrchestrator {
         cb
       );
 
-      layoutResults = layoutResult;
+      layoutResults = layoutResult as unknown[];
 
       this.emitProgress(cb, 3, 'layout', 100, 'completed');
       stages.push(this.makeStage('layout', 'complete'));
@@ -247,7 +247,7 @@ export class PipelineOrchestrator {
         cb
       );
 
-      scenes = prepResult;
+      scenes = prepResult as SceneGraph[];
 
       this.emitProgress(cb, 4, 'preparation', 100, 'completed');
       stages.push(this.makeStage('preparation', 'complete'));
@@ -305,7 +305,7 @@ export class PipelineOrchestrator {
         const characteristics = await this.tuner.analyzeContent('', {
           duration: config.output.videoDuration,
           quality: 0.8,
-        });
+        } as { duration?: number; format?: string; sampleRate?: number });
         const optimization = await this.tuner.optimizeParameters(characteristics);
         // Apply tuned confidence threshold if available
         if (optimization.parameters?.confidenceThreshold) {
@@ -334,10 +334,10 @@ export class PipelineOrchestrator {
     segments: unknown[];
     diagrams: unknown[];
   }> {
-    const segments = transcriptionResult?.segments ?? [];
+    const segments = (transcriptionResult as Record<string, unknown>)?.segments ?? [];
 
     try {
-      const contentSegments = await this.segmenter.segment(segments);
+      const contentSegments = await this.segmenter.segment(segments as TranscriptionSegment[]);
       if (!contentSegments || contentSegments.length === 0) {
         return this.makeDefaultAnalysisResult();
       }
@@ -361,13 +361,13 @@ export class PipelineOrchestrator {
     const results: unknown[] = [];
 
     for (let i = 0; i < diagrams.length; i++) {
-      const diag = diagrams[i];
+      const diag = diagrams[i] as Record<string, unknown>;
       try {
-        if (diag?.nodes?.length > 0) {
+        if ((diag?.nodes as unknown[])?.length > 0) {
           const layoutResult = await this.layoutEngine.generateLayout(
-            diag.nodes,
-            diag.edges,
-            diag.type,
+            diag.nodes as NodeDatum[],
+            diag.edges as EdgeDatum[],
+            diag.type as DiagramType,
             1
           );
           if (layoutResult.success) {
@@ -376,7 +376,7 @@ export class PipelineOrchestrator {
             results.push({
               segment: segments[i],
               analysis: diag,
-              layout: this.createFallbackLayout(diag.nodes, diag.edges),
+              layout: this.createFallbackLayout(diag.nodes as unknown[], diag.edges as unknown[]),
             });
           }
         } else {
@@ -384,8 +384,8 @@ export class PipelineOrchestrator {
             segment: segments[i],
             analysis: diag,
             layout: this.createFallbackLayout(
-              diag?.nodes ?? [],
-              diag?.edges ?? []
+              (diag?.nodes ?? []) as unknown[],
+              (diag?.edges ?? []) as unknown[]
             ),
           });
         }
@@ -394,8 +394,8 @@ export class PipelineOrchestrator {
           segment: segments[i],
           analysis: diag,
           layout: this.createFallbackLayout(
-            diag?.nodes ?? [],
-            diag?.edges ?? []
+            (diag?.nodes ?? []) as unknown[],
+            (diag?.edges ?? []) as unknown[]
           ),
         });
       }
@@ -409,22 +409,23 @@ export class PipelineOrchestrator {
     diagrams: unknown[],
     layouts: unknown[]
   ): Promise<SceneGraph[]> {
-    const scenes: SceneGraph[] = layouts.map((item, index) => {
-      const segment = item.segment ?? segments[index];
-      const analysis = item.analysis ?? diagrams[index];
+    const scenes: SceneGraph[] = layouts.map((layoutItem, index) => {
+      const item = layoutItem as Record<string, unknown>;
+      const segment = (item.segment ?? segments[index]) as Record<string, unknown>;
+      const analysis = (item.analysis ?? diagrams[index]) as Record<string, unknown>;
 
       return {
-        type: analysis?.type ?? 'flow',
-        nodes: analysis?.nodes ?? [],
-        edges: analysis?.edges ?? [],
-        layout: item.layout,
-        startMs: segment?.startMs ?? index * 5000,
+        type: (analysis?.type ?? 'flow') as DiagramType,
+        nodes: (analysis?.nodes ?? []) as NodeDatum[],
+        edges: (analysis?.edges ?? []) as EdgeDatum[],
+        layout: item.layout as DiagramLayout | undefined,
+        startMs: (segment?.startMs ?? index * 5000) as number,
         durationMs:
           segment?.endMs && segment?.startMs
-            ? segment.endMs - segment.startMs
+            ? (segment.endMs as number) - (segment.startMs as number)
             : 5000,
-        summary: segment?.summary ?? `Scene ${index + 1}`,
-        keyphrases: segment?.keyphrases ?? [],
+        summary: (segment?.summary ?? `Scene ${index + 1}`) as string,
+        keyphrases: (segment?.keyphrases ?? []) as string[],
       };
     });
 
@@ -597,7 +598,7 @@ export class PipelineOrchestrator {
   private makeStage(name: string, status: string): PipelineStage {
     return {
       name,
-      status: status as string,
+      status: status as ProcessingStatus,
       startTime: Date.now(),
       endTime: Date.now(),
     };

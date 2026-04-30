@@ -162,7 +162,7 @@ export const InteractiveResultViewer: React.FC<InteractiveResultViewerProps> = (
       ctx.fillStyle = '#3b82f6';
       ctx.font = '16px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(scene.diagramType || 'Diagram', canvas.width / 2, canvas.height / 2);
+      ctx.fillText((scene.diagramType as string) || 'Diagram', canvas.width / 2, canvas.height / 2);
 
       // Scene number
       ctx.fillStyle = '#666';

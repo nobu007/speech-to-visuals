@@ -201,7 +201,7 @@ export class AdaptiveContentProcessor {
     }
 
     // Customize analysis config
-    customized.analysisConfig.diagramDetectionSensitivity = (parameters as Record<string, unknown>).diagramSensitivity as number ?? parameters.confidenceThreshold;
+    customized.analysisConfig.diagramDetectionSensitivity = (parameters as unknown as Record<string, unknown>).diagramSensitivity as number ?? parameters.confidenceThreshold;
 
     if (characteristics.complexity === 'high') {
       customized.analysisConfig.segmentationMode = 'adaptive';

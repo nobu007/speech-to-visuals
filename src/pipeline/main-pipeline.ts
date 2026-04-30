@@ -1,5 +1,5 @@
-import { SceneGraph } from '@/types/diagram';
-import { TranscriptionPipeline } from '@/transcription';
+import { SceneGraph, DiagramType, NodeDatum, EdgeDatum } from '@/types/diagram';
+import { TranscriptionPipeline, TranscriptionSegment } from '@/transcription';
 import { SceneSegmenter, DiagramDetector } from '@/analysis';
 import { LayoutEngine } from '@/visualization';
 import { qualityMonitor, QualityAssessment } from '@/quality';
@@ -205,7 +205,7 @@ export class MainPipeline {
       5 // High priority for transcription
     );
 
-    if (!transcriptionResult.success) {
+    if (!(transcriptionResult as Record<string, unknown>).success) {
       throw new Error('Transcription failed after recovery attempts');
     }
 
@@ -263,9 +263,9 @@ export class MainPipeline {
 
       // Update framework metrics
       this.qualityMetrics = {
-        transcriptionAccuracy: transcriptionResult.accuracy || 0.85,
-        sceneSegmentationF1: (analysisResult as unknown).segmentationScore || 0.75,
-        layoutOverlap: (layoutResult as unknown).overlapCount || 0,
+        transcriptionAccuracy: (transcriptionResult as Record<string, unknown>).accuracy as number || 0.85,
+        sceneSegmentationF1: (analysisResult as Record<string, unknown>).segmentationScore as number || 0.75,
+        layoutOverlap: (layoutResult as unknown as Record<string, unknown>).overlapCount as number || 0,
         renderTime: totalTime,
         memoryUsage: process.memoryUsage().heapUsed,
         timestamp: new Date()
@@ -328,7 +328,7 @@ export class MainPipeline {
     const evaluation = await this.framework.evaluateIteration(this.qualityMetrics, {
       processingTime: totalTime,
       success: result.success,
-      qualityScore: (result.metrics as unknown)?.quality || 0.8
+      qualityScore: (result.metrics as unknown as Record<string, unknown> | undefined)?.quality as number || 0.8
     });
 
     console.log(`🔄 [${this.currentPhase}] Iteration ${this.iteration} evaluation:`, evaluation);
@@ -393,7 +393,7 @@ export class MainPipeline {
 
     // Enhanced quality assessment
     const qualityAssessment = await this.performEnhancedQualityAssessment(result, qualityPreCheck);
-    result.qualityAssessment = qualityAssessment;
+    result.qualityAssessment = qualityAssessment as QualityAssessment;
 
     await this.logResults(result);
     return result;
@@ -441,14 +441,14 @@ export class MainPipeline {
     // Try to recover using error recovery system
     try {
       const recoveryContext = {
-        stage: 'analysis' as unknown,
+        stage: 'analysis' as const,
         component: 'MainPipeline',
         input: { pipelineId: this.pipelineId },
         error: error instanceof Error ? error : new Error(String(error)),
         timestamp: Date.now(),
         retryCount: 0,
         userContext: {
-          preferences: {},
+          preferences: {} as Record<string, unknown>,
           sessionId: this.pipelineId,
           previousSuccesses: this.getSuccessfulStages().length
         }
@@ -458,7 +458,7 @@ export class MainPipeline {
 
       if (recoveryResult.success) {
         console.log('🔄 Pipeline recovered using error recovery system');
-        return recoveryResult.result || this.createMinimalResult(totalTime);
+        return (recoveryResult.result as PipelineResult) || this.createMinimalResult(totalTime);
       }
     } catch (recoveryError) {
       console.error('[Pipeline Recovery] Failed:', recoveryError);
@@ -521,7 +521,7 @@ export class MainPipeline {
     return await globalErrorRecovery.executeWithLoadBalancing(
       requestId,
       () => this.executeStageInternal(stageName, stageFunction),
-      stageName as unknown,
+      stageName as 'transcription' | 'segmentation' | 'analysis' | 'diagram_detection' | 'layout_generation',
       priority
     );
   }
@@ -605,7 +605,7 @@ export class MainPipeline {
     // Cache successful results
     if (result.success) {
       await globalCache.store(cacheKey, result, {
-        contentType: 'flow' as unknown,
+        contentType: 'flow' as const,
         duration: 0,
         complexity: result.segments.length / 10,
         performanceScore: 0.8,
@@ -633,16 +633,19 @@ export class MainPipeline {
    * Enhanced layout generation with parallel processing
    */
   private async generateLayoutsEnhanced(analysisResult: unknown) {
-    const { diagramAnalyses } = analysisResult;
+    const analysisData = analysisResult as Record<string, unknown>;
+    const diagramAnalyses = analysisData.diagramAnalyses as Array<Record<string, unknown>>;
 
     // Process layouts in parallel for better performance
-    const layoutPromises = diagramAnalyses.map(async ({ segment, analysis }) => {
-      if (analysis.nodes.length > 0) {
+    const layoutPromises = diagramAnalyses.map(async (item) => {
+      const segment = item.segment as Record<string, unknown>;
+      const analysis = item.analysis as Record<string, unknown>;
+      if ((analysis.nodes as NodeDatum[]).length > 0) {
         try {
           const layoutResult = await this.layoutEngine.generateLayout(
-            analysis.nodes,
-            analysis.edges,
-            analysis.type,
+            analysis.nodes as NodeDatum[],
+            analysis.edges as EdgeDatum[],
+            analysis.type as DiagramType,
             this.iteration // Pass current iteration
           );
 
@@ -653,15 +656,15 @@ export class MainPipeline {
             return {
               segment,
               analysis,
-              layout: this.createFallbackLayout(analysis.nodes, analysis.edges)
+              layout: this.createFallbackLayout(analysis.nodes as unknown[], analysis.edges as unknown[])
             };
           }
         } catch (error) {
-          console.warn(`Layout generation failed for segment: ${segment.summary}`);
+          console.warn(`Layout generation failed for segment: ${segment.summary as string}`);
           return {
             segment,
             analysis,
-            layout: this.createFallbackLayout(analysis.nodes, analysis.edges)
+            layout: this.createFallbackLayout(analysis.nodes as unknown[], analysis.edges as unknown[])
           };
         }
       }
@@ -681,18 +684,20 @@ export class MainPipeline {
   private async prepareScenesEnhanced(analysisResult: unknown, layouts: unknown[]): Promise<SceneGraph[]> {
     console.log('Preparing optimized scene graphs for video rendering...');
 
-    const scenes: SceneGraph[] = layouts.map((item, index) => {
-      const { segment, analysis, layout } = item;
+    const scenes: SceneGraph[] = layouts.map((item: unknown) => {
+      const layoutItem = item as Record<string, unknown>;
+      const segment = layoutItem.segment as Record<string, unknown>;
+      const analysis = layoutItem.analysis as Record<string, unknown>;
 
       return {
-        type: analysis.type,
-        nodes: analysis.nodes,
-        edges: analysis.edges,
-        layout: layout,
-        startMs: segment.startMs,
-        durationMs: segment.endMs - segment.startMs,
-        summary: segment.summary,
-        keyphrases: segment.keyphrases
+        type: analysis.type as DiagramType,
+        nodes: analysis.nodes as SceneGraph['nodes'],
+        edges: analysis.edges as SceneGraph['edges'],
+        layout: layoutItem.layout as SceneGraph['layout'],
+        startMs: segment.startMs as number,
+        durationMs: (segment.endMs as number) - (segment.startMs as number),
+        summary: segment.summary as string,
+        keyphrases: segment.keyphrases as string[]
       };
     });
 
@@ -737,15 +742,23 @@ export class MainPipeline {
    */
   private async performQualityPreCheck(analysisResult: unknown): Promise<unknown> {
     // Quick quality assessment to identify potential issues early
-    const { diagramAnalyses } = analysisResult;
+    const analysisData = analysisResult as Record<string, unknown>;
+    const diagramAnalyses = analysisData.diagramAnalyses as Array<Record<string, unknown>>;
 
     const qualityChecks = {
       hasValidAnalyses: diagramAnalyses.length > 0,
-      averageConfidence: diagramAnalyses.reduce((sum, analysis) =>
-        sum + analysis.analysis.confidence, 0) / diagramAnalyses.length,
-      hasNodes: diagramAnalyses.some(analysis => analysis.analysis.nodes.length > 0),
-      nodeCount: diagramAnalyses.reduce((sum, analysis) =>
-        sum + analysis.analysis.nodes.length, 0)
+      averageConfidence: diagramAnalyses.reduce((sum: number, item: Record<string, unknown>) => {
+        const analysis = item.analysis as Record<string, unknown>;
+        return sum + (analysis.confidence as number);
+      }, 0) / diagramAnalyses.length,
+      hasNodes: diagramAnalyses.some((item: Record<string, unknown>) => {
+        const analysis = item.analysis as Record<string, unknown>;
+        return (analysis.nodes as unknown[]).length > 0;
+      }),
+      nodeCount: diagramAnalyses.reduce((sum: number, item: Record<string, unknown>) => {
+        const analysis = item.analysis as Record<string, unknown>;
+        return sum + (analysis.nodes as unknown[]).length;
+      }, 0)
     };
 
     return qualityChecks;
@@ -756,12 +769,13 @@ export class MainPipeline {
    */
   private async performEnhancedQualityAssessment(result: PipelineResult, preCheck: unknown): Promise<unknown> {
     const baseAssessment = await qualityMonitor.assessPipelineQuality(result);
+    const preCheckData = preCheck as Record<string, unknown>;
 
     // Combine with pre-check data for more comprehensive assessment
     return {
       ...baseAssessment,
       preCheck,
-      enhancedScore: (baseAssessment.overallScore + preCheck.averageConfidence) / 2,
+      enhancedScore: (baseAssessment.overallScore + (preCheckData.averageConfidence as number)) / 2,
       processingEfficiency: this.calculateProcessingEfficiency()
     };
   }
@@ -827,7 +841,8 @@ export class MainPipeline {
    */
   private async analyzeContent(transcriptionResult: unknown) {
     console.log('Segmenting content into scenes...');
-    const contentSegments = await this.segmenter.segment(transcriptionResult.segments);
+    const trData = transcriptionResult as Record<string, unknown>;
+    const contentSegments = await this.segmenter.segment(trData.segments as TranscriptionSegment[]);
 
     if (contentSegments.length === 0) {
       throw new Error('Content segmentation produced no segments');
@@ -853,27 +868,30 @@ export class MainPipeline {
    */
   private async generateLayouts(analysisResult: unknown) {
     console.log('Generating diagram layouts...');
-    const { diagramAnalyses } = analysisResult;
+    const analysisData = analysisResult as Record<string, unknown>;
+    const diagramAnalyses = analysisData.diagramAnalyses as Array<Record<string, unknown>>;
     const layouts = [];
 
-    for (const { segment, analysis } of diagramAnalyses) {
-      if (analysis.nodes.length > 0) {
+    for (const item of diagramAnalyses) {
+      const segment = item.segment as Record<string, unknown>;
+      const analysis = item.analysis as Record<string, unknown>;
+      if ((analysis.nodes as NodeDatum[]).length > 0) {
         const layoutResult = await this.layoutEngine.generateLayout(
-          analysis.nodes,
-          analysis.edges,
-          analysis.type,
+          analysis.nodes as NodeDatum[],
+          analysis.edges as EdgeDatum[],
+          analysis.type as DiagramType,
           this.iteration // Pass current iteration
         );
 
         if (layoutResult.success) {
           layouts.push({ segment, analysis, layout: layoutResult.layout });
         } else {
-          console.warn(`Layout generation failed for segment: ${segment.summary}`);
+          console.warn(`Layout generation failed for segment: ${segment.summary as string}`);
           // Create fallback layout
           layouts.push({
             segment,
             analysis,
-            layout: this.createFallbackLayout(analysis.nodes, analysis.edges)
+            layout: this.createFallbackLayout(analysis.nodes as unknown[], analysis.edges as unknown[])
           });
         }
       }
@@ -889,18 +907,20 @@ export class MainPipeline {
   private async prepareScenes(analysisResult: unknown, layouts: unknown[]): Promise<SceneGraph[]> {
     console.log('Preparing scene graphs for video rendering...');
 
-    const scenes: SceneGraph[] = layouts.map((item, index) => {
-      const { segment, analysis, layout } = item;
+    const scenes: SceneGraph[] = layouts.map((item: unknown) => {
+      const layoutItem = item as Record<string, unknown>;
+      const segment = layoutItem.segment as Record<string, unknown>;
+      const analysis = layoutItem.analysis as Record<string, unknown>;
 
       return {
-        type: analysis.type,
-        nodes: analysis.nodes,
-        edges: analysis.edges,
-        layout: layout,
-        startMs: segment.startMs,
-        durationMs: segment.endMs - segment.startMs,
-        summary: segment.summary,
-        keyphrases: segment.keyphrases
+        type: analysis.type as DiagramType,
+        nodes: analysis.nodes as SceneGraph['nodes'],
+        edges: analysis.edges as SceneGraph['edges'],
+        layout: layoutItem.layout as SceneGraph['layout'],
+        startMs: segment.startMs as number,
+        durationMs: (segment.endMs as number) - (segment.startMs as number),
+        summary: segment.summary as string,
+        keyphrases: segment.keyphrases as string[]
       };
     });
 
@@ -912,16 +932,16 @@ export class MainPipeline {
    * Create a fallback layout when automatic layout fails
    */
   private createFallbackLayout(nodes: unknown[], edges: unknown[]) {
-    const layoutNodes = nodes.map((node, index) => ({
-      ...node,
+    const layoutNodes = nodes.map((node: unknown, index: number) => ({
+      ...(node as Record<string, unknown>),
       x: 100 + (index % 3) * 200,
       y: 100 + Math.floor(index / 3) * 150,
       w: this.config.layout.nodeWidth,
       h: this.config.layout.nodeHeight
     }));
 
-    const layoutEdges = edges.map(edge => ({
-      ...edge,
+    const layoutEdges = edges.map((edge: unknown) => ({
+      ...(edge as Record<string, unknown>),
       points: [
         { x: 150, y: 150 },
         { x: 350, y: 150 }
@@ -1031,7 +1051,7 @@ export class MainPipeline {
       timestamp: new Date().toISOString(),
       success,
       metrics,
-      config: this.config,
+      config: this.config as unknown as Record<string, unknown>,
       improvements: this.generateImprovementSuggestions(),
       nextSteps: success ? ['Continue to next iteration with optimizations'] : ['Debug failure and retry']
     });

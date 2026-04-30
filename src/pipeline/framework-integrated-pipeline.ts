@@ -201,12 +201,11 @@ export class FrameworkIntegratedPipeline {
         }
 
         // Run improvement cycle if needed
-        if (execution.qualityAnalysis.needsImprovement) {
+        if ((execution.qualityAnalysis as Record<string, unknown>).needsImprovement) {
           console.log(`\n🔧 Running improvement recommendations...`);
 
           const improvementResult = await this.improvementEngine.runImprovementCycle(
-            async () => this.extractQualityMetrics(execution.result),
-            execution.qualityAnalysis.recommendations.slice(0, 2) // Top 2 recommendations
+            async () => this.extractQualityMetrics(execution.result)
           );
 
           if (improvementResult.improved) {
@@ -393,7 +392,7 @@ export class FrameworkIntegratedPipeline {
     console.log(`✓ Memory Usage: ${metrics.memoryUsage.toFixed(1)}MB`);
     console.log(`✓ Layout Overlaps: ${metrics.layoutOverlap}`);
 
-    console.log(`\n📋 Success Criteria: ${evaluation.allMet ? '✅ All Met' : '⚠️ Some Failed'}`);
+    console.log(`\n📋 Success Criteria: ${(evaluation as Record<string, unknown>).allMet ? '✅ All Met' : '⚠️ Some Failed'}`);
 
     if (shouldCommit) {
       console.log(`\n📝 Commit Recommended: Yes`);

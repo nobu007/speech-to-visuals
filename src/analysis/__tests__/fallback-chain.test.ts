@@ -152,7 +152,7 @@ describe('FallbackChain', () => {
       const primaryWithRetryableError = async () => {
         primaryCallCount++;
         const err = new Error('Rate limited');
-        (err as Record<string, unknown>).status = 429;
+        (err as unknown as Record<string, unknown>).status = 429;
         throw err;
       };
 

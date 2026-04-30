@@ -299,16 +299,18 @@ export class ImprovementDetector {
     qualityReport: unknown,
     trends: unknown
   ): ImprovementReport['overallHealth'] {
-    const criticalViolations = qualityReport.violations.filter((v: Record<string, unknown>) => v.severity === 'critical');
-    const degradingCount = trends.degrading.length;
+    const qr = qualityReport as Record<string, unknown>;
+    const tr = trends as Record<string, unknown>;
+    const criticalViolations = ((qr.violations as Record<string, unknown>[]) ?? []).filter((v: Record<string, unknown>) => v.severity === 'critical');
+    const degradingCount = (tr.degrading as unknown[]).length;
 
     if (criticalViolations.length > 0 || degradingCount > 3) {
       return 'critical';
     }
-    if (qualityReport.overallScore < 60 || degradingCount > 1) {
+    if ((qr.overallScore as number) < 60 || degradingCount > 1) {
       return 'needs_attention';
     }
-    if (qualityReport.overallScore < 85 || degradingCount > 0) {
+    if ((qr.overallScore as number) < 85 || degradingCount > 0) {
       return 'good';
     }
     return 'excellent';
@@ -322,6 +324,7 @@ export class ImprovementDetector {
     trends: unknown
   ): string[] {
     const nextSteps: string[] = [];
+    const tr = trends as Record<string, unknown>;
 
     // Focus on critical issues first
     const critical = opportunities.filter(o => o.priority === 'critical');
@@ -341,13 +344,13 @@ export class ImprovementDetector {
     }
 
     // Monitor degrading trends
-    if (trends.degrading.length > 0) {
-      nextSteps.push(`📉 Monitor degrading metrics: ${trends.degrading.slice(0, 3).join(', ')}`);
+    if ((tr.degrading as unknown[]).length > 0) {
+      nextSteps.push(`📉 Monitor degrading metrics: ${(tr.degrading as string[]).slice(0, 3).join(', ')}`);
     }
 
     // Continue improving areas
-    if (trends.improving.length > 0) {
-      nextSteps.push(`✅ Continue optimizing: ${trends.improving.slice(0, 2).join(', ')}`);
+    if ((tr.improving as unknown[]).length > 0) {
+      nextSteps.push(`✅ Continue optimizing: ${(tr.improving as string[]).slice(0, 2).join(', ')}`);
     }
 
     // If no issues, suggest proactive improvements

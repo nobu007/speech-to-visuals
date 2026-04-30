@@ -121,8 +121,8 @@ export class OverlapResolver {
         label: ('label' in e ? (e as Record<string, unknown>).label : undefined) as string | undefined,
       }));
       bestResult = await gridStrategy.apply(
-        bestResult.layout.nodes as unknown as PositionedNode[],
-        fallbackEdges as unknown as LayoutEdge[],
+        bestResult.layout.nodes as unknown as NodeDatum[],
+        fallbackEdges as unknown as EdgeDatum[],
         config,
         bestResult.layout
       );
@@ -163,7 +163,7 @@ export class OverlapResolver {
     
     // Race the strategy against the timeout
     return Promise.race([
-      strategy.apply(nodes as unknown as PositionedNode[], edges as unknown as LayoutEdge[], config, existingLayout),
+      strategy.apply(nodes as unknown as NodeDatum[], edges as unknown as EdgeDatum[], config, existingLayout),
       timeoutPromise
     ]);
   }

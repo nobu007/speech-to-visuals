@@ -5,6 +5,8 @@ import { createTestConfig, createTestNode, createLayoutEdge, hasAnyOverlap } fro
 const toLayoutEdges = (pairs: Array<[string, string]>): LayoutEdge[] =>
   pairs.map(([a, b], idx) => createLayoutEdge(String(idx + 1), a, b));
 
+type LayoutResult = { nodes: PositionedNode[]; edges: LayoutEdge[] };
+
 describe('GridSnapStrategy', () => {
   let strategy: GridSnapStrategy;
 
@@ -13,14 +15,14 @@ describe('GridSnapStrategy', () => {
   });
 
   it('returns empty layout for empty inputs', async () => {
-    const res = await (strategy as unknown as { performLayout: (...args: unknown[]) => Promise<{ nodes: unknown[]; edges: unknown[] }> }).performLayout([], [], createTestConfig());
+    const res: LayoutResult = await strategy.performLayout([], [], createTestConfig());
     expect(res.nodes.length).toBe(0);
     expect(res.edges.length).toBe(0);
   });
 
   it('places a single node onto grid without moving margins negatively', async () => {
     const nodes: PositionedNode[] = [createTestNode('1', 0, 0, 100, 50)];
-    const res = await (strategy as unknown as { performLayout: (...args: unknown[]) => Promise<{ nodes: unknown[]; edges: unknown[] }> }).performLayout(nodes, [], createTestConfig());
+    const res: LayoutResult = await strategy.performLayout(nodes, [], createTestConfig());
     expect(res.nodes.length).toBe(1);
     const n = res.nodes[0];
     expect(Number.isFinite(n.x)).toBe(true);
@@ -35,7 +37,7 @@ describe('GridSnapStrategy', () => {
       createTestNode('4', 0, 0, 100, 50),
     ];
 
-    const res = await (strategy as unknown as { performLayout: (...args: unknown[]) => Promise<{ nodes: unknown[]; edges: unknown[] }> }).performLayout(nodes, [], createTestConfig());
+    const res: LayoutResult = await strategy.performLayout(nodes, [], createTestConfig());
     expect(res.nodes.length).toBe(4);
     expect(hasAnyOverlap(res.nodes, 0)).toBe(false);
   });
@@ -48,7 +50,7 @@ describe('GridSnapStrategy', () => {
     const edges = toLayoutEdges([
       ['node-a', 'node-b'],
     ]);
-    const res = await (strategy as unknown as { performLayout: (...args: unknown[]) => Promise<{ nodes: unknown[]; edges: unknown[] }> }).performLayout(nodes, edges, createTestConfig());
+    const res: LayoutResult = await strategy.performLayout(nodes, edges, createTestConfig());
     expect(res.edges.length).toBe(1);
     expect(res.edges[0].points.length).toBe(2);
   });

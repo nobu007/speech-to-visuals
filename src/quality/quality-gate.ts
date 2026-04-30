@@ -272,7 +272,8 @@ function createTranscriptionCriteria(): QualityCriterion[] {
       name: 'audioDuration',
       threshold: 1.0,
       evaluate: (input: unknown): QualityResult => {
-        const duration = input.audioDuration ?? 0;
+        const data = input as Record<string, unknown>;
+        const duration = (data.audioDuration as number) ?? 0;
         return {
           passed: duration >= 1.0,
           score: duration,
@@ -285,7 +286,8 @@ function createTranscriptionCriteria(): QualityCriterion[] {
       name: 'sampleRate',
       threshold: 16000,
       evaluate: (input: unknown): QualityResult => {
-        const rate = input.sampleRate ?? 0;
+        const data = input as Record<string, unknown>;
+        const rate = (data.sampleRate as number) ?? 0;
         return {
           passed: rate >= 16000,
           score: rate,
@@ -298,7 +300,8 @@ function createTranscriptionCriteria(): QualityCriterion[] {
       name: 'noiseLevel',
       threshold: -30,
       evaluate: (input: unknown): QualityResult => {
-        const noise = input.noiseLevelDb ?? 0;
+        const data = input as Record<string, unknown>;
+        const noise = (data.noiseLevelDb as number) ?? 0;
         return {
           passed: noise < -30,
           score: noise,
@@ -319,8 +322,9 @@ function createAnalysisCriteria(): QualityCriterion[] {
       name: 'entityExtractionRate',
       threshold: 0.8,
       evaluate: (input: unknown): QualityResult => {
-        const entities = input.entities ?? [];
-        const expected = input.expectedEntities ?? entities.length;
+        const data = input as Record<string, unknown>;
+        const entities = (data.entities as unknown[]) ?? [];
+        const expected = (data.expectedEntities as number) ?? entities.length;
         if (expected === 0) {
           return {
             passed: true,
@@ -342,8 +346,9 @@ function createAnalysisCriteria(): QualityCriterion[] {
       name: 'relationCompleteness',
       threshold: 0.7,
       evaluate: (input: unknown): QualityResult => {
-        const relations = input.relations ?? [];
-        const expected = input.expectedRelations ?? relations.length;
+        const data = input as Record<string, unknown>;
+        const relations = (data.relations as unknown[]) ?? [];
+        const expected = (data.expectedRelations as number) ?? relations.length;
         if (expected === 0) {
           return {
             passed: true,
@@ -365,7 +370,8 @@ function createAnalysisCriteria(): QualityCriterion[] {
       name: 'schemaConformance',
       threshold: 1.0,
       evaluate: (input: unknown): QualityResult => {
-        const valid = input.schemaValid ?? false;
+        const data = input as Record<string, unknown>;
+        const valid = (data.schemaValid as boolean) ?? false;
         return {
           passed: valid,
           score: valid ? 1.0 : 0.0,
@@ -388,7 +394,8 @@ function createLayoutCriteria(): QualityCriterion[] {
       name: 'zeroOverlap',
       threshold: 0,
       evaluate: (input: unknown): QualityResult => {
-        const nodes = input.nodes ?? [];
+        const data = input as Record<string, unknown>;
+        const nodes = (data.nodes as Array<{ x: number; y: number; w: number; h: number }>) ?? [];
         let overlapCount = 0;
         for (let i = 0; i < nodes.length; i++) {
           for (let j = i + 1; j < nodes.length; j++) {
@@ -412,7 +419,8 @@ function createLayoutCriteria(): QualityCriterion[] {
       name: 'timelineContinuity',
       threshold: 1.0,
       evaluate: (input: unknown): QualityResult => {
-        const segments = input.segments ?? [];
+        const data = input as Record<string, unknown>;
+        const segments = (data.segments as Record<string, unknown>[]) ?? [];
         if (segments.length <= 1) {
           return {
             passed: true,
@@ -423,12 +431,12 @@ function createLayoutCriteria(): QualityCriterion[] {
         }
         // Sort by startMs and check for gaps
         const sorted = [...segments].sort(
-          (a: unknown, b: Record<string, unknown>) => (a.startMs ?? 0) - (b.startMs ?? 0)
+          (a, b) => ((a.startMs as number) ?? 0) - ((b.startMs as number) ?? 0)
         );
         let gaps = 0;
         for (let i = 1; i < sorted.length; i++) {
-          const prevEnd = sorted[i - 1].endMs ?? 0;
-          const currStart = sorted[i].startMs ?? 0;
+          const prevEnd = (sorted[i - 1].endMs as number) ?? 0;
+          const currStart = (sorted[i].startMs as number) ?? 0;
           // Allow 100ms tolerance for floating-point / rounding
           if (currStart - prevEnd > 100) {
             gaps++;
@@ -449,7 +457,8 @@ function createLayoutCriteria(): QualityCriterion[] {
       name: 'segmentNormalization',
       threshold: 1.0,
       evaluate: (input: unknown): QualityResult => {
-        const segments = input.segments ?? [];
+        const data = input as Record<string, unknown>;
+        const segments = (data.segments as Record<string, unknown>[]) ?? [];
         if (segments.length === 0) {
           return {
             passed: true,
@@ -458,8 +467,8 @@ function createLayoutCriteria(): QualityCriterion[] {
             details: 'No segments to validate',
           };
         }
-        const invalid = segments.filter((s: Record<string, unknown>) => {
-          const dur = s.durationMs ?? (s.endMs != null && s.startMs != null ? s.endMs - s.startMs : 0);
+        const invalid = segments.filter((s) => {
+          const dur = (s.durationMs as number) ?? ((s.endMs != null && s.startMs != null ? (s.endMs as number) - (s.startMs as number) : 0));
           return dur <= 0;
         });
         return {
@@ -485,7 +494,8 @@ function createRenderPrepCriteria(): QualityCriterion[] {
       name: 'captionSync',
       threshold: 50,
       evaluate: (input: unknown): QualityResult => {
-        const offset = Math.abs(input.captionSyncOffsetMs ?? 0);
+        const data = input as Record<string, unknown>;
+        const offset = Math.abs((data.captionSyncOffsetMs as number) ?? 0);
         return {
           passed: offset <= 50,
           score: offset,
@@ -498,7 +508,8 @@ function createRenderPrepCriteria(): QualityCriterion[] {
       name: 'layoutConsistency',
       threshold: 0.9,
       evaluate: (input: unknown): QualityResult => {
-        const score = input.layoutConsistencyScore ?? 0;
+        const data = input as Record<string, unknown>;
+        const score = (data.layoutConsistencyScore as number) ?? 0;
         return {
           passed: score >= 0.9,
           score,
@@ -519,8 +530,10 @@ function createRenderFinalCriteria(): QualityCriterion[] {
       name: 'resolution',
       threshold: 720,
       evaluate: (input: unknown): QualityResult => {
-        const height = input.resolution?.height ?? 0;
-        const width = input.resolution?.width ?? 0;
+        const data = input as Record<string, unknown>;
+        const resolution = (data.resolution ?? {}) as Record<string, unknown>;
+        const height = (resolution.height as number) ?? 0;
+        const width = (resolution.width as number) ?? 0;
         // 720p = height >= 720 (also covers 1080p etc.)
         return {
           passed: height >= 720,
@@ -534,7 +547,8 @@ function createRenderFinalCriteria(): QualityCriterion[] {
       name: 'fps',
       threshold: 30,
       evaluate: (input: unknown): QualityResult => {
-        const fps = input.fps ?? 0;
+        const data = input as Record<string, unknown>;
+        const fps = (data.fps as number) ?? 0;
         return {
           passed: fps === 30,
           score: fps,
@@ -547,7 +561,8 @@ function createRenderFinalCriteria(): QualityCriterion[] {
       name: 'audioSync',
       threshold: 50,
       evaluate: (input: unknown): QualityResult => {
-        const offset = Math.abs(input.audioSyncOffsetMs ?? 0);
+        const data = input as Record<string, unknown>;
+        const offset = Math.abs((data.audioSyncOffsetMs as number) ?? 0);
         return {
           passed: offset <= 50,
           score: offset,

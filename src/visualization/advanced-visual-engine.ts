@@ -4,7 +4,7 @@
  * Following custom instructions methodology for incremental enhancement
  */
 
-import { SceneGraph } from '@/types/diagram';
+import { SceneGraph, DiagramLayout } from '@/types/diagram';
 import { LayoutEngine } from './layout-engine';
 
 export interface VisualStyle {
@@ -142,7 +142,7 @@ export class AdvancedVisualEngine {
       // Create enhanced scene
       const enhancedScene: EnhancedSceneGraph = {
         ...scene,
-        layout: enhancedLayout,
+        layout: enhancedLayout as DiagramLayout,
         visualStyle,
         animations,
         background,
@@ -331,7 +331,7 @@ export class AdvancedVisualEngine {
     const palette = this.colorPalettes[style.colorScheme];
 
     // Apply contextual coloring based on node type or importance
-    if (node.type === 'important' || node.label?.toLowerCase().includes('key')) {
+    if (node.type === 'important' || (node.label as string)?.toLowerCase().includes('key')) {
       return palette.primary;
     } else if (node.type === 'secondary') {
       return palette.accent;

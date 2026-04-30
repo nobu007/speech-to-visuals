@@ -47,7 +47,7 @@ export class BrowserTranscriber {
 
   private initializeSpeechRecognition(): void {
     // Check for browser support
-    const SpeechRecognitionAPI = (globalThis as Record<string, unknown>).SpeechRecognition || (globalThis as Record<string, unknown>).webkitSpeechRecognition;
+    const SpeechRecognitionAPI = ((globalThis as Record<string, unknown>).SpeechRecognition || (globalThis as Record<string, unknown>).webkitSpeechRecognition) as { new(): SpeechRecognition } | undefined;
 
     if (SpeechRecognitionAPI) {
       this.recognition = new SpeechRecognitionAPI();

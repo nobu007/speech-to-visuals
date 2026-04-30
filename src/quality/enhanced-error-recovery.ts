@@ -1195,7 +1195,7 @@ export class EnhancedErrorRecovery {
     const adaptedParams: Record<string, unknown> = {};
 
     // Based on failure frequency, adjust conservativeness
-    if (failurePattern.frequency > 2) {
+    if ((failurePattern as Record<string, unknown>).frequency as number > 2) {
       adaptedParams.confidence_threshold = 0.6; // Lower threshold
       adaptedParams.timeout = 5000; // Increase timeout
       adaptedParams.retry_delay = 1000; // Add delay
@@ -1273,7 +1273,7 @@ export class EnhancedErrorRecovery {
 
     // Simulate adaptation logic
     return {
-      ...cachedData,
+      ...(cachedData as Record<string, unknown>),
       adapted: true,
       originalContext: context.stage
     };

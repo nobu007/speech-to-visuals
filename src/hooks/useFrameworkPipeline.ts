@@ -227,21 +227,22 @@ export function useFrameworkPipeline(
         phase: executionState.currentPhase,
         status: execution.result.success ? 'success' : 'failure',
         duration: execution.result.processingTime,
-        metrics: execution.iterationMetrics,
+        metrics: execution.iterationMetrics as Record<string, unknown>,
         timestamp: new Date().toISOString()
       };
 
       setIterationHistory(prev => [...prev, iterationData]);
 
       // Update quality metrics
+      const qa = execution.qualityAnalysis as Record<string, unknown>;
       const qualityData: QualityMetrics = {
-        overallScore: execution.qualityAnalysis.overallScore || 0,
-        needsImprovement: execution.qualityAnalysis.needsImprovement,
-        recommendations: execution.qualityAnalysis.recommendations || [],
+        overallScore: (qa.overallScore as number) || 0,
+        needsImprovement: qa.needsImprovement as boolean,
+        recommendations: (qa.recommendations as string[]) || [],
         breakdown: {
-          performance: execution.qualityAnalysis.performanceScore || 0,
-          accuracy: execution.qualityAnalysis.accuracyScore || 0,
-          stability: execution.qualityAnalysis.stabilityScore || 0
+          performance: (qa.performanceScore as number) || 0,
+          accuracy: (qa.accuracyScore as number) || 0,
+          stability: (qa.stabilityScore as number) || 0
         }
       };
 
@@ -316,7 +317,7 @@ export function useFrameworkPipeline(
    */
   const getIterationSummary = useCallback((): Record<string, unknown> | null => {
     if (!pipelineRef.current) return null;
-    return pipelineRef.current.getIterationSummary();
+    return pipelineRef.current.getIterationSummary() as Record<string, unknown> | null;
   }, []);
 
   /**
@@ -324,7 +325,7 @@ export function useFrameworkPipeline(
    */
   const getImprovementHistory = useCallback((): Record<string, unknown>[] => {
     if (!pipelineRef.current) return [];
-    return pipelineRef.current.getImprovementHistory();
+    return pipelineRef.current.getImprovementHistory() as Record<string, unknown>[];
   }, []);
 
   return {

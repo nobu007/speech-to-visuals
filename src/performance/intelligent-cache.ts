@@ -672,7 +672,7 @@ export class IntelligentCache {
 
       // Return decompressed data
       if (bestMatch.compressed) {
-        const decompressedData = this.decompressData(bestMatch.data, bestMatch.compressedSize);
+        const decompressedData = this.decompressData(bestMatch.data as string, bestMatch.compressedSize);
         return { ...bestMatch, data: decompressedData };
       }
     } else {
@@ -765,7 +765,7 @@ export class IntelligentCache {
 
     // Return decompressed data if needed
     if (entry.compressed) {
-      return this.decompressData(entry.data, entry.compressedSize);
+      return this.decompressData(entry.data as string, entry.compressedSize);
     }
 
     return entry.data;

@@ -294,15 +294,15 @@ export class QualityMonitor {
    * Assess LLM extraction quality if metrics are available; otherwise infer from scene structure.
    */
   private assessLLMExtractionQuality(result: PipelineResult): number {
-    const m = result.metrics as unknown;
+    const m = result.metrics as unknown as Record<string, unknown> | null;
 
     const hasEntity = typeof m?.entityExtractionF1Score === 'number';
     const hasRelation = typeof m?.relationAccuracy === 'number';
 
     if (hasEntity || hasRelation) {
       const parts: number[] = [];
-      if (hasEntity) parts.push(this.clamp01(m.entityExtractionF1Score));
-      if (hasRelation) parts.push(this.clamp01(m.relationAccuracy));
+      if (hasEntity) parts.push(this.clamp01(m!.entityExtractionF1Score as number));
+      if (hasRelation) parts.push(this.clamp01(m!.relationAccuracy as number));
       return parts.length ? parts.reduce((a, b) => a + b, 0) / parts.length : 0;
     }
 
@@ -376,8 +376,9 @@ export class QualityMonitor {
    * Detect overlapping nodes in layout
    */
   private detectOverlaps(nodes: unknown[]): boolean {
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
+    const nodeArray = nodes as Record<string, unknown>[];
+    for (let i = 0; i < nodeArray.length; i++) {
+      for (let j = i + 1; j < nodeArray.length; j++) {
         const node1 = nodes[i];
         const node2 = nodes[j];
 
@@ -392,21 +393,23 @@ export class QualityMonitor {
   /**
    * Check if two nodes overlap
    */
-  private nodesOverlap(node1: unknown, node2: Record<string, unknown>): boolean {
+  private nodesOverlap(node1: unknown, node2: unknown): boolean {
     const margin = 10; // Minimum margin between nodes
+    const a = node1 as Record<string, unknown>;
+    const b = node2 as Record<string, unknown>;
 
     return !(
-      node1.x + (node1.w || 120) + margin < node2.x ||
-      node2.x + (node2.w || 120) + margin < node1.x ||
-      node1.y + (node1.h || 60) + margin < node2.y ||
-      node2.y + (node2.h || 60) + margin < node1.y
+      ((a.x as number) || 0) + ((a.w as number) || 120) + margin < ((b.x as number) || 0) ||
+      ((b.x as number) || 0) + ((b.w as number) || 120) + margin < ((a.x as number) || 0) ||
+      ((a.y as number) || 0) + ((a.h as number) || 60) + margin < ((b.y as number) || 0) ||
+      ((b.y as number) || 0) + ((b.h as number) || 60) + margin < ((a.y as number) || 0)
     );
   }
 
   /**
    * Assess positioning quality of nodes
    */
-  private assessPositioning(nodes: unknown[]): number {
+  private assessPositioning(nodes: Array<{ x?: number; y?: number }>): number {
     if (nodes.length === 0) return 1.0;
 
     // Check for reasonable distribution

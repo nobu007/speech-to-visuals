@@ -401,18 +401,18 @@ export const SimplePipelineInterface: React.FC = () => {
                 <h4 className="font-medium mb-2">生成されたシーン</h4>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {result.scenes.map((scene: Record<string, unknown>, index: number) => (
-                    <div key={scene.id || index} className="p-3 border rounded-lg">
+                    <div key={(scene.id as React.Key) || index} className="p-3 border rounded-lg">
                       <div className="flex justify-between items-start mb-1">
-                        <span className="font-medium">シーン {index + 1}: {scene.type}</span>
+                        <span className="font-medium">シーン {index + 1}: {scene.type as React.ReactNode}</span>
                         {scene.confidence && (
                           <span className="text-sm text-muted-foreground">
-                            信頼度: {Math.round(scene.confidence * 100)}%
+                            信頼度: {Math.round(scene.confidence as number * 100)}%
                           </span>
                         )}
                       </div>
                       {scene.content && (
                         <p className="text-sm text-muted-foreground">
-                          {scene.content.substring(0, 100)}
+                          {(scene.content as string).substring(0, 100)}
                         </p>
                       )}
                     </div>

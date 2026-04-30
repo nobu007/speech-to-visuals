@@ -5,7 +5,7 @@
  */
 
 import { TranscriptionPipeline } from '@/transcription';
-import { SceneSegmenter, DiagramDetector } from '@/analysis';
+import { SceneSegmenter, DiagramDetector, ContentSegment } from '@/analysis';
 import { LayoutEngine } from '@/visualization';
 import { EnhancedZeroOverlapLayoutEngine } from '@/visualization/enhanced-zero-overlap-layout';
 import { SceneGraph } from '@/types/diagram';
@@ -221,14 +221,14 @@ export class SimplePipeline {
 
         try {
           // Detect diagram type for this scene
-          const diagramAnalysis = await this.detector.analyze(segment);
+          const diagramAnalysis = await this.detector.analyze(segment as ContentSegment);
 
           const diagramDetectionTime = Date.now() - sceneStartTime;
 
           // Custom Instructions: Learn from diagram detection
           await continuousLearner.learnFromProcessingResult(
             'diagram_detection',
-            { content: segment.text },
+            { content: (segment as Record<string, unknown>).text },
             diagramAnalysis,
             diagramDetectionTime,
             diagramAnalysis.confidence,
@@ -276,9 +276,10 @@ export class SimplePipeline {
             );
           }
 
+          const lr = layoutResult as Record<string, unknown>;
           const layoutProcessingTime = Date.now() - layoutStartTime;
-          const layoutQuality = layoutResult.success && layoutResult.layout ?
-            Math.min(0.95, 0.8 + ((layoutResult.confidence || 0) * 0.15)) : 0.3;
+          const layoutQuality = lr.success && lr.layout ?
+            Math.min(0.95, 0.8 + (((lr.confidence as number) || 0) * 0.15)) : 0.3;
 
           // Custom Instructions: Learn from layout generation
           await continuousLearner.learnFromProcessingResult(
@@ -287,8 +288,8 @@ export class SimplePipeline {
             layoutResult,
             layoutProcessingTime,
             layoutQuality,
-            layoutResult.success,
-            layoutResult.success ? [] : ['layout_generation_failed'],
+            lr.success as boolean,
+            lr.success ? [] : ['layout_generation_failed'],
             {
               segmentId: `scene-${index}`,
               diagramType: diagramAnalysis.type,
@@ -298,18 +299,18 @@ export class SimplePipeline {
             }
           );
 
-          if (layoutResult.success && layoutResult.layout) {
+          if (lr.success && lr.layout) {
             const sceneId = `scene-${index}`;
             return {
               id: sceneId,
-              startTime: segment.startMs / 1000, // Convert ms to seconds
-              endTime: segment.endMs / 1000,     // Convert ms to seconds
-              content: segment.text,
+              startTime: ((segment as Record<string, unknown>).startMs as number) / 1000, // Convert ms to seconds
+              endTime: ((segment as Record<string, unknown>).endMs as number) / 1000,     // Convert ms to seconds
+              content: (segment as Record<string, unknown>).text as string,
               type: diagramAnalysis.type,
-              layout: layoutResult.layout,
+              layout: lr.layout,
               confidence: Math.min(
                 diagramAnalysis.confidence,
-                layoutResult.confidence || 1
+                (lr.confidence as number) || 1
               )
             } as SceneGraph;
           }
@@ -451,8 +452,8 @@ export class SimplePipeline {
       const qualityMonitor = getQualityMonitor();
       qualityMonitor.recordMetrics({
         processingTime,
-        memoryUsage: (performance as unknown).memory?.usedJSHeapSize
-          ? (performance as unknown).memory.usedJSHeapSize / (1024 * 1024)
+        memoryUsage: (performance as unknown as Record<string, unknown>).memory
+          ? (((performance as unknown as Record<string, unknown>).memory as Record<string, unknown>).usedJSHeapSize as number) / (1024 * 1024)
           : 0,
         transcriptionAccuracy: transcript.length > 0 ? 0.9 : 0,
         sceneSegmentationF1: scenes.length > 0 ? 0.85 : 0,
@@ -545,8 +546,8 @@ export class SimplePipeline {
       const qualityMonitor = getQualityMonitor();
       qualityMonitor.recordMetrics({
         processingTime: failureProcessingTime,
-        memoryUsage: (performance as unknown).memory?.usedJSHeapSize
-          ? (performance as unknown).memory.usedJSHeapSize / (1024 * 1024)
+        memoryUsage: (performance as unknown as Record<string, unknown>).memory
+          ? (((performance as unknown as Record<string, unknown>).memory as Record<string, unknown>).usedJSHeapSize as number) / (1024 * 1024)
           : 0,
         layoutOverlap: 0,
         errorCount: 1,
