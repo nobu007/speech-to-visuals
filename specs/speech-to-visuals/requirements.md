@@ -4,7 +4,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 1-5 完了（基盤・AI処理・レイアウト・レンダリング・FE・統合テスト・パイプラインオーケストレーション・WebSocket・最適化ユーティリティ・248ファイル）・型エラー解消（237件→0件）・図解タイプ拡張（5→11種）・第22回要件検証（現状維持確認）
+**実装状況**: Phase 1-5 完了（基盤・AI処理・レイアウト・レンダリング・FE・統合テスト・パイプラインオーケストレーション・WebSocket・最適化ユーティリティ・248ファイル）・型エラー解消（237件→0件）・図解タイプ拡張（5→11種）・第24回要件検証（現状維持確認）
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
