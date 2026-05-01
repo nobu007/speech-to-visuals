@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@jest/globals';
+import { describe, test, expect } from '@jest/globals';
 import { ZeroOverlapLayoutEngine } from '@/visualization/enhanced-zero-overlap-layout';
 import { NodeDatum, EdgeDatum, DiagramType } from '@/types/diagram';
 
@@ -17,7 +17,7 @@ describe('ZeroOverlapLayoutEngine', () => {
   const engine = new ZeroOverlapLayoutEngine();
 
   describe('flowchart layout', () => {
-    it('should generate layout for flowchart type', async () => {
+    test('should generate layout for flowchart type', async () => {
       const nodes = makeNodes(5);
       const edges = makeEdges([['n0', 'n1'], ['n1', 'n2'], ['n2', 'n3'], ['n3', 'n4']]);
 
@@ -32,7 +32,7 @@ describe('ZeroOverlapLayoutEngine', () => {
   });
 
   describe('tree layout', () => {
-    it('should generate layout for tree type', async () => {
+      test('should generate layout for tree type', async () => {
       const nodes = makeNodes(4);
       const edges = makeEdges([['n0', 'n1'], ['n0', 'n2'], ['n2', 'n3']]);
 
@@ -44,7 +44,7 @@ describe('ZeroOverlapLayoutEngine', () => {
   });
 
   describe('timeline layout', () => {
-    it('should generate layout for timeline type', async () => {
+      test('should generate layout for timeline type', async () => {
       const nodes = makeNodes(4);
       const edges = makeEdges([['n0', 'n1'], ['n1', 'n2'], ['n2', 'n3']]);
 
@@ -56,7 +56,7 @@ describe('ZeroOverlapLayoutEngine', () => {
   });
 
   describe('comparison layout', () => {
-    it('should generate layout for comparison type', async () => {
+      test('should generate layout for comparison type', async () => {
       const nodes = makeNodes(4);
       const edges = makeEdges([['n0', 'n1'], ['n2', 'n3']]);
 
@@ -68,7 +68,7 @@ describe('ZeroOverlapLayoutEngine', () => {
   });
 
   describe('network layout', () => {
-    it('should generate layout for network type', async () => {
+      test('should generate layout for network type', async () => {
       const nodes = makeNodes(5);
       const edges = makeEdges([['n0', 'n1'], ['n1', 'n2'], ['n2', 'n0'], ['n3', 'n4']]);
 
@@ -80,7 +80,7 @@ describe('ZeroOverlapLayoutEngine', () => {
   });
 
   describe('default (concept map) layout', () => {
-    it('should generate layout for unknown diagram types', async () => {
+      test('should generate layout for unknown diagram types', async () => {
       const nodes = makeNodes(3);
       const edges = makeEdges([['n0', 'n1'], ['n1', 'n2']]);
 
@@ -92,7 +92,7 @@ describe('ZeroOverlapLayoutEngine', () => {
   });
 
   describe('empty graph', () => {
-    it('should handle empty nodes', async () => {
+      test('should handle empty nodes', async () => {
       const result = await engine.generateZeroOverlapLayout('flowchart', [], []);
 
       expect(result.nodes).toHaveLength(0);
@@ -101,7 +101,7 @@ describe('ZeroOverlapLayoutEngine', () => {
   });
 
   describe('single node', () => {
-    it('should handle single node', async () => {
+      test('should handle single node', async () => {
       const nodes = makeNodes(1);
       const result = await engine.generateZeroOverlapLayout('flowchart', nodes, []);
 
@@ -111,7 +111,7 @@ describe('ZeroOverlapLayoutEngine', () => {
   });
 
   describe('custom configuration', () => {
-    it('should accept custom configuration', async () => {
+      test('should accept custom configuration', async () => {
       const customEngine = new ZeroOverlapLayoutEngine({
         canvasWidth: 800,
         canvasHeight: 600,
@@ -126,7 +126,7 @@ describe('ZeroOverlapLayoutEngine', () => {
   });
 
   describe('quality metrics', () => {
-    it('should return quality metrics', async () => {
+      test('should return quality metrics', async () => {
       const nodes = makeNodes(4);
       const edges = makeEdges([['n0', 'n1'], ['n1', 'n2'], ['n2', 'n3']]);
       const result = await engine.generateZeroOverlapLayout('flowchart', nodes, edges);
@@ -137,6 +137,43 @@ describe('ZeroOverlapLayoutEngine', () => {
       expect(result.qualityMetrics).toHaveProperty('aestheticScore');
       expect(result.warnings).toBeDefined();
       expect(result.optimizationSteps).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe('property naming convention (w/h)', () => {
+    const layoutTypes: DiagramType[] = ['timeline', 'comparison', 'network', 'conceptmap'];
+
+    layoutTypes.forEach(layoutType => {
+      test(`should use w/h properties (not width/height) for ${layoutType} layout nodes`, async () => {
+        const nodes = makeNodes(4);
+        const edges = makeEdges([['n0', 'n1'], ['n1', 'n2'], ['n2', 'n3']]);
+        const result = await engine.generateZeroOverlapLayout(layoutType, nodes, edges);
+
+        expect(result.nodes.length).toBeGreaterThan(0);
+        result.nodes.forEach(node => {
+          // Key assertion: w and h properties must be present (TASK-0094 property naming fix)
+          expect(node).toHaveProperty('w');
+          expect(node).toHaveProperty('h');
+          expect(typeof node.w).toBe('number');
+          expect(typeof node.h).toBe('number');
+        });
+      });
+    });
+
+    test('should not throw runtime errors when reading node dimensions via w/h', async () => {
+      const nodes = makeNodes(5);
+      const edges = makeEdges([['n0', 'n1'], ['n1', 'n2'], ['n2', 'n3'], ['n3', 'n4']]);
+
+      for (const type of layoutTypes) {
+        const result = await engine.generateZeroOverlapLayout(type, nodes, edges);
+        // No "Cannot read properties of undefined" errors when accessing w/h
+        result.nodes.forEach(node => {
+          const w = node.w;
+          const h = node.h;
+          expect(typeof w).toBe('number');
+          expect(typeof h).toBe('number');
+        });
+      }
     });
   });
 });

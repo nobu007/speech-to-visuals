@@ -270,15 +270,15 @@ export class ZeroOverlapLayoutEngine {
     // Generate layout
     dagre.layout(g);
 
-    // Extract positioned nodes (note: using width/height as per PositionedNode type)
+    // Extract positioned nodes (using w/h as per PositionedNode type convention)
     const positionedNodes: PositionedNode[] = nodes.map(node => {
       const dagreNode = g.node(node.id);
       return {
         ...node,
         x: dagreNode.x - dagreNode.width / 2,
         y: dagreNode.y - dagreNode.height / 2,
-        width: dagreNode.width,
-        height: dagreNode.height
+        w: dagreNode.width,
+        h: dagreNode.height
       };
     });
 
@@ -344,8 +344,8 @@ export class ZeroOverlapLayoutEngine {
         ...node,
         x: dagreNode.x - dagreNode.width / 2,
         y: dagreNode.y - dagreNode.height / 2,
-        width: dagreNode.width,
-        height: dagreNode.height
+        w: dagreNode.width,
+        h: dagreNode.height
       };
     });
 
@@ -382,14 +382,14 @@ export class ZeroOverlapLayoutEngine {
         ...node,
         x: spacing * (index + 1) - width / 2,
         y: baseY - height / 2,
-        width,
-        height
+        w: width,
+        h: height
       };
     });
 
     const layoutEdges: LayoutEdge[] = edges.map(edge => {
-      const sourceNode = positionedNodes.find(n => n.id === (edge.source || edge.from));
-      const targetNode = positionedNodes.find(n => n.id === (edge.target || edge.to));
+      const sourceNode = positionedNodes.find(n => n.id === (edge.from));
+      const targetNode = positionedNodes.find(n => n.id === (edge.to));
 
       if (!sourceNode || !targetNode) {
         console.warn(`⚠️  [Timeline] Missing node for edge`);
@@ -399,8 +399,8 @@ export class ZeroOverlapLayoutEngine {
       return {
         ...edge,
         points: [
-          { x: sourceNode.x + sourceNode.width / 2, y: sourceNode.y + sourceNode.height / 2 },
-          { x: targetNode.x + targetNode.width / 2, y: targetNode.y + targetNode.height / 2 }
+          { x: sourceNode.x + sourceNode.w / 2, y: sourceNode.y + sourceNode.h / 2 },
+          { x: targetNode.x + targetNode.w / 2, y: targetNode.y + targetNode.h / 2 }
         ]
       };
     }).filter(edge => edge.points && edge.points.length > 0);
@@ -430,8 +430,8 @@ export class ZeroOverlapLayoutEngine {
         ...node,
         x: this.config.canvasWidth * 0.25 - width / 2,
         y,
-        width,
-        height
+        w: width,
+        h: height
       });
     });
 
@@ -445,16 +445,16 @@ export class ZeroOverlapLayoutEngine {
         ...node,
         x: this.config.canvasWidth * 0.75 - width / 2,
         y,
-        width,
-        height
+        w: width,
+        h: height
       });
     });
 
     const layoutEdges: LayoutEdge[] = edges.map(edge => ({
       ...edge,
       points: generateEdgePoints(
-        positionedNodes.find(n => n.id === (edge.source || edge.from))!,
-        positionedNodes.find(n => n.id === (edge.target || edge.to))!
+        positionedNodes.find(n => n.id === (edge.from))!,
+        positionedNodes.find(n => n.id === (edge.to))!
       )
     }));
 
@@ -481,8 +481,8 @@ export class ZeroOverlapLayoutEngine {
     const layoutEdges: LayoutEdge[] = edges.map(edge => ({
       ...edge,
       points: generateEdgePoints(
-        positionedNodes.find(n => n.id === (edge.source || edge.from))!,
-        positionedNodes.find(n => n.id === (edge.target || edge.to))!
+        positionedNodes.find(n => n.id === (edge.from))!,
+        positionedNodes.find(n => n.id === (edge.to))!
       )
     }));
 
@@ -525,8 +525,8 @@ export class ZeroOverlapLayoutEngine {
         ...node,
         x: Math.max(0, Math.min(this.config.canvasWidth - width, gridX + jitterX)),
         y: Math.max(0, Math.min(this.config.canvasHeight - height, gridY + jitterY)),
-        width,
-        height
+        w: width,
+        h: height
       };
     });
   }
@@ -585,13 +585,13 @@ export class ZeroOverlapLayoutEngine {
         const node1 = nodes[i];
         const node2 = nodes[j];
 
-        const dx = (node2.x + node2.width / 2) - (node1.x + node1.width / 2);
-        const dy = (node2.y + node2.height / 2) - (node1.y + node1.height / 2);
+        const dx = (node2.x + node2.w / 2) - (node1.x + node1.w / 2);
+        const dy = (node2.y + node2.h / 2) - (node1.y + node1.h / 2);
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         if (distance > 0) {
           // Enhanced repulsion calculation
-          const idealDistance = optimalSpacing + (node1.width + node2.width) / 2;
+          const idealDistance = optimalSpacing + (node1.w + node2.w) / 2;
           let repulsion = 0;
 
           if (distance < idealDistance) {
@@ -620,12 +620,12 @@ export class ZeroOverlapLayoutEngine {
 
     // Attractive forces along edges with optimal distance target
     edges.forEach(edge => {
-      const source = nodes.find(n => n.id === (edge.source || edge.from));
-      const target = nodes.find(n => n.id === (edge.target || edge.to));
+      const source = nodes.find(n => n.id === (edge.from));
+      const target = nodes.find(n => n.id === (edge.to));
 
       if (source && target) {
-        const dx = (target.x + target.width / 2) - (source.x + source.width / 2);
-        const dy = (target.y + target.height / 2) - (source.y + source.height / 2);
+        const dx = (target.x + target.w / 2) - (source.x + source.w / 2);
+        const dy = (target.y + target.h / 2) - (source.y + source.h / 2);
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         if (distance > 0) {
@@ -665,8 +665,8 @@ export class ZeroOverlapLayoutEngine {
 
       // Enhanced bounds checking with margin
       const margin = 20;
-      node.x = Math.max(margin, Math.min(this.config.canvasWidth - node.width - margin, node.x));
-      node.y = Math.max(margin, Math.min(this.config.canvasHeight - node.height - margin, node.y));
+      node.x = Math.max(margin, Math.min(this.config.canvasWidth - node.w - margin, node.x));
+      node.y = Math.max(margin, Math.min(this.config.canvasHeight - node.h - margin, node.y));
     });
   }
 
@@ -695,16 +695,16 @@ export class ZeroOverlapLayoutEngine {
         ...node,
         x: col * cellWidth + cellWidth / 2 - width / 2,
         y: row * cellHeight + cellHeight / 2 - height / 2,
-        width,
-        height
+        w: width,
+        h: height
       };
     });
 
     const layoutEdges: LayoutEdge[] = edges.map(edge => ({
       ...edge,
       points: generateEdgePoints(
-        positionedNodes.find(n => n.id === (edge.source || edge.from))!,
-        positionedNodes.find(n => n.id === (edge.target || edge.to))!
+        positionedNodes.find(n => n.id === (edge.from))!,
+        positionedNodes.find(n => n.id === (edge.to))!
       )
     }));
 
@@ -747,8 +747,8 @@ export class ZeroOverlapLayoutEngine {
     const updatedEdges = layout.edges.map(edge => ({
       ...edge,
       points: generateEdgePoints(
-        currentNodes.find(n => n.id === (edge.source || edge.from))!,
-        currentNodes.find(n => n.id === (edge.target || edge.to))!
+        currentNodes.find(n => n.id === (edge.from))!,
+        currentNodes.find(n => n.id === (edge.to))!
       )
     }));
 
@@ -822,8 +822,8 @@ export class ZeroOverlapLayoutEngine {
 
       adjustedNodes[index] = {
         ...node,
-        x: Math.max(0, Math.min(this.config.canvasWidth - node.width, adjustedX)),
-        y: Math.max(0, Math.min(this.config.canvasHeight - node.height, adjustedY))
+        x: Math.max(0, Math.min(this.config.canvasWidth - node.w, adjustedX)),
+        y: Math.max(0, Math.min(this.config.canvasHeight - node.h, adjustedY))
       };
     });
 
@@ -835,11 +835,11 @@ export class ZeroOverlapLayoutEngine {
    */
   private calculateOptimalSeparation(node1: PositionedNode, node2: PositionedNode): number {
     const centerDistance = Math.sqrt(
-      Math.pow(node1.x + node1.width / 2 - node2.x - node2.width / 2, 2) +
-      Math.pow(node1.y + node1.height / 2 - node2.y - node2.height / 2, 2)
+      Math.pow(node1.x + node1.w / 2 - node2.x - node2.w / 2, 2) +
+      Math.pow(node1.y + node1.h / 2 - node2.y - node2.h / 2, 2)
     );
 
-    const requiredDistance = Math.max(node1.width, node1.height, node2.width, node2.height) / 2 +
+    const requiredDistance = Math.max(node1.w, node1.h, node2.w, node2.h) / 2 +
                             this.config.minimumSpacing.nodeToNode;
 
     return Math.max(0, requiredDistance - centerDistance);
@@ -853,8 +853,8 @@ export class ZeroOverlapLayoutEngine {
     node2: PositionedNode,
     distance: number
   ): { x: number; y: number } {
-    const dx = (node1.x + node1.width / 2) - (node2.x + node2.width / 2);
-    const dy = (node1.y + node1.height / 2) - (node2.y + node2.height / 2);
+    const dx = (node1.x + node1.w / 2) - (node2.x + node2.w / 2);
+    const dy = (node1.y + node1.h / 2) - (node2.y + node2.h / 2);
 
     const length = Math.sqrt(dx * dx + dy * dy);
 
@@ -923,8 +923,8 @@ export class ZeroOverlapLayoutEngine {
     const adjustedEdges = layout.edges.map(edge => ({
       ...edge,
       points: generateEdgePoints(
-        adjustedNodes.find(n => n.id === (edge.source || edge.from))!,
-        adjustedNodes.find(n => n.id === (edge.target || edge.to))!
+        adjustedNodes.find(n => n.id === (edge.from))!,
+        adjustedNodes.find(n => n.id === (edge.to))!
       )
     }));
 
@@ -1008,7 +1008,7 @@ export class ZeroOverlapLayoutEngine {
 
 
   private findRootNode(nodes: NodeDatum[], edges: EdgeDatum[]): string {
-    const hasIncoming = new Set(edges.map(e => e.to || e.target));
+    const hasIncoming = new Set(edges.map(e => e.to));
     return nodes.find(n => !hasIncoming.has(n.id))?.id || nodes[0].id;
   }
 
@@ -1055,8 +1055,8 @@ export class ZeroOverlapLayoutEngine {
         const node1 = nodes[i];
         const node2 = nodes[j];
 
-        const dx = (node2.x + node2.width / 2) - (node1.x + node1.width / 2);
-        const dy = (node2.y + node2.height / 2) - (node1.y + node1.height / 2);
+        const dx = (node2.x + node2.w / 2) - (node1.x + node1.w / 2);
+        const dy = (node2.y + node2.h / 2) - (node1.y + node1.h / 2);
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         if (distance > 0 && distance < 200) {
@@ -1077,12 +1077,12 @@ export class ZeroOverlapLayoutEngine {
 
     // Attractive forces along edges (構造維持)
     edges.forEach(edge => {
-      const source = nodes.find(n => n.id === (edge.source || edge.from));
-      const target = nodes.find(n => n.id === (edge.target || edge.to));
+      const source = nodes.find(n => n.id === (edge.from));
+      const target = nodes.find(n => n.id === (edge.to));
 
       if (source && target) {
-        const dx = (target.x + target.width / 2) - (source.x + source.width / 2);
-        const dy = (target.y + target.height / 2) - (source.y + source.height / 2);
+        const dx = (target.x + target.w / 2) - (source.x + source.w / 2);
+        const dy = (target.y + target.h / 2) - (source.y + source.h / 2);
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         if (distance > 0) {
@@ -1120,8 +1120,8 @@ export class ZeroOverlapLayoutEngine {
 
       // Keep within bounds
       const margin = 20;
-      node.x = Math.max(margin, Math.min(this.config.canvasWidth - node.width - margin, node.x));
-      node.y = Math.max(margin, Math.min(this.config.canvasHeight - node.height - margin, node.y));
+      node.x = Math.max(margin, Math.min(this.config.canvasWidth - node.w - margin, node.x));
+      node.y = Math.max(margin, Math.min(this.config.canvasHeight - node.h - margin, node.y));
     });
   }
 
@@ -1150,9 +1150,9 @@ export class ZeroOverlapLayoutEngine {
     if (nodes.length === 0) return 0;
 
     const minX = Math.min(...nodes.map(n => n.x));
-    const maxX = Math.max(...nodes.map(n => n.x + n.width));
+    const maxX = Math.max(...nodes.map(n => n.x + n.w));
     const minY = Math.min(...nodes.map(n => n.y));
-    const maxY = Math.max(...nodes.map(n => n.y + n.height));
+    const maxY = Math.max(...nodes.map(n => n.y + n.h));
 
     const usedArea = (maxX - minX) * (maxY - minY);
     const totalArea = this.config.canvasWidth * this.config.canvasHeight;
@@ -1268,13 +1268,13 @@ export class ZeroOverlapLayoutEngine {
     return {
       node1: {
         ...node1,
-        x: Math.max(0, Math.min(this.config.canvasWidth - node1.width, node1.x - moveVector.x)),
-        y: Math.max(0, Math.min(this.config.canvasHeight - node1.height, node1.y - moveVector.y))
+        x: Math.max(0, Math.min(this.config.canvasWidth - node1.w, node1.x - moveVector.x)),
+        y: Math.max(0, Math.min(this.config.canvasHeight - node1.h, node1.y - moveVector.y))
       },
       node2: {
         ...node2,
-        x: Math.max(0, Math.min(this.config.canvasWidth - node2.width, node2.x + moveVector.x)),
-        y: Math.max(0, Math.min(this.config.canvasHeight - node2.height, node2.y + moveVector.y))
+        x: Math.max(0, Math.min(this.config.canvasWidth - node2.w, node2.x + moveVector.x)),
+        y: Math.max(0, Math.min(this.config.canvasHeight - node2.h, node2.y + moveVector.y))
       }
     };
   }
@@ -1291,10 +1291,10 @@ export class ZeroOverlapLayoutEngine {
     const centerX = this.config.canvasWidth / 2;
     const centerY = this.config.canvasHeight / 2;
 
-    const node1CenterX = node1.x + node1.width / 2;
-    const node1CenterY = node1.y + node1.height / 2;
-    const node2CenterX = node2.x + node2.width / 2;
-    const node2CenterY = node2.y + node2.height / 2;
+    const node1CenterX = node1.x + node1.w / 2;
+    const node1CenterY = node1.y + node1.h / 2;
+    const node2CenterX = node2.x + node2.w / 2;
+    const node2CenterY = node2.y + node2.h / 2;
 
     // Move nodes away from center to maintain balance
     const moveNode1TowardCenter = Math.sqrt(
@@ -1310,26 +1310,26 @@ export class ZeroOverlapLayoutEngine {
       return {
         node1: {
           ...node1,
-          x: Math.max(0, Math.min(this.config.canvasWidth - node1.width, node1.x - moveVector.x * 0.3)),
-          y: Math.max(0, Math.min(this.config.canvasHeight - node1.height, node1.y - moveVector.y * 0.3))
+          x: Math.max(0, Math.min(this.config.canvasWidth - node1.w, node1.x - moveVector.x * 0.3)),
+          y: Math.max(0, Math.min(this.config.canvasHeight - node1.h, node1.y - moveVector.y * 0.3))
         },
         node2: {
           ...node2,
-          x: Math.max(0, Math.min(this.config.canvasWidth - node2.width, node2.x + moveVector.x * 0.7)),
-          y: Math.max(0, Math.min(this.config.canvasHeight - node2.height, node2.y + moveVector.y * 0.7))
+          x: Math.max(0, Math.min(this.config.canvasWidth - node2.w, node2.x + moveVector.x * 0.7)),
+          y: Math.max(0, Math.min(this.config.canvasHeight - node2.h, node2.y + moveVector.y * 0.7))
         }
       };
     } else {
       return {
         node1: {
           ...node1,
-          x: Math.max(0, Math.min(this.config.canvasWidth - node1.width, node1.x - moveVector.x * 0.7)),
-          y: Math.max(0, Math.min(this.config.canvasHeight - node1.height, node1.y - moveVector.y * 0.7))
+          x: Math.max(0, Math.min(this.config.canvasWidth - node1.w, node1.x - moveVector.x * 0.7)),
+          y: Math.max(0, Math.min(this.config.canvasHeight - node1.h, node1.y - moveVector.y * 0.7))
         },
         node2: {
           ...node2,
-          x: Math.max(0, Math.min(this.config.canvasWidth - node2.width, node2.x + moveVector.x * 0.3)),
-          y: Math.max(0, Math.min(this.config.canvasHeight - node2.height, node2.y + moveVector.y * 0.3))
+          x: Math.max(0, Math.min(this.config.canvasWidth - node2.w, node2.x + moveVector.x * 0.3)),
+          y: Math.max(0, Math.min(this.config.canvasHeight - node2.h, node2.y + moveVector.y * 0.3))
         }
       };
     }
@@ -1354,13 +1354,13 @@ export class ZeroOverlapLayoutEngine {
     return {
       node1: {
         ...node1,
-        x: Math.max(0, Math.min(this.config.canvasWidth - node1.width, node1.x - moveVector.x * 0.2)),
-        y: Math.max(0, Math.min(this.config.canvasHeight - node1.height, node1.y - moveVector.y * 0.2))
+        x: Math.max(0, Math.min(this.config.canvasWidth - node1.w, node1.x - moveVector.x * 0.2)),
+        y: Math.max(0, Math.min(this.config.canvasHeight - node1.h, node1.y - moveVector.y * 0.2))
       },
       node2: {
         ...node2,
-        x: Math.max(0, Math.min(this.config.canvasWidth - node2.width, node2.x + moveVector.x * 0.8)),
-        y: Math.max(0, Math.min(this.config.canvasHeight - node2.height, node2.y + moveVector.y * 0.8))
+        x: Math.max(0, Math.min(this.config.canvasWidth - node2.w, node2.x + moveVector.x * 0.8)),
+        y: Math.max(0, Math.min(this.config.canvasHeight - node2.h, node2.y + moveVector.y * 0.8))
       }
     };
   }
