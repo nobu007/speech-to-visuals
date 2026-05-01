@@ -416,12 +416,62 @@ export class SceneSegmenter {
   private async semanticSegmentation(segments: ContentSegment[]): Promise<ContentSegment[]> {
     console.log(`[V${this.iteration}] Applying semantic analysis...`);
 
-    // TODO: Implement semantic analysis
-    // - Named entity recognition
-    // - Sentence embedding similarity
-    // - Topic coherence scoring
+    if (segments.length <= 1) return segments;
 
-    return segments;
+    // Compute keyword-based similarity between adjacent segments and merge
+    // those that are semantically coherent (high keyword overlap).
+    const result: ContentSegment[] = [];
+    let i = 0;
+
+    while (i < segments.length) {
+      let current = { ...segments[i] };
+
+      // Try to merge with next segment if semantically similar
+      while (i + 1 < segments.length) {
+        const next = segments[i + 1];
+        const similarity = this.computeTextSimilarity(current.text, next.text);
+
+        const mergedDuration = next.endMs - current.startMs;
+        const isSimilar = similarity > this.config.keywordDensityThreshold;
+        const fitsMaxLength = mergedDuration <= this.config.maxSegmentLengthMs;
+
+        if (isSimilar && fitsMaxLength) {
+          // Merge next into current
+          current = {
+            startMs: current.startMs,
+            endMs: next.endMs,
+            text: current.text + next.text,
+            summary: this.generateSummary(current.text + next.text),
+            keyphrases: [...new Set([...current.keyphrases, ...next.keyphrases])],
+            confidence: Math.max(current.confidence, next.confidence),
+          };
+          i++;
+        } else {
+          break;
+        }
+      }
+
+      result.push(current);
+      i++;
+    }
+
+    return result;
+  }
+
+  /**
+   * Compute a simple text similarity score between two texts based on
+   * shared keyword overlap (Jaccard-like coefficient).
+   */
+  private computeTextSimilarity(textA: string, textB: string): number {
+    const keywordsA = new Set(this.extractKeywords(textA));
+    const keywordsB = new Set(this.extractKeywords(textB));
+
+    if (keywordsA.size === 0 && keywordsB.size === 0) return 0;
+
+    const intersection = Array.from(keywordsA).filter(kw => keywordsB.has(kw)).length;
+    const union = new Set([...keywordsA, ...keywordsB]).size;
+
+    return union === 0 ? 0 : intersection / union;
   }
 
   /**
@@ -430,12 +480,85 @@ export class SceneSegmenter {
   private async topicBasedSegmentation(segments: ContentSegment[]): Promise<ContentSegment[]> {
     console.log(`[V${this.iteration}] Applying topic modeling...`);
 
-    // TODO: Implement topic modeling
-    // - LDA or similar topic modeling
-    // - Topic transition detection
-    // - Hierarchical clustering of segments
+    if (segments.length <= 1) return segments;
 
-    return segments;
+    // Build a topic vector for each segment based on keyword frequency,
+    // then detect topic transitions and split at boundaries.
+    const topicVectors = segments.map(seg => this.buildTopicVector(seg.text));
+
+    const result: ContentSegment[] = [];
+    let segStart = 0;
+
+    for (let i = 1; i < segments.length; i++) {
+      const similarity = this.cosineSimilarity(topicVectors[segStart], topicVectors[i]);
+      const isTopicShift = similarity < this.config.keywordDensityThreshold;
+
+      if (isTopicShift) {
+        // Collect segments[segStart..i-1] into one merged segment
+        const group = segments.slice(segStart, i);
+        result.push(this.mergeSegmentGroup(group));
+        segStart = i;
+      }
+    }
+
+    // Flush remaining segments
+    if (segStart < segments.length) {
+      const group = segments.slice(segStart);
+      result.push(this.mergeSegmentGroup(group));
+    }
+
+    return result;
+  }
+
+  /**
+   * Build a simple term-frequency vector for the given text.
+   */
+  private buildTopicVector(text: string): Map<string, number> {
+    const keywords = this.extractKeywords(text);
+    const vec = new Map<string, number>();
+    for (const kw of keywords) {
+      vec.set(kw, (vec.get(kw) || 0) + 1);
+    }
+    return vec;
+  }
+
+  /**
+   * Compute cosine similarity between two sparse term-frequency vectors.
+   */
+  private cosineSimilarity(a: Map<string, number>, b: Map<string, number>): number {
+    let dot = 0;
+    let magA = 0;
+    let magB = 0;
+
+    for (const [key, val] of a) {
+      magA += val * val;
+      if (b.has(key)) {
+        dot += val * b.get(key)!;
+      }
+    }
+    for (const val of b.values()) {
+      magB += val * val;
+    }
+
+    const denom = Math.sqrt(magA) * Math.sqrt(magB);
+    return denom === 0 ? 0 : dot / denom;
+  }
+
+  /**
+   * Merge a contiguous group of segments into a single ContentSegment.
+   */
+  private mergeSegmentGroup(group: ContentSegment[]): ContentSegment {
+    if (group.length === 1) return group[0];
+
+    const text = group.map(s => s.text).join('');
+    return {
+      startMs: group[0].startMs,
+      endMs: group[group.length - 1].endMs,
+      text,
+      summary: this.generateSummary(text),
+      keyphrases: [...new Set(group.flatMap(s => s.keyphrases))],
+      confidence: Math.max(...group.map(s => s.confidence)),
+    };
   }
 
   /**
