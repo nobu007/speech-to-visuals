@@ -43,6 +43,16 @@ jest.mock('@/pipeline/adaptive-quality-presets', () => ({
   },
 }));
 
+// Suppress console.log from BatchProcessingAPI async processing to prevent
+// "Cannot log after tests are done" warnings
+let consoleLogSpy: jest.SpyInstance;
+beforeAll(() => {
+  consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+});
+afterAll(() => {
+  consoleLogSpy.mockRestore();
+});
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------

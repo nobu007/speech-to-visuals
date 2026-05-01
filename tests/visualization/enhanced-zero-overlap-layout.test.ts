@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@jest/globals';
 import { ZeroOverlapLayoutEngine } from '@/visualization/enhanced-zero-overlap-layout';
-import { NodeDatum, EdgeDatum } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, DiagramType } from '@/types/diagram';
 
 function makeNodes(count: number): NodeDatum[] {
   return Array.from({ length: count }, (_, i) => ({
@@ -84,7 +84,7 @@ describe('ZeroOverlapLayoutEngine', () => {
       const nodes = makeNodes(3);
       const edges = makeEdges([['n0', 'n1'], ['n1', 'n2']]);
 
-      const result = await engine.generateZeroOverlapLayout('unknown' as any, nodes, edges);
+      const result = await engine.generateZeroOverlapLayout('unknown' as DiagramType, nodes, edges);
 
       expect(result).toBeDefined();
       expect(result.qualityMetrics).toBeDefined();

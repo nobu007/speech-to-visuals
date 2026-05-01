@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@jest/globals';
 import { executeLayout, StrategySelector } from '@/visualization/strategy-selector';
-import { NodeDatum, EdgeDatum } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, DiagramType } from '@/types/diagram';
 
 describe('executeLayout', () => {
   it('should execute layout for flow diagrams', async () => {
@@ -71,7 +71,7 @@ describe('executeLayout', () => {
 
   it('should use fallback for unknown diagram types', async () => {
     const nodes: NodeDatum[] = [{ id: 'a', label: 'A' }];
-    const result = await executeLayout(nodes, [], 'unknown' as any);
+    const result = await executeLayout(nodes, [], 'unknown' as DiagramType);
     expect(result.nodes).toHaveLength(1);
   });
 });
@@ -85,7 +85,7 @@ describe('StrategySelector', () => {
 
   it('should use fallback for unknown types', () => {
     const selector = new StrategySelector();
-    const strategy = selector.select('unknown' as any);
+    const strategy = selector.select('unknown' as DiagramType);
     expect(strategy.name).toBe('grid-snap-fallback');
   });
 

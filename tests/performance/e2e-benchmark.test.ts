@@ -336,7 +336,7 @@ describe('E2E Performance Benchmark (TASK-0075)', () => {
       // Simulate processing
       segments.forEach(seg => {
         const words = seg.text.split(' ');
-        words.length; // Access to prevent optimization
+        void words.length; // Access to prevent optimization
       });
       stageBudgets['analysis'] = {
         budgetMs: 5_000, // 5s budget for analysis stage
@@ -355,7 +355,7 @@ describe('E2E Performance Benchmark (TASK-0075)', () => {
         summary: seg.text,
         keyphrases: seg.text.split(' ').slice(0, 3),
       }));
-      scenes.length; // Access to prevent optimization
+      void scenes.length; // Access to prevent optimization
       stageBudgets['preparation'] = {
         budgetMs: 5_000, // 5s budget
         actualMs: performance.now() - prepStart,

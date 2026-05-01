@@ -5,7 +5,8 @@
  * circuit breaker states, recovery strategies, health monitoring, and edge cases.
  */
 
-import { EnhancedErrorRecovery, globalErrorRecovery } from '../enhanced-error-recovery';
+import { EnhancedErrorRecovery } from '../enhanced-error-recovery';
+import { globalErrorRecovery } from '../enhanced-error-recovery';
 
 // Mock the intelligent-cache module
 jest.mock('../../performance/intelligent-cache', () => ({
@@ -1312,4 +1313,9 @@ describe('EnhancedErrorRecovery', () => {
       expect(metrics).toBeDefined();
     });
   });
+});
+
+// Clean up the module-level singleton to prevent timer leaks
+afterAll(() => {
+  globalErrorRecovery.destroy();
 });
