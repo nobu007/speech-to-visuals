@@ -4,7 +4,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 1-7 完了（基盤・AI処理・レイアウト・レンダリング・FE・統合テスト・パイプラインオーケストレーション・WebSocket・最適化ユーティリティ・高度レイアウト・ESLint strict型安全性・テストリソースリーク修正・248ファイル）・型エラー解消（237件→0件）・図解タイプ拡張（5→11種）・第40回要件検証（Kairo要件再生成による安定状態確認・248ファイル不変・70タスク完了・要件カバレッジ100%維持）
+**実装状況**: Phase 1-8 完了（基盤・AI処理・レイアウト・レンダリング・FE・統合テスト・パイプラインオーケストレーション・WebSocket・最適化ユーティリティ・高度レイアウト・ESLint strict型安全性・テストリソースリーク修正・キャッシュウォームアップ・セマンティックセグメンテーション・モバイルレスポンシブ・API統合・受け入れテストスイート・251ファイル）・型エラー解消（237件→0件）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.0 制定・第41回要件検証（第40回検証以降の新規機能反映・251ファイル・76タスク完了・要件カバレッジ100%維持）
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -36,7 +36,7 @@
 
 #### 内容分析・図解検出 ✅実装済
 
-- REQ-005: システムは文字起こしテキストを意味単位のセグメント（3-15秒）に分割しなければならない 🔵 *PIPELINE_FLOW.md Stage 2・src/analysis/scene-segmenter.ts より*
+- REQ-005: システムは文字起こしテキストを意味単位のセグメント（3-15秒）に分割しなければならない。セマンティックセグメンテーション（Jaccard係数によるキーワード類似度マージ）およびトピックベースセグメンテーション（コサイン類似度によるトピックベクトルクラスタリング）をサポートし、日本語・英語のトピック遷移パターンを検出すること 🔵 *PIPELINE_FLOW.md Stage 2・src/analysis/scene-segmenter.ts より*
 - REQ-006: システムは Gemini LLM（gemini-2.5-flash / gemini-2.5-pro）を用いて内容分析を行い、エンティティ抽出・関係性抽出・図解タイプ検出を実行しなければならない 🔵 *SYSTEM_CORE.md §4.1・src/analysis/gemini-analyzer.ts より*
 - REQ-007: システムは図解タイプとして flow/tree/timeline/matrix/cycle の5種類に加え、flowchart/comparison/network/conceptmap/mindmap/general の6種類（計11種類）を検出・判定しなければならない 🔵 *README.md 図解タイプ・src/analysis/diagram-detector.ts・src/types/diagram.ts より*
 - REQ-008: システムはコンテンツの複雑さをスコアリングし、スコア20%未満は Flash、20%以上は Pro を自動選択しなければならない 🔵 *PIPELINE_FLOW.md §5.3・src/analysis/complexity-detector.ts より*
@@ -143,6 +143,8 @@
 - REQ-053: システムは Standard/Streaming の2つのパイプライン実行モードを提供し、ユーザーがモード切替可能なマルチモードパイプラインインターフェースを提供しなければならない 🔵 *src/pages/Index.tsx・src/components/StreamingProcessor.tsx より*
 - REQ-054: システムはフレームワークパイプラインの実行状況（イテレーション追跡・品質メトリクス・フェーズ評価・改善推奨可視化）をリアルタイムで表示するダッシュボードを提供しなければならない 🔵 *src/components/FrameworkDashboard.tsx・src/components/FrameworkDashboardPage.tsx より*
 - REQ-055: システムはプロダクション設定の管理・監視・最適化を行うダッシュボード（設定編集・パフォーマンスレポート・最適化ステータス）を提供しなければならない 🔵 *src/components/ProductionDashboard.tsx より*
+- REQ-056: システムはセマンティックキャッシュのコールドスタートを検出し、代表的なクエリパターン（英語・日本語）によるキャッシュウォームアップ戦略を自動実行し、ウォームアップ前後のヒット率改善を統計追跡しなければならない 🔵 *src/optimization/cache-warmup.ts より*
+- REQ-057: システムはパイプライン操作用 REST API エンドポイント（POST /api/render で動画レンダリング、POST /api/git/commit で自動コミット、GET /api/iteration-log でイテレーションログ取得、GET /api/framework/status でフレームワークステータス取得）を提供しなければならない 🔵 *src/hooks/useFrameworkPipeline.ts・src/components/pipeline-interface.tsx・src/components/FrameworkDashboard.tsx より*
 
 ### 条件付き要件
 
@@ -154,7 +156,7 @@
 ### 状態要件
 
 - REQ-201: バッチ処理が進行中の場合、システムは各ジョブの進捗率・ETA・品質スコアをリアルタイムで提供しなければならない 🔵 *src/api/batch-processing-api.ts・README.md バッチ処理セクションより*
-- REQ-202: キャッシュがコールドスタート状態の場合、システムはウォームアップ戦略を実行し、キャッシュヒット率の改善を追跡しなければならない 🟡 *QUALITY_METRICS.md §4.2・ITERATION_LOG Phase 43 より*
+- REQ-202: キャッシュがコールドスタート状態の場合、システムはウォームアップ戦略を実行し、キャッシュヒット率の改善を追跡しなければならない 🔵 *src/optimization/cache-warmup.ts・QUALITY_METRICS.md §4.2 より*
 - REQ-203: リグレッションが検出された場合、システムは該当変更のデプロイをブロックし、通知を発信しなければならない 🔵 *src/quality/regression-detector.ts より*
 
 ### オプション要件
@@ -162,7 +164,7 @@
 - REQ-301: システムは動画レンダリング時に解像度（1080p/720p/4K）、FPS（30/60）、コーデック（H.264/H.265/VP9）を設定できるようにしてもよい 🔵 *PIPELINE_FLOW.md §8.2 PipelineOptions・src/remotion/renderer.ts より*
 - REQ-302: システムは図解データを SVG/PNG/PDF 形式でエクスポートしてもよい 🔵 *src/export/multi-format-exporter.ts より*
 - REQ-303: システムは多言語対応として ES/FR/DE/ZH を追加してもよい 🟡 *QUALITY_METRICS.md §6.2・SYSTEM_CORE.md §9 Phase 44-45 より*
-- REQ-304: システムはモバイルデバイス向けにレスポンシブ UI を提供してもよい 🟡 *docs/tasks/speech-to-visuals/TASK-0042.md より*
+- REQ-304: システムはモバイルデバイス向けにレスポンシブ UI を提供してもよい 🔵 *src/components/SimplePipelineInterface.tsx モバイルレスポンシブ対応・docs/tasks/speech-to-visuals/TASK-0042.md より*
 - REQ-305: システムはグローバルエラーアラートシステム（自動非表示・11カテゴリ分類・エラー重大度表示）を提供してもよい 🔵 *src/components/ErrorAlertSystem.tsx・App.tsx より*
 
 ### 制約要件
@@ -238,13 +240,14 @@
 | Phase 5: 統合・テスト | ✅完了 | TASK-0043~0060 | 18/18 |
 | Phase 6: 高度レイアウト・拡張タイプ | ✅完了 | TASK-0061~0066 | 6/6 |
 | Phase 7: コード品質改善 | ✅完了 | TASK-0067~0070 | 4/4（ESLint strict型安全性・テストリソースリーク修正） |
+| Phase 8: 品質検証・ギャップ解消 | ✅完了 | TASK-0071~0076 | 6/6（キャッシュウォームアップ・セマンティックセグメンテーション・モバイル対応・API統合・受け入れテストスイート） |
 | 型エラー解消・拡張 | ✅完了 | 44ファイル修正 | 237件→0件・図解11種化・シャットダウン追加 |
 | 追加型安全性改善 | ✅完了 | 24ファイル修正 | 160件TypeScript strict型エラー解消（コミットa583a5c） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 83件 (94.3%)
-- 🟡 黄信号: 5件 (5.7%)
+- 🔵 青信号: 87件 (94.6%)
+- 🟡 黄信号: 5件 (5.4%)
 - 🔴 赤信号: 0件 (0%)
 
 **品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている
