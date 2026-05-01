@@ -249,9 +249,10 @@ export const EnhancedFileUploader: React.FC<EnhancedFileUploaderProps> = ({
           aria-label="音声ファイルをアップロードするエリア。クリックまたはファイルをドラッグ&ドロップしてください"
           aria-disabled={disabled}
           className={`
-            relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
+            relative border-2 border-dashed rounded-lg p-4 sm:p-8 text-center cursor-pointer
             transition-all duration-300 ease-in-out
             focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2
+            min-h-[120px] sm:min-h-0
             ${isDragging
               ? 'border-primary bg-primary/10 scale-[1.02] shadow-lg'
               : selectedFile
@@ -275,16 +276,16 @@ export const EnhancedFileUploader: React.FC<EnhancedFileUploaderProps> = ({
           />
 
           {/* Upload icon with animation */}
-          <div className="flex flex-col items-center justify-center space-y-4">
+          <div className="flex flex-col items-center justify-center space-y-2 sm:space-y-4">
             {isProcessing ? (
-              <Loader2 className="w-16 h-16 text-primary animate-spin" aria-hidden="true" />
+              <Loader2 className="w-10 h-10 sm:w-16 sm:h-16 text-primary animate-spin" aria-hidden="true" />
             ) : selectedFile ? (
-              <CheckCircle className="w-16 h-16 text-green-600 animate-bounce" aria-hidden="true" />
+              <CheckCircle className="w-10 h-10 sm:w-16 sm:h-16 text-green-600 animate-bounce" aria-hidden="true" />
             ) : validationError ? (
-              <AlertCircle className="w-16 h-16 text-red-600 animate-pulse" aria-hidden="true" />
+              <AlertCircle className="w-10 h-10 sm:w-16 sm:h-16 text-red-600 animate-pulse" aria-hidden="true" />
             ) : (
               <Upload
-                className={`w-16 h-16 transition-transform duration-300 ${
+                className={`w-10 h-10 sm:w-16 sm:h-16 transition-transform duration-300 ${
                   isDragging ? 'text-primary scale-110 animate-bounce' : 'text-muted-foreground'
                 }`}
                 aria-hidden="true"
@@ -292,14 +293,14 @@ export const EnhancedFileUploader: React.FC<EnhancedFileUploaderProps> = ({
             )}
 
             {/* Status text */}
-            <div className="space-y-2">
+            <div className="space-y-1 sm:space-y-2">
               {selectedFile ? (
                 <>
-                  <h3 className="text-lg font-semibold text-green-700 dark:text-green-300 flex items-center gap-2 justify-center">
-                    <FileAudio className="w-5 h-5" />
-                    {selectedFile.name}
+                  <h3 className="text-sm sm:text-lg font-semibold text-green-700 dark:text-green-300 flex items-center gap-1 sm:gap-2 justify-center">
+                    <FileAudio className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                    <span className="truncate max-w-[200px] sm:max-w-none">{selectedFile.name}</span>
                   </h3>
-                  <p className="text-sm text-green-600 dark:text-green-400">
+                  <p className="text-xs sm:text-sm text-green-600 dark:text-green-400">
                     サイズ: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                   </p>
                   <Button
@@ -309,25 +310,25 @@ export const EnhancedFileUploader: React.FC<EnhancedFileUploaderProps> = ({
                       e.stopPropagation();
                       resetUploader();
                     }}
-                    className="mt-2"
+                    className="mt-1 sm:mt-2 min-h-[44px]"
                   >
-                    <X className="w-4 h-4 mr-2" />
+                    <X className="w-4 h-4 mr-1 sm:mr-2" />
                     別のファイルを選択
                   </Button>
                 </>
               ) : (
                 <>
-                  <h3 className="text-lg font-semibold">
+                  <h3 className="text-base sm:text-lg font-semibold">
                     {isDragging
                       ? 'ファイルをドロップしてアップロード'
                       : '音声ファイルをアップロード'}
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     {isDragging
                       ? 'ここにファイルをドロップ'
                       : 'クリックしてファイルを選択、またはドラッグ&ドロップ'}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-2">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 sm:mt-2">
                     対応形式: MP3, WAV, OGG, M4A (最大 {maxSizeMB}MB)
                   </p>
                 </>
@@ -336,9 +337,9 @@ export const EnhancedFileUploader: React.FC<EnhancedFileUploaderProps> = ({
 
             {/* Progress bar */}
             {isProcessing && (
-              <div className="w-full max-w-xs space-y-2">
+              <div className="w-full max-w-[200px] sm:max-w-xs space-y-1 sm:space-y-2">
                 <Progress value={uploadProgress} className="h-2" />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
                   ファイルを検証中... {uploadProgress}%
                 </p>
               </div>
@@ -348,7 +349,7 @@ export const EnhancedFileUploader: React.FC<EnhancedFileUploaderProps> = ({
           {/* Drag overlay */}
           {isDragging && (
             <div className="absolute inset-0 bg-primary/5 rounded-lg flex items-center justify-center pointer-events-none">
-              <div className="text-primary text-2xl font-bold animate-pulse">
+              <div className="text-primary text-lg sm:text-2xl font-bold animate-pulse">
                 ドロップしてアップロード
               </div>
             </div>

@@ -381,10 +381,10 @@ export const PipelineProgress: FC<PipelineProgressProps> = ({
   );
 
   return (
-    <Card className={cn('w-full max-w-2xl mx-auto p-6', className)}>
+    <Card className={cn('w-full max-w-2xl mx-auto p-3 sm:p-6', className)}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <h3 className="text-base sm:text-lg font-semibold">
           {isComplete
             ? '処理完了'
             : hasError
@@ -395,7 +395,7 @@ export const PipelineProgress: FC<PipelineProgressProps> = ({
           <Badge
             variant={qualityBadgeVariant(state.qualityScore)}
             className={cn(
-              'text-sm tabular-nums',
+              'text-xs sm:text-sm tabular-nums',
               qualityScoreColor(state.qualityScore),
             )}
           >
@@ -405,28 +405,28 @@ export const PipelineProgress: FC<PipelineProgressProps> = ({
       </div>
 
       {/* Overall progress bar */}
-      <div className="mb-4 space-y-1">
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
+      <div className="mb-3 sm:mb-4 space-y-1">
+        <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground">
           <span>全体進捗</span>
           <span className="tabular-nums">{overallProgress}%</span>
         </div>
-        <Progress value={overallProgress} className="h-2" />
+        <Progress value={overallProgress} className="h-2 sm:h-2" />
       </div>
 
       {/* ETA */}
       {etaLabel && (
-        <div className="mb-4 text-sm text-muted-foreground text-center">
+        <div className="mb-3 sm:mb-4 text-xs sm:text-sm text-muted-foreground text-center">
           {etaLabel}
         </div>
       )}
       {isComplete && (
-        <div className="mb-4 text-sm text-green-600 text-center">
+        <div className="mb-3 sm:mb-4 text-xs sm:text-sm text-green-600 text-center">
           処理が完了しました
         </div>
       )}
 
       {/* Stage indicators */}
-      <div className="space-y-2">
+      <div className="space-y-1.5 sm:space-y-2">
         {state.stages.map((stage) => (
           <StageIndicator key={stage.name} stage={stage} />
         ))}

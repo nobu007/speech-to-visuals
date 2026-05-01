@@ -222,8 +222,8 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
       {/* Controls */}
       <div className="flex flex-col gap-2" data-testid="video-preview-controls">
         {/* Seekbar */}
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-mono w-12 text-right" data-testid="time-current">
+        <div className="flex items-center gap-1.5 sm:gap-3">
+          <span className="text-[10px] sm:text-xs font-mono w-10 sm:w-12 text-right" data-testid="time-current">
             {formatTime(currentFrame, DEFAULT_FPS)}
           </span>
           <Slider
@@ -235,14 +235,14 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
             className="flex-1"
             data-testid="seekbar"
           />
-          <span className="text-xs font-mono w-12" data-testid="time-total">
+          <span className="text-[10px] sm:text-xs font-mono w-10 sm:w-12" data-testid="time-total">
             {formatTime(totalFrames, DEFAULT_FPS)}
           </span>
         </div>
 
         {/* Control buttons */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center justify-between gap-1 sm:gap-0">
+          <div className="flex items-center gap-0.5 sm:gap-1">
             {/* Frame backward */}
             <Button
               variant="ghost"
@@ -251,6 +251,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
               disabled={currentFrame <= 0}
               data-testid="btn-frame-backward"
               aria-label="Previous frame"
+              className="h-9 w-9 sm:h-10 sm:w-10"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -275,6 +276,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
               onClick={handlePlayPause}
               data-testid="btn-play-pause"
               aria-label={isPlaying ? 'Pause' : 'Play'}
+              className="h-9 w-9 sm:h-10 sm:w-10"
             >
               {isPlaying ? (
                 <svg
@@ -310,6 +312,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
               disabled={currentFrame >= totalFrames - 1}
               data-testid="btn-frame-forward"
               aria-label="Next frame"
+              className="h-9 w-9 sm:h-10 sm:w-10"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -334,6 +337,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
               onClick={handleLoopToggle}
               data-testid="btn-loop"
               aria-label={loop ? 'Disable loop' : 'Enable loop'}
+              className="h-9 px-2 sm:h-9 sm:px-3"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -354,10 +358,10 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
             </Button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             {/* Playback speed */}
             <Select value={String(playbackSpeed)} onValueChange={handleSpeedChange}>
-              <SelectTrigger className="w-20 h-8 text-xs" data-testid="select-speed">
+              <SelectTrigger className="w-16 sm:w-20 h-8 text-[10px] sm:text-xs" data-testid="select-speed">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -371,7 +375,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
 
             {/* Resolution */}
             <Select value={resolution} onValueChange={handleResolutionChange}>
-              <SelectTrigger className="w-24 h-8 text-xs" data-testid="select-resolution">
+              <SelectTrigger className="w-16 sm:w-24 h-8 text-[10px] sm:text-xs" data-testid="select-resolution">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

@@ -136,7 +136,7 @@ export const StageIndicator: FC<StageIndicatorProps> = memo(
       <TooltipProvider>
         <div
           className={cn(
-            'flex items-center gap-3 rounded-lg border p-3 transition-colors',
+            'flex items-center gap-2 sm:gap-3 rounded-lg border p-2 sm:p-3 transition-colors',
             stage.status === 'active' && 'border-primary bg-primary/5',
             stage.status === 'completed' && 'border-green-500/50 bg-green-500/5',
             stage.status === 'error' && 'border-destructive bg-destructive/5',
@@ -148,7 +148,7 @@ export const StageIndicator: FC<StageIndicatorProps> = memo(
           <div className="relative flex-shrink-0">
             <StageIcon
               className={cn(
-                'h-5 w-5',
+                'h-4 w-4 sm:h-5 sm:w-5',
                 stage.status === 'pending' && 'text-muted-foreground',
                 stage.status === 'active' && 'text-primary',
                 stage.status === 'completed' && 'text-green-600',
@@ -156,19 +156,19 @@ export const StageIndicator: FC<StageIndicatorProps> = memo(
               )}
             />
             {stage.status === 'active' && (
-              <StatusIcon className="absolute -right-1 -top-1 h-3 w-3 text-primary animate-spin" />
+              <StatusIcon className="absolute -right-1 -top-1 h-2.5 w-2.5 sm:h-3 sm:w-3 text-primary animate-spin" />
             )}
           </div>
 
           {/* Stage info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium truncate">
+              <span className="text-xs sm:text-sm font-medium truncate">
                 {config.label}
               </span>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge variant={STATUS_BADGE_VARIANT[stage.status]} className="text-[10px] px-1.5 py-0">
+                  <Badge variant={STATUS_BADGE_VARIANT[stage.status]} className="text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0">
                     {STATUS_LABEL[stage.status]}
                   </Badge>
                 </TooltipTrigger>
@@ -183,9 +183,9 @@ export const StageIndicator: FC<StageIndicatorProps> = memo(
 
             {/* Intra-stage progress bar */}
             {(stage.status === 'active' || stage.status === 'completed') && (
-              <div className="mt-1.5 flex items-center gap-2">
-                <Progress value={stage.progress} className="h-1.5 flex-1" />
-                <span className="text-xs text-muted-foreground tabular-nums w-8 text-right">
+              <div className="mt-1 sm:mt-1.5 flex items-center gap-1.5 sm:gap-2">
+                <Progress value={stage.progress} className="h-1 sm:h-1.5 flex-1" />
+                <span className="text-[10px] sm:text-xs text-muted-foreground tabular-nums w-7 sm:w-8 text-right">
                   {Math.round(stage.progress)}%
                 </span>
               </div>
@@ -194,7 +194,7 @@ export const StageIndicator: FC<StageIndicatorProps> = memo(
 
           {/* Elapsed time */}
           {elapsedLabel && (
-            <span className="text-xs text-muted-foreground tabular-nums flex-shrink-0">
+            <span className="text-[10px] sm:text-xs text-muted-foreground tabular-nums flex-shrink-0">
               {elapsedLabel}
             </span>
           )}
