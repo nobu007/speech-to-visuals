@@ -182,34 +182,48 @@ export class AdvancedVisualEngine {
   private async enhanceLayout(scene: SceneGraph, style: VisualStyle): Promise<Record<string, unknown>> {
     const baseLayout = scene.layout;
 
+    // Build lookup maps from scene nodes/edges for metadata
+    const sceneNodeMap = new Map<string, Record<string, unknown>>();
+    for (const node of scene.nodes) {
+      sceneNodeMap.set(node.id, node as Record<string, unknown>);
+    }
+
+    const sceneEdgeList = scene.edges as Array<Record<string, unknown>>;
+
     // Apply visual enhancements to nodes
-    const enhancedNodes = baseLayout.nodes.map(node => ({
-      ...node,
-      style: {
-        fill: this.getNodeColor(node, style),
-        stroke: this.getStrokeColor(style),
-        strokeWidth: 2,
-        borderRadius: this.getBorderRadius(style),
-        fontSize: this.getFontSize(style),
-        fontFamily: "'Inter', 'Helvetica Neue', sans-serif",
-        fontWeight: 500,
-        textColor: this.getTextColor(style),
-        shadow: this.getShadowConfig(style),
-        gradient: style.colorScheme === 'gradient'
-      }
-    }));
+    const enhancedNodes = baseLayout.nodes.map(node => {
+      const sceneNode = sceneNodeMap.get(node.id);
+      return {
+        ...node,
+        style: {
+          fill: this.getNodeColor(node, style, sceneNode),
+          stroke: this.getStrokeColor(style),
+          strokeWidth: 2,
+          borderRadius: this.getBorderRadius(style),
+          fontSize: this.getFontSize(style),
+          fontFamily: "'Inter', 'Helvetica Neue', sans-serif",
+          fontWeight: 500,
+          textColor: this.getTextColor(style),
+          shadow: this.getShadowConfig(style),
+          gradient: style.colorScheme === 'gradient'
+        }
+      };
+    });
 
     // Apply visual enhancements to edges
-    const enhancedEdges = baseLayout.edges.map(edge => ({
-      ...edge,
-      style: {
-        stroke: this.getEdgeColor(style),
-        strokeWidth: this.getEdgeWidth(style),
-        strokeDasharray: this.getEdgePattern(edge, style),
-        markerEnd: this.getArrowStyle(style),
-        animation: style.animation
-      }
-    }));
+    const enhancedEdges = baseLayout.edges.map((edge, index) => {
+      const sceneEdge = index < sceneEdgeList.length ? sceneEdgeList[index] : undefined;
+      return {
+        ...edge,
+        style: {
+          stroke: this.getEdgeColor(style),
+          strokeWidth: this.getEdgeWidth(style),
+          strokeDasharray: this.getEdgePattern(edge, style, sceneEdge),
+          markerEnd: this.getArrowStyle(style),
+          animation: style.animation
+        }
+      };
+    });
 
     return {
       nodes: enhancedNodes,
@@ -327,13 +341,17 @@ export class AdvancedVisualEngine {
   /**
    * Get node color based on style and context
    */
-  private getNodeColor(node: Record<string, unknown>, style: VisualStyle): string {
+  private getNodeColor(node: Record<string, unknown>, style: VisualStyle, sceneNode?: Record<string, unknown>): string {
     const palette = this.colorPalettes[style.colorScheme];
 
+    // Check both layout node and scene node for type/label metadata
+    const nodeType = (sceneNode?.type as string) || (node.type as string);
+    const nodeLabel = ((sceneNode?.label as string) || (node.label as string)) ?? '';
+
     // Apply contextual coloring based on node type or importance
-    if (node.type === 'important' || (node.label as string)?.toLowerCase().includes('key')) {
+    if (nodeType === 'important' || nodeLabel.toLowerCase().includes('key')) {
       return palette.primary;
-    } else if (node.type === 'secondary') {
+    } else if (nodeType === 'secondary') {
       return palette.accent;
     } else {
       return palette.secondary;
@@ -399,8 +417,10 @@ export class AdvancedVisualEngine {
   /**
    * Get edge pattern based on context
    */
-  private getEdgePattern(edge: Record<string, unknown>, style: VisualStyle): string | undefined {
-    if (edge.type === 'dashed' || edge.style === 'dashed') {
+  private getEdgePattern(edge: Record<string, unknown>, style: VisualStyle, sceneEdge?: Record<string, unknown>): string | undefined {
+    const edgeType = (sceneEdge?.type as string) || (edge.type as string);
+    const edgeStyle = (sceneEdge?.style as string) || (edge.style as string);
+    if (edgeType === 'dashed' || edgeStyle === 'dashed') {
       return '5,5';
     }
     return undefined;
