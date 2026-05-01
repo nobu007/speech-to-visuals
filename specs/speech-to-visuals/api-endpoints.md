@@ -1,7 +1,7 @@
 # speech-to-visuals API エンドポイント仕様
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-01（第43回検証: pipeline route 追加反映・253ファイル状態確認）
+**最終更新**: 2026-05-01（第44回検証: 252ファイル実態整合確認・API仕様変更なし）
 **関連設計**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](requirements.md)
 
