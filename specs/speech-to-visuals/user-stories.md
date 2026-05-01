@@ -1,7 +1,7 @@
 # Speech-to-Visuals ユーザストーリー
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-01（第42回: Kairo要件再生成による安定状態確認・30ストーリー・要件カバレッジ100%維持）
+**最終更新**: 2026-05-01（第43回: TASK-0076モバイルレスポンシブUI改善完了確認・30ストーリー・要件カバレッジ100%維持）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [interview-record.md](interview-record.md)
 
@@ -615,7 +615,7 @@
 
 ### ストーリー 9.4: モバイルレスポンシブ対応 🔵
 
-**信頼性**: 🔵 *src/components/SimplePipelineInterface.tsx・要件定義REQ-304 より*
+**信頼性**: 🔵 *src/components/SimplePipelineInterface.tsx・src/components/EnhancedFileUploader.tsx・要件定義REQ-304・TASK-0076 より*
 
 **私は** モバイルユーザー **として**
 **スマートフォンからもパイプラインUIを快適に操作したい**
@@ -628,6 +628,7 @@
 1. モバイルビューポートに応じたレスポンシブレイアウト
 2. Tailwind レスポンシブクラス（sm/md/lg）による適応
 3. モバイルでのドラッグ＆ドロップ操作サポート
+4. EnhancedFileUploader・PipelineProgress・StageIndicator・VideoPreviewのモバイル対応（TASK-0076）
 
 **優先度**: Should Have
 
