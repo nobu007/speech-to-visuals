@@ -166,6 +166,9 @@ export class ProductionMonitoringExcellence {
   private setupRealTimeOptimization(): void {
     console.log('⚡ Setting up real-time optimization engine...');
 
+    // Skip background intervals in test environment to prevent Jest worker leaks
+    if (process.env.NODE_ENV === 'test') return;
+
     // Start optimization loop
     this.intervalIds.push(setInterval(() => {
       this.executeRealTimeOptimization();

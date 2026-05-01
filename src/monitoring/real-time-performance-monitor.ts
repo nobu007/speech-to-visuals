@@ -122,7 +122,10 @@ class RealTimePerformanceMonitor extends EventEmitter {
   constructor() {
     super();
     this.initializeDefaultThresholds();
-    this.startPeriodicSnapshot();
+    // Skip background intervals in test environment to prevent Jest worker leaks
+    if (process.env.NODE_ENV !== 'test') {
+      this.startPeriodicSnapshot();
+    }
   }
 
   /**

@@ -45,8 +45,10 @@ class HealthCheckService {
   private readonly HEALTH_CACHE_TTL_MS = 5000; // 5 seconds
 
   constructor() {
-    // Start periodic health checks
-    this.startPeriodicHealthChecks();
+    // Skip background intervals in test environment to prevent Jest worker leaks
+    if (process.env.NODE_ENV !== 'test') {
+      this.startPeriodicHealthChecks();
+    }
   }
 
   /**

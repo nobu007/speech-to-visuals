@@ -62,7 +62,10 @@ export class ProductionErrorHandler {
   constructor() {
     this.sessionId = this.generateSessionId();
     this.initializeGlobalErrorHandling();
-    this.startMetricsCollection();
+    // Skip background intervals in test environment to prevent Jest worker leaks
+    if (process.env.NODE_ENV !== 'test') {
+      this.startMetricsCollection();
+    }
   }
 
   /**

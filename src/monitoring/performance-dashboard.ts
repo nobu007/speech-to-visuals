@@ -126,7 +126,10 @@ export class PerformanceDashboard {
     };
 
     console.log('📊 Performance Dashboard initialized with Claude Code excellence standards');
-    this.startMonitoring();
+    // Skip background intervals in test environment to prevent Jest worker leaks
+    if (process.env.NODE_ENV !== 'test') {
+      this.startMonitoring();
+    }
   }
 
   /**
