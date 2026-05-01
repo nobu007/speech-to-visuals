@@ -192,8 +192,11 @@ export class EnhancedErrorRecovery {
     this.initializeHealthMetrics();
     this.initializePreventiveActions();
     this.initializeCircuitBreakers();
-    this.startHealthMonitoring();
-    this.startLoadMonitoring();
+    // Skip background timers in test environment to prevent Jest worker leaks
+    if (process.env.NODE_ENV !== 'test') {
+      this.startHealthMonitoring();
+      this.startLoadMonitoring();
+    }
   }
 
   /**
