@@ -1,7 +1,7 @@
 # speech-to-visuals アーキテクチャ設計
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-01（第42回検証: Phase 8 REQ-056/REQ-057 反映・キャッシュウォームアップ・パイプラインAPI エンドポイント追加）
+**最終更新**: 2026-05-01（第43回検証: ファイル数253化対応・api/ 12ファイル化・optimization/ 7ファイル化・pipeline route反映）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -65,7 +65,7 @@
 - **認証方式**: Supabase Auth（JWT ベース）
 - **API設計**: REST（バッチ処理API）+ Supabase Edge Functions
 - **ミドルウェア**: express-rate-limit（レート制限）、Helmet（セキュリティヘッダー）、CORS
-- **API構成**: src/api/middleware/（rate-limit, error-handler, auth）、src/api/routes/（batch, health ルート定義）🔵 *src/api/ より*
+- **API構成**: src/api/middleware/（rate-limit, error-handler, auth）、src/api/routes/（batch, health, pipeline ルート定義）🔵 *src/api/ より*
 - **バッチ処理API**: REST エンドポイント（POST /batch/jobs でジョブ作成→HTTP 202、GET /batch/jobs/:id でステータス取得、DELETE /batch/jobs/:id でキャンセル）、セマフォパターンで最大3並列ジョブ制御 🔵 *src/api/routes/batch.ts・要件定義REQ-043 より*
 - **WebSocket リアルタイム通知**: Socket.IO ベースのジョブ進捗・完了・エラー・ファイルステータス・ステージ進捗・ストリーミングセグメント・エラー回復イベントのリアルタイム配信。JWT 認証で接続保護、ジョブルーム（join:job/leave:job）による購読管理 🔵 *src/api/websocket-handler.ts・要件定義REQ-046 より*
 
@@ -302,9 +302,10 @@ graph TB
 ./
 ├── src/
 │   ├── analysis/           # 内容分析（28ファイル: LLM、Gemini、図解検出、言語検出、複雑度、フォールバックチェーン、プロンプト構築）🔵
-│   ├── api/                # REST API・WebSocket（10ファイル: バッチ処理、リアルタイム通知、ミドルウェア、ルート定義）🔵
+│   ├── api/                # REST API・WebSocket（12ファイル: バッチ処理、リアルタイム通知、パイプラインAPI、ミドルウェア、ルート定義）🔵
 │   │   ├── middleware/     # レート制限、エラーハンドラー、認証 🔵
-│   │   └── routes/         # API ルート定義 🔵
+│   │   ├── routes/         # API ルート定義（batch, health, pipeline）🔵
+│   │   └── routes/__tests__/ # API ルートテスト 🔵
 │   ├── components/         # React UI（46ファイル: 22メイン+23ui: Pipeline UI, VideoPreview, FileUploader, TutorialSystem, StreamingProcessor, Dashboards, ErrorAlert等）🔵
 │   ├── config/             # 設定（7ファイル: プロダクション設定 + Zod バリデーション + 環境変数管理）🔵 *要件定義REQ-038*
 │   ├── export/             # エクスポート（4ファイル: multi-format/enhanced/production/UI）🔵
@@ -313,7 +314,7 @@ graph TB
 │   ├── integrations/       # Supabase 統合（5ファイル）
 │   ├── lib/                # ユーティリティライブラリ（3ファイル）🔵
 │   ├── monitoring/         # プロダクション監視（6ファイル）
-│   ├── optimization/       # パラメータチューニング・バッチ最適化・キャッシュ・遅延ローダー（6ファイル）🔵
+│   ├── optimization/       # パラメータチューニング・バッチ最適化・キャッシュ・遅延ローダー・ウォームアップ（7ファイル）🔵
 │   ├── pages/              # React Router ページ（4ファイル）
 │   ├── performance/        # キャッシュ（2ファイル）
 │   ├── pipeline/           # パイプライン（10ファイル: Simple/Main/Framework/Adaptive/VideoGenerator/Orchestrator等）🔵
@@ -480,4 +481,4 @@ Fallback LLM
 - 🟡 黄信号: 2件 (2%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第41回更新: kairo-design 再生成・差分統合完了・docs/design/ legacy → specs/ 移行確認済み）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第43回更新: 253ファイル状態との完全照合・api/ routes構成更新）

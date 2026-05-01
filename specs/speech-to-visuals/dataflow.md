@@ -1,7 +1,7 @@
 # speech-to-visuals データフロー図
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-01（第42回検証: Phase 8 REQ-056/REQ-057 データフロー追加・キャッシュウォームアップ・パイプラインAPI）
+**最終更新**: 2026-05-01（第43回検証: ファイル数253化対応・api/ ルート構成更新）
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](requirements.md)
 
