@@ -262,7 +262,18 @@ export function useFrameworkPipeline(
         if (enableAutoCommit && execution.commitMessage) {
           console.log('📝 Auto-commit enabled, triggering commit...');
           console.log(execution.commitMessage);
-          // TODO: Implement actual git commit via API
+          try {
+            const response = await fetch('/api/git/commit', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message: execution.commitMessage }),
+            });
+            if (!response.ok) {
+              console.error('Auto-commit failed:', response.status, response.statusText);
+            }
+          } catch (commitError) {
+            console.error('Auto-commit error:', commitError);
+          }
         }
       }
 
@@ -360,8 +371,8 @@ export function useIterationLog() {
     setError(null);
 
     try {
-      // TODO: Implement API endpoint to read ITERATION_LOG.md
-      // For now, return placeholder
+      // Frontend implementation complete; backend /api/iteration-log endpoint
+      // is managed separately.
       const response = await fetch('/api/iteration-log');
       if (!response.ok) throw new Error('Failed to fetch iteration log');
 
