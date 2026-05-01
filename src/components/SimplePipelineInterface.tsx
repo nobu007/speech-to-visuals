@@ -174,27 +174,27 @@ export const SimplePipelineInterface: React.FC = () => {
   const isProcessing = ['uploading', 'transcribing', 'analyzing', 'generating'].includes(status);
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 py-6 space-y-6">
+    <div className="w-full max-w-4xl mx-auto px-2 py-3 sm:px-4 sm:py-6 space-y-4 sm:space-y-6">
       {/* Header */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <Play className="w-5 h-5 text-primary" aria-hidden="true" />
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-xl">
+                <Play className="w-4 h-4 sm:w-5 sm:h-5 text-primary" aria-hidden="true" />
                 Speech to Visuals Pipeline
               </CardTitle>
-              <CardDescription className="mt-2">
+              <CardDescription className="mt-1 sm:mt-2 text-xs sm:text-sm">
                 音声ファイルをアップロードして、自動的に図解付きの構造化されたシーンを生成します
               </CardDescription>
             </div>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="キーボードショートカット">
+                <Button variant="ghost" size="icon" aria-label="キーボードショートカット" className="min-h-[44px] min-w-[44px]">
                   <HelpCircle className="w-4 h-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="left" className="max-w-xs">
+              <TooltipContent side="left" className="max-w-[200px] sm:max-w-xs">
                 <div className="space-y-1 text-xs">
                   <p className="font-semibold">キーボードショートカット:</p>
                   <div><kbd className="px-1 py-0.5 bg-muted rounded">Ctrl+O</kbd> ファイルを選択</div>
@@ -211,7 +211,7 @@ export const SimplePipelineInterface: React.FC = () => {
       {(isProcessing || status === 'complete') && (
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-1 sm:gap-2">
               {PIPELINE_STAGES.map((stage, index) => {
                 const stageIndex = index + 1; // +1 because idle=0
                 const isCompleted = activeStageIndex > stageIndex;
@@ -221,7 +221,7 @@ export const SimplePipelineInterface: React.FC = () => {
                 return (
                   <div key={stage.key} className="flex-1 text-center">
                     <div
-                      className={`w-8 h-8 rounded-full mx-auto mb-1 flex items-center justify-center text-xs font-medium transition-all duration-300
+                      className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full mx-auto mb-1 flex items-center justify-center text-xs font-medium transition-all duration-300
                         ${isCompleted ? 'bg-green-500 text-white' : ''}
                         ${isActive ? 'bg-blue-500 text-white animate-pulse' : ''}
                         ${isPending ? 'bg-muted text-muted-foreground' : ''}
@@ -237,7 +237,7 @@ export const SimplePipelineInterface: React.FC = () => {
                         <span>{index + 1}</span>
                       )}
                     </div>
-                    <div className="text-xs text-muted-foreground truncate">{stage.label}</div>
+                    <div className="text-[10px] sm:text-xs text-muted-foreground truncate">{stage.label}</div>
                   </div>
                 );
               })}
@@ -250,10 +250,10 @@ export const SimplePipelineInterface: React.FC = () => {
       {status === 'idle' && !file && (
         <Card>
           <CardContent className="pt-6">
-            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
-              <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-medium mb-2">音声ファイルをアップロード</h3>
-              <p className="text-sm text-muted-foreground mb-4">
+            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 sm:p-8 text-center">
+              <Upload className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-muted-foreground" />
+              <h3 className="text-base sm:text-lg font-medium mb-2">音声ファイルをアップロード</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
                 MP3, WAV, OGG, M4A形式 (最大50MB)
               </p>
               <input
@@ -267,6 +267,7 @@ export const SimplePipelineInterface: React.FC = () => {
               <Button
                 onClick={() => fileInputRef.current?.click()}
                 aria-label="ファイルを選択"
+                className="min-h-[44px]"
               >
                 ファイルを選択
               </Button>
@@ -286,11 +287,11 @@ export const SimplePipelineInterface: React.FC = () => {
                   サイズ: {(file.size / 1024 / 1024).toFixed(2)} MB
                 </p>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={handleReset} aria-label="キャンセル">
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Button variant="outline" onClick={handleReset} aria-label="キャンセル" className="flex-1 sm:flex-none min-h-[44px]">
                   キャンセル
                 </Button>
-                <Button onClick={handleProcess} aria-label="処理を開始">
+                <Button onClick={handleProcess} aria-label="処理を開始" className="flex-1 sm:flex-none min-h-[44px]">
                   <Play className="w-4 h-4 mr-2" />
                   処理開始
                 </Button>
@@ -307,10 +308,10 @@ export const SimplePipelineInterface: React.FC = () => {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="font-medium">処理中...</span>
+                <span className="text-sm sm:text-base font-medium">処理中...</span>
               </div>
               <div className="space-y-2">
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-xs sm:text-sm">
                   <span>{currentStep}</span>
                   <span>{progress}%</span>
                 </div>
@@ -358,27 +359,27 @@ export const SimplePipelineInterface: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Summary */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="text-center p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
+              <div className="text-center p-2 sm:p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                <div className="text-xl sm:text-2xl font-bold text-blue-700 dark:text-blue-300">
                   {result.scenes?.length || 0}
                 </div>
                 <div className="text-xs text-blue-600 dark:text-blue-400">生成シーン</div>
               </div>
-              <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded-lg">
-                <div className="text-2xl font-bold text-green-700 dark:text-green-300">
+              <div className="text-center p-2 sm:p-3 bg-green-50 dark:bg-green-950 rounded-lg">
+                <div className="text-xl sm:text-2xl font-bold text-green-700 dark:text-green-300">
                   {result.processingTime ? Math.round(result.processingTime / 1000) : 0}s
                 </div>
                 <div className="text-xs text-green-600 dark:text-green-400">処理時間</div>
               </div>
-              <div className="text-center p-3 bg-purple-50 dark:bg-purple-950 rounded-lg">
-                <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">
+              <div className="text-center p-2 sm:p-3 bg-purple-50 dark:bg-purple-950 rounded-lg">
+                <div className="text-xl sm:text-2xl font-bold text-purple-700 dark:text-purple-300">
                   {result.transcript?.split(' ').length || 0}
                 </div>
                 <div className="text-xs text-purple-600 dark:text-purple-400">単語数</div>
               </div>
-              <div className="text-center p-3 bg-orange-50 dark:bg-orange-950 rounded-lg">
-                <div className="text-2xl font-bold text-orange-700 dark:text-orange-300">
+              <div className="text-center p-2 sm:p-3 bg-orange-50 dark:bg-orange-950 rounded-lg">
+                <div className="text-xl sm:text-2xl font-bold text-orange-700 dark:text-orange-300">
                   {result.videoUrl ? 'あり' : 'なし'}
                 </div>
                 <div className="text-xs text-orange-600 dark:text-orange-400">動画</div>
@@ -389,7 +390,7 @@ export const SimplePipelineInterface: React.FC = () => {
             {result.transcript && (
               <div>
                 <h4 className="font-medium mb-2">文字起こし結果</h4>
-                <div className="p-3 bg-muted rounded-lg text-sm max-h-32 overflow-y-auto">
+                <div className="p-2 sm:p-3 bg-muted rounded-lg text-xs sm:text-sm max-h-32 overflow-y-auto">
                   {result.transcript}
                 </div>
               </div>
