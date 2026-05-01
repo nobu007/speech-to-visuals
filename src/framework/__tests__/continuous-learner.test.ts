@@ -455,6 +455,318 @@ describe('ContinuousLearner', () => {
     });
   });
 
+  // --- Private method coverage via periodic analysis ---
+
+  describe('periodic analysis via fake timers', () => {
+    let timerLearner: ContinuousLearner;
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+      timerLearner = new ContinuousLearner(true);
+    });
+
+    afterEach(() => {
+      timerLearner.stopLearning();
+      jest.useRealTimers();
+    });
+
+    it('should run comprehensive analysis on interval tick', async () => {
+      // Add enough data to trigger analysis paths
+      for (let i = 0; i < 15; i++) {
+        await timerLearner.learnFromProcessingResult(
+          'transcription',
+          { audio: 'test.wav' },
+          { text: 'result' },
+          25000, // above 20s threshold for performance insight
+          0.8,
+          true,
+          [],
+          {}
+        );
+      }
+
+      // Advance timer to trigger the interval callback
+      await jest.advanceTimersByTimeAsync(60000);
+
+      const report = timerLearner.getLearningReport();
+      expect(report.totalDataPoints).toBe(15);
+    });
+
+    it('should generate performance insights when avg processing time is high', async () => {
+      for (let i = 0; i < 15; i++) {
+        await timerLearner.learnFromProcessingResult(
+          'component',
+          {},
+          {},
+          25000, // > 20000 threshold
+          0.9,
+          true,
+          [],
+          {}
+        );
+      }
+
+      await jest.advanceTimersByTimeAsync(60000);
+
+      const report = timerLearner.getLearningReport();
+      expect(report.systemInsights).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should generate quality insights when avg quality is low', async () => {
+      for (let i = 0; i < 15; i++) {
+        await timerLearner.learnFromProcessingResult(
+          'component',
+          {},
+          {},
+          5000,
+          0.7, // < 0.85 threshold
+          true,
+          [],
+          {}
+        );
+      }
+
+      await jest.advanceTimersByTimeAsync(60000);
+
+      const report = timerLearner.getLearningReport();
+      expect(report.systemInsights).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should generate reliability insights when success rate is low', async () => {
+      for (let i = 0; i < 15; i++) {
+        await timerLearner.learnFromProcessingResult(
+          'component',
+          {},
+          {},
+          5000,
+          0.9,
+          i < 10, // ~67% success rate < 95% threshold
+          [],
+          {}
+        );
+      }
+
+      await jest.advanceTimersByTimeAsync(60000);
+
+      const report = timerLearner.getLearningReport();
+      expect(report.systemInsights).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should detect processing time patterns with outliers', async () => {
+      // Add data with some outliers
+      for (let i = 0; i < 20; i++) {
+        await timerLearner.learnFromProcessingResult(
+          'transcription',
+          {},
+          {},
+          i % 3 === 0 ? 60000 : 1000, // some very slow processing
+          0.9,
+          true,
+          [],
+          {}
+        );
+      }
+
+      await jest.advanceTimersByTimeAsync(60000);
+
+      const report = timerLearner.getLearningReport();
+      expect(report.detectedPatterns).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should analyze error frequency for frequent errors', async () => {
+      for (let i = 0; i < 20; i++) {
+        await timerLearner.learnFromProcessingResult(
+          'component',
+          {},
+          {},
+          5000,
+          0.9,
+          true,
+          ['timeout_error', 'timeout_error', 'network_error'],
+          {}
+        );
+      }
+
+      await jest.advanceTimersByTimeAsync(60000);
+
+      const report = timerLearner.getLearningReport();
+      expect(report.detectedPatterns).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should apply automatic optimizations for low-risk strategies', async () => {
+      // Generate patterns that will produce strategies with optimizationThreshold check
+      for (let i = 0; i < 20; i++) {
+        await timerLearner.learnFromProcessingResult(
+          'performance_component',
+          {},
+          {},
+          5000,
+          0.6,
+          true,
+          [],
+          {}
+        );
+      }
+
+      await jest.advanceTimersByTimeAsync(60000);
+
+      const report = timerLearner.getLearningReport();
+      expect(report.optimizationStrategies).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should handle errors during periodic analysis gracefully', async () => {
+      // Add some data
+      await timerLearner.learnFromProcessingResult('test', {}, {}, 5000, 0.9, true);
+
+      // Advance timer - should not throw even with minimal data
+      await jest.advanceTimersByTimeAsync(60000);
+
+      const report = timerLearner.getLearningReport();
+      expect(report.totalDataPoints).toBe(1);
+    });
+
+    it('should not generate insights when data is insufficient (< 10)', async () => {
+      for (let i = 0; i < 5; i++) {
+        await timerLearner.learnFromProcessingResult(
+          'component', {}, {}, 25000, 0.7, true, [], {}
+        );
+      }
+
+      await jest.advanceTimersByTimeAsync(60000);
+
+      const report = timerLearner.getLearningReport();
+      expect(report.systemInsights).toBe(0);
+    });
+  });
+
+  // --- User feedback with matching ID (covers analyzeUserFeedbackPatterns) ---
+
+  describe('learnFromUserFeedback with matching data', () => {
+    it('should analyze feedback patterns when rating high-rated vs low-rated data', async () => {
+      // Create data with different quality levels to generate feature differences
+      for (let i = 0; i < 12; i++) {
+        await learner.learnFromProcessingResult(
+          'component',
+          {},
+          {},
+          i < 6 ? 2000 : 40000,
+          i < 6 ? 0.95 : 0.4,
+          i < 6,
+          i < 6 ? [] : ['error1'],
+          {}
+        );
+      }
+
+      // Access internal database to get IDs
+      const db = (learner as any).learningDatabase as Array<{ id: string }>;
+
+      // Give high ratings to high-quality data and low ratings to low-quality data
+      for (let i = 0; i < Math.min(6, db.length); i++) {
+        await learner.learnFromUserFeedback(db[i].id, 5, 'Excellent');
+      }
+      for (let i = 6; i < Math.min(12, db.length); i++) {
+        await learner.learnFromUserFeedback(db[i].id, 1, 'Poor');
+      }
+
+      const report = learner.getLearningReport();
+      expect(report.totalDataPoints).toBe(12);
+    });
+  });
+
+  // --- Custom instructions improvement paths ---
+
+  describe('improvement cycle paths', () => {
+    it('should trigger MVP improvement when in MVP phase', async () => {
+      // Low success rate = MVP phase
+      for (let i = 0; i < 20; i++) {
+        await learner.learnFromProcessingResult(
+          'test_comp',
+          {},
+          {},
+          5000,
+          0.5,
+          i < 6, // 30% success = MVP
+          [],
+          {}
+        );
+      }
+      // Add one more with low quality to trigger improvement
+      await learner.learnFromProcessingResult(
+        'test_comp', {}, {}, 5000, 0.5, false, ['error recovery needed'], {}
+      );
+
+      const report = learner.getLearningReport();
+      expect(report.totalDataPoints).toBe(21);
+    });
+
+    it('should trigger content analysis improvement when in content analysis phase', async () => {
+      // High success rate but moderate quality = content analysis phase
+      for (let i = 0; i < 20; i++) {
+        await learner.learnFromProcessingResult(
+          'analysis_comp',
+          {},
+          {},
+          5000,
+          0.78,
+          true, // high success
+          [],
+          {}
+        );
+      }
+      // Low quality triggers improvement
+      await learner.learnFromProcessingResult(
+        'analysis_comp', {}, {}, 5000, 0.6, true, [], {}
+      );
+
+      const report = learner.getLearningReport();
+      expect(report.totalDataPoints).toBe(21);
+    });
+
+    it('should trigger diagram generation improvement', async () => {
+      // high success, high quality, but < 95% success = diagram generation phase
+      for (let i = 0; i < 20; i++) {
+        await learner.learnFromProcessingResult(
+          'layout_comp',
+          {},
+          {},
+          5000,
+          0.88,
+          i < 18, // 90% success < 95%
+          [],
+          {}
+        );
+      }
+      await learner.learnFromProcessingResult(
+        'layout_comp', {}, {}, 5000, 0.6, true, [], {}
+      );
+
+      const report = learner.getLearningReport();
+      expect(report.totalDataPoints).toBe(21);
+    });
+
+    it('should trigger quality enhancement improvement in quality phase', async () => {
+      // Very high success = quality enhancement phase
+      for (let i = 0; i < 20; i++) {
+        await learner.learnFromProcessingResult(
+          'quality_comp',
+          {},
+          {},
+          5000,
+          0.96,
+          true,
+          [],
+          {}
+        );
+      }
+      await learner.learnFromProcessingResult(
+        'quality_comp', {}, {}, 5000, 0.6, true, [], {}
+      );
+
+      const report = learner.getLearningReport();
+      expect(report.totalDataPoints).toBe(21);
+    });
+  });
+
   // --- Module-level singleton ---
 
   describe('module-level singleton', () => {

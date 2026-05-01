@@ -403,6 +403,49 @@ describe('QualityMonitor', () => {
       expect(goodReport.status).toBe('good');
 
       monitor.reset();
+      // Test "acceptable" (60-74)
+      // sceneSegF1: 0.60 (warning -10), entityExtF1: 0.60 (warning -10),
+      // relationshipAcc: 0.70 (warning -10), fallback (-5) = -35
+      // errorCount 0 (+5), layoutOverlap 0 (+5), but fallback cancels error bonus?
+      // Score = 100 - 10 - 10 - 10 - 5 + 5 + 5 = 75 (good). Need one more warning.
+      // Add edgeCompleteness low: 0.50 (warning -10)
+      // Score = 100 - 10 - 10 - 10 - 10 - 5 + 5 + 5 = 65 (acceptable)
+      monitor.recordMetrics({
+        processingTime: 5000,
+        memoryUsage: 200,
+        layoutOverlap: 0,
+        errorCount: 0,
+        warningCount: 0,
+        fallbackTriggered: true,
+        sceneSegmentationF1: 0.60,
+        entityExtractionF1: 0.60,
+        relationshipAccuracy: 0.70,
+        edgeCompleteness: 0.50,
+      });
+      const acceptableReport = monitor.generateReport();
+      expect(acceptableReport.status).toBe('acceptable');
+
+      monitor.reset();
+      // Test "needs_improvement" (40-59)
+      // layoutOverlap: 5 (critical -20), sceneSegF1: 0.60 (warning -10),
+      // entityExtF1: 0.60 (warning -10), fallback (-5)
+      // Bonuses: none (layoutOverlap > 0, errorCount 0 so +5 for errors, layout 0 no bonus)
+      // Score = 100 - 20 - 10 - 10 - 5 + 5 = 60 -- that's acceptable. Need to lose error bonus.
+      // Add errorCount=1: -2, lose +5 bonus = net -7. Score = 100 - 20 - 10 - 10 - 5 - 2 = 53
+      monitor.recordMetrics({
+        processingTime: 5000,
+        memoryUsage: 200,
+        layoutOverlap: 5,
+        errorCount: 1,
+        warningCount: 0,
+        fallbackTriggered: true,
+        sceneSegmentationF1: 0.60,
+        entityExtractionF1: 0.60,
+      });
+      const needsImprovementReport = monitor.generateReport();
+      expect(needsImprovementReport.status).toBe('needs_improvement');
+
+      monitor.reset();
       // Test "critical" (< 40)
       monitor.recordMetrics({ processingTime: 50000, memoryUsage: 700, layoutOverlap: 10, errorCount: 5, warningCount: 3, fallbackTriggered: true, transcriptionAccuracy: 0.50 });
       expect(monitor.generateReport().status).toBe('critical');
@@ -500,6 +543,22 @@ describe('QualityMonitor', () => {
       const trend = monitor.getTrend('processingTime');
       expect(trend.length).toBe(10);
     });
+
+    it('should return 0 for undefined optional metric values', () => {
+      // Record metrics without transcriptionAccuracy
+      monitor.recordMetrics({ processingTime: 1000, memoryUsage: 100, layoutOverlap: 0, errorCount: 0, warningCount: 0, fallbackTriggered: false });
+      monitor.recordMetrics({ processingTime: 2000, memoryUsage: 200, layoutOverlap: 0, errorCount: 0, warningCount: 0, fallbackTriggered: false });
+
+      const trend = monitor.getTrend('transcriptionAccuracy');
+      // transcriptionAccuracy is undefined so || 0 kicks in
+      expect(trend).toEqual([0, 0]);
+    });
+
+    it('should return 0 for undefined cacheHitRate in trend', () => {
+      monitor.recordMetrics({ processingTime: 1000, memoryUsage: 100, layoutOverlap: 0, errorCount: 0, warningCount: 0, fallbackTriggered: false });
+      const trend = monitor.getTrend('cacheHitRate');
+      expect(trend).toEqual([0]);
+    });
   });
 
   // --- logIteration ---
@@ -581,6 +640,45 @@ describe('QualityMonitor', () => {
       expect(output).toContain('First action');
       expect(output).toContain('Second action');
     });
+
+    it('should export fallback triggered as Yes', () => {
+      monitor.recordMetrics({ processingTime: 5000, memoryUsage: 200, layoutOverlap: 0, errorCount: 0, warningCount: 0, fallbackTriggered: true });
+      const metrics = monitor.getLatestMetrics()!;
+
+      monitor.logIteration({
+        phaseId: 'phase-fallback',
+        iterationNumber: 1,
+        action: 'Fallback test',
+        result: 'partial',
+        metrics,
+        improvements: [],
+        nextSteps: ['Investigate fallback'],
+      });
+
+      const output = monitor.exportIterationHistory();
+      expect(output).toContain('Fallback: Yes');
+      expect(output).toContain('Investigate fallback');
+    });
+
+    it('should export iteration with no next steps', () => {
+      monitor.recordMetrics({ processingTime: 5000, memoryUsage: 200, layoutOverlap: 0, errorCount: 0, warningCount: 0, fallbackTriggered: false });
+      const metrics = monitor.getLatestMetrics()!;
+
+      monitor.logIteration({
+        phaseId: 'phase-none',
+        iterationNumber: 1,
+        action: 'No next steps',
+        result: 'success',
+        metrics,
+        improvements: ['Did something'],
+        nextSteps: [],
+      });
+
+      const output = monitor.exportIterationHistory();
+      expect(output).toContain('phase-none');
+      // Should NOT contain Next Steps section since nextSteps is empty
+      expect(output).not.toContain('**Next Steps**');
+    });
   });
 
   // --- runDiagnostics ---
@@ -621,6 +719,23 @@ describe('QualityMonitor', () => {
 
       const diag = monitor.runDiagnostics();
       expect(diag.warnings.length).toBeGreaterThan(0);
+    });
+
+    it('should not include info-severity violations in critical or warnings', () => {
+      // processingTime > 30000 produces info severity
+      monitor.recordMetrics({
+        processingTime: 40000,
+        memoryUsage: 200,
+        layoutOverlap: 0,
+        errorCount: 0,
+        warningCount: 0,
+        fallbackTriggered: false,
+      });
+
+      const diag = monitor.runDiagnostics();
+      // Info violations are not added to critical or warnings arrays
+      expect(diag.critical).toHaveLength(0);
+      expect(diag.warnings).toHaveLength(0);
     });
 
     it('should return excellent health with no violations', () => {
@@ -683,6 +798,102 @@ describe('QualityMonitor', () => {
 
       const comparison = monitor.compareToBaseline();
       expect(comparison.improved.length + comparison.stable.length + comparison.regressed.length).toBeGreaterThan(0);
+    });
+
+    it('should detect stable metrics when change is under 5%', () => {
+      // Baseline: processingTime = 10000, memoryUsage = 200
+      for (let i = 0; i < 5; i++) {
+        monitor.recordMetrics({
+          processingTime: 10000,
+          memoryUsage: 200,
+          layoutOverlap: 0,
+          errorCount: 0,
+          warningCount: 0,
+          fallbackTriggered: false,
+          transcriptionAccuracy: 0.90,
+        });
+      }
+      // Current: processingTime = 10200 (2% change => stable)
+      monitor.recordMetrics({
+        processingTime: 10200,
+        memoryUsage: 204,
+        layoutOverlap: 0,
+        errorCount: 0,
+        warningCount: 0,
+        fallbackTriggered: false,
+        transcriptionAccuracy: 0.91,
+      });
+
+      const comparison = monitor.compareToBaseline();
+      expect(comparison.stable.length).toBeGreaterThan(0);
+    });
+
+    it('should detect regressed metrics when processing time increases', () => {
+      // Baseline: processingTime = 10000, memoryUsage = 200
+      for (let i = 0; i < 5; i++) {
+        monitor.recordMetrics({
+          processingTime: 10000,
+          memoryUsage: 200,
+          layoutOverlap: 0,
+          errorCount: 0,
+          warningCount: 0,
+          fallbackTriggered: false,
+          transcriptionAccuracy: 0.90,
+          edgeCompleteness: 0.80,
+          relationshipAccuracy: 0.85,
+        });
+      }
+      // Current: processingTime = 20000 (100% increase => regressed)
+      // memoryUsage = 400 (100% increase => regressed)
+      monitor.recordMetrics({
+        processingTime: 20000,
+        memoryUsage: 400,
+        layoutOverlap: 0,
+        errorCount: 0,
+        warningCount: 0,
+        fallbackTriggered: false,
+        transcriptionAccuracy: 0.90,
+        edgeCompleteness: 0.80,
+        relationshipAccuracy: 0.85,
+      });
+
+      const comparison = monitor.compareToBaseline();
+      expect(comparison.regressed.length).toBeGreaterThan(0);
+      // Processing time and memory usage increases should be regressed
+      expect(comparison.regressed.some(r => r.includes('processingTime'))).toBe(true);
+      expect(comparison.regressed.some(r => r.includes('memoryUsage'))).toBe(true);
+    });
+
+    it('should detect regressed accuracy metrics when they decrease', () => {
+      // Baseline: high accuracy
+      for (let i = 0; i < 5; i++) {
+        monitor.recordMetrics({
+          processingTime: 5000,
+          memoryUsage: 100,
+          layoutOverlap: 0,
+          errorCount: 0,
+          warningCount: 0,
+          fallbackTriggered: false,
+          transcriptionAccuracy: 0.95,
+          edgeCompleteness: 0.90,
+          relationshipAccuracy: 0.90,
+        });
+      }
+      // Current: accuracy drops significantly
+      monitor.recordMetrics({
+        processingTime: 5000,
+        memoryUsage: 100,
+        layoutOverlap: 0,
+        errorCount: 0,
+        warningCount: 0,
+        fallbackTriggered: false,
+        transcriptionAccuracy: 0.50,  // ~47% decrease => regressed
+        edgeCompleteness: 0.40,        // ~55% decrease => regressed
+        relationshipAccuracy: 0.40,    // ~55% decrease => regressed
+      });
+
+      const comparison = monitor.compareToBaseline();
+      expect(comparison.regressed.length).toBeGreaterThan(0);
     });
   });
 
@@ -892,6 +1103,50 @@ describe('QualityMonitor', () => {
 
       const formatted = formatQualityReport(report);
       expect(formatted).toContain('layoutOverlap');
+    });
+
+    it('should format info severity violation', () => {
+      const report: QualityReport = {
+        overallScore: 80,
+        status: 'good',
+        metrics: {
+          timestamp: new Date(),
+          phase: 'test',
+          iteration: 1,
+          processingTime: 5000,
+          memoryUsage: 200,
+          layoutOverlap: 0,
+          errorCount: 0,
+          warningCount: 0,
+          fallbackTriggered: false,
+        },
+        thresholds: {
+          transcriptionAccuracy: 0.85,
+          sceneSegmentationF1: 0.75,
+          entityExtractionF1: 0.80,
+          relationshipAccuracy: 0.85,
+          layoutOverlap: 0,
+          renderTime: 30000,
+          memoryUsage: 512,
+          edgeCompleteness: 0.70,
+          edgeRatioQuality: 0.80,
+        },
+        violations: [
+          {
+            metric: 'processingTime',
+            actual: 40000,
+            expected: 30000,
+            severity: 'info',
+            impact: 'Slow processing',
+            recommendation: 'Optimize',
+          },
+        ],
+        recommendations: ['Optimize'],
+        improvementPotential: 10,
+      };
+
+      const formatted = formatQualityReport(report);
+      expect(formatted).toContain('processingTime');
     });
   });
 });

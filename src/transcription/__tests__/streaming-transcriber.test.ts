@@ -1142,5 +1142,523 @@ describe('StreamingTranscriber', () => {
       // Default processAudioChunk generates 0.75-0.95 confidence, all should pass >= 0.7
       expect(result.success).toBe(true);
     });
+
+    it('continues when processAudioChunk throws for a chunk (line 139)', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 6;
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 3000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+
+      // Force processAudioChunk to throw on the first invocation only
+      // by making the Audio mock throw when processing a chunk
+      let chunkCallCount = 0;
+      const anyTranscriber = transcriber as unknown as Record<string, unknown>;
+      const origProcess = anyTranscriber.processAudioChunk as (
+        chunk: { start: number; end: number },
+        audioFile: string | File
+      ) => Promise<TranscriptionSegment[]>;
+
+      anyTranscriber.processAudioChunk = jest.fn().mockImplementation(async (
+        chunk: { start: number; end: number },
+        audioFile: string | File
+      ) => {
+        chunkCallCount++;
+        if (chunkCallCount === 1) {
+          throw new Error('Simulated chunk failure');
+        }
+        return origProcess.call(transcriber, chunk, audioFile);
+      });
+
+      const onProgress = jest.fn();
+
+      const promise = transcriber.transcribeStream('/audio.mp3', onProgress);
+
+      setImmediate(() => {
+        if (mockAudioInstance.onloadedmetadata) {
+          mockAudioInstance.onloadedmetadata();
+        }
+      });
+
+      const result = await promise;
+
+      // Should succeed even though first chunk failed
+      expect(result.success).toBe(true);
+      // Only the second chunk's segments should be present
+      expect(result.segments!.length).toBeGreaterThan(0);
+    });
+
+    it('mergeOverlappingSegments handles non-overlapping segments (line 346)', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 10;
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 3000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+
+      const anyTranscriber = transcriber as unknown as Record<string, unknown>;
+
+      // Override processAudioChunk to produce segments with a large gap
+      // This will trigger the else branch (line 346) in mergeOverlappingSegments
+      let chunkIndex = 0;
+      anyTranscriber.processAudioChunk = jest.fn().mockImplementation(async (
+        chunk: { start: number; end: number }
+      ) => {
+        chunkIndex++;
+        // First chunk: segment at 0-1s, second chunk: segment at 5-6s (gap > 0.5s)
+        if (chunkIndex === 1) {
+          return [{
+            start: 0,
+            end: 1,
+            text: 'first segment',
+            confidence: 0.9,
+            speaker: 'unknown',
+          }];
+        }
+        return [{
+          start: 5,
+          end: 6,
+          text: 'second segment',
+          confidence: 0.85,
+          speaker: 'unknown',
+        }];
+      });
+
+      const promise = transcriber.transcribeStream('/audio.mp3');
+
+      setImmediate(() => {
+        if (mockAudioInstance.onloadedmetadata) {
+          mockAudioInstance.onloadedmetadata();
+        }
+      });
+
+      const result = await promise;
+
+      // Segments should NOT be merged since they don't overlap (gap > 0.5s)
+      expect(result.segments!.length).toBeGreaterThanOrEqual(2);
+      // Text should contain both segments
+      expect(result.text).toContain('first segment');
+      expect(result.text).toContain('second segment');
+    });
+
+    it('mergeOverlappingSegments merges segments within 0.5s tolerance', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 10;
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 3000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+
+      const anyTranscriber = transcriber as unknown as Record<string, unknown>;
+
+      // Override processAudioChunk to produce overlapping segments
+      let chunkIndex = 0;
+      anyTranscriber.processAudioChunk = jest.fn().mockImplementation(async (
+        chunk: { start: number; end: number }
+      ) => {
+        chunkIndex++;
+        if (chunkIndex === 1) {
+          return [{
+            start: 0,
+            end: 2,
+            text: 'first segment',
+            confidence: 0.9,
+            speaker: 'unknown',
+          }];
+        }
+        // Second segment overlaps (starts at 2.3, within 0.5s of first ending at 2)
+        return [{
+          start: 2.3,
+          end: 4,
+          text: 'overlapping segment',
+          confidence: 0.85,
+          speaker: 'unknown',
+        }];
+      });
+
+      const promise = transcriber.transcribeStream('/audio.mp3');
+
+      setImmediate(() => {
+        if (mockAudioInstance.onloadedmetadata) {
+          mockAudioInstance.onloadedmetadata();
+        }
+      });
+
+      const result = await promise;
+
+      // Should be merged into a single segment since they overlap within tolerance
+      expect(result.segments!.length).toBe(1);
+      expect(result.text).toContain('first segment');
+      expect(result.text).toContain('overlapping segment');
+    });
+
+    it('transcribeStream sets processingTime in result', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 2;
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 5000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+
+      const promise = transcriber.transcribeStream('/audio.mp3');
+
+      setImmediate(() => {
+        if (mockAudioInstance.onloadedmetadata) {
+          mockAudioInstance.onloadedmetadata();
+        }
+      });
+
+      const result = await promise;
+
+      expect(result).toHaveProperty('processingTime');
+      expect(typeof result.processingTime).toBe('number');
+    });
+
+    it('transcribeStream computes duration as audioDuration * 1000', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 3.5;
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 5000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+
+      const promise = transcriber.transcribeStream('/audio.mp3');
+
+      setImmediate(() => {
+        if (mockAudioInstance.onloadedmetadata) {
+          mockAudioInstance.onloadedmetadata();
+        }
+      });
+
+      const result = await promise;
+
+      expect(result.duration).toBe(3500);
+    });
+
+    it('transcribeStream progress has correct totalDuration', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 5;
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 5000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+
+      const onProgress = jest.fn();
+
+      const promise = transcriber.transcribeStream('/audio.mp3', onProgress);
+
+      setImmediate(() => {
+        if (mockAudioInstance.onloadedmetadata) {
+          mockAudioInstance.onloadedmetadata();
+        }
+      });
+
+      await promise;
+
+      expect(onProgress).toHaveBeenCalled();
+      const progress = onProgress.mock.calls[0][0];
+      expect(progress.totalDuration).toBe(5000);
+    });
+
+    it('transcribeStream with overlapping chunks processes correctly', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 8;
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 3000,
+        overlapMs: 500,
+        minConfidence: 0,
+      });
+
+      const onProgress = jest.fn();
+
+      const promise = transcriber.transcribeStream('/audio.mp3', onProgress);
+
+      setImmediate(() => {
+        if (mockAudioInstance.onloadedmetadata) {
+          mockAudioInstance.onloadedmetadata();
+        }
+      });
+
+      const result = await promise;
+
+      expect(result.success).toBe(true);
+      // With 3s chunks and 0.5s overlap on 8s audio, should produce multiple chunks
+      expect(onProgress.mock.calls.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('createAudioChunks produces correct chunks for various durations', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 15;
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 5000,
+        overlapMs: 1000,
+        minConfidence: 0,
+      });
+
+      const promise = transcriber.transcribeStream('/audio.mp3');
+
+      setImmediate(() => {
+        if (mockAudioInstance.onloadedmetadata) {
+          mockAudioInstance.onloadedmetadata();
+        }
+      });
+
+      const result = await promise;
+
+      // Should complete with segments
+      expect(result.success).toBe(true);
+      expect(result.segments!.length).toBeGreaterThan(0);
+    });
+
+    it('processAudioChunk generates text with chunk boundaries', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 6;
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 3000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+
+      const promise = transcriber.transcribeStream('/audio.mp3');
+
+      setImmediate(() => {
+        if (mockAudioInstance.onloadedmetadata) {
+          mockAudioInstance.onloadedmetadata();
+        }
+      });
+
+      const result = await promise;
+
+      // Segments should contain chunk boundary info in text
+      expect(result.success).toBe(true);
+      for (const segment of result.segments!) {
+        expect(segment.text).toContain('chunk');
+      }
+    });
+
+    it('calculateAverageConfidence returns 0 for empty segments', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 0;
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 3000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+
+      const onProgress = jest.fn();
+
+      const promise = transcriber.transcribeStream('/audio.mp3', onProgress);
+
+      setImmediate(() => {
+        if (mockAudioInstance.onloadedmetadata) {
+          mockAudioInstance.onloadedmetadata();
+        }
+      });
+
+      const result = await promise;
+
+      // Zero duration => no chunks => no segments => no progress callback
+      expect(result.segments!.length).toBe(0);
+    });
+
+    it('validateStreamingSupport with webkitAudioContext but no AudioContext', async () => {
+      await loadModule();
+
+      // Remove AudioContext but keep webkitAudioContext
+      delete (globalThis as Record<string, unknown>).AudioContext;
+      // webkitAudioContext should still be set from setupWindowMocks
+
+      const support = StreamingTranscriberModule.validateStreamingSupport();
+
+      expect(support.audioContext).toBe(true);
+      expect(support.recommendation).toBe('Full streaming support available');
+
+      // Restore
+      (globalThis as Record<string, unknown>).AudioContext = jest.fn();
+    });
+
+    it('validateStreamingSupport with only webkitSpeechRecognition', async () => {
+      delete (globalThis as Record<string, unknown>).SpeechRecognition;
+      // Keep webkitSpeechRecognition
+
+      await loadModule();
+
+      const support = StreamingTranscriberModule.validateStreamingSupport();
+
+      expect(support.webSpeechAPI).toBe(true);
+      expect(support.recommendation).toBe('Full streaming support available');
+
+      // Restore
+      (globalThis as Record<string, unknown>).SpeechRecognition = MockSpeechRecognition;
+    });
+
+    it('transcribeStream handles error with non-Error thrown', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 4;
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 5000,
+        overlapMs: 0,
+      });
+
+      // Make getAudioDuration throw a non-Error value
+      const anyTranscriber = transcriber as unknown as Record<string, unknown>;
+      anyTranscriber.getAudioDuration = jest.fn().mockRejectedValue('string error');
+
+      await expect(transcriber.transcribeStream('/audio.mp3')).rejects.toThrow(
+        'Streaming transcription failed: string error'
+      );
+    });
+
+    it('transcribeStream handles error with Error instance thrown', async () => {
+      await loadModule();
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 5000,
+        overlapMs: 0,
+      });
+
+      const anyTranscriber = transcriber as unknown as Record<string, unknown>;
+      anyTranscriber.getAudioDuration = jest.fn().mockRejectedValue(new Error('custom error msg'));
+
+      await expect(transcriber.transcribeStream('/audio.mp3')).rejects.toThrow(
+        'Streaming transcription failed: custom error msg'
+      );
+    });
+
+    it('startLiveTranscription with both onSegment and onProgress callbacks', async () => {
+      await loadModule();
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
+      const onSegment = jest.fn();
+      const onProgress = jest.fn();
+
+      const promise = transcriber.startLiveTranscription(onSegment, onProgress);
+
+      if (mockRecognitionInstance.onresult) {
+        mockPerformanceNow.mockReturnValue(2000);
+
+        const mockEvent = {
+          resultIndex: 0,
+          results: {
+            length: 2,
+            0: {
+              isFinal: true,
+              length: 1,
+              0: { transcript: 'hello', confidence: 0.9 },
+            },
+            1: {
+              isFinal: false,
+              length: 1,
+              0: { transcript: ' world', confidence: 0.6 },
+            },
+          } as unknown as SpeechRecognitionResultList,
+        } as unknown as SpeechRecognitionEvent;
+
+        mockRecognitionInstance.onresult(mockEvent);
+      }
+
+      await promise;
+
+      expect(onSegment).toHaveBeenCalledTimes(1);
+      expect(onSegment).toHaveBeenCalledWith(
+        expect.objectContaining({ text: 'hello' })
+      );
+      expect(onProgress).toHaveBeenCalled();
+      const progress = onProgress.mock.calls[0][0];
+      expect(progress.currentSegment).not.toBeNull();
+      expect(progress.currentSegment.text).toBe(' world');
+    });
+
+    it('startLiveTranscription onProgress with no interim results has null currentSegment', async () => {
+      await loadModule();
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        minConfidence: 0.99, // Filter all
+      });
+      const onProgress = jest.fn();
+
+      const promise = transcriber.startLiveTranscription(undefined, onProgress);
+
+      if (mockRecognitionInstance.onresult) {
+        mockPerformanceNow.mockReturnValue(1500);
+
+        // Only final results that will be filtered by minConfidence
+        const mockEvent = {
+          resultIndex: 0,
+          results: {
+            length: 1,
+            0: {
+              isFinal: true,
+              length: 1,
+              0: { transcript: 'filtered', confidence: 0.5 },
+            },
+          } as unknown as SpeechRecognitionResultList,
+        } as unknown as SpeechRecognitionEvent;
+
+        mockRecognitionInstance.onresult(mockEvent);
+      }
+
+      await promise;
+
+      expect(onProgress).toHaveBeenCalled();
+      const progress = onProgress.mock.calls[0][0];
+      expect(progress.currentSegment).toBeNull();
+    });
+
+    it('updateConfig with empty object preserves all defaults', async () => {
+      await loadModule();
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
+
+      transcriber.updateConfig({});
+
+      const config = transcriber.getConfig();
+      expect(config.chunkSizeMs).toBe(3000);
+      expect(config.overlapMs).toBe(500);
+      expect(config.minConfidence).toBe(0.7);
+      expect(config.enableLiveUpdate).toBe(true);
+    });
+
+    it('constructor with all config options specified', async () => {
+      await loadModule();
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 10000,
+        overlapMs: 2000,
+        minConfidence: 0.5,
+        enableLiveUpdate: false,
+      });
+
+      const config = transcriber.getConfig();
+      expect(config.chunkSizeMs).toBe(10000);
+      expect(config.overlapMs).toBe(2000);
+      expect(config.minConfidence).toBe(0.5);
+      expect(config.enableLiveUpdate).toBe(false);
+    });
+
+    it('createStreamingTranscriber with undefined config uses defaults', async () => {
+      await loadModule();
+      const transcriber = StreamingTranscriberModule.createStreamingTranscriber(undefined);
+
+      const config = transcriber.getConfig();
+      expect(config.chunkSizeMs).toBe(3000);
+      expect(config.overlapMs).toBe(500);
+      expect(config.minConfidence).toBe(0.7);
+      expect(config.enableLiveUpdate).toBe(true);
+    });
   });
 });

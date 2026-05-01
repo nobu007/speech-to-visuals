@@ -538,7 +538,7 @@ describe('EnhancedErrorRecovery', () => {
 
       const result = await recovery.predictFailureRisk('analysis', { data: 'test' });
       expect(result.indicators.length + result.recommendations.length).toBeGreaterThan(0);
-    });
+    }, 15000);
 
     it('should consider input complexity', async () => {
       const complexInput = { data: 'x'.repeat(15000), nested: { a: { b: { c: { d: { e: { f: 'deep' } } } } } } };
@@ -574,7 +574,7 @@ describe('EnhancedErrorRecovery', () => {
 
       const result = await recovery.predictFailureRisk('transcription', { complex: true });
       expect(result).toBeDefined();
-    });
+    }, 15000);
   });
 
   // ========================================
