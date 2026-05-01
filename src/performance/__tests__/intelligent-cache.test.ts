@@ -8,6 +8,7 @@
  */
 
 import { IntelligentCache, globalCache, cached } from '@/performance/intelligent-cache';
+import type { DiagramType } from '@/types/diagram';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -15,14 +16,14 @@ import { IntelligentCache, globalCache, cached } from '@/performance/intelligent
 
 /** Create metadata used by store() */
 function makeMetadata(overrides: Partial<{
-  contentType: string;
+  contentType: DiagramType;
   duration: number;
   complexity: number;
   performanceScore: number;
   accessPattern: 'frequent' | 'recent' | 'mixed' | 'cold';
 }> = {}) {
   return {
-    contentType: 'flow' as const,
+    contentType: 'flow' as DiagramType,
     duration: 100,
     complexity: 0.5,
     performanceScore: 0.8,
@@ -94,6 +95,7 @@ interface CacheInternals {
   decompressData: (compressed: string, originalSize: number) => unknown;
   predictivePreload: (fingerprint: TestFingerprint) => Promise<void>;
   updateHitRate: (isHit: boolean) => number;
+  updatePerformanceScore: () => void;
   advancedCleanup: () => Promise<void>;
   cleanup: () => Promise<void>;
 }
@@ -596,7 +598,7 @@ describe('IntelligentCache', () => {
       entry.timestamp = Date.now() - 25 * 60 * 60 * 1000;
 
       // Also add the key to fingerprints
-      internals(cache).fingerprints.set(key, entry);
+      internals(cache).fingerprints.set(key, entry as unknown as TestFingerprint);
 
       // Add the key to preloadQueue
       internals(cache).preloadQueue.add(key);
@@ -653,7 +655,7 @@ describe('IntelligentCache', () => {
           priority: 0.1,
           metadata: makeMetadata({ performanceScore: 0.1, accessPattern: 'cold' }),
         });
-        internals(cache).fingerprints.set(k, {});
+        internals(cache).fingerprints.set(k, {} as unknown as TestFingerprint);
         internals(cache).accessOrder.push(k);
       }
       internals(cache).stats.totalEntries = 1000;
@@ -1579,7 +1581,7 @@ describe('IntelligentCache', () => {
           priority: 0.9, // > 0.8
           metadata: makeMetadata({ performanceScore: 1.0, accessPattern: 'frequent' }),
         });
-        internals(cache).fingerprints.set(k, {});
+        internals(cache).fingerprints.set(k, {} as unknown as TestFingerprint);
         internals(cache).accessOrder.push(k);
       }
       internals(cache).stats.totalEntries = 1000;
@@ -1610,7 +1612,7 @@ describe('IntelligentCache', () => {
           priority: 0.1,
           metadata: makeMetadata({ performanceScore: 0.1, accessPattern: 'cold' }),
         });
-        internals(cache).fingerprints.set(k, {});
+        internals(cache).fingerprints.set(k, {} as unknown as TestFingerprint);
         internals(cache).accessOrder.push(k);
       }
       internals(cache).stats.totalEntries = 1000;

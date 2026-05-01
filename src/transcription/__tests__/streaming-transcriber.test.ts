@@ -8,6 +8,8 @@
 
 // ---------- Mock setup for browser APIs ----------
 
+import type { TranscriptionSegment } from '../types';
+
 type MockSpeechRecognitionInstance = {
   continuous: boolean;
   interimResults: boolean;

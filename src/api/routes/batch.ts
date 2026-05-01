@@ -272,7 +272,7 @@ export function createBatchRouter(jobManager?: BatchJobManager): Router {
 
   // GET /api/v1/batch/jobs/:jobId - Get job status
   router.get('/jobs/:jobId', (req: Request, res: Response) => {
-    const { jobId } = req.params;
+    const jobId = req.params.jobId as string;
 
     const status = manager.getJobStatus(jobId);
     if (!status) {
@@ -287,7 +287,7 @@ export function createBatchRouter(jobManager?: BatchJobManager): Router {
 
   // POST /api/v1/batch/jobs/:jobId/cancel - Cancel job
   router.post('/jobs/:jobId/cancel', (req: Request, res: Response) => {
-    const { jobId } = req.params;
+    const jobId = req.params.jobId as string;
 
     const result = manager.cancelJob(jobId);
 

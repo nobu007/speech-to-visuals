@@ -287,8 +287,7 @@ describe('EnhancedErrorRecovery', () => {
       const primary = jest.fn().mockResolvedValue('ok');
       const fallback = jest.fn();
 
-      // @ts-expect-error Testing undefined behavior
-      const result = await recovery.executeWithFallback(primary, fallback, undefined);
+      const result = await recovery.executeWithFallback(primary, fallback, undefined as Parameters<typeof recovery.executeWithFallback>[2]);
 
       expect(result.success).toBe(true);
     });

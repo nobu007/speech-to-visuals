@@ -69,6 +69,7 @@ describe('renderer', () => {
     mockedRenderMedia.mockResolvedValue({
       buffer: Buffer.from(''),
       slowestFrames: [],
+      contentType: 'video/mp4',
     });
   });
 
@@ -406,6 +407,7 @@ describe('renderer', () => {
       mockedRenderMedia.mockResolvedValue({
         buffer: mockBuffer,
         slowestFrames: [{ frame: 10, time: 500 }],
+        contentType: 'video/mp4',
       });
 
       const config = makeConfig();

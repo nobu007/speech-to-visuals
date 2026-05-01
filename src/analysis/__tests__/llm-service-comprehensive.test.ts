@@ -91,13 +91,13 @@ afterEach(() => {
 
 function createRateLimitError(): Error {
   const err = new Error('Rate limit exceeded');
-  (err as Record<string, unknown>).status = 429;
+  (err as unknown as Record<string, unknown>).status = 429;
   return err;
 }
 
 function createQuotaError(): Error {
   const err = new Error('Resource exhausted');
-  (err as Record<string, unknown>).errorDetails = [
+  (err as unknown as Record<string, unknown>).errorDetails = [
     { '@type': 'type.googleapis.com/google.rpc.QuotaFailure' },
   ];
   return err;
