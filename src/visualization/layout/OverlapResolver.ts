@@ -38,7 +38,18 @@ export class OverlapResolver {
     this.startTime = performance.now();
     this.metrics = [];
     this.currentStrategyIndex = 0;
-    
+
+    // Early return for empty input - no overlaps to resolve
+    if (nodes.length === 0) {
+      return {
+        layout: { nodes: [], edges: [] },
+        bounds: { width: 0, height: 0, minX: 0, minY: 0, maxX: 0, maxY: 0 },
+        processingTime: performance.now() - this.startTime,
+        success: true,
+        metrics: { overlapCount: 0, edgeCrossings: 0, totalArea: 0, nodeSpacing: 0, layoutBalance: 1 }
+      };
+    }
+
     // If we have an existing layout with nodes, use it as a starting point
     let currentNodes = this.initializeNodes(nodes, existingLayout);
     let currentEdges = this.initializeEdges(edges, currentNodes);
