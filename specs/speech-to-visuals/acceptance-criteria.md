@@ -1,7 +1,7 @@
 # Speech-to-Visuals 受け入れ基準
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-02（第75回検証・Phase 1-14全完了・269ファイル・82,629行・要件カバレッジ100%維持・2,835テスト全通過・TypeScript/ESLintエラー0件・カバレッジ84.78% statements・ギャップなし）
+**最終更新**: 2026-05-02（第76回検証・Phase 1-14全完了・269ファイル・82,629行・要件カバレッジ100%維持・2,835テスト全通過(113 suites)・TypeScript/ESLintエラー0件・カバレッジ84.78% statements・ギャップなし）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
