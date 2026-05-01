@@ -28,7 +28,7 @@ describe('QualityMonitor', () => {
 
   beforeEach(() => {
     // Reset singleton between tests
-    (QualityMonitor as any).instance = undefined;
+    (QualityMonitor as unknown as { instance: QualityMonitor | undefined }).instance = undefined;
     monitor = QualityMonitor.getInstance();
     monitor.reset();
   });
@@ -43,7 +43,7 @@ describe('QualityMonitor', () => {
     });
 
     it('should create new instance if none exists', () => {
-      (QualityMonitor as any).instance = undefined;
+      (QualityMonitor as unknown as { instance: QualityMonitor | undefined }).instance = undefined;
       const m = QualityMonitor.getInstance();
       expect(m).toBeDefined();
     });

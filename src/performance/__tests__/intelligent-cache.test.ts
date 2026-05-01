@@ -31,10 +31,76 @@ function makeMetadata(overrides: Partial<{
   };
 }
 
+/** Test-only mirror of the private CacheEntry interface */
+interface TestCacheEntry {
+  id: string;
+  contentHash: string;
+  timestamp: number;
+  accessCount: number;
+  lastAccessed: number;
+  data: unknown;
+  compressed: boolean;
+  compressedSize: number;
+  priority: number;
+  metadata: {
+    contentType: string;
+    duration: number;
+    complexity: number;
+    performanceScore: number;
+    accessPattern: 'frequent' | 'recent' | 'mixed' | 'cold';
+  };
+}
+
+/** Test-only mirror of ContentFingerprint */
+interface TestFingerprint {
+  structuralPattern: string;
+  keywordVector: number[];
+  semanticSignature: string;
+  diagramTypeHint: string;
+  complexity: number;
+}
+
+/** Test-only mirror of CacheStats */
+interface TestCacheStats {
+  totalEntries: number;
+  hitRate: number;
+  missRate: number;
+  averageRetrievalTime: number;
+  totalSavedTime: number;
+  memoryUsage: number;
+  compressionRatio: number;
+  evictionCount: number;
+  preloadHits: number;
+  performanceScore: number;
+}
+
+interface CacheInternals {
+  cache: Map<string, TestCacheEntry>;
+  fingerprints: Map<string, TestFingerprint>;
+  accessOrder: string[];
+  preloadQueue: Set<string>;
+  stats: TestCacheStats;
+  compressionEnabled: boolean;
+  generateCacheKey: (content: string) => string;
+  generateFingerprint: (content: string) => TestFingerprint;
+  getAccessPatternMultiplier: (pattern: string) => number;
+  determineAccessPattern: (entry: TestCacheEntry) => 'frequent' | 'recent' | 'mixed' | 'cold';
+  calculatePriority: (entry: TestCacheEntry) => number;
+  calculateUtilityScore: (entry: TestCacheEntry) => number;
+  calculateSimilarity: (fp1: TestFingerprint, fp2: TestFingerprint) => number;
+  cosineSimilarity: (vec1: number[], vec2: number[]) => number;
+  jacquardSimilarity: (set1: string[], set2: string[]) => number;
+  compressData: (data: unknown) => { compressed: string; originalSize: number; compressedSize: number };
+  decompressData: (compressed: string, originalSize: number) => unknown;
+  predictivePreload: (fingerprint: TestFingerprint) => Promise<void>;
+  updateHitRate: (isHit: boolean) => number;
+  advancedCleanup: () => Promise<void>;
+  cleanup: () => Promise<void>;
+}
+
 /** Access private fields on cache for testing */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function internals(cache: IntelligentCache): any {
-  return cache as any;
+function internals(cache: IntelligentCache): CacheInternals {
+  return cache as unknown as CacheInternals;
 }
 
 // ---------------------------------------------------------------------------
@@ -117,7 +183,7 @@ describe('IntelligentCache', () => {
     it('expires entries older than maxAge via get()', async () => {
       await cache.store('expiring', { val: 1 }, makeMetadata());
 
-      const internalCache = internals(cache).cache as Map<string, any>;
+      const internalCache = internals(cache).cache;
       const key = internals(cache).generateCacheKey('expiring');
       const entry = internalCache.get(key);
       // Set timestamp to 25 hours ago (maxAge is 24 hours)
@@ -159,7 +225,7 @@ describe('IntelligentCache', () => {
       const bigData = { text: 'a'.repeat(2000) };
       await cache.store('big', bigData, makeMetadata());
 
-      const internalCache = internals(cache).cache as Map<string, any>;
+      const internalCache = internals(cache).cache;
       const entry = internalCache.get(internals(cache).generateCacheKey('big'));
       // Should be compressed if compressedSize < originalSize * 0.8
       expect(entry.compressed).toBe(true);
@@ -168,7 +234,7 @@ describe('IntelligentCache', () => {
     it('does not compress small data', async () => {
       await cache.store('small', { v: 1 }, makeMetadata());
 
-      const internalCache = internals(cache).cache as Map<string, any>;
+      const internalCache = internals(cache).cache;
       const entry = internalCache.get(internals(cache).generateCacheKey('small'));
       expect(entry.compressed).toBe(false);
     });
@@ -178,7 +244,7 @@ describe('IntelligentCache', () => {
       const data = { text: Array.from({ length: 1100 }, (_, i) => String.fromCharCode(33 + (i % 94))).join('') };
       await cache.store('noncompressible', data, makeMetadata());
 
-      const internalCache = internals(cache).cache as Map<string, any>;
+      const internalCache = internals(cache).cache;
       const entry = internalCache.get(internals(cache).generateCacheKey('noncompressible'));
       // If compressedSize >= originalSize * 0.8, compression is rejected
       expect(entry.compressed).toBe(false);
@@ -387,7 +453,7 @@ describe('IntelligentCache', () => {
       await cache.findSimilar(content);
       await cache.findSimilar(content);
 
-      const internalCache = internals(cache).cache as Map<string, any>;
+      const internalCache = internals(cache).cache;
       const key = internals(cache).generateCacheKey(content);
       const entry = internalCache.get(key);
       // accessCount: initial 1 + 2 findSimilar hits = 3
@@ -445,7 +511,7 @@ describe('IntelligentCache', () => {
         await cache.get(content);
       }
 
-      const internalCache = internals(cache).cache as Map<string, any>;
+      const internalCache = internals(cache).cache;
       const key = internals(cache).generateCacheKey(content);
       const entry = internalCache.get(key);
       expect(entry.metadata.accessPattern).toBe('frequent');
@@ -456,7 +522,7 @@ describe('IntelligentCache', () => {
       await cache.store(content, { d: 1 }, makeMetadata());
       await cache.get(content); // Access once
 
-      const internalCache = internals(cache).cache as Map<string, any>;
+      const internalCache = internals(cache).cache;
       const key = internals(cache).generateCacheKey(content);
       const entry = internalCache.get(key);
       // With low access count and recent access, should be 'recent'
@@ -523,7 +589,7 @@ describe('IntelligentCache', () => {
     it('removes expired entries during cleanup', async () => {
       await cache.store('old-entry', { v: 1 }, makeMetadata());
 
-      const internalCache = internals(cache).cache as Map<string, any>;
+      const internalCache = internals(cache).cache;
       const key = internals(cache).generateCacheKey('old-entry');
       const entry = internalCache.get(key);
       // Make entry expired
@@ -572,7 +638,7 @@ describe('IntelligentCache', () => {
 
     it('triggers eviction when cache is at capacity', async () => {
       // Fill cache to maxSize (1000) by directly inserting entries
-      const internalCache = internals(cache).cache as Map<string, any>;
+      const internalCache = internals(cache).cache;
       for (let i = 0; i < 1000; i++) {
         const k = `direct-${i}`;
         internalCache.set(k, {
@@ -1025,7 +1091,7 @@ describe('IntelligentCache', () => {
     it('returns 0.5 for unknown pattern (default case)', () => {
       // Line 201: default case in getAccessPatternMultiplier
       // The type system prevents this, but we bypass it via internals
-      expect(internals(cache).getAccessPatternMultiplier('unknown' as any)).toBe(0.5);
+      expect(internals(cache).getAccessPatternMultiplier('unknown')).toBe(0.5);
     });
   });
 
@@ -1498,7 +1564,7 @@ describe('IntelligentCache', () => {
 
     it('eviction: skips high-priority entries (priority > 0.8)', async () => {
       // Fill cache to maxSize with entries that have high priority
-      const internalCache = internals(cache).cache as Map<string, any>;
+      const internalCache = internals(cache).cache;
       for (let i = 0; i < 1000; i++) {
         const k = `high-${i}`;
         internalCache.set(k, {
@@ -1529,7 +1595,7 @@ describe('IntelligentCache', () => {
 
     it('eviction: skips recently accessed entries (< 30 min)', async () => {
       // Fill cache with entries accessed very recently
-      const internalCache = internals(cache).cache as Map<string, any>;
+      const internalCache = internals(cache).cache;
       for (let i = 0; i < 1000; i++) {
         const k = `recent-${i}`;
         internalCache.set(k, {

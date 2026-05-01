@@ -658,7 +658,7 @@ describe('ContinuousLearner', () => {
       }
 
       // Access internal database to get IDs
-      const db = (learner as any).learningDatabase as Array<{ id: string }>;
+      const db = (learner as unknown as { learningDatabase: Array<{ id: string }> }).learningDatabase;
 
       // Give high ratings to high-quality data and low ratings to low-quality data
       for (let i = 0; i < Math.min(6, db.length); i++) {

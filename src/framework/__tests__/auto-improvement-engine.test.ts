@@ -11,6 +11,7 @@ import {
   QualityMetrics,
   ImprovementStrategy,
 } from '../auto-improvement-engine';
+import type { IterationManager } from '../iteration-manager';
 
 // Mock IterationManager
 const mockIterationManager = {
@@ -439,7 +440,7 @@ describe('AutoImprovementEngine', () => {
   describe('linkIterationManager', () => {
     it('should link with IterationManager', () => {
       expect(() => {
-        engine.linkIterationManager(mockIterationManager as any);
+        engine.linkIterationManager(mockIterationManager as unknown as IterationManager);
       }).not.toThrow();
     });
   });
