@@ -554,9 +554,9 @@ TASK-0087 ✅ → TASK-0088 ✅
 
 ### タスク一覧
 
-- [ ] [TASK-0089: ESLint no-explicit-any エラー113件修正](TASK-0089.md) - 8h (TDD) 🔵
-- [ ] [TASK-0090: TypeScript型エラー8件修正](TASK-0090.md) - 4h (TDD) 🔵
-- [ ] [TASK-0091: テストワーカープロセス終了警告解消](TASK-0091.md) - 4h (TDD) 🔵
+- [x] [TASK-0089: ESLint no-explicit-any エラー113件修正](TASK-0089.md) - 8h (TDD) 🔵
+- [x] [TASK-0090: TypeScript型エラー8件修正](TASK-0090.md) - 4h (TDD) 🔵
+- [x] [TASK-0091: テストワーカープロセス終了警告解消](TASK-0091.md) - 4h (TDD) 🔵
 - [ ] [TASK-0092: 依存パッケージ更新と互換性検証](TASK-0092.md) - 8h (DIRECT) 🟡
 - [ ] [TASK-0093: overview.md 正確性確認と第55回検証](TASK-0093.md) - 2h (DIRECT) 🔵
 
