@@ -1,6 +1,7 @@
 # speech-to-visuals 設計自動分析記録
 
 **作成日**: 2026-04-27
+**最終更新**: 2026-05-01（第41回検証: kairo-design 再生成・docs/design/ legacy→specs/ 移行確認・全設計文書差分統合・要件カバレッジ100%維持）
 **最終更新**: 2026-05-01（第39回検証: ディレクトリ構造内components数(46)・戦略数(20)の内部整合性修正・全ディレクトリ計数実態照合完了・要件カバレッジ100%維持）
 **最終更新**: 2026-05-01（第29回検証: ディレクトリ別ファイル数の実態整合・要件カバレッジ100%維持）
 **最終更新**: 2026-05-01（第27回検証: SimplePipelineResult型定義追加・legacy docs統合確認・要件カバレッジ100%維持）
@@ -1947,3 +1948,55 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - 🔴 赤信号: 0 (±0)
 
 **更新統合内容**: architecture.md（ディレクトリ構造内components数47→46修正・戦略数18→20修正・ヘッダー検証ラウンド更新）、design-interview.md（第39回検証項目 A39 追加）
+
+---
+
+### A41: 第41回検証: kairo-design 再生成・legacy設計移行確認
+
+**分析日時**: 2026-05-01
+**カテゴリ**: アーキテクチャ
+**背景**: kairo-design インストラクションによる技術設計再生成。docs/design/speech-to-visuals/（legacy、第20回検証）と specs/speech-to-visuals/（正本、第39回検証）の両方が存在する状態で、正本の妥当性とlegacy移行の完了確認が必要。
+
+**判断**:
+
+1. **legacy→正本の移行確認**:
+   - `docs/design/speech-to-visuals/`: 6ファイル（architecture.md, dataflow.md, design-interview.md, interfaces.ts, database-schema.sql, api-endpoints.md）→ 第20回検証で停滞
+   - `specs/speech-to-visuals/`: 12ファイル（上記6ファイル + note.md, requirements.md, user-stories.md, acceptance-criteria.md, prep.md, interview-record.md + tasks/71ファイル）→ 第40回検証まで更新継続
+   - 結論: specs/ が正本として完全に機能、docs/design/ は移行元として読み取り専用
+
+2. **差分統合の結果**:
+   - 全6設計ファイルで specs/ 版が docs/design/ 版より新規
+   - 主な差分: 追加コンポーネント6個（PipelineInterface, DiagramPreview, InteractiveResultViewer, VideoGenerationPanel, Iteration43Interface, PerformanceMetricsVisualization）、ファイル数修正（components 46, tests 50, remotion 22）、リンクパス修正
+   - 統合不要: specs/ 版が既に最新かつ包括的
+
+3. **実態照合結果**:
+   - src/ 総ファイル数: 248 ✓
+   - src/components/: 46ファイル ✓
+   - src/visualization/strategies/: 20ファイル（39ファイル中）✓
+   - tests/: 40テストファイル（50総ファイル）✓
+   - ソースコード変更なし（第40回検証で安定確認済み）
+
+4. **要件カバレッジ**:
+   - REQ-001~REQ-055 + REQ-305: 全要件対応済み
+   - 71タスク完了（TASK-0001~TASK-0071）
+   - 受け入れ基準: 100% 達成
+
+**根拠**:
+- `find src -name '*.ts' -o -name '*.tsx' | wc -l` → 248
+- `find tests -type f | wc -l` → 50
+- `diff docs/design/speech-to-visuals/ specs/speech-to-visuals/` で specs/ 版が全件で新規
+- 第40回検証コミット (f12ccdd) で安定状態確認済み
+
+**信頼性への影響**:
+- ソースコード変更なし（248ファイル不変）
+- 設計文書更新: architecture.md（第41回検証ラウンド更新）、design-interview.md（A41分析項目追加）
+- 信頼性レベル分布に変化なし（全体: 🔵455件 (99%)、🟡4件 (1%)、🔴0件 (0%)）
+- 要件カバレッジ100%維持
+
+**2026-05-01 第41回更新（A41 検証）**:
+
+- 🔵 青信号: 455 (±0)
+- 🟡 黄信号: 4 (±0)
+- 🔴 赤信号: 0 (±0)
+
+**更新統合内容**: architecture.md（第41回検証ラウンド更新）、design-interview.md（A41分析項目追加・legacy移行確認記録）

@@ -2,7 +2,7 @@
  * speech-to-visuals 型定義
  *
  * 作成日: 2026-04-27
- * 最終更新: 2026-05-01（第35回検証: Workspace型展開（Permission/RBAC/Activity/Invitation追加）・未記載コンポーネント6個反映・要件カバレッジ100%維持）
+ * 最終更新: 2026-05-01（第41回検証: kairo-design 再生成・差分統合確認・全型定義実態照合完了）
  * 関連設計: architecture.md
  *
  * 信頼性レベル:
