@@ -1,6 +1,7 @@
 # speech-to-visuals 設計自動分析記録
 
 **作成日**: 2026-04-27
+**最終更新**: 2026-05-01（第47回検証: Kairo設計再分析・legacy docs/ → specs/ 統合確認・252ファイル・78タスク完了・SYSTEM_CONSTITUTION V2.0適合・要件カバレッジ100%維持）
 **最終更新**: 2026-05-01（第46回検証: Phase 9完了確認・252ファイル・78タスク完了・SYSTEM_CONSTITUTION V2.0適合・要件カバレッジ100%維持）
 **最終更新**: 2026-05-01（第39回検証: ディレクトリ構造内components数(46)・戦略数(20)の内部整合性修正・全ディレクトリ計数実態照合完了・要件カバレッジ100%維持）
 **最終更新**: 2026-05-01（第29回検証: ディレクトリ別ファイル数の実態整合・要件カバレッジ100%維持）
@@ -2138,3 +2139,44 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - 🔴 赤信号: 0 (±0)
 
 **更新統合内容**: architecture.md（第46回検証ラウンド更新）、dataflow.md（第46回検証ラウンド更新）、api-endpoints.md（第46回検証ラウンド更新）、database-schema.sql（第46回検証ラウンド更新）、interfaces.ts（第46回検証ラウンド更新）、design-interview.md（A46分析項目追加）
+
+---
+
+### A47: 第47回検証 - Kairo設計再分析・legacy docs統合確認
+
+**分析日時**: 2026-05-01
+**カテゴリ**: 設計整合性・文書統合
+**背景**: Kairo-design 指示による技術設計文書の再生成・統合確認。legacy docs/design/ と specs/ の差分確認、コードベースとの実態整合性の再検証
+
+**判断**:
+1. **specs/ 正本確認**: `specs/speech-to-visuals/` が正本（第46回検証済）。`docs/design/speech-to-visuals/` は旧版（第20回検証）であり、参照元としてのみ扱う
+2. **文書カバレッジ**: 12ファイル・9,372行の包括的設計文書セットが完備
+   - requirements.md (255行), user-stories.md (643行), acceptance-criteria.md (1415行)
+   - architecture.md (484行), dataflow.md (1194行), design-interview.md (2140行+)
+   - interfaces.ts (1600行), database-schema.sql (170行), api-endpoints.md (737行)
+   - note.md (98行), prep.md (83行), interview-record.md (553行)
+3. **コードベース整合性**: 252ファイルのTypeScriptソースが設計文書と整合
+   - 20+ディレクトリ構造が architecture.md と一致
+   - 11図解タイプが interfaces.ts DiagramType と一致
+   - API エンドポイント（REST + Edge Functions + WebSocket）が api-endpoints.md と一致
+4. **差分なし**: 第46回検証以降、ソースコード・設計文書に変更なし
+
+**根拠**:
+- `diff docs/design/speech-to-visuals/architecture.md specs/speech-to-visuals/architecture.md` で specs/ が新版を確認
+- `wc -l specs/speech-to-visuals/*` で全ファイル行数確認
+- `find src -name '*.ts' -o -name '*.tsx' | wc -l` → 252
+- SYSTEM_CONSTITUTION.md V2.0 の制約値との照合
+
+**信頼性への影響**:
+- ソースコード変更なし（252ファイル不変）
+- 設計文書: design-interview.md に第47回検証エントリ追加
+- 信頼性レベル分布に変化なし（全体: 🔵455件 (99%)、🟡4件 (1%)、🔴0件 (0%)）
+- 要件カバレッジ100%維持
+
+**2026-05-01 第47回更新（A47 検証）**:
+
+- 🔵 青信号: 455 (±0)
+- 🟡 黄信号: 4 (±0)
+- 🔴 赤信号: 0 (±0)
+
+**更新統合内容**: design-interview.md（A47分析項目追加）
