@@ -220,4 +220,51 @@ describe('CycleLayoutStrategy', () => {
       expect(result.nodes[i].label).toBe(`Node ${i}`);
     }
   });
+
+  it('should handle edges with missing source or target', () => {
+    const nodes = makeNodes(2);
+    const edges: EdgeDatum[] = [
+      { from: 'n0', to: 'n999' },
+      { from: 'n888', to: 'n1' },
+    ];
+    const result = strategy.apply(nodes, edges);
+
+    expect(result.edges).toHaveLength(2);
+    expect(result.edges[0].points).toEqual([]);
+    expect(result.edges[1].points).toEqual([]);
+  });
+
+  it('should handle edges with labels', () => {
+    const nodes = makeNodes(2);
+    const edges: EdgeDatum[] = [
+      { from: 'n0', to: 'n1', label: 'connects' },
+    ];
+    const result = strategy.apply(nodes, edges);
+
+    expect(result.edges[0].label).toBe('connects');
+  });
+
+  it('should handle custom node dimensions', () => {
+    const overrides: Partial<NodeDatum>[] = [
+      { width: 200, height: 100 },
+      { width: 150, height: 80 },
+    ];
+    const nodes = makeNodes(2, overrides);
+    const result = strategy.apply(nodes, []);
+
+    expect(result.nodes[0].width).toBe(200);
+    expect(result.nodes[0].height).toBe(100);
+    expect(result.nodes[1].width).toBe(150);
+    expect(result.nodes[1].height).toBe(80);
+  });
+
+  it('should handle nodes with no width/height using defaults', () => {
+    const nodes: NodeDatum[] = [
+      { id: 'a', label: 'A' },
+      { id: 'b', label: 'B' },
+    ];
+    const result = strategy.apply(nodes, []);
+    expect(result.nodes[0].width).toBe(120);
+    expect(result.nodes[0].height).toBe(60);
+  });
 });

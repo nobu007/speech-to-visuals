@@ -200,4 +200,75 @@ describe('FlowStrategy', () => {
       expect(nodeB.height).toBe(80);
     });
   });
+
+  describe('edge with id field', () => {
+    it('should pass edge id through to the result', () => {
+      const nodes: NodeDatum[] = [
+        { id: 'a', label: 'A' },
+        { id: 'b', label: 'B' },
+      ];
+      const edges: EdgeDatum[] = [{ from: 'a', to: 'b', id: 'edge-1' }];
+
+      const result = flowStrategy.apply(nodes, edges);
+
+      expect(result.edges[0].id).toBe('edge-1');
+    });
+  });
+
+  describe('disconnected graph', () => {
+    it('should handle nodes with no edges', () => {
+      const nodes: NodeDatum[] = [
+        { id: 'a', label: 'A' },
+        { id: 'b', label: 'B' },
+        { id: 'c', label: 'C' },
+      ];
+      const result = flowStrategy.apply(nodes, []);
+
+      expect(result.nodes).toHaveLength(3);
+      expect(result.edges).toHaveLength(0);
+      expect(result.metrics.overlapCount).toBe(0);
+    });
+  });
+
+  describe('many overlapping nodes (triggers gridSnapFallback)', () => {
+    it('should use grid snap fallback when dagre produces overlaps', () => {
+      // Create many nodes with large widths that will likely overlap
+      const nodes: NodeDatum[] = Array.from({ length: 20 }, (_, i) => ({
+        id: `n${i}`,
+        label: `Node ${i}`,
+        width: 500,
+        height: 300,
+      }));
+      const edges: EdgeDatum[] = Array.from({ length: 19 }, (_, i) => ({
+        from: `n${i}`,
+        to: `n${i + 1}`,
+      }));
+
+      const result = flowStrategy.apply(nodes, edges);
+
+      expect(result.nodes).toHaveLength(20);
+      expect(result.edges).toHaveLength(19);
+      expect(result.canvas).toHaveProperty('width');
+      expect(result.metrics).toHaveProperty('overlapCount');
+    });
+  });
+
+  describe('cyclic graph', () => {
+    it('should handle cycles in the graph', () => {
+      const nodes: NodeDatum[] = [
+        { id: 'a', label: 'A' },
+        { id: 'b', label: 'B' },
+        { id: 'c', label: 'C' },
+      ];
+      const edges: EdgeDatum[] = [
+        { from: 'a', to: 'b' },
+        { from: 'b', to: 'c' },
+        { from: 'c', to: 'a' },
+      ];
+
+      const result = flowStrategy.apply(nodes, edges);
+      expect(result.nodes).toHaveLength(3);
+      expect(result.edges).toHaveLength(3);
+    });
+  });
 });
