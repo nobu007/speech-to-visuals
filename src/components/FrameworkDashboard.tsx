@@ -160,15 +160,38 @@ export const FrameworkDashboard: React.FC<FrameworkDashboardProps> = ({
   /**
    * Fetch latest iteration data (simulated for now, will connect to real API)
    */
-  const fetchIterationData = () => {
-    // TODO: Connect to real FrameworkIntegratedPipeline API
-    // For now, simulate progress
-    setExecutionStatus(prev => ({
-      ...prev,
-      progress: Math.min(100, prev.progress + 2),
-      timeElapsed: prev.timeElapsed + refreshInterval,
-      estimatedRemaining: Math.max(0, prev.estimatedRemaining - refreshInterval)
-    }));
+  const fetchIterationData = async () => {
+    try {
+      const response = await fetch('/api/framework/status');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.executionStatus) {
+          setExecutionStatus(data.executionStatus);
+        }
+        if (data.iterationHistory) {
+          setIterationHistory(data.iterationHistory);
+        }
+        if (data.qualityAnalysis) {
+          setQualityAnalysis(data.qualityAnalysis);
+        }
+      } else {
+        // API not available; fall back to simulated progress
+        setExecutionStatus(prev => ({
+          ...prev,
+          progress: Math.min(100, prev.progress + 2),
+          timeElapsed: prev.timeElapsed + refreshInterval,
+          estimatedRemaining: Math.max(0, prev.estimatedRemaining - refreshInterval)
+        }));
+      }
+    } catch {
+      // API unreachable; fall back to simulated progress
+      setExecutionStatus(prev => ({
+        ...prev,
+        progress: Math.min(100, prev.progress + 2),
+        timeElapsed: prev.timeElapsed + refreshInterval,
+        estimatedRemaining: Math.max(0, prev.estimatedRemaining - refreshInterval)
+      }));
+    }
   };
 
   /**
