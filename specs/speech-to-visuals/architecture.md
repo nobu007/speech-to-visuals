@@ -1,7 +1,7 @@
 # speech-to-visuals アーキテクチャ設計
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-01（第47回検証: Kairo設計再分析・legacy docs統合確認・252ファイル・78タスク完了・要件カバレッジ100%維持）
+**最終更新**: 2026-05-01（第48回検証: Kairo設計再分析・267ファイル・81タスク完了・src/lib追加・ディレクトリ別ファイル数更新・要件カバレッジ100%維持）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -19,7 +19,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**主要実績値**（Phase 42）:
+**主要実績値**（Phase 10 完了後）:
 - エンドツーエンド処理時間: 25.2秒（1分音声、目標60秒以内）
 - 成功率: 100%（目標95%以上）
 - API コスト: $0.03/動画（目標$0.10以下）
@@ -301,27 +301,27 @@ graph TB
 ```
 ./
 ├── src/
-│   ├── analysis/           # 内容分析（28ファイル: LLM、Gemini、図解検出、言語検出、複雑度、フォールバックチェーン、プロンプト構築）🔵
+│   ├── analysis/           # 内容分析（32ファイル: LLM、Gemini、図解検出、言語検出、複雑度、フォールバックチェーン、プロンプト構築、テスト）🔵
 │   ├── api/                # REST API・WebSocket（12ファイル: バッチ処理、リアルタイム通知、パイプラインAPI、ミドルウェア、ルート定義）🔵
 │   │   ├── middleware/     # レート制限、エラーハンドラー、認証 🔵
 │   │   ├── routes/         # API ルート定義（batch, health, pipeline）🔵
 │   │   └── routes/__tests__/ # API ルートテスト 🔵
-│   ├── components/         # React UI（45ファイル: 22メイン+23ui: Pipeline UI, VideoPreview, FileUploader, TutorialSystem, StreamingProcessor, Dashboards, ErrorAlert等）🔵
+│   ├── components/         # React UI（47ファイル: Pipeline UI, VideoPreview, FileUploader, TutorialSystem, StreamingProcessor, Dashboards, ErrorAlert等）🔵
 │   ├── config/             # 設定（7ファイル: プロダクション設定 + Zod バリデーション + 環境変数管理）🔵 *要件定義REQ-038*
 │   ├── export/             # エクスポート（4ファイル: multi-format/enhanced/production/UI）🔵
-│   ├── framework/          # 再帰的改善フレームワーク（4ファイル）
+│   ├── framework/          # 再帰的改善フレームワーク（6ファイル: auto-improvement-engine, continuous-learner, iteration-manager等）🔵
 │   ├── hooks/              # React Hooks（2ファイル）
 │   ├── integrations/       # Supabase 統合（5ファイル）
-│   ├── lib/                # ユーティリティライブラリ（3ファイル）🔵
+│   ├── lib/                # 動画レンダリング抽象化（3ファイル: actualVideoRenderer, videoRenderer, utils）🔵 *Phase 10 追加*
 │   ├── monitoring/         # プロダクション監視（6ファイル）
 │   ├── optimization/       # パラメータチューニング・バッチ最適化・キャッシュ・遅延ローダー・ウォームアップ（7ファイル）🔵
 │   ├── pages/              # React Router ページ（4ファイル）
-│   ├── performance/        # キャッシュ（2ファイル）
-│   ├── pipeline/           # パイプライン（10ファイル: Simple/Main/Framework/Adaptive/VideoGenerator/Orchestrator等）🔵
-│   ├── quality/            # 品質保証・エラー回復（8ファイル: ErrorClassifier/QualityGate/EnhancedErrorRecovery含む）
+│   ├── performance/        # インテリジェントキャッシュ（3ファイル: intelligent-cache, index, テスト）🔵 *Phase 10 追加*
+│   ├── pipeline/           # パイプライン（13ファイル: Simple/Main/Framework/Adaptive/VideoGenerator/Orchestrator等）🔵
+│   ├── quality/            # 品質保証・エラー回復（9ファイル: ErrorClassifier/QualityGate/EnhancedErrorRecovery/UserGuidedRecovery等）🔵
 │   ├── remotion/           # Remotion 動画コンポーネント（22ファイル: Animation/Scene/Renderer/SRT/Caption）🔵
 │   ├── test/               # テストユーティリティ（12ファイル）
-│   ├── transcription/      # 音声認識（10ファイル: Whisper/Streaming/Browser）🔵
+│   ├── transcription/      # 音声認識（12ファイル: Whisper/Streaming/Browser/テスト）🔵
 │   ├── types/              # TypeScript 型定義（15ファイル: diagram/workspace/api/llm/cache/quality/pipeline等）🔵
 │   ├── utils/              # ユーティリティ（2ファイル）
 │   └── visualization/      # 図解レイアウト（39ファイル: 20戦略・レイアウトエンジン・補助モジュール）
@@ -335,7 +335,7 @@ graph TB
 │   ├── architecture/       # 旧アーキテクチャ文書（統合元）
 │   ├── spec/               # 要件定義書
 │   └── design/             # 設計文書（本ファイル群）
-├── tests/                  # テストスイート（50ファイル）
+├── tests/                  # テストスイート（57ファイル）
 ├── scripts/                # ユーティリティスクリプト
 └── public/                 # 静的アセット
 ```
@@ -481,4 +481,4 @@ Fallback LLM
 - 🟡 黄信号: 2件 (2%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第46回更新: Phase 9完了確認・252ファイル実態整合・SYSTEM_CONSTITUTION V2.0適合）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第48回更新: Phase 10完了確認・267ファイル実態整合・src/lib/performance 追加反映・SYSTEM_CONSTITUTION V2.0適合）
