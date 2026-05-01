@@ -1,7 +1,7 @@
 # speech-to-visuals アーキテクチャ設計
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-02（第74回検証: Phase 13完了・268ファイル・81,744行・93タスク完了・全2,754テスト通過・TypeScript/ESLintエラー0件・依存99パッケージ(73+26)・要件カバレッジ100%維持・SYSTEM_CONSTITUTION V2.0適合・REQ-058/059/060反映済・ギャップなし確認）
+**最終更新**: 2026-05-02（第75回検証: Phase 14完了・269ファイル・82,629行・97タスク完了・全2,835テスト通過・TypeScript/ESLintエラー0件・依存103パッケージ(73+30)・要件カバレッジ100%維持・SYSTEM_CONSTITUTION V2.0適合・REQ-058/059/060反映済・ギャップなし確認）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -19,13 +19,14 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**主要実績値**（Phase 13 完了・93タスク完了）:
+**主要実績値**（Phase 14 完了・97タスク完了）:
 - エンドツーエンド処理時間: 25.2秒（1分音声、目標60秒以内）
 - 成功率: 100%（目標95%以上）
 - API コスト: $0.03/動画（目標$0.10以下）
 - メモリ使用量: 82.21MB（目標512MB以下）
 - ESLint エラー: 0（Phase 13 で113件→0件解消）
 - TypeScript エラー: 0（Phase 13 で8件→0件解消）
+- npm audit 脆弱性: 0（Phase 14 で解消）
 
 ## アーキテクチャパターン 🔵
 
@@ -99,7 +100,7 @@
 
 - **自動改善エンジン**: パイプライン実行結果から改善点を自動検出・適用
 - **継続学習システム**: 過去の処理結果から品質モデルを継続的に更新
-- **イテレーション管理**: Phase ベースの改善サイクル管理（Phase 13 完了・93タスク完了）
+- **イテレーション管理**: Phase ベースの改善サイクル管理（Phase 14 完了・97タスク完了）
 - **再帰的指示処理**: カスタムインストラクションの再帰的な適用と最適化
 
 ### パイプラインモジュール 🔵
@@ -308,7 +309,7 @@ graph TB
 │   │   ├── middleware/     # レート制限、エラーハンドラー、認証 🔵
 │   │   ├── routes/         # API ルート定義（batch, health, pipeline）🔵
 │   │   └── routes/__tests__/ # API ルートテスト 🔵
-│   ├── components/         # React UI（47ファイル: Pipeline UI, VideoPreview, FileUploader, TutorialSystem, StreamingProcessor, Dashboards, ErrorAlert等）🔵
+│   ├── components/         # React UI（48ファイル: Pipeline UI, VideoPreview, FileUploader, TutorialSystem, StreamingProcessor, Dashboards, ErrorAlert等）🔵
 │   ├── config/             # 設定（7ファイル: プロダクション設定 + Zod バリデーション + 環境変数管理）🔵 *要件定義REQ-038*
 │   ├── export/             # エクスポート（4ファイル: multi-format/enhanced/production/UI）🔵
 │   ├── framework/          # 再帰的改善フレームワーク（6ファイル: auto-improvement-engine, continuous-learner, iteration-manager等）🔵
@@ -483,4 +484,4 @@ Fallback LLM
 - 🟡 黄信号: 2件 (2%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第74回更新: Phase 13完了・268ファイル・81,744行・93タスク完了・全2,754テスト通過・TypeScript/ESLintエラー0件・依存99パッケージ(73+26)・要件カバレッジ100%維持・SYSTEM_CONSTITUTION V2.0適合・REQ-058/059/060反映済・ギャップなし確認）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第75回更新: Phase 14完了・269ファイル・82,629行・97タスク完了・全2,835テスト通過・TypeScript/ESLintエラー0件・依存103パッケージ(73+30)・要件カバレッジ100%維持・SYSTEM_CONSTITUTION V2.0適合・REQ-058/059/060反映済・ギャップなし確認）
