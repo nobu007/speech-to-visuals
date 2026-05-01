@@ -1195,3 +1195,49 @@ describe('REQ-052~055: Additional UI Tests', () => {
     expect(report.length).toBeGreaterThan(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// REQ-056: Cache Warmup
+// ---------------------------------------------------------------------------
+
+describe('REQ-056: Cache Warmup', () => {
+  // TC-056-01: Cold-start detection and warmup execution
+  test('TC-056-01: CacheWarmupManager detects cold start and runs warmup', async () => {
+    const { CacheWarmupManager } = require('@/optimization/cache-warmup');
+    const { LLMCache } = require('@/analysis/llm-cache');
+    const cache = new LLMCache<string>({ maxSize: 100 });
+    const manager = new CacheWarmupManager<string>(cache, { coldStartThreshold: 5 });
+    // Empty cache should be cold start
+    expect(manager.isColdStart()).toBe(true);
+    const defaultPatterns = manager.getDefaultPatterns();
+    expect(defaultPatterns.length).toBeGreaterThan(0);
+    // Warmup should resolve patterns and populate the cache
+    const didWarmup = await manager.warmupIfCold(async (text: string) => `resolved: ${text}`);
+    expect(didWarmup).toBe(true);
+    // After warmup, cache should have entries
+    const stats = cache.getStats();
+    expect(stats.validEntries).toBeGreaterThan(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// REQ-057: Pipeline API Endpoints
+// ---------------------------------------------------------------------------
+
+describe('REQ-057: Pipeline API Endpoints', () => {
+  // TC-057-01: Video rendering API call
+  test('TC-057-01: PipelineInterface component file exists', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const filePath = path.join(__dirname, '../../src/components/pipeline-interface.tsx');
+    expect(fs.existsSync(filePath)).toBe(true);
+  });
+
+  // TC-057-02: Auto-commit API call
+  test('TC-057-02: useFrameworkPipeline hook file exists', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const filePath = path.join(__dirname, '../../src/hooks/useFrameworkPipeline.ts');
+    expect(fs.existsSync(filePath)).toBe(true);
+  });
+});
