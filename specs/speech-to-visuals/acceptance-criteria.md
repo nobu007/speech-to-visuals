@@ -1,7 +1,7 @@
 # Speech-to-Visuals 受け入れ基準
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-01（第41回: Phase 8新規要件の受け入れ基準追加・要件カバレッジ100%維持）
+**最終更新**: 2026-05-01（第42回: Kairo要件再生成による安定状態確認・74テストケース・要件カバレッジ100%維持）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
