@@ -1008,7 +1008,7 @@ export class ZeroOverlapLayoutEngine {
 
 
   private findRootNode(nodes: NodeDatum[], edges: EdgeDatum[]): string {
-    const hasIncoming = new Set(edges.map(e => e.target));
+    const hasIncoming = new Set(edges.map(e => e.to || e.target));
     return nodes.find(n => !hasIncoming.has(n.id))?.id || nodes[0].id;
   }
 
