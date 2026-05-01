@@ -113,11 +113,35 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
     return audioUrl;
   };
 
-  const handleDownloadVideo = useCallback(() => {
-    if (result) {
-      // TODO: Integrate with Remotion video rendering
-      console.log('📹 Starting video render with scenes:', result.scenes);
-      alert('Video rendering would start here. Integration with Remotion needed.');
+  const handleDownloadVideo = useCallback(async () => {
+    if (!result) return;
+
+    try {
+      console.log('Starting video render with scenes:', result.scenes);
+
+      const response = await fetch('/api/render', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scenes: result.scenes,
+          quality: 'medium',
+          outputName: `diagram-video-${Date.now()}`,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Video render request failed:', response.status);
+        alert('Video rendering failed. Please try again.');
+        return;
+      }
+
+      const data = await response.json();
+      if (data.videoUrl) {
+        window.open(data.videoUrl, '_blank');
+      }
+    } catch (err) {
+      console.error('Video render error:', err);
+      alert('Video rendering encountered an error. Please try again.');
     }
   }, [result]);
 
