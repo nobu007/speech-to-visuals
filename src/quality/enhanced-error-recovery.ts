@@ -515,8 +515,9 @@ export class EnhancedErrorRecovery {
     const startTime = performance.now();
     const dynamicTimeout = this.calculateDynamicTimeout(stage, priority);
 
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         reject(new Error(`Request ${requestId} timed out after ${dynamicTimeout}ms`));
       }, dynamicTimeout);
     });
@@ -575,6 +576,9 @@ export class EnhancedErrorRecovery {
       throw error;
 
     } finally {
+      if (timeoutId !== undefined) {
+        clearTimeout(timeoutId);
+      }
       this.activeRequests.delete(requestId);
 
       // Update response time metrics
