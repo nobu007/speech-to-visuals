@@ -1,7 +1,7 @@
 # speech-to-visuals データフロー図
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-01（第41回検証: kairo-design 再生成・差分統合確認・設計整合性確認）
+**最終更新**: 2026-05-01（第42回検証: Phase 8 REQ-056/REQ-057 データフロー追加・キャッシュウォームアップ・パイプラインAPI）
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](requirements.md)
 
@@ -1100,11 +1100,94 @@ flowchart TD
 - 自動非表示: autoHide=true で自動的にアラートを非表示
 - アラート展開/解除: expandedAlerts/dismissedAlerts で表示制御
 
+### 機能11: キャッシュウォームアップフロー 🔵
+
+**信頼性**: 🔵 *src/optimization/cache-warmup.ts・要件定義REQ-056・ユーザーストーリーPhase 8 より*
+
+**関連要件**: REQ-056, REQ-202
+
+```mermaid
+flowchart TD
+    A[システム起動] --> B{キャッシュ状態確認}
+    B -->|コールドスタート| C[CacheWarmup.warmup]
+    B -->|ウォーム済み| D[通常処理継続]
+    C --> E[代表クエリパターン生成]
+    E --> F[英語パターン: 一般・技術・ビジネス]
+    E --> G[日本語パターン: 一般・技術・ビジネス]
+    F --> H[キャッシュ事前充填]
+    G --> H
+    H --> I[ウォームアップ前ヒット率記録]
+    I --> J[ウォームアップ後ヒット率記録]
+    J --> K[統計レポート: 改善率]
+    K --> D
+```
+
+**詳細ステップ**:
+1. システム起動時にキャッシュ状態を確認し、コールドスタートを検出 🔵
+2. 英語・日本語の代表的なクエリパターン（一般・技術・ビジネスドメイン）を生成 🔵
+3. 各パターンでキャッシュ事前充填を実行 🔵
+4. ウォームアップ前後のヒット率を統計追跡 🔵
+
+### 機能12: パイプライン API エンドポイントフロー 🔵
+
+**信頼性**: 🔵 *src/hooks/useFrameworkPipeline.ts・src/components/pipeline-interface.tsx・要件定義REQ-057 より*
+
+**関連要件**: REQ-057
+
+```mermaid
+sequenceDiagram
+    participant FE as フロントエンド
+    participant API as Express API Server
+    participant PL as Pipeline Layer
+    participant FW as Framework
+
+    rect rgb(230, 245, 255)
+    Note over FE,API: POST /api/render
+    FE->>API: POST /api/render {sceneData, options}
+    API->>PL: レンダリング要求
+    PL->>PL: Remotion renderMedia()
+    PL-->>API: {videoUrl, metrics}
+    API-->>FE: 200 {success, videoUrl, fileSize, duration}
+    end
+
+    rect rgb(230, 255, 230)
+    Note over FE,API: POST /api/git/commit
+    FE->>API: POST /api/git/commit {message, files}
+    API->>FW: コミット実行
+    FW-->>API: {commitHash, status}
+    API-->>FE: 200 {success, commitHash}
+    end
+
+    rect rgb(255, 255, 230)
+    Note over FE,API: GET /api/iteration-log
+    FE->>API: GET /api/iteration-log
+    API->>FW: イテレーションログ取得
+    FW-->>API: {iterations, qualityMetrics}
+    API-->>FE: 200 {iterations, qualityTrend, recommendations}
+    end
+
+    rect rgb(255, 230, 230)
+    Note over FE,API: GET /api/framework/status
+    FE->>API: GET /api/framework/status
+    API->>FW: ステータス取得
+    FW-->>API: {phase, qualityScore, improvementSuggestions}
+    API-->>FE: 200 {currentPhase, qualityScore, isRunning}
+    end
+```
+
+**API エンドポイント一覧** 🔵:
+| エンドポイント | メソッド | 説明 | 主な利用元 |
+|-------------|---------|------|-----------|
+| /api/render | POST | 動画レンダリングトリガー | PipelineInterface.tsx |
+| /api/git/commit | POST | フレームワーク自動コミット | FrameworkDashboard.tsx |
+| /api/iteration-log | GET | イテレーションログ取得 | FrameworkDashboard.tsx |
+| /api/framework/status | GET | フレームワークステータス | FrameworkDashboard.tsx |
+
 ## 関連文書（旧）
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 130件 (99%)
+- 🔵 青信号: 142件 (99%)
 - 🟡 黄信号: 1件 (1%)
 - 🔴 赤信号: 0件 (0%)
 

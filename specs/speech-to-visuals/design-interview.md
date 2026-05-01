@@ -1,7 +1,7 @@
 # speech-to-visuals 設計自動分析記録
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-01（第41回検証: kairo-design 再生成・docs/design/ legacy→specs/ 移行確認・全設計文書差分統合・要件カバレッジ100%維持）
+**最終更新**: 2026-05-01（第42回検証: Phase 8 REQ-056/REQ-057 反映・キャッシュウォームアップ・パイプラインAPI エンドポイント分析追加）
 **最終更新**: 2026-05-01（第39回検証: ディレクトリ構造内components数(46)・戦略数(20)の内部整合性修正・全ディレクトリ計数実態照合完了・要件カバレッジ100%維持）
 **最終更新**: 2026-05-01（第29回検証: ディレクトリ別ファイル数の実態整合・要件カバレッジ100%維持）
 **最終更新**: 2026-05-01（第27回検証: SimplePipelineResult型定義追加・legacy docs統合確認・要件カバレッジ100%維持）
@@ -629,6 +629,40 @@ interfaces.ts には既にこれらの主要型が反映済み。
 
 ---
 
+### A23: Phase 8 キャッシュウォームアップ戦略の分析
+
+**分析日時**: 2026-05-01
+**カテゴリ**: 最適化
+**背景**: Phase 8 で追加されたキャッシュウォームアップモジュール（cache-warmup.ts, 307行）が要件定義REQ-056/REQ-202を満たすか確認が必要
+
+**判断**: コールドスタート検出・代表クエリパターン（英語・日本語）による事前キャッシュ充填・ヒット率統計追跡が実装されており、要件を完全に満たしている。architecture.md に最適化セクションを追加し、dataflow.md にウォームアップフローを追加。
+
+**根拠**: src/optimization/cache-warmup.ts、要件定義REQ-056、要件定義REQ-202
+
+**信頼性への影響**:
+- REQ-056 の信頼性を 🔵（青信号）に設定
+- architecture.md の最適化セクションにキャッシュウォームアップ追加
+- dataflow.md に機能11としてウォームアップフロー追加
+
+---
+
+### A24: Phase 8 パイプライン API エンドポイントの分析
+
+**分析日時**: 2026-05-01
+**カテゴリ**: API
+**背景**: Phase 8 で追加されたパイプライン操作用 REST API エンドポイント（REQ-057）がフロントエンドと統合されているか確認が必要
+
+**判断**: 4つのAPI エンドポイント（/api/render, /api/git/commit, /api/iteration-log, /api/framework/status）が useFrameworkPipeline フック経由で PipelineInterface.tsx・FrameworkDashboard.tsx と統合されている。バックエンド実装はフロントエンドからの呼び出しに依存する形で設計されている。
+
+**根拠**: src/hooks/useFrameworkPipeline.ts、src/components/pipeline-interface.tsx、src/components/FrameworkDashboard.tsx、要件定義REQ-057
+
+**信頼性への影響**:
+- REQ-057 の信頼性を 🔵（青信号）に設定
+- architecture.md にパイプライン API エンドポイントセクション追加
+- dataflow.md に機能12としてAPI フロー追加
+
+---
+
 ## 分析結果サマリー
 
 ### 確認できた事項
@@ -661,12 +695,13 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - Phase 4 完了に伴う新規モジュール（Remotion Animation, Renderer, SRT Parser, Pipeline UI）の設計反映 🔵 *2026-04-29 追記*
 - 拡張モジュール（Streaming, ErrorRecovery, ConfigValidation, ParameterTuning）の設計反映 🔵 *2026-04-29 拡張モジュール追記*
 - Phase 5 モジュール（ErrorClassifier, QualityGateEvaluator, PipelineOrchestrator, BatchAPI, SharedAuth, SharedErrorHandler）の設計反映 🔵 *2026-04-29 Phase 5 追記*
+- Phase 8 モジュール（CacheWarmup, パイプラインAPI エンドポイント）の設計反映 🔵 *2026-05-01 Phase 8 追記*
 
 ### 残課題
 
 - UI/UX の詳細仕様がドキュメント化されていない（実装から逆算推定）
 - 多言語対応（ES/FR/DE/ZH）の要件詳細が未定義（Phase 44-45）
-- キャッシュヒット率の改善軌道の検証が必要（コールドスタート状態）
+- 新規 API エンドポイント（/api/render, /api/git/commit, /api/iteration-log, /api/framework/status）のバックエンド実装が必要（フロントエンドからの呼び出しは実装済み）🔵 *2026-05-01 Phase 8 追記*
 - 本番環境のデプロイ先が未決定
 
 ### 信頼性レベル分布

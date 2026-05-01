@@ -555,13 +555,125 @@ const socket = io(SERVER_URL, {
 - **DBスキーマ**: [database-schema.sql](database-schema.sql)
 - **要件定義**: [requirements.md](requirements.md)
 
+### パイプライン操作 API 🔵
+
+**信頼性**: 🔵 *src/hooks/useFrameworkPipeline.ts・要件定義REQ-057 より*
+
+Phase 8 で追加されたパイプライン操作用エンドポイント:
+
+#### POST /api/render 🔵
+
+**信頼性**: 🔵 *要件定義REQ-057 より*
+
+**関連要件**: REQ-057
+
+**説明**: 動画レンダリングのトリガー
+
+**リクエスト**:
+```json
+{
+  "sceneData": { },
+  "options": {
+    "resolution": "1080p",
+    "fps": 30,
+    "codec": "h264"
+  }
+}
+```
+
+**レスポンス（成功）**:
+```json
+{
+  "success": true,
+  "videoUrl": "/output/video-xxx.mp4",
+  "fileSize": 5242880,
+  "duration": 12.5
+}
+```
+
+---
+
+#### POST /api/git/commit 🔵
+
+**信頼性**: 🔵 *要件定義REQ-057 より*
+
+**関連要件**: REQ-057
+
+**説明**: フレームワークパイプラインの自動コミット実行
+
+**リクエスト**:
+```json
+{
+  "message": "feat(pipeline): improvement iteration N",
+  "files": ["src/analysis/llm-service.ts"]
+}
+```
+
+**レスポンス（成功）**:
+```json
+{
+  "success": true,
+  "commitHash": "abc1234"
+}
+```
+
+---
+
+#### GET /api/iteration-log 🔵
+
+**信頼性**: 🔵 *要件定義REQ-057 より*
+
+**関連要件**: REQ-057
+
+**説明**: イテレーションログ取得（品質メトリクス・改善履歴）
+
+**レスポンス（成功）**:
+```json
+{
+  "success": true,
+  "iterations": [
+    {
+      "id": 1,
+      "phase": "quality_improvement",
+      "qualityScore": 95,
+      "timestamp": "2026-05-01T10:00:00Z"
+    }
+  ],
+  "qualityTrend": "improving",
+  "recommendations": ["Consider adjusting layout parameters"]
+}
+```
+
+---
+
+#### GET /api/framework/status 🔵
+
+**信頼性**: 🔵 *要件定義REQ-057 より*
+
+**関連要件**: REQ-057
+
+**説明**: フレームワーク実行ステータス取得
+
+**レスポンス（成功）**:
+```json
+{
+  "success": true,
+  "currentPhase": "quality_improvement",
+  "qualityScore": 95,
+  "isRunning": true,
+  "improvementSuggestions": []
+}
+```
+
+---
+
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 42件 (95%)
-- 🟡 黄信号: 2件 (5%)
+- 🔵 青信号: 50件 (96%)
+- 🟡 黄信号: 2件 (4%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - Phase 5 バッチ API・Edge Functions 共通基盤（REQ-043~049）反映済
+**品質評価**: 高品質 - Phase 5 バッチ API・Edge Functions 共通基盤（REQ-043~049）・Phase 8 パイプライン操作 API（REQ-057）反映済
 
 ---
 
