@@ -1,7 +1,7 @@
 # Speech-to-Visuals コンテキストノート
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-02（第60回検証版・Phase 1-13全完了・268ファイル・81,719行・93タスク完了・2,754テスト全通過・カバレッジ84.67% stmts/85.07% lines・ギャップなし）
+**最終更新**: 2026-05-02（第61回検証版・Phase 1-13全完了・268ファイル・81,730行・93タスク完了・2,754テスト全通過・TypeScript/ESLintエラー0件・ギャップなし）
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム
 
 ## 技術スタック
@@ -12,15 +12,15 @@
 - Tailwind CSS + shadcn/ui（スタイリング・UIコンポーネント）
 - Remotion 4.0（動画生成・プレビュー）
 - React Router 6.30（ルーティング）
-- React Query（TanStack Query 5.83）（状態管理）
+- React Query（TanStack Query 5.100）（状態管理）
 - Zod 3.25.76（スキーマ検証）
 - Recharts 2.15（グラフ可視化）
 - Sonner 1.7（通知）
 
 ### バックエンド・処理
 - Node.js 18+
-- Express 5.2（API サーバー）
-- Supabase 2.58（DB・Edge Functions・ストレージ）
+- Express 5.2.1（API サーバー）
+- Supabase 2.105（DB・Edge Functions・ストレージ）
 - Socket.IO 4.8（リアルタイム通信）
 
 ### AI・ML
