@@ -51,7 +51,13 @@ export class OverlapResolver {
     let noProgressCount = 0;
     let lastOverlapCount = Infinity;
 
-    while (iteration < this.maxIterations) {
+    // Scale max iterations for large datasets to avoid excessive computation
+    const effectiveMaxIterations = Math.min(
+      this.maxIterations,
+      Math.max(20, Math.floor(5000 / nodes.length))
+    );
+
+    while (iteration < effectiveMaxIterations) {
       const overlaps = this.detectOverlaps(current);
       const overlapCount = overlaps.length;
 

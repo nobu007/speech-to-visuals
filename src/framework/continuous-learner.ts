@@ -67,9 +67,11 @@ export class ContinuousLearner {
 
   private analysisInterval: NodeJS.Timeout | null = null;
 
-  constructor() {
+  constructor(autoStart: boolean = true) {
     console.log('🧠 Continuous Learning System initialized');
-    this.startLearningProcess();
+    if (autoStart) {
+      this.startLearningProcess();
+    }
   }
 
   /**
@@ -1006,4 +1008,4 @@ Co-Authored-By: Claude <noreply@anthropic.com>`;
   }
 }
 
-export const continuousLearner = new ContinuousLearner();
+export const continuousLearner = new ContinuousLearner(false);
