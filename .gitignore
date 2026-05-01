@@ -271,6 +271,7 @@ development-summary-*.md
 ITERATION_*_*.md
 
 # Output directories
+coverage/
 demo-output/
 out/
 uploads/
