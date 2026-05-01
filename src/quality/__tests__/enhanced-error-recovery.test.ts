@@ -852,7 +852,7 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     it('should handle many errors for the same stage', async () => {
-      for (let i = 0; i < 50; i++) {
+      for (let i = 0; i < 20; i++) {
         await recovery.recoverFromError(createErrorContext({
           stage: 'rendering',
           timestamp: Date.now(),

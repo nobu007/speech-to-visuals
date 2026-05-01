@@ -560,8 +560,7 @@ export class EnhancedErrorRecovery {
       if (stage) {
         const breaker = this.circuitBreakers.get(stage);
         if (breaker) {
-          breaker.failureCount++;
-          breaker.lastFailureTime = Date.now();
+          breaker.recordFailure();
         }
       }
 
@@ -1425,7 +1424,9 @@ export class EnhancedErrorRecovery {
    */
   private assessInputComplexity(input: unknown): number {
     // Simple complexity assessment
+    if (input === undefined) return 0;
     const inputString = JSON.stringify(input);
+    if (!inputString) return 0;
     const length = inputString.length;
     const nestingLevel = (inputString.match(/{/g) || []).length;
 
