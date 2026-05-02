@@ -86,7 +86,7 @@ describe('BaseLayoutStrategy', () => {
   it('returns "Unknown error occurred" when thrown value is not an Error', async () => {
     class ThrowingNonError extends TestableStrategy {
       protected async performLayout(): Promise<{ nodes: PositionedNode[]; edges: LayoutEdge[] }> {
-        throw 'string error'; // eslint-disable-line no-throw-literal
+        throw 'string error';
       }
     }
 

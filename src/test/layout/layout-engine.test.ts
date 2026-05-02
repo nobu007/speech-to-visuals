@@ -1,5 +1,5 @@
 import { LayoutEngine } from '../../visualization/layout-engine';
-import { NodeDatum, EdgeDatum, DiagramType } from '../../types/diagram';
+import { NodeDatum, EdgeDatum, DiagramType, DiagramLayout } from '../../types/diagram';
 
 describe('LayoutEngine', () => {
   // ---------- Constructor and simple mode ----------
@@ -258,7 +258,7 @@ describe('LayoutEngine', () => {
     // by mocking performance.now behavior indirectly
     // We'll test by overriding _logAndEvaluateLayout to inject large time
     const originalLogAndEvaluate = engine['_logAndEvaluateLayout'];
-    engine['_logAndEvaluateLayout'] = jest.fn().mockImplementation(async (layout: any) => {
+    engine['_logAndEvaluateLayout'] = jest.fn().mockImplementation(async (layout: DiagramLayout) => {
       // Simulate a slow layout: manually build result with processingTime > 5000
       const bounds = engine['calculateBounds'](layout.nodes);
       return {
