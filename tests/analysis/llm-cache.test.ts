@@ -7,6 +7,7 @@
 import { describe, test, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 // Mock semantic-similarity module
 const mockCalculateSemanticSimilarity = jest.fn().mockReturnValue(0);
@@ -413,7 +414,6 @@ describe('LLMCache', () => {
 
       // The key must be the actual hash that matches 'loaded-key' text
       // We need to compute the key the same way the cache does
-      const crypto = require('crypto');
       const normalized = 'loaded-key'.trim().toLowerCase().slice(0, 2000);
       const hash = crypto.createHash('sha256').update(normalized).digest('hex').slice(0, 16);
 
@@ -472,7 +472,6 @@ describe('LLMCache', () => {
       }
 
       // Compute the key hash the same way the cache does
-      const crypto = require('crypto');
       const normalized = 'v1-key'.trim().toLowerCase().slice(0, 2000);
       const hash = crypto.createHash('sha256').update(normalized).digest('hex').slice(0, 16);
 
