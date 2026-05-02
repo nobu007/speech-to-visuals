@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-30
-**最終更新**: 2026-05-03（第55回検証: overview.md正確性確認・カバレッジ90.85% stmts/79.23% branches/91.24% functions/91.25% lines・108/108タスク・3,507テスト全通過・ワーカー警告残存・npm audit 0件）
+**最終更新**: 2026-05-03（第56回検証: TASK-0084 overview.md最新化・カバレッジ90.86% stmts/79.25% branches/91.24% functions/91.26% lines・108/108タスク・3,516テスト全通過・132 suites・ワーカー警告残存・npm audit 0件）
 **プロジェクト期間**: 2026-04-27 - 2026-08-22（118日）
 **推定工数**: 707時間（695+12h Phase 17）
 **総タスク数**: 108件
@@ -79,8 +79,8 @@
 - API コスト: $0.03/動画（目標$0.10以下）
 - メモリ使用量: 82.21MB（目標512MB以下）
 - 型エラー: 0件（237件→0件解消）
-- テストカバレッジ: 90.85% statements（目標75%以上）・79.23% branches・91.24% functions・91.25% lines
-- テスト数: 3,507テスト（全テスト通過・132 suites）
+- テストカバレッジ: 90.86% statements（目標75%以上）・79.25% branches・91.24% functions・91.26% lines
+- テスト数: 3,516テスト（全テスト通過・132 suites）
 - コード規模: 281ファイル・86,382行・74 deps + 30 devDeps = 104パッケージ
 - ESLint `no-explicit-any` エラー: 0件 ✅
 - 図解タイプ: 11種類（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general）
