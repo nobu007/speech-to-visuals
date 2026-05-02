@@ -154,19 +154,13 @@ describe('OverlapResolver', () => {
     internals(resolver).maxTotalTime = 1; // 1ms total time
     internals(resolver).maxTimePerStrategy = 500;
 
-    // Create a strategy that takes a long time
+    // Create a strategy that never resolves (simulates slow execution)
+    // Using a never-resolving promise avoids leaving dangling timers that
+    // cause Jest worker process warnings.
     const slowStrategy: LayoutStrategy = {
       name: 'slow',
       canEscapeLocalMinimum: false,
-      apply: jest.fn().mockImplementation(async () => {
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        return {
-          layout: { nodes: [], edges: [] },
-          bounds: { width: 0, height: 0, minX: 0, minY: 0, maxX: 0, maxY: 0 },
-          processingTime: 0,
-          success: true,
-        };
-      }),
+      apply: jest.fn().mockImplementation(() => new Promise(() => {})),
       estimateComplexity: jest.fn().mockReturnValue(0),
       calculateMetrics: jest.fn(),
       detectOverlaps: jest.fn().mockReturnValue([]),
