@@ -2,6 +2,16 @@ import { DiagramLayout, PositionedNode, DiagramType } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { nodesOverlap } from '../layout-utils';
 
+/** Get effective node width (handles both `w` and `width` properties) */
+function nodeW(n: PositionedNode): number {
+  return n.w ?? n.width ?? 120;
+}
+
+/** Get effective node height (handles both `h` and `height` properties) */
+function nodeH(n: PositionedNode): number {
+  return n.h ?? n.height ?? 60;
+}
+
 export class OverlapResolver {
   private config: LayoutConfig;
 
@@ -16,46 +26,116 @@ export class OverlapResolver {
    * Ensures nodes don't go off-canvas
    */
   private constrainNodeToBounds(node: PositionedNode, margin: number = 10): void {
-    node.x = Math.max(margin, Math.min(node.x, this.config.width - node.w - margin));
-    node.y = Math.max(margin, Math.min(node.y, this.config.height - node.h - margin));
+    node.x = Math.max(margin, Math.min(node.x, this.config.width - nodeW(node) - margin));
+    node.y = Math.max(margin, Math.min(node.y, this.config.height - nodeH(node) - margin));
+  }
+
+  /**
+   * Build a lightweight spatial grid for fast overlap candidate lookup.
+   * Reduces overlap detection from O(n²) to ~O(n·k) where k is avg neighbors per cell.
+   */
+  private buildSpatialGrid(nodes: PositionedNode[], cellSize: number): Map<number, PositionedNode[]> {
+    const grid = new Map<number, PositionedNode[]>();
+    for (const node of nodes) {
+      const w = nodeW(node);
+      const h = nodeH(node);
+      const minCol = Math.floor(node.x / cellSize);
+      const maxCol = Math.floor((node.x + w) / cellSize);
+      const minRow = Math.floor(node.y / cellSize);
+      const maxRow = Math.floor((node.y + h) / cellSize);
+      for (let col = minCol; col <= maxCol; col++) {
+        for (let row = minRow; row <= maxRow; row++) {
+          const key = col * 73856093 ^ row * 19349663; // spatial hash key
+          let cell = grid.get(key);
+          if (!cell) { cell = []; grid.set(key, cell); }
+          cell.push(node);
+        }
+      }
+    }
+    return grid;
+  }
+
+  /**
+   * Detect all overlapping pairs using spatial grid (faster than O(n²) for large sets).
+   * Returns deduplicated pairs.
+   */
+  private detectOverlapsFast(nodes: PositionedNode[]): Array<[PositionedNode, PositionedNode]> {
+    if (nodes.length < 2) return [];
+
+    // Calculate cell size from max node dimension
+    let maxDim = 0;
+    for (const n of nodes) {
+      const d = Math.max(nodeW(n), nodeH(n));
+      if (d > maxDim) maxDim = d;
+    }
+    const cellSize = Math.max(maxDim + 10, 50);
+
+    const grid = this.buildSpatialGrid(nodes, cellSize);
+    const pairs: Array<[PositionedNode, PositionedNode]> = [];
+    const checked = new Set<string>();
+
+    for (const cellNodes of grid.values()) {
+      for (let i = 0; i < cellNodes.length; i++) {
+        for (let j = i + 1; j < cellNodes.length; j++) {
+          const a = cellNodes[i];
+          const b = cellNodes[j];
+          const pairKey = a.id < b.id ? `${a.id}:${b.id}` : `${b.id}:${a.id}`;
+          if (checked.has(pairKey)) continue;
+          checked.add(pairKey);
+          if (nodesOverlap(a, b)) {
+            pairs.push([a, b]);
+          }
+        }
+      }
+    }
+
+    return pairs;
   }
 
   /**
    * 🎯 Custom Instructions: Ensure Zero Overlaps (MANDATORY)
    * Phase 4 requirement: Zero tolerance for overlaps
+   *
+   * Optimized with spatial hashing and adaptive iteration limits.
    */
   public async ensureZeroOverlaps(layout: DiagramLayout, diagramType: DiagramType): Promise<DiagramLayout> {
     console.log('🎯 Ensuring zero overlaps (Custom Instructions requirement)...');
 
     const nodes = [...layout.nodes];
-    const maxIterations = 50; // Increased for thoroughness
+    // Scale max iterations down for large datasets to maintain performance
+    const maxIterations = Math.min(50, Math.max(10, Math.floor(2000 / nodes.length)));
     let overlapCount = 0;
     let iteration = 0;
+    let prevOverlapCount = Infinity;
+    let stagnationCount = 0;
 
     do {
-      overlapCount = 0;
+      const overlappingPairs = this.detectOverlapsFast(nodes);
+      overlapCount = overlappingPairs.length;
 
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          if (nodesOverlap(nodes[i], nodes[j])) {
-            overlapCount++;
-            await this.resolveSpecificOverlap(nodes[i], nodes[j], diagramType);
-          }
-        }
+      if (overlapCount === 0) break;
+
+      // Stagnation detection: break early if not making progress
+      if (overlapCount >= prevOverlapCount) {
+        stagnationCount++;
+        if (stagnationCount >= 3) break;
+      } else {
+        stagnationCount = 0;
+      }
+      prevOverlapCount = overlapCount;
+
+      // Resolve all detected overlaps
+      for (const [a, b] of overlappingPairs) {
+        await this.resolveSpecificOverlap(a, b, diagramType);
       }
 
       iteration++;
-
-      if (iteration % 10 === 0 && overlapCount > 0) {
-        console.log(`🔄 Overlap resolution iteration ${iteration}: ${overlapCount} overlaps remaining`);
-      }
-
     } while (overlapCount > 0 && iteration < maxIterations);
 
     if (overlapCount === 0) {
       console.log(`✅ Zero overlaps achieved in ${iteration} iterations`);
     } else {
-      console.warn(`⚠️ Could not eliminate all overlaps: ${overlapCount} remaining after ${maxIterations} iterations`);
+      console.warn(`⚠️ Could not eliminate all overlaps: ${overlapCount} remaining after ${iteration} iterations`);
       // Force separation for remaining overlaps
       await this.forceSeparateOverlappingNodes(nodes);
     }
@@ -66,29 +146,23 @@ export class OverlapResolver {
   /**
    * 🎯 Custom Instructions: Final Overlap Resolution (GUARANTEE)
    * Final check to absolutely guarantee zero overlaps
+   * Uses spatial hashing for efficient overlap detection.
    */
   public async finalOverlapResolution(layout: DiagramLayout): Promise<DiagramLayout> {
     console.log('🎯 Final overlap resolution check...');
 
     const nodes = [...layout.nodes];
-    let remainingOverlaps = 0;
+    const overlappingPairs = this.detectOverlapsFast(nodes);
 
-    // Final verification pass
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        if (nodesOverlap(nodes[i], nodes[j])) {
-          remainingOverlaps++;
-          // Force immediate separation
-          await this.forceSeparateNodes(nodes[i], nodes[j]);
-        }
-      }
-    }
-
-    if (remainingOverlaps === 0) {
+    if (overlappingPairs.length === 0) {
       console.log('✅ Zero overlap guarantee achieved');
-    } else {
-      console.log('🔧 Applied emergency separation for final overlaps');
+      return { ...layout, nodes };
     }
+
+    for (const [a, b] of overlappingPairs) {
+      await this.forceSeparateNodes(a, b);
+    }
+    console.log('🔧 Applied emergency separation for final overlaps');
 
     return { ...layout, nodes };
   }
@@ -99,10 +173,12 @@ export class OverlapResolver {
   private async resolveSpecificOverlap(node1: PositionedNode, node2: PositionedNode, diagramType: DiagramType): Promise<void> {
     const separation = this.getMinimumSeparationForType(diagramType);
 
-    const centerX1 = node1.x + node1.w / 2;
-    const centerY1 = node1.y + node1.h / 2;
-    const centerX2 = node2.x + node2.w / 2;
-    const centerY2 = node2.y + node2.h / 2;
+    const w1 = nodeW(node1), h1 = nodeH(node1);
+    const w2 = nodeW(node2), h2 = nodeH(node2);
+    const centerX1 = node1.x + w1 / 2;
+    const centerY1 = node1.y + h1 / 2;
+    const centerX2 = node2.x + w2 / 2;
+    const centerY2 = node2.y + h2 / 2;
 
     const dx = centerX1 - centerX2;
     const dy = centerY1 - centerY2;
@@ -116,7 +192,7 @@ export class OverlapResolver {
 
     const unitX = dx / distance;
     const unitY = dy / distance;
-    const requiredDistance = separation + (node1.w + node2.w) / 2;
+    const requiredDistance = separation + (w1 + w2) / 2;
     const moveDistance = (requiredDistance - distance) / 2;
 
     // Move nodes apart
@@ -178,16 +254,14 @@ export class OverlapResolver {
 
   /**
    * Force separate overlapping nodes (emergency method)
+   * Uses spatial hashing for efficient detection.
    */
   private async forceSeparateOverlappingNodes(nodes: PositionedNode[]): Promise<void> {
     console.log('🚨 Applying emergency overlap resolution...');
 
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        if (nodesOverlap(nodes[i], nodes[j])) {
-          await this.forceSeparateNodes(nodes[i], nodes[j]);
-        }
-      }
+    const overlappingPairs = this.detectOverlapsFast(nodes);
+    for (const [a, b] of overlappingPairs) {
+      await this.forceSeparateNodes(a, b);
     }
   }
 

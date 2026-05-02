@@ -64,6 +64,20 @@ export function generateEdgePoints(
 }
 
 /**
+ * Get effective node width (handles both `w` and `width` properties)
+ */
+function effectiveWidth(node: PositionedNode): number {
+  return node.w ?? node.width ?? 0;
+}
+
+/**
+ * Get effective node height (handles both `h` and `height` properties)
+ */
+function effectiveHeight(node: PositionedNode): number {
+  return node.h ?? node.height ?? 0;
+}
+
+/**
  * Check if two nodes overlap
  * Includes minimum spacing requirement
  */
@@ -72,15 +86,20 @@ export function nodesOverlap(
   node2: PositionedNode,
   spacing: number = 0
 ): boolean {
+  const w1 = effectiveWidth(node1);
+  const h1 = effectiveHeight(node1);
+  const w2 = effectiveWidth(node2);
+  const h2 = effectiveHeight(node2);
+
   const left1 = node1.x - spacing / 2;
-  const right1 = node1.x + node1.width + spacing / 2;
+  const right1 = node1.x + w1 + spacing / 2;
   const top1 = node1.y - spacing / 2;
-  const bottom1 = node1.y + node1.height + spacing / 2;
+  const bottom1 = node1.y + h1 + spacing / 2;
 
   const left2 = node2.x - spacing / 2;
-  const right2 = node2.x + node2.width + spacing / 2;
+  const right2 = node2.x + w2 + spacing / 2;
   const top2 = node2.y - spacing / 2;
-  const bottom2 = node2.y + node2.height + spacing / 2;
+  const bottom2 = node2.y + h2 + spacing / 2;
 
   return !(
     right1 <= left2 ||
