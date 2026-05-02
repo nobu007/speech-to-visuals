@@ -128,12 +128,14 @@ describe('BatchProcessingAPI - Batch Job CRUD', () => {
     // If it already completed, cancel returns failure (covered in test 7).
 
     // Give the async processJobAsync a tick to start
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 10));
 
     const result = api.cancelJob(jobId);
     expect(result).toHaveProperty('success');
     expect(result).toHaveProperty('message');
     expect(typeof result.message).toBe('string');
+    // Ensure async processing completes before test ends
+    try { await api.waitForJob(jobId, { timeoutMs: 1000 }); } catch { /* job may already be terminal */ }
   });
 
   // 4. Submit job with no files -> throws error
@@ -161,7 +163,7 @@ describe('BatchProcessingAPI - Batch Job CRUD', () => {
     const { jobId } = await api.submitJob(request);
 
     // Wait for the async processing to complete
-    await new Promise((r) => setTimeout(r, 200));
+    await api.waitForJob(jobId);
 
     const result = api.cancelJob(jobId);
     expect(result.success).toBe(false);
@@ -202,7 +204,7 @@ describe('BatchProcessingAPI - Job Lifecycle', () => {
     const { jobId } = await api.submitJob(request);
 
     // Wait for async processing to finish
-    await new Promise((r) => setTimeout(r, 300));
+    await api.waitForJob(jobId);
 
     const status = api.getJobStatus(jobId);
     expect(status.status).toBe('completed');
@@ -231,7 +233,7 @@ describe('BatchProcessingAPI - Job Lifecycle', () => {
     expect(initialStatus.progress.total).toBe(3);
 
     // Wait for all files to be processed
-    await new Promise((r) => setTimeout(r, 500));
+    await api.waitForJob(jobId);
 
     const finalStatus = api.getJobStatus(jobId);
     expect(finalStatus.status).toBe('completed');
@@ -259,6 +261,8 @@ describe('BatchProcessingAPI - Job Lifecycle', () => {
       const status = api.getJobStatus(jobId);
       expect(['completed', 'cancelled']).toContain(status.status);
     }
+    // Ensure async processing completes before test ends
+    try { await api.waitForJob(jobId, { timeoutMs: 1000 }); } catch { /* job may already be terminal */ }
   });
 });
 

@@ -137,6 +137,7 @@ describe('fetchWithTimeout', () => {
             return;
           }
           const onAbort = () => {
+            signal?.removeEventListener('abort', onAbort);
             reject(new DOMException('The operation was aborted', 'AbortError'));
           };
           signal?.addEventListener('abort', onAbort);

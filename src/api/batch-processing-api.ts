@@ -363,6 +363,27 @@ export class BatchProcessingAPI {
   }
 
   /**
+   * Wait for a job to reach a terminal state (completed, failed, cancelled).
+   * Polls job status at the given interval. Useful for tests.
+   */
+  async waitForJob(
+    jobId: string,
+    options: { timeoutMs?: number; intervalMs?: number } = {}
+  ): Promise<BatchJobStatus> {
+    const { timeoutMs = 10_000, intervalMs = 50 } = options;
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      const status = jobStore.getJobStatus(jobId);
+      if (!status) throw new Error(`Job not found: ${jobId}`);
+      if (status.status === 'completed' || status.status === 'failed' || status.status === 'cancelled') {
+        return status;
+      }
+      await new Promise((r) => setTimeout(r, intervalMs));
+    }
+    throw new Error(`waitForJob timed out after ${timeoutMs}ms for job ${jobId}`);
+  }
+
+  /**
    * Estimate time remaining for job
    */
   private estimateTimeRemaining(

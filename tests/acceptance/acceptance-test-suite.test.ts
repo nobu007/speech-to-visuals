@@ -791,8 +791,7 @@ describe('REQ-043: Batch Processing API', () => {
     });
     expect(result.jobId).toBeDefined();
     expect(result.jobId).toMatch(/^job_/);
-    // Wait for async processing to complete to prevent post-test console.log leaks
-    await new Promise((r) => setTimeout(r, 500));
+    await api.waitForJob(result.jobId);
   });
 
   // TC-043-02: Job status retrieval
@@ -801,12 +800,11 @@ describe('REQ-043: Batch Processing API', () => {
     const { jobId } = await api.submitJob({
       files: [new File(['test'], 'test.wav')],
     });
+    await api.waitForJob(jobId);
     const status = api.getJobStatus(jobId);
     expect(status).toBeDefined();
     expect(status.jobId).toBe(jobId);
-    expect(['queued', 'processing', 'completed', 'failed']).toContain(status.status);
-    // Wait for async processing to complete to prevent post-test console.log leaks
-    await new Promise((r) => setTimeout(r, 500));
+    expect(['completed', 'failed']).toContain(status.status);
   });
 
   // TC-043-E01: Completed job cancellation
@@ -820,8 +818,7 @@ describe('REQ-043: Batch Processing API', () => {
     // The job may be queued (not processing), so cancel may succeed or fail
     expect(result).toBeDefined();
     expect(result.message).toBeDefined();
-    // Wait for async processing to complete to prevent post-test console.log leaks
-    await new Promise((r) => setTimeout(r, 500));
+    await api.waitForJob(jobId);
   });
 });
 
