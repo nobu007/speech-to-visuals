@@ -1,14 +1,14 @@
 # Known Issues & Technical Debt
 
-**Last Updated**: 2025-10-14 (Phase 30)
-**Status**: Documented for Future Resolution
+**Last Updated**: 2026-05-02 (Phase 14/15)
+**Status**: All Known Issues Resolved
 
 ---
 
 ## 1. Enhanced Zero Overlap Layout Engine - Property Naming Inconsistency
 
-**Severity**: MEDIUM
-**Status**: WORKAROUND IN PLACE
+**Severity**: ~~MEDIUM~~ (resolved)
+**Status**: RESOLVED IN PHASE 14
 **Affects**: `src/visualization/enhanced-zero-overlap-layout.ts`
 
 ### Issue Description
@@ -42,18 +42,21 @@ Affected functions:
 const useEnhancedLayout = input.options?.useEnhancedLayout ?? false;
 ```
 
-**Status**: ✅ Standard layout engine provides zero-overlap layouts successfully
+**Status**: Standard layout engine provides zero-overlap layouts successfully
 **Impact**: LOW - Standard engine meets all quality requirements (100/100 score)
+
+### Phase 14 Resolution (TASK-0094)
+
+TASK-0094 unified all `width`/`height` references to `w`/`h` across the enhanced layout engine. All layout generation methods (flowchart, tree, timeline, comparison, network, concept map) now correctly use `w`/`h` per the `PositionedNode` type definition. The property naming inconsistency is fully resolved.
 
 ### Permanent Fix Requirements
 
-1. **Option A**: Update all enhanced layout code to use `w`/`h` (200+ line changes)
-2. **Option B**: Change `PositionedNode` type to use `width`/`height` (breaking change)
-3. **Option C**: Create adapter layer to convert between property conventions
+1. **Option A**: ~~Update all enhanced layout code to use `w`/`h` (200+ line changes)~~ **IMPLEMENTED IN PHASE 14 (TASK-0094)**
+2. **Option B**: Change `PositionedNode` type to use `width`/`height` (breaking change) - Not needed
+3. **Option C**: Create adapter layer to convert between property conventions - Not needed
 
-**Recommended**: Option A (align code with type definitions)
-**Estimated Effort**: 2-3 hours
-**Priority**: LOW (workaround is production-ready)
+**Implemented**: Option A (aligned all code with type definitions)
+**Status**: RESOLVED
 
 ### Related Files
 
@@ -67,7 +70,7 @@ const useEnhancedLayout = input.options?.useEnhancedLayout ?? false;
 ## 2. Edge Property Naming Inconsistency
 
 **Severity**: LOW
-**Status**: PARTIALLY ADDRESSED IN PHASE 30
+**Status**: RESOLVED IN PHASE 14
 
 ### Issue Description
 
@@ -75,16 +78,12 @@ Similar to the node property issue, edges have inconsistent property naming:
 - **Type Definition** (`EdgeDatum`, `LayoutEdge`): Uses `from` and `to`
 - **Enhanced Layout Engine (some places)**: Uses `source` and `target`
 
-### Phase 30 Fix
+### Phase 14 Resolution (TASK-0095)
 
-Updated tree layout to use correct property names (`from`/`to`), but other layout methods may still have inconsistencies.
+TASK-0095 completed a comprehensive audit and fix of all edge property references across the codebase. `LayoutStrategy.ts` now uses an adapter pattern to correctly map between `from`/`to` and `source`/`target` conventions. All edge property inconsistencies have been resolved.
 
-### Permanent Fix
-
-Comprehensive audit of all edge property references across the codebase.
-
-**Estimated Effort**: 1 hour
-**Priority**: LOW
+**Status**: RESOLVED
+**Impact**: None - Edge properties are now consistently handled
 
 ---
 
@@ -115,12 +114,10 @@ This document follows the custom instructions principle:
 > "動作→評価→改善→コミットの繰り返し"
 > (Iteration: Working → Evaluate → Improve → Commit)
 
-**Current State**: System is working (Phase 29: 100/100 quality score)
-**Next Steps**: Optimize processing time (Phase 30 priority)
-**Future Enhancement**: Fix property naming for enhanced layout engine (low priority)
+**Current State**: All known issues resolved (Phase 14: property naming unified, Phase 15: quality maintenance)
+**Next Steps**: Quality maintenance and coverage improvement (Phase 15+ focus)
+**Future Enhancement**: Ongoing quality assurance and test coverage expansion
 
 ---
-
-**Phase 30 Autonomous Decision**: Focus on impactful improvements (processing time optimization) rather than fixing low-priority known issues with working workarounds.
 
 **Ref**: PHASE_29_COMPLETION_REPORT.md - Section "Technical Discoveries"
