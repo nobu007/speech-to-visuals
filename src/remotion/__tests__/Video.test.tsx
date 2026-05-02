@@ -1,14 +1,46 @@
 /**
+ * @jest-environment jsdom
+ */
+/**
  * Tests for Video.tsx - Scene switching, total frames calculation, findSceneAtTime
  */
 
+import * as React from 'react';
+import { render, screen } from '@testing-library/react';
 import { SceneGraph } from '@/types/diagram';
 import {
   calculateTotalFrames,
   findSceneAtTime,
   DEFAULT_FPS,
   defaultVideoProps,
+  DEFAULT_WIDTH,
+  DEFAULT_HEIGHT,
+  SpeechToVisualsVideo,
+  VideoProps,
 } from '../Video';
+
+// Mock remotion hooks for component tests
+let mockFrame = 0;
+let mockFps = 30;
+let mockDurationInFrames = 300;
+
+jest.mock('remotion', () => {
+  const originalModule = jest.requireActual('remotion');
+  return {
+    ...originalModule,
+    useCurrentFrame: () => mockFrame,
+    useVideoConfig: () => ({
+      fps: mockFps,
+      width: 1920,
+      height: 1080,
+      durationInFrames: mockDurationInFrames,
+    }),
+    AbsoluteFill: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) =>
+      React.createElement('div', { style: { position: 'absolute', inset: 0, ...style }, 'data-testid': 'absolute-fill' }, children),
+    Audio: ({ src }: { src: string }) =>
+      React.createElement('audio', { src, 'data-testid': 'audio' }),
+  };
+});
 
 // Helper to create a SceneGraph
 function createScene(overrides: Partial<SceneGraph> = {}): SceneGraph {
@@ -201,5 +233,104 @@ describe('defaultVideoProps', () => {
 
   it('should not have audio URL by default', () => {
     expect(defaultVideoProps.audioUrl).toBeUndefined();
+  });
+});
+
+describe('SpeechToVisualsVideo component', () => {
+  beforeEach(() => {
+    mockFrame = 0;
+    mockFps = 30;
+    mockDurationInFrames = 300;
+  });
+
+  function createScenes(count: number, durationMs = 5000): SceneGraph[] {
+    return Array.from({ length: count }, (_, i) => createScene({
+      durationMs,
+      summary: `Scene ${i + 1}`,
+      type: 'flow',
+      nodes: [{
+        id: `n${i}`,
+        label: `Node ${i}`,
+        x: 100,
+        y: 100,
+        width: 120,
+        height: 60,
+      }],
+      edges: [],
+    }));
+  }
+
+  it('should render with scenes at frame 0', () => {
+    const scenes = createScenes(2);
+    const { container } = render(
+      React.createElement(SpeechToVisualsVideo, { scenes })
+    );
+    expect(container.querySelector('[data-testid="absolute-fill"]')).toBeTruthy();
+  });
+
+  it('should render Preparing... when no scene is found', () => {
+    mockFrame = 9000; // well past the duration
+    mockDurationInFrames = 300;
+    const scenes = createScenes(1, 5000); // 5 seconds = 150 frames at 30fps
+    render(React.createElement(SpeechToVisualsVideo, { scenes }));
+    expect(screen.getByText('Preparing...')).toBeTruthy();
+  });
+
+  it('should render audio element when audioUrl is provided', () => {
+    const scenes = createScenes(1);
+    render(React.createElement(SpeechToVisualsVideo, {
+      scenes,
+      audioUrl: 'https://example.com/audio.mp3',
+    }));
+    const audio = screen.getByTestId('audio');
+    expect(audio).toBeTruthy();
+  });
+
+  it('should not render audio element when audioUrl is not provided', () => {
+    const scenes = createScenes(1);
+    render(React.createElement(SpeechToVisualsVideo, { scenes }));
+    expect(screen.queryByTestId('audio')).toBeNull();
+  });
+
+  it('should apply custom backgroundColor', () => {
+    const scenes = createScenes(1);
+    const { container } = render(
+      React.createElement(SpeechToVisualsVideo, {
+        scenes,
+        backgroundColor: '#ff0000',
+      })
+    );
+    const outerDiv = container.querySelector('[data-testid="absolute-fill"]');
+    expect(outerDiv).toBeTruthy();
+  });
+
+  it('should display scene counter with multiple scenes', () => {
+    const scenes = createScenes(3, 5000);
+    mockFrame = 10; // within first scene
+    mockDurationInFrames = calculateTotalFrames(scenes);
+    render(React.createElement(SpeechToVisualsVideo, { scenes }));
+    expect(screen.getByText(/Scene 1 \/ 3/)).toBeTruthy();
+  });
+
+  it('should show default background when no backgroundColor provided', () => {
+    const scenes = createScenes(1);
+    const { container } = render(
+      React.createElement(SpeechToVisualsVideo, { scenes })
+    );
+    expect(container.firstChild).toBeTruthy();
+  });
+});
+
+describe('Video constants', () => {
+  it('should have correct DEFAULT_FPS', () => {
+    expect(DEFAULT_FPS).toBe(30);
+  });
+
+  it('should have correct DEFAULT_WIDTH for 1080p', () => {
+    expect(DEFAULT_WIDTH).toBe(1920);
+  });
+
+  it('should have correct DEFAULT_HEIGHT for 1080p', () => {
+    expect(DEFAULT_HEIGHT).toBe(1080);
   });
 });
