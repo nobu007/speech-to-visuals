@@ -151,6 +151,11 @@ describe('E2E Performance Benchmark (TASK-0075)', () => {
       });
     });
 
+    afterAll(() => {
+      // Release LayoutEngine reference to allow GC
+      engine = undefined as unknown as LayoutEngine;
+    });
+
     test('100-node diagram layout completes within 2 seconds', async () => {
       const nodes = generateNodes(100);
       const edges = generateChainEdges(100);
