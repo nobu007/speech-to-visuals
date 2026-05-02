@@ -35,21 +35,21 @@
   - 必要になるフェーズ: Supabase 統合利用時
   - 関連要件: REQ-405, NFR-102
 
-- [ ] **Whisper モデルのダウンロード** 🔵 *src/transcription/whisper-transcriber.ts より*
+- [x] **Whisper モデルのダウンロード** 🔵 *src/transcription/whisper-transcriber.ts より*
   - `npx @remotion/install-whisper-cpp` で Whisper をインストール
-  - base/small/medium モデルのいずれかが利用可能であることを確認
+  - base/small/medium モデルのいずれかが利用可能であることを確認 → `ggml-base.bin` (148MB) 確認済み
   - 必要になるフェーズ: ローカル文字起こし利用時
   - 関連要件: REQ-001
 
-- [ ] **Remotion Studio の動作確認** 🔵 *package.json scripts より*
-  - `npm run remotion:studio` で Remotion Studio が起動することを確認
-  - 動画プレビューが正常に表示されることを確認
+- [x] **Remotion Studio の動作確認** 🔵 *package.json scripts より*
+  - `npm run remotion:studio` で Remotion Studio が起動することを確認 → localhost:3000 で起動確認済み
+  - 動画プレビューが正常に表示されることを確認 → ビルド成功 (2279ms)
   - 必要になるフェーズ: Phase 4 動画確認時
   - 関連要件: REQ-025, REQ-030
 
-- [ ] **パイプライン API サーバーのセットアップ** 🔵 *src/hooks/useFrameworkPipeline.ts・要件定義REQ-057 より*
-  - フロントエンドが呼び出す API エンドポイント（/api/render, /api/git/commit, /api/iteration-log, /api/framework/status）のバックエンド実装が必要
-  - Express API サーバー（`npm run api:dev`）が起動していることを確認
+- [x] **パイプライン API サーバーのセットアップ** 🔵 *src/hooks/useFrameworkPipeline.ts・要件定義REQ-057 より*
+  - フロントエンドが呼び出す API エンドポイント（/api/render, /api/git/commit, /api/iteration-log, /api/framework/status）のバックエンド実装が必要 → 4エンドポイント実装済み (src/api/routes/pipeline.ts)
+  - Express API サーバー（`npm run api:dev`）が起動していることを確認 → port 3001 で起動確認済み
   - 必要になるフェーズ: パイプライン API 利用時
   - 関連要件: REQ-057
 
