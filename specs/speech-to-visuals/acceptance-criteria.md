@@ -1,5 +1,14 @@
 # Speech-to-Visuals 受け入れ基準
 
+
+<!-- spine:anchor:begin -->
+> **Spine anchor**: [speech-to-visuals アーキテクチャ設計](architecture.md)
+>
+> - parent: `speech-to-visuals/architecture.md`
+> - role: `detailed`
+> - status: `canonical_child`
+<!-- spine:anchor:end -->
+
 **作成日**: 2026-04-27
 **最終更新**: 2026-05-02（第95回検証・Phase 1-16全完了・273ファイル・84,442行・要件カバレッジ100%維持・3,228テスト全通過(120 suites)・TypeScript/ESLintエラー0件・ギャップなし）
 **関連要件定義**: [requirements.md](requirements.md)

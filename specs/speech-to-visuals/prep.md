@@ -1,5 +1,14 @@
 # Speech-to-Visuals 準備タスク（ユーザー作業）
 
+
+<!-- spine:anchor:begin -->
+> **Spine anchor**: [speech-to-visuals アーキテクチャ設計](architecture.md)
+>
+> - parent: `speech-to-visuals/architecture.md`
+> - role: `detailed`
+> - status: `canonical_child`
+<!-- spine:anchor:end -->
+
 > **仕様**: [requirements.md](requirements.md)
 > **生成日**: 2026-04-27
 > **最終更新**: 2026-05-02（第93回検証・273ファイル・84,442行・95要件・Phase 16全完了・準備タスク内容不変）

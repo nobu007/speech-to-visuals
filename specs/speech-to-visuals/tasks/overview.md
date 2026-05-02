@@ -1,5 +1,14 @@
 # speech-to-visuals タスク概要
 
+
+<!-- spine:anchor:begin -->
+> **Spine anchor**: [speech-to-visuals アーキテクチャ設計](../architecture.md)
+>
+> - parent: `speech-to-visuals/architecture.md`
+> - role: `detailed`
+> - status: `canonical_child`
+<!-- spine:anchor:end -->
+
 **作成日**: 2026-04-30
 **最終更新**: 2026-05-03（第55回検証: overview.md正確性確認・カバレッジ90.85% stmts/79.23% branches/91.24% functions/91.25% lines・108/108タスク・3,507テスト全通過・ワーカー警告残存・npm audit 0件）
 **プロジェクト期間**: 2026-04-27 - 2026-08-22（118日）

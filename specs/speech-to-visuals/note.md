@@ -1,5 +1,14 @@
 # Speech-to-Visuals コンテキストノート
 
+
+<!-- spine:anchor:begin -->
+> **Spine anchor**: [speech-to-visuals アーキテクチャ設計](architecture.md)
+>
+> - parent: `speech-to-visuals/architecture.md`
+> - role: `detailed`
+> - status: `canonical_child`
+<!-- spine:anchor:end -->
+
 **作成日**: 2026-04-27
 **最終更新**: 2026-05-02（第96回検証版・Phase 1-16全完了・全105タスク・273ファイル・84,442行・3,228テスト全通過(120 suites)・TypeScript/ESLintエラー0件・95要件・ギャップなし）
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム

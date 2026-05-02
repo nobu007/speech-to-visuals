@@ -1,5 +1,14 @@
 # Speech-to-Visuals 自動分析記録
 
+
+<!-- spine:anchor:begin -->
+> **Spine anchor**: [speech-to-visuals アーキテクチャ設計](architecture.md)
+>
+> - parent: `speech-to-visuals/architecture.md`
+> - role: `detailed`
+> - status: `canonical_child`
+<!-- spine:anchor:end -->
+
 **作成日**: 2026-04-27
 **最終更新**: 2026-05-02（第95回: kairo-requirements要件再検証・Phase 1-16全完了・273ファイル・84,442行・3,228テスト全通過(120 suites)・TypeScript/ESLintエラー0件・依存103パッケージ(73+30)・95要件・要件カバレッジ100%維持・ギャップなし確認）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
