@@ -10,14 +10,14 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-02（第96回検証版・Phase 1-16全完了・全105タスク・273ファイル・84,442行・3,228テスト全通過(120 suites)・TypeScript/ESLintエラー0件・95要件・ギャップなし）
+**最終更新**: 2026-05-03（コンテキストノート更新・技術スタックバージョン修正）
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム
 
 ## 技術スタック
 
 ### フロントエンド
-- React 18.3 + TypeScript 5.8
-- Vite 5.4（ビルドツール）
+- React 18.3 + TypeScript 5.9
+- Vite 6.4（ビルドツール）
 - Tailwind CSS + shadcn/ui（スタイリング・UIコンポーネント）
 - Remotion 4.0（動画生成・プレビュー）
 - React Router 6.30（ルーティング）
@@ -36,12 +36,12 @@
 - Google Gemini AI @google/generative-ai 0.24（LLM）
 - Whisper @remotion/install-whisper-cpp（音声認識）
 - Kuromoji 0.1（日本語形態素解析）
-- @dagrejs/dagre 1.1（グラフレイアウト）
+- @dagrejs/dagre 3.0（グラフレイアウト）
 
 ### 開発ツール
 - ESLint 9（Lint）
 - Jest 30.3 + ts-jest 29（テスト）
-- tsx 4.20（TypeScript 実行）
+- tsx 4.21（TypeScript 実行）
 
 ## 開発ルール
 
@@ -64,6 +64,7 @@ src/
 ├── framework/       # 再帰的改善フレームワーク
 ├── hooks/           # React Hooks
 ├── integrations/    # Supabase 統合
+├── lib/             # 共有ライブラリ（shadcn/ui primitives 等）
 ├── monitoring/      # プロダクション監視
 ├── optimization/    # パラメータチューニング、キャッシュ、遅延ロード
 ├── pages/           # React Router ページ
