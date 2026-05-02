@@ -1,7 +1,7 @@
 # speech-to-visuals タスク概要
 
 **作成日**: 2026-04-30
-**最終更新**: 2026-05-02（第97回検証: Phase 16全完了・Phase 17タスク追加(3件)・カバレッジ90.4% stmts/78.45% branches/90.39% functions/90.74% lines・108/108タスク・3,228テスト全通過・ワーカー警告ゼロ・npm audit 0件）
+**最終更新**: 2026-05-03（第55回検証: overview.md正確性確認・カバレッジ90.85% stmts/79.23% branches/91.24% functions/91.25% lines・108/108タスク・3,507テスト全通過・ワーカー警告残存・npm audit 0件）
 **プロジェクト期間**: 2026-04-27 - 2026-08-22（118日）
 **推定工数**: 707時間（695+12h Phase 17）
 **総タスク数**: 108件
@@ -70,9 +70,9 @@
 - API コスト: $0.03/動画（目標$0.10以下）
 - メモリ使用量: 82.21MB（目標512MB以下）
 - 型エラー: 0件（237件→0件解消）
-- テストカバレッジ: 90.4% statements（目標75%以上）・78.45% branches・90.39% functions・90.74% lines
-- テスト数: 3,228テスト（全テスト通過・120 suites）
-- コード規模: 273ファイル・84,421行・73 deps + 30 devDeps = 103パッケージ
+- テストカバレッジ: 90.85% statements（目標75%以上）・79.23% branches・91.24% functions・91.25% lines
+- テスト数: 3,507テスト（全テスト通過・132 suites）
+- コード規模: 281ファイル・86,382行・74 deps + 30 devDeps = 104パッケージ
 - ESLint `no-explicit-any` エラー: 0件 ✅
 - 図解タイプ: 11種類（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general）
 
