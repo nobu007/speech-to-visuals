@@ -1,6 +1,6 @@
 # Known Issues & Technical Debt
 
-**Last Updated**: 2026-05-02 (Phase 14/15)
+**Last Updated**: 2026-05-03 (Phase 15)
 **Status**: All Known Issues Resolved
 
 ---
@@ -69,7 +69,7 @@ TASK-0094 unified all `width`/`height` references to `w`/`h` across the enhanced
 
 ## 2. Edge Property Naming Inconsistency
 
-**Severity**: LOW
+**Severity**: ~~LOW~~ (resolved)
 **Status**: RESOLVED IN PHASE 14
 
 ### Issue Description
@@ -114,9 +114,9 @@ This document follows the custom instructions principle:
 > "動作→評価→改善→コミットの繰り返し"
 > (Iteration: Working → Evaluate → Improve → Commit)
 
-**Current State**: All known issues resolved (Phase 14: property naming unified, Phase 15: quality maintenance)
-**Next Steps**: Quality maintenance and coverage improvement (Phase 15+ focus)
-**Future Enhancement**: Ongoing quality assurance and test coverage expansion
+**Current State**: All known issues resolved (Phase 14: property naming unified via TASK-0094/0095, Phase 15: KNOWN_ISSUES.md status updated via TASK-0098)
+**Next Steps**: Ongoing quality maintenance and test coverage improvement (Phase 15+ focus)
+**Future Enhancement**: Continued quality assurance, performance monitoring, and test coverage expansion
 
 ---
 
