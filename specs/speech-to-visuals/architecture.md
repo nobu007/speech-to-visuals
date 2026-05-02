@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-02（第96回検証: Phase 1-16全完了・273ファイル・84,442行・105タスク(全完了)・全3,228テスト通過(120 suites)・TypeScript/ESLintエラー0件・依存103パッケージ(73+30)・要件カバレッジ100%維持・SYSTEM_CONSTITUTION V2.1適合・REQ-058/059/060反映済・ギャップなし確認）
+**最終更新**: 2026-05-03（第97回検証: Phase 1-16全完了・284ファイル・87,155行・108タスク(全完了)・全3,545テスト通過(133 suites)・TypeScript/ESLintエラー0件・依存104パッケージ(74+30)・要件カバレッジ100%維持・SYSTEM_CONSTITUTION V2.1適合・REQ-058/059/060反映済・ギャップなし確認）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -313,30 +313,30 @@ graph TB
 ```
 ./
 ├── src/
-│   ├── analysis/           # 内容分析（32ファイル: LLM、Gemini、図解検出、言語検出、複雑度、フォールバックチェーン、プロンプト構築、テスト）🔵
-│   ├── api/                # REST API・WebSocket（12ファイル: バッチ処理、リアルタイム通知、パイプラインAPI、ミドルウェア、ルート定義）🔵
+│   ├── analysis/           # 内容分析（33ファイル: LLM、Gemini、図解検出、言語検出、複雑度、フォールバックチェーン、プロンプト構築、テスト）🔵
+│   ├── api/                # REST API・WebSocket（13ファイル: バッチ処理、リアルタイム通知、パイプラインAPI、ミドルウェア、ルート定義）🔵
 │   │   ├── middleware/     # レート制限、エラーハンドラー、認証 🔵
 │   │   ├── routes/         # API ルート定義（batch, health, pipeline）🔵
 │   │   └── routes/__tests__/ # API ルートテスト 🔵
-│   ├── components/         # React UI（48ファイル: Pipeline UI, VideoPreview, FileUploader, TutorialSystem, StreamingProcessor, Dashboards, ErrorAlert等）🔵
+│   ├── components/         # React UI（50ファイル: Pipeline UI, VideoPreview, FileUploader, TutorialSystem, StreamingProcessor, Dashboards, ErrorAlert等）🔵
 │   ├── config/             # 設定（7ファイル: プロダクション設定 + Zod バリデーション + 環境変数管理）🔵 *要件定義REQ-038*
-│   ├── export/             # エクスポート（4ファイル: multi-format/enhanced/production/UI）🔵
+│   ├── export/             # エクスポート（5ファイル: multi-format/enhanced/production/UI）🔵
 │   ├── framework/          # 再帰的改善フレームワーク（6ファイル: auto-improvement-engine, continuous-learner, iteration-manager等）🔵
 │   ├── hooks/              # React Hooks（2ファイル）
 │   ├── integrations/       # Supabase 統合（5ファイル）
 │   ├── lib/                # 動画レンダリング抽象化（3ファイル: actualVideoRenderer, videoRenderer, utils）🔵 *Phase 10 追加*
 │   ├── monitoring/         # プロダクション監視（6ファイル）
-│   ├── optimization/       # パラメータチューニング・バッチ最適化・キャッシュ・遅延ローダー・ウォームアップ（7ファイル）🔵
+│   ├── optimization/       # パラメータチューニング・バッチ最適化・キャッシュ・遅延ローダー・ウォームアップ（8ファイル）🔵
 │   ├── pages/              # React Router ページ（4ファイル）
 │   ├── performance/        # インテリジェントキャッシュ（3ファイル: intelligent-cache, index, テスト）🔵 *Phase 10 追加*
-│   ├── pipeline/           # パイプライン（13ファイル: Simple/Main/Framework/Adaptive/VideoGenerator/Orchestrator等）🔵
+│   ├── pipeline/           # パイプライン（15ファイル: Simple/Main/Framework/Adaptive/VideoGenerator/Orchestrator等）🔵
 │   ├── quality/            # 品質保証・エラー回復（9ファイル: ErrorClassifier/QualityGate/EnhancedErrorRecovery/UserGuidedRecovery等）🔵
 │   ├── remotion/           # Remotion 動画コンポーネント（22ファイル: Animation/Scene/Renderer/SRT/Caption）🔵
-│   ├── test/               # テストユーティリティ（12ファイル）
+│   ├── test/               # テストユーティリティ（16ファイル）
 │   ├── transcription/      # 音声認識（12ファイル: Whisper/Streaming/Browser/テスト）🔵
 │   ├── types/              # TypeScript 型定義（15ファイル: diagram/workspace/api/llm/cache/quality/pipeline等）🔵
-│   ├── utils/              # ユーティリティ（2ファイル）
-│   └── visualization/      # 図解レイアウト（39ファイル: 20戦略・レイアウトエンジン・補助モジュール）
+│   ├── utils/              # ユーティリティ（3ファイル）
+│   └── visualization/      # 図解レイアウト（42ファイル: 20戦略・レイアウトエンジン・補助モジュール）
 │       ├── base/           # ベース可視化コンポーネント 🔵
 │       ├── layout/         # レイアウト固有コード 🔵
 │       └── strategies/     # レイアウト戦略（20ファイル: コア5+新コア5+拡張+補助）🔵
@@ -347,7 +347,7 @@ graph TB
 │   ├── architecture/       # 旧アーキテクチャ文書（統合元）
 │   ├── spec/               # 要件定義書
 │   └── design/             # 設計文書（本ファイル群）
-├── tests/                  # テストスイート（57ファイル）
+├── tests/                  # テストスイート（70ファイル）
 ├── scripts/                # ユーティリティスクリプト
 └── public/                 # 静的アセット
 ```
@@ -476,6 +476,14 @@ Fallback LLM
 - **不正設定時動作**: 全エラー一括返却、不正設定時は即座にエラーで終了
 - **検証ルール**: complexityThreshold/similarityThreshold (0-1)、port (1024-65535)、cacheSize (1-10000)、cacheTtlMinutes (1-10080)
 
+## Acceptance criteria
+
+- [x] ディレクトリ構造のファイル数が実際の `src/` レイアウトと一致する
+- [x] コード規模メトリクス（ファイル数・行数・テスト数・パッケージ数）が最新
+- [x] アーキテクチャ文書内で参照されている全モジュールがコードベースに存在する
+- [x] TypeScript・ESLint エラーが 0 件
+- [x] 全テストスイートが green（133 suites / 3,545 tests）
+
 ## 関連文書
 
 - **データフロー**: [dataflow.md](dataflow.md)
@@ -493,7 +501,7 @@ Fallback LLM
 - 🟡 黄信号: 2件 (2%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第96回検証: Phase 1-16全完了・273ファイル・84,442行・105タスク(全完了)・全3,228テスト通過(120 suites)・TypeScript/ESLintエラー0件・依存103パッケージ(73+30)・要件カバレッジ100%維持・SYSTEM_CONSTITUTION V2.1適合・REQ-058/059/060反映済・ギャップなし確認）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第97回検証: Phase 1-16全完了・284ファイル・87,155行・108タスク(全完了)・全3,545テスト通過(133 suites)・TypeScript/ESLintエラー0件・依存104パッケージ(74+30)・要件カバレッジ100%維持・SYSTEM_CONSTITUTION V2.1適合・REQ-058/059/060反映済・ギャップなし確認）
 
 
 <!-- spine:children:begin -->
