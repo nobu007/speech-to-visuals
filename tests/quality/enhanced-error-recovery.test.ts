@@ -1645,3 +1645,8 @@ describe('EnhancedErrorRecovery', () => {
     });
   });
 });
+
+// Clean up the module-level singleton to prevent timer leaks
+afterAll(() => {
+  globalErrorRecovery.destroy();
+});
