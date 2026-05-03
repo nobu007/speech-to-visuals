@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-03（コンテキストノート更新・技術スタックバージョン修正）
+**最終更新**: 2026-05-03（Sonner バージョン修正 1.7→2.0、acceptance criteria 追加）
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム
 
 ## 技術スタック
@@ -24,7 +24,7 @@
 - React Query（TanStack Query 5.100）（状態管理）
 - Zod 3.25.76（スキーマ検証）
 - Recharts 2.15（グラフ可視化）
-- Sonner 1.7（通知）
+- Sonner 2.0（通知）
 
 ### バックエンド・処理
 - Node.js 18+
@@ -90,6 +90,15 @@ src/
 - `docs/architecture/PIPELINE_FLOW.md` - 処理パイプライン仕様
 - `docs/architecture/QUALITY_METRICS.md` - 品質評価基準
 - `docs/architecture/ITERATION_LOG.md` - 改善履歴
+
+## Acceptance criteria
+
+- [x] フロントエンド技術スタックのバージョンが package.json dependencies と一致する（React 18.3, TypeScript 5.9, Vite 6.4, React Router 6.30, TanStack Query 5.100, Zod 3.25.76, Recharts 2.15, Sonner 2.0, Remotion 4.0）
+- [x] バックエンド・処理技術スタックのバージョンが package.json dependencies と一致する（Express 5.2.1, Supabase 2.105, Socket.IO 4.8）
+- [x] AI・ML技術スタックのバージョンが package.json dependencies と一致する（@google/generative-ai 0.24, @remotion/install-whisper-cpp, Kuromoji 0.1, @dagrejs/dagre 3.0）
+- [x] 開発ツールのバージョンが package.json devDependencies と一致する（ESLint 9, Jest 30.3, ts-jest 29, tsx 4.21）
+- [x] 主要ディレクトリ構造の記述が実際の src/ 配下と一致する（21ディレクトリ）
+- [x] 開発コマンド（dev, api:dev, remotion:studio, type-check, test）が package.json scripts と一致する
 
 ## 注意事項
 
