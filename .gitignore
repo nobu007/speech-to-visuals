@@ -322,3 +322,8 @@ public/scenes/
 
 # python
 tmp/
+
+# AI execution temporary files
+.task-prompt*.md
+.cleanup-prompt.md
+.spine_briefs/
