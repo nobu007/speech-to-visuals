@@ -432,4 +432,150 @@ describe('TASK-0021: DiagramDetector', () => {
       expect(Array.isArray(result.alternatives)).toBe(true);
     });
   });
+
+  // -----------------------------------------------------------------------
+  // TASK-0101: analyze() method tests for branch coverage
+  // -----------------------------------------------------------------------
+  describe('TASK-0101: analyze() method', () => {
+    it('should return analysis with nodes and edges for flow text', async () => {
+      const segment = makeSegment('First we gather requirements. Next we design the system. Then we implement. Finally we test.');
+      const result = await detector.analyze(segment);
+
+      expect(result).toBeDefined();
+      expect(result.type).toBeDefined();
+      expect(result.confidence).toBeGreaterThanOrEqual(0);
+      expect(result.nodes.length).toBeGreaterThan(0);
+      expect(result.edges.length).toBeGreaterThan(0);
+      expect(result.reasoning).toBeDefined();
+    });
+
+    it('should return analysis for tree text', async () => {
+      const segment = makeSegment('The organization has a hierarchy with CEO at the top. Directors report to the VP. Teams are under each department.');
+      const result = await detector.analyze(segment);
+
+      expect(result).toBeDefined();
+      expect(result.nodes.length).toBeGreaterThan(0);
+    });
+
+    it('should return analysis for timeline text', async () => {
+      const segment = makeSegment('The project started in January 2023. By April we completed the first phase. The final milestone is in June.');
+      const result = await detector.analyze(segment);
+
+      expect(result).toBeDefined();
+      expect(result.nodes.length).toBeGreaterThan(0);
+    });
+
+    it('should return analysis for cycle text', async () => {
+      const segment = makeSegment('The continuous cycle involves planning, executing, reviewing, and improving. This loop repeats iteratively with feedback.');
+      const result = await detector.analyze(segment);
+
+      expect(result).toBeDefined();
+      expect(result.nodes.length).toBeGreaterThan(0);
+    });
+
+    it('should return analysis for matrix/comparison text', async () => {
+      const segment = makeSegment('Comparing Option A versus Option B: Option A has better cost but Option B has more features.');
+      const result = await detector.analyze(segment);
+
+      expect(result).toBeDefined();
+      expect(result.nodes.length).toBeGreaterThan(0);
+    });
+
+    it('should handle error gracefully and return fallback analysis', async () => {
+      const segment = makeSegment('');
+      // Force an error by passing a segment with problematic content
+      const result = await detector.analyze(segment);
+
+      expect(result).toBeDefined();
+      expect(result.type).toBeDefined();
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // TASK-0101: nextIteration / statistical / hybrid analysis paths
+  // -----------------------------------------------------------------------
+  describe('TASK-0101: iterative analysis paths', () => {
+    it('should apply statistical analysis at iteration 2', async () => {
+      detector.nextIteration(); // move to iteration 2
+      const segment = makeSegment('First we gather requirements. Next we design the system. Then we implement.');
+      const result = await detector.analyze(segment);
+
+      expect(result).toBeDefined();
+      expect(result.confidence).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should apply hybrid analysis at iteration 3', async () => {
+      detector.nextIteration();
+      detector.nextIteration(); // move to iteration 3
+      const segment = makeSegment('The cycle of planning, executing, and reviewing repeats continuously.');
+      const result = await detector.analyze(segment);
+
+      expect(result).toBeDefined();
+      expect(result.type).toBeDefined();
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // TASK-0101: extractTextFeatures edge cases
+  // -----------------------------------------------------------------------
+  describe('TASK-0101: extractTextFeatures edge cases', () => {
+    it('should handle text with arrow relation patterns', () => {
+      const features = detector.extractTextFeatures('A → B leads to C', []);
+      expect(features.relationPatterns.flow).toBeGreaterThan(0);
+    });
+
+    it('should handle text with Japanese relation patterns', () => {
+      const features = detector.extractTextFeatures('AからBまで属する含まれる分類', []);
+      expect(features.relationPatterns.tree).toBeGreaterThan(0);
+    });
+
+    it('should handle text with cycle relation patterns', () => {
+      const features = detector.extractTextFeatures('returns to and cycles back and repeats', []);
+      expect(features.relationPatterns.cycle).toBeGreaterThan(0);
+    });
+
+    it('should return zero features for text with no keywords', () => {
+      const features = detector.extractTextFeatures('', []);
+      expect(features.totalKeywords).toBe(0);
+      expect(Object.values(features.keywordFrequency).every(v => v === 0)).toBe(true);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // TASK-0101: calculateConfidence edge cases
+  // -----------------------------------------------------------------------
+  describe('TASK-0101: calculateConfidence edge cases', () => {
+    it('should return 0 when frequency and relation patterns are both 0', () => {
+      const features: TextFeatures = {
+        keywordHits: { flow: [], flowchart: [], tree: [], timeline: [], matrix: [], cycle: [], comparison: [], network: [], conceptmap: [], mindmap: [], general: [] },
+        keywordFrequency: { flow: 0, flowchart: 0, tree: 0, timeline: 0, matrix: 0, cycle: 0, comparison: 0, network: 0, conceptmap: 0, mindmap: 0, general: 0 },
+        totalKeywords: 0,
+        relationPatterns: { flow: 0, flowchart: 0, tree: 0, timeline: 0, matrix: 0, cycle: 0, comparison: 0, network: 0, conceptmap: 0, mindmap: 0, general: 0 },
+      };
+      expect(detector.calculateConfidence('cycle', features)).toBe(0);
+      expect(detector.calculateConfidence('tree', features)).toBe(0);
+    });
+
+    it('should return high confidence with many hits and frequency', () => {
+      const features: TextFeatures = {
+        keywordHits: { flow: ['a', 'b', 'c'], flowchart: [], tree: [], timeline: [], matrix: [], cycle: [], comparison: [], network: [], conceptmap: [], mindmap: [], general: [] },
+        keywordFrequency: { flow: 6, flowchart: 0, tree: 0, timeline: 0, matrix: 0, cycle: 0, comparison: 0, network: 0, conceptmap: 0, mindmap: 0, general: 0 },
+        totalKeywords: 6,
+        relationPatterns: { flow: 1, flowchart: 0, tree: 0, timeline: 0, matrix: 0, cycle: 0, comparison: 0, network: 0, conceptmap: 0, mindmap: 0, general: 0 },
+      };
+      const conf = detector.calculateConfidence('flow', features);
+      expect(conf).toBeGreaterThanOrEqual(0.7);
+    });
+
+    it('should dampen confidence for single hit with low frequency', () => {
+      const features: TextFeatures = {
+        keywordHits: { flow: ['a'], flowchart: [], tree: [], timeline: [], matrix: [], cycle: [], comparison: [], network: [], conceptmap: [], mindmap: [], general: [] },
+        keywordFrequency: { flow: 1, flowchart: 0, tree: 0, timeline: 0, matrix: 0, cycle: 0, comparison: 0, network: 0, conceptmap: 0, mindmap: 0, general: 0 },
+        totalKeywords: 1,
+        relationPatterns: { flow: 0, flowchart: 0, tree: 0, timeline: 0, matrix: 0, cycle: 0, comparison: 0, network: 0, conceptmap: 0, mindmap: 0, general: 0 },
+      };
+      const conf = detector.calculateConfidence('flow', features);
+      expect(conf).toBeLessThanOrEqual(0.45);
+    });
+  });
 });

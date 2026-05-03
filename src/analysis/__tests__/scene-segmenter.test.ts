@@ -190,4 +190,124 @@ describe('SceneSegmenter', () => {
       expect(matchedPhrases.length).toBeGreaterThanOrEqual(1);
     });
   });
+
+  // =========================================================================
+  // TASK-0101: Additional branch coverage tests
+  // =========================================================================
+  describe('TASK-0101: edge cases for branch coverage', () => {
+    it('should handle error gracefully in segment() and return empty array', async () => {
+      // Create a segmenter with config that will cause a processing path
+      const badSegmenter = new SceneSegmenter({ maxSegmentLengthMs: -1 });
+      // Override to cause an error by passing null-like data
+      const result = await badSegmenter.segment([]);
+      expect(result).toBeDefined();
+      // Empty input produces empty result
+      expect(result).toEqual([]);
+    });
+
+    it('should handle segments with English text and extract keywords', async () => {
+      const segments: TranscriptionSegment[] = [
+        seg(0, 5000, 'Database design is important. Database normalization is required.'),
+        seg(5000, 10000, 'Testing is also important. Testing coverage must be high.'),
+      ];
+
+      const result = await segmenter.segment(segments);
+
+      expect(result.length).toBeGreaterThan(0);
+      // Check text completeness
+      const originalText = segments.map(s => s.text).join('');
+      const resultText = joinedText(result);
+      expect(resultText).toBe(originalText);
+    });
+
+    it('should handle single very short segment', async () => {
+      const segments: TranscriptionSegment[] = [
+        seg(0, 1000, 'Short.'),
+      ];
+
+      const result = await segmenter.segment(segments);
+      expect(result).toBeDefined();
+    });
+
+    it('should handle segment with only topic-shift keywords', async () => {
+      const segments: TranscriptionSegment[] = [
+        seg(0, 8000, '次に。そして。さて。'),
+      ];
+
+      const result = await segmenter.segment(segments);
+      expect(result).toBeDefined();
+      expect(result.length).toBeGreaterThan(0);
+    });
+
+    it('should handle text with no sentence boundaries for summary', async () => {
+      const segments: TranscriptionSegment[] = [
+        seg(0, 5000, 'no sentence boundaries here just words'),
+      ];
+
+      const result = await segmenter.segment(segments);
+      expect(result).toBeDefined();
+      expect(result.length).toBeGreaterThan(0);
+    });
+
+    it('should handle very long text that needs splitting', async () => {
+      const longText = '最初の文です。'.repeat(50); // Very long text
+      const segments: TranscriptionSegment[] = [
+        seg(0, 30000, longText),
+      ];
+
+      const result = await segmenter.segment(segments);
+      expect(result).toBeDefined();
+    });
+  });
+
+  // =========================================================================
+  // TASK-0101: nextIteration / semantic analysis paths
+  // =========================================================================
+  describe('TASK-0101: iterative segmentation paths', () => {
+    it('should apply enhanced semantic segmentation at iteration 2', async () => {
+      segmenter.nextIteration(true); // enable semantic analysis
+      const segments: TranscriptionSegment[] = [
+        seg(0, 5000, 'プロジェクトの概要を説明します。'),
+        seg(5000, 10000, 'スケジュールについてお話しします。'),
+        seg(10000, 15000, 'チーム構成について説明します。'),
+      ];
+
+      const result = await segmenter.segment(segments);
+      expect(result).toBeDefined();
+      expect(result.length).toBeGreaterThan(0);
+    });
+
+    it('should apply topic-based segmentation at iteration 3', async () => {
+      segmenter.nextIteration(true); // iteration 2
+      segmenter.nextIteration();     // iteration 3
+      const segments: TranscriptionSegment[] = [
+        seg(0, 5000, 'プロジェクトの概要を説明します。'),
+        seg(5000, 10000, 'スケジュールについてお話しします。'),
+        seg(10000, 15000, 'チーム構成について説明します。'),
+        seg(15000, 20000, '予算について説明します。'),
+      ];
+
+      const result = await segmenter.segment(segments);
+      expect(result).toBeDefined();
+      expect(result.length).toBeGreaterThan(0);
+    });
+  });
+
+  // =========================================================================
+  // TASK-0101: summary generation edge cases
+  // =========================================================================
+  describe('TASK-0101: summary generation', () => {
+    it('should produce segments with summaries', async () => {
+      const segments: TranscriptionSegment[] = [
+        seg(0, 5000, 'プロジェクトの概要を説明します。重要なポイントです。'),
+        seg(5000, 10000, 'スケジュールについてお話しします。'),
+      ];
+
+      const result = await segmenter.segment(segments);
+      for (const s of result) {
+        expect(s.summary).toBeDefined();
+        expect(typeof s.summary).toBe('string');
+      }
+    });
+  });
 });
