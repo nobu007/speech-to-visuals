@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-03（第97回検証: Phase 1-16全完了・284ファイル・87,155行・108タスク(全完了)・全3,545テスト通過(133 suites)・TypeScript/ESLintエラー0件・依存104パッケージ(74+30)・要件カバレッジ100%維持・SYSTEM_CONSTITUTION V2.1適合・REQ-058/059/060反映済・ギャップなし確認）
+**最終更新**: 2026-05-03（第98回検証: Phase 1-17全完了・282ファイル・87,267行・108タスク(全完了)・全3,569テスト通過(133 suites)・TypeScript/ESLintエラー0件・依存104パッケージ(74+30)・103要件・要件カバレッジ100%維持・SYSTEM_CONSTITUTION V2.1適合・REQ-058/059/060反映済・ギャップなし確認）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -58,14 +58,14 @@
 **信頼性**: 🔵 *note.md・package.json・src/components/ より*
 
 - **フレームワーク**: React 18.3 + TypeScript 5.9
-- **ビルドツール**: Vite 5.4
-- **状態管理**: React Query（TanStack Query 5.83）+ React 状態
+- **ビルドツール**: Vite 6.4
+- **状態管理**: React Query（TanStack Query 5.100）+ React 状態
 - **UIライブラリ**: Tailwind CSS 3.4 + shadcn/ui（20+ Radix UI コンポーネント）
 - **ルーティング**: React Router DOM 6.30
 - **動画プレビュー**: Remotion 4.0 Player
 - **スキーマ検証**: Zod 3.25 🔵 *package.json より*
 - **グラフ可視化**: Recharts 2.15 🔵 *src/monitoring/performance-dashboard.tsx より*
-- **通知**: Sonner 1.7 🔵 *package.json より*
+- **通知**: Sonner 2.0 🔵 *package.json より*
 - **主要コンポーネント**: SimplePipelineInterface（メインUI）、EnhancedFileUploader（D&D）、ProcessingStatus、VideoRenderer、EnhancedVideoPreview、AudioUploader
 
 ### バックエンド 🔵
@@ -482,7 +482,7 @@ Fallback LLM
 - [x] コード規模メトリクス（ファイル数・行数・テスト数・パッケージ数）が最新
 - [x] アーキテクチャ文書内で参照されている全モジュールがコードベースに存在する
 - [x] TypeScript・ESLint エラーが 0 件
-- [x] 全テストスイートが green（133 suites / 3,545 tests）
+- [x] 全テストスイートが green（133 suites / 3,569 tests）
 
 ## 関連文書
 
@@ -501,7 +501,7 @@ Fallback LLM
 - 🟡 黄信号: 2件 (2%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第97回検証: Phase 1-16全完了・284ファイル・87,155行・108タスク(全完了)・全3,545テスト通過(133 suites)・TypeScript/ESLintエラー0件・依存104パッケージ(74+30)・要件カバレッジ100%維持・SYSTEM_CONSTITUTION V2.1適合・REQ-058/059/060反映済・ギャップなし確認）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第98回検証: Phase 1-17全完了・282ファイル・87,267行・108タスク(全完了)・全3,569テスト通過(133 suites)・TypeScript/ESLintエラー0件・依存104パッケージ(74+30)・103要件・要件カバレッジ100%維持・SYSTEM_CONSTITUTION V2.1適合・REQ-058/059/060反映済・ギャップなし確認）
 
 
 <!-- spine:children:begin -->
