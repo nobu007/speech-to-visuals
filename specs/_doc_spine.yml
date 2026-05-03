@@ -1,0 +1,170 @@
+constitution: SYSTEM_CONSTITUTION.md
+purpose: null
+entrypoints:
+- path: README.md
+  audience: contributor
+- path: AGENTS.md
+  audience: ai-agent
+- path: CLAUDE.md
+  audience: ai-agent-claude
+- path: GEMINI.md
+  audience: ai-agent-gemini
+system_design:
+- path: speech-to-visuals/architecture.md
+  children:
+  - path: speech-to-visuals/acceptance-criteria.md
+  - path: speech-to-visuals/dataflow.md
+  - path: speech-to-visuals/interview-record.md
+  - path: speech-to-visuals/note.md
+  - path: speech-to-visuals/prep.md
+  - path: speech-to-visuals/requirements.md
+  - path: speech-to-visuals/tasks/TASK-0001.md
+  - path: speech-to-visuals/tasks/TASK-0002.md
+  - path: speech-to-visuals/tasks/TASK-0003.md
+  - path: speech-to-visuals/tasks/TASK-0004.md
+  - path: speech-to-visuals/tasks/TASK-0005.md
+  - path: speech-to-visuals/tasks/TASK-0006.md
+  - path: speech-to-visuals/tasks/TASK-0007.md
+  - path: speech-to-visuals/tasks/TASK-0008.md
+  - path: speech-to-visuals/tasks/TASK-0009.md
+  - path: speech-to-visuals/tasks/TASK-0010.md
+  - path: speech-to-visuals/tasks/TASK-0011.md
+  - path: speech-to-visuals/tasks/TASK-0012.md
+  - path: speech-to-visuals/tasks/TASK-0013.md
+  - path: speech-to-visuals/tasks/TASK-0014.md
+  - path: speech-to-visuals/tasks/TASK-0015.md
+  - path: speech-to-visuals/tasks/TASK-0016.md
+  - path: speech-to-visuals/tasks/TASK-0017.md
+  - path: speech-to-visuals/tasks/TASK-0018.md
+  - path: speech-to-visuals/tasks/TASK-0019.md
+  - path: speech-to-visuals/tasks/TASK-0020.md
+  - path: speech-to-visuals/tasks/TASK-0021.md
+  - path: speech-to-visuals/tasks/TASK-0022.md
+  - path: speech-to-visuals/tasks/TASK-0023.md
+  - path: speech-to-visuals/tasks/TASK-0024.md
+  - path: speech-to-visuals/tasks/TASK-0025.md
+  - path: speech-to-visuals/tasks/TASK-0026.md
+  - path: speech-to-visuals/tasks/TASK-0027.md
+  - path: speech-to-visuals/tasks/TASK-0028.md
+  - path: speech-to-visuals/tasks/TASK-0029.md
+  - path: speech-to-visuals/tasks/TASK-0030.md
+  - path: speech-to-visuals/tasks/TASK-0031.md
+  - path: speech-to-visuals/tasks/TASK-0032.md
+  - path: speech-to-visuals/tasks/TASK-0033.md
+  - path: speech-to-visuals/tasks/TASK-0034.md
+  - path: speech-to-visuals/tasks/TASK-0035.md
+  - path: speech-to-visuals/tasks/TASK-0036.md
+  - path: speech-to-visuals/tasks/TASK-0037.md
+  - path: speech-to-visuals/tasks/TASK-0038.md
+  - path: speech-to-visuals/tasks/TASK-0039.md
+  - path: speech-to-visuals/tasks/TASK-0040.md
+  - path: speech-to-visuals/tasks/TASK-0041.md
+  - path: speech-to-visuals/tasks/TASK-0042.md
+  - path: speech-to-visuals/tasks/TASK-0043.md
+  - path: speech-to-visuals/tasks/TASK-0044.md
+  - path: speech-to-visuals/tasks/TASK-0045.md
+  - path: speech-to-visuals/tasks/TASK-0046.md
+  - path: speech-to-visuals/tasks/TASK-0047.md
+  - path: speech-to-visuals/tasks/TASK-0048.md
+  - path: speech-to-visuals/tasks/TASK-0049.md
+  - path: speech-to-visuals/tasks/TASK-0050.md
+  - path: speech-to-visuals/tasks/TASK-0051.md
+  - path: speech-to-visuals/tasks/TASK-0052.md
+  - path: speech-to-visuals/tasks/TASK-0053.md
+  - path: speech-to-visuals/tasks/TASK-0054.md
+  - path: speech-to-visuals/tasks/TASK-0055.md
+  - path: speech-to-visuals/tasks/TASK-0056.md
+  - path: speech-to-visuals/tasks/TASK-0057.md
+  - path: speech-to-visuals/tasks/TASK-0058.md
+  - path: speech-to-visuals/tasks/TASK-0059.md
+  - path: speech-to-visuals/tasks/TASK-0060.md
+  - path: speech-to-visuals/tasks/TASK-0061.md
+  - path: speech-to-visuals/tasks/TASK-0062.md
+  - path: speech-to-visuals/tasks/TASK-0063.md
+  - path: speech-to-visuals/tasks/TASK-0064.md
+  - path: speech-to-visuals/tasks/TASK-0065.md
+  - path: speech-to-visuals/tasks/TASK-0066.md
+  - path: speech-to-visuals/tasks/TASK-0067.md
+  - path: speech-to-visuals/tasks/TASK-0068.md
+  - path: speech-to-visuals/tasks/TASK-0069.md
+  - path: speech-to-visuals/tasks/TASK-0070.md
+  - path: speech-to-visuals/tasks/TASK-0071.md
+  - path: speech-to-visuals/tasks/TASK-0072.md
+  - path: speech-to-visuals/tasks/TASK-0073.md
+  - path: speech-to-visuals/tasks/TASK-0074.md
+  - path: speech-to-visuals/tasks/TASK-0075.md
+  - path: speech-to-visuals/tasks/TASK-0076.md
+  - path: speech-to-visuals/tasks/TASK-0077.md
+  - path: speech-to-visuals/tasks/TASK-0078.md
+  - path: speech-to-visuals/tasks/TASK-0079.md
+  - path: speech-to-visuals/tasks/TASK-0080.md
+  - path: speech-to-visuals/tasks/TASK-0081.md
+  - path: speech-to-visuals/tasks/TASK-0082.md
+  - path: speech-to-visuals/tasks/TASK-0083.md
+  - path: speech-to-visuals/tasks/TASK-0084.md
+  - path: speech-to-visuals/tasks/TASK-0085.md
+  - path: speech-to-visuals/tasks/TASK-0086.md
+  - path: speech-to-visuals/tasks/TASK-0087.md
+  - path: speech-to-visuals/tasks/TASK-0088.md
+  - path: speech-to-visuals/tasks/TASK-0089.md
+  - path: speech-to-visuals/tasks/TASK-0090.md
+  - path: speech-to-visuals/tasks/TASK-0091.md
+  - path: speech-to-visuals/tasks/TASK-0092.md
+  - path: speech-to-visuals/tasks/TASK-0093.md
+  - path: speech-to-visuals/tasks/TASK-0094.md
+  - path: speech-to-visuals/tasks/TASK-0095.md
+  - path: speech-to-visuals/tasks/TASK-0096.md
+  - path: speech-to-visuals/tasks/TASK-0097.md
+  - path: speech-to-visuals/tasks/TASK-0098.md
+  - path: speech-to-visuals/tasks/TASK-0099.md
+  - path: speech-to-visuals/tasks/TASK-0100.md
+  - path: speech-to-visuals/tasks/TASK-0101.md
+  - path: speech-to-visuals/tasks/TASK-0102.md
+  - path: speech-to-visuals/tasks/TASK-0103.md
+  - path: speech-to-visuals/tasks/TASK-0104.md
+  - path: speech-to-visuals/tasks/TASK-0105.md
+  - path: speech-to-visuals/tasks/TASK-0106.md
+  - path: speech-to-visuals/tasks/TASK-0107.md
+  - path: speech-to-visuals/tasks/TASK-0108.md
+  - path: speech-to-visuals/tasks/overview.md
+  - path: speech-to-visuals/user-stories.md
+- path: speech-to-visuals/design-interview.md
+references:
+- doc: speech-to-visuals/api-endpoints.md
+  referenced_by:
+  - speech-to-visuals/architecture.md
+  - speech-to-visuals/dataflow.md
+  - speech-to-visuals/design-interview.md
+  - speech-to-visuals/tasks/TASK-0001.md
+  - speech-to-visuals/tasks/TASK-0002.md
+  - speech-to-visuals/tasks/TASK-0003.md
+  - speech-to-visuals/tasks/TASK-0004.md
+  - speech-to-visuals/tasks/TASK-0005.md
+  - speech-to-visuals/tasks/TASK-0006.md
+  - speech-to-visuals/tasks/TASK-0007.md
+  - speech-to-visuals/tasks/TASK-0008.md
+  - speech-to-visuals/tasks/TASK-0009.md
+  - speech-to-visuals/tasks/TASK-0010.md
+  - speech-to-visuals/tasks/TASK-0032.md
+  - speech-to-visuals/tasks/TASK-0033.md
+  - speech-to-visuals/tasks/TASK-0034.md
+  - speech-to-visuals/tasks/TASK-0035.md
+  - speech-to-visuals/tasks/TASK-0036.md
+  - speech-to-visuals/tasks/TASK-0037.md
+  - speech-to-visuals/tasks/TASK-0038.md
+  - speech-to-visuals/tasks/TASK-0039.md
+  - speech-to-visuals/tasks/TASK-0040.md
+  - speech-to-visuals/tasks/TASK-0041.md
+  - speech-to-visuals/tasks/TASK-0042.md
+  - speech-to-visuals/tasks/TASK-0043.md
+  - speech-to-visuals/tasks/TASK-0044.md
+  - speech-to-visuals/tasks/TASK-0045.md
+  - speech-to-visuals/tasks/TASK-0046.md
+  - speech-to-visuals/tasks/TASK-0047.md
+  - speech-to-visuals/tasks/TASK-0048.md
+  - speech-to-visuals/tasks/TASK-0049.md
+  - speech-to-visuals/tasks/TASK-0050.md
+  - speech-to-visuals/tasks/TASK-0051.md
+  - speech-to-visuals/tasks/TASK-0052.md
+  - speech-to-visuals/tasks/TASK-0073.md
+  - speech-to-visuals/tasks/overview.md

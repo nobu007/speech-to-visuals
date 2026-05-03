@@ -308,6 +308,98 @@ describe('animation-strategies', () => {
     });
   });
 
+  describe('getAnimationStrategy for all diagram types', () => {
+    it('should return flow strategy for flowchart type', () => {
+      expect(getAnimationStrategy('flowchart')).toBe(FLOW_STRATEGY);
+    });
+
+    it('should return matrix strategy for comparison type', () => {
+      expect(getAnimationStrategy('comparison')).toBe(MATRIX_STRATEGY);
+    });
+
+    it('should return flow strategy for network type', () => {
+      expect(getAnimationStrategy('network')).toBe(FLOW_STRATEGY);
+    });
+
+    it('should return tree strategy for conceptmap type', () => {
+      expect(getAnimationStrategy('conceptmap')).toBe(TREE_STRATEGY);
+    });
+
+    it('should return tree strategy for mindmap type', () => {
+      expect(getAnimationStrategy('mindmap')).toBe(TREE_STRATEGY);
+    });
+
+    it('should return flow strategy for general type', () => {
+      expect(getAnimationStrategy('general')).toBe(FLOW_STRATEGY);
+    });
+  });
+
+  describe('flow strategy edge cases', () => {
+    it('should sort nodes at same Y position by X (left to right)', () => {
+      const nodes = [
+        makeNode({ id: 'n1', x: 200, y: 100 }),
+        makeNode({ id: 'n2', x: 100, y: 100 }),
+        makeNode({ id: 'n3', x: 300, y: 100 }),
+      ];
+      const configs = FLOW_STRATEGY.getNodeAnimations(nodes);
+      // All at same Y, so sorted by X
+      expect(configs[0].nodeId).toBe('n2'); // x=100
+      expect(configs[1].nodeId).toBe('n1'); // x=200
+      expect(configs[2].nodeId).toBe('n3'); // x=300
+    });
+  });
+
+  describe('tree strategy edge cases', () => {
+    it('should handle edge animations with missing source nodes', () => {
+      const nodes = [makeNode({ id: 'n1', y: 50 })];
+      const edges = [
+        makeEdge({ from: 'n1', to: 'n2' }),
+        makeEdge({ from: 'missing', to: 'n3' }),
+      ];
+      const configs = TREE_STRATEGY.getEdgeAnimations(edges, nodes);
+      expect(configs).toHaveLength(2);
+      // Should not crash when source node is missing
+      for (const c of configs) {
+        expect(c.durationFrames).toBe(EDGE_DRAW_DURATION_FRAMES);
+      }
+    });
+  });
+
+  describe('timeline strategy edge cases', () => {
+    it('should handle edge animations with missing source nodes', () => {
+      const nodes = [makeNode({ id: 'n1', x: 50 })];
+      const edges = [
+        makeEdge({ from: 'n1', to: 'n2' }),
+        makeEdge({ from: 'missing', to: 'n3' }),
+      ];
+      const configs = TIMELINE_STRATEGY.getEdgeAnimations(edges, nodes);
+      expect(configs).toHaveLength(2);
+      for (const c of configs) {
+        expect(c.durationFrames).toBe(EDGE_DRAW_DURATION_FRAMES);
+      }
+    });
+  });
+
+  describe('cycle strategy edge cases', () => {
+    it('should handle empty nodes', () => {
+      const configs = CYCLE_STRATEGY.getNodeAnimations([]);
+      expect(configs).toEqual([]);
+    });
+
+    it('should handle edge animations', () => {
+      const nodes = [
+        makeNode({ id: 'c0', x: 300, y: 100 }),
+        makeNode({ id: 'c1', x: 500, y: 300 }),
+      ];
+      const edges = [
+        makeEdge({ from: 'c0', to: 'c1' }),
+      ];
+      const configs = CYCLE_STRATEGY.getEdgeAnimations(edges, nodes);
+      expect(configs).toHaveLength(1);
+      expect(configs[0].pathLength).toBeGreaterThan(0);
+    });
+  });
+
   describe('strategy interface compliance', () => {
     const allStrategies: [string, AnimationStrategy][] = [
       ['flow', FLOW_STRATEGY],

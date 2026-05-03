@@ -323,4 +323,192 @@ describe('BaseLayoutStrategy', () => {
     expect(result.layout.nodes[0].x).toBe(50);
     expect(result.layout.nodes[0].y).toBe(60);
   });
+
+  // ---------- Edge mapping: only 'from' set, no 'source' (line 89-92) ----------
+  it('maps edges using "from" when "source" is undefined', async () => {
+    const nodes: NodeDatum[] = [
+      { id: 'n1', label: 'Node 1' },
+      { id: 'n2', label: 'Node 2' },
+    ];
+    // Edge with only 'from'/'to' set, no 'source'/'target'
+    const edges: EdgeDatum[] = [
+      { id: 'e1', from: 'n1', to: 'n2' } as EdgeDatum,
+    ];
+
+    const result = await strategy.apply(nodes, edges, config);
+    expect(result.layout.edges[0].from).toBe('n1');
+    expect(result.layout.edges[0].to).toBe('n2');
+    // source should fall back to from
+    expect(result.layout.edges[0].source).toBe('n1');
+    expect(result.layout.edges[0].target).toBe('n2');
+  });
+
+  // ---------- Edge mapping: only 'source' set, no 'from' (line 89, source??from) ----------
+  it('maps edges using "source" when "from" is undefined', async () => {
+    const nodes: NodeDatum[] = [
+      { id: 'n1', label: 'Node 1' },
+      { id: 'n2', label: 'Node 2' },
+    ];
+    // Edge with only 'source'/'target' set, no 'from'/'to'
+    const edges: EdgeDatum[] = [
+      { id: 'e1', source: 'n1', target: 'n2' } as EdgeDatum,
+    ];
+
+    const result = await strategy.apply(nodes, edges, config);
+    expect(result.layout.edges[0].from).toBe('n1');
+    expect(result.layout.edges[0].to).toBe('n2');
+    expect(result.layout.edges[0].source).toBe('n1');
+    expect(result.layout.edges[0].target).toBe('n2');
+  });
+
+  // ---------- apply() returns success=false when nodes overlap ----------
+  it('returns success=false when overlapping nodes are present', async () => {
+    // Both nodes get x=0, y=0 from ensurePositionedNode, so they overlap
+    const nodes: NodeDatum[] = [
+      { id: 'n1', label: 'Node 1' },
+      { id: 'n2', label: 'Node 2' },
+    ];
+    const edges: EdgeDatum[] = [];
+
+    const result = await strategy.apply(nodes, edges, config);
+    expect(result.success).toBe(false);
+    expect(result.metrics.overlapCount).toBeGreaterThan(0);
+  });
+
+  // ---------- calculateMetrics with nodes at origin (0,0) ----------
+  it('calculateMetrics handles nodes all at origin', async () => {
+    class OriginLayoutStrategy extends TestableStrategy {
+      protected async performLayout(): Promise<{ nodes: PositionedNode[]; edges: LayoutEdge[] }> {
+        // All nodes at origin (0,0)
+        const nodes: PositionedNode[] = [
+          { id: 'a', label: 'A', x: 0, y: 0, width: 50, height: 50 },
+          { id: 'b', label: 'B', x: 0, y: 0, width: 50, height: 50 },
+        ];
+        return { nodes, edges: [] };
+      }
+    }
+
+    const s = new OriginLayoutStrategy(false);
+    const result = await s.apply([], [], config);
+    // Nodes at origin should still produce valid metrics
+    expect(result.metrics).toBeDefined();
+    expect(result.metrics.totalArea).toBe(50 * 50 + 50 * 50); // 5000
+    expect(result.metrics.overlapCount).toBeGreaterThan(0);
+    // Layout balance should handle 0-centered layout
+    expect(typeof result.metrics.layoutBalance).toBe('number');
+    expect(result.metrics.layoutBalance).toBeGreaterThanOrEqual(0);
+    expect(result.metrics.layoutBalance).toBeLessThanOrEqual(1);
+  });
+
+  // ---------- Edge crossing detection with missing source/target nodes ----------
+  it('skips edge crossing detection when source/target nodes are missing', async () => {
+    class MissingNodeEdgesStrategy extends TestableStrategy {
+      protected async performLayout(): Promise<{ nodes: PositionedNode[]; edges: LayoutEdge[] }> {
+        const nodes: PositionedNode[] = [
+          { id: 'a', label: 'A', x: 0, y: 0, width: 50, height: 50 },
+        ];
+        // These edges reference nodes that don't exist in the nodes array
+        const edges: LayoutEdge[] = [
+          { id: 'e1', from: 'a', to: 'nonexistent', source: 'a', target: 'nonexistent', points: [] },
+          { id: 'e2', from: 'missing', to: 'also-missing', source: 'missing', target: 'also-missing', points: [] },
+        ];
+        return { nodes, edges };
+      }
+    }
+
+    const s = new MissingNodeEdgesStrategy(false);
+    const result = await s.apply([], [], config);
+    // Should not crash; edge crossings should be 0 since node lookups fail
+    expect(result.metrics.edgeCrossings).toBe(0);
+  });
+
+  // ---------- doLinesIntersect: collinear non-intersecting lines ----------
+  it('reports no crossing for collinear non-overlapping edges', async () => {
+    class CollinearEdgesStrategy extends TestableStrategy {
+      protected async performLayout(): Promise<{ nodes: PositionedNode[]; edges: LayoutEdge[] }> {
+        const nodes: PositionedNode[] = [
+          { id: 'a', label: 'A', x: 0, y: 0, width: 50, height: 50 },
+          { id: 'b', label: 'B', x: 100, y: 0, width: 50, height: 50 },
+          { id: 'c', label: 'C', x: 0, y: 100, width: 50, height: 50 },
+          { id: 'd', label: 'D', x: 100, y: 100, width: 50, height: 50 },
+        ];
+        // Two parallel horizontal lines that do not cross
+        const edges: LayoutEdge[] = [
+          { id: 'e1', from: 'a', to: 'b', source: 'a', target: 'b', points: [] },
+          { id: 'e2', from: 'c', to: 'd', source: 'c', target: 'd', points: [] },
+        ];
+        return { nodes, edges };
+      }
+    }
+
+    const s = new CollinearEdgesStrategy(false);
+    const result = await s.apply([], [], config);
+    expect(result.metrics.edgeCrossings).toBe(0);
+  });
+
+  // ---------- doLinesIntersect: perpendicular lines that do cross ----------
+  it('detects crossings for perpendicular intersecting edges', async () => {
+    class PerpendicularCrossStrategy extends TestableStrategy {
+      protected async performLayout(): Promise<{ nodes: PositionedNode[]; edges: LayoutEdge[] }> {
+        const nodes: PositionedNode[] = [
+          { id: 'a', label: 'A', x: 0, y: 50, width: 50, height: 50 },
+          { id: 'b', label: 'B', x: 100, y: 50, width: 50, height: 50 },
+          { id: 'c', label: 'C', x: 50, y: 0, width: 50, height: 50 },
+          { id: 'd', label: 'D', x: 50, y: 100, width: 50, height: 50 },
+        ];
+        // Horizontal edge: a(0,50) -> b(100,50)
+        // Vertical edge: c(50,0) -> d(50,100)
+        // These cross at (50,50)
+        const edges: LayoutEdge[] = [
+          { id: 'e1', from: 'a', to: 'b', source: 'a', target: 'b', points: [] },
+          { id: 'e2', from: 'c', to: 'd', source: 'c', target: 'd', points: [] },
+        ];
+        return { nodes, edges };
+      }
+    }
+
+    const s = new PerpendicularCrossStrategy(false);
+    const result = await s.apply([], [], config);
+    expect(result.metrics.edgeCrossings).toBeGreaterThan(0);
+  });
+
+  // ---------- Edge mapping in fallback (catch block) with only 'source' set ----------
+  it('maps fallback edges using source/target when from/to are missing', async () => {
+    class AlwaysFail2 extends TestableStrategy {
+      protected async performLayout(): Promise<{ nodes: PositionedNode[]; edges: LayoutEdge[] }> {
+        throw new Error('fail');
+      }
+    }
+
+    const s = new AlwaysFail2(false);
+    const nodes: NodeDatum[] = [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }];
+    // Edge with only source/target, no from/to
+    const edges: EdgeDatum[] = [
+      { id: 'e1', source: 'a', target: 'b' } as EdgeDatum,
+    ];
+
+    const result = await s.apply(nodes, edges, config);
+    expect(result.layout.edges[0].from).toBe('a');
+    expect(result.layout.edges[0].to).toBe('b');
+    expect(result.layout.edges[0].source).toBe('a');
+    expect(result.layout.edges[0].target).toBe('b');
+  });
+
+  // ---------- calculateMetrics with single node (no spacing pairs) ----------
+  it('calculateMetrics returns Infinity nodeSpacing for a single node', async () => {
+    class SingleNodeStrategy extends TestableStrategy {
+      protected async performLayout(): Promise<{ nodes: PositionedNode[]; edges: LayoutEdge[] }> {
+        return {
+          nodes: [{ id: 'a', label: 'A', x: 100, y: 200, width: 50, height: 50 }],
+          edges: [],
+        };
+      }
+    }
+
+    const s = new SingleNodeStrategy(false);
+    const result = await s.apply([], [], config);
+    expect(result.metrics.nodeSpacing).toBe(Infinity);
+    expect(result.metrics.overlapCount).toBe(0);
+    expect(result.metrics.edgeCrossings).toBe(0);
+  });
 });
