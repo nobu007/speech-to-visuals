@@ -1,6 +1,7 @@
 module.exports = {
   preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
+  globalTeardown: '<rootDir>/tests/globalTeardown.ts',
   testMatch: ['**/src/**/*.test.ts', '**/src/**/*.test.tsx', '**/tests/**/*.test.ts'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'json'],
   moduleNameMapper: {
@@ -11,6 +12,7 @@ module.exports = {
   transformIgnorePatterns: [
     'node_modules/(?!(uuid|express|cors|helmet|express-rate-limit|supertest)/)',
   ],
+  detectOpenHandles: true,
   transform: {
     '^.+\\.(ts|tsx)$': [
       'ts-jest',
