@@ -623,6 +623,12 @@ Fallback LLM
 - [TASK-0108: ImprovementDetector 実装検証](tasks/TASK-0108.md)
 - [TASK-0109: overview.md メトリクス最新化と整合性確認](tasks/TASK-0109.md)
 - [TASK-0110: テストワーカープロセス強制終了警告の包括的解消](tasks/TASK-0110.md)
+- [TASK-0111: テストファイルTypeScript型エラー44件修正](tasks/TASK-0111.md)
+- [TASK-0112: E2EメモリベンチマークFlaky修正](tasks/TASK-0112.md)
+- [TASK-0113: ドキュメント型エラー記述の精度改善](tasks/TASK-0113.md)
+- [TASK-0114: Web Worker 基盤インフラ構築](tasks/TASK-0114.md)
+- [TASK-0115: CPU集約処理のWeb Worker化](tasks/TASK-0115.md)
+- [TASK-0116: Web Worker統合テストとパフォーマンス検証](tasks/TASK-0116.md)
 - [speech-to-visuals タスク概要](tasks/overview.md)
 - [Speech-to-Visuals ユーザストーリー](user-stories.md)
 

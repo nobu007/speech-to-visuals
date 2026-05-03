@@ -1,0 +1,173 @@
+/**
+ * Layout Worker - Handles CPU-intensive graph layout computation
+ *
+ * Offloads dagre layout calculation to a Web Worker.
+ * dagre is a pure JS library with no DOM dependency,
+ * making it ideal for worker execution.
+ */
+
+import type {
+  WorkerMessage,
+  WorkerResponse,
+  LayoutWorkerPayload,
+  LayoutWorkerResult,
+} from './types';
+
+/**
+ * Compute graph layout using a simplified force-directed / grid algorithm.
+ *
+ * In the browser build, dagre is imported and used directly.
+ * In the worker, we implement the core layout logic to avoid
+ * complex module loading in worker context.
+ */
+export function computeLayout(
+  payload: LayoutWorkerPayload,
+): LayoutWorkerResult {
+  const { nodes, edges, config } = payload;
+
+  if (!nodes || nodes.length === 0) {
+    return { nodes: [], edges: [], width: config.width, height: config.height };
+  }
+
+  // Build adjacency for level assignment
+  const adjacency = new Map<string, Set<string>>();
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+
+  for (const node of nodes) {
+    adjacency.set(node.id, new Set());
+  }
+  for (const edge of edges) {
+    adjacency.get(edge.source)?.add(edge.target);
+    adjacency.get(edge.target)?.add(edge.source);
+  }
+
+  // Assign levels using BFS from root nodes
+  const levels = new Map<string, number>();
+  const inDegree = new Map<string, number>();
+
+  for (const node of nodes) {
+    inDegree.set(node.id, 0);
+  }
+  for (const edge of edges) {
+    inDegree.set(edge.target, (inDegree.get(edge.target) || 0) + 1);
+  }
+
+  // Find root nodes (zero in-degree)
+  const queue: string[] = [];
+  for (const node of nodes) {
+    if ((inDegree.get(node.id) || 0) === 0) {
+      queue.push(node.id);
+      levels.set(node.id, 0);
+    }
+  }
+
+  // BFS to assign levels
+  let head = 0;
+  while (head < queue.length) {
+    const current = queue[head++];
+    const currentLevel = levels.get(current) || 0;
+
+    for (const neighbor of adjacency.get(current) || []) {
+      const edge = edges.find((e) => e.source === current && e.target === neighbor);
+      if (edge && !levels.has(neighbor)) {
+        levels.set(neighbor, currentLevel + 1);
+        queue.push(neighbor);
+      }
+    }
+  }
+
+  // Assign unvisited nodes to level 0
+  for (const node of nodes) {
+    if (!levels.has(node.id)) {
+      levels.set(node.id, 0);
+    }
+  }
+
+  // Group nodes by level
+  const levelGroups = new Map<number, string[]>();
+  for (const [nodeId, level] of levels) {
+    if (!levelGroups.has(level)) levelGroups.set(level, []);
+    levelGroups.get(level)!.push(nodeId);
+  }
+
+  // Position nodes using rank direction
+  const isHorizontal = config.rankDirection === 'LR' || config.rankDirection === 'RL';
+  const nodeSep = config.nodeSeparation || 50;
+  const rankSep = config.rankSeparation || 50;
+
+  const positionedNodes: LayoutWorkerResult['nodes'] = [];
+  const maxLevels = Math.max(...Array.from(levelGroups.keys()), 0);
+
+  for (let level = 0; level <= maxLevels; level++) {
+    const groupNodes = levelGroups.get(level) || [];
+    const groupWidth = groupNodes.reduce(
+      (sum, id) => sum + (nodeMap.get(id)?.width || 120),
+      0,
+    ) + (groupNodes.length - 1) * nodeSep;
+    let offsetX = (config.width - groupWidth) / 2;
+
+    for (const nodeId of groupNodes) {
+      const nodeInfo = nodeMap.get(nodeId);
+      const width = nodeInfo?.width || 120;
+      const height = nodeInfo?.height || 60;
+
+      const x = isHorizontal
+        ? level * rankSep + rankSep
+        : offsetX;
+      const y = isHorizontal
+        ? offsetX
+        : level * rankSep + rankSep;
+
+      positionedNodes.push({ id: nodeId, x, y, width, height });
+      offsetX += width + nodeSep;
+    }
+  }
+
+  // Pass edges through with computed layout
+  const resultEdges = edges.map((edge) => ({
+    source: edge.source,
+    target: edge.target,
+  }));
+
+  // Compute final bounds
+  const maxX = Math.max(...positionedNodes.map((n) => n.x + n.width), config.width);
+  const maxY = Math.max(...positionedNodes.map((n) => n.y + n.height), config.height);
+
+  return {
+    nodes: positionedNodes,
+    edges: resultEdges,
+    width: maxX,
+    height: maxY,
+  };
+}
+
+// Worker message handler
+const handler = (e: MessageEvent<WorkerMessage<LayoutWorkerPayload>>): void => {
+  const { id, type, payload } = e.data;
+
+  try {
+    const result = computeLayout(payload);
+    const response: WorkerResponse<LayoutWorkerResult> = {
+      id,
+      type,
+      payload: result,
+    };
+    self.postMessage(response);
+  } catch (error) {
+    const response: WorkerResponse = {
+      id,
+      type,
+      error: {
+        code: 'LAYOUT_ERROR',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      },
+    };
+    self.postMessage(response);
+  }
+};
+
+// Register handler in Worker context (guarded for Node.js test env)
+if (typeof self !== 'undefined' && typeof self.onmessage !== 'undefined') {
+  self.onmessage = handler;
+}

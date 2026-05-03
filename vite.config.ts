@@ -70,6 +70,9 @@ export default defineConfig(({ mode }) => ({
     // Optimize for modern browsers
     target: 'es2020'
   },
+  worker: {
+    format: 'es',
+  },
   optimizeDeps: {
     // Pre-bundle large dependencies
     include: [

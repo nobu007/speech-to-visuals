@@ -117,12 +117,14 @@ export class EnhancedExportEngine {
   private activeExports: Map<string, ExportJob>;
   private exportQueue: ExportJob[];
   private workerPool: Worker[];
+  private useWorkers: boolean;
   private maxConcurrentExports: number;
 
-  constructor(maxConcurrentExports = 2) {
+  constructor(maxConcurrentExports = 2, useWorkers = false) {
     this.activeExports = new Map();
     this.exportQueue = [];
     this.workerPool = [];
+    this.useWorkers = useWorkers && typeof Worker !== 'undefined';
     this.maxConcurrentExports = maxConcurrentExports;
 
     console.log('🎬 Enhanced Export Engine initialized', {

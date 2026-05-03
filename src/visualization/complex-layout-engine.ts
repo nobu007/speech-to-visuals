@@ -126,7 +126,7 @@ export class ComplexLayoutEngine {
       minimizeCrossings: true,
 
       maxProcessingTime: 10000, // 10 seconds
-      useWebWorkers: false, // Would require worker implementation
+      useWebWorkers: false, // Enable to offload layout computation to Web Workers
 
       // ✨ Iteration 50 enhancements
       enableRealTimeOptimization: true,
