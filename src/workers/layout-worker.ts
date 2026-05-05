@@ -29,16 +29,21 @@ export function computeLayout(
     return { nodes: [], edges: [], width: config.width, height: config.height };
   }
 
-  // Build adjacency for level assignment
+  // Build adjacency for level assignment (filter edges referencing non-existent nodes)
   const adjacency = new Map<string, Set<string>>();
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+  const nodeIds = new Set(nodes.map((n) => n.id));
+
+  const validEdges = edges.filter(
+    (e) => nodeIds.has(e.source) && nodeIds.has(e.target),
+  );
 
   for (const node of nodes) {
     adjacency.set(node.id, new Set());
   }
-  for (const edge of edges) {
-    adjacency.get(edge.source)?.add(edge.target);
-    adjacency.get(edge.target)?.add(edge.source);
+  for (const edge of validEdges) {
+    adjacency.get(edge.source).add(edge.target);
+    adjacency.get(edge.target).add(edge.source);
   }
 
   // Assign levels using BFS from root nodes
@@ -48,7 +53,7 @@ export function computeLayout(
   for (const node of nodes) {
     inDegree.set(node.id, 0);
   }
-  for (const edge of edges) {
+  for (const edge of validEdges) {
     inDegree.set(edge.target, (inDegree.get(edge.target) || 0) + 1);
   }
 
@@ -68,7 +73,7 @@ export function computeLayout(
     const currentLevel = levels.get(current) || 0;
 
     for (const neighbor of adjacency.get(current) || []) {
-      const edge = edges.find((e) => e.source === current && e.target === neighbor);
+      const edge = validEdges.find((e) => e.source === current && e.target === neighbor);
       if (edge && !levels.has(neighbor)) {
         levels.set(neighbor, currentLevel + 1);
         queue.push(neighbor);
@@ -123,8 +128,8 @@ export function computeLayout(
     }
   }
 
-  // Pass edges through with computed layout
-  const resultEdges = edges.map((edge) => ({
+  // Pass valid edges through with computed layout
+  const resultEdges = validEdges.map((edge) => ({
     source: edge.source,
     target: edge.target,
   }));

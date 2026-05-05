@@ -29,9 +29,9 @@ export function processExportPayload(
     };
   }
 
-  // Calculate frame count based on options
-  const fps = (options.fps as number) || 30;
-  const duration = (options.duration as number) || 10;
+  // Calculate frame count based on options (clamp to positive values)
+  const fps = Math.max(1, (options.fps as number) || 30);
+  const duration = Math.max(0.1, (options.duration as number) || 10);
   const totalFrames = Math.ceil(duration * fps);
 
   // Process scene data for rendering

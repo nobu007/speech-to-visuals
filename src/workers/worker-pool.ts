@@ -23,11 +23,15 @@ interface PooledWorker {
   currentMessageId: string | null;
 }
 
+/** Maximum times a worker slot is allowed to crash before giving up recreation */
+const MAX_WORKER_CRASH_COUNT = 5;
+
 export class WorkerPool {
   private workers: PooledWorker[] = [];
   private taskQueue: PendingTask[] = [];
   private activeTasks: Map<string, PendingTask> = new Map();
   private terminated = false;
+  private crashCounts: Map<PooledWorker, number> = new Map();
 
   /**
    * @param workerFactory - Factory function that creates a new Worker instance
@@ -85,6 +89,7 @@ export class WorkerPool {
       pooled.worker.terminate();
     }
     this.workers = [];
+    this.crashCounts.clear();
 
     for (const task of this.taskQueue) {
       task.reject(new Error('WorkerPool terminated'));
@@ -138,9 +143,20 @@ export class WorkerPool {
       if (!this.terminated) {
         const index = this.workers.indexOf(pooled);
         if (index !== -1) {
+          const crashes = (this.crashCounts.get(pooled) || 0) + 1;
           pooled.worker.terminate();
-          const newPooled = this.createWorker();
-          this.workers[index] = newPooled;
+          this.crashCounts.delete(pooled);
+
+          if (crashes > MAX_WORKER_CRASH_COUNT) {
+            // Too many crashes — remove the slot and stop recreating
+            this.workers.splice(index, 1);
+            console.warn(`Worker slot removed after ${crashes} crashes`);
+          } else {
+            const newPooled = this.createWorker();
+            this.workers[index] = newPooled;
+            this.crashCounts.set(newPooled, crashes);
+          }
+
           // If the worker crashed while idle (no active task), we need
           // to processQueue ourselves since there is no per-task handler
           // to do it. When a task was active, the per-task handleError
@@ -178,6 +194,7 @@ export class WorkerPool {
     };
 
     const handleError = (event: ErrorEvent): void => {
+      pooledWorker.worker.removeEventListener('message', handleMessage);
       pooledWorker.worker.removeEventListener('error', handleError);
       pooledWorker.busy = false;
       pooledWorker.currentMessageId = null;
