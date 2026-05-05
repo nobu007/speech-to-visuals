@@ -18,6 +18,7 @@ import type {
   ExportWorkerPayload,
   ExportWorkerResult,
 } from '../workers';
+import { encodeAPNG as realEncodeAPNG } from './apng-encoder';
 
 export interface ExportConfiguration {
   format: ExportFormat;
@@ -553,11 +554,15 @@ export class EnhancedExportEngine {
   }
 
   private async encodeAPNG(job: ExportJob, frames: FrameData[]): Promise<EncodedVideo> {
+    const apngData = realEncodeAPNG(
+      frames.map((f) => ({ data: f.data, width: f.width, height: f.height })),
+      { fps: job.config.quality.fps },
+    );
     return {
-      data: await this.simulateEncoding(frames, 'apng', 'apng'),
+      data: apngData,
       duration: frames.length / job.config.quality.fps,
       codec: 'apng',
-      container: 'apng'
+      container: 'apng',
     };
   }
 

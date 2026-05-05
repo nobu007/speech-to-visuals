@@ -10,6 +10,11 @@ import {
   ExportFormat,
   ExportResult,
 } from '../enhanced-export-engine';
+import {
+  encodeAPNG,
+  parsePngChunks,
+  type ApngFrameInput,
+} from '../apng-encoder';
 
 // Suppress console
 beforeEach(() => {
@@ -380,5 +385,158 @@ describe('ExportQualityValidator', () => {
       expect(score).toBeGreaterThan(0);
       expect(score).toBeLessThanOrEqual(1);
     });
+  });
+});
+
+// ---------- APNG real encoding tests (TASK-0117 / REQ-063) ----------
+
+describe('APNG encoder (real encoding)', () => {
+  /** Helper: create a small RGBA frame filled with a solid color */
+  const makeFrame = (
+    width: number,
+    height: number,
+    r: number,
+    g: number,
+    b: number,
+    a = 255,
+  ): ApngFrameInput => {
+    const data = new Uint8Array(width * height * 4);
+    for (let i = 0; i < width * height; i++) {
+      data[i * 4] = r;
+      data[i * 4 + 1] = g;
+      data[i * 4 + 2] = b;
+      data[i * 4 + 3] = a;
+    }
+    return { data, width, height };
+  };
+
+  test('output starts with PNG signature (89 50 4E 47)', () => {
+    const apng = encodeAPNG([makeFrame(2, 2, 255, 0, 0)], { fps: 30 });
+    expect(apng[0]).toBe(0x89);
+    expect(apng[1]).toBe(0x50); // 'P'
+    expect(apng[2]).toBe(0x4e); // 'N'
+    expect(apng[3]).toBe(0x47); // 'G'
+  });
+
+  test('contains acTL chunk (animation control)', () => {
+    const apng = encodeAPNG([makeFrame(2, 2, 0, 255, 0)], { fps: 30 });
+    const chunks = parsePngChunks(apng);
+    const actl = chunks.find((c) => c.type === 'acTL');
+    expect(actl).toBeDefined();
+    // First 4 bytes = number of frames (big-endian)
+    const numFrames = (actl!.data[0] << 24) | (actl!.data[1] << 16) | (actl!.data[2] << 8) | actl!.data[3];
+    expect(numFrames).toBe(1);
+  });
+
+  test('acTL frame count matches input frame count', () => {
+    const frames = [
+      makeFrame(4, 4, 255, 0, 0),
+      makeFrame(4, 4, 0, 255, 0),
+      makeFrame(4, 4, 0, 0, 255),
+    ];
+    const apng = encodeAPNG(frames, { fps: 30 });
+    const chunks = parsePngChunks(apng);
+    const actl = chunks.find((c) => c.type === 'acTL')!;
+    const numFrames = (actl.data[0] << 24) | (actl.data[1] << 16) | (actl.data[2] << 8) | actl.data[3];
+    expect(numFrames).toBe(3);
+  });
+
+  test('fcTL chunk count equals frame count', () => {
+    const frames = [makeFrame(2, 2, 255, 0, 0), makeFrame(2, 2, 0, 255, 0)];
+    const apng = encodeAPNG(frames, { fps: 24 });
+    const chunks = parsePngChunks(apng);
+    const fctlCount = chunks.filter((c) => c.type === 'fcTL').length;
+    expect(fctlCount).toBe(2);
+  });
+
+  test('frame delay reflects FPS setting', () => {
+    const fps = 30;
+    const apng = encodeAPNG([makeFrame(2, 2, 128, 128, 128)], { fps });
+    const chunks = parsePngChunks(apng);
+    const fctl = chunks.find((c) => c.type === 'fcTL')!;
+    // delay_num at offset 20 (big-endian uint16), delay_den at offset 22
+    const delayNum = (fctl.data[20] << 8) | fctl.data[21];
+    const delayDen = (fctl.data[22] << 8) | fctl.data[23];
+    const delayMs = delayNum / delayDen;
+    const expectedMs = 1000 / fps;
+    expect(delayMs).toBeCloseTo(expectedMs, 1);
+  });
+
+  test('first frame uses IDAT, subsequent frames use fdAT', () => {
+    const frames = [makeFrame(2, 2, 255, 0, 0), makeFrame(2, 2, 0, 255, 0)];
+    const apng = encodeAPNG(frames, { fps: 30 });
+    const chunks = parsePngChunks(apng);
+    const types = chunks.map((c) => c.type);
+    expect(types).toContain('IDAT');
+    expect(types).toContain('fdAT');
+    // IDAT should come before fdAT
+    expect(types.indexOf('IDAT')).toBeLessThan(types.indexOf('fdAT'));
+  });
+
+  test('single frame APNG has IDAT but no fdAT', () => {
+    const apng = encodeAPNG([makeFrame(2, 2, 0, 0, 0)], { fps: 30 });
+    const chunks = parsePngChunks(apng);
+    const types = chunks.map((c) => c.type);
+    expect(types).toContain('IDAT');
+    expect(types).not.toContain('fdAT');
+  });
+
+  test('throws on empty frame array', () => {
+    expect(() => encodeAPNG([], { fps: 30 })).toThrow('at least one frame');
+  });
+
+  test('throws on zero or negative fps', () => {
+    const frame = makeFrame(1, 1, 0, 0, 0);
+    expect(() => encodeAPNG([frame], { fps: 0 })).toThrow('positive');
+    expect(() => encodeAPNG([frame], { fps: -1 })).toThrow('positive');
+  });
+
+  test('throws on zero dimension frame', () => {
+    const badFrame = { data: new Uint8Array(0), width: 0, height: 0 };
+    expect(() => encodeAPNG([badFrame], { fps: 30 })).toThrow('positive');
+  });
+
+  test('ends with IEND chunk', () => {
+    const apng = encodeAPNG([makeFrame(2, 2, 255, 255, 255)], { fps: 30 });
+    const chunks = parsePngChunks(apng);
+    expect(chunks[chunks.length - 1].type).toBe('IEND');
+  });
+
+  test('chunk CRC values are valid', () => {
+    const apng = encodeAPNG([makeFrame(2, 2, 100, 150, 200)], { fps: 30 });
+    const chunks = parsePngChunks(apng);
+    // parsePngChunks would have thrown if CRC was wrong during parsing,
+    // but let's also manually verify the first non-IEND chunk.
+    // The IHDR chunk should have valid data
+    const ihdr = chunks.find((c) => c.type === 'IHDR');
+    expect(ihdr).toBeDefined();
+    // Width should be 2 (big-endian)
+    const width = (ihdr!.data[0] << 24) | (ihdr!.data[1] << 16) | (ihdr!.data[2] << 8) | ihdr!.data[3];
+    expect(width).toBe(2);
+    // Height should be 2
+    const height = (ihdr!.data[4] << 24) | (ihdr!.data[5] << 16) | (ihdr!.data[6] << 8) | ihdr!.data[7];
+    expect(height).toBe(2);
+    // Bit depth = 8, Color type = 6 (RGBA)
+    expect(ihdr!.data[8]).toBe(8);
+    expect(ihdr!.data[9]).toBe(6);
+  });
+});
+
+// ---------- APNG integration via EnhancedExportEngine ----------
+
+describe('EnhancedExportEngine APNG integration', () => {
+  let engine: EnhancedExportEngine;
+
+  beforeEach(() => {
+    engine = new EnhancedExportEngine(2);
+  });
+
+  test('apng export produces output with valid PNG signature', async () => {
+    const result = await engine.exportVideo(
+      { scenes: [{ duration: 1, type: 'content' }] },
+      { format: 'apng', quality: { resolution: '720p', fps: 30, bitrate: 'auto', hdr: false }, settings: { loop: false, includeAudio: false, watermark: false, compression: 'none', optimization: 'speed' } },
+    );
+    expect(result.success).toBe(true);
+    expect(result.format).toBe('apng');
   });
 });

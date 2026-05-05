@@ -165,10 +165,10 @@
 
 - REQ-061: システムはCPU集約処理（エクスポートレンダリング・レイアウトノード配置計算）をWeb Workersで並列化し、メインスレッドのブロッキングを防止しなければならない。WorkerPoolによるワーカー再利用・タスクキューイング・異常終了時自動再生成（最大5回クラッシュでスロット除去）・遅延初期化・dispose/再利用ガード・アクティブタスクPromiseのterminate時拒否・キュー済みジョブPromiseのdispose時解決・per-task error listener クリーンアップを実装し、Worker利用不可環境ではメインスレッドにフォールバックすること。isWorkerEnabledはuseWebWorkers設定がfalseの場合はfalseを返すこと。エクスポートパラメータ（FPS/duration）は負値をガード（Math.max）すること 🔵 *src/workers/worker-pool.ts・src/export/enhanced-export-engine.ts・src/visualization/complex-layout-engine.ts・src/workers/export-worker.ts・TASK-0114~0116 より*
 
-#### Worker統合テスト 🟡未実装
+#### Worker統合テスト ✅実装済
 
-- REQ-062: システムはWorkerPoolのフル crash→recovery ライフサイクルを検証する統合テストを提供しなければならない。クラッシュ発生→自動再生成→キュー内タスクの再ディスパッチ→正常完了→複数回クラッシュ→スロット除去の全流れをカバーすること 🟡 *AI_HUB_MAKE_RUN_FEEDBACK・src/workers/__tests__/worker-pool.test.ts より*
-- REQ-063: システムはAPNG形式の実エンコーディングを検証するテストを提供しなければならない。現状はシミュレート符号化のため、適切なAPNGエンコーダ統合時に実エンコーディングテストに置き換えること 🟡 *AI_HUB_MAKE_RUN_FEEDBACK・src/export/__tests__/enhanced-export-engine.test.ts より*
+- REQ-062: システムはWorkerPoolのフル crash→recovery ライフサイクルを検証する統合テストを提供しなければならない。クラッシュ発生→自動再生成→キュー内タスクの再ディスパッチ→正常完了→複数回クラッシュ→スロット除去の全流れをカバーすること ✅ *コミットbc3cf68・tests/integration/worker-pool.test.ts より*
+- REQ-063: システムはAPNG形式の実エンコーディングを検証するテストを提供しなければならない。カスタムAPNGエンコーダ（PNGシグネチャ・acTL/fcTL/fdATチャンク・フレーム遅延精度）の包括的テストで検証済 ✅ *src/export/apng-encoder.ts・src/export/__tests__/enhanced-export-engine.test.ts TASK-0117 より*
 
 ### 条件付き要件
 
@@ -285,8 +285,7 @@
 | Phase 19: 品質安定化・型安全性 | ✅完了 | TASK-0111~0113 | 3/3（テスト型エラー44件修正・E2Eベンチマーク安定化・ドキュメント精度改善） |
 | Phase 20: Web Workers 並列化 | ✅完了 | TASK-0114~0116 | 3/3（Worker基盤インフラ構築・CPU集約処理のWorker化・統合テストとパフォーマンス検証） |
 | Worker信頼性改善 | ✅完了 | dce48c8~4a944fe | 4コミット（クラッシュループ防止・Promise漏洩解消・リスナークリーンアップ・負値パラメータガード・エッジ検証） |
-| REQ-062: Worker crash→recovery 統合テスト | 🟡未実装 | - | 統合テスト未追加 |
-| REQ-063: 実APNG符号化テスト | 🟡未実装 | - | シミュレート→実エンコーダ置換待ち |
+| Phase 21: エクスポート実エンコーディング・要件完了 | ✅完了 | TASK-0117~0118 | 2/2（APNG実エンコーダ統合・要件・ドキュメント整合性更新） |
 
 ## 信頼性レベル分布
 
@@ -294,7 +293,7 @@
 - 🟡 黄信号: 5件 (4.7%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている（第111回検証確認・Phase 1-20全完了・全116タスク・REQ-062/063はテスト未実装のため🟡）
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている（第112回検証確認・Phase 1-21全完了・全118タスク・REQ-001~063全要件✅実装済）
 
 ## Acceptance criteria
 
