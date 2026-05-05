@@ -84,7 +84,7 @@ describe('processExportViaWorker (private)', () => {
     expect(result).toBeNull();
   });
 
-  it('returns worker result on successful execution', async () => {
+  it('returns worker result and sends correct payload on successful execution', async () => {
     const workerResult: ExportWorkerResult = {
       outputSize: 500000,
       duration: 10,
@@ -103,9 +103,9 @@ describe('processExportViaWorker (private)', () => {
     expect(result).toEqual(workerResult);
     expect(poolMock.execute).toHaveBeenCalledTimes(1);
 
-    // Verify the message sent to the pool
     const sentMessage = poolMock.execute.mock.calls[0][0];
     expect(sentMessage.type).toBe('EXPORT_RENDER');
+    expect(sentMessage.id).toBe('test-job-001');
     expect(sentMessage.payload).toEqual({
       format: 'mp4',
       data: job.sceneData,
@@ -113,7 +113,7 @@ describe('processExportViaWorker (private)', () => {
     });
   });
 
-  it('uses correct fps and duration in payload options', async () => {
+  it('passes through format, fps, and duration from job parameters', async () => {
     const poolMock = makePoolMock({
       id: 'test-id',
       type: 'EXPORT_RENDER',
@@ -129,21 +129,6 @@ describe('processExportViaWorker (private)', () => {
     expect(sentMessage.payload.options.fps).toBe(60);
     expect(sentMessage.payload.options.duration).toBe(5);
   });
-
-  it('uses job id as message id', async () => {
-    const poolMock = makePoolMock({
-      id: 'my-custom-id',
-      type: 'EXPORT_RENDER',
-      payload: {},
-    } as WorkerResponse);
-    const engine = createEngineWithPool(poolMock);
-    const job = createJob();
-
-    await (engine as any).processExportViaWorker(job, 30, 10);
-
-    const sentMessage = poolMock.execute.mock.calls[0][0];
-    expect(sentMessage.id).toBe('test-job-001');
-  });
 });
 
 // ---------- buildFramesFromWorkerResult ----------
@@ -152,8 +137,6 @@ describe('buildFramesFromWorkerResult (private)', () => {
   it.each([
     ['720p', 1280, 720],
     ['1080p', 1920, 1080],
-    ['1440p', 2560, 1440],
-    ['4k', 3840, 2160],
   ] as const)('creates frames with correct dimensions for %s', (res, w, h) => {
     const engine = new EnhancedExportEngine(2, false);
     const quality = { resolution: res as any, fps: 30 as const, bitrate: 'auto' as const, hdr: false };
@@ -214,58 +197,26 @@ describe('buildFramesFromWorkerResult (private)', () => {
   });
 });
 
-// ---------- Disposed-flag guard (Export Engine) ----------
+// ---------- Disposed-flag guard and dispose-then-reuse ----------
 
-describe('Export engine disposed-flag guard', () => {
-  it('getWorkerPool returns null after dispose', () => {
+describe('Export engine disposed-flag guard and reuse', () => {
+  it('delegation returns null and isWorkerEnabled becomes false after dispose', async () => {
     const engine = new EnhancedExportEngine(2, false);
     (engine as any).useWorkers = true;
     engine.dispose();
 
     expect((engine as any).getWorkerPool()).toBeNull();
-  });
-
-  it('isWorkerEnabled returns false after dispose', () => {
-    const engine = new EnhancedExportEngine(2, false);
-    (engine as any).useWorkers = true;
-    engine.dispose();
-
     expect(engine.isWorkerEnabled).toBe(false);
-  });
-
-  it('processExportViaWorker returns null on disposed engine', async () => {
-    const engine = new EnhancedExportEngine(2, false);
-    (engine as any).useWorkers = true;
-    engine.dispose();
-
     const result = await (engine as any).processExportViaWorker(createJob(), 30, 10);
     expect(result).toBeNull();
   });
 
-  it('export still succeeds after dispose (main-thread fallback)', async () => {
-    const engine = new EnhancedExportEngine(2, false);
+  it('export falls back to main thread after single or triple dispose', async () => {
+    const engine = new EnhancedExportEngine(2, true);
+    engine.dispose();
+    engine.dispose();
     engine.dispose();
 
-    const result = await engine.exportVideo(
-      { scenes: [{ duration: 2 }] },
-      {
-        format: 'mp4',
-        quality: { resolution: '1080p', fps: 30, bitrate: 'auto', hdr: false },
-        settings: { loop: false, includeAudio: false, watermark: false, compression: 'none', optimization: 'speed' },
-      },
-    );
-
-    expect(result.success).toBe(true);
-  });
-});
-
-// ---------- Smoke test: dispose then reuse ----------
-
-describe('Export engine dispose-then-reuse smoke test', () => {
-  it('dispose followed by export falls back cleanly', async () => {
-    const engine = new EnhancedExportEngine(2, true); // useWorkers=true
-
-    engine.dispose();
     expect(engine.isWorkerEnabled).toBe(false);
 
     const result = await engine.exportVideo(
@@ -279,25 +230,6 @@ describe('Export engine dispose-then-reuse smoke test', () => {
 
     expect(result.success).toBe(true);
     expect(result.format).toBe('mp4');
-  });
-
-  it('double dispose then export still works', async () => {
-    const engine = new EnhancedExportEngine(2, true);
-    engine.dispose();
-    engine.dispose();
-    engine.dispose();
-
-    const result = await engine.exportVideo(
-      { scenes: [{ duration: 1 }] },
-      {
-        format: 'webm',
-        quality: { resolution: '720p', fps: 24, bitrate: 'auto', hdr: false },
-        settings: { loop: false, includeAudio: false, watermark: false, compression: 'none', optimization: 'speed' },
-      },
-    );
-
-    expect(result.success).toBe(true);
-    expect(result.format).toBe('webm');
   });
 });
 

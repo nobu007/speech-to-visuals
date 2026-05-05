@@ -96,6 +96,18 @@ function makePoolMock(response: any): any {
   };
 }
 
+function createDisposeTestEngine(): ComplexLayoutEngine {
+  const dagreStrategy = new DagreLayoutStrategy({} as any, {} as any);
+  return new ComplexLayoutEngine({
+    useWebWorkers: true,
+    enableOverlapResolution: false,
+    enableEdgeOptimization: false,
+    enableMultiLevel: false,
+    enableClustering: false,
+    enableForceDirected: false,
+  }, undefined, undefined, dagreStrategy);
+}
+
 // ---------- computeLayoutViaWorker ----------
 
 describe('computeLayoutViaWorker (private)', () => {
@@ -222,7 +234,7 @@ describe('computeLayoutViaWorker (private)', () => {
     expect(edge.points[1].y).toBe(230);
   });
 
-  it('sends correct payload structure to worker', async () => {
+  it('sends correct payload structure with layout-prefixed message id to worker', async () => {
     const poolMock = makePoolMock({
       id: 'test-layout',
       type: 'LAYOUT_COMPUTE',
@@ -246,13 +258,14 @@ describe('computeLayoutViaWorker (private)', () => {
     });
     (engine as any).getWorkerPool = () => poolMock;
 
-    const nodes = [{ id: 'a', label: 'Test' }];
-    const edges: any[] = [];
-
-    await (engine as any).computeLayoutViaWorker(nodes, edges);
+    await (engine as any).computeLayoutViaWorker(
+      [{ id: 'a', label: 'Test' }],
+      [],
+    );
 
     const sentMessage = poolMock.execute.mock.calls[0][0];
     expect(sentMessage.type).toBe('LAYOUT_COMPUTE');
+    expect(sentMessage.id).toMatch(/^layout_\d+_/);
     expect(sentMessage.payload.nodes[0]).toEqual({
       id: 'a',
       width: 120,
@@ -266,28 +279,6 @@ describe('computeLayoutViaWorker (private)', () => {
       nodeSeparation: 80,
       rankSeparation: 100,
     });
-  });
-
-  it('generates unique message id with layout prefix', async () => {
-    const poolMock = makePoolMock({
-      id: 'test-layout',
-      type: 'LAYOUT_COMPUTE',
-      payload: {
-        nodes: [{ id: 'a', x: 0, y: 0, width: 120, height: 60 }],
-        edges: [],
-        width: 1920,
-        height: 1080,
-      },
-    });
-
-    const engine = createEngineWithPoolMock(poolMock);
-    await (engine as any).computeLayoutViaWorker(
-      [{ id: 'a', label: 'A' }],
-      [],
-    );
-
-    const sentMessage = poolMock.execute.mock.calls[0][0];
-    expect(sentMessage.id).toMatch(/^layout_\d+_/);
   });
 
   it('handles unknown node ids gracefully in edge computation', async () => {
@@ -351,16 +342,7 @@ describe('Layout engine disposed-flag guard', () => {
 
 describe('Layout engine dispose-then-reuse smoke test', () => {
   it('dispose followed by generateComplexLayout falls back to main thread', async () => {
-    const dagreStrategy = new DagreLayoutStrategy({} as any, {} as any);
-
-    const engine = new ComplexLayoutEngine({
-      useWebWorkers: true,
-      enableOverlapResolution: false,
-      enableEdgeOptimization: false,
-      enableMultiLevel: false,
-      enableClustering: false,
-      enableForceDirected: false,
-    }, undefined, undefined, dagreStrategy);
+    const engine = createDisposeTestEngine();
 
     engine.dispose();
     expect(engine.isWorkerEnabled).toBe(false);
@@ -377,16 +359,7 @@ describe('Layout engine dispose-then-reuse smoke test', () => {
   });
 
   it('double dispose then layout still works', async () => {
-    const dagreStrategy = new DagreLayoutStrategy({} as any, {} as any);
-
-    const engine = new ComplexLayoutEngine({
-      useWebWorkers: true,
-      enableOverlapResolution: false,
-      enableEdgeOptimization: false,
-      enableMultiLevel: false,
-      enableClustering: false,
-      enableForceDirected: false,
-    }, undefined, undefined, dagreStrategy);
+    const engine = createDisposeTestEngine();
 
     engine.dispose();
     engine.dispose();
