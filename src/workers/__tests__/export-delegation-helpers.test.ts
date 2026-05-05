@@ -62,10 +62,25 @@ function makePoolMock(executeReturn: any): any {
 // ---------- processExportViaWorker ----------
 
 describe('processExportViaWorker (private)', () => {
-  it('returns null when pool is null', async () => {
-    const engine = createEngineWithPool(null);
-    const job = createJob();
-    const result = await (engine as any).processExportViaWorker(job, 30, 10);
+  it.each([
+    ['pool is null', null],
+    ['worker response has error', { id: 't', type: 'EXPORT_RENDER', error: { code: 'WORKER_ERROR', message: 'fail' } }],
+    ['payload is undefined', { id: 't', type: 'EXPORT_RENDER' }],
+  ] as const)('returns null when %s', async (_desc, poolResponse) => {
+    const poolMock = poolResponse === null ? null : makePoolMock(poolResponse as any);
+    const engine = createEngineWithPool(poolMock);
+    const result = await (engine as any).processExportViaWorker(createJob(), 30, 10);
+    expect(result).toBeNull();
+  });
+
+  it('returns null when pool.execute throws', async () => {
+    const poolMock = {
+      execute: jest.fn().mockRejectedValue(new Error('Worker crashed') as never),
+      terminate: jest.fn(),
+      isTerminated: false,
+    };
+    const engine = createEngineWithPool(poolMock);
+    const result = await (engine as any).processExportViaWorker(createJob(), 30, 10);
     expect(result).toBeNull();
   });
 
@@ -96,47 +111,6 @@ describe('processExportViaWorker (private)', () => {
       data: job.sceneData,
       options: { fps: 30, duration: 10, avgFrameSize: 50000 },
     });
-  });
-
-  it('returns null when worker response has error', async () => {
-    const poolMock = makePoolMock({
-      id: 'test-id',
-      type: 'EXPORT_RENDER',
-      error: { code: 'WORKER_ERROR', message: 'Something went wrong' },
-    } as WorkerResponse);
-    const engine = createEngineWithPool(poolMock);
-    const job = createJob();
-
-    const result = await (engine as any).processExportViaWorker(job, 30, 10);
-
-    expect(result).toBeNull();
-  });
-
-  it('returns null when pool.execute throws', async () => {
-    const poolMock = {
-      execute: jest.fn().mockRejectedValue(new Error('Worker crashed') as never),
-      terminate: jest.fn(),
-      isTerminated: false,
-    };
-    const engine = createEngineWithPool(poolMock);
-    const job = createJob();
-
-    const result = await (engine as any).processExportViaWorker(job, 30, 10);
-
-    expect(result).toBeNull();
-  });
-
-  it('returns null when payload is undefined', async () => {
-    const poolMock = makePoolMock({
-      id: 'test-id',
-      type: 'EXPORT_RENDER',
-    } as WorkerResponse);
-    const engine = createEngineWithPool(poolMock);
-    const job = createJob();
-
-    const result = await (engine as any).processExportViaWorker(job, 30, 10);
-
-    expect(result).toBeNull();
   });
 
   it('uses correct fps and duration in payload options', async () => {

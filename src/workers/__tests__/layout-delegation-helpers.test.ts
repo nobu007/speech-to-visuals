@@ -99,8 +99,24 @@ function makePoolMock(response: any): any {
 // ---------- computeLayoutViaWorker ----------
 
 describe('computeLayoutViaWorker (private)', () => {
-  it('returns null when pool is null', async () => {
-    const engine = createEngineWithPoolMock(null);
+  it.each([
+    ['pool is null', null],
+    ['worker response has error', { id: 't', type: 'LAYOUT_COMPUTE', error: { code: 'LAYOUT_ERROR', message: 'fail' } }],
+    ['payload is null', { id: 't', type: 'LAYOUT_COMPUTE', payload: null }],
+  ] as const)('returns null when %s', async (_desc, poolResponse) => {
+    const poolMock = poolResponse === null ? null : makePoolMock(poolResponse);
+    const engine = createEngineWithPoolMock(poolMock);
+    const result = await (engine as any).computeLayoutViaWorker(createNodes(), createEdges());
+    expect(result).toBeNull();
+  });
+
+  it('returns null when pool.execute throws', async () => {
+    const poolMock = {
+      execute: jest.fn().mockRejectedValue(new Error('Worker crashed') as never),
+      terminate: jest.fn(),
+      isTerminated: false,
+    };
+    const engine = createEngineWithPoolMock(poolMock);
     const result = await (engine as any).computeLayoutViaWorker(createNodes(), createEdges());
     expect(result).toBeNull();
   });
@@ -170,45 +186,6 @@ describe('computeLayoutViaWorker (private)', () => {
     expect(result.nodes[0].meta).toEqual({ importance: 5, custom: 'data' });
     // Node 'b' has no meta
     expect(result.nodes[1].meta).toBeUndefined();
-  });
-
-  it('returns null when worker response has error', async () => {
-    const poolMock = makePoolMock({
-      id: 'test-layout',
-      type: 'LAYOUT_COMPUTE',
-      error: { code: 'LAYOUT_ERROR', message: 'Computation failed' },
-    });
-
-    const engine = createEngineWithPoolMock(poolMock);
-
-    const result = await (engine as any).computeLayoutViaWorker(createNodes(), createEdges());
-    expect(result).toBeNull();
-  });
-
-  it('returns null when payload is null', async () => {
-    const poolMock = makePoolMock({
-      id: 'test-layout',
-      type: 'LAYOUT_COMPUTE',
-      payload: null,
-    });
-
-    const engine = createEngineWithPoolMock(poolMock);
-
-    const result = await (engine as any).computeLayoutViaWorker(createNodes(), createEdges());
-    expect(result).toBeNull();
-  });
-
-  it('returns null when pool.execute throws', async () => {
-    const poolMock = {
-      execute: jest.fn().mockRejectedValue(new Error('Worker crashed') as never),
-      terminate: jest.fn(),
-      isTerminated: false,
-    };
-
-    const engine = createEngineWithPoolMock(poolMock);
-
-    const result = await (engine as any).computeLayoutViaWorker(createNodes(), createEdges());
-    expect(result).toBeNull();
   });
 
   it('computes edge points from node positions', async () => {
@@ -343,32 +320,31 @@ describe('computeLayoutViaWorker (private)', () => {
 // ---------- Disposed-flag guard (Layout Engine) ----------
 
 describe('Layout engine disposed-flag guard', () => {
-  it('getWorkerPool returns null after dispose', () => {
-    const engine = new ComplexLayoutEngine({ useWebWorkers: true });
-    engine.dispose();
-    expect((engine as any).disposed).toBe(true);
-  });
-
-  it('isWorkerEnabled returns false after dispose', () => {
-    const engine = new ComplexLayoutEngine({ useWebWorkers: true });
-    engine.dispose();
-    expect(engine.isWorkerEnabled).toBe(false);
-  });
-
-  it('dispose is idempotent', () => {
-    const engine = new ComplexLayoutEngine({ useWebWorkers: true });
-    engine.dispose();
-    engine.dispose();
-    engine.dispose();
-    expect(engine.isWorkerEnabled).toBe(false);
-  });
-
-  it('computeLayoutViaWorker returns null on disposed engine', async () => {
-    const engine = new ComplexLayoutEngine({ useWebWorkers: true });
-    engine.dispose();
-    const result = await (engine as any).computeLayoutViaWorker(createNodes(), createEdges());
-    expect(result).toBeNull();
-  });
+  it.each([
+    ['getWorkerPool returns null after dispose', () => {
+      const engine = new ComplexLayoutEngine({ useWebWorkers: true });
+      engine.dispose();
+      expect((engine as any).disposed).toBe(true);
+    }],
+    ['isWorkerEnabled returns false after dispose', () => {
+      const engine = new ComplexLayoutEngine({ useWebWorkers: true });
+      engine.dispose();
+      expect(engine.isWorkerEnabled).toBe(false);
+    }],
+    ['dispose is idempotent (3x)', () => {
+      const engine = new ComplexLayoutEngine({ useWebWorkers: true });
+      engine.dispose();
+      engine.dispose();
+      engine.dispose();
+      expect(engine.isWorkerEnabled).toBe(false);
+    }],
+    ['computeLayoutViaWorker returns null on disposed engine', async () => {
+      const engine = new ComplexLayoutEngine({ useWebWorkers: true });
+      engine.dispose();
+      const result = await (engine as any).computeLayoutViaWorker(createNodes(), createEdges());
+      expect(result).toBeNull();
+    }],
+  ])('%s', (_desc, fn) => fn());
 });
 
 // ---------- Smoke test: dispose then reuse ----------
