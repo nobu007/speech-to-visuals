@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
-import type { WorkerResponse, ExportWorkerResult } from '../types';
+import type { WorkerResponse, ExportWorkerResult, WorkerMessage, ExportWorkerPayload } from '../types';
 
 // Mock workers module
 jest.mock('../index', () => ({
@@ -29,6 +29,30 @@ jest.mock('../worker-factories', () => ({
 
 import { EnhancedExportEngine } from '../../export/enhanced-export-engine';
 
+// --- Test helper types ---
+
+/** Minimal mock of a worker pool for testing delegation */
+interface MockPool {
+  execute: ReturnType<typeof jest.fn>;
+  terminate: ReturnType<typeof jest.fn>;
+  isTerminated: boolean;
+}
+
+/** Interface for accessing private members of EnhancedExportEngine in tests */
+interface ExportEngineTestInternals {
+  useWorkers: boolean;
+  getWorkerPool: () => MockPool | null;
+  processExportViaWorker: (job: Record<string, unknown>, fps: number, duration: number) => Promise<ExportWorkerResult | null>;
+  buildFramesFromWorkerResult: (totalFrames: number, fps: number, quality: Record<string, unknown>, workerResult: Record<string, unknown>) => Array<Record<string, unknown>>;
+  activeExports: Map<string, Record<string, unknown>>;
+  exportQueue: Array<Record<string, unknown>>;
+}
+
+/** Cast engine to internal access interface for testing private members */
+function testInternals(engine: EnhancedExportEngine): ExportEngineTestInternals {
+  return engine as unknown as ExportEngineTestInternals;
+}
+
 // Suppress console
 beforeEach(() => {
   jest.spyOn(console, 'log').mockImplementation(() => {});
@@ -44,14 +68,14 @@ afterEach(() => {
  * This is necessary because getWorkerPool() has lazy initialization
  * that would create a real WorkerPool.
  */
-function createEngineWithPool(poolMock: any): EnhancedExportEngine {
+function createEngineWithPool(poolMock: MockPool | null): EnhancedExportEngine {
   const engine = new EnhancedExportEngine(2, false);
-  (engine as any).useWorkers = true;
-  (engine as any).getWorkerPool = () => poolMock;
+  testInternals(engine).useWorkers = true;
+  testInternals(engine).getWorkerPool = () => poolMock;
   return engine;
 }
 
-function makePoolMock(executeReturn: any): any {
+function makePoolMock(executeReturn: WorkerResponse<ExportWorkerResult>): MockPool {
   return {
     execute: jest.fn().mockResolvedValue(executeReturn as never),
     terminate: jest.fn(),
@@ -64,23 +88,23 @@ function makePoolMock(executeReturn: any): any {
 describe('processExportViaWorker (private)', () => {
   it.each([
     ['pool is null', null],
-    ['worker response has error', { id: 't', type: 'EXPORT_RENDER', error: { code: 'WORKER_ERROR', message: 'fail' } }],
-    ['payload is undefined', { id: 't', type: 'EXPORT_RENDER' }],
+    ['worker response has error', { id: 't', type: 'EXPORT_RENDER' as const, error: { code: 'WORKER_ERROR', message: 'fail' } }],
+    ['payload is undefined', { id: 't', type: 'EXPORT_RENDER' as const }],
   ] as const)('returns null when %s', async (_desc, poolResponse) => {
-    const poolMock = poolResponse === null ? null : makePoolMock(poolResponse as any);
+    const poolMock = poolResponse === null ? null : makePoolMock(poolResponse as WorkerResponse<ExportWorkerResult>);
     const engine = createEngineWithPool(poolMock);
-    const result = await (engine as any).processExportViaWorker(createJob(), 30, 10);
+    const result = await testInternals(engine).processExportViaWorker(createJob(), 30, 10);
     expect(result).toBeNull();
   });
 
   it('returns null when pool.execute throws', async () => {
-    const poolMock = {
+    const poolMock: MockPool = {
       execute: jest.fn().mockRejectedValue(new Error('Worker crashed') as never),
       terminate: jest.fn(),
       isTerminated: false,
     };
     const engine = createEngineWithPool(poolMock);
-    const result = await (engine as any).processExportViaWorker(createJob(), 30, 10);
+    const result = await testInternals(engine).processExportViaWorker(createJob(), 30, 10);
     expect(result).toBeNull();
   });
 
@@ -94,16 +118,16 @@ describe('processExportViaWorker (private)', () => {
       id: 'test-id',
       type: 'EXPORT_RENDER',
       payload: workerResult,
-    } as WorkerResponse<ExportWorkerResult>);
+    });
     const engine = createEngineWithPool(poolMock);
     const job = createJob();
 
-    const result = await (engine as any).processExportViaWorker(job, 30, 10);
+    const result = await testInternals(engine).processExportViaWorker(job, 30, 10);
 
     expect(result).toEqual(workerResult);
     expect(poolMock.execute).toHaveBeenCalledTimes(1);
 
-    const sentMessage = poolMock.execute.mock.calls[0][0];
+    const sentMessage = poolMock.execute.mock.calls[0][0] as WorkerMessage<ExportWorkerPayload>;
     expect(sentMessage.type).toBe('EXPORT_RENDER');
     expect(sentMessage.id).toBe('test-job-001');
     expect(sentMessage.payload).toEqual({
@@ -118,13 +142,13 @@ describe('processExportViaWorker (private)', () => {
       id: 'test-id',
       type: 'EXPORT_RENDER',
       payload: { outputSize: 100 },
-    } as WorkerResponse);
+    } as WorkerResponse<ExportWorkerResult>);
     const engine = createEngineWithPool(poolMock);
     const job = createJob({ format: 'webm' });
 
-    await (engine as any).processExportViaWorker(job, 60, 5);
+    await testInternals(engine).processExportViaWorker(job, 60, 5);
 
-    const sentMessage = poolMock.execute.mock.calls[0][0];
+    const sentMessage = poolMock.execute.mock.calls[0][0] as WorkerMessage<ExportWorkerPayload>;
     expect(sentMessage.payload.format).toBe('webm');
     expect(sentMessage.payload.options.fps).toBe(60);
     expect(sentMessage.payload.options.duration).toBe(5);
@@ -139,9 +163,9 @@ describe('buildFramesFromWorkerResult (private)', () => {
     ['1080p', 1920, 1080],
   ] as const)('creates frames with correct dimensions for %s', (res, w, h) => {
     const engine = new EnhancedExportEngine(2, false);
-    const quality = { resolution: res as any, fps: 30 as const, bitrate: 'auto' as const, hdr: false };
+    const quality = { resolution: res as '720p' | '1080p', fps: 30 as const, bitrate: 'auto' as const, hdr: false };
 
-    const frames = (engine as any).buildFramesFromWorkerResult(1, 30, quality, {});
+    const frames = testInternals(engine).buildFramesFromWorkerResult(1, 30, quality, {});
 
     expect(frames[0].width).toBe(w);
     expect(frames[0].height).toBe(h);
@@ -153,7 +177,7 @@ describe('buildFramesFromWorkerResult (private)', () => {
     const engine = new EnhancedExportEngine(2, false);
     const quality = { resolution: '1080p' as const, fps: 30 as const, bitrate: 'auto' as const, hdr: false };
 
-    const frames = (engine as any).buildFramesFromWorkerResult(10, 30, quality, {});
+    const frames = testInternals(engine).buildFramesFromWorkerResult(10, 30, quality, {});
 
     expect(frames).toHaveLength(10);
     engine.dispose();
@@ -163,7 +187,7 @@ describe('buildFramesFromWorkerResult (private)', () => {
     const engine = new EnhancedExportEngine(2, false);
     const quality = { resolution: '1080p' as const, fps: 30 as const, bitrate: 'auto' as const, hdr: false };
 
-    const frames = (engine as any).buildFramesFromWorkerResult(0, 30, quality, {});
+    const frames = testInternals(engine).buildFramesFromWorkerResult(0, 30, quality, {});
 
     expect(frames).toHaveLength(0);
     engine.dispose();
@@ -174,9 +198,9 @@ describe('buildFramesFromWorkerResult (private)', () => {
     [60, [0, 1 / 60, 2 / 60]],
   ] as const)('assigns correct timestamps at %d fps', (fps, expected) => {
     const engine = new EnhancedExportEngine(2, false);
-    const quality = { resolution: '1080p' as const, fps: fps as any, bitrate: 'auto' as const, hdr: false };
+    const quality = { resolution: '1080p' as const, fps: fps as 30 | 60, bitrate: 'auto' as const, hdr: false };
 
-    const frames = (engine as any).buildFramesFromWorkerResult(3, fps, quality, {});
+    const frames = testInternals(engine).buildFramesFromWorkerResult(3, fps, quality, {});
 
     expected.forEach((ts, i) => {
       expect(frames[i].timestamp).toBeCloseTo(ts);
@@ -188,7 +212,7 @@ describe('buildFramesFromWorkerResult (private)', () => {
     const engine = new EnhancedExportEngine(2, false);
     const quality = { resolution: '1080p' as const, fps: 30 as const, bitrate: 'auto' as const, hdr: false };
 
-    const frames = (engine as any).buildFramesFromWorkerResult(3, 30, quality, {});
+    const frames = testInternals(engine).buildFramesFromWorkerResult(3, 30, quality, {});
 
     for (const frame of frames) {
       expect(frame.data).toBeInstanceOf(Uint8Array);
@@ -202,12 +226,12 @@ describe('buildFramesFromWorkerResult (private)', () => {
 describe('Export engine disposed-flag guard and reuse', () => {
   it('delegation returns null and isWorkerEnabled becomes false after dispose', async () => {
     const engine = new EnhancedExportEngine(2, false);
-    (engine as any).useWorkers = true;
+    testInternals(engine).useWorkers = true;
     engine.dispose();
 
-    expect((engine as any).getWorkerPool()).toBeNull();
+    expect(testInternals(engine).getWorkerPool()).toBeNull();
     expect(engine.isWorkerEnabled).toBe(false);
-    const result = await (engine as any).processExportViaWorker(createJob(), 30, 10);
+    const result = await testInternals(engine).processExportViaWorker(createJob(), 30, 10);
     expect(result).toBeNull();
   });
 
@@ -235,12 +259,12 @@ describe('Export engine disposed-flag guard and reuse', () => {
 
 // ---------- Helpers ----------
 
-function createJob(overrides: Record<string, unknown> = {}): any {
+function createJob(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     id: 'test-job-001',
     sceneData: { scenes: [{ duration: 2, type: 'intro' }] },
     config: {
-      format: (overrides.format as string) || 'mp4',
+      format: (overrides.format as string | undefined) || 'mp4',
       quality: { resolution: '1080p', fps: 30, bitrate: 'auto', hdr: false },
       settings: { duration: 10, loop: false, includeAudio: false, watermark: false, compression: 'none', optimization: 'speed' },
     },
@@ -256,18 +280,18 @@ function createJob(overrides: Record<string, unknown> = {}): any {
 describe('Export engine queued-job disposal', () => {
   it('resolves queued export jobs with error result on dispose', async () => {
     const engine = new EnhancedExportEngine(1, false);
-    (engine as any).useWorkers = true;
+    testInternals(engine).useWorkers = true;
 
     // Fill the slot with one job that never completes
     const slowJob = createJob({ id: 'slow-job' });
-    (engine as any).activeExports.set('slow-job', slowJob);
+    testInternals(engine).activeExports.set('slow-job', slowJob);
 
     // Queue a second job with a resolve callback
     const queuedJob = createJob({ id: 'queued-job' });
-    const promise = new Promise<any>((resolve) => {
-      queuedJob.resolve = resolve;
+    const promise = new Promise<Record<string, unknown>>((resolve) => {
+      queuedJob['resolve'] = resolve;
     });
-    (engine as any).exportQueue.push(queuedJob);
+    testInternals(engine).exportQueue.push(queuedJob);
 
     engine.dispose();
 

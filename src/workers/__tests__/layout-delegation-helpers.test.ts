@@ -6,6 +6,9 @@
  */
 
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
+import type { LayoutConfig } from '../../visualization/types';
+import type { FallbackLayoutStrategy } from '../../visualization/strategies/FallbackLayoutStrategy';
+import type { WorkerResponse, LayoutWorkerResult } from '../types';
 
 // Mock workers module
 jest.mock('../../workers', () => ({
@@ -24,7 +27,7 @@ jest.mock('../../workers/worker-factories', () => ({
 
 // Mock DagreLayoutStrategy to avoid dagre dependency issues
 jest.mock('../../visualization/strategies/DagreLayoutStrategy', () => ({
-  DagreLayoutStrategy: jest.fn().mockImplementation(function (_config?: any, _fallback?: any) {
+  DagreLayoutStrategy: jest.fn().mockImplementation(function (_config?: LayoutConfig, _fallback?: FallbackLayoutStrategy) {
     this.applyLayout = jest.fn().mockResolvedValue({
       nodes: [
         { id: 'a', label: 'Node A', x: 50, y: 50, w: 120, h: 60 },
@@ -55,6 +58,27 @@ import { ComplexLayoutEngine } from '../../visualization/complex-layout-engine';
 import { DagreLayoutStrategy } from '../../visualization/strategies/DagreLayoutStrategy';
 import type { DiagramType } from '../../types/diagram';
 
+// --- Test helper types ---
+
+/** Minimal mock of a worker pool for testing delegation */
+interface MockPool {
+  execute: ReturnType<typeof jest.fn>;
+  terminate: ReturnType<typeof jest.fn>;
+  isTerminated: boolean;
+}
+
+/** Interface for accessing private members of ComplexLayoutEngine in tests */
+interface LayoutEngineTestInternals {
+  disposed: boolean;
+  getWorkerPool: () => MockPool | null;
+  computeLayoutViaWorker: (nodes: Array<Record<string, unknown>>, edges: Array<Record<string, unknown>>) => Promise<Record<string, unknown> | null>;
+}
+
+/** Cast engine to internal access interface for testing private members */
+function testInternals(engine: ComplexLayoutEngine): LayoutEngineTestInternals {
+  return engine as unknown as LayoutEngineTestInternals;
+}
+
 // Suppress console
 beforeEach(() => {
   jest.spyOn(console, 'log').mockImplementation(() => {});
@@ -81,14 +105,14 @@ const createEdges = () => [
  * This is necessary because getWorkerPool() checks isWorkerAvailable()
  * which returns false in the test environment.
  */
-function createEngineWithPoolMock(poolMock: any): ComplexLayoutEngine {
+function createEngineWithPoolMock(poolMock: MockPool | null): ComplexLayoutEngine {
   const engine = new ComplexLayoutEngine({ useWebWorkers: true });
   // Override getWorkerPool to return our mock directly
-  (engine as any).getWorkerPool = () => poolMock;
+  testInternals(engine).getWorkerPool = () => poolMock;
   return engine;
 }
 
-function makePoolMock(response: any): any {
+function makePoolMock(response: WorkerResponse<LayoutWorkerResult>): MockPool {
   return {
     execute: jest.fn().mockResolvedValue(response as never),
     terminate: jest.fn(),
@@ -97,7 +121,7 @@ function makePoolMock(response: any): any {
 }
 
 function createDisposeTestEngine(): ComplexLayoutEngine {
-  const dagreStrategy = new DagreLayoutStrategy({} as any, {} as any);
+  const dagreStrategy = new DagreLayoutStrategy({} as LayoutConfig, {} as FallbackLayoutStrategy);
   return new ComplexLayoutEngine({
     useWebWorkers: true,
     enableOverlapResolution: false,
@@ -113,23 +137,23 @@ function createDisposeTestEngine(): ComplexLayoutEngine {
 describe('computeLayoutViaWorker (private)', () => {
   it.each([
     ['pool is null', null],
-    ['worker response has error', { id: 't', type: 'LAYOUT_COMPUTE', error: { code: 'LAYOUT_ERROR', message: 'fail' } }],
-    ['payload is null', { id: 't', type: 'LAYOUT_COMPUTE', payload: null }],
+    ['worker response has error', { id: 't', type: 'LAYOUT_COMPUTE' as const, error: { code: 'LAYOUT_ERROR', message: 'fail' } }],
+    ['payload is null', { id: 't', type: 'LAYOUT_COMPUTE' as const, payload: null }],
   ] as const)('returns null when %s', async (_desc, poolResponse) => {
-    const poolMock = poolResponse === null ? null : makePoolMock(poolResponse);
+    const poolMock = poolResponse === null ? null : makePoolMock(poolResponse as WorkerResponse<LayoutWorkerResult>);
     const engine = createEngineWithPoolMock(poolMock);
-    const result = await (engine as any).computeLayoutViaWorker(createNodes(), createEdges());
+    const result = await testInternals(engine).computeLayoutViaWorker(createNodes(), createEdges());
     expect(result).toBeNull();
   });
 
   it('returns null when pool.execute throws', async () => {
-    const poolMock = {
+    const poolMock: MockPool = {
       execute: jest.fn().mockRejectedValue(new Error('Worker crashed') as never),
       terminate: jest.fn(),
       isTerminated: false,
     };
     const engine = createEngineWithPoolMock(poolMock);
-    const result = await (engine as any).computeLayoutViaWorker(createNodes(), createEdges());
+    const result = await testInternals(engine).computeLayoutViaWorker(createNodes(), createEdges());
     expect(result).toBeNull();
   });
 
@@ -151,22 +175,22 @@ describe('computeLayoutViaWorker (private)', () => {
 
     const engine = createEngineWithPoolMock(poolMock);
 
-    const result = await (engine as any).computeLayoutViaWorker(createNodes(), createEdges());
+    const result = await testInternals(engine).computeLayoutViaWorker(createNodes(), createEdges());
 
     expect(result).not.toBeNull();
-    expect(result.nodes).toHaveLength(3);
-    expect(result.edges).toHaveLength(2);
+    expect(result!.nodes).toHaveLength(3);
+    expect(result!.edges).toHaveLength(2);
 
     // Verify node mapping preserves original labels
-    expect(result.nodes[0].label).toBe('Node A');
-    expect(result.nodes[1].label).toBe('Node B');
-    expect(result.nodes[2].label).toBe('Node C');
+    expect(result!.nodes[0].label).toBe('Node A');
+    expect(result!.nodes[1].label).toBe('Node B');
+    expect(result!.nodes[2].label).toBe('Node C');
 
     // Verify positions from worker
-    expect(result.nodes[0].x).toBe(100);
-    expect(result.nodes[0].y).toBe(50);
-    expect(result.nodes[0].w).toBe(120);
-    expect(result.nodes[0].h).toBe(60);
+    expect(result!.nodes[0].x).toBe(100);
+    expect(result!.nodes[0].y).toBe(50);
+    expect(result!.nodes[0].w).toBe(120);
+    expect(result!.nodes[0].h).toBe(60);
   });
 
   it('preserves meta from original nodes in worker result', async () => {
@@ -192,12 +216,12 @@ describe('computeLayoutViaWorker (private)', () => {
     ];
     const edges = [{ from: 'a', to: 'b' }];
 
-    const result = await (engine as any).computeLayoutViaWorker(nodes, edges);
+    const result = await testInternals(engine).computeLayoutViaWorker(nodes, edges);
 
     // Node 'a' should have meta preserved
-    expect(result.nodes[0].meta).toEqual({ importance: 5, custom: 'data' });
+    expect(result!.nodes[0].meta).toEqual({ importance: 5, custom: 'data' });
     // Node 'b' has no meta
-    expect(result.nodes[1].meta).toBeUndefined();
+    expect(result!.nodes[1].meta).toBeUndefined();
   });
 
   it('computes edge points from node positions', async () => {
@@ -220,10 +244,10 @@ describe('computeLayoutViaWorker (private)', () => {
     const nodes = [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }];
     const edges = [{ from: 'a', to: 'b', label: 'connects' }];
 
-    const result = await (engine as any).computeLayoutViaWorker(nodes, edges);
+    const result = await testInternals(engine).computeLayoutViaWorker(nodes, edges);
 
-    expect(result.edges).toHaveLength(1);
-    const edge = result.edges[0];
+    expect(result!.edges).toHaveLength(1);
+    const edge = result!.edges[0];
     expect(edge.from).toBe('a');
     expect(edge.to).toBe('b');
     expect(edge.label).toBe('connects');
@@ -256,23 +280,24 @@ describe('computeLayoutViaWorker (private)', () => {
       nodeSeparation: 80,
       rankSeparation: 100,
     });
-    (engine as any).getWorkerPool = () => poolMock;
+    testInternals(engine).getWorkerPool = () => poolMock;
 
-    await (engine as any).computeLayoutViaWorker(
+    await testInternals(engine).computeLayoutViaWorker(
       [{ id: 'a', label: 'Test' }],
       [],
     );
 
-    const sentMessage = poolMock.execute.mock.calls[0][0];
+    const sentMessage = poolMock.execute.mock.calls[0][0] as Record<string, unknown>;
     expect(sentMessage.type).toBe('LAYOUT_COMPUTE');
     expect(sentMessage.id).toMatch(/^layout_\d+_/);
-    expect(sentMessage.payload.nodes[0]).toEqual({
+    const payload = sentMessage.payload as Record<string, unknown>;
+    expect((payload.nodes as Array<Record<string, unknown>>)[0]).toEqual({
       id: 'a',
       width: 120,
       height: 60,
       label: 'Test',
     });
-    expect(sentMessage.payload.config).toEqual({
+    expect(payload.config).toEqual({
       width: 1920,
       height: 1080,
       rankDirection: 'LR',
@@ -300,11 +325,11 @@ describe('computeLayoutViaWorker (private)', () => {
     const nodes = [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }];
     const edges = [{ from: 'a', to: 'b' }];
 
-    const result = await (engine as any).computeLayoutViaWorker(nodes, edges);
+    const result = await testInternals(engine).computeLayoutViaWorker(nodes, edges);
 
-    expect(result.edges).toHaveLength(1);
-    expect(result.edges[0].points[1].x).toBe(0);
-    expect(result.edges[0].points[1].y).toBe(0);
+    expect(result!.edges).toHaveLength(1);
+    expect(result!.edges[0].points[1].x).toBe(0);
+    expect(result!.edges[0].points[1].y).toBe(0);
   });
 });
 
@@ -315,7 +340,7 @@ describe('Layout engine disposed-flag guard', () => {
     ['getWorkerPool returns null after dispose', () => {
       const engine = new ComplexLayoutEngine({ useWebWorkers: true });
       engine.dispose();
-      expect((engine as any).disposed).toBe(true);
+      expect(testInternals(engine).disposed).toBe(true);
     }],
     ['isWorkerEnabled returns false after dispose', () => {
       const engine = new ComplexLayoutEngine({ useWebWorkers: true });
@@ -332,7 +357,7 @@ describe('Layout engine disposed-flag guard', () => {
     ['computeLayoutViaWorker returns null on disposed engine', async () => {
       const engine = new ComplexLayoutEngine({ useWebWorkers: true });
       engine.dispose();
-      const result = await (engine as any).computeLayoutViaWorker(createNodes(), createEdges());
+      const result = await testInternals(engine).computeLayoutViaWorker(createNodes(), createEdges());
       expect(result).toBeNull();
     }],
   ])('%s', (_desc, fn) => fn());
