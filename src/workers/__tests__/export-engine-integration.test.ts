@@ -6,14 +6,14 @@
  * when workers are unavailable or fail.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 
 // Mock the workers module before importing the engine
-vi.mock('../../workers', () => ({
-  WorkerPool: vi.fn(),
-  isWorkerAvailable: vi.fn(() => false),
-  getOptimalWorkerCount: vi.fn(() => 2),
-  processExportPayload: vi.fn((payload) => {
+jest.mock('../../workers', () => ({
+  WorkerPool: jest.fn(),
+  isWorkerAvailable: jest.fn(() => false),
+  getOptimalWorkerCount: jest.fn(() => 2),
+  processExportPayload: jest.fn((payload) => {
     const fps = (payload.options as Record<string, unknown>).fps as number || 30;
     const duration = (payload.options as Record<string, unknown>).duration as number || 10;
     return {
@@ -28,12 +28,12 @@ import { EnhancedExportEngine } from '../../export/enhanced-export-engine';
 
 // Suppress console
 beforeEach(() => {
-  vi.spyOn(console, 'log').mockImplementation(() => {});
-  vi.spyOn(console, 'error').mockImplementation(() => {});
-  vi.spyOn(console, 'warn').mockImplementation(() => {});
+  jest.spyOn(console, 'log').mockImplementation(() => {});
+  jest.spyOn(console, 'error').mockImplementation(() => {});
+  jest.spyOn(console, 'warn').mockImplementation(() => {});
 });
 afterEach(() => {
-  vi.restoreAllMocks();
+  jest.restoreAllMocks();
 });
 
 const createSceneData = () => ({

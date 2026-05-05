@@ -6,39 +6,14 @@
  * when workers are unavailable or fail.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-
-// Use vi.hoisted to create constructable mocks
-const { mockDagreLayoutStrategy, mockCulturalLayoutAdapter, mockLayoutUtils } = vi.hoisted(() => ({
-  mockDagreLayoutStrategy: vi.fn(function () {
-    this.applyLayout = vi.fn().mockResolvedValue({
-      nodes: [
-        { id: 'a', label: 'Node A', x: 50, y: 50, w: 120, h: 60 },
-        { id: 'b', label: 'Node B', x: 250, y: 50, w: 120, h: 60 },
-        { id: 'c', label: 'Node C', x: 150, y: 160, w: 120, h: 60 },
-      ],
-      edges: [
-        { from: 'a', to: 'b', points: [{ x: 110, y: 80 }, { x: 310, y: 80 }] },
-        { from: 'b', to: 'c', points: [{ x: 310, y: 80 }, { x: 210, y: 190 }] },
-      ],
-    });
-  }),
-  mockCulturalLayoutAdapter: vi.fn(function () {
-    this.applyCulturalAdaptation = vi.fn((layout) => Promise.resolve(layout));
-  }),
-  mockLayoutUtils: {
-    nodesOverlap: vi.fn(() => false),
-    getGraphConfig: vi.fn(() => ({})),
-    calculateNodeWidth: vi.fn(() => 120),
-  },
-}));
+import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 
 // Mock workers module before imports
-vi.mock('../../workers', () => ({
-  WorkerPool: vi.fn(),
-  isWorkerAvailable: vi.fn(() => false),
-  getOptimalWorkerCount: vi.fn(() => 2),
-  computeLayout: vi.fn(() => ({
+jest.mock('../../workers', () => ({
+  WorkerPool: jest.fn(),
+  isWorkerAvailable: jest.fn(() => false),
+  getOptimalWorkerCount: jest.fn(() => 2),
+  computeLayout: jest.fn(() => ({
     nodes: [
       { id: 'a', x: 100, y: 50, width: 120, height: 60 },
       { id: 'b', x: 300, y: 50, width: 120, height: 60 },
@@ -50,22 +25,41 @@ vi.mock('../../workers', () => ({
 }));
 
 // Mock DagreLayoutStrategy to avoid dagre dependency issues in tests
-vi.mock('../../visualization/strategies/DagreLayoutStrategy', () => ({
-  DagreLayoutStrategy: mockDagreLayoutStrategy,
+jest.mock('../../visualization/strategies/DagreLayoutStrategy', () => ({
+  DagreLayoutStrategy: jest.fn().mockImplementation(function () {
+    this.applyLayout = jest.fn().mockResolvedValue({
+      nodes: [
+        { id: 'a', label: 'Node A', x: 50, y: 50, w: 120, h: 60 },
+        { id: 'b', label: 'Node B', x: 250, y: 50, w: 120, h: 60 },
+        { id: 'c', label: 'Node C', x: 150, y: 160, w: 120, h: 60 },
+      ],
+      edges: [
+        { from: 'a', to: 'b', points: [{ x: 110, y: 80 }, { x: 310, y: 80 }] },
+        { from: 'b', to: 'c', points: [{ x: 310, y: 80 }, { x: 210, y: 190 }] },
+      ],
+    });
+  }),
 }));
 
-vi.mock('../../visualization/strategies/CulturalLayoutAdapter', () => ({
-  CulturalLayoutAdapter: mockCulturalLayoutAdapter,
+jest.mock('../../visualization/strategies/CulturalLayoutAdapter', () => ({
+  CulturalLayoutAdapter: jest.fn().mockImplementation(function () {
+    this.applyCulturalAdaptation = jest.fn((layout) => Promise.resolve(layout));
+  }),
 }));
 
-vi.mock('../../visualization/layout-utils', () => mockLayoutUtils);
+jest.mock('../../visualization/layout-utils', () => ({
+  nodesOverlap: jest.fn(() => false),
+  getGraphConfig: jest.fn(() => ({})),
+  calculateNodeWidth: jest.fn(() => 120),
+}));
 
 import { ComplexLayoutEngine } from '../../visualization/complex-layout-engine';
+import { DagreLayoutStrategy } from '../../visualization/strategies/DagreLayoutStrategy';
 import type { DiagramType } from '../../types/diagram';
 
 /** Helper to create engine with mocked DagreLayoutStrategy */
 function createEngine(config: Record<string, unknown> = {}) {
-  const dagreStrategy = new mockDagreLayoutStrategy();
+  const dagreStrategy = new DagreLayoutStrategy();
   return new ComplexLayoutEngine(
     config,
     undefined,
@@ -76,12 +70,12 @@ function createEngine(config: Record<string, unknown> = {}) {
 
 // Suppress console
 beforeEach(() => {
-  vi.spyOn(console, 'log').mockImplementation(() => {});
-  vi.spyOn(console, 'error').mockImplementation(() => {});
-  vi.spyOn(console, 'warn').mockImplementation(() => {});
+  jest.spyOn(console, 'log').mockImplementation(() => {});
+  jest.spyOn(console, 'error').mockImplementation(() => {});
+  jest.spyOn(console, 'warn').mockImplementation(() => {});
 });
 afterEach(() => {
-  vi.restoreAllMocks();
+  jest.restoreAllMocks();
 });
 
 const createNodes = () => [

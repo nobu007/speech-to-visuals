@@ -5,12 +5,27 @@
  * including the disposed-flag guard and result mapping logic.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 
-// Use vi.hoisted to create mocks that need to be constructable
-const { mockDagreLayoutStrategy, mockCulturalLayoutAdapter, mockLayoutUtils } = vi.hoisted(() => ({
-  mockDagreLayoutStrategy: vi.fn(function () {
-    this.applyLayout = vi.fn().mockResolvedValue({
+// Mock workers module
+jest.mock('../../workers', () => ({
+  WorkerPool: jest.fn(),
+  isWorkerAvailable: jest.fn(() => false),
+  getOptimalWorkerCount: jest.fn(() => 2),
+  computeLayout: jest.fn(),
+}));
+
+// Mock worker-factories
+jest.mock('../../workers/worker-factories', () => ({
+  createLayoutWorkerFactory: jest.fn(() => () => {
+    throw new Error('Worker factory should not be called');
+  }),
+}));
+
+// Mock DagreLayoutStrategy to avoid dagre dependency issues
+jest.mock('../../visualization/strategies/DagreLayoutStrategy', () => ({
+  DagreLayoutStrategy: jest.fn().mockImplementation(function () {
+    this.applyLayout = jest.fn().mockResolvedValue({
       nodes: [
         { id: 'a', label: 'Node A', x: 50, y: 50, w: 120, h: 60 },
         { id: 'b', label: 'Node B', x: 250, y: 50, w: 120, h: 60 },
@@ -22,53 +37,32 @@ const { mockDagreLayoutStrategy, mockCulturalLayoutAdapter, mockLayoutUtils } = 
       ],
     });
   }),
-  mockCulturalLayoutAdapter: vi.fn(function () {
-    this.applyCulturalAdaptation = vi.fn((layout) => Promise.resolve(layout));
-  }),
-  mockLayoutUtils: {
-    nodesOverlap: vi.fn(() => false),
-    getGraphConfig: vi.fn(() => ({})),
-    calculateNodeWidth: vi.fn(() => 120),
-  },
 }));
 
-// Mock workers module
-vi.mock('../../workers', () => ({
-  WorkerPool: vi.fn(),
-  isWorkerAvailable: vi.fn(() => false),
-  getOptimalWorkerCount: vi.fn(() => 2),
-  computeLayout: vi.fn(),
-}));
-
-// Mock worker-factories
-vi.mock('../../workers/worker-factories', () => ({
-  createLayoutWorkerFactory: vi.fn(() => () => {
-    throw new Error('Worker factory should not be called');
+jest.mock('../../visualization/strategies/CulturalLayoutAdapter', () => ({
+  CulturalLayoutAdapter: jest.fn().mockImplementation(function () {
+    this.applyCulturalAdaptation = jest.fn((layout) => Promise.resolve(layout));
   }),
 }));
 
-// Mock DagreLayoutStrategy to avoid dagre dependency issues
-vi.mock('../../visualization/strategies/DagreLayoutStrategy', () => ({
-  DagreLayoutStrategy: mockDagreLayoutStrategy,
+jest.mock('../../visualization/layout-utils', () => ({
+  nodesOverlap: jest.fn(() => false),
+  getGraphConfig: jest.fn(() => ({})),
+  calculateNodeWidth: jest.fn(() => 120),
 }));
-
-vi.mock('../../visualization/strategies/CulturalLayoutAdapter', () => ({
-  CulturalLayoutAdapter: mockCulturalLayoutAdapter,
-}));
-
-vi.mock('../../visualization/layout-utils', () => mockLayoutUtils);
 
 import { ComplexLayoutEngine } from '../../visualization/complex-layout-engine';
+import { DagreLayoutStrategy } from '../../visualization/strategies/DagreLayoutStrategy';
 import type { DiagramType } from '../../types/diagram';
 
 // Suppress console
 beforeEach(() => {
-  vi.spyOn(console, 'log').mockImplementation(() => {});
-  vi.spyOn(console, 'error').mockImplementation(() => {});
-  vi.spyOn(console, 'warn').mockImplementation(() => {});
+  jest.spyOn(console, 'log').mockImplementation(() => {});
+  jest.spyOn(console, 'error').mockImplementation(() => {});
+  jest.spyOn(console, 'warn').mockImplementation(() => {});
 });
 afterEach(() => {
-  vi.restoreAllMocks();
+  jest.restoreAllMocks();
 });
 
 const createNodes = () => [
@@ -96,8 +90,8 @@ function createEngineWithPoolMock(poolMock: any): ComplexLayoutEngine {
 
 function makePoolMock(response: any): any {
   return {
-    execute: vi.fn().mockResolvedValue(response),
-    terminate: vi.fn(),
+    execute: jest.fn().mockResolvedValue(response),
+    terminate: jest.fn(),
     isTerminated: false,
   };
 }
@@ -206,8 +200,8 @@ describe('computeLayoutViaWorker (private)', () => {
 
   it('returns null when pool.execute throws', async () => {
     const poolMock = {
-      execute: vi.fn().mockRejectedValue(new Error('Worker crashed')),
-      terminate: vi.fn(),
+      execute: jest.fn().mockRejectedValue(new Error('Worker crashed')),
+      terminate: jest.fn(),
       isTerminated: false,
     };
 
@@ -381,7 +375,7 @@ describe('Layout engine disposed-flag guard', () => {
 
 describe('Layout engine dispose-then-reuse smoke test', () => {
   it('dispose followed by generateComplexLayout falls back to main thread', async () => {
-    const dagreStrategy = new mockDagreLayoutStrategy();
+    const dagreStrategy = new DagreLayoutStrategy();
 
     const engine = new ComplexLayoutEngine({
       useWebWorkers: true,
@@ -407,7 +401,7 @@ describe('Layout engine dispose-then-reuse smoke test', () => {
   });
 
   it('double dispose then layout still works', async () => {
-    const dagreStrategy = new mockDagreLayoutStrategy();
+    const dagreStrategy = new DagreLayoutStrategy();
 
     const engine = new ComplexLayoutEngine({
       useWebWorkers: true,

@@ -5,24 +5,24 @@
  * private methods at unit level, including the disposed-flag guard.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import type { WorkerResponse, ExportWorkerResult } from '../types';
 
 // Mock workers module
-vi.mock('../index', () => ({
-  WorkerPool: vi.fn(),
-  isWorkerAvailable: vi.fn(() => false),
-  getOptimalWorkerCount: vi.fn(() => 2),
-  processExportPayload: vi.fn(),
+jest.mock('../index', () => ({
+  WorkerPool: jest.fn(),
+  isWorkerAvailable: jest.fn(() => false),
+  getOptimalWorkerCount: jest.fn(() => 2),
+  processExportPayload: jest.fn(),
 }));
 
-vi.mock('../worker-pool', () => ({
-  WorkerPool: vi.fn(),
+jest.mock('../worker-pool', () => ({
+  WorkerPool: jest.fn(),
 }));
 
 // Mock worker-factories to avoid import.meta issues
-vi.mock('../worker-factories', () => ({
-  createExportWorkerFactory: vi.fn(() => () => {
+jest.mock('../worker-factories', () => ({
+  createExportWorkerFactory: jest.fn(() => () => {
     throw new Error('Worker factory should not be called in tests');
   }),
 }));
@@ -31,12 +31,12 @@ import { EnhancedExportEngine } from '../../export/enhanced-export-engine';
 
 // Suppress console
 beforeEach(() => {
-  vi.spyOn(console, 'log').mockImplementation(() => {});
-  vi.spyOn(console, 'error').mockImplementation(() => {});
-  vi.spyOn(console, 'warn').mockImplementation(() => {});
+  jest.spyOn(console, 'log').mockImplementation(() => {});
+  jest.spyOn(console, 'error').mockImplementation(() => {});
+  jest.spyOn(console, 'warn').mockImplementation(() => {});
 });
 afterEach(() => {
-  vi.restoreAllMocks();
+  jest.restoreAllMocks();
 });
 
 /**
@@ -53,8 +53,8 @@ function createEngineWithPool(poolMock: any): EnhancedExportEngine {
 
 function makePoolMock(executeReturn: any): any {
   return {
-    execute: vi.fn().mockResolvedValue(executeReturn),
-    terminate: vi.fn(),
+    execute: jest.fn().mockResolvedValue(executeReturn),
+    terminate: jest.fn(),
     isTerminated: false,
   };
 }
@@ -114,8 +114,8 @@ describe('processExportViaWorker (private)', () => {
 
   it('returns null when pool.execute throws', async () => {
     const poolMock = {
-      execute: vi.fn().mockRejectedValue(new Error('Worker crashed')),
-      terminate: vi.fn(),
+      execute: jest.fn().mockRejectedValue(new Error('Worker crashed')),
+      terminate: jest.fn(),
       isTerminated: false,
     };
     const engine = createEngineWithPool(poolMock);
