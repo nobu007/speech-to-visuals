@@ -38,3 +38,25 @@ export function getOptimalWorkerCount(maxCap = 4): number {
 // Re-export worker processing functions for testing and fallback
 export { processExportPayload } from './export-worker';
 export { computeLayout } from './layout-worker';
+
+/**
+ * Create a factory function for export workers.
+ * Uses import.meta.url for Vite's worker URL resolution.
+ */
+export function createExportWorkerFactory(): () => Worker {
+  return () => new Worker(
+    new URL('./export-worker.ts', import.meta.url),
+    { type: 'module' },
+  );
+}
+
+/**
+ * Create a factory function for layout workers.
+ * Uses import.meta.url for Vite's worker URL resolution.
+ */
+export function createLayoutWorkerFactory(): () => Worker {
+  return () => new Worker(
+    new URL('./layout-worker.ts', import.meta.url),
+    { type: 'module' },
+  );
+}

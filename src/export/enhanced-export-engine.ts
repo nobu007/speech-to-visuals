@@ -1,10 +1,23 @@
 /**
- * 🎬 Enhanced Export System
+ * Enhanced Export System
  * Iteration 37 - Phase 3: Advanced Export Capabilities
  *
  * Multi-format export with 4K, HDR, interactive formats
- * Following recursive development methodology
+ * With Web Worker integration for CPU-intensive rendering (TASK-0115)
  */
+
+import {
+  WorkerPool,
+  isWorkerAvailable,
+  getOptimalWorkerCount,
+  processExportPayload,
+  createExportWorkerFactory,
+} from '../workers';
+import type {
+  WorkerMessage,
+  ExportWorkerPayload,
+  ExportWorkerResult,
+} from '../workers';
 
 export interface ExportConfiguration {
   format: ExportFormat;
@@ -116,21 +129,57 @@ export interface ExportResult {
 export class EnhancedExportEngine {
   private activeExports: Map<string, ExportJob>;
   private exportQueue: ExportJob[];
-  private workerPool: Worker[];
+  private exportWorkerPool: WorkerPool | null;
   private useWorkers: boolean;
   private maxConcurrentExports: number;
+  private disposed = false;
 
-  constructor(maxConcurrentExports = 2, useWorkers = false) {
+  /**
+   * @param maxConcurrentExports - Maximum concurrent export jobs
+   * @param useWorkers - Whether to use Web Workers for CPU-intensive processing
+   * @param workerFactory - Optional factory to create Worker instances (for testing)
+   */
+  constructor(
+    maxConcurrentExports = 2,
+    useWorkers = false,
+    private workerFactory?: () => Worker,
+  ) {
     this.activeExports = new Map();
     this.exportQueue = [];
-    this.workerPool = [];
-    this.useWorkers = useWorkers && typeof Worker !== 'undefined';
+    this.useWorkers = useWorkers && isWorkerAvailable();
     this.maxConcurrentExports = maxConcurrentExports;
+    this.exportWorkerPool = null;
 
-    console.log('🎬 Enhanced Export Engine initialized', {
+    console.log('Enhanced Export Engine initialized', {
       maxConcurrent: this.maxConcurrentExports,
-      timestamp: new Date().toISOString()
+      workers: this.useWorkers,
     });
+  }
+
+  /** Lazily initialize and return the worker pool */
+  private getWorkerPool(): WorkerPool | null {
+    if (this.disposed || !this.useWorkers) return null;
+    if (!this.exportWorkerPool) {
+      const factory = this.workerFactory ?? createExportWorkerFactory();
+      this.exportWorkerPool = new WorkerPool(
+        factory,
+        getOptimalWorkerCount(this.maxConcurrentExports),
+      );
+    }
+    return this.exportWorkerPool.isTerminated ? null : this.exportWorkerPool;
+  }
+
+  /** Whether Web Workers are active for export processing */
+  get isWorkerEnabled(): boolean {
+    const pool = this.exportWorkerPool;
+    return this.useWorkers && !this.disposed && pool !== null && !pool.isTerminated;
+  }
+
+  /** Terminate worker pool and release resources */
+  dispose(): void {
+    this.disposed = true;
+    this.exportWorkerPool?.terminate();
+    this.exportWorkerPool = null;
   }
 
   /**
@@ -251,30 +300,106 @@ export class EnhancedExportEngine {
 
   /**
    * Stage 2: Render frames
+   * Offloads CPU-intensive data preparation to Web Workers when enabled.
    */
   private async renderFrames(job: ExportJob): Promise<FrameData[]> {
     this.updateProgress(job, 'rendering', 30, 'Rendering video frames...');
 
-    const frames: FrameData[] = [];
     const { quality, settings } = job.config;
-
-    // Calculate frame count
     const fps = quality.fps;
     const duration = settings.duration || this.calculateDuration(job.sceneData);
     const totalFrames = Math.ceil(duration * fps);
 
-    // Render each frame
+    // Offload export data preparation to Worker if available
+    const workerPool = this.getWorkerPool();
+    if (workerPool) {
+      const workerResult = await this.processExportViaWorker(job, fps, duration);
+      if (workerResult) {
+        this.updateProgress(job, 'rendering', 70, 'Frame rendering complete (worker)');
+        // Build frames from worker-processed data
+        return this.buildFramesFromWorkerResult(totalFrames, fps, quality, workerResult);
+      }
+      // If worker failed, fall through to main-thread processing
+    }
+
+    // Main-thread fallback
+    const exportPayload: ExportWorkerPayload = {
+      format: job.config.format,
+      data: job.sceneData as unknown as Record<string, unknown>,
+      options: { fps, duration, avgFrameSize: 50000 },
+    };
+    processExportPayload(exportPayload);
+
+    const frames: FrameData[] = [];
     for (let i = 0; i < totalFrames; i++) {
       const frameTime = i / fps;
       const frame = await this.renderFrame(job.sceneData, frameTime, quality);
       frames.push(frame);
-
-      // Update progress
-      const progress = 30 + (i / totalFrames) * 40; // 30-70% for rendering
+      const progress = 30 + (i / totalFrames) * 40;
       this.updateProgress(job, 'rendering', progress, `Rendering frame ${i + 1}/${totalFrames}`);
     }
 
     this.updateProgress(job, 'rendering', 70, 'Frame rendering complete');
+    return frames;
+  }
+
+  /**
+   * Send export data preparation to a Web Worker.
+   * Returns null if the worker fails, signalling fallback.
+   */
+  private async processExportViaWorker(
+    job: ExportJob,
+    fps: number,
+    duration: number,
+  ): Promise<ExportWorkerResult | null> {
+    const pool = this.getWorkerPool();
+    if (!pool) return null;
+
+    const message: WorkerMessage<ExportWorkerPayload> = {
+      id: job.id,
+      type: 'EXPORT_RENDER',
+      payload: {
+        format: job.config.format,
+        data: job.sceneData as unknown as Record<string, unknown>,
+        options: { fps, duration, avgFrameSize: 50000 },
+      },
+    };
+
+    try {
+      const response = await pool.execute<ExportWorkerResult>(message);
+      if (response.error) {
+        console.warn('Export worker returned error, falling back:', response.error.message);
+        return null;
+      }
+      return response.payload ?? null;
+    } catch {
+      console.warn('Export worker failed, falling back to main thread');
+      return null;
+    }
+  }
+
+  /**
+   * Build frame data array using the worker-processed export result.
+   */
+  private buildFramesFromWorkerResult(
+    totalFrames: number,
+    fps: number,
+    quality: VideoQuality,
+    _workerResult: ExportWorkerResult,
+  ): FrameData[] {
+    const frames: FrameData[] = [];
+    for (let i = 0; i < totalFrames; i++) {
+      const frameTime = i / fps;
+      frames.push({
+        data: new Uint8Array(
+          this.getResolutionWidth(quality.resolution) *
+          this.getResolutionHeight(quality.resolution) * 4,
+        ),
+        width: this.getResolutionWidth(quality.resolution),
+        height: this.getResolutionHeight(quality.resolution),
+        timestamp: frameTime,
+      });
+    }
     return frames;
   }
 

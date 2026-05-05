@@ -1,8 +1,9 @@
 /**
  * Complex Layout Engine for Large Diagrams - Iteration 50: Global Excellence
- * 🚀 Handles diagrams with 20+ nodes using advanced algorithms
- * ✨ Enhanced with cultural layout adaptation and real-time optimization
- * 🌍 Global performance optimizations for all languages and contexts
+ * Handles diagrams with 20+ nodes using advanced algorithms
+ * Enhanced with cultural layout adaptation and real-time optimization
+ * Global performance optimizations for all languages and contexts
+ * With Web Worker integration for layout computation (TASK-0115)
  */
 
 import dagre from '@dagrejs/dagre';
@@ -12,6 +13,18 @@ import { nodesOverlap } from './layout-utils';
 import { OverlapResolver } from './strategies/OverlapResolver';
 import { LayoutOptimizer } from './strategies/LayoutOptimizer';
 import { DagreLayoutStrategy } from './strategies/DagreLayoutStrategy';
+import {
+  WorkerPool,
+  isWorkerAvailable,
+  getOptimalWorkerCount,
+  computeLayout as workerComputeLayout,
+  createLayoutWorkerFactory,
+} from '../workers';
+import type {
+  WorkerMessage,
+  LayoutWorkerPayload,
+  LayoutWorkerResult,
+} from '../workers';
 
 export interface ComplexLayoutConfig extends LayoutConfig {
   // Node clustering settings
@@ -85,13 +98,15 @@ import { CulturalLayoutAdapter } from './strategies/CulturalLayoutAdapter';
 export class ComplexLayoutEngine {
   private config: ComplexLayoutConfig;
   private culturalLayoutAdapter: CulturalLayoutAdapter;
+  private layoutWorkerPool: WorkerPool | null = null;
+  private disposed = false;
 
   constructor(
     config: Partial<ComplexLayoutConfig> = {},
     private overlapResolver?: OverlapResolver,
     private layoutOptimizer?: LayoutOptimizer,
-    private dagreLayoutStrategy?: DagreLayoutStrategy, // Added
-    culturalLayoutAdapter?: CulturalLayoutAdapter // Added
+    private dagreLayoutStrategy?: DagreLayoutStrategy,
+    culturalLayoutAdapter?: CulturalLayoutAdapter,
   ) {
     this.config = {
       // Basic layout config
@@ -142,8 +157,34 @@ export class ComplexLayoutEngine {
     this.culturalLayoutAdapter = culturalLayoutAdapter || new CulturalLayoutAdapter(this.config);
   }
 
+  /** Lazily initialize and return the worker pool */
+  private getWorkerPool(): WorkerPool | null {
+    if (this.disposed || !this.config.useWebWorkers || !isWorkerAvailable()) return null;
+    if (!this.layoutWorkerPool) {
+      this.layoutWorkerPool = new WorkerPool(
+        createLayoutWorkerFactory(),
+        getOptimalWorkerCount(2),
+      );
+    }
+    return this.layoutWorkerPool.isTerminated ? null : this.layoutWorkerPool;
+  }
+
+  /** Whether Web Workers are active for layout computation */
+  get isWorkerEnabled(): boolean {
+    const pool = this.layoutWorkerPool;
+    return !this.disposed && pool !== null && !pool.isTerminated;
+  }
+
+  /** Terminate worker pool and release resources */
+  dispose(): void {
+    this.disposed = true;
+    this.layoutWorkerPool?.terminate();
+    this.layoutWorkerPool = null;
+  }
+
   /**
    * Generate layout for complex diagrams (20+ nodes)
+   * Offloads computation to Web Workers when enabled.
    */
   async generateComplexLayout(
     nodes: NodeDatum[],
@@ -151,7 +192,37 @@ export class ComplexLayoutEngine {
     diagramType: DiagramType
   ): Promise<LayoutResult> {
     const startTime = performance.now();
-    console.log(`🔧 Complex layout engine: ${nodes.length} nodes, ${edges.length} edges`);
+    console.log(`Complex layout engine: ${nodes.length} nodes, ${edges.length} edges`);
+
+    // Try worker-based computation first when enabled
+    const workerPool = this.getWorkerPool();
+    if (workerPool) {
+      const workerLayout = await this.computeLayoutViaWorker(nodes, edges);
+      if (workerLayout) {
+        const bounds = this.calculateBounds(workerLayout);
+
+        // Apply post-processing if configured
+        let layout = workerLayout;
+        if (this.config.enableOverlapResolution && this.overlapResolver) {
+          layout = await this.overlapResolver.ensureZeroOverlaps(layout, diagramType);
+        }
+        if (this.config.enableEdgeOptimization && this.layoutOptimizer) {
+          layout = await this.layoutOptimizer.optimizeForDiagramType(layout, diagramType);
+        }
+        if (this.config.culturalAdaptation) {
+          layout = await this.culturalLayoutAdapter.applyCulturalAdaptation(layout, this.config.culturalAdaptation);
+        }
+
+        const processingTime = performance.now() - startTime;
+        return {
+          layout,
+          bounds: this.calculateBounds(layout),
+          processingTime,
+          success: true,
+        };
+      }
+      // Worker failed, fall through to main-thread computation
+    }
 
     try {
       let layout: DiagramLayout;
@@ -556,6 +627,138 @@ export class ComplexLayoutEngine {
     });
 
     return { nodes: positionedNodes, edges: layoutEdges };
+  }
+
+  /**
+   * Send layout computation to a Web Worker.
+   * Returns null if the worker fails, signalling fallback.
+   */
+  private async computeLayoutViaWorker(
+    nodes: NodeDatum[],
+    edges: EdgeDatum[],
+  ): Promise<DiagramLayout | null> {
+    const pool = this.getWorkerPool();
+    if (!pool) return null;
+
+    const payload: LayoutWorkerPayload = {
+      nodes: nodes.map((n) => ({
+        id: n.id,
+        width: this.config.nodeWidth,
+        height: this.config.nodeHeight,
+        label: n.label,
+      })),
+      edges: edges.map((e) => ({ source: e.from, target: e.to })),
+      config: {
+        width: this.config.width,
+        height: this.config.height,
+        rankDirection: this.config.rankDirection,
+        nodeSeparation: this.config.nodeSeparation,
+        rankSeparation: this.config.rankSeparation,
+      },
+    };
+
+    const message: WorkerMessage<LayoutWorkerPayload> = {
+      id: `layout_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      type: 'LAYOUT_COMPUTE',
+      payload,
+    };
+
+    try {
+      const response = await pool.execute<LayoutWorkerResult>(message);
+      if (response.error) {
+        console.warn('Layout worker returned error, falling back:', response.error.message);
+        return null;
+      }
+
+      const result = response.payload;
+      if (!result) return null;
+
+      // Convert LayoutWorkerResult to DiagramLayout
+      const layoutNodes: PositionedNode[] = result.nodes.map((n) => {
+        const originalNode = nodes.find((on) => on.id === n.id);
+        return {
+          id: n.id,
+          label: originalNode?.label ?? '',
+          x: n.x,
+          y: n.y,
+          w: n.width,
+          h: n.height,
+          ...(originalNode?.meta ? { meta: originalNode.meta } : {}),
+        } as PositionedNode;
+      });
+
+      const layoutEdges: LayoutEdge[] = edges.map((e) => {
+        const fromNode = layoutNodes.find((n) => n.id === e.from);
+        const toNode = layoutNodes.find((n) => n.id === e.to);
+        return {
+          from: e.from,
+          to: e.to,
+          points: [
+            { x: (fromNode?.x ?? 0) + (fromNode?.w ?? 0) / 2, y: (fromNode?.y ?? 0) + (fromNode?.h ?? 0) / 2 },
+            { x: (toNode?.x ?? 0) + (toNode?.w ?? 0) / 2, y: (toNode?.y ?? 0) + (toNode?.h ?? 0) / 2 },
+          ],
+          label: e.label,
+        };
+      });
+
+      return { nodes: layoutNodes, edges: layoutEdges };
+    } catch {
+      console.warn('Layout worker failed, falling back to main thread');
+      return null;
+    }
+  }
+
+  /**
+   * Compute layout on main thread using the fallback function.
+   */
+  private computeLayoutFallback(nodes: NodeDatum[], edges: EdgeDatum[]): DiagramLayout {
+    const payload: LayoutWorkerPayload = {
+      nodes: nodes.map((n) => ({
+        id: n.id,
+        width: this.config.nodeWidth,
+        height: this.config.nodeHeight,
+        label: n.label,
+      })),
+      edges: edges.map((e) => ({ source: e.from, target: e.to })),
+      config: {
+        width: this.config.width,
+        height: this.config.height,
+        rankDirection: this.config.rankDirection,
+        nodeSeparation: this.config.nodeSeparation,
+        rankSeparation: this.config.rankSeparation,
+      },
+    };
+
+    const result = workerComputeLayout(payload);
+
+    const layoutNodes: PositionedNode[] = result.nodes.map((n) => {
+      const originalNode = nodes.find((on) => on.id === n.id);
+      return {
+        id: n.id,
+        label: originalNode?.label ?? '',
+        x: n.x,
+        y: n.y,
+        w: n.width,
+        h: n.height,
+        ...(originalNode?.meta ? { meta: originalNode.meta } : {}),
+      } as PositionedNode;
+    });
+
+    const layoutEdges: LayoutEdge[] = edges.map((e) => {
+      const fromNode = layoutNodes.find((n) => n.id === e.from);
+      const toNode = layoutNodes.find((n) => n.id === e.to);
+      return {
+        from: e.from,
+        to: e.to,
+        points: [
+          { x: (fromNode?.x ?? 0) + (fromNode?.w ?? 0) / 2, y: (fromNode?.y ?? 0) + (fromNode?.h ?? 0) / 2 },
+          { x: (toNode?.x ?? 0) + (toNode?.w ?? 0) / 2, y: (toNode?.y ?? 0) + (toNode?.h ?? 0) / 2 },
+        ],
+        label: e.label,
+      };
+    });
+
+    return { nodes: layoutNodes, edges: layoutEdges };
   }
 
   private calculateClusterCentroid(nodes: NodeDatum[]): { x: number; y: number } {
