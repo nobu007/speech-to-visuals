@@ -649,6 +649,8 @@ Fallback LLM
 - [TASK-0114: Web Worker 基盤インフラ構築](tasks/TASK-0114.md)
 - [TASK-0115: CPU集約処理のWeb Worker化](tasks/TASK-0115.md)
 - [TASK-0116: Web Worker統合テストとパフォーマンス検証](tasks/TASK-0116.md)
+- [TASK-0117: APNG実エンコーダ統合とエンコーディング実装](tasks/TASK-0117.md)
+- [TASK-0118: Phase 21完了確認と要件・ドキュメント整合性更新](tasks/TASK-0118.md)
 - [speech-to-visuals タスク概要](tasks/overview.md)
 - [Speech-to-Visuals ユーザストーリー](user-stories.md)
 
