@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 1-23 全完了（120/120タスク完了）・Phase 24 計画済（TASK-0121~0123・3タスク未着手）・297ファイル・90,400行・型エラー0件・ESLintエラー0件・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.1 制定・Web Workers 並列化基盤（エクスポート・レイアウトエンジン対応）・Worker信頼性改善（クラッシュループ防止・Promise漏洩解消・リスナークリーンアップ）・APNG実エンコーダ統合・第121回要件検証（106要件全✅実装済・全品質基準達成・新規タスク不要・Phase 24 TASK-0121~0123で対応中）
+**実装状況**: Phase 1-23 全完了（120/120タスク完了）・Phase 24 計画済（TASK-0121~0123・3タスク未着手）・299ファイル・90,400行・104パッケージ・型エラー0件・ESLintエラー0件・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.1 制定・Web Workers 並列化基盤（エクスポート・レイアウトエンジン対応）・Worker信頼性改善（クラッシュループ防止・Promise漏洩解消・リスナークリーンアップ）・APNG実エンコーダ統合・第125回要件検証（106要件全✅実装済・3,685テスト全通過・全品質基準達成・新規タスク不要・Phase 24 TASK-0121~0123で対応中）
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
