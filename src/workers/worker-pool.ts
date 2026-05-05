@@ -113,12 +113,15 @@ export class WorkerPool {
     };
 
     worker.addEventListener('error', (event: ErrorEvent) => {
-      if (pooled.currentMessageId) {
+      const hadActiveTask = !!pooled.currentMessageId;
+      if (hadActiveTask) {
         void event;
-        // State reset and task rejection are handled by the dispatchTask
-        // error listener. We only clear the id here to prevent dispatchTask
-        // from running twice; processQueue is called after worker recreation
-        // below, NOT before (dispatching to a crashed worker would hang).
+        // A task was active when the crash happened. The per-task error
+        // listener added by dispatchTask will reject the promise and call
+        // processQueue.  We only need to clear the id here so the
+        // per-task handler's busy/currentMessageId writes land on a
+        // no-longer-tracked object (harmless), while the replacement
+        // worker below picks up any remaining queued tasks.
         pooled.busy = false;
         pooled.currentMessageId = null;
       }
@@ -130,7 +133,13 @@ export class WorkerPool {
           pooled.worker.terminate();
           const newPooled = this.createWorker();
           this.workers[index] = newPooled;
-          this.processQueue();
+          // If the worker crashed while idle (no active task), we need
+          // to processQueue ourselves since there is no per-task handler
+          // to do it. When a task was active, the per-task handleError
+          // already calls processQueue.
+          if (!hadActiveTask) {
+            this.processQueue();
+          }
         }
       }
     });

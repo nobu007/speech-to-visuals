@@ -175,11 +175,25 @@ export class EnhancedExportEngine {
     return this.useWorkers && !this.disposed && pool !== null && !pool.isTerminated;
   }
 
-  /** Terminate worker pool and release resources */
+  /** Terminate worker pool, reject queued exports, and release resources */
   dispose(): void {
     this.disposed = true;
     this.exportWorkerPool?.terminate();
     this.exportWorkerPool = null;
+
+    // Reject all queued exports so their promises don't hang forever
+    for (const queuedJob of this.exportQueue) {
+      if (queuedJob.resolve) {
+        queuedJob.resolve({
+          success: false,
+          format: queuedJob.config.format,
+          quality: queuedJob.config.quality,
+          error: 'ExportEngine disposed while job was queued',
+          warnings: [],
+        });
+      }
+    }
+    this.exportQueue = [];
   }
 
   /**
@@ -426,6 +440,8 @@ export class EnhancedExportEngine {
         return await this.encodeSVGAnimated(job, frames);
       case 'json-lottie':
         return await this.encodeLottie(job, frames);
+      case 'apng':
+        return await this.encodeAPNG(job, frames);
       default:
         throw new Error(`Unsupported format: ${format}`);
     }
@@ -533,6 +549,15 @@ export class EnhancedExportEngine {
       duration: frames.length / job.config.quality.fps,
       codec: 'gif',
       container: 'gif'
+    };
+  }
+
+  private async encodeAPNG(job: ExportJob, frames: FrameData[]): Promise<EncodedVideo> {
+    return {
+      data: await this.simulateEncoding(frames, 'apng', 'apng'),
+      duration: frames.length / job.config.quality.fps,
+      codec: 'apng',
+      container: 'apng'
     };
   }
 

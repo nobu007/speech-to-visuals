@@ -103,10 +103,10 @@ describe('EnhancedExportEngine', () => {
       expect(result.format).toBe('json-lottie');
     });
 
-    test('should reject apng format as unsupported', async () => {
+    test('should export apng format', async () => {
       const result = await engine.exportVideo(createSceneData(), createConfig({ format: 'apng' }));
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Unsupported format');
+      expect(result.success).toBe(true);
+      expect(result.format).toBe('apng');
     });
   });
 
