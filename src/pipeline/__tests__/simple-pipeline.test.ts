@@ -10,7 +10,7 @@ jest.mock('@/transcription', () => {
     ],
     language: 'en',
     duration: 10,
-  });
+  } as never);
   return {
     TranscriptionPipeline: jest.fn().mockImplementation(() => ({
       transcribe: mockTranscribe,
@@ -25,13 +25,13 @@ jest.mock('@/analysis', () => {
       startMs: 0, endMs: 10000, text: 'Test content',
       summary: 'Summary', keyphrases: ['test'], confidence: 0.9,
     },
-  ]);
+  ] as never);
   const mockAnalyze = jest.fn().mockResolvedValue({
     type: 'flow', confidence: 0.85,
     nodes: [{ id: 'n1', label: 'Node 1' }],
     edges: [],
     reasoning: 'Test',
-  });
+  } as never);
   return {
     SceneSegmenter: jest.fn().mockImplementation(() => ({
       segment: mockSegment,
@@ -52,7 +52,7 @@ jest.mock('@/visualization', () => {
       edges: [],
     },
     confidence: 0.9,
-  });
+  } as never);
   return {
     LayoutEngine: jest.fn().mockImplementation(() => ({
       generateLayout: mockGenerateLayout,
@@ -67,7 +67,7 @@ jest.mock('@/visualization/enhanced-zero-overlap-layout', () => {
     nodes: [{ id: 'n1', x: 100, y: 100 }],
     edges: [],
     qualityMetrics: { overlapCount: 0, aestheticScore: 0.9 },
-  });
+  } as never);
   return {
     EnhancedZeroOverlapLayoutEngine: jest.fn().mockImplementation(() => ({
       generateZeroOverlapLayout: mockGenerateZeroOverlapLayout,
@@ -83,7 +83,7 @@ jest.mock('@/pipeline/video-generator', () => {
     thumbnailUrl: 'test-thumb.jpg',
     duration: 10,
     processingTime: 1000,
-  });
+  } as never);
   return {
     VideoGenerator: jest.fn().mockImplementation(() => ({
       generateVideo: mockGenerateVideo,
@@ -94,7 +94,7 @@ jest.mock('@/pipeline/video-generator', () => {
 
 jest.mock('@/framework/continuous-learner', () => ({
   continuousLearner: {
-    learnFromProcessingResult: jest.fn().mockResolvedValue(undefined),
+    learnFromProcessingResult: jest.fn().mockResolvedValue(undefined as never),
   },
 }));
 
@@ -106,21 +106,21 @@ jest.mock('@/pipeline/quality-monitor', () => ({
       phase: 'test',
       metrics: [],
       recommendations: [],
-    }),
-    getLatestMetrics: jest.fn().mockReturnValue({}),
+    } as never),
+    getLatestMetrics: jest.fn().mockReturnValue({} as never),
     logIteration: jest.fn(),
-  }),
-  formatQualityReport: jest.fn().mockReturnValue('Test report'),
+  } as never),
+  formatQualityReport: jest.fn().mockReturnValue('Test report' as never),
 }));
 
 import { SimplePipeline } from '@/pipeline/simple-pipeline';
 
-const mockTranscribe = (jest.requireMock('@/transcription') as Record<string, jest.Mock>).__mockTranscribe;
-const mockSegment = (jest.requireMock('@/analysis') as Record<string, jest.Mock>).__mockSegment;
-const mockAnalyze = (jest.requireMock('@/analysis') as Record<string, jest.Mock>).__mockAnalyze;
-const mockGenerateLayout = (jest.requireMock('@/visualization') as Record<string, jest.Mock>).__mockGenerateLayout;
-const mockGenerateZeroOverlapLayout = (jest.requireMock('@/visualization/enhanced-zero-overlap-layout') as Record<string, jest.Mock>).__mockGenerateZeroOverlapLayout;
-const mockGenerateVideo = (jest.requireMock('@/pipeline/video-generator') as Record<string, jest.Mock>).__mockGenerateVideo;
+const mockTranscribe = (jest.requireMock('@/transcription') as { __mockTranscribe: jest.Mock<() => Promise<unknown>> }).__mockTranscribe;
+const mockSegment = (jest.requireMock('@/analysis') as { __mockSegment: jest.Mock<() => Promise<unknown>> }).__mockSegment;
+const mockAnalyze = (jest.requireMock('@/analysis') as { __mockAnalyze: jest.Mock<() => Promise<unknown>> }).__mockAnalyze;
+const mockGenerateLayout = (jest.requireMock('@/visualization') as { __mockGenerateLayout: jest.Mock<() => Promise<unknown>> }).__mockGenerateLayout;
+const mockGenerateZeroOverlapLayout = (jest.requireMock('@/visualization/enhanced-zero-overlap-layout') as { __mockGenerateZeroOverlapLayout: jest.Mock<() => Promise<unknown>> }).__mockGenerateZeroOverlapLayout;
+const mockGenerateVideo = (jest.requireMock('@/pipeline/video-generator') as { __mockGenerateVideo: jest.Mock<() => Promise<unknown>> }).__mockGenerateVideo;
 
 // Mock URL.createObjectURL / revokeObjectURL
 beforeEach(() => {

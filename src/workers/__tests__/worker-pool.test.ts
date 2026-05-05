@@ -258,10 +258,10 @@ describe('worker crash recovery', () => {
   it('should recreate worker and process queued task after crash', async () => {
     // Factory returns a unique mock instance per call
     const instances: MockWorkerInstance[] = [];
-    const factory = jest.fn((): unknown => {
+    const factory = jest.fn((): Worker => {
       const { instance } = createMockWorker();
       instances.push(instance);
-      return instance;
+      return instance as unknown as Worker;
     });
 
     const pool = new WorkerPool(factory, 1);

@@ -57,7 +57,7 @@ describe('GridSnapStrategy', () => {
 
   // ---------- estimateComplexity (line 58) ----------
   it('estimateComplexity returns n*n', () => {
-    const result = strategy.estimateComplexity(10, 5);
+    const result = strategy.estimateComplexity(10);
     expect(result).toBe(100); // 10*10
   });
 
@@ -117,7 +117,7 @@ describe('GridSnapStrategy', () => {
       createTestNode('2', 0, 0, 100, 50),
     ];
     // Even though these overlap, the strategy returns no overlaps
-    const overlaps = strategy.detectOverlaps(nodes, 0);
+    const overlaps = strategy.detectOverlaps(nodes);
     expect(overlaps).toEqual([]);
   });
 

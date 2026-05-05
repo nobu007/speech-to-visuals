@@ -56,10 +56,12 @@ jest.mock('../../visualization/layout-utils', () => ({
 import { ComplexLayoutEngine } from '../../visualization/complex-layout-engine';
 import { DagreLayoutStrategy } from '../../visualization/strategies/DagreLayoutStrategy';
 import type { DiagramType } from '../../types/diagram';
+import type { LayoutConfig } from '../../visualization/types';
+import type { FallbackLayoutStrategy } from '../../visualization/strategies/FallbackLayoutStrategy';
 
 /** Helper to create engine with mocked DagreLayoutStrategy */
 function createEngine(config: Record<string, unknown> = {}) {
-  const dagreStrategy = new DagreLayoutStrategy({} as Record<string, unknown>, {} as Record<string, unknown>);
+  const dagreStrategy = new DagreLayoutStrategy({} as LayoutConfig, {} as FallbackLayoutStrategy);
   return new ComplexLayoutEngine(
     config,
     undefined,

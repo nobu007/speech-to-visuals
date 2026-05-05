@@ -7,7 +7,7 @@
 
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
-import { SceneGraph } from '@/types/diagram';
+import { SceneGraph, PositionedNode } from '@/types/diagram';
 import {
   calculateTotalFrames,
   findSceneAtTime,
@@ -255,7 +255,7 @@ describe('SpeechToVisualsVideo component', () => {
         y: 100,
         width: 120,
         height: 60,
-      }],
+      } as PositionedNode],
       edges: [],
     }));
   }

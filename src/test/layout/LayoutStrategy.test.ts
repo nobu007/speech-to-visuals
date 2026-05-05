@@ -107,7 +107,7 @@ describe('BaseLayoutStrategy', () => {
     const s = new AlwaysFail(false);
     const nodes: NodeDatum[] = [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }];
     const edges: EdgeDatum[] = [
-      { id: 'e1', source: 'a', target: 'b', label: 'test', type: 'solid' },
+      { id: 'e1', from: 'a', to: 'b', source: 'a', target: 'b', label: 'test', type: 'solid' },
     ];
 
     const result = await s.apply(nodes, edges, config);

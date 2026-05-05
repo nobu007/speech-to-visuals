@@ -90,7 +90,7 @@ jest.mock('@/components/ui/button', () => ({
     React.createElement(
       'button',
       { onClick, disabled: disabled || false, 'data-testid': testId, 'aria-label': ariaLabel, variant, ...props },
-      children,
+      ...(React.Children.toArray(children as React.ReactNode)),
     ),
 }));
 
@@ -99,11 +99,11 @@ jest.mock('@/components/ui/slider', () => ({
     React.createElement('input', {
       type: 'range',
       value: Array.isArray(value) ? value[0] : value,
-      min,
-      max,
-      step,
+      min: min as number,
+      max: max as number,
+      step: step as number,
       'data-testid': testId,
-      onChange: (e: React.ChangeEvent<HTMLInputElement>) => onValueChange && onValueChange([Number(e.target.value)]),
+      onChange: (e: React.ChangeEvent<HTMLInputElement>) => (onValueChange as (val: number[]) => void)?.([Number(e.target.value)]),
       ...props,
     }),
 }));
@@ -119,7 +119,7 @@ jest.mock('@/components/ui/select', () => {
     React.createElement(
       SelectContext.Provider,
       { value: { value: value as string | null, onValueChange: onValueChange as ((val: string) => void) | null } },
-      children,
+      children as React.ReactNode,
     );
   MockSelect.displayName = 'MockSelect';
 
@@ -129,7 +129,7 @@ jest.mock('@/components/ui/select', () => {
       'data-testid': testId || 'mock-select-trigger',
       'data-value': ctx.value,
       ...props,
-    }, children);
+    }, children as React.ReactNode);
   };
   MockSelectTrigger.displayName = 'MockSelectTrigger';
 
@@ -137,7 +137,7 @@ jest.mock('@/components/ui/select', () => {
   MockSelectValue.displayName = 'MockSelectValue';
 
   const MockSelectContent = ({ children }: Record<string, unknown>) =>
-    React.createElement('div', { 'data-testid': 'mock-select-content' }, children);
+    React.createElement('div', { 'data-testid': 'mock-select-content' }, children as React.ReactNode);
   MockSelectContent.displayName = 'MockSelectContent';
 
   const MockSelectItem = ({ children, value }: Record<string, unknown>) => {
@@ -150,7 +150,7 @@ jest.mock('@/components/ui/select', () => {
           ctx.onValueChange(String(value));
         }
       },
-    }, children);
+    }, children as React.ReactNode);
   };
   MockSelectItem.displayName = 'MockSelectItem';
 

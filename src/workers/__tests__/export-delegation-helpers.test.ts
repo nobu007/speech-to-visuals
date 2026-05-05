@@ -169,7 +169,7 @@ describe('buildFramesFromWorkerResult (private)', () => {
 
     expect(frames[0].width).toBe(w);
     expect(frames[0].height).toBe(h);
-    expect(frames[0].data.length).toBe(w * h * 4);
+    expect((frames[0].data as Uint8Array).length).toBe(w * h * 4);
     engine.dispose();
   });
 
