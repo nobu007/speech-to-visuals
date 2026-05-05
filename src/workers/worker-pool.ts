@@ -114,15 +114,13 @@ export class WorkerPool {
 
     worker.addEventListener('error', (event: ErrorEvent) => {
       if (pooled.currentMessageId) {
-        const taskId = pooled.currentMessageId;
+        void event;
+        // State reset and task rejection are handled by the dispatchTask
+        // error listener. We only clear the id here to prevent dispatchTask
+        // from running twice; processQueue is called after worker recreation
+        // below, NOT before (dispatching to a crashed worker would hang).
         pooled.busy = false;
         pooled.currentMessageId = null;
-        this.processQueue();
-
-        // Find and reject the pending task
-        // Note: In practice the onmessage handler manages resolve/reject
-        // This handles cases where the worker crashes before sending a response
-        void event;
       }
 
       // Attempt to recreate the worker if pool is not terminated
@@ -152,6 +150,7 @@ export class WorkerPool {
       if (event.data.id !== task.message.id) return;
 
       pooledWorker.worker.removeEventListener('message', handleMessage);
+      pooledWorker.worker.removeEventListener('error', handleError);
       pooledWorker.busy = false;
       pooledWorker.currentMessageId = null;
 

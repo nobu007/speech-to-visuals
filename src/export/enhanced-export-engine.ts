@@ -808,7 +808,7 @@ export class EnhancedExportEngine {
   }
 
   private generateJobId(): string {
-    return `export_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `export_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   }
 }
 

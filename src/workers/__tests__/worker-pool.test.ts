@@ -234,6 +234,68 @@ describe('WorkerPool', () => {
   });
 });
 
+// ---------- Worker crash recovery ----------
+
+describe('worker crash recovery', () => {
+  it('should recreate worker and process queued task after crash', async () => {
+    // Factory returns a unique mock instance per call
+    const instances: MockWorkerInstance[] = [];
+    const factory = jest.fn((): unknown => {
+      const { instance } = createMockWorker();
+      instances.push(instance);
+      return instance;
+    });
+
+    const pool = new WorkerPool(factory, 1);
+
+    // Task 1: dispatched to the only worker
+    const msg1: WorkerMessage = { id: '1', type: 'EXPORT_RENDER', payload: null };
+    const p1 = pool.execute(msg1);
+
+    // Task 2: queued (maxWorkers=1)
+    const msg2: WorkerMessage = { id: '2', type: 'EXPORT_RENDER', payload: null };
+    const p2 = pool.execute(msg2);
+
+    expect(pool.queueSize).toBe(1);
+    expect(factory).toHaveBeenCalledTimes(1);
+
+    // Worker crashes
+    instances[0].dispatchError('Worker crashed');
+
+    // Task 1 should be rejected
+    await expect(p1).rejects.toThrow('Worker crashed');
+
+    // Worker should have been recreated
+    expect(factory).toHaveBeenCalledTimes(2);
+
+    // Task 2 should be dispatched to the recreated worker
+    instances[1].dispatchMessage({ id: '2', type: 'EXPORT_RENDER', payload: { done: true } });
+
+    const result = await p2;
+    expect(result.payload).toEqual({ done: true });
+
+    pool.terminate();
+  });
+
+  it('should remove per-task error listener on normal completion', async () => {
+    const localMock = createMockWorker();
+    const pool = new WorkerPool(localMock.WorkerClass, 4);
+    const msg: WorkerMessage = { id: 'clean-1', type: 'EXPORT_RENDER', payload: null };
+
+    const promise = pool.execute(msg);
+    localMock.instance.dispatchMessage({ id: 'clean-1', type: 'EXPORT_RENDER', payload: null });
+    await promise;
+
+    // handleMessage should have removed both the message and error listeners
+    const errorRemovals = localMock.instance.removeEventListener.mock.calls.filter(
+      (call: [string]) => call[0] === 'error',
+    );
+    expect(errorRemovals.length).toBeGreaterThanOrEqual(1);
+
+    pool.terminate();
+  });
+});
+
 import { isWorkerAvailable, getOptimalWorkerCount } from '../index';
 
 describe('worker module exports', () => {
