@@ -175,94 +175,30 @@ describe('processExportViaWorker (private)', () => {
 // ---------- buildFramesFromWorkerResult ----------
 
 describe('buildFramesFromWorkerResult (private)', () => {
+  it.each([
+    ['720p', 1280, 720],
+    ['1080p', 1920, 1080],
+    ['1440p', 2560, 1440],
+    ['4k', 3840, 2160],
+  ] as const)('creates frames with correct dimensions for %s', (res, w, h) => {
+    const engine = new EnhancedExportEngine(2, false);
+    const quality = { resolution: res as any, fps: 30 as const, bitrate: 'auto' as const, hdr: false };
+
+    const frames = (engine as any).buildFramesFromWorkerResult(1, 30, quality, {});
+
+    expect(frames[0].width).toBe(w);
+    expect(frames[0].height).toBe(h);
+    expect(frames[0].data.length).toBe(w * h * 4);
+    engine.dispose();
+  });
+
   it('creates correct number of frames', () => {
     const engine = new EnhancedExportEngine(2, false);
     const quality = { resolution: '1080p' as const, fps: 30 as const, bitrate: 'auto' as const, hdr: false };
 
-    const frames = (engine as any).buildFramesFromWorkerResult(
-      10, // totalFrames
-      30, // fps
-      quality,
-      { outputSize: 1000 }, // worker result (unused currently)
-    );
+    const frames = (engine as any).buildFramesFromWorkerResult(10, 30, quality, {});
 
     expect(frames).toHaveLength(10);
-    engine.dispose();
-  });
-
-  it('creates frames with correct dimensions for 1080p', () => {
-    const engine = new EnhancedExportEngine(2, false);
-    const quality = { resolution: '1080p' as const, fps: 30 as const, bitrate: 'auto' as const, hdr: false };
-
-    const frames = (engine as any).buildFramesFromWorkerResult(3, 30, quality, {});
-
-    expect(frames[0].width).toBe(1920);
-    expect(frames[0].height).toBe(1080);
-    // RGBA = width * height * 4
-    expect(frames[0].data.length).toBe(1920 * 1080 * 4);
-    engine.dispose();
-  });
-
-  it('creates frames with correct dimensions for 720p', () => {
-    const engine = new EnhancedExportEngine(2, false);
-    const quality = { resolution: '720p' as const, fps: 30 as const, bitrate: 'auto' as const, hdr: false };
-
-    const frames = (engine as any).buildFramesFromWorkerResult(1, 30, quality, {});
-
-    expect(frames[0].width).toBe(1280);
-    expect(frames[0].height).toBe(720);
-    expect(frames[0].data.length).toBe(1280 * 720 * 4);
-    engine.dispose();
-  });
-
-  it('creates frames with correct dimensions for 4k', () => {
-    const engine = new EnhancedExportEngine(2, false);
-    const quality = { resolution: '4k' as const, fps: 30 as const, bitrate: 'auto' as const, hdr: false };
-
-    const frames = (engine as any).buildFramesFromWorkerResult(1, 30, quality, {});
-
-    expect(frames[0].width).toBe(3840);
-    expect(frames[0].height).toBe(2160);
-    expect(frames[0].data.length).toBe(3840 * 2160 * 4);
-    engine.dispose();
-  });
-
-  it('creates frames with correct dimensions for 1440p', () => {
-    const engine = new EnhancedExportEngine(2, false);
-    const quality = { resolution: '1440p' as const, fps: 30 as const, bitrate: 'auto' as const, hdr: false };
-
-    const frames = (engine as any).buildFramesFromWorkerResult(1, 30, quality, {});
-
-    expect(frames[0].width).toBe(2560);
-    expect(frames[0].height).toBe(1440);
-    expect(frames[0].data.length).toBe(2560 * 1440 * 4);
-    engine.dispose();
-  });
-
-  it('assigns correct timestamps based on fps', () => {
-    const engine = new EnhancedExportEngine(2, false);
-    const quality = { resolution: '1080p' as const, fps: 30 as const, bitrate: 'auto' as const, hdr: false };
-
-    const frames = (engine as any).buildFramesFromWorkerResult(5, 30, quality, {});
-
-    // Frame i timestamp = i / fps
-    expect(frames[0].timestamp).toBeCloseTo(0 / 30);
-    expect(frames[1].timestamp).toBeCloseTo(1 / 30);
-    expect(frames[2].timestamp).toBeCloseTo(2 / 30);
-    expect(frames[3].timestamp).toBeCloseTo(3 / 30);
-    expect(frames[4].timestamp).toBeCloseTo(4 / 30);
-    engine.dispose();
-  });
-
-  it('handles fps=60 timestamps correctly', () => {
-    const engine = new EnhancedExportEngine(2, false);
-    const quality = { resolution: '1080p' as const, fps: 60 as const, bitrate: 'auto' as const, hdr: false };
-
-    const frames = (engine as any).buildFramesFromWorkerResult(3, 60, quality, {});
-
-    expect(frames[0].timestamp).toBeCloseTo(0);
-    expect(frames[1].timestamp).toBeCloseTo(1 / 60);
-    expect(frames[2].timestamp).toBeCloseTo(2 / 60);
     engine.dispose();
   });
 
@@ -273,6 +209,21 @@ describe('buildFramesFromWorkerResult (private)', () => {
     const frames = (engine as any).buildFramesFromWorkerResult(0, 30, quality, {});
 
     expect(frames).toHaveLength(0);
+    engine.dispose();
+  });
+
+  it.each([
+    [30, [0, 1 / 30, 2 / 30]],
+    [60, [0, 1 / 60, 2 / 60]],
+  ] as const)('assigns correct timestamps at %d fps', (fps, expected) => {
+    const engine = new EnhancedExportEngine(2, false);
+    const quality = { resolution: '1080p' as const, fps: fps as any, bitrate: 'auto' as const, hdr: false };
+
+    const frames = (engine as any).buildFramesFromWorkerResult(3, fps, quality, {});
+
+    expected.forEach((ts, i) => {
+      expect(frames[i].timestamp).toBeCloseTo(ts);
+    });
     engine.dispose();
   });
 
