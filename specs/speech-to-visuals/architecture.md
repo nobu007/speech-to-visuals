@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-03（第109回検証: Phase 1-19全完了・282ファイル・87,267行・113タスク(全完了)・全3,569テスト通過(133 suites)・TypeScript/ESLintエラー0件・依存104パッケージ(74+30)・103要件・要件カバレッジ100%維持・SYSTEM_CONSTITUTION V2.1適合・カバレッジ92.14%/81.15%/92.46%/92.56%）
+**最終更新**: 2026-05-05（第110回検証: Phase 1-20全完了・282ファイル・87,267行・116タスク(全完了)・全3,569テスト通過(133 suites)・TypeScript/ESLintエラー0件・依存104パッケージ(74+30)・104要件・要件カバレッジ100%維持・SYSTEM_CONSTITUTION V2.1適合・カバレッジ92.14%/81.15%/92.46%/92.56%）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -133,6 +133,20 @@
 - **EnhancedExportEngine**: 高度なエクスポートエンジン（フォーマット選択・プレビュー付き）🔵 *src/export/enhanced-export-engine.ts より*
 - **ProductionExporter**: 本番環境向けエクスポート処理 🔵 *src/export/production-exporter.ts より*
 - **ExportPanel**: React UI エクスポートコンポーネント（フォーマット選択・進捗表示・プレビュー）🔵 *src/export/export-ui.tsx より*
+- **Worker対応**: WorkerPoolによるエクスポートレンダリングの並列化（遅延初期化・dispose/再利用ガード・フォールバック付き）🔵 *src/workers/export-worker.ts・要件定義REQ-061 より*
+
+### Web Workers 並列化モジュール 🔵
+
+**信頼性**: 🔵 *src/workers/・Phase 20 TASK-0114~0116 より*
+
+Phase 20 で実装された Web Workers 並列化基盤:
+
+- **WorkerPool**: 汎用ワーカープール管理クラス（worker再利用・タスクキューイング・異常終了時自動再生成・terminate()リソース解放）🔵 *src/workers/worker-pool.ts より*
+- **Worker型定義**: WorkerMessage<T>/WorkerResponse<T> 型による型安全なメッセージ通信 🔵 *src/workers/types.ts より*
+- **WorkerFactories**: エクスポート・レイアウト用Worker生成ファクトリ（Vite import.meta.url によるWorker URL解決）🔵 *src/workers/worker-factories.ts より*
+- **ExportWorker**: エクスポートレンダリングWorker（フレーム数計算・サイズ推定・フォーマット別バリデーション）🔵 *src/workers/export-worker.ts より*
+- **LayoutWorker**: レイアウトノード配置計算Worker（BFSベース階層レイアウト・TB/LR方向対応・非連結グラフ対応）🔵 *src/workers/layout-worker.ts より*
+- **フォールバック機構**: Worker利用不可環境（SSR等）でのメインスレッド実行への自動フォールバック 🔵 *src/workers/worker-pool.ts isWorkerAvailable() より*
 
 ### 品質保証システム 🔵
 
@@ -299,6 +313,10 @@ graph TB
     ConfigValidator[設定バリデーション] --> |起動時検証| Pipeline
     ParamTuner[パラメータチューニング] --> |自動最適化| Pipeline
 
+    Workers[WorkerPool] --> |並列化| Layout
+    Workers --> |並列化| Remotion
+    Workers --> |フォールバック| Pipeline
+
     API[Express API] --> Pipeline
     API --> |バッチジョブ| Batch[バッチ処理]
     EdgeFn[Supabase Edge Functions] --> Pipeline
@@ -336,7 +354,8 @@ graph TB
 │   ├── transcription/      # 音声認識（12ファイル: Whisper/Streaming/Browser/テスト）🔵
 │   ├── types/              # TypeScript 型定義（15ファイル: diagram/workspace/api/llm/cache/quality/pipeline等）🔵
 │   ├── utils/              # ユーティリティ（3ファイル）
-│   └── visualization/      # 図解レイアウト（42ファイル: 20戦略・レイアウトエンジン・補助モジュール）
+│   ├── visualization/      # 図解レイアウト（42ファイル: 20戦略・レイアウトエンジン・補助モジュール）
+│   └── workers/            # Web Workers 並列化（6ファイル: WorkerPool・型定義・WorkerFactories・ExportWorker・LayoutWorker）🔵 *Phase 20 TASK-0114~0116*
 │       ├── base/           # ベース可視化コンポーネント 🔵
 │       ├── layout/         # レイアウト固有コード 🔵
 │       └── strategies/     # レイアウト戦略（20ファイル: コア5+新コア5+拡張+補助）🔵
@@ -410,14 +429,14 @@ Fallback LLM
 - **データ保護**: API キーは環境変数管理（GOOGLE_API_KEY）、ログ出力なし
 - **ストレージアクセス**: 公開読み取り、認証済み書き込み/削除のみ
 
-### スケーラビリティ 🟡
+### スケーラビリティ 🔵
 
-**信頼性**: 🟡 *QUALITY_METRICS.md・SYSTEM_CORE.md §9 より*
+**信頼性**: 🔵 *QUALITY_METRICS.md・SYSTEM_CORE.md §9・src/workers/ より*
 
 - **並列処理**: バッチジョブ最大3並列
 - **キャッシュスケール**: 200エントリ、TTL 120分で自動ローテーション
 - **メモリ効率**: ピーク時82.21MB（512MB制約の16%）
-- **将来対応**: Web Workers による CPU 集約処理の並列化（計画段階）
+- **Web Workers**: WorkerPool によるCPU集約処理の並列化（エクスポートレンダリング・レイアウトノード配置計算）🔵 *Phase 20 TASK-0114~0116 実装済*
 
 ### 可用性 🔵
 
@@ -483,6 +502,7 @@ Fallback LLM
 - [x] アーキテクチャ文書内で参照されている全モジュールがコードベースに存在する
 - [x] TypeScript・ESLint エラーが 0 件
 - [x] 全テストスイートが green（133 suites / 3,569 tests）
+- [x] Web Workers 並列化モジュール（Phase 20）がコンポーネント構成に反映されている
 
 ## 関連文書
 
@@ -497,11 +517,11 @@ Fallback LLM
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 120件 (98%)
+- 🔵 青信号: 129件 (98%)
 - 🟡 黄信号: 2件 (2%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第104回検証: Phase 1-18全完了・282ファイル・87,267行・110タスク(全完了)・全3,569テスト通過(133 suites)・TypeScript/ESLintエラー0件・依存104パッケージ(74+30)・103要件・要件カバレッジ100%維持・SYSTEM_CONSTITUTION V2.1適合・REQ-058/059/060反映済・ギャップなし確認）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第110回検証: Phase 1-20全完了・282ファイル・87,267行・116タスク(全完了)・全3,569テスト通過(133 suites)・TypeScript/ESLintエラー0件・依存104パッケージ(74+30)・104要件・要件カバレッジ100%維持・SYSTEM_CONSTITUTION V2.1適合・REQ-061/Web Workers反映済・ギャップなし確認）
 
 
 <!-- spine:children:begin -->
