@@ -4,6 +4,7 @@
  * Tests the computeLayout function for graph layout computation.
  */
 
+import { describe, it, expect } from 'vitest';
 import { computeLayout } from '../layout-worker';
 import type { LayoutWorkerPayload } from '../types';
 

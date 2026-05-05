@@ -70,6 +70,9 @@ export default defineConfig(({ mode }) => ({
     // Optimize for modern browsers
     target: 'es2020'
   },
+  test: {
+    globals: true,
+  },
   worker: {
     format: 'es',
   },

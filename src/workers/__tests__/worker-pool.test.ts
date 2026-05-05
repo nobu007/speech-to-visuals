@@ -1,35 +1,36 @@
 /**
  * WorkerPool unit tests
  *
- * Workers are mocked since Jest runs in Node environment.
+ * Workers are mocked since Vitest runs in Node environment.
  * Tests verify pool lifecycle, queueing, error handling, and cleanup.
  */
 
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { WorkerPool } from '../worker-pool';
 import type { WorkerMessage, WorkerResponse } from '../types';
 
 // --- Mock Worker ---
 
 interface MockWorkerInstance {
-  postMessage: jest.Mock;
-  terminate: jest.Mock;
-  addEventListener: jest.Mock;
-  removeEventListener: jest.Mock;
+  postMessage: Mock;
+  terminate: Mock;
+  addEventListener: Mock;
+  removeEventListener: Mock;
   dispatchMessage: (data: WorkerResponse) => void;
   dispatchError: (message: string) => void;
 }
 
-function createMockWorker(): { instance: MockWorkerInstance; WorkerClass: jest.Mock } {
+function createMockWorker(): { instance: MockWorkerInstance; WorkerClass: Mock } {
   const listeners: Record<string, Array<(event: { data?: unknown; message?: string }) => void>> = {};
 
   const instance: MockWorkerInstance = {
-    postMessage: jest.fn(),
-    terminate: jest.fn(),
-    addEventListener: jest.fn((event: string, handler: (e: unknown) => void) => {
+    postMessage: vi.fn(),
+    terminate: vi.fn(),
+    addEventListener: vi.fn((event: string, handler: (e: unknown) => void) => {
       if (!listeners[event]) listeners[event] = [];
       listeners[event].push(handler as (e: { data?: unknown; message?: string }) => void);
     }),
-    removeEventListener: jest.fn((event: string, handler: (e: unknown) => void) => {
+    removeEventListener: vi.fn((event: string, handler: (e: unknown) => void) => {
       if (listeners[event]) {
         listeners[event] = listeners[event].filter((h) => h !== handler);
       }
@@ -48,7 +49,7 @@ function createMockWorker(): { instance: MockWorkerInstance; WorkerClass: jest.M
     },
   };
 
-  const WorkerClass = jest.fn(() => instance);
+  const WorkerClass = vi.fn(() => instance);
   return { instance, WorkerClass };
 }
 
@@ -233,8 +234,7 @@ describe('WorkerPool', () => {
   });
 });
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { isWorkerAvailable, getOptimalWorkerCount } = require('../index');
+import { isWorkerAvailable, getOptimalWorkerCount } from '../index';
 
 describe('worker module exports', () => {
   it('should export isWorkerAvailable', () => {

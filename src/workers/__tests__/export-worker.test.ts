@@ -3,9 +3,10 @@
  *
  * Tests the processExportPayload function and worker message handling.
  * Workers are tested via their exported processing functions
- * since Jest runs in Node environment.
+ * since Vitest runs in Node environment.
  */
 
+import { describe, it, expect } from 'vitest';
 import { processExportPayload } from '../export-worker';
 import type { ExportWorkerPayload } from '../types';
 
