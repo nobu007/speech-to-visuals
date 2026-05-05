@@ -39,24 +39,6 @@ export function getOptimalWorkerCount(maxCap = 4): number {
 export { processExportPayload } from './export-worker';
 export { computeLayout } from './layout-worker';
 
-/**
- * Create a factory function for export workers.
- * Uses import.meta.url for Vite's worker URL resolution.
- */
-export function createExportWorkerFactory(): () => Worker {
-  return () => new Worker(
-    new URL('./export-worker.ts', import.meta.url),
-    { type: 'module' },
-  );
-}
-
-/**
- * Create a factory function for layout workers.
- * Uses import.meta.url for Vite's worker URL resolution.
- */
-export function createLayoutWorkerFactory(): () => Worker {
-  return () => new Worker(
-    new URL('./layout-worker.ts', import.meta.url),
-    { type: 'module' },
-  );
-}
+// Factory functions that use import.meta are in worker-factories.ts
+// to keep this barrel compatible with Jest's CommonJS transform.
+// Import from './worker-factories' in browser/Vite contexts only.

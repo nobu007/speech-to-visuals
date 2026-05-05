@@ -11,8 +11,8 @@ import {
   isWorkerAvailable,
   getOptimalWorkerCount,
   processExportPayload,
-  createExportWorkerFactory,
 } from '../workers';
+import { createExportWorkerFactory } from '../workers/worker-factories';
 import type {
   WorkerMessage,
   ExportWorkerPayload,

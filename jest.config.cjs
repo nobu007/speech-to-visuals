@@ -8,6 +8,7 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^https://deno.land/std@0.168.0/http/server.ts$': '<rootDir>/tests/__mocks__/deno-server.ts',
     '^https://esm.sh/@supabase/supabase-js@2$': '<rootDir>/tests/__mocks__/deno-server.ts',
+    '^(.*)/workers/worker-factories$': '<rootDir>/tests/__mocks__/worker-factories.ts',
   },
   transformIgnorePatterns: [
     'node_modules/(?!(uuid|express|cors|helmet|express-rate-limit|supertest)/)',

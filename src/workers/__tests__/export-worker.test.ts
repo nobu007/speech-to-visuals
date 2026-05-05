@@ -6,7 +6,7 @@
  * since Vitest runs in Node environment.
  */
 
-import { describe, it, expect } from 'vitest';
+/* globals are provided by Jest via @types/jest */
 import { processExportPayload } from '../export-worker';
 import type { ExportWorkerPayload } from '../types';
 

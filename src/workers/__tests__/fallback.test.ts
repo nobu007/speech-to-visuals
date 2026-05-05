@@ -2,7 +2,7 @@
  * Fallback tests - Verify fallback behavior when workers are unavailable
  */
 
-import { describe, it, expect, vi } from 'vitest';
+/* globals are provided by Jest via @types/jest */
 import { isWorkerAvailable, getOptimalWorkerCount } from '../index';
 import { WorkerPool } from '../worker-pool';
 import type { WorkerMessage } from '../types';
@@ -25,12 +25,12 @@ describe('Worker fallback behavior', () => {
   });
 
   it('WorkerPool handles terminated pool gracefully', async () => {
-    const mockFactory = vi.fn(() => ({
-      postMessage: vi.fn(),
-      terminate: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    }));
+    const mockFactory = jest.fn((() => ({
+      postMessage: jest.fn(),
+      terminate: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    })) as unknown as () => Worker);
 
     const pool = new WorkerPool(mockFactory, 2);
     pool.terminate();

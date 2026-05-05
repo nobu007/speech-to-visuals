@@ -20,7 +20,6 @@ jest.mock('../../workers', () => ({
     width: 500,
     height: 200,
   })),
-  createLayoutWorkerFactory: jest.fn(() => jest.fn()),
 }));
 
 // Mock DagreLayoutStrategy to avoid dagre dependency issues in tests

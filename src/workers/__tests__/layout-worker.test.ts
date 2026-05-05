@@ -4,7 +4,7 @@
  * Tests the computeLayout function for graph layout computation.
  */
 
-import { describe, it, expect } from 'vitest';
+/* globals are provided by Jest via @types/jest */
 import { computeLayout } from '../layout-worker';
 import type { LayoutWorkerPayload } from '../types';
 

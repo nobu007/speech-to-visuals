@@ -18,8 +18,8 @@ import {
   isWorkerAvailable,
   getOptimalWorkerCount,
   computeLayout as workerComputeLayout,
-  createLayoutWorkerFactory,
 } from '../workers';
+import { createLayoutWorkerFactory } from '../workers/worker-factories';
 import type {
   WorkerMessage,
   LayoutWorkerPayload,

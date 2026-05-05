@@ -5,32 +5,32 @@
  * Tests verify pool lifecycle, queueing, error handling, and cleanup.
  */
 
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { beforeEach } from '@jest/globals';
 import { WorkerPool } from '../worker-pool';
 import type { WorkerMessage, WorkerResponse } from '../types';
 
 // --- Mock Worker ---
 
 interface MockWorkerInstance {
-  postMessage: Mock;
-  terminate: Mock;
-  addEventListener: Mock;
-  removeEventListener: Mock;
+  postMessage: jest.Mock;
+  terminate: jest.Mock;
+  addEventListener: jest.Mock;
+  removeEventListener: jest.Mock;
   dispatchMessage: (data: WorkerResponse) => void;
   dispatchError: (message: string) => void;
 }
 
-function createMockWorker(): { instance: MockWorkerInstance; WorkerClass: Mock } {
+function createMockWorker(): { instance: MockWorkerInstance; WorkerClass: jest.Mock } {
   const listeners: Record<string, Array<(event: { data?: unknown; message?: string }) => void>> = {};
 
   const instance: MockWorkerInstance = {
-    postMessage: vi.fn(),
-    terminate: vi.fn(),
-    addEventListener: vi.fn((event: string, handler: (e: unknown) => void) => {
+    postMessage: jest.fn(),
+    terminate: jest.fn(),
+    addEventListener: jest.fn((event: string, handler: (e: unknown) => void) => {
       if (!listeners[event]) listeners[event] = [];
       listeners[event].push(handler as (e: { data?: unknown; message?: string }) => void);
     }),
-    removeEventListener: vi.fn((event: string, handler: (e: unknown) => void) => {
+    removeEventListener: jest.fn((event: string, handler: (e: unknown) => void) => {
       if (listeners[event]) {
         listeners[event] = listeners[event].filter((h) => h !== handler);
       }
@@ -49,7 +49,7 @@ function createMockWorker(): { instance: MockWorkerInstance; WorkerClass: Mock }
     },
   };
 
-  const WorkerClass = vi.fn(() => instance);
+  const WorkerClass = jest.fn(() => instance);
   return { instance, WorkerClass };
 }
 
