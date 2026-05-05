@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 1-20 全完了（116/116タスク完了）・282ファイル・87,267行・型エラー解消（237件→0件）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.1 制定・Web Workers 並列化基盤（エクスポート・レイアウトエンジン対応）・Worker信頼性改善（クラッシュループ防止・Promise漏洩解消・リスナークリーンアップ）・APNG形式対応・第111回要件検証（106要件・REQ-062/063はテスト未実装）
+**実装状況**: Phase 1-21 全完了（118/118タスク完了）・297ファイル・90,349行・型エラー0件・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.1 制定・Web Workers 並列化基盤（エクスポート・レイアウトエンジン対応）・Worker信頼性改善（クラッシュループ防止・Promise漏洩解消・リスナークリーンアップ）・APNG実エンコーダ統合・第112回要件検証（106要件全✅実装済・ESLint 48件no-explicit-any回帰あり）
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -294,6 +294,8 @@
 - 🔴 赤信号: 0件 (0%)
 
 **品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている（第112回検証確認・Phase 1-21全完了・全118タスク・REQ-001~063全要件✅実装済）
+
+**既知の品質課題**: Phase 20/21 で追加された Worker テストファイル（4ファイル）に ESLint `no-explicit-any` エラー48件が残存（テスト品質への影響は軽微・機能要件への影響なし）
 
 ## Acceptance criteria
 
