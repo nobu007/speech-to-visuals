@@ -2,7 +2,7 @@ import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals
 import { TranscriptionPipeline } from '@/transcription/transcriber';
 
 // Mock WhisperTranscriber so we can control its behavior
-const mockWhisperTranscribe = jest.fn();
+const mockWhisperTranscribe = jest.fn() as jest.Mock;
 
 jest.mock('@/transcription/whisper-transcriber', () => ({
   WhisperTranscriber: jest.fn().mockImplementation(() => ({
@@ -15,7 +15,7 @@ jest.mock('@/transcription/browser-transcriber', () => ({
     transcribeAudioFile: jest.fn().mockResolvedValue({
       success: true,
       segments: [{ start: 0, end: 3000, text: 'Browser result', confidence: 0.8 }],
-    }),
+    } as never),
   })),
 }));
 
@@ -30,7 +30,7 @@ describe('TranscriptionPipeline', () => {
     mockWhisperTranscribe.mockResolvedValue({
       success: false,
       segments: [],
-    });
+    } as never);
   });
 
   afterEach(() => {
@@ -135,7 +135,7 @@ describe('TranscriptionPipeline', () => {
           { start: 0, end: 3000, text: 'Hello from whisper', confidence: 0.95 },
           { start: 3000, end: 6000, text: 'Second segment', confidence: 0.9 },
         ],
-      });
+      } as never);
 
       const pipeline = new TranscriptionPipeline();
       const result = await pipeline.transcribe('test.wav');
@@ -149,7 +149,7 @@ describe('TranscriptionPipeline', () => {
       mockWhisperTranscribe.mockResolvedValue({
         success: true,
         segments: [],
-      });
+      } as never);
 
       const pipeline = new TranscriptionPipeline();
       const result = await pipeline.transcribe('test.wav');
@@ -159,7 +159,7 @@ describe('TranscriptionPipeline', () => {
     });
 
     it('should handle whisper throwing an error', async () => {
-      mockWhisperTranscribe.mockRejectedValue(new Error('Whisper crashed'));
+      mockWhisperTranscribe.mockRejectedValue(new Error('Whisper crashed') as never);
 
       const pipeline = new TranscriptionPipeline();
       const result = await pipeline.transcribe('test.wav');
@@ -194,7 +194,7 @@ describe('TranscriptionPipeline', () => {
         segments: [
           { start: 0, end: 2000, text: 'First', confidence: 0.95 },
         ],
-      });
+      } as never);
 
       const pipeline = new TranscriptionPipeline();
       const result = await pipeline.transcribe('test.wav');
@@ -210,7 +210,7 @@ describe('TranscriptionPipeline', () => {
         segments: [
           { start: 0, end: 5000, text: 'Hello world test', confidence: 0.95 },
         ],
-      });
+      } as never);
 
       const pipeline = new TranscriptionPipeline();
       const result = await pipeline.transcribe('test.wav');
@@ -246,7 +246,7 @@ describe('TranscriptionPipeline', () => {
       mockWhisperTranscribe.mockResolvedValue({
         success: false,
         segments: [],
-      });
+      } as never);
 
       const pipeline = new TranscriptionPipeline();
       const result = await pipeline.transcribe('blob:test-audio');
@@ -265,7 +265,7 @@ describe('TranscriptionPipeline', () => {
         segments: [
           { start: 0, end: 3000, text: 'Low confidence text', confidence: 0.1 },
         ],
-      });
+      } as never);
 
       const pipeline = new TranscriptionPipeline();
       const result = await pipeline.transcribe('test.wav');

@@ -366,12 +366,12 @@ export class EnhancedExportEngine {
     };
 
     try {
-      const response = await pool.execute<ExportWorkerResult>(message);
+      const response = await pool.execute(message);
       if (response.error) {
         console.warn('Export worker returned error, falling back:', response.error.message);
         return null;
       }
-      return response.payload ?? null;
+      return (response.payload as ExportWorkerResult) ?? null;
     } catch {
       console.warn('Export worker failed, falling back to main thread');
       return null;

@@ -26,7 +26,7 @@ jest.mock('../../workers', () => ({
 
 // Mock DagreLayoutStrategy to avoid dagre dependency issues in tests
 jest.mock('../../visualization/strategies/DagreLayoutStrategy', () => ({
-  DagreLayoutStrategy: jest.fn().mockImplementation(function () {
+  DagreLayoutStrategy: jest.fn().mockImplementation(function (_config?: any, _fallback?: any) {
     this.applyLayout = jest.fn().mockResolvedValue({
       nodes: [
         { id: 'a', label: 'Node A', x: 50, y: 50, w: 120, h: 60 },
@@ -37,7 +37,7 @@ jest.mock('../../visualization/strategies/DagreLayoutStrategy', () => ({
         { from: 'a', to: 'b', points: [{ x: 110, y: 80 }, { x: 310, y: 80 }] },
         { from: 'b', to: 'c', points: [{ x: 310, y: 80 }, { x: 210, y: 190 }] },
       ],
-    });
+    } as never);
   }),
 }));
 
@@ -59,7 +59,7 @@ import type { DiagramType } from '../../types/diagram';
 
 /** Helper to create engine with mocked DagreLayoutStrategy */
 function createEngine(config: Record<string, unknown> = {}) {
-  const dagreStrategy = new DagreLayoutStrategy();
+  const dagreStrategy = new DagreLayoutStrategy({} as any, {} as any);
   return new ComplexLayoutEngine(
     config,
     undefined,

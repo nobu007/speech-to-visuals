@@ -24,7 +24,7 @@ jest.mock('../../workers/worker-factories', () => ({
 
 // Mock DagreLayoutStrategy to avoid dagre dependency issues
 jest.mock('../../visualization/strategies/DagreLayoutStrategy', () => ({
-  DagreLayoutStrategy: jest.fn().mockImplementation(function () {
+  DagreLayoutStrategy: jest.fn().mockImplementation(function (_config?: any, _fallback?: any) {
     this.applyLayout = jest.fn().mockResolvedValue({
       nodes: [
         { id: 'a', label: 'Node A', x: 50, y: 50, w: 120, h: 60 },
@@ -35,7 +35,7 @@ jest.mock('../../visualization/strategies/DagreLayoutStrategy', () => ({
         { from: 'a', to: 'b', points: [{ x: 110, y: 80 }, { x: 310, y: 80 }] },
         { from: 'b', to: 'c', points: [{ x: 310, y: 80 }, { x: 210, y: 190 }] },
       ],
-    });
+    } as never);
   }),
 }));
 
@@ -90,7 +90,7 @@ function createEngineWithPoolMock(poolMock: any): ComplexLayoutEngine {
 
 function makePoolMock(response: any): any {
   return {
-    execute: jest.fn().mockResolvedValue(response),
+    execute: jest.fn().mockResolvedValue(response as never),
     terminate: jest.fn(),
     isTerminated: false,
   };
@@ -200,7 +200,7 @@ describe('computeLayoutViaWorker (private)', () => {
 
   it('returns null when pool.execute throws', async () => {
     const poolMock = {
-      execute: jest.fn().mockRejectedValue(new Error('Worker crashed')),
+      execute: jest.fn().mockRejectedValue(new Error('Worker crashed') as never),
       terminate: jest.fn(),
       isTerminated: false,
     };
@@ -375,7 +375,7 @@ describe('Layout engine disposed-flag guard', () => {
 
 describe('Layout engine dispose-then-reuse smoke test', () => {
   it('dispose followed by generateComplexLayout falls back to main thread', async () => {
-    const dagreStrategy = new DagreLayoutStrategy();
+    const dagreStrategy = new DagreLayoutStrategy({} as any, {} as any);
 
     const engine = new ComplexLayoutEngine({
       useWebWorkers: true,
@@ -401,7 +401,7 @@ describe('Layout engine dispose-then-reuse smoke test', () => {
   });
 
   it('double dispose then layout still works', async () => {
-    const dagreStrategy = new DagreLayoutStrategy();
+    const dagreStrategy = new DagreLayoutStrategy({} as any, {} as any);
 
     const engine = new ComplexLayoutEngine({
       useWebWorkers: true,

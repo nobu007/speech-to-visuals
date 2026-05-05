@@ -53,7 +53,7 @@ function createEngineWithPool(poolMock: any): EnhancedExportEngine {
 
 function makePoolMock(executeReturn: any): any {
   return {
-    execute: jest.fn().mockResolvedValue(executeReturn),
+    execute: jest.fn().mockResolvedValue(executeReturn as never),
     terminate: jest.fn(),
     isTerminated: false,
   };
@@ -114,7 +114,7 @@ describe('processExportViaWorker (private)', () => {
 
   it('returns null when pool.execute throws', async () => {
     const poolMock = {
-      execute: jest.fn().mockRejectedValue(new Error('Worker crashed')),
+      execute: jest.fn().mockRejectedValue(new Error('Worker crashed') as never),
       terminate: jest.fn(),
       isTerminated: false,
     };

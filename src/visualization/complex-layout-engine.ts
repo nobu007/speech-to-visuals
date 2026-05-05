@@ -664,13 +664,13 @@ export class ComplexLayoutEngine {
     };
 
     try {
-      const response = await pool.execute<LayoutWorkerResult>(message);
+      const response = await pool.execute(message);
       if (response.error) {
         console.warn('Layout worker returned error, falling back:', response.error.message);
         return null;
       }
 
-      const result = response.payload;
+      const result = response.payload as LayoutWorkerResult | undefined;
       if (!result) return null;
 
       // Convert LayoutWorkerResult to DiagramLayout

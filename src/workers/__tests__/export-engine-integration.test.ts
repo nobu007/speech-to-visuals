@@ -13,9 +13,9 @@ jest.mock('../../workers', () => ({
   WorkerPool: jest.fn(),
   isWorkerAvailable: jest.fn(() => false),
   getOptimalWorkerCount: jest.fn(() => 2),
-  processExportPayload: jest.fn((payload) => {
-    const fps = (payload.options as Record<string, unknown>).fps as number || 30;
-    const duration = (payload.options as Record<string, unknown>).duration as number || 10;
+  processExportPayload: jest.fn((payload: any) => {
+    const fps = (payload.options as Record<string, unknown>)?.fps as number || 30;
+    const duration = (payload.options as Record<string, unknown>)?.duration as number || 10;
     return {
       outputSize: Math.ceil(duration * fps) * 50000,
       duration,
