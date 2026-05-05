@@ -63,18 +63,21 @@ describe('WorkerPool', () => {
   });
 
   describe('lifecycle', () => {
-    it('should create workers on demand', () => {
+    it('should create workers on demand', async () => {
       const pool = new WorkerPool(mock.WorkerClass, 4);
       const msg: WorkerMessage = { id: '1', type: 'EXPORT_RENDER', payload: null };
 
-      pool.execute(msg);
+      const p = pool.execute(msg);
 
       expect(mock.WorkerClass).toHaveBeenCalledTimes(1);
       expect(pool.activeCount).toBe(1);
       pool.terminate();
+
+      // terminate() rejects the active task promise
+      await expect(p).rejects.toThrow('WorkerPool terminated');
     });
 
-    it('should reuse idle workers', () => {
+    it('should reuse idle workers', async () => {
       const pool = new WorkerPool(mock.WorkerClass, 4);
 
       // First task
@@ -84,22 +87,25 @@ describe('WorkerPool', () => {
       // Simulate completion
       mock.instance.dispatchMessage({ id: '1', type: 'EXPORT_RENDER', payload: { success: true } });
 
-      return p1.then(() => {
-        // Second task should reuse same worker
-        const msg2: WorkerMessage = { id: '2', type: 'EXPORT_RENDER', payload: null };
-        pool.execute(msg2);
+      await p1;
 
-        expect(mock.WorkerClass).toHaveBeenCalledTimes(1);
-        expect(pool.idleCount).toBe(0);
-        expect(pool.activeCount).toBe(1);
-        pool.terminate();
-      });
+      // Second task should reuse same worker
+      const msg2: WorkerMessage = { id: '2', type: 'EXPORT_RENDER', payload: null };
+      const p2 = pool.execute(msg2);
+
+      expect(mock.WorkerClass).toHaveBeenCalledTimes(1);
+      expect(pool.idleCount).toBe(0);
+      expect(pool.activeCount).toBe(1);
+      pool.terminate();
+
+      // terminate() rejects the active task promise
+      await expect(p2).rejects.toThrow('WorkerPool terminated');
     });
 
-    it('should terminate all workers and clear queue', () => {
+    it('should terminate all workers and clear queue', async () => {
       const pool = new WorkerPool(mock.WorkerClass, 4);
       const msg: WorkerMessage = { id: '1', type: 'EXPORT_RENDER', payload: null };
-      pool.execute(msg);
+      const p = pool.execute(msg);
 
       pool.terminate();
 
@@ -107,46 +113,57 @@ describe('WorkerPool', () => {
       expect(pool.isTerminated).toBe(true);
       expect(pool.activeCount).toBe(0);
       expect(pool.idleCount).toBe(0);
+
+      // terminate() rejects the active task promise
+      await expect(p).rejects.toThrow('WorkerPool terminated');
     });
   });
 
   describe('queueing', () => {
-    it('should queue tasks when all workers are busy', () => {
+    it('should queue tasks when all workers are busy', async () => {
       const pool = new WorkerPool(mock.WorkerClass, 1);
 
       // Fill the single worker
       const msg1: WorkerMessage = { id: '1', type: 'EXPORT_RENDER', payload: null };
-      pool.execute(msg1);
+      const p1 = pool.execute(msg1);
 
       // Queue second task
       const msg2: WorkerMessage = { id: '2', type: 'LAYOUT_COMPUTE', payload: null };
-      pool.execute(msg2);
+      const p2 = pool.execute(msg2);
 
       expect(pool.queueSize).toBe(1);
       expect(pool.activeCount).toBe(1);
 
       // Complete first task - second should be dispatched
       mock.instance.dispatchMessage({ id: '1', type: 'EXPORT_RENDER', payload: null });
+      await p1;
 
       // Allow microtask queue to flush
-      return Promise.resolve().then(() => {
-        expect(pool.queueSize).toBe(0);
-        expect(pool.activeCount).toBe(1);
-        pool.terminate();
-      });
+      await Promise.resolve();
+
+      expect(pool.queueSize).toBe(0);
+      expect(pool.activeCount).toBe(1);
+
+      // Clean up second task
+      mock.instance.dispatchMessage({ id: '2', type: 'LAYOUT_COMPUTE', payload: null });
+      await p2;
+      pool.terminate();
     });
 
-    it('should create new workers up to maxWorkers', () => {
+    it('should create new workers up to maxWorkers', async () => {
       const pool = new WorkerPool(mock.WorkerClass, 2);
 
       const msg1: WorkerMessage = { id: '1', type: 'EXPORT_RENDER', payload: null };
       const msg2: WorkerMessage = { id: '2', type: 'EXPORT_RENDER', payload: null };
-      pool.execute(msg1);
-      pool.execute(msg2);
+      const p1 = pool.execute(msg1);
+      const p2 = pool.execute(msg2);
 
       expect(mock.WorkerClass).toHaveBeenCalledTimes(2);
       expect(pool.activeCount).toBe(2);
       pool.terminate();
+
+      await expect(p1).rejects.toThrow('WorkerPool terminated');
+      await expect(p2).rejects.toThrow('WorkerPool terminated');
     });
   });
 
@@ -206,7 +223,7 @@ describe('WorkerPool', () => {
 
       // Fill worker
       const msg1: WorkerMessage = { id: '1', type: 'EXPORT_RENDER', payload: null };
-      pool.execute(msg1);
+      const p1 = pool.execute(msg1);
 
       // Queue second task
       const msg2: WorkerMessage = { id: '2', type: 'EXPORT_RENDER', payload: null };
@@ -214,6 +231,7 @@ describe('WorkerPool', () => {
 
       pool.terminate();
 
+      await expect(p1).rejects.toThrow('WorkerPool terminated');
       await expect(p2).rejects.toThrow('WorkerPool terminated');
     });
   });
@@ -312,5 +330,40 @@ describe('worker module exports', () => {
     const count = getOptimalWorkerCount(4);
     expect(count).toBeLessThanOrEqual(4);
     expect(count).toBeGreaterThanOrEqual(1);
+  });
+});
+
+// ---------- terminate() rejects active task promises ----------
+
+describe('terminate() rejects active task promises', () => {
+  it('should reject promise of a dispatched (in-flight) task on terminate', async () => {
+    const localMock = createMockWorker();
+    const pool = new WorkerPool(localMock.WorkerClass, 4);
+    const msg: WorkerMessage = { id: 'active-1', type: 'EXPORT_RENDER', payload: null };
+
+    const promise = pool.execute(msg);
+
+    // Worker is busy, no response yet — now terminate
+    pool.terminate();
+
+    await expect(promise).rejects.toThrow('WorkerPool terminated');
+  });
+
+  it('should reject both active and queued tasks on terminate', async () => {
+    const localMock = createMockWorker();
+    const pool = new WorkerPool(localMock.WorkerClass, 1);
+
+    const msg1: WorkerMessage = { id: 'active-1', type: 'EXPORT_RENDER', payload: null };
+    const msg2: WorkerMessage = { id: 'queued-1', type: 'EXPORT_RENDER', payload: null };
+
+    const p1 = pool.execute(msg1);
+    const p2 = pool.execute(msg2);
+
+    expect(pool.queueSize).toBe(1);
+
+    pool.terminate();
+
+    await expect(p1).rejects.toThrow('WorkerPool terminated');
+    await expect(p2).rejects.toThrow('WorkerPool terminated');
   });
 });

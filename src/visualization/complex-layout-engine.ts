@@ -171,6 +171,7 @@ export class ComplexLayoutEngine {
 
   /** Whether Web Workers are active for layout computation */
   get isWorkerEnabled(): boolean {
+    if (!this.config.useWebWorkers) return false;
     const pool = this.layoutWorkerPool;
     return !this.disposed && pool !== null && !pool.isTerminated;
   }

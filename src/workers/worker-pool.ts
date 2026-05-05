@@ -26,6 +26,7 @@ interface PooledWorker {
 export class WorkerPool {
   private workers: PooledWorker[] = [];
   private taskQueue: PendingTask[] = [];
+  private activeTasks: Map<string, PendingTask> = new Map();
   private terminated = false;
 
   /**
@@ -68,10 +69,17 @@ export class WorkerPool {
   }
 
   /**
-   * Terminate all workers and reject pending tasks.
+   * Terminate all workers and reject both active and queued task promises.
+   * Ensures no caller promise hangs forever.
    */
   terminate(): void {
     this.terminated = true;
+
+    // Reject promises for tasks currently executing on workers
+    for (const task of this.activeTasks.values()) {
+      task.reject(new Error('WorkerPool terminated'));
+    }
+    this.activeTasks.clear();
 
     for (const pooled of this.workers) {
       pooled.worker.terminate();
@@ -154,6 +162,7 @@ export class WorkerPool {
   private dispatchTask(pooledWorker: PooledWorker, task: PendingTask): void {
     pooledWorker.busy = true;
     pooledWorker.currentMessageId = task.message.id;
+    this.activeTasks.set(task.message.id, task);
 
     const handleMessage = (event: MessageEvent<WorkerResponse>): void => {
       if (event.data.id !== task.message.id) return;
@@ -162,6 +171,7 @@ export class WorkerPool {
       pooledWorker.worker.removeEventListener('error', handleError);
       pooledWorker.busy = false;
       pooledWorker.currentMessageId = null;
+      this.activeTasks.delete(task.message.id);
 
       task.resolve(event.data);
       this.processQueue();
@@ -171,6 +181,7 @@ export class WorkerPool {
       pooledWorker.worker.removeEventListener('error', handleError);
       pooledWorker.busy = false;
       pooledWorker.currentMessageId = null;
+      this.activeTasks.delete(task.message.id);
 
       task.reject(new Error(event.message || 'Worker error'));
       this.processQueue();

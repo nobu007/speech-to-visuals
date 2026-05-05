@@ -373,3 +373,17 @@ describe('Layout engine dispose-then-reuse smoke test', () => {
     expect(result.layout.nodes.length).toBe(3);
   });
 });
+
+// ---------- isWorkerEnabled respects useWebWorkers config ----------
+
+describe('Layout engine isWorkerEnabled config guard', () => {
+  it('returns false when useWebWorkers is false (default)', () => {
+    const engine = new ComplexLayoutEngine();
+    expect(engine.isWorkerEnabled).toBe(false);
+  });
+
+  it('returns false when useWebWorkers is explicitly false', () => {
+    const engine = new ComplexLayoutEngine({ useWebWorkers: false });
+    expect(engine.isWorkerEnabled).toBe(false);
+  });
+});

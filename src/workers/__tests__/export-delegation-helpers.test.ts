@@ -250,3 +250,29 @@ function createJob(overrides: Record<string, unknown> = {}): any {
     ...overrides,
   };
 }
+
+// ---------- Export engine queued-job disposal ----------
+
+describe('Export engine queued-job disposal', () => {
+  it('resolves queued export jobs with error result on dispose', async () => {
+    const engine = new EnhancedExportEngine(1, false);
+    (engine as any).useWorkers = true;
+
+    // Fill the slot with one job that never completes
+    const slowJob = createJob({ id: 'slow-job' });
+    (engine as any).activeExports.set('slow-job', slowJob);
+
+    // Queue a second job with a resolve callback
+    const queuedJob = createJob({ id: 'queued-job' });
+    const promise = new Promise<any>((resolve) => {
+      queuedJob.resolve = resolve;
+    });
+    (engine as any).exportQueue.push(queuedJob);
+
+    engine.dispose();
+
+    const result = await promise;
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('disposed');
+  });
+});
