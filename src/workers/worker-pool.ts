@@ -118,6 +118,28 @@ export class WorkerPool {
   }
 
   private createWorker(): PooledWorker {
+    const pooled = this.buildPooledWorker();
+    if (!this.workers.includes(pooled)) {
+      this.workers.push(pooled);
+    }
+    return pooled;
+  }
+
+  /**
+   * Create a worker and place it at a specific slot index.
+   * Used during crash recovery to avoid double-pushing to the workers array.
+   */
+  private createWorkerForSlot(index: number): PooledWorker {
+    const pooled = this.buildPooledWorker();
+    this.workers[index] = pooled;
+    return pooled;
+  }
+
+  /**
+   * Shared factory that creates a PooledWorker and attaches the global
+   * error handler responsible for crash counting and worker recreation.
+   */
+  private buildPooledWorker(): PooledWorker {
     const worker = this.workerFactory();
     const pooled: PooledWorker = {
       worker,
@@ -152,8 +174,7 @@ export class WorkerPool {
             this.workers.splice(index, 1);
             console.warn(`Worker slot removed after ${crashes} crashes`);
           } else {
-            const newPooled = this.createWorker();
-            this.workers[index] = newPooled;
+            const newPooled = this.createWorkerForSlot(index);
             this.crashCounts.set(newPooled, crashes);
           }
 
@@ -167,10 +188,6 @@ export class WorkerPool {
         }
       }
     });
-
-    if (!this.workers.includes(pooled)) {
-      this.workers.push(pooled);
-    }
 
     return pooled;
   }
