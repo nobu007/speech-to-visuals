@@ -118,6 +118,87 @@ describe('Pipeline REST API Endpoints', () => {
       expect(response.body.videoUrl).not.toContain('..');
       expect(response.body.videoUrl).not.toContain('\\');
     });
+
+    it('should reject invalid quality enum value', async () => {
+      const response = await request(app)
+        .post('/api/render')
+        .send({ scenes: [{ id: 1 }], quality: 'ultra' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('should reject scenes array exceeding 200 items', async () => {
+      const scenes = Array.from({ length: 201 }, (_, i) => ({ id: i }));
+
+      const response = await request(app)
+        .post('/api/render')
+        .send({ scenes });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('should accept scenes array with exactly 200 items', async () => {
+      const scenes = Array.from({ length: 200 }, (_, i) => ({ id: i }));
+
+      const response = await request(app)
+        .post('/api/render')
+        .send({ scenes });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+    });
+
+    it('should reject outputName exceeding 255 characters', async () => {
+      const response = await request(app)
+        .post('/api/render')
+        .send({
+          scenes: [{ id: 1 }],
+          outputName: 'a'.repeat(256),
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('should reject fps value of 0', async () => {
+      const response = await request(app)
+        .post('/api/render')
+        .send({
+          scenes: [{ id: 1 }],
+          options: { fps: 0 },
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('should reject fps value exceeding 120', async () => {
+      const response = await request(app)
+        .post('/api/render')
+        .send({
+          scenes: [{ id: 1 }],
+          options: { fps: 200 },
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('should accept valid fps value within range', async () => {
+      const response = await request(app)
+        .post('/api/render')
+        .send({
+          scenes: [{ id: 1 }],
+          options: { fps: 30, resolution: '1920x1080', codec: 'h264' },
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+    });
   });
 
   // -------------------------------------------------------------------------
@@ -161,6 +242,33 @@ describe('Pipeline REST API Endpoints', () => {
           message: 'fix: resolve layout issue',
           files: ['src/analysis/llm-service.ts'],
         });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+    });
+
+    it('should reject empty message string', async () => {
+      const response = await request(app)
+        .post('/api/git/commit')
+        .send({ message: '' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('should reject message exceeding 1000 characters', async () => {
+      const response = await request(app)
+        .post('/api/git/commit')
+        .send({ message: 'x'.repeat(1001) });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('should accept message at exactly 1000 characters', async () => {
+      const response = await request(app)
+        .post('/api/git/commit')
+        .send({ message: 'x'.repeat(1000) });
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);

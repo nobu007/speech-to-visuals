@@ -1,161 +1,53 @@
 meta:
-  generated_at: "2026-05-07T05:30:00Z"
-  source_deliverable: "Phase 28 robustness hardening complete — all process.env and regex issues resolved"
-  milestone_id: "security-p0"
-  instruction: "28_purpose_driven_executor"
+  generated_at: "2026-05-07T05:13:00Z"
+  source_deliverable: "Phase 29 API validation hardening — Zod schema validation for pipeline routes"
+  milestone_id: "security-p1"
+  instruction: "25_purpose_driven_executor"
 
 completed_tasks:
   - id: T-001
-    title: "Fix auth.ts - jwt.decode to jwt.verify with env secret"
-    commit_sha: "e1f2a33"
-    completed_at: "2026-05-06T23:30:00Z"
+    title: "Add Zod schemas to pipeline.ts for RenderRequest and CommitRequest validation"
+    completed_at: "2026-05-07T05:13:00Z"
+    note: "Replaced manual type assertions with Zod safeParse. Validates quality enum, scenes cap (200), outputName length (255), fps range (1-120), message length (1000). 10 new test cases."
+
+remaining_tasks:
   - id: T-002
-    title: "Fix websocket-handler.ts - jwt.decode to jwt.verify with env secret"
-    commit_sha: "e1f2a33"
-    completed_at: "2026-05-06T23:30:00Z"
+    title: "Add UUID validation to WebSocket join:job/leave:job handlers"
+    type: "fix"
+    files_to_modify:
+      - "src/api/websocket-handler.ts"
+    acceptance_test: "npx vitest run src/api/__tests__/"
+    estimated_diff_lines: 40
   - id: T-003
-    title: "Update tests to mock jwt.verify instead of jwt.decode"
-    commit_sha: "e1f2a33"
-    completed_at: "2026-05-06T23:30:00Z"
-  - id: T-004
-    title: "Guard localStorage.removeItem in resetConfig + use safe memory utility in SimplePipeline"
-    commit_sha: "5a9e7a1"
-    completed_at: "2026-05-07T02:50:00Z"
-  - id: T-005
-    title: "ISS-010~012: jobId UUID validation, adaptive-quality-gates array limit, browser-safe env access, alert→toast migration"
-    commit_sha: "a543ac3"
-    completed_at: "2026-05-07T03:00:00Z"
-  - id: T-006
-    title: "ISS-013: ReDoS fix - escape regex special chars in simple-diagram-detector.ts"
-    commit_sha: "bfb2ed4"
-    completed_at: "2026-05-07T03:40:00Z"
-  - id: T-007
-    title: "ISS-014: localStorage hardening in TutorialSystem.tsx"
-    commit_sha: "bfb2ed4"
-    completed_at: "2026-05-07T03:40:00Z"
-  - id: T-008
-    title: "ISS-017: CORS origin whitelist in server.ts"
-    commit_sha: "bfb2ed4"
-    completed_at: "2026-05-07T03:40:00Z"
-  - id: T-009
-    title: "ISS-018: ReDoS fix - escape regex in diagram-detector.ts countOccurrences"
-    completed_at: "2026-05-07T04:20:00Z"
-  - id: T-010
-    title: "ISS-019: JSON.parse robustness - try-catch in intelligent-cache.ts decompressData"
-    completed_at: "2026-05-07T04:20:00Z"
-  - id: T-011
-    title: "ISS-020: Cap unbounded iterations array in pipeline.ts PipelineStateManager"
-    completed_at: "2026-05-07T04:20:00Z"
-  - id: T-012
-    title: "ISS-021: Browser-safe process.env guard in complexity-detector.ts selectModel"
-    completed_at: "2026-05-07T05:30:00Z"
-  - id: T-013
-    title: "ISS-022: Browser-safe process.env guard in rule-based-analyzer.ts isDisabledGemini"
-    completed_at: "2026-05-07T05:30:00Z"
-  - id: T-014
-    title: "ISS-023: Browser-safe process.env guard in supabase/client.ts resolvers"
-    completed_at: "2026-05-07T05:30:00Z"
-  - id: T-015
-    title: "ISS-024: Regex escaping in iteration-logger.ts phase name"
-    completed_at: "2026-05-07T05:30:00Z"
+    title: "Apply uploadRateLimiter to batch job creation in server.ts"
+    type: "fix"
+    files_to_modify:
+      - "src/api/server.ts"
+    acceptance_test: "npx vitest run src/api/__tests__/server.test.ts"
+    estimated_diff_lines: 20
 
-remaining_tasks: []
-
-discovered_issues:
-  - id: ISS-003
+new_candidates:
+  - id: ISS-025
+    severity: HIGH
+    status: OPEN
+    title: "WebSocket join:job/leave:job accept arbitrary jobId strings without UUID validation"
+    file: "src/api/websocket-handler.ts"
+  - id: ISS-026
     severity: MEDIUM
-    status: FIXED (commit 05dd311)
-    title: "Unsanitized outputName in render API allows path traversal"
-    file: "src/api/routes/pipeline.ts"
-  - id: ISS-004
+    status: OPEN
+    title: "uploadRateLimiter defined but never applied to any route"
+    file: "src/api/middleware/rate-limit.ts"
+  - id: ISS-027
     severity: MEDIUM
-    status: FIXED (commit 05dd311)
-    title: "Batch API does not validate individual file object shape"
+    status: OPEN
+    title: "batch.ts preset parameter not validated against allowed enum values"
     file: "src/api/routes/batch.ts"
-  - id: ISS-005
-    severity: MEDIUM
-    status: FIXED (commit 05dd311)
-    title: "Unbounded in-memory job stores (memory leak)"
-  - id: ISS-006
-    severity: HIGH
-    status: FIXED (commits a13513f + c63e7d4 + 5a9e7a1)
-    title: "process.memoryUsage() called in browser context"
-  - id: ISS-007
+  - id: ISS-028
     severity: LOW
-    status: FIXED (commit 05dd311)
-    title: "analyzeContentEnhanced retries same failing call"
-  - id: ISS-009
-    severity: LOW
-    status: FIXED (commit 05dd311)
-    title: "SimplePipeline performanceHistory array grows without bound"
-  - id: ISS-010
-    severity: HIGH
-    status: FIXED (commit a543ac3)
-    title: "Unvalidated req.params.jobId in batch API routes"
-    file: "src/api/routes/batch.ts"
-  - id: ISS-011
-    severity: MEDIUM
-    status: FIXED (commit a543ac3)
-    title: "Unbounded adaptive-quality-gates.ts gates array"
-    file: "src/quality/adaptive-quality-gates.ts"
-  - id: ISS-012
-    severity: MEDIUM
-    status: FIXED (commit a543ac3)
-    title: "process.env.NODE_ENV in production-config.ts browser code"
-    file: "src/config/production-config.ts"
-  - id: ISS-013
-    severity: HIGH
-    status: FIXED (commit bfb2ed4)
-    title: "ReDoS vulnerability — unsanitized keyword in RegExp constructor"
-    file: "src/analysis/simple-diagram-detector.ts"
-  - id: ISS-014
-    severity: MEDIUM
-    status: FIXED (commit bfb2ed4)
-    title: "localStorage access in TutorialSystem.tsx without try-catch for private browsing"
-    file: "src/components/TutorialSystem.tsx"
-  - id: ISS-017
-    severity: MEDIUM
-    status: FIXED (commit bfb2ed4)
-    title: "CORS origin:false in production is ambiguous — should use explicit whitelist"
-    file: "src/api/server.ts"
-  - id: ISS-018
-    severity: MEDIUM
-    status: FIXED
-    title: "ReDoS in diagram-detector.ts countOccurrences — unescaped term in RegExp"
-    file: "src/analysis/diagram-detector.ts"
-  - id: ISS-019
-    severity: MEDIUM
-    status: FIXED
-    title: "JSON.parse in intelligent-cache.ts decompressData without try-catch"
-    file: "src/performance/intelligent-cache.ts"
-  - id: ISS-020
-    severity: MEDIUM
-    status: FIXED
-    title: "Unbounded iterations array in pipeline.ts PipelineStateManager"
-    file: "src/api/routes/pipeline.ts"
-  - id: ISS-021
-    severity: MEDIUM
-    status: FIXED
-    title: "process.env usage in complexity-detector.ts without browser-safe guard"
-    file: "src/analysis/complexity-detector.ts"
-  - id: ISS-022
-    severity: MEDIUM
-    status: FIXED
-    title: "process.env usage in rule-based-analyzer.ts without browser-safe guard"
-    file: "src/analysis/rule-based-analyzer.ts"
-  - id: ISS-023
-    severity: MEDIUM
-    status: FIXED
-    title: "process.env usage in supabase/client.ts without browser-safe guard"
-    file: "src/integrations/supabase/client.ts"
-  - id: ISS-024
-    severity: LOW
-    status: FIXED
-    title: "Regex without escaping in iteration-logger.ts phase name"
-    file: "src/utils/iteration-logger.ts"
-
-new_candidates: []
+    status: OPEN
+    title: "batch-processing-api.ts uses raw Error instead of custom error classes"
+    file: "src/api/batch-processing-api.ts"
 
 next_execution:
-  task_id: null
-  rationale: "All known security and robustness issues resolved. 24 ISS items (ISS-003 through ISS-024) now fixed. Next: scan for new candidates or feature work."
+  task_id: "T-002"
+  rationale: "WebSocket UUID validation (ISS-025) is the next highest-severity fix, paralleling ISS-010 REST UUID validation already completed."

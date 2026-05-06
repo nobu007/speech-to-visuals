@@ -10,21 +10,33 @@
 
 import { Router, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
+import { z } from 'zod';
 
 // ---------------------------------------------------------------------------
-// Types
+// Zod validation schemas
 // ---------------------------------------------------------------------------
 
-interface RenderRequest {
-  scenes: unknown[];
-  quality?: 'low' | 'medium' | 'high';
-  outputName?: string;
-  options?: {
-    resolution?: string;
-    fps?: number;
-    codec?: string;
-  };
-}
+const RenderRequestSchema = z.object({
+  scenes: z.array(z.unknown()).min(1, 'No scenes provided').max(200, 'Too many scenes (max 200)'),
+  quality: z.enum(['low', 'medium', 'high']).optional(),
+  outputName: z.string().max(255, 'outputName must be at most 255 characters').optional(),
+  options: z.object({
+    resolution: z.string().max(50).optional(),
+    fps: z.number().int().min(1).max(120, 'fps must be between 1 and 120').optional(),
+    codec: z.string().max(50).optional(),
+  }).optional(),
+});
+
+const CommitRequestSchema = z.object({
+  message: z.string().min(1, 'message is required and must be a non-empty string').max(1000, 'message must be at most 1000 characters'),
+  files: z.array(z.string()).optional(),
+});
+
+// ---------------------------------------------------------------------------
+// Types (inferred from Zod schemas)
+// ---------------------------------------------------------------------------
+
+type RenderRequest = z.infer<typeof RenderRequestSchema>;
 
 interface RenderResponse {
   success: boolean;
@@ -34,10 +46,7 @@ interface RenderResponse {
   error?: { code: string; message: string };
 }
 
-interface CommitRequest {
-  message: string;
-  files?: string[];
-}
+type CommitRequest = z.infer<typeof CommitRequestSchema>;
 
 interface CommitResponse {
   success: boolean;
@@ -162,15 +171,12 @@ export function createPipelineRouter(stateManager?: PipelineStateManager): Route
 
   // POST /api/render - Trigger video rendering
   router.post('/render', async (req: Request, res: Response) => {
-    const body = req.body as RenderRequest;
-
-    if (!body.scenes || !Array.isArray(body.scenes)) {
-      return sendError(res, 400, 'VALIDATION_ERROR', 'scenes must be a non-empty array');
+    const parsed = RenderRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      const msg = parsed.error.issues[0]?.message ?? 'Validation failed';
+      return sendError(res, 400, 'VALIDATION_ERROR', msg);
     }
-
-    if (body.scenes.length === 0) {
-      return sendError(res, 400, 'VALIDATION_ERROR', 'No scenes provided');
-    }
+    const body = parsed.data;
 
     try {
       const rawOutputName = body.outputName || `video-${Date.now()}`;
@@ -198,11 +204,12 @@ export function createPipelineRouter(stateManager?: PipelineStateManager): Route
 
   // POST /api/git/commit - Execute auto-commit
   router.post('/git/commit', async (req: Request, res: Response) => {
-    const body = req.body as CommitRequest;
-
-    if (!body.message || typeof body.message !== 'string') {
-      return sendError(res, 400, 'VALIDATION_ERROR', 'message is required and must be a string');
+    const parsed = CommitRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      const msg = parsed.error.issues[0]?.message ?? 'Validation failed';
+      return sendError(res, 400, 'VALIDATION_ERROR', msg);
     }
+    const body = parsed.data;
 
     try {
       // Generate commit hash (simulated)
