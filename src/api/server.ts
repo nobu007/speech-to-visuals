@@ -7,6 +7,12 @@ import { createBatchRouter } from './routes/batch';
 import { createPipelineRouter } from './routes/pipeline';
 import { errorHandler } from './middleware/error-handler';
 import { apiRateLimiter, uploadRateLimiter } from './middleware/rate-limit';
+import { authMiddleware, AuthenticatedRequest } from './middleware/auth';
+
+// ISS-030: Conditional auth — enforced in production, bypassed in dev/test
+const pipelineAuth = process.env.NODE_ENV === 'production'
+  ? authMiddleware
+  : (_req: express.Request, _res: express.Response, next: express.NextFunction) => next();
 
 const app = express();
 
@@ -41,7 +47,8 @@ app.use('/api/v1', healthRouter);
 // ISS-026: apply upload rate limiter to batch job creation routes
 app.use('/api/v1/batch', uploadRateLimiter, createBatchRouter());
 // ISS-029: apply API rate limiter to pipeline routes to prevent abuse
-app.use('/api', apiRateLimiter, createPipelineRouter());
+// ISS-030: enforce JWT auth on pipeline routes in production
+app.use('/api', apiRateLimiter, pipelineAuth, createPipelineRouter());
 
 // Error handler (must be after routes)
 app.use(errorHandler);

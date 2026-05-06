@@ -41,16 +41,20 @@ completed_tasks:
     title: "Add WebSocket event payload validation"
     completed_at: "2026-05-07T05:58:00Z"
     note: "ISS-042: Added validateEventPayload helper checking object shape, required fields, and max key count (20)."
+  - id: T-010
+    title: "Enforce JWT authentication on pipeline routes in production"
+    completed_at: "2026-05-07T06:10:00Z"
+    note: "ISS-030: Added conditional authMiddleware to pipeline routes in server.ts. Enforced in production, bypassed in dev/test. 14 new auth integration tests."
 
 remaining_tasks: []
 
 new_candidates:
   - id: ISS-030
     severity: HIGH
-    status: OPEN
+    status: DONE
     title: "Pipeline endpoints lack authentication middleware"
-    file: "src/api/routes/pipeline.ts"
-    note: "authMiddleware exists but is not applied to pipeline routes. All endpoints accessible without auth."
+    file: "src/api/server.ts"
+    note: "RESOLVED: authMiddleware applied to pipeline routes with conditional enforcement."
   - id: ISS-044
     severity: MEDIUM
     status: OPEN
@@ -65,5 +69,5 @@ new_candidates:
     note: "JWT_SECRET complexity, CORS_ORIGINS format not validated at startup."
 
 next_execution:
-  task_id: "ISS-030"
-  rationale: "Pipeline endpoints accessible without authentication is the highest severity remaining issue. Requires careful implementation to avoid breaking existing clients."
+  task_id: "ISS-044"
+  rationale: "Centralize magic numbers (rate limits, body size limits, file count limits) into a config module for better maintainability."
