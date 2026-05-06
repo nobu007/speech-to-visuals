@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-06（第132回kairo-tasks検証・Phase 1-23全完了・Phase 24計画済(TASK-0121~0123)・297ファイル・90,400行・120タスク完了+3タスク計画中・TypeScriptエラー0件・ESLintエラー0件・104パッケージ(74 deps+30 devDeps)・console.log残留737件・コード規模90,400行(上限90,000行を400行超過)・新規タスク不要確認）
+**最終更新**: 2026-05-07（第133回kairo-requirements検証・Phase 1-24全完了（123/123タスク）・297ファイル・89,624行（90K以下達成）・TypeScriptエラー0件・ESLintエラー0件・104パッケージ(74 deps+30 devDeps)・console.log 0件（CLAUDE.md基準達成）・6件発見問題(ISS-003~009)をPhase 25候補として特定）
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム
 
 ## 技術スタック
