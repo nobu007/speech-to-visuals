@@ -23,6 +23,7 @@ import { DiagramDetector } from '@/analysis';
 import { EnhancedZeroOverlapLayoutEngine } from '@/visualization/enhanced-zero-overlap-layout';
 import { getQualityMonitor } from '@/pipeline/quality-monitor';
 import { llmService } from '@/analysis/llm-service';
+import { getMemoryUsage } from '@/utils/memory-usage';
 
 interface ValidationResult {
   category: string;
@@ -725,9 +726,9 @@ class CustomInstructionsValidator {
         nodeVersion: process.version,
         platform: process.platform,
         memory: {
-          total: Math.round(process.memoryUsage().heapTotal / (1024 * 1024)),
-          used: Math.round(process.memoryUsage().heapUsed / (1024 * 1024)),
-          free: Math.round((process.memoryUsage().heapTotal - process.memoryUsage().heapUsed) / (1024 * 1024))
+          total: Math.round(getMemoryUsage().heapTotal / (1024 * 1024)),
+          used: Math.round(getMemoryUsage().heapUsed / (1024 * 1024)),
+          free: Math.round((getMemoryUsage().heapTotal - getMemoryUsage().heapUsed) / (1024 * 1024))
         }
       }
     };

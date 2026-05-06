@@ -9,6 +9,7 @@ import { SceneGraph } from '../src/types/diagram';
 import fs from 'fs';
 import path from 'path';
 import { performance } from 'perf_hooks';
+import { getMemoryUsage } from '../src/utils/memory-usage';
 
 interface BenchmarkResult {
   stage: string;
@@ -53,7 +54,7 @@ class PerformanceBenchmark {
     if (!this.currentStage) return;
 
     const duration = performance.now() - this.stageStartTime;
-    const memoryUsage = process.memoryUsage();
+    const memoryUsage = getMemoryUsage();
 
     this.results.push({
       stage: this.currentStage,
@@ -61,7 +62,7 @@ class PerformanceBenchmark {
       memoryUsage: {
         heapUsed: memoryUsage.heapUsed / 1024 / 1024, // MB
         heapTotal: memoryUsage.heapTotal / 1024 / 1024,
-        external: memoryUsage.external / 1024 / 1024,
+        external: 0, // Not available cross-platform
       },
     });
 

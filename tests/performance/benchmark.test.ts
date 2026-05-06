@@ -14,6 +14,7 @@ import { BatchOptimizer } from '@/optimization/batch-optimizer';
 import { ComputationCache } from '@/optimization/computation-cache';
 import { MemoryCache } from '@/optimization/memory-cache';
 import { LazyLoader } from '@/optimization/lazy-loader';
+import { getMemoryUsage } from '@/utils/memory-usage';
 
 // ---------- Performance Requirements ----------
 
@@ -27,10 +28,10 @@ const PERFORMANCE_REQUIREMENTS = {
 // ---------- Helpers ----------
 
 function measureMemory(): { heapUsedMB: number; rssMB: number } {
-  const usage = process.memoryUsage();
+  const usage = getMemoryUsage();
   return {
     heapUsedMB: Math.round(usage.heapUsed / 1024 / 1024),
-    rssMB: Math.round(usage.rss / 1024 / 1024),
+    rssMB: Math.round((usage.rss ?? 0) / 1024 / 1024),
   };
 }
 

@@ -13,6 +13,7 @@
  */
 
 import { SimplePipeline } from '../src/pipeline/simple-pipeline';
+import { getHeapUsed } from '../src/utils/memory-usage';
 import { getQualityMonitor, formatQualityReport } from '../src/pipeline/quality-monitor';
 import { ImprovementDetector } from '../src/pipeline/improvement-detector';
 import * as fs from 'fs';
@@ -129,7 +130,7 @@ async function runSystemValidation(): Promise<ValidationResult> {
 
     const processingMetrics = {
       processingTime: duration,
-      memoryUsage: process.memoryUsage().heapUsed / (1024 * 1024), // MB
+      memoryUsage: getHeapUsed() / (1024 * 1024), // MB
       transcriptionAccuracy: 0.90, // Estimated from previous tests
       sceneSegmentationF1: 0.85,
       entityExtractionF1: nodeCount > 3 ? 0.85 : 0.75,
@@ -213,7 +214,7 @@ async function runSystemValidation(): Promise<ValidationResult> {
 
     monitor.recordMetrics({
       processingTime: duration,
-      memoryUsage: process.memoryUsage().heapUsed / (1024 * 1024),
+      memoryUsage: getHeapUsed() / (1024 * 1024),
       layoutOverlap: 0,
       errorCount: 1,
       warningCount: 0,

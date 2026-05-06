@@ -20,6 +20,7 @@
 import { LayoutEngine } from '@/visualization/layout-engine';
 import { NodeDatum, EdgeDatum, DiagramType } from '@/types/diagram';
 import { LLMService, LLMRequest, LLMResponse } from '@/analysis/llm-service';
+import { getMemoryUsage } from '@/utils/memory-usage';
 
 // =========================================================================
 // NFR Thresholds
@@ -118,11 +119,11 @@ function percentile(values: number[], p: number): number {
 
 /** Get current memory usage in MB */
 function getMemoryMB(): { heapUsed: number; heapTotal: number; rss: number } {
-  const usage = process.memoryUsage();
+  const usage = getMemoryUsage();
   return {
     heapUsed: Math.round((usage.heapUsed / 1024 / 1024) * 100) / 100,
     heapTotal: Math.round((usage.heapTotal / 1024 / 1024) * 100) / 100,
-    rss: Math.round((usage.rss / 1024 / 1024) * 100) / 100,
+    rss: Math.round(((usage.rss ?? 0) / 1024 / 1024) * 100) / 100,
   };
 }
 
