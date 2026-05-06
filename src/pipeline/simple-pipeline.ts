@@ -12,6 +12,7 @@ import { SceneGraph } from '@/types/diagram';
 import { VideoGenerator, VideoGenerationOptions } from './video-generator';
 import { continuousLearner } from '@/framework/continuous-learner';
 import { getQualityMonitor, formatQualityReport } from './quality-monitor';
+import { getHeapUsed } from '@/utils/memory-usage';
 
 export interface SimplePipelineInput {
   audioFile: File;
@@ -440,9 +441,7 @@ export class SimplePipeline {
       const qualityMonitor = getQualityMonitor();
       qualityMonitor.recordMetrics({
         processingTime,
-        memoryUsage: (performance as unknown as Record<string, unknown>).memory
-          ? (((performance as unknown as Record<string, unknown>).memory as Record<string, unknown>).usedJSHeapSize as number) / (1024 * 1024)
-          : 0,
+        memoryUsage: getHeapUsed() / (1024 * 1024),
         transcriptionAccuracy: transcript.length > 0 ? 0.9 : 0,
         sceneSegmentationF1: scenes.length > 0 ? 0.85 : 0,
         layoutOverlap: 0, // Zero overlap guaranteed by enhanced layout engine
@@ -536,9 +535,7 @@ export class SimplePipeline {
       const qualityMonitor = getQualityMonitor();
       qualityMonitor.recordMetrics({
         processingTime: failureProcessingTime,
-        memoryUsage: (performance as unknown as Record<string, unknown>).memory
-          ? (((performance as unknown as Record<string, unknown>).memory as Record<string, unknown>).usedJSHeapSize as number) / (1024 * 1024)
-          : 0,
+        memoryUsage: getHeapUsed() / (1024 * 1024),
         layoutOverlap: 0,
         errorCount: 1,
         warningCount: 0,
