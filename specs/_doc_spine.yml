@@ -141,6 +141,12 @@ system_design:
   - path: speech-to-visuals/tasks/TASK-0121.md
   - path: speech-to-visuals/tasks/TASK-0122.md
   - path: speech-to-visuals/tasks/TASK-0123.md
+  - path: speech-to-visuals/tasks/TASK-0124.md
+  - path: speech-to-visuals/tasks/TASK-0125.md
+  - path: speech-to-visuals/tasks/TASK-0126.md
+  - path: speech-to-visuals/tasks/TASK-0127.md
+  - path: speech-to-visuals/tasks/TASK-0128.md
+  - path: speech-to-visuals/tasks/TASK-0129.md
   - path: speech-to-visuals/tasks/overview.md
   - path: speech-to-visuals/user-stories.md
 - path: speech-to-visuals/design-interview.md
