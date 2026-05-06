@@ -16,6 +16,7 @@
 
 import { MainPipeline } from './main-pipeline';
 import { PipelineInput, PipelineResult, PipelineConfig } from './types';
+import { getHeapUsed } from '@/utils/memory-usage';
 import {
   IterationManager,
   createIterationManager,
@@ -220,9 +221,7 @@ export class FrameworkIntegratedPipeline {
    * Extract quality metrics from pipeline result
    */
   private extractQualityMetrics(result: PipelineResult): QualityMetrics {
-    const memoryUsage = typeof process !== 'undefined' && process.memoryUsage
-      ? process.memoryUsage().heapUsed / (1024 * 1024) // Convert to MB
-      : 100;
+    const memoryUsage = getHeapUsed() / (1024 * 1024); // Convert to MB, returns 0 in unsupported envs
 
     // Calculate various metrics from result
     const transcriptionAccuracy = this.estimateTranscriptionAccuracy(result);

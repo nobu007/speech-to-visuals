@@ -8,6 +8,7 @@
 
 import { realTimeMonitor, PerformanceSnapshot } from './real-time-performance-monitor';
 import { globalCache } from '@/performance/intelligent-cache';
+import { getMemoryUsage } from '@/utils/memory-usage';
 
 export interface HealthCheckResult {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -94,10 +95,12 @@ class HealthCheckService {
    */
   private async checkMemoryHealth(): Promise<ComponentHealth> {
     const startTime = Date.now();
-    const memoryUsage = process.memoryUsage();
+    const memoryUsage = getMemoryUsage();
     const heapUsedMB = memoryUsage.heapUsed / 1024 / 1024;
     const heapTotalMB = memoryUsage.heapTotal / 1024 / 1024;
-    const usagePercent = (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100;
+    const usagePercent = memoryUsage.heapTotal > 0
+      ? (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100
+      : 0;
 
     let status: 'healthy' | 'degraded' | 'unhealthy';
     let message: string;
@@ -440,7 +443,7 @@ class HealthCheckService {
     try {
       // Check if basic system functions are responsive
       const startTime = Date.now();
-      const memoryUsage = process.memoryUsage();
+      const memoryUsage = getMemoryUsage();
       const latency = Date.now() - startTime;
 
       // System is alive if it can respond within reasonable time

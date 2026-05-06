@@ -21,6 +21,7 @@ import {
 } from './types';
 // Phase 34: Persistent iteration logging system
 import { globalIterationLogger } from '@/utils/iteration-logger';
+import { getHeapUsed, getMemoryUsage } from '@/utils/memory-usage';
 
 /**
  * Main Audio-to-Diagram Video Generation Pipeline
@@ -260,7 +261,7 @@ export class MainPipeline {
         sceneSegmentationF1: (analysisResult as Record<string, unknown>).segmentationScore as number || 0.75,
         layoutOverlap: (layoutResult as unknown as Record<string, unknown>).overlapCount as number || 0,
         renderTime: totalTime,
-        memoryUsage: typeof process !== 'undefined' && process.memoryUsage ? process.memoryUsage().heapUsed : 0,
+        memoryUsage: getHeapUsed(),
         timestamp: new Date()
       };
 
@@ -296,7 +297,7 @@ export class MainPipeline {
       await this.framework.recordStageSuccess(stageName, {
         duration: stageTime,
         accuracy: qualityGates.minAccuracy, // Placeholder - would be calculated from result
-        memoryUsage: typeof process !== 'undefined' && process.memoryUsage ? process.memoryUsage().heapUsed : 0
+        memoryUsage: getHeapUsed()
       });
 
       return result;
@@ -1001,8 +1002,7 @@ export class MainPipeline {
    * Phase 34: Implements persistent logging to ITERATION_LOG.md (resolves TODO)
    */
   private async logIteration(metrics: PipelineMetrics, success: boolean): Promise<void> {
-    const memoryUsage = typeof process !== 'undefined' && process.memoryUsage ?
-      process.memoryUsage().heapUsed : undefined;
+    const memoryUsage = getHeapUsed() || undefined;
 
     // Phase 34: Use persistent iteration logger
     await globalIterationLogger.appendIteration({
@@ -1073,9 +1073,9 @@ export class MainPipeline {
     this.performanceTracker.bottleneckDetection.clear();
 
     // Take initial memory snapshot
-    if (typeof process !== 'undefined' && process.memoryUsage) {
-      const initialMemory = process.memoryUsage();
-      this.performanceTracker.memorySnapshots.set('initial', initialMemory.heapUsed);
+    const mem = getMemoryUsage();
+    if (mem.heapUsed > 0) {
+      this.performanceTracker.memorySnapshots.set('initial', mem.heapUsed);
     }
 
     // 実装→テスト→評価→改善→コミット サイクルの開始
@@ -1098,9 +1098,9 @@ export class MainPipeline {
     }
 
     // Take memory snapshot
-    if (typeof process !== 'undefined' && process.memoryUsage) {
-      const currentMemory = process.memoryUsage();
-      this.performanceTracker.memorySnapshots.set(stageName, currentMemory.heapUsed);
+    const mem = getMemoryUsage();
+    if (mem.heapUsed > 0) {
+      this.performanceTracker.memorySnapshots.set(stageName, mem.heapUsed);
     }
 
     // 段階的改善のためのメトリクス計算

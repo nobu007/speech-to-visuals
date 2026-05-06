@@ -8,6 +8,7 @@
 
 import { DiagramType } from '@/types/diagram';
 import { globalCache } from '../performance/intelligent-cache';
+import { getMemoryUsage } from '@/utils/memory-usage';
 
 interface ErrorContext {
   stage: ProcessingStage;
@@ -315,13 +316,15 @@ export class EnhancedErrorRecovery {
    */
   private updateLoadMetrics(): void {
     const now = Date.now();
-    const memoryUsage = process.memoryUsage();
+    const memoryUsage = getMemoryUsage();
 
     const currentMetrics: LoadMetrics = {
       concurrentRequests: this.activeRequests.size,
       averageResponseTime: this.calculateAverageResponseTime(),
       errorRate: this.calculateRecentErrorRate(),
-      memoryPressure: memoryUsage.heapUsed / memoryUsage.heapTotal,
+      memoryPressure: memoryUsage.heapTotal > 0
+        ? memoryUsage.heapUsed / memoryUsage.heapTotal
+        : 0,
       cpuUtilization: this.estimateCpuUsage(),
       timestamp: now
     };

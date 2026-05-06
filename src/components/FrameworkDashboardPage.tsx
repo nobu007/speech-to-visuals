@@ -85,7 +85,7 @@ export const FrameworkDashboardPage: React.FC = () => {
       />
 
       {/* Debug Panel (Development only) */}
-      {process.env.NODE_ENV === 'development' && (
+      {import.meta.env.DEV && (
         <div className="fixed bottom-4 right-4 max-w-xs p-4 bg-black/80 text-white text-xs rounded-lg">
           <div className="font-bold mb-2">Debug Info</div>
           <div>Phase: {executionState.currentPhase}</div>

@@ -4,6 +4,8 @@
  * Provides comprehensive monitoring, alerting, and automatic optimization
  */
 
+import { getMemoryUsage } from '@/utils/memory-usage';
+
 interface PerformanceMetrics {
   timestamp: number;
   memory: {
@@ -167,7 +169,7 @@ export class PerformanceDashboard {
     const uptime = now - this.startTime;
 
     // Memory metrics
-    const memoryUsage = process.memoryUsage();
+    const memoryUsage = getMemoryUsage();
 
     // Calculate throughput
     const requestsPerSecond = this.totalRequests / (uptime / 1000);

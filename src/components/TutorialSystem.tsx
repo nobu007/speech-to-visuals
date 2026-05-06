@@ -47,7 +47,15 @@ export const TutorialSystem: React.FC = () => {
     const firstVisit = localStorage.getItem('first-visit');
 
     if (savedProgress) {
-      setCompletedSteps(new Set(JSON.parse(savedProgress)));
+      try {
+        const parsed = JSON.parse(savedProgress);
+        if (Array.isArray(parsed)) {
+          setCompletedSteps(new Set(parsed));
+        }
+      } catch {
+        // Corrupted localStorage data — reset
+        localStorage.removeItem('tutorial-progress');
+      }
     }
 
     if (firstVisit === null) {

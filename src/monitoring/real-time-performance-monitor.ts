@@ -7,6 +7,7 @@
  */
 
 import { EventEmitter } from 'events';
+import { getMemoryUsage } from '@/utils/memory-usage';
 
 export interface PerformanceMetric {
   timestamp: number;
@@ -411,10 +412,12 @@ class RealTimePerformanceMonitor extends EventEmitter {
     const p99 = this.calculatePercentile(processingTimes, 0.99);
 
     // Get system metrics
-    const memoryUsage = process.memoryUsage();
+    const memoryUsage = getMemoryUsage();
     const memoryUsageMB = memoryUsage.heapUsed / 1024 / 1024;
     const memoryTotalMB = memoryUsage.heapTotal / 1024 / 1024;
-    const memoryUsagePercent = (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100;
+    const memoryUsagePercent = memoryUsage.heapTotal > 0
+      ? (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100
+      : 0;
 
     return {
       timestamp: now,
