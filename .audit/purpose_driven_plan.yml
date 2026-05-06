@@ -1,0 +1,55 @@
+meta:
+  generated_at: "2026-05-06T23:30:00Z"
+  source_deliverable: "JWT signature verification fix (jwt.decode → jwt.verify)"
+  milestone_id: "security-p0"
+  instruction: "25_purpose_driven_executor"
+
+completed_tasks:
+  - id: T-001
+    title: "Fix auth.ts - jwt.decode to jwt.verify with env secret"
+    commit_sha: "e1f2a33"
+    completed_at: "2026-05-06T23:30:00Z"
+  - id: T-002
+    title: "Fix websocket-handler.ts - jwt.decode to jwt.verify with env secret"
+    commit_sha: "e1f2a33"
+    completed_at: "2026-05-06T23:30:00Z"
+  - id: T-003
+    title: "Update tests to mock jwt.verify instead of jwt.decode"
+    commit_sha: "e1f2a33"
+    completed_at: "2026-05-06T23:30:00Z"
+
+remaining_tasks: []
+
+discovered_issues:
+  - id: ISS-003
+    severity: MEDIUM
+    title: "Unsanitized outputName in render API allows path traversal"
+    file: "src/api/routes/pipeline.ts"
+    lines: "160-182"
+  - id: ISS-004
+    severity: MEDIUM
+    title: "Batch API does not validate individual file object shape"
+    file: "src/api/routes/batch.ts"
+    lines: "243-271"
+  - id: ISS-005
+    severity: MEDIUM
+    title: "Unbounded in-memory job stores (memory leak)"
+    file: "src/api/routes/batch.ts + src/api/batch-processing-api.ts"
+  - id: ISS-006
+    severity: HIGH
+    title: "process.memoryUsage() called in browser context"
+    file: "src/pipeline/main-pipeline.ts"
+    lines: "263, 299"
+  - id: ISS-007
+    severity: LOW
+    title: "analyzeContentEnhanced retries same failing call"
+    file: "src/pipeline/main-pipeline.ts"
+    lines: "604-611"
+  - id: ISS-009
+    severity: LOW
+    title: "SimplePipeline performanceHistory array grows without bound"
+    file: "src/pipeline/simple-pipeline.ts"
+
+next_execution:
+  task_id: null
+  rationale: "All tasks for JWT verification deliverable completed. Next iteration should pick from discovered issues, prioritizing ISS-006 (browser crash bug) or ISS-003 (path traversal)."
