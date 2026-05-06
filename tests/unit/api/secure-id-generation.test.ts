@@ -5,11 +5,10 @@
  * Source-level static analysis tests that verify secure coding patterns.
  */
 
-import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
-// Project root — vitest runs from repo root via vite.config.ts
+// Project root
 const root = resolve(__dirname, '../../../src');
 
 function src(relPath: string): string {

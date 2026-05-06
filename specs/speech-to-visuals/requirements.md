@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 1-26 完了（123/123タスク完了 + ISS-003~012修正）・297ファイル・89,624行・104パッケージ（74 deps+30 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.2 制定・Web Workers 並列化基盤（エクスポート・レイアウトエンジン対応）・Worker信頼性改善（クラッシュループ防止・Promise漏洩解消・リスナークリーンアップ）・APNG実エンコーダ統合・JWT署名検証修正（jwt.decode→jwt.verify）・セキュリティ・堅牢性修正完了（ISS-003~012: パストラバーサル防止・バッチ入力検証・ジョブストア上限・ブラウザセーフメモリユーティリティ・再試行多様化・配列成長制限・jobId UUID検証・品質ゲート配列制限・ブラウザセーフenv・alert→toast）・Phase 27 進行中（ISS-013: ReDoS防止・ISS-014: localStorage保護・ISS-017: CORS設定改善）
+**実装状況**: Phase 1-30 完了（123/123タスク完了 + ISS-003~032/042修正完了）・304ファイル・90,563行・104パッケージ（74 deps+30 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト3,818件全通過（164スイート）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.2 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~032/042: パストラバーサル防止・バッチ入力検証・ジョブストア上限・ReDoS防止・localStorage保護・CORS設定改善・反復回数キャップ・キャッシュTTL境界・配列成長制限・Zodスキーマ検証・WebSocket UUID検証・レート制限・プリセット検証・カスタムエラークラス・暗号論的セキュアID・ペイロード検証・JWT認証強制）
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -170,11 +170,26 @@
 - REQ-062: システムはWorkerPoolのフル crash→recovery ライフサイクルを検証する統合テストを提供しなければならない。クラッシュ発生→自動再生成→キュー内タスクの再ディスパッチ→正常完了→複数回クラッシュ→スロット除去の全流れをカバーすること ✅ *コミットbc3cf68・tests/integration/worker-pool.test.ts より*
 - REQ-063: システムはAPNG形式の実エンコーディングを検証するテストを提供しなければならない。カスタムAPNGエンコーダ（PNGシグネチャ・acTL/fcTL/fdATチャンク・フレーム遅延精度）の包括的テストで検証済 ✅ *src/export/apng-encoder.ts・src/export/__tests__/enhanced-export-engine.test.ts TASK-0117 より*
 
-#### セキュリティ・入力検証（Phase 25+） 🔵実装済 / 📋一部候補
+#### セキュリティ・入力検証（Phase 25+） 🔵実装済
 
-- REQ-064: システムはバッチ API の jobId パラメータ（req.params.jobId）を UUID v4 形式で検証し、不正な形式の場合は 400 エラーを返さなければならない。検証はジョブステータス取得（GET /jobs/:jobId）とキャンセル（POST /jobs/:jobId/cancel）の両ルートで実行すること 📋候補 *ISS-010 HIGH・src/api/routes/batch.ts lines 299, 314・.audit/purpose_driven_plan.yml より*
-- REQ-065: システムは適応型品質ゲートの gates 配列に対して上限値（最大50ゲート）を設定し、上限超過時は追加を拒否しなければならない 📋候補 *ISS-011 MEDIUM・src/quality/adaptive-quality-gates.ts line 161・.audit/purpose_driven_plan.yml より*
-- REQ-066: システムはブラウザコンテキストで動作するコード（production-config.ts）において process.env へのアクセスを安全にガードし、Vite ビルド時の静的置換に依存しない場合はランタイム参照を避けなければならない 📋候補 *ISS-012 MEDIUM・src/config/production-config.ts lines 80, 284, 291・.audit/purpose_driven_plan.yml より*
+- REQ-064: システムはバッチ API の jobId パラメータ（req.params.jobId）を UUID v4 形式で検証し、不正な形式の場合は 400 エラーを返さなければならない。検証はジョブステータス取得（GET /jobs/:jobId）とキャンセル（POST /jobs/:jobId/cancel）の両ルートで実行すること ✅実装済 *ISS-010 HIGH・src/api/routes/batch.ts より*
+- REQ-065: システムは適応型品質ゲートの gates 配列に対して上限値（最大50ゲート）を設定し、上限超過時は追加を拒否しなければならない ✅実装済 *ISS-011 MEDIUM・src/quality/adaptive-quality-gates.ts より*
+- REQ-066: システムはブラウザコンテキストで動作するコード（production-config.ts）において process.env へのアクセスを安全にガードし、Vite ビルド時の静的置換に依存しない場合はランタイム参照を避けなければならない ✅実装済 *ISS-012 MEDIUM・src/config/production-config.ts より*
+
+#### セキュリティ・堅牢性継続改善（Phase 27-30） 🔵実装済
+
+- REQ-067: システムはユーザー入力を正規表現パターンに埋め込む前に特殊文字をエスケープし、ReDoS（Regular Expression Denial of Service）攻撃を防止しなければならない 🔵 *ISS-018 MEDIUM・src/analysis/diagram-detector.ts・src/utils/iteration-logger.ts より*
+- REQ-068: システムはインテリジェントキャッシュのJSON復元時にtry-catchでエラーを捕捉し、破損データをキャッシュミスとして扱いシステムクラッシュを防止しなければならない 🔵 *ISS-019 MEDIUM・src/performance/intelligent-cache.ts より*
+- REQ-069: システムはパイプライン状態管理の反復記録配列にエントリ上限（500件）を設定し、スライディングウィンドウでメモリリークを防止しなければならない 🔵 *ISS-020 MEDIUM・src/pipeline/main-pipeline.ts より*
+- REQ-070: システムはブラウザコンテキストで動作するコード（complexity-detector, rule-based-analyzer, supabase/client）で process.env へのアクセスを safeEnv() ヘルパーでガードし、ランタイムエラーを防止しなければならない 🔵 *ISS-021~023 MEDIUM・src/analysis/complexity-detector.ts・src/analysis/rule-based-analyzer.ts・src/integrations/supabase/client.ts より*
+- REQ-071: システムはパイプライン API（POST /api/render, POST /api/git/commit）のリクエストボディを Zod スキーマで検証し、quality列挙値・scenes上限(200)・outputName長さ(255)・fps範囲(1-120)・message長さ(1000)の制約を適用しなければならない 🔵 *src/api/routes/pipeline.ts より*
+- REQ-072: システムは WebSocket join:job/leave:job イベントの jobId を UUID v4 形式で検証し、不正な形式の場合はエラーイベントを返さなければならない 🔵 *ISS-025 HIGH・src/api/websocket-handler.ts より*
+- REQ-073: システムはバッチジョブ作成ルートに uploadRateLimiter（15分間20リクエスト）を、パイプライン API ルートに apiRateLimiter（15分間100リクエスト）を適用し、レート制限を強制しなければならない 🔵 *ISS-026/029 MEDIUM・src/api/server.ts より*
+- REQ-074: システムはバッチ API の preset パラメータを許可値セット（standard/high-quality/presentation/social-media）で検証し、不正値は400エラーで拒否しなければならない 🔵 *ISS-027 MEDIUM・src/api/routes/batch.ts より*
+- REQ-075: システムはバッチ API でカスタムエラークラス（BatchValidationError, JobNotFoundError, JobAlreadyCompletedError, TooManyFilesError）を使用し、適切なHTTPステータスコードでエラーレスポンスを返さなければならない 🔵 *ISS-028 LOW・src/api/batch-processing-api.ts より*
+- REQ-076: システムは一意識別子の生成に crypto.randomUUID() を使用し、Math.random() のような予測可能な乱数生成を使用してはならない 🔵 *ISS-031 MEDIUM・6ソースファイルで crypto.randomUUID() 使用 より*
+- REQ-077: システムは WebSocket イベントのペイロードを検証し、オブジェクト形式・必須フィールド・最大キー数(20)の制約を適用しなければならない 🔵 *ISS-042 MEDIUM・src/api/websocket-handler.ts より*
+- REQ-078: システムはパイプライン API ルート（/api/render, /api/git/commit 等）で JWT 認証を強制し、本番環境では未認証リクエストを拒否し、開発・テスト環境ではバイパスしなければならない 🔵 *ISS-030 HIGH・src/api/server.ts より*
 
 ### 条件付き要件
 
@@ -296,27 +311,31 @@
 | Phase 23: テスト型エラー修正 | ✅完了 | TASK-0120 | 1/1（テストファイル38件TypeScript型エラー解消・全品質基準達成） |
 | Phase 24: 品質維持・コードクリーンアップ | ✅完了 | TASK-0121~0123 | 3/3（console.log 717件削除→0件・コード規模89,624行(90K以下)・メトリクス更新） |
 | Phase 25: セキュリティ・堅牢性改善 | ✅完了 | ISS-003~009 | 7/7（パストラバーサル防止・バッチ入力検証・ジョブストア上限・ブラウザセーフメモリユーティリティ・localStorageガード・再試行多様化・配列成長制限・JWT署名検証） |
-| Phase 26: 入力検証・堅牢性継続改善 | 📋候補 | ISS-010~012 | 0/3（jobId UUID検証・品質ゲート配列上限・ブラウザセーフ環境変数） |
+| Phase 26: 入力検証・堅牢性改善 | ✅完了 | ISS-010~012 | 3/3（jobId UUID検証・品質ゲート配列上限・ブラウザセーフ環境変数） |
+| Phase 27: ReDoS・ストレージ保護 | ✅完了 | ISS-013~017 | 5/5（ReDoS防止・localStorage保護・CORS設定改善・バッチ入力追加検証・反復回数キャップ） |
+| Phase 28: 堅牢性継続改善 | ✅完了 | ISS-018~020 | 3/3（ReDoS拡張・JSON復元堅牢化・メモリリーク防止） |
+| Phase 29: バッチセキュリティ | ✅完了 | ISS-021~024 | 4/4（ブラウザセーフenv拡張・正規表現エスケープ） |
+| Phase 30: APIセキュリティ包括 | ✅完了 | ISS-025~032/042 | 10/10（Zodスキーマ検証・WebSocket UUID検証・レート制限・プリセット検証・カスタムエラー・暗号セキュアID・substr除去・WSペイロード検証・JWT認証強制） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 106件 (97.2%)
-- 🟡 黄信号: 3件 (2.8%)
+- 🔵 青信号: 118件 (97.5%)
+- 🟡 黄信号: 3件 (2.5%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている（第134回kairo-requirements検証確認・Phase 1-25完了・全123タスク完了+ISS-003~009修正・REQ-001~063全要件✅実装済・REQ-064~066📋候補・全品質基準達成・console.log 0件・コード規模89,624行(90K以下)）
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている（第135回kairo-requirements検証確認・Phase 1-30完了・全123タスク完了+ISS-003~032/042修正・REQ-001~078全要件✅実装済・全品質基準達成・3,818テスト全通過・console.log 0件・コード規模90,563行(90K以下)）
 
-**既知の品質課題**: Phase 26候補 - ISS-010(バッチAPI jobId未検証 HIGH)・ISS-011(品質ゲート配列無制限成長 MEDIUM)・ISS-012(ブラウザコード内process.env参照 MEDIUM)
+**次期候補**: ISS-044(MEDIUM: マジックナンバーの設定集約化)・ISS-045(MEDIUM: 環境変数バリデーション拡充)
 
 ## Acceptance criteria
 
-- [x] AC-1: 全23カテゴリの機能要件（音声認識・内容分析・フォールバック・図解レイアウト・自動改善・品質保証・プロダクション監視・動画レンダリング・パイプラインUI・拡張モジュール・エラー分類・パイプラインオーケストレーション・バッチ処理・Edge Functions・WebSocket・最適化・グレースフルシャットダウン・型ガード・追加UI・高度エクスポート・Web Workers並列化・Worker統合テスト・セキュリティ・入力検証）が REQ-001 ~ REQ-066 として文書化されている
+- [x] AC-1: 全25カテゴリの機能要件（音声認識・内容分析・フォールバック・図解レイアウト・自動改善・品質保証・プロダクション監視・動画レンダリング・パイプラインUI・拡張モジュール・エラー分類・パイプラインオーケストレーション・バッチ処理・Edge Functions・WebSocket・最適化・グレースフルシャットダウン・型ガード・追加UI・高度エクスポート・Web Workers並列化・Worker統合テスト・セキュリティ・入力検証・堅牢性継続改善）が REQ-001 ~ REQ-078 として文書化されている
 - [x] AC-2: 全要件が一意の ID（REQ-xxx / NFR-xxx / EDGE-xxx）を持ち、EARS 記法（しなければならない / してもよい）で記述されている
 - [x] AC-3: 全要件に信頼性レベル（🔵青信号 / 🟡黄信号 / 🔴赤信号）が付与されている
 - [x] AC-4: 全要件がソース文書または実装ファイルに出典をトレースしている
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 26 を網羅し、Phase 1-25完了・Phase 26候補の状態である
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 30 を網羅し、Phase 1-30完了の状態である
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテゴリに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第134回: 🔵106件/🟡3件/🔴0件）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第135回: 🔵118件/🟡3件/🔴0件）
