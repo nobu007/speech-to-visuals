@@ -260,7 +260,7 @@ export class MainPipeline {
         sceneSegmentationF1: (analysisResult as Record<string, unknown>).segmentationScore as number || 0.75,
         layoutOverlap: (layoutResult as unknown as Record<string, unknown>).overlapCount as number || 0,
         renderTime: totalTime,
-        memoryUsage: process.memoryUsage().heapUsed,
+        memoryUsage: typeof process !== 'undefined' && process.memoryUsage ? process.memoryUsage().heapUsed : 0,
         timestamp: new Date()
       };
 
@@ -296,7 +296,7 @@ export class MainPipeline {
       await this.framework.recordStageSuccess(stageName, {
         duration: stageTime,
         accuracy: qualityGates.minAccuracy, // Placeholder - would be calculated from result
-        memoryUsage: process.memoryUsage().heapUsed
+        memoryUsage: typeof process !== 'undefined' && process.memoryUsage ? process.memoryUsage().heapUsed : 0
       });
 
       return result;
@@ -606,8 +606,12 @@ export class MainPipeline {
       const result = await this.analyzeContent(transcriptionResult);
       return result;
     } catch (error) {
-      console.error('Enhanced analysis failed, falling back to basic analysis');
-      return await this.analyzeContent(transcriptionResult);
+      // ISS-007: Don't retry the same failing call; return minimal fallback result
+      return {
+        segments: [],
+        diagramAnalyses: [],
+        contentAnalysis: { type: 'general', complexity: 0 },
+      };
     }
   }
 

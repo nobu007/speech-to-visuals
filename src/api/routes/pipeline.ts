@@ -169,7 +169,9 @@ export function createPipelineRouter(stateManager?: PipelineStateManager): Route
     }
 
     try {
-      const outputName = body.outputName || `video-${Date.now()}`;
+      const rawOutputName = body.outputName || `video-${Date.now()}`;
+      // Sanitize outputName to prevent path traversal (ISS-003)
+      const outputName = rawOutputName.replace(/[/\\]/g, '_').replace(/\.\./g, '');
       const quality = body.quality || 'medium';
 
       // Simulate rendering process with scene data

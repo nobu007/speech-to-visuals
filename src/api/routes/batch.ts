@@ -58,14 +58,30 @@ interface CreateJobBody {
 // ---------------------------------------------------------------------------
 
 const MAX_CONCURRENT_JOBS = 3;
+const MAX_STORED_JOBS = 200; // ISS-005: prevent unbounded memory growth
 
 export class BatchJobManager {
   public jobs = new Map<string, InternalJob>();
 
   /**
+   * Prune completed/failed/cancelled jobs when store exceeds MAX_STORED_JOBS (ISS-005)
+   */
+  private pruneOldJobs(): void {
+    if (this.jobs.size <= MAX_STORED_JOBS) return;
+    const terminalStates: JobState[] = ['completed', 'failed', 'cancelled'];
+    for (const [id, job] of this.jobs) {
+      if (terminalStates.includes(job.status.status)) {
+        this.jobs.delete(id);
+        if (this.jobs.size <= MAX_STORED_JOBS) return;
+      }
+    }
+  }
+
+  /**
    * Create a new batch job. Returns the UUID v4 jobId.
    */
   createJob(files: Array<{ name: string; path: string }>, preset?: string, options?: Record<string, unknown>): string {
+    this.pruneOldJobs();
     const jobId = uuidv4();
 
     this.jobs.set(jobId, {
@@ -255,6 +271,14 @@ export function createBatchRouter(jobManager?: BatchJobManager): Router {
     // Validate file count limit
     if (body.files.length > 100) {
       return sendBatchError(res, 429, 'TOO_MANY_FILES', 'Too many files. Maximum 100 files per batch.');
+    }
+
+    // Validate individual file object shape (ISS-004)
+    for (let i = 0; i < body.files.length; i++) {
+      const file = body.files[i];
+      if (!file || typeof file !== 'object' || !file.name || typeof file.name !== 'string') {
+        return sendBatchError(res, 400, 'VALIDATION_ERROR', `Invalid file object at index ${i}: must have a string 'name' property`);
+      }
     }
 
     const jobId = manager.createJob(body.files, body.preset, body.options);

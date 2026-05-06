@@ -71,6 +71,8 @@ export interface BatchJobResult {
  * In-memory job storage (for Phase 37 MVP)
  * For production, use Redis or database
  */
+const MAX_STORED_JOBS_V2 = 200; // ISS-005: prevent unbounded memory growth
+
 class JobStore {
   private jobs = new Map<string, {
     status: BatchJobStatus;
@@ -78,7 +80,20 @@ class JobStore {
     cancelToken: { cancelled: boolean };
   }>();
 
+  /** Prune terminal jobs when store exceeds limit (ISS-005) */
+  private pruneOldJobs(): void {
+    if (this.jobs.size <= MAX_STORED_JOBS_V2) return;
+    const terminal = new Set(['completed', 'failed', 'cancelled']);
+    for (const [id, job] of this.jobs) {
+      if (terminal.has(job.status.status)) {
+        this.jobs.delete(id);
+        if (this.jobs.size <= MAX_STORED_JOBS_V2) return;
+      }
+    }
+  }
+
   createJob(files: File[]): string {
+    this.pruneOldJobs();
     const jobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     this.jobs.set(jobId, {
       status: {

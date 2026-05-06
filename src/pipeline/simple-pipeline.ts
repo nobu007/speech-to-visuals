@@ -61,6 +61,7 @@ export class SimplePipeline {
   // Progressive enhancement tracking (段階的改善追跡)
   private iterationCount: number = 0;
   private qualityMetrics: Map<string, number> = new Map();
+  private static readonly MAX_HISTORY = 100; // ISS-009: cap growth
   private performanceHistory: Array<{
     timestamp: string;
     processingTime: number;
@@ -503,6 +504,10 @@ export class SimplePipeline {
         success: true,
         qualityScore
       });
+      // ISS-009: trim history to prevent unbounded growth
+      if (this.performanceHistory.length > SimplePipeline.MAX_HISTORY) {
+        this.performanceHistory = this.performanceHistory.slice(-SimplePipeline.MAX_HISTORY);
+      }
 
       // Update quality metrics
       this.qualityMetrics.set('lastScore', qualityScore);
@@ -613,6 +618,10 @@ export class SimplePipeline {
         success: false,
         qualityScore: 0
       });
+      // ISS-009: trim history to prevent unbounded growth
+      if (this.performanceHistory.length > SimplePipeline.MAX_HISTORY) {
+        this.performanceHistory = this.performanceHistory.slice(-SimplePipeline.MAX_HISTORY);
+      }
 
       return {
         success: false,

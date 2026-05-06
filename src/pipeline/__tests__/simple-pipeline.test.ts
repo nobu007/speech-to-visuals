@@ -444,6 +444,25 @@ describe('SimplePipeline', () => {
       expect(metrics.iterationCount).toBe(1);
       expect(metrics.successRate).toBe(0);
     });
+
+    it('should cap performanceHistory at MAX_HISTORY (ISS-009)', async () => {
+      // Simulate pushing more than MAX_HISTORY (100) entries via internal array
+      const history = (pipeline as unknown as { performanceHistory: Array<unknown> }).performanceHistory;
+      for (let i = 0; i < 110; i++) {
+        history.push({ timestamp: new Date().toISOString(), processingTime: 100, success: true, qualityScore: 50 });
+      }
+      expect(history.length).toBe(110);
+
+      // Process one more to trigger trim
+      await pipeline.process({
+        audioFile: createMockFile(),
+        options: { includeVideoGeneration: false },
+      });
+
+      // After trim, should be capped at MAX_HISTORY
+      const finalMetrics = pipeline.getProgressiveMetrics();
+      expect(finalMetrics.performanceHistory.length).toBeLessThanOrEqual(101); // MAX_HISTORY + 1 new entry before second trim
+    });
   });
 
   describe('getCapabilities', () => {

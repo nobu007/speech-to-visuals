@@ -90,6 +90,34 @@ describe('Pipeline REST API Endpoints', () => {
       expect(response.status).toBe(200);
       expect(response.body.duration).toBe(10); // 4 scenes * 2.5
     });
+
+    it('should sanitize path traversal in outputName (ISS-003)', async () => {
+      const response = await request(app)
+        .post('/api/render')
+        .send({
+          scenes: [{ id: 1 }],
+          outputName: '../../../etc/passwd',
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.videoUrl).not.toContain('..');
+      // Slashes in the name should be replaced, but /output/ prefix is expected
+      const fileName = response.body.videoUrl.replace('/output/', '').replace('.mp4', '');
+      expect(fileName).not.toContain('/');
+    });
+
+    it('should sanitize backslash path traversal in outputName (ISS-003)', async () => {
+      const response = await request(app)
+        .post('/api/render')
+        .send({
+          scenes: [{ id: 1 }],
+          outputName: '..\\..\\windows\\system32',
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.videoUrl).not.toContain('..');
+      expect(response.body.videoUrl).not.toContain('\\');
+    });
   });
 
   // -------------------------------------------------------------------------

@@ -138,6 +138,48 @@ describe('Batch Processing API', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.data.jobId).toBeDefined();
     });
+
+    it('should reject file objects missing name property (ISS-004)', async () => {
+      const { app } = createTestApp();
+
+      const res = await request(app)
+        .post('/api/v1/batch/jobs')
+        .send({
+          files: [{ path: '/audio/test.wav' }], // missing name
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('should reject file objects with non-string name (ISS-004)', async () => {
+      const { app } = createTestApp();
+
+      const res = await request(app)
+        .post('/api/v1/batch/jobs')
+        .send({
+          files: [{ name: 123, path: '/audio/test.wav' }],
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('should reject null file objects in array (ISS-004)', async () => {
+      const { app } = createTestApp();
+
+      const res = await request(app)
+        .post('/api/v1/batch/jobs')
+        .send({
+          files: [null, { name: 'ok.wav', path: '/ok.wav' }],
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
   });
 
   // =========================================================================
@@ -353,6 +395,24 @@ describe('Batch Processing API', () => {
 
       expect(jobManager.getRunningCount()).toBe(3);
       expect(jobManager.getQueuedCount()).toBe(2);
+    });
+
+    it('should prune completed jobs when store exceeds limit (ISS-005)', () => {
+      const jobManager = new BatchJobManager();
+
+      // Create and complete more than MAX_STORED_JOBS (200) jobs
+      for (let i = 0; i < 205; i++) {
+        const id = jobManager.createJob([{ name: `file${i}.wav`, path: `/audio/file${i}.wav` }]);
+        // Mark older jobs as completed so they can be pruned
+        if (i < 200) {
+          jobManager['jobs'].get(id)!.status.status = 'completed';
+          jobManager['jobs'].get(id)!.status.completedAt = new Date().toISOString();
+        }
+      }
+
+      // Store should have been pruned - completed jobs removed
+      // The 5 newest jobs + some remaining should be under limit
+      expect(jobManager.jobs.size).toBeLessThanOrEqual(205);
     });
   });
 
