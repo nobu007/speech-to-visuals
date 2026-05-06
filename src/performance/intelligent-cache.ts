@@ -138,27 +138,32 @@ export class IntelligentCache {
    * Decompress data
    */
   private decompressData(compressed: string, originalSize: number): unknown {
-    if (compressed.length === originalSize) {
-      return JSON.parse(compressed);
-    }
-
-    // Simple run-length decoding
-    let decompressed = '';
-    let i = 0;
-
-    while (i < compressed.length) {
-      if (i + 2 < compressed.length && compressed.charCodeAt(i + 1) === 255) {
-        const char = compressed[i];
-        const count = compressed.charCodeAt(i + 2);
-        decompressed += char.repeat(count);
-        i += 3;
-      } else {
-        decompressed += compressed[i];
-        i++;
+    try {
+      if (compressed.length === originalSize) {
+        return JSON.parse(compressed);
       }
-    }
 
-    return JSON.parse(decompressed);
+      // Simple run-length decoding
+      let decompressed = '';
+      let i = 0;
+
+      while (i < compressed.length) {
+        if (i + 2 < compressed.length && compressed.charCodeAt(i + 1) === 255) {
+          const char = compressed[i];
+          const count = compressed.charCodeAt(i + 2);
+          decompressed += char.repeat(count);
+          i += 3;
+        } else {
+          decompressed += compressed[i];
+          i++;
+        }
+      }
+
+      return JSON.parse(decompressed);
+    } catch {
+      // Corrupted cache data — treat as cache miss
+      return null;
+    }
   }
 
   /**

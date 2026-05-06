@@ -76,6 +76,7 @@ interface FrameworkStatusResponse {
 
 class PipelineStateManager {
   private static instance: PipelineStateManager;
+  private static readonly MAX_ITERATIONS = 500;
   private iterations: IterationEntry[] = [];
   private currentPhase = 'idle';
   private qualityScore = 0;
@@ -89,6 +90,9 @@ class PipelineStateManager {
   }
 
   addIteration(phase: string, qualityScore: number): void {
+    if (this.iterations.length >= PipelineStateManager.MAX_ITERATIONS) {
+      this.iterations = this.iterations.slice(-Math.floor(PipelineStateManager.MAX_ITERATIONS / 2));
+    }
     this.iterations.push({
       id: this.iterations.length + 1,
       phase,

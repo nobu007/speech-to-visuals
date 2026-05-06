@@ -1,6 +1,6 @@
 meta:
-  generated_at: "2026-05-07T03:40:00Z"
-  source_deliverable: "Phase 26 completion + Phase 27 security hardening"
+  generated_at: "2026-05-07T04:30:00Z"
+  source_deliverable: "Phase 27 completion + Phase 28 robustness hardening"
   milestone_id: "security-p0"
   instruction: "27_purpose_driven_executor"
 
@@ -25,6 +25,27 @@ completed_tasks:
     title: "ISS-010~012: jobId UUID validation, adaptive-quality-gates array limit, browser-safe env access, alert→toast migration"
     commit_sha: "a543ac3"
     completed_at: "2026-05-07T03:00:00Z"
+  - id: T-006
+    title: "ISS-013: ReDoS fix - escape regex special chars in simple-diagram-detector.ts"
+    commit_sha: "bfb2ed4"
+    completed_at: "2026-05-07T03:40:00Z"
+  - id: T-007
+    title: "ISS-014: localStorage hardening in TutorialSystem.tsx"
+    commit_sha: "bfb2ed4"
+    completed_at: "2026-05-07T03:40:00Z"
+  - id: T-008
+    title: "ISS-017: CORS origin whitelist in server.ts"
+    commit_sha: "bfb2ed4"
+    completed_at: "2026-05-07T03:40:00Z"
+  - id: T-009
+    title: "ISS-018: ReDoS fix - escape regex in diagram-detector.ts countOccurrences"
+    completed_at: "2026-05-07T04:20:00Z"
+  - id: T-010
+    title: "ISS-019: JSON.parse robustness - try-catch in intelligent-cache.ts decompressData"
+    completed_at: "2026-05-07T04:20:00Z"
+  - id: T-011
+    title: "ISS-020: Cap unbounded iterations array in pipeline.ts PipelineStateManager"
+    completed_at: "2026-05-07T04:20:00Z"
 
 remaining_tasks: []
 
@@ -70,25 +91,59 @@ discovered_issues:
     status: FIXED (commit a543ac3)
     title: "process.env.NODE_ENV in production-config.ts browser code"
     file: "src/config/production-config.ts"
-
-new_candidates:
   - id: ISS-013
     severity: HIGH
+    status: FIXED (commit bfb2ed4)
     title: "ReDoS vulnerability — unsanitized keyword in RegExp constructor"
     file: "src/analysis/simple-diagram-detector.ts"
-    lines: "126"
-    note: "new RegExp(`\\b${keyword}\\b`) without escaping special regex chars"
   - id: ISS-014
     severity: MEDIUM
+    status: FIXED (commit bfb2ed4)
     title: "localStorage access in TutorialSystem.tsx without try-catch for private browsing"
     file: "src/components/TutorialSystem.tsx"
-    lines: "46, 63"
   - id: ISS-017
     severity: MEDIUM
+    status: FIXED (commit bfb2ed4)
     title: "CORS origin:false in production is ambiguous — should use explicit whitelist"
     file: "src/api/server.ts"
-    lines: "17-19"
+  - id: ISS-018
+    severity: MEDIUM
+    status: FIXED
+    title: "ReDoS in diagram-detector.ts countOccurrences — unescaped term in RegExp"
+    file: "src/analysis/diagram-detector.ts"
+  - id: ISS-019
+    severity: MEDIUM
+    status: FIXED
+    title: "JSON.parse in intelligent-cache.ts decompressData without try-catch"
+    file: "src/performance/intelligent-cache.ts"
+  - id: ISS-020
+    severity: MEDIUM
+    status: FIXED
+    title: "Unbounded iterations array in pipeline.ts PipelineStateManager"
+    file: "src/api/routes/pipeline.ts"
+
+new_candidates:
+  - id: ISS-021
+    severity: MEDIUM
+    title: "process.env usage in complexity-detector.ts without browser-safe guard"
+    file: "src/analysis/complexity-detector.ts"
+    lines: "320-331"
+  - id: ISS-022
+    severity: MEDIUM
+    title: "process.env usage in rule-based-analyzer.ts without browser-safe guard"
+    file: "src/analysis/rule-based-analyzer.ts"
+    lines: "99"
+  - id: ISS-023
+    severity: MEDIUM
+    title: "process.env usage in supabase/client.ts without browser-safe guard"
+    file: "src/integrations/supabase/client.ts"
+    lines: "12,21"
+  - id: ISS-024
+    severity: LOW
+    title: "Regex without escaping in iteration-logger.ts phase name"
+    file: "src/utils/iteration-logger.ts"
+    lines: "167"
 
 next_execution:
-  task_id: "ISS-013"
-  rationale: "Phase 27: Fix ReDoS (ISS-013), localStorage hardening (ISS-014), CORS tightening (ISS-017)."
+  task_id: "ISS-021"
+  rationale: "Phase 28: Guard remaining process.env usages in browser-accessible code (ISS-021~023), regex hardening (ISS-024)."

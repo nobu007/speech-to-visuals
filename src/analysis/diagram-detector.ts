@@ -700,7 +700,8 @@ export class DiagramDetector {
    * Helper methods
    */
   private countOccurrences(text: string, term: string): number {
-    return (text.toLowerCase().match(new RegExp(term.toLowerCase(), 'g')) || []).length;
+    const escaped = term.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return (text.toLowerCase().match(new RegExp(escaped, 'g')) || []).length;
   }
 
   private extractContext(text: string, term: string): string[] {
