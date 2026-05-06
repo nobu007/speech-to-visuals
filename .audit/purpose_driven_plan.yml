@@ -1,6 +1,6 @@
 meta:
-  generated_at: "2026-05-06T23:30:00Z"
-  source_deliverable: "JWT signature verification fix (jwt.decode → jwt.verify)"
+  generated_at: "2026-05-07T02:50:00Z"
+  source_deliverable: "Browser robustness and security hardening"
   milestone_id: "security-p0"
   instruction: "25_purpose_driven_executor"
 
@@ -17,39 +17,59 @@ completed_tasks:
     title: "Update tests to mock jwt.verify instead of jwt.decode"
     commit_sha: "e1f2a33"
     completed_at: "2026-05-06T23:30:00Z"
+  - id: T-004
+    title: "Guard localStorage.removeItem in resetConfig + use safe memory utility in SimplePipeline"
+    commit_sha: "5a9e7a1"
+    completed_at: "2026-05-07T02:50:00Z"
 
 remaining_tasks: []
 
 discovered_issues:
   - id: ISS-003
     severity: MEDIUM
+    status: FIXED (commit 05dd311)
     title: "Unsanitized outputName in render API allows path traversal"
     file: "src/api/routes/pipeline.ts"
-    lines: "160-182"
   - id: ISS-004
     severity: MEDIUM
+    status: FIXED (commit 05dd311)
     title: "Batch API does not validate individual file object shape"
     file: "src/api/routes/batch.ts"
-    lines: "243-271"
   - id: ISS-005
     severity: MEDIUM
+    status: FIXED (commit 05dd311)
     title: "Unbounded in-memory job stores (memory leak)"
-    file: "src/api/routes/batch.ts + src/api/batch-processing-api.ts"
   - id: ISS-006
     severity: HIGH
+    status: FIXED (commits a13513f + c63e7d4 + 5a9e7a1)
     title: "process.memoryUsage() called in browser context"
-    file: "src/pipeline/main-pipeline.ts"
-    lines: "263, 299"
   - id: ISS-007
     severity: LOW
+    status: FIXED (commit 05dd311)
     title: "analyzeContentEnhanced retries same failing call"
-    file: "src/pipeline/main-pipeline.ts"
-    lines: "604-611"
   - id: ISS-009
     severity: LOW
+    status: FIXED (commit 05dd311)
     title: "SimplePipeline performanceHistory array grows without bound"
-    file: "src/pipeline/simple-pipeline.ts"
+
+new_candidates:
+  - id: ISS-010
+    severity: HIGH
+    title: "Unvalidated req.params.jobId in batch API routes"
+    file: "src/api/routes/batch.ts"
+    lines: "299, 314"
+    note: "jobId used in error responses without UUID validation"
+  - id: ISS-011
+    severity: MEDIUM
+    title: "Unbounded adaptive-quality-gates.ts gates array"
+    file: "src/quality/adaptive-quality-gates.ts"
+    lines: "161"
+  - id: ISS-012
+    severity: MEDIUM
+    title: "process.env.NODE_ENV in production-config.ts browser code"
+    file: "src/config/production-config.ts"
+    lines: "80, 284, 291"
 
 next_execution:
   task_id: null
-  rationale: "All tasks for JWT verification deliverable completed. Next iteration should pick from discovered issues, prioritizing ISS-006 (browser crash bug) or ISS-003 (path traversal)."
+  rationale: "All discovered issues fixed. Next iteration should investigate ISS-010 (jobId validation) or ISS-012 (process.env in browser code)."
