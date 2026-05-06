@@ -1,7 +1,7 @@
 meta:
-  generated_at: "2026-05-07T07:00:00Z"
-  source_deliverable: "Phase 30+ complete — requirements update for Phase 26-30, vitest test fixes"
-  milestone_id: "requirements-p30"
+  generated_at: "2026-05-07T08:00:00Z"
+  source_deliverable: "Phase 31 complete — ISS-044/045 centralized limits and security env validation"
+  milestone_id: "requirements-p31"
   instruction: "kairo-requirements"
 
 completed_tasks:
@@ -53,23 +53,19 @@ completed_tasks:
     title: "Update requirements.md for Phase 26-30 completion"
     completed_at: "2026-05-07T07:00:00Z"
     note: "Added REQ-067~078 (12 new requirements). Updated metrics, progress table, acceptance criteria."
+  - id: T-013
+    title: "Centralize magic numbers into config/limits.ts module"
+    completed_at: "2026-05-07T08:00:00Z"
+    note: "ISS-044: Created RATE_LIMITS, BATCH_LIMITS, SERVER_LIMITS, SECURITY_LIMITS. Updated server.ts, rate-limit.ts, batch.ts."
+  - id: T-014
+    title: "Add JWT_SECRET complexity and CORS_ORIGINS format validation at startup"
+    completed_at: "2026-05-07T08:00:00Z"
+    note: "ISS-045: validateJwtSecret, validateCorsOrigins, validateSecurityEnv. Production-fatal, dev-warning."
 
 remaining_tasks: []
 
-new_candidates:
-  - id: ISS-044
-    severity: MEDIUM
-    status: OPEN
-    title: "Magic numbers scattered throughout codebase without centralized configuration"
-    file: "src/api/server.ts"
-    note: "Rate limits, body size limits, file count limits hardcoded instead of in config."
-  - id: ISS-045
-    severity: MEDIUM
-    status: OPEN
-    title: "Environment variable validation gaps"
-    file: "src/config/env.ts"
-    note: "JWT_SECRET complexity, CORS_ORIGINS format not validated at startup."
+new_candidates: []
 
 next_execution:
-  task_id: "ISS-044"
-  rationale: "Centralize magic numbers (rate limits, body size limits, file count limits) into a config module for better maintainability."
+  task_id: null
+  rationale: "All identified ISS items resolved. Next iteration should focus on new feature development or external audit findings."

@@ -1,8 +1,9 @@
 import rateLimit from 'express-rate-limit';
+import { RATE_LIMITS } from '../../config/limits';
 
 export const apiRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
+  windowMs: RATE_LIMITS.API.WINDOW_MS,
+  max: RATE_LIMITS.API.MAX_REQUESTS,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -15,8 +16,8 @@ export const apiRateLimiter = rateLimit({
 });
 
 export const uploadRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
+  windowMs: RATE_LIMITS.UPLOAD.WINDOW_MS,
+  max: RATE_LIMITS.UPLOAD.MAX_REQUESTS,
   standardHeaders: true,
   legacyHeaders: false,
   message: {

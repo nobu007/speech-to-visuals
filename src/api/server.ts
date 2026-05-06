@@ -8,6 +8,21 @@ import { createPipelineRouter } from './routes/pipeline';
 import { errorHandler } from './middleware/error-handler';
 import { apiRateLimiter, uploadRateLimiter } from './middleware/rate-limit';
 import { authMiddleware, AuthenticatedRequest } from './middleware/auth';
+import { RATE_LIMITS, SERVER_LIMITS } from '../config/limits';
+import { validateSecurityEnv } from '../config/validate';
+
+// ISS-045: Validate security-critical env vars at startup
+const securityResult = validateSecurityEnv();
+if (securityResult.errors.length > 0) {
+  throw new Error(
+    `Security configuration errors:\n${securityResult.errors.map(e => `  - ${e.field}: ${e.message}`).join('\n')}`,
+  );
+}
+if (securityResult.warnings.length > 0) {
+  for (const w of securityResult.warnings) {
+    console.warn(`[security] ${w.field}: ${w.message}`);
+  }
+}
 
 // ISS-030: Conditional auth — enforced in production, bypassed in dev/test
 const pipelineAuth = process.env.NODE_ENV === 'production'
@@ -16,8 +31,8 @@ const pipelineAuth = process.env.NODE_ENV === 'production'
 
 const app = express();
 
-// JSON body parser (50MB limit per REQ-402)
-app.use(express.json({ limit: '50mb' }));
+// JSON body parser — ISS-044: limit from centralized config
+app.use(express.json({ limit: SERVER_LIMITS.BODY_LIMIT }));
 
 // CORS — ISS-017: explicit production whitelist instead of ambiguous false
 const allowedOrigins = process.env.CORS_ORIGINS
@@ -34,10 +49,10 @@ app.use(cors({
 // Security headers
 app.use(helmet());
 
-// Rate limiting
+// Rate limiting — ISS-044: values from centralized config
 app.use(rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP
+  windowMs: RATE_LIMITS.API.WINDOW_MS,
+  max: RATE_LIMITS.API.MAX_REQUESTS,
   standardHeaders: true,
   legacyHeaders: false,
 }));

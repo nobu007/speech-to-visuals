@@ -16,6 +16,7 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { v4 as uuidv4 } from 'uuid';
+import { BATCH_LIMITS } from '../../config/limits';
 
 // UUID v4 validation regex (ISS-010)
 const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -63,8 +64,7 @@ interface CreateJobBody {
 // BatchJobManager - In-memory job store with concurrency control
 // ---------------------------------------------------------------------------
 
-const MAX_CONCURRENT_JOBS = 3;
-const MAX_STORED_JOBS = 200; // ISS-005: prevent unbounded memory growth
+const { MAX_CONCURRENT_JOBS, MAX_STORED_JOBS, MAX_FILES_PER_BATCH } = BATCH_LIMITS;
 
 export class BatchJobManager {
   public jobs = new Map<string, InternalJob>();
@@ -218,7 +218,7 @@ export class BatchValidationError extends Error {
 export class TooManyFilesError extends Error {
   public readonly statusCode = 429;
   public readonly code = 'TOO_MANY_FILES';
-  constructor(message: string = 'Too many files. Maximum 100 files per batch.') {
+  constructor(message: string = `Too many files. Maximum ${MAX_FILES_PER_BATCH} files per batch.`) {
     super(message);
     this.name = 'TooManyFilesError';
   }
@@ -275,8 +275,8 @@ export function createBatchRouter(jobManager?: BatchJobManager): Router {
     }
 
     // Validate file count limit
-    if (body.files.length > 100) {
-      return sendBatchError(res, 429, 'TOO_MANY_FILES', 'Too many files. Maximum 100 files per batch.');
+    if (body.files.length > MAX_FILES_PER_BATCH) {
+      return sendBatchError(res, 429, 'TOO_MANY_FILES', `Too many files. Maximum ${MAX_FILES_PER_BATCH} files per batch.`);
     }
 
     // Validate individual file object shape (ISS-004)
