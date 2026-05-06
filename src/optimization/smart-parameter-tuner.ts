@@ -132,11 +132,6 @@ class SmartParameterTuner {
 
     const confidence = this.calculateOptimizationConfidence(characteristics, optimizedParams);
 
-      parameters: optimizedParams,
-      expectedPerformance,
-      confidence
-    });
-
     return {
       parameters: optimizedParams,
       expectedPerformance,

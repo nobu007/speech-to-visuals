@@ -150,10 +150,6 @@ export class EnhancedExportEngine {
     this.useWorkers = useWorkers && isWorkerAvailable();
     this.maxConcurrentExports = maxConcurrentExports;
     this.exportWorkerPool = null;
-
-      maxConcurrent: this.maxConcurrentExports,
-      workers: this.useWorkers,
-    });
   }
 
   /** Lazily initialize and return the worker pool */
@@ -267,11 +263,6 @@ export class EnhancedExportEngine {
 
       // Stage 5: Finalization
       const result = await this.finalizeExport(job, processedVideo);
-
-        jobId: job.id,
-        format: job.config.format,
-        duration: `${(Date.now() - job.startTime.getTime()) / 1000}s`
-      });
 
       return result;
     } catch (error) {
