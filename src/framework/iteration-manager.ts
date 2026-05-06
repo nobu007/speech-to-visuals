@@ -109,6 +109,7 @@ export class IterationManager {
 
 
     if (error) {
+      // Intentionally empty: error already logged and stored in iteration history
     }
 
     return iteration;

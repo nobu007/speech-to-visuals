@@ -337,6 +337,7 @@ export class AutoImprovementEngine {
         if (result.success) {
           improved = true;
         } else {
+          // Intentionally empty: non-successful result tracked in history, no additional action needed
         }
       } catch (error) {
         console.error(`   ❌ Failed to apply improvement: ${error}`);
@@ -422,6 +423,7 @@ export class AutoImprovementEngine {
       }
 
       if (!result.improved) {
+        // Intentionally empty: stagnation detected, continue to next cycle
       }
 
       // Small delay between cycles

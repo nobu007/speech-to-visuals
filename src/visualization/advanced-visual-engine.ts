@@ -603,6 +603,7 @@ export class AdvancedVisualEngine {
         .reduce((sum, val) => sum + val, 0) / this.qualityMetrics.size;
 
       if (avgQuality < 0.8) {
+        // Intentionally empty: below-threshold quality tracked for next iteration adjustment
       }
     }
   }

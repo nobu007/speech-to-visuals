@@ -1114,7 +1114,9 @@ export class MainPipeline {
     const improvement = ((previousDuration - currentDuration) / previousDuration) * 100;
 
     if (improvement > 5) {
+      // Intentionally empty: significant improvement detected, metrics tracked via performanceTracker
     } else if (improvement < -5) {
+      // Intentionally empty: significant regression detected, metrics tracked via performanceTracker
     }
   }
 

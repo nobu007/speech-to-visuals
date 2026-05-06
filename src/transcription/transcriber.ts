@@ -32,6 +32,7 @@ export class TranscriptionPipeline {
     if (this.isBrowser) {
       this.browserTranscriber = new BrowserTranscriber();
     } else {
+      // Intentionally empty: server environment uses WhisperTranscriber initialized below
     }
 
     // Initialize enhanced Whisper transcriber
@@ -286,6 +287,7 @@ export class TranscriptionPipeline {
     const success = Object.values(successCriteria).every(v => v);
 
     if (success) {
+      // Intentionally empty: all success criteria met, no action needed
     } else {
       Object.entries(successCriteria).forEach(([key, passed]) => {
         if (!passed) { /* criterion not met: ${key} */ }

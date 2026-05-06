@@ -178,6 +178,7 @@ export class FrameworkIntegratedPipeline {
 
           // Auto-commit if criteria met
           if (execution.shouldCommit && execution.commitMessage) {
+            // Intentionally empty: auto-commit placeholder, commit logic not yet implemented
           }
 
           break;
@@ -191,6 +192,7 @@ export class FrameworkIntegratedPipeline {
           );
 
           if (improvementResult.improved) {
+            // Intentionally empty: improvement applied, will be reflected in next iteration's score
           }
         }
 
@@ -366,6 +368,7 @@ export class FrameworkIntegratedPipeline {
 
 
     if (shouldCommit) {
+      // Intentionally empty: commit decision placeholder, summary displayed via return value
     }
 
   }

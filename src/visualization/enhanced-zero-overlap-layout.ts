@@ -721,6 +721,7 @@ export class ZeroOverlapLayoutEngine {
 
       // ITERATION 45: Log progress less frequently to reduce noise
       if (iteration % 50 === 0 || iteration < 10) {
+        // Intentionally empty: diagnostic logging checkpoint, noise reduced per ITERATION 45
       }
       currentNodes = this.resolveOverlapsBatch(currentNodes, overlaps);
       iteration++;

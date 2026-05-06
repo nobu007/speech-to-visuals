@@ -132,6 +132,7 @@ export class OverlapResolver {
     } while (overlapCount > 0 && iteration < maxIterations);
 
     if (overlapCount === 0) {
+      // Intentionally empty: all overlaps resolved successfully, no action needed
     } else {
       console.warn(`⚠️ Could not eliminate all overlaps: ${overlapCount} remaining after ${iteration} iterations`);
       // Force separation for remaining overlaps

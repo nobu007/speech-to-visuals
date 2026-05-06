@@ -706,7 +706,7 @@ export class SceneSegmenter {
     // Log improvements
     if (this.iteration > 1) {
       const previousQuality = this.segmentationMetrics.qualityScores.get(this.iteration - 1) || 0;
-      ((qualityScore - previousQuality) / previousQuality) * 100;
+      void previousQuality; // quality delta available for future logging
     }
   }
 

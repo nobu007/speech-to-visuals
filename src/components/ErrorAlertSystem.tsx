@@ -158,6 +158,7 @@ export const ErrorAlertSystem: React.FC<ErrorAlertSystemProps> = ({
         // Optionally remove the alert on successful recovery
         setDismissedAlerts(prev => new Set([...prev, errorId]));
       } else {
+        // Intentionally empty: recovery failed, alert remains visible for user action
       }
     } catch (error) {
       console.error('Recovery execution error:', error);

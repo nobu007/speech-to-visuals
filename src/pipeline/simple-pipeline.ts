@@ -207,6 +207,7 @@ export class SimplePipeline {
       const maxConcurrency = input.options?.maxConcurrency || 4;
 
       if (enableParallel) {
+        // Intentionally empty: parallel processing flag checked, parallel logic applied below via processScene
       }
 
       // Determine which layout engine to use based on options
