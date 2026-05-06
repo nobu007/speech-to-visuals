@@ -114,6 +114,14 @@ interface AuthenticatedSocket extends Socket {
   };
 }
 
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET or SUPABASE_JWT_SECRET environment variable is required');
+  }
+  return secret;
+}
+
 export function createWsAuthMiddleware() {
   return (socket: AuthenticatedSocket, next: (err?: Error) => void) => {
     const token = socket.handshake.auth.token;
@@ -123,11 +131,11 @@ export function createWsAuthMiddleware() {
     }
 
     try {
-      const decoded = jwt.decode(token) as {
+      const decoded = jwt.verify(token, getJwtSecret()) as {
         sub?: string;
         email?: string;
         role?: string;
-      } | null;
+      };
 
       if (!decoded) {
         return next(new Error('Invalid token'));

@@ -9,6 +9,14 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET or SUPABASE_JWT_SECRET environment variable is required');
+  }
+  return secret;
+}
+
 export function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
 
@@ -23,7 +31,7 @@ export function authMiddleware(req: AuthenticatedRequest, res: Response, next: N
   const token = authHeader.substring(7);
 
   try {
-    const decoded = jwt.decode(token) as { sub?: string; email?: string; role?: string } | null;
+    const decoded = jwt.verify(token, getJwtSecret()) as { sub?: string; email?: string; role?: string };
     if (!decoded || !decoded.sub) {
       res.status(401).json({
         success: false,

@@ -140,6 +140,14 @@ describe('Auth functions', () => {
 import { authMiddleware, AuthenticatedRequest } from '@/api/middleware/auth';
 
 describe('authMiddleware', () => {
+  beforeAll(() => {
+    process.env.JWT_SECRET = 'test-secret';
+  });
+
+  afterAll(() => {
+    delete process.env.JWT_SECRET;
+  });
+
   function createMockReqResNext(overrides: { headers?: Record<string, string> } = {}) {
     const req = {
       headers: overrides.headers || {},
@@ -206,7 +214,7 @@ describe('authMiddleware', () => {
     });
   });
 
-  it('should return 401 when JWT token is invalid (not decodable)', () => {
+  it('should return 401 when JWT token is invalid (not verifiable)', () => {
     const { req, res, resStatus, resJson, next } = createMockReqResNext({
       headers: { authorization: 'Bearer not-a-valid-jwt' },
     });
@@ -217,7 +225,7 @@ describe('authMiddleware', () => {
     expect(resStatus).toHaveBeenCalledWith(401);
     expect(resJson).toHaveBeenCalledWith({
       success: false,
-      error: { code: 'INVALID_TOKEN', message: 'Invalid JWT token' },
+      error: { code: 'TOKEN_ERROR', message: 'Failed to process JWT token' },
     });
   });
 

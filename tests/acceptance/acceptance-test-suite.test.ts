@@ -827,6 +827,14 @@ describe('REQ-043: Batch Processing API', () => {
 // ---------------------------------------------------------------------------
 
 describe('REQ-044: Edge Functions Authentication', () => {
+  beforeAll(() => {
+    process.env.JWT_SECRET = 'secret';
+  });
+
+  afterAll(() => {
+    delete process.env.JWT_SECRET;
+  });
+
   // TC-044-01: Valid JWT authentication
   test('TC-044-01: authMiddleware accepts valid JWT', () => {
     const token = jwt.sign({ sub: 'user-1', email: 'test@test.com', role: 'authenticated' }, 'secret');

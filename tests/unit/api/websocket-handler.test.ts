@@ -28,12 +28,12 @@ let emitErrorRecovered: typeof import('../../../src/api/websocket-handler').emit
 
 // Mock jsonwebtoken before importing
 jest.mock('jsonwebtoken', () => ({
-  decode: jest.fn(),
+  verify: jest.fn(),
 }));
 
 import * as jwt from 'jsonwebtoken';
 
-const mockedJwtDecode = jwt.decode as jest.Mock;
+const mockedJwtVerify = jwt.verify as jest.Mock;
 
 // ---------------------------------------------------------------------------
 // Helper: set up module under test with mocked Socket.IO
@@ -67,17 +67,22 @@ describe('WebSocket Handler', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    process.env.JWT_SECRET = 'test-secret';
     mockIo = createMockIo();
     mockSocket = createMockSocket();
 
-    // Default: JWT decode returns a valid user
-    mockedJwtDecode.mockReturnValue({
+    // Default: JWT verify returns a valid user
+    mockedJwtVerify.mockReturnValue({
       sub: 'user-123',
       email: 'test@example.com',
       role: 'authenticated',
     });
 
     await importModule();
+  });
+
+  afterEach(() => {
+    delete process.env.JWT_SECRET;
   });
 
   // =========================================================================
@@ -112,10 +117,10 @@ describe('WebSocket Handler', () => {
       expect(err.message).toContain('Authentication required');
     });
 
-    it('should refuse connection when JWT decode returns null', () => {
+    it('should refuse connection when JWT verify returns null', () => {
       const middleware = createWsAuthMiddleware();
       mockSocket.handshake.auth.token = 'invalid.token';
-      mockedJwtDecode.mockReturnValue(null);
+      mockedJwtVerify.mockReturnValue(null);
 
       const next = jest.fn();
       middleware(mockSocket as unknown as Parameters<typeof middleware>[0], next);
@@ -125,11 +130,11 @@ describe('WebSocket Handler', () => {
       expect(err.message).toContain('Invalid token');
     });
 
-    it('should refuse connection when JWT decode throws an error', () => {
+    it('should refuse connection when JWT verify throws an error', () => {
       const middleware = createWsAuthMiddleware();
       mockSocket.handshake.auth.token = 'broken.token';
-      mockedJwtDecode.mockImplementation(() => {
-        throw new Error('decode failed');
+      mockedJwtVerify.mockImplementation(() => {
+        throw new Error('verify failed');
       });
 
       const next = jest.fn();
