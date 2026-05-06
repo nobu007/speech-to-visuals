@@ -40,7 +40,6 @@ const Index = () => {
         .from('audio')
         .getPublicUrl(fileName);
 
-      console.log('File uploaded:', publicUrl);
 
       setStatus('transcribing');
       setProgress(30);
@@ -63,7 +62,6 @@ const Index = () => {
       }
 
       const transcriptData = await transcriptResponse.json();
-      console.log('Transcription complete:', transcriptData);
 
       setStatus('analyzing');
       setProgress(60);
@@ -86,7 +84,6 @@ const Index = () => {
       }
 
       const scenesData = await scenesResponse.json();
-      console.log('Scenes generated:', scenesData);
 
       setStatus('generating');
       setProgress(90);
@@ -190,11 +187,9 @@ const Index = () => {
         {useNewPipeline && useStreamingMode ? (
           <StreamingProcessor
             onSceneGenerated={(scene) => {
-              console.log('🎯 Real-time scene generated:', scene);
               toast.success(`新しいシーンが生成されました: ${scene.type}`);
             }}
             onComplete={(scenes) => {
-              console.log('🎉 Streaming processing complete:', scenes);
               toast.success(`ストリーミング処理完了: ${scenes.length}シーン`);
             }}
           />

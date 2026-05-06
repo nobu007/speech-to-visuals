@@ -31,12 +31,10 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
     edges: EdgeDatum[],
     config: LayoutConfig
   ): Promise<LayoutStrategyOutput> {
-    console.log(`🕸️ [Network] Generating force-directed layout for ${nodes.length} nodes, ${edges.length} edges`);
 
     try {
       // Step 1: Calculate optimal spacing based on node density
       const optimalSpacing = this.calculateOptimalSpacing(nodes.length, config);
-      console.log(`   📏 Optimal spacing: ${optimalSpacing.toFixed(0)}px`);
 
       // Step 2: Initialize nodes with distributed positions
       const positionedNodes = this.initializeNodePositions(nodes, config, optimalSpacing);
@@ -47,7 +45,6 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
       // Step 4: Generate edges
       const layoutEdges = this.generateNetworkEdges(edges, positionedNodes);
 
-      console.log(`✅ [Network] Layout generated successfully`);
 
       return {
         nodes: positionedNodes,
@@ -126,7 +123,6 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
     ];
 
     for (const phase of phases) {
-      console.log(`   🔄 Phase: ${phase.description} (${phase.iterations} iterations)`);
 
       for (let i = 0; i < phase.iterations; i++) {
         this.applyForceStep(nodes, edges, phase.strength, optimalSpacing, config);
@@ -135,7 +131,6 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
         if (i % 10 === 0 && i > 0) {
           const overlaps = this.countOverlaps(nodes, optimalSpacing);
           if (overlaps === 0) {
-            console.log(`   ✅ Convergence achieved at iteration ${i}`);
             break;
           }
         }

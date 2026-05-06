@@ -206,9 +206,7 @@ export class SimplePipeline {
       const enableParallel = input.options?.enableParallelProcessing !== false;
       const maxConcurrency = input.options?.maxConcurrency || 4;
 
-      console.log(`🚀 Phase 14: Processing ${contentSegments.length} scenes ${enableParallel ? 'in PARALLEL' : 'SEQUENTIALLY'}`);
       if (enableParallel) {
-        console.log(`   📊 Max concurrency: ${maxConcurrency} concurrent scenes`);
       }
 
       // Determine which layout engine to use based on options
@@ -248,7 +246,6 @@ export class SimplePipeline {
           let layoutResult: unknown;
 
           if (useEnhancedLayout) {
-            console.log(`🎯 [Scene ${index + 1}] Using Enhanced Zero Overlap Layout Engine`);
 
             const enhancedResult = await this.enhancedLayoutEngine.generateZeroOverlapLayout(
               diagramAnalysis.type,
@@ -262,12 +259,7 @@ export class SimplePipeline {
               layout: { nodes: enhancedResult.nodes, edges: enhancedResult.edges },
               confidence: (enhancedResult.qualityMetrics?.aestheticScore ?? 0.8)
             };
-
-            console.log(
-              `   ✅ [Scene ${index + 1}] Enhanced layout completed: overlapCount=${enhancedResult.qualityMetrics?.overlapCount ?? 'N/A'}`
-            );
           } else {
-            console.log(`🎨 [Scene ${index + 1}] Using Standard Layout Engine`);
             layoutResult = await this.layoutEngine.generateLayout(
               diagramAnalysis.nodes || [],
               diagramAnalysis.edges || [],
@@ -338,7 +330,6 @@ export class SimplePipeline {
 
         for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
           const batch = batches[batchIndex];
-          console.log(`   🔄 Processing batch ${batchIndex + 1}/${batches.length} (${batch.length} scenes)...`);
 
           const batchPromises = batch.map((segment, batchItemIndex) => {
             const globalIndex = batchIndex * maxConcurrency + batchItemIndex;
@@ -349,24 +340,19 @@ export class SimplePipeline {
           sceneResults.push(...batchResults);
           processedCount += batch.length;
 
-          console.log(`   ✅ Batch ${batchIndex + 1}/${batches.length} complete (${processedCount}/${contentSegments.length} total)`);
         }
       } else {
         // Sequential processing (fallback for compatibility)
-        console.log('   ℹ️  Using sequential processing mode');
         sceneResults = [];
         for (let i = 0; i < contentSegments.length; i++) {
           const result = await processScene(contentSegments[i], i);
           sceneResults.push(result);
-          console.log(`   ✅ Scene ${i + 1}/${contentSegments.length} complete`);
         }
       }
 
       // Filter out null results and add to scenes array
       scenes.push(...sceneResults.filter((scene): scene is SceneGraph => scene !== null));
 
-      console.log(`✅ Phase 14: Completed ${scenes.length}/${contentSegments.length} scenes in parallel`);
-      console.log(`⏱️  Total parallel processing time: ${((Date.now() - diagramDetectionStartTime) / 1000).toFixed(2)}s`);
 
       const totalDiagramProcessingTime = Date.now() - diagramDetectionStartTime;
 
@@ -466,7 +452,6 @@ export class SimplePipeline {
 
       // Generate quality report
       const qualityReport = qualityMonitor.generateReport();
-      console.log(formatQualityReport(qualityReport));
 
       // Log iteration for development tracking
       qualityMonitor.logIteration({
@@ -524,7 +509,6 @@ export class SimplePipeline {
         this.performanceHistory.reduce((sum, h) => sum + h.processingTime, 0) / this.performanceHistory.length
       );
 
-      console.log(`🎯 Custom Instructions Compliance: Pipeline completed with quality score ${(qualityScore * 100).toFixed(1)}%`);
 
       return {
         success: true,

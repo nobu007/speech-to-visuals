@@ -104,7 +104,6 @@ export const InteractiveResultViewer: React.FC<InteractiveResultViewerProps> = (
   const generateThumbnails = useCallback(async () => {
     if (!result.scenes || result.scenes.length === 0) return;
 
-    console.log('🖼️ Generating scene thumbnails...');
     setIsGeneratingThumbnails(true);
 
     try {
@@ -131,7 +130,6 @@ export const InteractiveResultViewer: React.FC<InteractiveResultViewerProps> = (
       }
 
       setThumbnails(generatedThumbnails);
-      console.log(`✅ Generated ${generatedThumbnails.length} thumbnails`);
       toast.success(`${generatedThumbnails.length} scene previews generated`);
 
     } catch (error) {

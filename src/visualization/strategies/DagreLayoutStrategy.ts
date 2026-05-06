@@ -21,7 +21,6 @@ export class DagreLayoutStrategy {
     edges: EdgeDatum[],
     diagramType: DiagramType
   ): Promise<DiagramLayout> {
-    console.log(`[DagreLayoutStrategy] Applying basic Dagre layout...`);
 
     try {
       const g = new dagre.graphlib.Graph();
@@ -75,7 +74,6 @@ export class DagreLayoutStrategy {
       };
 
     } catch (error) {
-      console.log(`[DagreLayoutStrategy] Dagre failed, using fallback layout...`);
       return this.fallbackLayoutStrategy.fallbackLayout(nodes, edges, diagramType);
     }
   }

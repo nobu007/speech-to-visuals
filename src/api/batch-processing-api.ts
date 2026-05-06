@@ -147,7 +147,6 @@ export class BatchProcessingAPI {
    * Submit batch processing job
    */
   async submitJob(request: BatchJobRequest): Promise<{ jobId: string }> {
-    console.log(`📦 Phase 37: Submitting batch job with ${request.files.length} files`);
 
     // Validate request
     if (!request.files || request.files.length === 0) {
@@ -248,21 +247,18 @@ export class BatchProcessingAPI {
       startedAt: new Date().toISOString(),
     });
 
-    console.log(`🚀 Phase 37: Processing batch job ${jobId} (${request.files.length} files)`);
 
     // Process files sequentially (for Phase 37 MVP)
     // For production, implement parallel processing with concurrency control
     for (let i = 0; i < request.files.length; i++) {
       // Check for cancellation
       if (cancelToken.cancelled) {
-        console.log(`⚠️  Phase 37: Job ${jobId} cancelled`);
         break;
       }
 
       const file = request.files[i];
       const fileStartTime = Date.now();
 
-      console.log(`   📄 Processing file ${i + 1}/${request.files.length}: ${file.name}`);
 
       // Update progress
       jobStore.updateJobStatus(jobId, {
@@ -299,7 +295,6 @@ export class BatchProcessingAPI {
           processingTime: Date.now() - fileStartTime,
         });
 
-        console.log(`   ✅ File ${i + 1}/${request.files.length} completed (${result.success ? 'success' : 'failed'})`);
       } catch (error) {
         console.error(`   ❌ File ${i + 1}/${request.files.length} failed:`, error);
 
@@ -356,10 +351,6 @@ export class BatchProcessingAPI {
       },
     });
 
-    console.log(`✅ Phase 37: Batch job ${jobId} completed`);
-    console.log(`   Success: ${successCount}/${request.files.length}`);
-    console.log(`   Total time: ${(totalProcessingTime / 1000).toFixed(1)}s`);
-    console.log(`   Average quality: ${averageQualityScore.toFixed(1)}/100`);
   }
 
   /**

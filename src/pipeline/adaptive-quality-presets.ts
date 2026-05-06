@@ -201,9 +201,6 @@ export class AdaptiveQualityPresetsManager {
       throw new Error(`Invalid preset: ${preset}`);
     }
     this.currentPreset = preset;
-    console.log(`🎯 Phase 37: Quality preset set to "${preset}"`);
-    console.log(`   Target processing time: ${QUALITY_PRESETS[preset].targetProcessingTime}s`);
-    console.log(`   Expected quality score: ≥${QUALITY_PRESETS[preset].expectedMetrics.qualityScoreMin}`);
   }
 
   /**
@@ -219,7 +216,6 @@ export class AdaptiveQualityPresetsManager {
   setCustomOverrides(overrides: Partial<PresetConfiguration['parameters']>): void {
     this.customOverrides = overrides;
     this.currentPreset = 'custom';
-    console.log(`🔧 Phase 37: Custom overrides applied:`, Object.keys(overrides));
   }
 
   /**
@@ -267,13 +263,10 @@ export class AdaptiveQualityPresetsManager {
 
     // Auto-selection logic based on file size
     if (fileSizeMB < 1) {
-      console.log(`🤖 Phase 37: Auto-selected "fast" preset (file size: ${fileSizeMB.toFixed(2)} MB)`);
       return 'fast';
     } else if (fileSizeMB < 10) {
-      console.log(`🤖 Phase 37: Auto-selected "balanced" preset (file size: ${fileSizeMB.toFixed(2)} MB)`);
       return 'balanced';
     } else {
-      console.log(`🤖 Phase 37: Auto-selected "quality" preset (file size: ${fileSizeMB.toFixed(2)} MB)`);
       return 'quality';
     }
   }

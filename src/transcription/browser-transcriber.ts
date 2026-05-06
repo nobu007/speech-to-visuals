@@ -62,7 +62,6 @@ export class BrowserTranscriber {
       // Set up event handlers
       this.setupRecognitionEvents();
 
-      console.log('Web Speech API available');
     } else {
       console.warn('Web Speech API not supported in this browser');
     }
@@ -268,7 +267,6 @@ export class BrowserTranscriber {
    * Transcribe audio file using browser APIs
    */
   async transcribeAudioFile(audioFile: File | string): Promise<TranscriptionResult> {
-    console.log('Starting browser-based transcription...');
     const startTime = performance.now();
 
     try {
@@ -279,7 +277,6 @@ export class BrowserTranscriber {
         segments = await this.transcribeWithWebSpeechAPI(audioFile);
       } else {
         // Fallback to mock transcription for development
-        console.log('Using enhanced mock transcription for development');
         segments = this.getEnhancedMockSegments();
       }
 
@@ -295,7 +292,6 @@ export class BrowserTranscriber {
         success: true
       };
 
-      console.log(`Browser transcription completed: ${segments.length} segments`);
       return result;
 
     } catch (error) {
@@ -331,7 +327,6 @@ export class BrowserTranscriber {
       audio.src = audioUrl;
 
       this.recognition.onstart = () => {
-        console.log('Speech recognition started');
         audio.play();
       };
 
@@ -365,11 +360,9 @@ export class BrowserTranscriber {
       };
 
       this.recognition.onend = () => {
-        console.log('Speech recognition ended');
         URL.revokeObjectURL(audioUrl);
 
         if (segments.length === 0) {
-          console.log('No segments from Web Speech API, using mock data');
           resolve(this.getEnhancedMockSegments());
         } else {
           resolve(segments);

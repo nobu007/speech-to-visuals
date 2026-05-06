@@ -229,15 +229,12 @@ export class DiagramDetector {
    */
   async analyze(segment: ContentSegment): Promise<DiagramAnalysis> {
     const startTime = performance.now();
-    console.log(`[Diagram Detection V${this.iteration}] Analyzing: "${segment.summary}"`);
-    console.log(`🔄 Custom Instructions: Starting recursive detection cycle`);
 
     try {
       // Prefer LLM (Gemini) analysis if enabled; fallback to iterative rule-based
       let analysis: DiagramAnalysis | null = null;
 
       if (this.gemini.isEnabled()) {
-        console.log('🔗 Gemini enabled: attempting LLM-based structural extraction');
         const llm = await this.gemini.analyzeText(segment.text);
         if (llm) {
           analysis = {
@@ -247,12 +244,7 @@ export class DiagramDetector {
             edges: llm.edges || [],
             reasoning: llm.reasoning || 'LLM (Gemini) 解析結果に基づく構造化データ'
           };
-          console.log(`✅ Gemini produced ${analysis.nodes.length} nodes / ${analysis.edges.length} edges (type: ${analysis.type})`);
-        } else {
-          console.log('⚙️  Gemini returned null; falling back to rule-based detection');
         }
-      } else {
-        console.log('⚙️  Gemini disabled or no API key; using rule-based detection');
       }
 
       // 🔄 実装段階: Apply iterative detection improvements (used when LLM is unavailable or as enhancement)
@@ -272,8 +264,6 @@ export class DiagramDetector {
       }
 
       const processingTime = performance.now() - startTime;
-      console.log(`[V${this.iteration}] Detected ${analysis.type} (confidence: ${(analysis.confidence * 100).toFixed(1)}%) in ${processingTime.toFixed(0)}ms`);
-      console.log(`🔄 Detection Quality Score: ${(evaluationResults.qualityScore * 100).toFixed(1)}%`);
 
       // Store metrics for continuous improvement
       this.updateDetectionMetrics(analysis, processingTime, evaluationResults.qualityScore);
@@ -296,8 +286,6 @@ export class DiagramDetector {
    * Iteration 1: Rule-based diagram type detection
    */
   private async ruleBasedDetection(segment: ContentSegment): Promise<DiagramAnalysis> {
-    console.log(`[V${this.iteration}] Applying rule-based detection...`);
-
     const text = segment.text.toLowerCase();
     const keyphrases = segment.keyphrases.map(kp => kp.toLowerCase());
 
@@ -789,8 +777,6 @@ export class DiagramDetector {
    * Iteration 2+: Statistical analysis for improved detection
    */
   private async statisticalAnalysis(segment: ContentSegment, baseAnalysis: DiagramAnalysis): Promise<DiagramAnalysis> {
-    console.log(`[V${this.iteration}] Applying advanced statistical analysis...`);
-
     try {
       // Boost base analysis with statistical insights
       const boostedConfidence = Math.min(baseAnalysis.confidence * 1.15, 0.95);
@@ -810,8 +796,6 @@ export class DiagramDetector {
    * Iteration 3+: Hybrid approach combining multiple methods
    */
   private async hybridAnalysis(segment: ContentSegment, baseAnalysis: DiagramAnalysis): Promise<DiagramAnalysis> {
-    console.log(`[V${this.iteration}] Applying hybrid multi-method analysis...`);
-
     try {
       // Run rule-based detection
       const ruleBasedResult = await this.ruleBasedDetection(segment);
@@ -900,21 +884,13 @@ export class DiagramDetector {
       processingTime
     };
 
-    console.log('\n📊 Detection Metrics:');
-    console.log(`- Type: ${analysis.type}`);
-    console.log(`- Confidence: ${(metrics.confidence * 100).toFixed(1)}%`);
-    console.log(`- Nodes: ${metrics.nodeCount}`);
-    console.log(`- Edges: ${metrics.edgeCount}`);
-    console.log(`- Processing Time: ${metrics.processingTime.toFixed(0)}ms`);
-
     const successCriteria = {
       hasStructure: metrics.hasValidStructure,
       goodConfidence: metrics.confidence > 0.5,
       hasContent: metrics.nodeCount > 0
     };
 
-    const success = Object.values(successCriteria).every(v => v);
-    console.log(success ? '✅ Detection successful' : '⚠️ Detection needs improvement');
+    Object.values(successCriteria).every(v => v);
   }
 
   /**
@@ -922,7 +898,6 @@ export class DiagramDetector {
    */
   public nextIteration(): void {
     this.iteration++;
-    console.log(`🔄 Moving to detection iteration ${this.iteration}`);
   }
 
   // ========================================
@@ -1170,8 +1145,6 @@ export class DiagramDetector {
    * 🔄 Custom Instructions: Apply Iterative Detection (Implementation Phase)
    */
   private async applyIterativeDetection(segment: ContentSegment): Promise<DiagramAnalysis> {
-    console.log('🔄 Applying iterative detection improvements...');
-
     // Iteration 1: Rule-based detection
     let analysis = await this.ruleBasedDetection(segment);
 
@@ -1199,8 +1172,6 @@ export class DiagramDetector {
     testResults: Array<{ name: string; passed: boolean; score: number }>;
     overallScore: number;
   }> {
-    console.log('🧪 Testing detection quality...');
-
     const tests = [
       this.testConfidenceThreshold(analysis),
       this.testStructuralValidity(analysis),
@@ -1211,9 +1182,6 @@ export class DiagramDetector {
     const testResults = await Promise.all(tests);
     const overallScore = testResults.reduce((sum, result) => sum + result.score, 0) / testResults.length;
     const passed = overallScore > this.TEST_QUALITY_THRESHOLD; // 75% threshold
-
-    console.log(`🧪 Detection Test Results: ${testResults.filter(r => r.passed).length}/${testResults.length} passed`);
-    console.log(`🧪 Overall Test Score: ${(overallScore * 100).toFixed(1)}%`);
 
     return { passed, testResults, overallScore };
   }
@@ -1229,8 +1197,6 @@ export class DiagramDetector {
     needsImprovement: boolean;
     suggestions: string[];
   }> {
-    console.log('📊 Evaluating detection performance...');
-
     const metrics = {
       confidence: analysis.confidence,
       nodeCount: analysis.nodes.length,
@@ -1254,8 +1220,6 @@ export class DiagramDetector {
     const suggestions = this.generateDetectionImprovementSuggestions(qualityFactors, metrics);
     const needsImprovement = qualityScore < this.EVALUATION_IMPROVEMENT_THRESHOLD; // 80% threshold for improvement
 
-    console.log(`📊 Detection Quality Evaluation Complete: ${(qualityScore * 100).toFixed(1)}%`);
-
     return { qualityScore, needsImprovement, suggestions };
   }
 
@@ -1267,8 +1231,6 @@ export class DiagramDetector {
     segment: ContentSegment,
     suggestions: string[]
   ): Promise<DiagramAnalysis> {
-    console.log('🔄 Applying detection improvements...');
-
     let improvedAnalysis = { ...analysis };
 
     for (const suggestion of suggestions) {
@@ -1283,7 +1245,6 @@ export class DiagramDetector {
       }
     }
 
-    console.log(`🔄 Applied ${suggestions.length} detection improvements`);
     return improvedAnalysis;
   }
 
@@ -1308,13 +1269,7 @@ export class DiagramDetector {
     // Log improvements
     if (this.iteration > 1) {
       const previousQuality = this.detectionMetrics.qualityScores.get(this.iteration - 1) || 0;
-      const improvement = ((qualityScore - previousQuality) / previousQuality) * 100;
-
-      if (improvement > 3) {
-        console.log(`📈 Detection quality improved by ${improvement.toFixed(1)}% this iteration`);
-      } else if (improvement < -3) {
-        console.log(`📉 Detection quality regressed by ${Math.abs(improvement).toFixed(1)}% - needs attention`);
-      }
+      ((qualityScore - previousQuality) / previousQuality) * 100;
     }
   }
 
@@ -1325,8 +1280,6 @@ export class DiagramDetector {
   }
 
   private async enhancedStatisticalAnalysis(segment: ContentSegment, baseAnalysis: DiagramAnalysis): Promise<DiagramAnalysis> {
-    console.log('🔄 Applying enhanced statistical analysis...');
-
     // Apply learned improvements from previous iterations
     const enhancedConfidence = Math.min(baseAnalysis.confidence * this.ENHANCED_STATISTICAL_BOOST_FACTOR, this.HYBRID_CONFIDENCE_CAP);
 
@@ -1430,25 +1383,21 @@ export class DiagramDetector {
 
   // Improvement implementation methods (simplified for demo)
   private async boostDetectionConfidence(analysis: DiagramAnalysis, segment: ContentSegment): Promise<DiagramAnalysis> {
-    console.log('🔄 Boosting detection confidence...');
     const boostedConfidence = Math.min(analysis.confidence * this.BOOST_CONFIDENCE_FACTOR, this.HYBRID_CONFIDENCE_CAP);
     return { ...analysis, confidence: boostedConfidence };
   }
 
   private async enhanceStructuralDetection(analysis: DiagramAnalysis, segment: ContentSegment): Promise<DiagramAnalysis> {
-    console.log('🔄 Enhancing structural detection...');
     // Simplified implementation - could add more sophisticated structure enhancement
     return analysis;
   }
 
   private async refineTypeDetection(analysis: DiagramAnalysis, segment: ContentSegment): Promise<DiagramAnalysis> {
-    console.log('🔄 Refining type detection...');
     // Simplified implementation - could add more sophisticated type refinement
     return analysis;
   }
 
   private async optimizeDetectionPerformance(analysis: DiagramAnalysis): Promise<DiagramAnalysis> {
-    console.log('🔄 Optimizing detection performance...');
     // Simplified implementation - could add performance optimizations
     return analysis;
   }

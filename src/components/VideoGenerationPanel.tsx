@@ -181,7 +181,6 @@ export const VideoGenerationPanel: React.FC<VideoGenerationPanelProps> = ({
       toast.warning(validation.warnings[0]);
     }
 
-    console.log('🎬 Starting video generation with config:', config);
     onGenerate(config);
     toast.success('Video generation started');
   }, [config, validation, onGenerate]);

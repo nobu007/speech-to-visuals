@@ -124,11 +124,6 @@ export class LanguageDetector {
     const language = this.determineLanguage(charAnalysis);
     const confidence = this.calculateConfidence(text, language);
 
-    console.log(
-      `[LanguageDetector] language=${language} confidence=${(confidence * 100).toFixed(1)}% ` +
-        `(ja: ${(charAnalysis.japaneseRatio * 100).toFixed(1)}%, en: ${(charAnalysis.englishRatio * 100).toFixed(1)}%)`,
-    );
-
     return {
       language,
       confidence,
@@ -208,7 +203,6 @@ export class LanguageDetector {
             } else {
               this.kuromojiTokenizer = tokenizer;
               this.kuromojiReady = true;
-              console.log('[LanguageDetector] Kuromoji tokenizer initialized successfully');
               resolve();
             }
           },
@@ -439,11 +433,6 @@ export function detectLanguage(text: string): LanguageDetectionResult {
     confidence = Math.min(0.95, englishRatio);
   }
 
-  console.log(
-    `[detectLanguage] language=${language} confidence=${(confidence * 100).toFixed(1)}% ` +
-      `(ja: ${(japaneseRatio * 100).toFixed(1)}%, en: ${(englishRatio * 100).toFixed(1)}%)`,
-  );
-
   return {
     language,
     confidence,
@@ -462,6 +451,5 @@ export function forceLanguage(preferredLanguage: Language): Language {
     // Auto will be detected per-text
     return 'auto';
   }
-  console.log(`[forceLanguage] Language forced to: ${preferredLanguage}`);
   return preferredLanguage;
 }

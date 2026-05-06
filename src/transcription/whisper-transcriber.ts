@@ -74,7 +74,6 @@ export class WhisperTranscriber {
    */
   private async initializeWhisper(): Promise<void> {
     try {
-      console.log('Initializing Whisper.cpp transcriber...');
 
       // Check if we're in browser environment
       if (typeof window !== 'undefined') {
@@ -86,7 +85,6 @@ export class WhisperTranscriber {
       }
 
       this.isWhisperReady = true;
-      console.log('Whisper transcriber initialized successfully');
 
     } catch (error) {
       console.warn('Whisper initialization failed, using fallback:', error);
@@ -98,14 +96,12 @@ export class WhisperTranscriber {
    * Browser Whisper initialization (WebAssembly)
    */
   private async initializeBrowserWhisper(): Promise<void> {
-    console.log('Setting up browser-compatible Whisper...');
   }
 
   /**
    * Node.js Whisper initialization
    */
   private async initializeNodeWhisper(): Promise<void> {
-    console.log('Setting up Node.js Whisper...');
     try {
       await import('whisper-node').catch(() => null);
     } catch (error) {
@@ -184,7 +180,6 @@ export class WhisperTranscriber {
     const startTime = performance.now();
     this.iterationCount++;
 
-    console.log(`[Whisper V${this.iterationCount}] Starting transcription...`);
 
     // Step 1: Validate input (format, size, corruption)
     this.validateAudioInput(audioInput);
@@ -199,10 +194,8 @@ export class WhisperTranscriber {
     let segments: TranscriptionSegment[];
 
     if (this.isWhisperReady) {
-      console.log('Using real Whisper transcription');
       segments = await this.runRealWhisperTranscription(processedAudio);
     } else {
-      console.log('Using enhanced fallback transcription');
       segments = await this.runEnhancedFallback(processedAudio);
     }
 
@@ -237,7 +230,6 @@ export class WhisperTranscriber {
    * Preprocess audio for optimal transcription
    */
   private async preprocessAudio(audioInput: File | ArrayBuffer | string): Promise<ArrayBuffer> {
-    console.log('Preprocessing audio for optimal transcription...');
 
     if (audioInput instanceof File) {
       return await audioInput.arrayBuffer();
@@ -259,7 +251,6 @@ export class WhisperTranscriber {
    * Real Whisper transcription implementation
    */
   private async runRealWhisperTranscription(audioBuffer: ArrayBuffer): Promise<TranscriptionSegment[]> {
-    console.log('Running real Whisper transcription...');
 
     const segments: TranscriptionSegment[] = [];
     const duration = 30000;
@@ -277,7 +268,6 @@ export class WhisperTranscriber {
       segments.push(segment);
     }
 
-    console.log(`Whisper generated ${segments.length} high-quality segments`);
     return segments;
   }
 
@@ -285,7 +275,6 @@ export class WhisperTranscriber {
    * Enhanced fallback transcription for when Whisper is unavailable
    */
   private async runEnhancedFallback(audioBuffer: ArrayBuffer): Promise<TranscriptionSegment[]> {
-    console.log('Running enhanced fallback transcription...');
 
     const enhancedSegments: TranscriptionSegment[] = [
       {
@@ -318,7 +307,6 @@ export class WhisperTranscriber {
       }
     ];
 
-    console.log(`Enhanced fallback generated ${enhancedSegments.length} detailed segments`);
     return enhancedSegments;
   }
 
@@ -340,7 +328,6 @@ export class WhisperTranscriber {
    * Validate and enhance transcription segments
    */
   private async validateAndEnhanceSegments(segments: TranscriptionSegment[]): Promise<TranscriptionSegment[]> {
-    console.log('Validating and enhancing segments...');
 
     return segments.map((segment, index) => ({
       ...segment,
@@ -357,7 +344,6 @@ export class WhisperTranscriber {
    * Generate Remotion-compatible captions
    */
   private generateCaptions(segments: TranscriptionSegment[]): Caption[] {
-    console.log('Generating Remotion captions...');
 
     return segments.map(segment => ({
       text: segment.text,
@@ -409,13 +395,7 @@ export class WhisperTranscriber {
   private logTranscriptionMetrics(result: TranscriptionResult): void {
     if (result.segments.length === 0) return;
 
-    console.log('Whisper Transcription Metrics:');
-    console.log(`- Iteration: ${this.iterationCount}`);
-    console.log(`- Language: ${result.language}`);
-    console.log(`- Duration: ${(result.duration / 1000).toFixed(1)}s`);
-    console.log(`- Segments: ${result.segments.length}`);
     const avgConfidence = result.segments.reduce((sum, s) => sum + s.confidence, 0) / result.segments.length;
-    console.log(`- Avg Confidence: ${(avgConfidence * 100).toFixed(1)}%`);
   }
 
   /**

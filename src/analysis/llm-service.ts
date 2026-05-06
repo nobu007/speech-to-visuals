@@ -180,7 +180,6 @@ export class LLMService {
     const cacheKey = request.options?.cacheKey || request.context;
     const cached = this.cache.get(cacheKey, 'unified-llm-service');
     if (cached) {
-      console.log('✨ LLMService: Using cached result');
       return {
         success: true,
         data: cached as T,
@@ -196,8 +195,6 @@ export class LLMService {
 
     // Analyze complexity to select optimal model
     const complexity = this.complexityDetector.analyze(request.context);
-    console.log(`🔍 LLMService: Complexity ${complexity.level} (${(complexity.score * 100).toFixed(1)}%)`);
-    console.log(`📊 LLMService: Recommended model: ${complexity.recommendedModel}`);
 
     // Determine models to use
     const primaryModel = request.options?.forceModel || complexity.recommendedModel;
@@ -205,7 +202,6 @@ export class LLMService {
       ? 'gemini-2.5-flash'
       : 'gemini-2.5-pro';
 
-    console.log(`🎯 LLMService: Primary=${primaryModel}, Fallback=${fallbackModel}`);
 
     // Track model selection
     if (primaryModel === 'gemini-2.5-flash') {
@@ -259,7 +255,6 @@ export class LLMService {
         this.cache.set(cacheKey, parsedData, 'unified-llm-service');
         this.modelMetrics.successCount++;
 
-        console.log(`✅ LLMService: Success with ${primaryModel} (${responseTime}ms, attempt ${attempt + 1})`);
 
         return {
           success: true,
@@ -320,7 +315,6 @@ export class LLMService {
 
     // Try fallback model
     this.modelMetrics.fallbackUsed++;
-    console.log(`🔄 LLMService: Attempting fallback with ${fallbackModel}`);
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
@@ -359,7 +353,6 @@ export class LLMService {
         this.cache.set(cacheKey, parsedData, 'unified-llm-service');
         this.modelMetrics.successCount++;
 
-        console.log(`✅ LLMService: Success with fallback ${fallbackModel} (${responseTime}ms, attempt ${attempt + 1})`);
 
         return {
           success: true,
@@ -467,7 +460,6 @@ export class LLMService {
     timeout: number,
     onStream: StreamingCallback
   ): Promise<string> {
-    console.log('🌊 [Phase 33] Streaming LLM request initiated...');
 
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('Request timeout')), timeout)
@@ -490,7 +482,6 @@ export class LLMService {
 
         // Only call callback if progress has meaningfully changed (reduce noise)
         if (progress - lastProgress > 5 || fullText.length < 100) {
-          console.log(`🌊 [Phase 33] Streaming progress: ${progress.toFixed(1)}% (${fullText.length} chars)`);
           onStream(fullText, progress);
           lastProgress = progress;
         }
@@ -498,7 +489,6 @@ export class LLMService {
 
       // Final progress update
       onStream(fullText, 100);
-      console.log(`✅ [Phase 33] Streaming complete: ${fullText.length} chars`);
 
       return fullText;
     })();
@@ -542,7 +532,6 @@ export class LLMService {
     const jitter = Math.random() * 0.3 * delay;
     const finalDelay = delay + jitter;
 
-    console.log(`⏳ LLMService: Waiting ${(finalDelay / 1000).toFixed(1)}s before retry (attempt ${attempt})...`);
     await new Promise(resolve => setTimeout(resolve, finalDelay));
   }
 
@@ -680,7 +669,6 @@ export class LLMService {
    */
   clearCache(): void {
     this.cache = new LLMCache<unknown>({ maxSize: 200, ttlMinutes: 120 });
-    console.log('✅ LLMService: Cache cleared');
   }
 
   /**
@@ -699,7 +687,6 @@ export class LLMService {
       proResponseTimes: []
     };
     this.responseTimeHistory = [];
-    console.log('✅ LLMService: Metrics reset');
   }
 }
 

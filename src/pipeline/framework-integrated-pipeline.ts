@@ -43,8 +43,6 @@ export class FrameworkIntegratedPipeline {
     this.improvementEngine = createAutoImprovementEngine(thresholds);
     this.currentPhase = 'MVP構築'; // Start with MVP phase
 
-    console.log('🎯 Framework-Integrated Pipeline initialized');
-    console.log(`📋 Starting Phase: ${this.currentPhase}`);
   }
 
   /**
@@ -57,9 +55,6 @@ export class FrameworkIntegratedPipeline {
     // Link improvement engine with iteration manager
     this.improvementEngine.linkIterationManager(this.iterationManager);
 
-    console.log(`\n🔄 Phase changed to: ${phaseName}`);
-    console.log(`📊 Max iterations: ${DEVELOPMENT_CYCLES[phaseName].maxIterations}`);
-    console.log(`✓ Success criteria: ${DEVELOPMENT_CYCLES[phaseName].successCriteria.join(', ')}`);
   }
 
   /**
@@ -77,9 +72,6 @@ export class FrameworkIntegratedPipeline {
       this.setPhase(this.currentPhase);
     }
 
-    console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-    console.log(`🚀 Framework-Integrated Pipeline Execution`);
-    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
 
     // Start iteration
     await this.iterationManager!.startIteration();
@@ -141,7 +133,6 @@ export class FrameworkIntegratedPipeline {
 
       // Determine recovery strategy
       const recoveryStrategy = this.iterationManager!.determineRecoveryStrategy();
-      console.log(`\n🛡️ Recovery Strategy: ${recoveryStrategy}`);
 
       throw error;
     }
@@ -160,9 +151,6 @@ export class FrameworkIntegratedPipeline {
     finalScore: number;
     history: PipelineResult[];
   }> {
-    console.log(`\n🤖 Starting Autonomous Improvement Mode`);
-    console.log(`   Target Quality Score: ${targetScore}`);
-    console.log(`   Max Improvement Cycles: ${maxCycles}\n`);
 
     let cycle = 0;
     let bestResult: PipelineResult | null = null;
@@ -170,7 +158,6 @@ export class FrameworkIntegratedPipeline {
 
     while (cycle < maxCycles) {
       cycle++;
-      console.log(`\n━━━ Improvement Cycle ${cycle}/${maxCycles} ━━━`);
 
       try {
         // Execute pipeline with framework
@@ -185,16 +172,12 @@ export class FrameworkIntegratedPipeline {
           bestResult = execution.result;
         }
 
-        console.log(`📊 Current Score: ${currentScore.toFixed(1)}/100`);
 
         // Check if target achieved
         if (currentScore >= targetScore) {
-          console.log(`\n🎉 Target score achieved!`);
 
           // Auto-commit if criteria met
           if (execution.shouldCommit && execution.commitMessage) {
-            console.log(`\n📝 Auto-commit recommended:`);
-            console.log(execution.commitMessage);
           }
 
           break;
@@ -202,14 +185,12 @@ export class FrameworkIntegratedPipeline {
 
         // Run improvement cycle if needed
         if ((execution.qualityAnalysis as Record<string, unknown>).needsImprovement) {
-          console.log(`\n🔧 Running improvement recommendations...`);
 
           const improvementResult = await this.improvementEngine.runImprovementCycle(
             async () => this.extractQualityMetrics(execution.result)
           );
 
           if (improvementResult.improved) {
-            console.log(`✅ Improvements applied successfully`);
           }
         }
 
@@ -381,52 +362,33 @@ export class FrameworkIntegratedPipeline {
     evaluation: unknown,
     shouldCommit: boolean
   ): void {
-    console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-    console.log(`📊 Execution Summary`);
-    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
 
-    console.log(`✓ Status: ${result.success ? '✅ Success' : '❌ Failed'}`);
-    console.log(`✓ Overall Quality Score: ${metrics.overallScore.toFixed(1)}/100`);
-    console.log(`✓ Processing Time: ${(result.processingTime / 1000).toFixed(2)}s`);
-    console.log(`✓ Scenes Generated: ${result.scenes.length}`);
-    console.log(`✓ Memory Usage: ${metrics.memoryUsage.toFixed(1)}MB`);
-    console.log(`✓ Layout Overlaps: ${metrics.layoutOverlap}`);
 
-    console.log(`\n📋 Success Criteria: ${(evaluation as Record<string, unknown>).allMet ? '✅ All Met' : '⚠️ Some Failed'}`);
 
     if (shouldCommit) {
-      console.log(`\n📝 Commit Recommended: Yes`);
-      console.log(`   Phase: ${this.currentPhase}`);
     }
 
-    console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
   }
 
   /**
    * Apply recovery strategy
    */
   private async applyRecoveryStrategy(strategy: string): Promise<void> {
-    console.log(`\n🔄 Applying recovery strategy: ${strategy}`);
 
     switch (strategy) {
       case 'retry':
-        console.log('   Preparing for retry with adjusted parameters...');
         // Could adjust pipeline config here
         break;
 
       case 'fallback':
-        console.log('   Switching to fallback approach...');
         // Could switch to simpler processing mode
         break;
 
       case 'minimal':
-        console.log('   Returning to minimal viable implementation...');
         // Could reset to basic configuration
         break;
 
       case 'manual':
-        console.log('   Manual intervention required');
-        console.log('   Please review logs and metrics');
         break;
     }
 

@@ -494,7 +494,6 @@ export class ProductionMonitor {
       'utf-8'
     );
 
-    console.log(`📊 Metrics saved to: ${outputPath}`);
   }
 
   /**

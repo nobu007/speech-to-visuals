@@ -62,7 +62,6 @@ export class OverlapResolver {
       const strategy = this.strategies[this.currentStrategyIndex];
       this.currentStrategy = strategy;
       
-      console.log(`Trying strategy: ${strategy.name}`);
       
       try {
         // Apply the current strategy with a time limit
@@ -91,7 +90,6 @@ export class OverlapResolver {
           
           // If we have no overlaps and good edge lengths, we're done
           if (metrics.overlapCount === 0 && metrics.edgeCrossings < currentNodes.length / 2) {
-            console.log('Found good solution, early termination');
             break;
           }
         }
@@ -123,7 +121,6 @@ export class OverlapResolver {
     
     // Ensure we have no overlaps (fallback to grid if needed)
     if (this.metrics.some(m => m.overlapCount > 0)) {
-      console.log('Falling back to grid layout to remove overlaps');
       const gridStrategy = new GridSnapStrategy();
       const fallbackEdges = bestResult.layout.edges.map(e => ({
         id: e.id as string,

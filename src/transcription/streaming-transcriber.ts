@@ -65,12 +65,10 @@ export class StreamingTranscriber {
     this.recognition.lang = 'ja-JP'; // Japanese support
 
     this.recognition.onstart = () => {
-      console.log('🎤 Streaming transcription started');
       this.isStreaming = true;
     };
 
     this.recognition.onend = () => {
-      console.log('🔇 Streaming transcription ended');
       this.isStreaming = false;
     };
 
@@ -90,7 +88,6 @@ export class StreamingTranscriber {
     onSegment?: SegmentCallback
   ): Promise<TranscriptionResult> {
     try {
-      console.log('🚀 Starting streaming transcription...');
 
       // Load audio for duration calculation
       const audioDuration = await this.getAudioDuration(audioFile);
@@ -103,7 +100,6 @@ export class StreamingTranscriber {
         const chunk = chunks[i];
 
         try {
-          console.log(`📊 Processing chunk ${i + 1}/${chunks.length} (${chunk.start}s - ${chunk.end}s)`);
 
           // Process chunk (simulate for now)
           const chunkSegments = await this.processAudioChunk(chunk, audioFile);
@@ -153,7 +149,6 @@ export class StreamingTranscriber {
         success: true
       };
 
-      console.log(`✅ Streaming transcription complete: ${mergedSegments.length} segments`);
       return result;
 
     } catch (error) {
@@ -379,7 +374,6 @@ export class StreamingTranscriber {
    */
   updateConfig(newConfig: Partial<StreamingTranscriptionConfig>): void {
     this.config = { ...this.config, ...newConfig };
-    console.log('📝 Streaming transcriber config updated:', this.config);
   }
 }
 

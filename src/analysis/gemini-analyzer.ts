@@ -73,7 +73,6 @@ export class GeminiAnalyzer {
    */
   setLanguage(language: Language): void {
     this.preferredLanguage = language;
-    console.log(`🌐 GeminiAnalyzer language preference set to: ${language}`);
   }
 
 
@@ -137,7 +136,6 @@ export class GeminiAnalyzer {
   private createEnhancedParser(): (responseText: string) => DiagramAnalysis {
     return (responseText: string): DiagramAnalysis => {
       // Log response for debugging (first 200 chars)
-      console.log(`📥 GeminiAnalyzer response preview: ${responseText.slice(0, 200).replace(/\n/g, ' ')}...`);
 
       const parsed = parseJsonFromLLMText<DiagramData>(responseText);
 
@@ -177,14 +175,11 @@ export class GeminiAnalyzer {
       let confidence = INITIAL_LLM_CONFIDENCE;
       if (edgeRatio < 0.5 && nodes.length > 2) {
         confidence -= 0.1; // Penalty for sparse relationships
-        console.log(`📊 Phase 26: Sparse relationships detected (${validEdges.length} edges for ${nodes.length} nodes)`);
       }
       if (disconnectedNodes.length > nodes.length * 0.3) {
         confidence -= 0.1; // Penalty for too many isolated nodes
-        console.log(`⚠️  Phase 26: ${disconnectedNodes.length} disconnected nodes detected`);
       }
 
-      console.log(`✅ Phase 26 Quality Metrics: edges=${validEdges.length}, ratio=${edgeRatio.toFixed(2)}, cycles=${hasCycles}, disconnected=${disconnectedNodes.length}, confidence=${confidence.toFixed(2)}`);
 
       // Phase 27: Record relationship extraction quality
       const qualityMonitor = getQualityMonitor();
@@ -214,7 +209,6 @@ export class GeminiAnalyzer {
    */
   async analyzeText(text: string, timeoutMs?: number): Promise<DiagramAnalysis | null> {
     if (!this.isEnabled()) {
-      console.log('⚠️  GeminiAnalyzer: LLMService not enabled');
       return null;
     }
 
@@ -240,12 +234,6 @@ export class GeminiAnalyzer {
     });
 
     if (response.success && response.data) {
-      console.log(`✅ Phase 26: GeminiAnalyzer success via LLMService`);
-      console.log(`   Model: ${response.metadata.model}`);
-      console.log(`   Response time: ${response.metadata.responseTime}ms`);
-      console.log(`   From cache: ${response.metadata.fromCache}`);
-      console.log(`   Complexity: ${response.metadata.complexity?.level || 'N/A'}`);
-      console.log(`   Fallback used: ${response.metadata.fallbackUsed}`);
 
       return response.data;
     } else {

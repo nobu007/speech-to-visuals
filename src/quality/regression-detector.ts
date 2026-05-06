@@ -116,7 +116,6 @@ export class RegressionDetector {
 
     await this.saveBaseline();
 
-    console.log(`✅ Baseline established with ${sampleSize} samples (${(confidenceLevel * 100).toFixed(0)}% confidence)`);
     return this.baseline;
   }
 
@@ -139,7 +138,6 @@ export class RegressionDetector {
           },
         };
 
-        console.log(`📊 Loaded baseline from ${this.baselinePath}`);
         return this.baseline;
       }
     } catch (error) {
@@ -160,7 +158,6 @@ export class RegressionDetector {
         JSON.stringify(this.baseline, null, 2),
         'utf-8'
       );
-      console.log(`💾 Baseline saved to ${this.baselinePath}`);
     } catch (error) {
       console.error(`❌ Failed to save baseline: ${error}`);
     }
@@ -378,7 +375,6 @@ export class RegressionDetector {
     try {
       if (fs.existsSync(this.baselinePath)) {
         await fs.promises.unlink(this.baselinePath);
-        console.log(`🗑️  Baseline reset successfully`);
       }
     } catch (error) {
       console.error(`❌ Failed to reset baseline: ${error}`);

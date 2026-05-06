@@ -148,7 +148,6 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
       setScenes([]);
       startTime.current = performance.now();
 
-      console.log('🚀 Starting file streaming processing...');
 
       // Progress callback for real-time updates
       const onProgress = (progressData: StreamingProgress) => {
@@ -178,7 +177,6 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
 
       if (result.segments.length > 0) {
         setStatus('complete');
-        console.log(`✅ Streaming processing complete: ${result.segments.length} segments`);
 
         if (onComplete) {
           onComplete(scenes);
@@ -218,7 +216,6 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
       setScenes([]);
       startTime.current = performance.now();
 
-      console.log('🎤 Starting live transcription...');
 
       // Progress callback for live updates
       const onProgress = (progressData: StreamingProgress) => {
@@ -246,7 +243,6 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
       // Start live transcription
       await transcriber.current.startLiveTranscription(onSegment, onProgress);
 
-      console.log('✅ Live transcription started');
 
     } catch (err) {
       setStatus('error');
@@ -313,7 +309,6 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
       statsTimer.current = null;
     }
 
-    console.log('🛑 All processing stopped');
   }, []);
 
   /**
@@ -322,10 +317,8 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
   const togglePause = useCallback(() => {
     if (status === 'recording' || status === 'processing') {
       setStatus('paused');
-      console.log('⏸️ Processing paused');
     } else if (status === 'paused') {
       setStatus(mode === 'live' ? 'recording' : 'processing');
-      console.log('▶️ Processing resumed');
     }
   }, [status, mode]);
 
@@ -350,7 +343,6 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
       fileInputRef.current.value = '';
     }
 
-    console.log('🔄 Processor reset');
   }, [stopAllProcessing]);
 
   /**

@@ -48,12 +48,9 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
       setResult(null);
       setStages([]);
 
-      console.log('🚀 Starting pipeline processing...');
-      console.log(`📁 File: ${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(2)} MB)`);
 
       // Save file to temporary location for processing
       const tempAudioPath = await saveAudioFile(selectedFile);
-      console.log(`💾 Saved audio to: ${tempAudioPath}`);
 
       // Real-time progress tracking based on pipeline stages
       const stageProgressMap = {
@@ -86,8 +83,6 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
         setResult(pipelineResult);
         setStages(pipelineResult.stages);
         setCurrentStage('Complete');
-        console.log('✅ Pipeline completed successfully');
-        console.log(`📊 Generated ${pipelineResult.scenes.length} scenes in ${(pipelineResult.processingTime / 1000).toFixed(1)}s`);
       } else {
         setStatus('error');
         setError(pipelineResult.error || 'Pipeline processing failed');
@@ -109,7 +104,6 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
 
     // In a real implementation, you might save this to a temporary directory
     // For now, we'll return the blob URL which our Whisper integration can handle
-    console.log(`🔗 Created temporary audio URL: ${audioUrl}`);
     return audioUrl;
   };
 
@@ -117,7 +111,6 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
     if (!result) return;
 
     try {
-      console.log('Starting video render with scenes:', result.scenes);
 
       const response = await fetch('/api/render', {
         method: 'POST',

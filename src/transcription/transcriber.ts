@@ -30,10 +30,8 @@ export class TranscriptionPipeline {
 
     // Initialize browser-compatible transcriber only in browser environment
     if (this.isBrowser) {
-      console.log('🌐 Browser environment detected - initializing browser transcriber');
       this.browserTranscriber = new BrowserTranscriber();
     } else {
-      console.log('🖥️ Node.js environment detected - browser transcriber disabled');
     }
 
     // Initialize enhanced Whisper transcriber
@@ -51,7 +49,6 @@ export class TranscriptionPipeline {
    */
   async transcribe(audioPath: string): Promise<TranscriptionResult> {
     const startTime = performance.now();
-    console.log(`[Transcription V${this.iteration}] Processing: ${audioPath}`);
 
     try {
       // Step 1: Validate input
@@ -95,11 +92,9 @@ export class TranscriptionPipeline {
    * 段階的改善を適用した音声認識処理
    */
   private async runWhisperTranscription(audioPath: string): Promise<TranscriptionSegment[]> {
-    console.log(`[V${this.iteration}] Running enhanced Whisper transcription...`);
 
     try {
       // Priority 1: Use enhanced Whisper transcriber
-      console.log('🎯 Attempting Whisper transcription...');
 
       let audioInput: File | string = audioPath;
 
@@ -111,24 +106,20 @@ export class TranscriptionPipeline {
       const whisperResult = await this.whisperTranscriber.transcribe(audioInput);
 
       if (whisperResult.success && whisperResult.segments.length > 0) {
-        console.log(`[V${this.iteration}] Whisper transcription generated ${whisperResult.segments.length} high-quality segments`);
         return whisperResult.segments;
       }
 
       // Priority 2: Fallback to browser transcriber (only in browser environment)
       if (this.isBrowser && this.browserTranscriber && (audioPath.startsWith('blob:') || (audioPath as unknown) instanceof File)) {
-        console.log('🔄 Fallback to browser transcription...');
         const audioFile = (audioPath as unknown) instanceof File ? audioPath : await this.blobUrlToFile(audioPath);
         const result = await this.browserTranscriber.transcribeAudioFile(audioFile);
 
         if (result.success && result.segments.length > 0) {
-          console.log(`[V${this.iteration}] Browser transcription generated ${result.segments.length} segments`);
           return result.segments;
         }
       }
 
       // Priority 3: Enhanced fallback transcription
-      console.log(`[V${this.iteration}] Using enhanced fallback transcription`);
       return this.getFallbackSegments();
 
     } catch (error) {
@@ -172,7 +163,6 @@ export class TranscriptionPipeline {
       }
     ];
 
-    console.log(`[V${this.iteration}] Using enhanced mock data: ${mockSegments.length} segments (diverse diagram types)`);
     return mockSegments;
   }
 
@@ -185,13 +175,11 @@ export class TranscriptionPipeline {
 
     // Handle blob URLs for browser file uploads
     if (audioPath.startsWith('blob:')) {
-      console.log('✅ Blob URL detected - browser file upload');
       return;
     }
 
     // For file system paths, check if they exist (in Node.js environment)
     // This is a placeholder - actual implementation would use fs.access() or similar
-    console.log('✅ File path validated:', audioPath);
   }
 
   private calculateMetrics(segments: TranscriptionSegment[], startTime: number): TranscriptionMetrics {
@@ -262,7 +250,6 @@ export class TranscriptionPipeline {
 
     const detectedLang = languageMap[detection.language];
 
-    console.log(`📝 [Phase 33] Transcription language auto-detected: ${detectedLang} (confidence: ${(detection.confidence * 100).toFixed(1)}%)`);
 
     return detectedLang;
   }
@@ -271,7 +258,6 @@ export class TranscriptionPipeline {
    * Generate Remotion-compatible captions from transcription segments
    */
   private async generateRemotionCaptions(segments: TranscriptionSegment[]): Promise<Caption[]> {
-    console.log(`[V${this.iteration}] Generating Remotion captions from ${segments.length} segments...`);
 
     const captions: Caption[] = segments.map((segment, index) => ({
       text: segment.text,
@@ -281,7 +267,6 @@ export class TranscriptionPipeline {
       confidence: segment.confidence || 0.9
     }));
 
-    console.log(`✅ Generated ${captions.length} Remotion-compatible captions`);
     return captions;
   }
 
@@ -289,12 +274,6 @@ export class TranscriptionPipeline {
    * Evaluation and iterative improvement logic
    */
   private async evaluateAndLog(result: TranscriptionResult, metrics: TranscriptionMetrics): Promise<void> {
-    console.log('\n📊 Transcription Metrics:');
-    console.log(`- Duration: ${(metrics.duration / 1000).toFixed(1)}s`);
-    console.log(`- Segments: ${metrics.segmentCount}`);
-    console.log(`- Avg Confidence: ${(metrics.avgConfidence * 100).toFixed(1)}%`);
-    console.log(`- Processing Time: ${metrics.processingTime.toFixed(0)}ms`);
-    console.log(`- Words/Minute: ${metrics.wordsPerMinute.toFixed(0)}`);
 
     // Success criteria evaluation
     const successCriteria = {
@@ -307,11 +286,9 @@ export class TranscriptionPipeline {
     const success = Object.values(successCriteria).every(v => v);
 
     if (success) {
-      console.log('✅ Transcription successful');
     } else {
-      console.log('⚠️ Transcription needs improvement:');
       Object.entries(successCriteria).forEach(([key, passed]) => {
-        if (!passed) console.log(`  - ${key}: FAILED`);
+        if (!passed) { /* criterion not met: ${key} */ }
       });
     }
 
@@ -332,7 +309,6 @@ export class TranscriptionPipeline {
       config: this.config
     };
 
-    console.log(`[Iteration ${this.iteration}] Logged results for future improvement`);
     // In real implementation, this would append to .module/ITERATION_LOG.md
   }
 
@@ -341,6 +317,5 @@ export class TranscriptionPipeline {
    */
   public nextIteration(): void {
     this.iteration++;
-    console.log(`🔄 Moving to iteration ${this.iteration}`);
   }
 }

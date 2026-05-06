@@ -81,7 +81,6 @@ export class LayoutStrategyRegistry {
       console.warn(`Strategy '${strategy.name}' already registered, overwriting`);
     }
     this.strategies.set(strategy.name, strategy);
-    console.log(`✓ Registered layout strategy: ${strategy.name}`);
   }
 
   /**

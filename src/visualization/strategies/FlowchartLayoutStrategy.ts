@@ -32,7 +32,6 @@ export class FlowchartLayoutStrategy implements ILayoutStrategy {
     edges: EdgeDatum[],
     config: LayoutConfig
   ): Promise<LayoutStrategyOutput> {
-    console.log(`🔧 [Flowchart] Generating layout for ${nodes.length} nodes, ${edges.length} edges`);
 
     try {
       // Initialize Dagre graph
@@ -107,7 +106,6 @@ export class FlowchartLayoutStrategy implements ILayoutStrategy {
         };
       });
 
-      console.log(`✅ [Flowchart] Layout generated successfully`);
 
       return {
         nodes: positionedNodes,

@@ -15,7 +15,6 @@ export class LayoutOptimizer {
     layout: DiagramLayout,
     diagramType: DiagramType
   ): Promise<DiagramLayout> {
-    console.log(`Applying ${diagramType}-specific optimizations...`);
 
     switch (diagramType) {
       case 'cycle':
@@ -116,7 +115,6 @@ export class LayoutOptimizer {
     layout: DiagramLayout,
     diagramType: DiagramType
   ): Promise<DiagramLayout> {
-    console.log(`Applying advanced optimizations...`);
 
     let optimizedLayout = { ...layout };
 
@@ -132,7 +130,6 @@ export class LayoutOptimizer {
     // Step 4: Edge crossing minimization
     optimizedLayout = await this.minimizeEdgeCrossings(optimizedLayout);
 
-    console.log('✅ Advanced optimizations completed');
     return optimizedLayout;
   }
 

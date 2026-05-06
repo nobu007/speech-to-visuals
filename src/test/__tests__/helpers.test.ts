@@ -129,7 +129,6 @@ describe('suppressConsole', () => {
     expect(console.error).not.toBe(originalError);
 
     // calling console.log should not throw (it's a jest fn)
-    console.log('suppressed');
     expect(console.log).toHaveBeenCalledWith('suppressed');
 
     restore();

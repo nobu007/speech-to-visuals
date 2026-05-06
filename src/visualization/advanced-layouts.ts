@@ -141,7 +141,6 @@ export class AdvancedLayoutEngine {
   } {
     const startTime = performance.now();
 
-    console.log(`🎨 Generating advanced ${diagramType} layout (Iteration ${this.iteration})`);
 
     const config = this.mergeOptions(options);
     const theme = this.getTheme(config.theme);
@@ -159,8 +158,6 @@ export class AdvancedLayoutEngine {
     const endTime = performance.now();
     const layoutTime = endTime - startTime;
 
-    console.log(`   ✨ Layout generated with ${this.getEnhancementCount(config)} enhancements`);
-    console.log(`   ⏱️  Layout time: ${layoutTime.toFixed(1)}ms`);
 
     return {
       success: true,
@@ -644,6 +641,5 @@ export class AdvancedLayoutEngine {
    */
   public nextIteration(): void {
     this.iteration++;
-    console.log(`🎨 Advanced Layout Engine: Moving to iteration ${this.iteration}`);
   }
 }

@@ -55,7 +55,6 @@ export class MultiFormatExporter {
     scene: SceneGraph,
     options: ExportOptions
   ): Promise<ExportResult> {
-    console.log(`📤 Phase 37: Exporting scene ${scene.id} as ${options.format.toUpperCase()}`);
 
     try {
       switch (options.format) {
@@ -443,14 +442,12 @@ startxref
     scenes: SceneGraph[],
     options: ExportOptions
   ): Promise<ExportResult[]> {
-    console.log(`📦 Phase 37: Batch exporting ${scenes.length} scenes as ${options.format.toUpperCase()}`);
 
     const results = await Promise.all(
       scenes.map((scene) => this.export(scene, options))
     );
 
     const successCount = results.filter((r) => r.success).length;
-    console.log(`✅ Phase 37: Batch export completed: ${successCount}/${scenes.length} successful`);
 
     return results;
   }

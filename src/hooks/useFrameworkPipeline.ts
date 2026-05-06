@@ -126,7 +126,6 @@ export function useFrameworkPipeline(
   useEffect(() => {
     if (!pipelineRef.current) {
       pipelineRef.current = new FrameworkIntegratedPipeline();
-      console.log('✅ FrameworkIntegratedPipeline initialized');
     }
 
     return () => {
@@ -170,7 +169,6 @@ export function useFrameworkPipeline(
     if (pipelineRef.current) {
       pipelineRef.current.setPhase(phase);
       setExecutionState(prev => ({ ...prev, currentPhase: phase }));
-      console.log(`📋 Phase changed to: ${phase}`);
     }
   }, [executionState.isRunning]);
 
@@ -202,19 +200,15 @@ export function useFrameworkPipeline(
     }));
 
     try {
-      console.log('🚀 Starting Framework-Integrated Pipeline execution...');
 
       // Phase 1: Transcription (0-20%)
       setExecutionState(prev => ({ ...prev, progress: 5 }));
-      console.log('📝 Phase 1: Transcription...');
 
       // Phase 2: Analysis (20-50%)
       setExecutionState(prev => ({ ...prev, progress: 25 }));
-      console.log('🔍 Phase 2: Content Analysis...');
 
       // Phase 3: Visualization (50-80%)
       setExecutionState(prev => ({ ...prev, progress: 55 }));
-      console.log('🎨 Phase 3: Diagram Generation...');
 
       // Execute main pipeline with framework
       const execution = await pipelineRef.current.execute(input);
@@ -260,8 +254,6 @@ export function useFrameworkPipeline(
         }));
 
         if (enableAutoCommit && execution.commitMessage) {
-          console.log('📝 Auto-commit enabled, triggering commit...');
-          console.log(execution.commitMessage);
           try {
             const response = await fetch('/api/git/commit', {
               method: 'POST',
@@ -278,7 +270,6 @@ export function useFrameworkPipeline(
       }
 
       setExecutionState(prev => ({ ...prev, progress: 100, isRunning: false }));
-      console.log('✅ Pipeline execution completed successfully');
 
     } catch (error: unknown) {
       console.error('❌ Pipeline execution failed:', error);
@@ -309,7 +300,6 @@ export function useFrameworkPipeline(
   const stop = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
-      console.log('⏸️  Pipeline execution stopped by user');
     }
 
     setExecutionState(prev => ({ ...prev, isRunning: false, progress: 0 }));

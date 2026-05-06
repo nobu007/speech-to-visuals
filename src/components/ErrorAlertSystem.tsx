@@ -155,11 +155,9 @@ export const ErrorAlertSystem: React.FC<ErrorAlertSystemProps> = ({
       const success = await productionErrorHandler.executeRecoveryStrategy(errorId, strategyName);
 
       if (success) {
-        console.log('✅ Recovery executed successfully');
         // Optionally remove the alert on successful recovery
         setDismissedAlerts(prev => new Set([...prev, errorId]));
       } else {
-        console.log('❌ Recovery execution failed');
       }
     } catch (error) {
       console.error('Recovery execution error:', error);

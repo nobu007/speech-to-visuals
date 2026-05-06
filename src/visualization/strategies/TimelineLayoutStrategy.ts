@@ -30,7 +30,6 @@ export class TimelineLayoutStrategy implements ILayoutStrategy {
     edges: EdgeDatum[],
     config: LayoutConfig
   ): Promise<LayoutStrategyOutput> {
-    console.log(`⏱️ [Timeline] Generating horizontal timeline layout for ${nodes.length} nodes`);
 
     try {
       // Sort nodes by temporal order (using array order as proxy for time)
@@ -46,7 +45,6 @@ export class TimelineLayoutStrategy implements ILayoutStrategy {
       const totalSpacing = availableWidth - totalNodeWidth;
       const spacing = nodes.length > 1 ? totalSpacing / (nodes.length + 1) : availableWidth / 2;
 
-      console.log(`   📏 Spacing: ${spacing.toFixed(0)}px between ${nodes.length} nodes`);
 
       // Calculate vertical center position
       const baseY = config.height / 2;
@@ -77,7 +75,6 @@ export class TimelineLayoutStrategy implements ILayoutStrategy {
       // Generate edges (typically sequential connections in a timeline)
       const layoutEdges = this.generateTimelineEdges(edges, positionedNodes);
 
-      console.log(`✅ [Timeline] Layout generated successfully`);
 
       return {
         nodes: positionedNodes,

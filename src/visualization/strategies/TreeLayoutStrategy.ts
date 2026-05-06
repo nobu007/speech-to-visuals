@@ -39,19 +39,16 @@ export class TreeLayoutStrategy implements ILayoutStrategy {
     edges: EdgeDatum[],
     config: LayoutConfig
   ): Promise<LayoutStrategyOutput> {
-    console.log(`🌳 [Tree] Generating hierarchical tree layout for ${nodes.length} nodes`);
 
     try {
       // Step 1: Find root node (node with no incoming edges)
       const rootId = this.findRootNode(nodes, edges);
-      console.log(`   📍 Root node: ${rootId}`);
 
       // Step 2: Build tree structure
       const treeRoot = this.buildTree(rootId, nodes, edges, config);
 
       // Step 3: Calculate tree dimensions
       const { maxDepth, maxWidth } = this.calculateTreeDimensions(treeRoot);
-      console.log(`   📏 Tree dimensions: depth=${maxDepth}, maxWidth=${maxWidth}`);
 
       // Step 4: Position nodes in tree structure
       const positionedNodes = this.positionTreeNodes(treeRoot, config, maxDepth, maxWidth);
@@ -59,7 +56,6 @@ export class TreeLayoutStrategy implements ILayoutStrategy {
       // Step 5: Generate edges between positioned nodes
       const layoutEdges = this.generateTreeEdges(edges, positionedNodes);
 
-      console.log(`✅ [Tree] Layout generated successfully`);
 
       return {
         nodes: positionedNodes,

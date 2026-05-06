@@ -30,7 +30,6 @@ export class ComparisonLayoutStrategy implements ILayoutStrategy {
     edges: EdgeDatum[],
     config: LayoutConfig
   ): Promise<LayoutStrategyOutput> {
-    console.log(`⚖️ [Comparison] Generating side-by-side layout for ${nodes.length} nodes`);
 
     try {
       // Split nodes into two groups (left and right)
@@ -38,7 +37,6 @@ export class ComparisonLayoutStrategy implements ILayoutStrategy {
       const leftNodes = nodes.slice(0, midpoint);
       const rightNodes = nodes.slice(midpoint);
 
-      console.log(`   📊 Split: ${leftNodes.length} left, ${rightNodes.length} right`);
 
       // Position left column nodes
       const leftPositioned = this.positionColumn(
@@ -62,7 +60,6 @@ export class ComparisonLayoutStrategy implements ILayoutStrategy {
       // Generate edges (typically connect left to right)
       const layoutEdges = this.generateComparisonEdges(edges, positionedNodes);
 
-      console.log(`✅ [Comparison] Layout generated successfully`);
 
       return {
         nodes: positionedNodes,

@@ -97,7 +97,6 @@ export class ProductionErrorHandler {
     };
     window.addEventListener('error', this.globalErrorHandler);
 
-    console.log('🛡️ Production error handler initialized');
   }
 
   /**
@@ -136,7 +135,6 @@ export class ProductionErrorHandler {
     this.errorCallbacks.clear();
     this.recoveryAttempts.clear();
 
-    console.log('🛡️ Production error handler destroyed and cleaned up');
   }
 
   /**
@@ -292,7 +290,6 @@ export class ProductionErrorHandler {
       name: 'retry',
       description: '同じ操作を再試行',
       execute: async () => {
-        console.log('🔄 Attempting retry...');
         return true;
       },
       priority: 1,
@@ -316,7 +313,6 @@ export class ProductionErrorHandler {
         name: 'convert-audio',
         description: '音声ファイルを別の形式に変換',
         execute: async () => {
-          console.log('🎵 Suggesting audio conversion...');
           return true;
         },
         priority: 3,
@@ -327,7 +323,6 @@ export class ProductionErrorHandler {
         name: 'reduce-quality',
         description: '音質を下げて再試行',
         execute: async () => {
-          console.log('🔧 Reducing audio quality...');
           return true;
         },
         priority: 4,
@@ -340,7 +335,6 @@ export class ProductionErrorHandler {
         name: 'fallback-pipeline',
         description: 'シンプルなパイプラインを使用',
         execute: async () => {
-          console.log('🛠️ Switching to fallback pipeline...');
           return true;
         },
         priority: 3,
@@ -353,7 +347,6 @@ export class ProductionErrorHandler {
         name: 'compatibility-mode',
         description: '互換性モードで実行',
         execute: async () => {
-          console.log('🌐 Enabling compatibility mode...');
           return true;
         },
         priority: 3,
@@ -369,16 +362,13 @@ export class ProductionErrorHandler {
    * Attempt automatic recovery for critical errors
    */
   private async attemptAutomaticRecovery(alert: ErrorAlert): Promise<boolean> {
-    console.log(`🔧 Attempting automatic recovery for error: ${alert.id}`);
 
     for (const strategy of alert.recoveryOptions) {
       if (strategy.priority <= 2) { // Only try high-priority strategies automatically
         try {
-          console.log(`⚡ Executing recovery strategy: ${strategy.name}`);
           const success = await strategy.execute();
 
           if (success) {
-            console.log(`✅ Recovery successful with strategy: ${strategy.name}`);
             this.recordRecoverySuccess(alert.id, strategy.name);
             return true;
           }
@@ -388,7 +378,6 @@ export class ProductionErrorHandler {
       }
     }
 
-    console.log(`⚠️ Automatic recovery failed for error: ${alert.id}`);
     return false;
   }
 
@@ -412,7 +401,6 @@ export class ProductionErrorHandler {
       sessionId: this.sessionId
     };
 
-    console.log('📊 Telemetry data (would be sent to service):', telemetryData);
 
     // Simulate async telemetry send
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -450,7 +438,6 @@ export class ProductionErrorHandler {
     this.metrics.errorRate = this.calculateErrorRate();
     this.metrics.affectedUsers = 1; // Would track unique users in production
 
-    console.log('📈 Updated error metrics:', this.metrics);
   }
 
   /**
@@ -478,7 +465,6 @@ export class ProductionErrorHandler {
    * Trigger emergency mode for critical situations
    */
   private triggerEmergencyMode(): void {
-    console.log('🆘 EMERGENCY MODE ACTIVATED');
 
     // In production, this would:
     // - Notify operations team
@@ -500,7 +486,6 @@ export class ProductionErrorHandler {
    * Suggest system maintenance
    */
   private suggestSystemMaintenance(): void {
-    console.log('🔧 Suggesting system maintenance due to high error rate');
 
     this.notifyErrorCallbacks({
       id: 'maintenance-suggestion',
@@ -525,7 +510,6 @@ export class ProductionErrorHandler {
    * Record successful recovery for metrics
    */
   private recordRecoverySuccess(errorId: string, strategyName: string): void {
-    console.log(`📊 Recording recovery success: ${errorId} -> ${strategyName}`);
 
     // Update mean time to recovery
     const currentTime = Date.now();
@@ -582,7 +566,6 @@ export class ProductionErrorHandler {
     }
 
     try {
-      console.log(`🔧 Manually executing recovery: ${strategyName} for error: ${errorId}`);
       const success = await strategy.execute();
 
       if (success) {
@@ -621,7 +604,6 @@ export class ProductionErrorHandler {
       alert => (now - alert.timestamp) < retentionTime
     );
 
-    console.log(`🧹 Cleared old errors. Queue size: ${this.errorQueue.length}`);
   }
 
   /**

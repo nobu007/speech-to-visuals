@@ -142,9 +142,6 @@ export class MainPipeline {
     const startTime = performance.now();
     this.performanceTracker.startTime = startTime;
 
-    console.log(`\n🚀 Starting Framework-Integrated Audio-to-Diagram Pipeline V${this.iteration} (${this.pipelineId})`);
-    console.log(`🔄 Phase: ${this.currentPhase} | Custom Instructions Integration Active`);
-    console.log(`Input: ${typeof input.audioFile === 'string' ? input.audioFile : input.audioFile.name}`);
 
     // 🔄 Initialize performance monitoring
     this.initializePerformanceMonitoring();
@@ -227,7 +224,6 @@ export class MainPipeline {
 
     try {
       // Stage 1: Audio Transcription with framework metrics
-      console.log(`🔄 [${this.currentPhase}] Starting Transcription - Iteration ${this.iteration}`);
       const transcriptionResult = await this.executeStageWithFramework(
         'transcription',
         () => this.transcribeAudioEnhanced(input),
@@ -235,7 +231,6 @@ export class MainPipeline {
       );
 
       // Stage 2: Content Analysis with iterative improvement
-      console.log(`🔄 [${this.currentPhase}] Starting Analysis - Iteration ${this.iteration}`);
       const analysisResult = await this.executeStageWithFramework(
         'analysis',
         () => this.analyzeContentEnhanced(transcriptionResult),
@@ -243,7 +238,6 @@ export class MainPipeline {
       );
 
       // Stage 3: Layout Generation with quality gates
-      console.log(`🔄 [${this.currentPhase}] Starting Layout Generation - Iteration ${this.iteration}`);
       const layoutResult = await this.executeStageWithFramework(
         'layout',
         () => this.generateLayoutsEnhanced(analysisResult),
@@ -251,7 +245,6 @@ export class MainPipeline {
       );
 
       // Stage 4: Scene Preparation with framework validation
-      console.log(`🔄 [${this.currentPhase}] Starting Scene Preparation - Iteration ${this.iteration}`);
       const scenes = await this.executeStageWithFramework(
         'preparation',
         () => this.prepareScenesEnhanced(analysisResult, layoutResult),
@@ -271,7 +264,6 @@ export class MainPipeline {
         timestamp: new Date()
       };
 
-      console.log(`🔄 [${this.currentPhase}] Pipeline completed in ${totalTime.toFixed(2)}ms`);
       return result;
 
     } catch (error) {
@@ -297,7 +289,6 @@ export class MainPipeline {
 
       // Check quality gates
       if (stageTime > qualityGates.maxTime) {
-        console.log(`⚠️ [${stageName}] Exceeded time limit: ${stageTime.toFixed(2)}ms > ${qualityGates.maxTime}ms`);
         await this.framework.recordQualityIssue(stageName, 'performance', `Time: ${stageTime.toFixed(2)}ms`);
       }
 
@@ -308,7 +299,6 @@ export class MainPipeline {
         memoryUsage: process.memoryUsage().heapUsed
       });
 
-      console.log(`✅ [${stageName}] Completed in ${stageTime.toFixed(2)}ms`);
       return result;
 
     } catch (error) {
@@ -331,15 +321,12 @@ export class MainPipeline {
       qualityScore: (result.metrics as unknown as Record<string, unknown> | undefined)?.quality as number || 0.8
     });
 
-    console.log(`🔄 [${this.currentPhase}] Iteration ${this.iteration} evaluation:`, evaluation);
 
     // Determine if we need another iteration or can move to next phase
     if (evaluation.shouldIterate && this.iteration < 5) {
-      console.log(`🔄 Preparing for iteration ${this.iteration + 1} in phase ${this.currentPhase}`);
       this.iteration++;
       await this.framework.prepareNextIteration(this.currentPhase, this.iteration);
     } else if (evaluation.shouldAdvancePhase) {
-      console.log(`🎯 Phase ${this.currentPhase} completed! Advancing to next phase...`);
       this.currentPhase = this.getNextPhase();
       this.iteration = 1;
       await this.framework.advanceToPhase(this.currentPhase);
@@ -457,7 +444,6 @@ export class MainPipeline {
       const recoveryResult = await globalErrorRecovery.recoverFromError(recoveryContext);
 
       if (recoveryResult.success) {
-        console.log('🔄 Pipeline recovered using error recovery system');
         return (recoveryResult.result as PipelineResult) || this.createMinimalResult(totalTime);
       }
     } catch (recoveryError) {
@@ -539,7 +525,6 @@ export class MainPipeline {
       startTime: performance.now()
     };
 
-    console.log(`\n📋 Stage: ${stageName.toUpperCase()}`);
     this.stages.push(stage);
 
     // Update stage metrics
@@ -563,7 +548,6 @@ export class MainPipeline {
         metrics.avgTime = (metrics.avgTime + duration) / Math.max(metrics.attempts, 1);
       }
 
-      console.log(`✅ ${stageName} completed in ${duration.toFixed(0)}ms`);
       return result;
 
     } catch (error) {
@@ -576,7 +560,6 @@ export class MainPipeline {
         metrics.failures++;
       }
 
-      console.error(`❌ ${stageName} failed:`, stage.error);
       throw error;
     }
   }
@@ -595,7 +578,6 @@ export class MainPipeline {
     const cached = await globalCache.get(cacheKey);
 
     if (cached) {
-      console.log('🎯 Using cached transcription result');
       return cached;
     }
 
@@ -673,7 +655,6 @@ export class MainPipeline {
 
     // Wait for all layouts to complete
     const layouts = (await Promise.all(layoutPromises)).filter(Boolean);
-    console.log(`Generated ${layouts.length} diagram layouts (parallel processing)`);
 
     return layouts;
   }
@@ -682,8 +663,6 @@ export class MainPipeline {
    * Enhanced scene preparation with optimization
    */
   private async prepareScenesEnhanced(analysisResult: unknown, layouts: unknown[]): Promise<SceneGraph[]> {
-    console.log('Preparing optimized scene graphs for video rendering...');
-
     const scenes: SceneGraph[] = layouts.map((item: unknown) => {
       const layoutItem = item as Record<string, unknown>;
       const segment = layoutItem.segment as Record<string, unknown>;
@@ -704,7 +683,6 @@ export class MainPipeline {
     // Optimize scene timing for better flow
     this.optimizeSceneTiming(scenes);
 
-    console.log(`Prepared ${scenes.length} optimized scenes for video generation`);
     return scenes;
   }
 
@@ -832,7 +810,6 @@ export class MainPipeline {
       throw new Error('Audio transcription failed or produced no segments');
     }
 
-    console.log(`Generated ${transcriptionResult.segments.length} transcription segments`);
     return transcriptionResult;
   }
 
@@ -840,7 +817,6 @@ export class MainPipeline {
    * Stage 2: Analyze content and segment into scenes
    */
   private async analyzeContent(transcriptionResult: unknown) {
-    console.log('Segmenting content into scenes...');
     const trData = transcriptionResult as Record<string, unknown>;
     const contentSegments = await this.segmenter.segment(trData.segments as TranscriptionSegment[]);
 
@@ -848,10 +824,8 @@ export class MainPipeline {
       throw new Error('Content segmentation produced no segments');
     }
 
-    console.log(`Generated ${contentSegments.length} content segments`);
 
     // Analyze each segment for diagram content
-    console.log('Detecting diagram types and extracting entities...');
     const diagramAnalyses = [];
 
     for (const segment of contentSegments) {
@@ -859,7 +833,6 @@ export class MainPipeline {
       diagramAnalyses.push({ segment, analysis });
     }
 
-    console.log(`Analyzed ${diagramAnalyses.length} segments for diagram content`);
     return { contentSegments, diagramAnalyses };
   }
 
@@ -867,7 +840,6 @@ export class MainPipeline {
    * Stage 3: Generate layouts for each diagram
    */
   private async generateLayouts(analysisResult: unknown) {
-    console.log('Generating diagram layouts...');
     const analysisData = analysisResult as Record<string, unknown>;
     const diagramAnalyses = analysisData.diagramAnalyses as Array<Record<string, unknown>>;
     const layouts = [];
@@ -897,7 +869,6 @@ export class MainPipeline {
       }
     }
 
-    console.log(`Generated ${layouts.length} diagram layouts`);
     return layouts;
   }
 
@@ -905,7 +876,6 @@ export class MainPipeline {
    * Stage 4: Prepare final scene graphs for video rendering
    */
   private async prepareScenes(analysisResult: unknown, layouts: unknown[]): Promise<SceneGraph[]> {
-    console.log('Preparing scene graphs for video rendering...');
 
     const scenes: SceneGraph[] = layouts.map((item: unknown) => {
       const layoutItem = item as Record<string, unknown>;
@@ -924,7 +894,6 @@ export class MainPipeline {
       };
     });
 
-    console.log(`Prepared ${scenes.length} scenes for video generation`);
     return scenes;
   }
 
@@ -990,18 +959,7 @@ export class MainPipeline {
       successRate: result.success ? 1 : 0
     };
 
-    console.log('\n📊 Pipeline Results:');
-    console.log(`- Success: ${result.success ? '✅' : '❌'}`);
-    console.log(`- Total Time: ${(metrics.totalProcessingTime / 1000).toFixed(1)}s`);
-    console.log(`- Scenes Generated: ${metrics.segmentCount}`);
-    console.log(`- Diagrams Created: ${metrics.diagramCount}`);
-    console.log(`- Video Duration: ${(result.duration / 1000).toFixed(1)}s`);
 
-    console.log('\n⏱️ Stage Timings:');
-    console.log(`- Transcription: ${(metrics.transcriptionTime / 1000).toFixed(1)}s`);
-    console.log(`- Analysis: ${(metrics.analysisTime / 1000).toFixed(1)}s`);
-    console.log(`- Layout: ${(metrics.layoutTime / 1000).toFixed(1)}s`);
-    console.log(`- Preparation: ${(metrics.renderTime / 1000).toFixed(1)}s`);
 
     // Success criteria evaluation
     const successCriteria = {
@@ -1012,12 +970,10 @@ export class MainPipeline {
     };
 
     const overallSuccess = Object.values(successCriteria).every(v => v);
-    console.log(`\n${overallSuccess ? '🎉' : '⚠️'} Pipeline ${overallSuccess ? 'succeeded' : 'needs improvement'}`);
 
     if (!overallSuccess) {
-      console.log('Issues:');
       Object.entries(successCriteria).forEach(([key, passed]) => {
-        if (!passed) console.log(`  - ${key}: FAILED`);
+        if (!passed) { /* criterion not met */ }
       });
     }
 
@@ -1056,18 +1012,12 @@ export class MainPipeline {
       nextSteps: success ? ['Continue to next iteration with optimizations'] : ['Debug failure and retry']
     });
 
-    console.log(`[Pipeline Iteration ${this.iteration}] ✅ Logged to ITERATION_LOG.md`);
 
     // Phase 34: Display improvement trends
     const trends = await globalIterationLogger.calculateImprovementTrends();
-    console.log(`\n📈 Improvement Trends:`);
-    console.log(`- Average Processing Time: ${(trends.averageProcessingTime / 1000).toFixed(1)}s`);
-    console.log(`- Success Rate: ${(trends.successRate * 100).toFixed(1)}%`);
-    console.log(`- Trend: ${trends.trendDirection}`);
 
     if (trends.recommendations.length > 0) {
-      console.log(`\n💡 Recommendations:`);
-      trends.recommendations.forEach(rec => console.log(`  - ${rec}`));
+      // recommendations available in trends object
     }
   }
 
@@ -1091,7 +1041,6 @@ export class MainPipeline {
     // Update quality monitor iteration
     qualityMonitor.nextIteration();
 
-    console.log(`\n🔄 Moving to pipeline iteration ${this.iteration}`);
   }
 
   /**
@@ -1112,7 +1061,6 @@ export class MainPipeline {
    * 🔄 Initialize Performance Monitoring (Custom Instructions Compliant)
    */
   private initializePerformanceMonitoring(): void {
-    console.log('🔄 Initializing enhanced performance monitoring...');
 
     // Reset performance tracker
     this.performanceTracker.stageTimings.clear();
@@ -1127,7 +1075,6 @@ export class MainPipeline {
     }
 
     // 実装→テスト→評価→改善→コミット サイクルの開始
-    console.log('📊 Performance tracking initialized for recursive development cycle');
   }
 
   /**
@@ -1144,7 +1091,6 @@ export class MainPipeline {
     const totalTime = performance.now() - this.performanceTracker.startTime;
     if (duration > totalTime * 0.5) {
       this.performanceTracker.bottleneckDetection.set(stageName, duration);
-      console.log(`⚠️ Bottleneck detected in ${stageName}: ${(duration/1000).toFixed(1)}s`);
     }
 
     // Take memory snapshot
@@ -1168,9 +1114,7 @@ export class MainPipeline {
     const improvement = ((previousDuration - currentDuration) / previousDuration) * 100;
 
     if (improvement > 5) {
-      console.log(`📈 ${stageName} improved by ${improvement.toFixed(1)}% this iteration`);
     } else if (improvement < -5) {
-      console.log(`📉 ${stageName} regressed by ${Math.abs(improvement).toFixed(1)}% - needs attention`);
     }
   }
 
@@ -1184,8 +1128,6 @@ export class MainPipeline {
   ): Promise<boolean> {
     this.performanceTracker.errorRecoveryAttempts++;
 
-    console.log(`🛡️ Enhanced error recovery attempt ${attempt} for ${stageName}`);
-    console.log(`Error: ${error.message}`);
 
     // 段階的改善: エラーパターンの学習
     const errorPattern = this.analyzeErrorPattern(error, stageName);
@@ -1195,10 +1137,8 @@ export class MainPipeline {
 
     try {
       await this.applyRecoveryStrategy(recoveryStrategy, stageName);
-      console.log(`✅ Error recovery successful for ${stageName}`);
       return true;
     } catch (recoveryError) {
-      console.log(`❌ Error recovery failed for ${stageName}: ${recoveryError.message}`);
       return false;
     }
   }
@@ -1258,7 +1198,6 @@ export class MainPipeline {
 
       case 'fallback_processing':
         // フォールバック処理への切り替え
-        console.log(`🔄 Switching to fallback processing for ${stageName}`);
         break;
 
       default:
@@ -1267,7 +1206,6 @@ export class MainPipeline {
     }
 
     const recoveryTime = performance.now() - recoveryStart;
-    console.log(`🔄 Recovery strategy "${strategy}" completed in ${recoveryTime.toFixed(1)}ms`);
   }
 
   /**

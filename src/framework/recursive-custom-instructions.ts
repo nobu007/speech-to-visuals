@@ -149,7 +149,6 @@ export class RecursiveCustomInstructionsFramework {
     phase: string,
     implementation: () => Promise<unknown>
   ): Promise<IterationState> {
-    console.log(`🚀 Starting ${phase} - Iteration ${this.currentState.iteration}`);
 
     try {
       // 1. Implementation phase
@@ -176,10 +175,8 @@ export class RecursiveCustomInstructionsFramework {
       // 5. Determine next actions
       if (evaluation.passed) {
         this.currentState.status = 'completed';
-        console.log(`✅ ${phase} completed successfully`);
         await this.commitChanges(phase);
       } else {
-        console.log(`⚠️ ${phase} needs improvement:`, evaluation.issues);
         this.currentState.improvements.push(...evaluation.suggestions);
         this.currentState.iteration++;
       }
@@ -197,7 +194,6 @@ export class RecursiveCustomInstructionsFramework {
    * 🔍 Quality Check System
    */
   private async runQualityChecks(): Promise<QualityCheckResults> {
-    console.log('🔍 Running comprehensive quality checks...');
 
     const checks = {
       transcription: await this.checkTranscriptionQuality(),
@@ -263,7 +259,6 @@ export class RecursiveCustomInstructionsFramework {
       suggestions: this.generateSuggestions(testResults)
     };
 
-    console.log(`📊 Evaluation Score: ${(overallScore * 100).toFixed(1)}%`);
 
     return evaluation;
   }
@@ -331,7 +326,6 @@ export class RecursiveCustomInstructionsFramework {
    * 🔧 Error Handling and Recovery
    */
   private async handleFailure(error: Error, context: string): Promise<void> {
-    console.log('🔍 Analyzing failure...', { error: error.message, context });
 
     // 1. Save current state
     await this.saveIterationState();
@@ -377,22 +371,18 @@ export class RecursiveCustomInstructionsFramework {
   }
 
   private async fixDependencies(): Promise<void> {
-    console.log('🔧 Fixing dependency issues...');
     // Implement dependency resolution logic
   }
 
   private async rollbackAndRefactor(): Promise<void> {
-    console.log('↩️ Rolling back to last working state...');
     // Implement rollback logic
   }
 
   private async optimizeBottleneck(): Promise<void> {
-    console.log('⚡ Optimizing performance bottleneck...');
     // Implement performance optimization
   }
 
   private async minimalFallback(): Promise<void> {
-    console.log('🛡️ Applying minimal fallback strategy...');
     // Implement minimal working fallback
   }
 
@@ -403,7 +393,6 @@ export class RecursiveCustomInstructionsFramework {
    * - Can be extended to add exponential backoff / retry policies
    */
   private async handleApiFailure(error: Error): Promise<void> {
-    console.log('🌐 Handling API error; switching to fallback analysis...', { error: error.message });
     // Disable Gemini-backed analysis via env flag for the remainder of the process
     // The analysis layer reads ANALYSIS_DISABLE_GEMINI to skip LLM calls
     (process as unknown as { env: Record<string, string> }).env.ANALYSIS_DISABLE_GEMINI = '1';
@@ -425,15 +414,12 @@ export class RecursiveCustomInstructionsFramework {
     };
 
     // In a real implementation, this would write to file
-    console.log('💾 Iteration state saved:', state);
   }
 
   private async commitChanges(phase: string): Promise<void> {
     const commitMessage = `feat(${phase.toLowerCase().replace(/\s+/g, '-')}): Complete ${phase} [iteration-${this.currentState.iteration}]`;
-    console.log(`📝 Ready to commit: ${commitMessage}`);
 
     // In a real implementation, this would execute git commands
-    console.log('🎯 Changes committed successfully');
   }
 
   /**
@@ -471,7 +457,6 @@ export class RecursiveCustomInstructionsFramework {
    * Start a development cycle for a specific phase
    */
   async startCycle(phase: string, iteration: number): Promise<void> {
-    console.log(`🔄 Starting development cycle: ${phase} (iteration ${iteration})`);
 
     this.currentState.phase = phase;
     this.currentState.iteration = iteration;
@@ -483,14 +468,12 @@ export class RecursiveCustomInstructionsFramework {
       timestamp: new Date()
     };
 
-    console.log(`📋 Phase "${phase}" initialized for iteration ${iteration}`);
   }
 
   /**
    * Evaluate current iteration and determine next steps
    */
   async evaluateIteration(qualityMetrics: QualityMetrics, performanceData: Record<string, unknown>): Promise<EvaluationResult & { shouldIterate: boolean; shouldAdvancePhase: boolean; shouldCommit: boolean; commitMessage: string; qualityScore: number; issues: string[]; improvements: string[] }> {
-    console.log(`📊 Evaluating iteration ${this.currentState.iteration} for phase "${this.currentState.phase}"`);
 
     // Update current metrics
     this.currentState.metrics = {
@@ -561,10 +544,8 @@ export class RecursiveCustomInstructionsFramework {
       // Max iterations reached - apply failure recovery
       evaluation.shouldCommit = true;
       evaluation.commitMessage = `feat(${this.currentState.phase}): Complete phase with partial success (iteration ${this.currentState.iteration})`;
-      console.log(`⚠️ Applying failure recovery: ${currentPhaseConfig?.failureRecovery || 'Default recovery'}`);
     }
 
-    console.log(`📊 Evaluation result: Quality ${(evaluation.qualityScore * 100).toFixed(1)}%, Issues: ${evaluation.issues.length}`);
 
     return evaluation;
   }
@@ -573,16 +554,13 @@ export class RecursiveCustomInstructionsFramework {
    * Prepare for next iteration in current phase
    */
   async prepareNextIteration(phase: string, iteration: number): Promise<void> {
-    console.log(`🔄 Preparing iteration ${iteration} for phase "${phase}"`);
 
     this.currentState.iteration = iteration;
     this.currentState.status = 'planning';
 
     // Apply improvements from previous iteration
     if (this.currentState.improvements.length > 0) {
-      console.log(`📋 Applying ${this.currentState.improvements.length} improvements:`);
       this.currentState.improvements.forEach((improvement, index) => {
-        console.log(`  ${index + 1}. ${improvement}`);
       });
     }
   }
@@ -591,7 +569,6 @@ export class RecursiveCustomInstructionsFramework {
    * Advance to next development phase
    */
   async advanceToPhase(newPhase: string): Promise<void> {
-    console.log(`🎯 Advancing from "${this.currentState.phase}" to "${newPhase}"`);
 
     this.currentState.phase = newPhase;
     this.currentState.iteration = 1;
@@ -602,15 +579,12 @@ export class RecursiveCustomInstructionsFramework {
     // Reset metrics for new phase
     this.currentState.metrics = this.getInitialMetrics();
 
-    console.log(`✅ Successfully advanced to phase "${newPhase}"`);
   }
 
   /**
    * Commit current iteration changes
    */
   async commitIteration(phase: string, iteration: number, commitMessage: string): Promise<void> {
-    console.log(`📝 Committing iteration ${iteration} for phase "${phase}"`);
-    console.log(`💬 Commit message: ${commitMessage}`);
 
     // In a real implementation, this would execute git commands
     // For now, we'll simulate the commit process
@@ -624,7 +598,6 @@ export class RecursiveCustomInstructionsFramework {
       qualityScore: this.calculateCurrentQualityScore()
     };
 
-    console.log(`🎯 Iteration committed successfully:`, commitData);
 
     // Update state
     this.currentState.status = 'completed';
@@ -651,7 +624,6 @@ export class RecursiveCustomInstructionsFramework {
    * Record stage success
    */
   async recordStageSuccess(stageName: string, metrics: Record<string, number>): Promise<void> {
-    console.log(`✅ Stage "${stageName}" completed successfully:`, metrics);
 
     // Update relevant metrics based on stage
     switch (stageName) {
@@ -689,7 +661,6 @@ export class RecursiveCustomInstructionsFramework {
    * Record quality issue
    */
   async recordQualityIssue(stageName: string, issueType: string, details: string): Promise<void> {
-    console.log(`⚠️ Quality issue in ${stageName} (${issueType}): ${details}`);
 
     this.currentState.improvements.push(`Quality improvement for ${stageName}: ${details}`);
   }

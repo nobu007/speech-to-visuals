@@ -32,7 +32,6 @@ export class ContentAnalyzer {
    */
   setLanguage(language: Language): void {
     this.preferredLanguage = language;
-    console.log(`🌐 ContentAnalyzer language preference set to: ${language}`);
   }
 
   // Iteration 1: simple rule-based baseline using sentence splitting
@@ -61,7 +60,6 @@ export class ContentAnalyzer {
   // Iteration 2: LLM-based structural extraction using Phase 22 Unified LLMService
   async analyzeV2(text: string): Promise<DiagramData> {
     if (!this.llmService.isEnabled()) {
-      console.log('⚠️  LLMService not enabled, falling back to rule-based');
       return this.analyzeV1(text);
     }
 
@@ -90,7 +88,6 @@ export class ContentAnalyzer {
         response.data.edges = [];
       }
 
-      console.log(`✅ Phase 22: ContentAnalyzer success via LLMService (${response.metadata.model}, ${response.metadata.responseTime}ms)`);
       return response.data;
     } else {
       console.warn(`⚠️  LLMService failed: ${response.error}, falling back to rule-based`);

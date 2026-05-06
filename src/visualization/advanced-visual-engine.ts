@@ -124,7 +124,6 @@ export class AdvancedVisualEngine {
    */
   async enhanceScene(scene: SceneGraph, style: Partial<VisualStyle> = {}): Promise<EnhancedSceneGraph> {
     const startTime = performance.now();
-    console.log(`🎨 [Iteration ${this.iteration}] Enhancing scene: ${scene.type}`);
 
     try {
       // Apply default professional styling
@@ -152,7 +151,6 @@ export class AdvancedVisualEngine {
       const processingTime = performance.now() - startTime;
       await this.evaluateVisualQuality(enhancedScene, processingTime);
 
-      console.log(`✅ Scene enhanced in ${processingTime.toFixed(2)}ms`);
       return enhancedScene;
 
     } catch (error) {
@@ -465,13 +463,6 @@ export class AdvancedVisualEngine {
     // Store metrics for iteration improvement
     this.qualityMetrics.set(`iteration-${this.iteration}`, metrics.colorCompliance);
 
-    console.log('\n🎨 Visual Enhancement Metrics:');
-    console.log(`- Nodes: ${metrics.nodeCount}`);
-    console.log(`- Edges: ${metrics.edgeCount}`);
-    console.log(`- Animations: ${metrics.animationCount}`);
-    console.log(`- Processing Time: ${metrics.processingTime.toFixed(2)}ms`);
-    console.log(`- Color Compliance: ${(metrics.colorCompliance * 100).toFixed(1)}%`);
-    console.log(`- Layout Balance: ${(metrics.layoutBalance * 100).toFixed(1)}%`);
 
     // Success criteria for iteration 53
     const successCriteria = {
@@ -483,12 +474,10 @@ export class AdvancedVisualEngine {
     };
 
     const success = Object.values(successCriteria).every(v => v);
-    console.log(success ? '✅ Visual enhancement successful' : '⚠️ Visual enhancement needs improvement');
 
     if (!success) {
-      console.log('Areas for improvement:');
       Object.entries(successCriteria).forEach(([key, passed]) => {
-        if (!passed) console.log(`  - ${key}: FAILED`);
+        if (!passed) { /* criterion not met */ }
       });
     }
   }
@@ -533,7 +522,6 @@ export class AdvancedVisualEngine {
     scenes: SceneGraph[],
     globalStyle: Partial<VisualStyle> = {}
   ): Promise<EnhancedSceneGraph[]> {
-    console.log(`🎨 [Iteration ${this.iteration}] Batch enhancing ${scenes.length} scenes`);
 
     const enhancedScenes: EnhancedSceneGraph[] = [];
 
@@ -556,7 +544,6 @@ export class AdvancedVisualEngine {
       }
     }
 
-    console.log(`✅ Batch enhancement complete: ${enhancedScenes.length}/${scenes.length} scenes`);
     return enhancedScenes;
   }
 
@@ -583,7 +570,6 @@ export class AdvancedVisualEngine {
     scenes: EnhancedSceneGraph[],
     options: RenderOptions
   ): Promise<Record<string, unknown>> {
-    console.log(`📤 Exporting ${scenes.length} enhanced scenes for rendering`);
 
     const exportData = {
       scenes: scenes.map(scene => ({
@@ -610,7 +596,6 @@ export class AdvancedVisualEngine {
    */
   public nextIteration(): void {
     this.iteration++;
-    console.log(`🔄 Moving to visual engine iteration ${this.iteration}`);
 
     // Apply improvements based on previous iteration metrics
     if (this.qualityMetrics.size > 0) {
@@ -618,7 +603,6 @@ export class AdvancedVisualEngine {
         .reduce((sum, val) => sum + val, 0) / this.qualityMetrics.size;
 
       if (avgQuality < 0.8) {
-        console.log('🔧 Applying quality improvements for next iteration');
       }
     }
   }

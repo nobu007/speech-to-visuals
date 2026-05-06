@@ -99,7 +99,6 @@ export class OverlapResolver {
    * Optimized with spatial hashing and adaptive iteration limits.
    */
   public async ensureZeroOverlaps(layout: DiagramLayout, diagramType: DiagramType): Promise<DiagramLayout> {
-    console.log('🎯 Ensuring zero overlaps (Custom Instructions requirement)...');
 
     const nodes = [...layout.nodes];
     // Scale max iterations down for large datasets to maintain performance
@@ -133,7 +132,6 @@ export class OverlapResolver {
     } while (overlapCount > 0 && iteration < maxIterations);
 
     if (overlapCount === 0) {
-      console.log(`✅ Zero overlaps achieved in ${iteration} iterations`);
     } else {
       console.warn(`⚠️ Could not eliminate all overlaps: ${overlapCount} remaining after ${iteration} iterations`);
       // Force separation for remaining overlaps
@@ -149,20 +147,17 @@ export class OverlapResolver {
    * Uses spatial hashing for efficient overlap detection.
    */
   public async finalOverlapResolution(layout: DiagramLayout): Promise<DiagramLayout> {
-    console.log('🎯 Final overlap resolution check...');
 
     const nodes = [...layout.nodes];
     const overlappingPairs = this.detectOverlapsFast(nodes);
 
     if (overlappingPairs.length === 0) {
-      console.log('✅ Zero overlap guarantee achieved');
       return { ...layout, nodes };
     }
 
     for (const [a, b] of overlappingPairs) {
       await this.forceSeparateNodes(a, b);
     }
-    console.log('🔧 Applied emergency separation for final overlaps');
 
     return { ...layout, nodes };
   }
@@ -257,7 +252,6 @@ export class OverlapResolver {
    * Uses spatial hashing for efficient detection.
    */
   private async forceSeparateOverlappingNodes(nodes: PositionedNode[]): Promise<void> {
-    console.log('🚨 Applying emergency overlap resolution...');
 
     const overlappingPairs = this.detectOverlapsFast(nodes);
     for (const [a, b] of overlappingPairs) {

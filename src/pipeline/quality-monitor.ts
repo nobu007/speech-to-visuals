@@ -415,13 +415,6 @@ export class QualityMonitor {
 
     this.iterationHistory.push(fullLog);
 
-    console.log(`\n${'='.repeat(70)}`);
-    console.log(`📊 Phase ${log.phaseId} - Iteration ${log.iterationNumber}`);
-    console.log(`Action: ${log.action}`);
-    console.log(`Result: ${log.result.toUpperCase()}`);
-    console.log(`Improvements: ${log.improvements.join(', ') || 'None'}`);
-    console.log(`Next Steps: ${log.nextSteps.join(', ')}`);
-    console.log(`${'='.repeat(70)}\n`);
   }
 
   /**

@@ -274,7 +274,6 @@ export class EnhancedErrorRecovery {
     );
 
     if (newCapacity !== this.dynamicCapacity) {
-      console.log(`🔄 Adjusting dynamic capacity: ${this.dynamicCapacity} → ${newCapacity} (health: ${(healthScore * 100).toFixed(1)}%)`);
       this.dynamicCapacity = newCapacity;
     }
   }
@@ -288,15 +287,9 @@ export class EnhancedErrorRecovery {
 
     this.requestQueue = this.requestQueue.filter(queuedRequest => {
       const isExpired = (now - queuedRequest.queuedAt) > queuedRequest.timeout;
-      if (isExpired) {
-        console.log(`⏰ Request ${queuedRequest.id} expired in queue after ${now - queuedRequest.queuedAt}ms`);
-      }
       return !isExpired;
     });
 
-    if (this.requestQueue.length < beforeCount) {
-      console.log(`🧹 Cleaned up ${beforeCount - this.requestQueue.length} expired requests from queue`);
-    }
   }
 
   /**
@@ -342,8 +335,7 @@ export class EnhancedErrorRecovery {
 
     // Log capacity adjustments periodically
     if (this.loadMetrics.length % 20 === 0) {
-      const utilization = (this.activeRequests.size / this.dynamicCapacity * 100).toFixed(1);
-      console.log(`📊 Load: ${this.activeRequests.size}/${this.dynamicCapacity} (${utilization}%), Queue: ${this.requestQueue.length}, Avg Response: ${Math.round(currentMetrics.averageResponseTime)}ms`);
+      // periodic capacity adjustment
     }
   }
 
@@ -389,7 +381,6 @@ export class EnhancedErrorRecovery {
         case 'open':
           if (now - breaker.lastFailureTime > breaker.timeout) {
             breaker.state = 'half-open';
-            console.log(`🔄 Circuit breaker for ${stage} is now half-open`);
           }
           break;
 
@@ -398,11 +389,9 @@ export class EnhancedErrorRecovery {
             breaker.state = 'closed';
             breaker.failureCount = 0;
             breaker.successCount = 0;
-            console.log(`✅ Circuit breaker for ${stage} is now closed`);
           } else if (breaker.failureCount > 0) {
             breaker.state = 'open';
             breaker.lastFailureTime = now;
-            console.log(`🚫 Circuit breaker for ${stage} opened again`);
           }
           break;
 
@@ -410,7 +399,6 @@ export class EnhancedErrorRecovery {
           if (breaker.failureCount >= breaker.threshold) {
             breaker.state = 'open';
             breaker.lastFailureTime = now;
-            console.log(`⚠️ Circuit breaker for ${stage} opened due to failures`);
           }
           break;
       }
@@ -483,7 +471,6 @@ export class EnhancedErrorRecovery {
     // Check if we're at dynamic capacity
     if (this.activeRequests.size >= this.dynamicCapacity) {
       const queueTimeout = this.calculateDynamicQueueTimeout(priority);
-      console.log(`🚦 Request ${requestId} queued - at capacity (${this.activeRequests.size}/${this.dynamicCapacity})`);
 
       return new Promise((resolve, reject) => {
         this.requestQueue.push({
@@ -523,7 +510,6 @@ export class EnhancedErrorRecovery {
     });
 
     try {
-      console.log(`🚀 Executing request ${requestId} (${this.activeRequests.size + 1}/${this.dynamicCapacity}, stage: ${stage || 'unknown'})`);
 
       const requestPromise = operation();
 
@@ -552,7 +538,6 @@ export class EnhancedErrorRecovery {
       const responseTime = endTime - startTime;
 
       // Enhanced success logging
-      console.log(`✅ Request ${requestId} completed in ${Math.round(responseTime)}ms (stage: ${stage || 'unknown'}, priority: ${priority})`);
 
       // Track success statistics
       this.requestStats.completed++;
@@ -572,7 +557,6 @@ export class EnhancedErrorRecovery {
       this.requestStats.failed++;
 
       const responseTime = performance.now() - startTime;
-      console.log(`❌ Request ${requestId} failed after ${Math.round(responseTime)}ms: ${error instanceof Error ? error.message : 'Unknown error'}`);
       throw error;
 
     } finally {
@@ -1002,13 +986,11 @@ export class EnhancedErrorRecovery {
       const stats = globalCache.getStats();
       if (stats.hitRate < 0.3) {
         // Adjust cache parameters
-        console.log('Optimizing cache parameters for better hit rate');
       }
     });
 
     this.preventiveActions.set('parameter_tuning', async () => {
       // Auto-tune parameters based on recent performance
-      console.log('Auto-tuning parameters based on performance history');
     });
   }
 
@@ -1235,7 +1217,6 @@ export class EnhancedErrorRecovery {
   ): Promise<unknown> {
     // This would delegate to the actual processing function
     // with the adapted parameters
-    console.log(`Retrying ${context.stage} with adapted params:`, adaptedParams);
 
     // Simulate processing with adapted parameters
     await new Promise(resolve => setTimeout(resolve, 500));
@@ -1263,7 +1244,6 @@ export class EnhancedErrorRecovery {
     context: ErrorContext,
     degradedParams: Record<string, unknown>
   ): Promise<unknown> {
-    console.log(`Executing ${context.stage} with degraded quality:`, degradedParams);
 
     // Simulate degraded processing
     await new Promise(resolve => setTimeout(resolve, 200));
@@ -1275,7 +1255,6 @@ export class EnhancedErrorRecovery {
    * Adapt cached result to current context
    */
   private async adaptCachedResult(cachedData: unknown, context: ErrorContext): Promise<unknown> {
-    console.log(`Adapting cached result for ${context.stage}`);
 
     // Simulate adaptation logic
     return {
@@ -1289,7 +1268,6 @@ export class EnhancedErrorRecovery {
    * Execute alternative algorithm
    */
   private async executeAlternativeAlgorithm(context: ErrorContext): Promise<unknown> {
-    console.log(`Using alternative algorithm for ${context.stage}`);
 
     // Simulate alternative processing
     await new Promise(resolve => setTimeout(resolve, 800));
@@ -1301,7 +1279,6 @@ export class EnhancedErrorRecovery {
    * Generate minimal viable output
    */
   private async generateMinimalOutput(context: ErrorContext): Promise<unknown> {
-    console.log(`Generating minimal output for ${context.stage}`);
 
     // Return very basic output to avoid complete failure
     switch (context.stage) {
@@ -1352,7 +1329,6 @@ export class EnhancedErrorRecovery {
     result: RecoveryResult
   ): void {
     // Update strategy effectiveness
-    console.log(`Learning from successful recovery: ${strategy.id} for ${context.stage}`);
 
     // Could implement machine learning here to improve strategy selection
   }
@@ -1405,7 +1381,6 @@ export class EnhancedErrorRecovery {
     const highRiskIndicators = this.healthMetrics.indicators.filter(i => i.riskLevel === 'high');
 
     if (highRiskIndicators.length > 0) {
-      console.log('Executing preventive actions for high-risk indicators');
 
       for (const [action, func] of this.preventiveActions) {
         try {
@@ -1473,7 +1448,6 @@ export class EnhancedErrorRecovery {
    */
   async shutdown(): Promise<void> {
     this.isShuttingDown = true;
-    console.log('🔄 Shutting down error recovery system...');
 
     // Stop health monitoring
     if (this.healthCheckTimer) {
@@ -1492,13 +1466,11 @@ export class EnhancedErrorRecovery {
     const startShutdown = Date.now();
 
     while (this.activeRequests.size > 0 && (Date.now() - startShutdown) < shutdownTimeout) {
-      console.log(`⏳ Waiting for ${this.activeRequests.size} active requests to complete...`);
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     // Force abort remaining requests
     if (this.activeRequests.size > 0) {
-      console.log(`⚠️ Force aborting ${this.activeRequests.size} remaining requests`);
       this.activeRequests.clear();
     }
 
@@ -1512,7 +1484,6 @@ export class EnhancedErrorRecovery {
       if ('successCount' in breaker) breaker.successCount = 0;
     }
 
-    console.log('✅ Error recovery system shutdown complete');
   }
 
   // ========================================
@@ -1587,14 +1558,12 @@ export class EnhancedErrorRecovery {
       return { success: true, result, fallbackUsed: false };
     } catch (primaryError) {
       const primaryErr = primaryError instanceof Error ? primaryError : new Error(String(primaryError));
-      console.log(`⚠️ Primary operation failed at stage "${context.stage || 'unknown'}": ${primaryErr.message}`);
 
       try {
         const result = await fallbackOperation();
         return { success: true, result, fallbackUsed: true, primaryError: primaryErr };
       } catch (fallbackError) {
         const fallbackErr = fallbackError instanceof Error ? fallbackError : new Error(String(fallbackError));
-        console.log(`❌ Fallback operation also failed: ${fallbackErr.message}`);
         return { success: false, fallbackUsed: true, primaryError: primaryErr };
       }
     }

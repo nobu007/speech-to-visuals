@@ -78,7 +78,6 @@ class SmartParameterTuner {
    * Generate optimized parameters based on content characteristics
    */
   async optimizeParameters(characteristics: ContentCharacteristics): Promise<OptimizationResult> {
-    console.log('[SmartTuner] Optimizing parameters for content characteristics:', characteristics);
 
     // Base parameters
     const parameters: ParameterSet = {
@@ -133,7 +132,6 @@ class SmartParameterTuner {
 
     const confidence = this.calculateOptimizationConfidence(characteristics, optimizedParams);
 
-    console.log('[SmartTuner] Generated optimized parameters:', {
       parameters: optimizedParams,
       expectedPerformance,
       confidence
@@ -173,7 +171,6 @@ class SmartParameterTuner {
 
     this.performanceHistory.set(key, history);
 
-    console.log('[SmartTuner] Updated learning data for characteristics:', key);
   }
 
   private assessComplexity(transcript: string): 'low' | 'medium' | 'high' {

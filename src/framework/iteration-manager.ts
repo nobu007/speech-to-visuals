@@ -75,11 +75,7 @@ export class IterationManager {
     this.cycle.currentIteration++;
     this.startTime = Date.now();
 
-    console.log(`\n🔄 Starting Iteration ${this.cycle.currentIteration}/${this.cycle.maxIterations}`);
-    console.log(`📋 Phase: ${this.cycle.phase}`);
-    console.log(`✓ Success Criteria (${this.cycle.successCriteria.length}):`);
     this.cycle.successCriteria.forEach((criterion, i) => {
-      console.log(`   ${i + 1}. ${criterion}`);
     });
   }
 
@@ -111,11 +107,8 @@ export class IterationManager {
     this.history.push(iteration);
     await this.logIteration(iteration);
 
-    console.log(`\n${status === 'success' ? '✅' : '❌'} Iteration ${this.cycle.currentIteration} ${status.toUpperCase()}`);
-    console.log(`⏱️  Duration: ${(duration / 1000).toFixed(2)}s`);
 
     if (error) {
-      console.log(`❗ Error: ${error}`);
     }
 
     return iteration;
@@ -139,10 +132,8 @@ export class IterationManager {
 
     const allMet = results.every(r => r.met);
 
-    console.log(`\n📊 Success Criteria Evaluation:`);
     results.forEach(({ criterion, met, reason }) => {
-      console.log(`   ${met ? '✅' : '❌'} ${criterion}`);
-      if (reason) console.log(`      ${reason}`);
+      // reason tracked for debugging
     });
 
     return { allMet, results };
@@ -183,21 +174,17 @@ export class IterationManager {
     const failureRate = this.history.filter(i => i.status === 'failure').length / this.history.length;
 
     if (this.cycle.currentIteration >= this.cycle.maxIterations) {
-      console.log(`⚠️  Max iterations reached. Applying fallback strategy.`);
       return 'fallback';
     }
 
     if (failureRate > 0.5) {
-      console.log(`⚠️  High failure rate (${(failureRate * 100).toFixed(0)}%). Switching to minimal approach.`);
       return 'minimal';
     }
 
     if (this.cycle.currentIteration === 1) {
-      console.log(`🔄 First failure. Retrying with adjustments.`);
       return 'retry';
     }
 
-    console.log(`🔄 Retrying with improvements from previous iteration.`);
     return 'retry';
   }
 
@@ -372,7 +359,6 @@ ${iteration.nextSteps?.map(step => `- ${step}`).join('\n') || '- None'}
       lines.splice(insertIndex, 0, logEntry);
 
       await fs.writeFile(this.logPath, lines.join('\n'), 'utf-8');
-      console.log(`📝 Iteration logged to ${this.logPath}`);
     } catch (error) {
       console.warn(`⚠️  Failed to log iteration: ${error}`);
     }

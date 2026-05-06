@@ -206,10 +206,8 @@ export function getGeminiAnalyzerPrompt(text: string, preferredLanguage?: Langua
     : { language: preferredLanguage, confidence: 1.0 };
 
   if (detected.language === 'ja') {
-    console.log('📝 Using Japanese prompt for GeminiAnalyzer');
     return GEMINI_ANALYZER_PROMPT_JA(text);
   } else {
-    console.log('📝 Using English prompt for GeminiAnalyzer');
     return GEMINI_ANALYZER_PROMPT_EN(text);
   }
 }
@@ -223,10 +221,8 @@ export function getContentAnalyzerPrompt(text: string, preferredLanguage?: Langu
     : { language: preferredLanguage, confidence: 1.0 };
 
   if (detected.language === 'ja') {
-    console.log('📝 Using Japanese prompt for ContentAnalyzer');
     return CONTENT_ANALYZER_PROMPT_JA(text);
   } else {
-    console.log('📝 Using English prompt for ContentAnalyzer');
     return CONTENT_ANALYZER_PROMPT_EN(text);
   }
 }

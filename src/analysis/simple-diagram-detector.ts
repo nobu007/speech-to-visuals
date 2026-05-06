@@ -81,7 +81,6 @@ export class SimpleDiagramDetector {
    * 🔄 Custom Instructions: 最小実装で動作確認
    */
   async analyze(segment: TextSegment): Promise<SimpleDiagramAnalysis> {
-    console.log(`🔍 Analyzing segment: "${segment.summary || segment.text.substring(0, 50)}..."`);
 
     const text = segment.text.toLowerCase();
 
@@ -106,7 +105,6 @@ export class SimpleDiagramDetector {
 
     const reasoning = this.explainReasoning(bestType, scores[bestType], text);
 
-    console.log(`🎯 Detected: ${bestType} (confidence: ${(confidence * 100).toFixed(1)}%)`);
 
     return {
       type: bestType,
@@ -344,7 +342,6 @@ export class SimpleDiagramDetector {
    * 🔄 Custom Instructions: テスト機能内蔵
    */
   async testDetector(): Promise<void> {
-    console.log('🧪 Testing Simple Diagram Detector...');
 
     const testCases = [
       {
@@ -373,10 +370,8 @@ export class SimpleDiagramDetector {
       });
 
       const success = result.type === testCase.expected;
-      console.log(`${success ? '✅' : '❌'} Expected: ${testCase.expected}, Got: ${result.type} (confidence: ${(result.confidence * 100).toFixed(1)}%)`);
     }
 
-    console.log('🧪 Detector testing completed');
   }
 }
 

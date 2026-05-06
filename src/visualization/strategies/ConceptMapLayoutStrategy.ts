@@ -33,14 +33,12 @@ export class ConceptMapLayoutStrategy implements ILayoutStrategy {
     edges: EdgeDatum[],
     config: LayoutConfig
   ): Promise<LayoutStrategyOutput> {
-    console.log(`🗺️ [ConceptMap] Generating grid layout for ${nodes.length} nodes`);
 
     try {
       // Calculate grid dimensions (square-ish grid)
       const cols = Math.ceil(Math.sqrt(nodes.length));
       const rows = Math.ceil(nodes.length / cols);
 
-      console.log(`   📐 Grid: ${rows} rows × ${cols} cols`);
 
       // Calculate cell dimensions
       const cellWidth = config.width / cols;
@@ -70,7 +68,6 @@ export class ConceptMapLayoutStrategy implements ILayoutStrategy {
       // Generate edges (straight lines between nodes)
       const layoutEdges = this.generateConceptMapEdges(edges, positionedNodes);
 
-      console.log(`✅ [ConceptMap] Layout generated successfully`);
 
       return {
         nodes: positionedNodes,

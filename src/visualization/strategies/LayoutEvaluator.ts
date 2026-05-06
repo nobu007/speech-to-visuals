@@ -225,15 +225,6 @@ export class LayoutEvaluator {
   public async evaluateLayout(result: LayoutResult, diagramType: DiagramType): Promise<void> {
     const metrics = this.calculateLayoutMetrics(result.layout.nodes, result.layout.edges);
 
-    console.log('\n📊 Layout Metrics:');
-    console.log(`- Type: ${diagramType}`);
-    console.log(`- Bounds: ${result.bounds.width.toFixed(0)}x${result.bounds.height.toFixed(0)}`);
-    console.log(`- Node Count: ${result.layout.nodes.length}`);
-    console.log(`- Edge Count: ${result.layout.edges.length}`);
-    console.log(`- Overlaps: ${metrics.overlapCount}`);
-    console.log(`- Edge Crossings: ${metrics.edgeCrossings} [Phase 33]`);
-    console.log(`- Processing Time: ${result.processingTime.toFixed(0)}ms`);
-
     const successCriteria = {
       hasNodes: result.layout.nodes.length > 0,
       noOverlaps: metrics.overlapCount === 0,
@@ -241,15 +232,6 @@ export class LayoutEvaluator {
       fastProcessing: result.processingTime < 5000
     };
 
-    const success = Object.values(successCriteria).every(v => v);
-    console.log(success ? '✅ Layout successful' : '⚠️ Layout needs improvement');
-
-    if (!success) {
-      console.log('Failed criteria:');
-      Object.entries(successCriteria).forEach(([key, passed]) => {
-        if (!passed) console.log(`  - ${key}: FAILED`);
-      });
-    }
   }
 
   /**
@@ -288,14 +270,6 @@ export class LayoutEvaluator {
   public async evaluateLayoutWithCustomInstructions(result: LayoutResult, diagramType: DiagramType): Promise<void> {
     const metrics = this.calculateLayoutMetrics(result.layout.nodes, result.layout.edges);
 
-    console.log('\n🎯 Custom Instructions Phase 4 Evaluation:');
-    console.log(`- Zero Overlaps: ${metrics.overlapCount === 0 ? '✅ PASSED' : '❌ FAILED'} (${metrics.overlapCount} overlaps)`);
-    console.log(`- Processing Time: ${result.processingTime < 5000 ? '✅ PASSED' : '❌ FAILED'} (${(result.processingTime / 1000).toFixed(1)}s)`);
-    console.log(`- Layout Quality: ${result.confidence ? (result.confidence * 100).toFixed(1) + '%' : 'N/A'}`);
-    console.log(`- Diagram Type: ${diagramType}`);
-    console.log(`- Node Count: ${result.layout.nodes.length}`);
-    console.log(`- Edge Count: ${result.layout.edges.length}`);
-
     // Custom Instructions compliance check
     const compliance = {
       zeroOverlaps: metrics.overlapCount === 0,
@@ -306,22 +280,5 @@ export class LayoutEvaluator {
 
     const complianceScore = Object.values(compliance).filter(v => v).length / Object.keys(compliance).length;
     const passed = complianceScore >= 0.75; // 75% compliance required
-
-    console.log(`\n🎯 Custom Instructions Compliance: ${(complianceScore * 100).toFixed(1)}%`);
-    console.log(`🎯 Overall Assessment: ${passed ? '✅ COMPLIANT' : '❌ NEEDS IMPROVEMENT'}`);
-
-    if (!passed) {
-      console.log('🔧 Failed Requirements:');
-      Object.entries(compliance).forEach(([requirement, passed]) => {
-        if (!passed) {
-          console.log(`  - ${requirement}: FAILED`);
-        }
-      });
-    }
-
-    // Trigger improvement if needed
-    if (!compliance.zeroOverlaps) {
-      console.log('🚨 CRITICAL: Zero overlap requirement not met - triggering emergency resolution');
-    }
   }
 }

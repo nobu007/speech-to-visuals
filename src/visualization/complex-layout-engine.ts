@@ -193,7 +193,6 @@ export class ComplexLayoutEngine {
     diagramType: DiagramType
   ): Promise<LayoutResult> {
     const startTime = performance.now();
-    console.log(`Complex layout engine: ${nodes.length} nodes, ${edges.length} edges`);
 
     // Try worker-based computation first when enabled
     const workerPool = this.getWorkerPool();
@@ -259,8 +258,6 @@ export class ComplexLayoutEngine {
       const bounds = this.calculateBounds(layout);
       const processingTime = performance.now() - startTime;
 
-      console.log(`✅ Complex layout completed in ${processingTime.toFixed(0)}ms`);
-      console.log(`📐 Final bounds: ${bounds.width.toFixed(0)}x${bounds.height.toFixed(0)}`);
 
       return {
         layout,
@@ -297,11 +294,9 @@ export class ComplexLayoutEngine {
     edges: EdgeDatum[],
     diagramType: DiagramType
   ): Promise<DiagramLayout> {
-    console.log('🎯 Applying multi-level layout algorithm...');
 
     // Step 1: Graph coarsening (reduce complexity)
     const levels = await this.coarsenGraph(nodes, edges);
-    console.log(`📊 Created ${levels.length} coarsening levels`);
 
     // Step 2: Layout coarsest level
     let layout = await this.layoutCoarsestLevel(levels[levels.length - 1], diagramType);
@@ -322,11 +317,9 @@ export class ComplexLayoutEngine {
     edges: EdgeDatum[],
     diagramType: DiagramType
   ): Promise<DiagramLayout> {
-    console.log('🎯 Applying clustered layout algorithm...');
 
     // Step 1: Cluster nodes based on connectivity and importance
     const clusters = await this.clusterNodes(nodes, edges);
-    console.log(`📦 Created ${clusters.length} clusters`);
 
     // Step 2: Layout clusters
     const clusterLayout = await this.layoutClusters(clusters, diagramType);
@@ -345,7 +338,6 @@ export class ComplexLayoutEngine {
     edges: EdgeDatum[],
     diagramType: DiagramType
   ): Promise<DiagramLayout> {
-    console.log('🎯 Applying force-directed layout algorithm...');
 
     // Initialize positions
     const state = this.initializeForceDirectedState(nodes);
@@ -360,7 +352,6 @@ export class ComplexLayoutEngine {
       }
     }
 
-    console.log(`🔄 Force simulation: ${state.converged ? 'converged' : 'max iterations'}`);
 
     // Convert to layout format
     return this.forceStateToLayout(state, nodes, edges);
@@ -802,25 +793,21 @@ export class ComplexLayoutEngine {
       layoutTime: number;
     }
   ): Promise<DiagramLayout> {
-    console.log('⚡ Real-time optimization active...');
 
     let optimizedLayout = layout;
 
     // Adaptive quality based on performance
     if (performanceMetrics.currentFPS < this.config.performanceTargets.targetFPS) {
-      console.log('🔧 Reducing quality for better performance...');
       optimizedLayout = await this.reduceLayoutComplexity(optimizedLayout);
     }
 
     // Memory optimization
     if (performanceMetrics.memoryUsage > this.config.performanceTargets.memoryLimit) {
-      console.log('🗄️ Optimizing memory usage...');
       optimizedLayout = await this.optimizeMemoryUsage(optimizedLayout);
     }
 
     // Time optimization
     if (performanceMetrics.layoutTime > this.config.performanceTargets.maxLayoutTime) {
-      console.log('⏱️ Applying time optimizations...');
       optimizedLayout = await this.optimizeLayoutTime(optimizedLayout);
     }
 
@@ -882,7 +869,6 @@ export class ComplexLayoutEngine {
       this.config.performanceTargets.targetFPS = Math.min(60, this.config.performanceTargets.targetFPS + 2);
     }
 
-    console.log(`🎯 Adaptive thresholds updated: Target FPS = ${this.config.performanceTargets.targetFPS}`);
   }
 }
 

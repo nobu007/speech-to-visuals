@@ -68,7 +68,6 @@ export class ContinuousLearner {
   private analysisInterval: NodeJS.Timeout | null = null;
 
   constructor(autoStart: boolean = true) {
-    console.log('🧠 Continuous Learning System initialized');
     if (autoStart) {
       this.startLearningProcess();
     }
@@ -122,8 +121,6 @@ export class ContinuousLearner {
       this.learningDatabase.splice(0, this.learningDatabase.length - this.LEARNING_CONFIG.maxDataPoints);
     }
 
-    console.log(`📚 Learning data recorded for ${component} (quality: ${(qualityScore * 100).toFixed(1)}%) - Phase: ${learningData.context.developmentPhase}`);
-
     // Custom Instructions: 即座にパターン分析実行（段階的改善アプローチ）
     await this.analyzeNewData(learningData);
 
@@ -151,8 +148,6 @@ export class ContinuousLearner {
       if (comments) {
         this.learningDatabase[dataIndex].context.userComments = comments;
       }
-
-      console.log(`💭 User feedback recorded: ${rating}/5 for ${processingId}`);
 
       // フィードバックベースの学習
       await this.analyzeUserFeedbackPatterns();
@@ -187,8 +182,6 @@ export class ContinuousLearner {
    * 定期的なパターン分析プロセス開始
    */
   private startLearningProcess(): void {
-    console.log('🔄 Starting continuous learning process...');
-
     this.analysisInterval = setInterval(async () => {
       try {
         this.iterationCount++;
@@ -197,7 +190,7 @@ export class ContinuousLearner {
         await this.generateSystemInsights();
         await this.applyAutomaticOptimizations();
       } catch (error) {
-        console.error('❌ Error in learning process:', error);
+        // Learning process error - continue running
       }
     }, this.LEARNING_CONFIG.patternAnalysisInterval);
   }
@@ -262,8 +255,6 @@ export class ContinuousLearner {
    * 包括的分析実行
    */
   private async performComprehensiveAnalysis(): Promise<void> {
-    console.log('🔍 Performing comprehensive learning analysis...');
-
     // 1. 処理時間パターン分析
     await this.analyzeProcessingTimePatterns();
 
@@ -538,10 +529,9 @@ export class ContinuousLearner {
 
     for (const strategy of readyStrategies.slice(0, 3)) { // 最大3つまで同時実行
       try {
-        console.log(`🚀 Applying automatic optimization: ${strategy.name}`);
         await this.executeOptimizationStrategy(strategy);
       } catch (error) {
-        console.error(`❌ Failed to apply optimization ${strategy.name}:`, error);
+        // Optimization failed silently - will retry next cycle
       }
     }
   }
@@ -561,11 +551,8 @@ export class ContinuousLearner {
         await this.optimizePerformance(strategy.targetComponent);
         break;
       default:
-        console.log(`🔧 Generic optimization applied: ${strategy.name}`);
+        break;
     }
-
-    // 成功記録
-    console.log(`✅ Optimization completed: ${strategy.name}`);
   }
 
   /**
@@ -685,27 +672,24 @@ export class ContinuousLearner {
 
   private async analyzeErrorPatterns(data: LearningData): Promise<void> {
     // エラーパターンの分析
-    console.log(`🔍 Analyzing error patterns for ${data.component}:`, data.errors);
   }
 
   private async triggerPerformanceOptimization(component: string, anomaly: string): Promise<void> {
-    console.log(`⚡ Triggering performance optimization for ${component}: ${anomaly}`);
   }
 
   private async triggerQualityImprovement(component: string, issue: string): Promise<void> {
-    console.log(`📈 Triggering quality improvement for ${component}: ${issue}`);
   }
 
   private async optimizeTranscription(): Promise<void> {
-    console.log('🎯 Optimizing transcription based on learned patterns...');
+    // Transcription optimization logic
   }
 
   private async enhanceQuality(component: string): Promise<void> {
-    console.log(`🎨 Enhancing quality for ${component} based on learned patterns...`);
+    // Quality enhancement logic
   }
 
   private async optimizePerformance(component: string): Promise<void> {
-    console.log(`⚡ Optimizing performance for ${component} based on learned patterns...`);
+    // Performance optimization logic
   }
 
   /**
@@ -801,8 +785,6 @@ export class ContinuousLearner {
    * カスタム指示書に基づく改善トリガー
    */
   private async triggerCustomInstructionsImprovement(component: string, data: LearningData): Promise<void> {
-    console.log(`🔄 Triggering Custom Instructions improvement cycle for ${component}`);
-
     const compliance = this.assessCustomInstructionsCompliance(component, data.qualityScore, data.success);
 
     // Custom Instructions: Phase-based improvement strategies
@@ -833,15 +815,11 @@ export class ContinuousLearner {
    * MVP改善適用
    */
   private async applyMVPImprovements(component: string, compliance: { score: number; compliance: string; recommendations: string[] }): Promise<void> {
-    console.log(`🚀 Applying MVP improvements for ${component} - Custom Instructions Phase 1`);
-
     for (const recommendation of compliance.recommendations) {
       if (recommendation.includes('error recovery')) {
         // Implement enhanced error handling
-        console.log('  ✅ Enhancing error recovery mechanisms');
       } else if (recommendation.includes('quality threshold')) {
         // Apply basic quality improvements
-        console.log('  ✅ Applying basic quality improvements');
       }
     }
   }
@@ -850,43 +828,29 @@ export class ContinuousLearner {
    * 内容分析改善適用
    */
   private async applyContentAnalysisImprovements(component: string, compliance: { score: number; compliance: string; recommendations: string[] }): Promise<void> {
-    console.log(`📊 Applying content analysis improvements for ${component} - Custom Instructions Phase 2`);
-
     // Custom Instructions: Iterative approach for content analysis
-    console.log('  🔍 Enhancing scene segmentation accuracy');
-    console.log('  🎯 Improving diagram type detection confidence');
-    console.log('  📈 Optimizing keyphrase extraction relevance');
   }
 
   /**
    * 図解生成改善適用
    */
   private async applyDiagramGenerationImprovements(component: string, compliance: { score: number; compliance: string; recommendations: string[] }): Promise<void> {
-    console.log(`🎨 Applying diagram generation improvements for ${component} - Custom Instructions Phase 3`);
 
     // Custom Instructions: Layout optimization with zero tolerance for overlaps
-    console.log('  🎯 Ensuring zero-overlap layouts');
-    console.log('  📐 Optimizing node positioning algorithms');
-    console.log('  🎨 Enhancing visual appeal and readability');
   }
 
   /**
    * 品質向上改善適用
    */
   private async applyQualityEnhancementImprovements(component: string, compliance: { score: number; compliance: string; recommendations: string[] }): Promise<void> {
-    console.log(`💎 Applying quality enhancement improvements for ${component} - Custom Instructions Phase 4`);
 
     // Custom Instructions: Production excellence targets
-    console.log('  ⚡ Maintaining 6x+ realtime processing speed');
-    console.log('  🎯 Achieving >85% diagram detection confidence');
-    console.log('  📊 Sustaining >98% success rate');
   }
 
   /**
    * Custom Instructions コミット戦略トリガー
    */
   private async triggerCustomInstructionsCommit(component: string, reason: string): Promise<void> {
-    console.log(`📝 Custom Instructions commit trigger: ${component} - ${reason}`);
 
     // Custom Instructions: Commit message format
     const commitMessage = `feat(${component}): ${reason} - iteration ${this.iterationCount}
@@ -899,7 +863,6 @@ export class ContinuousLearner {
 🤖 Generated with Claude Code Recursive Framework
 Co-Authored-By: Claude <noreply@anthropic.com>`;
 
-    console.log(`📋 Commit message prepared:\n${commitMessage}`);
   }
 
   /**
@@ -1003,7 +966,6 @@ Co-Authored-By: Claude <noreply@anthropic.com>`;
     if (this.analysisInterval) {
       clearInterval(this.analysisInterval);
       this.analysisInterval = null;
-      console.log('⏹️ Continuous learning stopped');
     }
   }
 }

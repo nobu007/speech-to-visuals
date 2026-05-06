@@ -103,7 +103,6 @@ export class AdaptiveContentProcessor {
   };
 
   constructor() {
-    console.log(`[AdaptiveContentProcessor] Initializing version ${this.version}`);
   }
 
   /**
@@ -114,7 +113,6 @@ export class AdaptiveContentProcessor {
     parameters: OptimalParameters
   ): Promise<AdaptiveResult> {
     const startTime = performance.now();
-    console.log(`[AdaptiveProcessor] Selecting strategy for content...`);
 
     try {
       // Generate content fingerprint
@@ -123,7 +121,6 @@ export class AdaptiveContentProcessor {
       // Check for cached strategy
       const cachedStrategy = this.strategyHistory.get(fingerprint);
       if (cachedStrategy) {
-        console.log('✅ Using cached processing strategy');
         return {
           strategy: cachedStrategy,
           confidence: 0.95,
@@ -157,9 +154,6 @@ export class AdaptiveContentProcessor {
         processingTime: performance.now() - startTime
       };
 
-      console.log(`✅ Strategy selection complete: ${customizedStrategy.name}`);
-      console.log(`📊 Confidence: ${(confidence * 100).toFixed(1)}%`);
-      console.log(`📈 Expected improvement: ${improvement.toFixed(1)}%`);
 
       return result;
 
@@ -347,7 +341,6 @@ export class AdaptiveContentProcessor {
    */
   clearHistory() {
     this.strategyHistory.clear();
-    console.log('🧹 Strategy history cleared');
   }
 }
 

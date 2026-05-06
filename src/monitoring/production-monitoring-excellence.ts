@@ -107,7 +107,6 @@ export class ProductionMonitoringExcellence {
    * Initialize enhanced monitoring with AI capabilities
    */
   private initializeEnhancedMonitoring(): void {
-    console.log('🔍 Initializing production monitoring excellence...');
 
     // Setup AI-driven anomaly detection
     this.setupAnomalyDetection();
@@ -118,14 +117,12 @@ export class ProductionMonitoringExcellence {
     // Enable real-time optimization
     this.setupRealTimeOptimization();
 
-    console.log('✅ Enhanced monitoring system initialized');
   }
 
   /**
    * Setup AI-driven anomaly detection with 97%+ accuracy
    */
   private setupAnomalyDetection(): void {
-    console.log('🤖 Setting up AI-driven anomaly detection...');
 
     // Configure advanced ML models for anomaly detection
     const models = [
@@ -144,7 +141,6 @@ export class ProductionMonitoringExcellence {
    * Setup predictive analytics capabilities
    */
   private setupPredictiveAnalytics(): void {
-    console.log('📊 Setting up predictive analytics...');
 
     // Initialize predictive models
     const predictionTypes = [
@@ -164,7 +160,6 @@ export class ProductionMonitoringExcellence {
    * Setup real-time optimization engine
    */
   private setupRealTimeOptimization(): void {
-    console.log('⚡ Setting up real-time optimization engine...');
 
     // Skip background intervals in test environment to prevent Jest worker leaks
     if (process.env.NODE_ENV === 'test') return;
@@ -179,7 +174,6 @@ export class ProductionMonitoringExcellence {
    * Implement AI-driven anomaly detection
    */
   async implementAIDetection(): Promise<AnomalyDetectionConfig> {
-    console.log('🔍 Implementing AI-driven anomaly detection...');
 
     const config: AnomalyDetectionConfig = {
       enabled: true,
@@ -192,7 +186,6 @@ export class ProductionMonitoringExcellence {
 
     // Run anomaly detection on current metrics
     const anomalies = await this.detectAnomalies();
-    console.log(`🎯 Detected ${anomalies.length} anomalies with ${config.detectionAccuracy}% accuracy`);
 
     return config;
   }
@@ -201,7 +194,6 @@ export class ProductionMonitoringExcellence {
    * Add predictive analytics capabilities
    */
   async addPredictiveCapabilities(): Promise<PredictiveAnalyticsConfig> {
-    console.log('🔮 Adding predictive analytics capabilities...');
 
     const insights = await this.generatePredictiveInsights();
 
@@ -215,7 +207,6 @@ export class ProductionMonitoringExcellence {
 
     this.insights = insights;
 
-    console.log(`🎯 Generated ${insights.length} predictive insights with ${config.accuracy}% accuracy`);
     return config;
   }
 
@@ -223,7 +214,6 @@ export class ProductionMonitoringExcellence {
    * Optimize real-time system health
    */
   async optimizeRealTimeHealth(): Promise<RealTimeOptimizationConfig> {
-    console.log('⚡ Optimizing real-time system health...');
 
     const metrics = [
       'cpu_utilization',
@@ -250,7 +240,6 @@ export class ProductionMonitoringExcellence {
       performanceGains
     };
 
-    console.log(`✅ Real-time optimization active for ${metrics.length} metrics`);
     return config;
   }
 
@@ -258,7 +247,6 @@ export class ProductionMonitoringExcellence {
    * Improve alert accuracy system
    */
   async improveAlertSystem(): Promise<AlertAccuracyConfig> {
-    console.log('🚨 Improving alert accuracy system...');
 
     const alertCategories: AlertCategory[] = [
       {
@@ -305,7 +293,6 @@ export class ProductionMonitoringExcellence {
       alertCategories
     };
 
-    console.log(`🎯 Alert system accuracy: ${currentAccuracy.toFixed(1)}% (target: ${config.targetAccuracy}%)`);
     return config;
   }
 
@@ -313,7 +300,6 @@ export class ProductionMonitoringExcellence {
    * Execute comprehensive monitoring enhancement
    */
   async enhanceMonitoringSystem(): Promise<MonitoringEnhancement> {
-    console.log('🚀 Executing comprehensive monitoring system enhancement...');
 
     const startTime = Date.now();
 
@@ -334,8 +320,6 @@ export class ProductionMonitoringExcellence {
       alertAccuracyImprovement
     };
 
-    console.log(`✅ Monitoring enhancement completed in ${duration}ms`);
-    console.log(`🎯 Overall monitoring effectiveness: ${this.calculateMonitoringEffectiveness(enhancement).toFixed(1)}%`);
 
     return enhancement;
   }
@@ -435,19 +419,17 @@ export class ProductionMonitoringExcellence {
   // Private helper methods
 
   private loadAnomalyDetectionModel(model: string): void {
-    console.log(`📥 Loading anomaly detection model: ${model}`);
     // Simulate model loading
   }
 
   private initializePredictiveModel(type: string): void {
-    console.log(`📊 Initializing predictive model: ${type}`);
     // Simulate model initialization
   }
 
   private async executeRealTimeOptimization(): Promise<void> {
     // Simulate real-time optimization
     const optimizations = Math.floor(Math.random() * 3) + 1;
-    // console.log(`⚡ Executed ${optimizations} real-time optimizations`);
+    // real-time optimizations executed
   }
 
   private async detectAnomalies(): Promise<Array<{ id: number; severity: string }>> {
@@ -507,6 +489,5 @@ export const globalProductionMonitoring = new ProductionMonitoringExcellence();
  * Quick monitoring enhancement execution
  */
 export async function executeMonitoringEnhancement(): Promise<MonitoringEnhancement> {
-  console.log('🚀 Executing Iteration 25 Phase 2: Monitoring Excellence Enhancement...');
   return await globalProductionMonitoring.enhanceMonitoringSystem();
 }

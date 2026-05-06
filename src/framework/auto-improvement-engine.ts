@@ -85,8 +85,6 @@ export class AutoImprovementEngine {
       overallScore: thresholds?.overallScore || 90,
     };
 
-    console.log('🤖 AutoImprovementEngine initialized with thresholds:');
-    console.log(JSON.stringify(this.thresholds, null, 2));
   }
 
   /**
@@ -193,21 +191,15 @@ export class AutoImprovementEngine {
 
     const needsImprovement = issues.length > 0;
 
-    console.log(`\n📊 Quality Analysis Complete:`);
-    console.log(`   Issues Found: ${issues.length}`);
-    console.log(`   Recommendations: ${recommendations.length}`);
 
     if (issues.length > 0) {
-      console.log(`\n⚠️  Issues:`);
-      issues.forEach((issue, i) => console.log(`   ${i + 1}. ${issue}`));
+      // issues tracked for analysis
     }
 
     if (recommendations.length > 0) {
-      console.log(`\n💡 Recommendations (sorted by impact):`);
       recommendations
         .sort((a, b) => b.expectedImprovement - a.expectedImprovement)
         .forEach((rec, i) => {
-          console.log(`   ${i + 1}. ${rec.name} (${rec.expectedImprovement}% improvement, ${rec.complexity} complexity)`);
         });
     }
 
@@ -302,20 +294,17 @@ export class AutoImprovementEngine {
     results: ImprovementResult[];
     finalScore: number;
   }> {
-    console.log('\n🔄 Starting Automatic Improvement Cycle...\n');
 
     const results: ImprovementResult[] = [];
     let improved = false;
 
     // Get baseline metrics
     const baseline = await getCurrentMetrics();
-    console.log(`📊 Baseline Quality Score: ${baseline.overallScore.toFixed(1)}/100`);
 
     // Analyze and get recommendations
     const analysis = this.analyzeMetrics(baseline);
 
     if (!analysis.needsImprovement) {
-      console.log('\n✅ No improvements needed - all metrics meet thresholds!');
       return { improved: false, results: [], finalScore: baseline.overallScore };
     }
 
@@ -324,9 +313,6 @@ export class AutoImprovementEngine {
 
     // Apply improvements one by one (from highest to lowest expected impact)
     for (const strategy of strategiesToApply.slice(0, 3)) { // Top 3 improvements
-      console.log(`\n🔧 Applying: ${strategy.name}`);
-      console.log(`   Target: ${strategy.targetMetric}`);
-      console.log(`   Expected: +${strategy.expectedImprovement}%`);
 
       try {
         const before = await getCurrentMetrics();
@@ -349,10 +335,8 @@ export class AutoImprovementEngine {
         this.improvementHistory.push(result);
 
         if (result.success) {
-          console.log(`   ✅ Success! Improvement: +${improvement.toFixed(1)}%`);
           improved = true;
         } else {
-          console.log(`   ⚠️  No improvement detected`);
         }
       } catch (error) {
         console.error(`   ❌ Failed to apply improvement: ${error}`);
@@ -363,8 +347,6 @@ export class AutoImprovementEngine {
     const final = await getCurrentMetrics();
     const finalScore = final.overallScore;
 
-    console.log(`\n📊 Final Quality Score: ${finalScore.toFixed(1)}/100`);
-    console.log(`📈 Overall Improvement: ${(finalScore - baseline.overallScore).toFixed(1)} points`);
 
     return { improved, results, finalScore };
   }
@@ -415,7 +397,6 @@ export class AutoImprovementEngine {
    */
   linkIterationManager(manager: IterationManager): void {
     this.iterationManager = manager;
-    console.log('🔗 AutoImprovementEngine linked with IterationManager');
   }
 
   /**
@@ -426,34 +407,27 @@ export class AutoImprovementEngine {
     targetScore: number = 95,
     maxCycles: number = 5
   ): Promise<{ success: boolean; cycles: number; finalScore: number }> {
-    console.log(`\n🚀 Starting Autonomous Improvement Loop`);
-    console.log(`   Target Score: ${targetScore}`);
-    console.log(`   Max Cycles: ${maxCycles}\n`);
 
     let cycle = 0;
     let currentScore = 0;
 
     while (cycle < maxCycles) {
       cycle++;
-      console.log(`\n━━━ Cycle ${cycle}/${maxCycles} ━━━`);
 
       const result = await this.runImprovementCycle(getCurrentMetrics);
       currentScore = result.finalScore;
 
       if (currentScore >= targetScore) {
-        console.log(`\n🎉 Target score achieved! (${currentScore.toFixed(1)} >= ${targetScore})`);
         return { success: true, cycles: cycle, finalScore: currentScore };
       }
 
       if (!result.improved) {
-        console.log(`\n⚠️  No improvements possible in this cycle`);
       }
 
       // Small delay between cycles
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
-    console.log(`\n⏱️  Max cycles reached. Final score: ${currentScore.toFixed(1)}`);
     return {
       success: currentScore >= targetScore,
       cycles: maxCycles,

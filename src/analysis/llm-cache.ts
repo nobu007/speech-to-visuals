@@ -148,7 +148,6 @@ export class LLMCache<T> {
     if (bestMatch) {
       bestMatch.entry.hits++;
       this.semanticMetrics.recordSemanticHit(bestMatch.similarity);
-      console.log(`🔍 Semantic cache hit (similarity: ${(bestMatch.similarity * 100).toFixed(1)}%)`);
       return bestMatch.entry.data;
     }
 
@@ -312,7 +311,6 @@ export class LLMCache<T> {
       }
 
       const semanticSupport = parsed.version === '2.0' ? ' (with semantic support)' : '';
-      console.log(`💾 Loaded ${loadedCount} cached LLM entries from disk${semanticSupport} (${expiredCount} expired, discarded)`);
 
     } catch (error) {
       console.warn('⚠️  Failed to load LLM cache from disk:', error);

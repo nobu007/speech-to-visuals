@@ -123,7 +123,6 @@ export class QualityMonitor {
    * 🔄 Enhanced with Custom Instructions Compliance Assessment
    */
   async assessPipelineQuality(result: PipelineResult): Promise<QualityAssessment> {
-    console.log('\n🔍 Running Quality Assessment (Custom Instructions Compliant)...');
 
     const startTime = performance.now();
 
@@ -167,7 +166,6 @@ export class QualityMonitor {
       await this.logAssessment(assessment);
 
       const assessmentTime = performance.now() - startTime;
-      console.log(`✅ Quality assessment completed in ${assessmentTime.toFixed(0)}ms`);
 
       return assessment;
 
@@ -203,10 +201,6 @@ export class QualityMonitor {
 
     const normalizedScore = maxScore > 0 ? score / maxScore : 0;
 
-    console.log(`📈 Performance Score: ${(normalizedScore * 100).toFixed(1)}%`);
-    console.log(`   - Speed: ${(speedScore * 100).toFixed(1)}%`);
-    console.log(`   - Memory: ${(memoryScore * 100).toFixed(1)}%`);
-    console.log(`   - Success: ${(successScore * 100).toFixed(1)}%`);
 
     return normalizedScore;
   }
@@ -281,11 +275,6 @@ export class QualityMonitor {
 
     const normalizedScore = maxScore > 0 ? score / maxScore : 0;
 
-    console.log(`🎯 Accuracy Score: ${(normalizedScore * 100).toFixed(1)}%`);
-    console.log(`   - Scenes: ${(sceneScore * 100).toFixed(1)}%`);
-    console.log(`   - Layout: ${(layoutScore * 100).toFixed(1)}%`);
-    console.log(`   - Content: ${(contentScore * 100).toFixed(1)}%`);
-    console.log(`   - LLM Extract: ${(llmScore * 100).toFixed(1)}%`);
 
     return normalizedScore;
   }
@@ -493,10 +482,6 @@ export class QualityMonitor {
 
     const normalizedScore = maxScore > 0 ? score / maxScore : 0;
 
-    console.log(`🛡️ Reliability Score: ${(normalizedScore * 100).toFixed(1)}%`);
-    console.log(`   - Success: ${(successScore * 100).toFixed(1)}%`);
-    console.log(`   - Stages: ${(stageScore * 100).toFixed(1)}%`);
-    console.log(`   - Errors: ${(errorScore * 100).toFixed(1)}%`);
 
     return normalizedScore;
   }
@@ -618,30 +603,19 @@ export class QualityMonitor {
    * Log assessment results
    */
   private async logAssessment(assessment: QualityAssessment): Promise<void> {
-    console.log('\n📊 Quality Assessment Results:');
-    console.log(`Overall Score: ${(assessment.overallScore * 100).toFixed(1)}%`);
-    console.log(`Performance: ${(assessment.performanceScore * 100).toFixed(1)}%`);
-    console.log(`Accuracy: ${(assessment.accuracyScore * 100).toFixed(1)}%`);
-    console.log(`Reliability: ${(assessment.reliabilityScore * 100).toFixed(1)}%`);
 
     if (assessment.improvements.length > 0) {
-      console.log('\n✅ Improvements:');
       assessment.improvements.forEach(improvement => {
-        console.log(`  - ${improvement}`);
       });
     }
 
     if (assessment.recommendations.length > 0) {
-      console.log('\n💡 Recommendations:');
       assessment.recommendations.forEach(rec => {
-        console.log(`  - ${rec}`);
       });
     }
 
     if (assessment.concerns.length > 0) {
-      console.log('\n⚠️ Concerns:');
       assessment.concerns.forEach(concern => {
-        console.log(`  - ${concern}`);
       });
     }
 
@@ -657,7 +631,6 @@ export class QualityMonitor {
    */
   private async appendToIterationLog(assessment: QualityAssessment): Promise<void> {
     // In real implementation, this would append to .module/ITERATION_LOG.md
-    console.log(`[Quality Monitor] Iteration ${assessment.iteration} logged for improvement tracking`);
   }
 
   /**
@@ -665,7 +638,6 @@ export class QualityMonitor {
    */
   public nextIteration(): void {
     this.currentIteration++;
-    console.log(`🔄 Quality Monitor: Moving to iteration ${this.currentIteration}`);
   }
 
   /**
@@ -738,7 +710,6 @@ export class QualityMonitor {
     result: PipelineResult,
     assessment: QualityAssessment
   ): Promise<void> {
-    console.log('🔄 Evaluating recursive development compliance...');
 
     const compliance = {
       implementationPhase: result.success ? 1.0 : 0.0,
@@ -766,7 +737,6 @@ export class QualityMonitor {
     result: PipelineResult,
     assessment: QualityAssessment
   ): Promise<void> {
-    console.log('🎯 Assessing phase success criteria...');
 
     const criteria = {
       mvp: result.success && result.outputPath ? 1.0 : 0.0,
@@ -794,7 +764,6 @@ export class QualityMonitor {
     result: PipelineResult,
     assessment: QualityAssessment
   ): Promise<void> {
-    console.log('📊 Evaluating iteration quality...');
 
     const iterationMetrics = {
       processingTime: result.metrics?.totalProcessingTime < 30000 ? 1.0 : 0.5,

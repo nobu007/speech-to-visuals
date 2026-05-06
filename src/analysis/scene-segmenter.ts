@@ -113,8 +113,6 @@ export class SceneSegmenter {
    */
   async segment(transcriptionSegments: TranscriptionSegment[]): Promise<ContentSegment[]> {
     const startTime = performance.now();
-    console.log(`[Scene Segmentation V${this.iteration}] Processing ${transcriptionSegments.length} segments`);
-    console.log(`🔄 Custom Instructions: Starting recursive development cycle`);
 
     try {
       // 🔄 実装段階: Apply iterative segmentation improvements
@@ -132,8 +130,6 @@ export class SceneSegmenter {
       }
 
       const processingTime = performance.now() - startTime;
-      console.log(`[V${this.iteration}] Generated ${segments.length} content segments in ${processingTime.toFixed(0)}ms`);
-      console.log(`🔄 Quality Score: ${(evaluationResults.qualityScore * 100).toFixed(1)}%`);
 
       // Store metrics for continuous improvement
       this.updateIterativeMetrics(segments, processingTime, evaluationResults.qualityScore);
@@ -151,8 +147,6 @@ export class SceneSegmenter {
    * Enhanced with sentence boundary detection and topic-shift keyword splitting.
    */
   private async basicSegmentation(transcriptionSegments: TranscriptionSegment[]): Promise<ContentSegment[]> {
-    console.log(`[V${this.iteration}] Applying basic segmentation...`);
-
     const segments: ContentSegment[] = [];
     let currentSegment: {
       startMs: number;
@@ -414,8 +408,6 @@ export class SceneSegmenter {
    * Iteration 2+: Semantic analysis for better segmentation
    */
   private async semanticSegmentation(segments: ContentSegment[]): Promise<ContentSegment[]> {
-    console.log(`[V${this.iteration}] Applying semantic analysis...`);
-
     if (segments.length <= 1) return segments;
 
     // Compute keyword-based similarity between adjacent segments and merge
@@ -478,8 +470,6 @@ export class SceneSegmenter {
    * Iteration 3+: Topic modeling for advanced segmentation
    */
   private async topicBasedSegmentation(segments: ContentSegment[]): Promise<ContentSegment[]> {
-    console.log(`[V${this.iteration}] Applying topic modeling...`);
-
     if (segments.length <= 1) return segments;
 
     // Build a topic vector for each segment based on keyword frequency,
@@ -573,13 +563,6 @@ export class SceneSegmenter {
       processingTime
     };
 
-    console.log('\n📊 Segmentation Metrics:');
-    console.log(`- Segments: ${metrics.segmentCount}`);
-    console.log(`- Avg Length: ${(metrics.avgSegmentLength / this.MS_TO_SECONDS_DIVISOR).toFixed(1)}s`);
-    console.log(`- Avg Keyphrases: ${metrics.avgKeyphraseCount.toFixed(1)}`);
-    console.log(`- Avg Confidence: ${(metrics.avgConfidence * 100).toFixed(1)}%`);
-    console.log(`- Processing Time: ${metrics.processingTime.toFixed(0)}ms`);
-
     // Success criteria
     const successCriteria = {
       hasSegments: metrics.segmentCount > this.MIN_SEGMENTS_FOR_SUCCESS,
@@ -588,8 +571,7 @@ export class SceneSegmenter {
       goodConfidence: metrics.avgConfidence > this.GOOD_CONFIDENCE_THRESHOLD
     };
 
-    const success = Object.values(successCriteria).every(v => v);
-    console.log(success ? '✅ Segmentation successful' : '⚠️ Segmentation needs improvement');
+    Object.values(successCriteria).every(v => v);
   }
 
   /**
@@ -600,15 +582,12 @@ export class SceneSegmenter {
     if (enableSemantic) {
       this.config.enableSemanticAnalysis = true;
     }
-    console.log(`🔄 Moving to segmentation iteration ${this.iteration}`);
   }
 
   /**
    * 🔄 Custom Instructions: Apply Iterative Segmentation (Implementation Phase)
    */
   private async applyIterativeSegmentation(transcriptionSegments: TranscriptionSegment[]): Promise<ContentSegment[]> {
-    console.log('🔄 Applying iterative segmentation improvements...');
-
     // Iteration 1: Basic segmentation
     let segments = await this.basicSegmentation(transcriptionSegments);
 
@@ -633,8 +612,6 @@ export class SceneSegmenter {
     testResults: Array<{ name: string; passed: boolean; score: number }>;
     overallScore: number;
   }> {
-    console.log('🧪 Testing segmentation quality...');
-
     const tests = [
       this.testSegmentLengthDistribution(segments),
       this.testKeyphraseQuality(segments),
@@ -645,9 +622,6 @@ export class SceneSegmenter {
     const testResults = await Promise.all(tests);
     const overallScore = testResults.reduce((sum, result) => sum + result.score, 0) / testResults.length;
     const passed = overallScore > this.TEST_SEGMENTATION_OVERALL_SCORE_THRESHOLD; // 80% threshold
-
-    console.log(`🧪 Test Results: ${testResults.filter(r => r.passed).length}/${testResults.length} passed`);
-    console.log(`🧪 Overall Test Score: ${(overallScore * 100).toFixed(1)}%`);
 
     return { passed, testResults, overallScore };
   }
@@ -663,8 +637,6 @@ export class SceneSegmenter {
     needsImprovement: boolean;
     suggestions: string[];
   }> {
-    console.log('📊 Evaluating segmentation performance...');
-
     const metrics = {
       segmentCount: segments.length,
       avgLength: segments.reduce((sum, seg) => sum + (seg.endMs - seg.startMs), 0) / segments.length,
@@ -688,8 +660,6 @@ export class SceneSegmenter {
     const suggestions = this.generateImprovementSuggestions(qualityFactors, metrics);
     const needsImprovement = qualityScore < 0.85; // 85% threshold for improvement
 
-    console.log(`📊 Quality Evaluation Complete: ${(qualityScore * 100).toFixed(1)}%`);
-
     return { qualityScore, needsImprovement, suggestions };
   }
 
@@ -700,8 +670,6 @@ export class SceneSegmenter {
     segments: ContentSegment[],
     suggestions: string[]
   ): Promise<ContentSegment[]> {
-    console.log('🔄 Applying iterative improvements...');
-
     let improvedSegments = [...segments];
 
     for (const suggestion of suggestions) {
@@ -716,7 +684,6 @@ export class SceneSegmenter {
       }
     }
 
-    console.log(`🔄 Applied ${suggestions.length} improvements`);
     return improvedSegments;
   }
 
@@ -739,13 +706,7 @@ export class SceneSegmenter {
     // Log improvements
     if (this.iteration > 1) {
       const previousQuality = this.segmentationMetrics.qualityScores.get(this.iteration - 1) || 0;
-      const improvement = ((qualityScore - previousQuality) / previousQuality) * 100;
-
-      if (improvement > this.ITERATIVE_IMPROVEMENT_POSITIVE_THRESHOLD) {
-        console.log(`📈 Quality improved by ${improvement.toFixed(1)}% this iteration`);
-      } else if (improvement < this.ITERATIVE_IMPROVEMENT_NEGATIVE_THRESHOLD) {
-        console.log(`📉 Quality regressed by ${Math.abs(improvement).toFixed(1)}% - needs attention`);
-      }
+      ((qualityScore - previousQuality) / previousQuality) * 100;
     }
   }
 
@@ -756,7 +717,6 @@ export class SceneSegmenter {
   }
 
   private async enhancedSemanticSegmentation(segments: ContentSegment[]): Promise<ContentSegment[]> {
-    console.log('🔄 Applying enhanced semantic segmentation...');
     // Implementation would go here - for now, return segments as-is
     return segments;
   }
@@ -840,7 +800,6 @@ export class SceneSegmenter {
 
   // Improvement implementation methods
   private async mergeShortSegments(segments: ContentSegment[]): Promise<ContentSegment[]> {
-    console.log('🔄 Merging short segments...');
     if (segments.length === 0) return segments;
 
     const result: ContentSegment[] = [];
@@ -908,7 +867,6 @@ export class SceneSegmenter {
   }
 
   private async splitLongSegments(segments: ContentSegment[]): Promise<ContentSegment[]> {
-    console.log('🔄 Splitting long segments...');
     const result: ContentSegment[] = [];
 
     for (const segment of segments) {
@@ -994,7 +952,6 @@ export class SceneSegmenter {
   }
 
   private async enhanceKeyphrases(segments: ContentSegment[]): Promise<ContentSegment[]> {
-    console.log('🔄 Enhancing keyphrases...');
     return segments.map(seg => {
       const jaKeywords = this.extractJapaneseKeywords(seg.text);
       const enKeywords = this.extractKeywords(seg.text);
@@ -1008,7 +965,6 @@ export class SceneSegmenter {
   }
 
   private async improveConfidenceScores(segments: ContentSegment[]): Promise<ContentSegment[]> {
-    console.log('🔄 Improving confidence scores...');
     return segments; // Simplified implementation
   }
 }

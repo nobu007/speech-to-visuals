@@ -125,7 +125,6 @@ export class PerformanceDashboard {
       }
     };
 
-    console.log('📊 Performance Dashboard initialized with Claude Code excellence standards');
     // Skip background intervals in test environment to prevent Jest worker leaks
     if (process.env.NODE_ENV !== 'test') {
       this.startMonitoring();
@@ -148,7 +147,6 @@ export class PerformanceDashboard {
       this.autoOptimize();
     }, 5000);
 
-    console.log('🔄 Real-time performance monitoring started');
   }
 
   /**
@@ -159,7 +157,6 @@ export class PerformanceDashboard {
       clearInterval(this.monitoringInterval);
       this.monitoringInterval = null;
     }
-    console.log('⏹️ Performance monitoring stopped');
   }
 
   /**
@@ -326,7 +323,6 @@ export class PerformanceDashboard {
       }
     });
 
-    console.log(`🚨 [${level.toUpperCase()}] ${category}: ${message} (${value.toFixed(2)} vs ${threshold})`);
   }
 
   /**
@@ -341,7 +337,6 @@ export class PerformanceDashboard {
     if (this.shouldOptimize()) {
       this.lastOptimization = now;
 
-      console.log('⚡ Auto-optimization triggered');
 
       // Trigger optimization callbacks
       for (const callback of this.optimizationCallbacks) {
@@ -385,14 +380,12 @@ export class PerformanceDashboard {
     if (current.memory.heapUsed / (1024 * 1024) > this.thresholds.memory.heapUsedMB * 0.8) {
       if (global.gc) {
         global.gc();
-        console.log('🧹 Forced garbage collection');
       }
     }
 
     // Cache optimization would happen here
     // Pipeline optimization would happen here
 
-    console.log('⚡ Built-in optimizations completed');
   }
 
   /**
@@ -627,7 +620,6 @@ export class PerformanceDashboard {
     this.alerts = [];
     this.alertCallbacks = [];
     this.optimizationCallbacks = [];
-    console.log('🧹 Performance Dashboard destroyed');
   }
 }
 

@@ -159,9 +159,6 @@ export class ZeroOverlapLayoutEngine {
   ): Promise<ZeroOverlapResult> {
     const startTime = performance.now();
 
-    console.log('🎯 [ZeroOverlap] Starting zero-overlap layout generation...');
-    console.log(`   📊 Input: ${nodes.length} nodes, ${edges.length} edges`);
-    console.log(`   🎯 Target: 0 overlaps, optimal aesthetics`);
 
     try {
       // Step 1: Generate initial layout using appropriate algorithm
@@ -178,9 +175,6 @@ export class ZeroOverlapLayoutEngine {
 
       const processingTime = performance.now() - startTime;
 
-      console.log(`✅ [ZeroOverlap] Layout complete in ${processingTime.toFixed(1)}ms`);
-      console.log(`   📊 Quality: ${(finalResult.qualityMetrics.aestheticScore * 100).toFixed(1)}%`);
-      console.log(`   🎯 Overlaps: ${finalResult.qualityMetrics.overlapCount} (Target: 0)`);
 
       return {
         ...finalResult,
@@ -211,7 +205,6 @@ export class ZeroOverlapLayoutEngine {
     nodes: NodeDatum[],
     edges: EdgeDatum[]
   ): Promise<{ nodes: PositionedNode[]; edges: LayoutEdge[] }> {
-    console.log('🔧 [ZeroOverlap] Generating initial layout...');
 
     switch (diagramType) {
       case 'flowchart':
@@ -475,7 +468,6 @@ export class ZeroOverlapLayoutEngine {
     // Initialize nodes with better distributed positions
     const positionedNodes: PositionedNode[] = this.initializeNetworkNodes(nodes, optimalSpacing);
 
-    console.log(`🔧 [Network] Applying enhanced force-directed algorithm with ${optimalSpacing}px spacing`);
 
     // Enhanced force-directed algorithm with multiple phases
     const layoutEdges: LayoutEdge[] = edges.map(edge => ({
@@ -546,7 +538,6 @@ export class ZeroOverlapLayoutEngine {
     ];
 
     for (const phase of phases) {
-      console.log(`   🔄 Phase: ${phase.description} (${phase.iterations} iterations)`);
 
       for (let i = 0; i < phase.iterations; i++) {
         this.applyEnhancedForceStep(nodes, edges, phase.strength, optimalSpacing);
@@ -555,7 +546,6 @@ export class ZeroOverlapLayoutEngine {
         if (i % 10 === 0) {
           const overlaps = this.detectAllOverlaps(nodes);
           if (overlaps.length === 0) {
-            console.log(`   ✅ Convergence achieved at iteration ${i}`);
             break;
           }
         }
@@ -717,7 +707,6 @@ export class ZeroOverlapLayoutEngine {
   private async resolveAllOverlaps(
     layout: { nodes: PositionedNode[]; edges: LayoutEdge[] }
   ): Promise<{ nodes: PositionedNode[]; edges: LayoutEdge[] }> {
-    console.log('🔍 [ZeroOverlap] Detecting and resolving overlaps...');
 
     let currentNodes = [...layout.nodes];
     let iteration = 0;
@@ -727,13 +716,11 @@ export class ZeroOverlapLayoutEngine {
       const overlaps = this.detectAllOverlaps(currentNodes);
 
       if (overlaps.length === 0) {
-        console.log(`✅ [ZeroOverlap] Zero overlaps achieved in ${iteration} iterations`);
         break;
       }
 
       // ITERATION 45: Log progress less frequently to reduce noise
       if (iteration % 50 === 0 || iteration < 10) {
-        console.log(`   🔧 Iteration ${iteration + 1}: Resolving ${overlaps.length} overlaps`);
       }
       currentNodes = this.resolveOverlapsBatch(currentNodes, overlaps);
       iteration++;
@@ -878,7 +865,6 @@ export class ZeroOverlapLayoutEngine {
   private async optimizeLayoutAesthetics(
     layout: { nodes: PositionedNode[]; edges: LayoutEdge[] }
   ): Promise<{ nodes: PositionedNode[]; edges: LayoutEdge[] }> {
-    console.log('🎨 [ZeroOverlap] Optimizing layout aesthetics...');
 
     let currentLayout = layout;
     let bestScore = this.calculateAestheticScore(currentLayout);
@@ -894,7 +880,6 @@ export class ZeroOverlapLayoutEngine {
       if (!hasOverlaps && candidateScore > bestScore + this.config.optimization.convergenceThreshold) {
         currentLayout = candidate;
         bestScore = candidateScore;
-        console.log(`   🎨 Aesthetic improvement: ${(bestScore * 100).toFixed(1)}%`);
       } else if (candidateScore < bestScore - this.config.optimization.convergenceThreshold) {
         break; // Converged
       }
@@ -902,7 +887,6 @@ export class ZeroOverlapLayoutEngine {
       iteration++;
     }
 
-    console.log(`✅ [ZeroOverlap] Aesthetic optimization complete (score: ${(bestScore * 100).toFixed(1)}%)`);
     return currentLayout;
   }
 
@@ -955,7 +939,6 @@ export class ZeroOverlapLayoutEngine {
   private async validateAndFinalize(
     layout: { nodes: PositionedNode[]; edges: LayoutEdge[] }
   ): Promise<Omit<ZeroOverlapResult, 'processingTime' | 'success'>> {
-    console.log('✅ [ZeroOverlap] Final validation...');
 
     const qualityMetrics = this.calculateQualityMetrics(layout);
     const warnings: string[] = [];
@@ -973,7 +956,6 @@ export class ZeroOverlapLayoutEngine {
       warnings.push('Some text may be difficult to read');
     }
 
-    console.log(`   📊 Final quality score: ${(qualityMetrics.aestheticScore * 100).toFixed(1)}%`);
 
     return {
       nodes: layout.nodes,
@@ -1403,7 +1385,6 @@ export class ZeroOverlapLayoutEngine {
   public cleanup(): void {
     this.collisionGrid.clear();
     this.optimizationHistory = [];
-    console.log('🧹 [ZeroOverlap] Cleanup complete');
   }
 }
 

@@ -64,7 +64,6 @@ export class UserGuidedErrorRecovery {
    * Analyze error and provide guidance
    */
   analyzeError(error: Error, context?: Record<string, unknown>): ErrorGuidance {
-    console.log(`🔍 Phase 37: Analyzing error for user guidance`);
 
     const category = this.categorizeError(error, context);
     const severity = this.assessSeverity(category, error);
@@ -88,8 +87,6 @@ export class UserGuidedErrorRecovery {
       documentationLinks: this.getDocumentationLinks(category),
     };
 
-    console.log(`   Category: ${category} (${severity} severity)`);
-    console.log(`   Recovery strategies: ${guidance.recoveryStrategies.length} available`);
 
     return guidance;
   }
@@ -101,12 +98,10 @@ export class UserGuidedErrorRecovery {
     guidance: ErrorGuidance,
     retryFunction: () => Promise<unknown>
   ): Promise<{ success: boolean; result?: unknown; error?: Error }> {
-    console.log(`🔄 Phase 37: Attempting automatic error recovery`);
 
     const automatedStrategies = guidance.recoveryStrategies.filter((s) => s.automated);
 
     if (automatedStrategies.length === 0) {
-      console.log(`   ⚠️  No automated recovery strategies available`);
       return { success: false, error: guidance.error };
     }
 
@@ -114,7 +109,6 @@ export class UserGuidedErrorRecovery {
     automatedStrategies.sort((a, b) => b.successRate - a.successRate);
 
     for (const strategy of automatedStrategies) {
-      console.log(`   🔧 Trying strategy: ${strategy.name}`);
 
       try {
         // Apply strategy (simplified for Phase 37)
@@ -123,7 +117,6 @@ export class UserGuidedErrorRecovery {
         // Retry operation
         const result = await retryFunction();
 
-        console.log(`   ✅ Recovery successful with strategy: ${strategy.name}`);
 
         // Mark as recovered in history
         const lastError = this.errorHistory[this.errorHistory.length - 1];
@@ -133,12 +126,10 @@ export class UserGuidedErrorRecovery {
 
         return { success: true, result };
       } catch (error) {
-        console.log(`   ❌ Strategy failed: ${strategy.name}`);
         continue;
       }
     }
 
-    console.log(`   ❌ All automated recovery strategies failed`);
     return { success: false, error: guidance.error };
   }
 
@@ -517,7 +508,6 @@ export class UserGuidedErrorRecovery {
    * Apply recovery strategy
    */
   private async applyStrategy(strategy: RecoveryStrategy): Promise<void> {
-    console.log(`🔧 Phase 37: Applying strategy "${strategy.name}"`);
 
     // Simulate strategy application
     // In production, implement actual recovery logic for each strategy

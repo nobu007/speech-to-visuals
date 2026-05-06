@@ -92,7 +92,6 @@ export class VideoGenerator {
       ...options
     };
 
-    console.log(`[Video Generator] Phase 14: Initialized with concurrency=${this.options.concurrency}, GPU=${this.options.enableGpuAcceleration}`);
   }
 
   /**
@@ -106,7 +105,6 @@ export class VideoGenerator {
     const startTime = performance.now();
 
     try {
-      console.log(`[Video Generation V${this.iteration}] Starting video generation...`);
       onProgress?.('Initializing video generation', 0);
 
       // Phase 4-1: 実装段階 - SimplePipeline → Remotionデータ変換
@@ -140,7 +138,6 @@ export class VideoGenerator {
 
       onProgress?.('Video generation complete', 100);
 
-      console.log(`[Video Generation V${this.iteration}] Complete in ${processingTime.toFixed(0)}ms`);
 
       return {
         ...finalResult,
@@ -173,7 +170,6 @@ export class VideoGenerator {
     scenes: RemotionSceneData[];
     totalDuration: number;
   }> {
-    console.log('[Video Generation] Converting pipeline data to Remotion format...');
 
     if (!result.success || !result.scenes || !result.audioUrl) {
       throw new Error('Invalid pipeline result for video generation');
@@ -190,7 +186,6 @@ export class VideoGenerator {
     // 総再生時間計算
     const totalDuration = this.calculateTotalDuration(scenes);
 
-    console.log(`[Video Generation] Converted ${scenes.length} scenes, total duration: ${totalDuration}ms`);
 
     return {
       audioUrl,
@@ -348,7 +343,6 @@ export class VideoGenerator {
     config: unknown,
     onProgress?: (stage: string, progress: number) => void
   ) {
-    console.log('[Video Generation] Executing actual Remotion render...');
     const cfg = config as Record<string, unknown>;
     const inputProps = cfg.inputProps as Record<string, unknown>;
     const renderConfig = cfg.config as Record<string, unknown>;
@@ -387,13 +381,11 @@ export class VideoGenerator {
         fps: renderConfig.fps as number
       };
 
-      console.log('[Video Generation] Render complete:', videoInfo);
       return videoInfo;
 
     } catch (error) {
       console.error('[Video Generation] Render failed:', error);
       // フォールバックとして模擬レンダリング
-      console.log('[Video Generation] Falling back to mock rendering');
       return await this.executeMockRender(config, onProgress);
     }
   }
@@ -405,7 +397,6 @@ export class VideoGenerator {
     config: unknown,
     onProgress?: (stage: string, progress: number) => void
   ) {
-    console.log('[Video Generation] Executing mock render for browser...');
     const cfg = config as Record<string, unknown>;
     const inputProps = cfg.inputProps as Record<string, unknown>;
     const renderCfg = cfg.config as Record<string, unknown>;
@@ -438,7 +429,6 @@ export class VideoGenerator {
       fps: renderCfg.fps as number
     };
 
-    console.log('[Video Generation] Mock render complete:', videoInfo);
 
     return videoInfo;
   }
@@ -616,7 +606,6 @@ export class VideoGenerator {
    */
   public nextIteration(): void {
     this.iteration++;
-    console.log(`🔄 Video Generation moving to iteration ${this.iteration}`);
   }
 }
 

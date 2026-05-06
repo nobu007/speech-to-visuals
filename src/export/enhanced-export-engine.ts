@@ -151,7 +151,6 @@ export class EnhancedExportEngine {
     this.maxConcurrentExports = maxConcurrentExports;
     this.exportWorkerPool = null;
 
-    console.log('Enhanced Export Engine initialized', {
       maxConcurrent: this.maxConcurrentExports,
       workers: this.useWorkers,
     });
@@ -269,7 +268,6 @@ export class EnhancedExportEngine {
       // Stage 5: Finalization
       const result = await this.finalizeExport(job, processedVideo);
 
-      console.log('✅ Export completed successfully', {
         jobId: job.id,
         format: job.config.format,
         duration: `${(Date.now() - job.startTime.getTime()) / 1000}s`
@@ -670,7 +668,6 @@ export class EnhancedExportEngine {
         const sceneData = ${JSON.stringify(sceneData)};
 
         // Add interactive controls here
-        console.log('Interactive video player loaded');
     </script>
 </body>
 </html>`;
@@ -819,7 +816,6 @@ export class EnhancedExportEngine {
 
   private async writeOutputFile(video: ProcessedVideo, outputPath: string): Promise<string> {
     // Write final video file
-    console.log(`📁 Writing output file: ${outputPath}`);
     return outputPath;
   }
 

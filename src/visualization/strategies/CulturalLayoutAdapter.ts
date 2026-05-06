@@ -17,7 +17,6 @@ export class CulturalLayoutAdapter {
   ): Promise<DiagramLayout> {
     if (!culturalConfig) return layout;
 
-    console.log(`🎨 Applying cultural adaptation for ${culturalConfig.languageCode}...`);
 
     let adaptedLayout = { ...layout };
 
@@ -38,7 +37,6 @@ export class CulturalLayoutAdapter {
     // Apply visual style adjustments
     adaptedLayout = await this.applyVisualStyle(adaptedLayout, culturalConfig.visualStyle);
 
-    console.log(`✅ Cultural adaptation applied for ${culturalConfig.languageCode}`);
     return adaptedLayout;
   }
 

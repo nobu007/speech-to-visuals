@@ -16,7 +16,6 @@ export class FallbackLayoutStrategy {
     edges: EdgeDatum[],
     diagramType: DiagramType
   ): DiagramLayout {
-    console.log(`Applying fallback ${diagramType} layout...`);
 
     // Different layout strategies based on diagram type
     switch (diagramType) {

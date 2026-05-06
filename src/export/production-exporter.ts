@@ -200,7 +200,6 @@ export class ProductionExporter {
   ): Promise<string> {
     const jobId = `export-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    console.log(`📤 [Iteration ${this.iteration}] Creating export job: ${name}`);
 
     // Calculate metadata
     const totalFrames = this.calculateTotalFrames(scenes, options);
@@ -227,7 +226,6 @@ export class ProductionExporter {
       this.processJob(jobId);
     }
 
-    console.log(`✅ Export job created: ${jobId}`);
     return jobId;
   }
 
@@ -243,7 +241,6 @@ export class ProductionExporter {
     job.startTime = performance.now();
 
     try {
-      console.log(`🎬 Starting export: ${job.name} (${job.options.width}x${job.options.height})`);
 
       // Stage 1: Preparation
       await this.updateProgress(jobId, 'preparing', 10, 'Preparing scenes for rendering...');
@@ -267,7 +264,6 @@ export class ProductionExporter {
       job.endTime = performance.now();
       job.outputPath = finalResult.outputPath;
 
-      console.log(`✅ Export completed: ${job.name} in ${((job.endTime - job.startTime!) / 1000).toFixed(1)}s`);
 
     } catch (error) {
       job.status = 'error';
@@ -288,7 +284,6 @@ export class ProductionExporter {
     scenes: EnhancedSceneGraph[],
     options: RenderOptions
   ): Promise<PreparedScene[]> {
-    console.log(`🎬 Preparing ${scenes.length} scenes for ${options.quality} quality`);
 
     // Optimize scenes based on render options
     const prepared = scenes.map(scene => ({
@@ -316,7 +311,6 @@ export class ProductionExporter {
    * Render scenes to video frames
    */
   private async renderScenes(preparedScenes: PreparedScene[], options: RenderOptions): Promise<RenderResult> {
-    console.log(`🎨 Rendering ${preparedScenes.length} scenes at ${options.fps}fps`);
 
     // Simulate professional rendering process
     const renderResults = [];
@@ -417,7 +411,6 @@ export class ProductionExporter {
    * Encode rendered frames to video
    */
   private async encodeVideo(renderResult: RenderResult, options: RenderOptions): Promise<RenderResult> {
-    console.log(`🔧 Encoding to ${options.format.toUpperCase()} format`);
 
     // Simulate encoding process with different parameters
     const encodingSettings = this.getEncodingSettings(options);
@@ -508,7 +501,6 @@ export class ProductionExporter {
    * Finalize export with metadata and optimization
    */
   private async finalizeExport(encodedResult: RenderResult, job: ExportJob): Promise<{ outputPath: string; metadata: Record<string, unknown>; success: boolean }> {
-    console.log(`📁 Finalizing export: ${job.name}`);
 
     const outputPath = `/exports/${job.id}.${job.options.format}`;
 
@@ -559,7 +551,6 @@ export class ProductionExporter {
       currentOperation: operation
     };
 
-    console.log(`📊 ${job.name}: ${stage} - ${progress}% (${operation})`);
   }
 
   /**
@@ -639,7 +630,6 @@ export class ProductionExporter {
     job.error = 'Cancelled by user';
     job.endTime = performance.now();
 
-    console.log(`🚫 Export job cancelled: ${job.name}`);
     this.processNextJob();
 
     return true;
