@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 1-25 完了（123/123タスク完了 + ISS-003~009修正）・297ファイル・89,624行・104パッケージ（74 deps+30 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.2 制定・Web Workers 並列化基盤（エクスポート・レイアウトエンジン対応）・Worker信頼性改善（クラッシュループ防止・Promise漏洩解消・リスナークリーンアップ）・APNG実エンコーダ統合・JWT署名検証修正（jwt.decode→jwt.verify）・セキュリティ・堅牢性修正完了（ISS-003~009: パストラバーサル防止・バッチ入力検証・ジョブストア上限・ブラウザセーフメモリユーティリティ・再試行多様化・配列成長制限）・第134回要件検証（109要件・Phase 25完了・ISS-010~012をPhase 26候補として特定）
+**実装状況**: Phase 1-26 完了（123/123タスク完了 + ISS-003~012修正）・297ファイル・89,624行・104パッケージ（74 deps+30 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.2 制定・Web Workers 並列化基盤（エクスポート・レイアウトエンジン対応）・Worker信頼性改善（クラッシュループ防止・Promise漏洩解消・リスナークリーンアップ）・APNG実エンコーダ統合・JWT署名検証修正（jwt.decode→jwt.verify）・セキュリティ・堅牢性修正完了（ISS-003~012: パストラバーサル防止・バッチ入力検証・ジョブストア上限・ブラウザセーフメモリユーティリティ・再試行多様化・配列成長制限・jobId UUID検証・品質ゲート配列制限・ブラウザセーフenv・alert→toast）・Phase 27 進行中（ISS-013: ReDoS防止・ISS-014: localStorage保護・ISS-017: CORS設定改善）
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 

@@ -1,8 +1,8 @@
 meta:
-  generated_at: "2026-05-07T02:50:00Z"
-  source_deliverable: "Browser robustness and security hardening"
+  generated_at: "2026-05-07T03:40:00Z"
+  source_deliverable: "Phase 26 completion + Phase 27 security hardening"
   milestone_id: "security-p0"
-  instruction: "25_purpose_driven_executor"
+  instruction: "27_purpose_driven_executor"
 
 completed_tasks:
   - id: T-001
@@ -21,6 +21,10 @@ completed_tasks:
     title: "Guard localStorage.removeItem in resetConfig + use safe memory utility in SimplePipeline"
     commit_sha: "5a9e7a1"
     completed_at: "2026-05-07T02:50:00Z"
+  - id: T-005
+    title: "ISS-010~012: jobId UUID validation, adaptive-quality-gates array limit, browser-safe env access, alert→toast migration"
+    commit_sha: "a543ac3"
+    completed_at: "2026-05-07T03:00:00Z"
 
 remaining_tasks: []
 
@@ -51,25 +55,40 @@ discovered_issues:
     severity: LOW
     status: FIXED (commit 05dd311)
     title: "SimplePipeline performanceHistory array grows without bound"
-
-new_candidates:
   - id: ISS-010
     severity: HIGH
+    status: FIXED (commit a543ac3)
     title: "Unvalidated req.params.jobId in batch API routes"
     file: "src/api/routes/batch.ts"
-    lines: "299, 314"
-    note: "jobId used in error responses without UUID validation"
   - id: ISS-011
     severity: MEDIUM
+    status: FIXED (commit a543ac3)
     title: "Unbounded adaptive-quality-gates.ts gates array"
     file: "src/quality/adaptive-quality-gates.ts"
-    lines: "161"
   - id: ISS-012
     severity: MEDIUM
+    status: FIXED (commit a543ac3)
     title: "process.env.NODE_ENV in production-config.ts browser code"
     file: "src/config/production-config.ts"
-    lines: "80, 284, 291"
+
+new_candidates:
+  - id: ISS-013
+    severity: HIGH
+    title: "ReDoS vulnerability — unsanitized keyword in RegExp constructor"
+    file: "src/analysis/simple-diagram-detector.ts"
+    lines: "126"
+    note: "new RegExp(`\\b${keyword}\\b`) without escaping special regex chars"
+  - id: ISS-014
+    severity: MEDIUM
+    title: "localStorage access in TutorialSystem.tsx without try-catch for private browsing"
+    file: "src/components/TutorialSystem.tsx"
+    lines: "46, 63"
+  - id: ISS-017
+    severity: MEDIUM
+    title: "CORS origin:false in production is ambiguous — should use explicit whitelist"
+    file: "src/api/server.ts"
+    lines: "17-19"
 
 next_execution:
-  task_id: null
-  rationale: "All discovered issues fixed. Next iteration should investigate ISS-010 (jobId validation) or ISS-012 (process.env in browser code)."
+  task_id: "ISS-013"
+  rationale: "Phase 27: Fix ReDoS (ISS-013), localStorage hardening (ISS-014), CORS tightening (ISS-017)."

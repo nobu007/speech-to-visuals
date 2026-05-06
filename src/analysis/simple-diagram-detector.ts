@@ -123,7 +123,9 @@ export class SimpleDiagramDetector {
     const totalWords = text.split(/\s+/).length;
 
     for (const keyword of keywords) {
-      const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
+      // ISS-013: Escape special regex chars to prevent ReDoS
+      const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`\\b${escaped}\\b`, 'gi');
       const keywordMatches = (text.match(regex) || []).length;
       matches += keywordMatches;
     }

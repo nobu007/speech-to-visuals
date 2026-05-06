@@ -43,8 +43,15 @@ export const TutorialSystem: React.FC = () => {
 
   // Initialize tutorial state from localStorage
   useEffect(() => {
-    const savedProgress = localStorage.getItem('tutorial-progress');
-    const firstVisit = localStorage.getItem('first-visit');
+    // ISS-014: Wrap all localStorage access in try-catch for private browsing / quota errors
+    let savedProgress: string | null = null;
+    let firstVisit: string | null = null;
+    try {
+      savedProgress = localStorage.getItem('tutorial-progress');
+      firstVisit = localStorage.getItem('first-visit');
+    } catch {
+      // localStorage unavailable (private browsing, quota) — use defaults
+    }
 
     if (savedProgress) {
       try {
@@ -54,13 +61,13 @@ export const TutorialSystem: React.FC = () => {
         }
       } catch {
         // Corrupted localStorage data — reset
-        localStorage.removeItem('tutorial-progress');
+        try { localStorage.removeItem('tutorial-progress'); } catch { /* noop */ }
       }
     }
 
     if (firstVisit === null) {
       setShowTutorial(true);
-      localStorage.setItem('first-visit', 'false');
+      try { localStorage.setItem('first-visit', 'false'); } catch { /* noop */ }
     } else {
       setIsFirstVisit(false);
     }
