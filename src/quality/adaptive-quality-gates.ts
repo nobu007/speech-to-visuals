@@ -49,6 +49,7 @@ class AdaptiveQualityGatesSystem {
   private adaptiveThresholds: Map<string, AdaptiveThreshold> = new Map();
   private qualityHistory: QualityGateResult[] = [];
   private readonly MAX_HISTORY_SIZE = 100;
+  private readonly MAX_GATES = 50; // ISS-011: prevent unbounded gate array growth
 
   constructor() {
     this.initializeDefaultGates();
@@ -155,10 +156,15 @@ class AdaptiveQualityGatesSystem {
   }
 
   /**
-   * Add a quality gate
+   * Add a quality gate (ISS-011: rejects if MAX_GATES reached)
+   * @returns true if added, false if array is at capacity
    */
-  public addGate(gate: Omit<QualityGate, 'currentValue' | 'passed' | 'message'>): void {
+  public addGate(gate: Omit<QualityGate, 'currentValue' | 'passed' | 'message'>): boolean {
+    if (this.gates.length >= this.MAX_GATES) {
+      return false;
+    }
     this.gates.push(gate as QualityGate);
+    return true;
   }
 
   /**
@@ -569,5 +575,5 @@ class AdaptiveQualityGatesSystem {
 // Global singleton instance
 export const adaptiveQualityGates = new AdaptiveQualityGatesSystem();
 
-// Export types
-export type { AdaptiveQualityGatesSystem };
+// Export class for direct instantiation in tests
+export { AdaptiveQualityGatesSystem };

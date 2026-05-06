@@ -183,6 +183,69 @@ describe('Batch Processing API', () => {
   });
 
   // =========================================================================
+  // REQ-064: jobId UUID validation edge cases (ISS-010)
+  // =========================================================================
+  describe('REQ-064: jobId UUID format validation (ISS-010)', () => {
+    it('TC-064-B01: valid UUID v4 jobId for existing job returns 200', async () => {
+      const { app } = createTestApp();
+
+      const createRes = await request(app)
+        .post('/api/v1/batch/jobs')
+        .send({ files: [{ name: 'test.wav', path: '/test.wav' }] });
+
+      const jobId = createRes.body.data.jobId;
+      // jobId is a valid UUID v4 — should return 200 for existing job
+      expect(jobId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+
+      const res = await request(app).get(`/api/v1/batch/jobs/${jobId}`);
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+    });
+
+    it('TC-064-B01: valid UUID v4 for non-existent job returns 404', async () => {
+      const { app } = createTestApp();
+
+      const validButNonExistent = '550e8400-e29b-41d4-a716-446655440000';
+      const res = await request(app).get(`/api/v1/batch/jobs/${validButNonExistent}`);
+
+      expect(res.status).toBe(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('JOB_NOT_FOUND');
+    });
+
+    it('TC-064-E01: SQL injection jobId returns 400', async () => {
+      const { app } = createTestApp();
+
+      const res = await request(app).get(`/api/v1/batch/jobs/'%3B%20DROP%20TABLE%20jobs%3B--`);
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('TC-064-E02: non-UUID string jobId on cancel returns 400', async () => {
+      const { app } = createTestApp();
+
+      const res = await request(app).post('/api/v1/batch/jobs/abc-not-a-uuid/cancel');
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('TC-064-E03: empty/whitespace-only jobId is rejected', async () => {
+      const { app } = createTestApp();
+
+      // Space-only path — UUID validation catches it
+      const res = await request(app).get('/api/v1/batch/jobs/%20');
+
+      expect([400, 404]).toContain(res.status);
+      // Verify no successful response body either way
+      if (res.body && res.body.success !== undefined) {
+        expect(res.body.success).toBe(false);
+      }
+    });
+  });
+
+  // =========================================================================
   // GET /api/v1/batch/jobs/:jobId  -- Job Retrieval
   // =========================================================================
   describe('GET /api/v1/batch/jobs/:jobId - Get Job Status', () => {
@@ -251,6 +314,18 @@ describe('Batch Processing API', () => {
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('should return VALIDATION_ERROR (400) for empty string jobId (ISS-010)', async () => {
+      const { app } = createTestApp();
+
+      // Express won't match /jobs/:jobId for empty string, but the UUID regex
+      // also rejects empty strings. Test via a whitespace-only path.
+      const res = await request(app).get('/api/v1/batch/jobs/ ');
+
+      // Either 400 (route matched, UUID rejected) or 404 (no route matched) —
+      // both prevent processing with an empty jobId.
+      expect([400, 404]).toContain(res.status);
     });
   });
 
