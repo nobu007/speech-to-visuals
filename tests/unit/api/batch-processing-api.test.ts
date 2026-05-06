@@ -127,7 +127,7 @@ describe('Batch Processing API', () => {
         .post('/api/v1/batch/jobs')
         .send({
           files: [{ name: 'test.wav', path: '/audio/test.wav' }],
-          preset: 'high',
+          preset: 'quality',
           options: {
             generateVideo: true,
             exportFormats: ['svg', 'png'],

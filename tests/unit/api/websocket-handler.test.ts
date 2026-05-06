@@ -159,17 +159,18 @@ describe('WebSocket Handler', () => {
       expect(connectionCb).toBeDefined();
       connectionCb!(mockSocket);
 
-      // Simulate join:job event
+      // Simulate join:job event with valid UUID v4
       const joinCb = mockSocket.on.mock.calls.find(
         (c: [string, (...args: unknown[]) => void]) => c[0] === 'join:job'
       )?.[1];
 
-      joinCb!({ jobId: 'job-abc-123' });
+      const validJobId = '550e8400-e29b-41d4-a716-446655440000';
+      joinCb!({ jobId: validJobId });
 
-      expect(mockSocket.join).toHaveBeenCalledWith('job:job-abc-123');
+      expect(mockSocket.join).toHaveBeenCalledWith(`job:${validJobId}`);
       expect(mockSocket.emit).toHaveBeenCalledWith(
         'job:joined',
-        expect.objectContaining({ jobId: 'job-abc-123' })
+        expect.objectContaining({ jobId: validJobId })
       );
     });
 
@@ -185,12 +186,13 @@ describe('WebSocket Handler', () => {
         (c: [string, (...args: unknown[]) => void]) => c[0] === 'leave:job'
       )?.[1];
 
-      leaveCb!({ jobId: 'job-abc-123' });
+      const validJobId = '550e8400-e29b-41d4-a716-446655440000';
+      leaveCb!({ jobId: validJobId });
 
-      expect(mockSocket.leave).toHaveBeenCalledWith('job:job-abc-123');
+      expect(mockSocket.leave).toHaveBeenCalledWith(`job:${validJobId}`);
       expect(mockSocket.emit).toHaveBeenCalledWith(
         'job:left',
-        expect.objectContaining({ jobId: 'job-abc-123' })
+        expect.objectContaining({ jobId: validJobId })
       );
     });
 
@@ -209,6 +211,124 @@ describe('WebSocket Handler', () => {
       joinCb!({});
 
       expect(mockSocket.join).not.toHaveBeenCalled();
+      expect(mockSocket.emit).toHaveBeenCalledWith(
+        'error',
+        expect.objectContaining({ message: expect.stringContaining('jobId') })
+      );
+    });
+
+    // ISS-025: UUID validation tests
+
+    it('should accept join:job with a valid UUID v4 jobId', () => {
+      registerWebSocketHandler(mockIo as unknown as Parameters<typeof registerWebSocketHandler>[0]);
+      const connectionCb = mockIo.on.mock.calls.find(
+        (c: [string, (...args: unknown[]) => void]) => c[0] === 'connection'
+      )?.[1];
+      connectionCb!(mockSocket);
+
+      const joinCb = mockSocket.on.mock.calls.find(
+        (c: [string, (...args: unknown[]) => void]) => c[0] === 'join:job'
+      )?.[1];
+
+      const validUuid = '550e8400-e29b-41d4-a716-446655440000';
+      joinCb!({ jobId: validUuid });
+
+      expect(mockSocket.join).toHaveBeenCalledWith(`job:${validUuid}`);
+      expect(mockSocket.emit).toHaveBeenCalledWith('job:joined', { jobId: validUuid });
+    });
+
+    it('should reject join:job with an invalid jobId (ISS-025)', () => {
+      registerWebSocketHandler(mockIo as unknown as Parameters<typeof registerWebSocketHandler>[0]);
+      const connectionCb = mockIo.on.mock.calls.find(
+        (c: [string, (...args: unknown[]) => void]) => c[0] === 'connection'
+      )?.[1];
+      connectionCb!(mockSocket);
+
+      const joinCb = mockSocket.on.mock.calls.find(
+        (c: [string, (...args: unknown[]) => void]) => c[0] === 'join:job'
+      )?.[1];
+
+      joinCb!({ jobId: 'not-a-uuid' });
+
+      expect(mockSocket.join).not.toHaveBeenCalled();
+      expect(mockSocket.emit).toHaveBeenCalledWith(
+        'error',
+        expect.objectContaining({ message: expect.stringContaining('UUID v4') })
+      );
+    });
+
+    it('should reject join:job with SQL injection attempt (ISS-025)', () => {
+      registerWebSocketHandler(mockIo as unknown as Parameters<typeof registerWebSocketHandler>[0]);
+      const connectionCb = mockIo.on.mock.calls.find(
+        (c: [string, (...args: unknown[]) => void]) => c[0] === 'connection'
+      )?.[1];
+      connectionCb!(mockSocket);
+
+      const joinCb = mockSocket.on.mock.calls.find(
+        (c: [string, (...args: unknown[]) => void]) => c[0] === 'join:job'
+      )?.[1];
+
+      joinCb!({ jobId: "'; DROP TABLE jobs;--" });
+
+      expect(mockSocket.join).not.toHaveBeenCalled();
+      expect(mockSocket.emit).toHaveBeenCalledWith(
+        'error',
+        expect.objectContaining({ message: expect.stringContaining('UUID v4') })
+      );
+    });
+
+    it('should accept leave:job with a valid UUID v4 jobId', () => {
+      registerWebSocketHandler(mockIo as unknown as Parameters<typeof registerWebSocketHandler>[0]);
+      const connectionCb = mockIo.on.mock.calls.find(
+        (c: [string, (...args: unknown[]) => void]) => c[0] === 'connection'
+      )?.[1];
+      connectionCb!(mockSocket);
+
+      const leaveCb = mockSocket.on.mock.calls.find(
+        (c: [string, (...args: unknown[]) => void]) => c[0] === 'leave:job'
+      )?.[1];
+
+      const validUuid = '550e8400-e29b-41d4-a716-446655440000';
+      leaveCb!({ jobId: validUuid });
+
+      expect(mockSocket.leave).toHaveBeenCalledWith(`job:${validUuid}`);
+      expect(mockSocket.emit).toHaveBeenCalledWith('job:left', { jobId: validUuid });
+    });
+
+    it('should reject leave:job with an invalid jobId (ISS-025)', () => {
+      registerWebSocketHandler(mockIo as unknown as Parameters<typeof registerWebSocketHandler>[0]);
+      const connectionCb = mockIo.on.mock.calls.find(
+        (c: [string, (...args: unknown[]) => void]) => c[0] === 'connection'
+      )?.[1];
+      connectionCb!(mockSocket);
+
+      const leaveCb = mockSocket.on.mock.calls.find(
+        (c: [string, (...args: unknown[]) => void]) => c[0] === 'leave:job'
+      )?.[1];
+
+      leaveCb!({ jobId: '../../../etc/passwd' });
+
+      expect(mockSocket.leave).not.toHaveBeenCalled();
+      expect(mockSocket.emit).toHaveBeenCalledWith(
+        'error',
+        expect.objectContaining({ message: expect.stringContaining('UUID v4') })
+      );
+    });
+
+    it('should reject leave:job with empty string jobId (ISS-025)', () => {
+      registerWebSocketHandler(mockIo as unknown as Parameters<typeof registerWebSocketHandler>[0]);
+      const connectionCb = mockIo.on.mock.calls.find(
+        (c: [string, (...args: unknown[]) => void]) => c[0] === 'connection'
+      )?.[1];
+      connectionCb!(mockSocket);
+
+      const leaveCb = mockSocket.on.mock.calls.find(
+        (c: [string, (...args: unknown[]) => void]) => c[0] === 'leave:job'
+      )?.[1];
+
+      leaveCb!({ jobId: '' });
+
+      expect(mockSocket.leave).not.toHaveBeenCalled();
       expect(mockSocket.emit).toHaveBeenCalledWith(
         'error',
         expect.objectContaining({ message: expect.stringContaining('jobId') })

@@ -14,6 +14,9 @@
 import type { Server as SocketServer, Socket } from 'socket.io';
 import * as jwt from 'jsonwebtoken';
 
+// UUID v4 validation regex (ISS-025: mirrors REST validation from batch.ts)
+const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -166,6 +169,11 @@ export function registerWebSocketHandler(io: SocketServer): void {
         socket.emit('error', { message: 'Missing required field: jobId' });
         return;
       }
+      // ISS-025: validate jobId is a valid UUID v4 to prevent injection
+      if (!UUID_V4_RE.test(data.jobId)) {
+        socket.emit('error', { message: 'Invalid jobId: must be a valid UUID v4' });
+        return;
+      }
       socket.join(`job:${data.jobId}`);
       socket.emit('job:joined', { jobId: data.jobId });
     });
@@ -174,6 +182,11 @@ export function registerWebSocketHandler(io: SocketServer): void {
     socket.on('leave:job', (data: { jobId?: string }) => {
       if (!data?.jobId) {
         socket.emit('error', { message: 'Missing required field: jobId' });
+        return;
+      }
+      // ISS-025: validate jobId is a valid UUID v4 to prevent injection
+      if (!UUID_V4_RE.test(data.jobId)) {
+        socket.emit('error', { message: 'Invalid jobId: must be a valid UUID v4' });
         return;
       }
       socket.leave(`job:${data.jobId}`);

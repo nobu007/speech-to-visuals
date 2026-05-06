@@ -17,6 +17,7 @@ import type { SimplePipelineInput, SimplePipelineResult } from '@/pipeline/simpl
 import { simplePipeline } from '@/pipeline/simple-pipeline';
 import type { QualityPreset } from '@/pipeline/adaptive-quality-presets';
 import { adaptiveQualityPresets } from '@/pipeline/adaptive-quality-presets';
+import { BatchValidationError, JobNotFoundError } from './routes/batch';
 
 export interface BatchJobRequest {
   files: File[];
@@ -165,11 +166,11 @@ export class BatchProcessingAPI {
 
     // Validate request
     if (!request.files || request.files.length === 0) {
-      throw new Error('No files provided');
+      throw new BatchValidationError('No files provided');
     }
 
     if (request.files.length > 100) {
-      throw new Error('Maximum 100 files per batch');
+      throw new BatchValidationError('Maximum 100 files per batch');
     }
 
     // Create job
@@ -198,7 +199,7 @@ export class BatchProcessingAPI {
   getJobStatus(jobId: string): BatchJobStatus {
     const status = jobStore.getJobStatus(jobId);
     if (!status) {
-      throw new Error(`Job not found: ${jobId}`);
+      throw new JobNotFoundError(jobId);
     }
     return status;
   }
@@ -211,12 +212,12 @@ export class BatchProcessingAPI {
     if (!result) {
       const status = jobStore.getJobStatus(jobId);
       if (!status) {
-        throw new Error(`Job not found: ${jobId}`);
+        throw new JobNotFoundError(jobId);
       }
       if (status.status !== 'completed') {
-        throw new Error(`Job not completed: ${jobId} (status: ${status.status})`);
+        throw new BatchValidationError(`Job not completed: ${jobId} (status: ${status.status})`);
       }
-      throw new Error(`Result not available for job: ${jobId}`);
+      throw new BatchValidationError(`Result not available for job: ${jobId}`);
     }
     return result;
   }
@@ -253,7 +254,7 @@ export class BatchProcessingAPI {
     const cancelToken = jobStore.getCancelToken(jobId);
 
     if (!cancelToken) {
-      throw new Error(`Cancel token not found for job: ${jobId}`);
+      throw new JobNotFoundError(jobId);
     }
 
     // Update status to processing
@@ -380,13 +381,13 @@ export class BatchProcessingAPI {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
       const status = jobStore.getJobStatus(jobId);
-      if (!status) throw new Error(`Job not found: ${jobId}`);
+      if (!status) throw new JobNotFoundError(jobId);
       if (status.status === 'completed' || status.status === 'failed' || status.status === 'cancelled') {
         return status;
       }
       await new Promise((r) => setTimeout(r, intervalMs));
     }
-    throw new Error(`waitForJob timed out after ${timeoutMs}ms for job ${jobId}`);
+    throw new BatchValidationError(`waitForJob timed out after ${timeoutMs}ms for job ${jobId}`);
   }
 
   /**

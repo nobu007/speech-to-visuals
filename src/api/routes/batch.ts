@@ -20,6 +20,9 @@ import { v4 as uuidv4 } from 'uuid';
 // UUID v4 validation regex (ISS-010)
 const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+// Allowed preset values (ISS-027)
+const VALID_PRESETS = new Set(['fast', 'balanced', 'quality', 'custom']);
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -282,6 +285,11 @@ export function createBatchRouter(jobManager?: BatchJobManager): Router {
       if (!file || typeof file !== 'object' || !file.name || typeof file.name !== 'string') {
         return sendBatchError(res, 400, 'VALIDATION_ERROR', `Invalid file object at index ${i}: must have a string 'name' property`);
       }
+    }
+
+    // Validate preset value (ISS-027)
+    if (body.preset !== undefined && !VALID_PRESETS.has(body.preset)) {
+      return sendBatchError(res, 400, 'VALIDATION_ERROR', `Invalid preset: must be one of fast, balanced, quality, custom`);
     }
 
     const jobId = manager.createJob(body.files, body.preset, body.options);
