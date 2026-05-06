@@ -9,6 +9,15 @@
  * Target: 60-75% processing time reduction for simple content
  */
 
+/** Browser-safe env accessor — returns undefined when process is unavailable (ISS-021) */
+function safeEnv(key: string): string | undefined {
+  try {
+    return (typeof process !== 'undefined' && process.env) ? process.env[key] : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export interface ComplexityAnalysis {
   score: number; // 0-1 scale (0 = simple, 1 = complex)
   level: 'simple' | 'moderate' | 'complex';
@@ -317,18 +326,18 @@ export class ComplexityDetector {
    */
   selectModel(score: number): string {
     // Highest priority: explicit override
-    const override = process.env.GEMINI_MODEL_OVERRIDE;
+    const override = safeEnv('GEMINI_MODEL_OVERRIDE');
     if (override) {
       return override;
     }
 
     // Second priority: disable Gemini entirely
-    if (process.env.DISABLE_GEMINI) {
+    if (safeEnv('DISABLE_GEMINI')) {
       return 'rule-based';
     }
 
     // Default: score-based selection with 20% threshold
-    const threshold = parseFloat(process.env.COMPLEXITY_THRESHOLD ?? '0.2');
+    const threshold = parseFloat(safeEnv('COMPLEXITY_THRESHOLD') ?? '0.2');
     return score < threshold ? 'gemini-2.5-flash' : 'gemini-2.5-pro';
   }
 

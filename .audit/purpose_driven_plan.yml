@@ -1,8 +1,8 @@
 meta:
-  generated_at: "2026-05-07T04:30:00Z"
-  source_deliverable: "Phase 27 completion + Phase 28 robustness hardening"
+  generated_at: "2026-05-07T05:30:00Z"
+  source_deliverable: "Phase 28 robustness hardening complete — all process.env and regex issues resolved"
   milestone_id: "security-p0"
-  instruction: "27_purpose_driven_executor"
+  instruction: "28_purpose_driven_executor"
 
 completed_tasks:
   - id: T-001
@@ -46,6 +46,18 @@ completed_tasks:
   - id: T-011
     title: "ISS-020: Cap unbounded iterations array in pipeline.ts PipelineStateManager"
     completed_at: "2026-05-07T04:20:00Z"
+  - id: T-012
+    title: "ISS-021: Browser-safe process.env guard in complexity-detector.ts selectModel"
+    completed_at: "2026-05-07T05:30:00Z"
+  - id: T-013
+    title: "ISS-022: Browser-safe process.env guard in rule-based-analyzer.ts isDisabledGemini"
+    completed_at: "2026-05-07T05:30:00Z"
+  - id: T-014
+    title: "ISS-023: Browser-safe process.env guard in supabase/client.ts resolvers"
+    completed_at: "2026-05-07T05:30:00Z"
+  - id: T-015
+    title: "ISS-024: Regex escaping in iteration-logger.ts phase name"
+    completed_at: "2026-05-07T05:30:00Z"
 
 remaining_tasks: []
 
@@ -121,29 +133,29 @@ discovered_issues:
     status: FIXED
     title: "Unbounded iterations array in pipeline.ts PipelineStateManager"
     file: "src/api/routes/pipeline.ts"
-
-new_candidates:
   - id: ISS-021
     severity: MEDIUM
+    status: FIXED
     title: "process.env usage in complexity-detector.ts without browser-safe guard"
     file: "src/analysis/complexity-detector.ts"
-    lines: "320-331"
   - id: ISS-022
     severity: MEDIUM
+    status: FIXED
     title: "process.env usage in rule-based-analyzer.ts without browser-safe guard"
     file: "src/analysis/rule-based-analyzer.ts"
-    lines: "99"
   - id: ISS-023
     severity: MEDIUM
+    status: FIXED
     title: "process.env usage in supabase/client.ts without browser-safe guard"
     file: "src/integrations/supabase/client.ts"
-    lines: "12,21"
   - id: ISS-024
     severity: LOW
+    status: FIXED
     title: "Regex without escaping in iteration-logger.ts phase name"
     file: "src/utils/iteration-logger.ts"
-    lines: "167"
+
+new_candidates: []
 
 next_execution:
-  task_id: "ISS-021"
-  rationale: "Phase 28: Guard remaining process.env usages in browser-accessible code (ISS-021~023), regex hardening (ISS-024)."
+  task_id: null
+  rationale: "All known security and robustness issues resolved. 24 ISS items (ISS-003 through ISS-024) now fixed. Next: scan for new candidates or feature work."

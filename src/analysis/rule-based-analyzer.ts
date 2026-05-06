@@ -93,10 +93,16 @@ export function generateSequentialDiagram(nodes: NodeDatum[]): RuleBasedAnalysis
 }
 
 /**
- * Check if Gemini is disabled via environment variable
+ * Check if Gemini is disabled via environment variable (ISS-022: browser-safe)
  */
 export function isDisabledGemini(): boolean {
-  return process.env.ANALYSIS_DISABLE_GEMINI === '1';
+  try {
+    return (typeof process !== 'undefined' && process.env)
+      ? process.env.ANALYSIS_DISABLE_GEMINI === '1'
+      : false;
+  } catch {
+    return false;
+  }
 }
 
 /**

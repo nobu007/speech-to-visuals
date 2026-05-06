@@ -9,7 +9,11 @@ let supabaseInstance: SupabaseClient<Database> | null = null;
  * In Node / test contexts, SUPABASE_URL is read from process.env.
  */
 function resolveSupabaseUrl(): string {
-  return process.env.SUPABASE_URL || '';
+  try {
+    return (typeof process !== 'undefined' && process.env) ? (process.env.SUPABASE_URL || '') : '';
+  } catch {
+    return '';
+  }
 }
 
 /**
@@ -18,7 +22,11 @@ function resolveSupabaseUrl(): string {
  * In Node / test contexts, SUPABASE_ANON_KEY is read from process.env.
  */
 function resolveSupabaseAnonKey(): string {
-  return process.env.SUPABASE_ANON_KEY || '';
+  try {
+    return (typeof process !== 'undefined' && process.env) ? (process.env.SUPABASE_ANON_KEY || '') : '';
+  } catch {
+    return '';
+  }
 }
 
 export function getSupabaseClient(): SupabaseClient<Database> {
