@@ -17,6 +17,9 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 
+// UUID v4 validation regex (ISS-010)
+const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -298,6 +301,11 @@ export function createBatchRouter(jobManager?: BatchJobManager): Router {
   router.get('/jobs/:jobId', (req: Request, res: Response) => {
     const jobId = req.params.jobId as string;
 
+    // ISS-010: Validate jobId is a valid UUID v4 before use
+    if (!UUID_V4_RE.test(jobId)) {
+      return sendBatchError(res, 400, 'VALIDATION_ERROR', 'jobId must be a valid UUID v4');
+    }
+
     const status = manager.getJobStatus(jobId);
     if (!status) {
       return sendBatchError(res, 404, 'JOB_NOT_FOUND', `Job not found: ${jobId}`);
@@ -312,6 +320,11 @@ export function createBatchRouter(jobManager?: BatchJobManager): Router {
   // POST /api/v1/batch/jobs/:jobId/cancel - Cancel job
   router.post('/jobs/:jobId/cancel', (req: Request, res: Response) => {
     const jobId = req.params.jobId as string;
+
+    // ISS-010: Validate jobId is a valid UUID v4 before use
+    if (!UUID_V4_RE.test(jobId)) {
+      return sendBatchError(res, 400, 'VALIDATION_ERROR', 'jobId must be a valid UUID v4');
+    }
 
     const result = manager.cancelJob(jobId);
 

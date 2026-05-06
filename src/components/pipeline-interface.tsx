@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Upload, Play, Download, Settings, BarChart3 } from 'lucide-react';
+import { toast } from 'sonner';
 import { MainPipeline } from '@/pipeline';
 import { PipelineResult, PipelineStage } from '@/pipeline/types';
 import { ProcessingStatus } from '@/types/diagram';
@@ -124,7 +125,7 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
 
       if (!response.ok) {
         console.error('Video render request failed:', response.status);
-        alert('Video rendering failed. Please try again.');
+        toast.error('Video rendering failed. Please try again.');
         return;
       }
 
@@ -134,7 +135,7 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
       }
     } catch (err) {
       console.error('Video render error:', err);
-      alert('Video rendering encountered an error. Please try again.');
+      toast.error('Video rendering encountered an error. Please try again.');
     }
   }, [result]);
 

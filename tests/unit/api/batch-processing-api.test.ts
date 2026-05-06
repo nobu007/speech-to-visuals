@@ -223,14 +223,34 @@ describe('Batch Processing API', () => {
       expect(res.body.error.code).toBe('JOB_NOT_FOUND');
     });
 
-    it('should return JOB_NOT_FOUND (404) for invalid job ID format', async () => {
+    it('should return VALIDATION_ERROR (400) for invalid job ID format (ISS-010)', async () => {
       const { app } = createTestApp();
 
       const res = await request(app).get('/api/v1/batch/jobs/invalid-id');
 
-      expect(res.status).toBe(404);
+      expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
-      expect(res.body.error.code).toBe('JOB_NOT_FOUND');
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('should return VALIDATION_ERROR (400) for numeric-only jobId (ISS-010)', async () => {
+      const { app } = createTestApp();
+
+      const res = await request(app).get('/api/v1/batch/jobs/12345');
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('should return VALIDATION_ERROR (400) for SQL-like injection in jobId (ISS-010)', async () => {
+      const { app } = createTestApp();
+
+      const res = await request(app).get('/api/v1/batch/jobs/;%20DROP%20TABLE%20jobs;--');
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
     });
   });
 
@@ -317,6 +337,26 @@ describe('Batch Processing API', () => {
       expect(res.status).toBe(409);
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('JOB_ALREADY_COMPLETED');
+    });
+
+    it('should return VALIDATION_ERROR (400) for invalid jobId format on cancel (ISS-010)', async () => {
+      const { app } = createTestApp();
+
+      const res = await request(app).post('/api/v1/batch/jobs/not-a-uuid/cancel');
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('should return VALIDATION_ERROR (400) for UUID-like but invalid hex chars on cancel (ISS-010)', async () => {
+      const { app } = createTestApp();
+
+      const res = await request(app).post('/api/v1/batch/jobs/gggggggg-gggg-4ggg-8ggg-gggggggggggg/cancel');
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
     });
   });
 
