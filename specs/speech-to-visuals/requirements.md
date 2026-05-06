@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 1-24 全完了（123/123タスク完了）・297ファイル・89,624行・104パッケージ（74 deps+30 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.1 制定・Web Workers 並列化基盤（エクスポート・レイアウトエンジン対応）・Worker信頼性改善（クラッシュループ防止・Promise漏洩解消・リスナークリーンアップ）・APNG実エンコーダ統合・JWT署名検証修正（jwt.decode→jwt.verify）・第133回要件検証（106要件全✅実装済・Phase 24完了・6件の発見問題ISS-003~009をPhase 25候補として特定）
+**実装状況**: Phase 1-25 完了（123/123タスク完了 + ISS-003~009修正）・297ファイル・89,624行・104パッケージ（74 deps+30 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.2 制定・Web Workers 並列化基盤（エクスポート・レイアウトエンジン対応）・Worker信頼性改善（クラッシュループ防止・Promise漏洩解消・リスナークリーンアップ）・APNG実エンコーダ統合・JWT署名検証修正（jwt.decode→jwt.verify）・セキュリティ・堅牢性修正完了（ISS-003~009: パストラバーサル防止・バッチ入力検証・ジョブストア上限・ブラウザセーフメモリユーティリティ・再試行多様化・配列成長制限）・第134回要件検証（109要件・Phase 25完了・ISS-010~012をPhase 26候補として特定）
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -170,6 +170,12 @@
 - REQ-062: システムはWorkerPoolのフル crash→recovery ライフサイクルを検証する統合テストを提供しなければならない。クラッシュ発生→自動再生成→キュー内タスクの再ディスパッチ→正常完了→複数回クラッシュ→スロット除去の全流れをカバーすること ✅ *コミットbc3cf68・tests/integration/worker-pool.test.ts より*
 - REQ-063: システムはAPNG形式の実エンコーディングを検証するテストを提供しなければならない。カスタムAPNGエンコーダ（PNGシグネチャ・acTL/fcTL/fdATチャンク・フレーム遅延精度）の包括的テストで検証済 ✅ *src/export/apng-encoder.ts・src/export/__tests__/enhanced-export-engine.test.ts TASK-0117 より*
 
+#### セキュリティ・入力検証（Phase 25+） 🔵実装済 / 📋一部候補
+
+- REQ-064: システムはバッチ API の jobId パラメータ（req.params.jobId）を UUID v4 形式で検証し、不正な形式の場合は 400 エラーを返さなければならない。検証はジョブステータス取得（GET /jobs/:jobId）とキャンセル（POST /jobs/:jobId/cancel）の両ルートで実行すること 📋候補 *ISS-010 HIGH・src/api/routes/batch.ts lines 299, 314・.audit/purpose_driven_plan.yml より*
+- REQ-065: システムは適応型品質ゲートの gates 配列に対して上限値（最大50ゲート）を設定し、上限超過時は追加を拒否しなければならない 📋候補 *ISS-011 MEDIUM・src/quality/adaptive-quality-gates.ts line 161・.audit/purpose_driven_plan.yml より*
+- REQ-066: システムはブラウザコンテキストで動作するコード（production-config.ts）において process.env へのアクセスを安全にガードし、Vite ビルド時の静的置換に依存しない場合はランタイム参照を避けなければならない 📋候補 *ISS-012 MEDIUM・src/config/production-config.ts lines 80, 284, 291・.audit/purpose_driven_plan.yml より*
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より*
@@ -289,27 +295,28 @@
 | Phase 22: ESLint回帰修正 | ✅完了 | TASK-0119 | 1/1（Workerテスト4ファイル48件no-explicit-any解消・全品質基準達成） |
 | Phase 23: テスト型エラー修正 | ✅完了 | TASK-0120 | 1/1（テストファイル38件TypeScript型エラー解消・全品質基準達成） |
 | Phase 24: 品質維持・コードクリーンアップ | ✅完了 | TASK-0121~0123 | 3/3（console.log 717件削除→0件・コード規模89,624行(90K以下)・メトリクス更新） |
-| Phase 25: セキュリティ・堅牢性改善 | 📋候補 | ISS-003~009 | 0/6（API入力検証・メモリリーク・ブラウザクラッシュ修正・Phase 25としてスコープ予定） |
+| Phase 25: セキュリティ・堅牢性改善 | ✅完了 | ISS-003~009 | 7/7（パストラバーサル防止・バッチ入力検証・ジョブストア上限・ブラウザセーフメモリユーティリティ・localStorageガード・再試行多様化・配列成長制限・JWT署名検証） |
+| Phase 26: 入力検証・堅牢性継続改善 | 📋候補 | ISS-010~012 | 0/3（jobId UUID検証・品質ゲート配列上限・ブラウザセーフ環境変数） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 101件 (95.3%)
-- 🟡 黄信号: 5件 (4.7%)
+- 🔵 青信号: 106件 (97.2%)
+- 🟡 黄信号: 3件 (2.8%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている（第133回kairo-requirements検証確認・Phase 1-24全完了・全123タスク完了・REQ-001~063全要件✅実装済・全品質基準達成・console.log 0件・コード規模89,624行(90K以下)）
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている（第134回kairo-requirements検証確認・Phase 1-25完了・全123タスク完了+ISS-003~009修正・REQ-001~063全要件✅実装済・REQ-064~066📋候補・全品質基準達成・console.log 0件・コード規模89,624行(90K以下)）
 
-**既知の品質課題**: Phase 25候補 - ISS-003(render APIパストラバーサル MEDIUM)・ISS-004(batch API入力検証不足 MEDIUM)・ISS-005(非バインドジョブストア MEDIUM)・ISS-006(ブラウザコンテキストprocess.memoryUsage HIGH)・ISS-007(同一失敗呼出再試行 LOW)・ISS-009(performanceHistory無制限成長 LOW)
+**既知の品質課題**: Phase 26候補 - ISS-010(バッチAPI jobId未検証 HIGH)・ISS-011(品質ゲート配列無制限成長 MEDIUM)・ISS-012(ブラウザコード内process.env参照 MEDIUM)
 
 ## Acceptance criteria
 
-- [x] AC-1: 全22カテゴリの機能要件（音声認識・内容分析・フォールバック・図解レイアウト・自動改善・品質保証・プロダクション監視・動画レンダリング・パイプラインUI・拡張モジュール・エラー分類・パイプラインオーケストレーション・バッチ処理・Edge Functions・WebSocket・最適化・グレースフルシャットダウン・型ガード・追加UI・高度エクスポート・Web Workers並列化・Worker統合テスト）が REQ-001 ~ REQ-063 として文書化されている
+- [x] AC-1: 全23カテゴリの機能要件（音声認識・内容分析・フォールバック・図解レイアウト・自動改善・品質保証・プロダクション監視・動画レンダリング・パイプラインUI・拡張モジュール・エラー分類・パイプラインオーケストレーション・バッチ処理・Edge Functions・WebSocket・最適化・グレースフルシャットダウン・型ガード・追加UI・高度エクスポート・Web Workers並列化・Worker統合テスト・セキュリティ・入力検証）が REQ-001 ~ REQ-066 として文書化されている
 - [x] AC-2: 全要件が一意の ID（REQ-xxx / NFR-xxx / EDGE-xxx）を持ち、EARS 記法（しなければならない / してもよい）で記述されている
 - [x] AC-3: 全要件に信頼性レベル（🔵青信号 / 🟡黄信号 / 🔴赤信号）が付与されている
 - [x] AC-4: 全要件がソース文書または実装ファイルに出典をトレースしている
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 25 を網羅し、Phase 1-24完了・Phase 25候補の状態である
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 26 を網羅し、Phase 1-25完了・Phase 26候補の状態である
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテゴリに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第134回: 🔵106件/🟡3件/🔴0件）

@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-07（第133回kairo-requirements検証・Phase 1-24全完了（123/123タスク）・297ファイル・89,624行（90K以下達成）・TypeScriptエラー0件・ESLintエラー0件・104パッケージ(74 deps+30 devDeps)・console.log 0件（CLAUDE.md基準達成）・6件発見問題(ISS-003~009)をPhase 25候補として特定）
+**最終更新**: 2026-05-07（第134回kairo-requirements検証・Phase 1-25完了（123/123タスク+ISS-003~009修正）・297ファイル・89,624行（90K以下達成）・TypeScriptエラー0件・ESLintエラー0件・104パッケージ(74 deps+30 devDeps)・console.log 0件（CLAUDE.md基準達成）・3件新規発見問題(ISS-010~012)をPhase 26候補として特定・109要件（REQ-001~066+NFR+EDGE））
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム
 
 ## 技術スタック

@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-06（第128回要件検証・Phase 1-23全完了・Phase 24計画済(TASK-0121~0123)・297ファイル・90,400行・120タスク完了+3タスク計画中・要件カバレッジ100%維持・3,685テスト全通過(145 suites)・TypeScriptエラー0件・ESLintエラー0件・全品質基準達成・ギャップなし）
+**最終更新**: 2026-05-07（第134回要件検証・Phase 1-25完了（123/123タスク+ISS-003~009修正）・297ファイル・89,624行・要件カバレッジ100%維持・3,685テスト全通過・TypeScriptエラー0件・ESLintエラー0件・REQ-064~066候補追加）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -1422,3 +1422,119 @@
 - [x] **TC-055-01**: 設定表示とレポート 🔵
   - **期待結果**: プロダクション設定とパフォーマンスレポートが表示される
   - **信頼性**: 🔵 *ProductionDashboard.tsx より*
+
+---
+
+## REQ-064: バッチAPI jobId UUID検証 🔵
+
+**信頼性**: 🔵 *ISS-010 HIGH・src/api/routes/batch.ts lines 299, 314・.audit/purpose_driven_plan.yml より*
+
+### Given（前提条件）
+
+- バッチ処理 REST API が利用可能である
+- ジョブが作成済みである
+
+### When（実行条件）
+
+- 不正な形式の jobId（非UUID文字列、SQLインジェクション文字列等）で GET /jobs/:jobId または POST /jobs/:jobId/cancel を呼び出す
+
+### Then（期待結果）
+
+- 400 Bad Request エラーが返される
+- エラーメッセージに不正な jobId は含まれない（サニタイズ済み）
+
+### テストケース
+
+#### 異常系
+
+- [ ] **TC-064-E01**: 非UUID形式のjobIdでのステータス取得 🔵
+  - **入力**: jobId = "'; DROP TABLE jobs;--"
+  - **期待結果**: 400 Bad Request, jobId はUUID形式でなければならない旨のエラー
+  - **信頼性**: 🔵 *ISS-010 report・batch.ts line 299 より*
+
+- [ ] **TC-064-E02**: 非UUID形式のjobIdでのキャンセル 🔵
+  - **入力**: jobId = "abc-not-a-uuid"
+  - **期待結果**: 400 Bad Request, jobId はUUID形式でなければならない旨のエラー
+  - **信頼性**: 🔵 *ISS-010 report・batch.ts line 314 より*
+
+- [ ] **TC-064-E03**: 空文字のjobId 🔵
+  - **入力**: jobId = ""
+  - **期待結果**: 400 Bad Request
+  - **信頼性**: 🔵 *入力検証要件より*
+
+#### 境界値
+
+- [ ] **TC-064-B01**: 正しいUUID v4形式のjobId 🔵
+  - **入力**: jobId = "550e8400-e29b-41d4-a716-446655440000"
+  - **期待結果**: 正常に処理（ジョブが存在すれば200、存在しなければ404）
+  - **信頼性**: 🔵 *既存バッチAPI動作仕様より*
+
+---
+
+## REQ-065: 品質ゲート配列上限 🔵
+
+**信頼性**: 🔵 *ISS-011 MEDIUM・src/quality/adaptive-quality-gates.ts line 161・.audit/purpose_driven_plan.yml より*
+
+### Given（前提条件）
+
+- AdaptiveQualityGates インスタンスが初期化済みである
+- gates 配列に多数のゲートが追加されている
+
+### When（実行条件）
+
+- 上限値（50ゲート）を超えて addGate() を呼び出す
+
+### Then（期待結果）
+
+- 追加が拒否され、エラーまたはfalseが返される
+- gates 配列のサイズが上限値を超えない
+
+### テストケース
+
+#### 異常系
+
+- [ ] **TC-065-E01**: 上限超過時のゲート追加 🔵
+  - **入力**: 51個目のゲートを追加
+  - **期待結果**: 追加が拒否され、配列サイズは50を維持
+  - **信頼性**: 🔵 *ISS-011 report・adaptive-quality-gates.ts より*
+
+#### 境界値
+
+- [ ] **TC-065-B01**: 上限値ぴったりのゲート追加 🔵
+  - **入力**: 50個目のゲートを追加
+  - **期待結果**: 正常に追加される
+  - **信頼性**: 🔵 *上限値仕様より*
+
+---
+
+## REQ-066: ブラウザセーフ環境変数アクセス 🔵
+
+**信頼性**: 🔵 *ISS-012 MEDIUM・src/config/production-config.ts lines 80, 284, 291・.audit/purpose_driven_plan.yml より*
+
+### Given（前提条件）
+
+- production-config.ts がブラウザ環境で動作している
+- process.env が undefined の可能性がある（Vite ビルド時の静的置換が行われない場合）
+
+### When（実行条件）
+
+- getEnvironmentConfig() または loadConfigOverrides() が呼び出される
+
+### Then（期待結果）
+
+- process.env が undefined の場合でもエラーが発生しない
+- 適切なデフォルト値が使用される
+
+### テストケース
+
+#### 異常系
+
+- [ ] **TC-066-E01**: process.env undefined 時の環境設定取得 🔵
+  - **条件**: typeof process === 'undefined' の環境
+  - **期待結果**: デフォルト値 'development' が使用されエラーが発生しない
+  - **信頼性**: 🔵 *ISS-012 report・production-config.ts line 80 より*
+
+- [ ] **TC-066-E02**: process.env undefined 時の設定オーバーライド読み込み 🔵
+  - **条件**: typeof process === 'undefined' の環境
+  - **期待結果**: デフォルト設定が使用されエラーが発生しない
+  - **信頼性**: 🔵 *ISS-012 report・production-config.ts lines 284, 291 より*
