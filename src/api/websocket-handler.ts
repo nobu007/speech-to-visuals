@@ -158,6 +158,27 @@ export function createWsAuthMiddleware() {
 }
 
 // ---------------------------------------------------------------------------
+// Payload validation helper (ISS-042)
+// ---------------------------------------------------------------------------
+
+function validateEventPayload(data: unknown, requiredFields: string[]): { valid: boolean; error?: string } {
+  if (data === null || data === undefined || typeof data !== 'object' || Array.isArray(data)) {
+    return { valid: false, error: 'Payload must be a non-null object' };
+  }
+  for (const field of requiredFields) {
+    if (!(field in (data as Record<string, unknown>))) {
+      return { valid: false, error: `Missing required field: ${field}` };
+    }
+  }
+  // Reject payloads with excessive keys to prevent DoS
+  const keys = Object.keys(data as Record<string, unknown>);
+  if (keys.length > 20) {
+    return { valid: false, error: 'Payload has too many fields (max 20)' };
+  }
+  return { valid: true };
+}
+
+// ---------------------------------------------------------------------------
 // Connection Handler
 // ---------------------------------------------------------------------------
 
@@ -165,32 +186,46 @@ export function registerWebSocketHandler(io: SocketServer): void {
   io.on('connection', (socket: AuthenticatedSocket) => {
     // Join a job room
     socket.on('join:job', (data: { jobId?: string }) => {
-      if (!data?.jobId) {
+      // ISS-042: validate payload shape before accessing fields
+      const payloadCheck = validateEventPayload(data, ['jobId']);
+      if (!payloadCheck.valid) {
+        socket.emit('error', { message: payloadCheck.error });
+        return;
+      }
+      const { jobId } = data as { jobId: string };
+      if (!jobId || typeof jobId !== 'string') {
         socket.emit('error', { message: 'Missing required field: jobId' });
         return;
       }
       // ISS-025: validate jobId is a valid UUID v4 to prevent injection
-      if (!UUID_V4_RE.test(data.jobId)) {
+      if (!UUID_V4_RE.test(jobId)) {
         socket.emit('error', { message: 'Invalid jobId: must be a valid UUID v4' });
         return;
       }
-      socket.join(`job:${data.jobId}`);
-      socket.emit('job:joined', { jobId: data.jobId });
+      socket.join(`job:${jobId}`);
+      socket.emit('job:joined', { jobId });
     });
 
     // Leave a job room
     socket.on('leave:job', (data: { jobId?: string }) => {
-      if (!data?.jobId) {
+      // ISS-042: validate payload shape before accessing fields
+      const payloadCheck = validateEventPayload(data, ['jobId']);
+      if (!payloadCheck.valid) {
+        socket.emit('error', { message: payloadCheck.error });
+        return;
+      }
+      const { jobId } = data as { jobId: string };
+      if (!jobId || typeof jobId !== 'string') {
         socket.emit('error', { message: 'Missing required field: jobId' });
         return;
       }
       // ISS-025: validate jobId is a valid UUID v4 to prevent injection
-      if (!UUID_V4_RE.test(data.jobId)) {
+      if (!UUID_V4_RE.test(jobId)) {
         socket.emit('error', { message: 'Invalid jobId: must be a valid UUID v4' });
         return;
       }
-      socket.leave(`job:${data.jobId}`);
-      socket.emit('job:left', { jobId: data.jobId });
+      socket.leave(`job:${jobId}`);
+      socket.emit('job:left', { jobId });
     });
 
     // Clean up on disconnect

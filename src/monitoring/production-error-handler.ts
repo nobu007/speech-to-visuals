@@ -4,6 +4,8 @@
  * Following custom instructions for production excellence
  */
 
+import { randomUUID } from 'crypto';
+
 interface ErrorContext {
   component: string;
   userId?: string;
@@ -72,7 +74,7 @@ export class ProductionErrorHandler {
    * Generate unique session ID for tracking
    */
   private generateSessionId(): string {
-    return `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return `session-${Date.now()}-${randomUUID().split('-')[0]}`;
   }
 
   /**
@@ -198,7 +200,7 @@ export class ProductionErrorHandler {
    * Generate unique error ID
    */
   private generateErrorId(): string {
-    return `err-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+    return `err-${Date.now()}-${randomUUID().split('-')[0].substring(0, 6)}`;
   }
 
   /**

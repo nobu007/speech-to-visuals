@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { SceneGraph, DiagramType, NodeDatum, EdgeDatum } from '@/types/diagram';
 import { TranscriptionPipeline, TranscriptionSegment } from '@/transcription';
 import { SceneSegmenter, DiagramDetector } from '@/analysis';
@@ -68,7 +69,7 @@ export class MainPipeline {
   };
 
   constructor(config: Partial<PipelineConfig> = {}) {
-    this.pipelineId = `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.pipelineId = `pipeline-${Date.now()}-${randomUUID().split('-')[0]}`;
 
     // 🔄 Initialize Recursive Custom Instructions Framework
     this.framework = new RecursiveCustomInstructionsFramework({

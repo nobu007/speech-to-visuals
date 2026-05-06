@@ -4,6 +4,7 @@
  * Following custom instructions methodology for enterprise-grade output
  */
 
+import { randomUUID } from 'crypto';
 import { EnhancedSceneGraph, RenderOptions } from '@/visualization/advanced-visual-engine';
 import { SceneGraph } from '@/types/diagram';
 
@@ -198,7 +199,7 @@ export class ProductionExporter {
     scenes: EnhancedSceneGraph[],
     options: RenderOptions
   ): Promise<string> {
-    const jobId = `export-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const jobId = `export-${Date.now()}-${randomUUID().split('-')[0]}`;
 
 
     // Calculate metadata

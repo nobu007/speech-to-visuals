@@ -4,6 +4,7 @@
  * Provides comprehensive monitoring, alerting, and automatic optimization
  */
 
+import { randomUUID } from 'crypto';
 import { getMemoryUsage } from '@/utils/memory-usage';
 
 interface PerformanceMetrics {
@@ -298,7 +299,7 @@ export class PerformanceDashboard {
     recommendation: string
   ): void {
     const alert: Alert = {
-      id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `alert_${Date.now()}_${randomUUID().split('-')[0]}`,
       timestamp: Date.now(),
       level,
       category,
@@ -500,7 +501,7 @@ export class PerformanceDashboard {
   requestStart(): string {
     this.currentRequests++;
     this.totalRequests++;
-    const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const requestId = `req_${Date.now()}_${randomUUID().split('-')[0]}`;
     return requestId;
   }
 

@@ -17,6 +17,7 @@ import type { SimplePipelineInput, SimplePipelineResult } from '@/pipeline/simpl
 import { simplePipeline } from '@/pipeline/simple-pipeline';
 import type { QualityPreset } from '@/pipeline/adaptive-quality-presets';
 import { adaptiveQualityPresets } from '@/pipeline/adaptive-quality-presets';
+import { randomUUID } from 'crypto';
 import { BatchValidationError, JobNotFoundError } from './routes/batch';
 
 export interface BatchJobRequest {
@@ -95,7 +96,7 @@ class JobStore {
 
   createJob(files: File[]): string {
     this.pruneOldJobs();
-    const jobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const jobId = `job_${Date.now()}_${randomUUID().split('-')[0]}`;
     this.jobs.set(jobId, {
       status: {
         jobId,

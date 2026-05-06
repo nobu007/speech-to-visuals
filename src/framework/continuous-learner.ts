@@ -5,6 +5,8 @@
  * カスタム指示準拠：データ蓄積・パターン分析・自動最適化
  */
 
+import { randomUUID } from 'crypto';
+
 interface LearningData {
   id: string;
   timestamp: Date;
@@ -89,7 +91,7 @@ export class ContinuousLearner {
   ): Promise<void> {
 
     const learningData: LearningData = {
-      id: `learning_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `learning_${Date.now()}_${randomUUID().split('-')[0]}`,
       timestamp: new Date(),
       component,
       input,

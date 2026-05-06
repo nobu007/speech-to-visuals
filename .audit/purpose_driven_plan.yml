@@ -1,6 +1,6 @@
 meta:
-  generated_at: "2026-05-07T05:13:00Z"
-  source_deliverable: "Phase 29 API validation hardening — Zod schema validation for pipeline routes"
+  generated_at: "2026-05-07T05:58:00Z"
+  source_deliverable: "Phase 30 Security hardening — rate limiting, secure IDs, WebSocket payload validation"
   milestone_id: "security-p1"
   instruction: "25_purpose_driven_executor"
 
@@ -9,45 +9,61 @@ completed_tasks:
     title: "Add Zod schemas to pipeline.ts for RenderRequest and CommitRequest validation"
     completed_at: "2026-05-07T05:13:00Z"
     note: "Replaced manual type assertions with Zod safeParse. Validates quality enum, scenes cap (200), outputName length (255), fps range (1-120), message length (1000). 10 new test cases."
-
-remaining_tasks:
   - id: T-002
     title: "Add UUID validation to WebSocket join:job/leave:job handlers"
-    type: "fix"
-    files_to_modify:
-      - "src/api/websocket-handler.ts"
-    acceptance_test: "npx vitest run src/api/__tests__/"
-    estimated_diff_lines: 40
+    completed_at: "2026-05-07T05:31:00Z"
+    note: "ISS-025: Added UUID v4 regex validation mirroring REST pattern from batch.ts."
   - id: T-003
     title: "Apply uploadRateLimiter to batch job creation in server.ts"
-    type: "fix"
-    files_to_modify:
-      - "src/api/server.ts"
-    acceptance_test: "npx vitest run src/api/__tests__/server.test.ts"
-    estimated_diff_lines: 20
+    completed_at: "2026-05-07T05:31:00Z"
+    note: "ISS-026: Applied uploadRateLimiter middleware to /api/v1/batch routes."
+  - id: T-004
+    title: "Validate preset parameter against allowed enum values"
+    completed_at: "2026-05-07T05:31:00Z"
+    note: "ISS-027: Added VALID_PRESETS set validation in batch route."
+  - id: T-005
+    title: "Replace raw Error throws with custom error classes"
+    completed_at: "2026-05-07T05:31:00Z"
+    note: "ISS-028: BatchValidationError and JobNotFoundError used in batch-processing-api."
+  - id: T-006
+    title: "Apply apiRateLimiter to pipeline routes"
+    completed_at: "2026-05-07T05:58:00Z"
+    note: "ISS-029: Applied apiRateLimiter middleware to /api pipeline routes."
+  - id: T-007
+    title: "Replace Math.random() ID generation with crypto.randomUUID()"
+    completed_at: "2026-05-07T05:58:00Z"
+    note: "ISS-031: Replaced Math.random().toString(36).substr in 6 source files with randomUUID from crypto module."
+  - id: T-008
+    title: "Remove deprecated substr() calls"
+    completed_at: "2026-05-07T05:58:00Z"
+    note: "ISS-032: All substr() calls eliminated from src/ as part of ISS-031 migration."
+  - id: T-009
+    title: "Add WebSocket event payload validation"
+    completed_at: "2026-05-07T05:58:00Z"
+    note: "ISS-042: Added validateEventPayload helper checking object shape, required fields, and max key count (20)."
+
+remaining_tasks: []
 
 new_candidates:
-  - id: ISS-025
+  - id: ISS-030
     severity: HIGH
     status: OPEN
-    title: "WebSocket join:job/leave:job accept arbitrary jobId strings without UUID validation"
-    file: "src/api/websocket-handler.ts"
-  - id: ISS-026
+    title: "Pipeline endpoints lack authentication middleware"
+    file: "src/api/routes/pipeline.ts"
+    note: "authMiddleware exists but is not applied to pipeline routes. All endpoints accessible without auth."
+  - id: ISS-044
     severity: MEDIUM
     status: OPEN
-    title: "uploadRateLimiter defined but never applied to any route"
-    file: "src/api/middleware/rate-limit.ts"
-  - id: ISS-027
+    title: "Magic numbers scattered throughout codebase without centralized configuration"
+    file: "src/api/server.ts"
+    note: "Rate limits, body size limits, file count limits hardcoded instead of in config."
+  - id: ISS-045
     severity: MEDIUM
     status: OPEN
-    title: "batch.ts preset parameter not validated against allowed enum values"
-    file: "src/api/routes/batch.ts"
-  - id: ISS-028
-    severity: LOW
-    status: OPEN
-    title: "batch-processing-api.ts uses raw Error instead of custom error classes"
-    file: "src/api/batch-processing-api.ts"
+    title: "Environment variable validation gaps"
+    file: "src/config/env.ts"
+    note: "JWT_SECRET complexity, CORS_ORIGINS format not validated at startup."
 
 next_execution:
-  task_id: "T-002"
-  rationale: "WebSocket UUID validation (ISS-025) is the next highest-severity fix, paralleling ISS-010 REST UUID validation already completed."
+  task_id: "ISS-030"
+  rationale: "Pipeline endpoints accessible without authentication is the highest severity remaining issue. Requires careful implementation to avoid breaking existing clients."

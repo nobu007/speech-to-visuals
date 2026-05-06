@@ -6,7 +6,7 @@ import { healthRouter } from './routes/health';
 import { createBatchRouter } from './routes/batch';
 import { createPipelineRouter } from './routes/pipeline';
 import { errorHandler } from './middleware/error-handler';
-import { uploadRateLimiter } from './middleware/rate-limit';
+import { apiRateLimiter, uploadRateLimiter } from './middleware/rate-limit';
 
 const app = express();
 
@@ -40,7 +40,8 @@ app.use(rateLimit({
 app.use('/api/v1', healthRouter);
 // ISS-026: apply upload rate limiter to batch job creation routes
 app.use('/api/v1/batch', uploadRateLimiter, createBatchRouter());
-app.use('/api', createPipelineRouter());
+// ISS-029: apply API rate limiter to pipeline routes to prevent abuse
+app.use('/api', apiRateLimiter, createPipelineRouter());
 
 // Error handler (must be after routes)
 app.use(errorHandler);
