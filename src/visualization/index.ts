@@ -17,6 +17,6 @@ export type {
 export { VisualBalanceScorer } from './visual-balance-scorer';
 export { detectEdgeCrossings, minimizeEdgeCrossings, EdgeCrossingMinimizer } from './edge-crossing-minimizer';
 export { sizeLabel, sizeAllLabels } from './smart-label-sizer';
-export type { LabelSizingResult } from './smart-label-sizer';
+export type { LabelSizingResult, LabelSizingConfig } from './smart-label-sizer';
 export { calculateCompositeScore, scoreLayout, LayoutQualityCompositeScorer } from './layout-quality-composite';
 export { runAutoOptimization, LayoutAutoOptimizer } from './layout-auto-optimizer';
