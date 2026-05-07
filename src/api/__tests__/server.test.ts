@@ -21,7 +21,7 @@ describe('server CORS configuration', () => {
 
   it('should configure CORS with origin=false in production', async () => {
     // Reset module registry so the module is re-imported with new env
-    jest.resetModules();
+    vi.resetModules();
     process.env.NODE_ENV = 'production';
     // ISS-045: JWT_SECRET required in production
     process.env.JWT_SECRET = 'Test-Secret-Key-For-Production-Test-2026!@#$';
@@ -30,7 +30,7 @@ describe('server CORS configuration', () => {
     expect(app).toBeDefined();
 
     // Restore
-    jest.resetModules();
+    vi.resetModules();
     process.env.NODE_ENV = originalEnv;
     if (originalJwtSecret) process.env.JWT_SECRET = originalJwtSecret;
     else delete process.env.JWT_SECRET;

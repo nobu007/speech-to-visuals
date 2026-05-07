@@ -1,4 +1,3 @@
-import { describe, it, expect } from '@jest/globals';
 import { QualityMonitor, QualityAssessment } from '@/quality/quality-monitor';
 import { PipelineResult } from '@/pipeline/types';
 import { SceneGraph } from '@/types/diagram';

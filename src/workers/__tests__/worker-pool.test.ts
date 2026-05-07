@@ -5,32 +5,31 @@
  * Tests verify pool lifecycle, queueing, error handling, and cleanup.
  */
 
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { WorkerPool } from '../worker-pool';
 import type { WorkerMessage, WorkerResponse } from '../types';
 
 // --- Mock Worker ---
 
 interface MockWorkerInstance {
-  postMessage: ReturnType<typeof jest.fn>;
-  terminate: ReturnType<typeof jest.fn>;
-  addEventListener: ReturnType<typeof jest.fn>;
-  removeEventListener: ReturnType<typeof jest.fn>;
+  postMessage: ReturnType<typeof vi.fn>;
+  terminate: ReturnType<typeof vi.fn>;
+  addEventListener: ReturnType<typeof vi.fn>;
+  removeEventListener: ReturnType<typeof vi.fn>;
   dispatchMessage: (data: WorkerResponse) => void;
   dispatchError: (message: string) => void;
 }
 
-function createMockWorker(): { instance: MockWorkerInstance; WorkerClass: ReturnType<typeof jest.fn> } {
+function createMockWorker(): { instance: MockWorkerInstance; WorkerClass: ReturnType<typeof vi.fn> } {
   const listeners: Record<string, Array<(event: { data?: unknown; message?: string }) => void>> = {};
 
   const instance: MockWorkerInstance = {
-    postMessage: jest.fn(),
-    terminate: jest.fn(),
-    addEventListener: jest.fn((event: string, handler: (e: unknown) => void) => {
+    postMessage: vi.fn(),
+    terminate: vi.fn(),
+    addEventListener: vi.fn((event: string, handler: (e: unknown) => void) => {
       if (!listeners[event]) listeners[event] = [];
       listeners[event].push(handler as (e: { data?: unknown; message?: string }) => void);
     }),
-    removeEventListener: jest.fn((event: string, handler: (e: unknown) => void) => {
+    removeEventListener: vi.fn((event: string, handler: (e: unknown) => void) => {
       if (listeners[event]) {
         listeners[event] = listeners[event].filter((h) => h !== handler);
       }
@@ -49,7 +48,7 @@ function createMockWorker(): { instance: MockWorkerInstance; WorkerClass: Return
     },
   };
 
-  const WorkerClass = jest.fn(() => instance);
+  const WorkerClass = vi.fn(() => instance);
   return { instance, WorkerClass };
 }
 
@@ -258,7 +257,7 @@ describe('worker crash recovery', () => {
   it('should recreate worker and process queued task after crash', async () => {
     // Factory returns a unique mock instance per call
     const instances: MockWorkerInstance[] = [];
-    const factory = jest.fn((): Worker => {
+    const factory = vi.fn((): Worker => {
       const { instance } = createMockWorker();
       instances.push(instance);
       return instance as unknown as Worker;

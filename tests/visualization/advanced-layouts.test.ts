@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { AdvancedLayoutEngine, type AdvancedLayoutOptions, type VisualTheme } from '@/visualization/advanced-layouts';
 import type { NodeDatum, EdgeDatum } from '@/types/diagram';
 
@@ -113,47 +112,47 @@ describe('AdvancedLayoutEngine (TASK-0062)', () => {
 
   describe('theme auto-detection', () => {
     afterEach(() => {
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('should select light theme during daytime (hour 12)', () => {
-      jest.useFakeTimers();
-      jest.setSystemTime(new Date('2026-01-15T12:00:00'));
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-15T12:00:00'));
       const result = engine.generateAdvancedLayout(SAMPLE_NODES, SAMPLE_EDGES, 'flow', { theme: 'auto' });
       expect(result.layout.theme.background).toBe('#ffffff');
     });
 
     it('should select dark theme during nighttime (hour 22)', () => {
-      jest.useFakeTimers();
-      jest.setSystemTime(new Date('2026-01-15T22:00:00'));
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-15T22:00:00'));
       const result = engine.generateAdvancedLayout(SAMPLE_NODES, SAMPLE_EDGES, 'flow', { theme: 'auto' });
       expect(result.layout.theme.background).toBe('#0f0f23');
     });
 
     it('should select light theme at early morning boundary (hour 6)', () => {
-      jest.useFakeTimers();
-      jest.setSystemTime(new Date('2026-01-15T06:00:00'));
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-15T06:00:00'));
       const result = engine.generateAdvancedLayout(SAMPLE_NODES, SAMPLE_EDGES, 'flow', { theme: 'auto' });
       expect(result.layout.theme.background).toBe('#ffffff');
     });
 
     it('should select dark theme just before morning boundary (hour 5)', () => {
-      jest.useFakeTimers();
-      jest.setSystemTime(new Date('2026-01-15T05:00:00'));
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-15T05:00:00'));
       const result = engine.generateAdvancedLayout(SAMPLE_NODES, SAMPLE_EDGES, 'flow', { theme: 'auto' });
       expect(result.layout.theme.background).toBe('#0f0f23');
     });
 
     it('should select light theme just before evening boundary (hour 17)', () => {
-      jest.useFakeTimers();
-      jest.setSystemTime(new Date('2026-01-15T17:00:00'));
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-15T17:00:00'));
       const result = engine.generateAdvancedLayout(SAMPLE_NODES, SAMPLE_EDGES, 'flow', { theme: 'auto' });
       expect(result.layout.theme.background).toBe('#ffffff');
     });
 
     it('should select dark theme at evening boundary (hour 18)', () => {
-      jest.useFakeTimers();
-      jest.setSystemTime(new Date('2026-01-15T18:00:00'));
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-15T18:00:00'));
       const result = engine.generateAdvancedLayout(SAMPLE_NODES, SAMPLE_EDGES, 'flow', { theme: 'auto' });
       expect(result.layout.theme.background).toBe('#0f0f23');
     });

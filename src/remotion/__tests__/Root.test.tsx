@@ -13,8 +13,8 @@ import {
 } from '../Video';
 
 // Mock Composition to have a displayName we can check
-jest.mock('remotion', () => {
-  const originalModule = jest.requireActual('remotion');
+vi.mock('remotion', () => {
+  const originalModule = vi.requireActual('remotion');
   const MockComposition = (props: Record<string, unknown>) => {
     return null;
   };

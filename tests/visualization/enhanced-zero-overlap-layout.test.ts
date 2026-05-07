@@ -1,4 +1,3 @@
-import { describe, test, expect, jest, beforeAll, afterAll } from '@jest/globals';
 import { ZeroOverlapLayoutEngine, EnhancedZeroOverlapLayoutEngine } from '@/visualization/enhanced-zero-overlap-layout';
 import { NodeDatum, EdgeDatum, DiagramType, PositionedNode } from '@/types/diagram';
 import dagre from '@dagrejs/dagre';
@@ -222,7 +221,7 @@ describe('ZeroOverlapLayoutEngine', () => {
   describe('error handling (catch block)', () => {
     test('should return failure result when dagre.layout throws an error for flowchart', async () => {
       const originalLayout = dagre.layout;
-      dagre.layout = jest.fn().mockImplementation(() => {
+      dagre.layout = vi.fn().mockImplementation(() => {
         throw new Error('Dagre internal error');
       });
 
@@ -246,7 +245,7 @@ describe('ZeroOverlapLayoutEngine', () => {
 
     test('should return failure result when dagre.layout throws for tree layout', async () => {
       const originalLayout = dagre.layout;
-      dagre.layout = jest.fn().mockImplementation(() => {
+      dagre.layout = vi.fn().mockImplementation(() => {
         throw new Error('Tree layout crash');
       });
 
@@ -264,7 +263,7 @@ describe('ZeroOverlapLayoutEngine', () => {
 
     test('error result should contain default metrics', async () => {
       const originalLayout = dagre.layout;
-      dagre.layout = jest.fn().mockImplementation(() => {
+      dagre.layout = vi.fn().mockImplementation(() => {
         throw new Error('test error');
       });
 

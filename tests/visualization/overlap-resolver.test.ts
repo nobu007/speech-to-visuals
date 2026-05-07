@@ -1,4 +1,3 @@
-import { describe, it, expect } from '@jest/globals';
 import { PositionedNode } from '@/types/diagram';
 import { OverlapResolver } from '@/visualization/overlap-resolver';
 import { GridSpatialHash } from '@/visualization/spatial-hash';

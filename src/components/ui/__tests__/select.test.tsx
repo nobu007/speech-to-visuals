@@ -16,7 +16,7 @@ import {
 } from '../select';
 
 // Mock @/lib/utils
-jest.mock('@/lib/utils', () => ({
+vi.mock('@/lib/utils', () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
 }));
 

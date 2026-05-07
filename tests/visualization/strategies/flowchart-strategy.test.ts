@@ -1,4 +1,3 @@
-import { describe, it, expect } from '@jest/globals';
 import { FlowchartLayoutStrategy } from '@/visualization/strategies/FlowchartLayoutStrategy';
 import { NodeDatum, EdgeDatum } from '@/types/diagram';
 import { LayoutConfig } from '@/visualization/types';

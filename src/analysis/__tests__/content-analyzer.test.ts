@@ -36,8 +36,8 @@ function createMockLLMService(options?: {
   };
 
   const mock = {
-    isEnabled: jest.fn().mockReturnValue(enabled),
-    execute: jest.fn().mockImplementation(async () => {
+    isEnabled: vi.fn().mockReturnValue(enabled),
+    execute: vi.fn().mockImplementation(async () => {
       if (options?.shouldFail) {
         return {
           success: false,
@@ -64,7 +64,7 @@ function createMockLLMService(options?: {
         },
       };
     }),
-    getStats: jest.fn().mockReturnValue({
+    getStats: vi.fn().mockReturnValue({
       totalRequests: 1,
       cacheHits: 0,
       cacheMisses: 1,
@@ -79,13 +79,13 @@ function createMockLLMService(options?: {
 }
 
 // Suppress console output during tests
-let consoleLogSpy: jest.SpyInstance;
-let consoleWarnSpy: jest.SpyInstance;
+let consoleLogSpy: vi.SpyInstance;
+let consoleWarnSpy: vi.SpyInstance;
 
 beforeEach(() => {
-  jest.clearAllMocks();
-  consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-  consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  vi.clearAllMocks();
+  consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
 afterEach(() => {
@@ -329,8 +329,8 @@ describe('ContentAnalyzer', () => {
       };
       // Need to explicitly handle this since our mock sends the data through
       const mock = {
-        isEnabled: jest.fn().mockReturnValue(true),
-        execute: jest.fn().mockResolvedValue({
+        isEnabled: vi.fn().mockReturnValue(true),
+        execute: vi.fn().mockResolvedValue({
           success: true,
           data: { ...mockData },
           metadata: {
@@ -341,7 +341,7 @@ describe('ContentAnalyzer', () => {
             fallbackUsed: false,
           },
         }),
-        getStats: jest.fn().mockReturnValue({
+        getStats: vi.fn().mockReturnValue({
           totalRequests: 1, cacheHits: 0, cacheMisses: 1, cacheHitRate: 0,
           modelUsage: { flash: 1, pro: 0, flashPercent: 100 },
           performance: { avgResponseTime: 50, avgFlashTime: 50, avgProTime: 0, p50: 50, p95: 50, p99: 50 },
@@ -365,15 +365,15 @@ describe('ContentAnalyzer', () => {
         edges: 'not-an-array',
       };
       const mock = {
-        isEnabled: jest.fn().mockReturnValue(true),
-        execute: jest.fn().mockResolvedValue({
+        isEnabled: vi.fn().mockReturnValue(true),
+        execute: vi.fn().mockResolvedValue({
           success: true,
           data: mockData,
           metadata: {
             model: 'gemini-2.5-flash', responseTime: 50, fromCache: false, retryCount: 0, fallbackUsed: false,
           },
         }),
-        getStats: jest.fn().mockReturnValue({
+        getStats: vi.fn().mockReturnValue({
           totalRequests: 1, cacheHits: 0, cacheMisses: 1, cacheHitRate: 0,
           modelUsage: { flash: 1, pro: 0, flashPercent: 100 },
           performance: { avgResponseTime: 50, avgFlashTime: 50, avgProTime: 0, p50: 50, p95: 50, p99: 50 },
@@ -427,7 +427,7 @@ describe('ContentAnalyzer', () => {
       );
 
       // The prompt should contain Japanese text
-      const callArgs = (mockLLM.execute as jest.Mock).mock.calls[0][0];
+      const callArgs = (mockLLM.execute as vi.Mock).mock.calls[0][0];
       expect(callArgs.prompt).toContain('分析');
     });
 

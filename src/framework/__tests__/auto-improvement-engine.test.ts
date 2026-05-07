@@ -15,24 +15,24 @@ import type { IterationManager } from '../iteration-manager';
 
 // Mock IterationManager
 const mockIterationManager = {
-  startIteration: jest.fn(),
-  recordSuccess: jest.fn(),
-  recordFailure: jest.fn(),
+  startIteration: vi.fn(),
+  recordSuccess: vi.fn(),
+  recordFailure: vi.fn(),
 };
 
-jest.mock('../iteration-manager', () => ({
-  IterationManager: jest.fn().mockImplementation(() => mockIterationManager),
-  createIterationManager: jest.fn().mockReturnValue(mockIterationManager),
+vi.mock('../iteration-manager', () => ({
+  IterationManager: vi.fn().mockImplementation(() => mockIterationManager),
+  createIterationManager: vi.fn().mockReturnValue(mockIterationManager),
 }));
 
 // Suppress console
 beforeEach(() => {
-  jest.spyOn(console, 'log').mockImplementation(() => {});
-  jest.spyOn(console, 'error').mockImplementation(() => {});
-  jest.spyOn(console, 'warn').mockImplementation(() => {});
+  vi.spyOn(console, 'log').mockImplementation(() => {});
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+  vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
 afterEach(() => {
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 const goodMetrics: QualityMetrics = {
@@ -276,7 +276,7 @@ describe('AutoImprovementEngine', () => {
 
   describe('runImprovementCycle', () => {
     it('should return early when no improvement needed', async () => {
-      const getMetrics = jest.fn().mockResolvedValue(goodMetrics);
+      const getMetrics = vi.fn().mockResolvedValue(goodMetrics);
       const result = await engine.runImprovementCycle(getMetrics);
       expect(result.improved).toBe(false);
       expect(result.results).toHaveLength(0);
@@ -285,7 +285,7 @@ describe('AutoImprovementEngine', () => {
 
     it('should apply strategies when improvement is needed', async () => {
       let callCount = 0;
-      const getMetrics = jest.fn().mockImplementation(async () => {
+      const getMetrics = vi.fn().mockImplementation(async () => {
         callCount++;
         // Simulate improvement after first call
         if (callCount <= 2) return badMetrics;
@@ -307,7 +307,7 @@ describe('AutoImprovementEngine', () => {
     });
 
     it('should handle strategy execution errors gracefully', async () => {
-      const getMetrics = jest.fn().mockResolvedValue(badMetrics);
+      const getMetrics = vi.fn().mockResolvedValue(badMetrics);
 
       const failingStrategy: ImprovementStrategy = {
         name: 'Failing Strategy',
@@ -326,7 +326,7 @@ describe('AutoImprovementEngine', () => {
     });
 
     it('should limit to top 3 strategies', async () => {
-      const getMetrics = jest.fn().mockResolvedValue(badMetrics);
+      const getMetrics = vi.fn().mockResolvedValue(badMetrics);
 
       const strategies: ImprovementStrategy[] = Array.from({ length: 6 }, (_, i) => ({
         name: `Strategy ${i}`,
@@ -347,7 +347,7 @@ describe('AutoImprovementEngine', () => {
   describe('autonomousImprovement', () => {
     it('should succeed when target score is reached', async () => {
       let callCount = 0;
-      const getMetrics = jest.fn().mockImplementation(async () => {
+      const getMetrics = vi.fn().mockImplementation(async () => {
         callCount++;
         return callCount <= 1 ? badMetrics : { ...badMetrics, overallScore: 96 };
       });
@@ -358,13 +358,13 @@ describe('AutoImprovementEngine', () => {
     });
 
     it('should reach max cycles if target is never met', async () => {
-      const getMetrics = jest.fn().mockResolvedValue(badMetrics);
+      const getMetrics = vi.fn().mockResolvedValue(badMetrics);
       const result = await engine.autonomousImprovement(getMetrics, 99, 2);
       expect(result.cycles).toBe(2);
     });
 
     it('should use default targetScore and maxCycles', async () => {
-      const getMetrics = jest.fn().mockResolvedValue({ ...goodMetrics, overallScore: 96 });
+      const getMetrics = vi.fn().mockResolvedValue({ ...goodMetrics, overallScore: 96 });
       const result = await engine.autonomousImprovement(getMetrics);
       expect(result.cycles).toBeGreaterThanOrEqual(1);
     });
@@ -379,7 +379,7 @@ describe('AutoImprovementEngine', () => {
     });
 
     it('should return history after running improvement cycle', async () => {
-      const getMetrics = jest.fn().mockResolvedValue(badMetrics);
+      const getMetrics = vi.fn().mockResolvedValue(badMetrics);
       const strategy: ImprovementStrategy = {
         name: 'Test',
         description: 'Test',
@@ -418,7 +418,7 @@ describe('AutoImprovementEngine', () => {
     });
 
     it('should include improvement history in report', async () => {
-      const getMetrics = jest.fn().mockResolvedValue(badMetrics);
+      const getMetrics = vi.fn().mockResolvedValue(badMetrics);
       const strategy: ImprovementStrategy = {
         name: 'Test Strategy',
         description: 'Test',

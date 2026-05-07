@@ -4,7 +4,6 @@
  * Tests for the LayoutQualityCompositeScorer class and quality gate integration.
  */
 
-import { describe, it, expect } from '@jest/globals';
 import { PositionedNode, LayoutEdge } from '@/types/diagram';
 import {
   LayoutQualityCompositeScorer,

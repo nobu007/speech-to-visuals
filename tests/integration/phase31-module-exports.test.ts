@@ -5,7 +5,6 @@
  * from the @/visualization barrel (index.ts).
  */
 
-import { describe, it, expect } from '@jest/globals';
 import {
   VisualBalanceScorer,
   EdgeCrossingMinimizer,

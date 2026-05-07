@@ -9,20 +9,20 @@ import { BatchProcessingAPI } from '@/api/batch-processing-api';
 import { BatchValidationError, JobNotFoundError } from '@/api/routes/batch';
 
 // Mock pipeline dependencies so we don't need real implementations
-jest.mock('@/pipeline/simple-pipeline', () => ({
+vi.mock('@/pipeline/simple-pipeline', () => ({
   simplePipeline: {
-    process: jest.fn().mockResolvedValue({ success: true, transcript: 'test' }),
+    process: vi.fn().mockResolvedValue({ success: true, transcript: 'test' }),
   },
 }));
 
-jest.mock('@/pipeline/adaptive-quality-presets', () => ({
+vi.mock('@/pipeline/adaptive-quality-presets', () => ({
   adaptiveQualityPresets: {
-    setPreset: jest.fn(),
-    toPipelineOptions: jest.fn().mockReturnValue({
+    setPreset: vi.fn(),
+    toPipelineOptions: vi.fn().mockReturnValue({
       file: { name: 'test.wav' },
       options: {},
     }),
-    getCurrentPreset: jest.fn().mockReturnValue({ name: 'balanced' }),
+    getCurrentPreset: vi.fn().mockReturnValue({ name: 'balanced' }),
   },
 }));
 

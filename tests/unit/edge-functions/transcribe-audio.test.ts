@@ -3,11 +3,11 @@ import { handleTranscribe, TRANSCRIBE_TIMEOUT_MS } from '../../../supabase/funct
 // ─── Mock Setup ──────────────────────────────────────────────────────────────
 
 // Mock the error-handler module's fetchWithTimeout
-jest.mock('../../../supabase/functions/_shared/error-handler', () => {
-  const actual = jest.requireActual('../../../supabase/functions/_shared/error-handler');
+vi.mock('../../../supabase/functions/_shared/error-handler', () => {
+  const actual = vi.requireActual('../../../supabase/functions/_shared/error-handler');
   return {
     ...actual,
-    fetchWithTimeout: jest.fn(),
+    fetchWithTimeout: vi.fn(),
   };
 });
 

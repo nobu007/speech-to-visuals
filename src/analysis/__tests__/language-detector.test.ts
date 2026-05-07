@@ -20,13 +20,13 @@ import {
 
 /** Mock tokenizer that tests can configure via mockTokenizer */
 const mockTokenizer = {
-  tokenize: jest.fn(),
+  tokenize: vi.fn(),
 };
 
 /** Create a builder function that resolves with mockTokenizer */
 function createSuccessBuilder(): KuromojiBuilder {
-  return jest.fn(() => ({
-    build: jest.fn((callback: (err: Error | null, tokenizer: unknown) => void) => {
+  return vi.fn(() => ({
+    build: vi.fn((callback: (err: Error | null, tokenizer: unknown) => void) => {
       callback(null, mockTokenizer);
     }),
   })) as unknown as KuromojiBuilder;
@@ -34,8 +34,8 @@ function createSuccessBuilder(): KuromojiBuilder {
 
 /** Create a builder function that fails with an error */
 function createFailingBuilder(errorMessage = 'Dictionary not found'): KuromojiBuilder {
-  return jest.fn(() => ({
-    build: jest.fn((callback: (err: Error | null, _tokenizer: unknown) => void) => {
+  return vi.fn(() => ({
+    build: vi.fn((callback: (err: Error | null, _tokenizer: unknown) => void) => {
       callback(new Error(errorMessage), null);
     }),
   })) as unknown as KuromojiBuilder;
@@ -58,7 +58,7 @@ describe('LanguageDetector', () => {
 
   beforeEach(() => {
     detector = createDetector();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockTokenizer.tokenize.mockReset();
   });
 

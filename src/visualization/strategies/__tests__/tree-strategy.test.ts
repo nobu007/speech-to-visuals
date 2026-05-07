@@ -312,7 +312,7 @@ describe('TreeStrategy', () => {
   // ---- gridSnapFallback (via forced overlap) ----
 
   describe('gridSnapFallback()', () => {
-    let metricsSpy: jest.SpyInstance;
+    let metricsSpy: vi.SpyInstance;
 
     afterEach(() => {
       if (metricsSpy) metricsSpy.mockRestore();
@@ -320,7 +320,7 @@ describe('TreeStrategy', () => {
 
     /** Mock calculateMetrics to return overlapCount > 0, triggering gridSnapFallback. */
     function forceOverlap() {
-      metricsSpy = jest.spyOn(layoutEngineV2, 'calculateMetrics').mockReturnValue({
+      metricsSpy = vi.spyOn(layoutEngineV2, 'calculateMetrics').mockReturnValue({
         overlapCount: 5,
         edgeCrossings: 0,
         aspectRatio: 16 / 9,

@@ -4,7 +4,6 @@
  * Verifies selectModel() does not crash when process.env is undefined.
  */
 
-import { jest, describe, it, expect, afterEach } from '@jest/globals';
 
 describe('ISS-021: Browser-Safe env in complexity-detector selectModel', () => {
   const originalProcess = global.process;
@@ -15,7 +14,7 @@ describe('ISS-021: Browser-Safe env in complexity-detector selectModel', () => {
       writable: true,
       configurable: true,
     });
-    jest.resetModules();
+    vi.resetModules();
   });
 
   it('returns rule-based when process is undefined (browser without Vite replacement)', async () => {
@@ -34,7 +33,7 @@ describe('ISS-021: Browser-Safe env in complexity-detector selectModel', () => {
   it('respects GEMINI_MODEL_OVERRIDE when process.env is available', async () => {
     const orig = process.env.GEMINI_MODEL_OVERRIDE;
     process.env.GEMINI_MODEL_OVERRIDE = 'test-model-override';
-    jest.resetModules();
+    vi.resetModules();
 
     try {
       const { ComplexityDetector } = await import('@/analysis/complexity-detector');
@@ -52,7 +51,7 @@ describe('ISS-021: Browser-Safe env in complexity-detector selectModel', () => {
   it('returns rule-based when DISABLE_GEMINI is set', async () => {
     const orig = process.env.DISABLE_GEMINI;
     process.env.DISABLE_GEMINI = '1';
-    jest.resetModules();
+    vi.resetModules();
 
     try {
       const { ComplexityDetector } = await import('@/analysis/complexity-detector');

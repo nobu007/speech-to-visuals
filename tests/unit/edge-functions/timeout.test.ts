@@ -8,23 +8,23 @@ import {
 
 describe('createTimeout', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('should not abort before timeout', () => {
     const { signal, clear } = createTimeout(1000);
-    jest.advanceTimersByTime(999);
+    vi.advanceTimersByTime(999);
     expect(signal.aborted).toBe(false);
     clear();
   });
 
   it('should abort at or after timeout', () => {
     const { signal, clear } = createTimeout(100);
-    jest.advanceTimersByTime(100);
+    vi.advanceTimersByTime(100);
     expect(signal.aborted).toBe(true);
     clear();
   });
@@ -32,13 +32,13 @@ describe('createTimeout', () => {
   it('should not abort after clear is called', () => {
     const { signal, clear } = createTimeout(100);
     clear();
-    jest.advanceTimersByTime(200);
+    vi.advanceTimersByTime(200);
     expect(signal.aborted).toBe(false);
   });
 
   it('should provide a reason when aborted', () => {
     const { signal, clear } = createTimeout(100);
-    jest.advanceTimersByTime(100);
+    vi.advanceTimersByTime(100);
     expect(signal.reason).toBeDefined();
     expect(signal.reason.message).toContain('timed out');
     clear();
@@ -48,12 +48,12 @@ describe('createTimeout', () => {
     const t1 = createTimeout(100);
     const t2 = createTimeout(200);
 
-    jest.advanceTimersByTime(150);
+    vi.advanceTimersByTime(150);
 
     expect(t1.signal.aborted).toBe(true);
     expect(t2.signal.aborted).toBe(false);
 
-    jest.advanceTimersByTime(100);
+    vi.advanceTimersByTime(100);
 
     expect(t2.signal.aborted).toBe(true);
 
@@ -111,7 +111,7 @@ describe('fetchWithTimeout', () => {
 
   afterEach(() => {
     global.fetch = originalFetch;
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('should resolve if fetch completes within timeout', async () => {
@@ -120,7 +120,7 @@ describe('fetchWithTimeout', () => {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    global.fetch = jest.fn().mockResolvedValue(mockResponse);
+    global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
     const result = await fetchWithTimeout('https://example.com/api', {}, 5000);
     expect(result.status).toBe(200);
@@ -128,7 +128,7 @@ describe('fetchWithTimeout', () => {
 
   it('should throw if fetch exceeds timeout', async () => {
     // Mock fetch to respect the AbortSignal and reject on abort
-    global.fetch = jest.fn().mockImplementation(
+    global.fetch = vi.fn().mockImplementation(
       (_url: string, options: RequestInit & { signal?: AbortSignal }) =>
         new Promise((_resolve, reject) => {
           const signal = options.signal;
@@ -151,7 +151,7 @@ describe('fetchWithTimeout', () => {
 
   it('should pass through fetch options', async () => {
     const mockResponse = new Response(null, { status: 200 });
-    global.fetch = jest.fn().mockResolvedValue(mockResponse);
+    global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
     await fetchWithTimeout(
       'https://example.com/api',
@@ -170,7 +170,7 @@ describe('fetchWithTimeout', () => {
   it('should use default timeout of 30000ms when not specified', async () => {
     // This just verifies the default constant behavior
     const mockResponse = new Response(null, { status: 200 });
-    global.fetch = jest.fn().mockResolvedValue(mockResponse);
+    global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
     await fetchWithTimeout('https://example.com/api');
     // No assertion on timeout value directly, but it should not throw

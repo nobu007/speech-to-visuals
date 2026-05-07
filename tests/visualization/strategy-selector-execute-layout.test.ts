@@ -1,4 +1,3 @@
-import { describe, it, expect } from '@jest/globals';
 import { executeLayout, StrategySelector } from '@/visualization/strategy-selector';
 import { NodeDatum, EdgeDatum, DiagramType } from '@/types/diagram';
 

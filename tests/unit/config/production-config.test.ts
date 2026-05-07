@@ -5,7 +5,6 @@
  * (browser context where Vite does not perform static replacement).
  */
 
-import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 
 describe('REQ-066: Browser-Safe Environment Variable Access (ISS-012)', () => {
   const originalProcess = global.process;
@@ -18,7 +17,7 @@ describe('REQ-066: Browser-Safe Environment Variable Access (ISS-012)', () => {
       configurable: true,
     });
     // Clear module cache so production-config is re-imported fresh
-    jest.resetModules();
+    vi.resetModules();
   });
 
   it('TC-066-E01: should use development defaults when process.env is undefined', async () => {

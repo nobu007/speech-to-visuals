@@ -1,4 +1,3 @@
-import { describe, it, expect } from '@jest/globals';
 import { OverlapResolver } from '@/visualization/strategies/OverlapResolver';
 import { DiagramLayout, PositionedNode, DiagramType } from '@/types/diagram';
 

@@ -13,7 +13,6 @@
  *   6. All tests pass with zero ESLint errors
  */
 
-import { describe, it, expect } from '@jest/globals';
 import {
   PipelineOrchestrator,
   PipelineProgress,

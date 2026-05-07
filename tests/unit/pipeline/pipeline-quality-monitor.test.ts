@@ -1,4 +1,3 @@
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import {
   QualityMonitor,
   getQualityMonitor,
@@ -17,7 +16,7 @@ describe('QualityMonitor (pipeline)', () => {
     // Reset singleton for clean tests
     (QualityMonitor as unknown as { instance: null }).instance = null;
     monitor = QualityMonitor.getInstance();
-    jest.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'log').mockImplementation(() => {});
   });
 
   describe('getInstance', () => {

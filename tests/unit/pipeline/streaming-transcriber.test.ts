@@ -1,7 +1,6 @@
 /**
  * @jest-environment jsdom
  */
-import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import {
   StreamingTranscriber,
   createStreamingTranscriber,
@@ -30,11 +29,11 @@ const createMockAudio = (shouldFail = false) => () => {
 // Mock URL.createObjectURL
 const origURL = global.URL;
 beforeEach(() => {
-  (global as unknown as { Audio: jest.Mock }).Audio = jest.fn(createMockAudio()) as jest.Mock;
+  (global as unknown as { Audio: vi.Mock }).Audio = vi.fn(createMockAudio()) as vi.Mock;
   Object.defineProperty(global, 'URL', {
     value: {
       ...origURL,
-      createObjectURL: jest.fn(() => 'blob:test'),
+      createObjectURL: vi.fn(() => 'blob:test'),
     },
     writable: true,
   });
@@ -42,13 +41,13 @@ beforeEach(() => {
 
 describe('StreamingTranscriber', () => {
   beforeEach(() => {
-    jest.spyOn(console, 'log').mockImplementation(() => {});
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('constructor', () => {
@@ -112,7 +111,7 @@ describe('StreamingTranscriber', () => {
 
     it('should call progress callback for each chunk', async () => {
       const transcriber = new StreamingTranscriber({ chunkSizeMs: 5000 });
-      const progressCallback = jest.fn();
+      const progressCallback = vi.fn();
 
       await transcriber.transcribeStream('test-audio.wav', progressCallback);
 
@@ -121,7 +120,7 @@ describe('StreamingTranscriber', () => {
 
     it('should call segment callback for valid segments', async () => {
       const transcriber = new StreamingTranscriber({ minConfidence: 0.5 });
-      const segmentCallback = jest.fn();
+      const segmentCallback = vi.fn();
 
       await transcriber.transcribeStream('test-audio.wav', undefined, segmentCallback);
 
@@ -145,7 +144,7 @@ describe('StreamingTranscriber', () => {
     }, 30000);
 
     it('should throw on audio load failure', async () => {
-      (global as unknown as { Audio: jest.Mock }).Audio = jest.fn(createMockAudio(true)) as jest.Mock;
+      (global as unknown as { Audio: vi.Mock }).Audio = vi.fn(createMockAudio(true)) as vi.Mock;
 
       const transcriber = new StreamingTranscriber();
       await expect(transcriber.transcribeStream('bad-file.wav')).rejects.toThrow();
@@ -185,8 +184,8 @@ describe('StreamingTranscriber', () => {
         onend: null,
         onerror: null,
         onresult: null,
-        start: jest.fn(),
-        stop: jest.fn(),
+        start: vi.fn(),
+        stop: vi.fn(),
       };
       (transcriber as unknown as { isStreaming: boolean }).isStreaming = true;
 
@@ -196,7 +195,7 @@ describe('StreamingTranscriber', () => {
     });
 
     it('should start recognition and resolve', async () => {
-      const mockStart = jest.fn();
+      const mockStart = vi.fn();
       const transcriber = new StreamingTranscriber();
       (transcriber as unknown as { recognition: unknown }).recognition = {
         continuous: false,
@@ -208,7 +207,7 @@ describe('StreamingTranscriber', () => {
         onerror: null as ((e: { error: string }) => void) | null,
         onresult: null as ((e: unknown) => void) | null,
         start: mockStart,
-        stop: jest.fn(),
+        stop: vi.fn(),
       };
       (transcriber as unknown as { isStreaming: boolean }).isStreaming = false;
 
@@ -221,7 +220,7 @@ describe('StreamingTranscriber', () => {
 
   describe('stopLiveTranscription', () => {
     it('should call recognition.stop when streaming', () => {
-      const mockStop = jest.fn();
+      const mockStop = vi.fn();
       const transcriber = new StreamingTranscriber();
       (transcriber as unknown as { recognition: unknown }).recognition = { stop: mockStop };
       (transcriber as unknown as { isStreaming: boolean }).isStreaming = true;

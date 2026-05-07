@@ -27,9 +27,9 @@ import type { DiagramAnalysis, DiagramData } from '../types';
 // Mock quality-monitor to avoid side effects
 // ---------------------------------------------------------------------------
 
-jest.mock('@/pipeline/quality-monitor', () => ({
-  getQualityMonitor: jest.fn(() => ({
-    recordMetrics: jest.fn(),
+vi.mock('@/pipeline/quality-monitor', () => ({
+  getQualityMonitor: vi.fn(() => ({
+    recordMetrics: vi.fn(),
   })),
 }));
 
@@ -37,13 +37,13 @@ jest.mock('@/pipeline/quality-monitor', () => ({
 // Suppress console output
 // ---------------------------------------------------------------------------
 
-let consoleLogSpy: jest.SpyInstance;
-let consoleWarnSpy: jest.SpyInstance;
+let consoleLogSpy: vi.SpyInstance;
+let consoleWarnSpy: vi.SpyInstance;
 
 beforeEach(() => {
-  jest.clearAllMocks();
-  consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-  consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  vi.clearAllMocks();
+  consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
 afterEach(() => {
@@ -66,8 +66,8 @@ function createParserMockLLMService(): {
   let parserResultText = '';
 
   const llm = {
-    isEnabled: jest.fn().mockReturnValue(true),
-    execute: jest.fn().mockImplementation(async (req: { parser?: (text: string) => DiagramAnalysis }) => {
+    isEnabled: vi.fn().mockReturnValue(true),
+    execute: vi.fn().mockImplementation(async (req: { parser?: (text: string) => DiagramAnalysis }) => {
       if (req.parser) {
         try {
           const data = req.parser(parserResultText);
@@ -103,7 +103,7 @@ function createParserMockLLMService(): {
         metadata: { model: 'none', responseTime: 0, fromCache: false, retryCount: 0, fallbackUsed: false },
       };
     }),
-    getStats: jest.fn().mockReturnValue({
+    getStats: vi.fn().mockReturnValue({
       totalRequests: 1,
       cacheHits: 0,
       cacheMisses: 1,
@@ -126,8 +126,8 @@ function createParserMockLLMService(): {
  */
 function createSimpleMockLLMService(analysis: DiagramAnalysis | null, success = true): LLMService {
   return {
-    isEnabled: jest.fn().mockReturnValue(true),
-    execute: jest.fn().mockResolvedValue({
+    isEnabled: vi.fn().mockReturnValue(true),
+    execute: vi.fn().mockResolvedValue({
       success,
       data: analysis,
       error: success ? undefined : 'API error',
@@ -140,7 +140,7 @@ function createSimpleMockLLMService(analysis: DiagramAnalysis | null, success = 
         fallbackUsed: false,
       },
     }),
-    getStats: jest.fn().mockReturnValue({
+    getStats: vi.fn().mockReturnValue({
       totalRequests: 1,
       cacheHits: 0,
       cacheMisses: 1,
@@ -197,9 +197,9 @@ describe('GeminiAnalyzer', () => {
 
     it('should return false when LLMService is disabled', () => {
       const mockLLM = {
-        isEnabled: jest.fn().mockReturnValue(false),
-        execute: jest.fn(),
-        getStats: jest.fn(),
+        isEnabled: vi.fn().mockReturnValue(false),
+        execute: vi.fn(),
+        getStats: vi.fn(),
       } as unknown as LLMService;
       const analyzer = new GeminiAnalyzer(undefined, mockLLM);
       expect(analyzer.isEnabled()).toBe(false);
@@ -229,9 +229,9 @@ describe('GeminiAnalyzer', () => {
   describe('analyzeText basic flow', () => {
     it('should return null when LLM is not enabled', async () => {
       const mockLLM = {
-        isEnabled: jest.fn().mockReturnValue(false),
-        execute: jest.fn(),
-        getStats: jest.fn(),
+        isEnabled: vi.fn().mockReturnValue(false),
+        execute: vi.fn(),
+        getStats: vi.fn(),
       } as unknown as LLMService;
 
       const analyzer = new GeminiAnalyzer(undefined, mockLLM);
@@ -243,13 +243,13 @@ describe('GeminiAnalyzer', () => {
 
     it('should return null when LLM call fails', async () => {
       const mockLLM = {
-        isEnabled: jest.fn().mockReturnValue(true),
-        execute: jest.fn().mockResolvedValue({
+        isEnabled: vi.fn().mockReturnValue(true),
+        execute: vi.fn().mockResolvedValue({
           success: false,
           error: 'API error',
           metadata: { model: 'none', responseTime: 0, fromCache: false, retryCount: 0, fallbackUsed: false },
         }),
-        getStats: jest.fn(),
+        getStats: vi.fn(),
       } as unknown as LLMService;
 
       const analyzer = new GeminiAnalyzer('test-key', mockLLM);
@@ -681,7 +681,7 @@ describe('GeminiAnalyzer', () => {
 
       await analyzer.analyzeText('テストテキスト。');
 
-      const callArgs = (mockLLM.execute as jest.Mock).mock.calls[0][0];
+      const callArgs = (mockLLM.execute as vi.Mock).mock.calls[0][0];
       // Japanese prompt should contain Japanese characters
       expect(callArgs.prompt).toMatch(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/);
     });
@@ -699,7 +699,7 @@ describe('GeminiAnalyzer', () => {
 
       await analyzer.analyzeText('Test text.');
 
-      const callArgs = (mockLLM.execute as jest.Mock).mock.calls[0][0];
+      const callArgs = (mockLLM.execute as vi.Mock).mock.calls[0][0];
       // English prompt should contain "expert" or "extraction"
       expect(callArgs.prompt).toContain('expert');
     });

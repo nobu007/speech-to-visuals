@@ -5,7 +5,6 @@
  * preventing ReDoS or incorrect pattern matching.
  */
 
-import { describe, it, expect } from '@jest/globals';
 
 describe('ISS-024: Regex escaping in iteration-logger insertEntry', () => {
   // We test the escaping logic directly since insertEntry is private.

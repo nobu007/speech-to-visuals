@@ -12,7 +12,6 @@
  * when fed realistic diagram layouts.
  */
 
-import { describe, it, expect } from '@jest/globals';
 import { PositionedNode, LayoutEdge } from '@/types/diagram';
 import { VisualBalanceScorer } from '@/visualization/visual-balance-scorer';
 import { detectEdgeCrossings, minimizeEdgeCrossings } from '@/visualization/edge-crossing-minimizer';

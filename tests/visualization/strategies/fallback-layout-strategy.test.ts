@@ -1,4 +1,3 @@
-import { describe, it, expect } from '@jest/globals';
 import { FallbackLayoutStrategy } from '@/visualization/strategies/FallbackLayoutStrategy';
 import { NodeDatum, EdgeDatum, DiagramType } from '@/types/diagram';
 

@@ -5,7 +5,7 @@
  */
 
 // Mock the SimplePipelineInterface component
-jest.mock('@/components/SimplePipelineInterface', () => {
+vi.mock('@/components/SimplePipelineInterface', () => {
   return {
     __esModule: true,
     default: () => null,
@@ -13,11 +13,11 @@ jest.mock('@/components/SimplePipelineInterface', () => {
 });
 
 // Mock sonner toast
-jest.mock('sonner', () => ({
+vi.mock('sonner', () => ({
   toast: {
-    success: jest.fn(),
-    error: jest.fn(),
-    info: jest.fn(),
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
   },
   Toaster: () => null,
 }));

@@ -1,4 +1,3 @@
-import { describe, it, expect } from '@jest/globals';
 import { BaseLayoutEngine } from '@/visualization/base/BaseLayoutEngine';
 import { NodeDatum, EdgeDatum, DiagramType, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig, LayoutResult } from '@/visualization/types';

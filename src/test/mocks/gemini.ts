@@ -28,8 +28,8 @@ export function createMockGeminiResponse(
  */
 export function createMockGeminiClient() {
   return {
-    generateContent: jest.fn().mockResolvedValue(createMockGeminiResponse()),
-    generateContentStream: jest.fn(),
+    generateContent: vi.fn().mockResolvedValue(createMockGeminiResponse()),
+    generateContentStream: vi.fn(),
     model: 'gemini-2.5-flash',
   };
 }

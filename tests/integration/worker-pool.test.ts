@@ -5,7 +5,6 @@
  * and resource cleanup using mocked workers.
  */
 
-import { jest } from '@jest/globals';
 import { WorkerPool } from '@/workers/worker-pool';
 import type { WorkerMessage, WorkerResponse } from '@/workers/types';
 
@@ -14,25 +13,25 @@ import type { WorkerMessage, WorkerResponse } from '@/workers/types';
 function createMockWorkerPool() {
   const workers: Array<{
     instance: {
-      postMessage: jest.Mock;
-      terminate: jest.Mock;
-      addEventListener: jest.Mock;
-      removeEventListener: jest.Mock;
+      postMessage: vi.Mock;
+      terminate: vi.Mock;
+      addEventListener: vi.Mock;
+      removeEventListener: vi.Mock;
     };
     listeners: Record<string, Array<(e: { data?: unknown; message?: string }) => void>>;
   }> = [];
 
-  const factory = jest.fn(() => {
+  const factory = vi.fn(() => {
     const listeners: Record<string, Array<(e: { data?: unknown; message?: string }) => void>> = {};
 
     const instance = {
-      postMessage: jest.fn(),
-      terminate: jest.fn(),
-      addEventListener: jest.fn((event: string, handler: (e: unknown) => void) => {
+      postMessage: vi.fn(),
+      terminate: vi.fn(),
+      addEventListener: vi.fn((event: string, handler: (e: unknown) => void) => {
         if (!listeners[event]) listeners[event] = [];
         listeners[event].push(handler as (e: { data?: unknown; message?: string }) => void);
       }),
-      removeEventListener: jest.fn((event: string, handler: (e: unknown) => void) => {
+      removeEventListener: vi.fn((event: string, handler: (e: unknown) => void) => {
         if (listeners[event]) {
           listeners[event] = listeners[event].filter((h) => h !== handler);
         }

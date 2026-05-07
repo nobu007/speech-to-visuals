@@ -1,8 +1,7 @@
-import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 
 // Mock all dependencies - define mocks inside factory to avoid hoisting issues
-jest.mock('@/transcription', () => {
-  const mockTranscribe = jest.fn().mockResolvedValue({
+vi.mock('@/transcription', () => {
+  const mockTranscribe = vi.fn().mockResolvedValue({
     success: true,
     segments: [
       { start: 0, end: 5000, text: 'Hello world', confidence: 0.9 },
@@ -12,31 +11,31 @@ jest.mock('@/transcription', () => {
     duration: 10,
   } as never);
   return {
-    TranscriptionPipeline: jest.fn().mockImplementation(() => ({
+    TranscriptionPipeline: vi.fn().mockImplementation(() => ({
       transcribe: mockTranscribe,
     })),
     __mockTranscribe: mockTranscribe,
   };
 });
 
-jest.mock('@/analysis', () => {
-  const mockSegment = jest.fn().mockResolvedValue([
+vi.mock('@/analysis', () => {
+  const mockSegment = vi.fn().mockResolvedValue([
     {
       startMs: 0, endMs: 10000, text: 'Test content',
       summary: 'Summary', keyphrases: ['test'], confidence: 0.9,
     },
   ] as never);
-  const mockAnalyze = jest.fn().mockResolvedValue({
+  const mockAnalyze = vi.fn().mockResolvedValue({
     type: 'flow', confidence: 0.85,
     nodes: [{ id: 'n1', label: 'Node 1' }],
     edges: [],
     reasoning: 'Test',
   } as never);
   return {
-    SceneSegmenter: jest.fn().mockImplementation(() => ({
+    SceneSegmenter: vi.fn().mockImplementation(() => ({
       segment: mockSegment,
     })),
-    DiagramDetector: jest.fn().mockImplementation(() => ({
+    DiagramDetector: vi.fn().mockImplementation(() => ({
       analyze: mockAnalyze,
     })),
     __mockSegment: mockSegment,
@@ -44,8 +43,8 @@ jest.mock('@/analysis', () => {
   };
 });
 
-jest.mock('@/visualization', () => {
-  const mockGenerateLayout = jest.fn().mockResolvedValue({
+vi.mock('@/visualization', () => {
+  const mockGenerateLayout = vi.fn().mockResolvedValue({
     success: true,
     layout: {
       nodes: [{ id: 'n1', x: 100, y: 100, w: 120, h: 60, label: 'Node 1' }],
@@ -54,30 +53,30 @@ jest.mock('@/visualization', () => {
     confidence: 0.9,
   } as never);
   return {
-    LayoutEngine: jest.fn().mockImplementation(() => ({
+    LayoutEngine: vi.fn().mockImplementation(() => ({
       generateLayout: mockGenerateLayout,
     })),
     __mockGenerateLayout: mockGenerateLayout,
   };
 });
 
-jest.mock('@/visualization/enhanced-zero-overlap-layout', () => {
-  const mockGenerateZeroOverlapLayout = jest.fn().mockResolvedValue({
+vi.mock('@/visualization/enhanced-zero-overlap-layout', () => {
+  const mockGenerateZeroOverlapLayout = vi.fn().mockResolvedValue({
     success: true,
     nodes: [{ id: 'n1', x: 100, y: 100 }],
     edges: [],
     qualityMetrics: { overlapCount: 0, aestheticScore: 0.9 },
   } as never);
   return {
-    EnhancedZeroOverlapLayoutEngine: jest.fn().mockImplementation(() => ({
+    EnhancedZeroOverlapLayoutEngine: vi.fn().mockImplementation(() => ({
       generateZeroOverlapLayout: mockGenerateZeroOverlapLayout,
     })),
     __mockGenerateZeroOverlapLayout: mockGenerateZeroOverlapLayout,
   };
 });
 
-jest.mock('@/pipeline/video-generator', () => {
-  const mockGenerateVideo = jest.fn().mockResolvedValue({
+vi.mock('@/pipeline/video-generator', () => {
+  const mockGenerateVideo = vi.fn().mockResolvedValue({
     success: true,
     videoUrl: 'test-video.mp4',
     thumbnailUrl: 'test-thumb.jpg',
@@ -85,47 +84,47 @@ jest.mock('@/pipeline/video-generator', () => {
     processingTime: 1000,
   } as never);
   return {
-    VideoGenerator: jest.fn().mockImplementation(() => ({
+    VideoGenerator: vi.fn().mockImplementation(() => ({
       generateVideo: mockGenerateVideo,
     })),
     __mockGenerateVideo: mockGenerateVideo,
   };
 });
 
-jest.mock('@/framework/continuous-learner', () => ({
+vi.mock('@/framework/continuous-learner', () => ({
   continuousLearner: {
-    learnFromProcessingResult: jest.fn().mockResolvedValue(undefined as never),
+    learnFromProcessingResult: vi.fn().mockResolvedValue(undefined as never),
   },
 }));
 
-jest.mock('@/pipeline/quality-monitor', () => ({
-  getQualityMonitor: jest.fn().mockReturnValue({
-    setPhaseIteration: jest.fn(),
-    recordMetrics: jest.fn(),
-    generateReport: jest.fn().mockReturnValue({
+vi.mock('@/pipeline/quality-monitor', () => ({
+  getQualityMonitor: vi.fn().mockReturnValue({
+    setPhaseIteration: vi.fn(),
+    recordMetrics: vi.fn(),
+    generateReport: vi.fn().mockReturnValue({
       phase: 'test',
       metrics: [],
       recommendations: [],
     } as never),
-    getLatestMetrics: jest.fn().mockReturnValue({} as never),
-    logIteration: jest.fn(),
+    getLatestMetrics: vi.fn().mockReturnValue({} as never),
+    logIteration: vi.fn(),
   } as never),
-  formatQualityReport: jest.fn().mockReturnValue('Test report' as never),
+  formatQualityReport: vi.fn().mockReturnValue('Test report' as never),
 }));
 
 import { SimplePipeline } from '@/pipeline/simple-pipeline';
 
-const mockTranscribe = (jest.requireMock('@/transcription') as { __mockTranscribe: jest.Mock<() => Promise<unknown>> }).__mockTranscribe;
-const mockSegment = (jest.requireMock('@/analysis') as { __mockSegment: jest.Mock<() => Promise<unknown>> }).__mockSegment;
-const mockAnalyze = (jest.requireMock('@/analysis') as { __mockAnalyze: jest.Mock<() => Promise<unknown>> }).__mockAnalyze;
-const mockGenerateLayout = (jest.requireMock('@/visualization') as { __mockGenerateLayout: jest.Mock<() => Promise<unknown>> }).__mockGenerateLayout;
-const mockGenerateZeroOverlapLayout = (jest.requireMock('@/visualization/enhanced-zero-overlap-layout') as { __mockGenerateZeroOverlapLayout: jest.Mock<() => Promise<unknown>> }).__mockGenerateZeroOverlapLayout;
-const mockGenerateVideo = (jest.requireMock('@/pipeline/video-generator') as { __mockGenerateVideo: jest.Mock<() => Promise<unknown>> }).__mockGenerateVideo;
+const mockTranscribe = (vi.requireMock('@/transcription') as { __mockTranscribe: vi.Mock<() => Promise<unknown>> }).__mockTranscribe;
+const mockSegment = (vi.requireMock('@/analysis') as { __mockSegment: vi.Mock<() => Promise<unknown>> }).__mockSegment;
+const mockAnalyze = (vi.requireMock('@/analysis') as { __mockAnalyze: vi.Mock<() => Promise<unknown>> }).__mockAnalyze;
+const mockGenerateLayout = (vi.requireMock('@/visualization') as { __mockGenerateLayout: vi.Mock<() => Promise<unknown>> }).__mockGenerateLayout;
+const mockGenerateZeroOverlapLayout = (vi.requireMock('@/visualization/enhanced-zero-overlap-layout') as { __mockGenerateZeroOverlapLayout: vi.Mock<() => Promise<unknown>> }).__mockGenerateZeroOverlapLayout;
+const mockGenerateVideo = (vi.requireMock('@/pipeline/video-generator') as { __mockGenerateVideo: vi.Mock<() => Promise<unknown>> }).__mockGenerateVideo;
 
 // Mock URL.createObjectURL / revokeObjectURL
 beforeEach(() => {
-  globalThis.URL.createObjectURL = jest.fn(() => 'blob:test');
-  globalThis.URL.revokeObjectURL = jest.fn();
+  globalThis.URL.createObjectURL = vi.fn(() => 'blob:test');
+  globalThis.URL.revokeObjectURL = vi.fn();
 });
 
 function createMockFile(): File {
@@ -181,16 +180,16 @@ describe('SimplePipeline', () => {
   let pipeline: SimplePipeline;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    jest.spyOn(console, 'log').mockImplementation(() => {});
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.clearAllMocks();
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
     resetMocks();
     pipeline = new SimplePipeline();
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('process', () => {
@@ -260,7 +259,7 @@ describe('SimplePipeline', () => {
     });
 
     it('should call onProgress callback', async () => {
-      const onProgress = jest.fn();
+      const onProgress = vi.fn();
 
       await pipeline.process({
         audioFile: createMockFile(),

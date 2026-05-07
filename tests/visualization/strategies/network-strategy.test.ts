@@ -1,4 +1,3 @@
-import { describe, it, expect } from '@jest/globals';
 import { NetworkLayoutStrategy } from '@/visualization/strategies/NetworkLayoutStrategy';
 import { NodeDatum, EdgeDatum } from '@/types/diagram';
 import { LayoutConfig } from '@/visualization/types';

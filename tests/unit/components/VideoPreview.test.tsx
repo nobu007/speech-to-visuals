@@ -1,7 +1,6 @@
 /**
  * @jest-environment jsdom
  */
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -14,28 +13,28 @@ import {
 } from '@/components/VideoPreview';
 
 // Mock @remotion/player
-jest.mock('@remotion/player', () => ({
+vi.mock('@remotion/player', () => ({
   Player: React.forwardRef((_props: Record<string, unknown>, ref: React.Ref<unknown>) => {
     React.useImperativeHandle(ref, () => ({
-      play: jest.fn(),
-      pause: jest.fn(),
-      seekTo: jest.fn(),
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
+      play: vi.fn(),
+      pause: vi.fn(),
+      seekTo: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
     }));
     return React.createElement('div', { 'data-testid': 'remotion-player' });
   }),
 }));
 
 // Mock the Remotion Video component
-jest.mock('@/remotion/Video', () => ({
+vi.mock('@/remotion/Video', () => ({
   SpeechToVisualsVideo: () => null,
   calculateTotalFrames: (_scenes: unknown[], fps: number) => fps * 10,
   DEFAULT_FPS: 30,
 }));
 
 // Mock UI components
-jest.mock('@/components/ui/button', () => ({
+vi.mock('@/components/ui/button', () => ({
   Button: ({ children, onClick, disabled, ...props }: {
     children: React.ReactNode;
     onClick?: () => void;
@@ -44,7 +43,7 @@ jest.mock('@/components/ui/button', () => ({
   }) => React.createElement('button', { onClick, disabled, ...props }, children),
 }));
 
-jest.mock('@/components/ui/slider', () => ({
+vi.mock('@/components/ui/slider', () => ({
   Slider: ({ value, onValueChange, ...props }: {
     value: number[];
     onValueChange?: (v: number[]) => void;
@@ -58,7 +57,7 @@ jest.mock('@/components/ui/slider', () => ({
     }),
 }));
 
-jest.mock('@/components/ui/select', () => ({
+vi.mock('@/components/ui/select', () => ({
   Select: ({ children, value, onValueChange }: {
     children: React.ReactNode;
     value: string;
@@ -139,7 +138,7 @@ describe('VideoPreview', () => {
   ];
 
   beforeEach(() => {
-    jest.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'log').mockImplementation(() => {});
   });
 
   describe('empty state', () => {

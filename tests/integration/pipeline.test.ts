@@ -31,8 +31,8 @@ import {
 // Mock external dependencies so we don't need real audio/LLM infrastructure
 // ---------------------------------------------------------------------------
 
-jest.mock('@/transcription', () => {
-  const mockTranscribe = jest.fn().mockResolvedValue({
+vi.mock('@/transcription', () => {
+  const mockTranscribe = vi.fn().mockResolvedValue({
     success: true,
     segments: [
       { id: 0, start: 0, end: 5, text: 'Hello world', confidence: 0.9 },
@@ -43,15 +43,15 @@ jest.mock('@/transcription', () => {
   });
 
   return {
-    TranscriptionPipeline: jest.fn().mockImplementation(() => ({
+    TranscriptionPipeline: vi.fn().mockImplementation(() => ({
       transcribe: mockTranscribe,
     })),
     __mockTranscribe: mockTranscribe,
   };
 });
 
-jest.mock('@/analysis', () => {
-  const mockSegment = jest.fn().mockResolvedValue([
+vi.mock('@/analysis', () => {
+  const mockSegment = vi.fn().mockResolvedValue([
     {
       startMs: 0,
       endMs: 5000,
@@ -70,7 +70,7 @@ jest.mock('@/analysis', () => {
     },
   ]);
 
-  const mockAnalyze = jest.fn().mockResolvedValue({
+  const mockAnalyze = vi.fn().mockResolvedValue({
     type: 'flow',
     confidence: 0.9,
     nodes: [
@@ -82,10 +82,10 @@ jest.mock('@/analysis', () => {
   });
 
   return {
-    SceneSegmenter: jest.fn().mockImplementation(() => ({
+    SceneSegmenter: vi.fn().mockImplementation(() => ({
       segment: mockSegment,
     })),
-    DiagramDetector: jest.fn().mockImplementation(() => ({
+    DiagramDetector: vi.fn().mockImplementation(() => ({
       analyze: mockAnalyze,
     })),
     __mockSegment: mockSegment,
@@ -93,8 +93,8 @@ jest.mock('@/analysis', () => {
   };
 });
 
-jest.mock('@/visualization', () => {
-  const mockGenerateLayout = jest.fn().mockResolvedValue({
+vi.mock('@/visualization', () => {
+  const mockGenerateLayout = vi.fn().mockResolvedValue({
     success: true,
     layout: {
       nodes: [
@@ -108,40 +108,42 @@ jest.mock('@/visualization', () => {
   });
 
   return {
-    LayoutEngine: jest.fn().mockImplementation(() => ({
+    LayoutEngine: vi.fn().mockImplementation(() => ({
       generateLayout: mockGenerateLayout,
     })),
     __mockGenerateLayout: mockGenerateLayout,
   };
 });
 
-jest.mock('@/optimization/smart-parameter-tuner', () => {
-  return jest.fn().mockImplementation(() => ({
-    analyzeContent: jest.fn().mockResolvedValue({
-      speechRate: 120,
-      complexity: 'medium',
-      domain: 'general',
-      audioQuality: 0.8,
-      keywordDensity: 0.3,
-      diagramLikelihood: 0.5,
-    }),
-    optimizeParameters: jest.fn().mockResolvedValue({
-      parameters: {
-        confidenceThreshold: 0.75,
-        segmentMinLength: 3000,
-        segmentMaxLength: 15000,
-        keywordWeights: { default: 1.0 },
-        layoutDensity: 0.5,
-        processingMode: 'balanced',
-      },
-      expectedPerformance: { accuracy: 0.85, speed: 0.9, reliability: 0.88 },
-      confidence: 0.8,
-    }),
-  }));
+vi.mock('@/optimization/smart-parameter-tuner', () => {
+  return {
+    default: vi.fn().mockImplementation(() => ({
+      analyzeContent: vi.fn().mockResolvedValue({
+        speechRate: 120,
+        complexity: 'medium',
+        domain: 'general',
+        audioQuality: 0.8,
+        keywordDensity: 0.3,
+        diagramLikelihood: 0.5,
+      }),
+      optimizeParameters: vi.fn().mockResolvedValue({
+        parameters: {
+          confidenceThreshold: 0.75,
+          segmentMinLength: 3000,
+          segmentMaxLength: 15000,
+          keywordWeights: { default: 1.0 },
+          layoutDensity: 0.5,
+          processingMode: 'balanced',
+        },
+        expectedPerformance: { accuracy: 0.85, speed: 0.9, reliability: 0.88 },
+        confidence: 0.8,
+      }),
+    })),
+  };
 });
 
-jest.mock('@/config/validate', () => ({
-  validateConfig: jest.fn().mockReturnValue([]),
+vi.mock('@/config/validate', () => ({
+  validateConfig: vi.fn().mockReturnValue([]),
   ValidationError: class extends Error {
     field: string;
     constructor(field: string, message: string) {
@@ -152,11 +154,11 @@ jest.mock('@/config/validate', () => ({
 }));
 
 // Mock the performance/intelligent-cache used by EnhancedErrorRecovery
-jest.mock('@/performance/intelligent-cache', () => ({
+vi.mock('@/performance/intelligent-cache', () => ({
   globalCache: {
-    findSimilar: jest.fn().mockResolvedValue(null),
-    clear: jest.fn().mockResolvedValue(undefined),
-    getStats: jest.fn().mockReturnValue({ hitRate: 0.5 }),
+    findSimilar: vi.fn().mockResolvedValue(null),
+    clear: vi.fn().mockResolvedValue(undefined),
+    getStats: vi.fn().mockReturnValue({ hitRate: 0.5 }),
   },
 }));
 
@@ -791,10 +793,10 @@ describe('PipelineOrchestrator Integration', () => {
       originalSetInterval = global.setInterval;
     });
 
-    let consoleSpy: jest.SpyInstance;
+    let consoleSpy: vi.SpyInstance;
 
     beforeEach(() => {
-      consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+      consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       errorRecovery = new EnhancedErrorRecovery();
     });
 

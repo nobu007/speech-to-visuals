@@ -2,7 +2,6 @@
  * TASK-0125: Edge Crossing Detection & Minimization — unit tests
  */
 
-import { describe, it, expect } from '@jest/globals';
 import {
   EdgeCrossingMinimizer,
   detectEdgeCrossings,

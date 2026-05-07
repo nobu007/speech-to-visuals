@@ -14,18 +14,18 @@ function createMockRequest(): Partial<Request> {
 }
 
 function createMockResponse(): {
-  status: jest.Mock;
-  json: jest.Mock;
+  status: vi.Mock;
+  json: vi.Mock;
 } & Partial<Response> {
   const res = {
-    status: jest.fn().mockReturnThis(),
-    json: jest.fn().mockReturnThis(),
+    status: vi.fn().mockReturnThis(),
+    json: vi.fn().mockReturnThis(),
   };
-  return res as unknown as { status: jest.Mock; json: jest.Mock } & Partial<Response>;
+  return res as unknown as { status: vi.Mock; json: vi.Mock } & Partial<Response>;
 }
 
 function createMockNext(): NextFunction {
-  return jest.fn() as unknown as NextFunction;
+  return vi.fn() as unknown as NextFunction;
 }
 
 describe('AppError', () => {
@@ -124,7 +124,7 @@ describe('RateLimitError', () => {
 
 describe('errorHandler middleware', () => {
   let req: Partial<Request>;
-  let res: { status: jest.Mock; json: jest.Mock } & Partial<Response>;
+  let res: { status: vi.Mock; json: vi.Mock } & Partial<Response>;
   let next: NextFunction;
 
   beforeEach(() => {
@@ -220,7 +220,7 @@ describe('errorHandler middleware', () => {
   });
 
   it('should handle unknown errors with 500 status', () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const error = new Error('Something went wrong');
     errorHandler(error, req as Request, res as Response, next);
 
@@ -237,14 +237,14 @@ describe('errorHandler middleware', () => {
   });
 
   it('should not expose internal error messages for unknown errors', () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     const error = new Error('Database connection string: postgres://admin:password@host/db');
     errorHandler(error, req as Request, res as Response, next);
 
     const jsonCall = res.json.mock.calls[0][0] as { error: { message: string } };
     expect(jsonCall.error.message).toBe('An unexpected error occurred');
     expect(jsonCall.error.message).not.toContain('Database');
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('should omit details when AppError has no details', () => {

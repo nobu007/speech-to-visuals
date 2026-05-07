@@ -16,9 +16,9 @@ type MockSpeechRecognitionInstance = {
   onresult: ((ev: SpeechRecognitionEvent) => void) | null;
   onerror: ((ev: SpeechRecognitionErrorEvent) => void) | null;
   onend: ((ev: Event) => void) | null;
-  start: jest.Mock;
-  stop: jest.Mock;
-  abort: jest.Mock;
+  start: vi.Mock;
+  stop: vi.Mock;
+  abort: vi.Mock;
 };
 
 let mockRecognitionInstance: MockSpeechRecognitionInstance;
@@ -32,26 +32,26 @@ const createMockRecognition = (): MockSpeechRecognitionInstance => ({
   onresult: null,
   onerror: null,
   onend: null,
-  start: jest.fn(),
-  stop: jest.fn(),
-  abort: jest.fn(),
+  start: vi.fn(),
+  stop: vi.fn(),
+  abort: vi.fn(),
 });
 
-const MockSpeechRecognition = jest.fn().mockImplementation(() => {
+const MockSpeechRecognition = vi.fn().mockImplementation(() => {
   mockRecognitionInstance = createMockRecognition();
   return mockRecognitionInstance;
 });
 
 // Save original window properties
-const originalWindowSpeechRecognition = (globalThis as Record<string, unknown>).SpeechRecognition as jest.Mock | undefined;
-const originalWindowWebkitSpeechRecognition = (globalThis as Record<string, unknown>).webkitSpeechRecognition as jest.Mock | undefined;
+const originalWindowSpeechRecognition = (globalThis as Record<string, unknown>).SpeechRecognition as vi.Mock | undefined;
+const originalWindowWebkitSpeechRecognition = (globalThis as Record<string, unknown>).webkitSpeechRecognition as vi.Mock | undefined;
 
 // ---------- Test Suite ----------
 
 describe('BrowserTranscriber', () => {
   let BrowserTranscriber: typeof import('../browser-transcriber').BrowserTranscriber;
 
-  const setSpeechRecognitionAPI = (api: jest.Mock) => {
+  const setSpeechRecognitionAPI = (api: vi.Mock) => {
     (globalThis as Record<string, unknown>).SpeechRecognition = api;
     (globalThis as Record<string, unknown>).webkitSpeechRecognition = api;
   };
@@ -62,7 +62,7 @@ describe('BrowserTranscriber', () => {
   };
 
   beforeEach(() => {
-    jest.resetModules();
+    vi.resetModules();
     mockRecognitionInstance = createMockRecognition();
     MockSpeechRecognition.mockImplementation(() => {
       return mockRecognitionInstance;
@@ -132,7 +132,7 @@ describe('BrowserTranscriber', () => {
       BrowserTranscriber = (await import('../browser-transcriber')).BrowserTranscriber;
       const transcriber = new BrowserTranscriber();
 
-      const interimCallback = jest.fn();
+      const interimCallback = vi.fn();
       transcriber.onInterimResult(interimCallback);
 
       transcriber.start();
@@ -201,7 +201,7 @@ describe('BrowserTranscriber', () => {
       BrowserTranscriber = (await import('../browser-transcriber')).BrowserTranscriber;
       const transcriber = new BrowserTranscriber();
 
-      const errorCallback = jest.fn();
+      const errorCallback = vi.fn();
       transcriber.onError(errorCallback);
 
       transcriber.start();
@@ -228,7 +228,7 @@ describe('BrowserTranscriber', () => {
       BrowserTranscriber = (await import('../browser-transcriber')).BrowserTranscriber;
       const transcriber = new BrowserTranscriber();
 
-      const errorCallback = jest.fn();
+      const errorCallback = vi.fn();
       transcriber.onError(errorCallback);
 
       transcriber.start();
@@ -290,7 +290,7 @@ describe('BrowserTranscriber', () => {
       BrowserTranscriber = (await import('../browser-transcriber')).BrowserTranscriber;
       const transcriber = new BrowserTranscriber();
 
-      const finalCallback = jest.fn();
+      const finalCallback = vi.fn();
       transcriber.onFinalResult(finalCallback);
 
       transcriber.start();
@@ -321,7 +321,7 @@ describe('BrowserTranscriber', () => {
       BrowserTranscriber = (await import('../browser-transcriber')).BrowserTranscriber;
       const transcriber = new BrowserTranscriber();
 
-      const finalCallback = jest.fn();
+      const finalCallback = vi.fn();
       transcriber.onFinalResult(finalCallback);
 
       transcriber.start();
@@ -352,7 +352,7 @@ describe('BrowserTranscriber', () => {
       BrowserTranscriber = (await import('../browser-transcriber')).BrowserTranscriber;
       const transcriber = new BrowserTranscriber();
 
-      const interimCallback = jest.fn();
+      const interimCallback = vi.fn();
       transcriber.onInterimResult(interimCallback);
 
       transcriber.start();
@@ -383,8 +383,8 @@ describe('BrowserTranscriber', () => {
       BrowserTranscriber = (await import('../browser-transcriber')).BrowserTranscriber;
       const transcriber = new BrowserTranscriber();
 
-      const finalCallback = jest.fn();
-      const interimCallback = jest.fn();
+      const finalCallback = vi.fn();
+      const interimCallback = vi.fn();
       transcriber.onFinalResult(finalCallback);
       transcriber.onInterimResult(interimCallback);
 
@@ -430,7 +430,7 @@ describe('BrowserTranscriber', () => {
       BrowserTranscriber = (await import('../browser-transcriber')).BrowserTranscriber;
       const transcriber = new BrowserTranscriber();
 
-      const errorCallback = jest.fn();
+      const errorCallback = vi.fn();
       transcriber.onError(errorCallback);
 
       transcriber.start();
@@ -457,7 +457,7 @@ describe('BrowserTranscriber', () => {
       BrowserTranscriber = (await import('../browser-transcriber')).BrowserTranscriber;
       const transcriber = new BrowserTranscriber();
 
-      const errorCallback = jest.fn();
+      const errorCallback = vi.fn();
       transcriber.onError(errorCallback);
 
       transcriber.start();
@@ -481,7 +481,7 @@ describe('BrowserTranscriber', () => {
       BrowserTranscriber = (await import('../browser-transcriber')).BrowserTranscriber;
       const transcriber = new BrowserTranscriber();
 
-      const errorCallback = jest.fn();
+      const errorCallback = vi.fn();
       transcriber.onError(errorCallback);
 
       transcriber.start();
@@ -881,8 +881,8 @@ describe('BrowserTranscriber', () => {
       removeSpeechRecognitionAPI();
 
       // Need Audio for fallback path
-      const mockAudioPlay = jest.fn();
-      (globalThis as Record<string, unknown>).Audio = jest.fn().mockImplementation(() => ({
+      const mockAudioPlay = vi.fn();
+      (globalThis as Record<string, unknown>).Audio = vi.fn().mockImplementation(() => ({
         src: '',
         onloadedmetadata: null,
         onerror: null,
@@ -920,13 +920,13 @@ describe('BrowserTranscriber', () => {
         onloadedmetadata: null as (() => void) | null,
         onerror: null as (() => void) | null,
         duration: 10,
-        play: jest.fn(),
+        play: vi.fn(),
         currentTime: 5,
       };
-      (globalThis as Record<string, unknown>).Audio = jest.fn().mockImplementation(() => mockAudioObj);
+      (globalThis as Record<string, unknown>).Audio = vi.fn().mockImplementation(() => mockAudioObj);
       (globalThis as Record<string, unknown>).URL = {
-        createObjectURL: jest.fn().mockReturnValue('blob:http://localhost/fake'),
-        revokeObjectURL: jest.fn(),
+        createObjectURL: vi.fn().mockReturnValue('blob:http://localhost/fake'),
+        revokeObjectURL: vi.fn(),
       };
 
       BrowserTranscriber = (await import('../browser-transcriber')).BrowserTranscriber;
@@ -980,13 +980,13 @@ describe('BrowserTranscriber', () => {
         onloadedmetadata: null as (() => void) | null,
         onerror: null as (() => void) | null,
         duration: 10,
-        play: jest.fn(),
+        play: vi.fn(),
         currentTime: 5,
       };
-      (globalThis as Record<string, unknown>).Audio = jest.fn().mockImplementation(() => mockAudioObj);
+      (globalThis as Record<string, unknown>).Audio = vi.fn().mockImplementation(() => mockAudioObj);
       (globalThis as Record<string, unknown>).URL = {
-        createObjectURL: jest.fn().mockReturnValue('blob:http://localhost/fake'),
-        revokeObjectURL: jest.fn(),
+        createObjectURL: vi.fn().mockReturnValue('blob:http://localhost/fake'),
+        revokeObjectURL: vi.fn(),
       };
 
       BrowserTranscriber = (await import('../browser-transcriber')).BrowserTranscriber;
@@ -1016,13 +1016,13 @@ describe('BrowserTranscriber', () => {
         onloadedmetadata: null as (() => void) | null,
         onerror: null as (() => void) | null,
         duration: 10,
-        play: jest.fn(),
+        play: vi.fn(),
         currentTime: 5,
       };
-      (globalThis as Record<string, unknown>).Audio = jest.fn().mockImplementation(() => mockAudioObj);
+      (globalThis as Record<string, unknown>).Audio = vi.fn().mockImplementation(() => mockAudioObj);
       (globalThis as Record<string, unknown>).URL = {
-        createObjectURL: jest.fn().mockReturnValue('blob:http://localhost/fake'),
-        revokeObjectURL: jest.fn(),
+        createObjectURL: vi.fn().mockReturnValue('blob:http://localhost/fake'),
+        revokeObjectURL: vi.fn(),
       };
 
       BrowserTranscriber = (await import('../browser-transcriber')).BrowserTranscriber;
@@ -1065,12 +1065,12 @@ describe('BrowserTranscriber', () => {
       removeSpeechRecognitionAPI();
 
       // Create a mock that returns empty segments
-      (globalThis as Record<string, unknown>).Audio = jest.fn().mockImplementation(() => ({
+      (globalThis as Record<string, unknown>).Audio = vi.fn().mockImplementation(() => ({
         src: '',
         onloadedmetadata: null,
         onerror: null,
         duration: 0,
-        play: jest.fn(),
+        play: vi.fn(),
       }));
 
       BrowserTranscriber = (await import('../browser-transcriber')).BrowserTranscriber;
@@ -1108,13 +1108,13 @@ describe('BrowserTranscriber', () => {
         onloadedmetadata: null as (() => void) | null,
         onerror: null as (() => void) | null,
         duration: 10,
-        play: jest.fn(),
+        play: vi.fn(),
         currentTime: 5,
       };
-      (globalThis as Record<string, unknown>).Audio = jest.fn().mockImplementation(() => mockAudioObj);
-      const mockRevokeObjectURL = jest.fn();
+      (globalThis as Record<string, unknown>).Audio = vi.fn().mockImplementation(() => mockAudioObj);
+      const mockRevokeObjectURL = vi.fn();
       (globalThis as Record<string, unknown>).URL = {
-        createObjectURL: jest.fn().mockReturnValue('blob:http://localhost/fake'),
+        createObjectURL: vi.fn().mockReturnValue('blob:http://localhost/fake'),
         revokeObjectURL: mockRevokeObjectURL,
       };
 
@@ -1147,13 +1147,13 @@ describe('BrowserTranscriber', () => {
         onloadedmetadata: null as (() => void) | null,
         onerror: null as (() => void) | null,
         duration: 10,
-        play: jest.fn(),
+        play: vi.fn(),
         currentTime: 5,
       };
-      (globalThis as Record<string, unknown>).Audio = jest.fn().mockImplementation(() => mockAudioObj);
+      (globalThis as Record<string, unknown>).Audio = vi.fn().mockImplementation(() => mockAudioObj);
       (globalThis as Record<string, unknown>).URL = {
-        createObjectURL: jest.fn().mockReturnValue('blob:http://localhost/fake'),
-        revokeObjectURL: jest.fn(),
+        createObjectURL: vi.fn().mockReturnValue('blob:http://localhost/fake'),
+        revokeObjectURL: vi.fn(),
       };
 
       BrowserTranscriber = (await import('../browser-transcriber')).BrowserTranscriber;
@@ -1184,13 +1184,13 @@ describe('BrowserTranscriber', () => {
         onloadedmetadata: null as (() => void) | null,
         onerror: null as (() => void) | null,
         duration: 10,
-        play: jest.fn(),
+        play: vi.fn(),
         currentTime: 3000, // 3 seconds in
       };
-      (globalThis as Record<string, unknown>).Audio = jest.fn().mockImplementation(() => mockAudioObj);
-      const mockRevokeObjectURL = jest.fn();
+      (globalThis as Record<string, unknown>).Audio = vi.fn().mockImplementation(() => mockAudioObj);
+      const mockRevokeObjectURL = vi.fn();
       (globalThis as Record<string, unknown>).URL = {
-        createObjectURL: jest.fn().mockReturnValue('blob:http://localhost/fake'),
+        createObjectURL: vi.fn().mockReturnValue('blob:http://localhost/fake'),
         revokeObjectURL: mockRevokeObjectURL,
       };
 
@@ -1246,13 +1246,13 @@ describe('BrowserTranscriber', () => {
         onloadedmetadata: null as (() => void) | null,
         onerror: null as (() => void) | null,
         duration: 10,
-        play: jest.fn(),
+        play: vi.fn(),
         currentTime: 5000,
       };
-      (globalThis as Record<string, unknown>).Audio = jest.fn().mockImplementation(() => mockAudioObj);
+      (globalThis as Record<string, unknown>).Audio = vi.fn().mockImplementation(() => mockAudioObj);
       (globalThis as Record<string, unknown>).URL = {
-        createObjectURL: jest.fn().mockReturnValue('blob:http://localhost/fake'),
-        revokeObjectURL: jest.fn(),
+        createObjectURL: vi.fn().mockReturnValue('blob:http://localhost/fake'),
+        revokeObjectURL: vi.fn(),
       };
 
       BrowserTranscriber = (await import('../browser-transcriber')).BrowserTranscriber;
@@ -1301,13 +1301,13 @@ describe('BrowserTranscriber', () => {
         onloadedmetadata: null as (() => void) | null,
         onerror: null as (() => void) | null,
         duration: 10,
-        play: jest.fn(),
+        play: vi.fn(),
         currentTime: 5000,
       };
-      (globalThis as Record<string, unknown>).Audio = jest.fn().mockImplementation(() => mockAudioObj);
+      (globalThis as Record<string, unknown>).Audio = vi.fn().mockImplementation(() => mockAudioObj);
       (globalThis as Record<string, unknown>).URL = {
-        createObjectURL: jest.fn().mockReturnValue('blob:http://localhost/fake'),
-        revokeObjectURL: jest.fn(),
+        createObjectURL: vi.fn().mockReturnValue('blob:http://localhost/fake'),
+        revokeObjectURL: vi.fn(),
       };
 
       BrowserTranscriber = (await import('../browser-transcriber')).BrowserTranscriber;
@@ -1361,9 +1361,9 @@ describe('BrowserTranscriber', () => {
       BrowserTranscriber = (await import('../browser-transcriber')).BrowserTranscriber;
       const transcriber = new BrowserTranscriber();
 
-      const interimCallback = jest.fn();
-      const finalCallback = jest.fn();
-      const errorCallback = jest.fn();
+      const interimCallback = vi.fn();
+      const finalCallback = vi.fn();
+      const errorCallback = vi.fn();
 
       transcriber.onInterimResult(interimCallback);
       transcriber.onFinalResult(finalCallback);

@@ -1,4 +1,3 @@
-import { describe, it, expect } from '@jest/globals';
 import { LayoutEvaluator } from '@/visualization/strategies/LayoutEvaluator';
 import { PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutResult } from '@/visualization/types';

@@ -4,31 +4,30 @@
  * Includes: TTL handling, eviction, semantic matching, persistence
  */
 
-import { describe, test, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 
 // Mock semantic-similarity module
-const mockCalculateSemanticSimilarity = jest.fn().mockReturnValue(0);
+const mockCalculateSemanticSimilarity = vi.fn().mockReturnValue(0);
 const mockSemanticMetricsTracker = {
-  recordExactHit: jest.fn(),
-  recordSemanticHit: jest.fn(),
-  recordMiss: jest.fn(),
-  recordComparison: jest.fn(),
-  getMetrics: jest.fn().mockReturnValue({
+  recordExactHit: vi.fn(),
+  recordSemanticHit: vi.fn(),
+  recordMiss: vi.fn(),
+  recordComparison: vi.fn(),
+  getMetrics: vi.fn().mockReturnValue({
     exactHits: 0,
     semanticHits: 0,
     misses: 0,
     avgSimilarityScore: 0,
     totalComparisons: 0,
   }),
-  reset: jest.fn(),
+  reset: vi.fn(),
 };
 
-jest.mock('@/analysis/semantic-similarity', () => ({
+vi.mock('@/analysis/semantic-similarity', () => ({
   calculateSemanticSimilarity: (...args: unknown[]) => mockCalculateSemanticSimilarity(...args),
-  SemanticMetricsTracker: jest.fn().mockImplementation(() => mockSemanticMetricsTracker),
+  SemanticMetricsTracker: vi.fn().mockImplementation(() => mockSemanticMetricsTracker),
 }));
 
 // We need to import after mocks are set up
@@ -38,8 +37,8 @@ describe('LLMCache', () => {
   let cache: LLMCache<string>;
 
   beforeEach(() => {
-    jest.spyOn(console, 'log').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     // Reset all mock trackers
     mockCalculateSemanticSimilarity.mockReturnValue(0);
@@ -60,7 +59,7 @@ describe('LLMCache', () => {
 
   afterEach(() => {
     cache.clear();
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   // ========================================

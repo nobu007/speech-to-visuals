@@ -23,8 +23,8 @@ import type { DiagramAnalysis } from '../types';
  */
 function createMockLLMService(mockAnalysis: DiagramAnalysis): LLMService {
   const mock = {
-    isEnabled: jest.fn().mockReturnValue(true),
-    execute: jest.fn().mockResolvedValue({
+    isEnabled: vi.fn().mockReturnValue(true),
+    execute: vi.fn().mockResolvedValue({
       success: true,
       data: mockAnalysis,
       metadata: {
@@ -36,7 +36,7 @@ function createMockLLMService(mockAnalysis: DiagramAnalysis): LLMService {
         fallbackUsed: false,
       },
     }),
-    getStats: jest.fn().mockReturnValue({
+    getStats: vi.fn().mockReturnValue({
       cacheHits: 0,
       cacheMisses: 0,
       totalRequests: 0,
@@ -65,8 +65,8 @@ function createModelSelectionMockLLMService(flashModel: boolean): LLMService {
   };
 
   const mock = {
-    isEnabled: jest.fn().mockReturnValue(true),
-    execute: jest.fn().mockResolvedValue({
+    isEnabled: vi.fn().mockReturnValue(true),
+    execute: vi.fn().mockResolvedValue({
       success: true,
       data: mockAnalysis,
       metadata: {
@@ -82,7 +82,7 @@ function createModelSelectionMockLLMService(flashModel: boolean): LLMService {
         fallbackUsed: false,
       },
     }),
-    getStats: jest.fn().mockReturnValue({
+    getStats: vi.fn().mockReturnValue({
       cacheHits: 0,
       cacheMisses: 0,
       totalRequests: 0,
@@ -103,11 +103,11 @@ describe('TASK-0017: GeminiAnalyzer', () => {
   let analyzer: GeminiAnalyzer;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   // -----------------------------------------------------------------------
@@ -339,7 +339,7 @@ describe('TASK-0017: GeminiAnalyzer', () => {
       expect(mockLLM.execute).toHaveBeenCalledTimes(1);
 
       // Verify the metadata from the mock shows Flash was used
-      const callArgs = (mockLLM.execute as jest.Mock).mock.results[0].value;
+      const callArgs = (mockLLM.execute as vi.Mock).mock.results[0].value;
       const response = await callArgs;
       expect(response.metadata.model).toBe('gemini-2.5-flash');
     });
@@ -355,7 +355,7 @@ describe('TASK-0017: GeminiAnalyzer', () => {
       expect(result).not.toBeNull();
       expect(mockLLM.execute).toHaveBeenCalledTimes(1);
 
-      const callArgs = (mockLLM.execute as jest.Mock).mock.results[0].value;
+      const callArgs = (mockLLM.execute as vi.Mock).mock.results[0].value;
       const response = await callArgs;
       expect(response.metadata.model).toBe('gemini-2.5-pro');
     });
@@ -387,9 +387,9 @@ describe('TASK-0017: GeminiAnalyzer', () => {
   describe('Edge cases', () => {
     it('should return null when LLM service is not enabled', async () => {
       const mockLLM = {
-        isEnabled: jest.fn().mockReturnValue(false),
-        execute: jest.fn(),
-        getStats: jest.fn(),
+        isEnabled: vi.fn().mockReturnValue(false),
+        execute: vi.fn(),
+        getStats: vi.fn(),
       } as unknown as LLMService;
 
       analyzer = new GeminiAnalyzer(undefined, mockLLM);
@@ -401,13 +401,13 @@ describe('TASK-0017: GeminiAnalyzer', () => {
 
     it('should return null when LLM call fails', async () => {
       const mockLLM = {
-        isEnabled: jest.fn().mockReturnValue(true),
-        execute: jest.fn().mockResolvedValue({
+        isEnabled: vi.fn().mockReturnValue(true),
+        execute: vi.fn().mockResolvedValue({
           success: false,
           error: 'API error',
           metadata: { model: 'none', responseTime: 0, fromCache: false, retryCount: 0, fallbackUsed: false },
         }),
-        getStats: jest.fn(),
+        getStats: vi.fn(),
       } as unknown as LLMService;
 
       analyzer = new GeminiAnalyzer('test-key', mockLLM);

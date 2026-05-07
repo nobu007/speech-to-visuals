@@ -2,15 +2,15 @@
 import * as jwt from 'jsonwebtoken';
 
 // Mock @supabase/supabase-js for the client module tests
-const mockCreateClient: any = jest.fn();
-jest.mock('@supabase/supabase-js', () => ({
+const mockCreateClient: any = vi.fn();
+vi.mock('@supabase/supabase-js', () => ({
   createClient: (...args: unknown[]) => mockCreateClient(...args),
 }));
 
 // Do NOT mock the client module itself — we want to test the real client logic
 function importClientModule(): Record<string, any> {
   let moduleExports: Record<string, any> = {};
-  jest.isolateModules(() => {
+  vi.isolateModules(() => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     moduleExports = require('@/integrations/supabase/client') as Record<string, any>;
   });
@@ -22,7 +22,7 @@ describe('Supabase client (getSupabaseClient / resetSupabaseClient)', () => {
   const originalEnvKey = process.env.SUPABASE_ANON_KEY;
 
   beforeEach(() => {
-    jest.resetModules();
+    vi.resetModules();
     mockCreateClient.mockReset();
     process.env.SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_ANON_KEY = 'test-anon-key';

@@ -1,4 +1,3 @@
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { IntelligentCache, globalCache, cached } from '@/performance/intelligent-cache';
 
 describe('IntelligentCache', () => {

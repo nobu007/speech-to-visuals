@@ -13,7 +13,6 @@
  * - Progress tracking
  */
 
-import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';

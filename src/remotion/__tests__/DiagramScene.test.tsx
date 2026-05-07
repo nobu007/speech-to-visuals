@@ -12,8 +12,8 @@ import { getAnimationStrategy } from '../animation-strategies';
 let mockFrame = 0;
 let mockFps = 30;
 
-jest.mock('remotion', () => {
-  const originalModule = jest.requireActual('remotion');
+vi.mock('remotion', () => {
+  const originalModule = vi.requireActual('remotion');
   return {
     ...originalModule,
     useCurrentFrame: () => mockFrame,
@@ -81,7 +81,7 @@ describe('DiagramScene', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('rendering with layout', () => {

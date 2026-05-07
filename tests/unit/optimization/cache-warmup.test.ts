@@ -6,13 +6,13 @@ describe('CacheWarmupManager', () => {
   let warmupManager: CacheWarmupManager<string>;
 
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     cache = new LLMCache<string>({ maxSize: 50, ttlMinutes: 60, enableSemantic: true });
     warmupManager = new CacheWarmupManager<string>(cache);
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   describe('コールドスタート検出', () => {
@@ -194,7 +194,7 @@ describe('CacheWarmupManager', () => {
       await warmupManager.warmup(patterns, resolver);
 
       // Within TTL (60 minutes default), entry should be valid
-      jest.advanceTimersByTime(30 * 60 * 1000); // 30 minutes
+      vi.advanceTimersByTime(30 * 60 * 1000); // 30 minutes
 
       const result = cache.get('The process starts with initialization');
       expect(result).not.toBeNull();
@@ -213,7 +213,7 @@ describe('CacheWarmupManager', () => {
       await manager.warmup(patterns, resolver);
 
       // After TTL expires
-      jest.advanceTimersByTime(6 * 60 * 1000); // 6 minutes (> 5 min TTL)
+      vi.advanceTimersByTime(6 * 60 * 1000); // 6 minutes (> 5 min TTL)
 
       const result = ttlCache.get('TTL test query content');
       expect(result).toBeNull();

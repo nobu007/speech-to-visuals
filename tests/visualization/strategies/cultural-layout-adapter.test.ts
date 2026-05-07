@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeEach } from '@jest/globals';
 import { DiagramLayout, PositionedNode } from '@/types/diagram';
 import { CulturalLayoutAdapter } from '@/visualization/strategies/CulturalLayoutAdapter';
 import { ComplexLayoutConfig } from '@/visualization/complex-layout-engine';

@@ -18,12 +18,12 @@ import {
 
 // Suppress console
 beforeEach(() => {
-  jest.spyOn(console, 'log').mockImplementation(() => {});
-  jest.spyOn(console, 'error').mockImplementation(() => {});
-  jest.spyOn(console, 'warn').mockImplementation(() => {});
+  vi.spyOn(console, 'log').mockImplementation(() => {});
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+  vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
 afterEach(() => {
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 const createSceneData = () => ({
@@ -245,7 +245,7 @@ describe('EnhancedExportEngine', () => {
   describe('progress callback', () => {
     test('should call onProgress callback during export', async () => {
       const progressCalls: number[] = [];
-      const onProgress = jest.fn((p) => progressCalls.push(p.progress));
+      const onProgress = vi.fn((p) => progressCalls.push(p.progress));
 
       await engine.exportVideo(createSceneData(), createConfig(), onProgress);
 

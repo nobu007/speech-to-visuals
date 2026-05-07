@@ -1,4 +1,3 @@
-import { describe, it, expect } from '@jest/globals';
 import { CanvasCalculator, CanvasCalcResult } from '@/visualization/canvas-calculator';
 import { PositionedNode } from '@/types/diagram';
 

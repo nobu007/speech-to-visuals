@@ -1,18 +1,17 @@
-import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import { TranscriptionPipeline } from '@/transcription/transcriber';
 
 // Mock WhisperTranscriber so we can control its behavior
-const mockWhisperTranscribe = jest.fn() as jest.Mock;
+const mockWhisperTranscribe = vi.fn() as vi.Mock;
 
-jest.mock('@/transcription/whisper-transcriber', () => ({
-  WhisperTranscriber: jest.fn().mockImplementation(() => ({
+vi.mock('@/transcription/whisper-transcriber', () => ({
+  WhisperTranscriber: vi.fn().mockImplementation(() => ({
     transcribe: mockWhisperTranscribe,
   })),
 }));
 
-jest.mock('@/transcription/browser-transcriber', () => ({
-  BrowserTranscriber: jest.fn().mockImplementation(() => ({
-    transcribeAudioFile: jest.fn().mockResolvedValue({
+vi.mock('@/transcription/browser-transcriber', () => ({
+  BrowserTranscriber: vi.fn().mockImplementation(() => ({
+    transcribeAudioFile: vi.fn().mockResolvedValue({
       success: true,
       segments: [{ start: 0, end: 3000, text: 'Browser result', confidence: 0.8 }],
     } as never),
@@ -20,12 +19,12 @@ jest.mock('@/transcription/browser-transcriber', () => ({
 }));
 
 describe('TranscriptionPipeline', () => {
-  let consoleSpy: jest.SpiedFunction<typeof console.log>;
+  let consoleSpy: vi.SpiedFunction<typeof console.log>;
 
   beforeEach(() => {
-    consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
     // Default: whisper returns failure so fallback segments are used
     mockWhisperTranscribe.mockResolvedValue({
       success: false,
@@ -34,7 +33,7 @@ describe('TranscriptionPipeline', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('constructor', () => {

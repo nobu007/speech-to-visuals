@@ -9,7 +9,6 @@
  * - TC-083-01: Quality-based auto-optimization loop
  */
 
-import { describe, it, expect } from '@jest/globals';
 import { PositionedNode, LayoutEdge } from '@/types/diagram';
 import { VisualBalanceScorer } from '@/visualization/visual-balance-scorer';
 import {

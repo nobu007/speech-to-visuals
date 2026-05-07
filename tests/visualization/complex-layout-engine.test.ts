@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeEach } from '@jest/globals';
 import { NodeDatum, EdgeDatum, DiagramType } from '@/types/diagram';
 import { ComplexLayoutEngine, ComplexLayoutConfig } from '@/visualization/complex-layout-engine';
 import { OverlapResolver } from '@/visualization/strategies/OverlapResolver';

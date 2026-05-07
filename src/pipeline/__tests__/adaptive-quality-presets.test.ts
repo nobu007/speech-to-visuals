@@ -14,10 +14,10 @@ import {
 
 // Suppress console
 beforeEach(() => {
-  jest.spyOn(console, 'log').mockImplementation(() => {});
+  vi.spyOn(console, 'log').mockImplementation(() => {});
 });
 afterEach(() => {
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 // Helper to create a mock File

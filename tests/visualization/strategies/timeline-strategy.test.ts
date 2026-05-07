@@ -1,4 +1,3 @@
-import { describe, it, expect } from '@jest/globals';
 import { TimelineStrategy } from '@/visualization/strategies/timeline-strategy';
 import { LayoutStrategy, StrategyLayoutResult } from '@/visualization/types';
 import { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';

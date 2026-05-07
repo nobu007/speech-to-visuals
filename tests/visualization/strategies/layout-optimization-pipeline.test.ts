@@ -1,4 +1,3 @@
-import { describe, it, expect } from '@jest/globals';
 import { LayoutOptimizationPipeline } from '@/visualization/strategies/LayoutOptimizationPipeline';
 import { LayoutOptimizer } from '@/visualization/strategies/LayoutOptimizer';
 import { DiagramLayout, PositionedNode } from '@/types/diagram';

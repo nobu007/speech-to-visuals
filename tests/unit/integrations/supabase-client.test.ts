@@ -5,7 +5,6 @@
  * when process.env is undefined (browser without Vite replacement).
  */
 
-import { jest, describe, it, expect, afterEach } from '@jest/globals';
 
 describe('ISS-023: Browser-Safe env in supabase client resolvers', () => {
   const originalProcess = global.process;
@@ -16,7 +15,7 @@ describe('ISS-023: Browser-Safe env in supabase client resolvers', () => {
       writable: true,
       configurable: true,
     });
-    jest.resetModules();
+    vi.resetModules();
   });
 
   it('resolveSupabaseUrl returns empty string when process is undefined', async () => {
@@ -41,7 +40,7 @@ describe('ISS-023: Browser-Safe env in supabase client resolvers', () => {
     const origKey = process.env.SUPABASE_ANON_KEY;
     delete process.env.SUPABASE_URL;
     delete process.env.SUPABASE_ANON_KEY;
-    jest.resetModules();
+    vi.resetModules();
 
     try {
       const { getSupabaseClient } = await import('@/integrations/supabase/client');

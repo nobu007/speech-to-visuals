@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeEach } from '@jest/globals';
 import { DefaultStrategyRegistry } from '@/visualization/strategies/base-strategy';
 import { LayoutStrategy, StrategyLayoutResult } from '@/visualization/types';
 import { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';

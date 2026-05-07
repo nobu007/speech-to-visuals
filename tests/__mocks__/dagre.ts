@@ -6,7 +6,6 @@
  * node positions for testing purposes.
  */
 
-import { jest } from '@jest/globals';
 
 class MockGraph {
   private _nodes: Map<string, { label: string; width: number; height: number }> = new Map();
@@ -156,9 +155,9 @@ class MockGraph {
 
 export default {
   graphlib: {
-    Graph: jest.fn(() => new MockGraph()),
+    Graph: vi.fn(() => new MockGraph()),
   },
-  layout: jest.fn((graph: MockGraph) => {
+  layout: vi.fn((graph: MockGraph) => {
     graph.layout();
   }),
 };
