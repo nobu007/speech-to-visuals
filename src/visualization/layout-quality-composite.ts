@@ -6,7 +6,7 @@
  */
 
 import { PositionedNode, LayoutEdge } from '@/types/diagram';
-import { calculateBalanceScore, BalanceScorerConfig } from './visual-balance-scorer';
+import { VisualBalanceScorer } from './visual-balance-scorer';
 import { detectEdgeCrossings } from './edge-crossing-minimizer';
 
 export interface CompositeScoreInput {
@@ -101,16 +101,14 @@ export function scoreLayout(
   canvasWidth?: number,
   canvasHeight?: number
 ): CompositeScoreResult {
-  const balCfg: BalanceScorerConfig = {};
-  if (canvasWidth) balCfg.canvasWidth = canvasWidth;
-  if (canvasHeight) balCfg.canvasHeight = canvasHeight;
+  const cw = canvasWidth ?? 1920;
+  const ch = canvasHeight ?? 1080;
 
-  const balance = calculateBalanceScore(nodes, balCfg);
+  const scorer = new VisualBalanceScorer();
+  const balance = scorer.calculateVisualBalance(nodes, { width: cw, height: ch });
   const crossings = detectEdgeCrossings(nodes, edges);
 
   // Count overflows (nodes exceeding canvas bounds)
-  const cw = canvasWidth ?? 1920;
-  const ch = canvasHeight ?? 1080;
   let overflowCount = 0;
   for (const n of nodes) {
     const w = n.w ?? n.width ?? 0;
@@ -121,7 +119,7 @@ export function scoreLayout(
   }
 
   return calculateCompositeScore({
-    balanceScore: balance.score,
+    balanceScore: balance.overallScore,
     crossingCount: crossings,
     edgeCount: edges.length,
     overflowCount,

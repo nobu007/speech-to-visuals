@@ -14,7 +14,7 @@
 
 import { describe, it, expect } from '@jest/globals';
 import { PositionedNode, LayoutEdge } from '@/types/diagram';
-import { calculateBalanceScore } from '@/visualization/visual-balance-scorer';
+import { VisualBalanceScorer } from '@/visualization/visual-balance-scorer';
 import { detectEdgeCrossings, minimizeEdgeCrossings } from '@/visualization/edge-crossing-minimizer';
 import { sizeLabel, sizeAllLabels } from '@/visualization/smart-label-sizer';
 import { calculateCompositeScore, scoreLayout } from '@/visualization/layout-quality-composite';
@@ -78,13 +78,14 @@ describe('Phase 31 Integration: Layout Quality Pipeline', () => {
 
   it('REQ-079→082: balance feeds into composite score', () => {
     const { nodes } = makeFlowchartLayout();
-    const balance = calculateBalanceScore(nodes, { canvasWidth, canvasHeight });
+    const scorer = new VisualBalanceScorer();
+    const balance = scorer.calculateVisualBalance(nodes, { width: canvasWidth, height: canvasHeight });
 
-    expect(balance.score).toBeGreaterThan(0);
-    expect(balance.score).toBeLessThanOrEqual(1);
+    expect(balance.overallScore).toBeGreaterThan(0);
+    expect(balance.overallScore).toBeLessThanOrEqual(1);
 
     const composite = calculateCompositeScore({
-      balanceScore: balance.score,
+      balanceScore: balance.overallScore,
       crossingCount: 0,
       edgeCount: 7,
       overflowCount: 0,
@@ -93,7 +94,7 @@ describe('Phase 31 Integration: Layout Quality Pipeline', () => {
     });
 
     expect(composite.compositeScore).toBeGreaterThan(0);
-    expect(composite.contributions.balance.value).toBe(balance.score);
+    expect(composite.contributions.balance.value).toBe(balance.overallScore);
   });
 
   it('REQ-080→082: crossing detection feeds into composite score', () => {
