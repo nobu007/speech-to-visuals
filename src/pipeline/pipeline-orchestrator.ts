@@ -21,7 +21,9 @@ import {
   PipelineStage,
   PipelineMetrics,
   ExtendedPipelineMetrics,
+  StageQualityScores,
 } from './types';
+import { QualityMonitor } from './quality-monitor';
 import { TranscriptionPipeline, TranscriptionSegment } from '@/transcription';
 import { SceneSegmenter, DiagramDetector } from '@/analysis';
 import { LayoutEngine } from '@/visualization';
@@ -101,6 +103,9 @@ export class PipelineOrchestrator {
   private layoutEngine: LayoutEngine;
   private tuner: SmartParameterTuner;
 
+  // Quality monitoring (REQ-088)
+  private qualityMonitor: QualityMonitor | null;
+
   constructor(config: PipelineOrchestratorConfig = {}) {
     this.config = config;
 
@@ -138,6 +143,14 @@ export class PipelineOrchestrator {
     });
 
     this.tuner = new SmartParameterTuner();
+
+    // Initialize QualityMonitor for pipeline stage scoring (REQ-088)
+    try {
+      this.qualityMonitor = QualityMonitor.getInstance();
+    } catch {
+      // Gracefully degrade if QualityMonitor is unavailable
+      this.qualityMonitor = null;
+    }
   }
 
   // ---------- Public API ----------
@@ -202,6 +215,9 @@ export class PipelineOrchestrator {
     // Quality metrics from layout optimization (REQ-084)
     let qualityMetrics: Partial<ExtendedPipelineMetrics> = {};
 
+    // Per-stage quality scores recorded via QualityMonitor (REQ-088)
+    const qualityScores: StageQualityScores = {};
+
     try {
       // ===== Stage 1: Transcription =====
       this.emitProgress(cb, 1, 'transcription', 0, 'running');
@@ -214,6 +230,9 @@ export class PipelineOrchestrator {
 
       this.emitProgress(cb, 1, 'transcription', 100, 'completed');
       stages.push(this.makeStage('transcription', 'complete'));
+
+      // Record transcription quality score (REQ-088)
+      this.recordStageQuality('transcription', transcriptionResult, qualityScores);
 
       // ===== Stage 2: Content Analysis =====
       this.emitProgress(cb, 2, 'analysis', 0, 'running');
@@ -229,6 +248,9 @@ export class PipelineOrchestrator {
 
       this.emitProgress(cb, 2, 'analysis', 100, 'completed');
       stages.push(this.makeStage('analysis', 'complete'));
+
+      // Record analysis quality score (REQ-088)
+      this.recordStageQuality('analysis', analysisResult, qualityScores);
 
       // ===== Stage 3: Layout Generation =====
       this.emitProgress(cb, 3, 'layout', 0, 'running');
@@ -251,6 +273,9 @@ export class PipelineOrchestrator {
       // Smart label sizing after layout optimization (REQ-085 / TASK-0131)
       const labelMetrics = this.applyLabelSizing(layoutResults);
       qualityMetrics = { ...qualityMetrics, ...labelMetrics };
+
+      // Record layout quality score (REQ-088)
+      this.recordStageQuality('layout', qualityMetrics, qualityScores);
 
       this.emitProgress(cb, 3, 'layout', 100, 'completed');
       stages.push(this.makeStage('layout', 'complete'));
@@ -283,6 +308,9 @@ export class PipelineOrchestrator {
 
       const totalTime = Date.now() - overallStart;
 
+      // Record rendering quality score (REQ-088)
+      this.recordStageQuality('rendering', { processingTime: totalTime }, qualityScores);
+
       return {
         success: true,
         scenes: scenes!,
@@ -290,7 +318,7 @@ export class PipelineOrchestrator {
         duration: scenes!.reduce((sum, s) => sum + (s.durationMs || 0), 0),
         processingTime: totalTime,
         stages,
-        metrics: qualityMetrics,
+        metrics: { ...qualityMetrics, qualityScores },
       };
     } catch (error) {
       const totalTime = Date.now() - overallStart;
@@ -703,6 +731,73 @@ export class PipelineOrchestrator {
   }
 
   // ---------- Quality Optimization (REQ-084) ----------
+
+  /**
+   * Record a stage's quality score via QualityMonitor (REQ-088).
+   * Extracts stage-specific quality from stage output and records it.
+   * Silently continues if QualityMonitor is unavailable.
+   */
+  private recordStageQuality(
+    stage: 'transcription' | 'analysis' | 'layout' | 'rendering',
+    stageOutput: unknown,
+    qualityScores: StageQualityScores,
+  ): void {
+    if (!this.qualityMonitor) return;
+
+    try {
+      const output = stageOutput as Record<string, unknown>;
+      let score: number | undefined;
+
+      switch (stage) {
+        case 'transcription': {
+          // Extract average confidence from transcription segments
+          const segments = (output?.segments ?? []) as Array<Record<string, unknown>>;
+          if (segments.length > 0) {
+            const totalConf = segments.reduce(
+              (sum, s) => sum + ((s.confidence as number) ?? 0), 0,
+            );
+            score = totalConf / segments.length;
+            this.qualityMonitor.recordMetrics({ transcriptionAccuracy: score });
+          }
+          break;
+        }
+        case 'analysis': {
+          // Extract confidence from analysis result
+          const diagrams = (output?.diagrams ?? []) as Array<Record<string, unknown>>;
+          if (diagrams.length > 0) {
+            const totalConf = diagrams.reduce(
+              (sum, d) => sum + ((d.confidence as number) ?? 0), 0,
+            );
+            score = totalConf / diagrams.length;
+            this.qualityMonitor.recordMetrics({ entityExtractionF1: score });
+          }
+          break;
+        }
+        case 'layout': {
+          // Use the already-computed layout quality score
+          score = (output?.layoutQualityScore as number) ?? undefined;
+          if (score !== undefined) {
+            this.qualityMonitor.recordMetrics({
+              layoutOverlap: score < 0.7 ? 1 : 0,
+              edgeCompleteness: score,
+            });
+          }
+          break;
+        }
+        case 'rendering': {
+          // Record rendering processing time
+          const processingTime = (output?.processingTime as number) ?? 0;
+          this.qualityMonitor.recordMetrics({ processingTime });
+          score = processingTime <= 30000 ? 1.0 : Math.max(0, 1 - (processingTime - 30000) / 30000);
+          break;
+        }
+      }
+
+      qualityScores[stage] = score;
+    } catch {
+      // Silently continue — quality recording must not break the pipeline
+    }
+  }
 
   /**
    * Evaluate composite quality score for all layouts and auto-optimize

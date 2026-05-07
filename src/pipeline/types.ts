@@ -92,4 +92,14 @@ export interface ExtendedPipelineMetrics extends PipelineMetrics {
   labelOverflowScore?: number;
   /** Number of labels that were truncated during sizing (REQ-085) */
   labelTruncationCount?: number;
+  /** Per-stage quality scores recorded by QualityMonitor (REQ-088) */
+  qualityScores?: StageQualityScores;
+}
+
+/** Quality scores per pipeline stage, recorded via QualityMonitor (REQ-088) */
+export interface StageQualityScores {
+  transcription?: number;
+  analysis?: number;
+  layout?: number;
+  rendering?: number;
 }
