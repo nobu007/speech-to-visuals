@@ -5,7 +5,7 @@
  * a weighted composite score (0.0~1.0) with per-metric contribution reporting.
  */
 
-import { PositionedNode, LayoutEdge } from '@/types/diagram';
+import { PositionedNode, LayoutEdge, DiagramType } from '@/types/diagram';
 import { VisualBalanceScorer } from './visual-balance-scorer';
 import { detectEdgeCrossings } from './edge-crossing-minimizer';
 
@@ -33,19 +33,38 @@ export interface CompositeScoreResult {
   };
 }
 
-export interface CompositeScoreWeights {
+export interface CompositeQualityWeights {
   balance: number;
   crossing: number;
   overflow: number;
   density: number;
 }
 
-const DEFAULT_WEIGHTS: CompositeScoreWeights = {
+export interface CompositeQualityResult {
+  /** Overall composite score 0.0~1.0 */
+  compositeScore: number;
+  /** Individual balance score (TASK-0124) */
+  balanceScore: number;
+  /** Individual crossing score (TASK-0125): 1 - crossings/maxCrossings */
+  crossingScore: number;
+  /** Individual overflow score (TASK-0126) */
+  overflowScore: number;
+  /** Individual density uniformity score */
+  densityScore: number;
+  /** Whether compositeScore >= threshold */
+  passed: boolean;
+  /** Human-readable details */
+  details: string;
+}
+
+const DEFAULT_WEIGHTS: CompositeQualityWeights = {
   balance: 0.3,
   crossing: 0.3,
   overflow: 0.2,
   density: 0.2,
 };
+
+const DEFAULT_THRESHOLD = 0.7;
 
 /**
  * Calculate composite layout quality score from individual metrics.
@@ -53,7 +72,7 @@ const DEFAULT_WEIGHTS: CompositeScoreWeights = {
  */
 export function calculateCompositeScore(
   input: CompositeScoreInput,
-  weights?: Partial<CompositeScoreWeights>
+  weights?: Partial<CompositeQualityWeights>
 ): CompositeScoreResult {
   const w = { ...DEFAULT_WEIGHTS, ...weights };
 
@@ -126,4 +145,95 @@ export function scoreLayout(
     nodeCount: nodes.length,
     densityUniformity: balance.densityUniformity,
   });
+}
+
+/**
+ * LayoutQualityCompositeScorer — class-based API for TASK-0127.
+ *
+ * Integrates balance, crossing, overflow, and density into a single
+ * weighted composite score (0.0~1.0) with threshold-based pass/fail.
+ */
+export class LayoutQualityCompositeScorer {
+  private weights: CompositeQualityWeights;
+  private threshold: number;
+
+  constructor(weights?: Partial<CompositeQualityWeights>, threshold?: number) {
+    this.weights = { ...DEFAULT_WEIGHTS, ...weights };
+    this.threshold = threshold ?? DEFAULT_THRESHOLD;
+  }
+
+  /**
+   * Evaluate the composite quality of a layout.
+   */
+  evaluate(
+    nodes: PositionedNode[],
+    edges: LayoutEdge[],
+    bounds: { width: number; height: number },
+    _diagramType?: DiagramType,
+  ): CompositeQualityResult {
+    // Compute individual scores
+    const balanceScorer = new VisualBalanceScorer();
+    const balance = balanceScorer.calculateVisualBalance(nodes, bounds);
+    const balanceScore = balance.overallScore;
+
+    // Crossing score: 1 - (crossings / maxCrossings)
+    // maxCrossings = nC2 of edge count (combinatorial upper bound)
+    const crossingCount = detectEdgeCrossings(nodes, edges);
+    const edgeCount = edges.length;
+    const maxCrossings = edgeCount >= 2 ? (edgeCount * (edgeCount - 1)) / 2 : 1;
+    const crossingScore = Math.max(0, 1 - crossingCount / maxCrossings);
+
+    // Overflow score: fraction of nodes within bounds
+    let overflowCount = 0;
+    for (const n of nodes) {
+      const w = n.w ?? n.width ?? 0;
+      const h = n.h ?? n.height ?? 0;
+      if (n.x + w > bounds.width || n.y + h > bounds.height || n.x < 0 || n.y < 0) {
+        overflowCount++;
+      }
+    }
+    const overflowScore = nodes.length > 0
+      ? Math.max(0, 1 - overflowCount / nodes.length)
+      : 1.0;
+
+    // Density score
+    const densityScore = balance.densityUniformity;
+
+    // Weighted composite
+    const w = this.weights;
+    const totalWeight = w.balance + w.crossing + w.overflow + w.density;
+    const compositeScore = Math.max(0, Math.min(1,
+      (balanceScore * w.balance +
+       crossingScore * w.crossing +
+       overflowScore * w.overflow +
+       densityScore * w.density) / totalWeight
+    ));
+
+    const passed = compositeScore >= this.threshold;
+
+    const details = [
+      `composite=${compositeScore.toFixed(3)} (threshold=${this.threshold})`,
+      `balance=${balanceScore.toFixed(3)}(w=${w.balance})`,
+      `crossing=${crossingScore.toFixed(3)}(w=${w.crossing})`,
+      `overflow=${overflowScore.toFixed(3)}(w=${w.overflow})`,
+      `density=${densityScore.toFixed(3)}(w=${w.density})`,
+    ].join(' ');
+
+    return {
+      compositeScore,
+      balanceScore,
+      crossingScore,
+      overflowScore,
+      densityScore,
+      passed,
+      details,
+    };
+  }
+
+  /**
+   * Return the current quality threshold.
+   */
+  getThreshold(): number {
+    return this.threshold;
+  }
 }

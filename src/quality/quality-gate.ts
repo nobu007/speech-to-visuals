@@ -1,3 +1,5 @@
+import { LayoutQualityCompositeScorer } from '@/visualization/layout-quality-composite';
+
 /**
  * TASK-0044: Quality Gate and Quality Monitoring Module
  *
@@ -479,6 +481,56 @@ function createLayoutCriteria(): QualityCriterion[] {
             invalid.length === 0
               ? 'All segments are properly normalized'
               : `${invalid.length} segment(s) have zero or negative duration`,
+        };
+      },
+    },
+    {
+      name: 'layoutQualityComposite',
+      threshold: 0.7,
+      evaluate: (input: unknown): QualityResult => {
+        const data = input as Record<string, unknown>;
+        const compositeScore = (data.layoutQualityCompositeScore as number) ?? undefined;
+        if (compositeScore !== undefined) {
+          return {
+            passed: compositeScore >= 0.7,
+            score: compositeScore,
+            threshold: 0.7,
+            details: `Layout quality composite score ${compositeScore.toFixed(3)} (threshold >= 0.7)`,
+          };
+        }
+        // Fallback: compute from nodes/edges/bounds if provided
+        const nodes = data.nodes as Array<{ x: number; y: number; w?: number; h?: number; width?: number; height?: number }> | undefined;
+        const edges = data.edges as Array<{ from?: string; to?: string; points?: unknown[] }> | undefined;
+        const bounds = data.bounds as { width: number; height: number } | undefined;
+        if (nodes && edges && bounds) {
+          const scorer = new LayoutQualityCompositeScorer();
+          const positionedNodes = nodes.map((n) => ({
+            x: n.x,
+            y: n.y,
+            w: n.w ?? n.width ?? 0,
+            h: n.h ?? n.height ?? 0,
+            id: '',
+            label: '',
+          }));
+          const layoutEdges = edges.map((e) => ({
+            from: e.from,
+            to: e.to,
+            points: (e.points ?? []) as { x: number; y: number }[],
+          }));
+          const result = scorer.evaluate(positionedNodes, layoutEdges, bounds);
+          return {
+            passed: result.passed,
+            score: result.compositeScore,
+            threshold: 0.7,
+            details: result.details,
+          };
+        }
+        // No data to evaluate — skip
+        return {
+          passed: true,
+          score: 1.0,
+          threshold: 0.7,
+          details: 'Layout quality composite: no layout data provided, skipped',
         };
       },
     },
