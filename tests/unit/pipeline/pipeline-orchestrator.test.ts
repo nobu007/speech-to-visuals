@@ -602,4 +602,103 @@ describe('PipelineOrchestrator', () => {
       expect(result.success).toBe(true);
     });
   });
+
+  // ====== 10. Quality Optimization Integration (REQ-084 / TASK-0130) ======
+
+  describe('layout quality optimization integration (REQ-084)', () => {
+    it('should include layout quality metrics in pipeline result', async () => {
+      const input = makeValidPipelineInput();
+      const result = await orchestrator.execute(input);
+
+      expect(result.success).toBe(true);
+      expect(result.metrics).toBeDefined();
+      expect(result.metrics!.layoutQualityScore).toBeDefined();
+      expect(typeof result.metrics!.layoutQualityScore).toBe('number');
+      expect(result.metrics!.layoutQualityScore).toBeGreaterThanOrEqual(0);
+      expect(result.metrics!.layoutQualityScore).toBeLessThanOrEqual(1);
+    });
+
+    it('should record optimization attempts in metrics', async () => {
+      const input = makeValidPipelineInput();
+      const result = await orchestrator.execute(input);
+
+      expect(result.success).toBe(true);
+      expect(result.metrics).toBeDefined();
+      expect(result.metrics!.optimizationAttempts).toBeDefined();
+      expect(typeof result.metrics!.optimizationAttempts).toBe('number');
+      expect(result.metrics!.optimizationAttempts).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should record optimization improvement flag in metrics', async () => {
+      const input = makeValidPipelineInput();
+      const result = await orchestrator.execute(input);
+
+      expect(result.success).toBe(true);
+      expect(result.metrics).toBeDefined();
+      expect(result.metrics!.optimizationImproved).toBeDefined();
+      expect(typeof result.metrics!.optimizationImproved).toBe('boolean');
+    });
+
+    it('should evaluate quality score for layouts with nodes', async () => {
+      const input = makeValidPipelineInput();
+      const result = await orchestrator.execute(input);
+
+      expect(result.success).toBe(true);
+      // The default pipeline produces at least 1 layout with nodes,
+      // so the quality score should be > 0
+      expect(result.metrics!.layoutQualityScore).toBeGreaterThan(0);
+    });
+
+    it('should still succeed when layout quality is evaluated', async () => {
+      const input = makeValidPipelineInput();
+      const progressCalls: PipelineProgress[] = [];
+      const callback = (p: PipelineProgress) => progressCalls.push({ ...p });
+
+      const result = await orchestrator.execute(input, callback);
+
+      expect(result.success).toBe(true);
+      // All 5 stages should complete
+      const completedStages = progressCalls.filter(p => p.status === 'completed');
+      expect(completedStages.length).toBe(5);
+    });
+
+    it('should handle zero-node layouts without crashing', async () => {
+      // Use an input that produces empty segments — fallback layout with no nodes
+      const input: PipelineInput = {
+        audioFile: '',
+        config: {
+          transcription: { model: 'base' },
+          analysis: {
+            minSegmentLengthMs: 3000,
+            maxSegmentLengthMs: 15000,
+            confidenceThreshold: 0.7,
+          },
+          layout: { width: 1920, height: 1080, nodeWidth: 120, nodeHeight: 60 },
+          output: { fps: 30, videoDuration: 60, includeAudio: true },
+        },
+      };
+
+      const result = await orchestrator.execute(input);
+
+      // Should still produce a result with quality metrics
+      expect(result).toBeDefined();
+      expect(result.metrics).toBeDefined();
+      expect(typeof result.metrics!.layoutQualityScore).toBe('number');
+    });
+
+    it('should produce a valid PipelineResult with quality metrics on all code paths', async () => {
+      const input = makeValidPipelineInput();
+      const result = await orchestrator.execute(input);
+
+      expect(result.success).toBe(true);
+      expect(result.metrics).toBeDefined();
+      expect(result.metrics!.layoutQualityScore).toBeDefined();
+      expect(result.metrics!.optimizationAttempts).toBeDefined();
+      expect(result.metrics!.optimizationImproved).toBeDefined();
+      // Quality score should be a valid number in 0..1 range
+      const score = result.metrics!.layoutQualityScore!;
+      expect(score).toBeGreaterThanOrEqual(0);
+      expect(score).toBeLessThanOrEqual(1);
+    });
+  });
 });

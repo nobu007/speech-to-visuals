@@ -25,10 +25,12 @@ import {
 import { TranscriptionPipeline, TranscriptionSegment } from '@/transcription';
 import { SceneSegmenter, DiagramDetector } from '@/analysis';
 import { LayoutEngine } from '@/visualization';
-import { SceneGraph, ProcessingStatus, NodeDatum, EdgeDatum, DiagramType, DiagramLayout } from '@/types/diagram';
+import { SceneGraph, ProcessingStatus, NodeDatum, EdgeDatum, DiagramType, DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { validateConfig, ValidationError } from '@/config/validate';
 import type { ConfigSchema } from '@/config/schema';
 import SmartParameterTuner from '@/optimization/smart-parameter-tuner';
+import { scoreLayout } from '@/visualization/layout-quality-composite';
+import { runAutoOptimization } from '@/visualization/layout-auto-optimizer';
 
 // ---------- Public Interfaces ----------
 
@@ -196,6 +198,9 @@ export class PipelineOrchestrator {
     let layoutResults: unknown[];
     let scenes: SceneGraph[];
 
+    // Quality metrics from layout optimization (REQ-084)
+    let qualityMetrics: ExtendedPipelineMetrics = {};
+
     try {
       // ===== Stage 1: Transcription =====
       this.emitProgress(cb, 1, 'transcription', 0, 'running');
@@ -235,6 +240,13 @@ export class PipelineOrchestrator {
 
       layoutResults = layoutResult as unknown[];
 
+      // Quality optimization after layout generation (REQ-084)
+      qualityMetrics = this.optimizeLayoutQuality(
+        layoutResults,
+        pipelineConfig.layout.width,
+        pipelineConfig.layout.height,
+      );
+
       this.emitProgress(cb, 3, 'layout', 100, 'completed');
       stages.push(this.makeStage('layout', 'complete'));
 
@@ -273,6 +285,7 @@ export class PipelineOrchestrator {
         duration: scenes!.reduce((sum, s) => sum + (s.durationMs || 0), 0),
         processingTime: totalTime,
         stages,
+        metrics: qualityMetrics,
       };
     } catch (error) {
       const totalTime = Date.now() - overallStart;
@@ -682,5 +695,65 @@ export class PipelineOrchestrator {
     ];
 
     return { segments, diagrams };
+  }
+
+  // ---------- Quality Optimization (REQ-084) ----------
+
+  /**
+   * Evaluate composite quality score for all layouts and auto-optimize
+   * any that fall below the 0.7 threshold.
+   */
+  private optimizeLayoutQuality(
+    layoutResults: unknown[],
+    canvasWidth: number,
+    canvasHeight: number,
+  ): ExtendedPipelineMetrics {
+    let totalScore = 0;
+    let totalAttempts = 0;
+    let anyImproved = false;
+    let scoredCount = 0;
+
+    for (const result of layoutResults) {
+      const item = result as Record<string, unknown>;
+      const layout = item.layout as Record<string, unknown> | undefined;
+      if (!layout) continue;
+
+      const nodes = (layout.nodes ?? []) as PositionedNode[];
+      const edges = (layout.edges ?? []) as LayoutEdge[];
+
+      if (nodes.length === 0) continue;
+      scoredCount++;
+
+      const { compositeScore } = scoreLayout(nodes, edges, canvasWidth, canvasHeight);
+
+      if (compositeScore < 0.7) {
+        const optResult = runAutoOptimization(nodes, edges, {
+          canvasWidth,
+          canvasHeight,
+        });
+
+        totalAttempts += optResult.attempts;
+        if (optResult.finalScore > optResult.initialScore) {
+          anyImproved = true;
+        }
+
+        // Update layout with optimized nodes and edges
+        (item as Record<string, unknown>).layout = {
+          ...layout,
+          nodes: optResult.nodes,
+          edges: optResult.edges,
+        };
+
+        totalScore += optResult.finalScore;
+      } else {
+        totalScore += compositeScore;
+      }
+    }
+
+    return {
+      layoutQualityScore: scoredCount > 0 ? totalScore / scoredCount : 0,
+      optimizationAttempts: totalAttempts,
+      optimizationImproved: anyImproved,
+    };
   }
 }

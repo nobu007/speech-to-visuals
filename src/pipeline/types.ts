@@ -82,4 +82,10 @@ export interface ExtendedPipelineMetrics extends PipelineMetrics {
   entityExtractionF1Score?: number;
   /** Relation extraction accuracy (0.0 - 1.0), if ground truth is available */
   relationAccuracy?: number;
+  /** Layout quality composite score after optimization (0.0~1.0) (REQ-084) */
+  layoutQualityScore?: number;
+  /** Number of auto-optimization attempts made (0~3) (REQ-084) */
+  optimizationAttempts?: number;
+  /** Whether auto-optimization improved the layout score (REQ-084) */
+  optimizationImproved?: boolean;
 }
