@@ -1,4 +1,4 @@
-import { TranscriptionResult, TranscriptionConfig, TranscriptionSegment, TranscriptionMetrics } from './types';
+import { TranscriptionResult, TranscriptionConfig, TranscriptionSegment, TranscriptionMetrics, SUPPORTED_AUDIO_FORMATS, type SupportedAudioFormat } from './types';
 import { BrowserTranscriber } from './browser-transcriber';
 import { WhisperTranscriber } from './whisper-transcriber';
 import { Caption } from '@remotion/captions';
@@ -179,8 +179,23 @@ export class TranscriptionPipeline {
       return;
     }
 
-    // For file system paths, check if they exist (in Node.js environment)
-    // This is a placeholder - actual implementation would use fs.access() or similar
+    // Validate file extension against supported audio formats
+    const extension = audioPath.split('.').pop()?.toLowerCase();
+    if (!extension || !SUPPORTED_AUDIO_FORMATS.includes(extension as SupportedAudioFormat)) {
+      throw new Error(
+        `Unsupported audio format: .${extension}. Supported formats: ${SUPPORTED_AUDIO_FORMATS.join(', ')}`
+      );
+    }
+
+    // For file system paths in Node.js, check if the file exists and is readable
+    if (!this.isBrowser) {
+      try {
+        const fs = await import('fs');
+        await fs.promises.access(audioPath, fs.constants.R_OK);
+      } catch {
+        throw new Error(`Audio file not found or not readable: ${audioPath}`);
+      }
+    }
   }
 
   private calculateMetrics(segments: TranscriptionSegment[], startTime: number): TranscriptionMetrics {
