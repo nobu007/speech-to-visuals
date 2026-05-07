@@ -14,6 +14,7 @@ import {
   LayoutQualityCompositeScorer,
   LayoutAutoOptimizer,
 } from '@/visualization';
+import type { LabelSizingConfig, LabelSizingResult } from '@/visualization';
 
 describe('TC-086-01: Phase 31 module exports', () => {
   it('exports VisualBalanceScorer class', () => {
@@ -62,5 +63,27 @@ describe('TC-086-01: Phase 31 module exports', () => {
       LayoutAutoOptimizer,
     ];
     expect(exports.every(e => e !== undefined)).toBe(true);
+  });
+
+  it('exports LabelSizingConfig type and it works with sizeLabel', () => {
+    // Verify LabelSizingConfig is importable and exercises sizeLabel
+    const config: LabelSizingConfig = {
+      defaultFontSize: 12,
+      minFontSize: 6,
+      maxLines: 2,
+      ellipsis: '...',
+    };
+    const result: LabelSizingResult = sizeLabel('Hello World Test Label', 80, 30, config);
+    expect(result.fontSize).toBeGreaterThanOrEqual(config.minFontSize!);
+    expect(result.fontSize).toBeLessThanOrEqual(config.defaultFontSize!);
+    expect(result.lines.length).toBeLessThanOrEqual(config.maxLines!);
+    expect(result.truncated).toBe(true); // text is too long for 80px at 12px font
+  });
+
+  it('exports LabelSizingResult type and reflects sizing outcome', () => {
+    const result: LabelSizingResult = sizeLabel('Short', 200, 60);
+    expect(result.fontSize).toBe(14); // default font size
+    expect(result.lines).toEqual(['Short']);
+    expect(result.truncated).toBe(false);
   });
 });
