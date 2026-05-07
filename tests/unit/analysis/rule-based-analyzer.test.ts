@@ -19,6 +19,7 @@ describe('ISS-022: Browser-Safe env in rule-based-analyzer isDisabledGemini', ()
   });
 
   it('returns false when process is undefined', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (global as any).process;
 
     const { isDisabledGemini } = await import('@/analysis/rule-based-analyzer');

@@ -20,6 +20,7 @@ describe('ISS-023: Browser-Safe env in supabase client resolvers', () => {
   });
 
   it('resolveSupabaseUrl returns empty string when process is undefined', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (global as any).process;
 
     // The module uses the function internally; verify it doesn't crash on import
@@ -28,6 +29,7 @@ describe('ISS-023: Browser-Safe env in supabase client resolvers', () => {
   });
 
   it('resolveSupabaseAnonKey returns empty string when process is undefined', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (global as any).process;
 
     // Module should import without throwing even when process is absent

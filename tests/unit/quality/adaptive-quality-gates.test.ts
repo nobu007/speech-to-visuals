@@ -17,6 +17,7 @@ jest.mock('@/monitoring/real-time-performance-monitor', () => ({
       quality: { transcriptionAccuracy: 0.90, layoutOverlapRate: 0, avgSceneQuality: 0.85 },
     }),
   },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   PerformanceSnapshot: {} as any,
 }));
 

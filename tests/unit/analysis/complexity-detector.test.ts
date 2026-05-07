@@ -19,6 +19,7 @@ describe('ISS-021: Browser-Safe env in complexity-detector selectModel', () => {
   });
 
   it('returns rule-based when process is undefined (browser without Vite replacement)', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (global as any).process;
 
     const { ComplexityDetector } = await import('@/analysis/complexity-detector');
