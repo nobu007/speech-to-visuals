@@ -57,7 +57,7 @@ export interface PipelineResult {
   /**
    * Optional extended metrics captured during the run
    */
-  metrics?: ExtendedPipelineMetrics;
+  metrics?: Partial<ExtendedPipelineMetrics>;
 }
 
 export interface PipelineMetrics {

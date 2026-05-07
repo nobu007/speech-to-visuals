@@ -199,7 +199,7 @@ export class PipelineOrchestrator {
     let scenes: SceneGraph[];
 
     // Quality metrics from layout optimization (REQ-084)
-    let qualityMetrics: ExtendedPipelineMetrics = {};
+    let qualityMetrics: Partial<ExtendedPipelineMetrics> = {};
 
     try {
       // ===== Stage 1: Transcription =====
@@ -707,7 +707,7 @@ export class PipelineOrchestrator {
     layoutResults: unknown[],
     canvasWidth: number,
     canvasHeight: number,
-  ): ExtendedPipelineMetrics {
+  ): Partial<ExtendedPipelineMetrics> {
     let totalScore = 0;
     let totalAttempts = 0;
     let anyImproved = false;
