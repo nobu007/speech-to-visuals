@@ -662,6 +662,10 @@ Fallback LLM
 - [TASK-0127: 複合レイアウト品質スコア実装](tasks/TASK-0127.md)
 - [TASK-0128: レイアウト自動最適化ループ実装](tasks/TASK-0128.md)
 - [TASK-0129: Phase 31統合テスト・要件完了確認・ドキュメント更新](tasks/TASK-0129.md)
+- [TASK-0130: パイプラインオーケストレーター品質最適化統合](tasks/TASK-0130.md)
+- [TASK-0131: スマートラベルサイジングパイプライン適用](tasks/TASK-0131.md)
+- [TASK-0132: Phase 31 モジュール公開エクスポート](tasks/TASK-0132.md)
+- [TASK-0133: E2E 図解品質パイプライン統合テスト](tasks/TASK-0133.md)
 - [speech-to-visuals タスク概要](tasks/overview.md)
 - [Speech-to-Visuals ユーザストーリー](user-stories.md)
 
