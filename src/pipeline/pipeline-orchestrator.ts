@@ -31,6 +31,7 @@ import type { ConfigSchema } from '@/config/schema';
 import SmartParameterTuner from '@/optimization/smart-parameter-tuner';
 import { scoreLayout } from '@/visualization/layout-quality-composite';
 import { runAutoOptimization } from '@/visualization/layout-auto-optimizer';
+import { sizeAllLabels, LabelSizingResult } from '@/visualization/smart-label-sizer';
 
 // ---------- Public Interfaces ----------
 
@@ -246,6 +247,10 @@ export class PipelineOrchestrator {
         pipelineConfig.layout.width,
         pipelineConfig.layout.height,
       );
+
+      // Smart label sizing after layout optimization (REQ-085 / TASK-0131)
+      const labelMetrics = this.applyLabelSizing(layoutResults);
+      qualityMetrics = { ...qualityMetrics, ...labelMetrics };
 
       this.emitProgress(cb, 3, 'layout', 100, 'completed');
       stages.push(this.makeStage('layout', 'complete'));
@@ -754,6 +759,47 @@ export class PipelineOrchestrator {
       layoutQualityScore: scoredCount > 0 ? totalScore / scoredCount : 0,
       optimizationAttempts: totalAttempts,
       optimizationImproved: anyImproved,
+    };
+  }
+
+  /**
+   * Apply smart label sizing to all layout nodes (REQ-085 / TASK-0131).
+   * Records labelSizing on each node and returns overflow metrics.
+   */
+  private applyLabelSizing(
+    layoutResults: unknown[],
+  ): Partial<ExtendedPipelineMetrics> {
+    let totalLabels = 0;
+    let totalTruncated = 0;
+
+    for (const result of layoutResults) {
+      const item = result as Record<string, unknown>;
+      const layout = item.layout as Record<string, unknown> | undefined;
+      if (!layout) continue;
+
+      const nodes = (layout.nodes ?? []) as PositionedNode[];
+      if (nodes.length === 0) continue;
+
+      const labelMap = sizeAllLabels(nodes);
+
+      // Attach labelSizing metadata to each node
+      for (const node of nodes) {
+        const sizing = labelMap.get(node.id);
+        if (sizing) {
+          (node as Record<string, unknown>).labelSizing = sizing;
+          totalLabels++;
+          if (sizing.truncated) {
+            totalTruncated++;
+          }
+        }
+      }
+    }
+
+    return {
+      labelOverflowScore: totalLabels > 0
+        ? (totalLabels - totalTruncated) / totalLabels
+        : 1,
+      labelTruncationCount: totalTruncated,
     };
   }
 }

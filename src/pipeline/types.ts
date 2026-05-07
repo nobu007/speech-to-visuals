@@ -88,4 +88,8 @@ export interface ExtendedPipelineMetrics extends PipelineMetrics {
   optimizationAttempts?: number;
   /** Whether auto-optimization improved the layout score (REQ-084) */
   optimizationImproved?: boolean;
+  /** Average label overflow score across all layouts (0.0~1.0, higher = less overflow) (REQ-085) */
+  labelOverflowScore?: number;
+  /** Number of labels that were truncated during sizing (REQ-085) */
+  labelTruncationCount?: number;
 }
