@@ -1869,3 +1869,128 @@
   - **条件**: 音声入力→レイアウト→品質評価→最適化→レンダリング準備
   - **期待結果**: 全ステージが正常完了し品質スコアが記録される
   - **信頼性**: 🔵 *既存テストパターンの拡張*
+
+---
+
+## REQ-088: PipelineOrchestrator QualityMonitor 統合 🔵
+
+**信頼性**: 🔵 *src/pipeline/quality-monitor.ts 既存実装と pipeline-orchestrator.ts の統合ギャップより*
+
+### Given（前提条件）
+
+- PipelineOrchestrator が4ステージパイプラインを実行している
+- QualityMonitor が利用可能（src/pipeline/quality-monitor.ts）
+
+### When（実行条件）
+
+- パイプラインの各ステージが完了する
+
+### Then（期待結果）
+
+- 各ステージの品質スコアが QualityMonitor に記録される
+- パイプラインメトリクスに qualityScores フィールドが含まれる
+- 低品質ステージが警告として記録される
+
+### テストケース
+
+#### 正常系
+
+- [ ] **TC-088-01**: QualityMonitor ステージ別スコア記録 🔵
+  - **条件**: パイプライン全ステージ実行
+  - **期待結果**: 4ステージ全ての品質スコアが記録される
+  - **信頼性**: 🔵 *既存 QualityMonitor インターフェースの活用*
+
+#### 異常系
+
+- [ ] **TC-088-02**: QualityMonitor 初期化失敗時のフォールバック 🔵
+  - **条件**: QualityMonitor が初期化できない場合
+  - **期待結果**: パイプラインは品質記録なしで継続動作する
+  - **信頼性**: 🔵 *既存エラー回復パターン*
+
+---
+
+## REQ-089: Phase 31 品質モジュール専用ユニットテスト 🔵
+
+**信頼性**: 🔵 *18 visualization モジュールに専用テストファイルなし・phase31-diagram-quality.test.ts のみ*
+
+### Given（前提条件）
+
+- Phase 31 品質モジュール（SmartLabelSizer・VisualBalanceScorer・EdgeCrossingMinimizer）が実装済み
+- tests/visualization/phase31-diagram-quality.test.ts に統合テストが存在
+
+### When（実行条件）
+
+- 各モジュールの専用ユニットテストを実行する
+
+### Then（期待結果）
+
+- SmartLabelSizer の全設定バリエーションが検証される
+- VisualBalanceScorer のスコアリング精度が検証される
+- EdgeCrossingMinimizer の交差検出・最小化が検証される
+- 境界値・エッジケースがカバーされる
+
+### テストケース
+
+#### 正常系
+
+- [ ] **TC-089-01**: SmartLabelSizer 専用ユニットテスト 🔵
+  - **条件**: デフォルト設定・カスタム設定・日本語テキスト・CJK文字
+  - **期待結果**: 全設定でラベルが適切にサイジングされる
+  - **信頼性**: 🔵 *モジュール実装の直接テスト*
+
+- [ ] **TC-089-02**: VisualBalanceScorer 専用ユニットテスト 🔵
+  - **条件**: 対称・非対称・空・単一ノードレイアウト
+  - **期待結果**: 対称レイアウトが高スコア・非対称が低スコア
+  - **信頼性**: 🔵 *モジュール実装の直接テスト*
+
+- [ ] **TC-089-03**: EdgeCrossingMinimizer 専用ユニットテスト 🔵
+  - **条件**: 交差あり・交差なし・複雑グラフ
+  - **期待結果**: 交差検出が正確・最小化結果が改善されている
+  - **信頼性**: 🔵 *モジュール実装の直接テスト*
+
+#### 境界値
+
+- [ ] **TC-089-04**: minFontSize 境界値テスト 🔵
+  - **条件**: minFontSize=8 でフォントサイズが下限に達する入力
+  - **期待結果**: フォントサイズが minFontSize を下回らない
+  - **信頼性**: 🔵 *設定パラメータの直接検証*
+
+---
+
+## REQ-090: プロダクションコード console.log 構造化ログ化 🔵
+
+**信頼性**: 🔵 *30箇所以上の console.log/error/warn のコード確認*
+
+### Given（前提条件）
+
+- プロダクションコードに console.log/error/warn が30箇所以上残存
+- CLAUDE.md が console.log 残置を禁止
+
+### When（実行条件）
+
+- プロダクションコードのビルド・実行時
+
+### Then（期待結果）
+
+- console.log/error/warn が構造化ログまたはエラー回復に置換される
+- テストコード内の console スタブは変更しない
+- 全テストが通過する
+
+### テストケース
+
+#### 正常系
+
+- [ ] **TC-090-01**: 品質モジュールの console.log 除去 🔵
+  - **条件**: src/quality/enhanced-error-recovery.ts・regression-detector.ts
+  - **期待結果**: console 出力が適切なエラー処理に置換される
+  - **信頼性**: 🔵 *直接コード確認*
+
+- [ ] **TC-090-02**: UI コンポーネントの console.log 除去 🔵
+  - **条件**: src/components/StreamingProcessor.tsx・VideoRenderer.tsx
+  - **期待結果**: console 出力が UI エラー表示に置換される
+  - **信頼性**: 🔵 *直接コード確認*
+
+- [ ] **TC-090-03**: 設定モジュールの console.log 除去 🔵
+  - **条件**: src/config/production-config.ts
+  - **期待結果**: console 出力が設定バリデーションエラーに置換される
+  - **信頼性**: 🔵 *直接コード確認*

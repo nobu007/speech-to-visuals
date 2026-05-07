@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 1-31 完了（129/129タスク完了 + ISS-003~045修正完了）・310ファイル・91,615行・104パッケージ（74 deps+30 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト3,867件全通過・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.3 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045: パストラバーサル防止・バッチ入力検証・ジョブストア上限・ReDoS防止・localStorage保護・CORS設定改善・反復回数キャップ・キャッシュTTL境界・配列成長制限・Zodスキーマ検証・WebSocket UUID検証・レート制限・プリセット検証・カスタムエラークラス・暗号論的セキュアID・ペイロード検証・JWT認証強制・マジックナンバー設定集約・環境変数バリデーション拡充）・Phase 31図解品質エンハンスメント（REQ-079~083）完了・Phase 32図解品質パイプライン統合（REQ-084~087）要件定義追加
+**実装状況**: Phase 1-32 完了（133/133タスク完了 + ISS-003~045修正完了）・310ファイル・91,615行・104パッケージ（74 deps+30 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト3,867件全通過・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.3 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045: パストラバーサル防止・バッチ入力検証・ジョブストア上限・ReDoS防止・localStorage保護・CORS設定改善・反復回数キャップ・キャッシュTTL境界・配列成長制限・Zodスキーマ検証・WebSocket UUID検証・レート制限・プリセット検証・カスタムエラークラス・暗号論的セキュアID・ペイロード検証・JWT認証強制・マジックナンバー設定集約・環境変数バリデーション拡充）・Phase 31図解品質エンハンスメント（REQ-079~083）完了・Phase 32図解品質パイプライン統合（REQ-084~087）完了・Phase 33パイプライン品質監視統合（REQ-088~090）要件定義追加
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -199,12 +199,18 @@
 - REQ-082: システムはバランススコア・交差スコア・あふれスコア・密度スコアを統合したレイアウト品質複合スコア（0.0~1.0）を算出し、パイプライン品質ゲートに統合しなければならない 🔵 *src/visualization/layout-quality-composite.ts 実装済・13テスト通過*
 - REQ-083: システムは複合品質スコアが閾値（0.7）を下回る場合、レイアウト戦略の再選択・パラメータ調整・再計算を最大3回まで自動実行し、スコア改善を試みなければならない 🔵 *src/visualization/layout-auto-optimizer.ts 実装済・13テスト通過*
 
-#### 図解品質パイプライン統合（Phase 32） 🔲未実装
+#### 図解品質パイプライン統合（Phase 32） ✅完了
 
-- REQ-084: システムはパイプラインオーケストレーター Stage 3（レイアウト生成）の完了後、LayoutAutoOptimizer を呼び出して複合品質スコアを評価し、スコアが閾値（0.7）を下回る場合は自動最適化を実行しなければならない。最適化結果のスコアをパイプラインメトリクスに記録すること 🔵 *src/visualization/layout-auto-optimizer.ts・src/pipeline/pipeline-orchestrator.ts の統合ギャップより*
-- REQ-085: システムはパイプラインオーケストレーター Stage 3（レイアウト生成）で SmartLabelSizer を使用してノードラベルのフォントサイズ・折り返し・省略を自動調整し、ラベルあふれを防止しなければならない 🔵 *src/visualization/smart-label-sizer.ts・src/pipeline/pipeline-orchestrator.ts の統合ギャップより*
-- REQ-086: システムは visualization/index.ts から Phase 31 全モジュール（VisualBalanceScorer, EdgeCrossingMinimizer, SmartLabelSizer, LayoutQualityCompositeScorer, LayoutAutoOptimizer）を公開エクスポートしなければならない 🔵 *src/visualization/index.ts の未エクスポートギャップより*
-- REQ-087: システムは Phase 31 品質モジュールのパイプライン統合を検証するエンドツーエンドテスト（レイアウト生成→品質スコアリング→自動最適化→ラベルサイジング→レンダリング）を提供しなければならない 🔵 *tests/integration/layout-quality-pipeline.test.ts の拡張が必要・既存テストは品質モジュールのパイプライン呼び出しをカバーしていない*
+- REQ-084: システムはパイプラインオーケストレーター Stage 3（レイアウト生成）の完了後、LayoutAutoOptimizer を呼び出して複合品質スコアを評価し、スコアが閾値（0.7）を下回る場合は自動最適化を実行しなければならない。最適化結果のスコアをパイプラインメトリクスに記録すること 🔵 *src/pipeline/pipeline-orchestrator.ts:244-254 optimizeLayoutQuality() 実装済*
+- REQ-085: システムはパイプラインオーケストレーター Stage 3（レイアウト生成）で SmartLabelSizer を使用してノードラベルのフォントサイズ・折り返し・省略を自動調整し、ラベルあふれを防止しなければならない 🔵 *src/pipeline/pipeline-orchestrator.ts:251-253 applyLabelSizing() 実装済*
+- REQ-086: システムは visualization/index.ts から Phase 31 全モジュール（VisualBalanceScorer, EdgeCrossingMinimizer, SmartLabelSizer, LayoutQualityCompositeScorer, LayoutAutoOptimizer）を公開エクスポートしなければならない 🔵 *src/visualization/index.ts:17-22 エクスポート済*
+- REQ-087: システムは Phase 31 品質モジュールのパイプライン統合を検証するエンドツーエンドテスト（レイアウト生成→品質スコアリング→自動最適化→ラベルサイジング→レンダリング）を提供しなければならない 🔵 *tests/integration/phase32-quality-pipeline.test.ts 実装済*
+
+#### パイプライン品質監視統合（Phase 33） 🔲未実装
+
+- REQ-088: システムはパイプラインオーケストレーターの各ステージ完了時に QualityMonitor を呼び出し、ステージ別品質スコア（文字起こし精度・分析精度・レイアウト品質・レンダリング品質）を記録しなければならない。現在 PipelineOrchestrator は QualityMonitor を統合しておらず、品質スコアがパイプラインメトリクスに反映されていない 🔵 *src/pipeline/pipeline-orchestrator.ts に QualityMonitor 未統合・src/pipeline/quality-monitor.ts は gemini-analyzer.ts・simple-pipeline.ts でのみ使用*
+- REQ-089: システムは Phase 31 品質モジュール（SmartLabelSizer・VisualBalanceScorer・EdgeCrossingMinimizer）の各コア機能に対する専用ユニットテストファイルを提供しなければならない。現在 tests/visualization/phase31-diagram-quality.test.ts に統合テストは存在するが、各モジュールの境界値・エッジケース・設定バリエーションを独立して検証する専用テストが不足している 🔵 *18 visualization モジュールに専用テストファイルなし（phase31-diagram-quality.test.ts のみ）*
+- REQ-090: システムはプロダクションコード内の console.log/console.error/console.warn を構造化ログまたは適切なエラー回復パターンに置換しなければならない。現在30箇所以上のエラーハンドリングが console 出力に依存し、CLAUDE.md の console.log 残置禁止ルールに違反している 🔵 *src/quality/enhanced-error-recovery.ts・src/quality/regression-detector.ts・src/components/StreamingProcessor.tsx 他30箇所以上*
 
 ### 条件付き要件
 
@@ -332,27 +338,28 @@
 | Phase 29: バッチセキュリティ | ✅完了 | ISS-021~024 | 4/4（ブラウザセーフenv拡張・正規表現エスケープ） |
 | Phase 30: APIセキュリティ包括 | ✅完了 | ISS-025~032/042 | 10/10（Zodスキーマ検証・WebSocket UUID検証・レート制限・プリセット検証・カスタムエラー・暗号セキュアID・substr除去・WSペイロード検証・JWT認証強制） |
 | Phase 31: 高度図解品質エンハンスメント | ✅完了 | REQ-079~083 | 5/5（ビジュアルバランススコアリング・エッジ交差検出最小化・スマートラベルサイジング・レイアウト品質複合スコア・品質ベース自動最適化ループ） |
-| Phase 32: 図解品質パイプライン統合 | 🔲未実装 | REQ-084~087 | 0/4（パイプラインオーケストレーター品質最適化統合・スマートラベルパイプライン適用・Phase 31モジュール公開エクスポート・E2E統合テスト） |
+| Phase 32: 図解品質パイプライン統合 | ✅完了 | REQ-084~087 | 4/4（パイプラインオーケストレーター品質最適化統合・スマートラベルパイプライン適用・Phase 31モジュール公開エクスポート・E2E統合テスト） |
+| Phase 33: パイプライン品質監視統合 | 🔲未実装 | REQ-088~090 | 0/3（QualityMonitor統合・可視化モジュール専用テスト・console.log構造化ログ化） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 122件 (95.3%)
+- 🔵 青信号: 125件 (95.4%)
 - 🟡 黄信号: 3件 (2.3%) — 既存3件
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-31全要件実装完了（REQ-001~083）・Phase 32要件定義済（REQ-084~087）・3,867テスト全通過・TypeScript型エラー0件・ESLintエラー0件・コード規模95K行以下を維持
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-32全要件実装完了（REQ-001~087）・Phase 33要件定義済（REQ-088~090）・3,867テスト全通過・TypeScript型エラー0件・ESLintエラー0件・コード規模95K行以下を維持
 
-**次期実装**: Phase 32 図解品質パイプライン統合（REQ-084~087）
+**次期実装**: Phase 33 パイプライン品質監視統合（REQ-088~090）
 
 ## Acceptance criteria
 
-- [x] AC-1: 全27カテゴリの機能要件（音声認識・内容分析・フォールバック・図解レイアウト・自動改善・品質保証・プロダクション監視・動画レンダリング・パイプラインUI・拡張モジュール・エラー分類・パイプラインオーケストレーション・バッチ処理・Edge Functions・WebSocket・最適化・グレースフルシャットダウン・型ガード・追加UI・高度エクスポート・Web Workers並列化・Worker統合テスト・セキュリティ・入力検証・堅牢性継続改善・高度図解品質エンハンスメント・図解品質パイプライン統合）が REQ-001 ~ REQ-087 として文書化されている
+- [x] AC-1: 全28カテゴリの機能要件（音声認識・内容分析・フォールバック・図解レイアウト・自動改善・品質保証・プロダクション監視・動画レンダリング・パイプラインUI・拡張モジュール・エラー分類・パイプラインオーケストレーション・バッチ処理・Edge Functions・WebSocket・最適化・グレースフルシャットダウン・型ガード・追加UI・高度エクスポート・Web Workers並列化・Worker統合テスト・セキュリティ・入力検証・堅牢性継続改善・高度図解品質エンハンスメント・図解品質パイプライン統合・パイプライン品質監視統合）が REQ-001 ~ REQ-090 として文書化されている
 - [x] AC-2: 全要件が一意の ID（REQ-xxx / NFR-xxx / EDGE-xxx）を持ち、EARS 記法（しなければならない / してもよい）で記述されている
 - [x] AC-3: 全要件に信頼性レベル（🔵青信号 / 🟡黄信号 / 🔴赤信号）が付与されている
 - [x] AC-4: 全要件がソース文書または実装ファイルに出典をトレースしている
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [ ] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 32 を網羅し、Phase 32 の完了をもって全フェーズ完了となる
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 33 を網羅し、Phase 32 完了済・Phase 33 を次期実装とする
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテゴリに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第138回: 🔵122件/🟡3件/🔴0件 — Phase 32要件REQ-084~087追加）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第139回: 🔵125件/🟡3件/🔴0件 — Phase 32完了反映・Phase 33要件REQ-088~090追加）
