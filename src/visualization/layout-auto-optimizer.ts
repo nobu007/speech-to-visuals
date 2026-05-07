@@ -6,9 +6,13 @@
  * Maximum 3 retries. Each retry re-evaluates the score.
  */
 
-import { PositionedNode, LayoutEdge, DiagramType } from '@/types/diagram';
+import { PositionedNode, LayoutEdge, DiagramType, NodeDatum, EdgeDatum } from '@/types/diagram';
 import { scoreLayout, CompositeScoreResult } from './layout-quality-composite';
 import { minimizeEdgeCrossings } from './edge-crossing-minimizer';
+import { StrategySelector } from './strategy-selector';
+import { LayoutStrategy, StrategyLayoutResult } from './types';
+
+// ── Legacy function-based API (kept for backward compat) ──
 
 export interface OptimizationResult {
   /** Final nodes after optimization */
@@ -117,7 +121,349 @@ export function runAutoOptimization(
   };
 }
 
-// --- Internal strategies ---
+// ── Class-based API: LayoutAutoOptimizer (TASK-0128) ──
+
+export interface OptimizationStep {
+  iteration: number;
+  action: 'reselect_strategy' | 'adjust_params' | 'recalculate';
+  previousScore: number;
+  newScore: number;
+  improved: boolean;
+  details: string;
+}
+
+export interface OptimizerResult {
+  improved: boolean;
+  initialScore: number;
+  finalScore: number;
+  iterations: number;
+  steps: OptimizationStep[];
+  finalNodes: PositionedNode[];
+  finalEdges: LayoutEdge[];
+}
+
+/** Adjustable layout parameters */
+export interface LayoutParams {
+  nodeSpacing: number;
+  rankSeparation: number;
+  nodeWidthScale: number;
+  nodeHeightScale: number;
+}
+
+const DEFAULT_PARAMS: LayoutParams = {
+  nodeSpacing: 50,
+  rankSeparation: 80,
+  nodeWidthScale: 1.0,
+  nodeHeightScale: 1.0,
+};
+
+const DEFAULT_THRESHOLD = 0.7;
+const DEFAULT_MAX_ITERATIONS = 3;
+
+export class LayoutAutoOptimizer {
+  private readonly strategySelector: StrategySelector;
+  private readonly maxIterations: number;
+  private readonly threshold: number;
+
+  /**
+   * @param strategySelector  Provides fallback chain for strategy reselection
+   * @param maxIterations     Maximum optimization iterations (default: 3)
+   * @param threshold         Minimum composite score (default: 0.7)
+   */
+  constructor(
+    strategySelector: StrategySelector,
+    maxIterations?: number,
+    threshold?: number,
+  ) {
+    this.strategySelector = strategySelector;
+    this.maxIterations = maxIterations ?? DEFAULT_MAX_ITERATIONS;
+    this.threshold = threshold ?? DEFAULT_THRESHOLD;
+  }
+
+  /**
+   * Run the full optimization loop.
+   *
+   * 1. Evaluate initial composite score
+   * 2. If score < threshold → iterate up to maxIterations:
+   *    a. Strategy reselection (try fallback chain)
+   *    b. Parameter adjustment (spacing, separation, scale)
+   *    c. Recalculate with adjusted layout
+   * 3. Return detailed result with step history
+   */
+  async optimize(
+    nodes: PositionedNode[],
+    edges: LayoutEdge[],
+    diagramType: DiagramType,
+    bounds: { width: number; height: number },
+  ): Promise<OptimizerResult> {
+    let currentNodes = nodes.map(n => ({ ...n }));
+    let currentEdges = edges.map(e => ({ ...e, points: [...e.points] }));
+    const steps: OptimizationStep[] = [];
+
+    // Initial score evaluation
+    let currentScore = scoreLayout(
+      currentNodes, currentEdges, bounds.width, bounds.height,
+    ).compositeScore;
+    const initialScore = currentScore;
+
+    // Score already meets threshold → skip optimization
+    if (currentScore >= this.threshold) {
+      return {
+        improved: false,
+        initialScore,
+        finalScore: currentScore,
+        iterations: 0,
+        steps: [],
+        finalNodes: currentNodes,
+        finalEdges: currentEdges,
+      };
+    }
+
+    let params = { ...DEFAULT_PARAMS };
+    const fallbackChain = this.strategySelector.getFallbackChain(diagramType);
+    let strategyIndex = 0;
+
+    for (let iteration = 1; iteration <= this.maxIterations; iteration++) {
+      const prevScore = currentScore;
+
+      // Step A: Strategy reselection — try next strategy in fallback chain
+      if (strategyIndex < fallbackChain.length - 1) {
+        const nextStrategy = fallbackChain[strategyIndex + 1];
+        const reselectResult = this.applyStrategy(
+          nextStrategy, currentNodes, edges,
+        );
+        const reselectScore = scoreLayout(
+          reselectResult.nodes, reselectResult.edges, bounds.width, bounds.height,
+        ).compositeScore;
+
+        steps.push({
+          iteration,
+          action: 'reselect_strategy',
+          previousScore: prevScore,
+          newScore: reselectScore,
+          improved: reselectScore > prevScore,
+          details: `Tried strategy '${nextStrategy.name}' (index ${strategyIndex + 1})`,
+        });
+
+        if (reselectScore > currentScore) {
+          currentNodes = reselectResult.nodes;
+          currentEdges = reselectResult.edges;
+          currentScore = reselectScore;
+          strategyIndex++;
+        }
+
+        if (currentScore >= this.threshold) break;
+      }
+
+      // Step B: Parameter adjustment
+      params = this.adjustParams(params, currentNodes, currentEdges, bounds);
+      const adjustedNodes = this.applyParams(currentNodes, params);
+      const adjustedScore = scoreLayout(
+        adjustedNodes, currentEdges, bounds.width, bounds.height,
+      ).compositeScore;
+
+      steps.push({
+        iteration,
+        action: 'adjust_params',
+        previousScore: currentScore,
+        newScore: adjustedScore,
+        improved: adjustedScore > currentScore,
+        details: `nodeSpacing=${params.nodeSpacing} rankSeparation=${params.rankSeparation} widthScale=${params.nodeWidthScale}`,
+      });
+
+      if (adjustedScore > currentScore) {
+        currentNodes = adjustedNodes;
+        currentScore = adjustedScore;
+      }
+
+      if (currentScore >= this.threshold) break;
+
+      // Step C: Recalculate — edge crossing minimization + recenter
+      const recalcResult = this.recalculate(
+        currentNodes, currentEdges, bounds,
+      );
+      const recalcScore = scoreLayout(
+        recalcResult.nodes, recalcResult.edges, bounds.width, bounds.height,
+      ).compositeScore;
+
+      steps.push({
+        iteration,
+        action: 'recalculate',
+        previousScore: currentScore,
+        newScore: recalcScore,
+        improved: recalcScore > currentScore,
+        details: 'Edge crossing minimization + recentering',
+      });
+
+      if (recalcScore > currentScore) {
+        currentNodes = recalcResult.nodes;
+        currentEdges = recalcResult.edges;
+        currentScore = recalcScore;
+      }
+
+      if (currentScore >= this.threshold) break;
+    }
+
+    return {
+      improved: currentScore > initialScore,
+      initialScore,
+      finalScore: currentScore,
+      iterations: steps.length > 0 ? steps[steps.length - 1].iteration : 0,
+      steps,
+      finalNodes: currentNodes,
+      finalEdges: currentEdges,
+    };
+  }
+
+  // ── Internal helpers ──
+
+  /**
+   * Apply a strategy to get a new layout.
+   * Converts PositionedNode → NodeDatum for strategy input.
+   */
+  private applyStrategy(
+    strategy: LayoutStrategy,
+    currentNodes: PositionedNode[],
+    originalEdges: LayoutEdge[],
+  ): { nodes: PositionedNode[]; edges: LayoutEdge[] } {
+    const nodeData: NodeDatum[] = currentNodes.map(n => ({
+      id: n.id,
+      label: n.label,
+      type: n.type,
+      meta: n.meta,
+      width: n.w ?? n.width,
+      height: n.h ?? n.height,
+    }));
+
+    const edgeData: EdgeDatum[] = originalEdges.map(e => ({
+      from: e.from ?? e.source ?? '',
+      to: e.to ?? e.target ?? '',
+      label: e.label,
+      id: e.id,
+      type: e.type,
+    }));
+
+    const result: StrategyLayoutResult = strategy.apply(nodeData, edgeData);
+    return { nodes: result.nodes, edges: result.edges };
+  }
+
+  /**
+   * Adjust layout parameters based on current score contributions.
+   */
+  private adjustParams(
+    params: LayoutParams,
+    nodes: PositionedNode[],
+    edges: LayoutEdge[],
+    bounds: { width: number; height: number },
+  ): LayoutParams {
+    const score = scoreLayout(nodes, edges, bounds.width, bounds.height);
+    const c = score.contributions;
+    const newParams = { ...params };
+
+    // Low balance → increase spacing to spread nodes out
+    if (c.balance.value < 0.5) {
+      newParams.nodeSpacing = Math.round(params.nodeSpacing * 1.2);
+      newParams.rankSeparation = Math.round(params.rankSeparation * 1.2);
+    }
+
+    // High crossing → also increase spacing
+    if (c.crossing.value < 0.5) {
+      newParams.nodeSpacing = Math.round(params.nodeSpacing * 1.15);
+    }
+
+    // High overflow → scale down nodes
+    if (c.overflow.value < 0.5) {
+      newParams.nodeWidthScale = params.nodeWidthScale * 0.9;
+      newParams.nodeHeightScale = params.nodeHeightScale * 0.9;
+    }
+
+    return newParams;
+  }
+
+  /**
+   * Apply parameter adjustments to node positions and sizes.
+   */
+  private applyParams(
+    nodes: PositionedNode[],
+    params: LayoutParams,
+  ): PositionedNode[] {
+    if (nodes.length === 0) return nodes;
+
+    // Compute bounding box center
+    let cx = 0, cy = 0;
+    for (const n of nodes) {
+      const w = n.w ?? n.width ?? 0;
+      const h = n.h ?? n.height ?? 0;
+      cx += n.x + w / 2;
+      cy += n.y + h / 2;
+    }
+    cx /= nodes.length;
+    cy /= nodes.length;
+
+    return nodes.map(n => {
+      const w = n.w ?? n.width ?? 120;
+      const h = n.h ?? n.height ?? 60;
+      const ncx = n.x + w / 2;
+      const ncy = n.y + h / 2;
+
+      // Scale distance from centroid by spacing factor
+      const dx = ncx - cx;
+      const dy = ncy - cy;
+      const spacingFactor = params.nodeSpacing / DEFAULT_PARAMS.nodeSpacing;
+
+      return {
+        ...n,
+        x: cx + dx * spacingFactor - (w * params.nodeWidthScale) / 2,
+        y: cy + dy * spacingFactor - (h * params.nodeHeightScale) / 2,
+        w: Math.round(w * params.nodeWidthScale),
+        h: Math.round(h * params.nodeHeightScale),
+        width: Math.round(w * params.nodeWidthScale),
+        height: Math.round(h * params.nodeHeightScale),
+      };
+    });
+  }
+
+  /**
+   * Recalculate: minimize edge crossings + recenter.
+   */
+  private recalculate(
+    nodes: PositionedNode[],
+    edges: LayoutEdge[],
+    bounds: { width: number; height: number },
+  ): { nodes: PositionedNode[]; edges: LayoutEdge[] } {
+    // Edge crossing minimization
+    const { nodes: optNodes } = minimizeEdgeCrossings(nodes, edges, 5);
+
+    // Recenter
+    if (optNodes.length === 0) return { nodes: optNodes, edges };
+
+    const cxTarget = bounds.width / 2;
+    const cyTarget = bounds.height / 2;
+
+    let sumX = 0, sumY = 0;
+    for (const n of optNodes) {
+      const w = n.w ?? n.width ?? 0;
+      const h = n.h ?? n.height ?? 0;
+      sumX += n.x + w / 2;
+      sumY += n.y + h / 2;
+    }
+    const centroidX = sumX / optNodes.length;
+    const centroidY = sumY / optNodes.length;
+
+    const dx = cxTarget - centroidX;
+    const dy = cyTarget - centroidY;
+
+    const recentered = optNodes.map(n => ({
+      ...n,
+      x: n.x + dx * 0.5,
+      y: n.y + dy * 0.5,
+    }));
+
+    return { nodes: recentered, edges };
+  }
+}
+
+// ── Legacy internal strategies ──
 
 function applyOptimizationStrategy(
   nodes: PositionedNode[],
@@ -137,9 +483,6 @@ function applyOptimizationStrategy(
   }
 }
 
-/**
- * Strategy 1: Minimize edge crossings by swapping node positions
- */
 function strategyCrossingMinimization(
   nodes: PositionedNode[],
   edges: LayoutEdge[]
@@ -148,9 +491,6 @@ function strategyCrossingMinimization(
   return optimized;
 }
 
-/**
- * Strategy 2: Re-center nodes toward canvas center
- */
 function strategyRecenter(
   nodes: PositionedNode[],
   cfg: Required<OptimizationConfig>
@@ -160,7 +500,6 @@ function strategyRecenter(
   const cx = cfg.canvasWidth / 2;
   const cy = cfg.canvasHeight / 2;
 
-  // Calculate current centroid
   let sumX = 0;
   let sumY = 0;
   for (const n of nodes) {
@@ -172,20 +511,16 @@ function strategyRecenter(
   const centroidX = sumX / nodes.length;
   const centroidY = sumY / nodes.length;
 
-  // Shift all nodes toward center
   const dx = cx - centroidX;
   const dy = cy - centroidY;
 
   return nodes.map(n => ({
     ...n,
-    x: n.x + dx * 0.5, // Move 50% toward center
+    x: n.x + dx * 0.5,
     y: n.y + dy * 0.5,
   }));
 }
 
-/**
- * Strategy 3: Spread out clustered nodes
- */
 function strategySpreadOut(
   nodes: PositionedNode[],
   cfg: Required<OptimizationConfig>
@@ -195,7 +530,6 @@ function strategySpreadOut(
   const minSpacing = 20;
   const result = nodes.map(n => ({ ...n }));
 
-  // Repulsion: push overlapping/close nodes apart
   for (let i = 0; i < result.length; i++) {
     for (let j = i + 1; j < result.length; j++) {
       const w1 = result[i].w ?? result[i].width ?? 0;
