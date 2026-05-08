@@ -6,12 +6,19 @@
 
 import { TranscriptionSegment, TranscriptionResult, TranscriptionConfig } from './types';
 import { logger } from '../utils/logger';
+import {
+  StreamingQualityMonitor,
+  StreamingQualitySummary,
+  QualityAlert,
+  DEFAULT_STREAMING_QUALITY_CONFIG,
+} from './streaming-quality-monitor';
 
 export interface StreamingTranscriptionConfig extends TranscriptionConfig {
   chunkSizeMs?: number; // Audio chunk size in milliseconds
   overlapMs?: number;   // Overlap between chunks for continuity
   minConfidence?: number; // Minimum confidence for segment acceptance
   enableLiveUpdate?: boolean; // Enable real-time UI updates
+  enableQualityMonitoring?: boolean; // Enable per-chunk quality monitoring (REQ-091)
 }
 
 export interface StreamingProgress {
@@ -24,6 +31,7 @@ export interface StreamingProgress {
 
 export type StreamingProgressCallback = (progress: StreamingProgress) => void;
 export type SegmentCallback = (segment: TranscriptionSegment) => void;
+export type StreamingQualityAlertCallback = (alert: QualityAlert) => void;
 
 /**
  * Enhanced streaming transcriber for real-time audio processing
@@ -36,6 +44,7 @@ export class StreamingTranscriber {
   private segments: TranscriptionSegment[] = [];
   private currentChunkStart: number = 0;
   private accumulatedText: string = '';
+  private qualityMonitor: StreamingQualityMonitor | null = null;
 
   constructor(config: StreamingTranscriptionConfig = {}) {
     this.config = {
@@ -43,8 +52,16 @@ export class StreamingTranscriber {
       overlapMs: 500,           // 0.5 second overlap
       minConfidence: 0.7,       // 70% minimum confidence
       enableLiveUpdate: true,   // Real-time updates enabled
+      enableQualityMonitoring: true, // REQ-091: quality monitoring on by default
       ...config
     };
+
+    // Initialize quality monitor if enabled
+    if (this.config.enableQualityMonitoring !== false) {
+      this.qualityMonitor = new StreamingQualityMonitor({
+        minChunkConfidence: this.config.minConfidence ?? DEFAULT_STREAMING_QUALITY_CONFIG.minChunkConfidence,
+      });
+    }
 
     // Initialize Web Speech API if available
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -110,6 +127,14 @@ export class StreamingTranscriber {
             segment => segment.confidence >= (this.config.minConfidence || 0.7)
           );
 
+          // REQ-091: Record per-chunk quality with StreamingQualityMonitor
+          if (this.qualityMonitor) {
+            const chunkAvgConfidence = chunkSegments.length > 0
+              ? chunkSegments.reduce((s, seg) => s + seg.confidence, 0) / chunkSegments.length
+              : 0;
+            this.qualityMonitor.evaluateChunk(i, chunkAvgConfidence);
+          }
+
           allSegments.push(...validSegments);
 
           // Real-time progress callback
@@ -147,7 +172,8 @@ export class StreamingTranscriber {
         duration: audioDuration * 1000,
         language: 'ja',
         processingTime: Date.now() - performance.now(),
-        success: true
+        success: true,
+        qualitySummary: this.qualityMonitor?.getSummary(),
       };
 
       return result;
@@ -375,6 +401,31 @@ export class StreamingTranscriber {
    */
   updateConfig(newConfig: Partial<StreamingTranscriptionConfig>): void {
     this.config = { ...this.config, ...newConfig };
+  }
+
+  // --- REQ-091: Quality Monitoring API ---
+
+  /**
+   * Register a callback for quality alerts during streaming.
+   */
+  onQualityAlert(callback: StreamingQualityAlertCallback): void {
+    if (this.qualityMonitor) {
+      this.qualityMonitor.onAlert(callback);
+    }
+  }
+
+  /**
+   * Get the quality summary from the last streaming session.
+   */
+  getQualitySummary(): StreamingQualitySummary | null {
+    return this.qualityMonitor?.getSummary() ?? null;
+  }
+
+  /**
+   * Get the underlying quality monitor (for advanced usage).
+   */
+  getQualityMonitor(): StreamingQualityMonitor | null {
+    return this.qualityMonitor;
   }
 }
 

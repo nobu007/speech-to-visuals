@@ -18,6 +18,8 @@ export interface TranscriptionResult {
   success?: boolean;
   error?: string;
   captions?: Caption[]; // Add Remotion captions support
+  /** REQ-091: Quality summary from streaming quality monitoring */
+  qualitySummary?: import('./streaming-quality-monitor').StreamingQualitySummary;
 }
 
 export interface TranscriptionConfig {
