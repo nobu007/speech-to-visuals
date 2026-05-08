@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-08（第139回kairo-requirements検証・Phase 1-32完了+Phase 33要件定義（REQ-088~090パイプライン品質監視統合）・310ファイル・91,615行（95K以下達成）・TypeScriptエラー0件・ESLintエラー0件・104パッケージ(74 deps+30 devDeps)・console.log 0件（CLAUDE.md基準達成）・3,867テスト全通過（164スイート）・129要件（REQ-001~090+NFR+EDGE）・次期実装: Phase 33）
+**最終更新**: 2026-05-09（第140回kairo-requirements検証・Phase 1-33完了+Phase 34要件定義（REQ-091~093ストリーミング品質・音声前処理・エクスポート検証）・310ファイル・91,615行（95K以下達成）・TypeScriptエラー0件・ESLintエラー0件・104パッケージ(74 deps+30 devDeps)・console.log 0件（CLAUDE.md基準達成）・4,048テスト（177スイート）・132要件（REQ-001~093+NFR+EDGE）・次期実装: Phase 34）
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム
 
 ## 技術スタック

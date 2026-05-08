@@ -156,6 +156,9 @@ system_design:
   - path: speech-to-visuals/tasks/TASK-0134.md
   - path: speech-to-visuals/tasks/TASK-0135.md
   - path: speech-to-visuals/tasks/TASK-0136.md
+  - path: speech-to-visuals/tasks/TASK-0137.md
+  - path: speech-to-visuals/tasks/TASK-0138.md
+  - path: speech-to-visuals/tasks/TASK-0139.md
 - path: speech-to-visuals/design-interview.md
 references:
 - doc: speech-to-visuals/api-endpoints.md
