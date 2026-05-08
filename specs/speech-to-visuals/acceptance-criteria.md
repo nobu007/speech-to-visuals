@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-08（Phase 32実装完了: REQ-084~087全5テストケース実装・検証済み・全104テストケースgreen）
+**最終更新**: 2026-05-08（Phase 33受入確認完了: REQ-088~090全9テストケース検証済み・全113テストケースgreen）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -1895,14 +1895,14 @@
 
 #### 正常系
 
-- [ ] **TC-088-01**: QualityMonitor ステージ別スコア記録 🔵
+- [x] **TC-088-01**: QualityMonitor ステージ別スコア記録 🔵
   - **条件**: パイプライン全ステージ実行
   - **期待結果**: 4ステージ全ての品質スコアが記録される
   - **信頼性**: 🔵 *既存 QualityMonitor インターフェースの活用*
 
 #### 異常系
 
-- [ ] **TC-088-02**: QualityMonitor 初期化失敗時のフォールバック 🔵
+- [x] **TC-088-02**: QualityMonitor 初期化失敗時のフォールバック 🔵
   - **条件**: QualityMonitor が初期化できない場合
   - **期待結果**: パイプラインは品質記録なしで継続動作する
   - **信頼性**: 🔵 *既存エラー回復パターン*
@@ -1933,24 +1933,24 @@
 
 #### 正常系
 
-- [ ] **TC-089-01**: SmartLabelSizer 専用ユニットテスト 🔵
+- [x] **TC-089-01**: SmartLabelSizer 専用ユニットテスト 🔵
   - **条件**: デフォルト設定・カスタム設定・日本語テキスト・CJK文字
   - **期待結果**: 全設定でラベルが適切にサイジングされる
   - **信頼性**: 🔵 *モジュール実装の直接テスト*
 
-- [ ] **TC-089-02**: VisualBalanceScorer 専用ユニットテスト 🔵
+- [x] **TC-089-02**: VisualBalanceScorer 専用ユニットテスト 🔵
   - **条件**: 対称・非対称・空・単一ノードレイアウト
   - **期待結果**: 対称レイアウトが高スコア・非対称が低スコア
   - **信頼性**: 🔵 *モジュール実装の直接テスト*
 
-- [ ] **TC-089-03**: EdgeCrossingMinimizer 専用ユニットテスト 🔵
+- [x] **TC-089-03**: EdgeCrossingMinimizer 専用ユニットテスト 🔵
   - **条件**: 交差あり・交差なし・複雑グラフ
   - **期待結果**: 交差検出が正確・最小化結果が改善されている
   - **信頼性**: 🔵 *モジュール実装の直接テスト*
 
 #### 境界値
 
-- [ ] **TC-089-04**: minFontSize 境界値テスト 🔵
+- [x] **TC-089-04**: minFontSize 境界値テスト 🔵
   - **条件**: minFontSize=8 でフォントサイズが下限に達する入力
   - **期待結果**: フォントサイズが minFontSize を下回らない
   - **信頼性**: 🔵 *設定パラメータの直接検証*
@@ -1980,17 +1980,17 @@
 
 #### 正常系
 
-- [ ] **TC-090-01**: 品質モジュールの console.log 除去 🔵
+- [x] **TC-090-01**: 品質モジュールの console.log 除去 🔵
   - **条件**: src/quality/enhanced-error-recovery.ts・regression-detector.ts
   - **期待結果**: console 出力が適切なエラー処理に置換される
   - **信頼性**: 🔵 *直接コード確認*
 
-- [ ] **TC-090-02**: UI コンポーネントの console.log 除去 🔵
+- [x] **TC-090-02**: UI コンポーネントの console.log 除去 🔵
   - **条件**: src/components/StreamingProcessor.tsx・VideoRenderer.tsx
   - **期待結果**: console 出力が UI エラー表示に置換される
   - **信頼性**: 🔵 *直接コード確認*
 
-- [ ] **TC-090-03**: 設定モジュールの console.log 除去 🔵
+- [x] **TC-090-03**: 設定モジュールの console.log 除去 🔵
   - **条件**: src/config/production-config.ts
   - **期待結果**: console 出力が設定バリデーションエラーに置換される
   - **信頼性**: 🔵 *直接コード確認*
