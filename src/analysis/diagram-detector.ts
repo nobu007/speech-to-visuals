@@ -1,6 +1,7 @@
 import { DiagramType, NodeDatum, EdgeDatum } from '@/types/diagram';
 import { ContentSegment, DiagramAnalysis, KeywordAnalysis, SemanticRelation } from './types';
 import { GeminiAnalyzer } from './gemini-analyzer';
+import { logger } from '../utils/logger';
 
 // ========================================
 // TASK-0021: Diagram Detection Result Types
@@ -271,7 +272,7 @@ export class DiagramDetector {
       return analysis;
 
     } catch (error) {
-      console.error('[Diagram Detection] Error:', error);
+      logger.error('[Diagram Detection] Error:', error);
       return {
         type: 'flow',
         confidence: 0,
@@ -788,7 +789,7 @@ export class DiagramDetector {
         reasoning: `${baseAnalysis.reasoning} + statistical validation`
       };
     } catch (error) {
-      console.warn(`[V${this.iteration}] Statistical analysis failed:`, error);
+      logger.warn(`[V${this.iteration}] Statistical analysis failed:`, error);
       return baseAnalysis;
     }
   }
@@ -862,7 +863,7 @@ export class DiagramDetector {
       }
 
     } catch (error) {
-      console.warn(`[V${this.iteration}] Hybrid analysis failed:`, error);
+      logger.warn(`[V${this.iteration}] Hybrid analysis failed:`, error);
 
       // Fallback to enhanced base analysis
       return {

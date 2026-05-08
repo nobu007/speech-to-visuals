@@ -14,6 +14,7 @@
 
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
+import { logger } from '../../utils/logger';
 
 /**
  * Output from a layout strategy
@@ -78,7 +79,7 @@ export class LayoutStrategyRegistry {
    */
   register(strategy: ILayoutStrategy): void {
     if (this.strategies.has(strategy.name)) {
-      console.warn(`Strategy '${strategy.name}' already registered, overwriting`);
+      logger.warn(`Strategy '${strategy.name}' already registered, overwriting`);
     }
     this.strategies.set(strategy.name, strategy);
   }

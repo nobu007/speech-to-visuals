@@ -10,6 +10,7 @@
  */
 
 import type { WorkerMessage, WorkerResponse } from './types';
+import { logger } from '../utils/logger';
 
 interface PendingTask<T = unknown> {
   message: WorkerMessage<T>;
@@ -172,7 +173,7 @@ export class WorkerPool {
           if (crashes > MAX_WORKER_CRASH_COUNT) {
             // Too many crashes — remove the slot and stop recreating
             this.workers.splice(index, 1);
-            console.warn(`Worker slot removed after ${crashes} crashes`);
+            logger.warn(`Worker slot removed after ${crashes} crashes`);
           } else {
             const newPooled = this.createWorkerForSlot(index);
             this.crashCounts.set(newPooled, crashes);

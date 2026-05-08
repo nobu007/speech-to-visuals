@@ -8,6 +8,7 @@ import { TreeStrategy } from './strategies/tree-strategy';
 import { TimelineStrategy } from './strategies/timeline-strategy';
 import { MatrixStrategy } from './strategies/matrix-strategy';
 import { CycleStrategy } from './strategies/cycle-strategy';
+import { logger } from '../utils/logger';
 
 export class StrategySelector {
   private registry: StrategyRegistry;
@@ -37,7 +38,7 @@ export class StrategySelector {
     if (this.registry.hasStrategy(diagramType)) {
       return this.registry.getStrategy(diagramType);
     }
-    console.warn(`Unknown diagram type '${diagramType}', using default Grid-Snap strategy`);
+    logger.warn(`Unknown diagram type '${diagramType}', using default Grid-Snap strategy`);
     return this.fallbackStrategy;
   }
 

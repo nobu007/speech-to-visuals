@@ -14,6 +14,7 @@
 
 import type { SceneGraph } from '@/types/diagram';
 import type { NodeDatum, EdgeDatum } from '@/types/diagram';
+import { logger } from '../utils/logger';
 
 export type ExportFormat = 'svg' | 'png' | 'pdf' | 'json';
 
@@ -70,7 +71,7 @@ export class MultiFormatExporter {
           throw new Error(`Unsupported export format: ${options.format}`);
       }
     } catch (error) {
-      console.error(`❌ Phase 37: Export failed for ${options.format}:`, error);
+      logger.error(`Phase 37: Export failed for ${options.format}:`, error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

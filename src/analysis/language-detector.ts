@@ -14,6 +14,8 @@
  * - Graceful fallback when Kuromoji is unavailable
  */
 
+import { logger } from '../utils/logger';
+
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
@@ -193,7 +195,7 @@ export class LanguageDetector {
         builder({ dicPath: dictPath }).build(
           (err: Error | null, tokenizer: unknown) => {
             if (err) {
-              console.warn(
+              logger.warn(
                 `[LanguageDetector] Kuromoji initialization failed: ${err.message}. ` +
                   'Falling back to character-based detection.',
               );
@@ -211,7 +213,7 @@ export class LanguageDetector {
     } catch (err) {
       // Module not available or other error
       const message = err instanceof Error ? err.message : String(err);
-      console.warn(
+      logger.warn(
         `[LanguageDetector] Kuromoji not available: ${message}. ` +
           'Using character-based detection only.',
       );

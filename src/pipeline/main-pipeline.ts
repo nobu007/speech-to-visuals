@@ -23,6 +23,7 @@ import {
 // Phase 34: Persistent iteration logging system
 import { globalIterationLogger } from '@/utils/iteration-logger';
 import { getHeapUsed, getMemoryUsage } from '@/utils/memory-usage';
+import { logger } from '../utils/logger';
 
 /**
  * Main Audio-to-Diagram Video Generation Pipeline
@@ -425,7 +426,7 @@ export class MainPipeline {
    */
   private async handlePipelineFailure(error: unknown, startTime: number): Promise<PipelineResult> {
     const totalTime = performance.now() - startTime;
-    console.error('[Enhanced Pipeline] Error:', error);
+    logger.error('[Enhanced Pipeline] Error:', error);
 
     // Try to recover using error recovery system
     try {
@@ -449,7 +450,7 @@ export class MainPipeline {
         return (recoveryResult.result as PipelineResult) || this.createMinimalResult(totalTime);
       }
     } catch (recoveryError) {
-      console.error('[Pipeline Recovery] Failed:', recoveryError);
+      logger.error('[Pipeline Recovery] Failed:', recoveryError);
     }
 
     return {
@@ -648,7 +649,7 @@ export class MainPipeline {
             };
           }
         } catch (error) {
-          console.warn(`Layout generation failed for segment: ${segment.summary as string}`);
+          logger.warn(`Layout generation failed for segment: ${segment.summary as string}`);
           return {
             segment,
             analysis,
@@ -864,7 +865,7 @@ export class MainPipeline {
         if (layoutResult.success) {
           layouts.push({ segment, analysis, layout: layoutResult.layout });
         } else {
-          console.warn(`Layout generation failed for segment: ${segment.summary as string}`);
+          logger.warn(`Layout generation failed for segment: ${segment.summary as string}`);
           // Create fallback layout
           layouts.push({
             segment,

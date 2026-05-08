@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { SceneGraph } from '@/types/diagram';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 interface EnhancedVideoPreviewProps {
   videoUrl?: string;
@@ -85,7 +86,7 @@ export const EnhancedVideoPreview: React.FC<EnhancedVideoPreviewProps> = ({
     video.addEventListener('ended', handleEnded);
 
     if (autoPlay) {
-      video.play().catch(console.error);
+      video.play().catch((e: unknown) => logger.error('[EnhancedVideoPreview] Auto-play failed:', e));
       setIsPlaying(true);
     }
 
@@ -119,7 +120,7 @@ export const EnhancedVideoPreview: React.FC<EnhancedVideoPreviewProps> = ({
       video.pause();
       setIsPlaying(false);
     } else {
-      video.play().catch(console.error);
+      video.play().catch((e: unknown) => logger.error('[EnhancedVideoPreview] Play failed:', e));
       setIsPlaying(true);
     }
   }, [isPlaying]);
@@ -169,10 +170,10 @@ export const EnhancedVideoPreview: React.FC<EnhancedVideoPreviewProps> = ({
     if (!container) return;
 
     if (!isFullscreen) {
-      container.requestFullscreen?.().catch(console.error);
+      container.requestFullscreen?.().catch((e: unknown) => logger.error('[EnhancedVideoPreview] Enter fullscreen failed:', e));
       setIsFullscreen(true);
     } else {
-      document.exitFullscreen?.().catch(console.error);
+      document.exitFullscreen?.().catch((e: unknown) => logger.error('[EnhancedVideoPreview] Exit fullscreen failed:', e));
       setIsFullscreen(false);
     }
   }, [isFullscreen]);

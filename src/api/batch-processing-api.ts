@@ -19,6 +19,7 @@ import type { QualityPreset } from '@/pipeline/adaptive-quality-presets';
 import { adaptiveQualityPresets } from '@/pipeline/adaptive-quality-presets';
 import { randomUUID } from 'crypto';
 import { BatchValidationError, JobNotFoundError } from './routes/batch';
+import { logger } from '../utils/logger';
 
 export interface BatchJobRequest {
   files: File[];
@@ -184,7 +185,7 @@ export class BatchProcessingAPI {
 
     // Start processing in background
     this.processJobAsync(jobId, request).catch((error) => {
-      console.error(`❌ Phase 37: Batch job ${jobId} failed:`, error);
+      logger.error(`Phase 37: Batch job ${jobId} failed:`, error);
       jobStore.updateJobStatus(jobId, {
         status: 'failed',
         completedAt: new Date().toISOString(),
@@ -313,7 +314,7 @@ export class BatchProcessingAPI {
         });
 
       } catch (error) {
-        console.error(`   ❌ File ${i + 1}/${request.files.length} failed:`, error);
+        logger.error(`File ${i + 1}/${request.files.length} failed:`, error);
 
         results.push({
           filename: file.name,

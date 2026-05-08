@@ -18,6 +18,7 @@ import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@
 import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { nodesOverlap } from '../layout-utils';
+import { logger } from '../../utils/logger';
 
 export class NetworkLayoutStrategy implements ILayoutStrategy {
   readonly name = 'network';
@@ -52,7 +53,7 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
       };
 
     } catch (error) {
-      console.error('[Network] Layout generation failed:', error);
+      logger.error('[Network] Layout generation failed:', error);
       throw error;
     }
   }
@@ -277,7 +278,7 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
       const target = nodes.find(n => n.id === edge.to);
 
       if (!source || !target) {
-        console.warn(`[Network] Edge ${edge.from} -> ${edge.to} missing nodes`);
+        logger.warn(`[Network] Edge ${edge.from} -> ${edge.to} missing nodes`);
         return {
           from: edge.from,
           to: edge.to,
@@ -324,13 +325,13 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
    */
   validateInputs(nodes: NodeDatum[], edges: EdgeDatum[]): boolean {
     if (nodes.length === 0) {
-      console.warn('[Network] No nodes to layout');
+      logger.warn('[Network] No nodes to layout');
       return false;
     }
 
     const nodeIds = new Set(nodes.map(n => n.id));
     if (nodeIds.size !== nodes.length) {
-      console.error('[Network] Duplicate node IDs detected');
+      logger.error('[Network] Duplicate node IDs detected');
       return false;
     }
 
@@ -339,7 +340,7 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
     );
 
     if (invalidEdges.length > 0) {
-      console.error('[Network] Invalid edges detected:', invalidEdges);
+      logger.error('[Network] Invalid edges detected:', invalidEdges);
       return false;
     }
 

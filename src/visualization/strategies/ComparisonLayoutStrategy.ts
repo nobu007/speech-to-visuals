@@ -17,6 +17,7 @@
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
+import { logger } from '../../utils/logger';
 
 export class ComparisonLayoutStrategy implements ILayoutStrategy {
   readonly name = 'comparison';
@@ -67,7 +68,7 @@ export class ComparisonLayoutStrategy implements ILayoutStrategy {
       };
 
     } catch (error) {
-      console.error('[Comparison] Layout generation failed:', error);
+      logger.error('[Comparison] Layout generation failed:', error);
       throw error;
     }
   }
@@ -126,7 +127,7 @@ export class ComparisonLayoutStrategy implements ILayoutStrategy {
       const target = nodes.find(n => n.id === edge.to);
 
       if (!source || !target) {
-        console.warn(`[Comparison] Edge ${edge.from} -> ${edge.to} missing nodes`);
+        logger.warn(`[Comparison] Edge ${edge.from} -> ${edge.to} missing nodes`);
         return {
           from: edge.from,
           to: edge.to,
@@ -175,13 +176,13 @@ export class ComparisonLayoutStrategy implements ILayoutStrategy {
    */
   validateInputs(nodes: NodeDatum[], edges: EdgeDatum[]): boolean {
     if (nodes.length === 0) {
-      console.warn('[Comparison] No nodes to layout');
+      logger.warn('[Comparison] No nodes to layout');
       return false;
     }
 
     const nodeIds = new Set(nodes.map(n => n.id));
     if (nodeIds.size !== nodes.length) {
-      console.error('[Comparison] Duplicate node IDs detected');
+      logger.error('[Comparison] Duplicate node IDs detected');
       return false;
     }
 
@@ -190,7 +191,7 @@ export class ComparisonLayoutStrategy implements ILayoutStrategy {
     );
 
     if (invalidEdges.length > 0) {
-      console.error('[Comparison] Invalid edges detected:', invalidEdges);
+      logger.error('[Comparison] Invalid edges detected:', invalidEdges);
       return false;
     }
 

@@ -34,6 +34,7 @@ import { parseJsonFromLLMText } from "./llm-utils";
 import { LLMService, llmService } from "./llm-service";
 import { getQualityMonitor } from "@/pipeline/quality-monitor";
 import { getGeminiAnalyzerPrompt, type Language } from "./prompt-templates";
+import { logger } from '../utils/logger';
 
 type GeminiDiagramType = DiagramData['type'];
 
@@ -146,7 +147,7 @@ export class GeminiAnalyzer {
 
       // Normalize missing or invalid edges array
       if (!parsed.edges || !Array.isArray(parsed.edges)) {
-        console.warn('⚠️  Missing edges field in LLM response, defaulting to empty array');
+        logger.warn('Missing edges field in LLM response, defaulting to empty array');
         parsed.edges = [];
       }
 
@@ -161,7 +162,7 @@ export class GeminiAnalyzer {
         // Validate edge references existing nodes
         const isValid = nodeIds.has(e.from) && nodeIds.has(e.to);
         if (!isValid) {
-          console.warn(`⚠️  Phase 26: Invalid edge ${e.from}→${e.to} (node not found)`);
+          logger.warn(`Phase 26: Invalid edge ${e.from}→${e.to} (node not found)`);
         }
         return isValid;
       });
@@ -237,7 +238,7 @@ export class GeminiAnalyzer {
 
       return response.data;
     } else {
-      console.warn(`⚠️  GeminiAnalyzer: LLMService failed - ${response.error}`);
+      logger.warn(`GeminiAnalyzer: LLMService failed - ${response.error}`);
       return null;
     }
   }

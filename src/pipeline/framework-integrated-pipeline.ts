@@ -17,6 +17,7 @@
 import { MainPipeline } from './main-pipeline';
 import { PipelineInput, PipelineResult, PipelineConfig } from './types';
 import { getHeapUsed } from '@/utils/memory-usage';
+import { logger } from '../utils/logger';
 import {
   IterationManager,
   createIterationManager,
@@ -201,7 +202,7 @@ export class FrameworkIntegratedPipeline {
         this.pipeline.nextIteration();
 
       } catch (error) {
-        console.error(`❌ Cycle ${cycle} failed:`, error);
+        logger.error(`Cycle ${cycle} failed:`, error);
 
         // Apply recovery strategy
         const strategy = this.iterationManager!.determineRecoveryStrategy();

@@ -30,6 +30,7 @@ import {
   Zap
 } from 'lucide-react';
 
+import { logger } from '../utils/logger';
 import {
   EnhancedExportEngine,
   ExportConfiguration,
@@ -93,7 +94,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         onExportComplete(result);
       }
     } catch (error) {
-      console.error('Export failed:', error);
+      logger.error('Export failed:', error);
       setExportResult({
         success: false,
         format: config.format,

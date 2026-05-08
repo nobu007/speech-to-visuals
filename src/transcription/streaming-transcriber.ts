@@ -5,6 +5,7 @@
  */
 
 import { TranscriptionSegment, TranscriptionResult, TranscriptionConfig } from './types';
+import { logger } from '../utils/logger';
 
 export interface StreamingTranscriptionConfig extends TranscriptionConfig {
   chunkSizeMs?: number; // Audio chunk size in milliseconds
@@ -73,7 +74,7 @@ export class StreamingTranscriber {
     };
 
     this.recognition.onerror = (event) => {
-      console.error('🚨 Speech recognition error:', event.error);
+      logger.error('[StreamingTranscriber] Speech recognition error:', event.error);
       this.isStreaming = false;
     };
   }
@@ -132,7 +133,7 @@ export class StreamingTranscriber {
           await new Promise(resolve => setTimeout(resolve, 100));
 
         } catch (chunkError) {
-          console.warn(`⚠️ Chunk ${i + 1} processing failed, continuing:`, chunkError);
+          logger.warn(`[StreamingTranscriber] Chunk ${i + 1} processing failed, continuing:`, chunkError);
           // Continue with next chunk instead of failing completely
         }
       }
@@ -152,7 +153,7 @@ export class StreamingTranscriber {
       return result;
 
     } catch (error) {
-      console.error('❌ Streaming transcription failed:', error);
+      logger.error('[StreamingTranscriber] Streaming transcription failed:', error);
       throw new Error(`Streaming transcription failed: ${error instanceof Error ? error.message : error}`);
     }
   }
@@ -169,7 +170,7 @@ export class StreamingTranscriber {
     }
 
     if (this.isStreaming) {
-      console.warn('⚠️ Live transcription already running');
+      logger.warn('[StreamingTranscriber] Live transcription already running');
       return;
     }
 

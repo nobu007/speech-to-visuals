@@ -12,6 +12,7 @@
 import { DiagramType } from '@/types/diagram';
 import { RuleBasedAnalysisResult, SceneSegment, isDisabledGemini } from './rule-based-analyzer';
 import { executeWithRetry, isRetryable, type RetryOptions } from './retry-strategy';
+import { logger } from '../utils/logger';
 
 /**
  * Analysis request for the fallback chain
@@ -109,7 +110,7 @@ export class FallbackChain {
       this.updateSuccessRate();
       return result;
     } catch (error) {
-      console.warn(
+      logger.warn(
         `[FallbackChain] Layer 1 (Primary) failed: ${error instanceof Error ? error.message : String(error)}`
       );
     }
@@ -121,13 +122,13 @@ export class FallbackChain {
       this.updateSuccessRate();
       return result;
     } catch (error) {
-      console.warn(
+      logger.warn(
         `[FallbackChain] Layer 2 (Fallback) failed: ${error instanceof Error ? error.message : String(error)}`
       );
     }
 
     // Layer 3: Rule-based (always succeeds)
-    console.error('[FallbackChain] All LLM layers failed, falling back to rule-based V1');
+    logger.error('[FallbackChain] All LLM layers failed, falling back to rule-based V1');
     const result = await this.executeLayer(request, this.ruleBasedExecutor, 'rule-based');
     this.stats.ruleBasedSuccess++;
     this.updateSuccessRate();

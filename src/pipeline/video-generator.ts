@@ -6,6 +6,7 @@
 
 import { SimplePipelineResult } from './simple-pipeline';
 import { SceneGraph } from '@/types/diagram';
+import { logger } from '../utils/logger';
 
 export interface VideoGenerationOptions {
   outputFormat: 'mp4' | 'webm' | 'gif';
@@ -146,7 +147,7 @@ export class VideoGenerator {
 
     } catch (error) {
       const processingTime = performance.now() - startTime;
-      console.error('[Video Generation] Error:', error);
+      logger.error('[Video Generation] Error:', error);
 
       // エラーパターン記録
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -282,7 +283,7 @@ export class VideoGenerator {
     const isValid = errors.length === 0;
 
     if (warnings.length > 0) {
-      console.warn('[Video Generation] Validation warnings:', warnings);
+      logger.warn('[Video Generation] Validation warnings:', warnings);
     }
 
     return { isValid, errors, warnings };
@@ -350,7 +351,7 @@ export class VideoGenerator {
     try {
       // Node.js環境でのみ実行可能
       if (typeof window !== 'undefined') {
-        console.warn('[Video Generation] Browser environment detected, using mock rendering');
+        logger.warn('[Video Generation] Browser environment detected, using mock rendering');
         return await this.executeMockRender(config, onProgress);
       }
 
@@ -384,7 +385,7 @@ export class VideoGenerator {
       return videoInfo;
 
     } catch (error) {
-      console.error('[Video Generation] Render failed:', error);
+      logger.error('[Video Generation] Render failed:', error);
       // フォールバックとして模擬レンダリング
       return await this.executeMockRender(config, onProgress);
     }

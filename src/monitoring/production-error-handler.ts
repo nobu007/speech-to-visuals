@@ -5,6 +5,7 @@
  */
 
 import { randomUUID } from 'crypto';
+import { logger } from '../utils/logger';
 
 interface ErrorContext {
   component: string;
@@ -156,7 +157,7 @@ export class ProductionErrorHandler {
       ...context
     };
 
-    console.error(`🚨 [${errorId}] Error in ${fullContext.component}:`, error);
+    logger.error(`[${errorId}] Error in ${fullContext.component}:`, error);
 
     // Classify error severity
     const severity = this.classifyErrorSeverity(error, fullContext);
@@ -375,7 +376,7 @@ export class ProductionErrorHandler {
             return true;
           }
         } catch (recoveryError) {
-          console.warn(`❌ Recovery strategy failed: ${strategy.name}`, recoveryError);
+          logger.warn(`Recovery strategy failed: ${strategy.name}`, recoveryError);
         }
       }
     }
@@ -453,12 +454,12 @@ export class ProductionErrorHandler {
     };
 
     if (this.metrics.criticalErrors >= thresholds.criticalErrors) {
-      console.warn('🚨 CRITICAL: Too many critical errors detected!');
+      logger.warn('CRITICAL: Too many critical errors detected!');
       this.triggerEmergencyMode();
     }
 
     if (this.metrics.errorRate >= thresholds.errorRate) {
-      console.warn('⚠️ WARNING: High error rate detected!');
+      logger.warn('WARNING: High error rate detected!');
       this.suggestSystemMaintenance();
     }
   }
@@ -542,7 +543,7 @@ export class ProductionErrorHandler {
         try {
           callback(alert);
         } catch (error) {
-          console.warn(`Error in callback for component ${component}:`, error);
+          logger.warn(`Error in callback for component ${component}:`, error);
         }
       });
     }
@@ -557,13 +558,13 @@ export class ProductionErrorHandler {
   ): Promise<boolean> {
     const error = this.errorQueue.find(e => e.id === errorId);
     if (!error) {
-      console.warn(`Error not found: ${errorId}`);
+      logger.warn(`Error not found: ${errorId}`);
       return false;
     }
 
     const strategy = error.recoveryOptions.find(s => s.name === strategyName);
     if (!strategy) {
-      console.warn(`Strategy not found: ${strategyName}`);
+      logger.warn(`Strategy not found: ${strategyName}`);
       return false;
     }
 
@@ -576,7 +577,7 @@ export class ProductionErrorHandler {
 
       return success;
     } catch (error) {
-      console.error(`Recovery strategy execution failed:`, error);
+      logger.error('Recovery strategy execution failed:', error);
       return false;
     }
   }

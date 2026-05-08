@@ -6,6 +6,7 @@
 
 import { randomUUID } from 'crypto';
 import { getMemoryUsage } from '@/utils/memory-usage';
+import { logger } from '../utils/logger';
 
 interface PerformanceMetrics {
   timestamp: number;
@@ -322,7 +323,7 @@ export class PerformanceDashboard {
       try {
         callback(alert);
       } catch (error) {
-        console.error('Alert callback error:', error);
+        logger.error('Alert callback error:', error);
       }
     });
 
@@ -346,7 +347,7 @@ export class PerformanceDashboard {
         try {
           await callback();
         } catch (error) {
-          console.error('Optimization callback error:', error);
+          logger.error('Optimization callback error:', error);
         }
       }
 

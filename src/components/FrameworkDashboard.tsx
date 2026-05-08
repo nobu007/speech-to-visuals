@@ -37,6 +37,7 @@ import {
   Pause,
   FastForward
 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 /**
  * Phase information from DEVELOPMENT_CYCLES
@@ -210,7 +211,7 @@ export const FrameworkDashboard: React.FC<FrameworkDashboardProps> = ({
       try {
         await onExecute(selectedPhase);
       } catch (error) {
-        console.error('Execution failed:', error);
+        logger.error('[FrameworkDashboard] Execution failed:', error);
         setExecutionStatus(prev => ({ ...prev, isRunning: false }));
       }
     }

@@ -4,6 +4,7 @@ import ProgressiveForceStrategy from './strategies/ProgressiveForceStrategy';
 import SimulatedAnnealingStrategy from './strategies/SimulatedAnnealingStrategy';
 import GridSnapStrategy from './strategies/GridSnapStrategy';
 import { LayoutConfig, LayoutResult, LayoutMetrics } from '../types';
+import { logger } from '../../utils/logger';
 
 export class OverlapResolver {
   private strategies: LayoutStrategy[] = [];
@@ -100,14 +101,14 @@ export class OverlapResolver {
         }
         
       } catch (error) {
-        console.error(`Error in strategy ${strategy.name}:`, error);
+        logger.error(`Error in strategy ${strategy.name}:`, error);
         this.currentStrategyIndex++;
       }
     }
     
     // If we didn't find a good solution, use the best one we have
     if (!bestResult) {
-      console.warn('No valid layout found, using fallback');
+      logger.warn('No valid layout found, using fallback');
       bestResult = {
         layout: {
           nodes: currentNodes,

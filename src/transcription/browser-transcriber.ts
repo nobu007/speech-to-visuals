@@ -1,4 +1,5 @@
 import { TranscriptionResult, TranscriptionSegment } from './types';
+import { logger } from '../utils/logger';
 
 /**
  * Transcription state type
@@ -63,7 +64,7 @@ export class BrowserTranscriber {
       this.setupRecognitionEvents();
 
     } else {
-      console.warn('Web Speech API not supported in this browser');
+      logger.warn('[BrowserTranscriber] Web Speech API not supported in this browser');
     }
   }
 
@@ -93,7 +94,7 @@ export class BrowserTranscriber {
     };
 
     this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      console.error('Speech recognition error:', event.error);
+      logger.error('[BrowserTranscriber] Speech recognition error:', event.error);
 
       const errorInfo: TranscriptionError = {
         error: event.error,
@@ -295,7 +296,7 @@ export class BrowserTranscriber {
       return result;
 
     } catch (error) {
-      console.error('Browser transcription failed:', error);
+      logger.error('[BrowserTranscriber] Browser transcription failed:', error);
 
       return {
         segments: this.getEnhancedMockSegments(),
@@ -354,7 +355,7 @@ export class BrowserTranscriber {
       };
 
       this.recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
+        logger.error('[BrowserTranscriber] Speech recognition error:', event.error);
         URL.revokeObjectURL(audioUrl);
         reject(new Error(`Speech recognition error: ${event.error}`));
       };

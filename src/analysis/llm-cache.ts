@@ -11,6 +11,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { calculateSemanticSimilarity, SemanticMetricsTracker } from './semantic-similarity';
+import { logger } from '../utils/logger';
 
 interface CacheEntry<T> {
   data: T;
@@ -266,7 +267,7 @@ export class LLMCache<T> {
       fs.renameSync(tempPath, this.persistPath);
 
     } catch (error) {
-      console.warn('⚠️  Failed to persist LLM cache to disk:', error);
+      logger.warn('Failed to persist LLM cache to disk:', error);
     }
   }
 
@@ -286,7 +287,7 @@ export class LLMCache<T> {
 
       // Support both v1.0 (without semantic) and v2.0 (with semantic)
       if (parsed.version !== '1.0' && parsed.version !== '2.0') {
-        console.warn('⚠️  Cache version mismatch, starting fresh');
+        logger.warn('Cache version mismatch, starting fresh');
         return;
       }
 
@@ -313,7 +314,7 @@ export class LLMCache<T> {
       const semanticSupport = parsed.version === '2.0' ? ' (with semantic support)' : '';
 
     } catch (error) {
-      console.warn('⚠️  Failed to load LLM cache from disk:', error);
+      logger.warn('Failed to load LLM cache from disk:', error);
     }
   }
 

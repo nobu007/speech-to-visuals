@@ -12,6 +12,7 @@ import {
   MAX_FILE_SIZE,
 } from './types';
 import { Caption } from '@remotion/captions';
+import { logger } from '../utils/logger';
 
 export interface WhisperConfig {
   model: 'tiny' | 'base' | 'small' | 'medium' | 'large';
@@ -87,7 +88,7 @@ export class WhisperTranscriber {
       this.isWhisperReady = true;
 
     } catch (error) {
-      console.warn('Whisper initialization failed, using fallback:', error);
+      logger.warn('[WhisperTranscriber] Initialization failed, using fallback:', error);
       this.isWhisperReady = false;
     }
   }
@@ -105,7 +106,7 @@ export class WhisperTranscriber {
     try {
       await import('whisper-node').catch(() => null);
     } catch (error) {
-      console.warn('Node.js Whisper setup failed:', error);
+      logger.warn('[WhisperTranscriber] Node.js Whisper setup failed:', error);
     }
   }
 

@@ -17,6 +17,7 @@
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
+import { logger } from '../../utils/logger';
 
 export class TimelineLayoutStrategy implements ILayoutStrategy {
   readonly name = 'timeline';
@@ -82,7 +83,7 @@ export class TimelineLayoutStrategy implements ILayoutStrategy {
       };
 
     } catch (error) {
-      console.error('[Timeline] Layout generation failed:', error);
+      logger.error('[Timeline] Layout generation failed:', error);
       throw error;
     }
   }
@@ -99,7 +100,7 @@ export class TimelineLayoutStrategy implements ILayoutStrategy {
       const target = nodes.find(n => n.id === edge.to);
 
       if (!source || !target) {
-        console.warn(`[Timeline] Edge ${edge.from} -> ${edge.to} missing nodes`);
+        logger.warn(`[Timeline] Edge ${edge.from} -> ${edge.to} missing nodes`);
         return {
           from: edge.from,
           to: edge.to,
@@ -146,14 +147,14 @@ export class TimelineLayoutStrategy implements ILayoutStrategy {
    */
   validateInputs(nodes: NodeDatum[], edges: EdgeDatum[]): boolean {
     if (nodes.length === 0) {
-      console.warn('[Timeline] No nodes to layout');
+      logger.warn('[Timeline] No nodes to layout');
       return false;
     }
 
     // Check for duplicate node IDs
     const nodeIds = new Set(nodes.map(n => n.id));
     if (nodeIds.size !== nodes.length) {
-      console.error('[Timeline] Duplicate node IDs detected');
+      logger.error('[Timeline] Duplicate node IDs detected');
       return false;
     }
 
@@ -163,7 +164,7 @@ export class TimelineLayoutStrategy implements ILayoutStrategy {
     );
 
     if (invalidEdges.length > 0) {
-      console.error('[Timeline] Invalid edges detected:', invalidEdges);
+      logger.error('[Timeline] Invalid edges detected:', invalidEdges);
       return false;
     }
 

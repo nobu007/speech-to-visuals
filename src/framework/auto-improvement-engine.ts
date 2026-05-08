@@ -12,6 +12,7 @@
  */
 
 import { IterationManager, createIterationManager } from './iteration-manager';
+import { logger } from '../utils/logger';
 
 export interface QualityMetrics {
   // Performance Metrics
@@ -340,7 +341,7 @@ export class AutoImprovementEngine {
           // Intentionally empty: non-successful result tracked in history, no additional action needed
         }
       } catch (error) {
-        console.error(`   ❌ Failed to apply improvement: ${error}`);
+        logger.error(`Failed to apply improvement: ${error}`);
       }
     }
 

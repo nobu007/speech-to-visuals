@@ -3,6 +3,7 @@ import { BrowserTranscriber } from './browser-transcriber';
 import { WhisperTranscriber } from './whisper-transcriber';
 import { Caption } from '@remotion/captions';
 import { detectLanguage, type Language } from '@/analysis/language-detector';
+import { logger } from '../utils/logger';
 
 /**
  * Whisper-based transcription service with iterative improvement capabilities
@@ -76,7 +77,7 @@ export class TranscriptionPipeline {
       return result;
 
     } catch (error) {
-      console.error('[Transcription] Error:', error);
+      logger.error('[Transcription] Error:', error);
       return {
         segments: [],
         language: 'unknown',
@@ -124,7 +125,7 @@ export class TranscriptionPipeline {
       return this.getFallbackSegments();
 
     } catch (error) {
-      console.warn(`[V${this.iteration}] All transcription methods failed, using fallback:`, error);
+      logger.warn(`[Transcription] All transcription methods failed, using fallback:`, error);
       return this.getFallbackSegments();
     }
   }

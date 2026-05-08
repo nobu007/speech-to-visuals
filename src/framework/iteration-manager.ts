@@ -13,6 +13,7 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { logger } from '../utils/logger';
 
 export type IterationStatus = 'in_progress' | 'success' | 'failure';
 export type CommitTrigger = 'on_success' | 'on_checkpoint' | 'on_review';
@@ -361,7 +362,7 @@ ${iteration.nextSteps?.map(step => `- ${step}`).join('\n') || '- None'}
 
       await fs.writeFile(this.logPath, lines.join('\n'), 'utf-8');
     } catch (error) {
-      console.warn(`⚠️  Failed to log iteration: ${error}`);
+      logger.warn(`Failed to log iteration: ${error}`);
     }
   }
 

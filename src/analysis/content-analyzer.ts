@@ -1,6 +1,7 @@
 import { DiagramData } from "./types";
 import { LLMService, llmService } from "./llm-service";
 import { getContentAnalyzerPrompt, type Language } from "./prompt-templates";
+import { logger } from '../utils/logger';
 
 /**
  * Phase 22: Content Analyzer - Refactored to use Unified LLMService
@@ -80,17 +81,17 @@ export class ContentAnalyzer {
     if (response.success && response.data) {
       // Validate structure
       if (!response.data.nodes || !Array.isArray(response.data.nodes)) {
-        console.warn('⚠️  Invalid nodes structure, falling back to rule-based');
+        logger.warn('Invalid nodes structure, falling back to rule-based');
         return this.analyzeV1(text);
       }
       if (!response.data.edges || !Array.isArray(response.data.edges)) {
-        console.warn('⚠️  Missing edges array, adding empty array');
+        logger.warn('Missing edges array, adding empty array');
         response.data.edges = [];
       }
 
       return response.data;
     } else {
-      console.warn(`⚠️  LLMService failed: ${response.error}, falling back to rule-based`);
+      logger.warn(`LLMService failed: ${response.error}, falling back to rule-based`);
       return this.analyzeV1(text);
     }
   }

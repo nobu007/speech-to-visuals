@@ -1,5 +1,6 @@
 import { PipelineResult, PipelineStage } from '@/pipeline/types';
 import { SceneGraph } from '@/types/diagram';
+import { logger } from '../utils/logger';
 
 /**
  * Quality Assessment Interfaces
@@ -170,7 +171,7 @@ export class QualityMonitor {
       return assessment;
 
     } catch (error) {
-      console.error('❌ Quality assessment failed:', error);
+      logger.error('Quality assessment failed:', error);
       assessment.concerns.push('Quality assessment system error');
       assessment.overallScore = 0;
       return assessment;

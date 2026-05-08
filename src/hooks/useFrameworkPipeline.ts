@@ -11,6 +11,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { FrameworkIntegratedPipeline } from '@/pipeline/framework-integrated-pipeline';
 import { PipelineInput, PipelineResult } from '@/pipeline/types';
 import { DEVELOPMENT_CYCLES } from '@/framework/iteration-manager';
+import { logger } from '@/utils/logger';
 
 /**
  * Execution state
@@ -162,7 +163,7 @@ export function useFrameworkPipeline(
    */
   const setPhase = useCallback((phase: keyof typeof DEVELOPMENT_CYCLES) => {
     if (executionState.isRunning) {
-      console.warn('Cannot change phase while pipeline is running');
+      logger.warn('[useFrameworkPipeline] Cannot change phase while pipeline is running');
       return;
     }
 
@@ -177,12 +178,12 @@ export function useFrameworkPipeline(
    */
   const execute = useCallback(async (input: PipelineInput) => {
     if (!pipelineRef.current) {
-      console.error('Pipeline not initialized');
+      logger.error('[useFrameworkPipeline] Pipeline not initialized');
       return;
     }
 
     if (executionState.isRunning) {
-      console.warn('Pipeline already running');
+      logger.warn('[useFrameworkPipeline] Pipeline already running');
       return;
     }
 
@@ -261,10 +262,10 @@ export function useFrameworkPipeline(
               body: JSON.stringify({ message: execution.commitMessage }),
             });
             if (!response.ok) {
-              console.error('Auto-commit failed:', response.status, response.statusText);
+              logger.error('[useFrameworkPipeline] Auto-commit failed:', response.status, response.statusText);
             }
           } catch (commitError) {
-            console.error('Auto-commit error:', commitError);
+            logger.error('[useFrameworkPipeline] Auto-commit error:', commitError);
           }
         }
       }
@@ -272,7 +273,7 @@ export function useFrameworkPipeline(
       setExecutionState(prev => ({ ...prev, progress: 100, isRunning: false }));
 
     } catch (error: unknown) {
-      console.error('❌ Pipeline execution failed:', error);
+      logger.error('[useFrameworkPipeline] Pipeline execution failed:', error);
       setExecutionState(prev => ({
         ...prev,
         isRunning: false,
@@ -370,7 +371,7 @@ export function useIterationLog() {
       setLog(text);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Unknown error');
-      console.error('Failed to fetch iteration log:', err);
+      logger.error('[useIterationLog] Failed to fetch iteration log:', err);
     } finally {
       setLoading(false);
     }

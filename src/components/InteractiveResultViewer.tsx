@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import type { SimplePipelineResult as ProcessingResult } from '@/pipeline/simple-pipeline';
 import type { ExportConfiguration, ExportFormat, VideoQuality } from '@/export/enhanced-export-engine';
 import { EnhancedExportEngine } from '@/export/enhanced-export-engine';
+import { logger } from '@/utils/logger';
 
 export interface InteractiveResultViewerProps {
   result: ProcessingResult;
@@ -133,7 +134,7 @@ export const InteractiveResultViewer: React.FC<InteractiveResultViewerProps> = (
       toast.success(`${generatedThumbnails.length} scene previews generated`);
 
     } catch (error) {
-      console.error('❌ Thumbnail generation failed:', error);
+      logger.error('[InteractiveResultViewer] Thumbnail generation failed:', error);
       toast.error('Failed to generate scene previews');
     } finally {
       setIsGeneratingThumbnails(false);
@@ -280,7 +281,7 @@ export const InteractiveResultViewer: React.FC<InteractiveResultViewerProps> = (
       }
 
     } catch (error) {
-      console.error('❌ Export failed:', error);
+      logger.error('[InteractiveResultViewer] Export failed:', error);
       toast.error('Export failed');
     } finally {
       setExportState(prev => ({ ...prev, isExporting: false, progress: 0 }));

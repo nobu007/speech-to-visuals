@@ -6,6 +6,7 @@
 
 import { SceneGraph, DiagramLayout } from '@/types/diagram';
 import { LayoutEngine } from './layout-engine';
+import { logger } from '../utils/logger';
 
 export interface VisualStyle {
   theme: 'modern' | 'classic' | 'minimal' | 'corporate' | 'creative';
@@ -154,7 +155,7 @@ export class AdvancedVisualEngine {
       return enhancedScene;
 
     } catch (error) {
-      console.error(`❌ Scene enhancement failed:`, error);
+      logger.error(`Scene enhancement failed:`, error);
       throw error;
     }
   }
@@ -538,7 +539,7 @@ export class AdvancedVisualEngine {
           });
         }
       } catch (error) {
-        console.warn(`Failed to enhance scene ${i}:`, error);
+        logger.warn(`Failed to enhance scene ${i}:`, error);
         // Create fallback enhanced scene
         enhancedScenes.push(this.createFallbackEnhancedScene(scene));
       }

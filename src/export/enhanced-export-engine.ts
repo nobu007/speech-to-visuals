@@ -19,6 +19,7 @@ import type {
   ExportWorkerResult,
 } from '../workers';
 import { encodeAPNG as realEncodeAPNG } from './apng-encoder';
+import { logger } from '../utils/logger';
 
 export interface ExportConfiguration {
   format: ExportFormat;
@@ -230,7 +231,7 @@ export class EnhancedExportEngine {
       }
     } catch (error) {
       const duration = performance.now() - startTime;
-      console.error('❌ Export failed:', error);
+      logger.error('Export failed:', error);
 
       return {
         success: false,
@@ -266,7 +267,7 @@ export class EnhancedExportEngine {
 
       return result;
     } catch (error) {
-      console.error('❌ Export job failed:', error);
+      logger.error('Export job failed:', error);
       return {
         success: false,
         format: job.config.format,
@@ -372,12 +373,12 @@ export class EnhancedExportEngine {
     try {
       const response = await pool.execute(message);
       if (response.error) {
-        console.warn('Export worker returned error, falling back:', response.error.message);
+        logger.warn('Export worker returned error, falling back:', response.error.message);
         return null;
       }
       return (response.payload as ExportWorkerResult) ?? null;
     } catch {
-      console.warn('Export worker failed, falling back to main thread');
+      logger.warn('Export worker failed, falling back to main thread');
       return null;
     }
   }

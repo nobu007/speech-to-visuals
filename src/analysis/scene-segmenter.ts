@@ -1,5 +1,6 @@
 import { TranscriptionSegment } from '@/transcription/types';
 import { ContentSegment, AnalysisConfig } from './types';
+import { logger } from '../utils/logger';
 
 /**
  * Scene Segmentation Engine - Iterative Implementation
@@ -137,7 +138,7 @@ export class SceneSegmenter {
       return segments;
 
     } catch (error) {
-      console.error('[Scene Segmentation] Error:', error);
+      logger.error('[Scene Segmentation] Error:', error);
       return [];
     }
   }

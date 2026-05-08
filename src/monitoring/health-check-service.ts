@@ -9,6 +9,7 @@
 import { realTimeMonitor, PerformanceSnapshot } from './real-time-performance-monitor';
 import { globalCache } from '@/performance/intelligent-cache';
 import { getMemoryUsage } from '@/utils/memory-usage';
+import { logger } from '../utils/logger';
 
 export interface HealthCheckResult {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -479,7 +480,7 @@ class HealthCheckService {
       try {
         await this.performHealthCheck();
       } catch (error) {
-        console.error('[HealthCheck] Periodic health check failed:', error);
+        logger.error('[HealthCheck] Periodic health check failed:', error);
       }
     }, 10000);
   }

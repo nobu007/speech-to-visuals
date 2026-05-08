@@ -13,6 +13,7 @@ import dagre from '@dagrejs/dagre';
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { calculateNodeWidth, calculateNodeHeight, calculateNodeCenter, calculateDistance, calculateNodeDistance, generateEdgePoints, nodesOverlap } from './layout-utils';
 import { Point } from './types';
+import { logger } from '../utils/logger';
 
 export interface ZeroOverlapConfig {
   // Canvas configuration
@@ -183,7 +184,7 @@ export class ZeroOverlapLayoutEngine {
       };
 
     } catch (error) {
-      console.error('❌ [ZeroOverlap] Layout generation failed:', error);
+      logger.error('[ZeroOverlap] Layout generation failed:', error);
 
       return {
         nodes: [],
@@ -385,7 +386,7 @@ export class ZeroOverlapLayoutEngine {
       const targetNode = positionedNodes.find(n => n.id === (edge.to));
 
       if (!sourceNode || !targetNode) {
-        console.warn(`⚠️  [Timeline] Missing node for edge`);
+        logger.warn(`[Timeline] Missing node for edge`);
         return { ...edge, points: [] };
       }
 
@@ -728,7 +729,7 @@ export class ZeroOverlapLayoutEngine {
     }
 
     if (iteration === maxIterations) {
-      console.warn(`⚠️ [ZeroOverlap] Max iterations reached, may have remaining overlaps`);
+      logger.warn(`[ZeroOverlap] Max iterations reached, may have remaining overlaps`);
     }
 
     // Regenerate edges for new positions

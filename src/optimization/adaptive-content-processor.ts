@@ -6,6 +6,7 @@
 
 import { performance } from 'perf_hooks';
 import type { AudioCharacteristics, ParameterSet as OptimalParameters } from './smart-parameter-tuner';
+import { logger } from '../utils/logger';
 
 export interface ProcessingStrategy {
   name: string;
@@ -158,7 +159,7 @@ export class AdaptiveContentProcessor {
       return result;
 
     } catch (error) {
-      console.error('❌ Strategy selection failed:', error);
+      logger.error('Strategy selection failed:', error);
 
       // Fallback to balanced strategy
       return {

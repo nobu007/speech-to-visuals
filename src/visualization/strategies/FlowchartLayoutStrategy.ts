@@ -18,6 +18,7 @@ import dagre from '@dagrejs/dagre';
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
+import { logger } from '../../utils/logger';
 
 export class FlowchartLayoutStrategy implements ILayoutStrategy {
   readonly name = 'flowchart';
@@ -113,7 +114,7 @@ export class FlowchartLayoutStrategy implements ILayoutStrategy {
       };
 
     } catch (error) {
-      console.error('[Flowchart] Layout generation failed:', error);
+      logger.error('[Flowchart] Layout generation failed:', error);
       throw error;
     }
   }
@@ -138,14 +139,14 @@ export class FlowchartLayoutStrategy implements ILayoutStrategy {
   validateInputs(nodes: NodeDatum[], edges: EdgeDatum[]): boolean {
     // Check for empty nodes
     if (nodes.length === 0) {
-      console.warn('[Flowchart] No nodes to layout');
+      logger.warn('[Flowchart] No nodes to layout');
       return false;
     }
 
     // Check for duplicate node IDs
     const nodeIds = new Set(nodes.map(n => n.id));
     if (nodeIds.size !== nodes.length) {
-      console.error('[Flowchart] Duplicate node IDs detected');
+      logger.error('[Flowchart] Duplicate node IDs detected');
       return false;
     }
 
@@ -155,7 +156,7 @@ export class FlowchartLayoutStrategy implements ILayoutStrategy {
     );
 
     if (invalidEdges.length > 0) {
-      console.error('[Flowchart] Invalid edges detected:', invalidEdges);
+      logger.error('[Flowchart] Invalid edges detected:', invalidEdges);
       return false;
     }
 

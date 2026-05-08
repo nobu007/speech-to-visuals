@@ -13,6 +13,7 @@ import { VideoGenerator, VideoGenerationOptions } from './video-generator';
 import { continuousLearner } from '@/framework/continuous-learner';
 import { getQualityMonitor, formatQualityReport } from './quality-monitor';
 import { getHeapUsed } from '@/utils/memory-usage';
+import { logger } from '../utils/logger';
 
 export interface SimplePipelineInput {
   audioFile: File;
@@ -312,7 +313,7 @@ export class SimplePipeline {
 
           return null;
         } catch (error) {
-          console.error(`❌ [Scene ${index + 1}] Processing failed:`, error);
+          logger.error(`[Scene ${index + 1}] Processing failed:`, error);
           return null;
         }
       };
@@ -421,7 +422,7 @@ export class SimplePipeline {
         if (videoResult.success) {
           videoUrl = videoResult.videoUrl;
         } else {
-          console.warn('Video generation failed:', videoResult.error);
+          logger.warn('Video generation failed:', videoResult.error);
         }
       }
 
@@ -525,7 +526,7 @@ export class SimplePipeline {
       };
 
     } catch (error) {
-      console.error('Pipeline processing error:', error);
+      logger.error('Pipeline processing error:', error);
 
       // Enhanced error handling with recovery strategies
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -583,7 +584,7 @@ export class SimplePipeline {
       );
 
       // Log detailed error information for debugging (including input metadata)
-      console.error('Error details:', {
+      logger.error('Error details:', {
         timestamp: new Date().toISOString(),
         processingTime: failureProcessingTime,
         stack: error instanceof Error ? error.stack : undefined,
@@ -605,7 +606,7 @@ export class SimplePipeline {
           URL.revokeObjectURL(audioUrl);
         }
       } catch (cleanupError) {
-        console.warn('Cleanup warning:', cleanupError);
+        logger.warn('Cleanup warning:', cleanupError);
       }
 
       // Track failure for progressive enhancement
@@ -653,7 +654,7 @@ export class SimplePipeline {
 
       } catch (error) {
         lastError = error instanceof Error ? error : new Error('Unknown error');
-        console.warn(`Pipeline attempt ${attempt} failed:`, lastError.message);
+        logger.warn(`Pipeline attempt ${attempt} failed:`, lastError.message);
 
         if (attempt < maxRetries) {
           // Wait before retry (exponential backoff)

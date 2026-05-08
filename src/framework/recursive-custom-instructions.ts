@@ -12,6 +12,8 @@
  * as specified in your comprehensive custom instructions document.
  */
 
+import { logger } from '../utils/logger';
+
 export interface DevelopmentCycle {
   phase: string;
   maxIterations: number;
@@ -184,7 +186,7 @@ export class RecursiveCustomInstructionsFramework {
       return this.currentState;
 
     } catch (error) {
-      console.error(`❌ Error in ${phase}:`, error);
+      logger.error(`Error in ${phase}:`, error);
       await this.handleFailure(error as Error, phase);
       return this.currentState;
     }
@@ -607,7 +609,7 @@ export class RecursiveCustomInstructionsFramework {
    * Handle iteration failure
    */
   async handleIterationFailure(phase: string, iteration: number, error: Error): Promise<void> {
-    console.error(`❌ Iteration ${iteration} failed in phase "${phase}":`, error.message);
+    logger.error(`Iteration ${iteration} failed in phase "${phase}":`, error.message);
 
     // Save failure state
     await this.saveIterationState();
@@ -647,7 +649,7 @@ export class RecursiveCustomInstructionsFramework {
    * Record stage failure
    */
   async recordStageFailure(stageName: string, error: Error, duration: number): Promise<void> {
-    console.error(`❌ Stage "${stageName}" failed:`, error.message);
+    logger.error(`Stage "${stageName}" failed:`, error.message);
 
     // Record failure metrics
     this.currentState.metrics.renderTime = duration;

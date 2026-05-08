@@ -21,6 +21,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { LLMCache } from "./llm-cache";
 import { ComplexityDetector, ComplexityAnalysis } from "./complexity-detector";
 import { parseJsonFromLLMText } from "./llm-utils";
+import { logger } from '../utils/logger';
 
 /**
  * Phase 33: Streaming progress callback
@@ -283,19 +284,19 @@ export class LLMService {
 
         if (isRateLimit || isTimeout) {
           const reason = isRateLimit ? 'Rate limit' : 'Timeout';
-          console.warn(`${reason} with ${primaryModel} (attempt ${attempt + 1}/${maxRetries})`);
+          logger.warn(`${reason} with ${primaryModel} (attempt ${attempt + 1}/${maxRetries})`);
 
           if (attempt < maxRetries - 1) {
             continue; // Retry with backoff
           } else {
             // Exhausted retries, try fallback
-            console.warn(`⚠️  LLMService: Switching to fallback ${fallbackModel}`);
+            logger.warn(`LLMService: Switching to fallback ${fallbackModel}`);
             break;
           }
         }
 
         // For other errors, fail immediately
-        console.error(`❌ LLMService: ${primaryModel} failed:`, errMessage);
+        logger.error(`LLMService: ${primaryModel} failed:`, errMessage);
         this.modelMetrics.failureCount++;
 
         return {
@@ -371,7 +372,7 @@ export class LLMService {
         lastError = err;
         this.modelMetrics.totalRetries++;
         const errMessage = err instanceof Error ? err.message : String(err);
-        console.warn(`❌ LLMService: Fallback ${fallbackModel} failed (attempt ${attempt + 1}/${maxRetries}):`, errMessage);
+        logger.warn(`LLMService: Fallback ${fallbackModel} failed (attempt ${attempt + 1}/${maxRetries}):`, errMessage);
 
         if (attempt < maxRetries - 1) {
           continue; // Retry with backoff
@@ -382,7 +383,7 @@ export class LLMService {
     // All retries exhausted
     this.modelMetrics.failureCount++;
     const lastErrorMessage = lastError instanceof Error ? lastError.message : (lastError ? String(lastError) : 'Unknown error');
-    console.error('❌ LLMService: All retry attempts exhausted. Last error:', lastErrorMessage);
+    logger.error('LLMService: All retry attempts exhausted. Last error:', lastErrorMessage);
 
     return {
       success: false,

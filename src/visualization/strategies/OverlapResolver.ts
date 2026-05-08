@@ -1,6 +1,7 @@
 import { DiagramLayout, PositionedNode, DiagramType } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { nodesOverlap } from '../layout-utils';
+import { logger } from '../../utils/logger';
 
 /** Get effective node width (handles both `w` and `width` properties) */
 function nodeW(n: PositionedNode): number {
@@ -134,7 +135,7 @@ export class OverlapResolver {
     if (overlapCount === 0) {
       // Intentionally empty: all overlaps resolved successfully, no action needed
     } else {
-      console.warn(`⚠️ Could not eliminate all overlaps: ${overlapCount} remaining after ${iteration} iterations`);
+      logger.warn(`Could not eliminate all overlaps: ${overlapCount} remaining after ${iteration} iterations`);
       // Force separation for remaining overlaps
       await this.forceSeparateOverlappingNodes(nodes);
     }

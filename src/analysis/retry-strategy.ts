@@ -9,6 +9,8 @@
  * - Non-retryable: 400, 401, 403, 404
  */
 
+import { logger } from '../utils/logger';
+
 export interface RetryOptions {
   maxRetries?: number;   // default: 3
   baseDelay?: number;    // default: 1000ms
@@ -152,7 +154,7 @@ export async function executeWithRetry<T>(
         timestamp: Date.now(),
       });
 
-      console.warn(
+      logger.warn(
         `[RetryStrategy] Attempt ${attempt + 1}/${opts.maxRetries} failed, ` +
         `retrying in ${delay}ms...`,
         error instanceof Error ? error.message : String(error)

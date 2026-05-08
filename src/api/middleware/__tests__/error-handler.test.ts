@@ -232,7 +232,7 @@ describe('errorHandler middleware', () => {
         message: 'An unexpected error occurred',
       },
     });
-    expect(consoleSpy).toHaveBeenCalledWith('Unhandled error:', error);
+    expect(consoleSpy).toHaveBeenCalledWith('[ERROR] Unhandled error:', error);
     consoleSpy.mockRestore();
   });
 

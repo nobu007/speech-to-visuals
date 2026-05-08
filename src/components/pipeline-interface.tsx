@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { MainPipeline } from '@/pipeline';
 import { PipelineResult, PipelineStage } from '@/pipeline/types';
 import { ProcessingStatus } from '@/types/diagram';
+import { logger } from '@/utils/logger';
 
 interface PipelineInterfaceProps {
   className?: string;
@@ -88,13 +89,13 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
         setStatus('error');
         setError(pipelineResult.error || 'Pipeline processing failed');
         setStages(pipelineResult.stages);
-        console.error('❌ Pipeline failed:', pipelineResult.error);
+        logger.error('[PipelineInterface] Pipeline failed:', pipelineResult.error);
       }
 
     } catch (err) {
       setStatus('error');
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
-      console.error('Pipeline error:', err);
+      logger.error('[PipelineInterface] Pipeline error:', err);
     }
   }, [selectedFile, pipeline]);
 
@@ -124,7 +125,7 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
       });
 
       if (!response.ok) {
-        console.error('Video render request failed:', response.status);
+        logger.error('[PipelineInterface] Video render request failed:', response.status);
         toast.error('Video rendering failed. Please try again.');
         return;
       }
@@ -134,7 +135,7 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
         window.open(data.videoUrl, '_blank');
       }
     } catch (err) {
-      console.error('Video render error:', err);
+      logger.error('[PipelineInterface] Video render error:', err);
       toast.error('Video rendering encountered an error. Please try again.');
     }
   }, [result]);

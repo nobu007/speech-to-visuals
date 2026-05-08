@@ -10,6 +10,7 @@ import { apiRateLimiter, uploadRateLimiter } from './middleware/rate-limit';
 import { authMiddleware, AuthenticatedRequest } from './middleware/auth';
 import { RATE_LIMITS, SERVER_LIMITS } from '../config/limits';
 import { validateSecurityEnv } from '../config/validate';
+import { logger } from '../utils/logger';
 
 // ISS-045: Validate security-critical env vars at startup
 const securityResult = validateSecurityEnv();
@@ -20,7 +21,7 @@ if (securityResult.errors.length > 0) {
 }
 if (securityResult.warnings.length > 0) {
   for (const w of securityResult.warnings) {
-    console.warn(`[security] ${w.field}: ${w.message}`);
+    logger.warn(`[security] ${w.field}: ${w.message}`);
   }
 }
 

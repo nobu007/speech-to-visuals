@@ -7,6 +7,7 @@
 import { randomUUID } from 'crypto';
 import { EnhancedSceneGraph, RenderOptions } from '@/visualization/advanced-visual-engine';
 import { SceneGraph } from '@/types/diagram';
+import { logger } from '../utils/logger';
 
 export interface ExportJob {
   id: string;
@@ -271,7 +272,7 @@ export class ProductionExporter {
       job.error = error instanceof Error ? error.message : 'Export failed';
       job.endTime = performance.now();
 
-      console.error(`❌ Export failed: ${job.name}`, error);
+      logger.error(`Export failed: ${job.name}`, error);
     } finally {
       this.activeJobs.delete(jobId);
       this.processNextJob();

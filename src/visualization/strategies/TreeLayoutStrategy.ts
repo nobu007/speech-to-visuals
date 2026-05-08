@@ -17,6 +17,7 @@
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
+import { logger } from '../../utils/logger';
 
 interface TreeNode {
   id: string;
@@ -63,7 +64,7 @@ export class TreeLayoutStrategy implements ILayoutStrategy {
       };
 
     } catch (error) {
-      console.error('[Tree] Layout generation failed:', error);
+      logger.error('[Tree] Layout generation failed:', error);
       throw error;
     }
   }
@@ -76,7 +77,7 @@ export class TreeLayoutStrategy implements ILayoutStrategy {
     const rootCandidates = nodes.filter(n => !hasIncoming.has(n.id));
 
     if (rootCandidates.length === 0) {
-      console.warn('[Tree] No root found, using first node');
+      logger.warn('[Tree] No root found, using first node');
       return nodes[0].id;
     }
 
@@ -96,7 +97,7 @@ export class TreeLayoutStrategy implements ILayoutStrategy {
   ): TreeNode {
     // Prevent infinite loops
     if (visited.has(nodeId)) {
-      console.warn(`[Tree] Cycle detected at node ${nodeId}`);
+      logger.warn(`[Tree] Cycle detected at node ${nodeId}`);
       const node = nodes.find(n => n.id === nodeId)!;
       return {
         id: nodeId,
@@ -235,7 +236,7 @@ export class TreeLayoutStrategy implements ILayoutStrategy {
       const target = nodes.find(n => n.id === edge.to);
 
       if (!source || !target) {
-        console.warn(`[Tree] Edge ${edge.from} -> ${edge.to} missing nodes`);
+        logger.warn(`[Tree] Edge ${edge.from} -> ${edge.to} missing nodes`);
         return {
           from: edge.from,
           to: edge.to,
@@ -282,14 +283,14 @@ export class TreeLayoutStrategy implements ILayoutStrategy {
    */
   validateInputs(nodes: NodeDatum[], edges: EdgeDatum[]): boolean {
     if (nodes.length === 0) {
-      console.warn('[Tree] No nodes to layout');
+      logger.warn('[Tree] No nodes to layout');
       return false;
     }
 
     // Check for duplicate node IDs
     const nodeIds = new Set(nodes.map(n => n.id));
     if (nodeIds.size !== nodes.length) {
-      console.error('[Tree] Duplicate node IDs detected');
+      logger.error('[Tree] Duplicate node IDs detected');
       return false;
     }
 
@@ -299,7 +300,7 @@ export class TreeLayoutStrategy implements ILayoutStrategy {
     );
 
     if (invalidEdges.length > 0) {
-      console.error('[Tree] Invalid edges detected:', invalidEdges);
+      logger.error('[Tree] Invalid edges detected:', invalidEdges);
       return false;
     }
 

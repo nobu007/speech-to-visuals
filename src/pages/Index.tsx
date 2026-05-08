@@ -10,6 +10,7 @@ import { MainPipeline } from '@/pipeline';
 import { getSupabaseClient } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Sparkles } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 const Index = () => {
   const [status, setStatus] = useState<StatusType>('idle');
@@ -32,7 +33,7 @@ const Index = () => {
         .upload(fileName, file);
 
       if (uploadError) {
-        console.error('Upload error:', uploadError);
+        logger.error('[Index] Upload error:', uploadError);
         throw new Error('ファイルのアップロードに失敗しました');
       }
 
@@ -103,7 +104,7 @@ const Index = () => {
       toast.success('図解の生成が完了しました！');
 
     } catch (error) {
-      console.error('Processing error:', error);
+      logger.error('[Index] Processing error:', error);
       setStatus('error');
       const errorMessage = error instanceof Error ? error.message : '処理中にエラーが発生しました';
       toast.error(errorMessage);

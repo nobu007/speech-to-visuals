@@ -94,6 +94,7 @@ export interface ForceDirectedState {
 }
 
 import { CulturalLayoutAdapter } from './strategies/CulturalLayoutAdapter';
+import { logger } from '../utils/logger';
 
 export class ComplexLayoutEngine {
   private config: ComplexLayoutConfig;
@@ -267,7 +268,7 @@ export class ComplexLayoutEngine {
       };
 
     } catch (error) {
-      console.error('❌ Complex layout failed:', error);
+      logger.error('Complex layout failed:', error);
 
       // Fallback to simple grid layout
       if (!this.dagreLayoutStrategy) {
@@ -658,7 +659,7 @@ export class ComplexLayoutEngine {
     try {
       const response = await pool.execute(message);
       if (response.error) {
-        console.warn('Layout worker returned error, falling back:', response.error.message);
+        logger.warn('Layout worker returned error, falling back:', response.error.message);
         return null;
       }
 
@@ -695,7 +696,7 @@ export class ComplexLayoutEngine {
 
       return { nodes: layoutNodes, edges: layoutEdges };
     } catch {
-      console.warn('Layout worker failed, falling back to main thread');
+      logger.warn('Layout worker failed, falling back to main thread');
       return null;
     }
   }

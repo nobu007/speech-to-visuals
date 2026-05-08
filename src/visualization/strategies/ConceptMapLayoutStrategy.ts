@@ -17,6 +17,7 @@
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
+import { logger } from '../../utils/logger';
 
 export class ConceptMapLayoutStrategy implements ILayoutStrategy {
   readonly name = 'conceptmap';
@@ -75,7 +76,7 @@ export class ConceptMapLayoutStrategy implements ILayoutStrategy {
       };
 
     } catch (error) {
-      console.error('[ConceptMap] Layout generation failed:', error);
+      logger.error('[ConceptMap] Layout generation failed:', error);
       throw error;
     }
   }
@@ -92,7 +93,7 @@ export class ConceptMapLayoutStrategy implements ILayoutStrategy {
       const target = nodes.find(n => n.id === edge.to);
 
       if (!source || !target) {
-        console.warn(`[ConceptMap] Edge ${edge.from} -> ${edge.to} missing nodes`);
+        logger.warn(`[ConceptMap] Edge ${edge.from} -> ${edge.to} missing nodes`);
         return {
           from: edge.from,
           to: edge.to,
@@ -139,13 +140,13 @@ export class ConceptMapLayoutStrategy implements ILayoutStrategy {
    */
   validateInputs(nodes: NodeDatum[], edges: EdgeDatum[]): boolean {
     if (nodes.length === 0) {
-      console.warn('[ConceptMap] No nodes to layout');
+      logger.warn('[ConceptMap] No nodes to layout');
       return false;
     }
 
     const nodeIds = new Set(nodes.map(n => n.id));
     if (nodeIds.size !== nodes.length) {
-      console.error('[ConceptMap] Duplicate node IDs detected');
+      logger.error('[ConceptMap] Duplicate node IDs detected');
       return false;
     }
 
@@ -154,7 +155,7 @@ export class ConceptMapLayoutStrategy implements ILayoutStrategy {
     );
 
     if (invalidEdges.length > 0) {
-      console.error('[ConceptMap] Invalid edges detected:', invalidEdges);
+      logger.error('[ConceptMap] Invalid edges detected:', invalidEdges);
       return false;
     }
 

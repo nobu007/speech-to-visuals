@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { logger } from '../../utils/logger';
 
 export class AppError extends Error {
   public readonly statusCode: number;
@@ -80,7 +81,7 @@ export function errorHandler(
   }
 
   // Unknown errors
-  console.error('Unhandled error:', err);
+  logger.error('Unhandled error:', err);
   const response: ErrorResponse = {
     success: false,
     error: {
