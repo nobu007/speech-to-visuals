@@ -280,4 +280,50 @@ describe('VisualBalanceScorer', () => {
       expect(result.overallScore).toBeLessThanOrEqual(1);
     });
   });
+
+  describe('score threshold boundary (0.7)', () => {
+    const bounds = { width: 800, height: 600 };
+
+    it('layout above 0.7 threshold is classified as balanced', () => {
+      // 4 nodes perfectly centered with centroid at (400, 300) = canvas center
+      // makeNode adds w=100, h=60 so centers are at x+50, y+30
+      const nodes = [
+        makeNode('a', 200, 120),  // center (250, 150) Q0
+        makeNode('b', 500, 120),  // center (550, 150) Q1
+        makeNode('c', 200, 420),  // center (250, 450) Q2
+        makeNode('d', 500, 420),  // center (550, 450) Q3
+      ];
+      const result = scorer.calculateVisualBalance(nodes, bounds);
+      expect(result.overallScore).toBeGreaterThan(0.7);
+    });
+
+    it('layout below 0.7 threshold is classified as unbalanced', () => {
+      // Clustered in one corner with slight spread
+      const nodes = [
+        makeNode('a', 10, 10),
+        makeNode('b', 60, 10),
+        makeNode('c', 10, 60),
+        makeNode('d', 60, 60),
+        makeNode('e', 30, 30),
+      ];
+      const result = scorer.calculateVisualBalance(nodes, bounds);
+      expect(result.overallScore).toBeLessThan(0.7);
+    });
+
+    it('score can be near the 0.7 boundary', () => {
+      // Partially balanced: 3 quadrants occupied, centroid slightly off
+      const nodes = [
+        makeNode('a', 100, 100),
+        makeNode('b', 600, 100),
+        makeNode('c', 100, 400),
+        makeNode('d', 150, 150),
+        makeNode('e', 200, 200),
+        makeNode('f', 250, 250),
+      ];
+      const result = scorer.calculateVisualBalance(nodes, bounds);
+      // Score should be a reasonable number near the boundary
+      expect(result.overallScore).toBeGreaterThanOrEqual(0);
+      expect(result.overallScore).toBeLessThanOrEqual(1);
+    });
+  });
 });

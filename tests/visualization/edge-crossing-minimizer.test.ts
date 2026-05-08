@@ -274,5 +274,49 @@ describe('EdgeCrossingMinimizer', () => {
       const result = minimizer.detectCrossings(nodes, edges);
       expect(result.crossingCount).toBe(1);
     });
+
+    it('processes complex graph with 20+ nodes without error', () => {
+      // Build a 5x5 grid of 25 nodes with edges creating crossings
+      const nodes: PositionedNode[] = [];
+      for (let row = 0; row < 5; row++) {
+        for (let col = 0; col < 5; col++) {
+          nodes.push({
+            id: `n${row}_${col}`,
+            label: `N${row}_${col}`,
+            x: col * 100 + 20,
+            y: row * 80 + 20,
+            width: 40,
+            height: 30,
+          });
+        }
+      }
+      expect(nodes.length).toBeGreaterThanOrEqual(20);
+
+      // Create diagonal edges that will cross horizontal ones
+      const edges: LayoutEdge[] = [
+        // Diagonals that cross
+        { from: 'n0_0', to: 'n4_4', points: [], id: 'diag1' },
+        { from: 'n0_4', to: 'n4_0', points: [], id: 'diag2' },
+        // Some horizontal edges
+        { from: 'n0_1', to: 'n0_3', points: [], id: 'h1' },
+        { from: 'n2_0', to: 'n2_4', points: [], id: 'h2' },
+        // Some vertical edges
+        { from: 'n0_2', to: 'n4_2', points: [], id: 'v1' },
+        { from: 'n1_0', to: 'n3_0', points: [], id: 'v2' },
+        // Additional cross edges
+        { from: 'n1_1', to: 'n3_3', points: [], id: 'c1' },
+        { from: 'n1_3', to: 'n3_1', points: [], id: 'c2' },
+      ];
+
+      // Should detect crossings without crashing
+      const result = minimizer.detectCrossings(nodes, edges);
+      expect(result.crossingCount).toBeGreaterThanOrEqual(0);
+      expect(typeof result.crossingCount).toBe('number');
+
+      // Minimization should also handle 20+ nodes
+      const minResult = minimizer.minimizeCrossings(nodes, edges, 5);
+      expect(minResult.minimizedNodes).toHaveLength(25);
+      expect(minResult.minimizedCrossings).toBeLessThanOrEqual(result.crossingCount);
+    });
   });
 });
