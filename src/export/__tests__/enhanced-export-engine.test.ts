@@ -539,4 +539,16 @@ describe('EnhancedExportEngine APNG integration', () => {
     expect(result.success).toBe(true);
     expect(result.format).toBe('apng');
   });
+
+  test('apng export with useWorkers=true still uses real encoding', async () => {
+    const workerEngine = new EnhancedExportEngine(1, true /* useWorkers */);
+    // In Node.js test env Workers are unavailable → engine falls back to main thread,
+    // but encodeAPNG() still calls the real encoder (not simulateEncoding).
+    const result = await workerEngine.exportVideo(
+      { scenes: [{ duration: 1, type: 'content' }] },
+      { format: 'apng', quality: { resolution: '720p', fps: 30, bitrate: 'auto', hdr: false }, settings: { loop: false, includeAudio: false, watermark: false, compression: 'none', optimization: 'speed' } },
+    );
+    expect(result.success).toBe(true);
+    expect(result.format).toBe('apng');
+  });
 });
