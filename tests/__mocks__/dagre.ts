@@ -155,9 +155,11 @@ class MockGraph {
 
 export default {
   graphlib: {
-    Graph: jest.fn(() => new MockGraph()),
+    Graph: function MockGraphConstructor() {
+      return new MockGraph();
+    },
   },
-  layout: jest.fn((graph: MockGraph) => {
+  layout: (graph: MockGraph) => {
     graph.layout();
-  }),
+  },
 };

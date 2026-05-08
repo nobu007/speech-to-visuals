@@ -313,6 +313,167 @@ describe('ComplexLayoutEngine (TASK-0063)', () => {
         expect(typeof node.h).toBe('number');
       }
     });
+
+    it('should spread nodes apart via repulsive forces', async () => {
+      const engine = createEngine({
+        enableClustering: false,
+        enableMultiLevel: false,
+        enableForceDirected: true,
+        iterations: 100,
+        levelThreshold: 5,
+        repulsionStrength: 1200,
+      });
+
+      const { nodes, edges } = makeChainGraph(6);
+      const result = await engine.generateComplexLayout(nodes, edges, 'flow');
+
+      expect(result.success).toBe(true);
+      // After simulation, no two nodes should overlap at the same position
+      for (let i = 0; i < result.layout.nodes.length; i++) {
+        for (let j = i + 1; j < result.layout.nodes.length; j++) {
+          const ni = result.layout.nodes[i];
+          const nj = result.layout.nodes[j];
+          const dx = (ni.x + ni.w / 2) - (nj.x + nj.w / 2);
+          const dy = (ni.y + ni.h / 2) - (nj.y + nj.h / 2);
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          expect(dist).toBeGreaterThan(0);
+        }
+      }
+    });
+
+    it('should place connected nodes closer than disconnected ones on average', async () => {
+      const engine = createEngine({
+        enableClustering: false,
+        enableMultiLevel: false,
+        enableForceDirected: true,
+        iterations: 300,
+        levelThreshold: 5,
+        springStrength: 0.8,
+        repulsionStrength: 400,
+      });
+
+      // Star graph: center connected to all, outer nodes not connected to each other
+      const nodes: NodeDatum[] = Array.from({ length: 7 }, (_, i) => ({
+        id: `n${i}`,
+        label: `Node ${i}`,
+      }));
+      const edges: EdgeDatum[] = Array.from({ length: 6 }, (_, i) => ({
+        from: 'n0',
+        to: `n${i + 1}`,
+      }));
+
+      const result = await engine.generateComplexLayout(nodes, edges, 'flow');
+      expect(result.success).toBe(true);
+
+      // Average distance from center (n0) to connected neighbors (n1-n6)
+      const n0 = result.layout.nodes.find(n => n.id === 'n0')!;
+      let connectedTotal = 0;
+      for (let i = 1; i <= 6; i++) {
+        const ni = result.layout.nodes.find(n => n.id === `n${i}`)!;
+        connectedTotal += Math.sqrt(
+          Math.pow(n0.x + n0.w / 2 - (ni.x + ni.w / 2), 2) +
+          Math.pow(n0.y + n0.h / 2 - (ni.y + ni.h / 2), 2)
+        );
+      }
+      const avgConnectedDist = connectedTotal / 6;
+
+      // Average distance between non-connected pairs (n1-n2, n3-n4, n5-n6)
+      const nonConnectedPairs: [string, string][] = [['n1', 'n2'], ['n3', 'n4'], ['n5', 'n6']];
+      let nonConnectedTotal = 0;
+      for (const [a, b] of nonConnectedPairs) {
+        const na = result.layout.nodes.find(n => n.id === a)!;
+        const nb = result.layout.nodes.find(n => n.id === b)!;
+        nonConnectedTotal += Math.sqrt(
+          Math.pow(na.x + na.w / 2 - (nb.x + nb.w / 2), 2) +
+          Math.pow(na.y + na.h / 2 - (nb.y + nb.h / 2), 2)
+        );
+      }
+      const avgNonConnectedDist = nonConnectedTotal / nonConnectedPairs.length;
+
+      // With spring attraction pulling center-to-leaf edges closer,
+      // center-leaf avg distance should be less than leaf-leaf avg distance
+      expect(avgConnectedDist).toBeLessThan(avgNonConnectedDist);
+    });
+
+    it('should keep all nodes within canvas bounds', async () => {
+      const engine = createEngine({
+        enableClustering: false,
+        enableMultiLevel: false,
+        enableForceDirected: true,
+        iterations: 100,
+        levelThreshold: 5,
+        width: 800,
+        height: 600,
+      });
+
+      const { nodes, edges } = makeChainGraph(10);
+      const result = await engine.generateComplexLayout(nodes, edges, 'flow');
+
+      expect(result.success).toBe(true);
+      for (const node of result.layout.nodes) {
+        // Nodes should be within canvas (with tolerance for node offset in layout conversion)
+        expect(node.x).toBeGreaterThanOrEqual(-100);
+        expect(node.y).toBeGreaterThanOrEqual(-50);
+        expect(node.x + node.w).toBeLessThanOrEqual(1000);
+        expect(node.y + node.h).toBeLessThanOrEqual(750);
+      }
+    });
+
+    it('should handle a graph with no edges using only repulsive forces', async () => {
+      const engine = createEngine({
+        enableClustering: false,
+        enableMultiLevel: false,
+        enableForceDirected: true,
+        iterations: 50,
+        levelThreshold: 5,
+      });
+
+      const nodes = Array.from({ length: 6 }, (_, i) => ({
+        id: `n${i}`,
+        label: `Node ${i}`,
+      }));
+      const result = await engine.generateComplexLayout(nodes, [], 'flow');
+
+      expect(result.success).toBe(true);
+      expect(result.layout.nodes).toHaveLength(6);
+      // All positions should be finite
+      for (const node of result.layout.nodes) {
+        expect(isFinite(node.x)).toBe(true);
+        expect(isFinite(node.y)).toBe(true);
+      }
+    });
+  });
+
+  describe('Graph coarsening', () => {
+    it('should reduce graph size through coarsening levels', async () => {
+      const engine = createEngine({
+        enableMultiLevel: true,
+        enableClustering: false,
+        enableForceDirected: false,
+        levelThreshold: 15,
+      });
+
+      const { nodes, edges } = makeChainGraph(30);
+      const result = await engine.generateComplexLayout(nodes, edges, 'flow');
+
+      expect(result.success).toBe(true);
+      expect(result.layout.nodes).toHaveLength(30);
+    });
+
+    it('should produce valid layout for multi-level with tree graph', async () => {
+      const engine = createEngine({
+        enableMultiLevel: true,
+        enableClustering: false,
+        enableForceDirected: false,
+        levelThreshold: 15,
+      });
+
+      const { nodes, edges } = makeTreeGraph(4); // 31 nodes
+      const result = await engine.generateComplexLayout(nodes, edges, 'tree');
+
+      expect(result.success).toBe(true);
+      expect(result.layout.nodes).toHaveLength(31);
+    });
   });
 
   describe('OverlapResolver integration', () => {

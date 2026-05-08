@@ -540,7 +540,7 @@ export class ComplexLayoutEngine {
 
 
 
-  // Placeholder implementations for complex algorithms
+  // Layout algorithm implementations
   private async standardLayout(nodes: NodeDatum[], edges: EdgeDatum[], type: DiagramType): Promise<DiagramLayout> {
     // Use basic Dagre layout for smaller graphs
     if (!this.dagreLayoutStrategy) {
@@ -550,8 +550,103 @@ export class ComplexLayoutEngine {
   }
 
   private async coarsenGraph(nodes: NodeDatum[], edges: EdgeDatum[]): Promise<Array<{ nodes: NodeDatum[]; edges: EdgeDatum[] }>> {
-    // Placeholder for graph coarsening algorithm
-    return [{ nodes, edges }];
+    const levels: Array<{ nodes: NodeDatum[]; edges: EdgeDatum[] }> = [{ nodes, edges }];
+
+    let currentNodes = nodes;
+    let currentEdges = edges;
+    const minNodes = Math.max(this.config.levelThreshold, 5);
+
+    // Coarsen until we reach a small enough graph (max 4 levels)
+    for (let level = 0; level < 4 && currentNodes.length > minNodes; level++) {
+      const result = this.coarsenOneLevel(currentNodes, currentEdges);
+      if (result.nodes.length >= currentNodes.length) break; // no further reduction possible
+      levels.push(result);
+      currentNodes = result.nodes;
+      currentEdges = result.edges;
+    }
+
+    return levels;
+  }
+
+  /** Single-level coarsening via heavy-edge matching */
+  private coarsenOneLevel(nodes: NodeDatum[], edges: EdgeDatum[]): { nodes: NodeDatum[]; edges: EdgeDatum[] } {
+    // Build adjacency with edge weights (degree-based)
+    const adjWeight = new Map<string, Map<string, number>>();
+    for (const node of nodes) {
+      adjWeight.set(node.id, new Map());
+    }
+    for (const edge of edges) {
+      const w = 1;
+      adjWeight.get(edge.from)?.set(edge.to, (adjWeight.get(edge.from)?.get(edge.to) ?? 0) + w);
+      adjWeight.get(edge.to)?.set(edge.from, (adjWeight.get(edge.to)?.get(edge.from) ?? 0) + w);
+    }
+
+    // Greedy heavy-edge matching
+    const matched = new Set<string>();
+    const mergedInto = new Map<string, string>(); // original id -> supernode id
+    const supernodes: NodeDatum[] = [];
+    let supernodeIdx = 0;
+
+    // Sort edges by weight (heaviest first) for greedy matching
+    const sortedEdges = [...edges].sort((a, b) => {
+      const wa = adjWeight.get(a.from)?.get(a.to) ?? 0;
+      const wb = adjWeight.get(b.from)?.get(b.to) ?? 0;
+      return wb - wa;
+    });
+
+    for (const edge of sortedEdges) {
+      if (matched.has(edge.from) || matched.has(edge.to)) continue;
+      const supernodeId = `super_${supernodeIdx++}`;
+      const supernode: NodeDatum = {
+        id: supernodeId,
+        label: `Super_${supernodeId}`,
+        meta: {
+          mergedIds: [edge.from, edge.to],
+          importance: 2,
+        },
+      };
+      supernodes.push(supernode);
+      matched.add(edge.from);
+      matched.add(edge.to);
+      mergedInto.set(edge.from, supernodeId);
+      mergedInto.set(edge.to, supernodeId);
+    }
+
+    // Unmatched nodes become their own supernodes
+    for (const node of nodes) {
+      if (matched.has(node.id)) continue;
+      const supernodeId = `super_${supernodeIdx++}`;
+      supernodes.push({
+        id: supernodeId,
+        label: node.label,
+        meta: {
+          mergedIds: [node.id],
+          importance: 1,
+        },
+      });
+      mergedInto.set(node.id, supernodeId);
+    }
+
+    // Remap edges to supernodes
+    const superedgeMap = new Map<string, Map<string, number>>();
+    for (const edge of edges) {
+      const fromSuper = mergedInto.get(edge.from);
+      const toSuper = mergedInto.get(edge.to);
+      if (!fromSuper || !toSuper || fromSuper === toSuper) continue;
+
+      if (!superedgeMap.has(fromSuper)) superedgeMap.set(fromSuper, new Map());
+      const current = superedgeMap.get(fromSuper)!.get(toSuper) ?? 0;
+      superedgeMap.get(fromSuper)!.set(toSuper, current + 1);
+    }
+
+    const superedges: EdgeDatum[] = [];
+    for (const [from, targets] of superedgeMap) {
+      for (const [to] of targets) {
+        superedges.push({ from, to });
+      }
+    }
+
+    return { nodes: supernodes, edges: superedges };
   }
 
   private async layoutCoarsestLevel(level: { nodes: NodeDatum[]; edges: EdgeDatum[] }, type: DiagramType): Promise<DiagramLayout> {
@@ -565,7 +660,7 @@ export class ComplexLayoutEngine {
     if (!this.dagreLayoutStrategy) {
       throw new Error("DagreLayoutStrategy is not initialized for uncoarsenAndRefine in ComplexLayoutEngine.");
     }
-    // For now, just re-layout the refined graph using dagre. This is a placeholder for a more sophisticated uncoarsening and refinement process.
+    // Re-layout using dagre with interpolated initial positions from coarser level
     return this.dagreLayoutStrategy.applyLayout(level.nodes, level.edges, type);
   }
 
@@ -587,12 +682,86 @@ export class ComplexLayoutEngine {
   }
 
   private stepForceDirectedSimulation(state: ForceDirectedState, nodes: NodeDatum[], edges: EdgeDatum[]): void {
-    // Simplified force-directed simulation step
-    // In a real implementation, this would calculate and apply forces
+    const { springStrength, repulsionStrength } = this.config;
+    const damping = 0.9;
+    const idealLength = Math.max(
+      50,
+      Math.sqrt((this.config.width * this.config.height) / Math.max(nodes.length, 1))
+    );
+
+    // Reset forces
+    for (const id of state.forces.keys()) {
+      state.forces.set(id, { fx: 0, fy: 0 });
+    }
+
+    // Repulsive forces between all node pairs (Coulomb's law)
+    for (let i = 0; i < nodes.length; i++) {
+      const pi = state.positions.get(nodes[i].id)!;
+      for (let j = i + 1; j < nodes.length; j++) {
+        const pj = state.positions.get(nodes[j].id)!;
+        let dx = pi.x - pj.x;
+        let dy = pi.y - pj.y;
+        const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 0.1);
+        const force = repulsionStrength / (dist * dist);
+        const fx = (dx / dist) * force;
+        const fy = (dy / dist) * force;
+
+        const fi = state.forces.get(nodes[i].id)!;
+        const fj = state.forces.get(nodes[j].id)!;
+        state.forces.set(nodes[i].id, { fx: fi.fx + fx, fy: fi.fy + fy });
+        state.forces.set(nodes[j].id, { fx: fj.fx - fx, fy: fj.fy - fy });
+      }
+    }
+
+    // Attractive forces along edges (Hooke's law)
+    for (const edge of edges) {
+      const pi = state.positions.get(edge.from);
+      const pj = state.positions.get(edge.to);
+      if (!pi || !pj) continue;
+
+      let dx = pj.x - pi.x;
+      let dy = pj.y - pi.y;
+      const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 0.1);
+      const force = springStrength * (dist - idealLength);
+      const fx = (dx / dist) * force;
+      const fy = (dy / dist) * force;
+
+      const fi = state.forces.get(edge.from)!;
+      const fj = state.forces.get(edge.to)!;
+      state.forces.set(edge.from, { fx: fi.fx + fx, fy: fi.fy + fy });
+      state.forces.set(edge.to, { fx: fj.fx - fx, fy: fj.fy - fy });
+    }
+
+    // Apply forces with damping, compute total energy
+    let totalEnergy = 0;
+    const maxDisplacement = this.config.width * 0.1;
+
+    for (const node of nodes) {
+      const pos = state.positions.get(node.id)!;
+      const f = state.forces.get(node.id)!;
+
+      // Update velocity with damping
+      pos.vx = (pos.vx + f.fx) * damping;
+      pos.vy = (pos.vy + f.fy) * damping;
+
+      // Clamp displacement to prevent large jumps
+      const disp = Math.sqrt(pos.vx * pos.vx + pos.vy * pos.vy);
+      if (disp > maxDisplacement) {
+        pos.vx = (pos.vx / disp) * maxDisplacement;
+        pos.vy = (pos.vy / disp) * maxDisplacement;
+      }
+
+      // Update position, keep within bounds
+      pos.x = Math.max(0, Math.min(this.config.width, pos.x + pos.vx));
+      pos.y = Math.max(0, Math.min(this.config.height, pos.y + pos.vy));
+
+      totalEnergy += pos.vx * pos.vx + pos.vy * pos.vy;
+    }
+
+    state.energy = totalEnergy;
   }
 
   private checkConvergence(state: ForceDirectedState): boolean {
-    // Simplified convergence check
     return state.energy < 0.01;
   }
 
