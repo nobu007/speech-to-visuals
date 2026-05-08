@@ -8,6 +8,7 @@ import { Play, Download, ExternalLink, Settings } from 'lucide-react';
 import { SceneGraph } from '@/types/diagram';
 import { videoRenderer, VideoRenderProgress } from '@/lib/videoRenderer';
 import { Player } from '@remotion/player';
+import { logger } from '@/utils/logger';
 import { toast } from 'sonner';
 
 interface VideoRendererProps {
@@ -50,7 +51,7 @@ export const VideoRenderer: React.FC<VideoRendererProps> = ({ scenes, audioUrl }
       toast.success('動画のレンダリングが完了しました！');
 
     } catch (error) {
-      console.error('Render error:', error);
+      logger.error('Render error:', error);
       toast.error('動画のレンダリング中にエラーが発生しました');
     } finally {
       setIsRendering(false);

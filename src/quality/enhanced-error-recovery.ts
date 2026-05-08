@@ -8,6 +8,7 @@
 
 import { DiagramType } from '@/types/diagram';
 import { globalCache } from '../performance/intelligent-cache';
+import { logger } from '@/utils/logger';
 import { getMemoryUsage } from '@/utils/memory-usage';
 
 interface ErrorContext {
@@ -1052,7 +1053,7 @@ export class EnhancedErrorRecovery {
           return result;
         }
       } catch (error) {
-        console.warn(`Recovery strategy ${strategy.id} failed:`, error);
+        logger.warn(`Recovery strategy ${strategy.id} failed:`, error);
         circuitBreaker.recordFailure();
       }
     }
@@ -1317,7 +1318,7 @@ export class EnhancedErrorRecovery {
       this.circuitBreakers.set(stage, new CircuitBreaker({
         threshold: 5,
         timeout: 60000, // 1 minute
-        monitor: (err) => console.warn(`Circuit breaker tripped for ${stage}:`, err)
+        monitor: (err) => logger.warn(`Circuit breaker tripped for ${stage}:`, err)
       }));
     }
     return this.circuitBreakers.get(stage)!;
@@ -1389,7 +1390,7 @@ export class EnhancedErrorRecovery {
         try {
           await func();
         } catch (error) {
-          console.warn(`Preventive action ${action} failed:`, error);
+          logger.warn(`Preventive action ${action} failed:`, error);
         }
       }
     }

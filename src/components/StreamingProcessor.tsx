@@ -8,6 +8,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { logger } from '@/utils/logger';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -189,7 +190,7 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
     } catch (err) {
       setStatus('error');
       setError(err instanceof Error ? err.message : 'Processing failed');
-      console.error('Streaming processing error:', err);
+      logger.error('Streaming processing error:', err);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scenes, onComplete]);
@@ -247,7 +248,7 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
     } catch (err) {
       setStatus('error');
       setError(err instanceof Error ? err.message : 'Live processing failed');
-      console.error('Live processing error:', err);
+      logger.error('Live processing error:', err);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [browserSupport, scenes]);

@@ -8,6 +8,7 @@ import React, { useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { logger } from '@/utils/logger';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
@@ -161,7 +162,7 @@ export const ErrorAlertSystem: React.FC<ErrorAlertSystemProps> = ({
         // Intentionally empty: recovery failed, alert remains visible for user action
       }
     } catch (error) {
-      console.error('Recovery execution error:', error);
+      logger.error('Recovery execution error:', error);
     } finally {
       setExecutingRecovery(prev => {
         const updated = new Set(prev);

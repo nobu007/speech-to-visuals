@@ -16,6 +16,7 @@
 import { QualityMetrics, QualityMonitor } from '../pipeline/quality-monitor';
 import * as fs from 'fs';
 import * as path from 'path';
+import { logger } from '@/utils/logger';
 
 export interface RegressionReport {
   timestamp: Date;
@@ -141,7 +142,7 @@ export class RegressionDetector {
         return this.baseline;
       }
     } catch (error) {
-      console.warn(`⚠️  Failed to load baseline: ${error}`);
+      logger.warn(`⚠️  Failed to load baseline: ${error}`);
     }
     return null;
   }
@@ -159,7 +160,7 @@ export class RegressionDetector {
         'utf-8'
       );
     } catch (error) {
-      console.error(`❌ Failed to save baseline: ${error}`);
+      logger.error(`❌ Failed to save baseline: ${error}`);
     }
   }
 
@@ -377,7 +378,7 @@ export class RegressionDetector {
         await fs.promises.unlink(this.baselinePath);
       }
     } catch (error) {
-      console.error(`❌ Failed to reset baseline: ${error}`);
+      logger.error(`❌ Failed to reset baseline: ${error}`);
     }
   }
 }
