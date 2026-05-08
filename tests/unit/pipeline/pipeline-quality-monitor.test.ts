@@ -16,7 +16,7 @@ describe('QualityMonitor (pipeline)', () => {
     // Reset singleton for clean tests
     (QualityMonitor as unknown as { instance: null }).instance = null;
     monitor = QualityMonitor.getInstance();
-    vi.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'log').mockImplementation(() => {});
   });
 
   describe('getInstance', () => {

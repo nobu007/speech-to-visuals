@@ -18,8 +18,8 @@ import { SrtCaption } from '../srt-parser';
 let mockFrame = 0;
 let mockFps = 30;
 
-vi.mock('remotion', () => {
-  const originalModule = vi.requireActual('remotion');
+jest.mock('remotion', () => {
+  const originalModule = jest.requireActual('remotion');
   return {
     ...originalModule,
     useCurrentFrame: () => mockFrame,
@@ -52,7 +52,7 @@ describe('CaptionOverlay', () => {
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('constants', () => {

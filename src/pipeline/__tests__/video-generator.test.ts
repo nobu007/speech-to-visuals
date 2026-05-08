@@ -13,9 +13,9 @@ import {
 import { SimplePipelineResult } from '../simple-pipeline';
 
 // Mock the actualVideoRenderer to prevent import errors
-vi.mock('@/lib/actualVideoRenderer', () => ({
+jest.mock('@/lib/actualVideoRenderer', () => ({
   actualVideoRenderer: {
-    renderVideo: vi.fn().mockImplementation(async (config, onProgress) => {
+    renderVideo: jest.fn().mockImplementation(async (config, onProgress) => {
       onProgress?.({ progress: 100, message: 'Rendered' });
     }),
   },
@@ -23,12 +23,12 @@ vi.mock('@/lib/actualVideoRenderer', () => ({
 
 // Suppress console
 beforeEach(() => {
-  vi.spyOn(console, 'log').mockImplementation(() => {});
-  vi.spyOn(console, 'error').mockImplementation(() => {});
-  vi.spyOn(console, 'warn').mockImplementation(() => {});
+  jest.spyOn(console, 'log').mockImplementation(() => {});
+  jest.spyOn(console, 'error').mockImplementation(() => {});
+  jest.spyOn(console, 'warn').mockImplementation(() => {});
 });
 afterEach(() => {
-  vi.restoreAllMocks();
+  jest.restoreAllMocks();
 });
 
 // Helper to create a valid pipeline result

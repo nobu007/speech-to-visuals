@@ -196,20 +196,20 @@ describe('createTimeout', () => {
   });
 
   it('should abort after the specified timeout', async () => {
-    vi.useFakeTimers();
+    jest.useFakeTimers();
     const { signal } = createTimeout(100);
     expect(signal.aborted).toBe(false);
-    vi.advanceTimersByTime(150);
+    jest.advanceTimersByTime(150);
     expect(signal.aborted).toBe(true);
-    vi.useRealTimers();
+    jest.useRealTimers();
   });
 
   it('should not abort after clear is called', async () => {
-    vi.useFakeTimers();
+    jest.useFakeTimers();
     const { signal, clear } = createTimeout(100);
     clear();
-    vi.advanceTimersByTime(150);
+    jest.advanceTimersByTime(150);
     expect(signal.aborted).toBe(false);
-    vi.useRealTimers();
+    jest.useRealTimers();
   });
 });

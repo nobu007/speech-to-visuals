@@ -29,11 +29,11 @@ const createMockAudio = (shouldFail = false) => () => {
 // Mock URL.createObjectURL
 const origURL = global.URL;
 beforeEach(() => {
-  (global as unknown as { Audio: vi.Mock }).Audio = vi.fn(createMockAudio()) as vi.Mock;
+  (global as unknown as { Audio: jest.Mock }).Audio = jest.fn(createMockAudio()) as jest.Mock;
   Object.defineProperty(global, 'URL', {
     value: {
       ...origURL,
-      createObjectURL: vi.fn(() => 'blob:test'),
+      createObjectURL: jest.fn(() => 'blob:test'),
     },
     writable: true,
   });
@@ -41,13 +41,13 @@ beforeEach(() => {
 
 describe('StreamingTranscriber', () => {
   beforeEach(() => {
-    vi.spyOn(console, 'log').mockImplementation(() => {});
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('constructor', () => {
@@ -111,7 +111,7 @@ describe('StreamingTranscriber', () => {
 
     it('should call progress callback for each chunk', async () => {
       const transcriber = new StreamingTranscriber({ chunkSizeMs: 5000 });
-      const progressCallback = vi.fn();
+      const progressCallback = jest.fn();
 
       await transcriber.transcribeStream('test-audio.wav', progressCallback);
 
@@ -120,7 +120,7 @@ describe('StreamingTranscriber', () => {
 
     it('should call segment callback for valid segments', async () => {
       const transcriber = new StreamingTranscriber({ minConfidence: 0.5 });
-      const segmentCallback = vi.fn();
+      const segmentCallback = jest.fn();
 
       await transcriber.transcribeStream('test-audio.wav', undefined, segmentCallback);
 
@@ -144,7 +144,7 @@ describe('StreamingTranscriber', () => {
     }, 30000);
 
     it('should throw on audio load failure', async () => {
-      (global as unknown as { Audio: vi.Mock }).Audio = vi.fn(createMockAudio(true)) as vi.Mock;
+      (global as unknown as { Audio: jest.Mock }).Audio = jest.fn(createMockAudio(true)) as jest.Mock;
 
       const transcriber = new StreamingTranscriber();
       await expect(transcriber.transcribeStream('bad-file.wav')).rejects.toThrow();
@@ -184,8 +184,8 @@ describe('StreamingTranscriber', () => {
         onend: null,
         onerror: null,
         onresult: null,
-        start: vi.fn(),
-        stop: vi.fn(),
+        start: jest.fn(),
+        stop: jest.fn(),
       };
       (transcriber as unknown as { isStreaming: boolean }).isStreaming = true;
 
@@ -195,7 +195,7 @@ describe('StreamingTranscriber', () => {
     });
 
     it('should start recognition and resolve', async () => {
-      const mockStart = vi.fn();
+      const mockStart = jest.fn();
       const transcriber = new StreamingTranscriber();
       (transcriber as unknown as { recognition: unknown }).recognition = {
         continuous: false,
@@ -207,7 +207,7 @@ describe('StreamingTranscriber', () => {
         onerror: null as ((e: { error: string }) => void) | null,
         onresult: null as ((e: unknown) => void) | null,
         start: mockStart,
-        stop: vi.fn(),
+        stop: jest.fn(),
       };
       (transcriber as unknown as { isStreaming: boolean }).isStreaming = false;
 
@@ -220,7 +220,7 @@ describe('StreamingTranscriber', () => {
 
   describe('stopLiveTranscription', () => {
     it('should call recognition.stop when streaming', () => {
-      const mockStop = vi.fn();
+      const mockStop = jest.fn();
       const transcriber = new StreamingTranscriber();
       (transcriber as unknown as { recognition: unknown }).recognition = { stop: mockStop };
       (transcriber as unknown as { isStreaming: boolean }).isStreaming = true;

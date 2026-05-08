@@ -19,9 +19,9 @@ type MockSpeechRecognitionInstance = {
   onresult: ((ev: SpeechRecognitionEvent) => void) | null;
   onerror: ((ev: SpeechRecognitionErrorEvent) => void) | null;
   onend: ((ev: Event) => void) | null;
-  start: vi.Mock;
-  stop: vi.Mock;
-  abort: vi.Mock;
+  start: jest.Mock;
+  stop: jest.Mock;
+  abort: jest.Mock;
 };
 
 let mockRecognitionInstance: MockSpeechRecognitionInstance;
@@ -35,12 +35,12 @@ const createMockRecognition = (): MockSpeechRecognitionInstance => ({
   onresult: null,
   onerror: null,
   onend: null,
-  start: vi.fn(),
-  stop: vi.fn(),
-  abort: vi.fn(),
+  start: jest.fn(),
+  stop: jest.fn(),
+  abort: jest.fn(),
 });
 
-const MockSpeechRecognition = vi.fn().mockImplementation(() => {
+const MockSpeechRecognition = jest.fn().mockImplementation(() => {
   mockRecognitionInstance = createMockRecognition();
   return mockRecognitionInstance;
 });
@@ -51,7 +51,7 @@ interface MockAudioInstance {
   onloadedmetadata: (() => void) | null;
   onerror: (() => void) | null;
   duration: number;
-  play: vi.Mock;
+  play: jest.Mock;
 }
 
 let mockAudioInstance: MockAudioInstance;
@@ -61,20 +61,20 @@ const createMockAudio = (): MockAudioInstance => ({
   onloadedmetadata: null,
   onerror: null,
   duration: 10,
-  play: vi.fn(),
+  play: jest.fn(),
 });
 
-const MockAudio = vi.fn().mockImplementation(() => {
+const MockAudio = jest.fn().mockImplementation(() => {
   mockAudioInstance = createMockAudio();
   return mockAudioInstance;
 });
 
 // Mock URL.createObjectURL / revokeObjectURL
-const mockCreateObjectURL = vi.fn().mockReturnValue('blob:http://localhost/mock-url');
-const mockRevokeObjectURL = vi.fn();
+const mockCreateObjectURL = jest.fn().mockReturnValue('blob:http://localhost/mock-url');
+const mockRevokeObjectURL = jest.fn();
 
 // Mock performance.now
-const mockPerformanceNow = vi.fn().mockReturnValue(1000);
+const mockPerformanceNow = jest.fn().mockReturnValue(1000);
 
 // Setup / teardown helpers
 const setupWindowMocks = () => {
@@ -90,11 +90,11 @@ const setupWindowMocks = () => {
     now: mockPerformanceNow,
   };
   (globalThis as Record<string, unknown>).window = globalThis;
-  (globalThis as Record<string, unknown>).AudioContext = vi.fn();
-  (globalThis as Record<string, unknown>).webkitAudioContext = vi.fn();
+  (globalThis as Record<string, unknown>).AudioContext = jest.fn();
+  (globalThis as Record<string, unknown>).webkitAudioContext = jest.fn();
   (globalThis as Record<string, unknown>).navigator = {
     mediaDevices: {
-      getUserMedia: vi.fn(),
+      getUserMedia: jest.fn(),
     },
   };
 };
@@ -114,7 +114,7 @@ describe('StreamingTranscriber', () => {
   let StreamingTranscriberModule: typeof import('../streaming-transcriber');
 
   beforeEach(() => {
-    vi.restoreAllMocks();
+    jest.restoreAllMocks();
     mockRecognitionInstance = createMockRecognition();
     MockSpeechRecognition.mockImplementation(() => mockRecognitionInstance);
     mockAudioInstance = createMockAudio();
@@ -129,7 +129,7 @@ describe('StreamingTranscriber', () => {
   });
 
   const loadModule = async () => {
-    vi.resetModules();
+    jest.resetModules();
     StreamingTranscriberModule = await import('../streaming-transcriber');
   };
 
@@ -316,7 +316,7 @@ describe('StreamingTranscriber', () => {
         overlapMs: 0,
       });
 
-      const onProgress = vi.fn();
+      const onProgress = jest.fn();
 
       const promise = transcriber.transcribeStream('/audio.mp3', onProgress);
 
@@ -346,7 +346,7 @@ describe('StreamingTranscriber', () => {
         minConfidence: 0.5,
       });
 
-      const onSegment = vi.fn();
+      const onSegment = jest.fn();
 
       const promise = transcriber.transcribeStream('/audio.mp3', undefined, onSegment);
 
@@ -378,7 +378,7 @@ describe('StreamingTranscriber', () => {
         minConfidence: 1.0, // Impossible to reach
       });
 
-      const onSegment = vi.fn();
+      const onSegment = jest.fn();
 
       const promise = transcriber.transcribeStream('/audio.mp3', undefined, onSegment);
 
@@ -444,7 +444,7 @@ describe('StreamingTranscriber', () => {
         overlapMs: 0,
       });
 
-      const onProgress = vi.fn();
+      const onProgress = jest.fn();
 
       const promise = transcriber.transcribeStream('/long-audio.mp3', onProgress);
 
@@ -470,7 +470,7 @@ describe('StreamingTranscriber', () => {
         minConfidence: 0,
       });
 
-      const onProgress = vi.fn();
+      const onProgress = jest.fn();
 
       const promise = transcriber.transcribeStream('/audio.mp3', onProgress);
 
@@ -563,7 +563,7 @@ describe('StreamingTranscriber', () => {
     it('calls onSegment callback for final results with sufficient confidence', async () => {
       await loadModule();
       const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
-      const onSegment = vi.fn();
+      const onSegment = jest.fn();
 
       // Start transcription
       const promise = transcriber.startLiveTranscription(onSegment);
@@ -605,7 +605,7 @@ describe('StreamingTranscriber', () => {
       const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
         minConfidence: 0.95,
       });
-      const onSegment = vi.fn();
+      const onSegment = jest.fn();
 
       const promise = transcriber.startLiveTranscription(onSegment);
 
@@ -638,7 +638,7 @@ describe('StreamingTranscriber', () => {
     it('uses default confidence of 0.8 when result confidence is falsy', async () => {
       await loadModule();
       const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
-      const onSegment = vi.fn();
+      const onSegment = jest.fn();
 
       const promise = transcriber.startLiveTranscription(onSegment);
 
@@ -676,7 +676,7 @@ describe('StreamingTranscriber', () => {
     it('calls onProgress callback during live transcription with interim results', async () => {
       await loadModule();
       const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
-      const onProgress = vi.fn();
+      const onProgress = jest.fn();
 
       const promise = transcriber.startLiveTranscription(undefined, onProgress);
 
@@ -716,7 +716,7 @@ describe('StreamingTranscriber', () => {
     it('onProgress currentSegment is null when no interim text', async () => {
       await loadModule();
       const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
-      const onProgress = vi.fn();
+      const onProgress = jest.fn();
 
       const promise = transcriber.startLiveTranscription(undefined, onProgress);
 
@@ -753,7 +753,7 @@ describe('StreamingTranscriber', () => {
     it('handles multiple results in a single event', async () => {
       await loadModule();
       const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
-      const onSegment = vi.fn();
+      const onSegment = jest.fn();
 
       const promise = transcriber.startLiveTranscription(onSegment);
 
@@ -996,7 +996,7 @@ describe('StreamingTranscriber', () => {
 
       // Restore
       (globalThis as Record<string, unknown>).navigator = {
-        mediaDevices: { getUserMedia: vi.fn() },
+        mediaDevices: { getUserMedia: jest.fn() },
       };
     });
 
@@ -1012,8 +1012,8 @@ describe('StreamingTranscriber', () => {
       expect(support.audioContext).toBe(false);
       expect(support.recommendation).toBe('Web Audio API needed for advanced audio processing');
 
-      (globalThis as Record<string, unknown>).AudioContext = vi.fn();
-      (globalThis as Record<string, unknown>).webkitAudioContext = vi.fn();
+      (globalThis as Record<string, unknown>).AudioContext = jest.fn();
+      (globalThis as Record<string, unknown>).webkitAudioContext = jest.fn();
     });
   });
 
@@ -1072,7 +1072,7 @@ describe('StreamingTranscriber', () => {
     it('startLiveTranscription handles final result without onProgress', async () => {
       await loadModule();
       const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
-      const onSegment = vi.fn();
+      const onSegment = jest.fn();
 
       const promise = transcriber.startLiveTranscription(onSegment);
 
@@ -1164,7 +1164,7 @@ describe('StreamingTranscriber', () => {
         audioFile: string | File
       ) => Promise<TranscriptionSegment[]>;
 
-      anyTranscriber.processAudioChunk = vi.fn().mockImplementation(async (
+      anyTranscriber.processAudioChunk = jest.fn().mockImplementation(async (
         chunk: { start: number; end: number },
         audioFile: string | File
       ) => {
@@ -1175,7 +1175,7 @@ describe('StreamingTranscriber', () => {
         return origProcess.call(transcriber, chunk, audioFile);
       });
 
-      const onProgress = vi.fn();
+      const onProgress = jest.fn();
 
       const promise = transcriber.transcribeStream('/audio.mp3', onProgress);
 
@@ -1208,7 +1208,7 @@ describe('StreamingTranscriber', () => {
       // Override processAudioChunk to produce segments with a large gap
       // This will trigger the else branch (line 346) in mergeOverlappingSegments
       let chunkIndex = 0;
-      anyTranscriber.processAudioChunk = vi.fn().mockImplementation(async (
+      anyTranscriber.processAudioChunk = jest.fn().mockImplementation(async (
         chunk: { start: number; end: number }
       ) => {
         chunkIndex++;
@@ -1262,7 +1262,7 @@ describe('StreamingTranscriber', () => {
 
       // Override processAudioChunk to produce overlapping segments
       let chunkIndex = 0;
-      anyTranscriber.processAudioChunk = vi.fn().mockImplementation(async (
+      anyTranscriber.processAudioChunk = jest.fn().mockImplementation(async (
         chunk: { start: number; end: number }
       ) => {
         chunkIndex++;
@@ -1358,7 +1358,7 @@ describe('StreamingTranscriber', () => {
         minConfidence: 0,
       });
 
-      const onProgress = vi.fn();
+      const onProgress = jest.fn();
 
       const promise = transcriber.transcribeStream('/audio.mp3', onProgress);
 
@@ -1385,7 +1385,7 @@ describe('StreamingTranscriber', () => {
         minConfidence: 0,
       });
 
-      const onProgress = vi.fn();
+      const onProgress = jest.fn();
 
       const promise = transcriber.transcribeStream('/audio.mp3', onProgress);
 
@@ -1464,7 +1464,7 @@ describe('StreamingTranscriber', () => {
         minConfidence: 0,
       });
 
-      const onProgress = vi.fn();
+      const onProgress = jest.fn();
 
       const promise = transcriber.transcribeStream('/audio.mp3', onProgress);
 
@@ -1493,7 +1493,7 @@ describe('StreamingTranscriber', () => {
       expect(support.recommendation).toBe('Full streaming support available');
 
       // Restore
-      (globalThis as Record<string, unknown>).AudioContext = vi.fn();
+      (globalThis as Record<string, unknown>).AudioContext = jest.fn();
     });
 
     it('validateStreamingSupport with only webkitSpeechRecognition', async () => {
@@ -1522,7 +1522,7 @@ describe('StreamingTranscriber', () => {
 
       // Make getAudioDuration throw a non-Error value
       const anyTranscriber = transcriber as unknown as Record<string, unknown>;
-      anyTranscriber.getAudioDuration = vi.fn().mockRejectedValue('string error');
+      anyTranscriber.getAudioDuration = jest.fn().mockRejectedValue('string error');
 
       await expect(transcriber.transcribeStream('/audio.mp3')).rejects.toThrow(
         'Streaming transcription failed: string error'
@@ -1538,7 +1538,7 @@ describe('StreamingTranscriber', () => {
       });
 
       const anyTranscriber = transcriber as unknown as Record<string, unknown>;
-      anyTranscriber.getAudioDuration = vi.fn().mockRejectedValue(new Error('custom error msg'));
+      anyTranscriber.getAudioDuration = jest.fn().mockRejectedValue(new Error('custom error msg'));
 
       await expect(transcriber.transcribeStream('/audio.mp3')).rejects.toThrow(
         'Streaming transcription failed: custom error msg'
@@ -1548,8 +1548,8 @@ describe('StreamingTranscriber', () => {
     it('startLiveTranscription with both onSegment and onProgress callbacks', async () => {
       await loadModule();
       const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
-      const onSegment = vi.fn();
-      const onProgress = vi.fn();
+      const onSegment = jest.fn();
+      const onProgress = jest.fn();
 
       const promise = transcriber.startLiveTranscription(onSegment, onProgress);
 
@@ -1593,7 +1593,7 @@ describe('StreamingTranscriber', () => {
       const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
         minConfidence: 0.99, // Filter all
       });
-      const onProgress = vi.fn();
+      const onProgress = jest.fn();
 
       const promise = transcriber.startLiveTranscription(undefined, onProgress);
 

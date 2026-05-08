@@ -221,7 +221,7 @@ describe('ZeroOverlapLayoutEngine', () => {
   describe('error handling (catch block)', () => {
     test('should return failure result when dagre.layout throws an error for flowchart', async () => {
       const originalLayout = dagre.layout;
-      dagre.layout = vi.fn().mockImplementation(() => {
+      dagre.layout = jest.fn().mockImplementation(() => {
         throw new Error('Dagre internal error');
       });
 
@@ -245,7 +245,7 @@ describe('ZeroOverlapLayoutEngine', () => {
 
     test('should return failure result when dagre.layout throws for tree layout', async () => {
       const originalLayout = dagre.layout;
-      dagre.layout = vi.fn().mockImplementation(() => {
+      dagre.layout = jest.fn().mockImplementation(() => {
         throw new Error('Tree layout crash');
       });
 
@@ -263,7 +263,7 @@ describe('ZeroOverlapLayoutEngine', () => {
 
     test('error result should contain default metrics', async () => {
       const originalLayout = dagre.layout;
-      dagre.layout = vi.fn().mockImplementation(() => {
+      dagre.layout = jest.fn().mockImplementation(() => {
         throw new Error('test error');
       });
 

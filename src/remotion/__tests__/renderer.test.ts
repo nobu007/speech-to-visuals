@@ -18,13 +18,13 @@ import {
 } from '../renderer';
 
 // Mock @remotion/renderer
-vi.mock('@remotion/renderer', () => ({
-  renderMedia: vi.fn(),
+jest.mock('@remotion/renderer', () => ({
+  renderMedia: jest.fn(),
 }));
 
 import { renderMedia } from '@remotion/renderer';
 
-const mockedRenderMedia = renderMedia as vi.MockedFunction<typeof renderMedia>;
+const mockedRenderMedia = renderMedia as jest.MockedFunction<typeof renderMedia>;
 
 interface RenderOptionsComposition {
   id: string;
@@ -65,7 +65,7 @@ function buildOptions(config: RenderConfig, params: Parameters<typeof buildRende
 
 describe('renderer', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
     mockedRenderMedia.mockResolvedValue({
       buffer: Buffer.from(''),
       slowestFrames: [],
@@ -419,7 +419,7 @@ describe('renderer', () => {
     });
 
     it('should pass onProgress callback if provided', async () => {
-      const onProgress = vi.fn();
+      const onProgress = jest.fn();
       const config = makeConfig();
 
       await renderVideo(config, { ...baseParams, onProgress });

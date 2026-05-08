@@ -19,10 +19,10 @@ export function createMockRequest(overrides: Partial<Request> = {}): Partial<Req
  */
 export function createMockResponse(): Partial<Response> {
   const res: Record<string, unknown> = {};
-  res.status = vi.fn().mockReturnValue(res);
-  res.json = vi.fn().mockReturnValue(res);
-  res.send = vi.fn().mockReturnValue(res);
-  res.setHeader = vi.fn().mockReturnValue(res);
+  res.status = jest.fn().mockReturnValue(res);
+  res.json = jest.fn().mockReturnValue(res);
+  res.send = jest.fn().mockReturnValue(res);
+  res.setHeader = jest.fn().mockReturnValue(res);
   return res as unknown as Partial<Response>;
 }
 
@@ -30,7 +30,7 @@ export function createMockResponse(): Partial<Response> {
  * Create a mock NextFunction (jest fn).
  */
 export function createMockNext(): NextFunction {
-  return vi.fn() as unknown as NextFunction;
+  return jest.fn() as unknown as NextFunction;
 }
 
 /**
@@ -56,9 +56,9 @@ export function createTestEnv(vars: Record<string, string>): () => void {
  */
 export function suppressConsole(): () => void {
   const originalConsole = { ...console };
-  console.log = vi.fn();
-  console.warn = vi.fn();
-  console.error = vi.fn();
+  console.log = jest.fn();
+  console.warn = jest.fn();
+  console.error = jest.fn();
   return () => {
     Object.assign(console, originalConsole);
   };

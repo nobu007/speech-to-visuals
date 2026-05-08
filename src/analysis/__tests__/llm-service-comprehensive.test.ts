@@ -18,28 +18,28 @@ import { LLMService } from '../llm-service';
 // ---------------------------------------------------------------------------
 
 // Mock the Google Generative AI SDK
-const mockGenerateContent = vi.fn();
-const mockGenerateContentStream = vi.fn();
-const mockGetGenerativeModel = vi.fn(() => ({
+const mockGenerateContent = jest.fn();
+const mockGenerateContentStream = jest.fn();
+const mockGetGenerativeModel = jest.fn(() => ({
   generateContent: mockGenerateContent,
   generateContentStream: mockGenerateContentStream,
 }));
 
-vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
+jest.mock('@google/generative-ai', () => ({
+  GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
     getGenerativeModel: mockGetGenerativeModel,
   })),
 }));
 
 // Mock LLMCache - each instance gets its own isolated storage
-vi.mock('../llm-cache', () => {
+jest.mock('../llm-cache', () => {
   return {
-    LLMCache: vi.fn().mockImplementation(() => {
+    LLMCache: jest.fn().mockImplementation(() => {
       const store = new Map<string, unknown>();
       return {
-        get: vi.fn((key: string) => store.get(key) ?? null),
-        set: vi.fn((key: string, data: unknown) => { store.set(key, data); }),
-        getStats: vi.fn(() => ({
+        get: jest.fn((key: string) => store.get(key) ?? null),
+        set: jest.fn((key: string, data: unknown) => { store.set(key, data); }),
+        getStats: jest.fn(() => ({
           size: store.size,
           validEntries: store.size,
           totalHits: 0,
@@ -56,25 +56,25 @@ vi.mock('../llm-cache', () => {
             totalComparisons: 0,
           },
         })),
-        clear: vi.fn(() => store.clear()),
+        clear: jest.fn(() => store.clear()),
       };
     }),
   };
 });
 
 // Mock console to reduce noise
-let consoleLogSpy: vi.SpyInstance;
-let consoleWarnSpy: vi.SpyInstance;
-let consoleErrorSpy: vi.SpyInstance;
+let consoleLogSpy: jest.SpyInstance;
+let consoleWarnSpy: jest.SpyInstance;
+let consoleErrorSpy: jest.SpyInstance;
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  jest.clearAllMocks();
   mockGenerateContent.mockReset();
   mockGenerateContentStream.mockReset();
   mockGetGenerativeModel.mockClear();
-  consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-  consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-  consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+  consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 afterEach(() => {
@@ -242,7 +242,7 @@ describe('LLMService', () => {
 
       mockGenerateContent.mockResolvedValueOnce(createLLMResponse(rawText));
 
-      const customParser = vi.fn().mockReturnValue(parsedResult);
+      const customParser = jest.fn().mockReturnValue(parsedResult);
 
       const response = await service.execute({
         prompt: 'test',
@@ -509,7 +509,7 @@ describe('LLMService', () => {
   describe('execute streaming', () => {
     it('should call streaming API when enableStreaming and onStream are set', async () => {
       const service = new LLMService('test-key');
-      const streamCallback = vi.fn();
+      const streamCallback = jest.fn();
 
       mockGenerateContentStream.mockResolvedValueOnce(
         createStreamResponse(['{"title":', '"Test"}'])
@@ -532,7 +532,7 @@ describe('LLMService', () => {
 
     it('should handle empty streaming response as failure', async () => {
       const service = new LLMService('test-key');
-      const streamCallback = vi.fn();
+      const streamCallback = jest.fn();
 
       // Empty stream
       mockGenerateContentStream.mockResolvedValueOnce(

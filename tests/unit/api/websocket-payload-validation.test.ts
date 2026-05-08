@@ -18,17 +18,17 @@ function createMockSocket() {
   const leftRooms: string[] = [];
 
   return {
-    on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
+    on: jest.fn((event: string, handler: (...args: unknown[]) => void) => {
       events[event] = events[event] || [];
       events[event].push(handler);
     }),
-    emit: vi.fn((event: string, data: unknown) => {
+    emit: jest.fn((event: string, data: unknown) => {
       emitted.push({ event, data });
     }),
-    join: vi.fn((room: string) => {
+    join: jest.fn((room: string) => {
       joinedRooms.push(room);
     }),
-    leave: vi.fn((room: string) => {
+    leave: jest.fn((room: string) => {
       leftRooms.push(room);
     }),
     _events: events,
@@ -42,7 +42,7 @@ function createMockIo(sockets: ReturnType<typeof createMockSocket>[] = []) {
   const connectionHandlers: Array<(socket: unknown) => void> = [];
 
   return {
-    on: vi.fn((event: string, handler: (socket: unknown) => void) => {
+    on: jest.fn((event: string, handler: (socket: unknown) => void) => {
       if (event === 'connection') {
         connectionHandlers.push(handler);
       }
@@ -61,7 +61,7 @@ describe('ISS-042: WebSocket payload validation', () => {
   let mockSocket: ReturnType<typeof createMockSocket>;
 
   beforeEach(async () => {
-    vi.resetModules();
+    jest.resetModules();
     mockIo = createMockIo();
     mockSocket = createMockSocket();
 

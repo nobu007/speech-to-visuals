@@ -14,7 +14,7 @@ describe('ISS-022: Browser-Safe env in rule-based-analyzer isDisabledGemini', ()
       writable: true,
       configurable: true,
     });
-    vi.resetModules();
+    jest.resetModules();
   });
 
   it('returns false when process is undefined', async () => {
@@ -28,7 +28,7 @@ describe('ISS-022: Browser-Safe env in rule-based-analyzer isDisabledGemini', ()
   it('returns true when ANALYSIS_DISABLE_GEMINI is "1"', async () => {
     const orig = process.env.ANALYSIS_DISABLE_GEMINI;
     process.env.ANALYSIS_DISABLE_GEMINI = '1';
-    vi.resetModules();
+    jest.resetModules();
 
     try {
       const { isDisabledGemini } = await import('@/analysis/rule-based-analyzer');
@@ -41,7 +41,7 @@ describe('ISS-022: Browser-Safe env in rule-based-analyzer isDisabledGemini', ()
   it('returns false when ANALYSIS_DISABLE_GEMINI is unset', async () => {
     const orig = process.env.ANALYSIS_DISABLE_GEMINI;
     delete process.env.ANALYSIS_DISABLE_GEMINI;
-    vi.resetModules();
+    jest.resetModules();
 
     try {
       const { isDisabledGemini } = await import('@/analysis/rule-based-analyzer');

@@ -155,9 +155,9 @@ class MockGraph {
 
 export default {
   graphlib: {
-    Graph: vi.fn(() => new MockGraph()),
+    Graph: jest.fn(() => new MockGraph()),
   },
-  layout: vi.fn((graph: MockGraph) => {
+  layout: jest.fn((graph: MockGraph) => {
     graph.layout();
   }),
 };

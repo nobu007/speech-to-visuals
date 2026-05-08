@@ -27,13 +27,13 @@ let emitErrorRecovery: typeof import('../../../src/api/websocket-handler').emitE
 let emitErrorRecovered: typeof import('../../../src/api/websocket-handler').emitErrorRecovered;
 
 // Mock jsonwebtoken before importing
-vi.mock('jsonwebtoken', () => ({
-  verify: vi.fn(),
+jest.mock('jsonwebtoken', () => ({
+  verify: jest.fn(),
 }));
 
 import * as jwt from 'jsonwebtoken';
 
-const mockedJwtVerify = jwt.verify as vi.Mock;
+const mockedJwtVerify = jwt.verify as jest.Mock;
 
 // ---------------------------------------------------------------------------
 // Helper: set up module under test with mocked Socket.IO
@@ -55,7 +55,7 @@ async function importModule() {
 }
 
 /** Shape returned by mockIo.to() */
-interface MockRoom { emit: vi.Mock }
+interface MockRoom { emit: jest.Mock }
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -66,7 +66,7 @@ describe('WebSocket Handler', () => {
   let mockSocket: MockSocket;
 
   beforeEach(async () => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
     process.env.JWT_SECRET = 'test-secret';
     mockIo = createMockIo();
     mockSocket = createMockSocket();
@@ -94,7 +94,7 @@ describe('WebSocket Handler', () => {
       const middleware = createWsAuthMiddleware();
       mockSocket.handshake.auth.token = 'valid.jwt.token';
 
-      const next = vi.fn();
+      const next = jest.fn();
       middleware(mockSocket as unknown as Parameters<typeof middleware>[0], next);
 
       expect(next).toHaveBeenCalledWith();
@@ -109,7 +109,7 @@ describe('WebSocket Handler', () => {
       const middleware = createWsAuthMiddleware();
       mockSocket.handshake.auth.token = undefined;
 
-      const next = vi.fn();
+      const next = jest.fn();
       middleware(mockSocket as unknown as Parameters<typeof middleware>[0], next);
 
       expect(next).toHaveBeenCalledWith(expect.any(Error));
@@ -122,7 +122,7 @@ describe('WebSocket Handler', () => {
       mockSocket.handshake.auth.token = 'invalid.token';
       mockedJwtVerify.mockReturnValue(null);
 
-      const next = vi.fn();
+      const next = jest.fn();
       middleware(mockSocket as unknown as Parameters<typeof middleware>[0], next);
 
       expect(next).toHaveBeenCalledWith(expect.any(Error));
@@ -137,7 +137,7 @@ describe('WebSocket Handler', () => {
         throw new Error('verify failed');
       });
 
-      const next = vi.fn();
+      const next = jest.fn();
       middleware(mockSocket as unknown as Parameters<typeof middleware>[0], next);
 
       expect(next).toHaveBeenCalledWith(expect.any(Error));
@@ -397,7 +397,7 @@ describe('WebSocket Handler', () => {
       };
 
       mockIo.to.mockReturnValue({
-        emit: vi.fn(),
+        emit: jest.fn(),
       } satisfies MockRoom);
 
       // Call the helper: emitJobProgress
@@ -427,7 +427,7 @@ describe('WebSocket Handler', () => {
         },
       };
 
-      const emitMock = vi.fn();
+      const emitMock = jest.fn();
       mockIo.to.mockReturnValue({ emit: emitMock } satisfies MockRoom);
 
       emitJobComplete(mockIo as unknown as Parameters<typeof emitJobComplete>[0], completeData);
@@ -454,7 +454,7 @@ describe('WebSocket Handler', () => {
         },
       };
 
-      const emitMock = vi.fn();
+      const emitMock = jest.fn();
       mockIo.to.mockReturnValue({ emit: emitMock } satisfies MockRoom);
 
       emitJobError(mockIo as unknown as Parameters<typeof emitJobError>[0], errorData);
@@ -480,7 +480,7 @@ describe('WebSocket Handler', () => {
         progress: 75,
       };
 
-      const emitMock = vi.fn();
+      const emitMock = jest.fn();
       mockIo.to.mockReturnValue({ emit: emitMock } satisfies MockRoom);
 
       emitFileStatus(mockIo as unknown as Parameters<typeof emitFileStatus>[0], fileStatusData);
@@ -506,7 +506,7 @@ describe('WebSocket Handler', () => {
         message: 'Transcribing audio...',
       };
 
-      const emitMock = vi.fn();
+      const emitMock = jest.fn();
       mockIo.to.mockReturnValue({ emit: emitMock } satisfies MockRoom);
 
       emitStageProgress(mockIo as unknown as Parameters<typeof emitStageProgress>[0], stageData);
@@ -534,7 +534,7 @@ describe('WebSocket Handler', () => {
         confidence: 0.95,
       };
 
-      const emitMock = vi.fn();
+      const emitMock = jest.fn();
       mockIo.to.mockReturnValue({ emit: emitMock } satisfies MockRoom);
 
       emitStreamingSegment(mockIo as unknown as Parameters<typeof emitStreamingSegment>[0], segmentData);
@@ -554,7 +554,7 @@ describe('WebSocket Handler', () => {
         duration: 30.5,
       };
 
-      const emitMock = vi.fn();
+      const emitMock = jest.fn();
       mockIo.to.mockReturnValue({ emit: emitMock } satisfies MockRoom);
 
       emitStreamingComplete(mockIo as unknown as Parameters<typeof emitStreamingComplete>[0], completeData);
@@ -586,7 +586,7 @@ describe('WebSocket Handler', () => {
         ],
       };
 
-      const emitMock = vi.fn();
+      const emitMock = jest.fn();
       mockIo.to.mockReturnValue({ emit: emitMock } satisfies MockRoom);
 
       emitErrorRecovery(mockIo as unknown as Parameters<typeof emitErrorRecovery>[0], recoveryData);
@@ -605,7 +605,7 @@ describe('WebSocket Handler', () => {
         message: 'Transcription succeeded on retry',
       };
 
-      const emitMock = vi.fn();
+      const emitMock = jest.fn();
       mockIo.to.mockReturnValue({ emit: emitMock } satisfies MockRoom);
 
       emitErrorRecovered(mockIo as unknown as Parameters<typeof emitErrorRecovered>[0], recoveredData);

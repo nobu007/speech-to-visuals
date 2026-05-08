@@ -10,24 +10,24 @@ import type { FallbackLayoutStrategy } from '../../visualization/strategies/Fall
 import type { WorkerResponse, LayoutWorkerResult } from '../types';
 
 // Mock workers module
-vi.mock('../../workers', () => ({
-  WorkerPool: vi.fn(),
-  isWorkerAvailable: vi.fn(() => false),
-  getOptimalWorkerCount: vi.fn(() => 2),
-  computeLayout: vi.fn(),
+jest.mock('../../workers', () => ({
+  WorkerPool: jest.fn(),
+  isWorkerAvailable: jest.fn(() => false),
+  getOptimalWorkerCount: jest.fn(() => 2),
+  computeLayout: jest.fn(),
 }));
 
 // Mock worker-factories
-vi.mock('../../workers/worker-factories', () => ({
-  createLayoutWorkerFactory: vi.fn(() => () => {
+jest.mock('../../workers/worker-factories', () => ({
+  createLayoutWorkerFactory: jest.fn(() => () => {
     throw new Error('Worker factory should not be called');
   }),
 }));
 
 // Mock DagreLayoutStrategy to avoid dagre dependency issues
-vi.mock('../../visualization/strategies/DagreLayoutStrategy', () => ({
-  DagreLayoutStrategy: vi.fn().mockImplementation(function (_config?: LayoutConfig, _fallback?: FallbackLayoutStrategy) {
-    this.applyLayout = vi.fn().mockResolvedValue({
+jest.mock('../../visualization/strategies/DagreLayoutStrategy', () => ({
+  DagreLayoutStrategy: jest.fn().mockImplementation(function (_config?: LayoutConfig, _fallback?: FallbackLayoutStrategy) {
+    this.applyLayout = jest.fn().mockResolvedValue({
       nodes: [
         { id: 'a', label: 'Node A', x: 50, y: 50, w: 120, h: 60 },
         { id: 'b', label: 'Node B', x: 250, y: 50, w: 120, h: 60 },
@@ -41,16 +41,16 @@ vi.mock('../../visualization/strategies/DagreLayoutStrategy', () => ({
   }),
 }));
 
-vi.mock('../../visualization/strategies/CulturalLayoutAdapter', () => ({
-  CulturalLayoutAdapter: vi.fn().mockImplementation(function () {
-    this.applyCulturalAdaptation = vi.fn((layout) => Promise.resolve(layout));
+jest.mock('../../visualization/strategies/CulturalLayoutAdapter', () => ({
+  CulturalLayoutAdapter: jest.fn().mockImplementation(function () {
+    this.applyCulturalAdaptation = jest.fn((layout) => Promise.resolve(layout));
   }),
 }));
 
-vi.mock('../../visualization/layout-utils', () => ({
-  nodesOverlap: vi.fn(() => false),
-  getGraphConfig: vi.fn(() => ({})),
-  calculateNodeWidth: vi.fn(() => 120),
+jest.mock('../../visualization/layout-utils', () => ({
+  nodesOverlap: jest.fn(() => false),
+  getGraphConfig: jest.fn(() => ({})),
+  calculateNodeWidth: jest.fn(() => 120),
 }));
 
 import { ComplexLayoutEngine } from '../../visualization/complex-layout-engine';
@@ -61,8 +61,8 @@ import type { DiagramType } from '../../types/diagram';
 
 /** Minimal mock of a worker pool for testing delegation */
 interface MockPool {
-  execute: ReturnType<typeof vi.fn>;
-  terminate: ReturnType<typeof vi.fn>;
+  execute: ReturnType<typeof jest.fn>;
+  terminate: ReturnType<typeof jest.fn>;
   isTerminated: boolean;
 }
 
@@ -80,12 +80,12 @@ function testInternals(engine: ComplexLayoutEngine): LayoutEngineTestInternals {
 
 // Suppress console
 beforeEach(() => {
-  vi.spyOn(console, 'log').mockImplementation(() => {});
-  vi.spyOn(console, 'error').mockImplementation(() => {});
-  vi.spyOn(console, 'warn').mockImplementation(() => {});
+  jest.spyOn(console, 'log').mockImplementation(() => {});
+  jest.spyOn(console, 'error').mockImplementation(() => {});
+  jest.spyOn(console, 'warn').mockImplementation(() => {});
 });
 afterEach(() => {
-  vi.restoreAllMocks();
+  jest.restoreAllMocks();
 });
 
 const createNodes = () => [
@@ -113,8 +113,8 @@ function createEngineWithPoolMock(poolMock: MockPool | null): ComplexLayoutEngin
 
 function makePoolMock(response: WorkerResponse<LayoutWorkerResult>): MockPool {
   return {
-    execute: vi.fn().mockResolvedValue(response as never),
-    terminate: vi.fn(),
+    execute: jest.fn().mockResolvedValue(response as never),
+    terminate: jest.fn(),
     isTerminated: false,
   };
 }
@@ -147,8 +147,8 @@ describe('computeLayoutViaWorker (private)', () => {
 
   it('returns null when pool.execute throws', async () => {
     const poolMock: MockPool = {
-      execute: vi.fn().mockRejectedValue(new Error('Worker crashed') as never),
-      terminate: vi.fn(),
+      execute: jest.fn().mockRejectedValue(new Error('Worker crashed') as never),
+      terminate: jest.fn(),
       isTerminated: false,
     };
     const engine = createEngineWithPoolMock(poolMock);

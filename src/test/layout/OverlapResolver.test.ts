@@ -73,12 +73,12 @@ describe('OverlapResolver', () => {
     const failing: LayoutStrategy = {
       name: 'failing',
       canEscapeLocalMinimum: false,
-      apply: vi.fn().mockRejectedValue(new Error('boom')),
-      estimateComplexity: vi.fn().mockReturnValue(0),
-      calculateMetrics: vi.fn(),
-      detectOverlaps: vi.fn().mockReturnValue([]),
-      calculateBoundingBox: vi.fn(),
-      getDefaultConfig: vi.fn(),
+      apply: jest.fn().mockRejectedValue(new Error('boom')),
+      estimateComplexity: jest.fn().mockReturnValue(0),
+      calculateMetrics: jest.fn(),
+      detectOverlaps: jest.fn().mockReturnValue([]),
+      calculateBoundingBox: jest.fn(),
+      getDefaultConfig: jest.fn(),
     };
     internals(resolver).strategies = [failing, ...original];
 
@@ -112,32 +112,32 @@ describe('OverlapResolver', () => {
     const failing: LayoutStrategy = {
       name: 'failing-1',
       canEscapeLocalMinimum: false,
-      apply: vi.fn().mockRejectedValue(new Error('fail-1')),
-      estimateComplexity: vi.fn().mockReturnValue(0),
-      calculateMetrics: vi.fn(),
-      detectOverlaps: vi.fn().mockReturnValue([]),
-      calculateBoundingBox: vi.fn(),
-      getDefaultConfig: vi.fn(),
+      apply: jest.fn().mockRejectedValue(new Error('fail-1')),
+      estimateComplexity: jest.fn().mockReturnValue(0),
+      calculateMetrics: jest.fn(),
+      detectOverlaps: jest.fn().mockReturnValue([]),
+      calculateBoundingBox: jest.fn(),
+      getDefaultConfig: jest.fn(),
     };
     const failing2: LayoutStrategy = {
       name: 'failing-2',
       canEscapeLocalMinimum: false,
-      apply: vi.fn().mockRejectedValue(new Error('fail-2')),
-      estimateComplexity: vi.fn().mockReturnValue(0),
-      calculateMetrics: vi.fn(),
-      detectOverlaps: vi.fn().mockReturnValue([]),
-      calculateBoundingBox: vi.fn(),
-      getDefaultConfig: vi.fn(),
+      apply: jest.fn().mockRejectedValue(new Error('fail-2')),
+      estimateComplexity: jest.fn().mockReturnValue(0),
+      calculateMetrics: jest.fn(),
+      detectOverlaps: jest.fn().mockReturnValue([]),
+      calculateBoundingBox: jest.fn(),
+      getDefaultConfig: jest.fn(),
     };
     const failing3: LayoutStrategy = {
       name: 'failing-3',
       canEscapeLocalMinimum: false,
-      apply: vi.fn().mockRejectedValue(new Error('fail-3')),
-      estimateComplexity: vi.fn().mockReturnValue(0),
-      calculateMetrics: vi.fn(),
-      detectOverlaps: vi.fn().mockReturnValue([]),
-      calculateBoundingBox: vi.fn(),
-      getDefaultConfig: vi.fn(),
+      apply: jest.fn().mockRejectedValue(new Error('fail-3')),
+      estimateComplexity: jest.fn().mockReturnValue(0),
+      calculateMetrics: jest.fn(),
+      detectOverlaps: jest.fn().mockReturnValue([]),
+      calculateBoundingBox: jest.fn(),
+      getDefaultConfig: jest.fn(),
     };
     internals(resolver).strategies = [failing, failing2, failing3];
 
@@ -160,12 +160,12 @@ describe('OverlapResolver', () => {
     const slowStrategy: LayoutStrategy = {
       name: 'slow',
       canEscapeLocalMinimum: false,
-      apply: vi.fn().mockImplementation(() => new Promise(() => {})),
-      estimateComplexity: vi.fn().mockReturnValue(0),
-      calculateMetrics: vi.fn(),
-      detectOverlaps: vi.fn().mockReturnValue([]),
-      calculateBoundingBox: vi.fn(),
-      getDefaultConfig: vi.fn(),
+      apply: jest.fn().mockImplementation(() => new Promise(() => {})),
+      estimateComplexity: jest.fn().mockReturnValue(0),
+      calculateMetrics: jest.fn(),
+      detectOverlaps: jest.fn().mockReturnValue([]),
+      calculateBoundingBox: jest.fn(),
+      getDefaultConfig: jest.fn(),
     };
     internals(resolver).strategies = [slowStrategy];
 
@@ -206,7 +206,7 @@ describe('OverlapResolver', () => {
     const goodStrategy: LayoutStrategy = {
       name: 'perfect',
       canEscapeLocalMinimum: false,
-      apply: vi.fn().mockResolvedValue({
+      apply: jest.fn().mockResolvedValue({
         layout: {
           nodes: createOverlappingPositioned(2).map((n, i) => ({
             ...n,
@@ -219,11 +219,11 @@ describe('OverlapResolver', () => {
         processingTime: 10,
         success: true,
       }),
-      estimateComplexity: vi.fn().mockReturnValue(0),
-      calculateMetrics: vi.fn(),
-      detectOverlaps: vi.fn().mockReturnValue([]),
-      calculateBoundingBox: vi.fn(),
-      getDefaultConfig: vi.fn(),
+      estimateComplexity: jest.fn().mockReturnValue(0),
+      calculateMetrics: jest.fn(),
+      detectOverlaps: jest.fn().mockReturnValue([]),
+      calculateBoundingBox: jest.fn(),
+      getDefaultConfig: jest.fn(),
     };
     internals(resolver).strategies = [goodStrategy];
 
@@ -262,7 +262,7 @@ describe('OverlapResolver', () => {
     const goodStrategy: LayoutStrategy = {
       name: 'fast',
       canEscapeLocalMinimum: false,
-      apply: vi.fn().mockResolvedValue({
+      apply: jest.fn().mockResolvedValue({
         layout: {
           nodes: createOverlappingPositioned(2),
           edges: [],
@@ -271,11 +271,11 @@ describe('OverlapResolver', () => {
         processingTime: 10,
         success: true,
       }),
-      estimateComplexity: vi.fn().mockReturnValue(0),
-      calculateMetrics: vi.fn(),
-      detectOverlaps: vi.fn().mockReturnValue([]),
-      calculateBoundingBox: vi.fn(),
-      getDefaultConfig: vi.fn(),
+      estimateComplexity: jest.fn().mockReturnValue(0),
+      calculateMetrics: jest.fn(),
+      detectOverlaps: jest.fn().mockReturnValue([]),
+      calculateBoundingBox: jest.fn(),
+      getDefaultConfig: jest.fn(),
     };
     internals(resolver).strategies = [goodStrategy];
 
@@ -295,7 +295,7 @@ describe('OverlapResolver', () => {
     const goodStrategy: LayoutStrategy = {
       name: 'good',
       canEscapeLocalMinimum: false,
-      apply: vi.fn().mockResolvedValue({
+      apply: jest.fn().mockResolvedValue({
         layout: {
           nodes: createOverlappingPositioned(2).map((n, i) => ({ ...n, x: i * 500, y: i * 500 })),
           edges: [],
@@ -304,18 +304,18 @@ describe('OverlapResolver', () => {
         processingTime: 10,
         success: true,
       }),
-      estimateComplexity: vi.fn().mockReturnValue(0),
-      calculateMetrics: vi.fn(),
-      detectOverlaps: vi.fn().mockReturnValue([]),
-      calculateBoundingBox: vi.fn(),
-      getDefaultConfig: vi.fn(),
+      estimateComplexity: jest.fn().mockReturnValue(0),
+      calculateMetrics: jest.fn(),
+      detectOverlaps: jest.fn().mockReturnValue([]),
+      calculateBoundingBox: jest.fn(),
+      getDefaultConfig: jest.fn(),
     };
 
     // Second strategy: worse result (higher energy)
     const worseStrategy: LayoutStrategy = {
       name: 'worse',
       canEscapeLocalMinimum: false,
-      apply: vi.fn().mockResolvedValue({
+      apply: jest.fn().mockResolvedValue({
         layout: {
           nodes: createOverlappingPositioned(2),
           edges: [],
@@ -324,11 +324,11 @@ describe('OverlapResolver', () => {
         processingTime: 50,
         success: true,
       }),
-      estimateComplexity: vi.fn().mockReturnValue(0),
-      calculateMetrics: vi.fn(),
-      detectOverlaps: vi.fn().mockReturnValue([]),
-      calculateBoundingBox: vi.fn(),
-      getDefaultConfig: vi.fn(),
+      estimateComplexity: jest.fn().mockReturnValue(0),
+      calculateMetrics: jest.fn(),
+      detectOverlaps: jest.fn().mockReturnValue([]),
+      calculateBoundingBox: jest.fn(),
+      getDefaultConfig: jest.fn(),
     };
 
     internals(resolver).strategies = [goodStrategy, worseStrategy];
@@ -349,7 +349,7 @@ describe('OverlapResolver', () => {
     const overlappingStrategy: LayoutStrategy = {
       name: 'overlap-return',
       canEscapeLocalMinimum: false,
-      apply: vi.fn().mockResolvedValue({
+      apply: jest.fn().mockResolvedValue({
         layout: {
           // All nodes at the same position = lots of overlaps
           nodes: createOverlappingPositioned(3),
@@ -359,11 +359,11 @@ describe('OverlapResolver', () => {
         processingTime: 10,
         success: false,
       }),
-      estimateComplexity: vi.fn().mockReturnValue(0),
-      calculateMetrics: vi.fn(),
-      detectOverlaps: vi.fn().mockReturnValue([{ node1: {}, node2: {} }]),
-      calculateBoundingBox: vi.fn(),
-      getDefaultConfig: vi.fn(),
+      estimateComplexity: jest.fn().mockReturnValue(0),
+      calculateMetrics: jest.fn(),
+      detectOverlaps: jest.fn().mockReturnValue([{ node1: {}, node2: {} }]),
+      calculateBoundingBox: jest.fn(),
+      getDefaultConfig: jest.fn(),
     };
 
     internals(resolver).strategies = [overlappingStrategy];

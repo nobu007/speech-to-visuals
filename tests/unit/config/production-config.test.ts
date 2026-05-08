@@ -17,7 +17,7 @@ describe('REQ-066: Browser-Safe Environment Variable Access (ISS-012)', () => {
       configurable: true,
     });
     // Clear module cache so production-config is re-imported fresh
-    vi.resetModules();
+    jest.resetModules();
   });
 
   it('TC-066-E01: should use development defaults when process.env is undefined', async () => {

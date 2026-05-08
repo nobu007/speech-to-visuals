@@ -8,11 +8,11 @@
 
 
 // Mock workers module before imports
-vi.mock('../../workers', () => ({
-  WorkerPool: vi.fn(),
-  isWorkerAvailable: vi.fn(() => false),
-  getOptimalWorkerCount: vi.fn(() => 2),
-  computeLayout: vi.fn(() => ({
+jest.mock('../../workers', () => ({
+  WorkerPool: jest.fn(),
+  isWorkerAvailable: jest.fn(() => false),
+  getOptimalWorkerCount: jest.fn(() => 2),
+  computeLayout: jest.fn(() => ({
     nodes: [
       { id: 'a', x: 100, y: 50, width: 120, height: 60 },
       { id: 'b', x: 300, y: 50, width: 120, height: 60 },
@@ -24,9 +24,9 @@ vi.mock('../../workers', () => ({
 }));
 
 // Mock DagreLayoutStrategy to avoid dagre dependency issues in tests
-vi.mock('../../visualization/strategies/DagreLayoutStrategy', () => ({
-  DagreLayoutStrategy: vi.fn().mockImplementation(function (_config?: Record<string, unknown>, _fallback?: Record<string, unknown>) {
-    this.applyLayout = vi.fn().mockResolvedValue({
+jest.mock('../../visualization/strategies/DagreLayoutStrategy', () => ({
+  DagreLayoutStrategy: jest.fn().mockImplementation(function (_config?: Record<string, unknown>, _fallback?: Record<string, unknown>) {
+    this.applyLayout = jest.fn().mockResolvedValue({
       nodes: [
         { id: 'a', label: 'Node A', x: 50, y: 50, w: 120, h: 60 },
         { id: 'b', label: 'Node B', x: 250, y: 50, w: 120, h: 60 },
@@ -40,16 +40,16 @@ vi.mock('../../visualization/strategies/DagreLayoutStrategy', () => ({
   }),
 }));
 
-vi.mock('../../visualization/strategies/CulturalLayoutAdapter', () => ({
-  CulturalLayoutAdapter: vi.fn().mockImplementation(function () {
-    this.applyCulturalAdaptation = vi.fn((layout) => Promise.resolve(layout));
+jest.mock('../../visualization/strategies/CulturalLayoutAdapter', () => ({
+  CulturalLayoutAdapter: jest.fn().mockImplementation(function () {
+    this.applyCulturalAdaptation = jest.fn((layout) => Promise.resolve(layout));
   }),
 }));
 
-vi.mock('../../visualization/layout-utils', () => ({
-  nodesOverlap: vi.fn(() => false),
-  getGraphConfig: vi.fn(() => ({})),
-  calculateNodeWidth: vi.fn(() => 120),
+jest.mock('../../visualization/layout-utils', () => ({
+  nodesOverlap: jest.fn(() => false),
+  getGraphConfig: jest.fn(() => ({})),
+  calculateNodeWidth: jest.fn(() => 120),
 }));
 
 import { ComplexLayoutEngine } from '../../visualization/complex-layout-engine';
@@ -71,12 +71,12 @@ function createEngine(config: Record<string, unknown> = {}) {
 
 // Suppress console
 beforeEach(() => {
-  vi.spyOn(console, 'log').mockImplementation(() => {});
-  vi.spyOn(console, 'error').mockImplementation(() => {});
-  vi.spyOn(console, 'warn').mockImplementation(() => {});
+  jest.spyOn(console, 'log').mockImplementation(() => {});
+  jest.spyOn(console, 'error').mockImplementation(() => {});
+  jest.spyOn(console, 'warn').mockImplementation(() => {});
 });
 afterEach(() => {
-  vi.restoreAllMocks();
+  jest.restoreAllMocks();
 });
 
 const createNodes = () => [

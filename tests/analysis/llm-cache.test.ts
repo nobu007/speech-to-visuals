@@ -9,25 +9,25 @@ import path from 'path';
 import crypto from 'crypto';
 
 // Mock semantic-similarity module
-const mockCalculateSemanticSimilarity = vi.fn().mockReturnValue(0);
+const mockCalculateSemanticSimilarity = jest.fn().mockReturnValue(0);
 const mockSemanticMetricsTracker = {
-  recordExactHit: vi.fn(),
-  recordSemanticHit: vi.fn(),
-  recordMiss: vi.fn(),
-  recordComparison: vi.fn(),
-  getMetrics: vi.fn().mockReturnValue({
+  recordExactHit: jest.fn(),
+  recordSemanticHit: jest.fn(),
+  recordMiss: jest.fn(),
+  recordComparison: jest.fn(),
+  getMetrics: jest.fn().mockReturnValue({
     exactHits: 0,
     semanticHits: 0,
     misses: 0,
     avgSimilarityScore: 0,
     totalComparisons: 0,
   }),
-  reset: vi.fn(),
+  reset: jest.fn(),
 };
 
-vi.mock('@/analysis/semantic-similarity', () => ({
+jest.mock('@/analysis/semantic-similarity', () => ({
   calculateSemanticSimilarity: (...args: unknown[]) => mockCalculateSemanticSimilarity(...args),
-  SemanticMetricsTracker: vi.fn().mockImplementation(() => mockSemanticMetricsTracker),
+  SemanticMetricsTracker: jest.fn().mockImplementation(() => mockSemanticMetricsTracker),
 }));
 
 // We need to import after mocks are set up
@@ -37,8 +37,8 @@ describe('LLMCache', () => {
   let cache: LLMCache<string>;
 
   beforeEach(() => {
-    vi.spyOn(console, 'log').mockImplementation(() => {});
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
 
     // Reset all mock trackers
     mockCalculateSemanticSimilarity.mockReturnValue(0);
@@ -59,7 +59,7 @@ describe('LLMCache', () => {
 
   afterEach(() => {
     cache.clear();
-    vi.restoreAllMocks();
+    jest.restoreAllMocks();
   });
 
   // ========================================

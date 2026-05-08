@@ -216,7 +216,7 @@ describe('LayoutEngine', () => {
     const engine = new LayoutEngine();
     // Trigger the catch block by mocking internal method
     const originalMethod = engine['_applyBasicLayoutAndOptimizations'];
-    engine['_applyBasicLayoutAndOptimizations'] = vi.fn().mockRejectedValue(new Error('Simulated layout failure'));
+    engine['_applyBasicLayoutAndOptimizations'] = jest.fn().mockRejectedValue(new Error('Simulated layout failure'));
 
     const nodes: NodeDatum[] = [
       { id: 'n1', label: 'Node 1' },
@@ -236,7 +236,7 @@ describe('LayoutEngine', () => {
   // ---------- Error path: catch with non-Error value (line 117) ----------
   it('catches non-Error throws and returns generic message', async () => {
     const engine = new LayoutEngine();
-    engine['_applyBasicLayoutAndOptimizations'] = vi.fn().mockRejectedValue('string error');
+    engine['_applyBasicLayoutAndOptimizations'] = jest.fn().mockRejectedValue('string error');
 
     const nodes: NodeDatum[] = [
       { id: 'n1', label: 'Node 1' },
@@ -252,13 +252,13 @@ describe('LayoutEngine', () => {
     const engine = new LayoutEngine();
     // Mock calculateBounds to simulate slow processing
     const originalCalculateBounds = engine['calculateBounds'];
-    const warnSpy = vi.spyOn(engine['logger'], 'warn').mockImplementation();
+    const warnSpy = jest.spyOn(engine['logger'], 'warn').mockImplementation();
 
     // Make _logAndEvaluateLayout receive a large processingTime
     // by mocking performance.now behavior indirectly
     // We'll test by overriding _logAndEvaluateLayout to inject large time
     const originalLogAndEvaluate = engine['_logAndEvaluateLayout'];
-    engine['_logAndEvaluateLayout'] = vi.fn().mockImplementation(async (layout: DiagramLayout) => {
+    engine['_logAndEvaluateLayout'] = jest.fn().mockImplementation(async (layout: DiagramLayout) => {
       // Simulate a slow layout: manually build result with processingTime > 5000
       const bounds = engine['calculateBounds'](layout.nodes);
       return {

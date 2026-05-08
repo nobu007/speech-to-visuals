@@ -4,19 +4,19 @@ import path from 'path';
 import os from 'os';
 
 // Mock WhisperTranscriber to avoid heavy dependency
-vi.mock('@/transcription/whisper-transcriber', () => {
+jest.mock('@/transcription/whisper-transcriber', () => {
   return {
     WhisperTranscriber: class {
-      transcribe = vi.fn().mockResolvedValue({ success: true, segments: [] });
+      transcribe = jest.fn().mockResolvedValue({ success: true, segments: [] });
     },
   };
 });
 
 // Mock BrowserTranscriber (not used in Node tests)
-vi.mock('@/transcription/browser-transcriber', () => {
+jest.mock('@/transcription/browser-transcriber', () => {
   return {
     BrowserTranscriber: class {
-      transcribeAudioFile = vi.fn();
+      transcribeAudioFile = jest.fn();
     },
   };
 });

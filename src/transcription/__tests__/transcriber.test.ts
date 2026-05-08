@@ -1,17 +1,22 @@
 import { TranscriptionPipeline } from '@/transcription/transcriber';
 
 // Mock WhisperTranscriber so we can control its behavior
-const mockWhisperTranscribe = vi.fn() as vi.Mock;
+const mockWhisperTranscribe = jest.fn() as jest.Mock;
 
-vi.mock('@/transcription/whisper-transcriber', () => ({
-  WhisperTranscriber: vi.fn().mockImplementation(() => ({
+jest.mock('fs', () => ({
+  promises: { access: jest.fn().mockResolvedValue(undefined) },
+  constants: { R_OK: 4 },
+}));
+
+jest.mock('@/transcription/whisper-transcriber', () => ({
+  WhisperTranscriber: jest.fn().mockImplementation(() => ({
     transcribe: mockWhisperTranscribe,
   })),
 }));
 
-vi.mock('@/transcription/browser-transcriber', () => ({
-  BrowserTranscriber: vi.fn().mockImplementation(() => ({
-    transcribeAudioFile: vi.fn().mockResolvedValue({
+jest.mock('@/transcription/browser-transcriber', () => ({
+  BrowserTranscriber: jest.fn().mockImplementation(() => ({
+    transcribeAudioFile: jest.fn().mockResolvedValue({
       success: true,
       segments: [{ start: 0, end: 3000, text: 'Browser result', confidence: 0.8 }],
     } as never),
@@ -19,12 +24,12 @@ vi.mock('@/transcription/browser-transcriber', () => ({
 }));
 
 describe('TranscriptionPipeline', () => {
-  let consoleSpy: vi.SpiedFunction<typeof console.log>;
+  let consoleSpy: jest.SpiedFunction<typeof console.log>;
 
   beforeEach(() => {
-    consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
     // Default: whisper returns failure so fallback segments are used
     mockWhisperTranscribe.mockResolvedValue({
       success: false,
@@ -33,7 +38,7 @@ describe('TranscriptionPipeline', () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('constructor', () => {

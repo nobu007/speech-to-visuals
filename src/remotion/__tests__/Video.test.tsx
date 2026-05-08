@@ -24,8 +24,8 @@ let mockFrame = 0;
 let mockFps = 30;
 let mockDurationInFrames = 300;
 
-vi.mock('remotion', () => {
-  const originalModule = vi.requireActual('remotion');
+jest.mock('remotion', () => {
+  const originalModule = jest.requireActual('remotion');
   return {
     ...originalModule,
     useCurrentFrame: () => mockFrame,

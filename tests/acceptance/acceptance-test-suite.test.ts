@@ -773,10 +773,10 @@ describe('REQ-042: Pipeline Orchestrator', () => {
 // ---------------------------------------------------------------------------
 
 describe('REQ-043: Batch Processing API', () => {
-  let consoleLogSpy: vi.SpyInstance;
+  let consoleLogSpy: jest.SpyInstance;
 
   beforeAll(() => {
-    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
   });
 
   afterAll(() => {
@@ -843,10 +843,10 @@ describe('REQ-044: Edge Functions Authentication', () => {
       user: undefined,
     } as unknown as AuthenticatedRequest;
     const res = {
-      status: vi.fn().mockReturnThis(),
-      json: vi.fn(),
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
     } as unknown as Response;
-    const next: NextFunction = vi.fn();
+    const next: NextFunction = jest.fn();
     authMiddleware(req, res, next);
     expect(next).toHaveBeenCalled();
     expect(req.user).toBeDefined();
@@ -857,10 +857,10 @@ describe('REQ-044: Edge Functions Authentication', () => {
   test('TC-044-02: authMiddleware rejects missing authorization header', () => {
     const req = { headers: {} } as unknown as AuthenticatedRequest;
     const res = {
-      status: vi.fn().mockReturnThis(),
-      json: vi.fn(),
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
     } as unknown as Response;
-    const next: NextFunction = vi.fn();
+    const next: NextFunction = jest.fn();
     authMiddleware(req, res, next);
     expect(res.status).toHaveBeenCalledWith(401);
     expect(next).not.toHaveBeenCalled();
@@ -877,10 +877,10 @@ describe('REQ-045: Unified Error Handling', () => {
     const error = new AuthenticationError('Token expired');
     const req = {} as unknown as Request;
     const res = {
-      status: vi.fn().mockReturnThis(),
-      json: vi.fn(),
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
     } as unknown as Response;
-    const next: NextFunction = vi.fn();
+    const next: NextFunction = jest.fn();
     errorHandler(error, req, res, next);
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith(
@@ -898,10 +898,10 @@ describe('REQ-045: Unified Error Handling', () => {
     const error = new RateLimitError();
     const req = {} as unknown as Request;
     const res = {
-      status: vi.fn().mockReturnThis(),
-      json: vi.fn(),
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
     } as unknown as Response;
-    const next: NextFunction = vi.fn();
+    const next: NextFunction = jest.fn();
     errorHandler(error, req, res, next);
     expect(res.status).toHaveBeenCalledWith(429);
   });
@@ -914,7 +914,7 @@ describe('REQ-045: Unified Error Handling', () => {
 describe('REQ-046: WebSocket Real-time Notifications', () => {
   // TC-046-01: Job room join and progress notification
   test('TC-046-01: emitJobProgress emits to correct room', () => {
-    const mockIo = { to: vi.fn().mockReturnThis(), emit: vi.fn() };
+    const mockIo = { to: jest.fn().mockReturnThis(), emit: jest.fn() };
     emitJobProgress(mockIo as unknown as SocketServer, {
       jobId: 'job-123',
       progress: { total: 10, completed: 5, failed: 0, percentage: 50 },
@@ -925,7 +925,7 @@ describe('REQ-046: WebSocket Real-time Notifications', () => {
 
   // TC-046-02: Streaming segment notification
   test('TC-046-02: emitStreamingSegment emits streaming event', () => {
-    const mockIo = { to: vi.fn().mockReturnThis(), emit: vi.fn() };
+    const mockIo = { to: jest.fn().mockReturnThis(), emit: jest.fn() };
     emitStreamingSegment(mockIo as unknown as SocketServer, {
       jobId: 'job-123',
       fileId: 'file-1',
@@ -946,7 +946,7 @@ describe('REQ-046: WebSocket Real-time Notifications', () => {
       handshake: { auth: {} },
       data: {},
     };
-    const next = vi.fn();
+    const next = jest.fn();
     middleware(mockSocket as unknown as Parameters<typeof middleware>[0], next);
     expect(next).toHaveBeenCalledWith(expect.any(Error));
   });

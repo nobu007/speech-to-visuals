@@ -4,13 +4,13 @@ describe('MemoryCache', () => {
   let cache: MemoryCache<string>;
 
   beforeEach(() => {
-    vi.useFakeTimers();
+    jest.useFakeTimers();
     cache = new MemoryCache<string>({ maxSize: 5, defaultTtlMs: 60000, cleanupIntervalMs: 0 });
   });
 
   afterEach(() => {
     cache.destroy();
-    vi.useRealTimers();
+    jest.useRealTimers();
   });
 
   describe('基本動作', () => {
@@ -54,7 +54,7 @@ describe('MemoryCache', () => {
       shortCache.set('key', 'value');
       expect(shortCache.get('key')).toBe('value');
 
-      vi.advanceTimersByTime(1001);
+      jest.advanceTimersByTime(1001);
       expect(shortCache.get('key')).toBeUndefined();
       shortCache.destroy();
     });
@@ -63,7 +63,7 @@ describe('MemoryCache', () => {
       cache.set('short', 'value', 500);
       cache.set('long', 'value', 5000);
 
-      vi.advanceTimersByTime(501);
+      jest.advanceTimersByTime(501);
 
       expect(cache.get('short')).toBeUndefined();
       expect(cache.get('long')).toBe('value');
@@ -71,7 +71,7 @@ describe('MemoryCache', () => {
 
     test('has もTTL期限切れを正しく判定する', () => {
       cache.set('key', 'value', 1000);
-      vi.advanceTimersByTime(1001);
+      jest.advanceTimersByTime(1001);
       expect(cache.has('key')).toBe(false);
     });
   });
@@ -118,7 +118,7 @@ describe('MemoryCache', () => {
       });
 
       timedCache.set('expired', 'value');
-      vi.advanceTimersByTime(1001);
+      jest.advanceTimersByTime(1001);
 
       const removed = timedCache.cleanup();
       expect(removed).toBe(1);

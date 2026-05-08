@@ -7,9 +7,9 @@
 
 // ---------- Mocks ----------
 
-vi.mock('@/transcription', () => ({
-  TranscriptionPipeline: vi.fn().mockImplementation(() => ({
-    transcribe: vi.fn().mockResolvedValue({
+jest.mock('@/transcription', () => ({
+  TranscriptionPipeline: jest.fn().mockImplementation(() => ({
+    transcribe: jest.fn().mockResolvedValue({
       text: 'テスト文字起こし結果',
       segments: [{ start: 0, end: 2, text: 'テスト' }],
       language: 'ja',
@@ -18,35 +18,35 @@ vi.mock('@/transcription', () => ({
   })),
 }));
 
-vi.mock('@/analysis', () => ({
-  SceneSegmenter: vi.fn().mockImplementation(() => ({
-    segment: vi.fn().mockResolvedValue([{ id: 's1', start: 0, end: 2, text: 'テスト' }]),
+jest.mock('@/analysis', () => ({
+  SceneSegmenter: jest.fn().mockImplementation(() => ({
+    segment: jest.fn().mockResolvedValue([{ id: 's1', start: 0, end: 2, text: 'テスト' }]),
   })),
-  DiagramDetector: vi.fn().mockImplementation(() => ({
-    detect: vi.fn().mockResolvedValue({ diagramType: 'flow', confidence: 0.95 }),
+  DiagramDetector: jest.fn().mockImplementation(() => ({
+    detect: jest.fn().mockResolvedValue({ diagramType: 'flow', confidence: 0.95 }),
   })),
 }));
 
-vi.mock('@/visualization', () => ({
-  LayoutEngine: vi.fn().mockImplementation(() => ({
-    calculate: vi.fn().mockResolvedValue({
+jest.mock('@/visualization', () => ({
+  LayoutEngine: jest.fn().mockImplementation(() => ({
+    calculate: jest.fn().mockResolvedValue({
       scenes: [{ id: 'scene-1', elements: [], bounds: { width: 1920, height: 1080 } }],
     }),
   })),
 }));
 
-vi.mock('@/config/validate', () => ({
-  validateConfig: vi.fn(),
+jest.mock('@/config/validate', () => ({
+  validateConfig: jest.fn(),
   ValidationError: class extends Error { constructor(m: string) { super(m); } },
 }));
 
-vi.mock('@/config/schema', () => ({ ConfigSchema: {} }));
+jest.mock('@/config/schema', () => ({ ConfigSchema: {} }));
 
-vi.mock('@/config', () => ({
+jest.mock('@/config', () => ({
   config: { geminiApiKey: 'test-key', supabaseUrl: 'http://localhost:54321', supabaseAnonKey: 'test-key' },
 }));
 
-vi.mock('@/types/diagram', () => ({ SceneGraph: vi.fn().mockImplementation(() => ({})) }));
+jest.mock('@/types/diagram', () => ({ SceneGraph: jest.fn().mockImplementation(() => ({})) }));
 
 // ---------- Helpers ----------
 

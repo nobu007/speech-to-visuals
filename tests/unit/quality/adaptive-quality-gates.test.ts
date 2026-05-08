@@ -6,7 +6,7 @@
 
 
 // Mock the real-time-monitor dependency before importing the module under test
-vi.mock('@/monitoring/real-time-performance-monitor', () => ({
+jest.mock('@/monitoring/real-time-performance-monitor', () => ({
   realTimeMonitor: {
     getSnapshot: () => ({
       pipeline: { avgProcessingTime: 1000, p95ProcessingTime: 2000, p99ProcessingTime: 3000, successRate: 0.97, activeRequests: 0 },

@@ -6,15 +6,15 @@
 import { ContinuousLearner } from '../continuous-learner';
 
 // Suppress console output during tests
-let consoleSpy: vi.SpyInstance;
+let consoleSpy: jest.Mock;
 beforeEach(() => {
-  consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-  vi.spyOn(console, 'error').mockImplementation(() => {});
-  vi.spyOn(console, 'warn').mockImplementation(() => {});
+  consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+  jest.spyOn(console, 'error').mockImplementation(() => {});
+  jest.spyOn(console, 'warn').mockImplementation(() => {});
 });
 afterEach(() => {
   consoleSpy.mockRestore();
-  vi.restoreAllMocks();
+  jest.restoreAllMocks();
 });
 
 describe('ContinuousLearner', () => {
@@ -461,13 +461,13 @@ describe('ContinuousLearner', () => {
     let timerLearner: ContinuousLearner;
 
     beforeEach(() => {
-      vi.useFakeTimers();
+      jest.useFakeTimers();
       timerLearner = new ContinuousLearner(true);
     });
 
     afterEach(() => {
       timerLearner.stopLearning();
-      vi.useRealTimers();
+      jest.useRealTimers();
     });
 
     it('should run comprehensive analysis on interval tick', async () => {
@@ -486,7 +486,7 @@ describe('ContinuousLearner', () => {
       }
 
       // Advance timer to trigger the interval callback
-      await vi.advanceTimersByTimeAsync(60000);
+      await jest.advanceTimersByTimeAsync(60000);
 
       const report = timerLearner.getLearningReport();
       expect(report.totalDataPoints).toBe(15);
@@ -506,7 +506,7 @@ describe('ContinuousLearner', () => {
         );
       }
 
-      await vi.advanceTimersByTimeAsync(60000);
+      await jest.advanceTimersByTimeAsync(60000);
 
       const report = timerLearner.getLearningReport();
       expect(report.systemInsights).toBeGreaterThanOrEqual(0);
@@ -526,7 +526,7 @@ describe('ContinuousLearner', () => {
         );
       }
 
-      await vi.advanceTimersByTimeAsync(60000);
+      await jest.advanceTimersByTimeAsync(60000);
 
       const report = timerLearner.getLearningReport();
       expect(report.systemInsights).toBeGreaterThanOrEqual(0);
@@ -546,7 +546,7 @@ describe('ContinuousLearner', () => {
         );
       }
 
-      await vi.advanceTimersByTimeAsync(60000);
+      await jest.advanceTimersByTimeAsync(60000);
 
       const report = timerLearner.getLearningReport();
       expect(report.systemInsights).toBeGreaterThanOrEqual(0);
@@ -567,7 +567,7 @@ describe('ContinuousLearner', () => {
         );
       }
 
-      await vi.advanceTimersByTimeAsync(60000);
+      await jest.advanceTimersByTimeAsync(60000);
 
       const report = timerLearner.getLearningReport();
       expect(report.detectedPatterns).toBeGreaterThanOrEqual(0);
@@ -587,7 +587,7 @@ describe('ContinuousLearner', () => {
         );
       }
 
-      await vi.advanceTimersByTimeAsync(60000);
+      await jest.advanceTimersByTimeAsync(60000);
 
       const report = timerLearner.getLearningReport();
       expect(report.detectedPatterns).toBeGreaterThanOrEqual(0);
@@ -608,7 +608,7 @@ describe('ContinuousLearner', () => {
         );
       }
 
-      await vi.advanceTimersByTimeAsync(60000);
+      await jest.advanceTimersByTimeAsync(60000);
 
       const report = timerLearner.getLearningReport();
       expect(report.optimizationStrategies).toBeGreaterThanOrEqual(0);
@@ -619,7 +619,7 @@ describe('ContinuousLearner', () => {
       await timerLearner.learnFromProcessingResult('test', {}, {}, 5000, 0.9, true);
 
       // Advance timer - should not throw even with minimal data
-      await vi.advanceTimersByTimeAsync(60000);
+      await jest.advanceTimersByTimeAsync(60000);
 
       const report = timerLearner.getLearningReport();
       expect(report.totalDataPoints).toBe(1);
@@ -632,7 +632,7 @@ describe('ContinuousLearner', () => {
         );
       }
 
-      await vi.advanceTimersByTimeAsync(60000);
+      await jest.advanceTimersByTimeAsync(60000);
 
       const report = timerLearner.getLearningReport();
       expect(report.systemInsights).toBe(0);

@@ -5,7 +5,7 @@
  * stage-specific quality scores during pipeline execution.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
 import {
   PipelineOrchestrator,
 } from '@/pipeline/pipeline-orchestrator';
@@ -33,12 +33,12 @@ function makeValidPipelineInput(): PipelineInput {
 // ---------- Tests ----------
 
 describe('PipelineOrchestrator QualityMonitor Integration (REQ-088)', () => {
-  let recordMetricsSpy: ReturnType<typeof vi.spyOn>;
+  let recordMetricsSpy: ReturnType<typeof jest.spyOn>;
 
   beforeEach(() => {
     // Spy on QualityMonitor.recordMetrics to verify it is called
     const monitor = QualityMonitor.getInstance();
-    recordMetricsSpy = vi.spyOn(monitor, 'recordMetrics').mockImplementation(() => {});
+    recordMetricsSpy = jest.spyOn(monitor, 'recordMetrics').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -129,7 +129,7 @@ describe('PipelineOrchestrator QualityMonitor Integration (REQ-088)', () => {
   it('gracefully handles QualityMonitor initialization failure', async () => {
     // Force QualityMonitor.getInstance to throw
     const originalGetInstance = QualityMonitor.getInstance;
-    vi.spyOn(QualityMonitor, 'getInstance').mockImplementation(() => {
+    jest.spyOn(QualityMonitor, 'getInstance').mockImplementation(() => {
       throw new Error('QualityMonitor unavailable');
     });
 
@@ -139,7 +139,7 @@ describe('PipelineOrchestrator QualityMonitor Integration (REQ-088)', () => {
 
     expect(result.success).toBe(true);
 
-    vi.restoreAllMocks();
+    jest.restoreAllMocks();
   });
 
   it('quality scores are reasonable numeric values', async () => {

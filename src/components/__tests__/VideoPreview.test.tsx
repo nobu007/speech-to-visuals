@@ -30,32 +30,32 @@ import type { SceneGraph } from '@/types/diagram';
 // Store captured player ref for testing event handlers
 // We need a stable mock player object that persists across renders
 let capturedPlayerRef: {
-  play: vi.Mock;
-  pause: vi.Mock;
-  seekTo: vi.Mock;
-  addEventListener: vi.Mock;
-  removeEventListener: vi.Mock;
+  play: jest.Mock;
+  pause: jest.Mock;
+  seekTo: jest.Mock;
+  addEventListener: jest.Mock;
+  removeEventListener: jest.Mock;
 } | null = null;
 
 // Track registered event listeners by the VideoPreview useEffect
 let registeredListeners: Record<string, Array<(...args: unknown[]) => void>> = {}; // eslint-disable-line prefer-const -- reassigned in beforeEach
 
 // Mock @remotion/player - Player component can't render in Jest
-vi.mock('@remotion/player', () => {
+jest.mock('@remotion/player', () => {
   const MockPlayer = React.forwardRef<
-    { play: vi.Mock; pause: vi.Mock; seekTo: vi.Mock; addEventListener: vi.Mock; removeEventListener: vi.Mock },
+    { play: jest.Mock; pause: jest.Mock; seekTo: jest.Mock; addEventListener: jest.Mock; removeEventListener: jest.Mock },
     Record<string, unknown>
   >((_props, ref) => {
     // Use useMemo to create a stable mock player that persists across renders
     const mockPlayer = React.useMemo(() => ({
-      play: vi.fn(),
-      pause: vi.fn(),
-      seekTo: vi.fn(),
-      addEventListener: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
+      play: jest.fn(),
+      pause: jest.fn(),
+      seekTo: jest.fn(),
+      addEventListener: jest.fn((event: string, handler: (...args: unknown[]) => void) => {
         if (!registeredListeners[event]) registeredListeners[event] = [];
         registeredListeners[event].push(handler);
       }),
-      removeEventListener: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
+      removeEventListener: jest.fn((event: string, handler: (...args: unknown[]) => void) => {
         if (registeredListeners[event]) {
           registeredListeners[event] = registeredListeners[event].filter((h) => h !== handler);
         }
@@ -74,7 +74,7 @@ vi.mock('@remotion/player', () => {
 });
 
 // Mock @/remotion/Video - calculateTotalFrames and SpeechToVisualsVideo
-vi.mock('@/remotion/Video', () => ({
+jest.mock('@/remotion/Video', () => ({
   SpeechToVisualsVideo: () => null,
   calculateTotalFrames: (scenes: SceneGraph[], fps: number) => {
     if (!scenes || scenes.length === 0) return fps * 10;
@@ -85,7 +85,7 @@ vi.mock('@/remotion/Video', () => ({
 }));
 
 // Mock UI components to simplify rendering
-vi.mock('@/components/ui/button', () => ({
+jest.mock('@/components/ui/button', () => ({
   Button: ({ children, onClick, disabled, 'data-testid': testId, 'aria-label': ariaLabel, variant, ...props }: Record<string, unknown>) =>
     React.createElement(
       'button',
@@ -94,7 +94,7 @@ vi.mock('@/components/ui/button', () => ({
     ),
 }));
 
-vi.mock('@/components/ui/slider', () => ({
+jest.mock('@/components/ui/slider', () => ({
   Slider: ({ value, min, max, step, onValueChange, 'data-testid': testId, ...props }: Record<string, unknown>) =>
     React.createElement('input', {
       type: 'range',
@@ -108,7 +108,7 @@ vi.mock('@/components/ui/slider', () => ({
     }),
 }));
 
-vi.mock('@/components/ui/select', () => {
+jest.mock('@/components/ui/select', () => {
   // Use React context to share value/onValueChange between Select, SelectTrigger, and SelectItem.
   const SelectContext = React.createContext<{ value: string | null; onValueChange: ((val: string) => void) | null }>({
     value: null,

@@ -22,9 +22,9 @@ import type { Request, Response, NextFunction } from 'express';
 // Mocks for heavy pipeline dependencies
 // ---------------------------------------------------------------------------
 
-vi.mock('@/pipeline/simple-pipeline', () => ({
+jest.mock('@/pipeline/simple-pipeline', () => ({
   simplePipeline: {
-    process: vi.fn().mockResolvedValue({
+    process: jest.fn().mockResolvedValue({
       success: true,
       transcript: 'test transcript',
       scenes: [],
@@ -33,10 +33,10 @@ vi.mock('@/pipeline/simple-pipeline', () => ({
   },
 }));
 
-vi.mock('@/pipeline/adaptive-quality-presets', () => ({
+jest.mock('@/pipeline/adaptive-quality-presets', () => ({
   adaptiveQualityPresets: {
-    setPreset: vi.fn(),
-    toPipelineOptions: vi.fn().mockReturnValue({
+    setPreset: jest.fn(),
+    toPipelineOptions: jest.fn().mockReturnValue({
       audioFile: new File(['audio'], 'test.wav', { type: 'audio/wav' }),
       options: {},
     }),
@@ -45,9 +45,9 @@ vi.mock('@/pipeline/adaptive-quality-presets', () => ({
 
 // Suppress console.log from BatchProcessingAPI async processing to prevent
 // "Cannot log after tests are done" warnings
-let consoleLogSpy: vi.SpyInstance;
+let consoleLogSpy: jest.SpyInstance;
 beforeAll(() => {
-  consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 });
 afterAll(() => {
   consoleLogSpy.mockRestore();
@@ -540,8 +540,8 @@ describe('Batch Routes - Express Router', () => {
 describe('Error Handler Middleware', () => {
   function createMockRes() {
     const res: Record<string, unknown> = {
-      status: vi.fn().mockReturnThis(),
-      json: vi.fn().mockReturnThis(),
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn().mockReturnThis(),
     };
     return res as unknown as Response;
   }
@@ -550,7 +550,7 @@ describe('Error Handler Middleware', () => {
     const err = new AppError(400, 'VALIDATION_ERROR', 'Invalid input');
     const req = {} as Request;
     const res = createMockRes();
-    const next = vi.fn();
+    const next = jest.fn();
 
     errorHandler(err, req, res, next);
 
@@ -570,7 +570,7 @@ describe('Error Handler Middleware', () => {
     const err = new Error('Something unexpected');
     const req = {} as Request;
     const res = createMockRes();
-    const next = vi.fn();
+    const next = jest.fn();
 
     errorHandler(err, req, res, next);
 
@@ -590,7 +590,7 @@ describe('Error Handler Middleware', () => {
     const err = new AppError(422, 'VALIDATION_ERROR', 'Field missing', { field: 'email' });
     const req = {} as Request;
     const res = createMockRes();
-    const next = vi.fn();
+    const next = jest.fn();
 
     errorHandler(err, req, res, next);
 

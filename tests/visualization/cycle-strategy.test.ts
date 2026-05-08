@@ -9,14 +9,14 @@ import { CycleLayoutStrategy, CycleStrategy } from '@/visualization/strategies/c
 import { NodeDatum, EdgeDatum } from '@/types/diagram';
 
 // Mock layout-engine-v2 functions
-const mockCalculateCanvasSize = vi.fn().mockReturnValue({ width: 1920, height: 1080 });
-const mockCalculateMetrics = vi.fn().mockReturnValue({
+const mockCalculateCanvasSize = jest.fn().mockReturnValue({ width: 1920, height: 1080 });
+const mockCalculateMetrics = jest.fn().mockReturnValue({
   overlapCount: 0,
   edgeCrossings: 0,
   aspectRatio: 16 / 9,
 });
 
-vi.mock('@/visualization/layout-engine-v2', () => ({
+jest.mock('@/visualization/layout-engine-v2', () => ({
   calculateCanvasSize: (...args: unknown[]) => mockCalculateCanvasSize(...args),
   calculateMetrics: (...args: unknown[]) => mockCalculateMetrics(...args),
 }));
@@ -42,8 +42,8 @@ describe('CycleLayoutStrategy', () => {
   let strategy: CycleLayoutStrategy;
 
   beforeEach(() => {
-    vi.spyOn(console, 'log').mockImplementation(() => {});
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
     mockCalculateCanvasSize.mockReturnValue({ width: 1920, height: 1080 });
     mockCalculateMetrics.mockReturnValue({
       overlapCount: 0,

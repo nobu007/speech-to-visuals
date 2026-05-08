@@ -668,5 +668,8 @@ Fallback LLM
 - [TASK-0133: E2E 図解品質パイプライン統合テスト](tasks/TASK-0133.md)
 - [speech-to-visuals タスク概要](tasks/overview.md)
 - [Speech-to-Visuals ユーザストーリー](user-stories.md)
+- [TASK-0134: PipelineOrchestrator QualityMonitor 統合](tasks/TASK-0134.md)
+- [TASK-0135: Phase 31 品質モジュール専用ユニットテスト](tasks/TASK-0135.md)
+- [TASK-0136: プロダクションコード console.log 構造化ログ化](tasks/TASK-0136.md)
 
 <!-- spine:children:end -->

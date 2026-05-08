@@ -31,8 +31,8 @@ import {
 // Mock external dependencies so we don't need real audio/LLM infrastructure
 // ---------------------------------------------------------------------------
 
-vi.mock('@/transcription', () => {
-  const mockTranscribe = vi.fn().mockResolvedValue({
+jest.mock('@/transcription', () => {
+  const mockTranscribe = jest.fn().mockResolvedValue({
     success: true,
     segments: [
       { id: 0, start: 0, end: 5, text: 'Hello world', confidence: 0.9 },
@@ -43,15 +43,15 @@ vi.mock('@/transcription', () => {
   });
 
   return {
-    TranscriptionPipeline: vi.fn().mockImplementation(() => ({
+    TranscriptionPipeline: jest.fn().mockImplementation(() => ({
       transcribe: mockTranscribe,
     })),
     __mockTranscribe: mockTranscribe,
   };
 });
 
-vi.mock('@/analysis', () => {
-  const mockSegment = vi.fn().mockResolvedValue([
+jest.mock('@/analysis', () => {
+  const mockSegment = jest.fn().mockResolvedValue([
     {
       startMs: 0,
       endMs: 5000,
@@ -70,7 +70,7 @@ vi.mock('@/analysis', () => {
     },
   ]);
 
-  const mockAnalyze = vi.fn().mockResolvedValue({
+  const mockAnalyze = jest.fn().mockResolvedValue({
     type: 'flow',
     confidence: 0.9,
     nodes: [
@@ -82,10 +82,10 @@ vi.mock('@/analysis', () => {
   });
 
   return {
-    SceneSegmenter: vi.fn().mockImplementation(() => ({
+    SceneSegmenter: jest.fn().mockImplementation(() => ({
       segment: mockSegment,
     })),
-    DiagramDetector: vi.fn().mockImplementation(() => ({
+    DiagramDetector: jest.fn().mockImplementation(() => ({
       analyze: mockAnalyze,
     })),
     __mockSegment: mockSegment,
@@ -93,8 +93,8 @@ vi.mock('@/analysis', () => {
   };
 });
 
-vi.mock('@/visualization', () => {
-  const mockGenerateLayout = vi.fn().mockResolvedValue({
+jest.mock('@/visualization', () => {
+  const mockGenerateLayout = jest.fn().mockResolvedValue({
     success: true,
     layout: {
       nodes: [
@@ -108,17 +108,18 @@ vi.mock('@/visualization', () => {
   });
 
   return {
-    LayoutEngine: vi.fn().mockImplementation(() => ({
+    LayoutEngine: jest.fn().mockImplementation(() => ({
       generateLayout: mockGenerateLayout,
     })),
     __mockGenerateLayout: mockGenerateLayout,
   };
 });
 
-vi.mock('@/optimization/smart-parameter-tuner', () => {
+jest.mock('@/optimization/smart-parameter-tuner', () => {
   return {
-    default: vi.fn().mockImplementation(() => ({
-      analyzeContent: vi.fn().mockResolvedValue({
+    __esModule: true,
+    default: jest.fn().mockImplementation(() => ({
+      analyzeContent: jest.fn().mockResolvedValue({
         speechRate: 120,
         complexity: 'medium',
         domain: 'general',
@@ -126,7 +127,7 @@ vi.mock('@/optimization/smart-parameter-tuner', () => {
         keywordDensity: 0.3,
         diagramLikelihood: 0.5,
       }),
-      optimizeParameters: vi.fn().mockResolvedValue({
+      optimizeParameters: jest.fn().mockResolvedValue({
         parameters: {
           confidenceThreshold: 0.75,
           segmentMinLength: 3000,
@@ -142,8 +143,8 @@ vi.mock('@/optimization/smart-parameter-tuner', () => {
   };
 });
 
-vi.mock('@/config/validate', () => ({
-  validateConfig: vi.fn().mockReturnValue([]),
+jest.mock('@/config/validate', () => ({
+  validateConfig: jest.fn().mockReturnValue([]),
   ValidationError: class extends Error {
     field: string;
     constructor(field: string, message: string) {
@@ -154,11 +155,11 @@ vi.mock('@/config/validate', () => ({
 }));
 
 // Mock the performance/intelligent-cache used by EnhancedErrorRecovery
-vi.mock('@/performance/intelligent-cache', () => ({
+jest.mock('@/performance/intelligent-cache', () => ({
   globalCache: {
-    findSimilar: vi.fn().mockResolvedValue(null),
-    clear: vi.fn().mockResolvedValue(undefined),
-    getStats: vi.fn().mockReturnValue({ hitRate: 0.5 }),
+    findSimilar: jest.fn().mockResolvedValue(null),
+    clear: jest.fn().mockResolvedValue(undefined),
+    getStats: jest.fn().mockReturnValue({ hitRate: 0.5 }),
   },
 }));
 
@@ -793,10 +794,10 @@ describe('PipelineOrchestrator Integration', () => {
       originalSetInterval = global.setInterval;
     });
 
-    let consoleSpy: vi.SpyInstance;
+    let consoleSpy: jest.SpyInstance;
 
     beforeEach(() => {
-      consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
       errorRecovery = new EnhancedErrorRecovery();
     });
 

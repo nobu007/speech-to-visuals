@@ -5,9 +5,9 @@ import {
 import type { SimplePipelineResult } from '@/pipeline/simple-pipeline';
 
 // Mock the dynamic import of actualVideoRenderer
-vi.mock('@/lib/actualVideoRenderer', () => ({
+jest.mock('@/lib/actualVideoRenderer', () => ({
   actualVideoRenderer: {
-    renderVideo: vi.fn((_config: unknown, onProgress: (p: { progress: number; message: string }) => void) => {
+    renderVideo: jest.fn((_config: unknown, onProgress: (p: { progress: number; message: string }) => void) => {
       onProgress({ progress: 50, message: 'Rendering...' });
       return Promise.resolve();
     }),
@@ -56,9 +56,9 @@ function makeValidPipelineResult(): SimplePipelineResult {
 
 describe('VideoGenerator', () => {
   beforeEach(() => {
-    vi.spyOn(console, 'log').mockImplementation(() => {});
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   describe('constructor', () => {
@@ -93,7 +93,7 @@ describe('VideoGenerator', () => {
 
     it('should call progress callback', async () => {
       const gen = new VideoGenerator();
-      const progress = vi.fn();
+      const progress = jest.fn();
 
       await gen.generateVideo(makeValidPipelineResult(), progress);
 
@@ -296,7 +296,7 @@ describe('generateVideoFromPipeline', () => {
   });
 
   it('should accept progress callback', async () => {
-    const progress = vi.fn();
+    const progress = jest.fn();
     await generateVideoFromPipeline(makeValidPipelineResult(), undefined, progress);
     expect(progress).toHaveBeenCalled();
   });

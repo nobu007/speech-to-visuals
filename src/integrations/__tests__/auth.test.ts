@@ -5,12 +5,12 @@ import * as jwt from 'jsonwebtoken';
 // 1) Auth functions tests (signIn / signOut / signUp / onAuthStateChange)
 // ---------------------------------------------------------------------------
 
-const mockSignInWithPassword: any = vi.fn();
-const mockSignUp: any = vi.fn();
-const mockSignOut: any = vi.fn();
-const mockOnAuthStateChange: any = vi.fn();
+const mockSignInWithPassword: any = jest.fn();
+const mockSignUp: any = jest.fn();
+const mockSignOut: any = jest.fn();
+const mockOnAuthStateChange: any = jest.fn();
 
-vi.mock('@/integrations/supabase/client', () => ({
+jest.mock('@/integrations/supabase/client', () => ({
   getSupabaseClient: () => ({
     auth: {
       signInWithPassword: mockSignInWithPassword,
@@ -19,7 +19,7 @@ vi.mock('@/integrations/supabase/client', () => ({
       onAuthStateChange: mockOnAuthStateChange,
     },
   }),
-  resetSupabaseClient: vi.fn(),
+  resetSupabaseClient: jest.fn(),
 }));
 
 // Import after mocks are set up
@@ -121,10 +121,10 @@ describe('Auth functions', () => {
 
   describe('onAuthStateChange', () => {
     it('should register an auth state change listener', () => {
-      const mockSubscription = { unsubscribe: vi.fn() };
+      const mockSubscription = { unsubscribe: jest.fn() };
       mockOnAuthStateChange.mockReturnValue({ data: { subscription: mockSubscription } });
 
-      const callback = vi.fn();
+      const callback = jest.fn();
       const result = onAuthStateChange(callback);
 
       expect(mockOnAuthStateChange).toHaveBeenCalledWith(callback);
@@ -153,14 +153,14 @@ describe('authMiddleware', () => {
       headers: overrides.headers || {},
     } as unknown as AuthenticatedRequest;
 
-    const resJson = vi.fn();
-    const resStatus = vi.fn().mockReturnValue({ json: resJson });
+    const resJson = jest.fn();
+    const resStatus = jest.fn().mockReturnValue({ json: resJson });
     const res = {
       status: resStatus,
       json: resJson,
     } as unknown as any;
 
-    const next = vi.fn();
+    const next = jest.fn();
 
     return { req, res, resStatus, resJson, next };
   }

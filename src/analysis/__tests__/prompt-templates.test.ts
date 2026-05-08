@@ -13,11 +13,11 @@ import { getGeminiAnalyzerPrompt, getContentAnalyzerPrompt, type PromptTemplate 
 import { detectLanguage } from '../language-detector';
 
 // Suppress console output
-let consoleLogSpy: vi.SpyInstance;
+let consoleLogSpy: jest.SpyInstance;
 
 beforeEach(() => {
-  vi.clearAllMocks();
-  consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  jest.clearAllMocks();
+  consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 });
 
 afterEach(() => {

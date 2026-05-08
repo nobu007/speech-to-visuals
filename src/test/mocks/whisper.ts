@@ -33,8 +33,8 @@ export function createMockWhisperResult(
  */
 export function createMockWhisperTranscriber() {
   return {
-    transcribe: vi.fn().mockResolvedValue(createMockWhisperResult()),
-    setModel: vi.fn(),
-    getLanguage: vi.fn().mockReturnValue('en'),
+    transcribe: jest.fn().mockResolvedValue(createMockWhisperResult()),
+    setModel: jest.fn(),
+    getLanguage: jest.fn().mockReturnValue('en'),
   };
 }

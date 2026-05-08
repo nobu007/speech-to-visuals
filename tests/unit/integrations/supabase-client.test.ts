@@ -15,7 +15,7 @@ describe('ISS-023: Browser-Safe env in supabase client resolvers', () => {
       writable: true,
       configurable: true,
     });
-    vi.resetModules();
+    jest.resetModules();
   });
 
   it('resolveSupabaseUrl returns empty string when process is undefined', async () => {
@@ -40,7 +40,7 @@ describe('ISS-023: Browser-Safe env in supabase client resolvers', () => {
     const origKey = process.env.SUPABASE_ANON_KEY;
     delete process.env.SUPABASE_URL;
     delete process.env.SUPABASE_ANON_KEY;
-    vi.resetModules();
+    jest.resetModules();
 
     try {
       const { getSupabaseClient } = await import('@/integrations/supabase/client');

@@ -12,7 +12,7 @@ describe('ISS-045: Security environment variable validation', () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
-    vi.resetModules();
+    jest.resetModules();
     process.env = { ...originalEnv };
   });
 

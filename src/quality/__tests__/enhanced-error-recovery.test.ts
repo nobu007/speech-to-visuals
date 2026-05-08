@@ -9,15 +9,15 @@ import { EnhancedErrorRecovery } from '../enhanced-error-recovery';
 import { globalErrorRecovery } from '../enhanced-error-recovery';
 
 // Mock the intelligent-cache module
-vi.mock('../../performance/intelligent-cache', () => ({
+jest.mock('../../performance/intelligent-cache', () => ({
   globalCache: {
-    findSimilar: vi.fn().mockResolvedValue(null),
-    getStats: vi.fn().mockReturnValue({ hitRate: 0.5 }),
-    clear: vi.fn().mockResolvedValue(undefined),
-    get: vi.fn().mockResolvedValue(null),
-    set: vi.fn(),
-    has: vi.fn().mockReturnValue(false),
-    delete: vi.fn().mockReturnValue(false),
+    findSimilar: jest.fn().mockResolvedValue(null),
+    getStats: jest.fn().mockReturnValue({ hitRate: 0.5 }),
+    clear: jest.fn().mockResolvedValue(undefined),
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn(),
+    has: jest.fn().mockReturnValue(false),
+    delete: jest.fn().mockReturnValue(false),
   },
 }));
 
@@ -52,7 +52,7 @@ describe('EnhancedErrorRecovery', () => {
   let recovery: EnhancedErrorRecovery;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
     recovery = createInstance();
   });
 
@@ -105,7 +105,7 @@ describe('EnhancedErrorRecovery', () => {
   // ========================================
   describe('retryWithBackoff', () => {
     it('should return success on first attempt', async () => {
-      const operation = vi.fn().mockResolvedValue('ok');
+      const operation = jest.fn().mockResolvedValue('ok');
       const result = await recovery.retryWithBackoff(operation);
       expect(result.success).toBe(true);
       expect(result.result).toBe('ok');
@@ -114,7 +114,7 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     it('should retry on failure and eventually succeed', async () => {
-      const operation = vi.fn()
+      const operation = jest.fn()
         .mockRejectedValueOnce(new Error('fail 1'))
         .mockRejectedValueOnce(new Error('fail 2'))
         .mockResolvedValue('recovered');
@@ -130,7 +130,7 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     it('should return failure after all retries exhausted', async () => {
-      const operation = vi.fn().mockRejectedValue(new Error('always fail'));
+      const operation = jest.fn().mockRejectedValue(new Error('always fail'));
       const result = await recovery.retryWithBackoff(operation, {
         maxRetries: 2,
         initialDelayMs: 10,
@@ -144,7 +144,7 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     it('should use default options when none provided', async () => {
-      const operation = vi.fn().mockRejectedValue(new Error('fail'));
+      const operation = jest.fn().mockRejectedValue(new Error('fail'));
       const result = await recovery.retryWithBackoff(operation);
       expect(result.success).toBe(false);
       // Default maxRetries is 3, so total attempts = 4
@@ -152,14 +152,14 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     it('should handle partial options', async () => {
-      const operation = vi.fn().mockResolvedValue('ok');
+      const operation = jest.fn().mockResolvedValue('ok');
       const result = await recovery.retryWithBackoff(operation, { maxRetries: 1 });
       expect(result.success).toBe(true);
       expect(result.attempts).toBe(1);
     });
 
     it('should handle non-Error thrown values', async () => {
-      const operation = vi.fn()
+      const operation = jest.fn()
         .mockRejectedValueOnce('string error')
         .mockResolvedValue('ok');
       const result = await recovery.retryWithBackoff(operation, {
@@ -170,7 +170,7 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     it('should respect maxDelayMs cap', async () => {
-      const operation = vi.fn()
+      const operation = jest.fn()
         .mockRejectedValueOnce(new Error('fail'))
         .mockResolvedValue('ok');
       const start = Date.now();
@@ -186,14 +186,14 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     it('should succeed with zero retries allowed', async () => {
-      const operation = vi.fn().mockResolvedValue('ok');
+      const operation = jest.fn().mockResolvedValue('ok');
       const result = await recovery.retryWithBackoff(operation, { maxRetries: 0 });
       expect(result.success).toBe(true);
       expect(result.attempts).toBe(1);
     });
 
     it('should fail with zero retries when operation fails', async () => {
-      const operation = vi.fn().mockRejectedValue(new Error('fail'));
+      const operation = jest.fn().mockRejectedValue(new Error('fail'));
       const result = await recovery.retryWithBackoff(operation, { maxRetries: 0 });
       expect(result.success).toBe(false);
       expect(result.attempts).toBe(1);
@@ -205,8 +205,8 @@ describe('EnhancedErrorRecovery', () => {
   // ========================================
   describe('executeWithFallback', () => {
     it('should succeed with primary operation', async () => {
-      const primary = vi.fn().mockResolvedValue('primary result');
-      const fallback = vi.fn().mockResolvedValue('fallback result');
+      const primary = jest.fn().mockResolvedValue('primary result');
+      const fallback = jest.fn().mockResolvedValue('fallback result');
 
       const result = await recovery.executeWithFallback(primary, fallback);
 
@@ -217,8 +217,8 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     it('should fall back when primary fails', async () => {
-      const primary = vi.fn().mockRejectedValue(new Error('primary fail'));
-      const fallback = vi.fn().mockResolvedValue('fallback result');
+      const primary = jest.fn().mockRejectedValue(new Error('primary fail'));
+      const fallback = jest.fn().mockResolvedValue('fallback result');
 
       const result = await recovery.executeWithFallback(primary, fallback);
 
@@ -230,8 +230,8 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     it('should return failure when both primary and fallback fail', async () => {
-      const primary = vi.fn().mockRejectedValue(new Error('primary fail'));
-      const fallback = vi.fn().mockRejectedValue(new Error('fallback fail'));
+      const primary = jest.fn().mockRejectedValue(new Error('primary fail'));
+      const fallback = jest.fn().mockRejectedValue(new Error('fallback fail'));
 
       const result = await recovery.executeWithFallback(primary, fallback);
 
@@ -242,8 +242,8 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     it('should handle non-Error thrown values in primary', async () => {
-      const primary = vi.fn().mockRejectedValue('string error');
-      const fallback = vi.fn().mockResolvedValue('fallback result');
+      const primary = jest.fn().mockRejectedValue('string error');
+      const fallback = jest.fn().mockResolvedValue('fallback result');
 
       const result = await recovery.executeWithFallback(primary, fallback);
 
@@ -253,8 +253,8 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     it('should handle non-Error thrown values in fallback', async () => {
-      const primary = vi.fn().mockRejectedValue(new Error('primary fail'));
-      const fallback = vi.fn().mockRejectedValue('string error');
+      const primary = jest.fn().mockRejectedValue(new Error('primary fail'));
+      const fallback = jest.fn().mockRejectedValue('string error');
 
       const result = await recovery.executeWithFallback(primary, fallback);
 
@@ -263,8 +263,8 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     it('should use default context when not provided', async () => {
-      const primary = vi.fn().mockResolvedValue('ok');
-      const fallback = vi.fn();
+      const primary = jest.fn().mockResolvedValue('ok');
+      const fallback = jest.fn();
 
       const result = await recovery.executeWithFallback(primary, fallback);
 
@@ -272,8 +272,8 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     it('should pass context with stage to error log', async () => {
-      const primary = vi.fn().mockRejectedValue(new Error('fail'));
-      const fallback = vi.fn().mockResolvedValue('ok');
+      const primary = jest.fn().mockRejectedValue(new Error('fail'));
+      const fallback = jest.fn().mockResolvedValue('ok');
 
       const result = await recovery.executeWithFallback(primary, fallback, {
         stage: 'transcription',
@@ -284,8 +284,8 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     it('should handle undefined context gracefully', async () => {
-      const primary = vi.fn().mockResolvedValue('ok');
-      const fallback = vi.fn();
+      const primary = jest.fn().mockResolvedValue('ok');
+      const fallback = jest.fn();
 
       const result = await recovery.executeWithFallback(primary, fallback, undefined as Parameters<typeof recovery.executeWithFallback>[2]);
 
@@ -900,7 +900,7 @@ describe('EnhancedErrorRecovery', () => {
   describe('cache recovery strategy', () => {
     it('should use cached results when available', async () => {
       // Import the mocked globalCache
-      const { globalCache } = vi.requireMock('../../performance/intelligent-cache');
+      const { globalCache } = jest.requireMock('../../performance/intelligent-cache');
 
       globalCache.findSimilar.mockResolvedValueOnce({
         data: { cached: 'result', confidence: 0.9 },
@@ -917,7 +917,7 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     it('should handle cache miss gracefully', async () => {
-      const { globalCache } = vi.requireMock('../../performance/intelligent-cache');
+      const { globalCache } = jest.requireMock('../../performance/intelligent-cache');
       globalCache.findSimilar.mockResolvedValueOnce(null);
 
       const context = createErrorContext({
@@ -1248,7 +1248,7 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     it('should handle memory cleanup action', async () => {
-      const { globalCache } = vi.requireMock('../../performance/intelligent-cache');
+      const { globalCache } = jest.requireMock('../../performance/intelligent-cache');
       globalCache.clear.mockResolvedValueOnce(undefined);
 
       // Force the system into a state where preventive actions trigger

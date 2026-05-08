@@ -6,17 +6,17 @@ export interface MockSocket {
   id: string;
   handshake: { auth: { token?: string } };
   data: Record<string, unknown>;
-  on: vi.Mock;
-  emit: vi.Mock;
-  join: vi.Mock;
-  leave: vi.Mock;
-  disconnect: vi.Mock;
+  on: jest.Mock;
+  emit: jest.Mock;
+  join: jest.Mock;
+  leave: jest.Mock;
+  disconnect: jest.Mock;
 }
 
 export interface MockIo {
-  on: vi.Mock;
-  to: vi.Mock;
-  emit: vi.Mock;
+  on: jest.Mock;
+  to: jest.Mock;
+  emit: jest.Mock;
 }
 
 export function createMockSocket(): MockSocket {
@@ -24,18 +24,18 @@ export function createMockSocket(): MockSocket {
     id: 'socket-1',
     handshake: { auth: {} },
     data: {},
-    on: vi.fn(),
-    emit: vi.fn(),
-    join: vi.fn(),
-    leave: vi.fn(),
-    disconnect: vi.fn(),
+    on: jest.fn(),
+    emit: jest.fn(),
+    join: jest.fn(),
+    leave: jest.fn(),
+    disconnect: jest.fn(),
   };
 }
 
 export function createMockIo(): MockIo {
   return {
-    on: vi.fn(),
-    to: vi.fn().mockReturnValue({ emit: vi.fn() }),
-    emit: vi.fn(),
+    on: jest.fn(),
+    to: jest.fn().mockReturnValue({ emit: jest.fn() }),
+    emit: jest.fn(),
   };
 }

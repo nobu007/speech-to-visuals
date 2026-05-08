@@ -2,41 +2,41 @@
  * Mock factory for the Supabase client.
  *
  * Provides chainable query builders for from/insert/update/delete,
- * storage operations, and auth helpers -- all backed by vi.fn().
+ * storage operations, and auth helpers -- all backed by jest.fn().
  */
 
 interface MockQueryBuilder {
-  select: vi.Mock;
-  eq: vi.Mock;
-  single: vi.Mock;
+  select: jest.Mock;
+  eq: jest.Mock;
+  single: jest.Mock;
 }
 
 interface MockInsertBuilder {
-  select: vi.Mock;
-  single: vi.Mock;
+  select: jest.Mock;
+  single: jest.Mock;
 }
 
 interface MockUpdateDeleteBuilder {
-  eq: vi.Mock;
+  eq: jest.Mock;
 }
 
 interface MockStorageBucket {
-  upload: vi.Mock;
-  download: vi.Mock;
-  getPublicUrl: vi.Mock;
-  remove: vi.Mock;
+  upload: jest.Mock;
+  download: jest.Mock;
+  getPublicUrl: jest.Mock;
+  remove: jest.Mock;
 }
 
 interface MockAuth {
-  signInWithPassword: vi.Mock;
-  signOut: vi.Mock;
-  getSession: vi.Mock;
-  onAuthStateChange: vi.Mock;
+  signInWithPassword: jest.Mock;
+  signOut: jest.Mock;
+  getSession: jest.Mock;
+  onAuthStateChange: jest.Mock;
 }
 
 export interface MockSupabaseClient {
-  from: vi.Mock;
-  storage: { from: vi.Mock };
+  from: jest.Mock;
+  storage: { from: jest.Mock };
   auth: MockAuth;
 }
 
@@ -47,26 +47,26 @@ export interface MockSupabaseClient {
  *   supabase.from('table').select().eq('id', '1').single()
  */
 export function createMockSupabaseClient(): MockSupabaseClient {
-  const queryEqFn = vi.fn().mockResolvedValue({ data: null, error: null });
+  const queryEqFn = jest.fn().mockResolvedValue({ data: null, error: null });
   const querySingleFn = jest
     .fn()
     .mockResolvedValue({ data: null, error: null });
-  const querySelectFn = vi.fn().mockReturnValue({
+  const querySelectFn = jest.fn().mockReturnValue({
     eq: queryEqFn,
     single: querySingleFn,
-  }) as unknown as vi.Mock;
+  }) as unknown as jest.Mock;
 
   const insertSingleFn = jest
     .fn()
     .mockResolvedValue({ data: { id: 'mock-id' }, error: null });
-  const insertSelectFn = vi.fn().mockReturnValue({ single: insertSingleFn });
-  const insertFn = vi.fn().mockReturnValue({ select: insertSelectFn });
+  const insertSelectFn = jest.fn().mockReturnValue({ single: insertSingleFn });
+  const insertFn = jest.fn().mockReturnValue({ select: insertSelectFn });
 
-  const updateEqFn = vi.fn().mockResolvedValue({ data: null, error: null });
-  const updateFn = vi.fn().mockReturnValue({ eq: updateEqFn });
+  const updateEqFn = jest.fn().mockResolvedValue({ data: null, error: null });
+  const updateFn = jest.fn().mockReturnValue({ eq: updateEqFn });
 
-  const deleteEqFn = vi.fn().mockResolvedValue({ data: null, error: null });
-  const deleteFn = vi.fn().mockReturnValue({ eq: deleteEqFn });
+  const deleteEqFn = jest.fn().mockResolvedValue({ data: null, error: null });
+  const deleteFn = jest.fn().mockReturnValue({ eq: deleteEqFn });
 
   const storageUploadFn = jest
     .fn()
@@ -82,14 +82,14 @@ export function createMockSupabaseClient(): MockSupabaseClient {
     .mockResolvedValue({ data: null, error: null });
 
   return {
-    from: vi.fn().mockReturnValue({
+    from: jest.fn().mockReturnValue({
       select: querySelectFn,
       insert: insertFn,
       update: updateFn,
       delete: deleteFn,
     }),
     storage: {
-      from: vi.fn().mockReturnValue({
+      from: jest.fn().mockReturnValue({
         upload: storageUploadFn,
         download: storageDownloadFn,
         getPublicUrl: storageGetPublicUrlFn,
@@ -103,10 +103,10 @@ export function createMockSupabaseClient(): MockSupabaseClient {
           data: { user: { id: 'mock-user-id' } },
           error: null,
         }),
-      signOut: vi.fn().mockResolvedValue({ error: null }),
-      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
-      onAuthStateChange: vi.fn().mockReturnValue({
-        data: { subscription: { unsubscribe: vi.fn() } },
+      signOut: jest.fn().mockResolvedValue({ error: null }),
+      getSession: jest.fn().mockResolvedValue({ data: { session: null } }),
+      onAuthStateChange: jest.fn().mockReturnValue({
+        data: { subscription: { unsubscribe: jest.fn() } },
       }),
     },
   };

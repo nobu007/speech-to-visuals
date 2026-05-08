@@ -5,11 +5,11 @@ import {
 
 describe('ComputationCache', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
+    jest.useFakeTimers();
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    jest.useRealTimers();
   });
 
   describe('基本キャッシュ動作', () => {
@@ -73,7 +73,7 @@ describe('ComputationCache', () => {
       expect(callCount).toBe(1);
 
       // TTL expires
-      vi.advanceTimersByTime(1001);
+      jest.advanceTimersByTime(1001);
 
       const result = await cache.getOrCompute('key', async () => {
         callCount++;
@@ -93,7 +93,7 @@ describe('ComputationCache', () => {
         return 'value';
       });
 
-      vi.advanceTimersByTime(5000);
+      jest.advanceTimersByTime(5000);
 
       await cache.getOrCompute('key', async () => {
         callCount++;
