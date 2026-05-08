@@ -671,5 +671,8 @@ Fallback LLM
 - [TASK-0134: PipelineOrchestrator QualityMonitor 統合](tasks/TASK-0134.md)
 - [TASK-0135: Phase 31 品質モジュール専用ユニットテスト](tasks/TASK-0135.md)
 - [TASK-0136: プロダクションコード console.log 構造化ログ化](tasks/TASK-0136.md)
+- [TASK-0137: ストリーミング文字起こし品質監視統合](tasks/TASK-0137.md)
+- [TASK-0138: 音声前処理パイプライン実装](tasks/TASK-0138.md)
+- [TASK-0139: エクスポート完全性検証実装](tasks/TASK-0139.md)
 
 <!-- spine:children:end -->
