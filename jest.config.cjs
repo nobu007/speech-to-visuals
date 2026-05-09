@@ -2,6 +2,7 @@ module.exports = {
   preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
   globalTeardown: '<rootDir>/tests/globalTeardown.ts',
+  setupFiles: ['<rootDir>/tests/setupJestGlobals.ts'],
   testMatch: ['**/src/**/*.test.ts', '**/src/**/*.test.tsx', '**/tests/**/*.test.ts'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'json'],
   moduleNameMapper: {
