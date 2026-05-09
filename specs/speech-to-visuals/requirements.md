@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 1-34 完了（139/139タスク完了 + ISS-003~045修正完了）・316ファイル・91,800行・104パッケージ（74 deps+30 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト4,122件（181スイート）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.3 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・Phase 31図解品質エンハンスメント（REQ-079~083）完了・Phase 32図解品質パイプライン統合（REQ-084~087）完了・Phase 33パイプライン品質監視統合（REQ-088~090）完了・Phase 34ストリーミング品質・音声前処理・エクスポート検証（REQ-091~093）完了・Phase 35可視化アルゴリズム正式化・パイプライン品質統合（REQ-094~096）要件定義追加
+**実装状況**: Phase 1-35 完了（142/142タスク完了 + ISS-003~045修正完了）・319ファイル・92,300行・104パッケージ（74 deps+30 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト4,171件（184スイート）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.3 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・Phase 31図解品質エンハンスメント（REQ-079~083）完了・Phase 32図解品質パイプライン統合（REQ-084~087）完了・Phase 33パイプライン品質監視統合（REQ-088~090）完了・Phase 34ストリーミング品質・音声前処理・エクスポート検証（REQ-091~093）完了・Phase 35可視化アルゴリズム正式化・パイプライン品質統合（REQ-094~096）完了
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -218,11 +218,11 @@
 - REQ-092: システムは音声ファイルの文字起こし前にオーディオ前処理ステージを実行し、無音区間検出（発話開始/終了の自動検出）・ノイズレベル推定（SN比に基づく品質評価）・音声長バリデーション（1秒未満の拒否・1時間超の警告）を実施しなければならない 🔵 *src/transcription/audio-preprocessor.ts 実装済・TASK-0138完了・24テスト通過*
 - REQ-093: システムはエクスポート完了時に出力ファイルの完全性を検証し、バイナリ形式（MP4/WebM/GIF/APNG）はファイルサイズ非ゼロ確認、SVGはXML妥当性検証、PDFはページ数確認を実行し、検証失敗時はエラーを返さなければならない 🔵 *src/export/export-verifier.ts 実装済・TASK-0139完了・26テスト通過*
 
-#### 可視化アルゴリズム正式化・パイプライン品質統合（Phase 35） 🔲未実装
+#### 可視化アルゴリズム正式化・パイプライン品質統合（Phase 35） ✅完了
 
-- REQ-094: システムはフォースダイレクト法によるレイアウトシミュレーションを提供し、Coulomb斥力・Hooke引力・速度減衰・エネルギー収束判定により、ノード重なりを自然に解消するレイアウトを生成しなければならない。ComplexLayoutEngine内の実装を正式なREQとして定義し、専用テストで検証すること 🔵 *src/visualization/complex-layout-engine.ts 既存実装（initializeForceDirectedState, stepForceDirectedSimulation, forceStateToLayout, checkConvergence）・コミット995ee7d・専用REQエントリ未定義*
-- REQ-095: システムは大規模グラフ（100ノード超）のレイアウト計算において、マルチレベルグラフ粗視化（heavy-edge matching）による階層的レイアウト生成を実行し、粗視化レベルでの初期配置から段階的な精緻化（uncoarsen + refine）を行ってスケーラブルなレイアウトを生成しなければならない 🔵 *src/visualization/complex-layout-engine.ts 既存実装（coarsenGraph, coarsenOneLevel, layoutCoarsestLevel, uncoarsenAndRefine）・コミット995ee7d・専用REQエントリ未定義*
-- REQ-096: システムは Phase 34 機能（音声前処理・ストリーミング品質監視・エクスポート検証）と Phase 31-33 品質モジュール（ビジュアルバランス・エッジ交差・スマートラベル・複合品質スコア・自動最適化・QualityMonitor統合）のエンドツーエンド連携を検証する統合テストを提供しなければならない 🔵 *Phase 31-34各モジュールの単体テストは存在するが、全品質ゲートを通過するE2E統合テストが未実装*
+- REQ-094: システムはフォースダイレクト法によるレイアウトシミュレーションを提供し、Coulomb斥力・Hooke引力・速度減衰・エネルギー収束判定により、ノード重なりを自然に解消するレイアウトを生成しなければならない。ComplexLayoutEngine内の実装を正式なREQとして定義し、専用テストで検証すること 🔵 *src/visualization/complex-layout-engine.ts 既存実装（initializeForceDirectedState, stepForceDirectedSimulation, forceStateToLayout, checkConvergence）・コミット995ee7d・tests/visualization/force-directed-simulation.test.ts 17テスト通過*
+- REQ-095: システムは大規模グラフ（100ノード超）のレイアウト計算において、マルチレベルグラフ粗視化（heavy-edge matching）による階層的レイアウト生成を実行し、粗視化レベルでの初期配置から段階的な精緻化（uncoarsen + refine）を行ってスケーラブルなレイアウトを生成しなければならない 🔵 *src/visualization/complex-layout-engine.ts 既存実装（coarsenGraph, coarsenOneLevel, layoutCoarsestLevel, uncoarsenAndRefine）・コミット995ee7d・tests/visualization/graph-coarsening.test.ts 15テスト通過*
+- REQ-096: システムは Phase 34 機能（音声前処理・ストリーミング品質監視・エクスポート検証）と Phase 31-33 品質モジュール（ビジュアルバランス・エッジ交差・スマートラベル・複合品質スコア・自動最適化・QualityMonitor統合）のエンドツーエンド連携を検証する統合テストを提供しなければならない 🔵 *tests/integration/phase35-quality-e2e.test.ts 17テスト通過*
 
 ### 条件付き要件
 
@@ -353,17 +353,15 @@
 | Phase 32: 図解品質パイプライン統合 | ✅完了 | REQ-084~087 | 4/4（パイプラインオーケストレーター品質最適化統合・スマートラベルパイプライン適用・Phase 31モジュール公開エクスポート・E2E統合テスト） |
 | Phase 33: パイプライン品質監視統合 | ✅完了 | REQ-088~090 | 3/3（QualityMonitor統合・可視化モジュール専用テスト5ファイル1,661行・console.log構造化ログ化54ファイル90件置換） |
 | Phase 34: ストリーミング品質・音声前処理・エクスポート検証 | ✅完了 | REQ-091~093 | 3/3（ストリーミング品質監視・音声前処理パイプライン・エクスポート完全性検証） |
-| Phase 35: 可視化アルゴリズム正式化・パイプライン品質統合 | 🔲未実装 | REQ-094~096 | 0/3（フォースダイレクトシミュレーション正式化・グラフ粗視化正式化・E2E品質統合テスト） |
+| Phase 35: 可視化アルゴリズム正式化・パイプライン品質統合 | ✅完了 | REQ-094~096 | 3/3（フォースダイレクトシミュレーション正式化・グラフ粗視化正式化・E2E品質統合テスト） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 131件 (95.6%)
-- 🟡 黄信号: 3件 (2.2%) — 既存3件
+- 🔵 青信号: 134件 (95.7%)
+- 🟡 黄信号: 3件 (2.1%) — 既存3件
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-34全要件実装完了（REQ-001~093）・Phase 35要件定義済（REQ-094~096）・4,122テスト（181スイート）・TypeScript型エラー0件・ESLintエラー0件・コード規模95K行以下を維持
-
-**次期実装**: Phase 35 可視化アルゴリズム正式化・パイプライン品質統合（REQ-094~096）
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-35全要件実装完了（REQ-001~096）・4,171テスト（184スイート）・TypeScript型エラー0件・ESLintエラー0件・コード規模95K行以下を維持
 
 ## Acceptance criteria
 
@@ -374,6 +372,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 35 を網羅し、Phase 34 完了済・Phase 35 を次期実装とする
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 35 を網羅し、Phase 35 完了を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテゴリに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第141回: 🔵131件/🟡3件/🔴0件 — Phase 34完了反映・Phase 35要件REQ-094~096追加）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第142回: 🔵134件/🟡3件/🔴0件 — Phase 35完了反映・REQ-094~096実装済）
