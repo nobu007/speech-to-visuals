@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import { healthRouter } from './routes/health';
 import { createBatchRouter } from './routes/batch';
 import { createPipelineRouter } from './routes/pipeline';
+import { createMonitoringRouter } from './routes/monitoring';
 import { errorHandler } from './middleware/error-handler';
 import { apiRateLimiter, uploadRateLimiter } from './middleware/rate-limit';
 import { authMiddleware, AuthenticatedRequest } from './middleware/auth';
@@ -60,6 +61,8 @@ app.use(rateLimit({
 
 // Routes
 app.use('/api/v1', healthRouter);
+// TASK-0146: monitoring & cost metrics endpoints
+app.use('/api/v1/monitoring', createMonitoringRouter());
 // ISS-026: apply upload rate limiter to batch job creation routes
 app.use('/api/v1/batch', uploadRateLimiter, createBatchRouter());
 // ISS-029: apply API rate limiter to pipeline routes to prevent abuse
