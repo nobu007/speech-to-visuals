@@ -699,8 +699,8 @@ export class ComplexLayoutEngine {
       const pi = state.positions.get(nodes[i].id)!;
       for (let j = i + 1; j < nodes.length; j++) {
         const pj = state.positions.get(nodes[j].id)!;
-        let dx = pi.x - pj.x;
-        let dy = pi.y - pj.y;
+        const dx = pi.x - pj.x;
+        const dy = pi.y - pj.y;
         const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 0.1);
         const force = repulsionStrength / (dist * dist);
         const fx = (dx / dist) * force;
@@ -719,8 +719,8 @@ export class ComplexLayoutEngine {
       const pj = state.positions.get(edge.to);
       if (!pi || !pj) continue;
 
-      let dx = pj.x - pi.x;
-      let dy = pj.y - pi.y;
+      const dx = pj.x - pi.x;
+      const dy = pj.y - pi.y;
       const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 0.1);
       const force = springStrength * (dist - idealLength);
       const fx = (dx / dist) * force;
