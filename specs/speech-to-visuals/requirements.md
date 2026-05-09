@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 1-38 完了（150/150タスク完了 + ISS-003~045修正完了）・327ファイル・96,758行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト4,300+件（186+スイート）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.4 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・Phase 31図解品質エンハンスメント（REQ-079~083）完了・Phase 32図解品質パイプライン統合（REQ-084~087）完了・Phase 33パイプライン品質監視統合（REQ-088~090）完了・Phase 34ストリーミング品質・音声前処理・エクスポート検証（REQ-091~093）完了・Phase 35可視化アルゴリズム正式化・パイプライン品質統合（REQ-094~096）完了・Phase 36パフォーマンス最適化・コスト可視化・監視API（REQ-097~100）完了・Phase 37監視API本組込み・コード規模監査（REQ-102~103）完了・Phase 38監査スコープ修正・ドキュメント整合性（REQ-104~106）完了
+**実装状況**: Phase 1-38 完了（150/150タスク完了 + ISS-003~045修正完了）・Phase 39計画済（3タスク・REQ-107~109）・327ファイル・96,758行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト4,300+件（186+スイート）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.4 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・Phase 31図解品質エンハンスメント（REQ-079~083）完了・Phase 32図解品質パイプライン統合（REQ-084~087）完了・Phase 33パイプライン品質監視統合（REQ-088~090）完了・Phase 34ストリーミング品質・音声前処理・エクスポート検証（REQ-091~093）完了・Phase 35可視化アルゴリズム正式化・パイプライン品質統合（REQ-094~096）完了・Phase 36パフォーマンス最適化・コスト可視化・監視API（REQ-097~100）完了・Phase 37監視API本組込み・コード規模監査（REQ-102~103）完了・Phase 38監査スコープ修正・ドキュメント整合性（REQ-104~106）完了
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -237,11 +237,17 @@
 - REQ-102: システムは SYSTEM_CONSTITUTION で定められたコード規模制限（ファイル数・行数）を自動監査し、制限超過時にビルド時に警告を出力しなければならない 🔵 *src/config/code-size-audit.ts・scripts/code-size-audit.ts・tests/config/code-size-audit.test.ts（27テスト通過）・TASK-0146完了*
 - REQ-103: システムは監視REST APIエンドポイントの本番動作検証として、サーバー起動時にルート登録完了をログ出力し、各エンドポイントの統合テストが全て通過することを確認しなければならない 🔵 *src/api/routes/monitoring.ts・src/api/__tests__/server.test.ts・tests/analysis/budget-alert-boundary.test.ts（29テスト通過）・TASK-0147完了*
 
-#### コード規模監査スコープ修正・ドキュメント整合性（Phase 38） 🔲未実装
+#### コード規模監査スコープ修正・ドキュメント整合性（Phase 38） ✅完了
 
 - REQ-104: システムはコード規模監査（code-size-audit）の対象を src/ ディレクトリに限定し、テストコード（tests/）、スクリプト（scripts/）、Supabase Edge Functions（supabase/）、設定ファイル等を監査対象外としなければならない。監査結果は src/ 内のプロダクションコードのみをカウントし、SYSTEM_CONSTITUTION V2.4 の制限値と比較すること 🔵 *src/config/code-size-audit.ts collectMetrics() が SKIP_DIRS で src/ 外も走査している実装より*
 - REQ-105: システムはコード規模監査スクリプト（npm run audit:code-size）の実行結果が COMPLIANT となることを確認しなければならない。src/ ディレクトリ単位で測定した場合、ファイル数340以下・行数100,000以下であること 🔵 *現状実測値: src/ 327ファイル/96,414行（共に制限内）・audit全量: 482ファイル/142,318行（制限超過）より*
 - REQ-106: システムはタスク概要ドキュメント（overview.md）のフェーズステータス・タスク完了状況が git ログと一致することを確認しなければならない 🔵 *overview.md Phase 36 ヘッダー「🔲未着手」に対し実際は完了・TASK-0143~0147 未反映より*
+
+#### テストESM互換性修正・依存脆弱性解消・ドキュメント整合性（Phase 39） 🔲未実装
+
+- REQ-107: システムはテストファイル内の `jest.resetModules()`、`jest.clearModules()`、`jest.restoreAllMocks()` の呼び出しがESM（ECMAScript Modules）環境で `ReferenceError: jest is not defined` エラーを発生しないようにしなければならない。`@jest/globals` からの明示的インポートまたは `beforeAll`/`afterAll` ベースの代替パターンに置換すること 🔵 *31テストファイルで `jest.resetModules()` 使用・ESMモードで3テスト失敗を確認済より*
+- REQ-108: システムは `npm audit` で報告される脆弱性（fast-uri path traversal HIGH・ip-address XSS MODERATE）を解消し、脆弱性0件を維持しなければならない 🔵 *npm audit 実行結果: 3脆弱性（2 moderate, 1 high）・npm audit fix で修正可能より*
+- REQ-109: システムはアーキテクチャ文書（architecture.md）の受け入れ基準が全て完了（[x]）であり、品質評価が最新フェーズの検証結果を反映していることを確認しなければならない 🔵 *architecture.md line 529: Phase 37 コード規模監査モジュール未チェック・品質評価が第145回検証のままより*
 
 ### 条件付き要件
 
@@ -376,14 +382,15 @@
 | Phase 36: パフォーマンス最適化・コスト可視化パイプライン | ✅完了 | REQ-097~100 | 5/5（パイプライン並列化・LLMコスト監視・パフォーマンスリグレッションベンチマーク・監視REST API・BudgetAlertSystem境界テスト） |
 | Phase 37: 監視API本組込み・コード規模監査 | ✅完了 | REQ-102~103 | 2/2（コード規模自動監査CLI・BudgetAlertSystem境界テスト・サーバー配線検証） |
 | Phase 38: 監査スコープ修正・ドキュメント整合性 | ✅完了 | REQ-104~106 | 3/3（監査src/スコープ限定・COMPLIANT確認・overview.md整合性） |
+| Phase 39: テストESM互換性修正・依存脆弱性解消・ドキュメント整合性 | 🔲未実装 | REQ-107~109 | 0/3 |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 142件 (95.3%)
+- 🔵 青信号: 145件 (95.4%)
 - 🟡 黄信号: 3件 (2.0%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-38全要件実装完了（REQ-001~106）・4,300+テスト（186+スイート）・TypeScript型エラー0件・ESLintエラー0件・コード規模96,758行（SYSTEM_CONSTITUTION V2.4: 100K行制限内・COMPLIANT確認済）
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-38全要件実装完了（REQ-001~106）・Phase 39計画済（REQ-107~109）・4,300+テスト（186+スイート）・TypeScript型エラー0件・ESLintエラー0件・コード規模96,758行（SYSTEM_CONSTITUTION V2.4: 100K行制限内・COMPLIANT確認済）
 
 ## Acceptance criteria
 
@@ -394,6 +401,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 38 を網羅し、Phase 38 完了を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 39 を網羅し、Phase 38 完了・Phase 39 計画済を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテゴリに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第146回: 🔵145件/🟡3件/🔴0件 — Phase 38完了反映・REQ-104~106完了）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第147回: 🔵148件/🟡3件/🔴0件 — Phase 39計画反映・REQ-107~109追加）
