@@ -674,5 +674,11 @@ Fallback LLM
 - [TASK-0137: ストリーミング文字起こし品質監視統合](tasks/TASK-0137.md)
 - [TASK-0138: 音声前処理パイプライン実装](tasks/TASK-0138.md)
 - [TASK-0139: エクスポート完全性検証実装](tasks/TASK-0139.md)
+- [TASK-0140: フォースダイレクトシミュレーションREQ正式化・専用テスト追加](tasks/TASK-0140.md)
+- [TASK-0141: マルチレベルグラフ粗視化REQ正式化・専用テスト追加](tasks/TASK-0141.md)
+- [TASK-0142: Phase 31-34 全品質モジュール E2E 統合テスト](tasks/TASK-0142.md)
+- [TASK-0143: パイプラインステージ並列化とボトルネック検出](tasks/TASK-0143.md)
+- [TASK-0144: LLMコスト・トークン使用量監視システム](tasks/TASK-0144.md)
+- [TASK-0145: パフォーマンスリグレッションベンチマーク自動化](tasks/TASK-0145.md)
 
 <!-- spine:children:end -->
