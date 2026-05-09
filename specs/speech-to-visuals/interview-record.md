@@ -10,11 +10,47 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-09（第144回検証: Phase 36完了確認・監視REST API・BudgetAlertSystem境界テスト・コード規模最適化要件定義（REQ-097~100完了・REQ-102~103計画）・326ファイル・96,218行・105パッケージ・4,300+テスト・REQ-001~100全実装済）
+**最終更新**: 2026-05-09（第145回検証: Phase 37完了確認・監査スコープバグ検出・Phase 38要件定義（REQ-102~103完了・REQ-104~106計画）・327ファイル・96,414行・105パッケージ・4,300+テスト・REQ-001~103全実装済）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
 ## 分析項目と判断
+
+### A117: 第145回検証 - Phase 37完了確認・監査スコープバグ検出・Phase 38要件定義（2026-05-09 第145回更新）
+
+**分析日時**: 2026-05-09
+**カテゴリ**: 実装完了確認・バグ検出・ギャップ分析・新規要件定義
+**背景**: Phase 37（REQ-102~103）が TASK-0146/0147 で実装完了したことを確認。しかし、`npm run audit:code-size` の実行結果が NON-COMPLIANT（482ファイル/142,318行）となり、SYSTEM_CONSTITUTION V2.4 制限値（340/100K）と大幅に乖離していることを発見。調査の結果、code-size-audit の `collectMetrics()` が src/ 以外の tests/scripts/supabase も走査していることが原因と判明。src/ 単体では 327ファイル/96,414行で制限内。
+
+**判断**:
+1. **Phase 37完了確認**: REQ-102（コード規模自動監査CLI・27テスト通過）・REQ-103（BudgetAlertSystem境界テスト29テスト通過・サーバー配線検証）共に実装完了
+2. **監査スコープバグ検出**: `src/config/code-size-audit.ts` の `collectMetrics()` がリポジトリ全体の TS/JS ファイルを走査し、SYSTEM_CONSTITUTION の src/ 向け制限値と不一致
+   - src/ のみ: 327ファイル/96,414行 → COMPLIANT
+   - 全カウント: 482ファイル/142,318行 → NON-COMPLIANT（誤報）
+   - 内訳: src/ 327ファイル + tests/ 116ファイル + scripts/ 27ファイル + supabase/ 5ファイル + その他 7ファイル
+3. **Phase 38新規要件定義**（REQ-104~106）:
+   - **REQ-104**: 監査スコープを src/ に限定（collectMetrics に srcOnly オプション追加）
+   - **REQ-105**: audit:code-size COMPLIANT 確認（CI検証）
+   - **REQ-106**: overview.md 整合性更新（フェーズステータス・タスク完了状況の実測値一致）
+
+**根拠**:
+- `src/config/code-size-audit.ts`: `collectMetrics(rootDir: string)` が rootDir 全体を走査（SKIP_DIRS に tests/scripts/supabase なし）
+- `npm run audit:code-size` 出力: Files 482/340, Lines 142,318/100,000
+- `find src -name '*.ts' -o -name '*.tsx' | wc -l`: 327ファイル
+- `find src -name '*.ts' -o -name '*.tsx' | xargs wc -l`: 96,414行
+- `tests/config/code-size-audit.test.ts`: 27テスト通過
+- `tests/analysis/budget-alert-boundary.test.ts`: 29テスト通過
+- git log: TASK-0146（31ba0f3）・TASK-0147（ee99c93）・REQ-102（51a6cb5）完了
+
+**信頼性への影響**:
+- REQ-102 を「🟡黄信号」→「🔵青信号」に更新（実装確認完了・27テスト通過）
+- REQ-103 を「🔵青信号」維持（29テスト通過）
+- 新規要件 REQ-104~106 を追加（信頼性レベル: 🔵・監査スコープバグの修正・検証・整合性確認）
+- 信頼性レベル分布: 🔵142件(95.3%) / 🟡3件(2.0%) / 🔴0件(0%)
+- Phase 37 を「🔲未実装」→「✅完了」に更新
+- Phase 38 を新規追加「🔲計画中」
+
+---
 
 ### A116: 第144回検証 - Phase 36完了確認・監視REST API・Phase 37要件定義（2026-05-09 第144回更新）
 
