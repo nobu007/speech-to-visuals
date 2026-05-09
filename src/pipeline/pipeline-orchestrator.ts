@@ -34,6 +34,9 @@ import SmartParameterTuner from '@/optimization/smart-parameter-tuner';
 import { scoreLayout } from '@/visualization/layout-quality-composite';
 import { runAutoOptimization } from '@/visualization/layout-auto-optimizer';
 import { sizeAllLabels, LabelSizingResult } from '@/visualization/smart-label-sizer';
+import { executeLayoutsInParallel, executeScenePreparationInParallel } from './parallel-layout-executor';
+import { timeStage, StageTimingRecord, aggregateTimingReport, StageTimingReport } from './stage-timing-metrics';
+import { detectBottlenecks, BottleneckReport } from './bottleneck-detector';
 
 // ---------- Public Interfaces ----------
 
@@ -78,6 +81,12 @@ export interface PipelineOrchestratorConfig {
   progressCallback?: (progress: PipelineProgress) => void;
   enableStreaming?: boolean;
   enableAutoTuning?: boolean;
+  /** Enable parallel execution for layout (Stage 3) and preparation (Stage 4) */
+  enableParallel?: boolean;
+  /** Max concurrent layout computations (default: 3) */
+  maxLayoutConcurrency?: number;
+  /** Max concurrent scene preparations (default: 4) */
+  maxSceneConcurrency?: number;
 }
 
 // ---------- Stage definitions ----------
@@ -218,15 +227,23 @@ export class PipelineOrchestrator {
     // Per-stage quality scores recorded via QualityMonitor (REQ-088)
     const qualityScores: StageQualityScores = {};
 
+    // Per-stage timing records for bottleneck detection (REQ-097 / TASK-0143)
+    const stageTimings: StageTimingRecord[] = [];
+
+    // Parallel execution flags
+    const useParallel = this.config.enableParallel !== false;
+    const maxLayoutConcurrency = this.config.maxLayoutConcurrency ?? 3;
+    const maxSceneConcurrency = this.config.maxSceneConcurrency ?? 4;
+
     try {
       // ===== Stage 1: Transcription =====
       this.emitProgress(cb, 1, 'transcription', 0, 'running');
 
-      transcriptionResult = await this.executeStageWithGates(
-        0,
-        () => this.runTranscription(input, pipelineConfig),
-        cb
+      const stage1 = await timeStage('transcription', 1, () =>
+        this.executeStageWithGates(0, () => this.runTranscription(input, pipelineConfig), cb),
       );
+      transcriptionResult = stage1.result;
+      stageTimings.push(stage1.timing);
 
       this.emitProgress(cb, 1, 'transcription', 100, 'completed');
       stages.push(this.makeStage('transcription', 'complete'));
@@ -237,14 +254,14 @@ export class PipelineOrchestrator {
       // ===== Stage 2: Content Analysis =====
       this.emitProgress(cb, 2, 'analysis', 0, 'running');
 
-      const analysisResult = await this.executeStageWithGates(
-        1,
-        () => this.runAnalysis(transcriptionResult),
-        cb
+      const stage2 = await timeStage('analysis', 1, () =>
+        this.executeStageWithGates(1, () => this.runAnalysis(transcriptionResult), cb),
       );
+      const analysisResult = stage2.result as { segments: unknown[]; diagrams: unknown[] };
+      stageTimings.push(stage2.timing);
 
-      contentSegments = (analysisResult as Record<string, unknown>).segments as unknown[];
-      diagramAnalyses = (analysisResult as Record<string, unknown>).diagrams as unknown[];
+      contentSegments = analysisResult.segments;
+      diagramAnalyses = analysisResult.diagrams;
 
       this.emitProgress(cb, 2, 'analysis', 100, 'completed');
       stages.push(this.makeStage('analysis', 'complete'));
@@ -255,11 +272,15 @@ export class PipelineOrchestrator {
       // ===== Stage 3: Layout Generation =====
       this.emitProgress(cb, 3, 'layout', 0, 'running');
 
-      const layoutResult = await this.executeStageWithGates(
-        2,
-        () => this.runLayout(diagramAnalyses, contentSegments),
-        cb
+      const stage3 = await timeStage('layout', diagramAnalyses.length, () =>
+        this.executeStageWithGates(
+          2,
+          () => this.runLayout(diagramAnalyses, contentSegments, useParallel, maxLayoutConcurrency),
+          cb,
+        ),
       );
+      const layoutResult = stage3.result;
+      stageTimings.push(stage3.timing);
 
       layoutResults = layoutResult as unknown[];
 
@@ -283,13 +304,15 @@ export class PipelineOrchestrator {
       // ===== Stage 4: Video Preparation =====
       this.emitProgress(cb, 4, 'preparation', 0, 'running');
 
-      const prepResult = await this.executeStageWithGates(
-        3,
-        () => this.runPreparation(contentSegments, diagramAnalyses, layoutResults),
-        cb
+      const stage4 = await timeStage('preparation', layoutResults.length, () =>
+        this.executeStageWithGates(
+          3,
+          () => this.runPreparation(contentSegments, diagramAnalyses, layoutResults, useParallel, maxSceneConcurrency),
+          cb,
+        ),
       );
-
-      scenes = prepResult as SceneGraph[];
+      scenes = stage4.result as SceneGraph[];
+      stageTimings.push(stage4.timing);
 
       this.emitProgress(cb, 4, 'preparation', 100, 'completed');
       stages.push(this.makeStage('preparation', 'complete'));
@@ -297,11 +320,10 @@ export class PipelineOrchestrator {
       // ===== Stage 5: Video Rendering =====
       this.emitProgress(cb, 5, 'rendering', 0, 'running');
 
-      await this.executeStageWithGates(
-        4,
-        () => this.runRendering(scenes, pipelineConfig),
-        cb
+      const stage5 = await timeStage('rendering', scenes!.length, () =>
+        this.executeStageWithGates(4, () => this.runRendering(scenes!, pipelineConfig), cb),
       );
+      stageTimings.push(stage5.timing);
 
       this.emitProgress(cb, 5, 'rendering', 100, 'completed');
       stages.push(this.makeStage('rendering', 'complete'));
@@ -311,6 +333,10 @@ export class PipelineOrchestrator {
       // Record rendering quality score (REQ-088)
       this.recordStageQuality('rendering', { processingTime: totalTime }, qualityScores);
 
+      // Generate bottleneck report from timing records (REQ-097)
+      const timingReport = aggregateTimingReport(stageTimings);
+      const bottleneckReport = detectBottlenecks(stageTimings);
+
       return {
         success: true,
         scenes: scenes!,
@@ -318,7 +344,12 @@ export class PipelineOrchestrator {
         duration: scenes!.reduce((sum, s) => sum + (s.durationMs || 0), 0),
         processingTime: totalTime,
         stages,
-        metrics: { ...qualityMetrics, qualityScores },
+        metrics: {
+          ...qualityMetrics,
+          qualityScores,
+          stageTimings: stageTimings,
+          bottleneckReport,
+        },
       };
     } catch (error) {
       const totalTime = Date.now() - overallStart;
@@ -402,80 +433,112 @@ export class PipelineOrchestrator {
 
   private async runLayout(
     diagrams: unknown[],
-    segments: unknown[]
+    segments: unknown[],
+    useParallel: boolean = true,
+    maxConcurrency: number = 3,
   ): Promise<unknown[]> {
-    const results: unknown[] = [];
+    if (useParallel && diagrams.length > 1) {
+      return executeLayoutsInParallel(
+        diagrams,
+        (diag, i) => this.generateSingleLayout(diag, segments[i]),
+        { maxConcurrency },
+      );
+    }
 
+    // Sequential fallback
+    const results: unknown[] = [];
     for (let i = 0; i < diagrams.length; i++) {
-      const diag = diagrams[i] as Record<string, unknown>;
-      try {
-        if ((diag?.nodes as unknown[])?.length > 0) {
-          const layoutResult = await this.layoutEngine.generateLayout(
-            diag.nodes as NodeDatum[],
-            diag.edges as EdgeDatum[],
-            diag.type as DiagramType,
-            1
-          );
-          if (layoutResult.success) {
-            results.push({ segment: segments[i], analysis: diag, layout: layoutResult.layout });
-          } else {
-            results.push({
-              segment: segments[i],
-              analysis: diag,
-              layout: this.createFallbackLayout(diag.nodes as unknown[], diag.edges as unknown[]),
-            });
-          }
+      results.push(await this.generateSingleLayout(diagrams[i], segments[i]));
+    }
+    return results;
+  }
+
+  private async generateSingleLayout(diagram: unknown, segment: unknown): Promise<unknown> {
+    const diag = diagram as Record<string, unknown>;
+    try {
+      if ((diag?.nodes as unknown[])?.length > 0) {
+        const layoutResult = await this.layoutEngine.generateLayout(
+          diag.nodes as NodeDatum[],
+          diag.edges as EdgeDatum[],
+          diag.type as DiagramType,
+          1
+        );
+        if (layoutResult.success) {
+          return { segment, analysis: diag, layout: layoutResult.layout };
         } else {
-          results.push({
-            segment: segments[i],
+          return {
+            segment,
             analysis: diag,
-            layout: this.createFallbackLayout(
-              (diag?.nodes ?? []) as unknown[],
-              (diag?.edges ?? []) as unknown[]
-            ),
-          });
+            layout: this.createFallbackLayout(diag.nodes as unknown[], diag.edges as unknown[]),
+          };
         }
-      } catch {
-        results.push({
-          segment: segments[i],
+      } else {
+        return {
+          segment,
           analysis: diag,
           layout: this.createFallbackLayout(
             (diag?.nodes ?? []) as unknown[],
             (diag?.edges ?? []) as unknown[]
           ),
-        });
+        };
       }
+    } catch {
+      return {
+        segment,
+        analysis: diag,
+        layout: this.createFallbackLayout(
+          (diag?.nodes ?? []) as unknown[],
+          (diag?.edges ?? []) as unknown[]
+        ),
+      };
     }
-
-    return results;
   }
 
   private async runPreparation(
     segments: unknown[],
     diagrams: unknown[],
-    layouts: unknown[]
+    layouts: unknown[],
+    useParallel: boolean = true,
+    maxConcurrency: number = 4,
   ): Promise<SceneGraph[]> {
-    const scenes: SceneGraph[] = layouts.map((layoutItem, index) => {
-      const item = layoutItem as Record<string, unknown>;
-      const segment = (item.segment ?? segments[index]) as Record<string, unknown>;
-      const analysis = (item.analysis ?? diagrams[index]) as Record<string, unknown>;
+    if (useParallel && layouts.length > 1) {
+      return executeScenePreparationInParallel(
+        layouts,
+        (layoutItem, index) =>
+          Promise.resolve(this.prepareSingleScene(layoutItem, index, segments, diagrams)),
+        maxConcurrency,
+      );
+    }
 
-      return {
-        type: (analysis?.type ?? 'flow') as DiagramType,
-        nodes: (analysis?.nodes ?? []) as NodeDatum[],
-        edges: (analysis?.edges ?? []) as EdgeDatum[],
-        layout: item.layout as DiagramLayout | undefined,
-        startMs: (segment?.startMs ?? index * 5000) as number,
-        durationMs:
-          segment?.endMs && segment?.startMs
-            ? (segment.endMs as number) - (segment.startMs as number)
-            : 5000,
-        summary: (segment?.summary ?? `Scene ${index + 1}`) as string,
-        keyphrases: (segment?.keyphrases ?? []) as string[],
-      };
-    });
+    // Sequential fallback
+    return layouts.map((layoutItem, index) =>
+      this.prepareSingleScene(layoutItem, index, segments, diagrams),
+    );
+  }
 
-    return scenes;
+  private prepareSingleScene(
+    layoutItem: unknown,
+    index: number,
+    segments: unknown[],
+    diagrams: unknown[],
+  ): SceneGraph {
+    const item = layoutItem as Record<string, unknown>;
+    const segment = (item.segment ?? segments[index]) as Record<string, unknown>;
+    const analysis = (item.analysis ?? diagrams[index]) as Record<string, unknown>;
+
+    return {
+      type: (analysis?.type ?? 'flow') as DiagramType,
+      nodes: (analysis?.nodes ?? []) as NodeDatum[],
+      edges: (analysis?.edges ?? []) as EdgeDatum[],
+      layout: item.layout as DiagramLayout | undefined,
+      startMs: (segment?.startMs ?? index * 5000) as number,
+      durationMs:
+        segment?.endMs && segment?.startMs
+          ? (segment.endMs as number) - (segment.startMs as number)
+          : 5000,
+      summary: (segment?.summary ?? `Scene ${index + 1}`) as string,
+      keyphrases: (segment?.keyphrases ?? []) as string[],
+    };
   }
 
   private async runRendering(

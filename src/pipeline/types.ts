@@ -3,6 +3,8 @@ import { TranscriptionResult } from '@/transcription/types';
 import { ContentSegment, DiagramAnalysis } from '@/analysis/types';
 import { LayoutResult } from '@/visualization/types';
 import { QualityAssessment } from '@/quality';
+import type { StageTimingRecord } from './stage-timing-metrics';
+import type { BottleneckReport } from './bottleneck-detector';
 
 export interface PipelineInput {
   audioFile: File | string;
@@ -94,6 +96,10 @@ export interface ExtendedPipelineMetrics extends PipelineMetrics {
   labelTruncationCount?: number;
   /** Per-stage quality scores recorded by QualityMonitor (REQ-088) */
   qualityScores?: StageQualityScores;
+  /** Per-stage timing records for bottleneck detection (REQ-097 / TASK-0143) */
+  stageTimings?: StageTimingRecord[];
+  /** Bottleneck analysis report (REQ-097 / TASK-0143) */
+  bottleneckReport?: BottleneckReport;
 }
 
 /** Quality scores per pipeline stage, recorded via QualityMonitor (REQ-088) */
