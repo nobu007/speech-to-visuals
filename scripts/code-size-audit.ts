@@ -18,6 +18,7 @@ import { runAudit, type CodeSizeAuditResult } from '../src/config/code-size-audi
 const ROOT_DIR = path.resolve(import.meta.dirname, '..');
 const PACKAGE_JSON = path.join(ROOT_DIR, 'package.json');
 const ciMode = process.argv.includes('--ci');
+const auditAll = process.argv.includes('--all');
 
 function formatResult(result: CodeSizeAuditResult): void {
   const { metrics, limits, warnings, isCompliant } = result;
@@ -53,6 +54,10 @@ function formatResult(result: CodeSizeAuditResult): void {
 
 // --- Main ---
 
-const result = runAudit(ROOT_DIR, PACKAGE_JSON);
+const result = runAudit(ROOT_DIR, PACKAGE_JSON, undefined, { srcOnly: !auditAll });
 formatResult(result);
+
+if (!auditAll) {
+  console.log('  Scope: src/ only (use --all to audit full repository)\n');
+}
 process.exit(0); // Warnings never block the build

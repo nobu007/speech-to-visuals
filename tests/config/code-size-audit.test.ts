@@ -259,6 +259,36 @@ describe('collectMetrics', () => {
     expect(metrics.lineCount).toBe(6);
   });
 
+  it('defaults to srcOnly=true — only walks src/ directory', () => {
+    // Add a file outside src/ to verify it is NOT counted
+    fs.mkdirSync(path.join(tmpDir, 'tests'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'tests', 'x.ts'), 'test\nline');
+    const metrics = collectMetrics(tmpDir);
+    expect(metrics.fileCount).toBe(3); // only src/ files
+  });
+
+  it('counts files outside src/ when srcOnly is false', () => {
+    fs.mkdirSync(path.join(tmpDir, 'tests'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'tests', 'x.ts'), 'test\nline');
+    const metrics = collectMetrics(tmpDir, { srcOnly: false });
+    expect(metrics.fileCount).toBe(4); // src/3 + tests/1
+  });
+
+  it('excludes tests/ and scripts/ when srcOnly is true', () => {
+    fs.mkdirSync(path.join(tmpDir, 'tests'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, 'scripts'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'tests', 'spec.ts'), 't\n');
+    fs.writeFileSync(path.join(tmpDir, 'scripts', 'build.ts'), 'b\n');
+    const metrics = collectMetrics(tmpDir, { srcOnly: true });
+    const paths = metrics.files.map(f => f.path);
+    expect(paths).not.toEqual(
+      expect.arrayContaining([expect.stringContaining('tests')]),
+    );
+    expect(paths).not.toEqual(
+      expect.arrayContaining([expect.stringContaining('scripts')]),
+    );
+  });
+
   it('identifies the largest file', () => {
     const metrics = collectMetrics(tmpDir);
     expect(metrics.largestFile).not.toBeNull();
@@ -347,5 +377,24 @@ describe('runAudit', () => {
     const result = runAudit(tmpDir, path.join(tmpDir, 'package.json'));
     expect(result.isCompliant).toBe(true);
     expect(result.warnings).toHaveLength(0);
+  });
+
+  it('passes srcOnly option through to collectMetrics', () => {
+    // Add file outside src/
+    fs.mkdirSync(path.join(tmpDir, 'scripts'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'scripts', 'build.ts'), 'b1\nb2\n');
+
+    // srcOnly default (true): only src/a.ts
+    const srcOnly = runAudit(tmpDir, path.join(tmpDir, 'package.json'));
+    expect(srcOnly.metrics.fileCount).toBe(1);
+
+    // srcOnly false: src/a.ts + scripts/build.ts
+    const all = runAudit(
+      tmpDir,
+      path.join(tmpDir, 'package.json'),
+      undefined,
+      { srcOnly: false },
+    );
+    expect(all.metrics.fileCount).toBe(2);
   });
 });
