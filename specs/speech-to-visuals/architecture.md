@@ -172,6 +172,28 @@ Phase 20 で実装された Web Workers 並列化基盤:
 - **プロダクションエラーハンドリング**: 本番環境向けの構造化エラー処理
 - **監視エクセレンス**: 品質メトリクスの継続的な追跡とレポート
 
+### LLMコスト・トークン監視 🔵 【Phase 36 追加】
+
+**信頼性**: 🔵 *src/analysis/token-usage-tracker.ts・src/analysis/cost-estimator.ts・src/analysis/budget-alert.ts・要件定義REQ-097~100 より*
+
+Phase 36 で追加実装された LLM 呼び出しコスト・トークン監視システム:
+
+- **TokenUsageTracker**: LLM API 呼び出しごとの入力/出力トークン記録（ステージ別: analysis/fallback/cache-warmup・モデル別: flash/pro）🔵 *src/analysis/token-usage-tracker.ts・要件定義REQ-098 より*
+- **CostEstimator**: Gemini 公式料金（Flash: $0.075/M input, $0.30/M output / Pro: $1.25/M input, $5.00/M output）に基づくコスト推定、ステージ別コスト内訳 🔵 *src/analysis/cost-estimator.ts・要件定義REQ-098 より*
+- **BudgetAlertSystem**: セッション/日次予算追跡・設定可能アラート閾値（デフォルト80%）・コールバック通知システム・予算リセット機能 🔵 *src/analysis/budget-alert.ts・要件定義REQ-098 より*
+- **LLMResponse 拡張**: per-request メトリクス（usage.promptTokens/usage.completionTokens/usage.totalTokens・estimatedCost）を LLMResponse 型に統合 🔵 *要件定義REQ-098 より*
+- **監視 REST API**: GET /api/v1/monitoring/{metrics|cost|trends|health} による外部アクセス可能なダッシュボードメトリクス・LLMコスト・パフォーマンストレンド・ヘルスチェック 🔵 *src/api/routes/monitoring.ts・要件定義REQ-100 より*
+- **パイプライン並列化**: ParallelStageExecutor によるステージ並列実行・ボトルネック検出 🔵 *src/pipeline/・要件定義REQ-097 より*
+
+### コード規模自動監査 🔵 【Phase 37 計画】
+
+**信頼性**: 🔵 *SYSTEM_CONSTITUTION V2.4・要件定義REQ-102 より*
+
+Phase 37 で計画中のコード規模自動監査（未実装）:
+
+- **コード規模監査スクリプト**: ビルド時またはCI で SYSTEM_CONSTITUTION 制限値（ファイル数340以下・行数100K以下）を自動チェック 🟡 *SYSTEM_CONSTITUTION V2.4 実績値（326ファイル・96,218行）から推測*
+- **監視API本番動作検証**: サーバー起動時のルート登録完了ログ出力・全エンドポイント統合テスト通過確認 🔵 *src/api/routes/monitoring.ts・TASK-0146/0147 完了済*
+
 ### 最適化・パフォーマンス 🔵
 
 **信頼性**: 🔵 *src/optimization/・src/performance/・QUALITY_METRICS.md より*
@@ -501,8 +523,10 @@ Fallback LLM
 - [x] コード規模メトリクス（ファイル数・行数・テスト数・パッケージ数）が最新
 - [x] アーキテクチャ文書内で参照されている全モジュールがコードベースに存在する
 - [x] TypeScript・ESLint エラーが 0 件
-- [x] 全テストスイートが green（133 suites / 3,569 tests）
+- [x] 全テストスイートが green（186+ suites / 4,300+ tests）
 - [x] Web Workers 並列化モジュール（Phase 20）がコンポーネント構成に反映されている
+- [x] LLMコスト・トークン監視モジュール（Phase 36）がコンポーネント構成に反映されている
+- [ ] コード規模自動監査モジュール（Phase 37）が実装されている
 
 ## 関連文書
 
@@ -517,11 +541,11 @@ Fallback LLM
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 129件 (98%)
-- 🟡 黄信号: 2件 (2%)
+- 🔵 青信号: 139件 (97%)
+- 🟡 黄信号: 4件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第110回検証: Phase 1-20全完了・282ファイル・87,267行・116タスク(全完了)・全3,569テスト通過(133 suites)・TypeScript/ESLintエラー0件・依存104パッケージ(74+30)・104要件・要件カバレッジ100%維持・SYSTEM_CONSTITUTION V2.1適合・REQ-061/Web Workers反映済・ギャップなし確認）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第145回検証: Phase 1-36完了・Phase 37計画中・326ファイル・96,218行・147タスク(全完了)・4,300+テスト(186+ suites)・TypeScript/ESLintエラー0件・依存105パッケージ(74+31)・143要件・SYSTEM_CONSTITUTION V2.4適合・Phase 36 LLMコスト監視・監視REST API反映済・ギャップなし確認）
 
 
 <!-- spine:children:begin -->

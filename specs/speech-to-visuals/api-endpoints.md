@@ -669,11 +669,11 @@ Phase 8 で追加されたパイプライン操作用エンドポイント:
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 50件 (96%)
-- 🟡 黄信号: 2件 (4%)
+- 🔵 青信号: 58件 (97%)
+- 🟡 黄信号: 2件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - Phase 5 バッチ API・Edge Functions 共通基盤（REQ-043~049）・Phase 8 パイプライン操作 API（REQ-057）反映済
+**品質評価**: 高品質 - Phase 5 バッチ API・Edge Functions 共通基盤・Phase 8 パイプライン操作 API・Phase 36 監視 REST API（4エンドポイント）反映済
 
 ---
 
@@ -735,3 +735,122 @@ Phase 8 で追加されたパイプライン操作用エンドポイント:
 - **並列制御**: 最大3並列ジョブ、4件目以降はキューイング
 - **ジョブID**: UUID v4 による一意識別
 - **エラー分類**: BatchValidationError, TooManyFilesError, JobNotFoundError, JobAlreadyCompletedError
+
+---
+
+## Phase 36 監視 REST API エンドポイント 🔵
+
+**信頼性**: 🔵 *src/api/routes/monitoring.ts・要件定義REQ-100 より*
+
+### GET /api/v1/monitoring/metrics 🔵
+
+**関連要件**: REQ-100
+
+**説明**: ダッシュボードメトリクス取得（処理時間・成功率・エラー率・メモリ・キャッシュ・品質スコア）
+
+**レスポンス（成功）**:
+```json
+{
+  "success": true,
+  "data": {
+    "processingTime": 4500,
+    "successRate": 0.95,
+    "errorRate": 0.05,
+    "memoryUsage": 82.5,
+    "cacheHitRate": 0.72,
+    "qualityScore": 92
+  },
+  "timestamp": 1715241600000
+}
+```
+
+---
+
+### GET /api/v1/monitoring/cost 🔵
+
+**関連要件**: REQ-100
+
+**説明**: LLMコスト・トークン統計取得（モデル別コスト内訳・予算使用率）
+
+**レスポンス（成功）**:
+```json
+{
+  "success": true,
+  "data": {
+    "totalInputTokens": 150000,
+    "totalOutputTokens": 45000,
+    "totalCost": 0.1275,
+    "byModel": {
+      "gemini-2.5-flash": { "inputCost": 0.01125, "outputCost": 0.0135, "totalCost": 0.02475, "model": "gemini-2.5-flash" },
+      "gemini-2.5-pro": { "inputCost": 0.09375, "outputCost": 0.009, "totalCost": 0.10275, "model": "gemini-2.5-pro" }
+    },
+    "budgetStatus": {
+      "sessionSpent": 0.1275,
+      "sessionBudget": 1.0,
+      "dailySpent": 0.45,
+      "dailyBudget": 10.0,
+      "sessionUsageRatio": 0.1275,
+      "dailyUsageRatio": 0.045,
+      "isSessionAlertTriggered": false,
+      "isDailyAlertTriggered": false
+    }
+  },
+  "timestamp": 1715241600000
+}
+```
+
+---
+
+### GET /api/v1/monitoring/trends 🔵
+
+**関連要件**: REQ-100
+
+**説明**: パフォーマンストレンド取得（設定可能期間: 1秒〜24時間）
+
+**クエリパラメータ**:
+- `timespan` (optional): 期間（ミリ秒、デフォルト3600000=1時間、範囲1000〜86400000）
+
+**レスポンス（成功）**:
+```json
+{
+  "success": true,
+  "data": {
+    "trends": [
+      { "timestamp": 1715241000000, "processingTime": 4200, "successRate": 0.96 },
+      { "timestamp": 1715241300000, "processingTime": 4500, "successRate": 0.95 }
+    ],
+    "timespan": 3600000
+  },
+  "timestamp": 1715241600000
+}
+```
+
+**エラーコード**:
+- `INVALID_TIMESPAN`: 期間が範囲外
+
+---
+
+### GET /api/v1/monitoring/health 🔵
+
+**関連要件**: REQ-100
+
+**説明**: プロダクションヘルスチェック（コンポーネント別健全性状態）
+
+**レスポンス（成功）**:
+```json
+{
+  "success": true,
+  "data": {
+    "status": "healthy",
+    "components": {
+      "transcription": "healthy",
+      "analysis": "healthy",
+      "visualization": "healthy",
+      "rendering": "healthy"
+    },
+    "uptime": 86400,
+    "timestamp": 1715241600000
+  },
+  "timestamp": 1715241600000
+}
+```

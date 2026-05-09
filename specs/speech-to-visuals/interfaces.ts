@@ -1599,3 +1599,117 @@ export interface ErrorAlertMetrics {
   bySeverity: Record<ErrorSeverity, number>; // 🔵 深刻度別件数
   recoveryRate: number; // 🔵 回復率
 }
+
+// ========================================
+// LLMコスト・トークン監視（Phase 36）
+// ========================================
+
+/**
+ * トークン使用量記録
+ * 🔵 信頼性: src/analysis/token-usage-tracker.ts・要件定義REQ-098 より
+ */
+export interface TokenUsageRecord {
+  timestamp: number; // 🔵 記録時刻
+  model: 'gemini-2.5-flash' | 'gemini-2.5-pro'; // 🔵 使用モデル
+  stage: 'analysis' | 'fallback' | 'cache-warmup'; // 🔵 処理ステージ
+  inputTokens: number; // 🔵 入力トークン数
+  outputTokens: number; // 🔵 出力トークン数
+  totalTokens: number; // 🔵 合計トークン数
+}
+
+/**
+ * コスト推定結果
+ * 🔵 信頼性: src/analysis/cost-estimator.ts・要件定義REQ-098 より
+ */
+export interface CostEstimate {
+  inputCost: number; // 🔵 入力コスト（USD）
+  outputCost: number; // 🔵 出力コスト（USD）
+  totalCost: number; // 🔵 合計コスト（USD）
+  model: 'gemini-2.5-flash' | 'gemini-2.5-pro'; // 🔵 使用モデル
+}
+
+/**
+ * 予算アラート設定
+ * 🔵 信頼性: src/analysis/budget-alert.ts・要件定義REQ-098 より
+ */
+export interface BudgetConfig {
+  sessionBudget: number; // 🔵 セッション予算（USD、デフォルト$1.00）
+  dailyBudget: number; // 🔵 日次予算（USD、デフォルト$10.00）
+  alertThreshold: number; // 🔵 アラート閾値（0-1、デフォルト0.8）
+}
+
+/**
+ * 予算使用状況
+ * 🔵 信頼性: src/analysis/budget-alert.ts・要件定義REQ-098 より
+ */
+export interface BudgetStatus {
+  sessionSpent: number; // 🔵 セッション使用額
+  sessionBudget: number; // 🔵 セッション予算
+  dailySpent: number; // 🔵 日次使用額
+  dailyBudget: number; // 🔵 日次予算
+  sessionUsageRatio: number; // 🔵 セッション使用率（0-1）
+  dailyUsageRatio: number; // 🔵 日次使用率（0-1）
+  isSessionAlertTriggered: boolean; // 🔵 セッションアラート発火状態
+  isDailyAlertTriggered: boolean; // 🔵 日次アラート発火状態
+}
+
+/**
+ * 予算アラート情報
+ * 🔵 信頼性: src/analysis/budget-alert.ts・要件定義REQ-098 より
+ */
+export interface BudgetAlertInfo {
+  type: 'session' | 'daily'; // 🔵 アラート種別
+  threshold: number; // 🔵 閾値
+  currentRatio: number; // 🔵 現在の使用率
+  budget: number; // 🔵 予算額
+  spent: number; // 🔵 使用額
+}
+
+/**
+ * 監視 REST API レスポンス共通型
+ * 🔵 信頼性: src/api/routes/monitoring.ts・要件定義REQ-100 より
+ */
+export interface MonitoringApiResponse<T> {
+  success: boolean; // 🔵 成功フラグ
+  data?: T; // 🔵 レスポンスデータ
+  error?: { code: string; message: string }; // 🔵 エラー情報
+  timestamp: number; // 🔵 レスポンス時刻
+}
+
+/**
+ * ダッシュボードメトリクス
+ * 🔵 信頼性: src/monitoring/performance-dashboard.ts・要件定義REQ-100 より
+ */
+export interface DashboardMetrics {
+  processingTime: number; // 🔵 平均処理時間（ms）
+  successRate: number; // 🔵 成功率（0-1）
+  errorRate: number; // 🔵 エラー率（0-1）
+  memoryUsage: number; // 🔵 メモリ使用量（MB）
+  cacheHitRate: number; // 🔵 キャッシュヒット率（0-1）
+  qualityScore: number; // 🔵 品質スコア（0-100）
+}
+
+/**
+ * LLMコストメトリクス
+ * 🔵 信頼性: src/analysis/token-usage-tracker.ts・src/analysis/cost-estimator.ts・要件定義REQ-100 より
+ */
+export interface LLMMetrics {
+  totalInputTokens: number; // 🔵 総入力トークン
+  totalOutputTokens: number; // 🔵 総出力トークン
+  totalCost: number; // 🔵 総コスト（USD）
+  byModel: Record<string, CostEstimate>; // 🔵 モデル別コスト内訳
+  budgetStatus: BudgetStatus; // 🔵 予算使用状況
+}
+
+/**
+ * コード規模監査結果（Phase 37 計画）
+ * 🟡 信頼性: SYSTEM_CONSTITUTION V2.4・要件定義REQ-102 から推測
+ */
+export interface CodeSizeAuditResult {
+  fileCount: number; // 🟡 現在のファイル数
+  lineCount: number; // 🟡 現在の行数
+  maxFiles: number; // 🟡 ファイル数制限値（SYSTEM_CONSTITUTION）
+  maxLines: number; // 🟡 行数制限値（SYSTEM_CONSTITUTION）
+  isCompliant: boolean; // 🟡 制限内フラグ
+  warnings: string[]; // 🟡 警告メッセージ
+}

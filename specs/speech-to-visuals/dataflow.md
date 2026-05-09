@@ -1192,15 +1192,89 @@ sequenceDiagram
 | /api/iteration-log | GET | イテレーションログ取得 | FrameworkDashboard.tsx |
 | /api/framework/status | GET | フレームワークステータス | FrameworkDashboard.tsx |
 
+### LLMコスト・トークン監視フロー（Phase 36） 🔵
+
+**信頼性**: 🔵 *src/analysis/token-usage-tracker.ts・src/analysis/cost-estimator.ts・src/analysis/budget-alert.ts・要件定義REQ-097~100 より*
+
+```mermaid
+sequenceDiagram
+    participant LLM as Gemini LLM
+    participant TU as TokenUsageTracker
+    participant CE as CostEstimator
+    participant BA as BudgetAlertSystem
+    participant LR as LLMResponse
+    participant API as REST API
+
+    LLM->>TU: トークン使用量記録
+    TU->>CE: コスト推定依頼
+    CE->>CE: モデル別料金計算
+    CE->>BA: セッション/日次コスト累積
+    BA->>BA: 閾値判定（80%）
+    alt 予算超過警告
+        BA-->>API: onBudgetAlert callback
+    end
+    TU->>LR: per-request metrics (tokens, cost)
+    API->>TU: GET /api/v1/monitoring/cost
+    TU-->>API: コスト・トークン統計
+    API->>BA: GET /api/v1/monitoring/metrics
+    BA-->>API: 予算使用率
+```
+
+**関連要件**: REQ-097, REQ-098, REQ-100
+
+**詳細ステップ**:
+
+1. LLM API 呼び出し完了後、TokenUsageTracker が入力/出力トークンを記録（ステージ別・モデル別）
+2. CostEstimator が公式料金に基づきコスト推定（Flash/Pro 別価格）
+3. BudgetAlertSystem がセッション/日次予算に対する使用率を追跡
+4. 閾値（デフォルト80%）超過時にコールバック通知
+5. 監視 REST API により外部からメトリクス・コスト・トレンド取得可能
+
+### 監視 REST API エンドポイントフロー（Phase 36） 🔵
+
+**信頼性**: 🔵 *src/api/routes/monitoring.ts・要件定義REQ-100 より*
+
+**関連要件**: REQ-100
+
+| エンドポイント | メソッド | 説明 | レスポンス例 |
+|-------------|---------|------|------------|
+| /api/v1/monitoring/metrics | GET | ダッシュボードメトリクス | 処理時間・成功率・エラー率 |
+| /api/v1/monitoring/cost | GET | LLMコスト・トークン統計 | モデル別コスト内訳・予算使用率 |
+| /api/v1/monitoring/trends | GET | パフォーマンストレンド | 時系列メトリクス（1s~24h） |
+| /api/v1/monitoring/health | GET | ヘルスチェック | 各コンポーネント健全性状態 |
+
+### コード規模自動監査フロー（Phase 37 計画） 🟡
+
+**信頼性**: 🟡 *SYSTEM_CONSTITUTION V2.4・要件定義REQ-102 より*
+
+```mermaid
+flowchart TD
+    A[ビルド/CI 実行] --> B[コード規模監査スクリプト起動]
+    B --> C[ファイル数カウント]
+    B --> D[総行数カウント]
+    C --> E{ファイル数 <= 340?}
+    D --> F{行数 <= 100,000?}
+    E -->|Yes| G[OK]
+    E -->|No| H[警告: ファイル数制限超過]
+    F -->|Yes| G
+    F -->|No| I[警告: 行数制限超過]
+    H --> J[ビルド警告出力]
+    I --> J
+```
+
+**関連要件**: REQ-102
+
+**備考**: Phase 37 で実装予定。SYSTEM_CONSTITUTION V2.4 の制限値（340ファイル・100K行）を自動監査
+
 ## 関連文書（旧）
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 142件 (99%)
-- 🟡 黄信号: 1件 (1%)
+- 🔵 青信号: 147件 (98%)
+- 🟡 黄信号: 2件 (1%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - REQ-052~055・REQ-305 追加 UI コンポーネントフローを反映（第98回検証: Phase 1-17全完了・282ファイル・87,267行・全3,569テスト通過(133 suites)・103要件・要件カバレッジ100%維持確認・REQ-058/059/060反映済・ギャップなし）
+**品質評価**: 高品質 - Phase 36 LLMコスト監視フロー・監視REST APIフロー・Phase 37 コード規模監査フローを反映（第145回検証: Phase 1-36完了・Phase 37計画中・326ファイル・96,218行・4,300+テスト(186+ suites)・147タスク完了・143要件・ギャップなし）
 
 ## Acceptance criteria
 

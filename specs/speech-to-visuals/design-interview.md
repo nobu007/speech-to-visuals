@@ -2990,3 +2990,93 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - design-interview.md: 🔵100件 / 🟡3件 / 🔴0件
 
 **更新統合内容**: 第99回検証としてdesign-interview.mdにA85分析エントリ追加。全設計文書の最終更新日に第99回検証を反映。実体変更なし・整合性確認のみ。
+
+---
+
+### A86: Phase 36-37 設計文書更新（第145回 Kairo 設計分析）
+
+**分析日時**: 2026-05-09
+**カテゴリ**: アーキテクチャ・監視・コスト可視化・コード規模監査
+**背景**: Phase 36（REQ-097~100）実装完了・Phase 37（REQ-102~103）計画に伴い、設計文書の差分更新が必要
+
+**判断**:
+1. Phase 36 の LLM コスト・トークン監視システム（TokenUsageTracker, CostEstimator, BudgetAlertSystem）が実装済みであることを設計文書に反映
+2. Phase 36 の監視 REST API（4エンドポイント）が server.ts に正しく組み込まれていることを確認
+3. Phase 37 のコード規模自動監査（REQ-102）の設計を計画として追加
+4. Phase 37 の監視 API 本番動作検証（REQ-103）は TASK-0146/0147 で既に完了していることを確認
+
+**根拠**:
+- src/analysis/token-usage-tracker.ts, cost-estimator.ts, budget-alert.ts の実装確認
+- src/api/routes/monitoring.ts で 4エンドポイント定義、server.ts で `/api/v1/monitoring` にルート登録済み
+- tests/analysis/budget-alert-boundary.test.ts (540行, 15テストケース) で BudgetAlertSystem 境界テスト完了
+- SYSTEM_CONSTITUTION V2.4 制限値（340ファイル・100K行）vs 実績値（326ファイル・96,218行）を確認
+
+**信頼性への影響**:
+
+- architecture.md: Phase 36 監視セクション追加（+10項目 🔵）、Phase 37 計画セクション追加（+2項目 🔵/🟡）
+- dataflow.md: Phase 36 監視フロー追加（+3フロー 🔵）、Phase 37 監査フロー追加（+1フロー 🟡）
+- interfaces.ts: Phase 36 監視型定義追加（+9インターフェース 🔵）、Phase 37 型定義追加（+1インターフェース 🟡）
+- design-interview.md: Phase 36-37 分析記録追加
+
+---
+
+### A87: Phase 37 実装計画分析
+
+**分析日時**: 2026-05-09
+**カテゴリ**: 実装計画・タスク分割
+**背景**: Phase 37（REQ-102~103）の実装に向けた設計分析
+
+**判断**:
+
+**REQ-102: コード規模自動監査**
+- 実装場所: `scripts/code-size-audit.ts` または `src/config/code-size-audit.ts`
+- 実行タイミング: CI/CD パイプライン（`.github/workflows/ci.yml`）の lint/test ジョブ前
+- チェック項目: ファイル数（340以下）、総行数（100K以下）、依存パッケージ数（110以下）
+- 警告出力: 制限超過時に warning レベルでログ出力（ビルドは継続）
+- 設定ソース: SYSTEM_CONSTITUTION.md の制限値をスクリプト内定数として定義
+
+**REQ-103: 監視 REST API 本番動作検証**
+- 実装状況: TASK-0146/0147 で完了済み
+  - monitoring.ts ルーターが server.ts に登録済み（`app.use('/api/v1/monitoring', createMonitoringRouter())`）
+  - サーバー起動時ルート登録ログの確認済み
+  - 全エンドポイント統合テスト通過済み
+- 追加作業: なし（要件は既に満たされている）
+
+**根拠**: src/api/server.ts ソースコード確認・TASK-0146/0147 完了記録・テスト実行結果確認
+
+**信頼性への影響**:
+- REQ-102: 🟡 新規実装が必要（推定作業: スクリプト1ファイル + CI設定更新）
+- REQ-103: 🔵 既に実装・テスト完了（設計文書への反映のみ必要）
+
+**分析結果サマリー**:
+
+### 確認できた事項
+
+- Phase 36（REQ-097~100）は完全実装済み: パイプライン並列化、LLMコスト監視、パフォーマンスベンチマーク、監視REST API
+- BudgetAlertSystem 境界テスト 15ケース全通過（閾値境界・ゼロ予算・累積コスト・リセット・コールバック分離）
+- 監視 REST API 4エンドポイントが server.ts に正しくルート登録済み
+- SYSTEM_CONSTITUTION V2.4 制限値（340ファイル・100K行）に対して実績値（326ファイル・96,218行）は十分な余裕あり
+
+### 設計方針の決定事項
+
+- Phase 37 REQ-102: コード規模監査スクリプトを新規作成（CI パイプラインに統合）
+- Phase 37 REQ-103: 既存実装の確認完了（追加実装不要）
+
+### 残課題
+
+- REQ-102 コード規模監査の具体的な実装ファイル名・設定方法の決定
+- 監査結果の通知方法（ログ出力 vs GitHub Actions annotation）
+
+### 信頼性レベル分布
+
+**分析前**:
+
+- 🔵 青信号: 465
+- 🟡 黄信号: 4
+- 🔴 赤信号: 0
+
+**分析後**:
+
+- 🔵 青信号: 478 (+13)
+- 🟡 黄信号: 6 (+2)
+- 🔴 赤信号: 0
