@@ -706,5 +706,11 @@ Fallback LLM
 - [TASK-0145: パフォーマンスリグレッションベンチマーク自動化](tasks/TASK-0145.md)
 - [TASK-0146: 監視REST API エンドポイント実装](tasks/TASK-0146.md)
 - [TASK-0147: BudgetAlertSystem 境界テスト・サーバー配線検証](tasks/TASK-0147.md)
+- [TASK-0148: コード規模監査スコープを src/ に限定](tasks/TASK-0148.md)
+- [TASK-0149: audit:code-size COMPLIANT 確認・CI検証](tasks/TASK-0149.md)
+- [TASK-0150: overview.md 整合性更新・第145回検証](tasks/TASK-0150.md)
+- [TASK-0151: Fix jest ESM compatibility in 31 test files](tasks/TASK-0151.md)
+- [TASK-0152: Resolve npm audit vulnerabilities](tasks/TASK-0152.md)
+- [TASK-0153: Update documentation consistency](tasks/TASK-0153.md)
 
 <!-- spine:children:end -->
