@@ -1,0 +1,351 @@
+/**
+ * Tests for REQ-102: Code Size Automatic Audit
+ *
+ * Covers:
+ * - evaluateAudit: pure function with boundary conditions
+ * - readDependencyCount: package.json parsing
+ * - collectMetrics: filesystem walking
+ * - runAudit: end-to-end integration
+ */
+
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import {
+  evaluateAudit,
+  collectMetrics,
+  readDependencyCount,
+  runAudit,
+  SYSTEM_CONSTITUTION_LIMITS,
+  type CodeSizeMetrics,
+  type CodeSizeLimits,
+} from '@/config/code-size-audit';
+
+// ---------------------------------------------------------------------------
+// evaluateAudit — pure function tests
+// ---------------------------------------------------------------------------
+
+describe('evaluateAudit', () => {
+  const defaultLimits: CodeSizeLimits = { ...SYSTEM_CONSTITUTION_LIMITS };
+
+  function makeMetrics(overrides: Partial<CodeSizeMetrics> = {}): CodeSizeMetrics {
+    return {
+      fileCount: 100,
+      lineCount: 50_000,
+      dependencyCount: 80,
+      files: [],
+      largestFile: { path: 'src/example.ts', lines: 500 },
+      ...overrides,
+    };
+  }
+
+  it('returns compliant when all metrics are within limits', () => {
+    const result = evaluateAudit(makeMetrics(), defaultLimits);
+    expect(result.isCompliant).toBe(true);
+    expect(result.warnings).toHaveLength(0);
+  });
+
+  it('reports warning when file count exceeds limit', () => {
+    const result = evaluateAudit(
+      makeMetrics({ fileCount: 350 }),
+      defaultLimits,
+    );
+    expect(result.isCompliant).toBe(false);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([expect.stringContaining('File count 350 exceeds limit of 340')]),
+    );
+  });
+
+  it('reports warning when total lines exceeds limit', () => {
+    const result = evaluateAudit(
+      makeMetrics({ lineCount: 110_000 }),
+      defaultLimits,
+    );
+    expect(result.isCompliant).toBe(false);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([expect.stringContaining('exceeds limit of 100,000')]),
+    );
+  });
+
+  it('reports warning when dependency count exceeds limit', () => {
+    const result = evaluateAudit(
+      makeMetrics({ dependencyCount: 115 }),
+      defaultLimits,
+    );
+    expect(result.isCompliant).toBe(false);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([expect.stringContaining('Dependency count 115 exceeds limit of 110')]),
+    );
+  });
+
+  it('reports warning when a file exceeds per-file line limit', () => {
+    const result = evaluateAudit(
+      makeMetrics({ largestFile: { path: 'src/big.ts', lines: 2500 } }),
+      defaultLimits,
+    );
+    expect(result.isCompliant).toBe(false);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([expect.stringContaining('src/big.ts')]),
+    );
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([expect.stringContaining('2500 lines')]),
+    );
+  });
+
+  it('reports no warning when file is exactly at the per-file limit', () => {
+    const result = evaluateAudit(
+      makeMetrics({ largestFile: { path: 'src/exact.ts', lines: 2000 } }),
+      defaultLimits,
+    );
+    expect(result.isCompliant).toBe(true);
+    expect(result.warnings).toHaveLength(0);
+  });
+
+  it('reports no warning when file count is exactly at limit', () => {
+    const result = evaluateAudit(
+      makeMetrics({ fileCount: 340 }),
+      defaultLimits,
+    );
+    expect(result.isCompliant).toBe(true);
+  });
+
+  it('reports no warning when line count is exactly at limit', () => {
+    const result = evaluateAudit(
+      makeMetrics({ lineCount: 100_000 }),
+      defaultLimits,
+    );
+    expect(result.isCompliant).toBe(true);
+  });
+
+  it('reports no warning when dependency count is exactly at limit', () => {
+    const result = evaluateAudit(
+      makeMetrics({ dependencyCount: 110 }),
+      defaultLimits,
+    );
+    expect(result.isCompliant).toBe(true);
+  });
+
+  it('collects multiple warnings simultaneously', () => {
+    const result = evaluateAudit(
+      makeMetrics({
+        fileCount: 400,
+        lineCount: 150_000,
+        dependencyCount: 120,
+        largestFile: { path: 'src/big.ts', lines: 3000 },
+      }),
+      defaultLimits,
+    );
+    expect(result.isCompliant).toBe(false);
+    expect(result.warnings).toHaveLength(4);
+  });
+
+  it('skips per-file warning when largestFile is null', () => {
+    const result = evaluateAudit(
+      makeMetrics({ largestFile: null }),
+      defaultLimits,
+    );
+    expect(result.isCompliant).toBe(true);
+    expect(result.warnings).toHaveLength(0);
+  });
+
+  it('respects custom limits', () => {
+    const customLimits: CodeSizeLimits = {
+      maxFiles: 50,
+      maxLines: 10_000,
+      maxLinesPerFile: 100,
+      maxDependencies: 20,
+    };
+    const result = evaluateAudit(makeMetrics(), customLimits);
+    expect(result.isCompliant).toBe(false);
+    expect(result.warnings.length).toBeGreaterThan(0);
+    expect(result.limits).toEqual(customLimits);
+  });
+
+  it('uses default limits when none provided', () => {
+    const result = evaluateAudit(makeMetrics());
+    expect(result.limits).toEqual(SYSTEM_CONSTITUTION_LIMITS);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// readDependencyCount — package.json parsing
+// ---------------------------------------------------------------------------
+
+describe('readDependencyCount', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'audit-test-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('counts deps and devDeps together', () => {
+    const pkgPath = path.join(tmpDir, 'package.json');
+    fs.writeFileSync(pkgPath, JSON.stringify({
+      dependencies: { a: '1.0.0', b: '2.0.0', c: '3.0.0' },
+      devDependencies: { d: '1.0.0', e: '2.0.0' },
+    }));
+    expect(readDependencyCount(pkgPath)).toBe(5);
+  });
+
+  it('returns 0 when both sections are missing', () => {
+    const pkgPath = path.join(tmpDir, 'package.json');
+    fs.writeFileSync(pkgPath, JSON.stringify({ name: 'test' }));
+    expect(readDependencyCount(pkgPath)).toBe(0);
+  });
+
+  it('handles only dependencies', () => {
+    const pkgPath = path.join(tmpDir, 'package.json');
+    fs.writeFileSync(pkgPath, JSON.stringify({
+      dependencies: { a: '1.0.0' },
+    }));
+    expect(readDependencyCount(pkgPath)).toBe(1);
+  });
+
+  it('handles only devDependencies', () => {
+    const pkgPath = path.join(tmpDir, 'package.json');
+    fs.writeFileSync(pkgPath, JSON.stringify({
+      devDependencies: { a: '1.0.0', b: '2.0.0' },
+    }));
+    expect(readDependencyCount(pkgPath)).toBe(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// collectMetrics — filesystem walking
+// ---------------------------------------------------------------------------
+
+describe('collectMetrics', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'audit-test-'));
+
+    // Create a small source tree
+    fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, 'src', 'sub'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'src', 'a.ts'), 'line1\nline2\nline3');
+    fs.writeFileSync(path.join(tmpDir, 'src', 'sub', 'b.tsx'), 'line1\nline2');
+    fs.writeFileSync(path.join(tmpDir, 'src', 'c.js'), '// js file');
+
+    // node_modules should be skipped
+    fs.mkdirSync(path.join(tmpDir, 'node_modules', 'pkg'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'node_modules', 'pkg', 'index.ts'), 'x\n');
+
+    // .git should be skipped
+    fs.mkdirSync(path.join(tmpDir, '.git'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, '.git', 'data.ts'), 'x\n');
+
+    // Non-source files should be ignored
+    fs.writeFileSync(path.join(tmpDir, 'readme.md'), '# Hello\n');
+    fs.writeFileSync(path.join(tmpDir, 'style.css'), 'body {}\n');
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('counts only source files (.ts, .tsx, .js, .jsx)', () => {
+    const metrics = collectMetrics(tmpDir);
+    expect(metrics.fileCount).toBe(3);
+  });
+
+  it('sums lines across all source files', () => {
+    const metrics = collectMetrics(tmpDir);
+    // a.ts=3, b.tsx=2, c.js=1 => 6 total
+    expect(metrics.lineCount).toBe(6);
+  });
+
+  it('identifies the largest file', () => {
+    const metrics = collectMetrics(tmpDir);
+    expect(metrics.largestFile).not.toBeNull();
+    expect(metrics.largestFile!.lines).toBe(3);
+  });
+
+  it('skips node_modules and .git', () => {
+    const metrics = collectMetrics(tmpDir);
+    const paths = metrics.files.map(f => f.path);
+    expect(paths).not.toEqual(
+      expect.arrayContaining([expect.stringContaining('node_modules')]),
+    );
+    expect(paths).not.toEqual(
+      expect.arrayContaining([expect.stringContaining('.git')]),
+    );
+  });
+
+  it('ignores non-source extensions', () => {
+    const metrics = collectMetrics(tmpDir);
+    const paths = metrics.files.map(f => f.path);
+    expect(paths).not.toEqual(
+      expect.arrayContaining([expect.stringContaining('.md')]),
+    );
+    expect(paths).not.toEqual(
+      expect.arrayContaining([expect.stringContaining('.css')]),
+    );
+  });
+
+  it('returns empty metrics for empty directory', () => {
+    const emptyDir = path.join(tmpDir, 'empty');
+    fs.mkdirSync(emptyDir);
+    const metrics = collectMetrics(emptyDir);
+    expect(metrics.fileCount).toBe(0);
+    expect(metrics.lineCount).toBe(0);
+    expect(metrics.largestFile).toBeNull();
+  });
+
+  it('sets dependencyCount to 0 (filled by runAudit)', () => {
+    const metrics = collectMetrics(tmpDir);
+    expect(metrics.dependencyCount).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// runAudit — end-to-end integration
+// ---------------------------------------------------------------------------
+
+describe('runAudit', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'audit-test-'));
+
+    fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'src', 'a.ts'), 'line1');
+
+    fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({
+      dependencies: { a: '1' },
+      devDependencies: { b: '1' },
+    }));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('returns a complete audit result', () => {
+    const result = runAudit(tmpDir, path.join(tmpDir, 'package.json'));
+    expect(result.metrics.fileCount).toBe(1);
+    expect(result.metrics.dependencyCount).toBe(2);
+    expect(result.metrics.lineCount).toBe(1);
+    expect(result.limits).toEqual(SYSTEM_CONSTITUTION_LIMITS);
+  });
+
+  it('accepts custom limits', () => {
+    const result = runAudit(tmpDir, path.join(tmpDir, 'package.json'), {
+      maxFiles: 0,
+    });
+    expect(result.isCompliant).toBe(false);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([expect.stringContaining('File count')]),
+    );
+  });
+
+  it('is compliant for small projects under limits', () => {
+    const result = runAudit(tmpDir, path.join(tmpDir, 'package.json'));
+    expect(result.isCompliant).toBe(true);
+    expect(result.warnings).toHaveLength(0);
+  });
+});
