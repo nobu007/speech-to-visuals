@@ -22,6 +22,9 @@ import { LLMCache } from "./llm-cache";
 import { ComplexityDetector, ComplexityAnalysis } from "./complexity-detector";
 import { parseJsonFromLLMText } from "./llm-utils";
 import { logger } from '../utils/logger';
+import { TokenUsageTracker, type ModelType, type StageType, type TokenUsageSummary } from './token-usage-tracker';
+import { calculateModelCost, estimateCost, type CostBreakdown, type CostEstimate } from './cost-estimator';
+import { BudgetAlertSystem, type BudgetAlert } from './budget-alert';
 
 /**
  * Phase 33: Streaming progress callback
@@ -35,6 +38,7 @@ export type StreamingCallback = (partialText: string, progress: number) => void;
 export interface LLMRequest<T = unknown> {
   prompt: string;
   context: string; // For caching and complexity analysis
+  stage?: StageType; // Pipeline stage for monitoring (defaults to 'analysis')
   options?: {
     temperature?: number;
     maxOutputTokens?: number;
@@ -63,6 +67,9 @@ export interface LLMResponse<T = unknown> {
     complexity?: ComplexityAnalysis;
     retryCount: number;
     fallbackUsed: boolean;
+    // REQ-098: Token usage and cost tracking
+    tokenUsage?: { inputTokens: number; outputTokens: number; totalTokens: number };
+    estimatedCost?: CostBreakdown;
   };
 }
 
@@ -125,6 +132,10 @@ export class LLMService {
     proResponseTimes: [] as number[]
   };
 
+  // REQ-098: LLM cost & token monitoring
+  private tokenTracker: TokenUsageTracker;
+  private budgetAlert: BudgetAlertSystem;
+
   // Rate limiting configuration (Phase 30: Optimized for faster processing)
   private readonly MIN_REQUEST_INTERVAL = 200; // 200ms between requests (reduced from 500ms for 60% speed improvement)
 
@@ -145,6 +156,10 @@ export class LLMService {
     });
 
     this.complexityDetector = new ComplexityDetector();
+
+    // REQ-098: Initialize monitoring
+    this.tokenTracker = new TokenUsageTracker();
+    this.budgetAlert = new BudgetAlertSystem();
   }
 
   /**
@@ -221,7 +236,7 @@ export class LLMService {
     // Try primary model with retries
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        const result = await this.executeRequest(
+        const { text: resultText, usage } = await this.executeRequest(
           primaryModel,
           request.prompt,
           {
@@ -247,15 +262,23 @@ export class LLMService {
         // Parse result
         let parsedData: T;
         if (request.parser) {
-          parsedData = request.parser(result);
+          parsedData = request.parser(resultText);
         } else {
-          parsedData = parseJsonFromLLMText<T>(result);
+          parsedData = parseJsonFromLLMText<T>(resultText);
         }
 
         // Cache successful result
         this.cache.set(cacheKey, parsedData, 'unified-llm-service');
         this.modelMetrics.successCount++;
 
+        // REQ-098: Record token usage and cost for monitoring
+        const modelType = toModelType(primaryModel);
+        const inputTokens = usage?.promptTokenCount ?? 0;
+        const outputTokens = usage?.candidatesTokenCount ?? 0;
+        const stage = request.stage ?? 'analysis';
+        if (usage) {
+          this.recordApiCallMetrics(modelType, inputTokens, outputTokens, stage);
+        }
 
         return {
           success: true,
@@ -266,7 +289,9 @@ export class LLMService {
             fromCache: false,
             complexity,
             retryCount: attempt,
-            fallbackUsed: false
+            fallbackUsed: false,
+            tokenUsage: usage ? { inputTokens, outputTokens, totalTokens: inputTokens + outputTokens } : undefined,
+            estimatedCost: usage ? calculateModelCost(modelType, inputTokens, outputTokens) : undefined,
           }
         };
 
@@ -319,7 +344,7 @@ export class LLMService {
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        const result = await this.executeRequest(
+        const { text: resultText, usage } = await this.executeRequest(
           fallbackModel,
           request.prompt,
           {
@@ -345,15 +370,22 @@ export class LLMService {
         // Parse result
         let parsedData: T;
         if (request.parser) {
-          parsedData = request.parser(result);
+          parsedData = request.parser(resultText);
         } else {
-          parsedData = parseJsonFromLLMText<T>(result);
+          parsedData = parseJsonFromLLMText<T>(resultText);
         }
 
         // Cache successful result
         this.cache.set(cacheKey, parsedData, 'unified-llm-service');
         this.modelMetrics.successCount++;
 
+        // REQ-098: Record token usage and cost for monitoring (fallback stage)
+        const fallbackModelType = toModelType(fallbackModel);
+        const inputTokens = usage?.promptTokenCount ?? 0;
+        const outputTokens = usage?.candidatesTokenCount ?? 0;
+        if (usage) {
+          this.recordApiCallMetrics(fallbackModelType, inputTokens, outputTokens, 'fallback');
+        }
 
         return {
           success: true,
@@ -364,7 +396,9 @@ export class LLMService {
             fromCache: false,
             complexity,
             retryCount: retryCount + attempt,
-            fallbackUsed: true
+            fallbackUsed: true,
+            tokenUsage: usage ? { inputTokens, outputTokens, totalTokens: inputTokens + outputTokens } : undefined,
+            estimatedCost: usage ? calculateModelCost(fallbackModelType, inputTokens, outputTokens) : undefined,
           }
         };
 
@@ -402,6 +436,7 @@ export class LLMService {
   /**
    * Execute a single LLM request to a specific model
    * Phase 33: Enhanced with streaming support
+   * REQ-098: Returns usage metadata for token/cost tracking
    */
   private async executeRequest(
     modelName: string,
@@ -410,7 +445,7 @@ export class LLMService {
     timeout: number,
     attempt: number,
     streamingCallback?: StreamingCallback
-  ): Promise<string> {
+  ): Promise<{ text: string; usage?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number } }> {
     // Apply rate limiting
     await this.checkRateLimit();
 
@@ -448,19 +483,26 @@ export class LLMService {
       throw new Error('Empty response from LLM');
     }
 
-    return responseText;
+    // REQ-098: Extract token usage metadata from Gemini API response
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const usage = (response as any).usageMetadata as
+      | { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number }
+      | undefined;
+
+    return { text: responseText, usage };
   }
 
   /**
    * Phase 33: Execute streaming LLM request with real-time progress updates
    * Provides partial results as they arrive for better perceived performance
+   * REQ-098: Returns usage metadata from final streaming response
    */
   private async executeStreamingRequest(
     model: ReturnType<GoogleGenerativeAI['getGenerativeModel']>,
     prompt: string,
     timeout: number,
     onStream: StreamingCallback
-  ): Promise<string> {
+  ): Promise<{ text: string; usage?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number } }> {
 
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('Request timeout')), timeout)
@@ -470,11 +512,11 @@ export class LLMService {
     let lastProgress = 0;
 
     const streamingPromise = (async () => {
-      const result = await model.generateContentStream({
+      const streamResult = await model.generateContentStream({
         contents: [{ role: "user", parts: [{ text: prompt }] }]
       });
 
-      for await (const chunk of result.stream) {
+      for await (const chunk of streamResult.stream) {
         const chunkText = chunk.text();
         fullText += chunkText;
 
@@ -491,16 +533,26 @@ export class LLMService {
       // Final progress update
       onStream(fullText, 100);
 
-      return fullText;
+      // REQ-098: Extract usage metadata from final streaming response
+      let usage: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number } | undefined;
+      try {
+        const finalResponse = await streamResult.response;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        usage = (finalResponse as any).usageMetadata;
+      } catch {
+        // Usage metadata not available for this streaming response
+      }
+
+      return { text: fullText, usage };
     })();
 
-    const responseText = await Promise.race([streamingPromise, timeoutPromise]);
+    const result = await Promise.race([streamingPromise, timeoutPromise]);
 
-    if (!responseText || responseText.trim().length === 0) {
+    if (!result.text || result.text.trim().length === 0) {
       throw new Error('Empty response from streaming LLM');
     }
 
-    return responseText;
+    return result;
   }
 
   /**
@@ -688,6 +740,77 @@ export class LLMService {
       proResponseTimes: []
     };
     this.responseTimeHistory = [];
+    // REQ-098: Reset monitoring state
+    this.tokenTracker.reset();
+    this.budgetAlert.resetSession();
+  }
+
+  // =========================================================================
+  // REQ-098: Token usage & cost monitoring accessors
+  // =========================================================================
+
+  /**
+   * Get token usage summary across all recorded API calls.
+   */
+  getTokenSummary(): TokenUsageSummary {
+    return this.tokenTracker.getSummary();
+  }
+
+  /**
+   * Get cost estimate for current session.
+   */
+  getCostEstimate(): CostEstimate {
+    return estimateCost(this.tokenTracker.getRecords());
+  }
+
+  /**
+   * Register a callback for budget alert notifications.
+   */
+  onBudgetAlert(callback: (alert: BudgetAlert) => void): void {
+    this.budgetAlert.onAlert(callback);
+  }
+
+  /**
+   * Get all budget alerts fired in this session.
+   */
+  getBudgetAlerts(): { session: ReadonlyArray<BudgetAlert>; daily: ReadonlyArray<BudgetAlert> } {
+    return {
+      session: this.budgetAlert.getSessionAlerts(),
+      daily: this.budgetAlert.getDailyAlerts(),
+    };
+  }
+
+  /**
+   * Get current accumulated cost totals.
+   */
+  getCostTotals(): { session: number; daily: number } {
+    return {
+      session: this.budgetAlert.getSessionCost(),
+      daily: this.budgetAlert.getDailyCost(),
+    };
+  }
+
+  /**
+   * REQ-098: Record API call metrics (token usage, cost, budget alert).
+   * Called internally after each successful Gemini API call.
+   */
+  private recordApiCallMetrics(
+    model: ModelType,
+    inputTokens: number,
+    outputTokens: number,
+    stage: StageType
+  ): void {
+    // Record token usage
+    this.tokenTracker.recordTokenUsage({ model, inputTokens, outputTokens, stage });
+
+    // Calculate cost and feed to budget alert system
+    const cost = calculateModelCost(model, inputTokens, outputTokens);
+    const alerts = this.budgetAlert.addCost(cost.totalCost);
+
+    // Log budget warnings
+    for (const alert of alerts) {
+      logger.warn(`Budget alert: ${alert.message}`);
+    }
   }
 }
 
@@ -826,6 +949,18 @@ function extractSummary(parsed: Record<string, unknown>): string {
     return parsed.summary;
   }
   return '';
+}
+
+// =========================================================================
+// REQ-098: Model type helper
+// =========================================================================
+
+/** Safely cast a model name string to ModelType. Defaults to flash for unknown models. */
+function toModelType(modelName: string): ModelType {
+  if (modelName === 'gemini-2.5-flash' || modelName === 'gemini-2.5-pro') {
+    return modelName;
+  }
+  return 'gemini-2.5-flash';
 }
 
 // Export singleton instance for easy use
