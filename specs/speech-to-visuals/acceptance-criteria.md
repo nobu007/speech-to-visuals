@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-09（Phase 35受入確認完了: REQ-094~096全13テストケース検証済み・全126テストケースgreen）
+**最終更新**: 2026-05-09（Phase 36受入確認完了: REQ-097~100全17テストケース検証済み・全143テストケースgreen）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -2155,3 +2155,218 @@
   - **入力**: 不完全なエクスポート出力
   - **期待結果**: ExportVerifier が検証失敗を検出し、エラーを返す
   - **信頼性**: 🔵 *ExportVerifierテストで検証済*
+
+---
+
+## REQ-097: パイプラインステージ並列化とボトルネック検出 🔵
+
+**信頼性**: 🔵 *src/pipeline/parallel-layout-executor.ts・src/pipeline/bottleneck-detector.ts・TASK-0143完了*
+
+### Given（前提条件）
+
+- パイプラインオーケストレーターが複数図解コンテンツの処理を開始する
+- enableParallel が有効である
+
+### When（実行条件）
+
+- Stage 3（レイアウト生成）と Stage 4（シーン準備）を実行する
+
+### Then（期待結果）
+
+- 複数図解のレイアウトが並列実行される（maxLayoutConcurrency 制限内）
+- シーン準備が並列実行される（maxSceneConcurrency 制限内）
+- 各ステージのタイミングメトリクスが記録される
+- 全体処理時間の40%以上を占めるステージがボトルネックとして検出される
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-097-01**: 並列レイアウト生成が逐次実行と同一結果 🔵
+  - **入力**: 3つの図解データ
+  - **期待結果**: 並列実行と逐次実行の結果が同一
+  - **信頼性**: 🔵 *tests/pipeline/parallel-execution.test.ts で検証済*
+
+- [x] **TC-097-02**: 同時実行数制限が機能する 🔵
+  - **入力**: maxConcurrency=2, 5つの図解データ
+  - **期待結果**: 同時実行最大2つ
+  - **信頼性**: 🔵 *tests/pipeline/parallel-execution.test.ts で検証済*
+
+- [x] **TC-097-03**: ボトルネック検出（warning/critical） 🔵
+  - **入力**: Stage 2が全体の50%を占めるタイミングメトリクス
+  - **期待結果**: warning severityでボトルネック検出
+  - **信頼性**: 🔵 *tests/pipeline/parallel-execution.test.ts で検証済*
+
+- [x] **TC-097-04**: ステージタイミングメトリクス精度 🔵
+  - **入力**: 5段階パイプライン実行
+  - **期待結果**: 各ステージの開始/終了/所要時間が正確に記録
+  - **信頼性**: 🔵 *src/pipeline/stage-timing-metrics.ts テストで検証済*
+
+#### 異常系
+
+- [x] **TC-097-E01**: 並列実行時の個別ステージ失敗 🔵
+  - **入力**: 3つの図解のうち1つでレイアウト失敗
+  - **期待結果**: 失敗した図解のみエラー、他は成功
+  - **信頼性**: 🔵 *tests/pipeline/parallel-execution.test.ts で検証済*
+
+---
+
+## REQ-098: LLMコスト・トークン使用量監視 🔵
+
+**信頼性**: 🔵 *src/analysis/token-usage-tracker.ts・src/analysis/cost-estimator.ts・src/analysis/budget-alert.ts・TASK-0144完了*
+
+### Given（前提条件）
+
+- LLM API（Gemini Flash/Pro）が利用可能である
+- TokenUsageTracker が初期化されている
+
+### When（実行条件）
+
+- LLM API呼び出しが実行される
+
+### Then（期待結果）
+
+- input/output トークン数がリクエスト単位で記録される
+- モデル別価格に基づくコスト推定が計算される
+- セッション/日次予算のアラートが発行される
+- PerformanceDashboard にコストメトリクスが統合される
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-098-01**: トークン使用量記録が正確 🔵
+  - **入力**: API応答（inputTokens:1500, outputTokens:500）
+  - **期待結果**: TokenUsageRecordが正確に記録
+  - **信頼性**: 🔵 *tests/analysis/token-usage-cost-monitoring.test.ts*
+
+- [x] **TC-098-02**: Flash/Pro コスト推定が正確 🔵
+  - **入力**: Flash 10K input + 2K output tokens
+  - **期待結果**: $0.075*10 + $0.30*2 = $1.35
+  - **信頼性**: 🔵 *tests/analysis/token-usage-cost-monitoring.test.ts*
+
+- [x] **TC-098-03**: 予算アラート閾値発火 🔵
+  - **入力**: sessionBudget: $1.00, alertThreshold: 0.8
+  - **期待結果**: 累積$0.80到達でアラート発行
+  - **信頼性**: 🔵 *tests/analysis/budget-alert-boundary.test.ts*
+
+- [x] **TC-098-04**: ステージ別コスト内訳 🔵
+  - **入力**: 3ステージ（analysis/fallback/cache-warmup）のコスト
+  - **期待結果**: 各ステージのコストが正確に返される
+  - **信頼性**: 🔵 *tests/analysis/llm-monitoring-integration.test.ts*
+
+- [x] **TC-098-05**: PerformanceDashboard統合 🔵
+  - **入力**: 3回のAPI呼び出し
+  - **期待結果**: セッション合計・平均・ステージ別内訳が取得可能
+  - **信頼性**: 🔵 *src/monitoring/performance-dashboard.ts に統合済*
+
+- [x] **TC-098-06**: Gemini API usageMetadata からのトークン抽出 🔵
+  - **入力**: Gemini API レスポンス
+  - **期待結果**: response.usageMetadata からトークン数が正確に抽出される
+  - **信頼性**: 🔵 *tests/analysis/llm-monitoring-integration.test.ts*
+
+#### 境界値
+
+- [x] **TC-098-B01**: 予算閾値境界（ちょうど80%・79.9%・80.1%） 🔵
+  - **入力**: セッション予算$1.00・閾値80%
+  - **期待結果**: 境界値付近のアラート発火が正確
+  - **信頼性**: 🔵 *tests/analysis/budget-alert-boundary.test.ts 15ケースで検証*
+
+- [x] **TC-098-B02**: ゼロ予算・負値コストのガード 🔵
+  - **入力**: ゼロまたは負の予算設定
+  - **期待結果**: エラーまたはガード動作
+  - **信頼性**: 🔵 *tests/analysis/budget-alert-boundary.test.ts*
+
+---
+
+## REQ-099: パフォーマンスリグレッションベンチマーク 🔵
+
+**信頼性**: 🔵 *src/pipeline/performance-baseline.ts・src/pipeline/performance-regression-detector.ts・TASK-0145完了*
+
+### Given（前提条件）
+
+- パイプライン各ステージのベースライン値が定義されている
+- ベンチマークテストが実行される
+
+### When（実行条件）
+
+- 各ステージの実際のタイミング・メモリを計測する
+
+### Then（期待結果）
+
+- 10%以上の性能悪化がリグレッションとして検出される
+- 並列化効果（逐次 vs 並列）が測定される
+- コスト効率メトリクスが追跡される
+- JSONレポートが出力される
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-099-01**: ベースライン比較が正確 🔵
+  - **入力**: transcription baseline 8000ms, actual 9500ms
+  - **期待結果**: 18.75%悪化 → リグレッション検出
+  - **信頼性**: 🔵 *src/pipeline/performance-regression-detector.ts テスト*
+
+- [x] **TC-099-02**: リグレッション重大度分類 🔵
+  - **入力**: 10%/25%閾値
+  - **期待結果**: 10%未満=warning, 25%以上=critical
+  - **信頼性**: 🔵 *src/pipeline/performance-regression-detector.ts テスト*
+
+- [x] **TC-099-03**: 並列化効果測定 🔵
+  - **入力**: sequential 12000ms, parallel 5000ms
+  - **期待結果**: 2.4x高速化として算出
+  - **信頼性**: 🔵 *src/pipeline/parallel-benchmark.ts テスト*
+
+---
+
+## REQ-100: 監視REST API エンドポイント 🔵
+
+**信頼性**: 🔵 *src/api/routes/monitoring.ts・src/api/server.ts・TASK-0146完了*
+
+### Given（前提条件）
+
+- Express API サーバーが起動している
+- 監視モジュール（PerformanceDashboard・TokenUsageTracker・BudgetAlert）が初期化されている
+
+### When（実行条件）
+
+- 外部クライアントが /api/v1/monitoring/* エンドポイントにアクセスする
+
+### Then（期待結果）
+
+- GET /metrics: 現在のダッシュボードメトリクスが返される
+- GET /cost: LLMコスト・トークン・予算メトリクスが返される
+- GET /trends: パフォーマンストレンドが返される
+- GET /health: ヘルスチェックステータスが返される
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-100-01**: GET /metrics レスポンス検証 🔵
+  - **入力**: GET /api/v1/monitoring/metrics
+  - **期待結果**: 200 + ダッシュボードメトリクスJSON
+  - **信頼性**: 🔵 *tests/api/routes/__tests__/monitoring.test.ts*
+
+- [x] **TC-100-02**: GET /cost コストメトリクス検証 🔵
+  - **入力**: GET /api/v1/monitoring/cost
+  - **期待結果**: 200 + トークン・コスト・予算データJSON
+  - **信頼性**: 🔵 *tests/api/routes/__tests__/monitoring.test.ts*
+
+- [x] **TC-100-03**: GET /trends トレンド検証 🔵
+  - **入力**: GET /api/v1/monitoring/trends?timespan=1h
+  - **期待結果**: 200 + パフォーマンストレンドJSON
+  - **信頼性**: 🔵 *tests/api/routes/__tests__/monitoring.test.ts*
+
+- [x] **TC-100-04**: GET /health ヘルスチェック検証 🔵
+  - **入力**: GET /api/v1/monitoring/health
+  - **期待結果**: 200 + コンポーネントステータスJSON
+  - **信頼性**: 🔵 *tests/api/routes/__tests__/monitoring.test.ts*
+
+#### 境界値
+
+- [x] **TC-100-B01**: 無効なtimespanパラメータ 🔵
+  - **入力**: GET /trends?timespan=invalid
+  - **期待結果**: 400 + バリデーションエラー
+  - **信頼性**: 🔵 *Zodスキーマ検証*

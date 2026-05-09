@@ -10,13 +10,52 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-09（第141回検証: Phase 34完了確認・Phase 35可視化アルゴリズム正式化・パイプライン品質統合要件定義（REQ-094~096）・316ファイル・91,800行・104パッケージ・4,122テスト（181スイート）・REQ-001~093全実装済・REQ-094~096要件定義済）
+**最終更新**: 2026-05-09（第144回検証: Phase 36完了確認・監視REST API・BudgetAlertSystem境界テスト・コード規模最適化要件定義（REQ-097~100完了・REQ-102~103計画）・326ファイル・96,218行・105パッケージ・4,300+テスト・REQ-001~100全実装済）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
 ## 分析項目と判断
 
-### A114: 第140回検証 - Phase 33完了確認・Phase 34要件定義（2026-05-09 第140回更新）
+### A116: 第144回検証 - Phase 36完了確認・監視REST API・Phase 37要件定義（2026-05-09 第144回更新）
+
+**分析日時**: 2026-05-09
+**カテゴリ**: 実装完了確認・ギャップ分析・新規要件定義
+**背景**: Phase 36（REQ-097~099）が3タスク（TASK-0143~0145）で実装完了した。加えて、監視REST API（TASK-0146）とBudgetAlertSystem境界テスト（TASK-0147）も完了。直近5コミットで3,025行が追加され、コード規模が96,218行に到達。SYSTEM_CONSTITUTION V2.3の95K上限を1,218行超過しているため、憲法V2.4改訂とPhase 37の計画が必要。
+
+**判断**:
+1. **Phase 36完了確認**: REQ-097（並列レイアウト生成・ボトルネック検出・ステージタイミング）・REQ-098（トークン追跡・コスト推定・予算アラート・Dashboard統合）・REQ-099（パフォーマンスベースライン・リグレッション検出・並列化効果測定）全て実装済
+2. **追加実装確認**: 監視REST API（4エンドポイント: /metrics, /cost, /trends, /health）が monitoring.ts に実装され server.ts に配線済。BudgetAlertSystem境界テスト（541行・15テストケース）が実装済
+3. **REQ-100追加**: 監視REST APIを正式なREQとして追跡（TASK-0146で実装済）
+4. **Phase 37新規要件定義**（REQ-102~103）:
+   - **REQ-102**: コード規模自動監査（制限超過時ビルド警告）
+   - **REQ-103**: 監視API本番動作検証（ルート登録ログ・統合テスト全通過確認）
+
+**根拠**:
+- `src/pipeline/parallel-layout-executor.ts`: 81行・並列実行ユーティリティ
+- `src/pipeline/bottleneck-detector.ts`: 93行・ボトルネック検出（40%/60%閾値）
+- `src/pipeline/stage-timing-metrics.ts`: 77行・ステージタイミング記録
+- `src/analysis/token-usage-tracker.ts`: 142行・モデル別・ステージ別トークン追跡
+- `src/analysis/cost-estimator.ts`: 81行・Flash/Pro価格ベースコスト推定
+- `src/analysis/budget-alert.ts`: 138行・セッション/日次予算監視・アラート
+- `src/analysis/llm-service.ts`: +169行・TokenUsageTracker/CostEstimator/BudgetAlert統合
+- `src/api/routes/monitoring.ts`: 125行・4エンドポイント（metrics/cost/trends/health）
+- `src/api/server.ts`: +3行・monitoring router配線
+- `tests/analysis/budget-alert-boundary.test.ts`: 541行・15テストケース
+- `tests/analysis/llm-monitoring-integration.test.ts`: 538行・8テストカテゴリ
+- `tests/analysis/token-usage-cost-monitoring.test.ts`: 216行・6テストカテゴリ
+- `tests/pipeline/parallel-execution.test.ts`: 283行・5テストカテゴリ
+- コード規模: 326ファイル・96,218行・105パッケージ（V2.3制限95K超過）
+
+**信頼性への影響**:
+- REQ-097~099 を「🔲未実装」→「✅完了」に更新
+- 新規要件 REQ-100 を追加（信頼性レベル: 🔵・監視REST API実装済）
+- 新規要件 REQ-102~103 を追加（信頼性レベル: 🟡/🔵・Phase 37計画）
+- 信頼性レベル分布: 🔵139件(95.2%) / 🟡4件(2.7%) / 🔴0件(0%)
+- SYSTEM_CONSTITUTION V2.4 改訂必要（95K→100K制限）
+
+---
+
+### A115: 第141回検証 - Phase 34完了確認・Phase 35要件定義（2026-05-09 第141回更新）
 
 **分析日時**: 2026-05-09
 **カテゴリ**: 実装完了確認・ギャップ分析・新規要件定義
