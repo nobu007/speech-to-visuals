@@ -704,5 +704,7 @@ Fallback LLM
 - [TASK-0143: パイプラインステージ並列化とボトルネック検出](tasks/TASK-0143.md)
 - [TASK-0144: LLMコスト・トークン使用量監視システム](tasks/TASK-0144.md)
 - [TASK-0145: パフォーマンスリグレッションベンチマーク自動化](tasks/TASK-0145.md)
+- [TASK-0146: 監視REST API エンドポイント実装](tasks/TASK-0146.md)
+- [TASK-0147: BudgetAlertSystem 境界テスト・サーバー配線検証](tasks/TASK-0147.md)
 
 <!-- spine:children:end -->
