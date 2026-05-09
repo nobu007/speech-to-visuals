@@ -7,6 +7,8 @@
 import { randomUUID } from 'crypto';
 import { getMemoryUsage } from '@/utils/memory-usage';
 import { logger } from '../utils/logger';
+import { TokenUsageTracker, type StageType } from '../analysis/token-usage-tracker';
+import { estimateCost, type CostEstimate } from '../analysis/cost-estimator';
 
 interface PerformanceMetrics {
   timestamp: number;
@@ -102,6 +104,9 @@ export class PerformanceDashboard {
   private successfulRequests = 0;
   private startTime = Date.now();
   private lastOptimization = Date.now();
+
+  // TASK-0144: Cost tracking
+  private tokenTracker = new TokenUsageTracker();
 
   constructor(thresholds: Partial<PerformanceThresholds> = {}) {
     this.thresholds = {
@@ -616,6 +621,42 @@ export class PerformanceDashboard {
   }
 
   /**
+   * TASK-0144: Record token usage for cost tracking
+   */
+  recordTokenUsage(params: {
+    model: 'gemini-2.5-flash' | 'gemini-2.5-pro';
+    inputTokens: number;
+    outputTokens: number;
+    stage: StageType;
+  }): void {
+    this.tokenTracker.recordTokenUsage(params);
+  }
+
+  /**
+   * TASK-0144: Get cost metrics for dashboard display
+   */
+  getCostMetrics(): CostEstimate & {
+    totalInputTokens: number;
+    totalOutputTokens: number;
+    totalTokens: number;
+    recordCount: number;
+    averageCostPerRequest: number;
+  } {
+    const summary = this.tokenTracker.getSummary();
+    const costEstimate = estimateCost(this.tokenTracker.getRecords());
+    return {
+      ...costEstimate,
+      totalInputTokens: summary.totalInputTokens,
+      totalOutputTokens: summary.totalOutputTokens,
+      totalTokens: summary.totalTokens,
+      recordCount: summary.recordCount,
+      averageCostPerRequest: summary.recordCount > 0
+        ? costEstimate.totalCost / summary.recordCount
+        : 0,
+    };
+  }
+
+  /**
    * 🧹 Cleanup and destroy
    */
   destroy(): void {
@@ -624,6 +665,7 @@ export class PerformanceDashboard {
     this.alerts = [];
     this.alertCallbacks = [];
     this.optimizationCallbacks = [];
+    this.tokenTracker.reset();
   }
 }
 
