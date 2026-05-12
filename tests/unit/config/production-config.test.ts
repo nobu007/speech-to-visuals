@@ -22,7 +22,7 @@ describe('REQ-066: Browser-Safe Environment Variable Access (ISS-012)', () => {
 
   it('TC-066-E01: should use development defaults when process.env is undefined', async () => {
     // Remove process entirely to simulate browser without Vite replacement
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-dynamic-delete
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (global as any).process;
 
     // Re-import to trigger fresh constructor
@@ -35,7 +35,7 @@ describe('REQ-066: Browser-Safe Environment Variable Access (ISS-012)', () => {
 
   it('TC-066-E02: should load config overrides safely when process.env is undefined', async () => {
     // Remove process entirely
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-dynamic-delete
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (global as any).process;
 
     // Re-import to trigger fresh constructor (including loadConfigOverrides)

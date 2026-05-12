@@ -9,7 +9,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
 // Project root
-const root = resolve(__dirname, '../../../src');
+const root = resolve(import.meta.dirname, '../../../src');
 
 function src(relPath: string): string {
   return readFileSync(resolve(root, relPath), 'utf-8');

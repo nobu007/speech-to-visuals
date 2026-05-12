@@ -14,8 +14,10 @@ import * as path from 'path';
 
 // ─── Helper: Read component source ──────────────────────────────────────────
 
+const __testDir = import.meta.dirname;
+
 function readComponentSource(filename: string): string {
-  const filePath = path.resolve(__dirname, '..', filename);
+  const filePath = path.resolve(__testDir, '..', filename);
   return fs.readFileSync(filePath, 'utf-8');
 }
 

@@ -7,22 +7,18 @@ jest.mock('@supabase/supabase-js', () => ({
   createClient: (...args: unknown[]) => mockCreateClient(...args),
 }));
 
-// Do NOT mock the client module itself — we want to test the real client logic
-function importClientModule(): Record<string, any> {
-  let moduleExports: Record<string, any> = {};
-  jest.isolateModules(() => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    moduleExports = require('@/integrations/supabase/client') as Record<string, any>;
-  });
-  return moduleExports;
-}
+// Import the real client module — jest.mock will be hoisted above this import
+// so the mocked @supabase/supabase-js is used
+import {
+  getSupabaseClient,
+  resetSupabaseClient,
+} from '@/integrations/supabase/client';
 
 describe('Supabase client (getSupabaseClient / resetSupabaseClient)', () => {
   const originalEnvUrl = process.env.SUPABASE_URL;
   const originalEnvKey = process.env.SUPABASE_ANON_KEY;
 
   beforeEach(() => {
-    jest.resetModules();
     mockCreateClient.mockReset();
     process.env.SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_ANON_KEY = 'test-anon-key';
@@ -45,7 +41,6 @@ describe('Supabase client (getSupabaseClient / resetSupabaseClient)', () => {
     const fakeClient = { auth: {} };
     mockCreateClient.mockReturnValue(fakeClient);
 
-    const { getSupabaseClient } = importClientModule();
     const client = getSupabaseClient();
 
     expect(mockCreateClient).toHaveBeenCalledTimes(1);
@@ -66,7 +61,6 @@ describe('Supabase client (getSupabaseClient / resetSupabaseClient)', () => {
     const fakeClient = { auth: {} };
     mockCreateClient.mockReturnValue(fakeClient);
 
-    const { getSupabaseClient } = importClientModule();
     const client1 = getSupabaseClient();
     const client2 = getSupabaseClient();
 
@@ -78,8 +72,6 @@ describe('Supabase client (getSupabaseClient / resetSupabaseClient)', () => {
     delete process.env.SUPABASE_URL;
     delete process.env.SUPABASE_ANON_KEY;
 
-    const { getSupabaseClient } = importClientModule();
-
     expect(() => getSupabaseClient()).toThrow('Supabase URL and Anon Key are required');
   });
 
@@ -89,8 +81,6 @@ describe('Supabase client (getSupabaseClient / resetSupabaseClient)', () => {
     mockCreateClient
       .mockReturnValueOnce(fakeClient1)
       .mockReturnValueOnce(fakeClient2);
-
-    const { getSupabaseClient, resetSupabaseClient } = importClientModule();
 
     const client1 = getSupabaseClient();
     expect(client1).toBe(fakeClient1);

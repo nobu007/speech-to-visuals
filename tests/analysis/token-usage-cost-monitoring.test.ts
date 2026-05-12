@@ -180,10 +180,9 @@ describe('TASK-0144: PerformanceDashboard cost metrics', () => {
   // and cost-estimator. We test the integration through getCostMetrics().
   let PerformanceDashboard: typeof import('@/monitoring/performance-dashboard').PerformanceDashboard;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     // Dynamically import to avoid side-effects from global instance
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mod = require('@/monitoring/performance-dashboard');
+    const mod = await import('@/monitoring/performance-dashboard');
     PerformanceDashboard = mod.PerformanceDashboard;
   });
 
