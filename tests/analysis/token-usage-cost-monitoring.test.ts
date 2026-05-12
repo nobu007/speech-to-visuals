@@ -182,6 +182,7 @@ describe('TASK-0144: PerformanceDashboard cost metrics', () => {
 
   beforeAll(() => {
     // Dynamically import to avoid side-effects from global instance
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const mod = require('@/monitoring/performance-dashboard');
     PerformanceDashboard = mod.PerformanceDashboard;
   });

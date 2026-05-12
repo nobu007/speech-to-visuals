@@ -322,9 +322,12 @@ describe('AudioPreprocessor', () => {
   // -------------------------------------------------------
 
   describe('analyzeFromBufferEstimate', () => {
+    const callPrivate = (n: number) =>
+      (preprocessor as unknown as { analyzeFromBufferEstimate: (n: number) => AudioPreprocessingResult }).analyzeFromBufferEstimate(n);
+
     test('should estimate duration from buffer size', () => {
       // 16000 bytes ≈ 1 second at 128kbps heuristic
-      const result = preprocessor.analyzeFromBufferEstimate(16000);
+      const result = callPrivate(16000);
 
       expect(result.duration.durationSeconds).toBeCloseTo(1, 0);
       expect(result.duration.valid).toBe(true);
@@ -333,14 +336,14 @@ describe('AudioPreprocessor', () => {
 
     test('should reject very small buffers', () => {
       // 100 bytes ≈ way too short
-      const result = preprocessor.analyzeFromBufferEstimate(100);
+      const result = callPrivate(100);
 
       expect(result.duration.valid).toBe(false);
       expect(result.recommendation).toBe('reject');
     });
 
     test('should include fallback message', () => {
-      const result = preprocessor.analyzeFromBufferEstimate(32000);
+      const result = callPrivate(32000);
       expect(result.messages).toEqual(
         expect.arrayContaining([
           expect.stringContaining('unavailable'),

@@ -19,7 +19,7 @@ interface MockWorkerInstance {
   dispatchError: (message: string) => void;
 }
 
-function createMockWorker(): { instance: MockWorkerInstance; WorkerClass: ReturnType<typeof jest.fn> } {
+function createMockWorker(): { instance: MockWorkerInstance; WorkerClass: () => Worker } {
   const listeners: Record<string, Array<(event: { data?: unknown; message?: string }) => void>> = {};
 
   const instance: MockWorkerInstance = {
@@ -48,7 +48,7 @@ function createMockWorker(): { instance: MockWorkerInstance; WorkerClass: Return
     },
   };
 
-  const WorkerClass = jest.fn(() => instance);
+  const WorkerClass = jest.fn(() => instance) as unknown as () => Worker;
   return { instance, WorkerClass };
 }
 

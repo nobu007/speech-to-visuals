@@ -114,12 +114,12 @@ jest.mock('@/pipeline/quality-monitor', () => ({
 
 import { SimplePipeline } from '@/pipeline/simple-pipeline';
 
-const mockTranscribe = (jest.requireMock('@/transcription') as { __mockTranscribe: jest.Mock<() => Promise<unknown>> }).__mockTranscribe;
-const mockSegment = (jest.requireMock('@/analysis') as { __mockSegment: jest.Mock<() => Promise<unknown>> }).__mockSegment;
-const mockAnalyze = (jest.requireMock('@/analysis') as { __mockAnalyze: jest.Mock<() => Promise<unknown>> }).__mockAnalyze;
-const mockGenerateLayout = (jest.requireMock('@/visualization') as { __mockGenerateLayout: jest.Mock<() => Promise<unknown>> }).__mockGenerateLayout;
-const mockGenerateZeroOverlapLayout = (jest.requireMock('@/visualization/enhanced-zero-overlap-layout') as { __mockGenerateZeroOverlapLayout: jest.Mock<() => Promise<unknown>> }).__mockGenerateZeroOverlapLayout;
-const mockGenerateVideo = (jest.requireMock('@/pipeline/video-generator') as { __mockGenerateVideo: jest.Mock<() => Promise<unknown>> }).__mockGenerateVideo;
+const mockTranscribe = (jest.requireMock('@/transcription') as { __mockTranscribe: jest.Mock }).__mockTranscribe;
+const mockSegment = (jest.requireMock('@/analysis') as { __mockSegment: jest.Mock }).__mockSegment;
+const mockAnalyze = (jest.requireMock('@/analysis') as { __mockAnalyze: jest.Mock }).__mockAnalyze;
+const mockGenerateLayout = (jest.requireMock('@/visualization') as { __mockGenerateLayout: jest.Mock }).__mockGenerateLayout;
+const mockGenerateZeroOverlapLayout = (jest.requireMock('@/visualization/enhanced-zero-overlap-layout') as { __mockGenerateZeroOverlapLayout: jest.Mock }).__mockGenerateZeroOverlapLayout;
+const mockGenerateVideo = (jest.requireMock('@/pipeline/video-generator') as { __mockGenerateVideo: jest.Mock }).__mockGenerateVideo;
 
 // Mock URL.createObjectURL / revokeObjectURL
 beforeEach(() => {
@@ -316,7 +316,7 @@ describe('SimplePipeline', () => {
         nodes: [],
         edges: [],
         qualityMetrics: { overlapCount: 0, aestheticScore: 0 },
-      });
+      } as never);
 
       const result = await pipeline.process({
         audioFile: createMockFile(),
@@ -328,7 +328,7 @@ describe('SimplePipeline', () => {
     });
 
     it('should handle scene processing error', async () => {
-      mockAnalyze.mockRejectedValue(new Error('Analysis failed'));
+      mockAnalyze.mockRejectedValue(new Error('Analysis failed') as never);
 
       const result = await pipeline.process({
         audioFile: createMockFile(),
@@ -340,7 +340,7 @@ describe('SimplePipeline', () => {
     });
 
     it('should handle unexpected error in process', async () => {
-      mockTranscribe.mockRejectedValue(new Error('Unexpected error'));
+      mockTranscribe.mockRejectedValue(new Error('Unexpected error') as never);
 
       const result = await pipeline.process({
         audioFile: createMockFile(),
@@ -356,7 +356,7 @@ describe('SimplePipeline', () => {
         { startMs: 0, endMs: 2000, text: 'Seg 1', confidence: 0.9 },
         { startMs: 2000, endMs: 4000, text: 'Seg 2', confidence: 0.9 },
         { startMs: 4000, endMs: 6000, text: 'Seg 3', confidence: 0.9 },
-      ]);
+      ] as never);
 
       const result = await pipeline.process({
         audioFile: createMockFile(),
@@ -376,7 +376,7 @@ describe('SimplePipeline', () => {
           segments: [{ start: 0, end: 5000, text: 'Hello', confidence: 0.9 }],
           language: 'en',
           duration: 5,
-        });
+        } as never);
 
       const result = await pipeline.processWithRetry(
         { audioFile: createMockFile() },
@@ -392,7 +392,7 @@ describe('SimplePipeline', () => {
         success: false,
         segments: [],
         error: 'Always fails',
-      });
+      } as never);
 
       const result = await pipeline.processWithRetry(
         { audioFile: createMockFile() },
@@ -433,7 +433,7 @@ describe('SimplePipeline', () => {
         success: false,
         segments: [],
         error: 'Failed',
-      });
+      } as never);
 
       await pipeline.process({
         audioFile: createMockFile(),

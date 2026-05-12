@@ -26,7 +26,7 @@ describe('IntelligentCache - corrupted data robustness (ISS-019)', () => {
   let cache: IntelligentCache;
 
   beforeEach(() => {
-    cache = new IntelligentCache({ maxSize: 10, maxAge: 60000 });
+    cache = new IntelligentCache();
   });
 
   test('should handle store and get round-trip without throwing', async () => {

@@ -6,7 +6,7 @@
 import { ContinuousLearner } from '../continuous-learner';
 
 // Suppress console output during tests
-let consoleSpy: jest.Mock;
+let consoleSpy: jest.SpyInstance;
 beforeEach(() => {
   consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
   jest.spyOn(console, 'error').mockImplementation(() => {});
