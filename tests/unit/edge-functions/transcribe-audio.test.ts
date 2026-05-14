@@ -1,17 +1,17 @@
-import { handleTranscribe, TRANSCRIBE_TIMEOUT_MS } from '../../../supabase/functions/transcribe-audio/index';
+import { handleTranscribe, TRANSCRIBE_TIMEOUT_MS } from '#supabase/functions/transcribe-audio/index';
 
 // ─── Mock Setup ──────────────────────────────────────────────────────────────
 
 // Mock the error-handler module's fetchWithTimeout
-jest.mock('../../../supabase/functions/_shared/error-handler', () => {
-  const actual = jest.requireActual('../../../supabase/functions/_shared/error-handler');
+jest.mock('#supabase/functions/_shared/error-handler', () => {
+  const actual = jest.requireActual('#supabase/functions/_shared/error-handler');
   return {
     ...actual,
     fetchWithTimeout: jest.fn(),
   };
 });
 
-import { fetchWithTimeout } from '../../../supabase/functions/_shared/error-handler';
+import { fetchWithTimeout } from '#supabase/functions/_shared/error-handler';
 
 const VALID_ENV = { LOVABLE_API_KEY: 'test-api-key' };
 const USER_ID = 'user-test-001';
@@ -89,7 +89,7 @@ describe('handleTranscribe', () => {
 
   it('should throw validation error when audioUrl is missing', async () => {
     await expect(
-      handleTranscribe({} as Partial<import('../../../supabase/functions/transcribe-audio/index').TranscribeRequest> as import('../../../supabase/functions/transcribe-audio/index').TranscribeRequest, USER_ID, VALID_ENV)
+      handleTranscribe({} as Partial<import('#supabase/functions/transcribe-audio/index').TranscribeRequest> as import('#supabase/functions/transcribe-audio/index').TranscribeRequest, USER_ID, VALID_ENV)
     ).rejects.toThrow('audioUrl is required');
   });
 

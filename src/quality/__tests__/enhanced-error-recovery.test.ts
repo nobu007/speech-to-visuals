@@ -9,7 +9,7 @@ import { EnhancedErrorRecovery } from '../enhanced-error-recovery';
 import { globalErrorRecovery } from '../enhanced-error-recovery';
 
 // Mock the intelligent-cache module
-jest.mock('../../performance/intelligent-cache', () => ({
+jest.mock('@/performance/intelligent-cache', () => ({
   globalCache: {
     findSimilar: jest.fn().mockResolvedValue(null),
     getStats: jest.fn().mockReturnValue({ hitRate: 0.5 }),
@@ -900,7 +900,7 @@ describe('EnhancedErrorRecovery', () => {
   describe('cache recovery strategy', () => {
     it('should use cached results when available', async () => {
       // Import the mocked globalCache
-      const { globalCache } = jest.requireMock('../../performance/intelligent-cache');
+      const { globalCache } = jest.requireMock('@/performance/intelligent-cache');
 
       globalCache.findSimilar.mockResolvedValueOnce({
         data: { cached: 'result', confidence: 0.9 },
@@ -917,7 +917,7 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     it('should handle cache miss gracefully', async () => {
-      const { globalCache } = jest.requireMock('../../performance/intelligent-cache');
+      const { globalCache } = jest.requireMock('@/performance/intelligent-cache');
       globalCache.findSimilar.mockResolvedValueOnce(null);
 
       const context = createErrorContext({
@@ -1248,7 +1248,7 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     it('should handle memory cleanup action', async () => {
-      const { globalCache } = jest.requireMock('../../performance/intelligent-cache');
+      const { globalCache } = jest.requireMock('@/performance/intelligent-cache');
       globalCache.clear.mockResolvedValueOnce(undefined);
 
       // Force the system into a state where preventive actions trigger

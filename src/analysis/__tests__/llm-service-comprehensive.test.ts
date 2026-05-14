@@ -32,7 +32,7 @@ jest.mock('@google/generative-ai', () => ({
 }));
 
 // Mock LLMCache - each instance gets its own isolated storage
-jest.mock('../llm-cache', () => {
+jest.mock('@/analysis/llm-cache', () => {
   return {
     LLMCache: jest.fn().mockImplementation(() => {
       const store = new Map<string, unknown>();

@@ -10,7 +10,7 @@ import type { FallbackLayoutStrategy } from '../../visualization/strategies/Fall
 import type { WorkerResponse, LayoutWorkerResult } from '../types';
 
 // Mock workers module
-jest.mock('../../workers', () => ({
+jest.mock('@/workers', () => ({
   WorkerPool: jest.fn(),
   isWorkerAvailable: jest.fn(() => false),
   getOptimalWorkerCount: jest.fn(() => 2),
@@ -18,14 +18,14 @@ jest.mock('../../workers', () => ({
 }));
 
 // Mock worker-factories
-jest.mock('../../workers/worker-factories', () => ({
+jest.mock('@/workers/worker-factories', () => ({
   createLayoutWorkerFactory: jest.fn(() => () => {
     throw new Error('Worker factory should not be called');
   }),
 }));
 
 // Mock DagreLayoutStrategy to avoid dagre dependency issues
-jest.mock('../../visualization/strategies/DagreLayoutStrategy', () => ({
+jest.mock('@/visualization/strategies/DagreLayoutStrategy', () => ({
   DagreLayoutStrategy: jest.fn().mockImplementation(function (_config?: LayoutConfig, _fallback?: FallbackLayoutStrategy) {
     this.applyLayout = jest.fn().mockResolvedValue({
       nodes: [
@@ -41,13 +41,13 @@ jest.mock('../../visualization/strategies/DagreLayoutStrategy', () => ({
   }),
 }));
 
-jest.mock('../../visualization/strategies/CulturalLayoutAdapter', () => ({
+jest.mock('@/visualization/strategies/CulturalLayoutAdapter', () => ({
   CulturalLayoutAdapter: jest.fn().mockImplementation(function () {
     this.applyCulturalAdaptation = jest.fn((layout) => Promise.resolve(layout));
   }),
 }));
 
-jest.mock('../../visualization/layout-utils', () => ({
+jest.mock('@/visualization/layout-utils', () => ({
   nodesOverlap: jest.fn(() => false),
   getGraphConfig: jest.fn(() => ({})),
   calculateNodeWidth: jest.fn(() => 120),

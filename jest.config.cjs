@@ -3,10 +3,11 @@ module.exports = {
   testEnvironment: 'node',
   globalTeardown: '<rootDir>/tests/globalTeardown.ts',
   setupFiles: ['<rootDir>/tests/setupJestGlobals.ts'],
-  testMatch: ['**/src/**/*.test.ts', '**/src/**/*.test.tsx', '**/tests/**/*.test.ts'],
+  testMatch: ['**/src/**/*.test.ts', '**/src/**/*.test.tsx', '**/tests/**/*.test.ts', '**/tests/**/*.test.tsx'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'json'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^#supabase/(.*)$': '<rootDir>/supabase/$1',
     '^https://deno.land/std@0.168.0/http/server.ts$': '<rootDir>/tests/__mocks__/deno-server.ts',
     '^https://esm.sh/@supabase/supabase-js@2$': '<rootDir>/tests/__mocks__/deno-server.ts',
     '^(.*)/workers/worker-factories$': '<rootDir>/tests/__mocks__/worker-factories.ts',

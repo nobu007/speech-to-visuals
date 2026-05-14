@@ -3,6 +3,19 @@
  * FlowStrategy uses dagre with LR (left-to-right) rank direction.
  */
 
+// ESM-safe mock: layoutEngineV2 exports are read-only in ESM,
+// so jest.spyOn() fails. Use jest.mock() with a controllable fn instead.
+const mockCalculateMetrics = jest.fn();
+
+jest.mock('@/visualization/layout-engine-v2', () => {
+  const actual = jest.requireActual('@/visualization/layout-engine-v2');
+  return {
+    __esModule: true,
+    ...actual,
+    calculateMetrics: mockCalculateMetrics,
+  };
+});
+
 import { FlowStrategy, flowStrategy } from '../flow-strategy';
 import { NodeDatum, EdgeDatum } from '@/types/diagram';
 import * as layoutEngineV2 from '@/visualization/layout-engine-v2';
@@ -259,15 +272,20 @@ describe('FlowStrategy', () => {
   // ---- gridSnapFallback (via forced overlap) ----
 
   describe('gridSnapFallback()', () => {
-    let metricsSpy: jest.SpyInstance;
+    let realCalculateMetrics: typeof layoutEngineV2.calculateMetrics;
+
+    beforeAll(() => {
+      realCalculateMetrics = jest.requireActual('@/visualization/layout-engine-v2').calculateMetrics;
+      mockCalculateMetrics.mockImplementation(realCalculateMetrics);
+    });
 
     afterEach(() => {
-      if (metricsSpy) metricsSpy.mockRestore();
+      mockCalculateMetrics.mockImplementation(realCalculateMetrics);
     });
 
     /** Mock calculateMetrics to return overlapCount > 0, triggering gridSnapFallback. */
     function forceOverlap() {
-      metricsSpy = jest.spyOn(layoutEngineV2, 'calculateMetrics').mockReturnValue({
+      mockCalculateMetrics.mockReturnValue({
         overlapCount: 5,
         edgeCrossings: 0,
         aspectRatio: 16 / 9,

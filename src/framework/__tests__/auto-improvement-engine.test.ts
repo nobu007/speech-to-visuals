@@ -20,7 +20,7 @@ const mockIterationManager = {
   recordFailure: jest.fn(),
 };
 
-jest.mock('../iteration-manager', () => ({
+jest.mock('@/framework/iteration-manager', () => ({
   IterationManager: jest.fn().mockImplementation(() => mockIterationManager),
   createIterationManager: jest.fn().mockReturnValue(mockIterationManager),
 }));

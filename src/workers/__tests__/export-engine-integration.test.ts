@@ -8,7 +8,7 @@
 
 
 // Mock the workers module before importing the engine
-jest.mock('../../workers', () => ({
+jest.mock('@/workers', () => ({
   WorkerPool: jest.fn(),
   isWorkerAvailable: jest.fn(() => false),
   getOptimalWorkerCount: jest.fn(() => 2),
