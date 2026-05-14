@@ -14,7 +14,8 @@ import * as path from 'path';
 
 // ─── Helper: Read component source ──────────────────────────────────────────
 
-const __testDir = import.meta.dirname;
+// ts-jest injects __dirname in ESM mode
+const __testDir = __dirname;
 
 function readComponentSource(filename: string): string {
   const filePath = path.resolve(__testDir, '..', filename);

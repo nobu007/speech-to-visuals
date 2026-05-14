@@ -8,8 +8,8 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
-// Project root
-const root = resolve(import.meta.dirname, '../../../src');
+// Project root — ts-jest injects __dirname in ESM mode
+const root = resolve(__dirname, '../../../src');
 
 function src(relPath: string): string {
   return readFileSync(resolve(root, relPath), 'utf-8');

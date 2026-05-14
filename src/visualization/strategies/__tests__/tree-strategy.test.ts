@@ -78,6 +78,7 @@ describe('TreeStrategy', () => {
 
   beforeEach(() => {
     strategy = new TreeStrategy();
+    mockCalculateMetrics.mockReturnValue({ overlapCount: 0, edgeCrossings: 0, aspectRatio: 16 / 9 });
   });
 
   // ---- Properties ----

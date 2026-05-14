@@ -20,6 +20,7 @@ describe('Supabase client (getSupabaseClient / resetSupabaseClient)', () => {
 
   beforeEach(() => {
     mockCreateClient.mockReset();
+    resetSupabaseClient();
     process.env.SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_ANON_KEY = 'test-anon-key';
   });
