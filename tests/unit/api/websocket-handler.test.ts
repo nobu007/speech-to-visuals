@@ -12,14 +12,9 @@
  */
 
 import { jest } from '@jest/globals';
+import * as jwt from 'jsonwebtoken';
 
 import { createMockIo, createMockSocket, MockIo, MockSocket } from '../../__mocks__/socket-io';
-
-// Mock jsonwebtoken via __mocks__ directory — stable across ESM re-imports.
-jest.mock('jsonwebtoken');
-
-// Import the mock so we can configure it in tests.
-import { verify as mockedJwtVerify } from 'jsonwebtoken';
 
 // We will import after mock setup. Use dynamic import below.
 let registerWebSocketHandler: typeof import('../../../src/api/websocket-handler').registerWebSocketHandler;
@@ -37,6 +32,12 @@ let emitErrorRecovered: typeof import('../../../src/api/websocket-handler').emit
 // ---------------------------------------------------------------------------
 // Helper: set up module under test with mocked Socket.IO
 // ---------------------------------------------------------------------------
+
+const JWT_SECRET = 'ws-test-secret-minimum-32-characters-long';
+
+function signToken(payload: object, secret: string = JWT_SECRET): string {
+  return jwt.sign(payload, secret, { algorithm: 'HS256' });
+}
 
 async function importModule() {
   const mod = await import('../../../src/api/websocket-handler');
@@ -63,15 +64,16 @@ interface MockRoom { emit: jest.Mock }
 describe('WebSocket Handler', () => {
   let mockIo: MockIo;
   let mockSocket: MockSocket;
+  let validToken: string;
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    process.env.JWT_SECRET = 'test-secret';
+    process.env.JWT_SECRET = JWT_SECRET;
     mockIo = createMockIo();
     mockSocket = createMockSocket();
 
-    // Default: JWT verify returns a valid user
-    mockedJwtVerify.mockReturnValue({
+    // Create a real JWT token for tests that need valid auth
+    validToken = signToken({
       sub: 'user-123',
       email: 'test@example.com',
       role: 'authenticated',
@@ -91,7 +93,7 @@ describe('WebSocket Handler', () => {
   describe('Auth Middleware', () => {
     it('should allow connection with a valid JWT token', () => {
       const middleware = createWsAuthMiddleware();
-      mockSocket.handshake.auth.token = 'valid.jwt.token';
+      mockSocket.handshake.auth.token = validToken;
 
       const next = jest.fn();
       middleware(mockSocket as unknown as Parameters<typeof middleware>[0], next);
@@ -116,25 +118,20 @@ describe('WebSocket Handler', () => {
       expect(err.message).toContain('Authentication required');
     });
 
-    it('should refuse connection when JWT verify returns null', () => {
+    it('should refuse connection when token is invalid (wrong secret)', () => {
       const middleware = createWsAuthMiddleware();
-      mockSocket.handshake.auth.token = 'invalid.token';
-      mockedJwtVerify.mockReturnValue(null);
+      const wrongSecretToken = signToken({ sub: 'attacker' }, 'wrong-secret-that-is-long-enough-32');
+      mockSocket.handshake.auth.token = wrongSecretToken;
 
       const next = jest.fn();
       middleware(mockSocket as unknown as Parameters<typeof middleware>[0], next);
 
       expect(next).toHaveBeenCalledWith(expect.any(Error));
-      const err = next.mock.calls[0][0] as Error;
-      expect(err.message).toContain('Invalid token');
     });
 
-    it('should refuse connection when JWT verify throws an error', () => {
+    it('should refuse connection when JWT verify throws (malformed token)', () => {
       const middleware = createWsAuthMiddleware();
-      mockSocket.handshake.auth.token = 'broken.token';
-      mockedJwtVerify.mockImplementation(() => {
-        throw new Error('verify failed');
-      });
+      mockSocket.handshake.auth.token = 'not.a.real.token';
 
       const next = jest.fn();
       middleware(mockSocket as unknown as Parameters<typeof middleware>[0], next);

@@ -1,10 +1,27 @@
+/**
+ * authMiddleware unit tests.
+ *
+ * Uses REAL jsonwebtoken (no mock) so tests verify actual JWT verification
+ * behaviour.  Tokens are signed with `jwt.sign()` using a test secret —
+ * edge-cases (expired, wrong-signature, missing-sub) are produced with
+ * real token parameters rather than mock return-values, eliminating
+ * false-green risk from mock / implementation drift.
+ */
 import { describe, it, expect, beforeEach, jest, afterEach } from '@jest/globals';
 import type { Request, Response, NextFunction } from 'express';
+import * as jwt from 'jsonwebtoken';
+
 import { authMiddleware, type AuthenticatedRequest } from '../auth';
 
-// jsonwebtoken is mocked via tests/__mocks__/jsonwebtoken.ts
-// We configure the mock per-test below.
-import * as jwtMock from 'jsonwebtoken';
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const JWT_SECRET = 'unit-test-secret-minimum-32-characters';
+
+function signToken(payload: object, secret: string = JWT_SECRET): string {
+  return jwt.sign(payload, secret, { algorithm: 'HS256' });
+}
 
 function createMockRequest(overrides: Partial<{ authorization: string }> = {}): Partial<AuthenticatedRequest> {
   return {
@@ -26,6 +43,10 @@ function createMockNext(): NextFunction {
   return jest.fn() as unknown as NextFunction;
 }
 
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
 describe('authMiddleware', () => {
   let res: ReturnType<typeof createMockResponse>;
   let next: NextFunction;
@@ -35,7 +56,7 @@ describe('authMiddleware', () => {
     jest.clearAllMocks();
     res = createMockResponse();
     next = createMockNext();
-    process.env = { ...originalEnv, JWT_SECRET: 'test-secret-that-is-long-enough-32ch' };
+    process.env = { ...originalEnv, JWT_SECRET };
   });
 
   afterEach(() => {
@@ -72,7 +93,7 @@ describe('authMiddleware', () => {
     const req = createMockRequest({ authorization: 'Bearer ' });
     authMiddleware(req as AuthenticatedRequest, res as Response, next);
 
-    // Empty token — jwt.verify mock will throw (default behavior is no implementation)
+    // Empty string passed to jwt.verify → JsonWebTokenError → TOKEN_ERROR
     expect(res.status).toHaveBeenCalledWith(401);
     expect(next).not.toHaveBeenCalled();
   });
@@ -80,13 +101,8 @@ describe('authMiddleware', () => {
   // --- Valid token handling ---
 
   it('should call next() and populate req.user for a valid token with all fields', () => {
-    (jwtMock.verify as ReturnType<typeof jest.fn>).mockReturnValue({
-      sub: 'user-123',
-      email: 'test@example.com',
-      role: 'admin',
-    });
-
-    const req = createMockRequest({ authorization: 'Bearer valid.jwt.token' });
+    const token = signToken({ sub: 'user-123', email: 'test@example.com', role: 'admin' });
+    const req = createMockRequest({ authorization: `Bearer ${token}` });
     authMiddleware(req as AuthenticatedRequest, res as Response, next);
 
     expect(next).toHaveBeenCalled();
@@ -99,12 +115,8 @@ describe('authMiddleware', () => {
   });
 
   it('should use default role "authenticated" when token has no role', () => {
-    (jwtMock.verify as ReturnType<typeof jest.fn>).mockReturnValue({
-      sub: 'user-456',
-      email: 'norole@example.com',
-    });
-
-    const req = createMockRequest({ authorization: 'Bearer valid.jwt.token' });
+    const token = signToken({ sub: 'user-456', email: 'norole@example.com' });
+    const req = createMockRequest({ authorization: `Bearer ${token}` });
     authMiddleware(req as AuthenticatedRequest, res as Response, next);
 
     expect(next).toHaveBeenCalled();
@@ -116,11 +128,8 @@ describe('authMiddleware', () => {
   });
 
   it('should use empty string email when token has no email', () => {
-    (jwtMock.verify as ReturnType<typeof jest.fn>).mockReturnValue({
-      sub: 'user-789',
-    });
-
-    const req = createMockRequest({ authorization: 'Bearer valid.jwt.token' });
+    const token = signToken({ sub: 'user-789' });
+    const req = createMockRequest({ authorization: `Bearer ${token}` });
     authMiddleware(req as AuthenticatedRequest, res as Response, next);
 
     expect(next).toHaveBeenCalled();
@@ -133,11 +142,20 @@ describe('authMiddleware', () => {
 
   // --- Invalid token handling ---
 
-  it('should return 401 with TOKEN_ERROR when jwt.verify throws', () => {
-    (jwtMock.verify as ReturnType<typeof jest.fn>).mockImplementation(() => {
-      throw new Error('jwt malformed');
-    });
+  it('should return 401 with TOKEN_ERROR when jwt.verify throws (wrong secret)', () => {
+    const token = signToken({ sub: 'user-x' }, 'wrong-secret-that-is-also-long-enough');
+    const req = createMockRequest({ authorization: `Bearer ${token}` });
+    authMiddleware(req as AuthenticatedRequest, res as Response, next);
 
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      error: { code: 'TOKEN_ERROR', message: 'Failed to process JWT token' },
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('should return 401 with TOKEN_ERROR when token is malformed', () => {
     const req = createMockRequest({ authorization: 'Bearer not-a-real-token' });
     authMiddleware(req as AuthenticatedRequest, res as Response, next);
 
@@ -150,11 +168,9 @@ describe('authMiddleware', () => {
   });
 
   it('should return 401 with INVALID_TOKEN when decoded token has no sub', () => {
-    (jwtMock.verify as ReturnType<typeof jest.fn>).mockReturnValue({
-      email: 'nosub@example.com',
-    });
-
-    const req = createMockRequest({ authorization: 'Bearer token-without-sub' });
+    // Sign a valid token that contains email but no sub claim
+    const token = signToken({ email: 'nosub@example.com' });
+    const req = createMockRequest({ authorization: `Bearer ${token}` });
     authMiddleware(req as AuthenticatedRequest, res as Response, next);
 
     expect(res.status).toHaveBeenCalledWith(401);
@@ -180,15 +196,12 @@ describe('authMiddleware', () => {
   });
 
   it('should fall back to SUPABASE_JWT_SECRET when JWT_SECRET is not set', () => {
+    const supabaseSecret = 'supabase-secret-minimum-32-characters';
     delete process.env.JWT_SECRET;
-    process.env.SUPABASE_JWT_SECRET = 'supabase-secret-that-is-long-enough-32';
+    process.env.SUPABASE_JWT_SECRET = supabaseSecret;
 
-    (jwtMock.verify as ReturnType<typeof jest.fn>).mockReturnValue({
-      sub: 'user-sup',
-      email: 'sup@example.com',
-    });
-
-    const req = createMockRequest({ authorization: 'Bearer sup-token' });
+    const token = jwt.sign({ sub: 'user-sup', email: 'sup@example.com' }, supabaseSecret, { algorithm: 'HS256' });
+    const req = createMockRequest({ authorization: `Bearer ${token}` });
     authMiddleware(req as AuthenticatedRequest, res as Response, next);
 
     expect(next).toHaveBeenCalled();
@@ -198,13 +211,8 @@ describe('authMiddleware', () => {
   // --- AuthenticatedRequest type verification ---
 
   it('should populate user with id, email, and role string properties', () => {
-    (jwtMock.verify as ReturnType<typeof jest.fn>).mockReturnValue({
-      sub: 'type-check',
-      email: 'type@test.com',
-      role: 'editor',
-    });
-
-    const req = createMockRequest({ authorization: 'Bearer typed-token' });
+    const token = signToken({ sub: 'type-check', email: 'type@test.com', role: 'editor' });
+    const req = createMockRequest({ authorization: `Bearer ${token}` });
     authMiddleware(req as AuthenticatedRequest, res as Response, next);
 
     const user = (req as AuthenticatedRequest).user!;
