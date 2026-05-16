@@ -50,6 +50,26 @@
 - Phase 37 を「🔲未実装」→「✅完了」に更新
 - Phase 38 を新規追加「🔲計画中」
 
+### A118: WebSocketテストESMモック修正・CJS手動モック導入（2026-05-17 第149回更新）
+
+**分析日時**: 2026-05-17
+**カテゴリ**: バグ修正・テスト改善・ESM互換性
+**背景**: 要件定義サイクル中に `tests/unit/api/websocket-handler.test.ts` で24テスト中24テストが失敗していることを発見。エラーは `TypeError: mockedJwtVerify.mockReturnValue is not a function`。原因は `jest.unstable_mockModule('jsonwebtoken')` と `import * as jwt from 'jsonwebtoken'` の組み合わせで、CJSパッケージのESMモックがテスト間で正しく持続しない問題。
+
+**判断**:
+1. **根本原因**: `unstable_mockModule` はファクトリ関数を1回だけ実行し、ESMモジュールキャッシュに格納するが、CJSパッケージ（jsonwebtoken）を `import * as` パターンでインポートした場合、ネームスペースオブジェクトの `verify` プロパティがモック関数ではなくなる
+2. **解決策**: `tests/__mocks__/jsonwebtoken.ts` に手動モックファイルを作成し、`jest.mock('jsonwebtoken')` で参照。手動モックはESM変換後も安定したバインディングを提供
+3. **効果**: 24テスト全通過（0失敗）。他のテストスイートへの影響なし
+
+**根拠**:
+- `tests/unit/api/websocket-handler.test.ts`: `unstable_mockModule` → `__mocks__/` 手動モックに変更
+- `tests/__mocks__/jsonwebtoken.ts`: 新規作成（verify/sign/decode の jest.fn() エクスポート）
+- テスト結果: 24 passed, 24 total
+
+**信頼性への影響**:
+- 新規要件 REQ-110 を追加（信頼性レベル: 🔵）
+- WebSocketテストの信頼性が「🔴テスト失敗」→「🔵全通過」に向上
+
 ---
 
 ### A116: 第144回検証 - Phase 36完了確認・監視REST API・Phase 37要件定義（2026-05-09 第144回更新）

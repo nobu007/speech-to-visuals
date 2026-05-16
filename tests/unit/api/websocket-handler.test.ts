@@ -15,6 +15,12 @@ import { jest } from '@jest/globals';
 
 import { createMockIo, createMockSocket, MockIo, MockSocket } from '../../__mocks__/socket-io';
 
+// Mock jsonwebtoken via __mocks__ directory — stable across ESM re-imports.
+jest.mock('jsonwebtoken');
+
+// Import the mock so we can configure it in tests.
+import { verify as mockedJwtVerify } from 'jsonwebtoken';
+
 // We will import after mock setup. Use dynamic import below.
 let registerWebSocketHandler: typeof import('../../../src/api/websocket-handler').registerWebSocketHandler;
 let createWsAuthMiddleware: typeof import('../../../src/api/websocket-handler').createWsAuthMiddleware;
@@ -27,13 +33,6 @@ let emitStreamingSegment: typeof import('../../../src/api/websocket-handler').em
 let emitStreamingComplete: typeof import('../../../src/api/websocket-handler').emitStreamingComplete;
 let emitErrorRecovery: typeof import('../../../src/api/websocket-handler').emitErrorRecovery;
 let emitErrorRecovered: typeof import('../../../src/api/websocket-handler').emitErrorRecovered;
-
-// Mock jsonwebtoken before importing (ESM-compatible)
-jest.unstable_mockModule('jsonwebtoken', () => ({
-  verify: jest.fn(),
-}));
-
-let mockedJwtVerify: jest.Mock;
 
 // ---------------------------------------------------------------------------
 // Helper: set up module under test with mocked Socket.IO
@@ -70,10 +69,6 @@ describe('WebSocket Handler', () => {
     process.env.JWT_SECRET = 'test-secret';
     mockIo = createMockIo();
     mockSocket = createMockSocket();
-
-    // Dynamic import of mocked jsonwebtoken (ESM)
-    const jwt = await import('jsonwebtoken');
-    mockedJwtVerify = jwt.verify as jest.Mock;
 
     // Default: JWT verify returns a valid user
     mockedJwtVerify.mockReturnValue({

@@ -249,6 +249,10 @@
 - REQ-108: システムは `npm audit` で報告される脆弱性（fast-uri path traversal HIGH・ip-address XSS MODERATE）を解消し、脆弱性0件を維持しなければならない 🔵 *TASK-0152完了: npm audit 0脆弱性確認*
 - REQ-109: システムはアーキテクチャ文書（architecture.md）の受け入れ基準が全て完了（[x]）であり、品質評価が最新フェーズの検証結果を反映していることを確認しなければならない 🔵 *TASK-0153完了: 全8受け入れ基準[x]・品質評価第148回検証反映済*
 
+#### テストCJSモックESM互換性修正（Phase 39 追加） ✅完了
+
+- REQ-110: システムはCJSパッケージ（jsonwebtoken等）のESMモックテストにおいて、`jest.unstable_mockModule` の代わりに `__mocks__/` ディレクトリベースの手動モックを使用し、`import * as` パターンでインポートされたCJSモジュールのモックがテスト間で正しく持続することを保証しなければならない 🔵 *tests/__mocks__/jsonwebtoken.ts 作成・tests/unit/api/websocket-handler.test.ts 24テスト全通過*
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より*
