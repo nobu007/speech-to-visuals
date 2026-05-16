@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-09（Phase 36受入確認完了: REQ-097~100全17テストケース検証済み・全143テストケースgreen）
+**最終更新**: 2026-05-17（Phase 40要件定義: REQ-111~112テストケース追加・TASK-0154ユニットテスト11件完了・全145テストケース）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -1273,20 +1273,22 @@
 | フォースダイレクトシミュレーション | 3 | 0 | 2 | 5 |
 | グラフ粗視化アルゴリズム | 3 | 0 | 1 | 4 |
 | E2E品質統合テスト | 3 | 1 | 0 | 4 |
-| **合計** | **87** | **24** | **11** | **117** |
+| auth Express パイプライン統合 | 4 | 3 | 2 | 9 |
+| jsonwebtoken モック整合性 | 2 | 1 | 0 | 3 |
+| **合計** | **93** | **28** | **13** | **129** |
 
 ### 信頼性レベル分布
 
-- 🔵 青信号: 98件 (83.8%)
-- 🟡 黄信号: 13件 (11.1%) — Phase 31新規テストケース13件
+- 🔵 青信号: 111件 (86.0%)
+- 🟡 黄信号: 13件 (10.1%) — Phase 31新規テストケース13件
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - Phase 1-30テストケースは全て既存の設計文書と実測値に基づいている。Phase 31テストケースは実装検証済み（全13テストgreen）。Phase 35テストケースは既存ComplexLayoutEngine実装ベース。
+**品質評価**: 高品質 - Phase 1-39テストケースは全て既存の設計文書と実測値に基づいている。Phase 40テストケースは既存 auth.ts/server.ts 実装と TASK-0154 ユニットテスト結果に基づく。
 
 ### 優先度別テストケース
 
-- **Must Have**: 68件
-- **Should Have**: 19件
+- **Must Have**: 76件
+- **Should Have**: 21件
 - **Could Have**: 0件
 
 ---
@@ -1336,6 +1338,129 @@
 - 優先度: Must Have
 - 実施コマンド: `npm run test:phase35`（新規）
 - 新規テストケース: 13件（正常系9・異常系1・境界値3）
+
+### Phase 8: API認証品質・信頼性（Phase 40）
+
+- REQ-111, REQ-112
+- 優先度: Must Have + Should Have
+- 実施コマンド: `npm run test`
+- 新規テストケース: 9件（正常系4・異常系3・境界値2）
+
+---
+
+## REQ-111: authMiddleware Express パイプライン統合テスト 🔵
+
+**信頼性**: 🔵 *src/api/middleware/auth.ts・src/api/server.ts・TASK-0154 ユニットテスト11件完了より*
+
+### Given（前提条件）
+
+- Express アプリケーションに authMiddleware が組み込まれたテストサーバーが構築されている
+- JWT_SECRET 環境変数が設定されている
+- supertest パッケージが利用可能である
+
+### When（実行条件）
+
+- HTTP リクエストが認証が必要なエンドポイントに送信される
+
+### Then（期待結果）
+
+- HTTP レスポンス形状（ステータスコード・JSON ボディ・Content-Type ヘッダー）が正しい
+- CORS ヘッダーがエラーレスポンスでも正しく伝播する
+- ミドルウェアチェーンが正しく動作する
+
+### テストケース
+
+#### 正常系
+
+- [ ] **TC-111-01**: 有効な Bearer トークンで保護されたエンドポイントが200レスポンス 🔵
+  - **入力**: Authorization: Bearer <valid-jwt> ヘッダー付き GET /api/protected
+  - **期待結果**: HTTP 200、Content-Type: application/json、req.user が設定される
+  - **信頼性**: 🔵 *auth.test.ts ユニットテストパターンをExpress レベルで検証*
+
+- [ ] **TC-111-02**: 認証成功時の Content-Type ヘッダー検証 🔵
+  - **入力**: 有効な JWT トークンでの API リクエスト
+  - **期待結果**: Content-Type: application/json; charset=utf-8
+  - **信頼性**: 🔵 *Express レスポンス仕様より*
+
+- [ ] **TC-111-03**: CORS ヘッダーがエラーレスポンスでも伝播 🔵
+  - **入力**: 無効なトークンでの Origin: http://localhost:8080 リクエスト
+  - **期待結果**: 401 レスポンスに Access-Control-Allow-Origin ヘッダーが含まれる
+  - **信頼性**: 🔵 *src/api/server.ts CORS 設定より*
+
+- [ ] **TC-111-04**: authMiddleware が rate-limit ミドルウェアの後に動作 🔵
+  - **入力**: レート制限超過後の認証リクエスト
+  - **期待結果**: 429 Too Many Requests が authMiddleware の前に返される
+  - **信頼性**: 🔵 *src/api/server.ts ミドルウェア順序より*
+
+#### 異常系
+
+- [ ] **TC-111-E01**: 欠損 Authorization ヘッダーで401レスポンス形状検証 🔵
+  - **入力**: Authorization ヘッダーなしの GET /api/protected
+  - **期待結果**: HTTP 401、{ success: false, error: { code: "UNAUTHORIZED", message: "..." } }
+  - **信頼性**: 🔵 *auth.test.ts TC と同じパターンをExpress レベルで検証*
+
+- [ ] **TC-111-E02**: 期限切れ JWT トークンで401 TOKEN_ERROR レスポンス 🔵
+  - **入力**: 期限切れ JWT での GET /api/protected
+  - **期待結果**: HTTP 401、{ success: false, error: { code: "TOKEN_ERROR" } }
+  - **信頼性**: 🔵 *jwt.verify 例外ハンドリングより*
+
+- [ ] **TC-111-E03**: 不正な JWT 署名で401 レスポンス 🔵
+  - **入力**: 異なるシークレットで署名された JWT
+  - **期待結果**: HTTP 401、{ success: false, error: { code: "TOKEN_ERROR" } }
+  - **信頼性**: 🔵 *jwt.verify 例外ハンドリングより*
+
+#### 境界値
+
+- [ ] **TC-111-B01**: SUPABASE_JWT_SECRET フォールバックでの認証成功 🔵
+  - **入力**: JWT_SECRET 未設定・SUPABASE_JWT_SECRET 設定状態でのリクエスト
+  - **期待結果**: HTTP 200、正常な認証
+  - **信頼性**: 🔵 *auth.ts getJwtSecret() フォールバックより*
+
+- [ ] **TC-111-B02**: JWT_SECRET/SUPABASE_JWT_SECRET 双方未設定で500 🔵
+  - **入力**: 両環境変数未設定でのリクエスト
+  - **期待結果**: HTTP 401 または 500（getJwtSecret() 例外）
+  - **信頼性**: 🔵 *auth.ts getJwtSecret() 例外処理より*
+
+---
+
+## REQ-112: jsonwebtoken モック整合性自動検証 🔵
+
+**信頼性**: 🔵 *tests/__mocks__/jsonwebtoken.ts・src/api/middleware/auth.ts より*
+
+### Given（前提条件）
+
+- tests/__mocks__/jsonwebtoken.ts が存在し、verify/sign/decode をエクスポートしている
+- auth.ts が jsonwebtoken を import * as jwt from 'jsonwebtoken' で使用している
+
+### When（実行条件）
+
+- モック整合性検証テストが実行される
+
+### Then（期待結果）
+
+- モックがエクスポートする関数名と auth.ts が使用する JWT メソッドが一致する
+- 新しい JWT メソッドが必要になった場合、テストが失敗する
+
+### テストケース
+
+#### 正常系
+
+- [ ] **TC-112-01**: モックが verify/sign/decode をエクスポートしている 🔵
+  - **条件**: tests/__mocks__/jsonwebtoken.ts のインポート
+  - **期待結果**: verify, sign, decode が jest.fn() として存在する
+  - **信頼性**: 🔵 *モックファイル直接確認より*
+
+- [ ] **TC-112-02**: auth.ts が使用する jwt.verify がモックの verify と対応 🔵
+  - **条件**: auth.ts の JWT 使用パターン分析
+  - **期待結果**: auth.ts の jwt.verify(token, secret) 呼び出しがモックの verify で処理可能
+  - **信頼性**: 🔵 *auth.ts:34 jwt.verify 使用箇所より*
+
+#### 異常系
+
+- [ ] **TC-112-E01**: モックに未対応の JWT メソッド追加時にテスト失敗 🔵
+  - **条件**: auth.ts が新しい JWT メソッド（例: jwt.decode）を使用するように変更された場合
+  - **期待結果**: モック整合性テストが失敗し、モック更新が必要であることを通知
+  - **信頼性**: 🔵 *フェイルセーフ設計パターンより*
 
 ---
 
