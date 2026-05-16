@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-17（Phase 40要件定義: REQ-111~112テストケース追加・TASK-0154ユニットテスト11件完了・全145テストケース）
+**最終更新**: 2026-05-17（Phase 40要件定義: REQ-111~112テストケース完了・全159テストケース合格）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -1372,51 +1372,51 @@
 
 #### 正常系
 
-- [ ] **TC-111-01**: 有効な Bearer トークンで保護されたエンドポイントが200レスポンス 🔵
+- [x] **TC-111-01**: 有効な Bearer トークンで保護されたエンドポイントが200レスポンス 🔵
   - **入力**: Authorization: Bearer <valid-jwt> ヘッダー付き GET /api/protected
   - **期待結果**: HTTP 200、Content-Type: application/json、req.user が設定される
   - **信頼性**: 🔵 *auth.test.ts ユニットテストパターンをExpress レベルで検証*
 
-- [ ] **TC-111-02**: 認証成功時の Content-Type ヘッダー検証 🔵
+- [x] **TC-111-02**: 認証成功時の Content-Type ヘッダー検証 🔵
   - **入力**: 有効な JWT トークンでの API リクエスト
   - **期待結果**: Content-Type: application/json; charset=utf-8
   - **信頼性**: 🔵 *Express レスポンス仕様より*
 
-- [ ] **TC-111-03**: CORS ヘッダーがエラーレスポンスでも伝播 🔵
+- [x] **TC-111-03**: CORS ヘッダーがエラーレスポンスでも伝播 🔵
   - **入力**: 無効なトークンでの Origin: http://localhost:8080 リクエスト
   - **期待結果**: 401 レスポンスに Access-Control-Allow-Origin ヘッダーが含まれる
   - **信頼性**: 🔵 *src/api/server.ts CORS 設定より*
 
-- [ ] **TC-111-04**: authMiddleware が rate-limit ミドルウェアの後に動作 🔵
+- [x] **TC-111-04**: authMiddleware が rate-limit ミドルウェアの後に動作 🔵
   - **入力**: レート制限超過後の認証リクエスト
   - **期待結果**: 429 Too Many Requests が authMiddleware の前に返される
   - **信頼性**: 🔵 *src/api/server.ts ミドルウェア順序より*
 
 #### 異常系
 
-- [ ] **TC-111-E01**: 欠損 Authorization ヘッダーで401レスポンス形状検証 🔵
+- [x] **TC-111-E01**: 欠損 Authorization ヘッダーで401レスポンス形状検証 🔵
   - **入力**: Authorization ヘッダーなしの GET /api/protected
   - **期待結果**: HTTP 401、{ success: false, error: { code: "UNAUTHORIZED", message: "..." } }
   - **信頼性**: 🔵 *auth.test.ts TC と同じパターンをExpress レベルで検証*
 
-- [ ] **TC-111-E02**: 期限切れ JWT トークンで401 TOKEN_ERROR レスポンス 🔵
+- [x] **TC-111-E02**: 期限切れ JWT トークンで401 TOKEN_ERROR レスポンス 🔵
   - **入力**: 期限切れ JWT での GET /api/protected
   - **期待結果**: HTTP 401、{ success: false, error: { code: "TOKEN_ERROR" } }
   - **信頼性**: 🔵 *jwt.verify 例外ハンドリングより*
 
-- [ ] **TC-111-E03**: 不正な JWT 署名で401 レスポンス 🔵
+- [x] **TC-111-E03**: 不正な JWT 署名で401 レスポンス 🔵
   - **入力**: 異なるシークレットで署名された JWT
   - **期待結果**: HTTP 401、{ success: false, error: { code: "TOKEN_ERROR" } }
   - **信頼性**: 🔵 *jwt.verify 例外ハンドリングより*
 
 #### 境界値
 
-- [ ] **TC-111-B01**: SUPABASE_JWT_SECRET フォールバックでの認証成功 🔵
+- [x] **TC-111-B01**: SUPABASE_JWT_SECRET フォールバックでの認証成功 🔵
   - **入力**: JWT_SECRET 未設定・SUPABASE_JWT_SECRET 設定状態でのリクエスト
   - **期待結果**: HTTP 200、正常な認証
   - **信頼性**: 🔵 *auth.ts getJwtSecret() フォールバックより*
 
-- [ ] **TC-111-B02**: JWT_SECRET/SUPABASE_JWT_SECRET 双方未設定で500 🔵
+- [x] **TC-111-B02**: JWT_SECRET/SUPABASE_JWT_SECRET 双方未設定で500 🔵
   - **入力**: 両環境変数未設定でのリクエスト
   - **期待結果**: HTTP 401 または 500（getJwtSecret() 例外）
   - **信頼性**: 🔵 *auth.ts getJwtSecret() 例外処理より*
@@ -1445,19 +1445,19 @@
 
 #### 正常系
 
-- [ ] **TC-112-01**: モックが verify/sign/decode をエクスポートしている 🔵
+- [x] **TC-112-01**: モックが verify/sign/decode をエクスポートしている 🔵
   - **条件**: tests/__mocks__/jsonwebtoken.ts のインポート
   - **期待結果**: verify, sign, decode が jest.fn() として存在する
   - **信頼性**: 🔵 *モックファイル直接確認より*
 
-- [ ] **TC-112-02**: auth.ts が使用する jwt.verify がモックの verify と対応 🔵
+- [x] **TC-112-02**: auth.ts が使用する jwt.verify がモックの verify と対応 🔵
   - **条件**: auth.ts の JWT 使用パターン分析
   - **期待結果**: auth.ts の jwt.verify(token, secret) 呼び出しがモックの verify で処理可能
   - **信頼性**: 🔵 *auth.ts:34 jwt.verify 使用箇所より*
 
 #### 異常系
 
-- [ ] **TC-112-E01**: モックに未対応の JWT メソッド追加時にテスト失敗 🔵
+- [x] **TC-112-E01**: モックに未対応の JWT メソッド追加時にテスト失敗 🔵
   - **条件**: auth.ts が新しい JWT メソッド（例: jwt.decode）を使用するように変更された場合
   - **期待結果**: モック整合性テストが失敗し、モック更新が必要であることを通知
   - **信頼性**: 🔵 *フェイルセーフ設計パターンより*
