@@ -5,17 +5,16 @@
  * and JobNotFoundError instead of raw Error objects.
  */
 
-import { BatchProcessingAPI } from '@/api/batch-processing-api';
-import { BatchValidationError, JobNotFoundError } from '@/api/routes/batch';
+import { jest } from '@jest/globals';
 
 // Mock pipeline dependencies so we don't need real implementations
-jest.mock('@/pipeline/simple-pipeline', () => ({
+jest.unstable_mockModule('@/pipeline/simple-pipeline', () => ({
   simplePipeline: {
     process: jest.fn().mockResolvedValue({ success: true, transcript: 'test' }),
   },
 }));
 
-jest.mock('@/pipeline/adaptive-quality-presets', () => ({
+jest.unstable_mockModule('@/pipeline/adaptive-quality-presets', () => ({
   adaptiveQualityPresets: {
     setPreset: jest.fn(),
     toPipelineOptions: jest.fn().mockReturnValue({
@@ -25,6 +24,9 @@ jest.mock('@/pipeline/adaptive-quality-presets', () => ({
     getCurrentPreset: jest.fn().mockReturnValue({ name: 'balanced' }),
   },
 }));
+
+const { BatchProcessingAPI } = await import('@/api/batch-processing-api');
+const { BatchValidationError, JobNotFoundError } = await import('@/api/routes/batch');
 
 // ===========================================================================
 // Tests

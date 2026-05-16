@@ -6,9 +6,10 @@
  * when workers are unavailable or fail.
  */
 
+import { jest } from '@jest/globals';
 
 // Mock the workers module before importing the engine
-jest.mock('@/workers', () => ({
+jest.unstable_mockModule('@/workers', () => ({
   WorkerPool: jest.fn(),
   isWorkerAvailable: jest.fn(() => false),
   getOptimalWorkerCount: jest.fn(() => 2),
@@ -23,7 +24,7 @@ jest.mock('@/workers', () => ({
   }),
 }));
 
-import { EnhancedExportEngine } from '../../export/enhanced-export-engine';
+const { EnhancedExportEngine } = await import('../../export/enhanced-export-engine');
 
 // Suppress console
 beforeEach(() => {

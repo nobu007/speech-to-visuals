@@ -5,9 +5,11 @@
  * Tests the full user flow and error recovery scenarios.
  */
 
+import { jest } from '@jest/globals';
+
 // ---------- Mocks ----------
 
-jest.mock('@/transcription', () => ({
+jest.unstable_mockModule('@/transcription', () => ({
   TranscriptionPipeline: jest.fn().mockImplementation(() => ({
     transcribe: jest.fn().mockResolvedValue({
       text: 'テスト文字起こし結果',
@@ -18,7 +20,7 @@ jest.mock('@/transcription', () => ({
   })),
 }));
 
-jest.mock('@/analysis', () => ({
+jest.unstable_mockModule('@/analysis', () => ({
   SceneSegmenter: jest.fn().mockImplementation(() => ({
     segment: jest.fn().mockResolvedValue([{ id: 's1', start: 0, end: 2, text: 'テスト' }]),
   })),
@@ -27,7 +29,7 @@ jest.mock('@/analysis', () => ({
   })),
 }));
 
-jest.mock('@/visualization', () => ({
+jest.unstable_mockModule('@/visualization', () => ({
   LayoutEngine: jest.fn().mockImplementation(() => ({
     calculate: jest.fn().mockResolvedValue({
       scenes: [{ id: 'scene-1', elements: [], bounds: { width: 1920, height: 1080 } }],
@@ -35,18 +37,18 @@ jest.mock('@/visualization', () => ({
   })),
 }));
 
-jest.mock('@/config/validate', () => ({
+jest.unstable_mockModule('@/config/validate', () => ({
   validateConfig: jest.fn(),
   ValidationError: class extends Error { constructor(m: string) { super(m); } },
 }));
 
-jest.mock('@/config/schema', () => ({ ConfigSchema: {} }));
+jest.unstable_mockModule('@/config/schema', () => ({ ConfigSchema: {} }));
 
-jest.mock('@/config', () => ({
+jest.unstable_mockModule('@/config', () => ({
   config: { geminiApiKey: 'test-key', supabaseUrl: 'http://localhost:54321', supabaseAnonKey: 'test-key' },
 }));
 
-jest.mock('@/types/diagram', () => ({ SceneGraph: jest.fn().mockImplementation(() => ({})) }));
+jest.unstable_mockModule('@/types/diagram', () => ({ SceneGraph: jest.fn().mockImplementation(() => ({})) }));
 
 // ---------- Helpers ----------
 

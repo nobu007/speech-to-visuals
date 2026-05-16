@@ -3,22 +3,23 @@
  * FlowStrategy uses dagre with LR (left-to-right) rank direction.
  */
 
+import { jest } from '@jest/globals';
+
 // ESM-safe mock: layoutEngineV2 exports are read-only in ESM,
-// so jest.spyOn() fails. Use jest.mock() with a controllable fn instead.
+// so jest.spyOn() fails. Use unstable_mockModule with a controllable fn instead.
 const mockCalculateMetrics = jest.fn();
 
-jest.mock('@/visualization/layout-engine-v2', () => {
-  const actual = jest.requireActual('@/visualization/layout-engine-v2');
-  return {
-    __esModule: true,
-    ...actual,
-    calculateMetrics: mockCalculateMetrics,
-  };
-});
+const actualLayoutEngine = await import('@/visualization/layout-engine-v2');
 
-import { FlowStrategy, flowStrategy } from '../flow-strategy';
-import { NodeDatum, EdgeDatum } from '@/types/diagram';
-import * as layoutEngineV2 from '@/visualization/layout-engine-v2';
+jest.unstable_mockModule('@/visualization/layout-engine-v2', () => ({
+  __esModule: true,
+  ...actualLayoutEngine,
+  calculateMetrics: mockCalculateMetrics,
+}));
+
+const { FlowStrategy, flowStrategy } = await import('../flow-strategy');
+const { NodeDatum, EdgeDatum } = await import('@/types/diagram');
+const layoutEngineV2 = await import('@/visualization/layout-engine-v2');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -276,7 +277,7 @@ describe('FlowStrategy', () => {
     let realCalculateMetrics: typeof layoutEngineV2.calculateMetrics;
 
     beforeAll(() => {
-      realCalculateMetrics = jest.requireActual('@/visualization/layout-engine-v2').calculateMetrics;
+      realCalculateMetrics = actualLayoutEngine.calculateMetrics;
       mockCalculateMetrics.mockImplementation(realCalculateMetrics);
     });
 

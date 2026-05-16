@@ -5,11 +5,10 @@
  * circuit breaker states, recovery strategies, health monitoring, and edge cases.
  */
 
-import { EnhancedErrorRecovery } from '../enhanced-error-recovery';
-import { globalErrorRecovery } from '../enhanced-error-recovery';
+import { jest } from '@jest/globals';
 
 // Mock the intelligent-cache module
-jest.mock('@/performance/intelligent-cache', () => ({
+jest.unstable_mockModule('@/performance/intelligent-cache', () => ({
   globalCache: {
     findSimilar: jest.fn().mockResolvedValue(null),
     getStats: jest.fn().mockReturnValue({ hitRate: 0.5 }),
@@ -20,6 +19,8 @@ jest.mock('@/performance/intelligent-cache', () => ({
     delete: jest.fn().mockReturnValue(false),
   },
 }));
+
+const { EnhancedErrorRecovery, globalErrorRecovery } = await import('../enhanced-error-recovery');
 
 // Helper: create a valid ErrorContext
 function createErrorContext(overrides: Record<string, unknown> = {}): Parameters<EnhancedErrorRecovery['recoverFromError']>[0] {
@@ -900,7 +901,7 @@ describe('EnhancedErrorRecovery', () => {
   describe('cache recovery strategy', () => {
     it('should use cached results when available', async () => {
       // Import the mocked globalCache
-      const { globalCache } = jest.requireMock('@/performance/intelligent-cache');
+      const { globalCache } = await import('@/performance/intelligent-cache');
 
       globalCache.findSimilar.mockResolvedValueOnce({
         data: { cached: 'result', confidence: 0.9 },
@@ -917,7 +918,7 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     it('should handle cache miss gracefully', async () => {
-      const { globalCache } = jest.requireMock('@/performance/intelligent-cache');
+      const { globalCache } = await import('@/performance/intelligent-cache');
       globalCache.findSimilar.mockResolvedValueOnce(null);
 
       const context = createErrorContext({
@@ -1248,7 +1249,7 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     it('should handle memory cleanup action', async () => {
-      const { globalCache } = jest.requireMock('@/performance/intelligent-cache');
+      const { globalCache } = await import('@/performance/intelligent-cache');
       globalCache.clear.mockResolvedValueOnce(undefined);
 
       // Force the system into a state where preventive actions trigger

@@ -5,16 +5,18 @@
  * getHealthReport, executeWithLoadBalancing, destroy, shutdown
  */
 
-import { EnhancedErrorRecovery, globalErrorRecovery } from '@/quality/enhanced-error-recovery';
+import { jest } from '@jest/globals';
 
 // Mock the intelligent-cache module
-jest.mock('@/performance/intelligent-cache', () => ({
+jest.unstable_mockModule('@/performance/intelligent-cache', () => ({
   globalCache: {
     findSimilar: jest.fn().mockResolvedValue(null),
     clear: jest.fn().mockResolvedValue(undefined),
     getStats: jest.fn().mockReturnValue({ hitRate: 0.5 }),
   },
 }));
+
+const { EnhancedErrorRecovery, globalErrorRecovery } = await import('@/quality/enhanced-error-recovery');
 
 describe('EnhancedErrorRecovery', () => {
   let recovery: EnhancedErrorRecovery;

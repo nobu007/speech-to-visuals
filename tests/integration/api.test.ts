@@ -6,23 +6,21 @@
  * security middleware.
  */
 
-import { BatchProcessingAPI } from '@/api/batch-processing-api';
+import { jest } from '@jest/globals';
 import type { BatchJobRequest, BatchJobStatus, BatchJobResult } from '@/api/batch-processing-api';
-import { createBatchRouter, BatchJobManager } from '@/api/routes/batch';
 import type {
   JobProgress,
   JobComplete,
   JobError,
   WebSocketEvents,
 } from '@/types/api/index';
-import { AppError, errorHandler } from '@/api/middleware/error-handler';
 import type { Request, Response, NextFunction } from 'express';
 
 // ---------------------------------------------------------------------------
 // Mocks for heavy pipeline dependencies
 // ---------------------------------------------------------------------------
 
-jest.mock('@/pipeline/simple-pipeline', () => ({
+jest.unstable_mockModule('@/pipeline/simple-pipeline', () => ({
   simplePipeline: {
     process: jest.fn().mockResolvedValue({
       success: true,
@@ -33,7 +31,7 @@ jest.mock('@/pipeline/simple-pipeline', () => ({
   },
 }));
 
-jest.mock('@/pipeline/adaptive-quality-presets', () => ({
+jest.unstable_mockModule('@/pipeline/adaptive-quality-presets', () => ({
   adaptiveQualityPresets: {
     setPreset: jest.fn(),
     toPipelineOptions: jest.fn().mockReturnValue({
@@ -42,6 +40,10 @@ jest.mock('@/pipeline/adaptive-quality-presets', () => ({
     }),
   },
 }));
+
+const { BatchProcessingAPI } = await import('@/api/batch-processing-api');
+const { createBatchRouter, BatchJobManager } = await import('@/api/routes/batch');
+const { AppError, errorHandler } = await import('@/api/middleware/error-handler');
 
 // Suppress console.log from BatchProcessingAPI async processing to prevent
 // "Cannot log after tests are done" warnings

@@ -4,8 +4,10 @@
  * Uses node test environment (no DOM rendering)
  */
 
+import { jest } from '@jest/globals';
+
 // Mock the SimplePipelineInterface component
-jest.mock('@/components/SimplePipelineInterface', () => {
+jest.unstable_mockModule('@/components/SimplePipelineInterface', () => {
   return {
     __esModule: true,
     default: () => null,
@@ -13,7 +15,7 @@ jest.mock('@/components/SimplePipelineInterface', () => {
 });
 
 // Mock sonner toast
-jest.mock('sonner', () => ({
+jest.unstable_mockModule('sonner', () => ({
   toast: {
     success: jest.fn(),
     error: jest.fn(),

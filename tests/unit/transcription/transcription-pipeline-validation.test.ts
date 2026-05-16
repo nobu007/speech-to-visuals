@@ -1,10 +1,10 @@
-import { TranscriptionPipeline } from '@/transcription/transcriber';
+import { jest } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
 // Mock WhisperTranscriber to avoid heavy dependency
-jest.mock('@/transcription/whisper-transcriber', () => {
+jest.unstable_mockModule('@/transcription/whisper-transcriber', () => {
   return {
     WhisperTranscriber: class {
       transcribe = jest.fn().mockResolvedValue({ success: true, segments: [] });
@@ -13,13 +13,15 @@ jest.mock('@/transcription/whisper-transcriber', () => {
 });
 
 // Mock BrowserTranscriber (not used in Node tests)
-jest.mock('@/transcription/browser-transcriber', () => {
+jest.unstable_mockModule('@/transcription/browser-transcriber', () => {
   return {
     BrowserTranscriber: class {
       transcribeAudioFile = jest.fn();
     },
   };
 });
+
+const { TranscriptionPipeline } = await import('@/transcription/transcriber');
 
 describe('TranscriptionPipeline: validateAudioFile', () => {
   it('rejects an empty audio path', async () => {

@@ -5,12 +5,14 @@
  * including the disposed-flag guard and result mapping logic.
  */
 
+import { jest } from '@jest/globals';
 import type { LayoutConfig } from '../../visualization/types';
 import type { FallbackLayoutStrategy } from '../../visualization/strategies/FallbackLayoutStrategy';
 import type { WorkerResponse, LayoutWorkerResult } from '../types';
+import type { DiagramType } from '../../types/diagram';
 
 // Mock workers module
-jest.mock('@/workers', () => ({
+jest.unstable_mockModule('@/workers', () => ({
   WorkerPool: jest.fn(),
   isWorkerAvailable: jest.fn(() => false),
   getOptimalWorkerCount: jest.fn(() => 2),
@@ -18,14 +20,14 @@ jest.mock('@/workers', () => ({
 }));
 
 // Mock worker-factories
-jest.mock('@/workers/worker-factories', () => ({
+jest.unstable_mockModule('@/workers/worker-factories', () => ({
   createLayoutWorkerFactory: jest.fn(() => () => {
     throw new Error('Worker factory should not be called');
   }),
 }));
 
 // Mock DagreLayoutStrategy to avoid dagre dependency issues
-jest.mock('@/visualization/strategies/DagreLayoutStrategy', () => ({
+jest.unstable_mockModule('@/visualization/strategies/DagreLayoutStrategy', () => ({
   DagreLayoutStrategy: jest.fn().mockImplementation(function (_config?: LayoutConfig, _fallback?: FallbackLayoutStrategy) {
     this.applyLayout = jest.fn().mockResolvedValue({
       nodes: [
@@ -41,21 +43,20 @@ jest.mock('@/visualization/strategies/DagreLayoutStrategy', () => ({
   }),
 }));
 
-jest.mock('@/visualization/strategies/CulturalLayoutAdapter', () => ({
+jest.unstable_mockModule('@/visualization/strategies/CulturalLayoutAdapter', () => ({
   CulturalLayoutAdapter: jest.fn().mockImplementation(function () {
     this.applyCulturalAdaptation = jest.fn((layout) => Promise.resolve(layout));
   }),
 }));
 
-jest.mock('@/visualization/layout-utils', () => ({
+jest.unstable_mockModule('@/visualization/layout-utils', () => ({
   nodesOverlap: jest.fn(() => false),
   getGraphConfig: jest.fn(() => ({})),
   calculateNodeWidth: jest.fn(() => 120),
 }));
 
-import { ComplexLayoutEngine } from '../../visualization/complex-layout-engine';
-import { DagreLayoutStrategy } from '../../visualization/strategies/DagreLayoutStrategy';
-import type { DiagramType } from '../../types/diagram';
+const { ComplexLayoutEngine } = await import('../../visualization/complex-layout-engine');
+const { DagreLayoutStrategy } = await import('../../visualization/strategies/DagreLayoutStrategy');
 
 // --- Test helper types ---
 

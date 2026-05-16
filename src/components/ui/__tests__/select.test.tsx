@@ -1,10 +1,16 @@
 /**
  * @jest-environment jsdom
  */
+import { jest } from '@jest/globals';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import {
+
+jest.unstable_mockModule('@/lib/utils', () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
+}));
+
+const {
   Select,
   SelectTrigger,
   SelectValue,
@@ -13,12 +19,7 @@ import {
   SelectGroup,
   SelectLabel,
   SelectSeparator,
-} from '../select';
-
-// Mock @/lib/utils
-jest.mock('@/lib/utils', () => ({
-  cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
-}));
+} = await import('../select');
 
 describe('Select components', () => {
   it('should render SelectTrigger', () => {

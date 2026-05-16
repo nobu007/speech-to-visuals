@@ -5,28 +5,29 @@
  * private methods at unit level, including the disposed-flag guard.
  */
 
+import { jest } from '@jest/globals';
 import type { WorkerResponse, ExportWorkerResult, WorkerMessage, ExportWorkerPayload } from '../types';
 
 // Mock workers module
-jest.mock('@/workers', () => ({
+jest.unstable_mockModule('@/workers', () => ({
   WorkerPool: jest.fn(),
   isWorkerAvailable: jest.fn(() => false),
   getOptimalWorkerCount: jest.fn(() => 2),
   processExportPayload: jest.fn(),
 }));
 
-jest.mock('@/workers/worker-pool', () => ({
+jest.unstable_mockModule('@/workers/worker-pool', () => ({
   WorkerPool: jest.fn(),
 }));
 
 // Mock worker-factories to avoid import.meta issues
-jest.mock('@/workers/worker-factories', () => ({
+jest.unstable_mockModule('@/workers/worker-factories', () => ({
   createExportWorkerFactory: jest.fn(() => () => {
     throw new Error('Worker factory should not be called in tests');
   }),
 }));
 
-import { EnhancedExportEngine } from '../../export/enhanced-export-engine';
+const { EnhancedExportEngine } = await import('../../export/enhanced-export-engine');
 
 // --- Test helper types ---
 

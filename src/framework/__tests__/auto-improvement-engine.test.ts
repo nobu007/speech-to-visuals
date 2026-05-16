@@ -5,13 +5,7 @@
  *         linkIterationManager, edge cases
  */
 
-import {
-  AutoImprovementEngine,
-  createAutoImprovementEngine,
-  QualityMetrics,
-  ImprovementStrategy,
-} from '../auto-improvement-engine';
-import type { IterationManager } from '../iteration-manager';
+import { jest } from '@jest/globals';
 
 // Mock IterationManager
 const mockIterationManager = {
@@ -20,10 +14,18 @@ const mockIterationManager = {
   recordFailure: jest.fn(),
 };
 
-jest.mock('@/framework/iteration-manager', () => ({
+jest.unstable_mockModule('@/framework/iteration-manager', () => ({
   IterationManager: jest.fn().mockImplementation(() => mockIterationManager),
   createIterationManager: jest.fn().mockReturnValue(mockIterationManager),
 }));
+
+const {
+  AutoImprovementEngine,
+  createAutoImprovementEngine,
+  QualityMetrics,
+  ImprovementStrategy,
+} = await import('../auto-improvement-engine');
+const { IterationManager } = await import('@/framework/iteration-manager');
 
 // Suppress console
 beforeEach(() => {

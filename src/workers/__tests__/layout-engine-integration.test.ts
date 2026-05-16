@@ -6,9 +6,13 @@
  * when workers are unavailable or fail.
  */
 
+import { jest } from '@jest/globals';
+import type { DiagramType } from '../../types/diagram';
+import type { LayoutConfig } from '../../visualization/types';
+import type { FallbackLayoutStrategy } from '../../visualization/strategies/FallbackLayoutStrategy';
 
 // Mock workers module before imports
-jest.mock('@/workers', () => ({
+jest.unstable_mockModule('@/workers', () => ({
   WorkerPool: jest.fn(),
   isWorkerAvailable: jest.fn(() => false),
   getOptimalWorkerCount: jest.fn(() => 2),
@@ -24,7 +28,7 @@ jest.mock('@/workers', () => ({
 }));
 
 // Mock DagreLayoutStrategy to avoid dagre dependency issues in tests
-jest.mock('@/visualization/strategies/DagreLayoutStrategy', () => ({
+jest.unstable_mockModule('@/visualization/strategies/DagreLayoutStrategy', () => ({
   DagreLayoutStrategy: jest.fn().mockImplementation(function (_config?: Record<string, unknown>, _fallback?: Record<string, unknown>) {
     this.applyLayout = jest.fn().mockResolvedValue({
       nodes: [
@@ -40,23 +44,20 @@ jest.mock('@/visualization/strategies/DagreLayoutStrategy', () => ({
   }),
 }));
 
-jest.mock('@/visualization/strategies/CulturalLayoutAdapter', () => ({
+jest.unstable_mockModule('@/visualization/strategies/CulturalLayoutAdapter', () => ({
   CulturalLayoutAdapter: jest.fn().mockImplementation(function () {
     this.applyCulturalAdaptation = jest.fn((layout) => Promise.resolve(layout));
   }),
 }));
 
-jest.mock('@/visualization/layout-utils', () => ({
+jest.unstable_mockModule('@/visualization/layout-utils', () => ({
   nodesOverlap: jest.fn(() => false),
   getGraphConfig: jest.fn(() => ({})),
   calculateNodeWidth: jest.fn(() => 120),
 }));
 
-import { ComplexLayoutEngine } from '../../visualization/complex-layout-engine';
-import { DagreLayoutStrategy } from '../../visualization/strategies/DagreLayoutStrategy';
-import type { DiagramType } from '../../types/diagram';
-import type { LayoutConfig } from '../../visualization/types';
-import type { FallbackLayoutStrategy } from '../../visualization/strategies/FallbackLayoutStrategy';
+const { ComplexLayoutEngine } = await import('../../visualization/complex-layout-engine');
+const { DagreLayoutStrategy } = await import('../../visualization/strategies/DagreLayoutStrategy');
 
 /** Helper to create engine with mocked DagreLayoutStrategy */
 function createEngine(config: Record<string, unknown> = {}) {

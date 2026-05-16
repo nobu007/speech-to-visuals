@@ -3,10 +3,10 @@
  *
  * Verifies that AdaptiveQualityGatesSystem enforces a maximum of 50 gates.
  */
-
+import { jest } from '@jest/globals';
 
 // Mock the real-time-monitor dependency before importing the module under test
-jest.mock('@/monitoring/real-time-performance-monitor', () => ({
+jest.unstable_mockModule('@/monitoring/real-time-performance-monitor', () => ({
   realTimeMonitor: {
     getSnapshot: () => ({
       pipeline: { avgProcessingTime: 1000, p95ProcessingTime: 2000, p99ProcessingTime: 3000, successRate: 0.97, activeRequests: 0 },
@@ -20,7 +20,7 @@ jest.mock('@/monitoring/real-time-performance-monitor', () => ({
   PerformanceSnapshot: {} as any,
 }));
 
-import { AdaptiveQualityGatesSystem } from '@/quality/adaptive-quality-gates';
+const { AdaptiveQualityGatesSystem } = await import('@/quality/adaptive-quality-gates');
 
 describe('REQ-065: Quality Gate Array Cap (ISS-011)', () => {
   let system: AdaptiveQualityGatesSystem;

@@ -5,6 +5,7 @@
  * QualityGateEvaluator, and error recovery integration.
  */
 
+import { jest } from '@jest/globals';
 import {
   PipelineOrchestrator,
   QualityGate,
@@ -31,7 +32,7 @@ import {
 // Mock external dependencies so we don't need real audio/LLM infrastructure
 // ---------------------------------------------------------------------------
 
-jest.mock('@/transcription', () => {
+jest.unstable_mockModule('@/transcription', () => {
   const mockTranscribe = jest.fn().mockResolvedValue({
     success: true,
     segments: [
@@ -50,7 +51,7 @@ jest.mock('@/transcription', () => {
   };
 });
 
-jest.mock('@/analysis', () => {
+jest.unstable_mockModule('@/analysis', () => {
   const mockSegment = jest.fn().mockResolvedValue([
     {
       startMs: 0,
@@ -93,7 +94,7 @@ jest.mock('@/analysis', () => {
   };
 });
 
-jest.mock('@/visualization', () => {
+jest.unstable_mockModule('@/visualization', () => {
   const mockGenerateLayout = jest.fn().mockResolvedValue({
     success: true,
     layout: {
@@ -115,9 +116,8 @@ jest.mock('@/visualization', () => {
   };
 });
 
-jest.mock('@/optimization/smart-parameter-tuner', () => {
+jest.unstable_mockModule('@/optimization/smart-parameter-tuner', () => {
   return {
-    __esModule: true,
     default: jest.fn().mockImplementation(() => ({
       analyzeContent: jest.fn().mockResolvedValue({
         speechRate: 120,
@@ -143,7 +143,7 @@ jest.mock('@/optimization/smart-parameter-tuner', () => {
   };
 });
 
-jest.mock('@/config/validate', () => ({
+jest.unstable_mockModule('@/config/validate', () => ({
   validateConfig: jest.fn().mockReturnValue([]),
   ValidationError: class extends Error {
     field: string;
@@ -155,7 +155,7 @@ jest.mock('@/config/validate', () => ({
 }));
 
 // Mock the performance/intelligent-cache used by EnhancedErrorRecovery
-jest.mock('@/performance/intelligent-cache', () => ({
+jest.unstable_mockModule('@/performance/intelligent-cache', () => ({
   globalCache: {
     findSimilar: jest.fn().mockResolvedValue(null),
     clear: jest.fn().mockResolvedValue(undefined),

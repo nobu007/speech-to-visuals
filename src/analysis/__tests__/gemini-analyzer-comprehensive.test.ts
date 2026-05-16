@@ -19,19 +19,21 @@
  * - typeMap mapping (flowchart, mindmap, timeline, orgchart, matrix, cycle)
  */
 
-import { GeminiAnalyzer } from '../gemini-analyzer';
-import { LLMService } from '../llm-service';
+import { jest } from '@jest/globals';
 import type { DiagramAnalysis, DiagramData } from '../types';
 
 // ---------------------------------------------------------------------------
 // Mock quality-monitor to avoid side effects
 // ---------------------------------------------------------------------------
 
-jest.mock('@/pipeline/quality-monitor', () => ({
+jest.unstable_mockModule('@/pipeline/quality-monitor', () => ({
   getQualityMonitor: jest.fn(() => ({
     recordMetrics: jest.fn(),
   })),
 }));
+
+const { GeminiAnalyzer } = await import('../gemini-analyzer');
+const { LLMService } = await import('../llm-service');
 
 // ---------------------------------------------------------------------------
 // Suppress console output
