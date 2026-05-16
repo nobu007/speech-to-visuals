@@ -4,14 +4,8 @@
  * Uses SVG stroke-dasharray/dashoffset technique
  */
 
+import { jest } from '@jest/globals';
 import * as React from 'react';
-import {
-  EdgeAnimation,
-  calculateEdgeProgress,
-  EDGE_DRAW_DURATION_SEC,
-  calculatePathLength,
-  generatePathD,
-} from '../EdgeAnimation';
 import { LayoutEdge, PositionedNode } from '@/types/diagram';
 import { EDGE_DRAW_DURATION_FRAMES } from '../animation-strategies';
 
@@ -19,14 +13,24 @@ import { EDGE_DRAW_DURATION_FRAMES } from '../animation-strategies';
 let mockFrame = 0;
 let mockFps = 30;
 
-jest.mock('remotion', () => {
-  const originalModule = jest.requireActual('remotion');
-  return {
-    ...originalModule,
-    useCurrentFrame: () => mockFrame,
-    useVideoConfig: () => ({ fps: mockFps, width: 1920, height: 1080 }),
-  };
-});
+jest.unstable_mockModule('remotion', () => ({
+  useCurrentFrame: () => mockFrame,
+  useVideoConfig: () => ({ fps: mockFps, width: 1920, height: 1080 }),
+  interpolate: (frame: number, inputRange: number[], outputRange: number[]) => {
+    if (frame <= inputRange[0]) return outputRange[0];
+    if (frame >= inputRange[inputRange.length - 1]) return outputRange[outputRange.length - 1];
+    const t = (frame - inputRange[0]) / (inputRange[inputRange.length - 1] - inputRange[0]);
+    return outputRange[0] + t * (outputRange[outputRange.length - 1] - outputRange[0]);
+  },
+}));
+
+const {
+  EdgeAnimation,
+  calculateEdgeProgress,
+  EDGE_DRAW_DURATION_SEC,
+  calculatePathLength,
+  generatePathD,
+} = await import('../EdgeAnimation');
 
 // Helper factories
 function makeEdge(overrides: Partial<LayoutEdge> = {}): LayoutEdge {

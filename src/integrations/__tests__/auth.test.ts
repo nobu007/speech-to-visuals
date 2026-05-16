@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { jest } from '@jest/globals';
 import * as jwt from 'jsonwebtoken';
 
 // ---------------------------------------------------------------------------
@@ -10,7 +11,7 @@ const mockSignUp: any = jest.fn();
 const mockSignOut: any = jest.fn();
 const mockOnAuthStateChange: any = jest.fn();
 
-jest.mock('@/integrations/supabase/client', () => ({
+jest.unstable_mockModule('@/integrations/supabase/client', () => ({
   getSupabaseClient: () => ({
     auth: {
       signInWithPassword: mockSignInWithPassword,
@@ -22,8 +23,8 @@ jest.mock('@/integrations/supabase/client', () => ({
   resetSupabaseClient: jest.fn(),
 }));
 
-// Import after mocks are set up
-import { signIn, signUp, signOut, onAuthStateChange } from '@/integrations/supabase/auth';
+// Dynamic import after mock setup
+const { signIn, signUp, signOut, onAuthStateChange } = await import('@/integrations/supabase/auth');
 
 describe('Auth functions', () => {
   beforeEach(() => {
@@ -137,7 +138,8 @@ describe('Auth functions', () => {
 // 2) Auth middleware tests (authMiddleware)
 // ---------------------------------------------------------------------------
 
-import { authMiddleware, AuthenticatedRequest } from '@/api/middleware/auth';
+const { authMiddleware } = await import('@/api/middleware/auth');
+import type { AuthenticatedRequest } from '@/api/middleware/auth';
 
 describe('authMiddleware', () => {
   beforeAll(() => {

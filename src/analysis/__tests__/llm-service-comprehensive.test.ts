@@ -11,7 +11,7 @@
  * - Streaming support
  */
 
-import { LLMService } from '../llm-service';
+import { jest } from '@jest/globals';
 
 // ---------------------------------------------------------------------------
 // Mock dependencies
@@ -25,14 +25,14 @@ const mockGetGenerativeModel = jest.fn(() => ({
   generateContentStream: mockGenerateContentStream,
 }));
 
-jest.mock('@google/generative-ai', () => ({
+jest.unstable_mockModule('@google/generative-ai', () => ({
   GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
     getGenerativeModel: mockGetGenerativeModel,
   })),
 }));
 
 // Mock LLMCache - each instance gets its own isolated storage
-jest.mock('@/analysis/llm-cache', () => {
+jest.unstable_mockModule('@/analysis/llm-cache', () => {
   return {
     LLMCache: jest.fn().mockImplementation(() => {
       const store = new Map<string, unknown>();
@@ -61,6 +61,8 @@ jest.mock('@/analysis/llm-cache', () => {
     }),
   };
 });
+
+const { LLMService } = await import('../llm-service');
 
 // Mock console to reduce noise
 let consoleLogSpy: jest.SpyInstance;

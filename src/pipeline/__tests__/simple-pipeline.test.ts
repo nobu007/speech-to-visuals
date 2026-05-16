@@ -1,6 +1,8 @@
 
+import { jest } from '@jest/globals';
+
 // Mock all dependencies - define mocks inside factory to avoid hoisting issues
-jest.mock('@/transcription', () => {
+jest.unstable_mockModule('@/transcription', () => {
   const mockTranscribe = jest.fn().mockResolvedValue({
     success: true,
     segments: [
@@ -18,7 +20,7 @@ jest.mock('@/transcription', () => {
   };
 });
 
-jest.mock('@/analysis', () => {
+jest.unstable_mockModule('@/analysis', () => {
   const mockSegment = jest.fn().mockResolvedValue([
     {
       startMs: 0, endMs: 10000, text: 'Test content',
@@ -43,7 +45,7 @@ jest.mock('@/analysis', () => {
   };
 });
 
-jest.mock('@/visualization', () => {
+jest.unstable_mockModule('@/visualization', () => {
   const mockGenerateLayout = jest.fn().mockResolvedValue({
     success: true,
     layout: {
@@ -60,7 +62,7 @@ jest.mock('@/visualization', () => {
   };
 });
 
-jest.mock('@/visualization/enhanced-zero-overlap-layout', () => {
+jest.unstable_mockModule('@/visualization/enhanced-zero-overlap-layout', () => {
   const mockGenerateZeroOverlapLayout = jest.fn().mockResolvedValue({
     success: true,
     nodes: [{ id: 'n1', x: 100, y: 100 }],
@@ -75,7 +77,7 @@ jest.mock('@/visualization/enhanced-zero-overlap-layout', () => {
   };
 });
 
-jest.mock('@/pipeline/video-generator', () => {
+jest.unstable_mockModule('@/pipeline/video-generator', () => {
   const mockGenerateVideo = jest.fn().mockResolvedValue({
     success: true,
     videoUrl: 'test-video.mp4',
@@ -91,13 +93,13 @@ jest.mock('@/pipeline/video-generator', () => {
   };
 });
 
-jest.mock('@/framework/continuous-learner', () => ({
+jest.unstable_mockModule('@/framework/continuous-learner', () => ({
   continuousLearner: {
     learnFromProcessingResult: jest.fn().mockResolvedValue(undefined as never),
   },
 }));
 
-jest.mock('@/pipeline/quality-monitor', () => ({
+jest.unstable_mockModule('@/pipeline/quality-monitor', () => ({
   getQualityMonitor: jest.fn().mockReturnValue({
     setPhaseIteration: jest.fn(),
     recordMetrics: jest.fn(),
@@ -112,14 +114,19 @@ jest.mock('@/pipeline/quality-monitor', () => ({
   formatQualityReport: jest.fn().mockReturnValue('Test report' as never),
 }));
 
-import { SimplePipeline } from '@/pipeline/simple-pipeline';
+const { SimplePipeline } = await import('@/pipeline/simple-pipeline');
+const { __mockTranscribe } = await import('@/transcription') as { __mockTranscribe: jest.Mock };
+const analysisMock = await import('@/analysis') as { __mockSegment: jest.Mock; __mockAnalyze: jest.Mock };
+const { __mockGenerateLayout } = await import('@/visualization') as { __mockGenerateLayout: jest.Mock };
+const { __mockGenerateZeroOverlapLayout } = await import('@/visualization/enhanced-zero-overlap-layout') as { __mockGenerateZeroOverlapLayout: jest.Mock };
+const { __mockGenerateVideo } = await import('@/pipeline/video-generator') as { __mockGenerateVideo: jest.Mock };
 
-const mockTranscribe = (jest.requireMock('@/transcription') as { __mockTranscribe: jest.Mock }).__mockTranscribe;
-const mockSegment = (jest.requireMock('@/analysis') as { __mockSegment: jest.Mock }).__mockSegment;
-const mockAnalyze = (jest.requireMock('@/analysis') as { __mockAnalyze: jest.Mock }).__mockAnalyze;
-const mockGenerateLayout = (jest.requireMock('@/visualization') as { __mockGenerateLayout: jest.Mock }).__mockGenerateLayout;
-const mockGenerateZeroOverlapLayout = (jest.requireMock('@/visualization/enhanced-zero-overlap-layout') as { __mockGenerateZeroOverlapLayout: jest.Mock }).__mockGenerateZeroOverlapLayout;
-const mockGenerateVideo = (jest.requireMock('@/pipeline/video-generator') as { __mockGenerateVideo: jest.Mock }).__mockGenerateVideo;
+const mockTranscribe = __mockTranscribe;
+const mockSegment = analysisMock.__mockSegment;
+const mockAnalyze = analysisMock.__mockAnalyze;
+const mockGenerateLayout = __mockGenerateLayout;
+const mockGenerateZeroOverlapLayout = __mockGenerateZeroOverlapLayout;
+const mockGenerateVideo = __mockGenerateVideo;
 
 // Mock URL.createObjectURL / revokeObjectURL
 beforeEach(() => {
@@ -177,7 +184,7 @@ function resetMocks() {
 }
 
 describe('SimplePipeline', () => {
-  let pipeline: SimplePipeline;
+  let pipeline: InstanceType<typeof SimplePipeline>;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -396,7 +403,7 @@ describe('SimplePipeline', () => {
 
       const result = await pipeline.processWithRetry(
         { audioFile: createMockFile() },
-        undefined,
+        3,
         2
       );
 

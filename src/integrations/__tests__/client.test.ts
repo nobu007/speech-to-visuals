@@ -1,18 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import * as jwt from 'jsonwebtoken';
+import { jest } from '@jest/globals';
 
 // Mock @supabase/supabase-js for the client module tests
 const mockCreateClient: any = jest.fn();
-jest.mock('@supabase/supabase-js', () => ({
+jest.unstable_mockModule('@supabase/supabase-js', () => ({
   createClient: (...args: unknown[]) => mockCreateClient(...args),
 }));
 
-// Import the real client module — jest.mock will be hoisted above this import
-// so the mocked @supabase/supabase-js is used
-import {
-  getSupabaseClient,
-  resetSupabaseClient,
-} from '@/integrations/supabase/client';
+// Dynamic import after mock setup
+const { getSupabaseClient, resetSupabaseClient } = await import('@/integrations/supabase/client');
 
 describe('Supabase client (getSupabaseClient / resetSupabaseClient)', () => {
   const originalEnvUrl = process.env.SUPABASE_URL;

@@ -2,28 +2,47 @@
  * Tests for Root.tsx - Composition rendering, resolution/FPS settings
  */
 
+import { jest } from '@jest/globals';
 import * as React from 'react';
-import { RemotionRoot, COMPOSITION_ID } from '../Root';
-import {
-  DEFAULT_FPS,
-  DEFAULT_WIDTH,
-  DEFAULT_HEIGHT,
-  calculateTotalFrames,
-  defaultVideoProps,
-} from '../Video';
 
 // Mock Composition to have a displayName we can check
-jest.mock('remotion', () => {
-  const originalModule = jest.requireActual('remotion');
+jest.unstable_mockModule('remotion', () => {
+  const ActualReact = jest.requireActual('react') as typeof React;
   const MockComposition = (props: Record<string, unknown>) => {
     return null;
   };
   MockComposition.displayName = 'Composition';
   return {
-    ...originalModule,
     Composition: MockComposition,
+    useCurrentFrame: () => 0,
+    useVideoConfig: () => ({
+      fps: 30,
+      width: 1920,
+      height: 1080,
+      durationInFrames: 300,
+    }),
+    AbsoluteFill: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) =>
+      ActualReact.createElement('div', { style: { position: 'absolute', inset: 0, ...style } }, children),
+    Audio: ({ src }: { src: string }) =>
+      ActualReact.createElement('audio', { src }),
+    interpolate: (frame: number, inputRange: number[], outputRange: number[]) => {
+      if (frame <= inputRange[0]) return outputRange[0];
+      if (frame >= inputRange[inputRange.length - 1]) return outputRange[outputRange.length - 1];
+      const t = (frame - inputRange[0]) / (inputRange[inputRange.length - 1] - inputRange[0]);
+      return outputRange[0] + t * (outputRange[outputRange.length - 1] - outputRange[0]);
+    },
+    Sequence: ({ children }: { children: React.ReactNode }) => children,
   };
 });
+
+const { RemotionRoot, COMPOSITION_ID } = await import('../Root');
+const {
+  DEFAULT_FPS,
+  DEFAULT_WIDTH,
+  DEFAULT_HEIGHT,
+  calculateTotalFrames,
+  defaultVideoProps,
+} = await import('../Video');
 
 /**
  * Call RemotionRoot as a function component and extract the Composition element's props.

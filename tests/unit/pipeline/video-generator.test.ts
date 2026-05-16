@@ -1,11 +1,8 @@
-import {
-  VideoGenerator,
-  generateVideoFromPipeline,
-} from '@/pipeline/video-generator';
+import { jest } from '@jest/globals';
 import type { SimplePipelineResult } from '@/pipeline/simple-pipeline';
 
 // Mock the dynamic import of actualVideoRenderer
-jest.mock('@/lib/actualVideoRenderer', () => ({
+jest.unstable_mockModule('@/lib/actualVideoRenderer', () => ({
   actualVideoRenderer: {
     renderVideo: jest.fn((_config: unknown, onProgress: (p: { progress: number; message: string }) => void) => {
       onProgress({ progress: 50, message: 'Rendering...' });
@@ -13,6 +10,11 @@ jest.mock('@/lib/actualVideoRenderer', () => ({
     }),
   },
 }), { virtual: true });
+
+const {
+  VideoGenerator,
+  generateVideoFromPipeline,
+} = await import('@/pipeline/video-generator');
 
 // Create mock scenes with all properties video-generator actually accesses
 function makeMockScene(overrides: Record<string, unknown> = {}) {

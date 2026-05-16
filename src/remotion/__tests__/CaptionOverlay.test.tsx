@@ -3,29 +3,35 @@
  * Caption display, visibility animation, multi-line support, and positioning
  */
 
+import { jest } from '@jest/globals';
 import * as React from 'react';
-import {
-  CaptionOverlay,
-  getActiveCaptionText,
-  calculateCaptionOpacity,
-  MAX_CHARS_PER_LINE,
-  MAX_LINES,
-  CaptionOverlayProps,
-} from '../CaptionOverlay';
 import { SrtCaption } from '../srt-parser';
+import type { CaptionOverlayProps } from '../CaptionOverlay';
 
 // Mock remotion hooks
 let mockFrame = 0;
 let mockFps = 30;
 
-jest.mock('remotion', () => {
-  const originalModule = jest.requireActual('remotion');
-  return {
-    ...originalModule,
-    useCurrentFrame: () => mockFrame,
-    useVideoConfig: () => ({ fps: mockFps, width: 1920, height: 1080 }),
-  };
-});
+jest.unstable_mockModule('remotion', () => ({
+  useCurrentFrame: () => mockFrame,
+  useVideoConfig: () => ({ fps: mockFps, width: 1920, height: 1080 }),
+  interpolate: (frame: number, inputRange: number[], outputRange: number[]) => {
+    if (frame <= inputRange[0]) return outputRange[0];
+    if (frame >= inputRange[inputRange.length - 1]) return outputRange[outputRange.length - 1];
+    const t = (frame - inputRange[0]) / (inputRange[inputRange.length - 1] - inputRange[0]);
+    return outputRange[0] + t * (outputRange[outputRange.length - 1] - outputRange[0]);
+  },
+  AbsoluteFill: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) =>
+    React.createElement('div', { style: { position: 'absolute', inset: 0, ...style } }, children),
+}));
+
+const {
+  CaptionOverlay,
+  getActiveCaptionText,
+  calculateCaptionOpacity,
+  MAX_CHARS_PER_LINE,
+  MAX_LINES,
+} = await import('../CaptionOverlay');
 
 // Helper to create an SrtCaption
 function createCaption(overrides: Partial<SrtCaption> = {}): SrtCaption {

@@ -5,29 +5,19 @@
  * Tests for Video.tsx - Scene switching, total frames calculation, findSceneAtTime
  */
 
+import { jest } from '@jest/globals';
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { SceneGraph, PositionedNode } from '@/types/diagram';
-import {
-  calculateTotalFrames,
-  findSceneAtTime,
-  DEFAULT_FPS,
-  defaultVideoProps,
-  DEFAULT_WIDTH,
-  DEFAULT_HEIGHT,
-  SpeechToVisualsVideo,
-  VideoProps,
-} from '../Video';
 
 // Mock remotion hooks for component tests
 let mockFrame = 0;
 let mockFps = 30;
 let mockDurationInFrames = 300;
 
-jest.mock('remotion', () => {
-  const originalModule = jest.requireActual('remotion');
+jest.unstable_mockModule('remotion', () => {
+  const ActualReact = jest.requireActual('react') as typeof React;
   return {
-    ...originalModule,
     useCurrentFrame: () => mockFrame,
     useVideoConfig: () => ({
       fps: mockFps,
@@ -36,11 +26,28 @@ jest.mock('remotion', () => {
       durationInFrames: mockDurationInFrames,
     }),
     AbsoluteFill: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) =>
-      React.createElement('div', { style: { position: 'absolute', inset: 0, ...style }, 'data-testid': 'absolute-fill' }, children),
+      ActualReact.createElement('div', { style: { position: 'absolute', inset: 0, ...style }, 'data-testid': 'absolute-fill' }, children),
     Audio: ({ src }: { src: string }) =>
-      React.createElement('audio', { src, 'data-testid': 'audio' }),
+      ActualReact.createElement('audio', { src, 'data-testid': 'audio' }),
+    interpolate: (frame: number, inputRange: number[], outputRange: number[]) => {
+      if (frame <= inputRange[0]) return outputRange[0];
+      if (frame >= inputRange[inputRange.length - 1]) return outputRange[outputRange.length - 1];
+      const t = (frame - inputRange[0]) / (inputRange[inputRange.length - 1] - inputRange[0]);
+      return outputRange[0] + t * (outputRange[outputRange.length - 1] - outputRange[0]);
+    },
+    Sequence: ({ children }: { children: React.ReactNode }) => children,
   };
 });
+
+const {
+  calculateTotalFrames,
+  findSceneAtTime,
+  DEFAULT_FPS,
+  defaultVideoProps,
+  DEFAULT_WIDTH,
+  DEFAULT_HEIGHT,
+  SpeechToVisualsVideo,
+} = await import('../Video');
 
 // Helper to create a SceneGraph
 function createScene(overrides: Partial<SceneGraph> = {}): SceneGraph {

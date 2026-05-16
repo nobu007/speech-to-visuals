@@ -4,22 +4,22 @@
  *         edge cases, error handling, different quality/resolution settings
  */
 
-import {
-  VideoGenerator,
-  generateVideoFromPipeline,
-  VideoGenerationOptions,
-  VideoGenerationResult,
-} from '../video-generator';
-import { SimplePipelineResult } from '../simple-pipeline';
+import { jest } from '@jest/globals';
+import type { SimplePipelineResult } from '../simple-pipeline';
 
 // Mock the actualVideoRenderer to prevent import errors
-jest.mock('@/lib/actualVideoRenderer', () => ({
+jest.unstable_mockModule('@/lib/actualVideoRenderer', () => ({
   actualVideoRenderer: {
-    renderVideo: jest.fn().mockImplementation(async (config, onProgress) => {
+    renderVideo: jest.fn().mockImplementation(async (config: unknown, onProgress: (p: { progress: number; message: string }) => void) => {
       onProgress?.({ progress: 100, message: 'Rendered' });
     }),
   },
 }), { virtual: true });
+
+const {
+  VideoGenerator,
+  generateVideoFromPipeline,
+} = await import('../video-generator');
 
 // Suppress console
 beforeEach(() => {

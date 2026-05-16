@@ -4,6 +4,7 @@
  * Includes: TTL handling, eviction, semantic matching, persistence
  */
 
+import { jest } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
@@ -25,13 +26,13 @@ const mockSemanticMetricsTracker = {
   reset: jest.fn(),
 };
 
-jest.mock('@/analysis/semantic-similarity', () => ({
+jest.unstable_mockModule('@/analysis/semantic-similarity', () => ({
   calculateSemanticSimilarity: (...args: unknown[]) => mockCalculateSemanticSimilarity(...args),
   SemanticMetricsTracker: jest.fn().mockImplementation(() => mockSemanticMetricsTracker),
 }));
 
 // We need to import after mocks are set up
-import { LLMCache } from '@/analysis/llm-cache';
+const { LLMCache } = await import('@/analysis/llm-cache');
 
 describe('LLMCache', () => {
   let cache: LLMCache<string>;

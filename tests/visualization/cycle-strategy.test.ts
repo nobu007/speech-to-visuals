@@ -5,7 +5,7 @@
  * edge generation with missing nodes, custom dimensions
  */
 
-import { CycleLayoutStrategy, CycleStrategy } from '@/visualization/strategies/cycle-strategy';
+import { jest } from '@jest/globals';
 import { NodeDatum, EdgeDatum } from '@/types/diagram';
 
 // Mock layout-engine-v2 functions
@@ -16,10 +16,12 @@ const mockCalculateMetrics = jest.fn().mockReturnValue({
   aspectRatio: 16 / 9,
 });
 
-jest.mock('@/visualization/layout-engine-v2', () => ({
+jest.unstable_mockModule('@/visualization/layout-engine-v2', () => ({
   calculateCanvasSize: (...args: unknown[]) => mockCalculateCanvasSize(...args),
   calculateMetrics: (...args: unknown[]) => mockCalculateMetrics(...args),
 }));
+
+const { CycleLayoutStrategy, CycleStrategy } = await import('@/visualization/strategies/cycle-strategy');
 
 function makeNodes(count: number, overrides?: Partial<NodeDatum>[]): NodeDatum[] {
   return Array.from({ length: count }, (_, i) => ({

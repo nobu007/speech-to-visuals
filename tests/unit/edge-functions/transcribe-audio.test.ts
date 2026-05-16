@@ -1,17 +1,26 @@
-import { handleTranscribe, TRANSCRIBE_TIMEOUT_MS } from '#supabase/functions/transcribe-audio/index';
+import { jest } from '@jest/globals';
 
 // ─── Mock Setup ──────────────────────────────────────────────────────────────
 
 // Mock the error-handler module's fetchWithTimeout
-jest.mock('#supabase/functions/_shared/error-handler', () => {
-  const actual = jest.requireActual('#supabase/functions/_shared/error-handler');
-  return {
-    ...actual,
-    fetchWithTimeout: jest.fn(),
-  };
-});
+jest.unstable_mockModule('#supabase/functions/_shared/error-handler.ts', () => ({
+  CORS_HEADERS: {},
+  corsResponse: jest.fn(),
+  optionsResponse: jest.fn(),
+  errorResponse: jest.fn(),
+  validateRequired: (body: Record<string, unknown>, fields: string[]) => {
+    for (const field of fields) {
+      if (body[field] === undefined || body[field] === null || body[field] === '') {
+        throw new Error(`${field} is required`);
+      }
+    }
+  },
+  createTimeout: jest.fn(),
+  fetchWithTimeout: jest.fn(),
+}));
 
-import { fetchWithTimeout } from '#supabase/functions/_shared/error-handler';
+const { fetchWithTimeout } = await import('#supabase/functions/_shared/error-handler.ts') as { fetchWithTimeout: jest.Mock };
+const { handleTranscribe, TRANSCRIBE_TIMEOUT_MS } = await import('#supabase/functions/transcribe-audio/index');
 
 const VALID_ENV = { LOVABLE_API_KEY: 'test-api-key' };
 const USER_ID = 'user-test-001';

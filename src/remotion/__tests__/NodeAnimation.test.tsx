@@ -3,13 +3,8 @@
  * Node fade-in animation: 0.3s = 9 frames at 30fps
  */
 
+import { jest } from '@jest/globals';
 import * as React from 'react';
-import {
-  NodeAnimation,
-  calculateNodeOpacity,
-  calculateNodeScale,
-  NODE_FADE_DURATION_SEC,
-} from '../NodeAnimation';
 import { PositionedNode } from '@/types/diagram';
 import { NODE_FADE_DURATION_FRAMES } from '../animation-strategies';
 
@@ -17,14 +12,23 @@ import { NODE_FADE_DURATION_FRAMES } from '../animation-strategies';
 let mockFrame = 0;
 let mockFps = 30;
 
-jest.mock('remotion', () => {
-  const originalModule = jest.requireActual('remotion');
-  return {
-    ...originalModule,
-    useCurrentFrame: () => mockFrame,
-    useVideoConfig: () => ({ fps: mockFps, width: 1920, height: 1080 }),
-  };
-});
+jest.unstable_mockModule('remotion', () => ({
+  useCurrentFrame: () => mockFrame,
+  useVideoConfig: () => ({ fps: mockFps, width: 1920, height: 1080 }),
+  interpolate: (frame: number, inputRange: number[], outputRange: number[]) => {
+    if (frame <= inputRange[0]) return outputRange[0];
+    if (frame >= inputRange[inputRange.length - 1]) return outputRange[outputRange.length - 1];
+    const t = (frame - inputRange[0]) / (inputRange[inputRange.length - 1] - inputRange[0]);
+    return outputRange[0] + t * (outputRange[outputRange.length - 1] - outputRange[0]);
+  },
+}));
+
+const {
+  NodeAnimation,
+  calculateNodeOpacity,
+  calculateNodeScale,
+  NODE_FADE_DURATION_SEC,
+} = await import('../NodeAnimation');
 
 // Helper to create a positioned node
 function makeNode(overrides: Partial<PositionedNode> = {}): PositionedNode {

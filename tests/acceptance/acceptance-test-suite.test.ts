@@ -9,6 +9,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as jwt from 'jsonwebtoken';
+import { fileURLToPath } from 'url';
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 import { WhisperTranscriber } from '@/transcription/whisper-transcriber';
 import { SUPPORTED_AUDIO_FORMATS, FileSizeExceededError, MAX_FILE_SIZE } from '@/transcription/types';

@@ -1,20 +1,20 @@
-import { TranscriptionPipeline } from '@/transcription/transcriber';
+import { jest } from '@jest/globals';
 
 // Mock WhisperTranscriber so we can control its behavior
 const mockWhisperTranscribe = jest.fn() as jest.Mock;
 
-jest.mock('fs', () => ({
+jest.unstable_mockModule('fs', () => ({
   promises: { access: jest.fn().mockResolvedValue(undefined) },
   constants: { R_OK: 4 },
 }));
 
-jest.mock('@/transcription/whisper-transcriber', () => ({
+jest.unstable_mockModule('@/transcription/whisper-transcriber', () => ({
   WhisperTranscriber: jest.fn().mockImplementation(() => ({
     transcribe: mockWhisperTranscribe,
   })),
 }));
 
-jest.mock('@/transcription/browser-transcriber', () => ({
+jest.unstable_mockModule('@/transcription/browser-transcriber', () => ({
   BrowserTranscriber: jest.fn().mockImplementation(() => ({
     transcribeAudioFile: jest.fn().mockResolvedValue({
       success: true,
@@ -22,6 +22,8 @@ jest.mock('@/transcription/browser-transcriber', () => ({
     } as never),
   })),
 }));
+
+const { TranscriptionPipeline } = await import('@/transcription/transcriber');
 
 describe('TranscriptionPipeline', () => {
   let consoleSpy: jest.SpiedFunction<typeof console.log>;

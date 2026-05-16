@@ -4,9 +4,19 @@
  * audio integration, file size estimation, and render pipeline setup
  */
 
-import {
+import { jest } from '@jest/globals';
+
+import type {
   RenderConfig,
   ResolutionPreset,
+} from '../renderer';
+
+// Mock @remotion/renderer
+jest.unstable_mockModule('@remotion/renderer', () => ({
+  renderMedia: jest.fn(),
+}));
+
+const {
   RESOLUTION_PRESETS,
   getResolution,
   getOutputFormat,
@@ -15,14 +25,9 @@ import {
   buildRenderOptions,
   renderVideo,
   DEFAULT_AUDIO_BITRATE,
-} from '../renderer';
+} = await import('../renderer');
 
-// Mock @remotion/renderer
-jest.mock('@remotion/renderer', () => ({
-  renderMedia: jest.fn(),
-}));
-
-import { renderMedia } from '@remotion/renderer';
+const { renderMedia } = await import('@remotion/renderer');
 
 const mockedRenderMedia = renderMedia as jest.MockedFunction<typeof renderMedia>;
 

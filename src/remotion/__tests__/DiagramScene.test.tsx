@@ -3,8 +3,8 @@
  * Strategy-based animation dispatch for 5 diagram types
  */
 
+import { jest } from '@jest/globals';
 import * as React from 'react';
-import { DiagramScene } from '../DiagramScene';
 import { SceneGraph, DiagramType, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { getAnimationStrategy } from '../animation-strategies';
 
@@ -12,16 +12,20 @@ import { getAnimationStrategy } from '../animation-strategies';
 let mockFrame = 0;
 let mockFps = 30;
 
-jest.mock('remotion', () => {
-  const originalModule = jest.requireActual('remotion');
-  return {
-    ...originalModule,
-    useCurrentFrame: () => mockFrame,
-    useVideoConfig: () => ({ fps: mockFps, width: 1920, height: 1080 }),
-    AbsoluteFill: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) =>
-      React.createElement('div', { style: { position: 'absolute', inset: 0, ...style } }, children),
-  };
-});
+jest.unstable_mockModule('remotion', () => ({
+  useCurrentFrame: () => mockFrame,
+  useVideoConfig: () => ({ fps: mockFps, width: 1920, height: 1080 }),
+  AbsoluteFill: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) =>
+    React.createElement('div', { style: { position: 'absolute', inset: 0, ...style } }, children),
+  interpolate: (frame: number, inputRange: number[], outputRange: number[]) => {
+    if (frame <= inputRange[0]) return outputRange[0];
+    if (frame >= inputRange[inputRange.length - 1]) return outputRange[outputRange.length - 1];
+    const t = (frame - inputRange[0]) / (inputRange[inputRange.length - 1] - inputRange[0]);
+    return outputRange[0] + t * (outputRange[outputRange.length - 1] - outputRange[0]);
+  },
+}));
+
+const { DiagramScene } = await import('../DiagramScene');
 
 // Helper factories
 function makePositionedNode(overrides: Partial<PositionedNode> = {}): PositionedNode {

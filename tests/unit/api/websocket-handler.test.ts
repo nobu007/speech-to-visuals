@@ -11,6 +11,8 @@
  * - JWT auth middleware on connection
  */
 
+import { jest } from '@jest/globals';
+
 import { createMockIo, createMockSocket, MockIo, MockSocket } from '../../__mocks__/socket-io';
 
 // We will import after mock setup. Use dynamic import below.
@@ -26,14 +28,12 @@ let emitStreamingComplete: typeof import('../../../src/api/websocket-handler').e
 let emitErrorRecovery: typeof import('../../../src/api/websocket-handler').emitErrorRecovery;
 let emitErrorRecovered: typeof import('../../../src/api/websocket-handler').emitErrorRecovered;
 
-// Mock jsonwebtoken before importing
-jest.mock('jsonwebtoken', () => ({
+// Mock jsonwebtoken before importing (ESM-compatible)
+jest.unstable_mockModule('jsonwebtoken', () => ({
   verify: jest.fn(),
 }));
 
-import * as jwt from 'jsonwebtoken';
-
-const mockedJwtVerify = jwt.verify as jest.Mock;
+let mockedJwtVerify: jest.Mock;
 
 // ---------------------------------------------------------------------------
 // Helper: set up module under test with mocked Socket.IO
@@ -70,6 +70,10 @@ describe('WebSocket Handler', () => {
     process.env.JWT_SECRET = 'test-secret';
     mockIo = createMockIo();
     mockSocket = createMockSocket();
+
+    // Dynamic import of mocked jsonwebtoken (ESM)
+    const jwt = await import('jsonwebtoken');
+    mockedJwtVerify = jwt.verify as jest.Mock;
 
     // Default: JWT verify returns a valid user
     mockedJwtVerify.mockReturnValue({
