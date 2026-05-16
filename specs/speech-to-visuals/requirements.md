@@ -243,11 +243,11 @@
 - REQ-105: システムはコード規模監査スクリプト（npm run audit:code-size）の実行結果が COMPLIANT となることを確認しなければならない。src/ ディレクトリ単位で測定した場合、ファイル数340以下・行数100,000以下であること 🔵 *現状実測値: src/ 327ファイル/96,414行（共に制限内）・audit全量: 482ファイル/142,318行（制限超過）より*
 - REQ-106: システムはタスク概要ドキュメント（overview.md）のフェーズステータス・タスク完了状況が git ログと一致することを確認しなければならない 🔵 *overview.md Phase 36 ヘッダー「🔲未着手」に対し実際は完了・TASK-0143~0147 未反映より*
 
-#### テストESM互換性修正・依存脆弱性解消・ドキュメント整合性（Phase 39） 🔲未実装
+#### テストESM互換性修正・依存脆弱性解消・ドキュメント整合性（Phase 39） ✅完了
 
-- REQ-107: システムはテストファイル内の `jest.resetModules()`、`jest.clearModules()`、`jest.restoreAllMocks()` の呼び出しがESM（ECMAScript Modules）環境で `ReferenceError: jest is not defined` エラーを発生しないようにしなければならない。`@jest/globals` からの明示的インポートまたは `beforeAll`/`afterAll` ベースの代替パターンに置換すること 🔵 *31テストファイルで `jest.resetModules()` 使用・ESMモードで3テスト失敗を確認済より*
-- REQ-108: システムは `npm audit` で報告される脆弱性（fast-uri path traversal HIGH・ip-address XSS MODERATE）を解消し、脆弱性0件を維持しなければならない 🔵 *npm audit 実行結果: 3脆弱性（2 moderate, 1 high）・npm audit fix で修正可能より*
-- REQ-109: システムはアーキテクチャ文書（architecture.md）の受け入れ基準が全て完了（[x]）であり、品質評価が最新フェーズの検証結果を反映していることを確認しなければならない 🔵 *architecture.md line 529: Phase 37 コード規模監査モジュール未チェック・品質評価が第145回検証のままより*
+- REQ-107: システムはテストファイル内の `jest.resetModules()`、`jest.clearModules()`、`jest.restoreAllMocks()` の呼び出しがESM（ECMAScript Modules）環境で `ReferenceError: jest is not defined` エラーを発生しないようにしなければならない。`@jest/globals` からの明示的インポートまたは `beforeAll`/`afterAll` ベースの代替パターンに置換すること 🔵 *TASK-0151完了: 31テストファイルのjest.mock→unstable_mockModule変換・全193スイート/4,346テスト通過確認*
+- REQ-108: システムは `npm audit` で報告される脆弱性（fast-uri path traversal HIGH・ip-address XSS MODERATE）を解消し、脆弱性0件を維持しなければならない 🔵 *TASK-0152完了: npm audit 0脆弱性確認*
+- REQ-109: システムはアーキテクチャ文書（architecture.md）の受け入れ基準が全て完了（[x]）であり、品質評価が最新フェーズの検証結果を反映していることを確認しなければならない 🔵 *TASK-0153完了: 全8受け入れ基準[x]・品質評価第148回検証反映済*
 
 ### 条件付き要件
 
@@ -382,7 +382,7 @@
 | Phase 36: パフォーマンス最適化・コスト可視化パイプライン | ✅完了 | REQ-097~100 | 5/5（パイプライン並列化・LLMコスト監視・パフォーマンスリグレッションベンチマーク・監視REST API・BudgetAlertSystem境界テスト） |
 | Phase 37: 監視API本組込み・コード規模監査 | ✅完了 | REQ-102~103 | 2/2（コード規模自動監査CLI・BudgetAlertSystem境界テスト・サーバー配線検証） |
 | Phase 38: 監査スコープ修正・ドキュメント整合性 | ✅完了 | REQ-104~106 | 3/3（監査src/スコープ限定・COMPLIANT確認・overview.md整合性） |
-| Phase 39: テストESM互換性修正・依存脆弱性解消・ドキュメント整合性 | 🔲未実装 | REQ-107~109 | 0/3 |
+| Phase 39: テストESM互換性修正・依存脆弱性解消・ドキュメント整合性 | ✅完了 | REQ-107~109 | 3/3（ESM互換性修正31ファイル・npm audit 0脆弱性・ドキュメント整合性更新） |
 
 ## 信頼性レベル分布
 
@@ -390,7 +390,7 @@
 - 🟡 黄信号: 3件 (2.0%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-38全要件実装完了（REQ-001~106）・Phase 39計画済（REQ-107~109）・4,300+テスト（186+スイート）・TypeScript型エラー0件・ESLintエラー0件・コード規模96,758行（SYSTEM_CONSTITUTION V2.4: 100K行制限内・COMPLIANT確認済）
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-39全要件実装完了（REQ-001~109）・4,346テスト（193スイート）全通過・TypeScript型エラー0件・ESLintエラー0件・npm audit 0脆弱性・コード規模96,466行（SYSTEM_CONSTITUTION V2.5: 100K行制限内・COMPLIANT確認済）
 
 ## Acceptance criteria
 
@@ -401,6 +401,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 39 を網羅し、Phase 38 完了・Phase 39 計画済を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 39 を網羅し、Phase 39 完了を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテゴリに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第147回: 🔵148件/🟡3件/🔴0件 — Phase 39計画反映・REQ-107~109追加）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第148回: 🔵148件/🟡3件/🔴0件 — Phase 39完了反映・REQ-107~109実装確認）
