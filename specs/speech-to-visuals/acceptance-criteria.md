@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-17（Phase 40要件定義: REQ-111~112テストケース完了・全159テストケース合格）
+**最終更新**: 2026-05-17（Phase 45要件定義: REQ-113~115テストケース計画・ウォームアップ障害耐性テスト）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -2495,3 +2495,172 @@
   - **入力**: GET /trends?timespan=invalid
   - **期待結果**: 400 + バリデーションエラー
   - **信頼性**: 🔵 *Zodスキーマ検証*
+
+---
+
+## REQ-113: 監視ヘルスエンドポイント・ウォームアップ失敗テスト 🔵
+
+**信頼性**: 🔵 *src/api/routes/monitoring.ts cacheWarmup フィールド・startup-warmup.ts WarmupStatusInfo 型より*
+
+### Given（前提条件）
+
+- Express API サーバーが起動している
+- startup-warmup モジュールがウォームアップ失敗状態を報告している
+- 監視ヘルスエンドポイント（GET /api/v1/monitoring/health）が利用可能
+
+### When（実行条件）
+
+- 外部クライアントが GET /api/v1/monitoring/health にアクセスする
+- startup-warmup の getWarmupStatus() が {status: 'failed', error: '...'} を返す状態
+
+### Then（期待結果）
+
+- HTTP 200 が返される（ウォームアップ失敗はサーバー全体のヘルスに影響しない）
+- レスポンス data.status が 'healthy' または 'degraded'（successRate に基づく）
+- レスポンス data.cacheWarmup.status が 'failed'
+- レスポンス data.cacheWarmup.error がエラーメッセージ文字列
+- レスポンス data.cacheWarmup.timestamp が ISO 形式
+
+### テストケース
+
+#### 正常系
+
+- [ ] **TC-113-01**: ウォームアップ失敗時のヘルスレスポンス形状 🔵
+  - **入力**: getWarmupStatus() が {status: 'failed', error: 'ECONNREFUSED', timestamp: '...'} を返す状態で GET /health
+  - **期待結果**: 200 + cacheWarmup.status = 'failed' + cacheWarmup.error = 'ECONNREFUSED'
+  - **信頼性**: 🔵 *src/api/startup-warmup.ts .catch() フロー・monitoring.ts line 111 より*
+
+- [ ] **TC-113-02**: ウォームアップ失敗がヘルスステータス全体に影響しないこと 🔵
+  - **入力**: getWarmupStatus() が failed 状態 + successRate = 1.0 で GET /health
+  - **期待結果**: data.status = 'healthy'（ウォームアップ失敗は successRate に影響しない）
+  - **信頼性**: 🔵 *fire-and-forget 設計・monitoring.ts status 判定ロジック line 103 より*
+
+#### 異常系
+
+- [ ] **TC-113-E01**: ウォームアップpending中のヘルスレスポンス 🔵
+  - **入力**: getWarmupStatus() が {status: 'pending'} を返す状態で GET /health
+  - **期待結果**: 200 + cacheWarmup.status = 'pending' + cacheWarmup.error = undefined
+  - **信頼性**: 🔵 *startup-warmup.ts 初期状態・monitoring.ts line 111 より*
+
+- [ ] **TC-113-E02**: ウォームアップスキップ時のヘルスレスポンス 🔵
+  - **入力**: getWarmupStatus() が {status: 'skipped', timestamp: '...'} を返す状態で GET /health
+  - **期待結果**: 200 + cacheWarmup.status = 'skipped'
+  - **信頼性**: 🔵 *startup-warmup.ts LLM disabled 分岐・monitoring.ts line 111 より*
+
+---
+
+## REQ-114: キャッシュバックエンド到達不能統合テスト 🔵
+
+**信頼性**: 🔵 *src/api/startup-warmup.ts fire-and-forget 設計・startup-warmup.test.ts 失敗テストケースより*
+
+### Given（前提条件）
+
+- LLMService の warmupCache() がネットワークエラー（ECONNREFUSED / ETIMEDOUT / DNS resolution failure）で reject する
+- triggerStartupWarmup() が呼び出される
+- 監視ヘルスエンドポイントが利用可能
+
+### When（実行条件）
+
+- triggerStartupWarmup() が実行される（キャッシュバックエンド到達不能状態）
+- 非同期ウォームアップが失敗する
+- GET /api/v1/monitoring/health が呼び出される
+
+### Then（期待結果）
+
+- triggerStartupWarmup() は例外をスローしない（同期リターン）
+- getWarmupStatus().status が 'failed' になる
+- getWarmupStatus().error にエラーメッセージが含まれる
+- ヘルスエンドポイントは 200 + cacheWarmup.status = 'failed' を返す
+- サーバー起動は継続する（ウォームアップ失敗で停止しない）
+
+### テストケース
+
+#### 正常系
+
+- [ ] **TC-114-01**: ネットワークエラー時のウォームアップ失敗ハンドリング 🔵
+  - **入力**: warmupCache() が Error('ECONNREFUSED 127.0.0.1:6379') で reject
+  - **期待結果**: triggerStartupWarmup() が例外をスローせず、status が 'failed' + error に 'ECONNREFUSED' が含まれる
+  - **信頼性**: 🔵 *startup-warmup.ts .catch() フロー・startup-warmup.test.ts line 140-151 より*
+
+- [ ] **TC-114-02**: タイムアウト時のウォームアップ失敗ハンドリング 🔵
+  - **入力**: warmupCache() が Error('request timeout') で reject
+  - **期待結果**: triggerStartupWarmup() が例外をスローせず、status が 'failed' + error に 'timeout' が含まれる
+  - **信頼性**: 🔵 *startup-warmup.ts .catch() フロー・startup-warmup.test.ts line 140-151 より*
+
+#### 異常系
+
+- [ ] **TC-114-E01**: 非Error例外のウォームアップ失敗ハンドリング 🔵
+  - **入力**: warmupCache() が文字列 'unknown failure' で reject
+  - **期待結果**: triggerStartupWarmup() が例外をスローせず、status が 'failed' + error に 'unknown failure' が含まれる
+  - **信頼性**: 🔵 *startup-warmup.ts line 73: err instanceof Error チェック・startup-warmup.test.ts より*
+
+---
+
+## REQ-115: ウォームアップ状態遷移監視テスト 🔵
+
+**信頼性**: 🔵 *src/api/startup-warmup.ts WarmupStatusInfo 型・monitoring.ts health エンドポイントより*
+
+### Given（前提条件）
+
+- startup-warmup モジュールが初期状態（pending）
+- 監視ヘルスエンドポイントが利用可能
+
+### When（実行条件）
+
+- ウォームアップ状態が各遷移（pending → completed / failed / skipped）を経由する
+- 各状態で GET /api/v1/monitoring/health が呼び出される
+
+### Then（期待結果）
+
+- 各状態遷移で cacheWarmup フィールドが正しく反映される
+- pending: cacheWarmup.status = 'pending', error = undefined, timestamp = undefined
+- completed: cacheWarmup.status = 'completed', patternsProcessed = 数値, timestamp = ISO文字列
+- failed: cacheWarmup.status = 'failed', error = エラーメッセージ, timestamp = ISO文字列
+- skipped: cacheWarmup.status = 'skipped', timestamp = ISO文字列
+
+### テストケース
+
+#### 正常系
+
+- [ ] **TC-115-01**: pending → completed 遷移のヘルスエンドポイント反映 🔵
+  - **入力**: warmupCache() が true で resolve → ヘルスチェック
+  - **期待結果**: cacheWarmup.status = 'completed' + patternsProcessed = 8
+  - **信頼性**: 🔵 *startup-warmup.ts line 55-61・monitoring.ts line 111 より*
+
+- [ ] **TC-115-02**: pending → skipped（キャッシュ既にウォーム）遷移のヘルスエンドポイント反映 🔵
+  - **入力**: warmupCache() が false で resolve → ヘルスチェック
+  - **期待結果**: cacheWarmup.status = 'skipped' + timestamp が定義されている
+  - **信頼性**: 🔵 *startup-warmup.ts line 63-67 より*
+
+- [ ] **TC-115-03**: pending → failed 遷移のヘルスエンドポイント反映 🔵
+  - **入力**: warmupCache() が Error('connection refused') で reject → ヘルスチェック
+  - **期待結果**: cacheWarmup.status = 'failed' + error = 'connection refused'
+  - **信頼性**: 🔵 *startup-warmup.ts line 69-76 より*
+
+#### 境界値
+
+- [ ] **TC-115-B01**: ウォームアップ実行中（in-flight）のヘルスエンドポイント 🔵
+  - **入力**: warmupCache() が未解決の Promise → ヘルスチェック
+  - **期待結果**: cacheWarmup.status = 'pending'（ウォームアップ中は pending のまま）
+  - **信頼性**: 🔵 *startup-warmup.ts 同期リターン設計・monitoring.ts line 111 より*
+
+---
+
+## テストケースサマリー（Phase 45 追加分）
+
+### カテゴリ別件数
+
+| カテゴリ | 正常系 | 異常系 | 境界値 | 合計 |
+|---------|--------|--------|--------|------|
+| Phase 45: REQ-113 | 2 | 2 | 0 | 4 |
+| Phase 45: REQ-114 | 2 | 1 | 0 | 3 |
+| Phase 45: REQ-115 | 3 | 0 | 1 | 4 |
+| **Phase 45 合計** | **7** | **3** | **1** | **11** |
+
+### 信頼性レベル分布（Phase 45 追加分）
+
+- 🔵 青信号: 11件 (100%)
+- 🟡 黄信号: 0件 (0%)
+- 🔴 赤信号: 0件 (0%)
+
+**品質評価**: ✅ 高品質 - 全テストケースが既存の fire-and-forget 実装・WarmupStatusInfo 型・monitoring エンドポイント構造に基づいている

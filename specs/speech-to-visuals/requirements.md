@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 1-39 完了（153/153タスク完了 + ISS-003~045修正完了）・Phase 40 進行中（TASK-0154~0155完了・REQ-111~112計画）・327ファイル・96,466行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト4,346件（193スイート）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.5 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・Phase 31図解品質エンハンスメント（REQ-079~083）完了・Phase 32図解品質パイプライン統合（REQ-084~087）完了・Phase 33パイプライン品質監視統合（REQ-088~090）完了・Phase 34ストリーミング品質・音声前処理・エクスポート検証（REQ-091~093）完了・Phase 35可視化アルゴリズム正式化・パイプライン品質統合（REQ-094~096）完了・Phase 36パフォーマンス最適化・コスト可視化・監視API（REQ-097~100）完了・Phase 37監視API本組込み・コード規模監査（REQ-102~103）完了・Phase 38監査スコープ修正・ドキュメント整合性（REQ-104~106）完了・Phase 39テストESM互換性・依存脆弱性解消（REQ-107~110）完了
+**実装状況**: Phase 1-40 完了（154/154タスク完了 + ISS-003~045修正完了）・Phase 43 キャッシュウォームアップ統合完了・Phase 44 多言語検出拡張完了・Phase 45 ウォームアップ障害耐性テスト進行中・327ファイル・96,466行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト4,346件（193スイート）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.5 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・Phase 31図解品質エンハンスメント（REQ-079~083）完了・Phase 32図解品質パイプライン統合（REQ-084~087）完了・Phase 33パイプライン品質監視統合（REQ-088~090）完了・Phase 34ストリーミング品質・音声前処理・エクスポート検証（REQ-091~093）完了・Phase 35可視化アルゴリズム正式化・パイプライン品質統合（REQ-094~096）完了・Phase 36パフォーマンス最適化・コスト可視化・監視API（REQ-097~100）完了・Phase 37監視API本組込み・コード規模監査（REQ-102~103）完了・Phase 38監査スコープ修正・ドキュメント整合性（REQ-104~106）完了・Phase 39テストESM互換性・依存脆弱性解消（REQ-107~110）完了
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -258,6 +258,12 @@
 - REQ-111: システムは authMiddleware を Express パイプライン内で動作させる統合テストを提供し、HTTP レスポンス形状（ステータスコード・JSON ボディ・Content-Type ヘッダー）・CORS ヘッダー伝播・レート制限ミドルウェアとの相互作用・実際の HTTP リクエスト/レスポンスサイクルを検証しなければならない 🔵 *TASK-0154（ユニットテスト11件）の上に構築・src/api/middleware/auth.ts・src/api/server.ts より*
 - REQ-112: システムは jsonwebtoken 手動モック（tests/__mocks__/jsonwebtoken.ts）と auth.ts が使用する JWT インターフェース（verify・sign・decode）の整合性を自動検証し、auth.ts の変更時にモックの不一致を検出する仕組みを提供しなければならない 🔵 *tests/__mocks__/jsonwebtoken.ts の verify/sign/export と auth.ts の jwt.verify 使用箇所の対応確認・TASK-0154の補完要件*
 
+#### キャッシュウォームアップ障害耐性テスト（Phase 45）
+
+- REQ-113: システムは監視ヘルスエンドポイント（GET /api/v1/monitoring/health）のテストにおいて、ウォームアップ失敗時（status: 'failed'）のヘルスレスポンス形状を検証しなければならない。ウォームアップ失敗は非致命的であり、ヘルスステータス全体に影響を与えない（fire-and-forget）ことを確認すること 🔵 *src/api/startup-warmup.ts .catch() フロー・src/api/routes/monitoring.ts cacheWarmup フィールド・既存 startup-warmup.test.ts の失敗テストケースより*
+- REQ-114: システムはキャッシュバックエンドが到達不能（network error, timeout, DNS failure）な状況でのウォームアップ実行時、triggerStartupWarmup() が例外を伝播せず安全に失敗し、getWarmupStatus() が {status: 'failed', error: string} を返すことを検証する統合テストを提供しなければならない 🔵 *src/api/startup-warmup.ts fire-and-forget 設計・既存 startup-warmup.test.ts test('status becomes failed when warmup throws') より*
+- REQ-115: システムはウォームアップ状態の全遷移（pending → completed / pending → failed / pending → skipped）における監視ヘルスエンドポイントのレスポンス内容（status・cacheWarmup.status・cacheWarmup.error）を検証するテストを提供しなければならない 🔵 *src/api/routes/monitoring.ts health エンドポイント cacheWarmup フィールド・startup-warmup.ts WarmupStatusInfo 型より*
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より*
@@ -334,6 +340,8 @@
 - EDGE-003: LLM API がレートリミットを返した場合、システムはジッタ付き指数バックオフで最大3回リトライし、失敗時はフォールバックしなければならない 🔵 *PIPELINE_FLOW.md §4.2 より*
 - EDGE-004: Remotion レンダリングが失敗した場合、システムは低品質設定で再試行しなければならない 🔵 *PIPELINE_FLOW.md §4.1 Table・src/remotion/renderer.ts より*
 - EDGE-005: 品質スコアが閾値を下回った場合、システムは低品質設定で自動再試行しなければならない 🔵 *src/quality/enhanced-error-recovery.ts より*
+- EDGE-006: キャッシュウォームアップ中にネットワークエラー（DNS解決失敗・接続タイムアウト・ECONNREFUSED）が発生した場合、システムはウォームアップを安全に中止し、サーバー起動を継続し、ヘルスエンドポイントに failed ステータスを報告しなければならない 🔵 *src/api/startup-warmup.ts .catch() フロー・monitoring.ts cacheWarmup フィールドより*
+- EDGE-007: キャッシュウォームアップが完了する前にヘルスエンドポイントが呼び出された場合（pending 状態）、システムは正常なヘルスレスポンスを返し、cacheWarmup.status を 'pending' として報告しなければならない 🔵 *src/api/startup-warmup.ts 初期状態・monitoring.ts health エンドポイントより*
 
 ### 境界値
 
@@ -393,14 +401,15 @@
 | Phase 38: 監査スコープ修正・ドキュメント整合性 | ✅完了 | REQ-104~106 | 3/3（監査src/スコープ限定・COMPLIANT確認・overview.md整合性） |
 | Phase 39: テストESM互換性修正・依存脆弱性解消・ドキュメント整合性 | ✅完了 | REQ-107~109 | 3/3（ESM互換性修正31ファイル・npm audit 0脆弱性・ドキュメント整合性更新） |
 | Phase 40: API認証ミドルウェア品質・信頼性 | ✅完了 | REQ-111~112 | 2/2（REQ-111 Express統合テスト9件・REQ-112モック整合性検証3件・本番コード検証完了） |
+| Phase 45: キャッシュウォームアップ障害耐性テスト | 🔲計画中 | REQ-113~115 | 0/3（ウォームアップ失敗モニタリングテスト・キャッシュ到達不能統合テスト・ウォームアップ状態遷移テスト） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 147件 (95.5%)
+- 🔵 青信号: 152件 (95.6%)
 - 🟡 黄信号: 3件 (1.9%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-40全要件実装完了（REQ-001~112）・4,346テスト（193スイート）全通過・TypeScript型エラー0件・ESLintエラー0件・npm audit 0脆弱性・コード規模96,466行（SYSTEM_CONSTITUTION V2.5: 100K行制限内・COMPLIANT確認済）
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-40全要件実装完了（REQ-001~112）・Phase 43~44完了（キャッシュウォームアップ統合・多言語検出拡張）・Phase 45計画中（REQ-113~115）・4,346テスト（193スイート）全通過・TypeScript型エラー0件・ESLintエラー0件・npm audit 0脆弱性・コード規模96,466行（SYSTEM_CONSTITUTION V2.5: 100K行制限内・COMPLIANT確認済）
 
 ## Acceptance criteria
 
@@ -411,6 +420,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 40 を網羅し、Phase 40 完了を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 45 を網羅し、Phase 40 完了・Phase 45 計画中を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテゴリに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第149回: 🔵147件/🟡3件/🔴0件 — Phase 40要件定義・REQ-111~112追加）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第150回: 🔵152件/🟡3件/🔴0件 — Phase 45要件定義・REQ-113~115・EDGE-006~007追加）

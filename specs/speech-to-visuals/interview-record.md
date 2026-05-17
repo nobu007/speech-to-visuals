@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-17（第149回検証: Phase 39完了・Phase 40進行中・TASK-0154/0155完了・auth ユニットテスト11件・WebSocket ESM モック24テスト回復・REQ-111~112定義・327ファイル・96,466行・105パッケージ・4,346テスト（193スイート）・REQ-001~110全実装済）
+**最終更新**: 2026-05-17（第150回検証: Phase 43~44完了・Phase 45要件定義・REQ-113~115追加・ウォームアップ障害耐性テスト要件・EDGE-006~007追加・327ファイル・96,466行・105パッケージ・4,346テスト（193スイート）・REQ-001~115定義済）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
@@ -2390,14 +2390,61 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 - 3つの新規要件（REQ-088~090）を追加（信頼性レベル: 🔵）
 - Phase 31~32 の成果物を補完し、パイプライン全体の品質可視性を向上
 
+---
+
+### A119: Phase 45 キャッシュウォームアップ障害耐性テスト要件（2026-05-17 第150回更新）
+
+**分析日時**: 2026-05-17
+**カテゴリ**: ギャップ分析・テストカバレッジ・信頼性要件
+**背景**: Phase 43 で CacheWarmupManager のスタートアップ統合・Phase 44 で多言語検出拡張が完了したが、ウォームアップ失敗時の監視ヘルスエンドポイント動作検証が欠落している。AI Hub フィードバックにより「ウォームアップ障害モードのテストカバレッジ追加」「キャッシュバックエンド到達不能時の統合テスト」が指摘された。
+
+**分析対象**:
+1. `src/api/startup-warmup.ts` - fire-and-forget 設計（.catch で例外を捕捉）
+2. `src/api/routes/monitoring.ts` - health エンドポイントに cacheWarmup フィールドを含む
+3. `tests/unit/optimization/cache-warmup.test.ts` - CacheWarmupManager ユニットテスト（283行）
+4. `src/api/__tests__/startup-warmup.test.ts` - スタートアップウォームアップテスト（186行）
+5. `src/api/routes/__tests__/monitoring.test.ts` - 監視エンドポイントテスト（312行）
+
+**判断**:
+
+1. **監視ヘルスエンドポイントのウォームアップ失敗テスト欠落**（REQ-113）:
+   - `monitoring.test.ts` の `GET /health` テストは cacheWarmup フィールドの検証を行っていない
+   - startup-warmup モジュールをモック化せず、デフォルトの 'pending' 状態のみテスト
+   - ウォームアップ失敗時のヘルスレスポンス形状検証が不在
+   - fire-and-forget 設計のため、ウォームアップ失敗はヘルスステータス全体に影響しないことを確認する必要がある
+
+2. **キャッシュバックエンド到達不能時の統合テスト不在**（REQ-114）:
+   - startup-warmup.test.ts はモックサービスで warmupCache() の reject をテストしているが、実際のネットワークエラーシナリオ（DNS解決失敗・接続タイムアウト・ECONNREFUSED）をシミュレートしていない
+   - startup-warmup → monitoring health の統合パスの失敗ケースがテストされていない
+   - triggerStartupWarmup() → getWarmupStatus() → health エンドポイントの失敗伝播チェーンの検証が必要
+
+3. **ウォームアップ状態遷移の監視テスト不完全**（REQ-115）:
+   - WarmupStatusInfo の全遷移（pending → completed / failed / skipped）における health エンドポイントのレスポンス内容検証が不在
+   - 各状態での cacheWarmup.error フィールドの有無がテストされていない
+
+**根拠**:
+- `src/api/startup-warmup.ts`: triggerStartupWarmup() は warmupCache() の reject を .catch() で捕捉し status を 'failed' に設定
+- `src/api/routes/monitoring.ts` line 111: `cacheWarmup: getWarmupStatus()` でウォームアップ状態を含む
+- `monitoring.test.ts`: health エンドポイントテスト 4 件は全て成功パスのみ
+- `startup-warmup.test.ts`: 失敗テストは存在するが monitoring との統合をテストしていない
+- AI Hub フィードバック: "Add test coverage for warmup failure modes in the monitoring health endpoint to validate fire-and-forget resilience"
+
+**信頼性への影響**:
+- この分析により、新規要件 REQ-113~115 を追加（信頼性レベル: 🔵）
+- 新規 Edge ケース EDGE-006（キャッシュウォームアップ中ネットワークエラー）・EDGE-007（ウォームアップ pending 状態でのヘルスチェック）を追加
+- 信頼性レベル分布: 🔵152件(95.6%) / 🟡3件(1.9%) / 🔴0件(0%)
+- Phase 43~44 の実装をテスト要件で補完し、fire-and-forget 設計の正しさを検証可能にする
+
+---
+
 ## Acceptance criteria
 
-- [x] 最新分析エントリ(A115)が第141回検証結果（Phase 34完了・Phase 35要件定義）を反映している
-- [x] ヘッダーの最終更新メトリクスが最新コードベース（316ファイル・91,800行・104パッケージ・4,122テスト）を反映している
-- [x] Phase 1-34完了（139/139タスク+ISS-003~045修正）・Phase 35要件定義（REQ-094~096）が文書化されている
-- [x] 全品質基準達成が確認されている（TypeScript 0件・ESLint 0件・4,122テスト全通過）
-- [x] 信頼性レベル分布が現在の要件定義と一致する（🔵131/🟡3/🔴0）
-- [x] 新規要件REQ-094~096がPhase 35ギャップ分析にトレース可能である
+- [x] 最新分析エントリ(A119)が第150回検証結果（Phase 45要件定義・ウォームアップ障害耐性テスト要件）を反映している
+- [x] ヘッダーの最終更新メトリクスが最新コードベース（327ファイル・96,466行・105パッケージ・4,346テスト）を反映している
+- [x] Phase 1-40完了・Phase 43-44完了・Phase 45要件定義（REQ-113~115）が文書化されている
+- [x] 全品質基準達成が確認されている（TypeScript 0件・ESLint 0件・4,346テスト全通過）
+- [x] 信頼性レベル分布が現在の要件定義と一致する（🔵152/🟡3/🔴0）
+- [x] 新規要件REQ-113~115がPhase 45ギャップ分析にトレース可能である
 
 ## 関連文書
 
