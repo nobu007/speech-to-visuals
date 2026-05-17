@@ -1,7 +1,7 @@
 # speech-to-visuals API エンドポイント仕様
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-03（第109回検証: Phase 1-19全完了・282ファイル・87,267行・113タスク(全完了)・全3,569テスト通過(133 suites)・依存104パッケージ(74+30)・103要件・API仕様変更なし・ギャップなし確認）
+**最終更新**: 2026-05-18（第150回検証: Phase 1-51全完了・監視REST API追加・ヘルスエンドポイント追加・327ファイル・96,466行・4,357テスト(194スイート)・TypeScript/ESLintエラー0件・依存105パッケージ）
 **関連設計**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](requirements.md)
 
@@ -667,13 +667,156 @@ Phase 8 で追加されたパイプライン操作用エンドポイント:
 
 ---
 
+### 監視 REST API（Phase 36 追加） 🔵
+
+**信頼性**: 🔵 *src/api/routes/monitoring.ts・要件定義REQ-100 より*
+
+Phase 36 で追加された監視用 REST API エンドポイント:
+
+#### GET /api/v1/monitoring/metrics 🔵
+
+**信頼性**: 🔵 *要件定義REQ-100 より*
+
+**関連要件**: REQ-100
+
+**説明**: ダッシュボードメトリクス取得
+
+**レスポンス（成功）**:
+```json
+{
+  "success": true,
+  "data": {
+    "processingTime": 25200,
+    "successRate": 0.95,
+    "errorRate": 0.05,
+    "memoryUsage": 82.21,
+    "cacheHitRate": 0.85,
+    "qualityScore": 95
+  }
+}
+```
+
+---
+
+#### GET /api/v1/monitoring/cost 🔵
+
+**信頼性**: 🔵 *要件定義REQ-098 より*
+
+**関連要件**: REQ-098
+
+**説明**: LLM コスト・トークン使用量統計取得
+
+**レスポンス（成功）**:
+```json
+{
+  "success": true,
+  "data": {
+    "totalInputTokens": 15000,
+    "totalOutputTokens": 5000,
+    "totalCost": 0.03,
+    "byModel": {
+      "gemini-2.5-flash": { "inputCost": 0.001, "outputCost": 0.002 },
+      "gemini-2.5-pro": { "inputCost": 0.015, "outputCost": 0.012 }
+    },
+    "budgetStatus": {
+      "sessionSpent": 0.03,
+      "sessionBudget": 1.0,
+      "dailySpent": 0.15,
+      "dailyBudget": 5.0
+    }
+  }
+}
+```
+
+---
+
+#### GET /api/v1/monitoring/trends 🔵
+
+**信頼性**: 🔵 *要件定義REQ-099 より*
+
+**関連要件**: REQ-099
+
+**説明**: パフォーマンストレンド時系列データ取得
+
+**クエリパラメータ**:
+- `interval` (optional): 集計間隔（1s/5s/1m/5m/15m/1h/6h/24h、デフォルト: 1m）
+
+**レスポンス（成功）**:
+```json
+{
+  "success": true,
+  "data": {
+    "interval": "1m",
+    "dataPoints": [
+      { "timestamp": "2026-05-18T10:00:00Z", "processingTime": 25.2, "successRate": 0.95 }
+    ]
+  }
+}
+```
+
+---
+
+#### GET /api/v1/monitoring/health 🔵
+
+**信頼性**: 🔵 *要件定義REQ-100・REQ-125~127・Phase 51 より*
+
+**関連要件**: REQ-100, REQ-125~127, REQ-131
+
+**説明**: システムヘルスチェック（ウォームアップ状態・アラート含む）
+
+**レスポンス（成功）**:
+```json
+{
+  "success": true,
+  "data": {
+    "status": "healthy",
+    "version": "1.0.0",
+    "uptime": 3600,
+    "successRate": 0.96,
+    "cacheWarmup": {
+      "status": "completed",
+      "patternsProcessed": 8,
+      "successCount": 8,
+      "failureCount": 0
+    },
+    "alerts": []
+  }
+}
+```
+
+**縮退時レスポンス（successRate < 0.95）**:
+```json
+{
+  "success": true,
+  "data": {
+    "status": "degraded",
+    "version": "1.0.0",
+    "uptime": 3600,
+    "successRate": 0.88,
+    "cacheWarmup": {
+      "status": "completed",
+      "patternsProcessed": 8,
+      "successCount": 5,
+      "failureCount": 3
+    },
+    "alerts": [
+      { "id": "alert-1", "severity": "warning", "message": "Pipeline success rate below threshold", "timestamp": "2026-05-18T10:00:00Z" }
+    ]
+  }
+}
+```
+
+**備考**: Phase 51 で HealthCheckService のバックエンド例外時の縮退動作を強化。コンポーネントチェックが例外をスローした場合でも "degraded" ステータスで安全に応答 🔵
+
+---
+
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 58件 (97%)
+- 🔵 青信号: 65件 (97%)
 - 🟡 黄信号: 2件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - Phase 5 バッチ API・Edge Functions 共通基盤・Phase 8 パイプライン操作 API・Phase 36 監視 REST API（4エンドポイント）反映済
+**品質評価**: 高品質 - Phase 5 バッチ API・Edge Functions 共通基盤・Phase 8 パイプライン操作 API・Phase 36 監視 REST API（4エンドポイント）・Phase 51 縮退ヘルスチェック反映済
 
 ---
 

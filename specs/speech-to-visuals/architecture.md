@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-17（第149回検証: Phase 1-43進行中・CacheWarmupManager統合・startup-warmup起動時配線完了・327+ファイル・96,780+行・4,500+テスト・TypeScript/ESLintエラー0件・依存105パッケージ）
+**最終更新**: 2026-05-18（第150回検証: Phase 1-51全完了・多言語検出拡張(6言語)・HealthCheckService本番堅牢化・327ファイル・96,466行・4,357テスト(194スイート)・TypeScript/ESLintエラー0件・依存105パッケージ）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -92,6 +92,7 @@
 - **ストリーミング文字起こし**: StreamingTranscriber（チャンク単位逐次処理、3秒チャンク・500msオーバーラップ）🔵 *src/transcription/streaming-transcriber.ts・要件定義REQ-036 より*
 - **形態素解析**: Kuromoji 0.1（日本語）
 - **グラフレイアウト**: @dagrejs/dagre 1.1
+- **多言語検出**: 6言語対応（日本語・英語・中国語・スペイン語・フランス語・ドイツ語）・文字種別スコアリング・ダイアクリティカルマーク分析 🔵 *Phase 44 REQ-303・src/analysis/language-detector.ts より*
 
 ### データベース 🔵
 
@@ -186,14 +187,36 @@ Phase 36 で追加実装された LLM 呼び出しコスト・トークン監視
 - **監視 REST API**: GET /api/v1/monitoring/{metrics|cost|trends|health} による外部アクセス可能なダッシュボードメトリクス・LLMコスト・パフォーマンストレンド・ヘルスチェック 🔵 *src/api/routes/monitoring.ts・要件定義REQ-100 より*
 - **パイプライン並列化**: ParallelStageExecutor によるステージ並列実行・ボトルネック検出 🔵 *src/pipeline/・要件定義REQ-097 より*
 
-### コード規模自動監査 🔵 【Phase 37 計画】
+### コード規模自動監査 🔵 【Phase 37 完了】
 
 **信頼性**: 🔵 *SYSTEM_CONSTITUTION V2.4・要件定義REQ-102 より*
 
-Phase 37 で計画中のコード規模自動監査（未実装）:
+Phase 37 で実装済みのコード規模自動監査:
 
-- **コード規模監査スクリプト**: ビルド時またはCI で SYSTEM_CONSTITUTION 制限値（ファイル数340以下・行数100K以下）を自動チェック 🟡 *SYSTEM_CONSTITUTION V2.4 実績値（326ファイル・96,218行）から推測*
+- **コード規模監査スクリプト**: ビルド時またはCI で SYSTEM_CONSTITUTION 制限値（ファイル数340以下・行数100K以下）を自動チェック 🔵 *src/config/code-size-audit.ts・scripts/code-size-audit.ts より*
 - **監視API本番動作検証**: サーバー起動時のルート登録完了ログ出力・全エンドポイント統合テスト通過確認 🔵 *src/api/routes/monitoring.ts・TASK-0146/0147 完了済*
+
+### 多言語検出拡張 🔵 【Phase 44 追加】
+
+**信頼性**: 🔵 *src/analysis/language-detector.ts・要件定義REQ-303 より*
+
+Phase 44 で実装された多言語検出拡張:
+
+- **対応言語**: 日本語(ja)・英語(en)・中国語(zh)・スペイン語(es)・フランス語(fr)・ドイツ語(de)の6言語 🔵 *Language型拡張より*
+- **文字種別分類**: ひらがな/カタカナ（日本語）とCJK漢字（中国語）の分離検出 🔵 *language-detector.ts より*
+- **ダイアクリティカルマーク分析**: スペイン語（ñ, á-ú）・フランス語（é, è, ê, ç）・ドイツ語（ä, ö, ü, ß）の特徴的文字による識別 🔵 *language-detector.ts より*
+- **プロンプトテンプレート拡張**: 中国語向け GeminiAnalyzer・ContentAnalyzer プロンプト追加 🔵 *src/analysis/prompt-templates.ts より*
+- **言語セグメンテーション**: LanguageDetectionResult に各言語比率・信頼度スコア・セグメント情報を追加 🔵 *src/analysis/language-detector.ts より*
+
+### HealthCheckService 本番堅牢化 🔵 【Phase 51 追加】
+
+**信頼性**: 🔵 *src/monitoring/health-check-service.ts・要件定義REQ-131 より*
+
+Phase 51 で実装されたヘルスチェックサービス堅牢化:
+
+- **コンポーネントチェック try-catch**: 全6コンポーネント（メモリ・キャッシュ・パイプライン・LLM・エラー復旧・パフォーマンス傾向）に try-catch ガード追加 🔵 *checkCacheHealth/checkPipelineHealth/checkLLMHealth/checkErrorRecoveryHealth/checkPerformanceHealth より*
+- **縮退ステータス**: バックエンド例外時に "degraded" ステータスを返し、ヘルスチェック全体がクラッシュしない設計 🔵 *各コンポーネントチェックの fallback ロジックより*
+- **フォールバックメトリクス**: performHealthCheck で PerformanceSnapshot 構築時のフォールバック値設定 🔵 *performHealthCheck メソッドより*
 
 ### 最適化・パフォーマンス 🔵
 
@@ -539,6 +562,8 @@ Fallback LLM
 - [x] LLMコスト・トークン監視モジュール（Phase 36）がコンポーネント構成に反映されている
 - [x] コード規模自動監査モジュール（Phase 37）が実装されている
 - [x] CacheWarmupManager 統合と起動時ウォームアップ配線（Phase 43）がコンポーネント構成に反映されている
+- [x] 多言語検出拡張（Phase 44）がコンポーネント構成に反映されている
+- [x] HealthCheckService 本番堅牢化（Phase 51）がコンポーネント構成に反映されている
 
 ## 関連文書
 
@@ -553,11 +578,11 @@ Fallback LLM
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 145件 (97%)
+- 🔵 青信号: 150件 (97%)
 - 🟡 黄信号: 4件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第149回検証: Phase 43進行中・CacheWarmupManager統合・起動時ウォームアップ配線完了・327+ファイル・96,780+行・4,500+テスト全通過・TypeScript/ESLintエラー0件・依存105パッケージ・SYSTEM_CONSTITUTION V2.5適合・ギャップなし確認）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第150回検証: Phase 1-51全完了・多言語検出拡張(6言語)・HealthCheckService本番堅牢化・327ファイル・96,466行・4,357テスト(194スイート)全通過・TypeScript/ESLintエラー0件・依存105パッケージ・SYSTEM_CONSTITUTION V2.5適合・ギャップなし確認）
 
 
 <!-- spine:children:begin -->

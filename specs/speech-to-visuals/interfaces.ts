@@ -2,7 +2,7 @@
  * speech-to-visuals 型定義
  *
  * 作成日: 2026-04-27
- * 最終更新: 2026-05-03（第109回検証: Phase 1-19全完了・282ファイル・87,267行・113タスク(全完了)・全3,569テスト通過(133 suites)・TypeScript/ESLintエラー0件・依存104パッケージ(74+30)・103要件・型定義変更なし・ギャップなし確認）
+ * 最終更新: 2026-05-18（第150回検証: Phase 1-51全完了・多言語検出拡張(6言語)・HealthCheckService本番堅牢化・327ファイル・96,466行・4,357テスト(194スイート)・TypeScript/ESLintエラー0件・依存105パッケージ・Language型拡張反映）
  * 関連設計: architecture.md
  *
  * 信頼性レベル:
@@ -14,6 +14,29 @@
 // ========================================
 // 図解データモデル
 // ========================================
+
+/**
+ * 言語タイプ（Phase 44 拡張: 6言語対応）
+ * 🔵 信頼性: 要件定義REQ-003・REQ-303・src/analysis/language-detector.ts より
+ */
+export type Language = 'ja' | 'en' | 'zh' | 'es' | 'fr' | 'de' | 'auto';
+
+/**
+ * 言語検出結果（Phase 44 拡張）
+ * 🔵 信頼性: src/analysis/language-detector.ts LanguageDetectionResult より
+ */
+export interface LanguageDetectionResult {
+  language: Language; // 🔵 検出された言語
+  confidence: number; // 🔵 信頼度スコア (0-1)
+  ratios: {
+    japaneseCharRatio: number; // 🔵 ひらがな/カタカナ比率
+    chineseCharRatio: number; // 🔵 CJK漢字比率（かななし）
+    spanishCharRatio: number; // 🔵 スペイン語特徴文字比率
+    frenchCharRatio: number; // 🔵 フランス語特徴文字比率
+    germanCharRatio: number; // 🔵 ドイツ語特徴文字比率
+    latinCharRatio: number; // 🔵 ラテン文字比率
+  }; // 🔵 Phase 44 で追加
+}
 
 /**
  * 図解タイプ
@@ -110,7 +133,7 @@ export type ProcessingStatus =
 export interface PipelineOptions {
   transcription?: {
     model: 'base' | 'small' | 'medium'; // 🔵 PIPELINE_FLOW.md Stage 1 より
-    language?: 'en' | 'ja' | 'auto'; // 🔵 要件定義REQ-003より
+    language?: 'en' | 'ja' | 'zh' | 'es' | 'fr' | 'de' | 'auto'; // 🔵 要件定義REQ-003・REQ-303・Phase 44 より（6言語対応）
   };
   analysis?: {
     preferredModel?: 'gemini-2.5-flash' | 'gemini-2.5-pro'; // 🔵 要件定義REQ-008より
@@ -1702,14 +1725,80 @@ export interface LLMMetrics {
 }
 
 /**
- * コード規模監査結果（Phase 37 計画）
- * 🟡 信頼性: SYSTEM_CONSTITUTION V2.4・要件定義REQ-102 から推測
+ * コード規模監査結果（Phase 37 完了）
+ * 🔵 信頼性: src/config/code-size-audit.ts・要件定義REQ-102 より
  */
 export interface CodeSizeAuditResult {
-  fileCount: number; // 🟡 現在のファイル数
-  lineCount: number; // 🟡 現在の行数
-  maxFiles: number; // 🟡 ファイル数制限値（SYSTEM_CONSTITUTION）
-  maxLines: number; // 🟡 行数制限値（SYSTEM_CONSTITUTION）
-  isCompliant: boolean; // 🟡 制限内フラグ
-  warnings: string[]; // 🟡 警告メッセージ
+  fileCount: number; // 🔵 現在のファイル数
+  lineCount: number; // 🔵 現在の行数
+  maxFiles: number; // 🔵 ファイル数制限値（SYSTEM_CONSTITUTION）
+  maxLines: number; // 🔵 行数制限値（SYSTEM_CONSTITUTION）
+  isCompliant: boolean; // 🔵 制限内フラグ
+  warnings: string[]; // 🔵 警告メッセージ
+}
+
+// ========================================
+// ヘルスチェック・監視型（Phase 48-51）
+// ========================================
+
+/**
+ * コンポーネント健全性状態
+ * 🔵 信頼性: src/monitoring/health-check-service.ts・要件定義REQ-122~131 より
+ */
+export type ComponentHealthStatus = 'healthy' | 'degraded' | 'unhealthy';
+
+/**
+ * ヘルスチェック結果
+ * 🔵 信頼性: src/monitoring/health-check-service.ts・要件定義REQ-131 より
+ */
+export interface HealthCheckResult {
+  status: ComponentHealthStatus; // 🔵 総合健全性状態
+  timestamp: string; // 🔵 チェック実行時刻（ISO 8601）
+  components: {
+    memory: ComponentHealthStatus; // 🔵 メモリ健全性
+    cache: ComponentHealthStatus; // 🔵 キャッシュ健全性
+    pipeline: ComponentHealthStatus; // 🔵 パイプライン健全性
+    llm: ComponentHealthStatus; // 🔵 LLM健全性
+    errorRecovery: ComponentHealthStatus; // 🔵 エラー復旧健全性
+    performance: ComponentHealthStatus; // 🔵 パフォーマンス健全性
+  };
+  recommendations: string[]; // 🔵 改善推奨事項
+  uptime: number; // 🔵 稼働時間（秒）
+}
+
+/**
+ * ウォームアップステータス情報
+ * 🔵 信頼性: src/api/startup-warmup.ts・要件定義REQ-113~115 より
+ */
+export interface WarmupStatusInfo {
+  status: 'pending' | 'completed' | 'failed' | 'skipped'; // 🔵 ウォームアップ状態
+  patternsProcessed?: number; // 🔵 処理済みパターン数
+  successCount?: number; // 🔵 成功数
+  failureCount?: number; // 🔵 失敗数
+  error?: string; // 🔵 エラーメッセージ（failed時）
+  timestamp?: string; // 🔵 完了/失敗時刻
+}
+
+/**
+ * 監視ヘルスエンドポイントレスポンス
+ * 🔵 信頼性: src/api/routes/monitoring.ts・要件定義REQ-125~127 より
+ */
+export interface MonitoringHealthResponse {
+  status: ComponentHealthStatus; // 🔵 システム健全性状態
+  version: string; // 🔵 システムバージョン
+  uptime: number; // 🔵 稼働時間（秒）
+  successRate: number; // 🔵 パイプライン成功率（0-1）
+  cacheWarmup: WarmupStatusInfo; // 🔵 キャッシュウォームアップ状態
+  alerts: MonitoringAlert[]; // 🔵 アクティブアラート
+}
+
+/**
+ * 監視アラート
+ * 🔵 信頼性: src/api/routes/monitoring.ts・要件定義REQ-126 より
+ */
+export interface MonitoringAlert {
+  id: string; // 🔵 アラートID
+  severity: 'info' | 'warning' | 'critical'; // 🔵 重要度
+  message: string; // 🔵 アラートメッセージ
+  timestamp: string; // 🔵 発生時刻
 }

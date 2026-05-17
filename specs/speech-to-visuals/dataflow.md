@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-17（第149回検証: Phase 43進行中・CacheWarmupManager統合・起動時ウォームアップ配線完了・フロー更新）
+**最終更新**: 2026-05-18（第150回検証: Phase 1-51全完了・多言語検出拡張(6言語)・HealthCheckService本番堅牢化・フロー更新）
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](requirements.md)
 
@@ -1289,22 +1289,115 @@ flowchart TD
 
 **関連要件**: REQ-102
 
-**備考**: Phase 37 で実装予定。SYSTEM_CONSTITUTION V2.4 の制限値（340ファイル・100K行）を自動監査
+**備考**: Phase 37 で実装済み。SYSTEM_CONSTITUTION V2.4 の制限値（340ファイル・100K行）を自動監査
+
+### 機能13: 多言語検出拡張フロー（Phase 44） 🔵
+
+**信頼性**: 🔵 *src/analysis/language-detector.ts・要件定義REQ-303・Phase 44 より*
+
+**関連要件**: REQ-003, REQ-303
+
+```mermaid
+flowchart TD
+    A[テキスト入力] --> B[LanguageDetector.detect]
+    B --> C[文字種別分類]
+    C --> D{ひらがな/カタカナあり?}
+    D -->|Yes| E[日本語 ja]
+    D -->|No| F{CJK漢字のみ?}
+    F -->|Yes| G[中国語 zh]
+    F -->|No| H{ラテン文字?}
+    H -->|Yes| I[ダイアクリティカルマーク分析]
+    I --> J{ñ/á-ú 優位?}
+    J -->|Yes| K[スペイン語 es]
+    J -->|No| L{é/è/ê/ç 優位?}
+    L -->|Yes| M[フランス語 fr]
+    L -->|No| N{ä/ö/ü/ß 優位?}
+    N -->|Yes| O[ドイツ語 de]
+    N -->|No| P[英語 en]
+    H -->|No| Q[自動検出 auto]
+```
+
+**詳細ステップ**:
+
+1. テキスト内の文字種別を分類（ひらがな・カタカナ・CJK漢字・ラテン文字）🔵
+2. ひらがな/カタカナが存在 → 日本語と判定 🔵
+3. CJK漢字のみ（かななし）→ 中国語と判定 🔵
+4. ラテン文字の場合、ダイアクリティカルマーク（発音区別符号）の特徴的パターンでスペイン語・フランス語・ドイツ語を識別 🔵
+5. 各言語の文字比率・信頼度スコアを LanguageDetectionResult に格納 🔵
+
+### 機能14: HealthCheckService 縮退ヘルスチェックフロー（Phase 51） 🔵
+
+**信頼性**: 🔵 *src/monitoring/health-check-service.ts・要件定義REQ-131・Phase 51 より*
+
+**関連要件**: REQ-122~124, REQ-131
+
+```mermaid
+flowchart TD
+    A[performHealthCheck 呼び出し] --> B[checkMemoryHealth]
+    A --> C[checkCacheHealth]
+    A --> D[checkPipelineHealth]
+    A --> E[checkLLMHealth]
+    A --> F[checkErrorRecoveryHealth]
+    A --> G[checkPerformanceHealth]
+
+    C --> C1{globalCache例外?}
+    C1 -->|Yes| C2[ステータス: degraded]
+    C1 -->|No| C3[通常ステータス]
+    C2 --> H[コンポーネント結果統合]
+
+    D --> D1{realTimeMonitor例外?}
+    D1 -->|Yes| D2[ステータス: degraded]
+    D1 -->|No| D3[通常ステータス]
+    D2 --> H
+
+    E --> E1{監視例外?}
+    E1 -->|Yes| E2[ステータス: degraded]
+    E1 -->|No| E3[通常ステータス]
+    E2 --> H
+
+    F --> F1{メトリクス例外?}
+    F1 -->|Yes| F2[ステータス: degraded]
+    F1 -->|No| F3[通常ステータス]
+    F2 --> H
+
+    G --> G1{トレンド分析例外?}
+    G1 -->|Yes| G2[ステータス: degraded]
+    G1 -->|No| G3[通常ステータス]
+    G2 --> H
+
+    B --> H
+    C3 --> H
+    D3 --> H
+    E3 --> H
+    F3 --> H
+    G3 --> H
+
+    H --> I[総合健全性状態判定]
+    I --> J[HealthCheckResult 返却]
+```
+
+**詳細ステップ**:
+
+1. performHealthCheck が6コンポーネントのヘルスチェックを実行 🔵
+2. 各コンポーネントチェックは try-catch でガードされ、バックエンド例外時は "degraded" ステータスを返す 🔵
+3. キャッシュ・パイプライン・LLM・エラー復旧・パフォーマンス傾向の各チェックが依存バックエンド（globalCache・realTimeMonitor）の例外に対して安全に縮退 🔵
+4. フォールバックメトリクスにより performHealthCheck 全体のクラッシュを防止 🔵
+5. 総合健全性状態（healthy/degraded/unhealthy）を判定して HealthCheckResult を返却 🔵
 
 ## 関連文書（旧）
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 147件 (98%)
+- 🔵 青信号: 151件 (98%)
 - 🟡 黄信号: 2件 (1%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - Phase 36 LLMコスト監視フロー・監視REST APIフロー・Phase 37 コード規模監査フローを反映（第145回検証: Phase 1-36完了・Phase 37計画中・326ファイル・96,218行・4,300+テスト(186+ suites)・147タスク完了・143要件・ギャップなし）
+**品質評価**: 高品質 - Phase 44 多言語検出フロー・Phase 51 縮退ヘルスチェックフローを反映（第150回検証: Phase 1-51完了・327ファイル・96,466行・4,357テスト(194 suites)・154タスク完了・ギャップなし）
 
 ## Acceptance criteria
 
 - [x] システム全体のデータフローが Mermaid flowchart で記述され、全パイプラインステージ（文字起こし→分析→レイアウト→アニメーション→レンダリング）を網羅している
-- [x] 主要12機能のデータフローが個別の Mermaid sequence/flow diagram で記述されている（機能1-B〜機能12）
+- [x] 主要14機能のデータフローが個別の Mermaid sequence/flow diagram で記述されている（機能1-B〜機能14）
 - [x] 各データフローに信頼性レベル（🔵🟡🔴）が付与され、情報源が明記されている
 - [x] エラーハンドリングフロー（3層フォールバック・ユーザー主導回復・設定バリデーション）が記述されている
 - [x] 品質ゲート評価フロー（5段階品質基準）が記述されている
