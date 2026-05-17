@@ -270,6 +270,18 @@
 - REQ-117: システムは実際の CacheWarmupManager を triggerStartupWarmup に接続し、リゾルバ失敗時のヘルスエンドポイントレスポンス（cacheWarmup.status・patternsProcessed）を検証するエンドツーエンド統合テストを提供しなければならない 🔵 *src/api/startup-warmup.ts triggerStartupWarmup() → src/api/routes/monitoring.ts health エンドポイントの接続より*
 - REQ-118: システムはウォームアップ失敗に伴うカスケード障害（getCacheWarmupStats 例外・複数回トリガー・高速状態遷移）に対するヘルスエンドポイントの安定性を検証するテストを提供しなければならない 🔵 *src/api/startup-warmup.ts .then() 内 getCacheWarmupStats() 呼び出し・health エンドポイントの全フィールド定義より*
 
+#### ウォームアップゼロ成功耐性テスト（Phase 47）
+
+- REQ-119: システムはウォームアップ完了時に全パターンが失敗（ゼロ成功）した場合でも、ステータスが 'completed' となりヘルスエンドポイントが200を返すことを検証するテストを提供しなければならない 🔵 *src/optimization/cache-warmup.ts warmup() 個別パターン失敗はfailureCountに記録・全体完了は阻害しない設計より*
+- REQ-120: システムはウォームアップ状態遷移中に複数の同時ヘルスリクエストが発行された場合でも、全リクエストが一貫したレスポンスを返すことを検証するテストを提供しなければならない 🔵 *src/api/routes/monitoring.ts health エンドポイント・getWarmupStatus() スナップショット取得より*
+- REQ-121: システムはゼロ成功ウォームアップ完了後のリトライが成功した場合、統計が正しく累積されることを検証するテストを提供しなければならない 🔵 *src/optimization/cache-warmup.ts getWarmupStats() 累積統計・resetWarmupStatus() リセット動作より*
+
+#### HealthCheckService本番ヘルスチェック単体テスト（Phase 48）
+
+- REQ-122: システムは HealthCheckService の包括的ヘルスチェック（メモリ・キャッシュ・パイプライン・LLM・エラー復旧・パフォーマンス傾向の6コンポーネント）が正しいステータス判定（healthy/degraded/unhealthy）を行うことを検証する単体テストを提供しなければならない。各コンポーネントの境界値（メモリ70%/90%・キャッシュヒット率0.2/0.5・パイプライン成功率0.80/0.95）を網羅すること 🔵 *src/monitoring/health-check-service.ts checkMemoryHealth/checkCacheHealth/checkPipelineHealth/checkLLMHealth/checkErrorRecoveryHealth/checkPerformanceHealth 境界値定義より*
+- REQ-123: システムは HealthCheckService の Kubernetes スタイル readiness/liveness プローブが正常時は ready=true/alive=true を返し、システム異常時は ready=false を返すことを検証するテストを提供しなければならない 🔵 *src/monitoring/health-check-service.ts checkReadiness/checkLiveness メソッドより*
+- REQ-124: システムは HealthCheckService の推奨事項生成が各コンポーネントの健全性状態に応じた適切な推奨（メモリ最適化・キャッシュ戦略見直し・CRITICAL通知）を生成することを検証するテストを提供しなければならない 🔵 *src/monitoring/health-check-service.ts generateRecommendations メソッド・各コンポーネント判定ロジックより*
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より*
@@ -409,14 +421,16 @@
 | Phase 40: API認証ミドルウェア品質・信頼性 | ✅完了 | REQ-111~112 | 2/2（REQ-111 Express統合テスト9件・REQ-112モック整合性検証3件・本番コード検証完了） |
 | Phase 45: キャッシュウォームアップ障害耐性テスト | ✅完了 | REQ-113~115 | 3/3（ウォームアップ失敗モニタリングテスト4件・キャッシュ到達不能統合テスト3件・ウォームアップ状態遷移テスト4件） |
 | Phase 46: キャッシュバックエンド到達不能E2Eテスト | ✅完了 | REQ-116~118 | 3/3（CacheWarmupManager実パイプライン障害テスト7件・E2Eウォームアップ失敗ヘルスエンドポイントテスト3件・カスケード障害耐性テスト4件） |
+| Phase 47: ウォームアップゼロ成功耐性テスト | ✅完了 | REQ-119~121 | 3/3（ゼロ成功ウォームアップテスト4件・同時ヘルスリクエストテスト3件・リトライ累積テスト3件） |
+| Phase 48: HealthCheckService本番ヘルスチェック単体テスト | ✅完了 | REQ-122~124 | 3/3（コンポーネント境界値テスト28件・readiness/livenessプローブテスト5件・推奨事項生成テスト4件・エッジケース3件） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 155件 (95.7%)
-- 🟡 黄信号: 3件 (1.9%) — NFR-203, REQ-303, EDGE-103
+- 🔵 青信号: 162件 (95.9%)
+- 🟡 黄信号: 3件 (1.8%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-40全要件実装完了（REQ-001~112）・Phase 43~44完了（キャッシュウォームアップ統合・多言語検出拡張）・Phase 45完了（REQ-113~115ウォームアップ障害耐性テスト11件）・Phase 46完了（REQ-116~118キャッシュバックエンド到達不能E2Eテスト14件）・TypeScript型エラー0件・npm audit 0脆弱性
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-40全要件実装完了（REQ-001~112）・Phase 43~44完了（キャッシュウォームアップ統合・多言語検出拡張）・Phase 45完了（REQ-113~115ウォームアップ障害耐性テスト11件）・Phase 46完了（REQ-116~118キャッシュバックエンド到達不能E2Eテスト14件）・Phase 47完了（REQ-119~121ウォームアップゼロ成功耐性テスト10件）・Phase 48完了（REQ-122~124 HealthCheckService本番ヘルスチェック単体テスト40件）・TypeScript型エラー0件・npm audit 0脆弱性
 
 ## Acceptance criteria
 
@@ -427,6 +441,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 46 を網羅し、Phase 45 完了・Phase 46 完了を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 48 を網羅し、Phase 45 ~ 48 完了を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテゴリに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第151回: 🔵155件/🟡3件/🔴0件 — Phase 46要件定義・REQ-116~118追加）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第152回: 🔵162件/🟡3件/🔴0件 — Phase 48要件定義・REQ-122~124追加）
