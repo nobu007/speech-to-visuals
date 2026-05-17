@@ -1,7 +1,7 @@
 /**
  * REQ-112: jsonwebtoken モック整合性自動検証
  *
- * Verifies that the manual mock at __mocks__/jsonwebtoken.ts stays aligned
+ * Verifies that the manual mock at tests/mocks/jsonwebtoken.ts stays aligned
  * with the JWT methods actually used by auth.ts.  If auth.ts starts using
  * a new JWT method (e.g. jwt.decode) that the mock doesn't provide, this
  * test will fail — preventing false-green tests.
@@ -19,12 +19,12 @@ import * as path from 'path';
 // ---------------------------------------------------------------------------
 
 describe('REQ-112: jsonwebtoken mock consistency', () => {
-  const mockPath = path.resolve(process.cwd(), 'tests', '__mocks__', 'jsonwebtoken.ts');
+  const mockPath = path.resolve(process.cwd(), 'tests', 'mocks', 'jsonwebtoken.ts');
   const authPath = path.resolve(process.cwd(), 'src', 'api', 'middleware', 'auth.ts');
 
   it('TC-112-01: mock exports verify, sign, and decode as jest.fn()', async () => {
     // Dynamic-import the mock to check its exports
-    const mock = await import(path.resolve(process.cwd(), 'tests', '__mocks__', 'jsonwebtoken.ts'));
+    const mock = await import(mockPath);
 
     // Named exports
     expect(typeof mock.verify).toBe('function');
@@ -46,7 +46,7 @@ describe('REQ-112: jsonwebtoken mock consistency', () => {
     expect(authSource).toMatch(/jwt\.verify\s*\(/);
 
     // Load the mock and confirm verify is present
-    const mock = await import(path.resolve(process.cwd(), 'tests', '__mocks__', 'jsonwebtoken.ts'));
+    const mock = await import(mockPath);
     expect(mock.verify).toBeDefined();
     expect(typeof mock.verify).toBe('function');
   });
@@ -76,7 +76,7 @@ describe('REQ-112: jsonwebtoken mock consistency', () => {
       // This line is unreachable when the test passes, but provides context on failure
       throw new Error(
         `auth.ts uses jwt.${missingMethods.join('(), jwt.')}() but ` +
-        `tests/__mocks__/jsonwebtoken.ts does not export them. ` +
+        `tests/mocks/jsonwebtoken.ts does not export them. ` +
         `Add the missing methods to the mock to prevent false-green tests.`
       );
     }
