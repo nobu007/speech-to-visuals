@@ -28,13 +28,13 @@ const mockGetGenerativeModel = jest.fn(() => ({
   generateContentStream: mockGenerateContentStream,
 }));
 
-jest.unstable_mockModule('@google/generative-ai', () => ({
+jest.mock('@google/generative-ai', () => ({
   GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
     getGenerativeModel: mockGetGenerativeModel,
   })),
 }));
 
-jest.unstable_mockModule('@/analysis/llm-cache', () => {
+jest.mock('@/analysis/llm-cache', () => {
   return {
     LLMCache: jest.fn().mockImplementation(() => {
       const store = new Map<string, unknown>();
@@ -64,7 +64,7 @@ jest.unstable_mockModule('@/analysis/llm-cache', () => {
   };
 });
 
-const { LLMService } = await import('@/analysis/llm-service');
+import { LLMService } from '@/analysis/llm-service';
 
 // ---------------------------------------------------------------------------
 // Helpers
