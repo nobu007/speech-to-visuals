@@ -12,6 +12,8 @@ export interface BatchOptimizerOptions {
   failFast?: boolean;
   /** Called after each item is processed with the current progress */
   onProgress?: (completed: number, total: number) => void;
+  /** Optional AbortSignal to cancel in-flight processing */
+  signal?: AbortSignal;
 }
 
 export interface BatchResult<T> {
@@ -85,10 +87,14 @@ export class BatchOptimizer {
       });
     }
 
-    // Process chunks with bounded concurrency
-    const executing: Promise<void>[] = [];
+    // Process chunks with bounded concurrency using sliding window
+    const pending = new Set<Promise<void>>();
 
     for (const range of chunkRanges) {
+      if (this.options.signal?.aborted) {
+        break;
+      }
+
       const chunkPromise = this.processChunk(
         items,
         range.start,
@@ -103,22 +109,18 @@ export class BatchOptimizer {
         this.options.onProgress?.(completedCount, total);
       });
 
-      executing.push(chunkPromise);
+      pending.add(chunkPromise);
+      chunkPromise.then(
+        () => { pending.delete(chunkPromise); },
+        () => { pending.delete(chunkPromise); }
+      );
 
-      if (executing.length >= this.options.concurrency) {
-        await Promise.race(executing);
-        // Remove settled promises
-        for (let i = executing.length - 1; i >= 0; i--) {
-          // Re-check by attempting to see if settled (already resolved promises resolve immediately)
-          // We use a simple approach: await all settled ones in order
-        }
-        // Simpler: just await all and clear
-        await Promise.allSettled(executing);
-        executing.length = 0;
+      if (pending.size >= this.options.concurrency) {
+        await Promise.race(pending);
       }
     }
 
-    await Promise.all(executing);
+    await Promise.allSettled(pending);
 
     return {
       results,
@@ -141,6 +143,9 @@ export class BatchOptimizer {
     let failed = 0;
 
     for (let i = start; i < end; i++) {
+      if (this.options.signal?.aborted) {
+        break;
+      }
       try {
         results[i] = await processor(items[i], i);
         succeeded++;

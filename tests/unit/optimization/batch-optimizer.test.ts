@@ -173,4 +173,123 @@ describe('BatchOptimizer', () => {
       });
     });
   });
+
+  describe('スライディングウィンドウ並列性', () => {
+    test('真正のスライディングウィンドウで並列処理される', async () => {
+      // With concurrency=2, chunkSize=1, and 4 items that each take 50ms:
+      // Sliding window: ~100ms (2 chunks overlap at all times)
+      // Batch (broken): ~200ms (waits for all before starting next)
+      const concurrency = 2;
+      const chunkSize = 1;
+      const itemDelay = 50;
+      const items = [0, 1, 2, 3];
+
+      const optimizer = new BatchOptimizer({ concurrency, chunkSize });
+      const start = performance.now();
+
+      const result = await optimizer.process(items, async (item) => {
+        await new Promise((r) => setTimeout(r, itemDelay));
+        return item;
+      });
+
+      const elapsed = performance.now() - start;
+
+      expect(result.successCount).toBe(4);
+      expect(result.results).toEqual([0, 1, 2, 3]);
+
+      // Sliding window: ceil(4/2) * 50 = 100ms + overhead
+      // Batch: ceil(4/2) * 2 * 50 = 200ms
+      // Assert true sliding window (well under 200ms)
+      expect(elapsed).toBeLessThan(itemDelay * 3);
+    });
+
+    test('並列数が正しく制限される', async () => {
+      let maxConcurrent = 0;
+      let currentConcurrent = 0;
+
+      const optimizer = new BatchOptimizer({ concurrency: 2, chunkSize: 1 });
+
+      await optimizer.process(Array.from({ length: 10 }, (_, i) => i), async () => {
+        currentConcurrent++;
+        maxConcurrent = Math.max(maxConcurrent, currentConcurrent);
+        await new Promise((r) => setTimeout(r, 10));
+        currentConcurrent--;
+        return 0;
+      });
+
+      expect(maxConcurrent).toBeLessThanOrEqual(2);
+    });
+  });
+
+  describe('AbortSignal キャンセル', () => {
+    test('signal中止時に未処理チャンクがスキップされる', async () => {
+      const controller = new AbortController();
+      const processed: number[] = [];
+
+      const optimizer = new BatchOptimizer({
+        concurrency: 1,
+        chunkSize: 1,
+        signal: controller.signal,
+      });
+
+      const items = Array.from({ length: 10 }, (_, i) => i);
+
+      const resultPromise = optimizer.process(items, async (item) => {
+        if (item === 3) {
+          controller.abort();
+        }
+        processed.push(item);
+        return item;
+      });
+
+      const result = await resultPromise;
+
+      // Some items after abort should be skipped
+      expect(result.successCount).toBeLessThan(10);
+      expect(result.results.slice(0, 4)).toEqual([0, 1, 2, 3]);
+    });
+
+    test('事前に中止されたsignalで即座に空の結果が返る', async () => {
+      const controller = new AbortController();
+      controller.abort();
+
+      const optimizer = new BatchOptimizer({
+        concurrency: 2,
+        chunkSize: 5,
+        signal: controller.signal,
+      });
+
+      const result = await optimizer.process(
+        Array.from({ length: 20 }, (_, i) => i),
+        async (x) => x
+      );
+
+      expect(result.successCount).toBe(0);
+      expect(result.failureCount).toBe(0);
+    });
+
+    test('チャンク処理中にsignal中止すると次アイテムから中断される', async () => {
+      const controller = new AbortController();
+      const processed: number[] = [];
+
+      const optimizer = new BatchOptimizer({
+        concurrency: 1,
+        chunkSize: 10,
+        signal: controller.signal,
+      });
+
+      const result = await optimizer.process(
+        Array.from({ length: 20 }, (_, i) => i),
+        async (item) => {
+          if (item === 5) controller.abort();
+          processed.push(item);
+          return item;
+        }
+      );
+
+      // Items within the current chunk after abort point should be skipped
+      expect(processed.length).toBeLessThanOrEqual(6);
+      expect(processed).toContain(5);
+    });
+  });
 });
