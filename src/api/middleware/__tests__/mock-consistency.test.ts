@@ -13,14 +13,19 @@
 import { describe, it, expect } from '@jest/globals';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const projectRoot = path.resolve(__dirname, '../../../../');
 
 // ---------------------------------------------------------------------------
 // TC-112-01: Verify mock file exports the expected functions
 // ---------------------------------------------------------------------------
 
 describe('REQ-112: jsonwebtoken mock consistency', () => {
-  const mockPath = path.resolve(process.cwd(), 'tests', 'mocks', 'jsonwebtoken.ts');
-  const authPath = path.resolve(process.cwd(), 'src', 'api', 'middleware', 'auth.ts');
+  const mockPath = path.resolve(projectRoot, 'tests', 'mocks', 'jsonwebtoken.ts');
+  const authPath = path.resolve(projectRoot, 'src', 'api', 'middleware', 'auth.ts');
 
   it('TC-112-01: mock exports verify, sign, and decode as jest.fn()', async () => {
     // Dynamic-import the mock to check its exports

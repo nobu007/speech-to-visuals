@@ -84,6 +84,39 @@ describe('server route regression: no duplicate health endpoints', () => {
     expect(content).toMatch(/import.*healthRouter.*from.*['"].\/routes\/health['"]/);
     expect(content).toMatch(/app\.use\(['"`]\/api\/v1['"`],\s*healthRouter\)/);
   });
+
+  it('should register /api/v1/health exactly once — route count assertion', async () => {
+    /**
+     * Verify at the source-code level that healthRouter is mounted exactly
+     * once and that no inline health handlers exist. Combined with the HTTP
+     * test above (which proves the route actually works), this ensures no
+     * duplicate registration can slip in.
+     */
+    const serverPath = path.resolve(__dirname, '../server.ts');
+    const content = fs.readFileSync(serverPath, 'utf-8');
+    const nonCommentLines = content
+      .split('\n')
+      .filter(l => !l.trim().startsWith('//'));
+
+    // Count how many times healthRouter is used in app.use() / app.get()
+    const healthRouterUsages = nonCommentLines.filter(
+      l => /healthRouter/.test(l) && /app\.(use|get|post|put|delete|patch)/.test(l),
+    );
+    expect(healthRouterUsages.length).toBe(1);
+
+    // Double-check: no inline app.get('/api/v1/health', ...) exists
+    expect(content).not.toMatch(
+      /app\.(get|use)\([^)]*['"`](\/api\/v1\/health|\/health)['"`]/,
+    );
+
+    // Also verify the health route file itself only registers /health once
+    const healthRoutePath = path.resolve(__dirname, '../routes/health.ts');
+    const healthContent = fs.readFileSync(healthRoutePath, 'utf-8');
+    const healthRegistrations = healthContent
+      .split('\n')
+      .filter(l => /healthRouter\.(get|post|put|delete|patch)/.test(l));
+    expect(healthRegistrations.length).toBe(1);
+  });
 });
 
 describe('BATCH_LIMITS centralization regression', () => {
