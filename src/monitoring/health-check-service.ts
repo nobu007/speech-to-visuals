@@ -73,7 +73,20 @@ class HealthCheckService {
     const status = this.calculateOverallStatus(statuses);
 
     // Get performance metrics
-    const metrics = realTimeMonitor.getSnapshot();
+    let metrics: PerformanceSnapshot;
+    try {
+      metrics = realTimeMonitor.getSnapshot();
+    } catch {
+      // Fallback: construct minimal metrics so health check still succeeds
+      metrics = {
+        timestamp: Date.now(),
+        system: { cpuUsagePercent: 0, memoryUsageMB: 0, memoryUsagePercent: 0, heapUsedMB: 0, heapTotalMB: 0 },
+        pipeline: { totalRequests: 0, successRate: 0, avgProcessingTime: 0, p95ProcessingTime: 0, p99ProcessingTime: 0, activeRequests: 0 },
+        llm: { totalRequests: 0, cacheHitRate: 0, flashUsagePercent: 0, proUsagePercent: 0, avgFlashResponseTime: 0, avgProResponseTime: 0, estimatedCostSavings: 0 },
+        errors: { totalErrors: 0, errorRate: 0, recoverySuccessRate: 0, recentErrors: [] },
+        quality: { transcriptionAccuracy: 0, layoutOverlapRate: 0, avgSceneQuality: 0 },
+      };
+    }
 
     // Generate recommendations
     const recommendations = this.generateRecommendations(checks, metrics);
@@ -137,9 +150,22 @@ class HealthCheckService {
    */
   private async checkCacheHealth(): Promise<ComponentHealth> {
     const startTime = Date.now();
-    const stats = globalCache.getStats();
 
-    const hitRate = stats.totalHits / (stats.totalHits + stats.totalMisses) || 0;
+    let stats: Awaited<ReturnType<typeof globalCache.getStats>>;
+    try {
+      stats = globalCache.getStats();
+    } catch {
+      return {
+        status: 'degraded',
+        message: 'Cache backend unreachable',
+        latency: Date.now() - startTime,
+        lastChecked: Date.now(),
+      };
+    }
+
+    const totalHits = stats.totalHits ?? Math.round(stats.hitRate * stats.totalEntries);
+    const totalMisses = stats.totalMisses ?? Math.round((1 - stats.hitRate) * stats.totalEntries);
+    const hitRate = totalHits / (totalHits + totalMisses) || 0;
 
     let status: 'healthy' | 'degraded' | 'unhealthy';
     let message: string;
@@ -161,12 +187,12 @@ class HealthCheckService {
       latency: Date.now() - startTime,
       lastChecked: Date.now(),
       details: {
-        currentSize: stats.currentSize,
-        maxSize: stats.maxSize,
+        currentSize: stats.currentSize ?? stats.totalEntries,
+        maxSize: stats.maxSize ?? -1,
         hitRate: Math.round(hitRate * 1000) / 1000,
-        totalHits: stats.totalHits,
-        totalMisses: stats.totalMisses,
-        evictions: stats.evictions
+        totalHits,
+        totalMisses,
+        evictions: stats.evictions ?? stats.evictionCount
       }
     };
   }
@@ -176,7 +202,18 @@ class HealthCheckService {
    */
   private async checkPipelineHealth(): Promise<ComponentHealth> {
     const startTime = Date.now();
-    const snapshot = realTimeMonitor.getSnapshot();
+
+    let snapshot: PerformanceSnapshot;
+    try {
+      snapshot = realTimeMonitor.getSnapshot();
+    } catch {
+      return {
+        status: 'degraded',
+        message: 'Pipeline metrics unavailable',
+        latency: Date.now() - startTime,
+        lastChecked: Date.now(),
+      };
+    }
 
     const successRate = snapshot.pipeline.successRate;
     const activeRequests = snapshot.pipeline.activeRequests;
@@ -216,7 +253,18 @@ class HealthCheckService {
    */
   private async checkLLMHealth(): Promise<ComponentHealth> {
     const startTime = Date.now();
-    const snapshot = realTimeMonitor.getSnapshot();
+
+    let snapshot: PerformanceSnapshot;
+    try {
+      snapshot = realTimeMonitor.getSnapshot();
+    } catch {
+      return {
+        status: 'degraded',
+        message: 'LLM metrics unavailable',
+        latency: Date.now() - startTime,
+        lastChecked: Date.now(),
+      };
+    }
 
     const cacheHitRate = snapshot.llm.cacheHitRate;
     const totalRequests = snapshot.llm.totalRequests;
@@ -256,7 +304,18 @@ class HealthCheckService {
    */
   private async checkErrorRecoveryHealth(): Promise<ComponentHealth> {
     const startTime = Date.now();
-    const snapshot = realTimeMonitor.getSnapshot();
+
+    let snapshot: PerformanceSnapshot;
+    try {
+      snapshot = realTimeMonitor.getSnapshot();
+    } catch {
+      return {
+        status: 'degraded',
+        message: 'Error recovery metrics unavailable',
+        latency: Date.now() - startTime,
+        lastChecked: Date.now(),
+      };
+    }
 
     const errorRate = snapshot.errors.errorRate;
     const recoveryRate = snapshot.errors.recoverySuccessRate;
@@ -294,7 +353,18 @@ class HealthCheckService {
    */
   private async checkPerformanceHealth(): Promise<ComponentHealth> {
     const startTime = Date.now();
-    const trends = realTimeMonitor.analyzeTrends();
+
+    let trends: Array<{ metric: string; trend: string; changePercent: number }>;
+    try {
+      trends = realTimeMonitor.analyzeTrends();
+    } catch {
+      return {
+        status: 'degraded',
+        message: 'Performance trend analysis unavailable',
+        latency: Date.now() - startTime,
+        lastChecked: Date.now(),
+      };
+    }
 
     const degradingTrends = trends.filter(t => t.trend === 'degrading');
     const improvingTrends = trends.filter(t => t.trend === 'improving');

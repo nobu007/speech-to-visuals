@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 1-40 完了（154/154タスク完了 + ISS-003~045修正完了）・Phase 43 キャッシュウォームアップ統合完了・Phase 44 多言語検出拡張完了・Phase 45 ウォームアップ障害耐性テスト完了（REQ-113~115）・327ファイル・96,466行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト4,357件（194スイート）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.5 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・Phase 31図解品質エンハンスメント（REQ-079~083）完了・Phase 32図解品質パイプライン統合（REQ-084~087）完了・Phase 33パイプライン品質監視統合（REQ-088~090）完了・Phase 34ストリーミング品質・音声前処理・エクスポート検証（REQ-091~093）完了・Phase 35可視化アルゴリズム正式化・パイプライン品質統合（REQ-094~096）完了・Phase 36パフォーマンス最適化・コスト可視化・監視API（REQ-097~100）完了・Phase 37監視API本組込み・コード規模監査（REQ-102~103）完了・Phase 38監査スコープ修正・ドキュメント整合性（REQ-104~106）完了・Phase 39テストESM互換性・依存脆弱性解消（REQ-107~110）完了
+**実装状況**: Phase 1-51 完了（154/154タスク完了 + ISS-003~045修正完了）・Phase 43 キャッシュウォームアップ統合完了・Phase 44 多言語検出拡張完了・Phase 45 ウォームアップ障害耐性テスト完了（REQ-113~115）・Phase 49~50 ヘルスエンドポイント縮退ステータス・デフォルトウォームアップパターン耐性テスト完了（REQ-125~130）・Phase 51 HealthCheckService本番コード堅牢化完了（REQ-131）・327ファイル・96,466行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト4,357件（194スイート）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.5 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・Phase 31図解品質エンハンスメント（REQ-079~083）完了・Phase 32図解品質パイプライン統合（REQ-084~087）完了・Phase 33パイプライン品質監視統合（REQ-088~090）完了・Phase 34ストリーミング品質・音声前処理・エクスポート検証（REQ-091~093）完了・Phase 35可視化アルゴリズム正式化・パイプライン品質統合（REQ-094~096）完了・Phase 36パフォーマンス最適化・コスト可視化・監視API（REQ-097~100）完了・Phase 37監視API本組込み・コード規模監査（REQ-102~103）完了・Phase 38監査スコープ修正・ドキュメント整合性（REQ-104~106）完了・Phase 39テストESM互換性・依存脆弱性解消（REQ-107~110）完了
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -282,6 +282,22 @@
 - REQ-123: システムは HealthCheckService の Kubernetes スタイル readiness/liveness プローブが正常時は ready=true/alive=true を返し、システム異常時は ready=false を返すことを検証するテストを提供しなければならない 🔵 *src/monitoring/health-check-service.ts checkReadiness/checkLiveness メソッドより*
 - REQ-124: システムは HealthCheckService の推奨事項生成が各コンポーネントの健全性状態に応じた適切な推奨（メモリ最適化・キャッシュ戦略見直し・CRITICAL通知）を生成することを検証するテストを提供しなければならない 🔵 *src/monitoring/health-check-service.ts generateRecommendations メソッド・各コンポーネント判定ロジックより*
 
+#### 監視ヘルスエンドポイント縮退ステータステスト（Phase 49）
+
+- REQ-125: システムは監視ヘルスエンドポイント（GET /api/v1/monitoring/health）において、パイプライン成功率が0.95未満の場合、ウォームアップ状態に関わらずステータス "degraded" を報告しなければならない 🔵 *src/api/routes/monitoring.ts health エンドポイント successRate 判定・tests/integration/monitoring-health-degraded.test.ts より*
+- REQ-126: システムは監視ヘルスエンドポイントにおいて、ウォームアップ状態遷移中にアクティブなアラートが存在する場合、アラート情報とウォームアップ状態を同時に報告しなければならない 🔵 *src/api/routes/monitoring.ts health エンドポイント alerts フィールド・tests/integration/monitoring-health-degraded.test.ts より*
+- REQ-127: システムは監視ヘルスエンドポイントにおいて、successRate の境界値（0.95）でのステータス遷移（healthy ↔ degraded）が正確であることを検証しなければならない 🔵 *src/monitoring/performance-dashboard.ts successRate 計算・tests/integration/monitoring-health-degraded.test.ts より*
+
+#### デフォルトウォームアップパターン障害耐性テスト（Phase 50）
+
+- REQ-128: システムはデフォルトの多言語ウォームアップパターン（8パターン: EN 5 + JA 3）がキャッシュバックエンド到達不能時に全パターン安全に失敗し、統計情報に failures として記録されることを検証しなければならない 🔵 *src/optimization/cache-warmup.ts DEFAULT_WARMUP_PATTERNS・tests/integration/warmup-default-pattern-resilience.test.ts より*
+- REQ-129: システムはデフォルトウォームアップパターンを用いた起動→ヘルスエンドポイントの完全チェーンが、キャッシュ到達不能時でも例外を伝播せず完了することを検証しなければならない 🔵 *src/api/startup-warmup.ts triggerStartupWarmup() → src/api/routes/monitoring.ts health エンドポイント・tests/integration/warmup-default-pattern-resilience.test.ts より*
+- REQ-130: システムはウォームアップ統計が複数サイクルにわたって不変性を維持し、リセット操作後に一貫した初期状態に戻ることを検証しなければならない 🔵 *src/optimization/cache-warmup.ts getWarmupStats()・resetWarmupStatus()・tests/integration/warmup-default-pattern-resilience.test.ts より*
+
+#### HealthCheckService本番コード堅牢化（Phase 51）
+
+- REQ-131: システムは HealthCheckService の各コンポーネントチェック（キャッシュ・パイプライン・LLM・エラー復旧・パフォーマンス傾向）が依存バックエンド（globalCache・realTimeMonitor）の例外時に "degraded" ステータスを返し、ヘルスチェック全体がクラッシュしないことを保証しなければならない。各コンポーネントの try-catch による安全な縮退と、performHealthCheck のフォールバックメトリクス構築を含む 🔵 *src/monitoring/health-check-service.ts checkCacheHealth/checkPipelineHealth/checkLLMHealth/checkErrorRecoveryHealth/checkPerformanceHealth try-catch 追加・performHealthCheck フォールバックメトリクスより*
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より*
@@ -423,14 +439,17 @@
 | Phase 46: キャッシュバックエンド到達不能E2Eテスト | ✅完了 | REQ-116~118 | 3/3（CacheWarmupManager実パイプライン障害テスト7件・E2Eウォームアップ失敗ヘルスエンドポイントテスト3件・カスケード障害耐性テスト4件） |
 | Phase 47: ウォームアップゼロ成功耐性テスト | ✅完了 | REQ-119~121 | 3/3（ゼロ成功ウォームアップテスト4件・同時ヘルスリクエストテスト3件・リトライ累積テスト3件） |
 | Phase 48: HealthCheckService本番ヘルスチェック単体テスト | ✅完了 | REQ-122~124 | 3/3（コンポーネント境界値テスト28件・readiness/livenessプローブテスト5件・推奨事項生成テスト4件・エッジケース3件） |
+| Phase 49: 監視ヘルスエンドポイント縮退ステータステスト | ✅完了 | REQ-125~127 | 3/3（縮退ステータス・アクティブアラート・successRate境界値テスト） |
+| Phase 50: デフォルトウォームアップパターン障害耐性テスト | ✅完了 | REQ-128~130 | 3/3（多言語デフォルトパターン障害・起動→ヘルスチェーン・統計不変性テスト） |
+| Phase 51: HealthCheckService本番コード堅牢化 | ✅完了 | REQ-131 | 1/1（全コンポーネントチェックのtry-catch追加・フォールバックメトリクス・型安全性修正） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 162件 (95.9%)
-- 🟡 黄信号: 3件 (1.8%) — NFR-203, REQ-303, EDGE-103
+- 🔵 青信号: 169件 (95.9%)
+- 🟡 黄信号: 3件 (1.7%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-40全要件実装完了（REQ-001~112）・Phase 43~44完了（キャッシュウォームアップ統合・多言語検出拡張）・Phase 45完了（REQ-113~115ウォームアップ障害耐性テスト11件）・Phase 46完了（REQ-116~118キャッシュバックエンド到達不能E2Eテスト14件）・Phase 47完了（REQ-119~121ウォームアップゼロ成功耐性テスト10件）・Phase 48完了（REQ-122~124 HealthCheckService本番ヘルスチェック単体テスト40件）・TypeScript型エラー0件・npm audit 0脆弱性
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-40全要件実装完了（REQ-001~112）・Phase 43~44完了（キャッシュウォームアップ統合・多言語検出拡張）・Phase 45完了（REQ-113~115ウォームアップ障害耐性テスト11件）・Phase 46完了（REQ-116~118キャッシュバックエンド到達不能E2Eテスト14件）・Phase 47完了（REQ-119~121ウォームアップゼロ成功耐性テスト10件）・Phase 48完了（REQ-122~124 HealthCheckService本番ヘルスチェック単体テスト40件）・Phase 49完了（REQ-125~127監視ヘルスエンドポイント縮退ステータステスト）・Phase 50完了（REQ-128~130デフォルトウォームアップパターン障害耐性テスト）・Phase 51完了（REQ-131 HealthCheckService本番コード堅牢化）・TypeScript型エラー0件・npm audit 0脆弱性
 
 ## Acceptance criteria
 
@@ -441,6 +460,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 48 を網羅し、Phase 45 ~ 48 完了を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 51 を網羅し、Phase 49 ~ 51 完了を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテゴリに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第152回: 🔵162件/🟡3件/🔴0件 — Phase 48要件定義・REQ-122~124追加）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第153回: 🔵169件/🟡3件/🔴0件 — Phase 49~51要件定義・REQ-125~131追加）
