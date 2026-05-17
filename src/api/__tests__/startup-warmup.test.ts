@@ -2,8 +2,8 @@
  * REQ-202: Startup cache warmup integration test
  *
  * Verifies that triggerStartupWarmup() correctly invokes warmupCache()
- * when the LLM service is enabled, skips when disabled, and handles
- * failures gracefully.
+ * when the LLM service is enabled, skips when disabled, handles
+ * failures gracefully, and tracks warmup status for observability.
  */
 
 import { jest } from '@jest/globals';
@@ -18,19 +18,21 @@ jest.mock('../../utils/logger', () => ({
   },
 }));
 
-import { triggerStartupWarmup } from '../startup-warmup';
+import { triggerStartupWarmup, getWarmupStatus, resetWarmupStatus } from '../startup-warmup';
 import { logger } from '../../utils/logger';
 
-function createMockService(enabled: boolean) {
+function createMockService(enabled: boolean, warmupStats = { totalPatternsProcessed: 8 }) {
   return {
     isEnabled: jest.fn().mockReturnValue(enabled),
     warmupCache: jest.fn().mockResolvedValue(true),
+    getCacheWarmupStats: jest.fn().mockReturnValue(warmupStats),
   } as unknown as LLMService;
 }
 
 describe('triggerStartupWarmup (REQ-202)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    resetWarmupStatus();
   });
 
   test('calls warmupCache when LLM service is enabled', async () => {
@@ -92,5 +94,92 @@ describe('triggerStartupWarmup (REQ-202)', () => {
       '[startup] Cache warmup failed (non-fatal):',
       error,
     );
+  });
+
+  // --- Warmup status tracking tests ---
+
+  test('initial status is pending', () => {
+    const status = getWarmupStatus();
+    expect(status.status).toBe('pending');
+  });
+
+  test('status becomes completed after successful warmup', async () => {
+    const service = createMockService(true);
+
+    triggerStartupWarmup(service);
+    await new Promise((r) => setTimeout(r, 50));
+
+    const status = getWarmupStatus();
+    expect(status.status).toBe('completed');
+    expect(status.timestamp).toBeDefined();
+    expect(status.patternsProcessed).toBe(8);
+  });
+
+  test('status becomes skipped when cache is already warm', async () => {
+    const service = createMockService(true);
+    (service.warmupCache as jest.Mock).mockResolvedValue(false);
+
+    triggerStartupWarmup(service);
+    await new Promise((r) => setTimeout(r, 50));
+
+    const status = getWarmupStatus();
+    expect(status.status).toBe('skipped');
+    expect(status.timestamp).toBeDefined();
+  });
+
+  test('status becomes skipped when LLM service is disabled', () => {
+    const service = createMockService(false);
+
+    triggerStartupWarmup(service);
+
+    const status = getWarmupStatus();
+    expect(status.status).toBe('skipped');
+    expect(status.timestamp).toBeDefined();
+  });
+
+  test('status becomes failed when warmup throws', async () => {
+    const service = createMockService(true);
+    (service.warmupCache as jest.Mock).mockRejectedValue(new Error('network error'));
+
+    triggerStartupWarmup(service);
+    await new Promise((r) => setTimeout(r, 50));
+
+    const status = getWarmupStatus();
+    expect(status.status).toBe('failed');
+    expect(status.timestamp).toBeDefined();
+    expect(status.error).toBe('network error');
+  });
+
+  test('status remains pending while warmup is in-flight', () => {
+    const service = createMockService(true);
+    // Make warmupCache hang forever
+    (service.warmupCache as jest.Mock).mockReturnValue(new Promise(() => {}));
+
+    triggerStartupWarmup(service);
+
+    const status = getWarmupStatus();
+    expect(status.status).toBe('pending');
+  });
+
+  test('resetWarmupStatus resets to pending', async () => {
+    const service = createMockService(true);
+    triggerStartupWarmup(service);
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(getWarmupStatus().status).toBe('completed');
+
+    resetWarmupStatus();
+    expect(getWarmupStatus().status).toBe('pending');
+  });
+
+  test('getWarmupStatus returns a copy (not the internal object)', async () => {
+    const service = createMockService(true);
+    triggerStartupWarmup(service);
+    await new Promise((r) => setTimeout(r, 50));
+
+    const s1 = getWarmupStatus();
+    const s2 = getWarmupStatus();
+    expect(s1).toEqual(s2);
+    expect(s1).not.toBe(s2);
   });
 });

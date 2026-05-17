@@ -14,6 +14,7 @@ import {
   PerformanceDashboard,
   globalDashboard,
 } from '../../monitoring/performance-dashboard';
+import { getWarmupStatus } from '../startup-warmup';
 
 // ---------------------------------------------------------------------------
 // Zod validation schemas
@@ -107,6 +108,7 @@ export function createMonitoringRouter(dashboard?: PerformanceDashboard): Router
         avgResponseTime: dashData.summary.avgResponseTime,
         memoryUsage: dashData.summary.memoryUsage,
         cacheHitRate: dashData.summary.cacheHitRate,
+        cacheWarmup: getWarmupStatus(),
         activeAlerts: dashData.activeAlerts,
       };
       return res.status(200).json({ success: true, data: health });
