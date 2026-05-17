@@ -1416,9 +1416,9 @@
   - **期待結果**: HTTP 200、正常な認証
   - **信頼性**: 🔵 *auth.ts getJwtSecret() フォールバックより*
 
-- [x] **TC-111-B02**: JWT_SECRET/SUPABASE_JWT_SECRET 双方未設定で500 🔵
+- [x] **TC-111-B02**: JWT_SECRET/SUPABASE_JWT_SECRET 双方未設定で401 🔵
   - **入力**: 両環境変数未設定でのリクエスト
-  - **期待結果**: HTTP 401 または 500（getJwtSecret() 例外）
+  - **期待結果**: HTTP 401（getJwtSecret() 例外が catch で捕捉され TOKEN_ERROR 返却）
   - **信頼性**: 🔵 *auth.ts getJwtSecret() 例外処理より*
 
 ---
