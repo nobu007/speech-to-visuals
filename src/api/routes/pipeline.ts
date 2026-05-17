@@ -11,24 +11,26 @@
 import { Router, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
+import { PIPELINE_LIMITS } from '../../config/limits';
+import { sanitizeFilename } from '../../utils/sanitize';
 
 // ---------------------------------------------------------------------------
 // Zod validation schemas
 // ---------------------------------------------------------------------------
 
 const RenderRequestSchema = z.object({
-  scenes: z.array(z.unknown()).min(1, 'No scenes provided').max(200, 'Too many scenes (max 200)'),
+  scenes: z.array(z.unknown()).min(1, 'No scenes provided').max(PIPELINE_LIMITS.MAX_SCENES, `Too many scenes (max ${PIPELINE_LIMITS.MAX_SCENES})`),
   quality: z.enum(['low', 'medium', 'high']).optional(),
-  outputName: z.string().max(255, 'outputName must be at most 255 characters').optional(),
+  outputName: z.string().max(PIPELINE_LIMITS.MAX_OUTPUT_NAME_LENGTH, `outputName must be at most ${PIPELINE_LIMITS.MAX_OUTPUT_NAME_LENGTH} characters`).optional(),
   options: z.object({
     resolution: z.string().max(50).optional(),
-    fps: z.number().int().min(1).max(120, 'fps must be between 1 and 120').optional(),
+    fps: z.number().int().min(1).max(PIPELINE_LIMITS.MAX_FPS, `fps must be between 1 and ${PIPELINE_LIMITS.MAX_FPS}`).optional(),
     codec: z.string().max(50).optional(),
   }).optional(),
 });
 
 const CommitRequestSchema = z.object({
-  message: z.string().min(1, 'message is required and must be a non-empty string').max(1000, 'message must be at most 1000 characters'),
+  message: z.string().min(1, 'message is required and must be a non-empty string').max(PIPELINE_LIMITS.MAX_COMMIT_MESSAGE_LENGTH, `message must be at most ${PIPELINE_LIMITS.MAX_COMMIT_MESSAGE_LENGTH} characters`),
   files: z.array(z.string()).optional(),
 });
 
@@ -85,7 +87,7 @@ interface FrameworkStatusResponse {
 
 class PipelineStateManager {
   private static instance: PipelineStateManager;
-  private static readonly MAX_ITERATIONS = 500;
+  private static readonly MAX_ITERATIONS = PIPELINE_LIMITS.MAX_ITERATIONS;
   private iterations: IterationEntry[] = [];
   private currentPhase = 'idle';
   private qualityScore = 0;
@@ -181,7 +183,7 @@ export function createPipelineRouter(stateManager?: PipelineStateManager): Route
     try {
       const rawOutputName = body.outputName || `video-${Date.now()}`;
       // Sanitize outputName to prevent path traversal (ISS-003)
-      const outputName = rawOutputName.replace(/[/\\]/g, '_').replace(/\.\./g, '');
+      const outputName = sanitizeFilename(rawOutputName);
       const quality = body.quality || 'medium';
 
       // Simulate rendering process with scene data
