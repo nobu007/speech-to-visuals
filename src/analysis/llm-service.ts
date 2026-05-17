@@ -25,6 +25,7 @@ import { logger } from '../utils/logger';
 import { TokenUsageTracker, type ModelType, type StageType, type TokenUsageSummary } from './token-usage-tracker';
 import { calculateModelCost, estimateCost, type CostBreakdown, type CostEstimate } from './cost-estimator';
 import { BudgetAlertSystem, type BudgetAlert } from './budget-alert';
+import { CacheWarmupManager, type WarmupStats, type HitRateReport } from '@/optimization/cache-warmup';
 
 /**
  * Phase 33: Streaming progress callback
@@ -110,6 +111,7 @@ export class LLMService {
   private genAI?: GoogleGenerativeAI;
   private cache: LLMCache<unknown>;
   private complexityDetector: ComplexityDetector;
+  private cacheWarmupManager: CacheWarmupManager<unknown>;
 
   // Request tracking
   private requestCount: number = 0;
@@ -157,9 +159,53 @@ export class LLMService {
 
     this.complexityDetector = new ComplexityDetector();
 
+    // REQ-202: Initialize cache warmup manager
+    this.cacheWarmupManager = new CacheWarmupManager<unknown>(this.cache);
+
     // REQ-098: Initialize monitoring
     this.tokenTracker = new TokenUsageTracker();
     this.budgetAlert = new BudgetAlertSystem();
+  }
+
+  /**
+   * REQ-202: Warm up the LLM cache if it is in a cold-start state.
+   *
+   * Pre-populates the cache with common query patterns so that subsequent
+   * requests can benefit from cache hits immediately.  The resolver
+   * performs a lightweight analysis of each warmup text so the cached
+   * result is usable by the semantic-similarity layer.
+   *
+   * @param resolver - Optional custom resolver; defaults to a simple
+   *   pass-through that returns the text as-is (sufficient for semantic
+   *   warm-up).
+   * @returns true if warmup was executed, false if skipped (cache warm)
+   */
+  async warmupCache(
+    resolver?: (text: string) => Promise<unknown>
+  ): Promise<boolean> {
+    const defaultResolver = async (text: string): Promise<unknown> => text;
+    return this.cacheWarmupManager.warmupIfCold(resolver ?? defaultResolver);
+  }
+
+  /**
+   * Get cache warmup statistics.
+   */
+  getCacheWarmupStats(): WarmupStats {
+    return this.cacheWarmupManager.getWarmupStats();
+  }
+
+  /**
+   * Get cache hit-rate report showing warmup effectiveness.
+   */
+  getCacheHitRateReport(): HitRateReport {
+    return this.cacheWarmupManager.getHitRateReport();
+  }
+
+  /**
+   * Record a query result for hit-rate tracking after warmup.
+   */
+  recordCacheQuery(wasHit: boolean): void {
+    this.cacheWarmupManager.recordQuery(wasHit);
   }
 
   /**
@@ -196,6 +242,8 @@ export class LLMService {
     const cacheKey = request.options?.cacheKey || request.context;
     const cached = this.cache.get(cacheKey, 'unified-llm-service');
     if (cached) {
+      // REQ-202: Track cache hit for warmup effectiveness reporting
+      this.cacheWarmupManager.recordQuery(true);
       return {
         success: true,
         data: cached as T,
@@ -208,6 +256,9 @@ export class LLMService {
         }
       };
     }
+
+    // REQ-202: Track cache miss for warmup effectiveness reporting
+    this.cacheWarmupManager.recordQuery(false);
 
     // Analyze complexity to select optimal model
     const complexity = this.complexityDetector.analyze(request.context);
@@ -718,10 +769,11 @@ export class LLMService {
   }
 
   /**
-   * Clear cache
+   * Clear cache and re-create warmup manager
    */
   clearCache(): void {
     this.cache = new LLMCache<unknown>({ maxSize: 200, ttlMinutes: 120 });
+    this.cacheWarmupManager = new CacheWarmupManager<unknown>(this.cache);
   }
 
   /**
