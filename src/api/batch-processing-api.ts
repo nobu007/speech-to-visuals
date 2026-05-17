@@ -19,6 +19,7 @@ import type { QualityPreset } from '@/pipeline/adaptive-quality-presets';
 import { adaptiveQualityPresets } from '@/pipeline/adaptive-quality-presets';
 import { randomUUID } from 'crypto';
 import { BatchValidationError, JobNotFoundError } from './routes/batch';
+import { BATCH_LIMITS } from '../config/limits';
 import { logger } from '../utils/logger';
 
 export interface BatchJobRequest {
@@ -74,7 +75,7 @@ export interface BatchJobResult {
  * In-memory job storage (for Phase 37 MVP)
  * For production, use Redis or database
  */
-const MAX_STORED_JOBS_V2 = 200; // ISS-005: prevent unbounded memory growth
+const MAX_STORED_JOBS_V2 = BATCH_LIMITS.MAX_STORED_JOBS; // ISS-005: prevent unbounded memory growth
 
 class JobStore {
   private jobs = new Map<string, {
@@ -171,8 +172,8 @@ export class BatchProcessingAPI {
       throw new BatchValidationError('No files provided');
     }
 
-    if (request.files.length > 100) {
-      throw new BatchValidationError('Maximum 100 files per batch');
+    if (request.files.length > BATCH_LIMITS.MAX_FILES_PER_BATCH) {
+      throw new BatchValidationError(`Maximum ${BATCH_LIMITS.MAX_FILES_PER_BATCH} files per batch`);
     }
 
     // Create job

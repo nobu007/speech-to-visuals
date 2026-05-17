@@ -72,17 +72,5 @@ app.use('/api', apiRateLimiter, pipelineAuth, createPipelineRouter());
 // Error handler (must be after routes)
 app.use(errorHandler);
 
-// Root health check (direct path)
-app.get('/api/v1/health', (_req, res) => {
-  res.json({
-    success: true,
-    data: {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      version: '1.0.0',
-    },
-  });
-});
-
 export { app };
 export default app;
