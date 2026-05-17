@@ -264,6 +264,12 @@
 - REQ-114: システムはキャッシュバックエンドが到達不能（network error, timeout, DNS failure）な状況でのウォームアップ実行時、triggerStartupWarmup() が例外を伝播せず安全に失敗し、getWarmupStatus() が {status: 'failed', error: string} を返すことを検証する統合テストを提供しなければならない 🔵 *src/api/startup-warmup.ts fire-and-forget 設計・既存 startup-warmup.test.ts test('status becomes failed when warmup throws') より*
 - REQ-115: システムはウォームアップ状態の全遷移（pending → completed / pending → failed / pending → skipped）における監視ヘルスエンドポイントのレスポンス内容（status・cacheWarmup.status・cacheWarmup.error）を検証するテストを提供しなければならない 🔵 *src/api/routes/monitoring.ts health エンドポイント cacheWarmup フィールド・startup-warmup.ts WarmupStatusInfo 型より*
 
+#### キャッシュバックエンド到達不能エンドツーエンドテスト（Phase 46）
+
+- REQ-116: システムは実際の CacheWarmupManager + LLMCache パイプラインにおいて、リゾルバ（キャッシュバックエンド/LLM）が到達不能な場合のウォームアップ失敗経路を検証する統合テストを提供しなければならない。全パターン失敗（ECONNREFUSED・ENOTFOUND・ETIMEDOUT・EPIPE）、部分失敗、非Error例外、失敗後リカバリを網羅すること 🔵 *src/optimization/cache-warmup.ts warmup() try-catch・tests/unit/optimization/cache-warmup.test.ts 既存パターンより*
+- REQ-117: システムは実際の CacheWarmupManager を triggerStartupWarmup に接続し、リゾルバ失敗時のヘルスエンドポイントレスポンス（cacheWarmup.status・patternsProcessed）を検証するエンドツーエンド統合テストを提供しなければならない 🔵 *src/api/startup-warmup.ts triggerStartupWarmup() → src/api/routes/monitoring.ts health エンドポイントの接続より*
+- REQ-118: システムはウォームアップ失敗に伴うカスケード障害（getCacheWarmupStats 例外・複数回トリガー・高速状態遷移）に対するヘルスエンドポイントの安定性を検証するテストを提供しなければならない 🔵 *src/api/startup-warmup.ts .then() 内 getCacheWarmupStats() 呼び出し・health エンドポイントの全フィールド定義より*
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より*
@@ -402,14 +408,15 @@
 | Phase 39: テストESM互換性修正・依存脆弱性解消・ドキュメント整合性 | ✅完了 | REQ-107~109 | 3/3（ESM互換性修正31ファイル・npm audit 0脆弱性・ドキュメント整合性更新） |
 | Phase 40: API認証ミドルウェア品質・信頼性 | ✅完了 | REQ-111~112 | 2/2（REQ-111 Express統合テスト9件・REQ-112モック整合性検証3件・本番コード検証完了） |
 | Phase 45: キャッシュウォームアップ障害耐性テスト | ✅完了 | REQ-113~115 | 3/3（ウォームアップ失敗モニタリングテスト4件・キャッシュ到達不能統合テスト3件・ウォームアップ状態遷移テスト4件） |
+| Phase 46: キャッシュバックエンド到達不能E2Eテスト | ✅完了 | REQ-116~118 | 3/3（CacheWarmupManager実パイプライン障害テスト7件・E2Eウォームアップ失敗ヘルスエンドポイントテスト3件・カスケード障害耐性テスト4件） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 152件 (95.6%)
+- 🔵 青信号: 155件 (95.7%)
 - 🟡 黄信号: 3件 (1.9%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-40全要件実装完了（REQ-001~112）・Phase 43~44完了（キャッシュウォームアップ統合・多言語検出拡張）・Phase 45完了（REQ-113~115ウォームアップ障害耐性テスト11件）・4,357テスト（194スイート）全通過・TypeScript型エラー0件・ESLintエラー0件・npm audit 0脆弱性・コード規模96,466行（SYSTEM_CONSTITUTION V2.5: 100K行制限内・COMPLIANT確認済）
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-40全要件実装完了（REQ-001~112）・Phase 43~44完了（キャッシュウォームアップ統合・多言語検出拡張）・Phase 45完了（REQ-113~115ウォームアップ障害耐性テスト11件）・Phase 46完了（REQ-116~118キャッシュバックエンド到達不能E2Eテスト14件）・TypeScript型エラー0件・npm audit 0脆弱性
 
 ## Acceptance criteria
 
@@ -420,6 +427,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 45 を網羅し、Phase 40 完了・Phase 45 計画中を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 46 を網羅し、Phase 45 完了・Phase 46 完了を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテゴリに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第150回: 🔵152件/🟡3件/🔴0件 — Phase 45要件定義・REQ-113~115・EDGE-006~007追加）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第151回: 🔵155件/🟡3件/🔴0件 — Phase 46要件定義・REQ-116~118追加）
