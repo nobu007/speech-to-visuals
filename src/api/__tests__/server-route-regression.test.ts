@@ -9,13 +9,11 @@
  * rather than relying on Express internals that may change between versions.
  */
 
-import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
 import request from 'supertest';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const projectRoot = process.cwd();
 
 describe('server route regression: no duplicate health endpoints', () => {
   beforeEach(() => {
@@ -58,7 +56,7 @@ describe('server route regression: no duplicate health endpoints', () => {
      * Verify by checking that the server source contains exactly one
      * health route registration.
      */
-    const serverPath = path.resolve(__dirname, '../server.ts');
+    const serverPath = path.resolve(projectRoot, 'src/api/server.ts');
     const content = fs.readFileSync(serverPath, 'utf-8');
 
     // Count occurrences of health-related route registrations
@@ -77,7 +75,7 @@ describe('server route regression: no duplicate health endpoints', () => {
   });
 
   it('should use healthRouter import for the health endpoint', async () => {
-    const serverPath = path.resolve(__dirname, '../server.ts');
+    const serverPath = path.resolve(projectRoot, 'src/api/server.ts');
     const content = fs.readFileSync(serverPath, 'utf-8');
 
     // The correct pattern: import healthRouter and mount it
@@ -92,7 +90,7 @@ describe('server route regression: no duplicate health endpoints', () => {
      * test above (which proves the route actually works), this ensures no
      * duplicate registration can slip in.
      */
-    const serverPath = path.resolve(__dirname, '../server.ts');
+    const serverPath = path.resolve(projectRoot, 'src/api/server.ts');
     const content = fs.readFileSync(serverPath, 'utf-8');
     const nonCommentLines = content
       .split('\n')
@@ -110,7 +108,7 @@ describe('server route regression: no duplicate health endpoints', () => {
     );
 
     // Also verify the health route file itself only registers /health once
-    const healthRoutePath = path.resolve(__dirname, '../routes/health.ts');
+    const healthRoutePath = path.resolve(projectRoot, 'src/api/routes/health.ts');
     const healthContent = fs.readFileSync(healthRoutePath, 'utf-8');
     const healthRegistrations = healthContent
       .split('\n')
@@ -121,7 +119,7 @@ describe('server route regression: no duplicate health endpoints', () => {
 
 describe('BATCH_LIMITS centralization regression', () => {
   it('batch-processing-api should import from config/limits', () => {
-    const filePath = path.resolve(__dirname, '../batch-processing-api.ts');
+    const filePath = path.resolve(projectRoot, 'src/api/batch-processing-api.ts');
     const content = fs.readFileSync(filePath, 'utf-8');
 
     expect(content).toMatch(/BATCH_LIMITS/);

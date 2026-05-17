@@ -13,11 +13,8 @@
 import { describe, it, expect } from '@jest/globals';
 import * as fs from 'fs';
 import * as path from 'path';
-import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const projectRoot = path.resolve(__dirname, '../../../../');
+const projectRoot = process.cwd();
 
 // ---------------------------------------------------------------------------
 // TC-112-01: Verify mock file exports the expected functions

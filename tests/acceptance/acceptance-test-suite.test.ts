@@ -9,8 +9,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as jwt from 'jsonwebtoken';
-import { fileURLToPath } from 'url';
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
+const testDir = process.cwd();
 
 import { WhisperTranscriber } from '@/transcription/whisper-transcriber';
 import { SUPPORTED_AUDIO_FORMATS, FileSizeExceededError, MAX_FILE_SIZE } from '@/transcription/types';
@@ -535,13 +534,13 @@ describe('REQ-031: SimplePipeline UI', () => {
   // TC-031-01: Pipeline UI display and file upload
   test('TC-031-01: SimplePipelineInterface module exports component', () => {
     // Verify the component file can be imported
-    const filePath = path.join(__dirname, '../../src/components/SimplePipelineInterface.tsx');
+    const filePath = path.join(testDir, 'src/components/SimplePipelineInterface.tsx');
     expect(fs.existsSync(filePath)).toBe(true);
   });
 
   // TC-031-02: Keyboard shortcut behavior
   test('TC-031-02: SimplePipelineStateMachine module exports correctly', () => {
-    const filePath = path.join(__dirname, '../../src/components/SimplePipelineStateMachine.ts');
+    const filePath = path.join(testDir, 'src/components/SimplePipelineStateMachine.ts');
     expect(fs.existsSync(filePath)).toBe(true);
   });
 });
@@ -1144,25 +1143,25 @@ describe('REQ-051: Type Guards', () => {
 describe('REQ-052~055: Additional UI Tests', () => {
   // TC-052-01: Tutorial category listing display
   test('TC-052-01: TutorialSystem component file exists', () => {
-    const filePath = path.join(__dirname, '../../src/components/TutorialSystem.tsx');
+    const filePath = path.join(testDir, 'src/components/TutorialSystem.tsx');
     expect(fs.existsSync(filePath)).toBe(true);
   });
 
   // TC-053-01: Standard mode file processing
   test('TC-053-01: SimplePipeline module exports correctly', () => {
-    const filePath = path.join(__dirname, '../../src/pipeline/simple-pipeline.ts');
+    const filePath = path.join(testDir, 'src/pipeline/simple-pipeline.ts');
     expect(fs.existsSync(filePath)).toBe(true);
   });
 
   // TC-053-02: Streaming mode real-time processing
   test('TC-053-02: StreamingProcessor component file exists', () => {
-    const filePath = path.join(__dirname, '../../src/components/StreamingProcessor.tsx');
+    const filePath = path.join(testDir, 'src/components/StreamingProcessor.tsx');
     expect(fs.existsSync(filePath)).toBe(true);
   });
 
   // TC-054-01: Dashboard display
   test('TC-054-01: FrameworkDashboard component file exists', () => {
-    const filePath = path.join(__dirname, '../../src/components/FrameworkDashboard.tsx');
+    const filePath = path.join(testDir, 'src/components/FrameworkDashboard.tsx');
     expect(fs.existsSync(filePath)).toBe(true);
   });
 
@@ -1205,13 +1204,13 @@ describe('REQ-056: Cache Warmup', () => {
 describe('REQ-057: Pipeline API Endpoints', () => {
   // TC-057-01: Video rendering API call
   test('TC-057-01: PipelineInterface component file exists', () => {
-    const filePath = path.join(__dirname, '../../src/components/pipeline-interface.tsx');
+    const filePath = path.join(testDir, 'src/components/pipeline-interface.tsx');
     expect(fs.existsSync(filePath)).toBe(true);
   });
 
   // TC-057-02: Auto-commit API call
   test('TC-057-02: useFrameworkPipeline hook file exists', () => {
-    const filePath = path.join(__dirname, '../../src/hooks/useFrameworkPipeline.ts');
+    const filePath = path.join(testDir, 'src/hooks/useFrameworkPipeline.ts');
     expect(fs.existsSync(filePath)).toBe(true);
   });
 });

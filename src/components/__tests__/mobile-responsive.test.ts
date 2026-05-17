@@ -14,11 +14,8 @@ import * as path from 'path';
 
 // ─── Helper: Read component source ──────────────────────────────────────────
 
-import { fileURLToPath } from 'url';
-const __testDir = fileURLToPath(new URL('.', import.meta.url));
-
 function readComponentSource(filename: string): string {
-  const filePath = path.resolve(__testDir, '..', filename);
+  const filePath = path.resolve(process.cwd(), 'src/components', filename);
   return fs.readFileSync(filePath, 'utf-8');
 }
 

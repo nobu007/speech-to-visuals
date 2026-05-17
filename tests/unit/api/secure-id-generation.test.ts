@@ -8,8 +8,7 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
-import { fileURLToPath } from 'url';
-const root = resolve(fileURLToPath(new URL('.', import.meta.url)), '../../../src');
+const root = resolve(process.cwd(), 'src');
 
 function src(relPath: string): string {
   return readFileSync(resolve(root, relPath), 'utf-8');
