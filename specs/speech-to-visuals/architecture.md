@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-05（第110回検証: Phase 1-20全完了・282ファイル・87,267行・116タスク(全完了)・全3,569テスト通過(133 suites)・TypeScript/ESLintエラー0件・依存104パッケージ(74+30)・104要件・要件カバレッジ100%維持・SYSTEM_CONSTITUTION V2.1適合・カバレッジ92.14%/81.15%/92.46%/92.56%）
+**最終更新**: 2026-05-17（第149回検証: Phase 1-43進行中・CacheWarmupManager統合・startup-warmup起動時配線完了・327+ファイル・96,780+行・4,500+テスト・TypeScript/ESLintエラー0件・依存105パッケージ）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -77,9 +77,10 @@
 - **認証方式**: Supabase Auth（JWT ベース）
 - **API設計**: REST（バッチ処理API）+ Supabase Edge Functions
 - **ミドルウェア**: express-rate-limit（レート制限）、Helmet（セキュリティヘッダー）、CORS
-- **API構成**: src/api/middleware/（rate-limit, error-handler, auth）、src/api/routes/（batch, health, pipeline ルート定義）🔵 *src/api/ より*
+- **API構成**: src/api/middleware/（rate-limit, error-handler, auth）、src/api/routes/（batch, health, pipeline ルート定義）、src/api/startup-warmup.ts（起動時キャッシュウォームアップトリガー）🔵 *src/api/ より*
 - **バッチ処理API**: REST エンドポイント（POST /batch/jobs でジョブ作成→HTTP 202、GET /batch/jobs/:id でステータス取得、DELETE /batch/jobs/:id でキャンセル）、セマフォパターンで最大3並列ジョブ制御 🔵 *src/api/routes/batch.ts・要件定義REQ-043 より*
 - **WebSocket リアルタイム通知**: Socket.IO ベースのジョブ進捗・完了・エラー・ファイルステータス・ステージ進捗・ストリーミングセグメント・エラー回復イベントのリアルタイム配信。JWT 認証で接続保護、ジョブルーム（join:job/leave:job）による購読管理 🔵 *src/api/websocket-handler.ts・要件定義REQ-046 より*
+- **起動時キャッシュウォームアップ**: Express サーバー起動完了後に triggerStartupWarmup() で LLMService.warmupCache() を非同期呼び出し（fire-and-forget パターン）。LLM サービス無効時はスキップ、失敗時はログ出力のみでサーバー動作に影響なし 🔵 *src/api/startup-warmup.ts・src/api/index.ts・Phase 43 より*
 
 ### AI・処理モジュール 🔵
 
@@ -206,6 +207,7 @@ Phase 37 で計画中のコード規模自動監査（未実装）:
 - **メモリキャッシュ**: 汎用LRUメモリキャッシュ（設定可能最大サイズ・TTL・定期クリーンアップ・ヒット率統計）🔵 *src/optimization/memory-cache.ts・要件定義REQ-048 より*
 - **遅延ローダー**: 重いモジュールの動的インポートキャッシュ（同時ロード重複排除・プリロード・無効化・統計情報）🔵 *src/optimization/lazy-loader.ts・要件定義REQ-049 より*
 - **キャッシュウォームアップ**: セマンティックキャッシュのコールドスタート検出、代表的なクエリパターン（英語・日本語）による事前キャッシュ充填、ウォームアップ前後のヒット率改善を統計追跡 🔵 *src/optimization/cache-warmup.ts・要件定義REQ-056 より* 【Phase 8 追加】
+- **起動時キャッシュウォームアップ**: LLMService への CacheWarmupManager 統合（warmupCache/getCacheWarmupStats/getCacheHitRateReport メソッド追加）、起動時非ブロッキングウォームアップトリガー（startup-warmup.ts）、LLM クエリごとのヒット/ミス自動追跡 🔵 *src/analysis/llm-service.ts・src/api/startup-warmup.ts・Phase 43 実装より*
 
 ### パイプライン API エンドポイント 🔵
 
@@ -431,6 +433,15 @@ Fallback LLM
 - **TTL**: 120分
 - **効果**: 同一/類似コンテンツの再分析を回避、API コスト削減
 
+### キャッシュウォームアップ統合（Phase 43）🔵
+
+**信頼性**: 🔵 *src/analysis/llm-service.ts・src/optimization/cache-warmup.ts・src/api/startup-warmup.ts より*
+
+- **CacheWarmupManager**: LLMService コンストラクタで初期化、キャッシュのコールドスタート（エントリ < 閾値）を自動検出
+- **起動時ウォームアップ**: API サーバー起動後に triggerStartupWarmup() で非ブロッキング実行、8つの代表的なクエリパターン（英語・日本語）で事前キャッシュ充填
+- **ヒット率追跡**: LLM クエリごとに cacheWarmupManager.recordQuery() でヒット/ミス記録、ウォームアップ前後のヒット率改善を getCacheHitRateReport() で取得可能
+- **キャッシュリセット対応**: clearCache() 実行時に CacheWarmupManager を再生成、再ウォームアップが可能
+
 ## 非機能要件の実現方法
 
 ### パフォーマンス 🔵
@@ -527,6 +538,7 @@ Fallback LLM
 - [x] Web Workers 並列化モジュール（Phase 20）がコンポーネント構成に反映されている
 - [x] LLMコスト・トークン監視モジュール（Phase 36）がコンポーネント構成に反映されている
 - [x] コード規模自動監査モジュール（Phase 37）が実装されている
+- [x] CacheWarmupManager 統合と起動時ウォームアップ配線（Phase 43）がコンポーネント構成に反映されている
 
 ## 関連文書
 
@@ -541,11 +553,11 @@ Fallback LLM
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 139件 (97%)
+- 🔵 青信号: 145件 (97%)
 - 🟡 黄信号: 4件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第148回検証: Phase 1-39完了・327ファイル・96,466行・153タスク(150完了・3未着手→Phase 39 TASK-0151~0153完了で153完了)・4,346テスト(193 suites)全通過・TypeScript/ESLintエラー0件・依存105パッケージ(74+31)・109要件・SYSTEM_CONSTITUTION V2.5適合・Phase 37 コード規模監査モジュール実装済・Phase 39 ESM互換性修正完了・npm audit 0脆弱性・ギャップなし確認）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第149回検証: Phase 43進行中・CacheWarmupManager統合・起動時ウォームアップ配線完了・327+ファイル・96,780+行・4,500+テスト全通過・TypeScript/ESLintエラー0件・依存105パッケージ・SYSTEM_CONSTITUTION V2.5適合・ギャップなし確認）
 
 
 <!-- spine:children:begin -->

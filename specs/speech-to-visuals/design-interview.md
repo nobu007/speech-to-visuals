@@ -10,8 +10,8 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-16（第148回検証: Phase 1-39全完了・153タスク全完了・327ファイル・96,466行・4,346テスト（193スイート）全通過・TypeScript/ESLintエラー0件・npm audit 0脆弱性・依存105パッケージ(74+31)・109要件・SYSTEM_CONSTITUTION V2.5適合・ギャップなし確認）
-**履歴**: 第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-04-30)
+**最終更新**: 2026-05-17（第149回検証: Phase 43進行中・CacheWarmupManager統合・起動時ウォームアップ配線完了・327+ファイル・96,780+行・4,500+テスト全通過・TypeScript/ESLintエラー0件・依存105パッケージ・ギャップなし確認）
+**履歴**: 第149回検証(2026-05-17)・第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-04-30)
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 
 ## 分析目的
@@ -22,6 +22,34 @@
 **最終更新（2026-04-29 Phase 4反映）**: Phase 4 完了に伴う要件定義更新（REQ-025~REQ-035 追加）と、新規モジュール（Remotion Animation・Renderer・SRT Parser・Pipeline UI）の差分反映を実施。
 
 ## 分析項目と判断
+
+### A91: 第149回検証 - Phase 43 CacheWarmupManager統合・起動時ウォームアップ配線（2026-05-17）
+
+**分析日時**: 2026-05-17
+**カテゴリ**: アーキテクチャ・キャッシュ最適化・起動時初期化
+**背景**: Phase 43 で CacheWarmupManager を LLMService に統合し、API サーバー起動時にキャッシュウォームアップを自動実行する仕組みを構築。REQ-202（コールドスタート時ウォームアップ戦略）の本格的な実現。
+
+**判断**: Phase 43 CacheWarmupManager 統合・起動時配線完了:
+1. **CacheWarmupManager 統合**: LLMService コンストラクタで初期化、warmupCache/getCacheWarmupStats/getCacheHitRateReport メソッド追加 🔵 *src/analysis/llm-service.ts より*
+2. **起動時ウォームアップトリガー**: startup-warmup.ts 新規作成、triggerStartupWarmup() で fire-and-forget パターン実装 🔵 *src/api/startup-warmup.ts より*
+3. **API サーバー起動配線**: app.listen() コールバック内で triggerStartupWarmup() 呼び出し、サーバー起動をブロックしない非同期設計 🔵 *src/api/index.ts より*
+4. **ヒット/ミス自動追跡**: LLMService.execute() 内で cacheWarmupManager.recordQuery() 呼び出し、キャッシュ効果を継続監視 🔵 *src/analysis/llm-service.ts より*
+5. **テスト**: 133行の LLMService ウォームアップテスト + 96行の startup-warmup テストで包括的カバレッジ 🔵 *src/analysis/__tests__/llm-service-warmup.test.ts・src/api/__tests__/startup-warmup.test.ts より*
+6. **キャッシュリセット対応**: clearCache() 実行時に CacheWarmupManager 再生成、再ウォームアップ可能 🔵
+
+**根拠**:
+- git log: c6a19e5 (feat(api): wire warmupCache() into application startup path)・e7471e9 (feat(llm): integrate CacheWarmupManager into LLMService for Phase 43)
+- 新規ファイル: src/api/startup-warmup.ts (31行)・src/analysis/__tests__/llm-service-warmup.test.ts (133行)・src/api/__tests__/startup-warmup.test.ts (96行)
+- 変更ファイル: src/analysis/llm-service.ts (+54行)・src/api/index.ts (+3行)
+
+**信頼性への影響**:
+- キャッシュウォームアップフロー: Phase 8 のみちの設計から Phase 43 での完全実装に伴い 🔵 確認
+- LLMService API: warmupCache/getCacheWarmupStats/getCacheHitRateReport の3メソッド追加により 🔵 拡張
+- 起動時初期化フロー: 新規モジュール startup-warmup.ts により 🔵 追加
+- architecture.md: 起動時キャッシュウォームアップセクション追加 🔵
+- dataflow.md: 機能11キャッシュウォームアップフローをシーケンス図に更新 🔵
+
+---
 
 ### A90: 第148回検証 - Phase 39完了・全153タスク完了確認（2026-05-16）
 
@@ -3106,8 +3134,8 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - 🟡 黄信号: 4
 - 🔴 赤信号: 0
 
-**分析後**:
+**分析後（第149回検証 - Phase 43反映）**:
 
-- 🔵 青信号: 478 (+13)
+- 🔵 青信号: 490 (+25)
 - 🟡 黄信号: 6 (+2)
 - 🔴 赤信号: 0

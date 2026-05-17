@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-03（第109回検証: Phase 1-19全完了・282ファイル・87,267行・113タスク(全完了)・全3,569テスト通過(133 suites)・TypeScript/ESLintエラー0件・依存104パッケージ(74+30)・103要件・要件カバレッジ100%維持・フロー変更なし・ギャップなし確認）
+**最終更新**: 2026-05-17（第149回検証: Phase 43進行中・CacheWarmupManager統合・起動時ウォームアップ配線完了・フロー更新）
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](requirements.md)
 
@@ -1111,31 +1111,56 @@ flowchart TD
 
 ### 機能11: キャッシュウォームアップフロー 🔵
 
-**信頼性**: 🔵 *src/optimization/cache-warmup.ts・要件定義REQ-056・ユーザーストーリーPhase 8 より*
+**信頼性**: 🔵 *src/optimization/cache-warmup.ts・src/analysis/llm-service.ts・src/api/startup-warmup.ts・要件定義REQ-056・Phase 43 より*
 
 **関連要件**: REQ-056, REQ-202
 
 ```mermaid
-flowchart TD
-    A[システム起動] --> B{キャッシュ状態確認}
-    B -->|コールドスタート| C[CacheWarmup.warmup]
-    B -->|ウォーム済み| D[通常処理継続]
-    C --> E[代表クエリパターン生成]
-    E --> F[英語パターン: 一般・技術・ビジネス]
-    E --> G[日本語パターン: 一般・技術・ビジネス]
-    F --> H[キャッシュ事前充填]
-    G --> H
-    H --> I[ウォームアップ前ヒット率記録]
-    I --> J[ウォームアップ後ヒット率記録]
-    J --> K[統計レポート: 改善率]
-    K --> D
+sequenceDiagram
+    participant API as Express API Server
+    participant SW as startup-warmup.ts
+    participant LLM as LLMService
+    participant CWM as CacheWarmupManager
+    participant Cache as LLMCache
+
+    API->>API: app.listen(PORT) 完了
+    API->>SW: triggerStartupWarmup(llmService)
+    SW->>LLM: isEnabled() チェック
+    alt LLMサービス無効
+        SW-->>SW: リターン（ウォームアップ不要）
+    else LLMサービス有効
+        SW->>LLM: warmupCache()
+        LLM->>CWM: warmupIfCold(resolver)
+        CWM->>Cache: エントリ数確認
+        alt コールドスタート（< 閾値）
+            CWM->>CWM: 代表クエリパターン生成（8パターン）
+            loop 各パターン
+                CWM->>Cache: キャッシュ保存
+                CWM->>CWM: 成功/失敗カウント
+            end
+            CWM-->>LLM: true（ウォームアップ実行済み）
+        else ウォーム済み
+            CWM-->>LLM: false（スキップ）
+        end
+        LLM-->>SW: 結果
+        SW->>SW: ログ出力（成功/スキップ）
+    end
+
+    Note over API,Cache: 後続のLLMクエリは事前キャッシュの恩恵を受ける
+    API->>LLM: execute(query) [通常リクエスト]
+    LLM->>Cache: キャッシュ検索
+    Cache-->>LLM: ヒット or ミス
+    LLM->>CWM: recordQuery(wasHit)
+    CWM->>CWM: ヒット率統計更新
 ```
 
 **詳細ステップ**:
-1. システム起動時にキャッシュ状態を確認し、コールドスタートを検出 🔵
-2. 英語・日本語の代表的なクエリパターン（一般・技術・ビジネスドメイン）を生成 🔵
-3. 各パターンでキャッシュ事前充填を実行 🔵
+1. Express API サーバー起動完了後に triggerStartupWarmup() が LLMService.warmupCache() を非同期呼び出し（fire-and-forget パターン）🔵 *Phase 43 追加*
+2. LLMService 経由で CacheWarmupManager にウォームアップ要求 🔵 *Phase 43 追加*
+3. キャッシュ状態確認（コールドスタート検出）→ 代表的クエリパターン（英語・日本語8パターン）で事前充填 🔵
 4. ウォームアップ前後のヒット率を統計追跡 🔵
+5. LLM クエリごとに recordQuery() でヒット/ミス記録 → getCacheHitRateReport() で改善効果を取得 🔵 *Phase 43 追加*
+6. clearCache() 実行時は CacheWarmupManager 再生成 → 再ウォームアップ可能 🔵 *Phase 43 追加*
 
 ### 機能12: パイプライン API エンドポイントフロー 🔵
 
