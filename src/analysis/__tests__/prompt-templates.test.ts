@@ -2,11 +2,11 @@
  * Tests for prompt-templates.ts
  *
  * Covers:
- * - getGeminiAnalyzerPrompt() with auto/en/ja language selection
- * - getContentAnalyzerPrompt() with auto/en/ja language selection
+ * - getGeminiAnalyzerPrompt() with auto/en/ja/zh language selection
+ * - getContentAnalyzerPrompt() with auto/en/ja/zh language selection
  * - Prompt content verification (contains expected instructions)
  * - Text truncation for long inputs (text.slice(0, 1000))
- * - Language detection integration
+ * - Language detection integration including Phase 44 languages
  */
 
 import { getGeminiAnalyzerPrompt, getContentAnalyzerPrompt, type PromptTemplate } from '../prompt-templates';
@@ -120,6 +120,68 @@ describe('prompt-templates', () => {
   });
 
   // -------------------------------------------------------------------------
+  // Phase 44: Chinese prompt tests
+  // -------------------------------------------------------------------------
+  describe('Phase 44: Chinese prompt (getGeminiAnalyzerPrompt)', () => {
+    it('should return Chinese prompt when language is explicitly zh', () => {
+      const prompt = getGeminiAnalyzerPrompt('这是一个测试', 'zh');
+      expect(prompt).toContain('结构化数据');
+      expect(prompt).toContain('关系');
+    });
+
+    it('should return Chinese prompt for auto-detected Chinese text', () => {
+      const prompt = getGeminiAnalyzerPrompt('这是一个人工智能技术发展的测试文本', 'auto');
+      expect(prompt).toContain('结构化数据');
+    });
+
+    it('should include JSON format instructions in Chinese prompt', () => {
+      const prompt = getGeminiAnalyzerPrompt('测试', 'zh');
+      expect(prompt).toContain('nodes');
+      expect(prompt).toContain('edges');
+      expect(prompt).toContain('JSON');
+    });
+
+    it('should include diagram type options in Chinese prompt', () => {
+      const prompt = getGeminiAnalyzerPrompt('测试', 'zh');
+      expect(prompt).toContain('flowchart');
+      expect(prompt).toContain('mindmap');
+      expect(prompt).toContain('timeline');
+    });
+
+    it('should include relationship extraction examples in Chinese prompt', () => {
+      const prompt = getGeminiAnalyzerPrompt('测试', 'zh');
+      expect(prompt).toContain('因果关系');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Phase 44: Latin-script language prompt tests (es/fr/de use English base)
+  // -------------------------------------------------------------------------
+  describe('Phase 44: Latin-script language prompts', () => {
+    it('should return English prompt for Spanish text (es uses English base)', () => {
+      const prompt = getGeminiAnalyzerPrompt('El niño está aquí', 'es');
+      expect(prompt).toContain('expert');
+      expect(prompt).toContain('extraction');
+    });
+
+    it('should return English prompt for French text (fr uses English base)', () => {
+      const prompt = getGeminiAnalyzerPrompt('Le français avec ça', 'fr');
+      expect(prompt).toContain('expert');
+    });
+
+    it('should return English prompt for German text (de uses English base)', () => {
+      const prompt = getGeminiAnalyzerPrompt('Die Straße ist groß', 'de');
+      expect(prompt).toContain('expert');
+    });
+
+    it('should auto-detect Spanish and use English prompt', () => {
+      const prompt = getGeminiAnalyzerPrompt('El niño pequeño corre rápidamente por la calle', 'auto');
+      // Spanish is detected, but uses English prompt base
+      expect(prompt).toContain('expert');
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // getContentAnalyzerPrompt
   // -------------------------------------------------------------------------
   describe('getContentAnalyzerPrompt', () => {
@@ -195,6 +257,24 @@ describe('prompt-templates', () => {
   });
 
   // -------------------------------------------------------------------------
+  // Phase 44: Chinese content analyzer prompt
+  // -------------------------------------------------------------------------
+  describe('Phase 44: Chinese content analyzer prompt', () => {
+    it('should return Chinese prompt when language is explicitly zh', () => {
+      const prompt = getContentAnalyzerPrompt('这是一个测试', 'zh');
+      expect(prompt).toContain('分析');
+      expect(prompt).toContain('图表');
+    });
+
+    it('should include JSON format in Chinese prompt', () => {
+      const prompt = getContentAnalyzerPrompt('测试', 'zh');
+      expect(prompt).toContain('JSON');
+      expect(prompt).toContain('nodes');
+      expect(prompt).toContain('edges');
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // Language detection integration
   // -------------------------------------------------------------------------
   describe('language detection integration', () => {
@@ -212,8 +292,13 @@ describe('prompt-templates', () => {
 
     it('should use Japanese prompt for mixed text with Japanese majority', () => {
       const prompt = getContentAnalyzerPrompt('日本語の文章が主体で English is mixed in.', 'auto');
-      // With > 20% Japanese characters, should select Japanese
+      // With kana present, should select Japanese
       expect(prompt).toContain('分析');
+    });
+
+    it('should auto-detect Chinese for CJK-only text', () => {
+      const prompt = getGeminiAnalyzerPrompt('人工智能技术发展推动了社会进步和产业变革', 'auto');
+      expect(prompt).toContain('结构化数据');
     });
 
     it('should handle undefined language parameter', () => {

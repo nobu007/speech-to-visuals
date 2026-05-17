@@ -1,8 +1,10 @@
 /**
- * Phase 32: Bilingual Prompt Templates for LLM Analyzers
+ * Phase 32 / Phase 44: Multilingual Prompt Templates for LLM Analyzers
  *
- * Provides context-appropriate prompts in Japanese and English
+ * Provides context-appropriate prompts in Japanese, English, and Chinese
  * for better analysis accuracy across different languages.
+ * Latin-script languages (ES/FR/DE) use English prompts as base;
+ * the LLM naturally adapts output language to match input.
  */
 
 import { Language, detectLanguage } from './language-detector';
@@ -142,6 +144,69 @@ ${text.slice(0, 1000)}
 JSON:`;
 
 /**
+ * Chinese prompt for GeminiAnalyzer (Phase 44)
+ */
+const GEMINI_ANALYZER_PROMPT_ZH = (text: string) => `你是结构化数据提取专家。请从以下文本中提取图表数据，特别注重**准确提取节点之间的关系**。
+
+## 第一步：推理过程（内部处理，无需输出）
+1. 理解文本的主题和核心内容
+2. 列出关键实体（概念、人物、事件）
+3. 识别实体之间的关系模式：
+   - 因果关系：A→B（A导致B发生）
+   - 时序关系：A→B（B在A之后发生）
+   - 层级关系：A→B（A包含B，A在B之上）
+   - 依赖关系：A→B（A影响B）
+   - 转换关系：A→B（A转化为B）
+
+## 第二步：关系提取的重要规则
+- **不要遗漏明确的连接词**："然后"、"之后"、"由于"、"因此"、"从而"、"导致"、"经过"
+- **推理隐含关系**：从上下文中推断可读的顺序和依赖关系
+- **双向关系**：对于相互作用的情形，创建双向边
+- **中间步骤**：当存在A→C时，验证是否存在A→B→C这样的中间过程
+
+## 第三步：输出格式（仅输出此部分）
+请按以下JSON格式输出（无需说明文字或代码块）：
+
+{
+  "title": "文本主题（最多30个字符）",
+  "type": "flowchart" | "mindmap" | "timeline" | "orgchart" | "matrix" | "cycle",
+  "nodes": [
+    {"id": "n1", "label": "节点名称（最多60个字符）"},
+    {"id": "n2", "label": "另一个节点"}
+  ],
+  "edges": [
+    {"from": "n1", "to": "n2", "label": "关系标签（可选）"}
+  ]
+}
+
+## 图表类型选择指南：
+- **flowchart**：流程/步骤/工作流（A→B→C顺序处理）
+- **mindmap**：层级结构/分类/树形（从中心向外辐射）
+- **timeline**：时间线/历史/演变（沿时间轴排列）
+- **orgchart**：组织架构图/职位层级（CEO→VP→经理）
+- **matrix**：对比表/分析对比（评估多个选项）
+- **cycle**：循环/迭代（最终状态回到初始状态）
+
+## 输出约束：
+- 节点数量：最多10个
+- 标签：最多60个字符
+- edges数组：**必需**（即使为空也必须包含）
+- 仅输出纯JSON（不要Markdown）
+
+## 关系提取示例：
+输入："研究开发了新技术，然后将其商业化并转化为产品"
+输出edges：[
+  {"from": "研究", "to": "新技术", "label": "开发"},
+  {"from": "新技术", "to": "商业化", "label": "应用于"},
+  {"from": "商业化", "to": "产品", "label": "转化为"}
+]
+
+## 待分析文本：
+${text.slice(0, 1000)}
+
+JSON:`;
+
+/**
  * Japanese prompt for ContentAnalyzer
  */
 const CONTENT_ANALYZER_PROMPT_JA = (text: string) => `以下のテキストを分析し、内容を最もよく表す図解を生成するためのJSONデータを作成してください。
@@ -198,31 +263,70 @@ Text:
 "${text}"`;
 
 /**
- * Get appropriate prompt based on detected language
+ * Chinese prompt for ContentAnalyzer (Phase 44)
+ */
+const CONTENT_ANALYZER_PROMPT_ZH = (text: string) => `请分析以下文本，并创建最能表达内容的图表JSON数据。
+
+JSON格式：{title, type, nodes, edges}。
+- type: 'flowchart' | 'mindmap' | 'timeline' | 'orgchart' | 'matrix' | 'cycle'
+- nodes: {id, label} 数组
+- edges: {from, to, label?} 数组
+
+图表类型选择：
+- flowchart：流程/步骤
+- mindmap：层级/树形
+- timeline：时间线/历史
+- orgchart：组织架构图
+- matrix：比较/对比
+- cycle：循环
+
+重要指示：
+1. 仅返回JSON（不要代码块）
+2. **准确提取关系**：从文本中的"然后"、"之后"、"由于"、"导致"、"经过"等连接词中，准确表达节点间的依赖关系
+3. **保持顺序**：对于时序或步骤，请在edges中包含顺序关系
+4. **表达层级**：对于组织架构或分类，在edges中清晰表达上下级关系
+5. 为每个重要节点至少创建一个连接（edge）
+
+文本：
+"${text}"`;
+
+/**
+ * Get appropriate prompt based on detected language.
+ * Phase 44: Extended to support Chinese (zh) and Latin-script languages (es/fr/de).
  */
 export function getGeminiAnalyzerPrompt(text: string, preferredLanguage?: Language): string {
   const detected = preferredLanguage === 'auto' || !preferredLanguage
     ? detectLanguage(text)
     : { language: preferredLanguage, confidence: 1.0 };
 
-  if (detected.language === 'ja') {
-    return GEMINI_ANALYZER_PROMPT_JA(text);
-  } else {
-    return GEMINI_ANALYZER_PROMPT_EN(text);
+  switch (detected.language) {
+    case 'ja':
+      return GEMINI_ANALYZER_PROMPT_JA(text);
+    case 'zh':
+      return GEMINI_ANALYZER_PROMPT_ZH(text);
+    default:
+      // 'en', 'es', 'fr', 'de' all use English prompt base
+      // LLM naturally adapts output language to match input
+      return GEMINI_ANALYZER_PROMPT_EN(text);
   }
 }
 
 /**
- * Get appropriate prompt based on detected language for ContentAnalyzer
+ * Get appropriate prompt based on detected language for ContentAnalyzer.
+ * Phase 44: Extended to support Chinese (zh) and Latin-script languages (es/fr/de).
  */
 export function getContentAnalyzerPrompt(text: string, preferredLanguage?: Language): string {
   const detected = preferredLanguage === 'auto' || !preferredLanguage
     ? detectLanguage(text)
     : { language: preferredLanguage, confidence: 1.0 };
 
-  if (detected.language === 'ja') {
-    return CONTENT_ANALYZER_PROMPT_JA(text);
-  } else {
-    return CONTENT_ANALYZER_PROMPT_EN(text);
+  switch (detected.language) {
+    case 'ja':
+      return CONTENT_ANALYZER_PROMPT_JA(text);
+    case 'zh':
+      return CONTENT_ANALYZER_PROMPT_ZH(text);
+    default:
+      // 'en', 'es', 'fr', 'de' all use English prompt base
+      return CONTENT_ANALYZER_PROMPT_EN(text);
   }
 }

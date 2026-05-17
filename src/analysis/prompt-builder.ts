@@ -41,7 +41,8 @@ export class PromptBuilder {
     const model: ModelType = complexity < 0.2 ? 'gemini-2.5-flash' : 'gemini-2.5-pro';
 
     // Get base prompt from prompt-templates
-    const lang: Language = (language === 'ja' || language === 'en') ? language : 'auto';
+    const validLangs: Language[] = ['ja', 'en', 'zh', 'es', 'fr', 'de'];
+    const lang: Language = validLangs.includes(language as Language) ? (language as Language) : 'auto';
     const basePrompt = getGeminiAnalyzerPrompt(text, lang);
 
     // Append model-specific optimization instructions

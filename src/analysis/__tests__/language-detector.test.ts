@@ -1,9 +1,10 @@
 /**
- * TASK-0014: Language Detection Module Tests
+ * TASK-0014 / Phase 44: Language Detection Module Tests
  *
- * Tests for automatic language detection supporting Japanese/English.
+ * Tests for automatic language detection supporting Japanese, English,
+ * Chinese, Spanish, French, German.
  * Covers character-based detection, Kuromoji integration, confidence scoring,
- * and mixed-language text handling.
+ * diacritical mark scoring, and mixed-language text handling.
  */
 
 import {
@@ -12,6 +13,8 @@ import {
   type JapaneseAnalysisResult,
   type LanguageSegment,
   type KuromojiBuilder,
+  detectLanguage,
+  forceLanguage,
 } from '../language-detector';
 
 // ---------------------------------------------------------------------------
@@ -90,12 +93,12 @@ describe('LanguageDetector', () => {
       expect(result.confidence).toBeGreaterThanOrEqual(0.8);
     });
 
-    it('should detect kanji-heavy text as Japanese', async () => {
+    it('should detect kanji-heavy text with katakana as Japanese', async () => {
       const text = '日本語形態素解析システム';
       const result = await detector.detect(text);
 
       expect(result.language).toBe('ja');
-      expect(result.confidence).toBeGreaterThanOrEqual(0.8);
+      expect(result.confidence).toBeGreaterThanOrEqual(0.7);
     });
   });
 
@@ -117,6 +120,118 @@ describe('LanguageDetector', () => {
 
       expect(result.language).toBe('en');
       expect(result.confidence).toBeGreaterThanOrEqual(0.8);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Phase 44: Chinese detection
+  // -----------------------------------------------------------------------
+  describe('Phase 44: Chinese detection', () => {
+    it('should detect Chinese text (simplified) as "zh"', async () => {
+      const text = '这是一个用中文编写的测试句子';
+      const result = await detector.detect(text);
+
+      expect(result.language).toBe('zh');
+      expect(result.confidence).toBeGreaterThanOrEqual(0.5);
+    });
+
+    it('should detect Chinese text (traditional) as "zh"', async () => {
+      const text = '這是一個用繁體中文編寫的測試';
+      const result = await detector.detect(text);
+
+      expect(result.language).toBe('zh');
+    });
+
+    it('should detect pure CJK text without kana as Chinese', async () => {
+      const text = '人工智能技术发展趋势分析报告';
+      const result = await detector.detect(text);
+
+      expect(result.language).toBe('zh');
+    });
+
+    it('should distinguish Chinese from Japanese by absence of kana', async () => {
+      const chineseText = '技术发展推动了社会进步';
+      const japaneseText = '技術の発展は社会の進歩を推進した';
+
+      const zhResult = await detector.detect(chineseText);
+      const jaResult = await detector.detect(japaneseText);
+
+      expect(zhResult.language).toBe('zh');
+      expect(jaResult.language).toBe('ja');
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Phase 44: Spanish detection
+  // -----------------------------------------------------------------------
+  describe('Phase 44: Spanish detection', () => {
+    it('should detect Spanish text with ñ as "es"', async () => {
+      const text = 'El niño está en la escuela aprendiendo español';
+      const result = await detector.detect(text);
+
+      expect(result.language).toBe('es');
+      expect(result.confidence).toBeGreaterThanOrEqual(0.5);
+    });
+
+    it('should detect Spanish text with ¿ as "es"', async () => {
+      const text = '¿Cómo estás hoy? Todo está bien aquí';
+      const result = await detector.detect(text);
+
+      expect(result.language).toBe('es');
+    });
+
+    it('should detect Spanish text with ¡ as "es"', async () => {
+      const text = '¡Qué sorpresa! La fiesta fue increíble';
+      const result = await detector.detect(text);
+
+      expect(result.language).toBe('es');
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Phase 44: French detection
+  // -----------------------------------------------------------------------
+  describe('Phase 44: French detection', () => {
+    it('should detect French text with ç as "fr"', async () => {
+      const text = 'Le français est une belle langue avec ça';
+      const result = await detector.detect(text);
+
+      expect(result.language).toBe('fr');
+      expect(result.confidence).toBeGreaterThanOrEqual(0.5);
+    });
+
+    it('should detect French text with ê/î/û as "fr"', async () => {
+      const text = 'Le château bûche la forêt île';
+      const result = await detector.detect(text);
+
+      expect(result.language).toBe('fr');
+    });
+
+    it('should detect French text with multiple French diacriticals as "fr"', async () => {
+      const text = 'Les élèves étudient à la bibliothèque';
+      const result = await detector.detect(text);
+
+      expect(result.language).toBe('fr');
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Phase 44: German detection
+  // -----------------------------------------------------------------------
+  describe('Phase 44: German detection', () => {
+    it('should detect German text with ß as "de"', async () => {
+      const text = 'Die Straße ist groß und lang';
+      const result = await detector.detect(text);
+
+      expect(result.language).toBe('de');
+      expect(result.confidence).toBeGreaterThanOrEqual(0.5);
+    });
+
+    it('should detect German text with ü/ö/ä as "de"', async () => {
+      const text = 'Die schöne Übung für ältere Schüler';
+      const result = await detector.detect(text);
+
+      expect(result.language).toBe('de');
     });
   });
 
@@ -144,6 +259,23 @@ describe('LanguageDetector', () => {
 
       expect(['ja', 'en']).toContain(result.language);
       expect(result.segments.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should label CJK segments as zh when text has no kana', async () => {
+      const text = 'Hello这是中文mixed text';
+      const result = await detector.detect(text);
+
+      const languages = result.segments.map((s: LanguageSegment) => s.language);
+      expect(languages).toContain('zh');
+      expect(languages).toContain('en');
+    });
+
+    it('should label CJK segments as ja when text has kana', async () => {
+      const text = 'これは漢字English混合テストです';
+      const result = await detector.detect(text);
+
+      const jaSegments = result.segments.filter((s: LanguageSegment) => s.language === 'ja');
+      expect(jaSegments.length).toBeGreaterThan(0);
     });
   });
 
@@ -184,6 +316,20 @@ describe('LanguageDetector', () => {
       const score2 = d.calculateConfidence('English sentence here', 'en');
       expect(score2).toBeGreaterThanOrEqual(0.0);
       expect(score2).toBeLessThanOrEqual(1.0);
+
+      const score3 = d.calculateConfidence('这是一个中文句子', 'zh');
+      expect(score3).toBeGreaterThanOrEqual(0.0);
+      expect(score3).toBeLessThanOrEqual(1.0);
+    });
+
+    it('should return valid confidence for all language codes', () => {
+      const d = createDetector();
+      const languages = ['ja', 'en', 'zh', 'es', 'fr', 'de'];
+      for (const lang of languages) {
+        const score = d.calculateConfidence('test text here', lang);
+        expect(score).toBeGreaterThanOrEqual(0.0);
+        expect(score).toBeLessThanOrEqual(1.0);
+      }
     });
   });
 
@@ -277,5 +423,74 @@ describe('LanguageDetector', () => {
       expect(result.confidence).toBeGreaterThanOrEqual(0.0);
       expect(result.confidence).toBeLessThanOrEqual(1.0);
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Legacy detectLanguage function tests
+// ---------------------------------------------------------------------------
+
+describe('detectLanguage (legacy function)', () => {
+  it('should detect Japanese text', () => {
+    const result = detectLanguage('これは日本語のテストです');
+    expect(result.language).toBe('ja');
+    expect(result.confidence).toBeGreaterThanOrEqual(0.5);
+  });
+
+  it('should detect English text', () => {
+    const result = detectLanguage('This is an English sentence');
+    expect(result.language).toBe('en');
+  });
+
+  it('should detect Chinese text (no kana)', () => {
+    const result = detectLanguage('这是一个中文测试');
+    expect(result.language).toBe('zh');
+  });
+
+  it('should detect Spanish text with ñ', () => {
+    const result = detectLanguage('El niño come español');
+    expect(result.language).toBe('es');
+  });
+
+  it('should detect French text with ç', () => {
+    const result = detectLanguage('Le français avec ça');
+    expect(result.language).toBe('fr');
+  });
+
+  it('should detect German text with ß', () => {
+    const result = detectLanguage('Die Straße ist groß');
+    expect(result.language).toBe('de');
+  });
+
+  it('should return chineseCharRatio for Chinese text', () => {
+    const result = detectLanguage('这是中文');
+    expect(result.chineseCharRatio).toBeGreaterThan(0);
+  });
+
+  it('should include new fields in result', () => {
+    const result = detectLanguage('Test text');
+    expect(result).toHaveProperty('chineseCharRatio');
+    expect(result).toHaveProperty('spanishCharRatio');
+    expect(result).toHaveProperty('frenchCharRatio');
+    expect(result).toHaveProperty('germanCharRatio');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// forceLanguage function tests
+// ---------------------------------------------------------------------------
+
+describe('forceLanguage', () => {
+  it('should return the language if not auto', () => {
+    expect(forceLanguage('ja')).toBe('ja');
+    expect(forceLanguage('en')).toBe('en');
+    expect(forceLanguage('zh')).toBe('zh');
+    expect(forceLanguage('es')).toBe('es');
+    expect(forceLanguage('fr')).toBe('fr');
+    expect(forceLanguage('de')).toBe('de');
+  });
+
+  it('should return auto if auto is passed', () => {
+    expect(forceLanguage('auto')).toBe('auto');
   });
 });

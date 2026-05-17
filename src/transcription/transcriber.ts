@@ -262,6 +262,10 @@ export class TranscriptionPipeline {
     const languageMap: Record<Language, string> = {
       'ja': 'ja',
       'en': 'en',
+      'zh': 'zh',
+      'es': 'es',
+      'fr': 'fr',
+      'de': 'de',
       'auto': 'unknown'
     };
 
