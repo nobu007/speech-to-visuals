@@ -2525,24 +2525,24 @@
 
 #### 正常系
 
-- [ ] **TC-113-01**: ウォームアップ失敗時のヘルスレスポンス形状 🔵
+- [x] **TC-113-01**: ウォームアップ失敗時のヘルスレスポンス形状 🔵
   - **入力**: getWarmupStatus() が {status: 'failed', error: 'ECONNREFUSED', timestamp: '...'} を返す状態で GET /health
   - **期待結果**: 200 + cacheWarmup.status = 'failed' + cacheWarmup.error = 'ECONNREFUSED'
   - **信頼性**: 🔵 *src/api/startup-warmup.ts .catch() フロー・monitoring.ts line 111 より*
 
-- [ ] **TC-113-02**: ウォームアップ失敗がヘルスステータス全体に影響しないこと 🔵
+- [x] **TC-113-02**: ウォームアップ失敗がヘルスステータス全体に影響しないこと 🔵
   - **入力**: getWarmupStatus() が failed 状態 + successRate = 1.0 で GET /health
   - **期待結果**: data.status = 'healthy'（ウォームアップ失敗は successRate に影響しない）
   - **信頼性**: 🔵 *fire-and-forget 設計・monitoring.ts status 判定ロジック line 103 より*
 
 #### 異常系
 
-- [ ] **TC-113-E01**: ウォームアップpending中のヘルスレスポンス 🔵
+- [x] **TC-113-E01**: ウォームアップpending中のヘルスレスポンス 🔵
   - **入力**: getWarmupStatus() が {status: 'pending'} を返す状態で GET /health
   - **期待結果**: 200 + cacheWarmup.status = 'pending' + cacheWarmup.error = undefined
   - **信頼性**: 🔵 *startup-warmup.ts 初期状態・monitoring.ts line 111 より*
 
-- [ ] **TC-113-E02**: ウォームアップスキップ時のヘルスレスポンス 🔵
+- [x] **TC-113-E02**: ウォームアップスキップ時のヘルスレスポンス 🔵
   - **入力**: getWarmupStatus() が {status: 'skipped', timestamp: '...'} を返す状態で GET /health
   - **期待結果**: 200 + cacheWarmup.status = 'skipped'
   - **信頼性**: 🔵 *startup-warmup.ts LLM disabled 分岐・monitoring.ts line 111 より*
@@ -2577,19 +2577,19 @@
 
 #### 正常系
 
-- [ ] **TC-114-01**: ネットワークエラー時のウォームアップ失敗ハンドリング 🔵
+- [x] **TC-114-01**: ネットワークエラー時のウォームアップ失敗ハンドリング 🔵
   - **入力**: warmupCache() が Error('ECONNREFUSED 127.0.0.1:6379') で reject
   - **期待結果**: triggerStartupWarmup() が例外をスローせず、status が 'failed' + error に 'ECONNREFUSED' が含まれる
   - **信頼性**: 🔵 *startup-warmup.ts .catch() フロー・startup-warmup.test.ts line 140-151 より*
 
-- [ ] **TC-114-02**: タイムアウト時のウォームアップ失敗ハンドリング 🔵
+- [x] **TC-114-02**: タイムアウト時のウォームアップ失敗ハンドリング 🔵
   - **入力**: warmupCache() が Error('request timeout') で reject
   - **期待結果**: triggerStartupWarmup() が例外をスローせず、status が 'failed' + error に 'timeout' が含まれる
   - **信頼性**: 🔵 *startup-warmup.ts .catch() フロー・startup-warmup.test.ts line 140-151 より*
 
 #### 異常系
 
-- [ ] **TC-114-E01**: 非Error例外のウォームアップ失敗ハンドリング 🔵
+- [x] **TC-114-E01**: 非Error例外のウォームアップ失敗ハンドリング 🔵
   - **入力**: warmupCache() が文字列 'unknown failure' で reject
   - **期待結果**: triggerStartupWarmup() が例外をスローせず、status が 'failed' + error に 'unknown failure' が含まれる
   - **信頼性**: 🔵 *startup-warmup.ts line 73: err instanceof Error チェック・startup-warmup.test.ts より*
@@ -2622,24 +2622,24 @@
 
 #### 正常系
 
-- [ ] **TC-115-01**: pending → completed 遷移のヘルスエンドポイント反映 🔵
+- [x] **TC-115-01**: pending → completed 遷移のヘルスエンドポイント反映 🔵
   - **入力**: warmupCache() が true で resolve → ヘルスチェック
   - **期待結果**: cacheWarmup.status = 'completed' + patternsProcessed = 8
   - **信頼性**: 🔵 *startup-warmup.ts line 55-61・monitoring.ts line 111 より*
 
-- [ ] **TC-115-02**: pending → skipped（キャッシュ既にウォーム）遷移のヘルスエンドポイント反映 🔵
+- [x] **TC-115-02**: pending → skipped（キャッシュ既にウォーム）遷移のヘルスエンドポイント反映 🔵
   - **入力**: warmupCache() が false で resolve → ヘルスチェック
   - **期待結果**: cacheWarmup.status = 'skipped' + timestamp が定義されている
   - **信頼性**: 🔵 *startup-warmup.ts line 63-67 より*
 
-- [ ] **TC-115-03**: pending → failed 遷移のヘルスエンドポイント反映 🔵
+- [x] **TC-115-03**: pending → failed 遷移のヘルスエンドポイント反映 🔵
   - **入力**: warmupCache() が Error('connection refused') で reject → ヘルスチェック
   - **期待結果**: cacheWarmup.status = 'failed' + error = 'connection refused'
   - **信頼性**: 🔵 *startup-warmup.ts line 69-76 より*
 
 #### 境界値
 
-- [ ] **TC-115-B01**: ウォームアップ実行中（in-flight）のヘルスエンドポイント 🔵
+- [x] **TC-115-B01**: ウォームアップ実行中（in-flight）のヘルスエンドポイント 🔵
   - **入力**: warmupCache() が未解決の Promise → ヘルスチェック
   - **期待結果**: cacheWarmup.status = 'pending'（ウォームアップ中は pending のまま）
   - **信頼性**: 🔵 *startup-warmup.ts 同期リターン設計・monitoring.ts line 111 より*
