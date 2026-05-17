@@ -712,5 +712,6 @@ Fallback LLM
 - [TASK-0151: Fix jest ESM compatibility in 31 test files](tasks/TASK-0151.md)
 - [TASK-0152: Resolve npm audit vulnerabilities](tasks/TASK-0152.md)
 - [TASK-0153: Update documentation consistency](tasks/TASK-0153.md)
+- [TASK-0154: API Auth Middleware Including Comprehensive Tests](tasks/TASK-0154.md)
 
 <!-- spine:children:end -->
