@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-18（Phase 55完了: REQ-142~143テストケースオールグリーン・Phase 56要件定義済 REQ-144~147）
+**最終更新**: 2026-05-19（Phase 56完了: REQ-144~147 テストケースオールグリーン）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -2032,26 +2032,26 @@
 
 #### 正常系
 
-- [ ] **TC-144-01**: AudioUploader が有効な音声ファイルを受け入れる 🔵
+- [x] **TC-144-01**: AudioUploader が有効な音声ファイルを受け入れる 🔵
   - **入力**: MP3 ファイル（10MB、3分）
   - **期待結果**: ファイルが選択され、エラーなし
   - **信頼性**: 🔵 *EnhancedFileUploader 統合パターンより*
 
 #### 異常系
 
-- [ ] **TC-144-E01**: AudioUploader が空ファイルをリジェクト 🔵
+- [x] **TC-144-E01**: AudioUploader が空ファイルをリジェクト 🔵
   - **入力**: 0バイトのファイル（audio/mpeg MIME type）
   - **期待結果**: エラーメッセージ表示
   - **信頼性**: 🔵 *EDGE-001 テストパターンより*
 
-- [ ] **TC-144-E02**: AudioUploader が50MB超過ファイルをリジェクト 🔵
+- [x] **TC-144-E02**: AudioUploader が50MB超過ファイルをリジェクト 🔵
   - **入力**: 51MB の音声ファイル
   - **期待結果**: ファイルサイズエラー表示
   - **信頼性**: 🔵 *EDGE-101 テストパターンより*
 
 #### 境界値
 
-- [ ] **TC-144-B01**: AudioUploader が1秒未満音声をリジェクト 🔵
+- [x] **TC-144-B01**: AudioUploader が1秒未満音声をリジェクト 🔵
   - **入力**: 0.5秒の音声ファイル
   - **期待結果**: 音声が短すぎるエラー表示
   - **信頼性**: 🔵 *EDGE-102 テストパターンより*
@@ -2080,7 +2080,7 @@
 
 ### テストケース
 
-- [ ] **TC-145-01**: types.ts 再エクスポート値が AUDIO_LIMITS と一致 🔵
+- [x] **TC-145-01**: types.ts 再エクスポート値が AUDIO_LIMITS と一致 🔵
   - **期待結果**: MAX_FILE_SIZE === AUDIO_LIMITS.MAX_FILE_SIZE_BYTES
   - **信頼性**: 🔵 *既存 limits.test.ts パターンより*
 
@@ -2108,7 +2108,7 @@
 
 ### テストケース
 
-- [ ] **TC-146-01**: 基本検証が centralized module に委譲 🔵
+- [x] **TC-146-01**: 基本検証が centralized module に委譲 🔵
   - **期待結果**: whisper-transcriber が validateAudioFile を import して使用
   - **信頼性**: 🔵 *EnhancedFileUploader 統合例より*
 
@@ -2133,15 +2133,15 @@
 
 ### テストケース
 
-- [ ] **TC-147-01**: AudioUploader 正常ファイル選択 🔵
+- [x] **TC-147-01**: AudioUploader 正常ファイル選択 🔵
   - **期待結果**: 有効な音声ファイルが selectedFile に設定される
   - **信頼性**: 🔵 *AudioUploader.tsx setSelectedFile フローより*
 
-- [ ] **TC-147-02**: AudioUploader 非音声ファイルリジェクト 🔵
+- [x] **TC-147-02**: AudioUploader 非音声ファイルリジェクト 🔵
   - **期待結果**: エラートースト表示
   - **信頼性**: 🔵 *AudioUploader.tsx else ブロックより*
 
-- [ ] **TC-147-E01**: AudioUploader 空ファイルリジェクト 🔵
+- [x] **TC-147-E01**: AudioUploader 空ファイルリジェクト 🔵
   - **期待結果**: EDGE-001 エラー表示
   - **信頼性**: 🔵 *validateAudioFile 空ファイル検出より*
 

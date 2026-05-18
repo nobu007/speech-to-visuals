@@ -262,7 +262,7 @@ describe('WhisperTranscriber', () => {
     const flacFile = createAudioFile('audio.flac', 1024, new Uint8Array([0x66, 0x4C, 0x61, 0x43]));
 
     await expect(transcriber.transcribe(flacFile)).rejects.toThrow(TranscriptionError);
-    await expect(transcriber.transcribe(flacFile)).rejects.toThrow('Unsupported audio format');
+    await expect(transcriber.transcribe(flacFile)).rejects.toThrow('Unsupported audio file');
   });
 
   // -------------------------------------------------------
@@ -278,5 +278,29 @@ describe('WhisperTranscriber', () => {
     const emptyBuffer = new ArrayBuffer(0);
 
     await expect(transcriber.transcribe(emptyBuffer)).rejects.toThrow(TranscriptionError);
+  });
+
+  // -------------------------------------------------------
+  // REQ-146: Centralized validation delegation (TC-146-01)
+  // -------------------------------------------------------
+  describe('REQ-146: centralized validation delegation', () => {
+    it('should delegate File validation to centralized validateAudioFile', async () => {
+      // Verify empty file is caught by centralized validation path
+      const emptyFile = new File([], 'empty.mp3', { type: 'audio/mpeg' });
+      await expect(transcriber.transcribe(emptyFile)).rejects.toThrow(TranscriptionError);
+    });
+
+    it('should delegate file size validation to centralized module', async () => {
+      // Verify oversized file is caught by centralized validation path
+      const oversizedSize = 60 * 1024 * 1024; // 60MB
+      const oversizedFile = createAudioFile('huge.mp3', oversizedSize, MP3_MAGIC);
+      await expect(transcriber.transcribe(oversizedFile)).rejects.toThrow(FileSizeExceededError);
+    });
+
+    it('should delegate format validation to centralized module', async () => {
+      // Verify unsupported format is caught by centralized validation path
+      const txtFile = new File([new ArrayBuffer(100)], 'notes.txt', { type: 'text/plain' });
+      await expect(transcriber.transcribe(txtFile)).rejects.toThrow(TranscriptionError);
+    });
   });
 });

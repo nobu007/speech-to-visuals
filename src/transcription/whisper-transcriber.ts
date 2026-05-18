@@ -13,6 +13,7 @@ import {
 } from './types';
 import { Caption } from '@remotion/captions';
 import { logger } from '../utils/logger';
+import { validateAudioFile } from '@/utils/audio-validation';
 
 export interface WhisperConfig {
   model: 'tiny' | 'base' | 'small' | 'medium' | 'large';
@@ -111,33 +112,33 @@ export class WhisperTranscriber {
   }
 
   /**
-   * Validate audio input: format, size, corruption check
+   * Validate audio input: format, size, corruption check.
+   * For File inputs, delegates basic validation to centralized validateAudioFile().
+   * For ArrayBuffer/string inputs, performs inline validation.
    */
   private validateAudioInput(audioInput: File | ArrayBuffer | string): void {
-    // Extract format
-    const format = getAudioFormat(audioInput);
+    if (audioInput instanceof File) {
+      // Delegate to centralized validation (REQ-146)
+      const result = validateAudioFile(audioInput);
+      if (!result.valid) {
+        const msg = result.errors[0];
+        if (msg.includes('size') && msg.includes('exceeds')) {
+          throw new FileSizeExceededError(msg, audioInput.size, MAX_FILE_SIZE);
+        }
+        throw new TranscriptionError(msg);
+      }
+      return;
+    }
 
-    // Validate format
+    // Non-File inputs: inline validation
+    const format = getAudioFormat(audioInput);
     if (format && !(SUPPORTED_AUDIO_FORMATS as readonly string[]).includes(format)) {
       throw new TranscriptionError(
         `Unsupported audio format: .${format}. Supported formats: ${SUPPORTED_AUDIO_FORMATS.join(', ')}`
       );
     }
 
-    // Validate file size
-    if (audioInput instanceof File) {
-      if (audioInput.size > MAX_FILE_SIZE) {
-        throw new FileSizeExceededError(
-          `File size (${audioInput.size} bytes) exceeds maximum allowed size (${MAX_FILE_SIZE} bytes)`,
-          audioInput.size,
-          MAX_FILE_SIZE
-        );
-      }
-      // Empty file check
-      if (audioInput.size === 0) {
-        throw new TranscriptionError('Audio file is empty (0 bytes)');
-      }
-    } else if (audioInput instanceof ArrayBuffer) {
+    if (audioInput instanceof ArrayBuffer) {
       if (audioInput.byteLength > MAX_FILE_SIZE) {
         throw new FileSizeExceededError(
           `Buffer size (${audioInput.byteLength} bytes) exceeds maximum allowed size (${MAX_FILE_SIZE} bytes)`,
@@ -145,7 +146,6 @@ export class WhisperTranscriber {
           MAX_FILE_SIZE
         );
       }
-      // Empty buffer check
       if (audioInput.byteLength === 0) {
         throw new TranscriptionError('Audio buffer is empty (0 bytes)');
       }
