@@ -1,5 +1,5 @@
-import React, { useReducer, useRef, useCallback, useEffect } from 'react';
-import { Upload, Play, Download, AlertCircle, CheckCircle, Loader2, Video, HelpCircle } from 'lucide-react';
+import React, { useReducer, useRef, useCallback, useEffect, useState } from 'react';
+import { Upload, Play, Download, AlertCircle, CheckCircle, Loader2, Video, HelpCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,8 @@ import {
   initialPipelineState,
   SimplePipelineResult,
 } from './SimplePipelineStateMachine';
+import { getAudioDuration, formatDuration } from '@/utils/audio-duration';
+import { AUDIO_LIMITS } from '@/config/limits';
 
 // ========================================
 // Pipeline Stage Configuration
@@ -32,7 +34,6 @@ const PIPELINE_STAGES = [
 // ========================================
 
 const VALID_AUDIO_TYPES = ['audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/mpeg'];
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 // ========================================
 // Component
@@ -41,6 +42,7 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 export const SimplePipelineInterface: React.FC = () => {
   const [state, dispatch] = useReducer(pipelineReducer, initialPipelineState);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [durationWarning, setDurationWarning] = useState<string | null>(null);
 
   const { status, file, progress, currentStep, error, result } = state;
 
@@ -49,17 +51,32 @@ export const SimplePipelineInterface: React.FC = () => {
     const selectedFile = event.target.files?.[0];
     if (!selectedFile) return;
 
+    setDurationWarning(null);
+
     if (!VALID_AUDIO_TYPES.includes(selectedFile.type)) {
       dispatch({ type: 'PROCESSING_ERROR', error: 'サポートされていないファイル形式です。MP3, WAV, OGG, M4A形式をご利用ください。' });
       return;
     }
 
-    if (selectedFile.size > MAX_FILE_SIZE) {
+    if (selectedFile.size > AUDIO_LIMITS.MAX_FILE_SIZE_BYTES) {
       dispatch({ type: 'PROCESSING_ERROR', error: 'ファイルサイズが大きすぎます。50MB以下のファイルをご利用ください。' });
       return;
     }
 
     dispatch({ type: 'SELECT_FILE', file: selectedFile });
+
+    // Check duration asynchronously (EDGE-103: warn if > 1 hour)
+    getAudioDuration(selectedFile)
+      .then((duration) => {
+        if (duration > AUDIO_LIMITS.DURATION_WARNING_SECONDS) {
+          setDurationWarning(
+            `この音声ファイルは${formatDuration(duration)}です。1時間を超えるため、処理に時間がかかる場合があります。`,
+          );
+        }
+      })
+      .catch(() => {
+        // Duration check failed silently — backend will still validate
+      });
   }, []);
 
   // ---- Process handler (simulates full pipeline) ----
@@ -110,6 +127,7 @@ export const SimplePipelineInterface: React.FC = () => {
   // ---- Reset handler ----
   const handleReset = useCallback(() => {
     dispatch({ type: 'RESET' });
+    setDurationWarning(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -118,6 +136,7 @@ export const SimplePipelineInterface: React.FC = () => {
   // ---- Retry handler ----
   const handleRetry = useCallback(() => {
     dispatch({ type: 'RETRY' });
+    setDurationWarning(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -279,7 +298,7 @@ export const SimplePipelineInterface: React.FC = () => {
       {/* File selected, ready to process */}
       {status === 'idle' && file && (
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="pt-6 space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <h3 className="font-medium truncate">{file.name}</h3>
@@ -297,6 +316,14 @@ export const SimplePipelineInterface: React.FC = () => {
                 </Button>
               </div>
             </div>
+            {durationWarning && (
+              <Alert className="border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950">
+                <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+                  {durationWarning}
+                </AlertDescription>
+              </Alert>
+            )}
           </CardContent>
         </Card>
       )}
