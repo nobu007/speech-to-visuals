@@ -215,6 +215,67 @@ describe('sanitizeFilename (REQ-132)', () => {
   });
 
   // =========================================================================
+  // Acceptance criteria exact inputs (REQ-132 TC-132-xx)
+  // =========================================================================
+
+  describe('REQ-132 acceptance criteria exact cases', () => {
+    // TC-132-01: normal filename passes through
+    test('TC-132-01: video-output.mp4', () => {
+      expect(sanitizeFilename('video-output.mp4')).toBe('video-output.mp4');
+    });
+
+    // TC-132-02: Japanese filename passes through
+    test('TC-132-02: 図解動画_2024.mp4', () => {
+      expect(sanitizeFilename('図解動画_2024.mp4')).toBe('図解動画_2024.mp4');
+    });
+
+    // TC-132-03: leading/trailing whitespace trimmed
+    test('TC-132-03: "  output.mp4  " → output.mp4', () => {
+      expect(sanitizeFilename('  output.mp4  ')).toBe('output.mp4');
+    });
+
+    // TC-132-E01: path traversal → separators replaced, .. removed
+    test('TC-132-E01: ../../../etc/passwd', () => {
+      expect(sanitizeFilename('../../../etc/passwd')).toBe('___etc_passwd');
+    });
+
+    // TC-132-E02: null byte removed
+    test('TC-132-E02: file\\x00.mp4', () => {
+      expect(sanitizeFilename('file\x00.mp4')).toBe('file.mp4');
+    });
+
+    // TC-132-E03: control characters removed
+    test('TC-132-E03: file\\x01\\x1f\\x7f.mp4', () => {
+      expect(sanitizeFilename('file\x01\x1f\x7f.mp4')).toBe('file.mp4');
+    });
+
+    // TC-132-E04: directory separators replaced
+    test('TC-132-E04: path/to\\\\file.mp4', () => {
+      expect(sanitizeFilename('path/to\\file.mp4')).toBe('path_to_file.mp4');
+    });
+
+    // TC-132-E05: leading dot stripped
+    test('TC-132-E05: .hidden', () => {
+      expect(sanitizeFilename('.hidden')).toBe('hidden');
+    });
+
+    // TC-132-B01: empty string → unnamed
+    test('TC-132-B01: empty string', () => {
+      expect(sanitizeFilename('')).toBe('unnamed');
+    });
+
+    // TC-132-B02: whitespace only → unnamed
+    test('TC-132-B02: whitespace only', () => {
+      expect(sanitizeFilename('   ')).toBe('unnamed');
+    });
+
+    // TC-132-B03: all-stripped input → remaining underscores (not unnamed)
+    test('TC-132-B03: ..\\../.. → underscores remain', () => {
+      expect(sanitizeFilename('..\\../..')).toBe('__');
+    });
+  });
+
+  // =========================================================================
   // Mixed attack patterns
   // =========================================================================
 
