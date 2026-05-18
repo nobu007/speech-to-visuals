@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-18（第151回検証: Phase 1-52完了・集中制限設定・ファイル名サニタイズ・BatchOptimizerテスト拡充・フロー更新）
+**最終更新**: 2026-05-18（第157回検証: Phase 1-54完了・コンポーネント・ユーティリティテスト拡充・音声時間計測フロー追加）
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](requirements.md)
 
@@ -1439,20 +1439,62 @@ flowchart TD
 6. PIPELINE_LIMITS 定数でシーン数(200)・出力名長(255)・FPS(120)を検証 🔵
 7. マジックナンバー排除により制限値のレビュー・テストが一元化 🔵
 
+### 機能16: 音声時間事前計測・警告フロー（Phase 54） 🔵
+
+**信頼性**: 🔵 *src/utils/audio-duration.ts・src/config/limits.ts AUDIO_LIMITS・要件定義EDGE-103・REQ-140~141 より*
+
+**関連要件**: REQ-140, REQ-141, EDGE-103
+
+```mermaid
+sequenceDiagram
+    participant U as ユーザー
+    participant FE as フロントエンド
+    participant AD as getAudioDuration()
+    participant AL as AUDIO_LIMITS
+
+    U->>FE: 音声ファイル選択
+    FE->>AD: getAudioDuration(file)
+    AD->>AD: URL.createObjectURL(file)
+    AD->>AD: Audio.preload = 'metadata'
+    AD->>AD: audio.src = url
+    alt loadedmetadata
+        AD-->>FE: duration (seconds)
+    else error
+        AD->>AD: URL.revokeObjectURL(url)
+        AD-->>FE: Error (reject)
+    end
+    FE->>FE: duration > AUDIO_LIMITS.DURATION_WARNING_SECONDS?
+    alt 1時間超過
+        FE-->>U: 警告表示: 処理時間が長くなる可能性
+    else 1時間以内
+        FE->>FE: 通常パイプライン続行
+    end
+    AD->>AD: URL.revokeObjectURL(url) cleanup
+```
+
+**詳細ステップ**:
+
+1. ユーザーが音声ファイルを選択後、getAudioDuration() で HTMLAudioElement を用いてメタデータのみロード 🔵
+2. ObjectURL 生成 → preload='metadata' 設定 → loadedmetadata イベントで duration 取得 🔵
+3. エラー時は ObjectURL 解放後に reject（ストリーミング形式では Infinity を返す）🔵
+4. 取得した duration が AUDIO_LIMITS.DURATION_WARNING_SECONDS (3600秒) を超える場合、ユーザーに警告表示 🔵
+5. formatDuration() で人間可読形式（"1時間23分"）にフォーマット 🔵
+6. ObjectURL は loadedmetadata/error 両イベントで必ず解放（リソースリーク防止）🔵
+
 ## 関連文書（旧）
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 162件 (98%)
-- 🟡 黄信号: 2件 (1%)
+- 🔵 青信号: 170件 (99%)
+- 🟡 黄信号: 1件 (1%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - Phase 52 ファイル名サニタイズ・集中制限検証フローを反映（第151回検証: Phase 1-52完了・327ファイル・96,466行・4,357テスト(194 suites)・154タスク完了・ギャップなし）
+**品質評価**: 高品質 - Phase 54 音声時間事前計測・コンポーネントテストフローを反映（第157回検証: Phase 1-54完了・337ファイル・98,061行・4,478+テスト(195 suites)・157タスク完了・ギャップなし）
 
 ## Acceptance criteria
 
 - [x] システム全体のデータフローが Mermaid flowchart で記述され、全パイプラインステージ（文字起こし→分析→レイアウト→アニメーション→レンダリング）を網羅している
-- [x] 主要15機能のデータフローが個別の Mermaid sequence/flow diagram で記述されている（機能1-B〜機能15）
+- [x] 主要16機能のデータフローが個別の Mermaid sequence/flow diagram で記述されている（機能1-B〜機能16）
 - [x] 各データフローに信頼性レベル（🔵🟡🔴）が付与され、情報源が明記されている
 - [x] エラーハンドリングフロー（3層フォールバック・ユーザー主導回復・設定バリデーション）が記述されている
 - [x] 品質ゲート評価フロー（5段階品質基準）が記述されている

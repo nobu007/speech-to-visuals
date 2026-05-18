@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-18（第156回検証: Phase 1-53完了・仕様最適化34.8%削減・テストカバレッジ拡充91テスト追加・335ファイル・97,807行・4,448+テスト(194+スイート)・TypeScript/ESLintエラー0件・依存105パッケージ）
+**最終更新**: 2026-05-18（第157回検証: Phase 1-54完了・コンポーネント・ユーティリティテスト拡充30テスト追加・337ファイル・98,061行・4,478+テスト(195+スイート)・TypeScript/ESLintエラー0件・依存105パッケージ）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -229,6 +229,16 @@ Phase 52 で実装されたセキュリティ強化と設定集約:
 - **パイプラインルート統合**: pipeline.ts でマジックナンバーを PIPELINE_LIMITS 定数に置換、インライン正規表現を sanitizeFilename() に置換 🔵 *src/api/routes/pipeline.ts より*
 - **BatchOptimizer テスト拡充**: 295行の包括的ユニットテスト追加（基本並列処理・フェイルファスト・進捗コールバック・統計情報・スライディングウィンドウ並列性・AbortSignalキャンセル）🔵 *tests/unit/optimization/batch-optimizer.test.ts より*
 
+### 音声時間計測・コンポーネントテスト 🔵 【Phase 54 追加】
+
+**信頼性**: 🔵 *src/utils/audio-duration.ts・src/components/StageIndicator.tsx・src/config/limits.ts・要件定義REQ-139~141 より*
+
+Phase 54 で実装されたコンポーネント・ユーティリティテスト拡充:
+
+- **音声時間計測ユーティリティ**: `getAudioDuration()` 関数（HTMLAudioElement loadedmetadata イベント・ObjectURL 生成/解放・preload='metadata' 最適化）と `formatDuration()` 関数（秒/分/時間フォーマット・Infinity/負値ガード）によるクライアントサイド音声時間取得 🔵 *src/utils/audio-duration.ts より*
+- **AUDIO_LIMITS 設定値**: 50MB 最大ファイルサイズと 3600秒（1時間）警告閾値の as const 定義。EDGE-103（1時間超音声の事前警告）の実装基盤 🔵 *src/config/limits.ts AUDIO_LIMITS より*
+- **StageIndicator ヘルパー関数**: calcElapsed（経過時間計算・null開始時0返却・負値クランプ）・formatElapsed（秒/分/時間フォーマット）・STAGE_CONFIG/STATUS_LABEL/STATUS_BADGE_VARIANT（全ステータスカバー設定定数） 🔵 *src/components/StageIndicator.tsx より*
+
 ### 最適化・パフォーマンス 🔵
 
 **信頼性**: 🔵 *src/optimization/・src/performance/・QUALITY_METRICS.md より*
@@ -411,7 +421,7 @@ graph TB
 │   ├── test/               # テストユーティリティ（16ファイル）
 │   ├── transcription/      # 音声認識（12ファイル: Whisper/Streaming/Browser/テスト）🔵
 │   ├── types/              # TypeScript 型定義（15ファイル: diagram/workspace/api/llm/cache/quality/pipeline等）🔵
-│   ├── utils/              # ユーティリティ（4ファイル: sanitize.ts追加）🔵 *Phase 52*
+│   ├── utils/              # ユーティリティ（5ファイル: sanitize.ts・audio-duration.ts）🔵 *Phase 52-54*
 │   ├── visualization/      # 図解レイアウト（42ファイル: 20戦略・レイアウトエンジン・補助モジュール）
 │   └── workers/            # Web Workers 並列化（6ファイル: WorkerPool・型定義・WorkerFactories・ExportWorker・LayoutWorker）🔵 *Phase 20 TASK-0114~0116*
 │       ├── base/           # ベース可視化コンポーネント 🔵
@@ -424,7 +434,7 @@ graph TB
 │   ├── architecture/       # 旧アーキテクチャ文書（統合元）
 │   ├── spec/               # 要件定義書
 │   └── design/             # 設計文書（本ファイル群）
-├── tests/                  # テストスイート（70ファイル）
+├── tests/                  # テストスイート（117ファイル）
 ├── scripts/                # ユーティリティスクリプト
 └── public/                 # 静的アセット
 ```
@@ -577,6 +587,7 @@ Fallback LLM
 - [x] HealthCheckService 本番堅牢化（Phase 51）がコンポーネント構成に反映されている
 - [x] 集中制限設定・ファイル名サニタイズ（Phase 52）がコンポーネント構成に反映されている
 - [x] 仕様最適化・テストカバレッジ拡充（Phase 53）が完了している（REQ-135~138全実装・91テスト追加）
+- [x] コンポーネント・ユーティリティテスト拡充（Phase 54）が完了している（REQ-139~141全実装・30テスト追加・StageIndicator helpers・AUDIO_LIMITS・getAudioDuration）
 
 ## 関連文書
 
@@ -595,7 +606,7 @@ Fallback LLM
 - 🟡 黄信号: 4件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第156回検証: Phase 1-53完了・仕様最適化34.8%削減・テストカバレッジ拡充91テスト追加・335ファイル・97,807行・4,448+テスト全通過・TypeScript/ESLintエラー0件・依存105パッケージ・SYSTEM_CONSTITUTION V2.5適合・ギャップなし確認）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第157回検証: Phase 1-54完了・コンポーネント・ユーティリティテスト拡充30テスト追加・337ファイル・98,061行・4,478+テスト全通過・TypeScript/ESLintエラー0件・依存105パッケージ・SYSTEM_CONSTITUTION V2.5適合・ギャップなし確認）
 
 
 <!-- spine:children:begin -->
