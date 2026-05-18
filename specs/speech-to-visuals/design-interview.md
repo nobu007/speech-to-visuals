@@ -10,8 +10,8 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-18（第150回検証: Phase 1-51全完了・多言語検出拡張(6言語)・HealthCheckService本番堅牢化・327ファイル・96,466行・4,357テスト(194スイート)全通過・TypeScript/ESLintエラー0件・依存105パッケージ・ギャップなし確認）
-**履歴**: 第150回検証(2026-05-18)・第149回検証(2026-05-17)・第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-04-30)
+**最終更新**: 2026-05-18（第151回検証: Phase 1-52完了・集中制限設定・ファイル名サニタイズ・BatchOptimizerテスト拡充・327ファイル・96,466行・4,357テスト(194スイート)全通過・TypeScript/ESLintエラー0件・依存105パッケージ・ギャップなし確認）
+**履歴**: 第151回検証(2026-05-18)・第150回検証(2026-05-18)・第149回検証(2026-05-17)・第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-04-30)
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 
 ## 分析目的
@@ -22,6 +22,30 @@
 **最終更新（2026-04-29 Phase 4反映）**: Phase 4 完了に伴う要件定義更新（REQ-025~REQ-035 追加）と、新規モジュール（Remotion Animation・Renderer・SRT Parser・Pipeline UI）の差分反映を実施。
 
 ## 分析項目と判断
+
+### A93: 第151回検証 - Phase 52 集中制限設定・ファイル名サニタイズ設計差分反映（2026-05-18）
+
+**分析日時**: 2026-05-18
+**カテゴリ**: セキュリティ・設定集約・テスト品質
+**背景**: Phase 52 で散在していたパイプライン制限値（マジックナンバー）を `src/config/limits.ts` に集約（ISS-044）。ファイル名サニタイズユーティリティ `src/utils/sanitize.ts` を新規追加し、API ルート pipeline.ts でインライン正規表現を sanitizeFilename() に置換。BatchOptimizer の包括的ユニットテスト（295行・ AbortSignal キャンセル・スライディングウィンドウ並列性テスト含む）を追加。REQ-132~134 でテスト要件を定義（sanitizeFilename エッジケース・limits 定数検証・HealthCheckService 個別コンポーネント例外テスト）。
+
+**判断**: Phase 52 設計差分反映完了:
+1. **集中制限設定**: RATE_LIMITS（API/UPLOAD）・BATCH_LIMITS（MAX_CONCURRENT/MAX_STORED/MAX_FILES）・PIPELINE_LIMITS（MAX_SCENES/MAX_ITERATIONS/MAX_OUTPUT_NAME_LENGTH/MAX_COMMIT_MESSAGE_LENGTH/MAX_FPS）・SECURITY_LIMITS（JWT_SECRET_MIN_LENGTH/MIN_CHAR_TYPES）を `as const` で定義。全定数が一箇所でレビュー・テスト可能に 🔵 *src/config/limits.ts より*
+2. **ファイル名サニタイズ**: sanitizeFilename() 関数がパストラバーサル・nullバイト注入・制御文字・隠しファイル化を防止。空結果時は `"unnamed"` フォールバック。pipeline.ts のインライン正規表現を置換 🔵 *src/utils/sanitize.ts・src/api/routes/pipeline.ts より*
+3. **BatchOptimizer テスト**: 295行の包括テスト（基本並列処理・フェイルファスト・進捗コールバック・統計・スライディングウィンドウ・AbortSignal キャンセル）🔵 *tests/unit/optimization/batch-optimizer.test.ts より*
+4. **REQ-132~134**: sanitizeFilename 11テストケース・limits 定数検証 6テストケース・HealthCheckService 個別コンポーネント例外 6テストケースのテスト要件定義 🔵 *specs/speech-to-visuals/requirements.md・acceptance-criteria.md より*
+
+**根拠**:
+- git log: 204472f (feat(api): centralize pipeline limits and strengthen filename sanitization)・1cc5ad6 (docs(specs): add Phase 52 requirements)
+- 新規ファイル: src/utils/sanitize.ts (42行)・tests/unit/optimization/batch-optimizer.test.ts (295行)
+- 変更ファイル: src/config/limits.ts (PIPELINE_LIMITS 追加)・src/api/routes/pipeline.ts (統合)
+
+**信頼性への影響**:
+- architecture.md: Phase 52 セクション追加（集中制限設定・ファイル名サニタイズ・BatchOptimizerテスト拡充）により 🔵 拡張
+- dataflow.md: 機能15 ファイル名サニタイズ・集中制限検証フロー追加により 🔵 拡張
+- utils/ ディレクトリ: sanitize.ts 追加によりファイル数 3→4 に更新
+
+---
 
 ### A92: 第150回検証 - Phase 44-51 設計差分反映（2026-05-18）
 

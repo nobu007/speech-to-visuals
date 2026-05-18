@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-18（第150回検証: Phase 1-51全完了・多言語検出拡張(6言語)・HealthCheckService本番堅牢化・327ファイル・96,466行・4,357テスト(194スイート)・TypeScript/ESLintエラー0件・依存105パッケージ）
+**最終更新**: 2026-05-18（第151回検証: Phase 1-52完了・集中制限設定・ファイル名サニタイズ・BatchOptimizerテスト拡充・HealthCheckService本番堅牢化・327ファイル・96,466行・4,357テスト(194スイート)・TypeScript/ESLintエラー0件・依存105パッケージ）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -218,6 +218,17 @@ Phase 51 で実装されたヘルスチェックサービス堅牢化:
 - **縮退ステータス**: バックエンド例外時に "degraded" ステータスを返し、ヘルスチェック全体がクラッシュしない設計 🔵 *各コンポーネントチェックの fallback ロジックより*
 - **フォールバックメトリクス**: performHealthCheck で PerformanceSnapshot 構築時のフォールバック値設定 🔵 *performHealthCheck メソッドより*
 
+### 集中制限設定・ファイル名サニタイズ 🔵 【Phase 52 追加】
+
+**信頼性**: 🔵 *src/config/limits.ts・src/utils/sanitize.ts・要件定義REQ-132~134 より*
+
+Phase 52 で実装されたセキュリティ強化と設定集約:
+
+- **集中制限設定**: ISS-044 対応。散在していたマジックナンバーを `src/config/limits.ts` に集約。RATE_LIMITS（API: 100req/15min, UPLOAD: 20req/15min）、BATCH_LIMITS（MAX_CONCURRENT_JOBS: 3, MAX_STORED_JOBS: 200, MAX_FILES_PER_BATCH: 100）、PIPELINE_LIMITS（MAX_SCENES: 200, MAX_ITERATIONS: 500, MAX_OUTPUT_NAME_LENGTH: 255）、SECURITY_LIMITS（JWT_SECRET_MIN_LENGTH: 32）の4群定義。全定数 `as const` で型安全性確保 🔵 *src/config/limits.ts より*
+- **ファイル名サニタイズ**: `sanitizeFilename()` 関数によるパストラバーサル・nullバイト注入・制御文字攻撃対策。ディレクトリセパレータ(`/\`)→`_`置換、`..`除去、nullバイト除去、制御文字(0x00-0x1F, 0x7F)除去、先頭ドット除去、空結果フォールバック(`"unnamed"`) 🔵 *src/utils/sanitize.ts より*
+- **パイプラインルート統合**: pipeline.ts でマジックナンバーを PIPELINE_LIMITS 定数に置換、インライン正規表現を sanitizeFilename() に置換 🔵 *src/api/routes/pipeline.ts より*
+- **BatchOptimizer テスト拡充**: 295行の包括的ユニットテスト追加（基本並列処理・フェイルファスト・進捗コールバック・統計情報・スライディングウィンドウ並列性・AbortSignalキャンセル）🔵 *tests/unit/optimization/batch-optimizer.test.ts より*
+
 ### 最適化・パフォーマンス 🔵
 
 **信頼性**: 🔵 *src/optimization/・src/performance/・QUALITY_METRICS.md より*
@@ -400,7 +411,7 @@ graph TB
 │   ├── test/               # テストユーティリティ（16ファイル）
 │   ├── transcription/      # 音声認識（12ファイル: Whisper/Streaming/Browser/テスト）🔵
 │   ├── types/              # TypeScript 型定義（15ファイル: diagram/workspace/api/llm/cache/quality/pipeline等）🔵
-│   ├── utils/              # ユーティリティ（3ファイル）
+│   ├── utils/              # ユーティリティ（4ファイル: sanitize.ts追加）🔵 *Phase 52*
 │   ├── visualization/      # 図解レイアウト（42ファイル: 20戦略・レイアウトエンジン・補助モジュール）
 │   └── workers/            # Web Workers 並列化（6ファイル: WorkerPool・型定義・WorkerFactories・ExportWorker・LayoutWorker）🔵 *Phase 20 TASK-0114~0116*
 │       ├── base/           # ベース可視化コンポーネント 🔵
@@ -564,6 +575,7 @@ Fallback LLM
 - [x] CacheWarmupManager 統合と起動時ウォームアップ配線（Phase 43）がコンポーネント構成に反映されている
 - [x] 多言語検出拡張（Phase 44）がコンポーネント構成に反映されている
 - [x] HealthCheckService 本番堅牢化（Phase 51）がコンポーネント構成に反映されている
+- [x] 集中制限設定・ファイル名サニタイズ（Phase 52）がコンポーネント構成に反映されている
 
 ## 関連文書
 
@@ -578,11 +590,11 @@ Fallback LLM
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 150件 (97%)
+- 🔵 青信号: 160件 (97%)
 - 🟡 黄信号: 4件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第150回検証: Phase 1-51全完了・多言語検出拡張(6言語)・HealthCheckService本番堅牢化・327ファイル・96,466行・4,357テスト(194スイート)全通過・TypeScript/ESLintエラー0件・依存105パッケージ・SYSTEM_CONSTITUTION V2.5適合・ギャップなし確認）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第151回検証: Phase 1-52完了・集中制限設定・ファイル名サニタイズ・BatchOptimizerテスト拡充・327ファイル・96,466行・4,357テスト(194スイート)全通過・TypeScript/ESLintエラー0件・依存105パッケージ・SYSTEM_CONSTITUTION V2.5適合・ギャップなし確認）
 
 
 <!-- spine:children:begin -->
