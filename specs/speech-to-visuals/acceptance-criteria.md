@@ -2663,4 +2663,214 @@
 - 🟡 黄信号: 0件 (0%)
 - 🔴 赤信号: 0件 (0%)
 
+---
+
+## Phase 52: ファイル名サニタイズ・テスト検証
+
+### REQ-132: sanitizeFilename エッジケーステスト 🔵
+
+**信頼性**: 🔵 *src/utils/sanitize.ts 実装・ISS-044 パストラバーサル防止要件より*
+
+### Given（前提条件）
+
+- sanitizeFilename 関数が src/utils/sanitize.ts に定義されている
+- 関数はパストラバーサル防止・ヌルバイト除去・制御文字除去・ディレクトリセパレータ置換を実装
+
+### When（実行条件）
+
+- 各エッジケース入力を sanitizeFilename() に渡す
+
+### Then（期待結果）
+
+- 入力に応じた安全なファイル名が出力される
+
+### テストケース
+
+#### 正常系
+
+- [ ] **TC-132-01**: 通常のファイル名はそのまま返す 🔵
+  - **入力**: `"video-output.mp4"`
+  - **期待結果**: `"video-output.mp4"`
+  - **信頼性**: 🔵 *sanitize.ts 基本動作より*
+
+- [ ] **TC-132-02**: 日本語ファイル名はそのまま返す 🔵
+  - **入力**: `"図解動画_2024.mp4"`
+  - **期待結果**: `"図解動画_2024.mp4"`
+  - **信頼性**: 🔵 *sanitize.ts Unicode許容設計より*
+
+- [ ] **TC-132-03**: 前後の空白はトリムされる 🔵
+  - **入力**: `"  output.mp4  "`
+  - **期待結果**: `"output.mp4"`
+  - **信頼性**: 🔵 *sanitize.ts .trim() より*
+
+#### 異常系
+
+- [ ] **TC-132-E01**: パストラバーサル（../）を除去 🔵
+  - **入力**: `"../../../etc/passwd"`
+  - **期待結果**: `"_etc_passwd"`
+  - **信頼性**: 🔵 *ISS-044 パストラバーサル防止要件より*
+
+- [ ] **TC-132-E02**: ヌルバイト注入を除去 🔵
+  - **入力**: `"file\x00.mp4"`
+  - **期待結果**: `"file.mp4"`
+  - **信頼性**: 🔵 *sanitize.ts NULL_BYTE_PATTERN より*
+
+- [ ] **TC-132-E03**: 制御文字を除去 🔵
+  - **入力**: `"file\x01\x1f\x7f.mp4"`
+  - **期待結果**: `"file.mp4"`
+  - **信頼性**: 🔵 *sanitize.ts CONTROL_CHAR_PATTERN より*
+
+- [ ] **TC-132-E04**: ディレクトリセパレータを置換 🔵
+  - **入力**: `"path/to\\file.mp4"`
+  - **期待結果**: `"path_to_file.mp4"`
+  - **信頼性**: 🔵 *sanitize.ts UNSAFE_PATTERN より*
+
+- [ ] **TC-132-E05**: 先頭ドット（隠しファイル）を除去 🔵
+  - **入力**: `".hidden"`
+  - **期待結果**: `"hidden"`
+  - **信頼性**: 🔵 *sanitize.ts /^\.+/ パターンより*
+
+#### 境界値
+
+- [ ] **TC-132-B01**: 空文字列入力のフォールバック 🔵
+  - **入力**: `""`
+  - **期待結果**: `"unnamed"`
+  - **信頼性**: 🔵 *sanitize.ts length === 0 フォールバックより*
+
+- [ ] **TC-132-B02**: 空白のみ入力のフォールバック 🔵
+  - **入力**: `"   "`
+  - **期待結果**: `"unnamed"`
+  - **信頼性**: 🔵 *sanitize.ts trim後length === 0 フォールバックより*
+
+- [ ] **TC-132-B03**: 全て除去される入力のフォールバック 🔵
+  - **入力**: `"..\\../.."`
+  - **期待結果**: `"unnamed"`
+  - **信頼性**: 🔵 *sanitize.ts 全パターン適用後空チェックより*
+
+---
+
+### REQ-133: limits.ts 定数検証テスト 🔵
+
+**信頼性**: 🔵 *src/config/limits.ts 集約化完了・REQ-071/REQ-073 要件より*
+
+### Given（前提条件）
+
+- limits.ts に RATE_LIMITS・BATCH_LIMITS・SERVER_LIMITS・PIPELINE_LIMITS・SECURITY_LIMITS が定義されている
+- 各モジュールがこれらの定数を正しく参照している
+
+### When（実行条件）
+
+- limits.ts の各定数値を検証
+- 参照元モジュールでの使用箇所を確認
+
+### Then（期待結果）
+
+- 定数値が期待値と一致する
+- マジックナンバーの漏れがない
+
+### テストケース
+
+#### 正常系
+
+- [ ] **TC-133-01**: RATE_LIMITS.API が正しい値を持つ 🔵
+  - **検証**: WINDOW_MS = 900000 (15min), MAX_REQUESTS = 100
+  - **信頼性**: 🔵 *limits.ts 定義値・REQ-073 レート制限要件より*
+
+- [ ] **TC-133-02**: RATE_LIMITS.UPLOAD が正しい値を持つ 🔵
+  - **検証**: WINDOW_MS = 900000 (15min), MAX_REQUESTS = 20
+  - **信頼性**: 🔵 *limits.ts 定義値・REQ-073 レート制限要件より*
+
+- [ ] **TC-133-03**: BATCH_LIMITS が正しい値を持つ 🔵
+  - **検証**: MAX_CONCURRENT_JOBS = 3, MAX_STORED_JOBS = 200, MAX_FILES_PER_BATCH = 100
+  - **信頼性**: 🔵 *limits.ts 定義値・REQ-043 バッチ制約より*
+
+- [ ] **TC-133-04**: PIPELINE_LIMITS が正しい値を持つ 🔵
+  - **検証**: MAX_SCENES = 200, MAX_ITERATIONS = 500, MAX_OUTPUT_NAME_LENGTH = 255, MAX_COMMIT_MESSAGE_LENGTH = 1000, MAX_FPS = 120
+  - **信頼性**: 🔵 *limits.ts 定義値・REQ-071 Zod検証制約より*
+
+- [ ] **TC-133-05**: SECURITY_LIMITS が正しい値を持つ 🔵
+  - **検証**: JWT_SECRET_MIN_LENGTH = 32, JWT_SECRET_MIN_CHAR_TYPES = 2
+  - **信頼性**: 🔵 *limits.ts 定義値・REQ-078 JWT認証要件より*
+
+#### 境界値
+
+- [ ] **TC-133-B01**: 全定数が as const で不変であること 🔵
+  - **検証**: TypeScript の型推論でリテラル型として推論されること
+  - **信頼性**: 🔵 *limits.ts as const 宣言より*
+
+---
+
+### REQ-134: HealthCheckService 個別コンポーネント例外テスト 🔵
+
+**信頼性**: 🔵 *REQ-131 本番コード堅牢化・src/monitoring/health-check-service.ts 個別 try-catch より*
+
+### Given（前提条件）
+
+- HealthCheckService の各コンポーネントチェックが try-catch で保護されている
+- バックエンド（globalCache・realTimeMonitor）が例外を投げる可能性がある
+
+### When（実行条件）
+
+- 特定のコンポーネントのバックエンドだけが例外を投げる
+- performHealthCheck() が実行される
+
+### Then（期待結果）
+
+- 例外を投げたコンポーネントだけが "degraded" ステータスになる
+- 他のコンポーネントは正常に評価される
+- ヘルスチェック全体はクラッシュしない
+
+### テストケース
+
+#### 異常系
+
+- [ ] **TC-134-E01**: globalCache.getStats() 例外時の checkCacheHealth 縮退 🔵
+  - **条件**: globalCache.getStats() が Error('Redis unavailable') を投げる
+  - **期待結果**: cacheHealth.status = 'degraded', 他コンポーネントは正常
+  - **信頼性**: 🔵 *health-check-service.ts checkCacheHealth try-catch より*
+
+- [ ] **TC-134-E02**: realTimeMonitor.getSnapshot() 例外時の checkPipelineHealth 縮退 🔵
+  - **条件**: realTimeMonitor.getSnapshot() が Error('Monitor crashed') を投げる
+  - **期待結果**: pipelineHealth.status = 'degraded', 他コンポーネントは正常
+  - **信頼性**: 🔵 *health-check-service.ts checkPipelineHealth try-catch より*
+
+- [ ] **TC-134-E03**: LLM メトリクス例外時の checkLLMHealth 縮退 🔵
+  - **条件**: LLM メトリクス取得が例外を投げる
+  - **期待結果**: llmHealth.status = 'degraded', 他コンポーネントは正常
+  - **信頼性**: 🔵 *health-check-service.ts checkLLMHealth try-catch より*
+
+- [ ] **TC-134-E04**: エラー復旧メトリクス例外時の checkErrorRecoveryHealth 縮退 🔵
+  - **条件**: エラー復旧スナップショット取得が例外を投げる
+  - **期待結果**: errorRecoveryHealth.status = 'degraded', 他コンポーネントは正常
+  - **信頼性**: 🔵 *health-check-service.ts checkErrorRecoveryHealth try-catch より*
+
+- [ ] **TC-134-E05**: パフォーマンス傾向例外時の checkPerformanceHealth 縮退 🔵
+  - **条件**: パフォーマンス傾向取得が例外を投げる
+  - **期待結果**: performanceHealth.status = 'degraded', 他コンポーネントは正常
+  - **信頼性**: 🔵 *health-check-service.ts checkPerformanceHealth try-catch より*
+
+- [ ] **TC-134-E06**: 複数コンポーネント同時例外時の安定性 🔵
+  - **条件**: globalCache と realTimeMonitor の両方が例外を投げる
+  - **期待結果**: 該当コンポーネントが全て degraded、ヘルスチェック全体はクラッシュしない
+  - **信頼性**: 🔵 *health-check-service.ts 独立 try-catch 設計より*
+
+---
+
+## テストケースサマリー（Phase 52 追加分）
+
+### カテゴリ別件数
+
+| カテゴリ | 正常系 | 異常系 | 境界値 | 合計 |
+|---------|--------|--------|--------|------|
+| Phase 52: REQ-132 | 3 | 5 | 3 | 11 |
+| Phase 52: REQ-133 | 5 | 0 | 1 | 6 |
+| Phase 52: REQ-134 | 0 | 6 | 0 | 6 |
+| **Phase 52 合計** | **8** | **11** | **4** | **23** |
+
+### 信頼性レベル分布（Phase 52 追加分）
+
+- 🔵 青信号: 23件 (100%)
+- 🟡 黄信号: 0件 (0%)
+- 🔴 赤信号: 0件 (0%)
+
 **品質評価**: ✅ 高品質 - 全テストケースが既存の fire-and-forget 実装・WarmupStatusInfo 型・monitoring エンドポイント構造に基づいている

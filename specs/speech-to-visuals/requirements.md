@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 1-51 完了（154/154タスク完了 + ISS-003~045修正完了）・Phase 43 キャッシュウォームアップ統合完了・Phase 44 多言語検出拡張完了・Phase 45 ウォームアップ障害耐性テスト完了（REQ-113~115）・Phase 49~50 ヘルスエンドポイント縮退ステータス・デフォルトウォームアップパターン耐性テスト完了（REQ-125~130）・Phase 51 HealthCheckService本番コード堅牢化完了（REQ-131）・327ファイル・96,466行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト4,357件（194スイート）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.5 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・Phase 31図解品質エンハンスメント（REQ-079~083）完了・Phase 32図解品質パイプライン統合（REQ-084~087）完了・Phase 33パイプライン品質監視統合（REQ-088~090）完了・Phase 34ストリーミング品質・音声前処理・エクスポート検証（REQ-091~093）完了・Phase 35可視化アルゴリズム正式化・パイプライン品質統合（REQ-094~096）完了・Phase 36パフォーマンス最適化・コスト可視化・監視API（REQ-097~100）完了・Phase 37監視API本組込み・コード規模監査（REQ-102~103）完了・Phase 38監査スコープ修正・ドキュメント整合性（REQ-104~106）完了・Phase 39テストESM互換性・依存脆弱性解消（REQ-107~110）完了
+**実装状況**: Phase 1-52 進行中（154/154タスク完了 + ISS-003~045修正完了 + Phase 52テスト追加中）・Phase 43 キャッシュウォームアップ統合完了・Phase 44 多言語検出拡張完了・Phase 45 ウォームアップ障害耐性テスト完了（REQ-113~115）・Phase 49~50 ヘルスエンドポイント縮退ステータス・デフォルトウォームアップパターン耐性テスト完了（REQ-125~130）・Phase 51 HealthCheckService本番コード堅牢化完了（REQ-131）・327ファイル・96,466行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト4,357件（194スイート）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.5 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・Phase 31図解品質エンハンスメント（REQ-079~083）完了・Phase 32図解品質パイプライン統合（REQ-084~087）完了・Phase 33パイプライン品質監視統合（REQ-088~090）完了・Phase 34ストリーミング品質・音声前処理・エクスポート検証（REQ-091~093）完了・Phase 35可視化アルゴリズム正式化・パイプライン品質統合（REQ-094~096）完了・Phase 36パフォーマンス最適化・コスト可視化・監視API（REQ-097~100）完了・Phase 37監視API本組込み・コード規模監査（REQ-102~103）完了・Phase 38監査スコープ修正・ドキュメント整合性（REQ-104~106）完了・Phase 39テストESM互換性・依存脆弱性解消（REQ-107~110）完了
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -298,6 +298,12 @@
 
 - REQ-131: システムは HealthCheckService の各コンポーネントチェック（キャッシュ・パイプライン・LLM・エラー復旧・パフォーマンス傾向）が依存バックエンド（globalCache・realTimeMonitor）の例外時に "degraded" ステータスを返し、ヘルスチェック全体がクラッシュしないことを保証しなければならない。各コンポーネントの try-catch による安全な縮退と、performHealthCheck のフォールバックメトリクス構築を含む 🔵 *src/monitoring/health-check-service.ts checkCacheHealth/checkPipelineHealth/checkLLMHealth/checkErrorRecoveryHealth/checkPerformanceHealth try-catch 追加・performHealthCheck フォールバックメトリクスより*
 
+#### ファイル名サニタイズ・テスト検証（Phase 52）
+
+- REQ-132: システムは `sanitizeFilename()` 関数（`src/utils/sanitize.ts`）に対して、パストラバーサル（`../`, `..\\`）・ヌルバイト注入（`\\0`）・制御文字（0x00-0x1F, 0x7F）・ディレクトリセパレータ（`/`, `\\`）・先頭ドット（隠しファイル）・空文字列入力・空白のみ入力・Unicode文字列・最大長入力の各エッジケースを検証する専用テストを提供しなければならない 🔵 *src/utils/sanitize.ts sanitizeFilename() 実装・ISS-044 パストラバーサル防止要件より*
+- REQ-133: システムは集約化されたパイプライン制限定数（`src/config/limits.ts` RATE_LIMITS・BATCH_LIMITS・SERVER_LIMITS・PIPELINE_LIMITS・SECURITY_LIMITS）が各モジュール（api/routes/pipeline.ts・api/routes/batch.ts・api/server.ts）で正しく参照され、マジックナンバーの漏れがないことを検証するテストを提供しなければならない 🔵 *src/config/limits.ts 集約化完了・REQ-071 パイプラインAPI Zod検証・REQ-073 レート制限要件より*
+- REQ-134: システムは HealthCheckService の各コンポーネントチェックが依存バックエンド例外時に個別に "degraded" を返すことを検証する専用テストを提供しなければならない。各コンポーネント（checkCacheHealth・checkPipelineHealth・checkLLMHealth・checkErrorRecoveryHealth・checkPerformanceHealth）ごとにバックエンド例外を注入し、他のコンポーネントに影響しないことを確認すること 🔵 *REQ-131 本番コード堅牢化のテスト補完・src/monitoring/health-check-service.ts 個別 try-catch より*
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より*
@@ -442,14 +448,15 @@
 | Phase 49: 監視ヘルスエンドポイント縮退ステータステスト | ✅完了 | REQ-125~127 | 3/3（縮退ステータス・アクティブアラート・successRate境界値テスト） |
 | Phase 50: デフォルトウォームアップパターン障害耐性テスト | ✅完了 | REQ-128~130 | 3/3（多言語デフォルトパターン障害・起動→ヘルスチェーン・統計不変性テスト） |
 | Phase 51: HealthCheckService本番コード堅牢化 | ✅完了 | REQ-131 | 1/1（全コンポーネントチェックのtry-catch追加・フォールバックメトリクス・型安全性修正） |
+| Phase 52: ファイル名サニタイズ・テスト検証 | 🔲進行中 | REQ-132~134 | 0/3（sanitizeFilenameテスト・limits定数検証テスト・HealthCheckService個別例外テスト） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 169件 (95.9%)
+- 🔵 青信号: 172件 (95.6%)
 - 🟡 黄信号: 3件 (1.7%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-40全要件実装完了（REQ-001~112）・Phase 43~44完了（キャッシュウォームアップ統合・多言語検出拡張）・Phase 45完了（REQ-113~115ウォームアップ障害耐性テスト11件）・Phase 46完了（REQ-116~118キャッシュバックエンド到達不能E2Eテスト14件）・Phase 47完了（REQ-119~121ウォームアップゼロ成功耐性テスト10件）・Phase 48完了（REQ-122~124 HealthCheckService本番ヘルスチェック単体テスト40件）・Phase 49完了（REQ-125~127監視ヘルスエンドポイント縮退ステータステスト）・Phase 50完了（REQ-128~130デフォルトウォームアップパターン障害耐性テスト）・Phase 51完了（REQ-131 HealthCheckService本番コード堅牢化）・TypeScript型エラー0件・npm audit 0脆弱性
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-51全要件実装完了（REQ-001~131）・Phase 52進行中（REQ-132~134テスト検証）・TypeScript型エラー0件・npm audit 0脆弱性
 
 ## Acceptance criteria
 
@@ -460,6 +467,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 51 を網羅し、Phase 49 ~ 51 完了を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 52 を網羅し、Phase 52 進行中を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテゴリに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第153回: 🔵169件/🟡3件/🔴0件 — Phase 49~51要件定義・REQ-125~131追加）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第154回: 🔵172件/🟡3件/🔴0件 — Phase 52要件定義・REQ-132~134追加）
