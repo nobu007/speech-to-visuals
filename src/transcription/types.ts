@@ -40,15 +40,18 @@ export interface TranscriptionMetrics {
 }
 
 /**
- * Supported audio formats for transcription
+ * REQ-145: Re-export centralized audio constants from @/config/limits
+ * so existing imports from this module continue to work unchanged.
  */
-export const SUPPORTED_AUDIO_FORMATS = ['mp3', 'wav', 'ogg', 'm4a'] as const;
-export type SupportedAudioFormat = typeof SUPPORTED_AUDIO_FORMATS[number];
+import { AUDIO_LIMITS } from '@/config/limits';
+export { AUDIO_LIMITS, SUPPORTED_AUDIO_FORMATS } from '@/config/limits';
+export type { SupportedAudioFormat } from '@/config/limits';
 
 /**
- * Maximum file size in bytes (50MB)
+ * Maximum file size in bytes (50MB) — re-exported from centralized AUDIO_LIMITS.
+ * Kept as a standalone constant for backward compatibility with existing imports.
  */
-export const MAX_FILE_SIZE = 50 * 1024 * 1024;
+export const MAX_FILE_SIZE = AUDIO_LIMITS.MAX_FILE_SIZE_BYTES;
 
 /**
  * Custom error for transcription failures

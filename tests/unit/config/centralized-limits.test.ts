@@ -9,7 +9,14 @@ import {
   PIPELINE_LIMITS,
   AUDIO_LIMITS,
   SECURITY_LIMITS,
+  SUPPORTED_AUDIO_FORMATS,
 } from '../../../src/config/limits';
+
+// Import re-exports from types.ts to verify backward compatibility
+import {
+  MAX_FILE_SIZE,
+  SUPPORTED_AUDIO_FORMATS as TYPES_SUPPORTED_FORMATS,
+} from '../../../src/transcription/types';
 
 describe('ISS-044: Centralized limits configuration', () => {
   describe('RATE_LIMITS', () => {
@@ -134,6 +141,25 @@ describe('ISS-044: Centralized limits configuration', () => {
       const limits = AUDIO_LIMITS;
       expect(limits.MAX_FILE_SIZE_BYTES).toBe(52428800 as const);
       expect(limits.DURATION_WARNING_SECONDS).toBe(3600 as const);
+    });
+  });
+
+  // REQ-145: Consolidation tests — verify re-exported values match canonical source
+  describe('REQ-145: audio constant consolidation', () => {
+    it('MAX_FILE_SIZE re-exported from types.ts equals AUDIO_LIMITS.MAX_FILE_SIZE_BYTES', () => {
+      expect(MAX_FILE_SIZE).toBe(AUDIO_LIMITS.MAX_FILE_SIZE_BYTES);
+    });
+
+    it('SUPPORTED_AUDIO_FORMATS re-exported from types.ts equals limits.ts canonical', () => {
+      expect(TYPES_SUPPORTED_FORMATS).toBe(SUPPORTED_AUDIO_FORMATS);
+    });
+
+    it('SUPPORTED_AUDIO_FORMATS contains expected formats', () => {
+      expect(SUPPORTED_AUDIO_FORMATS).toEqual(['mp3', 'wav', 'ogg', 'm4a']);
+    });
+
+    it('MAX_FILE_SIZE is exactly 50MB (52428800 bytes)', () => {
+      expect(MAX_FILE_SIZE).toBe(52428800);
     });
   });
 });
