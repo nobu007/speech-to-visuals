@@ -188,7 +188,7 @@ describe('Phase 46 — REQ-116: CacheWarmupManager with unreachable backend', ()
     warmupManager.setWarmupPatterns(patterns);
 
     const resolver = async (_text: string): Promise<string> => {
-      throw 'cache backend gone'; // eslint-disable-line no-throw-literal
+      throw 'cache backend gone';
     };
 
     // CacheWarmupManager catches non-Error exceptions gracefully

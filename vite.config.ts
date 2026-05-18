@@ -23,9 +23,6 @@ export default defineConfig(({ mode }) => ({
         manualChunks: (id) => {
           // Separate vendor libraries
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom')) {
-              return 'vendor-react';
-            }
             if (id.includes('@radix-ui')) {
               return 'vendor-ui';
             }
@@ -35,15 +32,13 @@ export default defineConfig(({ mode }) => ({
             if (id.includes('@dagrejs/dagre')) {
               return 'vendor-viz';
             }
-            return 'vendor-other';
+            // Merge react and other vendors to avoid circular chunks
+            return 'vendor';
           }
 
-          // Separate large pipeline modules
-          if (id.includes('/src/pipeline/') || id.includes('/src/transcription/') || id.includes('/src/analysis/')) {
-            return 'pipeline-core';
-          }
-          if (id.includes('/src/visualization/') || id.includes('/src/remotion/')) {
-            return 'pipeline-viz';
+          // Separate large pipeline modules (merged to avoid circular chunks)
+          if (id.includes('/src/pipeline/') || id.includes('/src/transcription/') || id.includes('/src/analysis/') || id.includes('/src/visualization/') || id.includes('/src/remotion/')) {
+            return 'pipeline';
           }
         }
       },
