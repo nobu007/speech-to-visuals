@@ -267,63 +267,46 @@ export class BatchProcessingAPI {
     });
 
 
-    // Process files sequentially (for Phase 37 MVP)
-    // For production, implement parallel processing with concurrency control
-    for (let i = 0; i < request.files.length; i++) {
-      // Check for cancellation
-      if (cancelToken.cancelled) {
-        break;
-      }
+    // Process files with parallel concurrency control
+    // Files are processed concurrently up to MAX_CONCURRENT_JOBS workers,
+    // preserving original file order in results.
+    const completedCount = { value: 0 };
+    const failedCount = { value: 0 };
+    const fileSlots = new Array<BatchJobResult['results'][number] | null>(
+      request.files.length,
+    ).fill(null);
 
-      const file = request.files[i];
-      const fileStartTime = Date.now();
-
-
-      // Update progress
-      jobStore.updateJobStatus(jobId, {
-        currentFile: file.name,
-        progress: {
-          total: request.files.length,
-          completed: i,
-          failed: results.filter((r) => !r.success).length,
-          percentage: Math.round((i / request.files.length) * 100),
-        },
-        estimatedTimeRemaining: this.estimateTimeRemaining(
-          startTime,
-          i,
-          request.files.length
-        ),
-      });
-
-      try {
-        // Convert preset to pipeline options
-        const pipelineInput = adaptiveQualityPresets.toPipelineOptions(file);
-
-        // Override video generation based on request
-        if (request.options?.generateVideo !== undefined) {
-          pipelineInput.options!.includeVideoGeneration = request.options.generateVideo;
-        }
-
-        // Process file
-        const result = await simplePipeline.process(pipelineInput);
-
-        results.push({
-          filename: file.name,
-          success: result.success,
-          result,
-          processingTime: Date.now() - fileStartTime,
+    await this.processFilesWithConcurrency(
+      jobId,
+      request.files,
+      request,
+      cancelToken,
+      fileSlots,
+      completedCount,
+      failedCount,
+      () => {
+        // Progress callback after each file completes
+        const done = completedCount.value + failedCount.value;
+        jobStore.updateJobStatus(jobId, {
+          currentFile: request.files[Math.min(done, request.files.length - 1)]?.name,
+          progress: {
+            total: request.files.length,
+            completed: completedCount.value,
+            failed: failedCount.value,
+            percentage: Math.round((done / request.files.length) * 100),
+          },
+          estimatedTimeRemaining: this.estimateTimeRemaining(
+            startTime,
+            done,
+            request.files.length,
+          ),
         });
+      },
+    );
 
-      } catch (error) {
-        logger.error(`File ${i + 1}/${request.files.length} failed:`, error);
-
-        results.push({
-          filename: file.name,
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-          processingTime: Date.now() - fileStartTime,
-        });
-      }
+    // Collect results in original file order
+    for (const slot of fileSlots) {
+      if (slot) results.push(slot);
     }
 
     const totalProcessingTime = Date.now() - startTime;
@@ -370,6 +353,82 @@ export class BatchProcessingAPI {
       },
     });
 
+  }
+
+  /**
+   * Process files concurrently with bounded parallelism.
+   *
+   * Uses a worker-pool pattern: up to MAX_CONCURRENT_JOBS files are processed
+   * in parallel. As each file finishes, the next queued file is picked up.
+   * Results are stored in `slots` at the original file index to preserve order.
+   */
+  private async processFilesWithConcurrency(
+    jobId: string,
+    files: File[],
+    request: BatchJobRequest,
+    cancelToken: { cancelled: boolean },
+    slots: Array<BatchJobResult['results'][number] | null>,
+    completedCount: { value: number },
+    failedCount: { value: number },
+    onFileDone: () => void,
+  ): Promise<void> {
+    const maxConcurrency = BATCH_LIMITS.MAX_CONCURRENT_JOBS;
+    let nextIndex = 0;
+
+    const processFile = async (fileIndex: number): Promise<void> => {
+      const file = files[fileIndex];
+      const fileStartTime = Date.now();
+
+      jobStore.updateJobStatus(jobId, { currentFile: file.name });
+
+      try {
+        const pipelineInput = adaptiveQualityPresets.toPipelineOptions(file);
+
+        if (request.options?.generateVideo !== undefined) {
+          pipelineInput.options!.includeVideoGeneration = request.options.generateVideo;
+        }
+
+        const result = await simplePipeline.process(pipelineInput);
+
+        slots[fileIndex] = {
+          filename: file.name,
+          success: result.success,
+          result,
+          processingTime: Date.now() - fileStartTime,
+        };
+
+        if (result.success) {
+          completedCount.value++;
+        } else {
+          failedCount.value++;
+        }
+      } catch (error) {
+        logger.error(`File ${fileIndex + 1}/${files.length} failed:`, error);
+        slots[fileIndex] = {
+          filename: file.name,
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          processingTime: Date.now() - fileStartTime,
+        };
+        failedCount.value++;
+      }
+
+      onFileDone();
+    };
+
+    // Worker function: keeps picking up the next file index until cancelled or exhausted
+    const worker = async (): Promise<void> => {
+      while (!cancelToken.cancelled) {
+        const idx = nextIndex++;
+        if (idx >= files.length) break;
+        await processFile(idx);
+      }
+    };
+
+    // Launch up to maxConcurrency workers
+    const workerCount = Math.min(maxConcurrency, files.length);
+    const workers = Array.from({ length: workerCount }, () => worker());
+    await Promise.all(workers);
   }
 
   /**
