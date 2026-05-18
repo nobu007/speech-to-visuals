@@ -86,7 +86,9 @@ let mockAudioDuration = 30;
 
 function setupAudioMock(duration: number) {
   mockAudioDuration = duration;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (global as any).Audio = jest.fn().mockImplementation(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const instance: Record<string, any> = {
       onloadedmetadata: null,
       onerror: null,
@@ -111,6 +113,7 @@ function setupAudioMock(duration: number) {
 // Setup / Teardown
 // ---------------------------------------------------------------------------
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const originalAudio = (global as any).Audio;
 
 beforeEach(() => {
@@ -143,6 +146,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (global as any).Audio = originalAudio;
   jest.restoreAllMocks();
 });
@@ -654,7 +658,9 @@ describe('AudioUploader', () => {
       const file = createAudioFile('unknown.mp3');
 
       // Mock Audio that triggers onerror
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (global as any).Audio = jest.fn().mockImplementation(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const instance: Record<string, any> = {
           onloadedmetadata: null,
           onerror: null,
