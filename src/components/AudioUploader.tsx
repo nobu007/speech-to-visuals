@@ -4,11 +4,32 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { validateAudioFile, validateAudioDuration } from '@/utils/audio-validation';
 
 type AudioUploaderProps = {
   onUpload: (file: File) => void;
   isProcessing: boolean;
 };
+
+/**
+ * Extract audio duration from a File using the browser Audio API.
+ * Returns the duration in seconds.
+ */
+async function getAudioDuration(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const audio = new Audio();
+    const url = URL.createObjectURL(file);
+    audio.onloadedmetadata = () => {
+      URL.revokeObjectURL(url);
+      resolve(audio.duration);
+    };
+    audio.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Failed to load audio metadata'));
+    };
+    audio.src = url;
+  });
+}
 
 export const AudioUploader = memo(({ onUpload, isProcessing }: AudioUploaderProps) => {
   const [isDragging, setIsDragging] = useState(false);
@@ -24,6 +45,32 @@ export const AudioUploader = memo(({ onUpload, isProcessing }: AudioUploaderProp
     setIsDragging(false);
   }, []);
 
+  const validateAndSelect = useCallback(async (file: File) => {
+    // File-level validation (sync)
+    const fileResult = validateAudioFile(file);
+    if (!fileResult.valid) {
+      fileResult.errors.forEach(err => toast.error(err));
+      return;
+    }
+    fileResult.warnings.forEach(w => toast.warning(w));
+
+    // Duration validation (async)
+    try {
+      const duration = await getAudioDuration(file);
+      const durationResult = validateAudioDuration(duration);
+      if (!durationResult.valid) {
+        durationResult.errors.forEach(err => toast.error(err));
+        return;
+      }
+      durationResult.warnings.forEach(w => toast.warning(w));
+    } catch {
+      // If duration can't be determined, allow file selection.
+      // Duration will be validated at pipeline level.
+    }
+
+    setSelectedFile(file);
+  }, []);
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
@@ -32,18 +79,18 @@ export const AudioUploader = memo(({ onUpload, isProcessing }: AudioUploaderProp
     const audioFile = files.find(f => f.type.startsWith('audio/'));
 
     if (audioFile) {
-      setSelectedFile(audioFile);
+      validateAndSelect(audioFile);
     } else {
       toast.error('音声ファイルを選択してください');
     }
-  }, []);
+  }, [validateAndSelect]);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setSelectedFile(file);
+      validateAndSelect(file);
     }
-  }, []);
+  }, [validateAndSelect]);
 
   const handleUpload = useCallback(() => {
     if (selectedFile) {
@@ -65,8 +112,8 @@ export const AudioUploader = memo(({ onUpload, isProcessing }: AudioUploaderProp
       <div
         className={cn(
           'relative border-2 border-dashed rounded-xl p-12 transition-all duration-300',
-          isDragging 
-            ? 'border-primary bg-primary/5 scale-105' 
+          isDragging
+            ? 'border-primary bg-primary/5 scale-105'
             : 'border-border hover:border-primary/50',
           isProcessing && 'opacity-50 pointer-events-none'
         )}
@@ -82,7 +129,7 @@ export const AudioUploader = memo(({ onUpload, isProcessing }: AudioUploaderProp
           onChange={handleFileSelect}
           disabled={isProcessing}
         />
-        
+
         <div className="flex flex-col items-center justify-center space-y-6">
           <div className="relative">
             <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl" />
