@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 1-52 完了（154/154タスク完了 + ISS-003~045修正完了 + Phase 52テスト23基準オールグリーン）・Phase 53進行中（REQ-135~138 仕様最適化・テストカバレッジ拡充）・335ファイル・97,807行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト4,357+件（111テストファイル）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.5 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）
+**実装状況**: Phase 1-53 完了（154/154タスク完了 + ISS-003~045修正完了 + Phase 52テスト23基準オールグリーン + Phase 53仕様最適化34.8%削減・テストカバレッジ拡充91テスト追加）・335ファイル・97,807行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト4,448+件（115テストファイル）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.5 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -304,12 +304,12 @@
 - REQ-133: システムは集約化されたパイプライン制限定数（`src/config/limits.ts` RATE_LIMITS・BATCH_LIMITS・SERVER_LIMITS・PIPELINE_LIMITS・SECURITY_LIMITS）が各モジュール（api/routes/pipeline.ts・api/routes/batch.ts・api/server.ts）で正しく参照され、マジックナンバーの漏れがないことを検証するテストを提供しなければならない 🔵 ✅実装済 *src/config/limits.ts 集約化完了・6テスト通過*
 - REQ-134: システムは HealthCheckService の各コンポーネントチェックが依存バックエンド例外時に個別に "degraded" を返すことを検証する専用テストを提供しなければならない。各コンポーネント（checkCacheHealth・checkPipelineHealth・checkLLMHealth・checkErrorRecoveryHealth・checkPerformanceHealth）ごとにバックエンド例外を注入し、他のコンポーネントに影響しないことを確認すること 🔵 ✅実装済 *REQ-131 本番コード堅牢化のテスト補完・6テスト通過*
 
-#### 仕様最適化・テストカバレッジ拡充（Phase 53） 🔲進行中
+#### 仕様最適化・テストカバレッジ拡充（Phase 53） ✅完了
 
-- REQ-135: システムは仕様ドキュメント（acceptance-criteria.md・interview-record.md）の完了済みフェーズ（Phase 44~52）の重複セクション（信頼性レベル分布・テストケースサマリー表・実施計画）を簡潔な完了ステータスに集約し、acceptance-criteria.md の全体行数を15%以上削減しなければならない。テストケース定義（TC-xxx-xx）自体は保持し、重複するサマリー情報のみを削除すること 🔵 *AI Hub iteration feedback: spec doc hotspot files grew 370 lines・Phase 44-52 content = 54.2% of acceptance-criteria.md より*
-- REQ-136: システムは React hooks（use-toast.ts: 186行）に対する専用ユニットテスト（トースト状態管理・reducer全パターン・キュー上限・自動非表示・タイマークリーンアップ）を提供しなければならない 🔵 *src/hooks/use-toast.ts 既存実装・テストファイルなし*
-- REQ-137: システムは React hooks（useFrameworkPipeline.ts: 385行）に対する専用ユニットテスト（パイプライン実行状態・イテレーション管理・品質メトリクス追跡・エラー回復）を提供しなければならない 🔵 *src/hooks/useFrameworkPipeline.ts 既存実装・テストファイルなし*
-- REQ-138: システムはコアユーティリティ（logger.ts: ログレベルフィルタリング・構造化プレフィックス、memory-usage.ts: クロスプラットフォームメモリ取得・Node.js/Chrome/フォールバック）に対する専用ユニットテストを提供しなければならない 🔵 *src/utils/logger.ts・src/utils/memory-usage.ts 既存実装・テストファイルなし*
+- REQ-135: システムは仕様ドキュメント（acceptance-criteria.md・interview-record.md）の完了済みフェーズ（Phase 44~52）の重複セクション（信頼性レベル分布・テストケースサマリー表・実施計画）を簡潔な完了ステータスに集約し、acceptance-criteria.md の全体行数を15%以上削減しなければならない。テストケース定義（TC-xxx-xx）自体は保持し、重複するサマリー情報のみを削除すること 🔵 ✅実装済 *AI Hub iteration feedback: spec doc hotspot files grew 370 lines・Phase 44-52 content = 54.2% of acceptance-criteria.md より・コミット9a390e9で34.8%削減達成*
+- REQ-136: システムは React hooks（use-toast.ts: 186行）に対する専用ユニットテスト（トースト状態管理・reducer全パターン・キュー上限・自動非表示・タイマークリーンアップ）を提供しなければならない 🔵 ✅実装済 *src/hooks/use-toast.ts 既存実装・tests/unit/hooks/use-toast.test.ts（256行・22テスト）・コミット7333d26*
+- REQ-137: システムは React hooks（useFrameworkPipeline.ts: 385行）に対する専用ユニットテスト（パイプライン実行状態・イテレーション管理・品質メトリクス追跡・エラー回復）を提供しなければならない 🔵 ✅実装済 *src/hooks/useFrameworkPipeline.ts 既存実装・tests/unit/hooks/use-framework-pipeline.test.ts（429行・25テスト）・コミット7333d26*
+- REQ-138: システムはコアユーティリティ（logger.ts: ログレベルフィルタリング・構造化プレフィックス、memory-usage.ts: クロスプラットフォームメモリ取得・Node.js/Chrome/フォールバック）に対する専用ユニットテストを提供しなければならない 🔵 ✅実装済 *src/utils/logger.ts・src/utils/memory-usage.ts 既存実装・tests/unit/utils/logger.test.ts（166行・13テスト）・tests/unit/utils/memory-usage.test.ts（148行・16テスト）・コミット7333d26*
 
 ### 条件付き要件
 
@@ -456,7 +456,7 @@
 | Phase 50: デフォルトウォームアップパターン障害耐性テスト | ✅完了 | REQ-128~130 | 3/3（多言語デフォルトパターン障害・起動→ヘルスチェーン・統計不変性テスト） |
 | Phase 51: HealthCheckService本番コード堅牢化 | ✅完了 | REQ-131 | 1/1（全コンポーネントチェックのtry-catch追加・フォールバックメトリクス・型安全性修正） |
 | Phase 52: ファイル名サニタイズ・テスト検証 | ✅完了 | REQ-132~134 | 3/3（sanitizeFilename 11テスト・limits定数 6テスト・HealthCheckService個別例外 6テスト・計23基準オールグリーン） |
-| Phase 53: 仕様最適化・テストカバレッジ拡充 | 🔲進行中 | REQ-135~138 | 0/4（spec doc最適化・use-toastテスト・useFrameworkPipelineテスト・logger/memory-usageテスト） |
+| Phase 53: 仕様最適化・テストカバレッジ拡充 | ✅完了 | REQ-135~138 | 4/4（spec doc最適化34.8%削減・use-toast 22テスト・useFrameworkPipeline 25テスト・logger/memory-usage 29テスト・計91テスト追加） |
 
 ## 信頼性レベル分布
 
@@ -464,7 +464,7 @@
 - 🟡 黄信号: 3件 (1.6%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-52全要件実装完了（REQ-001~134）・Phase 53進行中（REQ-135~138仕様最適化・テストカバレッジ拡充）・TypeScript型エラー0件・npm audit 0脆弱性
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-53全要件実装完了（REQ-001~138）・TypeScript型エラー0件・npm audit 0脆弱性
 
 ## Acceptance criteria
 
@@ -475,6 +475,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 53 を網羅し、Phase 53 進行中を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 53 を網羅し、Phase 53 完了を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテゴリに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第155回: 🔵176件/🟡3件/🔴0件 — Phase 53要件定義・REQ-135~138追加）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第156回: 🔵176件/🟡3件/🔴0件 — Phase 53完了確認・REQ-135~138全実装済）
