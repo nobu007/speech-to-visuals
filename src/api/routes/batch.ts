@@ -17,6 +17,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { BATCH_LIMITS } from '../../config/limits';
+import { validateAudioFileMetadata } from '../../utils/audio-validation';
 
 // UUID v4 validation regex (ISS-010)
 const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -55,7 +56,7 @@ interface InternalJob {
 }
 
 interface CreateJobBody {
-  files: Array<{ name: string; path: string }>;
+  files: Array<{ name: string; path: string; size?: number }>;
   preset?: string;
   options?: Record<string, unknown>;
 }
@@ -284,6 +285,15 @@ export function createBatchRouter(jobManager?: BatchJobManager): Router {
       const file = body.files[i];
       if (!file || typeof file !== 'object' || !file.name || typeof file.name !== 'string') {
         return sendBatchError(res, 400, 'VALIDATION_ERROR', `Invalid file object at index ${i}: must have a string 'name' property`);
+      }
+    }
+
+    // REQ-148: Validate audio file metadata at API boundary
+    for (let i = 0; i < body.files.length; i++) {
+      const file = body.files[i];
+      const validation = validateAudioFileMetadata({ name: file.name, size: file.size });
+      if (!validation.valid) {
+        return sendBatchError(res, 400, 'VALIDATION_ERROR', `File at index ${i} (${file.name}): ${validation.errors.join('; ')}`);
       }
     }
 
