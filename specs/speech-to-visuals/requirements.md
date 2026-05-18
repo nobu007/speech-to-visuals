@@ -311,6 +311,12 @@
 - REQ-137: システムは React hooks（useFrameworkPipeline.ts: 385行）に対する専用ユニットテスト（パイプライン実行状態・イテレーション管理・品質メトリクス追跡・エラー回復）を提供しなければならない 🔵 ✅実装済 *src/hooks/useFrameworkPipeline.ts 既存実装・tests/unit/hooks/use-framework-pipeline.test.ts（429行・25テスト）・コミット7333d26*
 - REQ-138: システムはコアユーティリティ（logger.ts: ログレベルフィルタリング・構造化プレフィックス、memory-usage.ts: クロスプラットフォームメモリ取得・Node.js/Chrome/フォールバック）に対する専用ユニットテストを提供しなければならない 🔵 ✅実装済 *src/utils/logger.ts・src/utils/memory-usage.ts 既存実装・tests/unit/utils/logger.test.ts（166行・13テスト）・tests/unit/utils/memory-usage.test.ts（148行・16テスト）・コミット7333d26*
 
+#### コンポーネント・ユーティリティテスト拡充（Phase 54） ✅完了
+
+- REQ-139: システムは StageIndicator コンポーネントの純粋ヘルパー関数（calcElapsed: 経過時間計算・null開始時の0返却・負値クランプ、formatElapsed: 秒/分/時間フォーマット、STAGE_CONFIG/STATUS_LABEL/STATUS_BADGE_VARIANT: 全ステータスカバー）に対するユニットテストを提供しなければならない 🔵 ✅実装済 *src/components/StageIndicator.tsx 純粋ヘルパー・src/components/__tests__/StageIndicator.test.ts（20テスト）・コミットb492b78*
+- REQ-140: システムは AUDIO_LIMITS 設定値（MAX_FILE_SIZE_BYTES: 50MB、DURATION_WARNING_SECONDS: 3600秒）の妥当性検証とas constリテラル型テストを centralized-limits テストスイートに追加しなければならない 🔵 ✅実装済 *src/config/limits.ts 既存実装・tests/unit/config/centralized-limits.test.ts（4テスト追加・AUDIO_LIMITS as const テスト1テスト追加）・コミットb492b78*
+- REQ-141: システムは getAudioDuration 関数（HTMLAudioElement loadedmetadata/error イベント・ObjectURL生成/解放・preload='metadata'設定）に対するブラウザAPIモックテストを提供しなければならない 🔵 ✅実装済 *src/utils/audio-duration.ts 既存実装・tests/unit/utils/audio-duration.test.ts（5テスト追加・loadedmetadata/error/preload/URL revoke検証）・コミットb492b78*
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より*
@@ -457,6 +463,7 @@
 | Phase 51: HealthCheckService本番コード堅牢化 | ✅完了 | REQ-131 | 1/1（全コンポーネントチェックのtry-catch追加・フォールバックメトリクス・型安全性修正） |
 | Phase 52: ファイル名サニタイズ・テスト検証 | ✅完了 | REQ-132~134 | 3/3（sanitizeFilename 11テスト・limits定数 6テスト・HealthCheckService個別例外 6テスト・計23基準オールグリーン） |
 | Phase 53: 仕様最適化・テストカバレッジ拡充 | ✅完了 | REQ-135~138 | 4/4（spec doc最適化34.8%削減・use-toast 22テスト・useFrameworkPipeline 25テスト・logger/memory-usage 29テスト・計91テスト追加） |
+| Phase 54: コンポーネント・ユーティリティテスト拡充 | ✅完了 | REQ-139~141 | 3/3（StageIndicator helpers 20テスト・AUDIO_LIMITS 5テスト・getAudioDuration mock 5テスト・計30テスト追加） |
 
 ## 信頼性レベル分布
 
@@ -475,6 +482,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 53 を網羅し、Phase 53 完了を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 54 を網羅し、Phase 54 完了を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテゴリに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第156回: 🔵176件/🟡3件/🔴0件 — Phase 53完了確認・REQ-135~138全実装済）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第157回: 🔵179件/🟡3件/🔴0件 — Phase 54完了確認・REQ-139~141全実装済）
