@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-17（Phase 45要件定義: REQ-113~115テストケース計画・ウォームアップ障害耐性テスト）
+**最終更新**: 2026-05-18（Phase 53要件定義: REQ-135~138テストケース計画・仕様最適化・テストカバレッジ拡充）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -2874,3 +2874,206 @@
 - 🔴 赤信号: 0件 (0%)
 
 **品質評価**: ✅ 高品質 - 全テストケースが既存の fire-and-forget 実装・WarmupStatusInfo 型・monitoring エンドポイント構造に基づいている
+
+---
+
+## REQ-135: 仕様ドキュメント最適化 🔵
+
+**信頼性**: 🔵 *AI Hub iteration feedback: spec doc hotspot files grew 370 lines・acceptance-criteria.md Phase 44-52 = 54.2% より*
+
+### Given（前提条件）
+
+- acceptance-criteria.md が 2,876 行（Phase 44-52 コンテンツが 1,561 行 = 54.2%）
+- interview-record.md が 2,495 行
+- 完了済みフェーズのテストケースサマリー・信頼性レベル分布・実施計画セクションが各フェーズで重複記載
+
+### When（実行条件）
+
+- 完了済みフェーズ（Phase 44~51）の重複セクション（信頼性レベル分布表・テストケースサマリー表・テスト実施計画）を簡潔な完了ステータスに集約する
+
+### Then（期待結果）
+
+- acceptance-criteria.md の全体行数が15%以上削減される
+- テストケース定義（TC-xxx-xx エントリ）は全て保持される
+- REQ-132~134 の Phase 52 セクションは保持される
+
+### テストケース
+
+#### 正常系
+
+- [ ] **TC-135-01**: acceptance-criteria.md 行数削減率検証 🔵
+  - **測定**: 削減前後の行数比較
+  - **期待結果**: 削減率 ≥ 15%（2,876行 → 2,444行以下）
+  - **信頼性**: 🔵 *現状 2,876 行・Phase 44-52 が 1,561 行より*
+
+- [ ] **TC-135-02**: テストケース定義保持確認 🔵
+  - **測定**: 全 TC-xxx-xx エントリの存在確認
+  - **期待結果**: TC-001-01 ~ TC-134-E06 の全テストケースが保持される
+  - **信頼性**: 🔵 *テストケースは原本情報・削除不可*
+
+- [ ] **TC-135-03**: Phase 52 セクション保持確認 🔵
+  - **測定**: REQ-132/133/134 セクションの完全性確認
+  - **期待結果**: Phase 52 全23テストケースが保持される
+  - **信頼性**: 🔵 *最新フェーズ・原本情報*
+
+---
+
+## REQ-136: use-toast.ts フックユニットテスト 🔵
+
+**信頼性**: 🔵 *src/hooks/use-toast.ts (186行) 既存実装・テストファイルなし より*
+
+### Given（前提条件）
+
+- use-toast.ts がトースト状態管理（reducer パターン）を提供
+- トースト追加・更新・削除・キュー管理・自動非表示機能を実装
+- 専用ユニットテストファイルが存在しない
+
+### When（実行条件）
+
+- use-toast.ts の reducer・状態管理ロジックに対するユニットテストを作成・実行する
+
+### Then（期待結果）
+
+- 全 reducer パターンがテストされる
+- キュー上限・自動非表示・タイマークリーンアップが検証される
+
+### テストケース
+
+#### 正常系
+
+- [ ] **TC-136-01**: トースト追加（ADD_TOAST）の状態変更 🔵
+  - **入力**: reducer state(空) + ADD_TOAST action
+  - **期待結果**: toasts 配列に新しいトーストが追加される
+  - **信頼性**: 🔵 *use-toast.ts reducer case ADD_TOAST より*
+
+- [ ] **TC-136-02**: トースト更新（UPDATE_TOAST）の状態変更 🔵
+  - **入力**: reducer state(既存トースト) + UPDATE_TOAST action
+  - **期待結果**: 指定IDのトーストが更新される
+  - **信頼性**: 🔵 *use-toast.ts reducer case UPDATE_TOAST より*
+
+- [ ] **TC-136-03**: トースト削除（DISMISS_TOAST）の状態変更 🔵
+  - **入力**: reducer state(既存トースト) + DISMISS_TOAST action
+  - **期待結果**: 指定IDのトーストが open=false に更新される
+  - **信頼性**: 🔵 *use-toast.ts reducer case DISMISS_TOAST より*
+
+- [ ] **TC-136-04**: トースト完全削除（REMOVE_TOAST）の状態変更 🔵
+  - **入力**: reducer state(既存トースト) + REMOVE_TOAST action
+  - **期待結果**: 指定IDのトーストが配列から除去される
+  - **信頼性**: 🔵 *use-toast.ts reducer case REMOVE_TOAST より*
+
+#### 境界値
+
+- [ ] **TC-136-B01**: 存在しないIDのトースト更新 🔵
+  - **入力**: reducer state + UPDATE_TOAST(id: "non-existent")
+  - **期待結果**: 状態変更なし（冪等性）
+  - **信頼性**: 🔵 *reducer 実装の null ガードより*
+
+---
+
+## REQ-137: useFrameworkPipeline.ts フックユニットテスト 🔵
+
+**信頼性**: 🔵 *src/hooks/useFrameworkPipeline.ts (385行) 既存実装・テストファイルなし より*
+
+### Given（前提条件）
+
+- useFrameworkPipeline.ts が FrameworkIntegratedPipeline との連携を管理
+- パイプライン実行状態・イテレーション履歴・品質メトリクス・エラー回復を追跡
+- 専用ユニットテストファイルが存在しない
+
+### When（実行条件）
+
+- useFrameworkPipeline.ts の状態管理・パイプラインインタラクションに対するユニットテストを作成・実行する
+
+### Then（期待結果）
+
+- パイプライン実行開始・完了・エラーの状態遷移が検証される
+- イテレーション履歴の蓄積・品質メトリクスの更新が検証される
+
+### テストケース
+
+#### 正常系
+
+- [ ] **TC-137-01**: 初期状態の検証 🔵
+  - **期待結果**: isRunning=false, error=null, iterationHistory=[] の初期状態
+  - **信頼性**: 🔵 *useFrameworkPipeline.ts useState 初期値より*
+
+- [ ] **TC-137-02**: パイプライン実行開始時の状態変更 🔵
+  - **入力**: execute() 呼び出し
+  - **期待結果**: isRunning=true に遷移
+  - **信頼性**: 🔵 *useFrameworkPipeline.ts 実行状態管理より*
+
+- [ ] **TC-137-03**: パイプライン実行完了時の状態変更 🔵
+  - **入力**: パイプライン実行完了
+  - **期待結果**: isRunning=false, iterationHistory に結果が蓄積
+  - **信頼性**: 🔵 *useFrameworkPipeline.ts 完了処理より*
+
+#### 異常系
+
+- [ ] **TC-137-E01**: パイプライン実行エラー時の状態変更 🔵
+  - **条件**: パイプラインが例外をスロー
+  - **期待結果**: isRunning=false, error にエラーメッセージが設定
+  - **信頼性**: 🔵 *useFrameworkPipeline.ts catch ブロックより*
+
+---
+
+## REQ-138: logger.ts・memory-usage.ts ユーティリティテスト 🔵
+
+**信頼性**: 🔵 *src/utils/logger.ts (32行)・src/utils/memory-usage.ts (44行) 既存実装・テストファイルなし より*
+
+### Given（前提条件）
+
+- logger.ts が LogLevel enum（DEBUG/INFO/WARN/ERROR/SILENT）によるログレベルフィルタリングを提供
+- memory-usage.ts が Node.js（process.memoryUsage）/ Chrome（performance.memory）/ フォールバックの3環境でメモリ取得を提供
+- 専用ユニットテストファイルが存在しない
+
+### When（実行条件）
+
+- logger.ts と memory-usage.ts のコア機能に対するユニットテストを作成・実行する
+
+### Then（期待結果）
+
+- ログレベルフィルタリングが正しく動作する
+- クロスプラットフォームメモリ取得が各環境で検証される
+
+### テストケース
+
+#### 正常系
+
+- [ ] **TC-138-01**: logger.info がプレフィックス付きメッセージを出力 🔵
+  - **入力**: logger.info("test message")
+  - **期待結果**: "[INFO] test message" が出力される
+  - **信頼性**: 🔵 *logger.ts info メソッド実装より*
+
+- [ ] **TC-138-02**: memory-usage.ts Node.js 環境での取得 🔵
+  - **条件**: process.memoryUsage が利用可能
+  - **期待結果**: heapUsed > 0, heapTotal > 0, rss > 0
+  - **信頼性**: 🔵 *memory-usage.ts Node.js 分岐より*
+
+#### 異常系
+
+- [ ] **TC-138-E01**: memory-usage.ts フォールバック動作 🔵
+  - **条件**: process も performance.memory も利用不可
+  - **期待結果**: { heapUsed: 0, heapTotal: 0 } を返す
+  - **信頼性**: 🔵 *memory-usage.ts フォールバック return より*
+
+---
+
+## テストケースサマリー（Phase 53 追加分）
+
+### カテゴリ別件数
+
+| カテゴリ | 正常系 | 異常系 | 境界値 | 合計 |
+|---------|--------|--------|--------|------|
+| Phase 53: REQ-135 | 3 | 0 | 0 | 3 |
+| Phase 53: REQ-136 | 4 | 0 | 1 | 5 |
+| Phase 53: REQ-137 | 3 | 1 | 0 | 4 |
+| Phase 53: REQ-138 | 2 | 1 | 0 | 3 |
+| **Phase 53 合計** | **12** | **2** | **1** | **15** |
+
+### 信頼性レベル分布（Phase 53 追加分）
+
+- 🔵 青信号: 15件 (100%)
+- 🟡 黄信号: 0件 (0%)
+- 🔴 赤信号: 0件 (0%)
+
+**品質評価**: ✅ 高品質 - 全テストケースが既存の実装コードに基づいている
