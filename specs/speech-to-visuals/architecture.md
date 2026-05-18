@@ -785,5 +785,11 @@ Fallback LLM
 - [TASK-0152: Resolve npm audit vulnerabilities](tasks/TASK-0152.md)
 - [TASK-0153: Update documentation consistency](tasks/TASK-0153.md)
 - [TASK-0154: API Auth Middleware Including Comprehensive Tests](tasks/TASK-0154.md)
+- [TASK-0155](tasks/TASK-0155.md)
+- [TASK-0156: 重複音声制限定数の単一出処統合](tasks/TASK-0156.md)
+- [TASK-0157: AudioUploader インライン検証の centralized validation 統合](tasks/TASK-0157.md)
+- [TASK-0158: whisper-transcriber.ts 検証委譲と高度検証維持](tasks/TASK-0158.md)
+- [TASK-0159: AudioUploader コンポーネント専用ユニットテスト](tasks/TASK-0159.md)
+- [TASK-0160: Phase 56 完了確認・ドキュメント更新](tasks/TASK-0160.md)
 
 <!-- spine:children:end -->
