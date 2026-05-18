@@ -16,6 +16,7 @@ import {
   SimplePipelineResult,
 } from './SimplePipelineStateMachine';
 import { getAudioDuration, formatDuration } from '@/utils/audio-duration';
+import { validateAudioFile, validateAudioDuration } from '@/utils/audio-validation';
 import { AUDIO_LIMITS } from '@/config/limits';
 
 // ========================================
@@ -53,22 +54,24 @@ export const SimplePipelineInterface: React.FC = () => {
 
     setDurationWarning(null);
 
-    if (!VALID_AUDIO_TYPES.includes(selectedFile.type)) {
-      dispatch({ type: 'PROCESSING_ERROR', error: 'サポートされていないファイル形式です。MP3, WAV, OGG, M4A形式をご利用ください。' });
-      return;
-    }
-
-    if (selectedFile.size > AUDIO_LIMITS.MAX_FILE_SIZE_BYTES) {
-      dispatch({ type: 'PROCESSING_ERROR', error: 'ファイルサイズが大きすぎます。50MB以下のファイルをご利用ください。' });
+    // Validate file using centralized validation (EDGE-001/EDGE-101)
+    const fileValidation = validateAudioFile(selectedFile);
+    if (!fileValidation.valid) {
+      dispatch({ type: 'PROCESSING_ERROR', error: fileValidation.errors[0] });
       return;
     }
 
     dispatch({ type: 'SELECT_FILE', file: selectedFile });
 
-    // Check duration asynchronously (EDGE-103: warn if > 1 hour)
+    // Check duration asynchronously (EDGE-102 reject / EDGE-103 warn)
     getAudioDuration(selectedFile)
       .then((duration) => {
-        if (duration > AUDIO_LIMITS.DURATION_WARNING_SECONDS) {
+        const durValidation = validateAudioDuration(duration);
+        if (!durValidation.valid) {
+          dispatch({ type: 'PROCESSING_ERROR', error: `音声が短すぎます（${duration.toFixed(2)}秒）。1秒以上の音声ファイルをご利用ください。` });
+          return;
+        }
+        if (durValidation.warnings.length > 0) {
           setDurationWarning(
             `この音声ファイルは${formatDuration(duration)}です。1時間を超えるため、処理に時間がかかる場合があります。`,
           );

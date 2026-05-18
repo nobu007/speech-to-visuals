@@ -316,6 +316,8 @@
 - REQ-139: システムは StageIndicator コンポーネントの純粋ヘルパー関数（calcElapsed: 経過時間計算・null開始時の0返却・負値クランプ、formatElapsed: 秒/分/時間フォーマット、STAGE_CONFIG/STATUS_LABEL/STATUS_BADGE_VARIANT: 全ステータスカバー）に対するユニットテストを提供しなければならない 🔵 ✅実装済 *src/components/StageIndicator.tsx 純粋ヘルパー・src/components/__tests__/StageIndicator.test.ts（20テスト）・コミットb492b78*
 - REQ-140: システムは AUDIO_LIMITS 設定値（MAX_FILE_SIZE_BYTES: 50MB、DURATION_WARNING_SECONDS: 3600秒）の妥当性検証とas constリテラル型テストを centralized-limits テストスイートに追加しなければならない 🔵 ✅実装済 *src/config/limits.ts 既存実装・tests/unit/config/centralized-limits.test.ts（4テスト追加・AUDIO_LIMITS as const テスト1テスト追加）・コミットb492b78*
 - REQ-141: システムは getAudioDuration 関数（HTMLAudioElement loadedmetadata/error イベント・ObjectURL生成/解放・preload='metadata'設定）に対するブラウザAPIモックテストを提供しなければならない 🔵 ✅実装済 *src/utils/audio-duration.ts 既存実装・tests/unit/utils/audio-duration.test.ts（5テスト追加・loadedmetadata/error/preload/URL revoke検証）・コミットb492b78*
+- REQ-142: システムは validateAudioFile 関数を提供し、File オブジェクトのサイズ上限（EDGE-101: 50MB）・空ファイル検出（EDGE-001）・対応形式検証を一元化し、UI コンポーネントから呼び出し可能にしなければならない 🔵 ✅実装済 *src/utils/audio-validation.ts（validateAudioFile 関数・AUDIO_LIMITS 参照）・SimplePipelineInterface.tsx 検証統合・tests/unit/utils/audio-validation.test.ts（15テスト）*
+- REQ-143: システムは validateAudioDuration 関数を提供し、音声再生時間の下限（EDGE-102: 1秒未満拒否）・長時間警告（EDGE-103: 1時間超過警告）・無効値（NaN/Infinity/負数）検出を一元化し、UI コンポーネントの非同期チェックから呼び出し可能にしなければならない 🔵 ✅実装済 *src/utils/audio-validation.ts（validateAudioDuration 関数）・SimplePipelineInterface.tsx 非同期検証統合・tests/unit/utils/audio-validation.test.ts（12テスト）*
 
 ### 条件付き要件
 
@@ -464,14 +466,15 @@
 | Phase 52: ファイル名サニタイズ・テスト検証 | ✅完了 | REQ-132~134 | 3/3（sanitizeFilename 11テスト・limits定数 6テスト・HealthCheckService個別例外 6テスト・計23基準オールグリーン） |
 | Phase 53: 仕様最適化・テストカバレッジ拡充 | ✅完了 | REQ-135~138 | 4/4（spec doc最適化34.8%削減・use-toast 22テスト・useFrameworkPipeline 25テスト・logger/memory-usage 29テスト・計91テスト追加） |
 | Phase 54: コンポーネント・ユーティリティテスト拡充 | ✅完了 | REQ-139~141 | 3/3（StageIndicator helpers 20テスト・AUDIO_LIMITS 5テスト・getAudioDuration mock 5テスト・計30テスト追加） |
+| Phase 55: パイプライン音声入力検証統合 | ✅完了 | REQ-142~143 | 2/2（validateAudioFile EDGE-001/EDGE-101 統合・validateAudioDuration EDGE-102/EDGE-103 統合・SimplePipelineInterface 検証統合・27テスト追加） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 176件 (95.7%)
+- 🔵 青信号: 178件 (95.7%)
 - 🟡 黄信号: 3件 (1.6%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-53全要件実装完了（REQ-001~138）・TypeScript型エラー0件・npm audit 0脆弱性
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-55全要件実装完了（REQ-001~143）・TypeScript型エラー0件・npm audit 0脆弱性
 
 ## Acceptance criteria
 
@@ -482,6 +485,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 54 を網羅し、Phase 54 完了を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 55 を網羅し、Phase 55 完了を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテゴリに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第157回: 🔵179件/🟡3件/🔴0件 — Phase 54完了確認・REQ-139~141全実装済）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第158回: 🔵178件/🟡3件/🔴0件 — Phase 55完了確認・REQ-142~143全実装済）
