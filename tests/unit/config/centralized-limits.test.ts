@@ -7,6 +7,7 @@ import {
   BATCH_LIMITS,
   SERVER_LIMITS,
   PIPELINE_LIMITS,
+  AUDIO_LIMITS,
   SECURITY_LIMITS,
 } from '../../../src/config/limits';
 
@@ -84,6 +85,24 @@ describe('ISS-044: Centralized limits configuration', () => {
     });
   });
 
+  describe('AUDIO_LIMITS', () => {
+    it('should define max file size as 50MB', () => {
+      expect(AUDIO_LIMITS.MAX_FILE_SIZE_BYTES).toBe(50 * 1024 * 1024);
+    });
+
+    it('should define duration warning threshold as 3600 seconds (1 hour)', () => {
+      expect(AUDIO_LIMITS.DURATION_WARNING_SECONDS).toBe(3600);
+    });
+
+    it('should have reasonable max file size (> 0)', () => {
+      expect(AUDIO_LIMITS.MAX_FILE_SIZE_BYTES).toBeGreaterThan(0);
+    });
+
+    it('should have reasonable duration warning threshold (> 0)', () => {
+      expect(AUDIO_LIMITS.DURATION_WARNING_SECONDS).toBeGreaterThan(0);
+    });
+  });
+
   describe('as const immutability', () => {
     it('RATE_LIMITS should be inferred as literal types', () => {
       const limits = RATE_LIMITS;
@@ -109,6 +128,12 @@ describe('ISS-044: Centralized limits configuration', () => {
       const limits = SECURITY_LIMITS;
       expect(limits.JWT_SECRET_MIN_LENGTH).toBe(32 as const);
       expect(limits.JWT_SECRET_MIN_CHAR_TYPES).toBe(2 as const);
+    });
+
+    it('AUDIO_LIMITS should be inferred as literal types', () => {
+      const limits = AUDIO_LIMITS;
+      expect(limits.MAX_FILE_SIZE_BYTES).toBe(52428800 as const);
+      expect(limits.DURATION_WARNING_SECONDS).toBe(3600 as const);
     });
   });
 });
