@@ -2941,29 +2941,29 @@
 
 #### 正常系
 
-- [ ] **TC-136-01**: トースト追加（ADD_TOAST）の状態変更 🔵
+- [x] **TC-136-01**: トースト追加（ADD_TOAST）の状態変更 🔵
   - **入力**: reducer state(空) + ADD_TOAST action
   - **期待結果**: toasts 配列に新しいトーストが追加される
   - **信頼性**: 🔵 *use-toast.ts reducer case ADD_TOAST より*
 
-- [ ] **TC-136-02**: トースト更新（UPDATE_TOAST）の状態変更 🔵
+- [x] **TC-136-02**: トースト更新（UPDATE_TOAST）の状態変更 🔵
   - **入力**: reducer state(既存トースト) + UPDATE_TOAST action
   - **期待結果**: 指定IDのトーストが更新される
   - **信頼性**: 🔵 *use-toast.ts reducer case UPDATE_TOAST より*
 
-- [ ] **TC-136-03**: トースト削除（DISMISS_TOAST）の状態変更 🔵
+- [x] **TC-136-03**: トースト削除（DISMISS_TOAST）の状態変更 🔵
   - **入力**: reducer state(既存トースト) + DISMISS_TOAST action
   - **期待結果**: 指定IDのトーストが open=false に更新される
   - **信頼性**: 🔵 *use-toast.ts reducer case DISMISS_TOAST より*
 
-- [ ] **TC-136-04**: トースト完全削除（REMOVE_TOAST）の状態変更 🔵
+- [x] **TC-136-04**: トースト完全削除（REMOVE_TOAST）の状態変更 🔵
   - **入力**: reducer state(既存トースト) + REMOVE_TOAST action
   - **期待結果**: 指定IDのトーストが配列から除去される
   - **信頼性**: 🔵 *use-toast.ts reducer case REMOVE_TOAST より*
 
 #### 境界値
 
-- [ ] **TC-136-B01**: 存在しないIDのトースト更新 🔵
+- [x] **TC-136-B01**: 存在しないIDのトースト更新 🔵
   - **入力**: reducer state + UPDATE_TOAST(id: "non-existent")
   - **期待結果**: 状態変更なし（冪等性）
   - **信頼性**: 🔵 *reducer 実装の null ガードより*
@@ -2993,23 +2993,23 @@
 
 #### 正常系
 
-- [ ] **TC-137-01**: 初期状態の検証 🔵
+- [x] **TC-137-01**: 初期状態の検証 🔵
   - **期待結果**: isRunning=false, error=null, iterationHistory=[] の初期状態
   - **信頼性**: 🔵 *useFrameworkPipeline.ts useState 初期値より*
 
-- [ ] **TC-137-02**: パイプライン実行開始時の状態変更 🔵
+- [x] **TC-137-02**: パイプライン実行開始時の状態変更 🔵
   - **入力**: execute() 呼び出し
   - **期待結果**: isRunning=true に遷移
   - **信頼性**: 🔵 *useFrameworkPipeline.ts 実行状態管理より*
 
-- [ ] **TC-137-03**: パイプライン実行完了時の状態変更 🔵
+- [x] **TC-137-03**: パイプライン実行完了時の状態変更 🔵
   - **入力**: パイプライン実行完了
   - **期待結果**: isRunning=false, iterationHistory に結果が蓄積
   - **信頼性**: 🔵 *useFrameworkPipeline.ts 完了処理より*
 
 #### 異常系
 
-- [ ] **TC-137-E01**: パイプライン実行エラー時の状態変更 🔵
+- [x] **TC-137-E01**: パイプライン実行エラー時の状態変更 🔵
   - **条件**: パイプラインが例外をスロー
   - **期待結果**: isRunning=false, error にエラーメッセージが設定
   - **信頼性**: 🔵 *useFrameworkPipeline.ts catch ブロックより*
@@ -3039,19 +3039,19 @@
 
 #### 正常系
 
-- [ ] **TC-138-01**: logger.info がプレフィックス付きメッセージを出力 🔵
+- [x] **TC-138-01**: logger.info がプレフィックス付きメッセージを出力 🔵
   - **入力**: logger.info("test message")
   - **期待結果**: "[INFO] test message" が出力される
   - **信頼性**: 🔵 *logger.ts info メソッド実装より*
 
-- [ ] **TC-138-02**: memory-usage.ts Node.js 環境での取得 🔵
+- [x] **TC-138-02**: memory-usage.ts Node.js 環境での取得 🔵
   - **条件**: process.memoryUsage が利用可能
   - **期待結果**: heapUsed > 0, heapTotal > 0, rss > 0
   - **信頼性**: 🔵 *memory-usage.ts Node.js 分岐より*
 
 #### 異常系
 
-- [ ] **TC-138-E01**: memory-usage.ts フォールバック動作 🔵
+- [x] **TC-138-E01**: memory-usage.ts フォールバック動作 🔵
   - **条件**: process も performance.memory も利用不可
   - **期待結果**: { heapUsed: 0, heapTotal: 0 } を返す
   - **信頼性**: 🔵 *memory-usage.ts フォールバック return より*
