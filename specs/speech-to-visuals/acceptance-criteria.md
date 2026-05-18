@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-18（Phase 53完了: REQ-135~138全テストケースオールグリーン・仕様最適化34.8%削減・91テスト追加）
+**最終更新**: 2026-05-18（Phase 55完了: REQ-142~143テストケースオールグリーン・Phase 56要件定義済 REQ-144~147）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -2003,5 +2003,146 @@
   - **条件**: process も performance.memory も利用不可
   - **期待結果**: { heapUsed: 0, heapTotal: 0 } を返す
   - **信頼性**: 🔵 *memory-usage.ts フォールバック return より*
+
+---
+
+## REQ-144: AudioUploader centralized validation 統合 🔵
+
+**信頼性**: 🔵 *src/components/AudioUploader.tsx 32-38行インライン検証・src/utils/audio-validation.ts 統合パターン・EnhancedFileUploader.tsx 統合例 より*
+
+### Given（前提条件）
+
+- AudioUploader.tsx がインライン MIME type チェック（`audio/*`）のみ実行
+- centralized audio-validation.ts が validateAudioFile() + validateAudioDuration() を提供
+- EnhancedFileUploader.tsx と SimplePipelineInterface.tsx は既に統合済み
+
+### When（実行条件）
+
+- AudioUploader.tsx のインライン検証を validateAudioFile() に置換
+- validateAudioDuration() を用いた非同期音声長チェックを追加
+
+### Then（期待結果）
+
+- EDGE-001（空ファイル）が AudioUploader で検出される
+- EDGE-101（50MB超過）が AudioUploader で検出される
+- EDGE-102（1秒未満）が AudioUploader でリジェクトされる
+- EDGE-103（1時間超過）が AudioUploader で警告表示される
+
+### テストケース
+
+#### 正常系
+
+- [ ] **TC-144-01**: AudioUploader が有効な音声ファイルを受け入れる 🔵
+  - **入力**: MP3 ファイル（10MB、3分）
+  - **期待結果**: ファイルが選択され、エラーなし
+  - **信頼性**: 🔵 *EnhancedFileUploader 統合パターンより*
+
+#### 異常系
+
+- [ ] **TC-144-E01**: AudioUploader が空ファイルをリジェクト 🔵
+  - **入力**: 0バイトのファイル（audio/mpeg MIME type）
+  - **期待結果**: エラーメッセージ表示
+  - **信頼性**: 🔵 *EDGE-001 テストパターンより*
+
+- [ ] **TC-144-E02**: AudioUploader が50MB超過ファイルをリジェクト 🔵
+  - **入力**: 51MB の音声ファイル
+  - **期待結果**: ファイルサイズエラー表示
+  - **信頼性**: 🔵 *EDGE-101 テストパターンより*
+
+#### 境界値
+
+- [ ] **TC-144-B01**: AudioUploader が1秒未満音声をリジェクト 🔵
+  - **入力**: 0.5秒の音声ファイル
+  - **期待結果**: 音声が短すぎるエラー表示
+  - **信頼性**: 🔵 *EDGE-102 テストパターンより*
+
+---
+
+## REQ-145: 音声制限定数統合 🔵
+
+**信頼性**: 🔵 *src/transcription/types.ts MAX_FILE_SIZE vs src/config/limits.ts AUDIO_LIMITS の重複定義 より*
+
+### Given（前提条件）
+
+- types.ts に MAX_FILE_SIZE（51,024,000）が定義
+- config/limits.ts に AUDIO_LIMITS.MAX_FILE_SIZE_BYTES が定義
+- SUPPORTED_AUDIO_FORMATS が3箇所で個別定義
+
+### When（実行条件）
+
+- 重複定数を AUDIO_LIMITS に統合
+- types.ts から AUDIO_LIMITS を再エクスポートして互換性維持
+
+### Then（期待結果）
+
+- 音声制限定数が単一出処（config/limits.ts）に集約
+- 既存インポートの互換性が維持される
+
+### テストケース
+
+- [ ] **TC-145-01**: types.ts 再エクスポート値が AUDIO_LIMITS と一致 🔵
+  - **期待結果**: MAX_FILE_SIZE === AUDIO_LIMITS.MAX_FILE_SIZE_BYTES
+  - **信頼性**: 🔵 *既存 limits.test.ts パターンより*
+
+---
+
+## REQ-146: whisper-transcriber 検証統合 🔵
+
+**信頼性**: 🔵 *src/transcription/whisper-transcriber.ts validateAudioInput() 121-129行・src/transcription/transcriber.ts validateAudioFile() 172-200行 より*
+
+### Given（前提条件）
+
+- whisper-transcriber.ts が独自の形式・サイズ検証を実装
+- transcriber.ts が独自の validateAudioFile() メソッドを実装
+- centralized audio-validation.ts が基本検証を提供
+
+### When（実行条件）
+
+- 基本検証（形式・サイズ）を centralized validateAudioFile() に委譲
+- 破損検出（magic byte check）は追加レイヤーとして維持
+
+### Then（期待結果）
+
+- 基本検証ロジックの重複が解消
+- 破損検出は維持される
+
+### テストケース
+
+- [ ] **TC-146-01**: 基本検証が centralized module に委譲 🔵
+  - **期待結果**: whisper-transcriber が validateAudioFile を import して使用
+  - **信頼性**: 🔵 *EnhancedFileUploader 統合例より*
+
+---
+
+## REQ-147: AudioUploader コンポーネントユニットテスト 🔵
+
+**信頼性**: 🔵 *src/components/AudioUploader.tsx テストファイル不在・Phase 55 audio-validation.test.ts 27テストパターン より*
+
+### Given（前提条件）
+
+- AudioUploader.tsx に対応するテストファイルが存在しない
+- REQ-144 統合後の動作を検証するテストが必要
+
+### When（実行条件）
+
+- AudioUploader コンポーネントのユニットテストを作成
+
+### Then（期待結果）
+
+- ファイル選択・バリデーションエラー・継続警告のテストケースが全て通過
+
+### テストケース
+
+- [ ] **TC-147-01**: AudioUploader 正常ファイル選択 🔵
+  - **期待結果**: 有効な音声ファイルが selectedFile に設定される
+  - **信頼性**: 🔵 *AudioUploader.tsx setSelectedFile フローより*
+
+- [ ] **TC-147-02**: AudioUploader 非音声ファイルリジェクト 🔵
+  - **期待結果**: エラートースト表示
+  - **信頼性**: 🔵 *AudioUploader.tsx else ブロックより*
+
+- [ ] **TC-147-E01**: AudioUploader 空ファイルリジェクト 🔵
+  - **期待結果**: EDGE-001 エラー表示
+  - **信頼性**: 🔵 *validateAudioFile 空ファイル検出より*
 
 ---

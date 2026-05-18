@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 1-53 完了（154/154タスク完了 + ISS-003~045修正完了 + Phase 52テスト23基準オールグリーン + Phase 53仕様最適化34.8%削減・テストカバレッジ拡充91テスト追加）・335ファイル・97,807行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト4,448+件（115テストファイル）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.5 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）
+**実装状況**: Phase 1-55 完了・Phase 56 未着手（REQ-144~147 音声検証完全統合・コンポーネントテスト）・335ファイル・97,807行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト4,448+件（115テストファイル）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.5 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -319,6 +319,13 @@
 - REQ-142: システムは validateAudioFile 関数を提供し、File オブジェクトのサイズ上限（EDGE-101: 50MB）・空ファイル検出（EDGE-001）・対応形式検証を一元化し、UI コンポーネントから呼び出し可能にしなければならない 🔵 ✅実装済 *src/utils/audio-validation.ts（validateAudioFile 関数・AUDIO_LIMITS 参照）・SimplePipelineInterface.tsx 検証統合・tests/unit/utils/audio-validation.test.ts（15テスト）*
 - REQ-143: システムは validateAudioDuration 関数を提供し、音声再生時間の下限（EDGE-102: 1秒未満拒否）・長時間警告（EDGE-103: 1時間超過警告）・無効値（NaN/Infinity/負数）検出を一元化し、UI コンポーネントの非同期チェックから呼び出し可能にしなければならない 🔵 ✅実装済 *src/utils/audio-validation.ts（validateAudioDuration 関数）・SimplePipelineInterface.tsx 非同期検証統合・tests/unit/utils/audio-validation.test.ts（12テスト）*
 
+#### 音声検証完全統合・コンポーネントテスト（Phase 56） 🔲未着手
+
+- REQ-144: システムは AudioUploader コンポーネントのインライン検証（`audio/*` MIME type チェックのみ）を centralized audio-validation.ts の validateAudioFile() + validateAudioDuration() に置換し、EDGE-001（空ファイル）・EDGE-101（50MB超過）・EDGE-102（1秒未満）・EDGE-103（1時間超過警告）の全検証を適用しなければならない 🔵 *src/components/AudioUploader.tsx 32-38行のインライン検証・src/utils/audio-validation.ts 既存統合パターン・EnhancedFileUploader.tsx 統合例 より*
+- REQ-145: システムは重複する音声制限定数（src/transcription/types.ts の MAX_FILE_SIZE・SUPPORTED_AUDIO_FORMATS と src/config/limits.ts の AUDIO_LIMITS・src/utils/audio-validation.ts の形式リスト）を単一出処に統合し、types.ts から AUDIO_LIMITS を再エクスポートして既存インポートの互換性を維持しなければならない 🔵 *src/transcription/types.ts MAX_FILE_SIZE=51,024,000 vs src/config/limits.ts AUDIO_LIMITS.MAX_FILE_SIZE_BYTES=52,428,800（共に50MB系だが値が異なる可能性）・SUPPORTED_AUDIO_FORMATS 3箇所定義 より*
+- REQ-146: システムは whisper-transcriber.ts の validateAudioInput() メソッドの基本ファイル検証（形式チェック・サイズチェック）を centralized audio-validation.ts の validateAudioFile() に委譲し、同モジュール固有の高度検証（破損検出 magic byte check）は追加レイヤーとして維持しなければならない 🔵 *src/transcription/whisper-transcriber.ts validateAudioInput() 121-129行・src/transcription/transcriber.ts validateAudioFile() 172-200行の重複検証 より*
+- REQ-147: システムは AudioUploader コンポーネントに対する専用ユニットテスト（ファイル選択・バリデーションエラー表示・継続警告表示・空ファイルリジェクト・形式チェック・サイズ上限チェック）を提供し、centralized validation 統合後の動作を検証しなければならない 🔵 *src/components/AudioUploader.tsx テストファイル不在・Phase 55 audio-validation.test.ts 27テストのコンポーネント適用確認 より*
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より*
@@ -467,14 +474,15 @@
 | Phase 53: 仕様最適化・テストカバレッジ拡充 | ✅完了 | REQ-135~138 | 4/4（spec doc最適化34.8%削減・use-toast 22テスト・useFrameworkPipeline 25テスト・logger/memory-usage 29テスト・計91テスト追加） |
 | Phase 54: コンポーネント・ユーティリティテスト拡充 | ✅完了 | REQ-139~141 | 3/3（StageIndicator helpers 20テスト・AUDIO_LIMITS 5テスト・getAudioDuration mock 5テスト・計30テスト追加） |
 | Phase 55: パイプライン音声入力検証統合 | ✅完了 | REQ-142~143 | 2/2（validateAudioFile EDGE-001/EDGE-101 統合・validateAudioDuration EDGE-102/EDGE-103 統合・SimplePipelineInterface 検証統合・27テスト追加） |
+| Phase 56: 音声検証完全統合・コンポーネントテスト | 🔲未着手 | REQ-144~147 | 0/4 |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 178件 (95.7%)
+- 🔵 青信号: 182件 (95.8%)
 - 🟡 黄信号: 3件 (1.6%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-55全要件実装完了（REQ-001~143）・TypeScript型エラー0件・npm audit 0脆弱性
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-55全要件実装完了（REQ-001~143）・Phase 56 定義済（REQ-144~147 音声検証完全統合）・TypeScript型エラー0件・npm audit 0脆弱性
 
 ## Acceptance criteria
 
@@ -485,6 +493,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 55 を網羅し、Phase 55 完了を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 56 を網羅し、Phase 55 完了・Phase 56 未着手を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテゴリに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第158回: 🔵178件/🟡3件/🔴0件 — Phase 55完了確認・REQ-142~143全実装済）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第159回: 🔵182件/🟡3件/🔴0件 — Phase 55完了・Phase 56 定義済）
