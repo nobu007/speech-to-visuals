@@ -471,7 +471,10 @@ export class MainPipeline {
       duration: 0,
       processingTime: totalTime,
       stages: this.stages,
-      error: error instanceof Error ? error.message : 'Unknown pipeline error'
+      error: error instanceof Error ? error.message : 'Unknown pipeline error',
+      metrics: {
+        totalRetryAttempts: this.retryAttempts,
+      },
     };
   }
 
@@ -958,7 +961,10 @@ export class MainPipeline {
       audioUrl,
       duration: totalDuration,
       processingTime: totalTime,
-      stages: this.stages
+      stages: this.stages,
+      metrics: {
+        totalRetryAttempts: this.retryAttempts,
+      },
     };
   }
 

@@ -119,6 +119,8 @@ export class PipelineOrchestrator {
 
   // Retry observability
   private retryAttempts: number = 0;
+  /** Retry attempts from the most recent executeStageWithGates call */
+  private lastStageRetryAttempts: number = 0;
 
   constructor(config: PipelineOrchestratorConfig = {}) {
     this.config = config;
@@ -248,6 +250,7 @@ export class PipelineOrchestrator {
         this.executeStageWithGates(0, () => this.runTranscription(input, pipelineConfig), cb),
       );
       transcriptionResult = stage1.result;
+      stage1.timing.retryAttempts = this.lastStageRetryAttempts;
       stageTimings.push(stage1.timing);
 
       this.emitProgress(cb, 1, 'transcription', 100, 'completed');
@@ -263,6 +266,7 @@ export class PipelineOrchestrator {
         this.executeStageWithGates(1, () => this.runAnalysis(transcriptionResult), cb),
       );
       const analysisResult = stage2.result as { segments: unknown[]; diagrams: unknown[] };
+      stage2.timing.retryAttempts = this.lastStageRetryAttempts;
       stageTimings.push(stage2.timing);
 
       contentSegments = analysisResult.segments;
@@ -285,6 +289,7 @@ export class PipelineOrchestrator {
         ),
       );
       const layoutResult = stage3.result;
+      stage3.timing.retryAttempts = this.lastStageRetryAttempts;
       stageTimings.push(stage3.timing);
 
       layoutResults = layoutResult as unknown[];
@@ -317,6 +322,7 @@ export class PipelineOrchestrator {
         ),
       );
       scenes = stage4.result as SceneGraph[];
+      stage4.timing.retryAttempts = this.lastStageRetryAttempts;
       stageTimings.push(stage4.timing);
 
       this.emitProgress(cb, 4, 'preparation', 100, 'completed');
@@ -328,6 +334,7 @@ export class PipelineOrchestrator {
       const stage5 = await timeStage('rendering', scenes!.length, () =>
         this.executeStageWithGates(4, () => this.runRendering(scenes!, pipelineConfig), cb),
       );
+      stage5.timing.retryAttempts = this.lastStageRetryAttempts;
       stageTimings.push(stage5.timing);
 
       this.emitProgress(cb, 5, 'rendering', 100, 'completed');
@@ -354,6 +361,7 @@ export class PipelineOrchestrator {
           qualityScores,
           stageTimings: stageTimings,
           bottleneckReport,
+          totalRetryAttempts: this.retryAttempts,
         },
       };
     } catch (error) {
@@ -368,6 +376,9 @@ export class PipelineOrchestrator {
         processingTime: totalTime,
         stages,
         error: msg,
+        metrics: {
+          totalRetryAttempts: this.retryAttempts,
+        },
       };
     }
   }
@@ -571,6 +582,7 @@ export class PipelineOrchestrator {
   ): Promise<unknown> {
     // Execute the stage with retry on recoverable errors
     let result: unknown;
+    this.lastStageRetryAttempts = 0;
     try {
       const retryResult = await retryWithBackoff(stageFn, {
         maxRetries: 2,
@@ -580,6 +592,7 @@ export class PipelineOrchestrator {
       result = retryResult.result;
       if (retryResult.attempts > 0) {
         this.retryAttempts += retryResult.attempts;
+        this.lastStageRetryAttempts = retryResult.attempts;
       }
     } catch (error) {
       // Emit failed progress
