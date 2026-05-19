@@ -100,6 +100,8 @@ export interface ExtendedPipelineMetrics extends PipelineMetrics {
   stageTimings?: StageTimingRecord[];
   /** Bottleneck analysis report (REQ-097 / TASK-0143) */
   bottleneckReport?: BottleneckReport;
+  /** Total retry attempts across all stages (for observability) */
+  totalRetryAttempts?: number;
 }
 
 /** Quality scores per pipeline stage, recorded via QualityMonitor (REQ-088) */

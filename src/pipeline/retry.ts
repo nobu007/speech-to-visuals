@@ -22,6 +22,14 @@ export interface RetryWithBackoffOptions {
   label?: string;
 }
 
+/** Result of retryWithBackoff including attempt metadata */
+export interface RetryResult<T> {
+  /** The successful return value of fn */
+  result: T;
+  /** Number of retries that occurred (0 = succeeded on first attempt) */
+  attempts: number;
+}
+
 const DEFAULT_OPTIONS: Required<Omit<RetryWithBackoffOptions, 'label'>> = {
   maxRetries: 3,
   baseDelayMs: 500,
@@ -33,13 +41,13 @@ const DEFAULT_OPTIONS: Required<Omit<RetryWithBackoffOptions, 'label'>> = {
  * Execute `fn` with automatic retry on recoverable errors.
  *
  * Uses a shared ErrorClassifier instance to decide retry eligibility.
- * Returns the fn result on success, or throws the last error when all
- * retries are exhausted or the error is non-recoverable.
+ * Returns a RetryResult with the fn result and retry attempt count.
+ * Throws the last error when all retries are exhausted or the error is non-recoverable.
  */
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   options?: RetryWithBackoffOptions,
-): Promise<T> {
+): Promise<RetryResult<T>> {
   const opts = { ...DEFAULT_OPTIONS, ...options };
   const classifier = new ErrorClassifier();
   const label = opts.label ?? 'operation';
@@ -48,7 +56,8 @@ export async function retryWithBackoff<T>(
 
   for (let attempt = 0; attempt <= opts.maxRetries; attempt++) {
     try {
-      return await fn();
+      const result = await fn();
+      return { result, attempts: attempt };
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
 

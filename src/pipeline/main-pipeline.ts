@@ -39,6 +39,7 @@ export class MainPipeline {
   private pipelineId: string;
   private concurrentStages: boolean = true;
   private retryConfig = { maxRetries: 3, backoffMs: 1000 };
+  private retryAttempts: number = 0;
 
   // 🔄 Recursive Custom Instructions Framework Integration
   private framework: RecursiveCustomInstructionsFramework;
@@ -288,12 +289,17 @@ export class MainPipeline {
     const stageStart = performance.now();
 
     try {
-      const result = await retryWithBackoff(stageFunction, {
+      const { result, attempts } = await retryWithBackoff(stageFunction, {
         maxRetries: this.retryConfig.maxRetries,
         baseDelayMs: this.retryConfig.backoffMs,
         label: `main-pipeline:${stageName}`,
       });
       const stageTime = performance.now() - stageStart;
+
+      // Log retry activity for observability
+      if (attempts > 0) {
+        this.retryAttempts += attempts;
+      }
 
       // Check quality gates
       if (stageTime > qualityGates.maxTime) {

@@ -13,6 +13,8 @@ export interface StageTimingRecord {
   durationMs: number;
   itemsProcessed: number;
   throughputPerMs: number;
+  /** Number of retry attempts that occurred during this stage (0 = no retries) */
+  retryAttempts?: number;
 }
 
 /** Full timing report across all stages */
@@ -32,6 +34,7 @@ export function createTimingRecord(
   startTime: number,
   endTime: number,
   itemsProcessed: number,
+  retryAttempts: number = 0,
 ): StageTimingRecord {
   const durationMs = endTime - startTime;
   return {
@@ -41,6 +44,7 @@ export function createTimingRecord(
     durationMs,
     itemsProcessed,
     throughputPerMs: durationMs > 0 ? itemsProcessed / durationMs : 0,
+    retryAttempts,
   };
 }
 
@@ -67,10 +71,11 @@ export async function timeStage<T>(
   stageName: string,
   itemsCount: number,
   stageFn: () => Promise<T>,
+  retryAttempts?: number,
 ): Promise<{ result: T; timing: StageTimingRecord }> {
   const startTime = Date.now();
   const result = await stageFn();
   const endTime = Date.now();
-  const timing = createTimingRecord(stageName, startTime, endTime, itemsCount);
+  const timing = createTimingRecord(stageName, startTime, endTime, itemsCount, retryAttempts ?? 0);
   return { result, timing };
 }

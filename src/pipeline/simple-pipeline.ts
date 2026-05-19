@@ -659,7 +659,7 @@ export class SimplePipeline {
     maxRetries: number = 3
   ): Promise<SimplePipelineResult> {
     try {
-      return await retryWithBackoff(
+      const retryResult = await retryWithBackoff(
         async () => {
           const result = await this.process(input, onProgress);
           if (!result.success) {
@@ -669,6 +669,7 @@ export class SimplePipeline {
         },
         { maxRetries, baseDelayMs: 1000, backoffFactor: 2, label: 'processWithRetry' },
       );
+      return retryResult.result;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       return {

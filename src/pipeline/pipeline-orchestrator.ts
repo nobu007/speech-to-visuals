@@ -117,6 +117,9 @@ export class PipelineOrchestrator {
   // Quality monitoring (REQ-088)
   private qualityMonitor: QualityMonitor | null;
 
+  // Retry observability
+  private retryAttempts: number = 0;
+
   constructor(config: PipelineOrchestratorConfig = {}) {
     this.config = config;
 
@@ -569,11 +572,15 @@ export class PipelineOrchestrator {
     // Execute the stage with retry on recoverable errors
     let result: unknown;
     try {
-      result = await retryWithBackoff(stageFn, {
+      const retryResult = await retryWithBackoff(stageFn, {
         maxRetries: 2,
         baseDelayMs: 500,
         label: `orchestrator:${STAGE_NAMES[stageIndex]}`,
       });
+      result = retryResult.result;
+      if (retryResult.attempts > 0) {
+        this.retryAttempts += retryResult.attempts;
+      }
     } catch (error) {
       // Emit failed progress
       this.emitProgress(cb, stageIndex + 1, STAGE_NAMES[stageIndex], 0, 'failed',

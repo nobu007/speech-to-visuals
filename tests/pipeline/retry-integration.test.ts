@@ -31,7 +31,7 @@ describe('retryWithBackoff integration with ErrorClassifier', () => {
   it('recovers from LLM API 503 errors after 2 attempts', async () => {
     const fn = flakyStage(2, 'LLM API error: 503 service unavailable', 'recovered');
 
-    const result = await retryWithBackoff(fn, {
+    const { result, attempts } = await retryWithBackoff(fn, {
       maxRetries: 3,
       baseDelayMs: 1,
       backoffFactor: 2,
@@ -39,6 +39,7 @@ describe('retryWithBackoff integration with ErrorClassifier', () => {
     });
 
     expect(result).toBe('recovered');
+    expect(attempts).toBe(2);
     expect(fn).toHaveBeenCalledTimes(3); // 2 fails + 1 success
   });
 
@@ -51,13 +52,14 @@ describe('retryWithBackoff integration with ErrorClassifier', () => {
       return 'eventual-success';
     });
 
-    const result = await retryWithBackoff(fn, {
+    const { result, attempts } = await retryWithBackoff(fn, {
       maxRetries: 3,
       baseDelayMs: 1,
       label: 'test-rate-then-timeout',
     });
 
     expect(result).toBe('eventual-success');
+    expect(attempts).toBe(2);
     expect(fn).toHaveBeenCalledTimes(3);
   });
 
@@ -143,11 +145,12 @@ describe('retryWithBackoff with fallback pattern', () => {
     // Simulate the orchestrator pattern: retry first, then fallback
     let result: string;
     try {
-      result = await retryWithBackoff(primaryStage, {
+      const retryResult = await retryWithBackoff(primaryStage, {
         maxRetries: 2,
         baseDelayMs: 1,
         label: 'orchestrator:analysis',
       });
+      result = retryResult.result;
     } catch {
       result = 'fallback-result';
     }
@@ -163,11 +166,12 @@ describe('retryWithBackoff with fallback pattern', () => {
     let result: string;
     let usedFallback = false;
     try {
-      result = await retryWithBackoff(primaryStage, {
+      const retryResult = await retryWithBackoff(primaryStage, {
         maxRetries: 2,
         baseDelayMs: 1,
         label: 'orchestrator:transcription',
       });
+      result = retryResult.result;
     } catch {
       result = 'fallback-result';
       usedFallback = true;
@@ -188,13 +192,16 @@ describe('multi-stage pipeline retry simulation', () => {
     const stage2 = flakyStage(1, 'LLM API error: timeout', 'analyzed');
     const stage3 = flakyStage(0, 'rendering error', 'rendered');
 
-    const r1 = await retryWithBackoff(stage1, { maxRetries: 2, baseDelayMs: 1, label: 's1' });
-    const r2 = await retryWithBackoff(stage2, { maxRetries: 2, baseDelayMs: 1, label: 's2' });
-    const r3 = await retryWithBackoff(stage3, { maxRetries: 2, baseDelayMs: 1, label: 's3' });
+    const rr1 = await retryWithBackoff(stage1, { maxRetries: 2, baseDelayMs: 1, label: 's1' });
+    const rr2 = await retryWithBackoff(stage2, { maxRetries: 2, baseDelayMs: 1, label: 's2' });
+    const rr3 = await retryWithBackoff(stage3, { maxRetries: 2, baseDelayMs: 1, label: 's3' });
 
-    expect(r1).toBe('transcribed');
-    expect(r2).toBe('analyzed');
-    expect(r3).toBe('rendered');
+    expect(rr1.result).toBe('transcribed');
+    expect(rr1.attempts).toBe(0);
+    expect(rr2.result).toBe('analyzed');
+    expect(rr2.attempts).toBe(1);
+    expect(rr3.result).toBe('rendered');
+    expect(rr3.attempts).toBe(0);
 
     expect(stage1).toHaveBeenCalledTimes(1);
     expect(stage2).toHaveBeenCalledTimes(2);

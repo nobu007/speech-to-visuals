@@ -2,13 +2,17 @@
  * TASK-0143: Parallel Layout Executor (REQ-097)
  *
  * Executes layout generation for multiple diagrams in parallel
- * with configurable concurrency limits.
+ * with configurable concurrency limits and optional retry support.
  */
+
+import { retryWithBackoff, type RetryWithBackoffOptions } from './retry';
 
 /** Configuration for parallel layout execution */
 export interface ParallelLayoutConfig {
   maxConcurrency: number; // default: 3
   timeoutMs: number;      // default: 30000
+  /** Retry options applied to each individual item operation */
+  retryOptions?: RetryWithBackoffOptions;
 }
 
 const DEFAULT_LAYOUT_CONFIG: ParallelLayoutConfig = {
@@ -58,7 +62,17 @@ export async function executeLayoutsInParallel<T, R>(
 
   if (diagrams.length === 0) return [];
 
-  return runWithConcurrency(diagrams, fullConfig.maxConcurrency, layoutFn);
+  const taskFn = fullConfig.retryOptions
+    ? async (diagram: T, index: number) => {
+        const { result } = await retryWithBackoff(
+          () => layoutFn(diagram, index),
+          { ...fullConfig.retryOptions, label: fullConfig.retryOptions.label ?? `layout:${index}` },
+        );
+        return result;
+      }
+    : layoutFn;
+
+  return runWithConcurrency(diagrams, fullConfig.maxConcurrency, taskFn);
 }
 
 /**
@@ -73,8 +87,19 @@ export async function executeScenePreparationInParallel<T, R>(
   layouts: T[],
   prepareFn: (layout: T, index: number) => Promise<R>,
   maxConcurrency: number = 4,
+  retryOptions?: RetryWithBackoffOptions,
 ): Promise<R[]> {
   if (layouts.length === 0) return [];
 
-  return runWithConcurrency(layouts, maxConcurrency, prepareFn);
+  const taskFn = retryOptions
+    ? async (layout: T, index: number) => {
+        const { result } = await retryWithBackoff(
+          () => prepareFn(layout, index),
+          { ...retryOptions, label: retryOptions.label ?? `scene-prep:${index}` },
+        );
+        return result;
+      }
+    : prepareFn;
+
+  return runWithConcurrency(layouts, maxConcurrency, taskFn);
 }
