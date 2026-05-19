@@ -29,6 +29,8 @@ export class LLMCache<T> {
   private semanticThreshold: number;
   private semanticEnabled: boolean;
   private semanticMetrics: SemanticMetricsTracker;
+  private saveTimer: ReturnType<typeof setTimeout> | null = null;
+  private debounceMs: number;
 
   constructor(options: {
     maxSize?: number;
@@ -36,6 +38,8 @@ export class LLMCache<T> {
     persistPath?: string;
     semanticThreshold?: number;
     enableSemantic?: boolean;
+    /** Debounce interval in ms for disk persistence (default: 1000). Set 0 for immediate writes. */
+    persistDebounceMs?: number;
   } = {}) {
     this.maxSize = options.maxSize ?? 100;
     this.ttlMs = (options.ttlMinutes ?? 60) * 60 * 1000;
@@ -44,6 +48,7 @@ export class LLMCache<T> {
     this.semanticThreshold = options.semanticThreshold ?? 0.80; // 80% similarity threshold
     this.semanticEnabled = options.enableSemantic ?? true;
     this.semanticMetrics = new SemanticMetricsTracker();
+    this.debounceMs = options.persistDebounceMs ?? 1000;
 
     // Load persisted cache on initialization
     if (this.persistEnabled) {
@@ -173,9 +178,9 @@ export class LLMCache<T> {
       originalText: this.semanticEnabled ? normalized : undefined,
     });
 
-    // Persist to disk if enabled
+    // Schedule debounced persist to disk
     if (this.persistEnabled) {
-      this.saveToDisk();
+      this.scheduleSave();
     }
   }
 
@@ -231,8 +236,26 @@ export class LLMCache<T> {
     }
 
     if (this.persistEnabled) {
-      this.saveToDisk();
+      this.scheduleSave();
     }
+  }
+
+  /**
+   * Schedule a debounced save-to-disk.
+   * Coalesces rapid successive set() calls into a single disk write.
+   */
+  private scheduleSave(): void {
+    if (this.debounceMs <= 0) {
+      this.saveToDisk();
+      return;
+    }
+    if (this.saveTimer !== null) {
+      clearTimeout(this.saveTimer);
+    }
+    this.saveTimer = setTimeout(() => {
+      this.saveTimer = null;
+      this.saveToDisk();
+    }, this.debounceMs);
   }
 
   /**
@@ -319,11 +342,26 @@ export class LLMCache<T> {
   }
 
   /**
-   * Manually trigger cache persistence
+   * Manually trigger cache persistence (immediate, cancels any pending debounced save)
    */
   persist(): void {
     if (this.persistEnabled) {
+      if (this.saveTimer !== null) {
+        clearTimeout(this.saveTimer);
+        this.saveTimer = null;
+      }
       this.saveToDisk();
+    }
+  }
+
+  /**
+   * Cancel pending debounced saves and release resources.
+   * Call this when disposing of the cache instance.
+   */
+  destroy(): void {
+    if (this.saveTimer !== null) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
     }
   }
 }

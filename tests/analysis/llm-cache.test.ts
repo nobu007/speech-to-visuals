@@ -396,6 +396,7 @@ describe('LLMCache', () => {
     test('should persist cache to disk on set', () => {
       const c = new LLMCache<string>({ persistPath: testCachePath });
       c.set('persist-key', 'persist-value');
+      c.persist();
 
       expect(fs.existsSync(testCachePath)).toBe(true);
       const content = JSON.parse(fs.readFileSync(testCachePath, 'utf8'));
@@ -529,8 +530,10 @@ describe('LLMCache', () => {
     test('clearExpired should persist when enabled', () => {
       const c = new LLMCache<string>({ persistPath: testCachePath, ttlMinutes: 0 });
       c.set('expired', 'value');
+      c.persist();
 
       c.clearExpired();
+      c.persist();
 
       const content = JSON.parse(fs.readFileSync(testCachePath, 'utf8'));
       expect(content.entries).toHaveLength(0);
@@ -540,6 +543,7 @@ describe('LLMCache', () => {
       const deepPath = path.join('/tmp', `test-deep-${Date.now()}`, 'sub', 'cache.json');
       const c = new LLMCache<string>({ persistPath: deepPath });
       c.set('key', 'value');
+      c.persist();
 
       expect(fs.existsSync(deepPath)).toBe(true);
 
@@ -677,14 +681,15 @@ describe('LLMCache', () => {
   describe('atomic file write failures', () => {
     test('should handle write failure gracefully', () => {
       // Use a read-only location that will fail on write
-      const c = new LLMCache<string>({ persistPath: '/tmp/nonexistent-dead-end/impossible/path/cache.json' });
+      // persistDebounceMs: 0 ensures immediate synchronous write so the error path is tested
+      const c = new LLMCache<string>({ persistPath: '/tmp/nonexistent-dead-end/impossible/path/cache.json', persistDebounceMs: 0 });
 
       // Should not throw despite write failure
       expect(() => c.set('key', 'value')).not.toThrow();
     });
 
     test('should handle clearExpired persist failure gracefully', () => {
-      const c = new LLMCache<string>({ persistPath: '/tmp/nonexistent-dead-end/impossible/cache.json', ttlMinutes: 0 });
+      const c = new LLMCache<string>({ persistPath: '/tmp/nonexistent-dead-end/impossible/cache.json', ttlMinutes: 0, persistDebounceMs: 0 });
       c.set('expired', 'value');
 
       // Should not throw even though persist will fail
