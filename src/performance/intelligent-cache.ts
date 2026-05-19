@@ -48,6 +48,19 @@ interface CacheStats {
   totalMisses?: number;
   /** Alias for evictionCount */
   evictions?: number;
+  /** Number of corrupted entries detected since last clear */
+  corruptionCount?: number;
+}
+
+/** Detailed health report for the cache */
+export interface CacheHealthReport {
+  healthy: boolean;
+  totalEntries: number;
+  corruptedKeys: string[];
+  corruptionCount: number;
+  oldestEntryAge: number;
+  memoryUsageBytes: number;
+  recommendations: string[];
 }
 
 interface ContentFingerprint {
@@ -77,8 +90,11 @@ export class IntelligentCache {
     compressionRatio: 0,
     evictionCount: 0,
     preloadHits: 0,
-    performanceScore: 0
+    performanceScore: 0,
+    corruptionCount: 0,
   };
+  /** Keys that failed decompression — tracked for health reporting */
+  private corruptedKeys: Set<string> = new Set();
 
   private readonly maxSize = 1000;
   private readonly maxAge = 24 * 60 * 60 * 1000; // 24 hours
@@ -137,7 +153,7 @@ export class IntelligentCache {
   /**
    * Decompress data
    */
-  private decompressData(compressed: string, originalSize: number): unknown {
+  private decompressData(compressed: string, originalSize: number, cacheKey?: string): unknown {
     try {
       if (compressed.length === originalSize) {
         return JSON.parse(compressed);
@@ -160,8 +176,12 @@ export class IntelligentCache {
       }
 
       return JSON.parse(decompressed);
-    } catch {
-      // Corrupted cache data — treat as cache miss
+    } catch (error) {
+      // Corrupted cache data — track for health monitoring
+      this.stats.corruptionCount = (this.stats.corruptionCount || 0) + 1;
+      if (cacheKey) {
+        this.corruptedKeys.add(cacheKey);
+      }
       return null;
     }
   }
@@ -677,7 +697,7 @@ export class IntelligentCache {
 
       // Return decompressed data
       if (bestMatch.compressed) {
-        const decompressedData = this.decompressData(bestMatch.data as string, bestMatch.compressedSize);
+        const decompressedData = this.decompressData(bestMatch.data as string, bestMatch.compressedSize, bestMatch.id);
         return { ...bestMatch, data: decompressedData };
       }
     } else {
@@ -770,7 +790,16 @@ export class IntelligentCache {
 
     // Return decompressed data if needed
     if (entry.compressed) {
-      return this.decompressData(entry.data as string, entry.compressedSize);
+      const data = this.decompressData(entry.data as string, entry.compressedSize, key);
+      if (data === null) {
+        // Decompression failed — purge corrupted entry
+        this.cache.delete(key);
+        this.fingerprints.delete(key);
+        this.preloadQueue.delete(key);
+        this.updateMemoryUsage();
+        return null;
+      }
+      return data;
     }
 
     return entry.data;
@@ -811,7 +840,78 @@ export class IntelligentCache {
    * Get cache statistics
    */
   getStats(): CacheStats {
-    return { ...this.stats };
+    return { ...this.stats, corruptionCount: this.stats.corruptionCount || 0 };
+  }
+
+  /**
+   * Get detailed health report for monitoring and diagnostics.
+   * Scans all cached entries to identify any that fail decompression.
+   */
+  getHealthReport(): CacheHealthReport {
+    const corruptedKeys: string[] = [];
+    const now = Date.now();
+    let oldestAge = 0;
+
+    for (const [key, entry] of this.cache.entries()) {
+      const age = now - entry.timestamp;
+      if (age > oldestAge) oldestAge = age;
+
+      if (entry.compressed) {
+        const data = this.decompressData(entry.data as string, entry.compressedSize, key);
+        if (data === null && !this.corruptedKeys.has(key)) {
+          corruptedKeys.push(key);
+        }
+      }
+    }
+
+    // Include previously detected corrupted keys still in cache
+    for (const key of this.corruptedKeys) {
+      if (this.cache.has(key) && !corruptedKeys.includes(key)) {
+        corruptedKeys.push(key);
+      }
+    }
+
+    const recommendations: string[] = [];
+    const corruptionRatio = corruptedKeys.length / Math.max(this.cache.size, 1);
+
+    if (corruptionRatio > 0.1) {
+      recommendations.push('High corruption ratio — consider calling repair() or clear()');
+    }
+    if (oldestAge > this.maxAge * 2) {
+      recommendations.push('Stale entries detected — consider running cleanup');
+    }
+    if (this.cache.size > this.maxSize * 0.9) {
+      recommendations.push('Cache near capacity — eviction pressure increasing');
+    }
+
+    return {
+      healthy: corruptedKeys.length === 0,
+      totalEntries: this.cache.size,
+      corruptedKeys,
+      corruptionCount: this.stats.corruptionCount || 0,
+      oldestEntryAge: oldestAge,
+      memoryUsageBytes: this.stats.memoryUsage,
+      recommendations,
+    };
+  }
+
+  /**
+   * Remove all corrupted entries from the cache.
+   * Returns the number of entries removed.
+   */
+  repair(): number {
+    let removed = 0;
+    for (const key of this.corruptedKeys) {
+      if (this.cache.delete(key)) {
+        removed++;
+        this.fingerprints.delete(key);
+        this.preloadQueue.delete(key);
+      }
+    }
+    this.corruptedKeys.clear();
+    this.updateMemoryUsage();
+    this.stats.totalEntries = this.cache.size;
+    return removed;
   }
 
   /**
@@ -822,6 +922,7 @@ export class IntelligentCache {
     this.fingerprints.clear();
     this.accessOrder = [];
     this.preloadQueue.clear();
+    this.corruptedKeys.clear();
     this.stats = {
       totalEntries: 0,
       hitRate: 0,
@@ -832,7 +933,8 @@ export class IntelligentCache {
       compressionRatio: 0,
       evictionCount: 0,
       preloadHits: 0,
-      performanceScore: 0
+      performanceScore: 0,
+      corruptionCount: 0,
     };
   }
 

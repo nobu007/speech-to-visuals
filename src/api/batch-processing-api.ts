@@ -165,7 +165,7 @@ export class BatchProcessingAPI {
   /**
    * Submit batch processing job
    */
-  async submitJob(request: BatchJobRequest): Promise<{ jobId: string }> {
+  async submitJob(request: BatchJobRequest): Promise<{ jobId: string; skippedFiles?: string[] }> {
 
     // Validate request
     if (!request.files || request.files.length === 0) {
@@ -176,8 +176,33 @@ export class BatchProcessingAPI {
       throw new BatchValidationError(`Maximum ${BATCH_LIMITS.MAX_FILES_PER_BATCH} files per batch`);
     }
 
+    // Deduplicate files by name+size to avoid redundant processing
+    const seen = new Map<string, number>();
+    const dedupedFiles: File[] = [];
+    const skippedFiles: string[] = [];
+
+    for (const file of request.files) {
+      // Use name + size as a lightweight dedup key
+      // (content hash would be more robust but requires async file read)
+      const dedupKey = `${file.name}::${file.size}`;
+      if (seen.has(dedupKey)) {
+        skippedFiles.push(file.name);
+        continue;
+      }
+      seen.set(dedupKey, dedupedFiles.length);
+      dedupedFiles.push(file);
+    }
+
+    if (dedupedFiles.length === 0) {
+      throw new BatchValidationError('All files were duplicates — no unique files to process');
+    }
+
+    const dedupedRequest = skippedFiles.length > 0
+      ? { ...request, files: dedupedFiles }
+      : request;
+
     // Create job
-    const jobId = jobStore.createJob(request.files);
+    const jobId = jobStore.createJob(dedupedRequest.files);
 
     // Set preset if provided
     if (request.preset) {
@@ -185,7 +210,7 @@ export class BatchProcessingAPI {
     }
 
     // Start processing in background
-    this.processJobAsync(jobId, request).catch((error) => {
+    this.processJobAsync(jobId, dedupedRequest).catch((error) => {
       logger.error(`Phase 37: Batch job ${jobId} failed:`, error);
       jobStore.updateJobStatus(jobId, {
         status: 'failed',
@@ -193,7 +218,12 @@ export class BatchProcessingAPI {
       });
     });
 
-    return { jobId };
+    const result: { jobId: string; skippedFiles?: string[] } = { jobId };
+    if (skippedFiles.length > 0) {
+      result.skippedFiles = skippedFiles;
+      logger.info(`Phase 37: Job ${jobId} skipped ${skippedFiles.length} duplicate file(s): ${skippedFiles.join(', ')}`);
+    }
+    return result;
   }
 
   /**
