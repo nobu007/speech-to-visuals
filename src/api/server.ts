@@ -8,6 +8,7 @@ import { createPipelineRouter } from './routes/pipeline';
 import { createMonitoringRouter } from './routes/monitoring';
 import { errorHandler } from './middleware/error-handler';
 import { apiRateLimiter, uploadRateLimiter } from './middleware/rate-limit';
+import { requestTimeout } from './middleware/timeout';
 import { authMiddleware, AuthenticatedRequest } from './middleware/auth';
 import { RATE_LIMITS, SERVER_LIMITS } from '../config/limits';
 import { validateSecurityEnv } from '../config/validate';
@@ -50,6 +51,9 @@ app.use(cors({
 
 // Security headers
 app.use(helmet());
+
+// Request timeout — all routes default to 30s
+app.use(requestTimeout(SERVER_LIMITS.DEFAULT_TIMEOUT_MS));
 
 // Rate limiting — ISS-044: values from centralized config
 app.use(rateLimit({
