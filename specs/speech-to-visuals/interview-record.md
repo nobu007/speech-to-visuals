@@ -2557,6 +2557,36 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A160: LLMキャッシュデバウンステストの追加（Phase 57）
+
+**分析日時**: 2026-05-20
+**カテゴリ**: テストカバレッジ拡充
+**背景**: AI Hub フィードバックにより、llm-cache.ts の scheduleSave debounce ロジック（scheduleSave coalescing, destroy cancellation, persist immediate flush）が persistDebounceMs: 0 でのみテストされており、タイミング-sensitive なパスの回帰防止テストが不在であることが指摘された。直近4コミットで追加された debounce 実装（scheduleSave, destroy, persist キャンセル）は、既存テストファイルで9行の変更のみであり、専用の debounce-interval テストが必要。
+
+**判断**: LLMCache の debounce 挙動を検証する専用テストファイル（tests/analysis/llm-cache-debounce.test.ts）を作成し、以下のタイミング-sensitive パスをカバー:
+1. **scheduleSave coalescing**: 複数の rapid set() 呼び出しが1回のディスク書き込みに結合されること
+2. **destroy cancellation**: destroy() が保留中の debounced save をキャンセルすること
+3. **persist immediate flush**: persist() が保留中の debounce をキャンセルして即時書き込みすること
+4. **timer interval accuracy**: debounceMs 経過前は書き込まれず、経過後に書き込まれること
+5. **clearExpired re-scheduling**: clearExpired() が新しい debounced save をスケジュールすること
+6. **persistDebounceMs: 0 fallback**: 同期モードでの即時書き込み
+
+**根拠**:
+- `src/analysis/llm-cache.ts` lines 32-33: saveTimer, debounceMs フィールド定義
+- `src/analysis/llm-cache.ts` line 51: persistDebounceMs ?? 1000 設定
+- `src/analysis/llm-cache.ts` lines 247-258: scheduleSave() 実装（coalescing + setTimeout）
+- `src/analysis/llm-cache.ts` lines 347-355: persist() 実装（即時書き込み + timer キャンセル）
+- `src/analysis/llm-cache.ts` lines 361-366: destroy() 実装（timer キャンセル）
+- AI Hub フィードバック: "the debounce logic in llm-cache.ts (scheduleSave, destroy, persist cancellation) has only 9 changed lines in the existing test file and likely needs dedicated debounce-interval tests to prevent timing regressions"
+
+**信頼性への影響**:
+- この分析により、新規要件 REQ-148 を追加（信頼性レベル: 🔵）
+- 専用テスト15件追加（jest.useFakeTimers ベースのタイミング検証）
+- 信頼性レベル分布: 🔵183件(95.8%) / 🟡3件(1.6%) / 🔴0件(0%)
+- debounce ロジックの回帰防止テストが完了し、persistDebounceMs 設定変更時の安全性が確保された
+
+---
+
 ## Acceptance criteria
 
 - [x] 最新分析エントリ(A119)が第150回検証結果（Phase 45要件定義・ウォームアップ障害耐性テスト要件）を反映している

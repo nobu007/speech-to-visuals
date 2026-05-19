@@ -180,6 +180,7 @@ system_design:
   - path: speech-to-visuals/tasks/TASK-0158.md
   - path: speech-to-visuals/tasks/TASK-0159.md
   - path: speech-to-visuals/tasks/TASK-0160.md
+  - path: speech-to-visuals/tasks/TASK-0161.md
 - path: speech-to-visuals/design-interview.md
 references:
 - doc: speech-to-visuals/api-endpoints.md

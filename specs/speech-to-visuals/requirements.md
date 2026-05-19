@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 1-56 完了・335ファイル・97,807行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト4,448+件（115テストファイル）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.5 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）
+**実装状況**: Phase 1-57 完了・336ファイル・97,807行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト4,463+件（116テストファイル）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.5 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -326,6 +326,10 @@
 - REQ-146: システムは whisper-transcriber.ts の validateAudioInput() メソッドの基本ファイル検証（形式チェック・サイズチェック）を centralized audio-validation.ts の validateAudioFile() に委譲し、同モジュール固有の高度検証（破損検出 magic byte check）は追加レイヤーとして維持しなければならない 🔵 ✅実装済 *TASK-0158完了・コミットbd8794d・File入力→validateAudioFile()委譲・magic byte check維持*
 - REQ-147: システムは AudioUploader コンポーネントに対する専用ユニットテスト（ファイル選択・バリデーションエラー表示・継続警告表示・空ファイルリジェクト・形式チェック・サイズ上限チェック）を提供し、centralized validation 統合後の動作を検証しなければならない 🔵 ✅実装済 *TASK-0159完了・コミットddb4167・36テスト全通過*
 
+#### LLMキャッシュデバウンステスト（Phase 57） ✅完了
+
+- REQ-148: システムは LLMCache のデバウンステスト（scheduleSave の結合・destroy のキャンセル・persist の即時フラッシュ・タイマー間隔精度・clearExpired の再スケジュール）を専用テストファイルで検証し、デバウンス設定（persistDebounceMs > 0）時のタイミング-sensitive な振る舞いの回帰を防止しなければならない 🔵 ✅実装済 *tests/analysis/llm-cache-debounce.test.ts（15テスト）・コミット53ec069 debounce実装に対するテスト補完*
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より*
@@ -475,14 +479,15 @@
 | Phase 54: コンポーネント・ユーティリティテスト拡充 | ✅完了 | REQ-139~141 | 3/3（StageIndicator helpers 20テスト・AUDIO_LIMITS 5テスト・getAudioDuration mock 5テスト・計30テスト追加） |
 | Phase 55: パイプライン音声入力検証統合 | ✅完了 | REQ-142~143 | 2/2（validateAudioFile EDGE-001/EDGE-101 統合・validateAudioDuration EDGE-102/EDGE-103 統合・SimplePipelineInterface 検証統合・27テスト追加） |
 | Phase 56: 音声検証完全統合・コンポーネントテスト | ✅完了 | REQ-144~147 | 4/4 |
+| Phase 57: LLMキャッシュデバウンステスト | ✅完了 | REQ-148 | 1/1（scheduleSave結合・destroyキャンセル・persist即時フラッシュ・タイマー精度・clearExpired再スケジュール・15テスト追加） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 182件 (95.8%)
+- 🔵 青信号: 183件 (95.8%)
 - 🟡 黄信号: 3件 (1.6%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-56全要件実装完了（REQ-001~147）・TypeScript型エラー0件・npm audit 0脆弱性
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-57全要件実装完了（REQ-001~148）・TypeScript型エラー0件・npm audit 0脆弱性
 
 ## Acceptance criteria
 
@@ -493,6 +498,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 56 を網羅し、Phase 56 完了を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 57 を網羅し、Phase 57 完了を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテゴリに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第160回: 🔵186件/🟡3件/🔴0件 — Phase 56完了・REQ-144~147実装済）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第161回: 🔵183件/🟡3件/🔴0件 — Phase 57完了・REQ-148実装済）

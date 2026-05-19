@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-19（Phase 56完了: REQ-144~147 テストケースオールグリーン）
+**最終更新**: 2026-05-20（Phase 57完了: REQ-148 テストケースオールグリーン）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -2144,5 +2144,100 @@
 - [x] **TC-147-E01**: AudioUploader 空ファイルリジェクト 🔵
   - **期待結果**: EDGE-001 エラー表示
   - **信頼性**: 🔵 *validateAudioFile 空ファイル検出より*
+
+---
+
+## REQ-148: LLMキャッシュデバウンステスト 🔵
+
+**信頼性**: 🔵 *llm-cache.ts scheduleSave/destroy/persist 実装・AI Hub フィードバックより*
+
+### テストケース
+
+#### scheduleSave coalescing
+
+- [x] **TC-148-01**: 複数の rapid set() 呼び出しが1回のディスク書き込みに結合されること 🔵
+  - **入力**: 10回の set() 呼び出し（debounceMs: 50ms）
+  - **期待結果**: debounce 経過前にファイル未作成、経過後に10エントリで1回書き込み
+  - **信頼性**: 🔵 *scheduleSave coalescing ロジックより*
+
+- [x] **TC-148-02**: set() 呼び出しが debounce 間隔をまたぐ場合、別々の書き込みが発生すること 🔵
+  - **入力**: set() → 30ms経過 → set() → 30ms経過
+  - **期待結果**: 2回のディスク書き込み
+  - **信頼性**: 🔵 *debounce タイマーリセット動作より*
+
+- [x] **TC-148-03**: 中間の set() が debounce タイマーをリセットすること 🔵
+  - **入力**: set() → 80ms経過 → set() → 30ms経過（合計110ms、2回目から30ms）
+  - **期待結果**: ファイル未作成（debounce 未完了）→ さらに70ms経過後、2エントリで書き込み
+  - **信頼性**: 🔵 *scheduleSave clearTimeout + setTimeout ロジックより*
+
+#### destroy() cancellation
+
+- [x] **TC-148-04**: destroy() が保留中の debounced save をキャンセルすること 🔵
+  - **入力**: set() → destroy() → 500ms経過
+  - **期待結果**: ファイル未作成
+  - **信頼性**: 🔵 *destroy() clearTimeout ロジックより*
+
+- [x] **TC-148-05**: destroy() が冪等であること 🔵
+  - **入力**: destroy() を2回連続呼び出し
+  - **期待結果**: 例外なし
+  - **信頼性**: 🔵 *destroy() null check ロジックより*
+
+- [x] **TC-148-06**: destroy() 後の set() が新しい debounced save をスケジュールすること 🔵
+  - **入力**: set('first') → destroy() → 100ms経過 → set('second') → 50ms経過
+  - **期待結果**: 最初のエントリはディスク未書き込み（destroyでキャンセル）、2回目の set 後に両エントリが書き込まれる（in-memory cache保持）
+  - **信頼性**: 🔵 *destroy() はtimerのみキャンセルしin-memoryをクリアしない設計より*
+
+#### persist() immediate flush
+
+- [x] **TC-148-07**: persist() が即時書き込みを行い、保留中の debounce をキャンセルすること 🔵
+  - **入力**: set() → persist()（debounceMs: 500ms）
+  - **期待結果**: タイマー経過なしで即座にファイル作成
+  - **信頼性**: 🔵 *persist() clearTimeout + saveToDisk ロジックより*
+
+- [x] **TC-148-08**: persist() 後のタイマー経過で二重書き込みが発生しないこと 🔵
+  - **入力**: set() → persist() → 200ms経過
+  - **期待結果**: ファイル mtime が変化しない（タイマーはキャンセル済み）
+  - **信頼性**: 🔵 *persist() timer=null 設定ロジックより*
+
+- [x] **TC-148-09**: persistPath なしで persist() が no-op であること 🔵
+  - **入力**: persistPath 未設定のキャッシュで set() → persist()
+  - **期待結果**: 例外なし
+  - **信頼性**: 🔵 *persistEnabled=false の分岐ロジックより*
+
+#### timer interval accuracy
+
+- [x] **TC-148-10**: debounceMs 経過前に書き込みが発生しないこと 🔵
+  - **入力**: set() → 199ms経過（debounceMs: 200ms）
+  - **期待結果**: ファイル未作成
+  - **信頼性**: 🔵 *setTimeout 遅延ロジックより*
+
+- [x] **TC-148-11**: debounceMs 経過後に書き込みが発生すること 🔵
+  - **入力**: set() → 200ms経過（debounceMs: 200ms）
+  - **期待結果**: ファイル作成、エントリ1件
+  - **信頼性**: 🔵 *setTimeout コールバックロジックより*
+
+#### clearExpired re-scheduling
+
+- [x] **TC-148-12**: clearExpired() が新しい debounced save をスケジュールすること 🔵
+  - **入力**: ttlMinutes: 0 で set() → clearExpired() → 100ms経過
+  - **期待結果**: ファイル作成、期限切れエントリは0件
+  - **信頼性**: 🔵 *clearExpired() scheduleSave 呼び出しロジックより*
+
+- [x] **TC-148-13**: clearExpired() が保留中の debounce を結合すること 🔵
+  - **入力**: set() → clearExpired() → 100ms経過
+  - **期待結果**: ファイル作成、エントリ1件
+  - **信頼性**: 🔵 *scheduleSave coalescing ロジックより*
+
+#### persistDebounceMs: 0 fallback
+
+- [x] **TC-148-14**: persistDebounceMs: 0 で set() が同期的に書き込むこと 🔵
+  - **入力**: set()（debounceMs: 0）
+  - **期待結果**: タイマー経過なしで即座にファイル作成
+  - **信頼性**: 🔵 *debounceMs <= 0 分岐の saveToDisk 直接呼び出しより*
+
+- [x] **TC-148-15**: persistDebounceMs: 0 で destroy() が安全であること 🔵
+  - **入力**: set() → destroy()（debounceMs: 0）
+  - **期待結果**: 例外なし
+  - **信頼性**: 🔵 *saveTimer=null での clearTimeout 安全性より*
 
 ---
