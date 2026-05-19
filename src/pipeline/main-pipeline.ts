@@ -20,6 +20,7 @@ import {
   PipelineStage,
   PipelineMetrics
 } from './types';
+import { retryWithBackoff } from './retry';
 // Phase 34: Persistent iteration logging system
 import { globalIterationLogger } from '@/utils/iteration-logger';
 import { getHeapUsed, getMemoryUsage } from '@/utils/memory-usage';
@@ -277,7 +278,7 @@ export class MainPipeline {
   }
 
   /**
-   * 🔄 Execute stage with framework integration and quality gates
+   * 🔄 Execute stage with framework integration, quality gates, and ErrorClassifier-driven retry.
    */
   private async executeStageWithFramework<T>(
     stageName: string,
@@ -287,7 +288,11 @@ export class MainPipeline {
     const stageStart = performance.now();
 
     try {
-      const result = await stageFunction();
+      const result = await retryWithBackoff(stageFunction, {
+        maxRetries: this.retryConfig.maxRetries,
+        baseDelayMs: this.retryConfig.backoffMs,
+        label: `main-pipeline:${stageName}`,
+      });
       const stageTime = performance.now() - stageStart;
 
       // Check quality gates

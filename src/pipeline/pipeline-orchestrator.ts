@@ -38,6 +38,7 @@ import { executeLayoutsInParallel, executeScenePreparationInParallel } from './p
 import { timeStage, StageTimingRecord, aggregateTimingReport, StageTimingReport } from './stage-timing-metrics';
 import { detectBottlenecks, BottleneckReport } from './bottleneck-detector';
 import { PipelineConfigError, RenderingError, QualityGateError } from './pipeline-errors';
+import { retryWithBackoff } from './retry';
 
 // ---------- Public Interfaces ----------
 
@@ -558,17 +559,21 @@ export class PipelineOrchestrator {
   // ---------- Quality Gates & Fallbacks ----------
 
   /**
-   * Execute a stage function, run quality gates, and fallback if needed.
+   * Execute a stage function with ErrorClassifier-driven retry, then run quality gates and fallback if needed.
    */
   private async executeStageWithGates(
     stageIndex: number,
     stageFn: () => Promise<unknown>,
     cb?: (progress: PipelineProgress) => void
   ): Promise<unknown> {
-    // Execute the stage
+    // Execute the stage with retry on recoverable errors
     let result: unknown;
     try {
-      result = await stageFn();
+      result = await retryWithBackoff(stageFn, {
+        maxRetries: 2,
+        baseDelayMs: 500,
+        label: `orchestrator:${STAGE_NAMES[stageIndex]}`,
+      });
     } catch (error) {
       // Emit failed progress
       this.emitProgress(cb, stageIndex + 1, STAGE_NAMES[stageIndex], 0, 'failed',
