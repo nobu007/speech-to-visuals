@@ -64,7 +64,7 @@ jest.mock('../../utils/logger', () => ({
 }));
 
 const mockExit = jest.fn((_code?: number) => undefined as never);
-const originalOn = process.on.bind(process);
+const originalExit = process.exit;
 
 // We spy on process.on so we can capture registered handlers
 const registeredHandlers: Map<string, (...args: unknown[]) => void> = new Map();
@@ -76,7 +76,7 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  process.exit = originalProcessOn;
+  process.exit = originalExit;
   // Not needed to restore process.on because jest isolates modules
 });
 

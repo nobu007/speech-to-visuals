@@ -11,6 +11,14 @@ import {
   ErrorType,
   ErrorSeverity,
 } from '@/quality/error-classifier';
+import {
+  PipelineError,
+  TranscriptionError,
+  SegmentationError,
+  RenderingError,
+  QualityGateError,
+  PipelineConfigError,
+} from '@/pipeline/pipeline-errors';
 
 describe('ErrorClassifier', () => {
   let classifier: ErrorClassifier;
@@ -273,6 +281,129 @@ describe('ErrorClassifier', () => {
       const stats = classifier.getStatistics();
 
       expect(stats.mostCommonType).toBe('NETWORK_ERROR');
+    });
+  });
+
+  // ─── PipelineError integration (fast-path, no regex guesswork) ────────
+
+  describe('PipelineError integration (typed error fast-path)', () => {
+    it('classifies TranscriptionError via errorType property, not regex', () => {
+      const err = new TranscriptionError('Whisper failed');
+      const classified = classifier.classify(err);
+
+      expect(classified.type).toBe('LLM_API_ERROR');
+      expect(classified.stage).toBe('transcription');
+      expect(classified.severity).toBe('high');
+      expect(classified.recoverable).toBe(true);
+      expect(classified.originalError).toBe(err);
+    });
+
+    it('classifies SegmentationError via errorType property', () => {
+      const err = new SegmentationError('No segments produced');
+      const classified = classifier.classify(err);
+
+      expect(classified.type).toBe('QUALITY_GATE_FAILED');
+      expect(classified.stage).toBe('segmentation');
+    });
+
+    it('classifies RenderingError via errorType property', () => {
+      const err = new RenderingError('Frame composition failed');
+      const classified = classifier.classify(err);
+
+      expect(classified.type).toBe('RENDERING_ERROR');
+      expect(classified.stage).toBe('rendering');
+    });
+
+    it('classifies QualityGateError via errorType property', () => {
+      const err = new QualityGateError('layout-quality', 'score too low');
+      const classified = classifier.classify(err);
+
+      expect(classified.type).toBe('QUALITY_GATE_FAILED');
+      expect(classified.stage).toBe('quality_gate');
+      expect(classified.originalError).toBe(err);
+      // The user message comes from the profile, not the error message
+      expect(classified.userMessage).toContain('quality standards');
+    });
+
+    it('classifies PipelineConfigError via errorType property', () => {
+      const err = new PipelineConfigError('fps', 'fps must be positive');
+      const classified = classifier.classify(err);
+
+      expect(classified.type).toBe('FILE_FORMAT_INVALID');
+      expect(classified.stage).toBe('configuration');
+    });
+
+    it('prefers PipelineError.stage over context.stage', () => {
+      const err = new TranscriptionError('failed');
+      const classified = classifier.classify(err, { stage: 'override-me' });
+
+      // PipelineError carries its own stage; classifier should use it
+      expect(classified.stage).toBe('transcription');
+    });
+
+    it('falls back to context.stage when error has no stage property', () => {
+      const err = new PipelineError('test', 'LLM_API_ERROR', 'transcription');
+      const classified = classifier.classify(err, { stage: 'fallback' });
+
+      expect(classified.stage).toBe('transcription');
+    });
+
+    it('preserves empty-string stage from PipelineError (?? does not treat "" as nullish)', () => {
+      const err = new PipelineError('test', 'UNKNOWN', '');
+      const classified = classifier.classify(err);
+
+      // ?? only triggers for null/undefined, not empty string
+      expect(classified.stage).toBe('');
+    });
+
+    it('does not use regex matching for typed PipelineError instances', () => {
+      // This message would normally match LLM_API_ERROR regex,
+      // but the type comes from errorType property directly
+      const err = new RenderingError('LLM API error 500 happened during render');
+      const classified = classifier.classify(err);
+
+      // Should be RENDERING_ERROR from the class, not LLM_API_ERROR from regex
+      expect(classified.type).toBe('RENDERING_ERROR');
+    });
+
+    it('tracks PipelineError instances in statistics correctly', () => {
+      classifier.classify(new TranscriptionError('t1'));
+      classifier.classify(new TranscriptionError('t2'));
+      classifier.classify(new RenderingError('r1'));
+
+      const stats = classifier.getStatistics();
+
+      expect(stats.total).toBe(3);
+      expect(stats.byType['LLM_API_ERROR']).toBe(2);
+      expect(stats.byType['RENDERING_ERROR']).toBe(1);
+      expect(stats.mostCommonType).toBe('LLM_API_ERROR');
+    });
+
+    it('mixes typed and plain errors in batch classification', () => {
+      const classified = classifier.classifyBatch([
+        new TranscriptionError('Whisper timeout'),
+        new Error('Network error: connection refused'),
+        new SegmentationError('empty result'),
+      ]);
+
+      expect(classified).toHaveLength(3);
+      expect(classified[0].type).toBe('LLM_API_ERROR');
+      expect(classified[0].stage).toBe('transcription');
+      expect(classified[1].type).toBe('NETWORK_ERROR');
+      expect(classified[1].stage).toBe('unknown'); // no stage from plain Error
+      expect(classified[2].type).toBe('QUALITY_GATE_FAILED');
+      expect(classified[2].stage).toBe('segmentation');
+    });
+
+    it('preserves context metadata in classified output', () => {
+      const err = new TranscriptionError('failed', { audioFile: 'test.wav' });
+      const classified = classifier.classify(err);
+
+      // originalError carries the context via the PipelineError instance
+      expect(classified.originalError).toBe(err);
+      expect((classified.originalError as TranscriptionError).context).toEqual({
+        audioFile: 'test.wav',
+      });
     });
   });
 });
