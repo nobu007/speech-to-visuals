@@ -9,6 +9,7 @@ import { getMemoryUsage } from '@/utils/memory-usage';
 import { logger } from '../utils/logger';
 import { TokenUsageTracker, type StageType } from '../analysis/token-usage-tracker';
 import { estimateCost, type CostEstimate } from '../analysis/cost-estimator';
+import { globalCache } from '../performance/intelligent-cache';
 
 interface PerformanceMetrics {
   timestamp: number;
@@ -479,16 +480,22 @@ export class PerformanceDashboard {
   }
 
   /**
-   * 📊 Get cache metrics (placeholder for actual implementation)
+   * Get cache metrics from the actual IntelligentCache instance.
+   * Falls back to zeroes when the cache is not yet populated.
    */
   private getCacheMetrics(): { hitRate: number; efficiency: number; memoryUsage: number; size: number } {
-    // This would integrate with the actual cache system
-    return {
-      hitRate: 0.85,
-      efficiency: 0.9,
-      memoryUsage: 50 * 1024 * 1024, // 50MB
-      size: 500
-    };
+    try {
+      const stats = globalCache.getStats();
+      const efficiency = globalCache.getEfficiencyReport();
+      return {
+        hitRate: stats.hitRate,
+        efficiency: efficiency.efficiency,
+        memoryUsage: stats.memoryUsage,
+        size: stats.totalEntries,
+      };
+    } catch {
+      return { hitRate: 0, efficiency: 0, memoryUsage: 0, size: 0 };
+    }
   }
 
   /**

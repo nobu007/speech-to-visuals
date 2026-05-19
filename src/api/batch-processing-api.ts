@@ -18,6 +18,7 @@ import { simplePipeline } from '@/pipeline/simple-pipeline';
 import type { QualityPreset } from '@/pipeline/adaptive-quality-presets';
 import { adaptiveQualityPresets } from '@/pipeline/adaptive-quality-presets';
 import { randomUUID } from 'crypto';
+import { createHash } from 'crypto';
 import { BatchValidationError, JobNotFoundError } from './routes/batch';
 import { BATCH_LIMITS } from '../config/limits';
 import { logger } from '../utils/logger';
@@ -159,6 +160,19 @@ class JobStore {
 const jobStore = new JobStore();
 
 /**
+ * Compute a SHA-256 content hash for a File.
+ * Falls back to name+size when the blob API is unavailable (e.g. test stubs).
+ */
+async function computeFileHash(file: File): Promise<string> {
+  if (typeof file.arrayBuffer === 'function') {
+    const buffer = await file.arrayBuffer();
+    return createHash('sha256').update(Buffer.from(buffer)).digest('hex').slice(0, 16);
+  }
+  // Fallback for non-standard File objects (test mocks)
+  return createHash('sha256').update(`${file.name}::${file.size}`).digest('hex').slice(0, 16);
+}
+
+/**
  * Batch Processing API Controller
  */
 export class BatchProcessingAPI {
@@ -176,22 +190,28 @@ export class BatchProcessingAPI {
       throw new BatchValidationError(`Maximum ${BATCH_LIMITS.MAX_FILES_PER_BATCH} files per batch`);
     }
 
-    // Deduplicate files by name+size to avoid redundant processing
+    // Deduplicate files by content hash + size to avoid redundant processing.
+    // Content-based hashing catches identical files with different names and
+    // avoids false negatives that name+size alone would miss.
     const seen = new Map<string, number>();
     const dedupedFiles: File[] = [];
     const skippedFiles: string[] = [];
+    const hashPromises: Promise<void>[] = [];
 
     for (const file of request.files) {
-      // Use name + size as a lightweight dedup key
-      // (content hash would be more robust but requires async file read)
-      const dedupKey = `${file.name}::${file.size}`;
-      if (seen.has(dedupKey)) {
-        skippedFiles.push(file.name);
-        continue;
-      }
-      seen.set(dedupKey, dedupedFiles.length);
-      dedupedFiles.push(file);
+      const p = (async () => {
+        const hash = await computeFileHash(file);
+        const dedupKey = `${hash}::${file.size}`;
+        if (seen.has(dedupKey)) {
+          skippedFiles.push(file.name);
+          return;
+        }
+        seen.set(dedupKey, dedupedFiles.length);
+        dedupedFiles.push(file);
+      })();
+      hashPromises.push(p);
     }
+    await Promise.all(hashPromises);
 
     if (dedupedFiles.length === 0) {
       throw new BatchValidationError('All files were duplicates — no unique files to process');
