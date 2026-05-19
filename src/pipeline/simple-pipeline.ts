@@ -13,7 +13,10 @@ import { VideoGenerator, VideoGenerationOptions } from './video-generator';
 import { continuousLearner } from '@/framework/continuous-learner';
 import { getQualityMonitor, formatQualityReport } from './quality-monitor';
 import { getHeapUsed } from '@/utils/memory-usage';
+import { ErrorClassifier } from '@/quality/error-classifier';
 import { logger } from '../utils/logger';
+
+const errorClassifier = new ErrorClassifier();
 
 export interface SimplePipelineInput {
   audioFile: File;
@@ -528,9 +531,14 @@ export class SimplePipeline {
     } catch (error) {
       logger.error('Pipeline processing error:', error);
 
-      // Enhanced error handling with recovery strategies
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const pipelineError = error instanceof Error ? error : new Error('Unknown error');
       const failureProcessingTime = Date.now() - startTime;
+
+      // Classify error for structured handling and user-friendly messages
+      const classified = errorClassifier.classify(pipelineError, {
+        stage: 'pipeline',
+        inputFileName: input.audioFile.name,
+      });
 
       // Phase 27: Record failure metrics
       const qualityMonitor = getQualityMonitor();
@@ -544,19 +552,19 @@ export class SimplePipeline {
         confidenceScore: 0,
       });
 
-      // Log failure iteration
+      // Log failure iteration with classified error context
       qualityMonitor.logIteration({
         phaseId: 'phase-27',
         iterationNumber: this.iterationCount,
-        action: 'Pipeline execution failed',
+        action: `Pipeline execution failed: ${classified.type}`,
         result: 'failure',
         metrics: qualityMonitor.getLatestMetrics()!,
         improvements: [],
         nextSteps: [
-          'Review error logs',
+          classified.suggestedAction,
+          classified.recoverable ? 'Retry may resolve the issue' : 'Manual intervention required',
           'Check input file format and size',
           'Verify API connectivity',
-          'Consider fallback strategies',
         ],
       });
 
@@ -566,13 +574,15 @@ export class SimplePipeline {
         {
           audioFile: input.audioFile.name,
           options: input.options,
-          errorMessage
+          errorType: classified.type,
+          errorSeverity: classified.severity,
+          recoverable: classified.recoverable,
         },
-        { error: errorMessage },
+        { error: classified.userMessage, technicalDetail: pipelineError.message },
         failureProcessingTime,
         0.0, // Quality score 0 for failures
         false,
-        [errorMessage, 'pipeline_failure'],
+        [classified.type, 'pipeline_failure'],
         {
           inputFileSize: input.audioFile.size,
           inputFileType: input.audioFile.type,
@@ -583,11 +593,14 @@ export class SimplePipeline {
         }
       );
 
-      // Log detailed error information for debugging (including input metadata)
+      // Log detailed error information for debugging (including classification)
       logger.error('Error details:', {
         timestamp: new Date().toISOString(),
         processingTime: failureProcessingTime,
-        stack: error instanceof Error ? error.stack : undefined,
+        classifiedType: classified.type,
+        classifiedSeverity: classified.severity,
+        recoverable: classified.recoverable,
+        stack: pipelineError.stack,
         inputFileSize: input.audioFile.size,
         inputFileType: input.audioFile.type,
         inputFileName: input.audioFile.name,
@@ -623,8 +636,13 @@ export class SimplePipeline {
 
       return {
         success: false,
-        error: `Pipeline failed: ${errorMessage}`,
-        processingTime: failureProcessingTime
+        error: classified.recoverable
+          ? `${classified.userMessage} ${classified.suggestedAction}`
+          : `Pipeline failed: ${classified.userMessage}`,
+        processingTime: failureProcessingTime,
+        errorType: classified.type,
+        errorSeverity: classified.severity,
+        recoverable: classified.recoverable,
       };
     }
   }
