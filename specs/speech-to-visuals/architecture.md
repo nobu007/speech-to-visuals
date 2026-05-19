@@ -795,5 +795,6 @@ Fallback LLM
 - [TASK-0158: whisper-transcriber.ts 検証委譲と高度検証維持](tasks/TASK-0158.md)
 - [TASK-0159: AudioUploader コンポーネント専用ユニットテスト](tasks/TASK-0159.md)
 - [TASK-0160: Phase 56 完了確認・ドキュメント更新](tasks/TASK-0160.md)
+- [TASK-0161: LLMキャッシュデバウンステスト追加](tasks/TASK-0161.md)
 
 <!-- spine:children:end -->
