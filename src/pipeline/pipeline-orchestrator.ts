@@ -37,6 +37,7 @@ import { sizeAllLabels, LabelSizingResult } from '@/visualization/smart-label-si
 import { executeLayoutsInParallel, executeScenePreparationInParallel } from './parallel-layout-executor';
 import { timeStage, StageTimingRecord, aggregateTimingReport, StageTimingReport } from './stage-timing-metrics';
 import { detectBottlenecks, BottleneckReport } from './bottleneck-detector';
+import { PipelineConfigError, RenderingError, QualityGateError } from './pipeline-errors';
 
 // ---------- Public Interfaces ----------
 
@@ -170,7 +171,7 @@ export class PipelineOrchestrator {
    */
   validateInput(input: PipelineInput): void {
     if (!input.audioFile) {
-      throw new Error('audioFile is required');
+      throw new PipelineConfigError('audioFile', 'audioFile is required');
     }
 
     if (input.config) {
@@ -548,7 +549,7 @@ export class PipelineOrchestrator {
     // Video rendering is a placeholder; in production this would invoke
     // the video generator. For the orchestrator we simply validate scenes.
     if (!scenes || scenes.length === 0) {
-      throw new Error('No scenes to render');
+      throw new RenderingError('No scenes to render');
     }
     // Simulate async work
     await Promise.resolve();
@@ -608,9 +609,7 @@ export class PipelineOrchestrator {
         if (fallbackResult !== undefined) {
           return fallbackResult;
         }
-        throw new Error(
-          `Quality gate "${gate.name}" failed: ${gateResult.reason ?? 'unknown'}`
-        );
+        throw new QualityGateError(gate.name, gateResult.reason ?? 'unknown');
       }
     }
 
@@ -667,25 +666,38 @@ export class PipelineOrchestrator {
   private validatePipelineConfig(config: PipelineConfig): void {
     const validModels = ['tiny', 'base', 'small', 'medium', 'large'];
     if (!validModels.includes(config.transcription.model as string)) {
-      throw new Error(
-        `Invalid transcription model: ${config.transcription.model}`
+      throw new PipelineConfigError(
+        'transcription.model',
+        `Invalid transcription model: ${config.transcription.model}`,
       );
     }
 
     if (config.analysis.minSegmentLengthMs < 0) {
-      throw new Error('minSegmentLengthMs must be >= 0');
+      throw new PipelineConfigError(
+        'analysis.minSegmentLengthMs',
+        'minSegmentLengthMs must be >= 0',
+      );
     }
 
     if (config.analysis.confidenceThreshold < 0 || config.analysis.confidenceThreshold > 1) {
-      throw new Error('confidenceThreshold must be between 0 and 1');
+      throw new PipelineConfigError(
+        'analysis.confidenceThreshold',
+        'confidenceThreshold must be between 0 and 1',
+      );
     }
 
     if (config.layout.width <= 0 || config.layout.height <= 0) {
-      throw new Error('Layout dimensions must be positive');
+      throw new PipelineConfigError(
+        'layout.dimensions',
+        'Layout dimensions must be positive',
+      );
     }
 
     if (config.output.fps <= 0) {
-      throw new Error('fps must be positive');
+      throw new PipelineConfigError(
+        'output.fps',
+        'fps must be positive',
+      );
     }
   }
 

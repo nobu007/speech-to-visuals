@@ -5,6 +5,14 @@
  * recoverability, stage context, and suggested actions.
  */
 
+// Forward declaration — avoid circular import by using dynamic check
+type PipelineErrorLike = { errorType: ErrorType; stage: string };
+
+/** Check if an error carries a pre-classified errorType (PipelineError instances). */
+function isPipelineErrorLike(err: Error): err is Error & PipelineErrorLike {
+  return 'errorType' in err && typeof (err as Record<string, unknown>).errorType === 'string';
+}
+
 export type ErrorType =
   | 'FILE_FORMAT_INVALID'
   | 'FILE_SIZE_EXCEEDED'
@@ -197,9 +205,16 @@ export class ErrorClassifier {
    */
   classify(error: Error, context?: ClassifyContext): ClassifiedError {
     const message = error.message;
-    const type = this.determineType(message);
+
+    // Use pre-classified type from PipelineError when available (no regex guesswork)
+    const type = isPipelineErrorLike(error)
+      ? error.errorType
+      : this.determineType(message);
+
     const profile = ERROR_PROFILES[type];
-    const stage = context?.stage ?? 'unknown';
+    const stage = isPipelineErrorLike(error)
+      ? (error.stage ?? context?.stage ?? 'unknown')
+      : (context?.stage ?? 'unknown');
 
     const classified: ClassifiedError = {
       type,

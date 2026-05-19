@@ -14,6 +14,7 @@ import { continuousLearner } from '@/framework/continuous-learner';
 import { getQualityMonitor, formatQualityReport } from './quality-monitor';
 import { getHeapUsed } from '@/utils/memory-usage';
 import { ErrorClassifier } from '@/quality/error-classifier';
+import { TranscriptionError, SegmentationError } from './pipeline-errors';
 import { logger } from '../utils/logger';
 
 const errorClassifier = new ErrorClassifier();
@@ -163,7 +164,7 @@ export class SimplePipeline {
       );
 
       if (!transcriptionResult.success || !transcriptionResult.segments) {
-        throw new Error('Transcription failed');
+        throw new TranscriptionError('Transcription failed');
       }
 
       const transcript = transcriptionResult.segments
@@ -199,7 +200,7 @@ export class SimplePipeline {
       );
 
       if (!contentSegments || contentSegments.length === 0) {
-        throw new Error('Scene segmentation failed');
+        throw new SegmentationError('Scene segmentation failed');
       }
 
       onProgress?.('Detecting diagram types', 70);
