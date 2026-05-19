@@ -1,5 +1,7 @@
 export { MainPipeline } from './main-pipeline';
 export { SimplePipeline, simplePipeline } from './simple-pipeline';
+export { retryWithBackoff } from './retry';
+export type { RetryWithBackoffOptions } from './retry';
 export type {
   PipelineInput,
   PipelineConfig,

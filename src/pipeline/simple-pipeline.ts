@@ -15,6 +15,7 @@ import { getQualityMonitor, formatQualityReport } from './quality-monitor';
 import { getHeapUsed } from '@/utils/memory-usage';
 import { ErrorClassifier } from '@/quality/error-classifier';
 import { TranscriptionError, SegmentationError } from './pipeline-errors';
+import { retryWithBackoff } from './retry';
 import { logger } from '../utils/logger';
 
 const errorClassifier = new ErrorClassifier();
@@ -649,46 +650,33 @@ export class SimplePipeline {
   }
 
   /**
-   * Process with retry logic
-   * Implements failure recovery from custom instructions
+   * Process with retry logic using ErrorClassifier-driven backoff.
+   * Only retries when the classifier marks the error as recoverable.
    */
   async processWithRetry(
     input: SimplePipelineInput,
     onProgress?: ProgressCallback,
     maxRetries: number = 3
   ): Promise<SimplePipelineResult> {
-    let lastError: Error | null = null;
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        onProgress?.(`Attempt ${attempt}/${maxRetries}`, 0);
-
-        const result = await this.process(input, onProgress);
-
-        if (result.success) {
+    try {
+      return await retryWithBackoff(
+        async () => {
+          const result = await this.process(input, onProgress);
+          if (!result.success) {
+            throw new Error(result.error || 'Processing failed');
+          }
           return result;
-        }
-
-        lastError = new Error(result.error || 'Processing failed');
-
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error('Unknown error');
-        logger.warn(`Pipeline attempt ${attempt} failed:`, lastError.message);
-
-        if (attempt < maxRetries) {
-          // Wait before retry (exponential backoff)
-          await new Promise(resolve =>
-            setTimeout(resolve, Math.pow(2, attempt) * 1000)
-          );
-        }
-      }
+        },
+        { maxRetries, baseDelayMs: 1000, backoffFactor: 2, label: 'processWithRetry' },
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return {
+        success: false,
+        error: `All ${maxRetries} attempts failed. Last error: ${message}`,
+        processingTime: 0,
+      };
     }
-
-    return {
-      success: false,
-      error: `All ${maxRetries} attempts failed. Last error: ${lastError?.message}`,
-      processingTime: 0
-    };
   }
 
   /**
