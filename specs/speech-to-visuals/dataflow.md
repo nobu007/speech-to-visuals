@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-18（第157回検証: Phase 1-54完了・コンポーネント・ユーティリティテスト拡充・音声時間計測フロー追加）
+**最終更新**: 2026-05-20（第158回検証: Phase 1-56完了・型付きパイプラインエラーフロー・LLMキャッシュデバウンスフロー追加）
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](requirements.md)
 
@@ -1485,18 +1485,105 @@ sequenceDiagram
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 170件 (99%)
+- 🔵 青信号: 177件 (99%)
 - 🟡 黄信号: 1件 (1%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - Phase 54 音声時間事前計測・コンポーネントテストフローを反映（第157回検証: Phase 1-54完了・337ファイル・98,061行・4,478+テスト(195 suites)・157タスク完了・ギャップなし）
+**品質評価**: 高品質 - Phase 56 型付きパイプラインエラー・LLMキャッシュデバウンスフローを反映（第158回検証: Phase 1-56完了・344ファイル・100,044行・217テストファイル・ギャップなし）
 
 ## Acceptance criteria
 
 - [x] システム全体のデータフローが Mermaid flowchart で記述され、全パイプラインステージ（文字起こし→分析→レイアウト→アニメーション→レンダリング）を網羅している
-- [x] 主要16機能のデータフローが個別の Mermaid sequence/flow diagram で記述されている（機能1-B〜機能16）
+- [x] 主要18機能のデータフローが個別の Mermaid sequence/flow diagram で記述されている（機能1-B〜機能18）
 - [x] 各データフローに信頼性レベル（🔵🟡🔴）が付与され、情報源が明記されている
 - [x] エラーハンドリングフロー（3層フォールバック・ユーザー主導回復・設定バリデーション）が記述されている
 - [x] 品質ゲート評価フロー（5段階品質基準）が記述されている
 - [x] 全データフローの関連要件（REQ-*）が参照可能であり、要件定義書とのトレーサビリティが確保されている
 - [x] 信頼性レベルサマリーが 99% 以上 🔵（青信号）であり、🔴（赤信号）が 0 件である
+
+### 機能17: 型付きパイプラインエラーフロー（Phase 56） 🔵
+
+**信頼性**: 🔵 *src/pipeline/pipeline-errors.ts・src/quality/error-classifier.ts・Phase 56 より*
+
+**関連要件**: REQ-040
+
+```mermaid
+flowchart TD
+    A[パイプラインエラー発生] --> B{エラー種別}
+    B -->|文字起こし失敗| C[TranscriptionError]
+    B -->|セグメンテーション失敗| D[SegmentationError]
+    B -->|レンダリング失敗| E[RenderingError]
+    B -->|品質ゲート不通過| F[QualityGateError]
+    B -->|設定エラー| G[PipelineConfigError]
+
+    C --> H[事前分類済み ErrorType 付き]
+    D --> H
+    E --> H
+    F --> H
+    G --> H
+
+    H --> I[ErrorClassifier.classify]
+    I --> J{isPipelineErrorLike?}
+    J -->|Yes| K[事前分類タイプを優先使用]
+    J -->|No| L[正規表現パターンマッチング]
+    K --> M[ClassifiedError 返却]
+    L --> M
+```
+
+**詳細ステップ**:
+
+1. PipelineOrchestrator/SimplePipeline で raw Error ではなく型付きエラークラスを throw 🔵
+2. 各エラークラスは事前に ErrorType・stage・context を保持 🔵
+3. ErrorClassifier.classify() で isPipelineErrorLike() チェックを実行 🔵
+4. 事前分類済みエラーは正規表現マッチングをバイパスして高速にルーティング 🔵
+5. 非型付きエラーは従来のパターンマッチングで分類（後方互換）🔵
+
+**型付きエラークラス一覧** 🔵:
+| エラークラス | 対象ステージ | 追加プロパティ |
+|-------------|------------|-------------|
+| TranscriptionError | transcription | なし |
+| SegmentationError | segmentation | なし |
+| RenderingError | rendering | なし |
+| QualityGateError | quality | gateName, reason |
+| PipelineConfigError | config | parameter |
+
+### 機能18: LLMキャッシュデバウンスフロー（Phase 56） 🔵
+
+**信頼性**: 🔵 *src/analysis/llm-cache.ts・tests/analysis/llm-cache-debounce.test.ts・Phase 56 より*
+
+```mermaid
+sequenceDiagram
+    participant P as Pipeline
+    participant C as LLMCache
+    participant T as Debounce Timer
+    participant D as Disk
+
+    P->>C: set(key, value)
+    C->>C: メモリキャッシュ更新（即時）
+    C->>T: scheduleSave() タイマー開始/リセット
+
+    P->>C: set(key2, value2) [直後]
+    C->>C: メモリキャッシュ更新（即時）
+    C->>T: タイマーリセット（coalescing）
+
+    Note over T: 1000ms 経過後
+    T->>C: saveToDisk() 実行
+    C->>D: ディスク書き込み（1回に統合）
+
+    P->>C: persist() [即時フラッシュ要求]
+    C->>T: タイマーキャンセル
+    C->>D: 即時ディスク書き込み
+
+    P->>C: destroy() [リソース解放]
+    C->>T: タイマーキャンセル
+    Note over C: リソース解放完了
+```
+
+**詳細ステップ**:
+
+1. set() 呼び出しでメモリキャッシュは即時更新（読み取りには影響なし）🔵
+2. scheduleSave() がデバウンスタイマーを開始/リセット（coalescing）🔵
+3. デフォルト1000ms の間に複数 set() があっても、ディスク書き込みは1回に統合 🔵
+4. persist() は保留中のデバウンス書き込みをキャンセルして即時フラッシュ 🔵
+5. destroy() は保留中のタイマーをキャンセルしてリソース解放 🔵
+6. persistDebounceMs: 0 で従来の同期的即時書き込みにフォールバック可能 🔵

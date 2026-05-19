@@ -10,8 +10,8 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-18（第157回検証: Phase 1-54完了・コンポーネント・ユーティリティテスト拡充30テスト追加・337ファイル・98,061行・4,478+テスト(195+スイート)全通過・TypeScript/ESLintエラー0件・依存105パッケージ・ギャップなし確認）
-**履歴**: 第151回検証(2026-05-18)・第150回検証(2026-05-18)・第149回検証(2026-05-17)・第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-04-30)
+**最終更新**: 2026-05-20（第158回検証: Phase 1-56完了・型付きパイプラインエラー5クラス・LLMキャッシュデバウンス・ErrorClassifier事前分類・344ファイル・100,044行・217テストファイル全通過・TypeScript/ESLintエラー0件・依存105パッケージ・ギャップなし確認）
+**履歴**: 第158回検証(2026-05-20)・第157回検証(2026-05-18)・第151回検証(2026-05-18)・第150回検証(2026-05-18)・第149回検証(2026-05-17)・第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-04-30)
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 
 ## 分析目的
@@ -23,7 +23,30 @@
 
 ## 分析項目と判断
 
-### A94: 第157回検証 - Phase 54 コンポーネント・ユーティリティテスト拡充設計差分反映（2026-05-18）
+### A95: 第158回検証 - Phase 56 型付きパイプラインエラー・LLMキャッシュデバウンス設計差分反映（2026-05-20）
+
+**分析日時**: 2026-05-20
+**カテゴリ**: エラー処理・パフォーマンス最適化・パイプライン信頼性
+**背景**: Phase 56 で4つの信頼性改善コミットを適用。（1）PipelineError 基底クラスと5サブクラス（TranscriptionError/SegmentationError/RenderingError/QualityGateError/PipelineConfigError）による構造化エラー管理。（2）PipelineOrchestrator・SimplePipeline での raw Error throws を型付きエラーに置換。（3）ErrorClassifier に isPipelineErrorLike() 型ガードを追加し、事前分類済みエラーの正規表現マッチングをバイパス。（4）LLM キャッシュのディスク書き込みにデバウンスマechanism（scheduleSave coalescing・persist immediate flush・destroy cleanup）を追加し、イベントループブロックを削減。
+
+**判断**: Phase 56 設計差分反映完了:
+1. **型付きパイプラインエラー**: PipelineError（基底）+ 5サブクラス。errorType・stage・context を事前保持し、ErrorClassifier での高速ルーティングを実現。QualityGateError は gateName/reason、PipelineConfigError は parameter を追加プロパティとして保持 🔵 *src/pipeline/pipeline-errors.ts（100行新規）より*
+2. **ErrorClassifier 事前分類**: PipelineErrorLike 型と isPipelineErrorLike() 型ガードによる事前分類済みエラー検出。従来の正規表現パターンマッチングをバイパスし、エラー分類精度を向上 🔵 *src/quality/error-classifier.ts より*
+3. **LLMキャッシュデバウンス**: scheduleSave() による自動 coalescing（デフォルト1000ms）。persist() で即時フラッシュ、destroy() でタイマーキャンセル。persistDebounceMs: 0 で同期モードフォールバック 🔵 *src/analysis/llm-cache.ts より*
+4. **テストカバレッジ**: llm-cache-debounce.test.ts（315行・6テストスイート）と pipeline-errors.test.ts（86行）で timing-sensitive paths を網羅的テスト 🔵 *tests/analysis/llm-cache-debounce.test.ts・src/pipeline/__tests__/pipeline-errors.test.ts より*
+
+**根拠**:
+- git log: 53ec069 (typed pipeline errors)・42e66a9 (ErrorClassifier integration)・138c695 (cache debounce)・603eb29 (debounce tests)
+- 新規ファイル: src/pipeline/pipeline-errors.ts (100行)・tests/analysis/llm-cache-debounce.test.ts (315行)・src/pipeline/__tests__/pipeline-errors.test.ts (86行)
+- 変更ファイル: src/pipeline/pipeline-orchestrator.ts (+34行)・src/pipeline/simple-pipeline.ts (+49/-行)・src/analysis/llm-cache.ts (+44行)・src/quality/error-classifier.ts (+19行)
+
+**信頼性への影響**:
+- architecture.md: 型付きパイプラインエラーセクション・ErrorClassifier事前分類・キャッシュデバウンス追加により 🔵 拡張
+- dataflow.md: 機能17 型付きパイプラインエラーフロー・機能18 LLMキャッシュデバウンスフロー追加により 🔵 拡張
+- interfaces.ts: PipelineErrorOptions・QualityGateErrorOptions・PipelineConfigErrorOptions・PipelineErrorLike・LLMCacheDebounceOptions 型追加により 🔵 拡張
+- pipeline/ ディレクトリ: pipeline-errors.ts 追加によりファイル数 15→16 に更新
+
+---
 
 **分析日時**: 2026-05-18
 **カテゴリ**: テスト品質・ユーティリティ・コンポーネント検証

@@ -2,7 +2,7 @@
  * speech-to-visuals 型定義
  *
  * 作成日: 2026-04-27
- * 最終更新: 2026-05-18（第150回検証: Phase 1-51全完了・多言語検出拡張(6言語)・HealthCheckService本番堅牢化・327ファイル・96,466行・4,357テスト(194スイート)・TypeScript/ESLintエラー0件・依存105パッケージ・Language型拡張反映）
+ * 最終更新: 2026-05-20（第158回検証: Phase 1-56完了・型付きパイプラインエラー5クラス・LLMキャッシュデバウンスオプション・ErrorClassifier事前分類・344ファイル・100,044行・217テストファイル・TypeScript/ESLintエラー0件・依存105パッケージ）
  * 関連設計: architecture.md
  *
  * 信頼性レベル:
@@ -652,11 +652,11 @@ export type PermissionKey = keyof typeof PERMISSIONS; // 🔵 パーミッショ
 // 信頼性レベルサマリー
 // ========================================
 /**
- * - 🔵 青信号: 455件 (98%)
+ * - 🔵 青信号: 473件 (98%)
  * - 🟡 黄信号: 4件 (2%)
  * - 🔴 赤信号: 0件 (0%)
  *
- * 品質評価: 高品質（第43回検証: 全型定義実態照合・253ファイル状態確認済み）
+ * 品質評価: 高品質（第158回検証: Phase 56 型付きパイプラインエラー・LLMキャッシュデバウンス型追加・344ファイル状態確認済み）
  */
 
 // ========================================
@@ -1801,4 +1801,59 @@ export interface MonitoringAlert {
   severity: 'info' | 'warning' | 'critical'; // 🔵 重要度
   message: string; // 🔵 アラートメッセージ
   timestamp: string; // 🔵 発生時刻
+}
+
+// ========================================
+// Phase 56 型付きパイプラインエラー（PipelineError 階層）
+// ========================================
+
+/**
+ * PipelineError コンストラクタ引数
+ * 🔵 信頼性: src/pipeline/pipeline-errors.ts・Phase 56 より
+ */
+export interface PipelineErrorOptions {
+  errorType: ErrorType; // 🔵 事前分類済みエラータイプ
+  stage: string; // 🔵 発生ステージ名
+  context?: Record<string, unknown>; // 🔵 追加コンテキスト
+}
+
+/**
+ * QualityGateError 追加プロパティ
+ * 🔵 信頼性: src/pipeline/pipeline-errors.ts QualityGateError より
+ */
+export interface QualityGateErrorOptions extends PipelineErrorOptions {
+  gateName: string; // 🔵 品質ゲート名
+  reason: string; // 🔵 不通過理由
+}
+
+/**
+ * PipelineConfigError 追加プロパティ
+ * 🔵 信頼性: src/pipeline/pipeline-errors.ts PipelineConfigError より
+ */
+export interface PipelineConfigErrorOptions extends PipelineErrorOptions {
+  parameter: string; // 🔵 不正パラメータ名
+}
+
+/**
+ * PipelineError 事前分類検出用インターフェース
+ * 🔵 信頼性: src/quality/error-classifier.ts PipelineErrorLike より
+ *
+ * ErrorClassifier.classify() が正規表現マッチングをバイパスするための
+ * forward declaration。PipelineError インスタンスはこの形状に一致する。
+ */
+export interface PipelineErrorLike {
+  errorType: ErrorType; // 🔵 事前分類済みエラータイプ
+  stage: string; // 🔵 発生ステージ名
+}
+
+// ========================================
+// Phase 56 LLMキャッシュデバウンスオプション
+// ========================================
+
+/**
+ * LLMキャッシュ デバウンス設定
+ * 🔵 信頼性: src/analysis/llm-cache.ts persistDebounceMs・Phase 56 より
+ */
+export interface LLMCacheDebounceOptions {
+  persistDebounceMs?: number; // 🔵 ディスク書き込みデバウンス間隔（ms、デフォルト: 1000、0で即時書き込み）
 }

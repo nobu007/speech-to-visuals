@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-18（第157回検証: Phase 1-54完了・コンポーネント・ユーティリティテスト拡充30テスト追加・337ファイル・98,061行・4,478+テスト(195+スイート)・TypeScript/ESLintエラー0件・依存105パッケージ）
+**最終更新**: 2026-05-20（第158回検証: Phase 1-56完了・型付きパイプラインエラー・LLMキャッシュデバウンス・ErrorClassifier事前分類・344ファイル・100,044行・217テストファイル・TypeScript/ESLintエラー0件・依存105パッケージ）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -163,6 +163,8 @@ Phase 20 で実装された Web Workers 並列化基盤:
 - **品質ゲート評価器**: 5段階パイプライン（文字起こし→分析→レイアウト→レンダリング準備→レンダリング）の各ステージに対して品質ゲート評価、基準未達時のブロック・フォールバックアクション実行、5%以上の品質低下でリグレッション検出 🔵 *src/quality/quality-gate.ts・要件定義REQ-041 より*
 - **グレースフルシャットダウン**: シャットダウン要求時にアクティブリクエストの完了を最大30秒待機、ヘルスモニタリング停止・リクエストキュークリア・サーキットブレーカーリセットによる安全終了 🔵 *src/quality/enhanced-error-recovery.ts shutdown()・要件定義REQ-050 より*
 - **型ガード・型安全性**: DiagramType（11種類）の実行時検証を行う isDiagramType() 関数により、不正な図解タイプ値を検出・排除 🔵 *src/types/diagram.ts・要件定義REQ-051 より*
+- **型付きパイプラインエラー**: PipelineError 基底クラスと5種類のサブクラス（TranscriptionError/SegmentationError/RenderingError/QualityGateError/PipelineConfigError）による構造化エラー管理。事前分類済みエラータイプ・ステージ・コンテキストを含み、ErrorClassifier での正規表現マッチングを回避 🔵 *src/pipeline/pipeline-errors.ts・Phase 56 より*
+- **ErrorClassifier 事前分類サポート**: PipelineErrorLike 型検出による事前分類済みエラーの高速ルーティング。isPipelineErrorLike() 型ガードで ErrorClassifier.classify() が正規表現マッチングをバイパス可能に 🔵 *src/quality/error-classifier.ts・Phase 56 より*
 
 ### プロダクション監視 🔵
 
@@ -425,7 +427,7 @@ graph TB
 │   ├── optimization/       # パラメータチューニング・バッチ最適化・キャッシュ・遅延ローダー・ウォームアップ（8ファイル）🔵
 │   ├── pages/              # React Router ページ（4ファイル）
 │   ├── performance/        # インテリジェントキャッシュ（3ファイル: intelligent-cache, index, テスト）🔵 *Phase 10 追加*
-│   ├── pipeline/           # パイプライン（15ファイル: Simple/Main/Framework/Adaptive/VideoGenerator/Orchestrator等）🔵
+│   ├── pipeline/           # パイプライン（16ファイル: Simple/Main/Framework/Adaptive/VideoGenerator/Orchestrator/PipelineErrors等）🔵
 │   ├── quality/            # 品質保証・エラー回復（9ファイル: ErrorClassifier/QualityGate/EnhancedErrorRecovery/UserGuidedRecovery等）🔵
 │   ├── remotion/           # Remotion 動画コンポーネント（22ファイル: Animation/Scene/Renderer/SRT/Caption）🔵
 │   ├── test/               # テストユーティリティ（16ファイル）
@@ -444,7 +446,7 @@ graph TB
 │   ├── architecture/       # 旧アーキテクチャ文書（統合元）
 │   ├── spec/               # 要件定義書
 │   └── design/             # 設計文書（本ファイル群）
-├── tests/                  # テストスイート（117ファイル）
+├── tests/                  # テストスイート（129ファイル）
 ├── scripts/                # ユーティリティスクリプト
 └── public/                 # 静的アセット
 ```
@@ -486,6 +488,7 @@ Fallback LLM
 - **最大エントリ**: 200
 - **TTL**: 120分
 - **効果**: 同一/類似コンテンツの再分析を回避、API コスト削減
+- **ディスク書き込みデバウンス**: scheduleSave() による自動 coalescing（デフォルト1000ms）。複数キャッシュ更新を1回のディスク書き込みに統合しイベントループブロックを削減。persist() で即時フラッシュ、destroy() でタイマーキャンセル・リソース解放 🔵 *src/analysis/llm-cache.ts・Phase 56 より*
 
 ### キャッシュウォームアップ統合（Phase 43）🔵
 
@@ -599,6 +602,7 @@ Fallback LLM
 - [x] 仕様最適化・テストカバレッジ拡充（Phase 53）が完了している（REQ-135~138全実装・91テスト追加）
 - [x] コンポーネント・ユーティリティテスト拡充（Phase 54）が完了している（REQ-139~141全実装・30テスト追加・StageIndicator helpers・AUDIO_LIMITS・getAudioDuration）
 - [x] パイプライン音声入力検証統合（Phase 55）が完了している（REQ-142~143全実装・27テスト追加・validateAudioFile EDGE-001/101 統合・validateAudioDuration EDGE-102/103 統合・SimplePipelineInterface 検証統合）
+- [x] 型付きパイプラインエラー・LLMキャッシュデバウンス（Phase 56）が完了している（PipelineError 5サブクラス・ErrorClassifier事前分類・scheduleSave coalescing・315行デバウンステスト・86行パイプラインエラーテスト）
 
 ## 関連文書
 
@@ -613,11 +617,11 @@ Fallback LLM
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 160件 (97%)
+- 🔵 青信号: 166件 (97%)
 - 🟡 黄信号: 4件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第157回検証: Phase 1-54完了・コンポーネント・ユーティリティテスト拡充30テスト追加・337ファイル・98,061行・4,478+テスト全通過・TypeScript/ESLintエラー0件・依存105パッケージ・SYSTEM_CONSTITUTION V2.5適合・ギャップなし確認）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第158回検証: Phase 1-56完了・型付きパイプラインエラー・LLMキャッシュデバウンス・344ファイル・100,044行・217テストファイル全通過・TypeScript/ESLintエラー0件・依存105パッケージ・SYSTEM_CONSTITUTION V2.5適合・ギャップなし確認）
 
 
 <!-- spine:children:begin -->
