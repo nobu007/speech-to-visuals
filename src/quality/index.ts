@@ -49,3 +49,9 @@ export type {
   QueueOverflowEvent,
   CircuitBreakerState,
 } from './error-recovery-event-bus';
+
+export { ErrorRecoveryMonitor } from './error-recovery-monitor';
+export type {
+  MonitorConfig,
+  MonitorHealthStatus,
+} from './error-recovery-monitor';
