@@ -3,7 +3,7 @@
  */
 
 import { BatchOperationRecovery } from '@/quality/batch-operation-recovery';
-import type { BatchResult, ItemResult } from '@/quality/batch-operation-recovery';
+import type { BatchResult, ItemResult, FallbackProvider } from '@/quality/batch-operation-recovery';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -197,7 +197,7 @@ describe('BatchOperationRecovery', () => {
       const result = await recovery.process(
         items,
         processor,
-        fallback as any,
+        fallback as unknown as FallbackProvider<string, unknown>,
         { stage: 'rendering', maxRetries: 0 },
       );
 
