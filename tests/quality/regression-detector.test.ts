@@ -5,6 +5,7 @@
  */
 
 import { jest } from '@jest/globals';
+import type { RegressionDetector as RegressionDetectorType } from '@/quality/regression-detector';
 
 // --- Mocks ---
 const mockGetLatestMetrics = jest.fn();
@@ -13,17 +14,17 @@ const mockFsReadFile = jest.fn();
 const mockFsWriteFile = jest.fn().mockResolvedValue(undefined);
 const mockFsUnlink = jest.fn().mockResolvedValue(undefined);
 
-jest.unstable_mockModule('@/utils/logger', () => ({
+jest.mock('@/utils/logger', () => ({
   logger: { warn: jest.fn(), error: jest.fn(), info: jest.fn() },
 }));
 
-jest.unstable_mockModule('@/pipeline/quality-monitor', () => ({
+jest.mock('@/pipeline/quality-monitor', () => ({
   QualityMonitor: {
     getInstance: () => ({ getLatestMetrics: mockGetLatestMetrics }),
   },
 }));
 
-jest.unstable_mockModule('fs', () => ({
+jest.mock('fs', () => ({
   existsSync: mockFsExistsSync,
   promises: {
     readFile: mockFsReadFile,
@@ -32,11 +33,17 @@ jest.unstable_mockModule('fs', () => ({
   },
 }));
 
-const {
-  RegressionDetector,
-  formatRegressionReport,
-  getRegressionDetector,
-} = await import('@/quality/regression-detector');
+// Lazy-loaded imports (avoids top-level await in CJS mode)
+let RegressionDetector: typeof RegressionDetectorType;
+let formatRegressionReport: typeof import('@/quality/regression-detector').formatRegressionReport;
+let getRegressionDetector: typeof import('@/quality/regression-detector').getRegressionDetector;
+
+beforeAll(async () => {
+  const mod = await import('@/quality/regression-detector');
+  RegressionDetector = mod.RegressionDetector;
+  formatRegressionReport = mod.formatRegressionReport;
+  getRegressionDetector = mod.getRegressionDetector;
+});
 
 // --- Helpers ---
 const TEST_PATH = '/tmp/test-regression-baseline.json';
@@ -61,7 +68,7 @@ function makeMetrics(overrides: Record<string, unknown> = {}) {
 }
 
 function resetSingleton() {
-  const Ctor = RegressionDetector as unknown as { instance: RegressionDetector | null };
+  const Ctor = RegressionDetector as unknown as { instance: RegressionDetectorType | null };
   Ctor.instance = null;
 }
 

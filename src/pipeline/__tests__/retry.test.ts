@@ -10,7 +10,7 @@ describe('retryWithBackoff', () => {
   it('returns the result on first successful call', async () => {
     const fn = jest.fn().mockResolvedValue('ok');
 
-    const result = await retryWithBackoff(fn);
+    const { result } = await retryWithBackoff(fn);
 
     expect(result).toBe('ok');
     expect(fn).toHaveBeenCalledTimes(1);
@@ -22,7 +22,7 @@ describe('retryWithBackoff', () => {
       .mockRejectedValueOnce(new Error('LLM API error: 503 service unavailable'))
       .mockResolvedValueOnce('recovered');
 
-    const result = await retryWithBackoff(fn, {
+    const { result } = await retryWithBackoff(fn, {
       baseDelayMs: 1,
       backoffFactor: 2,
       maxRetries: 3,
@@ -58,7 +58,7 @@ describe('retryWithBackoff', () => {
       .mockRejectedValueOnce(new Error('storage write failed: no space left'))
       .mockResolvedValueOnce('saved');
 
-    const result = await retryWithBackoff(fn, { baseDelayMs: 1 });
+    const { result } = await retryWithBackoff(fn, { baseDelayMs: 1 });
 
     expect(result).toBe('saved');
     expect(fn).toHaveBeenCalledTimes(2);
@@ -70,7 +70,7 @@ describe('retryWithBackoff', () => {
       .mockRejectedValueOnce(new Error('rendering failed: frame error'))
       .mockResolvedValueOnce('rendered');
 
-    const result = await retryWithBackoff(fn, { baseDelayMs: 1 });
+    const { result } = await retryWithBackoff(fn, { baseDelayMs: 1 });
 
     expect(result).toBe('rendered');
     expect(fn).toHaveBeenCalledTimes(2);
@@ -108,7 +108,7 @@ describe('retryWithBackoff', () => {
       .mockRejectedValueOnce(new Error('LLM rate limit exceeded, quota reached'))
       .mockResolvedValueOnce('ok');
 
-    const result = await retryWithBackoff(fn, { baseDelayMs: 1 });
+    const { result } = await retryWithBackoff(fn, { baseDelayMs: 1 });
 
     expect(result).toBe('ok');
     expect(fn).toHaveBeenCalledTimes(2);
@@ -120,7 +120,7 @@ describe('retryWithBackoff', () => {
       .mockRejectedValueOnce(new Error('quality score below threshold'))
       .mockResolvedValueOnce('passed');
 
-    const result = await retryWithBackoff(fn, { baseDelayMs: 1 });
+    const { result } = await retryWithBackoff(fn, { baseDelayMs: 1 });
 
     expect(result).toBe('passed');
     expect(fn).toHaveBeenCalledTimes(2);
@@ -155,7 +155,7 @@ describe('retryWithBackoff — delay timing', () => {
       .mockRejectedValueOnce(new Error('network connection refused'))
       .mockResolvedValueOnce('ok');
 
-    const result = await retryWithBackoff(fn, {
+    const { result } = await retryWithBackoff(fn, {
       maxRetries: 3,
       baseDelayMs: 100,
       backoffFactor: 3,
@@ -173,7 +173,7 @@ describe('retryWithBackoff — delay timing', () => {
       .mockRejectedValueOnce(new Error('LLM rate limit exceeded'))
       .mockResolvedValueOnce('ok');
 
-    const result = await retryWithBackoff(fn, {
+    const { result } = await retryWithBackoff(fn, {
       maxRetries: 4,
       baseDelayMs: 10,
       backoffFactor: 4,
