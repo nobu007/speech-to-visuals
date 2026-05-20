@@ -54,6 +54,13 @@ interface PredictiveIndicator {
   riskLevel: 'low' | 'medium' | 'high' | 'critical';
 }
 
+interface StrategyEffectivenessRecord {
+  successes: number;
+  failures: number;
+  totalRecoveryTimeMs: number;
+  lastUsedAt: number;
+}
+
 interface LoadMetrics {
   concurrentRequests: number;
   averageResponseTime: number;
@@ -164,6 +171,7 @@ export class EnhancedErrorRecovery {
   private healthMetrics: SystemHealth;
   private preventiveActions: Map<string, () => Promise<void>> = new Map();
   private circuitBreakers: Map<string, CircuitBreaker> = new Map();
+  private strategyEffectiveness: Map<string, StrategyEffectivenessRecord> = new Map();
   private loadMetrics: LoadMetrics[] = [];
   private loadBalancingConfig: LoadBalancingConfig;
   private activeRequests: Map<string, { promise: Promise<unknown>; startTime: number; stage?: ProcessingStage; priority: number }> = new Map();
@@ -1032,29 +1040,48 @@ export class EnhancedErrorRecovery {
       };
     }
 
-    // Find applicable recovery strategies
-    const applicableStrategies = this.recoveryStrategies.filter(strategy =>
-      strategy.applicableStages.includes(context.stage) &&
-      context.retryCount < 3 // Limit retries
-    );
+    // Find applicable recovery strategies, sorted by learned effectiveness
+    const applicableStrategies = this.recoveryStrategies
+      .filter(strategy =>
+        strategy.applicableStages.includes(context.stage) &&
+        context.retryCount < 3 // Limit retries
+      )
+      .sort((a, b) => {
+        // Prefer strategies with higher learned scores
+        const scoreA = this.scoreStrategyForStage(a.id, context.stage);
+        const scoreB = this.scoreStrategyForStage(b.id, context.stage);
+        if (Math.abs(scoreA - scoreB) > 0.01) return scoreB - scoreA;
+        // Fall back to static priority
+        return a.priority - b.priority;
+      });
 
     // Try strategies in priority order
     for (const strategy of applicableStrategies) {
       try {
         const result = await strategy.execute(context);
 
+        // Learn from every strategy outcome (success or failure)
+        this.learnFromRecovery(context, strategy, result);
+
         if (result.success) {
           // Update circuit breaker on success
           circuitBreaker.recordSuccess();
-
-          // Learn from successful recovery
-          this.learnFromRecovery(context, strategy, result);
 
           return result;
         }
       } catch (error) {
         logger.warn(`Recovery strategy ${strategy.id} failed:`, error);
         circuitBreaker.recordFailure();
+        // Track strategy failure even on exception
+        this.learnFromRecovery(context, strategy, {
+          success: false,
+          fallbackUsed: false,
+          timeSpent: 0,
+          strategy: strategy.id,
+          confidence: 0,
+          improvements: [],
+          nextAction: 'fallback',
+        });
       }
     }
 
@@ -1325,16 +1352,72 @@ export class EnhancedErrorRecovery {
   }
 
   /**
-   * Learn from successful recovery
+   * Learn from successful recovery — track strategy effectiveness per stage
+   * so future recovery attempts prefer strategies that historically worked best.
    */
   private learnFromRecovery(
     context: ErrorContext,
     strategy: RecoveryStrategy,
     result: RecoveryResult
   ): void {
-    // Update strategy effectiveness
+    const key = `${strategy.id}:${context.stage}`;
+    const record = this.strategyEffectiveness.get(key) ?? {
+      successes: 0,
+      failures: 0,
+      totalRecoveryTimeMs: 0,
+      lastUsedAt: 0,
+    };
 
-    // Could implement machine learning here to improve strategy selection
+    if (result.success) {
+      record.successes++;
+    } else {
+      record.failures++;
+    }
+    record.totalRecoveryTimeMs += result.timeSpent;
+    record.lastUsedAt = Date.now();
+
+    this.strategyEffectiveness.set(key, record);
+  }
+
+  /**
+   * Score a strategy for a given stage based on historical effectiveness.
+   * Higher scores indicate strategies that should be tried first.
+   */
+  private scoreStrategyForStage(strategyId: string, stage: ProcessingStage): number {
+    const key = `${strategyId}:${stage}`;
+    const record = this.strategyEffectiveness.get(key);
+    if (!record || record.successes + record.failures === 0) return 0;
+
+    const totalAttempts = record.successes + record.failures;
+    const successRate = record.successes / totalAttempts;
+    const avgRecoveryTime = record.totalRecoveryTimeMs / totalAttempts;
+    // Penalize slow recoveries; 3000ms is the target, anything faster gets a bonus.
+    const speedFactor = Math.max(0, 1 - avgRecoveryTime / 6000);
+
+    // Recency bonus: strategies used more recently get a slight boost
+    const ageHours = (Date.now() - record.lastUsedAt) / 3600000;
+    const recencyBonus = Math.max(0, 1 - ageHours / 24);
+
+    return successRate * 0.6 + speedFactor * 0.25 + recencyBonus * 0.15;
+  }
+
+  /**
+   * Get recovery statistics for all tracked strategies.
+   */
+  getRecoveryStats(): { strategyId: string; stage: string; successes: number; failures: number; avgRecoveryTimeMs: number }[] {
+    const stats: { strategyId: string; stage: string; successes: number; failures: number; avgRecoveryTimeMs: number }[] = [];
+    for (const [key, record] of this.strategyEffectiveness.entries()) {
+      const [strategyId, stage] = key.split(':');
+      const total = record.successes + record.failures;
+      stats.push({
+        strategyId,
+        stage,
+        successes: record.successes,
+        failures: record.failures,
+        avgRecoveryTimeMs: total > 0 ? Math.round(record.totalRecoveryTimeMs / total) : 0,
+      });
+    }
+    return stats;
   }
 
   /**

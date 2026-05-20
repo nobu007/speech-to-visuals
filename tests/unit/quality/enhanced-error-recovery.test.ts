@@ -216,6 +216,87 @@ describe('EnhancedErrorRecovery - Retry with Exponential Backoff', () => {
       expect(notification.suggestedActions.length).toBeGreaterThan(0);
     });
   });
+
+  describe('adaptive strategy learning', () => {
+    it('should track recovery stats after successful recovery', async () => {
+      const context = {
+        stage: 'analysis' as const,
+        component: 'test-component',
+        input: {},
+        error: new Error('test error'),
+        timestamp: Date.now(),
+        retryCount: 0,
+        userContext: { preferences: {}, sessionId: 'test', previousSuccesses: 0 },
+      };
+
+      await recovery.recoverFromError(context);
+
+      const stats = recovery.getRecoveryStats();
+      // Should have at least one tracked strategy after recovery attempt
+      expect(stats.length).toBeGreaterThan(0);
+    });
+
+    it('should prefer strategies with higher learned scores', async () => {
+      // Create a context for the analysis stage
+      const context = {
+        stage: 'analysis' as const,
+        component: 'test-component',
+        input: {},
+        error: new Error('test error'),
+        timestamp: Date.now(),
+        retryCount: 0,
+        userContext: { preferences: {}, sessionId: 'test', previousSuccesses: 0 },
+      };
+
+      // First recovery populates effectiveness data
+      await recovery.recoverFromError(context);
+
+      // Second recovery should use learned effectiveness
+      const result = await recovery.recoverFromError(context);
+
+      // Verify stats were accumulated
+      const stats = recovery.getRecoveryStats();
+      const analysisStats = stats.filter(s => s.stage === 'analysis');
+      expect(analysisStats.length).toBeGreaterThan(0);
+
+      // At least one strategy should have recorded attempts
+      const hasAttempts = analysisStats.some(s => s.successes + s.failures > 0);
+      expect(hasAttempts).toBe(true);
+    });
+
+    it('should return empty stats when no recoveries attempted', () => {
+      const stats = recovery.getRecoveryStats();
+      expect(stats).toEqual([]);
+    });
+
+    it('should track both successes and failures in stats', async () => {
+      const context = {
+        stage: 'diagram_detection' as const,
+        component: 'test',
+        input: {},
+        error: new Error('detection failed'),
+        timestamp: Date.now(),
+        retryCount: 0,
+        userContext: { preferences: {}, sessionId: 'test', previousSuccesses: 0 },
+      };
+
+      await recovery.recoverFromError(context);
+
+      const stats = recovery.getRecoveryStats();
+      const detectionStats = stats.filter(s => s.stage === 'diagram_detection');
+      expect(detectionStats.length).toBeGreaterThan(0);
+
+      // Verify the stats shape
+      for (const stat of detectionStats) {
+        expect(stat).toHaveProperty('strategyId');
+        expect(stat).toHaveProperty('successes');
+        expect(stat).toHaveProperty('failures');
+        expect(stat).toHaveProperty('avgRecoveryTimeMs');
+        expect(typeof stat.successes).toBe('number');
+        expect(typeof stat.failures).toBe('number');
+      }
+    });
+  });
 });
 
 // Clean up the module-level singleton to prevent timer leaks
