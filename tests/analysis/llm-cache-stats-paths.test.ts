@@ -119,17 +119,25 @@ describe('LLMCache untested paths', () => {
     });
 
     test('overallHitRate reflects exact + semantic hits vs total requests', () => {
-      // Re-create cache with semantic enabled and verify getStats reads from metrics
+      // Verify recordExactHit is called on cache hit, then compute hitRate
       const cache = new LLMCache<string>({ enableSemantic: true });
       cache.set('a', '1');
-      cache.get('a');   // exact hit
+      cache.get('a');   // exact hit → calls recordExactHit()
 
-      // The overallHitRate formula is:
-      // (exactHits + semanticHits) / (exactHits + semanticHits + misses) * 100
-      // Verify the formula works by checking the computation directly
-      const metrics = cache.getStats().semantic;
-      // At least 1 exact hit should be recorded
-      expect(metrics.exactHits).toBeGreaterThanOrEqual(1);
+      // The mock SemanticMetricsTracker always returns 0 from getMetrics(),
+      // so we verify the correct metric method was called instead
+      expect(mockSemanticMetricsTracker.recordExactHit).toHaveBeenCalledTimes(1);
+
+      // Now wire the mock to reflect the recorded hit and verify the formula
+      mockSemanticMetricsTracker.getMetrics.mockReturnValue({
+        exactHits: 1,
+        semanticHits: 0,
+        misses: 0,
+        avgSimilarityScore: 0,
+        totalComparisons: 0,
+      });
+      const stats = cache.getStats();
+      expect(stats.semantic.overallHitRate).toBe(100); // 1 exact hit / 1 total = 100%
     });
   });
 
