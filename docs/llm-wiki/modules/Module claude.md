@@ -1,0 +1,351 @@
+---
+title: Module claude
+genre: repository-analysis
+type: entity
+sources:
+  - extract-skill-meta planning artifacts
+related:
+  - Module Index
+  - Repository Risk Register
+  - File Inventory
+created: 2026-05-20
+updated: 2026-05-20
+status: generated
+---
+# Module claude
+
+## Role
+
+- Rationale: Files under .claude form a shared path-level boundary.
+- Roots: .claude
+- Languages: json, markdown, python, shell, text
+- Files: 192
+- Bytes: 1161081
+
+## Key Files
+
+- `.claude/README.md`
+- `.claude/agents/README.md`
+- `.claude/agents/task-executor.md`
+- `.claude/commands/task-executor.md`
+- `.claude/commands/gh/repo-init.md`
+- `.claude/skills/agent-creator/SKILL.md`
+- `.claude/skills/codebase-improvement-advisor/SKILL.md`
+- `.claude/skills/commit-prep-helper/SKILL.md`
+
+## Risk Signals
+
+- RISK-0006 (medium, Parser Or Heuristic) in `.claude/settings.example.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
+- RISK-0007 (medium, Parser Or Heuristic) in `.claude/settings.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
+- RISK-0008 (low, High Attention File) in `.claude/settings.json`: The digest found several implementation signals worth manual review. Evidence: L2: "hooks": {
+- RISK-0009 (high, Security Boundary) in `.claude/skills/agent-creator/scripts/agent_workflows.py`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L27: - Review authentication and authorization
+- RISK-0010 (medium, Parser Or Heuristic) in `.claude/skills/agent-creator/scripts/generate_agent.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L9: import argparse
+- RISK-0011 (low, High Attention File) in `.claude/skills/agent-creator/scripts/generate_agent.py`: The digest found several implementation signals worth manual review. Evidence: L9: import argparse
+- RISK-0012 (medium, Parser Or Heuristic) in `.claude/skills/agent-creator/scripts/init_agent.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L171: import argparse
+- RISK-0013 (low, High Attention File) in `.claude/skills/agent-creator/scripts/init_agent.py`: The digest found several implementation signals worth manual review. Evidence: L171: import argparse
+- RISK-0014 (medium, Parser Or Heuristic) in `.claude/skills/agent-creator/scripts/validate_agent.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L8: import argparse
+- RISK-0015 (low, High Attention File) in `.claude/skills/agent-creator/scripts/validate_agent.py`: The digest found several implementation signals worth manual review. Evidence: L8: import argparse
+- RISK-0016 (high, Security Boundary) in `.claude/skills/code-review/scripts/review.py`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L136: max_tokens=4000,
+- RISK-0017 (medium, Parser Or Heuristic) in `.claude/skills/code-review/scripts/review.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L4: import argparse
+- RISK-0018 (low, High Attention File) in `.claude/skills/code-review/scripts/review.py`: The digest found several implementation signals worth manual review. Evidence: L4: import argparse
+- RISK-0019 (high, Process Execution) in `.claude/skills/codebase-improvement-advisor/scripts/codebase_analyzer.py`: Process or shell execution can cross sandbox, quoting, timeout, or injection boundaries. Evidence: L26: import subprocess
+- RISK-0020 (medium, Concurrency Or Timing) in `.claude/skills/codebase-improvement-advisor/scripts/codebase_analyzer.py`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L49: ["jscpd", "--version"], capture_output=True, text=True, timeout=10
+- RISK-0021 (medium, Parser Or Heuristic) in `.claude/skills/codebase-improvement-advisor/scripts/codebase_analyzer.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L18: import argparse
+- RISK-0022 (low, High Attention File) in `.claude/skills/codebase-improvement-advisor/scripts/codebase_analyzer.py`: The digest found several implementation signals worth manual review. Evidence: L18: import argparse
+- RISK-0023 (medium, Parser Or Heuristic) in `.claude/skills/codebase-improvement-advisor/scripts/codebase_analyzer_refactored.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L9: import argparse
+- RISK-0024 (low, High Attention File) in `.claude/skills/codebase-improvement-advisor/scripts/codebase_analyzer_refactored.py`: The digest found several implementation signals worth manual review. Evidence: L9: import argparse
+- RISK-0025 (medium, Parser Or Heuristic) in `.claude/skills/codebase-improvement-advisor/scripts/modules/advanced_analyzer.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L67: tree = ast.parse(source_code)
+- RISK-0026 (medium, Persistence Or State) in `.claude/skills/codebase-improvement-advisor/scripts/modules/advanced_analyzer.py`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L25: self.ignore_dirs = {"node_modules", ".git", "__pycache__", ".pytest_cache"}
+- RISK-0027 (high, Process Execution) in `.claude/skills/codebase-improvement-advisor/scripts/modules/jscpd_analyzer.py`: Process or shell execution can cross sandbox, quoting, timeout, or injection boundaries. Evidence: L4: import subprocess
+- RISK-0028 (medium, Concurrency Or Timing) in `.claude/skills/codebase-improvement-advisor/scripts/modules/jscpd_analyzer.py`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L12: ["jscpd", "--version"], capture_output=True, text=True, timeout=10
+- RISK-0029 (medium, Parser Or Heuristic) in `.claude/skills/codebase-improvement-advisor/scripts/modules/jscpd_analyzer.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L81: return self._parse_results(jscpd_result)
+- RISK-0030 (low, High Attention File) in `.claude/skills/codebase-improvement-advisor/scripts/modules/jscpd_analyzer.py`: The digest found several implementation signals worth manual review. Evidence: L4: import subprocess
+- RISK-0031 (medium, Concurrency Or Timing) in `.claude/skills/codebase-improvement-advisor/scripts/refactoring_helper.py`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L119: for exclusion in ["port", "timeout", "limit", "max", "min"]
+- RISK-0032 (medium, Parser Or Heuristic) in `.claude/skills/codebase-improvement-advisor/scripts/refactoring_helper.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L16: import argparse
+- RISK-0033 (low, High Attention File) in `.claude/skills/codebase-improvement-advisor/scripts/refactoring_helper.py`: The digest found several implementation signals worth manual review. Evidence: L16: import argparse
+- RISK-0034 (medium, Parser Or Heuristic) in `.claude/skills/commit-prep-helper/assets/review_config.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
+- RISK-0035 (high, Process Execution) in `.claude/skills/commit-prep-helper/scripts/check_staged_files.py`: Process or shell execution can cross sandbox, quoting, timeout, or injection boundaries. Evidence: L10: import subprocess
+- RISK-0036 (medium, Parser Or Heuristic) in `.claude/skills/commit-prep-helper/scripts/check_staged_files.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L42: # Parse numstat output: format: "added\tremoved\tfilename"
+- RISK-0037 (medium, Persistence Or State) in `.claude/skills/commit-prep-helper/scripts/check_staged_files.py`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L18: ["git", "diff", "--cached", "--name-only"],
+- RISK-0038 (low, High Attention File) in `.claude/skills/commit-prep-helper/scripts/check_staged_files.py`: The digest found several implementation signals worth manual review. Evidence: L10: import subprocess
+- RISK-0039 (high, Security Boundary) in `.claude/skills/commit-prep-helper/scripts/code_review.py`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L62: "pattern": r'(?:secret|token)\s*[:=]\s*["\'][^"\']{8,}["\']',
+- RISK-0040 (high, Process Execution) in `.claude/skills/commit-prep-helper/scripts/code_review.py`: Process or shell execution can cross sandbox, quoting, timeout, or injection boundaries. Evidence: L11: import subprocess
+- RISK-0041 (medium, Parser Or Heuristic) in `.claude/skills/commit-prep-helper/scripts/code_review.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L8: import json
+- RISK-0042 (medium, Persistence Or State) in `.claude/skills/commit-prep-helper/scripts/code_review.py`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L19: ["git", "diff", "--cached", "--name-only"],
+- RISK-0043 (low, High Attention File) in `.claude/skills/commit-prep-helper/scripts/code_review.py`: The digest found several implementation signals worth manual review. Evidence: L11: import subprocess
+- RISK-0044 (high, Process Execution) in `.claude/skills/commit-prep-helper/scripts/create_commit.py`: Process or shell execution can cross sandbox, quoting, timeout, or injection boundaries. Evidence: L10: import subprocess
+- RISK-0045 (medium, Parser Or Heuristic) in `.claude/skills/commit-prep-helper/scripts/create_commit.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L8: import json
+- RISK-0046 (medium, Persistence Or State) in `.claude/skills/commit-prep-helper/scripts/create_commit.py`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L19: ["git", "diff", "--cached", "--name-only"],
+- RISK-0047 (low, High Attention File) in `.claude/skills/commit-prep-helper/scripts/create_commit.py`: The digest found several implementation signals worth manual review. Evidence: L10: import subprocess
+- RISK-0048 (high, Process Execution) in `.claude/skills/commit-prep-helper/scripts/run_linting.py`: Process or shell execution can cross sandbox, quoting, timeout, or injection boundaries. Evidence: L10: import subprocess
+- RISK-0049 (medium, Concurrency Or Timing) in `.claude/skills/commit-prep-helper/scripts/run_linting.py`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L34: timeout=30,  # 30 second timeout
+- RISK-0050 (medium, Parser Or Heuristic) in `.claude/skills/commit-prep-helper/scripts/run_linting.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L42: # Try to parse as individual JSON objects (ESLint sometimes outputs this way)
+- RISK-0051 (low, High Attention File) in `.claude/skills/commit-prep-helper/scripts/run_linting.py`: The digest found several implementation signals worth manual review. Evidence: L10: import subprocess
+- RISK-0052 (high, Process Execution) in `.claude/skills/commit-prep-helper/scripts/run_tests.py`: Process or shell execution can cross sandbox, quoting, timeout, or injection boundaries. Evidence: L11: import subprocess
+- RISK-0053 (medium, Concurrency Or Timing) in `.claude/skills/commit-prep-helper/scripts/run_tests.py`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L49: timeout=300,  # 5分タイムアウト
+- RISK-0054 (medium, Parser Or Heuristic) in `.claude/skills/commit-prep-helper/scripts/run_tests.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L52: # Parse Jest output
+- RISK-0055 (low, High Attention File) in `.claude/skills/commit-prep-helper/scripts/run_tests.py`: The digest found several implementation signals worth manual review. Evidence: L11: import subprocess
+- RISK-0056 (high, Security Boundary) in `.claude/skills/feature-implementer/scripts/implement_feature.py`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L37: # Check API Key presence to avoid hanging on auth prompt
+- RISK-0057 (high, Process Execution) in `.claude/skills/feature-implementer/scripts/implement_feature.py`: Process or shell execution can cross sandbox, quoting, timeout, or injection boundaries. Evidence: L7: import subprocess
+- RISK-0058 (medium, Concurrency Or Timing) in `.claude/skills/feature-implementer/scripts/implement_feature.py`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L69: timeout=600,  # Longer timeout for features
+- RISK-0059 (medium, Parser Or Heuristic) in `.claude/skills/feature-implementer/scripts/implement_feature.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L4: import argparse
+- RISK-0060 (low, High Attention File) in `.claude/skills/feature-implementer/scripts/implement_feature.py`: The digest found several implementation signals worth manual review. Evidence: L4: import argparse
+- RISK-0061 (medium, Parser Or Heuristic) in `.claude/skills/github-issue-improver/improvements_example.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
+- RISK-0062 (high, Security Boundary) in `.claude/skills/github-issue-improver/scripts/apply_improvements.py`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L50: repo: str, improvements_file: str, token: str | None = None, dry_run: bool = False
+- RISK-0063 (medium, Parser Or Heuristic) in `.claude/skills/github-issue-improver/scripts/apply_improvements.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L4: import argparse
+- RISK-0064 (low, High Attention File) in `.claude/skills/github-issue-improver/scripts/apply_improvements.py`: The digest found several implementation signals worth manual review. Evidence: L4: import argparse
+- RISK-0065 (high, Security Boundary) in `.claude/skills/github-issue-improver/scripts/github_client.py`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L102: self.headers["Authorization"] = f"token {self.token}"
+- RISK-0066 (medium, Parser Or Heuristic) in `.claude/skills/github-issue-improver/scripts/github_client.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L56: # Fallback to python-dotenv
+- RISK-0067 (low, High Attention File) in `.claude/skills/github-issue-improver/scripts/github_client.py`: The digest found several implementation signals worth manual review. Evidence: L56: # Fallback to python-dotenv
+- RISK-0068 (high, Security Boundary) in `.claude/skills/github-issue-improver/scripts/issue_analyzer.py`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L77: except anthropic.AuthenticationError as e:
+- RISK-0069 (medium, Parser Or Heuristic) in `.claude/skills/github-issue-improver/scripts/issue_analyzer.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L383: def _parse_issue_type(self, type_str: str) -> IssueType:
+- RISK-0070 (low, High Attention File) in `.claude/skills/github-issue-improver/scripts/issue_analyzer.py`: The digest found several implementation signals worth manual review. Evidence: L54: def __init__(self, fallback_to_keywords: bool = True):
+- RISK-0071 (high, Security Boundary) in `.claude/skills/github-issue-improver/scripts/issue_improver.py`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L104: def __init__(self, token: str | None = None, allow_read_only: bool = True):
+- RISK-0072 (medium, Parser Or Heuristic) in `.claude/skills/github-issue-improver/scripts/issue_improver.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L7: import argparse
+- RISK-0073 (low, High Attention File) in `.claude/skills/github-issue-improver/scripts/issue_improver.py`: The digest found several implementation signals worth manual review. Evidence: L7: import argparse
+- RISK-0074 (high, Security Boundary) in `.claude/skills/github-issue-improver/test_common_lib_integration.py`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L18: GITHUB_TOKEN=ghp_TEST_PLACEHOLDER_TOKEN_12345
+- RISK-0075 (medium, Parser Or Heuristic) in `.claude/skills/github-issue-improver/test_common_lib_integration.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L38: from env_utils import parse_env_file_manual
+- RISK-0076 (low, High Attention File) in `.claude/skills/github-issue-improver/test_common_lib_integration.py`: The digest found several implementation signals worth manual review. Evidence: L18: GITHUB_TOKEN=ghp_TEST_PLACEHOLDER_TOKEN_12345
+- RISK-0077 (high, Security Boundary) in `.claude/skills/github-issue-improver/test_token_loading.py`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: path contains `token`
+- RISK-0078 (low, High Attention File) in `.claude/skills/github-issue-improver/test_token_loading.py`: The digest found several implementation signals worth manual review. Evidence: L3: Test script to verify token loading functionality
+- RISK-0079 (high, Security Boundary) in `.claude/skills/github-issue-quality-checker/scripts/main.py`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L82: "Authorization": f"token {self.token}",
+- RISK-0080 (medium, Parser Or Heuristic) in `.claude/skills/github-issue-quality-checker/scripts/main.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L9: import argparse
+- RISK-0081 (low, High Attention File) in `.claude/skills/github-issue-quality-checker/scripts/main.py`: The digest found several implementation signals worth manual review. Evidence: L9: import argparse
+- RISK-0082 (medium, Parser Or Heuristic) in `.claude/skills/issue-creator/scripts/create_issue.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L40: import json
+- RISK-0083 (high, Security Boundary) in `.claude/skills/issue-creator/scripts/issue_creator.py`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L64: print("   GitHub CLIの認証が必要です: gh auth login")
+- RISK-0084 (high, Process Execution) in `.claude/skills/issue-creator/scripts/issue_creator.py`: Process or shell execution can cross sandbox, quoting, timeout, or injection boundaries. Evidence: L5: import subprocess
+- RISK-0085 (medium, Parser Or Heuristic) in `.claude/skills/issue-creator/scripts/issue_creator.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L11: import yaml
+- RISK-0086 (low, High Attention File) in `.claude/skills/issue-creator/scripts/issue_creator.py`: The digest found several implementation signals worth manual review. Evidence: L5: import subprocess
+- RISK-0087 (high, Security Boundary) in `.claude/skills/md-doc-improver/scripts/document_validator.py`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L272: security_keywords = ['security', 'authentication', 'authorization', 'token', 'credential']
+- RISK-0088 (medium, Parser Or Heuristic) in `.claude/skills/md-doc-improver/scripts/document_validator.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L11: import argparse
+- RISK-0089 (low, High Attention File) in `.claude/skills/md-doc-improver/scripts/document_validator.py`: The digest found several implementation signals worth manual review. Evidence: L11: import argparse
+- RISK-0090 (high, Security Boundary) in `.claude/skills/md-doc-improver/scripts/improve_document.py`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L230: 'security': ['security', 'authentication', 'authorization', 'token'],
+- RISK-0091 (medium, Parser Or Heuristic) in `.claude/skills/md-doc-improver/scripts/improve_document.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L11: import argparse
+- RISK-0092 (medium, Persistence Or State) in `.claude/skills/md-doc-improver/scripts/improve_document.py`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L232: 'versioning': ['version', 'compatibility', 'migration', 'upgrade']
+- RISK-0093 (low, High Attention File) in `.claude/skills/md-doc-improver/scripts/improve_document.py`: The digest found several implementation signals worth manual review. Evidence: L11: import argparse
+- RISK-0094 (high, Security Boundary) in `.claude/skills/skill-creator-auto/scripts/init_skill.py`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L201: - Authentication
+- RISK-0095 (medium, Concurrency Or Timing) in `.claude/skills/skill-creator-auto/scripts/init_skill.py`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L204: - Rate limits
+- RISK-0096 (low, High Attention File) in `.claude/skills/skill-creator-auto/scripts/init_skill.py`: The digest found several implementation signals worth manual review. Evidence: L10: init_skill.py my-api-helper --path skills/private
+- RISK-0097 (medium, Parser Or Heuristic) in `.claude/skills/skill-creator-auto/scripts/quick_validate.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L84: # Parse YAML frontmatter
+- RISK-0098 (medium, Parser Or Heuristic) in `.claude/skills/spec-flow-auto/scripts/create_tasks_from_spec.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L9: import argparse
+- RISK-0099 (low, High Attention File) in `.claude/skills/spec-flow-auto/scripts/create_tasks_from_spec.py`: The digest found several implementation signals worth manual review. Evidence: L9: import argparse
+- RISK-0100 (high, Process Execution) in `.claude/skills/spec-flow-auto/scripts/enhanced_sdd_pipeline.py`: Process or shell execution can cross sandbox, quoting, timeout, or injection boundaries. Evidence: L13: import subprocess
+- RISK-0101 (medium, Network Or IPC) in `.claude/skills/spec-flow-auto/scripts/enhanced_sdd_pipeline.py`: Cross-process or network boundaries can fail through protocol, timeout, and trust assumptions. Evidence: L5: SpecWorkflowMcpとAI連携による高品質な仕様駆動開発パイプライン
+- RISK-0102 (medium, Parser Or Heuristic) in `.claude/skills/spec-flow-auto/scripts/enhanced_sdd_pipeline.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L9: import argparse
+- RISK-0103 (low, High Attention File) in `.claude/skills/spec-flow-auto/scripts/enhanced_sdd_pipeline.py`: The digest found several implementation signals worth manual review. Evidence: L5: SpecWorkflowMcpとAI連携による高品質な仕様駆動開発パイプライン
+- RISK-0104 (high, Security Boundary) in `.claude/skills/spec-flow-auto/scripts/generate_spec_from_prd.py`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L129: - **AuthModule**: 認証関連機能
+- RISK-0105 (medium, Network Or IPC) in `.claude/skills/spec-flow-auto/scripts/generate_spec_from_prd.py`: Cross-process or network boundaries can fail through protocol, timeout, and trust assumptions. Evidence: L5: README.mdやPRDドキュメントから、SpecWorkflowMcp準拠の
+- RISK-0106 (medium, Parser Or Heuristic) in `.claude/skills/spec-flow-auto/scripts/generate_spec_from_prd.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L9: import argparse
+- RISK-0107 (low, High Attention File) in `.claude/skills/spec-flow-auto/scripts/generate_spec_from_prd.py`: The digest found several implementation signals worth manual review. Evidence: L5: README.mdやPRDドキュメントから、SpecWorkflowMcp準拠の
+- RISK-0108 (high, Process Execution) in `.claude/skills/spec-flow-auto/scripts/run_sdd_pipeline.py`: Process or shell execution can cross sandbox, quoting, timeout, or injection boundaries. Evidence: L11: import subprocess
+- RISK-0109 (medium, Parser Or Heuristic) in `.claude/skills/spec-flow-auto/scripts/run_sdd_pipeline.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L9: import argparse
+- RISK-0110 (low, High Attention File) in `.claude/skills/spec-flow-auto/scripts/run_sdd_pipeline.py`: The digest found several implementation signals worth manual review. Evidence: L9: import argparse
+- RISK-0111 (medium, Network Or IPC) in `.claude/skills/spec-flow-auto/scripts/setup_spec_workspace.py`: Cross-process or network boundaries can fail through protocol, timeout, and trust assumptions. Evidence: L128: For more information, see the [SpecWorkflowMcp documentation](https://github.com/Pimzino/spec-workflow-mcp).
+- RISK-0112 (medium, Parser Or Heuristic) in `.claude/skills/spec-flow-auto/scripts/setup_spec_workspace.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L8: import argparse
+- RISK-0113 (low, High Attention File) in `.claude/skills/spec-flow-auto/scripts/setup_spec_workspace.py`: The digest found several implementation signals worth manual review. Evidence: L5: SpecWorkflowMcpで必要なディレクトリ構造と設定ファイルを自動生成
+- RISK-0114 (medium, Parser Or Heuristic) in `.claude/skills/spec-flow-auto/scripts/validate_prd_spec_sync.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L9: import argparse
+- RISK-0115 (low, High Attention File) in `.claude/skills/spec-flow-auto/scripts/validate_prd_spec_sync.py`: The digest found several implementation signals worth manual review. Evidence: L9: import argparse
+- RISK-0116 (medium, Parser Or Heuristic) in `.claude/skills/stepwise-executor/assets/goal_patterns/data_analysis.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
+- RISK-0117 (medium, Parser Or Heuristic) in `.claude/skills/stepwise-executor/assets/goal_patterns/documentation.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
+- RISK-0118 (medium, Parser Or Heuristic) in `.claude/skills/stepwise-executor/assets/goal_patterns/software_development.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
+- RISK-0119 (medium, Parser Or Heuristic) in `.claude/skills/stepwise-executor/assets/progress_template.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
+- RISK-0120 (medium, Concurrency Or Timing) in `.claude/skills/stepwise-executor/scripts/execute_steps.py`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L230: retry = input("\nステップを再試行しますか? (y/n): ").lower()
+- RISK-0121 (medium, Parser Or Heuristic) in `.claude/skills/stepwise-executor/scripts/execute_steps.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L9: import argparse
+- RISK-0122 (low, High Attention File) in `.claude/skills/stepwise-executor/scripts/execute_steps.py`: The digest found several implementation signals worth manual review. Evidence: L9: import argparse
+- RISK-0123 (medium, Parser Or Heuristic) in `.claude/skills/stepwise-executor/scripts/track_progress.py`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L9: import argparse
+- RISK-0124 (low, High Attention File) in `.claude/skills/stepwise-executor/scripts/track_progress.py`: The digest found several implementation signals worth manual review. Evidence: L9: import argparse
+
+## Files
+
+- `.claude/README.md` — markdown, 256 lines, attention 98
+- `.claude/agents/README.md` — markdown, 201 lines, attention 84
+- `.claude/agents/cli-expert.md` — markdown, 848 lines, attention 100
+- `.claude/agents/code-review-expert.md` — markdown, 458 lines, attention 100
+- `.claude/agents/git/git-expert.md` — markdown, 522 lines, attention 100
+- `.claude/agents/oracle.md` — markdown, 341 lines, attention 100
+- `.claude/agents/refactoring/refactoring-expert.md` — markdown, 394 lines, attention 42
+- `.claude/agents/research-expert.md` — markdown, 231 lines, attention 70
+- `.claude/agents/self-healing-expert.md` — markdown, 25 lines, attention 28
+- `.claude/agents/task-executor.md` — markdown, 98 lines, attention 28
+- `.claude/agents/triage-expert.md` — markdown, 443 lines, attention 100
+- `.claude/commands/approve.md` — markdown, 518 lines, attention 98
+- `.claude/commands/architecture-check.md` — markdown, 80 lines, attention 0
+- `.claude/commands/bmad/bmb/agents/agent-builder.md` — markdown, 15 lines, attention 14
+- `.claude/commands/bmad/bmb/agents/module-builder.md` — markdown, 15 lines, attention 14
+- `.claude/commands/bmad/bmb/agents/workflow-builder.md` — markdown, 15 lines, attention 14
+- `.claude/commands/bmad/bmb/workflows/Meal Prep & Nutrition Plan.md` — markdown, 6 lines, attention 0
+- `.claude/commands/bmad/bmb/workflows/agent.md` — markdown, 6 lines, attention 0
+- `.claude/commands/bmad/bmb/workflows/create-module.md` — markdown, 6 lines, attention 0
+- `.claude/commands/bmad/bmb/workflows/create-workflow.md` — markdown, 6 lines, attention 0
+- `.claude/commands/bmad/bmb/workflows/edit-workflow.md` — markdown, 6 lines, attention 0
+- `.claude/commands/bmad/bmb/workflows/workflow-compliance-check.md` — markdown, 6 lines, attention 0
+- `.claude/commands/bmad/bmm/agents/analyst.md` — markdown, 15 lines, attention 14
+- `.claude/commands/bmad/bmm/agents/architect.md` — markdown, 15 lines, attention 14
+- `.claude/commands/bmad/bmm/agents/dev.md` — markdown, 15 lines, attention 14
+- `.claude/commands/bmad/bmm/agents/pm.md` — markdown, 15 lines, attention 14
+- `.claude/commands/bmad/bmm/agents/quick-flow-solo-dev.md` — markdown, 15 lines, attention 14
+- `.claude/commands/bmad/bmm/agents/sm.md` — markdown, 15 lines, attention 14
+- `.claude/commands/bmad/bmm/agents/tea.md` — markdown, 15 lines, attention 14
+- `.claude/commands/bmad/bmm/agents/tech-writer.md` — markdown, 15 lines, attention 14
+- `.claude/commands/bmad/bmm/agents/ux-designer.md` — markdown, 15 lines, attention 14
+- `.claude/commands/bmad/bmm/workflows/check-implementation-readiness.md` — markdown, 6 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/code-review.md` — markdown, 14 lines, attention 8
+- `.claude/commands/bmad/bmm/workflows/correct-course.md` — markdown, 14 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/create-architecture.md` — markdown, 6 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/create-epics-and-stories.md` — markdown, 6 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/create-excalidraw-dataflow.md` — markdown, 14 lines, attention 42
+- `.claude/commands/bmad/bmm/workflows/create-excalidraw-diagram.md` — markdown, 14 lines, attention 42
+- `.claude/commands/bmad/bmm/workflows/create-excalidraw-flowchart.md` — markdown, 14 lines, attention 42
+- `.claude/commands/bmad/bmm/workflows/create-excalidraw-wireframe.md` — markdown, 14 lines, attention 42
+- `.claude/commands/bmad/bmm/workflows/create-prd.md` — markdown, 6 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/create-product-brief.md` — markdown, 6 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/create-story.md` — markdown, 14 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/create-tech-spec.md` — markdown, 6 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/create-ux-design.md` — markdown, 6 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/dev-story.md` — markdown, 14 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/document-project.md` — markdown, 14 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/generate-project-context.md` — markdown, 6 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/quick-dev.md` — markdown, 6 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/research.md` — markdown, 6 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/retrospective.md` — markdown, 14 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/sprint-planning.md` — markdown, 14 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/sprint-status.md` — markdown, 14 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/testarch-atdd.md` — markdown, 14 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/testarch-automate.md` — markdown, 14 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/testarch-ci.md` — markdown, 14 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/testarch-framework.md` — markdown, 14 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/testarch-nfr.md` — markdown, 14 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/testarch-test-design.md` — markdown, 14 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/testarch-test-review.md` — markdown, 14 lines, attention 8
+- `.claude/commands/bmad/bmm/workflows/testarch-trace.md` — markdown, 14 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/workflow-init.md` — markdown, 14 lines, attention 0
+- `.claude/commands/bmad/bmm/workflows/workflow-status.md` — markdown, 14 lines, attention 0
+- `.claude/commands/bmad/core/agents/bmad-master.md` — markdown, 15 lines, attention 14
+- `.claude/commands/bmad/core/tasks/index-docs.md` — markdown, 10 lines, attention 0
+- `.claude/commands/bmad/core/workflows/brainstorming.md` — markdown, 6 lines, attention 14
+- `.claude/commands/bmad/core/workflows/party-mode.md` — markdown, 6 lines, attention 0
+- `.claude/commands/checkpoint/create.md` — markdown, 31 lines, attention 0
+- `.claude/commands/checkpoint/list.md` — markdown, 34 lines, attention 42
+- `.claude/commands/checkpoint/restore.md` — markdown, 42 lines, attention 28
+- `.claude/commands/code-review.md` — markdown, 222 lines, attention 36
+- `.claude/commands/command-creator-auto.md` — markdown, 85 lines, attention 14
+- `.claude/commands/create-issue.md` — markdown, 404 lines, attention 84
+- `.claude/commands/deploy.md` — markdown, 367 lines, attention 56
+- `.claude/commands/dev/cleanup.md` — markdown, 206 lines, attention 42
+- `.claude/commands/generate-docs.md` — markdown, 632 lines, attention 100
+- `.claude/commands/gh/repo-init.md` — markdown, 54 lines, attention 42
+- `.claude/commands/git/checkout.md` — markdown, 108 lines, attention 84
+- `.claude/commands/git/commit.md` — markdown, 76 lines, attention 100
+- `.claude/commands/git/ignore-init.md` — markdown, 62 lines, attention 28
+- `.claude/commands/git/push.md` — markdown, 47 lines, attention 28
+- `.claude/commands/git/status.md` — markdown, 42 lines, attention 28
+- `.claude/commands/research.md` — markdown, 199 lines, attention 84
+- `.claude/commands/review-fix-commit.md` — markdown, 54 lines, attention 30
+- `.claude/commands/security-scan.md` — markdown, 542 lines, attention 100
+- `.claude/commands/system-analytics.md` — markdown, 186 lines, attention 0
+- `.claude/commands/task-executor.md` — markdown, 49 lines, attention 14
+- `.claude/commands/test.md` — markdown, 83 lines, attention 0
+- `.claude/commands/validate-and-fix.md` — markdown, 110 lines, attention 0
+- `.claude/commands/verify.md` — markdown, 220 lines, attention 28
+- `.claude/hooks/bmad-speak.sh` — shell, 9 lines, attention 22
+- `.claude/hooks/log-commands.sh` — shell, 58 lines, attention 50
+- `.claude/plans/dapper-discovering-nygaard.md` — markdown, 121 lines, attention 70
+- `.claude/settings.example.json` — json, 59 lines, attention 28
+- `.claude/settings.json` — json, 101 lines, attention 100
+- `.claude/skills/agent-creator/SKILL.md` — markdown, 369 lines, attention 14
+- `.claude/skills/agent-creator/assets/template_example.md` — markdown, 73 lines, attention 0
+- `.claude/skills/agent-creator/references/agent_types.md` — markdown, 323 lines, attention 28
+- `.claude/skills/agent-creator/references/workflow_patterns.md` — markdown, 408 lines, attention 84
+- `.claude/skills/agent-creator/scripts/agent_workflows.py` — python, 223 lines, attention 56
+- `.claude/skills/agent-creator/scripts/generate_agent.py` — python, 352 lines, attention 100
+- `.claude/skills/agent-creator/scripts/init_agent.py` — python, 216 lines, attention 98
+- `.claude/skills/agent-creator/scripts/validate_agent.py` — python, 370 lines, attention 100
+- `.claude/skills/autofix/scripts/autofix.py` — python, 2 lines, attention 0
+- `.claude/skills/code-review/scripts/review.py` — python, 274 lines, attention 100
+- `.claude/skills/codebase-improvement-advisor/SKILL.md` — markdown, 185 lines, attention 0
+- `.claude/skills/codebase-improvement-advisor/assets/improvement_template.md` — markdown, 92 lines, attention 0
+- `.claude/skills/codebase-improvement-advisor/references/refactoring_patterns.md` — markdown, 830 lines, attention 100
+- `.claude/skills/codebase-improvement-advisor/references/typescript_best_practices.md` — markdown, 541 lines, attention 100
+- `.claude/skills/codebase-improvement-advisor/scripts/codebase_analyzer.py` — python, 2032 lines, attention 100
+- `.claude/skills/codebase-improvement-advisor/scripts/codebase_analyzer_refactored.py` — python, 113 lines, attention 100
+- `.claude/skills/codebase-improvement-advisor/scripts/duplicate_code_detector.py` — python, 149 lines, attention 14
+- `.claude/skills/codebase-improvement-advisor/scripts/modules/__init__.py` — python, 21 lines, attention 0
+- `.claude/skills/codebase-improvement-advisor/scripts/modules/advanced_analyzer.py` — python, 194 lines, attention 28
+- `.claude/skills/codebase-improvement-advisor/scripts/modules/jscpd_analyzer.py` — python, 144 lines, attention 100
+- `.claude/skills/codebase-improvement-advisor/scripts/modules/main_analyzer.py` — python, 418 lines, attention 0
+- `.claude/skills/codebase-improvement-advisor/scripts/modules/models.py` — python, 57 lines, attention 0
+- `.claude/skills/codebase-improvement-advisor/scripts/modules/report_generator.py` — python, 113 lines, attention 0
+- `.claude/skills/codebase-improvement-advisor/scripts/refactoring_helper.py` — python, 406 lines, attention 100
+- `.claude/skills/codebase-improvement-advisor/scripts/test_refactored_report.md` — markdown, 301 lines, attention 0
+- `.claude/skills/commit-prep-helper/SKILL.md` — markdown, 262 lines, attention 36
+- `.claude/skills/commit-prep-helper/assets/example_asset.txt` — text, 25 lines, attention 8
+- `.claude/skills/commit-prep-helper/assets/review_config.json` — json, 75 lines, attention 100
+- `.claude/skills/commit-prep-helper/references/api_reference.md` — markdown, 35 lines, attention 36
+- `.claude/skills/commit-prep-helper/references/conventional_commits.md` — markdown, 142 lines, attention 78
+- `.claude/skills/commit-prep-helper/references/quality_thresholds.md` — markdown, 183 lines, attention 36
+- `.claude/skills/commit-prep-helper/references/tool_mapping.md` — markdown, 298 lines, attention 22
+- `.claude/skills/commit-prep-helper/scripts/check_staged_files.py` — python, 161 lines, attention 100
+- `.claude/skills/commit-prep-helper/scripts/code_review.py` — python, 315 lines, attention 100
+- `.claude/skills/commit-prep-helper/scripts/create_commit.py` — python, 269 lines, attention 100
+- `.claude/skills/commit-prep-helper/scripts/example.py` — python, 22 lines, attention 8
+- `.claude/skills/commit-prep-helper/scripts/run_linting.py` — python, 296 lines, attention 100
+- `.claude/skills/commit-prep-helper/scripts/run_tests.py` — python, 228 lines, attention 100
+- `.claude/skills/feature-implementer/scripts/implement_feature.py` — python, 126 lines, attention 100
+- `.claude/skills/github-issue-improver/SKILL.md` — markdown, 349 lines, attention 100
+- `.claude/skills/github-issue-improver/improvements_example.json` — json, 14 lines, attention 14
+- `.claude/skills/github-issue-improver/references/api_reference.md` — markdown, 245 lines, attention 100
+- `.claude/skills/github-issue-improver/references/issue_templates.md` — markdown, 185 lines, attention 14
+- `.claude/skills/github-issue-improver/requirements.txt` — text, 11 lines, attention 0
+- `.claude/skills/github-issue-improver/scripts/apply_improvements.py` — python, 275 lines, attention 100
+- `.claude/skills/github-issue-improver/scripts/github_client.py` — python, 279 lines, attention 100
+- `.claude/skills/github-issue-improver/scripts/issue_analyzer.py` — python, 764 lines, attention 100
+- `.claude/skills/github-issue-improver/scripts/issue_improver.py` — python, 468 lines, attention 100
+- `.claude/skills/github-issue-improver/test_common_lib_integration.py` — python, 198 lines, attention 100
+- `.claude/skills/github-issue-improver/test_token_loading.py` — python, 109 lines, attention 100
+- `.claude/skills/github-issue-quality-checker/SKILL.md` — markdown, 146 lines, attention 28
+- `.claude/skills/github-issue-quality-checker/assets/output_template.md` — markdown, 28 lines, attention 14
+- `.claude/skills/github-issue-quality-checker/references/api_reference.md` — markdown, 37 lines, attention 42
+- `.claude/skills/github-issue-quality-checker/references/github_api_usage.md` — markdown, 110 lines, attention 70
+- `.claude/skills/github-issue-quality-checker/references/quality_criteria.md` — markdown, 98 lines, attention 0
+- `.claude/skills/github-issue-quality-checker/scripts/main.py` — python, 316 lines, attention 100
+- `.claude/skills/issue-creator/SKILL.md` — markdown, 33 lines, attention 0
+- `.claude/skills/issue-creator/requirements.txt` — text, 1 lines, attention 0
+- `.claude/skills/issue-creator/scripts/create_issue.py` — python, 56 lines, attention 0
+- `.claude/skills/issue-creator/scripts/issue_creator.py` — python, 450 lines, attention 100
+- `.claude/skills/md-doc-improver/SKILL.md` — markdown, 318 lines, attention 28
+- `.claude/skills/md-doc-improver/assets/example_asset.txt` — text, 25 lines, attention 0
+- `.claude/skills/md-doc-improver/references/api_reference.md` — markdown, 35 lines, attention 28
+- `.claude/skills/md-doc-improver/references/improvement_framework.md` — markdown, 434 lines, attention 100
+- `.claude/skills/md-doc-improver/references/quality_standards.md` — markdown, 378 lines, attention 42
+- `.claude/skills/md-doc-improver/scripts/document_validator.py` — python, 730 lines, attention 100
+- `.claude/skills/md-doc-improver/scripts/example.py` — python, 50 lines, attention 0
+- `.claude/skills/md-doc-improver/scripts/improve_document.py` — python, 833 lines, attention 100
+- `.claude/skills/skill-creator-auto/LICENSE.txt` — text, 202 lines, attention 70
+- `.claude/skills/skill-creator-auto/SKILL.md` — markdown, 576 lines, attention 14
+- `.claude/skills/skill-creator-auto/references/output-patterns.md` — markdown, 83 lines, attention 42
+- `.claude/skills/skill-creator-auto/references/workflows.md` — markdown, 28 lines, attention 0
+- `.claude/skills/skill-creator-auto/scripts/init_skill.py` — python, 357 lines, attention 70
+- `.claude/skills/skill-creator-auto/scripts/package_skill.py` — python, 114 lines, attention 0
+- `.claude/skills/skill-creator-auto/scripts/quick_validate.py` — python, 160 lines, attention 14
+- `.claude/skills/spec-flow-auto/README.md` — markdown, 223 lines, attention 100
+- `.claude/skills/spec-flow-auto/SKILL.md` — markdown, 288 lines, attention 100
+- `.claude/skills/spec-flow-auto/assets/sample_prd.md` — markdown, 302 lines, attention 56
+- `.claude/skills/spec-flow-auto/assets/validation_checklists/prd_validation.md` — markdown, 190 lines, attention 42
+- `.claude/skills/spec-flow-auto/references/prd_template.md` — markdown, 239 lines, attention 56
+- `.claude/skills/spec-flow-auto/references/spec_workflow_guide.md` — markdown, 392 lines, attention 100
+- `.claude/skills/spec-flow-auto/scripts/create_tasks_from_spec.py` — python, 501 lines, attention 100
+- `.claude/skills/spec-flow-auto/scripts/enhanced_sdd_pipeline.py` — python, 1105 lines, attention 100
+- `.claude/skills/spec-flow-auto/scripts/generate_spec_from_prd.py` — python, 428 lines, attention 100
+- `.claude/skills/spec-flow-auto/scripts/run_sdd_pipeline.py` — python, 586 lines, attention 100
+- `.claude/skills/spec-flow-auto/scripts/setup_spec_workspace.py` — python, 180 lines, attention 84
+- `.claude/skills/spec-flow-auto/scripts/validate_prd_spec_sync.py` — python, 677 lines, attention 100
+- `.claude/skills/stepwise-executor/SKILL.md` — markdown, 448 lines, attention 0
+- `.claude/skills/stepwise-executor/assets/goal_patterns/data_analysis.json` — json, 60 lines, attention 0
+- `.claude/skills/stepwise-executor/assets/goal_patterns/documentation.json` — json, 53 lines, attention 0
+- `.claude/skills/stepwise-executor/assets/goal_patterns/software_development.json` — json, 53 lines, attention 0
+- `.claude/skills/stepwise-executor/assets/progress_template.json` — json, 31 lines, attention 0
+- `.claude/skills/stepwise-executor/references/decomposition_strategies.md` — markdown, 198 lines, attention 0
+- `.claude/skills/stepwise-executor/references/examples.md` — markdown, 518 lines, attention 0
+- `.claude/skills/stepwise-executor/references/execution_patterns.md` — markdown, 343 lines, attention 28
+- `.claude/skills/stepwise-executor/scripts/execute_steps.py` — python, 290 lines, attention 100
+- `.claude/skills/stepwise-executor/scripts/track_progress.py` — python, 295 lines, attention 98

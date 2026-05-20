@@ -1,0 +1,224 @@
+---
+title: Module specs
+genre: repository-analysis
+type: entity
+sources:
+  - extract-skill-meta planning artifacts
+related:
+  - Module Index
+  - Repository Risk Register
+  - File Inventory
+created: 2026-05-20
+updated: 2026-05-20
+status: generated
+---
+# Module specs
+
+## Role
+
+- Rationale: Files under specs form a shared path-level boundary.
+- Roots: specs
+- Languages: markdown, text, typescript, yaml
+- Files: 175
+- Bytes: 1865803
+
+## Key Files
+
+- `specs/speech-to-visuals/api-endpoints.md`
+- `specs/_doc_spine.yml`
+- `specs/speech-to-visuals/acceptance-criteria.md`
+- `specs/speech-to-visuals/architecture.md`
+- `specs/speech-to-visuals/database-schema.sql`
+- `specs/speech-to-visuals/dataflow.md`
+- `specs/speech-to-visuals/design-interview.md`
+- `specs/speech-to-visuals/interfaces.ts`
+
+## Risk Signals
+
+- RISK-0317 (high, Security Boundary) in `specs/speech-to-visuals/database-schema.sql`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L26: user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, -- 🔵 RLS認証より
+- RISK-0318 (high, Destructive Mutation) in `specs/speech-to-visuals/database-schema.sql`: Deletion or forceful mutation needs clear guardrails and recovery behavior. Evidence: L26: user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, -- 🔵 RLS認証より
+- RISK-0319 (medium, Persistence Or State) in `specs/speech-to-visuals/database-schema.sql`: Persistent state needs consistency, schema, and partial-write handling. Evidence: path contains `database`
+- RISK-0320 (low, High Attention File) in `specs/speech-to-visuals/database-schema.sql`: The digest found several implementation signals worth manual review. Evidence: L26: user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, -- 🔵 RLS認証より
+- RISK-0321 (high, Security Boundary) in `specs/speech-to-visuals/interfaces.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L177: maxOutputTokens?: number; // 🔵 出力制限
+- RISK-0322 (medium, Concurrency Or Timing) in `specs/speech-to-visuals/interfaces.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L141: timeout?: number; // 🔵 PIPELINE_FLOW.md §4.2 より
+- RISK-0323 (medium, Parser Or Heuristic) in `specs/speech-to-visuals/interfaces.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L182: parseResponse: (raw: string) => T; // 🔵 レスポンスパーサー
+- RISK-0324 (medium, Persistence Or State) in `specs/speech-to-visuals/interfaces.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L196: fromCache: boolean; // 🔵 キャッシュヒットフラグ
+- RISK-0325 (low, High Attention File) in `specs/speech-to-visuals/interfaces.ts`: The digest found several implementation signals worth manual review. Evidence: L141: timeout?: number; // 🔵 PIPELINE_FLOW.md §4.2 より
+
+## Files
+
+- `specs/_doc_spine.yml` — yaml, 224 lines, attention 0
+- `specs/speech-to-visuals/acceptance-criteria.md` — markdown, 2244 lines, attention 100
+- `specs/speech-to-visuals/api-endpoints.md` — markdown, 1000 lines, attention 100
+- `specs/speech-to-visuals/architecture.md` — markdown, 801 lines, attention 100
+- `specs/speech-to-visuals/database-schema.sql` — sql, 171 lines, attention 100
+- `specs/speech-to-visuals/dataflow.md` — markdown, 1590 lines, attention 100
+- `specs/speech-to-visuals/design-interview.md` — markdown, 3236 lines, attention 100
+- `specs/speech-to-visuals/interfaces.ts` — typescript, 1859 lines, attention 100
+- `specs/speech-to-visuals/interview-record.md` — markdown, 2627 lines, attention 100
+- `specs/speech-to-visuals/note.md` — markdown, 118 lines, attention 56
+- `specs/speech-to-visuals/prep.md` — markdown, 93 lines, attention 14
+- `specs/speech-to-visuals/requirements.md` — markdown, 504 lines, attention 100
+- `specs/speech-to-visuals/tasks/TASK-0001.md` — markdown, 258 lines, attention 42
+- `specs/speech-to-visuals/tasks/TASK-0002.md` — markdown, 277 lines, attention 100
+- `specs/speech-to-visuals/tasks/TASK-0003.md` — markdown, 227 lines, attention 28
+- `specs/speech-to-visuals/tasks/TASK-0004.md` — markdown, 225 lines, attention 56
+- `specs/speech-to-visuals/tasks/TASK-0005.md` — markdown, 258 lines, attention 100
+- `specs/speech-to-visuals/tasks/TASK-0006.md` — markdown, 289 lines, attention 100
+- `specs/speech-to-visuals/tasks/TASK-0007.md` — markdown, 273 lines, attention 100
+- `specs/speech-to-visuals/tasks/TASK-0008.md` — markdown, 300 lines, attention 100
+- `specs/speech-to-visuals/tasks/TASK-0009.md` — markdown, 299 lines, attention 28
+- `specs/speech-to-visuals/tasks/TASK-0010.md` — markdown, 234 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0011.md` — markdown, 211 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0012.md` — markdown, 186 lines, attention 14
+- `specs/speech-to-visuals/tasks/TASK-0013.md` — markdown, 193 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0014.md` — markdown, 202 lines, attention 14
+- `specs/speech-to-visuals/tasks/TASK-0015.md` — markdown, 195 lines, attention 14
+- `specs/speech-to-visuals/tasks/TASK-0016.md` — markdown, 206 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0017.md` — markdown, 242 lines, attention 56
+- `specs/speech-to-visuals/tasks/TASK-0018.md` — markdown, 211 lines, attention 100
+- `specs/speech-to-visuals/tasks/TASK-0019.md` — markdown, 202 lines, attention 100
+- `specs/speech-to-visuals/tasks/TASK-0020.md` — markdown, 236 lines, attention 100
+- `specs/speech-to-visuals/tasks/TASK-0021.md` — markdown, 217 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0022.md` — markdown, 202 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0023.md` — markdown, 200 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0024.md` — markdown, 180 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0025.md` — markdown, 180 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0026.md` — markdown, 176 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0027.md` — markdown, 180 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0028.md` — markdown, 186 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0029.md` — markdown, 226 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0030.md` — markdown, 205 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0031.md` — markdown, 243 lines, attention 14
+- `specs/speech-to-visuals/tasks/TASK-0032.md` — markdown, 203 lines, attention 28
+- `specs/speech-to-visuals/tasks/TASK-0033.md` — markdown, 225 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0034.md` — markdown, 187 lines, attention 42
+- `specs/speech-to-visuals/tasks/TASK-0035.md` — markdown, 226 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0036.md` — markdown, 229 lines, attention 28
+- `specs/speech-to-visuals/tasks/TASK-0037.md` — markdown, 216 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0038.md` — markdown, 228 lines, attention 100
+- `specs/speech-to-visuals/tasks/TASK-0039.md` — markdown, 216 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0040.md` — markdown, 219 lines, attention 14
+- `specs/speech-to-visuals/tasks/TASK-0041.md` — markdown, 265 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0042.md` — markdown, 234 lines, attention 42
+- `specs/speech-to-visuals/tasks/TASK-0043.md` — markdown, 230 lines, attention 42
+- `specs/speech-to-visuals/tasks/TASK-0044.md` — markdown, 216 lines, attention 14
+- `specs/speech-to-visuals/tasks/TASK-0045.md` — markdown, 265 lines, attention 100
+- `specs/speech-to-visuals/tasks/TASK-0046.md` — markdown, 218 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0047.md` — markdown, 287 lines, attention 100
+- `specs/speech-to-visuals/tasks/TASK-0048.md` — markdown, 301 lines, attention 98
+- `specs/speech-to-visuals/tasks/TASK-0049.md` — markdown, 329 lines, attention 56
+- `specs/speech-to-visuals/tasks/TASK-0050.md` — markdown, 332 lines, attention 100
+- `specs/speech-to-visuals/tasks/TASK-0051.md` — markdown, 254 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0052.md` — markdown, 284 lines, attention 28
+- `specs/speech-to-visuals/tasks/TASK-0053.md` — markdown, 200 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0054.md` — markdown, 225 lines, attention 100
+- `specs/speech-to-visuals/tasks/TASK-0055.md` — markdown, 216 lines, attention 42
+- `specs/speech-to-visuals/tasks/TASK-0056.md` — markdown, 103 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0057.md` — markdown, 103 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0058.md` — markdown, 113 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0059.md` — markdown, 102 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0060.md` — markdown, 106 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0061.md` — markdown, 237 lines, attention 70
+- `specs/speech-to-visuals/tasks/TASK-0062.md` — markdown, 243 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0063.md` — markdown, 233 lines, attention 56
+- `specs/speech-to-visuals/tasks/TASK-0064.md` — markdown, 211 lines, attention 14
+- `specs/speech-to-visuals/tasks/TASK-0065.md` — markdown, 216 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0066.md` — markdown, 221 lines, attention 14
+- `specs/speech-to-visuals/tasks/TASK-0067.md` — markdown, 141 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0068.md` — markdown, 152 lines, attention 84
+- `specs/speech-to-visuals/tasks/TASK-0069.md` — markdown, 103 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0070.md` — markdown, 109 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0071.md` — markdown, 97 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0072.md` — markdown, 98 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0073.md` — markdown, 188 lines, attention 70
+- `specs/speech-to-visuals/tasks/TASK-0074.md` — markdown, 152 lines, attention 100
+- `specs/speech-to-visuals/tasks/TASK-0075.md` — markdown, 99 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0076.md` — markdown, 98 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0077.md` — markdown, 94 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0078.md` — markdown, 93 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0079.md` — markdown, 97 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0080.md` — markdown, 100 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0081.md` — markdown, 106 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0082.md` — markdown, 105 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0083.md` — markdown, 117 lines, attention 42
+- `specs/speech-to-visuals/tasks/TASK-0084.md` — markdown, 92 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0085.md` — markdown, 77 lines, attention 84
+- `specs/speech-to-visuals/tasks/TASK-0086.md` — markdown, 147 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0087.md` — markdown, 190 lines, attention 42
+- `specs/speech-to-visuals/tasks/TASK-0088.md` — markdown, 129 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0089.md` — markdown, 111 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0090.md` — markdown, 107 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0091.md` — markdown, 103 lines, attention 14
+- `specs/speech-to-visuals/tasks/TASK-0092.md` — markdown, 143 lines, attention 42
+- `specs/speech-to-visuals/tasks/TASK-0093.md` — markdown, 102 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0094.md` — markdown, 126 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0095.md` — markdown, 105 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0096.md` — markdown, 116 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0097.md` — markdown, 100 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0098.md` — markdown, 100 lines, attention 42
+- `specs/speech-to-visuals/tasks/TASK-0099.md` — markdown, 114 lines, attention 14
+- `specs/speech-to-visuals/tasks/TASK-0100.md` — markdown, 132 lines, attention 56
+- `specs/speech-to-visuals/tasks/TASK-0101.md` — markdown, 106 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0102.md` — markdown, 97 lines, attention 28
+- `specs/speech-to-visuals/tasks/TASK-0103.md` — markdown, 116 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0104.md` — markdown, 103 lines, attention 28
+- `specs/speech-to-visuals/tasks/TASK-0105.md` — markdown, 100 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0106.md` — markdown, 109 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0107.md` — markdown, 96 lines, attention 100
+- `specs/speech-to-visuals/tasks/TASK-0108.md` — markdown, 93 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0109.md` — markdown, 81 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0110.md` — markdown, 111 lines, attention 28
+- `specs/speech-to-visuals/tasks/TASK-0111.md` — markdown, 106 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0112.md` — markdown, 85 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0113.md` — markdown, 94 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0114.md` — markdown, 136 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0115.md` — markdown, 201 lines, attention 14
+- `specs/speech-to-visuals/tasks/TASK-0116.md` — markdown, 141 lines, attention 14
+- `specs/speech-to-visuals/tasks/TASK-0117.md` — markdown, 121 lines, attention 14
+- `specs/speech-to-visuals/tasks/TASK-0118.md` — markdown, 99 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0119.md` — markdown, 142 lines, attention 56
+- `specs/speech-to-visuals/tasks/TASK-0120.md` — markdown, 119 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0121.md` — markdown, 186 lines, attention 14
+- `specs/speech-to-visuals/tasks/TASK-0122.md` — markdown, 127 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0123.md` — markdown, 124 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0124.md` — markdown, 131 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0125.md` — markdown, 150 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0126.md` — markdown, 156 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0127.md` — markdown, 136 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0128.md` — markdown, 160 lines, attention 14
+- `specs/speech-to-visuals/tasks/TASK-0129.md` — markdown, 81 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0130.md` — markdown, 84 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0131.md` — markdown, 77 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0132.md` — markdown, 57 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0133.md` — markdown, 64 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0134.md` — markdown, 47 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0135.md` — markdown, 61 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0136.md` — markdown, 58 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0137.md` — markdown, 49 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0138.md` — markdown, 50 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0139.md` — markdown, 50 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0140.md` — markdown, 49 lines, attention 14
+- `specs/speech-to-visuals/tasks/TASK-0141.md` — markdown, 47 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0142.md` — markdown, 58 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0143.md` — markdown, 191 lines, attention 14
+- `specs/speech-to-visuals/tasks/TASK-0144.md` — markdown, 210 lines, attention 100
+- `specs/speech-to-visuals/tasks/TASK-0145.md` — markdown, 211 lines, attention 100
+- `specs/speech-to-visuals/tasks/TASK-0146.md` — markdown, 52 lines, attention 14
+- `specs/speech-to-visuals/tasks/TASK-0147.md` — markdown, 59 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0148.md` — markdown, 61 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0149.md` — markdown, 55 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0150.md` — markdown, 60 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0151.md` — markdown, 125 lines, attention 56
+- `specs/speech-to-visuals/tasks/TASK-0152.md` — markdown, 90 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0153.md` — markdown, 97 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0154.md` — markdown, 46 lines, attention 100
+- `specs/speech-to-visuals/tasks/TASK-0155.md` — markdown, 48 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0156.md` — markdown, 90 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0157.md` — markdown, 102 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0158.md` — markdown, 99 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0159.md` — markdown, 98 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0160.md` — markdown, 94 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0161.md` — markdown, 56 lines, attention 100
+- `specs/speech-to-visuals/tasks/overview.md` — markdown, 1229 lines, attention 100
+- `specs/speech-to-visuals/user-stories.md` — markdown, 1137 lines, attention 100

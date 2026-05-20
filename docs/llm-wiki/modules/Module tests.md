@@ -1,0 +1,456 @@
+---
+title: Module tests
+genre: repository-analysis
+type: entity
+sources:
+  - extract-skill-meta planning artifacts
+related:
+  - Module Index
+  - Repository Risk Register
+  - File Inventory
+created: 2026-05-20
+updated: 2026-05-20
+status: generated
+---
+# Module tests
+
+## Role
+
+- Rationale: Files under tests form a shared path-level boundary.
+- Roots: tests
+- Languages: tsx, typescript
+- Files: 166
+- Bytes: 1702872
+
+## Key Files
+
+- `tests/setupJestGlobals.ts`
+- `tests/__mocks__/deno-server.ts`
+- `tests/export/export-verifier.test.ts`
+- `tests/integration/phase31-module-exports.test.ts`
+- `tests/integration/worker-pool.test.ts`
+- `tests/visualization/layout-quality-composite.test.ts`
+- `tests/unit/api/server-rate-limit.test.ts`
+- `tests/unit/export/export-verifier.test.ts`
+
+## Risk Signals
+
+- RISK-0916 (high, Security Boundary) in `tests/__mocks__/deno-server.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L12: auth: {
+- RISK-0917 (medium, Concurrency Or Timing) in `tests/__mocks__/deno-server.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L13: getUser: async (_token: string) => ({
+- RISK-0918 (high, Security Boundary) in `tests/__mocks__/socket-io.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L7: handshake: { auth: { token?: string } };
+- RISK-0919 (medium, Network Or IPC) in `tests/__mocks__/socket-io.ts`: Cross-process or network boundaries can fail through protocol, timeout, and trust assumptions. Evidence: path contains `socket`
+- RISK-0920 (low, High Attention File) in `tests/__mocks__/socket-io.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Mock for Socket.IO server used in WebSocket handler tests.
+- RISK-0921 (high, Security Boundary) in `tests/acceptance/acceptance-test-suite.test.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L32: import { authMiddleware, AuthenticatedRequest } from '@/api/middleware/auth';
+- RISK-0922 (medium, Network Or IPC) in `tests/acceptance/acceptance-test-suite.test.ts`: Cross-process or network boundaries can fail through protocol, timeout, and trust assumptions. Evidence: L34: import { emitJobProgress, emitStreamingSegment, createWsAuthMiddleware } from '@/api/websocket-handler';
+- RISK-0923 (medium, Concurrency Or Timing) in `tests/acceptance/acceptance-test-suite.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L19: import { isRetryable } from '@/analysis/retry-strategy';
+- RISK-0924 (medium, Parser Or Heuristic) in `tests/acceptance/acceptance-test-suite.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L11: import * as jwt from 'jsonwebtoken';
+- RISK-0925 (medium, Persistence Or State) in `tests/acceptance/acceptance-test-suite.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L36: import { ComputationCache } from '@/optimization/computation-cache';
+- RISK-0926 (low, High Attention File) in `tests/acceptance/acceptance-test-suite.test.ts`: The digest found several implementation signals worth manual review. Evidence: L11: import * as jwt from 'jsonwebtoken';
+- RISK-0927 (high, Security Boundary) in `tests/analysis/budget-alert-boundary.test.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L5: * that are not covered by the integration tests in token-usage-cost-monitoring.test.ts.
+- RISK-0928 (low, High Attention File) in `tests/analysis/budget-alert-boundary.test.ts`: The digest found several implementation signals worth manual review. Evidence: L5: * that are not covered by the integration tests in token-usage-cost-monitoring.test.ts.
+- RISK-0929 (high, Security Boundary) in `tests/analysis/budget-alert.test.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L11: expect(system.getSessionCost()).toBe(0);
+- RISK-0930 (low, High Attention File) in `tests/analysis/budget-alert.test.ts`: The digest found several implementation signals worth manual review. Evidence: L11: expect(system.getSessionCost()).toBe(0);
+- RISK-0931 (high, Security Boundary) in `tests/analysis/cost-estimator-edge-cases.test.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L4: * Covers paths not exercised by token-usage-cost-monitoring.test.ts:
+- RISK-0932 (low, High Attention File) in `tests/analysis/cost-estimator-edge-cases.test.ts`: The digest found several implementation signals worth manual review. Evidence: L4: * Covers paths not exercised by token-usage-cost-monitoring.test.ts:
+- RISK-0933 (medium, Parser Or Heuristic) in `tests/analysis/llm-cache-debounce.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L45: cachePath = path.join(tmpDir, 'cache.json');
+- RISK-0934 (medium, Persistence Or State) in `tests/analysis/llm-cache-debounce.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: path contains `cache`
+- RISK-0935 (low, High Attention File) in `tests/analysis/llm-cache-debounce.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Dedicated tests for LLMCache debounce-interval behavior.
+- RISK-0936 (medium, Persistence Or State) in `tests/analysis/llm-cache-stats-paths.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: path contains `cache`
+- RISK-0937 (low, High Attention File) in `tests/analysis/llm-cache-stats-paths.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Tests for untested LLMCache paths:
+- RISK-0938 (medium, Persistence Or State) in `tests/analysis/llm-cache-ttl-eviction.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: path contains `cache`
+- RISK-0939 (low, High Attention File) in `tests/analysis/llm-cache-ttl-eviction.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Targeted tests for LLMCache TTL expiry boundaries, max-size eviction
+- RISK-0940 (medium, Persistence Or State) in `tests/analysis/llm-cache.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: path contains `cache`
+- RISK-0941 (low, High Attention File) in `tests/analysis/llm-cache.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Tests for LLMCache module
+- RISK-0942 (high, Security Boundary) in `tests/analysis/llm-monitoring-integration.test.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L4: * Verifies that token-usage-tracker, cost-estimator, and budget-alert
+- RISK-0943 (medium, Concurrency Or Timing) in `tests/analysis/llm-monitoring-integration.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L83: const mockStream = (async function* () {
+- RISK-0944 (medium, Parser Or Heuristic) in `tests/analysis/llm-monitoring-integration.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L14: *  7. Fallback responses are recorded with 'fallback' stage
+- RISK-0945 (medium, Persistence Or State) in `tests/analysis/llm-monitoring-integration.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L13: *  6. Cache hits do NOT record token usage
+- RISK-0946 (low, High Attention File) in `tests/analysis/llm-monitoring-integration.test.ts`: The digest found several implementation signals worth manual review. Evidence: L4: * Verifies that token-usage-tracker, cost-estimator, and budget-alert
+- RISK-0947 (medium, Parser Or Heuristic) in `tests/analysis/llm-utils.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L2: * Tests for parseJsonFromLLMText (llm-utils.ts)
+- RISK-0948 (low, High Attention File) in `tests/analysis/llm-utils.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Tests for parseJsonFromLLMText (llm-utils.ts)
+- RISK-0949 (high, Security Boundary) in `tests/analysis/token-usage-cost-monitoring.test.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: path contains `token`
+- RISK-0950 (low, High Attention File) in `tests/analysis/token-usage-cost-monitoring.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * TASK-0144: LLM Cost & Token Usage Monitoring Tests (REQ-098)
+- RISK-0951 (high, Security Boundary) in `tests/analysis/token-usage-tracker-edge-cases.test.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: path contains `token`
+- RISK-0952 (low, High Attention File) in `tests/analysis/token-usage-tracker-edge-cases.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Edge-case tests for token-usage-tracker.ts
+- RISK-0953 (low, High Attention File) in `tests/benchmark/performance-benchmark.test.ts`: The digest found several implementation signals worth manual review. Evidence: L4: * Simulates a full pipeline run, measures per-stage timing and memory,
+- RISK-0954 (medium, Parser Or Heuristic) in `tests/e2e/pipeline-flow.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L113: fallbackStrategies: [{ stage: 2, strategy: 'rule-based' }],
+- RISK-0955 (medium, Network Or IPC) in `tests/integration/api.test.ts`: Cross-process or network boundaries can fail through protocol, timeout, and trust assumptions. Evidence: L5: * Express routes, error handling, WebSocket event types, and
+- RISK-0956 (medium, Concurrency Or Timing) in `tests/integration/api.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L133: await new Promise((r) => setTimeout(r, 10));
+- RISK-0957 (low, High Attention File) in `tests/integration/api.test.ts`: The digest found several implementation signals worth manual review. Evidence: L5: * Express routes, error handling, WebSocket event types, and
+- RISK-0958 (high, Security Boundary) in `tests/integration/batch.test.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L212: // Verify cancel token is set
+- RISK-0959 (low, High Attention File) in `tests/integration/batch.test.ts`: The digest found several implementation signals worth manual review. Evidence: L212: // Verify cancel token is set
+- RISK-0960 (medium, Concurrency Or Timing) in `tests/integration/label-sizing-pipeline.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L100: it('should reflect label overflow in quality metrics alongside layout quality', async () => {
+- RISK-0961 (medium, Parser Or Heuristic) in `tests/integration/label-sizing-pipeline.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L54: fallbackStrategies: [],
+- RISK-0962 (medium, Concurrency Or Timing) in `tests/integration/layout-quality-pipeline.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L33: { id: 'retry', label: 'リトライ', x: 200, y: 250, width: 120, height: 50 },
+- RISK-0963 (medium, Persistence Or State) in `tests/integration/monitoring-health-degraded.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L13: * Previous phases (45-48) tested warmup state transitions and cache backend
+- RISK-0964 (low, High Attention File) in `tests/integration/monitoring-health-degraded.test.ts`: The digest found several implementation signals worth manual review. Evidence: L13: * Previous phases (45-48) tested warmup state transitions and cache backend
+- RISK-0965 (medium, Parser Or Heuristic) in `tests/integration/phase32-quality-pipeline.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L96: fallbackStrategies: [],
+- RISK-0966 (medium, Concurrency Or Timing) in `tests/integration/pipeline.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L328: it('uses fallback when quality gate fails and fallback succeeds', async () => {
+- RISK-0967 (medium, Parser Or Heuristic) in `tests/integration/pipeline.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L12: FallbackStrategy,
+- RISK-0968 (medium, Persistence Or State) in `tests/integration/pipeline.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L157: // Mock the performance/intelligent-cache used by EnhancedErrorRecovery
+- RISK-0969 (low, High Attention File) in `tests/integration/pipeline.test.ts`: The digest found several implementation signals worth manual review. Evidence: L12: FallbackStrategy,
+- RISK-0970 (medium, Concurrency Or Timing) in `tests/integration/warmup-cache-backend-failure.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L65: warmupCache: jest.fn().mockImplementation(async () => {
+- RISK-0971 (medium, Persistence Or State) in `tests/integration/warmup-cache-backend-failure.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: path contains `cache`
+- RISK-0972 (low, High Attention File) in `tests/integration/warmup-cache-backend-failure.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Phase 46: Warmup Cache Backend Unreachable Integration Tests
+- RISK-0973 (medium, Concurrency Or Timing) in `tests/integration/warmup-default-pattern-resilience.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L75: warmupCache: jest.fn().mockImplementation(async () => {
+- RISK-0974 (medium, Persistence Or State) in `tests/integration/warmup-default-pattern-resilience.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L9: * through the full pipeline: CacheWarmupManager → startup-warmup → health endpoint.
+- RISK-0975 (low, High Attention File) in `tests/integration/warmup-default-pattern-resilience.test.ts`: The digest found several implementation signals worth manual review. Evidence: L9: * through the full pipeline: CacheWarmupManager → startup-warmup → health endpoint.
+- RISK-0976 (medium, Concurrency Or Timing) in `tests/integration/warmup-failure-resilience.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L92: await new Promise((r) => setTimeout(r, 50));
+- RISK-0977 (medium, Persistence Or State) in `tests/integration/warmup-failure-resilience.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L5: * REQ-114: Cache backend unreachable integration tests (3 tests)
+- RISK-0978 (low, High Attention File) in `tests/integration/warmup-failure-resilience.test.ts`: The digest found several implementation signals worth manual review. Evidence: L5: * REQ-114: Cache backend unreachable integration tests (3 tests)
+- RISK-0979 (medium, Concurrency Or Timing) in `tests/integration/warmup-zero-success-resilience.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L62: warmupCache: jest.fn().mockImplementation(async () => {
+- RISK-0980 (medium, Persistence Or State) in `tests/integration/warmup-zero-success-resilience.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L8: * Validates that when warmupCache resolves true but all individual patterns
+- RISK-0981 (low, High Attention File) in `tests/integration/warmup-zero-success-resilience.test.ts`: The digest found several implementation signals worth manual review. Evidence: L6: * REQ-121: Warmup retry after zero-success completion
+- RISK-0982 (medium, Concurrency Or Timing) in `tests/integration/worker-fallback.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L35: // Main-thread processing (simulating fallback)
+- RISK-0983 (medium, Parser Or Heuristic) in `tests/integration/worker-fallback.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `fallback`
+- RISK-0984 (low, High Attention File) in `tests/integration/worker-fallback.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Worker Fallback Integration Tests
+- RISK-0985 (medium, Concurrency Or Timing) in `tests/integration/worker-pool.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L97: it('should queue excess tasks and dispatch when workers become idle', async () => {
+- RISK-0986 (low, High Attention File) in `tests/integration/worker-pool.test.ts`: The digest found several implementation signals worth manual review. Evidence: L45: const dispatchToLastWorker = (data: WorkerResponse) => {
+- RISK-0987 (medium, Parser Or Heuristic) in `tests/llm-parsing.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L3: * Simple parser test for LLM JSON responses
+- RISK-0988 (low, High Attention File) in `tests/llm-parsing.ts`: The digest found several implementation signals worth manual review. Evidence: L3: * Simple parser test for LLM JSON responses
+- RISK-0989 (high, Security Boundary) in `tests/mocks/jsonwebtoken.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L4: * NOTE: Auth-related tests (auth.test.ts, auth-integration.test.ts,
+- RISK-0990 (medium, Network Or IPC) in `tests/mocks/jsonwebtoken.ts`: Cross-process or network boundaries can fail through protocol, timeout, and trust assumptions. Evidence: L5: * pipeline-auth.test.ts, websocket-handler.test.ts) use REAL jsonwebtoken
+- RISK-0991 (medium, Parser Or Heuristic) in `tests/mocks/jsonwebtoken.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
+- RISK-0992 (medium, Concurrency Or Timing) in `tests/performance/benchmark.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L129: const expensiveCompute = async () => {
+- RISK-0993 (medium, Persistence Or State) in `tests/performance/benchmark.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L14: import { ComputationCache } from '@/optimization/computation-cache';
+- RISK-0994 (low, High Attention File) in `tests/performance/benchmark.test.ts`: The digest found several implementation signals worth manual review. Evidence: L8: * - Memory usage ≤ 512MB
+- RISK-0995 (low, High Attention File) in `tests/performance/e2e-benchmark.test.ts`: The digest found several implementation signals worth manual review. Evidence: L10: * Memory: Heap usage <= 512MB (measured: 82.21MB historical)
+- RISK-0996 (medium, Parser Or Heuristic) in `tests/pipeline/parallel-benchmark.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L5: * with edge cases, baseline matching, and fallback behaviour.
+- RISK-0997 (low, High Attention File) in `tests/pipeline/parallel-benchmark.test.ts`: The digest found several implementation signals worth manual review. Evidence: L5: * with edge cases, baseline matching, and fallback behaviour.
+- RISK-0998 (medium, Concurrency Or Timing) in `tests/pipeline/parallel-execution.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L38: const layoutFn = async (diag: typeof diagrams[0]) => ({
+- RISK-0999 (medium, Parser Or Heuristic) in `tests/pipeline/parallel-execution.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L227: const parsed = JSON.parse(json);
+- RISK-1000 (low, High Attention File) in `tests/pipeline/parallel-execution.test.ts`: The digest found several implementation signals worth manual review. Evidence: L86: await new Promise(resolve => setTimeout(resolve, 10));
+- RISK-1001 (high, Security Boundary) in `tests/pipeline/performance-regression-detector.test.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L162: test('$0.03/video, 2000 tokens/analysis → correct efficiency', () => {
+- RISK-1002 (low, High Attention File) in `tests/pipeline/performance-regression-detector.test.ts`: The digest found several implementation signals worth manual review. Evidence: L47: memoryMB: 40,
+- RISK-1003 (high, Security Boundary) in `tests/pipeline/pipeline-health-score.test.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L157: tokensPerAnalysis: 2000,
+- RISK-1004 (low, High Attention File) in `tests/pipeline/pipeline-health-score.test.ts`: The digest found several implementation signals worth manual review. Evidence: L157: tokensPerAnalysis: 2000,
+- RISK-1005 (medium, Concurrency Or Timing) in `tests/pipeline/retry-edge-cases.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L33: it('maxRetries=0 throws immediately on failure with no retry', async () => {
+- RISK-1006 (low, High Attention File) in `tests/pipeline/retry-edge-cases.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Edge-case tests for retryWithBackoff and ErrorClassifier.
+- RISK-1007 (medium, Concurrency Or Timing) in `tests/pipeline/retry-integration.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L46: it('recovers from rate limit then timeout in sequence', async () => {
+- RISK-1008 (medium, Parser Or Heuristic) in `tests/pipeline/retry-integration.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L7: * 3. PipelineOrchestrator.executeStageWithGates — retries before fallbacks
+- RISK-1009 (low, High Attention File) in `tests/pipeline/retry-integration.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Integration tests for retryWithBackoff wired into pipeline stages.
+- RISK-1010 (medium, Concurrency Or Timing) in `tests/pipeline/retry-metrics-parallel.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L40: const { result, attempts } = await retryWithBackoff(async () => 'ok', { maxRetries: 3 });
+- RISK-1011 (low, High Attention File) in `tests/pipeline/retry-metrics-parallel.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Tests for retry observability in metrics and parallel execution paths.
+- RISK-1012 (medium, Concurrency Or Timing) in `tests/pipeline/retry-observability-surface.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L40: it('exposes totalRetryAttempts in pipeline result metrics', async () => {
+- RISK-1013 (low, High Attention File) in `tests/pipeline/retry-observability-surface.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Tests for retry observability surfacing in pipeline completion output.
+- RISK-1014 (medium, Concurrency Or Timing) in `tests/quality/enhanced-error-recovery.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L56: test('should retry on failure and eventually succeed', async () => {
+- RISK-1015 (medium, Parser Or Heuristic) in `tests/quality/enhanced-error-recovery.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L3: * Covers: retryWithBackoff, executeWithFallback, createErrorNotification,
+- RISK-1016 (medium, Persistence Or State) in `tests/quality/enhanced-error-recovery.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L10: // Mock the intelligent-cache module
+- RISK-1017 (low, High Attention File) in `tests/quality/enhanced-error-recovery.test.ts`: The digest found several implementation signals worth manual review. Evidence: L3: * Covers: retryWithBackoff, executeWithFallback, createErrorNotification,
+- RISK-1018 (medium, Concurrency Or Timing) in `tests/quality/error-classifier.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L45: test('classifies LLM timeout errors', () => {
+- RISK-1019 (low, High Attention File) in `tests/quality/error-classifier.test.ts`: The digest found several implementation signals worth manual review. Evidence: L18: const result = classifier.classify(new Error('Out of memory during rendering'));
+- RISK-1020 (medium, Concurrency Or Timing) in `tests/quality/quality-gate.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L57: fallbackAction: 'retry',
+- RISK-1021 (medium, Parser Or Heuristic) in `tests/quality/quality-gate.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L57: fallbackAction: 'retry',
+- RISK-1022 (low, High Attention File) in `tests/quality/quality-gate.test.ts`: The digest found several implementation signals worth manual review. Evidence: L57: fallbackAction: 'retry',
+- RISK-1023 (medium, Concurrency Or Timing) in `tests/quality/regression-detector.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L122: test('loads and parses baseline from disk', async () => {
+- RISK-1024 (medium, Parser Or Heuristic) in `tests/quality/regression-detector.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L122: test('loads and parses baseline from disk', async () => {
+- RISK-1025 (low, High Attention File) in `tests/quality/regression-detector.test.ts`: The digest found several implementation signals worth manual review. Evidence: L57: memoryUsage: 256,
+- RISK-1026 (medium, Network Or IPC) in `tests/setupJestGlobals.ts`: Cross-process or network boundaries can fail through protocol, timeout, and trust assumptions. Evidence: L13: * This setup file bridges the gap: it imports the runtime object once and
+- RISK-1027 (medium, Concurrency Or Timing) in `tests/test-phase19-adaptive-llm.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L179: console.log(`❌ Analysis failed (may be rate limited or API error)`);
+- RISK-1028 (medium, Persistence Or State) in `tests/test-phase19-adaptive-llm.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L183: const stats = analyzer.getCacheStats();
+- RISK-1029 (low, High Attention File) in `tests/test-phase19-adaptive-llm.ts`: The digest found several implementation signals worth manual review. Evidence: L40: text: "The distributed microservices architecture employs event-driven communication patterns utilizing Apache Kafka as the message broker. Service mesh implementation via Istio provides traffic management, security
+- RISK-1030 (medium, Concurrency Or Timing) in `tests/test-phase21-adaptive-content-analyzer.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L87: async function testCacheEffectiveness() {
+- RISK-1031 (medium, Parser Or Heuristic) in `tests/test-phase21-adaptive-content-analyzer.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L11: * 4. Fallback mechanism
+- RISK-1032 (medium, Persistence Or State) in `tests/test-phase21-adaptive-content-analyzer.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L10: * 3. Cache effectiveness
+- RISK-1033 (low, High Attention File) in `tests/test-phase21-adaptive-content-analyzer.ts`: The digest found several implementation signals worth manual review. Evidence: L10: * 3. Cache effectiveness
+- RISK-1034 (medium, Concurrency Or Timing) in `tests/test-phase22-unified-llm-service.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L125: async function test3_CacheEffectiveness(): Promise<boolean> {
+- RISK-1035 (medium, Parser Or Heuristic) in `tests/test-phase22-unified-llm-service.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L10: * 5. Error handling and fallback mechanisms
+- RISK-1036 (medium, Persistence Or State) in `tests/test-phase22-unified-llm-service.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L8: * 3. Cache effectiveness across components
+- RISK-1037 (low, High Attention File) in `tests/test-phase22-unified-llm-service.ts`: The digest found several implementation signals worth manual review. Evidence: L8: * 3. Cache effectiveness across components
+- RISK-1038 (medium, Persistence Or State) in `tests/test-phase23-gemini-analyzer-unified.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L8: * 4. Shares cache with ContentAnalyzer
+- RISK-1039 (low, High Attention File) in `tests/test-phase23-gemini-analyzer-unified.ts`: The digest found several implementation signals worth manual review. Evidence: L5: * 1. Maintains backward compatibility with Phase 19/22 API
+- RISK-1040 (medium, Concurrency Or Timing) in `tests/test-phase26-relationship-extraction.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L184: console.log(`  Avg Response:    ${stats.adaptiveTimeout.avgResponseTimeMs.toFixed(0)}ms`);
+- RISK-1041 (medium, Persistence Or State) in `tests/test-phase26-relationship-extraction.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L154: const stats = analyzer.getCacheStats();
+- RISK-1042 (high, Security Boundary) in `tests/transcription/streaming-quality-monitor.test.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L5: * alert emission, and session summaries.
+- RISK-1043 (high, Security Boundary) in `tests/unit/api/batch-parallel-processing.test.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L7: * - Respects cancellation tokens
+- RISK-1044 (medium, Concurrency Or Timing) in `tests/unit/api/batch-parallel-processing.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L63: const worker = async (): Promise<void> => {
+- RISK-1045 (low, High Attention File) in `tests/unit/api/batch-parallel-processing.test.ts`: The digest found several implementation signals worth manual review. Evidence: L7: * - Respects cancellation tokens
+- RISK-1046 (medium, Parser Or Heuristic) in `tests/unit/api/cors-config.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L48: test('should parse CORS_ORIGINS env var as comma-separated list', () => {
+- RISK-1047 (medium, Concurrency Or Timing) in `tests/unit/api/pipeline-rate-limit.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L18: it('should include rate limit headers on POST /api/render', async () => {
+- RISK-1048 (low, High Attention File) in `tests/unit/api/pipeline-rate-limit.test.ts`: The digest found several implementation signals worth manual review. Evidence: L4: * Ensures the API rate limiter middleware is active on /api pipeline
+- RISK-1049 (medium, Concurrency Or Timing) in `tests/unit/api/request-timeout.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L51: it('returns 504 when a request exceeds the timeout', async () => {
+- RISK-1050 (low, High Attention File) in `tests/unit/api/request-timeout.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Tests for request timeout middleware.
+- RISK-1051 (high, Security Boundary) in `tests/unit/api/routes/monitoring.test.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L121: customDashboard.recordTokenUsage({
+- RISK-1052 (medium, Persistence Or State) in `tests/unit/api/routes/monitoring.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L53: warmupCache: jest.fn(),
+- RISK-1053 (low, High Attention File) in `tests/unit/api/routes/monitoring.test.ts`: The digest found several implementation signals worth manual review. Evidence: L53: warmupCache: jest.fn(),
+- RISK-1054 (medium, Concurrency Or Timing) in `tests/unit/api/server-rate-limit.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L18: it('should include rate limit headers on batch job creation', async () => {
+- RISK-1055 (low, High Attention File) in `tests/unit/api/server-rate-limit.test.ts`: The digest found several implementation signals worth manual review. Evidence: L4: * Ensures the upload rate limiter middleware is active on /api/v1/batch
+- RISK-1056 (high, Security Boundary) in `tests/unit/api/websocket-handler.test.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L11: * - JWT auth middleware on connection
+- RISK-1057 (medium, Network Or IPC) in `tests/unit/api/websocket-handler.test.ts`: Cross-process or network boundaries can fail through protocol, timeout, and trust assumptions. Evidence: path contains `socket`
+- RISK-1058 (medium, Parser Or Heuristic) in `tests/unit/api/websocket-handler.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L15: import * as jwt from 'jsonwebtoken';
+- RISK-1059 (low, High Attention File) in `tests/unit/api/websocket-handler.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * TASK-0047: WebSocket Real-time Progress Notification - Tests
+- RISK-1060 (medium, Network Or IPC) in `tests/unit/api/websocket-payload-validation.test.ts`: Cross-process or network boundaries can fail through protocol, timeout, and trust assumptions. Evidence: path contains `socket`
+- RISK-1061 (low, High Attention File) in `tests/unit/api/websocket-payload-validation.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * ISS-042: WebSocket payload validation tests
+- RISK-1062 (medium, Concurrency Or Timing) in `tests/unit/config/centralized-limits.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L23: it('should define API rate limit with window and max', () => {
+- RISK-1063 (medium, Persistence Or State) in `tests/unit/config/production-config.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L19: // Clear module cache so production-config is re-imported fresh
+- RISK-1064 (high, Security Boundary) in `tests/unit/edge-functions/auth.test.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: path contains `auth`
+- RISK-1065 (low, High Attention File) in `tests/unit/edge-functions/auth.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: extractToken,
+- RISK-1066 (high, Security Boundary) in `tests/unit/edge-functions/error-handler.test.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L19: it('should include authorization in allowed headers', () => {
+- RISK-1067 (medium, Concurrency Or Timing) in `tests/unit/edge-functions/error-handler.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L9: createTimeout,
+- RISK-1068 (low, High Attention File) in `tests/unit/edge-functions/error-handler.test.ts`: The digest found several implementation signals worth manual review. Evidence: L9: createTimeout,
+- RISK-1069 (medium, Concurrency Or Timing) in `tests/unit/edge-functions/generate-scenes.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L7: GENERATE_TIMEOUT_MS,
+- RISK-1070 (medium, Concurrency Or Timing) in `tests/unit/edge-functions/render-video.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L4: RENDER_TIMEOUT_MS,
+- RISK-1071 (medium, Concurrency Or Timing) in `tests/unit/edge-functions/timeout.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: path contains `timeout`
+- RISK-1072 (low, High Attention File) in `tests/unit/edge-functions/timeout.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: createTimeout,
+- RISK-1073 (medium, Concurrency Or Timing) in `tests/unit/edge-functions/transcribe-audio.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L22: const { fetchWithTimeout } = await import('#supabase/functions/_shared/error-handler.ts') as { fetchWithTimeout: jest.Mock };
+- RISK-1074 (low, High Attention File) in `tests/unit/edge-functions/transcribe-audio.test.ts`: The digest found several implementation signals worth manual review. Evidence: L5: // Mock the error-handler module's fetchWithTimeout
+- RISK-1075 (low, High Attention File) in `tests/unit/hooks/use-framework-pipeline.test.ts`: The digest found several implementation signals worth manual review. Evidence: L6: * REQ-137: useFrameworkPipeline Hook Unit Tests
+- RISK-1076 (medium, Concurrency Or Timing) in `tests/unit/hooks/use-toast.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L16: // Use fake timers to control setTimeout in addToRemoveQueue side-effect
+- RISK-1077 (medium, Concurrency Or Timing) in `tests/unit/monitoring/health-check-service-exception.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L48: recentErrors: ['timeout error'],
+- RISK-1078 (medium, Parser Or Heuristic) in `tests/unit/monitoring/health-check-service-exception.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L2: * REQ-134: HealthCheckService Exception / Degraded-Status Fallback Tests
+- RISK-1079 (medium, Persistence Or State) in `tests/unit/monitoring/health-check-service-exception.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L35: cacheHitRate: 0.6,
+- RISK-1080 (low, High Attention File) in `tests/unit/monitoring/health-check-service-exception.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * REQ-134: HealthCheckService Exception / Degraded-Status Fallback Tests
+- RISK-1081 (medium, Concurrency Or Timing) in `tests/unit/monitoring/health-check-service.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L54: recentErrors: ['timeout error'],
+- RISK-1082 (medium, Persistence Or State) in `tests/unit/monitoring/health-check-service.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L6: * memory, cache, pipeline, LLM, error recovery, and performance trends.
+- RISK-1083 (low, High Attention File) in `tests/unit/monitoring/health-check-service.test.ts`: The digest found several implementation signals worth manual review. Evidence: L6: * memory, cache, pipeline, LLM, error recovery, and performance trends.
+- RISK-1084 (medium, Concurrency Or Timing) in `tests/unit/optimization/adaptive-content-processor.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L129: it('caches strategy for same fingerprint', async () => {
+- RISK-1085 (medium, Persistence Or State) in `tests/unit/optimization/adaptive-content-processor.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L129: it('caches strategy for same fingerprint', async () => {
+- RISK-1086 (low, High Attention File) in `tests/unit/optimization/adaptive-content-processor.test.ts`: The digest found several implementation signals worth manual review. Evidence: L91: expect(result.strategy.transcriptionConfig.retryCount).toBeGreaterThanOrEqual(3);
+- RISK-1087 (medium, Concurrency Or Timing) in `tests/unit/optimization/batch-optimizer.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L9: const identityProcessor = async (item: number, _index: number) => item * 2;
+- RISK-1088 (medium, Concurrency Or Timing) in `tests/unit/optimization/cache-warmup.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L54: const resolver = async (text: string): Promise<string> => `resolved: ${text}`;
+- RISK-1089 (medium, Persistence Or State) in `tests/unit/optimization/cache-warmup.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: path contains `cache`
+- RISK-1090 (low, High Attention File) in `tests/unit/optimization/cache-warmup.test.ts`: The digest found several implementation signals worth manual review. Evidence: L1: import { CacheWarmupManager, WarmupPattern, WarmupResult } from '@/optimization/cache-warmup';
+- RISK-1091 (medium, Concurrency Or Timing) in `tests/unit/optimization/computation-cache.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L20: const result1 = await cache.getOrCompute('key1', async () => {
+- RISK-1092 (medium, Persistence Or State) in `tests/unit/optimization/computation-cache.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: path contains `cache`
+- RISK-1093 (low, High Attention File) in `tests/unit/optimization/computation-cache.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: ComputationCache,
+- RISK-1094 (medium, Concurrency Or Timing) in `tests/unit/optimization/lazy-loader.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L41: const loaderFn = async () => {
+- RISK-1095 (medium, Persistence Or State) in `tests/unit/optimization/lazy-loader.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L157: // Second get should use cache
+- RISK-1096 (low, High Attention File) in `tests/unit/optimization/lazy-loader.test.ts`: The digest found several implementation signals worth manual review. Evidence: L44: await new Promise((resolve) => setTimeout(resolve, 50));
+- RISK-1097 (medium, Persistence Or State) in `tests/unit/optimization/memory-cache.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: path contains `cache`
+- RISK-1098 (low, High Attention File) in `tests/unit/optimization/memory-cache.test.ts`: The digest found several implementation signals worth manual review. Evidence: L1: import { MemoryCache } from '@/optimization/memory-cache';
+- RISK-1099 (medium, Persistence Or State) in `tests/unit/performance/cache-health.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: path contains `cache`
+- RISK-1100 (low, High Attention File) in `tests/unit/performance/cache-health.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Tests for cache health monitoring and corruption recovery.
+- RISK-1101 (medium, Concurrency Or Timing) in `tests/unit/performance/intelligent-cache.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L12: await cache.store('test content', { result: 'hello' }, {
+- RISK-1102 (medium, Persistence Or State) in `tests/unit/performance/intelligent-cache.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: path contains `cache`
+- RISK-1103 (low, High Attention File) in `tests/unit/performance/intelligent-cache.test.ts`: The digest found several implementation signals worth manual review. Evidence: L1: import { IntelligentCache, globalCache, cached } from '@/performance/intelligent-cache';
+- RISK-1104 (high, Security Boundary) in `tests/unit/pipeline/cost-efficiency-metrics.test.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L5: *   - calculateCostEfficiency: per-unit cost/token computation
+- RISK-1105 (low, High Attention File) in `tests/unit/pipeline/cost-efficiency-metrics.test.ts`: The digest found several implementation signals worth manual review. Evidence: L5: *   - calculateCostEfficiency: per-unit cost/token computation
+- RISK-1106 (medium, Concurrency Or Timing) in `tests/unit/pipeline/parallel-layout-executor.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L17: const delay = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+- RISK-1107 (low, High Attention File) in `tests/unit/pipeline/performance-baseline.test.ts`: The digest found several implementation signals worth manual review. Evidence: L27: expect(result!.maxMemoryMB).toBe(50);
+- RISK-1108 (high, Security Boundary) in `tests/unit/pipeline/pipeline-health-score.test.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L77: tokensPerAnalysis: 2000,
+- RISK-1109 (low, High Attention File) in `tests/unit/pipeline/pipeline-health-score.test.ts`: The digest found several implementation signals worth manual review. Evidence: L77: tokensPerAnalysis: 2000,
+- RISK-1110 (medium, Concurrency Or Timing) in `tests/unit/pipeline/pipeline-orchestrator.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L227: it('should invoke fallback when a quality gate fails', async () => {
+- RISK-1111 (medium, Parser Or Heuristic) in `tests/unit/pipeline/pipeline-orchestrator.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L14: FallbackStrategy,
+- RISK-1112 (low, High Attention File) in `tests/unit/pipeline/pipeline-orchestrator.test.ts`: The digest found several implementation signals worth manual review. Evidence: L14: FallbackStrategy,
+- RISK-1113 (medium, Parser Or Heuristic) in `tests/unit/pipeline/pipeline-quality-monitor.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L45: fallbackTriggered: false,
+- RISK-1114 (medium, Persistence Or State) in `tests/unit/pipeline/pipeline-quality-monitor.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L96: cacheHitRate: 0.8,
+- RISK-1115 (low, High Attention File) in `tests/unit/pipeline/pipeline-quality-monitor.test.ts`: The digest found several implementation signals worth manual review. Evidence: L13: // Get fresh instance via private constructor reset
+- RISK-1116 (medium, Concurrency Or Timing) in `tests/unit/pipeline/stage-timing-metrics.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L91: await new Promise(resolve => setTimeout(resolve, 50));
+- RISK-1117 (medium, Concurrency Or Timing) in `tests/unit/pipeline/streaming-transcriber.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L215: // Resolve the timeout
+- RISK-1118 (medium, Persistence Or State) in `tests/unit/quality/adaptive-quality-gates.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L13: llm: { cacheHitRate: 0.5, avgFlashResponseTime: 1000, avgProResponseTime: 5000, flashUsagePercent: 80 },
+- RISK-1119 (medium, Concurrency Or Timing) in `tests/unit/quality/enhanced-error-recovery.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L28: it('should retry with exponential backoff on transient failures', async () => {
+- RISK-1120 (medium, Parser Or Heuristic) in `tests/unit/quality/enhanced-error-recovery.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L4: * Tests for the retry with exponential backoff, fallback processing,
+- RISK-1121 (low, High Attention File) in `tests/unit/quality/enhanced-error-recovery.test.ts`: The digest found several implementation signals worth manual review. Evidence: L4: * Tests for the retry with exponential backoff, fallback processing,
+- RISK-1122 (medium, Concurrency Or Timing) in `tests/unit/quality/error-classifier.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L104: it('should classify LLM timeout errors', () => {
+- RISK-1123 (low, High Attention File) in `tests/unit/quality/error-classifier.test.ts`: The digest found several implementation signals worth manual review. Evidence: L87: it('should classify LLM rate limited errors', () => {
+- RISK-1124 (medium, Concurrency Or Timing) in `tests/unit/quality/quality-gate.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L546: fallbackAction: 'retry',
+- RISK-1125 (medium, Parser Or Heuristic) in `tests/unit/quality/quality-gate.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L546: fallbackAction: 'retry',
+- RISK-1126 (low, High Attention File) in `tests/unit/quality/quality-gate.test.ts`: The digest found several implementation signals worth manual review. Evidence: L546: fallbackAction: 'retry',
+- RISK-1127 (medium, Concurrency Or Timing) in `tests/unit/quality/user-guided-error-recovery.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L87: it('should classify timeout errors', () => {
+- RISK-1128 (low, High Attention File) in `tests/unit/quality/user-guided-error-recovery.test.ts`: The digest found several implementation signals worth manual review. Evidence: L80: it('should classify memory errors', () => {
+- RISK-1129 (medium, Parser Or Heuristic) in `tests/unit/transcription/transcription-pipeline-validation.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L54: // past validation. It may succeed (fallback segments) or fail, but should
+- RISK-1130 (medium, Parser Or Heuristic) in `tests/unit/utils/iteration-logger.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L14: const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+- RISK-1131 (medium, Concurrency Or Timing) in `tests/unit/utils/memory-usage.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L27: test('should use process.memoryUsage when available', async () => {
+- RISK-1132 (medium, Parser Or Heuristic) in `tests/unit/utils/memory-usage.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L7: * - Fallback: returns zeroes
+- RISK-1133 (low, High Attention File) in `tests/unit/utils/memory-usage.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * REQ-138: memory-usage.ts Unit Tests
+- RISK-1134 (medium, Concurrency Or Timing) in `tests/validate-llm-accuracy.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L294: console.log(`  Adaptive Timeout: ${cacheStats.adaptiveTimeout.currentTimeoutMs}ms`);
+- RISK-1135 (medium, Persistence Or State) in `tests/validate-llm-accuracy.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L288: // Cache statistics
+- RISK-1136 (low, High Attention File) in `tests/validate-llm-accuracy.ts`: The digest found several implementation signals worth manual review. Evidence: L288: // Cache statistics
+- RISK-1137 (medium, Parser Or Heuristic) in `tests/visualization/advanced-layouts.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L160: test('should fallback to dark theme for unknown theme name', () => {
+- RISK-1138 (low, High Attention File) in `tests/visualization/advanced-layouts.test.ts`: The digest found several implementation signals worth manual review. Evidence: L160: test('should fallback to dark theme for unknown theme name', () => {
+- RISK-1139 (medium, Concurrency Or Timing) in `tests/visualization/complex-layout-engine.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L547: it('should optimize memory when memoryUsage exceeds limit', async () => {
+- RISK-1140 (medium, Parser Or Heuristic) in `tests/visualization/complex-layout-engine.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L6: import { FallbackLayoutStrategy } from '@/visualization/strategies/FallbackLayoutStrategy';
+- RISK-1141 (low, High Attention File) in `tests/visualization/complex-layout-engine.test.ts`: The digest found several implementation signals worth manual review. Evidence: L6: import { FallbackLayoutStrategy } from '@/visualization/strategies/FallbackLayoutStrategy';
+- RISK-1142 (high, Destructive Mutation) in `tests/visualization/cycle-strategy.test.ts`: Deletion or forceful mutation needs clear guardrails and recovery behavior. Evidence: L4: * Includes edge cases: empty nodes, single node, overlaps, force-directed fallback,
+- RISK-1143 (medium, Parser Or Heuristic) in `tests/visualization/cycle-strategy.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L4: * Includes edge cases: empty nodes, single node, overlaps, force-directed fallback,
+- RISK-1144 (low, High Attention File) in `tests/visualization/cycle-strategy.test.ts`: The digest found several implementation signals worth manual review. Evidence: L4: * Includes edge cases: empty nodes, single node, overlaps, force-directed fallback,
+- RISK-1145 (high, Destructive Mutation) in `tests/visualization/enhanced-zero-overlap-layout.test.ts`: Deletion or forceful mutation needs clear guardrails and recovery behavior. Evidence: L18: * Uses bracket notation to bypass TypeScript private access enforcement.
+- RISK-1146 (medium, Persistence Or State) in `tests/visualization/enhanced-zero-overlap-layout.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L431: test('should clear internal state without throwing', () => {
+- RISK-1147 (low, High Attention File) in `tests/visualization/enhanced-zero-overlap-layout.test.ts`: The digest found several implementation signals worth manual review. Evidence: L17: * Helper to access private methods on ZeroOverlapLayoutEngine for testing.
+- RISK-1148 (high, Destructive Mutation) in `tests/visualization/force-directed-simulation.test.ts`: Deletion or forceful mutation needs clear guardrails and recovery behavior. Evidence: path contains `force`
+- RISK-1149 (medium, Parser Or Heuristic) in `tests/visualization/force-directed-simulation.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L22: import { FallbackLayoutStrategy } from '@/visualization/strategies/FallbackLayoutStrategy';
+- RISK-1150 (medium, Parser Or Heuristic) in `tests/visualization/graph-coarsening.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L21: import { FallbackLayoutStrategy } from '@/visualization/strategies/FallbackLayoutStrategy';
+- RISK-1151 (medium, Concurrency Or Timing) in `tests/visualization/layout-auto-optimizer.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L120: it('tries fallback strategy when primary gives low score', async () => {
+- RISK-1152 (medium, Parser Or Heuristic) in `tests/visualization/layout-auto-optimizer.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L120: it('tries fallback strategy when primary gives low score', async () => {
+- RISK-1153 (low, High Attention File) in `tests/visualization/layout-auto-optimizer.test.ts`: The digest found several implementation signals worth manual review. Evidence: L120: it('tries fallback strategy when primary gives low score', async () => {
+- RISK-1154 (medium, Parser Or Heuristic) in `tests/visualization/overlap-resolver.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L66: expect(overlaps).toHaveLength(0); // Grid-snap fallback guarantees this
+- RISK-1155 (high, Destructive Mutation) in `tests/visualization/strategies/cycle-strategy.test.ts`: Deletion or forceful mutation needs clear guardrails and recovery behavior. Evidence: L133: it('should apply force-directed fallback for overlapping large nodes', () => {
+- RISK-1156 (medium, Parser Or Heuristic) in `tests/visualization/strategies/cycle-strategy.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L133: it('should apply force-directed fallback for overlapping large nodes', () => {
+- RISK-1157 (medium, Parser Or Heuristic) in `tests/visualization/strategies/fallback-layout-strategy.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `fallback`
+- RISK-1158 (low, High Attention File) in `tests/visualization/strategies/fallback-layout-strategy.test.ts`: The digest found several implementation signals worth manual review. Evidence: L1: import { FallbackLayoutStrategy } from '@/visualization/strategies/FallbackLayoutStrategy';
+- RISK-1159 (medium, Parser Or Heuristic) in `tests/visualization/strategies/flow-strategy.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L232: describe('many overlapping nodes (triggers gridSnapFallback)', () => {
+- RISK-1160 (medium, Parser Or Heuristic) in `tests/visualization/strategies/timeline-strategy.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L105: it('should use index order as fallback when no edges are provided', () => {
+- RISK-1161 (medium, Parser Or Heuristic) in `tests/visualization/strategies/tree-strategy.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L237: describe('many overlapping nodes (triggers gridSnapFallback)', () => {
+- RISK-1162 (medium, Concurrency Or Timing) in `tests/visualization/strategy-selector-execute-layout.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L71: it('should use fallback for unknown diagram types', async () => {
+- RISK-1163 (medium, Parser Or Heuristic) in `tests/visualization/strategy-selector-execute-layout.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L71: it('should use fallback for unknown diagram types', async () => {
+- RISK-1164 (low, High Attention File) in `tests/visualization/strategy-selector-execute-layout.test.ts`: The digest found several implementation signals worth manual review. Evidence: L71: it('should use fallback for unknown diagram types', async () => {
+- RISK-1165 (medium, Parser Or Heuristic) in `tests/visualization/strategy-selector.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L37: // But we test the fallback behavior through executeLayout with valid types
+
+## Files
+
+- `tests/__mocks__/dagre.ts` — typescript, 166 lines, attention 56
+- `tests/__mocks__/deno-server.ts` — typescript, 20 lines, attention 28
+- `tests/__mocks__/socket-io.ts` — typescript, 42 lines, attention 84
+- `tests/__mocks__/worker-factories.ts` — typescript, 19 lines, attention 14
+- `tests/acceptance/acceptance-test-suite.test.ts` — typescript, 1217 lines, attention 100
+- `tests/analysis/budget-alert-boundary.test.ts` — typescript, 541 lines, attention 100
+- `tests/analysis/budget-alert.test.ts` — typescript, 216 lines, attention 100
+- `tests/analysis/cost-estimator-edge-cases.test.ts` — typescript, 196 lines, attention 100
+- `tests/analysis/llm-cache-debounce.test.ts` — typescript, 430 lines, attention 100
+- `tests/analysis/llm-cache-stats-paths.test.ts` — typescript, 619 lines, attention 100
+- `tests/analysis/llm-cache-ttl-eviction.test.ts` — typescript, 348 lines, attention 100
+- `tests/analysis/llm-cache.test.ts` — typescript, 855 lines, attention 100
+- `tests/analysis/llm-monitoring-integration.test.ts` — typescript, 540 lines, attention 100
+- `tests/analysis/llm-utils.test.ts` — typescript, 392 lines, attention 100
+- `tests/analysis/token-usage-cost-monitoring.test.ts` — typescript, 216 lines, attention 100
+- `tests/analysis/token-usage-tracker-edge-cases.test.ts` — typescript, 323 lines, attention 100
+- `tests/benchmark/performance-benchmark.test.ts` — typescript, 117 lines, attention 100
+- `tests/benchmark/worker-performance.test.ts` — typescript, 155 lines, attention 0
+- `tests/config/code-size-audit.test.ts` — typescript, 401 lines, attention 0
+- `tests/e2e/pipeline-flow.test.ts` — typescript, 163 lines, attention 14
+- `tests/export/export-verifier.test.ts` — typescript, 305 lines, attention 0
+- `tests/globalTeardown.ts` — typescript, 14 lines, attention 0
+- `tests/integration/api.test.ts` — typescript, 608 lines, attention 100
+- `tests/integration/batch.test.ts` — typescript, 333 lines, attention 98
+- `tests/integration/label-sizing-pipeline.test.ts` — typescript, 225 lines, attention 56
+- `tests/integration/layout-quality-pipeline.test.ts` — typescript, 242 lines, attention 42
+- `tests/integration/monitoring-health-degraded.test.ts` — typescript, 446 lines, attention 100
+- `tests/integration/phase31-module-exports.test.ts` — typescript, 89 lines, attention 14
+- `tests/integration/phase32-quality-pipeline.test.ts` — typescript, 464 lines, attention 14
+- `tests/integration/phase35-quality-e2e.test.ts` — typescript, 344 lines, attention 0
+- `tests/integration/pipeline.test.ts` — typescript, 1163 lines, attention 100
+- `tests/integration/warmup-cache-backend-failure.test.ts` — typescript, 474 lines, attention 100
+- `tests/integration/warmup-default-pattern-resilience.test.ts` — typescript, 397 lines, attention 100
+- `tests/integration/warmup-failure-resilience.test.ts` — typescript, 255 lines, attention 100
+- `tests/integration/warmup-zero-success-resilience.test.ts` — typescript, 476 lines, attention 100
+- `tests/integration/worker-fallback.test.ts` — typescript, 84 lines, attention 98
+- `tests/integration/worker-pipeline.test.ts` — typescript, 125 lines, attention 0
+- `tests/integration/worker-pool.test.ts` — typescript, 410 lines, attention 100
+- `tests/llm-parsing.ts` — typescript, 33 lines, attention 100
+- `tests/mocks/jsonwebtoken.ts` — typescript, 25 lines, attention 42
+- `tests/performance/benchmark.test.ts` — typescript, 321 lines, attention 100
+- `tests/performance/e2e-benchmark.test.ts` — typescript, 515 lines, attention 100
+- `tests/pipeline/bottleneck-detector.test.ts` — typescript, 161 lines, attention 0
+- `tests/pipeline/parallel-benchmark.test.ts` — typescript, 207 lines, attention 98
+- `tests/pipeline/parallel-execution.test.ts` — typescript, 283 lines, attention 98
+- `tests/pipeline/performance-regression-detector.test.ts` — typescript, 266 lines, attention 100
+- `tests/pipeline/pipeline-health-score.test.ts` — typescript, 331 lines, attention 100
+- `tests/pipeline/retry-edge-cases.test.ts` — typescript, 252 lines, attention 100
+- `tests/pipeline/retry-integration.test.ts` — typescript, 226 lines, attention 100
+- `tests/pipeline/retry-metrics-parallel.test.ts` — typescript, 246 lines, attention 100
+- `tests/pipeline/retry-observability-surface.test.ts` — typescript, 131 lines, attention 100
+- `tests/quality-check.ts` — typescript, 41 lines, attention 14
+- `tests/quality/enhanced-error-recovery.test.ts` — typescript, 1661 lines, attention 100
+- `tests/quality/error-classifier.test.ts` — typescript, 246 lines, attention 100
+- `tests/quality/quality-gate.test.ts` — typescript, 395 lines, attention 70
+- `tests/quality/regression-detector.test.ts` — typescript, 315 lines, attention 70
+- `tests/setupJestGlobals.ts` — typescript, 20 lines, attention 14
+- `tests/test-phase19-adaptive-llm.ts` — typescript, 253 lines, attention 70
+- `tests/test-phase21-adaptive-content-analyzer.ts` — typescript, 241 lines, attention 100
+- `tests/test-phase22-unified-llm-service.ts` — typescript, 446 lines, attention 100
+- `tests/test-phase23-gemini-analyzer-unified.ts` — typescript, 487 lines, attention 100
+- `tests/test-phase26-relationship-extraction.ts` — typescript, 228 lines, attention 56
+- `tests/transcription/streaming-quality-monitor.test.ts` — typescript, 262 lines, attention 42
+- `tests/unit/analysis/complexity-detector.test.ts` — typescript, 69 lines, attention 0
+- `tests/unit/analysis/rule-based-analyzer.test.ts` — typescript, 54 lines, attention 0
+- `tests/unit/api/batch-dedup.test.ts` — typescript, 128 lines, attention 0
+- `tests/unit/api/batch-parallel-processing.test.ts` — typescript, 150 lines, attention 100
+- `tests/unit/api/batch-processing-api-errors.test.ts` — typescript, 104 lines, attention 14
+- `tests/unit/api/batch-processing-api.test.ts` — typescript, 692 lines, attention 0
+- `tests/unit/api/cors-config.test.ts` — typescript, 68 lines, attention 14
+- `tests/unit/api/pipeline-rate-limit.test.ts` — typescript, 49 lines, attention 100
+- `tests/unit/api/request-timeout.test.ts` — typescript, 77 lines, attention 100
+- `tests/unit/api/routes/batch-audio-validation.test.ts` — typescript, 132 lines, attention 14
+- `tests/unit/api/routes/batch-preset-validation.test.ts` — typescript, 89 lines, attention 0
+- `tests/unit/api/routes/monitoring.test.ts` — typescript, 403 lines, attention 100
+- `tests/unit/api/secure-id-generation.test.ts` — typescript, 61 lines, attention 0
+- `tests/unit/api/server-rate-limit.test.ts` — typescript, 36 lines, attention 98
+- `tests/unit/api/websocket-handler.test.ts` — typescript, 614 lines, attention 100
+- `tests/unit/api/websocket-payload-validation.test.ts` — typescript, 170 lines, attention 100
+- `tests/unit/components/VideoPreview.test.tsx` — tsx, 888 lines, attention 36
+- `tests/unit/config/centralized-limits.test.ts` — typescript, 166 lines, attention 42
+- `tests/unit/config/production-config.test.ts` — typescript, 51 lines, attention 14
+- `tests/unit/config/security-env-validation.test.ts` — typescript, 153 lines, attention 8
+- `tests/unit/edge-functions/auth.test.ts` — typescript, 207 lines, attention 100
+- `tests/unit/edge-functions/error-handler.test.ts` — typescript, 216 lines, attention 100
+- `tests/unit/edge-functions/generate-scenes.test.ts` — typescript, 283 lines, attention 42
+- `tests/unit/edge-functions/render-video.test.ts` — typescript, 176 lines, attention 42
+- `tests/unit/edge-functions/timeout.test.ts` — typescript, 180 lines, attention 100
+- `tests/unit/edge-functions/transcribe-audio.test.ts` — typescript, 189 lines, attention 100
+- `tests/unit/export/export-verifier.test.ts` — typescript, 285 lines, attention 0
+- `tests/unit/hooks/use-framework-pipeline.test.ts` — typescript, 430 lines, attention 100
+- `tests/unit/hooks/use-toast.test.ts` — typescript, 257 lines, attention 36
+- `tests/unit/integrations/supabase-client.test.ts` — typescript, 54 lines, attention 14
+- `tests/unit/monitoring/health-check-service-exception.test.ts` — typescript, 295 lines, attention 100
+- `tests/unit/monitoring/health-check-service.test.ts` — typescript, 636 lines, attention 100
+- `tests/unit/optimization/adaptive-content-processor.test.ts` — typescript, 186 lines, attention 100
+- `tests/unit/optimization/batch-optimizer.test.ts` — typescript, 296 lines, attention 42
+- `tests/unit/optimization/cache-warmup.test.ts` — typescript, 283 lines, attention 100
+- `tests/unit/optimization/computation-cache.test.ts` — typescript, 201 lines, attention 100
+- `tests/unit/optimization/lazy-loader.test.ts` — typescript, 215 lines, attention 92
+- `tests/unit/optimization/memory-cache.test.ts` — typescript, 206 lines, attention 100
+- `tests/unit/performance/cache-health.test.ts` — typescript, 204 lines, attention 100
+- `tests/unit/performance/intelligent-cache.test.ts` — typescript, 309 lines, attention 100
+- `tests/unit/pipeline/bottleneck-detector.test.ts` — typescript, 138 lines, attention 0
+- `tests/unit/pipeline/cost-efficiency-metrics.test.ts` — typescript, 182 lines, attention 100
+- `tests/unit/pipeline/parallel-layout-executor.test.ts` — typescript, 171 lines, attention 28
+- `tests/unit/pipeline/performance-baseline.test.ts` — typescript, 147 lines, attention 100
+- `tests/unit/pipeline/pipeline-health-score.test.ts` — typescript, 431 lines, attention 100
+- `tests/unit/pipeline/pipeline-orchestrator-quality.test.ts` — typescript, 162 lines, attention 0
+- `tests/unit/pipeline/pipeline-orchestrator.test.ts` — typescript, 705 lines, attention 100
+- `tests/unit/pipeline/pipeline-quality-monitor.test.ts` — typescript, 568 lines, attention 100
+- `tests/unit/pipeline/stage-timing-metrics.test.ts` — typescript, 104 lines, attention 14
+- `tests/unit/pipeline/streaming-transcriber.test.ts` — typescript, 274 lines, attention 14
+- `tests/unit/pipeline/video-generator.test.ts` — typescript, 306 lines, attention 0
+- `tests/unit/quality/adaptive-quality-gates.test.ts` — typescript, 78 lines, attention 42
+- `tests/unit/quality/enhanced-error-recovery.test.ts` — typescript, 225 lines, attention 100
+- `tests/unit/quality/error-classifier.test.ts` — typescript, 410 lines, attention 100
+- `tests/unit/quality/quality-gate.test.ts` — typescript, 657 lines, attention 70
+- `tests/unit/quality/quality-monitor.test.ts` — typescript, 186 lines, attention 28
+- `tests/unit/quality/user-guided-error-recovery.test.ts` — typescript, 290 lines, attention 100
+- `tests/unit/transcription/transcription-pipeline-validation.test.ts` — typescript, 94 lines, attention 28
+- `tests/unit/utils/audio-duration.test.ts` — typescript, 186 lines, attention 0
+- `tests/unit/utils/audio-file-metadata.test.ts` — typescript, 114 lines, attention 0
+- `tests/unit/utils/audio-validation.test.ts` — typescript, 240 lines, attention 0
+- `tests/unit/utils/iteration-logger.test.ts` — typescript, 43 lines, attention 14
+- `tests/unit/utils/logger.test.ts` — typescript, 167 lines, attention 0
+- `tests/unit/utils/memory-usage.test.ts` — typescript, 149 lines, attention 100
+- `tests/unit/utils/sanitize.test.ts` — typescript, 297 lines, attention 0
+- `tests/utils/audio-validation.test.ts` — typescript, 185 lines, attention 0
+- `tests/utils/sanitize.test.ts` — typescript, 75 lines, attention 0
+- `tests/validate-llm-accuracy.ts` — typescript, 319 lines, attention 100
+- `tests/visualization/advanced-layouts.test.ts` — typescript, 803 lines, attention 100
+- `tests/visualization/base-layout-engine.test.ts` — typescript, 270 lines, attention 0
+- `tests/visualization/canvas-calculator.test.ts` — typescript, 198 lines, attention 0
+- `tests/visualization/complex-layout-engine.test.ts` — typescript, 682 lines, attention 100
+- `tests/visualization/cycle-strategy.test.ts` — typescript, 692 lines, attention 70
+- `tests/visualization/edge-crossing-minimizer.test.ts` — typescript, 323 lines, attention 14
+- `tests/visualization/enhanced-zero-overlap-layout.test.ts` — typescript, 1210 lines, attention 100
+- `tests/visualization/force-directed-simulation.test.ts` — typescript, 355 lines, attention 56
+- `tests/visualization/graph-coarsening.test.ts` — typescript, 262 lines, attention 42
+- `tests/visualization/layout-auto-optimizer.test.ts` — typescript, 344 lines, attention 70
+- `tests/visualization/layout-engine.test.ts` — typescript, 195 lines, attention 0
+- `tests/visualization/layout-quality-composite.test.ts` — typescript, 417 lines, attention 28
+- `tests/visualization/overlap-resolver.test.ts` — typescript, 153 lines, attention 14
+- `tests/visualization/phase31-diagram-quality.test.ts` — typescript, 306 lines, attention 0
+- `tests/visualization/smart-label-sizer.test.ts` — typescript, 252 lines, attention 0
+- `tests/visualization/strategies/base-strategy.test.ts` — typescript, 57 lines, attention 0
+- `tests/visualization/strategies/comparison-strategy.test.ts` — typescript, 238 lines, attention 0
+- `tests/visualization/strategies/concept-map-strategy.test.ts` — typescript, 274 lines, attention 0
+- `tests/visualization/strategies/cultural-layout-adapter.test.ts` — typescript, 446 lines, attention 8
+- `tests/visualization/strategies/cycle-strategy.test.ts` — typescript, 270 lines, attention 28
+- `tests/visualization/strategies/fallback-layout-strategy.test.ts` — typescript, 164 lines, attention 100
+- `tests/visualization/strategies/flow-strategy.test.ts` — typescript, 274 lines, attention 28
+- `tests/visualization/strategies/flowchart-strategy.test.ts` — typescript, 250 lines, attention 0
+- `tests/visualization/strategies/layout-evaluator.test.ts` — typescript, 203 lines, attention 0
+- `tests/visualization/strategies/layout-optimization-pipeline.test.ts` — typescript, 82 lines, attention 0
+- `tests/visualization/strategies/layout-optimizer.test.ts` — typescript, 198 lines, attention 0
+- `tests/visualization/strategies/layout-strategy-registry.test.ts` — typescript, 292 lines, attention 0
+- `tests/visualization/strategies/matrix-strategy.test.ts` — typescript, 219 lines, attention 0
+- `tests/visualization/strategies/network-strategy.test.ts` — typescript, 242 lines, attention 0
+- `tests/visualization/strategies/overlap-resolver-viz.test.ts` — typescript, 112 lines, attention 0
+- `tests/visualization/strategies/timeline-strategy.test.ts` — typescript, 209 lines, attention 28
+- `tests/visualization/strategies/tree-strategy.test.ts` — typescript, 278 lines, attention 28
+- `tests/visualization/strategy-selector-execute-layout.test.ts` — typescript, 112 lines, attention 84
+- `tests/visualization/strategy-selector.test.ts` — typescript, 101 lines, attention 56
+- `tests/visualization/visual-balance-scorer.test.ts` — typescript, 330 lines, attention 0

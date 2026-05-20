@@ -1,0 +1,563 @@
+---
+title: Module bmad
+genre: repository-analysis
+type: entity
+sources:
+  - extract-skill-meta planning artifacts
+related:
+  - Module Index
+  - Repository Risk Register
+  - File Inventory
+created: 2026-05-20
+updated: 2026-05-20
+status: generated
+---
+# Module bmad
+
+## Role
+
+- Rationale: Files under _bmad form a shared path-level boundary.
+- Roots: _bmad
+- Languages: javascript, json, markdown, yaml
+- Files: 426
+- Bytes: 2936645
+
+## Key Files
+
+- `_bmad/bmb/README.md`
+- `_bmad/_config/ides/claude-code.yaml`
+- `_bmad/bmb/reference/readme.md`
+- `_bmad/bmm/data/README.md`
+- `_bmad/bmb/workflows-legacy/edit-module/README.md`
+- `_bmad/bmb/workflows-legacy/module-brief/README.md`
+- `_bmad/bmm/testarch/knowledge/component-tdd.md`
+- `_bmad/bmm/testarch/knowledge/fixtures-composition.md`
+
+## Risk Signals
+
+- RISK-0128 (medium, Parser Or Heuristic) in `_bmad/_config/agents/bmb-agent-builder.customize.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0129 (medium, Parser Or Heuristic) in `_bmad/_config/agents/bmb-module-builder.customize.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0130 (medium, Parser Or Heuristic) in `_bmad/_config/agents/bmb-workflow-builder.customize.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0131 (medium, Parser Or Heuristic) in `_bmad/_config/agents/bmm-analyst.customize.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0132 (medium, Parser Or Heuristic) in `_bmad/_config/agents/bmm-architect.customize.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0133 (medium, Parser Or Heuristic) in `_bmad/_config/agents/bmm-dev.customize.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0134 (medium, Parser Or Heuristic) in `_bmad/_config/agents/bmm-pm.customize.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0135 (medium, Parser Or Heuristic) in `_bmad/_config/agents/bmm-quick-flow-solo-dev.customize.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0136 (medium, Parser Or Heuristic) in `_bmad/_config/agents/bmm-sm.customize.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0137 (medium, Parser Or Heuristic) in `_bmad/_config/agents/bmm-tea.customize.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0138 (medium, Parser Or Heuristic) in `_bmad/_config/agents/bmm-tech-writer.customize.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0139 (medium, Parser Or Heuristic) in `_bmad/_config/agents/bmm-ux-designer.customize.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0140 (medium, Parser Or Heuristic) in `_bmad/_config/agents/core-bmad-master.customize.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0141 (medium, Parser Or Heuristic) in `_bmad/_config/ides/claude-code.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0142 (medium, Parser Or Heuristic) in `_bmad/_config/manifest.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0143 (medium, Parser Or Heuristic) in `_bmad/bmb/config.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0144 (high, Security Boundary) in `_bmad/bmb/workflows-legacy/edit-module/workflow.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L4: author: "BMad"
+- RISK-0145 (medium, Parser Or Heuristic) in `_bmad/bmb/workflows-legacy/edit-module/workflow.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0146 (high, Security Boundary) in `_bmad/bmb/workflows-legacy/module-brief/workflow.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L4: author: "BMad Builder"
+- RISK-0147 (medium, Parser Or Heuristic) in `_bmad/bmb/workflows-legacy/module-brief/workflow.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0148 (medium, Parser Or Heuristic) in `_bmad/bmb/workflows/create-module/templates/module.template.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0149 (medium, Network Or IPC) in `_bmad/bmm/config.yaml`: Cross-process or network boundaries can fail through protocol, timeout, and trust assumptions. Evidence: L11: tea_use_mcp_enhancements: false
+- RISK-0150 (medium, Parser Or Heuristic) in `_bmad/bmm/config.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0151 (medium, Parser Or Heuristic) in `_bmad/bmm/teams/team-fullstack.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0152 (high, Security Boundary) in `_bmad/bmm/workflows/4-implementation/code-review/workflow.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L4: author: "BMad"
+- RISK-0153 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/4-implementation/code-review/workflow.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0154 (high, Security Boundary) in `_bmad/bmm/workflows/4-implementation/correct-course/workflow.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L4: author: "BMad Method"
+- RISK-0155 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/4-implementation/correct-course/workflow.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0156 (high, Security Boundary) in `_bmad/bmm/workflows/4-implementation/create-story/workflow.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L3: author: "BMad"
+- RISK-0157 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/4-implementation/create-story/workflow.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0158 (low, High Attention File) in `_bmad/bmm/workflows/4-implementation/create-story/workflow.yaml`: The digest found several implementation signals worth manual review. Evidence: L3: author: "BMad"
+- RISK-0159 (high, Security Boundary) in `_bmad/bmm/workflows/4-implementation/dev-story/workflow.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L3: author: "BMad"
+- RISK-0160 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/4-implementation/dev-story/workflow.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0161 (high, Security Boundary) in `_bmad/bmm/workflows/4-implementation/retrospective/workflow.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L4: author: "BMad"
+- RISK-0162 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/4-implementation/retrospective/workflow.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0163 (high, Security Boundary) in `_bmad/bmm/workflows/4-implementation/sprint-planning/sprint-status-template.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L45: 1-1-user-authentication: done
+- RISK-0164 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/4-implementation/sprint-planning/sprint-status-template.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0165 (high, Security Boundary) in `_bmad/bmm/workflows/4-implementation/sprint-planning/workflow.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L3: author: "BMad"
+- RISK-0166 (medium, Network Or IPC) in `_bmad/bmm/workflows/4-implementation/sprint-planning/workflow.yaml`: Cross-process or network boundaries can fail through protocol, timeout, and trust assumptions. Evidence: L28: tracking_system: "file-system" # Options: file-system, Future will support other options from config of mcp such as jira, linear, trello
+- RISK-0167 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/4-implementation/sprint-planning/workflow.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0168 (high, Security Boundary) in `_bmad/bmm/workflows/4-implementation/sprint-status/workflow.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L4: author: "BMad"
+- RISK-0169 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/4-implementation/sprint-status/workflow.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0170 (high, Security Boundary) in `_bmad/bmm/workflows/document-project/workflow.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L5: author: "BMad"
+- RISK-0171 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/document-project/workflow.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0172 (high, Security Boundary) in `_bmad/bmm/workflows/document-project/workflows/deep-dive.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L4: author: "BMad"
+- RISK-0173 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/document-project/workflows/deep-dive.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0174 (high, Security Boundary) in `_bmad/bmm/workflows/document-project/workflows/full-scan.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L4: author: "BMad"
+- RISK-0175 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/document-project/workflows/full-scan.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0176 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/excalidraw-diagrams/_shared/excalidraw-library.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
+- RISK-0177 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/excalidraw-diagrams/_shared/excalidraw-templates.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0178 (high, Security Boundary) in `_bmad/bmm/workflows/excalidraw-diagrams/create-dataflow/workflow.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L3: author: "BMad"
+- RISK-0179 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/excalidraw-diagrams/create-dataflow/workflow.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L17: json_validation: "{project-root}/_bmad/core/resources/excalidraw/validate-json-instructions.md"
+- RISK-0180 (low, High Attention File) in `_bmad/bmm/workflows/excalidraw-diagrams/create-dataflow/workflow.yaml`: The digest found several implementation signals worth manual review. Evidence: L1: name: create-excalidraw-dataflow
+- RISK-0181 (high, Security Boundary) in `_bmad/bmm/workflows/excalidraw-diagrams/create-diagram/workflow.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L3: author: "BMad"
+- RISK-0182 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/excalidraw-diagrams/create-diagram/workflow.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L17: json_validation: "{project-root}/_bmad/core/resources/excalidraw/validate-json-instructions.md"
+- RISK-0183 (low, High Attention File) in `_bmad/bmm/workflows/excalidraw-diagrams/create-diagram/workflow.yaml`: The digest found several implementation signals worth manual review. Evidence: L1: name: create-excalidraw-diagram
+- RISK-0184 (high, Security Boundary) in `_bmad/bmm/workflows/excalidraw-diagrams/create-flowchart/workflow.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L3: author: "BMad"
+- RISK-0185 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/excalidraw-diagrams/create-flowchart/workflow.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L17: json_validation: "{project-root}/_bmad/core/resources/excalidraw/validate-json-instructions.md"
+- RISK-0186 (low, High Attention File) in `_bmad/bmm/workflows/excalidraw-diagrams/create-flowchart/workflow.yaml`: The digest found several implementation signals worth manual review. Evidence: L1: name: create-excalidraw-flowchart
+- RISK-0187 (high, Security Boundary) in `_bmad/bmm/workflows/excalidraw-diagrams/create-wireframe/workflow.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L3: author: "BMad"
+- RISK-0188 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/excalidraw-diagrams/create-wireframe/workflow.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L17: json_validation: "{project-root}/_bmad/core/resources/excalidraw/validate-json-instructions.md"
+- RISK-0189 (low, High Attention File) in `_bmad/bmm/workflows/excalidraw-diagrams/create-wireframe/workflow.yaml`: The digest found several implementation signals worth manual review. Evidence: L1: name: create-excalidraw-wireframe
+- RISK-0190 (high, Security Boundary) in `_bmad/bmm/workflows/testarch/atdd/workflow.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L4: author: "BMad"
+- RISK-0191 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/testarch/atdd/workflow.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0192 (high, Security Boundary) in `_bmad/bmm/workflows/testarch/automate/workflow.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L4: author: "BMad"
+- RISK-0193 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/testarch/automate/workflow.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0194 (medium, Concurrency Or Timing) in `_bmad/bmm/workflows/testarch/ci/github-actions-template.yaml`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L25: timeout-minutes: 5
+- RISK-0195 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/testarch/ci/github-actions-template.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0196 (medium, Persistence Or State) in `_bmad/bmm/workflows/testarch/ci/github-actions-template.yaml`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L45: cache: "npm"
+- RISK-0197 (low, High Attention File) in `_bmad/bmm/workflows/testarch/ci/github-actions-template.yaml`: The digest found several implementation signals worth manual review. Evidence: L25: timeout-minutes: 5
+- RISK-0198 (medium, Concurrency Or Timing) in `_bmad/bmm/workflows/testarch/ci/gitlab-ci-template.yaml`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L45: timeout: 5 minutes
+- RISK-0199 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/testarch/ci/gitlab-ci-template.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0200 (medium, Persistence Or State) in `_bmad/bmm/workflows/testarch/ci/gitlab-ci-template.yaml`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L15: npm_config_cache: "$CI_PROJECT_DIR/.npm"
+- RISK-0201 (low, High Attention File) in `_bmad/bmm/workflows/testarch/ci/gitlab-ci-template.yaml`: The digest found several implementation signals worth manual review. Evidence: L15: npm_config_cache: "$CI_PROJECT_DIR/.npm"
+- RISK-0202 (high, Security Boundary) in `_bmad/bmm/workflows/testarch/ci/workflow.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L4: author: "BMad"
+- RISK-0203 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/testarch/ci/workflow.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0204 (high, Security Boundary) in `_bmad/bmm/workflows/testarch/framework/workflow.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L4: author: "BMad"
+- RISK-0205 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/testarch/framework/workflow.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0206 (high, Security Boundary) in `_bmad/bmm/workflows/testarch/nfr-assess/workflow.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L4: author: "BMad"
+- RISK-0207 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/testarch/nfr-assess/workflow.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0208 (high, Security Boundary) in `_bmad/bmm/workflows/testarch/test-design/workflow.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L4: author: "BMad"
+- RISK-0209 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/testarch/test-design/workflow.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0210 (high, Security Boundary) in `_bmad/bmm/workflows/testarch/test-review/workflow.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L4: author: "BMad"
+- RISK-0211 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/testarch/test-review/workflow.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0212 (high, Security Boundary) in `_bmad/bmm/workflows/testarch/trace/workflow.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L4: author: "BMad"
+- RISK-0213 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/testarch/trace/workflow.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0214 (high, Security Boundary) in `_bmad/bmm/workflows/workflow-status/init/workflow.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L4: author: "BMad"
+- RISK-0215 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/workflow-status/init/workflow.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0216 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/workflow-status/paths/enterprise-brownfield.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0217 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/workflow-status/paths/enterprise-greenfield.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0218 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/workflow-status/paths/method-brownfield.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0219 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/workflow-status/paths/method-greenfield.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0220 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/workflow-status/project-levels.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0221 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/workflow-status/workflow-status-template.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0222 (high, Security Boundary) in `_bmad/bmm/workflows/workflow-status/workflow.yaml`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L4: author: "BMad"
+- RISK-0223 (medium, Parser Or Heuristic) in `_bmad/bmm/workflows/workflow-status/workflow.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+- RISK-0224 (medium, Parser Or Heuristic) in `_bmad/core/config.yaml`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `yaml`
+
+## Files
+
+- `_bmad/_config/agents/bmb-agent-builder.customize.yaml` — yaml, 42 lines, attention 42
+- `_bmad/_config/agents/bmb-module-builder.customize.yaml` — yaml, 42 lines, attention 42
+- `_bmad/_config/agents/bmb-workflow-builder.customize.yaml` — yaml, 42 lines, attention 42
+- `_bmad/_config/agents/bmm-analyst.customize.yaml` — yaml, 42 lines, attention 42
+- `_bmad/_config/agents/bmm-architect.customize.yaml` — yaml, 42 lines, attention 42
+- `_bmad/_config/agents/bmm-dev.customize.yaml` — yaml, 42 lines, attention 42
+- `_bmad/_config/agents/bmm-pm.customize.yaml` — yaml, 42 lines, attention 42
+- `_bmad/_config/agents/bmm-quick-flow-solo-dev.customize.yaml` — yaml, 42 lines, attention 42
+- `_bmad/_config/agents/bmm-sm.customize.yaml` — yaml, 42 lines, attention 42
+- `_bmad/_config/agents/bmm-tea.customize.yaml` — yaml, 42 lines, attention 42
+- `_bmad/_config/agents/bmm-tech-writer.customize.yaml` — yaml, 42 lines, attention 42
+- `_bmad/_config/agents/bmm-ux-designer.customize.yaml` — yaml, 42 lines, attention 42
+- `_bmad/_config/agents/core-bmad-master.customize.yaml` — yaml, 42 lines, attention 42
+- `_bmad/_config/ides/claude-code.yaml` — yaml, 7 lines, attention 0
+- `_bmad/_config/manifest.yaml` — yaml, 11 lines, attention 0
+- `_bmad/bmb/README.md` — markdown, 26 lines, attention 0
+- `_bmad/bmb/agents/agent-builder.md` — markdown, 63 lines, attention 42
+- `_bmad/bmb/agents/module-builder.md` — markdown, 66 lines, attention 28
+- `_bmad/bmb/agents/workflow-builder.md` — markdown, 62 lines, attention 28
+- `_bmad/bmb/config.yaml` — yaml, 13 lines, attention 0
+- `_bmad/bmb/docs/workflows/architecture.md` — markdown, 221 lines, attention 28
+- `_bmad/bmb/docs/workflows/csv-data-file-standards.md` — markdown, 207 lines, attention 42
+- `_bmad/bmb/docs/workflows/intent-vs-prescriptive-spectrum.md` — markdown, 221 lines, attention 28
+- `_bmad/bmb/docs/workflows/step-file-rules.md` — markdown, 470 lines, attention 0
+- `_bmad/bmb/docs/workflows/templates/step-01-init-continuable-template.md` — markdown, 242 lines, attention 56
+- `_bmad/bmb/docs/workflows/templates/step-1b-template.md` — markdown, 224 lines, attention 70
+- `_bmad/bmb/docs/workflows/templates/step-file.md` — markdown, 140 lines, attention 0
+- `_bmad/bmb/docs/workflows/templates/step-template.md` — markdown, 291 lines, attention 14
+- `_bmad/bmb/docs/workflows/templates/workflow-template.md` — markdown, 105 lines, attention 0
+- `_bmad/bmb/docs/workflows/templates/workflow.md` — markdown, 59 lines, attention 14
+- `_bmad/bmb/docs/workflows/terms.md` — markdown, 98 lines, attention 14
+- `_bmad/bmb/reference/agents/simple-examples/README.md` — markdown, 224 lines, attention 100
+- `_bmad/bmb/reference/readme.md` — markdown, 4 lines, attention 0
+- `_bmad/bmb/reference/workflows/meal-prep-nutrition/steps/step-01-init.md` — markdown, 178 lines, attention 28
+- `_bmad/bmb/reference/workflows/meal-prep-nutrition/steps/step-01b-continue.md` — markdown, 122 lines, attention 56
+- `_bmad/bmb/reference/workflows/meal-prep-nutrition/steps/step-02-profile.md` — markdown, 166 lines, attention 0
+- `_bmad/bmb/reference/workflows/meal-prep-nutrition/steps/step-03-assessment.md` — markdown, 155 lines, attention 0
+- `_bmad/bmb/reference/workflows/meal-prep-nutrition/steps/step-04-strategy.md` — markdown, 184 lines, attention 0
+- `_bmad/bmb/reference/workflows/meal-prep-nutrition/steps/step-05-shopping.md` — markdown, 169 lines, attention 0
+- `_bmad/bmb/reference/workflows/meal-prep-nutrition/steps/step-06-prep-schedule.md` — markdown, 196 lines, attention 42
+- `_bmad/bmb/reference/workflows/meal-prep-nutrition/templates/assessment-section.md` — markdown, 26 lines, attention 0
+- `_bmad/bmb/reference/workflows/meal-prep-nutrition/templates/prep-schedule-section.md` — markdown, 30 lines, attention 0
+- `_bmad/bmb/reference/workflows/meal-prep-nutrition/templates/profile-section.md` — markdown, 48 lines, attention 0
+- `_bmad/bmb/reference/workflows/meal-prep-nutrition/templates/shopping-section.md` — markdown, 38 lines, attention 0
+- `_bmad/bmb/reference/workflows/meal-prep-nutrition/templates/strategy-section.md` — markdown, 19 lines, attention 0
+- `_bmad/bmb/reference/workflows/meal-prep-nutrition/workflow.md` — markdown, 60 lines, attention 14
+- `_bmad/bmb/workflows-legacy/edit-module/README.md` — markdown, 172 lines, attention 14
+- `_bmad/bmb/workflows-legacy/edit-module/checklist.md` — markdown, 164 lines, attention 28
+- `_bmad/bmb/workflows-legacy/edit-module/instructions.md` — markdown, 341 lines, attention 14
+- `_bmad/bmb/workflows-legacy/edit-module/workflow.yaml` — yaml, 33 lines, attention 14
+- `_bmad/bmb/workflows-legacy/module-brief/README.md` — markdown, 265 lines, attention 84
+- `_bmad/bmb/workflows-legacy/module-brief/checklist.md` — markdown, 117 lines, attention 14
+- `_bmad/bmb/workflows-legacy/module-brief/instructions.md` — markdown, 269 lines, attention 28
+- `_bmad/bmb/workflows-legacy/module-brief/template.md` — markdown, 276 lines, attention 14
+- `_bmad/bmb/workflows-legacy/module-brief/workflow.yaml` — yaml, 35 lines, attention 28
+- `_bmad/bmb/workflows/agent/data/agent-compilation.md` — markdown, 272 lines, attention 56
+- `_bmad/bmb/workflows/agent/data/agent-menu-patterns.md` — markdown, 234 lines, attention 100
+- `_bmad/bmb/workflows/agent/data/agent-metadata.md` — markdown, 209 lines, attention 14
+- `_bmad/bmb/workflows/agent/data/brainstorm-context.md` — markdown, 147 lines, attention 56
+- `_bmad/bmb/workflows/agent/data/critical-actions.md` — markdown, 121 lines, attention 100
+- `_bmad/bmb/workflows/agent/data/expert-agent-architecture.md` — markdown, 237 lines, attention 100
+- `_bmad/bmb/workflows/agent/data/expert-agent-validation.md` — markdown, 174 lines, attention 100
+- `_bmad/bmb/workflows/agent/data/module-agent-validation.md` — markdown, 125 lines, attention 14
+- `_bmad/bmb/workflows/agent/data/persona-properties.md` — markdown, 267 lines, attention 0
+- `_bmad/bmb/workflows/agent/data/principles-crafting.md` — markdown, 293 lines, attention 84
+- `_bmad/bmb/workflows/agent/data/reference/module-examples/architect.md` — markdown, 68 lines, attention 14
+- `_bmad/bmb/workflows/agent/data/simple-agent-architecture.md` — markdown, 205 lines, attention 28
+- `_bmad/bmb/workflows/agent/data/simple-agent-validation.md` — markdown, 133 lines, attention 14
+- `_bmad/bmb/workflows/agent/data/understanding-agent-types.md` — markdown, 223 lines, attention 100
+- `_bmad/bmb/workflows/agent/steps-c/step-01-brainstorm.md` — markdown, 127 lines, attention 14
+- `_bmad/bmb/workflows/agent/steps-c/step-02-discovery.md` — markdown, 169 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-c/step-03-type-metadata.md` — markdown, 295 lines, attention 42
+- `_bmad/bmb/workflows/agent/steps-c/step-04-persona.md` — markdown, 211 lines, attention 14
+- `_bmad/bmb/workflows/agent/steps-c/step-05-commands-menu.md` — markdown, 177 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-c/step-06-activation.md` — markdown, 276 lines, attention 28
+- `_bmad/bmb/workflows/agent/steps-c/step-07a-build-simple.md` — markdown, 186 lines, attention 28
+- `_bmad/bmb/workflows/agent/steps-c/step-07b-build-expert.md` — markdown, 202 lines, attention 100
+- `_bmad/bmb/workflows/agent/steps-c/step-07c-build-module.md` — markdown, 259 lines, attention 14
+- `_bmad/bmb/workflows/agent/steps-c/step-08b-metadata-validation.md` — markdown, 136 lines, attention 14
+- `_bmad/bmb/workflows/agent/steps-c/step-08c-persona-validation.md` — markdown, 162 lines, attention 14
+- `_bmad/bmb/workflows/agent/steps-c/step-08d-menu-validation.md` — markdown, 159 lines, attention 14
+- `_bmad/bmb/workflows/agent/steps-c/step-08e-structure-validation.md` — markdown, 307 lines, attention 28
+- `_bmad/bmb/workflows/agent/steps-c/step-08f-sidecar-validation.md` — markdown, 463 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-c/step-09-celebrate.md` — markdown, 245 lines, attention 42
+- `_bmad/bmb/workflows/agent/steps-e/e-01-load-existing.md` — markdown, 215 lines, attention 70
+- `_bmad/bmb/workflows/agent/steps-e/e-02-discover-edits.md` — markdown, 192 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-e/e-03a-validate-metadata.md` — markdown, 79 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-e/e-03b-validate-persona.md` — markdown, 77 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-e/e-03c-validate-menu.md` — markdown, 76 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-e/e-03d-validate-structure.md` — markdown, 76 lines, attention 14
+- `_bmad/bmb/workflows/agent/steps-e/e-03e-validate-sidecar.md` — markdown, 79 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-e/e-03f-validation-summary.md` — markdown, 120 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-e/e-04-type-metadata.md` — markdown, 123 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-e/e-05-persona.md` — markdown, 133 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-e/e-06-commands-menu.md` — markdown, 121 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-e/e-07-activation.md` — markdown, 123 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-e/e-08a-edit-simple.md` — markdown, 135 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-e/e-08b-edit-expert.md` — markdown, 118 lines, attention 28
+- `_bmad/bmb/workflows/agent/steps-e/e-08c-edit-module.md` — markdown, 121 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-e/e-09a-validate-metadata.md` — markdown, 71 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-e/e-09b-validate-persona.md` — markdown, 71 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-e/e-09c-validate-menu.md` — markdown, 70 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-e/e-09d-validate-structure.md` — markdown, 70 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-e/e-09e-validate-sidecar.md` — markdown, 71 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-e/e-09f-validation-summary.md` — markdown, 112 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-e/e-10-celebrate.md` — markdown, 151 lines, attention 14
+- `_bmad/bmb/workflows/agent/steps-v/v-01-load-review.md` — markdown, 129 lines, attention 22
+- `_bmad/bmb/workflows/agent/steps-v/v-02a-validate-metadata.md` — markdown, 74 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-v/v-02b-validate-persona.md` — markdown, 73 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-v/v-02c-validate-menu.md` — markdown, 72 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-v/v-02d-validate-structure.md` — markdown, 72 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-v/v-02e-validate-sidecar.md` — markdown, 77 lines, attention 0
+- `_bmad/bmb/workflows/agent/steps-v/v-03-summary.md` — markdown, 101 lines, attention 14
+- `_bmad/bmb/workflows/agent/templates/expert-agent-template/expert-agent.template.md` — markdown, 77 lines, attention 14
+- `_bmad/bmb/workflows/agent/templates/simple-agent.template.md` — markdown, 72 lines, attention 0
+- `_bmad/bmb/workflows/agent/workflow.md` — markdown, 124 lines, attention 14
+- `_bmad/bmb/workflows/create-module/steps/step-01-init.md` — markdown, 157 lines, attention 28
+- `_bmad/bmb/workflows/create-module/steps/step-01b-continue.md` — markdown, 171 lines, attention 0
+- `_bmad/bmb/workflows/create-module/steps/step-02-concept.md` — markdown, 219 lines, attention 14
+- `_bmad/bmb/workflows/create-module/steps/step-03-components.md` — markdown, 269 lines, attention 14
+- `_bmad/bmb/workflows/create-module/steps/step-04-structure.md` — markdown, 230 lines, attention 0
+- `_bmad/bmb/workflows/create-module/steps/step-05-config.md` — markdown, 235 lines, attention 14
+- `_bmad/bmb/workflows/create-module/steps/step-06-agents.md` — markdown, 298 lines, attention 100
+- `_bmad/bmb/workflows/create-module/steps/step-07-workflows.md` — markdown, 230 lines, attention 0
+- `_bmad/bmb/workflows/create-module/steps/step-08-installer.md` — markdown, 188 lines, attention 0
+- `_bmad/bmb/workflows/create-module/steps/step-09-documentation.md` — markdown, 311 lines, attention 28
+- `_bmad/bmb/workflows/create-module/steps/step-10-roadmap.md` — markdown, 339 lines, attention 14
+- `_bmad/bmb/workflows/create-module/steps/step-11-validate.md` — markdown, 337 lines, attention 14
+- `_bmad/bmb/workflows/create-module/templates/agent.template.md` — markdown, 314 lines, attention 100
+- `_bmad/bmb/workflows/create-module/templates/installer.template.js` — javascript, 48 lines, attention 0
+- `_bmad/bmb/workflows/create-module/templates/module.template.yaml` — yaml, 54 lines, attention 0
+- `_bmad/bmb/workflows/create-module/validation.md` — markdown, 127 lines, attention 14
+- `_bmad/bmb/workflows/create-module/workflow.md` — markdown, 57 lines, attention 0
+- `_bmad/bmb/workflows/create-workflow/data/examples/meal-prep-nutrition/steps/step-01-init.md` — markdown, 178 lines, attention 28
+- `_bmad/bmb/workflows/create-workflow/data/examples/meal-prep-nutrition/steps/step-01b-continue.md` — markdown, 151 lines, attention 56
+- `_bmad/bmb/workflows/create-workflow/data/examples/meal-prep-nutrition/steps/step-02-profile.md` — markdown, 165 lines, attention 0
+- `_bmad/bmb/workflows/create-workflow/data/examples/meal-prep-nutrition/steps/step-03-assessment.md` — markdown, 153 lines, attention 0
+- `_bmad/bmb/workflows/create-workflow/data/examples/meal-prep-nutrition/steps/step-04-strategy.md` — markdown, 183 lines, attention 0
+- `_bmad/bmb/workflows/create-workflow/data/examples/meal-prep-nutrition/steps/step-05-shopping.md` — markdown, 168 lines, attention 0
+- `_bmad/bmb/workflows/create-workflow/data/examples/meal-prep-nutrition/steps/step-06-prep-schedule.md` — markdown, 195 lines, attention 42
+- `_bmad/bmb/workflows/create-workflow/data/examples/meal-prep-nutrition/templates/assessment-section.md` — markdown, 26 lines, attention 0
+- `_bmad/bmb/workflows/create-workflow/data/examples/meal-prep-nutrition/templates/prep-schedule-section.md` — markdown, 30 lines, attention 0
+- `_bmad/bmb/workflows/create-workflow/data/examples/meal-prep-nutrition/templates/profile-section.md` — markdown, 48 lines, attention 0
+- `_bmad/bmb/workflows/create-workflow/data/examples/meal-prep-nutrition/templates/shopping-section.md` — markdown, 38 lines, attention 0
+- `_bmad/bmb/workflows/create-workflow/data/examples/meal-prep-nutrition/templates/strategy-section.md` — markdown, 19 lines, attention 0
+- `_bmad/bmb/workflows/create-workflow/data/examples/meal-prep-nutrition/workflow.md` — markdown, 59 lines, attention 14
+- `_bmad/bmb/workflows/create-workflow/steps/step-01-init.md` — markdown, 159 lines, attention 28
+- `_bmad/bmb/workflows/create-workflow/steps/step-02-gather.md` — markdown, 213 lines, attention 14
+- `_bmad/bmb/workflows/create-workflow/steps/step-03-tools-configuration.md` — markdown, 252 lines, attention 100
+- `_bmad/bmb/workflows/create-workflow/steps/step-05-output-format-design.md` — markdown, 291 lines, attention 0
+- `_bmad/bmb/workflows/create-workflow/steps/step-06-design.md` — markdown, 273 lines, attention 56
+- `_bmad/bmb/workflows/create-workflow/steps/step-07-build.md` — markdown, 324 lines, attention 0
+- `_bmad/bmb/workflows/create-workflow/steps/step-08-review.md` — markdown, 286 lines, attention 8
+- `_bmad/bmb/workflows/create-workflow/steps/step-09-complete.md` — markdown, 189 lines, attention 0
+- `_bmad/bmb/workflows/create-workflow/workflow.md` — markdown, 60 lines, attention 14
+- `_bmad/bmb/workflows/edit-workflow/steps/step-01-analyze.md` — markdown, 218 lines, attention 42
+- `_bmad/bmb/workflows/edit-workflow/steps/step-02-discover.md` — markdown, 255 lines, attention 0
+- `_bmad/bmb/workflows/edit-workflow/steps/step-03-improve.md` — markdown, 219 lines, attention 0
+- `_bmad/bmb/workflows/edit-workflow/steps/step-04-validate.md` — markdown, 195 lines, attention 0
+- `_bmad/bmb/workflows/edit-workflow/steps/step-05-compliance-check.md` — markdown, 247 lines, attention 28
+- `_bmad/bmb/workflows/edit-workflow/templates/completion-summary.md` — markdown, 76 lines, attention 0
+- `_bmad/bmb/workflows/edit-workflow/templates/improvement-goals.md` — markdown, 69 lines, attention 0
+- `_bmad/bmb/workflows/edit-workflow/templates/improvement-log.md` — markdown, 41 lines, attention 0
+- `_bmad/bmb/workflows/edit-workflow/templates/validation-results.md` — markdown, 52 lines, attention 0
+- `_bmad/bmb/workflows/edit-workflow/templates/workflow-analysis.md` — markdown, 57 lines, attention 14
+- `_bmad/bmb/workflows/edit-workflow/workflow.md` — markdown, 60 lines, attention 14
+- `_bmad/bmb/workflows/workflow-compliance-check/steps/step-01-validate-goal.md` — markdown, 154 lines, attention 0
+- `_bmad/bmb/workflows/workflow-compliance-check/steps/step-02-workflow-validation.md` — markdown, 245 lines, attention 14
+- `_bmad/bmb/workflows/workflow-compliance-check/steps/step-03-step-validation.md` — markdown, 276 lines, attention 14
+- `_bmad/bmb/workflows/workflow-compliance-check/steps/step-04-file-validation.md` — markdown, 297 lines, attention 14
+- `_bmad/bmb/workflows/workflow-compliance-check/steps/step-05-intent-spectrum-validation.md` — markdown, 266 lines, attention 70
+- `_bmad/bmb/workflows/workflow-compliance-check/steps/step-06-web-subprocess-validation.md` — markdown, 362 lines, attention 100
+- `_bmad/bmb/workflows/workflow-compliance-check/steps/step-07-holistic-analysis.md` — markdown, 260 lines, attention 0
+- `_bmad/bmb/workflows/workflow-compliance-check/workflow.md` — markdown, 60 lines, attention 14
+- `_bmad/bmm/agents/analyst.md` — markdown, 82 lines, attention 56
+- `_bmad/bmm/agents/architect.md` — markdown, 74 lines, attention 28
+- `_bmad/bmm/agents/dev.md` — markdown, 76 lines, attention 56
+- `_bmad/bmm/agents/pm.md` — markdown, 76 lines, attention 42
+- `_bmad/bmm/agents/quick-flow-solo-dev.md` — markdown, 74 lines, attention 42
+- `_bmad/bmm/agents/sm.md` — markdown, 77 lines, attention 42
+- `_bmad/bmm/agents/tea.md` — markdown, 77 lines, attention 28
+- `_bmad/bmm/agents/tech-writer.md` — markdown, 78 lines, attention 84
+- `_bmad/bmm/agents/ux-designer.md` — markdown, 74 lines, attention 42
+- `_bmad/bmm/config.yaml` — yaml, 19 lines, attention 14
+- `_bmad/bmm/data/README.md` — markdown, 30 lines, attention 0
+- `_bmad/bmm/data/documentation-standards.md` — markdown, 263 lines, attention 70
+- `_bmad/bmm/data/project-context-template.md` — markdown, 41 lines, attention 28
+- `_bmad/bmm/teams/team-fullstack.yaml` — yaml, 13 lines, attention 0
+- `_bmad/bmm/testarch/knowledge/api-request.md` — markdown, 304 lines, attention 100
+- `_bmad/bmm/testarch/knowledge/auth-session.md` — markdown, 357 lines, attention 100
+- `_bmad/bmm/testarch/knowledge/burn-in.md` — markdown, 274 lines, attention 14
+- `_bmad/bmm/testarch/knowledge/ci-burn-in.md` — markdown, 676 lines, attention 100
+- `_bmad/bmm/testarch/knowledge/component-tdd.md` — markdown, 487 lines, attention 100
+- `_bmad/bmm/testarch/knowledge/contract-testing.md` — markdown, 958 lines, attention 100
+- `_bmad/bmm/testarch/knowledge/data-factories.md` — markdown, 501 lines, attention 42
+- `_bmad/bmm/testarch/knowledge/email-auth.md` — markdown, 722 lines, attention 100
+- `_bmad/bmm/testarch/knowledge/error-handling.md` — markdown, 726 lines, attention 100
+- `_bmad/bmm/testarch/knowledge/feature-flags.md` — markdown, 751 lines, attention 100
+- `_bmad/bmm/testarch/knowledge/file-utils.md` — markdown, 261 lines, attention 100
+- `_bmad/bmm/testarch/knowledge/fixture-architecture.md` — markdown, 402 lines, attention 100
+- `_bmad/bmm/testarch/knowledge/fixtures-composition.md` — markdown, 383 lines, attention 100
+- `_bmad/bmm/testarch/knowledge/intercept-network-call.md` — markdown, 281 lines, attention 100
+- `_bmad/bmm/testarch/knowledge/log.md` — markdown, 295 lines, attention 100
+- `_bmad/bmm/testarch/knowledge/network-error-monitor.md` — markdown, 273 lines, attention 98
+- `_bmad/bmm/testarch/knowledge/network-first.md` — markdown, 487 lines, attention 100
+- `_bmad/bmm/testarch/knowledge/network-recorder.md` — markdown, 266 lines, attention 84
+- `_bmad/bmm/testarch/knowledge/nfr-criteria.md` — markdown, 671 lines, attention 100
+- `_bmad/bmm/testarch/knowledge/overview.md` — markdown, 284 lines, attention 100
+- `_bmad/bmm/testarch/knowledge/playwright-config.md` — markdown, 731 lines, attention 100
+- `_bmad/bmm/testarch/knowledge/probability-impact.md` — markdown, 602 lines, attention 70
+- `_bmad/bmm/testarch/knowledge/recurse.md` — markdown, 297 lines, attention 100
+- `_bmad/bmm/testarch/knowledge/risk-governance.md` — markdown, 616 lines, attention 100
+- `_bmad/bmm/testarch/knowledge/selective-testing.md` — markdown, 733 lines, attention 100
+- `_bmad/bmm/testarch/knowledge/selector-resilience.md` — markdown, 528 lines, attention 100
+- `_bmad/bmm/testarch/knowledge/test-healing-patterns.md` — markdown, 645 lines, attention 100
+- `_bmad/bmm/testarch/knowledge/test-levels-framework.md` — markdown, 474 lines, attention 56
+- `_bmad/bmm/testarch/knowledge/test-priorities-matrix.md` — markdown, 374 lines, attention 42
+- `_bmad/bmm/testarch/knowledge/test-quality.md` — markdown, 665 lines, attention 100
+- `_bmad/bmm/testarch/knowledge/timing-debugging.md` — markdown, 373 lines, attention 100
+- `_bmad/bmm/testarch/knowledge/visual-debugging.md` — markdown, 525 lines, attention 100
+- `_bmad/bmm/workflows/1-analysis/create-product-brief/product-brief.template.md` — markdown, 11 lines, attention 14
+- `_bmad/bmm/workflows/1-analysis/create-product-brief/steps/step-01-init.md` — markdown, 183 lines, attention 14
+- `_bmad/bmm/workflows/1-analysis/create-product-brief/steps/step-01b-continue.md` — markdown, 166 lines, attention 28
+- `_bmad/bmm/workflows/1-analysis/create-product-brief/steps/step-02-vision.md` — markdown, 204 lines, attention 14
+- `_bmad/bmm/workflows/1-analysis/create-product-brief/steps/step-03-users.md` — markdown, 207 lines, attention 14
+- `_bmad/bmm/workflows/1-analysis/create-product-brief/steps/step-04-metrics.md` — markdown, 210 lines, attention 0
+- `_bmad/bmm/workflows/1-analysis/create-product-brief/steps/step-05-scope.md` — markdown, 224 lines, attention 0
+- `_bmad/bmm/workflows/1-analysis/create-product-brief/steps/step-06-complete.md` — markdown, 200 lines, attention 28
+- `_bmad/bmm/workflows/1-analysis/create-product-brief/workflow.md` — markdown, 58 lines, attention 14
+- `_bmad/bmm/workflows/1-analysis/research/domain-steps/step-01-init.md` — markdown, 138 lines, attention 0
+- `_bmad/bmm/workflows/1-analysis/research/domain-steps/step-02-domain-analysis.md` — markdown, 230 lines, attention 56
+- `_bmad/bmm/workflows/1-analysis/research/domain-steps/step-03-competitive-landscape.md` — markdown, 239 lines, attention 28
+- `_bmad/bmm/workflows/1-analysis/research/domain-steps/step-04-regulatory-focus.md` — markdown, 207 lines, attention 0
+- `_bmad/bmm/workflows/1-analysis/research/domain-steps/step-05-technical-trends.md` — markdown, 235 lines, attention 0
+- `_bmad/bmm/workflows/1-analysis/research/domain-steps/step-06-research-synthesis.md` — markdown, 444 lines, attention 100
+- `_bmad/bmm/workflows/1-analysis/research/market-steps/step-01-init.md` — markdown, 183 lines, attention 0
+- `_bmad/bmm/workflows/1-analysis/research/market-steps/step-02-customer-behavior.md` — markdown, 238 lines, attention 42
+- `_bmad/bmm/workflows/1-analysis/research/market-steps/step-02-customer-insights.md` — markdown, 201 lines, attention 14
+- `_bmad/bmm/workflows/1-analysis/research/market-steps/step-03-customer-pain-points.md` — markdown, 250 lines, attention 28
+- `_bmad/bmm/workflows/1-analysis/research/market-steps/step-04-customer-decisions.md` — markdown, 260 lines, attention 28
+- `_bmad/bmm/workflows/1-analysis/research/market-steps/step-05-competitive-analysis.md` — markdown, 178 lines, attention 0
+- `_bmad/bmm/workflows/1-analysis/research/market-steps/step-06-research-completion.md` — markdown, 476 lines, attention 100
+- `_bmad/bmm/workflows/1-analysis/research/research.template.md` — markdown, 30 lines, attention 14
+- `_bmad/bmm/workflows/1-analysis/research/technical-steps/step-01-init.md` — markdown, 138 lines, attention 0
+- `_bmad/bmm/workflows/1-analysis/research/technical-steps/step-02-technical-overview.md` — markdown, 240 lines, attention 56
+- `_bmad/bmm/workflows/1-analysis/research/technical-steps/step-03-integration-patterns.md` — markdown, 249 lines, attention 98
+- `_bmad/bmm/workflows/1-analysis/research/technical-steps/step-04-architectural-patterns.md` — markdown, 203 lines, attention 0
+- `_bmad/bmm/workflows/1-analysis/research/technical-steps/step-05-implementation-research.md` — markdown, 240 lines, attention 14
+- `_bmad/bmm/workflows/1-analysis/research/technical-steps/step-06-research-synthesis.md` — markdown, 487 lines, attention 100
+- `_bmad/bmm/workflows/1-analysis/research/workflow.md` — markdown, 174 lines, attention 28
+- `_bmad/bmm/workflows/2-plan-workflows/create-ux-design/steps/step-01-init.md` — markdown, 136 lines, attention 14
+- `_bmad/bmm/workflows/2-plan-workflows/create-ux-design/steps/step-01b-continue.md` — markdown, 128 lines, attention 0
+- `_bmad/bmm/workflows/2-plan-workflows/create-ux-design/steps/step-02-discovery.md` — markdown, 191 lines, attention 14
+- `_bmad/bmm/workflows/2-plan-workflows/create-ux-design/steps/step-03-core-experience.md` — markdown, 217 lines, attention 0
+- `_bmad/bmm/workflows/2-plan-workflows/create-ux-design/steps/step-04-emotional-response.md` — markdown, 220 lines, attention 0
+- `_bmad/bmm/workflows/2-plan-workflows/create-ux-design/steps/step-05-inspiration.md` — markdown, 235 lines, attention 0
+- `_bmad/bmm/workflows/2-plan-workflows/create-ux-design/steps/step-06-design-system.md` — markdown, 253 lines, attention 28
+- `_bmad/bmm/workflows/2-plan-workflows/create-ux-design/steps/step-07-defining-experience.md` — markdown, 255 lines, attention 14
+- `_bmad/bmm/workflows/2-plan-workflows/create-ux-design/steps/step-08-visual-foundation.md` — markdown, 225 lines, attention 0
+- `_bmad/bmm/workflows/2-plan-workflows/create-ux-design/steps/step-09-design-directions.md` — markdown, 225 lines, attention 14
+- `_bmad/bmm/workflows/2-plan-workflows/create-ux-design/steps/step-10-user-journeys.md` — markdown, 242 lines, attention 0
+- `_bmad/bmm/workflows/2-plan-workflows/create-ux-design/steps/step-11-component-strategy.md` — markdown, 249 lines, attention 14
+- `_bmad/bmm/workflows/2-plan-workflows/create-ux-design/steps/step-12-ux-patterns.md` — markdown, 238 lines, attention 0
+- `_bmad/bmm/workflows/2-plan-workflows/create-ux-design/steps/step-13-responsive-accessibility.md` — markdown, 265 lines, attention 14
+- `_bmad/bmm/workflows/2-plan-workflows/create-ux-design/steps/step-14-complete.md` — markdown, 229 lines, attention 0
+- `_bmad/bmm/workflows/2-plan-workflows/create-ux-design/ux-design-template.md` — markdown, 14 lines, attention 14
+- `_bmad/bmm/workflows/2-plan-workflows/create-ux-design/workflow.md` — markdown, 44 lines, attention 0
+- `_bmad/bmm/workflows/2-plan-workflows/prd/prd-template.md` — markdown, 12 lines, attention 14
+- `_bmad/bmm/workflows/2-plan-workflows/prd/steps/step-01-init.md` — markdown, 197 lines, attention 14
+- `_bmad/bmm/workflows/2-plan-workflows/prd/steps/step-01b-continue.md` — markdown, 166 lines, attention 14
+- `_bmad/bmm/workflows/2-plan-workflows/prd/steps/step-02-discovery.md` — markdown, 422 lines, attention 28
+- `_bmad/bmm/workflows/2-plan-workflows/prd/steps/step-03-success.md` — markdown, 291 lines, attention 0
+- `_bmad/bmm/workflows/2-plan-workflows/prd/steps/step-04-journeys.md` — markdown, 292 lines, attention 14
+- `_bmad/bmm/workflows/2-plan-workflows/prd/steps/step-05-domain.md` — markdown, 272 lines, attention 14
+- `_bmad/bmm/workflows/2-plan-workflows/prd/steps/step-06-innovation.md` — markdown, 263 lines, attention 28
+- `_bmad/bmm/workflows/2-plan-workflows/prd/steps/step-07-project-type.md` — markdown, 259 lines, attention 84
+- `_bmad/bmm/workflows/2-plan-workflows/prd/steps/step-08-scoping.md` — markdown, 300 lines, attention 0
+- `_bmad/bmm/workflows/2-plan-workflows/prd/steps/step-09-functional.md` — markdown, 271 lines, attention 28
+- `_bmad/bmm/workflows/2-plan-workflows/prd/steps/step-10-nonfunctional.md` — markdown, 295 lines, attention 0
+- `_bmad/bmm/workflows/2-plan-workflows/prd/steps/step-11-complete.md` — markdown, 187 lines, attention 0
+- `_bmad/bmm/workflows/2-plan-workflows/prd/workflow.md` — markdown, 63 lines, attention 14
+- `_bmad/bmm/workflows/3-solutioning/check-implementation-readiness/steps/step-01-document-discovery.md` — markdown, 190 lines, attention 0
+- `_bmad/bmm/workflows/3-solutioning/check-implementation-readiness/steps/step-02-prd-analysis.md` — markdown, 179 lines, attention 14
+- `_bmad/bmm/workflows/3-solutioning/check-implementation-readiness/steps/step-03-epic-coverage-validation.md` — markdown, 180 lines, attention 0
+- `_bmad/bmm/workflows/3-solutioning/check-implementation-readiness/steps/step-04-ux-alignment.md` — markdown, 140 lines, attention 14
+- `_bmad/bmm/workflows/3-solutioning/check-implementation-readiness/steps/step-05-epic-quality-review.md` — markdown, 253 lines, attention 36
+- `_bmad/bmm/workflows/3-solutioning/check-implementation-readiness/steps/step-06-final-assessment.md` — markdown, 134 lines, attention 0
+- `_bmad/bmm/workflows/3-solutioning/check-implementation-readiness/workflow.md` — markdown, 55 lines, attention 0
+- `_bmad/bmm/workflows/3-solutioning/create-architecture/architecture-decision-template.md` — markdown, 13 lines, attention 0
+- `_bmad/bmm/workflows/3-solutioning/create-architecture/steps/step-01-init.md` — markdown, 154 lines, attention 14
+- `_bmad/bmm/workflows/3-solutioning/create-architecture/steps/step-01b-continue.md` — markdown, 165 lines, attention 28
+- `_bmad/bmm/workflows/3-solutioning/create-architecture/steps/step-02-context.md` — markdown, 225 lines, attention 28
+- `_bmad/bmm/workflows/3-solutioning/create-architecture/steps/step-03-starter.md` — markdown, 332 lines, attention 56
+- `_bmad/bmm/workflows/3-solutioning/create-architecture/steps/step-04-decisions.md` — markdown, 319 lines, attention 70
+- `_bmad/bmm/workflows/3-solutioning/create-architecture/steps/step-05-patterns.md` — markdown, 360 lines, attention 42
+- `_bmad/bmm/workflows/3-solutioning/create-architecture/steps/step-06-structure.md` — markdown, 380 lines, attention 100
+- `_bmad/bmm/workflows/3-solutioning/create-architecture/steps/step-07-validation.md` — markdown, 360 lines, attention 56
+- `_bmad/bmm/workflows/3-solutioning/create-architecture/steps/step-08-complete.md` — markdown, 353 lines, attention 28
+- `_bmad/bmm/workflows/3-solutioning/create-architecture/workflow.md` — markdown, 51 lines, attention 0
+- `_bmad/bmm/workflows/3-solutioning/create-epics-and-stories/steps/step-01-validate-prerequisites.md` — markdown, 259 lines, attention 28
+- `_bmad/bmm/workflows/3-solutioning/create-epics-and-stories/steps/step-02-design-epics.md` — markdown, 233 lines, attention 42
+- `_bmad/bmm/workflows/3-solutioning/create-epics-and-stories/steps/step-03-create-stories.md` — markdown, 272 lines, attention 42
+- `_bmad/bmm/workflows/3-solutioning/create-epics-and-stories/steps/step-04-final-validation.md` — markdown, 146 lines, attention 0
+- `_bmad/bmm/workflows/3-solutioning/create-epics-and-stories/templates/epics-template.md` — markdown, 58 lines, attention 0
+- `_bmad/bmm/workflows/3-solutioning/create-epics-and-stories/workflow.md` — markdown, 59 lines, attention 0
+- `_bmad/bmm/workflows/4-implementation/code-review/checklist.md` — markdown, 24 lines, attention 22
+- `_bmad/bmm/workflows/4-implementation/code-review/workflow.yaml` — yaml, 50 lines, attention 22
+- `_bmad/bmm/workflows/4-implementation/correct-course/checklist.md` — markdown, 280 lines, attention 0
+- `_bmad/bmm/workflows/4-implementation/correct-course/instructions.md` — markdown, 207 lines, attention 28
+- `_bmad/bmm/workflows/4-implementation/correct-course/workflow.yaml` — yaml, 59 lines, attention 14
+- `_bmad/bmm/workflows/4-implementation/create-story/checklist.md` — markdown, 359 lines, attention 100
+- `_bmad/bmm/workflows/4-implementation/create-story/template.md` — markdown, 50 lines, attention 0
+- `_bmad/bmm/workflows/4-implementation/create-story/workflow.yaml` — yaml, 60 lines, attention 98
+- `_bmad/bmm/workflows/4-implementation/dev-story/checklist.md` — markdown, 81 lines, attention 0
+- `_bmad/bmm/workflows/4-implementation/dev-story/workflow.yaml` — yaml, 26 lines, attention 14
+- `_bmad/bmm/workflows/4-implementation/retrospective/instructions.md` — markdown, 1444 lines, attention 100
+- `_bmad/bmm/workflows/4-implementation/retrospective/workflow.yaml` — yaml, 57 lines, attention 14
+- `_bmad/bmm/workflows/4-implementation/sprint-planning/checklist.md` — markdown, 34 lines, attention 14
+- `_bmad/bmm/workflows/4-implementation/sprint-planning/instructions.md` — markdown, 226 lines, attention 98
+- `_bmad/bmm/workflows/4-implementation/sprint-planning/sprint-status-template.yaml` — yaml, 56 lines, attention 14
+- `_bmad/bmm/workflows/4-implementation/sprint-planning/workflow.yaml` — yaml, 53 lines, attention 28
+- `_bmad/bmm/workflows/4-implementation/sprint-status/instructions.md` — markdown, 230 lines, attention 100
+- `_bmad/bmm/workflows/4-implementation/sprint-status/workflow.yaml` — yaml, 35 lines, attention 14
+- `_bmad/bmm/workflows/bmad-quick-flow/create-tech-spec/steps/step-01-understand.md` — markdown, 190 lines, attention 28
+- `_bmad/bmm/workflows/bmad-quick-flow/create-tech-spec/steps/step-02-investigate.md` — markdown, 145 lines, attention 14
+- `_bmad/bmm/workflows/bmad-quick-flow/create-tech-spec/steps/step-03-generate.md` — markdown, 129 lines, attention 0
+- `_bmad/bmm/workflows/bmad-quick-flow/create-tech-spec/steps/step-04-review.md` — markdown, 174 lines, attention 22
+- `_bmad/bmm/workflows/bmad-quick-flow/create-tech-spec/tech-spec-template.md` — markdown, 75 lines, attention 0
+- `_bmad/bmm/workflows/bmad-quick-flow/create-tech-spec/workflow.md` — markdown, 79 lines, attention 14
+- `_bmad/bmm/workflows/bmad-quick-flow/quick-dev/steps/step-01-mode-detection.md` — markdown, 157 lines, attention 70
+- `_bmad/bmm/workflows/bmad-quick-flow/quick-dev/steps/step-02-context-gathering.md` — markdown, 121 lines, attention 14
+- `_bmad/bmm/workflows/bmad-quick-flow/quick-dev/steps/step-03-execute.md` — markdown, 114 lines, attention 0
+- `_bmad/bmm/workflows/bmad-quick-flow/quick-dev/steps/step-04-self-check.md` — markdown, 114 lines, attention 0
+- `_bmad/bmm/workflows/bmad-quick-flow/quick-dev/steps/step-05-adversarial-review.md` — markdown, 107 lines, attention 22
+- `_bmad/bmm/workflows/bmad-quick-flow/quick-dev/steps/step-06-resolve-findings.md` — markdown, 141 lines, attention 14
+- `_bmad/bmm/workflows/bmad-quick-flow/quick-dev/workflow.md` — markdown, 53 lines, attention 0
+- `_bmad/bmm/workflows/document-project/checklist.md` — markdown, 246 lines, attention 42
+- `_bmad/bmm/workflows/document-project/instructions.md` — markdown, 222 lines, attention 70
+- `_bmad/bmm/workflows/document-project/templates/deep-dive-template.md` — markdown, 346 lines, attention 14
+- `_bmad/bmm/workflows/document-project/templates/index-template.md` — markdown, 170 lines, attention 0
+- `_bmad/bmm/workflows/document-project/templates/project-overview-template.md` — markdown, 104 lines, attention 0
+- `_bmad/bmm/workflows/document-project/templates/source-tree-template.md` — markdown, 136 lines, attention 0
+- `_bmad/bmm/workflows/document-project/workflow.yaml` — yaml, 29 lines, attention 14
+- `_bmad/bmm/workflows/document-project/workflows/deep-dive-instructions.md` — markdown, 299 lines, attention 84
+- `_bmad/bmm/workflows/document-project/workflows/deep-dive.yaml` — yaml, 32 lines, attention 14
+- `_bmad/bmm/workflows/document-project/workflows/full-scan-instructions.md` — markdown, 1107 lines, attention 100
+- `_bmad/bmm/workflows/document-project/workflows/full-scan.yaml` — yaml, 32 lines, attention 14
+- `_bmad/bmm/workflows/excalidraw-diagrams/_shared/excalidraw-library.json` — json, 91 lines, attention 14
+- `_bmad/bmm/workflows/excalidraw-diagrams/_shared/excalidraw-templates.yaml` — yaml, 128 lines, attention 0
+- `_bmad/bmm/workflows/excalidraw-diagrams/create-dataflow/checklist.md` — markdown, 40 lines, attention 0
+- `_bmad/bmm/workflows/excalidraw-diagrams/create-dataflow/instructions.md` — markdown, 131 lines, attention 28
+- `_bmad/bmm/workflows/excalidraw-diagrams/create-dataflow/workflow.yaml` — yaml, 26 lines, attention 100
+- `_bmad/bmm/workflows/excalidraw-diagrams/create-diagram/checklist.md` — markdown, 44 lines, attention 0
+- `_bmad/bmm/workflows/excalidraw-diagrams/create-diagram/instructions.md` — markdown, 142 lines, attention 28
+- `_bmad/bmm/workflows/excalidraw-diagrams/create-diagram/workflow.yaml` — yaml, 26 lines, attention 100
+- `_bmad/bmm/workflows/excalidraw-diagrams/create-flowchart/checklist.md` — markdown, 50 lines, attention 0
+- `_bmad/bmm/workflows/excalidraw-diagrams/create-flowchart/instructions.md` — markdown, 242 lines, attention 42
+- `_bmad/bmm/workflows/excalidraw-diagrams/create-flowchart/workflow.yaml` — yaml, 26 lines, attention 100
+- `_bmad/bmm/workflows/excalidraw-diagrams/create-wireframe/checklist.md` — markdown, 39 lines, attention 0
+- `_bmad/bmm/workflows/excalidraw-diagrams/create-wireframe/instructions.md` — markdown, 134 lines, attention 28
+- `_bmad/bmm/workflows/excalidraw-diagrams/create-wireframe/workflow.yaml` — yaml, 26 lines, attention 100
+- `_bmad/bmm/workflows/generate-project-context/project-context-template.md` — markdown, 22 lines, attention 0
+- `_bmad/bmm/workflows/generate-project-context/steps/step-01-discover.md` — markdown, 185 lines, attention 28
+- `_bmad/bmm/workflows/generate-project-context/steps/step-02-generate.md` — markdown, 319 lines, attention 56
+- `_bmad/bmm/workflows/generate-project-context/steps/step-03-complete.md` — markdown, 279 lines, attention 0
+- `_bmad/bmm/workflows/generate-project-context/workflow.md` — markdown, 50 lines, attention 0
+- `_bmad/bmm/workflows/testarch/atdd/atdd-checklist-template.md` — markdown, 365 lines, attention 14
+- `_bmad/bmm/workflows/testarch/atdd/checklist.md` — markdown, 375 lines, attention 42
+- `_bmad/bmm/workflows/testarch/atdd/instructions.md` — markdown, 807 lines, attention 100
+- `_bmad/bmm/workflows/testarch/atdd/workflow.yaml` — yaml, 46 lines, attention 14
+- `_bmad/bmm/workflows/testarch/automate/checklist.md` — markdown, 583 lines, attention 100
+- `_bmad/bmm/workflows/testarch/automate/instructions.md` — markdown, 1325 lines, attention 100
+- `_bmad/bmm/workflows/testarch/automate/workflow.yaml` — yaml, 53 lines, attention 14
+- `_bmad/bmm/workflows/testarch/ci/checklist.md` — markdown, 249 lines, attention 100
+- `_bmad/bmm/workflows/testarch/ci/github-actions-template.yaml` — yaml, 199 lines, attention 100
+- `_bmad/bmm/workflows/testarch/ci/gitlab-ci-template.yaml` — yaml, 150 lines, attention 100
+- `_bmad/bmm/workflows/testarch/ci/instructions.md` — markdown, 537 lines, attention 100
+- `_bmad/bmm/workflows/testarch/ci/workflow.yaml` — yaml, 46 lines, attention 14
+- `_bmad/bmm/workflows/testarch/framework/checklist.md` — markdown, 322 lines, attention 100
+- `_bmad/bmm/workflows/testarch/framework/instructions.md` — markdown, 482 lines, attention 100
+- `_bmad/bmm/workflows/testarch/framework/workflow.yaml` — yaml, 48 lines, attention 14
+- `_bmad/bmm/workflows/testarch/nfr-assess/checklist.md` — markdown, 408 lines, attention 84
+- `_bmad/bmm/workflows/testarch/nfr-assess/instructions.md` — markdown, 723 lines, attention 100
+- `_bmad/bmm/workflows/testarch/nfr-assess/workflow.yaml` — yaml, 48 lines, attention 14
+- `_bmad/bmm/workflows/testarch/test-design/checklist.md` — markdown, 236 lines, attention 56
+- `_bmad/bmm/workflows/testarch/test-design/instructions.md` — markdown, 789 lines, attention 100
+- `_bmad/bmm/workflows/testarch/test-design/test-design-template.md` — markdown, 295 lines, attention 42
+- `_bmad/bmm/workflows/testarch/test-design/workflow.yaml` — yaml, 55 lines, attention 14
+- `_bmad/bmm/workflows/testarch/test-review/checklist.md` — markdown, 473 lines, attention 100
+- `_bmad/bmm/workflows/testarch/test-review/instructions.md` — markdown, 629 lines, attention 100
+- `_bmad/bmm/workflows/testarch/test-review/test-review-template.md` — markdown, 391 lines, attention 36
+- `_bmad/bmm/workflows/testarch/test-review/workflow.yaml` — yaml, 47 lines, attention 22
+- `_bmad/bmm/workflows/testarch/trace/checklist.md` — markdown, 656 lines, attention 70
+- `_bmad/bmm/workflows/testarch/trace/instructions.md` — markdown, 1048 lines, attention 100
+- `_bmad/bmm/workflows/testarch/trace/trace-template.md` — markdown, 676 lines, attention 100
+- `_bmad/bmm/workflows/testarch/trace/workflow.yaml` — yaml, 56 lines, attention 14
+- `_bmad/bmm/workflows/workflow-status/init/instructions.md` — markdown, 347 lines, attention 56
+- `_bmad/bmm/workflows/workflow-status/init/workflow.yaml` — yaml, 29 lines, attention 14
+- `_bmad/bmm/workflows/workflow-status/instructions.md` — markdown, 396 lines, attention 100
+- `_bmad/bmm/workflows/workflow-status/paths/enterprise-brownfield.yaml` — yaml, 104 lines, attention 0
+- `_bmad/bmm/workflows/workflow-status/paths/enterprise-greenfield.yaml` — yaml, 101 lines, attention 0
+- `_bmad/bmm/workflows/workflow-status/paths/method-brownfield.yaml` — yaml, 104 lines, attention 0
+- `_bmad/bmm/workflows/workflow-status/paths/method-greenfield.yaml` — yaml, 101 lines, attention 0
+- `_bmad/bmm/workflows/workflow-status/project-levels.yaml` — yaml, 60 lines, attention 14
+- `_bmad/bmm/workflows/workflow-status/workflow-status-template.yaml` — yaml, 25 lines, attention 0
+- `_bmad/bmm/workflows/workflow-status/workflow.yaml` — yaml, 31 lines, attention 14
+- `_bmad/core/agents/bmad-master.md` — markdown, 63 lines, attention 42
+- `_bmad/core/config.yaml` — yaml, 10 lines, attention 0
+- `_bmad/core/resources/excalidraw/README.md` — markdown, 161 lines, attention 100
+- `_bmad/core/resources/excalidraw/excalidraw-helpers.md` — markdown, 128 lines, attention 14
+- `_bmad/core/resources/excalidraw/library-loader.md` — markdown, 51 lines, attention 78
+- `_bmad/core/resources/excalidraw/validate-json-instructions.md` — markdown, 80 lines, attention 84
+- `_bmad/core/workflows/brainstorming/steps/step-01-session-setup.md` — markdown, 198 lines, attention 100
+- `_bmad/core/workflows/brainstorming/steps/step-01b-continue.md` — markdown, 123 lines, attention 100
+- `_bmad/core/workflows/brainstorming/steps/step-02a-user-selected.md` — markdown, 226 lines, attention 100
+- `_bmad/core/workflows/brainstorming/steps/step-02b-ai-recommended.md` — markdown, 238 lines, attention 100
+- `_bmad/core/workflows/brainstorming/steps/step-02c-random-selection.md` — markdown, 210 lines, attention 100
+- `_bmad/core/workflows/brainstorming/steps/step-02d-progressive-flow.md` — markdown, 265 lines, attention 100
+- `_bmad/core/workflows/brainstorming/steps/step-03-technique-execution.md` — markdown, 341 lines, attention 100
+- `_bmad/core/workflows/brainstorming/steps/step-04-idea-organization.md` — markdown, 304 lines, attention 100
+- `_bmad/core/workflows/brainstorming/template.md` — markdown, 16 lines, attention 42
+- `_bmad/core/workflows/brainstorming/workflow.md` — markdown, 52 lines, attention 84
+- `_bmad/core/workflows/party-mode/steps/step-01-agent-loading.md` — markdown, 140 lines, attention 70
+- `_bmad/core/workflows/party-mode/steps/step-02-discussion-orchestration.md` — markdown, 205 lines, attention 100
+- `_bmad/core/workflows/party-mode/steps/step-03-graceful-exit.md` — markdown, 160 lines, attention 100
+- `_bmad/core/workflows/party-mode/workflow.md` — markdown, 207 lines, attention 42

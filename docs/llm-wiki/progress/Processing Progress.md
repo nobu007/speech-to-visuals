@@ -1,0 +1,249 @@
+---
+title: Processing Progress
+genre: repository-analysis
+type: concept
+sources:
+  - extract-skill-meta planning artifacts
+related:
+  - Repository Wiki Index
+  - Repository Overview
+  - File Inventory
+created: 2026-05-20
+updated: 2026-05-20
+status: generated
+---
+# Processing Progress
+
+## Summary
+
+- Run index: 1
+- Processed files: 1404
+- New files: 1404
+- Changed files: 0
+- Unchanged files: 0
+- Removed files: 0
+- Needs processing: 1404
+- Skipped unchanged: 0
+- Digest generated: 1404
+- Digest reused: 0
+- Files with risk signals: 520
+
+## State File
+
+- Machine-readable progress is stored at `_state/progress.json`.
+- Large runs shard source entries under `_state/progress_shards/` and rehydrate them through the loader.
+- Append-only source change events are stored at `_state/progress_events.jsonl`.
+- The state file is the source of truth for large-repo resumability and skipped/changed source accounting.
+- For very large repositories, automation should read `_state/progress.json` instead of parsing Markdown tables.
+
+## New Sources
+
+- `.audit/purpose_driven_plan.yml`
+- `.claude/README.md`
+- `.claude/agents/README.md`
+- `.claude/agents/cli-expert.md`
+- `.claude/agents/code-review-expert.md`
+- `.claude/agents/git/git-expert.md`
+- `.claude/agents/oracle.md`
+- `.claude/agents/refactoring/refactoring-expert.md`
+- `.claude/agents/research-expert.md`
+- `.claude/agents/self-healing-expert.md`
+- `.claude/agents/task-executor.md`
+- `.claude/agents/triage-expert.md`
+- `.claude/commands/approve.md`
+- `.claude/commands/architecture-check.md`
+- `.claude/commands/bmad/bmb/agents/agent-builder.md`
+- `.claude/commands/bmad/bmb/agents/module-builder.md`
+- `.claude/commands/bmad/bmb/agents/workflow-builder.md`
+- `.claude/commands/bmad/bmb/workflows/Meal Prep & Nutrition Plan.md`
+- `.claude/commands/bmad/bmb/workflows/agent.md`
+- `.claude/commands/bmad/bmb/workflows/create-module.md`
+- `.claude/commands/bmad/bmb/workflows/create-workflow.md`
+- `.claude/commands/bmad/bmb/workflows/edit-workflow.md`
+- `.claude/commands/bmad/bmb/workflows/workflow-compliance-check.md`
+- `.claude/commands/bmad/bmm/agents/analyst.md`
+- `.claude/commands/bmad/bmm/agents/architect.md`
+- `.claude/commands/bmad/bmm/agents/dev.md`
+- `.claude/commands/bmad/bmm/agents/pm.md`
+- `.claude/commands/bmad/bmm/agents/quick-flow-solo-dev.md`
+- `.claude/commands/bmad/bmm/agents/sm.md`
+- `.claude/commands/bmad/bmm/agents/tea.md`
+- `.claude/commands/bmad/bmm/agents/tech-writer.md`
+- `.claude/commands/bmad/bmm/agents/ux-designer.md`
+- `.claude/commands/bmad/bmm/workflows/check-implementation-readiness.md`
+- `.claude/commands/bmad/bmm/workflows/code-review.md`
+- `.claude/commands/bmad/bmm/workflows/correct-course.md`
+- `.claude/commands/bmad/bmm/workflows/create-architecture.md`
+- `.claude/commands/bmad/bmm/workflows/create-epics-and-stories.md`
+- `.claude/commands/bmad/bmm/workflows/create-excalidraw-dataflow.md`
+- `.claude/commands/bmad/bmm/workflows/create-excalidraw-diagram.md`
+- `.claude/commands/bmad/bmm/workflows/create-excalidraw-flowchart.md`
+- `.claude/commands/bmad/bmm/workflows/create-excalidraw-wireframe.md`
+- `.claude/commands/bmad/bmm/workflows/create-prd.md`
+- `.claude/commands/bmad/bmm/workflows/create-product-brief.md`
+- `.claude/commands/bmad/bmm/workflows/create-story.md`
+- `.claude/commands/bmad/bmm/workflows/create-tech-spec.md`
+- `.claude/commands/bmad/bmm/workflows/create-ux-design.md`
+- `.claude/commands/bmad/bmm/workflows/dev-story.md`
+- `.claude/commands/bmad/bmm/workflows/document-project.md`
+- `.claude/commands/bmad/bmm/workflows/generate-project-context.md`
+- `.claude/commands/bmad/bmm/workflows/quick-dev.md`
+- `.claude/commands/bmad/bmm/workflows/research.md`
+- `.claude/commands/bmad/bmm/workflows/retrospective.md`
+- `.claude/commands/bmad/bmm/workflows/sprint-planning.md`
+- `.claude/commands/bmad/bmm/workflows/sprint-status.md`
+- `.claude/commands/bmad/bmm/workflows/testarch-atdd.md`
+- `.claude/commands/bmad/bmm/workflows/testarch-automate.md`
+- `.claude/commands/bmad/bmm/workflows/testarch-ci.md`
+- `.claude/commands/bmad/bmm/workflows/testarch-framework.md`
+- `.claude/commands/bmad/bmm/workflows/testarch-nfr.md`
+- `.claude/commands/bmad/bmm/workflows/testarch-test-design.md`
+- `.claude/commands/bmad/bmm/workflows/testarch-test-review.md`
+- `.claude/commands/bmad/bmm/workflows/testarch-trace.md`
+- `.claude/commands/bmad/bmm/workflows/workflow-init.md`
+- `.claude/commands/bmad/bmm/workflows/workflow-status.md`
+- `.claude/commands/bmad/core/agents/bmad-master.md`
+- `.claude/commands/bmad/core/tasks/index-docs.md`
+- `.claude/commands/bmad/core/workflows/brainstorming.md`
+- `.claude/commands/bmad/core/workflows/party-mode.md`
+- `.claude/commands/checkpoint/create.md`
+- `.claude/commands/checkpoint/list.md`
+- `.claude/commands/checkpoint/restore.md`
+- `.claude/commands/code-review.md`
+- `.claude/commands/command-creator-auto.md`
+- `.claude/commands/create-issue.md`
+- `.claude/commands/deploy.md`
+- `.claude/commands/dev/cleanup.md`
+- `.claude/commands/generate-docs.md`
+- `.claude/commands/gh/repo-init.md`
+- `.claude/commands/git/checkout.md`
+- `.claude/commands/git/commit.md`
+- `.claude/commands/git/ignore-init.md`
+- `.claude/commands/git/push.md`
+- `.claude/commands/git/status.md`
+- `.claude/commands/research.md`
+- `.claude/commands/review-fix-commit.md`
+- `.claude/commands/security-scan.md`
+- `.claude/commands/system-analytics.md`
+- `.claude/commands/task-executor.md`
+- `.claude/commands/test.md`
+- `.claude/commands/validate-and-fix.md`
+- `.claude/commands/verify.md`
+- `.claude/hooks/bmad-speak.sh`
+- `.claude/hooks/log-commands.sh`
+- `.claude/plans/dapper-discovering-nygaard.md`
+- `.claude/settings.example.json`
+- `.claude/settings.json`
+- `.claude/skills/agent-creator/SKILL.md`
+- `.claude/skills/agent-creator/assets/template_example.md`
+- `.claude/skills/agent-creator/references/agent_types.md`
+- `.claude/skills/agent-creator/references/workflow_patterns.md`
+- `.claude/skills/agent-creator/scripts/agent_workflows.py`
+- `.claude/skills/agent-creator/scripts/generate_agent.py`
+- `.claude/skills/agent-creator/scripts/init_agent.py`
+- `.claude/skills/agent-creator/scripts/validate_agent.py`
+- `.claude/skills/autofix/scripts/autofix.py`
+- `.claude/skills/code-review/scripts/review.py`
+- `.claude/skills/codebase-improvement-advisor/SKILL.md`
+- `.claude/skills/codebase-improvement-advisor/assets/improvement_template.md`
+- `.claude/skills/codebase-improvement-advisor/references/refactoring_patterns.md`
+- `.claude/skills/codebase-improvement-advisor/references/typescript_best_practices.md`
+- `.claude/skills/codebase-improvement-advisor/scripts/codebase_analyzer.py`
+- `.claude/skills/codebase-improvement-advisor/scripts/codebase_analyzer_refactored.py`
+- `.claude/skills/codebase-improvement-advisor/scripts/duplicate_code_detector.py`
+- `.claude/skills/codebase-improvement-advisor/scripts/modules/__init__.py`
+- `.claude/skills/codebase-improvement-advisor/scripts/modules/advanced_analyzer.py`
+- `.claude/skills/codebase-improvement-advisor/scripts/modules/jscpd_analyzer.py`
+- `.claude/skills/codebase-improvement-advisor/scripts/modules/main_analyzer.py`
+- `.claude/skills/codebase-improvement-advisor/scripts/modules/models.py`
+- `.claude/skills/codebase-improvement-advisor/scripts/modules/report_generator.py`
+- `.claude/skills/codebase-improvement-advisor/scripts/refactoring_helper.py`
+- `.claude/skills/codebase-improvement-advisor/scripts/test_refactored_report.md`
+- `.claude/skills/commit-prep-helper/SKILL.md`
+- `.claude/skills/commit-prep-helper/assets/example_asset.txt`
+- `.claude/skills/commit-prep-helper/assets/review_config.json`
+- `.claude/skills/commit-prep-helper/references/api_reference.md`
+- `.claude/skills/commit-prep-helper/references/conventional_commits.md`
+- `.claude/skills/commit-prep-helper/references/quality_thresholds.md`
+- `.claude/skills/commit-prep-helper/references/tool_mapping.md`
+- `.claude/skills/commit-prep-helper/scripts/check_staged_files.py`
+- `.claude/skills/commit-prep-helper/scripts/code_review.py`
+- `.claude/skills/commit-prep-helper/scripts/create_commit.py`
+- `.claude/skills/commit-prep-helper/scripts/example.py`
+- `.claude/skills/commit-prep-helper/scripts/run_linting.py`
+- `.claude/skills/commit-prep-helper/scripts/run_tests.py`
+- `.claude/skills/feature-implementer/scripts/implement_feature.py`
+- `.claude/skills/github-issue-improver/SKILL.md`
+- `.claude/skills/github-issue-improver/improvements_example.json`
+- `.claude/skills/github-issue-improver/references/api_reference.md`
+- `.claude/skills/github-issue-improver/references/issue_templates.md`
+- `.claude/skills/github-issue-improver/requirements.txt`
+- `.claude/skills/github-issue-improver/scripts/apply_improvements.py`
+- `.claude/skills/github-issue-improver/scripts/github_client.py`
+- `.claude/skills/github-issue-improver/scripts/issue_analyzer.py`
+- `.claude/skills/github-issue-improver/scripts/issue_improver.py`
+- `.claude/skills/github-issue-improver/test_common_lib_integration.py`
+- `.claude/skills/github-issue-improver/test_token_loading.py`
+- `.claude/skills/github-issue-quality-checker/SKILL.md`
+- `.claude/skills/github-issue-quality-checker/assets/output_template.md`
+- `.claude/skills/github-issue-quality-checker/references/api_reference.md`
+- `.claude/skills/github-issue-quality-checker/references/github_api_usage.md`
+- `.claude/skills/github-issue-quality-checker/references/quality_criteria.md`
+- `.claude/skills/github-issue-quality-checker/scripts/main.py`
+- `.claude/skills/issue-creator/SKILL.md`
+- `.claude/skills/issue-creator/requirements.txt`
+- `.claude/skills/issue-creator/scripts/create_issue.py`
+- `.claude/skills/issue-creator/scripts/issue_creator.py`
+- `.claude/skills/md-doc-improver/SKILL.md`
+- `.claude/skills/md-doc-improver/assets/example_asset.txt`
+- `.claude/skills/md-doc-improver/references/api_reference.md`
+- `.claude/skills/md-doc-improver/references/improvement_framework.md`
+- `.claude/skills/md-doc-improver/references/quality_standards.md`
+- `.claude/skills/md-doc-improver/scripts/document_validator.py`
+- `.claude/skills/md-doc-improver/scripts/example.py`
+- `.claude/skills/md-doc-improver/scripts/improve_document.py`
+- `.claude/skills/skill-creator-auto/LICENSE.txt`
+- `.claude/skills/skill-creator-auto/SKILL.md`
+- `.claude/skills/skill-creator-auto/references/output-patterns.md`
+- `.claude/skills/skill-creator-auto/references/workflows.md`
+- `.claude/skills/skill-creator-auto/scripts/init_skill.py`
+- `.claude/skills/skill-creator-auto/scripts/package_skill.py`
+- `.claude/skills/skill-creator-auto/scripts/quick_validate.py`
+- `.claude/skills/spec-flow-auto/README.md`
+- `.claude/skills/spec-flow-auto/SKILL.md`
+- `.claude/skills/spec-flow-auto/assets/sample_prd.md`
+- `.claude/skills/spec-flow-auto/assets/validation_checklists/prd_validation.md`
+- `.claude/skills/spec-flow-auto/references/prd_template.md`
+- `.claude/skills/spec-flow-auto/references/spec_workflow_guide.md`
+- `.claude/skills/spec-flow-auto/scripts/create_tasks_from_spec.py`
+- `.claude/skills/spec-flow-auto/scripts/enhanced_sdd_pipeline.py`
+- `.claude/skills/spec-flow-auto/scripts/generate_spec_from_prd.py`
+- `.claude/skills/spec-flow-auto/scripts/run_sdd_pipeline.py`
+- `.claude/skills/spec-flow-auto/scripts/setup_spec_workspace.py`
+- `.claude/skills/spec-flow-auto/scripts/validate_prd_spec_sync.py`
+- `.claude/skills/stepwise-executor/SKILL.md`
+- `.claude/skills/stepwise-executor/assets/goal_patterns/data_analysis.json`
+- `.claude/skills/stepwise-executor/assets/goal_patterns/documentation.json`
+- `.claude/skills/stepwise-executor/assets/goal_patterns/software_development.json`
+- `.claude/skills/stepwise-executor/assets/progress_template.json`
+- `.claude/skills/stepwise-executor/references/decomposition_strategies.md`
+- `.claude/skills/stepwise-executor/references/examples.md`
+- `.claude/skills/stepwise-executor/references/execution_patterns.md`
+- `.claude/skills/stepwise-executor/scripts/execute_steps.py`
+- `.claude/skills/stepwise-executor/scripts/track_progress.py`
+- `.env.example`
+- `.github/workflows/ci.yml`
+- `.github/workflows/infrastructure.yml`
+- `.gitignore`
+- `AGENTS.md`
+- `CLAUDE.md`
+- `README.md`
+- ... 1204 more
+
+## Changed Sources
+
+- None detected in this run.
+
+## Removed Sources
+
+- None detected in this run.
