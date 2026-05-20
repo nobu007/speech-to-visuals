@@ -43,8 +43,7 @@ jest.mock('@/utils/audio-duration', () => {
 const OriginalAudio = global.Audio;
 
 beforeAll(() => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (global as any).Audio = jest.fn(() => {
+  (globalThis as typeof globalThis & { Audio?: unknown }).Audio = jest.fn(() => {
     capturedListeners = {};
     mockAudioInstance.addEventListener = jest.fn((event: string, handler: (...args: unknown[]) => void) => {
       if (!capturedListeners[event]) capturedListeners[event] = [];
@@ -55,8 +54,7 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (global as any).Audio = OriginalAudio;
+  (globalThis as typeof globalThis & { Audio?: unknown }).Audio = OriginalAudio;
 });
 
 describe('formatDuration', () => {

@@ -46,8 +46,7 @@ type EnginePrivateMethods = {
 };
 
 function privateMethods(engine: ZeroOverlapLayoutEngine): EnginePrivateMethods {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return engine as any;
+  return engine as unknown as EnginePrivateMethods;
 }
 
 describe('ZeroOverlapLayoutEngine', () => {
