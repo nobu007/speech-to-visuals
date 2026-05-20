@@ -148,10 +148,12 @@ export class ErrorRecoveryEventBus {
     event: E,
     listener: EventListener<ErrorRecoveryEventMap[E]>,
   ): () => void {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, new Set());
+    let set = this.listeners.get(event);
+    if (!set) {
+      set = new Set();
+      this.listeners.set(event, set);
     }
-    this.listeners.get(event)!.add(listener as EventListener<unknown>);
+    set.add(listener as EventListener<unknown>);
     return () => this.off(event, listener);
   }
 
@@ -162,13 +164,15 @@ export class ErrorRecoveryEventBus {
     event: E,
     listener: EventListener<ErrorRecoveryEventMap[E]>,
   ): () => void {
-    if (!this.onceListeners.has(event)) {
-      this.onceListeners.set(event, new Set());
+    let set = this.onceListeners.get(event);
+    if (!set) {
+      set = new Set();
+      this.onceListeners.set(event, set);
     }
-    this.onceListeners.get(event)!.add(listener as EventListener<unknown>);
+    set.add(listener as EventListener<unknown>);
     return () => {
-      const set = this.onceListeners.get(event);
-      if (set) set.delete(listener as EventListener<unknown>);
+      const s = this.onceListeners.get(event);
+      if (s) s.delete(listener as EventListener<unknown>);
     };
   }
 

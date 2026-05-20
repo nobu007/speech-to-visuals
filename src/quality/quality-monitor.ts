@@ -291,8 +291,8 @@ export class QualityMonitor {
 
     if (hasEntity || hasRelation) {
       const parts: number[] = [];
-      if (hasEntity) parts.push(this.clamp01(m!.entityExtractionF1Score as number));
-      if (hasRelation) parts.push(this.clamp01(m!.relationAccuracy as number));
+      if (hasEntity && m) parts.push(this.clamp01(m.entityExtractionF1Score as number));
+      if (hasRelation && m) parts.push(this.clamp01(m.relationAccuracy as number));
       return parts.length ? parts.reduce((a, b) => a + b, 0) / parts.length : 0;
     }
 

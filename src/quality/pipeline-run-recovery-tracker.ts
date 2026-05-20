@@ -453,8 +453,9 @@ export class PipelineRunRecoveryTracker {
 
       // Same error type across multiple stages suggests a systemic issue
       if (recordA.classifiedError) {
+        const errorType = recordA.classifiedError.type;
         const sameTypeStages = stages.filter(
-          ([, r]) => r.classifiedError?.type === recordA.classifiedError!.type,
+          ([, r]) => r.classifiedError?.type === errorType,
         );
         if (sameTypeStages.length > 1) {
           const stageNames = sameTypeStages.map(([s]) => s).join(', ');

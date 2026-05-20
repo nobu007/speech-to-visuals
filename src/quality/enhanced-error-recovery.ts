@@ -1444,12 +1444,12 @@ export class EnhancedErrorRecovery {
    */
   private async adaptParametersForRetry(
     context: ErrorContext,
-    failurePattern: unknown
+    failurePattern: { frequency?: number; [key: string]: unknown }
   ): Promise<Record<string, unknown>> {
     const adaptedParams: Record<string, unknown> = {};
 
     // Based on failure frequency, adjust conservativeness
-    if ((failurePattern as Record<string, unknown>).frequency as number > 2) {
+    if ((failurePattern.frequency ?? 0) > 2) {
       adaptedParams.confidence_threshold = 0.6; // Lower threshold
       adaptedParams.timeout = 5000; // Increase timeout
       adaptedParams.retry_delay = 1000; // Add delay
@@ -1576,14 +1576,16 @@ export class EnhancedErrorRecovery {
    * Get circuit breaker for stage
    */
   private getCircuitBreaker(stage: ProcessingStage): CircuitBreaker {
-    if (!this.circuitBreakers.has(stage)) {
-      this.circuitBreakers.set(stage, new CircuitBreaker({
+    let breaker = this.circuitBreakers.get(stage);
+    if (!breaker) {
+      breaker = new CircuitBreaker({
         threshold: 5,
         timeout: 60000, // 1 minute
         monitor: (err) => logger.warn(`Circuit breaker tripped for ${stage}:`, err)
-      }));
+      });
+      this.circuitBreakers.set(stage, breaker);
     }
-    return this.circuitBreakers.get(stage)!;
+    return breaker;
   }
 
   /**

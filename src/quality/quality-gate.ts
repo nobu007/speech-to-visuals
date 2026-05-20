@@ -224,15 +224,17 @@ export class QualityGateEvaluator {
   recordStageMetrics(
     jobId: string,
     stage: number,
-    metrics: { score: number; passed: boolean }
+    input: { score: number; passed: boolean }
   ): void {
-    if (!this.jobMetrics.has(jobId)) {
-      this.jobMetrics.set(jobId, []);
+    let entries = this.jobMetrics.get(jobId);
+    if (!entries) {
+      entries = [];
+      this.jobMetrics.set(jobId, entries);
     }
-    this.jobMetrics.get(jobId)!.push({
+    entries.push({
       stage,
-      score: metrics.score,
-      passed: metrics.passed,
+      score: input.score,
+      passed: input.passed,
     });
   }
 
