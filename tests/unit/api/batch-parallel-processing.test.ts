@@ -29,7 +29,7 @@ describe('Batch parallel file processing', () => {
   describe('processFilesWithConcurrency', () => {
     it('should process all files and preserve order', async () => {
       // Access private method via bracket notation for testing
-      const slots: any[] = new Array(3).fill(null);
+      const slots: unknown[] = new Array(3).fill(null);
       const completedCount = { value: 0 };
       const failedCount = { value: 0 };
       const cancelToken = { cancelled: false };
@@ -110,9 +110,9 @@ describe('Batch parallel file processing', () => {
       expect(processedIndices.length).toBeGreaterThanOrEqual(2);
     });
 
-    it('should limit concurrency to MAX_CONCURRENT_JOBS', () => {
+    it('should limit concurrency to MAX_CONCURRENT_JOBS', async () => {
       // Verify the concurrency constant is used correctly
-      const { BATCH_LIMITS } = require('@/config/limits');
+      const { BATCH_LIMITS } = await import('@/config/limits');
       expect(BATCH_LIMITS.MAX_CONCURRENT_JOBS).toBe(3);
     });
 
