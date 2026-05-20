@@ -34,3 +34,18 @@ export type {
   ErrorGuidance,
   RecoveryStrategy,
 } from './user-guided-error-recovery';
+
+export { ErrorRecoveryEventBus, errorRecoveryEventBus } from './error-recovery-event-bus';
+export type {
+  ErrorRecoveryEventMap,
+  ErrorRecoveryEventType,
+  CircuitBreakerEvent,
+  RecoveryAttemptEvent,
+  RecoverySuccessEvent,
+  RecoveryFailureEvent,
+  CapacityAdjustedEvent,
+  StageDegradedEvent,
+  CascadeDetectedEvent,
+  QueueOverflowEvent,
+  CircuitBreakerState,
+} from './error-recovery-event-bus';

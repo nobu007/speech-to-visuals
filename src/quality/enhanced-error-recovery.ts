@@ -10,6 +10,7 @@ import { DiagramType } from '@/types/diagram';
 import { globalCache } from '../performance/intelligent-cache';
 import { logger } from '@/utils/logger';
 import { getMemoryUsage } from '@/utils/memory-usage';
+import { errorRecoveryEventBus } from './error-recovery-event-bus';
 
 interface ErrorContext {
   stage: ProcessingStage;
@@ -376,7 +377,14 @@ export class EnhancedErrorRecovery {
     );
 
     if (newCapacity !== this.dynamicCapacity) {
+      const previousCapacity = this.dynamicCapacity;
       this.dynamicCapacity = newCapacity;
+      errorRecoveryEventBus.emit('capacity:adjusted', {
+        previousCapacity,
+        newCapacity,
+        healthScore,
+        timestamp: Date.now(),
+      });
     }
   }
 
@@ -481,6 +489,8 @@ export class EnhancedErrorRecovery {
     const now = Date.now();
 
     for (const [stage, breaker] of this.circuitBreakers.entries()) {
+      const previousState = breaker.state;
+
       switch (breaker.state) {
         case 'open':
           if (now - breaker.lastFailureTime > breaker.timeout) {
@@ -506,6 +516,16 @@ export class EnhancedErrorRecovery {
           }
           break;
       }
+
+      if (breaker.state !== previousState) {
+        errorRecoveryEventBus.emit('circuit_breaker:change', {
+          stage,
+          previousState,
+          newState: breaker.state,
+          failureCount: breaker.failureCount,
+          timestamp: now,
+        });
+      }
     }
   }
 
@@ -514,6 +534,19 @@ export class EnhancedErrorRecovery {
    */
   private async processRequestQueue(): Promise<void> {
     if (this.isShuttingDown) return;
+
+    // Emit overflow event when queue exceeds capacity
+    if (this.requestQueue.length > this.dynamicCapacity) {
+      const oldest = this.requestQueue.reduce(
+        (min, r) => Math.min(min, r.queuedAt), Infinity,
+      );
+      errorRecoveryEventBus.emit('queue:overflow', {
+        queueLength: this.requestQueue.length,
+        dynamicCapacity: this.dynamicCapacity,
+        oldestQueuedAt: oldest === Infinity ? Date.now() : oldest,
+        timestamp: Date.now(),
+      });
+    }
 
     while (
       this.requestQueue.length > 0 &&
@@ -1251,6 +1284,14 @@ export class EnhancedErrorRecovery {
 
     // Try strategies in priority order
     for (const strategy of applicableStrategies) {
+      errorRecoveryEventBus.emit('recovery:attempt', {
+        stage: context.stage,
+        strategyId: strategy.id,
+        strategyName: strategy.name,
+        attemptNumber: context.retryCount,
+        timestamp: Date.now(),
+      });
+
       try {
         const result = await strategy.execute(context);
 
@@ -1564,8 +1605,22 @@ export class EnhancedErrorRecovery {
 
     if (result.success) {
       record.successes++;
+      errorRecoveryEventBus.emit('recovery:success', {
+        stage: context.stage,
+        strategyId: strategy.id,
+        timeSpentMs: result.timeSpent,
+        fallbackUsed: result.fallbackUsed,
+        timestamp: Date.now(),
+      });
     } else {
       record.failures++;
+      errorRecoveryEventBus.emit('recovery:failure', {
+        stage: context.stage,
+        strategyId: strategy.id,
+        timeSpentMs: result.timeSpent,
+        nextAction: result.nextAction,
+        timestamp: Date.now(),
+      });
     }
     record.totalRecoveryTimeMs += result.timeSpent;
     record.lastUsedAt = Date.now();
@@ -1693,6 +1748,24 @@ export class EnhancedErrorRecovery {
   // ========================================
   // Error History Analytics
   // ========================================
+
+  /**
+   * Detect cascading errors and emit cascade events for new chains.
+   * Called from getErrorAnalytics or manually after error recording.
+   */
+  detectAndEmitCascades(windowMs: number = 5000): CascadeChain[] {
+    const chains = this.detectErrorCascades(windowMs);
+    for (const chain of chains) {
+      errorRecoveryEventBus.emit('cascade:detected', {
+        triggerStage: chain.triggerStage,
+        affectedStages: chain.affectedStages,
+        rootCause: chain.rootCause,
+        frequency: chain.frequency,
+        timestamp: Date.now(),
+      });
+    }
+    return chains;
+  }
 
   /**
    * Produce actionable analytics over the recorded error history.
