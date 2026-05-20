@@ -2252,6 +2252,7 @@ export class EnhancedErrorRecovery {
     count: number;
   }> {
     const groups = new Map<string, {
+      fingerprint: string;
       stage: ProcessingStage;
       component: string;
       errorMessage: string;
@@ -2271,6 +2272,7 @@ export class EnhancedErrorRecovery {
           existing.firstOccurrence = Math.min(existing.firstOccurrence, ctx.timestamp);
         } else {
           groups.set(fp, {
+            fingerprint: fp,
             stage: ctx.stage,
             component: ctx.component,
             errorMessage: ctx.error.message,

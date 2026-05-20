@@ -239,13 +239,15 @@ export class ErrorRecoveryEventBus {
   /**
    * Return event history, optionally filtered by event type.
    */
+  getHistory(): Array<{ event: string; payload: unknown; timestamp: number }>;
+  getHistory<E extends ErrorRecoveryEventType>(event: E): Array<{ event: string; payload: ErrorRecoveryEventMap[E]; timestamp: number }>;
   getHistory<E extends ErrorRecoveryEventType>(
     event?: E,
-  ): Array<{ event: string; payload: E extends ErrorRecoveryEventType ? ErrorRecoveryEventMap[E] : unknown; timestamp: number }> {
+  ): Array<{ event: string; payload: unknown; timestamp: number }> {
     if (event) {
-      return this.history.filter(h => h.event === event) as Array<{ event: string; payload: ErrorRecoveryEventMap[E]; timestamp: number }>;
+      return this.history.filter(h => h.event === event) as unknown as Array<{ event: string; payload: unknown; timestamp: number }>;
     }
-    return this.history as Array<{ event: string; payload: unknown; timestamp: number }>;
+    return [...this.history] as Array<{ event: string; payload: unknown; timestamp: number }>;
   }
 
   /**
