@@ -23,6 +23,9 @@ export type {
   FallbackResult,
   FallbackContext,
   NotificationPayload,
+  ErrorSnapshot,
+  RecoveryPlanItem,
+  ErrorReport,
 } from './enhanced-error-recovery';
 
 export { UserGuidedErrorRecovery, userGuidedErrorRecovery } from './user-guided-error-recovery';

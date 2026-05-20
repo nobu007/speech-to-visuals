@@ -96,6 +96,57 @@ interface LoadMetrics {
   timestamp: number;
 }
 
+/**
+ * Serializable snapshot of the error recovery system's internal state.
+ * Useful for debugging, persistence, and monitoring dashboards.
+ */
+export interface ErrorSnapshot {
+  capturedAt: number;
+  healthMetrics: SystemHealth;
+  circuitBreakers: Record<string, { state: string; failureCount: number; successCount: number; lastFailureTime: number }>;
+  errorHistoryCounts: Record<string, number>;
+  strategyEffectiveness: Record<string, { successes: number; failures: number; avgRecoveryTimeMs: number; lastUsedAt: number }>;
+  loadMetrics: LoadMetrics[];
+  resilience: ReturnType<EnhancedErrorRecovery['getResilienceMetrics']>;
+  analytics: ErrorAnalytics;
+  dynamicCapacity: number;
+  activeRequestCount: number;
+  queuedRequestCount: number;
+}
+
+/**
+ * A recovery plan item: one strategy that would be attempted for a given stage,
+ * with the order it would be tried in.
+ */
+export interface RecoveryPlanItem {
+  strategyId: string;
+  strategyName: string;
+  priority: number;
+  learnedScore: number;
+  applicableStages: ProcessingStage[];
+  description: string;
+}
+
+/**
+ * An exportable error report for external monitoring systems.
+ * Contains enough context to reconstruct what happened without
+ * exposing internal implementation details.
+ */
+export interface ErrorReport {
+  generatedAt: number;
+  summary: {
+    totalErrors: number;
+    affectedStages: string[];
+    hotStages: string[];
+    recoverySuccessRate: number;
+    openCircuitBreakers: string[];
+  };
+  recentErrors: Array<{ stage: string; message: string; timestamp: number; component: string }>;
+  cascadeChains: CascadeChain[];
+  trends: ErrorTrend[];
+  recommendations: string[];
+}
+
 interface CircuitBreakerState {
   id: string;
   state: 'closed' | 'open' | 'half-open';
@@ -207,6 +258,7 @@ export class EnhancedErrorRecovery {
   private isShuttingDown = false;
   private dynamicCapacity: number;
   private requestStats: { completed: number; failed: number; avgResponseTime: number } = { completed: 0, failed: 0, avgResponseTime: 0 };
+  private errorHistoryMaxAgeMs: number = 3600000; // 1 hour default TTL for error records
 
   constructor() {
     this.loadBalancingConfig = {
@@ -2080,6 +2132,241 @@ export class EnhancedErrorRecovery {
       /permission denied/i,
     ];
     return !unrecoverablePatterns.some((pattern) => pattern.test(message));
+  }
+
+  // ========================================
+  // Error Recovery State Management APIs
+  // ========================================
+
+  /**
+   * Capture a serializable snapshot of the complete error recovery state.
+   *
+   * This is intended for debugging dashboards, persistence to disk/DB,
+   * or transport over the wire to a monitoring backend.  All internal Maps
+   * and class instances are converted to plain JSON-safe objects.
+   */
+  getErrorSnapshot(): ErrorSnapshot {
+    const circuitBreakers: ErrorSnapshot['circuitBreakers'] = {};
+    for (const [stage, breaker] of this.circuitBreakers.entries()) {
+      circuitBreakers[stage] = {
+        state: breaker.state,
+        failureCount: breaker.failureCount,
+        successCount: breaker.successCount,
+        lastFailureTime: breaker.lastFailureTime,
+      };
+    }
+
+    const errorHistoryCounts: Record<string, number> = {};
+    for (const [stage, errors] of this.errorHistory.entries()) {
+      errorHistoryCounts[stage] = errors.length;
+    }
+
+    const strategyEffectiveness: ErrorSnapshot['strategyEffectiveness'] = {};
+    for (const [key, record] of this.strategyEffectiveness.entries()) {
+      const total = record.successes + record.failures;
+      strategyEffectiveness[key] = {
+        successes: record.successes,
+        failures: record.failures,
+        avgRecoveryTimeMs: total > 0 ? Math.round(record.totalRecoveryTimeMs / total) : 0,
+        lastUsedAt: record.lastUsedAt,
+      };
+    }
+
+    return {
+      capturedAt: Date.now(),
+      healthMetrics: { ...this.healthMetrics },
+      circuitBreakers,
+      errorHistoryCounts,
+      strategyEffectiveness,
+      loadMetrics: this.loadMetrics.slice(-20), // last 20 measurements
+      resilience: this.getResilienceMetrics(),
+      analytics: this.getErrorAnalytics(),
+      dynamicCapacity: this.dynamicCapacity,
+      activeRequestCount: this.activeRequests.size,
+      queuedRequestCount: this.requestQueue.length,
+    };
+  }
+
+  /**
+   * Clear error history, optionally for a single stage only.
+   *
+   * This does NOT reset circuit breakers or strategy effectiveness records —
+   * call `resetCircuitBreakers()` or destroy the instance for a full reset.
+   *
+   * @param stage - If provided, only clear history for this stage; otherwise clear all.
+   */
+  clearErrorHistory(stage?: ProcessingStage): void {
+    if (stage) {
+      this.errorHistory.delete(stage);
+    } else {
+      this.errorHistory.clear();
+    }
+  }
+
+  /**
+   * Prune error records older than `maxAgeMs`, either for a specific stage or all stages.
+   *
+   * @param maxAgeMs - Maximum age in milliseconds (default: this.errorHistoryMaxAgeMs)
+   * @param stage - Optional stage to prune; if omitted, all stages are pruned.
+   * @returns Number of records removed.
+   */
+  pruneErrorHistory(maxAgeMs?: number, stage?: ProcessingStage): number {
+    const cutoff = Date.now() - (maxAgeMs ?? this.errorHistoryMaxAgeMs);
+    let removed = 0;
+
+    const stages = stage ? [stage] : Array.from(this.errorHistory.keys());
+    for (const s of stages) {
+      const errors = this.errorHistory.get(s);
+      if (!errors) continue;
+
+      const before = errors.length;
+      const filtered = errors.filter(e => e.timestamp >= cutoff);
+      removed += before - filtered.length;
+
+      if (filtered.length === 0) {
+        this.errorHistory.delete(s);
+      } else {
+        this.errorHistory.set(s, filtered);
+      }
+    }
+
+    return removed;
+  }
+
+  /**
+   * Set the maximum age for error history records.  Records older than this
+   * will be pruned on the next `pruneErrorHistory()` call.
+   */
+  setErrorHistoryMaxAge(maxAgeMs: number): void {
+    if (maxAgeMs < 0) throw new Error('maxAgeMs must be non-negative');
+    this.errorHistoryMaxAgeMs = maxAgeMs;
+  }
+
+  /**
+   * Reset all circuit breakers to the closed state.
+   */
+  resetCircuitBreakers(): void {
+    for (const breaker of this.circuitBreakers.values()) {
+      breaker.state = 'closed';
+      breaker.failureCount = 0;
+      breaker.successCount = 0;
+    }
+  }
+
+  /**
+   * Return the ordered recovery plan for a given stage.
+   *
+   * This shows which strategies would be tried and in what order,
+   * including their learned effectiveness scores.  Useful for
+   * debugging why a particular recovery path was chosen.
+   */
+  getStageRecoveryPlan(stage: ProcessingStage): RecoveryPlanItem[] {
+    return this.recoveryStrategies
+      .filter(strategy => strategy.applicableStages.includes(stage))
+      .map(strategy => ({
+        strategyId: strategy.id,
+        strategyName: strategy.name,
+        priority: strategy.priority,
+        learnedScore: this.scoreStrategyForStage(strategy.id, stage),
+        applicableStages: strategy.applicableStages,
+        description: strategy.description,
+      }))
+      .sort((a, b) => {
+        if (Math.abs(a.learnedScore - b.learnedScore) > 0.01) return b.learnedScore - a.learnedScore;
+        return a.priority - b.priority;
+      });
+  }
+
+  /**
+   * Export a comprehensive error report suitable for external monitoring
+   * systems, alerting, or post-mortem analysis.
+   *
+   * Unlike `getErrorSnapshot()` which exposes internal implementation
+   * details, this report is designed for external consumption with
+   * actionable recommendations.
+   */
+  exportErrorReport(): ErrorReport {
+    const analytics = this.getErrorAnalytics();
+    const resilience = this.getResilienceMetrics();
+
+    // Build list of open circuit breakers
+    const openCircuitBreakers: string[] = [];
+    for (const [stage, breaker] of this.circuitBreakers.entries()) {
+      if (breaker.state === 'open') openCircuitBreakers.push(stage);
+    }
+
+    // Collect recent errors (last 50, sorted by time descending)
+    const recentErrors: ErrorReport['recentErrors'] = Array.from(this.errorHistory.entries())
+      .flatMap(([stage, errors]) =>
+        errors.map(e => ({
+          stage,
+          message: e.error.message,
+          timestamp: e.timestamp,
+          component: e.component,
+        }))
+      )
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 50);
+
+    // Generate recommendations based on analytics
+    const recommendations: string[] = [];
+    if (analytics.hotStages.length > 0) {
+      recommendations.push(
+        `High error concentration in stages: ${analytics.hotStages.join(', ')}. ` +
+        `Investigate recent changes to these pipeline stages.`
+      );
+    }
+    if (analytics.recoverySuccessRate < 0.5) {
+      recommendations.push(
+        `Recovery success rate is ${(analytics.recoverySuccessRate * 100).toFixed(1)}%. ` +
+        `Consider reviewing recovery strategy effectiveness.`
+      );
+    }
+    if (openCircuitBreakers.length > 0) {
+      recommendations.push(
+        `Circuit breakers are open for: ${openCircuitBreakers.join(', ')}. ` +
+        `These stages are currently blocking requests.`
+      );
+    }
+    const increasingTrends = analytics.trends.filter(t => t.trend === 'increasing');
+    if (increasingTrends.length > 0) {
+      recommendations.push(
+        `Error rates are increasing for: ${increasingTrends.map(t => t.stage).join(', ')}. ` +
+        `This may indicate a degradation trend.`
+      );
+    }
+    if (analytics.cascadeChains.length > 0) {
+      recommendations.push(
+        `${analytics.cascadeChains.length} cascade chain(s) detected. ` +
+        `Root causes: ${analytics.cascadeChains.map(c => `${c.triggerStage}(${c.rootCause})`).join('; ')}.`
+      );
+    }
+    if (resilience.overallResilience < 0.4) {
+      recommendations.push(
+        `Overall system resilience is low (${(resilience.overallResilience * 100).toFixed(1)}%). ` +
+        `Consider reducing load or increasing capacity.`
+      );
+    }
+    if (recommendations.length === 0) {
+      recommendations.push('System is operating normally. No immediate action required.');
+    }
+
+    return {
+      generatedAt: Date.now(),
+      summary: {
+        totalErrors: analytics.totalErrors,
+        affectedStages: Object.entries(analytics.errorsByStage)
+          .filter(([, count]) => count > 0)
+          .map(([stage]) => stage),
+        hotStages: analytics.hotStages,
+        recoverySuccessRate: analytics.recoverySuccessRate,
+        openCircuitBreakers,
+      },
+      recentErrors,
+      cascadeChains: analytics.cascadeChains,
+      trends: analytics.trends,
+      recommendations,
+    };
   }
 }
 

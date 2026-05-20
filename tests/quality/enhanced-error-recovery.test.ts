@@ -717,17 +717,17 @@ describe('EnhancedErrorRecovery', () => {
       expect(result.strategy).toBe('intelligent_retry');
     });
 
-    test('should return abort for export stage with no applicable strategies', async () => {
-      // export is not in any strategy's applicableStages
+    test('should return success for export stage (simplified_export strategy)', async () => {
+      // export now has the simplified_export strategy
       const result = await recovery.recoverFromError(makeContext('export'));
-      expect(result.success).toBe(false);
-      expect(result.strategy).toBe('none');
+      expect(result.success).toBe(true);
+      expect(result.strategy).toBe('simplified_export');
     });
 
-    test('should handle segmentation stage (no applicable strategies)', async () => {
+    test('should handle segmentation stage (re_segmentation strategy)', async () => {
       const result = await recovery.recoverFromError(makeContext('segmentation'));
-      expect(result.success).toBe(false);
-      expect(result.strategy).toBe('none');
+      expect(result.success).toBe(true);
+      expect(result.strategy).toBe('re_segmentation');
     });
 
     test('should use cache_recovery when cache has similar content', async () => {
@@ -951,7 +951,7 @@ describe('EnhancedErrorRecovery', () => {
 
     test('should handle many errors (over 100 per stage)', async () => {
       const ctx = {
-        stage: 'export' as const, // export has no applicable strategies, so no 500ms sleep
+        stage: 'export' as const, // export now has simplified_export strategy
         component: 'test',
         input: {},
         error: new Error('overflow test'),
@@ -961,7 +961,6 @@ describe('EnhancedErrorRecovery', () => {
       };
 
       // Record 110 errors to test the truncation at 100
-      // Use export stage to avoid slow retry strategies
       for (let i = 0; i < 110; i++) {
         await recovery.recoverFromError({ ...ctx, timestamp: Date.now() });
       }
@@ -969,7 +968,7 @@ describe('EnhancedErrorRecovery', () => {
       // Should still work fine
       const result = await recovery.recoverFromError(ctx);
       expect(result).toBeDefined();
-    });
+    }, 60000); // 60s timeout: 110 iterations * ~200ms simplified_export sleep
   });
 
   // ========================================
