@@ -312,4 +312,118 @@ describe('LLMCache debounce-interval behavior', () => {
       expect(() => cache.destroy()).not.toThrow();
     });
   });
+
+  // ─── disk load + debounce interaction ───────────────────────────────
+
+  describe('disk load + debounce interaction', () => {
+    test('debounced save includes both pre-loaded and new entries', () => {
+      // Seed a cache file with one entry
+      const seed = {
+        version: '2.0',
+        timestamp: Date.now(),
+        entries: [
+          { key: 'preloaded-key', data: 'preloaded-value', timestamp: Date.now(), hits: 3, originalText: 'preloaded-key' },
+        ],
+      };
+      fs.writeFileSync(cachePath, JSON.stringify(seed, null, 2), 'utf8');
+
+      // Instantiate cache — should load the pre-existing entry
+      const cache = makeCache(80);
+      expect(readCacheFile()).not.toBeNull(); // seed file still present
+
+      // Add a new entry via set() — debounce timer starts
+      cache.set('new-key', 'new-value');
+
+      // Advance past debounce
+      jest.advanceTimersByTime(80);
+
+      const disk = readCacheFile();
+      expect(disk).not.toBeNull();
+      // Both the pre-loaded and newly-set entries should be persisted
+      const datas = disk!.entries.map(e => e.data);
+      expect(datas).toContain('preloaded-value');
+      expect(datas).toContain('new-value');
+      expect(disk!.entries).toHaveLength(2);
+    });
+
+    test('debounce timer starts fresh after cache loads from disk', () => {
+      const seed = {
+        version: '2.0',
+        timestamp: Date.now(),
+        entries: [
+          { key: 'existing', data: 'val', timestamp: Date.now(), hits: 0, originalText: 'existing' },
+        ],
+      };
+      fs.writeFileSync(cachePath, JSON.stringify(seed), 'utf8');
+
+      const cache = makeCache(100);
+      cache.set('fresh', 'data');
+
+      // 50ms — debounce has NOT elapsed yet
+      jest.advanceTimersByTime(50);
+      // The file should still be the original seed (no new write)
+      const disk = readCacheFile();
+      expect(disk!.entries).toHaveLength(1);
+
+      // Advance remaining 50ms — debounce fires
+      jest.advanceTimersByTime(50);
+      const updated = readCacheFile();
+      expect(updated!.entries).toHaveLength(2);
+    });
+  });
+
+  // ─── saveToDisk error resilience ────────────────────────────────────
+
+  describe('saveToDisk error resilience', () => {
+    test('debounce timer continues working after a failed persist', () => {
+      const cache = makeCache(50);
+
+      // First set() + successful persist
+      cache.set('ok', 'value1');
+      jest.advanceTimersByTime(50);
+      expect(readCacheFile()!.entries).toHaveLength(1);
+
+      // Make the parent directory read-only so the next atomic write (temp file + rename) fails
+      const cacheDir = path.dirname(cachePath);
+      fs.chmodSync(cacheDir, 0o555);
+
+      // Second set() — persist should fail silently (cannot create temp file)
+      cache.set('will-fail', 'value2');
+      jest.advanceTimersByTime(50);
+      // File unchanged — still 1 entry
+      expect(readCacheFile()!.entries).toHaveLength(1);
+
+      // Restore write permission
+      fs.chmodSync(cacheDir, 0o755);
+
+      // Third set() — persist should succeed again
+      cache.set('recovery', 'value3');
+      jest.advanceTimersByTime(50);
+
+      const disk = readCacheFile();
+      // The in-memory cache accumulated all 3 entries, so the successful
+      // write should persist all of them
+      expect(disk!.entries).toHaveLength(3);
+    });
+
+    test('destroy() does not throw when saveToDisk previously failed', () => {
+      const cache = makeCache(30);
+
+      cache.set('a', '1');
+      jest.advanceTimersByTime(30);
+
+      // Corrupt the directory so saveToDisk fails
+      fs.rmSync(cachePath);
+      fs.mkdirSync(cachePath); // cachePath is now a directory, not a file
+
+      cache.set('b', '2');
+      jest.advanceTimersByTime(30);
+
+      // destroy() should not throw even though the timer callback may have failed
+      expect(() => cache.destroy()).not.toThrow();
+
+      // Cleanup: remove the directory so afterEach's rmSync works
+      fs.rmSync(cachePath, { recursive: true, force: true });
+    });
+  });
 });
