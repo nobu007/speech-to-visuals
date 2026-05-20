@@ -100,12 +100,11 @@ describe('graceful shutdown', () => {
     });
 
     const saved = process.on;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (process as any).on = patchedOn;
+    (process as unknown as { on: typeof patchedOn }).on = patchedOn;
 
     await import('../index');
 
-    (process as any).on = saved;
+    (process as unknown as { on: typeof saved }).on = saved;
 
     expect(spies).toContain('SIGTERM');
     expect(spies).toContain('SIGINT');
@@ -120,11 +119,11 @@ describe('graceful shutdown', () => {
       registeredHandlers.set(event, handler);
       return origOn.call(process, event, handler);
     });
-    (process as any).on = patchedOn;
+    (process as unknown as { on: typeof patchedOn }).on = patchedOn;
 
     await import('../index');
 
-    (process as any).on = origOn;
+    (process as unknown as { on: typeof origOn }).on = origOn;
 
     const handler = registeredHandlers.get('SIGTERM');
     expect(handler).toBeDefined();
@@ -144,11 +143,11 @@ describe('graceful shutdown', () => {
       registeredHandlers.set(event, handler);
       return origOn.call(process, event, handler);
     });
-    (process as any).on = patchedOn;
+    (process as unknown as { on: typeof patchedOn }).on = patchedOn;
 
     await import('../index');
 
-    (process as any).on = origOn;
+    (process as unknown as { on: typeof origOn }).on = origOn;
 
     const handler = registeredHandlers.get('SIGINT');
     expect(handler).toBeDefined();
