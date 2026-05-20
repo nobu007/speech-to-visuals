@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { jest } from '@jest/globals';
 import * as jwt from 'jsonwebtoken';
 
@@ -6,10 +5,10 @@ import * as jwt from 'jsonwebtoken';
 // 1) Auth functions tests (signIn / signOut / signUp / onAuthStateChange)
 // ---------------------------------------------------------------------------
 
-const mockSignInWithPassword: any = jest.fn();
-const mockSignUp: any = jest.fn();
-const mockSignOut: any = jest.fn();
-const mockOnAuthStateChange: any = jest.fn();
+const mockSignInWithPassword = jest.fn() as jest.Mock;
+const mockSignUp = jest.fn() as jest.Mock;
+const mockSignOut = jest.fn() as jest.Mock;
+const mockOnAuthStateChange = jest.fn() as jest.Mock;
 
 jest.unstable_mockModule('@/integrations/supabase/client', () => ({
   getSupabaseClient: () => ({
@@ -157,10 +156,10 @@ describe('authMiddleware', () => {
 
     const resJson = jest.fn();
     const resStatus = jest.fn().mockReturnValue({ json: resJson });
-    const res = {
+    const res: { status: typeof resStatus; json: typeof resJson } = {
       status: resStatus,
       json: resJson,
-    } as unknown as any;
+    };
 
     const next = jest.fn();
 

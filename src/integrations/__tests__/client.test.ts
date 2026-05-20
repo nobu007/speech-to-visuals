@@ -1,8 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { jest } from '@jest/globals';
+import type { Mock } from 'jest-mock';
 
 // Mock @supabase/supabase-js for the client module tests
-const mockCreateClient: any = jest.fn();
+const mockCreateClient = jest.fn() as Mock<(...args: unknown[]) => unknown>;
 jest.unstable_mockModule('@supabase/supabase-js', () => ({
   createClient: (...args: unknown[]) => mockCreateClient(...args),
 }));

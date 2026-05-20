@@ -16,8 +16,7 @@ jest.unstable_mockModule('@/monitoring/real-time-performance-monitor', () => ({
       quality: { transcriptionAccuracy: 0.90, layoutOverlapRate: 0, avgSceneQuality: 0.85 },
     }),
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  PerformanceSnapshot: {} as any,
+  PerformanceSnapshot: {} as unknown as import('@/monitoring/real-time-performance-monitor').PerformanceSnapshot,
 }));
 
 describe('REQ-065: Quality Gate Array Cap (ISS-011)', () => {

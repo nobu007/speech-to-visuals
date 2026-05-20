@@ -535,10 +535,13 @@ export class LLMService {
     }
 
     // REQ-098: Extract token usage metadata from Gemini API response
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const usage = (response as any).usageMetadata as
-      | { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number }
-      | undefined;
+    const usage = response.usageMetadata
+      ? {
+          promptTokenCount: response.usageMetadata.promptTokenCount,
+          candidatesTokenCount: response.usageMetadata.candidatesTokenCount,
+          totalTokenCount: response.usageMetadata.totalTokenCount,
+        }
+      : undefined;
 
     return { text: responseText, usage };
   }
@@ -588,8 +591,14 @@ export class LLMService {
       let usage: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number } | undefined;
       try {
         const finalResponse = await streamResult.response;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        usage = (finalResponse as any).usageMetadata;
+        const meta = finalResponse.usageMetadata;
+        usage = meta
+          ? {
+              promptTokenCount: meta.promptTokenCount,
+              candidatesTokenCount: meta.candidatesTokenCount,
+              totalTokenCount: meta.totalTokenCount,
+            }
+          : undefined;
       } catch {
         // Usage metadata not available for this streaming response
       }
