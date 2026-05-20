@@ -38,7 +38,7 @@ import { executeLayoutsInParallel, executeScenePreparationInParallel } from './p
 import { timeStage, StageTimingRecord, aggregateTimingReport, StageTimingReport } from './stage-timing-metrics';
 import { detectBottlenecks, BottleneckReport } from './bottleneck-detector';
 import { PipelineConfigError, RenderingError, QualityGateError } from './pipeline-errors';
-import { retryWithBackoff } from './retry';
+import { globalErrorRecovery } from '@/quality/enhanced-error-recovery';
 
 // ---------- Public Interfaces ----------
 
@@ -573,43 +573,58 @@ export class PipelineOrchestrator {
   // ---------- Quality Gates & Fallbacks ----------
 
   /**
-   * Execute a stage function with ErrorClassifier-driven retry, then run quality gates and fallback if needed.
+   * Execute a stage function with EnhancedErrorRecovery-driven retry,
+   * then run quality gates and fallback if needed.
+   *
+   * Uses `createStageErrorBoundary` which provides:
+   * - Circuit breaker per pipeline stage
+   * - Adaptive strategy learning from failure patterns
+   * - Intelligent recovery strategies (degraded quality, cache-based, alternative algorithm)
    */
   private async executeStageWithGates(
     stageIndex: number,
     stageFn: () => Promise<unknown>,
     cb?: (progress: PipelineProgress) => void
   ): Promise<unknown> {
-    // Execute the stage with retry on recoverable errors
+    // Execute the stage with enhanced error recovery
     let result: unknown;
     this.lastStageRetryAttempts = 0;
-    try {
-      const retryResult = await retryWithBackoff(stageFn, {
+
+    const processingStage = this.toProcessingStage(stageIndex);
+    const boundaryResult = await globalErrorRecovery.createStageErrorBoundary(
+      processingStage,
+      stageFn,
+      {
         maxRetries: 2,
-        baseDelayMs: 500,
-        label: `orchestrator:${STAGE_NAMES[stageIndex]}`,
-      });
-      result = retryResult.result;
-      if (retryResult.attempts > 0) {
-        this.retryAttempts += retryResult.attempts;
-        this.lastStageRetryAttempts = retryResult.attempts;
+        component: `pipeline-orchestrator:${STAGE_NAMES[stageIndex]}`,
+      },
+    );
+
+    if (boundaryResult.success) {
+      result = boundaryResult.result;
+      // EnhancedErrorRecovery counts the initial attempt too;
+      // subtract 1 to get actual retry count.
+      const retryCount = Math.max(0, boundaryResult.attempts - 1);
+      if (retryCount > 0) {
+        this.retryAttempts += retryCount;
+        this.lastStageRetryAttempts = retryCount;
       }
-    } catch (error) {
-      // Emit failed progress
+    } else {
+      // Recovery exhausted — emit failed progress
       this.emitProgress(cb, stageIndex + 1, STAGE_NAMES[stageIndex], 0, 'failed',
-        error instanceof Error ? error.message : String(error));
+        boundaryResult.error?.message ?? 'Stage execution failed');
 
       // Try fallback
       const fallbackResult = await this.tryFallbacks(
         stageIndex,
         null,
-        error,
-        cb
+        boundaryResult.error,
+        cb,
       );
       if (fallbackResult !== undefined) {
         return fallbackResult;
       }
-      throw error;
+      throw boundaryResult.error ?? new Error('Stage execution failed');
     }
 
     // Check quality gates
@@ -629,7 +644,7 @@ export class PipelineOrchestrator {
           stageIndex,
           { result, reason: gateResult.reason },
           null,
-          cb
+          cb,
         );
         if (fallbackResult !== undefined) {
           return fallbackResult;
@@ -748,6 +763,20 @@ export class PipelineOrchestrator {
       startTime: Date.now(),
       endTime: Date.now(),
     };
+  }
+
+  /**
+   * Map orchestrator stage index to EnhancedErrorRecovery ProcessingStage.
+   */
+  private toProcessingStage(stageIndex: number): 'transcription' | 'analysis' | 'layout_generation' | 'animation' | 'rendering' {
+    const mapping: Record<number, 'transcription' | 'analysis' | 'layout_generation' | 'animation' | 'rendering'> = {
+      0: 'transcription',
+      1: 'analysis',
+      2: 'layout_generation',
+      3: 'animation',
+      4: 'rendering',
+    };
+    return mapping[stageIndex] ?? 'rendering';
   }
 
   private createFallbackLayout(nodes: unknown[], edges: unknown[]): unknown {
