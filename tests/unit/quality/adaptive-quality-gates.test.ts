@@ -20,10 +20,14 @@ jest.unstable_mockModule('@/monitoring/real-time-performance-monitor', () => ({
   PerformanceSnapshot: {} as any,
 }));
 
-const { AdaptiveQualityGatesSystem } = await import('@/quality/adaptive-quality-gates');
-
 describe('REQ-065: Quality Gate Array Cap (ISS-011)', () => {
-  let system: AdaptiveQualityGatesSystem;
+  let AdaptiveQualityGatesSystem: typeof import('@/quality/adaptive-quality-gates').AdaptiveQualityGatesSystem;
+  let system: InstanceType<typeof AdaptiveQualityGatesSystem>;
+
+  beforeAll(async () => {
+    const mod = await import('@/quality/adaptive-quality-gates');
+    AdaptiveQualityGatesSystem = mod.AdaptiveQualityGatesSystem;
+  });
 
   beforeEach(() => {
     system = new AdaptiveQualityGatesSystem();

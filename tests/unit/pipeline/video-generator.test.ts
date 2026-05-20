@@ -11,11 +11,6 @@ jest.unstable_mockModule('@/lib/actualVideoRenderer', () => ({
   },
 }), { virtual: true });
 
-const {
-  VideoGenerator,
-  generateVideoFromPipeline,
-} = await import('@/pipeline/video-generator');
-
 // Create mock scenes with all properties video-generator actually accesses
 function makeMockScene(overrides: Record<string, unknown> = {}) {
   return {
@@ -57,6 +52,15 @@ function makeValidPipelineResult(): SimplePipelineResult {
 }
 
 describe('VideoGenerator', () => {
+  let VideoGenerator: typeof import('@/pipeline/video-generator').VideoGenerator;
+  let generateVideoFromPipeline: typeof import('@/pipeline/video-generator').generateVideoFromPipeline;
+
+  beforeAll(async () => {
+    const mod = await import('@/pipeline/video-generator');
+    VideoGenerator = mod.VideoGenerator;
+    generateVideoFromPipeline = mod.generateVideoFromPipeline;
+  });
+
   beforeEach(() => {
     jest.spyOn(console, 'log').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -284,6 +288,13 @@ describe('VideoGenerator', () => {
 });
 
 describe('generateVideoFromPipeline', () => {
+  let generateVideoFromPipeline: typeof import('@/pipeline/video-generator').generateVideoFromPipeline;
+
+  beforeAll(async () => {
+    const mod = await import('@/pipeline/video-generator');
+    generateVideoFromPipeline = mod.generateVideoFromPipeline;
+  });
+
   it('should create generator and generate video', async () => {
     const result = await generateVideoFromPipeline(makeValidPipelineResult());
     expect(result.success).toBe(true);
