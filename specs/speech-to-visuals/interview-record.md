@@ -10,11 +10,34 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-18（第159回検証: Phase 55完了確認・Phase 56要件定義・音声検証完全統合ギャップ分析・335ファイル・97,807行・105パッケージ・4,448+テスト（115ファイル）・REQ-001~143全実装完了・REQ-144~147定義済）
+**最終更新**: 2026-05-20（第160回検証: 前回イテレーション追加テスト2258行の検証・2テストファイル修正・243新規テスト通過確認・26既存テストファイルのtop-level await CJS非互換調査）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
 ## 分析項目と判断
+
+### A160: 第160回検証 - 前回イテレーション追加テスト品質検証・テストバグ修正（2026-05-20 第160回更新）
+
+**分析日時**: 2026-05-20
+**カテゴリ**: テスト品質検証・テストバグ修正・テストインフラ調査
+**背景**: AI Hubフィードバックで前回イテレーション（コミット1711dac~0b42e1d）で追加された2258行のテスト（10モジュール・243テスト）の全通過確認と、ソースコードバグの有無調査を指示された。
+
+**判断**:
+1. **新規テスト11ファイル全通過**: tests/analysis/budget-alert, tests/pipeline/bottleneck-detector, tests/pipeline/pipeline-health-score, tests/quality/error-classifier, tests/quality/quality-gate, tests/unit/export/export-verifier, tests/unit/optimization/adaptive-content-processor, tests/unit/pipeline/parallel-layout-executor, tests/utils/audio-validation, tests/utils/sanitize（計243テスト全通過）
+2. **テストバグ2件発見・修正**:
+   - `src/pipeline/__tests__/retry.test.ts`: `retryWithBackoff` がコミットe32f5acで `RetryResult<T>` ラッパー（`{result, attempts}`）を返すよう変更されたが、テストが更新されていなかった。8テスト失敗 → `.result` デストラクチャで修正（12テスト通過）
+   - `tests/quality/regression-detector.test.ts`: `jest.unstable_mockModule` + top-level `await import()` がCJSモードで `SyntaxError` 発生。`jest.mock()`（stable）+ `beforeAll` 動的インポートに変換（20テスト通過）
+3. **既存テストインフラ調査**: 26テストファイルが top-level await パターンを使用しCJS互換性なし。これらは今回のコミット以前から存在する既知の問題。3テストファイル（mobile-responsive, secure-id-generation, mock-consistency）は通過済。
+
+**根拠**:
+- コミット0b813ef: `fix(test): update retry tests for RetryResult wrapper and fix top-level await in regression-detector tests`
+- テスト実行結果: 243新規テスト通過・26既存テストファイルCJS非互換（pre-existing）
+
+**信頼性への影響**:
+- テスト信頼性向上: 28テストが失敗→通過に改善
+- 信頼性レベル分布変化なし: 🔵183件/🟡3件/🔴0件
+
+---
 
 ### A159: 第159回検証 - Phase 55完了確認・Phase 56音声検証完全統合要件定義（2026-05-18 第159回更新）
 
