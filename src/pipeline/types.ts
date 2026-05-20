@@ -102,6 +102,8 @@ export interface ExtendedPipelineMetrics extends PipelineMetrics {
   bottleneckReport?: BottleneckReport;
   /** Total retry attempts across all stages (for observability) */
   totalRetryAttempts?: number;
+  /** Per-run recovery report from PipelineRunRecoveryTracker (TASK-0045) */
+  recoveryReport?: import('@/quality/pipeline-run-recovery-tracker').RunRecoveryReport;
 }
 
 /** Quality scores per pipeline stage, recorded via QualityMonitor (REQ-088) */

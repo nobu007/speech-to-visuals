@@ -55,3 +55,27 @@ export type {
   MonitorConfig,
   MonitorHealthStatus,
 } from './error-recovery-monitor';
+
+export { BatchOperationRecovery } from './batch-operation-recovery';
+export type {
+  BatchRecoveryConfig,
+  ItemResult,
+  BatchResult,
+} from './batch-operation-recovery';
+
+export { ErrorRecoveryHealthTracker } from './error-recovery-health-tracker';
+export type {
+  HealthAssessment,
+  StageHealthScore,
+} from './error-recovery-health-tracker';
+
+export { PipelineRunRecoveryTracker } from './pipeline-run-recovery-tracker';
+export type {
+  RecoveryStage,
+  DegradationLevel,
+  StageRecoveryRecord,
+  RunRecoveryConfig,
+  RecoveryRecommendation,
+  RunRecoveryReport,
+  RunStateSnapshot,
+} from './pipeline-run-recovery-tracker';

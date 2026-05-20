@@ -39,6 +39,12 @@ import { timeStage, StageTimingRecord, aggregateTimingReport, StageTimingReport 
 import { detectBottlenecks, BottleneckReport } from './bottleneck-detector';
 import { PipelineConfigError, RenderingError, QualityGateError } from './pipeline-errors';
 import { globalErrorRecovery } from '@/quality/enhanced-error-recovery';
+import {
+  PipelineRunRecoveryTracker,
+  type RecoveryStage,
+  type RunRecoveryReport,
+  type RunRecoveryConfig,
+} from '@/quality/pipeline-run-recovery-tracker';
 
 // ---------- Public Interfaces ----------
 
@@ -121,6 +127,9 @@ export class PipelineOrchestrator {
   private retryAttempts: number = 0;
   /** Retry attempts from the most recent executeStageWithGates call */
   private lastStageRetryAttempts: number = 0;
+
+  // Per-run recovery tracking
+  private readonly runTracker = new PipelineRunRecoveryTracker();
 
   constructor(config: PipelineOrchestratorConfig = {}) {
     this.config = config;
@@ -242,9 +251,15 @@ export class PipelineOrchestrator {
     const maxLayoutConcurrency = this.config.maxLayoutConcurrency ?? 3;
     const maxSceneConcurrency = this.config.maxSceneConcurrency ?? 4;
 
+    // Start per-run recovery tracking
+    const runId = `run-${Date.now()}`;
+    this.runTracker.startRun(runId);
+    let runRecoveryReport: RunRecoveryReport | undefined;
+
     try {
       // ===== Stage 1: Transcription =====
       this.emitProgress(cb, 1, 'transcription', 0, 'running');
+      this.runTracker.setActiveStage('transcription');
 
       const stage1 = await timeStage('transcription', 1, () =>
         this.executeStageWithGates(0, () => this.runTranscription(input, pipelineConfig), cb),
@@ -252,6 +267,13 @@ export class PipelineOrchestrator {
       transcriptionResult = stage1.result;
       stage1.timing.retryAttempts = this.lastStageRetryAttempts;
       stageTimings.push(stage1.timing);
+      this.runTracker.recordStageOutcome('transcription', {
+        attemptCount: this.lastStageRetryAttempts + 1,
+        recoveryStrategy: this.lastStageRetryAttempts > 0 ? 'intelligent_retry' : undefined,
+        fallbackUsed: false,
+        degraded: false,
+        durationMs: stage1.timing.durationMs,
+      });
 
       this.emitProgress(cb, 1, 'transcription', 100, 'completed');
       stages.push(this.makeStage('transcription', 'complete'));
@@ -259,8 +281,16 @@ export class PipelineOrchestrator {
       // Record transcription quality score (REQ-088)
       this.recordStageQuality('transcription', transcriptionResult, qualityScores);
 
+      // Check if run should abort based on accumulated errors
+      if (this.runTracker.shouldAbort()) {
+        throw new Error('Pipeline aborted: recovery tracker detected critical degradation');
+      }
+
       // ===== Stage 2: Content Analysis =====
       this.emitProgress(cb, 2, 'analysis', 0, 'running');
+      this.runTracker.setActiveStage('analysis');
+
+      const analysisRec = this.runTracker.getRecommendedStrategy('analysis');
 
       const stage2 = await timeStage('analysis', 1, () =>
         this.executeStageWithGates(1, () => this.runAnalysis(transcriptionResult), cb),
@@ -268,6 +298,13 @@ export class PipelineOrchestrator {
       const analysisResult = stage2.result as { segments: unknown[]; diagrams: unknown[] };
       stage2.timing.retryAttempts = this.lastStageRetryAttempts;
       stageTimings.push(stage2.timing);
+      this.runTracker.recordStageOutcome('analysis', {
+        attemptCount: this.lastStageRetryAttempts + 1,
+        recoveryStrategy: this.lastStageRetryAttempts > 0 ? 'intelligent_retry' : undefined,
+        fallbackUsed: false,
+        degraded: analysisRec.preferFallback && this.lastStageRetryAttempts > 0,
+        durationMs: stage2.timing.durationMs,
+      });
 
       contentSegments = analysisResult.segments;
       diagramAnalyses = analysisResult.diagrams;
@@ -278,8 +315,16 @@ export class PipelineOrchestrator {
       // Record analysis quality score (REQ-088)
       this.recordStageQuality('analysis', analysisResult, qualityScores);
 
+      // Check if run should abort
+      if (this.runTracker.shouldAbort()) {
+        throw new Error('Pipeline aborted: recovery tracker detected critical degradation');
+      }
+
       // ===== Stage 3: Layout Generation =====
       this.emitProgress(cb, 3, 'layout', 0, 'running');
+      this.runTracker.setActiveStage('layout_generation');
+
+      const layoutRec = this.runTracker.getRecommendedStrategy('layout_generation');
 
       const stage3 = await timeStage('layout', diagramAnalyses.length, () =>
         this.executeStageWithGates(
@@ -291,6 +336,13 @@ export class PipelineOrchestrator {
       const layoutResult = stage3.result;
       stage3.timing.retryAttempts = this.lastStageRetryAttempts;
       stageTimings.push(stage3.timing);
+      this.runTracker.recordStageOutcome('layout_generation', {
+        attemptCount: this.lastStageRetryAttempts + 1,
+        recoveryStrategy: this.lastStageRetryAttempts > 0 ? 'intelligent_retry' : undefined,
+        fallbackUsed: false,
+        degraded: layoutRec.preferFallback && this.lastStageRetryAttempts > 0,
+        durationMs: stage3.timing.durationMs,
+      });
 
       layoutResults = layoutResult as unknown[];
 
@@ -308,11 +360,17 @@ export class PipelineOrchestrator {
       // Record layout quality score (REQ-088)
       this.recordStageQuality('layout', qualityMetrics, qualityScores);
 
+      // Check if run should abort
+      if (this.runTracker.shouldAbort()) {
+        throw new Error('Pipeline aborted: recovery tracker detected critical degradation');
+      }
+
       this.emitProgress(cb, 3, 'layout', 100, 'completed');
       stages.push(this.makeStage('layout', 'complete'));
 
       // ===== Stage 4: Video Preparation =====
       this.emitProgress(cb, 4, 'preparation', 0, 'running');
+      this.runTracker.setActiveStage('animation');
 
       const stage4 = await timeStage('preparation', layoutResults.length, () =>
         this.executeStageWithGates(
@@ -324,18 +382,33 @@ export class PipelineOrchestrator {
       scenes = stage4.result as SceneGraph[];
       stage4.timing.retryAttempts = this.lastStageRetryAttempts;
       stageTimings.push(stage4.timing);
+      this.runTracker.recordStageOutcome('animation', {
+        attemptCount: this.lastStageRetryAttempts + 1,
+        recoveryStrategy: this.lastStageRetryAttempts > 0 ? 'intelligent_retry' : undefined,
+        fallbackUsed: false,
+        degraded: false,
+        durationMs: stage4.timing.durationMs,
+      });
 
       this.emitProgress(cb, 4, 'preparation', 100, 'completed');
       stages.push(this.makeStage('preparation', 'complete'));
 
       // ===== Stage 5: Video Rendering =====
       this.emitProgress(cb, 5, 'rendering', 0, 'running');
+      this.runTracker.setActiveStage('rendering');
 
       const stage5 = await timeStage('rendering', scenes!.length, () =>
         this.executeStageWithGates(4, () => this.runRendering(scenes!, pipelineConfig), cb),
       );
       stage5.timing.retryAttempts = this.lastStageRetryAttempts;
       stageTimings.push(stage5.timing);
+      this.runTracker.recordStageOutcome('rendering', {
+        attemptCount: this.lastStageRetryAttempts + 1,
+        recoveryStrategy: this.lastStageRetryAttempts > 0 ? 'intelligent_retry' : undefined,
+        fallbackUsed: false,
+        degraded: false,
+        durationMs: stage5.timing.durationMs,
+      });
 
       this.emitProgress(cb, 5, 'rendering', 100, 'completed');
       stages.push(this.makeStage('rendering', 'complete'));
@@ -348,6 +421,9 @@ export class PipelineOrchestrator {
       // Generate bottleneck report from timing records (REQ-097)
       const timingReport = aggregateTimingReport(stageTimings);
       const bottleneckReport = detectBottlenecks(stageTimings);
+
+      // Finalize run recovery tracking
+      runRecoveryReport = this.runTracker.finalizeRun(true);
 
       return {
         success: true,
@@ -362,11 +438,17 @@ export class PipelineOrchestrator {
           stageTimings: stageTimings,
           bottleneckReport,
           totalRetryAttempts: this.retryAttempts,
+          recoveryReport: runRecoveryReport,
         },
       };
     } catch (error) {
       const totalTime = Date.now() - overallStart;
       const msg = error instanceof Error ? error.message : String(error);
+
+      // Finalize run recovery tracking on failure
+      if (this.runTracker.isActive) {
+        runRecoveryReport = this.runTracker.finalizeRun(false);
+      }
 
       return {
         success: false,
@@ -378,6 +460,7 @@ export class PipelineOrchestrator {
         error: msg,
         metrics: {
           totalRetryAttempts: this.retryAttempts,
+          recoveryReport: runRecoveryReport,
         },
       };
     }
