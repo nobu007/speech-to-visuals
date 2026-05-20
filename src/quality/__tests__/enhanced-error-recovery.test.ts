@@ -7,20 +7,35 @@
 
 import { jest } from '@jest/globals';
 
-// Mock the intelligent-cache module
+// Mock the intelligent-cache module - define mocks outside factory for test access
+const mockFindSimilar = jest.fn().mockResolvedValue(null);
+const mockGetStats = jest.fn().mockReturnValue({ hitRate: 0.5 });
+const mockClear = jest.fn().mockResolvedValue(undefined);
+const mockGet = jest.fn().mockResolvedValue(null);
+const mockSet = jest.fn();
+const mockHas = jest.fn().mockReturnValue(false);
+const mockDelete = jest.fn().mockReturnValue(false);
+
 jest.unstable_mockModule('@/performance/intelligent-cache', () => ({
   globalCache: {
-    findSimilar: jest.fn().mockResolvedValue(null),
-    getStats: jest.fn().mockReturnValue({ hitRate: 0.5 }),
-    clear: jest.fn().mockResolvedValue(undefined),
-    get: jest.fn().mockResolvedValue(null),
-    set: jest.fn(),
-    has: jest.fn().mockReturnValue(false),
-    delete: jest.fn().mockReturnValue(false),
+    findSimilar: mockFindSimilar,
+    getStats: mockGetStats,
+    clear: mockClear,
+    get: mockGet,
+    set: mockSet,
+    has: mockHas,
+    delete: mockDelete,
   },
 }));
 
-const { EnhancedErrorRecovery, globalErrorRecovery } = await import('../enhanced-error-recovery');
+let EnhancedErrorRecovery: typeof import('../enhanced-error-recovery').EnhancedErrorRecovery;
+let globalErrorRecovery: typeof import('../enhanced-error-recovery').globalErrorRecovery;
+
+beforeAll(async () => {
+  const mod = await import('../enhanced-error-recovery');
+  EnhancedErrorRecovery = mod.EnhancedErrorRecovery;
+  globalErrorRecovery = mod.globalErrorRecovery;
+});
 
 // Helper: create a valid ErrorContext
 function createErrorContext(overrides: Record<string, unknown> = {}): Parameters<EnhancedErrorRecovery['recoverFromError']>[0] {
@@ -900,10 +915,7 @@ describe('EnhancedErrorRecovery', () => {
   // ========================================
   describe('cache recovery strategy', () => {
     it('should use cached results when available', async () => {
-      // Import the mocked globalCache
-      const { globalCache } = await import('@/performance/intelligent-cache');
-
-      globalCache.findSimilar.mockResolvedValueOnce({
+      mockFindSimilar.mockResolvedValueOnce({
         data: { cached: 'result', confidence: 0.9 },
       });
 
@@ -918,8 +930,7 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     it('should handle cache miss gracefully', async () => {
-      const { globalCache } = await import('@/performance/intelligent-cache');
-      globalCache.findSimilar.mockResolvedValueOnce(null);
+      mockFindSimilar.mockResolvedValueOnce(null);
 
       const context = createErrorContext({
         stage: 'diagram_detection',
@@ -1249,8 +1260,7 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     it('should handle memory cleanup action', async () => {
-      const { globalCache } = await import('@/performance/intelligent-cache');
-      globalCache.clear.mockResolvedValueOnce(undefined);
+      mockClear.mockResolvedValueOnce(undefined);
 
       // Force the system into a state where preventive actions trigger
       // by making an indicator high risk

@@ -16,7 +16,14 @@ jest.unstable_mockModule('@/performance/intelligent-cache', () => ({
   },
 }));
 
-const { EnhancedErrorRecovery, globalErrorRecovery } = await import('@/quality/enhanced-error-recovery');
+let EnhancedErrorRecovery: typeof import('@/quality/enhanced-error-recovery').EnhancedErrorRecovery;
+let globalErrorRecovery: typeof import('@/quality/enhanced-error-recovery').globalErrorRecovery;
+
+beforeAll(async () => {
+  const mod = await import('@/quality/enhanced-error-recovery');
+  EnhancedErrorRecovery = mod.EnhancedErrorRecovery;
+  globalErrorRecovery = mod.globalErrorRecovery;
+});
 
 describe('EnhancedErrorRecovery', () => {
   let recovery: EnhancedErrorRecovery;
