@@ -231,6 +231,20 @@ export interface NotificationPayload {
   suggestedActions: string[];
 }
 
+/**
+ * Result of a stage execution wrapped by the error boundary.
+ */
+export interface StageBoundaryResult<T = unknown> {
+  success: boolean;
+  result?: T;
+  error?: Error;
+  recoveryAttempted: boolean;
+  recoveryStrategy?: string;
+  attempts: number;
+  timeSpentMs: number;
+  notification?: NotificationPayload;
+}
+
 interface SystemHealth {
   overall: number;
   stages: Record<ProcessingStage, number>;
@@ -2132,6 +2146,226 @@ export class EnhancedErrorRecovery {
       /permission denied/i,
     ];
     return !unrecoverablePatterns.some((pattern) => pattern.test(message));
+  }
+
+  // ========================================
+  // Error Grouping & Deduplication
+  // ========================================
+
+  /**
+   * Generate a stable fingerprint for an error context.
+   * Two error contexts with the same stage, component, and error message
+   * produce the same fingerprint, regardless of timestamp or retry count.
+   */
+  private errorFingerprint(context: ErrorContext): string {
+    return `${context.stage}::${context.component}::${context.error.message}`;
+  }
+
+  /**
+   * Group the current error history by fingerprint, collapsing repeated
+   * identical errors into summary groups ordered by frequency (descending).
+   *
+   * Useful for dashboards and alerting — shows "what errors happen most"
+   * without drowning in duplicates.
+   */
+  getErrorGroups(): Array<{
+    fingerprint: string;
+    stage: ProcessingStage;
+    component: string;
+    errorMessage: string;
+    errorName: string;
+    firstOccurrence: number;
+    lastOccurrence: number;
+    count: number;
+  }> {
+    const groups = new Map<string, {
+      stage: ProcessingStage;
+      component: string;
+      errorMessage: string;
+      errorName: string;
+      firstOccurrence: number;
+      lastOccurrence: number;
+      count: number;
+    }>();
+
+    for (const [, errors] of this.errorHistory.entries()) {
+      for (const ctx of errors) {
+        const fp = this.errorFingerprint(ctx);
+        const existing = groups.get(fp);
+        if (existing) {
+          existing.count++;
+          existing.lastOccurrence = Math.max(existing.lastOccurrence, ctx.timestamp);
+          existing.firstOccurrence = Math.min(existing.firstOccurrence, ctx.timestamp);
+        } else {
+          groups.set(fp, {
+            stage: ctx.stage,
+            component: ctx.component,
+            errorMessage: ctx.error.message,
+            errorName: ctx.error.name,
+            firstOccurrence: ctx.timestamp,
+            lastOccurrence: ctx.timestamp,
+            count: 1,
+          });
+        }
+      }
+    }
+
+    return Array.from(groups.values())
+      .sort((a, b) => b.count - a.count);
+  }
+
+  // ========================================
+  // Stage Error Boundary
+  // ========================================
+
+  /**
+   * Wrap an async pipeline stage function with comprehensive error handling.
+   *
+   * The boundary:
+   *  1. Executes the stage inside `retryWithBackoff` for transient errors.
+   *  2. On persistent failure, calls `recoverFromError` for strategy-based recovery.
+   *  3. If recovery also fails and a `fallback` is provided, runs the fallback.
+   *  4. Generates a `NotificationPayload` for any error that required recovery.
+   *
+   * @param stage - Pipeline stage name (for circuit breaker & recovery routing)
+   * @param operation - The primary async operation to protect
+   * @param options - Retry, fallback, and notification configuration
+   * @returns A `StageBoundaryResult` with full outcome metadata
+   */
+  async createStageErrorBoundary<T>(
+    stage: ProcessingStage,
+    operation: () => Promise<T>,
+    options?: {
+      maxRetries?: number;
+      fallback?: () => Promise<T>;
+      component?: string;
+      sessionId?: string;
+      severity?: 'low' | 'medium' | 'high' | 'critical';
+    }
+  ): Promise<StageBoundaryResult<T>> {
+    const startTime = performance.now();
+    const component = options?.component ?? 'stage-boundary';
+    const severity = options?.severity ?? 'medium';
+
+    // Phase 1: Retry with backoff
+    const retryResult = await this.retryWithBackoff(operation, {
+      maxRetries: options?.maxRetries ?? 2,
+      initialDelayMs: 100,
+      backoffMultiplier: 2,
+      maxDelayMs: 2000,
+    });
+
+    if (retryResult.success) {
+      return {
+        success: true,
+        result: retryResult.result as T,
+        recoveryAttempted: false,
+        attempts: retryResult.attempts,
+        timeSpentMs: performance.now() - startTime,
+      };
+    }
+
+    // Phase 2: Strategy-based recovery
+    const context: ErrorContext = {
+      stage,
+      component,
+      input: {},
+      error: retryResult.lastError ?? new Error('Unknown stage failure'),
+      timestamp: Date.now(),
+      retryCount: retryResult.attempts,
+      userContext: {
+        preferences: {},
+        sessionId: options?.sessionId ?? 'boundary',
+        previousSuccesses: 0,
+      },
+    };
+
+    const recoveryResult = await this.recoverFromError(context);
+
+    if (recoveryResult.success) {
+      return {
+        success: true,
+        result: recoveryResult.result as T,
+        recoveryAttempted: true,
+        recoveryStrategy: recoveryResult.strategy,
+        attempts: retryResult.attempts,
+        timeSpentMs: performance.now() - startTime,
+        notification: this.createErrorNotification(context.error, { stage, severity }),
+      };
+    }
+
+    // Phase 3: Fallback if provided
+    if (options?.fallback) {
+      try {
+        const fallbackResult = await options.fallback();
+        return {
+          success: true,
+          result: fallbackResult,
+          recoveryAttempted: true,
+          recoveryStrategy: 'fallback',
+          attempts: retryResult.attempts,
+          timeSpentMs: performance.now() - startTime,
+          notification: this.createErrorNotification(context.error, { stage, severity }),
+        };
+      } catch {
+        // Fallback also failed — fall through to error result
+      }
+    }
+
+    // All recovery paths exhausted
+    return {
+      success: false,
+      error: context.error,
+      recoveryAttempted: true,
+      recoveryStrategy: recoveryResult.strategy,
+      attempts: retryResult.attempts,
+      timeSpentMs: performance.now() - startTime,
+      notification: this.createErrorNotification(context.error, { stage, severity: 'high' }),
+    };
+  }
+
+  // ========================================
+  // Batch Recovery
+  // ========================================
+
+  /**
+   * Recover from multiple error contexts in parallel, with concurrency control.
+   *
+   * Stages are grouped by priority (upstream stages recovered first when they
+   * share the same pipeline run), and recovered concurrently up to
+   * `maxConcurrency` at a time.
+   *
+   * @param contexts - Array of error contexts to recover from
+   * @param maxConcurrency - Maximum parallel recoveries (default: 3)
+   * @returns Array of recovery results in the same order as input contexts
+   */
+  async recoverBatch(
+    contexts: ErrorContext[],
+    maxConcurrency: number = 3
+  ): Promise<RecoveryResult[]> {
+    const results: RecoveryResult[] = new Array(contexts.length);
+
+    // Sort indices by stage importance (upstream first) for priority scheduling
+    const stageOrder = EnhancedErrorRecovery.STAGE_ORDER;
+    const indices = contexts.map((ctx, i) => ({
+      index: i,
+      priority: stageOrder.indexOf(ctx.stage),
+    })).sort((a, b) => a.priority - b.priority);
+
+    // Process in concurrent batches
+    for (let batchStart = 0; batchStart < indices.length; batchStart += maxConcurrency) {
+      const batch = indices.slice(batchStart, batchStart + maxConcurrency);
+      const batchResults = await Promise.all(
+        batch.map(async ({ index }) => {
+          return { index, result: await this.recoverFromError(contexts[index]) };
+        })
+      );
+      for (const { index, result } of batchResults) {
+        results[index] = result;
+      }
+    }
+
+    return results;
   }
 
   // ========================================
