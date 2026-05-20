@@ -157,3 +157,6 @@ find tests/ -name "*target*" -o -name "*module*"
 - **要件**: `specs/speech-to-visuals/requirements.md` - 機能要件定義
 - **設計**: `specs/speech-to-visuals/architecture.md` - アーキテクチャ設計
 - **タスク**: `specs/speech-to-visuals/tasks/TASK-*.md` - 個別タスク定義
+## LLM Wiki
+
+Read `docs/llm-wiki/index.md` for high-level repository memory. Treat purpose, specs, and source files as canonical.
