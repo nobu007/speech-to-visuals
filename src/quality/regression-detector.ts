@@ -74,6 +74,9 @@ export class RegressionDetector {
     critical: 50, // 50% degradation
   };
 
+  // Minimum percentage change to qualify as an improvement
+  private readonly improvementThresholdPercent = 5;
+
   // Metrics where lower is better (reverse thresholds)
   private readonly lowerIsBetter = [
     'processingTime',
@@ -231,7 +234,7 @@ export class RegressionDetector {
           recommendation: this.getRecommendation(metric, changePercent),
         };
         regressions.push(regression);
-      } else if (!isRegression && absChangePercent >= 5) {
+      } else if (!isRegression && absChangePercent >= this.improvementThresholdPercent) {
         // Track improvements (>5% change)
         improvements.push({
           metric,
