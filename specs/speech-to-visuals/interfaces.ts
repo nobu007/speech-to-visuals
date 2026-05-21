@@ -2,7 +2,7 @@
  * speech-to-visuals 型定義
  *
  * 作成日: 2026-04-27
- * 最終更新: 2026-05-20（第158回検証: Phase 1-56完了・型付きパイプラインエラー5クラス・LLMキャッシュデバウンスオプション・ErrorClassifier事前分類・344ファイル・100,044行・217テストファイル・TypeScript/ESLintエラー0件・依存105パッケージ）
+ * 最終更新: 2026-05-21（第162回検証: Phase 1-57完了・多層エラー回復システム6モジュール型追加・RecoveryStrategyChain・PipelineRunRecoveryTracker・BatchOperationRecovery・ErrorRecoveryHealthTracker・ErrorRecoveryEventBus・ErrorRecoveryMonitor・352ファイル・177テストファイル・TypeScript/ESLintエラー0件・依存105パッケージ）
  * 関連設計: architecture.md
  *
  * 信頼性レベル:
@@ -652,11 +652,11 @@ export type PermissionKey = keyof typeof PERMISSIONS; // 🔵 パーミッショ
 // 信頼性レベルサマリー
 // ========================================
 /**
- * - 🔵 青信号: 473件 (98%)
- * - 🟡 黄信号: 4件 (2%)
+ * - 🔵 青信号: 543件 (99%)
+ * - 🟡 黄信号: 4件 (1%)
  * - 🔴 赤信号: 0件 (0%)
  *
- * 品質評価: 高品質（第158回検証: Phase 56 型付きパイプラインエラー・LLMキャッシュデバウンス型追加・344ファイル状態確認済み）
+ * 品質評価: 高品質（第162回検証: Phase 57 多層エラー回復システム6モジュール型追加・352ファイル状態確認済み）
  */
 
 // ========================================
@@ -1856,4 +1856,224 @@ export interface PipelineErrorLike {
  */
 export interface LLMCacheDebounceOptions {
   persistDebounceMs?: number; // 🔵 ディスク書き込みデバウンス間隔（ms、デフォルト: 1000、0で即時書き込み）
+}
+
+// ========================================
+// Phase 57 多層エラー回復システム型（6モジュール）
+// ========================================
+
+/**
+ * チェーンステップ
+ * 🔵 信頼性: src/quality/recovery-strategy-chain.ts・Phase 57 より
+ */
+export interface ChainStep {
+  name: string; // 🔵 ステップ名
+  execute: () => Promise<unknown>; // 🔵 実行関数
+  isRecoverable?: boolean; // 🔵 リカバリ可能性フラグ
+}
+
+/**
+ * チェーン設定
+ * 🔵 信頼性: src/quality/recovery-strategy-chain.ts より
+ */
+export interface ChainConfig {
+  maxDurationMs?: number; // 🔵 最大実行時間（ms）
+  minConfidence?: number; // 🔵 最低信頼度閾値
+  stopOnFirstSuccess?: boolean; // 🔵 最初の成功で停止（デフォルト: true）
+}
+
+/**
+ * チェーン結果
+ * 🔵 信頼性: src/quality/recovery-strategy-chain.ts より
+ */
+export interface ChainOutcome {
+  success: boolean; // 🔵 成功フラグ
+  strategyUsed?: string; // 🔵 使用された戦略名
+  attemptsCount: number; // 🔵 試行回数
+  totalDurationMs: number; // 🔵 総所要時間（ms）
+  error?: string; // 🔵 エラーメッセージ
+}
+
+/**
+ * チェーン統計
+ * 🔵 信頼性: src/quality/recovery-strategy-chain.ts より
+ */
+export interface ChainStats {
+  totalExecutions: number; // 🔵 総実行回数
+  successRate: number; // 🔵 成功率（0-1）
+  averageDurationMs: number; // 🔵 平均所要時間（ms）
+  byStrategy: Record<string, { successes: number; failures: number }>; // 🔵 戦略別統計
+}
+
+/**
+ * 戦略チェーン
+ * 🔵 信頼性: src/quality/recovery-strategy-chain.ts より
+ */
+export interface StrategyChain {
+  name: string; // 🔵 チェーン名
+  steps: ChainStep[]; // 🔵 ステップ配列
+  config?: ChainConfig; // 🔵 チェーン設定
+}
+
+/**
+ * 回復ステージ
+ * 🔵 信頼性: src/quality/pipeline-run-recovery-tracker.ts・Phase 57 より
+ */
+export type RecoveryStage =
+  | 'transcription' | 'segmentation' | 'analysis'
+  | 'layout' | 'preparation' | 'rendering'; // 🔵 パイプラインステージ
+
+/**
+ * 劣化レベル
+ * 🔵 信頼性: src/quality/pipeline-run-recovery-tracker.ts より
+ */
+export type DegradationLevel = 'nominal' | 'degraded' | 'critical'; // 🔵 実行レベル劣化状態
+
+/**
+ * ステージ回復記録
+ * 🔵 信頼性: src/quality/pipeline-run-recovery-tracker.ts より
+ */
+export interface StageRecoveryRecord {
+  stage: RecoveryStage; // 🔵 対象ステージ
+  errorType: ErrorType; // 🔵 エラータイプ
+  strategyUsed: string; // 🔵 使用戦略
+  recovered: boolean; // 🔵 回復成功フラグ
+  durationMs: number; // 🔵 回復所要時間（ms）
+  context?: Record<string, unknown>; // 🔵 追加コンテキスト
+}
+
+/**
+ * 実行回復設定
+ * 🔵 信頼性: src/quality/pipeline-run-recovery-tracker.ts より
+ */
+export interface RunRecoveryConfig {
+  maxRetriesPerStage: number; // 🔵 ステージあたり最大リトライ数
+  degradationThreshold: number; // 🔵 劣化判定閾値（0-1）
+  enableAdaptiveRecovery: boolean; // 🔵 適応回復有効フラグ
+}
+
+/**
+ * 回復推奨事項
+ * 🔵 信頼性: src/quality/pipeline-run-recovery-tracker.ts より
+ */
+export interface RecoveryRecommendation {
+  targetStage: RecoveryStage; // 🔵 対象ステージ
+  avoidStrategies: string[]; // 🔵 回避すべき戦略
+  preferredStrategies: string[]; // 🔵 推奨戦略
+  reason: string; // 🔵 推奨理由
+}
+
+/**
+ * 実行回復レポート
+ * 🔵 信頼性: src/quality/pipeline-run-recovery-tracker.ts より
+ */
+export interface RunRecoveryReport {
+  pipelineId: string; // 🔵 パイプラインID
+  degradationLevel: DegradationLevel; // 🔵 最終劣化レベル
+  stageRecords: StageRecoveryRecord[]; // 🔵 全ステージ回復記録
+  recommendations: RecoveryRecommendation[]; // 🔵 推奨事項
+  totalRecoveryTimeMs: number; // 🔵 総回復時間（ms）
+}
+
+/**
+ * バッチ回復設定
+ * 🔵 信頼性: src/quality/batch-operation-recovery.ts・Phase 57 より
+ */
+export interface BatchRecoveryConfig {
+  maxRetries: number; // 🔵 アイテムあたり最大リトライ数
+  baseBackoffMs: number; // 🔵 基本バックオフ間隔（ms）
+  concurrency?: number; // 🔵 並列数（逐次時は1）
+}
+
+/**
+ * アイテム処理結果
+ * 🔵 信頼性: src/quality/batch-operation-recovery.ts より
+ */
+export interface ItemResult<T> {
+  index: number; // 🔵 アイテムインデックス
+  success: boolean; // 🔵 成功フラグ
+  result?: T; // 🔵 処理結果
+  error?: Error; // 🔵 エラーオブジェクト
+  retries: number; // 🔵 リトライ回数
+}
+
+/**
+ * バッチ処理結果
+ * 🔵 信頼性: src/quality/batch-operation-recovery.ts より
+ */
+export interface BatchResult<T> {
+  items: ItemResult<T>[]; // 🔵 全アイテム結果
+  succeeded: number; // 🔵 成功数
+  failed: number; // 🔵 失敗数
+  totalDurationMs: number; // 🔵 総所要時間（ms）
+}
+
+/**
+ * 健全性サンプル
+ * 🔵 信頼性: src/quality/error-recovery-health-tracker.ts・Phase 57 より
+ */
+export interface HealthSample {
+  timestamp: number; // 🔵 サンプル時刻
+  stage: string; // 🔵 対象ステージ
+  errorFrequency: number; // 🔵 エラー頻度
+  circuitBreakerOpen: boolean; // 🔵 サーキットブレーカー状態
+  recoverySuccessRate: number; // 🔵 回復成功率（0-1）
+}
+
+/**
+ * ステージ健全性スコア
+ * 🔵 信頼性: src/quality/error-recovery-health-tracker.ts より
+ */
+export interface StageHealthScore {
+  stage: string; // 🔵 対象ステージ
+  score: number; // 🔵 健全性スコア（0-1）
+  trend: 'improving' | 'stable' | 'degrading'; // 🔵 傾向
+  samplesCollected: number; // 🔵 収集サンプル数
+}
+
+/**
+ * 健全性評価
+ * 🔵 信頼性: src/quality/error-recovery-health-tracker.ts より
+ */
+export interface HealthAssessment {
+  overallScore: number; // 🔵 総合健全性スコア（0-1）
+  stageScores: StageHealthScore[]; // 🔵 ステージ別スコア
+  degradedStages: string[]; // 🔵 劣化ステージ一覧
+  recommendations: string[]; // 🔵 推奨事項
+}
+
+/**
+ * エラー回復イベントマップ
+ * 🔵 信頼性: src/quality/error-recovery-event-bus.ts・Phase 57 より
+ */
+export interface ErrorRecoveryEventMap {
+  'circuit-breaker:state-changed': { stage: string; from: string; to: string }; // 🔵 CB状態遷移
+  'recovery:attempt': { stage: string; strategy: string; attempt: number }; // 🔵 回復試行
+  'recovery:success': { stage: string; strategy: string; duration: number }; // 🔵 回復成功
+  'recovery:failure': { stage: string; strategy: string; error: string }; // 🔵 回復失敗
+  'stage:degraded': { stage: string; score: number; threshold: number }; // 🔵 ステージ劣化
+  'cascade:detected': { stages: string[]; pattern: string }; // 🔵 カスケード検出
+  'capacity:adjusted': { from: number; to: number; reason: string }; // 🔵 キャパシティ調整
+  'queue:overflow': { queueSize: number; limit: number }; // 🔵 キューオーバーフロー
+}
+
+/**
+ * モニター設定
+ * 🔵 信頼性: src/quality/error-recovery-monitor.ts・Phase 57 より
+ */
+export interface MonitorConfig {
+  samplingIntervalMs: number; // 🔵 サンプリング間隔（ms）
+  degradationThreshold: number; // 🔵 劣化判定閾値（0-1）
+  cascadeDetectionWindow: number; // 🔵 カスケード検出ウィンドウ（ms）
+}
+
+/**
+ * モニター健全性ステータス
+ * 🔵 信頼性: src/quality/error-recovery-monitor.ts より
+ */
+export interface MonitorHealthStatus {
+  isRunning: boolean; // 🔵 監視実行中フラグ
+  lastSampleTime: number; // 🔵 最終サンプル時刻
+  overallScore: number; // 🔵 総合スコア
+  alertsActive: number; // 🔵 アクティブアラート数
 }

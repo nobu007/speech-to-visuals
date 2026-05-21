@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-20（第158回検証: Phase 1-56完了・型付きパイプラインエラー5クラス・LLMキャッシュデバウンス・ErrorClassifier事前分類・344ファイル・100,044行・217テストファイル全通過・TypeScript/ESLintエラー0件・依存105パッケージ・ギャップなし確認）
+**最終更新**: 2026-05-21（第162回検証: Phase 1-57完了・多層エラー回復システム6モジュール追加・RecoveryStrategyChain・PipelineRunRecoveryTracker・BatchOperationRecovery・ErrorRecoveryHealthTracker・ErrorRecoveryEventBus・ErrorRecoveryMonitor・ゼロオーバーラップエッジ参照修正・352ファイル・177テストファイル・TypeScript/ESLintエラー0件・依存105パッケージ・ギャップなし確認）
 **履歴**: 第158回検証(2026-05-20)・第157回検証(2026-05-18)・第151回検証(2026-05-18)・第150回検証(2026-05-18)・第149回検証(2026-05-17)・第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-04-30)
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 
@@ -22,6 +22,35 @@
 **最終更新（2026-04-29 Phase 4反映）**: Phase 4 完了に伴う要件定義更新（REQ-025~REQ-035 追加）と、新規モジュール（Remotion Animation・Renderer・SRT Parser・Pipeline UI）の差分反映を実施。
 
 ## 分析項目と判断
+
+### A96: 第162回検証 - Phase 57 多層エラー回復システム6モジュール・エッジ参照修正設計差分反映（2026-05-21）
+
+**分析日時**: 2026-05-21
+**カテゴリ**: エラー回復・パイプライン信頼性・レイアウト品質
+**背景**: Phase 57 で多層エラー回復システム（6モジュール）を追加し、ゼロオーバーラップエンジンのエッジ参照バグを修正。EnhancedErrorRecovery の単一戦略選択から、RecoveryStrategyChain によるコンポーザブルな順次フォールバックチェーンに拡張。PipelineRunRecoveryTracker でパイプライン実行単位の cross-stage エラー相関を実現。BatchOperationRecovery でバッチステージの per-item エラーバウンダリを提供。ErrorRecoveryHealthTracker・ErrorRecoveryEventBus・ErrorRecoveryMonitor でリアルタイム健全性監視・イベント配信・アラートを実現。
+
+**判断**: Phase 57 設計差分反映完了:
+1. **RecoveryStrategyChain**: ChainBuilder による fluent API で構築するコンポーザブルな順次フォールバックチェーン。per-stage 戦略チェーン・停止条件（時間バジェット・信頼度閾値）・チェーン効果統計追跡・ErrorRecoveryEventBus 統合 🔵 *src/quality/recovery-strategy-chain.ts より*
+2. **PipelineRunRecoveryTracker**: パイプライン実行単位のエラー回復コーディネーター。cross-stage エラー蓄積・相関・適応回復判断・劣化レベル追跡（nominal/degraded/critical）・per-run 回復レポート 🔵 *src/quality/pipeline-run-recovery-tracker.ts より*
+3. **BatchOperationRecovery**: バッチステージの per-item エラーバウンダリ。個別アイテム失敗を分離し部分成功を保持。逐次・並列処理対応・リトライ制限・指数バックオフ 🔵 *src/quality/batch-operation-recovery.ts より*
+4. **ErrorRecoveryHealthTracker**: EnhancedErrorRecovery の健全性を時系列監視。ローリング健全性スコア計算・劣化パターン検出 🔵 *src/quality/error-recovery-health-tracker.ts より*
+5. **ErrorRecoveryEventBus**: 軽量 pub/sub イベントバス。8種の型付きイベント（CB状態遷移・回復試行/成功/失敗・ステージ劣化・カスケード検出・キャパシティ調整・キュー Overflow）を発行 🔵 *src/quality/error-recovery-event-bus.ts より*
+6. **ErrorRecoveryMonitor**: HealthTracker + EventBus + EnhancedErrorRecovery を統合するランタイム健全性監視サービス。定期サンプリング・劣化アラート・カスケード警告 🔵 *src/quality/error-recovery-monitor.ts より*
+7. **ゼロオーバーラップエッジ参照修正**: レイアウト計算時にエッジの source/target が既存ノードIDに存在しない場合、当該エッジを除外して計算するよう修正（REQ-013 の追加要件）🔵 *src/workers/layout-worker.ts・コミット 618f8f5 より*
+
+**根拠**:
+- git log: 576c707 (RecoveryStrategyChain)・967f267 (PipelineRunRecoveryTracker integration)・c78287e (PipelineRunRecoveryTracker)・98b2351 (ErrorRecoveryMonitor)・ad9f68a (ErrorRecoveryEventBus)・324122b (BatchOperationRecovery)・196b766 (ErrorRecoveryHealthTracker)・618f8f5 (edge reference fix)
+- 新規ファイル: src/quality/recovery-strategy-chain.ts・pipeline-run-recovery-tracker.ts・batch-operation-recovery.ts・error-recovery-health-tracker.ts・error-recovery-event-bus.ts・error-recovery-monitor.ts
+- 変更ファイル: src/pipeline/pipeline-orchestrator.ts（PipelineRunRecoveryTracker 統合）・src/workers/layout-worker.ts（エッジ参照検証追加）
+- quality/ ディレクトリ: 9→15 ファイルに増加
+
+**信頼性への影響**:
+- architecture.md: 多層エラー回復システムセクション（6モジュール詳細）追加により 🔵 拡張
+- dataflow.md: 機能19-23（RecoveryStrategyChain・PipelineRunRecoveryTracker・BatchOperationRecovery・ErrorRecoveryEventBus・ErrorRecoveryMonitor フロー）追加により 🔵 拡張
+- interfaces.ts: 20+ 型（ChainStep・ChainConfig・ChainOutcome・RecoveryStage・DegradationLevel・StageRecoveryRecord・BatchRecoveryConfig・ItemResult・HealthSample・ErrorRecoveryEventMap 等）追加により 🔵 拡張
+- quality/ ディレクトリ: 9→15 ファイルに更新
+
+---
 
 ### A95: 第158回検証 - Phase 56 型付きパイプラインエラー・LLMキャッシュデバウンス設計差分反映（2026-05-20）
 

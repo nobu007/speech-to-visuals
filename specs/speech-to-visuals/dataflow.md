@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-20（第158回検証: Phase 1-56完了・型付きパイプラインエラーフロー・LLMキャッシュデバウンスフロー追加）
+**最終更新**: 2026-05-21（第162回検証: Phase 1-57完了・多層エラー回復システム6モジュール追加・RecoveryStrategyChainチェーンフロー・PipelineRunRecoveryTracker cross-stage追跡フロー・BatchOperationRecovery per-item回復フロー・ErrorRecoveryEventBus イベント配信フロー・ErrorRecoveryMonitor 定期サンプリングフロー追加）
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](requirements.md)
 
@@ -1483,18 +1483,258 @@ sequenceDiagram
 
 ## 関連文書（旧）
 
-## 信頼性レベルサマリー
+### 機能19: RecoveryStrategyChain コンポーザブルフォールバックチェーンフロー（Phase 57） 🔵
+
+**信頼性**: 🔵 *src/quality/recovery-strategy-chain.ts・TASK-0045 より*
+
+```mermaid
+flowchart TD
+    A[パイプラインステージエラー発生] --> B[RecoveryStrategyChain.execute]
+    B --> C[ChainBuilder で構築済みチェーン取得]
+    C --> D[ステップ1: 最初の回復戦略を実行]
+
+    D --> E{戦略成功?}
+    E -->|Yes| F[ChainOutcome: success]
+    E -->|No| G{停止条件チェック}
+    G -->|時間バジェット超過| H[ChainOutcome: timeout]
+    G -->|信頼度閾値未達| I[次ステップへ]
+    G -->|継続可能| I
+
+    I --> J[ステップN: 次の回復戦略を実行]
+    J --> E
+
+    F --> K[チェーン効果統計更新]
+    H --> K
+
+    B --> L[ErrorRecoveryEventBus にイベント発行]
+    L --> M[recovery:attempt → recovery:success/failure]
+    M --> N[WebSocket/ダッシュボードにリアルタイム配信]
+```
+
+**詳細ステップ**:
+
+1. パイプラインステージでエラー発生時、RecoveryStrategyChain が per-stage チェーンを取得 🔵
+2. ChainBuilder で構築済みの順序付き戦略リストを順次実行 🔵
+3. 各戦略の成功/失敗を判定し、停止条件（最大時間・信頼度閾値）を評価 🔵
+4. 全戦略失敗時は最終フォールバック（ルールベース）に到達 🔵
+5. チェーン効果（各戦略の成功率・平均所要時間）を統計追跡 🔵
+6. ErrorRecoveryEventBus 経由でリアルタイムイベント配信 🔵
+
+### 機能20: PipelineRunRecoveryTracker cross-stage追跡フロー（Phase 57） 🔵
+
+**信頼性**: 🔵 *src/quality/pipeline-run-recovery-tracker.ts・src/pipeline/pipeline-orchestrator.ts・TASK-0045 より*
+
+```mermaid
+sequenceDiagram
+    participant PO as PipelineOrchestrator
+    participant RT as PipelineRunRecoveryTracker
+    participant ER as EnhancedErrorRecovery
+    participant EB as ErrorRecoveryEventBus
+
+    PO->>RT: startRun(pipelineId, config)
+    RT->>RT: 実行コンテキスト初期化（リトライ予算・劣化レベル）
+
+    rect rgb(230, 245, 255)
+    Note over PO,RT: Stage 1 エラー発生
+    PO->>RT: recordStageError(Stage1, error)
+    RT->>ER: classifyAndRecover(error, context)
+    ER-->>RT: 回復結果
+    RT->>RT: 累積エラーコンテキスト更新
+    RT->>RT: 劣化レベル評価（nominal→degraded）
+    RT-->>PO: Stage1 回復結果 + 推奨
+    end
+
+    rect rgb(255, 255, 230)
+    Note over PO,RT: Stage 2 エラー発生（累積コンテキスト活用）
+    PO->>RT: recordStageError(Stage2, error)
+    RT->>RT: 累積コンテキストに基づく適応判断
+    RT->>RT: リトライ予算確認・劣化ステージ相関
+    RT-->>PO: Stage2 回復結果 + 下流推奨
+    end
+
+    PO->>RT: getRunReport()
+    RT-->>PO: RunRecoveryReport（全ステージ回復記録・劣化レベル・推奨事項）
+    RT->>EB: run:completed イベント発行
+```
+
+**詳細ステップ**:
+
+1. PipelineOrchestrator がパイプライン実行開始時に startRun() でトラッカー初期化 🔵
+2. 各ステージのエラーを recordStageError() で記録し、累積コンテキストを更新 🔵
+3. 前ステージの回復結果に基づいて適応的回復判断（リトライ予算・劣化レベル相関）🔵
+4. 下流ステージへの推奨事項を生成（回避すべき戦略・推奨設定）🔵
+5. 実行完了時に getRunReport() で包括的な回復レポートを返却 🔵
+6. ErrorRecoveryEventBus 経由で run:completed イベントを配信 🔵
+
+### 機能21: BatchOperationRecovery per-item回復フロー（Phase 57） 🔵
+
+**信頼性**: 🔵 *src/quality/batch-operation-recovery.ts・TASK-0045 より*
+
+```mermaid
+flowchart TD
+    A[バッチステージ入力 N個のアイテム] --> B[BatchOperationRecovery.processAll]
+    B --> C{処理モード?}
+    C -->|逐次| D[アイテムを順次処理]
+    C -->|並列| E[アイテムを並列処理]
+
+    D --> F[アイテム1: processor実行]
+    E --> F
+    F --> G{成功?}
+    G -->|Yes| H[ItemResult: success]
+    G -->|No| I[リトライ（指数バックオフ）]
+    I --> J{リトライ制限内?}
+    J -->|Yes| F
+    J -->|No| K{フォールバックあり?}
+    K -->|Yes| L[フォールバック実行]
+    K -->|No| M[ItemResult: failure（他アイテムは継続）]
+    L --> N{フォールバック成功?}
+    N -->|Yes| H
+    N -->|No| M
+
+    H --> O[BatchResult 集約]
+    M --> O
+    O --> P[部分成功結果 + エラー一覧返却]
+```
+
+**詳細ステップ**:
+
+1. バッチステージ（複数図解レイアウト・複数シーン準備等）で N 個のアイテムを処理 🔵
+2. 逐次または並列モードで各アイテムを個別に処理 🔵
+3. 個別アイテム失敗時は指数バックオフでリトライ（設定可能制限）🔵
+4. リトライ失敗後、フォールバックプロバイダーがあれば実行 🔵
+5. 個別失敗を分離し、部分成功を保持（ステージ全体を失敗させない）🔵
+6. BatchResult に全アイテムの成功/失敗結果を集約して返却 🔵
+
+### 機能22: ErrorRecoveryEventBus イベント配信フロー（Phase 57） 🔵
+
+**信頼性**: 🔵 *src/quality/error-recovery-event-bus.ts・TASK-0045 より*
+
+```mermaid
+flowchart LR
+    subgraph Publishers
+        ER[EnhancedErrorRecovery]
+        SC[RecoveryStrategyChain]
+        HT[ErrorRecoveryHealthTracker]
+        MO[ErrorRecoveryMonitor]
+    end
+
+    subgraph EventBus[ErrorRecoveryEventBus]
+        E1[circuit-breaker:state-changed]
+        E2[recovery:attempt]
+        E3[recovery:success]
+        E4[recovery:failure]
+        E5[stage:degraded]
+        E6[cascade:detected]
+        E7[capacity:adjusted]
+        E8[queue:overflow]
+    end
+
+    subgraph Subscribers
+        WS[WebSocket Handler]
+        DA[Monitoring Dashboard]
+        AL[Alert System]
+        LO[Structured Logger]
+    end
+
+    ER --> E1
+    ER --> E2
+    ER --> E3
+    ER --> E4
+    SC --> E2
+    HT --> E5
+    MO --> E7
+    MO --> E6
+    ER --> E8
+
+    E1 --> WS
+    E1 --> DA
+    E2 --> WS
+    E3 --> WS
+    E4 --> WS
+    E5 --> AL
+    E6 --> AL
+    E7 --> DA
+    E8 --> AL
+    E1 --> LO
+    E2 --> LO
+    E3 --> LO
+    E4 --> LO
+```
+
+**イベントタイプ一覧** 🔵:
+
+| イベント | 発行元 | ペイロード | 説明 |
+|---------|--------|-----------|------|
+| circuit-breaker:state-changed | EnhancedErrorRecovery | {stage, from, to} | サーキットブレーカー状態遷移 |
+| recovery:attempt | EnhancedErrorRecovery, RecoveryStrategyChain | {stage, strategy, attempt} | 回復戦略試行 |
+| recovery:success | EnhancedErrorRecovery | {stage, strategy, duration} | 回復成功 |
+| recovery:failure | EnhancedErrorRecovery | {stage, strategy, error} | 回復失敗 |
+| stage:degraded | ErrorRecoveryHealthTracker | {stage, score, threshold} | ステージ劣化検出 |
+| cascade:detected | ErrorRecoveryMonitor | {stages, pattern} | エラーカスケード検出 |
+| capacity:adjusted | ErrorRecoveryMonitor | {from, to, reason} | 動的キャパシティ調整 |
+| queue:overflow | EnhancedErrorRecovery | {queueSize, limit} | キューオーバーフロー |
+
+### 機能23: ErrorRecoveryMonitor 定期サンプリングフロー（Phase 57） 🔵
+
+**信頼性**: 🔵 *src/quality/error-recovery-monitor.ts・TASK-0045 より*
+
+```mermaid
+sequenceDiagram
+    participant API as API Server Startup
+    participant MO as ErrorRecoveryMonitor
+    participant HT as ErrorRecoveryHealthTracker
+    participant EB as ErrorRecoveryEventBus
+    participant ER as EnhancedErrorRecovery
+
+    API->>MO: start(config)
+    MO->>MO: 定期サンプリングタイマー開始
+
+    loop 定期サンプリング（設定間隔）
+        MO->>HT: collectSample()
+        HT->>ER: 現在の健全性状態取得
+        ER-->>HT: エラー頻度・CB状態・回復成功率
+        HT->>HT: ローリング健全性スコア計算
+        HT-->>MO: HealthSample
+
+        MO->>MO{劣化検出?}
+        alt ステージ劣化
+            MO->>EB: stage:degraded イベント
+        end
+
+        alt カスケード検出
+            MO->>EB: cascade:detected イベント
+        end
+
+        alt キャパシティ調整必要
+            MO->>ER: capacity調整実行
+            MO->>EB: capacity:adjusted イベント
+        end
+    end
+
+    API->>MO: stop()
+    MO->>MO: タイマー停止・リソース解放
+```
+
+**詳細ステップ**:
+
+1. API サーバー起動時に ErrorRecoveryMonitor.start() で定期サンプリング開始 🔵
+2. 設定間隔で ErrorRecoveryHealthTracker.collectSample() で健全性サンプル収集 🔵
+3. EnhancedErrorRecovery からエラー頻度・サーキットブレーカー状態・回復成功率を取得 🔵
+4. ローリング健全性スコア（per-stage）を計算し、劣化パターンを検出 🔵
+5. 劣化・カスケード検出時に ErrorRecoveryEventBus にイベント発行 🔵
+6. キャパシティ調整が必要な場合は EnhancedErrorRecovery に調整指示 🔵
+7. API サーバー停止時に stop() でタイマー停止・リソース解放 🔵
 
 - 🔵 青信号: 177件 (99%)
 - 🟡 黄信号: 1件 (1%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - Phase 56 型付きパイプラインエラー・LLMキャッシュデバウンスフローを反映（第158回検証: Phase 1-56完了・344ファイル・100,044行・217テストファイル・ギャップなし）
+**品質評価**: 高品質 - Phase 57 多層エラー回復システム6モジュール追加を反映（第162回検証: Phase 1-57完了・352ファイル・177テストファイル・ギャップなし）
 
 ## Acceptance criteria
 
 - [x] システム全体のデータフローが Mermaid flowchart で記述され、全パイプラインステージ（文字起こし→分析→レイアウト→アニメーション→レンダリング）を網羅している
-- [x] 主要18機能のデータフローが個別の Mermaid sequence/flow diagram で記述されている（機能1-B〜機能18）
+- [x] 主要18機能のデータフローが個別の Mermaid sequence/flow diagram で記述されている（機能1-B〜機能23）
 - [x] 各データフローに信頼性レベル（🔵🟡🔴）が付与され、情報源が明記されている
 - [x] エラーハンドリングフロー（3層フォールバック・ユーザー主導回復・設定バリデーション）が記述されている
 - [x] 品質ゲート評価フロー（5段階品質基準）が記述されている
