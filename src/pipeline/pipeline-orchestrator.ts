@@ -38,13 +38,10 @@ import { executeLayoutsInParallel, executeScenePreparationInParallel } from './p
 import { timeStage, StageTimingRecord, aggregateTimingReport, StageTimingReport } from './stage-timing-metrics';
 import { detectBottlenecks, BottleneckReport } from './bottleneck-detector';
 import { PipelineConfigError, RenderingError, QualityGateError } from './pipeline-errors';
-import { globalErrorRecovery } from '@/quality/enhanced-error-recovery';
 import {
-  PipelineRunRecoveryTracker,
-  type RecoveryStage,
-  type RunRecoveryReport,
-  type RunRecoveryConfig,
-} from '@/quality/pipeline-run-recovery-tracker';
+  PipelineErrorRecoveryOrchestrator,
+} from '@/quality/pipeline-error-recovery-orchestrator';
+import type { RecoveryStage, RunRecoveryReport } from '@/quality/pipeline-run-recovery-tracker';
 
 // ---------- Public Interfaces ----------
 
@@ -128,8 +125,8 @@ export class PipelineOrchestrator {
   /** Retry attempts from the most recent executeStageWithGates call */
   private lastStageRetryAttempts: number = 0;
 
-  // Per-run recovery tracking
-  private readonly runTracker = new PipelineRunRecoveryTracker();
+  // Multi-layer error recovery orchestrator (Phase 57)
+  private readonly errorRecoveryOrchestrator = new PipelineErrorRecoveryOrchestrator();
 
   constructor(config: PipelineOrchestratorConfig = {}) {
     this.config = config;
@@ -179,6 +176,11 @@ export class PipelineOrchestrator {
   }
 
   // ---------- Public API ----------
+
+  /** Access the underlying multi-layer error recovery orchestrator (Phase 57). */
+  get recoveryOrchestrator(): PipelineErrorRecoveryOrchestrator {
+    return this.errorRecoveryOrchestrator;
+  }
 
   /**
    * Validate PipelineInput config immediately.
@@ -251,15 +253,14 @@ export class PipelineOrchestrator {
     const maxLayoutConcurrency = this.config.maxLayoutConcurrency ?? 3;
     const maxSceneConcurrency = this.config.maxSceneConcurrency ?? 4;
 
-    // Start per-run recovery tracking
+    // Start per-run recovery tracking via multi-layer orchestrator
     const runId = `run-${Date.now()}`;
-    this.runTracker.startRun(runId);
+    this.errorRecoveryOrchestrator.startRun(runId);
     let runRecoveryReport: RunRecoveryReport | undefined;
 
     try {
       // ===== Stage 1: Transcription =====
       this.emitProgress(cb, 1, 'transcription', 0, 'running');
-      this.runTracker.setActiveStage('transcription');
 
       const stage1 = await timeStage('transcription', 1, () =>
         this.executeStageWithGates(0, () => this.runTranscription(input, pipelineConfig), cb),
@@ -267,13 +268,6 @@ export class PipelineOrchestrator {
       transcriptionResult = stage1.result;
       stage1.timing.retryAttempts = this.lastStageRetryAttempts;
       stageTimings.push(stage1.timing);
-      this.runTracker.recordStageOutcome('transcription', {
-        attemptCount: this.lastStageRetryAttempts + 1,
-        recoveryStrategy: this.lastStageRetryAttempts > 0 ? 'intelligent_retry' : undefined,
-        fallbackUsed: false,
-        degraded: false,
-        durationMs: stage1.timing.durationMs,
-      });
 
       this.emitProgress(cb, 1, 'transcription', 100, 'completed');
       stages.push(this.makeStage('transcription', 'complete'));
@@ -282,15 +276,12 @@ export class PipelineOrchestrator {
       this.recordStageQuality('transcription', transcriptionResult, qualityScores);
 
       // Check if run should abort based on accumulated errors
-      if (this.runTracker.shouldAbort()) {
+      if (this.errorRecoveryOrchestrator.shouldAbort()) {
         throw new Error('Pipeline aborted: recovery tracker detected critical degradation');
       }
 
       // ===== Stage 2: Content Analysis =====
       this.emitProgress(cb, 2, 'analysis', 0, 'running');
-      this.runTracker.setActiveStage('analysis');
-
-      const analysisRec = this.runTracker.getRecommendedStrategy('analysis');
 
       const stage2 = await timeStage('analysis', 1, () =>
         this.executeStageWithGates(1, () => this.runAnalysis(transcriptionResult), cb),
@@ -298,13 +289,6 @@ export class PipelineOrchestrator {
       const analysisResult = stage2.result as { segments: unknown[]; diagrams: unknown[] };
       stage2.timing.retryAttempts = this.lastStageRetryAttempts;
       stageTimings.push(stage2.timing);
-      this.runTracker.recordStageOutcome('analysis', {
-        attemptCount: this.lastStageRetryAttempts + 1,
-        recoveryStrategy: this.lastStageRetryAttempts > 0 ? 'intelligent_retry' : undefined,
-        fallbackUsed: false,
-        degraded: analysisRec.preferFallback && this.lastStageRetryAttempts > 0,
-        durationMs: stage2.timing.durationMs,
-      });
 
       contentSegments = analysisResult.segments;
       diagramAnalyses = analysisResult.diagrams;
@@ -316,15 +300,12 @@ export class PipelineOrchestrator {
       this.recordStageQuality('analysis', analysisResult, qualityScores);
 
       // Check if run should abort
-      if (this.runTracker.shouldAbort()) {
+      if (this.errorRecoveryOrchestrator.shouldAbort()) {
         throw new Error('Pipeline aborted: recovery tracker detected critical degradation');
       }
 
       // ===== Stage 3: Layout Generation =====
       this.emitProgress(cb, 3, 'layout', 0, 'running');
-      this.runTracker.setActiveStage('layout_generation');
-
-      const layoutRec = this.runTracker.getRecommendedStrategy('layout_generation');
 
       const stage3 = await timeStage('layout', diagramAnalyses.length, () =>
         this.executeStageWithGates(
@@ -336,13 +317,6 @@ export class PipelineOrchestrator {
       const layoutResult = stage3.result;
       stage3.timing.retryAttempts = this.lastStageRetryAttempts;
       stageTimings.push(stage3.timing);
-      this.runTracker.recordStageOutcome('layout_generation', {
-        attemptCount: this.lastStageRetryAttempts + 1,
-        recoveryStrategy: this.lastStageRetryAttempts > 0 ? 'intelligent_retry' : undefined,
-        fallbackUsed: false,
-        degraded: layoutRec.preferFallback && this.lastStageRetryAttempts > 0,
-        durationMs: stage3.timing.durationMs,
-      });
 
       layoutResults = layoutResult as unknown[];
 
@@ -361,7 +335,7 @@ export class PipelineOrchestrator {
       this.recordStageQuality('layout', qualityMetrics, qualityScores);
 
       // Check if run should abort
-      if (this.runTracker.shouldAbort()) {
+      if (this.errorRecoveryOrchestrator.shouldAbort()) {
         throw new Error('Pipeline aborted: recovery tracker detected critical degradation');
       }
 
@@ -370,7 +344,6 @@ export class PipelineOrchestrator {
 
       // ===== Stage 4: Video Preparation =====
       this.emitProgress(cb, 4, 'preparation', 0, 'running');
-      this.runTracker.setActiveStage('animation');
 
       const stage4 = await timeStage('preparation', layoutResults.length, () =>
         this.executeStageWithGates(
@@ -382,33 +355,18 @@ export class PipelineOrchestrator {
       scenes = stage4.result as SceneGraph[];
       stage4.timing.retryAttempts = this.lastStageRetryAttempts;
       stageTimings.push(stage4.timing);
-      this.runTracker.recordStageOutcome('animation', {
-        attemptCount: this.lastStageRetryAttempts + 1,
-        recoveryStrategy: this.lastStageRetryAttempts > 0 ? 'intelligent_retry' : undefined,
-        fallbackUsed: false,
-        degraded: false,
-        durationMs: stage4.timing.durationMs,
-      });
 
       this.emitProgress(cb, 4, 'preparation', 100, 'completed');
       stages.push(this.makeStage('preparation', 'complete'));
 
       // ===== Stage 5: Video Rendering =====
       this.emitProgress(cb, 5, 'rendering', 0, 'running');
-      this.runTracker.setActiveStage('rendering');
 
       const stage5 = await timeStage('rendering', scenes!.length, () =>
         this.executeStageWithGates(4, () => this.runRendering(scenes!, pipelineConfig), cb),
       );
       stage5.timing.retryAttempts = this.lastStageRetryAttempts;
       stageTimings.push(stage5.timing);
-      this.runTracker.recordStageOutcome('rendering', {
-        attemptCount: this.lastStageRetryAttempts + 1,
-        recoveryStrategy: this.lastStageRetryAttempts > 0 ? 'intelligent_retry' : undefined,
-        fallbackUsed: false,
-        degraded: false,
-        durationMs: stage5.timing.durationMs,
-      });
 
       this.emitProgress(cb, 5, 'rendering', 100, 'completed');
       stages.push(this.makeStage('rendering', 'complete'));
@@ -422,8 +380,8 @@ export class PipelineOrchestrator {
       const timingReport = aggregateTimingReport(stageTimings);
       const bottleneckReport = detectBottlenecks(stageTimings);
 
-      // Finalize run recovery tracking
-      runRecoveryReport = this.runTracker.finalizeRun(true);
+      // Finalize run recovery tracking via orchestrator
+      runRecoveryReport = this.errorRecoveryOrchestrator.finalizeRun(true);
 
       return {
         success: true,
@@ -446,8 +404,8 @@ export class PipelineOrchestrator {
       const msg = error instanceof Error ? error.message : String(error);
 
       // Finalize run recovery tracking on failure
-      if (this.runTracker.isActive) {
-        runRecoveryReport = this.runTracker.finalizeRun(false);
+      if (this.errorRecoveryOrchestrator.runTracker.isActive) {
+        runRecoveryReport = this.errorRecoveryOrchestrator.finalizeRun(false);
       }
 
       return {
@@ -656,58 +614,51 @@ export class PipelineOrchestrator {
   // ---------- Quality Gates & Fallbacks ----------
 
   /**
-   * Execute a stage function with EnhancedErrorRecovery-driven retry,
+   * Execute a stage function with full multi-layer error recovery (Phase 57),
    * then run quality gates and fallback if needed.
    *
-   * Uses `createStageErrorBoundary` which provides:
-   * - Circuit breaker per pipeline stage
-   * - Adaptive strategy learning from failure patterns
-   * - Intelligent recovery strategies (degraded quality, cache-based, alternative algorithm)
+   * Uses PipelineErrorRecoveryOrchestrator which provides:
+   * - Strategy chain recovery (sequential fallback)
+   * - EnhancedErrorRecovery stage boundary (retry + recovery)
+   * - Run-level coordination and adaptation
+   * - Health monitoring and event bus observability
    */
   private async executeStageWithGates(
     stageIndex: number,
     stageFn: () => Promise<unknown>,
     cb?: (progress: PipelineProgress) => void
   ): Promise<unknown> {
-    // Execute the stage with enhanced error recovery
     let result: unknown;
     this.lastStageRetryAttempts = 0;
 
-    const processingStage = this.toProcessingStage(stageIndex);
-    const boundaryResult = await globalErrorRecovery.createStageErrorBoundary(
-      processingStage,
+    const recoveryStage = this.toProcessingStage(stageIndex);
+
+    // Execute the stage with full multi-layer error recovery
+    const orchestrated = await this.errorRecoveryOrchestrator.executeStage(
+      recoveryStage,
       stageFn,
-      {
-        maxRetries: 2,
-        component: `pipeline-orchestrator:${STAGE_NAMES[stageIndex]}`,
-      },
+      { maxRetries: 2 },
     );
 
-    if (boundaryResult.success) {
-      result = boundaryResult.result;
-      // EnhancedErrorRecovery counts the initial attempt too;
-      // subtract 1 to get actual retry count.
-      const retryCount = Math.max(0, boundaryResult.attempts - 1);
+    if (orchestrated.success) {
+      result = orchestrated.result;
+      // Track retry attempts from the orchestrator
+      const retryCount = Math.max(0, orchestrated.attempts - 1);
       if (retryCount > 0) {
         this.retryAttempts += retryCount;
         this.lastStageRetryAttempts = retryCount;
       }
     } else {
-      // Recovery exhausted — emit failed progress
+      // All recovery layers exhausted — emit failed progress
       this.emitProgress(cb, stageIndex + 1, STAGE_NAMES[stageIndex], 0, 'failed',
-        boundaryResult.error?.message ?? 'Stage execution failed');
+        'Stage execution failed after recovery');
 
-      // Try fallback
-      const fallbackResult = await this.tryFallbacks(
-        stageIndex,
-        null,
-        boundaryResult.error,
-        cb,
-      );
+      // Try pipeline-level fallback strategies
+      const fallbackResult = await this.tryFallbacks(stageIndex, null, null, cb);
       if (fallbackResult !== undefined) {
         return fallbackResult;
       }
-      throw boundaryResult.error ?? new Error('Stage execution failed');
+      throw new Error('Stage execution failed after recovery');
     }
 
     // Check quality gates
