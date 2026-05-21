@@ -18,7 +18,7 @@ status: generated
 - Roots: src
 - Languages: typescript
 - Files: 47
-- Bytes: 458377
+- Bytes: 459509
 
 ## Key Files
 
@@ -110,7 +110,7 @@ status: generated
 - `src/visualization/canvas-calculator.ts` — typescript, 150 lines, attention 0
 - `src/visualization/complex-layout-engine.ts` — typescript, 1046 lines, attention 100
 - `src/visualization/edge-crossing-minimizer.ts` — typescript, 524 lines, attention 84
-- `src/visualization/enhanced-zero-overlap-layout.ts` — typescript, 1395 lines, attention 100
+- `src/visualization/enhanced-zero-overlap-layout.ts` — typescript, 1409 lines, attention 100
 - `src/visualization/index.ts` — typescript, 23 lines, attention 0
 - `src/visualization/layout-auto-optimizer.ts` — typescript, 561 lines, attention 100
 - `src/visualization/layout-engine-v2.ts` — typescript, 126 lines, attention 14

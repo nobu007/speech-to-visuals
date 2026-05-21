@@ -225,7 +225,7 @@ status: generated
 | `src/visualization/canvas-calculator.ts` | typescript | 4063 | 150 | 0 | 8 | 0 |
 | `src/visualization/complex-layout-engine.ts` | typescript | 33648 | 1046 | 100 | 112 | 3 |
 | `src/visualization/edge-crossing-minimizer.ts` | typescript | 15243 | 524 | 84 | 112 | 3 |
-| `src/visualization/enhanced-zero-overlap-layout.ts` | typescript | 45901 | 1395 | 100 | 112 | 2 |
+| `src/visualization/enhanced-zero-overlap-layout.ts` | typescript | 47033 | 1409 | 100 | 112 | 2 |
 | `src/visualization/index.ts` | typescript | 1137 | 23 | 0 | 0 | 0 |
 | `src/visualization/layout-auto-optimizer.ts` | typescript | 16133 | 561 | 100 | 112 | 3 |
 | `src/visualization/layout-engine-v2.ts` | typescript | 3743 | 126 | 14 | 24 | 0 |
@@ -441,7 +441,7 @@ status: generated
 | `tests/visualization/complex-layout-engine.test.ts` | typescript | 24115 | 682 | 100 | 80 | 3 |
 | `tests/visualization/cycle-strategy.test.ts` | typescript | 24389 | 692 | 70 | 60 | 3 |
 | `tests/visualization/edge-crossing-minimizer.test.ts` | typescript | 11484 | 323 | 14 | 12 | 0 |
-| `tests/visualization/enhanced-zero-overlap-layout.test.ts` | typescript | 49760 | 1209 | 100 | 76 | 3 |
+| `tests/visualization/enhanced-zero-overlap-layout.test.ts` | typescript | 53986 | 1306 | 100 | 76 | 3 |
 | `tests/visualization/force-directed-simulation.test.ts` | typescript | 13157 | 355 | 56 | 56 | 2 |
 | `tests/visualization/graph-coarsening.test.ts` | typescript | 9470 | 262 | 42 | 36 | 1 |
 | `tests/visualization/layout-auto-optimizer.test.ts` | typescript | 12253 | 344 | 70 | 60 | 3 |

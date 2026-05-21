@@ -657,52 +657,52 @@ status: generated
 | `docs/architecture/QUALITY_METRICS.md` | markdown | 11460 | 431 | 100 | 72 | 0 |
 | `docs/architecture/SYSTEM_CORE.md` | markdown | 11213 | 319 | 100 | 72 | 0 |
 | `docs/architecture/ZERO_OVERLAP_DESIGN.md` | markdown | 5077 | 181 | 100 | 72 | 0 |
-| `docs/llm-wiki/Repo Wiki Schema.md` | markdown | 296 | 9 | 28 | 24 | 0 |
-| `docs/llm-wiki/index.md` | markdown | 391 | 22 | 0 | 0 | 0 |
-| `docs/llm-wiki/log.md` | markdown | 942 | 37 | 14 | 12 | 0 |
-| `docs/llm-wiki/modules/Module Index.md` | markdown | 4046 | 54 | 14 | 12 | 0 |
-| `docs/llm-wiki/modules/Module audit.md` | markdown | 1744 | 40 | 70 | 60 | 0 |
-| `docs/llm-wiki/modules/Module bmad.md` | markdown | 66833 | 564 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module claude.md` | markdown | 46431 | 352 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module docs.md` | markdown | 2157 | 59 | 0 | 0 | 0 |
-| `docs/llm-wiki/modules/Module github.md` | markdown | 992 | 39 | 28 | 24 | 0 |
-| `docs/llm-wiki/modules/Module public.md` | markdown | 1199 | 43 | 28 | 24 | 0 |
-| `docs/llm-wiki/modules/Module root-config.md` | markdown | 6598 | 87 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module scripts-operations.md` | markdown | 6823 | 74 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module specs.md` | markdown | 17730 | 225 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-analysis.md` | markdown | 22993 | 163 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-api.md` | markdown | 17758 | 133 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-components.md` | markdown | 17110 | 147 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-config.md` | markdown | 5211 | 68 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-export.md` | markdown | 5106 | 65 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-framework.md` | markdown | 4460 | 59 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-hooks.md` | markdown | 1916 | 43 | 100 | 80 | 0 |
-| `docs/llm-wiki/modules/Module src-integrations.md` | markdown | 4542 | 59 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-lib.md` | markdown | 1796 | 44 | 70 | 60 | 0 |
-| `docs/llm-wiki/modules/Module src-monitoring.md` | markdown | 5021 | 61 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-optimization.md` | markdown | 4957 | 65 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-pages.md` | markdown | 1486 | 44 | 28 | 24 | 0 |
-| `docs/llm-wiki/modules/Module src-performance.md` | markdown | 3413 | 51 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-pipeline.md` | markdown | 13465 | 115 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-quality.md` | markdown | 7207 | 76 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-remotion.md` | markdown | 5354 | 77 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-test.md` | markdown | 4931 | 70 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-transcription.md` | markdown | 8429 | 82 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-types.md` | markdown | 4769 | 73 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-utils.md` | markdown | 2553 | 55 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-visualization.md` | markdown | 21454 | 155 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-workers.md` | markdown | 4977 | 67 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src.md` | markdown | 699 | 40 | 0 | 0 | 0 |
-| `docs/llm-wiki/modules/Module supabase.md` | markdown | 10217 | 87 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module support-scripts.md` | markdown | 15423 | 125 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module tests.md` | markdown | 74797 | 457 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module tmp.md` | markdown | 641 | 36 | 0 | 0 | 0 |
-| `docs/llm-wiki/progress/Processing Progress.md` | markdown | 12292 | 250 | 98 | 72 | 0 |
-| `docs/llm-wiki/repo/Repository Overview.md` | markdown | 294 | 20 | 0 | 0 | 0 |
-| `docs/llm-wiki/repo/Repository Risk Register.md` | markdown | 187420 | 1207 | 100 | 62 | 0 |
-| `docs/llm-wiki/sources/File Inventory 0001.md` | markdown | 95143 | 1019 | 100 | 72 | 0 |
-| `docs/llm-wiki/sources/File Inventory 0002.md` | markdown | 35537 | 423 | 100 | 72 | 0 |
-| `docs/llm-wiki/sources/File Inventory.md` | markdown | 11355 | 205 | 98 | 72 | 0 |
+| `docs/llm-wiki/Repo Wiki Schema.md` | markdown | 1217 | 33 | 14 | 12 | 0 |
+| `docs/llm-wiki/index.md` | markdown | 1110 | 41 | 0 | 0 | 0 |
+| `docs/llm-wiki/log.md` | markdown | 731 | 30 | 0 | 0 | 0 |
+| `docs/llm-wiki/modules/Module Index.md` | markdown | 4007 | 52 | 14 | 12 | 0 |
+| `docs/llm-wiki/modules/Module audit.md` | markdown | 1704 | 38 | 70 | 60 | 0 |
+| `docs/llm-wiki/modules/Module bmad.md` | markdown | 66793 | 562 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module claude.md` | markdown | 46391 | 350 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module docs.md` | markdown | 5633 | 98 | 14 | 12 | 0 |
+| `docs/llm-wiki/modules/Module github.md` | markdown | 952 | 37 | 28 | 24 | 0 |
+| `docs/llm-wiki/modules/Module public.md` | markdown | 1159 | 41 | 28 | 24 | 0 |
+| `docs/llm-wiki/modules/Module root-config.md` | markdown | 6558 | 85 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module scripts-operations.md` | markdown | 6783 | 72 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module specs.md` | markdown | 17690 | 223 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module src-analysis.md` | markdown | 22953 | 161 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module src-api.md` | markdown | 17718 | 131 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module src-components.md` | markdown | 17070 | 145 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module src-config.md` | markdown | 5171 | 66 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module src-export.md` | markdown | 5066 | 63 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module src-framework.md` | markdown | 4420 | 57 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module src-hooks.md` | markdown | 1876 | 41 | 100 | 80 | 0 |
+| `docs/llm-wiki/modules/Module src-integrations.md` | markdown | 4502 | 57 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module src-lib.md` | markdown | 1756 | 42 | 70 | 60 | 0 |
+| `docs/llm-wiki/modules/Module src-monitoring.md` | markdown | 4981 | 59 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module src-optimization.md` | markdown | 4917 | 63 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module src-pages.md` | markdown | 1446 | 42 | 28 | 24 | 0 |
+| `docs/llm-wiki/modules/Module src-performance.md` | markdown | 3373 | 49 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module src-pipeline.md` | markdown | 13202 | 112 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module src-quality.md` | markdown | 12214 | 99 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module src-remotion.md` | markdown | 5314 | 75 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module src-test.md` | markdown | 4891 | 68 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module src-transcription.md` | markdown | 8389 | 80 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module src-types.md` | markdown | 4729 | 71 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module src-utils.md` | markdown | 2513 | 53 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module src-visualization.md` | markdown | 21414 | 153 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module src-workers.md` | markdown | 4937 | 65 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module src.md` | markdown | 659 | 38 | 0 | 0 | 0 |
+| `docs/llm-wiki/modules/Module supabase.md` | markdown | 10177 | 85 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module support-scripts.md` | markdown | 15383 | 123 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module tests.md` | markdown | 86971 | 509 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module tmp.md` | markdown | 601 | 34 | 0 | 0 | 0 |
+| `docs/llm-wiki/progress/Processing Progress.md` | markdown | 12257 | 248 | 98 | 72 | 0 |
+| `docs/llm-wiki/repo/Repository Overview.md` | markdown | 10167 | 318 | 28 | 24 | 0 |
+| `docs/llm-wiki/repo/Repository Risk Register.md` | markdown | 198528 | 1266 | 100 | 62 | 0 |
+| `docs/llm-wiki/sources/File Inventory 0001.md` | markdown | 95709 | 1017 | 100 | 72 | 0 |
+| `docs/llm-wiki/sources/File Inventory 0002.md` | markdown | 40167 | 479 | 100 | 72 | 0 |
+| `docs/llm-wiki/sources/File Inventory.md` | markdown | 342 | 20 | 0 | 0 | 0 |
 | `eslint.config.js` | javascript | 758 | 27 | 70 | 60 | 1 |
 | `jest.config.cjs` | javascript | 1273 | 38 | 0 | 4 | 0 |
 | `package-lock.json` | json | 592643 | 16410 | 100 | 62 | 5 |
@@ -756,11 +756,11 @@ status: generated
 | `specs/_doc_spine.yml` | yaml | 9801 | 224 | 0 | 0 | 0 |
 | `specs/speech-to-visuals/acceptance-criteria.md` | markdown | 111593 | 2244 | 100 | 72 | 0 |
 | `specs/speech-to-visuals/api-endpoints.md` | markdown | 22907 | 1000 | 100 | 72 | 0 |
-| `specs/speech-to-visuals/architecture.md` | markdown | 65637 | 801 | 100 | 72 | 0 |
+| `specs/speech-to-visuals/architecture.md` | markdown | 69805 | 815 | 100 | 72 | 0 |
 | `specs/speech-to-visuals/database-schema.sql` | sql | 7571 | 171 | 100 | 72 | 4 |
-| `specs/speech-to-visuals/dataflow.md` | markdown | 63555 | 1590 | 100 | 72 | 0 |
-| `specs/speech-to-visuals/design-interview.md` | markdown | 193601 | 3236 | 100 | 62 | 0 |
-| `specs/speech-to-visuals/interfaces.ts` | typescript | 67815 | 1859 | 100 | 112 | 5 |
+| `specs/speech-to-visuals/dataflow.md` | markdown | 72955 | 1830 | 100 | 72 | 0 |
+| `specs/speech-to-visuals/design-interview.md` | markdown | 198146 | 3265 | 100 | 62 | 0 |
+| `specs/speech-to-visuals/interfaces.ts` | typescript | 75787 | 2079 | 100 | 112 | 5 |
 | `specs/speech-to-visuals/interview-record.md` | markdown | 189070 | 2627 | 100 | 62 | 0 |
 | `specs/speech-to-visuals/note.md` | markdown | 5714 | 118 | 56 | 48 | 0 |
 | `specs/speech-to-visuals/prep.md` | markdown | 4601 | 93 | 14 | 12 | 0 |

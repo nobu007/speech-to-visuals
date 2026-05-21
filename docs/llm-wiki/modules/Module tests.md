@@ -18,7 +18,7 @@ status: generated
 - Roots: tests
 - Languages: tsx, typescript
 - Files: 177
-- Bytes: 1894802
+- Bytes: 1899028
 
 ## Key Files
 
@@ -477,7 +477,7 @@ status: generated
 - `tests/visualization/complex-layout-engine.test.ts` — typescript, 682 lines, attention 100
 - `tests/visualization/cycle-strategy.test.ts` — typescript, 692 lines, attention 70
 - `tests/visualization/edge-crossing-minimizer.test.ts` — typescript, 323 lines, attention 14
-- `tests/visualization/enhanced-zero-overlap-layout.test.ts` — typescript, 1209 lines, attention 100
+- `tests/visualization/enhanced-zero-overlap-layout.test.ts` — typescript, 1306 lines, attention 100
 - `tests/visualization/force-directed-simulation.test.ts` — typescript, 355 lines, attention 56
 - `tests/visualization/graph-coarsening.test.ts` — typescript, 262 lines, attention 42
 - `tests/visualization/layout-auto-optimizer.test.ts` — typescript, 344 lines, attention 70
