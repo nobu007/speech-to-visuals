@@ -17,8 +17,8 @@ status: generated
 - Rationale: Files under specs form a shared path-level boundary.
 - Roots: specs
 - Languages: markdown, text, typescript, yaml
-- Files: 175
-- Bytes: 1892605
+- Files: 179
+- Bytes: 1918775
 
 ## Key Files
 
@@ -45,18 +45,18 @@ status: generated
 
 ## Files
 
-- `specs/_doc_spine.yml` — yaml, 224 lines, attention 0
+- `specs/_doc_spine.yml` — yaml, 228 lines, attention 0
 - `specs/speech-to-visuals/acceptance-criteria.md` — markdown, 2244 lines, attention 100
 - `specs/speech-to-visuals/api-endpoints.md` — markdown, 1000 lines, attention 100
-- `specs/speech-to-visuals/architecture.md` — markdown, 816 lines, attention 100
+- `specs/speech-to-visuals/architecture.md` — markdown, 820 lines, attention 100
 - `specs/speech-to-visuals/database-schema.sql` — sql, 171 lines, attention 100
 - `specs/speech-to-visuals/dataflow.md` — markdown, 1830 lines, attention 100
 - `specs/speech-to-visuals/design-interview.md` — markdown, 3265 lines, attention 100
 - `specs/speech-to-visuals/interfaces.ts` — typescript, 2079 lines, attention 100
-- `specs/speech-to-visuals/interview-record.md` — markdown, 2627 lines, attention 100
+- `specs/speech-to-visuals/interview-record.md` — markdown, 2651 lines, attention 100
 - `specs/speech-to-visuals/note.md` — markdown, 118 lines, attention 56
 - `specs/speech-to-visuals/prep.md` — markdown, 93 lines, attention 14
-- `specs/speech-to-visuals/requirements.md` — markdown, 504 lines, attention 100
+- `specs/speech-to-visuals/requirements.md` — markdown, 509 lines, attention 100
 - `specs/speech-to-visuals/tasks/TASK-0001.md` — markdown, 258 lines, attention 42
 - `specs/speech-to-visuals/tasks/TASK-0002.md` — markdown, 277 lines, attention 100
 - `specs/speech-to-visuals/tasks/TASK-0003.md` — markdown, 227 lines, attention 28
@@ -218,5 +218,9 @@ status: generated
 - `specs/speech-to-visuals/tasks/TASK-0159.md` — markdown, 98 lines, attention 0
 - `specs/speech-to-visuals/tasks/TASK-0160.md` — markdown, 94 lines, attention 0
 - `specs/speech-to-visuals/tasks/TASK-0161.md` — markdown, 56 lines, attention 100
-- `specs/speech-to-visuals/tasks/overview.md` — markdown, 1229 lines, attention 100
+- `specs/speech-to-visuals/tasks/TASK-0162.md` — markdown, 130 lines, attention 0
+- `specs/speech-to-visuals/tasks/TASK-0163.md` — markdown, 137 lines, attention 56
+- `specs/speech-to-visuals/tasks/TASK-0164.md` — markdown, 76 lines, attention 14
+- `specs/speech-to-visuals/tasks/TASK-0165.md` — markdown, 95 lines, attention 0
+- `specs/speech-to-visuals/tasks/overview.md` — markdown, 1348 lines, attention 100
 - `specs/speech-to-visuals/user-stories.md` — markdown, 1137 lines, attention 100

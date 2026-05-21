@@ -14,6 +14,10 @@ status: generated
 
 | File | Language | Bytes | Lines | Attention | Priority | Risks |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
+| `src/components/TutorialSystem.tsx` | tsx | 16244 | 443 | 70 | 84 | 3 |
+| `src/components/VideoGenerationPanel.tsx` | tsx | 21412 | 665 | 14 | 52 | 1 |
+| `src/components/VideoPreview.tsx` | tsx | 13087 | 397 | 50 | 80 | 2 |
+| `src/components/VideoRenderer.tsx` | tsx | 7812 | 212 | 14 | 20 | 2 |
 | `src/components/__tests__/AudioUploader.test.tsx` | tsx | 27222 | 795 | 100 | 80 | 2 |
 | `src/components/__tests__/SimplePipelineInterface.test.tsx` | tsx | 18276 | 441 | 70 | 60 | 3 |
 | `src/components/__tests__/StageIndicator.test.ts` | typescript | 4339 | 160 | 14 | 24 | 1 |
@@ -324,6 +328,7 @@ status: generated
 | `tests/integration/phase31-module-exports.test.ts` | typescript | 3186 | 89 | 14 | 12 | 0 |
 | `tests/integration/phase32-quality-pipeline.test.ts` | typescript | 16690 | 464 | 14 | 20 | 1 |
 | `tests/integration/phase35-quality-e2e.test.ts` | typescript | 13391 | 344 | 0 | 0 | 0 |
+| `tests/integration/pipeline-recovery-e2e.test.ts` | typescript | 12496 | 367 | 100 | 72 | 3 |
 | `tests/integration/pipeline.test.ts` | typescript | 38771 | 1163 | 100 | 76 | 4 |
 | `tests/integration/warmup-cache-backend-failure.test.ts` | typescript | 18197 | 474 | 100 | 112 | 3 |
 | `tests/integration/warmup-default-pattern-resilience.test.ts` | typescript | 15247 | 397 | 100 | 92 | 3 |

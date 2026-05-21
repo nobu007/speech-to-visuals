@@ -18,7 +18,7 @@ status: generated
 - Roots: docs
 - Languages: markdown
 - Files: 58
-- Bytes: 953908
+- Bytes: 960344
 
 ## Key Files
 
@@ -76,7 +76,7 @@ status: generated
 - `docs/llm-wiki/modules/Module src-pages.md` — markdown, 42 lines, attention 28
 - `docs/llm-wiki/modules/Module src-performance.md` — markdown, 49 lines, attention 100
 - `docs/llm-wiki/modules/Module src-pipeline.md` — markdown, 112 lines, attention 100
-- `docs/llm-wiki/modules/Module src-quality.md` — markdown, 99 lines, attention 100
+- `docs/llm-wiki/modules/Module src-quality.md` — markdown, 102 lines, attention 100
 - `docs/llm-wiki/modules/Module src-remotion.md` — markdown, 75 lines, attention 100
 - `docs/llm-wiki/modules/Module src-test.md` — markdown, 68 lines, attention 100
 - `docs/llm-wiki/modules/Module src-transcription.md` — markdown, 80 lines, attention 100
@@ -87,11 +87,11 @@ status: generated
 - `docs/llm-wiki/modules/Module src.md` — markdown, 38 lines, attention 0
 - `docs/llm-wiki/modules/Module supabase.md` — markdown, 85 lines, attention 100
 - `docs/llm-wiki/modules/Module support-scripts.md` — markdown, 123 lines, attention 100
-- `docs/llm-wiki/modules/Module tests.md` — markdown, 509 lines, attention 100
+- `docs/llm-wiki/modules/Module tests.md` — markdown, 522 lines, attention 100
 - `docs/llm-wiki/modules/Module tmp.md` — markdown, 34 lines, attention 0
 - `docs/llm-wiki/progress/Processing Progress.md` — markdown, 248 lines, attention 98
 - `docs/llm-wiki/repo/Repository Overview.md` — markdown, 318 lines, attention 28
-- `docs/llm-wiki/repo/Repository Risk Register.md` — markdown, 1266 lines, attention 100
+- `docs/llm-wiki/repo/Repository Risk Register.md` — markdown, 1278 lines, attention 100
 - `docs/llm-wiki/sources/File Inventory 0001.md` — markdown, 1017 lines, attention 100
-- `docs/llm-wiki/sources/File Inventory 0002.md` — markdown, 479 lines, attention 100
+- `docs/llm-wiki/sources/File Inventory 0002.md` — markdown, 483 lines, attention 100
 - `docs/llm-wiki/sources/File Inventory.md` — markdown, 20 lines, attention 0

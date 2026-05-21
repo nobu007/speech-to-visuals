@@ -684,7 +684,7 @@ status: generated
 | `docs/llm-wiki/modules/Module src-pages.md` | markdown | 1446 | 42 | 28 | 24 | 0 |
 | `docs/llm-wiki/modules/Module src-performance.md` | markdown | 3373 | 49 | 100 | 72 | 0 |
 | `docs/llm-wiki/modules/Module src-pipeline.md` | markdown | 13202 | 112 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-quality.md` | markdown | 12214 | 99 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module src-quality.md` | markdown | 12795 | 102 | 100 | 72 | 0 |
 | `docs/llm-wiki/modules/Module src-remotion.md` | markdown | 5314 | 75 | 100 | 72 | 0 |
 | `docs/llm-wiki/modules/Module src-test.md` | markdown | 4891 | 68 | 100 | 72 | 0 |
 | `docs/llm-wiki/modules/Module src-transcription.md` | markdown | 8389 | 80 | 100 | 72 | 0 |
@@ -695,13 +695,13 @@ status: generated
 | `docs/llm-wiki/modules/Module src.md` | markdown | 659 | 38 | 0 | 0 | 0 |
 | `docs/llm-wiki/modules/Module supabase.md` | markdown | 10177 | 85 | 100 | 72 | 0 |
 | `docs/llm-wiki/modules/Module support-scripts.md` | markdown | 15383 | 123 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module tests.md` | markdown | 86971 | 509 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module tests.md` | markdown | 90008 | 522 | 100 | 72 | 0 |
 | `docs/llm-wiki/modules/Module tmp.md` | markdown | 601 | 34 | 0 | 0 | 0 |
 | `docs/llm-wiki/progress/Processing Progress.md` | markdown | 12257 | 248 | 98 | 72 | 0 |
 | `docs/llm-wiki/repo/Repository Overview.md` | markdown | 10167 | 318 | 28 | 24 | 0 |
-| `docs/llm-wiki/repo/Repository Risk Register.md` | markdown | 198528 | 1266 | 100 | 62 | 0 |
+| `docs/llm-wiki/repo/Repository Risk Register.md` | markdown | 200900 | 1278 | 100 | 62 | 0 |
 | `docs/llm-wiki/sources/File Inventory 0001.md` | markdown | 95713 | 1017 | 100 | 72 | 0 |
-| `docs/llm-wiki/sources/File Inventory 0002.md` | markdown | 40167 | 479 | 100 | 72 | 0 |
+| `docs/llm-wiki/sources/File Inventory 0002.md` | markdown | 40613 | 483 | 100 | 72 | 0 |
 | `docs/llm-wiki/sources/File Inventory.md` | markdown | 342 | 20 | 0 | 0 | 0 |
 | `eslint.config.js` | javascript | 758 | 27 | 70 | 60 | 1 |
 | `jest.config.cjs` | javascript | 1273 | 38 | 0 | 4 | 0 |
@@ -753,18 +753,18 @@ status: generated
 | `scripts_operations/monitoring/run_github_issue_monitor.sh` | shell | 5176 | 188 | 42 | 76 | 1 |
 | `scripts_operations/monitoring/setup_monitoring.sh` | shell | 25745 | 934 | 100 | 112 | 3 |
 | `scripts_operations/monitoring/start_production.sh` | shell | 10728 | 432 | 28 | 64 | 1 |
-| `specs/_doc_spine.yml` | yaml | 9801 | 224 | 0 | 0 | 0 |
+| `specs/_doc_spine.yml` | yaml | 9989 | 228 | 0 | 0 | 0 |
 | `specs/speech-to-visuals/acceptance-criteria.md` | markdown | 111593 | 2244 | 100 | 72 | 0 |
 | `specs/speech-to-visuals/api-endpoints.md` | markdown | 22907 | 1000 | 100 | 72 | 0 |
-| `specs/speech-to-visuals/architecture.md` | markdown | 70522 | 816 | 100 | 72 | 0 |
+| `specs/speech-to-visuals/architecture.md` | markdown | 70804 | 820 | 100 | 72 | 0 |
 | `specs/speech-to-visuals/database-schema.sql` | sql | 7571 | 171 | 100 | 72 | 4 |
 | `specs/speech-to-visuals/dataflow.md` | markdown | 72955 | 1830 | 100 | 72 | 0 |
 | `specs/speech-to-visuals/design-interview.md` | markdown | 198146 | 3265 | 100 | 62 | 0 |
 | `specs/speech-to-visuals/interfaces.ts` | typescript | 75787 | 2079 | 100 | 112 | 5 |
-| `specs/speech-to-visuals/interview-record.md` | markdown | 189070 | 2627 | 100 | 62 | 0 |
-| `specs/speech-to-visuals/note.md` | markdown | 5714 | 118 | 56 | 48 | 0 |
+| `specs/speech-to-visuals/interview-record.md` | markdown | 190990 | 2651 | 100 | 62 | 0 |
+| `specs/speech-to-visuals/note.md` | markdown | 5682 | 118 | 56 | 48 | 0 |
 | `specs/speech-to-visuals/prep.md` | markdown | 4601 | 93 | 14 | 12 | 0 |
-| `specs/speech-to-visuals/requirements.md` | markdown | 87378 | 504 | 100 | 72 | 0 |
+| `specs/speech-to-visuals/requirements.md` | markdown | 89161 | 509 | 100 | 72 | 0 |
 | `specs/speech-to-visuals/tasks/TASK-0001.md` | markdown | 7610 | 258 | 42 | 36 | 0 |
 | `specs/speech-to-visuals/tasks/TASK-0002.md` | markdown | 10561 | 277 | 100 | 72 | 0 |
 | `specs/speech-to-visuals/tasks/TASK-0003.md` | markdown | 8899 | 227 | 28 | 24 | 0 |
@@ -926,7 +926,11 @@ status: generated
 | `specs/speech-to-visuals/tasks/TASK-0159.md` | markdown | 3780 | 98 | 0 | 0 | 0 |
 | `specs/speech-to-visuals/tasks/TASK-0160.md` | markdown | 3515 | 94 | 0 | 0 | 0 |
 | `specs/speech-to-visuals/tasks/TASK-0161.md` | markdown | 2323 | 56 | 100 | 72 | 0 |
-| `specs/speech-to-visuals/tasks/overview.md` | markdown | 67923 | 1229 | 100 | 72 | 0 |
+| `specs/speech-to-visuals/tasks/TASK-0162.md` | markdown | 4959 | 130 | 0 | 0 | 0 |
+| `specs/speech-to-visuals/tasks/TASK-0163.md` | markdown | 5581 | 137 | 56 | 48 | 0 |
+| `specs/speech-to-visuals/tasks/TASK-0164.md` | markdown | 2494 | 76 | 14 | 12 | 0 |
+| `specs/speech-to-visuals/tasks/TASK-0165.md` | markdown | 3097 | 95 | 0 | 0 | 0 |
+| `specs/speech-to-visuals/tasks/overview.md` | markdown | 73821 | 1348 | 100 | 72 | 0 |
 | `specs/speech-to-visuals/user-stories.md` | markdown | 46708 | 1137 | 100 | 72 | 0 |
 | `src/App.tsx` | tsx | 1877 | 45 | 0 | 4 | 0 |
 | `src/analysis/__tests__/complexity-detector.test.ts` | typescript | 13152 | 326 | 0 | 8 | 0 |
@@ -1010,7 +1014,3 @@ status: generated
 | `src/components/SimplePipelineStateMachine.ts` | typescript | 4599 | 187 | 50 | 60 | 2 |
 | `src/components/StageIndicator.tsx` | tsx | 6889 | 210 | 100 | 96 | 2 |
 | `src/components/StreamingProcessor.tsx` | tsx | 21747 | 681 | 56 | 88 | 2 |
-| `src/components/TutorialSystem.tsx` | tsx | 16244 | 443 | 70 | 84 | 3 |
-| `src/components/VideoGenerationPanel.tsx` | tsx | 21412 | 665 | 14 | 52 | 1 |
-| `src/components/VideoPreview.tsx` | tsx | 13087 | 397 | 50 | 80 | 2 |
-| `src/components/VideoRenderer.tsx` | tsx | 7812 | 212 | 14 | 20 | 2 |

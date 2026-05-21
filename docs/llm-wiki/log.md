@@ -15,9 +15,9 @@ status: generated
 ## ingest | speech-to-visuals
 
 - target: `/home/jinno/speech-to-visuals`
-- files: 1466
+- files: 1471
 - logical modules: 36
-- risk findings: 1246
+- risk findings: 1249
 - created_or_updated:
   - [[Repository Wiki Index]]
   - [[Repository Overview]]
