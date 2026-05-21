@@ -10,10 +10,10 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-30
-**最終更新**: 2026-05-18（Phase 56 タスク化完了・REQ-144~147・335ファイル・97,807行・105パッケージ・4,448+テスト（115テストファイル）・npm audit 0脆弱性・console.log 0件）
+**最終更新**: 2026-05-21（Phase 58 タスク化完了・REQ-148~149・PipelineErrorRecoveryOrchestrator統合・CI検証ループ・337ファイル・98,000+行・105パッケージ・4,815+テスト・npm audit 0脆弱性・console.log 0件）
 **プロジェクト期間**: 2026-04-27 - 2026-08-22（118日）
-**推定工数**: 986時間
-**総タスク数**: 160件（155完了・5未着手）
+**推定工数**: 1,018時間
+**総タスク数**: 165件（161完了・4未着手）
 
 ## 関連文書
 
@@ -65,11 +65,13 @@
 | Phase 39 | 未定 | テストESM互換性修正・依存脆弱性解消・ドキュメント整合性 | 3 | 16h | ✅完了 |
 | Phase 40 | 未定 | API認証ミドルウェア品質・信頼性 | 2+ | 8h | ✅完了 |
 | Phase 56 | 未定 | 音声検証完全統合・コンポーネントテスト | 5 | 28h | ✅完了 |
+| Phase 57 | 未定 | PipelineErrorRecoveryOrchestrator・LLMキャッシュデバウンス・空間インデックス | 1 | 8h | ✅完了 |
+| Phase 58 | 未定 | リカバリ検証ループ・CI統合 | 4 | 32h | 🔲未着手 |
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0160
-**次回開始番号**: TASK-0161
+**使用済みタスク番号**: TASK-0001 ~ TASK-0165
+**次回開始番号**: TASK-0166
 
 ## 全体進捗
 
@@ -109,6 +111,8 @@
 - [x] Phase 39: テストESM互換性修正・依存脆弱性解消・ドキュメント整合性 (3/3)
 - [x] Phase 40: API認証ミドルウェア品質・信頼性 (完了)
 - [x] Phase 56: 音声検証完全統合・コンポーネントテスト (5/5 — TASK-0156~0160)
+- [x] Phase 57: PipelineErrorRecoveryOrchestrator・LLMキャッシュデバウンス・空間インデックス (1/1 — TASK-0161)
+- [ ] Phase 58: リカバリ検証ループ・CI統合 (0/4 — TASK-0162~0165)
 
 ## 主要実績値
 
@@ -1225,4 +1229,119 @@ TASK-0157, TASK-0158, TASK-0159 → TASK-0160
 
 ## 移行情報（追記: Phase 56）
 
-- **Phase 56追加**: 2026-05-18にkairo-tasksによる分析に基づき5タスクを新規追加。Phase 55（REQ-142~143: validateAudioFile/validateAudioDuration実装）完了後の残存ギャップとして、AudioUploader インライン検証残存・重複定数3箇所・whisper-transcriber 検証重複・AudioUploader テスト不在を特定。
+- **Phase 56追加**: 2026-05-18にkairo-tasksによる分析に基づり5タスクを新規追加。Phase 55（REQ-142~143: validateAudioFile/validateAudioDuration実装）完了後の残存ギャップとして、AudioUploader インライン検証残存・重複定数3箇所・whisper-transcriber 検証重複・AudioUploader テスト不在を特定。
+- **Phase 57追加**: 2026-05-20にPhase 57の実装完了（PipelineErrorRecoveryOrchestrator 360行・spatialIndexing改善・E2Eテスト12件）に伴いTASK-0161（LLMキャッシュデバウンステスト）を登録。REQ-148/149対応。Phase 57はコミットベースで実行され、TASK-0161のみ個別ファイル化。
+- **Phase 58追加**: 2026-05-21にkairo-tasksによる分析に基づき4タスクを新規追加。AI Hub フィードバック「wire the recovery orchestrator into end-to-end pipeline tests or CI to close the verification loop」に対応。CI煙テスト・フルE2Eリカバリ統合テスト・video-generatorタイムアウト修正・ドキュメント更新を計画。
+
+---
+
+## Phase 57: PipelineErrorRecoveryOrchestrator・LLMキャッシュデバウンス・空間インデックス ✅完了
+
+**期間**: 未定（Phase 56完了後）
+**目標**: 多層エラーリカバリオーケストレーターの実装・LLMキャッシュデバウンステスト・空間インデックス改善
+**成果物**: PipelineErrorRecoveryOrchestrator（360行）、空間インデックスO(n)衝突検出、LLMキャッシュデバウンステスト15件、E2E統合テスト12件
+**備考**: Phase 57はコミットベースで実行。PipelineErrorRecoveryOrchestratorがRecoveryStrategyChain・BatchOperationRecovery・PipelineRunRecoveryTracker・ErrorRecoveryMonitor・ErrorRecoveryEventBusを統合。spatialIndexing設定がdetectAllOverlapsに配線されO(n)衝突検出を実現。E2Eテスト12件（REQ-149）とデバウンステスト15件（REQ-148）を追加。
+
+### タスク一覧
+
+- [x] [TASK-0161: LLMキャッシュデバウンステスト追加](TASK-0161.md) - 8h (TDD) 🔵
+
+### コミットベース完了項目（タスクファイルなし）
+
+- feat(quality): PipelineErrorRecoveryOrchestrator追加（コミット 55e3cf5）
+- feat(pipeline): PipelineOrchestratorにリカバリオーケストレーター統合（コミット afdbf6e）
+- feat(layout): spatialIndexing設定をdetectAllOverlapsに配線（コミット 327454e）
+- test(quality): 多層エラーリカバリ統合テスト（コミット 1738b38）
+- test(pipeline): PipelineOrchestrator+ErrorRecovery E2E統合テスト（コミット 56081df）
+
+### 依存関係
+
+```
+Phase 56完了 → Phase 57実行
+```
+
+---
+
+## Phase 58: リカバリ検証ループ・CI統合 🔲未着手
+
+**期間**: 未定（Phase 57完了後）
+**目標**: リカバリオーケストレーターのCI検証ループ完了・E2Eリカバリ統合テスト・既知テストタイムアウト修正
+**成果物**: CI煙テスト、フルE2Eリカバリ統合テスト、修正済みvideo-generatorテスト、更新済みドキュメント
+**備考**: AI Hub フィードバック「wire the recovery orchestrator into end-to-end pipeline tests or CI to close the verification loop」に対応。Phase 57のPipelineErrorRecoveryOrchestrator統合をCIで検証し、検証ループを閉じる。video-generator.test.tsの3テストタイムアウトも修正。
+
+### タスク一覧
+
+- [ ] [TASK-0162: Pipeline Recovery CI Smoke Test](TASK-0162.md) - 8h (TDD) 🔵
+- [ ] [TASK-0163: Pipeline Full E2E Recovery Integration Test](TASK-0163.md) - 16h (TDD) 🔵
+- [ ] [TASK-0164: Video Generator Test Timeout Fix](TASK-0164.md) - 4h (DIRECT) 🔵
+- [ ] [TASK-0165: Phase 57-58 Documentation Update](TASK-0165.md) - 4h (DIRECT) 🔵
+
+### 依存関係
+
+```
+TASK-0161 → TASK-0162
+TASK-0162 → TASK-0163
+TASK-0162, TASK-0163, TASK-0164 → TASK-0165
+TASK-0164: 独立（Phase 57完了後ならいつでも実施可能）
+```
+
+---
+
+## 信頼性レベルサマリー（Phase 58計画版）
+
+### 全タスク統計
+
+- **総タスク数**: 165件
+- 🔵 **青信号**: 149件 (90%)
+- 🟡 **黄信号**: 16件 (10%)
+- 🔴 **赤信号**: 0件 (0%)
+
+### フェーズ別信頼性（Phase 58追加版）
+
+| フェーズ | 🔵 青 | 🟡 黄 | 🔴 赤 | 合計 |
+|---------|-------|-------|-------|------|
+| Phase 1 | 9 | 1 | 0 | 10 |
+| Phase 2 | 12 | 0 | 0 | 12 |
+| Phase 3 | 9 | 0 | 0 | 9 |
+| Phase 4 | 9 | 2 | 0 | 11 |
+| Phase 5 | 17 | 1 | 0 | 18 |
+| Phase 6 | 4 | 2 | 0 | 6 |
+| Phase 7 | 4 | 0 | 0 | 4 |
+| Phase 8 | 5 | 1 | 0 | 6 |
+| Phase 9 | 2 | 0 | 0 | 2 |
+| Phase 10 | 2 | 1 | 0 | 3 |
+| Phase 11 | 2 | 1 | 0 | 3 |
+| Phase 12 | 3 | 1 | 0 | 4 |
+| Phase 13 | 4 | 1 | 0 | 5 |
+| Phase 14 | 2 | 2 | 0 | 4 |
+| Phase 15 | 2 | 2 | 0 | 4 |
+| Phase 16 | 3 | 1 | 0 | 4 |
+| Phase 17 | 3 | 0 | 0 | 3 |
+| Phase 18 | 1 | 1 | 0 | 2 |
+| Phase 19 | 3 | 0 | 0 | 3 |
+| Phase 20 | 1 | 2 | 0 | 3 |
+| Phase 21 | 2 | 0 | 0 | 2 |
+| Phase 22 | 1 | 0 | 0 | 1 |
+| Phase 23 | 1 | 0 | 0 | 1 |
+| Phase 24 | 1 | 2 | 0 | 3 |
+| Phase 31 | 6 | 0 | 0 | 6 |
+| Phase 32 | 4 | 0 | 0 | 4 |
+| Phase 33 | 3 | 0 | 0 | 3 |
+| Phase 34 | 3 | 0 | 0 | 3 |
+| Phase 35 | 3 | 0 | 0 | 3 |
+| Phase 36 | 3 | 0 | 0 | 3 |
+| Phase 37 | 2 | 0 | 0 | 2 |
+| Phase 38 | 3 | 0 | 0 | 3 |
+| Phase 39 | 3 | 0 | 0 | 3 |
+| Phase 56 | 5 | 0 | 0 | 5 |
+| Phase 57 | 1 | 0 | 0 | 1 |
+| Phase 58 | 4 | 0 | 0 | 4 |
+
+**品質評価**: ✅ 高品質 - 90%のタスクが既存設計文書・実装に基づいている。Phase 58はAI Hubフィードバックと既存テストパターンに基づく。
+
+## 次のステップ
+
+タスクを実装するには:
+
+- 全タスク順番に実装: `/tsumiki:kairo-implement`
+- 特定タスクを実装: `/tsumiki:kairo-implement TASK-0162`
