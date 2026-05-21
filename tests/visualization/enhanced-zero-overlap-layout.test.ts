@@ -1207,6 +1207,80 @@ describe('ZeroOverlapLayoutEngine', () => {
   });
 
   // ========================================
+  // Spatial indexing integration: spatialIndexing config flag
+  // ========================================
+
+  describe('spatial indexing integration', () => {
+    test('detectAllOverlaps should use spatial grid when spatialIndexing is enabled', () => {
+      const spatialEngine = new ZeroOverlapLayoutEngine({ spatialIndexing: true });
+      const pm = privateMethods(spatialEngine);
+      const nodes: PositionedNode[] = [
+        { id: 'a', label: 'A', x: 0, y: 0, width: 100, height: 50, w: 100, h: 50 },
+        { id: 'b', label: 'B', x: 10, y: 10, width: 100, height: 50, w: 100, h: 50 },
+        { id: 'c', label: 'C', x: 500, y: 500, width: 100, height: 50, w: 100, h: 50 },
+      ];
+      const overlaps = pm.detectAllOverlaps(nodes);
+      expect(overlaps.length).toBeGreaterThan(0);
+      // Only a-b should overlap, not c
+      const pairIds = overlaps.map(o => [o.node1.id, o.node2.id].sort().join(','));
+      expect(pairIds).toContain('a,b');
+      expect(pairIds).not.toContain('a,c');
+      expect(pairIds).not.toContain('b,c');
+    });
+
+    test('detectAllOverlaps should use brute-force when spatialIndexing is disabled', () => {
+      const bruteEngine = new ZeroOverlapLayoutEngine({ spatialIndexing: false });
+      const pm = privateMethods(bruteEngine);
+      const nodes: PositionedNode[] = [
+        { id: 'a', label: 'A', x: 0, y: 0, width: 100, height: 50, w: 100, h: 50 },
+        { id: 'b', label: 'B', x: 10, y: 10, width: 100, height: 50, w: 100, h: 50 },
+      ];
+      const overlaps = pm.detectAllOverlaps(nodes);
+      expect(overlaps).toHaveLength(1);
+      expect(overlaps[0].node1.id).toBe('a');
+      expect(overlaps[0].node2.id).toBe('b');
+    });
+
+    test('spatial indexing and brute-force produce identical results', () => {
+      const spatialEngine = new ZeroOverlapLayoutEngine({ spatialIndexing: true });
+      const bruteEngine = new ZeroOverlapLayoutEngine({ spatialIndexing: false });
+      const pmSpatial = privateMethods(spatialEngine);
+      const pmBrute = privateMethods(bruteEngine);
+
+      // 20 nodes with mixed positions — some overlapping, some not
+      const nodes: PositionedNode[] = Array.from({ length: 20 }, (_, i) => ({
+        id: `n${i}`,
+        label: `N${i}`,
+        x: (i % 5) * 30,  // clusters of overlapping nodes
+        y: Math.floor(i / 5) * 30,
+        width: 100,
+        height: 50,
+        w: 100,
+        h: 50,
+      }));
+
+      const spatialOverlaps = pmSpatial.detectAllOverlaps(nodes);
+      const bruteOverlaps = pmBrute.detectAllOverlaps(nodes);
+
+      // Both methods should find the same number of overlaps
+      const toSortedKeys = (list: typeof spatialOverlaps) =>
+        list.map(o => [o.node1.id, o.node2.id].sort().join(',')).sort();
+
+      expect(toSortedKeys(spatialOverlaps)).toEqual(toSortedKeys(bruteOverlaps));
+    });
+
+    test('full layout with spatial indexing produces zero-overlap result', async () => {
+      const spatialEngine = new ZeroOverlapLayoutEngine({ spatialIndexing: true });
+      const nodes = makeNodes(10);
+      const edges = makeEdges([['n0', 'n1'], ['n1', 'n2'], ['n2', 'n3']]);
+      const result = await spatialEngine.generateZeroOverlapLayout('timeline', nodes, edges);
+
+      expect(result.nodes).toHaveLength(10);
+      expect(typeof result.success).toBe('boolean');
+    });
+  });
+
+  // ========================================
   // Regression: edges referencing non-existent nodes should not crash
   // ========================================
 

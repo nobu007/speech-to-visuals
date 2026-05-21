@@ -759,16 +759,69 @@ export class ZeroOverlapLayoutEngine {
   /**
    * Detect all overlapping elements in the layout
    * Includes minimum spacing requirement
+   * Uses spatial grid when spatialIndexing is enabled for O(n) average case
    */
   private detectAllOverlaps(nodes: PositionedNode[]): { node1: PositionedNode; node2: PositionedNode }[] {
-    const overlaps: { node1: PositionedNode; node2: PositionedNode }[] = [];
     const minSpacing = this.config.minimumSpacing.nodeToNode;
 
+    if (this.config.spatialIndexing && nodes.length > 4) {
+      return this.detectOverlapsWithSpatialGrid(nodes, minSpacing);
+    }
+
+    // Brute-force fallback for small node counts or when spatial indexing is disabled
+    const overlaps: { node1: PositionedNode; node2: PositionedNode }[] = [];
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
-        // Check if nodes overlap OR are too close (within minimum spacing)
         if (nodesOverlap(nodes[i], nodes[j], minSpacing)) {
           overlaps.push({ node1: nodes[i], node2: nodes[j] });
+        }
+      }
+    }
+    return overlaps;
+  }
+
+  /**
+   * Grid-based spatial overlap detection — O(n) average case for large diagrams.
+   * Uses the instance collisionGrid for spatial partitioning.
+   */
+  private detectOverlapsWithSpatialGrid(
+    nodes: PositionedNode[],
+    minSpacing: number,
+  ): { node1: PositionedNode; node2: PositionedNode }[] {
+    const overlaps: { node1: PositionedNode; node2: PositionedNode }[] = [];
+
+    // Cell size must be large enough to contain a node plus spacing
+    const maxNodeDim = Math.max(this.config.nodeWidth, this.config.nodeHeight, 120);
+    const cellSize = maxNodeDim + minSpacing;
+
+    const grid = new Map<string, PositionedNode[]>();
+
+    for (const node of nodes) {
+      const cx = Math.floor(node.x / cellSize);
+      const cy = Math.floor(node.y / cellSize);
+      const key = `${cx},${cy}`;
+      if (!grid.has(key)) grid.set(key, []);
+      grid.get(key)!.push(node);
+    }
+
+    const seen = new Set<string>();
+    for (const node of nodes) {
+      const cx = Math.floor(node.x / cellSize);
+      const cy = Math.floor(node.y / cellSize);
+
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          const cell = grid.get(`${cx + dx},${cy + dy}`);
+          if (!cell) continue;
+          for (const other of cell) {
+            if (other.id === node.id) continue;
+            const pairKey = node.id < other.id ? `${node.id},${other.id}` : `${other.id},${node.id}`;
+            if (seen.has(pairKey)) continue;
+            if (nodesOverlap(node, other, minSpacing)) {
+              seen.add(pairKey);
+              overlaps.push({ node1: node, node2: other });
+            }
+          }
         }
       }
     }
@@ -1182,49 +1235,7 @@ export class ZeroOverlapLayoutEngine {
    * カスタム指示準拠: 高度な空間分割による高速衝突検出
    */
   private detectCollisionsQuadtree(nodes: PositionedNode[]): { node1: PositionedNode; node2: PositionedNode }[] {
-    const overlaps: { node1: PositionedNode; node2: PositionedNode }[] = [];
-
-    // Create spatial grid for faster collision detection
-    const gridSize = 100; // Grid cell size
-    const grid = new Map<string, PositionedNode[]>();
-
-    // Populate grid
-    nodes.forEach(node => {
-      const gridX = Math.floor(node.x / gridSize);
-      const gridY = Math.floor(node.y / gridSize);
-      const gridKey = `${gridX},${gridY}`;
-
-      if (!grid.has(gridKey)) {
-        grid.set(gridKey, []);
-      }
-      grid.get(gridKey)!.push(node);
-
-      // Also add to adjacent cells to handle boundary cases
-      for (let dx = -1; dx <= 1; dx++) {
-        for (let dy = -1; dy <= 1; dy++) {
-          if (dx === 0 && dy === 0) continue;
-
-          const adjKey = `${gridX + dx},${gridY + dy}`;
-          if (!grid.has(adjKey)) {
-            grid.set(adjKey, []);
-          }
-          grid.get(adjKey)!.push(node);
-        }
-      }
-    });
-
-    // Check collisions within each grid cell
-    grid.forEach(cellNodes => {
-      for (let i = 0; i < cellNodes.length; i++) {
-        for (let j = i + 1; j < cellNodes.length; j++) {
-          if (cellNodes[i].id !== cellNodes[j].id && nodesOverlap(cellNodes[i], cellNodes[j])) {
-            overlaps.push({ node1: cellNodes[i], node2: cellNodes[j] });
-          }
-        }
-      }
-    });
-
-    return overlaps;
+    return this.detectOverlapsWithSpatialGrid(nodes, 0);
   }
 
   /**
