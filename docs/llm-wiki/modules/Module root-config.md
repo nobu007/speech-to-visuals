@@ -8,8 +8,6 @@ related:
   - Module Index
   - Repository Risk Register
   - File Inventory
-created: 2026-05-20
-updated: 2026-05-20
 status: generated
 ---
 # Module root-config
@@ -49,15 +47,15 @@ status: generated
 - RISK-0235 (medium, Parser Or Heuristic) in `package.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
 - RISK-0236 (medium, Persistence Or State) in `package.json`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L38: "cache:warmup": "tsx scripts/cache-warmup.ts",
 - RISK-0237 (low, High Attention File) in `package.json`: The digest found several implementation signals worth manual review. Evidence: L3: "private": true,
-- RISK-0915 (medium, Parser Or Heuristic) in `test-scene-data.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
-- RISK-1166 (medium, Parser Or Heuristic) in `tsconfig.app.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
-- RISK-1167 (medium, Parser Or Heuristic) in `tsconfig.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
-- RISK-1168 (medium, Parser Or Heuristic) in `tsconfig.node.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
-- RISK-1169 (medium, Parser Or Heuristic) in `tsconfig.test.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
-- RISK-1170 (high, Process Execution) in `vite.config.ts`: Process or shell execution can cross sandbox, quoting, timeout, or injection boundaries. Evidence: L56: return ['path', 'fs', 'os', 'util', 'assert', 'module', 'child_process', 'stream', 'worker_threads', 'crypto', 'url', 'http', 'https', 'net', 'tls'].some(nodeModule =>
-- RISK-1171 (medium, Network Or IPC) in `vite.config.ts`: Cross-process or network boundaries can fail through protocol, timeout, and trust assumptions. Evidence: L56: return ['path', 'fs', 'os', 'util', 'assert', 'module', 'child_process', 'stream', 'worker_threads', 'crypto', 'url', 'http', 'https', 'net', 'tls'].some(nodeModule =>
-- RISK-1172 (medium, Concurrency Or Timing) in `vite.config.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L56: return ['path', 'fs', 'os', 'util', 'assert', 'module', 'child_process', 'stream', 'worker_threads', 'crypto', 'url', 'http', 'https', 'net', 'tls'].some(nodeModule =>
-- RISK-1173 (low, High Attention File) in `vite.config.ts`: The digest found several implementation signals worth manual review. Evidence: L2: import react from "@vitejs/plugin-react-swc";
+- RISK-0933 (medium, Parser Or Heuristic) in `test-scene-data.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
+- RISK-1227 (medium, Parser Or Heuristic) in `tsconfig.app.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
+- RISK-1228 (medium, Parser Or Heuristic) in `tsconfig.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
+- RISK-1229 (medium, Parser Or Heuristic) in `tsconfig.node.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
+- RISK-1230 (medium, Parser Or Heuristic) in `tsconfig.test.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
+- RISK-1231 (high, Process Execution) in `vite.config.ts`: Process or shell execution can cross sandbox, quoting, timeout, or injection boundaries. Evidence: L56: return ['path', 'fs', 'os', 'util', 'assert', 'module', 'child_process', 'stream', 'worker_threads', 'crypto', 'url', 'http', 'https', 'net', 'tls'].some(nodeModule =>
+- RISK-1232 (medium, Network Or IPC) in `vite.config.ts`: Cross-process or network boundaries can fail through protocol, timeout, and trust assumptions. Evidence: L56: return ['path', 'fs', 'os', 'util', 'assert', 'module', 'child_process', 'stream', 'worker_threads', 'crypto', 'url', 'http', 'https', 'net', 'tls'].some(nodeModule =>
+- RISK-1233 (medium, Concurrency Or Timing) in `vite.config.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L56: return ['path', 'fs', 'os', 'util', 'assert', 'module', 'child_process', 'stream', 'worker_threads', 'crypto', 'url', 'http', 'https', 'net', 'tls'].some(nodeModule =>
+- RISK-1234 (low, High Attention File) in `vite.config.ts`: The digest found several implementation signals worth manual review. Evidence: L2: import react from "@vitejs/plugin-react-swc";
 
 ## Files
 

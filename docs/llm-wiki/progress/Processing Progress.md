@@ -8,25 +8,23 @@ related:
   - Repository Wiki Index
   - Repository Overview
   - File Inventory
-created: 2026-05-20
-updated: 2026-05-20
 status: generated
 ---
 # Processing Progress
 
 ## Summary
 
-- Run index: 1
-- Processed files: 1404
-- New files: 1404
+- Run index: stable
+- Processed files: 1462
+- New files: 1462
 - Changed files: 0
 - Unchanged files: 0
 - Removed files: 0
-- Needs processing: 1404
+- Needs processing: 1462
 - Skipped unchanged: 0
-- Digest generated: 1404
+- Digest generated: 1462
 - Digest reused: 0
-- Files with risk signals: 520
+- Files with risk signals: 540
 
 ## State File
 
@@ -238,7 +236,7 @@ status: generated
 - `AGENTS.md`
 - `CLAUDE.md`
 - `README.md`
-- ... 1204 more
+- ... 1262 more
 
 ## Changed Sources
 

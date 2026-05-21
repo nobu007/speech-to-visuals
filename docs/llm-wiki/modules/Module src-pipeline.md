@@ -8,8 +8,6 @@ related:
   - Module Index
   - Repository Risk Register
   - File Inventory
-created: 2026-05-20
-updated: 2026-05-20
 status: generated
 ---
 # Module src-pipeline
@@ -20,7 +18,7 @@ status: generated
 - Roots: src
 - Languages: typescript
 - Files: 27
-- Bytes: 328363
+- Bytes: 333195
 
 ## Key Files
 
@@ -64,24 +62,23 @@ status: generated
 - RISK-0678 (low, High Attention File) in `src/pipeline/performance-baseline.ts`: The digest found several implementation signals worth manual review. Evidence: L4: * Defines timing and memory baselines for each pipeline stage.
 - RISK-0679 (high, Security Boundary) in `src/pipeline/pipeline-health-score.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L10: *   - Cost efficiency: 25% (cost/token regression)
 - RISK-0680 (low, High Attention File) in `src/pipeline/pipeline-health-score.ts`: The digest found several implementation signals worth manual review. Evidence: L10: *   - Cost efficiency: 25% (cost/token regression)
-- RISK-0681 (medium, Concurrency Or Timing) in `src/pipeline/pipeline-orchestrator.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L41: import { retryWithBackoff } from './retry';
-- RISK-0682 (medium, Parser Or Heuristic) in `src/pipeline/pipeline-orchestrator.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L10: * - 3-tier fallback chain when quality gates fail
-- RISK-0683 (low, High Attention File) in `src/pipeline/pipeline-orchestrator.ts`: The digest found several implementation signals worth manual review. Evidence: L10: * - 3-tier fallback chain when quality gates fail
-- RISK-0684 (medium, Parser Or Heuristic) in `src/pipeline/quality-monitor.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L35: fallbackTriggered: boolean;
-- RISK-0685 (medium, Persistence Or State) in `src/pipeline/quality-monitor.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L18: cacheHitRate?: number; // 0-1
-- RISK-0686 (low, High Attention File) in `src/pipeline/quality-monitor.ts`: The digest found several implementation signals worth manual review. Evidence: L17: memoryUsage: number; // MB
-- RISK-0687 (high, Security Boundary) in `src/pipeline/retry.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L6: * (UNKNOWN type, auth failures, etc.) propagate immediately.
-- RISK-0688 (medium, Concurrency Or Timing) in `src/pipeline/retry.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L47: export async function retryWithBackoff<T>(
-- RISK-0689 (low, High Attention File) in `src/pipeline/retry.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Pipeline retry with exponential backoff, driven by ErrorClassifier.
-- RISK-0690 (medium, Concurrency Or Timing) in `src/pipeline/simple-pipeline.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L226: const processScene = async (segment: unknown, index: number): Promise<SceneGraph | null> => {
-- RISK-0691 (low, High Attention File) in `src/pipeline/simple-pipeline.ts`: The digest found several implementation signals worth manual review. Evidence: L15: import { getHeapUsed } from '@/utils/memory-usage';
-- RISK-0692 (medium, Concurrency Or Timing) in `src/pipeline/stage-timing-metrics.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L70: export async function timeStage<T>(
-- RISK-0693 (low, High Attention File) in `src/pipeline/stage-timing-metrics.ts`: The digest found several implementation signals worth manual review. Evidence: L16: /** Number of retry attempts that occurred during this stage (0 = no retries) */
-- RISK-0694 (medium, Concurrency Or Timing) in `src/pipeline/types.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L103: /** Total retry attempts across all stages (for observability) */
-- RISK-0695 (low, High Attention File) in `src/pipeline/types.ts`: The digest found several implementation signals worth manual review. Evidence: L78: * All fields are optional to remain backward-compatible with existing pipeline outputs.
-- RISK-0696 (medium, Concurrency Or Timing) in `src/pipeline/video-generator.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L78: : 2; // Fallback to 2 threads
-- RISK-0697 (medium, Parser Or Heuristic) in `src/pipeline/video-generator.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L78: : 2; // Fallback to 2 threads
-- RISK-0698 (low, High Attention File) in `src/pipeline/video-generator.ts`: The digest found several implementation signals worth manual review. Evidence: L65: private iteration: number = 1;
+- RISK-0681 (medium, Parser Or Heuristic) in `src/pipeline/pipeline-orchestrator.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L10: * - 3-tier fallback chain when quality gates fail
+- RISK-0682 (low, High Attention File) in `src/pipeline/pipeline-orchestrator.ts`: The digest found several implementation signals worth manual review. Evidence: L10: * - 3-tier fallback chain when quality gates fail
+- RISK-0683 (medium, Parser Or Heuristic) in `src/pipeline/quality-monitor.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L35: fallbackTriggered: boolean;
+- RISK-0684 (medium, Persistence Or State) in `src/pipeline/quality-monitor.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L18: cacheHitRate?: number; // 0-1
+- RISK-0685 (low, High Attention File) in `src/pipeline/quality-monitor.ts`: The digest found several implementation signals worth manual review. Evidence: L17: memoryUsage: number; // MB
+- RISK-0686 (high, Security Boundary) in `src/pipeline/retry.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L6: * (UNKNOWN type, auth failures, etc.) propagate immediately.
+- RISK-0687 (medium, Concurrency Or Timing) in `src/pipeline/retry.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L47: export async function retryWithBackoff<T>(
+- RISK-0688 (low, High Attention File) in `src/pipeline/retry.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Pipeline retry with exponential backoff, driven by ErrorClassifier.
+- RISK-0689 (medium, Concurrency Or Timing) in `src/pipeline/simple-pipeline.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L226: const processScene = async (segment: unknown, index: number): Promise<SceneGraph | null> => {
+- RISK-0690 (low, High Attention File) in `src/pipeline/simple-pipeline.ts`: The digest found several implementation signals worth manual review. Evidence: L15: import { getHeapUsed } from '@/utils/memory-usage';
+- RISK-0691 (medium, Concurrency Or Timing) in `src/pipeline/stage-timing-metrics.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L70: export async function timeStage<T>(
+- RISK-0692 (low, High Attention File) in `src/pipeline/stage-timing-metrics.ts`: The digest found several implementation signals worth manual review. Evidence: L16: /** Number of retry attempts that occurred during this stage (0 = no retries) */
+- RISK-0693 (medium, Concurrency Or Timing) in `src/pipeline/types.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L103: /** Total retry attempts across all stages (for observability) */
+- RISK-0694 (low, High Attention File) in `src/pipeline/types.ts`: The digest found several implementation signals worth manual review. Evidence: L78: * All fields are optional to remain backward-compatible with existing pipeline outputs.
+- RISK-0695 (medium, Concurrency Or Timing) in `src/pipeline/video-generator.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L78: : 2; // Fallback to 2 threads
+- RISK-0696 (medium, Parser Or Heuristic) in `src/pipeline/video-generator.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L78: : 2; // Fallback to 2 threads
+- RISK-0697 (low, High Attention File) in `src/pipeline/video-generator.ts`: The digest found several implementation signals worth manual review. Evidence: L65: private iteration: number = 1;
 
 ## Files
 
@@ -105,10 +102,10 @@ status: generated
 - `src/pipeline/performance-regression-detector.ts` — typescript, 103 lines, attention 0
 - `src/pipeline/pipeline-errors.ts` — typescript, 101 lines, attention 0
 - `src/pipeline/pipeline-health-score.ts` — typescript, 244 lines, attention 100
-- `src/pipeline/pipeline-orchestrator.ts` — typescript, 1001 lines, attention 100
+- `src/pipeline/pipeline-orchestrator.ts` — typescript, 1113 lines, attention 100
 - `src/pipeline/quality-monitor.ts` — typescript, 657 lines, attention 100
 - `src/pipeline/retry.ts` — typescript, 98 lines, attention 100
 - `src/pipeline/simple-pipeline.ts` — typescript, 775 lines, attention 100
 - `src/pipeline/stage-timing-metrics.ts` — typescript, 82 lines, attention 98
-- `src/pipeline/types.ts` — typescript, 114 lines, attention 70
+- `src/pipeline/types.ts` — typescript, 116 lines, attention 70
 - `src/pipeline/video-generator.ts` — typescript, 627 lines, attention 100

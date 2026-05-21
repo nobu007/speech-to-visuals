@@ -8,8 +8,6 @@ related:
   - Module Index
   - Repository Risk Register
   - File Inventory
-created: 2026-05-20
-updated: 2026-05-20
 status: generated
 ---
 # Module src-export

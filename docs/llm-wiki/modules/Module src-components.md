@@ -8,8 +8,6 @@ related:
   - Module Index
   - Repository Risk Register
   - File Inventory
-created: 2026-05-20
-updated: 2026-05-20
 status: generated
 ---
 # Module src-components
@@ -20,7 +18,7 @@ status: generated
 - Roots: src
 - Languages: tsx, typescript
 - Files: 52
-- Bytes: 409341
+- Bytes: 409157
 
 ## Key Files
 
@@ -74,8 +72,8 @@ status: generated
 - RISK-0512 (medium, Persistence Or State) in `src/components/VideoPreview.tsx`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L6: import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 - RISK-0513 (medium, Concurrency Or Timing) in `src/components/VideoRenderer.tsx`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L30: const handleRender = async () => {
 - RISK-0514 (medium, Persistence Or State) in `src/components/VideoRenderer.tsx`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L1: import {useState, memo, useCallback, useMemo} from 'react';
-- RISK-0515 (medium, Concurrency Or Timing) in `src/components/__tests__/AudioUploader.test.tsx`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L197: await new Promise(r => setTimeout(r, 0));
-- RISK-0516 (low, High Attention File) in `src/components/__tests__/AudioUploader.test.tsx`: The digest found several implementation signals worth manual review. Evidence: L197: await new Promise(r => setTimeout(r, 0));
+- RISK-0515 (medium, Concurrency Or Timing) in `src/components/__tests__/AudioUploader.test.tsx`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L195: await new Promise(r => setTimeout(r, 0));
+- RISK-0516 (low, High Attention File) in `src/components/__tests__/AudioUploader.test.tsx`: The digest found several implementation signals worth manual review. Evidence: L195: await new Promise(r => setTimeout(r, 0));
 - RISK-0517 (medium, Concurrency Or Timing) in `src/components/__tests__/SimplePipelineInterface.test.tsx`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L172: it('should transition from error to idle on RETRY', () => {
 - RISK-0518 (medium, Persistence Or State) in `src/components/__tests__/SimplePipelineInterface.test.tsx`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L177: state = pipelineReducer(state, { type: 'RETRY' });
 - RISK-0519 (low, High Attention File) in `src/components/__tests__/SimplePipelineInterface.test.tsx`: The digest found several implementation signals worth manual review. Evidence: L172: it('should transition from error to idle on RETRY', () => {
@@ -113,7 +111,7 @@ status: generated
 - `src/components/VideoGenerationPanel.tsx` — tsx, 665 lines, attention 14
 - `src/components/VideoPreview.tsx` — tsx, 397 lines, attention 50
 - `src/components/VideoRenderer.tsx` — tsx, 212 lines, attention 14
-- `src/components/__tests__/AudioUploader.test.tsx` — tsx, 799 lines, attention 100
+- `src/components/__tests__/AudioUploader.test.tsx` — tsx, 795 lines, attention 100
 - `src/components/__tests__/SimplePipelineInterface.test.tsx` — tsx, 441 lines, attention 70
 - `src/components/__tests__/StageIndicator.test.ts` — typescript, 160 lines, attention 14
 - `src/components/__tests__/VideoPreview.test.tsx` — tsx, 285 lines, attention 8

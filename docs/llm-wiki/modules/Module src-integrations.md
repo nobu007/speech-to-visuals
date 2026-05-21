@@ -8,8 +8,6 @@ related:
   - Module Index
   - Repository Risk Register
   - File Inventory
-created: 2026-05-20
-updated: 2026-05-20
 status: generated
 ---
 # Module src-integrations
@@ -20,7 +18,7 @@ status: generated
 - Roots: src
 - Languages: typescript
 - Files: 5
-- Bytes: 20592
+- Bytes: 20621
 
 ## Key Files
 
@@ -33,10 +31,10 @@ status: generated
 ## Risk Signals
 
 - RISK-0586 (high, Security Boundary) in `src/integrations/__tests__/auth.test.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: path contains `auth`
-- RISK-0587 (medium, Concurrency Or Timing) in `src/integrations/__tests__/auth.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L38: it('should call signInWithPassword and return auth state', async () => {
-- RISK-0588 (medium, Parser Or Heuristic) in `src/integrations/__tests__/auth.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L3: import * as jwt from 'jsonwebtoken';
-- RISK-0589 (medium, Persistence Or State) in `src/integrations/__tests__/auth.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L6: // 1) Auth functions tests (signIn / signOut / signUp / onAuthStateChange)
-- RISK-0590 (low, High Attention File) in `src/integrations/__tests__/auth.test.ts`: The digest found several implementation signals worth manual review. Evidence: L3: import * as jwt from 'jsonwebtoken';
+- RISK-0587 (medium, Concurrency Or Timing) in `src/integrations/__tests__/auth.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L37: it('should call signInWithPassword and return auth state', async () => {
+- RISK-0588 (medium, Parser Or Heuristic) in `src/integrations/__tests__/auth.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L2: import * as jwt from 'jsonwebtoken';
+- RISK-0589 (medium, Persistence Or State) in `src/integrations/__tests__/auth.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L5: // 1) Auth functions tests (signIn / signOut / signUp / onAuthStateChange)
+- RISK-0590 (low, High Attention File) in `src/integrations/__tests__/auth.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: import * as jwt from 'jsonwebtoken';
 - RISK-0591 (high, Security Boundary) in `src/integrations/__tests__/client.test.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L38: const fakeClient = { auth: {} };
 - RISK-0592 (low, High Attention File) in `src/integrations/__tests__/client.test.ts`: The digest found several implementation signals worth manual review. Evidence: L38: const fakeClient = { auth: {} };
 - RISK-0593 (high, Security Boundary) in `src/integrations/supabase/auth.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: path contains `auth`
@@ -51,7 +49,7 @@ status: generated
 
 ## Files
 
-- `src/integrations/__tests__/auth.test.ts` — typescript, 295 lines, attention 100
+- `src/integrations/__tests__/auth.test.ts` — typescript, 294 lines, attention 100
 - `src/integrations/__tests__/client.test.ts` — typescript, 92 lines, attention 98
 - `src/integrations/supabase/auth.ts` — typescript, 42 lines, attention 100
 - `src/integrations/supabase/client.ts` — typescript, 52 lines, attention 42

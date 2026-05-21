@@ -8,14 +8,53 @@ related:
   - File Inventory
   - Repository Overview
   - Repository Risk Register
-created: 2026-05-20
-updated: 2026-05-20
 status: generated
 ---
 # File Inventory 0002
 
 | File | Language | Bytes | Lines | Attention | Priority | Risks |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
+| `src/components/__tests__/AudioUploader.test.tsx` | tsx | 27222 | 795 | 100 | 80 | 2 |
+| `src/components/__tests__/SimplePipelineInterface.test.tsx` | tsx | 18276 | 441 | 70 | 60 | 3 |
+| `src/components/__tests__/StageIndicator.test.ts` | typescript | 4339 | 160 | 14 | 24 | 1 |
+| `src/components/__tests__/VideoPreview.test.tsx` | tsx | 9639 | 285 | 8 | 8 | 0 |
+| `src/components/__tests__/mobile-responsive.test.ts` | typescript | 7451 | 224 | 0 | 8 | 0 |
+| `src/components/pipeline-interface.tsx` | tsx | 14237 | 374 | 0 | 16 | 2 |
+| `src/components/ui/__tests__/button.test.tsx` | tsx | 3530 | 104 | 0 | 0 | 0 |
+| `src/components/ui/__tests__/select.test.tsx` | tsx | 3586 | 116 | 0 | 0 | 0 |
+| `src/components/ui/alert-dialog.tsx` | tsx | 4313 | 105 | 0 | 8 | 0 |
+| `src/components/ui/alert.tsx` | tsx | 1546 | 44 | 14 | 12 | 1 |
+| `src/components/ui/badge.tsx` | tsx | 1089 | 30 | 14 | 16 | 1 |
+| `src/components/ui/button.tsx` | tsx | 1840 | 48 | 14 | 16 | 1 |
+| `src/components/ui/card.tsx` | tsx | 1785 | 44 | 0 | 0 | 0 |
+| `src/components/ui/checkbox.tsx` | tsx | 1053 | 27 | 0 | 0 | 0 |
+| `src/components/ui/dialog.tsx` | tsx | 3761 | 96 | 0 | 8 | 0 |
+| `src/components/ui/input.tsx` | tsx | 799 | 23 | 0 | 0 | 0 |
+| `src/components/ui/label.tsx` | tsx | 696 | 18 | 14 | 12 | 1 |
+| `src/components/ui/progress.tsx` | tsx | 765 | 24 | 0 | 0 | 0 |
+| `src/components/ui/scroll-area.tsx` | tsx | 1608 | 39 | 0 | 0 | 0 |
+| `src/components/ui/select.tsx` | tsx | 5575 | 144 | 0 | 0 | 0 |
+| `src/components/ui/separator.tsx` | tsx | 698 | 21 | 0 | 0 | 0 |
+| `src/components/ui/sheet.tsx` | tsx | 4197 | 108 | 14 | 24 | 1 |
+| `src/components/ui/skeleton.tsx` | tsx | 234 | 8 | 0 | 0 | 0 |
+| `src/components/ui/slider.tsx` | tsx | 1065 | 24 | 0 | 0 | 0 |
+| `src/components/ui/sonner.tsx` | tsx | 877 | 28 | 0 | 8 | 0 |
+| `src/components/ui/switch.tsx` | tsx | 1147 | 28 | 0 | 0 | 0 |
+| `src/components/ui/tabs.tsx` | tsx | 1897 | 54 | 0 | 0 | 0 |
+| `src/components/ui/toast.tsx` | tsx | 4798 | 112 | 14 | 28 | 1 |
+| `src/components/ui/toaster.tsx` | tsx | 730 | 25 | 14 | 16 | 0 |
+| `src/components/ui/tooltip.tsx` | tsx | 1155 | 29 | 42 | 36 | 1 |
+| `src/components/ui/use-toast.ts` | typescript | 82 | 4 | 14 | 12 | 0 |
+| `src/config/__tests__/env.test.ts` | typescript | 8395 | 246 | 100 | 72 | 2 |
+| `src/config/__tests__/validate.test.ts` | typescript | 7685 | 254 | 28 | 24 | 1 |
+| `src/config/code-size-audit.ts` | typescript | 5981 | 214 | 28 | 60 | 1 |
+| `src/config/env.ts` | typescript | 3690 | 109 | 100 | 96 | 3 |
+| `src/config/index.ts` | typescript | 541 | 10 | 14 | 0 | 1 |
+| `src/config/limits.ts` | typescript | 2640 | 80 | 100 | 76 | 2 |
+| `src/config/production-config.ts` | typescript | 13954 | 499 | 100 | 104 | 4 |
+| `src/config/schema.ts` | typescript | 477 | 18 | 28 | 28 | 1 |
+| `src/config/validate.ts` | typescript | 6682 | 235 | 84 | 100 | 3 |
+| `src/export/__tests__/enhanced-export-engine.test.ts` | typescript | 18196 | 555 | 100 | 112 | 2 |
 | `src/export/apng-encoder.ts` | typescript | 8064 | 285 | 100 | 92 | 3 |
 | `src/export/enhanced-export-engine.ts` | typescript | 26098 | 907 | 100 | 112 | 3 |
 | `src/export/export-ui.tsx` | tsx | 19281 | 510 | 14 | 40 | 3 |
@@ -30,8 +69,8 @@ status: generated
 | `src/framework/recursive-custom-instructions.ts` | typescript | 20375 | 672 | 100 | 112 | 3 |
 | `src/hooks/use-toast.ts` | typescript | 3935 | 187 | 100 | 116 | 4 |
 | `src/hooks/useFrameworkPipeline.ts` | typescript | 10826 | 386 | 92 | 108 | 2 |
-| `src/integrations/__tests__/auth.test.ts` | typescript | 9107 | 295 | 100 | 80 | 5 |
-| `src/integrations/__tests__/client.test.ts` | typescript | 2874 | 92 | 98 | 72 | 2 |
+| `src/integrations/__tests__/auth.test.ts` | typescript | 9117 | 294 | 100 | 80 | 5 |
+| `src/integrations/__tests__/client.test.ts` | typescript | 2893 | 92 | 98 | 72 | 2 |
 | `src/integrations/supabase/auth.ts` | typescript | 1260 | 42 | 100 | 100 | 4 |
 | `src/integrations/supabase/client.ts` | typescript | 1569 | 52 | 42 | 44 | 2 |
 | `src/integrations/supabase/types.ts` | typescript | 5782 | 185 | 100 | 108 | 3 |
@@ -81,20 +120,26 @@ status: generated
 | `src/pipeline/performance-regression-detector.ts` | typescript | 3351 | 103 | 0 | 24 | 0 |
 | `src/pipeline/pipeline-errors.ts` | typescript | 2995 | 101 | 0 | 24 | 0 |
 | `src/pipeline/pipeline-health-score.ts` | typescript | 8465 | 244 | 100 | 112 | 2 |
-| `src/pipeline/pipeline-orchestrator.ts` | typescript | 31233 | 1001 | 100 | 112 | 3 |
+| `src/pipeline/pipeline-orchestrator.ts` | typescript | 35900 | 1113 | 100 | 112 | 2 |
 | `src/pipeline/quality-monitor.ts` | typescript | 20037 | 657 | 100 | 112 | 3 |
 | `src/pipeline/retry.ts` | typescript | 3079 | 98 | 100 | 84 | 3 |
 | `src/pipeline/simple-pipeline.ts` | typescript | 27177 | 775 | 100 | 92 | 2 |
 | `src/pipeline/stage-timing-metrics.ts` | typescript | 2250 | 82 | 98 | 92 | 2 |
-| `src/pipeline/types.ts` | typescript | 3614 | 114 | 70 | 88 | 2 |
+| `src/pipeline/types.ts` | typescript | 3779 | 116 | 70 | 88 | 2 |
 | `src/pipeline/video-generator.ts` | typescript | 19323 | 627 | 100 | 104 | 3 |
 | `src/quality/__tests__/enhanced-error-recovery.test.ts` | typescript | 48716 | 1332 | 100 | 72 | 5 |
 | `src/quality/adaptive-quality-gates.ts` | typescript | 17400 | 580 | 100 | 92 | 2 |
-| `src/quality/enhanced-error-recovery.ts` | typescript | 54677 | 1744 | 100 | 112 | 5 |
+| `src/quality/batch-operation-recovery.ts` | typescript | 9707 | 277 | 100 | 96 | 3 |
+| `src/quality/enhanced-error-recovery.ts` | typescript | 90286 | 2776 | 100 | 112 | 5 |
 | `src/quality/error-classifier.ts` | typescript | 8010 | 275 | 100 | 104 | 2 |
-| `src/quality/index.ts` | typescript | 868 | 33 | 56 | 23 | 2 |
-| `src/quality/quality-gate.ts` | typescript | 19509 | 671 | 100 | 112 | 3 |
-| `src/quality/quality-monitor.ts` | typescript | 25215 | 799 | 100 | 92 | 2 |
+| `src/quality/error-recovery-event-bus.ts` | typescript | 8356 | 289 | 100 | 112 | 5 |
+| `src/quality/error-recovery-health-tracker.ts` | typescript | 10110 | 310 | 100 | 92 | 1 |
+| `src/quality/error-recovery-monitor.ts` | typescript | 9237 | 269 | 100 | 84 | 2 |
+| `src/quality/index.ts` | typescript | 2111 | 81 | 56 | 23 | 2 |
+| `src/quality/pipeline-run-recovery-tracker.ts` | typescript | 16587 | 507 | 100 | 104 | 4 |
+| `src/quality/quality-gate.ts` | typescript | 19535 | 673 | 100 | 112 | 3 |
+| `src/quality/quality-monitor.ts` | typescript | 25223 | 799 | 100 | 92 | 2 |
+| `src/quality/recovery-strategy-chain.ts` | typescript | 15499 | 511 | 100 | 108 | 4 |
 | `src/quality/regression-detector.ts` | typescript | 15999 | 460 | 100 | 104 | 2 |
 | `src/quality/user-guided-error-recovery.ts` | typescript | 18645 | 600 | 100 | 92 | 3 |
 | `src/remotion/CaptionOverlay.tsx` | tsx | 5939 | 222 | 28 | 40 | 1 |
@@ -166,7 +211,7 @@ status: generated
 | `src/types/quality.ts` | typescript | 1381 | 65 | 0 | 16 | 0 |
 | `src/types/workspace.ts` | typescript | 7442 | 296 | 14 | 52 | 1 |
 | `src/utils/__tests__/logger.test.ts` | typescript | 2144 | 68 | 0 | 0 | 0 |
-| `src/utils/__tests__/memory-usage.test.ts` | typescript | 1694 | 45 | 100 | 80 | 1 |
+| `src/utils/__tests__/memory-usage.test.ts` | typescript | 1728 | 45 | 100 | 80 | 1 |
 | `src/utils/audio-duration.ts` | typescript | 1610 | 60 | 0 | 12 | 0 |
 | `src/utils/audio-validation.ts` | typescript | 5010 | 149 | 0 | 20 | 0 |
 | `src/utils/iteration-logger.ts` | typescript | 10351 | 312 | 100 | 88 | 3 |
@@ -300,7 +345,7 @@ status: generated
 | `tests/pipeline/retry-metrics-parallel.test.ts` | typescript | 8116 | 246 | 100 | 72 | 2 |
 | `tests/pipeline/retry-observability-surface.test.ts` | typescript | 4320 | 131 | 100 | 72 | 2 |
 | `tests/quality-check.ts` | typescript | 1446 | 41 | 14 | 12 | 0 |
-| `tests/quality/enhanced-error-recovery.test.ts` | typescript | 60805 | 1661 | 100 | 72 | 4 |
+| `tests/quality/enhanced-error-recovery.test.ts` | typescript | 60826 | 1660 | 100 | 72 | 4 |
 | `tests/quality/error-classifier.test.ts` | typescript | 10080 | 246 | 100 | 72 | 2 |
 | `tests/quality/quality-gate.test.ts` | typescript | 13143 | 395 | 70 | 60 | 3 |
 | `tests/quality/regression-detector.test.ts` | typescript | 11095 | 315 | 70 | 60 | 3 |
@@ -311,10 +356,10 @@ status: generated
 | `tests/test-phase23-gemini-analyzer-unified.ts` | typescript | 16266 | 487 | 100 | 84 | 2 |
 | `tests/test-phase26-relationship-extraction.ts` | typescript | 9604 | 228 | 56 | 64 | 2 |
 | `tests/transcription/streaming-quality-monitor.test.ts` | typescript | 8857 | 262 | 42 | 36 | 1 |
-| `tests/unit/analysis/complexity-detector.test.ts` | typescript | 2188 | 69 | 0 | 0 | 0 |
-| `tests/unit/analysis/rule-based-analyzer.test.ts` | typescript | 1655 | 54 | 0 | 0 | 0 |
+| `tests/unit/analysis/complexity-detector.test.ts` | typescript | 2136 | 68 | 14 | 12 | 1 |
+| `tests/unit/analysis/rule-based-analyzer.test.ts` | typescript | 1603 | 53 | 14 | 12 | 1 |
 | `tests/unit/api/batch-dedup.test.ts` | typescript | 3869 | 128 | 0 | 4 | 0 |
-| `tests/unit/api/batch-parallel-processing.test.ts` | typescript | 5389 | 150 | 100 | 80 | 3 |
+| `tests/unit/api/batch-parallel-processing.test.ts` | typescript | 5404 | 150 | 100 | 80 | 3 |
 | `tests/unit/api/batch-processing-api-errors.test.ts` | typescript | 3790 | 104 | 14 | 12 | 0 |
 | `tests/unit/api/batch-processing-api.test.ts` | typescript | 24343 | 692 | 0 | 0 | 0 |
 | `tests/unit/api/cors-config.test.ts` | typescript | 2264 | 68 | 14 | 12 | 1 |
@@ -329,7 +374,7 @@ status: generated
 | `tests/unit/api/websocket-payload-validation.test.ts` | typescript | 5975 | 170 | 100 | 72 | 2 |
 | `tests/unit/components/VideoPreview.test.tsx` | tsx | 34506 | 888 | 36 | 52 | 0 |
 | `tests/unit/config/centralized-limits.test.ts` | typescript | 5712 | 166 | 42 | 36 | 1 |
-| `tests/unit/config/production-config.test.ts` | typescript | 1869 | 51 | 14 | 12 | 1 |
+| `tests/unit/config/production-config.test.ts` | typescript | 1765 | 49 | 42 | 36 | 2 |
 | `tests/unit/config/security-env-validation.test.ts` | typescript | 5639 | 153 | 8 | 8 | 0 |
 | `tests/unit/edge-functions/auth.test.ts` | typescript | 6095 | 207 | 100 | 80 | 2 |
 | `tests/unit/edge-functions/error-handler.test.ts` | typescript | 8115 | 216 | 100 | 72 | 3 |
@@ -340,7 +385,7 @@ status: generated
 | `tests/unit/export/export-verifier.test.ts` | typescript | 10163 | 285 | 0 | 8 | 0 |
 | `tests/unit/hooks/use-framework-pipeline.test.ts` | typescript | 14603 | 430 | 100 | 80 | 1 |
 | `tests/unit/hooks/use-toast.test.ts` | typescript | 9972 | 257 | 36 | 36 | 1 |
-| `tests/unit/integrations/supabase-client.test.ts` | typescript | 1898 | 54 | 14 | 12 | 0 |
+| `tests/unit/integrations/supabase-client.test.ts` | typescript | 1794 | 52 | 42 | 36 | 1 |
 | `tests/unit/monitoring/health-check-service-exception.test.ts` | typescript | 10820 | 295 | 100 | 72 | 4 |
 | `tests/unit/monitoring/health-check-service.test.ts` | typescript | 24678 | 636 | 100 | 72 | 3 |
 | `tests/unit/optimization/adaptive-content-processor.test.ts` | typescript | 7167 | 186 | 100 | 80 | 3 |
@@ -355,21 +400,32 @@ status: generated
 | `tests/unit/pipeline/cost-efficiency-metrics.test.ts` | typescript | 5839 | 182 | 100 | 72 | 2 |
 | `tests/unit/pipeline/parallel-layout-executor.test.ts` | typescript | 5154 | 171 | 28 | 28 | 1 |
 | `tests/unit/pipeline/performance-baseline.test.ts` | typescript | 4501 | 147 | 100 | 72 | 1 |
+| `tests/unit/pipeline/pipeline-error-recovery-integration.test.ts` | typescript | 18263 | 511 | 100 | 72 | 3 |
 | `tests/unit/pipeline/pipeline-health-score.test.ts` | typescript | 16186 | 431 | 100 | 72 | 2 |
 | `tests/unit/pipeline/pipeline-orchestrator-quality.test.ts` | typescript | 5813 | 162 | 0 | 0 | 0 |
 | `tests/unit/pipeline/pipeline-orchestrator.test.ts` | typescript | 22252 | 705 | 100 | 100 | 3 |
 | `tests/unit/pipeline/pipeline-quality-monitor.test.ts` | typescript | 17195 | 568 | 100 | 72 | 3 |
+| `tests/unit/pipeline/pipeline-run-recovery-integration.test.ts` | typescript | 5249 | 136 | 42 | 36 | 2 |
 | `tests/unit/pipeline/stage-timing-metrics.test.ts` | typescript | 3915 | 104 | 14 | 12 | 1 |
 | `tests/unit/pipeline/streaming-transcriber.test.ts` | typescript | 9641 | 274 | 14 | 16 | 1 |
-| `tests/unit/pipeline/video-generator.test.ts` | typescript | 10048 | 306 | 0 | 0 | 0 |
-| `tests/unit/quality/adaptive-quality-gates.test.ts` | typescript | 2591 | 78 | 42 | 36 | 1 |
-| `tests/unit/quality/enhanced-error-recovery.test.ts` | typescript | 6711 | 225 | 100 | 112 | 3 |
+| `tests/unit/pipeline/video-generator.test.ts` | typescript | 10570 | 317 | 0 | 0 | 0 |
+| `tests/unit/quality/adaptive-quality-gates.test.ts` | typescript | 2813 | 81 | 42 | 36 | 1 |
+| `tests/unit/quality/batch-operation-recovery.test.ts` | typescript | 15760 | 467 | 100 | 112 | 3 |
+| `tests/unit/quality/enhanced-error-recovery-extended.test.ts` | typescript | 21110 | 571 | 100 | 76 | 4 |
+| `tests/unit/quality/enhanced-error-recovery.test.ts` | typescript | 9620 | 306 | 100 | 112 | 3 |
 | `tests/unit/quality/error-classifier.test.ts` | typescript | 15204 | 410 | 100 | 72 | 2 |
+| `tests/unit/quality/error-recovery-boundary-grouping.test.ts` | typescript | 16723 | 484 | 100 | 104 | 3 |
+| `tests/unit/quality/error-recovery-event-bus.test.ts` | typescript | 12394 | 426 | 100 | 80 | 4 |
+| `tests/unit/quality/error-recovery-health-tracker.test.ts` | typescript | 20132 | 594 | 100 | 84 | 3 |
+| `tests/unit/quality/error-recovery-monitor.test.ts` | typescript | 14857 | 425 | 100 | 72 | 4 |
+| `tests/unit/quality/error-recovery-state-management.test.ts` | typescript | 27034 | 768 | 100 | 84 | 5 |
+| `tests/unit/quality/pipeline-run-recovery-tracker.test.ts` | typescript | 21889 | 628 | 100 | 84 | 4 |
 | `tests/unit/quality/quality-gate.test.ts` | typescript | 21943 | 657 | 70 | 60 | 3 |
 | `tests/unit/quality/quality-monitor.test.ts` | typescript | 6758 | 186 | 28 | 24 | 0 |
+| `tests/unit/quality/recovery-strategy-chain.test.ts` | typescript | 15229 | 422 | 100 | 72 | 4 |
 | `tests/unit/quality/user-guided-error-recovery.test.ts` | typescript | 10850 | 290 | 100 | 72 | 2 |
 | `tests/unit/transcription/transcription-pipeline-validation.test.ts` | typescript | 3604 | 94 | 28 | 24 | 1 |
-| `tests/unit/utils/audio-duration.test.ts` | typescript | 5323 | 186 | 0 | 0 | 0 |
+| `tests/unit/utils/audio-duration.test.ts` | typescript | 5273 | 184 | 0 | 0 | 0 |
 | `tests/unit/utils/audio-file-metadata.test.ts` | typescript | 3812 | 114 | 0 | 0 | 0 |
 | `tests/unit/utils/audio-validation.test.ts` | typescript | 8066 | 240 | 0 | 0 | 0 |
 | `tests/unit/utils/iteration-logger.test.ts` | typescript | 1669 | 43 | 14 | 24 | 1 |
@@ -385,7 +441,7 @@ status: generated
 | `tests/visualization/complex-layout-engine.test.ts` | typescript | 24115 | 682 | 100 | 80 | 3 |
 | `tests/visualization/cycle-strategy.test.ts` | typescript | 24389 | 692 | 70 | 60 | 3 |
 | `tests/visualization/edge-crossing-minimizer.test.ts` | typescript | 11484 | 323 | 14 | 12 | 0 |
-| `tests/visualization/enhanced-zero-overlap-layout.test.ts` | typescript | 49797 | 1210 | 100 | 76 | 3 |
+| `tests/visualization/enhanced-zero-overlap-layout.test.ts` | typescript | 49760 | 1209 | 100 | 76 | 3 |
 | `tests/visualization/force-directed-simulation.test.ts` | typescript | 13157 | 355 | 56 | 56 | 2 |
 | `tests/visualization/graph-coarsening.test.ts` | typescript | 9470 | 262 | 42 | 36 | 1 |
 | `tests/visualization/layout-auto-optimizer.test.ts` | typescript | 12253 | 344 | 70 | 60 | 3 |

@@ -8,8 +8,6 @@ related:
   - Module Index
   - Repository Risk Register
   - File Inventory
-created: 2026-05-20
-updated: 2026-05-20
 status: generated
 ---
 # Module src-analysis
@@ -20,7 +18,7 @@ status: generated
 - Roots: src
 - Languages: typescript
 - Files: 39
-- Bytes: 473888
+- Bytes: 474115
 
 ## Key Files
 
@@ -149,7 +147,7 @@ status: generated
 - `src/analysis/index.ts` — typescript, 18 lines, attention 0
 - `src/analysis/language-detector.ts` — typescript, 623 lines, attention 100
 - `src/analysis/llm-cache.ts` — typescript, 368 lines, attention 100
-- `src/analysis/llm-service.ts` — typescript, 1020 lines, attention 100
+- `src/analysis/llm-service.ts` — typescript, 1029 lines, attention 100
 - `src/analysis/llm-utils.ts` — typescript, 89 lines, attention 100
 - `src/analysis/prompt-builder.ts` — typescript, 68 lines, attention 14
 - `src/analysis/prompt-templates.ts` — typescript, 333 lines, attention 14
