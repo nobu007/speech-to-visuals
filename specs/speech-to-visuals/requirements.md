@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 1-57+ 完了・337ファイル・98,000+行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト4,475+件（117テストファイル）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.5 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了
+**実装状況**: Phase 1-57+ 完了・Phase 58 部分完了（CI煙テスト実装済・TASK-0163/0164未着手）・337ファイル・98,000+行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト4,475+件（117テストファイル）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.5 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -485,6 +485,7 @@
 | Phase 56: 音声検証完全統合・コンポーネントテスト | ✅完了 | REQ-144~147 | 4/4 |
 | Phase 57: LLMキャッシュデバウンステスト | ✅完了 | REQ-148 | 1/1（scheduleSave結合・destroyキャンセル・persist即時フラッシュ・タイマー精度・clearExpired再スケジュール・15テスト追加） |
 | Phase 57+: パイプラインエラー回復E2E統合テスト | ✅完了 | REQ-149 | 1/1（PipelineOrchestrator+ErrorRecoveryOrchestrator E2E統合テスト・12テスト追加・リカバリレポート・進捗・並列・ストラテジーチェーン・メトリクス検証） |
+| Phase 58: リカバリ検証ループ・CI統合 | 🔵部分完了 | TASK-0162~0165 | 1/4部分完了（CI煙テスト実装済・TypeScript/ESLint 0エラー確認・TASK-0163 E2Eテスト・TASK-0164 タイムアウト修正は未着手） |
 
 ## 信頼性レベル分布
 

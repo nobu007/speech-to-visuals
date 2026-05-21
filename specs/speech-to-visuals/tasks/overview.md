@@ -10,10 +10,10 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-30
-**最終更新**: 2026-05-21（Phase 58 タスク化完了・REQ-148~149・PipelineErrorRecoveryOrchestrator統合・CI検証ループ・337ファイル・98,000+行・105パッケージ・4,815+テスト・npm audit 0脆弱性・console.log 0件）
+**最終更新**: 2026-05-21（Phase 58 部分完了・TASK-0162 CI煙テスト実装・TASK-0165 ドキュメント更新・TypeScript型エラー0件・ESLintエラー0件確認・337ファイル・98,000+行・105パッケージ）
 **プロジェクト期間**: 2026-04-27 - 2026-08-22（118日）
 **推定工数**: 1,018時間
-**総タスク数**: 165件（161完了・4未着手）
+**総タスク数**: 165件（161完了・1部分完了・3未着手）
 
 ## 関連文書
 
@@ -66,7 +66,7 @@
 | Phase 40 | 未定 | API認証ミドルウェア品質・信頼性 | 2+ | 8h | ✅完了 |
 | Phase 56 | 未定 | 音声検証完全統合・コンポーネントテスト | 5 | 28h | ✅完了 |
 | Phase 57 | 未定 | PipelineErrorRecoveryOrchestrator・LLMキャッシュデバウンス・空間インデックス | 1 | 8h | ✅完了 |
-| Phase 58 | 未定 | リカバリ検証ループ・CI統合 | 4 | 32h | 🔲未着手 |
+| Phase 58 | 未定 | リカバリ検証ループ・CI統合 | 4 | 32h | 🔵部分完了 |
 
 ## タスク番号管理
 
@@ -112,7 +112,8 @@
 - [x] Phase 40: API認証ミドルウェア品質・信頼性 (完了)
 - [x] Phase 56: 音声検証完全統合・コンポーネントテスト (5/5 — TASK-0156~0160)
 - [x] Phase 57: PipelineErrorRecoveryOrchestrator・LLMキャッシュデバウンス・空間インデックス (1/1 — TASK-0161)
-- [ ] Phase 58: リカバリ検証ループ・CI統合 (0/4 — TASK-0162~0165)
+- [x] Phase 57: PipelineErrorRecoveryOrchestrator・LLMキャッシュデバウンス・空間インデックス (1/1 — TASK-0161)
+- [ ] Phase 58: リカバリ検証ループ・CI統合 (1/4 — TASK-0162部分完了/TASK-0163~0164未着手/TASK-0165進行中)
 
 ## 主要実績値
 
@@ -1262,7 +1263,7 @@ Phase 56完了 → Phase 57実行
 
 ---
 
-## Phase 58: リカバリ検証ループ・CI統合 🔲未着手
+## Phase 58: リカバリ検証ループ・CI統合 🔵部分完了
 
 **期間**: 未定（Phase 57完了後）
 **目標**: リカバリオーケストレーターのCI検証ループ完了・E2Eリカバリ統合テスト・既知テストタイムアウト修正
@@ -1271,10 +1272,10 @@ Phase 56完了 → Phase 57実行
 
 ### タスク一覧
 
-- [ ] [TASK-0162: Pipeline Recovery CI Smoke Test](TASK-0162.md) - 8h (TDD) 🔵
+- [x] [TASK-0162: Pipeline Recovery CI Smoke Test](TASK-0162.md) - 8h (TDD) 🔵 ✅部分完了（npm test全通過はBLOCKED）
 - [ ] [TASK-0163: Pipeline Full E2E Recovery Integration Test](TASK-0163.md) - 16h (TDD) 🔵
 - [ ] [TASK-0164: Video Generator Test Timeout Fix](TASK-0164.md) - 4h (DIRECT) 🔵
-- [ ] [TASK-0165: Phase 57-58 Documentation Update](TASK-0165.md) - 4h (DIRECT) 🔵
+- [x] [TASK-0165: Phase 57-58 Documentation Update](TASK-0165.md) - 4h (DIRECT) 🔵 ✅進行中（TypeScript/ESLint/_doc_spine.yml確認済・TASK-0162~0164完了はBLOCKED）
 
 ### 依存関係
 
