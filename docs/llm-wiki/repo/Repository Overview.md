@@ -19,7 +19,7 @@ status: generated
 - Repository root: `/home/jinno/speech-to-visuals`
 - Requested focus path: `/home/jinno/speech-to-visuals`
 - Matched source files: 1472
-- Matched source bytes: 13491576
+- Matched source bytes: 13492153
 - Wiki context logical chunks: 112
 - Wiki context agent bundles: 90
 
@@ -98,7 +98,7 @@ status: generated
 | [[Module audit]] | 1 | 3164 | yaml | [[Repository Risk Register]] |
 | [[Module bmad]] | 426 | 2936645 | javascript, json, markdown, yaml | [[Repository Risk Register]] |
 | [[Module claude]] | 192 | 1161081 | json, markdown, python, shell, text | [[Repository Risk Register]] |
-| [[Module docs]] | 58 | 962532 | markdown | [[Repository Risk Register]] |
+| [[Module docs]] | 58 | 963109 | markdown | [[Repository Risk Register]] |
 | [[Module github]] | 2 | 2274 | yaml | [[Repository Risk Register]] |
 | [[Module public]] | 4 | 1714 | json, text | [[Repository Risk Register]] |
 | [[Module scripts-operations]] | 13 | 147703 | markdown, python, shell, text, yaml | [[Repository Risk Register]] |

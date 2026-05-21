@@ -695,13 +695,13 @@ status: generated
 | `docs/llm-wiki/modules/Module src.md` | markdown | 659 | 38 | 0 | 0 | 0 |
 | `docs/llm-wiki/modules/Module supabase.md` | markdown | 10177 | 85 | 100 | 72 | 0 |
 | `docs/llm-wiki/modules/Module support-scripts.md` | markdown | 15383 | 123 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module tests.md` | markdown | 90860 | 526 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module tests.md` | markdown | 91184 | 528 | 100 | 72 | 0 |
 | `docs/llm-wiki/modules/Module tmp.md` | markdown | 601 | 34 | 0 | 0 | 0 |
 | `docs/llm-wiki/progress/Processing Progress.md` | markdown | 12257 | 248 | 98 | 72 | 0 |
 | `docs/llm-wiki/repo/Repository Overview.md` | markdown | 10167 | 318 | 28 | 24 | 0 |
-| `docs/llm-wiki/repo/Repository Risk Register.md` | markdown | 201460 | 1281 | 100 | 62 | 0 |
+| `docs/llm-wiki/repo/Repository Risk Register.md` | markdown | 201636 | 1282 | 100 | 62 | 0 |
 | `docs/llm-wiki/sources/File Inventory 0001.md` | markdown | 95758 | 1017 | 100 | 72 | 0 |
-| `docs/llm-wiki/sources/File Inventory 0002.md` | markdown | 41007 | 488 | 100 | 72 | 0 |
+| `docs/llm-wiki/sources/File Inventory 0002.md` | markdown | 41084 | 489 | 100 | 72 | 0 |
 | `docs/llm-wiki/sources/File Inventory.md` | markdown | 342 | 20 | 0 | 0 | 0 |
 | `eslint.config.js` | javascript | 758 | 27 | 70 | 60 | 1 |
 | `jest.config.cjs` | javascript | 1273 | 38 | 0 | 4 | 0 |
