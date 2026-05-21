@@ -276,14 +276,16 @@ export class ZeroOverlapLayoutEngine {
       };
     });
 
-    // Extract layout edges (must use positioned nodes, not Dagre nodes)
-    const layoutEdges: LayoutEdge[] = edges.map(edge => ({
-      ...edge,
-      points: generateEdgePoints(
-        positionedNodes.find(n => n.id === edge.from)!,
-        positionedNodes.find(n => n.id === edge.to)!
-      )
-    }));
+    // Extract layout edges — skip edges whose source/target node is missing
+    const layoutEdges: LayoutEdge[] = edges
+      .map(edge => {
+        const source = positionedNodes.find(n => n.id === edge.from);
+        const target = positionedNodes.find(n => n.id === edge.to);
+        if (!source || !target) {
+          return { ...edge, points: [] } as LayoutEdge;
+        }
+        return { ...edge, points: generateEdgePoints(source, target) };
+      });
 
     return { nodes: positionedNodes, edges: layoutEdges };
   }
@@ -343,14 +345,16 @@ export class ZeroOverlapLayoutEngine {
       };
     });
 
-    // Extract layout edges
-    const layoutEdges: LayoutEdge[] = edges.map(edge => ({
-      ...edge,
-      points: generateEdgePoints(
-        g.node(edge.from) as unknown as PositionedNode,
-        g.node(edge.to) as unknown as PositionedNode
-      )
-    }));
+    // Extract layout edges — skip edges whose source/target node is missing
+    const layoutEdges: LayoutEdge[] = edges
+      .map(edge => {
+        const source = positionedNodes.find(n => n.id === edge.from);
+        const target = positionedNodes.find(n => n.id === edge.to);
+        if (!source || !target) {
+          return { ...edge, points: [] } as LayoutEdge;
+        }
+        return { ...edge, points: generateEdgePoints(source, target) };
+      });
 
     return { nodes: positionedNodes, edges: layoutEdges };
   }
@@ -444,13 +448,15 @@ export class ZeroOverlapLayoutEngine {
       });
     });
 
-    const layoutEdges: LayoutEdge[] = edges.map(edge => ({
-      ...edge,
-      points: generateEdgePoints(
-        positionedNodes.find(n => n.id === (edge.from))!,
-        positionedNodes.find(n => n.id === (edge.to))!
-      )
-    }));
+    const layoutEdges: LayoutEdge[] = edges
+      .map(edge => {
+        const source = positionedNodes.find(n => n.id === edge.from);
+        const target = positionedNodes.find(n => n.id === edge.to);
+        if (!source || !target) {
+          return { ...edge, points: [] } as LayoutEdge;
+        }
+        return { ...edge, points: generateEdgePoints(source, target) };
+      });
 
     return { nodes: positionedNodes, edges: layoutEdges };
   }
@@ -471,13 +477,15 @@ export class ZeroOverlapLayoutEngine {
 
 
     // Enhanced force-directed algorithm with multiple phases
-    const layoutEdges: LayoutEdge[] = edges.map(edge => ({
-      ...edge,
-      points: generateEdgePoints(
-        positionedNodes.find(n => n.id === (edge.from))!,
-        positionedNodes.find(n => n.id === (edge.to))!
-      )
-    }));
+    const layoutEdges: LayoutEdge[] = edges
+      .map(edge => {
+        const source = positionedNodes.find(n => n.id === edge.from);
+        const target = positionedNodes.find(n => n.id === edge.to);
+        if (!source || !target) {
+          return { ...edge, points: [] } as LayoutEdge;
+        }
+        return { ...edge, points: generateEdgePoints(source, target) };
+      });
 
     return { nodes: positionedNodes, edges: layoutEdges };
   }
@@ -691,13 +699,15 @@ export class ZeroOverlapLayoutEngine {
       };
     });
 
-    const layoutEdges: LayoutEdge[] = edges.map(edge => ({
-      ...edge,
-      points: generateEdgePoints(
-        positionedNodes.find(n => n.id === (edge.from))!,
-        positionedNodes.find(n => n.id === (edge.to))!
-      )
-    }));
+    const layoutEdges: LayoutEdge[] = edges
+      .map(edge => {
+        const source = positionedNodes.find(n => n.id === edge.from);
+        const target = positionedNodes.find(n => n.id === edge.to);
+        if (!source || !target) {
+          return { ...edge, points: [] } as LayoutEdge;
+        }
+        return { ...edge, points: generateEdgePoints(source, target) };
+      });
 
     return { nodes: positionedNodes, edges: layoutEdges };
   }
@@ -732,14 +742,16 @@ export class ZeroOverlapLayoutEngine {
       logger.warn(`[ZeroOverlap] Max iterations reached, may have remaining overlaps`);
     }
 
-    // Regenerate edges for new positions
-    const updatedEdges = layout.edges.map(edge => ({
-      ...edge,
-      points: generateEdgePoints(
-        currentNodes.find(n => n.id === (edge.from))!,
-        currentNodes.find(n => n.id === (edge.to))!
-      )
-    }));
+    // Regenerate edges for new positions — skip edges whose node was removed
+    const updatedEdges = layout.edges
+      .map(edge => {
+        const source = currentNodes.find(n => n.id === edge.from);
+        const target = currentNodes.find(n => n.id === edge.to);
+        if (!source || !target) {
+          return { ...edge, points: [] } as LayoutEdge;
+        }
+        return { ...edge, points: generateEdgePoints(source, target) };
+      });
 
     return { nodes: currentNodes, edges: updatedEdges };
   }
@@ -906,13 +918,15 @@ export class ZeroOverlapLayoutEngine {
       y: node.y + (Math.random() - 0.5) * 10
     }));
 
-    const adjustedEdges = layout.edges.map(edge => ({
-      ...edge,
-      points: generateEdgePoints(
-        adjustedNodes.find(n => n.id === (edge.from))!,
-        adjustedNodes.find(n => n.id === (edge.to))!
-      )
-    }));
+    const adjustedEdges = layout.edges
+      .map(edge => {
+        const source = adjustedNodes.find(n => n.id === edge.from);
+        const target = adjustedNodes.find(n => n.id === edge.to);
+        if (!source || !target) {
+          return { ...edge, points: [] } as LayoutEdge;
+        }
+        return { ...edge, points: generateEdgePoints(source, target) };
+      });
 
     return { nodes: adjustedNodes, edges: adjustedEdges };
   }

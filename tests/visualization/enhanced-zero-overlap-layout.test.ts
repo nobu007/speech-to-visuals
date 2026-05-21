@@ -1205,4 +1205,101 @@ describe('ZeroOverlapLayoutEngine', () => {
       expect(typeof metrics.totalOptimizations).toBe('number');
     });
   });
+
+  // ========================================
+  // Regression: edges referencing non-existent nodes should not crash
+  // ========================================
+
+  describe('dangling edge handling — edges that reference non-existent nodes', () => {
+    const nodes = makeNodes(3); // n0, n1, n2
+
+    test('flowchart layout should not crash when edges reference missing nodes', async () => {
+      const edges = makeEdges([['n0', 'n999'], ['n888', 'n1']]);
+      const result = await engine.generateZeroOverlapLayout('flowchart', nodes, edges);
+
+      expect(result).toBeDefined();
+      expect(result.nodes.length).toBeGreaterThanOrEqual(0);
+      // Should not throw — result is always a valid ZeroOverlapResult
+      expect(typeof result.success).toBe('boolean');
+      result.edges.forEach(edge => {
+        expect(Array.isArray(edge.points)).toBe(true);
+      });
+    });
+
+    test('tree layout should not crash when edges reference missing nodes', async () => {
+      const edges = makeEdges([['n0', 'n999'], ['n888', 'n2']]);
+      const result = await engine.generateZeroOverlapLayout('tree', nodes, edges);
+
+      expect(result).toBeDefined();
+      expect(result.nodes.length).toBeGreaterThanOrEqual(0);
+      expect(typeof result.success).toBe('boolean');
+      result.edges.forEach(edge => {
+        expect(Array.isArray(edge.points)).toBe(true);
+      });
+    });
+
+    test('comparison layout should not crash when edges reference missing nodes', async () => {
+      const edges = makeEdges([['n0', 'n999'], ['n888', 'n1']]);
+      const result = await engine.generateZeroOverlapLayout('comparison', nodes, edges);
+
+      expect(result).toBeDefined();
+      expect(result.nodes).toHaveLength(3);
+      expect(typeof result.success).toBe('boolean');
+      result.edges.forEach(edge => {
+        expect(Array.isArray(edge.points)).toBe(true);
+      });
+    });
+
+    test('network layout should not crash when edges reference missing nodes', async () => {
+      const edges = makeEdges([['n0', 'n999'], ['n888', 'n1']]);
+      const result = await engine.generateZeroOverlapLayout('network', nodes, edges);
+
+      expect(result).toBeDefined();
+      expect(result.nodes).toHaveLength(3);
+      expect(typeof result.success).toBe('boolean');
+      result.edges.forEach(edge => {
+        expect(Array.isArray(edge.points)).toBe(true);
+      });
+    });
+
+    test('concept map layout should not crash when edges reference missing nodes', async () => {
+      const edges = makeEdges([['n0', 'n999'], ['n888', 'n1']]);
+      const result = await engine.generateZeroOverlapLayout('conceptmap' as DiagramType, nodes, edges);
+
+      expect(result).toBeDefined();
+      expect(result.nodes).toHaveLength(3);
+      expect(typeof result.success).toBe('boolean');
+      result.edges.forEach(edge => {
+        expect(Array.isArray(edge.points)).toBe(true);
+      });
+    });
+
+    test('mixed valid and dangling edges should keep valid edges intact', async () => {
+      const edges = makeEdges([['n0', 'n1'], ['n1', 'n999'], ['n0', 'n2']]);
+      // Use comparison layout (keeps dangling edges with empty points)
+      const result = await engine.generateZeroOverlapLayout('comparison', nodes, edges);
+
+      expect(result).toBeDefined();
+      expect(result.nodes).toHaveLength(3);
+      // The two valid edges (n0→n1, n0→n2) should have non-empty points
+      const edgesWithPoints = result.edges.filter(e => e.points.length > 0);
+      expect(edgesWithPoints.length).toBeGreaterThanOrEqual(2);
+      // The dangling edge (n1→n999) should have empty points
+      const danglingEdge = result.edges.find(e => e.from === 'n1' && e.to === 'n999');
+      expect(danglingEdge).toBeDefined();
+      expect(danglingEdge!.points).toHaveLength(0);
+    });
+
+    test('all-dangling edges should produce all empty-point edges', async () => {
+      const edges = makeEdges([['n999', 'n998'], ['n997', 'n996']]);
+      const result = await engine.generateZeroOverlapLayout('network', nodes, edges);
+
+      expect(result).toBeDefined();
+      expect(result.nodes).toHaveLength(3);
+      expect(result.edges).toHaveLength(2);
+      result.edges.forEach(edge => {
+        expect(edge.points).toHaveLength(0);
+      });
+    });
+  });
 });
