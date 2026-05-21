@@ -33,20 +33,20 @@ status: generated
 
 ## Risk Signals
 
-- RISK-0743 (medium, Parser Or Heuristic) in `src/remotion/CaptionOverlay.tsx`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L9: import { SrtCaption } from './srt-parser';
-- RISK-0744 (low, High Attention File) in `src/remotion/EdgeAnimation.tsx`: The digest found several implementation signals worth manual review. Evidence: L3: * Edge drawing animation: 0.5s = 15 frames at 30fps
-- RISK-0745 (medium, Parser Or Heuristic) in `src/remotion/__tests__/CaptionOverlay.test.tsx`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L8: import { SrtCaption } from '../srt-parser';
-- RISK-0746 (low, High Attention File) in `src/remotion/__tests__/EdgeAnimation.test.tsx`: The digest found several implementation signals worth manual review. Evidence: L3: * Edge drawing animation: 0.5s = 15 frames at 30fps
-- RISK-0747 (low, High Attention File) in `src/remotion/__tests__/animation-strategies.test.ts`: The digest found several implementation signals worth manual review. Evidence: L12: EDGE_DRAW_DURATION_FRAMES,
-- RISK-0748 (medium, Parser Or Heuristic) in `src/remotion/__tests__/scene-synchronizer.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L16: import { SrtCaption } from '../srt-parser';
-- RISK-0749 (medium, Parser Or Heuristic) in `src/remotion/__tests__/srt-parser.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `parse`
-- RISK-0750 (low, High Attention File) in `src/remotion/__tests__/srt-parser.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Tests for srt-parser.ts
-- RISK-0751 (low, High Attention File) in `src/remotion/animation-strategies.ts`: The digest found several implementation signals worth manual review. Evidence: L12: /** Edge drawing duration: 0.5s = 15 frames at 30fps */
-- RISK-0752 (medium, Concurrency Or Timing) in `src/remotion/renderer.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L206: export async function renderVideo(
-- RISK-0753 (medium, Parser Or Heuristic) in `src/remotion/scene-synchronizer.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L10: import { SrtCaption } from './srt-parser';
-- RISK-0754 (low, High Attention File) in `src/remotion/scene-synchronizer.ts`: The digest found several implementation signals worth manual review. Evidence: L10: import { SrtCaption } from './srt-parser';
-- RISK-0755 (medium, Parser Or Heuristic) in `src/remotion/srt-parser.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `parse`
-- RISK-0756 (low, High Attention File) in `src/remotion/srt-parser.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * SRT (SubRip Text) Format Parser
+- RISK-0745 (medium, Parser Or Heuristic) in `src/remotion/CaptionOverlay.tsx`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L9: import { SrtCaption } from './srt-parser';
+- RISK-0746 (low, High Attention File) in `src/remotion/EdgeAnimation.tsx`: The digest found several implementation signals worth manual review. Evidence: L3: * Edge drawing animation: 0.5s = 15 frames at 30fps
+- RISK-0747 (medium, Parser Or Heuristic) in `src/remotion/__tests__/CaptionOverlay.test.tsx`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L8: import { SrtCaption } from '../srt-parser';
+- RISK-0748 (low, High Attention File) in `src/remotion/__tests__/EdgeAnimation.test.tsx`: The digest found several implementation signals worth manual review. Evidence: L3: * Edge drawing animation: 0.5s = 15 frames at 30fps
+- RISK-0749 (low, High Attention File) in `src/remotion/__tests__/animation-strategies.test.ts`: The digest found several implementation signals worth manual review. Evidence: L12: EDGE_DRAW_DURATION_FRAMES,
+- RISK-0750 (medium, Parser Or Heuristic) in `src/remotion/__tests__/scene-synchronizer.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L16: import { SrtCaption } from '../srt-parser';
+- RISK-0751 (medium, Parser Or Heuristic) in `src/remotion/__tests__/srt-parser.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `parse`
+- RISK-0752 (low, High Attention File) in `src/remotion/__tests__/srt-parser.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Tests for srt-parser.ts
+- RISK-0753 (low, High Attention File) in `src/remotion/animation-strategies.ts`: The digest found several implementation signals worth manual review. Evidence: L12: /** Edge drawing duration: 0.5s = 15 frames at 30fps */
+- RISK-0754 (medium, Concurrency Or Timing) in `src/remotion/renderer.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L206: export async function renderVideo(
+- RISK-0755 (medium, Parser Or Heuristic) in `src/remotion/scene-synchronizer.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L10: import { SrtCaption } from './srt-parser';
+- RISK-0756 (low, High Attention File) in `src/remotion/scene-synchronizer.ts`: The digest found several implementation signals worth manual review. Evidence: L10: import { SrtCaption } from './srt-parser';
+- RISK-0757 (medium, Parser Or Heuristic) in `src/remotion/srt-parser.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `parse`
+- RISK-0758 (low, High Attention File) in `src/remotion/srt-parser.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * SRT (SubRip Text) Format Parser
 
 ## Files
 

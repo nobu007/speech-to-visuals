@@ -811,5 +811,9 @@ Fallback LLM
 - [TASK-0159: AudioUploader コンポーネント専用ユニットテスト](tasks/TASK-0159.md)
 - [TASK-0160: Phase 56 完了確認・ドキュメント更新](tasks/TASK-0160.md)
 - [TASK-0161: LLMキャッシュデバウンステスト追加](tasks/TASK-0161.md)
+- [TASK-0162: Pipeline Recovery CI Smoke Test](tasks/TASK-0162.md)
+- [TASK-0163: Pipeline Full E2E Recovery Integration Test](tasks/TASK-0163.md)
+- [TASK-0164: Video Generator Test Timeout Fix](tasks/TASK-0164.md)
+- [TASK-0165: Phase 57-58 Documentation Update](tasks/TASK-0165.md)
 
 <!-- spine:children:end -->

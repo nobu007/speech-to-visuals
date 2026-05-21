@@ -33,12 +33,12 @@ status: generated
 
 ## Risk Signals
 
-- RISK-0813 (low, High Attention File) in `src/utils/__tests__/memory-usage.test.ts`: The digest found several implementation signals worth manual review. Evidence: L1: import { getMemoryUsage, getHeapUsed } from '../memory-usage';
-- RISK-0814 (medium, Concurrency Or Timing) in `src/utils/iteration-logger.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L73: private async ensureLogFile(): Promise<void> {
-- RISK-0815 (medium, Parser Or Heuristic) in `src/utils/iteration-logger.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L58: // Parse existing entries to maintain history
-- RISK-0816 (low, High Attention File) in `src/utils/iteration-logger.ts`: The digest found several implementation signals worth manual review. Evidence: L27: memoryUsage?: number;
-- RISK-0817 (low, High Attention File) in `src/utils/memory-usage.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Cross-platform memory usage utility (ISS-006)
-- RISK-0818 (medium, Parser Or Heuristic) in `src/utils/sanitize.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L27: * - Empty result fallback → `unnamed`
+- RISK-0815 (low, High Attention File) in `src/utils/__tests__/memory-usage.test.ts`: The digest found several implementation signals worth manual review. Evidence: L1: import { getMemoryUsage, getHeapUsed } from '../memory-usage';
+- RISK-0816 (medium, Concurrency Or Timing) in `src/utils/iteration-logger.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L73: private async ensureLogFile(): Promise<void> {
+- RISK-0817 (medium, Parser Or Heuristic) in `src/utils/iteration-logger.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L58: // Parse existing entries to maintain history
+- RISK-0818 (low, High Attention File) in `src/utils/iteration-logger.ts`: The digest found several implementation signals worth manual review. Evidence: L27: memoryUsage?: number;
+- RISK-0819 (low, High Attention File) in `src/utils/memory-usage.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Cross-platform memory usage utility (ISS-006)
+- RISK-0820 (medium, Parser Or Heuristic) in `src/utils/sanitize.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L27: * - Empty result fallback → `unnamed`
 
 ## Files
 

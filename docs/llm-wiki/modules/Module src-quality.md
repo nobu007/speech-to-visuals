@@ -17,8 +17,8 @@ status: generated
 - Rationale: Files under src form a shared path-level boundary.
 - Roots: src
 - Languages: typescript
-- Files: 15
-- Bytes: 315421
+- Files: 16
+- Bytes: 327777
 
 ## Key Files
 
@@ -60,24 +60,26 @@ status: generated
 - RISK-0722 (low, High Attention File) in `src/quality/error-recovery-monitor.ts`: The digest found several implementation signals worth manual review. Evidence: L4: * Bridges the individually-tested modules into a cohesive runtime service:
 - RISK-0723 (medium, Concurrency Or Timing) in `src/quality/index.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L21: RetryOptions,
 - RISK-0724 (medium, Parser Or Heuristic) in `src/quality/index.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L23: FallbackResult,
-- RISK-0725 (medium, Concurrency Or Timing) in `src/quality/pipeline-run-recovery-tracker.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L19: *   recoveryStrategy: 'intelligent_retry',
-- RISK-0726 (medium, Parser Or Heuristic) in `src/quality/pipeline-run-recovery-tracker.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L20: *   fallbackUsed: false,
-- RISK-0727 (medium, Persistence Or State) in `src/quality/pipeline-run-recovery-tracker.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L110: export interface RunStateSnapshot {
-- RISK-0728 (low, High Attention File) in `src/quality/pipeline-run-recovery-tracker.ts`: The digest found several implementation signals worth manual review. Evidence: L19: *   recoveryStrategy: 'intelligent_retry',
-- RISK-0729 (medium, Concurrency Or Timing) in `src/quality/quality-gate.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L39: fallbackAction?: 'retry' | 'skip' | 'abort';
-- RISK-0730 (medium, Parser Or Heuristic) in `src/quality/quality-gate.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L39: fallbackAction?: 'retry' | 'skip' | 'abort';
-- RISK-0731 (low, High Attention File) in `src/quality/quality-gate.ts`: The digest found several implementation signals worth manual review. Evidence: L39: fallbackAction?: 'retry' | 'skip' | 'abort';
-- RISK-0732 (medium, Concurrency Or Timing) in `src/quality/quality-monitor.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L184: private async assessPerformance(result: PipelineResult): Promise<number> {
-- RISK-0733 (low, High Attention File) in `src/quality/quality-monitor.ts`: The digest found several implementation signals worth manual review. Evidence: L15: memoryUsage: number;
-- RISK-0734 (medium, Concurrency Or Timing) in `src/quality/recovery-strategy-chain.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L124: *   .then('retry', 'Retry with backoff', async () => { ... })
-- RISK-0735 (medium, Parser Or Heuristic) in `src/quality/recovery-strategy-chain.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L2: * RecoveryStrategyChain: Composable sequential fallback chains for error recovery.
-- RISK-0736 (medium, Persistence Or State) in `src/quality/recovery-strategy-chain.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L9: * - Per-stage strategy chains (e.g. transcription: retry → cache → minimal)
-- RISK-0737 (low, High Attention File) in `src/quality/recovery-strategy-chain.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * RecoveryStrategyChain: Composable sequential fallback chains for error recovery.
-- RISK-0738 (medium, Parser Or Heuristic) in `src/quality/regression-detector.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L133: const parsed = JSON.parse(data);
-- RISK-0739 (low, High Attention File) in `src/quality/regression-detector.ts`: The digest found several implementation signals worth manual review. Evidence: L64: private static instance: RegressionDetector;
-- RISK-0740 (medium, Concurrency Or Timing) in `src/quality/user-guided-error-recovery.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L118: const result = await retryFunction();
-- RISK-0741 (medium, Parser Or Heuristic) in `src/quality/user-guided-error-recovery.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L7: * - Automatic retry with fallback strategies
-- RISK-0742 (low, High Attention File) in `src/quality/user-guided-error-recovery.ts`: The digest found several implementation signals worth manual review. Evidence: L7: * - Automatic retry with fallback strategies
+- RISK-0725 (medium, Parser Or Heuristic) in `src/quality/pipeline-error-recovery-orchestrator.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L10: *  2. Uses the strategy chain for sequential fallback
+- RISK-0726 (low, High Attention File) in `src/quality/pipeline-error-recovery-orchestrator.ts`: The digest found several implementation signals worth manual review. Evidence: L10: *  2. Uses the strategy chain for sequential fallback
+- RISK-0727 (medium, Concurrency Or Timing) in `src/quality/pipeline-run-recovery-tracker.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L19: *   recoveryStrategy: 'intelligent_retry',
+- RISK-0728 (medium, Parser Or Heuristic) in `src/quality/pipeline-run-recovery-tracker.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L20: *   fallbackUsed: false,
+- RISK-0729 (medium, Persistence Or State) in `src/quality/pipeline-run-recovery-tracker.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L110: export interface RunStateSnapshot {
+- RISK-0730 (low, High Attention File) in `src/quality/pipeline-run-recovery-tracker.ts`: The digest found several implementation signals worth manual review. Evidence: L19: *   recoveryStrategy: 'intelligent_retry',
+- RISK-0731 (medium, Concurrency Or Timing) in `src/quality/quality-gate.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L39: fallbackAction?: 'retry' | 'skip' | 'abort';
+- RISK-0732 (medium, Parser Or Heuristic) in `src/quality/quality-gate.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L39: fallbackAction?: 'retry' | 'skip' | 'abort';
+- RISK-0733 (low, High Attention File) in `src/quality/quality-gate.ts`: The digest found several implementation signals worth manual review. Evidence: L39: fallbackAction?: 'retry' | 'skip' | 'abort';
+- RISK-0734 (medium, Concurrency Or Timing) in `src/quality/quality-monitor.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L184: private async assessPerformance(result: PipelineResult): Promise<number> {
+- RISK-0735 (low, High Attention File) in `src/quality/quality-monitor.ts`: The digest found several implementation signals worth manual review. Evidence: L15: memoryUsage: number;
+- RISK-0736 (medium, Concurrency Or Timing) in `src/quality/recovery-strategy-chain.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L124: *   .then('retry', 'Retry with backoff', async () => { ... })
+- RISK-0737 (medium, Parser Or Heuristic) in `src/quality/recovery-strategy-chain.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L2: * RecoveryStrategyChain: Composable sequential fallback chains for error recovery.
+- RISK-0738 (medium, Persistence Or State) in `src/quality/recovery-strategy-chain.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L9: * - Per-stage strategy chains (e.g. transcription: retry → cache → minimal)
+- RISK-0739 (low, High Attention File) in `src/quality/recovery-strategy-chain.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * RecoveryStrategyChain: Composable sequential fallback chains for error recovery.
+- RISK-0740 (medium, Parser Or Heuristic) in `src/quality/regression-detector.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L133: const parsed = JSON.parse(data);
+- RISK-0741 (low, High Attention File) in `src/quality/regression-detector.ts`: The digest found several implementation signals worth manual review. Evidence: L64: private static instance: RegressionDetector;
+- RISK-0742 (medium, Concurrency Or Timing) in `src/quality/user-guided-error-recovery.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L118: const result = await retryFunction();
+- RISK-0743 (medium, Parser Or Heuristic) in `src/quality/user-guided-error-recovery.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L7: * - Automatic retry with fallback strategies
+- RISK-0744 (low, High Attention File) in `src/quality/user-guided-error-recovery.ts`: The digest found several implementation signals worth manual review. Evidence: L7: * - Automatic retry with fallback strategies
 
 ## Files
 
@@ -90,6 +92,7 @@ status: generated
 - `src/quality/error-recovery-health-tracker.ts` — typescript, 310 lines, attention 100
 - `src/quality/error-recovery-monitor.ts` — typescript, 269 lines, attention 100
 - `src/quality/index.ts` — typescript, 81 lines, attention 56
+- `src/quality/pipeline-error-recovery-orchestrator.ts` — typescript, 361 lines, attention 100
 - `src/quality/pipeline-run-recovery-tracker.ts` — typescript, 507 lines, attention 100
 - `src/quality/quality-gate.ts` — typescript, 673 lines, attention 100
 - `src/quality/quality-monitor.ts` — typescript, 799 lines, attention 100

@@ -33,18 +33,18 @@ status: generated
 
 ## Risk Signals
 
-- RISK-0886 (medium, Concurrency Or Timing) in `src/workers/__tests__/export-delegation-helpers.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L96: const result = await testInternals(engine).processExportViaWorker(createJob(), 30, 10);
-- RISK-0887 (low, High Attention File) in `src/workers/__tests__/export-delegation-helpers.test.ts`: The digest found several implementation signals worth manual review. Evidence: L5: * private methods at unit level, including the disposed-flag guard.
-- RISK-0888 (medium, Concurrency Or Timing) in `src/workers/__tests__/export-engine-integration.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L85: it('exports successfully when workers unavailable (fallback)', async () => {
-- RISK-0889 (medium, Parser Or Heuristic) in `src/workers/__tests__/export-engine-integration.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L85: it('exports successfully when workers unavailable (fallback)', async () => {
-- RISK-0890 (medium, Persistence Or State) in `src/workers/__tests__/export-engine-integration.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L94: it('isWorkerEnabled reflects pool state', () => {
-- RISK-0891 (medium, Parser Or Heuristic) in `src/workers/__tests__/fallback.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `fallback`
-- RISK-0892 (medium, Parser Or Heuristic) in `src/workers/__tests__/layout-delegation-helpers.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L10: import type { FallbackLayoutStrategy } from '../../visualization/strategies/FallbackLayoutStrategy';
-- RISK-0893 (low, High Attention File) in `src/workers/__tests__/layout-delegation-helpers.test.ts`: The digest found several implementation signals worth manual review. Evidence: L4: * Tests computeLayoutViaWorker private method at unit level,
-- RISK-0894 (medium, Parser Or Heuristic) in `src/workers/__tests__/layout-engine-integration.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L12: import type { FallbackLayoutStrategy } from '../../visualization/strategies/FallbackLayoutStrategy';
-- RISK-0895 (low, High Attention File) in `src/workers/__tests__/worker-pool.test.ts`: The digest found several implementation signals worth manual review. Evidence: L18: dispatchMessage: (data: WorkerResponse) => void;
-- RISK-0896 (medium, Parser Or Heuristic) in `src/workers/index.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L38: // Re-export worker processing functions for testing and fallback
-- RISK-0897 (low, High Attention File) in `src/workers/worker-pool.ts`: The digest found several implementation signals worth manual review. Evidence: L31: private workers: PooledWorker[] = [];
+- RISK-0888 (medium, Concurrency Or Timing) in `src/workers/__tests__/export-delegation-helpers.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L96: const result = await testInternals(engine).processExportViaWorker(createJob(), 30, 10);
+- RISK-0889 (low, High Attention File) in `src/workers/__tests__/export-delegation-helpers.test.ts`: The digest found several implementation signals worth manual review. Evidence: L5: * private methods at unit level, including the disposed-flag guard.
+- RISK-0890 (medium, Concurrency Or Timing) in `src/workers/__tests__/export-engine-integration.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L85: it('exports successfully when workers unavailable (fallback)', async () => {
+- RISK-0891 (medium, Parser Or Heuristic) in `src/workers/__tests__/export-engine-integration.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L85: it('exports successfully when workers unavailable (fallback)', async () => {
+- RISK-0892 (medium, Persistence Or State) in `src/workers/__tests__/export-engine-integration.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L94: it('isWorkerEnabled reflects pool state', () => {
+- RISK-0893 (medium, Parser Or Heuristic) in `src/workers/__tests__/fallback.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `fallback`
+- RISK-0894 (medium, Parser Or Heuristic) in `src/workers/__tests__/layout-delegation-helpers.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L10: import type { FallbackLayoutStrategy } from '../../visualization/strategies/FallbackLayoutStrategy';
+- RISK-0895 (low, High Attention File) in `src/workers/__tests__/layout-delegation-helpers.test.ts`: The digest found several implementation signals worth manual review. Evidence: L4: * Tests computeLayoutViaWorker private method at unit level,
+- RISK-0896 (medium, Parser Or Heuristic) in `src/workers/__tests__/layout-engine-integration.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L12: import type { FallbackLayoutStrategy } from '../../visualization/strategies/FallbackLayoutStrategy';
+- RISK-0897 (low, High Attention File) in `src/workers/__tests__/worker-pool.test.ts`: The digest found several implementation signals worth manual review. Evidence: L18: dispatchMessage: (data: WorkerResponse) => void;
+- RISK-0898 (medium, Parser Or Heuristic) in `src/workers/index.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L38: // Re-export worker processing functions for testing and fallback
+- RISK-0899 (low, High Attention File) in `src/workers/worker-pool.ts`: The digest found several implementation signals worth manual review. Evidence: L31: private workers: PooledWorker[] = [];
 
 ## Files
 

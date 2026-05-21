@@ -664,7 +664,7 @@ status: generated
 | `docs/llm-wiki/modules/Module audit.md` | markdown | 1704 | 38 | 70 | 60 | 0 |
 | `docs/llm-wiki/modules/Module bmad.md` | markdown | 66793 | 562 | 100 | 72 | 0 |
 | `docs/llm-wiki/modules/Module claude.md` | markdown | 46391 | 350 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module docs.md` | markdown | 5633 | 98 | 14 | 12 | 0 |
+| `docs/llm-wiki/modules/Module docs.md` | markdown | 5634 | 98 | 14 | 12 | 0 |
 | `docs/llm-wiki/modules/Module github.md` | markdown | 952 | 37 | 28 | 24 | 0 |
 | `docs/llm-wiki/modules/Module public.md` | markdown | 1159 | 41 | 28 | 24 | 0 |
 | `docs/llm-wiki/modules/Module root-config.md` | markdown | 6558 | 85 | 100 | 72 | 0 |
@@ -700,7 +700,7 @@ status: generated
 | `docs/llm-wiki/progress/Processing Progress.md` | markdown | 12257 | 248 | 98 | 72 | 0 |
 | `docs/llm-wiki/repo/Repository Overview.md` | markdown | 10167 | 318 | 28 | 24 | 0 |
 | `docs/llm-wiki/repo/Repository Risk Register.md` | markdown | 198528 | 1266 | 100 | 62 | 0 |
-| `docs/llm-wiki/sources/File Inventory 0001.md` | markdown | 95709 | 1017 | 100 | 72 | 0 |
+| `docs/llm-wiki/sources/File Inventory 0001.md` | markdown | 95713 | 1017 | 100 | 72 | 0 |
 | `docs/llm-wiki/sources/File Inventory 0002.md` | markdown | 40167 | 479 | 100 | 72 | 0 |
 | `docs/llm-wiki/sources/File Inventory.md` | markdown | 342 | 20 | 0 | 0 | 0 |
 | `eslint.config.js` | javascript | 758 | 27 | 70 | 60 | 1 |
@@ -756,7 +756,7 @@ status: generated
 | `specs/_doc_spine.yml` | yaml | 9801 | 224 | 0 | 0 | 0 |
 | `specs/speech-to-visuals/acceptance-criteria.md` | markdown | 111593 | 2244 | 100 | 72 | 0 |
 | `specs/speech-to-visuals/api-endpoints.md` | markdown | 22907 | 1000 | 100 | 72 | 0 |
-| `specs/speech-to-visuals/architecture.md` | markdown | 69805 | 815 | 100 | 72 | 0 |
+| `specs/speech-to-visuals/architecture.md` | markdown | 70522 | 816 | 100 | 72 | 0 |
 | `specs/speech-to-visuals/database-schema.sql` | sql | 7571 | 171 | 100 | 72 | 4 |
 | `specs/speech-to-visuals/dataflow.md` | markdown | 72955 | 1830 | 100 | 72 | 0 |
 | `specs/speech-to-visuals/design-interview.md` | markdown | 198146 | 3265 | 100 | 62 | 0 |

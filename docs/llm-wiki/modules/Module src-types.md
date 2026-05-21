@@ -33,23 +33,23 @@ status: generated
 
 ## Risk Signals
 
-- RISK-0796 (medium, Persistence Or State) in `src/types/__tests__/cache.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: path contains `cache`
-- RISK-0797 (low, High Attention File) in `src/types/__tests__/cache.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Tests for Cache types
-- RISK-0798 (high, Security Boundary) in `src/types/api/index.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L183: // Authentication Types
-- RISK-0799 (medium, Network Or IPC) in `src/types/api/index.ts`: Cross-process or network boundaries can fail through protocol, timeout, and trust assumptions. Evidence: L236: // WebSocket Event Types
-- RISK-0800 (medium, Concurrency Or Timing) in `src/types/api/index.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L217: // Rate Limiting Types
-- RISK-0801 (low, High Attention File) in `src/types/api/index.ts`: The digest found several implementation signals worth manual review. Evidence: L183: // Authentication Types
-- RISK-0802 (medium, Persistence Or State) in `src/types/cache.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: path contains `cache`
-- RISK-0803 (low, High Attention File) in `src/types/cache.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Cache Type Definitions
-- RISK-0804 (medium, Persistence Or State) in `src/types/index.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L58: // Cache types
-- RISK-0805 (low, High Attention File) in `src/types/index.ts`: The digest found several implementation signals worth manual review. Evidence: L58: // Cache types
-- RISK-0806 (high, Security Boundary) in `src/types/llm.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L37: maxOutputTokens?: number;
-- RISK-0807 (medium, Concurrency Or Timing) in `src/types/llm.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L39: timeout?: number;
-- RISK-0808 (medium, Parser Or Heuristic) in `src/types/llm.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L42: parseResponse: (raw: string) => T;
-- RISK-0809 (medium, Persistence Or State) in `src/types/llm.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L52: fromCache: boolean;
-- RISK-0810 (low, High Attention File) in `src/types/llm.ts`: The digest found several implementation signals worth manual review. Evidence: L37: maxOutputTokens?: number;
-- RISK-0811 (medium, Concurrency Or Timing) in `src/types/pipeline.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L47: timeout?: number;
-- RISK-0812 (high, Security Boundary) in `src/types/workspace.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L151: token: string;
+- RISK-0798 (medium, Persistence Or State) in `src/types/__tests__/cache.test.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: path contains `cache`
+- RISK-0799 (low, High Attention File) in `src/types/__tests__/cache.test.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Tests for Cache types
+- RISK-0800 (high, Security Boundary) in `src/types/api/index.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L183: // Authentication Types
+- RISK-0801 (medium, Network Or IPC) in `src/types/api/index.ts`: Cross-process or network boundaries can fail through protocol, timeout, and trust assumptions. Evidence: L236: // WebSocket Event Types
+- RISK-0802 (medium, Concurrency Or Timing) in `src/types/api/index.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L217: // Rate Limiting Types
+- RISK-0803 (low, High Attention File) in `src/types/api/index.ts`: The digest found several implementation signals worth manual review. Evidence: L183: // Authentication Types
+- RISK-0804 (medium, Persistence Or State) in `src/types/cache.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: path contains `cache`
+- RISK-0805 (low, High Attention File) in `src/types/cache.ts`: The digest found several implementation signals worth manual review. Evidence: L2: * Cache Type Definitions
+- RISK-0806 (medium, Persistence Or State) in `src/types/index.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L58: // Cache types
+- RISK-0807 (low, High Attention File) in `src/types/index.ts`: The digest found several implementation signals worth manual review. Evidence: L58: // Cache types
+- RISK-0808 (high, Security Boundary) in `src/types/llm.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L37: maxOutputTokens?: number;
+- RISK-0809 (medium, Concurrency Or Timing) in `src/types/llm.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L39: timeout?: number;
+- RISK-0810 (medium, Parser Or Heuristic) in `src/types/llm.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L42: parseResponse: (raw: string) => T;
+- RISK-0811 (medium, Persistence Or State) in `src/types/llm.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L52: fromCache: boolean;
+- RISK-0812 (low, High Attention File) in `src/types/llm.ts`: The digest found several implementation signals worth manual review. Evidence: L37: maxOutputTokens?: number;
+- RISK-0813 (medium, Concurrency Or Timing) in `src/types/pipeline.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L47: timeout?: number;
+- RISK-0814 (high, Security Boundary) in `src/types/workspace.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L151: token: string;
 
 ## Files
 

@@ -120,7 +120,7 @@ status: generated
 | `src/pipeline/performance-regression-detector.ts` | typescript | 3351 | 103 | 0 | 24 | 0 |
 | `src/pipeline/pipeline-errors.ts` | typescript | 2995 | 101 | 0 | 24 | 0 |
 | `src/pipeline/pipeline-health-score.ts` | typescript | 8465 | 244 | 100 | 112 | 2 |
-| `src/pipeline/pipeline-orchestrator.ts` | typescript | 35900 | 1113 | 100 | 112 | 2 |
+| `src/pipeline/pipeline-orchestrator.ts` | typescript | 33990 | 1064 | 100 | 112 | 2 |
 | `src/pipeline/quality-monitor.ts` | typescript | 20037 | 657 | 100 | 112 | 3 |
 | `src/pipeline/retry.ts` | typescript | 3079 | 98 | 100 | 84 | 3 |
 | `src/pipeline/simple-pipeline.ts` | typescript | 27177 | 775 | 100 | 92 | 2 |
@@ -136,6 +136,7 @@ status: generated
 | `src/quality/error-recovery-health-tracker.ts` | typescript | 10110 | 310 | 100 | 92 | 1 |
 | `src/quality/error-recovery-monitor.ts` | typescript | 9237 | 269 | 100 | 84 | 2 |
 | `src/quality/index.ts` | typescript | 2111 | 81 | 56 | 23 | 2 |
+| `src/quality/pipeline-error-recovery-orchestrator.ts` | typescript | 12356 | 361 | 100 | 84 | 2 |
 | `src/quality/pipeline-run-recovery-tracker.ts` | typescript | 16587 | 507 | 100 | 104 | 4 |
 | `src/quality/quality-gate.ts` | typescript | 19535 | 673 | 100 | 112 | 3 |
 | `src/quality/quality-monitor.ts` | typescript | 25223 | 799 | 100 | 92 | 2 |
@@ -225,7 +226,7 @@ status: generated
 | `src/visualization/canvas-calculator.ts` | typescript | 4063 | 150 | 0 | 8 | 0 |
 | `src/visualization/complex-layout-engine.ts` | typescript | 33648 | 1046 | 100 | 112 | 3 |
 | `src/visualization/edge-crossing-minimizer.ts` | typescript | 15243 | 524 | 84 | 112 | 3 |
-| `src/visualization/enhanced-zero-overlap-layout.ts` | typescript | 47033 | 1409 | 100 | 112 | 2 |
+| `src/visualization/enhanced-zero-overlap-layout.ts` | typescript | 47649 | 1420 | 100 | 112 | 2 |
 | `src/visualization/index.ts` | typescript | 1137 | 23 | 0 | 0 | 0 |
 | `src/visualization/layout-auto-optimizer.ts` | typescript | 16133 | 561 | 100 | 112 | 3 |
 | `src/visualization/layout-engine-v2.ts` | typescript | 3743 | 126 | 14 | 24 | 0 |
@@ -398,10 +399,12 @@ status: generated
 | `tests/unit/performance/intelligent-cache.test.ts` | typescript | 9692 | 309 | 100 | 96 | 3 |
 | `tests/unit/pipeline/bottleneck-detector.test.ts` | typescript | 4693 | 138 | 0 | 0 | 0 |
 | `tests/unit/pipeline/cost-efficiency-metrics.test.ts` | typescript | 5839 | 182 | 100 | 72 | 2 |
+| `tests/unit/pipeline/multi-layer-error-recovery-integration.test.ts` | typescript | 27402 | 708 | 100 | 84 | 4 |
 | `tests/unit/pipeline/parallel-layout-executor.test.ts` | typescript | 5154 | 171 | 28 | 28 | 1 |
 | `tests/unit/pipeline/performance-baseline.test.ts` | typescript | 4501 | 147 | 100 | 72 | 1 |
 | `tests/unit/pipeline/pipeline-error-recovery-integration.test.ts` | typescript | 18263 | 511 | 100 | 72 | 3 |
 | `tests/unit/pipeline/pipeline-health-score.test.ts` | typescript | 16186 | 431 | 100 | 72 | 2 |
+| `tests/unit/pipeline/pipeline-orchestrated-recovery-integration.test.ts` | typescript | 13526 | 363 | 100 | 72 | 3 |
 | `tests/unit/pipeline/pipeline-orchestrator-quality.test.ts` | typescript | 5813 | 162 | 0 | 0 | 0 |
 | `tests/unit/pipeline/pipeline-orchestrator.test.ts` | typescript | 22252 | 705 | 100 | 100 | 3 |
 | `tests/unit/pipeline/pipeline-quality-monitor.test.ts` | typescript | 17195 | 568 | 100 | 72 | 3 |
@@ -419,6 +422,7 @@ status: generated
 | `tests/unit/quality/error-recovery-health-tracker.test.ts` | typescript | 20132 | 594 | 100 | 84 | 3 |
 | `tests/unit/quality/error-recovery-monitor.test.ts` | typescript | 14857 | 425 | 100 | 72 | 4 |
 | `tests/unit/quality/error-recovery-state-management.test.ts` | typescript | 27034 | 768 | 100 | 84 | 5 |
+| `tests/unit/quality/pipeline-error-recovery-orchestrator.test.ts` | typescript | 24108 | 651 | 100 | 76 | 3 |
 | `tests/unit/quality/pipeline-run-recovery-tracker.test.ts` | typescript | 21889 | 628 | 100 | 84 | 4 |
 | `tests/unit/quality/quality-gate.test.ts` | typescript | 21943 | 657 | 70 | 60 | 3 |
 | `tests/unit/quality/quality-monitor.test.ts` | typescript | 6758 | 186 | 28 | 24 | 0 |
@@ -441,7 +445,7 @@ status: generated
 | `tests/visualization/complex-layout-engine.test.ts` | typescript | 24115 | 682 | 100 | 80 | 3 |
 | `tests/visualization/cycle-strategy.test.ts` | typescript | 24389 | 692 | 70 | 60 | 3 |
 | `tests/visualization/edge-crossing-minimizer.test.ts` | typescript | 11484 | 323 | 14 | 12 | 0 |
-| `tests/visualization/enhanced-zero-overlap-layout.test.ts` | typescript | 53986 | 1306 | 100 | 76 | 3 |
+| `tests/visualization/enhanced-zero-overlap-layout.test.ts` | typescript | 57355 | 1380 | 100 | 80 | 3 |
 | `tests/visualization/force-directed-simulation.test.ts` | typescript | 13157 | 355 | 56 | 56 | 2 |
 | `tests/visualization/graph-coarsening.test.ts` | typescript | 9470 | 262 | 42 | 36 | 1 |
 | `tests/visualization/layout-auto-optimizer.test.ts` | typescript | 12253 | 344 | 70 | 60 | 3 |

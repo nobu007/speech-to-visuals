@@ -18,7 +18,7 @@ status: generated
 - Roots: src
 - Languages: typescript
 - Files: 27
-- Bytes: 333195
+- Bytes: 331285
 
 ## Key Files
 
@@ -102,7 +102,7 @@ status: generated
 - `src/pipeline/performance-regression-detector.ts` — typescript, 103 lines, attention 0
 - `src/pipeline/pipeline-errors.ts` — typescript, 101 lines, attention 0
 - `src/pipeline/pipeline-health-score.ts` — typescript, 244 lines, attention 100
-- `src/pipeline/pipeline-orchestrator.ts` — typescript, 1113 lines, attention 100
+- `src/pipeline/pipeline-orchestrator.ts` — typescript, 1064 lines, attention 100
 - `src/pipeline/quality-monitor.ts` — typescript, 657 lines, attention 100
 - `src/pipeline/retry.ts` — typescript, 98 lines, attention 100
 - `src/pipeline/simple-pipeline.ts` — typescript, 775 lines, attention 100

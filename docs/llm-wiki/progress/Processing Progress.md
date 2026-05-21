@@ -15,16 +15,16 @@ status: generated
 ## Summary
 
 - Run index: stable
-- Processed files: 1462
-- New files: 1462
+- Processed files: 1466
+- New files: 1466
 - Changed files: 0
 - Unchanged files: 0
 - Removed files: 0
-- Needs processing: 1462
+- Needs processing: 1466
 - Skipped unchanged: 0
-- Digest generated: 1462
+- Digest generated: 1466
 - Digest reused: 0
-- Files with risk signals: 540
+- Files with risk signals: 544
 
 ## State File
 
@@ -236,7 +236,7 @@ status: generated
 - `AGENTS.md`
 - `CLAUDE.md`
 - `README.md`
-- ... 1262 more
+- ... 1266 more
 
 ## Changed Sources
 

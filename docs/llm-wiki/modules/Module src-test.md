@@ -33,19 +33,19 @@ status: generated
 
 ## Risk Signals
 
-- RISK-0757 (medium, Concurrency Or Timing) in `src/test/helpers.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L39: export async function waitMs(ms: number): Promise<void> {
-- RISK-0758 (medium, Concurrency Or Timing) in `src/test/layout/LayoutStrategy.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L64: it('returns fallback layout with success=false when performLayout throws', async () => {
-- RISK-0759 (medium, Parser Or Heuristic) in `src/test/layout/LayoutStrategy.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L63: // ---------- apply() catch / fallback (lines 128-153) ----------
-- RISK-0760 (low, High Attention File) in `src/test/layout/LayoutStrategy.test.ts`: The digest found several implementation signals worth manual review. Evidence: L13: private shouldThrow: boolean;
-- RISK-0761 (medium, Concurrency Or Timing) in `src/test/layout/OverlapResolver.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L42: it('resolves overlapping nodes (fallback to grid if needed)', async () => {
-- RISK-0762 (medium, Parser Or Heuristic) in `src/test/layout/OverlapResolver.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L42: it('resolves overlapping nodes (fallback to grid if needed)', async () => {
-- RISK-0763 (low, High Attention File) in `src/test/layout/OverlapResolver.test.ts`: The digest found several implementation signals worth manual review. Evidence: L6: /** Type helper to access OverlapResolver private members in tests */
-- RISK-0764 (high, Destructive Mutation) in `src/test/layout/ProgressiveForceStrategy.test.ts`: Deletion or forceful mutation needs clear guardrails and recovery behavior. Evidence: path contains `force`
-- RISK-0765 (medium, Concurrency Or Timing) in `src/test/layout/layout-engine.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L217: // Trigger the catch block by mocking internal method
-- RISK-0766 (high, Security Boundary) in `src/test/mocks/supabase.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L5: * storage operations, and auth helpers -- all backed by jest.fn().
-- RISK-0767 (high, Destructive Mutation) in `src/test/mocks/supabase.ts`: Deletion or forceful mutation needs clear guardrails and recovery behavior. Evidence: L19: interface MockUpdateDeleteBuilder {
-- RISK-0768 (medium, Persistence Or State) in `src/test/mocks/supabase.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L34: onAuthStateChange: jest.Mock;
-- RISK-0769 (low, High Attention File) in `src/test/mocks/supabase.ts`: The digest found several implementation signals worth manual review. Evidence: L5: * storage operations, and auth helpers -- all backed by jest.fn().
+- RISK-0759 (medium, Concurrency Or Timing) in `src/test/helpers.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L39: export async function waitMs(ms: number): Promise<void> {
+- RISK-0760 (medium, Concurrency Or Timing) in `src/test/layout/LayoutStrategy.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L64: it('returns fallback layout with success=false when performLayout throws', async () => {
+- RISK-0761 (medium, Parser Or Heuristic) in `src/test/layout/LayoutStrategy.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L63: // ---------- apply() catch / fallback (lines 128-153) ----------
+- RISK-0762 (low, High Attention File) in `src/test/layout/LayoutStrategy.test.ts`: The digest found several implementation signals worth manual review. Evidence: L13: private shouldThrow: boolean;
+- RISK-0763 (medium, Concurrency Or Timing) in `src/test/layout/OverlapResolver.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L42: it('resolves overlapping nodes (fallback to grid if needed)', async () => {
+- RISK-0764 (medium, Parser Or Heuristic) in `src/test/layout/OverlapResolver.test.ts`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: L42: it('resolves overlapping nodes (fallback to grid if needed)', async () => {
+- RISK-0765 (low, High Attention File) in `src/test/layout/OverlapResolver.test.ts`: The digest found several implementation signals worth manual review. Evidence: L6: /** Type helper to access OverlapResolver private members in tests */
+- RISK-0766 (high, Destructive Mutation) in `src/test/layout/ProgressiveForceStrategy.test.ts`: Deletion or forceful mutation needs clear guardrails and recovery behavior. Evidence: path contains `force`
+- RISK-0767 (medium, Concurrency Or Timing) in `src/test/layout/layout-engine.test.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L217: // Trigger the catch block by mocking internal method
+- RISK-0768 (high, Security Boundary) in `src/test/mocks/supabase.ts`: Authentication, authorization, or credential handling can create trust-boundary failures. Evidence: L5: * storage operations, and auth helpers -- all backed by jest.fn().
+- RISK-0769 (high, Destructive Mutation) in `src/test/mocks/supabase.ts`: Deletion or forceful mutation needs clear guardrails and recovery behavior. Evidence: L19: interface MockUpdateDeleteBuilder {
+- RISK-0770 (medium, Persistence Or State) in `src/test/mocks/supabase.ts`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L34: onAuthStateChange: jest.Mock;
+- RISK-0771 (low, High Attention File) in `src/test/mocks/supabase.ts`: The digest found several implementation signals worth manual review. Evidence: L5: * storage operations, and auth helpers -- all backed by jest.fn().
 
 ## Files
 

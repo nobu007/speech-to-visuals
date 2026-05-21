@@ -18,7 +18,7 @@ status: generated
 - Roots: specs
 - Languages: markdown, text, typescript, yaml
 - Files: 175
-- Bytes: 1891888
+- Bytes: 1892605
 
 ## Key Files
 
@@ -48,7 +48,7 @@ status: generated
 - `specs/_doc_spine.yml` — yaml, 224 lines, attention 0
 - `specs/speech-to-visuals/acceptance-criteria.md` — markdown, 2244 lines, attention 100
 - `specs/speech-to-visuals/api-endpoints.md` — markdown, 1000 lines, attention 100
-- `specs/speech-to-visuals/architecture.md` — markdown, 815 lines, attention 100
+- `specs/speech-to-visuals/architecture.md` — markdown, 816 lines, attention 100
 - `specs/speech-to-visuals/database-schema.sql` — sql, 171 lines, attention 100
 - `specs/speech-to-visuals/dataflow.md` — markdown, 1830 lines, attention 100
 - `specs/speech-to-visuals/design-interview.md` — markdown, 3265 lines, attention 100
