@@ -18,8 +18,8 @@ status: generated
 - Repository: `speech-to-visuals`
 - Repository root: `/home/jinno/speech-to-visuals`
 - Requested focus path: `/home/jinno/speech-to-visuals`
-- Matched source files: 1471
-- Matched source bytes: 13487048
+- Matched source files: 1472
+- Matched source bytes: 13491576
 - Wiki context logical chunks: 112
 - Wiki context agent bundles: 90
 
@@ -86,7 +86,7 @@ status: generated
 - toml: 2
 - tsx: 69
 - txt: 7
-- typescript: 501
+- typescript: 502
 - yaml: 62
 
 ## Logical Module Map
@@ -98,11 +98,11 @@ status: generated
 | [[Module audit]] | 1 | 3164 | yaml | [[Repository Risk Register]] |
 | [[Module bmad]] | 426 | 2936645 | javascript, json, markdown, yaml | [[Repository Risk Register]] |
 | [[Module claude]] | 192 | 1161081 | json, markdown, python, shell, text | [[Repository Risk Register]] |
-| [[Module docs]] | 58 | 960344 | markdown | [[Repository Risk Register]] |
+| [[Module docs]] | 58 | 962532 | markdown | [[Repository Risk Register]] |
 | [[Module github]] | 2 | 2274 | yaml | [[Repository Risk Register]] |
 | [[Module public]] | 4 | 1714 | json, text | [[Repository Risk Register]] |
 | [[Module scripts-operations]] | 13 | 147703 | markdown, python, shell, text, yaml | [[Repository Risk Register]] |
-| [[Module specs]] | 179 | 1918775 | markdown, text, typescript, yaml | [[Repository Risk Register]] |
+| [[Module specs]] | 179 | 1918852 | markdown, text, typescript, yaml | [[Repository Risk Register]] |
 | [[Module src]] | 3 | 2076 | tsx, typescript | [[Repository Risk Register]] |
 | [[Module src-analysis]] | 39 | 474115 | typescript | [[Repository Risk Register]] |
 | [[Module src-api]] | 25 | 146944 | typescript | [[Repository Risk Register]] |
@@ -127,7 +127,7 @@ status: generated
 | [[Module src-visualization]] | 47 | 460125 | typescript | [[Repository Risk Register]] |
 | [[Module src-workers]] | 14 | 74252 | typescript | [[Repository Risk Register]] |
 | [[Module supabase]] | 11 | 38949 | text, toml, typescript | [[Repository Risk Register]] |
-| [[Module tests]] | 181 | 1979929 | tsx, typescript | [[Repository Risk Register]] |
+| [[Module tests]] | 182 | 1982192 | tsx, typescript | [[Repository Risk Register]] |
 | [[Module tmp]] | 1 | 49 | markdown | [[Repository Risk Register]] |
 
 ## Directory Structure Snapshot

@@ -47,5 +47,5 @@ status: generated
 | [[Module src-visualization]] | Files under src form a shared path-level boundary. | 47 | typescript |
 | [[Module src-workers]] | Files under src form a shared path-level boundary. | 14 | typescript |
 | [[Module supabase]] | Files under supabase form a shared path-level boundary. | 11 | text, toml, typescript |
-| [[Module tests]] | Files under tests form a shared path-level boundary. | 181 | tsx, typescript |
+| [[Module tests]] | Files under tests form a shared path-level boundary. | 182 | tsx, typescript |
 | [[Module tmp]] | Files under tmp form a shared path-level boundary. | 1 | markdown |

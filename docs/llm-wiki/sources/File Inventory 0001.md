@@ -664,12 +664,12 @@ status: generated
 | `docs/llm-wiki/modules/Module audit.md` | markdown | 1704 | 38 | 70 | 60 | 0 |
 | `docs/llm-wiki/modules/Module bmad.md` | markdown | 66793 | 562 | 100 | 72 | 0 |
 | `docs/llm-wiki/modules/Module claude.md` | markdown | 46391 | 350 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module docs.md` | markdown | 5634 | 98 | 14 | 12 | 0 |
+| `docs/llm-wiki/modules/Module docs.md` | markdown | 5635 | 98 | 14 | 12 | 0 |
 | `docs/llm-wiki/modules/Module github.md` | markdown | 952 | 37 | 28 | 24 | 0 |
 | `docs/llm-wiki/modules/Module public.md` | markdown | 1159 | 41 | 28 | 24 | 0 |
 | `docs/llm-wiki/modules/Module root-config.md` | markdown | 6558 | 85 | 100 | 72 | 0 |
 | `docs/llm-wiki/modules/Module scripts-operations.md` | markdown | 6783 | 72 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module specs.md` | markdown | 17690 | 223 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module specs.md` | markdown | 18026 | 227 | 100 | 72 | 0 |
 | `docs/llm-wiki/modules/Module src-analysis.md` | markdown | 22953 | 161 | 100 | 72 | 0 |
 | `docs/llm-wiki/modules/Module src-api.md` | markdown | 17718 | 131 | 100 | 72 | 0 |
 | `docs/llm-wiki/modules/Module src-components.md` | markdown | 17070 | 145 | 100 | 72 | 0 |
@@ -695,13 +695,13 @@ status: generated
 | `docs/llm-wiki/modules/Module src.md` | markdown | 659 | 38 | 0 | 0 | 0 |
 | `docs/llm-wiki/modules/Module supabase.md` | markdown | 10177 | 85 | 100 | 72 | 0 |
 | `docs/llm-wiki/modules/Module support-scripts.md` | markdown | 15383 | 123 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module tests.md` | markdown | 90008 | 522 | 100 | 72 | 0 |
+| `docs/llm-wiki/modules/Module tests.md` | markdown | 90860 | 526 | 100 | 72 | 0 |
 | `docs/llm-wiki/modules/Module tmp.md` | markdown | 601 | 34 | 0 | 0 | 0 |
 | `docs/llm-wiki/progress/Processing Progress.md` | markdown | 12257 | 248 | 98 | 72 | 0 |
 | `docs/llm-wiki/repo/Repository Overview.md` | markdown | 10167 | 318 | 28 | 24 | 0 |
-| `docs/llm-wiki/repo/Repository Risk Register.md` | markdown | 200900 | 1278 | 100 | 62 | 0 |
-| `docs/llm-wiki/sources/File Inventory 0001.md` | markdown | 95713 | 1017 | 100 | 72 | 0 |
-| `docs/llm-wiki/sources/File Inventory 0002.md` | markdown | 40613 | 483 | 100 | 72 | 0 |
+| `docs/llm-wiki/repo/Repository Risk Register.md` | markdown | 201460 | 1281 | 100 | 62 | 0 |
+| `docs/llm-wiki/sources/File Inventory 0001.md` | markdown | 95758 | 1017 | 100 | 72 | 0 |
+| `docs/llm-wiki/sources/File Inventory 0002.md` | markdown | 41007 | 488 | 100 | 72 | 0 |
 | `docs/llm-wiki/sources/File Inventory.md` | markdown | 342 | 20 | 0 | 0 | 0 |
 | `eslint.config.js` | javascript | 758 | 27 | 70 | 60 | 1 |
 | `jest.config.cjs` | javascript | 1273 | 38 | 0 | 4 | 0 |
@@ -926,7 +926,7 @@ status: generated
 | `specs/speech-to-visuals/tasks/TASK-0159.md` | markdown | 3780 | 98 | 0 | 0 | 0 |
 | `specs/speech-to-visuals/tasks/TASK-0160.md` | markdown | 3515 | 94 | 0 | 0 | 0 |
 | `specs/speech-to-visuals/tasks/TASK-0161.md` | markdown | 2323 | 56 | 100 | 72 | 0 |
-| `specs/speech-to-visuals/tasks/TASK-0162.md` | markdown | 4959 | 130 | 0 | 0 | 0 |
+| `specs/speech-to-visuals/tasks/TASK-0162.md` | markdown | 5036 | 130 | 0 | 0 | 0 |
 | `specs/speech-to-visuals/tasks/TASK-0163.md` | markdown | 5581 | 137 | 56 | 48 | 0 |
 | `specs/speech-to-visuals/tasks/TASK-0164.md` | markdown | 2494 | 76 | 14 | 12 | 0 |
 | `specs/speech-to-visuals/tasks/TASK-0165.md` | markdown | 3097 | 95 | 0 | 0 | 0 |

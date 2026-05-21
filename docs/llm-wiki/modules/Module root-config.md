@@ -48,14 +48,14 @@ status: generated
 - RISK-0236 (medium, Persistence Or State) in `package.json`: Persistent state needs consistency, schema, and partial-write handling. Evidence: L38: "cache:warmup": "tsx scripts/cache-warmup.ts",
 - RISK-0237 (low, High Attention File) in `package.json`: The digest found several implementation signals worth manual review. Evidence: L3: "private": true,
 - RISK-0935 (medium, Parser Or Heuristic) in `test-scene-data.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
-- RISK-1242 (medium, Parser Or Heuristic) in `tsconfig.app.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
-- RISK-1243 (medium, Parser Or Heuristic) in `tsconfig.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
-- RISK-1244 (medium, Parser Or Heuristic) in `tsconfig.node.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
-- RISK-1245 (medium, Parser Or Heuristic) in `tsconfig.test.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
-- RISK-1246 (high, Process Execution) in `vite.config.ts`: Process or shell execution can cross sandbox, quoting, timeout, or injection boundaries. Evidence: L56: return ['path', 'fs', 'os', 'util', 'assert', 'module', 'child_process', 'stream', 'worker_threads', 'crypto', 'url', 'http', 'https', 'net', 'tls'].some(nodeModule =>
-- RISK-1247 (medium, Network Or IPC) in `vite.config.ts`: Cross-process or network boundaries can fail through protocol, timeout, and trust assumptions. Evidence: L56: return ['path', 'fs', 'os', 'util', 'assert', 'module', 'child_process', 'stream', 'worker_threads', 'crypto', 'url', 'http', 'https', 'net', 'tls'].some(nodeModule =>
-- RISK-1248 (medium, Concurrency Or Timing) in `vite.config.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L56: return ['path', 'fs', 'os', 'util', 'assert', 'module', 'child_process', 'stream', 'worker_threads', 'crypto', 'url', 'http', 'https', 'net', 'tls'].some(nodeModule =>
-- RISK-1249 (low, High Attention File) in `vite.config.ts`: The digest found several implementation signals worth manual review. Evidence: L2: import react from "@vitejs/plugin-react-swc";
+- RISK-1243 (medium, Parser Or Heuristic) in `tsconfig.app.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
+- RISK-1244 (medium, Parser Or Heuristic) in `tsconfig.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
+- RISK-1245 (medium, Parser Or Heuristic) in `tsconfig.node.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
+- RISK-1246 (medium, Parser Or Heuristic) in `tsconfig.test.json`: Parsing and heuristics are often brittle around malformed or adversarial input. Evidence: path contains `json`
+- RISK-1247 (high, Process Execution) in `vite.config.ts`: Process or shell execution can cross sandbox, quoting, timeout, or injection boundaries. Evidence: L56: return ['path', 'fs', 'os', 'util', 'assert', 'module', 'child_process', 'stream', 'worker_threads', 'crypto', 'url', 'http', 'https', 'net', 'tls'].some(nodeModule =>
+- RISK-1248 (medium, Network Or IPC) in `vite.config.ts`: Cross-process or network boundaries can fail through protocol, timeout, and trust assumptions. Evidence: L56: return ['path', 'fs', 'os', 'util', 'assert', 'module', 'child_process', 'stream', 'worker_threads', 'crypto', 'url', 'http', 'https', 'net', 'tls'].some(nodeModule =>
+- RISK-1249 (medium, Concurrency Or Timing) in `vite.config.ts`: Timing-sensitive code needs retry, cancellation, and race-condition review. Evidence: L56: return ['path', 'fs', 'os', 'util', 'assert', 'module', 'child_process', 'stream', 'worker_threads', 'crypto', 'url', 'http', 'https', 'net', 'tls'].some(nodeModule =>
+- RISK-1250 (low, High Attention File) in `vite.config.ts`: The digest found several implementation signals worth manual review. Evidence: L2: import react from "@vitejs/plugin-react-swc";
 
 ## Files
 

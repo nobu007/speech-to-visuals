@@ -14,9 +14,9 @@ status: generated
 
 ## Summary
 
-- Total findings: 1249
+- Total findings: 1250
 - High: 179
-- Medium: 708
+- Medium: 709
 - Low: 362
 
 ## Findings
@@ -996,282 +996,283 @@ status: generated
 | RISK-0971 | high | Security Boundary | `tests/analysis/token-usage-tracker-edge-cases.test.ts` | `token` | path contains `token` |
 | RISK-0972 | low | High Attention File | `tests/analysis/token-usage-tracker-edge-cases.test.ts` | `attention_score=100` | L2: * Edge-case tests for token-usage-tracker.ts |
 | RISK-0973 | low | High Attention File | `tests/benchmark/performance-benchmark.test.ts` | `attention_score=100` | L4: * Simulates a full pipeline run, measures per-stage timing and memory, |
-| RISK-0974 | medium | Parser Or Heuristic | `tests/e2e/pipeline-flow.test.ts` | `fallback` | L113: fallbackStrategies: [{ stage: 2, strategy: 'rule-based' }], |
-| RISK-0975 | medium | Network Or IPC | `tests/integration/api.test.ts` | `socket` | L5: * Express routes, error handling, WebSocket event types, and |
-| RISK-0976 | medium | Concurrency Or Timing | `tests/integration/api.test.ts` | `await` | L133: await new Promise((r) => setTimeout(r, 10)); |
-| RISK-0977 | low | High Attention File | `tests/integration/api.test.ts` | `attention_score=100` | L5: * Express routes, error handling, WebSocket event types, and |
-| RISK-0978 | high | Security Boundary | `tests/integration/batch.test.ts` | `token` | L212: // Verify cancel token is set |
-| RISK-0979 | low | High Attention File | `tests/integration/batch.test.ts` | `attention_score=98` | L212: // Verify cancel token is set |
-| RISK-0980 | medium | Concurrency Or Timing | `tests/integration/label-sizing-pipeline.test.ts` | `async` | L100: it('should reflect label overflow in quality metrics alongside layout quality', async () => { |
-| RISK-0981 | medium | Parser Or Heuristic | `tests/integration/label-sizing-pipeline.test.ts` | `fallback` | L54: fallbackStrategies: [], |
-| RISK-0982 | medium | Concurrency Or Timing | `tests/integration/layout-quality-pipeline.test.ts` | `retry` | L33: { id: 'retry', label: 'リトライ', x: 200, y: 250, width: 120, height: 50 }, |
-| RISK-0983 | medium | Persistence Or State | `tests/integration/monitoring-health-degraded.test.ts` | `cache` | L13: * Previous phases (45-48) tested warmup state transitions and cache backend |
-| RISK-0984 | low | High Attention File | `tests/integration/monitoring-health-degraded.test.ts` | `attention_score=100` | L13: * Previous phases (45-48) tested warmup state transitions and cache backend |
-| RISK-0985 | medium | Parser Or Heuristic | `tests/integration/phase32-quality-pipeline.test.ts` | `fallback` | L96: fallbackStrategies: [], |
-| RISK-0986 | medium | Concurrency Or Timing | `tests/integration/pipeline-recovery-e2e.test.ts` | `async` | L247: it('executeStage recovers from transient failure via boundary retry', async () => { |
-| RISK-0987 | medium | Parser Or Heuristic | `tests/integration/pipeline-recovery-e2e.test.ts` | `fallback` | L301: name: 'layout-fallback-chain', |
-| RISK-0988 | low | High Attention File | `tests/integration/pipeline-recovery-e2e.test.ts` | `attention_score=100` | L247: it('executeStage recovers from transient failure via boundary retry', async () => { |
-| RISK-0989 | medium | Concurrency Or Timing | `tests/integration/pipeline.test.ts` | `async` | L328: it('uses fallback when quality gate fails and fallback succeeds', async () => { |
-| RISK-0990 | medium | Parser Or Heuristic | `tests/integration/pipeline.test.ts` | `fallback` | L12: FallbackStrategy, |
-| RISK-0991 | medium | Persistence Or State | `tests/integration/pipeline.test.ts` | `cache` | L157: // Mock the performance/intelligent-cache used by EnhancedErrorRecovery |
-| RISK-0992 | low | High Attention File | `tests/integration/pipeline.test.ts` | `attention_score=100` | L12: FallbackStrategy, |
-| RISK-0993 | medium | Concurrency Or Timing | `tests/integration/warmup-cache-backend-failure.test.ts` | `async` | L65: warmupCache: jest.fn().mockImplementation(async () => { |
-| RISK-0994 | medium | Persistence Or State | `tests/integration/warmup-cache-backend-failure.test.ts` | `cache` | path contains `cache` |
-| RISK-0995 | low | High Attention File | `tests/integration/warmup-cache-backend-failure.test.ts` | `attention_score=100` | L2: * Phase 46: Warmup Cache Backend Unreachable Integration Tests |
-| RISK-0996 | medium | Concurrency Or Timing | `tests/integration/warmup-default-pattern-resilience.test.ts` | `async` | L75: warmupCache: jest.fn().mockImplementation(async () => { |
-| RISK-0997 | medium | Persistence Or State | `tests/integration/warmup-default-pattern-resilience.test.ts` | `cache` | L9: * through the full pipeline: CacheWarmupManager → startup-warmup → health endpoint. |
-| RISK-0998 | low | High Attention File | `tests/integration/warmup-default-pattern-resilience.test.ts` | `attention_score=100` | L9: * through the full pipeline: CacheWarmupManager → startup-warmup → health endpoint. |
-| RISK-0999 | medium | Concurrency Or Timing | `tests/integration/warmup-failure-resilience.test.ts` | `await` | L92: await new Promise((r) => setTimeout(r, 50)); |
-| RISK-1000 | medium | Persistence Or State | `tests/integration/warmup-failure-resilience.test.ts` | `cache` | L5: * REQ-114: Cache backend unreachable integration tests (3 tests) |
-| RISK-1001 | low | High Attention File | `tests/integration/warmup-failure-resilience.test.ts` | `attention_score=100` | L5: * REQ-114: Cache backend unreachable integration tests (3 tests) |
-| RISK-1002 | medium | Concurrency Or Timing | `tests/integration/warmup-zero-success-resilience.test.ts` | `async` | L62: warmupCache: jest.fn().mockImplementation(async () => { |
-| RISK-1003 | medium | Persistence Or State | `tests/integration/warmup-zero-success-resilience.test.ts` | `cache` | L8: * Validates that when warmupCache resolves true but all individual patterns |
-| RISK-1004 | low | High Attention File | `tests/integration/warmup-zero-success-resilience.test.ts` | `attention_score=100` | L6: * REQ-121: Warmup retry after zero-success completion |
-| RISK-1005 | medium | Concurrency Or Timing | `tests/integration/worker-fallback.test.ts` | `thread` | L35: // Main-thread processing (simulating fallback) |
-| RISK-1006 | medium | Parser Or Heuristic | `tests/integration/worker-fallback.test.ts` | `fallback` | path contains `fallback` |
-| RISK-1007 | low | High Attention File | `tests/integration/worker-fallback.test.ts` | `attention_score=98` | L2: * Worker Fallback Integration Tests |
-| RISK-1008 | medium | Concurrency Or Timing | `tests/integration/worker-pool.test.ts` | `async` | L97: it('should queue excess tasks and dispatch when workers become idle', async () => { |
-| RISK-1009 | low | High Attention File | `tests/integration/worker-pool.test.ts` | `attention_score=100` | L45: const dispatchToLastWorker = (data: WorkerResponse) => { |
-| RISK-1010 | medium | Parser Or Heuristic | `tests/llm-parsing.ts` | `parse` | L3: * Simple parser test for LLM JSON responses |
-| RISK-1011 | low | High Attention File | `tests/llm-parsing.ts` | `attention_score=100` | L3: * Simple parser test for LLM JSON responses |
-| RISK-1012 | high | Security Boundary | `tests/mocks/jsonwebtoken.ts` | `auth` | L4: * NOTE: Auth-related tests (auth.test.ts, auth-integration.test.ts, |
-| RISK-1013 | medium | Network Or IPC | `tests/mocks/jsonwebtoken.ts` | `socket` | L5: * pipeline-auth.test.ts, websocket-handler.test.ts) use REAL jsonwebtoken |
-| RISK-1014 | medium | Parser Or Heuristic | `tests/mocks/jsonwebtoken.ts` | `json` | path contains `json` |
-| RISK-1015 | medium | Concurrency Or Timing | `tests/performance/benchmark.test.ts` | `async` | L129: const expensiveCompute = async () => { |
-| RISK-1016 | medium | Persistence Or State | `tests/performance/benchmark.test.ts` | `cache` | L14: import { ComputationCache } from '@/optimization/computation-cache'; |
-| RISK-1017 | low | High Attention File | `tests/performance/benchmark.test.ts` | `attention_score=100` | L8: * - Memory usage ≤ 512MB |
-| RISK-1018 | low | High Attention File | `tests/performance/e2e-benchmark.test.ts` | `attention_score=100` | L10: * Memory: Heap usage <= 512MB (measured: 82.21MB historical) |
-| RISK-1019 | medium | Parser Or Heuristic | `tests/pipeline/parallel-benchmark.test.ts` | `fallback` | L5: * with edge cases, baseline matching, and fallback behaviour. |
-| RISK-1020 | low | High Attention File | `tests/pipeline/parallel-benchmark.test.ts` | `attention_score=98` | L5: * with edge cases, baseline matching, and fallback behaviour. |
-| RISK-1021 | medium | Concurrency Or Timing | `tests/pipeline/parallel-execution.test.ts` | `async` | L38: const layoutFn = async (diag: typeof diagrams[0]) => ({ |
-| RISK-1022 | medium | Parser Or Heuristic | `tests/pipeline/parallel-execution.test.ts` | `parse` | L227: const parsed = JSON.parse(json); |
-| RISK-1023 | low | High Attention File | `tests/pipeline/parallel-execution.test.ts` | `attention_score=98` | L86: await new Promise(resolve => setTimeout(resolve, 10)); |
-| RISK-1024 | high | Security Boundary | `tests/pipeline/performance-regression-detector.test.ts` | `token` | L162: test('$0.03/video, 2000 tokens/analysis → correct efficiency', () => { |
-| RISK-1025 | low | High Attention File | `tests/pipeline/performance-regression-detector.test.ts` | `attention_score=100` | L47: memoryMB: 40, |
-| RISK-1026 | high | Security Boundary | `tests/pipeline/pipeline-health-score.test.ts` | `token` | L157: tokensPerAnalysis: 2000, |
-| RISK-1027 | low | High Attention File | `tests/pipeline/pipeline-health-score.test.ts` | `attention_score=100` | L157: tokensPerAnalysis: 2000, |
-| RISK-1028 | medium | Concurrency Or Timing | `tests/pipeline/retry-edge-cases.test.ts` | `async` | L33: it('maxRetries=0 throws immediately on failure with no retry', async () => { |
-| RISK-1029 | low | High Attention File | `tests/pipeline/retry-edge-cases.test.ts` | `attention_score=100` | L2: * Edge-case tests for retryWithBackoff and ErrorClassifier. |
-| RISK-1030 | medium | Concurrency Or Timing | `tests/pipeline/retry-integration.test.ts` | `async` | L46: it('recovers from rate limit then timeout in sequence', async () => { |
-| RISK-1031 | medium | Parser Or Heuristic | `tests/pipeline/retry-integration.test.ts` | `fallback` | L7: * 3. PipelineOrchestrator.executeStageWithGates — retries before fallbacks |
-| RISK-1032 | low | High Attention File | `tests/pipeline/retry-integration.test.ts` | `attention_score=100` | L2: * Integration tests for retryWithBackoff wired into pipeline stages. |
-| RISK-1033 | medium | Concurrency Or Timing | `tests/pipeline/retry-metrics-parallel.test.ts` | `async` | L40: const { result, attempts } = await retryWithBackoff(async () => 'ok', { maxRetries: 3 }); |
-| RISK-1034 | low | High Attention File | `tests/pipeline/retry-metrics-parallel.test.ts` | `attention_score=100` | L2: * Tests for retry observability in metrics and parallel execution paths. |
-| RISK-1035 | medium | Concurrency Or Timing | `tests/pipeline/retry-observability-surface.test.ts` | `async` | L40: it('exposes totalRetryAttempts in pipeline result metrics', async () => { |
-| RISK-1036 | low | High Attention File | `tests/pipeline/retry-observability-surface.test.ts` | `attention_score=100` | L2: * Tests for retry observability surfacing in pipeline completion output. |
-| RISK-1037 | medium | Concurrency Or Timing | `tests/quality/enhanced-error-recovery.test.ts` | `async` | L56: test('should retry on failure and eventually succeed', async () => { |
-| RISK-1038 | medium | Parser Or Heuristic | `tests/quality/enhanced-error-recovery.test.ts` | `fallback` | L3: * Covers: retryWithBackoff, executeWithFallback, createErrorNotification, |
-| RISK-1039 | medium | Persistence Or State | `tests/quality/enhanced-error-recovery.test.ts` | `cache` | L10: // Mock the intelligent-cache module |
-| RISK-1040 | low | High Attention File | `tests/quality/enhanced-error-recovery.test.ts` | `attention_score=100` | L3: * Covers: retryWithBackoff, executeWithFallback, createErrorNotification, |
-| RISK-1041 | medium | Concurrency Or Timing | `tests/quality/error-classifier.test.ts` | `timeout` | L45: test('classifies LLM timeout errors', () => { |
-| RISK-1042 | low | High Attention File | `tests/quality/error-classifier.test.ts` | `attention_score=100` | L18: const result = classifier.classify(new Error('Out of memory during rendering')); |
-| RISK-1043 | medium | Concurrency Or Timing | `tests/quality/quality-gate.test.ts` | `retry` | L57: fallbackAction: 'retry', |
-| RISK-1044 | medium | Parser Or Heuristic | `tests/quality/quality-gate.test.ts` | `fallback` | L57: fallbackAction: 'retry', |
-| RISK-1045 | low | High Attention File | `tests/quality/quality-gate.test.ts` | `attention_score=70` | L57: fallbackAction: 'retry', |
-| RISK-1046 | medium | Concurrency Or Timing | `tests/quality/regression-detector.test.ts` | `async` | L122: test('loads and parses baseline from disk', async () => { |
-| RISK-1047 | medium | Parser Or Heuristic | `tests/quality/regression-detector.test.ts` | `parse` | L122: test('loads and parses baseline from disk', async () => { |
-| RISK-1048 | low | High Attention File | `tests/quality/regression-detector.test.ts` | `attention_score=70` | L57: memoryUsage: 256, |
-| RISK-1049 | medium | Network Or IPC | `tests/setupJestGlobals.ts` | `bridge` | L13: * This setup file bridges the gap: it imports the runtime object once and |
-| RISK-1050 | medium | Concurrency Or Timing | `tests/test-phase19-adaptive-llm.ts` | `rate limit` | L179: console.log(`❌ Analysis failed (may be rate limited or API error)`); |
-| RISK-1051 | medium | Persistence Or State | `tests/test-phase19-adaptive-llm.ts` | `cache` | L183: const stats = analyzer.getCacheStats(); |
-| RISK-1052 | low | High Attention File | `tests/test-phase19-adaptive-llm.ts` | `attention_score=70` | L40: text: "The distributed microservices architecture employs event-driven communication patterns utilizing Apache Kafka as the message broker. Service mesh implementation via Istio provides traffic management, security |
-| RISK-1053 | medium | Concurrency Or Timing | `tests/test-phase21-adaptive-content-analyzer.ts` | `async` | L87: async function testCacheEffectiveness() { |
-| RISK-1054 | medium | Parser Or Heuristic | `tests/test-phase21-adaptive-content-analyzer.ts` | `fallback` | L11: * 4. Fallback mechanism |
-| RISK-1055 | medium | Persistence Or State | `tests/test-phase21-adaptive-content-analyzer.ts` | `cache` | L10: * 3. Cache effectiveness |
-| RISK-1056 | low | High Attention File | `tests/test-phase21-adaptive-content-analyzer.ts` | `attention_score=100` | L10: * 3. Cache effectiveness |
-| RISK-1057 | medium | Concurrency Or Timing | `tests/test-phase22-unified-llm-service.ts` | `async` | L125: async function test3_CacheEffectiveness(): Promise<boolean> { |
-| RISK-1058 | medium | Parser Or Heuristic | `tests/test-phase22-unified-llm-service.ts` | `fallback` | L10: * 5. Error handling and fallback mechanisms |
-| RISK-1059 | medium | Persistence Or State | `tests/test-phase22-unified-llm-service.ts` | `cache` | L8: * 3. Cache effectiveness across components |
-| RISK-1060 | low | High Attention File | `tests/test-phase22-unified-llm-service.ts` | `attention_score=100` | L8: * 3. Cache effectiveness across components |
-| RISK-1061 | medium | Persistence Or State | `tests/test-phase23-gemini-analyzer-unified.ts` | `cache` | L8: * 4. Shares cache with ContentAnalyzer |
-| RISK-1062 | low | High Attention File | `tests/test-phase23-gemini-analyzer-unified.ts` | `attention_score=100` | L5: * 1. Maintains backward compatibility with Phase 19/22 API |
-| RISK-1063 | medium | Concurrency Or Timing | `tests/test-phase26-relationship-extraction.ts` | `timeout` | L184: console.log(` Avg Response: ${stats.adaptiveTimeout.avgResponseTimeMs.toFixed(0)}ms`); |
-| RISK-1064 | medium | Persistence Or State | `tests/test-phase26-relationship-extraction.ts` | `cache` | L154: const stats = analyzer.getCacheStats(); |
-| RISK-1065 | high | Security Boundary | `tests/transcription/streaming-quality-monitor.test.ts` | `session` | L5: * alert emission, and session summaries. |
-| RISK-1066 | high | Destructive Mutation | `tests/unit/analysis/complexity-detector.test.ts` | `delete` | L21: Reflect.deleteProperty(globalThis, 'process'); |
-| RISK-1067 | high | Destructive Mutation | `tests/unit/analysis/rule-based-analyzer.test.ts` | `delete` | L21: Reflect.deleteProperty(globalThis, 'process'); |
-| RISK-1068 | high | Security Boundary | `tests/unit/api/batch-parallel-processing.test.ts` | `token` | L7: * - Respects cancellation tokens |
-| RISK-1069 | medium | Concurrency Or Timing | `tests/unit/api/batch-parallel-processing.test.ts` | `async` | L63: const worker = async (): Promise<void> => { |
-| RISK-1070 | low | High Attention File | `tests/unit/api/batch-parallel-processing.test.ts` | `attention_score=100` | L7: * - Respects cancellation tokens |
-| RISK-1071 | medium | Parser Or Heuristic | `tests/unit/api/cors-config.test.ts` | `parse` | L48: test('should parse CORS_ORIGINS env var as comma-separated list', () => { |
-| RISK-1072 | medium | Concurrency Or Timing | `tests/unit/api/pipeline-rate-limit.test.ts` | `async` | L18: it('should include rate limit headers on POST /api/render', async () => { |
-| RISK-1073 | low | High Attention File | `tests/unit/api/pipeline-rate-limit.test.ts` | `attention_score=100` | L4: * Ensures the API rate limiter middleware is active on /api pipeline |
-| RISK-1074 | medium | Concurrency Or Timing | `tests/unit/api/request-timeout.test.ts` | `async` | L51: it('returns 504 when a request exceeds the timeout', async () => { |
-| RISK-1075 | low | High Attention File | `tests/unit/api/request-timeout.test.ts` | `attention_score=100` | L2: * Tests for request timeout middleware. |
-| RISK-1076 | high | Security Boundary | `tests/unit/api/routes/monitoring.test.ts` | `token` | L121: customDashboard.recordTokenUsage({ |
-| RISK-1077 | medium | Persistence Or State | `tests/unit/api/routes/monitoring.test.ts` | `cache` | L53: warmupCache: jest.fn(), |
-| RISK-1078 | low | High Attention File | `tests/unit/api/routes/monitoring.test.ts` | `attention_score=100` | L53: warmupCache: jest.fn(), |
-| RISK-1079 | medium | Concurrency Or Timing | `tests/unit/api/server-rate-limit.test.ts` | `async` | L18: it('should include rate limit headers on batch job creation', async () => { |
-| RISK-1080 | low | High Attention File | `tests/unit/api/server-rate-limit.test.ts` | `attention_score=98` | L4: * Ensures the upload rate limiter middleware is active on /api/v1/batch |
-| RISK-1081 | high | Security Boundary | `tests/unit/api/websocket-handler.test.ts` | `auth` | L11: * - JWT auth middleware on connection |
-| RISK-1082 | medium | Network Or IPC | `tests/unit/api/websocket-handler.test.ts` | `socket` | path contains `socket` |
-| RISK-1083 | medium | Parser Or Heuristic | `tests/unit/api/websocket-handler.test.ts` | `json` | L15: import * as jwt from 'jsonwebtoken'; |
-| RISK-1084 | low | High Attention File | `tests/unit/api/websocket-handler.test.ts` | `attention_score=100` | L2: * TASK-0047: WebSocket Real-time Progress Notification - Tests |
-| RISK-1085 | medium | Network Or IPC | `tests/unit/api/websocket-payload-validation.test.ts` | `socket` | path contains `socket` |
-| RISK-1086 | low | High Attention File | `tests/unit/api/websocket-payload-validation.test.ts` | `attention_score=100` | L2: * ISS-042: WebSocket payload validation tests |
-| RISK-1087 | medium | Concurrency Or Timing | `tests/unit/config/centralized-limits.test.ts` | `rate limit` | L23: it('should define API rate limit with window and max', () => { |
-| RISK-1088 | high | Destructive Mutation | `tests/unit/config/production-config.test.ts` | `delete` | L25: Reflect.deleteProperty(globalThis, 'process'); |
-| RISK-1089 | medium | Persistence Or State | `tests/unit/config/production-config.test.ts` | `cache` | L19: // Clear module cache so production-config is re-imported fresh |
-| RISK-1090 | high | Security Boundary | `tests/unit/edge-functions/auth.test.ts` | `auth` | path contains `auth` |
-| RISK-1091 | low | High Attention File | `tests/unit/edge-functions/auth.test.ts` | `attention_score=100` | L2: extractToken, |
-| RISK-1092 | high | Security Boundary | `tests/unit/edge-functions/error-handler.test.ts` | `auth` | L19: it('should include authorization in allowed headers', () => { |
-| RISK-1093 | medium | Concurrency Or Timing | `tests/unit/edge-functions/error-handler.test.ts` | `timeout` | L9: createTimeout, |
-| RISK-1094 | low | High Attention File | `tests/unit/edge-functions/error-handler.test.ts` | `attention_score=100` | L9: createTimeout, |
-| RISK-1095 | medium | Concurrency Or Timing | `tests/unit/edge-functions/generate-scenes.test.ts` | `timeout` | L7: GENERATE_TIMEOUT_MS, |
-| RISK-1096 | medium | Concurrency Or Timing | `tests/unit/edge-functions/render-video.test.ts` | `timeout` | L4: RENDER_TIMEOUT_MS, |
-| RISK-1097 | medium | Concurrency Or Timing | `tests/unit/edge-functions/timeout.test.ts` | `timeout` | path contains `timeout` |
-| RISK-1098 | low | High Attention File | `tests/unit/edge-functions/timeout.test.ts` | `attention_score=100` | L2: createTimeout, |
-| RISK-1099 | medium | Concurrency Or Timing | `tests/unit/edge-functions/transcribe-audio.test.ts` | `await` | L22: const { fetchWithTimeout } = await import('#supabase/functions/_shared/error-handler.ts') as { fetchWithTimeout: jest.Mock }; |
-| RISK-1100 | low | High Attention File | `tests/unit/edge-functions/transcribe-audio.test.ts` | `attention_score=100` | L5: // Mock the error-handler module's fetchWithTimeout |
-| RISK-1101 | low | High Attention File | `tests/unit/hooks/use-framework-pipeline.test.ts` | `attention_score=100` | L6: * REQ-137: useFrameworkPipeline Hook Unit Tests |
-| RISK-1102 | medium | Concurrency Or Timing | `tests/unit/hooks/use-toast.test.ts` | `timeout` | L16: // Use fake timers to control setTimeout in addToRemoveQueue side-effect |
-| RISK-1103 | high | Destructive Mutation | `tests/unit/integrations/supabase-client.test.ts` | `delete` | L22: Reflect.deleteProperty(globalThis, 'process'); |
-| RISK-1104 | medium | Concurrency Or Timing | `tests/unit/monitoring/health-check-service-exception.test.ts` | `timeout` | L48: recentErrors: ['timeout error'], |
-| RISK-1105 | medium | Parser Or Heuristic | `tests/unit/monitoring/health-check-service-exception.test.ts` | `fallback` | L2: * REQ-134: HealthCheckService Exception / Degraded-Status Fallback Tests |
-| RISK-1106 | medium | Persistence Or State | `tests/unit/monitoring/health-check-service-exception.test.ts` | `cache` | L35: cacheHitRate: 0.6, |
-| RISK-1107 | low | High Attention File | `tests/unit/monitoring/health-check-service-exception.test.ts` | `attention_score=100` | L2: * REQ-134: HealthCheckService Exception / Degraded-Status Fallback Tests |
-| RISK-1108 | medium | Concurrency Or Timing | `tests/unit/monitoring/health-check-service.test.ts` | `timeout` | L54: recentErrors: ['timeout error'], |
-| RISK-1109 | medium | Persistence Or State | `tests/unit/monitoring/health-check-service.test.ts` | `cache` | L6: * memory, cache, pipeline, LLM, error recovery, and performance trends. |
-| RISK-1110 | low | High Attention File | `tests/unit/monitoring/health-check-service.test.ts` | `attention_score=100` | L6: * memory, cache, pipeline, LLM, error recovery, and performance trends. |
-| RISK-1111 | medium | Concurrency Or Timing | `tests/unit/optimization/adaptive-content-processor.test.ts` | `async` | L129: it('caches strategy for same fingerprint', async () => { |
-| RISK-1112 | medium | Persistence Or State | `tests/unit/optimization/adaptive-content-processor.test.ts` | `cache` | L129: it('caches strategy for same fingerprint', async () => { |
-| RISK-1113 | low | High Attention File | `tests/unit/optimization/adaptive-content-processor.test.ts` | `attention_score=100` | L91: expect(result.strategy.transcriptionConfig.retryCount).toBeGreaterThanOrEqual(3); |
-| RISK-1114 | medium | Concurrency Or Timing | `tests/unit/optimization/batch-optimizer.test.ts` | `async` | L9: const identityProcessor = async (item: number, _index: number) => item * 2; |
-| RISK-1115 | medium | Concurrency Or Timing | `tests/unit/optimization/cache-warmup.test.ts` | `async` | L54: const resolver = async (text: string): Promise<string> => `resolved: ${text}`; |
-| RISK-1116 | medium | Persistence Or State | `tests/unit/optimization/cache-warmup.test.ts` | `cache` | path contains `cache` |
-| RISK-1117 | low | High Attention File | `tests/unit/optimization/cache-warmup.test.ts` | `attention_score=100` | L1: import { CacheWarmupManager, WarmupPattern, WarmupResult } from '@/optimization/cache-warmup'; |
-| RISK-1118 | medium | Concurrency Or Timing | `tests/unit/optimization/computation-cache.test.ts` | `async` | L20: const result1 = await cache.getOrCompute('key1', async () => { |
-| RISK-1119 | medium | Persistence Or State | `tests/unit/optimization/computation-cache.test.ts` | `cache` | path contains `cache` |
-| RISK-1120 | low | High Attention File | `tests/unit/optimization/computation-cache.test.ts` | `attention_score=100` | L2: ComputationCache, |
-| RISK-1121 | medium | Concurrency Or Timing | `tests/unit/optimization/lazy-loader.test.ts` | `async` | L41: const loaderFn = async () => { |
-| RISK-1122 | medium | Persistence Or State | `tests/unit/optimization/lazy-loader.test.ts` | `cache` | L157: // Second get should use cache |
-| RISK-1123 | low | High Attention File | `tests/unit/optimization/lazy-loader.test.ts` | `attention_score=92` | L44: await new Promise((resolve) => setTimeout(resolve, 50)); |
-| RISK-1124 | medium | Persistence Or State | `tests/unit/optimization/memory-cache.test.ts` | `cache` | path contains `cache` |
-| RISK-1125 | low | High Attention File | `tests/unit/optimization/memory-cache.test.ts` | `attention_score=100` | L1: import { MemoryCache } from '@/optimization/memory-cache'; |
-| RISK-1126 | medium | Persistence Or State | `tests/unit/performance/cache-health.test.ts` | `cache` | path contains `cache` |
-| RISK-1127 | low | High Attention File | `tests/unit/performance/cache-health.test.ts` | `attention_score=100` | L2: * Tests for cache health monitoring and corruption recovery. |
-| RISK-1128 | medium | Concurrency Or Timing | `tests/unit/performance/intelligent-cache.test.ts` | `await` | L12: await cache.store('test content', { result: 'hello' }, { |
-| RISK-1129 | medium | Persistence Or State | `tests/unit/performance/intelligent-cache.test.ts` | `cache` | path contains `cache` |
-| RISK-1130 | low | High Attention File | `tests/unit/performance/intelligent-cache.test.ts` | `attention_score=100` | L1: import { IntelligentCache, globalCache, cached } from '@/performance/intelligent-cache'; |
-| RISK-1131 | high | Security Boundary | `tests/unit/pipeline/cost-efficiency-metrics.test.ts` | `token` | L5: * - calculateCostEfficiency: per-unit cost/token computation |
-| RISK-1132 | low | High Attention File | `tests/unit/pipeline/cost-efficiency-metrics.test.ts` | `attention_score=100` | L5: * - calculateCostEfficiency: per-unit cost/token computation |
-| RISK-1133 | medium | Concurrency Or Timing | `tests/unit/pipeline/multi-layer-error-recovery-integration.test.ts` | `async` | L104: .then('retry', 'Retry with backoff', async (): Promise<ChainStepResult \| undefined> => { |
-| RISK-1134 | medium | Parser Or Heuristic | `tests/unit/pipeline/multi-layer-error-recovery-integration.test.ts` | `fallback` | L8: * 2. RecoveryStrategyChain – sequential fallback chains |
-| RISK-1135 | medium | Persistence Or State | `tests/unit/pipeline/multi-layer-error-recovery-integration.test.ts` | `cache` | L102: // Register a chain: retry → cache → minimal fallback |
-| RISK-1136 | low | High Attention File | `tests/unit/pipeline/multi-layer-error-recovery-integration.test.ts` | `attention_score=100` | L8: * 2. RecoveryStrategyChain – sequential fallback chains |
-| RISK-1137 | medium | Concurrency Or Timing | `tests/unit/pipeline/parallel-layout-executor.test.ts` | `timeout` | L17: const delay = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms)); |
-| RISK-1138 | low | High Attention File | `tests/unit/pipeline/performance-baseline.test.ts` | `attention_score=100` | L27: expect(result!.maxMemoryMB).toBe(50); |
-| RISK-1139 | medium | Concurrency Or Timing | `tests/unit/pipeline/pipeline-error-recovery-integration.test.ts` | `async` | L112: it('tracks retry attempts in pipeline result metrics', async () => { |
-| RISK-1140 | medium | Parser Or Heuristic | `tests/unit/pipeline/pipeline-error-recovery-integration.test.ts` | `fallback` | L6: * - Invoke fallback strategies when retries exhaust |
-| RISK-1141 | low | High Attention File | `tests/unit/pipeline/pipeline-error-recovery-integration.test.ts` | `attention_score=100` | L5: * - Retry transient stage failures with backoff |
-| RISK-1142 | high | Security Boundary | `tests/unit/pipeline/pipeline-health-score.test.ts` | `token` | L77: tokensPerAnalysis: 2000, |
-| RISK-1143 | low | High Attention File | `tests/unit/pipeline/pipeline-health-score.test.ts` | `attention_score=100` | L77: tokensPerAnalysis: 2000, |
-| RISK-1144 | medium | Concurrency Or Timing | `tests/unit/pipeline/pipeline-orchestrated-recovery-integration.test.ts` | `async` | L94: it('records zero retry attempts on a clean run', async () => { |
-| RISK-1145 | medium | Parser Or Heuristic | `tests/unit/pipeline/pipeline-orchestrated-recovery-integration.test.ts` | `fallback` | L9: * 3. Strategy chain recovery: registered chain provides fallback |
-| RISK-1146 | low | High Attention File | `tests/unit/pipeline/pipeline-orchestrated-recovery-integration.test.ts` | `attention_score=100` | L9: * 3. Strategy chain recovery: registered chain provides fallback |
-| RISK-1147 | medium | Concurrency Or Timing | `tests/unit/pipeline/pipeline-orchestrator.test.ts` | `async` | L227: it('should invoke fallback when a quality gate fails', async () => { |
-| RISK-1148 | medium | Parser Or Heuristic | `tests/unit/pipeline/pipeline-orchestrator.test.ts` | `fallback` | L14: FallbackStrategy, |
-| RISK-1149 | low | High Attention File | `tests/unit/pipeline/pipeline-orchestrator.test.ts` | `attention_score=100` | L14: FallbackStrategy, |
-| RISK-1150 | medium | Parser Or Heuristic | `tests/unit/pipeline/pipeline-quality-monitor.test.ts` | `fallback` | L45: fallbackTriggered: false, |
-| RISK-1151 | medium | Persistence Or State | `tests/unit/pipeline/pipeline-quality-monitor.test.ts` | `cache` | L96: cacheHitRate: 0.8, |
-| RISK-1152 | low | High Attention File | `tests/unit/pipeline/pipeline-quality-monitor.test.ts` | `attention_score=100` | L13: // Get fresh instance via private constructor reset |
-| RISK-1153 | medium | Concurrency Or Timing | `tests/unit/pipeline/pipeline-run-recovery-integration.test.ts` | `async` | L67: it('records retry count and duration per stage', async () => { |
-| RISK-1154 | medium | Parser Or Heuristic | `tests/unit/pipeline/pipeline-run-recovery-integration.test.ts` | `fallback` | L77: expect(typeof stageRecord.fallbackUsed).toBe('boolean'); |
-| RISK-1155 | medium | Concurrency Or Timing | `tests/unit/pipeline/stage-timing-metrics.test.ts` | `await` | L91: await new Promise(resolve => setTimeout(resolve, 50)); |
-| RISK-1156 | medium | Concurrency Or Timing | `tests/unit/pipeline/streaming-transcriber.test.ts` | `timeout` | L215: // Resolve the timeout |
-| RISK-1157 | medium | Persistence Or State | `tests/unit/quality/adaptive-quality-gates.test.ts` | `cache` | L13: llm: { cacheHitRate: 0.5, avgFlashResponseTime: 1000, avgProResponseTime: 5000, flashUsagePercent: 80 }, |
-| RISK-1158 | medium | Concurrency Or Timing | `tests/unit/quality/batch-operation-recovery.test.ts` | `async` | L138: const processor = async () => { throw new Error('LLM API error 500'); }; |
-| RISK-1159 | medium | Parser Or Heuristic | `tests/unit/quality/batch-operation-recovery.test.ts` | `fallback` | L6: import type { BatchResult, ItemResult, FallbackProvider } from '@/quality/batch-operation-recovery'; |
-| RISK-1160 | low | High Attention File | `tests/unit/quality/batch-operation-recovery.test.ts` | `attention_score=100` | L6: import type { BatchResult, ItemResult, FallbackProvider } from '@/quality/batch-operation-recovery'; |
-| RISK-1161 | high | Security Boundary | `tests/unit/quality/enhanced-error-recovery-extended.test.ts` | `session` | L22: userContext: { preferences: {}, sessionId: 'test-session', previousSuccesses: 0 }, |
-| RISK-1162 | medium | Concurrency Or Timing | `tests/unit/quality/enhanced-error-recovery-extended.test.ts` | `async` | L124: it('should succeed with skip_animation fallback', async () => { |
-| RISK-1163 | medium | Parser Or Heuristic | `tests/unit/quality/enhanced-error-recovery-extended.test.ts` | `fallback` | L54: expect(result.fallbackUsed).toBe(true); |
-| RISK-1164 | low | High Attention File | `tests/unit/quality/enhanced-error-recovery-extended.test.ts` | `attention_score=100` | L14: function makeContext(overrides: Partial<{ stage: ProcessingStage; retryCount: number; errorMessage: string }> = {}): Parameters<EnhancedErrorRecovery['recoverFromError']>[0] { |
-| RISK-1165 | medium | Concurrency Or Timing | `tests/unit/quality/enhanced-error-recovery.test.ts` | `async` | L28: it('should retry with exponential backoff on transient failures', async () => { |
-| RISK-1166 | medium | Parser Or Heuristic | `tests/unit/quality/enhanced-error-recovery.test.ts` | `fallback` | L4: * Tests for the retry with exponential backoff, fallback processing, |
-| RISK-1167 | low | High Attention File | `tests/unit/quality/enhanced-error-recovery.test.ts` | `attention_score=100` | L4: * Tests for the retry with exponential backoff, fallback processing, |
-| RISK-1168 | medium | Concurrency Or Timing | `tests/unit/quality/error-classifier.test.ts` | `timeout` | L104: it('should classify LLM timeout errors', () => { |
-| RISK-1169 | low | High Attention File | `tests/unit/quality/error-classifier.test.ts` | `attention_score=100` | L87: it('should classify LLM rate limited errors', () => { |
-| RISK-1170 | high | Security Boundary | `tests/unit/quality/error-recovery-boundary-grouping.test.ts` | `session` | L29: userContext: { preferences: {}, sessionId: 'test-session', previousSuccesses: 0 }, |
-| RISK-1171 | medium | Concurrency Or Timing | `tests/unit/quality/error-recovery-boundary-grouping.test.ts` | `async` | L222: const operation = async () => { |
-| RISK-1172 | low | High Attention File | `tests/unit/quality/error-recovery-boundary-grouping.test.ts` | `attention_score=100` | L18: retryCount: number; |
-| RISK-1173 | medium | Concurrency Or Timing | `tests/unit/quality/error-recovery-event-bus.test.ts` | `timeout` | L143: rootCause: 'timeout', |
-| RISK-1174 | medium | Parser Or Heuristic | `tests/unit/quality/error-recovery-event-bus.test.ts` | `fallback` | L61: fallbackUsed: false, |
-| RISK-1175 | medium | Persistence Or State | `tests/unit/quality/error-recovery-event-bus.test.ts` | `cache` | L59: strategyId: 'cache_recovery', |
-| RISK-1176 | low | High Attention File | `tests/unit/quality/error-recovery-event-bus.test.ts` | `attention_score=100` | L59: strategyId: 'cache_recovery', |
-| RISK-1177 | high | Security Boundary | `tests/unit/quality/error-recovery-health-tracker.test.ts` | `session` | L47: errorHistory: Map<string, Array<{ stage: string; component: string; error: Error; timestamp: number; retryCount: number; input: unknown; userContext: { preferences: unknown; sessionId: string; previousSuccesses: num |
-| RISK-1178 | medium | Concurrency Or Timing | `tests/unit/quality/error-recovery-health-tracker.test.ts` | `timeout` | L10: * - Dynamic queue timeout and capacity behavior |
-| RISK-1179 | low | High Attention File | `tests/unit/quality/error-recovery-health-tracker.test.ts` | `attention_score=100` | L10: * - Dynamic queue timeout and capacity behavior |
-| RISK-1180 | high | Security Boundary | `tests/unit/quality/error-recovery-monitor.test.ts` | `session` | L30: userContext: { preferences: unknown; sessionId: string; previousSuccesses: number }; |
-| RISK-1181 | medium | Network Or IPC | `tests/unit/quality/error-recovery-monitor.test.ts` | `bridge` | L2: * Tests for ErrorRecoveryMonitor: runtime health monitoring that bridges |
-| RISK-1182 | medium | Concurrency Or Timing | `tests/unit/quality/error-recovery-monitor.test.ts` | `retry` | L28: retryCount: number; |
-| RISK-1183 | low | High Attention File | `tests/unit/quality/error-recovery-monitor.test.ts` | `attention_score=100` | L2: * Tests for ErrorRecoveryMonitor: runtime health monitoring that bridges |
-| RISK-1184 | high | Security Boundary | `tests/unit/quality/error-recovery-state-management.test.ts` | `session` | L25: userContext: { preferences: {}, sessionId: 'test-session', previousSuccesses: 0 }, |
-| RISK-1185 | medium | Concurrency Or Timing | `tests/unit/quality/error-recovery-state-management.test.ts` | `async` | L68: it('should reflect error history after recoverFromError calls', async () => { |
-| RISK-1186 | medium | Parser Or Heuristic | `tests/unit/quality/error-recovery-state-management.test.ts` | `parse` | L131: const parsed = JSON.parse(json); |
-| RISK-1187 | medium | Persistence Or State | `tests/unit/quality/error-recovery-state-management.test.ts` | `state` | path contains `state` |
-| RISK-1188 | low | High Attention File | `tests/unit/quality/error-recovery-state-management.test.ts` | `attention_score=100` | L17: function makeContext(overrides: Partial<{ stage: ProcessingStage; retryCount: number; errorMessage: string; component: string }> = {}): Parameters<EnhancedErrorRecovery['recoverFromError']>[0] { |
-| RISK-1189 | medium | Concurrency Or Timing | `tests/unit/quality/pipeline-error-recovery-orchestrator.test.ts` | `async` | L177: .then('retry', 'Retry analysis', async (): Promise<ChainStepResult \| undefined> => { |
-| RISK-1190 | medium | Parser Or Heuristic | `tests/unit/quality/pipeline-error-recovery-orchestrator.test.ts` | `fallback` | L8: * - Persistent failures requiring chain fallback |
-| RISK-1191 | low | High Attention File | `tests/unit/quality/pipeline-error-recovery-orchestrator.test.ts` | `attention_score=100` | L7: * - Transient failures that resolve on retry |
-| RISK-1192 | medium | Concurrency Or Timing | `tests/unit/quality/pipeline-run-recovery-tracker.test.ts` | `retry` | L42: function recoveredOutcome(strategy = 'intelligent_retry') { |
-| RISK-1193 | medium | Parser Or Heuristic | `tests/unit/quality/pipeline-run-recovery-tracker.test.ts` | `fallback` | L27: fallbackUsed: boolean; |
-| RISK-1194 | medium | Persistence Or State | `tests/unit/quality/pipeline-run-recovery-tracker.test.ts` | `cache` | L56: recoveryStrategy: 'cache_recovery', |
-| RISK-1195 | low | High Attention File | `tests/unit/quality/pipeline-run-recovery-tracker.test.ts` | `attention_score=100` | L27: fallbackUsed: boolean; |
-| RISK-1196 | medium | Concurrency Or Timing | `tests/unit/quality/quality-gate.test.ts` | `retry` | L546: fallbackAction: 'retry', |
-| RISK-1197 | medium | Parser Or Heuristic | `tests/unit/quality/quality-gate.test.ts` | `fallback` | L546: fallbackAction: 'retry', |
-| RISK-1198 | low | High Attention File | `tests/unit/quality/quality-gate.test.ts` | `attention_score=70` | L546: fallbackAction: 'retry', |
-| RISK-1199 | medium | Concurrency Or Timing | `tests/unit/quality/recovery-strategy-chain.test.ts` | `await` | L45: await new Promise((r) => setTimeout(r, delayMs)); |
-| RISK-1200 | medium | Parser Or Heuristic | `tests/unit/quality/recovery-strategy-chain.test.ts` | `fallback` | L2: * Tests for RecoveryStrategyChain — composable sequential fallback chains. |
-| RISK-1201 | medium | Persistence Or State | `tests/unit/quality/recovery-strategy-chain.test.ts` | `cache` | L122: .then('cache', 'Cache', successStep('cache', 'cached')) |
-| RISK-1202 | low | High Attention File | `tests/unit/quality/recovery-strategy-chain.test.ts` | `attention_score=100` | L2: * Tests for RecoveryStrategyChain — composable sequential fallback chains. |
-| RISK-1203 | medium | Concurrency Or Timing | `tests/unit/quality/user-guided-error-recovery.test.ts` | `timeout` | L87: it('should classify timeout errors', () => { |
-| RISK-1204 | low | High Attention File | `tests/unit/quality/user-guided-error-recovery.test.ts` | `attention_score=100` | L80: it('should classify memory errors', () => { |
-| RISK-1205 | medium | Parser Or Heuristic | `tests/unit/transcription/transcription-pipeline-validation.test.ts` | `fallback` | L54: // past validation. It may succeed (fallback segments) or fail, but should |
-| RISK-1206 | medium | Parser Or Heuristic | `tests/unit/utils/iteration-logger.test.ts` | `regex` | L14: const escapeRegex = (s: string) => s.replace(/[.*+?^${}()\|[\]\\]/g, '\\$&'); |
-| RISK-1207 | medium | Concurrency Or Timing | `tests/unit/utils/memory-usage.test.ts` | `async` | L27: test('should use process.memoryUsage when available', async () => { |
-| RISK-1208 | medium | Parser Or Heuristic | `tests/unit/utils/memory-usage.test.ts` | `fallback` | L7: * - Fallback: returns zeroes |
-| RISK-1209 | low | High Attention File | `tests/unit/utils/memory-usage.test.ts` | `attention_score=100` | L2: * REQ-138: memory-usage.ts Unit Tests |
-| RISK-1210 | medium | Concurrency Or Timing | `tests/validate-llm-accuracy.ts` | `timeout` | L294: console.log(` Adaptive Timeout: ${cacheStats.adaptiveTimeout.currentTimeoutMs}ms`); |
-| RISK-1211 | medium | Persistence Or State | `tests/validate-llm-accuracy.ts` | `cache` | L288: // Cache statistics |
-| RISK-1212 | low | High Attention File | `tests/validate-llm-accuracy.ts` | `attention_score=100` | L288: // Cache statistics |
-| RISK-1213 | medium | Parser Or Heuristic | `tests/visualization/advanced-layouts.test.ts` | `fallback` | L160: test('should fallback to dark theme for unknown theme name', () => { |
-| RISK-1214 | low | High Attention File | `tests/visualization/advanced-layouts.test.ts` | `attention_score=100` | L160: test('should fallback to dark theme for unknown theme name', () => { |
-| RISK-1215 | medium | Concurrency Or Timing | `tests/visualization/complex-layout-engine.test.ts` | `async` | L547: it('should optimize memory when memoryUsage exceeds limit', async () => { |
-| RISK-1216 | medium | Parser Or Heuristic | `tests/visualization/complex-layout-engine.test.ts` | `fallback` | L6: import { FallbackLayoutStrategy } from '@/visualization/strategies/FallbackLayoutStrategy'; |
-| RISK-1217 | low | High Attention File | `tests/visualization/complex-layout-engine.test.ts` | `attention_score=100` | L6: import { FallbackLayoutStrategy } from '@/visualization/strategies/FallbackLayoutStrategy'; |
-| RISK-1218 | high | Destructive Mutation | `tests/visualization/cycle-strategy.test.ts` | `force` | L4: * Includes edge cases: empty nodes, single node, overlaps, force-directed fallback, |
-| RISK-1219 | medium | Parser Or Heuristic | `tests/visualization/cycle-strategy.test.ts` | `fallback` | L4: * Includes edge cases: empty nodes, single node, overlaps, force-directed fallback, |
-| RISK-1220 | low | High Attention File | `tests/visualization/cycle-strategy.test.ts` | `attention_score=70` | L4: * Includes edge cases: empty nodes, single node, overlaps, force-directed fallback, |
-| RISK-1221 | high | Destructive Mutation | `tests/visualization/enhanced-zero-overlap-layout.test.ts` | `force` | L18: * Uses bracket notation to bypass TypeScript private access enforcement. |
-| RISK-1222 | medium | Persistence Or State | `tests/visualization/enhanced-zero-overlap-layout.test.ts` | `state` | L430: test('should clear internal state without throwing', () => { |
-| RISK-1223 | low | High Attention File | `tests/visualization/enhanced-zero-overlap-layout.test.ts` | `attention_score=100` | L17: * Helper to access private methods on ZeroOverlapLayoutEngine for testing. |
-| RISK-1224 | high | Destructive Mutation | `tests/visualization/force-directed-simulation.test.ts` | `force` | path contains `force` |
-| RISK-1225 | medium | Parser Or Heuristic | `tests/visualization/force-directed-simulation.test.ts` | `fallback` | L22: import { FallbackLayoutStrategy } from '@/visualization/strategies/FallbackLayoutStrategy'; |
-| RISK-1226 | medium | Parser Or Heuristic | `tests/visualization/graph-coarsening.test.ts` | `fallback` | L21: import { FallbackLayoutStrategy } from '@/visualization/strategies/FallbackLayoutStrategy'; |
-| RISK-1227 | medium | Concurrency Or Timing | `tests/visualization/layout-auto-optimizer.test.ts` | `async` | L120: it('tries fallback strategy when primary gives low score', async () => { |
-| RISK-1228 | medium | Parser Or Heuristic | `tests/visualization/layout-auto-optimizer.test.ts` | `fallback` | L120: it('tries fallback strategy when primary gives low score', async () => { |
-| RISK-1229 | low | High Attention File | `tests/visualization/layout-auto-optimizer.test.ts` | `attention_score=70` | L120: it('tries fallback strategy when primary gives low score', async () => { |
-| RISK-1230 | medium | Parser Or Heuristic | `tests/visualization/overlap-resolver.test.ts` | `fallback` | L66: expect(overlaps).toHaveLength(0); // Grid-snap fallback guarantees this |
-| RISK-1231 | high | Destructive Mutation | `tests/visualization/strategies/cycle-strategy.test.ts` | `force` | L133: it('should apply force-directed fallback for overlapping large nodes', () => { |
-| RISK-1232 | medium | Parser Or Heuristic | `tests/visualization/strategies/cycle-strategy.test.ts` | `fallback` | L133: it('should apply force-directed fallback for overlapping large nodes', () => { |
-| RISK-1233 | medium | Parser Or Heuristic | `tests/visualization/strategies/fallback-layout-strategy.test.ts` | `fallback` | path contains `fallback` |
-| RISK-1234 | low | High Attention File | `tests/visualization/strategies/fallback-layout-strategy.test.ts` | `attention_score=100` | L1: import { FallbackLayoutStrategy } from '@/visualization/strategies/FallbackLayoutStrategy'; |
-| RISK-1235 | medium | Parser Or Heuristic | `tests/visualization/strategies/flow-strategy.test.ts` | `fallback` | L232: describe('many overlapping nodes (triggers gridSnapFallback)', () => { |
-| RISK-1236 | medium | Parser Or Heuristic | `tests/visualization/strategies/timeline-strategy.test.ts` | `fallback` | L105: it('should use index order as fallback when no edges are provided', () => { |
-| RISK-1237 | medium | Parser Or Heuristic | `tests/visualization/strategies/tree-strategy.test.ts` | `fallback` | L237: describe('many overlapping nodes (triggers gridSnapFallback)', () => { |
-| RISK-1238 | medium | Concurrency Or Timing | `tests/visualization/strategy-selector-execute-layout.test.ts` | `async` | L71: it('should use fallback for unknown diagram types', async () => { |
-| RISK-1239 | medium | Parser Or Heuristic | `tests/visualization/strategy-selector-execute-layout.test.ts` | `fallback` | L71: it('should use fallback for unknown diagram types', async () => { |
-| RISK-1240 | low | High Attention File | `tests/visualization/strategy-selector-execute-layout.test.ts` | `attention_score=84` | L71: it('should use fallback for unknown diagram types', async () => { |
-| RISK-1241 | medium | Parser Or Heuristic | `tests/visualization/strategy-selector.test.ts` | `fallback` | L37: // But we test the fallback behavior through executeLayout with valid types |
-| RISK-1242 | medium | Parser Or Heuristic | `tsconfig.app.json` | `json` | path contains `json` |
-| RISK-1243 | medium | Parser Or Heuristic | `tsconfig.json` | `json` | path contains `json` |
-| RISK-1244 | medium | Parser Or Heuristic | `tsconfig.node.json` | `json` | path contains `json` |
-| RISK-1245 | medium | Parser Or Heuristic | `tsconfig.test.json` | `json` | path contains `json` |
-| RISK-1246 | high | Process Execution | `vite.config.ts` | `child_process` | L56: return ['path', 'fs', 'os', 'util', 'assert', 'module', 'child_process', 'stream', 'worker_threads', 'crypto', 'url', 'http', 'https', 'net', 'tls'].some(nodeModule => |
-| RISK-1247 | medium | Network Or IPC | `vite.config.ts` | `http` | L56: return ['path', 'fs', 'os', 'util', 'assert', 'module', 'child_process', 'stream', 'worker_threads', 'crypto', 'url', 'http', 'https', 'net', 'tls'].some(nodeModule => |
-| RISK-1248 | medium | Concurrency Or Timing | `vite.config.ts` | `thread` | L56: return ['path', 'fs', 'os', 'util', 'assert', 'module', 'child_process', 'stream', 'worker_threads', 'crypto', 'url', 'http', 'https', 'net', 'tls'].some(nodeModule => |
-| RISK-1249 | low | High Attention File | `vite.config.ts` | `attention_score=70` | L2: import react from "@vitejs/plugin-react-swc"; |
+| RISK-0974 | medium | Concurrency Or Timing | `tests/ci/recovery-smoke.test.ts` | `async` | L23: it('recovers from a single stage failure via boundary retry', async () => { |
+| RISK-0975 | medium | Parser Or Heuristic | `tests/e2e/pipeline-flow.test.ts` | `fallback` | L113: fallbackStrategies: [{ stage: 2, strategy: 'rule-based' }], |
+| RISK-0976 | medium | Network Or IPC | `tests/integration/api.test.ts` | `socket` | L5: * Express routes, error handling, WebSocket event types, and |
+| RISK-0977 | medium | Concurrency Or Timing | `tests/integration/api.test.ts` | `await` | L133: await new Promise((r) => setTimeout(r, 10)); |
+| RISK-0978 | low | High Attention File | `tests/integration/api.test.ts` | `attention_score=100` | L5: * Express routes, error handling, WebSocket event types, and |
+| RISK-0979 | high | Security Boundary | `tests/integration/batch.test.ts` | `token` | L212: // Verify cancel token is set |
+| RISK-0980 | low | High Attention File | `tests/integration/batch.test.ts` | `attention_score=98` | L212: // Verify cancel token is set |
+| RISK-0981 | medium | Concurrency Or Timing | `tests/integration/label-sizing-pipeline.test.ts` | `async` | L100: it('should reflect label overflow in quality metrics alongside layout quality', async () => { |
+| RISK-0982 | medium | Parser Or Heuristic | `tests/integration/label-sizing-pipeline.test.ts` | `fallback` | L54: fallbackStrategies: [], |
+| RISK-0983 | medium | Concurrency Or Timing | `tests/integration/layout-quality-pipeline.test.ts` | `retry` | L33: { id: 'retry', label: 'リトライ', x: 200, y: 250, width: 120, height: 50 }, |
+| RISK-0984 | medium | Persistence Or State | `tests/integration/monitoring-health-degraded.test.ts` | `cache` | L13: * Previous phases (45-48) tested warmup state transitions and cache backend |
+| RISK-0985 | low | High Attention File | `tests/integration/monitoring-health-degraded.test.ts` | `attention_score=100` | L13: * Previous phases (45-48) tested warmup state transitions and cache backend |
+| RISK-0986 | medium | Parser Or Heuristic | `tests/integration/phase32-quality-pipeline.test.ts` | `fallback` | L96: fallbackStrategies: [], |
+| RISK-0987 | medium | Concurrency Or Timing | `tests/integration/pipeline-recovery-e2e.test.ts` | `async` | L247: it('executeStage recovers from transient failure via boundary retry', async () => { |
+| RISK-0988 | medium | Parser Or Heuristic | `tests/integration/pipeline-recovery-e2e.test.ts` | `fallback` | L301: name: 'layout-fallback-chain', |
+| RISK-0989 | low | High Attention File | `tests/integration/pipeline-recovery-e2e.test.ts` | `attention_score=100` | L247: it('executeStage recovers from transient failure via boundary retry', async () => { |
+| RISK-0990 | medium | Concurrency Or Timing | `tests/integration/pipeline.test.ts` | `async` | L328: it('uses fallback when quality gate fails and fallback succeeds', async () => { |
+| RISK-0991 | medium | Parser Or Heuristic | `tests/integration/pipeline.test.ts` | `fallback` | L12: FallbackStrategy, |
+| RISK-0992 | medium | Persistence Or State | `tests/integration/pipeline.test.ts` | `cache` | L157: // Mock the performance/intelligent-cache used by EnhancedErrorRecovery |
+| RISK-0993 | low | High Attention File | `tests/integration/pipeline.test.ts` | `attention_score=100` | L12: FallbackStrategy, |
+| RISK-0994 | medium | Concurrency Or Timing | `tests/integration/warmup-cache-backend-failure.test.ts` | `async` | L65: warmupCache: jest.fn().mockImplementation(async () => { |
+| RISK-0995 | medium | Persistence Or State | `tests/integration/warmup-cache-backend-failure.test.ts` | `cache` | path contains `cache` |
+| RISK-0996 | low | High Attention File | `tests/integration/warmup-cache-backend-failure.test.ts` | `attention_score=100` | L2: * Phase 46: Warmup Cache Backend Unreachable Integration Tests |
+| RISK-0997 | medium | Concurrency Or Timing | `tests/integration/warmup-default-pattern-resilience.test.ts` | `async` | L75: warmupCache: jest.fn().mockImplementation(async () => { |
+| RISK-0998 | medium | Persistence Or State | `tests/integration/warmup-default-pattern-resilience.test.ts` | `cache` | L9: * through the full pipeline: CacheWarmupManager → startup-warmup → health endpoint. |
+| RISK-0999 | low | High Attention File | `tests/integration/warmup-default-pattern-resilience.test.ts` | `attention_score=100` | L9: * through the full pipeline: CacheWarmupManager → startup-warmup → health endpoint. |
+| RISK-1000 | medium | Concurrency Or Timing | `tests/integration/warmup-failure-resilience.test.ts` | `await` | L92: await new Promise((r) => setTimeout(r, 50)); |
+| RISK-1001 | medium | Persistence Or State | `tests/integration/warmup-failure-resilience.test.ts` | `cache` | L5: * REQ-114: Cache backend unreachable integration tests (3 tests) |
+| RISK-1002 | low | High Attention File | `tests/integration/warmup-failure-resilience.test.ts` | `attention_score=100` | L5: * REQ-114: Cache backend unreachable integration tests (3 tests) |
+| RISK-1003 | medium | Concurrency Or Timing | `tests/integration/warmup-zero-success-resilience.test.ts` | `async` | L62: warmupCache: jest.fn().mockImplementation(async () => { |
+| RISK-1004 | medium | Persistence Or State | `tests/integration/warmup-zero-success-resilience.test.ts` | `cache` | L8: * Validates that when warmupCache resolves true but all individual patterns |
+| RISK-1005 | low | High Attention File | `tests/integration/warmup-zero-success-resilience.test.ts` | `attention_score=100` | L6: * REQ-121: Warmup retry after zero-success completion |
+| RISK-1006 | medium | Concurrency Or Timing | `tests/integration/worker-fallback.test.ts` | `thread` | L35: // Main-thread processing (simulating fallback) |
+| RISK-1007 | medium | Parser Or Heuristic | `tests/integration/worker-fallback.test.ts` | `fallback` | path contains `fallback` |
+| RISK-1008 | low | High Attention File | `tests/integration/worker-fallback.test.ts` | `attention_score=98` | L2: * Worker Fallback Integration Tests |
+| RISK-1009 | medium | Concurrency Or Timing | `tests/integration/worker-pool.test.ts` | `async` | L97: it('should queue excess tasks and dispatch when workers become idle', async () => { |
+| RISK-1010 | low | High Attention File | `tests/integration/worker-pool.test.ts` | `attention_score=100` | L45: const dispatchToLastWorker = (data: WorkerResponse) => { |
+| RISK-1011 | medium | Parser Or Heuristic | `tests/llm-parsing.ts` | `parse` | L3: * Simple parser test for LLM JSON responses |
+| RISK-1012 | low | High Attention File | `tests/llm-parsing.ts` | `attention_score=100` | L3: * Simple parser test for LLM JSON responses |
+| RISK-1013 | high | Security Boundary | `tests/mocks/jsonwebtoken.ts` | `auth` | L4: * NOTE: Auth-related tests (auth.test.ts, auth-integration.test.ts, |
+| RISK-1014 | medium | Network Or IPC | `tests/mocks/jsonwebtoken.ts` | `socket` | L5: * pipeline-auth.test.ts, websocket-handler.test.ts) use REAL jsonwebtoken |
+| RISK-1015 | medium | Parser Or Heuristic | `tests/mocks/jsonwebtoken.ts` | `json` | path contains `json` |
+| RISK-1016 | medium | Concurrency Or Timing | `tests/performance/benchmark.test.ts` | `async` | L129: const expensiveCompute = async () => { |
+| RISK-1017 | medium | Persistence Or State | `tests/performance/benchmark.test.ts` | `cache` | L14: import { ComputationCache } from '@/optimization/computation-cache'; |
+| RISK-1018 | low | High Attention File | `tests/performance/benchmark.test.ts` | `attention_score=100` | L8: * - Memory usage ≤ 512MB |
+| RISK-1019 | low | High Attention File | `tests/performance/e2e-benchmark.test.ts` | `attention_score=100` | L10: * Memory: Heap usage <= 512MB (measured: 82.21MB historical) |
+| RISK-1020 | medium | Parser Or Heuristic | `tests/pipeline/parallel-benchmark.test.ts` | `fallback` | L5: * with edge cases, baseline matching, and fallback behaviour. |
+| RISK-1021 | low | High Attention File | `tests/pipeline/parallel-benchmark.test.ts` | `attention_score=98` | L5: * with edge cases, baseline matching, and fallback behaviour. |
+| RISK-1022 | medium | Concurrency Or Timing | `tests/pipeline/parallel-execution.test.ts` | `async` | L38: const layoutFn = async (diag: typeof diagrams[0]) => ({ |
+| RISK-1023 | medium | Parser Or Heuristic | `tests/pipeline/parallel-execution.test.ts` | `parse` | L227: const parsed = JSON.parse(json); |
+| RISK-1024 | low | High Attention File | `tests/pipeline/parallel-execution.test.ts` | `attention_score=98` | L86: await new Promise(resolve => setTimeout(resolve, 10)); |
+| RISK-1025 | high | Security Boundary | `tests/pipeline/performance-regression-detector.test.ts` | `token` | L162: test('$0.03/video, 2000 tokens/analysis → correct efficiency', () => { |
+| RISK-1026 | low | High Attention File | `tests/pipeline/performance-regression-detector.test.ts` | `attention_score=100` | L47: memoryMB: 40, |
+| RISK-1027 | high | Security Boundary | `tests/pipeline/pipeline-health-score.test.ts` | `token` | L157: tokensPerAnalysis: 2000, |
+| RISK-1028 | low | High Attention File | `tests/pipeline/pipeline-health-score.test.ts` | `attention_score=100` | L157: tokensPerAnalysis: 2000, |
+| RISK-1029 | medium | Concurrency Or Timing | `tests/pipeline/retry-edge-cases.test.ts` | `async` | L33: it('maxRetries=0 throws immediately on failure with no retry', async () => { |
+| RISK-1030 | low | High Attention File | `tests/pipeline/retry-edge-cases.test.ts` | `attention_score=100` | L2: * Edge-case tests for retryWithBackoff and ErrorClassifier. |
+| RISK-1031 | medium | Concurrency Or Timing | `tests/pipeline/retry-integration.test.ts` | `async` | L46: it('recovers from rate limit then timeout in sequence', async () => { |
+| RISK-1032 | medium | Parser Or Heuristic | `tests/pipeline/retry-integration.test.ts` | `fallback` | L7: * 3. PipelineOrchestrator.executeStageWithGates — retries before fallbacks |
+| RISK-1033 | low | High Attention File | `tests/pipeline/retry-integration.test.ts` | `attention_score=100` | L2: * Integration tests for retryWithBackoff wired into pipeline stages. |
+| RISK-1034 | medium | Concurrency Or Timing | `tests/pipeline/retry-metrics-parallel.test.ts` | `async` | L40: const { result, attempts } = await retryWithBackoff(async () => 'ok', { maxRetries: 3 }); |
+| RISK-1035 | low | High Attention File | `tests/pipeline/retry-metrics-parallel.test.ts` | `attention_score=100` | L2: * Tests for retry observability in metrics and parallel execution paths. |
+| RISK-1036 | medium | Concurrency Or Timing | `tests/pipeline/retry-observability-surface.test.ts` | `async` | L40: it('exposes totalRetryAttempts in pipeline result metrics', async () => { |
+| RISK-1037 | low | High Attention File | `tests/pipeline/retry-observability-surface.test.ts` | `attention_score=100` | L2: * Tests for retry observability surfacing in pipeline completion output. |
+| RISK-1038 | medium | Concurrency Or Timing | `tests/quality/enhanced-error-recovery.test.ts` | `async` | L56: test('should retry on failure and eventually succeed', async () => { |
+| RISK-1039 | medium | Parser Or Heuristic | `tests/quality/enhanced-error-recovery.test.ts` | `fallback` | L3: * Covers: retryWithBackoff, executeWithFallback, createErrorNotification, |
+| RISK-1040 | medium | Persistence Or State | `tests/quality/enhanced-error-recovery.test.ts` | `cache` | L10: // Mock the intelligent-cache module |
+| RISK-1041 | low | High Attention File | `tests/quality/enhanced-error-recovery.test.ts` | `attention_score=100` | L3: * Covers: retryWithBackoff, executeWithFallback, createErrorNotification, |
+| RISK-1042 | medium | Concurrency Or Timing | `tests/quality/error-classifier.test.ts` | `timeout` | L45: test('classifies LLM timeout errors', () => { |
+| RISK-1043 | low | High Attention File | `tests/quality/error-classifier.test.ts` | `attention_score=100` | L18: const result = classifier.classify(new Error('Out of memory during rendering')); |
+| RISK-1044 | medium | Concurrency Or Timing | `tests/quality/quality-gate.test.ts` | `retry` | L57: fallbackAction: 'retry', |
+| RISK-1045 | medium | Parser Or Heuristic | `tests/quality/quality-gate.test.ts` | `fallback` | L57: fallbackAction: 'retry', |
+| RISK-1046 | low | High Attention File | `tests/quality/quality-gate.test.ts` | `attention_score=70` | L57: fallbackAction: 'retry', |
+| RISK-1047 | medium | Concurrency Or Timing | `tests/quality/regression-detector.test.ts` | `async` | L122: test('loads and parses baseline from disk', async () => { |
+| RISK-1048 | medium | Parser Or Heuristic | `tests/quality/regression-detector.test.ts` | `parse` | L122: test('loads and parses baseline from disk', async () => { |
+| RISK-1049 | low | High Attention File | `tests/quality/regression-detector.test.ts` | `attention_score=70` | L57: memoryUsage: 256, |
+| RISK-1050 | medium | Network Or IPC | `tests/setupJestGlobals.ts` | `bridge` | L13: * This setup file bridges the gap: it imports the runtime object once and |
+| RISK-1051 | medium | Concurrency Or Timing | `tests/test-phase19-adaptive-llm.ts` | `rate limit` | L179: console.log(`❌ Analysis failed (may be rate limited or API error)`); |
+| RISK-1052 | medium | Persistence Or State | `tests/test-phase19-adaptive-llm.ts` | `cache` | L183: const stats = analyzer.getCacheStats(); |
+| RISK-1053 | low | High Attention File | `tests/test-phase19-adaptive-llm.ts` | `attention_score=70` | L40: text: "The distributed microservices architecture employs event-driven communication patterns utilizing Apache Kafka as the message broker. Service mesh implementation via Istio provides traffic management, security |
+| RISK-1054 | medium | Concurrency Or Timing | `tests/test-phase21-adaptive-content-analyzer.ts` | `async` | L87: async function testCacheEffectiveness() { |
+| RISK-1055 | medium | Parser Or Heuristic | `tests/test-phase21-adaptive-content-analyzer.ts` | `fallback` | L11: * 4. Fallback mechanism |
+| RISK-1056 | medium | Persistence Or State | `tests/test-phase21-adaptive-content-analyzer.ts` | `cache` | L10: * 3. Cache effectiveness |
+| RISK-1057 | low | High Attention File | `tests/test-phase21-adaptive-content-analyzer.ts` | `attention_score=100` | L10: * 3. Cache effectiveness |
+| RISK-1058 | medium | Concurrency Or Timing | `tests/test-phase22-unified-llm-service.ts` | `async` | L125: async function test3_CacheEffectiveness(): Promise<boolean> { |
+| RISK-1059 | medium | Parser Or Heuristic | `tests/test-phase22-unified-llm-service.ts` | `fallback` | L10: * 5. Error handling and fallback mechanisms |
+| RISK-1060 | medium | Persistence Or State | `tests/test-phase22-unified-llm-service.ts` | `cache` | L8: * 3. Cache effectiveness across components |
+| RISK-1061 | low | High Attention File | `tests/test-phase22-unified-llm-service.ts` | `attention_score=100` | L8: * 3. Cache effectiveness across components |
+| RISK-1062 | medium | Persistence Or State | `tests/test-phase23-gemini-analyzer-unified.ts` | `cache` | L8: * 4. Shares cache with ContentAnalyzer |
+| RISK-1063 | low | High Attention File | `tests/test-phase23-gemini-analyzer-unified.ts` | `attention_score=100` | L5: * 1. Maintains backward compatibility with Phase 19/22 API |
+| RISK-1064 | medium | Concurrency Or Timing | `tests/test-phase26-relationship-extraction.ts` | `timeout` | L184: console.log(` Avg Response: ${stats.adaptiveTimeout.avgResponseTimeMs.toFixed(0)}ms`); |
+| RISK-1065 | medium | Persistence Or State | `tests/test-phase26-relationship-extraction.ts` | `cache` | L154: const stats = analyzer.getCacheStats(); |
+| RISK-1066 | high | Security Boundary | `tests/transcription/streaming-quality-monitor.test.ts` | `session` | L5: * alert emission, and session summaries. |
+| RISK-1067 | high | Destructive Mutation | `tests/unit/analysis/complexity-detector.test.ts` | `delete` | L21: Reflect.deleteProperty(globalThis, 'process'); |
+| RISK-1068 | high | Destructive Mutation | `tests/unit/analysis/rule-based-analyzer.test.ts` | `delete` | L21: Reflect.deleteProperty(globalThis, 'process'); |
+| RISK-1069 | high | Security Boundary | `tests/unit/api/batch-parallel-processing.test.ts` | `token` | L7: * - Respects cancellation tokens |
+| RISK-1070 | medium | Concurrency Or Timing | `tests/unit/api/batch-parallel-processing.test.ts` | `async` | L63: const worker = async (): Promise<void> => { |
+| RISK-1071 | low | High Attention File | `tests/unit/api/batch-parallel-processing.test.ts` | `attention_score=100` | L7: * - Respects cancellation tokens |
+| RISK-1072 | medium | Parser Or Heuristic | `tests/unit/api/cors-config.test.ts` | `parse` | L48: test('should parse CORS_ORIGINS env var as comma-separated list', () => { |
+| RISK-1073 | medium | Concurrency Or Timing | `tests/unit/api/pipeline-rate-limit.test.ts` | `async` | L18: it('should include rate limit headers on POST /api/render', async () => { |
+| RISK-1074 | low | High Attention File | `tests/unit/api/pipeline-rate-limit.test.ts` | `attention_score=100` | L4: * Ensures the API rate limiter middleware is active on /api pipeline |
+| RISK-1075 | medium | Concurrency Or Timing | `tests/unit/api/request-timeout.test.ts` | `async` | L51: it('returns 504 when a request exceeds the timeout', async () => { |
+| RISK-1076 | low | High Attention File | `tests/unit/api/request-timeout.test.ts` | `attention_score=100` | L2: * Tests for request timeout middleware. |
+| RISK-1077 | high | Security Boundary | `tests/unit/api/routes/monitoring.test.ts` | `token` | L121: customDashboard.recordTokenUsage({ |
+| RISK-1078 | medium | Persistence Or State | `tests/unit/api/routes/monitoring.test.ts` | `cache` | L53: warmupCache: jest.fn(), |
+| RISK-1079 | low | High Attention File | `tests/unit/api/routes/monitoring.test.ts` | `attention_score=100` | L53: warmupCache: jest.fn(), |
+| RISK-1080 | medium | Concurrency Or Timing | `tests/unit/api/server-rate-limit.test.ts` | `async` | L18: it('should include rate limit headers on batch job creation', async () => { |
+| RISK-1081 | low | High Attention File | `tests/unit/api/server-rate-limit.test.ts` | `attention_score=98` | L4: * Ensures the upload rate limiter middleware is active on /api/v1/batch |
+| RISK-1082 | high | Security Boundary | `tests/unit/api/websocket-handler.test.ts` | `auth` | L11: * - JWT auth middleware on connection |
+| RISK-1083 | medium | Network Or IPC | `tests/unit/api/websocket-handler.test.ts` | `socket` | path contains `socket` |
+| RISK-1084 | medium | Parser Or Heuristic | `tests/unit/api/websocket-handler.test.ts` | `json` | L15: import * as jwt from 'jsonwebtoken'; |
+| RISK-1085 | low | High Attention File | `tests/unit/api/websocket-handler.test.ts` | `attention_score=100` | L2: * TASK-0047: WebSocket Real-time Progress Notification - Tests |
+| RISK-1086 | medium | Network Or IPC | `tests/unit/api/websocket-payload-validation.test.ts` | `socket` | path contains `socket` |
+| RISK-1087 | low | High Attention File | `tests/unit/api/websocket-payload-validation.test.ts` | `attention_score=100` | L2: * ISS-042: WebSocket payload validation tests |
+| RISK-1088 | medium | Concurrency Or Timing | `tests/unit/config/centralized-limits.test.ts` | `rate limit` | L23: it('should define API rate limit with window and max', () => { |
+| RISK-1089 | high | Destructive Mutation | `tests/unit/config/production-config.test.ts` | `delete` | L25: Reflect.deleteProperty(globalThis, 'process'); |
+| RISK-1090 | medium | Persistence Or State | `tests/unit/config/production-config.test.ts` | `cache` | L19: // Clear module cache so production-config is re-imported fresh |
+| RISK-1091 | high | Security Boundary | `tests/unit/edge-functions/auth.test.ts` | `auth` | path contains `auth` |
+| RISK-1092 | low | High Attention File | `tests/unit/edge-functions/auth.test.ts` | `attention_score=100` | L2: extractToken, |
+| RISK-1093 | high | Security Boundary | `tests/unit/edge-functions/error-handler.test.ts` | `auth` | L19: it('should include authorization in allowed headers', () => { |
+| RISK-1094 | medium | Concurrency Or Timing | `tests/unit/edge-functions/error-handler.test.ts` | `timeout` | L9: createTimeout, |
+| RISK-1095 | low | High Attention File | `tests/unit/edge-functions/error-handler.test.ts` | `attention_score=100` | L9: createTimeout, |
+| RISK-1096 | medium | Concurrency Or Timing | `tests/unit/edge-functions/generate-scenes.test.ts` | `timeout` | L7: GENERATE_TIMEOUT_MS, |
+| RISK-1097 | medium | Concurrency Or Timing | `tests/unit/edge-functions/render-video.test.ts` | `timeout` | L4: RENDER_TIMEOUT_MS, |
+| RISK-1098 | medium | Concurrency Or Timing | `tests/unit/edge-functions/timeout.test.ts` | `timeout` | path contains `timeout` |
+| RISK-1099 | low | High Attention File | `tests/unit/edge-functions/timeout.test.ts` | `attention_score=100` | L2: createTimeout, |
+| RISK-1100 | medium | Concurrency Or Timing | `tests/unit/edge-functions/transcribe-audio.test.ts` | `await` | L22: const { fetchWithTimeout } = await import('#supabase/functions/_shared/error-handler.ts') as { fetchWithTimeout: jest.Mock }; |
+| RISK-1101 | low | High Attention File | `tests/unit/edge-functions/transcribe-audio.test.ts` | `attention_score=100` | L5: // Mock the error-handler module's fetchWithTimeout |
+| RISK-1102 | low | High Attention File | `tests/unit/hooks/use-framework-pipeline.test.ts` | `attention_score=100` | L6: * REQ-137: useFrameworkPipeline Hook Unit Tests |
+| RISK-1103 | medium | Concurrency Or Timing | `tests/unit/hooks/use-toast.test.ts` | `timeout` | L16: // Use fake timers to control setTimeout in addToRemoveQueue side-effect |
+| RISK-1104 | high | Destructive Mutation | `tests/unit/integrations/supabase-client.test.ts` | `delete` | L22: Reflect.deleteProperty(globalThis, 'process'); |
+| RISK-1105 | medium | Concurrency Or Timing | `tests/unit/monitoring/health-check-service-exception.test.ts` | `timeout` | L48: recentErrors: ['timeout error'], |
+| RISK-1106 | medium | Parser Or Heuristic | `tests/unit/monitoring/health-check-service-exception.test.ts` | `fallback` | L2: * REQ-134: HealthCheckService Exception / Degraded-Status Fallback Tests |
+| RISK-1107 | medium | Persistence Or State | `tests/unit/monitoring/health-check-service-exception.test.ts` | `cache` | L35: cacheHitRate: 0.6, |
+| RISK-1108 | low | High Attention File | `tests/unit/monitoring/health-check-service-exception.test.ts` | `attention_score=100` | L2: * REQ-134: HealthCheckService Exception / Degraded-Status Fallback Tests |
+| RISK-1109 | medium | Concurrency Or Timing | `tests/unit/monitoring/health-check-service.test.ts` | `timeout` | L54: recentErrors: ['timeout error'], |
+| RISK-1110 | medium | Persistence Or State | `tests/unit/monitoring/health-check-service.test.ts` | `cache` | L6: * memory, cache, pipeline, LLM, error recovery, and performance trends. |
+| RISK-1111 | low | High Attention File | `tests/unit/monitoring/health-check-service.test.ts` | `attention_score=100` | L6: * memory, cache, pipeline, LLM, error recovery, and performance trends. |
+| RISK-1112 | medium | Concurrency Or Timing | `tests/unit/optimization/adaptive-content-processor.test.ts` | `async` | L129: it('caches strategy for same fingerprint', async () => { |
+| RISK-1113 | medium | Persistence Or State | `tests/unit/optimization/adaptive-content-processor.test.ts` | `cache` | L129: it('caches strategy for same fingerprint', async () => { |
+| RISK-1114 | low | High Attention File | `tests/unit/optimization/adaptive-content-processor.test.ts` | `attention_score=100` | L91: expect(result.strategy.transcriptionConfig.retryCount).toBeGreaterThanOrEqual(3); |
+| RISK-1115 | medium | Concurrency Or Timing | `tests/unit/optimization/batch-optimizer.test.ts` | `async` | L9: const identityProcessor = async (item: number, _index: number) => item * 2; |
+| RISK-1116 | medium | Concurrency Or Timing | `tests/unit/optimization/cache-warmup.test.ts` | `async` | L54: const resolver = async (text: string): Promise<string> => `resolved: ${text}`; |
+| RISK-1117 | medium | Persistence Or State | `tests/unit/optimization/cache-warmup.test.ts` | `cache` | path contains `cache` |
+| RISK-1118 | low | High Attention File | `tests/unit/optimization/cache-warmup.test.ts` | `attention_score=100` | L1: import { CacheWarmupManager, WarmupPattern, WarmupResult } from '@/optimization/cache-warmup'; |
+| RISK-1119 | medium | Concurrency Or Timing | `tests/unit/optimization/computation-cache.test.ts` | `async` | L20: const result1 = await cache.getOrCompute('key1', async () => { |
+| RISK-1120 | medium | Persistence Or State | `tests/unit/optimization/computation-cache.test.ts` | `cache` | path contains `cache` |
+| RISK-1121 | low | High Attention File | `tests/unit/optimization/computation-cache.test.ts` | `attention_score=100` | L2: ComputationCache, |
+| RISK-1122 | medium | Concurrency Or Timing | `tests/unit/optimization/lazy-loader.test.ts` | `async` | L41: const loaderFn = async () => { |
+| RISK-1123 | medium | Persistence Or State | `tests/unit/optimization/lazy-loader.test.ts` | `cache` | L157: // Second get should use cache |
+| RISK-1124 | low | High Attention File | `tests/unit/optimization/lazy-loader.test.ts` | `attention_score=92` | L44: await new Promise((resolve) => setTimeout(resolve, 50)); |
+| RISK-1125 | medium | Persistence Or State | `tests/unit/optimization/memory-cache.test.ts` | `cache` | path contains `cache` |
+| RISK-1126 | low | High Attention File | `tests/unit/optimization/memory-cache.test.ts` | `attention_score=100` | L1: import { MemoryCache } from '@/optimization/memory-cache'; |
+| RISK-1127 | medium | Persistence Or State | `tests/unit/performance/cache-health.test.ts` | `cache` | path contains `cache` |
+| RISK-1128 | low | High Attention File | `tests/unit/performance/cache-health.test.ts` | `attention_score=100` | L2: * Tests for cache health monitoring and corruption recovery. |
+| RISK-1129 | medium | Concurrency Or Timing | `tests/unit/performance/intelligent-cache.test.ts` | `await` | L12: await cache.store('test content', { result: 'hello' }, { |
+| RISK-1130 | medium | Persistence Or State | `tests/unit/performance/intelligent-cache.test.ts` | `cache` | path contains `cache` |
+| RISK-1131 | low | High Attention File | `tests/unit/performance/intelligent-cache.test.ts` | `attention_score=100` | L1: import { IntelligentCache, globalCache, cached } from '@/performance/intelligent-cache'; |
+| RISK-1132 | high | Security Boundary | `tests/unit/pipeline/cost-efficiency-metrics.test.ts` | `token` | L5: * - calculateCostEfficiency: per-unit cost/token computation |
+| RISK-1133 | low | High Attention File | `tests/unit/pipeline/cost-efficiency-metrics.test.ts` | `attention_score=100` | L5: * - calculateCostEfficiency: per-unit cost/token computation |
+| RISK-1134 | medium | Concurrency Or Timing | `tests/unit/pipeline/multi-layer-error-recovery-integration.test.ts` | `async` | L104: .then('retry', 'Retry with backoff', async (): Promise<ChainStepResult \| undefined> => { |
+| RISK-1135 | medium | Parser Or Heuristic | `tests/unit/pipeline/multi-layer-error-recovery-integration.test.ts` | `fallback` | L8: * 2. RecoveryStrategyChain – sequential fallback chains |
+| RISK-1136 | medium | Persistence Or State | `tests/unit/pipeline/multi-layer-error-recovery-integration.test.ts` | `cache` | L102: // Register a chain: retry → cache → minimal fallback |
+| RISK-1137 | low | High Attention File | `tests/unit/pipeline/multi-layer-error-recovery-integration.test.ts` | `attention_score=100` | L8: * 2. RecoveryStrategyChain – sequential fallback chains |
+| RISK-1138 | medium | Concurrency Or Timing | `tests/unit/pipeline/parallel-layout-executor.test.ts` | `timeout` | L17: const delay = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms)); |
+| RISK-1139 | low | High Attention File | `tests/unit/pipeline/performance-baseline.test.ts` | `attention_score=100` | L27: expect(result!.maxMemoryMB).toBe(50); |
+| RISK-1140 | medium | Concurrency Or Timing | `tests/unit/pipeline/pipeline-error-recovery-integration.test.ts` | `async` | L112: it('tracks retry attempts in pipeline result metrics', async () => { |
+| RISK-1141 | medium | Parser Or Heuristic | `tests/unit/pipeline/pipeline-error-recovery-integration.test.ts` | `fallback` | L6: * - Invoke fallback strategies when retries exhaust |
+| RISK-1142 | low | High Attention File | `tests/unit/pipeline/pipeline-error-recovery-integration.test.ts` | `attention_score=100` | L5: * - Retry transient stage failures with backoff |
+| RISK-1143 | high | Security Boundary | `tests/unit/pipeline/pipeline-health-score.test.ts` | `token` | L77: tokensPerAnalysis: 2000, |
+| RISK-1144 | low | High Attention File | `tests/unit/pipeline/pipeline-health-score.test.ts` | `attention_score=100` | L77: tokensPerAnalysis: 2000, |
+| RISK-1145 | medium | Concurrency Or Timing | `tests/unit/pipeline/pipeline-orchestrated-recovery-integration.test.ts` | `async` | L94: it('records zero retry attempts on a clean run', async () => { |
+| RISK-1146 | medium | Parser Or Heuristic | `tests/unit/pipeline/pipeline-orchestrated-recovery-integration.test.ts` | `fallback` | L9: * 3. Strategy chain recovery: registered chain provides fallback |
+| RISK-1147 | low | High Attention File | `tests/unit/pipeline/pipeline-orchestrated-recovery-integration.test.ts` | `attention_score=100` | L9: * 3. Strategy chain recovery: registered chain provides fallback |
+| RISK-1148 | medium | Concurrency Or Timing | `tests/unit/pipeline/pipeline-orchestrator.test.ts` | `async` | L227: it('should invoke fallback when a quality gate fails', async () => { |
+| RISK-1149 | medium | Parser Or Heuristic | `tests/unit/pipeline/pipeline-orchestrator.test.ts` | `fallback` | L14: FallbackStrategy, |
+| RISK-1150 | low | High Attention File | `tests/unit/pipeline/pipeline-orchestrator.test.ts` | `attention_score=100` | L14: FallbackStrategy, |
+| RISK-1151 | medium | Parser Or Heuristic | `tests/unit/pipeline/pipeline-quality-monitor.test.ts` | `fallback` | L45: fallbackTriggered: false, |
+| RISK-1152 | medium | Persistence Or State | `tests/unit/pipeline/pipeline-quality-monitor.test.ts` | `cache` | L96: cacheHitRate: 0.8, |
+| RISK-1153 | low | High Attention File | `tests/unit/pipeline/pipeline-quality-monitor.test.ts` | `attention_score=100` | L13: // Get fresh instance via private constructor reset |
+| RISK-1154 | medium | Concurrency Or Timing | `tests/unit/pipeline/pipeline-run-recovery-integration.test.ts` | `async` | L67: it('records retry count and duration per stage', async () => { |
+| RISK-1155 | medium | Parser Or Heuristic | `tests/unit/pipeline/pipeline-run-recovery-integration.test.ts` | `fallback` | L77: expect(typeof stageRecord.fallbackUsed).toBe('boolean'); |
+| RISK-1156 | medium | Concurrency Or Timing | `tests/unit/pipeline/stage-timing-metrics.test.ts` | `await` | L91: await new Promise(resolve => setTimeout(resolve, 50)); |
+| RISK-1157 | medium | Concurrency Or Timing | `tests/unit/pipeline/streaming-transcriber.test.ts` | `timeout` | L215: // Resolve the timeout |
+| RISK-1158 | medium | Persistence Or State | `tests/unit/quality/adaptive-quality-gates.test.ts` | `cache` | L13: llm: { cacheHitRate: 0.5, avgFlashResponseTime: 1000, avgProResponseTime: 5000, flashUsagePercent: 80 }, |
+| RISK-1159 | medium | Concurrency Or Timing | `tests/unit/quality/batch-operation-recovery.test.ts` | `async` | L138: const processor = async () => { throw new Error('LLM API error 500'); }; |
+| RISK-1160 | medium | Parser Or Heuristic | `tests/unit/quality/batch-operation-recovery.test.ts` | `fallback` | L6: import type { BatchResult, ItemResult, FallbackProvider } from '@/quality/batch-operation-recovery'; |
+| RISK-1161 | low | High Attention File | `tests/unit/quality/batch-operation-recovery.test.ts` | `attention_score=100` | L6: import type { BatchResult, ItemResult, FallbackProvider } from '@/quality/batch-operation-recovery'; |
+| RISK-1162 | high | Security Boundary | `tests/unit/quality/enhanced-error-recovery-extended.test.ts` | `session` | L22: userContext: { preferences: {}, sessionId: 'test-session', previousSuccesses: 0 }, |
+| RISK-1163 | medium | Concurrency Or Timing | `tests/unit/quality/enhanced-error-recovery-extended.test.ts` | `async` | L124: it('should succeed with skip_animation fallback', async () => { |
+| RISK-1164 | medium | Parser Or Heuristic | `tests/unit/quality/enhanced-error-recovery-extended.test.ts` | `fallback` | L54: expect(result.fallbackUsed).toBe(true); |
+| RISK-1165 | low | High Attention File | `tests/unit/quality/enhanced-error-recovery-extended.test.ts` | `attention_score=100` | L14: function makeContext(overrides: Partial<{ stage: ProcessingStage; retryCount: number; errorMessage: string }> = {}): Parameters<EnhancedErrorRecovery['recoverFromError']>[0] { |
+| RISK-1166 | medium | Concurrency Or Timing | `tests/unit/quality/enhanced-error-recovery.test.ts` | `async` | L28: it('should retry with exponential backoff on transient failures', async () => { |
+| RISK-1167 | medium | Parser Or Heuristic | `tests/unit/quality/enhanced-error-recovery.test.ts` | `fallback` | L4: * Tests for the retry with exponential backoff, fallback processing, |
+| RISK-1168 | low | High Attention File | `tests/unit/quality/enhanced-error-recovery.test.ts` | `attention_score=100` | L4: * Tests for the retry with exponential backoff, fallback processing, |
+| RISK-1169 | medium | Concurrency Or Timing | `tests/unit/quality/error-classifier.test.ts` | `timeout` | L104: it('should classify LLM timeout errors', () => { |
+| RISK-1170 | low | High Attention File | `tests/unit/quality/error-classifier.test.ts` | `attention_score=100` | L87: it('should classify LLM rate limited errors', () => { |
+| RISK-1171 | high | Security Boundary | `tests/unit/quality/error-recovery-boundary-grouping.test.ts` | `session` | L29: userContext: { preferences: {}, sessionId: 'test-session', previousSuccesses: 0 }, |
+| RISK-1172 | medium | Concurrency Or Timing | `tests/unit/quality/error-recovery-boundary-grouping.test.ts` | `async` | L222: const operation = async () => { |
+| RISK-1173 | low | High Attention File | `tests/unit/quality/error-recovery-boundary-grouping.test.ts` | `attention_score=100` | L18: retryCount: number; |
+| RISK-1174 | medium | Concurrency Or Timing | `tests/unit/quality/error-recovery-event-bus.test.ts` | `timeout` | L143: rootCause: 'timeout', |
+| RISK-1175 | medium | Parser Or Heuristic | `tests/unit/quality/error-recovery-event-bus.test.ts` | `fallback` | L61: fallbackUsed: false, |
+| RISK-1176 | medium | Persistence Or State | `tests/unit/quality/error-recovery-event-bus.test.ts` | `cache` | L59: strategyId: 'cache_recovery', |
+| RISK-1177 | low | High Attention File | `tests/unit/quality/error-recovery-event-bus.test.ts` | `attention_score=100` | L59: strategyId: 'cache_recovery', |
+| RISK-1178 | high | Security Boundary | `tests/unit/quality/error-recovery-health-tracker.test.ts` | `session` | L47: errorHistory: Map<string, Array<{ stage: string; component: string; error: Error; timestamp: number; retryCount: number; input: unknown; userContext: { preferences: unknown; sessionId: string; previousSuccesses: num |
+| RISK-1179 | medium | Concurrency Or Timing | `tests/unit/quality/error-recovery-health-tracker.test.ts` | `timeout` | L10: * - Dynamic queue timeout and capacity behavior |
+| RISK-1180 | low | High Attention File | `tests/unit/quality/error-recovery-health-tracker.test.ts` | `attention_score=100` | L10: * - Dynamic queue timeout and capacity behavior |
+| RISK-1181 | high | Security Boundary | `tests/unit/quality/error-recovery-monitor.test.ts` | `session` | L30: userContext: { preferences: unknown; sessionId: string; previousSuccesses: number }; |
+| RISK-1182 | medium | Network Or IPC | `tests/unit/quality/error-recovery-monitor.test.ts` | `bridge` | L2: * Tests for ErrorRecoveryMonitor: runtime health monitoring that bridges |
+| RISK-1183 | medium | Concurrency Or Timing | `tests/unit/quality/error-recovery-monitor.test.ts` | `retry` | L28: retryCount: number; |
+| RISK-1184 | low | High Attention File | `tests/unit/quality/error-recovery-monitor.test.ts` | `attention_score=100` | L2: * Tests for ErrorRecoveryMonitor: runtime health monitoring that bridges |
+| RISK-1185 | high | Security Boundary | `tests/unit/quality/error-recovery-state-management.test.ts` | `session` | L25: userContext: { preferences: {}, sessionId: 'test-session', previousSuccesses: 0 }, |
+| RISK-1186 | medium | Concurrency Or Timing | `tests/unit/quality/error-recovery-state-management.test.ts` | `async` | L68: it('should reflect error history after recoverFromError calls', async () => { |
+| RISK-1187 | medium | Parser Or Heuristic | `tests/unit/quality/error-recovery-state-management.test.ts` | `parse` | L131: const parsed = JSON.parse(json); |
+| RISK-1188 | medium | Persistence Or State | `tests/unit/quality/error-recovery-state-management.test.ts` | `state` | path contains `state` |
+| RISK-1189 | low | High Attention File | `tests/unit/quality/error-recovery-state-management.test.ts` | `attention_score=100` | L17: function makeContext(overrides: Partial<{ stage: ProcessingStage; retryCount: number; errorMessage: string; component: string }> = {}): Parameters<EnhancedErrorRecovery['recoverFromError']>[0] { |
+| RISK-1190 | medium | Concurrency Or Timing | `tests/unit/quality/pipeline-error-recovery-orchestrator.test.ts` | `async` | L177: .then('retry', 'Retry analysis', async (): Promise<ChainStepResult \| undefined> => { |
+| RISK-1191 | medium | Parser Or Heuristic | `tests/unit/quality/pipeline-error-recovery-orchestrator.test.ts` | `fallback` | L8: * - Persistent failures requiring chain fallback |
+| RISK-1192 | low | High Attention File | `tests/unit/quality/pipeline-error-recovery-orchestrator.test.ts` | `attention_score=100` | L7: * - Transient failures that resolve on retry |
+| RISK-1193 | medium | Concurrency Or Timing | `tests/unit/quality/pipeline-run-recovery-tracker.test.ts` | `retry` | L42: function recoveredOutcome(strategy = 'intelligent_retry') { |
+| RISK-1194 | medium | Parser Or Heuristic | `tests/unit/quality/pipeline-run-recovery-tracker.test.ts` | `fallback` | L27: fallbackUsed: boolean; |
+| RISK-1195 | medium | Persistence Or State | `tests/unit/quality/pipeline-run-recovery-tracker.test.ts` | `cache` | L56: recoveryStrategy: 'cache_recovery', |
+| RISK-1196 | low | High Attention File | `tests/unit/quality/pipeline-run-recovery-tracker.test.ts` | `attention_score=100` | L27: fallbackUsed: boolean; |
+| RISK-1197 | medium | Concurrency Or Timing | `tests/unit/quality/quality-gate.test.ts` | `retry` | L546: fallbackAction: 'retry', |
+| RISK-1198 | medium | Parser Or Heuristic | `tests/unit/quality/quality-gate.test.ts` | `fallback` | L546: fallbackAction: 'retry', |
+| RISK-1199 | low | High Attention File | `tests/unit/quality/quality-gate.test.ts` | `attention_score=70` | L546: fallbackAction: 'retry', |
+| RISK-1200 | medium | Concurrency Or Timing | `tests/unit/quality/recovery-strategy-chain.test.ts` | `await` | L45: await new Promise((r) => setTimeout(r, delayMs)); |
+| RISK-1201 | medium | Parser Or Heuristic | `tests/unit/quality/recovery-strategy-chain.test.ts` | `fallback` | L2: * Tests for RecoveryStrategyChain — composable sequential fallback chains. |
+| RISK-1202 | medium | Persistence Or State | `tests/unit/quality/recovery-strategy-chain.test.ts` | `cache` | L122: .then('cache', 'Cache', successStep('cache', 'cached')) |
+| RISK-1203 | low | High Attention File | `tests/unit/quality/recovery-strategy-chain.test.ts` | `attention_score=100` | L2: * Tests for RecoveryStrategyChain — composable sequential fallback chains. |
+| RISK-1204 | medium | Concurrency Or Timing | `tests/unit/quality/user-guided-error-recovery.test.ts` | `timeout` | L87: it('should classify timeout errors', () => { |
+| RISK-1205 | low | High Attention File | `tests/unit/quality/user-guided-error-recovery.test.ts` | `attention_score=100` | L80: it('should classify memory errors', () => { |
+| RISK-1206 | medium | Parser Or Heuristic | `tests/unit/transcription/transcription-pipeline-validation.test.ts` | `fallback` | L54: // past validation. It may succeed (fallback segments) or fail, but should |
+| RISK-1207 | medium | Parser Or Heuristic | `tests/unit/utils/iteration-logger.test.ts` | `regex` | L14: const escapeRegex = (s: string) => s.replace(/[.*+?^${}()\|[\]\\]/g, '\\$&'); |
+| RISK-1208 | medium | Concurrency Or Timing | `tests/unit/utils/memory-usage.test.ts` | `async` | L27: test('should use process.memoryUsage when available', async () => { |
+| RISK-1209 | medium | Parser Or Heuristic | `tests/unit/utils/memory-usage.test.ts` | `fallback` | L7: * - Fallback: returns zeroes |
+| RISK-1210 | low | High Attention File | `tests/unit/utils/memory-usage.test.ts` | `attention_score=100` | L2: * REQ-138: memory-usage.ts Unit Tests |
+| RISK-1211 | medium | Concurrency Or Timing | `tests/validate-llm-accuracy.ts` | `timeout` | L294: console.log(` Adaptive Timeout: ${cacheStats.adaptiveTimeout.currentTimeoutMs}ms`); |
+| RISK-1212 | medium | Persistence Or State | `tests/validate-llm-accuracy.ts` | `cache` | L288: // Cache statistics |
+| RISK-1213 | low | High Attention File | `tests/validate-llm-accuracy.ts` | `attention_score=100` | L288: // Cache statistics |
+| RISK-1214 | medium | Parser Or Heuristic | `tests/visualization/advanced-layouts.test.ts` | `fallback` | L160: test('should fallback to dark theme for unknown theme name', () => { |
+| RISK-1215 | low | High Attention File | `tests/visualization/advanced-layouts.test.ts` | `attention_score=100` | L160: test('should fallback to dark theme for unknown theme name', () => { |
+| RISK-1216 | medium | Concurrency Or Timing | `tests/visualization/complex-layout-engine.test.ts` | `async` | L547: it('should optimize memory when memoryUsage exceeds limit', async () => { |
+| RISK-1217 | medium | Parser Or Heuristic | `tests/visualization/complex-layout-engine.test.ts` | `fallback` | L6: import { FallbackLayoutStrategy } from '@/visualization/strategies/FallbackLayoutStrategy'; |
+| RISK-1218 | low | High Attention File | `tests/visualization/complex-layout-engine.test.ts` | `attention_score=100` | L6: import { FallbackLayoutStrategy } from '@/visualization/strategies/FallbackLayoutStrategy'; |
+| RISK-1219 | high | Destructive Mutation | `tests/visualization/cycle-strategy.test.ts` | `force` | L4: * Includes edge cases: empty nodes, single node, overlaps, force-directed fallback, |
+| RISK-1220 | medium | Parser Or Heuristic | `tests/visualization/cycle-strategy.test.ts` | `fallback` | L4: * Includes edge cases: empty nodes, single node, overlaps, force-directed fallback, |
+| RISK-1221 | low | High Attention File | `tests/visualization/cycle-strategy.test.ts` | `attention_score=70` | L4: * Includes edge cases: empty nodes, single node, overlaps, force-directed fallback, |
+| RISK-1222 | high | Destructive Mutation | `tests/visualization/enhanced-zero-overlap-layout.test.ts` | `force` | L18: * Uses bracket notation to bypass TypeScript private access enforcement. |
+| RISK-1223 | medium | Persistence Or State | `tests/visualization/enhanced-zero-overlap-layout.test.ts` | `state` | L430: test('should clear internal state without throwing', () => { |
+| RISK-1224 | low | High Attention File | `tests/visualization/enhanced-zero-overlap-layout.test.ts` | `attention_score=100` | L17: * Helper to access private methods on ZeroOverlapLayoutEngine for testing. |
+| RISK-1225 | high | Destructive Mutation | `tests/visualization/force-directed-simulation.test.ts` | `force` | path contains `force` |
+| RISK-1226 | medium | Parser Or Heuristic | `tests/visualization/force-directed-simulation.test.ts` | `fallback` | L22: import { FallbackLayoutStrategy } from '@/visualization/strategies/FallbackLayoutStrategy'; |
+| RISK-1227 | medium | Parser Or Heuristic | `tests/visualization/graph-coarsening.test.ts` | `fallback` | L21: import { FallbackLayoutStrategy } from '@/visualization/strategies/FallbackLayoutStrategy'; |
+| RISK-1228 | medium | Concurrency Or Timing | `tests/visualization/layout-auto-optimizer.test.ts` | `async` | L120: it('tries fallback strategy when primary gives low score', async () => { |
+| RISK-1229 | medium | Parser Or Heuristic | `tests/visualization/layout-auto-optimizer.test.ts` | `fallback` | L120: it('tries fallback strategy when primary gives low score', async () => { |
+| RISK-1230 | low | High Attention File | `tests/visualization/layout-auto-optimizer.test.ts` | `attention_score=70` | L120: it('tries fallback strategy when primary gives low score', async () => { |
+| RISK-1231 | medium | Parser Or Heuristic | `tests/visualization/overlap-resolver.test.ts` | `fallback` | L66: expect(overlaps).toHaveLength(0); // Grid-snap fallback guarantees this |
+| RISK-1232 | high | Destructive Mutation | `tests/visualization/strategies/cycle-strategy.test.ts` | `force` | L133: it('should apply force-directed fallback for overlapping large nodes', () => { |
+| RISK-1233 | medium | Parser Or Heuristic | `tests/visualization/strategies/cycle-strategy.test.ts` | `fallback` | L133: it('should apply force-directed fallback for overlapping large nodes', () => { |
+| RISK-1234 | medium | Parser Or Heuristic | `tests/visualization/strategies/fallback-layout-strategy.test.ts` | `fallback` | path contains `fallback` |
+| RISK-1235 | low | High Attention File | `tests/visualization/strategies/fallback-layout-strategy.test.ts` | `attention_score=100` | L1: import { FallbackLayoutStrategy } from '@/visualization/strategies/FallbackLayoutStrategy'; |
+| RISK-1236 | medium | Parser Or Heuristic | `tests/visualization/strategies/flow-strategy.test.ts` | `fallback` | L232: describe('many overlapping nodes (triggers gridSnapFallback)', () => { |
+| RISK-1237 | medium | Parser Or Heuristic | `tests/visualization/strategies/timeline-strategy.test.ts` | `fallback` | L105: it('should use index order as fallback when no edges are provided', () => { |
+| RISK-1238 | medium | Parser Or Heuristic | `tests/visualization/strategies/tree-strategy.test.ts` | `fallback` | L237: describe('many overlapping nodes (triggers gridSnapFallback)', () => { |
+| RISK-1239 | medium | Concurrency Or Timing | `tests/visualization/strategy-selector-execute-layout.test.ts` | `async` | L71: it('should use fallback for unknown diagram types', async () => { |
+| RISK-1240 | medium | Parser Or Heuristic | `tests/visualization/strategy-selector-execute-layout.test.ts` | `fallback` | L71: it('should use fallback for unknown diagram types', async () => { |
+| RISK-1241 | low | High Attention File | `tests/visualization/strategy-selector-execute-layout.test.ts` | `attention_score=84` | L71: it('should use fallback for unknown diagram types', async () => { |
+| RISK-1242 | medium | Parser Or Heuristic | `tests/visualization/strategy-selector.test.ts` | `fallback` | L37: // But we test the fallback behavior through executeLayout with valid types |
+| RISK-1243 | medium | Parser Or Heuristic | `tsconfig.app.json` | `json` | path contains `json` |
+| RISK-1244 | medium | Parser Or Heuristic | `tsconfig.json` | `json` | path contains `json` |
+| RISK-1245 | medium | Parser Or Heuristic | `tsconfig.node.json` | `json` | path contains `json` |
+| RISK-1246 | medium | Parser Or Heuristic | `tsconfig.test.json` | `json` | path contains `json` |
+| RISK-1247 | high | Process Execution | `vite.config.ts` | `child_process` | L56: return ['path', 'fs', 'os', 'util', 'assert', 'module', 'child_process', 'stream', 'worker_threads', 'crypto', 'url', 'http', 'https', 'net', 'tls'].some(nodeModule => |
+| RISK-1248 | medium | Network Or IPC | `vite.config.ts` | `http` | L56: return ['path', 'fs', 'os', 'util', 'assert', 'module', 'child_process', 'stream', 'worker_threads', 'crypto', 'url', 'http', 'https', 'net', 'tls'].some(nodeModule => |
+| RISK-1249 | medium | Concurrency Or Timing | `vite.config.ts` | `thread` | L56: return ['path', 'fs', 'os', 'util', 'assert', 'module', 'child_process', 'stream', 'worker_threads', 'crypto', 'url', 'http', 'https', 'net', 'tls'].some(nodeModule => |
+| RISK-1250 | low | High Attention File | `vite.config.ts` | `attention_score=70` | L2: import react from "@vitejs/plugin-react-swc"; |
 
 ## Review Guidance
 

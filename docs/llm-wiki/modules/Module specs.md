@@ -18,7 +18,7 @@ status: generated
 - Roots: specs
 - Languages: markdown, text, typescript, yaml
 - Files: 179
-- Bytes: 1918775
+- Bytes: 1918852
 
 ## Key Files
 

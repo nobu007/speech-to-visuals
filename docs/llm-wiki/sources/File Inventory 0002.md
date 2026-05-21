@@ -316,6 +316,7 @@ status: generated
 | `tests/analysis/token-usage-tracker-edge-cases.test.ts` | typescript | 13408 | 323 | 100 | 72 | 2 |
 | `tests/benchmark/performance-benchmark.test.ts` | typescript | 4269 | 117 | 100 | 72 | 1 |
 | `tests/benchmark/worker-performance.test.ts` | typescript | 4682 | 155 | 0 | 0 | 0 |
+| `tests/ci/recovery-smoke.test.ts` | typescript | 2263 | 72 | 14 | 12 | 1 |
 | `tests/config/code-size-audit.test.ts` | typescript | 13351 | 401 | 0 | 8 | 0 |
 | `tests/e2e/pipeline-flow.test.ts` | typescript | 5377 | 163 | 14 | 12 | 1 |
 | `tests/export/export-verifier.test.ts` | typescript | 11300 | 305 | 0 | 0 | 0 |
