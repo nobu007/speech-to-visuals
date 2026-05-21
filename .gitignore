@@ -327,3 +327,5 @@ tmp/
 .task-prompt*.md
 .cleanup-prompt.md
 .spine_briefs/
+
+.extract_skill_meta/

@@ -19,9 +19,9 @@ status: generated
 - Repository: `speech-to-visuals`
 - Repository root: `/home/jinno/speech-to-visuals`
 - Requested focus path: `/home/jinno/speech-to-visuals`
-- Matched source files: 1472
+- Matched source files: 1427
 - Logical modules: 36
-- Risk findings: 1250 total, 179 high
+- Risk findings: 1252 total, 179 high
 
 ## Navigation
 

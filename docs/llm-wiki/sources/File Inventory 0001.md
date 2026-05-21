@@ -210,7 +210,7 @@ status: generated
 | `.env.example` | text | 321 | 15 | 28 | 24 | 0 |
 | `.github/workflows/ci.yml` | yaml | 1429 | 70 | 70 | 60 | 2 |
 | `.github/workflows/infrastructure.yml` | yaml | 845 | 35 | 0 | 0 | 0 |
-| `.gitignore` | text | 5397 | 330 | 100 | 72 | 0 |
+| `.gitignore` | text | 5419 | 332 | 100 | 72 | 0 |
 | `AGENTS.md` | markdown | 6034 | 163 | 56 | 48 | 0 |
 | `CLAUDE.md` | markdown | 5904 | 160 | 42 | 36 | 0 |
 | `README.md` | markdown | 9123 | 245 | 0 | 0 | 0 |
@@ -657,52 +657,6 @@ status: generated
 | `docs/architecture/QUALITY_METRICS.md` | markdown | 11460 | 431 | 100 | 72 | 0 |
 | `docs/architecture/SYSTEM_CORE.md` | markdown | 11213 | 319 | 100 | 72 | 0 |
 | `docs/architecture/ZERO_OVERLAP_DESIGN.md` | markdown | 5077 | 181 | 100 | 72 | 0 |
-| `docs/llm-wiki/Repo Wiki Schema.md` | markdown | 1217 | 33 | 14 | 12 | 0 |
-| `docs/llm-wiki/index.md` | markdown | 1110 | 41 | 0 | 0 | 0 |
-| `docs/llm-wiki/log.md` | markdown | 731 | 30 | 0 | 0 | 0 |
-| `docs/llm-wiki/modules/Module Index.md` | markdown | 4007 | 52 | 14 | 12 | 0 |
-| `docs/llm-wiki/modules/Module audit.md` | markdown | 1704 | 38 | 70 | 60 | 0 |
-| `docs/llm-wiki/modules/Module bmad.md` | markdown | 66793 | 562 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module claude.md` | markdown | 46391 | 350 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module docs.md` | markdown | 5635 | 98 | 14 | 12 | 0 |
-| `docs/llm-wiki/modules/Module github.md` | markdown | 952 | 37 | 28 | 24 | 0 |
-| `docs/llm-wiki/modules/Module public.md` | markdown | 1159 | 41 | 28 | 24 | 0 |
-| `docs/llm-wiki/modules/Module root-config.md` | markdown | 6558 | 85 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module scripts-operations.md` | markdown | 6783 | 72 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module specs.md` | markdown | 18026 | 227 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-analysis.md` | markdown | 22953 | 161 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-api.md` | markdown | 17718 | 131 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-components.md` | markdown | 17070 | 145 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-config.md` | markdown | 5171 | 66 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-export.md` | markdown | 5066 | 63 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-framework.md` | markdown | 4420 | 57 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-hooks.md` | markdown | 1876 | 41 | 100 | 80 | 0 |
-| `docs/llm-wiki/modules/Module src-integrations.md` | markdown | 4502 | 57 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-lib.md` | markdown | 1756 | 42 | 70 | 60 | 0 |
-| `docs/llm-wiki/modules/Module src-monitoring.md` | markdown | 4981 | 59 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-optimization.md` | markdown | 4917 | 63 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-pages.md` | markdown | 1446 | 42 | 28 | 24 | 0 |
-| `docs/llm-wiki/modules/Module src-performance.md` | markdown | 3373 | 49 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-pipeline.md` | markdown | 13202 | 112 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-quality.md` | markdown | 12795 | 102 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-remotion.md` | markdown | 5314 | 75 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-test.md` | markdown | 4891 | 68 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-transcription.md` | markdown | 8389 | 80 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-types.md` | markdown | 4729 | 71 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-utils.md` | markdown | 2513 | 53 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-visualization.md` | markdown | 21414 | 153 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src-workers.md` | markdown | 4937 | 65 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module src.md` | markdown | 659 | 38 | 0 | 0 | 0 |
-| `docs/llm-wiki/modules/Module supabase.md` | markdown | 10177 | 85 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module support-scripts.md` | markdown | 15383 | 123 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module tests.md` | markdown | 91184 | 528 | 100 | 72 | 0 |
-| `docs/llm-wiki/modules/Module tmp.md` | markdown | 601 | 34 | 0 | 0 | 0 |
-| `docs/llm-wiki/progress/Processing Progress.md` | markdown | 12257 | 248 | 98 | 72 | 0 |
-| `docs/llm-wiki/repo/Repository Overview.md` | markdown | 10167 | 318 | 28 | 24 | 0 |
-| `docs/llm-wiki/repo/Repository Risk Register.md` | markdown | 201636 | 1282 | 100 | 62 | 0 |
-| `docs/llm-wiki/sources/File Inventory 0001.md` | markdown | 95758 | 1017 | 100 | 72 | 0 |
-| `docs/llm-wiki/sources/File Inventory 0002.md` | markdown | 41084 | 489 | 100 | 72 | 0 |
-| `docs/llm-wiki/sources/File Inventory.md` | markdown | 342 | 20 | 0 | 0 | 0 |
 | `eslint.config.js` | javascript | 758 | 27 | 70 | 60 | 1 |
 | `jest.config.cjs` | javascript | 1273 | 38 | 0 | 4 | 0 |
 | `package-lock.json` | json | 592643 | 16410 | 100 | 62 | 5 |
@@ -1014,3 +968,49 @@ status: generated
 | `src/components/SimplePipelineStateMachine.ts` | typescript | 4599 | 187 | 50 | 60 | 2 |
 | `src/components/StageIndicator.tsx` | tsx | 6889 | 210 | 100 | 96 | 2 |
 | `src/components/StreamingProcessor.tsx` | tsx | 21747 | 681 | 56 | 88 | 2 |
+| `src/components/TutorialSystem.tsx` | tsx | 16244 | 443 | 70 | 84 | 3 |
+| `src/components/VideoGenerationPanel.tsx` | tsx | 21412 | 665 | 14 | 52 | 1 |
+| `src/components/VideoPreview.tsx` | tsx | 13087 | 397 | 50 | 80 | 2 |
+| `src/components/VideoRenderer.tsx` | tsx | 7812 | 212 | 14 | 20 | 2 |
+| `src/components/__tests__/AudioUploader.test.tsx` | tsx | 27222 | 795 | 100 | 80 | 2 |
+| `src/components/__tests__/SimplePipelineInterface.test.tsx` | tsx | 18276 | 441 | 70 | 60 | 3 |
+| `src/components/__tests__/StageIndicator.test.ts` | typescript | 4339 | 160 | 14 | 24 | 1 |
+| `src/components/__tests__/VideoPreview.test.tsx` | tsx | 9639 | 285 | 8 | 8 | 0 |
+| `src/components/__tests__/mobile-responsive.test.ts` | typescript | 7451 | 224 | 0 | 8 | 0 |
+| `src/components/pipeline-interface.tsx` | tsx | 14237 | 374 | 0 | 16 | 2 |
+| `src/components/ui/__tests__/button.test.tsx` | tsx | 3530 | 104 | 0 | 0 | 0 |
+| `src/components/ui/__tests__/select.test.tsx` | tsx | 3586 | 116 | 0 | 0 | 0 |
+| `src/components/ui/alert-dialog.tsx` | tsx | 4313 | 105 | 0 | 8 | 0 |
+| `src/components/ui/alert.tsx` | tsx | 1546 | 44 | 14 | 12 | 1 |
+| `src/components/ui/badge.tsx` | tsx | 1089 | 30 | 14 | 16 | 1 |
+| `src/components/ui/button.tsx` | tsx | 1840 | 48 | 14 | 16 | 1 |
+| `src/components/ui/card.tsx` | tsx | 1785 | 44 | 0 | 0 | 0 |
+| `src/components/ui/checkbox.tsx` | tsx | 1053 | 27 | 0 | 0 | 0 |
+| `src/components/ui/dialog.tsx` | tsx | 3761 | 96 | 0 | 8 | 0 |
+| `src/components/ui/input.tsx` | tsx | 799 | 23 | 0 | 0 | 0 |
+| `src/components/ui/label.tsx` | tsx | 696 | 18 | 14 | 12 | 1 |
+| `src/components/ui/progress.tsx` | tsx | 765 | 24 | 0 | 0 | 0 |
+| `src/components/ui/scroll-area.tsx` | tsx | 1608 | 39 | 0 | 0 | 0 |
+| `src/components/ui/select.tsx` | tsx | 5575 | 144 | 0 | 0 | 0 |
+| `src/components/ui/separator.tsx` | tsx | 698 | 21 | 0 | 0 | 0 |
+| `src/components/ui/sheet.tsx` | tsx | 4197 | 108 | 14 | 24 | 1 |
+| `src/components/ui/skeleton.tsx` | tsx | 234 | 8 | 0 | 0 | 0 |
+| `src/components/ui/slider.tsx` | tsx | 1065 | 24 | 0 | 0 | 0 |
+| `src/components/ui/sonner.tsx` | tsx | 877 | 28 | 0 | 8 | 0 |
+| `src/components/ui/switch.tsx` | tsx | 1147 | 28 | 0 | 0 | 0 |
+| `src/components/ui/tabs.tsx` | tsx | 1897 | 54 | 0 | 0 | 0 |
+| `src/components/ui/toast.tsx` | tsx | 4798 | 112 | 14 | 28 | 1 |
+| `src/components/ui/toaster.tsx` | tsx | 730 | 25 | 14 | 16 | 0 |
+| `src/components/ui/tooltip.tsx` | tsx | 1155 | 29 | 42 | 36 | 1 |
+| `src/components/ui/use-toast.ts` | typescript | 82 | 4 | 14 | 12 | 0 |
+| `src/config/__tests__/env.test.ts` | typescript | 8395 | 246 | 100 | 72 | 2 |
+| `src/config/__tests__/validate.test.ts` | typescript | 7685 | 254 | 28 | 24 | 1 |
+| `src/config/code-size-audit.ts` | typescript | 5981 | 214 | 28 | 60 | 1 |
+| `src/config/env.ts` | typescript | 3690 | 109 | 100 | 96 | 3 |
+| `src/config/index.ts` | typescript | 541 | 10 | 14 | 0 | 1 |
+| `src/config/limits.ts` | typescript | 2640 | 80 | 100 | 76 | 2 |
+| `src/config/production-config.ts` | typescript | 13954 | 499 | 100 | 104 | 4 |
+| `src/config/schema.ts` | typescript | 477 | 18 | 28 | 28 | 1 |
+| `src/config/validate.ts` | typescript | 6682 | 235 | 84 | 100 | 3 |
+| `src/export/__tests__/enhanced-export-engine.test.ts` | typescript | 18196 | 555 | 100 | 112 | 2 |
+| `src/export/apng-encoder.ts` | typescript | 8064 | 285 | 100 | 92 | 3 |

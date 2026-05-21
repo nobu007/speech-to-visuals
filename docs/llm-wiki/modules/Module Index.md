@@ -18,7 +18,7 @@ status: generated
 | [[Module audit]] | Files under .audit form a shared path-level boundary. | 1 | yaml |
 | [[Module bmad]] | Files under _bmad form a shared path-level boundary. | 426 | javascript, json, markdown, yaml |
 | [[Module claude]] | Files under .claude form a shared path-level boundary. | 192 | json, markdown, python, shell, text |
-| [[Module docs]] | Files under docs form a shared path-level boundary. | 58 | markdown |
+| [[Module docs]] | Files under docs form a shared path-level boundary. | 12 | markdown |
 | [[Module github]] | Files under .github form a shared path-level boundary. | 2 | yaml |
 | [[Module public]] | Files under public form a shared path-level boundary. | 4 | json, text |
 | [[Module scripts-operations]] | Files under scripts_operations form a shared path-level boundary. | 13 | markdown, python, shell, text, yaml |
@@ -47,5 +47,5 @@ status: generated
 | [[Module src-visualization]] | Files under src form a shared path-level boundary. | 47 | typescript |
 | [[Module src-workers]] | Files under src form a shared path-level boundary. | 14 | typescript |
 | [[Module supabase]] | Files under supabase form a shared path-level boundary. | 11 | text, toml, typescript |
-| [[Module tests]] | Files under tests form a shared path-level boundary. | 182 | tsx, typescript |
+| [[Module tests]] | Files under tests form a shared path-level boundary. | 183 | tsx, typescript |
 | [[Module tmp]] | Files under tmp form a shared path-level boundary. | 1 | markdown |
