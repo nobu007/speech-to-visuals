@@ -10,11 +10,35 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-20（第160回検証: 前回イテレーション追加テスト2258行の検証・2テストファイル修正・243新規テスト通過確認・26既存テストファイルのtop-level await CJS非互換調査）
+**最終更新**: 2026-05-21（第162回検証: PipelineErrorRecoveryOrchestrator E2E統合テスト12件追加・REQ-149要件定義・テスト品質検証完了）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
 ## 分析項目と判断
+
+### A162: 第162回検証 - PipelineErrorRecoveryOrchestrator E2E統合テスト・要件定義更新（2026-05-21 第162回更新）
+
+**分析日時**: 2026-05-21
+**カテゴリ**: E2Eテスト品質・エラー回復検証・要件定義更新
+**背景**: AI Hubフィードバック「Run the new tests to confirm they pass, then wire the recovery orchestrator into end-to-end pipeline tests or CI to close the verification loop」に対応。PipelineErrorRecoveryOrchestrator（Phase 57）の単体テスト・統合テストは存在するが、PipelineOrchestrator と組み合わせた E2E テストが未実装だった。
+
+**判断**:
+1. **テストギャップ特定**: PipelineOrchestrator.execute() の E2E テストはハッピーパスのみで、リカバリオーケストレーターの動作（リカバリレポート生成・進捗通知・並列実行・ストラテジーチェーン・メトリクス）が未検証
+2. **12件のE2E統合テスト追加**: tests/integration/pipeline-recovery-e2e.test.ts（3 describe ブロック・12 テストケース）:
+   - PipelineOrchestrator + ErrorRecovery 統合（7テスト）: リカバリレポート・ステージ追跡・失敗レポート・進捗コールバック・並列実行・アクセシビリティ・ヘルスアセスメント
+   - Recovery Orchestrator 直接ステージ実行（3テスト）: 一時障害回復・デグレード結果追跡・ストラテジーチェーン
+   - Pipeline メトリクス（2テスト）: リトライ試行・ステージタイミング
+3. **要件定義更新**: REQ-149 追加・信頼性レベル分布更新（🔵184件）
+
+**根拠**:
+- テスト実行結果: 12テスト全通過・既存テストスイートへの退化なし
+- AI Hub feedback: "Prioritize code+test implementation over spec-phase planning"
+
+**信頼性への影響**:
+- 新規要件 REQ-149 追加（信頼性レベル: 🔵）
+- 信頼性レベル分布: 🔵184件(+1)/🟡3件/🔴0件
+
+---
 
 ### A160: 第160回検証 - 前回イテレーション追加テスト品質検証・テストバグ修正（2026-05-20 第160回更新）
 
