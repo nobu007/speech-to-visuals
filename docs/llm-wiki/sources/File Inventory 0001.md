@@ -764,7 +764,7 @@ status: generated
 | `specs/speech-to-visuals/interview-record.md` | markdown | 190990 | 2651 | 100 | 62 | 0 |
 | `specs/speech-to-visuals/note.md` | markdown | 5682 | 118 | 56 | 48 | 0 |
 | `specs/speech-to-visuals/prep.md` | markdown | 4601 | 93 | 14 | 12 | 0 |
-| `specs/speech-to-visuals/requirements.md` | markdown | 89161 | 509 | 100 | 72 | 0 |
+| `specs/speech-to-visuals/requirements.md` | markdown | 89487 | 510 | 100 | 72 | 0 |
 | `specs/speech-to-visuals/tasks/TASK-0001.md` | markdown | 7610 | 258 | 42 | 36 | 0 |
 | `specs/speech-to-visuals/tasks/TASK-0002.md` | markdown | 10561 | 277 | 100 | 72 | 0 |
 | `specs/speech-to-visuals/tasks/TASK-0003.md` | markdown | 8899 | 227 | 28 | 24 | 0 |
@@ -929,8 +929,8 @@ status: generated
 | `specs/speech-to-visuals/tasks/TASK-0162.md` | markdown | 5036 | 130 | 0 | 0 | 0 |
 | `specs/speech-to-visuals/tasks/TASK-0163.md` | markdown | 5581 | 137 | 56 | 48 | 0 |
 | `specs/speech-to-visuals/tasks/TASK-0164.md` | markdown | 2494 | 76 | 14 | 12 | 0 |
-| `specs/speech-to-visuals/tasks/TASK-0165.md` | markdown | 3097 | 95 | 0 | 0 | 0 |
-| `specs/speech-to-visuals/tasks/overview.md` | markdown | 73821 | 1348 | 100 | 72 | 0 |
+| `specs/speech-to-visuals/tasks/TASK-0165.md` | markdown | 3208 | 95 | 0 | 0 | 0 |
+| `specs/speech-to-visuals/tasks/overview.md` | markdown | 74153 | 1349 | 100 | 72 | 0 |
 | `specs/speech-to-visuals/user-stories.md` | markdown | 46708 | 1137 | 100 | 72 | 0 |
 | `src/App.tsx` | tsx | 1877 | 45 | 0 | 4 | 0 |
 | `src/analysis/__tests__/complexity-detector.test.ts` | typescript | 13152 | 326 | 0 | 8 | 0 |

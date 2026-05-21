@@ -18,7 +18,7 @@ status: generated
 - Roots: specs
 - Languages: markdown, text, typescript, yaml
 - Files: 179
-- Bytes: 1918852
+- Bytes: 1919621
 
 ## Key Files
 
@@ -56,7 +56,7 @@ status: generated
 - `specs/speech-to-visuals/interview-record.md` — markdown, 2651 lines, attention 100
 - `specs/speech-to-visuals/note.md` — markdown, 118 lines, attention 56
 - `specs/speech-to-visuals/prep.md` — markdown, 93 lines, attention 14
-- `specs/speech-to-visuals/requirements.md` — markdown, 509 lines, attention 100
+- `specs/speech-to-visuals/requirements.md` — markdown, 510 lines, attention 100
 - `specs/speech-to-visuals/tasks/TASK-0001.md` — markdown, 258 lines, attention 42
 - `specs/speech-to-visuals/tasks/TASK-0002.md` — markdown, 277 lines, attention 100
 - `specs/speech-to-visuals/tasks/TASK-0003.md` — markdown, 227 lines, attention 28
@@ -222,5 +222,5 @@ status: generated
 - `specs/speech-to-visuals/tasks/TASK-0163.md` — markdown, 137 lines, attention 56
 - `specs/speech-to-visuals/tasks/TASK-0164.md` — markdown, 76 lines, attention 14
 - `specs/speech-to-visuals/tasks/TASK-0165.md` — markdown, 95 lines, attention 0
-- `specs/speech-to-visuals/tasks/overview.md` — markdown, 1348 lines, attention 100
+- `specs/speech-to-visuals/tasks/overview.md` — markdown, 1349 lines, attention 100
 - `specs/speech-to-visuals/user-stories.md` — markdown, 1137 lines, attention 100

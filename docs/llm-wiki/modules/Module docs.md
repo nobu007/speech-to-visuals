@@ -18,7 +18,7 @@ status: generated
 - Roots: docs
 - Languages: markdown
 - Files: 58
-- Bytes: 962532
+- Bytes: 963109
 
 ## Key Files
 
@@ -87,11 +87,11 @@ status: generated
 - `docs/llm-wiki/modules/Module src.md` — markdown, 38 lines, attention 0
 - `docs/llm-wiki/modules/Module supabase.md` — markdown, 85 lines, attention 100
 - `docs/llm-wiki/modules/Module support-scripts.md` — markdown, 123 lines, attention 100
-- `docs/llm-wiki/modules/Module tests.md` — markdown, 526 lines, attention 100
+- `docs/llm-wiki/modules/Module tests.md` — markdown, 528 lines, attention 100
 - `docs/llm-wiki/modules/Module tmp.md` — markdown, 34 lines, attention 0
 - `docs/llm-wiki/progress/Processing Progress.md` — markdown, 248 lines, attention 98
 - `docs/llm-wiki/repo/Repository Overview.md` — markdown, 318 lines, attention 28
-- `docs/llm-wiki/repo/Repository Risk Register.md` — markdown, 1281 lines, attention 100
+- `docs/llm-wiki/repo/Repository Risk Register.md` — markdown, 1282 lines, attention 100
 - `docs/llm-wiki/sources/File Inventory 0001.md` — markdown, 1017 lines, attention 100
-- `docs/llm-wiki/sources/File Inventory 0002.md` — markdown, 488 lines, attention 100
+- `docs/llm-wiki/sources/File Inventory 0002.md` — markdown, 489 lines, attention 100
 - `docs/llm-wiki/sources/File Inventory.md` — markdown, 20 lines, attention 0
