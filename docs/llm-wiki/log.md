@@ -27,3 +27,8 @@ status: generated
   - [[File Inventory]]
   - [[Repo Wiki Schema]]
 - decision_reason: Generated during extract-skill-meta planning so repository understanding and risk context compound alongside skill extraction.
+## bootstrap | repo LLM wiki
+
+- Generated or refreshed repository wiki for `speech-to-visuals`.
+- Source: deterministic ai-hub fallback writer.
+
