@@ -190,6 +190,49 @@ describe('AutoImprovementEngine', () => {
         expect(typeof rec.execute).toBe('function');
       }
     });
+
+    it('execute() should improve the target metric (higher-is-better)', async () => {
+      const metrics = { ...badMetrics, transcriptionAccuracy: 0.60 };
+      const result = engine.analyzeMetrics(metrics);
+      const rec = result.recommendations.find(r => r.targetMetric === 'transcriptionAccuracy');
+      expect(rec).toBeDefined();
+
+      const improved = await rec!.execute();
+      expect(improved.transcriptionAccuracy).toBeGreaterThan(metrics.transcriptionAccuracy);
+      expect(improved.transcriptionAccuracy).toBeLessThanOrEqual(1);
+    });
+
+    it('execute() should reduce lower-is-better metrics', async () => {
+      const metrics = { ...badMetrics, processingTime: 45000 };
+      const result = engine.analyzeMetrics(metrics);
+      const rec = result.recommendations.find(r => r.targetMetric === 'processingTime');
+      expect(rec).toBeDefined();
+
+      const improved = await rec!.execute();
+      expect(improved.processingTime).toBeLessThan(metrics.processingTime);
+    });
+
+    it('execute() should recalculate overallScore after improvement', async () => {
+      const metrics = { ...badMetrics, layoutOverlap: 5 };
+      const result = engine.analyzeMetrics(metrics);
+      const rec = result.recommendations.find(r => r.targetMetric === 'layoutOverlap');
+      expect(rec).toBeDefined();
+
+      const improved = await rec!.execute();
+      expect(improved.layoutOverlap).toBe(0); // 100% reduction
+      expect(improved.overallScore).toBeGreaterThan(metrics.overallScore);
+    });
+
+    it('execute() should not mutate the original metrics', async () => {
+      const metrics = { ...badMetrics, memoryUsage: 700 };
+      const original = { ...metrics };
+      const result = engine.analyzeMetrics(metrics);
+      const rec = result.recommendations.find(r => r.targetMetric === 'memoryUsage');
+      expect(rec).toBeDefined();
+
+      await rec!.execute();
+      expect(metrics).toEqual(original);
+    });
   });
 
   // --- calculateQualityScore ---
