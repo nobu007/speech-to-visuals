@@ -9,19 +9,40 @@
  * 2. N-gram overlap for capturing phrase-level similarity
  * 3. Length normalization to prevent false positives
  * 4. Configurable similarity threshold
+ * 5. CJK (Chinese/Japanese/Korean) character-level tokenization
  */
 
+/** Maximum number of similarity scores kept in memory */
+const MAX_SCORE_HISTORY = 1000;
+
 /**
- * Tokenize text into normalized tokens
+ * Tokenize text into normalized tokens.
+ * Handles both Latin (space-delimited words) and CJK (character-level) text.
  */
 function tokenize(text: string): Set<string> {
-  return new Set(
-    text
-      .toLowerCase()
-      .replace(/[^\w\s]/g, ' ') // Remove punctuation
-      .split(/\s+/)
-      .filter(token => token.length > 1) // Remove single characters
-  );
+  const tokens = new Set<string>();
+  const lower = text.toLowerCase();
+
+  // Extract CJK characters as individual tokens (each character is meaningful)
+  const cjkChars = lower.match(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF\u3400-\u4DBF]/g);
+  if (cjkChars) {
+    for (const ch of cjkChars) {
+      tokens.add(ch);
+    }
+  }
+
+  // Extract Latin/alphanumeric tokens (space-delimited words)
+  const latinTokens = lower
+    .replace(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF\u3400-\u4DBF]/g, ' ') // Remove CJK
+    .replace(/[^\w\s]/g, ' ') // Remove punctuation
+    .split(/\s+/)
+    .filter(token => token.length > 1); // Remove single chars for Latin only
+
+  for (const t of latinTokens) {
+    tokens.add(t);
+  }
+
+  return tokens;
 }
 
 /**
@@ -64,18 +85,25 @@ export function calculateSemanticSimilarity(text1: string, text2: string): numbe
   const t1 = text1.trim();
   const t2 = text2.trim();
 
+  // Both empty → identical
+  if (t1.length === 0 && t2.length === 0) return 1.0;
+  // One empty → no similarity
+  if (t1.length === 0 || t2.length === 0) return 0;
+
   // Exact match shortcut
   if (t1.toLowerCase() === t2.toLowerCase()) {
     return 1.0;
   }
 
   // Length difference check (prevent matching very different length texts)
-  const lengthRatio = Math.min(t1.length, t2.length) / Math.max(t1.length, t2.length);
+  const maxLen = Math.max(t1.length, t2.length);
+  const minLen = Math.min(t1.length, t2.length);
+  const lengthRatio = minLen / maxLen;
   if (lengthRatio < 0.5) {
     return 0; // Texts are too different in length
   }
 
-  // Token-based similarity (word-level)
+  // Token-based similarity (word-level for Latin, character-level for CJK)
   const tokens1 = tokenize(t1);
   const tokens2 = tokenize(t2);
   const tokenSimilarity = jaccardSimilarity(tokens1, tokens2);
@@ -112,12 +140,14 @@ export function findMostSimilar<T>(
   candidates: Array<{ text: string; data: T }>,
   threshold: number = 0.75
 ): { text: string; data: T; similarity: number } | null {
+  // Clamp threshold to valid range
+  const clampedThreshold = Math.max(0, Math.min(1, threshold));
   let bestMatch: { text: string; data: T; similarity: number } | null = null;
 
   for (const candidate of candidates) {
     const similarity = calculateSemanticSimilarity(query, candidate.text);
 
-    if (similarity >= threshold && (!bestMatch || similarity > bestMatch.similarity)) {
+    if (similarity >= clampedThreshold && (!bestMatch || similarity > bestMatch.similarity)) {
       bestMatch = {
         text: candidate.text,
         data: candidate.data,
@@ -138,7 +168,8 @@ export function findMostSimilar<T>(
  * @returns true if similarity meets or exceeds threshold
  */
 export function areTextsSimilar(text1: string, text2: string, threshold: number = 0.75): boolean {
-  return calculateSemanticSimilarity(text1, text2) >= threshold;
+  const clampedThreshold = Math.max(0, Math.min(1, threshold));
+  return calculateSemanticSimilarity(text1, text2) >= clampedThreshold;
 }
 
 /**
@@ -169,6 +200,10 @@ export class SemanticMetricsTracker {
   recordSemanticHit(similarity: number): void {
     this.semanticHits++;
     this.similarityScores.push(similarity);
+    // Prevent unbounded growth - keep only recent scores
+    if (this.similarityScores.length > MAX_SCORE_HISTORY) {
+      this.similarityScores = this.similarityScores.slice(-MAX_SCORE_HISTORY);
+    }
   }
 
   recordMiss(): void {
