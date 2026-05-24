@@ -156,18 +156,11 @@ export class MultiFormatExporter {
     scene: SceneGraph,
     options: ExportOptions
   ): Promise<ExportResult> {
-    // For Phase 37 MVP, we'll use SVG-to-PDF conversion
-    // In production, consider using libraries like jsPDF
-    const svgResult = await this.exportSVG(scene, options);
+    const width = options.width || this.defaultWidth;
+    const height = options.height || this.defaultHeight;
+    const bgColor = options.backgroundColor || '#ffffff';
 
-    if (!svgResult.success || !svgResult.data) {
-      throw new Error('Failed to generate SVG for PDF conversion');
-    }
-
-    // Simple PDF wrapper around SVG
-    // Note: This is a simplified implementation
-    // For production, use proper PDF libraries
-    const pdfData = await this.convertSVGToPDF(svgResult.data as Blob, options);
+    const pdfData = this.renderSceneToPDF(scene, width, height, bgColor);
 
     return {
       success: true,
@@ -177,10 +170,7 @@ export class MultiFormatExporter {
       metadata: {
         format: 'pdf',
         sizeBytes: pdfData.size,
-        dimensions: {
-          width: options.width || this.defaultWidth,
-          height: options.height || this.defaultHeight,
-        },
+        dimensions: { width, height },
         generatedAt: new Date().toISOString(),
       },
     };
@@ -390,38 +380,140 @@ export class MultiFormatExporter {
   }
 
   /**
-   * Convert SVG to PDF (simplified implementation)
+   * Render scene graph directly to PDF using native PDF drawing operators.
+   *
+   * PDF coordinate origin is bottom-left; node coordinates use top-left,
+   * so Y is flipped: pdfY = pageHeight - svgY.
    */
-  private async convertSVGToPDF(svgBlob: Blob, options: ExportOptions): Promise<Blob> {
-    // Simplified PDF implementation
-    // For production, use libraries like jsPDF or PDFKit
-    const svgText = await svgBlob.text();
+  private renderSceneToPDF(
+    scene: SceneGraph,
+    pageWidth: number,
+    pageHeight: number,
+    bgColor: string
+  ): Blob {
+    const nodes = scene.layout?.nodes || [];
+    const edges = scene.layout?.edges || [];
 
-    // Create a simple PDF wrapper (this is a minimal implementation)
-    // In production, use proper PDF libraries
-    const pdfContent = `%PDF-1.4
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
-endobj
-3 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${options.width || this.defaultWidth} ${options.height || this.defaultHeight}] >>
-endobj
-xref
-0 4
-0000000000 65535 f
-0000000009 00000 n
-0000000056 00000 n
-0000000115 00000 n
-trailer
-<< /Size 4 /Root 1 0 R >>
-startxref
-228
-%%EOF`;
+    // Build content stream
+    const parts: string[] = [];
 
-    return new Blob([pdfContent], { type: 'application/pdf' });
+    // Background
+    parts.push(this.pdfColorFill(bgColor));
+    parts.push(`0 0 ${pageWidth} ${pageHeight} re f`);
+
+    // Draw edges (behind nodes)
+    parts.push('0.4 0.4 0.4 RG'); // stroke #666
+    parts.push('2 w');
+    for (const edge of edges) {
+      const from = nodes.find((n) => n.id === edge.from);
+      const to = nodes.find((n) => n.id === edge.to);
+      if (from && to) {
+        const fy = pageHeight - (from.y || 0);
+        const ty = pageHeight - (to.x || 0) + (to.y || 0) - (to.y || 0);
+        parts.push(`${from.x || 0} ${pageHeight - (from.y || 0)} m ${(to.x || 0)} ${pageHeight - (to.y || 0)} l S`);
+        if (edge.label) {
+          const midX = ((from.x || 0) + (to.x || 0)) / 2;
+          const midY = pageHeight - ((from.y || 0) + (to.y || 0)) / 2;
+          parts.push('BT');
+          parts.push('/F1 12 Tf');
+          parts.push('0.4 0.4 0.4 rg');
+          parts.push(`${midX} ${midY + 5} Td`);
+          parts.push(`(${this.escapePDFString(edge.label)}) Tj`);
+          parts.push('ET');
+        }
+      }
+    }
+
+    // Draw nodes
+    for (const node of nodes) {
+      const x = node.x || 0;
+      const y = node.y || 0;
+      const w = node.width || 120;
+      const h = node.height || 60;
+      // PDF rect: lower-left corner
+      const rx = x - w / 2;
+      const ry = pageHeight - y - h / 2;
+
+      // Node background (#4A90E2)
+      parts.push('0.29 0.56 0.89 rg');
+      parts.push('0.18 0.36 0.54 RG');
+      parts.push('2 w');
+      parts.push(`${rx} ${ry} ${w} ${h} re B`);
+
+      // Node label
+      parts.push('BT');
+      parts.push('/F1 14 Tf');
+      parts.push('1 1 1 rg');
+      parts.push(`${x} ${pageHeight - y + 2} Td`);
+      parts.push(`(${this.escapePDFString(node.label)}) Tj`);
+      parts.push('ET');
+    }
+
+    const streamContent = parts.join('\n');
+
+    // Build minimal valid PDF with a content stream
+    const objects: string[] = [];
+    const offsets: number[] = [];
+    let pdf = '%PDF-1.4\n';
+
+    // Object 1: Catalog
+    offsets.push(pdf.length);
+    pdf += '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n';
+
+    // Object 2: Pages
+    offsets.push(pdf.length);
+    pdf += '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n';
+
+    // Object 3: Page
+    offsets.push(pdf.length);
+    pdf += `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n`;
+
+    // Object 4: Content stream
+    offsets.push(pdf.length);
+    pdf += `4 0 obj\n<< /Length ${streamContent.length} >>\nstream\n${streamContent}\nendstream\nendobj\n`;
+
+    // Object 5: Font (Helvetica)
+    offsets.push(pdf.length);
+    pdf += '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj\n';
+
+    // Cross-reference table
+    const xrefOffset = pdf.length;
+    pdf += 'xref\n';
+    pdf += `0 6\n`;
+    pdf += '0000000000 65535 f \n';
+    for (const off of offsets) {
+      pdf += `${String(off).padStart(10, '0')} 00000 n \n`;
+    }
+
+    // Trailer
+    pdf += 'trailer\n';
+    pdf += `<< /Size 6 /Root 1 0 R >>\n`;
+    pdf += 'startxref\n';
+    pdf += `${xrefOffset}\n`;
+    pdf += '%%EOF';
+
+    return new Blob([pdf], { type: 'application/pdf' });
+  }
+
+  /**
+   * Convert a hex color string (#RRGGBB) to PDF fill operator
+   */
+  private pdfColorFill(hex: string): string {
+    const h = hex.replace('#', '');
+    const r = parseInt(h.substring(0, 2), 16) / 255;
+    const g = parseInt(h.substring(2, 4), 16) / 255;
+    const b = parseInt(h.substring(4, 6), 16) / 255;
+    return `${r.toFixed(3)} ${g.toFixed(3)} ${b.toFixed(3)} rg`;
+  }
+
+  /**
+   * Escape special characters for PDF string literal
+   */
+  private escapePDFString(str: string): string {
+    return str
+      .replace(/\\/g, '\\\\')
+      .replace(/\(/g, '\\(')
+      .replace(/\)/g, '\\)');
   }
 
   /**
