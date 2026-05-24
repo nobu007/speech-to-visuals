@@ -389,3 +389,108 @@ describe('parseJsonFromLLMText: combined strategy application', () => {
     expect(result).toEqual({ outer: { inner: [1, 2] } });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Array JSON extraction from surrounding text
+// ---------------------------------------------------------------------------
+describe('parseJsonFromLLMText: array extraction from LLM text', () => {
+  it('extracts array from preamble text', () => {
+    const input = 'Here are the items: [1, 2, 3]';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual([1, 2, 3]);
+  });
+
+  it('extracts array from preamble with trailing text', () => {
+    const input = 'Result: ["a", "b", "c"]\nDone.';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual(['a', 'b', 'c']);
+  });
+
+  it('extracts array of objects from surrounding text', () => {
+    const input = '```json\n[{"id": 1}, {"id": 2}]\n```';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual([{ id: 1 }, { id: 2 }]);
+  });
+
+  it('extracts array with trailing comma fix', () => {
+    const input = 'Here is the JSON: [1, 2, 3,]';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual([1, 2, 3]);
+  });
+
+  it('extracts array from fenced code block with preamble', () => {
+    const input = 'Here are the nodes:\n```json\n[{"name": "A"}, {"name": "B"}]\n```\nEnd';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual([{ name: 'A' }, { name: 'B' }]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Incomplete array bracket repair
+// ---------------------------------------------------------------------------
+describe('parseJsonFromLLMText: incomplete array bracket repair', () => {
+  it('adds missing closing bracket for array', () => {
+    const input = '[1, 2, 3';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual([1, 2, 3]);
+  });
+
+  it('adds multiple missing closing brackets for nested arrays', () => {
+    const input = '[[1, 2], [3';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual([[1, 2], [3]]);
+  });
+
+  it('handles incomplete array with objects inside', () => {
+    const input = '[{"a": 1}, {"b": 2}';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual([{ a: 1 }, { b: 2 }]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Input validation
+// ---------------------------------------------------------------------------
+describe('parseJsonFromLLMText: input validation', () => {
+  it('throws descriptive error for null input', () => {
+    expect(() => parseJsonFromLLMText(null as unknown as string))
+      .toThrow('input is null or undefined');
+  });
+
+  it('throws descriptive error for undefined input', () => {
+    expect(() => parseJsonFromLLMText(undefined as unknown as string))
+      .toThrow('input is null or undefined');
+  });
+
+  it('throws descriptive error for non-string input', () => {
+    expect(() => parseJsonFromLLMText(42 as unknown as string))
+      .toThrow('expected string, got number');
+  });
+
+  it('throws descriptive error for empty string', () => {
+    expect(() => parseJsonFromLLMText(''))
+      .toThrow('input is empty after cleaning');
+  });
+
+  it('throws descriptive error for whitespace-only string', () => {
+    expect(() => parseJsonFromLLMText('   \n\t  '))
+      .toThrow('input is empty after cleaning');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Object vs Array priority (closest-to-start wins)
+// ---------------------------------------------------------------------------
+describe('parseJsonFromLLMText: mixed object/array extraction priority', () => {
+  it('extracts array when it appears before object in text', () => {
+    const input = 'Items: [1, 2] then config: {"a": 1}';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual([1, 2]);
+  });
+
+  it('extracts object when it appears before array in text', () => {
+    const input = 'Config: {"a": 1} then items: [1, 2]';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual({ a: 1 });
+  });
+});

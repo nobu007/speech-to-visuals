@@ -7,10 +7,18 @@
  * - Strips optional triple backtick code fences (``` or ```json)
  * - Removes markdown formatting and extra text
  * - Trims whitespace
- * - Attempts multiple parsing strategies
+ * - Attempts multiple parsing strategies (objects and arrays)
  * - Throws a descriptive error on JSON.parse failure
  */
 export function parseJsonFromLLMText<T = unknown>(rawText: string): T {
+  // Input validation
+  if (rawText == null) {
+    throw new Error('parseJsonFromLLMText: input is null or undefined');
+  }
+  if (typeof rawText !== 'string') {
+    throw new Error(`parseJsonFromLLMText: expected string, got ${typeof rawText}`);
+  }
+
   // Strategy 1: Standard cleaning
   let cleaned = rawText
     .trim()
@@ -19,25 +27,69 @@ export function parseJsonFromLLMText<T = unknown>(rawText: string): T {
     .replace(/```\s*$/i, "")
     .trim();
 
-  // Strategy 2: Extract JSON from surrounding text
-  // Look for content between first { and last } with greedy matching
-  const jsonMatch = cleaned.match(/(\{[\s\S]*\})/);
-  if (jsonMatch) {
-    cleaned = jsonMatch[0];
-  } else {
-    // Try to find incomplete JSON (missing closing brace)
-    const incompleteMatch = cleaned.match(/(\{[\s\S]*)/);
-    if (incompleteMatch) {
-      // Count braces to determine if we need to add closing braces
-      const text = incompleteMatch[0];
-      const openBraces = (text.match(/\{/g) || []).length;
-      const closeBraces = (text.match(/\}/g) || []).length;
-      const missingBraces = openBraces - closeBraces;
+  if (cleaned.length === 0) {
+    throw new Error('parseJsonFromLLMText: input is empty after cleaning');
+  }
 
-      if (missingBraces > 0) {
-        cleaned = text + '}'.repeat(missingBraces);
+  // Strategy 2: Extract JSON from surrounding text
+  // When text starts with { or [, use type-aware extraction/repair.
+  // Otherwise, extract JSON from surrounding preamble/postamble text.
+  if (cleaned.startsWith('{')) {
+    // Object-first: try complete match at start, else repair braces
+    const objectMatch = cleaned.match(/(\{[\s\S]*\})/);
+    if (objectMatch && objectMatch.index === 0) {
+      const afterMatch = cleaned.slice(objectMatch[0].length);
+      // Check for continuation (comma + more JSON) suggesting incompleteness
+      if (/^\s*[,]/.test(afterMatch) || /^\s*[[{]/.test(afterMatch)) {
+        cleaned = repairBraces(cleaned);
       } else {
-        cleaned = text;
+        cleaned = objectMatch[0];
+      }
+    } else {
+      cleaned = repairBraces(cleaned);
+    }
+  } else if (cleaned.startsWith('[')) {
+    // Array-first: try complete match at start, else repair brackets
+    const arrayMatch = cleaned.match(/(\[[\s\S]*\])/);
+    if (arrayMatch && arrayMatch.index === 0) {
+      const afterMatch = cleaned.slice(arrayMatch[0].length);
+      // Check for continuation suggesting incompleteness
+      if (/^\s*[,]/.test(afterMatch) || /^\s*[[{]/.test(afterMatch)) {
+        cleaned = repairBrackets(cleaned);
+      } else {
+        cleaned = arrayMatch[0];
+      }
+    } else {
+      cleaned = repairBrackets(cleaned);
+    }
+  } else {
+    // Text has surrounding content - extract JSON from it
+    const objectMatch = cleaned.match(/(\{[\s\S]*\})/);
+    const arrayMatch = cleaned.match(/(\[[\s\S]*\])/);
+
+    if (objectMatch && arrayMatch) {
+      const objIndex = cleaned.indexOf(objectMatch[0]);
+      const arrIndex = cleaned.indexOf(arrayMatch[0]);
+      cleaned = objIndex <= arrIndex ? objectMatch[0] : arrayMatch[0];
+    } else if (objectMatch) {
+      cleaned = objectMatch[0];
+    } else if (arrayMatch) {
+      cleaned = arrayMatch[0];
+    } else {
+      // Try incomplete JSON surrounded by text
+      const incompleteObject = cleaned.match(/(\{[\s\S]*)/);
+      const incompleteArray = cleaned.match(/(\[[\s\S]*)/);
+
+      if (incompleteObject && incompleteArray) {
+        const objIdx = cleaned.indexOf(incompleteObject[0]);
+        const arrIdx = cleaned.indexOf(incompleteArray[0]);
+        cleaned = objIdx <= arrIdx
+          ? repairBraces(incompleteObject[0])
+          : repairBrackets(incompleteArray[0]);
+      } else if (incompleteObject) {
+        cleaned = repairBraces(incompleteObject[0]);
+      } else if (incompleteArray) {
+        cleaned = repairBrackets(incompleteArray[0]);
       }
     }
   }
@@ -84,5 +136,25 @@ export function parseJsonFromLLMText<T = unknown>(rawText: string): T {
       }
     }
   }
+}
+
+/**
+ * Add missing closing braces to an incomplete JSON object string
+ */
+function repairBraces(text: string): string {
+  const openBraces = (text.match(/\{/g) || []).length;
+  const closeBraces = (text.match(/\}/g) || []).length;
+  const missing = openBraces - closeBraces;
+  return missing > 0 ? text + '}'.repeat(missing) : text;
+}
+
+/**
+ * Add missing closing brackets to an incomplete JSON array string
+ */
+function repairBrackets(text: string): string {
+  const openBrackets = (text.match(/\[/g) || []).length;
+  const closeBrackets = (text.match(/\]/g) || []).length;
+  const missing = openBrackets - closeBrackets;
+  return missing > 0 ? text + ']'.repeat(missing) : text;
 }
 
