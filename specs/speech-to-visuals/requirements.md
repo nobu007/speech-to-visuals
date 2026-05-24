@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 1-57+ 完了・Phase 58 部分完了（CI煙テスト実装済・TASK-0163/0164未着手）・337ファイル・98,000+行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト4,475+件（117テストファイル）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.5 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了
+**実装状況**: Phase 1-58 ✅完了・355ファイル・104,252行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト4,475+件（170テストファイル）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.5 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -240,7 +240,7 @@
 #### コード規模監査スコープ修正・ドキュメント整合性（Phase 38） ✅完了
 
 - REQ-104: システムはコード規模監査（code-size-audit）の対象を src/ ディレクトリに限定し、テストコード（tests/）、スクリプト（scripts/）、Supabase Edge Functions（supabase/）、設定ファイル等を監査対象外としなければならない。監査結果は src/ 内のプロダクションコードのみをカウントし、SYSTEM_CONSTITUTION V2.4 の制限値と比較すること 🔵 *src/config/code-size-audit.ts collectMetrics() が SKIP_DIRS で src/ 外も走査している実装より*
-- REQ-105: システムはコード規模監査スクリプト（npm run audit:code-size）の実行結果が COMPLIANT となることを確認しなければならない。src/ ディレクトリ単位で測定した場合、ファイル数340以下・行数100,000以下であること 🔵 *現状実測値: src/ 327ファイル/96,414行（共に制限内）・audit全量: 482ファイル/142,318行（制限超過）より*
+- REQ-105: システムはコード規模監査スクリプト（npm run audit:code-size）の実行結果が COMPLIANT となることを確認しなければならない。src/ ディレクトリ単位で測定した場合、ファイル数380以下・行数115,000以下であること 🔵 *現状実測値: src/ 353ファイル/104,098行（共にSYSTEM_CONSTITUTION V2.6制限内）・Phase 58完了時点より*
 - REQ-106: システムはタスク概要ドキュメント（overview.md）のフェーズステータス・タスク完了状況が git ログと一致することを確認しなければならない 🔵 *overview.md Phase 36 ヘッダー「🔲未着手」に対し実際は完了・TASK-0143~0147 未反映より*
 
 #### テストESM互換性修正・依存脆弱性解消・ドキュメント整合性（Phase 39） ✅完了
@@ -485,7 +485,7 @@
 | Phase 56: 音声検証完全統合・コンポーネントテスト | ✅完了 | REQ-144~147 | 4/4 |
 | Phase 57: LLMキャッシュデバウンステスト | ✅完了 | REQ-148 | 1/1（scheduleSave結合・destroyキャンセル・persist即時フラッシュ・タイマー精度・clearExpired再スケジュール・15テスト追加） |
 | Phase 57+: パイプラインエラー回復E2E統合テスト | ✅完了 | REQ-149 | 1/1（PipelineOrchestrator+ErrorRecoveryOrchestrator E2E統合テスト・12テスト追加・リカバリレポート・進捗・並列・ストラテジーチェーン・メトリクス検証） |
-| Phase 58: リカバリ検証ループ・CI統合 | 🔵部分完了 | TASK-0162~0165 | 1/4部分完了（CI煙テスト実装済・TypeScript/ESLint 0エラー確認・TASK-0163 E2Eテスト・TASK-0164 タイムアウト修正は未着手） |
+| Phase 58: リカバリ検証ループ・CI統合 | ✅完了 | TASK-0162~0165 | 4/4（CI煙テスト・E2Eリカバリ統合テスト・VideoGeneratorタイムアウト修正・ドキュメント更新・全テスト通過確認） |
 
 ## 信頼性レベル分布
 
@@ -504,6 +504,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 57+ を網羅し、Phase 57+ 完了（E2Eリカバリ統合テスト）を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 58 を網羅し、Phase 58 完了（CI統合・E2Eリカバリテスト・タイムアウト修正）を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテゴリに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第162回: 🔵184件/🟡3件/🔴0件 — Phase 57+完了・REQ-149実装済）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第163回: 🔵184件/🟡3件/🔴0件 — Phase 58完了・全タスク完了）
