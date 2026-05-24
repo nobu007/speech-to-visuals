@@ -8,9 +8,11 @@ import {
   msToFrame,
   frameToMs,
   getCaptionForFrame,
+  getAllCaptionsForFrame,
   splitCaptionAtSceneBoundary,
   validateSceneCaptionSync,
   detectSyncDrift,
+  DEFAULT_FPS,
   SyncDriftResult,
 } from '../scene-synchronizer';
 import { SrtCaption } from '../srt-parser';
@@ -82,6 +84,24 @@ describe('msToFrame', () => {
     // 50ms at 30fps = 1.5 -> rounds to 2
     expect(msToFrame(50, 30)).toBe(2);
   });
+
+  it('should clamp negative ms to 0', () => {
+    expect(msToFrame(-100, FPS)).toBe(0);
+    expect(msToFrame(-1, FPS)).toBe(0);
+  });
+
+  it('should fall back to DEFAULT_FPS when fps is 0', () => {
+    // With fps=0, should use DEFAULT_FPS=30
+    expect(msToFrame(1000, 0)).toBe(30);
+  });
+
+  it('should fall back to DEFAULT_FPS when fps is negative', () => {
+    expect(msToFrame(1000, -10)).toBe(30);
+  });
+
+  it('should use DEFAULT_FPS when fps is omitted', () => {
+    expect(msToFrame(1000)).toBe(30);
+  });
 });
 
 describe('frameToMs', () => {
@@ -103,6 +123,18 @@ describe('frameToMs', () => {
 
   it('should convert at 60fps', () => {
     expect(frameToMs(60, 60)).toBeCloseTo(1000, 1);
+  });
+
+  it('should clamp negative frame to 0', () => {
+    expect(frameToMs(-10, FPS)).toBe(0);
+  });
+
+  it('should fall back to DEFAULT_FPS when fps is 0', () => {
+    expect(frameToMs(30, 0)).toBeCloseTo(1000, 1);
+  });
+
+  it('should use DEFAULT_FPS when fps is omitted', () => {
+    expect(frameToMs(30)).toBeCloseTo(1000, 1);
   });
 });
 
@@ -213,6 +245,81 @@ describe('getCaptionForFrame', () => {
 
   it('should return null for empty captions array', () => {
     expect(getCaptionForFrame([], 50)).toBeNull();
+  });
+
+  it('should return null for negative frame', () => {
+    expect(getCaptionForFrame(captions, -1)).toBeNull();
+  });
+
+  it('should use binary search for large caption arrays', () => {
+    // Create 1000 captions to verify binary search works correctly
+    const manyCaptions: SrtCaption[] = [];
+    for (let i = 0; i < 1000; i++) {
+      manyCaptions.push(createCaption({
+        index: i + 1,
+        startMs: i * 100,
+        endMs: (i + 1) * 100 - 1,
+        startFrame: i * 3,
+        endFrame: (i + 1) * 3 - 1,
+        text: `Caption ${i + 1}`,
+      }));
+    }
+
+    // Find caption at frame 1500 (caption index 501, startMs=50100)
+    const result = getCaptionForFrame(manyCaptions, 1500);
+    expect(result).not.toBeNull();
+    expect(result!.index).toBe(501);
+  });
+});
+
+// ============================================================
+// getAllCaptionsForFrame
+// ============================================================
+
+describe('getAllCaptionsForFrame', () => {
+  const overlappingCaptions: SrtCaption[] = [
+    createCaption({
+      index: 1,
+      startMs: 1000,
+      endMs: 3000,
+      startFrame: 30,
+      endFrame: 90,
+      text: 'Japanese',
+    }),
+    createCaption({
+      index: 2,
+      startMs: 1500,
+      endMs: 3500,
+      startFrame: 45,
+      endFrame: 105,
+      text: 'English',
+    }),
+  ];
+
+  it('should return empty array for empty captions', () => {
+    expect(getAllCaptionsForFrame([], 50)).toEqual([]);
+  });
+
+  it('should return empty array for negative frame', () => {
+    expect(getAllCaptionsForFrame(overlappingCaptions, -1)).toEqual([]);
+  });
+
+  it('should return single caption when only one matches', () => {
+    const result = getAllCaptionsForFrame(overlappingCaptions, 35);
+    expect(result).toHaveLength(1);
+    expect(result[0].text).toBe('Japanese');
+  });
+
+  it('should return multiple captions when they overlap at a frame', () => {
+    // Frame 60 is at 2000ms - both captions are active
+    const result = getAllCaptionsForFrame(overlappingCaptions, 60);
+    expect(result).toHaveLength(2);
+    expect(result.map(c => c.text).sort()).toEqual(['English', 'Japanese']);
+  });
+
+  it('should return empty when no caption matches', () => {
+    const result = getAllCaptionsForFrame(overlappingCaptions, 10);
+    expect(result).toHaveLength(0);
   });
 });
 
@@ -329,6 +436,51 @@ describe('splitCaptionAtSceneBoundary', () => {
     expect(result[0].endFrame).toBe(90);    // 3000ms at 30fps
     expect(result[1].startFrame).toBe(90);  // 3000ms at 30fps
     expect(result[1].endFrame).toBe(120);   // 4000ms at 30fps
+  });
+
+  it('should skip degenerate zero-duration segments from split', () => {
+    // Caption starts exactly at a scene boundary and ends exactly at the next
+    // This should NOT produce a degenerate split because no boundary falls
+    // strictly inside the caption range (startMs < boundary < endMs).
+    // But if a boundary equals startMs exactly, it's excluded.
+    const scenes = [
+      createScene({ durationMs: 1000 }),
+      createScene({ durationMs: 1000 }),
+    ];
+    const caption = createCaption({
+      startMs: 1000,
+      endMs: 1000,  // zero-duration caption
+      startFrame: 30,
+      endFrame: 30,
+      text: 'Zero duration',
+    });
+
+    const result = splitCaptionAtSceneBoundary(caption, scenes, FPS);
+    // No boundary strictly inside (1000, 1000), so original is returned
+    expect(result).toHaveLength(1);
+    expect(result[0].text).toBe('Zero duration');
+  });
+
+  it('should handle caption starting at exact scene boundary', () => {
+    const scenes = [
+      createScene({ durationMs: 3000 }),
+      createScene({ durationMs: 3000 }),
+    ];
+    const caption = createCaption({
+      startMs: 3000,
+      endMs: 5000,
+      startFrame: 90,
+      endFrame: 150,
+      text: 'Starts at boundary',
+    });
+
+    const result = splitCaptionAtSceneBoundary(caption, scenes, FPS);
+    // startMs=3000 is exactly at boundary but no boundary falls strictly
+    // within (3000, 5000) since boundaries are [0, 3000, 6000]
+    // 6000 > 3000 && 6000 < 5000? No, 6000 > 5000. So no split.
+    expect(result).toHaveLength(1);
+    expect(result[0].startMs).toBe(3000);
+    expect(result[0].endMs).toBe(5000);
   });
 });
 

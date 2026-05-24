@@ -57,29 +57,34 @@ export interface SyncDriftResult {
  * Convert milliseconds to frame number at a given FPS.
  * Uses rounding for the closest frame match.
  *
- * @param ms - Time in milliseconds
- * @param fps - Frames per second
- * @returns Frame number (rounded to nearest integer)
+ * @param ms - Time in milliseconds (negative values clamped to 0)
+ * @param fps - Frames per second (must be > 0, defaults to DEFAULT_FPS)
+ * @returns Frame number (rounded to nearest integer, minimum 0)
  */
-export function msToFrame(ms: number, fps: number): number {
+export function msToFrame(ms: number, fps: number = DEFAULT_FPS): number {
+  if (fps <= 0) fps = DEFAULT_FPS;
+  if (ms <= 0) return 0;
   return Math.round((ms / 1000) * fps);
 }
 
 /**
  * Convert a frame number to milliseconds at a given FPS.
  *
- * @param frame - Frame number
- * @param fps - Frames per second
+ * @param frame - Frame number (negative values clamped to 0)
+ * @param fps - Frames per second (must be > 0, defaults to DEFAULT_FPS)
  * @returns Time in milliseconds
  */
-export function frameToMs(frame: number, fps: number): number {
+export function frameToMs(frame: number, fps: number = DEFAULT_FPS): number {
+  if (fps <= 0) fps = DEFAULT_FPS;
+  if (frame <= 0) return 0;
   return (frame / fps) * 1000;
 }
 
 /**
  * Get the caption that should be displayed at a given frame.
+ * Uses binary search (O(log n)) on sorted captions for efficient lookup.
  *
- * @param captions - Array of parsed SRT captions
+ * @param captions - Array of parsed SRT captions (should be sorted by startFrame)
  * @param frame - Current frame number
  * @returns The matching caption, or null if no caption is active
  */
@@ -87,12 +92,51 @@ export function getCaptionForFrame(
   captions: SrtCaption[],
   frame: number
 ): SrtCaption | null {
-  for (const caption of captions) {
-    if (frame >= caption.startFrame && frame <= caption.endFrame) {
-      return caption;
+  if (captions.length === 0 || frame < 0) return null;
+
+  // Binary search: find the last caption whose startFrame <= frame
+  let lo = 0;
+  let hi = captions.length - 1;
+  let candidate: SrtCaption | null = null;
+
+  while (lo <= hi) {
+    const mid = (lo + hi) >>> 1;
+    const cap = captions[mid];
+    if (cap.startFrame <= frame) {
+      candidate = cap;
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
     }
   }
+
+  // Verify the candidate actually covers the frame
+  if (candidate && frame <= candidate.endFrame) {
+    return candidate;
+  }
   return null;
+}
+
+/**
+ * Get all captions that overlap with a given frame.
+ * Useful when captions may intentionally overlap (e.g., bilingual subtitles).
+ *
+ * @param captions - Array of parsed SRT captions
+ * @param frame - Current frame number
+ * @returns Array of all matching captions
+ */
+export function getAllCaptionsForFrame(
+  captions: SrtCaption[],
+  frame: number
+): SrtCaption[] {
+  if (captions.length === 0 || frame < 0) return [];
+  const result: SrtCaption[] = [];
+  for (const caption of captions) {
+    if (frame >= caption.startFrame && frame <= caption.endFrame) {
+      result.push(caption);
+    }
+  }
+  return result;
 }
 
 /**
@@ -176,6 +220,10 @@ export function splitCaptionAtSceneBoundary(
   const times = [caption.startMs, ...splitPoints, caption.endMs];
 
   for (let i = 0; i < times.length - 1; i++) {
+    // Skip degenerate segments (0ms duration)
+    const segDuration = times[i + 1] - times[i];
+    if (segDuration <= 0) continue;
+
     segments.push({
       index: caption.index,
       startMs: times[i],
@@ -184,6 +232,11 @@ export function splitCaptionAtSceneBoundary(
       startFrame: msToFrame(times[i], fps),
       endFrame: msToFrame(times[i + 1], fps),
     });
+  }
+
+  // If all segments were degenerate, return the original caption
+  if (segments.length === 0) {
+    return [caption];
   }
 
   return segments;
