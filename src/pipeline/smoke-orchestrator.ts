@@ -93,40 +93,68 @@ function toEdgeDatum(raw: Array<Record<string, unknown>>): EdgeDatum[] {
   }));
 }
 
-function buildScenes(diagram: RawDiagram, fps: number): {
-  scenes: SceneGraph[];
+const DEFAULT_SCENE_DURATION_MS = 5000;
+
+function buildSingleScene(diagram: RawDiagram, startMs: number, fps: number): {
+  scene: SceneGraph;
   captions: SrtCaption[];
 } {
   const nodes = toNodeDatum(diagram.nodes ?? []);
   const edges = toEdgeDatum(diagram.edges ?? []);
+  const durationMs = DEFAULT_SCENE_DURATION_MS;
 
-  // Build a single scene from the parsed diagram
-  const durationMs = 5000; // default 5-second scene
-  const scenes: SceneGraph[] = [
-    {
-      type: (diagram.type as DiagramType) ?? 'flow',
-      nodes,
-      edges,
-      startMs: 0,
-      durationMs,
-      summary: diagram.summary ?? 'Smoke test scene',
-      keyphrases: diagram.keyphrases ?? [],
-    },
-  ];
+  const scene: SceneGraph = {
+    type: (diagram.type as DiagramType) ?? 'flow',
+    nodes,
+    edges,
+    startMs,
+    durationMs,
+    summary: diagram.summary ?? 'Smoke test scene',
+    keyphrases: diagram.keyphrases ?? [],
+  };
 
-  // Build an SrtCaption per node for testing sync
   const nodeCount = nodes.length;
   const perNodeMs = nodeCount > 0 ? durationMs / nodeCount : durationMs;
   const captions: SrtCaption[] = nodes.map((n, i) => ({
     index: i + 1,
-    startMs: Math.round(i * perNodeMs),
-    endMs: Math.round((i + 1) * perNodeMs),
+    startMs: Math.round(startMs + i * perNodeMs),
+    endMs: Math.round(startMs + (i + 1) * perNodeMs),
     text: n.label,
-    startFrame: msToFrame(Math.round(i * perNodeMs), fps),
-    endFrame: msToFrame(Math.round((i + 1) * perNodeMs), fps),
+    startFrame: msToFrame(Math.round(startMs + i * perNodeMs), fps),
+    endFrame: msToFrame(Math.round(startMs + (i + 1) * perNodeMs), fps),
   }));
 
-  return { scenes, captions };
+  return { scene, captions };
+}
+
+/**
+ * Build multiple scenes from an array of diagram objects.
+ * Each diagram becomes one scene with sequential timing.
+ */
+function buildMultiScenes(diagrams: RawDiagram[], fps: number): {
+  scenes: SceneGraph[];
+  captions: SrtCaption[];
+} {
+  const scenes: SceneGraph[] = [];
+  const allCaptions: SrtCaption[] = [];
+  let currentMs = 0;
+
+  for (const diagram of diagrams) {
+    const { scene, captions } = buildSingleScene(diagram, currentMs, fps);
+    scenes.push(scene);
+    allCaptions.push(...captions);
+    currentMs += scene.durationMs;
+  }
+
+  return { scenes, captions: allCaptions };
+}
+
+function buildScenes(diagram: RawDiagram, fps: number): {
+  scenes: SceneGraph[];
+  captions: SrtCaption[];
+} {
+  const { scene, captions } = buildSingleScene(diagram, 0, fps);
+  return { scenes: [scene], captions };
 }
 
 // ---------------------------------------------------------------------------
@@ -146,20 +174,30 @@ export async function runSmokePipeline(
   const format = input.exportFormat ?? 'json';
 
   // ── Stage 1: Parse JSON from LLM text ──────────────────────────────────
-  const parsed = parseJsonFromLLMText<RawDiagram>(input.rawLlmText);
+  const parsed = parseJsonFromLLMText<RawDiagram | RawDiagram[]>(input.rawLlmText);
 
-  if (
-    typeof parsed !== 'object' ||
-    parsed === null ||
-    (!parsed.nodes && !parsed.edges && !parsed.type)
-  ) {
+  if (typeof parsed !== 'object' || parsed === null) {
+    throw new Error(
+      'Smoke pipeline: parsed LLM text does not contain a valid diagram object',
+    );
+  }
+
+  // Detect whether the LLM returned a single diagram or an array of diagrams
+  const isArray = Array.isArray(parsed);
+  const diagrams: RawDiagram[] = isArray ? parsed : [parsed];
+  const firstInvalid = diagrams.find(
+    (d) => !d.nodes && !d.edges && !d.type,
+  );
+  if (firstInvalid) {
     throw new Error(
       'Smoke pipeline: parsed LLM text does not contain a valid diagram object',
     );
   }
 
   // ── Stage 2: Build scenes and synchronise captions ──────────────────────
-  const { scenes, captions: autoCaptions } = buildScenes(parsed, fps);
+  const { scenes, captions: autoCaptions } = isArray
+    ? buildMultiScenes(diagrams, fps)
+    : buildScenes(diagrams[0], fps);
 
   // Use caller-supplied captions if provided, otherwise use auto-generated
   const rawCaptions: SrtCaption[] = (input.captions ?? []).map((c) => ({
