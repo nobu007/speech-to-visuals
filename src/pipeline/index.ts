@@ -19,6 +19,16 @@ export type {
   RenderPlan,
   RenderSpecConfig,
 } from './scene-render-spec-generator';
+export {
+  computePipelineHealth,
+} from './pipeline-health-score';
+export type {
+  PipelineHealthReport,
+  PipelineHealthInput,
+  HealthGrade,
+  HealthScoreBreakdown,
+  HealthRecommendation,
+} from './pipeline-health-score';
 export type {
   PipelineInput,
   PipelineConfig,

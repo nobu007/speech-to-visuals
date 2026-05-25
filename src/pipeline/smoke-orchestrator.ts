@@ -22,6 +22,9 @@ import type { SrtCaption } from '../remotion/srt-parser';
 import type { SceneGraph, DiagramType, NodeDatum, EdgeDatum, DiagramLayout } from '../types/diagram';
 import { MultiFormatExporter, type ExportFormat, type ExportResult } from '../export/multi-format-exporter';
 import { generateRenderPlan, validateRenderPlan, type RenderPlan } from './scene-render-spec-generator';
+import { timeStage, aggregateTimingReport, type StageTimingRecord, type StageTimingReport } from './stage-timing-metrics';
+import { computePipelineHealth, type PipelineHealthReport } from './pipeline-health-score';
+import type { CostData } from './cost-efficiency-metrics';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -43,6 +46,8 @@ export interface SmokeOrchestratorInput {
   fps?: number;
   /** Export format (defaults to 'json'). */
   exportFormat?: ExportFormat;
+  /** Optional cost data — when provided, a health report is generated. */
+  costData?: CostData;
 }
 
 export interface SmokeOrchestratorResult {
@@ -60,6 +65,10 @@ export interface SmokeOrchestratorResult {
   renderPlanValidation: { valid: boolean; issues: string[] };
   /** Stage 4 — export result for each scene. */
   exportResults: ExportResult[];
+  /** Per-stage timing records. */
+  timingReport?: StageTimingReport;
+  /** Stage 5 — pipeline health report (present when costData was provided). */
+  healthReport?: PipelineHealthReport;
 }
 
 // ---------------------------------------------------------------------------
@@ -165,16 +174,23 @@ function buildScenes(diagram: RawDiagram, fps: number): {
  * Run the three-stage smoke pipeline.
  *
  * Returns the intermediate and final results so tests can assert on each
- * stage independently.
+ * stage independently.  When `costData` is provided, also produces a
+ * pipeline health report (bottleneck + regression + cost analysis).
  */
 export async function runSmokePipeline(
   input: SmokeOrchestratorInput,
 ): Promise<SmokeOrchestratorResult> {
   const fps = input.fps ?? DEFAULT_FPS;
   const format = input.exportFormat ?? 'json';
+  const timings: StageTimingRecord[] = [];
 
   // ── Stage 1: Parse JSON from LLM text ──────────────────────────────────
-  const parsed = parseJsonFromLLMText<RawDiagram | RawDiagram[]>(input.rawLlmText);
+  const { result: parsed, timing: t1 } = await timeStage(
+    'parse',
+    1,
+    async () => parseJsonFromLLMText<RawDiagram | RawDiagram[]>(input.rawLlmText),
+  );
+  timings.push(t1);
 
   if (typeof parsed !== 'object' || parsed === null) {
     throw new Error(
@@ -195,48 +211,89 @@ export async function runSmokePipeline(
   }
 
   // ── Stage 2: Build scenes and synchronise captions ──────────────────────
-  const { scenes, captions: autoCaptions } = isArray
-    ? buildMultiScenes(diagrams, fps)
-    : buildScenes(diagrams[0], fps);
+  const { result: sceneBuild, timing: t2 } = await timeStage(
+    'scene-sync',
+    diagrams.length,
+    async () => {
+      const { scenes, captions: autoCaptions } = isArray
+        ? buildMultiScenes(diagrams, fps)
+        : buildScenes(diagrams[0], fps);
 
-  // Use caller-supplied captions if provided, otherwise use auto-generated
-  const rawCaptions: SrtCaption[] = (input.captions ?? []).map((c) => ({
-    index: c.index,
-    startMs: c.startMs,
-    endMs: c.endMs,
-    text: c.text,
-    startFrame: msToFrame(c.startMs, fps),
-    endFrame: msToFrame(c.endMs, fps),
-  }));
-  const captions = rawCaptions.length > 0 ? rawCaptions : autoCaptions;
+      const rawCaptions: SrtCaption[] = (input.captions ?? []).map((c) => ({
+        index: c.index,
+        startMs: c.startMs,
+        endMs: c.endMs,
+        text: c.text,
+        startFrame: msToFrame(c.startMs, fps),
+        endFrame: msToFrame(c.endMs, fps),
+      }));
+      const captions = rawCaptions.length > 0 ? rawCaptions : autoCaptions;
 
-  const syncValidation = validateSceneCaptionSync(scenes, captions, fps);
-
-  const splitCaptions = captions.map((c) =>
-    splitCaptionAtSceneBoundary(c, scenes, fps),
+      const syncValidation = validateSceneCaptionSync(scenes, captions, fps);
+      const splitCaptions = captions.map((c) =>
+        splitCaptionAtSceneBoundary(c, scenes, fps),
+      );
+      return { scenes, captions, syncValidation, splitCaptions };
+    },
   );
+  timings.push(t2);
 
   // ── Stage 3: Generate render plan ──────────────────────────────────────
-  const renderPlan = generateRenderPlan(scenes, { fps });
-  const renderPlanValidation = validateRenderPlan(renderPlan);
+  const { result: renderPlan, timing: t3 } = await timeStage(
+    'render-plan',
+    sceneBuild.scenes.length,
+    async () => {
+      const plan = generateRenderPlan(sceneBuild.scenes, { fps });
+      const validation = validateRenderPlan(plan);
+      return { plan, validation };
+    },
+  );
+  timings.push(t3);
 
-  if (!renderPlanValidation.valid) {
+  if (!renderPlan.validation.valid) {
     throw new Error(
-      `Smoke pipeline: render plan validation failed: ${renderPlanValidation.issues.join('; ')}`,
+      `Smoke pipeline: render plan validation failed: ${renderPlan.validation.issues.join('; ')}`,
     );
   }
 
   // ── Stage 4: Export each scene ──────────────────────────────────────────
-  const exporter = new MultiFormatExporter();
-  const exportResults = await exporter.exportBatch(scenes, { format });
+  const { result: exportResults, timing: t4 } = await timeStage(
+    'export',
+    sceneBuild.scenes.length,
+    async () => {
+      const exporter = new MultiFormatExporter();
+      return exporter.exportBatch(sceneBuild.scenes, { format });
+    },
+  );
+  timings.push(t4);
+
+  const timingReport = aggregateTimingReport(timings);
+
+  // ── Stage 5 (optional): Pipeline health report ─────────────────────────
+  let healthReport: PipelineHealthReport | undefined;
+  if (input.costData) {
+    const measurements = timings.map((t) => ({
+      stage: t.stageName,
+      durationMs: t.durationMs,
+      memoryMB: 0, // memory not tracked in smoke runs
+      timestamp: t.startTime,
+    }));
+    healthReport = computePipelineHealth({
+      stages: timings,
+      measurements,
+      costData: input.costData,
+    });
+  }
 
   return {
     parsed,
-    scenes,
-    syncValidation,
-    splitCaptions,
-    renderPlan,
-    renderPlanValidation,
+    scenes: sceneBuild.scenes,
+    syncValidation: sceneBuild.syncValidation,
+    splitCaptions: sceneBuild.splitCaptions,
+    renderPlan: renderPlan.plan,
+    renderPlanValidation: renderPlan.validation,
     exportResults,
+    timingReport,
+    healthReport,
   };
 }
