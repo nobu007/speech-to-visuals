@@ -115,6 +115,7 @@ export function buildSingleScene(diagram: RawDiagram, startMs: number, fps: numb
   const durationMs = diagram.durationMs ?? DEFAULT_SCENE_DURATION_MS;
 
   const scene: SceneGraph = {
+    id: `scene-${startMs}`,
     type: (diagram.type as DiagramType) ?? 'flow',
     nodes,
     edges,

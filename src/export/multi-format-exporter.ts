@@ -186,10 +186,12 @@ export class MultiFormatExporter {
     const jsonData = {
       id: scene.id,
       type: scene.type,
-      content: scene.content,
-      startTime: scene.startTime,
-      endTime: scene.endTime,
-      confidence: scene.confidence,
+      nodes: scene.nodes,
+      edges: scene.edges,
+      startMs: scene.startMs,
+      durationMs: scene.durationMs,
+      summary: scene.summary,
+      keyphrases: scene.keyphrases,
       layout: scene.layout,
       metadata: options.includeMetadata
         ? {
@@ -408,8 +410,6 @@ export class MultiFormatExporter {
       const from = nodes.find((n) => n.id === edge.from);
       const to = nodes.find((n) => n.id === edge.to);
       if (from && to) {
-        const fy = pageHeight - (from.y || 0);
-        const ty = pageHeight - (to.x || 0) + (to.y || 0) - (to.y || 0);
         parts.push(`${from.x || 0} ${pageHeight - (from.y || 0)} m ${(to.x || 0)} ${pageHeight - (to.y || 0)} l S`);
         if (edge.label) {
           const midX = ((from.x || 0) + (to.x || 0)) / 2;
