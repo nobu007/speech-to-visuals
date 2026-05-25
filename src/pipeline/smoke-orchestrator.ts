@@ -11,7 +11,7 @@
  * end-to-end with fixture data.
  */
 
-import { parseJsonFromLLMText } from '../analysis/llm-utils';
+import { parseJsonFromLLMText } from '../analysis';
 import {
   msToFrame,
   validateSceneCaptionSync,

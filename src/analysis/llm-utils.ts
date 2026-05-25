@@ -2,21 +2,23 @@
  * Utility helpers for working with LLM responses
  */
 
+import { LLMParsingError } from './analysis-errors';
+
 /**
  * Extract and parse JSON from an LLM text response.
  * - Strips optional triple backtick code fences (``` or ```json)
  * - Removes markdown formatting and extra text
  * - Trims whitespace
  * - Attempts multiple parsing strategies (objects and arrays)
- * - Throws a descriptive error on JSON.parse failure
+ * - Throws a typed LLMParsingError on JSON.parse failure
  */
 export function parseJsonFromLLMText<T = unknown>(rawText: string): T {
   // Input validation
   if (rawText == null) {
-    throw new Error('parseJsonFromLLMText: input is null or undefined');
+    throw new LLMParsingError('parseJsonFromLLMText: input is null or undefined');
   }
   if (typeof rawText !== 'string') {
-    throw new Error(`parseJsonFromLLMText: expected string, got ${typeof rawText}`);
+    throw new LLMParsingError(`parseJsonFromLLMText: expected string, got ${typeof rawText}`);
   }
 
   // Strategy 1: Standard cleaning
@@ -28,7 +30,7 @@ export function parseJsonFromLLMText<T = unknown>(rawText: string): T {
     .trim();
 
   if (cleaned.length === 0) {
-    throw new Error('parseJsonFromLLMText: input is empty after cleaning');
+    throw new LLMParsingError('parseJsonFromLLMText: input is empty after cleaning');
   }
 
   // Strategy 2: Extract JSON from surrounding text
@@ -132,7 +134,10 @@ export function parseJsonFromLLMText<T = unknown>(rawText: string): T {
         return JSON.parse(fixed) as T;
       } catch (thirdErr) {
         const preview = cleaned.slice(0, 300).replace(/\n/g, ' ');
-        throw new Error(`Failed to parse LLM JSON after all strategies. Preview: ${preview}`);
+        throw new LLMParsingError(
+          `Failed to parse LLM JSON after all strategies. Preview: ${preview}`,
+          { preview },
+        );
       }
     }
   }
