@@ -21,6 +21,7 @@ import {
 import type { SrtCaption } from '../remotion/srt-parser';
 import type { SceneGraph, DiagramType, NodeDatum, EdgeDatum, DiagramLayout } from '../types/diagram';
 import { MultiFormatExporter, type ExportFormat, type ExportResult } from '../export/multi-format-exporter';
+import { generateRenderPlan, validateRenderPlan, type RenderPlan } from './scene-render-spec-generator';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -53,7 +54,11 @@ export interface SmokeOrchestratorResult {
   syncValidation: { valid: boolean; issues: string[] };
   /** Stage 2 — captions after splitting at scene boundaries. */
   splitCaptions: SrtCaption[][];
-  /** Stage 3 — export result for each scene. */
+  /** Stage 3 — render plan generated from scenes. */
+  renderPlan: RenderPlan;
+  /** Stage 3 — render plan validation result. */
+  renderPlanValidation: { valid: boolean; issues: string[] };
+  /** Stage 4 — export result for each scene. */
   exportResults: ExportResult[];
 }
 
@@ -173,7 +178,17 @@ export async function runSmokePipeline(
     splitCaptionAtSceneBoundary(c, scenes, fps),
   );
 
-  // ── Stage 3: Export each scene ──────────────────────────────────────────
+  // ── Stage 3: Generate render plan ──────────────────────────────────────
+  const renderPlan = generateRenderPlan(scenes, { fps });
+  const renderPlanValidation = validateRenderPlan(renderPlan);
+
+  if (!renderPlanValidation.valid) {
+    throw new Error(
+      `Smoke pipeline: render plan validation failed: ${renderPlanValidation.issues.join('; ')}`,
+    );
+  }
+
+  // ── Stage 4: Export each scene ──────────────────────────────────────────
   const exporter = new MultiFormatExporter();
   const exportResults = await exporter.exportBatch(scenes, { format });
 
@@ -182,6 +197,8 @@ export async function runSmokePipeline(
     scenes,
     syncValidation,
     splitCaptions,
+    renderPlan,
+    renderPlanValidation,
     exportResults,
   };
 }

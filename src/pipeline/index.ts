@@ -2,6 +2,23 @@ export { MainPipeline } from './main-pipeline';
 export { SimplePipeline, simplePipeline } from './simple-pipeline';
 export { retryWithBackoff } from './retry';
 export type { RetryWithBackoffOptions, RetryResult } from './retry';
+export {
+  runSmokePipeline,
+} from './smoke-orchestrator';
+export type {
+  SmokeOrchestratorInput,
+  SmokeOrchestratorResult,
+  SmokeCaptionInput,
+} from './smoke-orchestrator';
+export {
+  generateRenderPlan,
+  validateRenderPlan,
+} from './scene-render-spec-generator';
+export type {
+  SceneRenderSpec,
+  RenderPlan,
+  RenderSpecConfig,
+} from './scene-render-spec-generator';
 export type {
   PipelineInput,
   PipelineConfig,

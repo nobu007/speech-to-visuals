@@ -1,10 +1,11 @@
 /**
  * End-to-end smoke test for the speech→visuals pipeline happy path.
  *
- * Exercises three pipeline stages without any external API calls:
+ * Exercises four pipeline stages without any external API calls:
  *   1. parseJsonFromLLMText  — extracts structured diagram JSON from LLM text
  *   2. scene-synchronizer    — validates captions against scene boundaries
- *   3. MultiFormatExporter   — produces a deliverable export
+ *   3. SceneRenderSpecGenerator — produces render timing/frame plan
+ *   4. MultiFormatExporter   — produces a deliverable export
  *
  * Uses the thin orchestrator in src/pipeline/smoke-orchestrator.ts so that
  * the wiring is also covered (not just individual units).
@@ -22,10 +23,21 @@ import {
 import type { SrtCaption } from '@/remotion/srt-parser';
 import { MultiFormatExporter } from '@/export/multi-format-exporter';
 import {
+  generateRenderPlan,
+  validateRenderPlan,
+} from '@/pipeline/scene-render-spec-generator';
+import {
   runSmokePipeline,
   type SmokeOrchestratorInput,
   type SmokeOrchestratorResult,
 } from '@/pipeline/smoke-orchestrator';
+
+// Verify public API re-exports from pipeline/index
+import {
+  runSmokePipeline as publicRunSmokePipeline,
+  generateRenderPlan as publicGenerateRenderPlan,
+  validateRenderPlan as publicValidateRenderPlan,
+} from '@/pipeline';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -200,10 +212,94 @@ describe('Stage 2: scene-synchronizer', () => {
 });
 
 // ===========================================================================
-// Stage 3: MultiFormatExporter
+// Stage 3: SceneRenderSpecGenerator
 // ===========================================================================
 
-describe('Stage 3: MultiFormatExporter', () => {
+describe('Stage 3: SceneRenderSpecGenerator', () => {
+  it('generates a valid render plan from fixture scenes', () => {
+    const scenes = [
+      {
+        type: 'flow' as const,
+        nodes: [
+          { id: 'step1', label: 'A' },
+          { id: 'step2', label: 'B' },
+        ],
+        edges: [{ from: 'step1', to: 'step2' }],
+        startMs: 0,
+        durationMs: 5000,
+        summary: 'Test scene',
+        keyphrases: [],
+      },
+    ];
+
+    const plan = generateRenderPlan(scenes);
+    expect(plan.sceneCount).toBe(1);
+    expect(plan.totalFrames).toBeGreaterThan(0);
+    expect(plan.scenes[0].diagramType).toBe('flow');
+    expect(plan.scenes[0].nodeCount).toBe(2);
+    expect(plan.scenes[0].edgeCount).toBe(1);
+
+    const validation = validateRenderPlan(plan);
+    expect(validation.valid).toBe(true);
+    expect(validation.issues).toHaveLength(0);
+  });
+
+  it('generates contiguous frame ranges across multi-scene plans', () => {
+    const scenes = [
+      {
+        type: 'flow' as const,
+        nodes: [{ id: 'a', label: 'A' }],
+        edges: [],
+        startMs: 0,
+        durationMs: 3000,
+        summary: 'Scene 1',
+        keyphrases: [],
+      },
+      {
+        type: 'tree' as const,
+        nodes: [{ id: 'b', label: 'B' }],
+        edges: [],
+        startMs: 3000,
+        durationMs: 4000,
+        summary: 'Scene 2',
+        keyphrases: [],
+      },
+    ];
+
+    const plan = generateRenderPlan(scenes);
+    expect(plan.sceneCount).toBe(2);
+    // Second scene starts where first ends
+    expect(plan.scenes[1].startFrame).toBe(plan.scenes[0].endFrame);
+    expect(plan.totalFrames).toBe(plan.scenes[0].totalFrames + plan.scenes[1].totalFrames);
+  });
+
+  it('throws on empty scenes array', () => {
+    expect(() => generateRenderPlan([])).toThrow('scenes array is empty');
+  });
+
+  it('clamps scene duration to min/max bounds', () => {
+    const scenes = [
+      {
+        type: 'flow' as const,
+        nodes: [],
+        edges: [],
+        startMs: 0,
+        durationMs: 100, // below minimum
+        summary: 'Short',
+        keyphrases: [],
+      },
+    ];
+
+    const plan = generateRenderPlan(scenes, { minSceneDurationMs: 2000 });
+    expect(plan.scenes[0].durationMs).toBe(2000);
+  });
+});
+
+// ===========================================================================
+// Stage 4: MultiFormatExporter
+// ===========================================================================
+
+describe('Stage 4: MultiFormatExporter', () => {
   it('exports a scene graph as JSON', async () => {
     const exporter = new MultiFormatExporter();
     const scene = {
@@ -313,7 +409,7 @@ describe('Stage 3: MultiFormatExporter', () => {
 // ===========================================================================
 
 describe('End-to-end: runSmokePipeline', () => {
-  it('chains all three stages and returns valid results', async () => {
+  it('chains all four stages and returns valid results', async () => {
     const result = await runSmokePipeline({
       rawLlmText: FIXTURE_LLM_TEXT,
       captions: FIXTURE_CAPTIONS,
@@ -331,7 +427,14 @@ describe('End-to-end: runSmokePipeline', () => {
     expect(result.syncValidation.valid).toBe(true);
     expect(result.splitCaptions).toHaveLength(4);
 
-    // Stage 3: export
+    // Stage 3: render plan
+    expect(result.renderPlan).toBeDefined();
+    expect(result.renderPlan.sceneCount).toBe(1);
+    expect(result.renderPlan.scenes[0].nodeCount).toBe(4);
+    expect(result.renderPlan.scenes[0].edgeCount).toBe(3);
+    expect(result.renderPlanValidation.valid).toBe(true);
+
+    // Stage 4: export
     expect(result.exportResults).toHaveLength(1);
     expect(result.exportResults[0].success).toBe(true);
     expect(result.exportResults[0].mimeType).toBe('application/json');
@@ -379,5 +482,47 @@ describe('End-to-end: runSmokePipeline', () => {
 
     expect(result.exportResults[0].success).toBe(true);
     expect(result.exportResults[0].mimeType).toBe('image/svg+xml');
+    // Render plan should use the custom fps
+    expect(result.renderPlan.fps).toBe(60);
+  });
+
+  it('render plan frame ranges match exported scenes', async () => {
+    const result = await runSmokePipeline({
+      rawLlmText: FIXTURE_LLM_TEXT,
+      captions: FIXTURE_CAPTIONS,
+    });
+
+    // Render plan scene count must match exported scene count
+    expect(result.renderPlan.sceneCount).toBe(result.scenes.length);
+    expect(result.renderPlan.sceneCount).toBe(result.exportResults.length);
+  });
+});
+
+// ===========================================================================
+// Public API: verify pipeline/index re-exports
+// ===========================================================================
+
+describe('Public API: pipeline/index re-exports', () => {
+  it('exports runSmokePipeline from pipeline index', () => {
+    expect(typeof publicRunSmokePipeline).toBe('function');
+  });
+
+  it('exports generateRenderPlan from pipeline index', () => {
+    expect(typeof publicGenerateRenderPlan).toBe('function');
+  });
+
+  it('exports validateRenderPlan from pipeline index', () => {
+    expect(typeof publicValidateRenderPlan).toBe('function');
+  });
+
+  it('public runSmokePipeline produces same results as direct import', async () => {
+    const result = await publicRunSmokePipeline({
+      rawLlmText: FIXTURE_LLM_TEXT,
+      captions: FIXTURE_CAPTIONS,
+    });
+
+    expect(result.parsed.type).toBe('flow');
+    expect(result.renderPlan.sceneCount).toBe(1);
+    expect(result.exportResults[0].success).toBe(true);
   });
 });
