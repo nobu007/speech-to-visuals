@@ -38,6 +38,7 @@ import { executeLayoutsInParallel, executeScenePreparationInParallel } from './p
 import { timeStage, StageTimingRecord, aggregateTimingReport, StageTimingReport } from './stage-timing-metrics';
 import { detectBottlenecks, BottleneckReport } from './bottleneck-detector';
 import { PipelineConfigError, RenderingError, QualityGateError } from './pipeline-errors';
+import { generateRenderPlan, validateRenderPlan, type RenderPlan } from './scene-render-spec-generator';
 import {
   PipelineErrorRecoveryOrchestrator,
 } from '@/quality/pipeline-error-recovery-orchestrator';
@@ -601,14 +602,21 @@ export class PipelineOrchestrator {
   private async runRendering(
     scenes: SceneGraph[],
     config: PipelineConfig
-  ): Promise<void> {
-    // Video rendering is a placeholder; in production this would invoke
-    // the video generator. For the orchestrator we simply validate scenes.
+  ): Promise<RenderPlan> {
     if (!scenes || scenes.length === 0) {
       throw new RenderingError('No scenes to render');
     }
-    // Simulate async work
-    await Promise.resolve();
+
+    const plan = generateRenderPlan(scenes, {
+      fps: config.output.fps,
+    });
+
+    const validation = validateRenderPlan(plan);
+    if (!validation.valid) {
+      throw new RenderingError(`Render plan validation failed: ${validation.issues.join('; ')}`);
+    }
+
+    return plan;
   }
 
   // ---------- Quality Gates & Fallbacks ----------
