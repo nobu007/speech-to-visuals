@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-21（第162回検証: Phase 1-57完了・多層エラー回復システム6モジュール追加・RecoveryStrategyChainチェーンフロー・PipelineRunRecoveryTracker cross-stage追跡フロー・BatchOperationRecovery per-item回復フロー・ErrorRecoveryEventBus イベント配信フロー・ErrorRecoveryMonitor 定期サンプリングフロー追加）
+**最終更新**: 2026-05-26（第165回検証: Smoke Orchestrator 5ステージパイプラインフロー・SceneRenderSpecGenerator レンダープラン生成フロー・StageTimingMetrics ステージタイミング記録フロー・PipelineHealthScore 健全性評価フロー・マルチシーン逐次タイミングフロー追加）
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](requirements.md)
 
@@ -1725,11 +1725,11 @@ sequenceDiagram
 6. キャパシティ調整が必要な場合は EnhancedErrorRecovery に調整指示 🔵
 7. API サーバー停止時に stop() でタイマー停止・リソース解放 🔵
 
-- 🔵 青信号: 177件 (99%)
+- 🔵 青信号: 195件 (99%)
 - 🟡 黄信号: 1件 (1%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - Phase 57 多層エラー回復システム6モジュール追加を反映（第162回検証: Phase 1-57完了・352ファイル・177テストファイル・ギャップなし）
+**品質評価**: 高品質 - Smoke Orchestrator 5ステージパイプライン・マルチシーン逐次タイミングフロー追加を反映（第165回検証: Phase 1-58完了・355ファイル・182テストファイル・ギャップなし）
 
 ## Acceptance criteria
 
@@ -1827,3 +1827,84 @@ sequenceDiagram
 4. persist() は保留中のデバウンス書き込みをキャンセルして即時フラッシュ 🔵
 5. destroy() は保留中のタイマーをキャンセルしてリソース解放 🔵
 6. persistDebounceMs: 0 で従来の同期的即時書き込みにフォールバック可能 🔵
+
+### 機能24: Smoke Orchestrator 5ステージパイプラインフロー 🔵
+
+**信頼性**: 🔵 *src/pipeline/smoke-orchestrator.ts・src/pipeline/scene-render-spec-generator.ts・src/pipeline/stage-timing-metrics.ts・src/pipeline/pipeline-health-score.ts より*
+
+**関連要件**: REQ-097, REQ-099
+
+**説明**: 外部API呼び出しなしで内部配線を検証する軽量5ステージスモークパイプライン
+
+```mermaid
+sequenceDiagram
+    participant Input as SmokeOrchestratorInput
+    participant S1 as Stage 1: Parse
+    participant S2 as Stage 2: Scene-Sync
+    participant S3 as Stage 3: Render-Plan
+    participant S4 as Stage 4: Export
+    participant S5 as Stage 5: Health
+    participant Output as SmokeOrchestratorResult
+
+    Input->>S1: rawLlmText
+    S1->>S1: parseJsonFromLLMText()
+    S1-->>S2: parsed (RawDiagram | RawDiagram[])
+    S2->>S2: buildMultiScenes() / buildSingleScene()
+    S2->>S2: validateSceneCaptionSync()
+    S2->>S2: splitCaptionAtSceneBoundary()
+    S2-->>S3: scenes, splitCaptions, syncValidation
+    S3->>S3: generateRenderPlan(scenes, {fps})
+    S3->>S3: validateRenderPlan(plan)
+    S3-->>S4: renderPlan, renderPlanValidation
+    S4->>S4: MultiFormatExporter.exportBatch(scenes, {format})
+    S4-->>S5: exportResults
+    alt costData provided
+        S5->>S5: computePipelineHealth({stages, measurements, costData})
+        S5-->>Output: healthReport + timingReport
+    else no costData
+        S5-->>Output: timingReport only
+    end
+```
+
+**詳細ステップ**:
+
+1. Stage 1 (Parse): parseJsonFromLLMText で LLM テキストから JSON 図解オブジェクトを抽出。単一または配列の RawDiagram を自動判定 🔵
+2. Stage 2 (Scene-Sync): buildMultiScenes で各図解をシーンに変換（逐次タイミング: currentMs += durationMs）。キャプション同期検証とシーン境界分割を実行 🔵
+3. Stage 3 (Render-Plan): generateRenderPlan で SceneGraph[] からフレームベースの RenderPlan を生成。トランジション・コンテンツ準備フレームを計算し整合性検証 🔵
+4. Stage 4 (Export): MultiFormatExporter で JSON/SVG/PDF 形式のエクスポートバッチ処理 🔵
+5. Stage 5 (Health, optional): costData 提供時、computePipelineHealth でボトルネック検出・リグレッション分析・コスト効率比較を統合した健全性レポートを生成 🔵
+6. 全ステージで timeStage() ラッパーによるタイミング記録、aggregateTimingReport() で集計 🔵
+
+### 機能25: マルチシーン逐次タイミング構築フロー 🔵
+
+**信頼性**: 🔵 *src/pipeline/smoke-orchestrator.ts buildMultiScenes() より*
+
+**関連要件**: REQ-097
+
+**説明**: 複数図解オブジェクトから逐次タイミング付きシーン配列を構築
+
+```mermaid
+flowchart TD
+    A[diagrams: RawDiagram 配列] --> B{diagrams.length?}
+    B -->|1| C[buildSingleScene diagram, 0, fps]
+    B -->|2+| D[buildMultiScenes ループ]
+    D --> E[currentMs = 0]
+    E --> F[diagram[0]: buildSingleScene diagram, 0, fps]
+    F --> G[scenes.push scene0, currentMs += 5000]
+    G --> H[diagram[1]: buildSingleScene diagram, 5000, fps]
+    H --> I[scenes.push scene1, currentMs += 5000]
+    I --> J[... 継続]
+    J --> K[戻り値: scenes + allCaptions]
+
+    C --> L[戻り値: scenes=1, captions]
+
+    style D fill:#e1f5fe
+    style K fill:#e8f5e9
+```
+
+**詳細ステップ**:
+
+1. 入力が配列の場合、buildMultiScenes でループ処理。各図解の startMs は直前の図解の durationMs 累積値 🔵
+2. 各シーンは DEFAULT_SCENE_DURATION_MS (5000ms) の固定長。ノード数に応じてキャプションを均等分割 🔵
+3. scene 2 以降は必ず startMs > 0（逐次オフセット）。フレーム番号は msToFrame() で計算 🔵
+4. 入力が単一オブジェクトの場合、buildScenes で startMs=0 の単一シーンを生成 🔵

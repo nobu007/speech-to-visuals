@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-21（第162回検証: Phase 1-57完了・多層エラー回復システム6モジュール追加・RecoveryStrategyChain・PipelineRunRecoveryTracker・BatchOperationRecovery・ErrorRecoveryHealthTracker・ErrorRecoveryEventBus・ErrorRecoveryMonitor・ゼロオーバーラップエッジ参照修正・352ファイル・177テストファイル・TypeScript/ESLintエラー0件・依存105パッケージ・ギャップなし確認）
+**最終更新**: 2026-05-26（第165回検証: Smoke Orchestrator 5ステージパイプライン・SceneRenderSpecGenerator・StageTimingMetrics・PipelineHealthScore・CostEfficiencyMetrics・マルチシーン逐次タイミング・355ファイル・182テストファイル・TypeScript/ESLintエラー0件・依存105パッケージ・ギャップなし確認）
 **履歴**: 第158回検証(2026-05-20)・第157回検証(2026-05-18)・第151回検証(2026-05-18)・第150回検証(2026-05-18)・第149回検証(2026-05-17)・第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-04-30)
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 
@@ -22,6 +22,33 @@
 **最終更新（2026-04-29 Phase 4反映）**: Phase 4 完了に伴う要件定義更新（REQ-025~REQ-035 追加）と、新規モジュール（Remotion Animation・Renderer・SRT Parser・Pipeline UI）の差分反映を実施。
 
 ## 分析項目と判断
+
+### A97: 第165回検証 - Smoke Orchestrator 5ステージパイプライン・レンダープラン・健全性評価設計差分反映（2026-05-26）
+
+**分析日時**: 2026-05-26
+**カテゴリ**: パイプラインオーケストレーション・レンダリング仕様・健全性監視
+**背景**: smoke-orchestrator.ts が単純な3ステージ（parse→sync→export）から5ステージ（parse→scene-sync→render-plan→export→health）に拡張。SceneRenderSpecGenerator によるフレームベースのレンダープラン生成、StageTimingMetrics によるタイミング記録、PipelineHealthScore による健全性評価が統合された。buildMultiScenes によるマルチシーン逐次タイミング対応も追加。
+
+**判断**: Smoke Orchestrator 設計差分反映完了:
+1. **SmokeOrchestrator 5ステージパイプライン**: parseJsonFromLLMText → buildMultiScenes/buildScenes + キャプション同期 → generateRenderPlan + validateRenderPlan → MultiFormatExporter.exportBatch → computePipelineHealth（オプション）。外部API呼び出しなしの軽量パイプライン 🔵 *src/pipeline/smoke-orchestrator.ts より*
+2. **SceneRenderSpecGenerator**: SceneGraph[] → SceneRenderSpec[] 変換。グローバルフレーム範囲・トランジション（デフォルト8フレーム≈0.27s）・コンテンツ準備フレーム計算。validateRenderPlan でフレーム連続性・重複インデックス検出 🔵 *src/pipeline/scene-render-spec-generator.ts より*
+3. **StageTimingMetrics**: StageTimingRecord（stageName/startTime/endTime/durationMs/itemsProcessed/throughputPerMs/retryAttempts）の記録。timeStage() 非同期ラッパーと aggregateTimingReport() 集計 🔵 *src/pipeline/stage-timing-metrics.ts より*
+4. **PipelineHealthScore**: Performance 40% + Bottleneck 35% + Cost 25% の重み付けで0-100スコア算出。5段階グレード（excellent/good/fair/poor/critical）と改善推奨生成 🔵 *src/pipeline/pipeline-health-score.ts より*
+5. **CostEfficiencyMetrics**: 動画あたりコスト・分析あたりトークン数の効率計算。ベースライン比較による10%以上のコスト/トークンリグレッション検出 🔵 *src/pipeline/cost-efficiency-metrics.ts より*
+6. **マルチシーン逐次タイミング**: buildMultiScenes で複数 RawDiagram を順次処理。currentMs 累積による各シーンの startMs 設定（scene 2+ は必ず non-zero）。DEFAULT_SCENE_DURATION_MS = 5000ms 🔵 *src/pipeline/smoke-orchestrator.ts buildMultiScenes() より*
+
+**根拠**:
+- git log: f1d058f (buildMultiScenes unit tests)・4d01575 (health monitoring integration)・c8fe42c (multi-scene + caption tests)・ca5078f (SceneRenderSpecGenerator integration + public API export)
+- 新規・変更ファイル: src/pipeline/smoke-orchestrator.ts・scene-render-spec-generator.ts・stage-timing-metrics.ts・pipeline-health-score.ts・cost-efficiency-metrics.ts
+- テストファイル: tests/pipeline/build-multi-scenes.test.ts（逐次タイミング単体テスト）・tests/pipeline/scene-render-spec-generator.test.ts・tests/pipeline/pipeline-health-score.test.ts・tests/unit/pipeline/stage-timing-metrics.test.ts・tests/unit/pipeline/cost-efficiency-metrics.test.ts
+- pipeline/ ディレクトリ: 20→22 ソースファイルに増加
+
+**信頼性への影響**:
+- architecture.md: パイプラインモジュールセクションに6モジュール（SmokeOrchestrator・SceneRenderSpecGenerator・StageTimingMetrics・PipelineHealthScore・CostEfficiencyMetrics）追加により 🔵 拡張
+- dataflow.md: 機能24（Smoke Orchestrator 5ステージフロー）+ 機能25（マルチシーン逐次タイミングフロー）追加により 🔵 拡張
+- 信頼性レベル: 全項目 🔵（既存実装を直接参照）
+
+---
 
 ### A96: 第162回検証 - Phase 57 多層エラー回復システム6モジュール・エッジ参照修正設計差分反映（2026-05-21）
 
@@ -1333,6 +1360,12 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - ユーザー主導エラー回復（UserGuidedErrorRecovery）が実装済み 🔵 *2026-04-29 拡張モジュール追記*
 - Zod設定バリデーション（ConfigSchema + validateConfig）が実装済み 🔵 *2026-04-29 拡張モジュール追記*
 - スマートパラメータチューニング + 適応型コンテンツ処理が実装済み 🔵 *2026-04-29 拡張モジュール追記*
+- Smoke Orchestrator 5ステージパイプライン（parse→scene-sync→render-plan→export→health）が実装済み 🔵 *2026-05-26 追記*
+- SceneRenderSpecGenerator（フレームベースのレンダリング仕様生成・整合性検証）が実装済み 🔵 *2026-05-26 追記*
+- StageTimingMetrics（ステージごとのタイミング記録・スループット計算）が実装済み 🔵 *2026-05-26 追記*
+- PipelineHealthScore（ボトルネック・リグレッション・コスト効率の統合健全性評価）が実装済み 🔵 *2026-05-26 追記*
+- CostEfficiencyMetrics（コスト/トークン効率計算・リグレッション検出）が実装済み 🔵 *2026-05-26 追記*
+- マルチシーン逐次タイミング（buildMultiScenes）が実装済み・全モジュールに単体テスト付き 🔵 *2026-05-26 追記*
 
 ### 設計方針の決定事項
 
@@ -1345,6 +1378,8 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - 拡張モジュール（Streaming, ErrorRecovery, ConfigValidation, ParameterTuning）の設計反映 🔵 *2026-04-29 拡張モジュール追記*
 - Phase 5 モジュール（ErrorClassifier, QualityGateEvaluator, PipelineOrchestrator, BatchAPI, SharedAuth, SharedErrorHandler）の設計反映 🔵 *2026-04-29 Phase 5 追記*
 - Phase 8 モジュール（CacheWarmup, パイプラインAPI エンドポイント）の設計反映 🔵 *2026-05-01 Phase 8 追記*
+- Smoke Orchestrator 5ステージパイプライン（parse→scene-sync→render-plan→export→health）の設計反映 🔵 *2026-05-26 追記*
+- SceneRenderSpecGenerator・StageTimingMetrics・PipelineHealthScore・CostEfficiencyMetrics の設計反映 🔵 *2026-05-26 追記*
 
 ### 残課題
 
