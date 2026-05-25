@@ -75,7 +75,7 @@ export interface SmokeOrchestratorResult {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-interface RawDiagram {
+export interface RawDiagram {
   type?: string;
   nodes?: Array<Record<string, unknown>>;
   edges?: Array<Record<string, unknown>>;
@@ -104,7 +104,7 @@ function toEdgeDatum(raw: Array<Record<string, unknown>>): EdgeDatum[] {
 
 const DEFAULT_SCENE_DURATION_MS = 5000;
 
-function buildSingleScene(diagram: RawDiagram, startMs: number, fps: number): {
+export function buildSingleScene(diagram: RawDiagram, startMs: number, fps: number): {
   scene: SceneGraph;
   captions: SrtCaption[];
 } {
@@ -140,7 +140,7 @@ function buildSingleScene(diagram: RawDiagram, startMs: number, fps: number): {
  * Build multiple scenes from an array of diagram objects.
  * Each diagram becomes one scene with sequential timing.
  */
-function buildMultiScenes(diagrams: RawDiagram[], fps: number): {
+export function buildMultiScenes(diagrams: RawDiagram[], fps: number): {
   scenes: SceneGraph[];
   captions: SrtCaption[];
 } {
