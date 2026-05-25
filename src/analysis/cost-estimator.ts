@@ -34,12 +34,23 @@ export interface CostEstimate {
 
 /**
  * Calculate cost for a single model/token pair.
+ * @throws {CostEstimationError} if inputs are invalid
  */
 export function calculateModelCost(
   model: ModelType,
   inputTokens: number,
   outputTokens: number,
 ): CostBreakdown {
+  if (typeof inputTokens !== 'number' || !Number.isFinite(inputTokens) || inputTokens < 0) {
+    throw new CostEstimationError('inputTokens must be a non-negative finite number', { inputTokens });
+  }
+  if (typeof outputTokens !== 'number' || !Number.isFinite(outputTokens) || outputTokens < 0) {
+    throw new CostEstimationError('outputTokens must be a non-negative finite number', { outputTokens });
+  }
+  if (!PRICING[model]) {
+    throw new CostEstimationError(`Unknown model: ${model}`, { model });
+  }
+
   const pricing = PRICING[model];
   const inputCost = (inputTokens / 1_000_000) * pricing.inputPerMillion;
   const outputCost = (outputTokens / 1_000_000) * pricing.outputPerMillion;
@@ -49,8 +60,13 @@ export function calculateModelCost(
 /**
  * Build a full cost estimate from a list of token usage records.
  * Groups by model and stage.
+ * @throws {CostEstimationError} if records is not an array
  */
 export function estimateCost(records: TokenUsageRecord[]): CostEstimate {
+  if (!Array.isArray(records)) {
+    throw new CostEstimationError('records must be an array', { received: typeof records });
+  }
+
   const costByStage: Record<StageType, number> = {
     analysis: 0,
     fallback: 0,
@@ -77,4 +93,17 @@ export function estimateCost(records: TokenUsageRecord[]): CostEstimate {
     totalCost: flashCost + proCost,
     costByStage,
   };
+}
+
+/**
+ * Thrown when cost estimation receives invalid inputs.
+ */
+export class CostEstimationError extends Error {
+  public readonly context?: Record<string, unknown>;
+
+  constructor(message: string, context?: Record<string, unknown>) {
+    super(message);
+    this.name = 'CostEstimationError';
+    this.context = context;
+  }
 }

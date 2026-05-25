@@ -2,7 +2,7 @@
  * Tests for BudgetAlertSystem (src/analysis/budget-alert.ts)
  */
 
-import { BudgetAlertSystem } from '@/analysis/budget-alert';
+import { BudgetAlertSystem, BudgetConfigError } from '@/analysis/budget-alert';
 
 describe('BudgetAlertSystem', () => {
   describe('constructor defaults', () => {
@@ -22,9 +22,65 @@ describe('BudgetAlertSystem', () => {
       expect(sessionAlerts).toHaveLength(1);
       expect(sessionAlerts[0].budget).toBe(5.0);
     });
+
+    test('throws on negative sessionBudget', () => {
+      expect(() => new BudgetAlertSystem({ sessionBudget: -1 }))
+        .toThrow(BudgetConfigError);
+    });
+
+    test('throws on negative dailyBudget', () => {
+      expect(() => new BudgetAlertSystem({ dailyBudget: -0.01 }))
+        .toThrow(BudgetConfigError);
+    });
+
+    test('throws on alertThreshold above 1', () => {
+      expect(() => new BudgetAlertSystem({ alertThreshold: 1.5 }))
+        .toThrow(BudgetConfigError);
+    });
+
+    test('throws on alertThreshold below 0', () => {
+      expect(() => new BudgetAlertSystem({ alertThreshold: -0.1 }))
+        .toThrow(BudgetConfigError);
+    });
+
+    test('throws on NaN sessionBudget', () => {
+      expect(() => new BudgetAlertSystem({ sessionBudget: NaN }))
+        .toThrow(BudgetConfigError);
+    });
+
+    test('throws on Infinity dailyBudget', () => {
+      expect(() => new BudgetAlertSystem({ dailyBudget: Infinity }))
+        .toThrow(BudgetConfigError);
+    });
+
+    test('accepts zero budgets', () => {
+      const system = new BudgetAlertSystem({ sessionBudget: 0, dailyBudget: 0 });
+      expect(system).toBeDefined();
+    });
   });
 
   describe('addCost', () => {
+    test('throws on negative cost', () => {
+      const system = new BudgetAlertSystem();
+      expect(() => system.addCost(-0.01)).toThrow(BudgetConfigError);
+    });
+
+    test('throws on NaN cost', () => {
+      const system = new BudgetAlertSystem();
+      expect(() => system.addCost(NaN)).toThrow(BudgetConfigError);
+    });
+
+    test('throws on Infinity cost', () => {
+      const system = new BudgetAlertSystem();
+      expect(() => system.addCost(Infinity)).toThrow(BudgetConfigError);
+    });
+
+    test('accepts zero cost', () => {
+      const system = new BudgetAlertSystem();
+      const alerts = system.addCost(0);
+      expect(alerts).toHaveLength(0);
+    });
+
     test('returns empty alerts when below threshold', () => {
       const system = new BudgetAlertSystem({
         sessionBudget: 10,

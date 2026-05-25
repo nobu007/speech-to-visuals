@@ -182,8 +182,8 @@ describe('BudgetAlertSystem: negative cost', () => {
     budget.addCost(0.90);
     expect(budget.getSessionCost()).toBeCloseTo(0.90, 4);
 
-    // Subtract cost (e.g., refund/correction)
-    budget.addCost(-0.20);
+    // Subtract cost (e.g., refund/correction) via adjustCost
+    budget.adjustCost(-0.20);
     expect(budget.getSessionCost()).toBeCloseTo(0.70, 4);
   });
 });

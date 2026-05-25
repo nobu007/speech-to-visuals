@@ -13,7 +13,7 @@
  *  9. CostBreakdown field independence (inputCost != outputCost)
  */
 
-import { calculateModelCost, estimateCost } from '@/analysis/cost-estimator';
+import { calculateModelCost, estimateCost, CostEstimationError } from '@/analysis/cost-estimator';
 import type { TokenUsageRecord } from '@/analysis/token-usage-tracker';
 
 // Helper to build a record
@@ -79,6 +79,26 @@ describe('calculateModelCost: edge cases', () => {
   it('returns breakdown where totalCost = inputCost + outputCost', () => {
     const cost = calculateModelCost('gemini-2.5-pro', 5432, 1098);
     expect(cost.totalCost).toBeCloseTo(cost.inputCost + cost.outputCost, 12);
+  });
+
+  it('throws on negative inputTokens', () => {
+    expect(() => calculateModelCost('gemini-2.5-flash', -1, 0))
+      .toThrow(CostEstimationError);
+  });
+
+  it('throws on negative outputTokens', () => {
+    expect(() => calculateModelCost('gemini-2.5-flash', 0, -1))
+      .toThrow(CostEstimationError);
+  });
+
+  it('throws on NaN inputTokens', () => {
+    expect(() => calculateModelCost('gemini-2.5-flash', NaN, 0))
+      .toThrow(CostEstimationError);
+  });
+
+  it('throws on Infinity outputTokens', () => {
+    expect(() => calculateModelCost('gemini-2.5-flash', 0, Infinity))
+      .toThrow(CostEstimationError);
   });
 });
 
@@ -191,5 +211,10 @@ describe('estimateCost: edge cases', () => {
 
     // 100 * (10/1M * 0.075 + 10/1M * 0.30) = 100 * (0.00000075 + 0.000003) = 100 * 0.00000375 = 0.000375
     expect(result.totalCost).toBeCloseTo(0.000375, 8);
+  });
+
+  it('throws on non-array input', () => {
+    expect(() => estimateCost(null as unknown as TokenUsageRecord[]))
+      .toThrow(CostEstimationError);
   });
 });
