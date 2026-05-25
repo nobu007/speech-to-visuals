@@ -186,4 +186,94 @@ describe('buildMultiScenes sequential timing', () => {
       expect(c.endFrame).toBe(expectedEndFrame);
     }
   });
+
+  it('produces globally unique, sequential caption indices', () => {
+    const { captions } = buildMultiScenes(
+      [DIAGRAM_FLOW, DIAGRAM_TREE, DIAGRAM_SINGLE_NODE],
+      DEFAULT_FPS,
+    );
+
+    // 2 + 3 + 1 = 6 captions total
+    expect(captions).toHaveLength(6);
+
+    // Indices must be 1..6 (globally unique and sequential)
+    const indices = captions.map((c) => c.index);
+    expect(indices).toEqual([1, 2, 3, 4, 5, 6]);
+
+    // No duplicates
+    expect(new Set(indices).size).toBe(indices.length);
+  });
+});
+
+// ===========================================================================
+// buildSingleScene — variable duration
+// ===========================================================================
+
+describe('buildSingleScene variable duration', () => {
+  it('uses custom durationMs when provided', () => {
+    const diagram: RawDiagram = {
+      type: 'flow',
+      nodes: [{ id: 'a', label: 'A' }],
+      edges: [],
+      summary: 'Custom duration',
+      durationMs: 8000,
+    };
+    const { scene } = buildSingleScene(diagram, 0, DEFAULT_FPS);
+    expect(scene.durationMs).toBe(8000);
+  });
+
+  it('falls back to default when durationMs is omitted', () => {
+    const { scene } = buildSingleScene(DIAGRAM_FLOW, 0, DEFAULT_FPS);
+    expect(scene.durationMs).toBe(5000);
+  });
+
+  it('distributes captions over the custom duration', () => {
+    const diagram: RawDiagram = {
+      type: 'flow',
+      nodes: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }],
+      edges: [],
+      summary: 'Custom duration',
+      durationMs: 10000,
+    };
+    const { captions } = buildSingleScene(diagram, 0, DEFAULT_FPS);
+    // 2 nodes over 10000ms: each gets 5000ms
+    expect(captions[0].startMs).toBe(0);
+    expect(captions[0].endMs).toBe(5000);
+    expect(captions[1].startMs).toBe(5000);
+    expect(captions[1].endMs).toBe(10000);
+  });
+});
+
+// ===========================================================================
+// buildMultiScenes — variable duration
+// ===========================================================================
+
+describe('buildMultiScenes variable duration', () => {
+  it('respects per-diagram durationMs for sequential timing', () => {
+    const diagrams: RawDiagram[] = [
+      { type: 'flow', nodes: [{ id: 'a', label: 'A' }], edges: [], summary: 'S1', durationMs: 3000 },
+      { type: 'tree', nodes: [{ id: 'b', label: 'B' }], edges: [], summary: 'S2', durationMs: 7000 },
+      { type: 'flow', nodes: [{ id: 'c', label: 'C' }], edges: [], summary: 'S3' }, // default 5000
+    ];
+    const { scenes } = buildMultiScenes(diagrams, DEFAULT_FPS);
+
+    expect(scenes).toHaveLength(3);
+    expect(scenes[0].startMs).toBe(0);
+    expect(scenes[0].durationMs).toBe(3000);
+    expect(scenes[1].startMs).toBe(3000);
+    expect(scenes[1].durationMs).toBe(7000);
+    expect(scenes[2].startMs).toBe(10000); // 3000 + 7000
+    expect(scenes[2].durationMs).toBe(5000); // default
+  });
+
+  it('total timeline span sums variable durations correctly', () => {
+    const diagrams: RawDiagram[] = [
+      { type: 'flow', nodes: [{ id: 'a', label: 'A' }], edges: [], summary: 'S1', durationMs: 2000 },
+      { type: 'tree', nodes: [{ id: 'b', label: 'B' }], edges: [], summary: 'S2', durationMs: 4000 },
+    ];
+    const { scenes } = buildMultiScenes(diagrams, DEFAULT_FPS);
+
+    const last = scenes[scenes.length - 1];
+    expect(last.startMs + last.durationMs).toBe(6000);
+  });
 });

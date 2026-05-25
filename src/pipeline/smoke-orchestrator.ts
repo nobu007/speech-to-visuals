@@ -81,6 +81,8 @@ export interface RawDiagram {
   edges?: Array<Record<string, unknown>>;
   summary?: string;
   keyphrases?: string[];
+  /** Optional per-scene duration in ms (defaults to 5000). */
+  durationMs?: number;
 }
 
 function toNodeDatum(raw: Array<Record<string, unknown>>): NodeDatum[] {
@@ -110,7 +112,7 @@ export function buildSingleScene(diagram: RawDiagram, startMs: number, fps: numb
 } {
   const nodes = toNodeDatum(diagram.nodes ?? []);
   const edges = toEdgeDatum(diagram.edges ?? []);
-  const durationMs = DEFAULT_SCENE_DURATION_MS;
+  const durationMs = diagram.durationMs ?? DEFAULT_SCENE_DURATION_MS;
 
   const scene: SceneGraph = {
     type: (diagram.type as DiagramType) ?? 'flow',
@@ -147,11 +149,15 @@ export function buildMultiScenes(diagrams: RawDiagram[], fps: number): {
   const scenes: SceneGraph[] = [];
   const allCaptions: SrtCaption[] = [];
   let currentMs = 0;
+  let globalIndex = 0;
 
   for (const diagram of diagrams) {
     const { scene, captions } = buildSingleScene(diagram, currentMs, fps);
     scenes.push(scene);
-    allCaptions.push(...captions);
+    for (const cap of captions) {
+      globalIndex++;
+      allCaptions.push({ ...cap, index: globalIndex });
+    }
     currentMs += scene.durationMs;
   }
 
