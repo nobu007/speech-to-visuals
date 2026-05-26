@@ -14,6 +14,7 @@
  */
 
 import type { SimplePipelineInput } from './simple-pipeline';
+import { PipelineConfigError } from './pipeline-errors';
 
 export type QualityPreset = 'fast' | 'balanced' | 'quality' | 'custom';
 
@@ -198,7 +199,7 @@ export class AdaptiveQualityPresetsManager {
    */
   setPreset(preset: QualityPreset): void {
     if (!QUALITY_PRESETS[preset]) {
-      throw new Error(`Invalid preset: ${preset}`);
+      throw new PipelineConfigError('preset', `Invalid preset: ${preset}`);
     }
     this.currentPreset = preset;
   }

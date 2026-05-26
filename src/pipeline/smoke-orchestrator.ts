@@ -25,6 +25,7 @@ import { generateRenderPlan, validateRenderPlan, type RenderPlan } from './scene
 import { timeStage, aggregateTimingReport, type StageTimingRecord, type StageTimingReport } from './stage-timing-metrics';
 import { computePipelineHealth, type PipelineHealthReport } from './pipeline-health-score';
 import type { CostData } from './cost-efficiency-metrics';
+import { PipelineConfigError, SegmentationError, RenderingError } from './pipeline-errors';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -200,7 +201,8 @@ export async function runSmokePipeline(
   timings.push(t1);
 
   if (typeof parsed !== 'object' || parsed === null) {
-    throw new Error(
+    throw new PipelineConfigError(
+      'rawLlmText',
       'Smoke pipeline: parsed LLM text does not contain a valid diagram object',
     );
   }
@@ -212,7 +214,7 @@ export async function runSmokePipeline(
     (d) => !d.nodes && !d.edges && !d.type,
   );
   if (firstInvalid) {
-    throw new Error(
+    throw new SegmentationError(
       'Smoke pipeline: parsed LLM text does not contain a valid diagram object',
     );
   }
@@ -258,7 +260,7 @@ export async function runSmokePipeline(
   timings.push(t3);
 
   if (!renderPlan.validation.valid) {
-    throw new Error(
+    throw new RenderingError(
       `Smoke pipeline: render plan validation failed: ${renderPlan.validation.issues.join('; ')}`,
     );
   }

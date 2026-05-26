@@ -14,7 +14,7 @@ import { continuousLearner } from '@/framework/continuous-learner';
 import { getQualityMonitor, formatQualityReport } from './quality-monitor';
 import { getHeapUsed } from '@/utils/memory-usage';
 import { ErrorClassifier } from '@/quality/error-classifier';
-import { TranscriptionError, SegmentationError } from './pipeline-errors';
+import { TranscriptionError, SegmentationError, PipelineError } from './pipeline-errors';
 import { retryWithBackoff } from './retry';
 import { logger } from '../utils/logger';
 
@@ -663,7 +663,7 @@ export class SimplePipeline {
         async () => {
           const result = await this.process(input, onProgress);
           if (!result.success) {
-            throw new Error(result.error || 'Processing failed');
+            throw new PipelineError(result.error || 'Processing failed', 'UNKNOWN', 'pipeline', { originalError: result.error });
           }
           return result;
         },
