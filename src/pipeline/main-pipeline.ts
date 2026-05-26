@@ -21,6 +21,7 @@ import {
   PipelineMetrics
 } from './types';
 import { retryWithBackoff } from './retry';
+import { TranscriptionError, SegmentationError } from './pipeline-errors';
 // Phase 34: Persistent iteration logging system
 import { globalIterationLogger } from '@/utils/iteration-logger';
 import { getHeapUsed, getMemoryUsage } from '@/utils/memory-usage';
@@ -208,7 +209,7 @@ export class MainPipeline {
     );
 
     if (!(transcriptionResult as Record<string, unknown>).success) {
-      throw new Error('Transcription failed after recovery attempts');
+      throw new TranscriptionError('Transcription failed after recovery attempts');
     }
 
     // Parallel execution of analysis stages where possible
@@ -828,7 +829,7 @@ export class MainPipeline {
     const transcriptionResult = await this.transcriber.transcribe(audioPath);
 
     if (!transcriptionResult.success || transcriptionResult.segments.length === 0) {
-      throw new Error('Audio transcription failed or produced no segments');
+      throw new TranscriptionError('Audio transcription failed or produced no segments');
     }
 
     return transcriptionResult;
@@ -842,7 +843,7 @@ export class MainPipeline {
     const contentSegments = await this.segmenter.segment(trData.segments as TranscriptionSegment[]);
 
     if (contentSegments.length === 0) {
-      throw new Error('Content segmentation produced no segments');
+      throw new SegmentationError('Content segmentation produced no segments');
     }
 
 

@@ -7,6 +7,7 @@
 import { SimplePipelineResult } from './simple-pipeline';
 import { SceneGraph } from '@/types/diagram';
 import { logger } from '../utils/logger';
+import { QualityGateError, RenderingError } from './pipeline-errors';
 
 export interface VideoGenerationOptions {
   outputFormat: 'mp4' | 'webm' | 'gif';
@@ -117,7 +118,7 @@ export class VideoGenerator {
       const validationResult = await this.validateRemotionData(remotionData);
 
       if (!validationResult.isValid) {
-        throw new Error(`Data validation failed: ${validationResult.errors.join(', ')}`);
+        throw new QualityGateError('data_validation', validationResult.errors.join(', '));
       }
 
       // Phase 4-1: 評価段階 - Remotionレンダリング準備
@@ -173,7 +174,7 @@ export class VideoGenerator {
   }> {
 
     if (!result.success || !result.scenes || !result.audioUrl) {
-      throw new Error('Invalid pipeline result for video generation');
+      throw new RenderingError('Invalid pipeline result for video generation');
     }
 
     // 音声URL

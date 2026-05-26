@@ -9,6 +9,7 @@
 
 import type { SceneGraph, DiagramType } from '@/types/diagram';
 import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
+import { RenderingError } from './pipeline-errors';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -95,7 +96,7 @@ export function generateRenderPlan(
   config: RenderSpecConfig = {},
 ): RenderPlan {
   if (!scenes || scenes.length === 0) {
-    throw new Error('Cannot generate render plan: scenes array is empty');
+    throw new RenderingError('Cannot generate render plan: scenes array is empty');
   }
 
   const fps = config.fps ?? DEFAULT_FPS;
