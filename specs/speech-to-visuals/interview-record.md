@@ -10,11 +10,41 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-25（第164回検証: メトリクス整合性検証・テストファイル数修正(170→182)・note.md更新・87未テストソースファイル特定）
+**最終更新**: 2026-05-27（第165回検証: Phase 59完了・REQ-150~154追加・117テスト追加・PipelineAbortError・可変シーンデュレーション・シーンID・JSONエクスポート修正）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
 ## 分析項目と判断
+
+### A165: 第165回検証 - Phase 59パイプライン品質・構造化エラー（2026-05-27 第165回更新）
+
+**分析日時**: 2026-05-27
+**カテゴリ**: パイプライン品質・構造化エラー・テストカバレッジ拡充
+**背景**: AI Hubフィードバック「Verify the multi-format-exporter field rename doesn't break any consumers, then continue test coverage for remaining untested pipeline modules」に対応。直近5コミットの実装変更を要件定義に反映。
+
+**判断**:
+1. **可変シーンデュレーション**: RawDiagram.durationMs（オプション・デフォルト5000ms）によるシーン単位の再生時間制御を実装。buildMultiScenes で累積 startMs を自動計算。REQ-150 として定義。
+2. **シーンID生成**: SceneGraph.id を `scene-${startMs}` 形式で自動付与。MultiFormatExporter のファイル名 undefined 問題を解消。REQ-151 として定義。
+3. **JSON エクスポート修正**: SceneGraph の全フィールド（nodes, edges, startMs, durationMs, summary, keyphrases, id, type）を正しくシリアライズ。旧フィールド（content, startTime, endTime, confidence）を除外。REQ-152 として定義。
+4. **キャプションインデックス連続性**: マルチシーン構築時の globalIndex 採番で SRT インデックスの連続性を保証。REQ-153 として定義。
+5. **PipelineAbortError**: PipelineError 継承の構造化エラークラス（errorType=QUALITY_GATE_FAILED, stage=abort）を導入。オーケストレーターの4箇所の raw Error throw を置換。ErrorClassifier のトリアージ精度を向上。REQ-154 として定義。
+6. **テストカバレッジ拡充**: 5モジュールに117テスト追加（DagreLayoutStrategy 21・layout-utils 30・srt-parser 23・improvement-detector 25・adaptive-quality-presets 18）。
+
+**根拠**:
+- コミット3951e69: feat(pipeline): add variable scene duration and fix global caption indices
+- コミット931ae7a: fix(pipeline): add scene IDs and fix JSON export to serialize all SceneGraph fields
+- コミット5d9c1f1: fix(pipeline): replace raw Error throws with PipelineAbortError in orchestrator
+- コミット2ae63fe: test(pipeline,visualization,remotion): add unit tests for 4 untested modules (96 tests)
+- コミット7860561: test(visualization): add DagreLayoutStrategy unit tests (21 tests)
+- テスト数: 4,475→4,590+（117テスト追加）・テストファイル: 182→187
+
+**信頼性への影響**:
+- 新規要件 REQ-150~154 追加（信頼性レベル: 全て🔵）
+- 信頼性レベル分布: 🔵189件(+5)/🟡3件/🔴0件
+- テストカバレッジ向上: 5つの未テストモジュールにテスト追加
+- MultiFormatExporter の消費者影響確認: 旧フィールド参照はなし・新フィールドのみ使用
+
+---
 
 ### A164: 第164回検証 - メトリクス整合性検証・テストカバレッジギャップ分析（2026-05-25 第164回更新）
 

@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 1-58 ✅完了・355ファイル・104,252行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト4,475+件（182テストファイル）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了
+**実装状況**: Phase 1-59 ✅完了・355ファイル・104,252行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト4,590+件（187テストファイル）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・可変シーンデュレーション
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -334,6 +334,14 @@
 
 - REQ-149: システムは PipelineOrchestrator と PipelineErrorRecoveryOrchestrator の統合動作を検証するエンドツーエンド統合テストを提供し、以下をカバーしなければならない: (1) ハッピーパスでリカバリレポートが success で生成される、(2) リカバリレポートが実行ステージを追跡する、(3) 品質ゲート失敗時に failure リカバリレポートが生成される、(4) 進捗コールバックが各ステージで発火する、(5) 並列実行で独立したリカバリレポートが生成される、(6) リカバリオーケストレーターが直接検査可能である、(7) ヘルスアセスメントが取得可能である、(8) 一時障害がバウンダリリトライで回復される、(9) デグレード結果が正しく追跡される、(10) ストラテジーチェーンがプライマリ失敗時にデグレード結果を提供する、(11) メトリクスにリトライ試行回数が含まれる、(12) ステージタイミングがパフォーマンス分析のために記録される 🔵 ✅実装済 *tests/integration/pipeline-recovery-e2e.test.ts（12テスト）・コミット feedback-driven: PipelineErrorRecoveryOrchestrator を e2e パイプラインテストに統合*
 
+#### パイプライン品質・構造化エラー（Phase 59） ✅完了
+
+- REQ-150: システムはマルチシーン構築時、各 RawDiagram でオプションの durationMs（デフォルト5000ms）を指定可能とし、各シーンの startMs を前シーンの累積 durationMs から自動計算しなければならない 🔵 ✅実装済 *src/pipeline/smoke-orchestrator.ts buildSingleScene/buildMultiScenes・コミット3951e69*
+- REQ-151: システムは各シーンに一意なID（`scene-${startMs}` 形式）を自動付与し、エクスポート時のファイル名が undefined とならないことを保証しなければならない 🔵 ✅実装済 *src/pipeline/smoke-orchestrator.ts SceneGraph.id・コミット931ae7a*
+- REQ-152: システムは JSON エクスポート時に SceneGraph の全フィールド（nodes, edges, startMs, durationMs, summary, keyphrases, id, type）を正しくシリアライズしなければならない。旧フィールド（content, startTime, endTime, confidence）はシリアライズ対象外とすること 🔵 ✅実装済 *src/export/multi-format-exporter.ts・コミット931ae7a*
+- REQ-153: システムはマルチシーン構築時、キャプションインデックスをシーン間でグローバルに一意に採番し、SRT 形式のインデックス連続性を保証しなければならない 🔵 ✅実装済 *src/pipeline/smoke-orchestrator.ts buildMultiScenes globalIndex・コミット3951e69*
+- REQ-154: システムはパイプラインオーケストレーターの中断条件（品質ゲート失敗・リカバリ限界超過）で PipelineAbortError（PipelineError 継承・errorType=QUALITY_GATE_FAILED・stage=abort）をスローし、ErrorClassifier が正確にトリアージできることを保証しなければならない 🔵 ✅実装済 *src/pipeline/pipeline-errors.ts PipelineAbortError・src/pipeline/pipeline-orchestrator.ts 4箇所置換・コミット5d9c1f1*
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より*
@@ -486,14 +494,15 @@
 | Phase 57: LLMキャッシュデバウンステスト | ✅完了 | REQ-148 | 1/1（scheduleSave結合・destroyキャンセル・persist即時フラッシュ・タイマー精度・clearExpired再スケジュール・15テスト追加） |
 | Phase 57+: パイプラインエラー回復E2E統合テスト | ✅完了 | REQ-149 | 1/1（PipelineOrchestrator+ErrorRecoveryOrchestrator E2E統合テスト・12テスト追加・リカバリレポート・進捗・並列・ストラテジーチェーン・メトリクス検証） |
 | Phase 58: リカバリ検証ループ・CI統合 | ✅完了 | TASK-0162~0165 | 4/4（CI煙テスト・E2Eリカバリ統合テスト・VideoGeneratorタイムアウト修正・ドキュメント更新・全テスト通過確認） |
+| Phase 59: パイプライン品質・構造化エラー | ✅完了 | REQ-150~154 | 5/5（可変シーンデュレーション・シーンID生成・JSONエクスポート修正・キャプションインデックス連続性・PipelineAbortError・117テスト追加） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 184件 (95.8%)
-- 🟡 黄信号: 3件 (1.6%) — NFR-203, REQ-303, EDGE-103
+- 🔵 青信号: 189件 (96.9%)
+- 🟡 黄信号: 3件 (1.5%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-57+全要件実装完了（REQ-001~149）・TypeScript型エラー0件・npm audit 0脆弱性
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-59全要件実装完了（REQ-001~154）・TypeScript型エラー0件・npm audit 0脆弱性
 
 ## Acceptance criteria
 
@@ -504,6 +513,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 58 を網羅し、Phase 58 完了（CI統合・E2Eリカバリテスト・タイムアウト修正）を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 59 を網羅し、Phase 59 完了（可変シーンデュレーション・シーンID・JSONエクスポート・PipelineAbortError）を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテゴリに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第164回: 🔵184件/🟡3件/🔴0件 — Phase 58完了・全タスク完了・182テストファイル）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第165回: 🔵189件/🟡3件/🔴0件 — Phase 59完了・REQ-001~154・187テストファイル）

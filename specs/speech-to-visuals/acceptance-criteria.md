@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-24（Phase 58完了: TASK-0162~0165 全完了条件達成・全テスト通過確認）
+**最終更新**: 2026-05-27（Phase 59完了: REQ-150~154 追加・117テスト追加・PipelineAbortError・可変シーンデュレーション）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -2239,5 +2239,164 @@
   - **入力**: set() → destroy()（debounceMs: 0）
   - **期待結果**: 例外なし
   - **信頼性**: 🔵 *saveTimer=null での clearTimeout 安全性より*
+
+---
+
+## REQ-150: 可変シーンデュレーション 🔵
+
+**信頼性**: 🔵 *src/pipeline/smoke-orchestrator.ts RawDiagram.durationMs・buildMultiScenes 累積計算・コミット3951e69 より*
+
+### Given（前提条件）
+
+- RawDiagram がオプションの durationMs フィールドをサポート
+- デフォルトシーンデュレーションは5000ms
+- マルチシーン構築で各シーンの startMs を前シーンの累積 durationMs から計算
+
+### When（実行条件）
+
+- 異なる durationMs を持つ複数の RawDiagram を buildMultiScenes で処理
+
+### Then（期待結果）
+
+- 各シーンの durationMs が指定値またはデフォルト5000msとなる
+- 各シーンの startMs が前シーンの累積 durationMs となる
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-150-01**: デフォルト durationMs（省略時5000ms）が使用されること 🔵
+  - **入力**: durationMs 未指定の RawDiagram
+  - **期待結果**: scene.durationMs === 5000
+  - **信頼性**: 🔵 *DEFAULT_SCENE_DURATION_MS 定数より*
+
+- [x] **TC-150-02**: カスタム durationMs が反映されること 🔵
+  - **入力**: durationMs: 3000 の RawDiagram
+  - **期待結果**: scene.durationMs === 3000
+  - **信頼性**: 🔵 *buildSingleScene nullish coalescing より*
+
+- [x] **TC-150-03**: マルチシーンの累積 startMs 計算 🔵
+  - **入力**: [{durationMs: 3000}, {durationMs: 7000}, {}] の3シーン
+  - **期待結果**: startMs が [0, 3000, 10000] となる
+  - **信頼性**: 🔵 *buildMultiScenes currentMs += scene.durationMs より*
+
+---
+
+## REQ-151: シーンID生成 🔵
+
+**信頼性**: 🔵 *src/pipeline/smoke-orchestrator.ts SceneGraph.id・コミット931ae7a より*
+
+### Given（前提条件）
+
+- MultiFormatExporter が SceneGraph.id をファイル名に使用
+- 旧実装では id が undefined でファイル名エラーが発生
+
+### When（実行条件）
+
+- buildSingleScene で SceneGraph を生成
+
+### Then（期待結果）
+
+- SceneGraph.id が `scene-${startMs}` 形式で設定される
+- エクスポート時のファイル名が undefined とならない
+
+### テストケース
+
+- [x] **TC-151-01**: SceneGraph.id が正しい形式で生成されること 🔵
+  - **入力**: startMs=0 のシーン
+  - **期待結果**: scene.id === "scene-0"
+  - **信頼性**: 🔵 *buildSingleScene id テンプレートリテラルより*
+
+- [x] **TC-151-02**: マルチシーンで一意のIDが生成されること 🔵
+  - **入力**: 3シーン（startMs: 0, 5000, 10000）
+  - **期待結果**: IDs が ["scene-0", "scene-5000", "scene-10000"]
+  - **信頼性**: 🔵 *buildMultiScenes 累積 startMs より*
+
+---
+
+## REQ-152: JSONエクスポート SceneGraph シリアライズ 🔵
+
+**信頼性**: 🔵 *src/export/multi-format-exporter.ts・コミット931ae7a より*
+
+### Given（前提条件）
+
+- MultiFormatExporter の JSON 出力が旧フィールド（content, startTime, endTime, confidence）をシリアライズしていた
+- SceneGraph の実際のフィールド（nodes, edges, startMs, durationMs, summary, keyphrases, id, type）が未シリアライズ
+
+### When（実行条件）
+
+- MultiFormatExporter で JSON エクスポートを実行
+
+### Then（期待結果）
+
+- 全 SceneGraph フィールドが正しく JSON に含まれる
+- 旧フィールドは出力されない
+
+### テストケース
+
+- [x] **TC-152-01**: JSON 出力に全 SceneGraph フィールドが含まれること 🔵
+  - **入力**: SceneGraph（nodes, edges, startMs, durationMs, summary, keyphrases, id, type）
+  - **期待結果**: JSON 出力に全フィールドが含まれる
+  - **信頼性**: 🔵 *multi-format-exporter.ts シリアライズロジックより*
+
+---
+
+## REQ-153: キャプションインデックス連続性 🔵
+
+**信頼性**: 🔵 *src/pipeline/smoke-orchestrator.ts buildMultiScenes globalIndex・コミット3951e69 より*
+
+### Given（前提条件）
+
+- マルチシーン構築時、各シーンのキャプションインデックスが重複していた
+- SRT 形式ではインデックスのグローバル一意性が要求される
+
+### When（実行条件）
+
+- 複数の RawDiagram を buildMultiScenes で処理
+
+### Then（期待結果）
+
+- キャプションインデックスがシーン間でグローバルに一意・連続となる
+
+### テストケース
+
+- [x] **TC-153-01**: マルチシーンでキャプションインデックスが連続すること 🔵
+  - **入力**: 2シーン（各2キャプション）
+  - **期待結果**: インデックスが [1, 2, 3, 4] となる
+  - **信頼性**: 🔵 *buildMultiScenes globalIndex++ より*
+
+---
+
+## REQ-154: PipelineAbortError 構造化エラー 🔵
+
+**信頼性**: 🔵 *src/pipeline/pipeline-errors.ts PipelineAbortError・コミット5d9c1f1 より*
+
+### Given（前提条件）
+
+- pipeline-orchestrator.ts で raw Error throw を使用していた
+- ErrorClassifier が regex ベースでエラー分類を行い、精度に限界があった
+
+### When（実行条件）
+
+- パイプラインの中断条件（品質ゲート失敗・リカバリ限界超過）が発生
+
+### Then（期待結果）
+
+- PipelineAbortError がスローされる（errorType=QUALITY_GATE_FAILED, stage=abort）
+- ErrorClassifier が instanceof チェックで正確にトリアージ可能
+
+### テストケース
+
+- [x] **TC-154-01**: PipelineAbortError が正しい errorType と stage を持つこと 🔵
+  - **期待結果**: error.errorType === 'QUALITY_GATE_FAILED', error.stage === 'abort'
+  - **信頼性**: 🔵 *pipeline-errors.ts コンストラクタより*
+
+- [x] **TC-154-02**: PipelineAbortError が PipelineError を継承すること 🔵
+  - **期待結果**: error instanceof PipelineError === true
+  - **信頼性**: 🔵 *extends PipelineError 宣言より*
+
+- [x] **TC-154-03**: PipelineAbortError が Error と区別可能であること 🔵
+  - **期待結果**: error instanceof PipelineAbortError === true, error instanceof Error === true
+  - **信頼性**: 🔵 *pipeline-errors.test.ts より*
 
 ---
