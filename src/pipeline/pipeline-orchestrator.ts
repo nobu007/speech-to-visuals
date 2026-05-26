@@ -37,7 +37,7 @@ import { sizeAllLabels, LabelSizingResult } from '@/visualization/smart-label-si
 import { executeLayoutsInParallel, executeScenePreparationInParallel } from './parallel-layout-executor';
 import { timeStage, StageTimingRecord, aggregateTimingReport, StageTimingReport } from './stage-timing-metrics';
 import { detectBottlenecks, BottleneckReport } from './bottleneck-detector';
-import { PipelineConfigError, RenderingError, QualityGateError } from './pipeline-errors';
+import { PipelineConfigError, RenderingError, QualityGateError, PipelineAbortError } from './pipeline-errors';
 import { generateRenderPlan, validateRenderPlan, type RenderPlan } from './scene-render-spec-generator';
 import {
   PipelineErrorRecoveryOrchestrator,
@@ -278,7 +278,7 @@ export class PipelineOrchestrator {
 
       // Check if run should abort based on accumulated errors
       if (this.errorRecoveryOrchestrator.shouldAbort()) {
-        throw new Error('Pipeline aborted: recovery tracker detected critical degradation');
+        throw new PipelineAbortError('Pipeline aborted: recovery tracker detected critical degradation');
       }
 
       // ===== Stage 2: Content Analysis =====
@@ -302,7 +302,7 @@ export class PipelineOrchestrator {
 
       // Check if run should abort
       if (this.errorRecoveryOrchestrator.shouldAbort()) {
-        throw new Error('Pipeline aborted: recovery tracker detected critical degradation');
+        throw new PipelineAbortError('Pipeline aborted: recovery tracker detected critical degradation');
       }
 
       // ===== Stage 3: Layout Generation =====
@@ -337,7 +337,7 @@ export class PipelineOrchestrator {
 
       // Check if run should abort
       if (this.errorRecoveryOrchestrator.shouldAbort()) {
-        throw new Error('Pipeline aborted: recovery tracker detected critical degradation');
+        throw new PipelineAbortError('Pipeline aborted: recovery tracker detected critical degradation');
       }
 
       this.emitProgress(cb, 3, 'layout', 100, 'completed');
@@ -666,7 +666,10 @@ export class PipelineOrchestrator {
       if (fallbackResult !== undefined) {
         return fallbackResult;
       }
-      throw new Error('Stage execution failed after recovery');
+      throw new PipelineAbortError(
+        `Stage execution failed after recovery: ${STAGE_NAMES[stageIndex]}`,
+        { stageIndex, stageName: STAGE_NAMES[stageIndex] },
+      );
     }
 
     // Check quality gates

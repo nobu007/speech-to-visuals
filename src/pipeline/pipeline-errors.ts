@@ -98,3 +98,16 @@ export class PipelineConfigError extends PipelineError {
     this.parameter = parameter;
   }
 }
+
+/**
+ * Thrown when the pipeline is intentionally aborted because the
+ * multi-layer error recovery orchestrator detected critical
+ * degradation (too many accumulated errors to continue safely).
+ * Maps to QUALITY_GATE_FAILED (system-level quality decision).
+ */
+export class PipelineAbortError extends PipelineError {
+  constructor(message: string, context?: Record<string, unknown>) {
+    super(message, 'QUALITY_GATE_FAILED', 'abort', context);
+    this.name = 'PipelineAbortError';
+  }
+}
