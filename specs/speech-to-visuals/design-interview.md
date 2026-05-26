@@ -10,8 +10,8 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-26（第165回検証: Smoke Orchestrator 5ステージパイプライン・SceneRenderSpecGenerator・StageTimingMetrics・PipelineHealthScore・CostEfficiencyMetrics・マルチシーン逐次タイミング・355ファイル・182テストファイル・TypeScript/ESLintエラー0件・依存105パッケージ・ギャップなし確認）
-**履歴**: 第158回検証(2026-05-20)・第157回検証(2026-05-18)・第151回検証(2026-05-18)・第150回検証(2026-05-18)・第149回検証(2026-05-17)・第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-04-30)
+**最終更新**: 2026-05-27（第166回検証: PipelineAbortError構造化エラー・並列パイプライン基盤5モジュール・360ファイル・185テストファイル・TypeScript/ESLintエラー0件・依存105パッケージ・ギャップなし確認）
+**履歴**: 第165回検証(2026-05-26)・第158回検証(2026-05-20)・第157回検証(2026-05-18)・第151回検証(2026-05-18)・第150回検証(2026-05-18)・第149回検証(2026-05-17)・第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-05-01)・第22回検証(2026-04-30)
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 
 ## 分析目的
@@ -22,6 +22,33 @@
 **最終更新（2026-04-29 Phase 4反映）**: Phase 4 完了に伴う要件定義更新（REQ-025~REQ-035 追加）と、新規モジュール（Remotion Animation・Renderer・SRT Parser・Pipeline UI）の差分反映を実施。
 
 ## 分析項目と判断
+
+### A98: 第166回検証 - PipelineAbortError構造化エラー・並列パイプライン基盤設計差分反映（2026-05-27）
+
+**分析日時**: 2026-05-27
+**カテゴリ**: パイプライン並列化・構造化エラー・パフォーマンス監視
+**背景**: Phase 59 で PipelineAbortError が追加され、PipelineOrchestrator の4箇所の raw Error throws が型付き PipelineAbortError に置換された。また Phase 36 の並列パイプライン基盤（ParallelBenchmark・ParallelLayoutExecutor・PerformanceBaseline・PerformanceRegressionDetector・汎用Retry）が architecture.md に個別モジュールとして未記載だった。全テストモジュール（stage-timing-metrics・bottleneck-detector等）にテストが存在することを確認。
+
+**判断**: 設計差分反映完了:
+1. **PipelineAbortError**: PipelineOrchestrator の中断条件（品質ゲート失敗・リカバリ限界超過）で PipelineAbortError（PipelineError 継承・errorType=QUALITY_GATE_FAILED・stage=abort）をスロー。ErrorClassifier が正確にトリアージ 🔵 *src/pipeline/pipeline-errors.ts・要件定義REQ-154・コミット5d9c1f1 より*
+2. **ParallelBenchmark**: 並列 vs 逐次実行のスピードアップファクタ測定。SpeedupResult・ParallelBenchmarkReport によるステージ別比較と Phase 36 ターゲット達成判定 🔵 *src/pipeline/parallel-benchmark.ts・要件定義REQ-099 より*
+3. **ParallelLayoutExecutor**: 複数図解レイアウトの並列生成。runWithConcurrency() によるワーカープールパターン・設定可能並列度・タイムアウト・リトライオプション付き 🔵 *src/pipeline/parallel-layout-executor.ts・要件定義REQ-097 より*
+4. **PerformanceBaseline**: ステージ別ターゲット実行時間定義（transcription:3000ms, analysis:8000ms, layout:2000ms, rendering:15000ms）🔵 *src/pipeline/performance-baseline.ts・要件定義REQ-099 より*
+5. **PerformanceRegressionDetector**: ステージ別実行時間とベースラインの比較・5%以上のリグレッション検出 🔵 *src/pipeline/performance-regression-detector.ts・要件定義REQ-099 より*
+6. **Retry**: 汎用リトライユーティリティ。ジッタ付き指数バックオフ・最大リトライ回数設定・ラベル付きログ出力 🔵 *src/pipeline/retry.ts より*
+7. **テストカバレッジ確認**: stage-timing-metrics・pipeline-health-score・cost-efficiency-metrics・scene-render-spec-generator・bottleneck-detector 全モジュールにテストファイルが存在することを確認（unit + integration テスト両方）🔵
+
+**根拠**:
+- git log: 5d9c1f1 (PipelineAbortError)・46ea14c (REQ-150~154 specs)
+- 新規・変更ファイル: src/pipeline/pipeline-errors.ts（PipelineAbortError追加）・src/pipeline/pipeline-orchestrator.ts（4箇所raw Error→PipelineAbortError置換）
+- 未記載モジュール（実装済み・ドキュメント未反映）: src/pipeline/parallel-benchmark.ts・parallel-layout-executor.ts・performance-baseline.ts・performance-regression-detector.ts・retry.ts
+- コードベース: 360ソースファイル・105,839行・185テストファイル・22パイプラインモジュール
+
+**信頼性への影響**:
+- architecture.md: PipelineAbortError 追加（5→6サブクラス）+ 並列パイプライン基盤5モジュール追加 + メトリクス更新（360ファイル・185テストファイル）
+- 信頼性レベル: 全項目 🔵（既存実装を直接参照）
+
+---
 
 ### A97: 第165回検証 - Smoke Orchestrator 5ステージパイプライン・レンダープラン・健全性評価設計差分反映（2026-05-26）
 

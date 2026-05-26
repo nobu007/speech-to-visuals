@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-26（第165回検証: Smoke Orchestrator 5ステージパイプライン・SceneRenderSpecGenerator・StageTimingMetrics・PipelineHealthScore・CostEfficiencyMetrics・マルチシーン逐次タイミング・355ファイル・182テストファイル・TypeScript/ESLintエラー0件・依存105パッケージ）
+**最終更新**: 2026-05-27（第166回検証: PipelineAbortError構造化エラー・ParallelBenchmark・ParallelLayoutExecutor・PerformanceBaseline・PerformanceRegressionDetector・汎用Retryユーティリティ・360ファイル・185テストファイル・TypeScript/ESLintエラー0件・依存105パッケージ）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -131,6 +131,11 @@
 - **StageTimingMetrics**: パイプラインステージごとの実行タイミング記録。timeStage() による非同期ラッパー、aggregateTimingReport() による全ステージ集計レポート、スループット計算 🔵 *src/pipeline/stage-timing-metrics.ts より*
 - **PipelineHealthScore**: ボトルネック検出・パフォーマンスリグレッション・コスト効率を統合した健全性スコア（0-100）。重み付け（Performance 40%・Bottleneck 35%・Cost 25%）による5段階グレード判定と改善推奨生成 🔵 *src/pipeline/pipeline-health-score.ts より*
 - **CostEfficiencyMetrics**: 動画あたりコスト・分析あたりトークン数の効率計算とベースライン比較によるリグレッション検出 🔵 *src/pipeline/cost-efficiency-metrics.ts より*
+- **ParallelBenchmark**: 並列 vs 逐次実行のスピードアップファクタ測定・ステージ別比較・Phase 36 ターゲット達成判定 🔵 *src/pipeline/parallel-benchmark.ts・要件定義REQ-099 より*
+- **ParallelLayoutExecutor**: 複数図解レイアウトの並列生成（設定可能並列度・タイムアウト・オプションリトライ付き）・シーン準備並列化 🔵 *src/pipeline/parallel-layout-executor.ts・要件定義REQ-097 より*
+- **PerformanceBaseline**: ステージ別ターゲット実行時間定義・Phase 36 ベースライン（transcription:3000ms, analysis:8000ms, layout:2000ms, rendering:15000ms）🔵 *src/pipeline/performance-baseline.ts・要件定義REQ-099 より*
+- **PerformanceRegressionDetector**: ステージ別実行時間のベースライン比較・5%以上のリグレッション検出 🔵 *src/pipeline/performance-regression-detector.ts・要件定義REQ-099 より*
+- **Retry**: 汎用リトライユーティリティ（ジッタ付き指数バックオフ・最大リトライ回数設定・ラベル付きログ出力）🔵 *src/pipeline/retry.ts より*
 
 ### エクスポートモジュール 🔵
 
@@ -168,7 +173,8 @@ Phase 20 で実装された Web Workers 並列化基盤:
 - **品質ゲート評価器**: 5段階パイプライン（文字起こし→分析→レイアウト→レンダリング準備→レンダリング）の各ステージに対して品質ゲート評価、基準未達時のブロック・フォールバックアクション実行、5%以上の品質低下でリグレッション検出 🔵 *src/quality/quality-gate.ts・要件定義REQ-041 より*
 - **グレースフルシャットダウン**: シャットダウン要求時にアクティブリクエストの完了を最大30秒待機、ヘルスモニタリング停止・リクエストキュークリア・サーキットブレーカーリセットによる安全終了 🔵 *src/quality/enhanced-error-recovery.ts shutdown()・要件定義REQ-050 より*
 - **型ガード・型安全性**: DiagramType（11種類）の実行時検証を行う isDiagramType() 関数により、不正な図解タイプ値を検出・排除 🔵 *src/types/diagram.ts・要件定義REQ-051 より*
-- **型付きパイプラインエラー**: PipelineError 基底クラスと5種類のサブクラス（TranscriptionError/SegmentationError/RenderingError/QualityGateError/PipelineConfigError）による構造化エラー管理。事前分類済みエラータイプ・ステージ・コンテキストを含み、ErrorClassifier での正規表現マッチングを回避 🔵 *src/pipeline/pipeline-errors.ts・Phase 56 より*
+- **型付きパイプラインエラー**: PipelineError 基底クラスと6種類のサブクラス（TranscriptionError/SegmentationError/RenderingError/QualityGateError/PipelineConfigError/PipelineAbortError）による構造化エラー管理。事前分類済みエラータイプ・ステージ・コンテキストを含み、ErrorClassifier での正規表現マッチングを回避 🔵 *src/pipeline/pipeline-errors.ts・Phase 56~59 より*
+- **PipelineAbortError**: PipelineOrchestrator の中断条件（品質ゲート失敗・リカバリ限界超過）でスローされる構造化中断エラー。PipelineError を継承し、errorType=QUALITY_GATE_FAILED・stage=abort を自動設定。ErrorClassifier が正確にトリアージ可能 🔵 *src/pipeline/pipeline-errors.ts・要件定義REQ-154 より*
 - **ErrorClassifier 事前分類サポート**: PipelineErrorLike 型検出による事前分類済みエラーの高速ルーティング。isPipelineErrorLike() 型ガードで ErrorClassifier.classify() が正規表現マッチングをバイパス可能に 🔵 *src/quality/error-classifier.ts・Phase 56 より*
 
 ### 多層エラー回復システム 🔵 【Phase 57 追加】
@@ -446,7 +452,7 @@ graph TB
 │   ├── optimization/       # パラメータチューニング・バッチ最適化・キャッシュ・遅延ローダー・ウォームアップ（8ファイル）🔵
 │   ├── pages/              # React Router ページ（4ファイル）
 │   ├── performance/        # インテリジェントキャッシュ（3ファイル: intelligent-cache, index, テスト）🔵 *Phase 10 追加*
-│   ├── pipeline/           # パイプライン（20ファイル: Simple/Main/Framework/Adaptive/VideoGenerator/Orchestrator/PipelineErrors/RecoveryStrategyChain/PipelineRunRecoveryTracker等）🔵
+│   ├── pipeline/           # パイプライン（22ファイル: Simple/Main/Framework/Adaptive/VideoGenerator/Orchestrator/PipelineErrors/ParallelBenchmark/ParallelLayoutExecutor/PerformanceBaseline/PerformanceRegressionDetector/Retry等）🔵
 │   ├── quality/            # 品質保証・エラー回復（16ファイル: ErrorClassifier/QualityGate/EnhancedErrorRecovery/UserGuidedRecovery/RecoveryStrategyChain/PipelineRunRecoveryTracker/BatchOperationRecovery/ErrorRecoveryHealthTracker/ErrorRecoveryEventBus/ErrorRecoveryMonitor/PipelineErrorRecoveryOrchestrator等）🔵
 │   ├── remotion/           # Remotion 動画コンポーネント（22ファイル: Animation/Scene/Renderer/SRT/Caption）🔵
 │   ├── test/               # テストユーティリティ（16ファイル）
@@ -606,8 +612,8 @@ Fallback LLM
 
 ## Acceptance criteria
 
-- [x] ディレクトリ構造のファイル数が実際の `src/` レイアウトと一致する
-- [x] コード規模メトリクス（ファイル数・行数・テスト数・パッケージ数）が最新
+- [x] ディレクトリ構造のファイル数が実際の `src/` レイアウトと一致する（360ファイル）
+- [x] コード規模メトリクス（ファイル数・行数・テスト数・パッケージ数）が最新（105,839行・185テストファイル・105パッケージ）
 - [x] アーキテクチャ文書内で参照されている全モジュールがコードベースに存在する
 - [x] TypeScript・ESLint エラーが 0 件
 - [x] 全テストスイートが green（193 suites / 4,346 tests）
@@ -623,6 +629,7 @@ Fallback LLM
 - [x] パイプライン音声入力検証統合（Phase 55）が完了している（REQ-142~143全実装・27テスト追加・validateAudioFile EDGE-001/101 統合・validateAudioDuration EDGE-102/103 統合・SimplePipelineInterface 検証統合）
 - [x] 型付きパイプラインエラー・LLMキャッシュデバウンス（Phase 56）が完了している（PipelineError 5サブクラス・ErrorClassifier事前分類・scheduleSave coalescing・315行デバウンステスト・86行パイプラインエラーテスト）
 - [x] 多層エラー回復システム（Phase 57）がコンポーネント構成に反映されている（RecoveryStrategyChain・PipelineRunRecoveryTracker・BatchOperationRecovery・ErrorRecoveryHealthTracker・ErrorRecoveryEventBus・ErrorRecoveryMonitor・PipelineErrorRecoveryOrchestratorの7モジュール）
+- [x] PipelineAbortError構造化中断エラー（Phase 59）が品質保証セクションに反映されている（PipelineError継承6サブクラス化・REQ-154実装）
 
 ## 関連文書
 
@@ -637,11 +644,11 @@ Fallback LLM
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 166件 (97%)
+- 🔵 青信号: 172件 (97%)
 - 🟡 黄信号: 4件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第162回検証: Phase 1-57完了・多層エラー回復システム6モジュール追加・352ファイル・177テストファイル・TypeScript/ESLintエラー0件・依存105パッケージ・SYSTEM_CONSTITUTION V2.5適合・ギャップなし確認）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第166回検証: Phase 1-59完了・PipelineAbortError・並列パイプラインモジュール・360ファイル・185テストファイル・TypeScript/ESLintエラー0件・依存105パッケージ・SYSTEM_CONSTITUTION V2.6適合）
 
 
 <!-- spine:children:begin -->

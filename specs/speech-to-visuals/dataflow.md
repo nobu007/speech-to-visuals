@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-26（第165回検証: Smoke Orchestrator 5ステージパイプラインフロー・SceneRenderSpecGenerator レンダープラン生成フロー・StageTimingMetrics ステージタイミング記録フロー・PipelineHealthScore 健全性評価フロー・マルチシーン逐次タイミングフロー追加）
+**最終更新**: 2026-05-27（第166回検証: PipelineAbortError構造化中断フロー・並列パイプライン基盤フロー追加・360ファイル・185テストファイル）
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](requirements.md)
 
