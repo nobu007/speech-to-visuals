@@ -42,6 +42,8 @@ import { generateRenderPlan, validateRenderPlan, type RenderPlan } from './scene
 import {
   PipelineErrorRecoveryOrchestrator,
 } from '@/quality/pipeline-error-recovery-orchestrator';
+import { ErrorClassifier } from '@/quality/error-classifier';
+import type { ClassifiedError } from '@/quality/error-classifier';
 import type { RecoveryStage, RunRecoveryReport } from '@/quality/pipeline-run-recovery-tracker';
 
 // ---------- Public Interfaces ----------
@@ -409,6 +411,17 @@ export class PipelineOrchestrator {
         runRecoveryReport = this.errorRecoveryOrchestrator.finalizeRun(false);
       }
 
+      // Classify structured errors through ErrorClassifier (REQ-159)
+      let classifiedError: ClassifiedError | undefined;
+      if (error instanceof Error) {
+        try {
+          const classifier = new ErrorClassifier();
+          classifiedError = classifier.classify(error);
+        } catch {
+          // Classification failure should not mask the original error
+        }
+      }
+
       return {
         success: false,
         scenes: scenes ?? [],
@@ -420,6 +433,7 @@ export class PipelineOrchestrator {
         metrics: {
           totalRetryAttempts: this.retryAttempts,
           recoveryReport: runRecoveryReport,
+          classifiedError,
         },
       };
     }

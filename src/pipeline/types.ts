@@ -104,6 +104,8 @@ export interface ExtendedPipelineMetrics extends PipelineMetrics {
   totalRetryAttempts?: number;
   /** Per-run recovery report from PipelineRunRecoveryTracker (TASK-0045) */
   recoveryReport?: import('@/quality/pipeline-run-recovery-tracker').RunRecoveryReport;
+  /** Structured error classification from ErrorClassifier (REQ-159) */
+  classifiedError?: import('@/quality/error-classifier').ClassifiedError;
 }
 
 /** Quality scores per pipeline stage, recorded via QualityMonitor (REQ-088) */
