@@ -34,6 +34,7 @@ import { parseJsonFromLLMText } from "./llm-utils";
 import { LLMService, llmService } from "./llm-service";
 import { getQualityMonitor } from "@/pipeline/quality-monitor";
 import { getGeminiAnalyzerPrompt, type Language } from "./prompt-templates";
+import { DiagramStructureError } from "./analysis-errors";
 import { logger } from '../utils/logger';
 
 type GeminiDiagramType = DiagramData['type'];
@@ -142,7 +143,7 @@ export class GeminiAnalyzer {
 
       // Validate parsed data structure (edges may be missing in truncated responses)
       if (!parsed || !parsed.type || !Array.isArray(parsed.nodes)) {
-        throw new Error('Invalid diagram data structure from LLM');
+        throw new DiagramStructureError('Invalid diagram data structure from LLM');
       }
 
       // Normalize missing or invalid edges array

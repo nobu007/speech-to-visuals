@@ -18,6 +18,7 @@
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { LLMResponseError } from "./analysis-errors";
 import { LLMCache } from "./llm-cache";
 import { ComplexityDetector, ComplexityAnalysis } from "./complexity-detector";
 import { parseJsonFromLLMText } from "./llm-utils";
@@ -531,7 +532,7 @@ export class LLMService {
     const responseText = response.text();
 
     if (!responseText || responseText.trim().length === 0) {
-      throw new Error('Empty response from LLM');
+      throw new LLMResponseError('Empty response from LLM');
     }
 
     // REQ-098: Extract token usage metadata from Gemini API response
@@ -609,7 +610,7 @@ export class LLMService {
     const result = await Promise.race([streamingPromise, timeoutPromise]);
 
     if (!result.text || result.text.trim().length === 0) {
-      throw new Error('Empty response from streaming LLM');
+      throw new LLMResponseError('Empty response from streaming LLM');
     }
 
     return result;

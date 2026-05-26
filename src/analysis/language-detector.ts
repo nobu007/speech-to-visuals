@@ -15,6 +15,7 @@
  * - Graceful fallback when Kuromoji is unavailable
  */
 
+import { AnalyzerInitError } from "./analysis-errors";
 import { logger } from '../utils/logger';
 
 // ---------------------------------------------------------------------------
@@ -353,7 +354,7 @@ export class LanguageDetector {
    */
   analyzeJapanese(text: string): JapaneseAnalysisResult {
     if (!this.kuromojiReady || !this.kuromojiTokenizer) {
-      throw new Error('Kuromoji tokenizer is not initialized. Call initializeKuromoji() first.');
+      throw new AnalyzerInitError('Kuromoji tokenizer is not initialized. Call initializeKuromoji() first.');
     }
 
     const tokenizer = this.kuromojiTokenizer as {
