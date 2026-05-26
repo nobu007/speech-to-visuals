@@ -344,9 +344,9 @@
 
 #### パイプライン統合テスト・型付きエラー完全化（Phase 60） 🔄要件定義済
 
-- REQ-155: システムは PipelineAbortError がパイプラインオーケストレーターからスローされた際、ErrorClassifier が正確に errorType=QUALITY_GATE_FAILED として分類し、適切なリカバリ戦略を返すことを検証する統合テストを提供しなければならない 🔵 *src/pipeline/pipeline-orchestrator.ts PipelineAbortError スロー・src/quality/error-classifier.ts classify() トリアージ・REQ-154 からの継続*
-- REQ-156: システムはパイプラインモジュール内の残存する5箇所の raw Error throw（simple-pipeline.ts:1・smoke-orchestrator.ts:3・adaptive-quality-presets.ts:1）を型付きエラークラス（PipelineError・PipelineConfigError・RenderingError・QualityGateError）に置換し、全パイプラインエラーの構造化を完了しなければならない 🔵 *コミット1f950c9 で6箇所置換済・残存5箇所の特定済*
-- REQ-157: システムは PipelineAbortError → ErrorClassifier → リカバリ戦略適用 → リカバリレポート生成の往復（round-trip）バリデーションテストを提供し、型付きエラーがパイプライン実行コンテキスト全体を正しく伝播することを検証しなければならない 🔵 *AI Hub フィードバック「round-trip validation tests that back the claim」対応・tests/integration/pipeline-recovery-e2e.test.ts の拡張*
+- REQ-155: システムは PipelineAbortError がパイプラインオーケストレーターからスローされた際、ErrorClassifier が正確に errorType=QUALITY_GATE_FAILED として分類し、適切なリカバリ戦略を返すことを検証する統合テストを提供しなければならない 🔵 ✅実装済 *tests/integration/pipeline-typed-errors.test.ts 6テスト・REQ-154 からの継続*
+- REQ-156: システムはパイプラインモジュール内の残存する5箇所の raw Error throw（simple-pipeline.ts:1・smoke-orchestrator.ts:3・adaptive-quality-presets.ts:1）を型付きエラークラス（PipelineError・PipelineConfigError・RenderingError・QualityGateError）に置換し、全パイプラインエラーの構造化を完了しなければならない 🔵 ✅実装済 *src/pipeline/simple-pipeline.ts・smoke-orchestrator.ts・adaptive-quality-presets.ts・Phase 59の16箇所と合わせ計21箇所完了*
+- REQ-157: システムは PipelineAbortError → ErrorClassifier → リカバリ戦略適用 → リカバリレポート生成の往復（round-trip）バリデーションテストを提供し、型付きエラーがパイプライン実行コンテキスト全体を正しく伝播することを検証しなければならない 🔵 ✅実装済 *tests/integration/pipeline-typed-errors.test.ts 8テスト・全6種の型付きエラーのthrow→classify→verify検証*
 - REQ-158: システムは npm audit 脆弱性を0件に維持しなければならない（現状: moderate 10件） 🔵 *SYSTEM_CONSTITUTION.md メトリクス監視・Phase 39(REQ-109)で0件達成の実績*
 
 ### 条件付き要件
@@ -502,7 +502,7 @@
 | Phase 57+: パイプラインエラー回復E2E統合テスト | ✅完了 | REQ-149 | 1/1（PipelineOrchestrator+ErrorRecoveryOrchestrator E2E統合テスト・12テスト追加・リカバリレポート・進捗・並列・ストラテジーチェーン・メトリクス検証） |
 | Phase 58: リカバリ検証ループ・CI統合 | ✅完了 | TASK-0162~0165 | 4/4（CI煙テスト・E2Eリカバリ統合テスト・VideoGeneratorタイムアウト修正・ドキュメント更新・全テスト通過確認） |
 | Phase 59: パイプライン品質・構造化エラー | ✅完了 | REQ-150~154 | 5/5（可変シーンデュレーション・シーンID生成・JSONエクスポート修正・キャプションインデックス連続性・PipelineAbortError・117テスト追加） |
-| Phase 60: パイプライン統合テスト・型付きエラー完全化 | 🔄要件定義 | REQ-155~158 | 0/4 |
+| Phase 60: パイプライン統合テスト・型付きエラー完全化 | 🔄実装中 | REQ-155~158 | 3/4（REQ-155~157完了・REQ-158 npm audit未対応） |
 
 ## 信頼性レベル分布
 

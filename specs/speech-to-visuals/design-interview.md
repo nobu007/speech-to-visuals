@@ -10,8 +10,8 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-27（第166回検証: PipelineAbortError構造化エラー・並列パイプライン基盤5モジュール・360ファイル・185テストファイル・TypeScript/ESLintエラー0件・依存105パッケージ・ギャップなし確認）
-**履歴**: 第165回検証(2026-05-26)・第158回検証(2026-05-20)・第157回検証(2026-05-18)・第151回検証(2026-05-18)・第150回検証(2026-05-18)・第149回検証(2026-05-17)・第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-05-01)・第22回検証(2026-04-30)
+**最終更新**: 2026-05-27（第167回検証: Phase 60 REQ-155~157完了・全パイプラインraw Error throw型付きエラー置換・PipelineAbortError→ErrorClassifier統合テスト14件・round-trip検証テスト・360ファイル・189テストファイル・TypeScript/ESLintエラー0件・依存105パッケージ・ギャップなし確認）
+**履歴**: 第167回検証(2026-05-27)・第165回検証(2026-05-26)・第158回検証(2026-05-20)・第157回検証(2026-05-18)・第151回検証(2026-05-18)・第150回検証(2026-05-18)・第149回検証(2026-05-17)・第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-05-01)・第22回検証(2026-04-30)
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 
 ## 分析目的
@@ -22,6 +22,29 @@
 **最終更新（2026-04-29 Phase 4反映）**: Phase 4 完了に伴う要件定義更新（REQ-025~REQ-035 追加）と、新規モジュール（Remotion Animation・Renderer・SRT Parser・Pipeline UI）の差分反映を実施。
 
 ## 分析項目と判断
+
+### A99: 第167回検証 - Phase 60 全パイプラインraw Error throw型付きエラー置換・統合テスト（2026-05-27）
+
+**分析日時**: 2026-05-27
+**カテゴリ**: 構造化エラー・統合テスト・round-trip検証
+**背景**: Phase 60 REQ-155~157 の実装。AI Hubフィードバック「round-trip validation tests that back the claim」に対応。残存5箇所のraw Error throwを型付きエラークラスに置換し、PipelineAbortError→ErrorClassifierの統合テストと全型付きエラーのround-trip検証テストを追加。
+
+**判断**: Phase 60 REQ-155~157 実装完了:
+1. **REQ-156**: simple-pipeline.ts:1箇所（PipelineError）・smoke-orchestrator.ts:3箇所（PipelineConfigError・SegmentationError・RenderingError）・adaptive-quality-presets.ts:1箇所（PipelineConfigError）のraw Error throw置換完了。Phase 59の16箇所と合わせて全21箇所のパイプラインraw Error throw型付きエラー化完了 🔵 *コミット1f950c9 + 今回変更*
+2. **REQ-155**: PipelineAbortErrorがErrorClassifierで正確にQUALITY_GATE_FAILEDとして分類されることを検証する統合テスト6件追加。分類精度・コンテキスト保存・バッチ分類・統計追跡を検証 🔵 *tests/integration/pipeline-typed-errors.test.ts*
+3. **REQ-157**: 全6種の型付きエラー（PipelineError・TranscriptionError・SegmentationError・RenderingError・QualityGateError・PipelineConfigError・PipelineAbortError）のround-trip検証テスト8件追加。throw→catch→classify→verifyの完全往復バリデーション 🔵 *tests/integration/pipeline-typed-errors.test.ts*
+
+**根拠**:
+- 変更ファイル: src/pipeline/simple-pipeline.ts（PipelineError import追加・line 666 throw置換）・src/pipeline/smoke-orchestrator.ts（3エラークラスimport追加・3箇所throw置換）・src/pipeline/adaptive-quality-presets.ts（PipelineConfigError import追加・1箇所throw置換）
+- 新規テスト: tests/integration/pipeline-typed-errors.test.ts（14テスト・REQ-155:6件・REQ-157:8件）
+- テスト結果: 14/14通過・TypeScript型エラー0件・ESLintエラー0件
+
+**信頼性への影響**:
+- architecture.md: 型付きパイプラインエラーセクション更新（全21箇所置換完了を記録）
+- design-interview.md: A99追加
+- 信頼性レベル: 全項目 🔵（既存実装・テスト結果を直接参照）
+
+---
 
 ### A98: 第166回検証 - PipelineAbortError構造化エラー・並列パイプライン基盤設計差分反映（2026-05-27）
 

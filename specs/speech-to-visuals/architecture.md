@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-27（第166回検証: PipelineAbortError構造化エラー・ParallelBenchmark・ParallelLayoutExecutor・PerformanceBaseline・PerformanceRegressionDetector・汎用Retryユーティリティ・360ファイル・185テストファイル・TypeScript/ESLintエラー0件・依存105パッケージ）
+**最終更新**: 2026-05-27（第167回検証: Phase 60 REQ-155~157実装・全パイプラインraw Error throw型付きエラー置換完了（21箇所）・PipelineAbortError→ErrorClassifier統合テスト14件・round-trip検証テスト・360ファイル・189テストファイル・TypeScript/ESLintエラー0件・依存105パッケージ）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -173,7 +173,7 @@ Phase 20 で実装された Web Workers 並列化基盤:
 - **品質ゲート評価器**: 5段階パイプライン（文字起こし→分析→レイアウト→レンダリング準備→レンダリング）の各ステージに対して品質ゲート評価、基準未達時のブロック・フォールバックアクション実行、5%以上の品質低下でリグレッション検出 🔵 *src/quality/quality-gate.ts・要件定義REQ-041 より*
 - **グレースフルシャットダウン**: シャットダウン要求時にアクティブリクエストの完了を最大30秒待機、ヘルスモニタリング停止・リクエストキュークリア・サーキットブレーカーリセットによる安全終了 🔵 *src/quality/enhanced-error-recovery.ts shutdown()・要件定義REQ-050 より*
 - **型ガード・型安全性**: DiagramType（11種類）の実行時検証を行う isDiagramType() 関数により、不正な図解タイプ値を検出・排除 🔵 *src/types/diagram.ts・要件定義REQ-051 より*
-- **型付きパイプラインエラー**: PipelineError 基底クラスと6種類のサブクラス（TranscriptionError/SegmentationError/RenderingError/QualityGateError/PipelineConfigError/PipelineAbortError）による構造化エラー管理。事前分類済みエラータイプ・ステージ・コンテキストを含み、ErrorClassifier での正規表現マッチングを回避 🔵 *src/pipeline/pipeline-errors.ts・Phase 56~59 より*
+- **型付きパイプラインエラー**: PipelineError 基底クラスと6種類のサブクラス（TranscriptionError/SegmentationError/RenderingError/QualityGateError/PipelineConfigError/PipelineAbortError）による構造化エラー管理。事前分類済みエラータイプ・ステージ・コンテキストを含み、ErrorClassifier での正規表現マッチングを回避。Phase 60 で全パイプラインモジュールのraw Error throw置換完了（simple-pipeline:1・smoke-orchestrator:3・adaptive-quality-presets:1・pipeline-orchestrator:4・main-pipeline:6・framework-integrated-pipeline:6＝計21箇所）🔵 *src/pipeline/pipeline-errors.ts・Phase 56~60 より*
 - **PipelineAbortError**: PipelineOrchestrator の中断条件（品質ゲート失敗・リカバリ限界超過）でスローされる構造化中断エラー。PipelineError を継承し、errorType=QUALITY_GATE_FAILED・stage=abort を自動設定。ErrorClassifier が正確にトリアージ可能 🔵 *src/pipeline/pipeline-errors.ts・要件定義REQ-154 より*
 - **ErrorClassifier 事前分類サポート**: PipelineErrorLike 型検出による事前分類済みエラーの高速ルーティング。isPipelineErrorLike() 型ガードで ErrorClassifier.classify() が正規表現マッチングをバイパス可能に 🔵 *src/quality/error-classifier.ts・Phase 56 より*
 
@@ -648,7 +648,7 @@ Fallback LLM
 - 🟡 黄信号: 4件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第166回検証: Phase 1-59完了・PipelineAbortError・並列パイプラインモジュール・360ファイル・185テストファイル・TypeScript/ESLintエラー0件・依存105パッケージ・SYSTEM_CONSTITUTION V2.6適合）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第167回検証: Phase 60 REQ-155~157完了・全パイプラインraw Error throw型付きエラー置換・PipelineAbortError→ErrorClassifier統合テスト・round-trip検証テスト・360ファイル・189テストファイル・TypeScript/ESLintエラー0件・依存105パッケージ・SYSTEM_CONSTITUTION V2.6適合）
 
 
 <!-- spine:children:begin -->
