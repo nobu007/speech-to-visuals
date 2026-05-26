@@ -10,11 +10,38 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-27（第165回検証: Phase 59完了・REQ-150~154追加・117テスト追加・PipelineAbortError・可変シーンデュレーション・シーンID・JSONエクスポート修正）
+**最終更新**: 2026-05-27（第166回検証: Phase 60要件定義・REQ-155~158追加・パイプライン統合テスト・型付きエラー完全化・round-trip検証・npm audit解消）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
 ## 分析項目と判断
+
+### A166: 第166回検証 - Phase 60パイプライン統合テスト・型付きエラー完全化（2026-05-27 第166回更新）
+
+**分析日時**: 2026-05-27
+**カテゴリ**: パイプライン統合テスト・型付きエラー完全化・round-trip検証
+**背景**: AI Hubフィードバック「Add an integration test that exercises PipelineAbortError through the actual pipeline orchestrator to verify the error propagates correctly to the ErrorClassifier triage path」「Add round-trip validation tests」に対応。Phase 59完了後の次期フェーズ要件を定義。
+
+**判断**:
+1. **PipelineAbortError→ErrorClassifier統合テスト**: PipelineOrchestratorからスローされたPipelineAbortErrorがErrorClassifier.classify()を通じて正確にerrorType=QUALITY_GATE_FAILEDとして分類され、適切なリカバリ戦略が返されることを検証する統合テストが必要。現在のテストはErrorClassifier単体テスト（53箇所参照）とpipeline-recovery-e2eテスト（12テスト）はあるが、PipelineAbortError→ErrorClassifierの直結統合テストが不在。REQ-155として定義。
+2. **残存raw Error throw置換**: コミット1f950c9で6箇所のraw Error throwを型付きエラーに置換完了。残存5箇所（simple-pipeline.ts:1・smoke-orchestrator.ts:3・adaptive-quality-presets.ts:1）を特定。全パイプラインエラーの構造化完了が目標。REQ-156として定義。
+3. **Round-trip検証テスト**: PipelineAbortError→ErrorClassifier→リカバリ戦略→リカバリレポート生成の全往復を検証するテストが必要。AI Hub指摘の「round-trip validation tests that back the '89/89 green' claim」に対応。REQ-157として定義。
+4. **npm audit脆弱性**: 現状10件のmoderate脆弱性が存在。Phase 39(REQ-109)で0件達成の実績があるため、再度解消が必要。REQ-158として定義。
+
+**根拠**:
+- コミット1f950c9: fix(pipeline): replace 6 raw Error throws with typed error classes
+- コミット62d1c31: test(pipeline): add unit tests for 3 untested pipeline modules (73 tests)
+- 残存raw Error throw: `grep -rn "throw new Error\b" src/pipeline/` で5箇所特定
+- ErrorClassifier参照: テスト内53箇所・ソース内9ファイル
+- PipelineAbortError参照: テスト内10箇所・ソース内2ファイル（定義+使用）
+
+**信頼性への影響**:
+- 新規要件 REQ-155~158 追加（信頼性レベル: 全て🔵）
+- 信頼性レベル分布: 🔵193件(+4)/🟡3件/🔴0件
+- テストファイル数: 185→188（+3テストファイル）
+- テストケース数: 1,390+（73テスト追加）
+
+---
 
 ### A165: 第165回検証 - Phase 59パイプライン品質・構造化エラー（2026-05-27 第165回更新）
 

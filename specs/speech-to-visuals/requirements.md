@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 1-59 ✅完了・360ファイル・105,839行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト4,590+件（185テストファイル）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・可変シーンデュレーション
+**実装状況**: Phase 1-60 🔄Phase 60要件定義済・590ファイル・105,842行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト1,390+件（188テストファイル）・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・可変シーンデュレーション・パイプライン型付きエラー6箇所置換・73テスト追加（main-pipeline/simple-pipeline/framework-integrated-pipeline）
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -342,6 +342,13 @@
 - REQ-153: システムはマルチシーン構築時、キャプションインデックスをシーン間でグローバルに一意に採番し、SRT 形式のインデックス連続性を保証しなければならない 🔵 ✅実装済 *src/pipeline/smoke-orchestrator.ts buildMultiScenes globalIndex・コミット3951e69*
 - REQ-154: システムはパイプラインオーケストレーターの中断条件（品質ゲート失敗・リカバリ限界超過）で PipelineAbortError（PipelineError 継承・errorType=QUALITY_GATE_FAILED・stage=abort）をスローし、ErrorClassifier が正確にトリアージできることを保証しなければならない 🔵 ✅実装済 *src/pipeline/pipeline-errors.ts PipelineAbortError・src/pipeline/pipeline-orchestrator.ts 4箇所置換・コミット5d9c1f1*
 
+#### パイプライン統合テスト・型付きエラー完全化（Phase 60） 🔄要件定義済
+
+- REQ-155: システムは PipelineAbortError がパイプラインオーケストレーターからスローされた際、ErrorClassifier が正確に errorType=QUALITY_GATE_FAILED として分類し、適切なリカバリ戦略を返すことを検証する統合テストを提供しなければならない 🔵 *src/pipeline/pipeline-orchestrator.ts PipelineAbortError スロー・src/quality/error-classifier.ts classify() トリアージ・REQ-154 からの継続*
+- REQ-156: システムはパイプラインモジュール内の残存する5箇所の raw Error throw（simple-pipeline.ts:1・smoke-orchestrator.ts:3・adaptive-quality-presets.ts:1）を型付きエラークラス（PipelineError・PipelineConfigError・RenderingError・QualityGateError）に置換し、全パイプラインエラーの構造化を完了しなければならない 🔵 *コミット1f950c9 で6箇所置換済・残存5箇所の特定済*
+- REQ-157: システムは PipelineAbortError → ErrorClassifier → リカバリ戦略適用 → リカバリレポート生成の往復（round-trip）バリデーションテストを提供し、型付きエラーがパイプライン実行コンテキスト全体を正しく伝播することを検証しなければならない 🔵 *AI Hub フィードバック「round-trip validation tests that back the claim」対応・tests/integration/pipeline-recovery-e2e.test.ts の拡張*
+- REQ-158: システムは npm audit 脆弱性を0件に維持しなければならない（現状: moderate 10件） 🔵 *SYSTEM_CONSTITUTION.md メトリクス監視・Phase 39(REQ-109)で0件達成の実績*
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より*
@@ -495,14 +502,15 @@
 | Phase 57+: パイプラインエラー回復E2E統合テスト | ✅完了 | REQ-149 | 1/1（PipelineOrchestrator+ErrorRecoveryOrchestrator E2E統合テスト・12テスト追加・リカバリレポート・進捗・並列・ストラテジーチェーン・メトリクス検証） |
 | Phase 58: リカバリ検証ループ・CI統合 | ✅完了 | TASK-0162~0165 | 4/4（CI煙テスト・E2Eリカバリ統合テスト・VideoGeneratorタイムアウト修正・ドキュメント更新・全テスト通過確認） |
 | Phase 59: パイプライン品質・構造化エラー | ✅完了 | REQ-150~154 | 5/5（可変シーンデュレーション・シーンID生成・JSONエクスポート修正・キャプションインデックス連続性・PipelineAbortError・117テスト追加） |
+| Phase 60: パイプライン統合テスト・型付きエラー完全化 | 🔄要件定義 | REQ-155~158 | 0/4 |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 189件 (96.9%)
+- 🔵 青信号: 193件 (96.5%)
 - 🟡 黄信号: 3件 (1.5%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-59全要件実装完了（REQ-001~154）・TypeScript型エラー0件・npm audit 0脆弱性
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 1-59完了・Phase 60要件定義済（REQ-001~158）・TypeScript型エラー0件・パイプライン型付きエラー16箇所対応
 
 ## Acceptance criteria
 
@@ -513,6 +521,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 59 を網羅し、Phase 59 完了（可変シーンデュレーション・シーンID・JSONエクスポート・PipelineAbortError）を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 60 を網羅し、Phase 59 完了・Phase 60 要件定義（統合テスト・型付きエラー完全化・round-trip検証・npm audit解消）を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテゴリに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第165回: 🔵189件/🟡3件/🔴0件 — Phase 59完了・REQ-001~154・187テストファイル）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第166回: 🔵193件/🟡3件/🔴0件 — Phase 60要件定義・REQ-001~158・188テストファイル）

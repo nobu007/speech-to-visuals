@@ -2400,3 +2400,150 @@
   - **信頼性**: 🔵 *pipeline-errors.test.ts より*
 
 ---
+
+## REQ-155: PipelineAbortError→ErrorClassifier 統合テスト 🔵
+
+**信頼性**: 🔵 *AI Hub フィードバック対応・REQ-154継続・src/pipeline/pipeline-orchestrator.ts + src/quality/error-classifier.ts より*
+
+### Given（前提条件）
+
+- PipelineOrchestrator が品質ゲート失敗時に PipelineAbortError をスローする（REQ-154）
+- ErrorClassifier が errorType ベースでエラー分類・リカバリ戦略選択を行う
+- ErrorClassifier 単体テストは存在するが、PipelineOrchestrator→ErrorClassifier の直結統合テストが不在
+
+### When（実行条件）
+
+- PipelineOrchestrator の品質ゲートが失敗し PipelineAbortError がスローされる
+- ErrorClassifier.classify() にそのエラーが渡される
+
+### Then（期待結果）
+
+- ErrorClassifier が errorType=QUALITY_GATE_FAILED として正確に分類
+- 適切なリカバリ戦略（retry/fallback/abort）が返される
+- エラー情報がリカバリレポートに伝播
+
+### テストケース
+
+- [ ] **TC-155-01**: PipelineOrchestrator 品質ゲート失敗→ErrorClassifier が QUALITY_GATE_FAILED に分類 🔵
+  - **入力**: 品質スコアが閾値を下回るパイプライン実行
+  - **期待結果**: ErrorClassifier.classify(abortError).errorType === 'QUALITY_GATE_FAILED'
+  - **信頼性**: 🔵 *pipeline-orchestrator.ts + error-classifier.ts 実装より*
+
+- [ ] **TC-155-02**: ErrorClassifier が PipelineAbortError に対して abort リカバリ戦略を返す 🔵
+  - **入力**: PipelineAbortError インスタンス
+  - **期待結果**: classify() の結果が適切なリカバリ戦略を含む
+  - **信頼性**: 🔵 *error-classifier.ts 戦略マッピングより*
+
+- [ ] **TC-155-03**: 複数の PipelineAbortError が同時に発生しても ErrorClassifier が独立して分類 🔵
+  - **入力**: 並列パイプライン実行で複数の PipelineAbortError
+  - **期待結果**: 各エラーが独立して正確に分類される
+  - **信頼性**: 🔵 *pipeline-recovery-e2e.test.ts 並列テストパターンより*
+
+---
+
+## REQ-156: 残存 raw Error throw 型付きエラー置換 🔵
+
+**信頼性**: 🔵 *コミット1f950c9 で6箇所置換済・残存5箇所の grep 結果より*
+
+### Given（前提条件）
+
+- コミット1f950c9 で6箇所の raw Error throw を型付きエラーに置換済
+- 残存5箇所: simple-pipeline.ts:1・smoke-orchestrator.ts:3・adaptive-quality-presets.ts:1
+
+### When（実行条件）
+
+- 残存5箇所の raw Error throw を適切な型付きエラークラスに置換
+
+### Then（期待結果）
+
+- src/pipeline/ 内の raw Error throw が0件となる
+- 全パイプラインエラーが ErrorClassifier で正確に分類可能
+
+### テストケース
+
+- [ ] **TC-156-01**: simple-pipeline.ts の raw Error が PipelineError に置換される 🔵
+  - **入力**: 処理失敗時のエラー
+  - **期待結果**: throw new PipelineError(...) に置換、errorType が設定される
+  - **信頼性**: 🔵 *grep "throw new Error" simple-pipeline.ts:666 より*
+
+- [ ] **TC-156-02**: smoke-orchestrator.ts の3箇所 raw Error が型付きエラーに置換される 🔵
+  - **入力**: レンダープラン検証失敗・パラメータエラー
+  - **期待結果**: PipelineConfigError/RenderingError に置換
+  - **信頼性**: 🔵 *grep "throw new Error" smoke-orchestrator.ts:203,215,261 より*
+
+- [ ] **TC-156-03**: adaptive-quality-presets.ts の raw Error が QualityGateError に置換される 🔵
+  - **入力**: 無効なプリセット名
+  - **期待結果**: QualityGateError または PipelineConfigError に置換
+  - **信頼性**: 🔵 *grep "throw new Error" adaptive-quality-presets.ts:201 より*
+
+- [ ] **TC-156-04**: 置換後も全既存テストが通過する 🔵
+  - **期待結果**: npm test 全通過
+  - **信頼性**: 🔵 *既存1,390+テストの回帰防止*
+
+---
+
+## REQ-157: PipelineAbortError round-trip 検証テスト 🔵
+
+**信頼性**: 🔵 *AI Hub フィードバック「round-trip validation tests」対応・REQ-154/155 継続*
+
+### Given（前提条件）
+
+- PipelineAbortError がパイプラインオーケストレーターでスローされる
+- ErrorClassifier がエラーを分類しリカバリ戦略を返す
+- リカバリオーケストレーターが戦略を実行しリカバリレポートを生成する
+- 各段階の単体テストは存在するが、全往復の統合テストが不在
+
+### When（実行条件）
+
+- パイプライン実行中に PipelineAbortError が発生
+- エラー→分類→戦略→リカバリレポートの全チェーンが実行
+
+### Then（期待結果）
+
+- PipelineAbortError の errorType がリカバリレポートに正しく反映
+- リカバリ戦略の実行結果がレポートに記録
+- レポートの最終ステータスが正確（failure/degraded/recovered）
+
+### テストケース
+
+- [ ] **TC-157-01**: PipelineAbortError→ErrorClassifier→リカバリ戦略→リカバリレポートの完全往復 🔵
+  - **入力**: 品質ゲート失敗を発生させるパイプライン実行
+  - **期待結果**: リカバリレポートに errorType=QUALITY_GATE_FAILED・戦略実行結果・最終ステータスが記録
+  - **信頼性**: 🔵 *pipeline-recovery-e2e.test.ts パターン拡張*
+
+- [ ] **TC-157-02**: 型付きエラーのプロパティが往復チェーン全体で保存される 🔵
+  - **入力**: stage/phase 情報付きの PipelineAbortError
+  - **期待結果**: リカバリレポートに stage・phase・errorType が全て記録
+  - **信頼性**: 🔵 *pipeline-errors.ts プロパティ定義より*
+
+- [ ] **TC-157-03**: raw Error（型付きエラー未置換）が混在しても round-trip が正常動作 🔵
+  - **入力**: PipelineAbortError と raw Error が混在するパイプライン実行
+  - **期待結果**: 両方とも ErrorClassifier で適切に分類される
+  - **信頼性**: 🔵 *error-classifier.ts フォールバック分類ロジックより*
+
+---
+
+## REQ-158: npm audit 脆弱性0件維持 🔵
+
+**信頼性**: 🔵 *Phase 39(REQ-109)で0件達成の実績・SYSTEM_CONSTITUTION.md メトリクス監視*
+
+### Given（前提条件）
+
+- 現在 npm audit で10件の moderate 脆弱性が存在
+- Phase 39(REQ-109) で0件を達成した実績がある
+
+### When（実行条件）
+
+- npm audit fix または依存パッケージの更新を実行
+
+### Then（期待結果）
+
+- npm audit で0件の脆弱性
+
+### テストケース
+
+- [ ] **TC-158-01**: npm audit 実行で脆弱性が0件 🔵
+  - **期待結果**: `npm audit` 出力が "found 0 vulnerabilities"
+  - **信頼性**: 🔵 *Phase 39 実績より*
+
+---
