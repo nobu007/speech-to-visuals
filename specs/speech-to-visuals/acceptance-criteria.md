@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-27（Phase 60完了: REQ-155~158 全11テストケース完了・253/253 criteria green）
+**最終更新**: 2026-05-28（Phase 60完了: REQ-155~159 全253/253 criteria green・Phase 61-62要件定義: REQ-160~164）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -2544,6 +2544,190 @@
 
 - [x] **TC-158-01**: npm audit 実行で脆弱性が0件 🔵
   - **期待結果**: `npm audit` 出力が "found 0 vulnerabilities"
-  - **信頼性**: 🔵 *Phase 39 実績より*
+  - **信頼性**: 🔵 *2026-05-28確認: 0件・Phase 39 実績より*
+
+---
+
+## REQ-159: ErrorClassifier→オーケストレーター統合 🔵
+
+**信頼性**: 🔵 *コミットee06c0eで実装済・src/pipeline/pipeline-orchestrator.ts catch ブロックより*
+
+### Given（前提条件）
+
+- PipelineOrchestrator が catch ブロックでエラーを捕捉する
+- ErrorClassifier がエラーを11種に分類できる
+
+### When（実行条件）
+
+- パイプライン実行中にエラーが発生しcatchブロックに到達
+- ErrorClassifier がエラーを分類
+
+### Then（期待結果）
+
+- キャッチされたエラーが ErrorClassifier で構造化トリアージされる
+- 分類結果がリカバリオーケストレーターに渡される
+
+### テストケース
+
+- [x] **TC-159-01**: PipelineOrchestrator catch ブロックで ErrorClassifier が呼び出される 🔵
+  - **期待結果**: catch ブロック内で errorClassifier.classify(error) が実行される
+  - **信頼性**: 🔵 *コミットee06c0e・src/pipeline/pipeline-orchestrator.ts より*
+
+---
+
+## REQ-160: 品質モジュール raw Error 置換 🔵
+
+**信頼性**: 🔵 *Phase 59-60でパイプライン21箇所完了・src/quality/3ファイル8箇所grep確認*
+
+### Given（前提条件）
+
+- 品質モジュール（src/quality/）に8箇所の raw Error throw が残存する
+- enhanced-error-recovery.ts: 3箇所（CircuitBreaker open rejection・キャッシュミス・maxAgeMs検証）
+- pipeline-run-recovery-tracker.ts: 2箇所（アクティブラン衝突・アクティブラン不在）
+- regression-detector.ts: 3箇所（メトリクス未取得・ベースライン未確立・現在値未取得）
+
+### When（実行条件）
+
+- 8箇所の raw Error throw を適切な型付きエラークラスに置換
+
+### Then（期待結果）
+
+- src/quality/ 内の raw Error throw が0件になる
+- 各置換後も既存テストが全て通過する
+
+### テストケース
+
+- [ ] **TC-160-01**: enhanced-error-recovery.ts の3箇所 raw Error が型付きエラーに置換される 🔵
+  - **期待結果**: CircuitBreaker open rejection → QualityGateError または適切な型、キャッシュミス・maxAgeMs検証も適切な型付きエラー
+  - **信頼性**: 🔵 *grep "throw new Error" src/quality/enhanced-error-recovery.ts 確認*
+
+- [ ] **TC-160-02**: pipeline-run-recovery-tracker.ts の2箇所 raw Error が型付きエラーに置換される 🔵
+  - **期待結果**: アクティブラン衝突・不在が適切な型付きエラーに置換
+  - **信頼性**: 🔵 *grep "throw new Error" src/quality/pipeline-run-recovery-tracker.ts 確認*
+
+- [ ] **TC-160-03**: regression-detector.ts の3箇所 raw Error が型付きエラーに置換される 🔵
+  - **期待結果**: メトリクス未取得・ベースライン未確立・現在値未取得が適切な型付きエラーに置換
+  - **信頼性**: 🔵 *grep "throw new Error" src/quality/regression-detector.ts 確認*
+
+- [ ] **TC-160-04**: 置換後 grep "throw new Error(" src/quality/ で0件 🔵
+  - **期待結果**: src/quality/ 全ファイルで raw Error throw が0件
+  - **信頼性**: 🔵 *Phase 59-60 パターンと同一*
+
+---
+
+## REQ-161: 品質モジュール ErrorClassifier 回帰テスト 🔵
+
+**信頼性**: 🔵 *REQ-159 ErrorClassifier統合の品質モジュール拡張*
+
+### Given（前提条件）
+
+- 品質モジュールの raw Error が型付きエラーに置換済み（REQ-160）
+- ErrorClassifier がパイプラインモジュールのエラー分類で実績あり
+
+### When（実行条件）
+
+- 新しい型付きエラーが ErrorClassifier に渡される
+
+### Then（期待結果）
+
+- ErrorClassifier が品質モジュールの型付きエラーを正確に分類する
+- 分類結果が既存の ErrorClassifier テストと一貫している
+
+### テストケース
+
+- [ ] **TC-161-01**: 品質モジュールの新しい型付きエラーが ErrorClassifier で正確に分類される 🔵
+  - **期待結果**: 各型付きエラーの errorType が期待値と一致
+  - **信頼性**: 🔵 *tests/unit/quality/error-classifier.test.ts パターン拡張*
+
+- [ ] **TC-161-02**: 品質モジュールの型付きエラーがパイプラインリカバリチェーンで正しく伝播 🔵
+  - **期待結果**: throw→classify→strategy→recovery-report の往復が成功
+  - **信頼性**: 🔵 *REQ-157 round-trip テストパターン*
+
+---
+
+## REQ-162: diagram-detector.ts テストカバレッジ 🔵
+
+**信頼性**: 🔵 *src/analysis/diagram-detector.ts 1,406行・パイプラインStage 2図解タイプ検出のコア*
+
+### Given（前提条件）
+
+- diagram-detector.ts が11種の図解タイプ検出を実装
+- 専用テストファイルが存在しない
+
+### When（実行条件）
+
+- diagram-detector.ts のコア機能に対するユニットテストを作成
+
+### Then（期待結果）
+
+- 図解タイプ検出・キーワードマッチング・スコアリング・フォールバックロジックがテストカバーされる
+
+### テストケース
+
+- [ ] **TC-162-01**: 11種の図解タイプ検出がテストされる 🔵
+  - **期待結果**: flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general 全タイプの検出が検証
+  - **信頼性**: 🔵 *src/analysis/diagram-detector.ts detectDiagramType() より*
+
+- [ ] **TC-162-02**: キーワードマッチングとスコアリングロジックがテストされる 🔵
+  - **期待結果**: キーワード重み・スコア閾値・タイプ確信度が検証
+  - **信頼性**: 🔵 *diagram-detector.ts スコアリングロジックより*
+
+---
+
+## REQ-163: scene-segmenter.ts テストカバレッジ 🔵
+
+**信頼性**: 🔵 *src/analysis/scene-segmenter.ts 970行・パイプラインStage 2セグメンテーションの中核*
+
+### Given（前提条件）
+
+- scene-segmenter.ts がセマンティックセグメンテーション・トピックベースクラスタリングを実装
+- 専用テストファイルが存在しない
+
+### When（実行条件）
+
+- scene-segmenter.ts のコア機能に対するユニットテストを作成
+
+### Then（期待結果）
+
+- セグメンテーション・Jaccard係数マージ・トピッククラスタリング・境界検出がテストカバーされる
+
+### テストケース
+
+- [ ] **TC-163-01**: セマンティックセグメンテーション（Jaccard係数マージ）がテストされる 🔵
+  - **期待結果**: キーワード類似度に基づくセグメントマージが検証
+  - **信頼性**: 🔵 *scene-segmenter.ts segmentBySemantics() より*
+
+- [ ] **TC-163-02**: トピックベースクラスタリングがテストされる 🔵
+  - **期待結果**: コサイン類似度によるトピックベクトルクラスタリングが検証
+  - **信頼性**: 🔵 *scene-segmenter.ts segmentByTopic() より*
+
+---
+
+## REQ-164: language-detector.ts テストカバレッジ 🔵
+
+**信頼性**: 🔵 *src/analysis/language-detector.ts 623行・パイプラインStage 1言語検出の構成要素*
+
+### Given（前提条件）
+
+- language-detector.ts が日英判定・スクリプト分析・確信度スコアリングを実装
+- 専用テストファイルが存在しない
+
+### When（実行条件）
+
+- language-detector.ts のコア機能に対するユニットテストを作成
+
+### Then（期待結果）
+
+- 言語検出・スクリプト分析・確信度スコアリング・混合言語対応がテストカバーされる
+
+### テストケース
+
+- [ ] **TC-164-01**: 日本語・英語の言語検出がテストされる 🔵
+  - **期待結果**: 日本語テキスト→ja、英語テキスト→en、混合テキスト→主要言語が検証
+  - **信頼性**: 🔵 *language-detector.ts detectLanguage() より*
+
+- [ ] **TC-164-02**: 確信度スコアリングがテストされる 🔵
+  - **期待結果**: 確信度が0.0~1.0範囲・スクリプト分析の精度が検証
+  - **信頼性**: 🔵 *language-detector.ts スコアリングロジックより*
 
 ---
