@@ -261,6 +261,31 @@ describe('REQ-157: Round-trip typed error propagation validation', () => {
     expect(typeof classified.userMessage).toBe('string');
   });
 
+  it('mixed raw Error and PipelineAbortError round-trip classifies correctly', () => {
+    // TC-157-03: raw Error mixed with typed error still produces valid classification
+    const abortError = new PipelineAbortError('Critical abort from quality gate');
+    const rawError = new Error('Something unexpected went wrong');
+
+    // Classify PipelineAbortError through throw → catch → classify
+    const abortClassified = classifyThrownError(abortError);
+    expect(abortClassified.type).toBe('QUALITY_GATE_FAILED');
+    expect(abortClassified.stage).toBe('abort');
+    expect(abortClassified.severity).toBe('high');
+    expect(abortClassified.recoverable).toBe(true);
+
+    // Classify raw Error through throw → catch → classify (fallback to pattern matching)
+    const rawClassified = classifyThrownError(rawError);
+    expect(rawClassified.type).toBeDefined();
+    expect(rawClassified.originalError).toBe(rawError);
+    // Raw Error gets pattern-based or UNKNOWN classification
+    expect(typeof rawClassified.type).toBe('string');
+    expect(rawClassified.severity).toBeDefined();
+    expect(rawClassified.recoverable).toBeDefined();
+
+    // Verify independent classification — typed error is not affected by raw Error
+    expect(abortClassified.type).toBe('QUALITY_GATE_FAILED');
+  });
+
   it('all typed error classes produce non-UNKNOWN classification', () => {
     const errors = [
       new TranscriptionError('Transcription failed'),

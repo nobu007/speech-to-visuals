@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-27（Phase 59完了: REQ-150~154 追加・117テスト追加・PipelineAbortError・可変シーンデュレーション）
+**最終更新**: 2026-05-27（Phase 60完了: REQ-155~158 全11テストケース完了・253/253 criteria green）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -2424,17 +2424,17 @@
 
 ### テストケース
 
-- [ ] **TC-155-01**: PipelineOrchestrator 品質ゲート失敗→ErrorClassifier が QUALITY_GATE_FAILED に分類 🔵
+- [x] **TC-155-01**: PipelineOrchestrator 品質ゲート失敗→ErrorClassifier が QUALITY_GATE_FAILED に分類 🔵
   - **入力**: 品質スコアが閾値を下回るパイプライン実行
   - **期待結果**: ErrorClassifier.classify(abortError).errorType === 'QUALITY_GATE_FAILED'
   - **信頼性**: 🔵 *pipeline-orchestrator.ts + error-classifier.ts 実装より*
 
-- [ ] **TC-155-02**: ErrorClassifier が PipelineAbortError に対して abort リカバリ戦略を返す 🔵
+- [x] **TC-155-02**: ErrorClassifier が PipelineAbortError に対して abort リカバリ戦略を返す 🔵
   - **入力**: PipelineAbortError インスタンス
   - **期待結果**: classify() の結果が適切なリカバリ戦略を含む
   - **信頼性**: 🔵 *error-classifier.ts 戦略マッピングより*
 
-- [ ] **TC-155-03**: 複数の PipelineAbortError が同時に発生しても ErrorClassifier が独立して分類 🔵
+- [x] **TC-155-03**: 複数の PipelineAbortError が同時に発生しても ErrorClassifier が独立して分類 🔵
   - **入力**: 並列パイプライン実行で複数の PipelineAbortError
   - **期待結果**: 各エラーが独立して正確に分類される
   - **信頼性**: 🔵 *pipeline-recovery-e2e.test.ts 並列テストパターンより*
@@ -2461,22 +2461,22 @@
 
 ### テストケース
 
-- [ ] **TC-156-01**: simple-pipeline.ts の raw Error が PipelineError に置換される 🔵
+- [x] **TC-156-01**: simple-pipeline.ts の raw Error が PipelineError に置換される 🔵
   - **入力**: 処理失敗時のエラー
   - **期待結果**: throw new PipelineError(...) に置換、errorType が設定される
   - **信頼性**: 🔵 *grep "throw new Error" simple-pipeline.ts:666 より*
 
-- [ ] **TC-156-02**: smoke-orchestrator.ts の3箇所 raw Error が型付きエラーに置換される 🔵
+- [x] **TC-156-02**: smoke-orchestrator.ts の3箇所 raw Error が型付きエラーに置換される 🔵
   - **入力**: レンダープラン検証失敗・パラメータエラー
   - **期待結果**: PipelineConfigError/RenderingError に置換
   - **信頼性**: 🔵 *grep "throw new Error" smoke-orchestrator.ts:203,215,261 より*
 
-- [ ] **TC-156-03**: adaptive-quality-presets.ts の raw Error が QualityGateError に置換される 🔵
+- [x] **TC-156-03**: adaptive-quality-presets.ts の raw Error が QualityGateError に置換される 🔵
   - **入力**: 無効なプリセット名
   - **期待結果**: QualityGateError または PipelineConfigError に置換
   - **信頼性**: 🔵 *grep "throw new Error" adaptive-quality-presets.ts:201 より*
 
-- [ ] **TC-156-04**: 置換後も全既存テストが通過する 🔵
+- [x] **TC-156-04**: 置換後も全既存テストが通過する 🔵
   - **期待結果**: npm test 全通過
   - **信頼性**: 🔵 *既存1,390+テストの回帰防止*
 
@@ -2506,17 +2506,17 @@
 
 ### テストケース
 
-- [ ] **TC-157-01**: PipelineAbortError→ErrorClassifier→リカバリ戦略→リカバリレポートの完全往復 🔵
+- [x] **TC-157-01**: PipelineAbortError→ErrorClassifier→リカバリ戦略→リカバリレポートの完全往復 🔵
   - **入力**: 品質ゲート失敗を発生させるパイプライン実行
   - **期待結果**: リカバリレポートに errorType=QUALITY_GATE_FAILED・戦略実行結果・最終ステータスが記録
   - **信頼性**: 🔵 *pipeline-recovery-e2e.test.ts パターン拡張*
 
-- [ ] **TC-157-02**: 型付きエラーのプロパティが往復チェーン全体で保存される 🔵
+- [x] **TC-157-02**: 型付きエラーのプロパティが往復チェーン全体で保存される 🔵
   - **入力**: stage/phase 情報付きの PipelineAbortError
   - **期待結果**: リカバリレポートに stage・phase・errorType が全て記録
   - **信頼性**: 🔵 *pipeline-errors.ts プロパティ定義より*
 
-- [ ] **TC-157-03**: raw Error（型付きエラー未置換）が混在しても round-trip が正常動作 🔵
+- [x] **TC-157-03**: raw Error（型付きエラー未置換）が混在しても round-trip が正常動作 🔵
   - **入力**: PipelineAbortError と raw Error が混在するパイプライン実行
   - **期待結果**: 両方とも ErrorClassifier で適切に分類される
   - **信頼性**: 🔵 *error-classifier.ts フォールバック分類ロジックより*
@@ -2542,7 +2542,7 @@
 
 ### テストケース
 
-- [ ] **TC-158-01**: npm audit 実行で脆弱性が0件 🔵
+- [x] **TC-158-01**: npm audit 実行で脆弱性が0件 🔵
   - **期待結果**: `npm audit` 出力が "found 0 vulnerabilities"
   - **信頼性**: 🔵 *Phase 39 実績より*
 
