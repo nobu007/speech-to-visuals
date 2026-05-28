@@ -201,7 +201,7 @@ export class StreamingTranscriber {
     }
 
     return new Promise((resolve, reject) => {
-      if (!this.recognition) return reject(new Error('Recognition not available'));
+      if (!this.recognition) return reject(new TranscriptionError('Recognition not available'));
 
       let interimTranscript = '';
       let finalTranscript = '';
@@ -333,7 +333,7 @@ export class StreamingTranscriber {
       };
 
       audio.onerror = () => {
-        reject(new Error('Failed to load audio file'));
+        reject(new TranscriptionError('Failed to load audio file'));
       };
 
       if (typeof audioFile === 'string') {

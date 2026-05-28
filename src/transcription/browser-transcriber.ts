@@ -315,7 +315,7 @@ export class BrowserTranscriber {
   private async transcribeWithWebSpeechAPI(audioFile: File): Promise<TranscriptionSegment[]> {
     return new Promise((resolve, reject) => {
       if (!this.recognition) {
-        reject(new Error('Speech recognition not available'));
+        reject(new TranscriptionErrorClass('Speech recognition not available'));
         return;
       }
 
@@ -357,7 +357,7 @@ export class BrowserTranscriber {
       this.recognition.onerror = (event) => {
         logger.error('[BrowserTranscriber] Speech recognition error:', event.error);
         URL.revokeObjectURL(audioUrl);
-        reject(new Error(`Speech recognition error: ${event.error}`));
+        reject(new TranscriptionErrorClass(`Speech recognition error: ${event.error}`));
       };
 
       this.recognition.onend = () => {
