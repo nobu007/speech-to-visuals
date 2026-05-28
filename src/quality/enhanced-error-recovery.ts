@@ -11,6 +11,7 @@ import { globalCache } from '../performance/intelligent-cache';
 import { logger } from '@/utils/logger';
 import { getMemoryUsage } from '@/utils/memory-usage';
 import { errorRecoveryEventBus } from './error-recovery-event-bus';
+import { QualityGateError, PipelineConfigError } from '@/pipeline/pipeline-errors';
 
 interface ErrorContext {
   stage: ProcessingStage;
@@ -632,7 +633,7 @@ export class EnhancedErrorRecovery {
     if (stage) {
       const breaker = this.circuitBreakers.get(stage);
       if (breaker?.state === 'open') {
-        throw new Error(`Circuit breaker for ${stage} is open - request rejected`);
+        throw new QualityGateError('circuit-breaker', `${stage} is open - request rejected`);
       }
     }
 
@@ -965,7 +966,7 @@ export class EnhancedErrorRecovery {
               };
             }
 
-            throw new Error('No suitable cached content found');
+            throw new QualityGateError('cache-recovery', 'No suitable cached content found');
           } catch (error) {
             return {
               success: false,
@@ -2549,7 +2550,7 @@ export class EnhancedErrorRecovery {
    * will be pruned on the next `pruneErrorHistory()` call.
    */
   setErrorHistoryMaxAge(maxAgeMs: number): void {
-    if (maxAgeMs < 0) throw new Error('maxAgeMs must be non-negative');
+    if (maxAgeMs < 0) throw new PipelineConfigError('maxAgeMs', 'maxAgeMs must be non-negative');
     this.errorHistoryMaxAgeMs = maxAgeMs;
   }
 

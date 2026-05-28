@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-28（Phase 60完了: REQ-155~159 全253/253 criteria green・Phase 61-62要件定義: REQ-160~164）
+**最終更新**: 2026-05-28（Phase 61完了: REQ-160~164 全266/266 criteria green）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -2597,19 +2597,19 @@
 
 ### テストケース
 
-- [ ] **TC-160-01**: enhanced-error-recovery.ts の3箇所 raw Error が型付きエラーに置換される 🔵
+- [x] **TC-160-01**: enhanced-error-recovery.ts の3箇所 raw Error が型付きエラーに置換される 🔵
   - **期待結果**: CircuitBreaker open rejection → QualityGateError または適切な型、キャッシュミス・maxAgeMs検証も適切な型付きエラー
   - **信頼性**: 🔵 *grep "throw new Error" src/quality/enhanced-error-recovery.ts 確認*
 
-- [ ] **TC-160-02**: pipeline-run-recovery-tracker.ts の2箇所 raw Error が型付きエラーに置換される 🔵
+- [x] **TC-160-02**: pipeline-run-recovery-tracker.ts の2箇所 raw Error が型付きエラーに置換される 🔵
   - **期待結果**: アクティブラン衝突・不在が適切な型付きエラーに置換
   - **信頼性**: 🔵 *grep "throw new Error" src/quality/pipeline-run-recovery-tracker.ts 確認*
 
-- [ ] **TC-160-03**: regression-detector.ts の3箇所 raw Error が型付きエラーに置換される 🔵
+- [x] **TC-160-03**: regression-detector.ts の3箇所 raw Error が型付きエラーに置換される 🔵
   - **期待結果**: メトリクス未取得・ベースライン未確立・現在値未取得が適切な型付きエラーに置換
   - **信頼性**: 🔵 *grep "throw new Error" src/quality/regression-detector.ts 確認*
 
-- [ ] **TC-160-04**: 置換後 grep "throw new Error(" src/quality/ で0件 🔵
+- [x] **TC-160-04**: 置換後 grep "throw new Error(" src/quality/ で0件 🔵
   - **期待結果**: src/quality/ 全ファイルで raw Error throw が0件
   - **信頼性**: 🔵 *Phase 59-60 パターンと同一*
 
@@ -2635,11 +2635,11 @@
 
 ### テストケース
 
-- [ ] **TC-161-01**: 品質モジュールの新しい型付きエラーが ErrorClassifier で正確に分類される 🔵
+- [x] **TC-161-01**: 品質モジュールの新しい型付きエラーが ErrorClassifier で正確に分類される 🔵
   - **期待結果**: 各型付きエラーの errorType が期待値と一致
   - **信頼性**: 🔵 *tests/unit/quality/error-classifier.test.ts パターン拡張*
 
-- [ ] **TC-161-02**: 品質モジュールの型付きエラーがパイプラインリカバリチェーンで正しく伝播 🔵
+- [x] **TC-161-02**: 品質モジュールの型付きエラーがパイプラインリカバリチェーンで正しく伝播 🔵
   - **期待結果**: throw→classify→strategy→recovery-report の往復が成功
   - **信頼性**: 🔵 *REQ-157 round-trip テストパターン*
 
@@ -2664,11 +2664,11 @@
 
 ### テストケース
 
-- [ ] **TC-162-01**: 11種の図解タイプ検出がテストされる 🔵
+- [x] **TC-162-01**: 11種の図解タイプ検出がテストされる 🔵
   - **期待結果**: flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general 全タイプの検出が検証
   - **信頼性**: 🔵 *src/analysis/diagram-detector.ts detectDiagramType() より*
 
-- [ ] **TC-162-02**: キーワードマッチングとスコアリングロジックがテストされる 🔵
+- [x] **TC-162-02**: キーワードマッチングとスコアリングロジックがテストされる 🔵
   - **期待結果**: キーワード重み・スコア閾値・タイプ確信度が検証
   - **信頼性**: 🔵 *diagram-detector.ts スコアリングロジックより*
 
@@ -2693,11 +2693,11 @@
 
 ### テストケース
 
-- [ ] **TC-163-01**: セマンティックセグメンテーション（Jaccard係数マージ）がテストされる 🔵
+- [x] **TC-163-01**: セマンティックセグメンテーション（Jaccard係数マージ）がテストされる 🔵
   - **期待結果**: キーワード類似度に基づくセグメントマージが検証
   - **信頼性**: 🔵 *scene-segmenter.ts segmentBySemantics() より*
 
-- [ ] **TC-163-02**: トピックベースクラスタリングがテストされる 🔵
+- [x] **TC-163-02**: トピックベースクラスタリングがテストされる 🔵
   - **期待結果**: コサイン類似度によるトピックベクトルクラスタリングが検証
   - **信頼性**: 🔵 *scene-segmenter.ts segmentByTopic() より*
 
@@ -2722,11 +2722,11 @@
 
 ### テストケース
 
-- [ ] **TC-164-01**: 日本語・英語の言語検出がテストされる 🔵
+- [x] **TC-164-01**: 日本語・英語の言語検出がテストされる 🔵
   - **期待結果**: 日本語テキスト→ja、英語テキスト→en、混合テキスト→主要言語が検証
   - **信頼性**: 🔵 *language-detector.ts detectLanguage() より*
 
-- [ ] **TC-164-02**: 確信度スコアリングがテストされる 🔵
+- [x] **TC-164-02**: 確信度スコアリングがテストされる 🔵
   - **期待結果**: 確信度が0.0~1.0範囲・スクリプト分析の精度が検証
   - **信頼性**: 🔵 *language-detector.ts スコアリングロジックより*
 

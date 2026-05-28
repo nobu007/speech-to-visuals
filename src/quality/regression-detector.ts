@@ -17,6 +17,7 @@ import { QualityMetrics, QualityMonitor } from '../pipeline/quality-monitor';
 import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from '@/utils/logger';
+import { QualityGateError } from '@/pipeline/pipeline-errors';
 
 export interface RegressionReport {
   timestamp: Date;
@@ -105,7 +106,7 @@ export class RegressionDetector {
     const latestMetrics = this.qualityMonitor.getLatestMetrics();
 
     if (!latestMetrics) {
-      throw new Error('No metrics available to establish baseline. Run system first.');
+      throw new QualityGateError('regression-baseline', 'No metrics available to establish baseline. Run system first.');
     }
 
     // Calculate confidence based on sample size
@@ -177,12 +178,12 @@ export class RegressionDetector {
     }
 
     if (!this.baseline) {
-      throw new Error('No baseline available. Run establishBaseline() first.');
+      throw new QualityGateError('regression-baseline', 'No baseline available. Run establishBaseline() first.');
     }
 
     const currentMetrics = this.qualityMonitor.getLatestMetrics();
     if (!currentMetrics) {
-      throw new Error('No current metrics available. Run system first.');
+      throw new QualityGateError('regression-metrics', 'No current metrics available. Run system first.');
     }
 
     const regressions: Regression[] = [];

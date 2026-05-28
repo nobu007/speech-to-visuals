@@ -33,6 +33,7 @@
 import { ErrorClassifier, type ClassifiedError, type ErrorType } from './error-classifier';
 import { errorRecoveryEventBus } from './error-recovery-event-bus';
 import { logger } from '@/utils/logger';
+import { PipelineConfigError } from '@/pipeline/pipeline-errors';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -172,7 +173,7 @@ export class PipelineRunRecoveryTracker {
    */
   startRun(runId: string, config?: Partial<RunRecoveryConfig>): void {
     if (this.active) {
-      throw new Error(`Cannot start run "${runId}": run "${this.runId}" is still active. Finalize it first.`);
+      throw new PipelineConfigError('runId', `Cannot start run "${runId}": run "${this.runId}" is still active. Finalize it first.`);
     }
     this.runId = runId;
     this.startTime = Date.now();
@@ -401,7 +402,7 @@ export class PipelineRunRecoveryTracker {
 
   private assertActive(): void {
     if (!this.active) {
-      throw new Error('No active run. Call startRun() first.');
+      throw new PipelineConfigError('activeRun', 'No active run. Call startRun() first.');
     }
   }
 
