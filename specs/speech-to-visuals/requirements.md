@@ -366,11 +366,11 @@
 - REQ-165: システムはエクスポートモジュール（src/export/）内の残存する12箇所の raw Error throw を型付きエラークラス（ExportError・EncodingError・FormatValidationError を pipeline-errors.ts に追加）に置換し、パイプライン全域のエラー構造化を完了しなければならない。対象: apng-encoder.ts（4箇所: チャンクサイズ超過・シーケンス番号オーバーフロー・APNGヘッダー不正・フレームサイズ上限）、enhanced-export-engine.ts（4箇所: サポート外形式・HDR非対応形式・テンプレート不在・設定検証）、multi-format-exporter.ts（3箇所: 形式未対応・SVG検証・HTML検証）、production-exporter.ts（1箇所: プリセット検証） 🔵 ✅実装済 *src/pipeline/pipeline-errors.ts 3クラス追加・src/export/4ファイル12箇所置換完了*
 - REQ-166: システムはエクスポートモジュールの raw Error 置換後、ErrorClassifier が新しい型付きエラー（ExportError・EncodingError・FormatValidationError）を正確に分類できることを検証する回帰テストを提供しなければならない 🔵 ✅実装済 *tests/integration/export-typed-errors.test.ts（15テスト）*
 
-#### 書き出しモジュールテストカバレッジ拡充（Phase 64） 🔄要件定義済
+#### 書き出しモジュールテストカバレッジ拡充（Phase 64） ✅完了
 
-- REQ-167: システムは enhanced-export-engine.ts（906行）のコア機能（マルチ形式エクスポート・HDR出力・ウォーターマーク・圧縮レベル設定）に対する専用ユニットテストを提供しなければならない 🔵 *src/export/enhanced-export-engine.ts はエクスポートパイプラインの中核で既存テストなし*
-- REQ-168: システムは multi-format-exporter.ts（550行）のコア機能（SVG/PNG/PDF/JSON形式変換・メタデータ付与・バリデーション）に対する専用ユニットテストを提供しなければならない 🔵 *src/export/multi-format-exporter.ts は複数形式エクスポートの中核で既存テストなし*
-- REQ-169: システムは production-exporter.ts（686行）のコア機能（プロダクションエクスポートパイプライン・プリセット管理・品質検証）に対する専用ユニットテストを提供しなければならない 🔵 *src/export/production-exporter.ts は本番エクスポートの中核で既存テストなし*
+- REQ-167: システムは enhanced-export-engine.ts（906行）のコア機能（マルチ形式エクスポート・HDR出力・ウォーターマーク・圧縮レベル設定）に対する専用ユニットテストを提供しなければならない 🔵 ✅実装済 *tests/unit/export/enhanced-export-engine.test.ts（360行・42テスト）*
+- REQ-168: システムは multi-format-exporter.ts（550行）のコア機能（SVG/PNG/PDF/JSON形式変換・メタデータ付与・バリデーション）に対する専用ユニットテストを提供しなければならない 🔵 ✅実装済 *tests/unit/export/multi-format-exporter.test.ts（310行・39テスト）*
+- REQ-169: システムは production-exporter.ts（686行）のコア機能（プロダクションエクスポートパイプライン・プリセット管理・品質検証）に対する専用ユニットテストを提供しなければならない 🔵 ✅実装済 *tests/unit/export/production-exporter.test.ts（275行・37テスト）*
 
 ### 条件付き要件
 
@@ -529,7 +529,7 @@
 | Phase 61: 品質モジュール型付きエラー移行 | ✅完了 | REQ-160~161 | 2/2（品質モジュール8箇所の型付きエラー置換・ErrorClassifier回帰テスト・コミットec84bce） |
 | Phase 62: 分析モジュールテストカバレッジ拡充 | ✅完了 | REQ-162~164 | 3/3（diagram-detector 305行・scene-segmenter 205行・language-detector 211行・79テスト通過） |
 | Phase 63: エクスポートモジュール型付きエラー移行 | ✅完了 | REQ-165~166 | 2/2（エクスポート4ファイル12箇所の型付きエラー置換・ErrorClassifier回帰テスト15件） |
-| Phase 64: エクスポートモジュールテストカバレッジ拡充 | 🔄要件定義済 | REQ-167~169 | 0/3 |
+| Phase 64: エクスポートモジュールテストカバレッジ拡充 | ✅完了 | REQ-167~169 | 3/3（enhanced-export-engine 42テスト・multi-format-exporter 39テスト・production-exporter 37テスト・118テスト全通過） |
 
 ## 信頼性レベル分布
 
