@@ -111,3 +111,45 @@ export class PipelineAbortError extends PipelineError {
     this.name = 'PipelineAbortError';
   }
 }
+
+/**
+ * Thrown when an export operation fails (unsupported format, encoding error).
+ * Maps to RENDERING_ERROR (export is part of the rendering pipeline).
+ */
+export class ExportError extends PipelineError {
+  public readonly format: string;
+
+  constructor(message: string, format: string, context?: Record<string, unknown>) {
+    super(message, 'RENDERING_ERROR', 'export', { format, ...context });
+    this.name = 'ExportError';
+    this.format = format;
+  }
+}
+
+/**
+ * Thrown when binary encoding (APNG, GIF, etc.) encounters invalid data.
+ * Maps to RENDERING_ERROR.
+ */
+export class EncodingError extends PipelineError {
+  public readonly encoder: string;
+
+  constructor(message: string, encoder: string, context?: Record<string, unknown>) {
+    super(message, 'RENDERING_ERROR', 'encoding', { encoder, ...context });
+    this.name = 'EncodingError';
+    this.encoder = encoder;
+  }
+}
+
+/**
+ * Thrown when an export configuration or preset is invalid.
+ * Maps to FILE_FORMAT_INVALID.
+ */
+export class FormatValidationError extends PipelineError {
+  public readonly format: string;
+
+  constructor(message: string, format: string, context?: Record<string, unknown>) {
+    super(message, 'FILE_FORMAT_INVALID', 'export_validation', { format, ...context });
+    this.name = 'FormatValidationError';
+    this.format = format;
+  }
+}

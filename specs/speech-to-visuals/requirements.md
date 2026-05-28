@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 60 ✅完了・Phase 61-62 🔄要件定義済・590ファイル・105,842行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト1,390+件（188テストファイル）・npm audit 0件・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー21箇所完了・品質モジュール8箇所要移行
+**実装状況**: Phase 63 ✅完了・Phase 64 🔄要件定義済・590ファイル・105,842行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト1,390+件（192テストファイル）・npm audit 0件・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー21箇所完了・品質モジュール8箇所完了・エクスポートモジュール12箇所完了
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -350,16 +350,27 @@
 - REQ-158: システムは npm audit 脆弱性を0件に維持しなければならない 🔵 ✅実装済 *npm audit 0件確認（2026-05-28時点）・SYSTEM_CONSTITUTION.md メトリクス監視*
 - REQ-159: システムはパイプラインオーケストレーターの catch ブロックで ErrorClassifier を呼び出し、キャッチされたエラーを構造化エラーとしてトリアージし、リカバリオーケストレーターに分類結果を渡さなければならない 🔵 ✅実装済 *src/pipeline/pipeline-orchestrator.ts catch ブロック・コミットee06c0e*
 
-#### 品質モジュール型付きエラー移行（Phase 61） 🔄要件定義済
+#### 品質モジュール型付きエラー移行（Phase 61） ✅完了
 
-- REQ-160: システムは品質モジュール（src/quality/）内の残存する8箇所の raw Error throw を型付きエラークラスに置換し、パイプライン支援モジュール全体のエラー構造化を完了しなければならない。対象: enhanced-error-recovery.ts（3箇所: CircuitBreaker open rejection・キャッシュミス・maxAgeMs検証）、pipeline-run-recovery-tracker.ts（2箇所: アクティブラン衝突・アクティブラン不在）、regression-detector.ts（3箇所: メトリクス未取得・ベースライン未確立・現在値未取得） 🔵 *Phase 59-60でパイプライン21箇所完了の継続・src/quality/3ファイル8箇所のgrep確認*
-- REQ-161: システムは品質モジュールの raw Error 置換後、ErrorClassifier が新しい型付きエラーを正確に分類できることを検証する回帰テストを提供しなければならない 🔵 *REQ-159 ErrorClassifier統合の品質モジュール拡張*
+- REQ-160: システムは品質モジュール（src/quality/）内の残存する8箇所の raw Error throw を型付きエラークラスに置換し、パイプライン支援モジュール全体のエラー構造化を完了しなければならない。対象: enhanced-error-recovery.ts（3箇所: CircuitBreaker open rejection・キャッシュミス・maxAgeMs検証）、pipeline-run-recovery-tracker.ts（2箇所: アクティブラン衝突・アクティブラン不在）、regression-detector.ts（3箇所: メトリクス未取得・ベースライン未確立・現在値未取得） 🔵 ✅実装済 *src/quality/3ファイル8箇所の型付きエラー置換完了・コミットec84bce*
+- REQ-161: システムは品質モジュールの raw Error 置換後、ErrorClassifier が新しい型付きエラーを正確に分類できることを検証する回帰テストを提供しなければならない 🔵 ✅実装済 *tests/integration/analysis-typed-errors.test.ts・tests/analysis-errors.test.ts（205行・回帰テスト込み）*
 
-#### 分析モジュールテストカバレッジ拡充（Phase 62） 🔄要件定義済
+#### 分析モジュールテストカバレッジ拡充（Phase 62） ✅完了
 
-- REQ-162: システムは diagram-detector.ts（1,406行）のコア機能（図解タイプ検出ロジック・11タイプ判定・キーワードマッチング・スコアリング）に対する専用ユニットテストを提供しなければならない 🔵 *src/analysis/diagram-detector.ts はコア分析モジュールで既存テストなし*
-- REQ-163: システムは scene-segmenter.ts（970行）のコア機能（セマンティックセグメンテーション・Jaccard係数マージ・トピックベースクラスタリング）に対する専用ユニットテストを提供しなければならない 🔵 *src/analysis/scene-segmenter.ts はパイプラインStage 2の中核で既存テストなし*
-- REQ-164: システムは language-detector.ts（623行）の言語検出機能（日英判定・スクリプト分析・確信度スコアリング）に対する専用ユニットテストを提供しなければならない 🔵 *src/analysis/language-detector.ts はパイプラインStage 1の構成要素で既存テストなし*
+- REQ-162: システムは diagram-detector.ts（1,406行）のコア機能（図解タイプ検出ロジック・11タイプ判定・キーワードマッチング・スコアリング）に対する専用ユニットテストを提供しなければならない 🔵 ✅実装済 *tests/unit/analysis/diagram-detector.test.ts（305行）*
+- REQ-163: システムは scene-segmenter.ts（970行）のコア機能（セマンティックセグメンテーション・Jaccard係数マージ・トピックベースクラスタリング）に対する専用ユニットテストを提供しなければならない 🔵 ✅実装済 *tests/unit/analysis/scene-segmenter.test.ts（205行）*
+- REQ-164: システムは language-detector.ts（623行）の言語検出機能（日英判定・スクリプト分析・確信度スコアリング）に対する専用ユニットテストを提供しなければならない 🔵 ✅実装済 *tests/unit/analysis/language-detector.test.ts（211行）*
+
+#### エクスポートモジュール型付きエラー移行（Phase 63） ✅完了
+
+- REQ-165: システムはエクスポートモジュール（src/export/）内の残存する12箇所の raw Error throw を型付きエラークラス（ExportError・EncodingError・FormatValidationError を pipeline-errors.ts に追加）に置換し、パイプライン全域のエラー構造化を完了しなければならない。対象: apng-encoder.ts（4箇所: チャンクサイズ超過・シーケンス番号オーバーフロー・APNGヘッダー不正・フレームサイズ上限）、enhanced-export-engine.ts（4箇所: サポート外形式・HDR非対応形式・テンプレート不在・設定検証）、multi-format-exporter.ts（3箇所: 形式未対応・SVG検証・HTML検証）、production-exporter.ts（1箇所: プリセット検証） 🔵 ✅実装済 *src/pipeline/pipeline-errors.ts 3クラス追加・src/export/4ファイル12箇所置換完了*
+- REQ-166: システムはエクスポートモジュールの raw Error 置換後、ErrorClassifier が新しい型付きエラー（ExportError・EncodingError・FormatValidationError）を正確に分類できることを検証する回帰テストを提供しなければならない 🔵 ✅実装済 *tests/integration/export-typed-errors.test.ts（15テスト）*
+
+#### 書き出しモジュールテストカバレッジ拡充（Phase 64） 🔄要件定義済
+
+- REQ-167: システムは enhanced-export-engine.ts（906行）のコア機能（マルチ形式エクスポート・HDR出力・ウォーターマーク・圧縮レベル設定）に対する専用ユニットテストを提供しなければならない 🔵 *src/export/enhanced-export-engine.ts はエクスポートパイプラインの中核で既存テストなし*
+- REQ-168: システムは multi-format-exporter.ts（550行）のコア機能（SVG/PNG/PDF/JSON形式変換・メタデータ付与・バリデーション）に対する専用ユニットテストを提供しなければならない 🔵 *src/export/multi-format-exporter.ts は複数形式エクスポートの中核で既存テストなし*
+- REQ-169: システムは production-exporter.ts（686行）のコア機能（プロダクションエクスポートパイプライン・プリセット管理・品質検証）に対する専用ユニットテストを提供しなければならない 🔵 *src/export/production-exporter.ts は本番エクスポートの中核で既存テストなし*
 
 ### 条件付き要件
 
@@ -515,8 +526,10 @@
 | Phase 58: リカバリ検証ループ・CI統合 | ✅完了 | TASK-0162~0165 | 4/4（CI煙テスト・E2Eリカバリ統合テスト・VideoGeneratorタイムアウト修正・ドキュメント更新・全テスト通過確認） |
 | Phase 59: パイプライン品質・構造化エラー | ✅完了 | REQ-150~154 | 5/5（可変シーンデュレーション・シーンID生成・JSONエクスポート修正・キャプションインデックス連続性・PipelineAbortError・117テスト追加） |
 | Phase 60: パイプライン統合テスト・型付きエラー完全化 | ✅完了 | REQ-155~159 | 5/5（全要件完了・253/253テストグリーン・npm audit 0件） |
-| Phase 61: 品質モジュール型付きエラー移行 | 🔄要件定義済 | REQ-160~161 | 0/2 |
-| Phase 62: 分析モジュールテストカバレッジ拡充 | 🔄要件定義済 | REQ-162~164 | 0/3 |
+| Phase 61: 品質モジュール型付きエラー移行 | ✅完了 | REQ-160~161 | 2/2（品質モジュール8箇所の型付きエラー置換・ErrorClassifier回帰テスト・コミットec84bce） |
+| Phase 62: 分析モジュールテストカバレッジ拡充 | ✅完了 | REQ-162~164 | 3/3（diagram-detector 305行・scene-segmenter 205行・language-detector 211行・79テスト通過） |
+| Phase 63: エクスポートモジュール型付きエラー移行 | ✅完了 | REQ-165~166 | 2/2（エクスポート4ファイル12箇所の型付きエラー置換・ErrorClassifier回帰テスト15件） |
+| Phase 64: エクスポートモジュールテストカバレッジ拡充 | 🔄要件定義済 | REQ-167~169 | 0/3 |
 
 ## 信頼性レベル分布
 
@@ -524,7 +537,7 @@
 - 🟡 黄信号: 3件 (1.4%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 60完了・Phase 61-62要件定義済（REQ-001~164）・TypeScript型エラー0件・パイプライン型付きエラー21箇所完了・品質モジュール8箇所要移行
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 63完了・Phase 64要件定義済（REQ-001~169）・TypeScript型エラー0件・パイプライン型付きエラー21箇所完了・品質モジュール8箇所完了・エクスポートモジュール12箇所完了
 
 ## Acceptance criteria
 
@@ -535,6 +548,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 62 を網羅し、Phase 60 完了・Phase 61-62 要件定義（品質モジュール型付きエラー移行・分析モジュールテストカバレッジ拡充）を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 64 を網羅し、Phase 63 完了・Phase 64 要件定義（エクスポートモジュール型付きエラー移行・テストカバレッジ拡充）を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテゴリに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第167回: 🔵201件/🟡3件/🔴0件 — Phase 60完了・Phase 61-62要件定義・REQ-001~164・190テストファイル）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第169回: 🔵209件/🟡3件/🔴0件 — Phase 63完了・Phase 64要件定義・REQ-001~169・192テストファイル）

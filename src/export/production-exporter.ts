@@ -8,6 +8,7 @@ import { randomUUID } from 'crypto';
 import { EnhancedSceneGraph, RenderOptions } from '@/visualization/advanced-visual-engine';
 import { SceneGraph } from '@/types/diagram';
 import { logger } from '../utils/logger';
+import { PipelineConfigError } from '@/pipeline/pipeline-errors';
 
 export interface ExportJob {
   id: string;
@@ -654,7 +655,7 @@ export class ProductionExporter {
   ): Promise<string> {
     const preset = this.exportPresets.find(p => p.name === presetName);
     if (!preset) {
-      throw new Error(`Preset not found: ${presetName}`);
+      throw new PipelineConfigError('presetName', `Preset not found: ${presetName}`);
     }
 
     return this.createExportJob(name, scenes, preset.options);

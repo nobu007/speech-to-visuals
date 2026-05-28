@@ -13,6 +13,7 @@ import {
   processExportPayload,
 } from '../workers';
 import { createExportWorkerFactory } from '../workers/worker-factories';
+import { ExportError, FormatValidationError } from '@/pipeline/pipeline-errors';
 import type {
   WorkerMessage,
   ExportWorkerPayload,
@@ -288,7 +289,7 @@ export class EnhancedExportEngine {
 
     // Validate scene data
     if (!job.sceneData || !job.sceneData.scenes) {
-      throw new Error('Invalid scene data provided');
+      throw new FormatValidationError('Invalid scene data provided', 'unknown');
     }
 
     // Calculate optimal settings
@@ -434,7 +435,7 @@ export class EnhancedExportEngine {
       case 'apng':
         return await this.encodeAPNG(job, frames);
       default:
-        throw new Error(`Unsupported format: ${format}`);
+        throw new ExportError(`Unsupported format: ${format}`, format);
     }
   }
 
@@ -704,11 +705,11 @@ export class EnhancedExportEngine {
   // Utility methods
   private validateExportConfig(config: ExportConfiguration): void {
     if (!config.format || !config.quality || !config.settings) {
-      throw new Error('Invalid export configuration');
+      throw new FormatValidationError('Invalid export configuration', config.format ?? 'unknown');
     }
 
     if (config.quality.resolution === '4k' && config.format === 'gif') {
-      throw new Error('4K resolution not supported for GIF format');
+      throw new ExportError('4K resolution not supported for GIF format', 'gif');
     }
   }
 

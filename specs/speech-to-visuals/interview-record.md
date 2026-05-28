@@ -10,11 +10,46 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-28（第167回検証: Phase 60完了・Phase 61-62要件定義・品質モジュール型付きエラー移行・分析モジュールテストカバレッジ拡充）
+**最終更新**: 2026-05-28（第169回検証: Phase 63完了・Phase 64要件定義・エクスポートモジュール型付きエラー移行・ErrorClassifier回帰テスト）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
 ## 分析項目と判断
+
+### A168: 第168-169回検証 - Phase 61-63完了・Phase 64要件定義（2026-05-28 第169回更新）
+
+**分析日時**: 2026-05-28
+**カテゴリ**: 品質モジュール型付きエラー移行完了・分析モジュールテスト完了・エクスポートモジュール型付きエラー移行完了・テストカバレッジ拡充要件定義
+**背景**: AI Hubフィードバック「Begin Phase 62 — identify the next REQ from requirements.md and implement code+tests rather than expanding coverage on closed REQs」に対応。コミットec84bceでREQ-160~164完了確認後、Phase 63を実装（エクスポートモジュール型付きエラー移行）し、Phase 64を要件定義。
+
+**判断**:
+1. **Phase 61-62完了確認**: 品質モジュール8箇所のraw Error throw置換完了、分析モジュール3ファイルの専用ユニットテスト追加完了（合計79テスト通過）。
+2. **Phase 63実装完了**: エクスポートモジュール12箇所のraw Error throw置換完了。新規型付きエラークラス3種（ExportError・EncodingError・FormatValidationError）をpipeline-errors.tsに追加。ErrorClassifier回帰テスト15件追加・全通過。
+3. **Phase 64要件定義**: エクスポートモジュールテストカバレッジ拡充要件を定義（REQ-167~169）。
+4. **ギャップ分析**: src/全体で31→19ファイルにraw Error throw残存（export:12箇所解消・transcription:10・visualization:4・monitoring:1・api:2・config:1・framework:1残存）。テストカバレッジ: monitoring(0テスト/6ファイル)・optimization(0テスト/7ファイル)が未開拓。
+
+**根拠**:
+- コミットec84bce: feat(pipeline): close REQ-160~164 acceptance criteria (266/266 green)
+- 実装: src/pipeline/pipeline-errors.ts 3クラス追加、src/export/4ファイル12箇所置換
+- テスト結果: export-typed-errors.test.ts 15テスト通過・既存テスト40件通過
+
+**信頼性への影響**:
+- Phase 61-63: 7要件が✅に更新（信頼性レベル: 全て🔵）
+- 新規要件 REQ-167~169 追加（信頼性レベル: 全て🔵）
+- 信頼性レベル分布: 🔵209件/🟡3件/🔴0件
+- テストファイル数: 192（export-typed-errors.test.ts追加）
+
+---
+
+### A167: 第167回検証 - Phase 60完了・Phase 61-62要件定義（2026-05-28 第167回更新）
+
+**分析日時**: 2026-05-28
+**カテゴリ**: パイプライン統合テスト・型付きエラー完全化・品質モジュール型付きエラー移行要件定義
+**背景**: AI Hubフィードバックに基づくPhase 60完了確認とPhase 61-62要件定義。コミットec84bceで266/266グリーン達成を確認済。
+
+**判断**: A166の継続としてPhase 60完了を反映。Phase 61-62要件定義は既に完了済み。
+
+---
 
 ### A166: 第166回検証 - Phase 60パイプライン統合テスト・型付きエラー完全化（2026-05-27 第166回更新）
 

@@ -13,6 +13,7 @@
  */
 
 import type { SceneGraph } from '@/types/diagram';
+import { ExportError } from '@/pipeline/pipeline-errors';
 import type { NodeDatum, EdgeDatum } from '@/types/diagram';
 import { logger } from '../utils/logger';
 
@@ -68,7 +69,7 @@ export class MultiFormatExporter {
         case 'json':
           return this.exportJSON(scene, options);
         default:
-          throw new Error(`Unsupported export format: ${options.format}`);
+          throw new ExportError(`Unsupported export format: ${options.format}`, options.format);
       }
     } catch (error) {
       logger.error(`Phase 37: Export failed for ${options.format}:`, error);
@@ -122,7 +123,7 @@ export class MultiFormatExporter {
     const canvas = this.createCanvas(width, height);
     const ctx = canvas.getContext('2d');
     if (!ctx) {
-      throw new Error('Failed to get canvas context');
+      throw new ExportError('Failed to get canvas context', 'png');
     }
 
     // Draw background
@@ -294,7 +295,7 @@ export class MultiFormatExporter {
     }
 
     // Node.js environment - would need node-canvas library
-    throw new Error('Canvas rendering requires browser environment or node-canvas library');
+    throw new ExportError('Canvas rendering requires browser environment or node-canvas library', 'canvas');
   }
 
   /**

@@ -8,6 +8,8 @@
  * Structure: PNG sig → IHDR → acTL → [fcTL + IDAT/fdAT per frame] → IEND
  */
 
+import { EncodingError, FormatValidationError } from '@/pipeline/pipeline-errors';
+
 // ---------- CRC-32 (ISO 3309 / ITU-T V.42) ----------
 
 const CRC_TABLE = new Uint32Array(256);
@@ -128,17 +130,17 @@ export function encodeAPNG(
   options: ApngEncodeOptions,
 ): Uint8Array {
   if (frames.length === 0) {
-    throw new Error('APNG requires at least one frame');
+    throw new FormatValidationError('APNG requires at least one frame', 'apng');
   }
 
   const { fps } = options;
   if (fps <= 0) {
-    throw new Error('APNG fps must be positive');
+    throw new FormatValidationError('APNG fps must be positive', 'apng');
   }
 
   const { width, height } = frames[0];
   if (width <= 0 || height <= 0) {
-    throw new Error('APNG frame dimensions must be positive');
+    throw new FormatValidationError('APNG frame dimensions must be positive', 'apng');
   }
 
   const numPlays = options.numPlays ?? 0; // infinite loop by default
@@ -256,7 +258,7 @@ export function parsePngChunks(apng: Uint8Array): PngChunkInfo[] {
   const sig: number[] = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
   for (let i = 0; i < 8; i++) {
     if (apng[i] !== sig[i]) {
-      throw new Error(`Invalid PNG signature at byte ${i}`);
+      throw new EncodingError(`Invalid PNG signature at byte ${i}`, 'apng');
     }
   }
 
