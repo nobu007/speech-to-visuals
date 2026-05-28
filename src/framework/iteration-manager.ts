@@ -13,6 +13,7 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { PipelineConfigError } from '@/pipeline/pipeline-errors';
 import { logger } from '../utils/logger';
 
 export type IterationStatus = 'in_progress' | 'success' | 'failure';
@@ -434,7 +435,7 @@ export function createIterationManager(
 ): IterationManager {
   const cycleTemplate = DEVELOPMENT_CYCLES[phaseName];
   if (!cycleTemplate) {
-    throw new Error(`Unknown phase: ${phaseName}`);
+    throw new PipelineConfigError('phaseName', `Unknown phase: ${phaseName}`);
   }
 
   const cycle: DevelopmentCycle = {

@@ -372,6 +372,33 @@
 - REQ-168: システムは multi-format-exporter.ts（550行）のコア機能（SVG/PNG/PDF/JSON形式変換・メタデータ付与・バリデーション）に対する専用ユニットテストを提供しなければならない 🔵 ✅実装済 *tests/unit/export/multi-format-exporter.test.ts（310行・39テスト）*
 - REQ-169: システムは production-exporter.ts（686行）のコア機能（プロダクションエクスポートパイプライン・プリセット管理・品質検証）に対する専用ユニットテストを提供しなければならない 🔵 ✅実装済 *tests/unit/export/production-exporter.test.ts（275行・37テスト）*
 
+#### 残存モジュール型付きエラー移行（Phase 65） ✅完了
+
+- REQ-170: システムは monitoring・config・integrations・framework モジュール内の残存する7箇所の raw Error throw を型付きエラークラスに置換しなければならない。対象: performance-dashboard.ts（1箇所: メトリクス平均計算時の空データ検証）、config/env.ts（1箇所: 設定検証失敗）、integrations/supabase/client.ts（1箇所: Supabase接続情報不足）、framework/iteration-manager.ts（1箇所: 不明フェーズ名）、pages/Index.tsx（3箇所: アップロード失敗・文字起こし失敗・シーン生成失敗） 🔵 ✅実装済 *src/monitoring/performance-dashboard.ts・src/config/env.ts・src/integrations/supabase/client.ts・src/framework/iteration-manager.ts・src/pages/Index.tsx・7箇所置換完了*
+- REQ-171: システムは上記モジュールの raw Error 置換後、ErrorClassifier が新しい型付きエラーを正確に分類できることを検証する回帰テストを提供しなければならない 🔵 ✅実装済 *tests/integration/cross-module-typed-errors.test.ts（12テスト）*
+
+#### モニタリングモジュールテストカバレッジ拡充（Phase 66）
+
+- REQ-172: システムは performance-dashboard.ts（681行）のコア機能（メトリクス集計・パーセンタイル計算・ダッシュボードデータ生成）に対する専用ユニットテストを提供しなければならない 🔵 *src/monitoring/performance-dashboard.ts より*
+- REQ-173: システムは production-error-handler.ts（638行）のコア機能（エラー分類・重要度判定・エラー通知・フォールバック戦略）に対する専用ユニットテストを提供しなければならない 🔵 *src/monitoring/production-error-handler.ts より*
+- REQ-174: システムは real-time-performance-monitor.ts（616行）のコア機能（リアルタイムメトリクス収集・P50/P95/P99計算・アラート閾値監視）に対する専用ユニットテストを提供しなければならない 🔵 *src/monitoring/real-time-performance-monitor.ts より*
+
+#### 文字起こしモジュール型付きエラー移行（Phase 67）
+
+- REQ-175: システムは transcription モジュール（src/transcription/）内の残存する10箇所の raw Error throw を型付きエラークラスに置換しなければならない。対象: browser-transcriber.ts（1箇所: SpeechRecognition未対応）、srt-generator.ts（2箇所: セグメント検証・テキスト空検証）、whisper-transcriber.ts（2箇所: ブラウザ環境パス制限・未対応形式）、transcriber.ts（3箇所: 無効パス・未対応形式・ファイル不在）、streaming-transcriber.ts（2箇所: ストリーミング失敗・SpeechRecognition未対応） 🔵 *src/transcription/5ファイル10箇所の raw Error throw より*
+- REQ-176: システムは transcription モジュールの raw Error 置換後、ErrorClassifier が新しい型付きエラーを正確に分類できることを検証する回帰テストを提供しなければならない 🔵 *tests/integration/transcription-typed-errors.test.ts より*
+
+#### 文字起こしモジュールテストカバレッジ拡充（Phase 68）
+
+- REQ-177: システムは browser-transcriber.ts のコア機能（Web Speech API統合・リアルタイム認識・ブラウザ互換性チェック）に対する専用ユニットテストを提供しなければならない 🔵 *src/transcription/browser-transcriber.ts より*
+- REQ-178: システムは whisper-transcriber.ts のコア機能（Whisper API連携・音声ファイル処理・タイムスタンプ付き文字起こし）に対する専用ユニットテストを提供しなければならない 🔵 *src/transcription/whisper-transcriber.ts より*
+- REQ-179: システムは streaming-transcriber.ts のコア機能（ストリーミング認識・チャンク処理・エラー回復）に対する専用ユニットテストを提供しなければならない 🔵 *src/transcription/streaming-transcriber.ts より*
+
+#### 可視化・API モジュール型付きエラー移行（Phase 69）
+
+- REQ-180: システムは visualization モジュール（src/visualization/）内の残存する8箇所の raw Error throw を型付きエラークラスに置換しなければならない。対象: complex-layout-engine.ts（4箇所: DagreLayoutStrategy未初期化関連・フォールバック時・レイアウト時・粗視化時・再細分化時）、TreeLayoutStrategy.ts（1箇所: ノード不在）、OverlapResolver.ts（1箇所: タイムアウト）、base-strategy.ts（1箇所: 未登録図解タイプ）、ILayoutStrategy.ts（1箇所: 戦略不在） 🔵 *src/visualization/4ファイル8箇所の raw Error throw より*
+- REQ-181: システムは API モジュール（src/api/）内の残存する3箇所の raw Error throw を既存の型付きエラークラスに置換しなければならない。対象: server.ts（1箇所: セキュリティ設定エラー）、websocket-handler.ts（1箇所: JWT秘密鍵未設定）、middleware/auth.ts（1箇所: JWT秘密鍵未設定） 🔵 *src/api/3ファイル3箇所の raw Error throw より*
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より*
@@ -530,6 +557,11 @@
 | Phase 62: 分析モジュールテストカバレッジ拡充 | ✅完了 | REQ-162~164 | 3/3（diagram-detector 305行・scene-segmenter 205行・language-detector 211行・79テスト通過） |
 | Phase 63: エクスポートモジュール型付きエラー移行 | ✅完了 | REQ-165~166 | 2/2（エクスポート4ファイル12箇所の型付きエラー置換・ErrorClassifier回帰テスト15件） |
 | Phase 64: エクスポートモジュールテストカバレッジ拡充 | ✅完了 | REQ-167~169 | 3/3（enhanced-export-engine 42テスト・multi-format-exporter 39テスト・production-exporter 37テスト・118テスト全通過） |
+| Phase 65: 残存モジュール型付きエラー移行 | ✅完了 | REQ-170~171 | 2/2（7箇所 raw Error 置換・MonitoringError 追加・ErrorClassifier 回帰テスト12件） |
+| Phase 66: モニタリングモジュールテストカバレッジ拡充 | 🔲未着手 | REQ-172~174 | 0/3 |
+| Phase 67: 文字起こしモジュール型付きエラー移行 | 🔲未着手 | REQ-175~176 | 0/2 |
+| Phase 68: 文字起こしモジュールテストカバレッジ拡充 | 🔲未着手 | REQ-177~179 | 0/3 |
+| Phase 69: 可視化・API モジュール型付きエラー移行 | 🔲未着手 | REQ-180~181 | 0/2 |
 
 ## 信頼性レベル分布
 
@@ -537,7 +569,7 @@
 - 🟡 黄信号: 3件 (1.4%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 63完了・Phase 64要件定義済（REQ-001~169）・TypeScript型エラー0件・パイプライン型付きエラー21箇所完了・品質モジュール8箇所完了・エクスポートモジュール12箇所完了
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 64完了・Phase 65~69要件定義済（REQ-001~181）・TypeScript型エラー0件・パイプライン型付きエラー21箇所完了・品質モジュール8箇所完了・エクスポートモジュール12箇所完了
 
 ## Acceptance criteria
 

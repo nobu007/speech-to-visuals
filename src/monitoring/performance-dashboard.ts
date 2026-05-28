@@ -7,6 +7,7 @@
 import { randomUUID } from 'crypto';
 import { getMemoryUsage } from '@/utils/memory-usage';
 import { logger } from '../utils/logger';
+import { MonitoringError } from '@/pipeline/pipeline-errors';
 import { TokenUsageTracker, type StageType } from '../analysis/token-usage-tracker';
 import { estimateCost, type CostEstimate } from '../analysis/cost-estimator';
 import { globalCache } from '../performance/intelligent-cache';
@@ -402,7 +403,7 @@ export class PerformanceDashboard {
    * 📊 Calculate average metrics from array
    */
   private calculateAverageMetrics(metrics: PerformanceMetrics[]): PerformanceMetrics {
-    if (metrics.length === 0) throw new Error('No metrics to average');
+    if (metrics.length === 0) throw new MonitoringError('No metrics to average');
 
     const avg = metrics.reduce((acc, metric) => ({
       timestamp: metric.timestamp,

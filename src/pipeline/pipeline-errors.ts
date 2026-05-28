@@ -153,3 +153,27 @@ export class FormatValidationError extends PipelineError {
     this.format = format;
   }
 }
+
+/**
+ * Thrown when a monitoring operation fails (metrics aggregation,
+ * dashboard data generation, etc.).
+ * Maps to QUALITY_GATE_FAILED (monitoring is a quality function).
+ */
+export class MonitoringError extends PipelineError {
+  constructor(message: string, context?: Record<string, unknown>) {
+    super(message, 'QUALITY_GATE_FAILED', 'monitoring', context);
+    this.name = 'MonitoringError';
+  }
+}
+
+/**
+ * Thrown when a visualization/layout operation fails (strategy
+ * not registered, node not found, layout timeout, etc.).
+ * Maps to RENDERING_ERROR (visualization is part of the rendering pipeline).
+ */
+export class VisualizationError extends PipelineError {
+  constructor(message: string, context?: Record<string, unknown>) {
+    super(message, 'RENDERING_ERROR', 'visualization', context);
+    this.name = 'VisualizationError';
+  }
+}

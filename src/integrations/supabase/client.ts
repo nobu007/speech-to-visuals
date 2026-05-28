@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { PipelineConfigError } from '@/pipeline/pipeline-errors';
 import type { Database } from './types';
 
 let supabaseInstance: SupabaseClient<Database> | null = null;
@@ -34,7 +35,7 @@ export function getSupabaseClient(): SupabaseClient<Database> {
     const supabaseUrl = resolveSupabaseUrl();
     const supabaseAnonKey = resolveSupabaseAnonKey();
     if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error('Supabase URL and Anon Key are required');
+      throw new PipelineConfigError('supabase', 'Supabase URL and Anon Key are required');
     }
     supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey, {
       auth: {

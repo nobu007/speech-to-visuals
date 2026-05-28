@@ -7,6 +7,7 @@ import { PipelineInterface } from '@/components/pipeline-interface';
 import { StreamingProcessor } from '@/components/StreamingProcessor';
 import { ProcessingStatus as StatusType, ProcessingResult } from '@/types/diagram';
 import { MainPipeline } from '@/pipeline';
+import { PipelineError } from '@/pipeline/pipeline-errors';
 import { getSupabaseClient } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Sparkles } from 'lucide-react';
@@ -34,7 +35,7 @@ const Index = () => {
 
       if (uploadError) {
         logger.error('[Index] Upload error:', uploadError);
-        throw new Error('ファイルのアップロードに失敗しました');
+        throw new PipelineError('ファイルのアップロードに失敗しました', 'STORAGE_ERROR', 'upload');
       }
 
       const { data: { publicUrl } } = getSupabaseClient().storage
@@ -59,7 +60,7 @@ const Index = () => {
       );
 
       if (!transcriptResponse.ok) {
-        throw new Error('文字起こしに失敗しました');
+        throw new PipelineError('文字起こしに失敗しました', 'LLM_API_ERROR', 'transcription');
       }
 
       const transcriptData = await transcriptResponse.json();
@@ -81,7 +82,7 @@ const Index = () => {
       );
 
       if (!scenesResponse.ok) {
-        throw new Error('シーン生成に失敗しました');
+        throw new PipelineError('シーン生成に失敗しました', 'RENDERING_ERROR', 'scene_generation');
       }
 
       const scenesData = await scenesResponse.json();
