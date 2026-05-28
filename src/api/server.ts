@@ -13,11 +13,13 @@ import { authMiddleware, AuthenticatedRequest } from './middleware/auth';
 import { RATE_LIMITS, SERVER_LIMITS } from '../config/limits';
 import { validateSecurityEnv } from '../config/validate';
 import { logger } from '../utils/logger';
+import { PipelineConfigError } from '../pipeline/pipeline-errors';
 
 // ISS-045: Validate security-critical env vars at startup
 const securityResult = validateSecurityEnv();
 if (securityResult.errors.length > 0) {
-  throw new Error(
+  throw new PipelineConfigError(
+    'securityEnv',
     `Security configuration errors:\n${securityResult.errors.map(e => `  - ${e.field}: ${e.message}`).join('\n')}`,
   );
 }
