@@ -186,14 +186,23 @@ class RealTimePerformanceMonitor extends EventEmitter {
   }
 
   /**
-   * Calculate severity based on thresholds
+   * Calculate severity based on thresholds.
+   * For inverted metrics (critical < warning, e.g. cacheHitRate),
+   * "below critical" is the worst case.
    */
   private calculateSeverity(metric: string, value: number): 'info' | 'warning' | 'critical' {
     const threshold = this.alertThresholds.get(metric);
     if (!threshold) return 'info';
 
-    if (value >= threshold.critical) return 'critical';
-    if (value >= threshold.warning) return 'warning';
+    const inverted = threshold.critical < threshold.warning;
+
+    if (inverted) {
+      if (value <= threshold.critical) return 'critical';
+      if (value <= threshold.warning) return 'warning';
+    } else {
+      if (value >= threshold.critical) return 'critical';
+      if (value >= threshold.warning) return 'warning';
+    }
     return 'info';
   }
 
@@ -208,15 +217,20 @@ class RealTimePerformanceMonitor extends EventEmitter {
   }
 
   /**
-   * Check if metric exceeds thresholds and create alerts
+   * Check if metric exceeds thresholds and create alerts.
+   * Supports inverted metrics (e.g. cacheHitRate) where lower values are worse.
    */
   private checkAlerts(metric: string, value: number): void {
     const threshold = this.alertThresholds.get(metric);
     if (!threshold) return;
 
+    const inverted = threshold.critical < threshold.warning;
+    const isCritical = inverted ? value <= threshold.critical : value >= threshold.critical;
+    const isWarning = inverted ? value <= threshold.warning : value >= threshold.warning;
+
     let alert: PerformanceAlert | null = null;
 
-    if (value >= threshold.critical) {
+    if (isCritical) {
       alert = {
         id: `${metric}-${Date.now()}`,
         timestamp: Date.now(),
@@ -228,7 +242,7 @@ class RealTimePerformanceMonitor extends EventEmitter {
         thresholdValue: threshold.critical,
         recommendation: this.getRecommendation(metric, 'critical')
       };
-    } else if (value >= threshold.warning) {
+    } else if (isWarning) {
       alert = {
         id: `${metric}-${Date.now()}`,
         timestamp: Date.now(),
@@ -612,5 +626,5 @@ class RealTimePerformanceMonitor extends EventEmitter {
 // Global singleton instance
 export const realTimeMonitor = new RealTimePerformanceMonitor();
 
-// Export types
-export type { RealTimePerformanceMonitor };
+// Export class for direct instantiation (e.g. testing)
+export { RealTimePerformanceMonitor };
