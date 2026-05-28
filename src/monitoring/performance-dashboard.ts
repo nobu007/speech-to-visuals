@@ -68,6 +68,8 @@ interface Alert {
   recommendation: string;
 }
 
+export type PercentileMetric = 'responseTime' | 'memoryHeap' | 'cacheHitRate' | 'successRate';
+
 interface PerformanceThresholds {
   memory: {
     heapUsedMB: number;
@@ -510,6 +512,41 @@ export class PerformanceDashboard {
   }
 
   /**
+   * 📊 Calculate percentile values from metric history
+   * Supports P50/P95/P99 calculation for core metrics
+   */
+  calculatePercentiles(
+    metric: PercentileMetric,
+    percentiles: number[] = [50, 95, 99]
+  ): Record<number, number> {
+    if (this.metrics.length === 0) return {};
+
+    const invalidP = percentiles.find(p => p <= 0 || p > 100);
+    if (invalidP !== undefined) {
+      throw new MonitoringError('Percentile values must be between 0 and 100', {
+        invalidPercentile: invalidP,
+      });
+    }
+
+    const extractors: Record<PercentileMetric, (m: PerformanceMetrics) => number> = {
+      responseTime: m => m.processing.totalTime,
+      memoryHeap: m => m.memory.heapUsed / (1024 * 1024),
+      cacheHitRate: m => m.cache.hitRate,
+      successRate: m => m.quality.successRate,
+    };
+
+    const fn = extractors[metric];
+    const values = this.metrics.map(fn).sort((a, b) => a - b);
+
+    const result: Record<number, number> = {};
+    for (const p of percentiles) {
+      const index = Math.max(0, Math.ceil((p / 100) * values.length) - 1);
+      result[p] = values[index];
+    }
+    return result;
+  }
+
+  /**
    * 📈 Track request start
    */
   requestStart(): string {
@@ -578,6 +615,7 @@ export class PerformanceDashboard {
       avgResponseTime: number;
       memoryUsage: string;
       cacheHitRate: number;
+      responseTimePercentiles: Record<number, number>;
     };
   } {
     const current = this.metrics.length > 0 ? this.metrics[this.metrics.length - 1] : null;
@@ -591,6 +629,8 @@ export class PerformanceDashboard {
     const memoryUsage = current ?
       `${(current.memory.heapUsed / (1024 * 1024)).toFixed(1)}MB` : '0MB';
 
+    const responseTimePercentiles = this.calculatePercentiles('responseTime');
+
     return {
       currentMetrics: current,
       recentMetrics: recent,
@@ -601,7 +641,8 @@ export class PerformanceDashboard {
         successRate: this.totalRequests > 0 ? this.successfulRequests / this.totalRequests : 1,
         avgResponseTime,
         memoryUsage,
-        cacheHitRate: current?.cache.hitRate || 0
+        cacheHitRate: current?.cache.hitRate || 0,
+        responseTimePercentiles
       }
     };
   }
@@ -637,6 +678,12 @@ export class PerformanceDashboard {
     outputTokens: number;
     stage: StageType;
   }): void {
+    if (params.inputTokens < 0 || params.outputTokens < 0) {
+      throw new MonitoringError('Token counts must be non-negative', {
+        inputTokens: params.inputTokens,
+        outputTokens: params.outputTokens,
+      });
+    }
     this.tokenTracker.recordTokenUsage(params);
   }
 
