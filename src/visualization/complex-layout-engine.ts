@@ -13,6 +13,7 @@ import { nodesOverlap } from './layout-utils';
 import { OverlapResolver } from './strategies/OverlapResolver';
 import { LayoutOptimizer } from './strategies/LayoutOptimizer';
 import { DagreLayoutStrategy } from './strategies/DagreLayoutStrategy';
+import { VisualizationError } from '@/pipeline/pipeline-errors';
 import {
   WorkerPool,
   isWorkerAvailable,
@@ -272,7 +273,7 @@ export class ComplexLayoutEngine {
 
       // Fallback to simple grid layout
       if (!this.dagreLayoutStrategy) {
-        throw new Error("DagreLayoutStrategy is not initialized for fallback in ComplexLayoutEngine.");
+        throw new VisualizationError("DagreLayoutStrategy is not initialized for fallback in ComplexLayoutEngine.");
       }
       const fallbackLayout = await this.dagreLayoutStrategy.applyLayout(nodes, edges, diagramType);
       const bounds = this.calculateBounds(fallbackLayout);
@@ -544,7 +545,7 @@ export class ComplexLayoutEngine {
   private async standardLayout(nodes: NodeDatum[], edges: EdgeDatum[], type: DiagramType): Promise<DiagramLayout> {
     // Use basic Dagre layout for smaller graphs
     if (!this.dagreLayoutStrategy) {
-      throw new Error("DagreLayoutStrategy is not initialized in ComplexLayoutEngine.");
+      throw new VisualizationError("DagreLayoutStrategy is not initialized in ComplexLayoutEngine.");
     }
     return this.dagreLayoutStrategy.applyLayout(nodes, edges, type);
   }
@@ -651,14 +652,14 @@ export class ComplexLayoutEngine {
 
   private async layoutCoarsestLevel(level: { nodes: NodeDatum[]; edges: EdgeDatum[] }, type: DiagramType): Promise<DiagramLayout> {
     if (!this.dagreLayoutStrategy) {
-      throw new Error("DagreLayoutStrategy is not initialized for layoutCoarsestLevel in ComplexLayoutEngine.");
+      throw new VisualizationError("DagreLayoutStrategy is not initialized for layoutCoarsestLevel in ComplexLayoutEngine.");
     }
     return this.dagreLayoutStrategy.applyLayout(level.nodes, level.edges, type);
   }
 
   private async uncoarsenAndRefine(layout: DiagramLayout, level: { nodes: NodeDatum[]; edges: EdgeDatum[] }, type: DiagramType): Promise<DiagramLayout> {
     if (!this.dagreLayoutStrategy) {
-      throw new Error("DagreLayoutStrategy is not initialized for uncoarsenAndRefine in ComplexLayoutEngine.");
+      throw new VisualizationError("DagreLayoutStrategy is not initialized for uncoarsenAndRefine in ComplexLayoutEngine.");
     }
     // Re-layout using dagre with interpolated initial positions from coarser level
     return this.dagreLayoutStrategy.applyLayout(level.nodes, level.edges, type);

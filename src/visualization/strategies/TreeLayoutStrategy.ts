@@ -18,6 +18,7 @@ import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@
 import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { logger } from '../../utils/logger';
+import { VisualizationError } from '@/pipeline/pipeline-errors';
 
 interface TreeNode {
   id: string;
@@ -113,7 +114,7 @@ export class TreeLayoutStrategy implements ILayoutStrategy {
 
     const node = nodes.find(n => n.id === nodeId);
     if (!node) {
-      throw new Error(`Node ${nodeId} not found`);
+      throw new VisualizationError(`Node ${nodeId} not found`);
     }
 
     // Find child nodes

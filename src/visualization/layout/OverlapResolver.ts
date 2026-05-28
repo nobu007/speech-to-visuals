@@ -5,6 +5,7 @@ import SimulatedAnnealingStrategy from './strategies/SimulatedAnnealingStrategy'
 import GridSnapStrategy from './strategies/GridSnapStrategy';
 import { LayoutConfig, LayoutResult, LayoutMetrics } from '../types';
 import { logger } from '../../utils/logger';
+import { VisualizationError } from '@/pipeline/pipeline-errors';
 
 export class OverlapResolver {
   private strategies: LayoutStrategy[] = [];
@@ -160,13 +161,13 @@ export class OverlapResolver {
     );
     
     if (timeout <= 0) {
-      throw new Error('Out of time');
+      throw new VisualizationError('Out of time');
     }
     
     // Create a promise that will reject after the timeout
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => {
-        reject(new Error(`Strategy ${strategy.name} timed out after ${timeout}ms`));
+        reject(new VisualizationError(`Strategy ${strategy.name} timed out after ${timeout}ms`));
       }, timeout);
     });
     

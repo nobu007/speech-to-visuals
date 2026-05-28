@@ -15,6 +15,7 @@
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { logger } from '../../utils/logger';
+import { VisualizationError } from '@/pipeline/pipeline-errors';
 
 /**
  * Output from a layout strategy
@@ -102,7 +103,7 @@ export class LayoutStrategyRegistry {
       }
     }
 
-    throw new Error(
+    throw new VisualizationError(
       `No layout strategy found for diagram type: ${diagramType}\n` +
       `Available strategies: ${this.listStrategyNames().join(', ')}`
     );

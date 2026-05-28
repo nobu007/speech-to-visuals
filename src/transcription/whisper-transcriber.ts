@@ -241,11 +241,11 @@ export class WhisperTranscriber {
         const response = await fetch(audioInput);
         return await response.arrayBuffer();
       } else {
-        throw new Error('String file paths not supported in browser environment');
+        throw new TranscriptionError('String file paths not supported in browser environment');
       }
     }
 
-    throw new Error('Unsupported audio input format');
+    throw new TranscriptionError('Unsupported audio input format');
   }
 
   /**

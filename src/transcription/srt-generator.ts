@@ -1,4 +1,5 @@
 import type { TranscriptionSegment } from './types';
+import { TranscriptionError } from './types';
 
 /**
  * Format a millisecond value as an SRT timestamp string (HH:MM:SS,mmm).
@@ -31,13 +32,13 @@ export function formatTimestamp(ms: number): string {
  */
 function validateSegment(segment: TranscriptionSegment): void {
   if (segment.start > segment.end) {
-    throw new Error(
+    throw new TranscriptionError(
       `Invalid segment: start (${segment.start}) must not exceed end (${segment.end}).`,
     );
   }
 
   if (!segment.text || segment.text.trim().length === 0) {
-    throw new Error('Invalid segment: text must not be empty.');
+    throw new TranscriptionError('Invalid segment: text must not be empty.');
   }
 }
 

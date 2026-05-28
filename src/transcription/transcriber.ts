@@ -1,4 +1,4 @@
-import { TranscriptionResult, TranscriptionConfig, TranscriptionSegment, TranscriptionMetrics, SUPPORTED_AUDIO_FORMATS, type SupportedAudioFormat } from './types';
+import { TranscriptionResult, TranscriptionConfig, TranscriptionSegment, TranscriptionMetrics, SUPPORTED_AUDIO_FORMATS, TranscriptionError, type SupportedAudioFormat } from './types';
 import { BrowserTranscriber } from './browser-transcriber';
 import { WhisperTranscriber } from './whisper-transcriber';
 import { Caption } from '@remotion/captions';
@@ -172,7 +172,7 @@ export class TranscriptionPipeline {
   private async validateAudioFile(audioPath: string): Promise<void> {
     // Basic validation - in real implementation, check file exists, format, etc.
     if (!audioPath || audioPath.length === 0) {
-      throw new Error('Invalid audio path provided');
+      throw new TranscriptionError('Invalid audio path provided');
     }
 
     // Handle blob URLs for browser file uploads
@@ -183,7 +183,7 @@ export class TranscriptionPipeline {
     // Validate file extension against supported audio formats
     const extension = audioPath.split('.').pop()?.toLowerCase();
     if (!extension || !SUPPORTED_AUDIO_FORMATS.includes(extension as SupportedAudioFormat)) {
-      throw new Error(
+      throw new TranscriptionError(
         `Unsupported audio format: .${extension}. Supported formats: ${SUPPORTED_AUDIO_FORMATS.join(', ')}`
       );
     }
@@ -194,7 +194,7 @@ export class TranscriptionPipeline {
         const fs = await import('fs');
         await fs.promises.access(audioPath, fs.constants.R_OK);
       } catch {
-        throw new Error(`Audio file not found or not readable: ${audioPath}`);
+        throw new TranscriptionError(`Audio file not found or not readable: ${audioPath}`);
       }
     }
   }

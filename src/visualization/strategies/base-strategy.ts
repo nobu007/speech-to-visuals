@@ -1,5 +1,6 @@
 import { DiagramType } from '@/types/diagram';
 import { LayoutStrategy, StrategyRegistry } from '../types';
+import { VisualizationError } from '@/pipeline/pipeline-errors';
 
 export class DefaultStrategyRegistry implements StrategyRegistry {
   private strategies = new Map<DiagramType, LayoutStrategy>();
@@ -15,7 +16,7 @@ export class DefaultStrategyRegistry implements StrategyRegistry {
   getStrategy(diagramType: DiagramType): LayoutStrategy {
     const strategy = this.strategies.get(diagramType);
     if (!strategy) {
-      throw new Error(`No layout strategy registered for diagram type: ${diagramType}`);
+      throw new VisualizationError(`No layout strategy registered for diagram type: ${diagramType}`);
     }
     return strategy;
   }

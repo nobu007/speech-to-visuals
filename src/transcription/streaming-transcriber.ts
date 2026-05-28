@@ -4,7 +4,7 @@
  * Following custom instructions methodology for iterative improvement
  */
 
-import { TranscriptionSegment, TranscriptionResult, TranscriptionConfig } from './types';
+import { TranscriptionSegment, TranscriptionResult, TranscriptionConfig, TranscriptionError } from './types';
 import { logger } from '../utils/logger';
 import {
   StreamingQualityMonitor,
@@ -180,7 +180,7 @@ export class StreamingTranscriber {
 
     } catch (error) {
       logger.error('[StreamingTranscriber] Streaming transcription failed:', error);
-      throw new Error(`Streaming transcription failed: ${error instanceof Error ? error.message : error}`);
+      throw new TranscriptionError(`Streaming transcription failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -192,7 +192,7 @@ export class StreamingTranscriber {
     onProgress?: StreamingProgressCallback
   ): Promise<void> {
     if (!this.recognition) {
-      throw new Error('Speech recognition not supported in this browser');
+      throw new TranscriptionError('Speech recognition not supported in this browser');
     }
 
     if (this.isStreaming) {

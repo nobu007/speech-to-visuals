@@ -1,4 +1,4 @@
-import { TranscriptionResult, TranscriptionSegment } from './types';
+import { TranscriptionResult, TranscriptionSegment, TranscriptionError as TranscriptionErrorClass } from './types';
 import { logger } from '../utils/logger';
 
 /**
@@ -132,7 +132,7 @@ export class BrowserTranscriber {
    */
   start(): void {
     if (!this.recognition) {
-      throw new Error('Speech recognition not supported in this browser');
+      throw new TranscriptionErrorClass('Speech recognition not supported in this browser');
     }
 
     if (this.state === 'listening') {
