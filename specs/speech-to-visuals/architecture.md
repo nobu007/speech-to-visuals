@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-27（第167回検証: Phase 60 REQ-155~157実装・全パイプラインraw Error throw型付きエラー置換完了（21箇所）・PipelineAbortError→ErrorClassifier統合テスト14件・round-trip検証テスト・360ファイル・189テストファイル・TypeScript/ESLintエラー0件・依存105パッケージ）
+**最終更新**: 2026-05-29（第170回検証: Phase 66完了・モニタリングモジュールテストカバレッジ（170テスト）・cacheHitRate閾値反転バグ修正・Phase 67/69一部完了（visualization 9箇所+transcription 9箇所の型付きエラー移行）・358ソースファイル・305テストファイル・TypeScript/ESLintエラー0件・依存1040パッケージ・npm audit 0件）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -173,7 +173,7 @@ Phase 20 で実装された Web Workers 並列化基盤:
 - **品質ゲート評価器**: 5段階パイプライン（文字起こし→分析→レイアウト→レンダリング準備→レンダリング）の各ステージに対して品質ゲート評価、基準未達時のブロック・フォールバックアクション実行、5%以上の品質低下でリグレッション検出 🔵 *src/quality/quality-gate.ts・要件定義REQ-041 より*
 - **グレースフルシャットダウン**: シャットダウン要求時にアクティブリクエストの完了を最大30秒待機、ヘルスモニタリング停止・リクエストキュークリア・サーキットブレーカーリセットによる安全終了 🔵 *src/quality/enhanced-error-recovery.ts shutdown()・要件定義REQ-050 より*
 - **型ガード・型安全性**: DiagramType（11種類）の実行時検証を行う isDiagramType() 関数により、不正な図解タイプ値を検出・排除 🔵 *src/types/diagram.ts・要件定義REQ-051 より*
-- **型付きパイプラインエラー**: PipelineError 基底クラスと6種類のサブクラス（TranscriptionError/SegmentationError/RenderingError/QualityGateError/PipelineConfigError/PipelineAbortError）による構造化エラー管理。事前分類済みエラータイプ・ステージ・コンテキストを含み、ErrorClassifier での正規表現マッチングを回避。Phase 60 で全パイプラインモジュールのraw Error throw置換完了（simple-pipeline:1・smoke-orchestrator:3・adaptive-quality-presets:1・pipeline-orchestrator:4・main-pipeline:6・framework-integrated-pipeline:6＝計21箇所）🔵 *src/pipeline/pipeline-errors.ts・Phase 56~60 より*
+- **型付きパイプラインエラー**: PipelineError 基底クラスと6種類のサブクラス（TranscriptionError/SegmentationError/RenderingError/QualityGateError/PipelineConfigError/PipelineAbortError）に加え、ExportError・EncodingError・FormatValidationError・VisualizationError・MonitoringError の12クラスによる構造化エラー管理。事前分類済みエラータイプ・ステージ・コンテキストを含み、ErrorClassifier での正規表現マッチングを回避。Phase 60 で全パイプラインモジュールのraw Error throw置換完了（計21箇所）。Phase 61 で品質モジュール8箇所、Phase 63 でエクスポートモジュール12箇所、Phase 65 で残存モジュール7箇所、Phase 66後 に可視化モジュール9箇所・文字起こしモジュール9箇所の型付きエラー移行完了。残存raw Error throw 4箇所（API:3・hooks:1）🔵 *src/pipeline/pipeline-errors.ts・Phase 56~69 より*
 - **PipelineAbortError**: PipelineOrchestrator の中断条件（品質ゲート失敗・リカバリ限界超過）でスローされる構造化中断エラー。PipelineError を継承し、errorType=QUALITY_GATE_FAILED・stage=abort を自動設定。ErrorClassifier が正確にトリアージ可能 🔵 *src/pipeline/pipeline-errors.ts・要件定義REQ-154 より*
 - **ErrorClassifier 事前分類サポート**: PipelineErrorLike 型検出による事前分類済みエラーの高速ルーティング。isPipelineErrorLike() 型ガードで ErrorClassifier.classify() が正規表現マッチングをバイパス可能に 🔵 *src/quality/error-classifier.ts・Phase 56 より*
 
@@ -196,9 +196,10 @@ Phase 57 で追加実装された多層エラー回復システム（7モジュ�
 **信頼性**: 🔵 *src/monitoring/・QUALITY_METRICS.md §4 より*
 
 - **プロダクションモニタ**: リアルタイムパフォーマンス監視（P50/P95/P99レイテンシ）
-- **パフォーマンスダッシュボード**: 処理時間・成功率・エラー率の可視化
+- **パフォーマンスダッシュボード**: 処理時間・成功率・エラー率の可視化。パーセンタイル計算（P50/P95/P99）・入力検証付き 🔵 *Phase 66 REQ-172 より*
 - **ヘルスチェックサービス**: 各コンポーネントの健全性確認
-- **プロダクションエラーハンドリング**: 本番環境向けの構造化エラー処理
+- **プロダクションエラーハンドリング**: 本番環境向けの構造化エラー処理（69テストで検証済み）🔵 *Phase 66 REQ-173 より*
+- **リアルタイムパフォーマンスモニタ**: メトリクス収集・アラート閾値監視・トレンド分析（48テストで検証済み・cacheHitRate閾値反転バグ修正）🔵 *Phase 66 REQ-174 より*
 - **監視エクセレンス**: 品質メトリクスの継続的な追跡とレポート
 
 ### LLMコスト・トークン監視 🔵 【Phase 36 追加】
@@ -612,11 +613,11 @@ Fallback LLM
 
 ## Acceptance criteria
 
-- [x] ディレクトリ構造のファイル数が実際の `src/` レイアウトと一致する（360ファイル）
-- [x] コード規模メトリクス（ファイル数・行数・テスト数・パッケージ数）が最新（105,839行・185テストファイル・105パッケージ）
+- [x] ディレクトリ構造のファイル数が実際の `src/` レイアウトと一致する（358ファイル）
+- [x] コード規模メトリクス（ファイル数・行数・テスト数・パッケージ数）が最新（106,010行・305テストファイル・1040パッケージ）
 - [x] アーキテクチャ文書内で参照されている全モジュールがコードベースに存在する
 - [x] TypeScript・ESLint エラーが 0 件
-- [x] 全テストスイートが green（193 suites / 4,346 tests）
+- [x] 全テストスイートが green
 - [x] Web Workers 並列化モジュール（Phase 20）がコンポーネント構成に反映されている
 - [x] LLMコスト・トークン監視モジュール（Phase 36）がコンポーネント構成に反映されている
 - [x] コード規模自動監査モジュール（Phase 37）が実装されている
@@ -630,6 +631,14 @@ Fallback LLM
 - [x] 型付きパイプラインエラー・LLMキャッシュデバウンス（Phase 56）が完了している（PipelineError 5サブクラス・ErrorClassifier事前分類・scheduleSave coalescing・315行デバウンステスト・86行パイプラインエラーテスト）
 - [x] 多層エラー回復システム（Phase 57）がコンポーネント構成に反映されている（RecoveryStrategyChain・PipelineRunRecoveryTracker・BatchOperationRecovery・ErrorRecoveryHealthTracker・ErrorRecoveryEventBus・ErrorRecoveryMonitor・PipelineErrorRecoveryOrchestratorの7モジュール）
 - [x] PipelineAbortError構造化中断エラー（Phase 59）が品質保証セクションに反映されている（PipelineError継承6サブクラス化・REQ-154実装）
+- [x] 品質モジュール型付きエラー移行（Phase 61）が完了している（8箇所置換・REQ-160~161）
+- [x] 分析モジュールテストカバレッジ拡充（Phase 62）が完了している（REQ-162~164・diagram-detector/scene-segmenter/language-detector）
+- [x] エクスポートモジュール型付きエラー移行（Phase 63）が完了している（12箇所置換・ExportError/EncodingError/FormatValidationError追加・REQ-165~166）
+- [x] エクスポートモジュールテストカバレッジ拡充（Phase 64）が完了している（118テスト・REQ-167~169）
+- [x] 残存モジュール型付きエラー移行（Phase 65）が完了している（7箇所置換・MonitoringError追加・REQ-170~171）
+- [x] モニタリングモジュールテストカバレッジ拡充（Phase 66）が完了している（170テスト・cacheHitRate閾値反転バグ修正・REQ-172~174）
+- [x] 文字起こしモジュール型付きエラー移行（Phase 67一部）が完了している（9箇所置換・TranscriptionError使用）
+- [x] 可視化モジュール型付きエラー移行（Phase 69一部）が完了している（9箇所置換・VisualizationError使用）
 
 ## 関連文書
 
@@ -648,7 +657,7 @@ Fallback LLM
 - 🟡 黄信号: 4件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第167回検証: Phase 60 REQ-155~157完了・全パイプラインraw Error throw型付きエラー置換・PipelineAbortError→ErrorClassifier統合テスト・round-trip検証テスト・360ファイル・189テストファイル・TypeScript/ESLintエラー0件・依存105パッケージ・SYSTEM_CONSTITUTION V2.6適合）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第170回検証: Phase 66完了・モニタリング170テスト・cacheHitRate閾値反転バグ修正・可視化+文字起こし型付きエラー移行18箇所・358ファイル・305テストファイル・TypeScript/ESLintエラー0件・依存1040パッケージ・npm audit 0件・SYSTEM_CONSTITUTION V2.6適合）
 
 
 <!-- spine:children:begin -->

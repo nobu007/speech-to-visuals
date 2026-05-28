@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-28（Phase 61完了: REQ-160~164 全266/266 criteria green）
+**最終更新**: 2026-05-29（Phase 66完了: REQ-160~174 全criteria green・Phase 67/69 一部完了）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -2729,5 +2729,145 @@
 - [x] **TC-164-02**: 確信度スコアリングがテストされる 🔵
   - **期待結果**: 確信度が0.0~1.0範囲・スクリプト分析の精度が検証
   - **信頼性**: 🔵 *language-detector.ts スコアリングロジックより*
+
+---
+
+## REQ-165: エクスポートモジュール raw Error 置換 🔵
+
+**信頼性**: 🔵 *src/export/ 4ファイル12箇所・Phase 63完了*
+
+### Given（前提条件）
+
+- エクスポートモジュール（apng-encoder/enhanced-export-engine/multi-format-exporter/production-exporter）に12箇所のraw Error throwが存在
+
+### When（実行条件）
+
+- 12箇所をExportError・EncodingError・FormatValidationErrorに置換
+
+### Then（期待結果）
+
+- 全raw Error throwが型付きエラークラスに置換される
+
+### テストケース
+
+- [x] **TC-165-01**: エクスポートモジュール4ファイル12箇所のraw Error throwが型付きエラーに置換される 🔵
+  - **期待結果**: apng-encoder:4・enhanced-export-engine:4・multi-format-exporter:3・production-exporter:1の置換完了
+  - **信頼性**: 🔵 *コミットf9e39f6より*
+
+---
+
+## REQ-166: エクスポートモジュール ErrorClassifier 回帰テスト 🔵
+
+**信頼性**: 🔵 *tests/integration/export-typed-errors.test.ts・Phase 63完了*
+
+### テストケース
+
+- [x] **TC-166-01**: ExportError・EncodingError・FormatValidationError が ErrorClassifier で正確に分類される 🔵
+  - **期待結果**: 15テスト全通過
+  - **信頼性**: 🔵 *コミットf9e39f6より*
+
+---
+
+## REQ-167: enhanced-export-engine.ts テストカバレッジ 🔵
+
+**信頼性**: 🔵 *src/export/enhanced-export-engine.ts 906行・Phase 64完了*
+
+### テストケース
+
+- [x] **TC-167-01**: マルチ形式エクスポート・HDR出力・ウォーターマーク・圧縮レベルがテストされる 🔵
+  - **期待結果**: 42テスト全通過
+  - **信頼性**: 🔵 *tests/unit/export/enhanced-export-engine.test.ts（360行）より*
+
+---
+
+## REQ-168: multi-format-exporter.ts テストカバレッジ 🔵
+
+**信頼性**: 🔵 *src/export/multi-format-exporter.ts 550行・Phase 64完了*
+
+### テストケース
+
+- [x] **TC-168-01**: SVG/PNG/PDF/JSON形式変換・メタデータ・バリデーションがテストされる 🔵
+  - **期待結果**: 39テスト全通過
+  - **信頼性**: 🔵 *tests/unit/export/multi-format-exporter.test.ts（310行）より*
+
+---
+
+## REQ-169: production-exporter.ts テストカバレッジ 🔵
+
+**信頼性**: 🔵 *src/export/production-exporter.ts 686行・Phase 64完了*
+
+### テストケース
+
+- [x] **TC-169-01**: プロダクションエクスポートパイプライン・プリセット管理・品質検証がテストされる 🔵
+  - **期待結果**: 37テスト全通過
+  - **信頼性**: 🔵 *tests/unit/export/production-exporter.test.ts（275行）より*
+
+---
+
+## REQ-170: 残存モジュール raw Error 置換 🔵
+
+**信頼性**: 🔵 *Phase 65完了*
+
+### テストケース
+
+- [x] **TC-170-01**: monitoring・config・integrations・framework・pages モジュール7箇所のraw Error throwが型付きエラーに置換される 🔵
+  - **期待結果**: MonitoringError追加・7箇所置換完了
+  - **信頼性**: 🔵 *コミット9623ef1より*
+
+---
+
+## REQ-171: 残存モジュール ErrorClassifier 回帰テスト 🔵
+
+**信頼性**: 🔵 *Phase 65完了*
+
+### テストケース
+
+- [x] **TC-171-01**: 新しい型付きエラーがErrorClassifierで正確に分類される 🔵
+  - **期待結果**: 12テスト全通過
+  - **信頼性**: 🔵 *tests/integration/cross-module-typed-errors.test.tsより*
+
+---
+
+## REQ-172: performance-dashboard.ts テストカバレッジ 🔵
+
+**信頼性**: 🔵 *src/monitoring/performance-dashboard.ts 681行・Phase 66完了*
+
+### テストケース
+
+- [x] **TC-172-01**: パーセンタイル計算（P50/P95/P99）が追加される 🔵
+  - **期待結果**: responseTime/memoryHeap/cacheHitRate/successRateのパーセンタイルが計算可能
+  - **信頼性**: 🔵 *コミット74de4baより*
+
+- [x] **TC-172-02**: 入力検証（負数トークンカウント）が追加される 🔵
+  - **期待結果**: 負のトークン数でMonitoringErrorがスローされる
+  - **信頼性**: 🔵 *コミット74de4baより*
+
+---
+
+## REQ-173: production-error-handler.ts テストカバレッジ 🔵
+
+**信頼性**: 🔵 *src/monitoring/production-error-handler.ts 638行・Phase 66完了*
+
+### テストケース
+
+- [x] **TC-173-01**: エラー分類・重要度判定・リカバリ戦略・通知がテストされる 🔵
+  - **期待結果**: 69テスト全通過
+  - **信頼性**: 🔵 *tests/unit/monitoring/production-error-handler.test.ts（705行）より*
+
+---
+
+## REQ-174: real-time-performance-monitor.ts テストカバレッジ 🔵
+
+**信頼性**: 🔵 *src/monitoring/real-time-performance-monitor.ts 616行・Phase 66完了*
+
+### テストケース
+
+- [x] **TC-174-01**: メトリクス記録・アラート閾値・重要度計算がテストされる 🔵
+  - **期待結果**: 48テスト全通過
+  - **信頼性**: 🔵 *tests/unit/monitoring/real-time-performance-monitor.test.ts（639行）より*
+
+- [x] **TC-174-02**: cacheHitRate閾値反転バグが修正される 🔵
+  - **期待結果**: critical < warning の場合に正しく反転検出
+  - **信頼性**: 🔵 *コミット9f4d777より*
 
 ---

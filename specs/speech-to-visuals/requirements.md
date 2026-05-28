@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 63 ✅完了・Phase 64 🔄要件定義済・590ファイル・105,842行・105パッケージ（74 deps+31 devDeps）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト1,390+件（192テストファイル）・npm audit 0件・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー21箇所完了・品質モジュール8箇所完了・エクスポートモジュール12箇所完了
+**実装状況**: Phase 66 ✅完了・Phase 67/69 一部完了（可視化9箇所+文字起こし9箇所の型付きエラー移行）・358ソースファイル・106,010行・1040パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト305ファイル・npm audit 0件・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー21箇所完了・品質モジュール8箇所完了・エクスポートモジュール12箇所完了・残存モジュール7箇所完了・可視化9箇所完了・文字起こし9箇所完了・残存raw Error throw 4箇所（API:3・hooks:1）
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -377,16 +377,16 @@
 - REQ-170: システムは monitoring・config・integrations・framework モジュール内の残存する7箇所の raw Error throw を型付きエラークラスに置換しなければならない。対象: performance-dashboard.ts（1箇所: メトリクス平均計算時の空データ検証）、config/env.ts（1箇所: 設定検証失敗）、integrations/supabase/client.ts（1箇所: Supabase接続情報不足）、framework/iteration-manager.ts（1箇所: 不明フェーズ名）、pages/Index.tsx（3箇所: アップロード失敗・文字起こし失敗・シーン生成失敗） 🔵 ✅実装済 *src/monitoring/performance-dashboard.ts・src/config/env.ts・src/integrations/supabase/client.ts・src/framework/iteration-manager.ts・src/pages/Index.tsx・7箇所置換完了*
 - REQ-171: システムは上記モジュールの raw Error 置換後、ErrorClassifier が新しい型付きエラーを正確に分類できることを検証する回帰テストを提供しなければならない 🔵 ✅実装済 *tests/integration/cross-module-typed-errors.test.ts（12テスト）*
 
-#### モニタリングモジュールテストカバレッジ拡充（Phase 66）
+#### モニタリングモジュールテストカバレッジ拡充（Phase 66） ✅完了
 
-- REQ-172: システムは performance-dashboard.ts（681行）のコア機能（メトリクス集計・パーセンタイル計算・ダッシュボードデータ生成）に対する専用ユニットテストを提供しなければならない 🔵 *src/monitoring/performance-dashboard.ts より*
-- REQ-173: システムは production-error-handler.ts（638行）のコア機能（エラー分類・重要度判定・エラー通知・フォールバック戦略）に対する専用ユニットテストを提供しなければならない 🔵 *src/monitoring/production-error-handler.ts より*
-- REQ-174: システムは real-time-performance-monitor.ts（616行）のコア機能（リアルタイムメトリクス収集・P50/P95/P99計算・アラート閾値監視）に対する専用ユニットテストを提供しなければならない 🔵 *src/monitoring/real-time-performance-monitor.ts より*
+- REQ-172: システムは performance-dashboard.ts（681行）のコア機能（メトリクス集計・パーセンタイル計算・ダッシュボードデータ生成）に対する専用ユニットテストを提供しなければならない 🔵 ✅実装済 *src/monitoring/performance-dashboard.ts・Phase 66・パーセンタイル計算+入力検証追加*
+- REQ-173: システムは production-error-handler.ts（638行）のコア機能（エラー分類・重要度判定・エラー通知・フォールバック戦略）に対する専用ユニットテストを提供しなければならない 🔵 ✅実装済 *tests/unit/monitoring/production-error-handler.test.ts（705行・69テスト）*
+- REQ-174: システムは real-time-performance-monitor.ts（616行）のコア機能（リアルタイムメトリクス収集・P50/P95/P99計算・アラート閾値監視）に対する専用ユニットテストを提供しなければならない 🔵 ✅実装済 *tests/unit/monitoring/real-time-performance-monitor.test.ts（639行・48テスト）・cacheHitRate閾値反転バグ修正*
 
-#### 文字起こしモジュール型付きエラー移行（Phase 67）
+#### 文字起こしモジュール型付きエラー移行（Phase 67） 🔶一部完了
 
-- REQ-175: システムは transcription モジュール（src/transcription/）内の残存する10箇所の raw Error throw を型付きエラークラスに置換しなければならない。対象: browser-transcriber.ts（1箇所: SpeechRecognition未対応）、srt-generator.ts（2箇所: セグメント検証・テキスト空検証）、whisper-transcriber.ts（2箇所: ブラウザ環境パス制限・未対応形式）、transcriber.ts（3箇所: 無効パス・未対応形式・ファイル不在）、streaming-transcriber.ts（2箇所: ストリーミング失敗・SpeechRecognition未対応） 🔵 *src/transcription/5ファイル10箇所の raw Error throw より*
-- REQ-176: システムは transcription モジュールの raw Error 置換後、ErrorClassifier が新しい型付きエラーを正確に分類できることを検証する回帰テストを提供しなければならない 🔵 *tests/integration/transcription-typed-errors.test.ts より*
+- REQ-175: システムは transcription モジュール（src/transcription/）内の残存するraw Error throw を型付きエラークラスに置換しなければならない 🔵 🔶一部実装済 *コミット4704e3fで5ファイル9箇所のTranscriptionError置換完了（browser-transcriber:1・srt-generator:2・whisper-transcriber:2・transcriber:3・streaming-transcriber:1）*
+- REQ-176: システムは transcription モジュールの raw Error 置換後、ErrorClassifier が新しい型付きエラーを正確に分類できることを検証する回帰テストを提供しなければならない 🔵 🔲未着手 *tests/integration/transcription-typed-errors.test.ts より*
 
 #### 文字起こしモジュールテストカバレッジ拡充（Phase 68）
 
@@ -394,10 +394,10 @@
 - REQ-178: システムは whisper-transcriber.ts のコア機能（Whisper API連携・音声ファイル処理・タイムスタンプ付き文字起こし）に対する専用ユニットテストを提供しなければならない 🔵 *src/transcription/whisper-transcriber.ts より*
 - REQ-179: システムは streaming-transcriber.ts のコア機能（ストリーミング認識・チャンク処理・エラー回復）に対する専用ユニットテストを提供しなければならない 🔵 *src/transcription/streaming-transcriber.ts より*
 
-#### 可視化・API モジュール型付きエラー移行（Phase 69）
+#### 可視化・API モジュール型付きエラー移行（Phase 69） 🔶一部完了
 
-- REQ-180: システムは visualization モジュール（src/visualization/）内の残存する8箇所の raw Error throw を型付きエラークラスに置換しなければならない。対象: complex-layout-engine.ts（4箇所: DagreLayoutStrategy未初期化関連・フォールバック時・レイアウト時・粗視化時・再細分化時）、TreeLayoutStrategy.ts（1箇所: ノード不在）、OverlapResolver.ts（1箇所: タイムアウト）、base-strategy.ts（1箇所: 未登録図解タイプ）、ILayoutStrategy.ts（1箇所: 戦略不在） 🔵 *src/visualization/4ファイル8箇所の raw Error throw より*
-- REQ-181: システムは API モジュール（src/api/）内の残存する3箇所の raw Error throw を既存の型付きエラークラスに置換しなければならない。対象: server.ts（1箇所: セキュリティ設定エラー）、websocket-handler.ts（1箇所: JWT秘密鍵未設定）、middleware/auth.ts（1箇所: JWT秘密鍵未設定） 🔵 *src/api/3ファイル3箇所の raw Error throw より*
+- REQ-180: システムは visualization モジュール（src/visualization/）内の残存するraw Error throw を型付きエラークラスに置換しなければならない 🔵 ✅実装済 *コミット4704e3fで5ファイル9箇所のVisualizationError置換完了（complex-layout-engine:4・OverlapResolver:1・TreeLayoutStrategy:1・base-strategy:1・ILayoutStrategy:1）*
+- REQ-181: システムは API モジュール（src/api/）内の残存する3箇所の raw Error throw を既存の型付きエラークラスに置換しなければならない。対象: server.ts（1箇所: セキュリティ設定エラー）、websocket-handler.ts（1箇所: JWT秘密鍵未設定）、middleware/auth.ts（1箇所: JWT秘密鍵未設定） 🔵 🔲未着手 *src/api/3ファイル3箇所の raw Error throw より*
 
 ### 条件付き要件
 
@@ -559,9 +559,9 @@
 | Phase 64: エクスポートモジュールテストカバレッジ拡充 | ✅完了 | REQ-167~169 | 3/3（enhanced-export-engine 42テスト・multi-format-exporter 39テスト・production-exporter 37テスト・118テスト全通過） |
 | Phase 65: 残存モジュール型付きエラー移行 | ✅完了 | REQ-170~171 | 2/2（7箇所 raw Error 置換・MonitoringError 追加・ErrorClassifier 回帰テスト12件） |
 | Phase 66: モニタリングモジュールテストカバレッジ拡充 | ✅完了 | REQ-172~174 | 3/3（performance-dashboard パーセンタイル計算+入力検証・production-error-handler 69テスト・real-time-performance-monitor 48テスト・cacheHitRate閾値反転バグ修正） |
-| Phase 67: 文字起こしモジュール型付きエラー移行 | 🔲未着手 | REQ-175~176 | 0/2 |
+| Phase 67: 文字起こしモジュール型付きエラー移行 | 🔶一部完了 | REQ-175~176 | 1/2（コミット4704e3fで9箇所TranscriptionError置換完了・REQ-176回帰テスト未着手） |
 | Phase 68: 文字起こしモジュールテストカバレッジ拡充 | 🔲未着手 | REQ-177~179 | 0/3 |
-| Phase 69: 可視化・API モジュール型付きエラー移行 | 🔲未着手 | REQ-180~181 | 0/2 |
+| Phase 69: 可視化・API モジュール型付きエラー移行 | 🔶一部完了 | REQ-180~181 | 1/2（コミット4704e3fで9箇所VisualizationError置換完了・REQ-181 API 3箇所未着手） |
 
 ## 信頼性レベル分布
 
@@ -569,7 +569,7 @@
 - 🟡 黄信号: 3件 (1.4%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 64完了・Phase 65~69要件定義済（REQ-001~181）・TypeScript型エラー0件・パイプライン型付きエラー21箇所完了・品質モジュール8箇所完了・エクスポートモジュール12箇所完了
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 66完了・Phase 67/69一部完了（REQ-001~181）・TypeScript型エラー0件・パイプライン型付きエラー21箇所+品質8箇所+エクスポート12箇所+残存7箇所+可視化9箇所+文字起こし9箇所完了・残存raw Error throw 4箇所（API:3・hooks:1）
 
 ## Acceptance criteria
 
@@ -580,6 +580,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 64 を網羅し、Phase 63 完了・Phase 64 要件定義（エクスポートモジュール型付きエラー移行・テストカバレッジ拡充）を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 66 を網羅し、Phase 66 完了・Phase 67/69 一部完了（可視化+文字起こし型付きエラー移行）を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテゴリに違反していない
 - [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第169回: 🔵209件/🟡3件/🔴0件 — Phase 63完了・Phase 64要件定義・REQ-001~169・192テストファイル）

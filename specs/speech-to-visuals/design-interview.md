@@ -10,8 +10,8 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-27（第167回検証: Phase 60 REQ-155~157完了・全パイプラインraw Error throw型付きエラー置換・PipelineAbortError→ErrorClassifier統合テスト14件・round-trip検証テスト・360ファイル・189テストファイル・TypeScript/ESLintエラー0件・依存105パッケージ・ギャップなし確認）
-**履歴**: 第167回検証(2026-05-27)・第165回検証(2026-05-26)・第158回検証(2026-05-20)・第157回検証(2026-05-18)・第151回検証(2026-05-18)・第150回検証(2026-05-18)・第149回検証(2026-05-17)・第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-05-01)・第22回検証(2026-04-30)
+**最終更新**: 2026-05-29（第170回検証: Phase 66完了・モニタリングモジュールテストカバレッジ170テスト・cacheHitRate閾値反転バグ修正・可視化9箇所+文字起こし9箇所の型付きエラー移行・358ファイル・305テストファイル・TypeScript/ESLintエラー0件・依存1040パッケージ・ギャップなし確認）
+**履歴**: 第170回検証(2026-05-29)・第167回検証(2026-05-27)・第165回検証(2026-05-26)・第158回検証(2026-05-20)・第157回検証(2026-05-18)・第151回検証(2026-05-18)・第150回検証(2026-05-18)・第149回検証(2026-05-17)・第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-05-01)・第22回検証(2026-04-30)
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 
 ## 分析目的
@@ -22,6 +22,72 @@
 **最終更新（2026-04-29 Phase 4反映）**: Phase 4 完了に伴う要件定義更新（REQ-025~REQ-035 追加）と、新規モジュール（Remotion Animation・Renderer・SRT Parser・Pipeline UI）の差分反映を実施。
 
 ## 分析項目と判断
+
+### A102: 第170回検証 - Phase 66+ 可視化・文字起こしモジュール型付きエラー移行（2026-05-29）
+
+**分析日時**: 2026-05-29
+**カテゴリ**: 構造化エラー・型付きエラー移行
+**背景**: Phase 66 完了後、コミット4704e3f で可視化モジュール9箇所・文字起こしモジュール9箇所のraw Error throwを型付きエラークラスに置換。VisualizationError は pipeline-errors.ts に定義済みだがスロー箇所がなかった。TranscriptionError は既存クラス。
+
+**判断**: Phase 67/69 の型付きエラー移行（一部）完了:
+1. **可視化モジュール（9箇所）**: complex-layout-engine.ts（4箇所）・OverlapResolver.ts（1箇所）・TreeLayoutStrategy.ts（1箇所）・base-strategy.ts（1箇所）・ILayoutStrategy.ts（1箇所）のraw Error throwをVisualizationErrorに置換。全12種のパイプラインエラークラスがスロー箇所を持つようになった 🔵 *コミット4704e3f*
+2. **文字起こしモジュール（9箇所）**: browser-transcriber.ts（1箇所）・srt-generator.ts（2箇所）・transcriber.ts（3箇所）・whisper-transcriber.ts（2箇所）・streaming-transcriber.ts（2箇所=重複カウント修正で実際は1箇所）のraw Error throwをTranscriptionErrorに置換 🔵 *コミット4704e3f*
+3. **残存raw Error throw**: 4箇所（src/api/server.ts:1・src/api/websocket-handler.ts:1・src/api/middleware/auth.ts:1・src/hooks/useFrameworkPipeline.ts:1）🔴 *REQ-181で対応予定*
+
+**根拠**:
+- 変更ファイル: src/visualization/5ファイル・src/transcription/5ファイル（計10ファイル・28追加・22削除）
+- grep結果: src/ 配下のraw `throw new Error` はテストファイルを除き4箇所のみ残存
+
+**信頼性への影響**:
+- architecture.md: 型付きパイプラインエラーセクション更新（可視化9箇所・文字起こし9箇所追加・残存4箇所記載）
+- design-interview.md: A102追加
+- 信頼性レベル: 全項目 🔵（コミット4704e3fを直接参照）
+
+---
+
+### A101: 第169回検証 - Phase 66 モニタリングモジュールテストカバレッジ拡充（2026-05-28）
+
+**分析日時**: 2026-05-28
+**カテゴリ**: テストカバレッジ・モニタリング・バグ修正
+**背景**: Phase 66 でモニタリングモジュール（performance-dashboard・production-error-handler・real-time-performance-monitor）のテストカバレッジを拡充。cacheHitRate閾値反転バグを検出・修正。
+
+**判断**: Phase 66 REQ-172~174 実装完了:
+1. **REQ-172**: PerformanceDashboard に calculatePercentiles() メソッド追加（P50/P95/P99・responseTime/memoryHeap/cacheHitRate/successRate対応）・getDashboardData() にパーセンタイル表示統合・recordTokenUsage() の負数トークン検証追加 🔵 *src/monitoring/performance-dashboard.ts*
+2. **REQ-173**: ProductionErrorHandler の69テスト追加（エラー分類・重要度判定・ユーザーメッセージ生成・リカバリ戦略・通知コールバック・メトリクス追跡・キュー管理・テレメトリ・レポート出力・リソースクリーンアップ）🔵 *tests/unit/monitoring/production-error-handler.test.ts*
+3. **REQ-174**: RealTimePerformanceMonitor の48テスト追加（メトリクス記録・アラート閾値・重要度計算・トレンド分析・スナップショット・リクエスト/エラー/LLM追跡・リセット）+ cacheHitRate閾値反転バグ修正（critical < warning の場合に正しく反転検出）🔵 *tests/unit/monitoring/real-time-performance-monitor.test.ts*
+
+**根拠**:
+- git log: 74de4ba (REQ-172)・0a19b7d (REQ-173)・9f4d777 (REQ-174)・0db1f04 (Phase 66 close)
+- テスト結果: 170/170通過（モニタリング4テストスイート）
+
+**信頼性への影響**:
+- architecture.md: プロダクション監視セクション更新（Phase 66 テストカバレッジ反映）
+- 信頼性レベル: 全項目 🔵（コミット・テスト結果を直接参照）
+
+---
+
+### A100: 第168回検証 - Phase 61~65 設計差分反映（2026-05-28）
+
+**分析日時**: 2026-05-28
+**カテゴリ**: 型付きエラー移行・テストカバレッジ拡充・包括的差分反映
+**背景**: Phase 60~65 で品質モジュール8箇所・分析モジュール721行テスト・エクスポートモジュール12箇所+118テスト・残存モジュール7箇所の型付きエラー移行が完了。architecture.md が Phase 60 で止まっていたため、Phase 61~65 の包括的差分反映を実施。
+
+**判断**: Phase 61~65 設計差分反映完了:
+1. **Phase 61**: 品質モジュール8箇所のraw Error throw置換（enhanced-error-recovery:3・pipeline-run-recovery-tracker:2・regression-detector:3）🔵
+2. **Phase 62**: 分析モジュール3ファイル721行のユニットテスト追加（diagram-detector:305行・scene-segmenter:205行・language-detector:211行）🔵
+3. **Phase 63**: エクスポートモジュール12箇所のraw Error throw置換 + ExportError/EncodingError/FormatValidationError クラス追加 🔵
+4. **Phase 64**: エクスポートモジュール3ファイル118テスト追加（enhanced-export-engine:42・multi-format-exporter:39・production-exporter:37）🔵
+5. **Phase 65**: 残存モジュール7箇所のraw Error throw置換 + MonitoringError クラス追加 🔵
+
+**根拠**:
+- git log: ec84bce (Phase 61)・4fbe998 (Phase 63-64)・9623ef1 (Phase 65)
+- コードベース: 358ソースファイル・106,010行
+
+**信頼性への影響**:
+- architecture.md: 全Phase 61~65 の設計差分を反映
+- 信頼性レベル: 全項目 🔵（既存実装を直接参照）
+
+---
 
 ### A99: 第167回検証 - Phase 60 全パイプラインraw Error throw型付きエラー置換・統合テスト（2026-05-27）
 
