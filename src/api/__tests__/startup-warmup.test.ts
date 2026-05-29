@@ -10,7 +10,7 @@ import { jest } from '@jest/globals';
 import type { LLMService } from '../../analysis/llm-service';
 
 // Mock logger so we don't get console noise
-jest.mock('../../utils/logger', () => ({
+jest.unstable_mockModule('../../utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -18,8 +18,8 @@ jest.mock('../../utils/logger', () => ({
   },
 }));
 
-import { triggerStartupWarmup, getWarmupStatus, resetWarmupStatus } from '../startup-warmup';
-import { logger } from '../../utils/logger';
+const { triggerStartupWarmup, getWarmupStatus, resetWarmupStatus } = await import('../startup-warmup');
+const { logger } = await import('../../utils/logger') as { logger: { info: jest.Mock; warn: jest.Mock; error: jest.Mock } };
 
 function createMockService(enabled: boolean, warmupStats = { totalPatternsProcessed: 8 }) {
   return {

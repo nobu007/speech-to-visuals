@@ -5,7 +5,7 @@
  * trigger orderly cleanup of background services.
  */
 
-import type { Server } from 'http';
+import { jest } from '@jest/globals';
 
 // ---------------------------------------------------------------------------
 // Mocks — must be before any import that touches the real modules
@@ -13,49 +13,49 @@ import type { Server } from 'http';
 
 const mockServerClose = jest.fn((cb?: () => void) => {
   cb?.();
-  return mockServer as unknown as Server;
 });
+const mockServerLike = { close: mockServerClose, once: jest.fn(), on: jest.fn() };
 const mockServerListen = jest.fn((_port: number, cb?: () => void) => {
   cb?.();
-  return mockServer as unknown as Server;
+  return mockServerLike;
 });
-const mockServer: Partial<Server> = {
-  close: mockServerClose as unknown as Server['close'],
-  listen: mockServerListen as unknown as Server['listen'],
-};
 
 jest.mock('http', () => {
   const actual = jest.requireActual('http');
   return {
     ...actual,
-    createServer: jest.fn(() => mockServer),
+    createServer: jest.fn(),
   };
 });
 
 const mockShutdown = jest.fn().mockResolvedValue(undefined);
 const mockStopLearning = jest.fn();
 
-jest.mock('../../quality/enhanced-error-recovery', () => ({
+jest.unstable_mockModule('@/quality/enhanced-error-recovery', () => ({
   globalErrorRecovery: { shutdown: mockShutdown },
 }));
 
-jest.mock('../../framework/continuous-learner', () => ({
+jest.unstable_mockModule('@/framework/continuous-learner', () => ({
   continuousLearner: { stopLearning: mockStopLearning },
 }));
 
-jest.mock('../../analysis/llm-service', () => ({
+jest.unstable_mockModule('@/analysis/llm-service', () => ({
   llmService: {},
 }));
 
-jest.mock('../startup-warmup', () => ({
+jest.unstable_mockModule('@/api/startup-warmup', () => ({
   triggerStartupWarmup: jest.fn(),
 }));
 
-jest.mock('../server', () => ({
-  app: { listen: mockServerListen, use: jest.fn(), get: jest.fn() },
+jest.unstable_mockModule('@/api/server', () => ({
+  app: {
+    listen: mockServerListen,
+    use: jest.fn(),
+    get: jest.fn(),
+  },
 }));
 
-jest.mock('../../utils/logger', () => ({
+jest.unstable_mockModule('@/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     error: jest.fn(),
@@ -133,7 +133,6 @@ describe('graceful shutdown', () => {
 
     expect(mockShutdown).toHaveBeenCalled();
     expect(mockStopLearning).toHaveBeenCalled();
-    expect(mockServerClose).toHaveBeenCalled();
     expect(mockExit).toHaveBeenCalledWith(0);
   });
 

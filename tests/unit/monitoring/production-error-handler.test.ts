@@ -41,7 +41,7 @@ Object.defineProperty(globalThis, 'navigator', {
   writable: true,
 });
 
-jest.mock('../../../src/utils/logger', () => ({
+jest.unstable_mockModule('../../../src/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -50,8 +50,7 @@ jest.mock('../../../src/utils/logger', () => ({
 }));
 
 // Import the class (not the singleton, so we get fresh instances)
-import { ProductionErrorHandler } from '../../../src/monitoring/production-error-handler';
-import type { ErrorAlert } from '../../../src/monitoring/production-error-handler';
+const { ProductionErrorHandler } = await import('../../../src/monitoring/production-error-handler');
 
 // ---------------------------------------------------------------------------
 // Helpers

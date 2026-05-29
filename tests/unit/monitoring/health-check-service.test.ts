@@ -82,7 +82,7 @@ const defaultMemory = {
   arrayBuffers: 4194304,
 };
 
-jest.mock('../../../src/monitoring/real-time-performance-monitor', () => ({
+jest.unstable_mockModule('../../../src/monitoring/real-time-performance-monitor', () => ({
   realTimeMonitor: {
     getSnapshot: jest.fn().mockReturnValue(defaultSnapshot),
     analyzeTrends: jest.fn().mockReturnValue(defaultTrends),
@@ -91,17 +91,17 @@ jest.mock('../../../src/monitoring/real-time-performance-monitor', () => ({
   },
 }));
 
-jest.mock('../../../src/performance/intelligent-cache', () => ({
+jest.unstable_mockModule('../../../src/performance/intelligent-cache', () => ({
   globalCache: {
     getStats: jest.fn().mockReturnValue(defaultCacheStats),
   },
 }));
 
-jest.mock('../../../src/utils/memory-usage', () => ({
+jest.unstable_mockModule('../../../src/utils/memory-usage', () => ({
   getMemoryUsage: jest.fn().mockReturnValue(defaultMemory),
 }));
 
-jest.mock('../../../src/utils/logger', () => ({
+jest.unstable_mockModule('../../../src/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -110,23 +110,22 @@ jest.mock('../../../src/utils/logger', () => ({
 }));
 
 // Import singleton after mocks are in place
-import { healthCheckService } from '../../../src/monitoring/health-check-service';
-import type { HealthCheckResult } from '../../../src/monitoring/health-check-service';
+const { healthCheckService } = await import('../../../src/monitoring/health-check-service');
 
 // Re-import mock modules for per-test control
-import { realTimeMonitor } from '../../../src/monitoring/real-time-performance-monitor';
-import { globalCache } from '../../../src/performance/intelligent-cache';
-import { getMemoryUsage } from '../../../src/utils/memory-usage';
+const { realTimeMonitor } = await import('../../../src/monitoring/real-time-performance-monitor') as { realTimeMonitor: { getSnapshot: jest.Mock; analyzeTrends: jest.Mock; on: jest.Mock; removeListener: jest.Mock } };
+const { globalCache } = await import('../../../src/performance/intelligent-cache') as { globalCache: { getStats: jest.Mock } };
+const { getMemoryUsage } = await import('../../../src/utils/memory-usage') as { getMemoryUsage: jest.Mock };
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 function resetMocks() {
-  (realTimeMonitor.getSnapshot as jest.Mock).mockReturnValue(defaultSnapshot);
-  (realTimeMonitor.analyzeTrends as jest.Mock).mockReturnValue(defaultTrends);
-  (globalCache.getStats as jest.Mock).mockReturnValue(defaultCacheStats);
-  (getMemoryUsage as jest.Mock).mockReturnValue(defaultMemory);
+  realTimeMonitor.getSnapshot.mockReturnValue(defaultSnapshot);
+  realTimeMonitor.analyzeTrends.mockReturnValue(defaultTrends);
+  globalCache.getStats.mockReturnValue(defaultCacheStats);
+  getMemoryUsage.mockReturnValue(defaultMemory);
 }
 
 // ---------------------------------------------------------------------------
@@ -201,7 +200,7 @@ describe('HealthCheckService (REQ-122)', () => {
     });
 
     test('should report degraded when memory usage is 70-90%', async () => {
-      (getMemoryUsage as jest.Mock).mockReturnValue({
+      getMemoryUsage.mockReturnValue({
         rss: 536870912,
         heapTotal: 536870912,
         heapUsed: 429496730, // ~80%
@@ -214,7 +213,7 @@ describe('HealthCheckService (REQ-122)', () => {
     });
 
     test('should report unhealthy when memory usage >= 90%', async () => {
-      (getMemoryUsage as jest.Mock).mockReturnValue({
+      getMemoryUsage.mockReturnValue({
         rss: 536870912,
         heapTotal: 536870912,
         heapUsed: 503316480, // ~94%
@@ -240,7 +239,7 @@ describe('HealthCheckService (REQ-122)', () => {
     });
 
     test('should report degraded when hit rate is 0.2-0.5', async () => {
-      (globalCache.getStats as jest.Mock).mockReturnValue({
+      globalCache.getStats.mockReturnValue({
         ...defaultCacheStats,
         totalHits: 200,
         totalMisses: 600,
@@ -251,7 +250,7 @@ describe('HealthCheckService (REQ-122)', () => {
     });
 
     test('should report unhealthy when hit rate < 0.2', async () => {
-      (globalCache.getStats as jest.Mock).mockReturnValue({
+      globalCache.getStats.mockReturnValue({
         ...defaultCacheStats,
         totalHits: 50,
         totalMisses: 450,
@@ -262,7 +261,7 @@ describe('HealthCheckService (REQ-122)', () => {
     });
 
     test('should handle zero hits and misses gracefully', async () => {
-      (globalCache.getStats as jest.Mock).mockReturnValue({
+      globalCache.getStats.mockReturnValue({
         ...defaultCacheStats,
         totalHits: 0,
         totalMisses: 0,
@@ -286,7 +285,7 @@ describe('HealthCheckService (REQ-122)', () => {
     });
 
     test('should report degraded when successRate is 0.80-0.95', async () => {
-      (realTimeMonitor.getSnapshot as jest.Mock).mockReturnValue({
+      realTimeMonitor.getSnapshot.mockReturnValue({
         ...defaultSnapshot,
         pipeline: { ...defaultSnapshot.pipeline, successRate: 0.85 },
       });
@@ -296,7 +295,7 @@ describe('HealthCheckService (REQ-122)', () => {
     });
 
     test('should report unhealthy when successRate < 0.80', async () => {
-      (realTimeMonitor.getSnapshot as jest.Mock).mockReturnValue({
+      realTimeMonitor.getSnapshot.mockReturnValue({
         ...defaultSnapshot,
         pipeline: { ...defaultSnapshot.pipeline, successRate: 0.70 },
       });
@@ -317,7 +316,7 @@ describe('HealthCheckService (REQ-122)', () => {
     });
 
     test('should report healthy when totalRequests is 0', async () => {
-      (realTimeMonitor.getSnapshot as jest.Mock).mockReturnValue({
+      realTimeMonitor.getSnapshot.mockReturnValue({
         ...defaultSnapshot,
         llm: { ...defaultSnapshot.llm, totalRequests: 0, cacheHitRate: 0 },
       });
@@ -327,7 +326,7 @@ describe('HealthCheckService (REQ-122)', () => {
     });
 
     test('should report degraded when cacheHitRate is 0.2-0.4', async () => {
-      (realTimeMonitor.getSnapshot as jest.Mock).mockReturnValue({
+      realTimeMonitor.getSnapshot.mockReturnValue({
         ...defaultSnapshot,
         llm: { ...defaultSnapshot.llm, cacheHitRate: 0.3 },
       });
@@ -337,7 +336,7 @@ describe('HealthCheckService (REQ-122)', () => {
     });
 
     test('should report unhealthy when cacheHitRate < 0.2 with requests', async () => {
-      (realTimeMonitor.getSnapshot as jest.Mock).mockReturnValue({
+      realTimeMonitor.getSnapshot.mockReturnValue({
         ...defaultSnapshot,
         llm: { ...defaultSnapshot.llm, cacheHitRate: 0.1 },
       });
@@ -358,7 +357,7 @@ describe('HealthCheckService (REQ-122)', () => {
     });
 
     test('should report degraded when errorRate is elevated', async () => {
-      (realTimeMonitor.getSnapshot as jest.Mock).mockReturnValue({
+      realTimeMonitor.getSnapshot.mockReturnValue({
         ...defaultSnapshot,
         errors: { ...defaultSnapshot.errors, errorRate: 0.10, recoverySuccessRate: 0.7 },
       });
@@ -368,7 +367,7 @@ describe('HealthCheckService (REQ-122)', () => {
     });
 
     test('should report unhealthy when errorRate >= 0.15 and recoveryRate <= 0.50', async () => {
-      (realTimeMonitor.getSnapshot as jest.Mock).mockReturnValue({
+      realTimeMonitor.getSnapshot.mockReturnValue({
         ...defaultSnapshot,
         errors: { ...defaultSnapshot.errors, errorRate: 0.20, recoverySuccessRate: 0.3 },
       });
@@ -389,7 +388,7 @@ describe('HealthCheckService (REQ-122)', () => {
     });
 
     test('should report degraded when 1-2 degrading trends', async () => {
-      (realTimeMonitor.analyzeTrends as jest.Mock).mockReturnValue([
+      realTimeMonitor.analyzeTrends.mockReturnValue([
         { metric: 'responseTime', trend: 'degrading', changePercent: 20, prediction: { next5min: 600, next15min: 700, next1hour: 800 }, confidence: 0.8 },
         { metric: 'memoryUsage', trend: 'stable', changePercent: 2, prediction: { next5min: 40, next15min: 40, next1hour: 40 }, confidence: 0.9 },
       ]);
@@ -399,7 +398,7 @@ describe('HealthCheckService (REQ-122)', () => {
     });
 
     test('should report unhealthy when 3+ degrading trends', async () => {
-      (realTimeMonitor.analyzeTrends as jest.Mock).mockReturnValue([
+      realTimeMonitor.analyzeTrends.mockReturnValue([
         { metric: 'responseTime', trend: 'degrading', changePercent: 20, prediction: { next5min: 600, next15min: 700, next1hour: 800 }, confidence: 0.8 },
         { metric: 'memoryUsage', trend: 'degrading', changePercent: 30, prediction: { next5min: 60, next15min: 65, next1hour: 70 }, confidence: 0.85 },
         { metric: 'cacheHitRate', trend: 'degrading', changePercent: -15, prediction: { next5min: 0.5, next15min: 0.45, next1hour: 0.4 }, confidence: 0.75 },
@@ -416,7 +415,7 @@ describe('HealthCheckService (REQ-122)', () => {
 
   describe('overall status calculation', () => {
     test('should return unhealthy if any component is unhealthy', async () => {
-      (realTimeMonitor.getSnapshot as jest.Mock).mockReturnValue({
+      realTimeMonitor.getSnapshot.mockReturnValue({
         ...defaultSnapshot,
         pipeline: { ...defaultSnapshot.pipeline, successRate: 0.70 },
       });
@@ -426,7 +425,7 @@ describe('HealthCheckService (REQ-122)', () => {
     });
 
     test('should return degraded if any component is degraded (but none unhealthy)', async () => {
-      (realTimeMonitor.getSnapshot as jest.Mock).mockReturnValue({
+      realTimeMonitor.getSnapshot.mockReturnValue({
         ...defaultSnapshot,
         pipeline: { ...defaultSnapshot.pipeline, successRate: 0.85 },
       });
@@ -455,7 +454,7 @@ describe('HealthCheckService (REQ-122)', () => {
     });
 
     test('should return ready=false when system is unhealthy', async () => {
-      (realTimeMonitor.getSnapshot as jest.Mock).mockReturnValue({
+      realTimeMonitor.getSnapshot.mockReturnValue({
         ...defaultSnapshot,
         pipeline: { ...defaultSnapshot.pipeline, successRate: 0.70 },
       });
@@ -469,14 +468,14 @@ describe('HealthCheckService (REQ-122)', () => {
 
     test('should handle errors gracefully', async () => {
       // Force a fresh health check that will throw by making every dependency fail
-      (getMemoryUsage as jest.Mock).mockImplementation(() => {
+      getMemoryUsage.mockImplementation(() => {
         throw new Error('memory check failed');
       });
-      (globalCache.getStats as jest.Mock).mockImplementation(() => {
+      globalCache.getStats.mockImplementation(() => {
         throw new Error('cache check failed');
       });
       // Also make snapshot throw so performHealthCheck itself fails
-      (realTimeMonitor.getSnapshot as jest.Mock).mockImplementation(() => {
+      realTimeMonitor.getSnapshot.mockImplementation(() => {
         throw new Error('snapshot failed');
       });
 
@@ -503,7 +502,7 @@ describe('HealthCheckService (REQ-122)', () => {
     });
 
     test('should return alive=false on error', async () => {
-      (getMemoryUsage as jest.Mock).mockImplementation(() => {
+      getMemoryUsage.mockImplementation(() => {
         throw new Error('fatal');
       });
 
@@ -558,7 +557,7 @@ describe('HealthCheckService (REQ-122)', () => {
     });
 
     test('should recommend memory optimization when memory is degraded', async () => {
-      (getMemoryUsage as jest.Mock).mockReturnValue({
+      getMemoryUsage.mockReturnValue({
         rss: 536870912,
         heapTotal: 536870912,
         heapUsed: 429496730,
@@ -572,7 +571,7 @@ describe('HealthCheckService (REQ-122)', () => {
     });
 
     test('should include CRITICAL prefix for unhealthy components', async () => {
-      (realTimeMonitor.getSnapshot as jest.Mock).mockReturnValue({
+      realTimeMonitor.getSnapshot.mockReturnValue({
         ...defaultSnapshot,
         pipeline: { ...defaultSnapshot.pipeline, successRate: 0.60 },
       });
@@ -589,23 +588,23 @@ describe('HealthCheckService (REQ-122)', () => {
 
   describe('edge cases', () => {
     test('should handle all components unhealthy', async () => {
-      (getMemoryUsage as jest.Mock).mockReturnValue({
+      getMemoryUsage.mockReturnValue({
         rss: 536870912,
         heapTotal: 536870912,
         heapUsed: 503316480,
         external: 8388608,
         arrayBuffers: 4194304,
       });
-      (globalCache.getStats as jest.Mock).mockReturnValue({
+      globalCache.getStats.mockReturnValue({
         ...defaultCacheStats, totalHits: 5, totalMisses: 500,
       });
-      (realTimeMonitor.getSnapshot as jest.Mock).mockReturnValue({
+      realTimeMonitor.getSnapshot.mockReturnValue({
         ...defaultSnapshot,
         pipeline: { ...defaultSnapshot.pipeline, successRate: 0.50 },
         llm: { ...defaultSnapshot.llm, cacheHitRate: 0.05 },
         errors: { ...defaultSnapshot.errors, errorRate: 0.30, recoverySuccessRate: 0.2 },
       });
-      (realTimeMonitor.analyzeTrends as jest.Mock).mockReturnValue([
+      realTimeMonitor.analyzeTrends.mockReturnValue([
         { metric: 'a', trend: 'degrading', changePercent: 10, prediction: { next5min: 0, next15min: 0, next1hour: 0 }, confidence: 0.8 },
         { metric: 'b', trend: 'degrading', changePercent: 20, prediction: { next5min: 0, next15min: 0, next1hour: 0 }, confidence: 0.8 },
         { metric: 'c', trend: 'degrading', changePercent: 30, prediction: { next5min: 0, next15min: 0, next1hour: 0 }, confidence: 0.8 },
@@ -624,8 +623,8 @@ describe('HealthCheckService (REQ-122)', () => {
         errors: { totalErrors: 0, errorRate: 0, recentErrors: [], recoverySuccessRate: 0 },
         quality: { transcriptionAccuracy: 0, layoutOverlapRate: 0, avgSceneQuality: 0 },
       };
-      (realTimeMonitor.getSnapshot as jest.Mock).mockReturnValue(zeroSnapshot);
-      (realTimeMonitor.analyzeTrends as jest.Mock).mockReturnValue([]);
+      realTimeMonitor.getSnapshot.mockReturnValue(zeroSnapshot);
+      realTimeMonitor.analyzeTrends.mockReturnValue([]);
 
       const result = await healthCheckService.performHealthCheck();
       expect(result).toBeDefined();

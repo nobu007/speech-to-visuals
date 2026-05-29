@@ -71,7 +71,7 @@ const defaultMemory = {
   arrayBuffers: 4194304,
 };
 
-jest.mock('../../../src/monitoring/real-time-performance-monitor', () => ({
+jest.unstable_mockModule('../../../src/monitoring/real-time-performance-monitor', () => ({
   realTimeMonitor: {
     getSnapshot: jest.fn().mockReturnValue(defaultSnapshot),
     analyzeTrends: jest.fn().mockReturnValue([]),
@@ -80,17 +80,17 @@ jest.mock('../../../src/monitoring/real-time-performance-monitor', () => ({
   },
 }));
 
-jest.mock('../../../src/performance/intelligent-cache', () => ({
+jest.unstable_mockModule('../../../src/performance/intelligent-cache', () => ({
   globalCache: {
     getStats: jest.fn().mockReturnValue(defaultCacheStats),
   },
 }));
 
-jest.mock('../../../src/utils/memory-usage', () => ({
+jest.unstable_mockModule('../../../src/utils/memory-usage', () => ({
   getMemoryUsage: jest.fn().mockReturnValue(defaultMemory),
 }));
 
-jest.mock('../../../src/utils/logger', () => ({
+jest.unstable_mockModule('../../../src/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -99,20 +99,20 @@ jest.mock('../../../src/utils/logger', () => ({
 }));
 
 // Import singleton after mocks are in place
-import { healthCheckService } from '../../../src/monitoring/health-check-service';
-import { realTimeMonitor } from '../../../src/monitoring/real-time-performance-monitor';
-import { globalCache } from '../../../src/performance/intelligent-cache';
-import { getMemoryUsage } from '../../../src/utils/memory-usage';
+const { healthCheckService } = await import('../../../src/monitoring/health-check-service');
+const { realTimeMonitor } = await import('../../../src/monitoring/real-time-performance-monitor') as { realTimeMonitor: { getSnapshot: jest.Mock; analyzeTrends: jest.Mock; on: jest.Mock; removeListener: jest.Mock } };
+const { globalCache } = await import('../../../src/performance/intelligent-cache') as { globalCache: { getStats: jest.Mock } };
+const { getMemoryUsage } = await import('../../../src/utils/memory-usage') as { getMemoryUsage: jest.Mock };
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 function resetMocks() {
-  (realTimeMonitor.getSnapshot as jest.Mock).mockReturnValue(defaultSnapshot);
-  (realTimeMonitor.analyzeTrends as jest.Mock).mockReturnValue([]);
-  (globalCache.getStats as jest.Mock).mockReturnValue(defaultCacheStats);
-  (getMemoryUsage as jest.Mock).mockReturnValue(defaultMemory);
+  realTimeMonitor.getSnapshot.mockReturnValue(defaultSnapshot);
+  realTimeMonitor.analyzeTrends.mockReturnValue([]);
+  globalCache.getStats.mockReturnValue(defaultCacheStats);
+  getMemoryUsage.mockReturnValue(defaultMemory);
 }
 
 // ---------------------------------------------------------------------------
@@ -130,7 +130,7 @@ describe('HealthCheckService – exception fallback (REQ-134)', () => {
 
   describe('when globalCache.getStats() throws', () => {
     beforeEach(() => {
-      (globalCache.getStats as jest.Mock).mockImplementation(() => {
+      globalCache.getStats.mockImplementation(() => {
         throw new Error('Redis connection refused');
       });
     });
@@ -154,7 +154,7 @@ describe('HealthCheckService – exception fallback (REQ-134)', () => {
 
   describe('when realTimeMonitor.getSnapshot() throws', () => {
     beforeEach(() => {
-      (realTimeMonitor.getSnapshot as jest.Mock).mockImplementation(() => {
+      realTimeMonitor.getSnapshot.mockImplementation(() => {
         throw new Error('monitor unavailable');
       });
     });
@@ -184,7 +184,7 @@ describe('HealthCheckService – exception fallback (REQ-134)', () => {
 
   describe('when realTimeMonitor.analyzeTrends() throws', () => {
     beforeEach(() => {
-      (realTimeMonitor.analyzeTrends as jest.Mock).mockImplementation(() => {
+      realTimeMonitor.analyzeTrends.mockImplementation(() => {
         throw new Error('trend analysis failed');
       });
     });
@@ -205,7 +205,7 @@ describe('HealthCheckService – exception fallback (REQ-134)', () => {
       // getSnapshot is called by pipeline/LLM/errorRecovery checks AND for
       // the final metrics.  Make it throw so we exercise the catch in
       // performHealthCheck's metrics section.
-      (realTimeMonitor.getSnapshot as jest.Mock).mockImplementation(() => {
+      realTimeMonitor.getSnapshot.mockImplementation(() => {
         throw new Error('monitor crashed');
       });
     });
@@ -234,13 +234,13 @@ describe('HealthCheckService – exception fallback (REQ-134)', () => {
 
   describe('when multiple backends fail simultaneously', () => {
     beforeEach(() => {
-      (globalCache.getStats as jest.Mock).mockImplementation(() => {
+      globalCache.getStats.mockImplementation(() => {
         throw new Error('cache down');
       });
-      (realTimeMonitor.getSnapshot as jest.Mock).mockImplementation(() => {
+      realTimeMonitor.getSnapshot.mockImplementation(() => {
         throw new Error('monitor down');
       });
-      (realTimeMonitor.analyzeTrends as jest.Mock).mockImplementation(() => {
+      realTimeMonitor.analyzeTrends.mockImplementation(() => {
         throw new Error('trends down');
       });
     });
@@ -272,7 +272,7 @@ describe('HealthCheckService – exception fallback (REQ-134)', () => {
 
   describe('fallback component check structure', () => {
     test('cache fallback should include latency and lastChecked', async () => {
-      (globalCache.getStats as jest.Mock).mockImplementation(() => {
+      globalCache.getStats.mockImplementation(() => {
         throw new Error('boom');
       });
       const result = await healthCheckService.performHealthCheck();
@@ -282,7 +282,7 @@ describe('HealthCheckService – exception fallback (REQ-134)', () => {
     });
 
     test('pipeline fallback should include latency and lastChecked', async () => {
-      (realTimeMonitor.getSnapshot as jest.Mock).mockImplementation(() => {
+      realTimeMonitor.getSnapshot.mockImplementation(() => {
         throw new Error('boom');
       });
       const result = await healthCheckService.performHealthCheck();

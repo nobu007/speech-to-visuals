@@ -20,7 +20,7 @@ import { jest } from '@jest/globals';
 // Mocks
 // ---------------------------------------------------------------------------
 
-jest.mock('../../../src/utils/memory-usage', () => ({
+jest.unstable_mockModule('../../../src/utils/memory-usage', () => ({
   getMemoryUsage: jest.fn(() => ({
     heapUsed: 100 * 1024 * 1024,  // 100 MB
     heapTotal: 200 * 1024 * 1024, // 200 MB
@@ -30,16 +30,10 @@ jest.mock('../../../src/utils/memory-usage', () => ({
 }));
 
 // Import after mocks
-import { RealTimePerformanceMonitor } from '../../../src/monitoring/real-time-performance-monitor';
-import type {
-  PerformanceMetric,
-  PerformanceAlert,
-  PerformanceSnapshot,
-  TrendAnalysis,
-} from '../../../src/monitoring/real-time-performance-monitor';
-import { getMemoryUsage } from '../../../src/utils/memory-usage';
+const { RealTimePerformanceMonitor } = await import('../../../src/monitoring/real-time-performance-monitor');
+const { getMemoryUsage } = await import('../../../src/utils/memory-usage') as { getMemoryUsage: jest.Mock };
 
-const mockedGetMemoryUsage = getMemoryUsage as jest.MockedFunction<typeof getMemoryUsage>;
+const mockedGetMemoryUsage = getMemoryUsage;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -82,7 +76,7 @@ describe('RealTimePerformanceMonitor', () => {
       monitor.recordMetric('processingTime', 500, 'ms');
 
       expect(listener).toHaveBeenCalledTimes(1);
-      const emitted: PerformanceMetric = listener.mock.calls[0][0];
+      const emitted = listener.mock.calls[0][0];
       expect(emitted.metric).toBe('processingTime');
       expect(emitted.value).toBe(500);
       expect(emitted.unit).toBe('ms');
@@ -95,7 +89,7 @@ describe('RealTimePerformanceMonitor', () => {
 
       monitor.recordMetric('testMetric', 42, 'units', { env: 'test' });
 
-      const emitted: PerformanceMetric = listener.mock.calls[0][0];
+      const emitted = listener.mock.calls[0][0];
       expect(emitted.tags).toEqual({ env: 'test' });
     });
 
@@ -206,7 +200,7 @@ describe('RealTimePerformanceMonitor', () => {
       monitor.recordMetric('processingTime', 130000, 'ms');
 
       expect(alertListener).toHaveBeenCalledTimes(1);
-      const alert: PerformanceAlert = alertListener.mock.calls[0][0];
+      const alert = alertListener.mock.calls[0][0];
       expect(alert.severity).toBe('critical');
       expect(alert.metric).toBe('processingTime');
       expect(alert.type).toBe('threshold');
@@ -222,7 +216,7 @@ describe('RealTimePerformanceMonitor', () => {
       monitor.recordMetric('errorRate', 0.07, 'percent');
 
       expect(alertListener).toHaveBeenCalledTimes(1);
-      const alert: PerformanceAlert = alertListener.mock.calls[0][0];
+      const alert = alertListener.mock.calls[0][0];
       expect(alert.severity).toBe('warning');
     });
 
@@ -241,7 +235,7 @@ describe('RealTimePerformanceMonitor', () => {
 
       monitor.recordMetric('memoryUsage', 600, 'MB');
 
-      const alert: PerformanceAlert = alertListener.mock.calls[0][0];
+      const alert = alertListener.mock.calls[0][0];
       expect(alert.recommendation).toContain('memory');
     });
 
@@ -253,7 +247,7 @@ describe('RealTimePerformanceMonitor', () => {
       monitor.recordMetric('cacheHitRate', 0.05, 'percent');
 
       expect(alertListener).toHaveBeenCalledTimes(1);
-      const alert: PerformanceAlert = alertListener.mock.calls[0][0];
+      const alert = alertListener.mock.calls[0][0];
       expect(alert.severity).toBe('critical');
       expect(alert.metric).toBe('cacheHitRate');
     });
@@ -403,7 +397,7 @@ describe('RealTimePerformanceMonitor', () => {
   // -----------------------------------------------------------------------
   describe('getSnapshot', () => {
     it('should return a valid snapshot structure', () => {
-      const snapshot: PerformanceSnapshot = monitor.getSnapshot();
+      const snapshot = monitor.getSnapshot();
 
       expect(snapshot.timestamp).toBeGreaterThan(0);
       expect(snapshot.pipeline).toBeDefined();
