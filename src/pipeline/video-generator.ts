@@ -56,6 +56,7 @@ export interface RemotionSceneData {
   }>;
   transcript: string;
   confidence: number;
+  keyphrases: string[];
 }
 
 /**
@@ -233,7 +234,8 @@ export class VideoGenerator {
       nodes,
       edges,
       transcript: scene.content,
-      confidence: scene.confidence || 0.8
+      confidence: scene.confidence || 0.8,
+      keyphrases: scene.keyphrases || []
     };
   }
 
