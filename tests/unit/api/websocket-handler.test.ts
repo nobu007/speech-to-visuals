@@ -138,6 +138,32 @@ describe('WebSocket Handler', () => {
 
       expect(next).toHaveBeenCalledWith(expect.any(Error));
     });
+
+    it('should refuse connection when JWT_SECRET and SUPABASE_JWT_SECRET are missing', async () => {
+      // Remove all JWT secrets to trigger PipelineConfigError path
+      const savedJwt = process.env.JWT_SECRET;
+      const savedSupa = process.env.SUPABASE_JWT_SECRET;
+      delete process.env.JWT_SECRET;
+      delete process.env.SUPABASE_JWT_SECRET;
+
+      // Re-import module to get fresh middleware without cached secret
+      jest.resetModules();
+      const freshMod = await import('../../../src/api/websocket-handler');
+
+      const middleware = freshMod.createWsAuthMiddleware();
+      mockSocket.handshake.auth.token = 'some.token.value';
+
+      const next = jest.fn();
+      middleware(mockSocket as unknown as Parameters<typeof middleware>[0], next);
+
+      expect(next).toHaveBeenCalledWith(expect.any(Error));
+      const err = next.mock.calls[0][0] as Error;
+      expect(err.message).toContain('JWT_SECRET');
+
+      // Restore
+      process.env.JWT_SECRET = savedJwt;
+      if (savedSupa) process.env.SUPABASE_JWT_SECRET = savedSupa;
+    });
   });
 
   // =========================================================================

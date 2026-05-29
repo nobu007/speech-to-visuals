@@ -14,6 +14,8 @@ import {
   QualityGateError,
   PipelineConfigError,
   PipelineAbortError,
+  MonitoringError,
+  VisualizationError,
 } from '@/pipeline/pipeline-errors';
 
 // ---------- PipelineError (base) ----------
@@ -128,5 +130,57 @@ describe('PipelineAbortError', () => {
     expect(abort.name).not.toBe(gate.name);
     expect(abort).toBeInstanceOf(PipelineAbortError);
     expect(gate).not.toBeInstanceOf(PipelineAbortError);
+  });
+});
+
+// ---------- MonitoringError ----------
+
+describe('MonitoringError', () => {
+  it('maps to QUALITY_GATE_FAILED in monitoring stage', () => {
+    const err = new MonitoringError('metrics aggregation failed');
+    expect(err).toBeInstanceOf(PipelineError);
+    expect(err).toBeInstanceOf(MonitoringError);
+    expect(err.name).toBe('MonitoringError');
+    expect(err.message).toBe('metrics aggregation failed');
+    expect(err.errorType).toBe('QUALITY_GATE_FAILED');
+    expect(err.stage).toBe('monitoring');
+  });
+
+  it('carries optional context', () => {
+    const err = new MonitoringError('dashboard data missing', { metric: 'fps' });
+    expect(err.context).toEqual({ metric: 'fps' });
+  });
+});
+
+// ---------- VisualizationError ----------
+
+describe('VisualizationError', () => {
+  it('maps to RENDERING_ERROR in visualization stage', () => {
+    const err = new VisualizationError('strategy not registered');
+    expect(err).toBeInstanceOf(PipelineError);
+    expect(err).toBeInstanceOf(VisualizationError);
+    expect(err.name).toBe('VisualizationError');
+    expect(err.message).toBe('strategy not registered');
+    expect(err.errorType).toBe('RENDERING_ERROR');
+    expect(err.stage).toBe('visualization');
+  });
+
+  it('carries optional context for layout failures', () => {
+    const err = new VisualizationError('DagreLayoutStrategy is not initialized', {
+      strategy: 'DagreLayoutStrategy',
+      diagramType: 'flow',
+    });
+    expect(err.context).toEqual({
+      strategy: 'DagreLayoutStrategy',
+      diagramType: 'flow',
+    });
+  });
+
+  it('is distinguishable from RenderingError', () => {
+    const viz = new VisualizationError('viz fail');
+    const render = new RenderingError('render fail');
+    expect(viz.name).not.toBe(render.name);
+    expect(viz).toBeInstanceOf(VisualizationError);
+    expect(render).not.toBeInstanceOf(VisualizationError);
   });
 });

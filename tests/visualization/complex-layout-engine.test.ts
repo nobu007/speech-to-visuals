@@ -5,6 +5,7 @@ import { LayoutOptimizer } from '@/visualization/strategies/LayoutOptimizer';
 import { DagreLayoutStrategy } from '@/visualization/strategies/DagreLayoutStrategy';
 import { FallbackLayoutStrategy } from '@/visualization/strategies/FallbackLayoutStrategy';
 import { LayoutResult } from '@/visualization/types';
+import { VisualizationError } from '@/pipeline/pipeline-errors';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -628,13 +629,23 @@ describe('ComplexLayoutEngine (TASK-0063)', () => {
   });
 
   describe('Edge cases', () => {
-    it('should throw when DagreLayoutStrategy is not provided for standard layout', async () => {
+    it('should throw VisualizationError when DagreLayoutStrategy is not provided for standard layout', async () => {
       const engine = new ComplexLayoutEngine({ levelThreshold: 100 });
       const { nodes, edges } = makeChainGraph(3);
 
       await expect(
         engine.generateComplexLayout(nodes, edges, 'flow')
       ).rejects.toThrow('DagreLayoutStrategy is not initialized');
+
+      // Verify it throws a typed VisualizationError, not a raw Error
+      try {
+        await engine.generateComplexLayout(nodes, edges, 'flow');
+        fail('Expected VisualizationError');
+      } catch (err) {
+        expect(err).toBeInstanceOf(VisualizationError);
+        expect((err as VisualizationError).errorType).toBe('RENDERING_ERROR');
+        expect((err as VisualizationError).stage).toBe('visualization');
+      }
     });
 
     it('should handle a single-node graph', async () => {
