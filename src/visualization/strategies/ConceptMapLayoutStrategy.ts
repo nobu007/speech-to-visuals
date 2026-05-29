@@ -23,9 +23,8 @@ export class ConceptMapLayoutStrategy implements ILayoutStrategy {
   readonly name = 'conceptmap';
 
   supports(diagramType: DiagramType): boolean {
-    // Support multiple diagram types that don't have specific strategies
+    // Support concept map and general-purpose diagrams (mindmap has its own strategy)
     return diagramType === 'conceptmap' ||
-           diagramType === 'mindmap' ||
            diagramType === 'general';
   }
 
