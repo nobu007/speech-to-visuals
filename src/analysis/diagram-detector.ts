@@ -115,39 +115,62 @@ const DIAGRAM_KEYWORDS: Record<DiagramType, {
     negative: [],
   },
   flowchart: {
-    primary: [],
-    secondary: [],
-    context: [],
-    negative: [],
+    primary: ['flowchart', 'decision tree', 'decision flow', 'branching logic', 'conditional flow',
+      'フローチャート', '判断', '分岐', '条件分岐'],
+    secondary: ['decision', 'branch', 'condition', 'if', 'else', 'yes/no', 'true/false', 'gateway',
+      '判定', '条件', 'もし', '場合', 'YES', 'NO', '分かれる', '選択'],
+    context: ['path', 'route', 'outcome', 'result', 'option', 'rule',
+      '道筋', '結果', '選択肢', 'ルール'],
+    negative: ['comparison', 'versus', 'timeline', 'history',
+      '比較', '歴史'],
   },
   comparison: {
-    primary: [],
-    secondary: [],
-    context: [],
-    negative: [],
+    primary: ['comparison', 'versus', 'vs', 'vs.', 'pros and cons', 'advantages disadvantages',
+      '比較', '対比', '長所と短所', 'メリットデメリット', 'どちらが'],
+    secondary: ['better', 'worse', 'superior', 'inferior', 'difference', 'similarity', 'contrast',
+      '良い', '悪い', '優れている', '劣る', '違い', '共通点', '対照'],
+    context: ['feature', 'benefit', 'drawback', 'strength', 'weakness', 'side',
+      '特徴', '利点', '欠点', '強み', '弱み', '面'],
+    negative: ['process', 'step', 'cycle', 'loop',
+      '手順', 'サイクル'],
   },
   network: {
-    primary: [],
-    secondary: [],
-    context: [],
-    negative: [],
+    primary: ['network', 'graph', 'nodes', 'connections', 'linked', 'mesh',
+      'ネットワーク', 'グラフ', 'ノード', '接続', 'リンク', 'メッシュ'],
+    secondary: ['connected', 'linked', 'association', 'relationship', 'hub', 'cluster', 'peer',
+      '繋がる', '関連', '関係', 'ハブ', 'クラスタ', 'ピア'],
+    context: ['system', 'infrastructure', 'topology', 'architecture', 'endpoint',
+      'システム', 'インフラ', 'トポロジー', 'アーキテクチャ'],
+    negative: ['process', 'step', 'timeline', 'history',
+      '手順', '歴史'],
   },
   conceptmap: {
-    primary: [],
-    secondary: [],
-    context: [],
-    negative: [],
+    primary: ['concept map', 'concept', 'proposition', 'knowledge map',
+      'コンセプトマップ', '概念図', '知識マップ'],
+    secondary: ['relates', 'connected', 'linked', 'depends on', 'influences', 'associated',
+      '関連', '繋がる', '依存', '影響', '結びつき'],
+    context: ['theory', 'model', 'framework', 'understanding',
+      '理論', 'モデル', 'フレームワーク'],
+    negative: ['process', 'timeline', 'cycle',
+      '手順', 'サイクル'],
   },
   mindmap: {
-    primary: [],
-    secondary: [],
-    context: [],
-    negative: [],
+    primary: ['mind map', 'brainstorm', 'mindmap', 'radial',
+      'マインドマップ', 'ブレインストーミング', '連想'],
+    secondary: ['central', 'branch', 'topic', 'subtopic', 'idea', 'thought',
+      '中心', '枝', 'トピック', 'サブトピック', 'アイデア', '考え'],
+    context: ['organize', 'structure', 'expand', 'creative',
+      '整理', '構造', '展開', '創造'],
+    negative: ['comparison', 'versus', 'timeline',
+      '比較', '歴史'],
   },
   general: {
-    primary: [],
-    secondary: [],
-    context: [],
+    primary: ['diagram', 'chart', 'illustration', 'visual', 'schematic',
+      '図解', '図', 'ダイアグラム', 'チャート', '模式図'],
+    secondary: ['represent', 'depict', 'show', 'display', 'visualize',
+      '表す', '示す', '表示', '可視化'],
+    context: ['data', 'information', 'structure', 'overview',
+      'データ', '情報', '構造', '概要'],
     negative: [],
   },
 };
@@ -291,12 +314,19 @@ export class DiagramDetector {
     const keyphrases = segment.keyphrases.map(kp => kp.toLowerCase());
 
     // ITERATION 45 ENHANCEMENT: Enhanced matrix/cycle keyword detection with negative keywords
-    const patterns = {
+    // Extended: flowchart, comparison, network patterns for rule-based detection
+    const patterns: Record<string, { primary: string[]; secondary: string[]; context: string[]; negative: string[] }> = {
       flow: {
         primary: ['process', 'workflow', 'pipeline', 'procedure', 'sequence'],
         secondary: ['step', 'flow', 'first', 'next', 'then', 'finally', 'after', 'before', 'follows'],
         context: ['data', 'information', 'system', 'through', 'input', 'output'],
-        negative: ['comparison', 'matrix', 'versus', 'cycle', 'loop', 'circular'] // Penalize flow if these appear
+        negative: ['comparison', 'matrix', 'versus', 'cycle', 'loop', 'circular']
+      },
+      flowchart: {
+        primary: ['flowchart', 'decision tree', 'decision flow', 'branching logic', 'conditional flow'],
+        secondary: ['decision', 'branch', 'condition', 'if', 'else', 'yes/no', 'true/false', 'gateway'],
+        context: ['path', 'route', 'outcome', 'result', 'option', 'rule'],
+        negative: ['comparison', 'versus', 'timeline', 'history']
       },
       tree: {
         primary: ['hierarchy', 'organization', 'structure', 'taxonomy', 'ceo', 'vp', 'director', 'management'],
@@ -314,13 +344,25 @@ export class DiagramDetector {
         primary: ['comparison', 'matrix', 'table', 'versus', 'compare', 'against', 'vs', 'vs.'],
         secondary: ['criteria', 'features', 'properties', 'characteristics', 'options', 'alternatives', 'evaluate', 'assessment'],
         context: ['different', 'similar', 'choices', 'contrasting', 'weighing', 'pros', 'cons'],
-        negative: [] // No negative keywords for matrix
+        negative: []
       },
       cycle: {
         primary: ['cycle', 'loop', 'circular', 'recurring', 'repeat', 'continuous', 'iterative'],
         secondary: ['iteration', 'ongoing', 'cyclical', 'returns', 'repeatedly', 'feedback', 'recursive'],
         context: ['back', 'again', 'continuously', 'infinite', 'perpetual', 'round'],
-        negative: [] // No negative keywords for cycle
+        negative: []
+      },
+      comparison: {
+        primary: ['pros and cons', 'advantages disadvantages', 'better worse'],
+        secondary: ['better', 'worse', 'superior', 'inferior', 'difference', 'similarity', 'contrast'],
+        context: ['feature', 'benefit', 'drawback', 'strength', 'weakness'],
+        negative: ['process', 'step', 'cycle', 'loop']
+      },
+      network: {
+        primary: ['network', 'graph', 'nodes', 'connections', 'linked', 'mesh'],
+        secondary: ['connected', 'association', 'relationship', 'hub', 'cluster', 'peer', 'topology'],
+        context: ['system', 'infrastructure', 'architecture', 'endpoint'],
+        negative: ['process', 'step', 'timeline', 'history']
       }
     };
 
@@ -499,6 +541,12 @@ export class DiagramDetector {
         return this.generateCycleContent(text);
       case 'matrix':
         return this.generateMatrixContent(text);
+      case 'flowchart':
+        return this.generateFlowchartContent(text);
+      case 'comparison':
+        return this.generateComparisonContent(text);
+      case 'network':
+        return this.generateNetworkContent(text);
       default:
         return this.generateFlowContent(text);
     }
@@ -591,6 +639,68 @@ export class DiagramDetector {
         { from: 'node_1', to: 'node_2', label: 'transforms' },
         { from: 'node_2', to: 'node_3', label: 'validated by' },
         { from: 'node_3', to: 'node_4', label: 'produces' }
+      ]
+    };
+  }
+
+  private generateFlowchartContent(text: string) {
+    return {
+      nodes: [
+        { label: 'Start', importance: 1.0 },
+        { label: 'Condition', importance: 0.95 },
+        { label: 'Path A (Yes)', importance: 0.85 },
+        { label: 'Path B (No)', importance: 0.85 },
+        { label: 'Merge', importance: 0.8 },
+        { label: 'End', importance: 1.0 }
+      ],
+      edges: [
+        { from: 'node_0', to: 'node_1', label: 'begins' },
+        { from: 'node_1', to: 'node_2', label: 'Yes' },
+        { from: 'node_1', to: 'node_3', label: 'No' },
+        { from: 'node_2', to: 'node_4', label: 'continues' },
+        { from: 'node_3', to: 'node_4', label: 'continues' },
+        { from: 'node_4', to: 'node_5', label: 'ends' }
+      ]
+    };
+  }
+
+  private generateComparisonContent(text: string) {
+    return {
+      nodes: [
+        { label: 'Subject A', importance: 0.9 },
+        { label: 'Subject B', importance: 0.9 },
+        { label: 'Strengths A', importance: 0.8 },
+        { label: 'Weaknesses A', importance: 0.7 },
+        { label: 'Strengths B', importance: 0.8 },
+        { label: 'Weaknesses B', importance: 0.7 }
+      ],
+      edges: [
+        { from: 'node_2', to: 'node_0', label: 'advantage of' },
+        { from: 'node_3', to: 'node_0', label: 'limitation of' },
+        { from: 'node_4', to: 'node_1', label: 'advantage of' },
+        { from: 'node_5', to: 'node_1', label: 'limitation of' },
+        { from: 'node_0', to: 'node_1', label: 'compared to' }
+      ]
+    };
+  }
+
+  private generateNetworkContent(text: string) {
+    return {
+      nodes: [
+        { label: 'Central Hub', importance: 1.0 },
+        { label: 'Node A', importance: 0.85 },
+        { label: 'Node B', importance: 0.85 },
+        { label: 'Node C', importance: 0.8 },
+        { label: 'Node D', importance: 0.8 },
+        { label: 'Node E', importance: 0.7 }
+      ],
+      edges: [
+        { from: 'node_0', to: 'node_1', label: 'connects' },
+        { from: 'node_0', to: 'node_2', label: 'connects' },
+        { from: 'node_0', to: 'node_3', label: 'connects' },
+        { from: 'node_1', to: 'node_4', label: 'links' },
+        { from: 'node_2', to: 'node_5', label: 'links' },
+        { from: 'node_3', to: 'node_4', label: 'links' }
       ]
     };
   }

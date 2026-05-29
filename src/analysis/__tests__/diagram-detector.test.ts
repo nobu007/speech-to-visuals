@@ -578,4 +578,108 @@ describe('TASK-0021: DiagramDetector', () => {
       expect(conf).toBeLessThanOrEqual(0.45);
     });
   });
+
+  // -----------------------------------------------------------------------
+  // Flowchart, Comparison, Network type detection
+  // -----------------------------------------------------------------------
+  describe('Flowchart type detection', () => {
+    it('should detect flowchart from decision/branching text (English)', () => {
+      const segments = [
+        makeSegment('The flowchart shows the decision tree. If the condition is met, branch to path A, else take path B with yes/no gateway logic.'),
+      ];
+
+      const result = detector.detect(null, segments);
+
+      expect(result.primaryType).toBe('flowchart');
+      expect(result.confidence).toBeGreaterThanOrEqual(0.5);
+    });
+
+    it('should detect flowchart from Japanese conditional text', () => {
+      const segments = [
+        makeSegment('フローチャートに従って、条件分岐で判断します。もしYESならAへ、そうでなければBへ進みます。'),
+      ];
+
+      const result = detector.detect(null, segments);
+
+      expect(result.primaryType).toBe('flowchart');
+      expect(result.confidence).toBeGreaterThanOrEqual(0.5);
+    });
+
+    it('should generate flowchart nodes with branching structure via analyze()', async () => {
+      const segment = makeSegment('The flowchart shows a decision. If yes, follow path A. If no, follow path B. Both merge at the end.');
+      const result = await detector.analyze(segment);
+
+      expect(result.type).toBe('flowchart');
+      // Flowchart should have >= 6 nodes (Start, Condition, Path A, Path B, Merge, End)
+      expect(result.nodes.length).toBeGreaterThanOrEqual(5);
+      // Should have branching edges (more edges than nodes)
+      expect(result.edges.length).toBeGreaterThanOrEqual(4);
+    });
+  });
+
+  describe('Comparison type detection', () => {
+    it('should detect comparison from pros/cons text (English)', () => {
+      const segments = [
+        makeSegment('Here are the pros and cons. The advantages of A are clear with superior features, but B has fewer weaknesses and more differences.'),
+      ];
+
+      const result = detector.detect(null, segments);
+
+      expect(result.primaryType).toBe('comparison');
+      expect(result.confidence).toBeGreaterThanOrEqual(0.5);
+    });
+
+    it('should detect comparison from Japanese contrast text', () => {
+      const segments = [
+        makeSegment('長所と短所を比較しましょう。Aは優れている点が多いですが、Bの方が悪い点が少ないです。どちらが良いでしょうか。'),
+      ];
+
+      const result = detector.detect(null, segments);
+
+      expect(result.primaryType).toBe('comparison');
+      expect(result.confidence).toBeGreaterThanOrEqual(0.5);
+    });
+
+    it('should generate comparison nodes via analyze()', async () => {
+      const segment = makeSegment('Comparing the two options: the pros and cons of each approach show clear differences in strength and weakness.');
+      const result = await detector.analyze(segment);
+
+      expect(result.type).toBe('comparison');
+      expect(result.nodes.length).toBeGreaterThanOrEqual(4);
+    });
+  });
+
+  describe('Network type detection', () => {
+    it('should detect network from connected nodes text (English)', () => {
+      const segments = [
+        makeSegment('The network graph shows how nodes are connected. Hub A links to multiple peers in the cluster topology.'),
+      ];
+
+      const result = detector.detect(null, segments);
+
+      expect(result.primaryType).toBe('network');
+      expect(result.confidence).toBeGreaterThanOrEqual(0.5);
+    });
+
+    it('should detect network from Japanese connected text', () => {
+      const segments = [
+        makeSegment('ネットワークグラフは各ノードが接続されている様子を示しています。ハブを中心にクラスタが繋がっています。'),
+      ];
+
+      const result = detector.detect(null, segments);
+
+      expect(result.primaryType).toBe('network');
+      expect(result.confidence).toBeGreaterThanOrEqual(0.5);
+    });
+
+    it('should generate network nodes via analyze()', async () => {
+      const segment = makeSegment('The network topology shows connections between hub nodes and peer endpoints in a mesh architecture.');
+      const result = await detector.analyze(segment);
+
+      expect(result.type).toBe('network');
+      // Network should have a central hub and connected nodes
+      expect(result.nodes.length).toBeGreaterThanOrEqual(4);
+      expect(result.edges.length).toBeGreaterThanOrEqual(3);
+    });
+  });
 });
