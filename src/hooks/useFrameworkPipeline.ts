@@ -11,6 +11,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { FrameworkIntegratedPipeline } from '@/pipeline/framework-integrated-pipeline';
 import { PipelineInput, PipelineResult } from '@/pipeline/types';
 import { DEVELOPMENT_CYCLES } from '@/framework/iteration-manager';
+import { MonitoringError } from '@/pipeline/pipeline-errors';
 import { logger } from '@/utils/logger';
 
 /**
@@ -365,7 +366,7 @@ export function useIterationLog() {
       // Frontend implementation complete; backend /api/iteration-log endpoint
       // is managed separately.
       const response = await fetch('/api/iteration-log');
-      if (!response.ok) throw new Error('Failed to fetch iteration log');
+      if (!response.ok) throw new MonitoringError('Failed to fetch iteration log');
 
       const text = await response.text();
       setLog(text);

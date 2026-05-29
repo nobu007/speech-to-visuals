@@ -62,7 +62,8 @@ global.fetch = jest.fn().mockResolvedValue({
   statusText: 'OK',
 });
 
-import { useFrameworkPipeline } from '../../../src/hooks/useFrameworkPipeline';
+import { MonitoringError } from '../../../src/pipeline/pipeline-errors';
+import { useFrameworkPipeline, useIterationLog } from '../../../src/hooks/useFrameworkPipeline';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -425,5 +426,68 @@ describe('useFrameworkPipeline (REQ-137)', () => {
       expect(result.current.iterationHistory[0].status).toBe('failure');
       expect(result.current.executionState.error).toBe('test failure');
     });
+  });
+});
+
+// =========================================================================
+// useIterationLog — MonitoringError migration
+// =========================================================================
+
+describe('useIterationLog', () => {
+  test('should capture error message when fetch returns non-ok response', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+    });
+
+    const { result } = renderHook(() => useIterationLog());
+
+    // Wait for the useEffect-triggered fetch to complete
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 0));
+    });
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.error).toBe('Failed to fetch iteration log');
+  });
+
+  test('should set log text on successful fetch', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: jest.fn().mockResolvedValue('log line 1\nlog line 2'),
+    });
+
+    const { result } = renderHook(() => useIterationLog());
+
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 0));
+    });
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.error).toBeNull();
+    expect(result.current.log).toBe('log line 1\nlog line 2');
+  });
+
+  test('should throw MonitoringError on non-ok response (instanceof check)', async () => {
+    const thrownErrors: Error[] = [];
+    const origFetch = global.fetch;
+
+    // Intercept the MonitoringError by temporarily patching fetch
+    global.fetch = jest.fn().mockImplementation(async () => {
+      throw new MonitoringError('Failed to fetch iteration log');
+    });
+
+    const { result } = renderHook(() => useIterationLog());
+
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 0));
+    });
+
+    expect(result.current.error).toBe('Failed to fetch iteration log');
+    expect(result.current.loading).toBe(false);
+
+    global.fetch = origFetch;
   });
 });

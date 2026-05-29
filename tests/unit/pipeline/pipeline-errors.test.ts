@@ -66,6 +66,18 @@ describe('RenderingError', () => {
     expect(err.errorType).toBe('RENDERING_ERROR');
     expect(err.stage).toBe('rendering');
   });
+
+  it('carries structured context for missing entry point', () => {
+    const err = new RenderingError('Remotion entry point not found: /src/remotion/index.ts', {
+      entryPoint: '/src/remotion/index.ts',
+      projectRoot: '/home/user/project',
+    });
+    expect(err).toBeInstanceOf(PipelineError);
+    expect(err.context).toEqual({
+      entryPoint: '/src/remotion/index.ts',
+      projectRoot: '/home/user/project',
+    });
+  });
 });
 
 describe('QualityGateError', () => {
