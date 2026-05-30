@@ -8,18 +8,41 @@ import React from 'react';
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, Audio } from 'remotion';
 import { SceneGraph } from '@/types/diagram';
 import { DiagramScene } from './DiagramScene';
+import { KeyphraseOverlay, type KeyphraseScene } from './KeyphraseOverlay';
+import { CaptionOverlay } from './CaptionOverlay';
+import type { SrtCaption } from './srt-parser';
 
 /** Video component props */
 export interface VideoProps {
   scenes: SceneGraph[];
   audioUrl?: string;
   backgroundColor?: string;
+  /** Optional SRT captions for subtitle overlay */
+  captions?: SrtCaption[];
+}
+
+/**
+ * Convert SceneGraph[] to KeyphraseScene[] for KeyphraseOverlay.
+ * Computes absolute startMs for each scene from cumulative offsets.
+ */
+export function scenesToKeyphraseScenes(scenes: SceneGraph[]): KeyphraseScene[] {
+  let offset = 0;
+  return scenes.map((scene) => {
+    const entry: KeyphraseScene = {
+      startMs: offset,
+      durationMs: scene.durationMs,
+      keyphrases: scene.keyphrases ?? [],
+    };
+    offset += scene.durationMs;
+    return entry;
+  });
 }
 
 /** Default video properties for Composition defaultProps */
 export const defaultVideoProps: VideoProps = {
   scenes: [],
   backgroundColor: '#0f0f23',
+  captions: [],
 };
 
 /** Default FPS for the composition */
@@ -82,6 +105,7 @@ export const SpeechToVisualsVideo: React.FC<VideoProps> = ({
   scenes,
   audioUrl,
   backgroundColor = '#0f0f23',
+  captions,
 }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
@@ -192,6 +216,16 @@ export const SpeechToVisualsVideo: React.FC<VideoProps> = ({
         >
           Scene {sceneInfo.index + 1} / {scenes.length}
         </div>
+      )}
+
+      {/* Keyphrase overlay — shows scene keyphrases at the top */}
+      {scenes.length > 0 && (
+        <KeyphraseOverlay scenes={scenesToKeyphraseScenes(scenes)} />
+      )}
+
+      {/* Caption overlay — shows SRT subtitles at the bottom */}
+      {captions && captions.length > 0 && (
+        <CaptionOverlay captions={captions} />
       )}
     </AbsoluteFill>
   );
