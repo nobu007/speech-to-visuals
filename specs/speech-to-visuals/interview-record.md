@@ -10,11 +10,40 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-28（第169回検証: Phase 63完了・Phase 64要件定義・エクスポートモジュール型付きエラー移行・ErrorClassifier回帰テスト）
+**最終更新**: 2026-05-30（第170回検証: Phase 70-71完了・Phase 72要件定義・可視化戦略完全化・KeyphraseOverlay統合・importance-aware視覚階層）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
 ## 分析項目と判断
+
+### A170: 第170回検証 - Phase 70-71完了・Phase 72要件定義（2026-05-30）
+
+**分析日時**: 2026-05-30
+**カテゴリ**: 可視化戦略完全化・重要度認識レイアウト・KeyphraseOverlay統合・戦略セレクターE2Eテスト
+**背景**: AI Hubフィードバック「Add an integration test that exercises strategy-selector end-to-end with real SceneGraph data」に対応。直近6コミット（be1dbb5~49462a6）で+2,569行の実装変更を要件定義に反映。
+
+**判断**:
+1. **Phase 70完了**: 11図解タイプ全てに専用レイアウト戦略を登録完了。新戦略: FlowchartStrategy（Dagre上→下）、ComparisonStrategy（2列サイドバイサイド）、GeneralStrategy（スパイラルグリッド）、NetworkStrategy（フォースダイレクト）、ConceptMapStrategy（BFS階層型）、MindMapStrategy（放射状+重要度認識）。importance-scaler モジュール追加（importance 0→0.75倍, 1→1.5倍のスケール）。REQ-182~189として定義。
+2. **Phase 71完了**: KeyphraseOverlay コンポーネント追加（フェードイン/アウト各8フレーム・スタガード描画・最大5キーフレーズ）。Video.tsx に KeyphraseOverlay + CaptionOverlay 統合。パイプライン配線: SceneGraph → RemotionSceneData.keyphrases → KeyphraseOverlay。REQ-190~192として定義。
+3. **Phase 72要件定義**: StrategySelector 全11タイプのE2E統合テスト不在をAI Hub指摘。REQ-193として定義。
+4. **テストカバレッジ**: 新規テスト6ファイル（conceptmap-strategy: 285行、network-strategy: 258行、importance-scaler: 255行、KeyphraseOverlay: 273行、video-overlay-integration: 80行、comparison/flowchart/general各85-91行）。
+
+**根拠**:
+- コミットbe1dbb5: feat(visualization): register flowchart, comparison, and general layout strategies
+- コミット7f30cb3: feat(visualization): add ConceptMapStrategy with hierarchical layout
+- コミットb84f9a5: feat(visualization): add importance-aware layout for mindmap and network diagrams
+- コミット160a34e: feat(remotion): integrate KeyphraseOverlay and CaptionOverlay into main Video composition
+- コミットbcd30f1: feat(visualization): add NetworkStrategy with force-directed layout
+- コミット49462a6: feat(remotion,pipeline): add KeyphraseOverlay component and wire keyphrases
+- テスト結果: 6新規テストファイル全通過
+
+**信頼性への影響**:
+- 新規要件 REQ-182~193 追加（信頼性レベル: 全て🔵）
+- 信頼性レベル分布: 🔵213件(+12)/🟡3件/🔴0件
+- テストファイル数: 305→311（+6テストファイル）
+- コード行数: 106,010→108,579（+2,569行）
+
+---
 
 ### A168: 第168-169回検証 - Phase 61-63完了・Phase 64要件定義（2026-05-28 第169回更新）
 

@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-29（Phase 66完了: REQ-160~174 全criteria green・Phase 67/69 一部完了）
+**最終更新**: 2026-05-30（Phase 71完了: REQ-182~192 全criteria green・Phase 72未着手）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -2869,5 +2869,153 @@
 - [x] **TC-174-02**: cacheHitRate閾値反転バグが修正される 🔵
   - **期待結果**: critical < warning の場合に正しく反転検出
   - **信頼性**: 🔵 *コミット9f4d777より*
+
+---
+
+## REQ-182: StrategySelector 11タイプ全戦略登録 🔵
+
+**信頼性**: 🔵 *src/visualization/strategy-selector.ts・コミットbe1dbb5*
+
+### テストケース
+
+- [x] **TC-182-01**: 11図解タイプ全てに専用戦略が登録されている 🔵
+  - **期待結果**: flow/tree/timeline/matrix/cycle/mindmap/network/conceptmap/flowchart/comparison/general 全て登録済
+  - **信頼性**: 🔵 *strategy-selector.ts より*
+
+---
+
+## REQ-183: MindMapStrategy 放射状レイアウト 🔵
+
+**信頼性**: 🔵 *src/visualization/strategies/mindmap-strategy.ts*
+
+### テストケース
+
+- [x] **TC-183-01**: 放射状レイアウトが生成される 🔵
+  - **期待結果**: ルートノード中心に子ノードが放射状に配置
+  - **信頼性**: 🔵 *mindmap-strategy.ts より*
+
+- [x] **TC-183-02**: 重要度ベースルート選択が動作する 🔵
+  - **期待結果**: 高重要度ノードがルートとして選択される
+  - **信頼性**: 🔵 *コミットb84f9a5 より*
+
+---
+
+## REQ-184: NetworkStrategy フォースダイレクトレイアウト 🔵
+
+**信頼性**: 🔵 *src/visualization/strategies/network-strategy.ts・コミットbcd30f1*
+
+### テストケース
+
+- [x] **TC-184-01**: 確定的フォースダイレクトレイアウトが生成される 🔵
+  - **期待結果**: 乱数不使用・円形初期配置・3フェーズ75反復収束
+  - **信頼性**: 🔵 *tests/visualization/strategies/__tests__/network-strategy.test.ts（258行）より*
+
+---
+
+## REQ-185: ConceptMapStrategy BFS階層型レイアウト 🔵
+
+**信頼性**: 🔵 *src/visualization/strategies/conceptmap-strategy.ts・コミット7f30cb3*
+
+### テストケース
+
+- [x] **TC-185-01**: BFS階層型レイアウトが生成される 🔵
+  - **期待結果**: ルート選択（次数+重要度）・レベル別水平展開・クロスコネクション保持
+  - **信頼性**: 🔵 *tests/visualization/strategies/__tests__/conceptmap-strategy.test.ts（285行）より*
+
+---
+
+## REQ-186: FlowchartStrategy Dagreレイアウト 🔵
+
+**信頼性**: 🔵 *src/visualization/strategies/flowchart-strategy.ts・コミットbe1dbb5*
+
+### テストケース
+
+- [x] **TC-186-01**: Dagre上→下階層レイアウトが生成される 🔵
+  - **期待結果**: プロセスフロー・決定木に最適化された配置
+  - **信頼性**: 🔵 *tests/visualization/strategies/flowchart-layout-strategy.test.ts より*
+
+---
+
+## REQ-187: ComparisonStrategy 2列レイアウト 🔵
+
+**信頼性**: 🔵 *src/visualization/strategies/comparison-strategy.ts・コミットbe1dbb5*
+
+### テストケース
+
+- [x] **TC-187-01**: 2列サイドバイサイドレイアウトが生成される 🔵
+  - **期待結果**: バランス調整された左右カラム・オーバーラップゼロ
+  - **信頼性**: 🔵 *tests/visualization/strategies/comparison-layout-strategy.test.ts より*
+
+---
+
+## REQ-188: GeneralStrategy スパイラルグリッドレイアウト 🔵
+
+**信頼性**: 🔵 *src/visualization/strategies/general-strategy.ts・コミットbe1dbb5*
+
+### テストケース
+
+- [x] **TC-188-01**: 適応型スパイラルグリッド配置が生成される 🔵
+  - **期待結果**: 高接続ノード中心・孤立ノード外周
+  - **信頼性**: 🔵 *tests/visualization/strategies/general-layout-strategy.test.ts より*
+
+---
+
+## REQ-189: importance-scaler モジュール 🔵
+
+**信頼性**: 🔵 *src/visualization/importance-scaler.ts・コミットb84f9a5*
+
+### テストケース
+
+- [x] **TC-189-01**: 全関数が正しく動作する 🔵
+  - **期待結果**: getImportance・importanceSizeScale・importanceWeight・scaledDimensions・isHighImportance・isLowImportance・pickHighestImportance がテスト通過
+  - **信頼性**: 🔵 *tests/visualization/importance-scaler.test.ts（255行）より*
+
+---
+
+## REQ-190: KeyphraseOverlay コンポーネント 🔵
+
+**信頼性**: 🔵 *src/remotion/KeyphraseOverlay.tsx・コミット49462a6*
+
+### テストケース
+
+- [x] **TC-190-01**: キーフレーズタグがアニメーション付きで表示される 🔵
+  - **期待結果**: フェードイン/アウト各8フレーム・スタガード2フレーム遅延・最大5表示
+  - **信頼性**: 🔵 *tests/remotion/__tests__/KeyphraseOverlay.test.tsx（273行）より*
+
+---
+
+## REQ-191: Video KeyphraseOverlay+CaptionOverlay 統合 🔵
+
+**信頼性**: 🔵 *src/remotion/Video.tsx・コミット160a34e*
+
+### テストケース
+
+- [x] **TC-191-01**: KeyphraseOverlayとCaptionOverlayが統合表示される 🔵
+  - **期待結果**: キーフレーズ上部・キャプション下部の同時表示
+  - **信頼性**: 🔵 *tests/remotion/video-overlay-integration.test.ts（80行）より*
+
+---
+
+## REQ-192: キーフレーズパイプライン配線 🔵
+
+**信頼性**: 🔵 *src/pipeline/video-generator.ts・コミット49462a6*
+
+### テストケース
+
+- [x] **TC-192-01**: キーフレーズがSceneGraph→RemotionSceneDataに伝播される 🔵
+  - **期待結果**: RemotionSceneData.keyphrases フィールドにキーフレーズが設定される
+  - **信頼性**: 🔵 *video-generator.ts convertSceneToRemotionFormat() より*
+
+---
+
+## REQ-193: 戦略セレクターE2E統合テスト 🔵
+
+**信頼性**: 🔵 *AI Hubフィードバック・Phase 72未着手*
+
+### テストケース
+
+- [ ] **TC-193-01**: 全11図解タイプのE2Eディスパッチが検証される 🔵
+  - **期待結果**: 実際のSceneGraphデータで全戦略のレイアウト出力にノード・エッジが含まれる
+  - **信頼性**: 🔵 *src/visualization/strategy-selector.ts より*
 
 ---

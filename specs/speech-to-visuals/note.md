@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-28（第167回検証・Phase 60完了・Phase 61-62要件定義・590ファイル・105,842行・105パッケージ(74 deps+31 devDeps)・TypeScriptエラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・1,390+テスト（190テストファイル）・201要件（REQ-001~164+NFR+EDGE）・ErrorClassifier統合完了・パイプライン型付きエラー21箇所完了・品質モジュール8箇所要移行）
+**最終更新**: 2026-05-30（第170回検証・Phase 71完了・Phase 72未着手・358ソースファイル・108,579行・104パッケージ(74 deps+31 devDeps)・TypeScriptエラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・311テストファイル・213要件（REQ-001~193+NFR+EDGE）・11図解タイプ専用戦略完了・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・パイプライン型付きエラー完全化）
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム
 
 ## 技術スタック

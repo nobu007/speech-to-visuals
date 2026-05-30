@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 66 ✅完了・Phase 67/69 一部完了（可視化9箇所+文字起こし9箇所の型付きエラー移行）・358ソースファイル・106,010行・1040パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト305ファイル・npm audit 0件・図解タイプ拡張（5→11種）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー21箇所完了・品質モジュール8箇所完了・エクスポートモジュール12箇所完了・残存モジュール7箇所完了・可視化9箇所完了・文字起こし9箇所完了・残存raw Error throw 4箇所（API:3・hooks:1）
+**実装状況**: Phase 71 ✅完了・358ソースファイル・108,579行・104パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・テスト311ファイル・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -399,6 +399,27 @@
 - REQ-180: システムは visualization モジュール（src/visualization/）内の残存するraw Error throw を型付きエラークラスに置換しなければならない 🔵 ✅実装済 *コミット4704e3fで5ファイル9箇所のVisualizationError置換完了（complex-layout-engine:4・OverlapResolver:1・TreeLayoutStrategy:1・base-strategy:1・ILayoutStrategy:1）*
 - REQ-181: システムは API モジュール（src/api/）内の残存する3箇所の raw Error throw を既存の型付きエラークラスに置換しなければならない。対象: server.ts（1箇所: セキュリティ設定エラー）、websocket-handler.ts（1箇所: JWT秘密鍵未設定）、middleware/auth.ts（1箇所: JWT秘密鍵未設定） 🔵 🔲未着手 *src/api/3ファイル3箇所の raw Error throw より*
 
+#### 可視化戦略完全化・重要度認識レイアウト（Phase 70） ✅完了
+
+- REQ-182: システムは StrategySelector に11種類全ての図解タイプ（flow/tree/timeline/matrix/cycle/mindmap/network/conceptmap/flowchart/comparison/general）の専用レイアウト戦略を登録し、図解タイプに応じて最適な戦略を自動選択してノード配置を計算しなければならない 🔵 ✅実装済 *src/visualization/strategy-selector.ts 全11タイプ登録・コミットbe1dbb5*
+- REQ-183: システムは MindMapStrategy により放射状レイアウトアルゴリズムを提供し、ルートノード選択に重要度スコアを活用し、ブランチ角度配分を接続数に基づいて最適化し、全ノードのオーバーラップゼロを保証しなければならない 🔵 ✅実装済 *src/visualization/strategies/mindmap-strategy.ts・コミット27e4552+b84f9a5*
+- REQ-184: システムは NetworkStrategy により確定的フォースダイレクトレイアウトを提供し、円形初期配置（乱数不使用）・3フェーズ収束（計75反復）・重要度ベース中心距離配置により、ネットワーク図のノード配置を計算しなければならない 🔵 ✅実装済 *src/visualization/strategies/network-strategy.ts・コミットbcd30f1+b84f9a5*
+- REQ-185: システムは ConceptMapStrategy によりBFSベースの階層型レイアウトを提供し、ルートノードを次数+重要度スコアの複合で選択し、レベル別水平展開・クロスコネクションエッジ保持・重要度ベースノードサイズ調整（0.75-1.5倍）を実行しなければならない 🔵 ✅実装済 *src/visualization/strategies/conceptmap-strategy.ts・コミット7f30cb3*
+- REQ-186: システムは FlowchartStrategy によりDagreライブラリベースの上→下階層レイアウトを提供し、プロセスフロー・決定木の図解に最適化された配置を生成しなければならない 🔵 ✅実装済 *src/visualization/strategies/flowchart-strategy.ts・コミットbe1dbb5*
+- REQ-187: システムは ComparisonStrategy により2列サイドバイサイドレイアウトを提供し、ノードをバランス調整された左右カラムに分割し、オーバーラップゼロを保証しなければならない 🔵 ✅実装済 *src/visualization/strategies/comparison-strategy.ts・コミットbe1dbb5*
+- REQ-188: システムは GeneralStrategy により適応型エッジ認識スパイラルグリッド配置を提供し、接続数の多いノードを中心に、孤立ノードを外周に配置し、汎用図解に最適化された配置を生成しなければならない 🔵 ✅実装済 *src/visualization/strategies/general-strategy.ts・コミットbe1dbb5*
+- REQ-189: システムは importance-scaler モジュールにより node.meta.importance（0-1スケール）から視覚プロパティを導出する機能を提供し、getImportance・importanceSizeScale・importanceWeight・scaledDimensions・isHighImportance・isLowImportance・pickHighestImportance の各関数を公開しなければならない。スケール範囲は importance 0→0.75倍、importance 1→1.5倍とすること 🔵 ✅実装済 *src/visualization/importance-scaler.ts・コミットb84f9a5*
+
+#### KeyphraseOverlay・CaptionOverlay 動画統合（Phase 71） ✅完了
+
+- REQ-190: システムは KeyphraseOverlay コンポーネントによりシーンキーワードをアニメーション付きタグとして動画上部に表示し、フェードイン/アウト（各8フレーム）・スタガード描画（各タグ2フレーム遅延）・最大5キーフレーズ表示を実行しなければならない 🔵 ✅実装済 *src/remotion/KeyphraseOverlay.tsx・コミット49462a6*
+- REQ-191: システムは Video コンポーネントに KeyphraseOverlay と CaptionOverlay を統合し、captions プロパティ経由でSRTキャプションを下部に、キーフレーズを上部に同時表示し、scenesToKeyphraseScenes マッパーで累積オフセット計算を行わなければならない 🔵 ✅実装済 *src/remotion/Video.tsx・コミット160a34e*
+- REQ-192: システムはキーフレーズデータを SceneSegmenter → SceneGraph → RemotionSceneData → KeyphraseOverlay の経路で伝播させ、VideoGenerator.convertSceneToRemotionFormat() で RemotionSceneData.keyphrases フィールドに設定しなければならない 🔵 ✅実装済 *src/pipeline/video-generator.ts・コミット49462a6*
+
+#### 戦略セレクター統合テスト（Phase 72） 🔲未着手
+
+- REQ-193: システムは StrategySelector の全11図解タイプに対するエンドツーエンド統合テストを提供し、実際の SceneGraph データで全登録戦略のディスパッチが正しく動作することを検証しなければならない 🔵 🔲未着手 *AI Hub フィードバック・src/visualization/strategy-selector.ts より*
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より*
@@ -562,14 +583,17 @@
 | Phase 67: 文字起こしモジュール型付きエラー移行 | 🔶一部完了 | REQ-175~176 | 1/2（コミット4704e3fで9箇所TranscriptionError置換完了・REQ-176回帰テスト未着手） |
 | Phase 68: 文字起こしモジュールテストカバレッジ拡充 | 🔲未着手 | REQ-177~179 | 0/3 |
 | Phase 69: 可視化・API モジュール型付きエラー移行 | 🔶一部完了 | REQ-180~181 | 1/2（コミット4704e3fで9箇所VisualizationError置換完了・REQ-181 API 3箇所未着手） |
+| Phase 70: 可視化戦略完全化・重要度認識レイアウト | ✅完了 | REQ-182~189 | 8/8（11図解タイプ専用戦略登録完了・importance-scaler モジュール・コミットbe1dbb5~27e4552） |
+| Phase 71: KeyphraseOverlay・CaptionOverlay 動画統合 | ✅完了 | REQ-190~192 | 3/3（KeyphraseOverlay・Video統合・パイプライン配線・コミット49462a6~160a34e） |
+| Phase 72: 戦略セレクター統合テスト | 🔲未着手 | REQ-193 | 0/1（AI Hubフィードバック指摘・strategy-selector E2Eテスト） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 201件 (96.6%)
+- 🔵 青信号: 213件 (97.3%)
 - 🟡 黄信号: 3件 (1.4%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 66完了・Phase 67/69一部完了（REQ-001~181）・TypeScript型エラー0件・パイプライン型付きエラー21箇所+品質8箇所+エクスポート12箇所+残存7箇所+可視化9箇所+文字起こし9箇所完了・残存raw Error throw 4箇所（API:3・hooks:1）
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 71完了・Phase 72未着手（REQ-001~193）・11図解タイプ専用戦略完了・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・TypeScript型エラー0件・パイプライン型付きエラー完全化
 
 ## Acceptance criteria
 
@@ -580,6 +604,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 66 を網羅し、Phase 66 完了・Phase 67/69 一部完了（可視化+文字起こし型付きエラー移行）を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 72 を網羅し、Phase 71 完了・Phase 72 未着手（戦略セレクターE2Eテスト）を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテゴリに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第169回: 🔵209件/🟡3件/🔴0件 — Phase 63完了・Phase 64要件定義・REQ-001~169・192テストファイル）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第170回: 🔵213件/🟡3件/🔴0件 — Phase 71完了・Phase 72未着手・REQ-001~193・311テストファイル）
