@@ -142,6 +142,17 @@ export class LLMService {
   // Rate limiting configuration (Phase 30: Optimized for faster processing)
   private readonly MIN_REQUEST_INTERVAL = 200; // 200ms between requests (reduced from 500ms for 60% speed improvement)
 
+  // Retry backoff configuration
+  private readonly BACKOFF_BASE_DELAY_MS = 1000;    // 1 second base delay
+  private readonly BACKOFF_MAX_DELAY_MS = 32000;    // 32 seconds max delay
+  private readonly BACKOFF_JITTER_FACTOR = 0.3;     // 30% random jitter
+
+  // Adaptive timeout configuration
+  private readonly TIMEOUT_DEFAULT_MS = 30000;       // 30 seconds default timeout
+  private readonly TIMEOUT_MIN_MS = 15000;           // 15 seconds minimum timeout
+  private readonly TIMEOUT_MAX_MS = 60000;           // 60 seconds maximum timeout
+  private readonly TIMEOUT_P95_BUFFER = 1.5;         // P95 + 50% buffer
+
   constructor(apiKey?: string, options?: {
     cacheSize?: number;
     cacheTTL?: number;
@@ -520,7 +531,7 @@ export class LLMService {
 
     // Add timeout wrapper
     const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Request timeout')), timeout)
+      setTimeout(() => reject(new LLMResponseError('Request timeout')), timeout)
     );
 
     const result = await Promise.race([
@@ -560,7 +571,7 @@ export class LLMService {
   ): Promise<{ text: string; usage?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number } }> {
 
     const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Request timeout')), timeout)
+      setTimeout(() => reject(new LLMResponseError('Request timeout')), timeout)
     );
 
     let fullText = '';
@@ -638,12 +649,13 @@ export class LLMService {
   private async waitForBackoff(attempt: number): Promise<void> {
     if (attempt === 0) return;
 
-    const baseDelay = 1000; // 1 second
-    const maxDelay = 32000; // 32 seconds
-    const delay = Math.min(baseDelay * Math.pow(2, attempt - 1), maxDelay);
+    const delay = Math.min(
+      this.BACKOFF_BASE_DELAY_MS * Math.pow(2, attempt - 1),
+      this.BACKOFF_MAX_DELAY_MS,
+    );
 
     // Add jitter to prevent thundering herd
-    const jitter = Math.random() * 0.3 * delay;
+    const jitter = Math.random() * this.BACKOFF_JITTER_FACTOR * delay;
     const finalDelay = delay + jitter;
 
     await new Promise(resolve => setTimeout(resolve, finalDelay));
@@ -654,12 +666,8 @@ export class LLMService {
    * Uses P95 (95th percentile) for robust timeout estimation
    */
   private getAdaptiveTimeout(): number {
-    const DEFAULT_TIMEOUT = 30000; // 30 seconds
-    const MIN_TIMEOUT = 15000; // 15 seconds
-    const MAX_TIMEOUT = 60000; // 60 seconds
-
     if (this.responseTimeHistory.length === 0) {
-      return DEFAULT_TIMEOUT;
+      return this.TIMEOUT_DEFAULT_MS;
     }
 
     // Calculate P95
@@ -667,8 +675,11 @@ export class LLMService {
     const p95Index = Math.ceil(sorted.length * 0.95) - 1;
     const p95ResponseTime = sorted[Math.max(0, p95Index)];
 
-    // Use P95 + 50% buffer as timeout
-    const adaptiveTimeout = Math.max(MIN_TIMEOUT, Math.min(MAX_TIMEOUT, p95ResponseTime * 1.5));
+    // Use P95 + buffer as timeout
+    const adaptiveTimeout = Math.max(
+      this.TIMEOUT_MIN_MS,
+      Math.min(this.TIMEOUT_MAX_MS, p95ResponseTime * this.TIMEOUT_P95_BUFFER),
+    );
 
     return Math.round(adaptiveTimeout);
   }
