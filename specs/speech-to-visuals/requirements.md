@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 73 ✅完了・373ソースファイル・212テストファイル・104パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了
+**実装状況**: Phase 68 ✅完了・373ソースファイル・215テストファイル・104パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -383,16 +383,16 @@
 - REQ-173: システムは production-error-handler.ts（638行）のコア機能（エラー分類・重要度判定・エラー通知・フォールバック戦略）に対する専用ユニットテストを提供しなければならない 🔵 ✅実装済 *tests/unit/monitoring/production-error-handler.test.ts（705行・69テスト）*
 - REQ-174: システムは real-time-performance-monitor.ts（616行）のコア機能（リアルタイムメトリクス収集・P50/P95/P99計算・アラート閾値監視）に対する専用ユニットテストを提供しなければならない 🔵 ✅実装済 *tests/unit/monitoring/real-time-performance-monitor.test.ts（639行・48テスト）・cacheHitRate閾値反転バグ修正*
 
-#### 文字起こしモジュール型付きエラー移行（Phase 67） 🔶一部完了
+#### 文字起こしモジュール型付きエラー移行（Phase 67） ✅完了
 
-- REQ-175: システムは transcription モジュール（src/transcription/）内の残存するraw Error throw を型付きエラークラスに置換しなければならない 🔵 🔶一部実装済 *コミット4704e3fで5ファイル9箇所のTranscriptionError置換完了（browser-transcriber:1・srt-generator:2・whisper-transcriber:2・transcriber:3・streaming-transcriber:1）*
-- REQ-176: システムは transcription モジュールの raw Error 置換後、ErrorClassifier が新しい型付きエラーを正確に分類できることを検証する回帰テストを提供しなければならない 🔵 🔲未着手 *tests/integration/transcription-typed-errors.test.ts より*
+- REQ-175: システムは transcription モジュール（src/transcription/）内の残存するraw Error throw を型付きエラークラスに置換しなければならない 🔵 ✅実装済 *コミット4704e3fで5ファイル9箇所のTranscriptionError置換完了（browser-transcriber:1・srt-generator:2・whisper-transcriber:2・transcriber:3・streaming-transcriber:1）*
+- REQ-176: システムは transcription モジュールの raw Error 置換後、ErrorClassifier が新しい型付きエラーを正確に分類できることを検証する回帰テストを提供しなければならない 🔵 ✅実装済 *tests/integration/transcription-typed-errors.test.ts（254行・17テスト）・TranscriptionError/FileSizeExceededError両方の分類検証完了*
 
-#### 文字起こしモジュールテストカバレッジ拡充（Phase 68）
+#### 文字起こしモジュールテストカバレッジ拡充（Phase 68） ✅完了
 
-- REQ-177: システムは browser-transcriber.ts のコア機能（Web Speech API統合・リアルタイム認識・ブラウザ互換性チェック）に対する専用ユニットテストを提供しなければならない 🔵 *src/transcription/browser-transcriber.ts より*
-- REQ-178: システムは whisper-transcriber.ts のコア機能（Whisper API連携・音声ファイル処理・タイムスタンプ付き文字起こし）に対する専用ユニットテストを提供しなければならない 🔵 *src/transcription/whisper-transcriber.ts より*
-- REQ-179: システムは streaming-transcriber.ts のコア機能（ストリーミング認識・チャンク処理・エラー回復）に対する専用ユニットテストを提供しなければならない 🔵 *src/transcription/streaming-transcriber.ts より*
+- REQ-177: システムは browser-transcriber.ts のコア機能（Web Speech API統合・リアルタイム認識・ブラウザ互換性チェック）に対する専用ユニットテストを提供しなければならない 🔵 ✅実装済 *tests/transcription/browser-transcriber.test.ts（25テスト）・start/stop/pause/resume・コールバック・互換性検出・ファイル文字起こしフォールバック*
+- REQ-178: システムは whisper-transcriber.ts のコア機能（Whisper API連携・音声ファイル処理・タイムスタンプ付き文字起こし）に対する専用ユニットテストを提供しなければならない 🔵 ✅実装済 *tests/transcription/whisper-transcriber.test.ts（20テスト）・フォールバック文字起こし・音声検証・破損検出・SRT生成・言語検出・capabilities*
+- REQ-179: システムは streaming-transcriber.ts のコア機能（ストリーミング認識・チャンク処理・エラー回復）に対する専用ユニットテストを提供しなければならない 🔵 ✅実装済 *tests/transcription/streaming-transcriber.test.ts（16テスト）・コンストラクタ検証・品質監視API・設定管理・ライブ文字起こしライフサイクル*
 
 #### 可視化・API モジュール型付きエラー移行（Phase 69） ✅完了
 
@@ -584,8 +584,8 @@
 | Phase 64: エクスポートモジュールテストカバレッジ拡充 | ✅完了 | REQ-167~169 | 3/3（enhanced-export-engine 42テスト・multi-format-exporter 39テスト・production-exporter 37テスト・118テスト全通過） |
 | Phase 65: 残存モジュール型付きエラー移行 | ✅完了 | REQ-170~171 | 2/2（7箇所 raw Error 置換・MonitoringError 追加・ErrorClassifier 回帰テスト12件） |
 | Phase 66: モニタリングモジュールテストカバレッジ拡充 | ✅完了 | REQ-172~174 | 3/3（performance-dashboard 27テスト・production-error-handler 40テスト・real-time-performance-monitor 39テスト・計106テスト全通過） |
-| Phase 67: 文字起こしモジュール型付きエラー移行 | 🔶一部完了 | REQ-175~176 | 1/2（コミット4704e3fで9箇所TranscriptionError置換完了・REQ-176回帰テスト未着手） |
-| Phase 68: 文字起こしモジュールテストカバレッジ拡充 | 🔲未着手 | REQ-177~179 | 0/3 |
+| Phase 67: 文字起こしモジュール型付きエラー移行 | ✅完了 | REQ-175~176 | 2/2（TranscriptionError 9箇所置換・ErrorClassifier回帰テスト17件） |
+| Phase 68: 文字起こしモジュールテストカバレッジ拡充 | ✅完了 | REQ-177~179 | 3/3（browser-transcriber 25テスト・whisper-transcriber 20テスト・streaming-transcriber 16テスト） |
 | Phase 69: 可視化・API モジュール型付きエラー移行 | ✅完了 | REQ-180~181 | 2/2（VisualizationError 9箇所+API PipelineConfigError 3箇所・全置換完了） |
 | Phase 70: 可視化戦略完全化・重要度認識レイアウト | ✅完了 | REQ-182~189 | 8/8（11図解タイプ専用戦略登録完了・importance-scaler モジュール・コミットbe1dbb5~27e4552） |
 | Phase 71: KeyphraseOverlay・CaptionOverlay 動画統合 | ✅完了 | REQ-190~192 | 3/3（KeyphraseOverlay・Video統合・パイプライン配線・コミット49462a6~160a34e） |
@@ -598,7 +598,7 @@
 - 🟡 黄信号: 3件 (1.4%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 73完了（REQ-001~194）・11図解タイプ専用戦略完了・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・TypeScript型エラー0件・パイプライン型付きエラー完全化・戦略セレクターE2E統合テスト完了・StreamingTranscriber入力堅牢性完了
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 68完了（REQ-001~179）・11図解タイプ専用戦略完了・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・TypeScript型エラー0件・パイプライン型付きエラー完全化・戦略セレクターE2E統合テスト完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了
 
 ## Acceptance criteria
 
@@ -609,6 +609,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 73 を網羅し、Phase 73 完了（StreamingTranscriber入力堅牢性）を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 68 を網羅し、Phase 68 完了（文字起こしモジュールテストカバレッジ拡充）を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテキュリティに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第172回: 🔵214件/🟡3件/🔴0件 — Phase 73完了・REQ-001~194・212テストファイル）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第173回: 🔵214件/🟡3件/🔴0件 — Phase 68完了・REQ-001~179・215テストファイル）
