@@ -10,11 +10,42 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-30（第172回検証: Phase 73完了・StreamingTranscriber入力堅牢性・Phase 67-68未着手）
+**最終更新**: 2026-05-31（第173回検証: Phase 73完了・spec-code整合性検証・メトリクス更新）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
 ## 分析項目と判断
+
+### A172: 第172回検証 - spec-code整合性検証・メトリクス修正（2026-05-31）
+
+**分析日時**: 2026-05-31
+**カテゴリ**: spec-code整合性検証・メトリクス更新
+**背景**: kairo-requirements 要件整理として、既存要件定義書と実装コードの整合性を検証。AI Hubフィードバック「spec-code divergence を避けるため、open REQs をコードで close する」に対応する事前確認。
+
+**判断**:
+1. **メトリクス修正**: 以下の差分を検出・修正:
+   - ソースファイル: 373→372（-1）
+   - テストファイル: 212→325（+113、tests/ 216 + src/ 109 の合計に修正）
+   - 依存パッケージ: 104→105（+1、74 deps + 31 devDeps）
+   - ソース行数: 初追記 109,639行
+   - TypeScriptエラー: 0件 ✅
+2. **全受入基準**: チェック済（未チェック項目なし） ✅
+3. **全要件**: REQ-001~194+NFR+EDGE 計214件、全て実装済マーク ✅
+4. **spec-code整合性**: 全主要モジュール（transcription/monitoring/visualization/quality/optimization/api/config/export/workers）に対応REQ存在 ✅
+5. **Phase進捗**: Phase 1~73 全て ✅完了
+
+**根拠**:
+- `find src -name '*.ts' -o -name '*.tsx' | wc -l` = 372
+- `find . -name '*.test.ts' -o -name '*.test.tsx'` = 325 (tests/ 216 + src/ 109)
+- `package.json` deps: 74, devDeps: 31, total: 105
+- `npx tsc -p tsconfig.app.json --noEmit` = 0 errors
+- Grep検索: acceptance-criteria.md に `- \[ \]` 未チェック項目なし
+
+**信頼性への影響**:
+- 信頼性レベル分布に変化なし: 🔵214件/🟡3件/🔴0件
+- メトリクスの正確性が向上（spec-code整合性確保）
+
+---
 
 ### A171: 第171回検証 - Phase 73完了・StreamingTranscriber入力堅牢性（2026-05-30）
 
