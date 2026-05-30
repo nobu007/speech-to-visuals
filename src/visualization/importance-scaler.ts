@@ -12,6 +12,7 @@
  */
 
 import { NodeDatum } from '@/types/diagram';
+import { VisualizationError } from '@/pipeline/pipeline-errors';
 
 /** Minimum importance value (assigned when no importance is specified) */
 const DEFAULT_IMPORTANCE = 0.5;
@@ -94,7 +95,7 @@ export function isLowImportance(node: NodeDatum): boolean {
  */
 export function pickHighestImportance(nodes: NodeDatum[]): NodeDatum {
   if (nodes.length === 0) {
-    throw new Error('Cannot pick from empty node list');
+    throw new VisualizationError('Cannot pick from empty node list');
   }
   let best = nodes[0];
   let bestImp = getImportance(best);

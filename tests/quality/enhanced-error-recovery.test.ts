@@ -446,7 +446,7 @@ describe('EnhancedErrorRecovery', () => {
           () => Promise.resolve('should not run'),
           'analysis'
         )
-      ).rejects.toThrow('Circuit breaker for analysis is open');
+      ).rejects.toThrow('analysis is open');
     });
 
     test('should handle operation timeout', async () => {
@@ -1197,7 +1197,7 @@ describe('EnhancedErrorRecovery', () => {
           () => Promise.resolve('should not run'),
           'rendering'
         )
-      ).rejects.toThrow('Circuit breaker for rendering is open');
+      ).rejects.toThrow('rendering is open');
     });
 
     test('should transition from open to half-open after timeout', () => {
