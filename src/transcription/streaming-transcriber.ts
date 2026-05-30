@@ -47,6 +47,39 @@ export class StreamingTranscriber {
   private qualityMonitor: StreamingQualityMonitor | null = null;
 
   constructor(config: StreamingTranscriptionConfig = {}) {
+    // Validate chunkSizeMs
+    if (config.chunkSizeMs !== undefined) {
+      if (config.chunkSizeMs <= 0 || config.chunkSizeMs > 60000) {
+        throw new TranscriptionError(
+          `chunkSizeMs must be > 0 and <= 60000, got ${config.chunkSizeMs}`
+        );
+      }
+    }
+
+    // Validate minConfidence
+    if (config.minConfidence !== undefined) {
+      if (config.minConfidence < 0 || config.minConfidence > 1) {
+        throw new TranscriptionError(
+          `minConfidence must be between 0 and 1, got ${config.minConfidence}`
+        );
+      }
+    }
+
+    // Validate overlapMs
+    const effectiveChunkSize = config.chunkSizeMs ?? 3000;
+    if (config.overlapMs !== undefined) {
+      if (config.overlapMs < 0) {
+        throw new TranscriptionError(
+          `overlapMs must be >= 0, got ${config.overlapMs}`
+        );
+      }
+      if (config.overlapMs >= effectiveChunkSize) {
+        throw new TranscriptionError(
+          `overlapMs (${config.overlapMs}) must be less than chunkSizeMs (${effectiveChunkSize})`
+        );
+      }
+    }
+
     this.config = {
       chunkSizeMs: 3000,        // 3 second chunks
       overlapMs: 500,           // 0.5 second overlap

@@ -248,6 +248,69 @@ describe('StreamingTranscriber', () => {
       }
       expect(transcriber.isStreamingActive()).toBe(false);
     });
+
+    // --- Parameter validation tests ---
+
+    it('throws TranscriptionError when chunkSizeMs is zero', async () => {
+      await loadModule();
+      expect(() => new StreamingTranscriberModule.StreamingTranscriber({ chunkSizeMs: 0 }))
+        .toThrow('chunkSizeMs');
+    });
+
+    it('throws TranscriptionError when chunkSizeMs is negative', async () => {
+      await loadModule();
+      expect(() => new StreamingTranscriberModule.StreamingTranscriber({ chunkSizeMs: -100 }))
+        .toThrow('chunkSizeMs');
+    });
+
+    it('throws TranscriptionError when chunkSizeMs exceeds 60000', async () => {
+      await loadModule();
+      expect(() => new StreamingTranscriberModule.StreamingTranscriber({ chunkSizeMs: 70000 }))
+        .toThrow('chunkSizeMs');
+    });
+
+    it('throws TranscriptionError when overlapMs is negative', async () => {
+      await loadModule();
+      expect(() => new StreamingTranscriberModule.StreamingTranscriber({ overlapMs: -10 }))
+        .toThrow('overlapMs');
+    });
+
+    it('throws TranscriptionError when overlapMs >= chunkSizeMs', async () => {
+      await loadModule();
+      expect(() => new StreamingTranscriberModule.StreamingTranscriber({ chunkSizeMs: 3000, overlapMs: 3000 }))
+        .toThrow('overlapMs');
+    });
+
+    it('throws TranscriptionError when minConfidence is negative', async () => {
+      await loadModule();
+      expect(() => new StreamingTranscriberModule.StreamingTranscriber({ minConfidence: -0.1 }))
+        .toThrow('minConfidence');
+    });
+
+    it('throws TranscriptionError when minConfidence exceeds 1', async () => {
+      await loadModule();
+      expect(() => new StreamingTranscriberModule.StreamingTranscriber({ minConfidence: 1.5 }))
+        .toThrow('minConfidence');
+    });
+
+    it('accepts valid config at boundary values', async () => {
+      await loadModule();
+      // chunkSizeMs = 1 (min), overlapMs = 0 (min), minConfidence = 0 (min)
+      const transcriber1 = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 1,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+      expect(transcriber1.getConfig().chunkSizeMs).toBe(1);
+
+      // chunkSizeMs = 60000 (max), minConfidence = 1 (max)
+      const transcriber2 = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 60000,
+        overlapMs: 59999,
+        minConfidence: 1,
+      });
+      expect(transcriber2.getConfig().chunkSizeMs).toBe(60000);
+    });
   });
 
   // ------------------------------------------------
