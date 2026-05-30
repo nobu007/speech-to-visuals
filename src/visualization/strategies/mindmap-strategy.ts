@@ -1,6 +1,7 @@
 import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
+import { getImportance, importanceSizeScale } from '../importance-scaler';
 
 const DEFAULT_NODE_WIDTH = 120;
 const DEFAULT_NODE_HEIGHT = 60;
@@ -39,8 +40,9 @@ export class MindMapStrategy implements LayoutStrategy {
     }
 
     if (nodes.length === 1) {
-      const w = nodes[0].width ?? DEFAULT_NODE_WIDTH;
-      const h = nodes[0].height ?? DEFAULT_NODE_HEIGHT;
+      const scale = importanceSizeScale(nodes[0]);
+      const w = Math.round((nodes[0].width ?? DEFAULT_NODE_WIDTH) * scale);
+      const h = Math.round((nodes[0].height ?? DEFAULT_NODE_HEIGHT) * scale);
       const positioned: PositionedNode[] = [{
         ...nodes[0],
         x: (DEFAULT_CANVAS_WIDTH - w) / 2,
@@ -68,7 +70,7 @@ export class MindMapStrategy implements LayoutStrategy {
     return nodes.length * Math.log2(Math.max(nodes.length, 2));
   }
 
-  /** Find the root node: the one with the most outgoing connections, or first node. */
+  /** Find the root node: highest combined degree + importance score, or first node. */
   private findRoot(nodes: NodeDatum[], edges: EdgeDatum[]): string {
     const degree = new Map<string, number>();
     for (const node of nodes) {
@@ -78,10 +80,16 @@ export class MindMapStrategy implements LayoutStrategy {
       degree.set(edge.from, (degree.get(edge.from) ?? 0) + 1);
       degree.set(edge.to, (degree.get(edge.to) ?? 0) + 1);
     }
+
+    // Combined score: degree * importance weight (importance range 0.5-1.0 acts as multiplier)
     let best = nodes[0].id;
-    let bestDeg = -1;
+    let bestScore = -1;
+    const nodeMap = new Map(nodes.map(n => [n.id, n]));
     for (const [id, d] of degree) {
-      if (d > bestDeg) { bestDeg = d; best = id; }
+      const node = nodeMap.get(id);
+      const imp = node ? getImportance(node) : 0.5;
+      const score = d * (0.5 + imp); // importance boosts degree
+      if (score > bestScore) { bestScore = score; best = id; }
     }
     return best;
   }
@@ -138,13 +146,22 @@ export class MindMapStrategy implements LayoutStrategy {
       return this.positionFallback(nodes, positions);
     }
 
-    // Assign angular sectors to each branch
+    // Assign angular sectors to each branch, weighted by importance
     const totalBranches = rootChildren.length;
-    const sectorAngle = (2 * Math.PI) / totalBranches;
+    const nodeMap2 = new Map(nodes.map(n => [n.id, n]));
+    const branchWeights = rootChildren.map(id => {
+      const n = nodeMap2.get(id);
+      return n ? importanceSizeScale(n) : 1;
+    });
+    const totalWeight = branchWeights.reduce((a, b) => a + b, 0);
 
+    let angleCursor = -Math.PI / 2; // Start from top
     for (let i = 0; i < totalBranches; i++) {
       const branchRoot = rootChildren[i];
-      const baseAngle = sectorAngle * i - Math.PI / 2; // Start from top
+      const sectorAngle = (2 * Math.PI * branchWeights[i]) / totalWeight;
+      const baseAngle = angleCursor + sectorAngle / 2;
+      angleCursor += sectorAngle;
+
       const branchDescendants = this.countDescendants(branchRoot, tree);
       const branchRadius = CENTER_MARGIN + Math.sqrt(branchDescendants + 1) * BRANCH_SPACING;
 
@@ -169,8 +186,9 @@ export class MindMapStrategy implements LayoutStrategy {
 
     return nodes.map(node => {
       const pos = positions.get(node.id)!;
-      const w = nodeMap.get(node.id)?.width ?? node.width ?? DEFAULT_NODE_WIDTH;
-      const h = nodeMap.get(node.id)?.height ?? node.height ?? DEFAULT_NODE_HEIGHT;
+      const scale = importanceSizeScale(node);
+      const w = Math.round((nodeMap.get(node.id)?.width ?? node.width ?? DEFAULT_NODE_WIDTH) * scale);
+      const h = Math.round((nodeMap.get(node.id)?.height ?? node.height ?? DEFAULT_NODE_HEIGHT) * scale);
       return { ...node, x: pos.x - w / 2, y: pos.y - h / 2, width: w, height: h };
     });
   }

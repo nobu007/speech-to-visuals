@@ -14,6 +14,7 @@
 import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
+import { getImportance, importanceSizeScale } from '../importance-scaler';
 
 const DEFAULT_NODE_WIDTH = 120;
 const DEFAULT_NODE_HEIGHT = 60;
@@ -56,16 +57,21 @@ export class NetworkStrategy implements LayoutStrategy {
     return nodes.length * nodes.length;
   }
 
-  /** Place nodes evenly on a circle centred on the canvas. */
+  /** Place nodes on a circle centred on the canvas.
+   *  High-importance nodes are placed closer to center (smaller radius). */
   private initializeCircle(nodes: NodeDatum[]): PositionedNode[] {
     const cx = DEFAULT_CANVAS_WIDTH / 2;
     const cy = DEFAULT_CANVAS_HEIGHT / 2;
-    const radius = Math.min(cx, cy) * 0.6;
+    const maxRadius = Math.min(cx, cy) * 0.6;
 
     return nodes.map((node, i) => {
       const angle = (2 * Math.PI * i) / nodes.length;
-      const w = node.width ?? DEFAULT_NODE_WIDTH;
-      const h = node.height ?? DEFAULT_NODE_HEIGHT;
+      // Important nodes get a smaller radius (closer to center)
+      const imp = getImportance(node);
+      const radius = maxRadius * (1.2 - imp * 0.5); // 0.7–1.2 multiplier
+      const scale = importanceSizeScale(node);
+      const w = Math.round((node.width ?? DEFAULT_NODE_WIDTH) * scale);
+      const h = Math.round((node.height ?? DEFAULT_NODE_HEIGHT) * scale);
       return {
         ...node,
         x: cx + radius * Math.cos(angle) - w / 2,
@@ -95,7 +101,7 @@ export class NetworkStrategy implements LayoutStrategy {
     const forces = new Map<string, { x: number; y: number }>();
     for (const n of nodes) forces.set(n.id, { x: 0, y: 0 });
 
-    // Repulsive forces between every pair
+    // Repulsive forces between every pair (importance-weighted)
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
         const a = nodes[i];
@@ -107,7 +113,9 @@ export class NetworkStrategy implements LayoutStrategy {
         const dx = bx - ax;
         const dy = by - ay;
         const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-        const force = repulsionK / (dist * dist);
+        // Important nodes repel more strongly
+        const impScale = 0.7 + 0.6 * (getImportance(a) + getImportance(b)) / 2;
+        const force = (repulsionK * impScale) / (dist * dist);
         const fx = (dx / dist) * force;
         const fy = (dy / dist) * force;
         forces.get(a.id)!.x -= fx;
@@ -117,7 +125,7 @@ export class NetworkStrategy implements LayoutStrategy {
       }
     }
 
-    // Attractive forces along edges
+    // Attractive forces along edges (importance-weighted)
     const nodeMap = new Map(nodes.map(n => [n.id, n]));
     for (const edge of edges) {
       const src = nodeMap.get(edge.from);
@@ -130,7 +138,9 @@ export class NetworkStrategy implements LayoutStrategy {
       const dx = tx - sx;
       const dy = ty - sy;
       const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-      const force = attractionK * (dist - NODE_SEP * 2);
+      // Edges involving important nodes attract more strongly
+      const impScale = 0.8 + 0.4 * Math.max(getImportance(src), getImportance(tgt));
+      const force = attractionK * impScale * (dist - NODE_SEP * 2);
       const fx = (dx / dist) * force;
       const fy = (dy / dist) * force;
       forces.get(src.id)!.x += fx;
