@@ -10,6 +10,7 @@ import { MatrixStrategy } from './strategies/matrix-strategy';
 import { CycleStrategy } from './strategies/cycle-strategy';
 import { MindMapStrategy } from './strategies/mindmap-strategy';
 import { NetworkStrategy } from './strategies/network-strategy';
+import { ConceptMapStrategy } from './strategies/conceptmap-strategy';
 import { logger } from '../utils/logger';
 
 export class StrategySelector {
@@ -36,6 +37,7 @@ export class StrategySelector {
     this.registry.register('cycle', new CycleStrategy());
     this.registry.register('mindmap', new MindMapStrategy());
     this.registry.register('network', new NetworkStrategy());
+    this.registry.register('conceptmap', new ConceptMapStrategy());
   }
 
   select(diagramType: DiagramType): LayoutStrategy {
