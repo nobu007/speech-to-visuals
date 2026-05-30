@@ -10,11 +10,32 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-30（第170回検証: Phase 70-71完了・Phase 72要件定義・可視化戦略完全化・KeyphraseOverlay統合・importance-aware視覚階層）
+**最終更新**: 2026-05-30（第172回検証: Phase 73完了・StreamingTranscriber入力堅牢性・Phase 67-68未着手）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
 ## 分析項目と判断
+
+### A171: 第171回検証 - Phase 73完了・StreamingTranscriber入力堅牢性（2026-05-30）
+
+**分析日時**: 2026-05-30
+**カテゴリ**: ストリーミング文字起こし入力堅牢性・コンストラクタパラメータ検証
+**背景**: AI Hubフィードバック「Run the full test suite to confirm all 106 new monitoring tests pass; then continue with the next unimplemented phase」に対応。直近コミット0e10ed1でStreamingTranscriberのコンストラクタにパラメータ検証を追加した変更を要件定義に反映。
+
+**判断**:
+1. **Phase 73完了**: StreamingTranscriber のコンストラクタに3種のパラメータ検証を追加。chunkSizeMs: 0より大きく60000以下、minConfidence: 0以上1以下、overlapMs: 0以上かつchunkSizeMs未満。不正値は TranscriptionError で拒否。REQ-194として定義。
+2. **Phase 67一部完了継続**: REQ-176（transcription ErrorClassifier回帰テスト）は未着手。
+3. **Phase 68未着手継続**: REQ-177~179（transcription テストカバレッジ）は未着手。
+
+**根拠**:
+- コミット0e10ed1: feat(transcription): add constructor parameter validation to StreamingTranscriber
+- ソースコード: src/transcription/streaming-transcriber.ts L49-81
+
+**信頼性への影響**:
+- 新規要件 REQ-194 追加（信頼性レベル: 🔵）
+- 信頼性レベル分布: 🔵214件(+1)/🟡3件/🔴0件
+
+---
 
 ### A170: 第170回検証 - Phase 70-71完了・Phase 72要件定義（2026-05-30）
 

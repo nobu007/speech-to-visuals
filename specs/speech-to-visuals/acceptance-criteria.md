@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-30（Phase 72完了: REQ-182~193 全criteria green）
+**最終更新**: 2026-05-30（Phase 73完了: REQ-182~194 全criteria green）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -3018,5 +3018,29 @@
   - **期待結果**: 実際のSceneGraphデータで全戦略のレイアウト出力にノード・エッジが含まれる
   - **信頼性**: 🔵 *src/visualization/strategy-selector.ts より*
   - **実装**: tests/visualization/strategy-selector-integration.test.ts・コミット0920f6a
+
+---
+
+## REQ-194: StreamingTranscriber入力堅牢性 🔵 ✅実装済
+
+**信頼性**: 🔵 *コミット0e10ed1*
+
+### テストケース
+
+- [x] **TC-194-01**: chunkSizeMs境界値検証 🔵
+  - **期待結果**: chunkSizeMs <= 0 または > 60000 の場合 TranscriptionError がスローされる
+  - **信頼性**: 🔵 *src/transcription/streaming-transcriber.ts L51-56*
+
+- [x] **TC-194-02**: minConfidence境界値検証 🔵
+  - **期待結果**: minConfidence < 0 または > 1 の場合 TranscriptionError がスローされる
+  - **信頼性**: 🔵 *src/transcription/streaming-transcriber.ts L60-65*
+
+- [x] **TC-194-03**: overlapMs境界値検証 🔵
+  - **期待結果**: overlapMs < 0 の場合 TranscriptionError がスローされる
+  - **信頼性**: 🔵 *src/transcription/streaming-transcriber.ts L70-75*
+
+- [x] **TC-194-04**: overlapMs >= chunkSizeMs検証 🔵
+  - **期待結果**: overlapMs >= chunkSizeMs の場合 TranscriptionError がスローされる
+  - **信頼性**: 🔵 *src/transcription/streaming-transcriber.ts L76-80*
 
 ---
