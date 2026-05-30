@@ -394,10 +394,10 @@
 - REQ-178: システムは whisper-transcriber.ts のコア機能（Whisper API連携・音声ファイル処理・タイムスタンプ付き文字起こし）に対する専用ユニットテストを提供しなければならない 🔵 *src/transcription/whisper-transcriber.ts より*
 - REQ-179: システムは streaming-transcriber.ts のコア機能（ストリーミング認識・チャンク処理・エラー回復）に対する専用ユニットテストを提供しなければならない 🔵 *src/transcription/streaming-transcriber.ts より*
 
-#### 可視化・API モジュール型付きエラー移行（Phase 69） 🔶一部完了
+#### 可視化・API モジュール型付きエラー移行（Phase 69） ✅完了
 
 - REQ-180: システムは visualization モジュール（src/visualization/）内の残存するraw Error throw を型付きエラークラスに置換しなければならない 🔵 ✅実装済 *コミット4704e3fで5ファイル9箇所のVisualizationError置換完了（complex-layout-engine:4・OverlapResolver:1・TreeLayoutStrategy:1・base-strategy:1・ILayoutStrategy:1）*
-- REQ-181: システムは API モジュール（src/api/）内の残存する3箇所の raw Error throw を既存の型付きエラークラスに置換しなければならない。対象: server.ts（1箇所: セキュリティ設定エラー）、websocket-handler.ts（1箇所: JWT秘密鍵未設定）、middleware/auth.ts（1箇所: JWT秘密鍵未設定） 🔵 🔲未着手 *src/api/3ファイル3箇所の raw Error throw より*
+- REQ-181: システムは API モジュール（src/api/）内の残存する3箇所の raw Error throw を既存の型付きエラークラスに置換しなければならない。対象: server.ts（1箇所: セキュリティ設定エラー）、websocket-handler.ts（1箇所: JWT秘密鍵未設定）、middleware/auth.ts（1箇所: JWT秘密鍵未設定） 🔵 ✅実装済 *3ファイル3箇所ともPipelineConfigError置換済・既存コミットで対応完了*
 
 #### 可視化戦略完全化・重要度認識レイアウト（Phase 70） ✅完了
 
@@ -416,9 +416,9 @@
 - REQ-191: システムは Video コンポーネントに KeyphraseOverlay と CaptionOverlay を統合し、captions プロパティ経由でSRTキャプションを下部に、キーフレーズを上部に同時表示し、scenesToKeyphraseScenes マッパーで累積オフセット計算を行わなければならない 🔵 ✅実装済 *src/remotion/Video.tsx・コミット160a34e*
 - REQ-192: システムはキーフレーズデータを SceneSegmenter → SceneGraph → RemotionSceneData → KeyphraseOverlay の経路で伝播させ、VideoGenerator.convertSceneToRemotionFormat() で RemotionSceneData.keyphrases フィールドに設定しなければならない 🔵 ✅実装済 *src/pipeline/video-generator.ts・コミット49462a6*
 
-#### 戦略セレクター統合テスト（Phase 72） 🔲未着手
+#### 戦略セレクター統合テスト（Phase 72） ✅完了
 
-- REQ-193: システムは StrategySelector の全11図解タイプに対するエンドツーエンド統合テストを提供し、実際の SceneGraph データで全登録戦略のディスパッチが正しく動作することを検証しなければならない 🔵 🔲未着手 *AI Hub フィードバック・src/visualization/strategy-selector.ts より*
+- REQ-193: システムは StrategySelector の全11図解タイプに対するエンドツーエンド統合テストを提供し、実際の SceneGraph データで全登録戦略のディスパッチが正しく動作することを検証しなければならない 🔵 ✅実装済 *コミット0920f6a・tests/visualization/strategy-selector-integration.test.ts*
 
 ### 条件付き要件
 
@@ -579,13 +579,13 @@
 | Phase 63: エクスポートモジュール型付きエラー移行 | ✅完了 | REQ-165~166 | 2/2（エクスポート4ファイル12箇所の型付きエラー置換・ErrorClassifier回帰テスト15件） |
 | Phase 64: エクスポートモジュールテストカバレッジ拡充 | ✅完了 | REQ-167~169 | 3/3（enhanced-export-engine 42テスト・multi-format-exporter 39テスト・production-exporter 37テスト・118テスト全通過） |
 | Phase 65: 残存モジュール型付きエラー移行 | ✅完了 | REQ-170~171 | 2/2（7箇所 raw Error 置換・MonitoringError 追加・ErrorClassifier 回帰テスト12件） |
-| Phase 66: モニタリングモジュールテストカバレッジ拡充 | ✅完了 | REQ-172~174 | 3/3（performance-dashboard パーセンタイル計算+入力検証・production-error-handler 69テスト・real-time-performance-monitor 48テスト・cacheHitRate閾値反転バグ修正） |
+| Phase 66: モニタリングモジュールテストカバレッジ拡充 | ✅完了 | REQ-172~174 | 3/3（performance-dashboard 27テスト・production-error-handler 40テスト・real-time-performance-monitor 39テスト・計106テスト全通過） |
 | Phase 67: 文字起こしモジュール型付きエラー移行 | 🔶一部完了 | REQ-175~176 | 1/2（コミット4704e3fで9箇所TranscriptionError置換完了・REQ-176回帰テスト未着手） |
 | Phase 68: 文字起こしモジュールテストカバレッジ拡充 | 🔲未着手 | REQ-177~179 | 0/3 |
-| Phase 69: 可視化・API モジュール型付きエラー移行 | 🔶一部完了 | REQ-180~181 | 1/2（コミット4704e3fで9箇所VisualizationError置換完了・REQ-181 API 3箇所未着手） |
+| Phase 69: 可視化・API モジュール型付きエラー移行 | ✅完了 | REQ-180~181 | 2/2（VisualizationError 9箇所+API PipelineConfigError 3箇所・全置換完了） |
 | Phase 70: 可視化戦略完全化・重要度認識レイアウト | ✅完了 | REQ-182~189 | 8/8（11図解タイプ専用戦略登録完了・importance-scaler モジュール・コミットbe1dbb5~27e4552） |
 | Phase 71: KeyphraseOverlay・CaptionOverlay 動画統合 | ✅完了 | REQ-190~192 | 3/3（KeyphraseOverlay・Video統合・パイプライン配線・コミット49462a6~160a34e） |
-| Phase 72: 戦略セレクター統合テスト | 🔲未着手 | REQ-193 | 0/1（AI Hubフィードバック指摘・strategy-selector E2Eテスト） |
+| Phase 72: 戦略セレクター統合テスト | ✅完了 | REQ-193 | 1/1（strategy-selector E2Eテスト・コミット0920f6a） |
 
 ## 信頼性レベル分布
 
@@ -593,7 +593,7 @@
 - 🟡 黄信号: 3件 (1.4%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 71完了・Phase 72未着手（REQ-001~193）・11図解タイプ専用戦略完了・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・TypeScript型エラー0件・パイプライン型付きエラー完全化
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 72完了（REQ-001~193）・11図解タイプ専用戦略完了・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・TypeScript型エラー0件・パイプライン型付きエラー完全化・戦略セレクターE2E統合テスト完了
 
 ## Acceptance criteria
 
@@ -604,6 +604,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 72 を網羅し、Phase 71 完了・Phase 72 未着手（戦略セレクターE2Eテスト）を反映
-- [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテゴリに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第170回: 🔵213件/🟡3件/🔴0件 — Phase 71完了・Phase 72未着手・REQ-001~193・311テストファイル）
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 72 を網羅し、Phase 72 完了（戦略セレクターE2Eテスト）を反映
+- [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテキュリティに違反していない
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第171回: 🔵213件/🟡3件/🔴0件 — Phase 72完了・REQ-001~193・314テストファイル）

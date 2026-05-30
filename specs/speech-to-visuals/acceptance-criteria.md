@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-30（Phase 71完了: REQ-182~192 全criteria green・Phase 72未着手）
+**最終更新**: 2026-05-30（Phase 72完了: REQ-182~193 全criteria green）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -3008,14 +3008,15 @@
 
 ---
 
-## REQ-193: 戦略セレクターE2E統合テスト 🔵
+## REQ-193: 戦略セレクターE2E統合テスト 🔵 ✅実装済
 
-**信頼性**: 🔵 *AI Hubフィードバック・Phase 72未着手*
+**信頼性**: 🔵 *AI Hubフィードバック・コミット0920f6a*
 
 ### テストケース
 
-- [ ] **TC-193-01**: 全11図解タイプのE2Eディスパッチが検証される 🔵
+- [x] **TC-193-01**: 全11図解タイプのE2Eディスパッチが検証される 🔵
   - **期待結果**: 実際のSceneGraphデータで全戦略のレイアウト出力にノード・エッジが含まれる
   - **信頼性**: 🔵 *src/visualization/strategy-selector.ts より*
+  - **実装**: tests/visualization/strategy-selector-integration.test.ts・コミット0920f6a
 
 ---
