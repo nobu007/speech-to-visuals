@@ -11,6 +11,9 @@ import { CycleStrategy } from './strategies/cycle-strategy';
 import { MindMapStrategy } from './strategies/mindmap-strategy';
 import { NetworkStrategy } from './strategies/network-strategy';
 import { ConceptMapStrategy } from './strategies/conceptmap-strategy';
+import { FlowchartStrategy } from './strategies/flowchart-strategy';
+import { ComparisonStrategy } from './strategies/comparison-strategy';
+import { GeneralStrategy } from './strategies/general-strategy';
 import { logger } from '../utils/logger';
 
 export class StrategySelector {
@@ -38,6 +41,9 @@ export class StrategySelector {
     this.registry.register('mindmap', new MindMapStrategy());
     this.registry.register('network', new NetworkStrategy());
     this.registry.register('conceptmap', new ConceptMapStrategy());
+    this.registry.register('flowchart', new FlowchartStrategy());
+    this.registry.register('comparison', new ComparisonStrategy());
+    this.registry.register('general', new GeneralStrategy());
   }
 
   select(diagramType: DiagramType): LayoutStrategy {

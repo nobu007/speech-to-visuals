@@ -1,0 +1,137 @@
+/**
+ * General Layout Strategy
+ *
+ * Adaptive layout for diagrams that don't fit a specific category.
+ * Uses edge-aware grid placement: nodes with more connections get
+ * centered, isolated nodes go to the periphery.
+ */
+
+import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { LayoutStrategy, StrategyLayoutResult } from '../types';
+import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
+
+const DEFAULT_NODE_WIDTH = 120;
+const DEFAULT_NODE_HEIGHT = 60;
+const NODE_SEP = 40;
+const DEFAULT_CANVAS_WIDTH = 1920;
+const DEFAULT_CANVAS_HEIGHT = 1080;
+const TARGET_ASPECT_RATIO = 16 / 9;
+
+export class GeneralStrategy implements LayoutStrategy {
+  readonly name = 'general';
+  readonly canEscapeLocalMinimum = false;
+
+  apply(nodes: NodeDatum[], edges: EdgeDatum[]): StrategyLayoutResult {
+    if (nodes.length === 0) {
+      return {
+        nodes: [],
+        edges: [],
+        canvas: { width: DEFAULT_CANVAS_WIDTH, height: DEFAULT_CANVAS_HEIGHT },
+        metrics: { overlapCount: 0, edgeCrossings: 0, aspectRatio: TARGET_ASPECT_RATIO },
+      };
+    }
+
+    // Sort nodes by connectivity (most connected first → center)
+    const degreeMap = new Map<string, number>();
+    for (const node of nodes) degreeMap.set(node.id, 0);
+    for (const edge of edges) {
+      degreeMap.set(edge.from, (degreeMap.get(edge.from) ?? 0) + 1);
+      degreeMap.set(edge.to, (degreeMap.get(edge.to) ?? 0) + 1);
+    }
+
+    const sortedNodes = [...nodes].sort(
+      (a, b) => (degreeMap.get(b.id) ?? 0) - (degreeMap.get(a.id) ?? 0),
+    );
+
+    const columns = Math.max(1, Math.ceil(Math.sqrt(sortedNodes.length * TARGET_ASPECT_RATIO)));
+    const rows = Math.max(1, Math.ceil(sortedNodes.length / columns));
+
+    const cellWidth = DEFAULT_NODE_WIDTH + NODE_SEP;
+    const cellHeight = DEFAULT_NODE_HEIGHT + NODE_SEP;
+    const gridWidth = columns * cellWidth;
+    const gridHeight = rows * cellHeight;
+    const offsetX = Math.max(40, (DEFAULT_CANVAS_WIDTH - gridWidth) / 2);
+    const offsetY = Math.max(40, (DEFAULT_CANVAS_HEIGHT - gridHeight) / 2);
+
+    // Place most-connected nodes near grid center using spiral ordering
+    const positionedNodes: PositionedNode[] = this.spiralPlace(
+      sortedNodes,
+      columns,
+      rows,
+      cellWidth,
+      cellHeight,
+      offsetX,
+      offsetY,
+    );
+
+    const nodeMap = new Map(positionedNodes.map((n) => [n.id, n]));
+    const layoutEdges: LayoutEdge[] = edges.map((edge) => {
+      const source = nodeMap.get(edge.from);
+      const target = nodeMap.get(edge.to);
+      if (!source || !target) {
+        return { from: edge.from, to: edge.to, points: [], label: edge.label, id: edge.id };
+      }
+      return {
+        from: edge.from,
+        to: edge.to,
+        points: [
+          { x: source.x + source.width / 2, y: source.y + source.height / 2 },
+          { x: target.x + target.width / 2, y: target.y + target.height / 2 },
+        ],
+        label: edge.label,
+        id: edge.id,
+      };
+    });
+
+    const canvas = calculateCanvasSize(positionedNodes);
+    const metrics = calculateMetrics(positionedNodes, layoutEdges);
+
+    return { nodes: positionedNodes, edges: layoutEdges, canvas, metrics };
+  }
+
+  estimateComplexity(nodes: NodeDatum[]): number {
+    return nodes.length * Math.log2(nodes.length + 1);
+  }
+
+  private spiralPlace(
+    nodes: NodeDatum[],
+    columns: number,
+    rows: number,
+    cellWidth: number,
+    cellHeight: number,
+    offsetX: number,
+    offsetY: number,
+  ): PositionedNode[] {
+    // Generate spiral order from center outward
+    const centerCol = Math.floor(columns / 2);
+    const centerRow = Math.floor(rows / 2);
+    const positions: { col: number; row: number }[] = [];
+
+    for (let dist = 0; positions.length < nodes.length; dist++) {
+      for (let r = centerRow - dist; r <= centerRow + dist && positions.length < nodes.length; r++) {
+        for (let c = centerCol - dist; c <= centerCol + dist && positions.length < nodes.length; c++) {
+          if (r >= 0 && r < rows && c >= 0 && c < columns) {
+            if (!positions.some((p) => p.col === c && p.row === r)) {
+              positions.push({ col: c, row: r });
+            }
+          }
+        }
+      }
+    }
+
+    return nodes.map((node, i) => {
+      const pos = positions[i] ?? { col: i % columns, row: Math.floor(i / columns) };
+      const w = node.width ?? DEFAULT_NODE_WIDTH;
+      const h = node.height ?? DEFAULT_NODE_HEIGHT;
+      return {
+        ...node,
+        x: offsetX + pos.col * cellWidth + (cellWidth - w) / 2,
+        y: offsetY + pos.row * cellHeight + (cellHeight - h) / 2,
+        width: w,
+        height: h,
+      };
+    });
+  }
+}
+
+export const generalStrategy = new GeneralStrategy();
