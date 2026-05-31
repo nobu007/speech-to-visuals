@@ -10,11 +10,35 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-31（第174回検証: Phase 74 TASK-0183/0184完了・ESLint no-explicit-any 全解消）
+**最終更新**: 2026-05-31（第175回検証: Phase 74 TASK-0178~0184 全完了・ESLint no-explicit-any + no-require-imports 全解消）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
 ## 分析項目と判断
+
+### A174: 第175回検証 - Phase 74 全タスク完了（2026-05-31）
+
+**分析日時**: 2026-05-31
+**カテゴリ**: テスト品質安定化・ESLint完全クリーン化・要件定義増分更新
+**背景**: AI Hubフィードバック「Run the new importance-scaler tests to confirm they pass; then begin Phase 74 task stabilization with code changes, not just spec edits」に対応。TASK-0178~0182 のテスト安定化を検証し、残存ESLintエラーを修正。
+
+**判断**:
+1. **TASK-0178~0182 検証完了**: 対象5モジュール（可視化・パイプライン/E2E・API/セキュリティ・モニタリング/品質/UI・トランスクリプション/LLM）のテストスイート全て通過確認。importance-scaler 54/54、browser-transcriber 25/25 等を検証。
+2. **ESLint残存エラー修正**: `tests/transcription/browser-transcriber.test.ts` の `@typescript-eslint/no-require-imports` 1件を修正。`require()` を既存import済みの `BrowserTranscriber` クラス直接使用に変更。
+3. **ESLint 0エラー達成**: `npx eslint . --max-warnings=0` → 0 errors。no-explicit-any + no-require-imports 両方完全解消。
+4. **要件定義書増分更新**: note.md・requirements.md・prep.md のメトリクス・Phase番号を更新。
+
+**根拠**:
+- `npx eslint . --max-warnings=0` → 0 errors（no-explicit-any + no-require-imports 両方0）
+- `npx tsc --noEmit` → 0 errors
+- `npx jest tests/transcription/browser-transcriber.test.ts` → 25 passed
+- `npx jest --testPathPattern="importance-scaler"` → 54 passed
+
+**信頼性への影響**:
+- 信頼性レベル分布に変化なし: 🔵214件/🟡3件/🔴0件
+- Phase 74 全7タスク完了（TASK-0178~0184）
+
+---
 
 ### A173: 第174回検証 - Phase 74 TASK-0183/0184完了（2026-05-31）
 

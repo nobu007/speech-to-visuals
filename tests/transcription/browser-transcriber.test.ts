@@ -117,8 +117,8 @@ describe('BrowserTranscriber', () => {
       const saved = gt.SpeechRecognition;
       delete gt.SpeechRecognition;
 
-      // Create a new instance without SpeechRecognition
-      const unsupportedTranscriber = new (require('../../src/transcription/browser-transcriber').BrowserTranscriber)();
+      // Create a new instance without SpeechRecognition on globalThis
+      const unsupportedTranscriber = new BrowserTranscriber();
       expect(() => unsupportedTranscriber.start()).toThrow('Speech recognition not supported');
 
       gt.SpeechRecognition = saved;
