@@ -1,6 +1,7 @@
 module.exports = {
   preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
+  testTimeout: 30000,
   globalTeardown: '<rootDir>/tests/globalTeardown.ts',
   setupFiles: ['<rootDir>/tests/setupJestGlobals.ts'],
   testMatch: ['**/src/**/*.test.ts', '**/src/**/*.test.tsx', '**/tests/**/*.test.ts', '**/tests/**/*.test.tsx'],

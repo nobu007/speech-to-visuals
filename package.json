@@ -37,7 +37,7 @@
     "test:phase44": "tsx scripts/test-phase44-e2e.ts",
     "cache:warmup": "tsx scripts/cache-warmup.ts",
     "audit:code-size": "tsx scripts/code-size-audit.ts --ci",
-    "test": "jest --config jest.config.cjs",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.config.cjs",
     "test:coverage": "jest --config jest.config.cjs --coverage"
   },
   "dependencies": {

@@ -663,7 +663,8 @@ export class SimplePipeline {
         async () => {
           const result = await this.process(input, onProgress);
           if (!result.success) {
-            throw new PipelineError(result.error || 'Processing failed', 'UNKNOWN', 'pipeline', { originalError: result.error });
+            const errorType = (result.errorType as string) || 'UNKNOWN';
+            throw new PipelineError(result.error || 'Processing failed', errorType, 'pipeline', { originalError: result.error });
           }
           return result;
         },

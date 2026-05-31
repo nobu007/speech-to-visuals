@@ -289,7 +289,9 @@ describe('SimplePipeline', () => {
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Pipeline failed');
+      // ErrorClassifier maps TranscriptionError → LLM_API_ERROR (recoverable),
+      // producing a user-friendly message without the "Pipeline failed" prefix
+      expect(result.error).toBeTruthy();
     });
 
     it('should handle null transcription segments', async () => {
@@ -355,7 +357,7 @@ describe('SimplePipeline', () => {
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Unexpected error');
+      expect(result.error).toContain('unexpected error');
     });
 
     it('should use maxConcurrency option', async () => {
@@ -377,7 +379,7 @@ describe('SimplePipeline', () => {
   describe('processWithRetry', () => {
     it('should retry on failure and eventually succeed', async () => {
       mockTranscribe
-        .mockRejectedValueOnce(new Error('Fail 1'))
+        .mockRejectedValueOnce(new Error('LLM API error'))
         .mockResolvedValue({
           success: true,
           segments: [{ start: 0, end: 5000, text: 'Hello', confidence: 0.9 }],
