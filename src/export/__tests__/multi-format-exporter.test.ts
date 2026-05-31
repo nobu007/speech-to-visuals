@@ -166,7 +166,7 @@ describe('MultiFormatExporter', () => {
     it('returns error for unsupported format', async () => {
       const scene = makeScene();
       const result = await exporter.export(scene, {
-        format: 'bmp' as any,
+        format: 'bmp' as 'svg',
       });
 
       expect(result.success).toBe(false);

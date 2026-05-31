@@ -51,7 +51,7 @@ describe('getImportance', () => {
   });
 
   it('treats null as missing', () => {
-    const node: NodeDatum = { id: 'a', label: 'a', meta: { importance: null as any } };
+    const node: NodeDatum = { id: 'a', label: 'a', meta: { importance: null as unknown as number } };
     expect(getImportance(node)).toBe(0.5);
   });
 });

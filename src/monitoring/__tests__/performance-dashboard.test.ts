@@ -174,8 +174,8 @@ describe('PerformanceDashboard', () => {
 
     it('throws MonitoringError for invalid percentiles with populated metrics', () => {
       // Access private collectMetrics via any to populate the metrics array
-      const anyDashboard = dashboard as any;
-      anyDashboard.collectMetrics();
+      const dashboardInternals = dashboard as unknown as { collectMetrics(): void };
+      dashboardInternals.collectMetrics();
 
       expect(() => {
         dashboard.calculatePercentiles('responseTime', [0]);

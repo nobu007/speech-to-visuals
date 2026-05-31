@@ -126,7 +126,7 @@ describe('importance-scaler', () => {
 
 describe('MindMapStrategy importance-aware layout', () => {
   // Use dynamic import to get the module after modifications
-  let MindMapStrategy: any;
+  let MindMapStrategy: typeof import('@/visualization/strategies/mindmap-strategy').MindMapStrategy | undefined;
   beforeAll(async () => {
     const mod = await import('@/visualization/strategies/mindmap-strategy');
     MindMapStrategy = mod.MindMapStrategy;
@@ -186,7 +186,7 @@ describe('MindMapStrategy importance-aware layout', () => {
 });
 
 describe('NetworkStrategy importance-aware layout', () => {
-  let NetworkStrategy: any;
+  let NetworkStrategy: typeof import('@/visualization/strategies/network-strategy').NetworkStrategy | undefined;
   beforeAll(async () => {
     const mod = await import('@/visualization/strategies/network-strategy');
     NetworkStrategy = mod.NetworkStrategy;
@@ -220,7 +220,7 @@ describe('NetworkStrategy importance-aware layout', () => {
     ];
 
     // Access private method via initializeCircle
-    const positioned = (strategy as any).initializeCircle(nodes);
+    const positioned = (strategy as unknown as { initializeCircle(n: LayoutNode[]): LayoutNode[] }).initializeCircle(nodes);
     const cx = 1920 / 2;
     const cy = 1080 / 2;
 

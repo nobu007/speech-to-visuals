@@ -83,6 +83,15 @@ import { createIterationManager } from '@/framework/iteration-manager';
 import { createAutoImprovementEngine } from '@/framework/auto-improvement-engine';
 import type { PipelineResult } from '@/pipeline/types';
 
+/** Exposes the private estimation methods for testing. */
+type PipelinePrivateMethods = {
+  estimateTranscriptionAccuracy: (result: PipelineResult) => number;
+  estimateSegmentationQuality: (result: PipelineResult) => number;
+  estimateEntityExtractionQuality: (result: PipelineResult) => number;
+  estimateRelationAccuracy: (result: PipelineResult) => number;
+  detectLayoutOverlaps: (result: PipelineResult) => number;
+};
+
 function makeScene(overrides: Record<string, unknown> = {}) {
   return {
     type: 'diagram',
@@ -192,7 +201,7 @@ describe('FrameworkIntegratedPipeline', () => {
   describe('estimateTranscriptionAccuracy', () => {
     it('should return 0 for failed result', () => {
       const result = makeResult({ success: false });
-      expect((pipeline as any).estimateTranscriptionAccuracy(result)).toBe(0);
+      expect((pipeline as unknown as PipelinePrivateMethods).estimateTranscriptionAccuracy(result)).toBe(0);
     });
 
     it('should return 0.90 for successful result with scenes', () => {
@@ -200,12 +209,12 @@ describe('FrameworkIntegratedPipeline', () => {
         success: true,
         scenes: [makeScene()],
       });
-      expect((pipeline as any).estimateTranscriptionAccuracy(result)).toBeCloseTo(0.90);
+      expect((pipeline as unknown as PipelinePrivateMethods).estimateTranscriptionAccuracy(result)).toBeCloseTo(0.90);
     });
 
     it('should return 0.50 for successful result with empty scenes', () => {
       const result = makeResult({ success: true, scenes: [] });
-      expect((pipeline as any).estimateTranscriptionAccuracy(result)).toBeCloseTo(0.50);
+      expect((pipeline as unknown as PipelinePrivateMethods).estimateTranscriptionAccuracy(result)).toBeCloseTo(0.50);
     });
   });
 
@@ -214,7 +223,7 @@ describe('FrameworkIntegratedPipeline', () => {
   describe('estimateSegmentationQuality', () => {
     it('should return 0 for failed result', () => {
       const result = makeResult({ success: false });
-      expect((pipeline as any).estimateSegmentationQuality(result)).toBe(0);
+      expect((pipeline as unknown as PipelinePrivateMethods).estimateSegmentationQuality(result)).toBe(0);
     });
 
     it('should return base score for single scene', () => {
@@ -225,7 +234,7 @@ describe('FrameworkIntegratedPipeline', () => {
       });
       // single scene => sceneCount=1 (no count bonus), avgDuration=5000 (within 2000-15000, gets bonus)
       // 0.7 + 0.15 = 0.85
-      expect((pipeline as any).estimateSegmentationQuality(result)).toBeCloseTo(0.85);
+      expect((pipeline as unknown as PipelinePrivateMethods).estimateSegmentationQuality(result)).toBeCloseTo(0.85);
     });
 
     it('should add bonus for 2-10 scenes', () => {
@@ -235,7 +244,7 @@ describe('FrameworkIntegratedPipeline', () => {
         duration: 50000, // avg 10000 per scene => within range bonus
       });
       // 0.7 + 0.15 (scene count) + 0.15 (duration) = 1.0 (capped)
-      expect((pipeline as any).estimateSegmentationQuality(result)).toBeCloseTo(1.0);
+      expect((pipeline as unknown as PipelinePrivateMethods).estimateSegmentationQuality(result)).toBeCloseTo(1.0);
     });
 
     it('should add bonus for reasonable duration', () => {
@@ -245,7 +254,7 @@ describe('FrameworkIntegratedPipeline', () => {
         duration: 5000, // avg 5000 => within 2000-15000
       });
       // 0.7 + 0.15 (duration) = 0.85
-      const score = (pipeline as any).estimateSegmentationQuality(result);
+      const score = (pipeline as unknown as PipelinePrivateMethods).estimateSegmentationQuality(result);
       expect(score).toBeGreaterThan(0.7);
       expect(score).toBeCloseTo(0.85);
     });
@@ -256,7 +265,7 @@ describe('FrameworkIntegratedPipeline', () => {
         scenes: Array.from({ length: 5 }, () => makeScene()),
         duration: 50000,
       });
-      expect((pipeline as any).estimateSegmentationQuality(result)).toBeLessThanOrEqual(1.0);
+      expect((pipeline as unknown as PipelinePrivateMethods).estimateSegmentationQuality(result)).toBeLessThanOrEqual(1.0);
     });
   });
 
@@ -271,7 +280,7 @@ describe('FrameworkIntegratedPipeline', () => {
           makeScene({ nodes: [{ id: 'd' }, { id: 'e' }] }),
         ],
       });
-      expect((pipeline as any).estimateEntityExtractionQuality(result)).toBeCloseTo(0.90);
+      expect((pipeline as unknown as PipelinePrivateMethods).estimateEntityExtractionQuality(result)).toBeCloseTo(0.90);
     });
 
     it('should return 0.70 for 1-2 avg nodes per scene', () => {
@@ -282,7 +291,7 @@ describe('FrameworkIntegratedPipeline', () => {
         ],
       });
       // avgNodesPerScene = 1 which is >= 1 and < 2
-      expect((pipeline as any).estimateEntityExtractionQuality(result)).toBeCloseTo(0.70);
+      expect((pipeline as unknown as PipelinePrivateMethods).estimateEntityExtractionQuality(result)).toBeCloseTo(0.70);
     });
 
     it('should return 0.50 for >10 or 0 avg nodes per scene', () => {
@@ -295,7 +304,7 @@ describe('FrameworkIntegratedPipeline', () => {
         ],
       });
       // avgNodesPerScene = 15 which is > 10
-      expect((pipeline as any).estimateEntityExtractionQuality(result)).toBeCloseTo(0.50);
+      expect((pipeline as unknown as PipelinePrivateMethods).estimateEntityExtractionQuality(result)).toBeCloseTo(0.50);
     });
   });
 
@@ -310,7 +319,7 @@ describe('FrameworkIntegratedPipeline', () => {
         ],
       });
       // avgEdgesPerScene = 1 which is >= 1
-      expect((pipeline as any).estimateRelationAccuracy(result)).toBeCloseTo(0.85);
+      expect((pipeline as unknown as PipelinePrivateMethods).estimateRelationAccuracy(result)).toBeCloseTo(0.85);
     });
 
     it('should return 0.60 for scenes without edges', () => {
@@ -321,7 +330,7 @@ describe('FrameworkIntegratedPipeline', () => {
         ],
       });
       // scenesWithEdges is empty, avgEdgesPerScene = 0
-      expect((pipeline as any).estimateRelationAccuracy(result)).toBeCloseTo(0.60);
+      expect((pipeline as unknown as PipelinePrivateMethods).estimateRelationAccuracy(result)).toBeCloseTo(0.60);
     });
   });
 
@@ -343,7 +352,7 @@ describe('FrameworkIntegratedPipeline', () => {
           }),
         ],
       });
-      expect((pipeline as any).detectLayoutOverlaps(result)).toBe(0);
+      expect((pipeline as unknown as PipelinePrivateMethods).detectLayoutOverlaps(result)).toBe(0);
     });
 
     it('should count overlapping pairs correctly', () => {
@@ -363,7 +372,7 @@ describe('FrameworkIntegratedPipeline', () => {
         ],
       });
       // a and b overlap, c does not overlap with a or b => 1 overlap
-      expect((pipeline as any).detectLayoutOverlaps(result)).toBe(1);
+      expect((pipeline as unknown as PipelinePrivateMethods).detectLayoutOverlaps(result)).toBe(1);
     });
 
     it('should handle scenes without layouts', () => {
@@ -374,7 +383,7 @@ describe('FrameworkIntegratedPipeline', () => {
           makeScene({ layout: undefined }),
         ],
       });
-      expect((pipeline as any).detectLayoutOverlaps(result)).toBe(0);
+      expect((pipeline as unknown as PipelinePrivateMethods).detectLayoutOverlaps(result)).toBe(0);
     });
 
     it('should use w/h fallback when width/height not present', () => {
@@ -393,7 +402,7 @@ describe('FrameworkIntegratedPipeline', () => {
         ],
       });
       // a and b overlap (no width/height, falls back to w/h)
-      expect((pipeline as any).detectLayoutOverlaps(result)).toBe(1);
+      expect((pipeline as unknown as PipelinePrivateMethods).detectLayoutOverlaps(result)).toBe(1);
     });
   });
 });

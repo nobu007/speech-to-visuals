@@ -2,7 +2,7 @@
  * Unit tests for SimplePipeline (src/pipeline/simple-pipeline.ts)
  *
  * Covers: constructor, getCapabilities, getProgressiveMetrics,
- * and the private calculateQualityScore method accessed via (instance as any).
+ * and the private calculateQualityScore method accessed via internals() helper.
  */
 
 import { SimplePipeline, simplePipeline } from '@/pipeline/simple-pipeline';
@@ -94,8 +94,8 @@ jest.mock('@/pipeline/pipeline-errors', () => ({
 }));
 
 jest.mock('@/pipeline/retry', () => ({
-  retryWithBackoff: jest.fn((fn: () => Promise<any>) =>
-    fn().then((result: any) => ({ result, attempts: 0 })),
+  retryWithBackoff: jest.fn((fn: () => Promise<unknown>) =>
+    fn().then((result: unknown) => ({ result, attempts: 0 })),
   ),
 }));
 
@@ -107,6 +107,37 @@ jest.mock('@/utils/logger', () => ({
     debug: jest.fn(),
   },
 }));
+
+// ---------------------------------------------------------------------------
+// Types for accessing private members in tests
+// ---------------------------------------------------------------------------
+
+/** Parameter type for SimplePipeline.calculateQualityScore (private method). */
+interface QualityScoreInput {
+  transcript?: string;
+  scenes?: SceneGraph[];
+  processingTime: number;
+  videoUrl?: string;
+}
+
+/** Shape of a single performance-history entry. */
+interface PerformanceHistoryEntry {
+  timestamp: string;
+  processingTime: number;
+  success: boolean;
+  qualityScore?: number;
+}
+
+/** Exposes private members of SimplePipeline for test assertions. */
+interface SimplePipelineInternals {
+  calculateQualityScore(input: QualityScoreInput): number;
+  performanceHistory: PerformanceHistoryEntry[];
+}
+
+/** Type assertion helper to access private members without `any`. */
+function internals(p: SimplePipeline): SimplePipelineInternals {
+  return p as unknown as SimplePipelineInternals;
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -207,7 +238,7 @@ describe('SimplePipeline', () => {
   });
 
   // -----------------------------------------------------------------------
-  // 9–18, 20. calculateQualityScore (private, accessed via any)
+  // 9–18, 20. calculateQualityScore (private, accessed via internals())
   // -----------------------------------------------------------------------
 
   describe('calculateQualityScore (private)', () => {
@@ -218,7 +249,7 @@ describe('SimplePipeline', () => {
     });
 
     it('returns 0 for empty result (no transcript, no scenes, no video, long processingTime)', () => {
-      const score = (pipeline as any).calculateQualityScore({
+      const score = internals(pipeline).calculateQualityScore({
         processingTime: 30_000, // 30 seconds
       });
       expect(score).toBe(0);
@@ -226,7 +257,7 @@ describe('SimplePipeline', () => {
 
     it('adds transcript quality proportionally', () => {
       // 50 chars => 50/100 = 0.5 => 0.5 * 30 = 15
-      const score = (pipeline as any).calculateQualityScore({
+      const score = internals(pipeline).calculateQualityScore({
         transcript: 'a'.repeat(50),
         processingTime: 30_000,
       });
@@ -235,7 +266,7 @@ describe('SimplePipeline', () => {
     });
 
     it('maxes transcript score at 30 for 100+ chars', () => {
-      const score = (pipeline as any).calculateQualityScore({
+      const score = internals(pipeline).calculateQualityScore({
         transcript: 'a'.repeat(200),
         processingTime: 30_000,
       });
@@ -252,7 +283,7 @@ describe('SimplePipeline', () => {
           confidence: 0.8,
         } as SceneGraph,
       ];
-      const score = (pipeline as any).calculateQualityScore({
+      const score = internals(pipeline).calculateQualityScore({
         scenes,
         processingTime: 30_000,
       });
@@ -262,7 +293,7 @@ describe('SimplePipeline', () => {
 
     it('adds performance score for fast processing', () => {
       // processingTime = 5000ms => 5s => 20 - 5 = 15
-      const score = (pipeline as any).calculateQualityScore({
+      const score = internals(pipeline).calculateQualityScore({
         processingTime: 5_000,
       });
       expect(score).toBeCloseTo(15, 1);
@@ -270,14 +301,14 @@ describe('SimplePipeline', () => {
 
     it('adds 0 for slow processing (>20s)', () => {
       // processingTime = 25000ms => 25s => max(0, 20 - 25) = 0
-      const score = (pipeline as any).calculateQualityScore({
+      const score = internals(pipeline).calculateQualityScore({
         processingTime: 25_000,
       });
       expect(score).toBe(0);
     });
 
     it('adds 20 for videoUrl presence', () => {
-      const score = (pipeline as any).calculateQualityScore({
+      const score = internals(pipeline).calculateQualityScore({
         processingTime: 30_000,
         videoUrl: 'https://example.com/video.mp4',
       });
@@ -289,7 +320,7 @@ describe('SimplePipeline', () => {
         { type: 'flow', nodes: [], edges: [], confidence: 1.0 } as SceneGraph,
         { type: 'flow', nodes: [], edges: [], confidence: 1.0 } as SceneGraph,
       ];
-      const score = (pipeline as any).calculateQualityScore({
+      const score = internals(pipeline).calculateQualityScore({
         transcript: 'a'.repeat(200),          // 30
         scenes,                                // 1.0 * 30 = 30
         processingTime: 0,                     // 20
@@ -303,7 +334,7 @@ describe('SimplePipeline', () => {
       const scenes: SceneGraph[] = [
         { type: 'flow', nodes: [], edges: [] } as SceneGraph,
       ];
-      const score = (pipeline as any).calculateQualityScore({
+      const score = internals(pipeline).calculateQualityScore({
         scenes,
         processingTime: 30_000,
       });
@@ -317,7 +348,7 @@ describe('SimplePipeline', () => {
         { type: 'flow', nodes: [], edges: [], confidence: 0.8 } as SceneGraph,
         { type: 'flow', nodes: [], edges: [], confidence: 1.0 } as SceneGraph,
       ];
-      const score = (pipeline as any).calculateQualityScore({
+      const score = internals(pipeline).calculateQualityScore({
         scenes,
         processingTime: 30_000,
       });
@@ -329,7 +360,7 @@ describe('SimplePipeline', () => {
       const scenes: SceneGraph[] = [
         { type: 'flow', nodes: [], edges: [], confidence: 0.9 } as SceneGraph,
       ];
-      const score = (pipeline as any).calculateQualityScore({
+      const score = internals(pipeline).calculateQualityScore({
         transcript: 'a'.repeat(150),            // 30 (capped)
         scenes,                                  // 0.9 * 30 = 27
         processingTime: 1_000,                   // 20 - 1 = 19
@@ -347,7 +378,7 @@ describe('SimplePipeline', () => {
   describe('performanceHistory', () => {
     it('starts empty after construction', () => {
       const pipeline = createPipeline();
-      const history = (pipeline as any).performanceHistory;
+      const history = internals(pipeline).performanceHistory;
       expect(Array.isArray(history)).toBe(true);
       expect(history.length).toBe(0);
     });
@@ -356,7 +387,7 @@ describe('SimplePipeline', () => {
       const pipeline = createPipeline();
 
       // Push 101 entries to exceed the cap
-      const history = (pipeline as any).performanceHistory;
+      const history = internals(pipeline).performanceHistory;
       for (let i = 0; i < 101; i++) {
         history.push({
           timestamp: new Date().toISOString(),
@@ -367,12 +398,12 @@ describe('SimplePipeline', () => {
       }
 
       // Simulate the trim that happens in the process() method
-      const MAX_HISTORY = (SimplePipeline as any).MAX_HISTORY;
+      const MAX_HISTORY = (SimplePipeline as unknown as { MAX_HISTORY: number }).MAX_HISTORY;
       if (history.length > MAX_HISTORY) {
-        (pipeline as any).performanceHistory = history.slice(-MAX_HISTORY);
+        internals(pipeline).performanceHistory = history.slice(-MAX_HISTORY);
       }
 
-      expect((pipeline as any).performanceHistory.length).toBe(100);
+      expect(internals(pipeline).performanceHistory.length).toBe(100);
     });
   });
 });

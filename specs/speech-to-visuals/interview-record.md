@@ -10,11 +10,36 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-31（第173回検証: Phase 73完了・spec-code整合性検証・メトリクス更新）
+**最終更新**: 2026-05-31（第174回検証: Phase 74 TASK-0183/0184完了・ESLint no-explicit-any 全解消）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
 ## 分析項目と判断
+
+### A173: 第174回検証 - Phase 74 TASK-0183/0184完了（2026-05-31）
+
+**分析日時**: 2026-05-31
+**カテゴリ**: ESLint品質改善・テスト型安全性・ドキュメント整合性
+**背景**: AI Hubフィードバック「Phase 74 task stabilization (TASK-0178~0184) with code changes, not just spec edits」に対応。TASK-0178~0182 のテスト安定化は前回イテレーションで既に解消済みを確認。TASK-0183（no-explicit-any 解消）と TASK-0184（overview.md 更新）を実施。
+
+**判断**:
+1. **TASK-0178~0182 検証**: 対象テストファイル全て通過（importance-scaler 26/26, secure-id-generation 18/18, mobile-responsive 35/35 等）→ 既に安定化完了
+2. **TASK-0183 完了**: 8テストファイル63件の `@typescript-eslint/no-explicit-any` エラーを全て解消:
+   - `tests/unit/pipeline/simple-pipeline.test.ts`: 18件 → `SimplePipelineInternals` インターフェース定義 + 型付きアクセサ
+   - `tests/unit/pipeline/framework-integrated-pipeline.test.ts`: 20件 → `PipelinePrivateMethods` 型定義
+   - `tests/unit/pipeline/main-pipeline.test.ts`: 22件 → `PrivatePipelineAccess` インターフェース定義
+   - その他5ファイル: 各1~3件 → 適切な型キャスト・インターフェース使用
+3. **TASK-0184 完了**: overview.md Phase 74 ステータス更新（🔲未着手 → 🔵進行中 2/7）
+
+**根拠**:
+- `npx eslint src tests --rule '@typescript-eslint/no-explicit-any: error'` → 0 errors
+- 7テストスイート164テスト全通過確認
+
+**信頼性への影響**:
+- 信頼性レベル分布に変化なし: 🔵214件/🟡3件/🔴0件
+- コード品質指標（ESLint no-explicit-any 0件）が overview.md の記載と整合
+
+---
 
 ### A172: 第172回検証 - spec-code整合性検証・メトリクス修正（2026-05-31）
 

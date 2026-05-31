@@ -2,11 +2,32 @@
  * Unit tests for MainPipeline (src/pipeline/main-pipeline.ts)
  *
  * Covers constructor defaults, public accessors, and the five key private
- * helper methods accessed via `(instance as any).methodName()`.
+ * helper methods accessed via `(instance as PrivatePipelineAccess).methodName()`.
  */
 
 import { MainPipeline } from '@/pipeline/main-pipeline';
 import { PipelineConfig, PipelineInput } from '@/pipeline/types';
+import type { SceneGraph } from '@/types/diagram';
+
+/**
+ * Typed interface for accessing MainPipeline private members in tests.
+ * Mirrors the private field and method signatures from main-pipeline.ts
+ * so that `(pipeline as PrivatePipelineAccess)` is fully typed without `any`.
+ */
+interface PrivatePipelineAccess {
+  // Private fields
+  iteration: number;
+
+  // Private methods
+  optimizeSceneTiming(scenes: SceneGraph[]): void;
+  createFallbackLayout(
+    nodes: Record<string, unknown>[],
+    edges: Record<string, unknown>[],
+  ): { nodes: Array<Record<string, unknown> & { x: number; y: number; w: number; h: number }>; edges: Array<Record<string, unknown> & { points: Array<{ x: number; y: number }> }> };
+  analyzeErrorPattern(error: Error, stageName: string): string;
+  selectRecoveryStrategy(errorPattern: string, stageName: string): string;
+  generateCacheKey(input: PipelineInput): string;
+}
 
 // ---------- Module mocks (hoisted) ----------
 
@@ -192,12 +213,12 @@ describe('MainPipeline', () => {
   describe('nextIteration', () => {
     it('increments iteration counter', () => {
       const pipeline = new MainPipeline();
-      // Access private iteration field via any
-      const iterBefore = (pipeline as any).iteration as number;
+      // Access private iteration field via typed interface
+      const iterBefore = (pipeline as PrivatePipelineAccess).iteration;
 
       pipeline.nextIteration();
 
-      const iterAfter = (pipeline as any).iteration as number;
+      const iterAfter = (pipeline as PrivatePipelineAccess).iteration;
       expect(iterAfter).toBe(iterBefore + 1);
     });
 
@@ -245,7 +266,7 @@ describe('MainPipeline', () => {
       const pipeline = new MainPipeline();
       const scenes = [makeScene({ durationMs: 500 })];
 
-      (pipeline as any).optimizeSceneTiming(scenes);
+      (pipeline as PrivatePipelineAccess).optimizeSceneTiming(scenes);
 
       expect(scenes[0].durationMs).toBe(2000);
     });
@@ -254,7 +275,7 @@ describe('MainPipeline', () => {
       const pipeline = new MainPipeline();
       const scenes = [makeScene({ durationMs: 30000 })];
 
-      (pipeline as any).optimizeSceneTiming(scenes);
+      (pipeline as PrivatePipelineAccess).optimizeSceneTiming(scenes);
 
       expect(scenes[0].durationMs).toBe(15000);
     });
@@ -266,7 +287,7 @@ describe('MainPipeline', () => {
         makeScene({ startMs: 3000, durationMs: 5000 }), // overlaps with first
       ];
 
-      (pipeline as any).optimizeSceneTiming(scenes);
+      (pipeline as PrivatePipelineAccess).optimizeSceneTiming(scenes);
 
       // Second scene should be pushed to start after first ends
       expect(scenes[1].startMs).toBeGreaterThanOrEqual(
@@ -276,16 +297,16 @@ describe('MainPipeline', () => {
 
     it('handles empty scenes array without error', () => {
       const pipeline = new MainPipeline();
-      const scenes: unknown[] = [];
+      const scenes: SceneGraph[] = [];
 
-      expect(() => (pipeline as any).optimizeSceneTiming(scenes)).not.toThrow();
+      expect(() => (pipeline as PrivatePipelineAccess).optimizeSceneTiming(scenes)).not.toThrow();
     });
 
     it('handles single scene without modification (when within bounds)', () => {
       const pipeline = new MainPipeline();
       const scenes = [makeScene({ startMs: 0, durationMs: 5000 })];
 
-      (pipeline as any).optimizeSceneTiming(scenes);
+      (pipeline as PrivatePipelineAccess).optimizeSceneTiming(scenes);
 
       expect(scenes[0].durationMs).toBe(5000);
       expect(scenes[0].startMs).toBe(0);
@@ -307,7 +328,7 @@ describe('MainPipeline', () => {
       ];
       const edges = [{ from: 'a', to: 'b' }];
 
-      const layout = (pipeline as any).createFallbackLayout(nodes, edges);
+      const layout = (pipeline as PrivatePipelineAccess).createFallbackLayout(nodes, edges);
 
       // 2x2 grid: first row indices 0,1 → column offsets; second row 2,3
       expect(layout.nodes).toHaveLength(4);
@@ -333,7 +354,7 @@ describe('MainPipeline', () => {
         { from: 'b', to: 'c' },
       ];
 
-      const layout = (pipeline as any).createFallbackLayout(nodes, edges);
+      const layout = (pipeline as PrivatePipelineAccess).createFallbackLayout(nodes, edges);
 
       expect(layout.edges).toHaveLength(2);
       for (const edge of layout.edges) {
@@ -344,7 +365,7 @@ describe('MainPipeline', () => {
 
     it('handles empty arrays', () => {
       const pipeline = new MainPipeline();
-      const layout = (pipeline as any).createFallbackLayout([], []);
+      const layout = (pipeline as PrivatePipelineAccess).createFallbackLayout([], []);
 
       expect(layout.nodes).toEqual([]);
       expect(layout.edges).toEqual([]);
@@ -358,7 +379,7 @@ describe('MainPipeline', () => {
   describe('analyzeErrorPattern', () => {
     it('detects timeout pattern', () => {
       const pipeline = new MainPipeline();
-      const result = (pipeline as any).analyzeErrorPattern(
+      const result = (pipeline as PrivatePipelineAccess).analyzeErrorPattern(
         new Error('operation timeout exceeded'),
         'transcription',
       );
@@ -367,7 +388,7 @@ describe('MainPipeline', () => {
 
     it('detects memory pattern', () => {
       const pipeline = new MainPipeline();
-      const result = (pipeline as any).analyzeErrorPattern(
+      const result = (pipeline as PrivatePipelineAccess).analyzeErrorPattern(
         new Error('out of memory during processing'),
         'analysis',
       );
@@ -376,7 +397,7 @@ describe('MainPipeline', () => {
 
     it('detects network pattern', () => {
       const pipeline = new MainPipeline();
-      const result = (pipeline as any).analyzeErrorPattern(
+      const result = (pipeline as PrivatePipelineAccess).analyzeErrorPattern(
         new Error('connection refused by server'),
         'layout',
       );
@@ -385,7 +406,7 @@ describe('MainPipeline', () => {
 
     it('detects format pattern', () => {
       const pipeline = new MainPipeline();
-      const result = (pipeline as any).analyzeErrorPattern(
+      const result = (pipeline as PrivatePipelineAccess).analyzeErrorPattern(
         new Error('invalid format in input data'),
         'preparation',
       );
@@ -394,7 +415,7 @@ describe('MainPipeline', () => {
 
     it('returns unknown for unrecognized patterns', () => {
       const pipeline = new MainPipeline();
-      const result = (pipeline as any).analyzeErrorPattern(
+      const result = (pipeline as PrivatePipelineAccess).analyzeErrorPattern(
         new Error('something completely unexpected'),
         'transcription',
       );
@@ -410,35 +431,35 @@ describe('MainPipeline', () => {
     it('maps timeout to increase_timeout', () => {
       const pipeline = new MainPipeline();
       expect(
-        (pipeline as any).selectRecoveryStrategy('timeout', 'transcription'),
+        (pipeline as PrivatePipelineAccess).selectRecoveryStrategy('timeout', 'transcription'),
       ).toBe('increase_timeout');
     });
 
     it('maps memory to optimize_memory', () => {
       const pipeline = new MainPipeline();
       expect(
-        (pipeline as any).selectRecoveryStrategy('memory', 'analysis'),
+        (pipeline as PrivatePipelineAccess).selectRecoveryStrategy('memory', 'analysis'),
       ).toBe('optimize_memory');
     });
 
     it('maps network to retry_with_backoff', () => {
       const pipeline = new MainPipeline();
       expect(
-        (pipeline as any).selectRecoveryStrategy('network', 'layout'),
+        (pipeline as PrivatePipelineAccess).selectRecoveryStrategy('network', 'layout'),
       ).toBe('retry_with_backoff');
     });
 
     it('maps format to fallback_processing', () => {
       const pipeline = new MainPipeline();
       expect(
-        (pipeline as any).selectRecoveryStrategy('format', 'preparation'),
+        (pipeline as PrivatePipelineAccess).selectRecoveryStrategy('format', 'preparation'),
       ).toBe('fallback_processing');
     });
 
     it('defaults to generic_retry for unknown pattern', () => {
       const pipeline = new MainPipeline();
       expect(
-        (pipeline as any).selectRecoveryStrategy('bizarre_error', 'any'),
+        (pipeline as PrivatePipelineAccess).selectRecoveryStrategy('bizarre_error', 'any'),
       ).toBe('generic_retry');
     });
   });
@@ -453,7 +474,7 @@ describe('MainPipeline', () => {
       const mockFile = { name: 'audio.wav', size: 10240 } as File;
       const input: PipelineInput = { audioFile: mockFile };
 
-      const key = (pipeline as any).generateCacheKey(input);
+      const key = (pipeline as PrivatePipelineAccess).generateCacheKey(input);
 
       expect(key).toBe('transcription-audio.wav-10240-base');
     });
@@ -462,7 +483,7 @@ describe('MainPipeline', () => {
       const pipeline = new MainPipeline();
       const input: PipelineInput = { audioFile: '/path/to/recording.mp3' };
 
-      const key = (pipeline as any).generateCacheKey(input);
+      const key = (pipeline as PrivatePipelineAccess).generateCacheKey(input);
 
       expect(key).toBe('transcription-/path/to/recording.mp3-base');
     });
