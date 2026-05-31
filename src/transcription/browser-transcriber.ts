@@ -117,7 +117,7 @@ export class BrowserTranscriber {
         try {
           this.recognition.start();
         } catch (e) {
-          // Recognition may already be started, ignore
+          logger.debug('BrowserTranscriber: auto-restart recognition already active', { error: String(e) });
         }
       }
     };
@@ -144,7 +144,7 @@ export class BrowserTranscriber {
     try {
       this.recognition.start();
     } catch (e) {
-      // May already be started
+      logger.debug('BrowserTranscriber: start() already active', { error: String(e) });
     }
   }
 
@@ -159,7 +159,7 @@ export class BrowserTranscriber {
     try {
       this.recognition.stop();
     } catch (e) {
-      // May already be stopped
+      logger.debug('BrowserTranscriber: stop() already stopped', { error: String(e) });
     }
   }
 
@@ -175,7 +175,7 @@ export class BrowserTranscriber {
       try {
         this.recognition.stop();
       } catch (e) {
-        // May already be stopped
+        logger.debug('BrowserTranscriber: pause stop() already stopped', { error: String(e) });
       }
     }
   }
@@ -192,7 +192,7 @@ export class BrowserTranscriber {
       try {
         this.recognition.start();
       } catch (e) {
-        // May already be started
+        logger.debug('BrowserTranscriber: resume start() already active', { error: String(e) });
       }
     }
   }

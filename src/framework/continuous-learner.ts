@@ -6,6 +6,7 @@
  */
 
 import { randomUUID } from 'crypto';
+import { logger } from '@/utils/logger';
 
 interface LearningData {
   id: string;
@@ -192,7 +193,7 @@ export class ContinuousLearner {
         await this.generateSystemInsights();
         await this.applyAutomaticOptimizations();
       } catch (error) {
-        // Learning process error - continue running
+        logger.warn('ContinuousLearner: learning cycle failed', { error: String(error), iteration: this.iterationCount });
       }
     }, this.LEARNING_CONFIG.patternAnalysisInterval);
   }
@@ -533,7 +534,7 @@ export class ContinuousLearner {
       try {
         await this.executeOptimizationStrategy(strategy);
       } catch (error) {
-        // Optimization failed silently - will retry next cycle
+        logger.warn('ContinuousLearner: optimization strategy failed', { strategy: strategy.name, error: String(error) });
       }
     }
   }

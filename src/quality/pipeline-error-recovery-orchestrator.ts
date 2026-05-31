@@ -186,6 +186,7 @@ export class PipelineErrorRecoveryOrchestrator {
       };
     } catch (primaryError) {
       // Primary failed — enter recovery
+      logger.warn(`[Orchestrator] Primary stage "${stage}" failed, entering recovery`, { error: String(primaryError) });
     }
 
     // Phase 2: Strategy chain recovery (if registered)
