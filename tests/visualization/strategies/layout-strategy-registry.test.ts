@@ -76,12 +76,11 @@ describe('LayoutStrategyRegistry', () => {
       expect(registry.getStrategy('comparison')).toBe(comparison);
     });
 
-    it('should return conceptmap strategy for conceptmap, mindmap, and general', () => {
+    it('should return conceptmap strategy for conceptmap and general', () => {
       const conceptMap = new ConceptMapLayoutStrategy();
       registry.register(conceptMap);
 
       expect(registry.getStrategy('conceptmap')).toBe(conceptMap);
-      expect(registry.getStrategy('mindmap')).toBe(conceptMap);
       expect(registry.getStrategy('general')).toBe(conceptMap);
     });
 
@@ -131,7 +130,7 @@ describe('LayoutStrategyRegistry', () => {
       expect(registry.hasStrategy('comparison')).toBe(true);
       expect(registry.hasStrategy('network')).toBe(true);
       expect(registry.hasStrategy('conceptmap')).toBe(true);
-      expect(registry.hasStrategy('mindmap')).toBe(true);
+      expect(registry.hasStrategy('mindmap')).toBe(false); // mindmap has dedicated MindMapStrategy (LayoutStrategy)
       expect(registry.hasStrategy('general')).toBe(true);
     });
   });
@@ -277,15 +276,15 @@ describe('LayoutStrategyRegistry', () => {
       const networkResult = registry.getStrategy('network');
       expect(networkResult.name).toBe('network');
 
-      // conceptmap supports 'conceptmap', 'mindmap', 'general'
+      // conceptmap supports 'conceptmap' and 'general' (mindmap has dedicated MindMapStrategy)
       const conceptmapResult = registry.getStrategy('conceptmap');
       expect(conceptmapResult.name).toBe('conceptmap');
 
-      const mindmapResult = registry.getStrategy('mindmap');
-      expect(mindmapResult.name).toBe('conceptmap');
-
       const generalResult = registry.getStrategy('general');
       expect(generalResult.name).toBe('conceptmap');
+
+      // mindmap uses dedicated MindMapStrategy (LayoutStrategy), not registered in ILayoutStrategy registry
+      expect(registry.hasStrategy('mindmap')).toBe(false);
     });
   });
 });

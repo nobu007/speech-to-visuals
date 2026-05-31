@@ -40,8 +40,8 @@ describe('ConceptMapLayoutStrategy', () => {
       expect(strategy.supports('conceptmap')).toBe(true);
     });
 
-    it('should return true for "mindmap" diagram type', () => {
-      expect(strategy.supports('mindmap')).toBe(true);
+    it('should return false for "mindmap" diagram type (dedicated MindMapStrategy)', () => {
+      expect(strategy.supports('mindmap')).toBe(false);
     });
 
     it('should return true for "general" diagram type', () => {

@@ -26,12 +26,12 @@ const mockSemanticMetricsTracker = {
   reset: jest.fn(),
 };
 
-jest.mock('@/analysis/semantic-similarity', () => ({
+jest.unstable_mockModule('@/analysis/semantic-similarity', () => ({
   calculateSemanticSimilarity: (...args: unknown[]) => mockCalculateSemanticSimilarity(...args),
   SemanticMetricsTracker: jest.fn().mockImplementation(() => mockSemanticMetricsTracker),
 }));
 
-import { LLMCache } from '@/analysis/llm-cache';
+const { LLMCache } = await import('@/analysis/llm-cache');
 
 describe('LLMCache', () => {
   let cache: LLMCache<string>;

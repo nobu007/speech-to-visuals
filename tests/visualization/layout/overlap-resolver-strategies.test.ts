@@ -139,6 +139,9 @@ describe('OverlapResolver (layout/) — strategy-based orchestrator', () => {
 
   describe('single node', () => {
     it('returns a positioned node', async () => {
+      const resolved = [positioned('a', 100, 100)];
+      setMockResult('progressive-force', makeLayoutResult(resolved));
+
       const nodes: NodeDatum[] = [{ id: 'a', label: 'A' }];
       const result = await resolver().resolve(nodes, [], makeConfig());
 
@@ -211,6 +214,10 @@ describe('OverlapResolver (layout/) — strategy-based orchestrator', () => {
         metrics: { overlapCount: 1, edgeCrossings: 0, totalArea: 10000, nodeSpacing: 10, layoutBalance: 0.5 },
       }));
       setMockResult('simulated-annealing', makeLayoutResult(good, [], {
+        metrics: { overlapCount: 0, edgeCrossings: 0, totalArea: 50000, nodeSpacing: 300, layoutBalance: 0.9 },
+      }));
+      // Grid-snap fallback must also return the good result (resolver re-applies when any prior metric had overlaps)
+      setMockResult('grid-snap', makeLayoutResult(good, [], {
         metrics: { overlapCount: 0, edgeCrossings: 0, totalArea: 50000, nodeSpacing: 300, layoutBalance: 0.9 },
       }));
 
@@ -304,6 +311,9 @@ describe('OverlapResolver (layout/) — strategy-based orchestrator', () => {
 
   describe('bounds', () => {
     it('calculates correct bounding box for a single node', async () => {
+      const resolved = [positioned('a', 100, 100)];
+      setMockResult('progressive-force', makeLayoutResult(resolved));
+
       const result = await resolver().resolve(
         [{ id: 'a', label: 'A' }],
         [],

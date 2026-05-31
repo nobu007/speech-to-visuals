@@ -250,9 +250,10 @@ describe('MindMapStrategy', () => {
   // --- Nodes with custom dimensions ---
 
   it('respects custom node width and height', () => {
+    // importance 1/3 gives scale=1.0 (MIN_SCALE + (MAX_SCALE-MIN_SCALE)*1/3 = 0.75+0.75/3 = 1.0)
     const nodes = [
-      { id: 'n1', label: 'Root', width: 200, height: 80 },
-      { id: 'n2', label: 'Child', width: 150, height: 40 },
+      { id: 'n1', label: 'Root', width: 200, height: 80, meta: { importance: 1/3 } },
+      { id: 'n2', label: 'Child', width: 150, height: 40, meta: { importance: 1/3 } },
     ];
     const edges = [makeEdge('n1', 'n2')];
     const result = strategy.apply(nodes, edges as { from: string; to: string }[]);
