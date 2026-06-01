@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 74 ✅完了・372ソースファイル・325テストファイル・105パッケージ(74 deps+31 devDeps)・109,639行・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・184タスク全完了
+**実装状況**: Phase 75 ✅完了・373ソースファイル・231テストファイル・105パッケージ(74 deps+31 devDeps)・109,639行・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・187タスク全完了・テストスイート安定化完了（26+テスト障害解消・ESM互換性修正・エラー型伝播バグ修正）
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -424,6 +424,10 @@
 
 - REQ-194: システムは StreamingTranscriber のコンストラクタで設定パラメータを検証し、chunkSizeMs は 0より大きく60000以下、minConfidence は 0以上1以下、overlapMs は 0以上かつchunkSizeMs未満であることを強制し、不正値の場合は TranscriptionError をスローしなければならない 🔵 ✅実装済 *src/transcription/streaming-transcriber.ts・コミット0e10ed1*
 
+#### パイプラインエラー伝播正確性（Phase 75） ✅完了
+
+- REQ-195: システムは processWithRetry がエラーを再スローする際、実際の errorType を ErrorClassifier の分類結果から伝播し、ハードコード値（'UNKNOWN'）を使用してはならない。これにより retryWithBackoff がエラーをリカバリ可能として正しく分類し、適切なリトライを実行できることを保証する 🔵 ✅実装済 *src/pipeline/simple-pipeline.ts・コミットa3b05dd・TASK-0186*
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より*
@@ -591,14 +595,16 @@
 | Phase 71: KeyphraseOverlay・CaptionOverlay 動画統合 | ✅完了 | REQ-190~192 | 3/3（KeyphraseOverlay・Video統合・パイプライン配線・コミット49462a6~160a34e） |
 | Phase 72: 戦略セレクター統合テスト | ✅完了 | REQ-193 | 1/1（strategy-selector E2Eテスト・コミット0920f6a） |
 | Phase 73: ストリーミング文字起こし入力堅牢性 | ✅完了 | REQ-194 | 1/1（StreamingTranscriber constructor validation・コミット0e10ed1） |
+| Phase 74: サイレントcatchブロックエラーロギング | ✅完了 | — | 8箇所のサイレントcatchブロックにエラーロギング追加（コミット9b7d722） |
+| Phase 75: テストスイート安定化・ESM互換性・エラー伝播修正 | ✅完了 | REQ-195 + TASK-0185~0187 | 3/3（Jest ESM互換性修正・processWithRetryエラー型伝播バグ修正・テストアサーション修正・26+テスト障害解消） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 214件 (97.3%)
+- 🔵 青信号: 215件 (97.3%)
 - 🟡 黄信号: 3件 (1.4%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 73完了（REQ-001~194）・11図解タイプ専用戦略完了・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・TypeScript型エラー0件・パイプライン型付きエラー完全化・戦略セレクターE2E統合テスト完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・spec-code整合性検証完了（第173回検証）
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 75完了（REQ-001~195）・テストスイート安定化完了（26+テスト障害解消・ESM互換性・エラー型伝播修正）・11図解タイプ専用戦略完了・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・TypeScript型エラー0件・パイプライン型付きエラー完全化・187タスク全完了
 
 ## Acceptance criteria
 
@@ -609,6 +615,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 73 を網羅し、Phase 73 完了（StreamingTranscriber入力堅牢性）を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 75 を網羅し、Phase 75 完了（テストスイート安定化・ESM互換性・エラー伝播修正）を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテキュリティに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第173回: 🔵214件/🟡3件/🔴0件 — Phase 73完了・REQ-001~194・325テストファイル・372ソースファイル・105パッケージ）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第176回: 🔵215件/🟡3件/🔴0件 — Phase 75完了・REQ-001~195・231テストファイル・373ソースファイル・105パッケージ）

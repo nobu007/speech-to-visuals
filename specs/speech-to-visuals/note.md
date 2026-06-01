@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-31（第175回検証・Phase 74完了・372ソースファイル・325テストファイル(216 tests/+109 src/)・105パッケージ(74 deps+31 devDeps)・TypeScriptエラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・109,639行・214要件（REQ-001~194+NFR+EDGE）・11図解タイプ専用戦略完了・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・パイプライン型付きエラー完全化・StreamingTranscriber入力堅牢性完了・184タスク全完了）
+**最終更新**: 2026-06-02（第176回検証・Phase 75完了・373ソースファイル・231テストファイル・105パッケージ(74 deps+31 devDeps)・TypeScriptエラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・109,639行・215要件（REQ-001~195+NFR+EDGE）・11図解タイプ専用戦略完了・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・パイプライン型付きエラー完全化・StreamingTranscriber入力堅牢性完了・187タスク全完了・テストスイート安定化完了（26+テスト障害解消））
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム
 
 ## 技術スタック
@@ -97,8 +97,9 @@ src/
 - [x] バックエンド・処理技術スタックのバージョンが package.json dependencies と一致する（Express 5.2.1, Supabase 2.105, Socket.IO 4.8）
 - [x] AI・ML技術スタックのバージョンが package.json dependencies と一致する（@google/generative-ai 0.24, @remotion/install-whisper-cpp, Kuromoji 0.1, @dagrejs/dagre 3.0）
 - [x] 開発ツールのバージョンが package.json devDependencies と一致する（ESLint 9, Jest 30.3, ts-jest 29, tsx 4.21）
-- [x] 主要ディレクトリ構造の記述が実際の src/ 配下と一致する（21ディレクトリ）
+- [x] 主要ディレクトリ構造の記述が実際の src/ 配下と一致する（24ディレクトリ）
 - [x] 開発コマンド（dev, api:dev, remotion:studio, type-check, test）が package.json scripts と一致する
+- [x] Phase 75 テストスイート安定化が完了（ESM互換性・エラー型伝播・アサーション修正・26+テスト障害解消）
 
 ## 注意事項
 

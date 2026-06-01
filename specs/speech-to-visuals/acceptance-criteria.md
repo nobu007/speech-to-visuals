@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-31（第173回検証: Phase 73完了・spec-code整合性検証・325テストファイル・372ソースファイル・105パッケージ）
+**最終更新**: 2026-06-02（第176回検証: Phase 75完了・テストスイート安定化・231テストファイル・373ソースファイル・105パッケージ）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -3042,5 +3042,45 @@
 - [x] **TC-194-04**: overlapMs >= chunkSizeMs検証 🔵
   - **期待結果**: overlapMs >= chunkSizeMs の場合 TranscriptionError がスローされる
   - **信頼性**: 🔵 *src/transcription/streaming-transcriber.ts L76-80*
+
+---
+
+## REQ-195: processWithRetry エラー型伝播正確性 🔵 ✅実装済
+
+**信頼性**: 🔵 *コミットa3b05dd・TASK-0186*
+
+### Given（前提条件）
+
+- SimplePipeline の processWithRetry が失敗結果を再スローする際
+
+### When（実行条件）
+
+- process() が成功フラグ false と errorType を返した場合
+
+### Then（期待結果）
+
+- PipelineError の errorType にハードコード'UNKNOWN'ではなく実際の result.errorType が伝播される
+- retryWithBackoff がエラーをリカバリ可能として正しく分類する
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-195-01**: エラー型伝播検証 🔵
+  - **入力**: LLM API エラー（errorType='LLM_API_ERROR'）
+  - **期待結果**: PipelineError の errorType が 'LLM_API_ERROR' として伝播される
+  - **信頼性**: 🔵 *src/pipeline/simple-pipeline.ts L664-665*
+
+- [x] **TC-195-02**: リトライ時のエラー分類検証 🔵
+  - **入力**: リカバリ可能エラー（LLM API error）
+  - **期待結果**: retryWithBackoff がリトライを実行し、最終的に成功する
+  - **信頼性**: 🔵 *src/pipeline/__tests__/simple-pipeline.test.ts*
+
+#### 異常系
+
+- [x] **TC-195-E01**: 不明エラー型のハンドリング 🔵
+  - **入力**: errorType が undefined の場合
+  - **期待結果**: フォールバックとして 'UNKNOWN' が使用される
+  - **信頼性**: 🔵 *src/pipeline/simple-pipeline.ts L664*
 
 ---

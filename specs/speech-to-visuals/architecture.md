@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-01（第171回検証: Phase 74完了・19テスト修正（LLMCache ESMモック修正2ファイル・ConceptMapLayoutStrategy+LayoutStrategyRegistry mindmap分離対応2ファイル・OverlapResolverモック結果設定1ファイル・MindMapStrategy+NetworkStrategy重要度スケール対応2ファイル）・TypeScript/ESLintエラー0件・依存1040パッケージ・npm audit 0件）
+**最終更新**: 2026-06-02（第176回検証: Phase 75完了・テストスイート安定化（26+テスト障害解消・ESM互換性修正・エラー型伝播バグ修正）・TypeScript/ESLintエラー0件・依存1040パッケージ・npm audit 0件）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
