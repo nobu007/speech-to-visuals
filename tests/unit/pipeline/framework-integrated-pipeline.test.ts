@@ -83,6 +83,11 @@ import { createIterationManager } from '@/framework/iteration-manager';
 import { createAutoImprovementEngine } from '@/framework/auto-improvement-engine';
 import type { PipelineResult } from '@/pipeline/types';
 
+// Access mock functions via requireMock for ESM compatibility
+const MockMainPipeline = jest.requireMock('@/pipeline/main-pipeline').MainPipeline as jest.Mock;
+const MockCreateIterationManager = jest.requireMock('@/framework/iteration-manager').createIterationManager as jest.Mock;
+const MockCreateAutoImprovementEngine = jest.requireMock('@/framework/auto-improvement-engine').createAutoImprovementEngine as jest.Mock;
+
 /** Exposes the private estimation methods for testing. */
 type PipelinePrivateMethods = {
   estimateTranscriptionAccuracy: (result: PipelineResult) => number;
@@ -131,16 +136,16 @@ describe('FrameworkIntegratedPipeline', () => {
     it('should create an instance with defaults', () => {
       const p = new FrameworkIntegratedPipeline();
       expect(p).toBeInstanceOf(FrameworkIntegratedPipeline);
-      expect(MainPipeline).toHaveBeenCalledWith(undefined);
-      expect(createAutoImprovementEngine).toHaveBeenCalledWith(undefined);
+      expect(MockMainPipeline).toHaveBeenCalledWith(undefined);
+      expect(MockCreateAutoImprovementEngine).toHaveBeenCalledWith(undefined);
     });
 
     it('should pass config to MainPipeline', () => {
       const config = { maxRetries: 5 };
       const thresholds = { minScore: 90 };
       const p = new FrameworkIntegratedPipeline(config, thresholds);
-      expect(MainPipeline).toHaveBeenCalledWith(config);
-      expect(createAutoImprovementEngine).toHaveBeenCalledWith(thresholds);
+      expect(MockMainPipeline).toHaveBeenCalledWith(config);
+      expect(MockCreateAutoImprovementEngine).toHaveBeenCalledWith(thresholds);
     });
   });
 
@@ -149,7 +154,7 @@ describe('FrameworkIntegratedPipeline', () => {
   describe('setPhase', () => {
     it('should create iteration manager for the given phase', () => {
       pipeline.setPhase('内容分析');
-      expect(createIterationManager).toHaveBeenCalledWith('内容分析');
+      expect(MockCreateIterationManager).toHaveBeenCalledWith('内容分析');
     });
   });
 

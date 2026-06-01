@@ -313,13 +313,11 @@ describe('PerformanceDashboard', () => {
     });
 
     it('returns zero averageCostPerRequest when no records', () => {
-      // The mock TokenUsageTracker returns recordCount: 5 by default,
-      // so we need a fresh dashboard where the mock returns 0 records
-      const { TokenUsageTracker } = jest.requireActual('@/analysis/token-usage-tracker') || {};
-      // Since mock always returns recordCount: 5, verify the calculation is correct
+      // Fresh dashboard has no token usage records, so cost estimate is 0
       const metrics = dashboard.getCostMetrics();
-      // averageCostPerRequest = totalCost / recordCount = 0.025 / 5 = 0.005
-      expect(metrics.averageCostPerRequest).toBe(0.005);
+      expect(metrics.totalCost).toBe(0);
+      expect(metrics.recordCount).toBe(0);
+      expect(metrics.averageCostPerRequest).toBe(0);
     });
   });
 

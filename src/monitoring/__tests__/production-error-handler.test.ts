@@ -1,20 +1,19 @@
 /**
+ * @jest-environment jsdom
+ */
+
+/**
  * Unit tests for ProductionErrorHandler
  * Covers: error classification, severity determination, recovery strategies, metrics, callbacks
  */
 
-// Mock browser globals before import
-const mockWindowAddEventListener = jest.fn();
+// Mock browser globals - jsdom provides window, so we spy on it
+const mockWindowAddEventListener = jest.spyOn(window, 'addEventListener').mockImplementation(jest.fn());
 const mockWindowRemoveEventListener = jest.fn();
-Object.defineProperty(globalThis, 'window', {
-  value: {
-    addEventListener: mockWindowAddEventListener,
-    removeEventListener: mockWindowRemoveEventListener,
-    location: { reload: jest.fn() },
-  },
-  writable: true,
-});
+// Override removeEventListener since jsdom's window has it
+window.removeEventListener = mockWindowRemoveEventListener;
 
+// Set navigator properties for test consistency
 Object.defineProperty(globalThis, 'navigator', {
   value: {
     userAgent: 'test-agent',
@@ -22,6 +21,7 @@ Object.defineProperty(globalThis, 'navigator', {
     platform: 'test-platform',
   },
   writable: true,
+  configurable: true,
 });
 
 import { ProductionErrorHandler } from '../production-error-handler';

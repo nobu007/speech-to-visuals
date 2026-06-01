@@ -27,7 +27,7 @@ const mockGenerateReport = jest.fn().mockReturnValue('# Report');
 const mockGetIterationSummary = jest.fn().mockReturnValue({ iterations: 0 });
 const mockGetImprovementHistory = jest.fn().mockReturnValue([]);
 
-jest.mock('../../../src/pipeline/framework-integrated-pipeline', () => ({
+jest.mock('@/pipeline/framework-integrated-pipeline', () => ({
   FrameworkIntegratedPipeline: jest.fn().mockImplementation(() => ({
     setPhase: mockSetPhase,
     execute: mockExecute,
@@ -37,7 +37,7 @@ jest.mock('../../../src/pipeline/framework-integrated-pipeline', () => ({
   })),
 }));
 
-jest.mock('../../../src/utils/logger', () => ({
+jest.mock('@/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -46,7 +46,7 @@ jest.mock('../../../src/utils/logger', () => ({
 }));
 
 // Need to mock the DEVELOPMENT_CYCLES import
-jest.mock('../../../src/framework/iteration-manager', () => ({
+jest.mock('@/framework/iteration-manager', () => ({
   DEVELOPMENT_CYCLES: {
     'MVP構築': { phase: 'MVP構築', maxIterations: 3, successCriteria: [], failureRecovery: '' },
     '基本機能': { phase: '基本機能', maxIterations: 5, successCriteria: [], failureRecovery: '' },
@@ -62,8 +62,8 @@ global.fetch = jest.fn().mockResolvedValue({
   statusText: 'OK',
 });
 
-import { MonitoringError } from '../../../src/pipeline/pipeline-errors';
-import { useFrameworkPipeline, useIterationLog } from '../../../src/hooks/useFrameworkPipeline';
+import { MonitoringError } from '@/pipeline/pipeline-errors';
+import { useFrameworkPipeline, useIterationLog } from '@/hooks/useFrameworkPipeline';
 
 // ---------------------------------------------------------------------------
 // Helpers

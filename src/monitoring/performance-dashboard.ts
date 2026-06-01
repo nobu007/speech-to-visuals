@@ -6,11 +6,11 @@
 
 import { randomUUID } from 'crypto';
 import { getMemoryUsage } from '@/utils/memory-usage';
-import { logger } from '../utils/logger';
+import { logger } from '@/utils/logger';
 import { MonitoringError } from '@/pipeline/pipeline-errors';
-import { TokenUsageTracker, type StageType } from '../analysis/token-usage-tracker';
-import { estimateCost, type CostEstimate } from '../analysis/cost-estimator';
-import { globalCache } from '../performance/intelligent-cache';
+import { TokenUsageTracker, type StageType } from '@/analysis/token-usage-tracker';
+import { estimateCost, type CostEstimate } from '@/analysis/cost-estimator';
+import { globalCache } from '@/performance/intelligent-cache';
 
 interface PerformanceMetrics {
   timestamp: number;
