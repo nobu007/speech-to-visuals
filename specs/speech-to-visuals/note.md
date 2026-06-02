@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-02（第176回検証・Phase 75完了・373ソースファイル・231テストファイル・105パッケージ(74 deps+31 devDeps)・TypeScriptエラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・109,639行・215要件（REQ-001~195+NFR+EDGE）・11図解タイプ専用戦略完了・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・パイプライン型付きエラー完全化・StreamingTranscriber入力堅牢性完了・187タスク全完了・テストスイート安定化完了（26+テスト障害解消））
+**最終更新**: 2026-06-02（第177回検証・Phase 76要件追加・373ソースファイル・231テストファイル・105パッケージ(74 deps+31 devDeps)・TypeScriptエラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・109,639行・216要件（REQ-001~196+NFR+EDGE）・11図解タイプ専用戦略完了・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・パイプライン型付きエラー完全化・StreamingTranscriber入力堅牢性完了・187タスク全完了・テストスイート安定化完了（26+テスト障害解消）・バッチ処理プログレス正確性修正完了）
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム
 
 ## 技術スタック
@@ -100,6 +100,7 @@ src/
 - [x] 主要ディレクトリ構造の記述が実際の src/ 配下と一致する（24ディレクトリ）
 - [x] 開発コマンド（dev, api:dev, remotion:studio, type-check, test）が package.json scripts と一致する
 - [x] Phase 75 テストスイート安定化が完了（ESM互換性・エラー型伝播・アサーション修正・26+テスト障害解消）
+- [x] Phase 76 バッチ処理プログレス正確性要件（REQ-196）が追加済み（コミット8edf876実装に基づく）
 
 ## 注意事項
 

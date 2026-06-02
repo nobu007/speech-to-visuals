@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-02（第176回検証: Phase 75完了・テストスイート安定化（26+テスト障害解消・ESM互換性修正・エラー型伝播バグ修正）・TypeScript/ESLintエラー0件・依存1040パッケージ・npm audit 0件）
+**最終更新**: 2026-06-02（第177回検証: Phase 76要件追加・バッチ処理プログレス正確性要件定義・テストスイート安定化完了・TypeScript/ESLintエラー0件・依存105パッケージ・npm audit 0件）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 

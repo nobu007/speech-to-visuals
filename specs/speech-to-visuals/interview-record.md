@@ -10,11 +10,36 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-02（第176回検証: Phase 75 TASK-0185~0187 全完了・テストスイート安定化・26+テスト障害解消・REQ-195エラー型伝播要件追加）
+**最終更新**: 2026-06-02（第177回検証: Phase 76要件追加・バッチ処理プログレス正確性要件定義・REQ-196追加）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
 ## 分析項目と判断
+
+### A177: 第177回検証 - Phase 76 バッチ処理プログレス正確性要件定義（2026-06-02）
+
+**分析日時**: 2026-06-02
+**カテゴリ**: バグ修正の要件定義化・バッチ処理プログレス正確性・要件定義増分更新
+**背景**: AI Hubフィードバック「Implement REQ-195 error type propagation」は既に実装済み（コミットa3b05dd）。次のアクション可能な改善として、コミット8edf876「fix(batch): progress.total reflects original submitted file count, not deduplicated count」が実装済みだが要件定義に未登録のため、正式なREQ-196として文書化。
+
+**判断**:
+1. **REQ-196追加**: バッチ処理APIにおいて progress.total が重複解除後のファイル数ではなく元のファイル数を反映する要件を定義。コミット8edf876で実装済み
+2. **テストカバレッジギャップ特定**: バッチ重複ファイル検出時の progress.total 挙動に対する専用テストが未作成。Phase 76 タスク（TASK-0188~0192）で対応予定
+3. **Phase 76登録**: リトライ配線統合テスト・テストスイート検証フェーズとして Phase 76 を登録（TASK-0188~0192 は既に overview.md で定義済み）
+
+**根拠**:
+- `src/api/batch-processing-api.ts:226-228` - `originalTotal = request.files.length` で元のファイル数を保持
+- `src/api/batch-processing-api.ts:228` - `createJob(dedupedRequest.files, originalTotal)` で元のカウントを渡す
+- `src/api/batch-processing-api.ts:108` - `total: totalFiles ?? files.length` で元のカウントを使用
+- コミット8edf876: "fix(batch): progress.total reflects original submitted file count, not deduplicated count"
+- `tests/unit/api/batch-dedup.test.ts` - 重複検出ロジックのテストは存在するが progress.total との相互作用テストが未対応
+- REQ-195（エラー型伝播）はコミットa3b05ddで既に実装済み・検証済み
+
+**信頼性への影響**:
+- 新規要件 REQ-196 追加（信頼性レベル: 🔵）
+- 信頼性レベル分布: 🔵215→216件/🟡3件/🔴0件
+
+---
 
 ### A176: 第176回検証 - Phase 75 全タスク完了・テストスイート安定化（2026-06-02）
 

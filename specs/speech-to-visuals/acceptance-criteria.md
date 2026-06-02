@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-02（第176回検証: Phase 75完了・テストスイート安定化・231テストファイル・373ソースファイル・105パッケージ）
+**最終更新**: 2026-06-02（第177回検証: Phase 76要件追加・REQ-196 バッチ処理プログレス正確性・231テストファイル・373ソースファイル・105パッケージ）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -3082,5 +3082,47 @@
   - **入力**: errorType が undefined の場合
   - **期待結果**: フォールバックとして 'UNKNOWN' が使用される
   - **信頼性**: 🔵 *src/pipeline/simple-pipeline.ts L664*
+
+---
+
+## REQ-196: バッチ処理プログレス正確性 🔵 ✅実装済
+
+**信頼性**: 🔵 *コミット8edf876・src/api/batch-processing-api.ts*
+
+### Given（前提条件）
+
+- バッチ処理API（POST /batch/jobs）に複数ファイルが送信されている
+- 送信されたファイルの中に重複（同一ハッシュ）が含まれている
+
+### When（実行条件）
+
+- バッチAPIがファイルの重複検出・除外を実行し、ジョブを作成・処理する
+
+### Then（期待結果）
+
+- progress.total が重複解除後のファイル数ではなく、ユーザーがアップロードした元のファイル数を反映する
+- 重複としてスキップされたファイル（skippedFiles）の数が progress.completed に事前完了分として加算される
+- ユーザーが確認する進捗率が直感的（3ファイル提出時は3ファイルベースの進捗表示）
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-196-01**: 重複なしファイルのプログレス 🔵
+  - **入力**: 3ファイル（重複なし）
+  - **期待結果**: progress.total = 3, progress.completed が処理完了とともに増加
+  - **信頼性**: 🔵 *src/api/batch-processing-api.ts:226-228*
+
+- [x] **TC-196-02**: 重複ありファイルのプログレス 🔵
+  - **入力**: 3ファイル（うち2ファイルが同一ハッシュ）
+  - **期待結果**: progress.total = 3（1ではない）, skippedCount = 2
+  - **信頼性**: 🔵 *src/api/batch-processing-api.ts:226（originalTotal = request.files.length）*
+
+#### 境界値
+
+- [x] **TC-196-B01**: 全ファイル重複のプログレス 🔵
+  - **入力**: 3ファイル（全て同一ハッシュ）
+  - **期待結果**: progress.total = 3, skippedCount = 2, 実際の処理対象 = 1ファイル
+  - **信頼性**: 🔵 *src/api/batch-processing-api.ts:226-228*
 
 ---
