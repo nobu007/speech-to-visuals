@@ -97,7 +97,7 @@ class JobStore {
     }
   }
 
-  createJob(files: File[]): string {
+  createJob(files: File[], totalFiles?: number): string {
     this.pruneOldJobs();
     const jobId = `job_${Date.now()}_${randomUUID().split('-')[0]}`;
     this.jobs.set(jobId, {
@@ -105,7 +105,7 @@ class JobStore {
         jobId,
         status: 'queued',
         progress: {
-          total: files.length,
+          total: totalFiles ?? files.length,
           completed: 0,
           failed: 0,
           percentage: 0,
@@ -221,8 +221,11 @@ export class BatchProcessingAPI {
       ? { ...request, files: dedupedFiles }
       : request;
 
-    // Create job
-    const jobId = jobStore.createJob(dedupedRequest.files);
+    // Create job — total reflects the original submitted count so progress
+    // is meaningful to the caller even when duplicates were skipped.
+    const originalTotal = request.files.length;
+    const skippedCount = skippedFiles.length;
+    const jobId = jobStore.createJob(dedupedRequest.files, originalTotal);
 
     // Set preset if provided
     if (request.preset) {
@@ -230,7 +233,7 @@ export class BatchProcessingAPI {
     }
 
     // Start processing in background
-    this.processJobAsync(jobId, dedupedRequest).catch((error) => {
+    this.processJobAsync(jobId, dedupedRequest, originalTotal, skippedCount).catch((error) => {
       logger.error(`Phase 37: Batch job ${jobId} failed:`, error);
       jobStore.updateJobStatus(jobId, {
         status: 'failed',
@@ -300,7 +303,9 @@ export class BatchProcessingAPI {
    */
   private async processJobAsync(
     jobId: string,
-    request: BatchJobRequest
+    request: BatchJobRequest,
+    originalTotal: number,
+    skippedCount: number,
   ): Promise<void> {
     const startTime = Date.now();
     const results: BatchJobResult['results'] = [];
@@ -336,19 +341,19 @@ export class BatchProcessingAPI {
       failedCount,
       () => {
         // Progress callback after each file completes
-        const done = completedCount.value + failedCount.value;
+        const done = skippedCount + completedCount.value + failedCount.value;
         jobStore.updateJobStatus(jobId, {
-          currentFile: request.files[Math.min(done, request.files.length - 1)]?.name,
+          currentFile: request.files[Math.min(done - skippedCount, request.files.length - 1)]?.name,
           progress: {
-            total: request.files.length,
-            completed: completedCount.value,
+            total: originalTotal,
+            completed: skippedCount + completedCount.value,
             failed: failedCount.value,
-            percentage: Math.round((done / request.files.length) * 100),
+            percentage: Math.round((done / originalTotal) * 100),
           },
           estimatedTimeRemaining: this.estimateTimeRemaining(
             startTime,
             done,
-            request.files.length,
+            originalTotal,
           ),
         });
       },
@@ -396,8 +401,8 @@ export class BatchProcessingAPI {
       status: cancelToken.cancelled ? 'cancelled' : 'completed',
       completedAt: new Date().toISOString(),
       progress: {
-        total: request.files.length,
-        completed: successCount,
+        total: originalTotal,
+        completed: skippedCount + successCount,
         failed: failureCount,
         percentage: 100,
       },
