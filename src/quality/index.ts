@@ -69,6 +69,9 @@ export type {
   StageHealthScore,
 } from './error-recovery-health-tracker';
 
+export { PipelineErrorGuidanceBridge, pipelineErrorGuidance } from './pipeline-error-guidance';
+export type { PipelineErrorGuidance } from './pipeline-error-guidance';
+
 export { PipelineRunRecoveryTracker } from './pipeline-run-recovery-tracker';
 export type {
   RecoveryStage,

@@ -796,40 +796,48 @@ export class PipelineOrchestrator {
    * Validate PipelineConfig structurally.
    */
   private validatePipelineConfig(config: PipelineConfig): void {
-    const validModels = ['tiny', 'base', 'small', 'medium', 'large'];
-    if (!validModels.includes(config.transcription.model as string)) {
-      throw new PipelineConfigError(
-        'transcription.model',
-        `Invalid transcription model: ${config.transcription.model}`,
-      );
+    if (config.transcription) {
+      const validModels = ['tiny', 'base', 'small', 'medium', 'large'];
+      if (!validModels.includes(config.transcription.model as string)) {
+        throw new PipelineConfigError(
+          'transcription.model',
+          `Invalid transcription model: ${config.transcription.model}`,
+        );
+      }
     }
 
-    if (config.analysis.minSegmentLengthMs < 0) {
-      throw new PipelineConfigError(
-        'analysis.minSegmentLengthMs',
-        'minSegmentLengthMs must be >= 0',
-      );
+    if (config.analysis) {
+      if (config.analysis.minSegmentLengthMs < 0) {
+        throw new PipelineConfigError(
+          'analysis.minSegmentLengthMs',
+          'minSegmentLengthMs must be >= 0',
+        );
+      }
+
+      if (config.analysis.confidenceThreshold < 0 || config.analysis.confidenceThreshold > 1) {
+        throw new PipelineConfigError(
+          'analysis.confidenceThreshold',
+          'confidenceThreshold must be between 0 and 1',
+        );
+      }
     }
 
-    if (config.analysis.confidenceThreshold < 0 || config.analysis.confidenceThreshold > 1) {
-      throw new PipelineConfigError(
-        'analysis.confidenceThreshold',
-        'confidenceThreshold must be between 0 and 1',
-      );
+    if (config.layout) {
+      if (config.layout.width <= 0 || config.layout.height <= 0) {
+        throw new PipelineConfigError(
+          'layout.dimensions',
+          'Layout dimensions must be positive',
+        );
+      }
     }
 
-    if (config.layout.width <= 0 || config.layout.height <= 0) {
-      throw new PipelineConfigError(
-        'layout.dimensions',
-        'Layout dimensions must be positive',
-      );
-    }
-
-    if (config.output.fps <= 0) {
-      throw new PipelineConfigError(
-        'output.fps',
-        'fps must be positive',
-      );
+    if (config.output) {
+      if (config.output.fps <= 0) {
+        throw new PipelineConfigError(
+          'output.fps',
+          'fps must be positive',
+        );
+      }
     }
   }
 
