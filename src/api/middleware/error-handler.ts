@@ -1,5 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../../utils/logger';
+import { PipelineError } from '../../pipeline/pipeline-errors';
+import { pipelineErrorGuidance, type PipelineErrorGuidance } from '../../quality/pipeline-error-guidance';
+import type { ErrorType } from '../../quality/error-classifier';
 
 export class AppError extends Error {
   public readonly statusCode: number;
@@ -59,12 +62,67 @@ interface ErrorResponse {
   };
 }
 
+interface PipelineErrorResponse {
+  success: false;
+  error: {
+    code: string;
+    message: string;
+    classifiedType: ErrorType;
+    recoverable: boolean;
+    suggestedAction: string;
+    severity: string;
+    stage: string;
+    strategies?: string[];
+    preventionTips?: string[];
+  };
+}
+
+/** Map PipelineError errorType to an appropriate HTTP status code. */
+const ERROR_TYPE_HTTP_STATUS: Record<ErrorType, number> = {
+  FILE_FORMAT_INVALID: 400,
+  FILE_SIZE_EXCEEDED: 413,
+  LLM_API_ERROR: 502,
+  LLM_RATE_LIMITED: 429,
+  LLM_TIMEOUT: 504,
+  RENDERING_ERROR: 500,
+  RENDERING_OOM: 500,
+  NETWORK_ERROR: 502,
+  STORAGE_ERROR: 500,
+  QUALITY_GATE_FAILED: 422,
+  UNKNOWN: 500,
+};
+
 export function errorHandler(
   err: Error,
   _req: Request,
   res: Response,
   _next: NextFunction,
 ): void {
+  // PipelineError: use PipelineErrorGuidanceBridge for rich, actionable responses
+  if (err instanceof PipelineError) {
+    const guidance: PipelineErrorGuidance = pipelineErrorGuidance.provideGuidance(err, err.context);
+    const statusCode = ERROR_TYPE_HTTP_STATUS[err.errorType] ?? 500;
+
+    logger.warn(`[PipelineError] ${err.errorType} at stage "${err.stage}": ${err.message}`);
+
+    const response: PipelineErrorResponse = {
+      success: false,
+      error: {
+        code: `PIPELINE_${err.errorType}`,
+        message: guidance.userMessage,
+        classifiedType: guidance.classifiedType,
+        recoverable: guidance.recoverable,
+        suggestedAction: guidance.suggestedAction,
+        severity: guidance.severity,
+        stage: err.stage,
+        strategies: guidance.strategies,
+        preventionTips: guidance.preventionTips,
+      },
+    };
+    res.status(statusCode).json(response);
+    return;
+  }
+
   if (err instanceof AppError) {
     const response: ErrorResponse = {
       success: false,

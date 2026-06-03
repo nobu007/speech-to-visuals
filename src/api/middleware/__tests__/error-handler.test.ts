@@ -8,6 +8,13 @@ import {
   RateLimitError,
   errorHandler,
 } from '../error-handler';
+import {
+  PipelineError,
+  TranscriptionError,
+  RenderingError,
+  AudioValidationError,
+  QualityGateError,
+} from '../../../pipeline/pipeline-errors';
 
 function createMockRequest(): Partial<Request> {
   return {} as Partial<Request>;
@@ -253,5 +260,107 @@ describe('errorHandler middleware', () => {
 
     const jsonCall = res.json.mock.calls[0][0] as { error: { details?: unknown } };
     expect(jsonCall.error).not.toHaveProperty('details');
+  });
+});
+
+describe('errorHandler middleware — PipelineError integration', () => {
+  let req: Partial<Request>;
+  let res: { status: jest.Mock; json: jest.Mock } & Partial<Response>;
+  let next: NextFunction;
+
+  beforeEach(() => {
+    req = createMockRequest();
+    res = createMockResponse();
+    next = createMockNext();
+  });
+
+  it('should handle PipelineError with rich guidance response', () => {
+    const error = new PipelineError('Something failed', 'LLM_API_ERROR', 'transcription');
+    errorHandler(error, req as Request, res as Response, next);
+
+    expect(res.status).toHaveBeenCalledWith(502);
+    const jsonCall = res.json.mock.calls[0][0];
+    expect(jsonCall.success).toBe(false);
+    expect(jsonCall.error.code).toBe('PIPELINE_LLM_API_ERROR');
+    expect(jsonCall.error.classifiedType).toBe('LLM_API_ERROR');
+    expect(jsonCall.error.stage).toBe('transcription');
+    expect(typeof jsonCall.error.recoverable).toBe('boolean');
+    expect(typeof jsonCall.error.suggestedAction).toBe('string');
+    expect(typeof jsonCall.error.severity).toBe('string');
+  });
+
+  it('should handle TranscriptionError (maps to LLM_API_ERROR → 502)', () => {
+    const error = new TranscriptionError('Whisper service unavailable');
+    errorHandler(error, req as Request, res as Response, next);
+
+    expect(res.status).toHaveBeenCalledWith(502);
+    const jsonCall = res.json.mock.calls[0][0];
+    expect(jsonCall.error.code).toBe('PIPELINE_LLM_API_ERROR');
+    expect(jsonCall.error.stage).toBe('transcription');
+  });
+
+  it('should handle RenderingError (maps to RENDERING_ERROR → 500)', () => {
+    const error = new RenderingError('Frame composition failed');
+    errorHandler(error, req as Request, res as Response, next);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    const jsonCall = res.json.mock.calls[0][0];
+    expect(jsonCall.error.code).toBe('PIPELINE_RENDERING_ERROR');
+    expect(jsonCall.error.stage).toBe('rendering');
+  });
+
+  it('should handle AudioValidationError (maps to FILE_FORMAT_INVALID → 400)', () => {
+    const error = new AudioValidationError('Unsupported format: .flac', '.flac');
+    errorHandler(error, req as Request, res as Response, next);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    const jsonCall = res.json.mock.calls[0][0];
+    expect(jsonCall.error.code).toBe('PIPELINE_FILE_FORMAT_INVALID');
+    expect(jsonCall.error.stage).toBe('audio_validation');
+  });
+
+  it('should handle QualityGateError (maps to QUALITY_GATE_FAILED → 422)', () => {
+    const error = new QualityGateError('layout_overlap', 'Overlap ratio 0.15 exceeds threshold 0.05');
+    errorHandler(error, req as Request, res as Response, next);
+
+    expect(res.status).toHaveBeenCalledWith(422);
+    const jsonCall = res.json.mock.calls[0][0];
+    expect(jsonCall.error.code).toBe('PIPELINE_QUALITY_GATE_FAILED');
+    expect(jsonCall.error.stage).toBe('quality_gate');
+  });
+
+  it('should include strategies and preventionTips from guidance', () => {
+    const error = new PipelineError('LLM timeout', 'LLM_TIMEOUT', 'analysis');
+    errorHandler(error, req as Request, res as Response, next);
+
+    const jsonCall = res.json.mock.calls[0][0];
+    // guidance may or may not include strategies, but the field should exist
+    expect(jsonCall.error).toHaveProperty('strategies');
+    expect(jsonCall.error).toHaveProperty('preventionTips');
+  });
+
+  it('should prefer PipelineError handling over AppError for PipelineError subclasses', () => {
+    // PipelineError extends Error (not AppError), so AppError check wouldn't catch it
+    const error = new TranscriptionError('API failure');
+    errorHandler(error, req as Request, res as Response, next);
+
+    // Should use PipelineError path (502), not unknown error path (500)
+    expect(res.status).toHaveBeenCalledWith(502);
+    const jsonCall = res.json.mock.calls[0][0];
+    expect(jsonCall.error.code).toBe('PIPELINE_LLM_API_ERROR');
+    // Should NOT be the generic "An unexpected error occurred" message
+    expect(jsonCall.error.message).not.toBe('An unexpected error occurred');
+  });
+
+  it('should still handle AppError correctly after PipelineError integration', () => {
+    const error = new ValidationError('Invalid input', { field: 'email' });
+    errorHandler(error, req as Request, res as Response, next);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    const jsonCall = res.json.mock.calls[0][0];
+    expect(jsonCall.error.code).toBe('VALIDATION_ERROR');
+    // AppError response should NOT have PipelineError fields
+    expect(jsonCall.error).not.toHaveProperty('classifiedType');
+    expect(jsonCall.error).not.toHaveProperty('recoverable');
   });
 });
