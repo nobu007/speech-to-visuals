@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-30（第172回要件検証・Phase 73完了・373ファイル・212テストファイル・54ストーリー・214要件（REQ-001~194+NFR+EDGE）・要件カバレッジ100%維持・全品質基準達成）
+**最終更新**: 2026-06-04（第178回検証・Phase 76完了・373ファイル・231テストファイル・56ストーリー・217要件（REQ-001~197+NFR+EDGE）・要件カバレッジ100%維持・全品質基準達成）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [interview-record.md](interview-record.md)
 
@@ -1319,9 +1319,34 @@
 
 ---
 
+### ストーリー 17.10: パイプラインオーケストレーター入力検証 🔵
+
+**信頼性**: 🔵 *コミット3eb6f6d・src/pipeline/pipeline-orchestrator.ts validateInput() より*
+
+**私は** パイプライン開発者 **として**
+**PipelineOrchestrator が不正な音声ファイルを処理ステージ開始前に拒否したい**
+**そうすることで** 高コストな処理（Whisper文字起こし・LLM分析・レンダリング）への不正入力流入を防止し、UI・Whisperレベルに加えてパイプラインレベルでの防御 in depth を実現できる
+
+**関連要件**: REQ-197
+
+**詳細シナリオ**:
+
+1. PipelineOrchestrator.execute() 開始時に validateInput() で音声ファイルの拡張子を検証
+2. サポート外形式の場合、AudioValidationError（errorType=FILE_FORMAT_INVALID）をスロー
+3. File オブジェクトの場合、ファイルサイズが50MBを超過していれば AudioValidationError をスロー
+4. UIレベル（REQ-142/143）・Whisperレベル（REQ-146）に加えて3層目の検証を提供
+
+**前提条件**:
+- PipelineOrchestrator が初期化済みであること
+- SUPPORTED_AUDIO_FORMATS（mp3/wav/ogg/m4a）と AUDIO_LIMITS.MAX_FILE_SIZE_BYTES が設定されていること
+
+**優先度**: Must Have
+
+---
+
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 55件 (100%)
+- 🔵 青信号: 56件 (100%)
 - 🟡 黄信号: 0件 (0%)
 - 🔴 赤信号: 0件 (0%)
 
@@ -1331,10 +1356,10 @@
 
 ## Acceptance criteria
 
-- [x] AC-1: 全55ストーリーが一意のストーリー番号（1.1〜17.9）を持ち、「私は〜として」「〜したい」「そうすることで〜」の3要素フォーマットに従っている
+- [x] AC-1: 全56ストーリーが一意のストーリー番号（1.1〜17.10）を持ち、「私は〜として」「〜したい」「そうすることで〜」の3要素フォーマットに従っている
 - [x] AC-2: 全ストーリーが関連要件（REQ-xxx / NFR-xxx）を参照し、requirements.md とのトレーサビリティが確保されている
 - [x] AC-3: 全ストーリーに優先度（Must Have / Should Have / Could Have）が付与されている
 - [x] AC-4: 全ストーリーに信頼性レベル（🔵青信号 / 🟡黄信号 / 🔴赤信号）が付与されている
-- [x] AC-5: ストーリーマップが全17エピック・全55ストーリーを網羅している
+- [x] AC-5: ストーリーマップが全17エピック・全56ストーリーを網羅している
 - [x] AC-6: 全ストーリーが SYSTEM_CONSTITUTION.md の許可カテゴリに収まり、禁止カテゴリに違反していない
 - [x] AC-7: エピック構成が要件定義書の機能カテゴリに対応している

@@ -10,11 +10,36 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-02（第177回検証: Phase 76要件追加・バッチ処理プログレス正確性要件定義・REQ-196追加）
+**最終更新**: 2026-06-04（第178回検証: Phase 76完了・REQ-197パイプラインオーケストレーター入力検証要件定義）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
 ## 分析項目と判断
+
+### A178: 第178回検証 - Phase 76完了・パイプラインオーケストレーター入力検証要件定義（2026-06-04）
+
+**分析日時**: 2026-06-04
+**カテゴリ**: パイプライン入力検証・防御 in depth・Phase完了確認・要件定義増分更新
+**背景**: AI Hubフィードバック「Continue Phase 76 by implementing the next TASK in the pipeline error handling track」に対応。コミット3eb6f6dで追加された PipelineOrchestrator の音声フォーマット・サイズ検証が既存要件（REQ-142/143: UIレベル、REQ-146: Whisperレベル）と重複するが、パイプラインレベルでの防御 in depth として独立した価値があるため正式なREQ-197として文書化。Phase 76全タスク完了を確認。
+
+**判断**:
+1. **REQ-197追加**: PipelineOrchestrator.execute() 開始時に音声ファイルの形式（SUPPORTED_AUDIO_FORMATS: mp3/wav/ogg/m4a）とサイズ（MAX_FILE_SIZE_BYTES: 50MB）を検証する要件を定義。AudioValidationError（PipelineError継承・errorType=FILE_FORMAT_INVALID・stage=audio_validation）で拒否
+2. **Phase 76完了確認**: TASK-0188（リカバリ配線統合テスト12件）・TASK-0189（エラー型伝播E2Eテスト15件）・TASK-0190（バッチリカバリ並列テスト14件）・TASK-0191（ESMモック修正・30+テスト障害解消）全て完了。TASK-0192（完了報告）は本検証で対応
+3. **防御 in depth 整理**: REQ-142/143（UIレベル）→ REQ-146（Whisperレベル）→ REQ-197（パイプラインレベル）の3層検証体系を整理
+
+**根拠**:
+- `src/pipeline/pipeline-orchestrator.ts:199-225` - validateInput() メソッドで形式・サイズ検証
+- `src/pipeline/pipeline-errors.ts:143-155` - AudioValidationError クラス定義
+- `src/config/limits.ts` - SUPPORTED_AUDIO_FORMATS・AUDIO_LIMITS.MAX_FILE_SIZE_BYTES 参照
+- コミット3eb6f6d: "feat(pipeline): add audio format and size validation to PipelineOrchestrator"
+- コミット8e3ab6f: TASK-0188 recovery wire-up test, TASK-0191 ESM mock fixes
+- コミットb46dd8c: TASK-0189 error type propagation E2E, TASK-0190 batch recovery parallel tests
+
+**信頼性への影響**:
+- 新規要件 REQ-197 追加（信頼性レベル: 🔵）
+- 信頼性レベル分布: 🔵216→217件/🟡3件/🔴0件
+
+---
 
 ### A177: 第177回検証 - Phase 76 バッチ処理プログレス正確性要件定義（2026-06-02）
 

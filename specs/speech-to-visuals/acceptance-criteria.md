@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-02（第177回検証: Phase 76要件追加・REQ-196 バッチ処理プログレス正確性・231テストファイル・373ソースファイル・105パッケージ）
+**最終更新**: 2026-06-04（第178回検証: Phase 76完了・REQ-197 パイプライン入力検証・231テストファイル・373ソースファイル・105パッケージ）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -3124,5 +3124,60 @@
   - **入力**: 3ファイル（全て同一ハッシュ）
   - **期待結果**: progress.total = 3, skippedCount = 2, 実際の処理対象 = 1ファイル
   - **信頼性**: 🔵 *src/api/batch-processing-api.ts:226-228*
+
+---
+
+## REQ-197: パイプラインオーケストレーター入力検証 🔵 ✅実装済
+
+**信頼性**: 🔵 *コミット3eb6f6d・src/pipeline/pipeline-orchestrator.ts validateInput()・src/pipeline/pipeline-errors.ts AudioValidationError*
+
+### Given（前提条件）
+
+- PipelineOrchestrator が初期化されている
+- SUPPORTED_AUDIO_FORMATS（mp3/wav/ogg/m4a）と AUDIO_LIMITS.MAX_FILE_SIZE_BYTES（50MB）が設定されている
+
+### When（実行条件）
+
+- PipelineOrchestrator.execute() が音声ファイル入力で呼び出される
+
+### Then（期待結果）
+
+- サポート外形式のファイルは AudioValidationError（errorType=FILE_FORMAT_INVALID・stage=audio_validation）で拒否される
+- 50MB超過のFile オブジェクトは AudioValidationError で拒否される
+- 有効な形式・サイズのファイルは正常に処理ステージに進む
+- UI（REQ-142/143）・Whisper（REQ-146）に加えてパイプラインレベルの防御 in depth が提供される
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-197-01**: サポート形式ファイルの受入 🔵
+  - **入力**: mp3/wav/ogg/m4a 形式のファイル
+  - **期待結果**: エラーなく処理ステージに進む
+  - **信頼性**: 🔵 *コミット3eb6f6d*
+
+- [x] **TC-197-02**: 文字列パスの受入 🔵
+  - **入力**: 音声ファイルパス文字列（"/path/to/audio.wav"）
+  - **期待結果**: 形式検証が実行され、有効な拡張子なら処理続行
+  - **信頼性**: 🔵 *src/pipeline/pipeline-orchestrator.ts:199-213*
+
+#### 異常系
+
+- [x] **TC-197-E01**: サポート外形式の拒否 🔵
+  - **入力**: .avi/.mkv/.txt 形式のファイル
+  - **期待結果**: AudioValidationError がスローされ、サポート形式一覧を含むエラーメッセージが返る
+  - **信頼性**: 🔵 *コミット3eb6f6d*
+
+- [x] **TC-197-E02**: ファイルサイズ超過の拒否 🔵
+  - **入力**: 51MB の File オブジェクト
+  - **期待結果**: AudioValidationError がスローされ、実際のサイズと上限が含まれるエラーメッセージが返る
+  - **信頼性**: 🔵 *src/pipeline/pipeline-orchestrator.ts:215-225*
+
+#### 境界値
+
+- [x] **TC-197-B01**: 50MB 境界値ファイル 🔵
+  - **入力**: ちょうど50MB の File オブジェクト
+  - **期待結果**: 正常受入（境界値未満チェック: file.size > MAX_FILE_SIZE_BYTES）
+  - **信頼性**: 🔵 *src/config/limits.ts AUDIO_LIMITS.MAX_FILE_SIZE_BYTES*
 
 ---
