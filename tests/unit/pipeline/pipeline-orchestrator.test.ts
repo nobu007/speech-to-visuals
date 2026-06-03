@@ -14,6 +14,7 @@ import {
   FallbackStrategy,
 } from '@/pipeline/pipeline-orchestrator';
 import { PipelineInput, PipelineResult, PipelineStage, PipelineConfig } from '@/pipeline/types';
+import { AudioValidationError } from '@/pipeline/pipeline-errors';
 
 // ---------- Mock Factories ----------
 
@@ -145,6 +146,61 @@ describe('PipelineOrchestrator', () => {
     it('should accept valid PipelineConfig at init time', () => {
       const input = makeValidPipelineInput();
       expect(() => orchestrator.validateInput(input)).not.toThrow();
+    });
+  });
+
+  describe('audio file format and size validation', () => {
+    it('should reject unsupported audio format', () => {
+      const input: PipelineInput = { audioFile: 'test-audio.avi' };
+      expect(() => orchestrator.validateInput(input)).toThrow(AudioValidationError);
+      expect(() => orchestrator.validateInput(input)).toThrow(/Unsupported audio format.*avi/);
+    });
+
+    it('should accept all supported audio formats', () => {
+      const formats = ['mp3', 'wav', 'ogg', 'm4a'];
+      for (const fmt of formats) {
+        const input: PipelineInput = { audioFile: `audio.${fmt}` };
+        expect(() => orchestrator.validateInput(input)).not.toThrow();
+      }
+    });
+
+    it('should reject File objects exceeding size limit', () => {
+      const oversizedFile = {
+        name: 'big.mp3',
+        size: 51 * 1024 * 1024, // 51 MB > 50 MB limit
+      } as File;
+      const input: PipelineInput = { audioFile: oversizedFile };
+      expect(() => orchestrator.validateInput(input)).toThrow(AudioValidationError);
+      expect(() => orchestrator.validateInput(input)).toThrow(/exceeds limit/);
+    });
+
+    it('should accept File objects within size limit', () => {
+      const validFile = {
+        name: 'normal.mp3',
+        size: 10 * 1024 * 1024, // 10 MB < 50 MB limit
+      } as File;
+      const input: PipelineInput = { audioFile: validFile };
+      expect(() => orchestrator.validateInput(input)).not.toThrow();
+    });
+
+    it('should reject File objects with unsupported format', () => {
+      const badFile = {
+        name: 'audio.txt',
+        size: 1024,
+      } as File;
+      const input: PipelineInput = { audioFile: badFile };
+      expect(() => orchestrator.validateInput(input)).toThrow(AudioValidationError);
+      expect(() => orchestrator.validateInput(input)).toThrow(/Unsupported audio format.*txt/);
+    });
+
+    it('should reject missing audioFile', () => {
+      const input = {} as PipelineInput;
+      expect(() => orchestrator.validateInput(input)).toThrow(/audioFile is required/);
+    });
+
+    it('should enforce validation in execute()', async () => {
+      const badInput: PipelineInput = { audioFile: 'movie.mkv' };
+      await expect(orchestrator.execute(badInput)).rejects.toThrow(AudioValidationError);
     });
   });
 
@@ -568,7 +624,7 @@ describe('PipelineOrchestrator', () => {
   describe('edge cases', () => {
     it('should handle empty audio file gracefully', async () => {
       const input: PipelineInput = {
-        audioFile: '',
+        audioFile: 'empty.wav',
         config: {
           transcription: { model: 'base' },
           analysis: {
@@ -665,7 +721,7 @@ describe('PipelineOrchestrator', () => {
     it('should handle zero-node layouts without crashing', async () => {
       // Use an input that produces empty segments — fallback layout with no nodes
       const input: PipelineInput = {
-        audioFile: '',
+        audioFile: 'empty.wav',
         config: {
           transcription: { model: 'base' },
           analysis: {

@@ -37,7 +37,8 @@ import { sizeAllLabels, LabelSizingResult } from '@/visualization/smart-label-si
 import { executeLayoutsInParallel, executeScenePreparationInParallel } from './parallel-layout-executor';
 import { timeStage, StageTimingRecord, aggregateTimingReport, StageTimingReport } from './stage-timing-metrics';
 import { detectBottlenecks, BottleneckReport } from './bottleneck-detector';
-import { PipelineConfigError, RenderingError, QualityGateError, PipelineAbortError } from './pipeline-errors';
+import { PipelineConfigError, RenderingError, QualityGateError, PipelineAbortError, AudioValidationError } from './pipeline-errors';
+import { SUPPORTED_AUDIO_FORMATS, AUDIO_LIMITS } from '@/config/limits';
 import { generateRenderPlan, validateRenderPlan, type RenderPlan } from './scene-render-spec-generator';
 import {
   PipelineErrorRecoveryOrchestrator,
@@ -188,10 +189,39 @@ export class PipelineOrchestrator {
   /**
    * Validate PipelineInput config immediately.
    * Throws if config is structurally invalid (REQ-038).
+   * Validates audio format and size against centralized limits.
    */
   validateInput(input: PipelineInput): void {
     if (!input.audioFile) {
       throw new PipelineConfigError('audioFile', 'audioFile is required');
+    }
+
+    // Validate audio file format (extension check)
+    const filename = typeof input.audioFile === 'string'
+      ? input.audioFile
+      : (input.audioFile as File).name ?? '';
+
+    if (filename) {
+      const ext = filename.split('.').pop()?.toLowerCase() ?? '';
+      if (!SUPPORTED_AUDIO_FORMATS.includes(ext as typeof SUPPORTED_AUDIO_FORMATS[number])) {
+        throw new AudioValidationError(
+          `Unsupported audio format: .${ext}. Supported: ${SUPPORTED_AUDIO_FORMATS.join(', ')}`,
+          ext,
+          { filename, supportedFormats: [...SUPPORTED_AUDIO_FORMATS] },
+        );
+      }
+    }
+
+    // Validate file size for File objects
+    if (typeof input.audioFile !== 'string') {
+      const file = input.audioFile as File;
+      if (file.size > AUDIO_LIMITS.MAX_FILE_SIZE_BYTES) {
+        throw new AudioValidationError(
+          `Audio file size (${(file.size / 1024 / 1024).toFixed(1)} MB) exceeds limit (${AUDIO_LIMITS.MAX_FILE_SIZE_BYTES / 1024 / 1024} MB)`,
+          typeof file.type === 'string' ? file.type.split('/')[1] ?? '' : '',
+          { fileSize: file.size, maxSize: AUDIO_LIMITS.MAX_FILE_SIZE_BYTES },
+        );
+      }
     }
 
     if (input.config) {
@@ -206,6 +236,9 @@ export class PipelineOrchestrator {
     input: PipelineInput,
     progressCallback?: (progress: PipelineProgress) => void
   ): Promise<PipelineResult> {
+    // Enforce input validation before any stage execution
+    this.validateInput(input);
+
     const overallStart = Date.now();
     const cb = progressCallback ?? this.config.progressCallback;
 

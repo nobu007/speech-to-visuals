@@ -14,6 +14,7 @@ import {
   QualityGateError,
   PipelineConfigError,
   PipelineAbortError,
+  AudioValidationError,
   MonitoringError,
   VisualizationError,
 } from '@/pipeline/pipeline-errors';
@@ -182,5 +183,25 @@ describe('VisualizationError', () => {
     expect(viz.name).not.toBe(render.name);
     expect(viz).toBeInstanceOf(VisualizationError);
     expect(render).not.toBeInstanceOf(VisualizationError);
+  });
+});
+
+// ---------- AudioValidationError ----------
+
+describe('AudioValidationError', () => {
+  it('maps to FILE_FORMAT_INVALID in audio_validation stage', () => {
+    const err = new AudioValidationError('Unsupported format: .avi', 'avi');
+    expect(err).toBeInstanceOf(PipelineError);
+    expect(err).toBeInstanceOf(AudioValidationError);
+    expect(err.name).toBe('AudioValidationError');
+    expect(err.message).toBe('Unsupported format: .avi');
+    expect(err.errorType).toBe('FILE_FORMAT_INVALID');
+    expect(err.stage).toBe('audio_validation');
+  });
+
+  it('exposes format property', () => {
+    const err = new AudioValidationError('too large', 'mp3', { fileSize: 100 });
+    expect(err.format).toBe('mp3');
+    expect(err.context).toEqual(expect.objectContaining({ fileSize: 100 }));
   });
 });

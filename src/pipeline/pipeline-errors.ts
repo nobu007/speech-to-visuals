@@ -141,6 +141,20 @@ export class EncodingError extends PipelineError {
 }
 
 /**
+ * Thrown when audio input validation fails (unsupported format, size exceeds limit).
+ * Maps to FILE_FORMAT_INVALID.
+ */
+export class AudioValidationError extends PipelineError {
+  public readonly format: string;
+
+  constructor(message: string, format: string, context?: Record<string, unknown>) {
+    super(message, 'FILE_FORMAT_INVALID', 'audio_validation', { format, ...context });
+    this.name = 'AudioValidationError';
+    this.format = format;
+  }
+}
+
+/**
  * Thrown when an export configuration or preset is invalid.
  * Maps to FILE_FORMAT_INVALID.
  */
