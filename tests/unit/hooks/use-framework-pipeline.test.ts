@@ -12,13 +12,14 @@
  * 4. Error recovery mechanisms
  *
  * Uses @testing-library/react-hooks pattern with jest mocks.
+ * Converted to jest.unstable_mockModule() for ESM compatibility (TASK-0191).
  */
 
 import { jest } from '@jest/globals';
 import { renderHook, act } from '@testing-library/react';
 
 // ---------------------------------------------------------------------------
-// Mocks
+// Mocks (ESM-compatible)
 // ---------------------------------------------------------------------------
 
 const mockSetPhase = jest.fn();
@@ -27,7 +28,7 @@ const mockGenerateReport = jest.fn().mockReturnValue('# Report');
 const mockGetIterationSummary = jest.fn().mockReturnValue({ iterations: 0 });
 const mockGetImprovementHistory = jest.fn().mockReturnValue([]);
 
-jest.mock('@/pipeline/framework-integrated-pipeline', () => ({
+jest.unstable_mockModule('@/pipeline/framework-integrated-pipeline', () => ({
   FrameworkIntegratedPipeline: jest.fn().mockImplementation(() => ({
     setPhase: mockSetPhase,
     execute: mockExecute,
@@ -37,7 +38,7 @@ jest.mock('@/pipeline/framework-integrated-pipeline', () => ({
   })),
 }));
 
-jest.mock('@/utils/logger', () => ({
+jest.unstable_mockModule('@/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -45,8 +46,7 @@ jest.mock('@/utils/logger', () => ({
   },
 }));
 
-// Need to mock the DEVELOPMENT_CYCLES import
-jest.mock('@/framework/iteration-manager', () => ({
+jest.unstable_mockModule('@/framework/iteration-manager', () => ({
   DEVELOPMENT_CYCLES: {
     'MVP構築': { phase: 'MVP構築', maxIterations: 3, successCriteria: [], failureRecovery: '' },
     '基本機能': { phase: '基本機能', maxIterations: 5, successCriteria: [], failureRecovery: '' },
@@ -62,8 +62,21 @@ global.fetch = jest.fn().mockResolvedValue({
   statusText: 'OK',
 });
 
-import { MonitoringError } from '@/pipeline/pipeline-errors';
-import { useFrameworkPipeline, useIterationLog } from '@/hooks/useFrameworkPipeline';
+// ---------------------------------------------------------------------------
+// Dynamic imports (ESM-compatible)
+// ---------------------------------------------------------------------------
+
+let MonitoringError: typeof import('@/pipeline/pipeline-errors').MonitoringError;
+let useFrameworkPipeline: typeof import('@/hooks/useFrameworkPipeline').useFrameworkPipeline;
+let useIterationLog: typeof import('@/hooks/useFrameworkPipeline').useIterationLog;
+
+beforeAll(async () => {
+  const errorsMod = await import('@/pipeline/pipeline-errors');
+  MonitoringError = errorsMod.MonitoringError;
+  const hooksMod = await import('@/hooks/useFrameworkPipeline');
+  useFrameworkPipeline = hooksMod.useFrameworkPipeline;
+  useIterationLog = hooksMod.useIterationLog;
+});
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -471,7 +484,6 @@ describe('useIterationLog', () => {
   });
 
   test('should throw MonitoringError on non-ok response (instanceof check)', async () => {
-    const thrownErrors: Error[] = [];
     const origFetch = global.fetch;
 
     // Intercept the MonitoringError by temporarily patching fetch

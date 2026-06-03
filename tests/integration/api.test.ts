@@ -61,7 +61,10 @@ afterAll(() => {
 
 /** Create a mock File object with a name property (used by BatchProcessingAPI) */
 function createMockFile(name: string): File {
-  return new File(['dummy content'], name, { type: 'audio/wav' });
+  // Use the filename as content so each file produces a unique content hash.
+  // Using identical content ('dummy content') caused deduplication which broke
+  // progress.total expectations (REQ-196).
+  return new File([name], name, { type: 'audio/wav' });
 }
 
 /** Build a valid BatchJobRequest with the given number of files */
