@@ -5,10 +5,28 @@
  * Source-level static analysis tests that verify secure coding patterns.
  */
 
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 
-const root = resolve(process.cwd(), 'src');
+/**
+ * Resolve the project src/ directory.
+ * Walk up from process.cwd() to find a directory containing src/api/batch-processing-api.ts.
+ */
+function findSrcRoot(): string {
+  let dir = process.cwd();
+  for (let i = 0; i < 10; i++) {
+    const candidate = resolve(dir, 'src', 'api', 'batch-processing-api.ts');
+    if (existsSync(candidate)) {
+      return resolve(dir, 'src');
+    }
+    const parent = resolve(dir, '..');
+    if (parent === dir) break; // filesystem root
+    dir = parent;
+  }
+  throw new Error(`Cannot find src/api/batch-processing-api.ts from cwd=${process.cwd()}`);
+}
+
+const root = findSrcRoot();
 
 function src(relPath: string): string {
   return readFileSync(resolve(root, relPath), 'utf-8');

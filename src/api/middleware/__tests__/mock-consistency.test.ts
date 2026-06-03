@@ -14,7 +14,23 @@ import { describe, it, expect } from '@jest/globals';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const projectRoot = process.cwd();
+/**
+ * Resolve the project root by walking up from cwd to find src/api/middleware/auth.ts.
+ */
+function findProjectRoot(): string {
+  let dir = process.cwd();
+  for (let i = 0; i < 10; i++) {
+    if (fs.existsSync(path.resolve(dir, 'src', 'api', 'middleware', 'auth.ts'))) {
+      return dir;
+    }
+    const parent = path.resolve(dir, '..');
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return process.cwd(); // fallback
+}
+
+const projectRoot = findProjectRoot();
 
 // ---------------------------------------------------------------------------
 // TC-112-01: Verify mock file exports the expected functions

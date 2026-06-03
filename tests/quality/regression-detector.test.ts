@@ -5,32 +5,15 @@
  */
 
 import { jest } from '@jest/globals';
+import * as fs from 'fs';
+import * as path from 'path';
 import type { RegressionDetector as RegressionDetectorType } from '@/quality/regression-detector';
 
 // --- Mocks ---
 const mockGetLatestMetrics = jest.fn();
-const mockFsExistsSync = jest.fn().mockReturnValue(false);
-const mockFsReadFile = jest.fn();
-const mockFsWriteFile = jest.fn().mockResolvedValue(undefined);
-const mockFsUnlink = jest.fn().mockResolvedValue(undefined);
 
 jest.mock('@/utils/logger', () => ({
   logger: { warn: jest.fn(), error: jest.fn(), info: jest.fn() },
-}));
-
-jest.mock('@/pipeline/quality-monitor', () => ({
-  QualityMonitor: {
-    getInstance: () => ({ getLatestMetrics: mockGetLatestMetrics }),
-  },
-}));
-
-jest.mock('fs', () => ({
-  existsSync: mockFsExistsSync,
-  promises: {
-    readFile: mockFsReadFile,
-    writeFile: mockFsWriteFile,
-    unlink: mockFsUnlink,
-  },
 }));
 
 // Lazy-loaded imports (avoids top-level await in CJS mode)
@@ -46,7 +29,12 @@ beforeAll(async () => {
 });
 
 // --- Helpers ---
-const TEST_PATH = '/tmp/test-regression-baseline.json';
+let testCounter = 0;
+
+function uniqueTestPath(): string {
+  testCounter++;
+  return path.join('/tmp', `test-regression-baseline-${process.pid}-${testCounter}.json`);
+}
 
 function makeMetrics(overrides: Record<string, unknown> = {}) {
   return {
@@ -72,20 +60,39 @@ function resetSingleton() {
   Ctor.instance = null;
 }
 
+/**
+ * Inject a mock qualityMonitor onto the detector instance.
+ * ESM jest.mock cannot intercept the relative import used by the source,
+ * so we override the property directly after construction.
+ */
+function injectMockQualityMonitor(detector: RegressionDetectorType) {
+  Object.defineProperty(detector, 'qualityMonitor', {
+    value: { getLatestMetrics: mockGetLatestMetrics },
+    writable: true,
+    configurable: true,
+  });
+  (detector as any).baseline = null;
+}
+
 // --- Tests ---
 describe('RegressionDetector', () => {
+  let currentTestPath: string;
+
   beforeEach(() => {
     resetSingleton();
     mockGetLatestMetrics.mockReset();
-    mockFsExistsSync.mockReset().mockReturnValue(false);
-    mockFsReadFile.mockReset();
-    mockFsWriteFile.mockReset().mockResolvedValue(undefined);
-    mockFsUnlink.mockReset().mockResolvedValue(undefined);
+    currentTestPath = uniqueTestPath();
+  });
+
+  afterEach(() => {
+    // Clean up real baseline files
+    try { fs.unlinkSync(currentTestPath); } catch {}
   });
 
   describe('getInstance', () => {
     test('returns singleton instance', () => {
-      const a = RegressionDetector.getInstance(TEST_PATH);
+      const a = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(a);
       const b = RegressionDetector.getInstance();
       expect(a).toBe(b);
     });
@@ -94,13 +101,15 @@ describe('RegressionDetector', () => {
   describe('establishBaseline', () => {
     test('throws when no metrics available', async () => {
       mockGetLatestMetrics.mockReturnValue(null);
-      const d = RegressionDetector.getInstance(TEST_PATH);
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
       await expect(d.establishBaseline()).rejects.toThrow('No metrics available');
     });
 
     test('creates baseline with correct confidence', async () => {
       mockGetLatestMetrics.mockReturnValue(makeMetrics());
-      const d = RegressionDetector.getInstance(TEST_PATH);
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
       const bl = await d.establishBaseline(20);
       expect(bl.sampleSize).toBe(20);
       expect(bl.confidenceLevel).toBe(0.2);
@@ -108,29 +117,31 @@ describe('RegressionDetector', () => {
 
     test('caps confidence at 0.95', async () => {
       mockGetLatestMetrics.mockReturnValue(makeMetrics());
-      const d = RegressionDetector.getInstance(TEST_PATH);
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
       expect((await d.establishBaseline(200)).confidenceLevel).toBe(0.95);
     });
   });
 
   describe('loadBaseline', () => {
     test('returns null when no file exists', async () => {
-      const d = RegressionDetector.getInstance(TEST_PATH);
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
       expect(await d.loadBaseline()).toBeNull();
     });
 
     test('loads and parses baseline from disk', async () => {
       const metrics = makeMetrics();
-      mockFsExistsSync.mockReturnValue(true);
-      mockFsReadFile.mockResolvedValue(
-        JSON.stringify({
-          timestamp: '2025-01-01T00:00:00.000Z',
-          metrics: { ...metrics, timestamp: '2025-01-01T00:00:00.000Z' },
-          sampleSize: 10,
-          confidenceLevel: 0.1,
-        }),
-      );
-      const d = RegressionDetector.getInstance(TEST_PATH);
+      const baselineData = {
+        timestamp: '2025-01-01T00:00:00.000Z',
+        metrics: { ...metrics, timestamp: '2025-01-01T00:00:00.000Z' },
+        sampleSize: 10,
+        confidenceLevel: 0.1,
+      };
+      fs.writeFileSync(currentTestPath, JSON.stringify(baselineData));
+
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
       const loaded = await d.loadBaseline();
       expect(loaded).not.toBeNull();
       expect(loaded!.sampleSize).toBe(10);
@@ -138,9 +149,9 @@ describe('RegressionDetector', () => {
     });
 
     test('returns null on parse error', async () => {
-      mockFsExistsSync.mockReturnValue(true);
-      mockFsReadFile.mockResolvedValue('invalid json{{{');
-      const d = RegressionDetector.getInstance(TEST_PATH);
+      fs.writeFileSync(currentTestPath, 'invalid json{{{');
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
       expect(await d.loadBaseline()).toBeNull();
     });
   });
@@ -148,7 +159,8 @@ describe('RegressionDetector', () => {
   describe('detectRegressions', () => {
     test('throws when no baseline available', async () => {
       mockGetLatestMetrics.mockReturnValue(makeMetrics());
-      const d = RegressionDetector.getInstance(TEST_PATH);
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
       await expect(d.detectRegressions()).rejects.toThrow('No baseline available');
     });
 
@@ -156,7 +168,8 @@ describe('RegressionDetector', () => {
       mockGetLatestMetrics
         .mockReturnValueOnce(makeMetrics())
         .mockReturnValueOnce(null);
-      const d = RegressionDetector.getInstance(TEST_PATH);
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
       await d.establishBaseline();
       await expect(d.detectRegressions()).rejects.toThrow('No current metrics');
     });
@@ -165,7 +178,8 @@ describe('RegressionDetector', () => {
       mockGetLatestMetrics
         .mockReturnValueOnce(makeMetrics({ processingTime: 1000 }))
         .mockReturnValueOnce(makeMetrics({ processingTime: 1300 }));
-      const d = RegressionDetector.getInstance(TEST_PATH);
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
       await d.establishBaseline();
       const report = await d.detectRegressions();
 
@@ -178,7 +192,8 @@ describe('RegressionDetector', () => {
       mockGetLatestMetrics
         .mockReturnValueOnce(makeMetrics({ transcriptionAccuracy: 0.9 }))
         .mockReturnValueOnce(makeMetrics({ transcriptionAccuracy: 0.72 }));
-      const d = RegressionDetector.getInstance(TEST_PATH);
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
       await d.establishBaseline();
       const report = await d.detectRegressions();
 
@@ -191,7 +206,8 @@ describe('RegressionDetector', () => {
       mockGetLatestMetrics
         .mockReturnValueOnce(makeMetrics({ processingTime: 1000 }))
         .mockReturnValueOnce(makeMetrics({ processingTime: 700 }));
-      const d = RegressionDetector.getInstance(TEST_PATH);
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
       await d.establishBaseline();
       const report = await d.detectRegressions();
 
@@ -203,7 +219,8 @@ describe('RegressionDetector', () => {
     test('returns stable when no significant changes', async () => {
       const m = makeMetrics();
       mockGetLatestMetrics.mockReturnValueOnce(m).mockReturnValueOnce({ ...m });
-      const d = RegressionDetector.getInstance(TEST_PATH);
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
       await d.establishBaseline();
       const report = await d.detectRegressions();
 
@@ -215,7 +232,8 @@ describe('RegressionDetector', () => {
       mockGetLatestMetrics
         .mockReturnValueOnce(makeMetrics({ processingTime: 1000 }))
         .mockReturnValueOnce(makeMetrics({ processingTime: 1600 }));
-      const d = RegressionDetector.getInstance(TEST_PATH);
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
       await d.establishBaseline();
       const report = await d.detectRegressions();
 
@@ -227,7 +245,8 @@ describe('RegressionDetector', () => {
       mockGetLatestMetrics
         .mockReturnValueOnce(makeMetrics({ layoutOverlap: 0, errorCount: 0 }))
         .mockReturnValueOnce(makeMetrics({ layoutOverlap: 0, errorCount: 0 }));
-      const d = RegressionDetector.getInstance(TEST_PATH);
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
       await d.establishBaseline();
       const report = await d.detectRegressions();
 
@@ -238,7 +257,8 @@ describe('RegressionDetector', () => {
       mockGetLatestMetrics
         .mockReturnValueOnce(makeMetrics({ processingTime: 1000 }))
         .mockReturnValueOnce(makeMetrics({ processingTime: 981 })); // -1.9%, below 5% threshold
-      const d = RegressionDetector.getInstance(TEST_PATH);
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
       await d.establishBaseline();
       const report = await d.detectRegressions();
 
@@ -249,14 +269,15 @@ describe('RegressionDetector', () => {
   describe('resetBaseline', () => {
     test('clears baseline from memory and disk', async () => {
       mockGetLatestMetrics.mockReturnValue(makeMetrics());
-      const d = RegressionDetector.getInstance(TEST_PATH);
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
       await d.establishBaseline();
       expect(d.getBaseline()).not.toBeNull();
+      expect(fs.existsSync(currentTestPath)).toBe(true);
 
-      mockFsExistsSync.mockReturnValue(true);
       await d.resetBaseline();
       expect(d.getBaseline()).toBeNull();
-      expect(mockFsUnlink).toHaveBeenCalled();
+      expect(fs.existsSync(currentTestPath)).toBe(false);
     });
   });
 });

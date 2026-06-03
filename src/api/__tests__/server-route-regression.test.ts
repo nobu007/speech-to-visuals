@@ -13,7 +13,20 @@ import path from 'path';
 import fs from 'fs';
 import request from 'supertest';
 
-const projectRoot = process.cwd();
+function findProjectRoot(): string {
+  let dir = process.cwd();
+  for (let i = 0; i < 10; i++) {
+    if (fs.existsSync(path.resolve(dir, 'package.json'))) {
+      return dir;
+    }
+    const parent = path.resolve(dir, '..');
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return process.cwd();
+}
+
+const projectRoot = findProjectRoot();
 
 describe('server route regression: no duplicate health endpoints', () => {
   beforeEach(() => {

@@ -14,8 +14,21 @@ import * as path from 'path';
 
 // ─── Helper: Read component source ──────────────────────────────────────────
 
+function findProjectRoot(): string {
+  let dir = process.cwd();
+  for (let i = 0; i < 10; i++) {
+    if (fs.existsSync(path.resolve(dir, 'package.json'))) {
+      return dir;
+    }
+    const parent = path.resolve(dir, '..');
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return process.cwd();
+}
+
 function readComponentSource(filename: string): string {
-  const filePath = path.resolve(process.cwd(), 'src/components', filename);
+  const filePath = path.resolve(findProjectRoot(), 'src/components', filename);
   return fs.readFileSync(filePath, 'utf-8');
 }
 

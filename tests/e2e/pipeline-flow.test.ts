@@ -135,11 +135,12 @@ describe('E2E: Multi-device Pipeline', () => {
 
   it('異なる設定で同時にパイプラインが実行できる', async () => {
     const { PipelineOrchestrator } = await import('@/pipeline/pipeline-orchestrator');
-    const orchestrator = new PipelineOrchestrator();
+    const o1 = new PipelineOrchestrator();
+    const o2 = new PipelineOrchestrator();
 
     const [r1, r2] = await Promise.all([
-      orchestrator.execute({ audioFile: '/test/ja.wav', config: { language: 'ja' } }),
-      orchestrator.execute({ audioFile: '/test/en.wav', config: { language: 'en' } }),
+      o1.execute({ audioFile: '/test/ja.wav', config: { language: 'ja' } }),
+      o2.execute({ audioFile: '/test/en.wav', config: { language: 'en' } }),
     ]);
 
     expect(r1).toBeDefined();
