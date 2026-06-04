@@ -96,7 +96,7 @@ export class FallbackChain {
 
     // If Gemini is disabled, go directly to rule-based
     if (isDisabledGemini()) {
-      console.info('[FallbackChain] DISABLE_GEMINI=1, using rule-based analyzer directly');
+      logger.info('[FallbackChain] DISABLE_GEMINI=1, using rule-based analyzer directly');
       const result = await this.executeLayer(request, this.ruleBasedExecutor, 'rule-based');
       this.stats.ruleBasedSuccess++;
       this.updateSuccessRate();

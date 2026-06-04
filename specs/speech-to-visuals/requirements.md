@@ -441,6 +441,10 @@
 - REQ-198: システムは `GET /api/monitoring/error-recovery` エンドポイントにより、エラーリカバリシステムのテレメトリスナップショット（総イベント数・全体成功率・平均/P95リカバリ時間・ステージ別統計・劣化アラート・エラータイプ分布）を外部から取得可能にしなければならない。RecoveryTelemetryAggregator のスライディングウィンドウ（デフォルト5分）に基づく集計結果を返すこと 🔵 ✅実装済 *src/api/routes/monitoring.ts error-recovery endpoint・src/quality/recovery-telemetry-aggregator.ts*
 - REQ-199: システムは ErrorRecoveryEventBus の recovery:success・recovery:failure・stage:degraded・cascade:detected イベントをサブスクライブし、RecoveryTelemetryAggregator にてスライディングウィンドウベースのテレメトリ集計を実行しなければならない。ステージ別成功率・平均/P95リカバリ時間・エラータイプ分布・10%以上の成功率低下検知を提供すること 🔵 ✅実装済 *src/quality/recovery-telemetry-aggregator.ts*
 
+#### プロダクション観測性強化（Phase 78） ✅完了
+
+- REQ-200: システムは全HTTPリクエストに対して相関ID（X-Request-ID）を生成または受信ヘッダーから抽出し、リクエストコンテキストに添付して下流ログ・エラー応答に伝播しなければならない 🔵 ✅実装済 *src/api/middleware/correlation-id.ts*
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より*
