@@ -1,0 +1,242 @@
+/**
+ * REQ-205: HTTP Request Metrics Collector
+ *
+ * Aggregates per-route HTTP metrics for the speech-to-visuals API:
+ * - Request counts by method+path
+ * - Response latency percentiles (p50, p95, p99)
+ * - Error rates by status code class (4xx, 5xx)
+ * - Slow request detection and recording
+ * - Active request tracking
+ *
+ * Designed as a lightweight in-memory collector with bounded memory usage.
+ */
+
+import { logger } from '@/utils/logger';
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface RouteMetrics {
+  method: string;
+  path: string;
+  count: number;
+  errorCount: number;
+  lastStatusCode: number;
+  latencies: number[]; // bounded circular buffer
+  minMs: number;
+  maxMs: number;
+  sumMs: number;
+}
+
+export interface SlowRequest {
+  method: string;
+  path: string;
+  durationMs: number;
+  statusCode: number;
+  timestamp: number;
+  correlationId: string;
+}
+
+export interface Percentiles {
+  p50: number;
+  p95: number;
+  p99: number;
+}
+
+export interface RouteMetricsSnapshot {
+  method: string;
+  path: string;
+  count: number;
+  errorCount: number;
+  errorRate: number;
+  avgMs: number;
+  minMs: number;
+  maxMs: number;
+  percentiles: Percentiles;
+}
+
+export interface HttpMetricsSnapshot {
+  totalRequests: number;
+  totalErrors: number;
+  globalErrorRate: number;
+  activeRequests: number;
+  routes: RouteMetricsSnapshot[];
+  slowRequests: SlowRequest[];
+  uptime: number;
+}
+
+// ---------------------------------------------------------------------------
+// Configuration
+// ---------------------------------------------------------------------------
+
+export interface HttpMetricsConfig {
+  /** Max latency samples retained per route (default: 1000) */
+  maxSamplesPerRoute: number;
+  /** Requests slower than this (ms) are recorded as slow (default: 5000) */
+  slowRequestThresholdMs: number;
+  /** Max slow request records retained (default: 50) */
+  maxSlowRequests: number;
+}
+
+const DEFAULT_CONFIG: HttpMetricsConfig = {
+  maxSamplesPerRoute: 1000,
+  slowRequestThresholdMs: 5000,
+  maxSlowRequests: 50,
+};
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function computePercentiles(sorted: number[]): Percentiles {
+  if (sorted.length === 0) return { p50: 0, p95: 0, p99: 0 };
+  const p = (rank: number) => sorted[Math.min(Math.floor(rank), sorted.length - 1)];
+  return {
+    p50: p(sorted.length * 0.5),
+    p95: p(sorted.length * 0.95),
+    p99: p(sorted.length * 0.99),
+  };
+}
+
+function routeKey(method: string, path: string): string {
+  return `${method} ${path}`;
+}
+
+// ---------------------------------------------------------------------------
+// HttpMetricsCollector
+// ---------------------------------------------------------------------------
+
+export class HttpMetricsCollector {
+  private routes = new Map<string, RouteMetrics>();
+  private slowRequests: SlowRequest[] = [];
+  private activeRequests = 0;
+  private totalRequests = 0;
+  private totalErrors = 0;
+  private startTime = Date.now();
+  private readonly config: HttpMetricsConfig;
+
+  constructor(config?: Partial<HttpMetricsConfig>) {
+    this.config = { ...DEFAULT_CONFIG, ...config };
+  }
+
+  // ---- Recording ----
+
+  /** Called when a request starts. */
+  startRequest(): void {
+    this.activeRequests++;
+  }
+
+  /** Called when a request finishes. */
+  recordRequest(
+    method: string,
+    path: string,
+    statusCode: number,
+    durationMs: number,
+    correlationId: string = '-',
+  ): void {
+    this.activeRequests = Math.max(0, this.activeRequests - 1);
+    this.totalRequests++;
+
+    const isError = statusCode >= 400;
+    if (isError) this.totalErrors++;
+
+    // Per-route metrics
+    const key = routeKey(method, path);
+    let route = this.routes.get(key);
+    if (!route) {
+      route = {
+        method,
+        path,
+        count: 0,
+        errorCount: 0,
+        lastStatusCode: 0,
+        latencies: [],
+        minMs: Infinity,
+        maxMs: 0,
+        sumMs: 0,
+      };
+      this.routes.set(key, route);
+    }
+
+    route.count++;
+    route.lastStatusCode = statusCode;
+    route.sumMs += durationMs;
+    if (isError) route.errorCount++;
+    if (durationMs < route.minMs) route.minMs = durationMs;
+    if (durationMs > route.maxMs) route.maxMs = durationMs;
+
+    // Bounded latency buffer
+    route.latencies.push(durationMs);
+    if (route.latencies.length > this.config.maxSamplesPerRoute) {
+      route.latencies = route.latencies.slice(-Math.floor(this.config.maxSamplesPerRoute / 2));
+    }
+
+    // Slow request detection
+    if (durationMs >= this.config.slowRequestThresholdMs) {
+      logger.warn(
+        `[http-metrics] Slow request: ${method} ${path} ${durationMs}ms (${statusCode}) rid=${correlationId}`,
+      );
+      this.slowRequests.push({
+        method,
+        path,
+        durationMs,
+        statusCode,
+        timestamp: Date.now(),
+        correlationId,
+      });
+      if (this.slowRequests.length > this.config.maxSlowRequests) {
+        this.slowRequests = this.slowRequests.slice(-this.config.maxSlowRequests);
+      }
+    }
+  }
+
+  // ---- Snapshot ----
+
+  getSnapshot(): HttpMetricsSnapshot {
+    const routes: RouteMetricsSnapshot[] = [];
+    for (const [, r] of this.routes) {
+      const sorted = [...r.latencies].sort((a, b) => a - b);
+      routes.push({
+        method: r.method,
+        path: r.path,
+        count: r.count,
+        errorCount: r.errorCount,
+        errorRate: r.count > 0 ? r.errorCount / r.count : 0,
+        avgMs: r.count > 0 ? Math.round(r.sumMs / r.count) : 0,
+        minMs: r.minMs === Infinity ? 0 : r.minMs,
+        maxMs: r.maxMs,
+        percentiles: computePercentiles(sorted),
+      });
+    }
+
+    // Sort by count descending
+    routes.sort((a, b) => b.count - a.count);
+
+    return {
+      totalRequests: this.totalRequests,
+      totalErrors: this.totalErrors,
+      globalErrorRate: this.totalRequests > 0 ? this.totalErrors / this.totalRequests : 0,
+      activeRequests: this.activeRequests,
+      routes,
+      slowRequests: [...this.slowRequests],
+      uptime: Date.now() - this.startTime,
+    };
+  }
+
+  /** Reset all collected metrics. Useful for testing. */
+  reset(): void {
+    this.routes.clear();
+    this.slowRequests = [];
+    this.activeRequests = 0;
+    this.totalRequests = 0;
+    this.totalErrors = 0;
+    this.startTime = Date.now();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Global singleton
+// ---------------------------------------------------------------------------
+
+export const httpMetricsCollector = new HttpMetricsCollector();

@@ -12,6 +12,7 @@ import { requestTimeout } from './middleware/timeout';
 import { authMiddleware, AuthenticatedRequest } from './middleware/auth';
 import { correlationId } from './middleware/correlation-id';
 import { requestLogger } from './middleware/request-logger';
+import { requestMetrics } from './middleware/request-metrics';
 import { RATE_LIMITS, SERVER_LIMITS } from '../config/limits';
 import { validateSecurityEnv } from '../config/validate';
 import { logger } from '../utils/logger';
@@ -61,6 +62,9 @@ app.use(correlationId);
 
 // Structured request/response logging (uses correlation ID)
 app.use(requestLogger);
+
+// REQ-205: Per-route HTTP request metrics (uses correlation ID)
+app.use(requestMetrics);
 
 // Request timeout — all routes default to 30s
 app.use(requestTimeout(SERVER_LIMITS.DEFAULT_TIMEOUT_MS));

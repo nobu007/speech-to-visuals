@@ -17,6 +17,7 @@ import {
 } from '../../monitoring/performance-dashboard';
 import { getWarmupStatus } from '../startup-warmup';
 import { recoveryTelemetryAggregator, type TelemetrySnapshot } from '../../quality/recovery-telemetry-aggregator';
+import { httpMetricsCollector, type HttpMetricsSnapshot } from '../../monitoring/http-metrics-collector';
 
 // ---------------------------------------------------------------------------
 // Zod validation schemas
@@ -135,6 +136,21 @@ export function createMonitoringRouter(dashboard?: PerformanceDashboard): Router
         500,
         'ERROR_RECOVERY_TELEMETRY_ERROR',
         error instanceof Error ? error.message : 'Failed to retrieve error recovery telemetry',
+      );
+    }
+  });
+
+  // GET /http-metrics - Per-route HTTP request metrics (REQ-205)
+  router.get('/http-metrics', (_req: Request, res: Response) => {
+    try {
+      const data: HttpMetricsSnapshot = httpMetricsCollector.getSnapshot();
+      return res.status(200).json({ success: true, data });
+    } catch (error) {
+      return sendError(
+        res,
+        500,
+        'HTTP_METRICS_ERROR',
+        error instanceof Error ? error.message : 'Failed to retrieve HTTP metrics',
       );
     }
   });
