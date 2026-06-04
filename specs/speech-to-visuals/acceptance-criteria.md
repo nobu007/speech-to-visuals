@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-04（第178回検証: Phase 76完了・REQ-197 パイプライン入力検証・231テストファイル・373ソースファイル・105パッケージ）
+**最終更新**: 2026-06-04（第180回検証: Phase 79完了・REQ-200/204 プロダクション観測性・238テストファイル・377ソースファイル・107パッケージ）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -3179,5 +3179,85 @@
   - **入力**: ちょうど50MB の File オブジェクト
   - **期待結果**: 正常受入（境界値未満チェック: file.size > MAX_FILE_SIZE_BYTES）
   - **信頼性**: 🔵 *src/config/limits.ts AUDIO_LIMITS.MAX_FILE_SIZE_BYTES*
+
+---
+
+## REQ-200: 相関IDミドルウェア 🔵 ✅実装済
+
+**信頼性**: 🔵 *src/api/middleware/correlation-id.ts・コミットef9e9a5*
+
+> Given: Express API サーバーが起動している; X-Request-ID ヘッダー仕様が定義されている | When: HTTP リクエストがサーバーに到達する | Then: 有効な相関IDがリクエストコンテキストに設定され、レスポンスヘッダーに伝播される
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-200-01**: X-Request-ID ヘッダーなしの場合 UUID v4 が生成される 🔵
+  - **入力**: X-Request-ID ヘッダーなしのリクエスト
+  - **期待結果**: ランダムUUIDが生成され、レスポンスヘッダーに X-Request-ID として設定される
+  - **信頼性**: 🔵 *correlation-id.ts randomUUID() より*
+
+- [x] **TC-200-02**: 有効な X-Request-ID ヘッダーが受入・伝播される 🔵
+  - **入力**: X-Request-ID: "test-req-123" ヘッダー付きリクエスト
+  - **期待結果**: 同一IDがリクエストコンテキストとレスポンスヘッダーに設定される
+  - **信頼性**: 🔵 *correlation-id.ts incoming validation より*
+
+#### 異常系
+
+- [x] **TC-200-E01**: 空 X-Request-ID ヘッダーが新しいUUIDで置換される 🔵
+  - **入力**: X-Request-ID: "" のリクエスト
+  - **期待結果**: 新しいUUIDが生成され、レスポンスヘッダーに設定される
+  - **信頼性**: 🔵 *correlation-id.ts incoming.length > 0 チェックより*
+
+- [x] **TC-200-E02**: 128文字超過 X-Request-ID が新しいUUIDで置換される 🔵
+  - **入力**: 129文字の X-Request-ID ヘッダー
+  - **期待結果**: 新しいUUIDが生成され、レスポンスヘッダーに設定される
+  - **信頼性**: 🔵 *correlation-id.ts MAX_ID_LENGTH=128 チェックより*
+
+---
+
+## REQ-204: 構造化HTTPリクエスト/レスポンスロギング 🔵 ✅実装済
+
+**信頼性**: 🔵 *src/api/middleware/request-logger.ts・コミット104db88*
+
+> Given: Express API サーバーが correlation ID ミドルウェア（REQ-200）とロガーで設定されている | When: HTTP リクエストが処理されレスポンスが返される | Then: メソッド・パス・ステータスコード・応答時間・相関IDがログレベル別に記録される
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-204-01**: 成功リクエスト（2xx）が info レベルでログ出力される 🔵
+  - **入力**: GET /api/v1/test → 200
+  - **期待結果**: logger.info が1回呼ばれ、メソッド・パス・ステータス・応答時間が含まれる
+  - **信頼性**: 🔵 *request-logger.test.ts より*
+
+- [x] **TC-204-02**: ログメッセージにメソッド・パス・ステータス・応答時間・相関IDが含まれる 🔵
+  - **入力**: GET /api/v1/test with X-Request-ID: "test-correlation-123"
+  - **期待結果**: ログメッセージが "GET /api/v1/test 200 Xms rid=test-correlation-123" 形式
+  - **信頼性**: 🔵 *request-logger.ts message format より*
+
+#### 異常系
+
+- [x] **TC-204-E01**: 4xx レスポンスが warn レベルでログ出力される 🔵
+  - **入力**: GET /api/v1/bad → 400
+  - **期待結果**: logger.warn が1回呼ばれ、ステータスコード400が含まれる
+  - **信頼性**: 🔵 *request-logger.ts statusCode >= 400 分岐より*
+
+- [x] **TC-204-E02**: 5xx レスポンスが error レベルでログ出力される 🔵
+  - **入力**: GET /api/v1/server-error → 500
+  - **期待結果**: logger.error が1回呼ばれ、ステータスコード500が含まれる
+  - **信頼性**: 🔵 *request-logger.ts statusCode >= 500 分岐より*
+
+#### 境界値
+
+- [x] **TC-204-B01**: ヘルスチェックエンドポイントがログ対象外となる 🔵
+  - **入力**: GET /api/v1/health → 200
+  - **期待結果**: logger.info/warn/error が呼ばれない
+  - **信頼性**: 🔵 *request-logger.ts SKIP_PATHS より*
+
+- [x] **TC-204-B02**: 相関IDなしの場合 rid=- がログ出力される 🔵
+  - **入力**: X-Request-ID ヘッダーなしのリクエスト
+  - **期待結果**: ログメッセージに "rid=-" が含まれる
+  - **信頼性**: 🔵 *request-logger.ts fallback '-' より*
 
 ---

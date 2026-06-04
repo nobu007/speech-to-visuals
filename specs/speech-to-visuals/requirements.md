@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 77 完了・374ソースファイル・232テストファイル・105パッケージ(74 deps+31 devDeps)・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・192タスク全完了・テストスイート安定化完了（26+テスト障害解消・ESM互換性修正・エラー型伝播バグ修正）・バッチ処理プログレス正確性修正完了（progress.total original count反映）・パイプラインオーケストレーター入力検証完了（AudioValidationError・防御 in depth）・エラーリカバリ可観測性完了（RecoveryTelemetryAggregator・テレメトリAPI endpoint）
+**実装状況**: Phase 79 完了・377ソースファイル・238テストファイル・107パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・192タスク全完了・テストスイート安定化完了（26+テスト障害解消・ESM互換性修正・エラー型伝播バグ修正）・バッチ処理プログレス正確性修正完了（progress.total original count反映）・パイプラインオーケストレーター入力検証完了（AudioValidationError・防御 in depth）・エラーリカバリ可観測性完了（RecoveryTelemetryAggregator・テレメトリAPI endpoint）・相関IDミドルウェア完了（X-Request-ID伝播）・構造化HTTPリクエスト/レスポンスロギング完了（レベル別ログ出力・ヘルスエンドポイント除外）
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -441,9 +441,10 @@
 - REQ-198: システムは `GET /api/monitoring/error-recovery` エンドポイントにより、エラーリカバリシステムのテレメトリスナップショット（総イベント数・全体成功率・平均/P95リカバリ時間・ステージ別統計・劣化アラート・エラータイプ分布）を外部から取得可能にしなければならない。RecoveryTelemetryAggregator のスライディングウィンドウ（デフォルト5分）に基づく集計結果を返すこと 🔵 ✅実装済 *src/api/routes/monitoring.ts error-recovery endpoint・src/quality/recovery-telemetry-aggregator.ts*
 - REQ-199: システムは ErrorRecoveryEventBus の recovery:success・recovery:failure・stage:degraded・cascade:detected イベントをサブスクライブし、RecoveryTelemetryAggregator にてスライディングウィンドウベースのテレメトリ集計を実行しなければならない。ステージ別成功率・平均/P95リカバリ時間・エラータイプ分布・10%以上の成功率低下検知を提供すること 🔵 ✅実装済 *src/quality/recovery-telemetry-aggregator.ts*
 
-#### プロダクション観測性強化（Phase 78） ✅完了
+#### プロダクション観測性強化（Phase 78-79） ✅完了
 
 - REQ-200: システムは全HTTPリクエストに対して相関ID（X-Request-ID）を生成または受信ヘッダーから抽出し、リクエストコンテキストに添付して下流ログ・エラー応答に伝播しなければならない 🔵 ✅実装済 *src/api/middleware/correlation-id.ts*
+- REQ-204: システムは全HTTPリクエスト・レスポンスを構造化ログ（メソッド・パス・ステータスコード・応答時間・相関ID）として記録しなければならない。2xx/3xx は info、4xx は warn、5xx は error レベルで出力し、ヘルスチェックエンドポイントはログ対象外とすること 🔵 ✅実装済 *src/api/middleware/request-logger.ts*
 
 ### 条件付き要件
 
@@ -616,14 +617,15 @@
 | Phase 75: テストスイート安定化・ESM互換性・エラー伝播修正 | ✅完了 | REQ-195 + TASK-0185~0187 | 3/3（Jest ESM互換性修正・processWithRetryエラー型伝播バグ修正・テストアサーション修正・26+テスト障害解消） |
 | Phase 76: バッチ処理プログレス正確性・テストスイート検証 | ✅完了 | REQ-196~197 + TASK-0188~0192 | 6/6（バッチprogress.total修正・リトライ配線統合テスト・エラー型伝播E2E・バッチリカバリ並列テスト・ESMモック修正・Phase完了報告） |
 | Phase 77: エラーリカバリ可観測性・Phase 76品質修正 | ✅完了 | REQ-198~199 + バグ修正 | 4/4（RecoveryTelemetryAggregator実装・error-recovery API endpoint・Phase 76 TypeScriptバグ修正2件・lint修正2件） |
+| Phase 78-79: プロダクション観測性強化 | ✅完了 | REQ-200, REQ-204 | 2/2（相関IDミドルウェア実装・console→logger移行・構造化HTTPリクエスト/レスポンスロギング・テスト178行追加） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 219件 (97.3%)
+- 🔵 青信号: 220件 (97.3%)
 - 🟡 黄信号: 3件 (1.4%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 77完了（REQ-198~199・エラーリカバリ可観測性）・Phase 76 TypeScriptバグ修正（error-handler.ts recoveryStrategies・simple-pipeline.ts ErrorType cast）・RecoveryTelemetryAggregator実装・テレメトリAPI endpoint追加・192タスク全完了・TypeScript型エラー0件・パイプライン型付きエラー完全化
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 79完了（REQ-200・REQ-204・プロダクション観測性強化）・相関IDミドルウェア・構造化HTTPロギング・192タスク全完了・TypeScript型エラー0件・パイプライン型付きエラー完全化
 
 ## Acceptance criteria
 
@@ -634,6 +636,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 77 を網羅し、Phase 77 完了（REQ-198~199・エラーリカバリ可観測性・Phase 76品質修正）を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 79 を網羅し、Phase 79 完了（REQ-200・REQ-204・プロダクション観測性強化）を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテキュリティに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第179回: 🔵219件/🟡3件/🔴0件 — Phase 77完了・REQ-001~199・232テストファイル・374ソースファイル・105パッケージ）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第180回: 🔵220件/🟡3件/🔴0件 — Phase 79完了・REQ-001~204・238テストファイル・377ソースファイル・107パッケージ）
