@@ -445,6 +445,7 @@
 
 - REQ-200: システムは全HTTPリクエストに対して相関ID（X-Request-ID）を生成または受信ヘッダーから抽出し、リクエストコンテキストに添付して下流ログ・エラー応答に伝播しなければならない 🔵 ✅実装済 *src/api/middleware/correlation-id.ts*
 - REQ-204: システムは全HTTPリクエスト・レスポンスを構造化ログ（メソッド・パス・ステータスコード・応答時間・相関ID）として記録しなければならない。2xx/3xx は info、4xx は warn、5xx は error レベルで出力し、ヘルスチェックエンドポイントはログ対象外とすること 🔵 ✅実装済 *src/api/middleware/request-logger.ts*
+- REQ-206: システムはHTTP メトリクス（リクエスト総数・エラー総数・レイテンシパーセンタイル・アクティブリクエスト数・スローリクエスト数・稼働時間）を Prometheus 互換フォーマット（text/plain version=0.0.4）でエクスポートし、GET /api/v1/monitoring/prometheus エンドポイント経由で外部監視システムがスクレイピング可能にしなければならない 🔵 ✅実装済 *src/monitoring/prometheus-exporter.ts*
 
 ### 条件付き要件
 

@@ -18,6 +18,7 @@ import {
 import { getWarmupStatus } from '../startup-warmup';
 import { recoveryTelemetryAggregator, type TelemetrySnapshot } from '../../quality/recovery-telemetry-aggregator';
 import { httpMetricsCollector, type HttpMetricsSnapshot } from '../../monitoring/http-metrics-collector';
+import { exportPrometheusMetrics, PROMETHEUS_CONTENT_TYPE } from '../../monitoring/prometheus-exporter';
 
 // ---------------------------------------------------------------------------
 // Zod validation schemas
@@ -151,6 +152,22 @@ export function createMonitoringRouter(dashboard?: PerformanceDashboard): Router
         500,
         'HTTP_METRICS_ERROR',
         error instanceof Error ? error.message : 'Failed to retrieve HTTP metrics',
+      );
+    }
+  });
+
+  // GET /prometheus - Prometheus exposition format metrics (REQ-206)
+  router.get('/prometheus', (_req: Request, res: Response) => {
+    try {
+      const body = exportPrometheusMetrics();
+      res.setHeader('Content-Type', PROMETHEUS_CONTENT_TYPE);
+      return res.status(200).send(body);
+    } catch (error) {
+      return sendError(
+        res,
+        500,
+        'PROMETHEUS_ERROR',
+        error instanceof Error ? error.message : 'Failed to export Prometheus metrics',
       );
     }
   });
