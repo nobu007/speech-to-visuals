@@ -6,6 +6,7 @@
  * - GET /cost     - LLM cost metrics (token usage, budget)
  * - GET /trends   - Performance trends over configurable timespan
  * - GET /health   - Production health check (component status)
+ * - GET /error-recovery - Error recovery telemetry (REQ-198, Phase 77)
  */
 
 import { Router, Request, Response } from 'express';
@@ -15,6 +16,7 @@ import {
   globalDashboard,
 } from '../../monitoring/performance-dashboard';
 import { getWarmupStatus } from '../startup-warmup';
+import { recoveryTelemetryAggregator, type TelemetrySnapshot } from '../../quality/recovery-telemetry-aggregator';
 
 // ---------------------------------------------------------------------------
 // Zod validation schemas
@@ -118,6 +120,21 @@ export function createMonitoringRouter(dashboard?: PerformanceDashboard): Router
         500,
         'HEALTH_ERROR',
         error instanceof Error ? error.message : 'Failed to perform health check',
+      );
+    }
+  });
+
+  // GET /error-recovery - Error recovery telemetry (REQ-198)
+  router.get('/error-recovery', (_req: Request, res: Response) => {
+    try {
+      const telemetry: TelemetrySnapshot = recoveryTelemetryAggregator.getSnapshot();
+      return res.status(200).json({ success: true, data: telemetry });
+    } catch (error) {
+      return sendError(
+        res,
+        500,
+        'ERROR_RECOVERY_TELEMETRY_ERROR',
+        error instanceof Error ? error.message : 'Failed to retrieve error recovery telemetry',
       );
     }
   });

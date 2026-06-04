@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-02（第177回検証: Phase 76要件追加・バッチ処理プログレス正確性要件定義・テストスイート安定化完了・TypeScript/ESLintエラー0件・依存105パッケージ・npm audit 0件）
+**最終更新**: 2026-06-04（第179回検証: Phase 77完了・エラーリカバリ可観測性（RecoveryTelemetryAggregator・テレメトリAPI endpoint）・Phase 76 TypeScriptバグ修正・TypeScript/ESLintエラー0件・依存105パッケージ・npm audit 0件）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -224,7 +224,14 @@ Phase 37 で実装済みのコード規模自動監査:
 - **コード規模監査スクリプト**: ビルド時またはCI で SYSTEM_CONSTITUTION 制限値（ファイル数340以下・行数100K以下）を自動チェック 🔵 *src/config/code-size-audit.ts・scripts/code-size-audit.ts より*
 - **監視API本番動作検証**: サーバー起動時のルート登録完了ログ出力・全エンドポイント統合テスト通過確認 🔵 *src/api/routes/monitoring.ts・TASK-0146/0147 完了済*
 
-### 多言語検出拡張 🔵 【Phase 44 追加】
+### エラーリカバリ可観測性 🔵 【Phase 77 追加】
+
+**信頼性**: 🔵 *src/quality/recovery-telemetry-aggregator.ts・src/api/routes/monitoring.ts・要件定義REQ-198~199 より*
+
+Phase 77 で追加実装されたエラーリカバリ可観測性:
+
+- **RecoveryTelemetryAggregator**: ErrorRecoveryEventBus の recovery:success・recovery:failure・stage:degraded・cascade:detected イベントをサブスクライブし、スライディングウィンドウ（デフォルト5分）でテレメトリ集計。ステージ別成功率・平均/P95リカバリ時間・エラータイプ分布・10%以上の成功率低下検知を提供 🔵 *src/quality/recovery-telemetry-aggregator.ts・要件定義REQ-199 より*
+- **エラーリカバリテレメトリ API**: `GET /api/monitoring/error-recovery` エンドポイント。RecoveryTelemetryAggregator のスナップショット（総イベント数・全体成功率・平均/P95リカバリ時間・ステージ別統計・劣化アラート・エラータイプ分布）を JSON で返却 🔵 *src/api/routes/monitoring.ts・要件定義REQ-198 より*
 
 **信頼性**: 🔵 *src/analysis/language-detector.ts・要件定義REQ-303 より*
 
@@ -640,6 +647,7 @@ Fallback LLM
 - [x] 文字起こしモジュール型付きエラー移行（Phase 67一部）が完了している（9箇所置換・TranscriptionError使用）
 - [x] 可視化モジュール型付きエラー移行（Phase 69一部）が完了している（9箇所置換・VisualizationError使用）
 - [x] テストスイート安定化（Phase 75）が完了している（Jest ESM互換性・processWithRetryエラー型伝播バグ修正・テストアサーション修正・26+テスト障害解消・REQ-195）
+- [x] エラーリカバリ可観測性（Phase 77）が完了している（RecoveryTelemetryAggregator・テレメトリAPI endpoint・REQ-198~199）
 
 ## 関連文書
 
@@ -654,11 +662,11 @@ Fallback LLM
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 172件 (97%)
+- 🔵 青信号: 174件 (97%)
 - 🟡 黄信号: 4件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第176回検証: Phase 75完了・テストスイート安定化（26+テスト障害解消・ESM互換性・エラー型伝播修正）・373ファイル・231テストファイル・TypeScript/ESLintエラー0件・依存1040パッケージ・npm audit 0件・SYSTEM_CONSTITUTION V2.6適合）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第179回検証: Phase 77完了・エラーリカバリ可観測性（RecoveryTelemetryAggregator・テレメトリAPI endpoint）・Phase 76 TypeScriptバグ修正・374ファイル・232テストファイル・TypeScript/ESLintエラー0件・依頼105パッケージ・npm audit 0件・SYSTEM_CONSTITUTION V2.6適合）
 
 
 <!-- spine:children:begin -->

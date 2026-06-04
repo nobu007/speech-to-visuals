@@ -115,7 +115,7 @@ export function errorHandler(
         suggestedAction: guidance.suggestedAction,
         severity: guidance.severity,
         stage: err.stage,
-        strategies: guidance.strategies,
+        strategies: guidance.recoveryStrategies.map((s) => s.description),
         preventionTips: guidance.preventionTips,
       },
     };

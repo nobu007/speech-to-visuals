@@ -71,7 +71,7 @@ function injectMockQualityMonitor(detector: RegressionDetectorType) {
     writable: true,
     configurable: true,
   });
-  (detector as any).baseline = null;
+  (detector as Record<string, unknown>).baseline = null;
 }
 
 // --- Tests ---
@@ -86,7 +86,7 @@ describe('RegressionDetector', () => {
 
   afterEach(() => {
     // Clean up real baseline files
-    try { fs.unlinkSync(currentTestPath); } catch {}
+    try { fs.unlinkSync(currentTestPath); } catch { /* expected if file was never created */ }
   });
 
   describe('getInstance', () => {

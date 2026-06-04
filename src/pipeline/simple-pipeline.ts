@@ -15,6 +15,7 @@ import { getQualityMonitor, formatQualityReport } from './quality-monitor';
 import { getHeapUsed } from '@/utils/memory-usage';
 import { ErrorClassifier } from '@/quality/error-classifier';
 import { TranscriptionError, SegmentationError, PipelineError } from './pipeline-errors';
+import type { ErrorType } from '../quality/error-classifier';
 import { retryWithBackoff } from './retry';
 import { logger } from '../utils/logger';
 
@@ -663,7 +664,7 @@ export class SimplePipeline {
         async () => {
           const result = await this.process(input, onProgress);
           if (!result.success) {
-            const errorType = (result.errorType as string) || 'UNKNOWN';
+            const errorType = (result.errorType as ErrorType) || 'UNKNOWN';
             throw new PipelineError(result.error || 'Processing failed', errorType, 'pipeline', { originalError: result.error });
           }
           return result;
