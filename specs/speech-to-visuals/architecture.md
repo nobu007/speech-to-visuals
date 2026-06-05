@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-04（第179回検証: Phase 77完了・エラーリカバリ可観測性（RecoveryTelemetryAggregator・テレメトリAPI endpoint）・Phase 76 TypeScriptバグ修正・TypeScript/ESLintエラー0件・依存105パッケージ・npm audit 0件）
+**最終更新**: 2026-06-05（第181回検証: Phase 82完了・HTTPメトリクス収集・Prometheusエクスポーター・liveness/readiness probe・TypeScript/ESLintエラー0件・107パッケージ・npm audit 0件）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -197,9 +197,11 @@ Phase 57 で追加実装された多層エラー回復システム（7モジュ�
 
 - **プロダクションモニタ**: リアルタイムパフォーマンス監視（P50/P95/P99レイテンシ）
 - **パフォーマンスダッシュボード**: 処理時間・成功率・エラー率の可視化。パーセンタイル計算（P50/P95/P99）・入力検証付き 🔵 *Phase 66 REQ-172 より*
-- **ヘルスチェックサービス**: 各コンポーネントの健全性確認
+- **ヘルスチェックサービス**: 各コンポーネント（メモリ・キャッシュ・パイプライン・LLM・エラー回復・パフォーマンス傾向）の健全性確認。Kubernetesスタイルのliveness/readiness probe対応（GET /api/v1/health/live・/health/ready）🔵 *Phase 82 REQ-207 より*
 - **プロダクションエラーハンドリング**: 本番環境向けの構造化エラー処理（69テストで検証済み）🔵 *Phase 66 REQ-173 より*
 - **リアルタイムパフォーマンスモニタ**: メトリクス収集・アラート閾値監視・トレンド分析（48テストで検証済み・cacheHitRate閾値反転バグ修正）🔵 *Phase 66 REQ-174 より*
+- **HTTPメトリクス収集**: per-route リクエスト数・レイテンシパーセンタイル（P50/P95/P99）・エラーレート・スローリクエスト検出・アクティブリクエスト追跡。bounded circular buffer（max 1000 samples/route）によるメモリ安全設計 🔵 *Phase 80 REQ-205 より*
+- **Prometheusメトリクスエクスポーター**: HTTPメトリクスをPrometheus互換フォーマット（text/plain version=0.0.4）でエクスポート。6メトリクス（http_requests_total, http_request_duration_ms, http_errors_total, http_active_requests, http_slow_requests_total, process_uptime_ms）・ラベルサニタイズ・カスタムプレフィックス 🔵 *Phase 81 REQ-206 より*
 - **監視エクセレンス**: 品質メトリクスの継続的な追跡とレポート
 
 ### LLMコスト・トークン監視 🔵 【Phase 36 追加】
@@ -648,6 +650,8 @@ Fallback LLM
 - [x] 可視化モジュール型付きエラー移行（Phase 69一部）が完了している（9箇所置換・VisualizationError使用）
 - [x] テストスイート安定化（Phase 75）が完了している（Jest ESM互換性・processWithRetryエラー型伝播バグ修正・テストアサーション修正・26+テスト障害解消・REQ-195）
 - [x] エラーリカバリ可観測性（Phase 77）が完了している（RecoveryTelemetryAggregator・テレメトリAPI endpoint・REQ-198~199）
+- [x] HTTPメトリクス収集・Prometheusエクスポーター（Phase 80-81）が完了している（HttpMetricsCollector・PrometheusExporter・REQ-205~206・41テスト）
+- [x] ヘルスチェックliveness/readiness probe（Phase 82）が完了している（HealthCheckService配線・REQ-207・8テスト）
 
 ## 関連文書
 
@@ -662,11 +666,11 @@ Fallback LLM
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 174件 (97%)
+- 🔵 青信号: 176件 (97%)
 - 🟡 黄信号: 4件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第179回検証: Phase 77完了・エラーリカバリ可観測性（RecoveryTelemetryAggregator・テレメトリAPI endpoint）・Phase 76 TypeScriptバグ修正・374ファイル・232テストファイル・TypeScript/ESLintエラー0件・依頼105パッケージ・npm audit 0件・SYSTEM_CONSTITUTION V2.6適合）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第181回検証: Phase 82完了・HTTPメトリクス収集・Prometheusエクスポーター・liveness/readiness probe・380ファイル・241テストファイル・TypeScript/ESLintエラー0件・107パッケージ・npm audit 0件・SYSTEM_CONSTITUTION V2.6適合）
 
 
 <!-- spine:children:begin -->

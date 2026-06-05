@@ -10,11 +10,46 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-04（第178回検証: Phase 76完了・REQ-197パイプラインオーケストレーター入力検証要件定義）
+**最終更新**: 2026-06-05（第181回検証: Phase 82完了・REQ-205~209 HTTPメトリクス・Prometheus・ヘルスプローブ・Grafana/アラート要件追加）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
 ## 分析項目と判断
+
+### A181: 第181回検証 - Phase 82完了・HTTPメトリクス・Prometheus・ヘルスプローブ要件追加（2026-06-05）
+
+**分析日時**: 2026-06-05
+**カテゴリ**: プロダクション監視・メトリクス収集・Prometheus統合・要件定義増分更新
+**背景**: AI Hubフィードバック「Continue building on this progress. Suggested focus: Add alerting rules or Grafana dashboard config that consumes the new /metrics endpoint」に対応。Phase 80-82で実装されたHTTPメトリクス収集・Prometheusエクスポーター・ヘルスチェックプローブが既存要件定義に未反映のため、実装済み要件の文書化と前方要件（Grafanaダッシュボード・アラートルール）の追加を実施。
+
+**判断**:
+1. **REQ-205追加**: HttpMetricsCollector（bounded circular buffer・per-route P50/P95/P99・エラーレート・スローリクエスト検出）をPhase 80実装として文書化
+2. **REQ-206更新**: PrometheusExporter（text/plain v0.0.4・6メトリクス出力・ラベルサニタイズ）の記述を拡充
+3. **REQ-207追加**: Kubernetesスタイルのliveness/readiness probe（GET /api/v1/health/live・/health/ready）をPhase 82実装として文書化
+4. **REQ-208追加**: Grafana互換ダッシュボード設定（JSON model・5パネル構成）を前方要件として定義（🟡）
+5. **REQ-209追加**: 閾値ベースのアラートルール（エラーレート・レイテンシ・ヘルスチェック・コスト）を前方要件として定義（🟡）
+6. **Phase 83登録**: 監視ダッシュボード・アラートフェーズを計画中として登録
+
+**根拠**:
+- `src/monitoring/http-metrics-collector.ts` - HttpMetricsCollector クラス（bounded circular buffer・maxSamplesPerRoute:1000・slowRequestThresholdMs:5000）
+- `src/monitoring/prometheus-exporter.ts` - PrometheusExporter クラス（6メトリクス: http_requests_total, http_request_duration_ms, http_errors_total, http_active_requests, http_slow_requests_total, process_uptime_ms）
+- `src/api/routes/health.ts` - liveness/readiness probe エンドポイント（HealthCheckService統合）
+- `src/monitoring/health-check-service.ts` - 6コンポーネントチェック（メモリ・キャッシュ・パイプライン・LLM・エラー回復・パフォーマンス）
+- `tests/unit/monitoring/http-metrics-collector.test.ts` - 14テスト
+- `tests/unit/monitoring/prometheus-exporter.test.ts` - 13テスト
+- `tests/unit/api/routes/health.test.ts` - 8テスト
+- `tests/unit/api/request-metrics.test.ts` - 6テスト
+- コミット241e126: Phase 80 HTTP metrics collector
+- コミットac14a4b: Phase 81 Prometheus exporter
+- コミット67f5b05: Phase 82 health probes
+
+**信頼性への影響**:
+- 実装済み要件 REQ-205, REQ-207 追加（信頼性レベル: 🔵）
+- 前方要件 REQ-208, REQ-209 追加（信頼性レベル: 🟡）
+- 信頼性レベル分布: 🔵220→224件/🟡3→5件/🔴0件
+- Phase 80-82 のテストカバレッジ: 41テスト追加
+
+---
 
 ### A178: 第178回検証 - Phase 76完了・パイプラインオーケストレーター入力検証要件定義（2026-06-04）
 
