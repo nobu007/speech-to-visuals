@@ -1,8 +1,8 @@
 /**
- * REQ-206: Prometheus-Compatible Metrics Exporter
+ * REQ-206 + REQ-212: Prometheus-Compatible Metrics Exporter
  *
- * Converts HttpMetricsCollector data into Prometheus exposition format
- * for external monitoring systems (Grafana, Prometheus, Datadog, etc.).
+ * Converts HttpMetricsCollector and PipelineMetricsCollector data into
+ * Prometheus exposition format for external monitoring systems.
  *
  * Exposed metrics:
  * - http_requests_total (counter by method, path, status_class)
@@ -11,6 +11,8 @@
  * - http_active_requests (gauge)
  * - http_slow_requests_total (counter)
  * - process_uptime_ms (gauge)
+ * - pipeline_stage_duration_ms (summary with quantiles per pipeline stage)
+ * - pipeline_runs_total (counter by status: success/failure)
  */
 
 import {
@@ -18,6 +20,11 @@ import {
   type HttpMetricsSnapshot,
   type RouteMetricsSnapshot,
 } from './http-metrics-collector';
+import {
+  pipelineMetricsCollector,
+  type PipelineMetricsSnapshot,
+  type StageDurationAggregate,
+} from './pipeline-metrics-collector';
 
 // ---------------------------------------------------------------------------
 // Prometheus types
@@ -161,23 +168,64 @@ function renderMetric(metric: PrometheusMetric): string {
 }
 
 // ---------------------------------------------------------------------------
+// Pipeline metric builders (REQ-212)
+// ---------------------------------------------------------------------------
+
+function buildPipelineStageDuration(stages: StageDurationAggregate[]): PrometheusMetric {
+  const samples: PrometheusMetric['samples'] = [];
+  for (const s of stages) {
+    const labels = { stage: s.stage };
+    for (const [q, val] of [['0.5', s.percentiles.p50], ['0.95', s.percentiles.p95], ['0.99', s.percentiles.p99]] as const) {
+      samples.push({ labels: { ...labels, quantile: q }, value: val });
+    }
+    samples.push({ labels, value: s.sumMs, suffix: '_sum' });
+    samples.push({ labels, value: s.count, suffix: '_count' });
+  }
+  return {
+    name: 'pipeline_stage_duration_ms',
+    help: 'Pipeline stage execution duration in milliseconds (summary with quantiles)',
+    type: 'summary',
+    samples,
+  };
+}
+
+function buildPipelineRunsTotal(pipelineSnap: PipelineMetricsSnapshot): PrometheusMetric {
+  const samples: PrometheusMetric['samples'] = [];
+  if (pipelineSnap.successfulRuns > 0) {
+    samples.push({ labels: { status: 'success' }, value: pipelineSnap.successfulRuns });
+  }
+  if (pipelineSnap.failedRuns > 0) {
+    samples.push({ labels: { status: 'failure' }, value: pipelineSnap.failedRuns });
+  }
+  return {
+    name: 'pipeline_runs_total',
+    help: 'Total pipeline runs by outcome status',
+    type: 'counter',
+    samples,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
 export interface PrometheusExportOptions {
   /** Optional custom snapshot instead of live collector data */
   snapshot?: HttpMetricsSnapshot;
+  /** Optional custom pipeline snapshot instead of live collector data */
+  pipelineSnapshot?: PipelineMetricsSnapshot;
   /** Optional namespace prefix (default: '') */
   prefix?: string;
 }
 
 /**
- * Generate Prometheus exposition-format text from HTTP metrics.
+ * Generate Prometheus exposition-format text from HTTP and pipeline metrics.
  *
  * See: https://prometheus.io/docs/instrumenting/exposition_formats/
  */
 export function exportPrometheusMetrics(options?: PrometheusExportOptions): string {
   const snapshot = options?.snapshot ?? httpMetricsCollector.getSnapshot();
+  const pipelineSnap = options?.pipelineSnapshot ?? pipelineMetricsCollector.getSnapshot();
   const prefix = options?.prefix ?? '';
 
   const metrics: PrometheusMetric[] = [
@@ -188,6 +236,14 @@ export function exportPrometheusMetrics(options?: PrometheusExportOptions): stri
     buildSlowRequests(snapshot),
     buildUptime(snapshot),
   ];
+
+  // Append pipeline metrics only when data exists
+  if (pipelineSnap.stages.length > 0) {
+    metrics.push(buildPipelineStageDuration(pipelineSnap.stages));
+  }
+  if (pipelineSnap.totalRuns > 0) {
+    metrics.push(buildPipelineRunsTotal(pipelineSnap));
+  }
 
   const output = metrics.map(renderMetric).join('\n\n');
 

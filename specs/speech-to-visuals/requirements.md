@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 84 完了・380ソースファイル・243テストファイル・107パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・192タスク全完了・テストスイート安定化完了（26+テスト障害解消・ESM互換性修正・エラー型伝播バグ修正）・バッチ処理プログレス正確性修正完了（progress.total original count反映）・パイプラインオーケストレーター入力検証完了（AudioValidationError・防御 in depth）・エラーリカバリ可観測性完了（RecoveryTelemetryAggregator・テレメトリAPI endpoint）・相関IDミドルウェア完了（X-Request-ID伝播）・構造化HTTPリクエスト/レスポンスロギング完了（レベル別ログ出力・ヘルスエンドポイント除外）・HTTPリクエストメトリクス収集完了（per-route percentiles・bounded memory）・Prometheus互換メトリクスエクスポート完了（text/plain v0.0.4）・ヘルスチェックliveness/readiness probe完了（Kubernetesスタイル）・GrafanaダッシュボードJSON model完了（8パネル）・Prometheus alert rules完了（4ルール）・監視APIデプロイメント統合完了（GET /monitoring/dashboard・GET /monitoring/alerts）
+**実装状況**: Phase 85 進行中（REQ-212完了）・381ソースファイル・244テストファイル・107パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・192タスク全完了・テストスイート安定化完了（26+テスト障害解消・ESM互換性修正・エラー型伝播バグ修正）・バッチ処理プログレス正確性修正完了（progress.total original count反映）・パイプラインオーケストレーター入力検証完了（AudioValidationError・防御 in depth）・エラーリカバリ可観測性完了（RecoveryTelemetryAggregator・テレメトリAPI endpoint）・相関IDミドルウェア完了（X-Request-ID伝播）・構造化HTTPリクエスト/レスポンスロギング完了（レベル別ログ出力・ヘルスエンドポイント除外）・HTTPリクエストメトリクス収集完了（per-route percentiles・bounded memory）・Prometheus互換メトリクスエクスポート完了（text/plain v0.0.4）・ヘルスチェックliveness/readiness probe完了（Kubernetesスタイル）・GrafanaダッシュボードJSON model完了（8パネル）・Prometheus alert rules完了（4ルール）・監視APIデプロイメント統合完了（GET /monitoring/dashboard・GET /monitoring/alerts）・パイプラインステージ所要時間メトリクス完了（pipeline_stage_duration_ms・PipelineMetricsCollector・14テスト）
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -462,9 +462,9 @@
 - REQ-210: システムは Grafana ダッシュボード設定を GET /api/v1/monitoring/dashboard エンドポイントで JSON 形式で配信し、CI/CD パイプラインからの自動デプロイを可能にしなければならない 🔵 *src/monitoring/grafana-dashboard-model.ts exportDashboardJson()・REQ-208 で定義済モデルより*
 - REQ-211: システムは Prometheus アラートルールを GET /api/v1/monitoring/alerts エンドポイントで YAML 形式で配信し、AlertManager への自動適用を可能にしなければならない 🔵 *src/monitoring/alert-rules.ts exportAlertRulesYaml()・REQ-209 で定義済ルールより*
 
-#### パイプラインオブザーバビリティ拡張（Phase 85） 🟡計画中
+#### パイプラインオブザーバビリティ拡張（Phase 85） 🔵進行中
 
-- REQ-212: システムはパイプライン各ステージ（文字起こし・分析・レイアウト・動画準備・レンダリング）の所要時間をヒストグラムメトリクスとして Prometheus エクスポーターに統合し、GET /api/v1/monitoring/prometheus で pipeline_stage_duration_ms として出力しなければならない 🔵 *src/pipeline/stage-timing-metrics.ts 既存メトリクス・src/monitoring/prometheus-exporter.ts より*
+- REQ-212: ✅実装済 システムはパイプライン各ステージ（文字起こし・分析・レイアウト・動画準備・レンダリング）の所要時間をヒストグラムメトリクスとして Prometheus エクスポーターに統合し、GET /api/v1/monitoring/prometheus で pipeline_stage_duration_ms として出力しなければならない 🔵 *src/monitoring/pipeline-metrics-collector.ts・src/monitoring/prometheus-exporter.ts・14テスト*
 - REQ-213: システムはバッチジョブのライフサイクル（created/running/completed/failed/cancelled）別の累積カウントとアクティブジョブ数を Prometheus メトリクスとして出力し、バッチ処理の健全性を外部監視可能にしなければならない 🔵 *src/api/batch-processing-api.ts ジョブステータス管理・REQ-043 バッチAPIより*
 
 #### 監視スタック統合検証（Phase 86） 🟡計画中
@@ -649,7 +649,7 @@
 | Phase 82: ヘルスチェックliveness/readiness probe | ✅完了 | REQ-207 | 1/1（HealthCheckService配線・/health/live・/health/ready・8テスト追加） |
 | Phase 83: 監視ダッシュボード・アラート | ✅完了 | REQ-208, REQ-209 | 2/2（GrafanaダッシュボードJSON model・Prometheus alert rules YAML・51テスト） |
 | Phase 84: 監視APIデプロイメント統合 | ✅完了 | REQ-210, REQ-211 | 2/2（GET /monitoring/dashboard・GET /monitoring/alerts・6テスト追加） |
-| Phase 85: パイプラインオブザーバビリティ拡張 | 🟡計画中 | REQ-212, REQ-213 | 0/2（パイプラインステージヒストグラム・バッチジョブライフサイクルメトリクス） |
+| Phase 85: パイプラインオブザーバビリティ拡張 | 🔵進行中 | REQ-212, REQ-213 | 1/2（pipeline_stage_duration_ms完了・PipelineMetricsCollector 14テスト・バッチジョブライフサイクル未実装） |
 | Phase 86: 監視スタック統合検証 | 🟡計画中 | REQ-214, REQ-215 | 0/2（Prometheus E2E統合テスト・アラート閾値境界テスト） |
 
 ## 信頼性レベル分布
