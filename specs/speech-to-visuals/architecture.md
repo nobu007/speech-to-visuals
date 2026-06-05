@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-05（第182回検証: Phase 83完了・GrafanaダッシュボードJSON model・Prometheus alert rules YAML・51テスト追加・TypeScript/ESLintエラー0件・107パッケージ・npm audit 0件）
+**最終更新**: 2026-06-05（第183回検証: Phase 84完了・監視APIデプロイメント統合（GET /monitoring/dashboard・/alerts）・6テスト追加・TypeScript/ESLintエラー0件・107パッケージ・npm audit 0件）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -205,6 +205,7 @@ Phase 57 で追加実装された多層エラー回復システム（7モジュ�
 - **Grafanaダッシュボードモデル**: Grafana互換ダッシュボードJSON model生成。8パネル（HTTP Latency Distribution・Error Rate Trends・Pipeline Success Rate・Slow Requests・Active Requests・Process Uptime・Request Volume・Errors by Route）・PromQL式によるメトリクス可視化・Grafana import形式出力 🔵 *Phase 83 REQ-208 より*
 - **Prometheusアラートルール**: 閾値ベースアラート4ルール（HighErrorRate: error rate > 5% critical・HighLatencyP95: P95 > 20s warning・HealthCheckFailures: ≥ 3 failures critical・LLMBudgetOverage: budget warning）・AlertManager YAML形式出力 🔵 *Phase 83 REQ-209 より*
 - **監視エクセレンス**: 品質メトリクスの継続的な追跡とレポート
+- **監視APIデプロイメント統合**: GrafanaダッシュボードJSON（GET /api/v1/monitoring/dashboard）・PrometheusアラートルールYAML（GET /api/v1/monitoring/alerts）の配信API・CI/CDパイプラインからの自動デプロイ対応・設定可能パラメータ（datasource/refresh/prefix）🔵 *Phase 84 REQ-210~211 より*
 
 ### LLMコスト・トークン監視 🔵 【Phase 36 追加】
 
@@ -655,6 +656,7 @@ Fallback LLM
 - [x] HTTPメトリクス収集・Prometheusエクスポーター（Phase 80-81）が完了している（HttpMetricsCollector・PrometheusExporter・REQ-205~206・41テスト）
 - [x] ヘルスチェックliveness/readiness probe（Phase 82）が完了している（HealthCheckService配線・REQ-207・8テスト）
 - [x] Grafanaダッシュボードモデル・Prometheusアラートルール（Phase 83）が完了している（grafana-dashboard-model.ts・alert-rules.ts・REQ-208~209・51テスト追加）
+- [x] 監視APIデプロイメント統合（Phase 84）が完了している（GET /monitoring/dashboard・GET /monitoring/alerts・REQ-210~211・6テスト追加）
 
 ## 関連文書
 
@@ -673,7 +675,7 @@ Fallback LLM
 - 🟡 黄信号: 4件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第182回検証: Phase 83完了・GrafanaダッシュボードJSON model・Prometheus alert rules YAML・382ファイル・243テストファイル・TypeScript/ESLintエラー0件・107パッケージ・npm audit 0件・SYSTEM_CONSTITUTION V2.6適合）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第183回検証: Phase 84完了・監視APIデプロイメント統合・382ファイル・243テストファイル・TypeScript/ESLintエラー0件・107パッケージ・npm audit 0件・SYSTEM_CONSTITUTION V2.6適合）
 
 
 <!-- spine:children:begin -->

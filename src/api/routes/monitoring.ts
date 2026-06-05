@@ -19,6 +19,8 @@ import { getWarmupStatus } from '../startup-warmup';
 import { recoveryTelemetryAggregator, type TelemetrySnapshot } from '../../quality/recovery-telemetry-aggregator';
 import { httpMetricsCollector, type HttpMetricsSnapshot } from '../../monitoring/http-metrics-collector';
 import { exportPrometheusMetrics, PROMETHEUS_CONTENT_TYPE } from '../../monitoring/prometheus-exporter';
+import { exportDashboardJson, type DashboardGenerateOptions } from '../../monitoring/grafana-dashboard-model';
+import { exportAlertRulesYaml, type AlertRulesOptions } from '../../monitoring/alert-rules';
 
 // ---------------------------------------------------------------------------
 // Zod validation schemas
@@ -168,6 +170,52 @@ export function createMonitoringRouter(dashboard?: PerformanceDashboard): Router
         500,
         'PROMETHEUS_ERROR',
         error instanceof Error ? error.message : 'Failed to export Prometheus metrics',
+      );
+    }
+  });
+
+  // GET /dashboard - Grafana dashboard JSON config (REQ-210, Phase 84)
+  router.get('/dashboard', (req: Request, res: Response) => {
+    try {
+      const options: DashboardGenerateOptions = {};
+      if (typeof req.query.datasource === 'string') {
+        options.datasource = req.query.datasource;
+      }
+      if (typeof req.query.refresh === 'string') {
+        options.refresh = req.query.refresh;
+      }
+      if (typeof req.query.prefix === 'string') {
+        options.metricPrefix = req.query.prefix;
+      }
+      const body = exportDashboardJson(options);
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(200).send(body);
+    } catch (error) {
+      return sendError(
+        res,
+        500,
+        'DASHBOARD_ERROR',
+        error instanceof Error ? error.message : 'Failed to export Grafana dashboard',
+      );
+    }
+  });
+
+  // GET /alerts - Prometheus alert rules YAML (REQ-211, Phase 84)
+  router.get('/alerts', (req: Request, res: Response) => {
+    try {
+      const options: AlertRulesOptions = {};
+      if (typeof req.query.prefix === 'string') {
+        options.metricPrefix = req.query.prefix;
+      }
+      const body = exportAlertRulesYaml(options);
+      res.setHeader('Content-Type', 'text/yaml; charset=utf-8');
+      return res.status(200).send(body);
+    } catch (error) {
+      return sendError(
+        res,
+        500,
+        'ALERTS_ERROR',
+        error instanceof Error ? error.message : 'Failed to export alert rules',
       );
     }
   });

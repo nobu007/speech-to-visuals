@@ -274,6 +274,140 @@ describe('Monitoring REST API Endpoints', () => {
       expect(Array.isArray(response.body.data.activeAlerts)).toBe(true);
     });
   });
+  // ---------------------------------------------------------------------------
+  // GET /dashboard - Grafana dashboard JSON (REQ-210, Phase 84)
+  // ---------------------------------------------------------------------------
+
+  describe('GET /dashboard', () => {
+    it('should return valid Grafana dashboard JSON', async () => {
+      const response = await request(app)
+        .get('/api/v1/monitoring/dashboard');
+
+      expect(response.status).toBe(200);
+      expect(response.type).toMatch(/json/);
+      const parsed = JSON.parse(response.text);
+      expect(parsed.dashboard).toBeDefined();
+      expect(parsed.dashboard.title).toBe('Speech-to-Visuals Monitoring');
+      expect(parsed.dashboard.uid).toMatch(/^s2v-monitoring-/);
+      expect(parsed.dashboard.panels).toHaveLength(8);
+      expect(parsed.overwrite).toBe(true);
+    });
+
+    it('should include all expected panel titles', async () => {
+      const response = await request(app)
+        .get('/api/v1/monitoring/dashboard');
+
+      expect(response.status).toBe(200);
+      const parsed = JSON.parse(response.text);
+      const titles = parsed.dashboard.panels.map((p: { title: string }) => p.title);
+      expect(titles).toContain('HTTP Latency Distribution');
+      expect(titles).toContain('Error Rate Trends');
+      expect(titles).toContain('Pipeline Success Rate');
+      expect(titles).toContain('Slow Requests');
+      expect(titles).toContain('Active Requests');
+      expect(titles).toContain('Process Uptime');
+      expect(titles).toContain('Request Volume');
+      expect(titles).toContain('Errors by Route');
+    });
+
+    it('should accept datasource query parameter', async () => {
+      const response = await request(app)
+        .get('/api/v1/monitoring/dashboard?datasource=MyPrometheus');
+
+      expect(response.status).toBe(200);
+      const parsed = JSON.parse(response.text);
+      expect(parsed.dashboard.templating.list[0].current.value).toBe('MyPrometheus');
+    });
+
+    it('should accept refresh query parameter', async () => {
+      const response = await request(app)
+        .get('/api/v1/monitoring/dashboard?refresh=10s');
+
+      expect(response.status).toBe(200);
+      const parsed = JSON.parse(response.text);
+      expect(parsed.dashboard.refresh).toBe('10s');
+    });
+
+    it('should accept prefix query parameter for metric namespacing', async () => {
+      const response = await request(app)
+        .get('/api/v1/monitoring/dashboard?prefix=myns');
+
+      expect(response.status).toBe(200);
+      const parsed = JSON.parse(response.text);
+      // Panels should use the prefix in PromQL expressions
+      const latencyPanel = parsed.dashboard.panels.find(
+        (p: { title: string }) => p.title === 'HTTP Latency Distribution',
+      );
+      expect(latencyPanel.targets[0].expr).toContain('myns_');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // GET /alerts - Prometheus alert rules YAML (REQ-211, Phase 84)
+  // ---------------------------------------------------------------------------
+
+  describe('GET /alerts', () => {
+    it('should return YAML content with correct content type', async () => {
+      const response = await request(app)
+        .get('/api/v1/monitoring/alerts');
+
+      expect(response.status).toBe(200);
+      expect(response.headers['content-type']).toMatch(/text\/yaml/);
+      expect(typeof response.text).toBe('string');
+    });
+
+    it('should include all 4 alert rule names', async () => {
+      const response = await request(app)
+        .get('/api/v1/monitoring/alerts');
+
+      expect(response.status).toBe(200);
+      const body = response.text;
+      expect(body).toContain('alert: SpeechToVisualsHighErrorRate');
+      expect(body).toContain('alert: SpeechToVisualsHighLatencyP95');
+      expect(body).toContain('alert: SpeechToVisualsHealthCheckFailures');
+      expect(body).toContain('alert: SpeechToVisualsLLMBudgetOverage');
+    });
+
+    it('should include severity labels', async () => {
+      const response = await request(app)
+        .get('/api/v1/monitoring/alerts');
+
+      expect(response.status).toBe(200);
+      const body = response.text;
+      expect(body).toContain('severity: critical');
+      expect(body).toContain('severity: warning');
+    });
+
+    it('should include PromQL expressions', async () => {
+      const response = await request(app)
+        .get('/api/v1/monitoring/alerts');
+
+      expect(response.status).toBe(200);
+      const body = response.text;
+      expect(body).toContain('expr:');
+      expect(body).toContain('http_errors_total');
+      expect(body).toContain('http_request_duration_ms');
+    });
+
+    it('should accept prefix query parameter', async () => {
+      const response = await request(app)
+        .get('/api/v1/monitoring/alerts?prefix=testns');
+
+      expect(response.status).toBe(200);
+      const body = response.text;
+      expect(body).toContain('testns_');
+    });
+
+    it('should contain runbook URLs', async () => {
+      const response = await request(app)
+        .get('/api/v1/monitoring/alerts');
+
+      expect(response.status).toBe(200);
+      const body = response.text;
+      expect(body).toContain('runbook_url');
+      expect(body).toContain('docs/runbooks/');
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------
