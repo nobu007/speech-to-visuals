@@ -452,10 +452,10 @@
 
 - REQ-207: システムは GET /api/v1/health/live（liveness probe）と GET /api/v1/health/ready（readiness probe）エンドポイントを提供し、Kubernetesスタイルのヘルスチェックに対応しなければならない。liveness probe はプロセス稼働状態を、readiness probe は全コンポーネント（メモリ・キャッシュ・パイプライン・LLM・エラー回復・パフォーマンス傾向）の健全性確認結果を反映すること 🔵 ✅実装済 *src/api/routes/health.ts・src/monitoring/health-check-service.ts・Phase 82*
 
-#### 監視ダッシュボード・アラート（Phase 83 計画）
+#### 監視ダッシュボード・アラート（Phase 83） ✅完了
 
-- REQ-208: システムは Grafana 互換のダッシュボード設定（JSON model）を提供し、GET /api/v1/monitoring/prometheus エンドポイントのメトリクスを可視化して表示してもよい。HTTPレイテンシ分布・エラーレート推移・パイプライン処理成功率・LLMコスト推移・ヘルスステータスの各パネルを含むこと 🟡 *Phase 80-82 監視基盤から妥当な推測*
-- REQ-209: システムは主要メトリクスの閾値ベースのアラートルールを定義してもよい。対象: エラーレート > 5%（critical）・P95レイテンシ > 20秒（warning）・ヘルスチェック連続失敗 ≥ 3回（critical）・LLMコスト超過（warning） 🟡 *Phase 80-82 監視基盤から妥当な推測*
+- REQ-208: システムは Grafana 互換のダッシュボード設定（JSON model）を提供し、GET /api/v1/monitoring/prometheus エンドポイントのメトリクスを可視化して表示してもよい。HTTPレイテンシ分布・エラーレート推移・パイプライン処理成功率・LLMコスト推移・ヘルスステータスの各パネルを含むこと 🔵 ✅実装済 *src/monitoring/grafana-dashboard-model.ts・Phase 83・8パネル（latency/error-rate/success-rate/slow-requests/active-requests/uptime/request-volume/errors-by-route）・27テスト*
+- REQ-209: システムは主要メトリクスの閾値ベースのアラートルールを定義してもよい。対象: エラーレート > 5%（critical）・P95レイテンシ > 20秒（warning）・ヘルスチェック連続失敗 ≥ 3回（critical）・LLMコスト超過（warning） 🔵 ✅実装済 *src/monitoring/alert-rules.ts・Phase 83・4アラートルール（HighErrorRate/HighLatencyP95/HealthCheckFailures/LLMBudgetOverage）・Prometheus AlertManager YAML形式出力・24テスト*
 
 ### 条件付き要件
 
@@ -632,15 +632,15 @@
 | Phase 80: HTTPリクエストメトリクス収集 | ✅完了 | REQ-205 | 1/1（HttpMetricsCollector・per-route P50/P95/P99・bounded memory・slow request detection・14テスト追加） |
 | Phase 81: Prometheus互換メトリクスエクスポート | ✅完了 | REQ-206 | 1/1（PrometheusExporter・text/plain v0.0.4・6メトリクス出力・ラベルサニタイズ・13テスト追加） |
 | Phase 82: ヘルスチェックliveness/readiness probe | ✅完了 | REQ-207 | 1/1（HealthCheckService配線・/health/live・/health/ready・8テスト追加） |
-| Phase 83: 監視ダッシュボード・アラート | 📋計画中 | REQ-208, REQ-209 | 0/2（Grafanaダッシュボード設定・アラートルール定義） |
+| Phase 83: 監視ダッシュボード・アラート | ✅完了 | REQ-208, REQ-209 | 2/2（GrafanaダッシュボードJSON model・Prometheus alert rules YAML・51テスト） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 224件 (97.4%)
-- 🟡 黄信号: 5件 (2.2%) — NFR-203, REQ-303, EDGE-103, REQ-208, REQ-209
+- 🔵 青信号: 226件 (98.3%)
+- 🟡 黄信号: 3件 (1.3%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 82完了（REQ-205~207・HTTPメトリクス・Prometheus・ヘルスプローブ）・Phase 83計画（REQ-208~209・Grafanaダッシュボード・アラートルール）・192タスク全完了・TypeScript型エラー0件・パイプライン型付きエラー完全化
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 83完了（REQ-208~209・GrafanaダッシュボードJSON model・Prometheus alert rules YAML）・192タスク全完了・TypeScript型エラー0件・パイプライン型付きエラー完全化
 
 ## Acceptance criteria
 

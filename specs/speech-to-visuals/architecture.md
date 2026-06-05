@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-05（第181回検証: Phase 82完了・HTTPメトリクス収集・Prometheusエクスポーター・liveness/readiness probe・TypeScript/ESLintエラー0件・107パッケージ・npm audit 0件）
+**最終更新**: 2026-06-05（第182回検証: Phase 83完了・GrafanaダッシュボードJSON model・Prometheus alert rules YAML・51テスト追加・TypeScript/ESLintエラー0件・107パッケージ・npm audit 0件）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -202,6 +202,8 @@ Phase 57 で追加実装された多層エラー回復システム（7モジュ�
 - **リアルタイムパフォーマンスモニタ**: メトリクス収集・アラート閾値監視・トレンド分析（48テストで検証済み・cacheHitRate閾値反転バグ修正）🔵 *Phase 66 REQ-174 より*
 - **HTTPメトリクス収集**: per-route リクエスト数・レイテンシパーセンタイル（P50/P95/P99）・エラーレート・スローリクエスト検出・アクティブリクエスト追跡。bounded circular buffer（max 1000 samples/route）によるメモリ安全設計 🔵 *Phase 80 REQ-205 より*
 - **Prometheusメトリクスエクスポーター**: HTTPメトリクスをPrometheus互換フォーマット（text/plain version=0.0.4）でエクスポート。6メトリクス（http_requests_total, http_request_duration_ms, http_errors_total, http_active_requests, http_slow_requests_total, process_uptime_ms）・ラベルサニタイズ・カスタムプレフィックス 🔵 *Phase 81 REQ-206 より*
+- **Grafanaダッシュボードモデル**: Grafana互換ダッシュボードJSON model生成。8パネル（HTTP Latency Distribution・Error Rate Trends・Pipeline Success Rate・Slow Requests・Active Requests・Process Uptime・Request Volume・Errors by Route）・PromQL式によるメトリクス可視化・Grafana import形式出力 🔵 *Phase 83 REQ-208 より*
+- **Prometheusアラートルール**: 閾値ベースアラート4ルール（HighErrorRate: error rate > 5% critical・HighLatencyP95: P95 > 20s warning・HealthCheckFailures: ≥ 3 failures critical・LLMBudgetOverage: budget warning）・AlertManager YAML形式出力 🔵 *Phase 83 REQ-209 より*
 - **監視エクセレンス**: 品質メトリクスの継続的な追跡とレポート
 
 ### LLMコスト・トークン監視 🔵 【Phase 36 追加】
@@ -652,6 +654,7 @@ Fallback LLM
 - [x] エラーリカバリ可観測性（Phase 77）が完了している（RecoveryTelemetryAggregator・テレメトリAPI endpoint・REQ-198~199）
 - [x] HTTPメトリクス収集・Prometheusエクスポーター（Phase 80-81）が完了している（HttpMetricsCollector・PrometheusExporter・REQ-205~206・41テスト）
 - [x] ヘルスチェックliveness/readiness probe（Phase 82）が完了している（HealthCheckService配線・REQ-207・8テスト）
+- [x] Grafanaダッシュボードモデル・Prometheusアラートルール（Phase 83）が完了している（grafana-dashboard-model.ts・alert-rules.ts・REQ-208~209・51テスト追加）
 
 ## 関連文書
 
@@ -670,7 +673,7 @@ Fallback LLM
 - 🟡 黄信号: 4件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第181回検証: Phase 82完了・HTTPメトリクス収集・Prometheusエクスポーター・liveness/readiness probe・380ファイル・241テストファイル・TypeScript/ESLintエラー0件・107パッケージ・npm audit 0件・SYSTEM_CONSTITUTION V2.6適合）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第182回検証: Phase 83完了・GrafanaダッシュボードJSON model・Prometheus alert rules YAML・382ファイル・243テストファイル・TypeScript/ESLintエラー0件・107パッケージ・npm audit 0件・SYSTEM_CONSTITUTION V2.6適合）
 
 
 <!-- spine:children:begin -->
