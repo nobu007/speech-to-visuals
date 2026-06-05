@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-04（第180回検証: Phase 79完了・REQ-200/204 プロダクション観測性・238テストファイル・377ソースファイル・107パッケージ）
+**最終更新**: 2026-06-05（第182回検証: Phase 83完了・REQ-205~209 HTTPメトリクス・Prometheus・ヘルスプローブ・Grafana・アラート・241テストファイル・380ソースファイル・107パッケージ）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -3259,5 +3259,266 @@
   - **入力**: X-Request-ID ヘッダーなしのリクエスト
   - **期待結果**: ログメッセージに "rid=-" が含まれる
   - **信頼性**: 🔵 *request-logger.ts fallback '-' より*
+
+---
+
+## REQ-205: HTTPリクエストメトリクス収集 🔵 ✅実装済
+
+**信頼性**: 🔵 *src/monitoring/http-metrics-collector.ts・コミット241e126*
+
+> Given: Express API サーバーが HttpMetricsCollector ミドルウェアで設定されている | When: HTTP リクエストが処理される | Then: メソッド+パスごとのリクエスト数・P50/P95/P99レイテンシ・エラーレート・スローリクエストが bounded circular buffer で追跡される
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-205-01**: リクエスト完了時にメトリクスが記録される 🔵
+  - **入力**: GET /api/v1/test → 200 (100ms)
+  - **期待結果**: メソッド+パスのエントリにリクエスト数1・レイテンシ100msが記録される
+  - **信頼性**: 🔵 *http-metrics-collector.ts recordRequest() より*
+
+- [x] **TC-205-02**: 複数リクエストでP50/P95/P99が正しく計算される 🔵
+  - **入力**: 同一ルートに10リクエスト（異なるレイテンシ）
+  - **期待結果**: P50/P95/P99パーセンタイルが正確に計算される
+  - **信頼性**: 🔵 *http-metrics-collector.ts percentile() 計算ロジックより*
+
+- [x] **TC-205-03**: アクティブリクエスト数が追跡される 🔵
+  - **入力**: 並列リクエスト3件を同時発行
+  - **期待結果**: アクティブリクエスト数が正しく増減する
+  - **信頼性**: 🔵 *http-metrics-collector.ts activeRequests より*
+
+#### 境界値
+
+- [x] **TC-205-B01**: スローリクエスト（5000ms閾値超過）が検出される 🔵
+  - **入力**: 6000ms要するリクエスト
+  - **期待結果**: slowRequests カウンターがインクリメントされる
+  - **信頼性**: 🔵 *http-metrics-collector.ts SLOW_THRESHOLD_MS=5000 より*
+
+- [x] **TC-205-B02**: bounded circular buffer が最大1000サンプルに制限される 🔵
+  - **入力**: 同一ルートに1100リクエスト
+  - **期待結果**: 最新1000サンプルのみ保持される
+  - **信頼性**: 🔵 *http-metrics-collector.ts MAX_SAMPLES_PER_ROUTE=1000 より*
+
+---
+
+## REQ-206: Prometheus互換メトリクスエクスポート 🔵 ✅実装済
+
+**信頼性**: 🔵 *src/monitoring/prometheus-exporter.ts・コミットac14a4b*
+
+> Given: HttpMetricsCollector にメトリクスが蓄積されている | When: GET /api/v1/monitoring/prometheus が呼ばれる | Then: Prometheus text/plain v0.0.4 フォーマットで6メトリクス（http_requests_total, http_request_duration_ms, http_errors_total, http_active_requests, http_slow_requests_total, process_uptime_ms）が出力される
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-206-01**: Prometheus text/plain v0.0.4 フォーマットで出力される 🔵
+  - **入力**: メトリクス収集済み状態でエクスポート実行
+  - **期待結果**: Content-Type が PROMETHEUS_CONTENT_TYPE・各メトリクスが TYPE/HELP 行付きで出力される
+  - **信頼性**: 🔵 *prometheus-exporter.ts exportPrometheusMetrics() より*
+
+- [x] **TC-206-02**: ラベルサニタイズでPrometheus注入が防止される 🔵
+  - **入力**: ルートパスに特殊文字（日本語・空白・記号）を含むメトリクス
+  - **期待結果**: ラベル値がアンダースコア・小文字に正規化される
+  - **信頼性**: 🔵 *prometheus-exporter.ts sanitizeLabel() より*
+
+- [x] **TC-206-03**: 6メトリクス種別が全て出力される 🔵
+  - **入力**: メトリクス収集済み状態
+  - **期待結果**: http_requests_total, http_request_duration_ms, http_errors_total, http_active_requests, http_slow_requests_total, process_uptime_ms が出力される
+  - **信頼性**: 🔵 *prometheus-exporter.ts METRIC_DEFINITIONS より*
+
+---
+
+## REQ-207: ヘルスチェックliveness/readiness probe 🔵 ✅実装済
+
+**信頼性**: 🔵 *src/monitoring/health-check-service.ts・src/api/routes/health.ts・コミット67f5b05*
+
+> Given: Express API サーバーが HealthCheckService 配線済み | When: GET /api/v1/health/live または GET /api/v1/health/ready が呼ばれる | Then: liveness probe はプロセス稼働状態を、readiness probe は全コンポーネント健全性を報告する
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-207-01**: liveness probe が alive=true を返す 🔵
+  - **入力**: GET /api/v1/health/live
+  - **期待結果**: { status: "alive", alive: true, timestamp: ... }
+  - **信頼性**: 🔵 *health.ts /health/live ルート・health-check-service.ts checkLiveness() より*
+
+- [x] **TC-207-02**: readiness probe が全コンポーネント健全性を報告する 🔵
+  - **入力**: GET /api/v1/health/ready
+  - **期待結果**: { status: "ready"|"degraded"|"unhealthy", ready: boolean, checks: { memory, cache, pipeline, llm, errorRecovery, performanceTrend } }
+  - **信頼性**: 🔵 *health.ts /health/ready ルート・health-check-service.ts checkReadiness() より*
+
+#### 異常系
+
+- [x] **TC-207-E01**: メモリ使用量90%超過時 readiness が degraded を返す 🔵
+  - **入力**: メモリ使用量92%をシミュレート
+  - **期待結果**: checks.memory.status = "degraded"、ready = false
+  - **信頼性**: 🔵 *health-check-service.ts checkMemoryHealth() 90%閾値より*
+
+---
+
+## REQ-208: Grafanaダッシュボード設定 🔵 ✅実装済
+
+**信頼性**: 🔵 *src/monitoring/grafana-dashboard-model.ts・コミットa1a3e5f*
+
+> Given: Grafana ダッシュボード JSON model が定義されている | When: generateGrafanaDashboard() が呼ばれる | Then: 8パネル（latency/error-rate/success-rate/slow-requests/active-requests/uptime/request-volume/errors-by-route）の Grafana import 互換 JSON が生成される
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-208-01**: Grafana import 互換 JSON が生成される 🔵
+  - **入力**: generateGrafanaDashboard()
+  - **期待結果**: JSON に title, uid, panels (8個), templating が含まれる
+  - **信頼性**: 🔵 *grafana-dashboard-model.ts generateGrafanaDashboard() より*
+
+- [x] **TC-208-02**: 8パネルが全て定義されている 🔵
+  - **入力**: generateGrafanaDashboard()
+  - **期待結果**: panels 配列に8エントリ（各パネルに id, title, type, targets with PromQL が含まれる）
+  - **信頼性**: 🔵 *grafana-dashboard-model.ts PANEL_DEFINITIONS より*
+
+- [x] **TC-208-03**: exportDashboardJson() がシリアライズ済JSON文字列を返す 🔵
+  - **入力**: exportDashboardJson()
+  - **期待結果**: JSON.parse 可能な文字列
+  - **信頼性**: 🔵 *grafana-dashboard-model.ts exportDashboardJson() より*
+
+---
+
+## REQ-209: Prometheusアラートルール 🔵 ✅実装済
+
+**信頼性**: 🔵 *src/monitoring/alert-rules.ts・コミットa1a3e5f*
+
+> Given: アラートルールが定義されている | When: generateAlertRules() が呼ばれる | Then: 4ルール（HighErrorRate・HighLatencyP95・HealthCheckFailures・LLMBudgetOverage）の AlertManager YAML が生成される
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-209-01**: 4アラートルールが全て生成される 🔵
+  - **入力**: generateAlertRules()
+  - **期待結果**: rules 配列に4エントリ（各ルールに alert, expr, for, labels.severity, annotations が含まれる）
+  - **信頼性**: 🔵 *alert-rules.ts ALERT_RULE_DEFINITIONS より*
+
+- [x] **TC-209-02**: exportAlertRulesYaml() がYAML形式文字列を返す 🔵
+  - **入力**: exportAlertRulesYaml()
+  - **期待結果**: "groups:" で始まるYAML形式文字列
+  - **信頼性**: 🔵 *alert-rules.ts exportAlertRulesYaml() より*
+
+- [x] **TC-209-03**: HighErrorRate ルールの閾値が5%である 🔵
+  - **入力**: generateAlertRules() → HighErrorRate ルール
+  - **期待結果**: expr に "rate(http_errors_total[5m]) / rate(http_requests_total[5m]) > 0.05" が含まれる
+  - **信頼性**: 🔵 *alert-rules.ts HighErrorRate 定義より*
+
+---
+
+## REQ-210: ダッシュボード設定配信API 🔵
+
+**信頼性**: 🔵 *src/monitoring/grafana-dashboard-model.ts exportDashboardJson()・REQ-208 の拡張*
+
+> Given: Grafana ダッシュボード JSON model が生成可能 | When: GET /api/v1/monitoring/dashboard が呼ばれる | Then: Grafana import 互換 JSON が Content-Type: application/json で配信される
+
+### テストケース
+
+#### 正常系
+
+- [ ] **TC-210-01**: GET /api/v1/monitoring/dashboard が JSON を返す 🔵
+  - **入力**: GET /api/v1/monitoring/dashboard
+  - **期待結果**: 200 OK, Content-Type: application/json, Grafana import 形式の JSON ボディ
+  - **信頼性**: 🔵 *grafana-dashboard-model.ts exportDashboardJson() 出力より*
+
+---
+
+## REQ-211: アラートルール配信API 🔵
+
+**信頼性**: 🔵 *src/monitoring/alert-rules.ts exportAlertRulesYaml()・REQ-209 の拡張*
+
+> Given: Prometheus アラートルールが生成可能 | When: GET /api/v1/monitoring/alerts が呼ばれる | Then: AlertManager YAML が Content-Type: text/yaml で配信される
+
+### テストケース
+
+#### 正常系
+
+- [ ] **TC-211-01**: GET /api/v1/monitoring/alerts が YAML を返す 🔵
+  - **入力**: GET /api/v1/monitoring/alerts
+  - **期待結果**: 200 OK, Content-Type: text/yaml, 4ルールを含む AlertManager YAML
+  - **信頼性**: 🔵 *alert-rules.ts exportAlertRulesYaml() 出力より*
+
+---
+
+## REQ-212: パイプラインステージ所要時間Prometheus統合 🔵
+
+**信頼性**: 🔵 *src/pipeline/stage-timing-metrics.ts 既存メトリクス・REQ-206 Prometheusエクスポーター*
+
+> Given: パイプラインが実行されステージタイミングが記録されている | When: GET /api/v1/monitoring/prometheus が呼ばれる | Then: pipeline_stage_duration_ms ヒストグラムメトリクスが Prometheus 形式で出力される
+
+### テストケース
+
+#### 正常系
+
+- [ ] **TC-212-01**: パイプライン実行後ステージ所要時間がPrometheus出力に含まれる 🔵
+  - **入力**: パイプライン実行 → GET /api/v1/monitoring/prometheus
+  - **期待結果**: pipeline_stage_duration_ms{stage="transcription|analysis|layout|scene_prep|rendering"} が含まれる
+  - **信頼性**: 🔵 *stage-timing-metrics.ts ステージ定義・prometheus-exporter.ts 拡張より*
+
+---
+
+## REQ-213: バッチジョブライフサイクルPrometheus統合 🔵
+
+**信頼性**: 🔵 *src/api/batch-processing-api.ts ジョブステータス管理・REQ-206 Prometheusエクスポーター*
+
+> Given: バッチジョブが作成・実行・完了されている | When: GET /api/v1/monitoring/prometheus が呼ばれる | Then: batch_jobs_total{status="created|running|completed|failed|cancelled"} と batch_jobs_active が Prometheus 形式で出力される
+
+### テストケース
+
+#### 正常系
+
+- [ ] **TC-213-01**: バッチジョブ実行後メトリクスがPrometheus出力に含まれる 🔵
+  - **入力**: バッチジョブ作成→完了 → GET /api/v1/monitoring/prometheus
+  - **期待結果**: batch_jobs_total{status="completed"} と batch_jobs_active=0 が含まれる
+  - **信頼性**: 🔵 *batch-processing-api.ts ジョブステータス遷移より*
+
+---
+
+## REQ-214: PrometheusエクスポートE2E統合テスト 🔵
+
+**信頼性**: 🔵 *src/monitoring/prometheus-exporter.ts・src/api/routes/monitoring.ts*
+
+> Given: Express サーバーが起動し全ミドルウェアが有効 | When: HTTP リクエストを処理後に GET /api/v1/monitoring/prometheus を呼ぶ | Then: text/plain v0.0.4 フォーマットで全メトリクスが正しく出力される
+
+### テストケース
+
+#### 正常系
+
+- [ ] **TC-214-01**: 実際のHTTPリクエストを通じたPrometheus出力の完全性検証 🔵
+  - **入力**: supertest でサーバーにリクエスト → /prometheus エクスポート
+  - **期待結果**: 全6メトリクス種別が正しいフォーマットで出力される
+  - **信頼性**: 🔵 *prometheus-exporter.ts フォーマット仕様より*
+
+---
+
+## REQ-215: アラートルール閾値境界テスト 🔵
+
+**信頼性**: 🔵 *src/monitoring/alert-rules.ts generateAlertRules()*
+
+> Given: アラートルールが閾値ベースで定義されている | When: 各閾値の境界値をテストする | Then: 正常時・閾値境界・閾値超過の3パターンで正しいアラート発火条件が確認される
+
+### テストケース
+
+#### 境界値
+
+- [ ] **TC-215-01**: HighErrorRate 5%閾値の境界テスト 🔵
+  - **入力**: エラーレート 4.9% / 5.0% / 5.1%
+  - **期待結果**: 5.0%以上でアラート発火条件が真になる
+  - **信頼性**: 🔵 *alert-rules.ts HighErrorRate > 0.05 定義より*
+
+- [ ] **TC-215-02**: HighLatencyP95 20秒閾値の境界テスト 🔵
+  - **入力**: P95レイテンシ 19.9秒 / 20.0秒 / 20.1秒
+  - **期待結果**: 20秒以上でアラート発火条件が真になる
+  - **信頼性**: 🔵 *alert-rules.ts HighLatencyP95 > 20000 定義より*
+
+- [ ] **TC-215-03**: HealthCheckFailures 3回連続閾値の境界テスト 🔵
+  - **入力**: 連続失敗 2回 / 3回 / 4回
+  - **期待結果**: 3回以上で critical アラート発火
+  - **信頼性**: 🔵 *alert-rules.ts HealthCheckFailures >= 3 定義より*
 
 ---

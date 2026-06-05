@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-05（第181回検証・Phase 82完了・380ソースファイル・241テストファイル・107パッケージ・TypeScriptエラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・183,500行・224要件（REQ-001~209+NFR+EDGE）・11図解タイプ専用戦略完了・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・パイプライン型付きエラー完全化・StreamingTranscriber入力堅牢性完了・192タスク全完了・テストスイート安定化完了（26+テスト障害解消）・バッチ処理プログレス正確性修正完了・パイプラインオーケストレーター入力検証完了・相関IDミドルウェア完了・構造化HTTPロギング完了・HTTPリクエストメトリクス収集完了・Prometheus互換エクスポート完了・liveness/readiness probe完了）
+**最終更新**: 2026-06-05（第182回検証・Phase 83完了・380ソースファイル・241テストファイル・107パッケージ・TypeScriptエラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・183,500行・236要件（REQ-001~215+NFR+EDGE）・11図解タイプ専用戦略完了・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・パイプライン型付きエラー完全化・StreamingTranscriber入力堅牢性完了・192タスク全完了・テストスイート安定化完了（26+テスト障害解消）・バッチ処理プログレス正確性修正完了・パイプラインオーケストレーター入力検証完了・相関IDミドルウェア完了・構造化HTTPロギング完了・HTTPリクエストメトリクス収集完了・Prometheus互換エクスポート完了・liveness/readiness probe完了・GrafanaダッシュボードJSON model完了・Prometheus alert rules完了・Phase 84-86前方要件（REQ-210~215）追加）
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム
 
 ## 技術スタック

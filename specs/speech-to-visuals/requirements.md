@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 82 完了・380ソースファイル・241テストファイル・107パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・192タスク全完了・テストスイート安定化完了（26+テスト障害解消・ESM互換性修正・エラー型伝播バグ修正）・バッチ処理プログレス正確性修正完了（progress.total original count反映）・パイプラインオーケストレーター入力検証完了（AudioValidationError・防御 in depth）・エラーリカバリ可観測性完了（RecoveryTelemetryAggregator・テレメトリAPI endpoint）・相関IDミドルウェア完了（X-Request-ID伝播）・構造化HTTPリクエスト/レスポンスロギング完了（レベル別ログ出力・ヘルスエンドポイント除外）・HTTPリクエストメトリクス収集完了（per-route percentiles・bounded memory）・Prometheus互換メトリクスエクスポート完了（text/plain v0.0.4）・ヘルスチェックliveness/readiness probe完了（Kubernetesスタイル）
+**実装状況**: Phase 83 完了・380ソースファイル・241テストファイル・107パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・192タスク全完了・テストスイート安定化完了（26+テスト障害解消・ESM互換性修正・エラー型伝播バグ修正）・バッチ処理プログレス正確性修正完了（progress.total original count反映）・パイプラインオーケストレーター入力検証完了（AudioValidationError・防御 in depth）・エラーリカバリ可観測性完了（RecoveryTelemetryAggregator・テレメトリAPI endpoint）・相関IDミドルウェア完了（X-Request-ID伝播）・構造化HTTPリクエスト/レスポンスロギング完了（レベル別ログ出力・ヘルスエンドポイント除外）・HTTPリクエストメトリクス収集完了（per-route percentiles・bounded memory）・Prometheus互換メトリクスエクスポート完了（text/plain v0.0.4）・ヘルスチェックliveness/readiness probe完了（Kubernetesスタイル）・GrafanaダッシュボードJSON model完了（8パネル）・Prometheus alert rules完了（4ルール）
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -457,6 +457,21 @@
 - REQ-208: システムは Grafana 互換のダッシュボード設定（JSON model）を提供し、GET /api/v1/monitoring/prometheus エンドポイントのメトリクスを可視化して表示してもよい。HTTPレイテンシ分布・エラーレート推移・パイプライン処理成功率・LLMコスト推移・ヘルスステータスの各パネルを含むこと 🔵 ✅実装済 *src/monitoring/grafana-dashboard-model.ts・Phase 83・8パネル（latency/error-rate/success-rate/slow-requests/active-requests/uptime/request-volume/errors-by-route）・27テスト*
 - REQ-209: システムは主要メトリクスの閾値ベースのアラートルールを定義してもよい。対象: エラーレート > 5%（critical）・P95レイテンシ > 20秒（warning）・ヘルスチェック連続失敗 ≥ 3回（critical）・LLMコスト超過（warning） 🔵 ✅実装済 *src/monitoring/alert-rules.ts・Phase 83・4アラートルール（HighErrorRate/HighLatencyP95/HealthCheckFailures/LLMBudgetOverage）・Prometheus AlertManager YAML形式出力・24テスト*
 
+#### 監視APIデプロイメント統合（Phase 84） 🟡計画中
+
+- REQ-210: システムは Grafana ダッシュボード設定を GET /api/v1/monitoring/dashboard エンドポイントで JSON 形式で配信し、CI/CD パイプラインからの自動デプロイを可能にしなければならない 🔵 *src/monitoring/grafana-dashboard-model.ts exportDashboardJson()・REQ-208 で定義済モデルより*
+- REQ-211: システムは Prometheus アラートルールを GET /api/v1/monitoring/alerts エンドポイントで YAML 形式で配信し、AlertManager への自動適用を可能にしなければならない 🔵 *src/monitoring/alert-rules.ts exportAlertRulesYaml()・REQ-209 で定義済ルールより*
+
+#### パイプラインオブザーバビリティ拡張（Phase 85） 🟡計画中
+
+- REQ-212: システムはパイプライン各ステージ（文字起こし・分析・レイアウト・動画準備・レンダリング）の所要時間をヒストグラムメトリクスとして Prometheus エクスポーターに統合し、GET /api/v1/monitoring/prometheus で pipeline_stage_duration_ms として出力しなければならない 🔵 *src/pipeline/stage-timing-metrics.ts 既存メトリクス・src/monitoring/prometheus-exporter.ts より*
+- REQ-213: システムはバッチジョブのライフサイクル（created/running/completed/failed/cancelled）別の累積カウントとアクティブジョブ数を Prometheus メトリクスとして出力し、バッチ処理の健全性を外部監視可能にしなければならない 🔵 *src/api/batch-processing-api.ts ジョブステータス管理・REQ-043 バッチAPIより*
+
+#### 監視スタック統合検証（Phase 86） 🟡計画中
+
+- REQ-214: システムは Prometheus エクスポートエンドポイント（GET /api/v1/monitoring/prometheus）が実際の HTTP リクエストを通じて正しい text/plain v0.0.4 フォーマットで全メトリクスを出力することを検証する統合テストを提供しなければならない 🔵 *src/monitoring/prometheus-exporter.ts・src/api/routes/monitoring.ts より*
+- REQ-215: システムはアラートルールの閾値評価が正しいアラート発火条件を判定することを検証するテストを提供し、HighErrorRate（5%閾値）・HighLatencyP95（20秒閾値）・HealthCheckFailures（3回連続閾値）・LLMBudgetOverage の各ルールについて正常時・閾値境界・閾値超過の3パターンをカバーすること 🔵 *src/monitoring/alert-rules.ts generateAlertRules()・各ルール閾値定義より*
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より*
@@ -633,14 +648,17 @@
 | Phase 81: Prometheus互換メトリクスエクスポート | ✅完了 | REQ-206 | 1/1（PrometheusExporter・text/plain v0.0.4・6メトリクス出力・ラベルサニタイズ・13テスト追加） |
 | Phase 82: ヘルスチェックliveness/readiness probe | ✅完了 | REQ-207 | 1/1（HealthCheckService配線・/health/live・/health/ready・8テスト追加） |
 | Phase 83: 監視ダッシュボード・アラート | ✅完了 | REQ-208, REQ-209 | 2/2（GrafanaダッシュボードJSON model・Prometheus alert rules YAML・51テスト） |
+| Phase 84: 監視APIデプロイメント統合 | 🟡計画中 | REQ-210, REQ-211 | 0/2（ダッシュボード配信API・アラート配信API） |
+| Phase 85: パイプラインオブザーバビリティ拡張 | 🟡計画中 | REQ-212, REQ-213 | 0/2（パイプラインステージヒストグラム・バッチジョブライフサイクルメトリクス） |
+| Phase 86: 監視スタック統合検証 | 🟡計画中 | REQ-214, REQ-215 | 0/2（Prometheus E2E統合テスト・アラート閾値境界テスト） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 226件 (98.3%)
-- 🟡 黄信号: 3件 (1.3%) — NFR-203, REQ-303, EDGE-103
+- 🔵 青信号: 232件 (98.3%)
+- 🟡 黄信号: 4件 (1.7%) — NFR-203, REQ-303, EDGE-103, REQ-210~215（Phase 84-86 計画中要件）
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 83完了（REQ-208~209・GrafanaダッシュボードJSON model・Prometheus alert rules YAML）・192タスク全完了・TypeScript型エラー0件・パイプライン型付きエラー完全化
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 83完了（REQ-208~209・GrafanaダッシュボードJSON model・Prometheus alert rules YAML）・Phase 84-86前方要件追加（REQ-210~215・監視API統合・オブザーバビリティ拡張）・192タスク全完了・TypeScript型エラー0件・パイプライン型付きエラー完全化
 
 ## Acceptance criteria
 
@@ -651,6 +669,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 82 を網羅し、Phase 82 完了（REQ-205~207・HTTPメトリクス・Prometheus・ヘルスプローブ）を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 86 を網羅し、Phase 83 完了（REQ-208~209・Grafanaダッシュボード・アラートルール）と Phase 84-86 前方要件（REQ-210~215）を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテキュリティに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第180回: 🔵220件/🟡3件/🔴0件 — Phase 79完了・REQ-001~204・238テストファイル・377ソースファイル・107パッケージ）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第182回: 🔵232件/🟡4件/🔴0件 — Phase 83完了・REQ-001~215・241テストファイル・380ソースファイル・107パッケージ）
