@@ -3421,7 +3421,7 @@
 
 #### 正常系
 
-- [ ] **TC-210-01**: GET /api/v1/monitoring/dashboard が JSON を返す 🔵
+- [x] **TC-210-01**: GET /api/v1/monitoring/dashboard が JSON を返す 🔵
   - **入力**: GET /api/v1/monitoring/dashboard
   - **期待結果**: 200 OK, Content-Type: application/json, Grafana import 形式の JSON ボディ
   - **信頼性**: 🔵 *grafana-dashboard-model.ts exportDashboardJson() 出力より*
@@ -3438,7 +3438,7 @@
 
 #### 正常系
 
-- [ ] **TC-211-01**: GET /api/v1/monitoring/alerts が YAML を返す 🔵
+- [x] **TC-211-01**: GET /api/v1/monitoring/alerts が YAML を返す 🔵
   - **入力**: GET /api/v1/monitoring/alerts
   - **期待結果**: 200 OK, Content-Type: text/yaml, 4ルールを含む AlertManager YAML
   - **信頼性**: 🔵 *alert-rules.ts exportAlertRulesYaml() 出力より*
@@ -3455,7 +3455,7 @@
 
 #### 正常系
 
-- [ ] **TC-212-01**: パイプライン実行後ステージ所要時間がPrometheus出力に含まれる 🔵
+- [x] **TC-212-01**: パイプライン実行後ステージ所要時間がPrometheus出力に含まれる 🔵
   - **入力**: パイプライン実行 → GET /api/v1/monitoring/prometheus
   - **期待結果**: pipeline_stage_duration_ms{stage="transcription|analysis|layout|scene_prep|rendering"} が含まれる
   - **信頼性**: 🔵 *stage-timing-metrics.ts ステージ定義・prometheus-exporter.ts 拡張より*
@@ -3472,7 +3472,7 @@
 
 #### 正常系
 
-- [ ] **TC-213-01**: バッチジョブ実行後メトリクスがPrometheus出力に含まれる 🔵
+- [x] **TC-213-01**: バッチジョブ実行後メトリクスがPrometheus出力に含まれる 🔵
   - **入力**: バッチジョブ作成→完了 → GET /api/v1/monitoring/prometheus
   - **期待結果**: batch_jobs_total{status="completed"} と batch_jobs_active=0 が含まれる
   - **信頼性**: 🔵 *batch-processing-api.ts ジョブステータス遷移より*
@@ -3489,7 +3489,7 @@
 
 #### 正常系
 
-- [ ] **TC-214-01**: 実際のHTTPリクエストを通じたPrometheus出力の完全性検証 🔵
+- [x] **TC-214-01**: 実際のHTTPリクエストを通じたPrometheus出力の完全性検証 🔵
   - **入力**: supertest でサーバーにリクエスト → /prometheus エクスポート
   - **期待結果**: 全6メトリクス種別が正しいフォーマットで出力される
   - **信頼性**: 🔵 *prometheus-exporter.ts フォーマット仕様より*
@@ -3506,17 +3506,17 @@
 
 #### 境界値
 
-- [ ] **TC-215-01**: HighErrorRate 5%閾値の境界テスト 🔵
+- [x] **TC-215-01**: HighErrorRate 5%閾値の境界テスト 🔵
   - **入力**: エラーレート 4.9% / 5.0% / 5.1%
   - **期待結果**: 5.0%以上でアラート発火条件が真になる
   - **信頼性**: 🔵 *alert-rules.ts HighErrorRate > 0.05 定義より*
 
-- [ ] **TC-215-02**: HighLatencyP95 20秒閾値の境界テスト 🔵
+- [x] **TC-215-02**: HighLatencyP95 20秒閾値の境界テスト 🔵
   - **入力**: P95レイテンシ 19.9秒 / 20.0秒 / 20.1秒
   - **期待結果**: 20秒以上でアラート発火条件が真になる
   - **信頼性**: 🔵 *alert-rules.ts HighLatencyP95 > 20000 定義より*
 
-- [ ] **TC-215-03**: HealthCheckFailures 3回連続閾値の境界テスト 🔵
+- [x] **TC-215-03**: HealthCheckFailures 3回連続閾値の境界テスト 🔵
   - **入力**: 連続失敗 2回 / 3回 / 4回
   - **期待結果**: 3回以上で critical アラート発火
   - **信頼性**: 🔵 *alert-rules.ts HealthCheckFailures >= 3 定義より*

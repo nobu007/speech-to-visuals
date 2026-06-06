@@ -104,13 +104,13 @@ function buildHighLatencyP95Rule(
 
 function buildHealthCheckFailureRule(
   prefix: string,
-  _threshold: number,
+  threshold: number,
 ): AlertRule {
   // Health check failures tracked via http_errors_total on /health endpoints
   const p = prefix;
   return {
     alert: 'SpeechToVisualsHealthCheckFailures',
-    expr: `sum(increase(${p}http_errors_total{path=~"/health.*"}[10m])) >= 3`,
+    expr: `sum(increase(${p}http_errors_total{path=~"/health.*"}[10m])) >= ${threshold}`,
     for: '1m',
     severity: 'critical',
     summary: 'Health check endpoint returning errors',
