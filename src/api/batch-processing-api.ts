@@ -22,6 +22,7 @@ import { createHash } from 'crypto';
 import { BatchValidationError, JobNotFoundError } from './routes/batch';
 import { BATCH_LIMITS } from '../config/limits';
 import { logger } from '../utils/logger';
+import { pipelineMetricsCollector } from '@/monitoring/pipeline-metrics-collector';
 
 export interface BatchJobRequest {
   files: File[];
@@ -113,6 +114,7 @@ class JobStore {
       },
       cancelToken: { cancelled: false },
     });
+    pipelineMetricsCollector.recordBatchJobTransition('created');
     return jobId;
   }
 
@@ -239,6 +241,7 @@ export class BatchProcessingAPI {
         status: 'failed',
         completedAt: new Date().toISOString(),
       });
+      pipelineMetricsCollector.recordBatchJobTransition('failed');
     });
 
     const result: { jobId: string; skippedFiles?: string[] } = { jobId };
@@ -283,6 +286,9 @@ export class BatchProcessingAPI {
    */
   cancelJob(jobId: string): { success: boolean; message: string } {
     const success = jobStore.cancelJob(jobId);
+    if (success) {
+      pipelineMetricsCollector.recordBatchJobTransition('cancelled');
+    }
     return {
       success,
       message: success
@@ -320,7 +326,7 @@ export class BatchProcessingAPI {
       status: 'processing',
       startedAt: new Date().toISOString(),
     });
-
+    pipelineMetricsCollector.recordBatchJobTransition('running');
 
     // Process files with parallel concurrency control
     // Files are processed concurrently up to MAX_CONCURRENT_JOBS workers,
@@ -397,8 +403,9 @@ export class BatchProcessingAPI {
     jobStore.setJobResult(jobId, jobResult);
 
     // Update final status
+    const finalStatus = cancelToken.cancelled ? 'cancelled' : 'completed';
     jobStore.updateJobStatus(jobId, {
-      status: cancelToken.cancelled ? 'cancelled' : 'completed',
+      status: finalStatus,
       completedAt: new Date().toISOString(),
       progress: {
         total: originalTotal,
@@ -407,7 +414,7 @@ export class BatchProcessingAPI {
         percentage: 100,
       },
     });
-
+    pipelineMetricsCollector.recordBatchJobTransition(finalStatus);
   }
 
   /**
