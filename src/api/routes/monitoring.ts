@@ -34,6 +34,31 @@ const TrendsQuerySchema = z.object({
     .pipe(z.number().int().min(1000).max(86400000)),
 });
 
+const DashboardQuerySchema = z.object({
+  datasource: z
+    .string()
+    .max(100)
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Invalid datasource name: use only alphanumeric, dash, underscore')
+    .optional(),
+  refresh: z
+    .string()
+    .regex(/^\d+[smh]$/, 'Invalid refresh interval (e.g. 30s, 5m, 1h)')
+    .optional(),
+  prefix: z
+    .string()
+    .max(50)
+    .regex(/^[a-zA-Z0-9_]*$/, 'Invalid metric prefix: use only alphanumeric and underscore')
+    .optional(),
+});
+
+const AlertsQuerySchema = z.object({
+  prefix: z
+    .string()
+    .max(50)
+    .regex(/^[a-zA-Z0-9_]*$/, 'Invalid metric prefix: use only alphanumeric and underscore')
+    .optional(),
+});
+
 // ---------------------------------------------------------------------------
 // Error helper
 // ---------------------------------------------------------------------------
@@ -176,17 +201,18 @@ export function createMonitoringRouter(dashboard?: PerformanceDashboard): Router
 
   // GET /dashboard - Grafana dashboard JSON config (REQ-210, Phase 84)
   router.get('/dashboard', (req: Request, res: Response) => {
+    const parsed = DashboardQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      const msg = parsed.error.issues[0]?.message ?? 'Invalid query parameters';
+      return sendError(res, 400, 'VALIDATION_ERROR', msg);
+    }
+
     try {
+      const { datasource, refresh, prefix } = parsed.data;
       const options: DashboardGenerateOptions = {};
-      if (typeof req.query.datasource === 'string') {
-        options.datasource = req.query.datasource;
-      }
-      if (typeof req.query.refresh === 'string') {
-        options.refresh = req.query.refresh;
-      }
-      if (typeof req.query.prefix === 'string') {
-        options.metricPrefix = req.query.prefix;
-      }
+      if (datasource) options.datasource = datasource;
+      if (refresh) options.refresh = refresh;
+      if (prefix) options.metricPrefix = prefix;
       const body = exportDashboardJson(options);
       res.setHeader('Content-Type', 'application/json');
       return res.status(200).send(body);
@@ -202,11 +228,15 @@ export function createMonitoringRouter(dashboard?: PerformanceDashboard): Router
 
   // GET /alerts - Prometheus alert rules YAML (REQ-211, Phase 84)
   router.get('/alerts', (req: Request, res: Response) => {
+    const parsed = AlertsQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      const msg = parsed.error.issues[0]?.message ?? 'Invalid query parameters';
+      return sendError(res, 400, 'VALIDATION_ERROR', msg);
+    }
+
     try {
       const options: AlertRulesOptions = {};
-      if (typeof req.query.prefix === 'string') {
-        options.metricPrefix = req.query.prefix;
-      }
+      if (parsed.data.prefix) options.metricPrefix = parsed.data.prefix;
       const body = exportAlertRulesYaml(options);
       res.setHeader('Content-Type', 'text/yaml; charset=utf-8');
       return res.status(200).send(body);

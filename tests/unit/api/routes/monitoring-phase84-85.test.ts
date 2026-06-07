@@ -543,3 +543,110 @@ describe('REQ-215: Alert rule threshold boundary tests', () => {
     });
   });
 });
+
+// ===========================================================================
+// REQ-216: Dashboard & Alerts query parameter validation
+// ===========================================================================
+
+describe('REQ-216: Monitoring endpoint query parameter validation', () => {
+  let dashboard: PerformanceDashboard;
+  let app: express.Express;
+
+  beforeEach(() => {
+    const created = createApp();
+    app = created.app;
+    dashboard = created.dashboard;
+  });
+
+  afterEach(() => {
+    dashboard.destroy();
+  });
+
+  describe('GET /dashboard validation', () => {
+    test('rejects invalid datasource with special characters', async () => {
+      const response = await request(app)
+        .get('/api/v1/monitoring/dashboard?datasource=alert(<script>)');
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    test('rejects overly long datasource name', async () => {
+      const longName = 'a'.repeat(101);
+      const response = await request(app)
+        .get(`/api/v1/monitoring/dashboard?datasource=${longName}`);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    test('rejects invalid refresh interval format', async () => {
+      const response = await request(app)
+        .get('/api/v1/monitoring/dashboard?refresh=invalid');
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    test('accepts valid refresh intervals', async () => {
+      for (const refresh of ['30s', '5m', '1h']) {
+        const response = await request(app)
+          .get(`/api/v1/monitoring/dashboard?refresh=${refresh}`);
+        expect(response.status).toBe(200);
+      }
+    });
+
+    test('rejects invalid metric prefix', async () => {
+      const response = await request(app)
+        .get('/api/v1/monitoring/dashboard?prefix=has spaces');
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    test('accepts valid alphanumeric prefix', async () => {
+      const response = await request(app)
+        .get('/api/v1/monitoring/dashboard?prefix=my_prefix123');
+
+      expect(response.status).toBe(200);
+      expect(response.body.dashboard).toBeDefined();
+    });
+  });
+
+  describe('GET /alerts validation', () => {
+    test('rejects invalid prefix with special characters', async () => {
+      const response = await request(app)
+        .get('/api/v1/monitoring/alerts?prefix=bad!char');
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    test('rejects overly long prefix', async () => {
+      const longPrefix = 'x'.repeat(51);
+      const response = await request(app)
+        .get(`/api/v1/monitoring/alerts?prefix=${longPrefix}`);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    test('accepts valid prefix', async () => {
+      const response = await request(app)
+        .get('/api/v1/monitoring/alerts?prefix=s2v');
+
+      expect(response.status).toBe(200);
+      expect(response.text).toContain('s2v_');
+    });
+
+    test('accepts request with no parameters', async () => {
+      const response = await request(app)
+        .get('/api/v1/monitoring/alerts');
+
+      expect(response.status).toBe(200);
+      expect(response.text).toContain('speech-to-visuals-alerts');
+    });
+  });
+});
