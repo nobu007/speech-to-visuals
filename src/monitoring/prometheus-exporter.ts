@@ -13,6 +13,8 @@
  * - process_uptime_ms (gauge)
  * - pipeline_stage_duration_ms (summary with quantiles per pipeline stage)
  * - pipeline_runs_total (counter by status: success/failure)
+ * - batch_jobs_total (counter by status: created/running/completed/failed/cancelled)
+ * - batch_jobs_active (gauge: currently running batch jobs)
  */
 
 import {
@@ -24,6 +26,7 @@ import {
   pipelineMetricsCollector,
   type PipelineMetricsSnapshot,
   type StageDurationAggregate,
+  type BatchJobMetricsSnapshot,
 } from './pipeline-metrics-collector';
 
 // ---------------------------------------------------------------------------
@@ -206,6 +209,34 @@ function buildPipelineRunsTotal(pipelineSnap: PipelineMetricsSnapshot): Promethe
 }
 
 // ---------------------------------------------------------------------------
+// REQ-213: Batch job metric builders
+// ---------------------------------------------------------------------------
+
+function buildBatchJobsTotal(batch: BatchJobMetricsSnapshot): PrometheusMetric {
+  const samples: PrometheusMetric['samples'] = [];
+  for (const [status, count] of Object.entries(batch.jobsByStatus)) {
+    if (count > 0) {
+      samples.push({ labels: { status }, value: count });
+    }
+  }
+  return {
+    name: 'batch_jobs_total',
+    help: 'Total batch jobs by lifecycle status',
+    type: 'counter',
+    samples,
+  };
+}
+
+function buildBatchJobsActive(batch: BatchJobMetricsSnapshot): PrometheusMetric {
+  return {
+    name: 'batch_jobs_active',
+    help: 'Number of currently active (running) batch jobs',
+    type: 'gauge',
+    samples: [{ labels: {}, value: batch.activeJobs }],
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -243,6 +274,17 @@ export function exportPrometheusMetrics(options?: PrometheusExportOptions): stri
   }
   if (pipelineSnap.totalRuns > 0) {
     metrics.push(buildPipelineRunsTotal(pipelineSnap));
+  }
+
+  // REQ-213: Batch job lifecycle metrics
+  const { batchJobs } = pipelineSnap;
+  const hasBatchData = Object.values(batchJobs.jobsByStatus).some(v => v > 0);
+  if (hasBatchData) {
+    metrics.push(buildBatchJobsTotal(batchJobs));
+  }
+  // Always emit active gauge when any batch job data exists
+  if (hasBatchData || batchJobs.activeJobs > 0) {
+    metrics.push(buildBatchJobsActive(batchJobs));
   }
 
   const output = metrics.map(renderMetric).join('\n\n');

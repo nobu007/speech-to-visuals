@@ -241,37 +241,74 @@ describe('REQ-213: Batch job lifecycle in Prometheus output', () => {
   });
 
   test('TC-213-01: batch_jobs metrics present after job lifecycle', () => {
-    // Simulate batch job lifecycle: the Prometheus exporter currently
-    // exposes pipeline_runs_total. We verify the mechanism works with
-    // pipeline run outcomes as the proxy for batch job metrics.
-    //
-    // In production, the BatchProcessingAPI would call:
-    //   pipelineMetricsCollector.recordPipelineRun(true/false)
-    //
-    // TC-213 validates that a completed job results in the correct counters.
-
-    // Simulate: job created → running → completed
-    pipelineMetricsCollector.recordPipelineRun(true);
+    // Simulate full batch job lifecycle: created → running → completed
+    pipelineMetricsCollector.recordBatchJobTransition('created');
+    pipelineMetricsCollector.recordBatchJobTransition('running');
+    pipelineMetricsCollector.recordBatchJobTransition('completed');
 
     const output = exportPrometheusMetrics();
 
-    expect(output).toContain('# HELP pipeline_runs_total');
-    expect(output).toContain('# TYPE pipeline_runs_total counter');
-    expect(output).toMatch(/pipeline_runs_total\{status="success"\} 1/);
+    // Verify batch_jobs_total counter with all recorded statuses
+    expect(output).toContain('# HELP batch_jobs_total');
+    expect(output).toContain('# TYPE batch_jobs_total counter');
+    expect(output).toMatch(/batch_jobs_total\{status="created"\} 1/);
+    expect(output).toMatch(/batch_jobs_total\{status="running"\} 1/);
+    expect(output).toMatch(/batch_jobs_total\{status="completed"\} 1/);
 
-    // Verify active is 0 after completion (pipeline_runs_total has no active gauge,
-    // but we can confirm no failure was recorded)
-    expect(output).not.toMatch(/pipeline_runs_total\{status="failure"\}/);
+    // Verify active gauge drops to 0 after completion
+    expect(output).toContain('# HELP batch_jobs_active');
+    expect(output).toContain('# TYPE batch_jobs_active gauge');
+    expect(output).toMatch(/batch_jobs_active 0/);
   });
 
-  test('tracks failed jobs separately', () => {
-    pipelineMetricsCollector.recordPipelineRun(true);
-    pipelineMetricsCollector.recordPipelineRun(false);
+  test('TC-213-02: tracks active jobs correctly during concurrent jobs', () => {
+    // Start 3 jobs concurrently
+    pipelineMetricsCollector.recordBatchJobTransition('created');
+    pipelineMetricsCollector.recordBatchJobTransition('running');
+    pipelineMetricsCollector.recordBatchJobTransition('created');
+    pipelineMetricsCollector.recordBatchJobTransition('running');
+    pipelineMetricsCollector.recordBatchJobTransition('created');
+    pipelineMetricsCollector.recordBatchJobTransition('running');
+
+    let output = exportPrometheusMetrics();
+    expect(output).toMatch(/batch_jobs_active 3/);
+
+    // Complete 1, fail 1
+    pipelineMetricsCollector.recordBatchJobTransition('completed');
+    pipelineMetricsCollector.recordBatchJobTransition('failed');
+
+    output = exportPrometheusMetrics();
+    expect(output).toMatch(/batch_jobs_active 1/);
+    expect(output).toMatch(/batch_jobs_total\{status="completed"\} 1/);
+    expect(output).toMatch(/batch_jobs_total\{status="failed"\} 1/);
+  });
+
+  test('TC-213-03: tracks cancelled jobs', () => {
+    pipelineMetricsCollector.recordBatchJobTransition('created');
+    pipelineMetricsCollector.recordBatchJobTransition('running');
+    pipelineMetricsCollector.recordBatchJobTransition('cancelled');
 
     const output = exportPrometheusMetrics();
 
-    expect(output).toMatch(/pipeline_runs_total\{status="success"\} 1/);
-    expect(output).toMatch(/pipeline_runs_total\{status="failure"\} 1/);
+    expect(output).toMatch(/batch_jobs_total\{status="cancelled"\} 1/);
+    expect(output).toMatch(/batch_jobs_active 0/);
+  });
+
+  test('TC-213-04: no batch metrics emitted when no batch jobs tracked', () => {
+    const output = exportPrometheusMetrics();
+
+    expect(output).not.toContain('batch_jobs_total');
+    expect(output).not.toContain('batch_jobs_active');
+  });
+
+  test('TC-213-05: active gauge never goes negative', () => {
+    pipelineMetricsCollector.recordBatchJobTransition('running');
+    pipelineMetricsCollector.recordBatchJobTransition('completed');
+    // Extra completion without matching running (defensive)
+    pipelineMetricsCollector.recordBatchJobTransition('completed');
+
+    const output = exportPrometheusMetrics();
+    expect(output).toMatch(/batch_jobs_active 0/);
   });
 });
 

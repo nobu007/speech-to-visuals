@@ -1,12 +1,14 @@
 /**
- * REQ-212: Pipeline Stage Duration Metrics Collector
+ * REQ-212 + REQ-213: Pipeline Stage Duration & Batch Job Lifecycle Metrics Collector
  *
- * Collects per-stage pipeline execution timing data and run outcomes
- * for export via the Prometheus metrics endpoint.
+ * Collects per-stage pipeline execution timing data, run outcomes,
+ * and batch job lifecycle events for export via the Prometheus metrics endpoint.
  *
  * Metrics exposed:
  * - pipeline_stage_duration_ms (summary with quantiles per stage)
  * - pipeline_runs_total (counter by status: success/failure)
+ * - batch_jobs_total (counter by status: created/running/completed/failed/cancelled)
+ * - batch_jobs_active (gauge: currently running jobs)
  */
 
 // ---------------------------------------------------------------------------
@@ -23,11 +25,21 @@ export interface StageDurationAggregate {
   percentiles: { p50: number; p95: number; p99: number };
 }
 
+export type BatchJobStatus = 'created' | 'running' | 'completed' | 'failed' | 'cancelled';
+
+export interface BatchJobMetricsSnapshot {
+  /** Counter of batch jobs by terminal/intermediate status */
+  jobsByStatus: Record<BatchJobStatus, number>;
+  /** Currently active (running) batch jobs */
+  activeJobs: number;
+}
+
 export interface PipelineMetricsSnapshot {
   stages: StageDurationAggregate[];
   totalRuns: number;
   successfulRuns: number;
   failedRuns: number;
+  batchJobs: BatchJobMetricsSnapshot;
 }
 
 export interface PipelineMetricsConfig {
@@ -73,6 +85,16 @@ export class PipelineMetricsCollector {
   private failedRuns = 0;
   private readonly config: PipelineMetricsConfig;
 
+  // REQ-213: Batch job lifecycle tracking
+  private batchJobCounters: Record<BatchJobStatus, number> = {
+    created: 0,
+    running: 0,
+    completed: 0,
+    failed: 0,
+    cancelled: 0,
+  };
+  private activeBatchJobs = 0;
+
   constructor(config?: Partial<PipelineMetricsConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
@@ -106,6 +128,16 @@ export class PipelineMetricsCollector {
     }
   }
 
+  /** REQ-213: Record a batch job lifecycle transition. */
+  recordBatchJobTransition(status: BatchJobStatus): void {
+    this.batchJobCounters[status]++;
+    if (status === 'running') {
+      this.activeBatchJobs++;
+    } else if (status === 'completed' || status === 'failed' || status === 'cancelled') {
+      this.activeBatchJobs = Math.max(0, this.activeBatchJobs - 1);
+    }
+  }
+
   /** Get a snapshot of all collected metrics. */
   getSnapshot(): PipelineMetricsSnapshot {
     const stages: StageDurationAggregate[] = [];
@@ -121,7 +153,11 @@ export class PipelineMetricsCollector {
         percentiles: computePercentiles(sorted),
       });
     }
-    return { stages, totalRuns: this.totalRuns, successfulRuns: this.successfulRuns, failedRuns: this.failedRuns };
+    const batchJobs: BatchJobMetricsSnapshot = {
+      jobsByStatus: { ...this.batchJobCounters },
+      activeJobs: this.activeBatchJobs,
+    };
+    return { stages, totalRuns: this.totalRuns, successfulRuns: this.successfulRuns, failedRuns: this.failedRuns, batchJobs };
   }
 
   /** Reset all collected metrics. */
@@ -130,6 +166,8 @@ export class PipelineMetricsCollector {
     this.totalRuns = 0;
     this.successfulRuns = 0;
     this.failedRuns = 0;
+    this.batchJobCounters = { created: 0, running: 0, completed: 0, failed: 0, cancelled: 0 };
+    this.activeBatchJobs = 0;
   }
 }
 
