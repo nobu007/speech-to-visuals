@@ -3598,7 +3598,7 @@
 
 ## REQ-218: シーン駆動 Animated SVG エクスポート 🔵
 
-**信頼性**: 🔵 *src/export/enhanced-export-engine.ts generateAnimatedSVG()・commit 4f8d6a4*
+**信頼性**: 🔵 *src/export/animated-scene-renderer.ts generateAnimatedSVG()・commit f405637（モジュール抽出）*
 
 > Given: シーンデータが生成済み | When: svg-animated 形式でエクスポートする | Then: CSS キーフレームアニメーション付き SVG が生成される
 
@@ -3609,32 +3609,32 @@
 - [x] **TC-218-01**: XML宣言とネームスペースを含む有効なSVG生成 🔵
   - **入力**: 2シーン（intro + content）のシーンデータ
   - **期待結果**: `<?xml version="1.0"?>` + `<svg xmlns="http://www.w3.org/2000/svg">` を含む
-  - **信頼性**: 🔵 *enhanced-export-engine.test.ts テストより*
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts テストより*
 
 - [x] **TC-218-02**: シーンタイプ別スタイル適用 🔵
   - **入力**: intro（背景#1a1a2e/48px）・content（背景#16213e/24px）・outro（背景#0f3460/36px）
   - **期待結果**: 各シーンタイプに応じた背景色・フォントサイズが適用される
-  - **信頼性**: 🔵 *enhanced-export-engine.test.ts テストより*
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts テストより*
 
 #### 異常系
 
 - [x] **TC-218-E01**: 空シーンデータのフォールバック 🔵
   - **入力**: scenes 未定義のシーンデータ
   - **期待結果**: フォールバックSVG（"No scenes available"）が生成される
-  - **信頼性**: 🔵 *enhanced-export-engine.test.ts テストより*
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts テストより*
 
 #### 境界値
 
 - [x] **TC-218-B01**: 特殊文字を含むシーンラベルのXMLエスケープ 🔵
   - **入力**: `&`, `<`, `>`, `"` を含むシーンラベル
   - **期待結果**: `&amp;`, `&lt;`, `&gt;`, `&quot;` にエスケープされる
-  - **信頼性**: 🔵 *enhanced-export-engine.test.ts テストより*
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts テストより*
 
 ---
 
 ## REQ-219: Lottie JSON アニメーションエクスポート 🔵
 
-**信頼性**: 🔵 *src/export/enhanced-export-engine.ts generateLottieAnimation()・commit 4f8d6a4*
+**信頼性**: 🔵 *src/export/animated-scene-renderer.ts generateLottieAnimation()・commit 214ec76（視覚形状コンテンツ）・commit f405637（モジュール抽出）*
 
 > Given: シーンデータが生成済み | When: json-lottie 形式でエクスポートする | Then: Lottie 5.7.4 互換 JSON アニメーションが生成される
 
@@ -3650,13 +3650,18 @@
 - [x] **TC-219-02**: シーンラベルがレイヤー名として使用される 🔵
   - **入力**: label="Introduction" のシーン
   - **期待結果**: レイヤーの nm プロパティが "Introduction" になる
-  - **信頼性**: 🔵 *enhanced-export-engine.test.ts テストより*
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts テストより*
+
+- [x] **TC-219-03**: シーンタイプ別背景色矩形シェイプがレイヤーに含まれる 🔵
+  - **入力**: type="intro" / type="content" / type="outro" のシーン
+  - **期待結果**: shapes 配列に Background Group（ty=gr）→ Background Rect（ty=rc）+ Background Fill（ty=fl）が含まれ、fill色がシーンタイプ別に正しい（intro: [0.102, 0.102, 0.180], outro: [0.059, 0.204, 0.376], content: [0.086, 0.129, 0.243]）
+  - **信頼性**: 🔵 *animated-scene-renderer.ts buildLayerShapes()・commit 214ec76*
 
 #### 異常系
 
 - [x] **TC-219-E01**: 空シーンデータでも有効なLottie構造出力 🔵
   - **入力**: scenes 未定義のシーンデータ
   - **期待結果**: 空レイヤー配列を持つ有効なLottie JSON構造
-  - **信頼性**: 🔵 *enhanced-export-engine.test.ts テストより*
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts テストより*
 
 ---

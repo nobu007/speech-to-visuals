@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-08（第184回検証・Phase 89完了・381ソースファイル・244テストファイル・107パッケージ・TypeScriptエラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・183,500行・240要件（REQ-001~219+NFR+EDGE）・11図解タイプ専用戦略完了・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・パイプライン型付きエラー完全化・StreamingTranscriber入力堅牢性完了・192タスク全完了・テストスイート安定化完了（26+テスト障害解消）・バッチ処理プログレス正確性修正完了・パイプラインオーケストレーター入力検証完了・相関IDミドルウェア完了・構造化HTTPロギング完了・HTTPリクエストメトリクス収集完了・Prometheus互換エクスポート完了・liveness/readiness probe完了・GrafanaダッシュボードJSON model完了・Prometheus alert rules完了・監視エンドポイントZodクエリ検証完了・LLM応答図解構造検証完了・シーン駆動アニメーションエクスポート完了（Animated SVG + Lottie JSON）・エラーリカバリREST API完了）
+**最終更新**: 2026-06-09（第185回検証・Phase 89完了・381ソースファイル・244テストファイル・107パッケージ・TypeScriptエラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・183,500行・240要件（REQ-001~219+NFR+EDGE）・11図解タイプ専用戦略完了・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・パイプライン型付きエラー完全化・StreamingTranscriber入力堅牢性完了・192タスク全完了・テストスイート安定化完了（26+テスト障害解消）・バッチ処理プログレス正確性修正完了・パイプラインオーケストレーター入力検証完了・相関IDミドルウェア完了・構造化HTTPロギング完了・HTTPリクエストメトリクス収集完了・Prometheus互換エクスポート完了・liveness/readiness probe完了・GrafanaダッシュボードJSON model完了・Prometheus alert rules完了・監視エンドポイントZodクエリ検証完了・LLM応答図解構造検証完了・シーン駆動アニメーションエクスポート完了（Animated SVG + Lottie JSON）・animated-scene-renderer モジュール抽出完了（視覚形状コンテンツ付きLottieレイヤー）・エラーリカバリREST API完了）
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム
 
 ## 技術スタック
@@ -108,7 +108,7 @@ src/
 - [x] Phase 83-86 監視ダッシュボード・アラート・API統合・Prometheus/アラート検証完了（REQ-208~215）
 - [x] Phase 87 監視エンドポイントZodクエリ検証完了（REQ-216・107テスト追加）
 - [x] Phase 88 LLM応答図解構造検証完了（REQ-217・ノード重複排除・自己ループフィルタ・5テスト追加）
-- [x] Phase 89 シーン駆動アニメーションエクスポート完了（REQ-218~219・Animated SVG・Lottie JSON・7テスト追加）
+- [x] Phase 89 シーン駆動アニメーションエクスポート完了（REQ-218~219・Animated SVG・Lottie JSON・視覚形状コンテンツ・animated-scene-renderer モジュール抽出・36テスト・28テスト）
 
 ## 注意事項
 

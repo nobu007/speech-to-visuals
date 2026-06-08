@@ -3166,6 +3166,40 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 - 信頼性レベル分布: 🔵220件(98.7%) / 🟡3件(1.3%) / 🔴0件(0%)
 - Phase 78-79 のプロダクション観測性基盤（分散トレーシング + 構造化ロギング）が要件として完備
 
+---
+
+### A185: 第185回検証 - Phase 89 強化（animated-scene-renderer 抽出・視覚形状コンテンツ・REQ-037 テスト拡充）（2026-06-09）
+
+**分析日時**: 2026-06-09
+**カテゴリ**: 既存設計確認/追加要件
+**背景**: Phase 89 初回完了後（commit 4f8d6a4）、3つの追加コミットが実装品質を向上。REQ-218/219の実装コードが enhanced-export-engine.ts から独立モジュールに抽出され、Lottie JSON レイヤーに視覚的形状コンテンツが追加。REQ-037 エラー回復エンドポイントのテストカバレッジが拡充。
+
+**判断**:
+
+1. **REQ-218 モジュール抽出確認**: generateAnimatedSVG() が `src/export/animated-scene-renderer.ts` に抽出（229行）。純粋関数として独立テスト可能。元の enhanced-export-engine.ts は120行削減。機能要件に変更なし。
+
+2. **REQ-219 視覚形状コンテンツ追加**: buildLayerShapes() ヘルパーが Lottie JSON レイヤーにシーンタイプ別背景色矩形（ty=rc, rounded corners）を追加:
+   - intro → #1a1a2e (0.102, 0.102, 0.180)
+   - outro → #0f3460 (0.059, 0.204, 0.376)
+   - content → #16213e (0.086, 0.129, 0.243)
+   - sceneTypeToFillColor() で 0-1 RGBA 値に変換
+
+3. **REQ-037 テスト拡充**: エラー回復REST APIエンドポイントのテストが28ケース追加（合計49テスト）。機能変更なし、カバレッジ向上のみ。
+
+4. **メトリクス確認**: 381ソースファイル・244テストファイル・107パッケージは変更なし
+
+**根拠**:
+- `src/export/animated-scene-renderer.ts` (229行) - モジュール抽出 + 視覚形状コンテンツ
+- `src/export/enhanced-export-engine.ts` - 120行削減（import-based統合）
+- `tests/unit/export/animated-svg-lottie-export.test.ts` (648行, 36テスト)
+- `src/api/routes/__tests__/errors.test.ts` (335行, 28テスト)
+- commit 214ec76 (視覚形状コンテンツ), f405637 (モジュール抽出), f153750 (REQ-037 テスト)
+
+**信頼性への影響**:
+- この分析により、REQ-218/219 の記述を animated-scene-renderer モジュール抽出と視覚形状コンテンツに更新
+- 信頼性レベル分布: 🔵236件(98.3%) / 🟡4件(1.7%) / 🔴0件(0%) — 変更なし
+- Phase 89 の実装品質がモジュール分離・テストカバレッジ拡充により向上
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)
