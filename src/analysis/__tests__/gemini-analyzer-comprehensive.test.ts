@@ -598,6 +598,138 @@ describe('GeminiAnalyzer', () => {
       expect(result!.reasoning).toContain('Phase 26');
     });
 
+    it('should deduplicate nodes with the same id (keeping first)', async () => {
+      const { llm, setParserResult } = createParserMockLLMService();
+      setParserResult(JSON.stringify({
+        title: 'Dupes',
+        type: 'flowchart',
+        nodes: [
+          { id: 'n1', label: 'First A' },
+          { id: 'n1', label: 'Second A' },
+          { id: 'n2', label: 'B' },
+        ],
+        edges: [{ from: 'n1', to: 'n2' }],
+      }));
+
+      const analyzer = new GeminiAnalyzer('test-key', llm);
+      const result = await analyzer.analyzeText('Duplicated nodes.');
+
+      expect(result).not.toBeNull();
+      expect(result!.nodes).toHaveLength(2);
+      expect(result!.nodes[0].label).toBe('First A');
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Duplicate node id "n1"'),
+      );
+    });
+
+    it('should filter out self-loop edges (from === to)', async () => {
+      const { llm, setParserResult } = createParserMockLLMService();
+      setParserResult(JSON.stringify({
+        title: 'SelfLoop',
+        type: 'flowchart',
+        nodes: [
+          { id: 'n1', label: 'A' },
+          { id: 'n2', label: 'B' },
+        ],
+        edges: [
+          { from: 'n1', to: 'n2' },
+          { from: 'n1', to: 'n1' },
+          { from: 'n2', to: 'n2' },
+        ],
+      }));
+
+      const analyzer = new GeminiAnalyzer('test-key', llm);
+      const result = await analyzer.analyzeText('Self loops.');
+
+      expect(result).not.toBeNull();
+      expect(result!.edges).toHaveLength(1);
+      expect(result!.edges[0]).toEqual({ from: 'n1', to: 'n2', label: undefined });
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Self-loop edge'),
+      );
+    });
+
+    it('should deduplicate edges with the same (from, to) pair', async () => {
+      const { llm, setParserResult } = createParserMockLLMService();
+      setParserResult(JSON.stringify({
+        title: 'DupEdges',
+        type: 'flowchart',
+        nodes: [
+          { id: 'n1', label: 'A' },
+          { id: 'n2', label: 'B' },
+          { id: 'n3', label: 'C' },
+        ],
+        edges: [
+          { from: 'n1', to: 'n2', label: 'first' },
+          { from: 'n1', to: 'n2', label: 'second' },
+          { from: 'n2', to: 'n3' },
+        ],
+      }));
+
+      const analyzer = new GeminiAnalyzer('test-key', llm);
+      const result = await analyzer.analyzeText('Duplicate edges.');
+
+      expect(result).not.toBeNull();
+      expect(result!.edges).toHaveLength(2);
+      // First occurrence kept
+      expect(result!.edges[0].label).toBe('first');
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Duplicate edge n1→n2'),
+      );
+    });
+
+    it('should filter out nodes with missing or empty id', async () => {
+      const { llm, setParserResult } = createParserMockLLMService();
+      setParserResult(JSON.stringify({
+        title: 'BadNodes',
+        type: 'flowchart',
+        nodes: [
+          { id: 'n1', label: 'Valid' },
+          { id: '', label: 'Empty id' },
+          { label: 'Missing id' } as any,
+          { id: 'n2', label: 'Also Valid' },
+        ],
+        edges: [{ from: 'n1', to: 'n2' }],
+      }));
+
+      const analyzer = new GeminiAnalyzer('test-key', llm);
+      const result = await analyzer.analyzeText('Bad nodes.');
+
+      expect(result).not.toBeNull();
+      expect(result!.nodes).toHaveLength(2);
+      expect(result!.nodes.map(n => n.id)).toEqual(['n1', 'n2']);
+    });
+
+    it('should handle combined validation: duplicates + self-loops + orphan edges', async () => {
+      const { llm, setParserResult } = createParserMockLLMService();
+      setParserResult(JSON.stringify({
+        title: 'Messy',
+        type: 'flowchart',
+        nodes: [
+          { id: 'n1', label: 'A' },
+          { id: 'n1', label: 'A dup' },
+          { id: 'n2', label: 'B' },
+          { id: '', label: 'No id' },
+        ],
+        edges: [
+          { from: 'n1', to: 'n2' },
+          { from: 'n1', to: 'n1' },      // self-loop
+          { from: 'n1', to: 'n2' },      // duplicate
+          { from: 'n1', to: 'n999' },    // orphan
+          { from: 'n2', to: 'n1' },
+        ],
+      }));
+
+      const analyzer = new GeminiAnalyzer('test-key', llm);
+      const result = await analyzer.analyzeText('Messy data.');
+
+      expect(result).not.toBeNull();
+      // 3 valid nodes: n1 (first), n2 (empty-id filtered)
+      expect(result!.nodes).toHaveLength(2);
+      // 2 valid edges: n1→n2 (first), n2→n1
+      expect(result!.edges).toHaveLength(2);
+    });
+
     it('should ensure minimum confidence of 0.5', async () => {
       const { llm, setParserResult } = createParserMockLLMService();
       // Create data with many disconnected nodes to heavily penalize confidence

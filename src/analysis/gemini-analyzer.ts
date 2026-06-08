@@ -154,18 +154,49 @@ export class GeminiAnalyzer {
 
       const mappedType: DiagramType = typeMap[parsed.type] ?? "flow";
 
-      const nodes: NodeDatum[] = (parsed.nodes || []).map((n) => ({ id: n.id, label: n.label }));
-      const edges: EdgeDatum[] = (parsed.edges || []).map((e) => ({ from: e.from, to: e.to, label: e.label }));
+      // Filter nodes with valid id and label fields
+      const rawNodes: NodeDatum[] = (parsed.nodes || [])
+        .filter((n): n is { id: string; label: string } =>
+          n != null && typeof n.id === 'string' && n.id.length > 0 && typeof n.label === 'string'
+        )
+        .map((n) => ({ id: n.id, label: n.label }));
 
-      // Phase 26: Relationship quality validation
-      const nodeIds = new Set(nodes.map(n => n.id));
-      const validEdges = edges.filter(e => {
-        // Validate edge references existing nodes
-        const isValid = nodeIds.has(e.from) && nodeIds.has(e.to);
-        if (!isValid) {
-          logger.warn(`Phase 26: Invalid edge ${e.from}→${e.to} (node not found)`);
+      // Deduplicate nodes by id (first occurrence wins)
+      const seenIds = new Set<string>();
+      const nodes: NodeDatum[] = [];
+      for (const node of rawNodes) {
+        if (seenIds.has(node.id)) {
+          logger.warn(`Phase 26: Duplicate node id "${node.id}" — keeping first occurrence`);
+          continue;
         }
-        return isValid;
+        seenIds.add(node.id);
+        nodes.push(node);
+      }
+
+      const rawEdges: EdgeDatum[] = (parsed.edges || []).map((e) => ({ from: e.from, to: e.to, label: e.label }));
+
+      // Filter and deduplicate edges
+      const nodeIds = new Set(nodes.map(n => n.id));
+      const seenEdgeKeys = new Set<string>();
+      const validEdges = rawEdges.filter(e => {
+        // Reject self-loops
+        if (e.from === e.to) {
+          logger.warn(`Phase 26: Self-loop edge "${e.from}→${e.to}" filtered`);
+          return false;
+        }
+        // Validate edge references existing nodes
+        if (!nodeIds.has(e.from) || !nodeIds.has(e.to)) {
+          logger.warn(`Phase 26: Invalid edge ${e.from}→${e.to} (node not found)`);
+          return false;
+        }
+        // Deduplicate edges by (from, to) pair
+        const key = `${e.from}->${e.to}`;
+        if (seenEdgeKeys.has(key)) {
+          logger.warn(`Phase 26: Duplicate edge ${e.from}→${e.to} — keeping first occurrence`);
+          return false;
+        }
+        seenEdgeKeys.add(key);
+        return true;
       });
 
       // Calculate relationship quality metrics
