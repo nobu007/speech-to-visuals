@@ -127,12 +127,14 @@ export function generateLottieAnimation(
           { t: frameOffset + totalFrames, s: [0] },
         ] },
         p: { a: 0, k: [width / 2, height / 2, 0] },
+        a: { a: 0, k: [0, 0, 0] },
         s: { a: 0, k: [100, 100, 100] },
         r: { a: 0, k: 0 },
       },
       ip: frameOffset,
       op: frameOffset + totalFrames,
       st: frameOffset,
+      shapes: buildLayerShapes(scene, width, height),
     };
     frameOffset += totalFrames;
     return layer;
@@ -167,6 +169,59 @@ export function formatSceneSubtitle(scene: SceneItem): string {
   const mins = Math.floor(d / 60);
   const secs = Math.round(d % 60);
   return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+}
+
+// ---------------------------------------------------------------------------
+// REQ-219: Lottie shape helpers
+// ---------------------------------------------------------------------------
+
+/** Map scene type to Lottie fill color (0–1 RGBA range). */
+export function sceneTypeToFillColor(sceneType?: string): number[] {
+  switch (sceneType) {
+    case 'intro':  return [0.102, 0.102, 0.180, 1]; // #1a1a2e
+    case 'outro':  return [0.059, 0.204, 0.376, 1]; // #0f3460
+    default:       return [0.086, 0.129, 0.243, 1]; // #16213e
+  }
+}
+
+/** Build the `shapes` array for a Lottie shape layer. */
+export function buildLayerShapes(
+  scene: SceneItem,
+  width: number,
+  height: number,
+): Record<string, unknown>[] {
+  const fill = sceneTypeToFillColor(scene.type);
+  return [
+    {
+      ty: 'gr',
+      it: [
+        {
+          ty: 'rc',
+          d: 1,
+          s: { a: 0, k: [width, height] },
+          p: { a: 0, k: [0, 0] },
+          r: { a: 0, k: 8 },
+          nm: 'Background Rect',
+        },
+        {
+          ty: 'fl',
+          c: { a: 0, k: fill },
+          o: { a: 0, k: 100 },
+          r: 1,
+          nm: 'Background Fill',
+        },
+        {
+          ty: 'tr',
+          p: { a: 0, k: [0, 0] },
+          a: { a: 0, k: [0, 0] },
+          s: { a: 0, k: [100, 100] },
+          r: { a: 0, k: 0 },
+          o: { a: 0, k: 100 },
+        },
+      ],
+      nm: 'Background Group',
+    },
+  ];
 }
 
 function roundPct(n: number): number {

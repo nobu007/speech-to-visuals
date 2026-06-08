@@ -14,6 +14,8 @@ import {
   generateLottieAnimation,
   escapeXml,
   formatSceneSubtitle,
+  sceneTypeToFillColor,
+  buildLayerShapes,
 } from '@/export/animated-scene-renderer';
 import type { SceneDataset, FrameInfo } from '@/export/animated-scene-renderer';
 
@@ -425,5 +427,222 @@ describe('REQ-219: generateLottieAnimation', () => {
 
     // total frames = 5 × 30 = 150, fade-out at 150 - 9 = 141
     expect(keyframes[2].t).toBe(141);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// REQ-219 extended: Lottie shape content (visual shapes in layers)
+// ---------------------------------------------------------------------------
+
+describe('REQ-219: Lottie layer shapes', () => {
+  it('each layer includes a shapes array', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ duration: 2, label: 'S1', type: 'content' }] },
+      HD,
+    );
+    const layer = (lottie.layers as Record<string, unknown>[])[0];
+
+    expect(layer.shapes).toBeDefined();
+    expect(Array.isArray(layer.shapes)).toBe(true);
+    expect((layer.shapes as unknown[]).length).toBeGreaterThan(0);
+  });
+
+  it('shapes contain a background group with ty=gr', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ duration: 2, label: 'S', type: 'content' }] },
+      HD,
+    );
+    const layer = (lottie.layers as Record<string, unknown>[])[0];
+    const shapes = layer.shapes as Record<string, unknown>[];
+
+    const group = shapes.find((s) => s.ty === 'gr');
+    expect(group).toBeDefined();
+    expect(group!.nm).toBe('Background Group');
+  });
+
+  it('background group contains a rectangle shape (ty=rc)', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ duration: 2, label: 'S', type: 'content' }] },
+      HD,
+    );
+    const layer = (lottie.layers as Record<string, unknown>[])[0];
+    const shapes = layer.shapes as Record<string, unknown>[];
+    const group = shapes.find((s) => s.ty === 'gr')!;
+    const items = group.it as Record<string, unknown>[];
+
+    const rect = items.find((it) => it.ty === 'rc');
+    expect(rect).toBeDefined();
+    expect(rect!.nm).toBe('Background Rect');
+  });
+
+  it('rectangle size matches frame dimensions', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ duration: 1, label: 'S' }] },
+      CUSTOM,
+    );
+    const layer = (lottie.layers as Record<string, unknown>[])[0];
+    const shapes = layer.shapes as Record<string, unknown>[];
+    const group = shapes.find((s) => s.ty === 'gr')!;
+    const items = group.it as Record<string, unknown>[];
+    const rect = items.find((it) => it.ty === 'rc')!;
+
+    const size = rect.s as Record<string, unknown>;
+    expect(size.k).toEqual([800, 600]);
+  });
+
+  it('background fill uses scene-type-specific color for intro', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ duration: 1, label: 'Intro', type: 'intro' }] },
+      HD,
+    );
+    const layer = (lottie.layers as Record<string, unknown>[])[0];
+    const shapes = layer.shapes as Record<string, unknown>[];
+    const group = shapes.find((s) => s.ty === 'gr')!;
+    const items = group.it as Record<string, unknown>[];
+    const fill = items.find((it) => it.ty === 'fl')!;
+
+    const color = fill.c as Record<string, unknown>;
+    expect(color.k).toEqual(sceneTypeToFillColor('intro'));
+  });
+
+  it('background fill uses outro color for outro scenes', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ duration: 1, label: 'End', type: 'outro' }] },
+      HD,
+    );
+    const layer = (lottie.layers as Record<string, unknown>[])[0];
+    const shapes = layer.shapes as Record<string, unknown>[];
+    const group = shapes.find((s) => s.ty === 'gr')!;
+    const items = group.it as Record<string, unknown>[];
+    const fill = items.find((it) => it.ty === 'fl')!;
+
+    const color = fill.c as Record<string, unknown>;
+    expect(color.k).toEqual(sceneTypeToFillColor('outro'));
+  });
+
+  it('background fill uses default color for content scenes', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ duration: 1, label: 'Main', type: 'content' }] },
+      HD,
+    );
+    const layer = (lottie.layers as Record<string, unknown>[])[0];
+    const shapes = layer.shapes as Record<string, unknown>[];
+    const group = shapes.find((s) => s.ty === 'gr')!;
+    const items = group.it as Record<string, unknown>[];
+    const fill = items.find((it) => it.ty === 'fl')!;
+
+    const color = fill.c as Record<string, unknown>;
+    expect(color.k).toEqual(sceneTypeToFillColor('content'));
+  });
+
+  it('background group ends with a transform item (ty=tr)', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ duration: 1, label: 'S' }] },
+      HD,
+    );
+    const layer = (lottie.layers as Record<string, unknown>[])[0];
+    const shapes = layer.shapes as Record<string, unknown>[];
+    const group = shapes.find((s) => s.ty === 'gr')!;
+    const items = group.it as Record<string, unknown>[];
+
+    const transform = items.find((it) => it.ty === 'tr');
+    expect(transform).toBeDefined();
+    expect((transform!.o as Record<string, unknown>).k).toBe(100);
+  });
+
+  it('all layers in multi-scene animation have shapes', () => {
+    const lottie = generateLottieAnimation(
+      {
+        scenes: [
+          { duration: 2, label: 'A', type: 'intro' },
+          { duration: 3, label: 'B', type: 'content' },
+          { duration: 1, label: 'C', type: 'outro' },
+        ],
+      },
+      HD,
+    );
+    const layers = lottie.layers as Record<string, unknown>[];
+
+    expect(layers).toHaveLength(3);
+    for (const layer of layers) {
+      expect(layer.shapes).toBeDefined();
+      const shapes = layer.shapes as Record<string, unknown>[];
+      expect(shapes.some((s) => s.ty === 'gr')).toBe(true);
+    }
+  });
+
+  it('layer includes anchor point property (ks.a)', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ duration: 1, label: 'S' }] },
+      HD,
+    );
+    const layer = (lottie.layers as Record<string, unknown>[])[0];
+    const ks = layer.ks as Record<string, unknown>;
+
+    expect(ks.a).toBeDefined();
+    expect((ks.a as Record<string, unknown>).k).toEqual([0, 0, 0]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// sceneTypeToFillColor
+// ---------------------------------------------------------------------------
+
+describe('sceneTypeToFillColor', () => {
+  it('returns intro color for intro type', () => {
+    const color = sceneTypeToFillColor('intro');
+    expect(color).toHaveLength(4);
+    expect(color[3]).toBe(1); // alpha
+  });
+
+  it('returns outro color for outro type', () => {
+    const color = sceneTypeToFillColor('outro');
+    expect(color).toHaveLength(4);
+  });
+
+  it('returns default color for undefined type', () => {
+    const color = sceneTypeToFillColor(undefined);
+    expect(color).toEqual(sceneTypeToFillColor('content'));
+  });
+
+  it('all color channels are in 0–1 range', () => {
+    for (const type of ['intro', 'outro', 'content', undefined] as (string | undefined)[]) {
+      const color = sceneTypeToFillColor(type);
+      for (const channel of color) {
+        expect(channel).toBeGreaterThanOrEqual(0);
+        expect(channel).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildLayerShapes
+// ---------------------------------------------------------------------------
+
+describe('buildLayerShapes', () => {
+  it('returns an array with one group', () => {
+    const shapes = buildLayerShapes({ duration: 2, type: 'content' }, 800, 600);
+    expect(shapes).toHaveLength(1);
+    expect(shapes[0].ty).toBe('gr');
+  });
+
+  it('group contains rect, fill, and transform items', () => {
+    const shapes = buildLayerShapes({ duration: 2 }, 800, 600);
+    const items = shapes[0].it as Record<string, unknown>[];
+
+    const types = items.map((it) => it.ty);
+    expect(types).toContain('rc');
+    expect(types).toContain('fl');
+    expect(types).toContain('tr');
+  });
+
+  it('rectangle has rounded corners (r=8)', () => {
+    const shapes = buildLayerShapes({ duration: 2 }, 800, 600);
+    const items = shapes[0].it as Record<string, unknown>[];
+    const rect = items.find((it) => it.ty === 'rc')!;
+
+    const roundness = rect.r as Record<string, unknown>;
+    expect(roundness.k).toBe(8);
   });
 });

@@ -797,7 +797,7 @@ export class EnhancedExportEngine {
   }
 
   private generateJobId(): string {
-    return `export_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    return `export_${crypto.randomUUID()}`;
   }
 }
 
