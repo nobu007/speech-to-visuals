@@ -1,0 +1,429 @@
+/**
+ * REQ-218 / REQ-219: Animated SVG & Lottie Export Content Validation
+ *
+ * Tests the pure functions in animated-scene-renderer.ts:
+ *   - generateAnimatedSVG: SVG XML structure, CSS keyframes, XML escaping
+ *   - generateLottieAnimation: Lottie 5.7.4 JSON, layers, opacity keyframes
+ *   - escapeXml, formatSceneSubtitle: shared helpers
+ *
+ * These are now independently testable without the full export pipeline.
+ */
+
+import {
+  generateAnimatedSVG,
+  generateLottieAnimation,
+  escapeXml,
+  formatSceneSubtitle,
+} from '@/export/animated-scene-renderer';
+import type { SceneDataset, FrameInfo } from '@/export/animated-scene-renderer';
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const HD: FrameInfo = { width: 1920, height: 1080 };
+const CUSTOM: FrameInfo = { width: 800, height: 600 };
+
+// ---------------------------------------------------------------------------
+// escapeXml
+// ---------------------------------------------------------------------------
+
+describe('escapeXml', () => {
+  it('escapes ampersand', () => {
+    expect(escapeXml('A & B')).toBe('A &amp; B');
+  });
+
+  it('escapes angle brackets and quotes', () => {
+    expect(escapeXml('<tag "attr">')).toBe('&lt;tag &quot;attr&quot;&gt;');
+  });
+
+  it('leaves safe text untouched', () => {
+    expect(escapeXml('Hello World')).toBe('Hello World');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// formatSceneSubtitle
+// ---------------------------------------------------------------------------
+
+describe('formatSceneSubtitle', () => {
+  it('formats seconds-only duration', () => {
+    expect(formatSceneSubtitle({ duration: 5 })).toBe('5s');
+  });
+
+  it('formats minutes and seconds', () => {
+    expect(formatSceneSubtitle({ duration: 125 })).toBe('2m 5s');
+  });
+
+  it('defaults to 2s when no duration', () => {
+    expect(formatSceneSubtitle({})).toBe('2s');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// REQ-218: Animated SVG
+// ---------------------------------------------------------------------------
+
+describe('REQ-218: generateAnimatedSVG', () => {
+  it('produces valid SVG XML with xml declaration', () => {
+    const svg = generateAnimatedSVG(
+      { scenes: [{ duration: 2, label: 'Test', type: 'intro' }] },
+      HD,
+    );
+
+    expect(svg).toContain('<?xml version="1.0" encoding="UTF-8"?>');
+    expect(svg).toContain('<svg xmlns="http://www.w3.org/2000/svg"');
+    expect(svg).toContain('</svg>');
+  });
+
+  it('renders "No scene data" fallback for empty scenes', () => {
+    const svg = generateAnimatedSVG({ scenes: [] }, HD);
+
+    expect(svg).toContain('No scene data');
+    expect(svg).toContain('viewBox="0 0 1920 1080"');
+  });
+
+  it('renders fallback when scenes is undefined', () => {
+    const svg = generateAnimatedSVG({}, HD);
+
+    expect(svg).toContain('No scene data');
+  });
+
+  it('includes CSS @keyframes for each scene', () => {
+    const svg = generateAnimatedSVG(
+      {
+        scenes: [
+          { duration: 3, label: 'Scene A', type: 'flow' },
+          { duration: 2, label: 'Scene B', type: 'tree' },
+        ],
+      },
+      HD,
+    );
+
+    expect(svg).toContain('@keyframes s0');
+    expect(svg).toContain('@keyframes s1');
+  });
+
+  it('escapes XML-special characters in scene labels', () => {
+    const svg = generateAnimatedSVG(
+      { scenes: [{ duration: 2, label: 'A <B> & "C"', type: 'flow' }] },
+      HD,
+    );
+
+    expect(svg).not.toContain('A <B>');
+    expect(svg).toContain('A &lt;B&gt; &amp; &quot;C&quot;');
+  });
+
+  it('uses scene-type-specific background colors', () => {
+    const svg = generateAnimatedSVG(
+      {
+        scenes: [
+          { duration: 2, label: 'Intro', type: 'intro' },
+          { duration: 2, label: 'Main', type: 'flow' },
+          { duration: 2, label: 'Outro', type: 'outro' },
+        ],
+      },
+      HD,
+    );
+
+    expect(svg).toContain('#1a1a2e'); // intro bg
+    expect(svg).toContain('#16213e'); // flow (default) bg
+    expect(svg).toContain('#0f3460'); // outro bg
+  });
+
+  it('uses scene-type-specific font sizes', () => {
+    const svg = generateAnimatedSVG(
+      {
+        scenes: [
+          { duration: 2, label: 'Intro', type: 'intro' },
+          { duration: 2, label: 'Outro', type: 'outro' },
+          { duration: 2, label: 'Default', type: 'flow' },
+        ],
+      },
+      HD,
+    );
+
+    expect(svg).toContain('font-size="48"'); // intro
+    expect(svg).toContain('font-size="36"'); // outro
+    expect(svg).toContain('font-size="24"'); // flow (default)
+  });
+
+  it('sets total animation duration equal to sum of scene durations', () => {
+    const svg = generateAnimatedSVG(
+      { scenes: [{ duration: 3, label: 'A' }, { duration: 5, label: 'B' }] },
+      HD,
+    );
+
+    expect(svg).toMatch(/animation:s0 8s/);
+    expect(svg).toMatch(/animation:s1 8s/);
+  });
+
+  it('defaults scene duration to 2 when undefined', () => {
+    const svg = generateAnimatedSVG(
+      { scenes: [{ label: 'NoDur' }, { label: 'Also' }] },
+      HD,
+    );
+
+    // 2 scenes × 2s default = 4s total
+    expect(svg).toMatch(/animation:s0 4s/);
+  });
+
+  it('uses scene label over type over fallback for text', () => {
+    const svg = generateAnimatedSVG(
+      { scenes: [{ duration: 1, label: 'MyLabel', type: 'flow' }] },
+      HD,
+    );
+
+    expect(svg).toContain('>MyLabel<');
+  });
+
+  it('falls back to type when label is missing', () => {
+    const svg = generateAnimatedSVG(
+      { scenes: [{ duration: 1, type: 'flow' }] },
+      HD,
+    );
+
+    expect(svg).toContain('>flow<');
+  });
+
+  it('falls back to "Scene N" when both label and type are missing', () => {
+    const svg = generateAnimatedSVG(
+      { scenes: [{ duration: 1 }] },
+      HD,
+    );
+
+    expect(svg).toContain('>Scene 1<');
+  });
+
+  it('respects custom frame dimensions', () => {
+    const svg = generateAnimatedSVG(
+      { scenes: [{ duration: 2, label: 'Custom' }] },
+      CUSTOM,
+    );
+
+    expect(svg).toContain('width="800"');
+    expect(svg).toContain('height="600"');
+    expect(svg).toContain('viewBox="0 0 800 600"');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// REQ-219: Lottie JSON
+// ---------------------------------------------------------------------------
+
+describe('REQ-219: generateLottieAnimation', () => {
+  it('produces valid Lottie JSON with version 5.7.4', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ duration: 2, label: 'Scene 1' }] },
+      HD,
+    );
+
+    expect(lottie.v).toBe('5.7.4');
+    expect(lottie.nm).toBe('AudioDiagramAnimation');
+  });
+
+  it('sets framerate to 30', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ duration: 2, label: 'S' }] },
+      HD,
+    );
+
+    expect(lottie.fr).toBe(30);
+  });
+
+  it('creates one shape layer per scene', () => {
+    const lottie = generateLottieAnimation(
+      {
+        scenes: [
+          { duration: 2, label: 'First' },
+          { duration: 3, label: 'Second' },
+          { duration: 1, label: 'Third' },
+        ],
+      },
+      HD,
+    );
+
+    const layers = lottie.layers as Record<string, unknown>[];
+    expect(layers).toHaveLength(3);
+    expect(layers[0].ty).toBe(4);
+    expect(layers[0].nm).toBe('First');
+    expect(layers[1].nm).toBe('Second');
+    expect(layers[2].nm).toBe('Third');
+  });
+
+  it('calculates correct frame offsets per layer', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ duration: 2, label: 'A' }, { duration: 3, label: 'B' }] },
+      HD,
+    );
+
+    const layers = lottie.layers as Record<string, unknown>[];
+
+    // Layer 0: 2s × 30fps = 60 frames
+    expect(layers[0].ip).toBe(0);
+    expect(layers[0].op).toBe(60);
+    expect(layers[0].st).toBe(0);
+
+    // Layer 1: starts at frame 60, 3s × 30fps = 90 frames
+    expect(layers[1].ip).toBe(60);
+    expect(layers[1].op).toBe(150);
+    expect(layers[1].st).toBe(60);
+
+    // Total out-point
+    expect(lottie.op).toBe(150);
+  });
+
+  it('includes opacity keyframes with fade-in/fade-out', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ duration: 2, label: 'Fade' }] },
+      HD,
+    );
+
+    const layer = (lottie.layers as Record<string, unknown>[])[0];
+    const ks = layer.ks as Record<string, unknown>;
+    const opacity = ks.o as Record<string, unknown>;
+    const keyframes = opacity.k as Record<string, unknown>[];
+
+    expect(opacity.a).toBe(1); // animated
+    expect(keyframes).toHaveLength(4);
+    expect(keyframes[0].s).toEqual([0]); // start transparent
+    expect(keyframes[1].s).toEqual([100]); // fade in to opaque
+  });
+
+  it('outputs correct dimensions', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ duration: 2, label: 'Dim' }] },
+      HD,
+    );
+
+    expect(lottie.w).toBe(1920);
+    expect(lottie.h).toBe(1080);
+  });
+
+  it('respects custom dimensions', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ duration: 1, label: 'C' }] },
+      CUSTOM,
+    );
+
+    expect(lottie.w).toBe(800);
+    expect(lottie.h).toBe(600);
+  });
+
+  it('falls back to valid structure with empty scenes', () => {
+    const lottie = generateLottieAnimation({ scenes: [] }, HD, 42);
+
+    expect(lottie.layers).toHaveLength(0);
+    expect(lottie.v).toBe('5.7.4');
+    expect(lottie.op).toBe(42); // fallback frame count
+  });
+
+  it('uses 0 out-point for empty scenes without fallback', () => {
+    const lottie = generateLottieAnimation({ scenes: [] }, HD);
+
+    expect(lottie.op).toBe(0);
+  });
+
+  it('assigns layer indices sequentially', () => {
+    const lottie = generateLottieAnimation(
+      {
+        scenes: [
+          { duration: 1, label: 'L0' },
+          { duration: 1, label: 'L1' },
+          { duration: 1, label: 'L2' },
+        ],
+      },
+      HD,
+    );
+
+    const layers = lottie.layers as Record<string, unknown>[];
+    expect(layers[0].ind).toBe(0);
+    expect(layers[1].ind).toBe(1);
+    expect(layers[2].ind).toBe(2);
+  });
+
+  it('defaults scene duration to 2s when undefined', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ label: 'NoDur' }] },
+      HD,
+    );
+
+    const layer = (lottie.layers as Record<string, unknown>[])[0];
+    // 2s × 30fps = 60 frames
+    expect(layer.op).toBe(60);
+  });
+
+  it('uses label over type over fallback for layer name', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ duration: 1, label: 'Labeled', type: 'flow' }] },
+      HD,
+    );
+
+    const layer = (lottie.layers as Record<string, unknown>[])[0];
+    expect(layer.nm).toBe('Labeled');
+  });
+
+  it('falls back to type when label is missing', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ duration: 1, type: 'tree' }] },
+      HD,
+    );
+
+    const layer = (lottie.layers as Record<string, unknown>[])[0];
+    expect(layer.nm).toBe('tree');
+  });
+
+  it('falls back to "Scene N" when both label and type are missing', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ duration: 1 }] },
+      HD,
+    );
+
+    const layer = (lottie.layers as Record<string, unknown>[])[0];
+    expect(layer.nm).toBe('Scene 1');
+  });
+
+  it('sets position anchor to center of frame', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ duration: 1, label: 'Pos' }] },
+      CUSTOM,
+    );
+
+    const layer = (lottie.layers as Record<string, unknown>[])[0];
+    const ks = layer.ks as Record<string, unknown>;
+    const pos = ks.p as Record<string, unknown>;
+
+    expect(pos.a).toBe(0);
+    expect(pos.k).toEqual([400, 300, 0]); // 800/2, 600/2
+  });
+
+  it('calculates fade-in keyframe at 0.3s into scene', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ duration: 5, label: 'Long' }] },
+      HD,
+    );
+
+    const layer = (lottie.layers as Record<string, unknown>[])[0];
+    const ks = layer.ks as Record<string, unknown>;
+    const opacity = ks.o as Record<string, unknown>;
+    const keyframes = opacity.k as Record<string, unknown>[];
+
+    // fade-in end keyframe at 0.3s × 30fps = frame 9
+    expect(keyframes[1].t).toBe(9);
+  });
+
+  it('calculates fade-out start at 0.3s before scene end', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ duration: 5, label: 'Long' }] },
+      HD,
+    );
+
+    const layer = (lottie.layers as Record<string, unknown>[])[0];
+    const ks = layer.ks as Record<string, unknown>;
+    const opacity = ks.o as Record<string, unknown>;
+    const keyframes = opacity.k as Record<string, unknown>[];
+
+    // total frames = 5 × 30 = 150, fade-out at 150 - 9 = 141
+    expect(keyframes[2].t).toBe(141);
+  });
+});
