@@ -6,6 +6,7 @@ import { healthRouter } from './routes/health';
 import { createBatchRouter } from './routes/batch';
 import { createPipelineRouter } from './routes/pipeline';
 import { createMonitoringRouter } from './routes/monitoring';
+import { createErrorsRouter } from './routes/errors';
 import { errorHandler } from './middleware/error-handler';
 import { apiRateLimiter, uploadRateLimiter } from './middleware/rate-limit';
 import { requestTimeout } from './middleware/timeout';
@@ -81,6 +82,8 @@ app.use(rateLimit({
 app.use('/api/v1', healthRouter);
 // TASK-0146: monitoring & cost metrics endpoints
 app.use('/api/v1/monitoring', createMonitoringRouter());
+// REQ-037: error recovery endpoints
+app.use('/api/v1/errors', createErrorsRouter());
 // ISS-026: apply upload rate limiter to batch job creation routes
 app.use('/api/v1/batch', uploadRateLimiter, createBatchRouter());
 // ISS-029: apply API rate limiter to pipeline routes to prevent abuse
