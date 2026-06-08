@@ -10,11 +10,40 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-05（第182回検証: Phase 83完了・REQ-208~209 Grafanaダッシュボード・アラートルール完了確認・REQ-210~215 Phase 84-86前方要件追加）
+**最終更新**: 2026-06-08（第184回検証: Phase 89完了・REQ-216~219 追加・監視クエリ検証・LLM図解構造検証・シーン駆動アニメーションエクスポート・エラーリカバリREST API）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
 ## 分析項目と判断
+
+### A184: 第184回検証 - Phase 87-89完了確認・未追跡機能の要件追加（2026-06-08）
+
+**分析日時**: 2026-06-08
+**カテゴリ**: 要件定義ギャップ解消・実装→要件トレーサビリティ修正
+**背景**: AI Hubフィードバック「target repository produced zero commits」に対応。直近5コミット（5d3053c~33a5188）を分析した結果、4つの実装済機能が要件定義書（requirements.md）に未反映であることを発見。Kairo要件生成ワークフロー（step1~6）を実行し、コード→要件のトレーサビリティギャップを解消。
+
+**判断**:
+1. **REQ-037 拡張**: エラーリカバリに REST API エンドポイント（POST /api/v1/errors/register・GET /api/v1/errors/:errorId/options・POST /api/v1/errors/:errorId/recover）が追加されたが、要件定義書には対話型エラー回復の記述のみで REST API が未記載だった。REQ-037 を拡張して API 仕様を追加
+2. **REQ-216 追加**: 監視エンドポイントに Zod クエリスキーマ検証が追加（DashboardQuerySchema・AlertsQuerySchema・TrendsQuerySchema）。コード内で REQ-216 として参照されていたが要件定義書に未記載
+3. **REQ-217 追加**: LLM 図解データの構造検証（ノードID欠損フィルタ・重複排除・自己ループ除去・孤立エッジ除去）が実装済。createEnhancedParser() 内の5段階検証パイプライン
+4. **REQ-218~219 追加**: シーン駆動アニメーションエクスポート（Animated SVG + Lottie JSON）が実装済。generateAnimatedSVG()・generateLottieAnimation() に基づく2つの独立した要件として定義
+5. **Phase 85-86 完了確認**: REQ-212~215 がコミットで実装完了済であることを確認。Phase 85-86 を 🟡→✅ に更新
+
+**根拠**:
+- コミット 147261e: src/api/routes/monitoring.ts Zod safeParse + 107テスト追加
+- コミット 5d3053c: src/analysis/gemini-analyzer.ts createEnhancedParser() + 5テスト追加
+- コミット 4f8d6a4: src/export/enhanced-export-engine.ts generateAnimatedSVG()/generateLottieAnimation() + 7テスト追加
+- コミット 441eb68: src/api/routes/errors.ts + src/api/server.ts + 21テスト追加
+- コミット 33a5188: APNG encoder unit tests（テストのみ、要件追加なし）
+
+**信頼性への影響**:
+- 新規要件 REQ-216~219 を追加（信頼性: 🔵 全て実装済コードに基づく）
+- REQ-037 を拡張（信頼性: 🔵 実装済 API に基づく）
+- Phase 85-86 を 🟡→✅ に更新（REQ-212~215 実装確認）
+- 信頼性レベル分布: 🔵236件(98.3%) / 🟡4件(1.7%) / 🔴0件(0%)
+- Phase 87-89 サマリーを追加
+
+---
 
 ### A182: 第182回検証 - Phase 83完了確認・Phase 84-86前方要件追加（2026-06-05）
 

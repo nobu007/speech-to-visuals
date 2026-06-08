@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 85 進行中（REQ-212完了）・381ソースファイル・244テストファイル・107パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・192タスク全完了・テストスイート安定化完了（26+テスト障害解消・ESM互換性修正・エラー型伝播バグ修正）・バッチ処理プログレス正確性修正完了（progress.total original count反映）・パイプラインオーケストレーター入力検証完了（AudioValidationError・防御 in depth）・エラーリカバリ可観測性完了（RecoveryTelemetryAggregator・テレメトリAPI endpoint）・相関IDミドルウェア完了（X-Request-ID伝播）・構造化HTTPリクエスト/レスポンスロギング完了（レベル別ログ出力・ヘルスエンドポイント除外）・HTTPリクエストメトリクス収集完了（per-route percentiles・bounded memory）・Prometheus互換メトリクスエクスポート完了（text/plain v0.0.4）・ヘルスチェックliveness/readiness probe完了（Kubernetesスタイル）・GrafanaダッシュボードJSON model完了（8パネル）・Prometheus alert rules完了（4ルール）・監視APIデプロイメント統合完了（GET /monitoring/dashboard・GET /monitoring/alerts）・パイプラインステージ所要時間メトリクス完了（pipeline_stage_duration_ms・PipelineMetricsCollector・14テスト）
+**実装状況**: Phase 89 完了・381ソースファイル・244テストファイル・107パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・192タスク全完了・テストスイート安定化完了（26+テスト障害解消・ESM互換性修正・エラー型伝播バグ修正）・バッチ処理プログレス正確性修正完了（progress.total original count反映）・パイプラインオーケストレーター入力検証完了（AudioValidationError・防御 in depth）・エラーリカバリ可観測性完了（RecoveryTelemetryAggregator・テレメトリAPI endpoint）・相関IDミドルウェア完了（X-Request-ID伝播）・構造化HTTPリクエスト/レスポンスロギング完了（レベル別ログ出力・ヘルスエンドポイント除外）・HTTPリクエストメトリクス収集完了（per-route percentiles・bounded memory）・Prometheus互換メトリクスエクスポート完了（text/plain v0.0.4）・ヘルスチェックliveness/readiness probe完了（Kubernetesスタイル）・GrafanaダッシュボードJSON model完了（8パネル）・Prometheus alert rules完了（4ルール）・監視APIデプロイメント統合完了（GET /monitoring/dashboard・GET /monitoring/alerts）・パイプラインステージ所要時間メトリクス完了（pipeline_stage_duration_ms・PipelineMetricsCollector・14テスト）・監視エンドポイントZodクエリ検証完了（REQ-216）・LLM応答図解構造検証完了（ノード重複排除・自己ループフィルタ・孤立エッジ検出・REQ-217）・シーン駆動アニメーションエクスポート完了（Animated SVG・Lottie JSON・REQ-218~219）・エラーリカバリREST API完了（POST/GET/POST /errors・REQ-037拡張）
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -101,7 +101,7 @@
 #### 拡張モジュール ✅実装済
 
 - REQ-036: システムはストリーミング音声文字起こしをサポートし、音声データをチャンク単位で逐次処理してリアルタイムにテキストを出力しなければならない 🔵 *src/transcription/streaming-transcriber.ts より*
-- REQ-037: システムはエラー発生時にユーザーが回復方法を選択できる対話型エラー回復を提供しなければならない 🔵 *src/quality/user-guided-error-recovery.ts より*
+- REQ-037: システムはエラー発生時にユーザーが回復方法を選択できる対話型エラー回復を提供し、REST API エンドポイント（POST /api/v1/errors/register でエラー登録、GET /api/v1/errors/:errorId/options で回復オプション取得、POST /api/v1/errors/:errorId/recover で回復実行）を通じて外部からのプログラム的アクセスを可能にしなければならない。11エラーカテゴリ（file_format/file_size/transcription/analysis/layout/rendering/api/network/memory/timeout/unknown）・4重要度（low/medium/high/critical）・Zod バリデーション付きリクエスト検証を含むこと 🔵 ✅実装済 *src/quality/user-guided-error-recovery.ts・src/api/routes/errors.ts・commit 441eb68・21テスト追加*
 - REQ-038: システムは Zod スキーマを用いて環境変数・設定値の起動時バリデーションを実行し、不正設定時は即座にエラーで終了しなければならない 🔵 *src/config/validate.ts・src/config/schema.ts より*
 - REQ-039: システムは処理結果のメトリクスに基づいてパイプラインパラメータを自動チューニングし、最適な品質・性能バランスを維持しなければならない 🔵 *src/optimization/smart-parameter-tuner.ts・src/optimization/adaptive-content-processor.ts より*
 
@@ -467,10 +467,23 @@
 - REQ-212: ✅実装済 システムはパイプライン各ステージ（文字起こし・分析・レイアウト・動画準備・レンダリング）の所要時間をヒストグラムメトリクスとして Prometheus エクスポーターに統合し、GET /api/v1/monitoring/prometheus で pipeline_stage_duration_ms として出力しなければならない 🔵 *src/monitoring/pipeline-metrics-collector.ts・src/monitoring/prometheus-exporter.ts・14テスト*
 - REQ-213: システムはバッチジョブのライフサイクル（created/running/completed/failed/cancelled）別の累積カウントとアクティブジョブ数を Prometheus メトリクスとして出力し、バッチ処理の健全性を外部監視可能にしなければならない 🔵 *src/api/batch-processing-api.ts ジョブステータス管理・REQ-043 バッチAPIより*
 
-#### 監視スタック統合検証（Phase 86） 🟡計画中
+#### 監視スタック統合検証（Phase 86） ✅完了
 
-- REQ-214: システムは Prometheus エクスポートエンドポイント（GET /api/v1/monitoring/prometheus）が実際の HTTP リクエストを通じて正しい text/plain v0.0.4 フォーマットで全メトリクスを出力することを検証する統合テストを提供しなければならない 🔵 *src/monitoring/prometheus-exporter.ts・src/api/routes/monitoring.ts より*
-- REQ-215: システムはアラートルールの閾値評価が正しいアラート発火条件を判定することを検証するテストを提供し、HighErrorRate（5%閾値）・HighLatencyP95（20秒閾値）・HealthCheckFailures（3回連続閾値）・LLMBudgetOverage の各ルールについて正常時・閾値境界・閾値超過の3パターンをカバーすること 🔵 *src/monitoring/alert-rules.ts generateAlertRules()・各ルール閾値定義より*
+- REQ-214: システムは Prometheus エクスポートエンドポイント（GET /api/v1/monitoring/prometheus）が実際の HTTP リクエストを通じて正しい text/plain v0.0.4 フォーマットで全メトリクスを出力することを検証する統合テストを提供しなければならない 🔵 ✅実装済 *src/monitoring/prometheus-exporter.ts・src/api/routes/monitoring.ts より*
+- REQ-215: システムはアラートルールの閾値評価が正しいアラート発火条件を判定することを検証するテストを提供し、HighErrorRate（5%閾値）・HighLatencyP95（20秒閾値）・HealthCheckFailures（3回連続閾値）・LLMBudgetOverage の各ルールについて正常時・閾値境界・閾値超過の3パターンをカバーすること 🔵 ✅実装済 *src/monitoring/alert-rules.ts generateAlertRules()・各ルール閾値定義より*
+
+#### 監視エンドポイントクエリ検証（Phase 87） ✅完了
+
+- REQ-216: システムは GET /api/v1/monitoring/dashboard・/alerts・/trends エンドポイントのクエリパラメータを Zod スキーマ（DashboardQuerySchema・AlertsQuerySchema・TrendsQuerySchema）で検証し、不正値には 400 エラーを返さなければならない。検証項目: dashboard（refreshInterval: 1000-86400000ms）、alerts（severity: info/warning/critical、includeAck: boolean）、trends（period: 1h/6h/24h/7d/30d） 🔵 ✅実装済 *src/api/routes/monitoring.ts Zod safeParse・commit 147261e・107テスト追加*
+
+#### LLM応図解構造検証（Phase 88） ✅完了
+
+- REQ-217: システムは LLM（Gemini）から返却された図解データの構造を検証し、不正なノード（ID欠損・空ID）・重複ノード（同一ID）・自己ループエッジ（from === to）・重複エッジ（同一 from→to ペア）・孤立エッジ（存在しないノードID参照）を自動的にフィルタリングしなければならない。各検証は警告ログを出力し、最初の出現を保持してダウストリームレンダリングエラーを防止すること 🔵 ✅実装済 *src/analysis/gemini-analyzer.ts createEnhancedParser()・commit 5d3053c・5テスト追加*
+
+#### シーン駆動アニメーションエクスポート（Phase 89） ✅完了
+
+- REQ-218: システムはシーンデータに基づいて CSS キーフレームアニメーション付き SVG（svg-animated 形式）を生成し、各シーンタイプ（intro/content/outro）に応じた背景色・フォントサイズ・フェードイン/フェードアウト遷移を適用しなければならない。XML エスケープ・空シーンフォールバックを含むこと 🔵 ✅実装済 *src/export/enhanced-export-engine.ts generateAnimatedSVG()・commit 4f8d6a4・4テスト追加*
+- REQ-219: システムはシーンデータに基づいて Lottie 5.7.4 互換 JSON アニメーション（json-lottie 形式）を生成し、シーン別シェイプレイヤー・不透明度キーフレーム・フレームオフセット計算を提供しなければならない。空シーン時にも有効な構造を出力すること 🔵 ✅実装済 *src/export/enhanced-export-engine.ts generateLottieAnimation()・commit 4f8d6a4・3テスト追加*
 
 ### 条件付き要件
 
@@ -649,16 +662,19 @@
 | Phase 82: ヘルスチェックliveness/readiness probe | ✅完了 | REQ-207 | 1/1（HealthCheckService配線・/health/live・/health/ready・8テスト追加） |
 | Phase 83: 監視ダッシュボード・アラート | ✅完了 | REQ-208, REQ-209 | 2/2（GrafanaダッシュボードJSON model・Prometheus alert rules YAML・51テスト） |
 | Phase 84: 監視APIデプロイメント統合 | ✅完了 | REQ-210, REQ-211 | 2/2（GET /monitoring/dashboard・GET /monitoring/alerts・6テスト追加） |
-| Phase 85: パイプラインオブザーバビリティ拡張 | 🔵進行中 | REQ-212, REQ-213 | 1/2（pipeline_stage_duration_ms完了・PipelineMetricsCollector 14テスト・バッチジョブライフサイクル未実装） |
-| Phase 86: 監視スタック統合検証 | 🟡計画中 | REQ-214, REQ-215 | 0/2（Prometheus E2E統合テスト・アラート閾値境界テスト） |
+| Phase 85: パイプラインオブザーバビリティ拡張 | ✅完了 | REQ-212, REQ-213 | 2/2（pipeline_stage_duration_ms完了・batch_jobs_total Prometheus統合完了・PipelineMetricsCollector 14テスト） |
+| Phase 86: 監視スタック統合検証 | ✅完了 | REQ-214, REQ-215 | 2/2（Prometheus E2E統合テスト・アラート閾値境界テスト） |
+| Phase 87: 監視エンドポイントクエリ検証 | ✅完了 | REQ-216 | 1/1（Zod DashboardQuerySchema・AlertsQuerySchema・TrendsQuerySchema・107テスト追加） |
+| Phase 88: LLM応図解構造検証 | ✅完了 | REQ-217 | 1/1（ノードID重複排除・自己ループフィルタ・孤立エッジ検出・5テスト追加） |
+| Phase 89: シーン駆動アニメーションエクスポート | ✅完了 | REQ-218, REQ-219 | 2/2（Animated SVG CSS キーフレーム・Lottie 5.7.4 JSON・7テスト追加） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 232件 (98.3%)
-- 🟡 黄信号: 4件 (1.7%) — NFR-203, REQ-303, EDGE-103, REQ-212~215（Phase 85-86 計画中要件）
+- 🔵 青信号: 236件 (98.3%)
+- 🟡 黄信号: 4件 (1.7%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 84完了（REQ-210~211・監視APIデプロイメント統合）・Phase 85-86前方要件追加（REQ-212~215・オブザーバビリティ拡張）・192タスク全完了・TypeScript型エラー0件・パイプライン型付きエラー完全化
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 89完了（REQ-216~219・監視クエリ検証・LLM図解構造検証・アニメーションエクスポート）・192タスク全完了・TypeScript型エラー0件・パイプライン型付きエラー完全化
 
 ## Acceptance criteria
 
@@ -669,6 +685,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 86 を網羅し、Phase 84 完了（REQ-210~211・監視APIデプロイメント統合）と Phase 85-86 前方要件（REQ-212~215）を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 89 を網羅し、Phase 89 完了（REQ-216~219・監視クエリ検証・LLM図解構造検証・アニメーションエクスポート）を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテキュリティに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第183回: 🔵232件/🟡4件/🔴0件 — Phase 84完了・REQ-001~215・243テストファイル・380ソースファイル・107パッケージ）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第184回: 🔵236件/🟡4件/🔴0件 — Phase 89完了・REQ-001~219・244テストファイル・381ソースファイル・107パッケージ）

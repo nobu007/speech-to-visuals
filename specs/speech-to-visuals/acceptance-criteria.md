@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-05（第182回検証: Phase 83完了・REQ-205~209 HTTPメトリクス・Prometheus・ヘルスプローブ・Grafana・アラート・241テストファイル・380ソースファイル・107パッケージ）
+**最終更新**: 2026-06-08（第184回検証: Phase 89完了・REQ-216~219 監視クエリ検証・LLM図解構造検証・Animated SVG・Lottie JSON・244テストファイル・381ソースファイル・107パッケージ）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -3520,5 +3520,143 @@
   - **入力**: 連続失敗 2回 / 3回 / 4回
   - **期待結果**: 3回以上で critical アラート発火
   - **信頼性**: 🔵 *alert-rules.ts HealthCheckFailures >= 3 定義より*
+
+---
+
+## REQ-216: 監視エンドポイントZodクエリ検証 🔵
+
+**信頼性**: 🔵 *src/api/routes/monitoring.ts Zod safeParse・commit 147261e*
+
+> Given: 監視エンドポイント（dashboard・alerts・trends）が Zod クエリスキーマで保護されている | When: 不正なクエリパラメータでリクエストを送信する | Then: 400 エラーが返却される
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-216-01**: dashboard エンドポイントの正常クエリパラメータ 🔵
+  - **入力**: GET /monitoring/dashboard?refreshInterval=5000
+  - **期待結果**: 200 OK でダッシュボードJSONが返却される
+  - **信頼性**: 🔵 *monitoring.ts DashboardQuerySchema より*
+
+- [x] **TC-216-02**: alerts エンドポイントの正常クエリパラメータ 🔵
+  - **入力**: GET /monitoring/alerts?severity=warning&includeAck=true
+  - **期待結果**: 200 OK でアラート情報が返却される
+  - **信頼性**: 🔵 *monitoring.ts AlertsQuerySchema より*
+
+#### 異常系
+
+- [x] **TC-216-E01**: 不正な refreshInterval でリクエスト 🔵
+  - **入力**: GET /monitoring/dashboard?refreshInterval=0
+  - **期待結果**: 400 バリデーションエラー
+  - **信頼性**: 🔵 *DashboardQuerySchema min(1000) 定義より*
+
+- [x] **TC-216-E02**: 不正な period でリクエスト 🔵
+  - **入力**: GET /monitoring/trends?period=invalid
+  - **期待結果**: 400 バリデーションエラー
+  - **信頼性**: 🔵 *TrendsQuerySchema enum 定義より*
+
+---
+
+## REQ-217: LLM応答図解構造検証 🔵
+
+**信頼性**: 🔵 *src/analysis/gemini-analyzer.ts createEnhancedParser()・commit 5d3053c*
+
+> Given: LLM から図解データが返却されている | When: createEnhancedParser() がノード・エッジの構造検証を実行する | Then: 不正データ（ID欠損・重複・自己ループ・孤立エッジ）がフィルタリングされる
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-217-01**: 重複ノードIDの排除（最初の出現を保持）🔵
+  - **入力**: 同一 ID のノードが複数含まれる図解データ
+  - **期待結果**: 最初の出現のみ保持、警告ログ出力
+  - **信頼性**: 🔵 *gemini-analyzer-comprehensive.test.ts テストより*
+
+- [x] **TC-217-02**: 自己ループエッジ（from === to）のフィルタリング 🔵
+  - **入力**: from と to が同一のエッジ
+  - **期待結果**: 当該エッジが除外される
+  - **信頼性**: 🔵 *gemini-analyzer-comprehensive.test.ts テストより*
+
+- [x] **TC-217-03**: 重複エッジ（同一 from→to ペア）の排除 🔵
+  - **入力**: 同一 from-to ペアのエッジが複数含まれる
+  - **期待結果**: 最初の出現のみ保持
+  - **信頼性**: 🔵 *gemini-analyzer-comprehensive.test.ts テストより*
+
+- [x] **TC-217-04**: ID欠損ノードのフィルタリング 🔵
+  - **入力**: id が空文字・null・undefined のノード
+  - **期待結果**: 当該ノードが除外される
+  - **信頼性**: 🔵 *gemini-analyzer-comprehensive.test.ts テストより*
+
+#### 境界値
+
+- [x] **TC-217-B01**: 複合検証（重複 + 自己ループ + 孤立エッジ）同時処理 🔵
+  - **入力**: 全種類の不正データが混在する図解データ
+  - **期待結果**: 全不正データが適切にフィルタリングされる
+  - **信頼性**: 🔵 *gemini-analyzer-comprehensive.test.ts テストより*
+
+---
+
+## REQ-218: シーン駆動 Animated SVG エクスポート 🔵
+
+**信頼性**: 🔵 *src/export/enhanced-export-engine.ts generateAnimatedSVG()・commit 4f8d6a4*
+
+> Given: シーンデータが生成済み | When: svg-animated 形式でエクスポートする | Then: CSS キーフレームアニメーション付き SVG が生成される
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-218-01**: XML宣言とネームスペースを含む有効なSVG生成 🔵
+  - **入力**: 2シーン（intro + content）のシーンデータ
+  - **期待結果**: `<?xml version="1.0"?>` + `<svg xmlns="http://www.w3.org/2000/svg">` を含む
+  - **信頼性**: 🔵 *enhanced-export-engine.test.ts テストより*
+
+- [x] **TC-218-02**: シーンタイプ別スタイル適用 🔵
+  - **入力**: intro（背景#1a1a2e/48px）・content（背景#16213e/24px）・outro（背景#0f3460/36px）
+  - **期待結果**: 各シーンタイプに応じた背景色・フォントサイズが適用される
+  - **信頼性**: 🔵 *enhanced-export-engine.test.ts テストより*
+
+#### 異常系
+
+- [x] **TC-218-E01**: 空シーンデータのフォールバック 🔵
+  - **入力**: scenes 未定義のシーンデータ
+  - **期待結果**: フォールバックSVG（"No scenes available"）が生成される
+  - **信頼性**: 🔵 *enhanced-export-engine.test.ts テストより*
+
+#### 境界値
+
+- [x] **TC-218-B01**: 特殊文字を含むシーンラベルのXMLエスケープ 🔵
+  - **入力**: `&`, `<`, `>`, `"` を含むシーンラベル
+  - **期待結果**: `&amp;`, `&lt;`, `&gt;`, `&quot;` にエスケープされる
+  - **信頼性**: 🔵 *enhanced-export-engine.test.ts テストより*
+
+---
+
+## REQ-219: Lottie JSON アニメーションエクスポート 🔵
+
+**信頼性**: 🔵 *src/export/enhanced-export-engine.ts generateLottieAnimation()・commit 4f8d6a4*
+
+> Given: シーンデータが生成済み | When: json-lottie 形式でエクスポートする | Then: Lottie 5.7.4 互換 JSON アニメーションが生成される
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-219-01**: シーンベースのレイヤーを含むLottie JSON生成 🔵
+  - **入力**: 2シーン（各duration=3）のシーンデータ
+  - **期待結果**: レイヤー配列に各シーンのシェイプレイヤーが含まれる、ip/op/st が正しく計算される
+  - **信頼性**: 🔵 *enhanced-export-engine.test.ts テストより*
+
+- [x] **TC-219-02**: シーンラベルがレイヤー名として使用される 🔵
+  - **入力**: label="Introduction" のシーン
+  - **期待結果**: レイヤーの nm プロパティが "Introduction" になる
+  - **信頼性**: 🔵 *enhanced-export-engine.test.ts テストより*
+
+#### 異常系
+
+- [x] **TC-219-E01**: 空シーンデータでも有効なLottie構造出力 🔵
+  - **入力**: scenes 未定義のシーンデータ
+  - **期待結果**: 空レイヤー配列を持つ有効なLottie JSON構造
+  - **信頼性**: 🔵 *enhanced-export-engine.test.ts テストより*
 
 ---
