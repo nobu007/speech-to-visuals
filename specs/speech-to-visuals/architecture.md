@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-08（第184回検証: Phase 89完了・REQ-216~219 追加・監視クエリ検証・LLM図解構造検証・Animated SVG/Lottie JSONエクスポート・エラーリカバリREST API・TypeScript/ESLintエラー0件・107パッケージ・npm audit 0件）
+**最終更新**: 2026-06-09（第185回検証: Phase 89完了・animated-scene-renderer モジュール詳細追記・エラーリカバリREST API エンドポイント追記・REQ-216~219 設計反映・TypeScript/ESLintエラー0件・107パッケージ・npm audit 0件）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -81,6 +81,7 @@
 - **バッチ処理API**: REST エンドポイント（POST /batch/jobs でジョブ作成→HTTP 202、GET /batch/jobs/:id でステータス取得、DELETE /batch/jobs/:id でキャンセル）、セマフォパターンで最大3並列ジョブ制御 🔵 *src/api/routes/batch.ts・要件定義REQ-043 より*
 - **WebSocket リアルタイム通知**: Socket.IO ベースのジョブ進捗・完了・エラー・ファイルステータス・ステージ進捗・ストリーミングセグメント・エラー回復イベントのリアルタイム配信。JWT 認証で接続保護、ジョブルーム（join:job/leave:job）による購読管理 🔵 *src/api/websocket-handler.ts・要件定義REQ-046 より*
 - **起動時キャッシュウォームアップ**: Express サーバー起動完了後に triggerStartupWarmup() で LLMService.warmupCache() を非同期呼び出し（fire-and-forget パターン）。LLM サービス無効時はスキップ、失敗時はログ出力のみでサーバー動作に影響なし 🔵 *src/api/startup-warmup.ts・src/api/index.ts・Phase 43 より*
+- **エラーリカバリREST API**: プログラマティックなエラー登録・回復オプション取得・戦略実行の3エンドポイント（POST /api/v1/errors/register・GET /api/v1/errors/:errorId/options・POST /api/v1/errors/:errorId/recover）。UserGuidedErrorRecovery を REST API 経由で利用可能にし、外部システムからのエラー回復をサポート 🔵 *src/api/routes/errors.ts・要件定義REQ-037拡張 より*
 
 ### AI・処理モジュール 🔵
 
@@ -146,6 +147,7 @@
 - **ProductionExporter**: 本番環境向けエクスポート処理 🔵 *src/export/production-exporter.ts より*
 - **ExportPanel**: React UI エクスポートコンポーネント（フォーマット選択・進捗表示・プレビュー）🔵 *src/export/export-ui.tsx より*
 - **Worker対応**: WorkerPoolによるエクスポートレンダリングの並列化（遅延初期化・dispose/再利用ガード・フォールバック付き）🔵 *src/workers/export-worker.ts・要件定義REQ-061 より*
+- **AnimatedSceneRenderer**: アニメーション付き SVG・Lottie JSON 生成の純粋関数モジュール（230行）。enhanced-export-engine から抽出し独立テスト可能に。generateAnimatedSVG() で CSS キーフレームアニメーション付き SVG（シーンタイプ別背景色・フォントサイズ・フェードイン/アウト）を、generateLottieAnimation() で Lottie 5.7.4 互換 JSON（シェイプレイヤー・不透明度キーフレーム・フレームオフセット計算）を生成。buildLayerShapes() でシーンタイプ別背景色矩形（intro=#1a1a2e/outro=#0f3460/content=#16213e）の視覚的形状を構築。空シーンフォールバック・XML エスケープ付き 🔵 *src/export/animated-scene-renderer.ts・要件定義REQ-218~219 より*
 
 ### Web Workers 並列化モジュール 🔵
 
@@ -206,6 +208,8 @@ Phase 57 で追加実装された多層エラー回復システム（7モジュ�
 - **Prometheusアラートルール**: 閾値ベースアラート4ルール（HighErrorRate: error rate > 5% critical・HighLatencyP95: P95 > 20s warning・HealthCheckFailures: ≥ 3 failures critical・LLMBudgetOverage: budget warning）・AlertManager YAML形式出力 🔵 *Phase 83 REQ-209 より*
 - **監視エクセレンス**: 品質メトリクスの継続的な追跡とレポート
 - **監視APIデプロイメント統合**: GrafanaダッシュボードJSON（GET /api/v1/monitoring/dashboard）・PrometheusアラートルールYAML（GET /api/v1/monitoring/alerts）の配信API・CI/CDパイプラインからの自動デプロイ対応・設定可能パラメータ（datasource/refresh/prefix）🔵 *Phase 84 REQ-210~211 より*
+- **監視エンドポイントZodクエリ検証**: GET /api/v1/monitoring/dashboard・/alerts・/trends エンドポイントのクエリパラメータを Zod スキーマ（DashboardQuerySchema・AlertsQuerySchema・TrendsQuerySchema）で検証。refreshInterval (1000-86400000ms)・severity (info/warning/critical)・period (1h/6h/24h/7d/30d) の型安全な検証と400エラーレスポンス 🔵 *src/api/routes/monitoring.ts・要件定義REQ-216 より*
+- **LLM応答図解構造検証**: Gemini LLM から返却された図解データの構造を createEnhancedParser() で検証。不正ノード（ID欠損・空ID）・重複ノード（同一ID）・自己ループエッジ（from === to）・重複エッジ（同一 from→to ペア）・孤立エッジ（存在しないノードID参照）を自動フィルタリング。各検証で警告ログ出力、最初の出現を保持 🔵 *src/analysis/gemini-analyzer.ts・要件定義REQ-217 より*
 
 ### LLMコスト・トークン監視 🔵 【Phase 36 追加】
 
@@ -452,11 +456,11 @@ graph TB
 │   ├── analysis/           # 内容分析（33ファイル: LLM、Gemini、図解検出、言語検出、複雑度、フォールバックチェーン、プロンプト構築、テスト）🔵
 │   ├── api/                # REST API・WebSocket（13ファイル: バッチ処理、リアルタイム通知、パイプラインAPI、ミドルウェア、ルート定義）🔵
 │   │   ├── middleware/     # レート制限、エラーハンドラー、認証 🔵
-│   │   ├── routes/         # API ルート定義（batch, health, pipeline）🔵
+│   │   ├── routes/         # API ルート定義（batch, health, pipeline, monitoring, errors）🔵
 │   │   └── routes/__tests__/ # API ルートテスト 🔵
 │   ├── components/         # React UI（50ファイル: Pipeline UI, VideoPreview, FileUploader, TutorialSystem, StreamingProcessor, Dashboards, ErrorAlert等）🔵
 │   ├── config/             # 設定（7ファイル: プロダクション設定 + Zod バリデーション + 環境変数管理）🔵 *要件定義REQ-038*
-│   ├── export/             # エクスポート（5ファイル: multi-format/enhanced/production/UI）🔵
+│   ├── export/             # エクスポート（6ファイル: multi-format/enhanced/production/UI/animated-scene-renderer）🔵
 │   ├── framework/          # 再帰的改善フレームワーク（6ファイル: auto-improvement-engine, continuous-learner, iteration-manager等）🔵
 │   ├── hooks/              # React Hooks（2ファイル）
 │   ├── integrations/       # Supabase 統合（5ファイル）
@@ -657,6 +661,10 @@ Fallback LLM
 - [x] ヘルスチェックliveness/readiness probe（Phase 82）が完了している（HealthCheckService配線・REQ-207・8テスト）
 - [x] Grafanaダッシュボードモデル・Prometheusアラートルール（Phase 83）が完了している（grafana-dashboard-model.ts・alert-rules.ts・REQ-208~209・51テスト追加）
 - [x] 監視APIデプロイメント統合（Phase 84）が完了している（GET /monitoring/dashboard・GET /monitoring/alerts・REQ-210~211・6テスト追加）
+- [x] animated-scene-renderer モジュール（Phase 89）がコンポーネント構成に反映されている（generateAnimatedSVG/generateLottieAnimation/buildLayerShapes・REQ-218~219・36テスト）
+- [x] エラーリカバリREST API（Phase 89）がコンポーネント構成に反映されている（POST/GET/POST /errors・REQ-037拡張・28テスト）
+- [x] 監視エンドポイントZodクエリ検証（Phase 87）がコンポーネント構成に反映されている（REQ-216・107テスト）
+- [x] LLM応答図解構造検証（Phase 88）がコンポーネント構成に反映されている（createEnhancedParser・REQ-217・5テスト）
 
 ## 関連文書
 
@@ -671,11 +679,11 @@ Fallback LLM
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 176件 (97%)
+- 🔵 青信号: 180件 (97%)
 - 🟡 黄信号: 4件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第183回検証: Phase 84完了・監視APIデプロイメント統合・382ファイル・243テストファイル・TypeScript/ESLintエラー0件・107パッケージ・npm audit 0件・SYSTEM_CONSTITUTION V2.6適合）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第185回検証: Phase 89完了・animated-scene-renderer追記・エラーリカバリREST API追記・382ファイル・244テストファイル・TypeScript/ESLintエラー0件・107パッケージ・npm audit 0件・SYSTEM_CONSTITUTION V2.6適合）
 
 
 <!-- spine:children:begin -->

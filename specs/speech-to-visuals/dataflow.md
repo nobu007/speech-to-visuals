@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-05-27（第166回検証: PipelineAbortError構造化中断フロー・並列パイプライン基盤フロー追加・360ファイル・185テストファイル）
+**最終更新**: 2026-06-09（第185回検証: animated-scene-renderer SVG/Lottie エクスポートフロー・エラーリカバリREST API フロー・監視Zod検証フロー・LLM図解構造検証フロー追加・382ファイル・244テストファイル）
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](requirements.md)
 
@@ -1481,6 +1481,224 @@ sequenceDiagram
 5. formatDuration() で人間可読形式（"1時間23分"）にフォーマット 🔵
 6. ObjectURL は loadedmetadata/error 両イベントで必ず解放（リソースリーク防止）🔵
 
+### 機能26: Animated SVG エクスポートフロー（Phase 89） 🔵
+
+**信頼性**: 🔵 *src/export/animated-scene-renderer.ts・要件定義REQ-218 より*
+
+**関連要件**: REQ-218
+
+```mermaid
+sequenceDiagram
+    participant EE as EnhancedExportEngine
+    participant ASR as AnimatedSceneRenderer
+    participant Output as SVG String
+
+    EE->>ASR: generateAnimatedSVG(sceneData, frames)
+    ASR->>ASR: escapeXml() テキストエスケープ
+    ASR->>ASR: 各シーンをSVG groupに変換
+
+    loop 各シーン
+        ASR->>ASR: sceneType判定（intro/content/outro）
+        ASR->>ASR: 背景色選択（intro=#f8fafc/outro=#f1f5f9/content=#ffffff）
+        ASR->>ASR: フォントサイズ選択（intro=24/outro=20/content=16）
+        ASR->>ASR: フェードイン/アウト opacity keyframes生成
+        ASR->>ASR: formatSceneSubtitle() 字幕フォーマット
+    end
+
+    ASR->>ASR: CSS @keyframes 付き SVG 組立
+    ASR-->>Output: 完全なSVG文字列
+```
+
+**詳細ステップ**:
+
+1. EnhancedExportEngine の encodeSVGAnimated() から generateAnimatedSVG() を呼び出し 🔵
+2. 各シーンのテキストを escapeXml() でXML特殊文字をエスケープ 🔵
+3. シーンタイプ（intro/content/outro）に応じて背景色・フォントサイズを自動選択 🔵
+4. CSS @keyframes で opacity フェードイン/アウト遷移を生成 🔵
+5. 空シーン時はフォールバックSVGを出力 🔵
+
+### 機能27: Lottie JSON エクスポートフロー（Phase 89） 🔵
+
+**信頼性**: 🔵 *src/export/animated-scene-renderer.ts・要件定義REQ-219 より*
+
+**関連要件**: REQ-219
+
+```mermaid
+sequenceDiagram
+    participant EE as EnhancedExportEngine
+    participant ASR as AnimatedSceneRenderer
+    participant BLS as buildLayerShapes
+    participant Output as Lottie JSON
+
+    EE->>ASR: generateLottieAnimation(sceneData, frames)
+    ASR->>ASR: フレームオフセット計算
+    ASR->>ASR: Lottie 5.7.4 構造初期化（v/fr/ip/op）
+
+    loop 各シーン
+        ASR->>ASR: 不透明度キーフレーム生成（o property）
+        ASR->>BLS: buildLayerShapes(scene, width, height)
+        BLS->>BLS: sceneTypeToFillColor(sceneType)
+        BLS->>BLS: 背景矩形シェイプ生成（ty=rc, 8px rounded corners）
+        BLS->>BLS: 塗りシェイプ生成（ty=fl, タイプ別色）
+        BLS->>BLS: 変形グループ生成（ty=tr）
+        BLS->>BLS: グループコンテナ生成（ty=gr）
+        BLS-->>ASR: shapes配列
+        ASR->>ASR: レイヤー統合（ty=4, nm, ks, shapes, ip, op, st）
+    end
+
+    ASR->>ASR: 空シーンフォールバック確認
+    ASR-->>Output: Lottie 5.7.4 互換JSON
+```
+
+**Lottie シェイプレイヤー構造** 🔵:
+
+| プロパティ | 値 | 説明 |
+|-----------|-----|------|
+| ty: 'rc' | 矩形シェイプ | 8px rounded corners 付き背景矩形 |
+| ty: 'fl' | 塗りシェイプ | シーンタイプ別 RGBA カラー |
+| ty: 'tr' | 変形 | position・anchor point 管理 |
+| ty: 'gr' | グループ | shapes 階層コンテナ |
+
+**シーンタイプ別背景色** 🔵:
+| シーンタイプ | 色 | RGBA |
+|------------|-----|------|
+| intro | #1a1a2e | [0.102, 0.102, 0.180, 1] |
+| outro | #0f3460 | [0.059, 0.204, 0.376, 1] |
+| content | #16213e | [0.086, 0.129, 0.243, 1] |
+
+### 機能28: エラーリカバリREST API フロー（Phase 89） 🔵
+
+**信頼性**: 🔵 *src/api/routes/errors.ts・要件定義REQ-037拡張 より*
+
+**関連要件**: REQ-037
+
+```mermaid
+sequenceDiagram
+    participant Client as 外部システム/クライアント
+    participant API as Express API
+    participant UGER as UserGuidedErrorRecovery
+
+    rect rgb(230, 245, 255)
+    Note over Client,API: POST /api/v1/errors/register
+    Client->>API: {errorId, errorMessage, context?}
+    API->>UGER: analyzeError(error)
+    UGER->>UGER: エラー分類（11カテゴリ）
+    UGER-->>API: {errorId, category, severity}
+    API-->>Client: 200 {success, data: {errorId, category, severity}}
+    end
+
+    rect rgb(230, 255, 230)
+    Note over Client,API: GET /api/v1/errors/:errorId/options
+    Client->>API: errorId パスパラメータ
+    API->>UGER: getRecoveryOptions(errorId)
+    UGER-->>API: {category, severity, userMessage, recoveryStrategies, preventionTips}
+    API-->>Client: 200 {success, data: {...recoveryOptions}}
+    end
+
+    rect rgb(255, 255, 230)
+    Note over Client,API: POST /api/v1/errors/:errorId/recover
+    Client->>API: {strategyId, userChoice, context?}
+    API->>UGER: executeRecovery(errorId, strategyId)
+    UGER->>UGER: 回復戦略実行
+    UGER-->>API: {recovered, strategyUsed, processingResumed, estimatedTime, successRate}
+    API-->>Client: 200 {success, data: {...recoveryResult}}
+    end
+```
+
+**エラーリカバリREST エンドポイント一覧** 🔵:
+
+| エンドポイント | メソッド | 説明 | リクエストボディ |
+|-------------|---------|------|---------------|
+| /api/v1/errors/register | POST | エラー登録 | {errorId, errorMessage, context?} |
+| /api/v1/errors/:errorId/options | GET | 回復オプション取得 | なし |
+| /api/v1/errors/:errorId/recover | POST | 回復戦略実行 | {strategyId, userChoice, context?} |
+
+**対応エラーカテゴリ** 🔵:
+file_format, file_size, transcription, analysis, layout, rendering, api, network, memory, timeout, unknown
+
+### 機能29: 監視エンドポイントZodクエリ検証フロー（Phase 87） 🔵
+
+**信頼性**: 🔵 *src/api/routes/monitoring.ts・要件定義REQ-216 より*
+
+**関連要件**: REQ-216
+
+```mermaid
+flowchart TD
+    A[GET /api/v1/monitoring/* リクエスト] --> B{エンドポイント判定}
+    B -->|/dashboard| C[DashboardQuerySchema.safeParse]
+    B -->|/alerts| D[AlertsQuerySchema.safeParse]
+    B -->|/trends| E[TrendsQuerySchema.safeParse]
+
+    C --> F{検証結果}
+    D --> F
+    E --> F
+
+    F -->|success| G[検証済みクエリでハンドラー実行]
+    F -->|failure| H[400 Bad Request + Zodエラー詳細]
+    H --> I[ErrorResponse返却]
+    G --> J[200 OK + データ返却]
+
+    style C fill:#e1f5fe
+    style D fill:#e1f5fe
+    style E fill:#e1f5fe
+```
+
+**Zod検証スキーマ** 🔵:
+| エンドポイント | パラメータ | 検証ルール |
+|-------------|-----------|-----------|
+| /dashboard | refreshInterval | 1000-86400000ms |
+| /alerts | severity | info/warning/critical |
+| /alerts | includeAck | boolean |
+| /trends | period | 1h/6h/24h/7d/30d |
+
+### 機能30: LLM応答図解構造検証フロー（Phase 88） 🔵
+
+**信頼性**: 🔵 *src/analysis/gemini-analyzer.ts createEnhancedParser()・要件定義REQ-217 より*
+
+**関連要件**: REQ-217
+
+```mermaid
+flowchart TD
+    A[LLM応答 JSON] --> B[createEnhancedParser パース]
+    B --> C[不正ノード検出]
+    C --> C1{ID欠損・空ID?}
+    C1 -->|Yes| C2[警告ログ + 除去]
+    C1 -->|No| D[重複ノード検出]
+
+    D --> D1{同一ID重複?}
+    D1 -->|Yes| D2[警告ログ + 最初の出現保持]
+    D1 -->|No| E[自己ループエッジ検出]
+
+    E --> E1{from === to?}
+    E1 -->|Yes| E2[警告ログ + フィルタ]
+    E1 -->|No| F[重複エッジ検出]
+
+    F --> F1{同一 from→to ペア?}
+    F1 -->|Yes| F2[警告ログ + 最初の出現保持]
+    F1 -->|No| G[孤立エッジ検出]
+
+    G --> G1{存在しないノードID参照?}
+    G1 -->|Yes| G2[警告ログ + エッジ除去]
+    G1 -->|No| H[検証済み図解データ]
+
+    C2 --> D
+    D2 --> E
+    E2 --> F
+    F2 --> G
+    G2 --> H
+
+    H --> I[ダウンストリームレンダリングへ安全に渡す]
+```
+
+**検証項目と対応** 🔵:
+| 検証項目 | 対応 | ログ |
+|---------|------|------|
+| 不正ノード（ID欠損・空ID） | 除去 | 警告 |
+| 重複ノード（同一ID） | 最初の出現を保持 | 警告 |
+| 自己ループエッジ（from === to） | フィルタ | 警告 |
+| 重複エッジ（同一 from→to） | 最初の出現を保持 | 警告 |
+| 孤立エッジ（存在しないノード参照） | エッジ除去 | 警告 |
+
 ## 関連文書（旧）
 
 ### 機能19: RecoveryStrategyChain コンポーザブルフォールバックチェーンフロー（Phase 57） 🔵
@@ -1725,16 +1943,20 @@ sequenceDiagram
 6. キャパシティ調整が必要な場合は EnhancedErrorRecovery に調整指示 🔵
 7. API サーバー停止時に stop() でタイマー停止・リソース解放 🔵
 
-- 🔵 青信号: 195件 (99%)
+- 🔵 青信号: 210件 (99%)
 - 🟡 黄信号: 1件 (1%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - Smoke Orchestrator 5ステージパイプライン・マルチシーン逐次タイミングフロー追加を反映（第165回検証: Phase 1-58完了・355ファイル・182テストファイル・ギャップなし）
+**品質評価**: 高品質 - animated-scene-renderer SVG/Lottieエクスポートフロー・エラーリカバリREST APIフロー・監視Zod検証フロー・LLM図解構造検証フロー追加を反映（第185回検証: Phase 89完了・382ファイル・244テストファイル・ギャップなし）
 
 ## Acceptance criteria
 
 - [x] システム全体のデータフローが Mermaid flowchart で記述され、全パイプラインステージ（文字起こし→分析→レイアウト→アニメーション→レンダリング）を網羅している
 - [x] 主要18機能のデータフローが個別の Mermaid sequence/flow diagram で記述されている（機能1-B〜機能23）
+- [x] Animated SVG/Lottie エクスポートフロー（機能26~27）が Mermaid sequence diagram で記述されている（REQ-218~219・Phase 89）
+- [x] エラーリカバリREST API フロー（機能28）が Mermaid sequence diagram で記述されている（REQ-037拡張・Phase 89）
+- [x] 監視エンドポイントZod検証フロー（機能29）が Mermaid flowchart で記述されている（REQ-216・Phase 87）
+- [x] LLM応答図解構造検証フロー（機能30）が Mermaid flowchart で記述されている（REQ-217・Phase 88）
 - [x] 各データフローに信頼性レベル（🔵🟡🔴）が付与され、情報源が明記されている
 - [x] エラーハンドリングフロー（3層フォールバック・ユーザー主導回復・設定バリデーション）が記述されている
 - [x] 品質ゲート評価フロー（5段階品質基準）が記述されている
