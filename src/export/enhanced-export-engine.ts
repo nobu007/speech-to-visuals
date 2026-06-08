@@ -672,33 +672,111 @@ export class EnhancedExportEngine {
   }
 
   private generateAnimatedSVG(sceneData: SceneData, frames: FrameData[]): string {
-    return `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
-    <defs>
-        <style>
-            .animated { animation: fadeIn 2s ease-in-out; }
-            @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        </style>
-    </defs>
-    <!-- SVG animation content based on scene data -->
-    <g class="animated">
-        <!-- Diagram elements here -->
-    </g>
+    const scenes = sceneData.scenes ?? [];
+    const width = frames[0]?.width ?? 1920;
+    const height = frames[0]?.height ?? 1080;
+
+    if (scenes.length === 0) {
+      return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
+  <rect width="${width}" height="${height}" fill="#0a0a0a"/>
+  <text x="${width / 2}" y="${height / 2}" text-anchor="middle" dominant-baseline="middle" fill="#e0e0e0" font-family="system-ui,sans-serif" font-size="24">No scene data</text>
+</svg>`;
+    }
+
+    const totalDuration = scenes.reduce((acc, s) => acc + (s.duration ?? 2), 0);
+    const keyframes: string[] = [];
+    const sceneGroups: string[] = [];
+    let offset = 0;
+
+    for (let i = 0; i < scenes.length; i++) {
+      const scene = scenes[i];
+      const duration = scene.duration ?? 2;
+      const startPct = this.roundPct((offset / totalDuration) * 100);
+      const fadeInEnd = this.roundPct(Math.min(startPct + 3, ((offset + duration * 0.15) / totalDuration) * 100));
+      const fadeOutStart = this.roundPct(((offset + duration * 0.85) / totalDuration) * 100);
+      const endPct = this.roundPct(((offset + duration) / totalDuration) * 100);
+
+      const animName = `s${i}`;
+      keyframes.push(`@keyframes ${animName}{0%,${startPct}%{opacity:0}${fadeInEnd}%{opacity:1}${fadeOutStart}%{opacity:1}${endPct}%,100%{opacity:0}}`);
+
+      const label = this.escapeXml(String(scene.label ?? scene.type ?? `Scene ${i + 1}`));
+      const bgFill = scene.type === 'intro' ? '#1a1a2e' : scene.type === 'outro' ? '#0f3460' : '#16213e';
+      const fontSize = scene.type === 'intro' ? 48 : scene.type === 'outro' ? 36 : 24;
+
+      sceneGroups.push(`<g style="animation:${animName} ${totalDuration}s linear infinite;opacity:0"><rect width="${width}" height="${height}" fill="${bgFill}" rx="8"/><text x="${width / 2}" y="${height / 2}" text-anchor="middle" dominant-baseline="middle" fill="#e0e0e0" font-family="system-ui,sans-serif" font-size="${fontSize}" font-weight="bold">${label}</text><text x="${width / 2}" y="${height / 2 + fontSize + 20}" text-anchor="middle" fill="#a0a0a0" font-family="system-ui,sans-serif" font-size="16">${this.escapeXml(this.formatSceneSubtitle(scene))}</text></g>`);
+
+      offset += duration;
+    }
+
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
+<style>${keyframes.join('')}</style>
+<rect width="${width}" height="${height}" fill="#0a0a0a"/>
+${sceneGroups.join('\n')}
 </svg>`;
   }
 
+  private formatSceneSubtitle(scene: { duration?: number; [key: string]: unknown }): string {
+    const d = scene.duration ?? 2;
+    const mins = Math.floor(d / 60);
+    const secs = Math.round(d % 60);
+    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+  }
+
+  private escapeXml(str: string): string {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  private roundPct(n: number): number {
+    return Math.round(n * 100) / 100;
+  }
+
   private generateLottieAnimation(sceneData: SceneData, frames: FrameData[]): Record<string, unknown> {
+    const scenes = sceneData.scenes ?? [];
+    const fps = 30;
+    const width = frames[0]?.width ?? 1920;
+    const height = frames[0]?.height ?? 1080;
+    let frameOffset = 0;
+
+    const layers = scenes.map((scene, i) => {
+      const duration = scene.duration ?? 2;
+      const totalFrames = Math.round(duration * fps);
+      const label = String(scene.label ?? scene.type ?? `Scene ${i + 1}`);
+      const layer: Record<string, unknown> = {
+        ddd: 0,
+        ind: i,
+        ty: 4, // shape layer
+        nm: label,
+        sr: 1,
+        ks: {
+          o: { a: 1, k: [
+            { t: frameOffset, s: [0], e: [100] },
+            { t: frameOffset + Math.round(fps * 0.3), s: [100], e: [100] },
+            { t: frameOffset + totalFrames - Math.round(fps * 0.3), s: [100], e: [0] },
+            { t: frameOffset + totalFrames, s: [0] },
+          ] },
+          p: { a: 0, k: [width / 2, height / 2, 0] },
+          s: { a: 0, k: [100, 100, 100] },
+          r: { a: 0, k: 0 },
+        },
+        ip: frameOffset,
+        op: frameOffset + totalFrames,
+        st: frameOffset,
+      };
+      frameOffset += totalFrames;
+      return layer;
+    });
+
     return {
       v: "5.7.4",
-      fr: 30,
+      fr: fps,
       ip: 0,
-      op: frames.length,
-      w: 1920,
-      h: 1080,
+      op: frameOffset || frames.length,
+      w: width,
+      h: height,
       nm: "AudioDiagramAnimation",
-      layers: [
-        // Lottie animation layers based on scene data
-      ]
+      layers,
     };
   }
 

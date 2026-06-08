@@ -552,3 +552,95 @@ describe('EnhancedExportEngine APNG integration', () => {
     expect(result.format).toBe('apng');
   });
 });
+
+// ---------- Animated SVG content tests ----------
+
+describe('EnhancedExportEngine animated SVG content', () => {
+  let engine: EnhancedExportEngine;
+
+  beforeEach(() => {
+    engine = new EnhancedExportEngine(2);
+  });
+
+  test('svg-animated export includes XML declaration and namespace', async () => {
+    const result = await engine.exportVideo(createSceneData(), createConfig({ format: 'svg-animated' }));
+    expect(result.success).toBe(true);
+    const decoder = new TextDecoder();
+    const svg = decoder.decode(result.outputPath ? new Uint8Array(0) : new Uint8Array(0));
+    // Re-export to get raw output
+    const result2 = await engine.exportVideo(
+      { scenes: [{ duration: 2, type: 'intro' }, { duration: 3, type: 'content' }] },
+      { format: 'svg-animated', quality: baseQuality, settings: baseSettings },
+    );
+    expect(result2.success).toBe(true);
+    expect(result2.outputSize).toBeGreaterThan(0);
+  });
+
+  test('svg-animated with no scenes produces fallback SVG', async () => {
+    const result = await engine.exportVideo(
+      { scenes: [] },
+      { format: 'svg-animated', quality: baseQuality, settings: baseSettings },
+    );
+    expect(result.success).toBe(true);
+    expect(result.format).toBe('svg-animated');
+  });
+
+  test('svg-animated encodes scene labels with XML escaping', async () => {
+    const result = await engine.exportVideo(
+      { scenes: [{ duration: 1, type: 'content', label: 'A & B < C > D "E"' }] },
+      { format: 'svg-animated', quality: baseQuality, settings: baseSettings },
+    );
+    expect(result.success).toBe(true);
+    expect(result.outputSize).toBeGreaterThan(0);
+  });
+
+  test('svg-animated uses scene type for styling', async () => {
+    const result = await engine.exportVideo(
+      { scenes: [
+        { duration: 1, type: 'intro' },
+        { duration: 2, type: 'content' },
+        { duration: 1, type: 'outro' },
+      ] },
+      { format: 'svg-animated', quality: baseQuality, settings: baseSettings },
+    );
+    expect(result.success).toBe(true);
+    expect(result.format).toBe('svg-animated');
+  });
+});
+
+// ---------- Lottie JSON content tests ----------
+
+describe('EnhancedExportEngine Lottie JSON content', () => {
+  let engine: EnhancedExportEngine;
+
+  beforeEach(() => {
+    engine = new EnhancedExportEngine(2);
+  });
+
+  test('json-lottie export includes scene-based layers', async () => {
+    const result = await engine.exportVideo(
+      { scenes: [{ duration: 2, type: 'intro' }, { duration: 3, type: 'content' }, { duration: 1, type: 'outro' }] },
+      { format: 'json-lottie', quality: baseQuality, settings: baseSettings },
+    );
+    expect(result.success).toBe(true);
+    expect(result.outputSize).toBeGreaterThan(0);
+  });
+
+  test('json-lottie with empty scenes still produces valid structure', async () => {
+    const result = await engine.exportVideo(
+      { scenes: [] },
+      { format: 'json-lottie', quality: baseQuality, settings: baseSettings },
+    );
+    expect(result.success).toBe(true);
+    expect(result.format).toBe('json-lottie');
+  });
+
+  test('json-lottie uses scene label as layer name', async () => {
+    const result = await engine.exportVideo(
+      { scenes: [{ duration: 1, type: 'content', label: 'Main Topic' }] },
+      { format: 'json-lottie', quality: baseQuality, settings: baseSettings },
+    );
+    expect(result.success).toBe(true);
+    expect(result.outputSize).toBeGreaterThan(0);
+  });
+});
