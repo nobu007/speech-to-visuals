@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-09（第185回検証: Phase 89完了・animated-scene-renderer モジュール詳細追記・エラーリカバリREST API エンドポイント追記・REQ-216~219 設計反映・TypeScript/ESLintエラー0件・107パッケージ・npm audit 0件）
+**最終更新**: 2026-06-09（第186回検証: Phase 90完了・エクスポートパイプラインE2E統合テスト・renderer-engine結合テスト反映・Express 5型安全性修正・386ソースファイル・350テストファイル・TypeScriptエラー0件）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -148,6 +148,7 @@
 - **ExportPanel**: React UI エクスポートコンポーネント（フォーマット選択・進捗表示・プレビュー）🔵 *src/export/export-ui.tsx より*
 - **Worker対応**: WorkerPoolによるエクスポートレンダリングの並列化（遅延初期化・dispose/再利用ガード・フォールバック付き）🔵 *src/workers/export-worker.ts・要件定義REQ-061 より*
 - **AnimatedSceneRenderer**: アニメーション付き SVG・Lottie JSON 生成の純粋関数モジュール（230行）。enhanced-export-engine から抽出し独立テスト可能に。generateAnimatedSVG() で CSS キーフレームアニメーション付き SVG（シーンタイプ別背景色・フォントサイズ・フェードイン/アウト）を、generateLottieAnimation() で Lottie 5.7.4 互換 JSON（シェイプレイヤー・不透明度キーフレーム・フレームオフセット計算）を生成。buildLayerShapes() でシーンタイプ別背景色矩形（intro=#1a1a2e/outro=#0f3460/content=#16213e）の視覚的形状を構築。空シーンフォールバック・XML エスケープ付き 🔵 *src/export/animated-scene-renderer.ts・要件定義REQ-218~219 より*
+- **エクスポートパイプライン統合テスト**: Phase 90 で E2E・結合テストを追加。export-pipeline-e2e.test.ts（391行）が EnhancedExportEngine 経由のシーンデータ→SVG/Lottie フルパイプライン検証（CSS キーフレーム・背景色・Lottie 構造・エラー伝播）。renderer-engine-integration.test.ts（256行）が animated-scene-renderer→enhanced-export-engine の結合検証（データフロー完全性・シーンタイプ別委譲・フォーマット別委譲切替）🔵 *tests/integration/・TASK-0199/0200 より*
 
 ### Web Workers 並列化モジュール 🔵
 
@@ -460,7 +461,7 @@ graph TB
 │   │   └── routes/__tests__/ # API ルートテスト 🔵
 │   ├── components/         # React UI（50ファイル: Pipeline UI, VideoPreview, FileUploader, TutorialSystem, StreamingProcessor, Dashboards, ErrorAlert等）🔵
 │   ├── config/             # 設定（7ファイル: プロダクション設定 + Zod バリデーション + 環境変数管理）🔵 *要件定義REQ-038*
-│   ├── export/             # エクスポート（6ファイル: multi-format/enhanced/production/UI/animated-scene-renderer）🔵
+│   ├── export/             # エクスポート（7ファイル: multi-format/enhanced/production/UI/animated-scene-renderer）🔵
 │   ├── framework/          # 再帰的改善フレームワーク（6ファイル: auto-improvement-engine, continuous-learner, iteration-manager等）🔵
 │   ├── hooks/              # React Hooks（2ファイル）
 │   ├── integrations/       # Supabase 統合（5ファイル）
@@ -488,7 +489,7 @@ graph TB
 │   ├── architecture/       # 旧アーキテクチャ文書（統合元）
 │   ├── spec/               # 要件定義書
 │   └── design/             # 設計文書（本ファイル群）
-├── tests/                  # テストスイート（129ファイル）
+├── tests/                  # テストスイート（350ファイル: unit/integration/performance/quality）
 ├── scripts/                # ユーティリティスクリプト
 └── public/                 # 静的アセット
 ```
@@ -629,8 +630,8 @@ Fallback LLM
 
 ## Acceptance criteria
 
-- [x] ディレクトリ構造のファイル数が実際の `src/` レイアウトと一致する（373ファイル）
-- [x] コード規模メトリクス（ファイル数・行数・テスト数・パッケージ数）が最新（109,856行・231テストファイル・1040パッケージ）
+- [x] ディレクトリ構造のファイル数が実際の `src/` レイアウトと一致する（386ファイル）
+- [x] コード規模メトリクス（ファイル数・行数・テスト数・パッケージ数）が最新（113,535行・350テストファイル・107パッケージ）
 - [x] アーキテクチャ文書内で参照されている全モジュールがコードベースに存在する
 - [x] TypeScript・ESLint エラーが 0 件
 - [x] 全テストスイートが green
@@ -665,6 +666,9 @@ Fallback LLM
 - [x] エラーリカバリREST API（Phase 89）がコンポーネント構成に反映されている（POST/GET/POST /errors・REQ-037拡張・28テスト）
 - [x] 監視エンドポイントZodクエリ検証（Phase 87）がコンポーネント構成に反映されている（REQ-216・107テスト）
 - [x] LLM応答図解構造検証（Phase 88）がコンポーネント構成に反映されている（createEnhancedParser・REQ-217・5テスト）
+- [x] エクスポートパイプラインE2E統合テスト（Phase 90）が完了している（export-pipeline-e2e.test.ts 391行・TASK-0199・SVG/Lottie フルパイプライン検証・エラー伝播検証）
+- [x] renderer-engine結合検証テスト（Phase 90）が完了している（renderer-engine-integration.test.ts 256行・TASK-0200・データフロー完全性・シーンタイプ別委譲・フォーマット切替検証）
+- [x] Express 5 型安全性修正（Phase 90）が完了している（errors.ts req.params型ガード・apng-encoder.test.ts require→dynamic import・TypeScriptエラー0件）
 
 ## 関連文書
 
@@ -683,7 +687,7 @@ Fallback LLM
 - 🟡 黄信号: 4件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第185回検証: Phase 89完了・animated-scene-renderer追記・エラーリカバリREST API追記・382ファイル・244テストファイル・TypeScript/ESLintエラー0件・107パッケージ・npm audit 0件・SYSTEM_CONSTITUTION V2.6適合）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第186回検証: Phase 90完了・エクスポートパイプライン統合テスト追記・Express 5型安全性修正・386ファイル・350テストファイル・TypeScriptエラー0件・SYSTEM_CONSTITUTION V2.6適合）
 
 
 <!-- spine:children:begin -->

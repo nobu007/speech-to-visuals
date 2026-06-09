@@ -206,9 +206,9 @@ describe('encodeAPNG', () => {
 });
 
 describe('parsePngChunks', () => {
-  it('throws EncodingError on invalid PNG signature', () => {
+  it('throws EncodingError on invalid PNG signature', async () => {
     const bad = new Uint8Array([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
-    const { EncodingError } = require('@/pipeline/pipeline-errors');
+    const { EncodingError } = await import('@/pipeline/pipeline-errors');
     expect(() => parsePngChunks(bad)).toThrow(EncodingError);
   });
 

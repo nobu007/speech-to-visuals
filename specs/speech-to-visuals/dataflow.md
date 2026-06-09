@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-09（第185回検証: animated-scene-renderer SVG/Lottie エクスポートフロー・エラーリカバリREST API フロー・監視Zod検証フロー・LLM図解構造検証フロー追加・382ファイル・244テストファイル）
+**最終更新**: 2026-06-09（第186回検証: Phase 90エクスポートパイプラインE2E統合テスト・renderer-engine結合検証・Express 5型安全性修正・386ファイル・350テストファイル）
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](requirements.md)
 

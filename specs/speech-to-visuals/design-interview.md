@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-09（第185回検証: Phase 89完了・animated-scene-renderer モジュール抽出・視覚的形状コンテンツ付きLottie レイヤー・エラーリカバリREST API・監視Zod検証・LLM図解構造検証・382ソースファイル・244テストファイル・TypeScript/ESLintエラー0件・ギャップなし確認）
+**最終更新**: 2026-06-09（第186回検証: Phase 90完了・エクスポートパイプラインE2E統合テスト・renderer-engine結合テスト・Express 5型安全性修正・386ソースファイル・350テストファイル・TypeScriptエラー0件・ギャップなし確認）
 **履歴**: 第176回検証(2026-06-02)・第171回検証(2026-06-01)・第170回検証(2026-05-29)・第167回検証(2026-05-27)・第165回検証(2026-05-26)・第158回検証(2026-05-20)・第157回検証(2026-05-18)・第151回検証(2026-05-18)・第150回検証(2026-05-18)・第149回検証(2026-05-17)・第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-05-01)・第22回検証(2026-04-30)
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 
@@ -22,6 +22,30 @@
 **最終更新（2026-04-29 Phase 4反映）**: Phase 4 完了に伴う要件定義更新（REQ-025~REQ-035 追加）と、新規モジュール（Remotion Animation・Renderer・SRT Parser・Pipeline UI）の差分反映を実施。
 
 ## 分析項目と判断
+
+### A106: 第186回検証 - Phase 90 エクスポートパイプライン統合テスト・Express 5型安全性修正（2026-06-09）
+
+**分析日時**: 2026-06-09
+**カテゴリ**: 統合テスト・型安全性修正
+**背景**: Phase 89 の animated-scene-renderer 抽出後、AI Hub フィードバックにより「648行のテストファイルが大きい — integration-level tests exercising the full export pipeline end-to-end would catch issues the current unit tests miss」と指摘。Phase 90 で TASK-0199/0200 の統合テストを実装。また Express 5 型定義（req.params が string | string[]）による型エラー2件とテスト内 require() 使用による lint エラー1件を検出・修正。
+
+**判断**: 以下の差分を反映:
+1. **export-pipeline-e2e.test.ts**（391行・TASK-0199）: EnhancedExportEngine 経由でシーンデータ→SVG/Lottie のフルパイプライン検証。CSS キーフレームアニメーション・シーンタイプ別背景色・Lottie 5.7.4 構造・エラー伝播を統合レベルで検証 🔵
+2. **renderer-engine-integration.test.ts**（256行・TASK-0200）: animated-scene-renderer→enhanced-export-engine の結合検証。データフロー完全性・シーンタイプ別委譲（intro/content/outro/empty）・フォーマット別委譲切替（SVG/Lottie）を検証 🔵
+3. **Express 5 型安全性修正**: src/api/routes/errors.ts で req.params.errorId が `string | string[]` 型のため、型ガード `typeof x === 'string'` を追加 🔵
+4. **テスト lint 修正**: apng-encoder.test.ts の `require()` → `await import()` 動的インポートに変更 🔵
+
+**根拠**:
+- git log: 3015b53 (TASK-0199/0200 tests)・34ae7e4 (TASK-0199~0201 specs)
+- テスト結果: export-pipeline-e2e 391行 + renderer-engine-integration 256行 = 647行の新規統合テスト
+- TypeScript修正: errors.ts 2箇所・apng-encoder.test.ts 1箇所 → tsc --noEmit 0エラー
+
+**信頼性への影響**:
+- architecture.md: 🔵 項目 +3（E2Eテスト・結合テスト・型安全性修正）
+- design-interview.md: A106追加
+- 信頼性レベル: 全追加項目 🔵（実装済みコードとテストを直接参照）
+
+---
 
 ### A105: 第185回検証 - Phase 87~89 animated-scene-renderer・エラーリカバリREST API・REQ-216~219 設計反映（2026-06-09）
 

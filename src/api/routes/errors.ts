@@ -66,7 +66,7 @@ export function createErrorsRouter(
    * Retrieve recovery options for a given error ID.
    */
   router.get('/:errorId/options', (req: Request, res: Response) => {
-    const { errorId } = req.params;
+    const errorId = typeof req.params.errorId === 'string' ? req.params.errorId : '';
 
     if (!errorId || errorId.trim().length === 0) {
       res.status(400).json({
@@ -130,7 +130,7 @@ export function createErrorsRouter(
    * Execute a recovery action for a given error ID.
    */
   router.post('/:errorId/recover', (req: Request, res: Response) => {
-    const { errorId } = req.params;
+    const errorId = typeof req.params.errorId === 'string' ? req.params.errorId : '';
 
     if (!errorId || errorId.trim().length === 0) {
       res.status(400).json({
