@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 89 完了・381ソースファイル・244テストファイル・107パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・192タスク全完了・テストスイート安定化完了（26+テスト障害解消・ESM互換性修正・エラー型伝播バグ修正）・バッチ処理プログレス正確性修正完了（progress.total original count反映）・パイプラインオーケストレーター入力検証完了（AudioValidationError・防御 in depth）・エラーリカバリ可観測性完了（RecoveryTelemetryAggregator・テレメトリAPI endpoint）・相関IDミドルウェア完了（X-Request-ID伝播）・構造化HTTPリクエスト/レスポンスロギング完了（レベル別ログ出力・ヘルスエンドポイント除外）・HTTPリクエストメトリクス収集完了（per-route percentiles・bounded memory）・Prometheus互換メトリクスエクスポート完了（text/plain v0.0.4）・ヘルスチェックliveness/readiness probe完了（Kubernetesスタイル）・GrafanaダッシュボードJSON model完了（8パネル）・Prometheus alert rules完了（4ルール）・監視APIデプロイメント統合完了（GET /monitoring/dashboard・GET /monitoring/alerts）・パイプラインステージ所要時間メトリクス完了（pipeline_stage_duration_ms・PipelineMetricsCollector・14テスト）・監視エンドポイントZodクエリ検証完了（REQ-216）・LLM応答図解構造検証完了（ノード重複排除・自己ループフィルタ・孤立エッジ検出・REQ-217）・シーン駆動アニメーションエクスポート完了（Animated SVG・Lottie JSON・REQ-218~219）・animated-scene-renderer モジュール抽出完了（視覚形状コンテンツ付きLottieレイヤー・36テスト）・エラーリカバリREST API完了（POST/GET/POST /errors・REQ-037拡張・28テスト追加）
+**実装状況**: Phase 90 完了・381ソースファイル・246テストファイル・107パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・192タスク全完了・テストスイート安定化完了（26+テスト障害解消・ESM互換性修正・エラー型伝播バグ修正）・バッチ処理プログレス正確性修正完了（progress.total original count反映）・パイプラインオーケストレーター入力検証完了（AudioValidationError・防御 in depth）・エラーリカバリ可観測性完了（RecoveryTelemetryAggregator・テレメトリAPI endpoint）・相関IDミドルウェア完了（X-Request-ID伝播）・構造化HTTPリクエスト/レスポンスロギング完了（レベル別ログ出力・ヘルスエンドポイント除外）・HTTPリクエストメトリクス収集完了（per-route percentiles・bounded memory）・Prometheus互換メトリクスエクスポート完了（text/plain v0.0.4）・ヘルスチェックliveness/readiness probe完了（Kubernetesスタイル）・GrafanaダッシュボードJSON model完了（8パネル）・Prometheus alert rules完了（4ルール）・監視APIデプロイメント統合完了（GET /monitoring/dashboard・GET /monitoring/alerts）・パイプラインステージ所要時間メトリクス完了（pipeline_stage_duration_ms・PipelineMetricsCollector・14テスト）・監視エンドポイントZodクエリ検証完了（REQ-216）・LLM応答図解構造検証完了（ノード重複排除・自己ループフィルタ・孤立エッジ検出・REQ-217）・シーン駆動アニメーションエクスポート完了（Animated SVG・Lottie JSON・REQ-218~219）・animated-scene-renderer モジュール抽出完了（視覚形状コンテンツ付きLottieレイヤー・36テスト）・エラーリカバリREST API完了（POST/GET/POST /errors・REQ-037拡張・28テスト追加）・エクスポートパイプライン統合テスト完了（TASK-0199/0200・E2E+renderer↔engine結合・38テスト）
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -485,6 +485,10 @@
 - REQ-218: システムはシーンデータに基づいて CSS キーフレームアニメーション付き SVG（svg-animated 形式）を生成し、各シーンタイプ（intro/content/outro）に応じた背景色・フォントサイズ・フェードイン/フェードアウト遷移を適用しなければならない。XML エスケープ・空シーンフォールバックを含むこと。純粋関数として独立テスト可能な animated-scene-renderer モジュールに抽出すること 🔵 ✅実装済 *src/export/animated-scene-renderer.ts generateAnimatedSVG()・commit f405637（モジュール抽出・36テスト）*
 - REQ-219: システムはシーンデータに基づいて Lottie 5.7.4 互換 JSON アニメーション（json-lottie 形式）を生成し、シーン別シェイプレイヤー・不透明度キーフレーム・フレームオフセット計算を提供しなければならない。各シーンレイヤーにはシーンタイプ別背景色（intro=#1a1a2e/outro=#0f3460/content=#16213e）の矩形シェイプ（ty=rc, rounded corners）を含み、sceneTypeToFillColor・buildLayerShapes ヘルパーで視覚的形状コンテンツを構築すること。空シーン時にも有効な構造を出力すること。純粋関数として独立テスト可能な animated-scene-renderer モジュールに抽出すること 🔵 ✅実装済 *src/export/animated-scene-renderer.ts generateLottieAnimation()・buildLayerShapes()・commit 214ec76（視覚形状コンテンツ追加）・commit f405637（モジュール抽出・36テスト）*
 
+#### エクスポートパイプライン統合テスト（Phase 90） ✅完了
+
+- REQ-220: システムはエクスポートパイプライン全体（EnhancedExportEngine → animated-scene-renderer → SVG/Lottie 出力）を end-to-end で検証する統合テストを提供しなければならない。シーンデータ入力から出力までのデータフロー一貫性・シーンタイプ別色のフォーマット横断一貫性・空シーンフォールバック・renderer↔engine 結合の正しさを含むこと。ユニットテストでは検出できないモジュール間連携の不具合を捕捉すること 🔵 ✅実装済 *tests/integration/export-pipeline-e2e.test.ts・tests/integration/renderer-engine-integration.test.ts・38テスト（TASK-0199/0200）*
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より*
@@ -667,14 +671,15 @@
 | Phase 87: 監視エンドポイントクエリ検証 | ✅完了 | REQ-216 | 1/1（Zod DashboardQuerySchema・AlertsQuerySchema・TrendsQuerySchema・107テスト追加） |
 | Phase 88: LLM応図解構造検証 | ✅完了 | REQ-217 | 1/1（ノードID重複排除・自己ループフィルタ・孤立エッジ検出・5テスト追加） |
 | Phase 89: シーン駆動アニメーションエクスポート | ✅完了 | REQ-218, REQ-219 | 2/2（Animated SVG CSS キーフレーム・Lottie 5.7.4 JSON・視覚形状コンテンツ・animated-scene-renderer モジュール抽出・36テスト・28テスト） |
+| Phase 90: エクスポートパイプライン統合テスト | ✅完了 | REQ-220 | 1/1（E2E統合テスト・renderer↔engine結合テスト・SVG↔Lottie横断一貫性・38テスト） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 236件 (98.3%)
+- 🔵 青信号: 237件 (98.3%)
 - 🟡 黄信号: 4件 (1.7%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 89完了（REQ-216~219・監視クエリ検証・LLM図解構造検証・アニメーションエクスポート）・192タスク全完了・TypeScript型エラー0件・パイプライン型付きエラー完全化
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 90完了（REQ-220・エクスポートパイプラインE2E+結合統合テスト）・192タスク全完了・TypeScript型エラー0件・パイプライン型付きエラー完全化
 
 ## Acceptance criteria
 

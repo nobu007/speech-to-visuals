@@ -3665,3 +3665,62 @@
   - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts テストより*
 
 ---
+
+## REQ-220: エクスポートパイプライン統合テスト 🔵
+
+**信頼性**: 🔵 *tests/integration/export-pipeline-e2e.test.ts・tests/integration/renderer-engine-integration.test.ts・TASK-0199/0200*
+
+> Given: シーンデータ（intro/content/outro）が生成済み | When: EnhancedExportEngine 経由で SVG・Lottie エクスポートを実行する | Then: モジュール間データフローが一貫し、SVG↔Lottie 横断でシーン色・ラベルが一致する
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-220-01**: SVG E2E パイプライン — CSS keyframes 付き SVG 生成 🔵
+  - **入力**: 3シーン（intro/content/outro）のシーンデータ
+  - **期待結果**: EnhancedExportEngine が成功、renderer 出力に各シーンのラベル・@keyframes が含まれる
+  - **信頼性**: 🔵 *export-pipeline-e2e.test.ts より*
+
+- [x] **TC-220-02**: Lottie E2E パイプライン — 5.7.4 JSON 生成 🔵
+  - **入力**: 3シーン（intro/content/outro）のシーンデータ
+  - **期待結果**: EnhancedExportEngine が成功、renderer 出力に正しいレイヤー数・フレームオフセットが含まれる
+  - **信頼性**: 🔵 *export-pipeline-e2e.test.ts より*
+
+- [x] **TC-220-03**: SVG↔Lottie 横断ラベル一貫性 🔵
+  - **入力**: 3シーンのシーンデータ
+  - **期待結果**: SVG テキストと Lottie レイヤー nm が同じラベルを含む
+  - **信頼性**: 🔵 *export-pipeline-e2e.test.ts より*
+
+- [x] **TC-220-04**: SVG↔Lottie 横断色一貫性 🔵
+  - **入力**: 各シーンタイプのデータ
+  - **期待結果**: SVG hex 色と Lottie fill 色（sceneTypeToFillColor）が一致
+  - **信頼性**: 🔵 *export-pipeline-e2e.test.ts + renderer-engine-integration.test.ts より*
+
+- [x] **TC-220-05**: renderer → engine データフロー結合 🔵
+  - **入力**: 3シーンのシーンデータ
+  - **期待結果**: renderer 出力のプロパティが engine 最終出力に反映される
+  - **信頼性**: 🔵 *renderer-engine-integration.test.ts より*
+
+- [x] **TC-220-06**: シーンタイプ別委譲（intro/content/outro） 🔵
+  - **入力**: 各シーンタイプのデータ
+  - **期待結果**: 各タイプの色・スタイルが SVG/Lottie 両方に正しく適用される
+  - **信頼性**: 🔵 *renderer-engine-integration.test.ts より*
+
+- [x] **TC-220-07**: フォーマット委譲（svg-animated / json-lottie） 🔵
+  - **入力**: 各フォーマット指定
+  - **期待結果**: engine が対応する renderer 関数を選択して出力
+  - **信頼性**: 🔵 *renderer-engine-integration.test.ts より*
+
+#### 異常系
+
+- [x] **TC-220-E01**: 空シーンフォールバック 🔵
+  - **入力**: scenes=[] のシーンデータ
+  - **期待結果**: SVG に "No scene data" プレースホルダー、Lottie に空レイヤー配列、engine が成功
+  - **信頼性**: 🔵 *export-pipeline-e2e.test.ts + renderer-engine-integration.test.ts より*
+
+- [x] **TC-220-E02**: 欠損オプションフィールドのシーン 🔵
+  - **入力**: label/type/duration 欠損のシーンデータ
+  - **期待結果**: デフォルト値（label="Scene N", type=content, duration=2）が適用される
+  - **信頼性**: 🔵 *export-pipeline-e2e.test.ts より*
+
+---
