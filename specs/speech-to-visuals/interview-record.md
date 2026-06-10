@@ -10,11 +10,40 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-09（第185回検証: Phase 90完了・REQ-220 追加・エクスポートパイプラインE2E+結合統合テスト・38テスト・TASK-0199/0200実装）
+**最終更新**: 2026-06-11（第189回検証: Phase 92完了・REQ-222 追加・エラーリカバリREST API堅牢化・RegisterBodySchema・errorId形式検証・XSSサニタイズ・レジストリLRU退去・ERROR_REGISTRY_LIMITS・94テスト追加）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
 ## 分析項目と判断
+
+### A189: 第189回検証 - Phase 92完了確認・エラーリカバリREST API堅牢化要件追加（2026-06-11）
+
+**分析日時**: 2026-06-11
+**カテゴリ**: セキュリティ・入力検証・要件定義増分更新
+**背景**: AI Hubフィードバック「Continue building on this progress」に対応。コミット71a3a8cでエラーリカバリREST APIにZod RegisterBodySchema・errorId形式検証・XSSサニタイズ・レジストリLRU退去が追加されたが要件定義書に未反映のため、実装済み要件の文書化を実施。テストスイート（28テスト全通過）とエクスポートパイプライン統合テスト（46テスト全通過）も確認済。
+
+**判断**:
+1. **REQ-222 追加**: エラーリカバリREST API（REQ-037）の入力検証を強化する新規要件として定義:
+   - POST /register ボディを RegisterBodySchema（Zod）で検証: errorId は英数字/ハイフン/アンダースコア/ドットのみ・最大128文字、errorMessage は最大2000文字
+   - GET /:errorId/options・POST /:errorId/recover のパスパラメータ errorId を同形式で検証し不正値には 400 INVALID_ERROR_ID を返す
+   - errorMessage に含まれるHTMLタグを sanitizeMessage() で除去し stored XSS を防止
+   - エラーレジストリが MAX_STORED_ERRORS（1000件）に達した際は最古エントリから10%を退去（LRU eviction）
+   - ERROR_REGISTRY_LIMITS 設定を src/config/limits.ts に集約
+2. **Phase 92 登録**: エラーリカバリREST API堅牢化フェーズを完了として登録
+
+**根拠**:
+- コミット 71a3a8c: src/api/routes/errors.ts（+87/-9行）・src/config/limits.ts（+12行）・tests/unit/api/routes/errors.test.ts（+94行）
+- RegisterBodySchema: errorId（string min1 max128 regex）・errorMessage（string min1 max2000）・context（optional record）
+- ERROR_REGISTRY_LIMITS: MAX_STORED_ERRORS=1000・MAX_ERROR_ID_LENGTH=128・MAX_ERROR_MESSAGE_LENGTH=2000・ERROR_ID_PATTERN
+- sanitizeMessage(): HTMLタグ除去によるXSS防止
+- storeError() eviction: サイズ≥1000時に10%退去
+
+**信頼性への影響**:
+- 新規要件 REQ-222 を追加（信頼性: 🔵 実装済コードに基づく）
+- 信頼性レベル分布: 🔵239件(98.4%) / 🟡4件(1.6%) / 🔴0件(0%)
+- Phase 92 を完了として登録
+
+---
 
 ### A184: 第184回検証 - Phase 87-89完了確認・未追跡機能の要件追加（2026-06-08）
 

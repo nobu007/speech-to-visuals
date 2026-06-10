@@ -3859,3 +3859,72 @@
   - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts より*
 
 ---
+
+## REQ-222: エラーリカバリREST API堅牢化 🔵
+
+**信頼性**: 🔵 *Phase 92 実装・src/api/routes/errors.ts・src/config/limits.ts より*
+
+### Given（前提条件）
+
+- エラーリカバリREST API（POST /register・GET /:errorId/options・POST /:errorId/recover）が稼働している
+
+### When（実行条件）
+
+- 各種入力パターンのリクエストを送信する
+
+### Then（期待結果）
+
+- Zod RegisterBodySchema により errorId・errorMessage の形式・長さが検証される
+- パスパラメータ errorId が形式検証され不正値は 400 INVALID_ERROR_ID が返される
+- HTMLタグが含まれる errorMessage は sanitizeMessage() でサニタイズされる
+- エラーレジストリが1000件に達すると最古10%が退去される
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-222-01**: 有効なerrorId（ハイフン・アンダースコア・ドット含む）で登録成功 🔵
+  - **入力**: {errorId: 'my-error_id.v2', errorMessage: 'test error'}
+  - **期待結果**: 200 success=true, data.errorId='my-error_id.v2'
+  - **信頼性**: 🔵 *tests/unit/api/routes/errors.test.ts より*
+
+#### 異常系
+
+- [x] **TC-222-E01**: errorIdにスペースを含むと400 VALIDATION_ERROR 🔵
+  - **入力**: {errorId: 'err space', errorMessage: 'test error'}
+  - **期待結果**: 400, error.code='VALIDATION_ERROR'
+  - **信頼性**: 🔵 *tests/unit/api/routes/errors.test.ts より*
+
+- [x] **TC-222-E02**: errorIdに特殊文字を含むと400 🔵
+  - **入力**: {errorId: 'err@#$%', errorMessage: 'test error'}
+  - **期待結果**: 400, success=false
+  - **信頼性**: 🔵 *tests/unit/api/routes/errors.test.ts より*
+
+- [x] **TC-222-E03**: errorIdが129文字で400 🔵
+  - **入力**: {errorId: 'a'.repeat(129), errorMessage: 'test error'}
+  - **期待結果**: 400, success=false
+  - **信頼性**: 🔵 *tests/unit/api/routes/errors.test.ts より*
+
+- [x] **TC-222-E04**: errorMessageが2001文字で400 🔵
+  - **入力**: {errorId: 'err-long', errorMessage: 'x'.repeat(2001)}
+  - **期待結果**: 400, success=false
+  - **信頼性**: 🔵 *tests/unit/api/routes/errors.test.ts より*
+
+- [x] **TC-222-E05**: パスパラメータerrorIdにスペースでGET /options が400 INVALID_ERROR_ID 🔵
+  - **入力**: GET /api/v1/errors/err%20id/options
+  - **期待結果**: 400, error.code='INVALID_ERROR_ID'
+  - **信頼性**: 🔵 *tests/unit/api/routes/errors.test.ts より*
+
+- [x] **TC-222-E06**: パスパラメータerrorIdにスペースでPOST /recover が400 INVALID_ERROR_ID 🔵
+  - **入力**: POST /api/v1/errors/err%20id/recover
+  - **期待結果**: 400, error.code='INVALID_ERROR_ID'
+  - **信頼性**: 🔵 *tests/unit/api/routes/errors.test.ts より*
+
+#### セキュリティ
+
+- [x] **TC-222-S01**: HTMLタグ付きerrorMessageがXSSサニタイズされて登録成功 🔵
+  - **入力**: {errorId: 'err-xss', errorMessage: '<script>alert("xss")</script>File format unsupported'}
+  - **期待結果**: 200, success=true（メッセージはサニタイズ済）
+  - **信頼性**: 🔵 *tests/unit/api/routes/errors.test.ts より*
+
+---
