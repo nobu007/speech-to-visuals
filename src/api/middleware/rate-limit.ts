@@ -28,3 +28,17 @@ export const uploadRateLimiter = rateLimit({
     },
   },
 });
+
+export const exportRateLimiter = rateLimit({
+  windowMs: RATE_LIMITS.EXPORT.WINDOW_MS,
+  max: RATE_LIMITS.EXPORT.MAX_REQUESTS,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: {
+      code: 'EXPORT_RATE_LIMIT_EXCEEDED',
+      message: 'Too many export requests, please try again later',
+    },
+  },
+});

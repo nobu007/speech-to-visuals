@@ -15,7 +15,9 @@ import { createPipelineRouter, PipelineStateManager } from '../pipeline';
 function createApp(stateManager?: PipelineStateManager) {
   const app = express();
   app.use(express.json());
-  app.use('/api', createPipelineRouter(stateManager));
+  // Pass no-op rate limiter so tests aren't blocked by export rate limits
+  const noopLimiter: express.RequestHandler = (_req, _res, next) => next();
+  app.use('/api', createPipelineRouter(stateManager, noopLimiter));
   return app;
 }
 
@@ -198,6 +200,30 @@ describe('Pipeline REST API Endpoints', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
+    });
+
+    it('should reject invalid codec value', async () => {
+      const response = await request(app)
+        .post('/api/render')
+        .send({
+          scenes: [{ id: 1 }],
+          options: { codec: 'invalid_codec' },
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('should reject invalid resolution format', async () => {
+      const response = await request(app)
+        .post('/api/render')
+        .send({
+          scenes: [{ id: 1 }],
+          options: { resolution: 'not-a-resolution' },
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
     });
   });
 

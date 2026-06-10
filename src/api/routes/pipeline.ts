@@ -8,11 +8,18 @@
  * - GET  /api/framework/status - Get framework execution status
  */
 
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, RequestHandler } from 'express';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { PIPELINE_LIMITS } from '../../config/limits';
 import { sanitizeFilename } from '../../utils/sanitize';
+import { exportRateLimiter } from '../middleware/rate-limit';
+
+/** Supported codecs for rendering */
+const VALID_CODECS = ['h264', 'h265', 'vp9', 'av1'] as const;
+
+/** Resolution pattern: WIDTHxHEIGHT (e.g. 1920x1080) */
+const RESOLUTION_REGEX = /^\d{1,5}x\d{1,5}$/;
 
 // ---------------------------------------------------------------------------
 // Zod validation schemas
@@ -23,9 +30,9 @@ const RenderRequestSchema = z.object({
   quality: z.enum(['low', 'medium', 'high']).optional(),
   outputName: z.string().max(PIPELINE_LIMITS.MAX_OUTPUT_NAME_LENGTH, `outputName must be at most ${PIPELINE_LIMITS.MAX_OUTPUT_NAME_LENGTH} characters`).optional(),
   options: z.object({
-    resolution: z.string().max(50).optional(),
+    resolution: z.string().max(50).regex(RESOLUTION_REGEX, 'resolution must be in WIDTHxHEIGHT format (e.g. 1920x1080)').optional(),
     fps: z.number().int().min(1).max(PIPELINE_LIMITS.MAX_FPS, `fps must be between 1 and ${PIPELINE_LIMITS.MAX_FPS}`).optional(),
-    codec: z.string().max(50).optional(),
+    codec: z.enum(VALID_CODECS, { message: `codec must be one of: ${(VALID_CODECS as readonly string[]).join(', ')}` }).optional(),
   }).optional(),
 });
 
@@ -167,12 +174,13 @@ function sendError(res: Response, statusCode: number, code: string, message: str
 // Route factory
 // ---------------------------------------------------------------------------
 
-export function createPipelineRouter(stateManager?: PipelineStateManager): Router {
+export function createPipelineRouter(stateManager?: PipelineStateManager, renderRateLimiter?: RequestHandler): Router {
   const router = Router();
   const state = stateManager ?? PipelineStateManager.getInstance();
+  const renderLimiter = renderRateLimiter ?? exportRateLimiter;
 
-  // POST /api/render - Trigger video rendering
-  router.post('/render', async (req: Request, res: Response) => {
+  // POST /api/render - Trigger video rendering (export rate-limited)
+  router.post('/render', renderLimiter, async (req: Request, res: Response) => {
     const parsed = RenderRequestSchema.safeParse(req.body);
     if (!parsed.success) {
       const msg = parsed.error.issues[0]?.message ?? 'Validation failed';
