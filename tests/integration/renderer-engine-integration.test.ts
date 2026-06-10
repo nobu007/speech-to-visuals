@@ -253,4 +253,71 @@ describe('TASK-0200: Renderer → Engine integration', () => {
       expect(lottieResult.success).toBe(true);
     });
   });
+
+  // -----------------------------------------------------------------------
+  // REQ-223: Renderer → Verifier round-trip
+  // -----------------------------------------------------------------------
+
+  describe('renderer-to-verifier round-trip (REQ-223)', () => {
+    let ExportVerifier: typeof import('@/export/export-verifier').ExportVerifier;
+
+    beforeAll(async () => {
+      const mod = await import('@/export/export-verifier');
+      ExportVerifier = mod.ExportVerifier;
+    });
+
+    const scenes = {
+      scenes: [
+        { duration: 3, label: 'Intro', type: 'intro' },
+        { duration: 5, label: 'Main', type: 'content' },
+        { duration: 2, label: 'Outro', type: 'outro' },
+      ],
+    };
+    const frames = { width: 1920, height: 1080 };
+
+    it('verifies SVG output from generateAnimatedSVG', () => {
+      const svg = generateAnimatedSVG(scenes, frames);
+      const verifier = new ExportVerifier({ minFileSizeBytes: 1 });
+      const result = verifier.verifySvgString(svg);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+      expect(result.metadata.viewBox).toBe(`0 0 ${frames.width} ${frames.height}`);
+    });
+
+    it('verifies Lottie JSON output from generateLottieAnimation', () => {
+      const lottie = generateLottieAnimation(scenes, frames);
+      const jsonStr = JSON.stringify(lottie);
+      const data = new TextEncoder().encode(jsonStr).buffer;
+
+      const verifier = new ExportVerifier({ minFileSizeBytes: 1 });
+      const result = verifier.verify('lottie', data);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+      expect(result.metadata.lottieVersion).toBe('5.7.4');
+      expect(result.metadata.lottieFrameRate).toBe(30);
+      expect(result.metadata.lottieLayerCount).toBe(3);
+      expect(result.metadata.lottieDimensions).toEqual({ width: 1920, height: 1080 });
+    });
+
+    it('verifies SVG from ArrayBuffer (binary round-trip)', () => {
+      const svg = generateAnimatedSVG(scenes, frames);
+      const data = new TextEncoder().encode(svg).buffer;
+
+      const verifier = new ExportVerifier({ minFileSizeBytes: 1 });
+      const result = verifier.verify('svg', data);
+      expect(result.valid).toBe(true);
+    });
+
+    it('catches corrupted Lottie JSON in round-trip', () => {
+      const lottie = generateLottieAnimation(scenes, frames);
+      // Corrupt: remove the layers field
+      const corrupted = { ...lottie, layers: undefined };
+      const data = new TextEncoder().encode(JSON.stringify(corrupted)).buffer;
+
+      const verifier = new ExportVerifier({ minFileSizeBytes: 1 });
+      const result = verifier.verify('lottie', data);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('Lottie missing required field: "layers" (layers array)');
+    });
+  });
 });

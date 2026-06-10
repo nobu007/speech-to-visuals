@@ -134,10 +134,11 @@ describe('ExportVerifier', () => {
       expect(result.valid).toBe(true);
     });
 
-    it('accepts a valid APNG (same magic as PNG)', () => {
+    it('rejects plain PNG when verified as APNG (missing acTL chunk)', () => {
       const v = new ExportVerifier();
       const result = v.verify('apng', makePng());
-      expect(result.valid).toBe(true);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('APNG missing acTL (Animation Control) chunk — not an animated PNG');
     });
   });
 

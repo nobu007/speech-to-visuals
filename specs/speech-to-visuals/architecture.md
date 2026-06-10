@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-11（第189回検証: Phase 92完了・エラーリカバリREST API堅牢化 REQ-222・RegisterBodySchema・errorId形式検証・XSSサニタイズ・レジストリLRU退去・ERROR_REGISTRY_LIMITS・94テスト追加・382ソースファイル・351テストファイル・TypeScriptエラー0件）
+**最終更新**: 2026-06-11（第190回検証: Phase 93完了・エクスポート検証拡張 REQ-223・APNG acTL/fcTLチャンク検証・Lottie JSON構造検証・renderer→verifier round-trip統合テスト・382ソースファイル・353テストファイル・TypeScriptエラー0件）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -149,6 +149,7 @@
 - **Worker対応**: WorkerPoolによるエクスポートレンダリングの並列化（遅延初期化・dispose/再利用ガード・フォールバック付き）🔵 *src/workers/export-worker.ts・要件定義REQ-061 より*
 - **AnimatedSceneRenderer**: アニメーション付き SVG・Lottie JSON 生成の純粋関数モジュール（300行）。enhanced-export-engine から抽出し独立テスト可能に。generateAnimatedSVG() で CSS キーフレームアニメーション付き SVG（シーンタイプ別背景色・フォントサイズ・フェードイン/アウト）を、generateLottieAnimation() で Lottie 5.7.4 互換 JSON（シェイプレイヤー・不透明度キーフレーム・フレームオフセット計算）を生成。buildLayerShapes() でシーンタイプ別背景色矩形（intro=#1a1a2e/outro=#0f3460/content=#16213e）の視覚的形状を構築。空シーンフォールバック・XML エスケープ付き。Phase 91 で validateFrameInfo()（寸法クランプ: 1~7680px、不正値→1920x1080フォールバック）・clampSceneDuration()（継続時間クランプ: 最大3600秒、不正値→2秒）・SceneRendererValidationError による入力検証を追加 🔵 *src/export/animated-scene-renderer.ts・要件定義REQ-218~219・REQ-221 より*
 - **エクスポートパイプライン統合テスト**: Phase 90 で E2E・結合・横断一貫性テストを追加。export-pipeline-e2e.test.ts（391行）が EnhancedExportEngine 経由のシーンデータ→SVG/Lottie フルパイプライン検証（CSS キーフレーム・背景色・Lottie 構造・エラー伝播）。renderer-engine-integration.test.ts（256行）が animated-scene-renderer→enhanced-export-engine の結合検証（データフロー完全性・シーンタイプ別委譲・フォーマット別委譲切替）。cross-format-consistency.test.ts（23テスト）が SVG↔Lottie 横断一貫性検証（シーン数・ラベル順序・色マッピング・タイミング・寸法の完全パリティ確認）🔵 *tests/integration/・TASK-0199~0201 より*
+- **ExportVerifier 拡張**: Phase 93 で APNG・Lottie 検証を追加。verifyApngChunks() が acTL（Animation Control）チャンク存在確認・numFrames 正値検証・fcTL（Frame Control）チャンク数との整合性チェックを実行。verifyLottie() が必須ルートフィールド（v・fr・ip・op・w・h・layers）検証・fr正値・op>ip・w/h正値・layers配列各要素ty型フィールド検証（deepValidation時）を実行。VerificationFormat に 'lottie' を追加 🔵 *src/export/export-verifier.ts・REQ-223 より*
 
 ### Web Workers 並列化モジュール 🔵
 
@@ -671,7 +672,7 @@ Fallback LLM
 - [x] Express 5 型安全性修正（Phase 90）が完了している（errors.ts req.params型ガード・apng-encoder.test.ts require→dynamic import・TypeScriptエラー0件）
 - [x] エクスポートフォーマット横断一貫性テスト（Phase 90）が完了している（cross-format-consistency.test.ts・TASK-0201・SVG↔Lottie構成・色・タイミング・寸法一貫性検証・23テスト）
 - [x] シーンレンダラー入力検証（Phase 91）が完了している（validateFrameInfo寸法クランプ1~7680px・clampSceneDuration最大3600秒・SceneRendererValidationError・REQ-221・29テスト追加）
-- [x] エラーリカバリREST API堅牢化（Phase 92）が完了している（RegisterBodySchema・errorId形式検証・XSSサニタイズ・レジストリLRU退去・ERROR_REGISTRY_LIMITS・REQ-222・94テスト追加）
+- [x] エクスポート検証拡張（Phase 93）が完了している（APNG acTL/fcTLチャンク検証・Lottie JSON構造検証・renderer→verifier round-trip統合テスト・REQ-223・31テスト追加）
 
 ## 関連文書
 
@@ -690,7 +691,7 @@ Fallback LLM
 - 🟡 黄信号: 4件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第189回検証: Phase 92完了・エラーリカバリREST API堅牢化REQ-222追加・382ファイル・351テストファイル・TypeScriptエラー0件・SYSTEM_CONSTITUTION V2.6適合）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第190回検証: Phase 93完了・エクスポート検証拡張REQ-223追加・382ファイル・353テストファイル・TypeScriptエラー0件・SYSTEM_CONSTITUTION V2.6適合）
 
 
 <!-- spine:children:begin -->

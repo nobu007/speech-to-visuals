@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-08（第184回検証: Phase 89完了・REQ-216~219 監視クエリ検証・LLM図解構造検証・Animated SVG・Lottie JSON・244テストファイル・381ソースファイル・107パッケージ）
+**最終更新**: 2026-06-11（第190回検証: Phase 93完了・REQ-223 エクスポート検証拡張・APNGチャンク検証・Lottie構造検証・353テストファイル・382ソースファイル・107パッケージ）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -3926,5 +3926,58 @@
   - **入力**: {errorId: 'err-xss', errorMessage: '<script>alert("xss")</script>File format unsupported'}
   - **期待結果**: 200, success=true（メッセージはサニタイズ済）
   - **信頼性**: 🔵 *tests/unit/api/routes/errors.test.ts より*
+
+---
+
+## REQ-223: エクスポート検証拡張 🔵
+
+**信頼性**: 🔵 *Phase 93 実装・src/export/export-verifier.ts より*
+
+### Given（前提条件）
+
+- ExportVerifier が REQ-093 の基本検証（MP4/WebM/GIF/PNG/SVG/PDF/JSON）を提供している
+- APNG エンコーダー（src/export/apng-encoder.ts）が acTL/fcTL チャンク付き APNG を生成する
+- AnimatedSceneRenderer（src/export/animated-scene-renderer.ts）が Lottie 5.7.4 互換 JSON を生成する
+
+### When（実行条件）
+
+- APNG バイナリを 'apng' フォーマットで検証する
+- Lottie JSON を 'lottie' フォーマットで検証する
+
+### Then（期待結果）
+
+- APNG: PNG署名に加えて acTL チャンクの存在・numFrames 正値・fcTL チャンク数との整合性が検証される
+- Lottie: 必須ルートフィールド（v/fr/ip/op/w/h/layers）の存在・fr正値・op>ip・w/h正値が検証される
+- deepValidation時は layers 各要素の ty 型フィールドが検証される
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-223-N01**: acTL+fcTL付きAPNGが検証通過 🔵
+- [x] **TC-223-N02**: 有効なLottie JSONが検証通過（バージョン・フレームレート・レイヤー数メタデータ抽出） 🔵
+- [x] **TC-223-N03**: Lottie メタデータ抽出（寸法・フレームレンジ・レイヤー数） 🔵
+- [x] **TC-223-N04**: renderer→verifier round-trip（SVG文字列・Lottie JSON・ArrayBuffer） 🔵
+
+#### 異常系
+
+- [x] **TC-223-E01**: acTL無しAPNG（プレーンPNG）は検証失敗 🔵
+- [x] **TC-223-E02**: acTL num_frames=0 は検証失敗 🔵
+- [x] **TC-223-E03**: fcTL数 > acTL num_frames は deepValidation時エラー 🔵
+- [x] **TC-223-E04**: 無効JSONのLottie検証はパースエラー 🔵
+- [x] **TC-223-E05**: Lottie必須フィールド欠落は検証失敗 🔵
+- [x] **TC-223-E06**: fr<=0 のLottieは検証失敗 🔵
+- [x] **TC-223-E07**: op<=ip のLottieは検証失敗 🔵
+- [x] **TC-223-E08**: w/h<=0 のLottieは検証失敗 🔵
+- [x] **TC-223-E09**: layer[i] ty無しは deepValidation時エラー 🔵
+- [x] **TC-223-E10**: corrupted Lottie JSON round-tripで検出 🔵
+
+#### 警告系
+
+- [x] **TC-223-W01**: fcTL数 < acTL num_frames は警告 🔵
+- [x] **TC-223-W02**: acTL有り・fcTL無しは警告 🔵
+- [x] **TC-223-W03**: 空layers配列は警告 🔵
+- [x] **TC-223-W04**: 非対応バージョン（v=3.0.0）は警告 🔵
+- [x] **TC-223-W05**: layer ip/op欠落は deepValidation時警告 🔵
 
 ---

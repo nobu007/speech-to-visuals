@@ -497,6 +497,10 @@
 
 - REQ-222: システムはエラーリカバリREST API（REQ-037）の入力検証を強化し、POST /register のリクエストボディを RegisterBodySchema（Zod）で検証（errorId: 英数字/ハイフン/アンダースコア/ドットのみ・最大128文字、errorMessage: 最大2000文字）し、GET /:errorId/options・POST /:errorId/recover のパスパラメータ errorId を同形式で検証し、不正値には 400 INVALID_ERROR_ID を返さなければならない。errorMessage に含まれるHTMLタグを sanitizeMessage() で除去し stored XSS を防止し、エラーレジストリが MAX_STORED_ERRORS（1000件）に達した際は最古エントリから10%を退去（LRU eviction）してメモリリークを防止すること 🔵 ✅実装済 *src/api/routes/errors.ts RegisterBodySchema・sanitizeMessage()・isValidErrorId()・storeError() eviction・src/config/limits.ts ERROR_REGISTRY_LIMITS・commit 71a3a8c・94テスト追加*
 
+#### エクスポート検証拡張（Phase 93） ✅完了
+
+- REQ-223: システムはエクスポート検証（REQ-093）を拡張し、APNG形式についてはPNG署名に加えてacTL（Animation Control）チャンクの存在・フレーム数正値・fcTL（Frame Control）チャンク数との整合性を検証し、Lottie JSON形式については必須ルートフィールド（v・fr・ip・op・w・h・layers）の存在・fr正値・op>ip・w/h正値・layers配列の各要素ty型フィールドを検証しなければならない 🔵 ✅実装済 *src/export/export-verifier.ts verifyApngChunks()・verifyLottie()・readU32BE()・tests/export/export-verifier.test.ts 27テスト追加・tests/integration/renderer-engine-integration.test.ts renderer→verifier round-trip 4テスト追加*
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より*
@@ -682,14 +686,15 @@
 | Phase 90: エクスポートパイプライン統合テスト | ✅完了 | REQ-220 | 1/1（E2E統合テスト・renderer↔engine結合テスト・SVG↔Lottie横断一貫性・38テスト） |
 | Phase 91: シーンレンダラー入力検証 | ✅完了 | REQ-221 | 1/1（validateFrameInfo・clampSceneDuration・SceneRendererValidationError・29テスト追加） |
 | Phase 92: エラーリカバリREST API堅牢化 | ✅完了 | REQ-222 | 1/1（RegisterBodySchema・errorId形式検証・XSSサニタイズ・レジストリLRU退去・ERROR_REGISTRY_LIMITS・94テスト追加） |
+| Phase 93: エクスポート検証拡張 | ✅完了 | REQ-223 | 1/1（APNG acTL/fcTLチャンク検証・Lottie JSON構造検証・renderer→verifier round-trip統合テスト・31テスト追加） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 239件 (98.4%)
+- 🔵 青信号: 240件 (98.4%)
 - 🟡 黄信号: 4件 (1.6%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 92完了（REQ-222・エラーリカバリREST API堅牢化）・192タスク全完了・TypeScript型エラー0件・パイプライン型付きエラー完全化
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 93完了（REQ-223・エクスポート検証拡張・APNGチャンク/Lottie構造検証）・TypeScript型エラー0件
 
 ## Acceptance criteria
 

@@ -1,8 +1,11 @@
 /**
  * REQ-093: Export Completeness Verification
+ * REQ-223: APNG chunk-level & Lottie JSON structural verification
  *
  * Verifies exported files for format-specific integrity:
- * - Binary formats (MP4/WebM/GIF/APNG): non-zero file size + magic-byte check
+ * - Binary formats (MP4/WebM/GIF/PNG): non-zero file size + magic-byte check
+ * - APNG: PNG signature + acTL/fcTL chunk validation + frame count
+ * - Lottie JSON: required root fields (v, fr, ip, op, w, h, layers) + layer structure
  * - SVG: XML well-formedness + root element validation
  * - PDF: %PDF- header + page count validation
  */
@@ -21,7 +24,8 @@ export type VerificationFormat =
   | 'png'
   | 'svg'
   | 'pdf'
-  | 'json';
+  | 'json'
+  | 'lottie';
 
 export interface VerificationOptions {
   /** Minimum acceptable file size in bytes (default 100) */
@@ -199,6 +203,11 @@ export class ExportVerifier {
         }
         break;
       case 'apng':
+        this.verifyBinary('png', data, 0, errors, metadata);
+        if (errors.length === 0) {
+          this.verifyApngChunks(data, errors, warnings, metadata);
+        }
+        break;
       case 'png':
         this.verifyBinary('png', data, 0, errors, metadata);
         break;
@@ -211,6 +220,9 @@ export class ExportVerifier {
         break;
       case 'json':
         this.verifyJson(data, errors, metadata);
+        break;
+      case 'lottie':
+        this.verifyLottie(data, errors, warnings, metadata);
         break;
       default:
         warnings.push(`No specific verification for format: ${format}`);
@@ -317,6 +329,187 @@ export class ExportVerifier {
       );
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // REQ-223: APNG chunk-level verification
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Validate APNG-specific chunks (acTL, fcTL) beyond the basic PNG signature.
+   *
+   * APNG is a valid PNG that additionally contains:
+   * - `acTL` (Animation Control) chunk: declares total frames & play count
+   * - `fcTL` (Frame Control) chunks: one per animation frame
+   */
+  private verifyApngChunks(
+    data: ArrayBuffer,
+    errors: string[],
+    warnings: string[],
+    metadata: Record<string, unknown>,
+  ): void {
+    const view = new Uint8Array(data);
+
+    // PNG chunks start after the 8-byte signature.
+    // Each chunk: 4-byte length + 4-byte type + data + 4-byte CRC = 12 bytes overhead.
+    const PNG_SIG_LEN = 8;
+    let offset = PNG_SIG_LEN;
+    let foundAcTL = false;
+    let fcTLCount = 0;
+    let acTLNumFrames = 0;
+    let acTLNumPlays = 0;
+
+    while (offset + 12 <= view.length) {
+      const chunkLen = readU32BE(view, offset);
+      const chunkType = String.fromCharCode(
+        view[offset + 4], view[offset + 5], view[offset + 6], view[offset + 7],
+      );
+
+      if (chunkType === 'acTL') {
+        foundAcTL = true;
+        // acTL data: 4 bytes num_frames + 4 bytes num_plays
+        if (offset + 8 + 8 <= view.length) {
+          acTLNumFrames = readU32BE(view, offset + 8);
+          acTLNumPlays = readU32BE(view, offset + 8 + 4);
+        }
+      } else if (chunkType === 'fcTL') {
+        fcTLCount++;
+      }
+
+      // Advance: 4 (length) + 4 (type) + chunkLen (data) + 4 (CRC)
+      const nextOffset = offset + 4 + 4 + chunkLen + 4;
+      if (nextOffset <= offset) break; // overflow guard
+      offset = nextOffset;
+    }
+
+    metadata.apngHasAcTL = foundAcTL;
+    metadata.apngAcTLNumFrames = acTLNumFrames;
+    metadata.apngAcTLNumPlays = acTLNumPlays;
+    metadata.apngFcTLCount = fcTLCount;
+
+    if (!foundAcTL) {
+      errors.push('APNG missing acTL (Animation Control) chunk — not an animated PNG');
+      return;
+    }
+
+    if (acTLNumFrames === 0) {
+      errors.push('APNG acTL declares 0 animation frames');
+      return;
+    }
+
+    if (fcTLCount === 0) {
+      warnings.push('APNG has acTL but no fcTL (Frame Control) chunks found');
+    } else if (fcTLCount < acTLNumFrames) {
+      warnings.push(
+        `APNG fcTL count (${fcTLCount}) less than acTL num_frames (${acTLNumFrames})`,
+      );
+    }
+
+    if (this.options.deepValidation && fcTLCount > acTLNumFrames) {
+      errors.push(
+        `APNG fcTL count (${fcTLCount}) exceeds acTL num_frames (${acTLNumFrames})`,
+      );
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // REQ-223: Lottie JSON structural verification
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Validate a Lottie animation JSON for structural correctness.
+   *
+   * Required root fields per Lottie 5.x spec:
+   * - `v`  : version string (e.g. "5.7.4")
+   * - `fr` : frame rate (positive number)
+   * - `ip` : in-point frame (number)
+   * - `op` : out-point frame (number, must be > ip)
+   * - `w`  : width (positive number)
+   * - `h`  : height (positive number)
+   * - `layers`: array of layer objects
+   */
+  private verifyLottie(
+    data: ArrayBuffer,
+    errors: string[],
+    warnings: string[],
+    metadata: Record<string, unknown>,
+  ): void {
+    let parsed: Record<string, unknown>;
+    try {
+      const text = new TextDecoder().decode(data);
+      parsed = JSON.parse(text);
+    } catch (e) {
+      errors.push(
+        `Lottie JSON parse error: ${e instanceof Error ? e.message : 'parse error'}`,
+      );
+      return;
+    }
+
+    // Required root fields
+    const requiredFields: Array<[string, string]> = [
+      ['v', 'version string'],
+      ['fr', 'frame rate'],
+      ['ip', 'in-point'],
+      ['op', 'out-point'],
+      ['w', 'width'],
+      ['h', 'height'],
+      ['layers', 'layers array'],
+    ];
+
+    for (const [field, description] of requiredFields) {
+      if (parsed[field] === undefined || parsed[field] === null) {
+        errors.push(`Lottie missing required field: "${field}" (${description})`);
+      }
+    }
+
+    // Version check
+    if (typeof parsed.v === 'string') {
+      metadata.lottieVersion = parsed.v;
+      const versionMatch = parsed.v.match(/^(\d+)\.(\d+)/);
+      if (versionMatch) {
+        const major = parseInt(versionMatch[1], 10);
+        if (major < 4 || major > 5) {
+          warnings.push(`Lottie version "${parsed.v}" may not be widely supported`);
+        }
+      }
+    }
+
+    // Numeric field validation
+    if (typeof parsed.fr === 'number') {
+      metadata.lottieFrameRate = parsed.fr;
+      if (parsed.fr <= 0) errors.push('Lottie frame rate (fr) must be positive');
+    }
+
+    if (typeof parsed.w === 'number' && typeof parsed.h === 'number') {
+      metadata.lottieDimensions = { width: parsed.w, height: parsed.h };
+      if (parsed.w <= 0) errors.push('Lottie width (w) must be positive');
+      if (parsed.h <= 0) errors.push('Lottie height (h) must be positive');
+    }
+
+    if (typeof parsed.ip === 'number' && typeof parsed.op === 'number') {
+      metadata.lottieFrameRange = { ip: parsed.ip, op: parsed.op };
+      if (parsed.op <= parsed.ip) {
+        errors.push('Lottie out-point (op) must be greater than in-point (ip)');
+      }
+    }
+
+    // Layer validation
+    if (Array.isArray(parsed.layers)) {
+      metadata.lottieLayerCount = parsed.layers.length;
+      if (parsed.layers.length === 0) {
+        warnings.push('Lottie has empty layers array — animation will be blank');
+      } else if (this.options.deepValidation) {
+        for (let i = 0; i < parsed.layers.length; i++) {
+          const layer = parsed.layers[i] as Record<string, unknown>;
+          if (typeof layer.ty !== 'number') {
+            errors.push(`Lottie layer[${i}] missing required "ty" (type) field`);
+          }
+          if (typeof layer.ip !== 'number' || typeof layer.op !== 'number') {
+            warnings.push(`Lottie layer[${i}] missing ip/op frame boundaries`);
+          }
+        }
+      }
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -333,4 +526,18 @@ export function verifyExport(
 ): VerificationResult {
   const verifier = new ExportVerifier(options);
   return verifier.verify(format, data);
+}
+
+// ---------------------------------------------------------------------------
+// PNG chunk parsing helper
+// ---------------------------------------------------------------------------
+
+/** Read a big-endian unsigned 32-bit integer from a Uint8Array. */
+function readU32BE(buf: Uint8Array, offset: number): number {
+  return (
+    (buf[offset] << 24) |
+    (buf[offset + 1] << 16) |
+    (buf[offset + 2] << 8) |
+    buf[offset + 3]
+  ) >>> 0;
 }
