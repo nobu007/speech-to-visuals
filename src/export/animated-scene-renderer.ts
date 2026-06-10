@@ -3,6 +3,7 @@
  *
  * REQ-218: Scene-driven animated SVG export with CSS keyframes
  * REQ-219: Scene-driven Lottie 5.7.4 compatible JSON export
+ * REQ-221: Input validation for animated-scene-renderer functions
  *
  * These pure functions take scene data and produce structured output,
  * making them independently testable without the full export pipeline.
@@ -30,6 +31,56 @@ export interface FrameInfo {
 }
 
 // ---------------------------------------------------------------------------
+// REQ-221: Input validation
+// ---------------------------------------------------------------------------
+
+const DEFAULT_WIDTH = 1920;
+const DEFAULT_HEIGHT = 1080;
+const MIN_DIMENSION = 1;
+const MAX_DIMENSION = 7680; // 8K
+
+export class SceneRendererValidationError extends Error {
+  constructor(
+    message: string,
+    public readonly field: string,
+  ) {
+    super(message);
+    this.name = 'SceneRendererValidationError';
+  }
+}
+
+/** Validate and normalise FrameInfo, clamping dimensions to sane bounds. */
+export function validateFrameInfo(frames: FrameInfo): FrameInfo {
+  let { width, height } = frames;
+
+  if (typeof width !== 'number' || !Number.isFinite(width) || width <= 0) {
+    width = DEFAULT_WIDTH;
+  } else if (width < MIN_DIMENSION) {
+    width = MIN_DIMENSION;
+  } else if (width > MAX_DIMENSION) {
+    width = MAX_DIMENSION;
+  }
+
+  if (typeof height !== 'number' || !Number.isFinite(height) || height <= 0) {
+    height = DEFAULT_HEIGHT;
+  } else if (height < MIN_DIMENSION) {
+    height = MIN_DIMENSION;
+  } else if (height > MAX_DIMENSION) {
+    height = MAX_DIMENSION;
+  }
+
+  return { width: Math.round(width), height: Math.round(height) };
+}
+
+/** Clamp a scene's duration to a positive, finite value (default 2s). */
+export function clampSceneDuration(duration: unknown): number {
+  if (typeof duration !== 'number' || !Number.isFinite(duration) || duration <= 0) {
+    return 2;
+  }
+  return Math.min(duration, 3600); // cap at 1 hour
+}
+
+// ---------------------------------------------------------------------------
 // REQ-218: Animated SVG
 // ---------------------------------------------------------------------------
 
@@ -43,9 +94,8 @@ export function generateAnimatedSVG(
   sceneData: SceneDataset,
   frames: FrameInfo,
 ): string {
-  const scenes = sceneData.scenes ?? [];
-  const width = frames.width;
-  const height = frames.height;
+  const scenes = sceneData?.scenes ?? [];
+  const { width, height } = validateFrameInfo(frames);
 
   if (scenes.length === 0) {
     return `<?xml version="1.0" encoding="UTF-8"?>
@@ -55,14 +105,14 @@ export function generateAnimatedSVG(
 </svg>`;
   }
 
-  const totalDuration = scenes.reduce((acc, s) => acc + (s.duration ?? 2), 0);
+  const totalDuration = scenes.reduce((acc, s) => acc + clampSceneDuration(s.duration), 0);
   const keyframes: string[] = [];
   const sceneGroups: string[] = [];
   let offset = 0;
 
   for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i];
-    const duration = scene.duration ?? 2;
+    const duration = clampSceneDuration(scene.duration);
     const startPct = roundPct((offset / totalDuration) * 100);
     const fadeInEnd = roundPct(Math.min(startPct + 3, ((offset + duration * 0.15) / totalDuration) * 100));
     const fadeOutStart = roundPct(((offset + duration * 0.85) / totalDuration) * 100);
@@ -103,14 +153,13 @@ export function generateLottieAnimation(
   frames: FrameInfo,
   fallbackFrameCount = 0,
 ): Record<string, unknown> {
-  const scenes = sceneData.scenes ?? [];
+  const scenes = sceneData?.scenes ?? [];
   const fps = 30;
-  const width = frames.width;
-  const height = frames.height;
+  const { width, height } = validateFrameInfo(frames);
   let frameOffset = 0;
 
   const layers = scenes.map((scene, i) => {
-    const duration = scene.duration ?? 2;
+    const duration = clampSceneDuration(scene.duration);
     const totalFrames = Math.round(duration * fps);
     const label = String(scene.label ?? scene.type ?? `Scene ${i + 1}`);
     const layer: Record<string, unknown> = {
@@ -165,7 +214,7 @@ export function escapeXml(str: string): string {
 }
 
 export function formatSceneSubtitle(scene: SceneItem): string {
-  const d = scene.duration ?? 2;
+  const d = clampSceneDuration(scene.duration);
   const mins = Math.floor(d / 60);
   const secs = Math.round(d % 60);
   return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;

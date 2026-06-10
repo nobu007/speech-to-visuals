@@ -1,9 +1,10 @@
 /**
- * REQ-218 / REQ-219: Animated SVG & Lottie Export Content Validation
+ * REQ-218 / REQ-219 / REQ-221: Animated SVG & Lottie Export + Input Validation
  *
  * Tests the pure functions in animated-scene-renderer.ts:
  *   - generateAnimatedSVG: SVG XML structure, CSS keyframes, XML escaping
  *   - generateLottieAnimation: Lottie 5.7.4 JSON, layers, opacity keyframes
+ *   - validateFrameInfo, clampSceneDuration: input validation (REQ-221)
  *   - escapeXml, formatSceneSubtitle: shared helpers
  *
  * These are now independently testable without the full export pipeline.
@@ -16,6 +17,9 @@ import {
   formatSceneSubtitle,
   sceneTypeToFillColor,
   buildLayerShapes,
+  validateFrameInfo,
+  clampSceneDuration,
+  SceneRendererValidationError,
 } from '@/export/animated-scene-renderer';
 import type { SceneDataset, FrameInfo } from '@/export/animated-scene-renderer';
 
@@ -644,5 +648,236 @@ describe('buildLayerShapes', () => {
 
     const roundness = rect.r as Record<string, unknown>;
     expect(roundness.k).toBe(8);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// REQ-221: Input validation
+// ---------------------------------------------------------------------------
+
+describe('REQ-221: validateFrameInfo', () => {
+  it('returns valid dimensions unchanged', () => {
+    expect(validateFrameInfo({ width: 1920, height: 1080 })).toEqual({
+      width: 1920,
+      height: 1080,
+    });
+  });
+
+  it('rounds fractional dimensions to integers', () => {
+    expect(validateFrameInfo({ width: 1920.7, height: 1080.3 })).toEqual({
+      width: 1921,
+      height: 1080,
+    });
+  });
+
+  it('replaces zero width with default (1920)', () => {
+    expect(validateFrameInfo({ width: 0, height: 600 })).toEqual({
+      width: 1920,
+      height: 600,
+    });
+  });
+
+  it('replaces negative width with default (1920)', () => {
+    expect(validateFrameInfo({ width: -100, height: 600 })).toEqual({
+      width: 1920,
+      height: 600,
+    });
+  });
+
+  it('replaces NaN width with default (1920)', () => {
+    expect(validateFrameInfo({ width: NaN, height: 600 })).toEqual({
+      width: 1920,
+      height: 600,
+    });
+  });
+
+  it('replaces Infinity width with default (1920)', () => {
+    expect(validateFrameInfo({ width: Infinity, height: 600 })).toEqual({
+      width: 1920,
+      height: 600,
+    });
+  });
+
+  it('replaces zero height with default (1080)', () => {
+    expect(validateFrameInfo({ width: 800, height: 0 })).toEqual({
+      width: 800,
+      height: 1080,
+    });
+  });
+
+  it('clamps width exceeding 7680 (8K) to 7680', () => {
+    expect(validateFrameInfo({ width: 10000, height: 1080 })).toEqual({
+      width: 7680,
+      height: 1080,
+    });
+  });
+
+  it('clamps height exceeding 7680 to 7680', () => {
+    expect(validateFrameInfo({ width: 1920, height: 9999 })).toEqual({
+      width: 1920,
+      height: 7680,
+    });
+  });
+
+  it('clamps sub-pixel width (< 1) to 1', () => {
+    expect(validateFrameInfo({ width: 0.5, height: 1080 })).toEqual({
+      width: 1,
+      height: 1080,
+    });
+  });
+
+  it('handles both dimensions invalid simultaneously', () => {
+    expect(validateFrameInfo({ width: -1, height: -1 })).toEqual({
+      width: 1920,
+      height: 1080,
+    });
+  });
+});
+
+describe('REQ-221: clampSceneDuration', () => {
+  it('returns valid positive duration unchanged', () => {
+    expect(clampSceneDuration(5)).toBe(5);
+  });
+
+  it('returns 2 for undefined', () => {
+    expect(clampSceneDuration(undefined)).toBe(2);
+  });
+
+  it('returns 2 for null', () => {
+    expect(clampSceneDuration(null)).toBe(2);
+  });
+
+  it('returns 2 for zero', () => {
+    expect(clampSceneDuration(0)).toBe(2);
+  });
+
+  it('returns 2 for negative numbers', () => {
+    expect(clampSceneDuration(-10)).toBe(2);
+  });
+
+  it('returns 2 for NaN', () => {
+    expect(clampSceneDuration(NaN)).toBe(2);
+  });
+
+  it('returns 2 for Infinity', () => {
+    expect(clampSceneDuration(Infinity)).toBe(2);
+  });
+
+  it('returns 2 for non-number values', () => {
+    expect(clampSceneDuration('3')).toBe(2);
+    expect(clampSceneDuration({})).toBe(2);
+    expect(clampSceneDuration(true)).toBe(2);
+  });
+
+  it('caps duration at 3600 (1 hour)', () => {
+    expect(clampSceneDuration(7200)).toBe(3600);
+  });
+
+  it('preserves small fractional durations', () => {
+    expect(clampSceneDuration(0.5)).toBe(0.5);
+  });
+
+  it('preserves duration exactly at 3600', () => {
+    expect(clampSceneDuration(3600)).toBe(3600);
+  });
+});
+
+describe('REQ-221: SceneRendererValidationError', () => {
+  it('has correct name property', () => {
+    const err = new SceneRendererValidationError('test', 'field');
+    expect(err.name).toBe('SceneRendererValidationError');
+  });
+
+  it('exposes field property', () => {
+    const err = new SceneRendererValidationError('bad input', 'width');
+    expect(err.field).toBe('width');
+  });
+
+  it('exposes message', () => {
+    const err = new SceneRendererValidationError('bad input', 'width');
+    expect(err.message).toBe('bad input');
+  });
+
+  it('is an instance of Error', () => {
+    const err = new SceneRendererValidationError('test', 'x');
+    expect(err).toBeInstanceOf(Error);
+  });
+});
+
+describe('REQ-221: Integration — invalid inputs produce safe outputs', () => {
+  it('SVG handles null-ish sceneData gracefully', () => {
+    const svg = generateAnimatedSVG(null as unknown as SceneDataset, { width: 0, height: 0 });
+    expect(svg).toContain('No scene data');
+    // should use default dimensions since width/height are invalid
+    expect(svg).toContain('width="1920"');
+    expect(svg).toContain('height="1080"');
+  });
+
+  it('SVG handles undefined sceneData gracefully', () => {
+    const svg = generateAnimatedSVG(undefined as unknown as SceneDataset, { width: -5, height: -5 });
+    expect(svg).toContain('No scene data');
+    expect(svg).toContain('width="1920"');
+  });
+
+  it('Lottie handles null-ish sceneData gracefully', () => {
+    const lottie = generateLottieAnimation(null as unknown as SceneDataset, { width: 0, height: 0 });
+    expect(lottie.v).toBe('5.7.4');
+    expect(lottie.w).toBe(1920);
+    expect(lottie.h).toBe(1080);
+    expect((lottie.layers as unknown[]).length).toBe(0);
+  });
+
+  it('SVG clamps extremely large dimensions to 8K', () => {
+    const svg = generateAnimatedSVG(
+      { scenes: [{ duration: 2, label: 'Big' }] },
+      { width: 50000, height: 50000 },
+    );
+    expect(svg).toContain('width="7680"');
+    expect(svg).toContain('height="7680"');
+  });
+
+  it('Lottie clamps extremely large dimensions to 8K', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ duration: 2, label: 'Big' }] },
+      { width: 50000, height: 50000 },
+    );
+    expect(lottie.w).toBe(7680);
+    expect(lottie.h).toBe(7680);
+  });
+
+  it('SVG uses default duration for scenes with invalid duration', () => {
+    const svg = generateAnimatedSVG(
+      { scenes: [{ label: 'A', duration: -5 }, { label: 'B', duration: NaN as unknown as number }] },
+      HD,
+    );
+    // Both default to 2s → total = 4s
+    expect(svg).toMatch(/animation:s0 4s/);
+    expect(svg).toMatch(/animation:s1 4s/);
+  });
+
+  it('Lottie uses default duration for scenes with invalid duration', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ label: 'A', duration: -5 }, { label: 'B', duration: NaN as unknown as number }] },
+      HD,
+    );
+    // Both default to 2s → 60 frames each → total op = 120
+    expect(lottie.op).toBe(120);
+  });
+
+  it('SVG caps extremely long scene durations at 1 hour', () => {
+    const svg = generateAnimatedSVG(
+      { scenes: [{ label: 'Long', duration: 99999 }] },
+      HD,
+    );
+    expect(svg).toMatch(/animation:s0 3600s/);
+  });
+
+  it('Lottie caps extremely long scene durations at 1 hour', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ label: 'Long', duration: 99999 }] },
+      HD,
+    );
+    // 3600s × 30fps = 108000 frames
+    expect(lottie.op).toBe(108000);
   });
 });

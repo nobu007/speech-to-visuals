@@ -3724,3 +3724,138 @@
   - **信頼性**: 🔵 *export-pipeline-e2e.test.ts より*
 
 ---
+
+## REQ-221: シーンレンダラー入力検証 🔵
+
+**信頼性**: 🔵 *Phase 91 実装・animated-scene-renderer.ts より*
+
+### Given（前提条件）
+
+- animated-scene-renderer モジュールがロード済み
+
+### When（実行条件）
+
+- 無効な FrameInfo（width/height=0/負数/NaN/Infinity）または無効な duration が渡される
+
+### Then（期待結果）
+
+- 無効な width/height は安全なデフォルト値（1920x1080）または上限（7680）にクランプされる
+- 無効な duration はデフォルト2秒にフォールバック、上限3600秒にキャップされる
+- null/undefined の sceneData でもクラッシュせず空シーンフォールバックを出力
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-221-01**: validateFrameInfo 正常値はそのまま返す 🔵
+  - **入力**: { width: 1920, height: 1080 }
+  - **期待結果**: { width: 1920, height: 1080 } が返る
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts より*
+
+- [x] **TC-221-02**: validateFrameInfo 小数値は丸める 🔵
+  - **入力**: { width: 1920.7, height: 1080.3 }
+  - **期待結果**: { width: 1921, height: 1080 } が返る
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts より*
+
+- [x] **TC-221-03**: clampSceneDuration 正の値はそのまま返す 🔵
+  - **入力**: 5
+  - **期待結果**: 5 が返る
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts より*
+
+#### 異常系
+
+- [x] **TC-221-E01**: width=0 はデフォルト1920に置換 🔵
+  - **入力**: { width: 0, height: 600 }
+  - **期待結果**: { width: 1920, height: 600 } が返る
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts より*
+
+- [x] **TC-221-E02**: width=負数 はデフォルト1920に置換 🔵
+  - **入力**: { width: -100, height: 600 }
+  - **期待結果**: { width: 1920, height: 600 } が返る
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts より*
+
+- [x] **TC-221-E03**: width=NaN はデフォルト1920に置換 🔵
+  - **入力**: { width: NaN, height: 600 }
+  - **期待結果**: { width: 1920, height: 600 } が返る
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts より*
+
+- [x] **TC-221-E04**: width=Infinity はデフォルト1920に置換 🔵
+  - **入力**: { width: Infinity, height: 600 }
+  - **期待結果**: { width: 1920, height: 600 } が返る
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts より*
+
+- [x] **TC-221-E05**: width>7680 は7680にクランプ 🔵
+  - **入力**: { width: 10000, height: 1080 }
+  - **期待結果**: { width: 7680, height: 1080 } が返る
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts より*
+
+- [x] **TC-221-E06**: clampSceneDuration undefined/null は2を返す 🔵
+  - **入力**: undefined, null
+  - **期待結果**: 2 が返る
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts より*
+
+- [x] **TC-221-E07**: clampSceneDuration 負数/0/NaN/Infinity は2を返す 🔵
+  - **入力**: -10, 0, NaN, Infinity
+  - **期待結果**: 全て2が返る
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts より*
+
+- [x] **TC-221-E08**: clampSceneDuration >3600 は3600にキャップ 🔵
+  - **入力**: 7200
+  - **期待結果**: 3600 が返る
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts より*
+
+#### 境界値
+
+- [x] **TC-221-B01**: width<1 は1にクランプ 🔵
+  - **入力**: { width: 0.5, height: 1080 }
+  - **期待結果**: { width: 1, height: 1080 } が返る
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts より*
+
+- [x] **TC-221-B02**: width/height 両方無効は両デフォルトに置換 🔵
+  - **入力**: { width: -1, height: -1 }
+  - **期待結果**: { width: 1920, height: 1080 } が返る
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts より*
+
+- [x] **TC-221-B03**: clampSceneDuration=3600 はそのまま 🔵
+  - **入力**: 3600
+  - **期待結果**: 3600 が返る
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts より*
+
+- [x] **TC-221-B04**: clampSceneDuration 0.5（小数）はそのまま 🔵
+  - **入力**: 0.5
+  - **期待結果**: 0.5 が返る
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts より*
+
+#### 統合テスト（SVG/Lottie出力への影響）
+
+- [x] **TC-221-I01**: null sceneData でもSVG安全出力 🔵
+  - **入力**: sceneData=null, frames={width:0,height:0}
+  - **期待結果**: "No scene data" SVG出力、デフォルト1920x1080使用
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts より*
+
+- [x] **TC-221-I02**: null sceneData でもLottie安全出力 🔵
+  - **入力**: sceneData=null, frames={width:0,height:0}
+  - **期待結果**: 有効なLottie JSON、w=1920, h=1080、空layers
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts より*
+
+- [x] **TC-221-I03**: 極大寸法は8KにクランプしてSVG出力 🔵
+  - **入力**: {width:50000, height:50000}
+  - **期待結果**: SVG に width="7680" height="7680"
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts より*
+
+- [x] **TC-221-I04**: 極大寸法は8KにクランプしてLottie出力 🔵
+  - **入力**: {width:50000, height:50000}
+  - **期待結果**: lottie.w=7680, lottie.h=7680
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts より*
+
+- [x] **TC-221-I05**: 無効durationのシーンでもSVG安全出力 🔵
+  - **入力**: scenes=[{duration:-5},{duration:NaN}]
+  - **期待結果**: 各2秒デフォルト、合計4秒アニメーション
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts より*
+
+- [x] **TC-221-I06**: 極長durationは3600秒キャップでSVG出力 🔵
+  - **入力**: scenes=[{duration:99999}]
+  - **期待結果**: SVG animation duration 3600s
+  - **信頼性**: 🔵 *animated-svg-lottie-export.test.ts より*
+
+---

@@ -3220,6 +3220,27 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 - 信頼性レベル分布: 🔵237件(98.3%) / 🟡4件(1.7%) / 🔴0件(0%) — 🔵+1
 - ユニットテストでは検出不可能なモジュール間連携の品質保証レイヤーを追加
 
+---
+
+### A43: Phase 91 シーンレンダラー入力検証分析
+
+**分析日時**: 2026-06-10
+**カテゴリ**: 入力検証・堅牢性継続改善
+**背景**: Kairo要件生成プロセスでのコード分析により、animated-scene-renderer.tsの公開関数（generateAnimatedSVG・generateLottieAnimation）にinput validationが欠如していることを発見。width/heightに0・負数・Infinity・NaNが渡された場合、SVG/Lottie出力が無効になる可能性がある。またdurationの極端な値（99999秒等）も未チェック。Phase 73でStreamingTranscriberの入力検証（REQ-194）を追加した前例に倣い、同様の堅牢性をシーンレンダラーにも適用。
+
+**判断**: validateFrameInfo（FrameInfoの正規化・クランプ）とclampSceneDuration（durationの検証・上限設定）の2つの純粋関数を追加。SceneRendererValidationErrorカスタムエラー型も定義。29テスト追加。既存のE2E・結合テスト（61テスト）も全て通過を確認。
+
+**根拠**:
+- `src/export/animated-scene-renderer.ts` - validateFrameInfo()・clampSceneDuration()・SceneRendererValidationError追加
+- `tests/unit/export/animated-svg-lottie-export.test.ts` - 29テスト追加（REQ-221入力検証）
+- Phase 73のREQ-194（StreamingTranscriber入力堅牢性）と同じパターン
+- SYSTEM_CONSTITUTIONの「defensive coding」原則に基づく
+
+**信頼性への影響**:
+- この分析により、新規要件 REQ-221（シーンレンダラー入力検証）を追加（信頼性レベル: 🔵）
+- 信頼性レベル分布: 🔵238件(98.3%) / 🟡4件(1.7%) / 🔴0件(0%) — 🔵+1
+- エクスポートパイプラインの堅牢性が入力検証レイヤーにより更に向上
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)
