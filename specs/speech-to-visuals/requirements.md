@@ -457,15 +457,15 @@
 - REQ-208: システムは Grafana 互換のダッシュボード設定（JSON model）を提供し、GET /api/v1/monitoring/prometheus エンドポイントのメトリクスを可視化して表示してもよい。HTTPレイテンシ分布・エラーレート推移・パイプライン処理成功率・LLMコスト推移・ヘルスステータスの各パネルを含むこと 🔵 ✅実装済 *src/monitoring/grafana-dashboard-model.ts・Phase 83・8パネル（latency/error-rate/success-rate/slow-requests/active-requests/uptime/request-volume/errors-by-route）・27テスト*
 - REQ-209: システムは主要メトリクスの閾値ベースのアラートルールを定義してもよい。対象: エラーレート > 5%（critical）・P95レイテンシ > 20秒（warning）・ヘルスチェック連続失敗 ≥ 3回（critical）・LLMコスト超過（warning） 🔵 ✅実装済 *src/monitoring/alert-rules.ts・Phase 83・4アラートルール（HighErrorRate/HighLatencyP95/HealthCheckFailures/LLMBudgetOverage）・Prometheus AlertManager YAML形式出力・24テスト*
 
-#### 監視APIデプロイメント統合（Phase 84） 🟡計画中
+#### 監視APIデプロイメント統合（Phase 84） ✅完了
 
-- REQ-210: システムは Grafana ダッシュボード設定を GET /api/v1/monitoring/dashboard エンドポイントで JSON 形式で配信し、CI/CD パイプラインからの自動デプロイを可能にしなければならない 🔵 *src/monitoring/grafana-dashboard-model.ts exportDashboardJson()・REQ-208 で定義済モデルより*
-- REQ-211: システムは Prometheus アラートルールを GET /api/v1/monitoring/alerts エンドポイントで YAML 形式で配信し、AlertManager への自動適用を可能にしなければならない 🔵 *src/monitoring/alert-rules.ts exportAlertRulesYaml()・REQ-209 で定義済ルールより*
+- REQ-210: システムは Grafana ダッシュボード設定を GET /api/v1/monitoring/dashboard エンドポイントで JSON 形式で配信し、CI/CD パイプラインからの自動デプロイを可能にしなければならない 🔵 ✅実装済 *src/monitoring/grafana-dashboard-model.ts exportDashboardJson()・src/api/routes/monitoring.ts dashboard エンドポイント・REQ-208 で定義済モデルより*
+- REQ-211: システムは Prometheus アラートルールを GET /api/v1/monitoring/alerts エンドポイントで YAML 形式で配信し、AlertManager への自動適用を可能にしなければならない 🔵 ✅実装済 *src/monitoring/alert-rules.ts exportAlertRulesYaml()・src/api/routes/monitoring.ts alerts エンドポイント・REQ-209 で定義済ルールより*
 
-#### パイプラインオブザーバビリティ拡張（Phase 85） 🔵進行中
+#### パイプラインオブザーバビリティ拡張（Phase 85） ✅完了
 
 - REQ-212: ✅実装済 システムはパイプライン各ステージ（文字起こし・分析・レイアウト・動画準備・レンダリング）の所要時間をヒストグラムメトリクスとして Prometheus エクスポーターに統合し、GET /api/v1/monitoring/prometheus で pipeline_stage_duration_ms として出力しなければならない 🔵 *src/monitoring/pipeline-metrics-collector.ts・src/monitoring/prometheus-exporter.ts・14テスト*
-- REQ-213: システムはバッチジョブのライフサイクル（created/running/completed/failed/cancelled）別の累積カウントとアクティブジョブ数を Prometheus メトリクスとして出力し、バッチ処理の健全性を外部監視可能にしなければならない 🔵 *src/api/batch-processing-api.ts ジョブステータス管理・REQ-043 バッチAPIより*
+- REQ-213: システムはバッチジョブのライフサイクル（created/running/completed/failed/cancelled）別の累積カウントとアクティブジョブ数を Prometheus メトリクスとして出力し、バッチ処理の健全性を外部監視可能にしなければならない 🔵 ✅実装済 *src/monitoring/pipeline-metrics-collector.ts recordBatchJobTransition()・src/monitoring/prometheus-exporter.ts batch_jobs_total/batch_jobs_active・REQ-043 バッチAPIより*
 
 #### 監視スタック統合検証（Phase 86） ✅完了
 
