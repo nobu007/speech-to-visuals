@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-10（第188回検証: Phase 91完了・シーンレンダラー入力検証 REQ-221・validateFrameInfo/clampSceneDuration/SceneRendererValidationError・29テスト追加・386ソースファイル・351テストファイル・TypeScriptエラー0件）
+**最終更新**: 2026-06-11（第189回検証: Phase 92完了・エラーリカバリREST API堅牢化 REQ-222・RegisterBodySchema・errorId形式検証・XSSサニタイズ・レジストリLRU退去・ERROR_REGISTRY_LIMITS・94テスト追加・382ソースファイル・351テストファイル・TypeScriptエラー0件）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -81,7 +81,7 @@
 - **バッチ処理API**: REST エンドポイント（POST /batch/jobs でジョブ作成→HTTP 202、GET /batch/jobs/:id でステータス取得、DELETE /batch/jobs/:id でキャンセル）、セマフォパターンで最大3並列ジョブ制御 🔵 *src/api/routes/batch.ts・要件定義REQ-043 より*
 - **WebSocket リアルタイム通知**: Socket.IO ベースのジョブ進捗・完了・エラー・ファイルステータス・ステージ進捗・ストリーミングセグメント・エラー回復イベントのリアルタイム配信。JWT 認証で接続保護、ジョブルーム（join:job/leave:job）による購読管理 🔵 *src/api/websocket-handler.ts・要件定義REQ-046 より*
 - **起動時キャッシュウォームアップ**: Express サーバー起動完了後に triggerStartupWarmup() で LLMService.warmupCache() を非同期呼び出し（fire-and-forget パターン）。LLM サービス無効時はスキップ、失敗時はログ出力のみでサーバー動作に影響なし 🔵 *src/api/startup-warmup.ts・src/api/index.ts・Phase 43 より*
-- **エラーリカバリREST API**: プログラマティックなエラー登録・回復オプション取得・戦略実行の3エンドポイント（POST /api/v1/errors/register・GET /api/v1/errors/:errorId/options・POST /api/v1/errors/:errorId/recover）。UserGuidedErrorRecovery を REST API 経由で利用可能にし、外部システムからのエラー回復をサポート 🔵 *src/api/routes/errors.ts・要件定義REQ-037拡張 より*
+- **エラーリカバリREST API**: プログラマティックなエラー登録・回復オプション取得・戦略実行の3エンドポイント（POST /api/v1/errors/register・GET /api/v1/errors/:errorId/options・POST /api/v1/errors/:errorId/recover）。UserGuidedErrorRecovery を REST API 経由で利用可能にし、外部システムからのエラー回復をサポート。Phase 92 で入力検証を堅牢化: RegisterBodySchema（errorId 最大128文字・英数字ハイフンアンダースコアドット形式・errorMessage最大2000文字）・sanitizeMessage()（HTMLタグ除去によるXSS防御）・isValidErrorId() パスパラメータ形式検証・storeError() LRU退去（1000件上限で最古10%退去）・ERROR_REGISTRY_LIMITS 集中設定 🔵 *src/api/routes/errors.ts・要件定義REQ-037拡張・REQ-222 より*
 
 ### AI・処理モジュール 🔵
 
@@ -671,6 +671,7 @@ Fallback LLM
 - [x] Express 5 型安全性修正（Phase 90）が完了している（errors.ts req.params型ガード・apng-encoder.test.ts require→dynamic import・TypeScriptエラー0件）
 - [x] エクスポートフォーマット横断一貫性テスト（Phase 90）が完了している（cross-format-consistency.test.ts・TASK-0201・SVG↔Lottie構成・色・タイミング・寸法一貫性検証・23テスト）
 - [x] シーンレンダラー入力検証（Phase 91）が完了している（validateFrameInfo寸法クランプ1~7680px・clampSceneDuration最大3600秒・SceneRendererValidationError・REQ-221・29テスト追加）
+- [x] エラーリカバリREST API堅牢化（Phase 92）が完了している（RegisterBodySchema・errorId形式検証・XSSサニタイズ・レジストリLRU退去・ERROR_REGISTRY_LIMITS・REQ-222・94テスト追加）
 
 ## 関連文書
 
@@ -689,7 +690,7 @@ Fallback LLM
 - 🟡 黄信号: 4件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第188回検証: Phase 91完了・シーンレンダラー入力検証REQ-221追加・386ファイル・351テストファイル・TypeScriptエラー0件・SYSTEM_CONSTITUTION V2.6適合）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第189回検証: Phase 92完了・エラーリカバリREST API堅牢化REQ-222追加・382ファイル・351テストファイル・TypeScriptエラー0件・SYSTEM_CONSTITUTION V2.6適合）
 
 
 <!-- spine:children:begin -->

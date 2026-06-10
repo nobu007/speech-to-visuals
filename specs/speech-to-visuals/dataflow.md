@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-09（第186回検証: Phase 90エクスポートパイプラインE2E統合テスト・renderer-engine結合検証・Express 5型安全性修正・386ファイル・350テストファイル）
+**最終更新**: 2026-06-11（第189回検証: Phase 92エラーリカバリREST API堅牢化・REQ-222・RegisterBodySchema・errorId形式検証・XSSサニタイズ・LRU退去・382ファイル・351テストファイル）
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](requirements.md)
 
@@ -1566,11 +1566,11 @@ sequenceDiagram
 | outro | #0f3460 | [0.059, 0.204, 0.376, 1] |
 | content | #16213e | [0.086, 0.129, 0.243, 1] |
 
-### 機能28: エラーリカバリREST API フロー（Phase 89） 🔵
+### 機能28: エラーリカバリREST API フロー（Phase 89, Phase 92堅牢化） 🔵
 
-**信頼性**: 🔵 *src/api/routes/errors.ts・要件定義REQ-037拡張 より*
+**信頼性**: 🔵 *src/api/routes/errors.ts・要件定義REQ-037拡張・REQ-222 より*
 
-**関連要件**: REQ-037
+**関連要件**: REQ-037, REQ-222
 
 ```mermaid
 sequenceDiagram
@@ -1615,6 +1615,48 @@ sequenceDiagram
 
 **対応エラーカテゴリ** 🔵:
 file_format, file_size, transcription, analysis, layout, rendering, api, network, memory, timeout, unknown
+
+**Phase 92 入力検証フロー** 🔵 *REQ-222 より*:
+
+```mermaid
+flowchart TD
+    A[リクエスト受信] --> B{エンドポイント判定}
+    B -->|POST /register| C[RegisterBodySchema.safeParse]
+    B -->|GET /:errorId/options| D[isValidErrorId]
+    B -->|POST /:errorId/recover| D
+
+    C --> C1{errorId形式}
+    C1 -->|英数字/ハイフン/アンダースコア/ドット + 128文字以内| C2{errorMessage形式}
+    C1 -->|不正| E1[400 VALIDATION_ERROR]
+    C2 -->|2000文字以内| C3[sanitizeMessage]
+    C2 -->|超過| E1
+    C3 --> C4[HTMLタグ除去]
+    C4 --> F[storeError - レジストリ保存]
+
+    D --> D1{形式検証}
+    D1 -->|有効| G[処理続行]
+    D1 -->|不正| E2[400 INVALID_ERROR_ID]
+
+    F --> F1{レジストリサイズ}
+    F1 -->|1000件未満| F2[保存]
+    F1 -->|1000件以上| F3[最古10%退去]
+    F3 --> F2
+
+    style C fill:#e1f5fe
+    style D fill:#e1f5fe
+    style E1 fill:#ffebee
+    style E2 fill:#ffebee
+```
+
+**Phase 92 検証ルール** 🔵 *src/config/limits.ts ERROR_REGISTRY_LIMITS より*:
+
+| 検証項目 | ルール | エラーコード |
+|---------|--------|------------|
+| errorId 形式 | `/^[a-zA-Z0-9._-]+$/` | VALIDATION_ERROR / INVALID_ERROR_ID |
+| errorId 長さ | 1-128文字 | VALIDATION_ERROR / INVALID_ERROR_ID |
+| errorMessage 長さ | 1-2000文字 | VALIDATION_ERROR |
+| errorMessage XSS | HTMLタグ除去 | （サニタイズ実行・エラーなし） |
+| レジストリ上限 | 1000件（超過時LRU退去） | （自動退去・エラーなし） |
 
 ### 機能29: 監視エンドポイントZodクエリ検証フロー（Phase 87） 🔵
 
@@ -1947,14 +1989,14 @@ sequenceDiagram
 - 🟡 黄信号: 1件 (1%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - animated-scene-renderer SVG/Lottieエクスポートフロー・エラーリカバリREST APIフロー・監視Zod検証フロー・LLM図解構造検証フロー追加を反映（第185回検証: Phase 89完了・382ファイル・244テストファイル・ギャップなし）
+**品質評価**: 高品質 - Phase 92エラーリカバリREST API堅牢化データフロー追加を反映（第189回検証: Phase 92完了・REQ-222・382ファイル・351テストファイル・ギャップなし）
 
 ## Acceptance criteria
 
 - [x] システム全体のデータフローが Mermaid flowchart で記述され、全パイプラインステージ（文字起こし→分析→レイアウト→アニメーション→レンダリング）を網羅している
 - [x] 主要18機能のデータフローが個別の Mermaid sequence/flow diagram で記述されている（機能1-B〜機能23）
 - [x] Animated SVG/Lottie エクスポートフロー（機能26~27）が Mermaid sequence diagram で記述されている（REQ-218~219・Phase 89）
-- [x] エラーリカバリREST API フロー（機能28）が Mermaid sequence diagram で記述されている（REQ-037拡張・Phase 89）
+- [x] エラーリカバリREST API フロー（機能28）が Mermaid sequence diagram で記述されている（REQ-037拡張・Phase 89・Phase 92堅牢化）
 - [x] 監視エンドポイントZod検証フロー（機能29）が Mermaid flowchart で記述されている（REQ-216・Phase 87）
 - [x] LLM応答図解構造検証フロー（機能30）が Mermaid flowchart で記述されている（REQ-217・Phase 88）
 - [x] 各データフローに信頼性レベル（🔵🟡🔴）が付与され、情報源が明記されている
