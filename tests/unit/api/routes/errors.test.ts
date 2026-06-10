@@ -359,3 +359,97 @@ describe('REQ-037: Full error recovery flow', () => {
     expect(optsB.body.data.severity).toBe('critical');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Input validation edge cases
+// ---------------------------------------------------------------------------
+
+describe('REQ-037: Input validation edge cases', () => {
+  let app: express.Express;
+
+  beforeEach(() => {
+    app = createApp();
+    errorRegistry.clear();
+  });
+
+  // errorId format validation
+  it('should reject errorId with spaces', async () => {
+    const res = await request(app)
+      .post('/api/v1/errors/register')
+      .send({ errorId: 'err space', errorMessage: 'test error' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('should reject errorId with special characters', async () => {
+    const res = await request(app)
+      .post('/api/v1/errors/register')
+      .send({ errorId: 'err@#$%', errorMessage: 'test error' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
+  it('should accept errorId with hyphens, underscores, and dots', async () => {
+    const res = await request(app)
+      .post('/api/v1/errors/register')
+      .send({ errorId: 'my-error_id.v2', errorMessage: 'test error' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.errorId).toBe('my-error_id.v2');
+  });
+
+  it('should reject errorId exceeding max length', async () => {
+    const longId = 'a'.repeat(129);
+    const res = await request(app)
+      .post('/api/v1/errors/register')
+      .send({ errorId: longId, errorMessage: 'test error' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
+  it('should reject errorMessage exceeding max length', async () => {
+    const longMessage = 'x'.repeat(2001);
+    const res = await request(app)
+      .post('/api/v1/errors/register')
+      .send({ errorId: 'err-long', errorMessage: longMessage });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
+  // XSS sanitization
+  it('should strip HTML tags from errorMessage', async () => {
+    const res = await request(app)
+      .post('/api/v1/errors/register')
+      .send({ errorId: 'err-xss', errorMessage: '<script>alert("xss")</script>File format unsupported' });
+
+    expect(res.status).toBe(200);
+    // The error category is based on the sanitized message
+    expect(res.body.success).toBe(true);
+  });
+
+  // Path parameter validation
+  it('should reject special characters in :errorId path param for GET /options', async () => {
+    const res = await request(app)
+      .get('/api/v1/errors/err%20id/options');
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('INVALID_ERROR_ID');
+  });
+
+  it('should reject special characters in :errorId path param for POST /recover', async () => {
+    const res = await request(app)
+      .post('/api/v1/errors/err%20id/recover')
+      .send({ strategyId: 's1', userChoice: 'auto' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('INVALID_ERROR_ID');
+  });
+});

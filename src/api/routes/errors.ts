@@ -15,6 +15,7 @@ import {
   type ErrorGuidance,
 } from '../../quality/user-guided-error-recovery';
 import { logger } from '../../utils/logger';
+import { ERROR_REGISTRY_LIMITS } from '../../config/limits';
 
 // ---------------------------------------------------------------------------
 // Zod validation schemas
@@ -31,6 +32,46 @@ const RecoverBodySchema = z.object({
     .optional(),
 });
 
+const RegisterBodySchema = z.object({
+  errorId: z
+    .string()
+    .min(1, 'errorId is required')
+    .max(
+      ERROR_REGISTRY_LIMITS.MAX_ERROR_ID_LENGTH,
+      `errorId must be at most ${ERROR_REGISTRY_LIMITS.MAX_ERROR_ID_LENGTH} characters`,
+    )
+    .regex(
+      ERROR_REGISTRY_LIMITS.ERROR_ID_PATTERN,
+      'errorId must contain only alphanumeric characters, hyphens, underscores, and dots',
+    ),
+  errorMessage: z
+    .string()
+    .min(1, 'errorMessage is required')
+    .max(
+      ERROR_REGISTRY_LIMITS.MAX_ERROR_MESSAGE_LENGTH,
+      `errorMessage must be at most ${ERROR_REGISTRY_LIMITS.MAX_ERROR_MESSAGE_LENGTH} characters`,
+    ),
+  context: z.record(z.unknown()).optional(),
+});
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Strip HTML tags from a string to prevent stored XSS */
+function sanitizeMessage(input: string): string {
+  return input.replace(/<[^>]*>/g, '');
+}
+
+/** Validate errorId format (used in path params where Zod isn't applied) */
+function isValidErrorId(errorId: string): boolean {
+  return (
+    errorId.length > 0 &&
+    errorId.length <= ERROR_REGISTRY_LIMITS.MAX_ERROR_ID_LENGTH &&
+    ERROR_REGISTRY_LIMITS.ERROR_ID_PATTERN.test(errorId)
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Error registry — maps errorId → stored Error + guidance
 // ---------------------------------------------------------------------------
@@ -44,6 +85,14 @@ interface StoredError {
 const errorRegistry = new Map<string, StoredError>();
 
 function storeError(errorId: string, error: Error, guidance: ErrorGuidance): void {
+  // Evict oldest entries if at capacity
+  if (errorRegistry.size >= ERROR_REGISTRY_LIMITS.MAX_STORED_ERRORS) {
+    const entries = [...errorRegistry.entries()].sort((a, b) => a[1].createdAt - b[1].createdAt);
+    const evictCount = Math.ceil(entries.length * 0.1); // evict 10%
+    for (let i = 0; i < evictCount && i < entries.length; i++) {
+      errorRegistry.delete(entries[i][0]);
+    }
+  }
   errorRegistry.set(errorId, { error, guidance, createdAt: Date.now() });
 }
 
@@ -72,6 +121,17 @@ export function createErrorsRouter(
       res.status(400).json({
         success: false,
         error: { code: 'INVALID_ERROR_ID', message: 'errorId path parameter is required' },
+      });
+      return;
+    }
+
+    if (!isValidErrorId(errorId)) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_ERROR_ID',
+          message: `errorId must be 1-${ERROR_REGISTRY_LIMITS.MAX_ERROR_ID_LENGTH} alphanumeric/hyphen/underscore/dot characters`,
+        },
       });
       return;
     }
@@ -136,6 +196,17 @@ export function createErrorsRouter(
       res.status(400).json({
         success: false,
         error: { code: 'INVALID_ERROR_ID', message: 'errorId path parameter is required' },
+      });
+      return;
+    }
+
+    if (!isValidErrorId(errorId)) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_ERROR_ID',
+          message: `errorId must be 1-${ERROR_REGISTRY_LIMITS.MAX_ERROR_ID_LENGTH} alphanumeric/hyphen/underscore/dot characters`,
+        },
       });
       return;
     }
@@ -210,24 +281,22 @@ export function createErrorsRouter(
    * Register an error for later recovery (used internally and for testing).
    */
   router.post('/register', (req: Request, res: Response) => {
-    const { errorId, errorMessage, context } = req.body as {
-      errorId?: string;
-      errorMessage?: string;
-      context?: Record<string, unknown>;
-    };
-
-    if (!errorId || !errorMessage) {
+    const parseResult = RegisterBodySchema.safeParse(req.body);
+    if (!parseResult.success) {
       res.status(400).json({
         success: false,
         error: {
           code: 'VALIDATION_ERROR',
-          message: 'errorId and errorMessage are required',
+          message: parseResult.error.issues.map((i) => i.message).join('; '),
         },
       });
       return;
     }
 
-    const error = new Error(errorMessage);
+    const { errorId, errorMessage, context } = parseResult.data;
+    const sanitizedMessage = sanitizeMessage(errorMessage);
+
+    const error = new Error(sanitizedMessage);
     const guidance = recoveryService.analyzeError(error, context);
     storeError(errorId, error, guidance);
 
