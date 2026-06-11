@@ -15,6 +15,10 @@
  * - pipeline_runs_total (counter by status: success/failure)
  * - batch_jobs_total (counter by status: created/running/completed/failed/cancelled)
  * - batch_jobs_active (gauge: currently running batch jobs)
+ * - export_duration_ms (summary with quantiles per format)  [REQ-226]
+ * - export_operations_total (counter by format × status)    [REQ-226]
+ * - export_file_size_bytes (summary with quantiles per format) [REQ-226]
+ * - export_stage_duration_ms (summary with quantiles per stage) [REQ-226]
  */
 
 import {
@@ -28,6 +32,12 @@ import {
   type StageDurationAggregate,
   type BatchJobMetricsSnapshot,
 } from './pipeline-metrics-collector';
+import {
+  exportMetricsCollector,
+  type ExportMetricsSnapshot,
+  type ExportFormatMetrics,
+  type ExportStageDurationAggregate,
+} from '../export/export-metrics-collector';
 
 // ---------------------------------------------------------------------------
 // Prometheus types
@@ -237,6 +247,83 @@ function buildBatchJobsActive(batch: BatchJobMetricsSnapshot): PrometheusMetric 
 }
 
 // ---------------------------------------------------------------------------
+// REQ-226: Export pipeline metric builders
+// ---------------------------------------------------------------------------
+
+function buildExportDurationMs(formats: ExportFormatMetrics[]): PrometheusMetric {
+  const samples: PrometheusMetric['samples'] = [];
+  for (const f of formats) {
+    const labels = { format: f.format };
+    for (const [q, val] of [['0.5', f.duration.percentiles.p50], ['0.95', f.duration.percentiles.p95], ['0.99', f.duration.percentiles.p99]] as const) {
+      samples.push({ labels: { ...labels, quantile: q }, value: val });
+    }
+    samples.push({ labels, value: f.duration.sumMs, suffix: '_sum' });
+    samples.push({ labels, value: f.duration.count, suffix: '_count' });
+  }
+  return {
+    name: 'export_duration_ms',
+    help: 'Export operation duration in milliseconds (summary with quantiles per format)',
+    type: 'summary',
+    samples,
+  };
+}
+
+function buildExportOperationsTotal(formats: ExportFormatMetrics[]): PrometheusMetric {
+  const samples: PrometheusMetric['samples'] = [];
+  for (const f of formats) {
+    if (f.successfulExports > 0) {
+      samples.push({ labels: { format: f.format, status: 'success' }, value: f.successfulExports });
+    }
+    if (f.failedExports > 0) {
+      samples.push({ labels: { format: f.format, status: 'failure' }, value: f.failedExports });
+    }
+  }
+  return {
+    name: 'export_operations_total',
+    help: 'Total export operations by format and status',
+    type: 'counter',
+    samples,
+  };
+}
+
+function buildExportFileSizeBytes(formats: ExportFormatMetrics[]): PrometheusMetric {
+  const samples: PrometheusMetric['samples'] = [];
+  for (const f of formats) {
+    if (f.fileSize.count === 0) continue;
+    const labels = { format: f.format };
+    for (const [q, val] of [['0.5', f.fileSize.percentiles.p50], ['0.95', f.fileSize.percentiles.p95], ['0.99', f.fileSize.percentiles.p99]] as const) {
+      samples.push({ labels: { ...labels, quantile: q }, value: val });
+    }
+    samples.push({ labels, value: f.fileSize.sum, suffix: '_sum' });
+    samples.push({ labels, value: f.fileSize.count, suffix: '_count' });
+  }
+  return {
+    name: 'export_file_size_bytes',
+    help: 'Export file size in bytes (summary with quantiles per format)',
+    type: 'summary',
+    samples,
+  };
+}
+
+function buildExportStageDurationMs(stages: ExportStageDurationAggregate[]): PrometheusMetric {
+  const samples: PrometheusMetric['samples'] = [];
+  for (const s of stages) {
+    const labels = { stage: s.stage };
+    for (const [q, val] of [['0.5', s.percentiles.p50], ['0.95', s.percentiles.p95], ['0.99', s.percentiles.p99]] as const) {
+      samples.push({ labels: { ...labels, quantile: q }, value: val });
+    }
+    samples.push({ labels, value: s.sumMs, suffix: '_sum' });
+    samples.push({ labels, value: s.count, suffix: '_count' });
+  }
+  return {
+    name: 'export_stage_duration_ms',
+    help: 'Export stage duration in milliseconds (summary with quantiles per stage)',
+    type: 'summary',
+    samples,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -245,6 +332,8 @@ export interface PrometheusExportOptions {
   snapshot?: HttpMetricsSnapshot;
   /** Optional custom pipeline snapshot instead of live collector data */
   pipelineSnapshot?: PipelineMetricsSnapshot;
+  /** Optional custom export snapshot instead of live collector data (REQ-226) */
+  exportSnapshot?: ExportMetricsSnapshot;
   /** Optional namespace prefix (default: '') */
   prefix?: string;
 }
@@ -257,6 +346,7 @@ export interface PrometheusExportOptions {
 export function exportPrometheusMetrics(options?: PrometheusExportOptions): string {
   const snapshot = options?.snapshot ?? httpMetricsCollector.getSnapshot();
   const pipelineSnap = options?.pipelineSnapshot ?? pipelineMetricsCollector.getSnapshot();
+  const exportSnap = options?.exportSnapshot ?? exportMetricsCollector.getSnapshot();
   const prefix = options?.prefix ?? '';
 
   const metrics: PrometheusMetric[] = [
@@ -285,6 +375,19 @@ export function exportPrometheusMetrics(options?: PrometheusExportOptions): stri
   // Always emit active gauge when any batch job data exists
   if (hasBatchData || batchJobs.activeJobs > 0) {
     metrics.push(buildBatchJobsActive(batchJobs));
+  }
+
+  // REQ-226: Export pipeline metrics
+  if (exportSnap.formats.length > 0) {
+    metrics.push(buildExportDurationMs(exportSnap.formats));
+    metrics.push(buildExportOperationsTotal(exportSnap.formats));
+    const formatsWithSizes = exportSnap.formats.filter(f => f.fileSize.count > 0);
+    if (formatsWithSizes.length > 0) {
+      metrics.push(buildExportFileSizeBytes(formatsWithSizes));
+    }
+  }
+  if (exportSnap.stages.length > 0) {
+    metrics.push(buildExportStageDurationMs(exportSnap.stages));
   }
 
   const output = metrics.map(renderMetric).join('\n\n');

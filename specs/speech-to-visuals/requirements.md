@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 94 完了・382ソースファイル・247テストファイル・107パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・192タスク全完了・テストスイート安定化完了（26+テスト障害解消・ESM互換性修正・エラー型伝播バグ修正）・バッチ処理プログレス正確性修正完了（progress.total original count反映）・パイプラインオーケストレーター入力検証完了（AudioValidationError・防御 in depth）・エラーリカバリ可観測性完了（RecoveryTelemetryAggregator・テレメトリAPI endpoint）・相関IDミドルウェア完了（X-Request-ID伝播）・構造化HTTPリクエスト/レスポンスロギング完了（レベル別ログ出力・ヘルスエンドポイント除外）・HTTPリクエストメトリクス収集完了（per-route percentiles・bounded memory）・Prometheus互換メトリクスエクスポート完了（text/plain v0.0.4）・ヘルスチェックliveness/readiness probe完了（Kubernetesスタイル）・GrafanaダッシュボードJSON model完了（8パネル）・Prometheus alert rules完了（4ルール）・監視APIデプロイメント統合完了（GET /monitoring/dashboard・GET /monitoring/alerts）・パイプラインステージ所要時間メトリクス完了（pipeline_stage_duration_ms・PipelineMetricsCollector・14テスト）・監視エンドポイントZodクエリ検証完了（REQ-216）・LLM応答図解構造検証完了（ノード重複排除・自己ループフィルタ・孤立エッジ検出・REQ-217）・シーン駆動アニメーションエクスポート完了（Animated SVG・Lottie JSON・REQ-218~219）・animated-scene-renderer モジュール抽出完了（視覚形状コンテンツ付きLottieレイヤー・36テスト）・エラーリカバリREST API完了（POST/GET/POST /errors・REQ-037拡張・28テスト追加）・エクスポートパイプライン統合テスト完了（TASK-0199/0200・E2E+renderer↔engine結合・38テスト）・シーンレンダラー入力検証完了（validateFrameInfo・clampSceneDuration・REQ-221・29テスト追加）・エラーリカバリREST API堅牢化完了（RegisterBodySchema・errorId形式検証・XSSサニタイズ・レジストリLRU退去・ERROR_REGISTRY_LIMITS・REQ-222・94テスト追加）・エクスポート検証拡張完了（APNG acTL/fcTLチャンク検証・Lottie JSON構造検証・REQ-223・31テスト追加）・エクスポートレート制限・レンダー検証強化完了（exportRateLimiter 10req/15min・codec列挙型・resolution正規表現・REQ-224・2テスト追加）
+**実装状況**: Phase 96 完了・384ソースファイル・248テストファイル・107パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・192タスク全完了・テストスイート安定化完了（26+テスト障害解消・ESM互換性修正・エラー型伝播バグ修正）・バッチ処理プログレス正確性修正完了（progress.total original count反映）・パイプラインオーケストレーター入力検証完了（AudioValidationError・防御 in depth）・エラーリカバリ可観測性完了（RecoveryTelemetryAggregator・テレメトリAPI endpoint）・相関IDミドルウェア完了（X-Request-ID伝播）・構造化HTTPリクエスト/レスポンスロギング完了（レベル別ログ出力・ヘルスエンドポイント除外）・HTTPリクエストメトリクス収集完了（per-route percentiles・bounded memory）・Prometheus互換メトリクスエクスポート完了（text/plain v0.0.4）・ヘルスチェックliveness/readiness probe完了（Kubernetesスタイル）・GrafanaダッシュボードJSON model完了（8パネル）・Prometheus alert rules完了（4ルール）・監視APIデプロイメント統合完了（GET /monitoring/dashboard・GET /monitoring/alerts）・パイプラインステージ所要時間メトリクス完了（pipeline_stage_duration_ms・PipelineMetricsCollector・14テスト）・監視エンドポイントZodクエリ検証完了（REQ-216）・LLM応答図解構造検証完了（ノード重複排除・自己ループフィルタ・孤立エッジ検出・REQ-217）・シーン駆動アニメーションエクスポート完了（Animated SVG・Lottie JSON・REQ-218~219）・animated-scene-renderer モジュール抽出完了（視覚形状コンテンツ付きLottieレイヤー・36テスト）・エラーリカバリREST API完了（POST/GET/POST /errors・REQ-037拡張・28テスト追加）・エクスポートパイプライン統合テスト完了（TASK-0199/0200・E2E+renderer↔engine結合・38テスト）・シーンレンダラー入力検証完了（validateFrameInfo・clampSceneDuration・REQ-221・29テスト追加）・エラーリカバリREST API堅牢化完了（RegisterBodySchema・errorId形式検証・XSSサニタイズ・レジストリLRU退去・ERROR_REGISTRY_LIMITS・REQ-222・94テスト追加）・エクスポート検証拡張完了（APNG acTL/fcTLチャンク検証・Lottie JSON構造検証・REQ-223・31テスト追加）・エクスポートレート制限・レンダー検証強化完了（exportRateLimiter 10req/15min・codec列挙型・resolution正規表現・REQ-224・2テスト追加）・エクスポートメトリクス収集完了（ExportMetricsCollector・Prometheus統合4メトリック・stage/per-export instrumentation・REQ-226・17テスト追加）
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -506,6 +506,10 @@
 
 - REQ-225: システムは EnhancedExportEngine のファイナライズ段階（Stage 5）で ExportVerifier を呼び出し、エクスポート結果（ExportResult）に verification フィールドとして検証結果を含めなければならない。ExportFormat から VerificationFormat へのマッピング（mp4→mp4, webm→webm, gif→gif, apng→apng, interactive-html→json, pdf-animated→pdf, svg-animated→svg, json-lottie→lottie）を行い、各フォーマットの検証結果（valid/errors/warnings/metadata）を結果に含めること 🔵 ✅実装済 *src/export/enhanced-export-engine.ts finalizeExport()・mapExportFormatToVerificationFormat()・10テスト追加*
 
+#### エクスポートメトリクス収集（Phase 96） ✅完了
+
+- REQ-226: システムはエクスポートパイプラインのメトリクスを収集し、Prometheus 互換形式で公開しなければならない。収集項目は (1) フォーマット別エクスポート所要時間（パーセンタイル付き）、(2) フォーマット別 × 成功/失敗別のエクスポート件数、(3) フォーマット別エクスポートファイルサイズ（パーセンタイル付き）、(4) ステージ別（preparing/rendering/encoding/finalizing）所要時間（パーセンタイル付き）とする。メモリ使用量を制限するためサンプル系列あたり最大500件を保持し、超過時は古いサンプルを半減させること 🔵 ✅実装済 *src/export/export-metrics-collector.ts ExportMetricsCollector・src/monitoring/prometheus-exporter.ts buildExportDurationMs()・buildExportOperationsTotal()・buildExportFileSizeBytes()・buildExportStageDurationMs()・src/export/enhanced-export-engine.ts stage/per-export instrumentation・17テスト追加*
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より*
@@ -694,14 +698,15 @@
 | Phase 93: エクスポート検証拡張 | ✅完了 | REQ-223 | 1/1（APNG acTL/fcTLチャンク検証・Lottie JSON構造検証・renderer→verifier round-trip統合テスト・31テスト追加） |
 | Phase 94: エクスポートレート制限・レンダー検証強化 | ✅完了 | REQ-224 | 1/1（exportRateLimiter 10req/15min・codec列挙型検証・resolution正規表現検証・RATE_LIMITS.EXPORT・2テスト追加） |
 | Phase 95: エクスポートエンジン検証統合 | ✅完了 | REQ-225 | 1/1（EnhancedExportEngine finalizeExport検証統合・mapExportFormatToVerificationFormat・全8形式検証結果付与・10テスト追加） |
+| Phase 96: エクスポートメトリクス収集 | ✅完了 | REQ-226 | 1/1（ExportMetricsCollector・Prometheus 4メトリック統合・EnhancedExportEngine stage/per-export instrumentation・17テスト追加） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 242件 (98.4%)
+- 🔵 青信号: 243件 (98.4%)
 - 🟡 黄信号: 4件 (1.6%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 95完了（REQ-225・エクスポートエンジン検証統合）・TypeScript型エラー0件
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 96完了（REQ-226・エクスポートメトリクス収集）・TypeScript型エラー0件
 
 ## Acceptance criteria
 

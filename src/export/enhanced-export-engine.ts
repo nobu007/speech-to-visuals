@@ -22,6 +22,7 @@ import type {
 import { encodeAPNG as realEncodeAPNG } from './apng-encoder';
 import { generateAnimatedSVG, generateLottieAnimation } from './animated-scene-renderer';
 import { ExportVerifier, type VerificationFormat, type VerificationResult } from './export-verifier';
+import { exportMetricsCollector } from './export-metrics-collector';
 import { logger } from '../utils/logger';
 
 export interface ExportConfiguration {
@@ -240,6 +241,9 @@ export class EnhancedExportEngine {
       const duration = performance.now() - startTime;
       logger.error('Export failed:', error);
 
+      // REQ-226: Record failed export metric
+      exportMetricsCollector.recordExport(config.format, 'failure', duration);
+
       return {
         success: false,
         format: config.format,
@@ -258,19 +262,27 @@ export class EnhancedExportEngine {
 
     try {
       // Stage 1: Preparation
+      let t0 = performance.now();
       await this.prepareExport(job);
+      exportMetricsCollector.recordStageDuration('preparing', performance.now() - t0);
 
       // Stage 2: Rendering
+      t0 = performance.now();
       const renderedFrames = await this.renderFrames(job);
+      exportMetricsCollector.recordStageDuration('rendering', performance.now() - t0);
 
       // Stage 3: Encoding
+      t0 = performance.now();
       const encodedVideo = await this.encodeVideo(job, renderedFrames);
+      exportMetricsCollector.recordStageDuration('encoding', performance.now() - t0);
 
       // Stage 4: Post-processing
       const processedVideo = await this.postProcess(job, encodedVideo);
 
       // Stage 5: Finalization
+      t0 = performance.now();
       const result = await this.finalizeExport(job, processedVideo);
+      exportMetricsCollector.recordStageDuration('finalizing', performance.now() - t0);
 
       return result;
     } catch (error) {
@@ -509,6 +521,10 @@ export class EnhancedExportEngine {
     }
 
     this.updateProgress(job, 'complete', 100, 'Export complete!');
+
+    // REQ-226: Record successful export metric
+    const exportDuration = job.startTime ? performance.now() - job.startTime.getTime() : 0;
+    exportMetricsCollector.recordExport(job.config.format, 'success', exportDuration, outputSize);
 
     const warnings: string[] = [...(verification.warnings)];
     if (!verification.valid) {
