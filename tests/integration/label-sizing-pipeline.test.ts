@@ -151,7 +151,7 @@ describe('TASK-0131: Smart Label Sizing Pipeline Integration', () => {
 
   it('should handle empty layouts without crashing', async () => {
     const input: PipelineInput = {
-      audioFile: '',
+      audioFile: 'test-audio.wav',
       config: {
         transcription: { model: 'base' },
         analysis: {

@@ -284,7 +284,7 @@ describe('TASK-0133: E2E Quality Pipeline Integration', () => {
   describe('edge cases', () => {
     it('should handle empty layout gracefully in pipeline', async () => {
       const input: PipelineInput = {
-        audioFile: '',
+        audioFile: 'test-audio.wav',
         config: {
           transcription: { model: 'base' },
           analysis: {

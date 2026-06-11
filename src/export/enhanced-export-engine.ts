@@ -21,6 +21,7 @@ import type {
 } from '../workers';
 import { encodeAPNG as realEncodeAPNG } from './apng-encoder';
 import { generateAnimatedSVG, generateLottieAnimation } from './animated-scene-renderer';
+import { ExportVerifier, type VerificationFormat, type VerificationResult } from './export-verifier';
 import { logger } from '../utils/logger';
 
 export interface ExportConfiguration {
@@ -128,6 +129,8 @@ export interface ExportResult {
   metadata?: ExportMetadata;
   error?: string;
   warnings?: string[];
+  /** Verification result from ExportVerifier (REQ-225) */
+  verification?: VerificationResult;
 }
 
 export class EnhancedExportEngine {
@@ -137,6 +140,7 @@ export class EnhancedExportEngine {
   private useWorkers: boolean;
   private maxConcurrentExports: number;
   private disposed = false;
+  private verifier: ExportVerifier;
 
   /**
    * @param maxConcurrentExports - Maximum concurrent export jobs
@@ -153,6 +157,7 @@ export class EnhancedExportEngine {
     this.useWorkers = useWorkers && isWorkerAvailable();
     this.maxConcurrentExports = maxConcurrentExports;
     this.exportWorkerPool = null;
+    this.verifier = new ExportVerifier();
   }
 
   /** Lazily initialize and return the worker pool */
@@ -473,7 +478,7 @@ export class EnhancedExportEngine {
   }
 
   /**
-   * Stage 5: Finalize export
+   * Stage 5: Finalize export with automatic verification (REQ-225)
    */
   private async finalizeExport(job: ExportJob, video: ProcessedVideo): Promise<ExportResult> {
     this.updateProgress(job, 'finalizing', 98, 'Finalizing export...');
@@ -492,7 +497,23 @@ export class EnhancedExportEngine {
     // Calculate file size
     const outputSize = await this.getFileSize(outputPath);
 
+    // Verify exported output (REQ-225)
+    const vFormat = mapExportFormatToVerificationFormat(job.config.format);
+    const verification = this.verifier.verify(vFormat, video.data.buffer as ArrayBuffer);
+
+    if (!verification.valid) {
+      logger.warn('[EnhancedExportEngine] Export verification failed:', verification.errors);
+    }
+    if (verification.warnings.length > 0) {
+      logger.warn('[EnhancedExportEngine] Export verification warnings:', verification.warnings);
+    }
+
     this.updateProgress(job, 'complete', 100, 'Export complete!');
+
+    const warnings: string[] = [...(verification.warnings)];
+    if (!verification.valid) {
+      warnings.push(...verification.errors);
+    }
 
     return {
       success: true,
@@ -501,7 +522,9 @@ export class EnhancedExportEngine {
       duration: video.duration,
       format: job.config.format,
       quality: job.config.quality,
-      metadata
+      metadata,
+      verification,
+      warnings,
     };
   }
 
@@ -799,6 +822,23 @@ export class EnhancedExportEngine {
   private generateJobId(): string {
     return `export_${crypto.randomUUID()}`;
   }
+}
+
+/**
+ * Map EnhancedExportEngine ExportFormat to ExportVerifier VerificationFormat (REQ-225)
+ */
+function mapExportFormatToVerificationFormat(format: ExportFormat): VerificationFormat {
+  const mapping: Record<ExportFormat, VerificationFormat> = {
+    'mp4': 'mp4',
+    'webm': 'webm',
+    'gif': 'gif',
+    'apng': 'apng',
+    'interactive-html': 'json',
+    'pdf-animated': 'pdf',
+    'svg-animated': 'svg',
+    'json-lottie': 'lottie',
+  };
+  return mapping[format] ?? 'json';
 }
 
 // Supporting interfaces

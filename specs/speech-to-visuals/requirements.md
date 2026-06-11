@@ -502,6 +502,10 @@
 - REQ-223: システムはエクスポート検証（REQ-093）を拡張し、APNG形式についてはPNG署名に加えてacTL（Animation Control）チャンクの存在・フレーム数正値・fcTL（Frame Control）チャンク数との整合性を検証し、Lottie JSON形式については必須ルートフィールド（v・fr・ip・op・w・h・layers）の存在・fr正値・op>ip・w/h正値・layers配列の各要素ty型フィールドを検証しなければならない 🔵 ✅実装済 *src/export/export-verifier.ts verifyApngChunks()・verifyLottie()・readU32BE()・tests/export/export-verifier.test.ts 27テスト追加・tests/integration/renderer-engine-integration.test.ts renderer→verifier round-trip 4テスト追加*
 - REQ-224: システムは POST /api/render エンドポイントにエクスポートレート制限（10リクエスト/15分/IP）を適用し、CPU集約的なレンダリング操作を保護しなければならない。また codec パラメータを列挙型（h264/h265/vp9/av1）で検証し、resolution パラメータを WIDTHxHEIGHT 形式（例: 1920x1080）の正規表現で検証し、不正値には 400 VALIDATION_ERROR を返さなければならない 🔵 ✅実装済 *src/api/middleware/rate-limit.ts exportRateLimiter・src/api/routes/pipeline.ts VALID_CODECS・RESOLUTION_REGEX・src/config/limits.ts RATE_LIMITS.EXPORT・2テスト追加*
 
+#### エクスポートエンジン検証統合（Phase 95） ✅完了
+
+- REQ-225: システムは EnhancedExportEngine のファイナライズ段階（Stage 5）で ExportVerifier を呼び出し、エクスポート結果（ExportResult）に verification フィールドとして検証結果を含めなければならない。ExportFormat から VerificationFormat へのマッピング（mp4→mp4, webm→webm, gif→gif, apng→apng, interactive-html→json, pdf-animated→pdf, svg-animated→svg, json-lottie→lottie）を行い、各フォーマットの検証結果（valid/errors/warnings/metadata）を結果に含めること 🔵 ✅実装済 *src/export/enhanced-export-engine.ts finalizeExport()・mapExportFormatToVerificationFormat()・10テスト追加*
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より*
@@ -689,14 +693,15 @@
 | Phase 92: エラーリカバリREST API堅牢化 | ✅完了 | REQ-222 | 1/1（RegisterBodySchema・errorId形式検証・XSSサニタイズ・レジストリLRU退去・ERROR_REGISTRY_LIMITS・94テスト追加） |
 | Phase 93: エクスポート検証拡張 | ✅完了 | REQ-223 | 1/1（APNG acTL/fcTLチャンク検証・Lottie JSON構造検証・renderer→verifier round-trip統合テスト・31テスト追加） |
 | Phase 94: エクスポートレート制限・レンダー検証強化 | ✅完了 | REQ-224 | 1/1（exportRateLimiter 10req/15min・codec列挙型検証・resolution正規表現検証・RATE_LIMITS.EXPORT・2テスト追加） |
+| Phase 95: エクスポートエンジン検証統合 | ✅完了 | REQ-225 | 1/1（EnhancedExportEngine finalizeExport検証統合・mapExportFormatToVerificationFormat・全8形式検証結果付与・10テスト追加） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 241件 (98.4%)
+- 🔵 青信号: 242件 (98.4%)
 - 🟡 黄信号: 4件 (1.6%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 94完了（REQ-224・エクスポートレート制限・レンダーエンドポイント検証強化）・TypeScript型エラー0件
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 95完了（REQ-225・エクスポートエンジン検証統合）・TypeScript型エラー0件
 
 ## Acceptance criteria
 
@@ -707,6 +712,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 94 を網羅し、Phase 94 完了（REQ-224・エクスポートレート制限・レンダーエンドポイント検証強化）を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 95 を網羅し、Phase 95 完了（REQ-225・エクスポートエンジン検証統合）を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテキュリティに違反していない
 - [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（第189回: 🔵239件/🟡4件/🔴0件 — Phase 92完了・REQ-001~222・247テストファイル・382ソースファイル・107パッケージ・エラーリカバリREST API堅牢化）

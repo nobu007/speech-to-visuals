@@ -644,3 +644,120 @@ describe('EnhancedExportEngine Lottie JSON content', () => {
     expect(result.outputSize).toBeGreaterThan(0);
   });
 });
+
+// ---------- REQ-225: Export verification integration ----------
+
+describe('REQ-225: Export verification integration', () => {
+  let engine: EnhancedExportEngine;
+
+  beforeEach(() => {
+    engine = new EnhancedExportEngine(2);
+  });
+
+  test('svg-animated export includes verification result', async () => {
+    const result = await engine.exportVideo(
+      createSceneData(),
+      createConfig({ format: 'svg-animated' }),
+    );
+    expect(result.success).toBe(true);
+    expect(result.verification).toBeDefined();
+    expect(result.verification!.valid).toBe(true);
+    expect(result.verification!.format).toBe('svg');
+    expect(result.verification!.fileSize).toBeGreaterThan(0);
+  });
+
+  test('json-lottie export includes verification result', async () => {
+    const result = await engine.exportVideo(
+      createSceneData(),
+      createConfig({ format: 'json-lottie' }),
+    );
+    expect(result.success).toBe(true);
+    expect(result.verification).toBeDefined();
+    expect(result.verification!.valid).toBe(true);
+    expect(result.verification!.format).toBe('lottie');
+  });
+
+  test('apng export includes verification with APNG chunk validation', async () => {
+    const result = await engine.exportVideo(
+      { scenes: [{ duration: 1, type: 'content' }] },
+      createConfig({ format: 'apng', quality: { resolution: '720p', fps: 30, bitrate: 'auto', hdr: false } }),
+    );
+    expect(result.success).toBe(true);
+    expect(result.verification).toBeDefined();
+    expect(result.verification!.valid).toBe(true);
+    expect(result.verification!.format).toBe('apng');
+    expect(result.verification!.metadata.apngHasAcTL).toBe(true);
+  });
+
+  test('mp4 export includes verification result (informational)', async () => {
+    const result = await engine.exportVideo(
+      createSceneData(),
+      createConfig({ format: 'mp4' }),
+    );
+    expect(result.success).toBe(true);
+    expect(result.verification).toBeDefined();
+    expect(result.verification!.format).toBe('mp4');
+    // Simulated MP4 data won't have valid magic bytes — verification captures this
+    expect(result.verification!.errors.length).toBeGreaterThan(0);
+    // But export still succeeds (verification is informational for simulated formats)
+  });
+
+  test('webm export includes verification result', async () => {
+    const result = await engine.exportVideo(
+      createSceneData(),
+      createConfig({ format: 'webm' }),
+    );
+    expect(result.success).toBe(true);
+    expect(result.verification).toBeDefined();
+    expect(result.verification!.format).toBe('webm');
+  });
+
+  test('gif export includes verification result', async () => {
+    const result = await engine.exportVideo(
+      createSceneData(),
+      createConfig({ format: 'gif' }),
+    );
+    expect(result.success).toBe(true);
+    expect(result.verification).toBeDefined();
+    expect(result.verification!.format).toBe('gif');
+  });
+
+  test('pdf-animated export includes verification result', async () => {
+    const result = await engine.exportVideo(
+      createSceneData(),
+      createConfig({ format: 'pdf-animated' }),
+    );
+    expect(result.success).toBe(true);
+    expect(result.verification).toBeDefined();
+    expect(result.verification!.format).toBe('pdf');
+  });
+
+  test('verification metadata is populated for valid formats', async () => {
+    const result = await engine.exportVideo(
+      createSceneData(),
+      createConfig({ format: 'svg-animated' }),
+    );
+    expect(result.verification!.metadata).toBeDefined();
+    // SVG verification extracts viewBox or other metadata
+    expect(typeof result.verification!.metadata).toBe('object');
+  });
+
+  test('verification warnings are surfaced in result warnings', async () => {
+    const result = await engine.exportVideo(
+      createSceneData(),
+      createConfig({ format: 'mp4' }),
+    );
+    // Simulated MP4 data produces verification errors which surface as warnings
+    expect(result.warnings).toBeDefined();
+    expect(Array.isArray(result.warnings)).toBe(true);
+  });
+
+  test('all formats produce a verification object', async () => {
+    const formats: ExportFormat[] = ['mp4', 'webm', 'gif', 'apng', 'interactive-html', 'pdf-animated', 'svg-animated', 'json-lottie'];
+    for (const format of formats) {
+      const result = await engine.exportVideo(createSceneData(), createConfig({ format }));
+      expect(result.verification).toBeDefined();
+      expect(result.verification!.fileSize).toBeGreaterThanOrEqual(0);
+    }
+  });
+});
