@@ -3981,3 +3981,40 @@
 - [x] **TC-223-W05**: layer ip/op欠落は deepValidation時警告 🔵
 
 ---
+
+## REQ-224: エクスポートレート制限・レンダーエンドポイント検証強化 🔵
+
+**信頼性**: 🔵 *Phase 94 実装・src/api/middleware/rate-limit.ts・src/api/routes/pipeline.ts・src/config/limits.ts より*
+
+### Given（前提条件）
+
+- Express API サーバーが起動している
+- exportRateLimiter ミドルウェアが設定されている（10リクエスト/15分/IP）
+- RenderRequestSchema が codec 列挙型（h264/h265/vp9/av1）と resolution 正規表現（WIDTHxHEIGHT）を検証する
+- RATE_LIMITS.EXPORT が limits.ts に定義されている
+
+### When（実行条件）
+
+- POST /api/render にレンダリングリクエストを送信する
+
+### Then（期待結果）
+
+- 15分間に10リクエストを超過すると 429 EXPORT_RATE_LIMIT_EXCEEDED が返却される
+- codec が h264/h265/vp9/av1 以外の場合 400 VALIDATION_ERROR が返却される
+- resolution が WIDTHxHEIGHT 形式でない場合 400 VALIDATION_ERROR が返却される
+
+### テストケース
+
+#### 異常系
+
+- [x] **TC-224-E01**: 無効なcodec値で400 VALIDATION_ERROR 🔵
+  - **入力**: {scenes: [{id: 1}], options: {codec: 'invalid_codec'}}
+  - **期待結果**: 400, error.code='VALIDATION_ERROR'
+  - **信頼性**: 🔵 *src/api/routes/__tests__/pipeline.test.ts より*
+
+- [x] **TC-224-E02**: 無効なresolution形式で400 VALIDATION_ERROR 🔵
+  - **入力**: {scenes: [{id: 1}], options: {resolution: 'not-a-resolution'}}
+  - **期待結果**: 400, error.code='VALIDATION_ERROR'
+  - **信頼性**: 🔵 *src/api/routes/__tests__/pipeline.test.ts より*
+
+---

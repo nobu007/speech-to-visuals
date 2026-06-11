@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-11（第189回検証: Phase 92完了・REQ-222 追加・エラーリカバリREST API堅牢化・RegisterBodySchema・errorId形式検証・XSSサニタイズ・レジストリLRU退去・ERROR_REGISTRY_LIMITS・94テスト追加）
+**最終更新**: 2026-06-11（第191回検証: Phase 94完了・REQ-224 追加・エクスポートレート制限・レンダーエンドポイント検証強化・exportRateLimiter 10req/15min・codec列挙型検証・resolution正規表現検証）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
@@ -3269,6 +3269,48 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 - この分析により、新規要件 REQ-221（シーンレンダラー入力検証）を追加（信頼性レベル: 🔵）
 - 信頼性レベル分布: 🔵238件(98.3%) / 🟡4件(1.7%) / 🔴0件(0%) — 🔵+1
 - エクスポートパイプラインの堅牢性が入力検証レイヤーにより更に向上
+
+---
+
+### A44: Phase 93 エクスポート検証拡張分析
+
+**分析日時**: 2026-06-11
+**カテゴリ**: 既存設計確認
+**背景**: コミット c2ea0c5 でエクスポート検証が拡張され、APNG形式のacTL/fcTLチャンク検証とLottie JSONの構造検証が追加された。VerificationFormatに'lottie'が追加され、ExportVerifierがPNG署名のみの検証からAPNGアニメーション制御チャンクの整合性チェックに拡張された。
+
+**判断**: REQ-223として要件定義に追加。APNG acTL/fcTLチャンク検証・Lottie JSON構造検証・renderer→verifier round-trip統合テストを31テストで検証。
+
+**根拠**:
+- `src/export/export-verifier.ts` - verifyApngChunks()・verifyLottie()・readU32BE()追加
+- `tests/export/export-verifier.test.ts` - 27テスト追加
+- `tests/integration/renderer-engine-integration.test.ts` - renderer→verifier round-trip 4テスト追加
+- commit c2ea0c5
+
+**信頼性への影響**:
+- この分析により、REQ-223（エクスポート検証拡張）を追加（信頼性レベル: 🔵）
+- 信頼性レベル分布: 🔵240件(98.4%) / 🟡4件(1.6%) / 🔴0件(0%) — 🔵+2
+
+---
+
+### A45: Phase 94 エクスポートレート制限・レンダーエンドポイント検証強化分析
+
+**分析日時**: 2026-06-11
+**カテゴリ**: セキュリティ・入力検証
+**背景**: コミット 1a0452e でPOST /api/renderエンドポイントに3つのセキュリティ強化が追加された: (1) exportRateLimiter（10req/15min/IP）によるCPU集約操作の保護、(2) codecパラメータの列挙型検証（h264/h265/vp9/av1）による不正値排除、(3) resolutionパラメータのWIDTHxHEIGHT正規表現検証。既存のfree-form string検証が型安全な検証に強化された。
+
+**判断**: REQ-224として要件定義に追加。RATE_LIMITS.EXPORT設定をlimits.tsに集約し、exportRateLimiterミドルウェアをPOST /api/renderに適用。テストではno-op limiterを注入してレート制限の影響を回避する設計を採用。
+
+**根拠**:
+- `src/api/middleware/rate-limit.ts` - exportRateLimiter追加
+- `src/api/routes/pipeline.ts` - VALID_CODECS・RESOLUTION_REGEX・RenderRequestSchema更新・renderRateLimiter注入
+- `src/config/limits.ts` - RATE_LIMITS.EXPORT（WINDOW_MS: 15min, MAX_REQUESTS: 10）追加
+- `src/api/routes/__tests__/pipeline.test.ts` - 2テスト追加（invalid codec・invalid resolution）
+- commit 1a0452e
+
+**信頼性への影響**:
+- この分析により、REQ-224（エクスポートレート制限・レンダーエンドポイント検証強化）を追加（信頼性レベル: 🔵）
+- 信頼性レベル分布: 🔵241件(98.4%) / 🟡4件(1.6%) / 🔴0件(0%) — 🔵+1
+- レンダーエンドポイントのセキュリティがレート制限・入力検証の2層で強化された
 
 ## 関連文書
 

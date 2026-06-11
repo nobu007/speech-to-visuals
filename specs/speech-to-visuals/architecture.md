@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-11（第190回検証: Phase 93完了・エクスポート検証拡張 REQ-223・APNG acTL/fcTLチャンク検証・Lottie JSON構造検証・renderer→verifier round-trip統合テスト・382ソースファイル・353テストファイル・TypeScriptエラー0件）
+**最終更新**: 2026-06-11（第191回検証: Phase 94完了・エクスポートレート制限・レンダーエンドポイント検証強化 REQ-224・exportRateLimiter 10req/15min・codec列挙型検証・resolution正規表現検証・382ソースファイル・353テストファイル・TypeScriptエラー0件）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -76,7 +76,7 @@
 - **リアルタイム通信**: Socket.IO 4.8（WebSocket ハンドラーで JWT 認証付きジョブルーム管理）🔵 *src/api/websocket-handler.ts・要件定義REQ-046 より*
 - **認証方式**: Supabase Auth（JWT ベース）
 - **API設計**: REST（バッチ処理API）+ Supabase Edge Functions
-- **ミドルウェア**: express-rate-limit（レート制限）、Helmet（セキュリティヘッダー）、CORS
+- **ミドルウェア**: express-rate-limit（レート制限: API 100req/15min, Upload 20req/15min, Export 10req/15min）、Helmet（セキュリティヘッダー）、CORS 🔵 *REQ-224 EXPORT rate limit 追加*
 - **API構成**: src/api/middleware/（rate-limit, error-handler, auth）、src/api/routes/（batch, health, pipeline ルート定義）、src/api/startup-warmup.ts（起動時キャッシュウォームアップトリガー）🔵 *src/api/ より*
 - **バッチ処理API**: REST エンドポイント（POST /batch/jobs でジョブ作成→HTTP 202、GET /batch/jobs/:id でステータス取得、DELETE /batch/jobs/:id でキャンセル）、セマフォパターンで最大3並列ジョブ制御 🔵 *src/api/routes/batch.ts・要件定義REQ-043 より*
 - **WebSocket リアルタイム通知**: Socket.IO ベースのジョブ進捗・完了・エラー・ファイルステータス・ステージ進捗・ストリーミングセグメント・エラー回復イベントのリアルタイム配信。JWT 認証で接続保護、ジョブルーム（join:job/leave:job）による購読管理 🔵 *src/api/websocket-handler.ts・要件定義REQ-046 より*
@@ -315,7 +315,7 @@ Phase 55 で実装されたパイプライン音声入力検証の統合:
 
 Phase 8 で追加実装されたパイプライン操作用 REST API:
 
-- **POST /api/render**: 動画レンダリングトリガー（シーンデータ→MP4生成）🔵 *要件定義REQ-057 より*
+- **POST /api/render**: 動画レンダリングトリガー（シーンデータ→MP4生成）。exportRateLimiter（10req/15min/IP）適用済。codec 列挙型検証（h264/h265/vp9/av1）・resolution 正規表現検証（WIDTHxHEIGHT 形式）付き 🔵 *要件定義REQ-057・REQ-224 より*
 - **POST /api/git/commit**: フレームワークパイプラインの自動コミット実行 🔵 *要件定義REQ-057 より*
 - **GET /api/iteration-log**: イテレーションログ取得（品質メトリクス・改善履歴）🔵 *要件定義REQ-057 より*
 - **GET /api/framework/status**: フレームワーク実行ステータス取得（現在フェーズ・品質スコア・改善推奨）🔵 *要件定義REQ-057 より*
@@ -673,6 +673,7 @@ Fallback LLM
 - [x] エクスポートフォーマット横断一貫性テスト（Phase 90）が完了している（cross-format-consistency.test.ts・TASK-0201・SVG↔Lottie構成・色・タイミング・寸法一貫性検証・23テスト）
 - [x] シーンレンダラー入力検証（Phase 91）が完了している（validateFrameInfo寸法クランプ1~7680px・clampSceneDuration最大3600秒・SceneRendererValidationError・REQ-221・29テスト追加）
 - [x] エクスポート検証拡張（Phase 93）が完了している（APNG acTL/fcTLチャンク検証・Lottie JSON構造検証・renderer→verifier round-trip統合テスト・REQ-223・31テスト追加）
+- [x] エクスポートレート制限・レンダー検証強化（Phase 94）が完了している（exportRateLimiter 10req/15min・codec列挙型検証（h264/h265/vp9/av1）・resolution正規表現検証（WIDTHxHEIGHT）・REQ-224・2テスト追加）
 
 ## 関連文書
 
@@ -691,7 +692,7 @@ Fallback LLM
 - 🟡 黄信号: 4件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第190回検証: Phase 93完了・エクスポート検証拡張REQ-223追加・382ファイル・353テストファイル・TypeScriptエラー0件・SYSTEM_CONSTITUTION V2.6適合）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第191回検証: Phase 94完了・エクスポートレート制限・レンダー検証強化REQ-224追加・382ファイル・353テストファイル・TypeScriptエラー0件・SYSTEM_CONSTITUTION V2.6適合）
 
 
 <!-- spine:children:begin -->
