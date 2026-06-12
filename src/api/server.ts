@@ -7,6 +7,8 @@ import { createBatchRouter } from './routes/batch';
 import { createPipelineRouter } from './routes/pipeline';
 import { createMonitoringRouter } from './routes/monitoring';
 import { createErrorsRouter } from './routes/errors';
+import { createExportRouter } from './routes/export';
+import { ExportArtifactStore } from '../export/export-artifact-store';
 import { errorHandler } from './middleware/error-handler';
 import { apiRateLimiter, uploadRateLimiter } from './middleware/rate-limit';
 import { requestTimeout } from './middleware/timeout';
@@ -89,6 +91,11 @@ app.use('/api/v1/batch', uploadRateLimiter, createBatchRouter());
 // ISS-029: apply API rate limiter to pipeline routes to prevent abuse
 // ISS-030: enforce JWT auth on pipeline routes in production
 app.use('/api', apiRateLimiter, pipelineAuth, createPipelineRouter());
+
+// REQ-234: Export artifact download endpoint
+const artifactStore = new ExportArtifactStore();
+artifactStore.start();
+app.use('/api/v1/export', createExportRouter(artifactStore));
 
 // Error handler (must be after routes)
 app.use(errorHandler);

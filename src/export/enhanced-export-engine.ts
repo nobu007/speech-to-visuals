@@ -23,6 +23,7 @@ import { encodeAPNG as realEncodeAPNG } from './apng-encoder';
 import { generateAnimatedSVG, generateLottieAnimation } from './animated-scene-renderer';
 import { ExportVerifier, type VerificationFormat, type VerificationResult } from './export-verifier';
 import { exportMetricsCollector } from './export-metrics-collector';
+import type { ExportArtifactStore } from './export-artifact-store';
 import { EXPORT_RETRY_LIMITS, EXPORT_STAGE_TIMEOUTS } from '@/config/limits';
 import { logger } from '../utils/logger';
 
@@ -144,15 +145,19 @@ export class EnhancedExportEngine {
   private disposed = false;
   private verifier: ExportVerifier;
 
+  private artifactStore?: ExportArtifactStore;
+
   /**
    * @param maxConcurrentExports - Maximum concurrent export jobs
    * @param useWorkers - Whether to use Web Workers for CPU-intensive processing
    * @param workerFactory - Optional factory to create Worker instances (for testing)
+   * @param artifactStore - Optional artifact store for REQ-231 integration
    */
   constructor(
     maxConcurrentExports = 2,
     useWorkers = false,
-    private workerFactory?: () => Worker,
+    workerFactory?: () => Worker,
+    artifactStore?: ExportArtifactStore,
   ) {
     this.activeExports = new Map();
     this.exportQueue = [];
@@ -160,6 +165,8 @@ export class EnhancedExportEngine {
     this.maxConcurrentExports = maxConcurrentExports;
     this.exportWorkerPool = null;
     this.verifier = new ExportVerifier();
+    this.workerFactory = workerFactory;
+    this.artifactStore = artifactStore;
   }
 
   /** Lazily initialize and return the worker pool */
@@ -711,6 +718,29 @@ export class EnhancedExportEngine {
     const warnings: string[] = [...(verification.warnings)];
     if (!verification.valid) {
       warnings.push(...verification.errors);
+    }
+
+    // REQ-231: Store artifact in ExportArtifactStore (failure is non-blocking)
+    if (this.artifactStore) {
+      try {
+        const stored = this.artifactStore.store({
+          format: job.config.format,
+          data: video.data,
+          sizeBytes: video.data.byteLength,
+          metadata: {
+            jobId: job.id,
+            outputPath,
+            outputSize,
+            codec: video.codec,
+          },
+        });
+        logger.info(`[EnhancedExportEngine] Artifact stored: ${stored.artifactId}`);
+      } catch (storeError) {
+        logger.warn(
+          '[EnhancedExportEngine] Artifact store failed (non-blocking):',
+          storeError instanceof Error ? storeError.message : storeError,
+        );
+      }
     }
 
     return {

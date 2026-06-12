@@ -12,6 +12,7 @@
 
 import { randomUUID } from 'crypto';
 import { EXPORT_QUEUE_LIMITS } from '@/config/limits';
+import type { ExportArtifactStore } from './export-artifact-store';
 import { logger } from '../utils/logger';
 
 // ---------------------------------------------------------------------------
@@ -31,6 +32,8 @@ export interface QueuedExportJob {
   status: JobStatus;
   format: string;
   inputHash: string;
+  /** Artifact ID assigned after successful auto-save (REQ-233) */
+  artifactId?: string;
 }
 
 export interface ExportJobQueueOptions {
@@ -88,6 +91,7 @@ export class ExportJobQueue {
   private completed: QueuedExportJob[] = [];
   private readonly options: ExportJobQueueOptions;
   private readonly metrics?: QueueMetricsSink;
+  private readonly artifactStore?: ExportArtifactStore;
   private starvationTimer?: ReturnType<typeof setInterval>;
   private started = false;
 
@@ -95,9 +99,14 @@ export class ExportJobQueue {
   private recentDurations: number[] = [];
   private static readonly MAX_RECENT_DURATIONS = 50;
 
-  constructor(options?: Partial<ExportJobQueueOptions>, metrics?: QueueMetricsSink) {
+  constructor(
+    options?: Partial<ExportJobQueueOptions>,
+    metrics?: QueueMetricsSink,
+    artifactStore?: ExportArtifactStore,
+  ) {
     this.options = { ...DEFAULT_OPTIONS, ...options };
     this.metrics = metrics;
+    this.artifactStore = artifactStore;
   }
 
   // -- Public API ----------------------------------------------------------
@@ -160,8 +169,9 @@ export class ExportJobQueue {
 
   /**
    * Mark a running job as completed and remove it from the active set.
+   * REQ-233: Auto-save artifact to ExportArtifactStore on successful completion.
    */
-  completeJob(jobId: string, success: boolean): boolean {
+  completeJob(jobId: string, success: boolean, artifactData?: { data: Uint8Array; sizeBytes: number }): boolean {
     const job = this.running.get(jobId);
     if (!job) return false;
 
@@ -176,6 +186,25 @@ export class ExportJobQueue {
 
     if (success) {
       this.metrics?.recordQueueWaitTimeMs(job.startedAt! - job.enqueuedAt);
+    }
+
+    // REQ-233: Auto-save artifact on successful completion
+    if (success && this.artifactStore && artifactData) {
+      try {
+        const stored = this.artifactStore.store({
+          format: job.format,
+          data: artifactData.data,
+          sizeBytes: artifactData.sizeBytes,
+          metadata: { jobId: job.jobId, inputHash: job.inputHash },
+        });
+        job.artifactId = stored.artifactId;
+        logger.info(`[ExportJobQueue] Artifact auto-saved for job ${jobId}: ${stored.artifactId}`);
+      } catch (storeError) {
+        logger.warn(
+          `[ExportJobQueue] Artifact auto-save failed for job ${jobId} (non-blocking):`,
+          storeError instanceof Error ? storeError.message : String(storeError),
+        );
+      }
     }
 
     this.running.delete(jobId);
