@@ -522,9 +522,9 @@
 
 - REQ-229: システムはエクスポートジョブの優先度ベースキューサービスを提供しなければならない。(1) 優先度スケジューリング: high/normal/low の3段階優先度でジョブをキューイングし、同優先度内ではFIFO順で処理すること。(2) 同時実行制御: 設定可能な最大同時実行数（デフォルト3）をセマフォパターンで管理し、上限到達時はキューで待機させること。(3) キュー位置追跡: 各ジョブのキュー内位置とETA（平均処理時間×前方ジョブ数）をリアルタイムで提供すること。(4) フェアスケジューリング: 設定可能な間隔（デフォルト30秒）で最も古い低優先度ジョブを昇格させ、飽和を防止すること。(5) ExportMetricsCollector統合: queue_size・queue_wait_time_ms・queue_dequeue_count・queue_priority_distribution の4メトリクスを記録すること 🔵 ✅実装済 *src/export/export-job-queue.ts ExportJobQueue・src/export/__tests__/export-job-queue.test.ts（491行・32テスト）・src/config/limits.ts EXPORT_QUEUE_LIMITS・コミットa949644*
 
-#### エクスポートアーティファクト管理（Phase 100） 🔲未実装
+#### エクスポートアーティファクト管理（Phase 100） ✅完了
 
-- REQ-230: システムはエクスポート成果物のストレージ管理と自動クリーンアップを提供しなければならない。(1) アーティファクト管理: エクスポート成果物をメタデータ付きで保存し、一意のartifactIdで識別すること。(2) TTLベース自動クリーンアップ: 設定可能なTTL（デフォルト1時間）で期限切れアーティファクトを定期削除すること。ストレージクォータ（デフォルト1GB・1000件）超過時はLRU退去すること。(3) ダウンロードURL生成: 有効期限付き（デフォルト5分）のダウンロードURLを生成すること。(4) 使用量追跡: 総バイト数・アーティファクト数・フォーマット別分布をリアルタイムで提供すること。(5) ExportMetricsCollector統合: artifact_stored_count・artifact_storage_bytes・artifact_expired_count・artifact_download_count の4メトリクスを記録すること 🔵 *既存MultiFormatExporter・ProductionExporter成果物管理・src/config/limits.ts設定集約パターンより*
+- REQ-230: システムはエクスポート成果物のストレージ管理と自動クリーンアップを提供しなければならない。(1) アーティファクト管理: エクスポート成果物をメタデータ付きで保存し、一意のartifactIdで識別すること。(2) TTLベース自動クリーンアップ: 設定可能なTTL（デフォルト1時間）で期限切れアーティファクトを定期削除すること。ストレージクォータ（デフォルト1GB・1000件）超過時はLRU退去すること。(3) ダウンロードURL生成: 有効期限付き（デフォルト5分）のダウンロードURLを生成すること。(4) 使用量追跡: 総バイト数・アーティファクト数・フォーマット別分布をリアルタイムで提供すること。(5) ExportMetricsCollector統合: artifact_stored_count・artifact_storage_bytes・artifact_expired_count・artifact_download_count の4メトリクスを記録すること 🔵 ✅実装済 *src/export/export-artifact-store.ts・src/config/limits.ts ARTIFACT_STORE_LIMITS・26テスト・コミットREQ-230*
 
 ### 条件付き要件
 
@@ -718,7 +718,7 @@
 | Phase 97: エクスポートリトライとフェイルセーフ | ✅完了 | REQ-227 | 1/1（encodeVideoWithRetry指数バックオフ・isTransientExportError分類・OOM/timeout/worker crash一時エラー検出・EXPORT_RETRY_LIMITS集中管理・15テスト追加） |
 | Phase 98: エクスポートジョブライフサイクル管理 | ✅完了 | REQ-228 | 1/1（cancelExport+AbortController・runStageWithTimeout・EXPORT_STAGE_TIMEOUTS(preparing:30s/rendering:600s/encoding:300s/finalizing:60s)・タイマークリーンアップ・15テスト追加） |
 | Phase 99: エクスポートジョブキューサービス | ✅完了 | REQ-229 | 1/1（ExportJobQueue・優先度スケジューリング・同時実行制御・キュー位置追跡・ETA推定・フェアスケジューリング・ExportMetricsCollector統合・32テスト・コミットa949644） |
-| Phase 100: エクスポートアーティファクト管理 | 🔲未着手 | REQ-230 | 0/1（ExportArtifactStore・TTL自動クリーンアップ・ダウンロードURL生成・使用量追跡・クォータ管理・ExportMetricsCollector統合） |
+| Phase 100: エクスポートアーティファクト管理 | ✅完了 | REQ-230 | 1/1（ExportArtifactStore・TTL自動クリーンアップ・LRU退去・ダウンロードURL生成・使用量追跡・ArtifactMetricsSink統合・26テスト） |
 
 ## 信頼性レベル分布
 
