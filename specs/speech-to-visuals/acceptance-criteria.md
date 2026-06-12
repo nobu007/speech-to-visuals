@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-12（第191回検証: REQ-227 エクスポートリトライレジリエンス・REQ-228 ジョブライフサイクル管理・全429テストケース合格）
+**最終更新**: 2026-06-12（第192回検証: REQ-229 エクスポートジョブキューサービス・ExportJobQueue実装完了・32テストケース合格）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -4153,5 +4153,99 @@
 ### 信頼性レベル分布（追加分）
 
 - 🔵 青信号: 12件 (100%)
+- 🟡 黄信号: 0件 (0%)
+- 🔴 赤信号: 0件 (0%)
+
+---
+
+## REQ-229: エクスポートジョブキューサービス 🔵
+
+**信頼性**: 🔵 *ExportJobQueue実装済・コミットa949644・32テスト合格*
+
+### Given（前提条件）
+
+- ExportJobQueue が初期化され、EXPORT_QUEUE_LIMITS（MAX_CONCURRENT=3, MAX_QUEUE_SIZE=100, STARVATION_PREVENTION_INTERVAL_MS=30000）が設定されている
+- ExportMetricsCollector がインスタンス化されている
+- ジョブは high/normal/low のいずれかの優先度を持つ
+
+### When（実行条件）
+
+- ジョブが enqueue() でキューに追加される
+- アクティブジョブが完了しスロットが解放される
+- フェアスケジューラーが30秒間隔で実行される
+
+### Then（期待結果）
+
+- 高優先度ジョブが低優先度より先に処理される
+- 同優先度内ではFIFO順で処理される
+- 同時実行数が maxConcurrent を超えない
+- getQueuePosition() が正しい位置とETAを返す
+- 低優先度ジョブが30秒以上待機で昇格される
+- ExportMetricsCollector に4メトリクスが記録される
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-229-01**: 優先度順処理（high→normal→low） 🔵
+  - **入力**: 3優先度のジョブを逆順で enqueue
+  - **期待結果**: high → normal → low の順で処理開始
+  - **信頼性**: 🔵 *テスト: priority ordering respects high→normal→low*
+
+- [x] **TC-229-02**: 同優先度内FIFO順 🔵
+  - **入力**: 同じnormal優先度のジョブ3つを順次 enqueue
+  - **期待結果**: 登録順に処理開始
+  - **信頼性**: 🔵 *テスト: same-priority jobs processed FIFO*
+
+- [x] **TC-229-03**: 同時実行制御（maxConcurrent=3） 🔵
+  - **入力**: 5ジョブを enqueue（maxConcurrent=3）
+  - **期待結果**: 最初の3ジョブが即時開始、残り2はキュー待機
+  - **信頼性**: 🔵 *テスト: respects maxConcurrent limit*
+
+- [x] **TC-229-04**: キュー位置・ETA追跡 🔵
+  - **入力**: ジョブ enqueue 後 getQueuePosition() 呼び出し
+  - **期待結果**: 正しい position と ETA（avgDurationMs × position）を返す
+  - **信頼性**: 🔵 *テスト: queue position tracking*
+
+#### 異常系
+
+- [x] **TC-229-E01**: キューサイズ上限超過 🔵
+  - **入力**: MAX_QUEUE_SIZE(100) 超過のジョブを enqueue
+  - **期待結果**: エラーをスローして追加拒否
+  - **信頼性**: 🔵 *テスト: rejects when queue is full*
+
+- [x] **TC-229-E02**: キュー済みジョブのキャンセル 🔵
+  - **入力**: 待機中ジョブの cancel() 呼び出し
+  - **期待結果**: ジョブがキューから除外、待機中の後続ジョブが繰り上がる
+  - **信頼性**: 🔵 *テスト: cancel queued job*
+
+#### 境界値
+
+- [x] **TC-229-B01**: フェアスケジューリング（飽和防止） 🔵
+  - **入力**: 低優先度ジョブが30秒以上待機
+  - **期待結果**: 低優先度ジョブがnormalに昇格され処理される
+  - **信頼性**: 🔵 *テスト: starvation prevention promotes old low-priority jobs*
+
+- [x] **TC-229-B02**: 空キューでの即時処理 🔵
+  - **入力**: アイドル状態でジョブを1つ enqueue
+  - **期待結果**: 即座に処理開始（キュー通過なし）
+  - **信頼性**: 🔵 *テスト: immediate processing when slots available*
+
+- [x] **TC-229-B03**: ExportMetricsCollector統合 🔵
+  - **入力**: ジョブの enqueue/dequeue/完了
+  - **期待結果**: queue_size, queue_wait_time_ms, queue_dequeue_count, queue_priority_distribution が記録される
+  - **信頼性**: 🔵 *テスト: metrics integration with ExportMetricsCollector*
+
+---
+
+## テストケースサマリー（REQ-229追加分）
+
+| カテゴリ | 正常系 | 異常系 | 境界値 | 合計 |
+|---------|--------|--------|--------|------|
+| REQ-229 ジョブキュー | 4 | 2 | 3 | 9 |
+
+### 信頼性レベル分布（REQ-229追加分）
+
+- 🔵 青信号: 9件 (100%)
 - 🟡 黄信号: 0件 (0%)
 - 🔴 赤信号: 0件 (0%)

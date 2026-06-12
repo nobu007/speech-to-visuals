@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-11（第191回検証・Phase 94完了・382ソースファイル・247テストファイル・107パッケージ・TypeScriptエラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・183,500行・243要件（REQ-001~224+NFR+EDGE）・11図解タイプ専用戦略完了・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・パイプライン型付きエラー完全化・StreamingTranscriber入力堅牢性完了・192タスク全完了・テストスイート安定化完了（26+テスト障害解消）・バッチ処理プログレス正確性修正完了・パイプラインオーケストレーター入力検証完了・相関IDミドルウェア完了・構造化HTTPロギング完了・HTTPリクエストメトリクス収集完了・Prometheus互換エクスポート完了・liveness/readiness probe完了・GrafanaダッシュボードJSON model完了・Prometheus alert rules完了・監視エンドポイントZodクエリ検証完了・LLM応答図解構造検証完了・シーン駆動アニメーションエクスポート完了（Animated SVG + Lottie JSON）・animated-scene-renderer モジュール抽出完了（視覚形状コンテンツ付きLottieレイヤー）・エラーリカバリREST API完了・シーンレンダラー入力検証完了（validateFrameInfo・clampSceneDuration・SceneRendererValidationError・REQ-221）・エラーリカバリREST API堅牢化完了（RegisterBodySchema・errorId形式検証・XSSサニタイズ・LRU退去・ERROR_REGISTRY_LIMITS・REQ-222）・エクスポート検証拡張完了（APNG acTL/fcTL・Lottie JSON構造検証・REQ-223）・エクスポートレート制限・レンダー検証強化完了（exportRateLimiter・codec列挙型・resolution正規表現・REQ-224））
+**最終更新**: 2026-06-12（第192回検証・Phase 99完了・384ソースファイル・249テストファイル・107パッケージ・TypeScriptエラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・183,500行・247要件（REQ-001~229+NFR+EDGE）・11図解タイプ専用戦略完了・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・パイプライン型付きエラー完全化・StreamingTranscriber入力堅牢性完了・192タスク全完了・テストスイート安定化完了（26+テスト障害解消）・バッチ処理プログレス正確性修正完了・パイプラインオーケストレーター入力検証完了・相関IDミドルウェア完了・構造化HTTPロギング完了・HTTPリクエストメトリクス収集完了・Prometheus互換エクスポート完了・liveness/readiness probe完了・GrafanaダッシュボードJSON model完了・Prometheus alert rules完了・監視エンドポイントZodクエリ検証完了・LLM応答図解構造検証完了・シーン駆動アニメーションエクスポート完了（Animated SVG + Lottie JSON）・animated-scene-renderer モジュール抽出完了（視覚形状コンテンツ付きLottieレイヤー）・エラーリカバリREST API完了・シーンレンダラー入力検証完了（validateFrameInfo・clampSceneDuration・SceneRendererValidationError・REQ-221）・エラーリカバリREST API堅牢化完了（RegisterBodySchema・errorId形式検証・XSSサニタイズ・LRU退去・ERROR_REGISTRY_LIMITS・REQ-222）・エクスポート検証拡張完了（APNG acTL/fcTL・Lottie JSON構造検証・REQ-223）・エクスポートレート制限・レンダー検証強化完了（exportRateLimiter・codec列挙型・resolution正規表現・REQ-224）・エクスポートメトリクス収集完了（ExportMetricsCollector・REQ-226）・エクスポートリトライレジリエンス完了（REQ-227）・エクスポートジョブライフサイクル完了（REQ-228）・エクスポートジョブキューサービス完了（ExportJobQueue・REQ-229））
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム
 
 ## 技術スタック
@@ -114,6 +114,11 @@ src/
 - [x] Phase 92 エラーリカバリREST API堅牢化完了（REQ-222・RegisterBodySchema・errorId形式検証・XSSサニタイズ・LRU退去・ERROR_REGISTRY_LIMITS・94テスト追加）
 - [x] Phase 93 エクスポート検証拡張完了（REQ-223・APNG acTL/fcTLチャンク検証・Lottie JSON構造検証・31テスト追加）
 - [x] Phase 94 エクスポートレート制限・レンダー検証強化完了（REQ-224・exportRateLimiter 10req/15min・codec列挙型検証・resolution正規表現検証・2テスト追加）
+- [x] Phase 95 エクスポートエンジン検証統合完了（REQ-225・finalizeExport検証・10テスト追加）
+- [x] Phase 96 エクスポートメトリクス収集完了（REQ-226・ExportMetricsCollector・17テスト追加）
+- [x] Phase 97 エクスポートリトライレジリエンス完了（REQ-227・encodeVideoWithRetry・15テスト追加）
+- [x] Phase 98 エクスポートジョブライフサイクル管理完了（REQ-228・cancelExport+AbortController・15テスト追加）
+- [x] Phase 99 エクスポートジョブキューサービス完了（REQ-229・ExportJobQueue・優先度スケジューリング・フェアスケジューリング・32テスト・コミットa949644）
 
 ## 注意事項
 
