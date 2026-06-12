@@ -411,4 +411,122 @@ describe('ExportArtifactStore', () => {
       expect(store.size).toBe(2);
     });
   });
+
+  // -- getMetadata() (REQ-238) --------------------------------------------
+
+  describe('getMetadata()', () => {
+    it('returns artifact metadata without data field', () => {
+      const store = createSmallStore();
+      const stored = store.store({
+        format: 'svg',
+        data: makeData(100),
+        sizeBytes: 100,
+        metadata: { jobId: 'test-job' },
+      });
+
+      const meta = store.getMetadata(stored.artifactId);
+      expect(meta).toBeDefined();
+      expect(meta!.artifactId).toBe(stored.artifactId);
+      expect(meta!.format).toBe('svg');
+      expect(meta!.sizeBytes).toBe(100);
+      expect(meta!.metadata).toEqual({ jobId: 'test-job' });
+      expect((meta as any).data).toBeUndefined();
+    });
+
+    it('returns undefined for non-existent artifact', () => {
+      const store = createSmallStore();
+      expect(store.getMetadata('non-existent')).toBeUndefined();
+    });
+
+    it('returns undefined for expired artifact', () => {
+      const store = createSmallStore({ defaultTtlMs: 500 });
+      const stored = store.store({ format: 'svg', data: makeData(10), sizeBytes: 10 });
+
+      jest.advanceTimersByTime(600);
+      expect(store.getMetadata(stored.artifactId)).toBeUndefined();
+    });
+  });
+
+  // -- list() (REQ-238) ---------------------------------------------------
+
+  describe('list()', () => {
+    it('returns all non-expired artifacts as metadata', () => {
+      const store = createSmallStore({ maxArtifacts: 10, maxStorageBytes: 10000 });
+      store.store({ format: 'svg', data: makeData(10), sizeBytes: 10 });
+      store.store({ format: 'mp4', data: makeData(20), sizeBytes: 20 });
+
+      const result = store.list();
+      expect(result.artifacts).toHaveLength(2);
+      expect(result.total).toBe(2);
+      expect(result.artifacts.every((a) => !('data' in a && a.data instanceof Uint8Array))).toBe(true);
+    });
+
+    it('sorts by createdAt descending (newest first)', () => {
+      const store = createSmallStore({ maxArtifacts: 10, maxStorageBytes: 10000 });
+      store.store({ format: 'svg', data: makeData(10), sizeBytes: 10 });
+
+      jest.advanceTimersByTime(10);
+      store.store({ format: 'mp4', data: makeData(20), sizeBytes: 20 });
+
+      const result = store.list();
+      expect(result.artifacts[0].format).toBe('mp4');
+      expect(result.artifacts[1].format).toBe('svg');
+    });
+
+    it('filters by format', () => {
+      const store = createSmallStore({ maxArtifacts: 10, maxStorageBytes: 10000 });
+      store.store({ format: 'svg', data: makeData(10), sizeBytes: 10 });
+      store.store({ format: 'mp4', data: makeData(20), sizeBytes: 20 });
+      store.store({ format: 'svg', data: makeData(15), sizeBytes: 15 });
+
+      const result = store.list({ format: 'svg' });
+      expect(result.artifacts).toHaveLength(2);
+      expect(result.total).toBe(2);
+      expect(result.artifacts.every((a) => a.format === 'svg')).toBe(true);
+    });
+
+    it('paginates with limit and offset', () => {
+      const store = createSmallStore({ maxArtifacts: 10, maxStorageBytes: 10000 });
+      for (let i = 0; i < 5; i++) {
+        store.store({ format: 'svg', data: makeData(10), sizeBytes: 10 });
+        jest.advanceTimersByTime(1);
+      }
+
+      const page1 = store.list({ limit: 2, offset: 0 });
+      expect(page1.artifacts).toHaveLength(2);
+      expect(page1.total).toBe(5);
+      expect(page1.limit).toBe(2);
+      expect(page1.offset).toBe(0);
+
+      const page2 = store.list({ limit: 2, offset: 2 });
+      expect(page2.artifacts).toHaveLength(2);
+      expect(page2.offset).toBe(2);
+
+      const page3 = store.list({ limit: 2, offset: 4 });
+      expect(page3.artifacts).toHaveLength(1);
+    });
+
+    it('excludes expired artifacts', () => {
+      const store = createSmallStore({ maxArtifacts: 10, maxStorageBytes: 10000, defaultTtlMs: 1000 });
+      store.store({ format: 'svg', data: makeData(10), sizeBytes: 10 });
+
+      jest.advanceTimersByTime(10);
+      store.store({ format: 'mp4', data: makeData(20), sizeBytes: 20 });
+
+      jest.advanceTimersByTime(995);
+      // First artifact expired (t≈1005 > expiresAt 1000), second still valid (expiresAt 1010)
+      const result = store.list();
+      expect(result.artifacts).toHaveLength(1);
+      expect(result.artifacts[0].format).toBe('mp4');
+    });
+
+    it('returns empty list for format with no matches', () => {
+      const store = createSmallStore({ maxArtifacts: 10, maxStorageBytes: 10000 });
+      store.store({ format: 'svg', data: makeData(10), sizeBytes: 10 });
+
+      const result = store.list({ format: 'webm' });
+      expect(result.artifacts).toHaveLength(0);
+      expect(result.total).toBe(0);
+    });
+  });
 });

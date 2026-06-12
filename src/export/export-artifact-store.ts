@@ -44,6 +44,29 @@ export interface ArtifactStoreOptions {
   cleanupIntervalMs: number;
 }
 
+export interface ArtifactMetadata {
+  artifactId: string;
+  format: string;
+  sizeBytes: number;
+  createdAt: number;
+  lastAccessedAt: number;
+  expiresAt: number;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ListOptions {
+  format?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface ListResult {
+  artifacts: ArtifactMetadata[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export interface ArtifactMetricsSink {
   recordArtifactStored(): void;
   recordArtifactStorageBytes(bytes: number): void;
@@ -128,6 +151,44 @@ export class ExportArtifactStore {
 
     artifact.lastAccessedAt = Date.now();
     return artifact;
+  }
+
+  /**
+   * Get artifact metadata without the data payload.
+   * Returns undefined if the artifact has expired or does not exist.
+   */
+  getMetadata(artifactId: string): ArtifactMetadata | undefined {
+    const artifact = this.get(artifactId);
+    if (!artifact) return undefined;
+    const { data: _data, ...meta } = artifact;
+    return meta;
+  }
+
+  /**
+   * List stored artifacts with optional filtering and pagination.
+   * Expired artifacts are excluded. Results are sorted newest-first.
+   */
+  list(options?: ListOptions): ListResult {
+    const { format, limit = 50, offset = 0 } = options ?? {};
+    const now = Date.now();
+
+    let entries = Array.from(this.artifacts.values())
+      .filter((a) => a.expiresAt > now);
+
+    if (format) {
+      entries = entries.filter((a) => a.format === format);
+    }
+
+    const total = entries.length;
+
+    entries.sort((a, b) => b.createdAt - a.createdAt);
+    const paginated = entries.slice(offset, offset + limit);
+
+    const artifacts: ArtifactMetadata[] = paginated.map(
+      ({ data: _data, ...meta }) => meta,
+    );
+
+    return { artifacts, total, limit, offset };
   }
 
   /**
