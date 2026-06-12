@@ -373,6 +373,7 @@ export class ExportArtifactStore {
     if (lruId) {
       const evicted = this.artifacts.get(lruId);
       this.artifacts.delete(lruId);
+      this.metrics?.recordArtifactExpired();
       logger.info(`[ArtifactStore] LRU evicted artifact ${lruId}`);
       return evicted;
     }

@@ -79,6 +79,91 @@ afterEach(() => {
 });
 
 // ---------------------------------------------------------------------------
+// REQ-231: EnhancedExportEngine Artifact Save Integration
+// ---------------------------------------------------------------------------
+
+describe('REQ-231: EnhancedExportEngine artifact save integration', () => {
+  test('TC-231-01: export completion auto-saves artifact and returns artifactId', async () => {
+    const sink = createSink();
+    const store = new ExportArtifactStore(
+      {
+        maxArtifacts: 10,
+        maxStorageBytes: 1024 * 1024,
+        defaultTtlMs: 60_000,
+        downloadUrlTtlMs: 30_000,
+        cleanupIntervalMs: 10_000,
+      },
+      sink,
+    );
+
+    const engine = new EnhancedExportEngine(1, false, undefined, store);
+
+    const sceneData = createSceneData();
+    const config = createConfig({ format: 'mp4' });
+
+    const result = await engine.exportVideo(sceneData, config);
+
+    // Export should succeed
+    expect(result.success).toBe(true);
+
+    // Artifact should have been stored
+    expect(sink.artifactStoredCount).toBe(1);
+    expect(sink.artifactStorageBytes).toBeGreaterThan(0);
+
+    // artifactId should be present in ExportResult
+    expect(result.artifactId).toBeDefined();
+    expect(typeof result.artifactId).toBe('string');
+    expect(result.artifactId!.length).toBeGreaterThan(0);
+
+    // The artifact should be retrievable from the store
+    const stored = store.get(result.artifactId!);
+    expect(stored).toBeDefined();
+    expect(stored!.format).toBe('mp4');
+
+    engine.dispose();
+  });
+
+  test('TC-231-02: store() failure logs warning and ExportResult.success stays true', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const brokenStore = {
+      store: () => { throw new Error('Storage full'); },
+      get: () => undefined,
+      getMetadata: () => undefined,
+      list: () => ({ artifacts: [], total: 0, limit: 50, offset: 0 }),
+      remove: () => false,
+      generateDownloadUrl: () => undefined,
+      resolveDownloadUrl: () => undefined,
+      getUsage: () => ({ totalBytes: 0, artifactCount: 0, formatDistribution: {} }),
+      start: () => {},
+      stop: () => {},
+      size: 0,
+    } as unknown as ExportArtifactStore;
+
+    const engine = new EnhancedExportEngine(1, false, undefined, brokenStore);
+
+    const sceneData = createSceneData();
+    const config = createConfig();
+
+    const result = await engine.exportVideo(sceneData, config);
+
+    // Export should still succeed even though store failed
+    expect(result.success).toBe(true);
+
+    // artifactId should be undefined since store failed
+    expect(result.artifactId).toBeUndefined();
+
+    // Warning log should have been emitted
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Artifact store failed'),
+      expect.any(String),
+    );
+
+    engine.dispose();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // REQ-235: LRU Eviction E2E Under Storage Pressure
 // ---------------------------------------------------------------------------
 
@@ -117,18 +202,18 @@ describe('REQ-235: LRU eviction fires correctly under storage pressure', () => {
     // Store 4th artifact — should evict 'b' (LRU)
     const d = store.store({ format: 'svg', data: makeData(50), sizeBytes: 50 });
 
-    // (1) Oldest unused artifact was evicted
+    // TC-235-01: LRU eviction fires when quota reached
     expect(store.get(b.artifactId)).toBeUndefined();
 
-    // (2) New save succeeded
+    // TC-235-02: New save succeeds after eviction
     expect(store.get(d.artifactId)).toBeDefined();
 
     // Recently-used 'a' and 'c' should still be present
     expect(store.get(a.artifactId)).toBeDefined();
     expect(store.get(c.artifactId)).toBeDefined();
 
-    // (3) Metrics recorded for eviction
-    expect(sink.artifactExpiredCount).toBeGreaterThanOrEqual(0); // LRU eviction does not call expired metric
+    // TC-235-03: Metrics recorded for LRU eviction
+    expect(sink.artifactExpiredCount).toBeGreaterThanOrEqual(1);
     expect(sink.artifactStoredCount).toBe(4);
   });
 
@@ -270,7 +355,7 @@ describe('REQ-236: TTL-expired artifacts deleted by periodic cleanup timer', () 
 // ---------------------------------------------------------------------------
 
 describe('REQ-237: Full artifact lifecycle — Engine → Store → Download → Retrieval', () => {
-  test('EnhancedExportEngine export stores artifact, generates download URL, and retrieves it', async () => {
+  test('TC-237-01: full lifecycle (export → store → download) succeeds with metrics', async () => {
     const sink = createSink();
     const store = new ExportArtifactStore(
       {
@@ -289,54 +374,37 @@ describe('REQ-237: Full artifact lifecycle — Engine → Store → Download →
     const sceneData = createSceneData();
     const config = createConfig({ format: 'svg-animated' });
 
-    // Run export
+    // Step 1: Export
     const result = await engine.exportVideo(sceneData, config);
 
     // Export should succeed
     expect(result.success).toBe(true);
     expect(result.format).toBe('svg-animated');
+    expect(result.artifactId).toBeDefined();
 
-    // Artifact should have been stored in the store
+    // Step 2: Verify artifact stored
     expect(sink.artifactStoredCount).toBe(1);
     expect(sink.artifactStorageBytes).toBeGreaterThan(0);
-
-    // Verify store has the artifact
     expect(store.size).toBe(1);
-    const usage = store.getUsage();
-    expect(usage.artifactCount).toBe(1);
-    expect(usage.formatDistribution['svg-animated']).toBe(1);
 
-    // Generate a download URL for the stored artifact
-    const usageSnapshot = store.getUsage();
-    expect(usageSnapshot.artifactCount).toBe(1);
-
-    // Verify the full flow by storing a known artifact and doing download URL lifecycle
-    const svgContent = '<svg>test</svg>';
-    const svgBytes = new TextEncoder().encode(svgContent);
-    const artifact = store.store({
-      format: 'svg-animated',
-      data: svgBytes,
-      sizeBytes: svgBytes.byteLength,
-      metadata: { source: 'req237-test' },
-    });
-
-    // Generate download URL
-    const dlUrl = store.generateDownloadUrl(artifact.artifactId);
+    // Step 3: Generate download URL
+    const artifactId = result.artifactId!;
+    const dlUrl = store.generateDownloadUrl(artifactId);
     expect(dlUrl).toBeDefined();
-    expect(dlUrl!.url).toContain(`artifact://${artifact.artifactId}`);
+    expect(dlUrl!.url).toContain(`artifact://${artifactId}`);
     expect(dlUrl!.url).toContain('token=');
 
-    // Extract token and resolve download URL
+    // Step 4: Resolve download URL and retrieve artifact
     const token = new URL(dlUrl!.url.replace('artifact://', 'http://dummy/')).searchParams.get('token')!;
-    const resolved = store.resolveDownloadUrl(artifact.artifactId, token);
+    const resolved = store.resolveDownloadUrl(artifactId, token);
 
     expect(resolved).toBeDefined();
-    expect(resolved!.artifactId).toBe(artifact.artifactId);
+    expect(resolved!.artifactId).toBe(artifactId);
     expect(resolved!.format).toBe('svg-animated');
     expect(resolved!.data).toBeInstanceOf(Uint8Array);
-    expect(resolved!.data.byteLength).toBe(svgBytes.byteLength);
 
-    // Verify download metrics
+    // Verify all metrics recorded
+    expect(sink.artifactStoredCount).toBe(1);
     expect(sink.artifactDownloadCount).toBeGreaterThanOrEqual(1);
 
     engine.dispose();

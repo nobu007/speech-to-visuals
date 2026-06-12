@@ -134,6 +134,8 @@ export interface ExportResult {
   warnings?: string[];
   /** Verification result from ExportVerifier (REQ-225) */
   verification?: VerificationResult;
+  /** Artifact ID from ExportArtifactStore (REQ-231) */
+  artifactId?: string;
 }
 
 export class EnhancedExportEngine {
@@ -721,6 +723,7 @@ export class EnhancedExportEngine {
     }
 
     // REQ-231: Store artifact in ExportArtifactStore (failure is non-blocking)
+    let artifactId: string | undefined;
     if (this.artifactStore) {
       try {
         const stored = this.artifactStore.store({
@@ -734,6 +737,7 @@ export class EnhancedExportEngine {
             codec: video.codec,
           },
         });
+        artifactId = stored.artifactId;
         logger.info(`[EnhancedExportEngine] Artifact stored: ${stored.artifactId}`);
       } catch (storeError) {
         logger.warn(
@@ -753,6 +757,7 @@ export class EnhancedExportEngine {
       metadata,
       verification,
       warnings,
+      artifactId,
     };
   }
 
