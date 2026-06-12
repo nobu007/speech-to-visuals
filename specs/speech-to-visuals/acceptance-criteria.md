@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-12（第192回検証: REQ-229 エクスポートジョブキューサービス・ExportJobQueue実装完了・32テストケース合格）
+**最終更新**: 2026-06-12（第193回検証: REQ-230 エクスポートアーティファクト管理・ExportArtifactStore実装完了・Phase 101/102 パイプライン統合要件追加）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -4247,5 +4247,150 @@
 ### 信頼性レベル分布（REQ-229追加分）
 
 - 🔵 青信号: 9件 (100%)
+
+---
+
+## REQ-230: エクスポートアーティファクト管理 🔵
+
+**信頼性**: 🔵 *ExportArtifactStore実装・src/export/export-artifact-store.ts より*
+
+### Given（前提条件）
+
+- ExportArtifactStoreが初期化され、ARTIFACT_STORE_LIMITSが設定されている
+- エクスポート結果（ExportResult）が生成されている
+
+### When（実行条件）
+
+- エクスポート成果物をExportArtifactStoreに保存する
+- TTL期限切れアーティファクトがクリーンアップされる
+- クォータ超過時にLRU退去が実行される
+- ダウンロードURLが生成・検証される
+
+### Then（期待結果）
+
+- アーティファクトがメタデータ付きで保存され、一意のartifactIdで識別される
+- TTL期限切れアーティファクトが定期削除される
+- クォータ超過時に最も古い未使用アーティファクトが退去される
+- 有効期限付きダウンロードURLが生成される
+- ExportMetricsCollectorに4メトリクスが記録される
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-230-01**: アーティファクト保存・取得 🔵
+  - **入力**: エクスポート結果（data, format, metadata）
+  - **期待結果**: artifactId で取得可能、メタデータが正しく保存される
+  - **信頼性**: 🔵 *テスト: store and retrieve artifact*
+
+- [x] **TC-230-02**: ダウンロードURL生成 🔵
+  - **入力**: 有効なartifactId
+  - **期待結果**: トークン付きURLが生成され、5分間有効
+  - **信頼性**: 🔵 *テスト: generate download URL with token*
+
+- [x] **TC-230-03**: 使用量統計取得 🔵
+  - **入力**: 複数アーティファクト保存後
+  - **期待結果**: 総バイト数・アーティファクト数・フォーマット別分布が正確
+  - **信頼性**: 🔵 *テスト: usage tracking*
+
+#### 異常系
+
+- [x] **TC-230-E01**: クォータ超過時のLRU退去 🔵
+  - **入力**: MAX_ARTIFACTS到達後の新規保存
+  - **期待結果**: 最古の未使用アーティファクトが退去され、新規保存が成功
+  - **信頼性**: 🔵 *テスト: LRU eviction on quota*
+
+- [x] **TC-230-E02**: 期限切れダウンロードURL 🔵
+  - **入力**: 期限切れトークンでのダウンロード試行
+  - **期待結果**: ダウンロードが拒否される
+  - **信頼性**: 🔵 *テスト: expired download URL rejected*
+
+#### 境界値
+
+- [x] **TC-230-B01**: TTL期限切れクリーンアップ 🔵
+  - **入力**: TTL経過後のクリーンアップ実行
+  - **期待結果**: 期限切れアーティファクトが削除される
+  - **信頼性**: 🔵 *テスト: TTL cleanup*
+
+- [x] **TC-230-B02**: ExportMetricsCollector統合 🔵
+  - **入力**: アーティファクト保存・期限切れ・ダウンロード
+  - **期待結果**: artifact_stored_count, artifact_storage_bytes, artifact_expired_count, artifact_download_count が記録される
+  - **信頼性**: 🔵 *テスト: metrics integration*
+
+---
+
+## REQ-231: EnhancedExportEngineアーティファクト保存統合 🔵
+
+**信頼性**: 🔵 *REQ-230 ExportArtifactStore設計・EnhancedExportEngine.finalizeExport() 拡張より*
+
+### Given（前提条件）
+
+- EnhancedExportEngineがExportArtifactStoreインスタンスを保持している
+- エクスポートが正常に完了しExportResultが生成されている
+
+### When（実行条件）
+
+- finalizeExport() がExportResultを返す前にExportArtifactStore.store()を呼び出す
+
+### Then（期待結果）
+
+- 成果物がアーティファクトストアに保存される
+- ExportResultにartifactIdが含まれる
+- store()失敗時は警告ログのみでExportResult.successはtrueのまま
+
+### テストケース
+
+- [ ] **TC-231-01**: 正常系: エクスポート完了時にアーティファクトが自動保存される 🔵
+- [ ] **TC-231-02**: 異常系: store()失敗時に警告ログ出力・ExportResult.successはtrue 🟡
+
+---
+
+## REQ-235: LRU退去E2Eテスト 🔵
+
+**信頼性**: 🔵 *ExportArtifactStore.evictLRU()・ARTIFACT_STORE_LIMITS より*
+
+### Given（前提条件）
+
+- ExportArtifactStoreのMAX_STORAGE_BYTESを低値（例: 1MB）に設定
+- 複数のアーティファクトが保存済み
+
+### When（実行条件）
+
+- クォータを超過する新規アーティファクトを保存する
+
+### Then（期待結果）
+
+- 最も古い未使用アーティファクトが退去される
+- 退去後の新規保存が成功する
+- ExportMetricsCollectorにartifact_expired_countが記録される
+
+### テストケース
+
+- [ ] **TC-235-01**: クォータ到達時LRU退去発火 🔵
+- [ ] **TC-235-02**: 退去後の新規保存成功 🔵
+- [ ] **TC-235-03**: メトリクス記録確認 🔵
+
+---
+
+## REQ-237: アーティファクトライフサイクルE2Eテスト 🔵
+
+**信頼性**: 🔵 *EnhancedExportEngine→ExportArtifactStore→download API 完全パスより*
+
+### Given（前提条件）
+
+- EnhancedExportEngineにExportArtifactStoreが統合済み（REQ-231実装後）
+
+### When（実行条件）
+
+- エクスポートを実行し、成果物を保存し、ダウンロードURLを生成し、取得する
+
+### Then（期待結果）
+
+- エクスポート→保存→URL生成→取得の全ステップが成功する
+- 各ステップでExportMetricsCollectorにメトリクスが記録される
+
+### テストケース
+
+- [ ] **TC-237-01**: 完全ライフサイクル（エクスポート→保存→ダウンロード）成功 🔵
 - 🟡 黄信号: 0件 (0%)
 - 🔴 赤信号: 0件 (0%)

@@ -10,11 +10,42 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-12（第192回検証: Phase 99完了・REQ-229 実装確認・ExportJobQueue・優先度スケジューリング・同時実行制御・フェアスケジューリング・ExportMetricsCollector統合）
+**最終更新**: 2026-06-12（第193回検証: Phase 100完了・REQ-230 実装確認・ExportArtifactStore・TTLクリーンアップ・LRU退去・Phase 101/102 パイプライン統合要件追加）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
 ## 分析項目と判断
+
+### A193: 第193回検証 - Phase 100完了確認・ExportArtifactStoreパイプライン統合要件追加（2026-06-12）
+
+**分析日時**: 2026-06-12
+**カテゴリ**: 要件定義増分更新・パイプライン統合ギャップ解消
+**背景**: AI Hubフィードバック「previous iteration was VALUABLE」に対応。コミット4320a4cでExportArtifactStore（REQ-230）が実装され、26テストが全通過したが、ExportArtifactStoreがどのパイプラインコンポーネントにも統合されていない（スタンドアロンモジュール状態）。AI Hubの推奨「Wire ExportArtifactStore into the actual export pipeline and add an end-to-end test proving TTL eviction triggers under memory pressure」に基づき、Phase 101/102のパイプライン統合要件を追加。
+
+**判断**:
+1. **REQ-230 実装確認**: ExportArtifactStore（321行実装 + 414行テスト）が完全実装されていることを確認:
+   - TTLベース自動クリーンアップ: デフォルト1時間・定期クリーンアップ1分間隔
+   - LRU退去: クォータ（1GB/1000件）超過時
+   - ダウンロードURL生成: トークン付き5分有効期限
+   - 使用量追跡: 総バイト数・アーティファクト数・フォーマット別分布
+   - ExportMetricsCollector統合: 4メトリクス（stored/expired/downloaded/storage_bytes）
+2. **パイプライン統合ギャップを特定**: EnhancedExportEngine.finalizeExport()とProductionExporterがExportArtifactStoreを参照していない
+3. **Phase 101 要件追加**: REQ-231（EnhancedExportEngine統合）・REQ-232（ProductionExporter統合）・REQ-233（ExportJobQueue統合）・REQ-234（ダウンロードAPI）
+4. **Phase 102 要件追加**: REQ-235（LRU退去E2Eテスト）・REQ-236（TTL期限切れ統合テスト）・REQ-237（フルライフサイクルE2Eテスト）
+
+**根拠**:
+- コミット 4320a4c: src/export/export-artifact-store.ts（321行）・src/export/__tests__/export-artifact-store.test.ts（414行・26テスト）
+- src/config/limits.ts: ARTIFACT_STORE_LIMITS = { DEFAULT_TTL_MS: 3600000, MAX_STORAGE_BYTES: 1073741824, MAX_ARTIFACTS: 1000, DOWNLOAD_URL_TTL_MS: 300000, CLEANUP_INTERVAL_MS: 60000 }
+- src/export/enhanced-export-engine.ts: ExportArtifactStoreへのimportなし・store()呼び出しなし
+- src/export/production-exporter.ts: ExportArtifactStoreへのimportなし
+- AI Hub feedback: "Wire ExportArtifactStore into the actual export pipeline (call sites) and add an end-to-end test proving TTL eviction triggers under memory pressure"
+
+**信頼性への影響**:
+- REQ-231~237 を新規追加（信頼性: 🔵 既存実装とREQ-230の設計から確実な要件）
+- 信頼性レベル分布: 🔵254件(98.8%) / 🟡4件(1.2%) / 🔴0件(0%)
+- Phase 101/102 を計画中として登録
+
+---
 
 ### A192: 第192回検証 - Phase 99完了確認・ExportJobQueue実装反映（2026-06-12）
 
