@@ -28,6 +28,7 @@ export type ExportFormat =
 
 export type ExportStage = 'preparing' | 'rendering' | 'encoding' | 'finalizing';
 export type ExportStatus = 'success' | 'failure';
+export type JobPriority = 'high' | 'normal' | 'low';
 
 export interface ExportStageDurationAggregate {
   stage: ExportStage;
@@ -72,11 +73,26 @@ export interface ExportMetricsSnapshot {
   successfulExports: number;
   /** Total failed exports */
   failedExports: number;
+  /** Queue metrics (REQ-229) */
+  queue: QueueMetricsSnapshot;
 }
 
 export interface ExportMetricsConfig {
   /** Max duration samples retained per format/stage for percentile computation (default: 500) */
   maxSamplesPerSeries: number;
+}
+
+export interface QueueMetricsSnapshot {
+  /** Current queue size */
+  queueSize: number;
+  /** Total dequeues */
+  dequeueCount: number;
+  /** Per-priority dequeue counts */
+  dequeueByPriority: Record<JobPriority, number>;
+  /** Average queue wait time in ms */
+  avgWaitTimeMs: number;
+  /** Priority distribution at last snapshot */
+  priorityDistribution: Record<JobPriority, number>;
 }
 
 const DEFAULT_CONFIG: ExportMetricsConfig = {
@@ -157,6 +173,13 @@ export class ExportMetricsCollector {
   private formats = new Map<ExportFormat, FormatData>();
   private stages = new Map<ExportStage, SampleSeries>();
   private readonly config: ExportMetricsConfig;
+
+  // Queue metrics (REQ-229)
+  private queueSize = 0;
+  private dequeueCount = 0;
+  private dequeueByPriority: Record<JobPriority, number> = { high: 0, normal: 0, low: 0 };
+  private waitTimeSeries = createSeries();
+  private priorityDistribution: Record<JobPriority, number> = { high: 0, normal: 0, low: 0 };
 
   constructor(config?: Partial<ExportMetricsConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -245,13 +268,51 @@ export class ExportMetricsCollector {
       failedExports += data.failedExports;
     }
 
-    return { formats, stages, totalExports, successfulExports, failedExports };
+    const queue: QueueMetricsSnapshot = {
+      queueSize: this.queueSize,
+      dequeueCount: this.dequeueCount,
+      dequeueByPriority: { ...this.dequeueByPriority },
+      avgWaitTimeMs: this.waitTimeSeries.count > 0
+        ? Math.round(this.waitTimeSeries.sum / this.waitTimeSeries.count)
+        : 0,
+      priorityDistribution: { ...this.priorityDistribution },
+    };
+
+    return { formats, stages, totalExports, successfulExports, failedExports, queue };
   }
 
   /** Reset all collected metrics. */
   reset(): void {
     this.formats.clear();
     this.stages.clear();
+    this.queueSize = 0;
+    this.dequeueCount = 0;
+    this.dequeueByPriority = { high: 0, normal: 0, low: 0 };
+    this.waitTimeSeries = createSeries();
+    this.priorityDistribution = { high: 0, normal: 0, low: 0 };
+  }
+
+  // -- Queue metrics recording (REQ-229) ------------------------------------
+
+  /** Record current queue size. */
+  recordQueueSize(size: number): void {
+    this.queueSize = size;
+  }
+
+  /** Record queue wait time in ms for a dequeued job. */
+  recordQueueWaitTimeMs(waitMs: number): void {
+    recordSample(this.waitTimeSeries, waitMs, this.config.maxSamplesPerSeries);
+  }
+
+  /** Record a dequeue event with its priority. */
+  recordQueueDequeue(priority: JobPriority): void {
+    this.dequeueCount++;
+    this.dequeueByPriority[priority]++;
+  }
+
+  /** Record the current priority distribution in the queue. */
+  recordQueuePriorityDistribution(high: number, normal: number, low: number): void {
+    this.priorityDistribution = { high, normal, low };
   }
 }
 
