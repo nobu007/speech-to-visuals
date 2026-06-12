@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-12（第193回検証: Phase 98完了・エクスポートリトライレジリエンス・ジョブライフサイクル管理 REQ-227/228・encodeVideoWithRetry指数バックオフ・cancelExport+AbortController・EXPORT_STAGE_TIMEOUTS・384ソースファイル・249テストファイル・TypeScriptエラー0件）
+**最終更新**: 2026-06-12（第194回検証: Phase 98完了・Phase 99/100計画追加・エクスポートジョブキューサービス・アーティファクト管理 REQ-229/230・384ソースファイル・249テストファイル・TypeScriptエラー0件）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -150,6 +150,8 @@
 - **AnimatedSceneRenderer**: アニメーション付き SVG・Lottie JSON 生成の純粋関数モジュール（300行）。enhanced-export-engine から抽出し独立テスト可能に。generateAnimatedSVG() で CSS キーフレームアニメーション付き SVG（シーンタイプ別背景色・フォントサイズ・フェードイン/アウト）を、generateLottieAnimation() で Lottie 5.7.4 互換 JSON（シェイプレイヤー・不透明度キーフレーム・フレームオフセット計算）を生成。buildLayerShapes() でシーンタイプ別背景色矩形（intro=#1a1a2e/outro=#0f3460/content=#16213e）の視覚的形状を構築。空シーンフォールバック・XML エスケープ付き。Phase 91 で validateFrameInfo()（寸法クランプ: 1~7680px、不正値→1920x1080フォールバック）・clampSceneDuration()（継続時間クランプ: 最大3600秒、不正値→2秒）・SceneRendererValidationError による入力検証を追加 🔵 *src/export/animated-scene-renderer.ts・要件定義REQ-218~219・REQ-221 より*
 - **エクスポートパイプライン統合テスト**: Phase 90 で E2E・結合・横断一貫性テストを追加。export-pipeline-e2e.test.ts（391行）が EnhancedExportEngine 経由のシーンデータ→SVG/Lottie フルパイプライン検証（CSS キーフレーム・背景色・Lottie 構造・エラー伝播）。renderer-engine-integration.test.ts（256行）が animated-scene-renderer→enhanced-export-engine の結合検証（データフロー完全性・シーンタイプ別委譲・フォーマット別委譲切替）。cross-format-consistency.test.ts（23テスト）が SVG↔Lottie 横断一貫性検証（シーン数・ラベル順序・色マッピング・タイミング・寸法の完全パリティ確認）🔵 *tests/integration/・TASK-0199~0201 より*
 - **ExportVerifier 拡張**: Phase 93 で APNG・Lottie 検証を追加。verifyApngChunks() が acTL（Animation Control）チャンク存在確認・numFrames 正値検証・fcTL（Frame Control）チャンク数との整合性チェックを実行。verifyLottie() が必須ルートフィールド（v・fr・ip・op・w・h・layers）検証・fr正値・op>ip・w/h正値・layers配列各要素ty型フィールド検証（deepValidation時）を実行。VerificationFormat に 'lottie' を追加 🔵 *src/export/export-verifier.ts・REQ-223 より*
+- **ExportJobQueue**: Phase 99 計画。優先度ベースジョブキューサービス。high/normal/low の3段階優先度スケジューリング・セマフォパターン同時実行制御（デフォルト3）・キュー位置追跡とETA推定（平均処理時間×前方ジョブ数）・フェアスケジューリング（低優先度飢餓防止・30秒間隔昇格）・ExportMetricsCollector queue_* イベント統合 🔵 *src/export/export-job-queue.ts・REQ-229 計画*
+- **ExportArtifactStore**: Phase 100 計画。エクスポート成果物ストレージ管理。TTLベース自動クリーンアップ（デフォルト1時間・定期削除）・LRU退去（1GB/1000件クォータ超過時）・有効期限付きダウンロードURL生成（デフォルト5分）・使用量追跡（総バイト数・アーティファクト数・フォーマット別分布）・ExportMetricsCollector artifact_* イベント統合 🔵 *src/export/export-artifact-store.ts・REQ-230 計画*
 
 ### Web Workers 並列化モジュール 🔵
 
@@ -674,6 +676,12 @@ Fallback LLM
 - [x] シーンレンダラー入力検証（Phase 91）が完了している（validateFrameInfo寸法クランプ1~7680px・clampSceneDuration最大3600秒・SceneRendererValidationError・REQ-221・29テスト追加）
 - [x] エクスポート検証拡張（Phase 93）が完了している（APNG acTL/fcTLチャンク検証・Lottie JSON構造検証・renderer→verifier round-trip統合テスト・REQ-223・31テスト追加）
 - [x] エクスポートレート制限・レンダー検証強化（Phase 94）が完了している（exportRateLimiter 10req/15min・codec列挙型検証（h264/h265/vp9/av1）・resolution正規表現検証（WIDTHxHEIGHT）・REQ-224・2テスト追加）
+- [x] エクスポートエンジン検証統合（Phase 95）が完了している（EnhancedExportEngine finalizeExport検証統合・全8形式検証結果付与・REQ-225・10テスト追加）
+- [x] エクスポートメトリクス収集（Phase 96）が完了している（ExportMetricsCollector・Prometheus 4メトリック・REQ-226・17テスト追加）
+- [x] エクスポートリトライレジリエンス（Phase 97）が完了している（encodeVideoWithRetry指数バックオフ・isTransientExportError・EXPORT_RETRY_LIMITS・REQ-227・15テスト追加）
+- [x] エクスポートジョブライフサイクル管理（Phase 98）が完了している（cancelExport+AbortController・runStageWithTimeout・EXPORT_STAGE_TIMEOUTS・REQ-228・15テスト追加）
+- [ ] エクスポートジョブキューサービス（Phase 99）が計画されている（ExportJobQueue・優先度スケジューリング・同時実行制御・キュー位置追跡・ETA推定・REQ-229）
+- [ ] エクスポートアーティファクト管理（Phase 100）が計画されている（ExportArtifactStore・TTL自動クリーンアップ・ダウンロードURL・使用量追跡・REQ-230）
 
 ## 関連文書
 
@@ -692,7 +700,7 @@ Fallback LLM
 - 🟡 黄信号: 4件 (3%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第191回検証: Phase 94完了・エクスポートレート制限・レンダー検証強化REQ-224追加・382ファイル・353テストファイル・TypeScriptエラー0件・SYSTEM_CONSTITUTION V2.6適合）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第194回検証: Phase 98完了・Phase 99/100計画・エクスポートキューサービス・アーティファクト管理REQ-229/230・384ファイル・249テストファイル・TypeScriptエラー0件・SYSTEM_CONSTITUTION V2.6適合）
 
 
 <!-- spine:children:begin -->
