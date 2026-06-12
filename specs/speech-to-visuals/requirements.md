@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 96 完了・384ソースファイル・248テストファイル・107パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・192タスク全完了・テストスイート安定化完了（26+テスト障害解消・ESM互換性修正・エラー型伝播バグ修正）・バッチ処理プログレス正確性修正完了（progress.total original count反映）・パイプラインオーケストレーター入力検証完了（AudioValidationError・防御 in depth）・エラーリカバリ可観測性完了（RecoveryTelemetryAggregator・テレメトリAPI endpoint）・相関IDミドルウェア完了（X-Request-ID伝播）・構造化HTTPリクエスト/レスポンスロギング完了（レベル別ログ出力・ヘルスエンドポイント除外）・HTTPリクエストメトリクス収集完了（per-route percentiles・bounded memory）・Prometheus互換メトリクスエクスポート完了（text/plain v0.0.4）・ヘルスチェックliveness/readiness probe完了（Kubernetesスタイル）・GrafanaダッシュボードJSON model完了（8パネル）・Prometheus alert rules完了（4ルール）・監視APIデプロイメント統合完了（GET /monitoring/dashboard・GET /monitoring/alerts）・パイプラインステージ所要時間メトリクス完了（pipeline_stage_duration_ms・PipelineMetricsCollector・14テスト）・監視エンドポイントZodクエリ検証完了（REQ-216）・LLM応答図解構造検証完了（ノード重複排除・自己ループフィルタ・孤立エッジ検出・REQ-217）・シーン駆動アニメーションエクスポート完了（Animated SVG・Lottie JSON・REQ-218~219）・animated-scene-renderer モジュール抽出完了（視覚形状コンテンツ付きLottieレイヤー・36テスト）・エラーリカバリREST API完了（POST/GET/POST /errors・REQ-037拡張・28テスト追加）・エクスポートパイプライン統合テスト完了（TASK-0199/0200・E2E+renderer↔engine結合・38テスト）・シーンレンダラー入力検証完了（validateFrameInfo・clampSceneDuration・REQ-221・29テスト追加）・エラーリカバリREST API堅牢化完了（RegisterBodySchema・errorId形式検証・XSSサニタイズ・レジストリLRU退去・ERROR_REGISTRY_LIMITS・REQ-222・94テスト追加）・エクスポート検証拡張完了（APNG acTL/fcTLチャンク検証・Lottie JSON構造検証・REQ-223・31テスト追加）・エクスポートレート制限・レンダー検証強化完了（exportRateLimiter 10req/15min・codec列挙型・resolution正規表現・REQ-224・2テスト追加）・エクスポートメトリクス収集完了（ExportMetricsCollector・Prometheus統合4メトリック・stage/per-export instrumentation・REQ-226・17テスト追加）
+**実装状況**: Phase 98 完了・384ソースファイル・249テストファイル・107パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・192タスク全完了・テストスイート安定化完了（26+テスト障害解消・ESM互換性修正・エラー型伝播バグ修正）・バッチ処理プログレス正確性修正完了（progress.total original count反映）・パイプラインオーケストレーター入力検証完了（AudioValidationError・防御 in depth）・エラーリカバリ可観測性完了（RecoveryTelemetryAggregator・テレメトリAPI endpoint）・相関IDミドルウェア完了（X-Request-ID伝播）・構造化HTTPリクエスト/レスポンスロギング完了（レベル別ログ出力・ヘルスエンドポイント除外）・HTTPリクエストメトリクス収集完了（per-route percentiles・bounded memory）・Prometheus互換メトリクスエクスポート完了（text/plain v0.0.4）・ヘルスチェックliveness/readiness probe完了（Kubernetesスタイル）・GrafanaダッシュボードJSON model完了（8パネル）・Prometheus alert rules完了（4ルール）・監視APIデプロイメント統合完了（GET /monitoring/dashboard・GET /monitoring/alerts）・パイプラインステージ所要時間メトリクス完了（pipeline_stage_duration_ms・PipelineMetricsCollector・14テスト）・監視エンドポイントZodクエリ検証完了（REQ-216）・LLM応答図解構造検証完了（ノード重複排除・自己ループフィルタ・孤立エッジ検出・REQ-217）・シーン駆動アニメーションエクスポート完了（Animated SVG・Lottie JSON・REQ-218~219）・animated-scene-renderer モジュール抽出完了（視覚形状コンテンツ付きLottieレイヤー・36テスト）・エラーリカバリREST API完了（POST/GET/POST /errors・REQ-037拡張・28テスト追加）・エクスポートパイプライン統合テスト完了（TASK-0199/0200・E2E+renderer↔engine結合・38テスト）・シーンレンダラー入力検証完了（validateFrameInfo・clampSceneDuration・REQ-221・29テスト追加）・エラーリカバリREST API堅牢化完了（RegisterBodySchema・errorId形式検証・XSSサニタイズ・レジストリLRU退去・ERROR_REGISTRY_LIMITS・REQ-222・94テスト追加）・エクスポート検証拡張完了（APNG acTL/fcTLチャンク検証・Lottie JSON構造検証・REQ-223・31テスト追加）・エクスポートレート制限・レンダー検証強化完了（exportRateLimiter 10req/15min・codec列挙型・resolution正規表現・REQ-224・2テスト追加）・エクスポートメトリクス収集完了（ExportMetricsCollector・Prometheus統合4メトリック・stage/per-export instrumentation・REQ-226・17テスト追加）・エクスポートリトライレジリエンス完了（encodeVideoWithRetry指数バックオフ・isTransientExportError分類・EXPORT_RETRY_LIMITS・REQ-227・15テスト追加）・エクスポートジョブライフサイクル管理完了（cancelExport+AbortController・runStageWithTimeout・EXPORT_STAGE_TIMEOUTS・REQ-228）
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -510,13 +510,13 @@
 
 - REQ-226: システムはエクスポートパイプラインのメトリクスを収集し、Prometheus 互換形式で公開しなければならない。収集項目は (1) フォーマット別エクスポート所要時間（パーセンタイル付き）、(2) フォーマット別 × 成功/失敗別のエクスポート件数、(3) フォーマット別エクスポートファイルサイズ（パーセンタイル付き）、(4) ステージ別（preparing/rendering/encoding/finalizing）所要時間（パーセンタイル付き）とする。メモリ使用量を制限するためサンプル系列あたり最大500件を保持し、超過時は古いサンプルを半減させること 🔵 ✅実装済 *src/export/export-metrics-collector.ts ExportMetricsCollector・src/monitoring/prometheus-exporter.ts buildExportDurationMs()・buildExportOperationsTotal()・buildExportFileSizeBytes()・buildExportStageDurationMs()・src/export/enhanced-export-engine.ts stage/per-export instrumentation・17テスト追加*
 
-#### エクスポートリトライとフェイルセーフ（Phase 97）
+#### エクスポートリトライとフェイルセーフ（Phase 97） ✅完了
 
-- REQ-227: システムはエクスポートパイプラインのエンコーディング段階（Stage 3）で一時的エラーが発生した場合、指数バックオフリトライを実行しなければならない。リトライ条件は (1) メモリ不足エラー（OOM）、(2) エンコーダータイムアウト、(3) Worker プロセスクラッシュの3種とし、検証エラー・フォーマット不正・データ欠損などの非一時的エラーはリトライ対象外とすること。最大リトライ回数は3回、初期待機時間は1秒、最大待機時間は30秒、ジッター（0〜500ms）を各試行に付加すること。リトライ試行ごとに ExportMetricsCollector へ retry_attempt ラベル付きでイベントを記録し、全リトライ失敗時は最後のエラーを ExportResult.error に格納すること 🔵 *src/export/enhanced-export-engine.ts encodeVideo()・src/export/export-metrics-collector.ts・src/config/limits.ts EXPORT_RETRY_LIMITS・Phases 89-96のエクスポートパイプライン信頼性継続改善より*
+- REQ-227: システムはエクスポートパイプラインのエンコーディング段階（Stage 3）で一時的エラーが発生した場合、指数バックオフリトライを実行しなければならない。リトライ条件は (1) メモリ不足エラー（OOM）、(2) エンコーダータイムアウト、(3) Worker プロセスクラッシュの3種とし、検証エラー・フォーマット不正・データ欠損などの非一時的エラーはリトライ対象外とすること。最大リトライ回数は3回、初期待機時間は1秒、最大待機時間は30秒、ジッター（0〜500ms）を各試行に付加すること。リトライ試行ごとに ExportMetricsCollector へ retry_attempt ラベル付きでイベントを記録し、全リトライ失敗時は最後のエラーを ExportResult.error に格納すること 🔵 ✅実装済 *src/export/enhanced-export-engine.ts encodeVideoWithRetry()・isTransientExportError()・src/config/limits.ts EXPORT_RETRY_LIMITS・15テスト追加*
 
-#### エクスポートジョブライフサイクル管理（Phase 98）
+#### エクスポートジョブライフサイクル管理（Phase 98） ✅完了
 
-- REQ-228: システムは実行中のエクスポートジョブをキャンセル可能にし、各ステージにタイムアウトを適用しなければならない。(1) キャンセル: EnhancedExportEngine に cancelExport(jobId: string) メソッドを追加し、呼び出し時に該当ジョブの AbortController を abort して Stage 2（rendering）のフレームループと Stage 3（encoding）を中断し、ExportResult.success = false・error = 'Cancelled' で即時返却すること。(2) ステージタイムアウト: 各ステージに設定可能なタイムアウト（preparing: 30s, rendering: 600s, encoding: 300s, finalizing: 60s）を適用し、超過時は自動的にキャンセル扱いとすること。タイムアウト値は src/config/limits.ts EXPORT_STAGE_TIMEOUTS で集中管理すること 🔵 *src/export/enhanced-export-engine.ts processExport()・cancelExport()・src/config/limits.ts EXPORT_STAGE_TIMEOUTS・REQ-226メトリクス基盤・REST API /api/render の運用継続改善より*
+- REQ-228: システムは実行中のエクスポートジョブをキャンセル可能にし、各ステージにタイムアウトを適用しなければならない。(1) キャンセル: EnhancedExportEngine に cancelExport(jobId: string) メソッドを追加し、呼び出し時に該当ジョブの AbortController を abort して Stage 2（rendering）のフレームループと Stage 3（encoding）を中断し、ExportResult.success = false・error = 'Cancelled' で即時返却すること。(2) ステージタイムアウト: 各ステージに設定可能なタイムアウト（preparing: 30s, rendering: 600s, encoding: 300s, finalizing: 60s）を適用し、超過時は自動的にキャンセル扱いとすること。タイムアウト値は src/config/limits.ts EXPORT_STAGE_TIMEOUTS で集中管理すること 🔵 ✅実装済 *src/export/enhanced-export-engine.ts cancelExport()・runStageWithTimeout()・src/config/limits.ts EXPORT_STAGE_TIMEOUTS・15テスト追加*
 
 ### 条件付き要件
 
@@ -707,8 +707,8 @@
 | Phase 94: エクスポートレート制限・レンダー検証強化 | ✅完了 | REQ-224 | 1/1（exportRateLimiter 10req/15min・codec列挙型検証・resolution正規表現検証・RATE_LIMITS.EXPORT・2テスト追加） |
 | Phase 95: エクスポートエンジン検証統合 | ✅完了 | REQ-225 | 1/1（EnhancedExportEngine finalizeExport検証統合・mapExportFormatToVerificationFormat・全8形式検証結果付与・10テスト追加） |
 | Phase 96: エクスポートメトリクス収集 | ✅完了 | REQ-226 | 1/1（ExportMetricsCollector・Prometheus 4メトリック統合・EnhancedExportEngine stage/per-export instrumentation・17テスト追加） |
-| Phase 97: エクスポートリトライとフェイルセーフ | 🔲未実装 | REQ-227 | 0/1（指数バックオフリトライ・一時的/非一時的エラー分類・リトライメトリクス記録） |
-| Phase 98: エクスポートジョブライフサイクル管理 | 🔲未実装 | REQ-228 | 0/1（ジョブキャンセル・AbortController統合・ステージタイムアウト・EXPORT_STAGE_TIMEOUTS集中管理） |
+| Phase 97: エクスポートリトライとフェイルセーフ | ✅完了 | REQ-227 | 1/1（encodeVideoWithRetry指数バックオフ・isTransientExportError分類・OOM/timeout/worker crash一時エラー検出・EXPORT_RETRY_LIMITS集中管理・15テスト追加） |
+| Phase 98: エクスポートジョブライフサイクル管理 | ✅完了 | REQ-228 | 1/1（cancelExport+AbortController・runStageWithTimeout・EXPORT_STAGE_TIMEOUTS(preparing:30s/rendering:600s/encoding:300s/finalizing:60s)・タイマークリーンアップ・15テスト追加） |
 
 ## 信頼性レベル分布
 
@@ -716,7 +716,7 @@
 - 🟡 黄信号: 4件 (1.6%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 96完了・REQ-227/228計画済（エクスポートパイプライン信頼性・ライフサイクル管理）
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 98完了・REQ-001~228全実装（エクスポートパイプライン信頼性・ライフサイクル管理）
 
 ## Acceptance criteria
 
@@ -727,6 +727,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [ ] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 98 を網羅し、Phase 98 完了（REQ-228・エクスポートジョブライフサイクル管理）を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 98 を網羅し、Phase 98 完了（REQ-228・エクスポートジョブライフサイクル管理）を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテキュリティに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（Phase 96完了・REQ-001~228・🔵245件/🟡4件/🔴0件）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（Phase 98完了・REQ-001~228・🔵247件/🟡4件/🔴0件）

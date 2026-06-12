@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-11（第191回検証: Phase 94完了・エクスポートレート制限・レンダーエンドポイント検証強化 REQ-224・exportRateLimiter 10req/15min・codec列挙型検証・resolution正規表現検証・382ソースファイル・353テストファイル・TypeScriptエラー0件）
+**最終更新**: 2026-06-12（第193回検証: Phase 98完了・エクスポートリトライレジリエンス・ジョブライフサイクル管理 REQ-227/228・encodeVideoWithRetry指数バックオフ・cancelExport+AbortController・EXPORT_STAGE_TIMEOUTS・384ソースファイル・249テストファイル・TypeScriptエラー0件）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 

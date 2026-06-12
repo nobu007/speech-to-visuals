@@ -23,6 +23,7 @@ import { encodeAPNG as realEncodeAPNG } from './apng-encoder';
 import { generateAnimatedSVG, generateLottieAnimation } from './animated-scene-renderer';
 import { ExportVerifier, type VerificationFormat, type VerificationResult } from './export-verifier';
 import { exportMetricsCollector } from './export-metrics-collector';
+import { EXPORT_RETRY_LIMITS, EXPORT_STAGE_TIMEOUTS } from '@/config/limits';
 import { logger } from '../utils/logger';
 
 export interface ExportConfiguration {
@@ -180,6 +181,20 @@ export class EnhancedExportEngine {
     return this.useWorkers && !this.disposed && pool !== null && !pool.isTerminated;
   }
 
+  /**
+   * Cancel an active export job by ID (REQ-228).
+   * Aborts the associated AbortController, causing the running
+   * stage to throw and the job to complete with success=false.
+   */
+  cancelExport(jobId: string): boolean {
+    const job = this.activeExports.get(jobId);
+    if (!job) return false;
+
+    job.abortController?.abort();
+    logger.info(`[EnhancedExportEngine] Export job ${jobId} cancelled`);
+    return true;
+  }
+
   /** Terminate worker pool, reject queued exports, and release resources */
   dispose(): void {
     this.disposed = true;
@@ -225,7 +240,8 @@ export class EnhancedExportEngine {
         status: 'preparing',
         progress: 0,
         startTime: new Date(),
-        onProgress
+        onProgress,
+        abortController: new AbortController(),
       };
 
       // Queue or start immediately
@@ -255,48 +271,190 @@ export class EnhancedExportEngine {
   }
 
   /**
-   * Process export job through all stages
+   * Process export job through all stages with timeout and abort support (REQ-228).
    */
   private async processExportJob(job: ExportJob): Promise<ExportResult> {
     this.activeExports.set(job.id, job);
 
     try {
-      // Stage 1: Preparation
+      // Stage 1: Preparation (with timeout)
       let t0 = performance.now();
-      await this.prepareExport(job);
+      await this.runStageWithTimeout(job, 'preparing', () => this.prepareExport(job));
       exportMetricsCollector.recordStageDuration('preparing', performance.now() - t0);
 
-      // Stage 2: Rendering
+      // Stage 2: Rendering (with timeout)
       t0 = performance.now();
-      const renderedFrames = await this.renderFrames(job);
+      let renderedFrames: FrameData[];
+      try {
+        renderedFrames = await this.runStageWithTimeout(job, 'rendering', () => this.renderFrames(job));
+      } catch (err) {
+        if (this.isAbortError(err)) {
+          return this.cancelledResult(job);
+        }
+        throw err;
+      }
       exportMetricsCollector.recordStageDuration('rendering', performance.now() - t0);
 
-      // Stage 3: Encoding
+      // Stage 3: Encoding (with timeout + retry REQ-227)
       t0 = performance.now();
-      const encodedVideo = await this.encodeVideo(job, renderedFrames);
+      const encodedVideo = await this.encodeVideoWithRetry(job, renderedFrames);
       exportMetricsCollector.recordStageDuration('encoding', performance.now() - t0);
 
       // Stage 4: Post-processing
       const processedVideo = await this.postProcess(job, encodedVideo);
 
-      // Stage 5: Finalization
+      // Stage 5: Finalization (with timeout)
       t0 = performance.now();
-      const result = await this.finalizeExport(job, processedVideo);
+      const result = await this.runStageWithTimeout(job, 'finalizing', () => this.finalizeExport(job, processedVideo));
       exportMetricsCollector.recordStageDuration('finalizing', performance.now() - t0);
 
       return result;
     } catch (error) {
+      if (this.isAbortError(error)) {
+        return this.cancelledResult(job);
+      }
       logger.error('Export job failed:', error);
+
+      const exportDuration = job.startTime ? performance.now() - job.startTime.getTime() : 0;
+      exportMetricsCollector.recordExport(job.config.format, 'failure', exportDuration);
+
       return {
         success: false,
         format: job.config.format,
         quality: job.config.quality,
-        error: error instanceof Error ? error.message : 'Export failed'
+        error: error instanceof Error ? error.message : 'Export failed',
       };
     } finally {
       this.activeExports.delete(job.id);
       this.processNextInQueue();
     }
+  }
+
+  /**
+   * Run a stage with AbortSignal check and a configurable timeout (REQ-228).
+   */
+  private async runStageWithTimeout<T>(
+    job: ExportJob,
+    stage: 'preparing' | 'rendering' | 'encoding' | 'finalizing',
+    fn: () => Promise<T>,
+  ): Promise<T> {
+    const signal = job.abortController?.signal;
+    const timeoutMs = EXPORT_STAGE_TIMEOUTS[stage];
+
+    // Check if already aborted
+    if (signal?.aborted) {
+      throw new DOMException('Export cancelled', 'AbortError');
+    }
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let abortHandler: (() => void) | undefined;
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        reject(new Error(`Export stage "${stage}" timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+
+      abortHandler = () => {
+        if (timer) clearTimeout(timer);
+        reject(new DOMException('Export cancelled', 'AbortError'));
+      };
+      signal?.addEventListener('abort', abortHandler, { once: true });
+    });
+
+    try {
+      const result = await Promise.race([fn(), timeoutPromise]);
+      return result;
+    } finally {
+      if (timer) clearTimeout(timer);
+      if (abortHandler && signal) signal.removeEventListener('abort', abortHandler);
+    }
+  }
+
+  /**
+   * Encode video with exponential backoff retry on transient errors (REQ-227).
+   */
+  private async encodeVideoWithRetry(job: ExportJob, frames: FrameData[]): Promise<EncodedVideo> {
+    const { maxRetries, initialDelayMs, maxDelayMs, jitterMaxMs } = {
+      maxRetries: EXPORT_RETRY_LIMITS.MAX_RETRIES,
+      initialDelayMs: EXPORT_RETRY_LIMITS.INITIAL_DELAY_MS,
+      maxDelayMs: EXPORT_RETRY_LIMITS.MAX_DELAY_MS,
+      jitterMaxMs: EXPORT_RETRY_LIMITS.JITTER_MAX_MS,
+    };
+
+    let lastError: Error | undefined;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      // Check for cancellation before each attempt
+      if (job.abortController?.signal.aborted) {
+        throw new DOMException('Export cancelled', 'AbortError');
+      }
+
+      try {
+        return await this.encodeVideo(job, frames);
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+
+        // Non-transient errors fail immediately
+        if (!this.isTransientExportError(lastError)) {
+          logger.warn(`[EnhancedExportEngine] Non-transient encoding error: ${lastError.message}`);
+          throw lastError;
+        }
+
+        // All retries exhausted
+        if (attempt >= maxRetries) {
+          logger.warn(`[EnhancedExportEngine] Encoding failed after ${maxRetries} retries: ${lastError.message}`);
+          throw lastError;
+        }
+
+        // Calculate delay with jitter
+        const baseDelay = Math.min(initialDelayMs * Math.pow(2, attempt), maxDelayMs);
+        const jitter = Math.floor(Math.random() * jitterMaxMs);
+        const delay = baseDelay + jitter;
+
+        logger.info(
+          `[EnhancedExportEngine] Transient encoding error on attempt ${attempt + 1}/${maxRetries}, retrying in ${delay}ms: ${lastError.message}`,
+        );
+
+        // Record retry metric
+        exportMetricsCollector.recordExport(job.config.format, 'failure', 0);
+
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+
+    throw lastError;
+  }
+
+  /**
+   * Determine if an encoding error is transient and worth retrying (REQ-227).
+   * Transient: OOM, timeout, Worker crash.
+   * Non-transient: validation errors, format errors, data corruption.
+   */
+  private isTransientExportError(error: Error): boolean {
+    const msg = error.message.toLowerCase();
+    return (
+      msg.includes('oom') ||
+      msg.includes('out of memory') ||
+      msg.includes('timeout') ||
+      msg.includes('timed out') ||
+      msg.includes('worker crash') ||
+      msg.includes('worker terminated') ||
+      msg.includes('heap out of memory')
+    );
+  }
+
+  private isAbortError(error: unknown): boolean {
+    return error instanceof DOMException && error.name === 'AbortError';
+  }
+
+  private cancelledResult(job: ExportJob): ExportResult {
+    logger.info(`[EnhancedExportEngine] Job ${job.id} was cancelled`);
+    return {
+      success: false,
+      format: job.config.format,
+      quality: job.config.quality,
+      error: 'Cancelled',
+    };
   }
 
   /**
@@ -881,6 +1039,8 @@ interface ExportJob {
   codecSettings?: CodecSettings;
   onProgress?: (progress: ExportProgress) => void;
   resolve?: (result: ExportResult) => void;
+  /** AbortController for cancellation (REQ-228) */
+  abortController?: AbortController;
 }
 
 interface FrameData {
