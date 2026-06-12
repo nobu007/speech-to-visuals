@@ -4018,3 +4018,140 @@
   - **信頼性**: 🔵 *src/api/routes/__tests__/pipeline.test.ts より*
 
 ---
+
+## REQ-227: エクスポートリトライとフェイルセーフ 🔵
+
+**信頼性**: 🔵 *Phases 89-96のエクスポートパイプライン信頼性継続改善・enhanced-export-engine.ts encodeVideo()設計より*
+
+### Given（前提条件）
+
+- EnhancedExportEngine がエクスポートジョブを処理中
+- Stage 3（encoding）で一時的エラー（OOM / タイムアウト / Workerクラッシュ）が発生
+- EXPORT_RETRY_LIMITS が limits.ts に定義されている（maxRetries: 3, initialDelayMs: 1000, maxDelayMs: 30000, jitterMs: 500）
+
+### When（実行条件）
+
+- エンコーディング段階で一時的エラーがスローされる
+
+### Then（期待結果）
+
+- システムは指数バックオフ（1s → 2s → 4s、最大30s）+ ランダムジッター（0〜500ms）でリトライする
+- 非一時的エラー（FormatValidationError / データ欠損）はリトライせず即座に失敗
+- リトライ試行ごとに ExportMetricsCollector に retry_attempt イベントが記録される
+- 全リトライ失敗時は最後のエラーメッセージを ExportResult.error に格納
+
+### テストケース
+
+#### 正常系
+
+- [ ] **TC-227-01**: 一時的エラー後リトライ成功 🔵
+  - **入力**: エンコーディング1回目OOM・2回目成功
+  - **期待結果**: ExportResult.success=true、retry_count=1がメトリクスに記録
+  - **信頼性**: 🔵 *enhanced-export-engine.ts processExport()フローから妥当*
+
+- [ ] **TC-227-02**: 最大3回リトライ後成功 🔵
+  - **入力**: エンコーディング1-3回目OOM・4回目成功
+  - **期待結果**: ExportResult.success=true、retry_count=3がメトリクスに記録
+  - **信頼性**: 🔵 *EXPORT_RETRY_LIMITS設計より*
+
+#### 異常系
+
+- [ ] **TC-227-E01**: 全リトライ失敗でエラー返却 🔵
+  - **入力**: エンコーディング4回連続OOM
+  - **期待結果**: ExportResult.success=false、errorに最後のOOMメッセージ
+  - **信頼性**: 🔵 *リトライ上限仕様より*
+
+- [ ] **TC-227-E02**: 非一時的エラーはリトライなし 🔵
+  - **入力**: FormatValidationError スロー
+  - **期待結果**: ExportResult.success=false、retry_count=0
+  - **信頼性**: 🔵 *エラー分類仕様より*
+
+#### 境界値
+
+- [ ] **TC-227-B01**: バックオフ最大待機時間キャップ 🔵
+  - **入力**: リトライ間隔が30sを超える試算
+  - **期待結果**: 待機時間が30sでキャップされる
+  - **信頼性**: 🔵 *EXPORT_RETRY_LIMITS.maxDelayMs仕様より*
+
+- [ ] **TC-227-B02**: ジッター範囲確認 🔵
+  - **入力**: 100回のリトライ実行
+  - **期待結果**: 全ジッター値が0〜500msの範囲内
+  - **信頼性**: 🔵 *jitterMs設計より*
+
+---
+
+## REQ-228: エクスポートジョブライフサイクル管理 🔵
+
+**信頼性**: 🔵 *REQ-226メトリクス基盤・REST API /api/render 運用改善・enhanced-export-engine.ts設計より*
+
+### Given（前提条件）
+
+- EnhancedExportEngine がエクスポートジョブを実行中
+- 各ジョブに AbortController が関連付けられている
+- EXPORT_STAGE_TIMEOUTS が limits.ts に定義されている（preparing: 30s, rendering: 600s, encoding: 300s, finalizing: 60s）
+
+### When（実行条件）
+
+- cancelExport(jobId) が呼び出される、またはステージ実行がタイムアウト値を超過する
+
+### Then（期待結果）
+
+- 該当ジョブの AbortController.abort() が呼ばれる
+- Stage 2（rendering）のフレームループが即座に中断される
+- Stage 3（encoding）が即座に中断される
+- ExportResult.success=false・error='Export cancelled' が返却される
+- タイムアウト時は error='Stage {name} timed out after {ms}ms' が返却される
+
+### テストケース
+
+#### 正常系
+
+- [ ] **TC-228-01**: アクティブジョブのキャンセル 🔵
+  - **入力**: レンダリング中のジョブIDで cancelExport() 呼び出し
+  - **期待結果**: ExportResult.success=false, error='Export cancelled'
+  - **信頼性**: 🔵 *AbortController設計より*
+
+- [ ] **TC-228-02**: キャンセル後のリソース解放 🔵
+  - **入力**: キャンセル完了後の activeExports 確認
+  - **期待結果**: 該当ジョブが activeExports Map から削除、processNextInQueue() が呼ばれる
+  - **信頼性**: 🔵 *enhanced-export-engine.ts finally設計より*
+
+#### 異常系
+
+- [ ] **TC-228-E01**: 存在しないジョブIDのキャンセル 🔵
+  - **入力**: 未登録jobIdで cancelExport() 呼び出し
+  - **期待結果**: false を返却（エラーをスローしない）
+  - **信頼性**: 🔵 * graceful 設計より*
+
+- [ ] **TC-228-E02**: レンダリングステージタイムアウト 🔵
+  - **入力**: rendering段階が600sを超過
+  - **期待結果**: ExportResult.success=false, error='Stage rendering timed out after 600000ms'
+  - **信頼性**: 🔵 *EXPORT_STAGE_TIMEOUTS仕様より*
+
+#### 境界値
+
+- [ ] **TC-228-B01**: タイムアウト境界値（1ms未満） 🔵
+  - **入力**: タイムアウト値0msまたは負数
+  - **期待結果**: タイムアウト無効化（永遠に待機）またはデフォルト値フォールバック
+  - **信頼性**: 🔵 *limits.tsバリデーション設計より*
+
+- [ ] **TC-228-B02**: 最終段階（finalizing）中のキャンセル 🔵
+  - **入力**: finalizing段階で cancelExport() 呼び出し
+  - **期待結果**: 既にファイル書き込み済みの場合は結果返却、未完了ならキャンセル
+  - **信頼性**: 🔵 *ステージ非同期設計より*
+
+---
+
+## テストケースサマリー（REQ-227/228追加分）
+
+| カテゴリ | 正常系 | 異常系 | 境界値 | 合計 |
+|---------|--------|--------|--------|------|
+| REQ-227 リトライ | 2 | 2 | 2 | 6 |
+| REQ-228 ライフサイクル | 2 | 2 | 2 | 6 |
+| **合計** | **4** | **4** | **4** | **12** |
+
+### 信頼性レベル分布（追加分）
+
+- 🔵 青信号: 12件 (100%)
+- 🟡 黄信号: 0件 (0%)
+- 🔴 赤信号: 0件 (0%)

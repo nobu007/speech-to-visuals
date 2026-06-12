@@ -3312,6 +3312,29 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 - 信頼性レベル分布: 🔵241件(98.4%) / 🟡4件(1.6%) / 🔴0件(0%) — 🔵+1
 - レンダーエンドポイントのセキュリティがレート制限・入力検証の2層で強化された
 
+---
+
+### A46: Phase 97-98 エクスポートパイプライン信頼性・ライフサイクル管理分析
+
+**分析日時**: 2026-06-12
+**カテゴリ**: 堅牢性継続改善・運用管理
+**背景**: Phases 89-96でエクスポートパイプラインに包括的な品質改善を完了した（シーン駆動アニメーション→統合テスト→入力検証→API堅牢化→検証拡張→レート制限→検証統合→メトリクス収集）。EnhancedExportEngine の processExport() は5段階パイプライン（preparing→rendering→encoding→post-processing→finalizing）で構成されるが、(1) Stage 3（encoding）で一時的エラー発生時にリトライ機構がなく即座に失敗する、(2) ジョブキャンセル手段がなく長時間実行ジョブがリソースを占有する、(3) ステージ別タイムアウトが不在でハングしたステージが後続ジョブをブロックする、という3つの運用上のギャップが存在する。
+
+**判断**: REQ-227（エクスポートリトライとフェイルセーフ）とREQ-228（エクスポートジョブライフサイクル管理）を追加。REQ-227はencoding段階に指数バックオフリトライ（maxRetries:3, initialDelay:1s, maxDelay:30s, jitter:0-500ms）を追加し、OOM/タイムアウト/Workerクラッシュの一時的エラーのみリトライ対象とする。REQ-228はcancelExport()メソッドとAbortController統合、各ステージにタイムアウト（preparing:30s, rendering:600s, encoding:300s, finalizing:60s）を適用する。Phases 93-96で構築したExportVerifier・ExportMetricsCollector基盤を活用する。
+
+**根拠**:
+- `src/export/enhanced-export-engine.ts` - processExport() catch block (line 288-295) にリトライなし・キャンセルなし
+- `src/export/export-metrics-collector.ts` - REQ-226メトリクス基盤にretry_attemptイベント追加可能
+- `src/export/export-verifier.ts` - REQ-225検証基盤はリトライ後の検証に再利用
+- `src/config/limits.ts` - EXPORT_RETRY_LIMITS・EXPORT_STAGE_TIMEOUTSの集中管理先
+- `src/api/middleware/rate-limit.ts` - REQ-224レート制限パターンを踏襲
+- Phases 89-96の軌跡: build → validate → protect → observe → **resilience + lifecycle**
+
+**信頼性への影響**:
+- この分析により、REQ-227（エクスポートリトライ）とREQ-228（ライフサイクル管理）を追加（信頼性レベル: 🔵）
+- 信頼性レベル分布: 🔵245件(98.4%) / 🟡4件(1.6%) / 🔴0件(0%) — 🔵+2
+- エクスポートパイプラインが検証→メトリクス→リトライ→ライフサイクルの完全な運用品質チェーンを形成
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)
