@@ -303,12 +303,30 @@ export class EnhancedExportEngine {
       // Stage 4: Post-processing
       const processedVideo = await this.postProcess(job, encodedVideo);
 
-      // Stage 5: Finalization (with timeout)
+      // Stage 5: Finalization (with timeout, special abort handling for TC-228-B02)
       t0 = performance.now();
-      const result = await this.runStageWithTimeout(job, 'finalizing', () => this.finalizeExport(job, processedVideo));
+      let finalResult: ExportResult;
+      try {
+        finalResult = await this.runStageWithTimeout(job, 'finalizing', () => this.finalizeExport(job, processedVideo));
+      } catch (error) {
+        if (this.isAbortError(error) && job.fileWritten) {
+          // File already written during finalization — return success instead of cancelling
+          const exportDuration = job.startTime ? performance.now() - job.startTime.getTime() : 0;
+          exportMetricsCollector.recordExport(job.config.format, 'success', exportDuration);
+          finalResult = {
+            success: true,
+            outputPath: job.outputPath,
+            format: job.config.format,
+            quality: job.config.quality,
+            warnings: ['Export was cancelled during finalization'],
+          };
+        } else {
+          throw error;
+        }
+      }
       exportMetricsCollector.recordStageDuration('finalizing', performance.now() - t0);
 
-      return result;
+      return finalResult;
     } catch (error) {
       if (this.isAbortError(error)) {
         return this.cancelledResult(job);
@@ -346,12 +364,17 @@ export class EnhancedExportEngine {
       throw new DOMException('Export cancelled', 'AbortError');
     }
 
+    // TC-228-B01: Disable timeout for zero or negative values (wait indefinitely)
+    if (timeoutMs <= 0) {
+      return fn();
+    }
+
     let timer: ReturnType<typeof setTimeout> | undefined;
     let abortHandler: (() => void) | undefined;
 
     const timeoutPromise = new Promise<never>((_, reject) => {
       timer = setTimeout(() => {
-        reject(new Error(`Export stage "${stage}" timed out after ${timeoutMs}ms`));
+        reject(new Error(`Stage ${stage} timed out after ${timeoutMs}ms`));
       }, timeoutMs);
 
       abortHandler = () => {
@@ -453,7 +476,7 @@ export class EnhancedExportEngine {
       success: false,
       format: job.config.format,
       quality: job.config.quality,
-      error: 'Cancelled',
+      error: 'Export cancelled',
     };
   }
 
@@ -655,6 +678,7 @@ export class EnhancedExportEngine {
 
     // Write final file
     const outputPath = await this.writeOutputFile(video, job.outputPath!);
+    job.fileWritten = true;
 
     // Generate metadata
     const metadata: ExportMetadata = {
@@ -1041,6 +1065,8 @@ interface ExportJob {
   resolve?: (result: ExportResult) => void;
   /** AbortController for cancellation (REQ-228) */
   abortController?: AbortController;
+  /** Whether the output file has been written (TC-228-B02) */
+  fileWritten?: boolean;
 }
 
 interface FrameData {

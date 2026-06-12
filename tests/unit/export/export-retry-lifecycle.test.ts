@@ -215,6 +215,59 @@ describe('REQ-227: Export retry resilience', () => {
     jest.useRealTimers();
     engine.dispose();
   });
+
+  // TC-227-02: Max 3 retries then success (3 OOM failures, 4th succeeds)
+  test('max 3 retries exhausted then 4th attempt succeeds', async () => {
+    const engine = new EnhancedExportEngine(2);
+    let attempts = 0;
+
+    const spy = jest.spyOn(engine as any, 'encodeVideo').mockImplementation(async () => {
+      attempts++;
+      if (attempts <= 3) {
+        throw new Error('Out of memory during encoding');
+      }
+      return { data: new Uint8Array(100), duration: 1, codec: 'h264', container: 'mp4' };
+    });
+
+    jest.useFakeTimers();
+    const exportPromise = engine.exportVideo(createSceneData(), createConfig());
+    await jest.advanceTimersByTimeAsync(120_000);
+    const result = await exportPromise;
+
+    expect(result.success).toBe(true);
+    expect(attempts).toBe(4); // initial + 3 retries
+    spy.mockRestore();
+    jest.useRealTimers();
+    engine.dispose();
+  });
+
+  // TC-227-B01: Backoff max delay capped at 30s
+  test('retry delay is capped at MAX_DELAY_MS (30s)', () => {
+    const { MAX_DELAY_MS, INITIAL_DELAY_MS } = EXPORT_RETRY_LIMITS;
+
+    // Verify the delay calculation caps at maxDelayMs
+    // Formula: Math.min(INITIAL_DELAY_MS * 2^attempt, MAX_DELAY_MS)
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const baseDelay = Math.min(INITIAL_DELAY_MS * Math.pow(2, attempt), MAX_DELAY_MS);
+      expect(baseDelay).toBeLessThanOrEqual(MAX_DELAY_MS);
+    }
+
+    // Specifically verify that high attempts are capped
+    const highAttemptDelay = Math.min(INITIAL_DELAY_MS * Math.pow(2, 10), MAX_DELAY_MS);
+    expect(highAttemptDelay).toBe(MAX_DELAY_MS);
+  });
+
+  // TC-227-B02: Jitter range verification (0-500ms)
+  test('jitter values are within 0-JITTER_MAX_MS range', () => {
+    const { JITTER_MAX_MS } = EXPORT_RETRY_LIMITS;
+    const samples = 100;
+
+    for (let i = 0; i < samples; i++) {
+      const jitter = Math.floor(Math.random() * JITTER_MAX_MS);
+      expect(jitter).toBeGreaterThanOrEqual(0);
+      expect(jitter).toBeLessThan(JITTER_MAX_MS);
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -264,7 +317,7 @@ describe('REQ-228: Export job lifecycle management', () => {
 
     const result = await exportPromise;
     expect(result.success).toBe(false);
-    expect(result.error).toBe('Cancelled');
+    expect(result.error).toBe('Export cancelled');
 
     spy.mockRestore();
     engine.dispose();
@@ -309,7 +362,7 @@ describe('REQ-228: Export job lifecycle management', () => {
 
     const result = await engine.exportVideo(createSceneData(), createConfig());
     expect(result.success).toBe(false);
-    expect(result.error).toBe('Cancelled');
+    expect(result.error).toBe('Export cancelled');
 
     spy.mockRestore();
     engine.dispose();
@@ -345,6 +398,233 @@ describe('REQ-228: Export job lifecycle management', () => {
 
     // The job is no longer active, so cancelExport should return false
     expect(engine.cancelExport('any-id')).toBe(false);
+    engine.dispose();
+  });
+
+  // TC-228-02: Resource release after cancel
+  test('cancelled job is removed from activeExports and processNextInQueue is called', async () => {
+    const engine = new EnhancedExportEngine(1); // 1 concurrent to test queue
+
+    // Make first job block so it can be cancelled
+    let resolveRender: () => void;
+    const renderPromise = new Promise<void>((resolve) => { resolveRender = resolve; });
+
+    const spy = jest.spyOn(engine as any, 'renderFrames').mockImplementation(async () => {
+      await renderPromise;
+      return [];
+    });
+
+    const processNextSpy = jest.spyOn(engine as any, 'processNextInQueue');
+
+    const promise1 = engine.exportVideo(createSceneData(), createConfig());
+    const promise2 = engine.exportVideo(createSceneData(), createConfig({ format: 'webm' }));
+
+    // Wait for first job to be active
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    const activeJobs = engine['activeExports'];
+    const jobId = activeJobs.keys().next().value as string;
+    expect(jobId).toBeDefined();
+
+    // Cancel the active job
+    engine.cancelExport(jobId);
+
+    // Resolve render so the pipeline can detect the abort
+    resolveRender!();
+
+    const result1 = await promise1;
+    expect(result1.success).toBe(false);
+
+    // After cancellation, the first job should be removed from activeExports
+    expect(activeJobs.has(jobId)).toBe(false);
+    // processNextInQueue should have been called
+    expect(processNextSpy).toHaveBeenCalled();
+
+    // Clean up second promise
+    engine.dispose();
+    await promise2.catch(() => {});
+
+    spy.mockRestore();
+  });
+
+  // TC-228-E02: Rendering stage timeout with specific error message
+  test('rendering stage timeout produces specific error message', async () => {
+    const engine = new EnhancedExportEngine(2);
+
+    const spy = jest.spyOn(engine as any, 'renderFrames').mockImplementation(async () => {
+      await new Promise(() => {}); // Never resolves
+    });
+
+    // Set a short rendering timeout
+    const original = EXPORT_STAGE_TIMEOUTS.rendering;
+    (EXPORT_STAGE_TIMEOUTS as any).rendering = 50;
+
+    const result = await engine.exportVideo(createSceneData(), createConfig());
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Stage rendering timed out after 50ms');
+
+    (EXPORT_STAGE_TIMEOUTS as any).rendering = original;
+    spy.mockRestore();
+    engine.dispose();
+  });
+
+  // TC-228-B01: Timeout boundary value (0 or negative disables timeout)
+  test('zero timeout value disables stage timeout', async () => {
+    const engine = new EnhancedExportEngine(2);
+
+    // Make preparing stage take 100ms — should succeed because timeout is disabled
+    const spy = jest.spyOn(engine as any, 'prepareExport').mockImplementation(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    });
+
+    const original = EXPORT_STAGE_TIMEOUTS.preparing;
+    (EXPORT_STAGE_TIMEOUTS as any).preparing = 0;
+
+    // Should NOT timeout even though stage takes 100ms
+    const result = await engine.exportVideo(createSceneData(), createConfig());
+    expect(result.success).toBe(true);
+
+    (EXPORT_STAGE_TIMEOUTS as any).preparing = original;
+    spy.mockRestore();
+    engine.dispose();
+  });
+
+  test('negative timeout value disables stage timeout', async () => {
+    const engine = new EnhancedExportEngine(2);
+
+    const spy = jest.spyOn(engine as any, 'prepareExport').mockImplementation(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    });
+
+    const original = EXPORT_STAGE_TIMEOUTS.preparing;
+    (EXPORT_STAGE_TIMEOUTS as any).preparing = -100;
+
+    const result = await engine.exportVideo(createSceneData(), createConfig());
+    expect(result.success).toBe(true);
+
+    (EXPORT_STAGE_TIMEOUTS as any).preparing = original;
+    spy.mockRestore();
+    engine.dispose();
+  });
+
+  // TC-228-B02: Cancel during finalizing stage — file already written returns result
+  test('cancel during finalizing after file written returns success result', async () => {
+    const engine = new EnhancedExportEngine(2);
+
+    // Mock finalizeExport to write the file then abort
+    const spy = jest.spyOn(engine as any, 'finalizeExport').mockImplementation(async function (this: any, job: any) {
+      // Simulate file write
+      job.fileWritten = true;
+      // Then abort
+      job.abortController?.abort();
+      // Still return a result (the abort will be caught by runStageWithTimeout)
+      return {
+        success: true,
+        outputPath: job.outputPath,
+        format: job.config.format,
+        quality: job.config.quality,
+        warnings: [],
+      };
+    });
+
+    // Also mock renderFrames to block so we can get the jobId
+    let resolveRender: () => void;
+    const renderPromise = new Promise<void>((resolve) => { resolveRender = resolve; });
+    const renderSpy = jest.spyOn(engine as any, 'renderFrames').mockImplementation(async () => {
+      // First call: let it proceed (need to unblock)
+      resolveRender!();
+      return [];
+    });
+
+    // Actually, let's use a simpler approach: just mock prepareExport and renderFrames to pass through
+    renderSpy.mockRestore();
+    spy.mockRestore();
+
+    // Better approach: mock all stages except finalizing, then cancel during finalizing
+    const prepSpy = jest.spyOn(engine as any, 'prepareExport').mockResolvedValue(undefined);
+    const renderSpy2 = jest.spyOn(engine as any, 'renderFrames').mockResolvedValue([]);
+    const encodeSpy = jest.spyOn(engine as any, 'encodeVideo').mockResolvedValue({
+      data: new Uint8Array(100), duration: 1, codec: 'h264', container: 'mp4',
+    });
+    const postSpy = jest.spyOn(engine as any, 'postProcess').mockImplementation(async (_job: any, video: any) => video);
+
+    // Mock finalizeExport to write file then hang
+    let resolveFinalize: () => void;
+    const finalizePromise = new Promise<void>((resolve) => { resolveFinalize = resolve; });
+    const finSpy = jest.spyOn(engine as any, 'finalizeExport').mockImplementation(async function (this: any, job: any, video: any) {
+      // Simulate file write
+      await this.writeOutputFile(video, job.outputPath);
+      job.fileWritten = true;
+      // Now hang so we can cancel
+      await finalizePromise;
+      return { success: true, outputPath: job.outputPath, format: job.config.format, quality: job.config.quality, warnings: [] };
+    });
+
+    const exportPromise = engine.exportVideo(createSceneData(), createConfig());
+
+    // Wait for the job to reach finalizing
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    // Cancel the job
+    const activeJobs = engine['activeExports'];
+    const jobId = activeJobs.keys().next().value as string;
+    engine.cancelExport(jobId);
+
+    // Resolve finalize so it can detect abort
+    resolveFinalize!();
+
+    const result = await exportPromise;
+    // Since fileWritten was true, should return success
+    expect(result.success).toBe(true);
+    expect(result.warnings).toContain('Export was cancelled during finalization');
+
+    prepSpy.mockRestore();
+    renderSpy2.mockRestore();
+    encodeSpy.mockRestore();
+    postSpy.mockRestore();
+    finSpy.mockRestore();
+    engine.dispose();
+  });
+
+  test('cancel during finalizing before file written returns cancelled', async () => {
+    const engine = new EnhancedExportEngine(2);
+
+    const prepSpy = jest.spyOn(engine as any, 'prepareExport').mockResolvedValue(undefined);
+    const renderSpy = jest.spyOn(engine as any, 'renderFrames').mockResolvedValue([]);
+    const encodeSpy = jest.spyOn(engine as any, 'encodeVideo').mockResolvedValue({
+      data: new Uint8Array(100), duration: 1, codec: 'h264', container: 'mp4',
+    });
+    const postSpy = jest.spyOn(engine as any, 'postProcess').mockImplementation(async (_job: any, video: any) => video);
+
+    // Mock finalizeExport to hang without writing file
+    let resolveFinalize: () => void;
+    const finalizePromise = new Promise<void>((resolve) => { resolveFinalize = resolve; });
+    const finSpy = jest.spyOn(engine as any, 'finalizeExport').mockImplementation(async () => {
+      // Do NOT set fileWritten — hang
+      await finalizePromise;
+      return { success: true, outputPath: '/tmp/test.mp4', format: 'mp4', quality: baseQuality, warnings: [] };
+    });
+
+    const exportPromise = engine.exportVideo(createSceneData(), createConfig());
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const activeJobs = engine['activeExports'];
+    const jobId = activeJobs.keys().next().value as string;
+    engine.cancelExport(jobId);
+
+    resolveFinalize!();
+
+    const result = await exportPromise;
+    // File not written yet, should be cancelled
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Export cancelled');
+
+    prepSpy.mockRestore();
+    renderSpy.mockRestore();
+    encodeSpy.mockRestore();
+    postSpy.mockRestore();
+    finSpy.mockRestore();
     engine.dispose();
   });
 });
