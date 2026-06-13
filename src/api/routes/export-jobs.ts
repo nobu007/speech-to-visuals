@@ -48,7 +48,7 @@ export function createExportJobRouter(jobQueue: ExportJobQueue): Router {
   router.post('/jobs', (req: Request, res: Response) => {
     const { format, priority, inputHash } = req.body;
 
-    if (!format || typeof format !== 'string') {
+    if (!format || typeof format !== 'string' || format.trim() === '') {
       res.status(400).json({
         success: false,
         error: { code: 'VALIDATION_ERROR', message: 'Missing or invalid "format" field' },
@@ -64,7 +64,7 @@ export function createExportJobRouter(jobQueue: ExportJobQueue): Router {
       return;
     }
 
-    if (!inputHash || typeof inputHash !== 'string') {
+    if (!inputHash || typeof inputHash !== 'string' || inputHash.trim() === '') {
       res.status(400).json({
         success: false,
         error: { code: 'VALIDATION_ERROR', message: 'Missing or invalid "inputHash" field' },

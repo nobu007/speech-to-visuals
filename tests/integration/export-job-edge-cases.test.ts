@@ -124,6 +124,52 @@ describe('Export Job Validation Errors', () => {
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
   });
 
+  test('empty string format returns 400', async () => {
+    const { app } = createTestServer();
+
+    const res = await request(app)
+      .post('/api/v1/export/jobs')
+      .send({ format: '', inputHash: 'abc' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  test('whitespace-only format returns 400', async () => {
+    const { app } = createTestServer();
+
+    const res = await request(app)
+      .post('/api/v1/export/jobs')
+      .send({ format: '   ', inputHash: 'abc' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  test('empty string inputHash returns 400', async () => {
+    const { app } = createTestServer();
+
+    const res = await request(app)
+      .post('/api/v1/export/jobs')
+      .send({ format: 'mp4', inputHash: '' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    expect(res.body.error.message).toContain('inputHash');
+  });
+
+  test('whitespace-only inputHash returns 400', async () => {
+    const { app } = createTestServer();
+
+    const res = await request(app)
+      .post('/api/v1/export/jobs')
+      .send({ format: 'mp4', inputHash: '   ' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    expect(res.body.error.message).toContain('inputHash');
+  });
+
   test('invalid priority falls back to normal', async () => {
     const { app } = createTestServer();
 

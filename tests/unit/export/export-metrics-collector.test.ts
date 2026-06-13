@@ -268,4 +268,69 @@ describe('ExportMetricsCollector', () => {
       expect(snap.successfulExports).toBe(8);
     });
   });
+
+  // -----------------------------------------------------------------------
+  // Numeric safety (NaN, Infinity, negative values)
+  // -----------------------------------------------------------------------
+
+  describe('numeric safety', () => {
+    it('ignores NaN duration in recordExport', () => {
+      collector.recordExport('mp4', 'success', NaN);
+      const snap = collector.getSnapshot();
+      expect(snap.totalExports).toBe(0);
+    });
+
+    it('ignores Infinity duration in recordExport', () => {
+      collector.recordExport('mp4', 'success', Infinity);
+      const snap = collector.getSnapshot();
+      expect(snap.totalExports).toBe(0);
+    });
+
+    it('ignores negative duration in recordExport', () => {
+      collector.recordExport('mp4', 'success', -100);
+      const snap = collector.getSnapshot();
+      expect(snap.totalExports).toBe(0);
+    });
+
+    it('ignores NaN in recordStageDuration', () => {
+      collector.recordStageDuration('rendering', NaN);
+      collector.recordStageDuration('rendering', 200);
+      const snap = collector.getSnapshot();
+      expect(snap.stages).toHaveLength(1);
+      expect(snap.stages[0].count).toBe(1);
+      expect(snap.stages[0].sumMs).toBe(200);
+    });
+
+    it('ignores negative file size in recordExport', () => {
+      collector.recordExport('mp4', 'success', 100, -50);
+      const snap = collector.getSnapshot();
+      expect(snap.formats[0].fileSize.count).toBe(0);
+    });
+
+    it('ignores negative queue size in recordQueueSize', () => {
+      collector.recordQueueSize(-5);
+      const snap = collector.getSnapshot();
+      expect(snap.queue.queueSize).toBe(0);
+    });
+
+    it('ignores NaN queue size in recordQueueSize', () => {
+      collector.recordQueueSize(NaN);
+      const snap = collector.getSnapshot();
+      expect(snap.queue.queueSize).toBe(0);
+    });
+
+    it('ignores negative wait time in recordQueueWaitTimeMs', () => {
+      collector.recordQueueWaitTimeMs(-100);
+      collector.recordQueueWaitTimeMs(500);
+      const snap = collector.getSnapshot();
+      expect(snap.queue.avgWaitTimeMs).toBe(500);
+    });
+
+    it('ignores NaN wait time in recordQueueWaitTimeMs', () => {
+      collector.recordQueueWaitTimeMs(NaN);
+      collector.recordQueueWaitTimeMs(500);
+      const snap = collector.getSnapshot();
+      expect(snap.queue.avgWaitTimeMs).toBe(500);
+    });
+  });
 });

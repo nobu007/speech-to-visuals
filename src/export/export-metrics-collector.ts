@@ -126,6 +126,7 @@ function createSeries(): SampleSeries {
 }
 
 function recordSample(series: SampleSeries, value: number, maxSamples: number): void {
+  if (!Number.isFinite(value) || value < 0) return;
   series.count++;
   series.sum += value;
   if (value < series.min) series.min = value;
@@ -194,6 +195,8 @@ export class ExportMetricsCollector {
     durationMs: number,
     fileSizeBytes?: number,
   ): void {
+    if (!Number.isFinite(durationMs) || durationMs < 0) return;
+
     let data = this.formats.get(format);
     if (!data) {
       data = {
@@ -223,6 +226,8 @@ export class ExportMetricsCollector {
 
   /** Record an individual export stage duration (e.g. 'rendering'). */
   recordStageDuration(stage: ExportStage, durationMs: number): void {
+    if (!Number.isFinite(durationMs) || durationMs < 0) return;
+
     let series = this.stages.get(stage);
     if (!series) {
       series = createSeries();
@@ -296,7 +301,8 @@ export class ExportMetricsCollector {
 
   /** Record current queue size. */
   recordQueueSize(size: number): void {
-    this.queueSize = size;
+    if (!Number.isFinite(size) || size < 0) return;
+    this.queueSize = Math.floor(size);
   }
 
   /** Record queue wait time in ms for a dequeued job. */
