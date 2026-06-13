@@ -28,6 +28,38 @@ const MAX_INPUT_HASH_LENGTH = 256;
 export function createExportJobRouter(jobQueue: ExportJobQueue): Router {
   const router = Router();
 
+  // -- GET /jobs/health: Queue health for readiness probes ------------------
+
+  router.get('/jobs/health', (_req: Request, res: Response) => {
+    const stats = jobQueue.getQueueStats();
+    const maxQueueSize = jobQueue.getMaxQueueSize();
+    const queueUtilization = maxQueueSize > 0 ? stats.queued / maxQueueSize : 0;
+    const concurrencyUtilization = stats.maxConcurrent > 0 ? stats.running / stats.maxConcurrent : 0;
+
+    let status: 'healthy' | 'degraded' | 'unhealthy';
+    if (queueUtilization > 0.8) {
+      status = 'unhealthy';
+    } else if (queueUtilization > 0.5 || concurrencyUtilization >= 1) {
+      status = 'degraded';
+    } else {
+      status = 'healthy';
+    }
+
+    res.status(status === 'unhealthy' ? 503 : 200).json({
+      success: status !== 'unhealthy',
+      data: {
+        status,
+        queueDepth: stats.queued,
+        maxQueueSize,
+        queueUtilization: Math.round(queueUtilization * 100) / 100,
+        running: stats.running,
+        maxConcurrent: stats.maxConcurrent,
+        concurrencyUtilization: Math.round(concurrencyUtilization * 100) / 100,
+        availableSlots: jobQueue.getAvailableSlots(),
+      },
+    });
+  });
+
   // -- GET /jobs: Queue stats and active jobs -----------------------------
 
   router.get('/jobs', (_req: Request, res: Response) => {

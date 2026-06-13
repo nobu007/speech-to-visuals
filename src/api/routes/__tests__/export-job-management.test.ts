@@ -236,6 +236,71 @@ describe('Export Job Management API (REQ-241~243)', () => {
     });
   });
 
+  // -- GET /jobs/health (Queue Health) -------------------------------------
+
+  describe('GET /api/v1/export/jobs/health', () => {
+    it('returns healthy status with empty queue', async () => {
+      const res = await request(app).get('/api/v1/export/jobs/health');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.status).toBe('healthy');
+      expect(res.body.data.queueDepth).toBe(0);
+      expect(res.body.data.maxQueueSize).toBe(10);
+      expect(res.body.data.running).toBe(0);
+      expect(res.body.data.maxConcurrent).toBe(3);
+      expect(res.body.data.availableSlots).toBe(3);
+      expect(res.body.data.queueUtilization).toBe(0);
+    });
+
+    it('returns degraded status when queue utilization exceeds 50%', async () => {
+      // maxQueueSize=10 → enqueue 6 jobs (all stay queued until dequeued)
+      for (let i = 0; i < 6; i++) {
+        queue.enqueue({ format: 'svg', inputHash: `job-${i}` });
+      }
+
+      const res = await request(app).get('/api/v1/export/jobs/health');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.status).toBe('degraded');
+      expect(res.body.data.queueDepth).toBe(6);
+      expect(res.body.data.queueUtilization).toBeGreaterThan(0.5);
+    });
+
+    it('returns unhealthy status and 503 when queue utilization exceeds 80%', async () => {
+      // maxQueueSize=10 → enqueue 9 jobs (all stay queued until dequeued)
+      for (let i = 0; i < 9; i++) {
+        queue.enqueue({ format: 'svg', inputHash: `job-${i}` });
+      }
+
+      const res = await request(app).get('/api/v1/export/jobs/health');
+
+      expect(res.status).toBe(503);
+      expect(res.body.success).toBe(false);
+      expect(res.body.data.status).toBe('unhealthy');
+      expect(res.body.data.queueDepth).toBe(9);
+      expect(res.body.data.queueUtilization).toBeGreaterThan(0.8);
+    });
+
+    it('returns degraded when all concurrency slots are busy', async () => {
+      // Enqueue 3 jobs and dequeue them to fill all concurrent slots
+      queue.enqueue({ format: 'svg', inputHash: 'a' });
+      queue.enqueue({ format: 'svg', inputHash: 'b' });
+      queue.enqueue({ format: 'svg', inputHash: 'c' });
+      queue.dequeue();
+      queue.dequeue();
+      queue.dequeue();
+
+      const res = await request(app).get('/api/v1/export/jobs/health');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.status).toBe('degraded');
+      expect(res.body.data.running).toBe(3);
+      expect(res.body.data.concurrencyUtilization).toBe(1);
+      expect(res.body.data.availableSlots).toBe(0);
+    });
+  });
+
   // -- GET /jobs/:jobId (REQ-242) -----------------------------------------
 
   describe('GET /api/v1/export/jobs/:jobId', () => {

@@ -13,7 +13,7 @@ import { ExportArtifactStore } from '../export/export-artifact-store';
 import { ExportJobQueue } from '../export/export-job-queue';
 import { exportMetricsCollector } from '../export/export-metrics-collector';
 import { errorHandler } from './middleware/error-handler';
-import { apiRateLimiter, uploadRateLimiter } from './middleware/rate-limit';
+import { apiRateLimiter, uploadRateLimiter, exportRateLimiter } from './middleware/rate-limit';
 import { requestTimeout } from './middleware/timeout';
 import { authMiddleware, AuthenticatedRequest } from './middleware/auth';
 import { correlationId } from './middleware/correlation-id';
@@ -96,8 +96,10 @@ app.use('/api/v1/batch', uploadRateLimiter, createBatchRouter());
 app.use('/api', apiRateLimiter, pipelineAuth, createPipelineRouter());
 
 // REQ-234: Export artifact download endpoint
+// Apply export-specific rate limiter to artifact downloads (CPU-intensive)
 const artifactStore = new ExportArtifactStore();
 artifactStore.start();
+app.use('/api/v1/export/artifacts/:artifactId/download', exportRateLimiter);
 app.use('/api/v1/export', createExportRouter(artifactStore));
 
 // REQ-241~243: Export job management endpoints (Phase 104)

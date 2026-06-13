@@ -308,6 +308,13 @@ export class ExportJobQueue {
   }
 
   /**
+   * Get the maximum queue size (capacity).
+   */
+  getMaxQueueSize(): number {
+    return this.options.maxQueueSize;
+  }
+
+  /**
    * List active (queued + running) job summaries for monitoring.
    * Returns shallow copies to prevent external mutation.
    */
