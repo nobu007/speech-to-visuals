@@ -433,6 +433,130 @@ function buildErrorDetailPanel(
 }
 
 // ---------------------------------------------------------------------------
+// Export queue panel builders (REQ-229)
+// ---------------------------------------------------------------------------
+
+function buildExportQueueSizePanel(
+  ds: string,
+  prefix: string,
+  id: number,
+  y: number,
+): GrafanaPanel {
+  const p = prefix;
+  return {
+    id,
+    title: 'Export Queue Size',
+    type: 'stat',
+    gridPos: { h: 4, w: 12, x: 0, y },
+    targets: [
+      {
+        expr: `${p}export_queue_size`,
+        legendFormat: 'Queue Depth',
+        refId: 'A',
+      },
+    ],
+    fieldConfig: {
+      defaults: {
+        thresholds: {
+          mode: 'absolute',
+          steps: [
+            { value: 0, color: 'green' },
+            { value: 50, color: 'yellow' },
+            { value: 80, color: 'red' },
+          ],
+        },
+      },
+      overrides: [],
+    },
+    options: {
+      reduceOptions: { calcs: ['lastNotNull'] },
+      orientation: 'auto',
+      textMode: 'auto',
+      wideLayout: true,
+    },
+  };
+}
+
+function buildExportQueueWaitTimePanel(
+  ds: string,
+  prefix: string,
+  id: number,
+  y: number,
+): GrafanaPanel {
+  const p = prefix;
+  return {
+    id,
+    title: 'Export Queue Wait Time',
+    type: 'stat',
+    gridPos: { h: 4, w: 12, x: 12, y },
+    targets: [
+      {
+        expr: `${p}export_queue_wait_time_ms`,
+        legendFormat: 'Avg Wait',
+        refId: 'A',
+      },
+    ],
+    fieldConfig: {
+      defaults: {
+        unit: 'ms',
+        thresholds: {
+          mode: 'absolute',
+          steps: [
+            { value: 0, color: 'green' },
+            { value: 5000, color: 'yellow' },
+            { value: 15000, color: 'red' },
+          ],
+        },
+      },
+      overrides: [],
+    },
+    options: {
+      reduceOptions: { calcs: ['lastNotNull'] },
+      orientation: 'auto',
+      textMode: 'auto',
+      wideLayout: true,
+    },
+  };
+}
+
+function buildExportQueueDequeueRatePanel(
+  ds: string,
+  prefix: string,
+  id: number,
+  y: number,
+): GrafanaPanel {
+  const p = prefix;
+  return {
+    id,
+    title: 'Export Queue Dequeue Rate by Priority',
+    type: 'timeseries',
+    gridPos: { h: 8, w: 24, x: 0, y },
+    targets: [
+      {
+        expr: `rate(${p}export_queue_dequeue_total[5m])`,
+        legendFormat: '{{priority}}',
+        refId: 'A',
+      },
+    ],
+    fieldConfig: {
+      defaults: {
+        unit: 'ops',
+        custom: {
+          lineWidth: 2,
+          fillOpacity: 10,
+          spanNulls: true,
+        },
+      },
+      overrides: [],
+    },
+    options: {
+      tooltip: { mode: 'multi', sort: 'desc' },
+      legend: { displayMode: 'table', placement: 'bottom' },
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -449,6 +573,7 @@ function buildErrorDetailPanel(
  * - Process uptime
  * - Request volume
  * - Error breakdown by route
+ * - Export queue depth, wait time, and dequeue throughput (REQ-229)
  */
 export function generateGrafanaDashboard(
   options?: DashboardGenerateOptions,
@@ -469,6 +594,11 @@ export function generateGrafanaDashboard(
     // Row 3: Request volume + Error detail (y=12)
     buildRequestTotalPanel(opts.datasource, prefix, panelId++, 12),
     buildErrorDetailPanel(opts.datasource, prefix, panelId++, 12),
+    // Row 4: Export queue summary stats (y=20)
+    buildExportQueueSizePanel(opts.datasource, prefix, panelId++, 20),
+    buildExportQueueWaitTimePanel(opts.datasource, prefix, panelId++, 20),
+    // Row 5: Export queue throughput (y=24)
+    buildExportQueueDequeueRatePanel(opts.datasource, prefix, panelId++, 24),
   ];
 
   return {

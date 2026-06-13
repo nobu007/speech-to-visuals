@@ -9,6 +9,8 @@
  * 2. HighLatencyP95: P95 latency > 20s → warning
  * 3. HealthCheckFailures: consecutive failures ≥ 3 → critical
  * 4. LLMBudgetOverage: cost approaching limit → warning
+ * 5. ExportQueueBacklog: queue depth > 50 → warning
+ * 6. ExportQueueSlowWait: avg wait time > 10s → warning
  */
 
 // ---------------------------------------------------------------------------
@@ -55,6 +57,10 @@ export interface AlertRulesOptions {
   healthCheckFailureThreshold?: number;
   /** LLM budget utilization percentage warning threshold (default: 80 = 80%) */
   llmBudgetWarningPercent?: number;
+  /** Export queue depth warning threshold (default: 50) */
+  exportQueueSizeThreshold?: number;
+  /** Export queue wait time warning threshold in ms (default: 10000 = 10s) */
+  exportQueueWaitTimeThresholdMs?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -67,6 +73,8 @@ const DEFAULT_THRESHOLDS: Required<AlertRulesOptions> = {
   latencyP95ThresholdMs: 20000,
   healthCheckFailureThreshold: 3,
   llmBudgetWarningPercent: 80,
+  exportQueueSizeThreshold: 50,
+  exportQueueWaitTimeThresholdMs: 10000,
 };
 
 // ---------------------------------------------------------------------------
@@ -135,6 +143,38 @@ function buildLLMBudgetOverageRule(prefix: string): AlertRule {
   };
 }
 
+function buildExportQueueBacklogRule(
+  prefix: string,
+  threshold: number,
+): AlertRule {
+  const p = prefix;
+  return {
+    alert: 'SpeechToVisualsExportQueueBacklog',
+    expr: `${p}export_queue_size > ${threshold}`,
+    for: '3m',
+    severity: 'warning',
+    summary: 'Export queue backlog exceeds threshold',
+    description: `Export queue has more than ${threshold} jobs waiting (current: {{ $value }}). Check /api/v1/export/jobs for queue details and consider scaling concurrency.`,
+    runbookUrl: 'docs/runbooks/export-queue-backlog.md',
+  };
+}
+
+function buildExportQueueSlowWaitRule(
+  prefix: string,
+  thresholdMs: number,
+): AlertRule {
+  const p = prefix;
+  return {
+    alert: 'SpeechToVisualsExportQueueSlowWait',
+    expr: `${p}export_queue_wait_time_ms > ${thresholdMs}`,
+    for: '5m',
+    severity: 'warning',
+    summary: 'Export queue wait time exceeds threshold',
+    description: `Average export job queue wait time is above ${(thresholdMs / 1000).toFixed(0)}s (current: {{ $value }}ms). Check /api/v1/export/jobs for active jobs and processing status.`,
+    runbookUrl: 'docs/runbooks/export-queue-slow-wait.md',
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -154,6 +194,8 @@ export function generateAlertRules(options?: AlertRulesOptions): AlertingConfig 
     buildHighLatencyP95Rule(prefix, opts.latencyP95ThresholdMs),
     buildHealthCheckFailureRule(prefix, opts.healthCheckFailureThreshold),
     buildLLMBudgetOverageRule(prefix),
+    buildExportQueueBacklogRule(prefix, opts.exportQueueSizeThreshold),
+    buildExportQueueSlowWaitRule(prefix, opts.exportQueueWaitTimeThresholdMs),
   ];
 
   return {

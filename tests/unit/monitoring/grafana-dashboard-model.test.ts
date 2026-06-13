@@ -28,16 +28,16 @@ describe('Grafana Dashboard Model (REQ-208)', () => {
       expect(dashboard.time.to).toBe('now');
     });
 
-    it('should generate exactly 8 panels', () => {
+    it('should generate exactly 11 panels', () => {
       const dashboard = generateGrafanaDashboard();
-      expect(dashboard.panels).toHaveLength(8);
+      expect(dashboard.panels).toHaveLength(11);
     });
 
     it('should assign unique sequential panel IDs', () => {
       const dashboard = generateGrafanaDashboard();
       const ids = dashboard.panels.map(p => p.id);
       const sorted = [...ids].sort((a, b) => a - b);
-      expect(sorted).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+      expect(sorted).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
     });
 
     it('should include required panel types', () => {
@@ -126,6 +126,33 @@ describe('Grafana Dashboard Model (REQ-208)', () => {
       expect(panel!.targets[0].expr).toContain('http_errors_total');
     });
 
+    it('should include export queue size stat panel', () => {
+      const dashboard = generateGrafanaDashboard();
+      const panel = dashboard.panels.find(p => p.title === 'Export Queue Size');
+      expect(panel).toBeDefined();
+      expect(panel!.type).toBe('stat');
+      expect(panel!.targets[0].expr).toContain('export_queue_size');
+    });
+
+    it('should include export queue wait time stat panel', () => {
+      const dashboard = generateGrafanaDashboard();
+      const panel = dashboard.panels.find(p => p.title === 'Export Queue Wait Time');
+      expect(panel).toBeDefined();
+      expect(panel!.type).toBe('stat');
+      expect(panel!.targets[0].expr).toContain('export_queue_wait_time_ms');
+    });
+
+    it('should include export queue dequeue rate timeseries panel', () => {
+      const dashboard = generateGrafanaDashboard();
+      const panel = dashboard.panels.find(
+        p => p.title === 'Export Queue Dequeue Rate by Priority',
+      );
+      expect(panel).toBeDefined();
+      expect(panel!.type).toBe('timeseries');
+      expect(panel!.targets[0].expr).toContain('rate(');
+      expect(panel!.targets[0].expr).toContain('export_queue_dequeue_total');
+    });
+
     it('should have all panels within 24-column grid width', () => {
       const dashboard = generateGrafanaDashboard();
       for (const panel of dashboard.panels) {
@@ -180,10 +207,10 @@ describe('Grafana Dashboard Model (REQ-208)', () => {
       expect(parsed.__requires).toBeDefined();
     });
 
-    it('should include all 8 panels in exported JSON', () => {
+    it('should include all 11 panels in exported JSON', () => {
       const json = exportDashboardJson();
       const parsed = JSON.parse(json);
-      expect(parsed.dashboard.panels).toHaveLength(8);
+      expect(parsed.dashboard.panels).toHaveLength(11);
     });
   });
 
@@ -206,7 +233,7 @@ describe('Grafana Dashboard Model (REQ-208)', () => {
   });
 
   describe('Metric expression correctness', () => {
-    it('should reference all 6 Prometheus metrics across panels', () => {
+    it('should reference all Prometheus metrics across panels', () => {
       const dashboard = generateGrafanaDashboard();
       const allExprs = dashboard.panels.flatMap(p => p.targets.map(t => t.expr)).join(' ');
 
@@ -216,6 +243,9 @@ describe('Grafana Dashboard Model (REQ-208)', () => {
       expect(allExprs).toContain('http_active_requests');
       expect(allExprs).toContain('http_slow_requests_total');
       expect(allExprs).toContain('process_uptime_ms');
+      expect(allExprs).toContain('export_queue_size');
+      expect(allExprs).toContain('export_queue_wait_time_ms');
+      expect(allExprs).toContain('export_queue_dequeue_total');
     });
 
     it('should not use prefix when metricPrefix is empty', () => {

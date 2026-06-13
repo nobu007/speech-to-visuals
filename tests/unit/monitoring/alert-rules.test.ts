@@ -22,9 +22,9 @@ describe('Alert Rules (REQ-209)', () => {
       expect(config.groups[0].name).toBe('speech-to-visuals-alerts');
     });
 
-    it('should generate exactly 4 alert rules', () => {
+    it('should generate exactly 6 alert rules', () => {
       const config = generateAlertRules();
-      expect(config.groups[0].rules).toHaveLength(4);
+      expect(config.groups[0].rules).toHaveLength(6);
     });
 
     it('should include all required alert names', () => {
@@ -33,6 +33,8 @@ describe('Alert Rules (REQ-209)', () => {
       expect(names).toContain('SpeechToVisualsHighLatencyP95');
       expect(names).toContain('SpeechToVisualsHealthCheckFailures');
       expect(names).toContain('SpeechToVisualsLLMBudgetOverage');
+      expect(names).toContain('SpeechToVisualsExportQueueBacklog');
+      expect(names).toContain('SpeechToVisualsExportQueueSlowWait');
     });
 
     it('should have unique alert names', () => {
@@ -149,14 +151,80 @@ describe('Alert Rules (REQ-209)', () => {
     });
   });
 
+  describe('ExportQueueBacklog alert', () => {
+    it('should use warning severity', () => {
+      const config = generateAlertRules();
+      const rule = config.groups[0].rules.find(
+        r => r.alert === 'SpeechToVisualsExportQueueBacklog',
+      );
+      expect(rule).toBeDefined();
+      expect(rule!.severity).toBe('warning');
+      expect(rule!.for).toBe('3m');
+    });
+
+    it('should use 50 as default queue size threshold', () => {
+      const config = generateAlertRules();
+      const rule = config.groups[0].rules.find(
+        r => r.alert === 'SpeechToVisualsExportQueueBacklog',
+      );
+      expect(rule!.expr).toContain('export_queue_size');
+      expect(rule!.expr).toContain('> 50');
+    });
+
+    it('should reference export API in description', () => {
+      const config = generateAlertRules();
+      const rule = config.groups[0].rules.find(
+        r => r.alert === 'SpeechToVisualsExportQueueBacklog',
+      );
+      expect(rule!.description).toContain('/api/v1/export/jobs');
+    });
+
+    it('should respect custom queue size threshold', () => {
+      const config = generateAlertRules({ exportQueueSizeThreshold: 75 });
+      const rule = config.groups[0].rules.find(
+        r => r.alert === 'SpeechToVisualsExportQueueBacklog',
+      );
+      expect(rule!.expr).toContain('> 75');
+    });
+  });
+
+  describe('ExportQueueSlowWait alert', () => {
+    it('should use warning severity', () => {
+      const config = generateAlertRules();
+      const rule = config.groups[0].rules.find(
+        r => r.alert === 'SpeechToVisualsExportQueueSlowWait',
+      );
+      expect(rule).toBeDefined();
+      expect(rule!.severity).toBe('warning');
+      expect(rule!.for).toBe('5m');
+    });
+
+    it('should use 10000ms as default wait time threshold', () => {
+      const config = generateAlertRules();
+      const rule = config.groups[0].rules.find(
+        r => r.alert === 'SpeechToVisualsExportQueueSlowWait',
+      );
+      expect(rule!.expr).toContain('export_queue_wait_time_ms');
+      expect(rule!.expr).toContain('> 10000');
+    });
+
+    it('should respect custom wait time threshold', () => {
+      const config = generateAlertRules({ exportQueueWaitTimeThresholdMs: 30000 });
+      const rule = config.groups[0].rules.find(
+        r => r.alert === 'SpeechToVisualsExportQueueSlowWait',
+      );
+      expect(rule!.expr).toContain('> 30000');
+    });
+  });
+
   describe('Severity distribution', () => {
-    it('should have exactly 2 critical and 2 warning alerts', () => {
+    it('should have exactly 2 critical and 4 warning alerts', () => {
       const config = generateAlertRules();
       const rules = config.groups[0].rules;
       const critical = rules.filter(r => r.severity === 'critical');
       const warning = rules.filter(r => r.severity === 'warning');
       expect(critical).toHaveLength(2);
-      expect(warning).toHaveLength(2);
+      expect(warning).toHaveLength(4);
     });
   });
 
@@ -188,7 +256,7 @@ describe('Alert Rules (REQ-209)', () => {
       const rules = config.groups[0].rules;
 
       for (const rule of rules) {
-        if (rule.expr.includes('http_') || rule.expr.includes('process_')) {
+        if (rule.expr.includes('http_') || rule.expr.includes('process_') || rule.expr.includes('export_queue')) {
           expect(rule.expr).toContain('s2v_');
         }
       }
@@ -223,6 +291,8 @@ describe('Alert Rules (REQ-209)', () => {
       expect(yaml).toContain('SpeechToVisualsHighLatencyP95');
       expect(yaml).toContain('SpeechToVisualsHealthCheckFailures');
       expect(yaml).toContain('SpeechToVisualsLLMBudgetOverage');
+      expect(yaml).toContain('SpeechToVisualsExportQueueBacklog');
+      expect(yaml).toContain('SpeechToVisualsExportQueueSlowWait');
     });
 
     it('should contain severity labels in YAML output', () => {
@@ -250,9 +320,9 @@ describe('Alert Rules (REQ-209)', () => {
   });
 
   describe('getAlertRuleNames', () => {
-    it('should return 4 names', () => {
+    it('should return 6 names', () => {
       const names = getAlertRuleNames();
-      expect(names).toHaveLength(4);
+      expect(names).toHaveLength(6);
     });
 
     it('should return strings with SpeechToVisuals prefix', () => {
