@@ -18,6 +18,7 @@ import {
   type PrometheusExportOptions,
 } from '@/monitoring/prometheus-exporter';
 import type { HttpMetricsSnapshot } from '@/monitoring/http-metrics-collector';
+import type { ExportMetricsSnapshot } from '@/export/export-metrics-collector';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -303,5 +304,126 @@ describe('PrometheusExporter', () => {
     expect(helpCount).toBe(1);
     const typeCount = (output.match(/# TYPE http_requests_total counter/g) || []).length;
     expect(typeCount).toBe(1);
+  });
+
+  // ---- REQ-229: Export queue metrics ----
+
+  describe('export queue metrics (REQ-229)', () => {
+    function makeExportSnapshot(overrides: Partial<ExportMetricsSnapshot> = {}): ExportMetricsSnapshot {
+      return {
+        formats: [],
+        stages: [],
+        totalExports: 0,
+        successfulExports: 0,
+        failedExports: 0,
+        queue: {
+          queueSize: 0,
+          dequeueCount: 0,
+          dequeueByPriority: { high: 0, normal: 0, low: 0 },
+          avgWaitTimeMs: 0,
+          priorityDistribution: { high: 0, normal: 0, low: 0 },
+        },
+        ...overrides,
+      };
+    }
+
+    it('exports queue size as a gauge', () => {
+      const exportSnapshot = makeExportSnapshot({
+        queue: {
+          queueSize: 5,
+          dequeueCount: 3,
+          dequeueByPriority: { high: 1, normal: 1, low: 1 },
+          avgWaitTimeMs: 200,
+          priorityDistribution: { high: 2, normal: 2, low: 1 },
+        },
+      });
+
+      const output = exportPrometheusMetrics({
+        snapshot: makeSnapshot(),
+        exportSnapshot,
+      });
+
+      expect(output).toContain('# HELP export_queue_size');
+      expect(output).toContain('# TYPE export_queue_size gauge');
+      expect(output).toMatch(/export_queue_size 5/);
+    });
+
+    it('exports dequeue totals by priority as a counter', () => {
+      const exportSnapshot = makeExportSnapshot({
+        queue: {
+          queueSize: 3,
+          dequeueCount: 10,
+          dequeueByPriority: { high: 4, normal: 5, low: 1 },
+          avgWaitTimeMs: 0,
+          priorityDistribution: { high: 1, normal: 1, low: 1 },
+        },
+      });
+
+      const output = exportPrometheusMetrics({
+        snapshot: makeSnapshot(),
+        exportSnapshot,
+      });
+
+      expect(output).toContain('# HELP export_queue_dequeue_total');
+      expect(output).toContain('# TYPE export_queue_dequeue_total counter');
+      expect(output).toMatch(/export_queue_dequeue_total\{priority="high"\} 4/);
+      expect(output).toMatch(/export_queue_dequeue_total\{priority="normal"\} 5/);
+      expect(output).toMatch(/export_queue_dequeue_total\{priority="low"\} 1/);
+    });
+
+    it('exports average wait time as a gauge', () => {
+      const exportSnapshot = makeExportSnapshot({
+        queue: {
+          queueSize: 1,
+          dequeueCount: 5,
+          dequeueByPriority: { high: 0, normal: 5, low: 0 },
+          avgWaitTimeMs: 750,
+          priorityDistribution: { high: 0, normal: 1, low: 0 },
+        },
+      });
+
+      const output = exportPrometheusMetrics({
+        snapshot: makeSnapshot(),
+        exportSnapshot,
+      });
+
+      expect(output).toContain('# HELP export_queue_wait_time_ms');
+      expect(output).toContain('# TYPE export_queue_wait_time_ms gauge');
+      expect(output).toMatch(/export_queue_wait_time_ms 750/);
+    });
+
+    it('omits queue metrics when no queue activity', () => {
+      const exportSnapshot = makeExportSnapshot();
+
+      const output = exportPrometheusMetrics({
+        snapshot: makeSnapshot(),
+        exportSnapshot,
+      });
+
+      expect(output).not.toContain('export_queue_size');
+      expect(output).not.toContain('export_queue_dequeue_total');
+      expect(output).not.toContain('export_queue_wait_time_ms');
+    });
+
+    it('omits wait time gauge when avg is zero', () => {
+      const exportSnapshot = makeExportSnapshot({
+        queue: {
+          queueSize: 2,
+          dequeueCount: 1,
+          dequeueByPriority: { high: 0, normal: 1, low: 0 },
+          avgWaitTimeMs: 0,
+          priorityDistribution: { high: 0, normal: 2, low: 0 },
+        },
+      });
+
+      const output = exportPrometheusMetrics({
+        snapshot: makeSnapshot(),
+        exportSnapshot,
+      });
+
+      expect(output).toContain('export_queue_size');
+      expect(output).toContain('export_queue_dequeue_total');
+      expect(output).not.toContain('export_queue_wait_time_ms');
+    });
   });
 });

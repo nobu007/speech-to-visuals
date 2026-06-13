@@ -4,6 +4,7 @@
 
 import { ExportJobQueue, type QueuedExportJob, type QueueMetricsSink } from '../export-job-queue';
 import { ExportMetricsCollector } from '../export-metrics-collector';
+import { ExportArtifactStore } from '../export-artifact-store';
 
 // ---------------------------------------------------------------------------
 // Helper: mock metrics sink
@@ -575,6 +576,105 @@ describe('ExportJobQueue', () => {
 
       const stats = q.getQueueStats();
       expect(stats.completed).toBe(2);
+      q.stop();
+    });
+  });
+
+  // -- REQ-233: Artifact auto-save on completion ---------------------------
+
+  describe('artifact auto-save (REQ-233)', () => {
+    it('should auto-save artifact on successful completion', () => {
+      const store = new ExportArtifactStore({
+        maxArtifacts: 10,
+        maxStorageBytes: 100_000,
+        defaultTtlMs: 60_000,
+        downloadUrlTtlMs: 30_000,
+        cleanupIntervalMs: 10_000,
+      });
+      const q = new ExportJobQueue(
+        { maxConcurrent: 1, maxQueueSize: 100 },
+        undefined,
+        store,
+      );
+
+      const job = q.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'save-1' });
+      q.dequeue();
+
+      const artifactData = new Uint8Array([1, 2, 3, 4, 5]);
+      q.completeJob(job.jobId, true, { data: artifactData, sizeBytes: 5 });
+
+      // Job should have an artifactId assigned
+      const completed = q.findJob(job.jobId);
+      expect(completed).toBeDefined();
+      expect(completed!.artifactId).toBeDefined();
+
+      // Artifact should be retrievable from the store
+      const artifact = store.get(completed!.artifactId!);
+      expect(artifact).toBeDefined();
+      expect(artifact!.format).toBe('mp4');
+      expect(artifact!.sizeBytes).toBe(5);
+      expect(artifact!.metadata).toEqual(
+        expect.objectContaining({ jobId: job.jobId, inputHash: 'save-1' }),
+      );
+
+      q.stop();
+    });
+
+    it('should not auto-save artifact on failed completion', () => {
+      const store = new ExportArtifactStore({
+        maxArtifacts: 10,
+        maxStorageBytes: 100_000,
+        defaultTtlMs: 60_000,
+        downloadUrlTtlMs: 30_000,
+        cleanupIntervalMs: 10_000,
+      });
+      const q = new ExportJobQueue(
+        { maxConcurrent: 1, maxQueueSize: 100 },
+        undefined,
+        store,
+      );
+
+      const job = q.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'fail-1' });
+      q.dequeue();
+
+      q.completeJob(job.jobId, false, { data: new Uint8Array([1]), sizeBytes: 1 });
+
+      const completed = q.findJob(job.jobId);
+      expect(completed).toBeDefined();
+      expect(completed!.artifactId).toBeUndefined();
+      expect(store.size).toBe(0);
+
+      q.stop();
+    });
+
+    it('should complete job even if artifact store fails', () => {
+      const store = new ExportArtifactStore({
+        maxArtifacts: 1,
+        maxStorageBytes: 1, // tiny quota — will evict immediately
+        defaultTtlMs: 60_000,
+        downloadUrlTtlMs: 30_000,
+        cleanupIntervalMs: 10_000,
+      });
+      const q = new ExportJobQueue(
+        { maxConcurrent: 1, maxQueueSize: 100 },
+        undefined,
+        store,
+      );
+
+      const job = q.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'fail-store' });
+      q.dequeue();
+
+      // Artifact data exceeds maxStorageBytes — store will evict it
+      q.completeJob(job.jobId, true, {
+        data: new Uint8Array(100),
+        sizeBytes: 100,
+      });
+
+      // Job should still be marked as completed
+      const completed = q.findJob(job.jobId);
+      expect(completed).toBeDefined();
+      expect(completed!.status).toBe('completed');
+
       q.stop();
     });
   });

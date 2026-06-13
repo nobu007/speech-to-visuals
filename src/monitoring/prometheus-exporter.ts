@@ -19,6 +19,9 @@
  * - export_operations_total (counter by format × status)    [REQ-226]
  * - export_file_size_bytes (summary with quantiles per format) [REQ-226]
  * - export_stage_duration_ms (summary with quantiles per stage) [REQ-226]
+ * - export_queue_size (gauge)                                [REQ-229]
+ * - export_queue_dequeue_total (counter by priority)         [REQ-229]
+ * - export_queue_wait_time_ms (gauge)                        [REQ-229]
  */
 
 import {
@@ -324,6 +327,43 @@ function buildExportStageDurationMs(stages: ExportStageDurationAggregate[]): Pro
 }
 
 // ---------------------------------------------------------------------------
+// REQ-229: Export queue metric builders
+// ---------------------------------------------------------------------------
+
+function buildExportQueueSize(queue: ExportMetricsSnapshot['queue']): PrometheusMetric {
+  return {
+    name: 'export_queue_size',
+    help: 'Current number of jobs waiting in the export queue',
+    type: 'gauge',
+    samples: [{ labels: {}, value: queue.queueSize }],
+  };
+}
+
+function buildExportQueueDequeueTotal(queue: ExportMetricsSnapshot['queue']): PrometheusMetric {
+  const samples: PrometheusMetric['samples'] = [];
+  for (const [priority, count] of Object.entries(queue.dequeueByPriority)) {
+    if (count > 0) {
+      samples.push({ labels: { priority }, value: count });
+    }
+  }
+  return {
+    name: 'export_queue_dequeue_total',
+    help: 'Total export jobs dequeued by priority',
+    type: 'counter',
+    samples,
+  };
+}
+
+function buildExportQueueWaitTimeMs(queue: ExportMetricsSnapshot['queue']): PrometheusMetric {
+  return {
+    name: 'export_queue_wait_time_ms',
+    help: 'Average export job queue wait time in milliseconds',
+    type: 'gauge',
+    samples: [{ labels: {}, value: queue.avgWaitTimeMs }],
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -388,6 +428,15 @@ export function exportPrometheusMetrics(options?: PrometheusExportOptions): stri
   }
   if (exportSnap.stages.length > 0) {
     metrics.push(buildExportStageDurationMs(exportSnap.stages));
+  }
+
+  // REQ-229: Export queue metrics
+  if (exportSnap.queue.queueSize > 0 || exportSnap.queue.dequeueCount > 0) {
+    metrics.push(buildExportQueueSize(exportSnap.queue));
+    metrics.push(buildExportQueueDequeueTotal(exportSnap.queue));
+    if (exportSnap.queue.avgWaitTimeMs > 0) {
+      metrics.push(buildExportQueueWaitTimeMs(exportSnap.queue));
+    }
   }
 
   const output = metrics.map(renderMetric).join('\n\n');

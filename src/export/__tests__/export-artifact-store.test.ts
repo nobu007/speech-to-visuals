@@ -210,6 +210,40 @@ describe('ExportArtifactStore', () => {
       expect(store.get(a.artifactId)).toBeDefined();
       expect(store.get(b.artifactId)).toBeUndefined();
     });
+
+    it('records expired metrics on LRU eviction', () => {
+      const sink = createSink();
+      const store = new ExportArtifactStore(
+        { maxArtifacts: 2, maxStorageBytes: 10000, defaultTtlMs: 60_000, downloadUrlTtlMs: 30_000, cleanupIntervalMs: 10_000 },
+        sink,
+      );
+
+      store.store({ format: 'a', data: makeData(10), sizeBytes: 10 });
+      jest.advanceTimersByTime(10);
+      store.store({ format: 'b', data: makeData(10), sizeBytes: 10 });
+      // Trigger eviction by exceeding maxArtifacts
+      store.store({ format: 'c', data: makeData(10), sizeBytes: 10 });
+
+      // LRU eviction should increment the expired counter
+      expect(sink.artifactExpiredCount).toBe(1);
+    });
+
+    it('evicts multiple artifacts when both count and byte limits are exceeded', () => {
+      const store = createSmallStore({ maxArtifacts: 5, maxStorageBytes: 50 });
+
+      // Fill with 5 artifacts of 15 bytes each = 75 total, exceeds 50 byte limit
+      const ids: string[] = [];
+      for (let i = 0; i < 5; i++) {
+        const a = store.store({ format: 'x', data: makeData(15), sizeBytes: 15 });
+        ids.push(a.artifactId);
+        jest.advanceTimersByTime(1);
+      }
+
+      // Some artifacts must have been evicted to stay under 50 bytes
+      const usage = store.getUsage();
+      expect(usage.totalBytes).toBeLessThanOrEqual(50);
+      expect(usage.artifactCount).toBeLessThanOrEqual(3); // at most 3 * 15 = 45 bytes
+    });
   });
 
   // -- generateDownloadUrl() -----------------------------------------------
