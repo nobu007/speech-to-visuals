@@ -3394,6 +3394,37 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 - 信頼性レベル分布: 🔵245件(98.4%) / 🟡4件(1.6%) / 🔴0件(0%) — 🔵+2
 - エクスポートパイプラインが検証→メトリクス→リトライ→ライフサイクルの完全な運用品質チェーンを形成
 
+### A47: Phase 105 エクスポートジョブライフサイクル統合テスト分析
+
+**分析日時**: 2026-06-13
+**カテウリ**: 統合テスト・サーバーwiring検証
+**背景**: Phase 104でエクスポートバッチジョブREST API（POST/GET/DELETE /api/v1/export/jobs）を追加し、server.tsにルーターを登録した。しかし、既存の単体テスト（export-job-management.test.ts）はスタンドアロンExpressアプリを使用し、サーバー統合（ExportArtifactStore + ExportJobQueue + createExportJobRouter）を通じたエンドツーエンドのライフサイクル検証が不足していた。AI Hubフィードバックで「create → status → completeのフルライフサイクルを登録済みルーター経由で検証する統合テスト」を追加することが推奨された。
+
+**判断**: Phase 105として `tests/integration/export-job-lifecycle.test.ts` を追加。server.tsのwiring（artifactStore + jobQueue + router）を再現し、以下を検証する7つの統合テストを作成した：
+1. フルライフサイクル（create → queued status → simulate processing → completed status with artifactId）
+2. 失敗ライフサイクル（create → simulate failure → failed status without artifactId）
+3. 優先度順序（high-priority job dequeued before normal-priority via HTTP API）
+4. FIFO順序（same-priority jobs maintain enqueue order）
+5. キャンセルライフサイクル（cancel via DELETE → verify cancelled status → 409 on re-cancel）
+6. アーティファクトストア統合（completed job's artifactId retrievable from store）
+7. 複数ジョブ（distinct artifactIds for multiple completed jobs）
+
+**根拠**:
+- `src/api/server.ts` - lines 98-105: ExportArtifactStore + ExportJobQueue + createExportJobRouter wiring
+- `src/api/routes/export-jobs.ts` - REQ-241~243 REST endpoints
+- `src/export/export-job-queue.ts` - completeJob() auto-saves artifact (REQ-233)
+- `src/export/export-artifact-store.ts` - store/get lifecycle
+- `src/api/routes/__tests__/export-job-management.test.ts` - existing unit tests (standalone, no artifact store)
+- `tests/integration/export-artifact-pipeline-e2e.test.ts` - existing E2E (queue+store, no HTTP layer)
+- AI Hubフィードバック: "Add integration test that exercises the full export_job lifecycle through the registered router"
+
+**信頼性への影響**:
+- この分析により、REQ-241~243の受け入れ基準の検証カバレッジが向上（信頼性レベル: 🔵 変更なし、既に🔵）
+- 信頼性レベル分布: 🔵257件(98.5%) / 🟡4件(1.5%) / 🔴0件(0%) — 変更なし
+- HTTP API層→JobQueue→ArtifactStoreの完全なサーバーwiringが統合テストで検証された
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)

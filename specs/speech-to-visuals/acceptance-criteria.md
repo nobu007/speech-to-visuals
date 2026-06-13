@@ -4754,3 +4754,60 @@
 - 🔵 青信号: 20件 (100%)
 - 🟡 黄信号: 0件 (0%)
 - 🔴 赤信号: 0件 (0%)
+
+---
+
+## テストケース（REQ-241~243 Phase 105 統合テスト追加分）
+
+### 統合テスト: Export Job Full Lifecycle Integration
+
+- [x] **TC-INT-001**: フルライフサイクル（create → queued → running → completed with artifactId）🔵
+  - **テスト**: POST create → GET status (queued) → simulate dequeue → GET status (running) → completeJob → GET status (completed)
+  - **期待結果**: status遷移 queued→running→completed、artifactIdがUUID v4形式で返却
+  - **信頼性**: 🔵 *統合テスト通過*
+
+- [x] **TC-INT-002**: 失敗ライフサイクル（create → failed, no artifactId）🔵
+  - **テスト**: POST create → simulate dequeue → completeJob(false) → GET status
+  - **期待結果**: status=failed, artifactId=null
+  - **信頼性**: 🔵 *統合テスト通過*
+
+### 統合テスト: Export Job Priority Ordering via HTTP
+
+- [x] **TC-INT-003**: 優先度順序（high > normal）🔵
+  - **テスト**: POST normal → POST high → dequeue
+  - **期待結果**: high-priority jobが先にdequeueされる
+  - **信頼性**: 🔵 *統合テスト通過*
+
+- [x] **TC-INT-004**: FIFO順序（same priority）🔵
+  - **テスト**: POST ×3 (same priority) → dequeue ×3
+  - **期待結果**: 投入順にdequeueされる
+  - **信頼性**: 🔵 *統合テスト通過*
+
+### 統合テスト: Export Job Cancel via HTTP
+
+- [x] **TC-INT-005**: キャンセル→再キャンセル拒否🔵
+  - **テスト**: POST create → DELETE cancel → GET status (cancelled) → DELETE (again)
+  - **期待結果**: 1回目200/cancelled=true、2回目409/JOB_ALREADY_TERMINATED
+  - **信頼性**: 🔵 *統合テスト通過*
+
+### 統合テスト: Export Job Artifact Store Integration via HTTP
+
+- [x] **TC-INT-006**: 完了ジョブのartifactIdがストアから取得可能🔵
+  - **テスト**: POST create → simulate completion → GET status → artifactStore.get(artifactId)
+  - **期待結果**: artifactがstoreから取得可能、format/sizeBytes/metadata.jobIdが一致
+  - **信頼性**: 🔵 *統合テスト通過*
+
+- [x] **TC-INT-007**: 複数完了ジョブのartifactIdが一意🔵
+  - **テスト**: POST ×3 → complete each → verify artifactIds unique
+  - **期待結果**: 3つのartifactIdがすべて異なり、store.size=3
+  - **信頼性**: 🔵 *統合テスト通過*
+
+### Phase 105 統合テストサマリー
+
+| カテゴリ | テスト数 | 信頼性 |
+|---------|---------|--------|
+| フルライフサイクル | 2 | 🔵 |
+| 優先度順序 | 2 | 🔵 |
+| キャンセル | 1 | 🔵 |
+| Artifact Store統合 | 2 | 🔵 |
+| **合計** | **7** | **🔵 100%** |
