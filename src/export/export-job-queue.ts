@@ -40,6 +40,7 @@ export interface ExportJobQueueOptions {
   maxConcurrent: number;
   maxQueueSize: number;
   starvationPreventionInterval: number;
+  maxCompletedJobs: number;
 }
 
 export interface QueueStats {
@@ -62,6 +63,7 @@ const DEFAULT_OPTIONS: ExportJobQueueOptions = {
   maxConcurrent: EXPORT_QUEUE_LIMITS.MAX_CONCURRENT,
   maxQueueSize: EXPORT_QUEUE_LIMITS.MAX_QUEUE_SIZE,
   starvationPreventionInterval: EXPORT_QUEUE_LIMITS.STARVATION_PREVENTION_INTERVAL_MS,
+  maxCompletedJobs: EXPORT_QUEUE_LIMITS.MAX_COMPLETED_JOBS,
 };
 
 // ---------------------------------------------------------------------------
@@ -209,6 +211,7 @@ export class ExportJobQueue {
 
     this.running.delete(jobId);
     this.completed.push(job);
+    this.pruneCompletedJobs();
 
     this.emitMetrics();
     logger.info(`[ExportJobQueue] Job ${jobId} completed (success=${success})`);
@@ -227,6 +230,7 @@ export class ExportJobQueue {
       runningJob.completedAt = Date.now();
       this.running.delete(jobId);
       this.completed.push(runningJob);
+      this.pruneCompletedJobs();
       this.emitMetrics();
       logger.info(`[ExportJobQueue] Cancelled running job ${jobId}`);
       return true;
@@ -239,6 +243,7 @@ export class ExportJobQueue {
       job.status = 'cancelled';
       job.completedAt = Date.now();
       this.completed.push(job);
+      this.pruneCompletedJobs();
       this.emitMetrics();
       logger.info(`[ExportJobQueue] Cancelled queued job ${jobId}`);
       return true;
@@ -356,6 +361,19 @@ export class ExportJobQueue {
   }
 
   // -- Internal helpers ----------------------------------------------------
+
+  /**
+   * Prune the completed jobs array when it exceeds the retention limit.
+   * Removes the oldest terminal jobs to prevent unbounded memory growth.
+   */
+  private pruneCompletedJobs(): void {
+    const max = this.options.maxCompletedJobs;
+    if (this.completed.length > max) {
+      const removed = this.completed.length - max;
+      this.completed.splice(0, removed);
+      logger.info(`[ExportJobQueue] Pruned ${removed} old terminal jobs (retention limit: ${max})`);
+    }
+  }
 
   /**
    * Promote the oldest low-priority job if it has been waiting
