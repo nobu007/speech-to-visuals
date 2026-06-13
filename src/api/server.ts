@@ -8,7 +8,9 @@ import { createPipelineRouter } from './routes/pipeline';
 import { createMonitoringRouter } from './routes/monitoring';
 import { createErrorsRouter } from './routes/errors';
 import { createExportRouter } from './routes/export';
+import { createExportJobRouter } from './routes/export-jobs';
 import { ExportArtifactStore } from '../export/export-artifact-store';
+import { ExportJobQueue } from '../export/export-job-queue';
 import { errorHandler } from './middleware/error-handler';
 import { apiRateLimiter, uploadRateLimiter } from './middleware/rate-limit';
 import { requestTimeout } from './middleware/timeout';
@@ -96,6 +98,11 @@ app.use('/api', apiRateLimiter, pipelineAuth, createPipelineRouter());
 const artifactStore = new ExportArtifactStore();
 artifactStore.start();
 app.use('/api/v1/export', createExportRouter(artifactStore));
+
+// REQ-241~243: Export job management endpoints (Phase 104)
+const jobQueue = new ExportJobQueue({ maxConcurrent: 3, maxQueueSize: 100 }, undefined, artifactStore);
+jobQueue.start();
+app.use('/api/v1/export', createExportJobRouter(jobQueue));
 
 // Error handler (must be after routes)
 app.use(errorHandler);

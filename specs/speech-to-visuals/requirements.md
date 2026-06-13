@@ -545,11 +545,11 @@
 - REQ-239: システムはエクスポートアーティファクトのメタデータ取得API（GET /api/v1/export/artifacts/:artifactId）と削除API（DELETE /api/v1/export/artifacts/:artifactId）を提供し、UUID v4形式検証と404エラーレスポンスを実装しなければならない 🔵 ✅実装済 *src/api/routes/export.ts GET/DELETE /artifacts/:id・UUID_V4_RE形式検証・TC-239テスト通過・コミットa628416*
 - REQ-240: システムはエクスポートアーティファクト使用量統計API（GET /api/v1/export/artifacts/usage）を提供し、アーティファクト数・総バイト数・フォーマット別分布を返さなければならない 🔵 ✅実装済 *src/api/routes/export.ts GET /artifacts/usage・ExportArtifactStore.getUsage()・TC-240テスト通過・コミットa628416*
 
-#### エクスポートバッチジョブREST API（Phase 104） 🔲未着手
+#### エクスポートバッチジョブREST API（Phase 104） ✅完了
 
-- REQ-241: システムはエクスポートバッチジョブの投入API（POST /api/v1/export/jobs）を提供し、ジョブ優先度（high/normal/low）・フォーマット指定・エクスポートオプションを受け付け、投入されたジョブのjobId・キュー位置・ETAを返さなければならない 🔵 *src/export/export-job-queue.ts enqueue()・src/api/routes/ 基盤より*
-- REQ-242: システムはエクスポートジョブのステータス取得API（GET /api/v1/export/jobs/:jobId）を提供し、ジョブ状態（queued/running/completed/failed/cancelled）・進捗率・成果物artifactIdを返さなければならない 🔵 *src/export/export-job-queue.ts getStatus()・src/export/enhanced-export-engine.ts ExportResult より*
-- REQ-243: システムはエクスポートジョブのキャンセルAPI（DELETE /api/v1/export/jobs/:jobId）を提供し、実行中ジョブのAbortController経由キャンセルとキュー待機中ジョブのキュー削除を実装しなければならない 🔵 *src/export/enhanced-export-engine.ts cancelExport()・src/export/export-job-queue.ts dequeue() より*
+- REQ-241: システムはエクスポートバッチジョブの投入API（POST /api/v1/export/jobs）を提供し、ジョブ優先度（high/normal/low）・フォーマット指定・エクスポートオプションを受け付け、投入されたジョブのjobId・キュー位置・ETAを返さなければならない 🔵 ✅実装済 *src/api/routes/export-jobs.ts POST /jobs・TC-241テスト通過・server.ts登録済*
+- REQ-242: システムはエクスポートジョブのステータス取得API（GET /api/v1/export/jobs/:jobId）を提供し、ジョブ状態（queued/running/completed/failed/cancelled）・進捗率・成果物artifactIdを返さなければならない 🔵 ✅実装済 *src/api/routes/export-jobs.ts GET /jobs/:jobId・ExportJobQueue.findJob()・TC-242テスト通過*
+- REQ-243: システムはエクスポートジョブのキャンセルAPI（DELETE /api/v1/export/jobs/:jobId）を提供し、実行中ジョブのAbortController経由キャンセルとキュー待機中ジョブのキュー削除を実装しなければならない 🔵 ✅実装済 *src/api/routes/export-jobs.ts DELETE /jobs/:jobId・TC-243テスト通過*
 
 ### 条件付き要件
 
@@ -747,7 +747,7 @@
 | Phase 101: エクスポートアーティファクトパイプライン統合 | ✅完了 | REQ-231~234 | 4/4（EnhancedExportEngine・ProductionExporter・ExportJobQueueのstore統合・ダウンロードAPI・コミット681c639） |
 | Phase 102: エクスポートアーティファクトE2E検証 | ✅完了 | REQ-235~237 | 3/3（LRU退去E2E・TTL期限切れ統合テスト・ライフサイクルE2E・コミット5d76c31） |
 | Phase 103: アーティファクト管理REST API | ✅完了 | REQ-238~240 | 3/3（list/filter/paginate・getMetadata/delete・usage統計・コミットa628416） |
-| Phase 104: エクスポートバッチジョブREST API | 🔲未着手 | REQ-241~243 | 0/3 |
+| Phase 104: エクスポートバッチジョブREST API | ✅完了 | REQ-241~243 | 3/3（POST/GET/DELETE /jobs・ExportJobQueue.findJob()・server.ts統合・20テスト通過） |
 
 ## 信頼性レベル分布
 
@@ -755,7 +755,7 @@
 - 🟡 黄信号: 4件 (1.5%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 103完了・Phase 104計画中・REQ-001~243（エクスポートアーティファクト管理REST API完了・バッチジョブREST API未着手）
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 104完了・REQ-001~243全実装済（エクスポートアーティファクト管理REST API完了・バッチジョブREST API完了・サーバー統合済）
 
 ## Acceptance criteria
 
@@ -766,6 +766,6 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 104 を網羅し、Phase 103 完了（REQ-238~240・アーティファクト管理REST API）・Phase 104 計画中（REQ-241~243・バッチジョブREST API）を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 104 を網羅し、Phase 104 完了（REQ-241~243・バッチジョブREST API・server.ts統合済）を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテキュリティに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（Phase 103完了・REQ-001~240実装済+REQ-241~243計画中・🔵257件/🟡4件/🔴0件）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（Phase 104完了・REQ-001~243全実装済・🔵260件/🟡4件/🔴0件）

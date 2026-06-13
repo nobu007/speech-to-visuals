@@ -131,12 +131,12 @@ export class ExportJobQueue {
       status: 'queued',
     };
 
-    // Insert in priority order (binary search for insertion point)
+    // Insert in priority order (binary search for insertion point, FIFO for ties)
     let lo = 0;
     let hi = this.queue.length;
     while (lo < hi) {
       const mid = (lo + hi) >>> 1;
-      if (comparePriority(this.queue[mid], job) < 0) {
+      if (comparePriority(this.queue[mid], job) <= 0) {
         lo = mid + 1;
       } else {
         hi = mid;
@@ -379,7 +379,7 @@ export class ExportJobQueue {
       let hi = this.queue.length;
       while (lo < hi) {
         const mid = (lo + hi) >>> 1;
-        if (comparePriority(this.queue[mid], lowJob) < 0) {
+        if (comparePriority(this.queue[mid], lowJob) <= 0) {
           lo = mid + 1;
         } else {
           hi = mid;
