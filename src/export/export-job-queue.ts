@@ -303,6 +303,20 @@ export class ExportJobQueue {
   }
 
   /**
+   * Find a job by ID across all states (queued, running, completed).
+   * Returns the job or undefined if not found.
+   */
+  findJob(jobId: string): QueuedExportJob | undefined {
+    const queued = this.queue.find((j) => j.jobId === jobId);
+    if (queued) return queued;
+
+    const running = this.running.get(jobId);
+    if (running) return running;
+
+    return this.completed.find((j) => j.jobId === jobId);
+  }
+
+  /**
    * Check if the queue can accept more running jobs.
    */
   hasCapacity(): boolean {

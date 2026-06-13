@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-12（第193回検証: REQ-230 エクスポートアーティファクト管理・ExportArtifactStore実装完了・Phase 101/102 パイプライン統合要件追加）
+**最終更新**: 2026-06-13（第194回検証: Phase 101/102/103完了確認・REQ-238~240アーティファクト管理REST APIテスト通過・Phase 104バッチジョブREST API計画）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -4392,5 +4392,365 @@
 ### テストケース
 
 - [x] **TC-237-01**: 完全ライフサイクル（エクスポート→保存→ダウンロード）成功 🔵
+- 🟡 黄信号: 0件 (0%)
+- 🔴 赤信号: 0件 (0%)
+
+---
+
+## REQ-238: アーティファクト一覧API 🔵
+
+**信頼性**: 🔵 *src/api/routes/export.ts GET /artifacts・テスト通過より*
+
+### Given（前提条件）
+
+- ExportArtifactStoreに複数アーティファクトが保存されている
+- REST APIサーバーが起動している
+
+### When（実行条件）
+
+- GET /api/v1/export/artifacts を呼び出す
+- オプションでformat・limit・offsetクエリパラメータを指定する
+
+### Then（期待結果）
+
+- 200ステータスでアーティファクト一覧が返される
+- フォーマットフィルタが適用される
+- ページネーション（limit最大200、offset）が機能する
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-238-01**: アーティファクトなし時に空リスト返却 🔵
+  - **入力**: アーティファクトなしのstore
+  - **期待結果**: artifacts=[], total=0
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-238-02**: 全アーティファクト一覧返却 🔵
+  - **入力**: 2件（svg+mp4）保存済み
+  - **期待結果**: artifacts.length=2, total=2
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-238-03**: フォーマットフィルタ適用 🔵
+  - **入力**: 3件（svg×2+mp4）保存済み、format=svg
+  - **期待結果**: artifacts.length=2, 全てformat=svg
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-238-04**: ページネーション（limit/offset） 🔵
+  - **入力**: 5件保存済み、limit=2, offset=0
+  - **期待結果**: artifacts.length=2, total=5, limit=2, offset=0
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-238-05**: limit上限クランプ（最大200） 🔵
+  - **入力**: limit=500
+  - **期待結果**: limit=200
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-238-06**: 不正limit/offset時のデフォルト値 🔵
+  - **入力**: limit=abc, offset=-1
+  - **期待結果**: limit=50, offset=0
+  - **信頼性**: 🔵 *テスト通過*
+
+---
+
+## REQ-239: アーティファクトメタデータ取得・削除API 🔵
+
+**信頼性**: 🔵 *src/api/routes/export.ts GET/DELETE /artifacts/:id・UUID検証・テスト通過より*
+
+### Given（前提条件）
+
+- ExportArtifactStoreにアーティファクトが保存されている
+- REST APIサーバーが起動している
+
+### When（実行条件）
+
+- GET /api/v1/export/artifacts/:artifactId でメタデータを取得
+- DELETE /api/v1/export/artifacts/:artifactId でアーティファクトを削除
+
+### Then（期待結果）
+
+- 正常なartifactIdで200ステータス・メタデータまたは削除確認を返す
+- 不正なUUID形式で400 VALIDATION_ERRORを返す
+- 存在しないartifactIdで404 ARTIFACT_NOT_FOUNDを返す
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-239-01**: メタデータ取得成功 🔵
+  - **入力**: artifactId（有効・存在する）
+  - **期待結果**: 200, artifactId, format, sizeBytes, metadata返却（dataフィールドなし）
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-239-02**: アーティファクト削除成功 🔵
+  - **入力**: artifactId（有効・存在する）
+  - **期待結果**: 200, deleted=true, 後続GETで404
+  - **信頼性**: 🔵 *テスト通過*
+
+#### 異常系
+
+- [x] **TC-239-E01**: 存在しないartifactIdのメタデータ取得 🔵
+  - **入力**: 存在しないUUID
+  - **期待結果**: 404, ARTIFACT_NOT_FOUND
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-239-E02**: 不正artifactId形式 🔵
+  - **入力**: "not-a-uuid"
+  - **期待結果**: 400, VALIDATION_ERROR
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-239-E03**: 存在しないartifactIdの削除 🔵
+  - **入力**: 存在しないUUID
+  - **期待結果**: 404, ARTIFACT_NOT_FOUND
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-239-E04**: 不正artifactId形式での削除 🔵
+  - **入力**: "invalid"
+  - **期待結果**: 400, VALIDATION_ERROR
+  - **信頼性**: 🔵 *テスト通過*
+
+---
+
+## REQ-240: アーティファクト使用量統計API 🔵
+
+**信頼性**: 🔵 *src/api/routes/export.ts GET /artifacts/usage・ExportArtifactStore.getUsage()・テスト通過より*
+
+### Given（前提条件）
+
+- ExportArtifactStoreに複数フォーマットのアーティファクトが保存されている
+
+### When（実行条件）
+
+- GET /api/v1/export/artifacts/usage を呼び出す
+
+### Then（期待結果）
+
+- 200ステータスでartifactCount・totalBytes・formatDistributionが返される
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-240-01**: 使用量統計取得（データあり） 🔵
+  - **入力**: svg(10bytes)+mp4(20bytes)保存済み
+  - **期待結果**: artifactCount=2, totalBytes=30, formatDistribution={svg:1, mp4:1}
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-240-02**: 使用量統計取得（空store） 🔵
+  - **入力**: アーティファクトなし
+  - **期待結果**: artifactCount=0, totalBytes=0
+  - **信頼性**: 🔵 *テスト通過*
+
+---
+
+## テストケースサマリー（REQ-238~240 Phase 103追加分）
+
+| カテゴリ | 正常系 | 異常系 | 合計 |
+|---------|--------|--------|------|
+| REQ-238 アーティファクト一覧 | 6 | 0 | 6 |
+| REQ-239 メタデータ取得・削除 | 2 | 4 | 6 |
+| REQ-240 使用量統計 | 2 | 0 | 2 |
+| **合計** | **10** | **4** | **14** |
+
+### 信頼性レベル分布
+
+- 🔵 青信号: 14件 (100%)
+- 🟡 黄信号: 0件 (0%)
+- 🔴 赤信号: 0件 (0%)
+
+---
+
+## REQ-241: エクスポートジョブ投入API 🔵
+
+**信頼性**: 🔵 *src/export/export-job-queue.ts enqueue()・src/api/routes/export-jobs.ts・テスト通過より*
+
+### Given（前提条件）
+
+- ExportJobQueueが初期化されている
+- REST APIサーバーが起動している
+
+### When（実行条件）
+
+- POST /api/v1/export/jobs でジョブを投入する
+- format・inputHash・priority（任意）を指定する
+
+### Then（期待結果）
+
+- 201ステータスでjobId・status=queued・queuePosition・ETAが返される
+- 不正なformat/inputHashで400エラー
+- キュー満杯時に503エラー
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-241-01**: デフォルト優先度（normal）でジョブ投入 🔵
+  - **入力**: format=svg, inputHash=abc123
+  - **期待結果**: 201, priority=normal, status=queued
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-241-02**: high優先度でジョブ投入 🔵
+  - **入力**: format=mp4, priority=high
+  - **期待結果**: 201, priority=high
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-241-03**: low優先度でジョブ投入 🔵
+  - **入力**: format=pdf, priority=low
+  - **期待結果**: 201, priority=low
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-241-04**: 不正優先度のフォールバック 🔵
+  - **入力**: priority=invalid
+  - **期待結果**: 201, priority=normal
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-241-05**: キュー位置・ETA返却 🔵
+  - **入力**: 正常なジョブ投入
+  - **期待結果**: queuePositionとestimatedWaitTimeMsが返される
+  - **信頼性**: 🔵 *テスト通過*
+
+#### 異常系
+
+- [x] **TC-241-E01**: format欠落時400エラー 🔵
+  - **入力**: inputHashのみ
+  - **期待結果**: 400, VALIDATION_ERROR
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-241-E02**: inputHash欠落時400エラー 🔵
+  - **入力**: formatのみ
+  - **期待結果**: 400, VALIDATION_ERROR
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-241-E03**: キュー満杯時503エラー 🔵
+  - **入力**: maxQueueSize=2のキューに3件目を投入
+  - **期待結果**: 503, QUEUE_FULL
+  - **信頼性**: 🔵 *テスト通過*
+
+---
+
+## REQ-242: エクスポートジョブステータス取得API 🔵
+
+**信頼性**: 🔵 *src/api/routes/export-jobs.ts GET /jobs/:jobId・テスト通過より*
+
+### Given（前提条件）
+
+- ExportJobQueueにジョブが存在する
+
+### When（実行条件）
+
+- GET /api/v1/export/jobs/:jobId を呼び出す
+
+### Then（期待結果）
+
+- 200ステータスでjobId・status・priority・format・artifactId等が返される
+- 不正UUIDで400エラー
+- 存在しないjobIdで404エラー
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-242-01**: queuedジョブのステータス取得 🔵
+  - **入力**: 有効なqueuedジョブのjobId
+  - **期待結果**: 200, status=queued, artifactId=null
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-242-02**: completedジョブのステータス取得 🔵
+  - **入力**: 完了済みジョブのjobId
+  - **期待結果**: 200, status=completed, artifactId定義済み
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-242-03**: failedジョブのステータス取得 🔵
+  - **入力**: 失敗済みジョブのjobId
+  - **期待結果**: 200, status=failed
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-242-04**: queuedジョブのキュー位置とETA 🔵
+  - **入力**: queuedジョブのjobId
+  - **期待結果**: queuePosition=0
+  - **信頼性**: 🔵 *テスト通過*
+
+#### 異常系
+
+- [x] **TC-242-E01**: 存在しないjobId 🔵
+  - **入力**: 存在しないUUID
+  - **期待結果**: 404, JOB_NOT_FOUND
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-242-E02**: 不正jobId形式 🔵
+  - **入力**: "not-a-uuid"
+  - **期待結果**: 400, VALIDATION_ERROR
+  - **信頼性**: 🔵 *テスト通過*
+
+---
+
+## REQ-243: エクスポートジョブキャンセルAPI 🔵
+
+**信頼性**: 🔵 *src/api/routes/export-jobs.ts DELETE /jobs/:jobId・ExportJobQueue.cancel()・テスト通過より*
+
+### Given（前提条件）
+
+- ExportJobQueueにジョブが存在する
+
+### When（実行条件）
+
+- DELETE /api/v1/export/jobs/:jobId を呼び出す
+
+### Then（期待結果）
+
+- queued/runningジョブは200でキャンセル成功
+- completed/failed/cancelledジョブは409 JOB_ALREADY_TERMINATED
+- 不正UUIDで400エラー、存在しないjobIdで404エラー
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-243-01**: queuedジョブのキャンセル 🔵
+  - **入力**: queuedジョブのjobId
+  - **期待結果**: 200, cancelled=true
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-243-02**: runningジョブのキャンセル 🔵
+  - **入力**: runningジョブのjobId
+  - **期待結果**: 200, cancelled=true
+  - **信頼性**: 🔵 *テスト通過*
+
+#### 異常系
+
+- [x] **TC-243-E01**: 存在しないjobId 🔵
+  - **入力**: 存在しないUUID
+  - **期待結果**: 404, JOB_NOT_FOUND
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-243-E02**: 不正jobId形式 🔵
+  - **入力**: "invalid"
+  - **期待結果**: 400, VALIDATION_ERROR
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-243-E03**: completedジョブのキャンセル拒否 🔵
+  - **入力**: completedジョブのjobId
+  - **期待結果**: 409, JOB_ALREADY_TERMINATED
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-243-E04**: failedジョブのキャンセル拒否 🔵
+  - **入力**: failedジョブのjobId
+  - **期待結果**: 409, JOB_ALREADY_TERMINATED
+  - **信頼性**: 🔵 *テスト通過*
+
+---
+
+## テストケースサマリー（REQ-241~243 Phase 104追加分）
+
+| カテゴリ | 正常系 | 異常系 | 合計 |
+|---------|--------|--------|------|
+| REQ-241 ジョブ投入 | 5 | 3 | 8 |
+| REQ-242 ステータス取得 | 4 | 2 | 6 |
+| REQ-243 ジョブキャンセル | 2 | 4 | 6 |
+| **合計** | **11** | **9** | **20** |
+
+### 信頼性レベル分布
+
+- 🔵 青信号: 20件 (100%)
 - 🟡 黄信号: 0件 (0%)
 - 🔴 赤信号: 0件 (0%)

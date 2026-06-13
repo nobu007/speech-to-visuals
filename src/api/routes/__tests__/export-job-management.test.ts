@@ -1,0 +1,262 @@
+/**
+ * REQ-241~243: Export Job Management API Tests (Phase 104)
+ *
+ * Tests for:
+ * - POST   /api/v1/export/jobs           — Submit export job
+ * - GET    /api/v1/export/jobs/:jobId     — Get job status
+ * - DELETE /api/v1/export/jobs/:jobId     — Cancel job
+ */
+
+import express from 'express';
+import request from 'supertest';
+import { createExportJobRouter } from '../export-jobs';
+import { ExportJobQueue } from '../../../export/export-job-queue';
+
+function createApp() {
+  const queue = new ExportJobQueue({
+    maxConcurrent: 3,
+    maxQueueSize: 10,
+    starvationPreventionInterval: 60_000,
+  });
+
+  const app = express();
+  app.use(express.json());
+  app.use('/api/v1/export', createExportJobRouter(queue));
+  return { app, queue };
+}
+
+describe('Export Job Management API (REQ-241~243)', () => {
+  let app: express.Express;
+  let queue: ExportJobQueue;
+
+  beforeEach(() => {
+    ({ app, queue } = createApp());
+  });
+
+  // -- POST /jobs (REQ-241) -----------------------------------------------
+
+  describe('POST /api/v1/export/jobs', () => {
+    it('enqueues a job with default priority', async () => {
+      const res = await request(app)
+        .post('/api/v1/export/jobs')
+        .send({ format: 'svg', inputHash: 'abc123' });
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.jobId).toMatch(UUID_V4_RE);
+      expect(res.body.data.status).toBe('queued');
+      expect(res.body.data.priority).toBe('normal');
+      expect(res.body.data.format).toBe('svg');
+      expect(res.body.data.queuePosition).toBe(0);
+    });
+
+    it('enqueues a job with explicit high priority', async () => {
+      const res = await request(app)
+        .post('/api/v1/export/jobs')
+        .send({ format: 'mp4', priority: 'high', inputHash: 'def456' });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.priority).toBe('high');
+    });
+
+    it('enqueues a job with low priority', async () => {
+      const res = await request(app)
+        .post('/api/v1/export/jobs')
+        .send({ format: 'pdf', priority: 'low', inputHash: 'ghi789' });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.priority).toBe('low');
+    });
+
+    it('falls back to normal priority for invalid priority', async () => {
+      const res = await request(app)
+        .post('/api/v1/export/jobs')
+        .send({ format: 'svg', priority: 'invalid', inputHash: 'abc' });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.priority).toBe('normal');
+    });
+
+    it('returns 400 when format is missing', async () => {
+      const res = await request(app)
+        .post('/api/v1/export/jobs')
+        .send({ inputHash: 'abc123' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('returns 400 when inputHash is missing', async () => {
+      const res = await request(app)
+        .post('/api/v1/export/jobs')
+        .send({ format: 'svg' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('returns queue position and ETA for enqueued job', async () => {
+      // Fill a running slot to make queue position meaningful
+      queue.enqueue({ format: 'svg', inputHash: 'running1' });
+      const running1 = queue.dequeue()!;
+      queue.running.set(running1.jobId, running1);
+
+      const res = await request(app)
+        .post('/api/v1/export/jobs')
+        .send({ format: 'mp4', inputHash: 'queued1' });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.queuePosition).toBe(0);
+      expect(res.body.data.estimatedWaitTimeMs).toBeGreaterThanOrEqual(0);
+    });
+
+    it('returns 503 when queue is full', async () => {
+      // Fill the queue to max
+      const smallQueue = new ExportJobQueue({
+        maxConcurrent: 1,
+        maxQueueSize: 2,
+        starvationPreventionInterval: 60_000,
+      });
+      const smallApp = express();
+      smallApp.use(express.json());
+      smallApp.use('/api/v1/export', createExportJobRouter(smallQueue));
+
+      smallQueue.enqueue({ format: 'svg', inputHash: 'q1' });
+      smallQueue.enqueue({ format: 'svg', inputHash: 'q2' });
+
+      const res = await request(smallApp)
+        .post('/api/v1/export/jobs')
+        .send({ format: 'svg', inputHash: 'q3' });
+
+      expect(res.status).toBe(503);
+      expect(res.body.error.code).toBe('QUEUE_FULL');
+    });
+  });
+
+  // -- GET /jobs/:jobId (REQ-242) -----------------------------------------
+
+  describe('GET /api/v1/export/jobs/:jobId', () => {
+    it('returns job status for queued job', async () => {
+      const job = queue.enqueue({ format: 'svg', inputHash: 'abc' });
+
+      const res = await request(app).get(`/api/v1/export/jobs/${job.jobId}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.jobId).toBe(job.jobId);
+      expect(res.body.data.status).toBe('queued');
+      expect(res.body.data.format).toBe('svg');
+      expect(res.body.data.artifactId).toBeNull();
+    });
+
+    it('returns job status for completed job', async () => {
+      const job = queue.enqueue({ format: 'svg', inputHash: 'abc' });
+      const dequeued = queue.dequeue()!;
+      queue.completeJob(dequeued.jobId, true, { data: new Uint8Array(10), sizeBytes: 10 });
+
+      const res = await request(app).get(`/api/v1/export/jobs/${job.jobId}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.status).toBe('completed');
+      expect(res.body.data.artifactId).toBeDefined();
+      expect(res.body.data.completedAt).toBeGreaterThan(0);
+    });
+
+    it('returns job status for failed job', async () => {
+      const job = queue.enqueue({ format: 'svg', inputHash: 'abc' });
+      const dequeued = queue.dequeue()!;
+      queue.completeJob(dequeued.jobId, false);
+
+      const res = await request(app).get(`/api/v1/export/jobs/${job.jobId}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.status).toBe('failed');
+    });
+
+    it('returns 404 for non-existent job', async () => {
+      const res = await request(app).get('/api/v1/export/jobs/00000000-0000-4000-a000-000000000000');
+
+      expect(res.status).toBe(404);
+      expect(res.body.error.code).toBe('JOB_NOT_FOUND');
+    });
+
+    it('returns 400 for invalid jobId format', async () => {
+      const res = await request(app).get('/api/v1/export/jobs/not-a-uuid');
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('returns queue position and ETA for queued job', async () => {
+      const job1 = queue.enqueue({ format: 'svg', inputHash: 'first' });
+
+      const res = await request(app).get(`/api/v1/export/jobs/${job1.jobId}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.queuePosition).toBe(0);
+    });
+  });
+
+  // -- DELETE /jobs/:jobId (REQ-243) --------------------------------------
+
+  describe('DELETE /api/v1/export/jobs/:jobId', () => {
+    it('cancels a queued job', async () => {
+      const job = queue.enqueue({ format: 'svg', inputHash: 'abc' });
+
+      const res = await request(app).delete(`/api/v1/export/jobs/${job.jobId}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.cancelled).toBe(true);
+    });
+
+    it('cancels a running job', async () => {
+      const job = queue.enqueue({ format: 'svg', inputHash: 'abc' });
+      queue.dequeue();
+
+      const res = await request(app).delete(`/api/v1/export/jobs/${job.jobId}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.cancelled).toBe(true);
+    });
+
+    it('returns 404 for non-existent job', async () => {
+      const res = await request(app).delete('/api/v1/export/jobs/00000000-0000-4000-a000-000000000000');
+
+      expect(res.status).toBe(404);
+      expect(res.body.error.code).toBe('JOB_NOT_FOUND');
+    });
+
+    it('returns 400 for invalid jobId format', async () => {
+      const res = await request(app).delete('/api/v1/export/jobs/invalid');
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('returns 409 when cancelling a completed job', async () => {
+      const job = queue.enqueue({ format: 'svg', inputHash: 'abc' });
+      queue.dequeue();
+      queue.completeJob(job.jobId, true, { data: new Uint8Array(10), sizeBytes: 10 });
+
+      const res = await request(app).delete(`/api/v1/export/jobs/${job.jobId}`);
+
+      expect(res.status).toBe(409);
+      expect(res.body.error.code).toBe('JOB_ALREADY_TERMINATED');
+    });
+
+    it('returns 409 when cancelling a failed job', async () => {
+      const job = queue.enqueue({ format: 'svg', inputHash: 'abc' });
+      queue.dequeue();
+      queue.completeJob(job.jobId, false);
+
+      const res = await request(app).delete(`/api/v1/export/jobs/${job.jobId}`);
+
+      expect(res.status).toBe(409);
+      expect(res.body.error.code).toBe('JOB_ALREADY_TERMINATED');
+    });
+  });
+});
+
+// UUID v4 regex for test assertions
+const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
