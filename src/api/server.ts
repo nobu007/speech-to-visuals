@@ -11,6 +11,7 @@ import { createExportRouter } from './routes/export';
 import { createExportJobRouter } from './routes/export-jobs';
 import { ExportArtifactStore } from '../export/export-artifact-store';
 import { ExportJobQueue } from '../export/export-job-queue';
+import { exportMetricsCollector } from '../export/export-metrics-collector';
 import { errorHandler } from './middleware/error-handler';
 import { apiRateLimiter, uploadRateLimiter } from './middleware/rate-limit';
 import { requestTimeout } from './middleware/timeout';
@@ -100,7 +101,7 @@ artifactStore.start();
 app.use('/api/v1/export', createExportRouter(artifactStore));
 
 // REQ-241~243: Export job management endpoints (Phase 104)
-const jobQueue = new ExportJobQueue({ maxConcurrent: 3, maxQueueSize: 100 }, undefined, artifactStore);
+const jobQueue = new ExportJobQueue({ maxConcurrent: 3, maxQueueSize: 100 }, exportMetricsCollector, artifactStore);
 jobQueue.start();
 app.use('/api/v1/export', createExportJobRouter(jobQueue));
 
