@@ -331,3 +331,15 @@ tmp/
 .extract_skill_meta/
 
 .antigravitycli/
+
+# Runtime state and audit artifacts (not deliverables)
+.audit/eval_log.txt
+.audit/quality/
+.audit/spec/runs/
+data/workspace_state/
+data/alternating_loop/
+data/dynamic_loop/
+runs/
+runs_eval/
+observations/
+worktrees/
