@@ -86,10 +86,60 @@ describe('Export Job Management API (REQ-241~243)', () => {
       expect(res.body.error.code).toBe('VALIDATION_ERROR');
     });
 
+    it('returns 400 for unsupported export format', async () => {
+      const res = await request(app)
+        .post('/api/v1/export/jobs')
+        .send({ format: 'exe', inputHash: 'abc123' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('UNSUPPORTED_FORMAT');
+    });
+
+    it('returns 400 for empty string format', async () => {
+      const res = await request(app)
+        .post('/api/v1/export/jobs')
+        .send({ format: '', inputHash: 'abc123' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('accepts all supported formats', async () => {
+      const bigQueue = new ExportJobQueue({
+        maxConcurrent: 3,
+        maxQueueSize: 20,
+        starvationPreventionInterval: 60_000,
+      });
+      const bigApp = express();
+      bigApp.use(express.json());
+      bigApp.use('/api/v1/export', createExportJobRouter(bigQueue));
+
+      const formats = ['mp4', 'webm', 'gif', 'apng', 'interactive-html',
+        'pdf-animated', 'svg-animated', 'json-lottie', 'json', 'svg', 'pdf', 'html'];
+
+      for (const fmt of formats) {
+        const res = await request(bigApp)
+          .post('/api/v1/export/jobs')
+          .send({ format: fmt, inputHash: `hash-${fmt}` });
+
+        expect(res.status).toBe(201);
+        expect(res.body.data.format).toBe(fmt);
+      }
+    });
+
     it('returns 400 when inputHash is missing', async () => {
       const res = await request(app)
         .post('/api/v1/export/jobs')
         .send({ format: 'svg' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('returns 400 when inputHash exceeds max length', async () => {
+      const res = await request(app)
+        .post('/api/v1/export/jobs')
+        .send({ format: 'svg', inputHash: 'x'.repeat(257) });
 
       expect(res.status).toBe(400);
       expect(res.body.error.code).toBe('VALIDATION_ERROR');

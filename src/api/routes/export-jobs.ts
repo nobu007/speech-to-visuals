@@ -16,6 +16,15 @@ const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9
 
 const VALID_PRIORITIES: JobPriority[] = ['high', 'normal', 'low'];
 
+// Allowed export formats (mirrors FORMAT_MIME in export.ts)
+const VALID_EXPORT_FORMATS = new Set([
+  'mp4', 'webm', 'gif', 'apng',
+  'interactive-html', 'pdf-animated', 'svg-animated', 'json-lottie',
+  'json', 'svg', 'pdf', 'html',
+]);
+
+const MAX_INPUT_HASH_LENGTH = 256;
+
 export function createExportJobRouter(jobQueue: ExportJobQueue): Router {
   const router = Router();
 
@@ -32,10 +41,26 @@ export function createExportJobRouter(jobQueue: ExportJobQueue): Router {
       return;
     }
 
+    if (!VALID_EXPORT_FORMATS.has(format)) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'UNSUPPORTED_FORMAT', message: `Unsupported export format: ${format}. Allowed: ${[...VALID_EXPORT_FORMATS].join(', ')}` },
+      });
+      return;
+    }
+
     if (!inputHash || typeof inputHash !== 'string') {
       res.status(400).json({
         success: false,
         error: { code: 'VALIDATION_ERROR', message: 'Missing or invalid "inputHash" field' },
+      });
+      return;
+    }
+
+    if (inputHash.length > MAX_INPUT_HASH_LENGTH) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: `"inputHash" must be ${MAX_INPUT_HASH_LENGTH} characters or less` },
       });
       return;
     }
