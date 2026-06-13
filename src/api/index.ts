@@ -1,5 +1,5 @@
 import { Server } from 'http';
-import { app } from './server';
+import { app, artifactStore, jobQueue } from './server';
 import { logger } from '../utils/logger';
 import { llmService } from '../analysis/llm-service';
 import { triggerStartupWarmup } from './startup-warmup';
@@ -37,6 +37,8 @@ async function gracefulShutdown(signal: string): Promise<void> {
       Promise.allSettled([
         globalErrorRecovery.shutdown(),
         Promise.resolve(continuousLearner.stopLearning()),
+        Promise.resolve(jobQueue.stop()),
+        Promise.resolve(artifactStore.stop()),
       ]),
       new Promise<void>((_, reject) =>
         setTimeout(() => reject(new Error('Shutdown timeout exceeded')), SHUTDOWN_TIMEOUT_MS),

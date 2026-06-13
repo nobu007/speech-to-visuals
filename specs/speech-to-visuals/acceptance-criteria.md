@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-13（第195回検証: Phase 104完了確認・REQ-241~243エクスポートバッチジョブREST APIテスト通過・7891テスト通過・全REQ完了）
+**最終更新**: 2026-06-13（第196回検証: Phase 107完了 - エクスポートサービスのグレースフルシャットダウン修正と統合テスト追加）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -4811,3 +4811,85 @@
 | キャンセル | 1 | 🔵 |
 | Artifact Store統合 | 2 | 🔵 |
 | **合計** | **7** | **🔵 100%** |
+
+---
+
+## テストケース（Phase 107 エクスポートサービス・グレースフルシャットダウン）
+
+### 統合テスト: Export Service Graceful Shutdown
+
+- [x] **TC-SD-001**: ExportJobQueue.stop()がスターベーションタイマーをクリーンに停止🔵
+  - **テスト**: queue.start() → queue.stop()
+  - **期待結果**: 例外スローなし、タイマークリア完了
+  - **信頼性**: 🔵 *統合テスト通過*
+
+- [x] **TC-SD-002**: stop()の二重呼び出しが冪等🔵
+  - **テスト**: queue.start() → queue.stop() → queue.stop()
+  - **期待結果**: 2回目のstop()も例外なし
+  - **信頼性**: 🔵 *統合テスト通過*
+
+- [x] **TC-SD-003**: stop後もキュー/完了ジョブのデータが保持される🔵
+  - **テスト**: enqueue → complete → stop → getQueueStats / findJob
+  - **期待結果**: completed=1, queued=1, ジョブ情報が取得可能
+  - **信頼性**: 🔵 *統合テスト通過*
+
+- [x] **TC-SD-004**: stop後にrestart可能🔵
+  - **テスト**: start → stop → start → enqueue → stop
+  - **期待結果**: 再開後もジョブ登録が正常動作
+  - **信頼性**: 🔵 *統合テスト通過*
+
+- [x] **TC-SD-005**: start()の二重呼び出しが冪等🔵
+  - **テスト**: start() → start()
+  - **期待結果**: 2回目のstart()も例外なし
+  - **信頼性**: 🔵 *統合テスト通過*
+
+### 統合テスト: ExportArtifactStore.stop()
+
+- [x] **TC-SD-006**: TTLクリーンアップタイマーがクリーンに停止🔵
+  - **テスト**: store.start() → store.stop()
+  - **期待結果**: 例外スローなし
+  - **信頼性**: 🔵 *統合テスト通過*
+
+- [x] **TC-SD-007**: stop()の二重呼び出しが冪等🔵
+  - **テスト**: store.start() → store.stop() → store.stop()
+  - **期待結果**: 2回目のstop()も例外なし
+  - **信頼性**: 🔵 *統合テスト通過*
+
+- [x] **TC-SD-008**: stop後もアーティファクトが取得可能🔵
+  - **テスト**: store → stop → get
+  - **期待結果**: データロスなし、アーティファクト取得可能
+  - **信頼性**: 🔵 *統合テスト通過*
+
+- [x] **TC-SD-009**: stop後にrestart可能🔵
+  - **テスト**: start → stop → start → store → stop
+  - **期待結果**: 再開後もストア登録が正常動作
+  - **信頼性**: 🔵 *統合テスト通過*
+
+### 統合テスト: Combined Shutdown
+
+- [x] **TC-SD-010**: artifactStore→jobQueueの順でstopしてもデータロスなし🔵
+  - **テスト**: enqueue → complete → artifactStore.stop() → jobQueue.stop()
+  - **期待結果**: 完了ジョブのartifactIdが保持される
+  - **信頼性**: 🔵 *統合テスト通過*
+
+- [x] **TC-SD-011**: 複数回のstart/stopサイクルが可能🔵
+  - **テスト**: 3サイクルの start → store artifact → stop
+  - **期待結果**: 全サイクルで正常動作
+  - **信頼性**: 🔵 *統合テスト通過*
+
+### 統合テスト: Server Wiring
+
+- [x] **TC-SD-012**: server.tsがartifactStoreとjobQueueをエクスポート🔵
+  - **テスト**: import { artifactStore, jobQueue } from server.ts
+  - **期待結果**: 両インスタンスが定義済み、stopメソッド存在
+  - **信頼性**: 🔵 *統合テスト通過*
+
+### Phase 107 サマリー
+
+| カテゴリ | テスト数 | 信頼性 |
+|---------|---------|--------|
+| JobQueue.stop() | 5 | 🔵 |
+| ArtifactStore.stop() | 4 | 🔵 |
+| Combined Shutdown | 2 | 🔵 |
+| Server Wiring | 1 | 🔵 |
+| **合計** | **13** | **🔵 100%** |

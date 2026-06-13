@@ -107,5 +107,5 @@ app.use('/api/v1/export', createExportJobRouter(jobQueue));
 // Error handler (must be after routes)
 app.use(errorHandler);
 
-export { app };
+export { app, artifactStore, jobQueue };
 export default app;
