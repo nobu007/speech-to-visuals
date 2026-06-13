@@ -11,6 +11,7 @@
  * 4. LLMBudgetOverage: cost approaching limit → warning
  * 5. ExportQueueBacklog: queue depth > 50 → warning
  * 6. ExportQueueSlowWait: avg wait time > 10s → warning
+ * 7. ExportQueueCriticalBacklog: queue depth > 100 → critical
  */
 
 // ---------------------------------------------------------------------------
@@ -59,6 +60,8 @@ export interface AlertRulesOptions {
   llmBudgetWarningPercent?: number;
   /** Export queue depth warning threshold (default: 50) */
   exportQueueSizeThreshold?: number;
+  /** Export queue depth critical threshold (default: 100) */
+  exportQueueCriticalSizeThreshold?: number;
   /** Export queue wait time warning threshold in ms (default: 10000 = 10s) */
   exportQueueWaitTimeThresholdMs?: number;
 }
@@ -74,6 +77,7 @@ const DEFAULT_THRESHOLDS: Required<AlertRulesOptions> = {
   healthCheckFailureThreshold: 3,
   llmBudgetWarningPercent: 80,
   exportQueueSizeThreshold: 50,
+  exportQueueCriticalSizeThreshold: 100,
   exportQueueWaitTimeThresholdMs: 10000,
 };
 
@@ -175,6 +179,22 @@ function buildExportQueueSlowWaitRule(
   };
 }
 
+function buildExportQueueCriticalBacklogRule(
+  prefix: string,
+  threshold: number,
+): AlertRule {
+  const p = prefix;
+  return {
+    alert: 'SpeechToVisualsExportQueueCriticalBacklog',
+    expr: `${p}export_queue_size > ${threshold}`,
+    for: '1m',
+    severity: 'critical',
+    summary: 'Export queue backlog at critical level',
+    description: `Export queue has more than ${threshold} jobs waiting (current: {{ $value }}). The system is severely backed up. Immediate intervention required — check /api/v1/export/jobs and scale processing concurrency.`,
+    runbookUrl: 'docs/runbooks/export-queue-backlog.md',
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -196,6 +216,7 @@ export function generateAlertRules(options?: AlertRulesOptions): AlertingConfig 
     buildLLMBudgetOverageRule(prefix),
     buildExportQueueBacklogRule(prefix, opts.exportQueueSizeThreshold),
     buildExportQueueSlowWaitRule(prefix, opts.exportQueueWaitTimeThresholdMs),
+    buildExportQueueCriticalBacklogRule(prefix, opts.exportQueueCriticalSizeThreshold),
   ];
 
   return {

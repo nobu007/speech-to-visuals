@@ -22,9 +22,9 @@ describe('Alert Rules (REQ-209)', () => {
       expect(config.groups[0].name).toBe('speech-to-visuals-alerts');
     });
 
-    it('should generate exactly 6 alert rules', () => {
+    it('should generate exactly 7 alert rules', () => {
       const config = generateAlertRules();
-      expect(config.groups[0].rules).toHaveLength(6);
+      expect(config.groups[0].rules).toHaveLength(7);
     });
 
     it('should include all required alert names', () => {
@@ -35,6 +35,7 @@ describe('Alert Rules (REQ-209)', () => {
       expect(names).toContain('SpeechToVisualsLLMBudgetOverage');
       expect(names).toContain('SpeechToVisualsExportQueueBacklog');
       expect(names).toContain('SpeechToVisualsExportQueueSlowWait');
+      expect(names).toContain('SpeechToVisualsExportQueueCriticalBacklog');
     });
 
     it('should have unique alert names', () => {
@@ -217,13 +218,70 @@ describe('Alert Rules (REQ-209)', () => {
     });
   });
 
+  describe('ExportQueueCriticalBacklog alert', () => {
+    it('should use critical severity', () => {
+      const config = generateAlertRules();
+      const rule = config.groups[0].rules.find(
+        r => r.alert === 'SpeechToVisualsExportQueueCriticalBacklog',
+      );
+      expect(rule).toBeDefined();
+      expect(rule!.severity).toBe('critical');
+      expect(rule!.for).toBe('1m');
+    });
+
+    it('should use 100 as default critical queue size threshold', () => {
+      const config = generateAlertRules();
+      const rule = config.groups[0].rules.find(
+        r => r.alert === 'SpeechToVisualsExportQueueCriticalBacklog',
+      );
+      expect(rule!.expr).toContain('export_queue_size');
+      expect(rule!.expr).toContain('> 100');
+    });
+
+    it('should have shorter hold than warning backlog alert', () => {
+      const config = generateAlertRules();
+      const criticalRule = config.groups[0].rules.find(
+        r => r.alert === 'SpeechToVisualsExportQueueCriticalBacklog',
+      );
+      const warningRule = config.groups[0].rules.find(
+        r => r.alert === 'SpeechToVisualsExportQueueBacklog',
+      );
+      expect(criticalRule!.for).toBe('1m');
+      expect(warningRule!.for).toBe('3m');
+    });
+
+    it('should reference export API in description', () => {
+      const config = generateAlertRules();
+      const rule = config.groups[0].rules.find(
+        r => r.alert === 'SpeechToVisualsExportQueueCriticalBacklog',
+      );
+      expect(rule!.description).toContain('/api/v1/export/jobs');
+    });
+
+    it('should respect custom critical queue size threshold', () => {
+      const config = generateAlertRules({ exportQueueCriticalSizeThreshold: 150 });
+      const rule = config.groups[0].rules.find(
+        r => r.alert === 'SpeechToVisualsExportQueueCriticalBacklog',
+      );
+      expect(rule!.expr).toContain('> 150');
+    });
+
+    it('should reference the backlog runbook', () => {
+      const config = generateAlertRules();
+      const rule = config.groups[0].rules.find(
+        r => r.alert === 'SpeechToVisualsExportQueueCriticalBacklog',
+      );
+      expect(rule!.runbookUrl).toBe('docs/runbooks/export-queue-backlog.md');
+    });
+  });
+
   describe('Severity distribution', () => {
-    it('should have exactly 2 critical and 4 warning alerts', () => {
+    it('should have exactly 3 critical and 4 warning alerts', () => {
       const config = generateAlertRules();
       const rules = config.groups[0].rules;
       const critical = rules.filter(r => r.severity === 'critical');
       const warning = rules.filter(r => r.severity === 'warning');
-      expect(critical).toHaveLength(2);
+      expect(critical).toHaveLength(3);
       expect(warning).toHaveLength(4);
     });
   });
@@ -293,6 +351,7 @@ describe('Alert Rules (REQ-209)', () => {
       expect(yaml).toContain('SpeechToVisualsLLMBudgetOverage');
       expect(yaml).toContain('SpeechToVisualsExportQueueBacklog');
       expect(yaml).toContain('SpeechToVisualsExportQueueSlowWait');
+      expect(yaml).toContain('SpeechToVisualsExportQueueCriticalBacklog');
     });
 
     it('should contain severity labels in YAML output', () => {
@@ -320,9 +379,9 @@ describe('Alert Rules (REQ-209)', () => {
   });
 
   describe('getAlertRuleNames', () => {
-    it('should return 6 names', () => {
+    it('should return 7 names', () => {
       const names = getAlertRuleNames();
-      expect(names).toHaveLength(6);
+      expect(names).toHaveLength(7);
     });
 
     it('should return strings with SpeechToVisuals prefix', () => {
