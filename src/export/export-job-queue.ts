@@ -308,6 +308,30 @@ export class ExportJobQueue {
   }
 
   /**
+   * List active (queued + running) job summaries for monitoring.
+   * Returns shallow copies to prevent external mutation.
+   */
+  listActiveJobs(): Pick<QueuedExportJob, 'jobId' | 'priority' | 'status' | 'format' | 'enqueuedAt' | 'startedAt'>[] {
+    const queued = this.queue.map((j) => ({
+      jobId: j.jobId,
+      priority: j.priority,
+      status: j.status,
+      format: j.format,
+      enqueuedAt: j.enqueuedAt,
+      startedAt: j.startedAt,
+    }));
+    const running = [...this.running.values()].map((j) => ({
+      jobId: j.jobId,
+      priority: j.priority,
+      status: j.status,
+      format: j.format,
+      enqueuedAt: j.enqueuedAt,
+      startedAt: j.startedAt,
+    }));
+    return [...running, ...queued];
+  }
+
+  /**
    * Find a job by ID across all states (queued, running, completed).
    * Returns the job or undefined if not found.
    */

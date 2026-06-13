@@ -183,6 +183,59 @@ describe('Export Job Management API (REQ-241~243)', () => {
     });
   });
 
+  // -- GET /jobs: Queue stats and active jobs -----------------------------
+
+  describe('GET /api/v1/export/jobs (queue overview)', () => {
+    it('returns empty queue stats when no jobs exist', async () => {
+      const res = await request(app).get('/api/v1/export/jobs');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.stats).toEqual({
+        queued: 0,
+        running: 0,
+        completed: 0,
+        failed: 0,
+        cancelled: 0,
+        maxConcurrent: 3,
+      });
+      expect(res.body.data.activeJobs).toEqual([]);
+    });
+
+    it('returns stats and active jobs with queued and running jobs', async () => {
+      const job1 = queue.enqueue({ format: 'svg', inputHash: 'h1', priority: 'high' });
+      queue.enqueue({ format: 'pdf', inputHash: 'h2', priority: 'low' });
+      const dequeued = queue.dequeue()!; // job1 is now running
+
+      const res = await request(app).get('/api/v1/export/jobs');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.stats.queued).toBe(1);
+      expect(res.body.data.stats.running).toBe(1);
+      expect(res.body.data.activeJobs).toHaveLength(2);
+
+      const running = res.body.data.activeJobs.find((j: { jobId: string }) => j.jobId === dequeued.jobId);
+      expect(running.status).toBe('running');
+      expect(running.format).toBe('svg');
+
+      const queued = res.body.data.activeJobs.find((j: { jobId: string }) => j.jobId !== dequeued.jobId);
+      expect(queued.status).toBe('queued');
+      expect(queued.format).toBe('pdf');
+    });
+
+    it('does not include completed jobs in activeJobs', async () => {
+      const job = queue.enqueue({ format: 'svg', inputHash: 'h1' });
+      queue.dequeue();
+      queue.completeJob(job.jobId, true, { data: new Uint8Array(5), sizeBytes: 5 });
+
+      const res = await request(app).get('/api/v1/export/jobs');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.stats.completed).toBe(1);
+      expect(res.body.data.activeJobs).toEqual([]);
+    });
+  });
+
   // -- GET /jobs/:jobId (REQ-242) -----------------------------------------
 
   describe('GET /api/v1/export/jobs/:jobId', () => {

@@ -28,6 +28,21 @@ const MAX_INPUT_HASH_LENGTH = 256;
 export function createExportJobRouter(jobQueue: ExportJobQueue): Router {
   const router = Router();
 
+  // -- GET /jobs: Queue stats and active jobs -----------------------------
+
+  router.get('/jobs', (_req: Request, res: Response) => {
+    const stats = jobQueue.getQueueStats();
+    const activeJobs = jobQueue.listActiveJobs();
+
+    res.json({
+      success: true,
+      data: {
+        stats,
+        activeJobs,
+      },
+    });
+  });
+
   // -- REQ-241: Submit export job -----------------------------------------
 
   router.post('/jobs', (req: Request, res: Response) => {
