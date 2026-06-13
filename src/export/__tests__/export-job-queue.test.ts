@@ -471,6 +471,114 @@ describe('ExportJobQueue', () => {
     });
   });
 
+  // -- pruneCompletedJobs eviction order -----------------------------------
+
+  describe('pruneCompletedJobs eviction order', () => {
+    it('should evict oldest terminal jobs first (strict FIFO)', () => {
+      const q = new ExportJobQueue({ maxConcurrent: 1, maxQueueSize: 100, maxCompletedJobs: 3 });
+      const ids: string[] = [];
+
+      // Complete 5 jobs sequentially; each completion triggers pruning
+      for (let i = 0; i < 5; i++) {
+        const job = q.enqueue({ priority: 'normal', format: 'mp4', inputHash: `evict-${i}` });
+        ids.push(job.jobId);
+        q.dequeue();
+        q.completeJob(job.jobId, true);
+      }
+
+      // Only the last 3 should survive
+      expect(q.findJob(ids[0])).toBeUndefined();
+      expect(q.findJob(ids[1])).toBeUndefined();
+      expect(q.findJob(ids[2])).toBeDefined();
+      expect(q.findJob(ids[3])).toBeDefined();
+      expect(q.findJob(ids[4])).toBeDefined();
+
+      const stats = q.getQueueStats();
+      expect(stats.completed).toBe(3);
+      q.stop();
+    });
+
+    it('should evict in FIFO order regardless of terminal status (completed/failed/cancelled)', () => {
+      const q = new ExportJobQueue({ maxConcurrent: 1, maxQueueSize: 100, maxCompletedJobs: 3 });
+
+      // Job 0: completed
+      const j0 = q.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'mix-0' });
+      q.dequeue();
+      q.completeJob(j0.jobId, true);
+
+      // Job 1: failed
+      const j1 = q.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'mix-1' });
+      q.dequeue();
+      q.completeJob(j1.jobId, false);
+
+      // Job 2: cancelled (from queue, no need to dequeue)
+      const j2 = q.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'mix-2' });
+      q.cancel(j2.jobId);
+
+      // Job 3: completed
+      const j3 = q.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'mix-3' });
+      q.dequeue();
+      q.completeJob(j3.jobId, true);
+
+      // Job 4: completed — this triggers pruning of oldest 2 (j0, j1)
+      const j4 = q.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'mix-4' });
+      q.dequeue();
+      q.completeJob(j4.jobId, true);
+
+      // Oldest two evicted regardless of their terminal status
+      expect(q.findJob(j0.jobId)).toBeUndefined();
+      expect(q.findJob(j1.jobId)).toBeUndefined();
+
+      // Newer three retained (cancelled j2 is still in the completed array)
+      expect(q.findJob(j2.jobId)).toBeDefined();
+      expect(q.findJob(j3.jobId)).toBeDefined();
+      expect(q.findJob(j4.jobId)).toBeDefined();
+
+      const stats = q.getQueueStats();
+      expect(stats.completed).toBe(2); // j3 and j4
+      expect(stats.failed).toBe(0);    // j1 was pruned
+      expect(stats.cancelled).toBe(1); // j2
+      q.stop();
+    });
+
+    it('should evict incrementally as new jobs complete', () => {
+      const q = new ExportJobQueue({ maxConcurrent: 1, maxQueueSize: 100, maxCompletedJobs: 2 });
+
+      const j0 = q.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'inc-0' });
+      q.dequeue(); q.completeJob(j0.jobId, true);
+
+      // 1 job in completed — no eviction yet
+      expect(q.findJob(j0.jobId)).toBeDefined();
+
+      const j1 = q.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'inc-1' });
+      q.dequeue(); q.completeJob(j1.jobId, true);
+
+      // 2 jobs — exactly at limit, no eviction
+      expect(q.findJob(j0.jobId)).toBeDefined();
+      expect(q.findJob(j1.jobId)).toBeDefined();
+
+      const j2 = q.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'inc-2' });
+      q.dequeue(); q.completeJob(j2.jobId, true);
+
+      // 3 jobs — j0 evicted, j1 and j2 remain
+      expect(q.findJob(j0.jobId)).toBeUndefined();
+      expect(q.findJob(j1.jobId)).toBeDefined();
+      expect(q.findJob(j2.jobId)).toBeDefined();
+
+      const j3 = q.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'inc-3' });
+      q.dequeue(); q.completeJob(j3.jobId, true);
+
+      // 4 jobs — j1 also evicted, j2 and j3 remain
+      expect(q.findJob(j1.jobId)).toBeUndefined();
+      expect(q.findJob(j2.jobId)).toBeDefined();
+      expect(q.findJob(j3.jobId)).toBeDefined();
+
+      const stats = q.getQueueStats();
+      expect(stats.completed).toBe(2);
+      q.stop();
+    });
+  });
+
   // -- Start / Stop --------------------------------------------------------
 
   describe('start/stop', () => {

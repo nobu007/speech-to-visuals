@@ -253,6 +253,99 @@ describe('Export Service Graceful Shutdown', () => {
   });
 
   // -------------------------------------------------------------------------
+  // Shutdown timeout verification
+  // -------------------------------------------------------------------------
+
+  describe('Shutdown timeout compliance', () => {
+    // Mirror of SHUTDOWN_TIMEOUT_MS from src/api/index.ts
+    const SHUTDOWN_TIMEOUT_MS = 30_000;
+
+    test('jobQueue.stop() completes well within SHUTDOWN_TIMEOUT_MS', () => {
+      const queue = new ExportJobQueue({
+        maxConcurrent: 3,
+        maxQueueSize: 50,
+        starvationPreventionInterval: 1_000,
+      });
+      queue.start();
+
+      // Enqueue some work so the queue has state to clean up
+      for (let i = 0; i < 10; i++) {
+        queue.enqueue({
+          priority: i % 2 === 0 ? 'high' : 'normal',
+          format: 'mp4',
+          inputHash: `timeout-${i}`,
+        });
+      }
+
+      const start = performance.now();
+      queue.stop();
+      const elapsed = performance.now() - start;
+
+      // stop() is synchronous (clearInterval only) so should be < 100ms
+      expect(elapsed).toBeLessThan(100);
+      expect(elapsed).toBeLessThan(SHUTDOWN_TIMEOUT_MS);
+    });
+
+    test('artifactStore.stop() completes well within SHUTDOWN_TIMEOUT_MS', () => {
+      const store = new ExportArtifactStore({
+        cleanupIntervalMs: 1_000,
+      });
+      store.start();
+
+      // Store some artifacts so there is state
+      for (let i = 0; i < 5; i++) {
+        store.store({
+          format: 'png',
+          data: new Uint8Array(64),
+          sizeBytes: 64,
+        });
+      }
+
+      const start = performance.now();
+      store.stop();
+      const elapsed = performance.now() - start;
+
+      expect(elapsed).toBeLessThan(100);
+      expect(elapsed).toBeLessThan(SHUTDOWN_TIMEOUT_MS);
+    });
+
+    test('combined stop of jobQueue + artifactStore stays within SHUTDOWN_TIMEOUT_MS', () => {
+      const artifactStore = new ExportArtifactStore({
+        cleanupIntervalMs: 5_000,
+      });
+      artifactStore.start();
+
+      const jobQueue = new ExportJobQueue(
+        { maxConcurrent: 3, maxQueueSize: 50, starvationPreventionInterval: 5_000 },
+        undefined,
+        artifactStore,
+      );
+      jobQueue.start();
+
+      // Populate with work
+      const job = jobQueue.enqueue({
+        priority: 'high',
+        format: 'mp4',
+        inputHash: 'combined-timeout',
+      });
+      jobQueue.dequeue();
+      jobQueue.completeJob(job.jobId, true, {
+        data: new Uint8Array(128),
+        sizeBytes: 128,
+      });
+
+      const start = performance.now();
+      jobQueue.stop();
+      artifactStore.stop();
+      const elapsed = performance.now() - start;
+
+      // Both stops are synchronous, combined should be trivially fast
+      expect(elapsed).toBeLessThan(100);
+      expect(elapsed).toBeLessThan(SHUTDOWN_TIMEOUT_MS);
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // Server wiring verification
   // -------------------------------------------------------------------------
 
