@@ -67,9 +67,20 @@ jobs:
       - run: npm ci
       - run: npx tsx scripts/validate-monitoring-configs.ts
 
+  monitoring-drift-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+      - run: npm ci
+      - run: npx tsx scripts/check-monitoring-drift.ts
+
   build:
     runs-on: ubuntu-latest
-    needs: [lint, type-check, test, monitoring-config-validate]
+    needs: [lint, type-check, test, monitoring-config-validate, monitoring-drift-check]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
