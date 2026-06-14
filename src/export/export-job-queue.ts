@@ -21,7 +21,7 @@ import { logger } from '../utils/logger';
 
 export type JobPriority = 'high' | 'normal' | 'low';
 
-export type JobStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+export type JobStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'dead-lettered';
 
 export interface QueuedExportJob {
   jobId: string;
@@ -34,6 +34,12 @@ export interface QueuedExportJob {
   inputHash: string;
   /** Artifact ID assigned after successful auto-save (REQ-233) */
   artifactId?: string;
+  /** Number of retry attempts so far (0 = first attempt) */
+  retryCount?: number;
+  /** Error message from the last failure */
+  lastError?: string;
+  /** Timestamp when the job was moved to the dead letter queue */
+  deadLetteredAt?: number;
 }
 
 export interface ExportJobQueueOptions {
@@ -41,6 +47,10 @@ export interface ExportJobQueueOptions {
   maxQueueSize: number;
   starvationPreventionInterval: number;
   maxCompletedJobs: number;
+  maxRetries: number;
+  retryBaseDelayMs: number;
+  retryMaxDelayMs: number;
+  maxDlqJobs: number;
 }
 
 export interface QueueStats {
@@ -49,6 +59,7 @@ export interface QueueStats {
   completed: number;
   failed: number;
   cancelled: number;
+  deadLettered: number;
   maxConcurrent: number;
 }
 
@@ -64,6 +75,10 @@ const DEFAULT_OPTIONS: ExportJobQueueOptions = {
   maxQueueSize: EXPORT_QUEUE_LIMITS.MAX_QUEUE_SIZE,
   starvationPreventionInterval: EXPORT_QUEUE_LIMITS.STARVATION_PREVENTION_INTERVAL_MS,
   maxCompletedJobs: EXPORT_QUEUE_LIMITS.MAX_COMPLETED_JOBS,
+  maxRetries: EXPORT_QUEUE_LIMITS.MAX_RETRIES,
+  retryBaseDelayMs: EXPORT_QUEUE_LIMITS.RETRY_BASE_DELAY_MS,
+  retryMaxDelayMs: EXPORT_QUEUE_LIMITS.RETRY_MAX_DELAY_MS,
+  maxDlqJobs: EXPORT_QUEUE_LIMITS.MAX_DLQ_JOBS,
 };
 
 // ---------------------------------------------------------------------------
@@ -91,6 +106,7 @@ export class ExportJobQueue {
   private queue: QueuedExportJob[] = [];
   private running = new Map<string, QueuedExportJob>();
   private completed: QueuedExportJob[] = [];
+  private deadLetterQueue: QueuedExportJob[] = [];
   private readonly options: ExportJobQueueOptions;
   private readonly metrics?: QueueMetricsSink;
   private readonly artifactStore?: ExportArtifactStore;
@@ -171,50 +187,91 @@ export class ExportJobQueue {
 
   /**
    * Mark a running job as completed and remove it from the active set.
+   * On failure, attempts retry with exponential backoff if retries remain.
+   * Jobs that exhaust retries are moved to the dead letter queue.
    * REQ-233: Auto-save artifact to ExportArtifactStore on successful completion.
    */
-  completeJob(jobId: string, success: boolean, artifactData?: { data: Uint8Array; sizeBytes: number }): boolean {
+  completeJob(
+    jobId: string,
+    success: boolean,
+    artifactData?: { data: Uint8Array; sizeBytes: number },
+    errorMessage?: string,
+  ): boolean {
     const job = this.running.get(jobId);
     if (!job) return false;
 
-    job.status = success ? 'completed' : 'failed';
-    job.completedAt = Date.now();
-
-    const duration = job.completedAt - (job.startedAt ?? job.enqueuedAt);
+    const duration = Date.now() - (job.startedAt ?? job.enqueuedAt);
     this.recentDurations.push(duration);
     if (this.recentDurations.length > ExportJobQueue.MAX_RECENT_DURATIONS) {
       this.recentDurations.shift();
     }
 
     if (success) {
+      job.status = 'completed';
+      job.completedAt = Date.now();
       this.metrics?.recordQueueWaitTimeMs(job.startedAt! - job.enqueuedAt);
+
+      // REQ-233: Auto-save artifact on successful completion
+      if (this.artifactStore && artifactData) {
+        try {
+          const stored = this.artifactStore.store({
+            format: job.format,
+            data: artifactData.data,
+            sizeBytes: artifactData.sizeBytes,
+            metadata: { jobId: job.jobId, inputHash: job.inputHash },
+          });
+          job.artifactId = stored.artifactId;
+          logger.info(`[ExportJobQueue] Artifact auto-saved for job ${jobId}: ${stored.artifactId}`);
+        } catch (storeError) {
+          logger.warn(
+            `[ExportJobQueue] Artifact auto-save failed for job ${jobId} (non-blocking):`,
+            storeError instanceof Error ? storeError.message : String(storeError),
+          );
+        }
+      }
+
+      this.running.delete(jobId);
+      this.completed.push(job);
+      this.pruneCompletedJobs();
+      this.emitMetrics();
+      logger.info(`[ExportJobQueue] Job ${jobId} completed`);
+      return true;
     }
 
-    // REQ-233: Auto-save artifact on successful completion
-    if (success && this.artifactStore && artifactData) {
-      try {
-        const stored = this.artifactStore.store({
-          format: job.format,
-          data: artifactData.data,
-          sizeBytes: artifactData.sizeBytes,
-          metadata: { jobId: job.jobId, inputHash: job.inputHash },
-        });
-        job.artifactId = stored.artifactId;
-        logger.info(`[ExportJobQueue] Artifact auto-saved for job ${jobId}: ${stored.artifactId}`);
-      } catch (storeError) {
-        logger.warn(
-          `[ExportJobQueue] Artifact auto-save failed for job ${jobId} (non-blocking):`,
-          storeError instanceof Error ? storeError.message : String(storeError),
-        );
-      }
+    // Failure path — check retry eligibility
+    const currentRetryCount = job.retryCount ?? 0;
+    if (currentRetryCount < this.options.maxRetries) {
+      job.retryCount = currentRetryCount + 1;
+      job.lastError = errorMessage;
+      job.status = 'queued';
+      job.startedAt = undefined;
+      job.completedAt = undefined;
+
+      this.running.delete(jobId);
+      this.requeueForRetry(job);
+
+      logger.info(
+        `[ExportJobQueue] Job ${jobId} failed (attempt ${currentRetryCount + 1}), re-queued for retry ` +
+        `(${job.retryCount}/${this.options.maxRetries})`,
+      );
+      return true;
     }
+
+    // Retries exhausted — move to dead letter queue
+    job.status = 'dead-lettered';
+    job.completedAt = Date.now();
+    job.deadLetteredAt = Date.now();
+    job.lastError = errorMessage;
 
     this.running.delete(jobId);
-    this.completed.push(job);
-    this.pruneCompletedJobs();
-
+    this.deadLetterQueue.push(job);
+    this.pruneDeadLetterQueue();
     this.emitMetrics();
-    logger.info(`[ExportJobQueue] Job ${jobId} completed (success=${success})`);
+
+    logger.warn(
+      `[ExportJobQueue] Job ${jobId} moved to dead letter queue after ${currentRetryCount} retries` +
+      (errorMessage ? `: ${errorMessage}` : ''),
+    );
     return true;
   }
 
@@ -295,6 +352,7 @@ export class ExportJobQueue {
       completed,
       failed,
       cancelled,
+      deadLettered: this.deadLetterQueue.length,
       maxConcurrent: this.options.maxConcurrent,
     };
   }
@@ -339,7 +397,7 @@ export class ExportJobQueue {
   }
 
   /**
-   * Find a job by ID across all states (queued, running, completed).
+   * Find a job by ID across all states (queued, running, completed, dead-letter).
    * Returns the job or undefined if not found.
    */
   findJob(jobId: string): QueuedExportJob | undefined {
@@ -349,7 +407,10 @@ export class ExportJobQueue {
     const running = this.running.get(jobId);
     if (running) return running;
 
-    return this.completed.find((j) => j.jobId === jobId);
+    const completed = this.completed.find((j) => j.jobId === jobId);
+    if (completed) return completed;
+
+    return this.deadLetterQueue.find((j) => j.jobId === jobId);
   }
 
   /**
@@ -357,6 +418,76 @@ export class ExportJobQueue {
    */
   hasCapacity(): boolean {
     return this.running.size < this.options.maxConcurrent;
+  }
+
+  /**
+   * List dead-lettered jobs (newest first).
+   */
+  listDeadLetterJobs(): QueuedExportJob[] {
+    return [...this.deadLetterQueue].reverse();
+  }
+
+  /**
+   * Replay a dead-lettered job by re-enqueuing it with a fresh retry count.
+   * Returns the re-enqueued job or undefined if not found in DLQ.
+   */
+  replayDeadLetterJob(jobId: string): QueuedExportJob | undefined {
+    const idx = this.deadLetterQueue.findIndex((j) => j.jobId === jobId);
+    if (idx === -1) return undefined;
+
+    const [dlqJob] = this.deadLetterQueue.splice(idx, 1);
+
+    // Reset retry state and re-enqueue
+    const reEnqueued: QueuedExportJob = {
+      ...dlqJob,
+      jobId: randomUUID(),
+      enqueuedAt: Date.now(),
+      startedAt: undefined,
+      completedAt: undefined,
+      deadLetteredAt: undefined,
+      status: 'queued',
+      retryCount: 0,
+      lastError: undefined,
+      artifactId: undefined,
+    };
+
+    // Insert in priority order
+    let lo = 0;
+    let hi = this.queue.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (comparePriority(this.queue[mid], reEnqueued) <= 0) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+    this.queue.splice(lo, 0, reEnqueued);
+
+    this.emitMetrics();
+    logger.info(`[ExportJobQueue] Replayed DLQ job ${jobId} as new job ${reEnqueued.jobId}`);
+    return reEnqueued;
+  }
+
+  /**
+   * Purge all dead-lettered jobs. Returns the number of purged jobs.
+   */
+  purgeDeadLetterJobs(): number {
+    const count = this.deadLetterQueue.length;
+    this.deadLetterQueue = [];
+    this.emitMetrics();
+    logger.info(`[ExportJobQueue] Purged ${count} dead-lettered jobs`);
+    return count;
+  }
+
+  /**
+   * Get the retry delay for a given retry attempt using exponential backoff.
+   * delay = min(baseDelay * 2^(attempt-1), maxDelay)
+   */
+  getRetryDelay(retryCount: number): number {
+    const attempt = Math.max(1, retryCount);
+    const delay = this.options.retryBaseDelayMs * Math.pow(2, attempt - 1);
+    return Math.min(delay, this.options.retryMaxDelayMs);
   }
 
   /**
@@ -404,6 +535,37 @@ export class ExportJobQueue {
       this.completed.splice(0, removed);
       logger.info(`[ExportJobQueue] Pruned ${removed} old terminal jobs (retention limit: ${max})`);
     }
+  }
+
+  /**
+   * Prune the dead letter queue when it exceeds the retention limit.
+   */
+  private pruneDeadLetterQueue(): void {
+    const max = this.options.maxDlqJobs;
+    if (this.deadLetterQueue.length > max) {
+      const removed = this.deadLetterQueue.length - max;
+      this.deadLetterQueue.splice(0, removed);
+      logger.info(`[ExportJobQueue] Pruned ${removed} old DLQ jobs (retention limit: ${max})`);
+    }
+  }
+
+  /**
+   * Re-enqueue a job for retry after failure.
+   * Uses binary-search insertion to maintain priority order.
+   */
+  private requeueForRetry(job: QueuedExportJob): void {
+    let lo = 0;
+    let hi = this.queue.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (comparePriority(this.queue[mid], job) <= 0) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+    this.queue.splice(lo, 0, job);
+    this.emitMetrics();
   }
 
   /**

@@ -5,6 +5,9 @@
  * - POST   /api/v1/export/jobs           — Submit a new export job
  * - GET    /api/v1/export/jobs/:jobId     — Get job status
  * - DELETE /api/v1/export/jobs/:jobId     — Cancel a job
+ * - GET    /api/v1/export/jobs/dead-letter — List dead-lettered jobs
+ * - POST   /api/v1/export/jobs/:jobId/replay — Replay a dead-lettered job
+ * - DELETE /api/v1/export/jobs/dead-letter  — Purge all dead-lettered jobs
  */
 
 import { Router, Request, Response } from 'express';
@@ -241,6 +244,102 @@ export function createExportJobRouter(jobQueue: ExportJobQueue): Router {
     res.json({
       success: true,
       data: { jobId, cancelled: true },
+    });
+  });
+
+  // -- Dead letter queue endpoints ----------------------------------------
+
+  // -- GET /jobs/dead-letter: List dead-lettered jobs ---------------------
+
+  router.get('/jobs/dead-letter', (_req: Request, res: Response) => {
+    const dlqJobs = jobQueue.listDeadLetterJobs();
+
+    res.json({
+      success: true,
+      data: {
+        count: dlqJobs.length,
+        jobs: dlqJobs.map((j) => ({
+          jobId: j.jobId,
+          priority: j.priority,
+          status: j.status,
+          format: j.format,
+          enqueuedAt: j.enqueuedAt,
+          deadLetteredAt: j.deadLetteredAt ?? null,
+          retryCount: j.retryCount ?? 0,
+          lastError: j.lastError ?? null,
+        })),
+      },
+    });
+  });
+
+  // -- POST /jobs/:jobId/replay: Replay a dead-lettered job ---------------
+
+  router.post('/jobs/:jobId/replay', (req: Request, res: Response) => {
+    const { jobId } = req.params;
+
+    if (!jobId || !UUID_V4_RE.test(jobId)) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Invalid jobId format (expected UUID v4)' },
+      });
+      return;
+    }
+
+    const dlqJob = jobQueue.findJob(jobId);
+    if (!dlqJob || dlqJob.status !== 'dead-lettered') {
+      res.status(404).json({
+        success: false,
+        error: { code: 'JOB_NOT_IN_DLQ', message: 'Job not found in dead letter queue' },
+      });
+      return;
+    }
+
+    try {
+      const replayedJob = jobQueue.replayDeadLetterJob(jobId);
+      if (!replayedJob) {
+        res.status(500).json({
+          success: false,
+          error: { code: 'REPLAY_FAILED', message: 'Failed to replay job' },
+        });
+        return;
+      }
+
+      const queuePosition = jobQueue.getQueuePosition(replayedJob.jobId);
+      const eta = jobQueue.getEstimatedWaitTime(replayedJob.jobId);
+
+      logger.info(`[ExportJobRouter] Replayed DLQ job ${jobId} as ${replayedJob.jobId}`);
+
+      res.status(201).json({
+        success: true,
+        data: {
+          originalJobId: jobId,
+          newJobId: replayedJob.jobId,
+          status: replayedJob.status,
+          priority: replayedJob.priority,
+          format: replayedJob.format,
+          queuePosition: queuePosition ?? null,
+          estimatedWaitTimeMs: eta,
+        },
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      res.status(500).json({
+        success: false,
+        error: { code: 'REPLAY_FAILED', message },
+      });
+    }
+  });
+
+  // -- DELETE /jobs/dead-letter: Purge all dead-lettered jobs -------------
+
+  router.delete('/jobs/dead-letter', (_req: Request, res: Response) => {
+    const purged = jobQueue.purgeDeadLetterJobs();
+
+    logger.info(`[ExportJobRouter] Purged ${purged} dead-lettered jobs`);
+
+    res.json({
+      success: true,
+      data: { purged },
     });
   });
 
