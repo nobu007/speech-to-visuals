@@ -99,6 +99,8 @@ export interface QueueMetricsSnapshot {
   totalRetries: number;
   /** Total jobs moved to dead letter queue */
   totalDeadLettered: number;
+  /** Total jobs replayed from dead letter queue */
+  totalReplayed: number;
 }
 
 const DEFAULT_CONFIG: ExportMetricsConfig = {
@@ -192,6 +194,7 @@ export class ExportMetricsCollector {
   private dlqSize = 0;
   private totalRetries = 0;
   private totalDeadLettered = 0;
+  private totalReplayed = 0;
 
   constructor(config?: Partial<ExportMetricsConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -295,6 +298,7 @@ export class ExportMetricsCollector {
       dlqSize: this.dlqSize,
       totalRetries: this.totalRetries,
       totalDeadLettered: this.totalDeadLettered,
+      totalReplayed: this.totalReplayed,
     };
 
     return { formats, stages, totalExports, successfulExports, failedExports, queue };
@@ -312,6 +316,7 @@ export class ExportMetricsCollector {
     this.dlqSize = 0;
     this.totalRetries = 0;
     this.totalDeadLettered = 0;
+    this.totalReplayed = 0;
   }
 
   // -- Queue metrics recording (REQ-229) ------------------------------------
@@ -352,6 +357,11 @@ export class ExportMetricsCollector {
   /** Record a job being moved to the dead letter queue. */
   recordDeadLetter(): void {
     this.totalDeadLettered++;
+  }
+
+  /** Record a job being replayed from the dead letter queue. */
+  recordReplay(): void {
+    this.totalReplayed++;
   }
 }
 

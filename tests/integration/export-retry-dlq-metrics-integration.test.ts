@@ -303,4 +303,82 @@ describe('Full retry → exhaustion → DLQ → Prometheus metrics', () => {
 
     localQueue.stop();
   });
+
+  it('tracks DLQ replay counter through replay → Prometheus output', () => {
+    // Use maxRetries=0 for immediate DLQ
+    const replayCollector = new ExportMetricsCollector();
+    const replayQueue = new ExportJobQueue(
+      { maxConcurrent: 1, maxRetries: 0, maxDlqJobs: 100 },
+      replayCollector,
+    );
+
+    // Dead-letter two jobs
+    const job1 = replayQueue.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'r1' });
+    replayQueue.dequeue();
+    replayQueue.completeJob(job1.jobId, false, undefined, 'fail-1');
+
+    const job2 = replayQueue.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'r2' });
+    replayQueue.dequeue();
+    replayQueue.completeJob(job2.jobId, false, undefined, 'fail-2');
+
+    expect(replayCollector.getSnapshot().queue.dlqSize).toBe(2);
+    expect(replayCollector.getSnapshot().queue.totalReplayed).toBe(0);
+
+    // Replay both jobs
+    const replayed1 = replayQueue.replayDeadLetterJob(job1.jobId);
+    const replayed2 = replayQueue.replayDeadLetterJob(job2.jobId);
+    expect(replayed1).toBeDefined();
+    expect(replayed2).toBeDefined();
+
+    // Replay counter should be 2
+    const snap = replayCollector.getSnapshot();
+    expect(snap.queue.totalReplayed).toBe(2);
+    expect(snap.queue.dlqSize).toBe(0);
+
+    // Prometheus output should include the replay counter
+    const output = exportPrometheusMetrics({
+      snapshot: EMPTY_HTTP,
+      exportSnapshot: snap,
+    });
+
+    expect(output).toContain('# HELP export_queue_dlq_replay_total');
+    expect(output).toContain('# TYPE export_queue_dlq_replay_total counter');
+    expect(output).toMatch(/export_queue_dlq_replay_total 2/);
+
+    // DLQ size gauge should show 0
+    expect(output).toMatch(/export_queue_dlq_size 0/);
+
+    // totalDeadLettered counter still reflects the 2 historical events
+    expect(output).toMatch(/export_queue_dead_letter_total 2/);
+
+    replayQueue.stop();
+  });
+
+  it('does not emit replay metric when no replays have occurred', () => {
+    // Drive a job to DLQ without replaying
+    const collector2 = new ExportMetricsCollector();
+    const queue2 = new ExportJobQueue(
+      { maxConcurrent: 1, maxRetries: 0, maxDlqJobs: 100 },
+      collector2,
+    );
+
+    const job = queue2.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'no-replay' });
+    queue2.dequeue();
+    queue2.completeJob(job.jobId, false, undefined, 'fail');
+
+    const snap = collector2.getSnapshot();
+    const output = exportPrometheusMetrics({
+      snapshot: EMPTY_HTTP,
+      exportSnapshot: snap,
+    });
+
+    // DLQ and dead-letter metrics should be present
+    expect(output).toMatch(/export_queue_dlq_size 1/);
+    expect(output).toMatch(/export_queue_dead_letter_total 1/);
+
+    // Replay metric should NOT be present
+    expect(output).not.toContain('export_queue_dlq_replay_total');
+
+    queue2.stop();
+  });
 });

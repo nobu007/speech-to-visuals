@@ -25,6 +25,7 @@
  * - export_queue_dlq_size (gauge)                            [REQ-229]
  * - export_queue_retry_total (counter)                       [REQ-229]
  * - export_queue_dead_letter_total (counter)                 [REQ-229]
+ * - export_queue_dlq_replay_total (counter)                  [REQ-229]
  */
 
 import {
@@ -393,6 +394,15 @@ function buildExportQueueDeadLetterTotal(queue: ExportMetricsSnapshot['queue']):
   };
 }
 
+function buildExportQueueReplayTotal(queue: ExportMetricsSnapshot['queue']): PrometheusMetric {
+  return {
+    name: 'export_queue_dlq_replay_total',
+    help: 'Total number of export jobs replayed from the dead letter queue',
+    type: 'counter',
+    samples: [{ labels: {}, value: queue.totalReplayed }],
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -474,6 +484,11 @@ export function exportPrometheusMetrics(options?: PrometheusExportOptions): stri
     metrics.push(buildExportQueueDlqSize(exportSnap.queue));
     metrics.push(buildExportQueueRetryTotal(exportSnap.queue));
     metrics.push(buildExportQueueDeadLetterTotal(exportSnap.queue));
+  }
+
+  // Replay metric — emit when any DLQ replay has occurred
+  if (exportSnap.queue.totalReplayed > 0) {
+    metrics.push(buildExportQueueReplayTotal(exportSnap.queue));
   }
 
   const output = metrics.map(renderMetric).join('\n\n');

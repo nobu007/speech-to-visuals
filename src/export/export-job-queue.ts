@@ -71,6 +71,7 @@ export interface QueueMetricsSink {
   recordDlqSize(size: number): void;
   recordRetry(): void;
   recordDeadLetter(): void;
+  recordReplay(): void;
 }
 
 const DEFAULT_OPTIONS: ExportJobQueueOptions = {
@@ -470,6 +471,7 @@ export class ExportJobQueue {
     this.queue.splice(lo, 0, reEnqueued);
 
     this.emitMetrics();
+    this.metrics?.recordReplay();
     logger.info(`[ExportJobQueue] Replayed DLQ job ${jobId} as new job ${reEnqueued.jobId}`);
     return reEnqueued;
   }

@@ -27,6 +27,10 @@ function createMockSink(): QueueMetricsSink & {
     recordQueuePriorityDistribution(high: number, normal: number, low: number) {
       this.distributions.push({ high, normal, low });
     },
+    recordDlqSize() {},
+    recordRetry() {},
+    recordDeadLetter() {},
+    recordReplay() {},
   };
 }
 

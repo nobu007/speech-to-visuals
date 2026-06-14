@@ -24,6 +24,7 @@ function createMockSink(): QueueMetricsSink & {
     recordDlqSize(size: number) { calls.push({ method: 'recordDlqSize', args: [size] }); },
     recordRetry() { calls.push({ method: 'recordRetry', args: [] }); },
     recordDeadLetter() { calls.push({ method: 'recordDeadLetter', args: [] }); },
+    recordReplay() { calls.push({ method: 'recordReplay', args: [] }); },
   };
 }
 
@@ -91,12 +92,26 @@ describe('ExportMetricsCollector DLQ and retry metrics', () => {
     });
   });
 
+  describe('recordReplay', () => {
+    it('increments total replayed', () => {
+      collector.recordReplay();
+      collector.recordReplay();
+      collector.recordReplay();
+      expect(collector.getSnapshot().queue.totalReplayed).toBe(3);
+    });
+
+    it('starts at zero', () => {
+      expect(collector.getSnapshot().queue.totalReplayed).toBe(0);
+    });
+  });
+
   describe('reset', () => {
     it('resets all DLQ and retry metrics', () => {
       collector.recordDlqSize(10);
       collector.recordRetry();
       collector.recordRetry();
       collector.recordDeadLetter();
+      collector.recordReplay();
 
       collector.reset();
 
@@ -104,20 +119,23 @@ describe('ExportMetricsCollector DLQ and retry metrics', () => {
       expect(q.dlqSize).toBe(0);
       expect(q.totalRetries).toBe(0);
       expect(q.totalDeadLettered).toBe(0);
+      expect(q.totalReplayed).toBe(0);
     });
   });
 
   describe('getSnapshot', () => {
-    it('includes dlqSize, totalRetries, totalDeadLettered in queue snapshot', () => {
+    it('includes dlqSize, totalRetries, totalDeadLettered, totalReplayed in queue snapshot', () => {
       collector.recordDlqSize(4);
       collector.recordRetry();
       collector.recordDeadLetter();
       collector.recordDeadLetter();
+      collector.recordReplay();
 
       const q = collector.getSnapshot().queue;
       expect(q.dlqSize).toBe(4);
       expect(q.totalRetries).toBe(1);
       expect(q.totalDeadLettered).toBe(2);
+      expect(q.totalReplayed).toBe(1);
     });
   });
 });
@@ -250,5 +268,38 @@ describe('ExportJobQueue DLQ/retry metrics integration', () => {
     const dlqCalls = sink.calls.filter((c) => c.method === 'recordDlqSize');
     expect(dlqCalls.length).toBeGreaterThan(0);
     expect(dlqCalls[dlqCalls.length - 1].args[0]).toBe(0);
+  });
+
+  it('calls recordReplay when a DLQ job is replayed', () => {
+    const sink = createMockSink();
+    const queue = new ExportJobQueue(
+      { maxConcurrent: 1, maxRetries: 0, maxDlqJobs: 10 },
+      sink,
+    );
+
+    // Dead-letter a job
+    const job = queue.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'h1' });
+    queue.dequeue();
+    queue.completeJob(job.jobId, false, undefined, 'fatal error');
+
+    // Replay the DLQ job
+    queue.replayDeadLetterJob(job.jobId);
+
+    const replayCalls = sink.calls.filter((c) => c.method === 'recordReplay');
+    expect(replayCalls).toHaveLength(1);
+  });
+
+  it('does not call recordReplay when replaying a non-existent job', () => {
+    const sink = createMockSink();
+    const queue = new ExportJobQueue(
+      { maxConcurrent: 1, maxRetries: 0, maxDlqJobs: 10 },
+      sink,
+    );
+
+    const result = queue.replayDeadLetterJob('nonexistent-id');
+    expect(result).toBeUndefined();
+
+    const replayCalls = sink.calls.filter((c) => c.method === 'recordReplay');
+    expect(replayCalls).toHaveLength(0);
   });
 });

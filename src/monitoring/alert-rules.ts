@@ -14,6 +14,7 @@
  * 7. ExportQueueCriticalBacklog: queue depth > 100 → critical
  * 8. ExportDeadLetterQueueGrowth: DLQ has jobs → warning
  * 9. ExportHighRetryRate: retry rate > 0.5/s → warning
+ * 10. ExportDLQReplayRate: DLQ replay rate > 0.1/s → warning
  */
 
 // ---------------------------------------------------------------------------
@@ -223,6 +224,19 @@ function buildExportHighRetryRateRule(prefix: string): AlertRule {
   };
 }
 
+function buildExportDLQReplayRateRule(prefix: string): AlertRule {
+  const p = prefix;
+  return {
+    alert: 'SpeechToVisualsExportDLQReplayRate',
+    expr: `rate(${p}export_queue_dlq_replay_total[5m]) > 0.1`,
+    for: '5m',
+    severity: 'warning',
+    summary: 'Export DLQ replay rate is high',
+    description: 'Dead-lettered export jobs are being replayed at a rate above 0.1/s (current: {{ $value }}/s). Frequent replays indicate operators are manually intervening on systemic failures. Check /api/v1/export/jobs/dead-letter and resolve root cause before replaying.',
+    runbookUrl: 'docs/runbooks/export-queue-backlog.md',
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -247,6 +261,7 @@ export function generateAlertRules(options?: AlertRulesOptions): AlertingConfig 
     buildExportQueueCriticalBacklogRule(prefix, opts.exportQueueCriticalSizeThreshold),
     buildExportDlqGrowthRule(prefix),
     buildExportHighRetryRateRule(prefix),
+    buildExportDLQReplayRateRule(prefix),
   ];
 
   return {
