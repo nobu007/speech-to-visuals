@@ -116,6 +116,84 @@ describe('ExportJobQueue — retry and dead letter queue', () => {
     });
   });
 
+    it('routes job to DLQ instead of retrying when queue is at capacity', () => {
+      const smallQueue = new ExportJobQueue({
+        maxConcurrent: 1,
+        maxQueueSize: 2,
+        starvationPreventionInterval: 60_000,
+        maxCompletedJobs: 100,
+        maxRetries: 3,
+        retryBaseDelayMs: 100,
+        retryMaxDelayMs: 1_000,
+        maxDlqJobs: 50,
+      });
+
+      // Enqueue A and B (fills queue to capacity)
+      const jobA = smallQueue.enqueue({
+        priority: 'normal',
+        format: 'mp4',
+        inputHash: 'job-a',
+      });
+      const jobB = smallQueue.enqueue({
+        priority: 'normal',
+        format: 'mp4',
+        inputHash: 'job-b',
+      });
+
+      // Dequeue A to running, then enqueue C to fill the freed slot
+      smallQueue.dequeue();
+      const jobC = smallQueue.enqueue({
+        priority: 'normal',
+        format: 'mp4',
+        inputHash: 'job-c',
+      });
+
+      // Queue now has B + C = 2 (at capacity), A is running
+      // Fail job A — it should try to retry but queue is full
+      smallQueue.completeJob(jobA.jobId, false, undefined, 'transient error');
+
+      // Job A should go to DLQ, not back into the queue
+      const stats = smallQueue.getQueueStats();
+      expect(stats.deadLettered).toBe(1);
+      expect(stats.queued).toBe(2); // Still B and C, no overflow
+
+      const found = smallQueue.findJob(jobA.jobId);
+      expect(found!.status).toBe('dead-lettered');
+      expect(found!.lastError).toBe('transient error');
+    });
+
+    it('does not exceed maxQueueSize when multiple jobs fail simultaneously', () => {
+      const smallQueue = new ExportJobQueue({
+        maxConcurrent: 3,
+        maxQueueSize: 2,
+        starvationPreventionInterval: 60_000,
+        maxCompletedJobs: 100,
+        maxRetries: 3,
+        retryBaseDelayMs: 100,
+        retryMaxDelayMs: 1_000,
+        maxDlqJobs: 50,
+      });
+
+      // Enqueue 2 (fills queue), then dequeue both to running
+      const jobA = smallQueue.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'a' });
+      const jobB = smallQueue.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'b' });
+
+      smallQueue.dequeue();
+      smallQueue.dequeue();
+
+      // Now queue is empty (both running), enqueue 2 more to fill it
+      const jobC = smallQueue.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'c' });
+      const jobD = smallQueue.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'd' });
+
+      // Fail both running jobs — neither can retry because queue is full (C + D)
+      smallQueue.completeJob(jobA.jobId, false, undefined, 'fail-a');
+      smallQueue.completeJob(jobB.jobId, false, undefined, 'fail-b');
+
+      const stats = smallQueue.getQueueStats();
+      expect(stats.queued).toBe(2); // C and D only
+      expect(stats.deadLettered).toBe(2); // A and B went to DLQ
+    });
+
   // -------------------------------------------------------------------------
   // getRetryDelay
   // -------------------------------------------------------------------------

@@ -242,9 +242,12 @@ export class ExportJobQueue {
       return true;
     }
 
-    // Failure path — check retry eligibility
+    // Failure path — check retry eligibility and queue capacity
     const currentRetryCount = job.retryCount ?? 0;
-    if (currentRetryCount < this.options.maxRetries) {
+    const canRetry = currentRetryCount < this.options.maxRetries;
+    const hasQueueCapacity = this.queue.length < this.options.maxQueueSize;
+
+    if (canRetry && hasQueueCapacity) {
       job.retryCount = currentRetryCount + 1;
       job.lastError = errorMessage;
       job.status = 'queued';
@@ -262,7 +265,7 @@ export class ExportJobQueue {
       return true;
     }
 
-    // Retries exhausted (or retries disabled) — terminal failure + dead letter queue
+    // Retries exhausted, retries disabled, or queue at capacity — dead letter queue
     job.status = this.options.maxRetries > 0 ? 'dead-lettered' : 'failed';
     job.completedAt = Date.now();
     job.deadLetteredAt = Date.now();
@@ -276,10 +279,13 @@ export class ExportJobQueue {
     this.metrics?.recordDeadLetter();
     this.emitMetrics();
 
+    const reason = !canRetry
+      ? ` after ${currentRetryCount} retries`
+      : ' (queue at capacity — cannot retry)';
     logger.warn(
       `[ExportJobQueue] Job ${jobId} moved to dead letter queue` +
       (this.options.maxRetries > 0
-        ? ` after ${currentRetryCount} retries`
+        ? reason
         : ' (no retries configured)') +
       (errorMessage ? `: ${errorMessage}` : ''),
     );
