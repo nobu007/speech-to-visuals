@@ -322,6 +322,9 @@ describe('PrometheusExporter', () => {
           dequeueByPriority: { high: 0, normal: 0, low: 0 },
           avgWaitTimeMs: 0,
           priorityDistribution: { high: 0, normal: 0, low: 0 },
+          dlqSize: 0,
+          totalRetries: 0,
+          totalDeadLettered: 0,
         },
         ...overrides,
       };
@@ -424,6 +427,91 @@ describe('PrometheusExporter', () => {
       expect(output).toContain('export_queue_size');
       expect(output).toContain('export_queue_dequeue_total');
       expect(output).not.toContain('export_queue_wait_time_ms');
+    });
+
+    it('exports DLQ size as a gauge', () => {
+      const exportSnapshot = makeExportSnapshot({
+        queue: {
+          queueSize: 0,
+          dequeueCount: 0,
+          dequeueByPriority: { high: 0, normal: 0, low: 0 },
+          avgWaitTimeMs: 0,
+          priorityDistribution: { high: 0, normal: 0, low: 0 },
+          dlqSize: 3,
+          totalRetries: 0,
+          totalDeadLettered: 0,
+        },
+      });
+
+      const output = exportPrometheusMetrics({
+        snapshot: makeSnapshot(),
+        exportSnapshot,
+      });
+
+      expect(output).toContain('# HELP export_queue_dlq_size');
+      expect(output).toContain('# TYPE export_queue_dlq_size gauge');
+      expect(output).toMatch(/export_queue_dlq_size 3/);
+    });
+
+    it('exports retry total as a counter', () => {
+      const exportSnapshot = makeExportSnapshot({
+        queue: {
+          queueSize: 0,
+          dequeueCount: 0,
+          dequeueByPriority: { high: 0, normal: 0, low: 0 },
+          avgWaitTimeMs: 0,
+          priorityDistribution: { high: 0, normal: 0, low: 0 },
+          dlqSize: 0,
+          totalRetries: 7,
+          totalDeadLettered: 0,
+        },
+      });
+
+      const output = exportPrometheusMetrics({
+        snapshot: makeSnapshot(),
+        exportSnapshot,
+      });
+
+      expect(output).toContain('# HELP export_queue_retry_total');
+      expect(output).toContain('# TYPE export_queue_retry_total counter');
+      expect(output).toMatch(/export_queue_retry_total 7/);
+    });
+
+    it('exports dead letter total as a counter', () => {
+      const exportSnapshot = makeExportSnapshot({
+        queue: {
+          queueSize: 0,
+          dequeueCount: 0,
+          dequeueByPriority: { high: 0, normal: 0, low: 0 },
+          avgWaitTimeMs: 0,
+          priorityDistribution: { high: 0, normal: 0, low: 0 },
+          dlqSize: 0,
+          totalRetries: 0,
+          totalDeadLettered: 2,
+        },
+      });
+
+      const output = exportPrometheusMetrics({
+        snapshot: makeSnapshot(),
+        exportSnapshot,
+      });
+
+      expect(output).toContain('# HELP export_queue_dead_letter_total');
+      expect(output).toContain('# TYPE export_queue_dead_letter_total counter');
+      expect(output).toMatch(/export_queue_dead_letter_total 2/);
+    });
+
+    it('omits DLQ/retry metrics when no DLQ/retry activity', () => {
+      const exportSnapshot = makeExportSnapshot();
+
+      const output = exportPrometheusMetrics({
+        snapshot: makeSnapshot(),
+        exportSnapshot,
+      });
+
+      expect(output).not.toContain('export_queue_dlq_size');
+      expect(output).not.toContain('export_queue_retry_total');
+      expect(output).not.toContain('export_queue_dead_letter_total');
     });
   });
 });

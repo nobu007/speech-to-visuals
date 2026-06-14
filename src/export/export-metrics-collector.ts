@@ -93,6 +93,12 @@ export interface QueueMetricsSnapshot {
   avgWaitTimeMs: number;
   /** Priority distribution at last snapshot */
   priorityDistribution: Record<JobPriority, number>;
+  /** Current dead letter queue size */
+  dlqSize: number;
+  /** Total retry attempts across all jobs */
+  totalRetries: number;
+  /** Total jobs moved to dead letter queue */
+  totalDeadLettered: number;
 }
 
 const DEFAULT_CONFIG: ExportMetricsConfig = {
@@ -181,6 +187,11 @@ export class ExportMetricsCollector {
   private dequeueByPriority: Record<JobPriority, number> = { high: 0, normal: 0, low: 0 };
   private waitTimeSeries = createSeries();
   private priorityDistribution: Record<JobPriority, number> = { high: 0, normal: 0, low: 0 };
+
+  // DLQ and retry metrics
+  private dlqSize = 0;
+  private totalRetries = 0;
+  private totalDeadLettered = 0;
 
   constructor(config?: Partial<ExportMetricsConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -281,6 +292,9 @@ export class ExportMetricsCollector {
         ? Math.round(this.waitTimeSeries.sum / this.waitTimeSeries.count)
         : 0,
       priorityDistribution: { ...this.priorityDistribution },
+      dlqSize: this.dlqSize,
+      totalRetries: this.totalRetries,
+      totalDeadLettered: this.totalDeadLettered,
     };
 
     return { formats, stages, totalExports, successfulExports, failedExports, queue };
@@ -295,6 +309,9 @@ export class ExportMetricsCollector {
     this.dequeueByPriority = { high: 0, normal: 0, low: 0 };
     this.waitTimeSeries = createSeries();
     this.priorityDistribution = { high: 0, normal: 0, low: 0 };
+    this.dlqSize = 0;
+    this.totalRetries = 0;
+    this.totalDeadLettered = 0;
   }
 
   // -- Queue metrics recording (REQ-229) ------------------------------------
@@ -319,6 +336,22 @@ export class ExportMetricsCollector {
   /** Record the current priority distribution in the queue. */
   recordQueuePriorityDistribution(high: number, normal: number, low: number): void {
     this.priorityDistribution = { high, normal, low };
+  }
+
+  /** Record current dead letter queue size. */
+  recordDlqSize(size: number): void {
+    if (!Number.isFinite(size) || size < 0) return;
+    this.dlqSize = Math.floor(size);
+  }
+
+  /** Record a retry attempt for a failed job. */
+  recordRetry(): void {
+    this.totalRetries++;
+  }
+
+  /** Record a job being moved to the dead letter queue. */
+  recordDeadLetter(): void {
+    this.totalDeadLettered++;
   }
 }
 

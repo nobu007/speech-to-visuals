@@ -68,6 +68,9 @@ export interface QueueMetricsSink {
   recordQueueWaitTimeMs(waitMs: number): void;
   recordQueueDequeue(priority: JobPriority): void;
   recordQueuePriorityDistribution(high: number, normal: number, low: number): void;
+  recordDlqSize(size: number): void;
+  recordRetry(): void;
+  recordDeadLetter(): void;
 }
 
 const DEFAULT_OPTIONS: ExportJobQueueOptions = {
@@ -249,6 +252,7 @@ export class ExportJobQueue {
 
       this.running.delete(jobId);
       this.requeueForRetry(job);
+      this.metrics?.recordRetry();
 
       logger.info(
         `[ExportJobQueue] Job ${jobId} failed (attempt ${currentRetryCount + 1}), re-queued for retry ` +
@@ -266,6 +270,7 @@ export class ExportJobQueue {
     this.running.delete(jobId);
     this.deadLetterQueue.push(job);
     this.pruneDeadLetterQueue();
+    this.metrics?.recordDeadLetter();
     this.emitMetrics();
 
     logger.warn(
@@ -624,6 +629,7 @@ export class ExportJobQueue {
     if (!this.metrics) return;
 
     this.metrics.recordQueueSize(this.queue.length);
+    this.metrics.recordDlqSize(this.deadLetterQueue.length);
 
     let high = 0;
     let normal = 0;

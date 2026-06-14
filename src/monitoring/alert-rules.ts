@@ -12,6 +12,8 @@
  * 5. ExportQueueBacklog: queue depth > 50 → warning
  * 6. ExportQueueSlowWait: avg wait time > 10s → warning
  * 7. ExportQueueCriticalBacklog: queue depth > 100 → critical
+ * 8. ExportDeadLetterQueueGrowth: DLQ has jobs → warning
+ * 9. ExportHighRetryRate: retry rate > 0.5/s → warning
  */
 
 // ---------------------------------------------------------------------------
@@ -195,6 +197,32 @@ function buildExportQueueCriticalBacklogRule(
   };
 }
 
+function buildExportDlqGrowthRule(prefix: string): AlertRule {
+  const p = prefix;
+  return {
+    alert: 'SpeechToVisualsExportDeadLetterQueueGrowth',
+    expr: `${p}export_queue_dlq_size > 0`,
+    for: '5m',
+    severity: 'warning',
+    summary: 'Export dead letter queue has jobs',
+    description: 'Export dead letter queue has {{ $value }} job(s) that failed after exhausting all retries. Check /api/v1/export/jobs/dead-letter for details and consider replaying after fixing root cause.',
+    runbookUrl: 'docs/runbooks/export-queue-backlog.md',
+  };
+}
+
+function buildExportHighRetryRateRule(prefix: string): AlertRule {
+  const p = prefix;
+  return {
+    alert: 'SpeechToVisualsExportHighRetryRate',
+    expr: `rate(${p}export_queue_retry_total[5m]) > 0.5`,
+    for: '5m',
+    severity: 'warning',
+    summary: 'Export job retry rate is high',
+    description: 'Export jobs are retrying at a rate above 0.5/min (current: {{ $value }}/s). This indicates a systemic issue with export processing. Check /api/v1/export/jobs for active jobs and recent error logs.',
+    runbookUrl: 'docs/runbooks/export-queue-backlog.md',
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -217,6 +245,8 @@ export function generateAlertRules(options?: AlertRulesOptions): AlertingConfig 
     buildExportQueueBacklogRule(prefix, opts.exportQueueSizeThreshold),
     buildExportQueueSlowWaitRule(prefix, opts.exportQueueWaitTimeThresholdMs),
     buildExportQueueCriticalBacklogRule(prefix, opts.exportQueueCriticalSizeThreshold),
+    buildExportDlqGrowthRule(prefix),
+    buildExportHighRetryRateRule(prefix),
   ];
 
   return {

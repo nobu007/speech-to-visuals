@@ -22,9 +22,9 @@ describe('Alert Rules (REQ-209)', () => {
       expect(config.groups[0].name).toBe('speech-to-visuals-alerts');
     });
 
-    it('should generate exactly 7 alert rules', () => {
+    it('should generate exactly 9 alert rules', () => {
       const config = generateAlertRules();
-      expect(config.groups[0].rules).toHaveLength(7);
+      expect(config.groups[0].rules).toHaveLength(9);
     });
 
     it('should include all required alert names', () => {
@@ -36,6 +36,8 @@ describe('Alert Rules (REQ-209)', () => {
       expect(names).toContain('SpeechToVisualsExportQueueBacklog');
       expect(names).toContain('SpeechToVisualsExportQueueSlowWait');
       expect(names).toContain('SpeechToVisualsExportQueueCriticalBacklog');
+      expect(names).toContain('SpeechToVisualsExportDeadLetterQueueGrowth');
+      expect(names).toContain('SpeechToVisualsExportHighRetryRate');
     });
 
     it('should have unique alert names', () => {
@@ -275,14 +277,49 @@ describe('Alert Rules (REQ-209)', () => {
     });
   });
 
+  describe('ExportDeadLetterQueueGrowth alert', () => {
+    it('should use dlq_size > 0 as threshold', () => {
+      const config = generateAlertRules();
+      const rule = config.groups[0].rules.find(
+        r => r.alert === 'SpeechToVisualsExportDeadLetterQueueGrowth',
+      );
+      expect(rule).toBeDefined();
+      expect(rule!.expr).toContain('export_queue_dlq_size > 0');
+      expect(rule!.severity).toBe('warning');
+      expect(rule!.for).toBe('5m');
+    });
+
+    it('should reference DLQ API endpoint in description', () => {
+      const config = generateAlertRules();
+      const rule = config.groups[0].rules.find(
+        r => r.alert === 'SpeechToVisualsExportDeadLetterQueueGrowth',
+      );
+      expect(rule!.description).toContain('/api/v1/export/jobs/dead-letter');
+    });
+  });
+
+  describe('ExportHighRetryRate alert', () => {
+    it('should use rate-based expression on retry_total', () => {
+      const config = generateAlertRules();
+      const rule = config.groups[0].rules.find(
+        r => r.alert === 'SpeechToVisualsExportHighRetryRate',
+      );
+      expect(rule).toBeDefined();
+      expect(rule!.expr).toContain('rate(');
+      expect(rule!.expr).toContain('export_queue_retry_total');
+      expect(rule!.severity).toBe('warning');
+      expect(rule!.for).toBe('5m');
+    });
+  });
+
   describe('Severity distribution', () => {
-    it('should have exactly 3 critical and 4 warning alerts', () => {
+    it('should have exactly 3 critical and 6 warning alerts', () => {
       const config = generateAlertRules();
       const rules = config.groups[0].rules;
       const critical = rules.filter(r => r.severity === 'critical');
       const warning = rules.filter(r => r.severity === 'warning');
       expect(critical).toHaveLength(3);
-      expect(warning).toHaveLength(4);
+      expect(warning).toHaveLength(6);
     });
   });
 
@@ -352,6 +389,8 @@ describe('Alert Rules (REQ-209)', () => {
       expect(yaml).toContain('SpeechToVisualsExportQueueBacklog');
       expect(yaml).toContain('SpeechToVisualsExportQueueSlowWait');
       expect(yaml).toContain('SpeechToVisualsExportQueueCriticalBacklog');
+      expect(yaml).toContain('SpeechToVisualsExportDeadLetterQueueGrowth');
+      expect(yaml).toContain('SpeechToVisualsExportHighRetryRate');
     });
 
     it('should contain severity labels in YAML output', () => {
@@ -379,9 +418,9 @@ describe('Alert Rules (REQ-209)', () => {
   });
 
   describe('getAlertRuleNames', () => {
-    it('should return 7 names', () => {
+    it('should return 9 names', () => {
       const names = getAlertRuleNames();
-      expect(names).toHaveLength(7);
+      expect(names).toHaveLength(9);
     });
 
     it('should return strings with SpeechToVisuals prefix', () => {

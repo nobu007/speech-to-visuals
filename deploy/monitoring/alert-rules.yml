@@ -81,3 +81,23 @@ groups:
           summary: "Export queue backlog at critical level"
           description: "Export queue has more than 100 jobs waiting (current: {{ $value }}). The system is severely backed up. Immediate intervention required — check /api/v1/export/jobs and scale processing concurrency."
           runbook_url: "docs/runbooks/export-queue-backlog.md"
+
+      - alert: SpeechToVisualsExportDeadLetterQueueGrowth
+        expr: export_queue_dlq_size > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Export dead letter queue has jobs"
+          description: "Export dead letter queue has {{ $value }} job(s) that failed after exhausting all retries. Check /api/v1/export/jobs/dead-letter for details and consider replaying after fixing root cause."
+          runbook_url: "docs/runbooks/export-queue-backlog.md"
+
+      - alert: SpeechToVisualsExportHighRetryRate
+        expr: rate(export_queue_retry_total[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Export job retry rate is high"
+          description: "Export jobs are retrying at a rate above 0.5/min (current: {{ $value }}/s). This indicates a systemic issue with export processing. Check /api/v1/export/jobs for active jobs and recent error logs."
+          runbook_url: "docs/runbooks/export-queue-backlog.md"

@@ -47,9 +47,9 @@ describe('Deployment Config Files', () => {
       expect(yamlContent).toContain('docs/runbooks/');
     });
 
-    it('should have 7 alert rule entries', () => {
+    it('should have 9 alert rule entries', () => {
       const alertCount = (yamlContent.match(/- alert: /g) || []).length;
-      expect(alertCount).toBe(7);
+      expect(alertCount).toBe(9);
     });
   });
 

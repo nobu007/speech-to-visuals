@@ -22,6 +22,9 @@
  * - export_queue_size (gauge)                                [REQ-229]
  * - export_queue_dequeue_total (counter by priority)         [REQ-229]
  * - export_queue_wait_time_ms (gauge)                        [REQ-229]
+ * - export_queue_dlq_size (gauge)                            [REQ-229]
+ * - export_queue_retry_total (counter)                       [REQ-229]
+ * - export_queue_dead_letter_total (counter)                 [REQ-229]
  */
 
 import {
@@ -363,6 +366,33 @@ function buildExportQueueWaitTimeMs(queue: ExportMetricsSnapshot['queue']): Prom
   };
 }
 
+function buildExportQueueDlqSize(queue: ExportMetricsSnapshot['queue']): PrometheusMetric {
+  return {
+    name: 'export_queue_dlq_size',
+    help: 'Current number of jobs in the export dead letter queue',
+    type: 'gauge',
+    samples: [{ labels: {}, value: queue.dlqSize }],
+  };
+}
+
+function buildExportQueueRetryTotal(queue: ExportMetricsSnapshot['queue']): PrometheusMetric {
+  return {
+    name: 'export_queue_retry_total',
+    help: 'Total number of export job retry attempts',
+    type: 'counter',
+    samples: [{ labels: {}, value: queue.totalRetries }],
+  };
+}
+
+function buildExportQueueDeadLetterTotal(queue: ExportMetricsSnapshot['queue']): PrometheusMetric {
+  return {
+    name: 'export_queue_dead_letter_total',
+    help: 'Total number of export jobs moved to the dead letter queue',
+    type: 'counter',
+    samples: [{ labels: {}, value: queue.totalDeadLettered }],
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -437,6 +467,13 @@ export function exportPrometheusMetrics(options?: PrometheusExportOptions): stri
     if (exportSnap.queue.avgWaitTimeMs > 0) {
       metrics.push(buildExportQueueWaitTimeMs(exportSnap.queue));
     }
+  }
+
+  // DLQ and retry metrics — always emit when any DLQ/retry activity has occurred
+  if (exportSnap.queue.dlqSize > 0 || exportSnap.queue.totalRetries > 0 || exportSnap.queue.totalDeadLettered > 0) {
+    metrics.push(buildExportQueueDlqSize(exportSnap.queue));
+    metrics.push(buildExportQueueRetryTotal(exportSnap.queue));
+    metrics.push(buildExportQueueDeadLetterTotal(exportSnap.queue));
   }
 
   const output = metrics.map(renderMetric).join('\n\n');
