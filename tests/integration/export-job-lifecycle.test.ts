@@ -34,7 +34,7 @@ function createTestServer() {
   });
 
   const jobQueue = new ExportJobQueue(
-    { maxConcurrent: 3, maxQueueSize: 20, starvationPreventionInterval: 60_000 },
+    { maxConcurrent: 3, maxQueueSize: 20, starvationPreventionInterval: 60_000, maxRetries: 0 },
     undefined,
     artifactStore,
   );

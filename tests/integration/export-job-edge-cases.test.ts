@@ -40,6 +40,7 @@ function createTestServer(options?: {
       maxQueueSize: options?.maxQueueSize ?? 20,
       starvationPreventionInterval: 60_000,
       maxCompletedJobs: options?.maxCompletedJobs ?? 500,
+      maxRetries: 0,
     },
     undefined,
     artifactStore,

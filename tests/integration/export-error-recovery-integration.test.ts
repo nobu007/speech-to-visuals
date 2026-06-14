@@ -270,7 +270,7 @@ describe('ExportJobQueue + Engine lifecycle', () => {
   test('queue tracks failed jobs when engine export fails', async () => {
     const metrics = new ExportMetricsCollector();
     const queue = new ExportJobQueue(
-      { maxConcurrent: 2, maxQueueSize: 10, starvationPreventionInterval: 60_000 },
+      { maxConcurrent: 2, maxQueueSize: 10, starvationPreventionInterval: 60_000, maxRetries: 0 },
       metrics,
     );
 

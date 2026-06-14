@@ -262,20 +262,25 @@ export class ExportJobQueue {
       return true;
     }
 
-    // Retries exhausted — move to dead letter queue
-    job.status = 'dead-lettered';
+    // Retries exhausted (or retries disabled) — terminal failure + dead letter queue
+    job.status = this.options.maxRetries > 0 ? 'dead-lettered' : 'failed';
     job.completedAt = Date.now();
     job.deadLetteredAt = Date.now();
     job.lastError = errorMessage;
 
     this.running.delete(jobId);
+    this.completed.push(job);
+    this.pruneCompletedJobs();
     this.deadLetterQueue.push(job);
     this.pruneDeadLetterQueue();
     this.metrics?.recordDeadLetter();
     this.emitMetrics();
 
     logger.warn(
-      `[ExportJobQueue] Job ${jobId} moved to dead letter queue after ${currentRetryCount} retries` +
+      `[ExportJobQueue] Job ${jobId} moved to dead letter queue` +
+      (this.options.maxRetries > 0
+        ? ` after ${currentRetryCount} retries`
+        : ' (no retries configured)') +
       (errorMessage ? `: ${errorMessage}` : ''),
     );
     return true;
@@ -348,7 +353,7 @@ export class ExportJobQueue {
     let cancelled = 0;
     for (const job of this.completed) {
       if (job.status === 'completed') completed++;
-      else if (job.status === 'failed') failed++;
+      else if (job.status === 'failed' || job.status === 'dead-lettered') failed++;
       else if (job.status === 'cancelled') cancelled++;
     }
 

@@ -222,7 +222,7 @@ export function createExportJobRouter(jobQueue: ExportJobQueue): Router {
       return;
     }
 
-    if (job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled') {
+    if (job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled' || job.status === 'dead-lettered') {
       res.status(409).json({
         success: false,
         error: { code: 'JOB_ALREADY_TERMINATED', message: `Job is already in terminal state: ${job.status}` },
