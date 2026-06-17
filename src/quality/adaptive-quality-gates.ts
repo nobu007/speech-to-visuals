@@ -212,8 +212,10 @@ class AdaptiveQualityGatesSystem {
       }
     }
 
-    const passed = blockersCount === 0 && (passedCount / this.gates.length) >= 0.80; // 80% must pass
-    const deploymentReady = blockersCount === 0 && (passedCount / this.gates.length) >= 0.90; // 90% for deployment
+    const totalGates = this.gates.length;
+    const passRate = totalGates > 0 ? passedCount / totalGates : 0;
+    const passed = blockersCount === 0 && totalGates > 0 && passRate >= 0.80; // 80% must pass
+    const deploymentReady = blockersCount === 0 && totalGates > 0 && passRate >= 0.90; // 90% for deployment
 
     const result: QualityGateResult = {
       passed,
@@ -507,7 +509,7 @@ class AdaptiveQualityGatesSystem {
     const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
     const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
 
-    const improvement = (secondAvg - firstAvg) / firstAvg;
+    const improvement = firstAvg !== 0 ? (secondAvg - firstAvg) / firstAvg : 0;
 
     let trend: 'improving' | 'stable' | 'degrading';
     if (improvement > 0.05) {

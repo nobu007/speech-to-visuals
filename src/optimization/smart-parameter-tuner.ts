@@ -169,8 +169,11 @@ class SmartParameterTuner {
   }
 
   private assessComplexity(transcript: string): 'low' | 'medium' | 'high' {
-    const words = transcript.split(/\s+/);
+    const words = transcript.split(/\s+/).filter(w => w.length > 0);
+    if (words.length === 0) return 'low';
+
     const sentences = transcript.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    if (sentences.length === 0) return 'low';
 
     // Calculate metrics
     const avgWordsPerSentence = words.length / sentences.length;
@@ -213,7 +216,9 @@ class SmartParameterTuner {
   }
 
   private calculateKeywordDensity(transcript: string): number {
-    const words = transcript.split(/\s+/);
+    const words = transcript.split(/\s+/).filter(w => w.length > 0);
+    if (words.length === 0) return 0;
+
     const diagramKeywords = [
       'flow', 'process', 'step', 'stage', 'phase', 'sequence',
       'tree', 'hierarchy', 'structure', 'branch', 'level',

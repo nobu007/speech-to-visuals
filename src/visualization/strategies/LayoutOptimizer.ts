@@ -57,10 +57,13 @@ export class LayoutOptimizer {
    */
   private optimizeTimelineLayout(layout: DiagramLayout): DiagramLayout {
     const nodes = [...layout.nodes];
+    if (nodes.length === 0) return { nodes, edges: layout.edges };
+
     const sortedNodes = nodes.sort((a, b) => a.x - b.x);
 
-    // Ensure even spacing
-    const spacing = (this.config.width - 2 * this.config.marginX) / (nodes.length - 1);
+    // Ensure even spacing (guard single-node case to avoid division by zero)
+    const usableWidth = this.config.width - 2 * this.config.marginX;
+    const spacing = nodes.length > 1 ? usableWidth / (nodes.length - 1) : 0;
     sortedNodes.forEach((node, index) => {
       node.x = this.config.marginX + index * spacing - node.w / 2;
       node.y = this.config.height / 2 - node.h / 2; // Center vertically
@@ -230,13 +233,17 @@ export class LayoutOptimizer {
    * Improve timeline alignment
    */
   private improveTimelineAlignment(nodes: PositionedNode[]): PositionedNode[] {
+    if (nodes.length === 0) return nodes;
+
     const sortedNodes = [...nodes].sort((a, b) => a.x - b.x);
     const y = this.config.height / 2 - sortedNodes[0].h / 2;
+    const usableWidth = this.config.width - 2 * this.config.marginX;
+    const spacing = nodes.length > 1 ? usableWidth / (nodes.length - 1) : 0;
 
     return sortedNodes.map((node, index) => ({
       ...node,
       y: y, // Align all nodes horizontally
-      x: this.config.marginX + index * ((this.config.width - 2 * this.config.marginX) / (nodes.length - 1))
+      x: this.config.marginX + index * spacing
     }));
   }
 
