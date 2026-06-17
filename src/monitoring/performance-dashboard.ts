@@ -234,7 +234,10 @@ export class PerformanceDashboard {
     const previous = this.metrics[this.metrics.length - 2];
 
     // Memory trend analysis
-    const memoryIncrease = (current.memory.heapUsed - previous.memory.heapUsed) / previous.memory.heapUsed;
+    const prevHeapUsed = previous.memory.heapUsed;
+    const memoryIncrease = prevHeapUsed > 0
+      ? (current.memory.heapUsed - prevHeapUsed) / prevHeapUsed
+      : 0;
 
     if (memoryIncrease > 0.1) { // 10% increase
       this.createAlert('warning', 'memory', 'Rapid memory increase detected',
@@ -248,6 +251,7 @@ export class PerformanceDashboard {
       const avgRecentResponseTime = recent.reduce((sum, m) => sum + m.throughput.avgResponseTime, 0) / recent.length;
 
       const earlier = this.metrics.slice(-20, -10);
+      if (earlier.length === 0) return;
       const avgEarlierResponseTime = earlier.reduce((sum, m) => sum + m.throughput.avgResponseTime, 0) / earlier.length;
 
       if (avgRecentResponseTime > avgEarlierResponseTime * 1.2) {

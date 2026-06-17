@@ -283,8 +283,9 @@ export class ContinuousLearner {
 
     for (const [component, data] of componentGroups.entries()) {
       const times = data.map(d => d.processingTime);
+      if (times.length === 0) continue;
       const average = times.reduce((a, b) => a + b, 0) / times.length;
-      const variance = times.reduce((acc, time) => acc + Math.pow(time - average, 2), 0) / times.length;
+      const variance = Math.max(0, times.reduce((acc, time) => acc + Math.pow(time - average, 2), 0) / times.length);
 
       // 異常に長い処理時間の検出
       const threshold = average + 2 * Math.sqrt(variance);
@@ -362,6 +363,7 @@ export class ContinuousLearner {
    */
   private async analyzeErrorFrequency(): Promise<void> {
     const recentData = this.getRecentData(500);
+    if (recentData.length === 0) return;
     const errorCount: Record<string, number> = {};
 
     recentData.forEach(data => {
@@ -594,6 +596,8 @@ export class ContinuousLearner {
     // 簡略化されたタイムライン作成
     const sorted = data.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
+    if (sorted.length === 0) return [];
+
     return [{
       timestamp: new Date(),
       successRate: sorted.filter(d => d.success).length / sorted.length
@@ -614,6 +618,13 @@ export class ContinuousLearner {
 
   private extractFeatures(data: LearningData[]): Map<string, number> {
     const features = new Map<string, number>();
+
+    if (data.length === 0) {
+      features.set('averageQuality', 0);
+      features.set('averageTime', 0);
+      features.set('successRate', 0);
+      return features;
+    }
 
     features.set('averageQuality', data.reduce((sum, d) => sum + d.qualityScore, 0) / data.length);
     features.set('averageTime', data.reduce((sum, d) => sum + d.processingTime, 0) / data.length);
