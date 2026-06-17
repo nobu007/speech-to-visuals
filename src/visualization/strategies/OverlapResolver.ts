@@ -27,8 +27,10 @@ export class OverlapResolver {
    * Ensures nodes don't go off-canvas
    */
   private constrainNodeToBounds(node: PositionedNode, margin: number = 10): void {
-    node.x = Math.max(margin, Math.min(node.x, this.config.width - nodeW(node) - margin));
-    node.y = Math.max(margin, Math.min(node.y, this.config.height - nodeH(node) - margin));
+    const maxX = Math.max(margin, this.config.width - nodeW(node) - margin);
+    const maxY = Math.max(margin, this.config.height - nodeH(node) - margin);
+    node.x = Math.max(margin, Math.min(node.x, maxX));
+    node.y = Math.max(margin, Math.min(node.y, maxY));
   }
 
   /**

@@ -621,7 +621,9 @@ export class SceneSegmenter {
     ];
 
     const testResults = await Promise.all(tests);
-    const overallScore = testResults.reduce((sum, result) => sum + result.score, 0) / testResults.length;
+    const overallScore = testResults.length > 0
+      ? testResults.reduce((sum, result) => sum + result.score, 0) / testResults.length
+      : 0;
     const passed = overallScore > this.TEST_SEGMENTATION_OVERALL_SCORE_THRESHOLD; // 80% threshold
 
     return { passed, testResults, overallScore };
@@ -638,11 +640,18 @@ export class SceneSegmenter {
     needsImprovement: boolean;
     suggestions: string[];
   }> {
+    const segCount = segments.length;
     const metrics = {
-      segmentCount: segments.length,
-      avgLength: segments.reduce((sum, seg) => sum + (seg.endMs - seg.startMs), 0) / segments.length,
-      avgKeyphrases: segments.reduce((sum, seg) => sum + seg.keyphrases.length, 0) / segments.length,
-      avgConfidence: segments.reduce((sum, seg) => sum + seg.confidence, 0) / segments.length,
+      segmentCount: segCount,
+      avgLength: segCount > 0
+        ? segments.reduce((sum, seg) => sum + (seg.endMs - seg.startMs), 0) / segCount
+        : 0,
+      avgKeyphrases: segCount > 0
+        ? segments.reduce((sum, seg) => sum + seg.keyphrases.length, 0) / segCount
+        : 0,
+      avgConfidence: segCount > 0
+        ? segments.reduce((sum, seg) => sum + seg.confidence, 0) / segCount
+        : 0,
       processingTime: performance.now() - startTime
     };
 

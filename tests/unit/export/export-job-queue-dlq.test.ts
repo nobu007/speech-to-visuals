@@ -458,4 +458,128 @@ describe('ExportJobQueue — retry and dead letter queue', () => {
       expect(found!.retryCount).toBe(1); // Retry count preserved
     });
   });
+
+  // -------------------------------------------------------------------------
+  // Cancel on terminal/DLQ jobs
+  // -------------------------------------------------------------------------
+
+  describe('cancel on non-active jobs', () => {
+    it('cancel returns false for dead-lettered job', () => {
+      const job = queue.enqueue({
+        priority: 'normal',
+        format: 'mp4',
+        inputHash: 'cancel-dlq',
+      });
+
+      // Exhaust retries → DLQ
+      for (let i = 0; i < 4; i++) {
+        queue.dequeue();
+        queue.completeJob(job.jobId, false, undefined, 'fail');
+      }
+
+      expect(queue.findJob(job.jobId)!.status).toBe('dead-lettered');
+      expect(queue.cancel(job.jobId)).toBe(false);
+      // Job should still be in DLQ
+      expect(queue.getQueueStats().deadLettered).toBe(1);
+    });
+
+    it('cancel returns false for completed job', () => {
+      const job = queue.enqueue({
+        priority: 'normal',
+        format: 'mp4',
+        inputHash: 'cancel-done',
+      });
+
+      queue.dequeue();
+      queue.completeJob(job.jobId, true, { data: new Uint8Array([1]), sizeBytes: 1 });
+
+      expect(queue.findJob(job.jobId)!.status).toBe('completed');
+      expect(queue.cancel(job.jobId)).toBe(false);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // maxRetries = 0 status check
+  // -------------------------------------------------------------------------
+
+  describe('maxRetries = 0', () => {
+    it('sets status to failed (not dead-lettered) when maxRetries is 0', () => {
+      const noRetryQueue = new ExportJobQueue({
+        maxConcurrent: 1,
+        maxQueueSize: 50,
+        starvationPreventionInterval: 60_000,
+        maxCompletedJobs: 100,
+        maxRetries: 0,
+        retryBaseDelayMs: 100,
+        retryMaxDelayMs: 1_000,
+        maxDlqJobs: 50,
+      });
+
+      const job = noRetryQueue.enqueue({
+        priority: 'normal',
+        format: 'mp4',
+        inputHash: 'no-retry',
+      });
+
+      noRetryQueue.dequeue();
+      noRetryQueue.completeJob(job.jobId, false, undefined, 'immediate fail');
+
+      const found = noRetryQueue.findJob(job.jobId);
+      expect(found).toBeDefined();
+      expect(found!.status).toBe('failed');
+      expect(found!.deadLetteredAt).toBeDefined();
+      expect(noRetryQueue.getQueueStats().deadLettered).toBe(1);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // DLQ replay priority ordering
+  // -------------------------------------------------------------------------
+
+  describe('replayDeadLetterJob priority ordering', () => {
+    it('inserts replayed job in priority order within existing queue', () => {
+      // Enqueue a normal priority job first
+      const existingJob = queue.enqueue({
+        priority: 'normal',
+        format: 'mp4',
+        inputHash: 'existing-normal',
+      });
+
+      // Create and DLQ a high priority job
+      const highJob = queue.enqueue({
+        priority: 'high',
+        format: 'mp4',
+        inputHash: 'dlq-high',
+      });
+
+      // Dequeue both (existing first since it was enqueued first but high has priority...)
+      // Actually, high priority should be dequeued first
+      const firstDequeued = queue.dequeue();
+      expect(firstDequeued!.jobId).toBe(highJob.jobId); // high priority first
+
+      // Fail the high job to DLQ
+      queue.completeJob(highJob.jobId, false, undefined, 'fail');
+      for (let i = 0; i < 3; i++) {
+        queue.dequeue();
+        queue.completeJob(highJob.jobId, false, undefined, 'fail');
+      }
+
+      expect(queue.getQueueStats().deadLettered).toBe(1);
+      expect(queue.getQueueStats().queued).toBe(1); // existingJob still queued
+
+      // Replay the high-priority DLQ job
+      const replayed = queue.replayDeadLetterJob(highJob.jobId);
+      expect(replayed).toBeDefined();
+      expect(replayed!.priority).toBe('high');
+
+      // The replayed high-priority job should be dequeued before the normal job
+      const next = queue.dequeue();
+      expect(next!.jobId).toBe(replayed!.jobId);
+      expect(next!.priority).toBe('high');
+
+      const after = queue.dequeue();
+      expect(after!.jobId).toBe(existingJob.jobId);
+      expect(after!.priority).toBe('normal');
+    });
+  });
 });

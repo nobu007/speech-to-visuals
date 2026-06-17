@@ -108,4 +108,33 @@ describe('OverlapResolver (visualization/strategies)', () => {
       expect(result.nodes).toHaveLength(2);
     });
   });
+
+  describe('constrainNodeToBounds — small canvas edge case', () => {
+    it('should not produce NaN when node is larger than canvas', async () => {
+      const tinyConfig = {
+        width: 80,
+        height: 40,
+        nodeWidth: 120,
+        nodeHeight: 60,
+        marginX: 10,
+        marginY: 10,
+        nodeSeparation: 5,
+      };
+      const tinyResolver = new OverlapResolver(tinyConfig);
+
+      const nodes: PositionedNode[] = [
+        { id: 'a', label: 'A', x: 200, y: 200, w: 120, h: 60 },
+      ];
+      const layout = makeLayout(nodes);
+      const result = await tinyResolver.finalOverlapResolution(layout);
+
+      expect(result.nodes).toHaveLength(1);
+      const node = result.nodes[0];
+      expect(Number.isFinite(node.x)).toBe(true);
+      expect(Number.isFinite(node.y)).toBe(true);
+      // x and y should be clamped to a valid bound, not NaN or negative
+      expect(node.x).toBeGreaterThanOrEqual(0);
+      expect(node.y).toBeGreaterThanOrEqual(0);
+    });
+  });
 });
