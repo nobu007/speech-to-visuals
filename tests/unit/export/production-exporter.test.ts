@@ -214,6 +214,28 @@ describe('REQ-169: ProductionExporter', () => {
     });
   });
 
+  // ─── TC-169-04a: fps validation ───────────────────────────────────────
+
+  describe('TC-169-04a: fps validation guards', () => {
+    it('throws PipelineConfigError when fps is 0', async () => {
+      const scenes = [makeEnhancedScene()];
+      const options = makeRenderOptions({ fps: 0 });
+
+      await expect(
+        exporter.createExportJob('Zero FPS', scenes, options),
+      ).rejects.toThrow(PipelineConfigError);
+    });
+
+    it('throws PipelineConfigError when fps is negative', async () => {
+      const scenes = [makeEnhancedScene()];
+      const options = makeRenderOptions({ fps: -1 });
+
+      await expect(
+        exporter.createExportJob('Negative FPS', scenes, options),
+      ).rejects.toThrow(PipelineConfigError);
+    });
+  });
+
   // ─── TC-169-04: Job cancellation ──────────────────────────────────────
 
   describe('TC-169-04: Job cancellation', () => {

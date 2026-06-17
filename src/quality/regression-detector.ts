@@ -210,7 +210,7 @@ export class RegressionDetector {
 
       // Skip undefined metrics
       if (baselineValue === undefined || currentValue === undefined) continue;
-      if (baselineValue === 0 && currentValue === 0) continue;
+      if (baselineValue === 0) continue; // Cannot compute meaningful % change from zero baseline
 
       // Calculate percentage change
       const changePercent = ((currentValue - baselineValue) / Math.abs(baselineValue)) * 100;

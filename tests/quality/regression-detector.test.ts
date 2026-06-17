@@ -241,6 +241,21 @@ describe('RegressionDetector', () => {
       expect(report.overallStatus).toBe('regressed');
     });
 
+    test('skips metric when baseline is zero but current is non-zero (no Infinity)', async () => {
+      mockGetLatestMetrics
+        .mockReturnValueOnce(makeMetrics({ layoutOverlap: 0 }))
+        .mockReturnValueOnce(makeMetrics({ layoutOverlap: 5 }));
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
+      await d.establishBaseline();
+      const report = await d.detectRegressions();
+
+      // Should not produce Infinity regressions
+      const r = report.regressions.find(x => x.metric === 'layoutOverlap');
+      expect(r).toBeUndefined();
+      expect(report.regressions.every(x => Number.isFinite(x.changePercent))).toBe(true);
+    });
+
     test('skips metrics where both values are zero', async () => {
       mockGetLatestMetrics
         .mockReturnValueOnce(makeMetrics({ layoutOverlap: 0, errorCount: 0 }))

@@ -204,6 +204,13 @@ export class ProductionExporter {
     scenes: EnhancedSceneGraph[],
     options: RenderOptions
   ): Promise<string> {
+    if (!options.fps || options.fps <= 0) {
+      throw new PipelineConfigError(
+        'fps',
+        `Invalid fps: ${options.fps}. fps must be a positive number.`,
+      );
+    }
+
     const jobId = `export-${Date.now()}-${randomUUID().split('-')[0]}`;
 
 
