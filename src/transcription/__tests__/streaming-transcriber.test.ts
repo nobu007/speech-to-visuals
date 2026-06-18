@@ -1853,5 +1853,153 @@ describe('StreamingTranscriber', () => {
       expect(config.minConfidence).toBe(0.7);
       expect(config.enableLiveUpdate).toBe(true);
     });
+
+    // --- Chunk loop error resilience: callback throws & non-Error throws ---
+
+    it('onProgress callback throwing does not crash the transcription session', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 10;
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 3000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+
+      // First progress call throws, subsequent calls succeed
+      let progressCallCount = 0;
+      const onProgress = jest.fn().mockImplementation(() => {
+        progressCallCount++;
+        if (progressCallCount === 1) {
+          throw new Error('onProgress boom');
+        }
+      });
+
+      const promise = transcriber.transcribeStream('/audio.mp3', onProgress);
+
+      setImmediate(() => {
+        if (mockAudioInstance.onloadedmetadata) {
+          mockAudioInstance.onloadedmetadata();
+        }
+      });
+
+      const result = await promise;
+
+      // Session completed despite onProgress throwing on the first chunk
+      expect(result.success).toBe(true);
+      // Subsequent chunks fired onProgress (the throw was caught by the try/catch)
+      expect(progressCallCount).toBeGreaterThanOrEqual(2);
+      // Segments from non-failing chunks are present
+      expect(result.segments!.length).toBeGreaterThan(0);
+    });
+
+    it('onSegment callback throwing does not crash the transcription session', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 6;
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 3000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+
+      // onSegment throws on first call, then succeeds
+      let segmentCallCount = 0;
+      const onSegment = jest.fn().mockImplementation(() => {
+        segmentCallCount++;
+        if (segmentCallCount === 1) throw new Error('onSegment boom');
+      });
+
+      const promise = transcriber.transcribeStream('/audio.mp3', undefined, onSegment);
+
+      setImmediate(() => {
+        if (mockAudioInstance.onloadedmetadata) {
+          mockAudioInstance.onloadedmetadata();
+        }
+      });
+
+      const result = await promise;
+
+      // Session completed despite onSegment throwing
+      expect(result.success).toBe(true);
+      // Multiple segment callbacks were attempted (the throw didn't break the loop)
+      expect(segmentCallCount).toBeGreaterThanOrEqual(2);
+    });
+
+    it('processAudioChunk throwing a non-Error string does not crash the session', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 6;
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 3000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+
+      const anyTranscriber = transcriber as unknown as Record<string, unknown>;
+      const origProcess = anyTranscriber.processAudioChunk as (
+        chunk: { start: number; end: number },
+        audioFile: string | File
+      ) => Promise<TranscriptionSegment[]>;
+
+      let chunkCallCount = 0;
+      anyTranscriber.processAudioChunk = jest.fn().mockImplementation(async (
+        chunk: { start: number; end: number },
+        audioFile: string | File
+      ) => {
+        chunkCallCount++;
+        if (chunkCallCount === 1) {
+          throw 'non-Error string throw'; // eslint-disable-line no-throw-literal
+        }
+        return origProcess.call(transcriber, chunk, audioFile);
+      });
+
+      const promise = transcriber.transcribeStream('/audio.mp3');
+
+      setImmediate(() => {
+        if (mockAudioInstance.onloadedmetadata) {
+          mockAudioInstance.onloadedmetadata();
+        }
+      });
+
+      const result = await promise;
+
+      // The non-Error throw was caught and the session completed
+      expect(result.success).toBe(true);
+      expect(result.segments!.length).toBeGreaterThan(0);
+    });
+
+    it('all chunks failing still returns a successful result with empty segments', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 9;
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 3000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+
+      // Every chunk fails
+      const anyTranscriber = transcriber as unknown as Record<string, unknown>;
+      anyTranscriber.processAudioChunk = jest.fn().mockImplementation(async () => {
+        throw new Error('permanent failure');
+      });
+
+      const promise = transcriber.transcribeStream('/audio.mp3');
+
+      setImmediate(() => {
+        if (mockAudioInstance.onloadedmetadata) {
+          mockAudioInstance.onloadedmetadata();
+        }
+      });
+
+      const result = await promise;
+
+      // Session still completes (no unhandled crash)
+      expect(result.success).toBe(true);
+      // No segments since all chunks failed
+      expect(result.segments).toEqual([]);
+      expect(result.text).toBe('');
+    });
   });
 });
