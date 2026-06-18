@@ -4893,3 +4893,12 @@
 | Combined Shutdown | 2 | 🔵 |
 | Server Wiring | 1 | 🔵 |
 | **合計** | **13** | **🔵 100%** |
+
+
+<!-- spine:references:begin -->
+## Spine: external references
+
+- [TASK-0071: 受け入れ基準テストケースの正式検証](tasks/TASK-0071.md)
+- [TASK-0077: E2Eベンチマーク200ノードレイアウト性能改善](tasks/TASK-0077.md)
+
+<!-- spine:references:end -->

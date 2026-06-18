@@ -770,3 +770,32 @@
 - [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 105 を網羅し、Phase 105 完了（エクスポートジョブライフサイクル統合テスト・サーバーwiring E2E検証・7テスト追加）を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテキュリティに違反していない
 - [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（Phase 105完了・REQ-001~243全実装済・🔵260件/🟡4件/🔴0件）
+
+
+<!-- spine:references:begin -->
+## Spine: external references
+
+- [TASK-0166: 残存モジュール型付きエラー移行（monitoring/config/integrations/framework/pages）](tasks/TASK-0166.md)
+- [TASK-0167: 残存モジュール ErrorClassifier 回帰テスト](tasks/TASK-0167.md)
+- [TASK-0168: performance-dashboard.ts ユニットテスト](tasks/TASK-0168.md)
+- [TASK-0169: production-error-handler.ts ユニットテスト](tasks/TASK-0169.md)
+- [TASK-0170: real-time-performance-monitor.ts ユニットテスト](tasks/TASK-0170.md)
+- [TASK-0171: 文字起こしモジュール型付きエラー移行](tasks/TASK-0171.md)
+- [TASK-0172: 文字起こしモジュール ErrorClassifier 回帰テスト](tasks/TASK-0172.md)
+- [TASK-0173: browser-transcriber.ts ユニットテスト](tasks/TASK-0173.md)
+- [TASK-0174: whisper-transcriber.ts ユニットテスト](tasks/TASK-0174.md)
+- [TASK-0175: streaming-transcriber.ts ユニットテスト](tasks/TASK-0175.md)
+- [TASK-0176: 可視化モジュール型付きエラー移行](tasks/TASK-0176.md)
+- [TASK-0177: API モジュール型付きエラー移行](tasks/TASK-0177.md)
+- [TASK-0178: 可視化モジュールテスト安定化](tasks/TASK-0178.md)
+- [TASK-0179: パイプライン・E2Eテスト安定化](tasks/TASK-0179.md)
+- [TASK-0180: API・セキュリティテスト安定化](tasks/TASK-0180.md)
+- [TASK-0181: モニタリング・品質・UIテスト安定化](tasks/TASK-0181.md)
+- [TASK-0182: トランスクリプション・LLM・ベンチマークテスト安定化](tasks/TASK-0182.md)
+- [TASK-0183: テストファイルESLint no-explicit-any解消](tasks/TASK-0183.md)
+- [TASK-0184: overview.md Phase 65-73完了ステータス更新](tasks/TASK-0184.md)
+- [TASK-0185: Jest ESM 互換性修正（--experimental-vm-modules 追加）](tasks/TASK-0185.md)
+- [TASK-0186: processWithRetry エラー型伝播バグ修正](tasks/TASK-0186.md)
+- [TASK-0187: simple-pipeline テストアサーション修正](tasks/TASK-0187.md)
+
+<!-- spine:references:end -->

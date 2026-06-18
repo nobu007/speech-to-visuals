@@ -1066,3 +1066,43 @@ groups:
 
 **エラーコード**:
 - `ALERTS_ERROR`: アラートルール生成失敗
+
+
+<!-- spine:references:begin -->
+## Spine: external references
+
+- [TASK-0001: 環境設定・依存パッケージ整備](tasks/TASK-0001.md)
+- [TASK-0002: TypeScript型定義実装](tasks/TASK-0002.md)
+- [TASK-0003: Supabase データベーススキーマ・RLS設定](tasks/TASK-0003.md)
+- [TASK-0004: Supabase Storage バケット設定](tasks/TASK-0004.md)
+- [TASK-0005: 環境変数・設定管理モジュール](tasks/TASK-0005.md)
+- [TASK-0006: Express API サーバー基本セットアップ](tasks/TASK-0006.md)
+- [TASK-0007: Supabase 認証・クライアント統合](tasks/TASK-0007.md)
+- [TASK-0008: API エラーハンドリング・セキュリティミドルウェア](tasks/TASK-0008.md)
+- [TASK-0009: テストユーティリティ・モック基盤](tasks/TASK-0009.md)
+- [TASK-0010: CI/CD・ビルドパイプライン設定](tasks/TASK-0010.md)
+- [TASK-0032: Remotion基本コンポーネント](tasks/TASK-0032.md)
+- [TASK-0033: DiagramScene アニメーション](tasks/TASK-0033.md)
+- [TASK-0034: キャプション同期機構](tasks/TASK-0034.md)
+- [TASK-0035: 動画レンダリング設定・出力](tasks/TASK-0035.md)
+- [TASK-0036: SimplePipelineInterface メインUI](tasks/TASK-0036.md)
+- [TASK-0037: EnhancedFileUploader D&D実装](tasks/TASK-0037.md)
+- [TASK-0038: 進捗表示コンポーネント](tasks/TASK-0038.md)
+- [TASK-0039: ビデオプレビュー・Remotion Player統合](tasks/TASK-0039.md)
+- [TASK-0040: エラー表示・リカバリUI](tasks/TASK-0040.md)
+- [TASK-0041: エクスポート機能（SVG/PNG/PDF/JSON）](tasks/TASK-0041.md)
+- [TASK-0042: モバイル対応・レスポンシブUI](tasks/TASK-0042.md)
+- [TASK-0043: Pipeline Orchestrator実装](tasks/TASK-0043.md)
+- [TASK-0044: 品質ゲート・品質監視モジュール](tasks/TASK-0044.md)
+- [TASK-0045: エラーハンドリング・回復フレームワーク](tasks/TASK-0045.md)
+- [TASK-0046: バッチ処理API実装](tasks/TASK-0046.md)
+- [TASK-0047: WebSocket リアルタイム進捗通知](tasks/TASK-0047.md)
+- [TASK-0048: Supabase Edge Functions 実装](tasks/TASK-0048.md)
+- [TASK-0049: パイプライン統合テスト](tasks/TASK-0049.md)
+- [TASK-0050: API統合テスト](tasks/TASK-0050.md)
+- [TASK-0051: E2Eテスト](tasks/TASK-0051.md)
+- [TASK-0052: パフォーマンステスト・最適化](tasks/TASK-0052.md)
+- [TASK-0073: Pipeline REST API エンドポイント実装（REQ-057）・残存 TODO 解消](tasks/TASK-0073.md)
+- [TASK-0193: リクエスト相関IDミドルウェア](tasks/TASK-0193.md)
+
+<!-- spine:references:end -->

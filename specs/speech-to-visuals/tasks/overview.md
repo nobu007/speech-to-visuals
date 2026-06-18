@@ -1641,3 +1641,20 @@ TASK-0199, TASK-0200 → TASK-0201
 - [x] TASK-0206: ExportArtifactStore + TTL自動クリーンアップ + ダウンロードURL生成 + 使用量追跡 (REQ-230) - 4h 🔵
 
 **依存関係**: Phase 99 (TASK-0205) → Phase 100 (TASK-0206)
+
+
+<!-- spine:references:begin -->
+## Spine: external references
+
+- [speech-to-visuals API エンドポイント仕様](/home/jinno/speech-to-visuals/specs/speech-to-visuals/api-endpoints.md)
+- [TASK-0119: ESLint回帰修正: Workerテストのno-explicit-any解消](TASK-0119.md)
+- [TASK-0122: コード規模90K制限への適合と不要コード除去](TASK-0122.md)
+- [TASK-0123: SYSTEM_CONSTITUTION.md・overview.md メトリクス更新・第116回検証](TASK-0123.md)
+- [TASK-0137: ストリーミング文字起こし品質監視統合](TASK-0137.md)
+- [TASK-0138: 音声前処理パイプライン実装](TASK-0138.md)
+- [TASK-0139: エクスポート完全性検証実装](TASK-0139.md)
+- [TASK-0140: フォースダイレクトシミュレーションREQ正式化・専用テスト追加](TASK-0140.md)
+- [TASK-0141: マルチレベルグラフ粗視化REQ正式化・専用テスト追加](TASK-0141.md)
+- [TASK-0142: Phase 31-34 全品質モジュール E2E 統合テスト](TASK-0142.md)
+
+<!-- spine:references:end -->
