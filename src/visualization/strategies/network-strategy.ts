@@ -118,10 +118,10 @@ export class NetworkStrategy implements LayoutStrategy {
         const force = (repulsionK * impScale) / (dist * dist);
         const fx = (dx / dist) * force;
         const fy = (dy / dist) * force;
-        forces.get(a.id)!.x -= fx;
-        forces.get(a.id)!.y -= fy;
-        forces.get(b.id)!.x += fx;
-        forces.get(b.id)!.y += fy;
+        const fa = forces.get(a.id);
+        const fb = forces.get(b.id);
+        if (fa) { fa.x -= fx; fa.y -= fy; }
+        if (fb) { fb.x += fx; fb.y += fy; }
       }
     }
 
@@ -143,10 +143,10 @@ export class NetworkStrategy implements LayoutStrategy {
       const force = attractionK * impScale * (dist - NODE_SEP * 2);
       const fx = (dx / dist) * force;
       const fy = (dy / dist) * force;
-      forces.get(src.id)!.x += fx;
-      forces.get(src.id)!.y += fy;
-      forces.get(tgt.id)!.x -= fx;
-      forces.get(tgt.id)!.y -= fy;
+      const fs = forces.get(src.id);
+      const ft = forces.get(tgt.id);
+      if (fs) { fs.x += fx; fs.y += fy; }
+      if (ft) { ft.x -= fx; ft.y -= fy; }
     }
 
     return forces;
@@ -158,7 +158,8 @@ export class NetworkStrategy implements LayoutStrategy {
     damping: number,
   ): void {
     for (const node of nodes) {
-      const f = forces.get(node.id)!;
+      const f = forces.get(node.id);
+      if (!f) continue;
       const maxV = NODE_SEP * 2;
       const v = Math.sqrt(f.x * f.x + f.y * f.y);
       const scale = v > maxV ? maxV / v : 1;

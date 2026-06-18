@@ -605,8 +605,8 @@ export class ZeroOverlapLayoutEngine {
             const fx = (dx / distance) * repulsion;
             const fy = (dy / distance) * repulsion;
 
-            const force1 = forces.get(node1.id)!;
-            const force2 = forces.get(node2.id)!;
+            const force1 = forces.get(node1.id) ?? { x: 0, y: 0 };
+            const force2 = forces.get(node2.id) ?? { x: 0, y: 0 };
 
             force1.x -= fx;
             force1.y -= fy;
@@ -634,8 +634,8 @@ export class ZeroOverlapLayoutEngine {
           const fx = (dx / distance) * attraction;
           const fy = (dy / distance) * attraction;
 
-          const forceSource = forces.get(source.id)!;
-          const forceTarget = forces.get(target.id)!;
+          const forceSource = forces.get(source.id) ?? { x: 0, y: 0 };
+          const forceTarget = forces.get(target.id) ?? { x: 0, y: 0 };
 
           forceSource.x += fx;
           forceSource.y += fy;
@@ -647,7 +647,7 @@ export class ZeroOverlapLayoutEngine {
 
     // Apply forces with enhanced damping and bounds checking
     nodes.forEach(node => {
-      const force = forces.get(node.id)!;
+      const force = forces.get(node.id) ?? { x: 0, y: 0 };
       const damping = 0.1;
 
       // Apply force with velocity limiting
@@ -856,8 +856,8 @@ export class ZeroOverlapLayoutEngine {
       const moveVector = this.calculateMoveVector(node1, node2, separation * 2.0); // Increased from 1.5
 
       // Accumulate forces
-      const force1 = forces.get(node1.id)!;
-      const force2 = forces.get(node2.id)!;
+      const force1 = forces.get(node1.id) ?? { x: 0, y: 0 };
+      const force2 = forces.get(node2.id) ?? { x: 0, y: 0 };
 
       force1.x -= moveVector.x;
       force1.y -= moveVector.y;
@@ -867,7 +867,7 @@ export class ZeroOverlapLayoutEngine {
 
     // Apply accumulated forces to nodes
     adjustedNodes.forEach((node, index) => {
-      const force = forces.get(node.id)!;
+      const force = forces.get(node.id) ?? { x: 0, y: 0 };
 
       // ITERATION 45: Reduced damping for more aggressive movement
       const damping = 0.9; // Increased from 0.8 for stronger push
@@ -1115,8 +1115,8 @@ export class ZeroOverlapLayoutEngine {
           const fx = (dx / distance) * repulsion;
           const fy = (dy / distance) * repulsion;
 
-          const force1 = forces.get(node1.id)!;
-          const force2 = forces.get(node2.id)!;
+          const force1 = forces.get(node1.id) ?? { x: 0, y: 0 };
+          const force2 = forces.get(node2.id) ?? { x: 0, y: 0 };
 
           force1.x -= fx;
           force1.y -= fy;
@@ -1141,8 +1141,8 @@ export class ZeroOverlapLayoutEngine {
           const fx = (dx / distance) * attraction;
           const fy = (dy / distance) * attraction;
 
-          const forceSource = forces.get(source.id)!;
-          const forceTarget = forces.get(target.id)!;
+          const forceSource = forces.get(source.id) ?? { x: 0, y: 0 };
+          const forceTarget = forces.get(target.id) ?? { x: 0, y: 0 };
 
           forceSource.x += fx;
           forceSource.y += fy;
@@ -1154,7 +1154,7 @@ export class ZeroOverlapLayoutEngine {
 
     // Apply forces with enhanced damping and bounds checking
     nodes.forEach(node => {
-      const force = forces.get(node.id)!;
+      const force = forces.get(node.id) ?? { x: 0, y: 0 };
       const damping = 0.1;
 
       // Apply force with velocity limiting

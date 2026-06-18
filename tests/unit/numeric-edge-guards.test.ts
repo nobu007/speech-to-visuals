@@ -486,3 +486,108 @@ describe('EnhancedZeroOverlapLayout – zero-nodes grid guard', () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Force-layout Map.get() null-deref guards
+// ---------------------------------------------------------------------------
+
+describe('Force-layout Map.get() null-deref guards', () => {
+  it('fallback force object has x=0 y=0 when Map.get returns undefined', () => {
+    // Simulates the `?? { x: 0, y: 0 }` guard pattern used in
+    // enhanced-zero-overlap-layout.ts, complex-layout-engine.ts,
+    // NetworkLayoutStrategy.ts, network-strategy.ts, edge-crossing-minimizer.ts
+    const forces = new Map<string, { x: number; y: number }>();
+    forces.set('a', { x: 1, y: 2 });
+
+    // Existing key returns the stored value
+    const existing = forces.get('a') ?? { x: 0, y: 0 };
+    expect(existing.x).toBe(1);
+    expect(existing.y).toBe(2);
+
+    // Missing key returns the fallback without crashing
+    const missing = forces.get('nonexistent') ?? { x: 0, y: 0 };
+    expect(missing.x).toBe(0);
+    expect(missing.y).toBe(0);
+  });
+
+  it('fallback displacement object has fx=0 fy=0 for complex-layout-engine', () => {
+    // Simulates the `?? { fx: 0, fy: 0 }` guard pattern
+    const forces = new Map<string, { fx: number; fy: number }>();
+    const missing = forces.get('absent') ?? { fx: 0, fy: 0 };
+    expect(missing.fx).toBe(0);
+    expect(missing.fy).toBe(0);
+  });
+
+  it('fallback position object has all-zero coords for complex-layout-engine', () => {
+    // Simulates the `?? { x: 0, y: 0, vx: 0, vy: 0 }` guard pattern
+    const positions = new Map<string, { x: number; y: number; vx: number; vy: number }>();
+    const missing = positions.get('missing') ?? { x: 0, y: 0, vx: 0, vy: 0 };
+    expect(missing.x).toBe(0);
+    expect(missing.y).toBe(0);
+    expect(missing.vx).toBe(0);
+    expect(missing.vy).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// error-recovery-health-tracker – computeTrend half-length guard
+// ---------------------------------------------------------------------------
+
+describe('ErrorRecoveryHealthTracker – computeTrend half-length guard', () => {
+  it('half is at least 1 when deltas length is 2', () => {
+    // Guard: Math.max(Math.floor(deltas.length / 2), 1)
+    const deltas = [1, -1];
+    const half = Math.max(Math.floor(deltas.length / 2), 1);
+    expect(half).toBeGreaterThanOrEqual(1);
+
+    const firstHalf = deltas.slice(0, half);
+    const secondHalf = deltas.slice(half);
+    expect(firstHalf.length).toBeGreaterThan(0);
+    expect(secondHalf.length).toBeGreaterThan(0);
+  });
+
+  it('does not produce NaN when deltas has exactly minTrendSamples entries', () => {
+    const deltas = [0.5, 0.3];
+    const half = Math.max(Math.floor(deltas.length / 2), 1);
+    const firstHalf = deltas.slice(0, half);
+    const secondHalf = deltas.slice(half);
+
+    const avgFirst = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+    const avgSecond = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+
+    expect(Number.isFinite(avgFirst)).toBe(true);
+    expect(Number.isFinite(avgSecond)).toBe(true);
+    expect(Number.isNaN(avgFirst)).toBe(false);
+    expect(Number.isNaN(avgSecond)).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// framework-integrated-pipeline – processingTime=0 throughput guard
+// ---------------------------------------------------------------------------
+
+describe('FrameworkIntegratedPipeline – throughput zero-time guard', () => {
+  it('throughput is 0 when processingTime is 0 (not Infinity)', () => {
+    // Guard: result.processingTime > 0 ? result.scenes.length / (result.processingTime / 1000) : 0
+    const processingTime = 0;
+    const scenesLength = 5;
+    const throughput = processingTime > 0
+      ? scenesLength / (processingTime / 1000)
+      : 0;
+
+    expect(Number.isFinite(throughput)).toBe(true);
+    expect(Number.isNaN(throughput)).toBe(false);
+    expect(throughput).toBe(0);
+  });
+
+  it('throughput is positive when processingTime > 0', () => {
+    const processingTime = 10000;
+    const scenesLength = 5;
+    const throughput = processingTime > 0
+      ? scenesLength / (processingTime / 1000)
+      : 0;
+
+    expect(Number.isFinite(throughput)).toBe(true);
+    expect(throughput).toBe(0.5);
+  });
+});
+

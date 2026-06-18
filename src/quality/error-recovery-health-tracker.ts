@@ -233,9 +233,9 @@ export class ErrorRecoveryHealthTracker {
   private computeTrend(
     deltas: number[],
   ): 'improving' | 'stable' | 'degrading' {
-    if (deltas.length < this.config.minTrendSamples) return 'stable';
+    if (deltas.length < Math.max(this.config.minTrendSamples, 2)) return 'stable';
 
-    const half = Math.floor(deltas.length / 2);
+    const half = Math.max(Math.floor(deltas.length / 2), 1);
     const firstHalf = deltas.slice(0, half);
     const secondHalf = deltas.slice(half);
 

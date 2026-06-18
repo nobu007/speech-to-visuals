@@ -182,8 +182,8 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
             const fx = (dx / distance) * repulsion;
             const fy = (dy / distance) * repulsion;
 
-            const force1 = forces.get(node1.id)!;
-            const force2 = forces.get(node2.id)!;
+            const force1 = forces.get(node1.id) ?? { x: 0, y: 0 };
+            const force2 = forces.get(node2.id) ?? { x: 0, y: 0 };
 
             force1.x -= fx;
             force1.y -= fy;
@@ -211,8 +211,8 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
           const fx = (dx / distance) * attraction;
           const fy = (dy / distance) * attraction;
 
-          const forceSource = forces.get(source.id)!;
-          const forceTarget = forces.get(target.id)!;
+          const forceSource = forces.get(source.id) ?? { x: 0, y: 0 };
+          const forceTarget = forces.get(target.id) ?? { x: 0, y: 0 };
 
           forceSource.x += fx;
           forceSource.y += fy;
@@ -224,7 +224,7 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
 
     // Apply forces with damping and bounds checking
     nodes.forEach(node => {
-      const force = forces.get(node.id)!;
+      const force = forces.get(node.id) ?? { x: 0, y: 0 };
       const damping = 0.1;
 
       // Limit maximum velocity

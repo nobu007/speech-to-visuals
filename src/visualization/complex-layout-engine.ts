@@ -464,7 +464,7 @@ export class ComplexLayoutEngine {
     const allEdges: LayoutEdge[] = [];
 
     for (const cluster of clusters) {
-      const clusterPos = clusterPositions.get(cluster.id)!;
+      const clusterPos = clusterPositions.get(cluster.id) ?? { x: 0, y: 0 };
       const clusterNodes = await this.layoutClusterNodes(cluster.nodes, clusterPos);
       allNodes.push(...clusterNodes);
     }
@@ -636,8 +636,10 @@ export class ComplexLayoutEngine {
       if (!fromSuper || !toSuper || fromSuper === toSuper) continue;
 
       if (!superedgeMap.has(fromSuper)) superedgeMap.set(fromSuper, new Map());
-      const current = superedgeMap.get(fromSuper)!.get(toSuper) ?? 0;
-      superedgeMap.get(fromSuper)!.set(toSuper, current + 1);
+      const innerMap = superedgeMap.get(fromSuper);
+      if (!innerMap) continue;
+      const current = innerMap.get(toSuper) ?? 0;
+      innerMap.set(toSuper, current + 1);
     }
 
     const superedges: EdgeDatum[] = [];
@@ -697,9 +699,9 @@ export class ComplexLayoutEngine {
 
     // Repulsive forces between all node pairs (Coulomb's law)
     for (let i = 0; i < nodes.length; i++) {
-      const pi = state.positions.get(nodes[i].id)!;
+      const pi = state.positions.get(nodes[i].id) ?? { x: 0, y: 0, vx: 0, vy: 0 };
       for (let j = i + 1; j < nodes.length; j++) {
-        const pj = state.positions.get(nodes[j].id)!;
+        const pj = state.positions.get(nodes[j].id) ?? { x: 0, y: 0, vx: 0, vy: 0 };
         const dx = pi.x - pj.x;
         const dy = pi.y - pj.y;
         const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 0.1);
@@ -707,8 +709,8 @@ export class ComplexLayoutEngine {
         const fx = (dx / dist) * force;
         const fy = (dy / dist) * force;
 
-        const fi = state.forces.get(nodes[i].id)!;
-        const fj = state.forces.get(nodes[j].id)!;
+        const fi = state.forces.get(nodes[i].id) ?? { fx: 0, fy: 0 };
+        const fj = state.forces.get(nodes[j].id) ?? { fx: 0, fy: 0 };
         state.forces.set(nodes[i].id, { fx: fi.fx + fx, fy: fi.fy + fy });
         state.forces.set(nodes[j].id, { fx: fj.fx - fx, fy: fj.fy - fy });
       }
@@ -727,8 +729,8 @@ export class ComplexLayoutEngine {
       const fx = (dx / dist) * force;
       const fy = (dy / dist) * force;
 
-      const fi = state.forces.get(edge.from)!;
-      const fj = state.forces.get(edge.to)!;
+      const fi = state.forces.get(edge.from) ?? { fx: 0, fy: 0 };
+      const fj = state.forces.get(edge.to) ?? { fx: 0, fy: 0 };
       state.forces.set(edge.from, { fx: fi.fx + fx, fy: fi.fy + fy });
       state.forces.set(edge.to, { fx: fj.fx - fx, fy: fj.fy - fy });
     }
@@ -738,8 +740,8 @@ export class ComplexLayoutEngine {
     const maxDisplacement = this.config.width * 0.1;
 
     for (const node of nodes) {
-      const pos = state.positions.get(node.id)!;
-      const f = state.forces.get(node.id)!;
+      const pos = state.positions.get(node.id) ?? { x: 0, y: 0, vx: 0, vy: 0 };
+      const f = state.forces.get(node.id) ?? { fx: 0, fy: 0 };
 
       // Update velocity with damping
       pos.vx = (pos.vx + f.fx) * damping;
@@ -768,7 +770,7 @@ export class ComplexLayoutEngine {
 
   private forceStateToLayout(state: ForceDirectedState, nodes: NodeDatum[], edges: EdgeDatum[]): DiagramLayout {
     const positionedNodes: PositionedNode[] = nodes.map(node => {
-      const pos = state.positions.get(node.id)!;
+      const pos = state.positions.get(node.id) ?? { x: 0, y: 0, vx: 0, vy: 0 };
       return {
         ...node,
         x: pos.x - 50,
@@ -779,8 +781,8 @@ export class ComplexLayoutEngine {
     });
 
     const layoutEdges: LayoutEdge[] = edges.map(edge => {
-      const fromPos = state.positions.get(edge.from)!;
-      const toPos = state.positions.get(edge.to)!;
+      const fromPos = state.positions.get(edge.from) ?? { x: 0, y: 0, vx: 0, vy: 0 };
+      const toPos = state.positions.get(edge.to) ?? { x: 0, y: 0, vx: 0, vy: 0 };
       return {
         from: edge.from,
         to: edge.to,

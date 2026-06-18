@@ -315,8 +315,8 @@ export class EdgeCrossingMinimizer {
         for (let j = i + 1; j < current.length; j++) {
           const ni = current[i];
           const nj = current[j];
-          const pi = positions.get(ni.id)!;
-          const pj = positions.get(nj.id)!;
+          const pi = positions.get(ni.id) ?? { x: 0, y: 0 };
+          const pj = positions.get(nj.id) ?? { x: 0, y: 0 };
           const dx = pj.x - pi.x;
           const dy = pj.y - pi.y;
           const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
@@ -327,10 +327,10 @@ export class EdgeCrossingMinimizer {
           const fx = (dx / dist) * force;
           const fy = (dy / dist) * force;
 
-          disp.get(ni.id)!.x -= fx;
-          disp.get(ni.id)!.y -= fy;
-          disp.get(nj.id)!.x += fx;
-          disp.get(nj.id)!.y += fy;
+          const di = disp.get(ni.id);
+          const dj = disp.get(nj.id);
+          if (di) { di.x -= fx; di.y -= fy; }
+          if (dj) { dj.x += fx; dj.y += fy; }
         }
       }
 
@@ -348,16 +348,17 @@ export class EdgeCrossingMinimizer {
         const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
         const force = attractionStrength * (dist - idealLen);
 
-        disp.get(fromId)!.x += (dx / dist) * force;
-        disp.get(fromId)!.y += (dy / dist) * force;
-        disp.get(toId)!.x -= (dx / dist) * force;
-        disp.get(toId)!.y -= (dy / dist) * force;
+        const df = disp.get(fromId);
+        const dt = disp.get(toId);
+        if (df) { df.x += (dx / dist) * force; df.y += (dy / dist) * force; }
+        if (dt) { dt.x -= (dx / dist) * force; dt.y -= (dy / dist) * force; }
       }
 
       // Apply displacements
       const temperature = Math.max(1 - iter / 30, 0.05) * 30;
       for (const n of current) {
-        const d = disp.get(n.id)!;
+        const d = disp.get(n.id);
+        if (!d) continue;
         const mag = Math.sqrt(d.x * d.x + d.y * d.y);
         if (mag > 0) {
           const capped = Math.min(mag, temperature);

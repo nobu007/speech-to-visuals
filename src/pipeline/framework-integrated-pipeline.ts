@@ -235,7 +235,7 @@ export class FrameworkIntegratedPipeline {
       // Performance Metrics
       processingTime: result.processingTime,
       memoryUsage,
-      throughput: result.scenes.length / (result.processingTime / 1000),
+      throughput: result.processingTime > 0 ? result.scenes.length / (result.processingTime / 1000) : 0,
 
       // Accuracy Metrics
       transcriptionAccuracy,
