@@ -1514,6 +1514,42 @@ describe('StreamingTranscriber', () => {
 
       expect(result).toHaveProperty('processingTime');
       expect(typeof result.processingTime).toBe('number');
+      // processingTime must be a reasonable elapsed duration, not the result
+      // of Date.now() - performance.now() which yields a huge epoch-like value
+      expect(result.processingTime).toBeLessThan(1_000_000);
+    });
+
+    it('transcribeStream computes processingTime as elapsed wall-clock time', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 2;
+
+      // Simulate elapsed time: performance.now() returns 5000 at start,
+      // then 8500 after chunk processing completes
+      let perfNowValue = 5000;
+      mockPerformanceNow.mockImplementation(() => perfNowValue);
+      // Advance the clock after the promise starts
+      const advancePerf = () => { perfNowValue = 8500; };
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 5000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+
+      const promise = transcriber.transcribeStream('/audio.mp3');
+
+      setImmediate(() => {
+        if (mockAudioInstance.onloadedmetadata) {
+          mockAudioInstance.onloadedmetadata();
+        }
+        advancePerf();
+      });
+
+      const result = await promise;
+
+      // processingTime should be the delta (8500 - 5000 = 3500),
+      // NOT Date.now() - performance.now() which would be ~1.7 trillion
+      expect(result.processingTime).toBe(3500);
     });
 
     it('transcribeStream computes duration as audioDuration * 1000', async () => {

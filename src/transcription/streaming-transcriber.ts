@@ -138,6 +138,8 @@ export class StreamingTranscriber {
     onProgress?: StreamingProgressCallback,
     onSegment?: SegmentCallback
   ): Promise<TranscriptionResult> {
+    const startTime = performance.now();
+
     try {
 
       // Load audio for duration calculation
@@ -206,7 +208,7 @@ export class StreamingTranscriber {
         text: mergedSegments.map(s => s.text).join(' '),
         duration: audioDuration * 1000,
         language: 'ja',
-        processingTime: Date.now() - performance.now(),
+        processingTime: performance.now() - startTime,
         success: true,
         qualitySummary: this.qualityMonitor?.getSummary(),
       };
