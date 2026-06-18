@@ -638,7 +638,7 @@ export class MainPipeline {
    */
   private async generateLayoutsEnhanced(analysisResult: unknown) {
     const analysisData = analysisResult as Record<string, unknown>;
-    const diagramAnalyses = analysisData.diagramAnalyses as Array<Record<string, unknown>>;
+    const diagramAnalyses = (analysisData.diagramAnalyses as Array<Record<string, unknown>>) ?? [];
 
     // Process layouts in parallel for better performance
     const layoutPromises = diagramAnalyses.map(async (item) => {
@@ -743,11 +743,11 @@ export class MainPipeline {
   private async performQualityPreCheck(analysisResult: unknown): Promise<unknown> {
     // Quick quality assessment to identify potential issues early
     const analysisData = analysisResult as Record<string, unknown>;
-    const diagramAnalyses = analysisData.diagramAnalyses as Array<Record<string, unknown>>;
+    const diagramAnalyses = (analysisData.diagramAnalyses as Array<Record<string, unknown>> | undefined) ?? [];
 
     const qualityChecks = {
-      hasValidAnalyses: (diagramAnalyses?.length ?? 0) > 0,
-      averageConfidence: diagramAnalyses && diagramAnalyses.length > 0
+      hasValidAnalyses: diagramAnalyses.length > 0,
+      averageConfidence: diagramAnalyses.length > 0
         ? diagramAnalyses.reduce((sum: number, item: Record<string, unknown>) => {
             const analysis = item.analysis as Record<string, unknown>;
             return sum + (analysis.confidence as number);
@@ -865,7 +865,7 @@ export class MainPipeline {
    */
   private async generateLayouts(analysisResult: unknown) {
     const analysisData = analysisResult as Record<string, unknown>;
-    const diagramAnalyses = analysisData.diagramAnalyses as Array<Record<string, unknown>>;
+    const diagramAnalyses = (analysisData.diagramAnalyses as Array<Record<string, unknown>>) ?? [];
     const layouts = [];
 
     for (const item of diagramAnalyses) {
@@ -1137,6 +1137,7 @@ export class MainPipeline {
     if (!timings || timings.length < 2) return;
 
     const previousDuration = timings[timings.length - 2];
+    if (previousDuration === 0) return;
     const improvement = ((previousDuration - currentDuration) / previousDuration) * 100;
 
     if (improvement > 5) {

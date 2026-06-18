@@ -204,9 +204,15 @@ export class EnhancedExportEngine {
     return true;
   }
 
-  /** Terminate worker pool, reject queued exports, and release resources */
+  /** Terminate worker pool, abort active exports, reject queued exports, and release resources */
   dispose(): void {
     this.disposed = true;
+
+    // Abort all active export jobs so they stop processing
+    for (const activeJob of this.activeExports.values()) {
+      activeJob.abortController?.abort();
+    }
+
     this.exportWorkerPool?.terminate();
     this.exportWorkerPool = null;
 
@@ -1047,7 +1053,16 @@ export class EnhancedExportEngine {
     if (this.exportQueue.length > 0 && this.activeExports.size < this.maxConcurrentExports) {
       const nextJob = this.exportQueue.shift();
       if (nextJob && nextJob.resolve) {
-        this.processExportJob(nextJob).then(nextJob.resolve);
+        this.processExportJob(nextJob).then(nextJob.resolve).catch((error) => {
+          logger.error('[EnhancedExportEngine] Queued export job failed:', error);
+          nextJob.resolve!({
+            success: false,
+            format: nextJob.config.format,
+            quality: nextJob.config.quality,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            warnings: [],
+          });
+        });
       }
     }
   }
