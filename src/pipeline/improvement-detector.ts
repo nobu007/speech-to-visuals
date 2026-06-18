@@ -331,7 +331,9 @@ export class ImprovementDetector {
     if (critical.length > 0) {
       nextSteps.push(`🚨 Address ${critical.length} critical issue(s): ${critical.map(c => c.area).join(', ')}`);
       critical.forEach(c => {
-        nextSteps.push(`  → ${c.suggestedActions[0]}`); // Add top action for each critical issue
+        if (c.suggestedActions.length > 0) {
+          nextSteps.push(`  → ${c.suggestedActions[0]}`); // Add top action for each critical issue
+        }
       });
     }
 

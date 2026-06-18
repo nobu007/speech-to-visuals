@@ -769,7 +769,9 @@ export class QualityMonitor {
     const iterationMetrics = {
       processingTime: result.metrics?.totalProcessingTime < 30000 ? 1.0 : 0.5,
       memoryUsage: result.metrics?.memoryUsage < 256 * 1024 * 1024 ? 1.0 : 0.5,
-      errorHandling: result.stages.filter(s => s.success).length / result.stages.length,
+      errorHandling: result.stages.length > 0
+        ? result.stages.filter(s => s.success).length / result.stages.length
+        : 0,
       outputQuality: result.outputPath ? 1.0 : 0.0,
       documentation: 1.0 // Assuming proper documentation
     };

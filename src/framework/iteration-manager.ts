@@ -174,6 +174,7 @@ export class IterationManager {
    * Determine recovery strategy based on iteration status
    */
   determineRecoveryStrategy(): RecoveryStrategy {
+    if (this.history.length === 0) return 'retry';
     const failureRate = this.history.filter(i => i.status === 'failure').length / this.history.length;
 
     if (this.cycle.currentIteration >= this.cycle.maxIterations) {
