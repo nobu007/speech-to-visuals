@@ -158,6 +158,74 @@ describe('StreamingTranscriber', () => {
       expect(result).toBeDefined();
     }, 30000);
 
+    it('should survive processAudioChunk throwing and still return segments from healthy chunks', async () => {
+      const transcriber = new StreamingTranscriber({ chunkSizeMs: 3000, minConfidence: 0 });
+      const internal = transcriber as unknown as {
+        processAudioChunk: (chunk: { start: number; end: number }, file: string | File) => Promise<unknown[]>;
+      };
+      const origProcess = internal.processAudioChunk.bind(transcriber);
+      let callCount = 0;
+      internal.processAudioChunk = jest.fn(async (chunk, file) => {
+        callCount++;
+        if (callCount === 1) throw new Error('Simulated chunk-0 failure');
+        return origProcess(chunk, file);
+      });
+
+      const result = await transcriber.transcribeStream('test-audio.wav');
+
+      // Session completed despite the error
+      expect(result.success).toBe(true);
+      // Remaining chunks produced segments
+      expect(result.segments.length).toBeGreaterThan(0);
+      // processAudioChunk was called more than once (loop didn't break)
+      expect(internal.processAudioChunk).toHaveBeenCalledTimes(callCount);
+      expect(callCount).toBeGreaterThan(1);
+    }, 30000);
+
+    it('should survive multiple consecutive chunk failures and still complete', async () => {
+      const transcriber = new StreamingTranscriber({ chunkSizeMs: 3000, minConfidence: 0 });
+      const internal = transcriber as unknown as {
+        processAudioChunk: (chunk: { start: number; end: number }, file: string | File) => Promise<unknown[]>;
+      };
+      const origProcess = internal.processAudioChunk.bind(transcriber);
+      let callCount = 0;
+      internal.processAudioChunk = jest.fn(async (chunk, file) => {
+        callCount++;
+        // Fail the first two chunks, succeed the rest
+        if (callCount <= 2) throw new Error(`Simulated chunk-${callCount - 1} failure`);
+        return origProcess(chunk, file);
+      });
+
+      const result = await transcriber.transcribeStream('test-audio.wav');
+
+      expect(result.success).toBe(true);
+      expect(callCount).toBeGreaterThanOrEqual(3);
+      // At least one segment from the surviving chunks
+      expect(result.segments.length).toBeGreaterThan(0);
+    }, 30000);
+
+    it('should still call onProgress for chunks after a failed chunk', async () => {
+      const transcriber = new StreamingTranscriber({ chunkSizeMs: 3000, minConfidence: 0 });
+      const internal = transcriber as unknown as {
+        processAudioChunk: (chunk: { start: number; end: number }, file: string | File) => Promise<unknown[]>;
+      };
+      const origProcess = internal.processAudioChunk.bind(transcriber);
+      let callCount = 0;
+      internal.processAudioChunk = jest.fn(async (chunk, file) => {
+        callCount++;
+        if (callCount === 1) throw new Error('Simulated chunk-0 failure');
+        return origProcess(chunk, file);
+      });
+
+      const onProgress = jest.fn();
+      await transcriber.transcribeStream('test-audio.wav', onProgress);
+
+      // Progress callback fired for subsequent (successful) chunks
+      expect(onProgress).toHaveBeenCalled();
+      const lastCall = onProgress.mock.calls[onProgress.mock.calls.length - 1][0];
+      expect(lastCall.segmentCount).toBeGreaterThan(0);
+    }, 30000);
+
     it('should return result with merged overlapping segments', async () => {
       const transcriber = new StreamingTranscriber({ chunkSizeMs: 3000, overlapMs: 500 });
       const result = await transcriber.transcribeStream('test-audio.wav');
