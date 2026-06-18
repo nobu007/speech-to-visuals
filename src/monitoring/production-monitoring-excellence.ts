@@ -166,7 +166,11 @@ export class ProductionMonitoringExcellence {
 
     // Start optimization loop
     this.intervalIds.push(setInterval(() => {
-      this.executeRealTimeOptimization();
+      try {
+        this.executeRealTimeOptimization();
+      } catch (err) {
+        console.error('[ProductionMonitoringExcellence] Real-time optimization tick failed:', err);
+      }
     }, 5000)); // Optimize every 5 seconds
   }
 

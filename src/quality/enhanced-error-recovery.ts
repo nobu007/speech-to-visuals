@@ -327,12 +327,16 @@ export class EnhancedErrorRecovery {
     if (this.healthCheckTimer) return;
 
     this.healthCheckTimer = setInterval(() => {
-      this.updateLoadMetrics();
-      this.adjustDynamicCapacity();
-      this.evaluateCircuitBreakers();
-      this.cleanupExpiredQueuedRequests();
-      this.processRequestQueue();
-      this.updateRequestStats();
+      try {
+        this.updateLoadMetrics();
+        this.adjustDynamicCapacity();
+        this.evaluateCircuitBreakers();
+        this.cleanupExpiredQueuedRequests();
+        this.processRequestQueue();
+        this.updateRequestStats();
+      } catch (err) {
+        logger.error('[EnhancedErrorRecovery] Load monitoring tick failed:', err);
+      }
     }, this.loadBalancingConfig.healthCheckInterval);
   }
 
@@ -1241,9 +1245,13 @@ export class EnhancedErrorRecovery {
     if (this.healthMonitoringTimer) return;
 
     this.healthMonitoringTimer = setInterval(() => {
-      this.updateHealthMetrics();
-      this.checkPredictiveIndicators();
-      this.executePreventiveActions();
+      try {
+        this.updateHealthMetrics();
+        this.checkPredictiveIndicators();
+        this.executePreventiveActions();
+      } catch (err) {
+        logger.error('[EnhancedErrorRecovery] Health monitoring tick failed:', err);
+      }
     }, 30000); // Check every 30 seconds
   }
 

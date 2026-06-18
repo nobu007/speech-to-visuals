@@ -154,10 +154,14 @@ export class PerformanceDashboard {
 
     // Monitor every 5 seconds for real-time updates
     this.monitoringInterval = setInterval(() => {
-      this.collectMetrics();
-      this.analyzePerformance();
-      this.checkThresholds();
-      this.autoOptimize();
+      try {
+        this.collectMetrics();
+        this.analyzePerformance();
+        this.checkThresholds();
+        this.autoOptimize();
+      } catch (err) {
+        console.error('[PerformanceDashboard] Monitoring tick failed:', err);
+      }
     }, 5000);
 
   }

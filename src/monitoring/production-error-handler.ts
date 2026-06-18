@@ -113,8 +113,12 @@ export class ProductionErrorHandler {
    */
   private startMetricsCollection(): void {
     this.metricsIntervalId = setInterval(() => {
-      this.updateMetrics();
-      this.checkErrorThresholds();
+      try {
+        this.updateMetrics();
+        this.checkErrorThresholds();
+      } catch (err) {
+        logger.error('[ProductionErrorHandler] Metrics collection tick failed:', err);
+      }
     }, 30000); // Every 30 seconds
   }
 

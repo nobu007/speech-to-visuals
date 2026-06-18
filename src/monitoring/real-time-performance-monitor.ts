@@ -575,9 +575,13 @@ class RealTimePerformanceMonitor extends EventEmitter {
    */
   private startPeriodicSnapshot(): void {
     setInterval(() => {
-      const snapshot = this.getSnapshot();
-      this.emit('snapshot', snapshot);
-      this.lastSnapshotTime = Date.now();
+      try {
+        const snapshot = this.getSnapshot();
+        this.emit('snapshot', snapshot);
+        this.lastSnapshotTime = Date.now();
+      } catch (err) {
+        console.error('[RealTimePerformanceMonitor] Snapshot emission failed:', err);
+      }
     }, this.snapshotIntervalMs);
   }
 

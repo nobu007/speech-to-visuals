@@ -114,9 +114,19 @@ export class ErrorRecoveryMonitor {
   start(): void {
     if (this.running) return;
     this.running = true;
-    this.timer = setInterval(() => this.sample(), this.config.intervalMs);
+    this.timer = setInterval(() => {
+      try {
+        this.sample();
+      } catch (err) {
+        logger.error('[ErrorRecoveryMonitor] Health sampling tick failed:', err);
+      }
+    }, this.config.intervalMs);
     // Take the first sample immediately so callers don't have to wait.
-    this.sample();
+    try {
+      this.sample();
+    } catch (err) {
+      logger.error('[ErrorRecoveryMonitor] Initial health sample failed:', err);
+    }
     logger.info(`[ErrorRecoveryMonitor] Started — interval=${this.config.intervalMs}ms`);
   }
 

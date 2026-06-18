@@ -52,7 +52,13 @@ export class MemoryCache<V> {
 
     if (resolved.cleanupIntervalMs && resolved.cleanupIntervalMs > 0) {
       this.cleanupTimer = setInterval(
-        () => this.cleanup(),
+        () => {
+          try {
+            this.cleanup();
+          } catch (err) {
+            console.error('[MemoryCache] Cleanup tick failed:', err);
+          }
+        },
         resolved.cleanupIntervalMs
       );
     }

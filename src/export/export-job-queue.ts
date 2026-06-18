@@ -516,7 +516,13 @@ export class ExportJobQueue {
     this.started = true;
 
     this.starvationTimer = setInterval(
-      () => this.preventStarvation(),
+      () => {
+        try {
+          this.preventStarvation();
+        } catch (err) {
+          logger.error('[ExportJobQueue] Starvation prevention tick failed:', err);
+        }
+      },
       this.options.starvationPreventionInterval,
     );
 

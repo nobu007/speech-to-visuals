@@ -279,7 +279,13 @@ export class ExportArtifactStore {
     this.started = true;
 
     this.cleanupTimer = setInterval(
-      () => this.cleanupExpired(),
+      () => {
+        try {
+          this.cleanupExpired();
+        } catch (err) {
+          logger.error('[ExportArtifactStore] Cleanup tick failed:', err);
+        }
+      },
       this.options.cleanupIntervalMs,
     );
 
