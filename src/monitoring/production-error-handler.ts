@@ -82,6 +82,12 @@ export class ProductionErrorHandler {
    * Initialize global error handling
    */
   private initializeGlobalErrorHandling(): void {
+    // Guard against double-initialization (e.g., HMR, test re-imports).
+    // If handlers are already registered, skip to prevent listener leaks.
+    if (this.globalErrorHandler || this.unhandledRejectionHandler) {
+      return;
+    }
+
     // Catch unhandled promise rejections
     this.unhandledRejectionHandler = (event) => {
       this.handleError(

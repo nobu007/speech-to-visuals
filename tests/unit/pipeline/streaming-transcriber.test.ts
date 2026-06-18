@@ -34,6 +34,7 @@ beforeEach(() => {
     value: {
       ...origURL,
       createObjectURL: jest.fn(() => 'blob:test'),
+      revokeObjectURL: jest.fn(),
     },
     writable: true,
   });

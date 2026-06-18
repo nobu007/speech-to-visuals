@@ -362,19 +362,30 @@ export class StreamingTranscriber {
   private async getAudioDuration(audioFile: string | File): Promise<number> {
     return new Promise((resolve, reject) => {
       const audio = new Audio();
+      let objectUrl: string | null = null;
+
+      const cleanup = () => {
+        if (objectUrl) {
+          URL.revokeObjectURL(objectUrl);
+          objectUrl = null;
+        }
+      };
 
       audio.onloadedmetadata = () => {
+        cleanup();
         resolve(audio.duration);
       };
 
       audio.onerror = () => {
+        cleanup();
         reject(new TranscriptionError('Failed to load audio file'));
       };
 
       if (typeof audioFile === 'string') {
         audio.src = audioFile;
       } else {
-        audio.src = URL.createObjectURL(audioFile);
+        objectUrl = URL.createObjectURL(audioFile);
+        audio.src = objectUrl;
       }
     });
   }

@@ -456,7 +456,23 @@ export class EnhancedExportEngine {
         // Record retry metric
         exportMetricsCollector.recordExport(job.config.format, 'failure', 0);
 
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        // Abortable delay: if the job is cancelled during the retry wait,
+        // reject immediately instead of continuing to retry.
+        await new Promise<void>((resolve, reject) => {
+          const timer = setTimeout(resolve, delay);
+          const sig = job.abortController?.signal;
+          if (sig) {
+            if (sig.aborted) {
+              clearTimeout(timer);
+              reject(new DOMException('Export cancelled', 'AbortError'));
+              return;
+            }
+            sig.addEventListener('abort', () => {
+              clearTimeout(timer);
+              reject(new DOMException('Export cancelled', 'AbortError'));
+            }, { once: true });
+          }
+        });
       }
     }
 

@@ -195,25 +195,23 @@ export class BatchProcessingAPI {
     // Deduplicate files by content hash + size to avoid redundant processing.
     // Content-based hashing catches identical files with different names and
     // avoids false negatives that name+size alone would miss.
+    // Sequential processing avoids race conditions on shared mutable state
+    // (seen, dedupedFiles, skippedFiles) that the previous Promise.all +
+    // IIFE pattern created.
     const seen = new Map<string, number>();
     const dedupedFiles: File[] = [];
     const skippedFiles: string[] = [];
-    const hashPromises: Promise<void>[] = [];
 
     for (const file of request.files) {
-      const p = (async () => {
-        const hash = await computeFileHash(file);
-        const dedupKey = `${hash}::${file.size}`;
-        if (seen.has(dedupKey)) {
-          skippedFiles.push(file.name);
-          return;
-        }
-        seen.set(dedupKey, dedupedFiles.length);
-        dedupedFiles.push(file);
-      })();
-      hashPromises.push(p);
+      const hash = await computeFileHash(file);
+      const dedupKey = `${hash}::${file.size}`;
+      if (seen.has(dedupKey)) {
+        skippedFiles.push(file.name);
+        continue;
+      }
+      seen.set(dedupKey, dedupedFiles.length);
+      dedupedFiles.push(file);
     }
-    await Promise.all(hashPromises);
 
     if (dedupedFiles.length === 0) {
       throw new BatchValidationError('All files were duplicates — no unique files to process');
