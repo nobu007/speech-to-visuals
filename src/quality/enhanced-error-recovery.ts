@@ -478,7 +478,7 @@ export class EnhancedErrorRecovery {
    * Estimate CPU usage (simplified approximation)
    */
   private estimateCpuUsage(): number {
-    const loadFactor = this.activeRequests.size / this.loadBalancingConfig.maxConcurrentRequests;
+    const loadFactor = this.activeRequests.size / (this.loadBalancingConfig.maxConcurrentRequests || 1);
     const errorFactor = this.calculateRecentErrorRate();
     return Math.min(1, loadFactor * 0.7 + errorFactor * 0.3);
   }

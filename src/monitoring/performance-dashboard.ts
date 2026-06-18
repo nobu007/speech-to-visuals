@@ -183,7 +183,7 @@ export class PerformanceDashboard {
     const memoryUsage = getMemoryUsage();
 
     // Calculate throughput
-    const requestsPerSecond = this.totalRequests / (uptime / 1000);
+    const requestsPerSecond = uptime > 0 ? this.totalRequests / (uptime / 1000) : 0;
 
     // Get cache metrics (would integrate with actual cache)
     const cacheMetrics = this.getCacheMetrics();

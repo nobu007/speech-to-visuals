@@ -992,7 +992,7 @@ export class ZeroOverlapLayoutEngine {
 
     // Weighted combination of aesthetic factors
     const score = (
-      (1 - metrics.overlapCount / layout.nodes.length) * 0.4 +  // No overlaps
+      (1 - metrics.overlapCount / Math.max(1, layout.nodes.length)) * 0.4 +  // No overlaps
       (1 - metrics.edgeCrossings / Math.max(1, layout.edges.length)) * 0.2 +  // Fewer crossings
       metrics.symmetryScore * 0.2 +  // Visual symmetry
       metrics.compactnessScore * 0.1 +  // Compact layout

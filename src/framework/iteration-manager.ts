@@ -266,6 +266,7 @@ export class IterationManager {
    */
   private generateInsights(): string[] {
     const insights: string[] = [];
+    if (this.history.length === 0) return insights;
     const successRate = this.history.filter(i => i.status === 'success').length / this.history.length;
 
     if (successRate === 1.0) {

@@ -346,10 +346,11 @@ class RealTimePerformanceMonitor extends EventEmitter {
     this.recordMetric('processingTime', processingTime, 'ms', { success: success.toString() });
     this.recordMetric('requestCount', this.counters.totalRequests, 'count');
 
-    const successRate = this.counters.successfulRequests / this.counters.totalRequests;
+    const total = this.counters.totalRequests || 1;
+    const successRate = this.counters.successfulRequests / total;
     this.recordMetric('successRate', successRate, 'percent');
 
-    const errorRate = this.counters.failedRequests / this.counters.totalRequests;
+    const errorRate = this.counters.failedRequests / total;
     this.recordMetric('errorRate', errorRate, 'percent');
   }
 
@@ -372,7 +373,7 @@ class RealTimePerformanceMonitor extends EventEmitter {
 
     this.recordMetric('llmResponseTime', responseTime, 'ms', { model, cached: fromCache.toString() });
 
-    const cacheHitRate = this.counters.llmCacheHits / this.counters.llmRequests;
+    const cacheHitRate = this.counters.llmCacheHits / (this.counters.llmRequests || 1);
     this.recordMetric('cacheHitRate', cacheHitRate, 'percent');
   }
 
@@ -388,7 +389,7 @@ class RealTimePerformanceMonitor extends EventEmitter {
 
     this.recordMetric('errorCount', this.counters.totalErrors, 'count', { type: errorType });
 
-    const recoveryRate = this.counters.recoverySuccesses / this.counters.recoveryAttempts;
+    const recoveryRate = this.counters.recoverySuccesses / (this.counters.recoveryAttempts || 1);
     this.recordMetric('recoverySuccessRate', recoveryRate, 'percent');
   }
 
@@ -529,7 +530,9 @@ class RealTimePerformanceMonitor extends EventEmitter {
     const recentValues = values.slice(-20); // Last 20 samples
     const olderValues = values.slice(-40, -20); // Previous 20 samples
 
-    const recentAvg = recentValues.reduce((a, b) => a + b, 0) / recentValues.length;
+    const recentAvg = recentValues.length > 0
+      ? recentValues.reduce((a, b) => a + b, 0) / recentValues.length
+      : 0;
     const olderAvg = olderValues.length > 0
       ? olderValues.reduce((a, b) => a + b, 0) / olderValues.length
       : recentAvg;
