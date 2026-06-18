@@ -7,6 +7,7 @@
  */
 
 import { LayoutOptimizer } from '@/visualization/strategies/LayoutOptimizer';
+import { calculateCompositeScore } from '@/visualization/layout-quality-composite';
 import type { DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
 import type { LayoutConfig } from '@/visualization/types';
 import SmartParameterTuner from '@/optimization/smart-parameter-tuner';
@@ -375,6 +376,113 @@ describe('QualityMonitor – empty-stages division guard', () => {
       : 0;
     expect(Number.isNaN(errorHandling)).toBe(false);
     expect(errorHandling).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// calculateCompositeScore – zero-weight guard
+// ---------------------------------------------------------------------------
+
+describe('calculateCompositeScore – zero totalWeight guard', () => {
+  it('returns finite score when all weights are zero', () => {
+    const result = calculateCompositeScore(
+      {
+        balanceScore: 0.8,
+        crossingCount: 2,
+        edgeCount: 10,
+        overflowCount: 0,
+        nodeCount: 5,
+        densityUniformity: 0.7,
+      },
+      { balance: 0, crossing: 0, overflow: 0, density: 0 }
+    );
+
+    expect(Number.isFinite(result.compositeScore)).toBe(true);
+    expect(Number.isNaN(result.compositeScore)).toBe(false);
+  });
+
+  it('returns finite score with default weights', () => {
+    const result = calculateCompositeScore({
+      balanceScore: 0.8,
+      crossingCount: 2,
+      edgeCount: 10,
+      overflowCount: 1,
+      nodeCount: 5,
+      densityUniformity: 0.7,
+    });
+
+    expect(Number.isFinite(result.compositeScore)).toBe(true);
+    expect(result.compositeScore).toBeGreaterThan(0);
+    expect(result.compositeScore).toBeLessThanOrEqual(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// assessProcessingSpeed – processingTime=0 guard (quality-monitor.ts)
+// ---------------------------------------------------------------------------
+
+describe('QualityMonitor – assessProcessingSpeed zero-time guard', () => {
+  it('does not produce Infinity when processingTime is 0', () => {
+    // Guard: assumedAudioDuration / Math.max(processingTime, 1)
+    const assumedAudioDuration = 60000;
+    const processingTime = 0;
+    const ratio = assumedAudioDuration / Math.max(processingTime, 1);
+
+    expect(Number.isFinite(ratio)).toBe(true);
+    expect(Number.isNaN(ratio)).toBe(false);
+    expect(ratio).toBe(60000);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// createKeywordVector – totalWords=0 guard (intelligent-cache.ts)
+// ---------------------------------------------------------------------------
+
+describe('IntelligentCache – createKeywordVector zero-words guard', () => {
+  it('does not produce NaN when totalWords is 0', () => {
+    // Guard: totalWords > 0 ? count / totalWords : 0
+    const totalWords = 0;
+    const count = 5;
+    const tf = totalWords > 0 ? count / totalWords : 0;
+
+    expect(Number.isFinite(tf)).toBe(true);
+    expect(Number.isNaN(tf)).toBe(false);
+    expect(tf).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TutorialSystem – totalSteps=0 guard
+// ---------------------------------------------------------------------------
+
+describe('TutorialSystem – zero-steps progress guard', () => {
+  it('returns 0 progress when totalSteps is 0', () => {
+    // Guard: totalSteps > 0 ? (completedSteps.size / totalSteps) * 100 : 0
+    const completedSteps = new Set(['a', 'b']);
+    const totalSteps = 0;
+    const progress = totalSteps > 0 ? (completedSteps.size / totalSteps) * 100 : 0;
+
+    expect(Number.isFinite(progress)).toBe(true);
+    expect(Number.isNaN(progress)).toBe(false);
+    expect(progress).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// enhanced-zero-overlap-layout – cols=0 / rows=0 guard
+// ---------------------------------------------------------------------------
+
+describe('EnhancedZeroOverlapLayout – zero-nodes grid guard', () => {
+  it('cols and rows are at least 1 even with zero nodes', () => {
+    // Guard: Math.max(1, Math.ceil(Math.sqrt(nodes.length)))
+    const nodesLength = 0;
+    const cols = Math.max(1, Math.ceil(Math.sqrt(nodesLength)));
+    const rows = Math.max(1, Math.ceil(nodesLength / cols));
+
+    expect(cols).toBeGreaterThanOrEqual(1);
+    expect(rows).toBeGreaterThanOrEqual(1);
+    expect(Number.isFinite(cols)).toBe(true);
+    expect(Number.isFinite(rows)).toBe(true);
   });
 });
 

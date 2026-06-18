@@ -212,7 +212,7 @@ export class QualityMonitor {
   private assessProcessingSpeed(processingTime: number): number {
     // Assume 60s audio for calculation (this would be dynamic in real implementation)
     const assumedAudioDuration = 60000; // 60 seconds in milliseconds
-    const actualSpeedRatio = assumedAudioDuration / processingTime;
+    const actualSpeedRatio = assumedAudioDuration / Math.max(processingTime, 1);
 
     // Target: 2x realtime minimum, 6x realtime optimal
     const minTarget = 2.0;

@@ -100,7 +100,7 @@ export function calculateCompositeScore(
     density: { value: densityVal, weight: w.density, contribution: densityVal * w.density },
   };
 
-  const totalWeight = w.balance + w.crossing + w.overflow + w.density;
+  const totalWeight = Math.max(w.balance + w.crossing + w.overflow + w.density, 1e-10);
   const compositeScore = Math.max(0, Math.min(1,
     (contributions.balance.contribution +
      contributions.crossing.contribution +

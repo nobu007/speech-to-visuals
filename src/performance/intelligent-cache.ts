@@ -524,7 +524,7 @@ export class IntelligentCache {
 
     return importantWords.map(word => {
       const count = wordCounts.get(word) || 0;
-      return count / totalWords; // Simple TF normalization
+      return totalWords > 0 ? count / totalWords : 0; // Simple TF normalization
     });
   }
 

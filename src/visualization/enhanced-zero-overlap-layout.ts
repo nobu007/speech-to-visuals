@@ -677,8 +677,8 @@ export class ZeroOverlapLayoutEngine {
     edges: EdgeDatum[]
   ): Promise<{ nodes: PositionedNode[]; edges: LayoutEdge[] }> {
     // Use a simple grid layout for concept maps
-    const cols = Math.ceil(Math.sqrt(nodes.length));
-    const rows = Math.ceil(nodes.length / cols);
+    const cols = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
+    const rows = Math.max(1, Math.ceil(nodes.length / cols));
 
     const cellWidth = this.config.canvasWidth / cols;
     const cellHeight = this.config.canvasHeight / rows;

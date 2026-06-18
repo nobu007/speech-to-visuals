@@ -234,7 +234,7 @@ export const TutorialSystem: React.FC = () => {
 
   const getProgress = () => {
     const totalSteps = tutorialCategories.reduce((sum, cat) => sum + cat.steps.length, 0);
-    return (completedSteps.size / totalSteps) * 100;
+    return totalSteps > 0 ? (completedSteps.size / totalSteps) * 100 : 0;
   };
 
   const getDifficultyColor = (difficulty: string) => {
