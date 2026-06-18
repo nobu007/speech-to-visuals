@@ -1969,6 +1969,132 @@ describe('StreamingTranscriber', () => {
       expect(result.segments!.length).toBeGreaterThan(0);
     });
 
+    // --- Quality monitor error resilience within the chunk loop ---
+
+    it('qualityMonitor.evaluateChunk() throwing on one chunk does not crash the session', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 10;
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 3000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+
+      // Make evaluateChunk throw on the second call — this exercises the
+      // try/catch around the chunk processing interval (lines 153–196)
+      const qualityMonitor = transcriber.getQualityMonitor();
+      expect(qualityMonitor).not.toBeNull();
+      const origEval = qualityMonitor!.evaluateChunk.bind(qualityMonitor);
+      let evalCallCount = 0;
+      qualityMonitor!.evaluateChunk = jest.fn().mockImplementation(
+        (idx: number, conf: number) => {
+          evalCallCount++;
+          if (evalCallCount === 2) throw new Error('evaluateChunk boom');
+          return origEval(idx, conf);
+        },
+      );
+
+      const promise = transcriber.transcribeStream('/audio.mp3');
+
+      setImmediate(() => {
+        if (mockAudioInstance.onloadedmetadata) {
+          mockAudioInstance.onloadedmetadata();
+        }
+      });
+
+      const result = await promise;
+
+      // Session completed despite evaluateChunk throwing on chunk 2
+      expect(result.success).toBe(true);
+      // evaluateChunk was called for every chunk — the throw was caught and
+      // the loop continued to the next iteration
+      expect(evalCallCount).toBeGreaterThanOrEqual(3);
+      // Segments from all processed chunks are present
+      expect(result.segments!.length).toBeGreaterThan(0);
+      // Quality summary is still available
+      expect(result.qualitySummary).toBeDefined();
+    });
+
+    it('qualityMonitor.evaluateChunk() throwing on every chunk still completes', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 6;
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 3000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+
+      // evaluateChunk always throws
+      const qualityMonitor = transcriber.getQualityMonitor();
+      qualityMonitor!.evaluateChunk = jest.fn().mockImplementation(() => {
+        throw new Error('evaluateChunk always boom');
+      });
+
+      const promise = transcriber.transcribeStream('/audio.mp3');
+
+      setImmediate(() => {
+        if (mockAudioInstance.onloadedmetadata) {
+          mockAudioInstance.onloadedmetadata();
+        }
+      });
+
+      const result = await promise;
+
+      // Session completed even though quality monitoring failed on every chunk
+      expect(result.success).toBe(true);
+      // Audio segments are still returned (quality monitoring failure doesn't
+      // prevent the core transcription pipeline from producing results)
+      expect(result.segments!.length).toBeGreaterThan(0);
+      // Quality summary still returned (getSummary handles empty records)
+      expect(result.qualitySummary).toBeDefined();
+    });
+
+    it('quality summary reflects only successfully-evaluated chunks after partial evaluateChunk failures', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 10;
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 3000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+
+      // evaluateChunk throws on chunk index 1 only
+      const qualityMonitor = transcriber.getQualityMonitor();
+      const origEval = qualityMonitor!.evaluateChunk.bind(qualityMonitor);
+      let evalCallCount = 0;
+      qualityMonitor!.evaluateChunk = jest.fn().mockImplementation(
+        (idx: number, conf: number) => {
+          evalCallCount++;
+          if (evalCallCount === 2) throw new Error('evaluateChunk boom on chunk 1');
+          return origEval(idx, conf);
+        },
+      );
+
+      const promise = transcriber.transcribeStream('/audio.mp3');
+
+      setImmediate(() => {
+        if (mockAudioInstance.onloadedmetadata) {
+          mockAudioInstance.onloadedmetadata();
+        }
+      });
+
+      const result = await promise;
+
+      expect(result.success).toBe(true);
+      // 10s audio / 3s chunks = ~4 chunks; evaluateChunk called 4 times
+      // (the throw was caught, loop continued)
+      expect(evalCallCount).toBeGreaterThanOrEqual(3);
+      // Quality summary recorded 3 chunks (4 minus the 1 that threw before
+      // storing the record)
+      const summary = result.qualitySummary!;
+      expect(summary.totalChunks).toBe(evalCallCount - 1);
+      // The remaining chunks' quality data is valid
+      expect(summary.averageConfidence).toBeGreaterThan(0);
+    });
+
     it('all chunks failing still returns a successful result with empty segments', async () => {
       await loadModule();
       mockAudioInstance.duration = 9;

@@ -160,6 +160,10 @@ export class StreamingTranscriber {
             segment => segment.confidence >= (this.config.minConfidence || 0.7)
           );
 
+          // Collect segments BEFORE quality monitoring so that a quality
+          // monitor failure cannot destroy transcription results
+          allSegments.push(...validSegments);
+
           // REQ-091: Record per-chunk quality with StreamingQualityMonitor
           if (this.qualityMonitor) {
             const chunkAvgConfidence = chunkSegments.length > 0
@@ -167,8 +171,6 @@ export class StreamingTranscriber {
               : 0;
             this.qualityMonitor.evaluateChunk(i, chunkAvgConfidence);
           }
-
-          allSegments.push(...validSegments);
 
           // Real-time progress callback
           if (onProgress) {
