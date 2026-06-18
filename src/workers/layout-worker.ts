@@ -42,8 +42,10 @@ export function computeLayout(
     adjacency.set(node.id, new Set());
   }
   for (const edge of validEdges) {
-    adjacency.get(edge.source).add(edge.target);
-    adjacency.get(edge.target).add(edge.source);
+    const srcSet = adjacency.get(edge.source);
+    const tgtSet = adjacency.get(edge.target);
+    if (srcSet) srcSet.add(edge.target);
+    if (tgtSet) tgtSet.add(edge.source);
   }
 
   // Assign levels using BFS from root nodes

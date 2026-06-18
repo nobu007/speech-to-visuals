@@ -116,6 +116,7 @@ function classifySnr(snrDb: number): AudioQualityRating {
  * Compute RMS (root-mean-square) of a Float32Array sample buffer.
  */
 function computeRms(samples: Float32Array): number {
+  if (samples.length === 0) return 0;
   let sum = 0;
   for (let i = 0; i < samples.length; i++) {
     sum += samples[i] * samples[i];
@@ -318,8 +319,9 @@ export class AudioPreprocessor {
     const noiseFloor = sorted.slice(0, noiseIdx).reduce((s, v) => s + v, 0) / noiseIdx;
 
     // Signal level is the loudest 50% average
-    const signalIdx = Math.floor(sorted.length * 0.5);
-    const signalLevel = sorted.slice(signalIdx).reduce((s, v) => s + v, 0) / (sorted.length - signalIdx);
+    const signalIdx = Math.min(sorted.length - 1, Math.floor(sorted.length * 0.5));
+    const signalCount = Math.max(1, sorted.length - signalIdx);
+    const signalLevel = sorted.slice(signalIdx).reduce((s, v) => s + v, 0) / signalCount;
 
     const noiseFloorDb = toDecibels(noiseFloor);
     const signalLevelDb = toDecibels(signalLevel);

@@ -33,12 +33,14 @@ export class LayoutOptimizer {
    */
   private optimizeCycleLayout(layout: DiagramLayout): DiagramLayout {
     const nodes = [...layout.nodes];
+    if (nodes.length === 0) return { nodes, edges: layout.edges };
+
     const centerX = this.config.width / 2;
     const centerY = this.config.height / 2;
     const radius = Math.min(this.config.width, this.config.height) * 0.3;
 
     nodes.forEach((node, index) => {
-      const angle = (2 * Math.PI * index) / nodes.length;
+      const angle = (2 * Math.PI * index) / Math.max(1, nodes.length);
       node.x = centerX + radius * Math.cos(angle) - node.w / 2;
       node.y = centerY + radius * Math.sin(angle) - node.h / 2;
     });
@@ -77,7 +79,9 @@ export class LayoutOptimizer {
    */
   private optimizeMatrixLayout(layout: DiagramLayout): DiagramLayout {
     const nodes = [...layout.nodes];
-    const gridSize = Math.ceil(Math.sqrt(nodes.length));
+    if (nodes.length === 0) return { nodes, edges: layout.edges };
+
+    const gridSize = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
     const cellWidth = (this.config.width - 2 * this.config.marginX) / gridSize;
     const cellHeight = (this.config.height - 2 * this.config.marginY) / gridSize;
 
@@ -215,12 +219,14 @@ export class LayoutOptimizer {
    * Improve cycle diagram balance
    */
   private improveCycleBalance(nodes: PositionedNode[]): PositionedNode[] {
+    if (nodes.length === 0) return nodes;
+
     const centerX = this.config.width / 2;
     const centerY = this.config.height / 2;
     const radius = Math.min(this.config.width, this.config.height) * 0.35;
 
     return nodes.map((node, index) => {
-      const angle = (2 * Math.PI * index) / nodes.length;
+      const angle = (2 * Math.PI * index) / Math.max(1, nodes.length);
       return {
         ...node,
         x: centerX + radius * Math.cos(angle) - node.w / 2,
@@ -251,8 +257,10 @@ export class LayoutOptimizer {
    * Improve matrix grid alignment
    */
   private improveMatrixGrid(nodes: PositionedNode[]): PositionedNode[] {
-    const cols = Math.ceil(Math.sqrt(nodes.length));
-    const rows = Math.ceil(nodes.length / cols);
+    if (nodes.length === 0) return nodes;
+
+    const cols = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
+    const rows = Math.max(1, Math.ceil(nodes.length / cols));
 
     const cellWidth = (this.config.width - 2 * this.config.marginX) / cols;
     const cellHeight = (this.config.height - 2 * this.config.marginY) / rows;

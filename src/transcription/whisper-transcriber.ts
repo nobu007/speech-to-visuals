@@ -322,7 +322,9 @@ export class WhisperTranscriber {
       "The user experience journey maps the customer interaction points from initial awareness through purchase and ongoing support."
     ];
 
-    return transcripts[segmentIndex % transcripts.length];
+    return transcripts.length > 0
+      ? transcripts[segmentIndex % transcripts.length]
+      : '';
   }
 
   /**

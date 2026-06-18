@@ -107,7 +107,7 @@ export class VisualBalanceScorer {
     centers: { x: number; y: number }[],
     bounds: { width: number; height: number },
   ): number {
-    const n = centers.length;
+    const n = Math.max(1, centers.length);
     const cx = centers.reduce((s, c) => s + c.x, 0) / n;
     const cy = centers.reduce((s, c) => s + c.y, 0) / n;
 
@@ -199,7 +199,7 @@ export class VisualBalanceScorer {
     const total = cellCounts.reduce((s, c) => s + c, 0);
     if (total === 0) return 1;
 
-    const numCells = cellCounts.length;
+    const numCells = Math.max(1, cellCounts.length);
     const mean = total / numCells;
     if (mean === 0) return 1;
 

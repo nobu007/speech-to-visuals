@@ -35,9 +35,13 @@ export class ConceptMapLayoutStrategy implements ILayoutStrategy {
   ): Promise<LayoutStrategyOutput> {
 
     try {
+      if (nodes.length === 0) {
+        return { nodes: [], edges: [] };
+      }
+
       // Calculate grid dimensions (square-ish grid)
-      const cols = Math.ceil(Math.sqrt(nodes.length));
-      const rows = Math.ceil(nodes.length / cols);
+      const cols = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
+      const rows = Math.max(1, Math.ceil(nodes.length / cols));
 
 
       // Calculate cell dimensions
