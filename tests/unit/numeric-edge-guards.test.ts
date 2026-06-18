@@ -11,6 +11,8 @@ import type { DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram'
 import type { LayoutConfig } from '@/visualization/types';
 import SmartParameterTuner from '@/optimization/smart-parameter-tuner';
 import { AdaptiveQualityGatesSystem } from '@/quality/adaptive-quality-gates';
+import { generateAnimatedSVG } from '@/export/animated-scene-renderer';
+import { encodeAPNG } from '@/export/apng-encoder';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -205,5 +207,78 @@ describe('AdaptiveQualityGates – empty-gates guard', () => {
     const trend = gates.getQualityTrend();
     expect(['improving', 'stable', 'degrading']).toContain(trend.trend);
     expect(Array.isArray(trend.passRate)).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// generateAnimatedSVG – zero-duration guard
+// ---------------------------------------------------------------------------
+
+describe('generateAnimatedSVG – zero total duration guard', () => {
+  it('does not produce NaN percentages when all scene durations are zero', () => {
+    const sceneData = {
+      scenes: [
+        { id: 's1', type: 'intro', label: 'A', duration: 0 },
+        { id: 's2', type: 'content', label: 'B', duration: 0 },
+      ],
+    };
+    const frames = { width: 1920, height: 1080 };
+
+    // Should not throw and should produce valid SVG
+    const svg = generateAnimatedSVG(sceneData as any, frames);
+    expect(typeof svg).toBe('string');
+    expect(svg).toContain('<svg');
+    // Should not contain NaN anywhere
+    expect(svg).not.toContain('NaN');
+    expect(svg).not.toContain('Infinity');
+  });
+
+  it('handles single scene with zero duration', () => {
+    const sceneData = {
+      scenes: [
+        { id: 's1', type: 'intro', label: 'Solo', duration: 0 },
+      ],
+    };
+    const frames = { width: 800, height: 600 };
+
+    const svg = generateAnimatedSVG(sceneData as any, frames);
+    expect(svg).toContain('<svg');
+    expect(svg).not.toContain('NaN');
+  });
+
+  it('handles empty scenes array without crashing', () => {
+    const sceneData = { scenes: [] };
+    const frames = { width: 800, height: 600 };
+
+    const svg = generateAnimatedSVG(sceneData as any, frames);
+    expect(svg).toContain('<svg');
+    expect(svg).not.toContain('NaN');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// encodeAPNG – fps=0 guard
+// ---------------------------------------------------------------------------
+
+describe('encodeAPNG – fps guard', () => {
+  it('throws on fps <= 0', () => {
+    const frames = [{
+      data: new Uint8Array(4),
+      width: 1,
+      height: 1,
+    }];
+    expect(() => encodeAPNG(frames, { fps: 0 })).toThrow();
+    expect(() => encodeAPNG(frames, { fps: -1 })).toThrow();
+  });
+
+  it('produces valid output with positive fps', () => {
+    const frames = [{
+      data: new Uint8Array(4),
+      width: 1,
+      height: 1,
+    }];
+    const result = encodeAPNG(frames, { fps: 30 });
+    expect(result).toBeInstanceOf(Uint8Array);
+    expect(result.length).toBeGreaterThan(0);
   });
 });

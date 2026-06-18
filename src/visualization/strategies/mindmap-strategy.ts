@@ -245,6 +245,7 @@ export class MindMapStrategy implements LayoutStrategy {
     for (const [id] of tree) {
       if (!isChild.has(id)) return id;
     }
+    if (nodes.length === 0) return '';
     return nodes[0].id;
   }
 

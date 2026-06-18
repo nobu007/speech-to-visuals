@@ -105,7 +105,10 @@ export function generateAnimatedSVG(
 </svg>`;
   }
 
-  const totalDuration = scenes.reduce((acc, s) => acc + clampSceneDuration(s.duration), 0);
+  const totalDuration = scenes.length > 0
+    ? scenes.reduce((acc, s) => acc + clampSceneDuration(s.duration), 0)
+    : 0;
+  const safeDuration = totalDuration > 0 ? totalDuration : scenes.length;
   const keyframes: string[] = [];
   const sceneGroups: string[] = [];
   let offset = 0;
@@ -113,10 +116,10 @@ export function generateAnimatedSVG(
   for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i];
     const duration = clampSceneDuration(scene.duration);
-    const startPct = roundPct((offset / totalDuration) * 100);
-    const fadeInEnd = roundPct(Math.min(startPct + 3, ((offset + duration * 0.15) / totalDuration) * 100));
-    const fadeOutStart = roundPct(((offset + duration * 0.85) / totalDuration) * 100);
-    const endPct = roundPct(((offset + duration) / totalDuration) * 100);
+    const startPct = roundPct((offset / safeDuration) * 100);
+    const fadeInEnd = roundPct(Math.min(startPct + 3, ((offset + duration * 0.15) / safeDuration) * 100));
+    const fadeOutStart = roundPct(((offset + duration * 0.85) / safeDuration) * 100);
+    const endPct = roundPct(((offset + duration) / safeDuration) * 100);
 
     const animName = `s${i}`;
     keyframes.push(`@keyframes ${animName}{0%,${startPct}%{opacity:0}${fadeInEnd}%{opacity:1}${fadeOutStart}%{opacity:1}${endPct}%,100%{opacity:0}}`);
@@ -125,7 +128,7 @@ export function generateAnimatedSVG(
     const bgFill = scene.type === 'intro' ? '#1a1a2e' : scene.type === 'outro' ? '#0f3460' : '#16213e';
     const fontSize = scene.type === 'intro' ? 48 : scene.type === 'outro' ? 36 : 24;
 
-    sceneGroups.push(`<g style="animation:${animName} ${totalDuration}s linear infinite;opacity:0"><rect width="${width}" height="${height}" fill="${bgFill}" rx="8"/><text x="${width / 2}" y="${height / 2}" text-anchor="middle" dominant-baseline="middle" fill="#e0e0e0" font-family="system-ui,sans-serif" font-size="${fontSize}" font-weight="bold">${label}</text><text x="${width / 2}" y="${height / 2 + fontSize + 20}" text-anchor="middle" fill="#a0a0a0" font-family="system-ui,sans-serif" font-size="16">${escapeXml(formatSceneSubtitle(scene))}</text></g>`);
+    sceneGroups.push(`<g style="animation:${animName} ${safeDuration}s linear infinite;opacity:0"><rect width="${width}" height="${height}" fill="${bgFill}" rx="8"/><text x="${width / 2}" y="${height / 2}" text-anchor="middle" dominant-baseline="middle" fill="#e0e0e0" font-family="system-ui,sans-serif" font-size="${fontSize}" font-weight="bold">${label}</text><text x="${width / 2}" y="${height / 2 + fontSize + 20}" text-anchor="middle" fill="#a0a0a0" font-family="system-ui,sans-serif" font-size="16">${escapeXml(formatSceneSubtitle(scene))}</text></g>`);
 
     offset += duration;
   }

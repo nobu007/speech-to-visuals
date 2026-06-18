@@ -354,7 +354,7 @@ export class BatchProcessingAPI {
             total: originalTotal,
             completed: skippedCount + completedCount.value,
             failed: failedCount.value,
-            percentage: Math.round((done / originalTotal) * 100),
+            percentage: originalTotal > 0 ? Math.round((done / originalTotal) * 100) : 0,
           },
           estimatedTimeRemaining: this.estimateTimeRemaining(
             startTime,
@@ -391,7 +391,7 @@ export class BatchProcessingAPI {
         successCount,
         failureCount,
         totalProcessingTime,
-        averageProcessingTime: totalProcessingTime / request.files.length,
+        averageProcessingTime: request.files.length > 0 ? totalProcessingTime / request.files.length : 0,
         totalQualityScore,
         averageQualityScore,
       },

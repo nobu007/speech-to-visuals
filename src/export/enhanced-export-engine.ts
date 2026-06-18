@@ -520,7 +520,7 @@ export class EnhancedExportEngine {
     this.updateProgress(job, 'rendering', 30, 'Rendering video frames...');
 
     const { quality, settings } = job.config;
-    const fps = quality.fps;
+    const fps = quality.fps || 30;
     const duration = settings.duration || this.calculateDuration(job.sceneData);
     const totalFrames = Math.ceil(duration * fps);
 
@@ -773,7 +773,7 @@ export class EnhancedExportEngine {
 
     return {
       data: await this.simulateEncoding(frames, 'mp4', codec),
-      duration: frames.length / quality.fps,
+      duration: frames.length / (quality.fps || 30),
       codec,
       profile,
       container: 'mp4'
@@ -785,7 +785,7 @@ export class EnhancedExportEngine {
 
     return {
       data: await this.simulateEncoding(frames, 'webm', 'vp9'),
-      duration: frames.length / quality.fps,
+      duration: frames.length / (quality.fps || 30),
       codec: 'vp9',
       container: 'webm'
     };
@@ -795,7 +795,7 @@ export class EnhancedExportEngine {
     // GIF encoding with optimization
     return {
       data: await this.simulateEncoding(frames, 'gif', 'gif'),
-      duration: frames.length / job.config.quality.fps,
+      duration: frames.length / (job.config.quality.fps || 30),
       codec: 'gif',
       container: 'gif'
     };
@@ -808,7 +808,7 @@ export class EnhancedExportEngine {
     );
     return {
       data: apngData,
-      duration: frames.length / job.config.quality.fps,
+      duration: frames.length / (job.config.quality.fps || 30),
       codec: 'apng',
       container: 'apng',
     };
@@ -820,7 +820,7 @@ export class EnhancedExportEngine {
 
     return {
       data: new TextEncoder().encode(htmlContent),
-      duration: frames.length / job.config.quality.fps,
+      duration: frames.length / (job.config.quality.fps || 30),
       codec: 'html',
       container: 'html',
       interactive: true
@@ -833,7 +833,7 @@ export class EnhancedExportEngine {
 
     return {
       data: pdfData,
-      duration: frames.length / job.config.quality.fps,
+      duration: frames.length / (job.config.quality.fps || 30),
       codec: 'pdf',
       container: 'pdf'
     };
@@ -845,7 +845,7 @@ export class EnhancedExportEngine {
 
     return {
       data: new TextEncoder().encode(svgContent),
-      duration: frames.length / job.config.quality.fps,
+      duration: frames.length / (job.config.quality.fps || 30),
       codec: 'svg',
       container: 'svg'
     };
@@ -857,7 +857,7 @@ export class EnhancedExportEngine {
 
     return {
       data: new TextEncoder().encode(JSON.stringify(lottieData)),
-      duration: frames.length / job.config.quality.fps,
+      duration: frames.length / (job.config.quality.fps || 30),
       codec: 'lottie',
       container: 'json'
     };

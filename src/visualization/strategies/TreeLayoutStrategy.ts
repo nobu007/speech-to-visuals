@@ -78,6 +78,10 @@ export class TreeLayoutStrategy implements ILayoutStrategy {
     const rootCandidates = nodes.filter(n => !hasIncoming.has(n.id));
 
     if (rootCandidates.length === 0) {
+      if (nodes.length === 0) {
+        logger.warn('[Tree] No nodes available to find root');
+        return '';
+      }
       logger.warn('[Tree] No root found, using first node');
       return nodes[0].id;
     }

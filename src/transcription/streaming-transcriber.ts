@@ -244,8 +244,10 @@ export class StreamingTranscriber {
         interimTranscript = '';
 
         for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          const confidence = event.results[i][0].confidence;
+          const alt = event.results[i]?.[0];
+          if (!alt) continue;
+          const transcript = alt.transcript;
+          const confidence = alt.confidence;
 
           if (event.results[i].isFinal) {
             finalTranscript += transcript + ' ';

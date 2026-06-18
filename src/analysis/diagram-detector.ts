@@ -1060,6 +1060,17 @@ export class DiagramDetector {
     allScores.sort((a, b) => b.confidence - a.confidence);
 
     const primary = allScores[0];
+    if (!primary) {
+      return {
+        primaryType: 'general' as DiagramType,
+        confidence: 0,
+        alternatives: [],
+        isComplex: false,
+        secondaryTypes: [],
+        fusionStrategy: 'fallback',
+        reasoning: 'No diagram types could be scored',
+      };
+    }
     const primaryType = primary.type;
 
     // Detect complex types: 2+ types with confidence >= 0.5

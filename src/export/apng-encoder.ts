@@ -146,7 +146,7 @@ export function encodeAPNG(
   const numPlays = options.numPlays ?? 0; // infinite loop by default
 
   // Delay as a rational fraction (num/denom in milliseconds)
-  const delayMs = 1000 / fps;
+  const delayMs = 1000 / (fps || 30);
   // Express as numerator/denominator pair avoiding fractional ms
   // e.g. 30fps → 1000/30 = 33.33ms → use 100/3 (33.33ms)
   const delayNum = Math.round(delayMs * 100);

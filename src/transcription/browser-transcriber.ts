@@ -77,6 +77,7 @@ export class BrowserTranscriber {
     this.recognition.onresult = (event: SpeechRecognitionEvent) => {
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
+        if (!result || result.length === 0) continue;
         const transcript = result[0].transcript;
 
         if (result.isFinal) {
@@ -336,8 +337,8 @@ export class BrowserTranscriber {
           const result = event.results[i];
 
           if (result.isFinal) {
-            const text = result[0].transcript.trim();
-            const confidence = result[0].confidence || 0.9;
+            const text = result[0]?.transcript?.trim() ?? '';
+            const confidence = result[0]?.confidence || 0.9;
             const currentTime = audio.currentTime * 1000; // Convert to ms
 
             if (text) {

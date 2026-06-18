@@ -88,6 +88,7 @@ export class ConceptMapStrategy implements LayoutStrategy {
     }
 
     const nodeMap = new Map(nodes.map(n => [n.id, n]));
+    if (nodes.length === 0) return '';
     let best = nodes[0].id;
     let bestScore = -1;
     for (const [id, d] of degree) {

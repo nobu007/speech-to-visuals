@@ -334,7 +334,7 @@ export class ProductionExporter {
           ...anim,
           timing: {
             ...anim.timing,
-            duration: anim.timing.duration * (30 / options.fps) // Normalize for FPS
+            duration: anim.timing.duration * (30 / (options.fps || 30)) // Normalize for FPS
           }
         }))
       }
@@ -526,7 +526,7 @@ export class ProductionExporter {
    * Calculate encoded file size
    */
   private calculateEncodedSize(renderResult: RenderResult, options: RenderOptions): number {
-    const duration = renderResult.totalFrames / options.fps;
+    const duration = renderResult.totalFrames / (options.fps || 30);
     const bitrate = this.calculateBitrate(options);
 
     // Estimate size in bytes (bitrate in kbps)
@@ -550,7 +550,7 @@ export class ProductionExporter {
       quality: job.options.quality,
       format: job.options.format,
       fileSize: encodedResult.estimatedSize,
-      duration: encodedResult.totalFrames / job.options.fps,
+      duration: encodedResult.totalFrames / (job.options.fps || 30),
       sceneCount: job.scenes.length,
       processingTime: job.endTime! - job.startTime!,
       version: `iteration-${this.iteration}`
