@@ -211,6 +211,7 @@ export class SceneSegmenter {
     endMs: number,
   ): Array<{ text: string; startMs: number; endMs: number }> {
     const totalDuration = endMs - startMs;
+    if (text.length === 0) return [{ text, startMs, endMs }];
 
     // Find all topic-shift keyword positions
     const boundaries: number[] = [];
@@ -701,6 +702,7 @@ export class SceneSegmenter {
    * 🔄 Custom Instructions: Update Iterative Metrics (Continuous Learning)
    */
   private updateIterativeMetrics(segments: ContentSegment[], processingTime: number, qualityScore: number): void {
+    if (segments.length === 0) return;
     // Store historical data for trend analysis
     this.segmentationMetrics.processingTimeHistory.push(processingTime);
     this.segmentationMetrics.qualityScores.set(this.iteration, qualityScore);
@@ -732,6 +734,7 @@ export class SceneSegmenter {
   }
 
   private async testSegmentLengthDistribution(segments: ContentSegment[]): Promise<{ passed: boolean; score: number; name: string }> {
+    if (segments.length === 0) return { passed: false, score: 0, name: 'Segment Length Distribution' };
     const avgLength = segments.reduce((sum, seg) => sum + (seg.endMs - seg.startMs), 0) / segments.length;
     const passed = avgLength >= this.TEST_SEGMENT_LENGTH_MIN_MS && avgLength <= this.TEST_SEGMENT_LENGTH_MAX_MS;
     const score = passed ? this.TEST_SEGMENT_LENGTH_SCORE_PASS : this.TEST_SEGMENT_LENGTH_SCORE_FAIL;
@@ -739,6 +742,7 @@ export class SceneSegmenter {
   }
 
   private async testKeyphraseQuality(segments: ContentSegment[]): Promise<{ passed: boolean; score: number; name: string }> {
+    if (segments.length === 0) return { passed: false, score: 0, name: 'Keyphrase Quality' };
     const avgKeyphrases = segments.reduce((sum, seg) => sum + seg.keyphrases.length, 0) / segments.length;
     const passed = avgKeyphrases >= this.TEST_KEYPHRASE_MIN_COUNT;
     const score = Math.min(avgKeyphrases / this.TEST_KEYPHRASE_DIVISOR, this.TEST_KEYPHRASE_SCORE_CAP);
@@ -746,6 +750,7 @@ export class SceneSegmenter {
   }
 
   private async testConfidenceScores(segments: ContentSegment[]): Promise<{ passed: boolean; score: number; name: string }> {
+    if (segments.length === 0) return { passed: false, score: 0, name: 'Confidence Scores' };
     const avgConfidence = segments.reduce((sum, seg) => sum + seg.confidence, 0) / segments.length;
     const passed = avgConfidence >= this.TEST_CONFIDENCE_MIN_SCORE;
     const score = avgConfidence;
@@ -900,7 +905,7 @@ export class SceneSegmenter {
 
       for (let i = 0; i < splitTexts.length; i++) {
         const partLen = splitTexts[i].length;
-        const partDuration = (partLen / totalLen) * duration;
+        const partDuration = totalLen > 0 ? (partLen / totalLen) * duration : duration / splitTexts.length;
         const endMs = Math.min(currentStartMs + partDuration, segment.endMs);
 
         result.push({

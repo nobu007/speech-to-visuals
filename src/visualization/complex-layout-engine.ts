@@ -994,7 +994,9 @@ export class ComplexLayoutEngine {
     // Simplify edge paths, reduce node details, etc.
     const simplifiedEdges = layout.edges.map(edge => ({
       ...edge,
-      points: [edge.points[0], edge.points[edge.points.length - 1]] // Direct lines only
+      points: edge.points && edge.points.length > 0
+        ? [edge.points[0], edge.points[edge.points.length - 1]]
+        : []
     }));
 
     return { ...layout, edges: simplifiedEdges };

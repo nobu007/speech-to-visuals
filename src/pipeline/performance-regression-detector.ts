@@ -89,7 +89,7 @@ export function detectPerformanceRegressions(
     summary = 'All stages within baseline thresholds.';
   } else {
     const count = results.filter(r => r.isRegression).length;
-    summary = `${count} stage(s) exceeded baseline by >= ${REGRESSION_THRESHOLD_PERCENT}%. Worst: ${worst!.stage} at ${worst!.regressionPercent.toFixed(1)}%.`;
+    summary = `${count} stage(s) exceeded baseline by >= ${REGRESSION_THRESHOLD_PERCENT}%. Worst: ${worst?.stage ?? 'unknown'} at ${(worst?.regressionPercent ?? 0).toFixed(1)}%.`;
   }
 
   return {

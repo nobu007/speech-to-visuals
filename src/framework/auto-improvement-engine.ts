@@ -350,7 +350,7 @@ export class AutoImprovementEngine {
 
         const beforeValue = before[strategy.targetMetric] as number;
         const afterValue = after[strategy.targetMetric] as number;
-        const improvement = ((afterValue - beforeValue) / beforeValue) * 100;
+        const improvement = beforeValue !== 0 ? ((afterValue - beforeValue) / beforeValue) * 100 : 0;
 
         const result: ImprovementResult = {
           strategy: strategy.name,
