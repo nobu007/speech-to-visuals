@@ -182,11 +182,11 @@ export class FallbackLayoutStrategy {
    * Create a matrix layout (grid)
    */
   private createMatrixLayout(nodes: NodeDatum[], edges: EdgeDatum[]): DiagramLayout {
-    const cols = Math.ceil(Math.sqrt(nodes.length));
+    const cols = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
     const nodeWidth = 140;
     const nodeHeight = 60;
     const spacingX = this.config.width / cols;
-    const spacingY = this.config.height / Math.ceil(nodes.length / cols);
+    const spacingY = this.config.height / Math.max(1, Math.ceil(nodes.length / cols));
 
     const positionedNodes = nodes.map((node, index) => {
       const row = Math.floor(index / cols);

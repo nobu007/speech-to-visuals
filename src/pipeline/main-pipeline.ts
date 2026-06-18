@@ -746,11 +746,13 @@ export class MainPipeline {
     const diagramAnalyses = analysisData.diagramAnalyses as Array<Record<string, unknown>>;
 
     const qualityChecks = {
-      hasValidAnalyses: diagramAnalyses.length > 0,
-      averageConfidence: diagramAnalyses.reduce((sum: number, item: Record<string, unknown>) => {
-        const analysis = item.analysis as Record<string, unknown>;
-        return sum + (analysis.confidence as number);
-      }, 0) / diagramAnalyses.length,
+      hasValidAnalyses: (diagramAnalyses?.length ?? 0) > 0,
+      averageConfidence: diagramAnalyses && diagramAnalyses.length > 0
+        ? diagramAnalyses.reduce((sum: number, item: Record<string, unknown>) => {
+            const analysis = item.analysis as Record<string, unknown>;
+            return sum + (analysis.confidence as number);
+          }, 0) / diagramAnalyses.length
+        : 0,
       hasNodes: diagramAnalyses.some((item: Record<string, unknown>) => {
         const analysis = item.analysis as Record<string, unknown>;
         return (analysis.nodes as unknown[]).length > 0;

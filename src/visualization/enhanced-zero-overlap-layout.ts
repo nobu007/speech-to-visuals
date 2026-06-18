@@ -503,7 +503,7 @@ export class ZeroOverlapLayoutEngine {
    * Initialize network nodes with better distribution
    */
   private initializeNetworkNodes(nodes: NodeDatum[], spacing: number): PositionedNode[] {
-    const gridSize = Math.ceil(Math.sqrt(nodes.length));
+    const gridSize = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
     const cellWidth = this.config.canvasWidth / gridSize;
     const cellHeight = this.config.canvasHeight / gridSize;
 

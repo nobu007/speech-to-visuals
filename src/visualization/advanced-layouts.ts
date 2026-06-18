@@ -445,7 +445,7 @@ export class AdvancedLayoutEngine {
    * Grid layout for matrix-style diagrams
    */
   private calculateGridLayout(nodes: LayoutNode[], edges: LayoutEdgeDatum[]): { nodes: LayoutNode[]; edges: LayoutEdgeDatum[] } {
-    const cols = Math.ceil(Math.sqrt(nodes.length));
+    const cols = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
     const rows = Math.ceil(nodes.length / cols);
 
     const layoutNodes = nodes.map((node, index) => ({

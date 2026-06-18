@@ -77,9 +77,10 @@ export class GridSnapStrategy extends BaseLayoutStrategy {
     this.cellSize = Math.max(maxWidth, maxHeight) + this.padding * 2;
     
     // Adjust based on available space
+    const sqrtNodes = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
     const maxCellSize = Math.min(
-      (config.width * 0.8) / Math.ceil(Math.sqrt(nodes.length)),
-      (config.height * 0.8) / Math.ceil(Math.sqrt(nodes.length))
+      (config.width * 0.8) / sqrtNodes,
+      (config.height * 0.8) / sqrtNodes
     );
     
     this.cellSize = Math.min(this.cellSize, maxCellSize);

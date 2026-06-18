@@ -78,7 +78,7 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
     config: LayoutConfig,
     spacing: number
   ): PositionedNode[] {
-    const gridSize = Math.ceil(Math.sqrt(nodes.length));
+    const gridSize = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
     const cellWidth = config.width / gridSize;
     const cellHeight = config.height / gridSize;
 
