@@ -146,6 +146,67 @@ describe('MultiFormatExporter', () => {
       expect(svg).toContain('End');
       expect(svg).toContain('next');
     });
+
+    it('renders node rect at top-left position (not center-offset)', async () => {
+      const scene = makeScene({
+        id: 'rect-pos-test',
+        layout: {
+          nodes: [
+            { id: 'n1', label: 'A', x: 200, y: 150, w: 120, h: 60 },
+          ],
+          edges: [],
+        },
+      });
+      const result = await exporter.export(scene, { format: 'svg' });
+      const svg = await (result.data as Blob).text();
+
+      // rect x should be 200 (top-left), NOT 200 - 120/2 = 140
+      expect(svg).toContain('x="200"');
+      expect(svg).toContain('y="150"');
+      // rect should NOT be at center-offset position
+      expect(svg).not.toContain('x="140"');
+    });
+
+    it('uses w/h properties when width/height are absent (regression)', async () => {
+      const scene = makeScene({
+        id: 'wh-test',
+        layout: {
+          nodes: [
+            { id: 'n1', label: 'Node W', x: 50, y: 50, w: 100, h: 40 },
+            { id: 'n2', label: 'Node H', x: 300, y: 50, w: 100, h: 40 },
+          ],
+          edges: [{ from: 'n1', to: 'n2', points: [] }],
+        },
+      });
+      const result = await exporter.export(scene, { format: 'svg' });
+      expect(result.success).toBe(true);
+
+      const svg = await (result.data as Blob).text();
+      // Nodes should render with w=100, h=40 (not fallback 120/60)
+      expect(svg).toContain('width="100"');
+      expect(svg).toContain('height="40"');
+    });
+
+    it('draws edges between node centers (not top-left corners)', async () => {
+      const scene = makeScene({
+        id: 'edge-center-test',
+        layout: {
+          nodes: [
+            { id: 'n1', label: 'A', x: 0, y: 0, w: 100, h: 40 },
+            { id: 'n2', label: 'B', x: 200, y: 0, w: 100, h: 40 },
+          ],
+          edges: [{ from: 'n1', to: 'n2', points: [] }],
+        },
+      });
+      const result = await exporter.export(scene, { format: 'svg' });
+      const svg = await (result.data as Blob).text();
+
+      // Edge should go from (50, 20) to (250, 20) — centers of the nodes
+      expect(svg).toContain('x1="50"');
+      expect(svg).toContain('y1="20"');
+      expect(svg).toContain('x2="250"');
+      expect(svg).toContain('y2="20"');
+    });
   });
 
   describe('JSON export', () => {

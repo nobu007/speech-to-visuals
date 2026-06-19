@@ -100,6 +100,24 @@ describe('calculateNodeCenter', () => {
     const node = makeNode({ x: 0, y: 0, width: 0, height: 0 });
     expect(calculateNodeCenter(node)).toEqual({ x: 0, y: 0 });
   });
+
+  it('computes center from x, y, w, h (layout engine convention)', () => {
+    const node = makeNode({ x: 10, y: 20, w: 100, h: 60, width: undefined, height: undefined });
+    expect(calculateNodeCenter(node)).toEqual({ x: 60, y: 50 });
+  });
+
+  it('prefers w/h when both w/width are present', () => {
+    const node = makeNode({ x: 0, y: 0, w: 80, h: 40, width: 999, height: 999 });
+    expect(calculateNodeCenter(node)).toEqual({ x: 40, y: 20 });
+  });
+
+  it('does not return NaN for nodes with only w/h (regression)', () => {
+    const node = makeNode({ x: 50, y: 60, w: 120, h: 80, width: undefined, height: undefined });
+    const center = calculateNodeCenter(node);
+    expect(Number.isFinite(center.x)).toBe(true);
+    expect(Number.isFinite(center.y)).toBe(true);
+    expect(center).toEqual({ x: 110, y: 100 });
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -144,6 +162,15 @@ describe('generateEdgePoints', () => {
   it('returns two points from source center to target center', () => {
     const source = makeNode({ x: 0, y: 0, width: 10, height: 10 });
     const target = makeNode({ x: 100, y: 100, width: 10, height: 10 });
+    const pts = generateEdgePoints(source, target);
+    expect(pts).toHaveLength(2);
+    expect(pts[0]).toEqual({ x: 5, y: 5 });
+    expect(pts[1]).toEqual({ x: 105, y: 105 });
+  });
+
+  it('computes correct centers for nodes with w/h only (regression)', () => {
+    const source = makeNode({ x: 0, y: 0, w: 10, h: 10, width: undefined, height: undefined });
+    const target = makeNode({ x: 100, y: 100, w: 10, h: 10, width: undefined, height: undefined });
     const pts = generateEdgePoints(source, target);
     expect(pts).toHaveLength(2);
     expect(pts[0]).toEqual({ x: 5, y: 5 });

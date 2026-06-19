@@ -211,6 +211,27 @@ describe('SimplePipeline', () => {
       expect(result.transcript).toBeDefined();
     });
 
+    it('should populate startMs and durationMs on scenes (regression)', async () => {
+      const result = await pipeline.process({
+        audioFile: createMockFile(),
+        options: { includeVideoGeneration: false, useEnhancedLayout: true },
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.scenes).toBeDefined();
+      expect(result.scenes!.length).toBeGreaterThan(0);
+
+      const scene = result.scenes![0];
+      expect(scene.startMs).toBeDefined();
+      expect(typeof scene.startMs).toBe('number');
+      expect(scene.durationMs).toBeDefined();
+      expect(typeof scene.durationMs).toBe('number');
+      expect(scene.durationMs).toBeGreaterThan(0);
+      // Verify summary and keyphrases are also populated
+      expect(scene.summary).toBeDefined();
+      expect(Array.isArray(scene.keyphrases)).toBe(true);
+    });
+
     it('should use standard layout engine when useEnhancedLayout is false', async () => {
       const result = await pipeline.process({
         audioFile: createMockFile(),

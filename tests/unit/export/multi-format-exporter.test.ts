@@ -353,8 +353,8 @@ describe('REQ-168: MultiFormatExporter', () => {
       const result = await exporter.export(scene, makeOptions({ format: 'svg' }));
       const svgText = await (result.data as Blob).text();
 
-      // Edge from (100,100) to (400,100), midpoint should be (250, 95)
-      expect(svgText).toContain('250');
+      // Edge from center (160,130) to center (460,130), midpoint should be (310, 125)
+      expect(svgText).toContain('310');
     });
 
     it('skips edge label when label is not defined', async () => {

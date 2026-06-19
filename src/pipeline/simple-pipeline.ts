@@ -303,11 +303,20 @@ export class SimplePipeline {
 
           if (lr.success && lr.layout) {
             const sceneId = `scene-${index}`;
+            const segStartMs = (segment as Record<string, unknown>).startMs as number;
+            const segEndMs = (segment as Record<string, unknown>).endMs as number;
+            const segText = (segment as Record<string, unknown>).text as string;
             return {
               id: sceneId,
-              startTime: ((segment as Record<string, unknown>).startMs as number) / 1000, // Convert ms to seconds
-              endTime: ((segment as Record<string, unknown>).endMs as number) / 1000,     // Convert ms to seconds
-              content: (segment as Record<string, unknown>).text as string,
+              startMs: segStartMs,
+              durationMs: segEndMs - segStartMs,
+              startTime: segStartMs / 1000,
+              endTime: segEndMs / 1000,
+              content: segText,
+              summary: segText,
+              keyphrases: diagramAnalysis.nodes?.map(n => n.label).filter(Boolean) ?? [],
+              nodes: diagramAnalysis.nodes ?? [],
+              edges: diagramAnalysis.edges ?? [],
               type: diagramAnalysis.type,
               layout: lr.layout,
               confidence: Math.min(

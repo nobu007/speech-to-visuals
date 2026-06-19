@@ -26,8 +26,8 @@ export function calculateNodeHeight(node: NodeDatum, config: NodeDimensionsConfi
  */
 export function calculateNodeCenter(node: PositionedNode): Point {
   return {
-    x: node.x + node.width / 2,
-    y: node.y + node.height / 2
+    x: node.x + effectiveWidth(node) / 2,
+    y: node.y + effectiveHeight(node) / 2
   };
 }
 

@@ -245,11 +245,19 @@ export class MultiFormatExporter {
       const toNode = nodes.find((n) => n.id === edge.to);
 
       if (fromNode && toNode) {
-        svg += `    <line x1="${fromNode.x}" y1="${fromNode.y}" x2="${toNode.x}" y2="${toNode.y}" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+        const fw = fromNode.w ?? fromNode.width ?? 120;
+        const fh = fromNode.h ?? fromNode.height ?? 60;
+        const tw = toNode.w ?? toNode.width ?? 120;
+        const th = toNode.h ?? toNode.height ?? 60;
+        const fx = (fromNode.x || 0) + fw / 2;
+        const fy = (fromNode.y || 0) + fh / 2;
+        const tx = (toNode.x || 0) + tw / 2;
+        const ty = (toNode.y || 0) + th / 2;
+        svg += `    <line x1="${fx}" y1="${fy}" x2="${tx}" y2="${ty}" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
 `;
         if (edge.label) {
-          const midX = (fromNode.x! + toNode.x!) / 2;
-          const midY = (fromNode.y! + toNode.y!) / 2;
+          const midX = (fx + tx) / 2;
+          const midY = (fy + ty) / 2;
           svg += `    <text x="${midX}" y="${midY - 5}" fill="#666" font-size="12" text-anchor="middle">${this.escapeXML(edge.label)}</text>
 `;
         }
@@ -260,12 +268,12 @@ export class MultiFormatExporter {
     for (const node of nodes) {
       const x = node.x || 0;
       const y = node.y || 0;
-      const w = node.width || 120;
-      const h = node.height || 60;
+      const w = node.w ?? node.width ?? 120;
+      const h = node.h ?? node.height ?? 60;
 
       svg += `    <g id="${node.id}">
-      <rect x="${x - w / 2}" y="${y - h / 2}" width="${w}" height="${h}" fill="#4A90E2" stroke="#2E5C8A" stroke-width="2" rx="5"/>
-      <text x="${x}" y="${y}" fill="white" font-size="14" text-anchor="middle" dominant-baseline="middle">${this.escapeXML(node.label)}</text>
+      <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#4A90E2" stroke="#2E5C8A" stroke-width="2" rx="5"/>
+      <text x="${x + w / 2}" y="${y + h / 2}" fill="white" font-size="14" text-anchor="middle" dominant-baseline="middle">${this.escapeXML(node.label)}</text>
     </g>
 `;
     }
@@ -318,14 +326,22 @@ export class MultiFormatExporter {
       const toNode = nodes.find((n) => n.id === edge.to);
 
       if (fromNode && toNode) {
+        const fw = fromNode.w ?? fromNode.width ?? 120;
+        const fh = fromNode.h ?? fromNode.height ?? 60;
+        const tw = toNode.w ?? toNode.width ?? 120;
+        const th = toNode.h ?? toNode.height ?? 60;
+        const fx = (fromNode.x || 0) + fw / 2;
+        const fy = (fromNode.y || 0) + fh / 2;
+        const tx = (toNode.x || 0) + tw / 2;
+        const ty = (toNode.y || 0) + th / 2;
         ctx.beginPath();
-        ctx.moveTo(fromNode.x || 0, fromNode.y || 0);
-        ctx.lineTo(toNode.x || 0, toNode.y || 0);
+        ctx.moveTo(fx, fy);
+        ctx.lineTo(tx, ty);
         ctx.stroke();
 
         if (edge.label) {
-          const midX = ((fromNode.x || 0) + (toNode.x || 0)) / 2;
-          const midY = ((fromNode.y || 0) + (toNode.y || 0)) / 2;
+          const midX = (fx + tx) / 2;
+          const midY = (fy + ty) / 2;
           ctx.fillStyle = '#666';
           ctx.font = '12px Arial';
           ctx.textAlign = 'center';
@@ -338,15 +354,15 @@ export class MultiFormatExporter {
     for (const node of nodes) {
       const x = node.x || 0;
       const y = node.y || 0;
-      const w = node.width || 120;
-      const h = node.height || 60;
+      const w = node.w ?? node.width ?? 120;
+      const h = node.h ?? node.height ?? 60;
 
       // Node rectangle
       ctx.fillStyle = '#4A90E2';
       ctx.strokeStyle = '#2E5C8A';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.roundRect(x - w / 2, y - h / 2, w, h, 5);
+      ctx.roundRect(x, y, w, h, 5);
       ctx.fill();
       ctx.stroke();
 
@@ -355,7 +371,7 @@ export class MultiFormatExporter {
       ctx.font = '14px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(node.label, x, y);
+      ctx.fillText(node.label, x + w / 2, y + h / 2);
     }
   }
 
