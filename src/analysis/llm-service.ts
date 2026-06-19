@@ -611,8 +611,8 @@ export class LLMService {
               totalTokenCount: meta.totalTokenCount,
             }
           : undefined;
-      } catch {
-        // Usage metadata not available for this streaming response
+      } catch (err) {
+        logger.debug('[LLMService] Usage metadata not available for streaming response:', err instanceof Error ? err.message : err);
       }
 
       return { text: fullText, usage };
@@ -945,8 +945,8 @@ export function parseResponse(rawResponse: string): AnalysisResult {
     };
 
     return result;
-  } catch {
-    // On any parse error, return defaults -- do NOT throw
+  } catch (err) {
+    logger.warn('[LLMService] Failed to parse analysis result, returning defaults:', err instanceof Error ? err.message : err);
     return { ...DEFAULT_ANALYSIS_RESULT };
   }
 }
