@@ -174,8 +174,9 @@ export class PipelineOrchestrator {
     // Initialize QualityMonitor for pipeline stage scoring (REQ-088)
     try {
       this.qualityMonitor = QualityMonitor.getInstance();
-    } catch {
+    } catch (error) {
       // Gracefully degrade if QualityMonitor is unavailable
+      logger.warn('[PipelineOrchestrator] QualityMonitor initialization failed:', error);
       this.qualityMonitor = null;
     }
   }
@@ -451,8 +452,9 @@ export class PipelineOrchestrator {
         try {
           const classifier = new ErrorClassifier();
           classifiedError = classifier.classify(error);
-        } catch {
+        } catch (classificationError) {
           // Classification failure should not mask the original error
+          logger.warn('[PipelineOrchestrator] Error classification failed:', classificationError);
         }
       }
 
@@ -495,8 +497,8 @@ export class PipelineOrchestrator {
           config.analysis.confidenceThreshold =
             optimization.parameters.confidenceThreshold;
         }
-      } catch {
-        // Silently continue with default parameters
+      } catch (error) {
+        logger.warn('[PipelineOrchestrator] Auto-tuning failed, using default parameters:', error);
       }
     }
 
@@ -507,8 +509,8 @@ export class PipelineOrchestrator {
         return this.makeDefaultTranscriptionResult();
       }
       return result;
-    } catch {
-      // Return a default transcription for robustness (tests pass with mocks)
+    } catch (error) {
+      logger.error('[PipelineOrchestrator] Transcription failed, returning default result:', error);
       return this.makeDefaultTranscriptionResult();
     }
   }
@@ -532,7 +534,8 @@ export class PipelineOrchestrator {
       }
 
       return { segments: contentSegments, diagrams };
-    } catch {
+    } catch (error) {
+      logger.error('[PipelineOrchestrator] Analysis failed, returning default result:', error);
       return this.makeDefaultAnalysisResult();
     }
   }
@@ -588,7 +591,8 @@ export class PipelineOrchestrator {
           ),
         };
       }
-    } catch {
+    } catch (error) {
+      logger.error('[PipelineOrchestrator] Layout generation failed, using fallback:', error);
       return {
         segment,
         analysis: diag,
@@ -1025,8 +1029,9 @@ export class PipelineOrchestrator {
       }
 
       qualityScores[stage] = score;
-    } catch {
+    } catch (error) {
       // Silently continue — quality recording must not break the pipeline
+      logger.warn('[PipelineOrchestrator] Quality score recording failed:', error);
     }
   }
 
