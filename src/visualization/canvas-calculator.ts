@@ -47,18 +47,19 @@ export class CanvasCalculator {
     let maxY = -Infinity;
 
     for (const node of nodes) {
-      const left = node.x;
-      const right = node.x + node.width;
-      const top = node.y;
-      const bottom = node.y + node.height;
+      const left = Number.isFinite(node.x) ? node.x : 0;
+      const right = left + (Number.isFinite(node.width) ? node.width : 0);
+      const top = Number.isFinite(node.y) ? node.y : 0;
+      const bottom = top + (Number.isFinite(node.height) ? node.height : 0);
       if (left < minX) minX = left;
       if (top < minY) minY = top;
       if (right > maxX) maxX = right;
       if (bottom > maxY) maxY = bottom;
     }
 
-    const bboxWidth = maxX - minX;
-    const bboxHeight = maxY - minY;
+    // Guard against degenerate (all-zero or all-NaN) bounding boxes
+    const bboxWidth = Math.max(1, maxX - minX);
+    const bboxHeight = Math.max(1, maxY - minY);
 
     // Add 5% padding (min 40px)
     const paddingH = Math.max(bboxWidth * PADDING_RATIO, MIN_PADDING);
@@ -119,18 +120,18 @@ export class CanvasCalculator {
     let maxY = -Infinity;
 
     for (const node of nodes) {
-      const left = node.x;
-      const right = node.x + node.width;
-      const top = node.y;
-      const bottom = node.y + node.height;
+      const left = Number.isFinite(node.x) ? node.x : 0;
+      const right = left + (Number.isFinite(node.width) ? node.width : 0);
+      const top = Number.isFinite(node.y) ? node.y : 0;
+      const bottom = top + (Number.isFinite(node.height) ? node.height : 0);
       if (left < minX) minX = left;
       if (top < minY) minY = top;
       if (right > maxX) maxX = right;
       if (bottom > maxY) maxY = bottom;
     }
 
-    const bboxWidth = maxX - minX;
-    const bboxHeight = maxY - minY;
+    const bboxWidth = Math.max(1, maxX - minX);
+    const bboxHeight = Math.max(1, maxY - minY);
     const bboxCenterX = minX + bboxWidth / 2;
     const bboxCenterY = minY + bboxHeight / 2;
 
@@ -142,8 +143,8 @@ export class CanvasCalculator {
 
     return nodes.map((node) => ({
       ...node,
-      x: node.x + offsetX,
-      y: node.y + offsetY,
+      x: (Number.isFinite(node.x) ? node.x : 0) + offsetX,
+      y: (Number.isFinite(node.y) ? node.y : 0) + offsetY,
     }));
   }
 }

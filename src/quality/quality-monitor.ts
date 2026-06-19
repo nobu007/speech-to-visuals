@@ -286,8 +286,8 @@ export class QualityMonitor {
   private assessLLMExtractionQuality(result: PipelineResult): number {
     const m = result.metrics as unknown as Record<string, unknown> | null;
 
-    const hasEntity = typeof m?.entityExtractionF1Score === 'number';
-    const hasRelation = typeof m?.relationAccuracy === 'number';
+    const hasEntity = typeof m?.entityExtractionF1Score === 'number' && Number.isFinite(m.entityExtractionF1Score);
+    const hasRelation = typeof m?.relationAccuracy === 'number' && Number.isFinite(m.relationAccuracy);
 
     if (hasEntity || hasRelation) {
       const parts: number[] = [];
@@ -308,7 +308,7 @@ export class QualityMonitor {
     return (entityScore + relationScore) / 2;
   }
 
-  private clamp01(v: number): number { return Math.max(0, Math.min(1, v)); }
+  private clamp01(v: number): number { return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0; }
 
   /**
    * Assess scene generation quality

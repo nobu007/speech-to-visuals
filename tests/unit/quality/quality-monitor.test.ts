@@ -98,6 +98,35 @@ describe('QualityMonitor', () => {
       expect(assessment.accuracyScore).toBeGreaterThan(0);
     });
 
+    it('should handle NaN LLM extraction metrics without producing NaN scores', async () => {
+      const result = makeSuccessResult({
+        metrics: {
+          totalProcessingTime: 5000,
+          memoryUsage: 128 * 1024 * 1024,
+          entityExtractionF1Score: NaN,
+          relationAccuracy: NaN,
+        },
+      } as Partial<PipelineResult>);
+      const assessment = await monitor.assessPipelineQuality(result);
+      expect(Number.isFinite(assessment.accuracyScore)).toBe(true);
+      expect(Number.isFinite(assessment.overallScore)).toBe(true);
+    });
+
+    it('should handle Infinity LLM extraction metrics by clamping to [0,1]', async () => {
+      const result = makeSuccessResult({
+        metrics: {
+          totalProcessingTime: 5000,
+          memoryUsage: 128 * 1024 * 1024,
+          entityExtractionF1Score: Infinity,
+          relationAccuracy: -Infinity,
+        },
+      } as Partial<PipelineResult>);
+      const assessment = await monitor.assessPipelineQuality(result);
+      expect(assessment.accuracyScore).toBeGreaterThanOrEqual(0);
+      expect(assessment.accuracyScore).toBeLessThanOrEqual(1);
+      expect(Number.isFinite(assessment.overallScore)).toBe(true);
+    });
+
     it('should assess pipeline with many scenes', async () => {
       const manyScenes: SceneGraph[] = Array.from({ length: 15 }, (_, i) => ({
         type: 'flow' as const,

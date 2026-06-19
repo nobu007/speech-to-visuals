@@ -194,4 +194,70 @@ describe('CanvasCalculator', () => {
       expect(centered[0].y).toBeCloseTo(540 - 30, 1);
     });
   });
+
+  describe('non-finite value guards', () => {
+    it('calculate() should return finite canvas for NaN node coordinates', () => {
+      const nodes = makeNodes([
+        { x: NaN, y: NaN, w: 120, h: 60 },
+      ]);
+
+      const result = calculator.calculate(nodes);
+
+      expect(Number.isFinite(result.width)).toBe(true);
+      expect(Number.isFinite(result.height)).toBe(true);
+      expect(result.width).toBeGreaterThan(0);
+      expect(result.height).toBeGreaterThan(0);
+    });
+
+    it('calculate() should return finite canvas for Infinity node coordinates', () => {
+      const nodes = makeNodes([
+        { x: Infinity, y: -Infinity, w: 120, h: 60 },
+      ]);
+
+      const result = calculator.calculate(nodes);
+
+      expect(Number.isFinite(result.width)).toBe(true);
+      expect(Number.isFinite(result.height)).toBe(true);
+    });
+
+    it('calculate() should ignore NaN nodes and use valid ones', () => {
+      const nodes = makeNodes([
+        { x: NaN, y: NaN, w: NaN, h: NaN },
+        { x: 100, y: 100 },
+      ]);
+
+      const result = calculator.calculate(nodes);
+
+      expect(Number.isFinite(result.width)).toBe(true);
+      expect(Number.isFinite(result.height)).toBe(true);
+    });
+
+    it('center() should produce finite offsets for NaN node coordinates', () => {
+      const nodes = makeNodes([
+        { x: NaN, y: NaN },
+      ]);
+      const canvas: CanvasCalcResult = {
+        width: 1920,
+        height: 1080,
+        padding: { top: 40, right: 40, bottom: 40, left: 40 },
+        scale: 1,
+      };
+
+      const centered = calculator.center(nodes, canvas);
+
+      expect(Number.isFinite(centered[0].x)).toBe(true);
+      expect(Number.isFinite(centered[0].y)).toBe(true);
+    });
+
+    it('calculate() should handle nodes with NaN dimensions', () => {
+      const nodes: PositionedNode[] = [
+        { id: 'n0', label: 'N0', x: 100, y: 100, width: NaN, height: 60 },
+      ];
+
+      const result = calculator.calculate(nodes);
+
+      expect(Number.isFinite(result.width)).toBe(true);
+      expect(Number.isFinite(result.height)).toBe(true);
+    });
+  });
 });
