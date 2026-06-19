@@ -273,7 +273,7 @@ export class StreamingTranscriber {
               start: segmentStartTime / 1000,
               end: performance.now() / 1000,
               text: transcript.trim(),
-              confidence: confidence || 0.8,
+              confidence: Number.isFinite(confidence) && confidence > 0 ? confidence : 0.8,
               speaker: 'unknown'
             };
 

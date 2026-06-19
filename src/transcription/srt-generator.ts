@@ -8,6 +8,7 @@ import { TranscriptionError } from './types';
  * - Negative values are clamped to 0.
  */
 export function formatTimestamp(ms: number): string {
+  if (!Number.isFinite(ms)) return '00:00:00,000';
   const clamped = Math.max(0, ms);
 
   const totalSeconds = Math.floor(clamped / 1000);
@@ -31,6 +32,12 @@ export function formatTimestamp(ms: number): string {
  * @throws {Error} If start > end or text is empty/whitespace-only.
  */
 function validateSegment(segment: TranscriptionSegment): void {
+  if (!Number.isFinite(segment.start) || !Number.isFinite(segment.end)) {
+    throw new TranscriptionError(
+      `Invalid segment: non-finite timestamp (start=${segment.start}, end=${segment.end}).`,
+    );
+  }
+
   if (segment.start > segment.end) {
     throw new TranscriptionError(
       `Invalid segment: start (${segment.start}) must not exceed end (${segment.end}).`,

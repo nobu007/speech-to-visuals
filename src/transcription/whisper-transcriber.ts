@@ -27,6 +27,7 @@ export interface WhisperConfig {
  * Format a timestamp in milliseconds to SRT time format (HH:MM:SS,mmm)
  */
 function formatSrtTime(ms: number): string {
+  if (!Number.isFinite(ms)) return '00:00:00,000';
   const hours = Math.floor(ms / 3600000);
   const minutes = Math.floor((ms % 3600000) / 60000);
   const seconds = Math.floor((ms % 60000) / 1000);
@@ -335,7 +336,7 @@ export class WhisperTranscriber {
     return segments.map((segment, index) => ({
       ...segment,
       id: segment.id ?? index,
-      confidence: Math.max(segment.confidence ?? 0.8, 0.8),
+      confidence: Math.max(Number.isFinite(segment.confidence) ? segment.confidence : 0.8, 0.8),
       text: segment.text.trim().replace(/\s+/g, ' ')
     })).filter(segment =>
       segment.text.length > 0 &&
@@ -389,7 +390,7 @@ export class WhisperTranscriber {
   private calculateDuration(segments: TranscriptionSegment[]): number {
     if (segments.length === 0) return 0;
     const lastSegment = segments[segments.length - 1];
-    return lastSegment.end;
+    return Number.isFinite(lastSegment.end) ? lastSegment.end : 0;
   }
 
   /**
