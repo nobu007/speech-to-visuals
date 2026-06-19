@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,6 +27,17 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
   // Phase 33: Real-time streaming progress
   const [streamingProgress, setStreamingProgress] = useState<string>('');
   const [showStreamingDetails, setShowStreamingDetails] = useState(false);
+  const audioBlobUrlRef = useRef<string | null>(null);
+
+  // Cleanup blob URL on unmount
+  useEffect(() => {
+    return () => {
+      if (audioBlobUrlRef.current) {
+        URL.revokeObjectURL(audioBlobUrlRef.current);
+        audioBlobUrlRef.current = null;
+      }
+    };
+  }, []);
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -67,6 +78,12 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
         audioFile: tempAudioPath
       });
 
+      // Revoke blob URL after pipeline completes
+      if (audioBlobUrlRef.current) {
+        URL.revokeObjectURL(audioBlobUrlRef.current);
+        audioBlobUrlRef.current = null;
+      }
+
       // Update progress based on completed stages
       if (pipelineResult.stages.length > 0) {
         let totalProgress = 0;
@@ -96,13 +113,24 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
       setStatus('error');
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
       logger.error('[PipelineInterface] Pipeline error:', err);
+      // Revoke blob URL on error too
+      if (audioBlobUrlRef.current) {
+        URL.revokeObjectURL(audioBlobUrlRef.current);
+        audioBlobUrlRef.current = null;
+      }
     }
   }, [selectedFile, pipeline]);
 
   // Helper function to save audio file to a temporary location
   const saveAudioFile = async (file: File): Promise<string> => {
+    // Revoke previous blob URL if it exists
+    if (audioBlobUrlRef.current) {
+      URL.revokeObjectURL(audioBlobUrlRef.current);
+    }
+
     // Create a temporary URL for the file
     const audioUrl = URL.createObjectURL(file);
+    audioBlobUrlRef.current = audioUrl;
 
     // In a real implementation, you might save this to a temporary directory
     // For now, we'll return the blob URL which our Whisper integration can handle
