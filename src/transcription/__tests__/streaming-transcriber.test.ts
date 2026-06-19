@@ -2451,5 +2451,81 @@ describe('StreamingTranscriber', () => {
       // Segments from non-failing chunks are present
       expect(result.segments!.length).toBeGreaterThan(0);
     });
+
+    // --- transcribeStream callback isolation ---
+    // The chunk loop's inner try/catch catches errors, but without
+    // per-callback try/catch a throwing onProgress prevents onSegment
+    // from firing for the same chunk (and vice-versa).
+
+    it('onProgress throwing in transcribeStream does not prevent onSegment for the same chunk', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 6; // 2 chunks
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 3000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+
+      jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const onProgress = jest.fn().mockImplementation(() => {
+        throw new Error('onProgress boom');
+      });
+      const onSegment = jest.fn();
+
+      const promise = transcriber.transcribeStream('/audio.mp3', onProgress, onSegment);
+
+      setImmediate(() => {
+        if (mockAudioInstance.onloadedmetadata) {
+          mockAudioInstance.onloadedmetadata();
+        }
+      });
+
+      const result = await promise;
+
+      // Session completed despite onProgress throwing
+      expect(result.success).toBe(true);
+      // onSegment was still called for segments in the same chunk
+      expect(onSegment).toHaveBeenCalled();
+    });
+
+    it('onSegment throwing on one segment does not prevent subsequent segments in the same chunk', async () => {
+      await loadModule();
+      // Single 6-second chunk → processAudioChunk produces 3 segments
+      mockAudioInstance.duration = 6;
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 6000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+
+      jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      let segmentCallCount = 0;
+      const onSegment = jest.fn().mockImplementation(() => {
+        segmentCallCount++;
+        if (segmentCallCount === 1) throw new Error('onSegment boom on first');
+      });
+
+      const promise = transcriber.transcribeStream('/audio.mp3', undefined, onSegment);
+
+      setImmediate(() => {
+        if (mockAudioInstance.onloadedmetadata) {
+          mockAudioInstance.onloadedmetadata();
+        }
+      });
+
+      const result = await promise;
+
+      // Session completed
+      expect(result.success).toBe(true);
+      // All segments in the single chunk were attempted — the throw on
+      // segment 1 did not prevent remaining segments from being delivered.
+      // Without per-segment try/catch the forEach would abort after the
+      // first throw, giving segmentCallCount === 1.
+      expect(segmentCallCount).toBeGreaterThanOrEqual(3);
+    });
   });
 });

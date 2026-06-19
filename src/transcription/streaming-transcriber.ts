@@ -174,21 +174,33 @@ export class StreamingTranscriber {
             this.qualityMonitor.evaluateChunk(i, chunkAvgConfidence);
           }
 
-          // Real-time progress callback
+          // Real-time progress callback (individually guarded so a
+          // throwing callback cannot block onSegment for the same chunk)
           if (onProgress) {
-            const progress: StreamingProgress = {
-              processedDuration: chunk.end * 1000,
-              totalDuration: audioDuration * 1000,
-              currentSegment: validSegments[validSegments.length - 1] || null,
-              segmentCount: allSegments.length,
-              averageConfidence: this.calculateAverageConfidence(allSegments)
-            };
-            onProgress(progress);
+            try {
+              const progress: StreamingProgress = {
+                processedDuration: chunk.end * 1000,
+                totalDuration: audioDuration * 1000,
+                currentSegment: validSegments[validSegments.length - 1] || null,
+                segmentCount: allSegments.length,
+                averageConfidence: this.calculateAverageConfidence(allSegments)
+              };
+              onProgress(progress);
+            } catch (cbError) {
+              logger.warn('[StreamingTranscriber] onProgress callback error:', cbError);
+            }
           }
 
-          // Real-time segment callback
+          // Real-time segment callback (per-segment guard ensures one
+          // failing callback does not skip remaining segments)
           if (onSegment && validSegments.length > 0) {
-            validSegments.forEach(segment => onSegment(segment));
+            for (const segment of validSegments) {
+              try {
+                onSegment(segment);
+              } catch (cbError) {
+                logger.warn('[StreamingTranscriber] onSegment callback error:', cbError);
+              }
+            }
           }
 
           // Small delay to prevent overwhelming
