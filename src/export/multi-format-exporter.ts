@@ -16,6 +16,7 @@ import type { SceneGraph } from '@/types/diagram';
 import { ExportError } from '@/pipeline/pipeline-errors';
 import type { NodeDatum, EdgeDatum } from '@/types/diagram';
 import { logger } from '../utils/logger';
+import { sanitizeFilename } from '../utils/sanitize';
 
 export type ExportFormat = 'svg' | 'png' | 'pdf' | 'json';
 
@@ -98,7 +99,7 @@ export class MultiFormatExporter {
       success: true,
       data: blob,
       mimeType: 'image/svg+xml',
-      filename: `${scene.id}.svg`,
+      filename: `${sanitizeFilename(scene.id)}.svg`,
       metadata: {
         format: 'svg',
         sizeBytes: blob.size,
@@ -140,7 +141,7 @@ export class MultiFormatExporter {
       success: true,
       data: blob,
       mimeType: 'image/png',
-      filename: `${scene.id}.png`,
+      filename: `${sanitizeFilename(scene.id)}.png`,
       metadata: {
         format: 'png',
         sizeBytes: blob.size,
@@ -167,7 +168,7 @@ export class MultiFormatExporter {
       success: true,
       data: pdfData,
       mimeType: 'application/pdf',
-      filename: `${scene.id}.pdf`,
+      filename: `${sanitizeFilename(scene.id)}.pdf`,
       metadata: {
         format: 'pdf',
         sizeBytes: pdfData.size,
@@ -210,7 +211,7 @@ export class MultiFormatExporter {
       success: true,
       data: blob,
       mimeType: 'application/json',
-      filename: `${scene.id}.json`,
+      filename: `${sanitizeFilename(scene.id)}.json`,
       metadata: {
         format: 'json',
         sizeBytes: blob.size,

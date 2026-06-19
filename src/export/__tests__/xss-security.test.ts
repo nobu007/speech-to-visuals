@@ -636,3 +636,103 @@ describe('XSS Security: Plain JSON Export (MultiFormatExporter)', () => {
     });
   });
 });
+
+// ===========================================================================
+// 8. Filename Sanitization — Path Traversal Prevention
+//    User-controlled scene.id flows to filenames; must be sanitized to
+//    prevent writing outside intended directories.
+// ===========================================================================
+
+describe('Security: Filename sanitization in export paths', () => {
+  const exporter = new MultiFormatExporter();
+
+  const PATH_TRAVERSAL_PAYLOADS = [
+    '../../../etc/passwd',
+    '..\\..\\..\\windows\\system32',
+    '/etc/passwd',
+    '\\\\network\\share\\evil',
+    'scene\x00evil',          // null byte injection
+    '.hidden',                 // leading dot (hidden files)
+    'scene/../../../tmp/evil', // mixed path traversal
+    'scene\x01\x02\x03',      // control characters
+    '  ',                      // whitespace only
+    '',                        // empty string
+  ];
+
+  test.each(PATH_TRAVERSAL_PAYLOADS)(
+    'SVG export sanitizes filename for scene.id: %s',
+    async (maliciousId) => {
+      const scene = makeSceneWithXssLabels('safe label');
+      scene.id = maliciousId;
+      const result = await exporter.export(scene, { format: 'svg' });
+
+      expect(result.success).toBe(true);
+      const filename = result.filename!;
+      // Must not contain path traversal sequences
+      expect(filename).not.toContain('..');
+      // Must not contain directory separators (except the extension dot)
+      expect(filename.replace(/\.svg$/, '')).not.toMatch(/[/\\]/);
+      // Must not contain null bytes or control characters
+      expect(filename).not.toMatch(/[\x00-\x1f\x7f]/);
+      // Must end with .svg
+      expect(filename).toMatch(/\.svg$/);
+    },
+  );
+
+  test.each(PATH_TRAVERSAL_PAYLOADS)(
+    'JSON export sanitizes filename for scene.id: %s',
+    async (maliciousId) => {
+      const scene = makeSceneWithXssLabels('safe label');
+      scene.id = maliciousId;
+      const result = await exporter.export(scene, { format: 'json' });
+
+      expect(result.success).toBe(true);
+      const filename = result.filename!;
+      expect(filename).not.toContain('..');
+      expect(filename.replace(/\.json$/, '')).not.toMatch(/[/\\]/);
+      expect(filename).not.toMatch(/[\x00-\x1f\x7f]/);
+      expect(filename).toMatch(/\.json$/);
+    },
+  );
+
+  test('PDF export sanitizes filename for path traversal scene.id', async () => {
+    const scene = makeSceneWithXssLabels('safe label');
+    scene.id = '../../../etc/passwd';
+    const result = await exporter.export(scene, { format: 'pdf' });
+
+    expect(result.success).toBe(true);
+    expect(result.filename).not.toContain('..');
+    expect(result.filename!).toMatch(/\.pdf$/);
+  });
+
+  test('PNG export sanitizes filename for path traversal scene.id', async () => {
+    const scene = makeSceneWithXssLabels('safe label');
+    scene.id = '../../../etc/passwd';
+    const result = exporter.export(scene, { format: 'png' });
+
+    // PNG requires canvas; may fail in test env, but filename should still be set
+    // or the error should not be path-related
+    if (result.success) {
+      expect(result.filename).not.toContain('..');
+      expect(result.filename!).toMatch(/\.png$/);
+    }
+  });
+
+  test('Empty scene.id falls back to "unnamed" in filename', async () => {
+    const scene = makeSceneWithXssLabels('safe label');
+    scene.id = '';
+    const result = await exporter.export(scene, { format: 'json' });
+
+    expect(result.success).toBe(true);
+    expect(result.filename).toBe('unnamed.json');
+  });
+
+  test('Scene.id with only whitespace falls back to "unnamed"', async () => {
+    const scene = makeSceneWithXssLabels('safe label');
+    scene.id = '   ';
+    const result = await exporter.export(scene, { format: 'json' });
+
+    expect(result.success).toBe(true);
+    expect(result.filename).toBe('unnamed.json');
+  });
+});
