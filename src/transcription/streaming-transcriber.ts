@@ -266,7 +266,11 @@ export class StreamingTranscriber {
             };
 
             if (onSegment && segment.confidence >= (this.config.minConfidence || 0.7)) {
-              onSegment(segment);
+              try {
+                onSegment(segment);
+              } catch (cbError) {
+                logger.warn('[StreamingTranscriber] onSegment callback error in live transcription:', cbError);
+              }
             }
 
             segmentStartTime = performance.now();
@@ -277,20 +281,24 @@ export class StreamingTranscriber {
 
         // Progress update for live transcription
         if (onProgress) {
-          const progress: StreamingProgress = {
-            processedDuration: performance.now() - segmentStartTime,
-            totalDuration: -1, // Unknown for live
-            currentSegment: interimTranscript ? {
-              start: segmentStartTime / 1000,
-              end: performance.now() / 1000,
-              text: interimTranscript,
-              confidence: 0.5, // Interim confidence
-              speaker: 'unknown'
-            } : null,
-            segmentCount: this.segments.length,
-            averageConfidence: this.calculateAverageConfidence(this.segments)
-          };
-          onProgress(progress);
+          try {
+            const progress: StreamingProgress = {
+              processedDuration: performance.now() - segmentStartTime,
+              totalDuration: -1, // Unknown for live
+              currentSegment: interimTranscript ? {
+                start: segmentStartTime / 1000,
+                end: performance.now() / 1000,
+                text: interimTranscript,
+                confidence: 0.5, // Interim confidence
+                speaker: 'unknown'
+              } : null,
+              segmentCount: this.segments.length,
+              averageConfidence: this.calculateAverageConfidence(this.segments)
+            };
+            onProgress(progress);
+          } catch (cbError) {
+            logger.warn('[StreamingTranscriber] onProgress callback error in live transcription:', cbError);
+          }
         }
       };
 

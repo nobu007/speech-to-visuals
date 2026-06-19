@@ -2243,5 +2243,213 @@ describe('StreamingTranscriber', () => {
       expect(result.segments).toEqual([]);
       expect(result.text).toBe('');
     });
+
+    // --- Live transcription callback error resilience ---
+    // Asserts that try/catch around onSegment/onProgress in the onresult
+    // handler prevents callback errors from crashing the recognition session.
+
+    it('onSegment callback throwing in live transcription does not crash the onresult handler', async () => {
+      await loadModule();
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      let segmentCallCount = 0;
+      const onSegment = jest.fn().mockImplementation(() => {
+        segmentCallCount++;
+        if (segmentCallCount === 1) throw new Error('live onSegment boom');
+      });
+
+      const promise = transcriber.startLiveTranscription(onSegment);
+
+      // Fire two final results in a single event — the first triggers the
+      // throwing callback, the second verifies the handler survived.
+      if (mockRecognitionInstance.onresult) {
+        mockPerformanceNow.mockReturnValue(1500);
+
+        const mockEvent = {
+          resultIndex: 0,
+          results: {
+            length: 2,
+            0: {
+              isFinal: true,
+              length: 1,
+              0: { transcript: 'first', confidence: 0.9 },
+            },
+            1: {
+              isFinal: true,
+              length: 1,
+              0: { transcript: 'second', confidence: 0.85 },
+            },
+          } as unknown as SpeechRecognitionResultList,
+        } as unknown as SpeechRecognitionEvent;
+
+        mockRecognitionInstance.onresult(mockEvent);
+      }
+
+      await promise;
+
+      // Both callbacks were invoked — the throw on the first did not prevent
+      // the loop from processing the second result.
+      expect(segmentCallCount).toBe(2);
+      // The try/catch logged a warning (did not propagate)
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('onSegment callback error'),
+        expect.any(Error),
+      );
+      warnSpy.mockRestore();
+    });
+
+    it('onProgress callback throwing in live transcription does not crash the onresult handler', async () => {
+      await loadModule();
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      let progressCallCount = 0;
+      const onProgress = jest.fn().mockImplementation(() => {
+        progressCallCount++;
+        throw new Error('live onProgress boom');
+      });
+
+      const promise = transcriber.startLiveTranscription(undefined, onProgress);
+
+      // Fire a result — onProgress throws but the handler should survive.
+      if (mockRecognitionInstance.onresult) {
+        mockPerformanceNow.mockReturnValue(1500);
+
+        const mockEvent = {
+          resultIndex: 0,
+          results: {
+            length: 1,
+            0: {
+              isFinal: true,
+              length: 1,
+              0: { transcript: 'test', confidence: 0.9 },
+            },
+          } as unknown as SpeechRecognitionResultList,
+        } as unknown as SpeechRecognitionEvent;
+
+        // This should NOT throw — the try/catch should swallow the error
+        expect(() => {
+          mockRecognitionInstance.onresult!(mockEvent);
+        }).not.toThrow();
+      }
+
+      await promise;
+
+      expect(progressCallCount).toBe(1);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('onProgress callback error'),
+        expect.any(Error),
+      );
+      warnSpy.mockRestore();
+    });
+
+    it('segmentStartTime still updates after onSegment throws in live transcription', async () => {
+      await loadModule();
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
+      jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const onSegment = jest.fn().mockImplementation(() => {
+        throw new Error('live onSegment boom');
+      });
+
+      const promise = transcriber.startLiveTranscription(onSegment);
+
+      // Fire a final result — onSegment throws, but segmentStartTime must
+      // still be updated so the next segment has a correct start time.
+      if (mockRecognitionInstance.onresult) {
+        mockPerformanceNow.mockReturnValue(2000);
+
+        const mockEvent = {
+          resultIndex: 0,
+          results: {
+            length: 1,
+            0: {
+              isFinal: true,
+              length: 1,
+              0: { transcript: 'test', confidence: 0.9 },
+            },
+          } as unknown as SpeechRecognitionResultList,
+        } as unknown as SpeechRecognitionEvent;
+
+        mockRecognitionInstance.onresult(mockEvent);
+
+        // After the first result, performance.now() was called for
+        // segmentStartTime update (line 276).  Fire a second result and
+        // verify the promise resolves without error.
+        mockPerformanceNow.mockReturnValue(3000);
+        const mockEvent2 = {
+          resultIndex: 1,
+          results: {
+            length: 2,
+            0: {
+              isFinal: true,
+              length: 1,
+              0: { transcript: 'first', confidence: 0.9 },
+            },
+            1: {
+              isFinal: true,
+              length: 1,
+              0: { transcript: 'second', confidence: 0.85 },
+            },
+          } as unknown as SpeechRecognitionResultList,
+        } as unknown as SpeechRecognitionEvent;
+
+        expect(() => {
+          mockRecognitionInstance.onresult!(mockEvent2);
+        }).not.toThrow();
+      }
+
+      await promise;
+
+      // onSegment was called twice (both results were processed)
+      expect(onSegment).toHaveBeenCalledTimes(2);
+    });
+
+    it('calculateAverageConfidence throwing inside chunk loop is caught by inner try/catch', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 6;
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 3000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+
+      // Override calculateAverageConfidence to throw on the first call
+      const anyTranscriber = transcriber as unknown as Record<string, unknown>;
+      const origCalc = anyTranscriber.calculateAverageConfidence as (
+        segments: TranscriptionSegment[]
+      ) => number;
+      let calcCallCount = 0;
+      anyTranscriber.calculateAverageConfidence = jest.fn().mockImplementation(
+        (segments: TranscriptionSegment[]) => {
+          calcCallCount++;
+          if (calcCallCount === 1) throw new Error('calculateAverageConfidence boom');
+          return origCalc.call(transcriber, segments);
+        }
+      );
+
+      const onProgress = jest.fn();
+
+      const promise = transcriber.transcribeStream('/audio.mp3', onProgress);
+
+      setImmediate(() => {
+        if (mockAudioInstance.onloadedmetadata) {
+          mockAudioInstance.onloadedmetadata();
+        }
+      });
+
+      const result = await promise;
+
+      // The error was caught by the inner try/catch — session completed
+      expect(result.success).toBe(true);
+      // calculateAverageConfidence was called more than once (loop continued)
+      expect(calcCallCount).toBeGreaterThanOrEqual(2);
+      // Progress fired for subsequent chunks
+      expect(onProgress).toHaveBeenCalled();
+      // Segments from non-failing chunks are present
+      expect(result.segments!.length).toBeGreaterThan(0);
+    });
   });
 });
