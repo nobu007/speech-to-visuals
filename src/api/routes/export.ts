@@ -63,7 +63,7 @@ export function createExportRouter(artifactStore: ExportArtifactStore): Router {
   // -- REQ-239: Get artifact metadata --------------------------------------
 
   router.get('/artifacts/:artifactId', (req: Request, res: Response) => {
-    const { artifactId } = req.params;
+    const artifactId = req.params.artifactId as string;
 
     if (!artifactId || !UUID_V4_RE.test(artifactId)) {
       res.status(400).json({
@@ -88,7 +88,7 @@ export function createExportRouter(artifactStore: ExportArtifactStore): Router {
   // -- REQ-234: Download artifact ------------------------------------------
 
   router.get('/artifacts/:artifactId/download', (req: Request, res: Response) => {
-    const { artifactId } = req.params;
+    const artifactId = req.params.artifactId as string;
     const token = req.query.token as string | undefined;
 
     // Validate artifactId format
@@ -144,7 +144,7 @@ export function createExportRouter(artifactStore: ExportArtifactStore): Router {
   // -- REQ-239: Delete artifact --------------------------------------------
 
   router.delete('/artifacts/:artifactId', (req: Request, res: Response) => {
-    const { artifactId } = req.params;
+    const artifactId = req.params.artifactId as string;
 
     if (!artifactId || !UUID_V4_RE.test(artifactId)) {
       res.status(400).json({

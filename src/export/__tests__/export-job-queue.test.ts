@@ -273,12 +273,14 @@ describe('ExportJobQueue', () => {
     });
 
     it('should mark a running job as failed', () => {
-      const job = queue.enqueue({ priority: 'normal', format: 'mp4', inputHash: '1' });
-      queue.dequeue();
+      const q = new ExportJobQueue({ maxConcurrent: 3, maxQueueSize: 100, maxRetries: 0 });
+      const job = q.enqueue({ priority: 'normal', format: 'mp4', inputHash: '1' });
+      q.dequeue();
 
-      expect(queue.completeJob(job.jobId, false)).toBe(true);
-      expect(queue.getQueueStats().failed).toBe(1);
-      expect(queue.getQueueStats().completed).toBe(0);
+      expect(q.completeJob(job.jobId, false)).toBe(true);
+      expect(q.getQueueStats().failed).toBe(1);
+      expect(q.getQueueStats().completed).toBe(0);
+      q.stop();
     });
 
     it('should return false for non-running job', () => {
@@ -504,7 +506,7 @@ describe('ExportJobQueue', () => {
     });
 
     it('should evict in FIFO order regardless of terminal status (completed/failed/cancelled)', () => {
-      const q = new ExportJobQueue({ maxConcurrent: 1, maxQueueSize: 100, maxCompletedJobs: 3 });
+      const q = new ExportJobQueue({ maxConcurrent: 1, maxQueueSize: 100, maxCompletedJobs: 3, maxRetries: 0 });
 
       // Job 0: completed
       const j0 = q.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'mix-0' });

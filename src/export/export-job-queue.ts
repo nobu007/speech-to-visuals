@@ -265,30 +265,39 @@ export class ExportJobQueue {
       return true;
     }
 
-    // Retries exhausted, retries disabled, or queue at capacity — dead letter queue
-    job.status = this.options.maxRetries > 0 ? 'dead-lettered' : 'failed';
+    // Retries exhausted, retries disabled, or queue at capacity
+    const isDeadLettered = this.options.maxRetries > 0;
+    job.status = isDeadLettered ? 'dead-lettered' : 'failed';
     job.completedAt = Date.now();
-    job.deadLetteredAt = Date.now();
     job.lastError = errorMessage;
 
     this.running.delete(jobId);
     this.completed.push(job);
     this.pruneCompletedJobs();
-    this.deadLetterQueue.push(job);
-    this.pruneDeadLetterQueue();
-    this.metrics?.recordDeadLetter();
+
+    if (isDeadLettered) {
+      job.deadLetteredAt = Date.now();
+      this.deadLetterQueue.push(job);
+      this.pruneDeadLetterQueue();
+      this.metrics?.recordDeadLetter();
+    }
     this.emitMetrics();
 
-    const reason = !canRetry
-      ? ` after ${currentRetryCount} retries`
-      : ' (queue at capacity — cannot retry)';
-    logger.warn(
-      `[ExportJobQueue] Job ${jobId} moved to dead letter queue` +
-      (this.options.maxRetries > 0
-        ? reason
-        : ' (no retries configured)') +
-      (errorMessage ? `: ${errorMessage}` : ''),
-    );
+    if (isDeadLettered) {
+      const reason = !canRetry
+        ? ` after ${currentRetryCount} retries`
+        : ' (queue at capacity — cannot retry)';
+      logger.warn(
+        `[ExportJobQueue] Job ${jobId} moved to dead letter queue` +
+        reason +
+        (errorMessage ? `: ${errorMessage}` : ''),
+      );
+    } else {
+      logger.warn(
+        `[ExportJobQueue] Job ${jobId} failed (no retries configured)` +
+        (errorMessage ? `: ${errorMessage}` : ''),
+      );
+    }
     return true;
   }
 

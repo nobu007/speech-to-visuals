@@ -22,7 +22,7 @@ import type {
 import { encodeAPNG as realEncodeAPNG } from './apng-encoder';
 import { generateAnimatedSVG, generateLottieAnimation } from './animated-scene-renderer';
 import { ExportVerifier, type VerificationFormat, type VerificationResult } from './export-verifier';
-import { exportMetricsCollector } from './export-metrics-collector';
+import { exportMetricsCollector, type ExportStatus } from './export-metrics-collector';
 import type { ExportArtifactStore } from './export-artifact-store';
 import { EXPORT_RETRY_LIMITS, EXPORT_STAGE_TIMEOUTS } from '@/config/limits';
 import { logger } from '../utils/logger';
@@ -754,7 +754,7 @@ export class EnhancedExportEngine {
 
     // REQ-226: Record export metric (use 'success' or 'failed' based on verification)
     const exportDuration = job.startTime ? performance.now() - job.startTime.getTime() : 0;
-    const exportStatus = verification.valid ? 'success' : 'failed';
+    const exportStatus: ExportStatus = verification.valid ? 'success' : 'failure';
     exportMetricsCollector.recordExport(job.config.format, exportStatus, exportDuration, outputSize);
 
     const warnings: string[] = [...(verification.warnings)];

@@ -697,9 +697,8 @@ describe('REQ-225: Export verification integration', () => {
     expect(result.success).toBe(true);
     expect(result.verification).toBeDefined();
     expect(result.verification!.format).toBe('mp4');
-    // Simulated MP4 data won't have valid magic bytes — verification captures this
-    expect(result.verification!.errors.length).toBeGreaterThan(0);
-    // But export still succeeds (verification is informational for simulated formats)
+    // Simulated MP4 data now includes valid ftyp magic bytes (fixed in commit 62cfdeb)
+    expect(result.verification!.valid).toBe(true);
   });
 
   test('webm export includes verification result', async () => {

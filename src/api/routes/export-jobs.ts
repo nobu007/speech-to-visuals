@@ -161,7 +161,7 @@ export function createExportJobRouter(jobQueue: ExportJobQueue): Router {
   // -- REQ-242: Get job status --------------------------------------------
 
   router.get('/jobs/:jobId', (req: Request, res: Response) => {
-    const { jobId } = req.params;
+    const jobId = req.params.jobId as string;
 
     if (!jobId || !UUID_V4_RE.test(jobId)) {
       res.status(400).json({
@@ -203,7 +203,7 @@ export function createExportJobRouter(jobQueue: ExportJobQueue): Router {
   // -- REQ-243: Cancel job ------------------------------------------------
 
   router.delete('/jobs/:jobId', (req: Request, res: Response) => {
-    const { jobId } = req.params;
+    const jobId = req.params.jobId as string;
 
     if (!jobId || !UUID_V4_RE.test(jobId)) {
       res.status(400).json({
@@ -275,7 +275,7 @@ export function createExportJobRouter(jobQueue: ExportJobQueue): Router {
   // -- POST /jobs/:jobId/replay: Replay a dead-lettered job ---------------
 
   router.post('/jobs/:jobId/replay', (req: Request, res: Response) => {
-    const { jobId } = req.params;
+    const jobId = req.params.jobId as string;
 
     if (!jobId || !UUID_V4_RE.test(jobId)) {
       res.status(400).json({
