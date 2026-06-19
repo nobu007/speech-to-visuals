@@ -174,6 +174,54 @@ describe('XSS Security: SVG Export (MultiFormatExporter)', () => {
     const svg = await (result.data as Blob).text();
     expectNoExecutableScript(svg, combinedPayload);
   });
+
+  test('SVG output escapes scene.id in <title> element', async () => {
+    const xssSceneId = `xss<script>alert(1)</script>`;
+    const scene: SceneGraph = {
+      type: 'flow',
+      nodes: [{ id: 'n1', label: 'Safe', x: 100, y: 100, width: 120, height: 60 }],
+      edges: [],
+      layout: {
+        nodes: [{ id: 'n1', label: 'Safe', x: 100, y: 100, width: 120, height: 60 }],
+        edges: [],
+      },
+      startMs: 0,
+      durationMs: 5000,
+      summary: 'test',
+      keyphrases: [],
+      id: xssSceneId,
+    };
+    const result = await exporter.export(scene, { format: 'svg' });
+    const svg = await (result.data as Blob).text();
+
+    // The raw <script> must not appear — must be escaped
+    expect(svg).not.toContain('<script>alert(1)</script>');
+    expect(svg).toContain('&lt;script&gt;');
+  });
+
+  test('SVG output escapes node.id in <g id> attribute', async () => {
+    const xssNodeId = `n1" onload="alert(1)`;
+    const scene: SceneGraph = {
+      type: 'flow',
+      nodes: [{ id: xssNodeId, label: 'Safe', x: 100, y: 100, width: 120, height: 60 }],
+      edges: [],
+      layout: {
+        nodes: [{ id: xssNodeId, label: 'Safe', x: 100, y: 100, width: 120, height: 60 }],
+        edges: [],
+      },
+      startMs: 0,
+      durationMs: 5000,
+      summary: 'test',
+      keyphrases: [],
+      id: 'safe-id',
+    };
+    const result = await exporter.export(scene, { format: 'svg' });
+    const svg = await (result.data as Blob).text();
+
+    // The double-quote must be escaped to prevent attribute breakout
+    expect(svg).not.toMatch(/onload\s*=\s*"alert/);
+    expect(svg).toContain('&quot;');
+  });
 });
 
 // ===========================================================================
@@ -386,6 +434,11 @@ describe('XSS Security: escapeXml function', () => {
     expect(escaped).toContain('&lt;script&gt;');
     expect(escaped).toContain('&lt;img ');
     expect(escaped).toContain('&quot;');
+  });
+
+  test('escapes apostrophes (single quotes)', () => {
+    expect(escapeXml("it's")).toBe("it&apos;s");
+    expect(escapeXml("' onmouseover='alert(1)")).not.toMatch(/'\s+onmouseover/);
   });
 });
 

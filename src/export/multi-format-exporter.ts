@@ -234,7 +234,7 @@ export class MultiFormatExporter {
 
     let svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-  <title>${scene.id}</title>
+  <title>${this.escapeXML(scene.id)}</title>
   <rect width="${width}" height="${height}" fill="${bgColor}"/>
   <g id="diagram">
 `;
@@ -271,7 +271,7 @@ export class MultiFormatExporter {
       const w = node.w ?? node.width ?? 120;
       const h = node.h ?? node.height ?? 60;
 
-      svg += `    <g id="${node.id}">
+      svg += `    <g id="${this.escapeXML(node.id)}">
       <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#4A90E2" stroke="#2E5C8A" stroke-width="2" rx="5"/>
       <text x="${x + w / 2}" y="${y + h / 2}" fill="white" font-size="14" text-anchor="middle" dominant-baseline="middle">${this.escapeXML(node.label)}</text>
     </g>
