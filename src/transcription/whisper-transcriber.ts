@@ -398,7 +398,8 @@ export class WhisperTranscriber {
   private logTranscriptionMetrics(result: TranscriptionResult): void {
     if (result.segments.length === 0) return;
 
-    const avgConfidence = result.segments.reduce((sum, s) => sum + s.confidence, 0) / result.segments.length;
+    const avgConfidence = result.segments.reduce((sum, s) =>
+      sum + (Number.isFinite(s.confidence) ? s.confidence : 0), 0) / result.segments.length;
   }
 
   /**

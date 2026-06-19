@@ -169,7 +169,7 @@ export class StreamingTranscriber {
           // REQ-091: Record per-chunk quality with StreamingQualityMonitor
           if (this.qualityMonitor) {
             const chunkAvgConfidence = chunkSegments.length > 0
-              ? chunkSegments.reduce((s, seg) => s + seg.confidence, 0) / chunkSegments.length
+              ? chunkSegments.reduce((s, seg) => s + (Number.isFinite(seg.confidence) ? seg.confidence : 0), 0) / chunkSegments.length
               : 0;
             this.qualityMonitor.evaluateChunk(i, chunkAvgConfidence);
           }
@@ -433,7 +433,8 @@ export class StreamingTranscriber {
         // Merge segments
         lastMerged.end = Math.max(lastMerged.end, current.end);
         lastMerged.text += ' ' + current.text;
-        lastMerged.confidence = (lastMerged.confidence + current.confidence) / 2;
+        lastMerged.confidence = ((Number.isFinite(lastMerged.confidence) ? lastMerged.confidence : 0) +
+          (Number.isFinite(current.confidence) ? current.confidence : 0)) / 2;
       } else {
         merged.push(current);
       }
@@ -448,7 +449,8 @@ export class StreamingTranscriber {
   private calculateAverageConfidence(segments: TranscriptionSegment[]): number {
     if (segments.length === 0) return 0;
 
-    const totalConfidence = segments.reduce((sum, segment) => sum + segment.confidence, 0);
+    const totalConfidence = segments.reduce((sum, segment) =>
+      sum + (Number.isFinite(segment.confidence) ? segment.confidence : 0), 0);
     return totalConfidence / segments.length;
   }
 

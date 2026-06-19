@@ -113,10 +113,12 @@ export class StreamingQualityMonitor {
    * Records the result, checks thresholds, and emits alerts as needed.
    */
   evaluateChunk(chunkIndex: number, confidence: number): ChunkQualityRecord {
-    const accepted = confidence >= this.config.minChunkConfidence;
+    // Guard against non-finite or undefined confidence values
+    const safeConf = Number.isFinite(confidence) ? confidence : 0;
+    const accepted = safeConf >= this.config.minChunkConfidence;
     const record: ChunkQualityRecord = {
       chunkIndex,
-      confidence,
+      confidence: safeConf,
       timestamp: new Date(),
       accepted,
     };
@@ -125,7 +127,7 @@ export class StreamingQualityMonitor {
     // Check rolling average
     const rollingAvg = this.getRollingAverage();
     if (this.records.length >= this.config.rollingWindowSize) {
-      if (rollingAvg < this.config.criticalThreshold) {
+      if (!Number.isFinite(rollingAvg) || rollingAvg < this.config.criticalThreshold) {
         this.emitAlert('critical', rollingAvg, chunkIndex);
       } else if (rollingAvg < this.config.warningThreshold) {
         this.emitAlert('warning', rollingAvg, chunkIndex);
@@ -135,7 +137,7 @@ export class StreamingQualityMonitor {
     if (!accepted) {
       logger.warn('[StreamingQualityMonitor] Low confidence chunk', {
         chunkIndex,
-        confidence: confidence.toFixed(3),
+        confidence: safeConf.toFixed(3),
         threshold: this.config.minChunkConfidence,
       });
     }
@@ -261,6 +263,7 @@ export class StreamingQualityMonitor {
   }
 
   private determineStatus(avgConfidence: number): StreamingQualitySummary['status'] {
+    if (!Number.isFinite(avgConfidence)) return 'poor';
     if (avgConfidence >= 0.9) return 'excellent';
     if (avgConfidence >= 0.75) return 'good';
     if (avgConfidence >= 0.55) return 'degraded';
