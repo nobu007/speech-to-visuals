@@ -9,13 +9,15 @@
  * 3. Interactive HTML (EnhancedExportEngine) — embedded JSON in <script> tags
  * 4. PDF export (MultiFormatExporter) — node/edge labels in PDF text streams
  * 5. Direct escape function verification (escapeXml)
+ * 6. Lottie JSON export (generateLottieAnimation) — scene labels in JSON context
+ * 7. Plain JSON export (MultiFormatExporter) — scene data serialized to JSON
  *
  * Each test injects realistic XSS payloads and asserts the rendered output
  * does NOT contain executable script content.
  */
 
 import { MultiFormatExporter } from '../multi-format-exporter';
-import { generateAnimatedSVG, escapeXml } from '../animated-scene-renderer';
+import { generateAnimatedSVG, generateLottieAnimation, escapeXml } from '../animated-scene-renderer';
 import { EnhancedExportEngine } from '../enhanced-export-engine';
 import type { SceneGraph } from '@/types/diagram';
 
@@ -384,5 +386,200 @@ describe('XSS Security: escapeXml function', () => {
     expect(escaped).toContain('&lt;script&gt;');
     expect(escaped).toContain('&lt;img ');
     expect(escaped).toContain('&quot;');
+  });
+});
+
+// ===========================================================================
+// 6. Lottie JSON Export — generateLottieAnimation
+//    User input flows through scene.label → nm field in Lottie JSON object
+//    JSON.stringify escapes quotes/backslashes per JSON spec. HTML metacharacters
+//    (<, >) are NOT escaped because JSON is data, not rendered content.
+//    Security boundary: Content-Type: application/json prevents browser rendering.
+//    When embedding JSON inline in HTML <script> tags, consumers must escape
+//    </script> sequences (documented below).
+// ===========================================================================
+
+describe('XSS Security: Lottie JSON Export (generateLottieAnimation)', () => {
+  test.each(ALL_PAYLOADS)('Lottie JSON produces valid JSON with payload: %s', (payload) => {
+    const sceneData = {
+      scenes: [
+        { duration: 2, type: 'intro', label: payload },
+        { duration: 3, type: 'content', label: payload },
+        { duration: 1, type: 'outro', label: payload },
+      ],
+    };
+
+    const lottie = generateLottieAnimation(sceneData, { width: 1920, height: 1080 });
+    const json = JSON.stringify(lottie);
+
+    // Core security property: JSON is valid and parseable (no data corruption)
+    expect(() => JSON.parse(json)).not.toThrow();
+
+    // The parsed label matches the original payload (data integrity)
+    const parsed = JSON.parse(json);
+    expect(parsed.layers[0].nm).toBe(payload);
+    expect(parsed.layers[1].nm).toBe(payload);
+    expect(parsed.layers[2].nm).toBe(payload);
+  });
+
+  test('Lottie JSON survives round-trip parse without data loss', () => {
+    const payload = '<script>alert(1)</script>';
+    const sceneData = {
+      scenes: [{ duration: 2, type: 'content', label: payload }],
+    };
+
+    const lottie = generateLottieAnimation(sceneData, { width: 1920, height: 1080 });
+    const json = JSON.stringify(lottie);
+    const parsed = JSON.parse(json);
+
+    const layer = parsed.layers[0];
+    expect(layer.nm).toBe(payload);
+  });
+
+  test('Lottie JSON with </script> is safe when served as application/json', () => {
+    // When served with Content-Type: application/json, browsers treat the
+    // response as data, not HTML. XSS payloads in JSON strings are inert.
+    const payload = '</script><script>alert(1)</script>';
+    const sceneData = {
+      scenes: [{ duration: 2, type: 'xss', label: payload }],
+    };
+
+    const lottie = generateLottieAnimation(sceneData, { width: 1920, height: 1080 });
+    const json = JSON.stringify(lottie);
+
+    // The JSON is valid — no parsing errors
+    expect(() => JSON.parse(json)).not.toThrow();
+    // The Lottie version field is intact
+    expect(JSON.parse(json).v).toBe('5.7.4');
+  });
+
+  test('Lottie JSON </script> in label is safe for HTML embedding after consumer-side escape', () => {
+    // Defense-in-depth: if a consumer embeds Lottie JSON inside a <script> tag,
+    // they must escape </script> sequences. This test verifies the escape
+    // pattern works correctly on our output.
+    const payload = '</script><script>alert(1)</script>';
+    const sceneData = {
+      scenes: [{ duration: 2, type: 'xss', label: payload }],
+    };
+
+    const lottie = generateLottieAnimation(sceneData, { width: 1920, height: 1080 });
+    const json = JSON.stringify(lottie);
+
+    // Consumer-side defense: replace </script with <\/script
+    const htmlSafeJson = json.replace(/<\/script/gi, '<\\/script');
+    const html = `<script type="application/json">${htmlSafeJson}</script>`;
+
+    // Only one </script> — the wrapper's closing tag. Data-derived ones are escaped.
+    const scriptCloseCount = (html.match(/<\/script/gi) || []).length;
+    expect(scriptCloseCount).toBe(1);
+
+    // The escaped JSON should still parse correctly after unescaping
+    const unescaped = htmlSafeJson.split('<\\/script').join('</script');
+    expect(() => JSON.parse(unescaped)).not.toThrow();
+  });
+
+  test('Lottie JSON with payload in scene type field', () => {
+    const sceneData = {
+      scenes: [{ duration: 2, type: XSS_IMG_ONERROR }],
+    };
+
+    const lottie = generateLottieAnimation(sceneData, { width: 1920, height: 1080 });
+    const json = JSON.stringify(lottie);
+
+    // JSON is valid and parseable
+    expect(() => JSON.parse(json)).not.toThrow();
+  });
+
+  test('Lottie JSON with empty scenes produces valid output', () => {
+    const lottie = generateLottieAnimation({ scenes: [] }, { width: 1920, height: 1080 });
+    const json = JSON.stringify(lottie);
+
+    expect(() => JSON.parse(json)).not.toThrow();
+    expect(JSON.parse(json).v).toBe('5.7.4');
+  });
+});
+
+// ===========================================================================
+// 7. Plain JSON Export — MultiFormatExporter
+//    User input flows through scene fields → JSON.stringify → Blob
+//    JSON export preserves data faithfully (including XSS payloads as inert
+//    string data). Security relies on Content-Type: application/json.
+//    Tests verify data integrity, valid JSON, and correct MIME type.
+// ===========================================================================
+
+describe('XSS Security: Plain JSON Export (MultiFormatExporter)', () => {
+  const exporter = new MultiFormatExporter();
+
+  test.each(ALL_PAYLOADS)('JSON export produces valid JSON with payload: %s', async (payload) => {
+    const scene = makeSceneWithXssLabels(payload);
+    const result = await exporter.export(scene, { format: 'json' });
+
+    expect(result.success).toBe(true);
+    const json = await (result.data as Blob).text();
+
+    // Core security: JSON must be valid and parseable
+    expect(() => JSON.parse(json)).not.toThrow();
+
+    // The parsed data must match the original — no corruption
+    const parsed = JSON.parse(json);
+    expect(parsed.nodes[1].label).toBe(payload);
+    expect(parsed.summary).toBe(payload);
+    expect(parsed.keyphrases[0]).toBe(payload);
+  });
+
+  test('JSON export preserves data integrity through round-trip', async () => {
+    const payload = '<script>alert(1)</script><img src=x onerror=alert(1)>';
+    const scene = makeSceneWithXssLabels(payload);
+    const result = await exporter.export(scene, { format: 'json' });
+
+    const json = await (result.data as Blob).text();
+    const parsed = JSON.parse(json);
+
+    // All user-controlled fields survive round-trip
+    expect(parsed.nodes[1].label).toBe(payload);
+    expect(parsed.edges[0].label).toBe(payload);
+    expect(parsed.summary).toBe(payload);
+    expect(parsed.keyphrases[0]).toBe(payload);
+  });
+
+  test('JSON export with combined payloads in all text fields', async () => {
+    const combined = `${XSS_SCRIPT_TAG}${XSS_IMG_ONERROR}${XSS_IFRAME}`;
+    const scene = makeSceneWithXssLabels(combined);
+    const result = await exporter.export(scene, { format: 'json' });
+
+    expect(result.success).toBe(true);
+    const json = await (result.data as Blob).text();
+
+    expect(() => JSON.parse(json)).not.toThrow();
+    // Combined payload survives in data (it's inert as JSON string content)
+    const parsed = JSON.parse(json);
+    expect(parsed.nodes[1].label).toBe(combined);
+  });
+
+  test('JSON export output has correct MIME type (application/json)', async () => {
+    const scene = makeSceneWithXssLabels('normal text');
+    const result = await exporter.export(scene, { format: 'json' });
+
+    expect(result.success).toBe(true);
+    // MIME type is the primary security boundary for JSON exports.
+    // application/json prevents browsers from rendering the content as HTML.
+    expect(result.mimeType).toBe('application/json');
+  });
+
+  test('JSON export </script> is safe for HTML embedding after consumer-side escape', () => {
+    // Same defense-in-depth pattern as Lottie: verify consumer-side
+    // </script> escaping works on plain JSON export output.
+    const payload = '</script><script>alert(1)</script>';
+    const scene = makeSceneWithXssLabels(payload);
+
+    return exporter.export(scene, { format: 'json' }).then(async (result) => {
+      const json = await (result.data as Blob).text();
+
+      const htmlSafeJson = json.replace(/<\/script/gi, '<\\/script');
+      const html = `<script type="application/json">${htmlSafeJson}</script>`;
+
+      const scriptCloseCount = (html.match(/<\/script/gi) || []).length;
+      expect(scriptCloseCount).toBe(1);
+    });
   });
 });
