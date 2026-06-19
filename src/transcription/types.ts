@@ -16,6 +16,8 @@ export interface TranscriptionResult {
   duration: number;
   processingTime?: number;
   success?: boolean;
+  /** True when all transcription engines failed and placeholder segments were returned */
+  fallback?: boolean;
   error?: string;
   captions?: Caption[]; // Add Remotion captions support
   /** REQ-091: Quality summary from streaming quality monitoring */

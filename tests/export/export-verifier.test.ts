@@ -20,8 +20,9 @@ import {
 function makeMp4(size = 1024): ArrayBuffer {
   const buf = new ArrayBuffer(size);
   const view = new Uint8Array(buf);
-  // Write ftyp at offset 4
-  const ftyp = [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70];
+  // Write 4-byte size field then "ftyp" at offset 4
+  view[0] = 0x00; view[1] = 0x00; view[2] = 0x00; view[3] = 0x18;
+  const ftyp = [0x66, 0x74, 0x79, 0x70]; // "ftyp"
   for (let i = 0; i < ftyp.length; i++) view[4 + i] = ftyp[i];
   return buf;
 }

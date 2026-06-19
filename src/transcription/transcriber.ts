@@ -57,21 +57,24 @@ export class TranscriptionPipeline {
       await this.validateAudioFile(audioPath);
 
       // Step 2: Run Whisper transcription
-      const segments = await this.runWhisperTranscription(audioPath);
+      const { segments: transcribedSegments, isFallback } = await this.runWhisperTranscription(audioPath);
 
       // Step 3: Use segments directly (simplified pipeline)
-      const finalSegments = segments;
+      const finalSegments = transcribedSegments;
 
       // Step 5: Calculate metrics and evaluate
       const metrics = this.calculateMetrics(finalSegments, startTime);
       const result = await this.createResult(finalSegments, metrics, startTime);
+      result.fallback = isFallback;
 
       // Step 6: Evaluate success and log
       await this.evaluateAndLog(result, metrics);
 
-      // Ensure we always return success if we have segments
-      if (finalSegments.length > 0) {
+      // Only mark success=true for real transcription, not fallback placeholders
+      if (finalSegments.length > 0 && !isFallback) {
         result.success = true;
+      } else {
+        result.success = false;
       }
 
       return result;
@@ -91,9 +94,9 @@ export class TranscriptionPipeline {
 
   /**
    * Enhanced transcription using Whisper with fallback strategies
-   * 段階的改善を適用した音声認識処理
+   * Returns segments and whether they came from fallback.
    */
-  private async runWhisperTranscription(audioPath: string): Promise<TranscriptionSegment[]> {
+  private async runWhisperTranscription(audioPath: string): Promise<{ segments: TranscriptionSegment[]; isFallback: boolean }> {
 
     try {
       // Priority 1: Use enhanced Whisper transcriber
@@ -108,7 +111,7 @@ export class TranscriptionPipeline {
       const whisperResult = await this.whisperTranscriber.transcribe(audioInput);
 
       if (whisperResult.success && whisperResult.segments.length > 0) {
-        return whisperResult.segments;
+        return { segments: whisperResult.segments, isFallback: false };
       }
 
       // Priority 2: Fallback to browser transcriber (only in browser environment)
@@ -117,16 +120,17 @@ export class TranscriptionPipeline {
         const result = await this.browserTranscriber.transcribeAudioFile(audioFile);
 
         if (result.success && result.segments.length > 0) {
-          return result.segments;
+          return { segments: result.segments, isFallback: false };
         }
       }
 
       // Priority 3: Enhanced fallback transcription
-      return this.getFallbackSegments();
+      logger.warn('[Transcription] All transcription methods exhausted, returning placeholder fallback segments');
+      return { segments: this.getFallbackSegments(), isFallback: true };
 
     } catch (error) {
       logger.warn(`[Transcription] All transcription methods failed, using fallback:`, error);
-      return this.getFallbackSegments();
+      return { segments: this.getFallbackSegments(), isFallback: true };
     }
   }
 
@@ -140,32 +144,18 @@ export class TranscriptionPipeline {
   }
 
   /**
-   * Fallback segments for development/testing when Whisper is unavailable
-   * Enhanced to trigger different diagram types for comprehensive testing
+   * Fallback placeholder segments when all transcription engines fail.
+   * Confidence is set to 0 so downstream quality checks can detect them.
    */
   private getFallbackSegments(): TranscriptionSegment[] {
-    const mockSegments: TranscriptionSegment[] = [
+    return [
       {
         start: 0,
         end: 6000,
-        text: "Let's explore our organizational hierarchy structure. The company has different levels including management, departments, and teams with clear parent-child relationships.",
-        confidence: 0.95
+        text: "[Transcription unavailable - placeholder content]",
+        confidence: 0,
       },
-      {
-        start: 6000,
-        end: 12000,
-        text: "Now we'll examine the development timeline and chronology. The project evolution spans multiple phases over several years, from conception in 2020 to deployment in 2024.",
-        confidence: 0.88
-      },
-      {
-        start: 12000,
-        end: 18000,
-        text: "Finally, this continuous process forms a recurring cycle that returns to the beginning. The workflow loops back to the initial stage, creating an ongoing, cyclical pattern.",
-        confidence: 0.92
-      }
     ];
-
-    return mockSegments;
   }
 
 

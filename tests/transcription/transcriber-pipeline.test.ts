@@ -83,13 +83,16 @@ describe('TranscriptionPipeline', () => {
       const pipeline = new TranscriptionPipeline();
       const result = await pipeline.transcribe('test.wav');
       expect(result.segments.length).toBeGreaterThan(0);
-      expect(result.success).toBe(true);
+      expect(result.fallback).toBe(true);
+      // Fallback data should not be reported as successful transcription
+      expect(result.success).not.toBe(true);
     });
 
     it('should detect language from fallback segments', async () => {
       const pipeline = new TranscriptionPipeline();
       const result = await pipeline.transcribe('test.wav');
       expect(result.language).toBeDefined();
+      // Placeholder text is English
       expect(result.language).toBe('en');
     });
 
@@ -109,7 +112,8 @@ describe('TranscriptionPipeline', () => {
     it('should include captions when segments are available', async () => {
       const pipeline = new TranscriptionPipeline();
       const result = await pipeline.transcribe('test.wav');
-      if (result.success && result.segments.length > 0) {
+      // Captions are generated from segments regardless of fallback status
+      if (result.segments.length > 0) {
         expect(result.captions).toBeDefined();
         expect(Array.isArray(result.captions)).toBe(true);
       }
@@ -140,7 +144,8 @@ describe('TranscriptionPipeline', () => {
       for (const segment of result.segments) {
         expect(segment.end).toBeGreaterThan(segment.start);
         expect(segment.text.length).toBeGreaterThan(0);
-        expect(segment.confidence).toBeGreaterThan(0);
+        // Fallback segments have confidence=0, real segments are >0
+        expect(segment.confidence).toBeGreaterThanOrEqual(0);
         expect(segment.confidence).toBeLessThanOrEqual(1);
       }
     });

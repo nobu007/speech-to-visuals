@@ -224,16 +224,13 @@ describe('Phase 31-34 E2E Quality Integration (REQ-096, TASK-0142)', () => {
     });
 
     test('should verify MP4 with valid magic bytes', () => {
-      // MP4: verifyBinary reads MAGIC_BYTES from data starting at offset 4
-      // MAGIC_BYTES.mp4 = [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70]
-      // So data[4..11] must match those bytes
+      // MP4: verifyBinary checks MAGIC_BYTES.mp4 = [0x66, 0x74, 0x79, 0x70] ("ftyp") at offset 4
       const buffer = new ArrayBuffer(32);
       const view = new Uint8Array(buffer);
-      view[4] = 0x00; view[5] = 0x00; view[6] = 0x00; view[7] = 0x18;
-      view[8] = 0x66;  // f
-      view[9] = 0x74;  // t
-      view[10] = 0x79; // y
-      view[11] = 0x70; // p
+      view[4] = 0x66;  // f
+      view[5] = 0x74;  // t
+      view[6] = 0x79;  // y
+      view[7] = 0x70;  // p
       const result = verifyExport('mp4', buffer, { minFileSizeBytes: 1 });
 
       expect(result.valid).toBe(true);

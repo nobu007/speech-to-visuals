@@ -56,7 +56,7 @@ export interface VerificationResult {
 // ---------------------------------------------------------------------------
 
 const MAGIC_BYTES: Record<string, number[]> = {
-  mp4:  [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70], // ftyp box (offset 4)
+  mp4:  [0x66, 0x74, 0x79, 0x70],                            // "ftyp" at offset 4
   webm: [0x1A, 0x45, 0xDF, 0xA3],                           // EBML header
   gif:  [0x47, 0x49, 0x46],                                  // "GIF"
   png:  [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],  // PNG signature

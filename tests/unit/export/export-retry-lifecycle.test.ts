@@ -51,6 +51,13 @@ const createConfig = (overrides: Partial<ExportConfiguration> = {}): ExportConfi
   ...overrides,
 });
 
+/** Mock encoded MP4 data with valid ftyp magic bytes at offset 4 */
+const mockMp4Data = () => {
+  const buf = new Uint8Array(200);
+  buf[4] = 0x66; buf[5] = 0x74; buf[6] = 0x79; buf[7] = 0x70; // "ftyp"
+  return buf;
+};
+
 beforeEach(() => {
   jest.spyOn(console, 'log').mockImplementation(() => {});
   jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -89,7 +96,7 @@ describe('REQ-227: Export retry resilience', () => {
       if (attempts === 1) {
         throw new Error('Encoding timeout');
       }
-      return { data: new Uint8Array(100), duration: 1, codec: 'h264', container: 'mp4' };
+      return { data: mockMp4Data(), duration: 1, codec: 'h264', container: 'mp4' };
     });
 
     // Use fake timers to speed up retry delays
@@ -116,7 +123,7 @@ describe('REQ-227: Export retry resilience', () => {
       if (attempts <= 1) {
         throw new Error('Out of memory during encoding');
       }
-      return { data: new Uint8Array(100), duration: 1, codec: 'h264', container: 'mp4' };
+      return { data: mockMp4Data(), duration: 1, codec: 'h264', container: 'mp4' };
     });
 
     jest.useFakeTimers();
@@ -140,7 +147,7 @@ describe('REQ-227: Export retry resilience', () => {
       if (attempts <= 1) {
         throw new Error('Worker terminated unexpectedly');
       }
-      return { data: new Uint8Array(100), duration: 1, codec: 'h264', container: 'mp4' };
+      return { data: mockMp4Data(), duration: 1, codec: 'h264', container: 'mp4' };
     });
 
     jest.useFakeTimers();
@@ -201,7 +208,7 @@ describe('REQ-227: Export retry resilience', () => {
       if (attempts <= 1) {
         throw new Error('FATAL ERROR: CALL_AND_RETRY_LAST Allocation failed - JavaScript heap out of memory');
       }
-      return { data: new Uint8Array(100), duration: 1, codec: 'h264', container: 'mp4' };
+      return { data: mockMp4Data(), duration: 1, codec: 'h264', container: 'mp4' };
     });
 
     jest.useFakeTimers();
@@ -226,7 +233,7 @@ describe('REQ-227: Export retry resilience', () => {
       if (attempts <= 3) {
         throw new Error('Out of memory during encoding');
       }
-      return { data: new Uint8Array(100), duration: 1, codec: 'h264', container: 'mp4' };
+      return { data: mockMp4Data(), duration: 1, codec: 'h264', container: 'mp4' };
     });
 
     jest.useFakeTimers();
@@ -544,7 +551,7 @@ describe('REQ-228: Export job lifecycle management', () => {
     const prepSpy = jest.spyOn(engine as any, 'prepareExport').mockResolvedValue(undefined);
     const renderSpy2 = jest.spyOn(engine as any, 'renderFrames').mockResolvedValue([]);
     const encodeSpy = jest.spyOn(engine as any, 'encodeVideo').mockResolvedValue({
-      data: new Uint8Array(100), duration: 1, codec: 'h264', container: 'mp4',
+      data: mockMp4Data(), duration: 1, codec: 'h264', container: 'mp4',
     });
     const postSpy = jest.spyOn(engine as any, 'postProcess').mockImplementation(async (_job: any, video: any) => video);
 
@@ -592,7 +599,7 @@ describe('REQ-228: Export job lifecycle management', () => {
     const prepSpy = jest.spyOn(engine as any, 'prepareExport').mockResolvedValue(undefined);
     const renderSpy = jest.spyOn(engine as any, 'renderFrames').mockResolvedValue([]);
     const encodeSpy = jest.spyOn(engine as any, 'encodeVideo').mockResolvedValue({
-      data: new Uint8Array(100), duration: 1, codec: 'h264', container: 'mp4',
+      data: mockMp4Data(), duration: 1, codec: 'h264', container: 'mp4',
     });
     const postSpy = jest.spyOn(engine as any, 'postProcess').mockImplementation(async (_job: any, video: any) => video);
 

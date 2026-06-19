@@ -19,9 +19,9 @@ import {
 function makeMp4(size = 256): ArrayBuffer {
   const buf = new ArrayBuffer(size);
   const view = new Uint8Array(buf);
-  // MP4 ftyp magic bytes [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70] at offset 4
-  const magic = [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70];
-  magic.forEach((b, i) => { view[4 + i] = b; });
+  // MP4: 4-byte size field at offset 0, "ftyp" at offset 4
+  view[0] = 0x00; view[1] = 0x00; view[2] = 0x00; view[3] = 0x18;
+  view[4] = 0x66; view[5] = 0x74; view[6] = 0x79; view[7] = 0x70; // "ftyp"
   return buf;
 }
 

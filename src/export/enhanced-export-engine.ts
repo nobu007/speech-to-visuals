@@ -146,6 +146,7 @@ export class EnhancedExportEngine {
   private maxConcurrentExports: number;
   private disposed = false;
   private verifier: ExportVerifier;
+  private workerFactory?: () => Worker;
 
   private artifactStore?: ExportArtifactStore;
 
@@ -723,11 +724,27 @@ export class EnhancedExportEngine {
     const outputSize = await this.getFileSize(outputPath);
 
     // Verify exported output (REQ-225)
-    const vFormat = mapExportFormatToVerificationFormat(job.config.format);
-    const verification = this.verifier.verify(vFormat, video.data.buffer as ArrayBuffer);
+    let verification: VerificationResult;
+    if (job.config.format === 'interactive-html') {
+      // HTML format has no binary magic bytes or JSON structure to verify;
+      // perform a basic size check only.
+      verification = {
+        valid: outputSize > 0,
+        format: 'json',
+        fileSize: outputSize,
+        errors: outputSize === 0 ? ['HTML output is empty'] : [],
+        warnings: [],
+        metadata: {},
+      };
+    } else {
+      const vFormat = mapExportFormatToVerificationFormat(job.config.format);
+      verification = this.verifier.verify(vFormat, video.data.buffer as ArrayBuffer);
+    }
 
+    const verificationErrors: string[] = [];
     if (!verification.valid) {
-      logger.warn('[EnhancedExportEngine] Export verification failed:', verification.errors);
+      logger.error('[EnhancedExportEngine] Export verification failed:', verification.errors);
+      verificationErrors.push(...verification.errors);
     }
     if (verification.warnings.length > 0) {
       logger.warn('[EnhancedExportEngine] Export verification warnings:', verification.warnings);
@@ -735,14 +752,12 @@ export class EnhancedExportEngine {
 
     this.updateProgress(job, 'complete', 100, 'Export complete!');
 
-    // REQ-226: Record successful export metric
+    // REQ-226: Record export metric (use 'success' or 'failed' based on verification)
     const exportDuration = job.startTime ? performance.now() - job.startTime.getTime() : 0;
-    exportMetricsCollector.recordExport(job.config.format, 'success', exportDuration, outputSize);
+    const exportStatus = verification.valid ? 'success' : 'failed';
+    exportMetricsCollector.recordExport(job.config.format, exportStatus, exportDuration, outputSize);
 
     const warnings: string[] = [...(verification.warnings)];
-    if (!verification.valid) {
-      warnings.push(...verification.errors);
-    }
 
     // REQ-231: Store artifact in ExportArtifactStore (failure is non-blocking)
     let artifactId: string | undefined;
@@ -770,7 +785,7 @@ export class EnhancedExportEngine {
     }
 
     return {
-      success: true,
+      success: verification.valid,
       outputPath,
       outputSize,
       duration: video.duration,
@@ -779,6 +794,7 @@ export class EnhancedExportEngine {
       metadata,
       verification,
       warnings,
+      error: verification.valid ? undefined : `Export verification failed: ${verificationErrors.join('; ')}`,
       artifactId,
     };
   }
@@ -901,14 +917,25 @@ export class EnhancedExportEngine {
   private async simulateEncoding(
     frames: FrameData[],
     format: string,
-    codec: string
+    _codec: string
   ): Promise<Uint8Array> {
     // Simulate encoding process
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    // Return mock encoded data
-    const mockSize = frames.length * 1000; // 1KB per frame simulation
-    return new Uint8Array(mockSize);
+    // Generate mock data with proper magic bytes for format verification
+    const bodySize = frames.length * 1000; // 1KB per frame simulation
+    const formatHeaders: Record<string, { bytes: number[]; offset: number }> = {
+      mp4:  { bytes: [0x66, 0x74, 0x79, 0x70], offset: 4 },  // "ftyp" at offset 4
+      webm: { bytes: [0x1A, 0x45, 0xDF, 0xA3], offset: 0 },  // EBML header
+      gif:  { bytes: [0x47, 0x49, 0x46, 0x38, 0x39, 0x61], offset: 0 }, // "GIF89a"
+    };
+    const header = formatHeaders[format];
+    const minSize = header ? header.offset + header.bytes.length + 100 : bodySize;
+    const result = new Uint8Array(Math.max(bodySize, minSize));
+    if (header) {
+      result.set(header.bytes, header.offset);
+    }
+    return result;
   }
 
   private generateInteractiveHTML(sceneData: SceneData, frames: FrameData[]): string {
@@ -945,9 +972,16 @@ export class EnhancedExportEngine {
 </html>`;
   }
 
-  private async generateAnimatedPDF(frames: FrameData[], config: ExportConfiguration): Promise<Uint8Array> {
-    // Mock PDF generation with animations
-    return new Uint8Array(frames.length * 2000); // 2KB per frame
+  private async generateAnimatedPDF(frames: FrameData[], _config: ExportConfiguration): Promise<Uint8Array> {
+    // Mock PDF with valid header and minimal page structure for verification
+    const headerStr = '%PDF-1.4\n';
+    const headerBytes = new TextEncoder().encode(headerStr);
+    const pageObj = new TextEncoder().encode('\n/Type /Page\n');
+    const bodySize = frames.length * 2000;
+    const result = new Uint8Array(Math.max(bodySize, headerBytes.length + pageObj.length));
+    result.set(headerBytes, 0);
+    result.set(pageObj, headerBytes.length);
+    return result;
   }
 
   // Utility methods
