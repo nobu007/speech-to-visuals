@@ -48,6 +48,7 @@ export interface BatchJobStatus {
   currentFile?: string;
   preset?: string;
   options?: Record<string, unknown>;
+  errorMessage?: string;
 }
 
 interface InternalJob {

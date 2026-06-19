@@ -183,8 +183,8 @@ export class TranscriptionPipeline {
       try {
         const fs = await import('fs');
         await fs.promises.access(audioPath, fs.constants.R_OK);
-      } catch {
-        throw new TranscriptionError(`Audio file not found or not readable: ${audioPath}`);
+      } catch (err) {
+        throw new TranscriptionError(`Audio file not found or not readable: ${audioPath} (${err instanceof Error ? err.message : String(err)})`);
       }
     }
   }

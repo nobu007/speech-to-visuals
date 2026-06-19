@@ -48,6 +48,7 @@ export interface BatchJobStatus {
   completedAt?: string;
   estimatedTimeRemaining?: number; // seconds
   currentFile?: string;
+  errorMessage?: string;
 }
 
 export interface BatchJobResult {
@@ -234,10 +235,12 @@ export class BatchProcessingAPI {
 
     // Start processing in background
     this.processJobAsync(jobId, dedupedRequest, originalTotal, skippedCount).catch((error) => {
-      logger.error(`Phase 37: Batch job ${jobId} failed:`, error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      logger.error(`Phase 37: Batch job ${jobId} failed: ${errorMsg}`);
       jobStore.updateJobStatus(jobId, {
         status: 'failed',
         completedAt: new Date().toISOString(),
+        errorMessage: errorMsg,
       });
       pipelineMetricsCollector.recordBatchJobTransition('failed');
     });

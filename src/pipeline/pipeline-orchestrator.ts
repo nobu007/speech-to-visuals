@@ -46,6 +46,7 @@ import {
 import { ErrorClassifier } from '@/quality/error-classifier';
 import type { ClassifiedError } from '@/quality/error-classifier';
 import type { RecoveryStage, RunRecoveryReport } from '@/quality/pipeline-run-recovery-tracker';
+import { logger } from '@/utils/logger';
 
 // ---------- Public Interfaces ----------
 
@@ -778,6 +779,7 @@ export class PipelineOrchestrator {
         );
         return fallbackResult;
       } catch (err) {
+        logger.warn(`Fallback strategy "${strategy.name}" failed for stage ${stageIndex}: ${err instanceof Error ? err.message : String(err)}`);
         lastError = err;
       }
     }
