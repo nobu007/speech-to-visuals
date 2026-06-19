@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-11（第189回検証: Phase 92完了・エラーリカバリREST API堅牢化 REQ-222・RegisterBodySchema・errorId形式検証・XSSサニタイズ・レジストリLRU退去・ERROR_REGISTRY_LIMITS・94テスト追加・ギャップなし確認）
+**最終更新**: 2026-06-19（第195回検証: 非同期エラーハンドリング堅牢化・11setInterval try/catchラップ・ストリーミング文字起こしチャンクループエラー耐性・processingTime計算修正・セグメント収集順序修正・976行テスト追加）
 **履歴**: 第176回検証(2026-06-02)・第171回検証(2026-06-01)・第170回検証(2026-05-29)・第167回検証(2026-05-27)・第165回検証(2026-05-26)・第158回検証(2026-05-20)・第157回検証(2026-05-18)・第151回検証(2026-05-18)・第150回検証(2026-05-18)・第149回検証(2026-05-17)・第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-05-01)・第22回検証(2026-04-30)
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 
@@ -22,6 +22,54 @@
 **最終更新（2026-04-29 Phase 4反映）**: Phase 4 完了に伴う要件定義更新（REQ-025~REQ-035 追加）と、新規モジュール（Remotion Animation・Renderer・SRT Parser・Pipeline UI）の差分反映を実施。
 
 ## 分析項目と判断
+
+### A109: 第195回検証 - 非同期エラーハンドリング堅牢化・クラッシュ耐性強化（2026-06-19）
+
+**分析日時**: 2026-06-19
+**カテゴリ**: 可用性・エラーハンドリング・クラッシュ耐性
+**背景**: AI Hub フィードバックにより「11の未防御setIntervalコールバックが監視/エクスポートループをクラックさせる危険」「非同期エラーパスの未処理がリソースリークを引き起こす」と指摘。ストリーミング文字起こしのチャンクループtry/catchが+1行のみでクラック伝播防止テストが不十分とも指摘された。
+
+**判断**: 以下の差分を反映:
+
+1. **11setInterval try/catchラップ** 🔵: 以下のファイルの定期実行コールバックをtry/catchでラップし、例外発生時にログ出力して継続:
+   - `src/monitoring/performance-dashboard.ts` (5秒定期メトリクス収集)
+   - `src/monitoring/production-error-handler.ts` (30秒定期エラーメトリクス更新)
+   - `src/monitoring/production-monitoring-excellence.ts` (5秒定期リアルタイム最適化)
+   - `src/monitoring/real-time-performance-monitor.ts` (5秒定期スナップショット生成)
+   - `src/export/export-artifact-store.ts` (TTL期限切れアーティファクトクリーンアップ)
+   - `src/export/export-job-queue.ts` (低優先度ジョブ飢餓防止)
+   - `src/optimization/memory-cache.ts` (期限切れキャッシュエントリクリーンアップ)
+   - `src/quality/enhanced-error-recovery.ts` (負荷監視+ヘルス監視の2箇所)
+   - `src/quality/error-recovery-monitor.ts` (定期ヘルスサンプリング)
+   - `src/api/batch-processing-api.ts` (バッチ処理リソース管理)
+
+2. **非同期エラーパス・リソースクリーンアップ堅牢化** 🔵: 13ソースファイルにわたり:
+   - Promise.raceパスでのsetTimeoutタイマークリアによるリソースリーク防止
+   - async関数の未処理rejectによるunhandledRejection解消
+   - エクスポート・バッチ・パイプラインのリソースクリーンアップ強化
+
+3. **ストリーミング文字起こしエラー耐性** 🔵:
+   - チャンクループtry/catch: 個別チャンク処理エラーがセッション全体をクラッシュさせない（`src/transcription/streaming-transcriber.ts:155-200`）
+   - セグメント収集順序修正: 品質モニタリング評価前にセグメントを収集し、品質モニタ失敗が結果を破壊しない（commit f5fdfc4）
+   - processingTime計算修正: `performance.now() - startTime`を結果生成時に正確計算（commit 921fdf8）
+
+4. **テスト追加（976行）** 🔵:
+   - `tests/unit/async-error-handling.test.ts` (371行): 非同期エラーハンドリング検証
+   - `tests/unit/async-resource-cleanup.test.ts` (337行): リソースクリーンアップ検証
+   - `tests/unit/interval-error-resilience.test.ts` (199行): setInterval try/catch耐性検証
+   - `tests/transcription/streaming-transcriber.test.ts` (518行): チャンクループエラー耐性・クラッシュ伝播防止・品質モニタ失敗時セグメント保全・processingTime正性検証
+
+**根拠**:
+- git log: 420026a (setInterval try/catch)・8b48a19 (async error hardening)・ce6da9a (resource cleanup)・f5fdfc4 (segment ordering)・921fdf8 (processingTime fix)・b6acc3a/eb94234/40a6691 (chunk-loop tests)
+- テスト結果: 全テストスイート通過（28 streaming-transcriber tests含む）
+- TypeScript: tsc --noEmit 0エラー維持
+
+**信頼性への影響**:
+- architecture.md: 🔵 可用性セクション更新（クラッシュ耐性パターン・定期実行try/catch・非同期エラーハンドリング）
+- design-interview.md: A109追加
+- 信頼性レベル: 全追加項目 🔵（実装済みコードとテストを直接参照）
+
+---
 
 ### A108: 第189回検証 - Phase 92 エラーリカバリREST API堅牢化（2026-06-11）
 

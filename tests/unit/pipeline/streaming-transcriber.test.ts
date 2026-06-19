@@ -226,6 +226,31 @@ describe('StreamingTranscriber', () => {
       expect(lastCall.segmentCount).toBeGreaterThan(0);
     }, 30000);
 
+    it('should survive quality monitor evaluateChunk throwing and still return all segments', async () => {
+      const transcriber = new StreamingTranscriber({ chunkSizeMs: 3000, minConfidence: 0 });
+      const monitor = transcriber.getQualityMonitor();
+      expect(monitor).not.toBeNull();
+      // Override evaluateChunk to throw on every call
+      (monitor as unknown as { evaluateChunk: jest.Mock }).evaluateChunk = jest.fn(() => {
+        throw new Error('Simulated quality monitor failure');
+      });
+
+      const result = await transcriber.transcribeStream('test-audio.wav');
+
+      // Segments were collected BEFORE quality monitoring, so they survive
+      expect(result.success).toBe(true);
+      expect(result.segments.length).toBeGreaterThan(0);
+      // The throwing evaluateChunk was called at least once (loop didn't break)
+      expect((monitor as unknown as { evaluateChunk: jest.Mock }).evaluateChunk).toHaveBeenCalled();
+    }, 30000);
+
+    it('should return a positive processingTime in the result', async () => {
+      const transcriber = new StreamingTranscriber({ chunkSizeMs: 5000 });
+      const result = await transcriber.transcribeStream('test-audio.wav');
+      expect(result.success).toBe(true);
+      expect(result.processingTime).toBeGreaterThan(0);
+    }, 30000);
+
     it('should return result with merged overlapping segments', async () => {
       const transcriber = new StreamingTranscriber({ chunkSizeMs: 3000, overlapMs: 500 });
       const result = await transcriber.transcribeStream('test-audio.wav');
