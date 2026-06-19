@@ -335,6 +335,7 @@ export class StreamingTranscriber {
    */
   private createAudioChunks(duration: number): Array<{ start: number; end: number }> {
     const chunks: Array<{ start: number; end: number }> = [];
+    if (!Number.isFinite(duration) || duration <= 0) return chunks;
     const chunkSize = (this.config.chunkSizeMs || 3000) / 1000;
     const overlap = (this.config.overlapMs || 500) / 1000;
 
@@ -397,7 +398,8 @@ export class StreamingTranscriber {
 
       audio.onloadedmetadata = () => {
         cleanup();
-        resolve(audio.duration);
+        const dur = audio.duration;
+        resolve(Number.isFinite(dur) ? dur : 0);
       };
 
       audio.onerror = () => {

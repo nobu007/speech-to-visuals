@@ -210,8 +210,11 @@ export class SceneSegmenter {
     startMs: number,
     endMs: number,
   ): Array<{ text: string; startMs: number; endMs: number }> {
-    const totalDuration = endMs - startMs;
-    if (text.length === 0) return [{ text, startMs, endMs }];
+    // Guard non-finite timestamps to prevent NaN propagation
+    const safeStart = Number.isFinite(startMs) ? startMs : 0;
+    const safeEnd = Number.isFinite(endMs) ? endMs : safeStart;
+    const totalDuration = safeEnd - safeStart;
+    if (text.length === 0) return [{ text, startMs: safeStart, endMs: safeEnd }];
 
     // Find all topic-shift keyword positions
     const boundaries: number[] = [];
@@ -253,8 +256,8 @@ export class SceneSegmenter {
         const duration = totalDuration * (partText.length / text.length);
         results.push({
           text: partText,
-          startMs: startMs + totalDuration * ratio,
-          endMs: startMs + totalDuration * ratio + duration,
+          startMs: safeStart + totalDuration * ratio,
+          endMs: safeStart + totalDuration * ratio + duration,
         });
       }
       prevIdx = boundaryIdx;
@@ -266,14 +269,14 @@ export class SceneSegmenter {
       const ratio = prevIdx / text.length;
       results.push({
         text: lastPart,
-        startMs: startMs + totalDuration * ratio,
-        endMs,
+        startMs: safeStart + totalDuration * ratio,
+        endMs: safeEnd,
       });
     }
 
     // Ensure at least one result
     if (results.length === 0) {
-      return [{ text, startMs, endMs }];
+      return [{ text, startMs: safeStart, endMs: safeEnd }];
     }
 
     return results;
@@ -707,11 +710,14 @@ export class SceneSegmenter {
     this.segmentationMetrics.processingTimeHistory.push(processingTime);
     this.segmentationMetrics.qualityScores.set(this.iteration, qualityScore);
 
-    // Calculate iterative improvements
-    const avgLength = segments.reduce((sum, seg) => sum + (seg.endMs - seg.startMs), 0) / segments.length;
+    // Calculate iterative improvements (guard non-finite timestamps)
+    const avgLength = segments.reduce((sum, seg) => {
+      const dur = seg.endMs - seg.startMs;
+      return sum + (Number.isFinite(dur) ? dur : 0);
+    }, 0) / segments.length;
     const avgKeyphrases = segments.reduce((sum, seg) => sum + seg.keyphrases.length, 0) / segments.length;
 
-    this.segmentationMetrics.iterativeImprovements.set('avgLength', avgLength);
+    this.segmentationMetrics.iterativeImprovements.set('avgLength', Number.isFinite(avgLength) ? avgLength : 0);
     this.segmentationMetrics.iterativeImprovements.set('avgKeyphrases', avgKeyphrases);
     this.segmentationMetrics.iterativeImprovements.set('qualityScore', qualityScore);
 

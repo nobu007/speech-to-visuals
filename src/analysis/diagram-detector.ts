@@ -461,7 +461,8 @@ export class DiagramDetector {
     const LOW_SCORE_THRESHOLD = 3;
     const LOW_SCORE_PENALTY_FACTOR = 0.7;
 
-    const confidence = Math.min(bestType.score / (maxPossibleScore * CONFIDENCE_DENOMINATOR_FACTOR), MAX_CONFIDENCE); // Adjust denominator for realism
+    const denominator = maxPossibleScore * CONFIDENCE_DENOMINATOR_FACTOR;
+    const confidence = denominator > 0 ? Math.min(bestType.score / denominator, MAX_CONFIDENCE) : 0;
 
     // Boost confidence for clear organizational indicators
     let adjustedConfidence = confidence;
