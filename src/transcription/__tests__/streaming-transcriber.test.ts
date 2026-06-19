@@ -2131,6 +2131,86 @@ describe('StreamingTranscriber', () => {
       expect(summary.averageConfidence).toBeGreaterThan(0);
     });
 
+    it('error thrown inside chunk-processing try/catch does not propagate to crash the transcription session', async () => {
+      // Asserts that the inner try/catch (streaming-transcriber.ts:155–200)
+      // catches errors thrown during chunk processing and prevents them from
+      // reaching the outer try/catch (lines 143–221) which would reject the
+      // promise with a TranscriptionError.
+      await loadModule();
+      mockAudioInstance.duration = 9; // 3 chunks of 3s each
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 3000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+
+      // Spy on console.warn — the inner catch calls logger.warn which
+      // delegates to console.warn.  If the outer catch fired instead it
+      // would call logger.error (console.error), not warn.
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      // Make chunk 2 (i=1) throw — exercises the inner try/catch
+      const anyTranscriber = transcriber as unknown as Record<string, unknown>;
+      const origProcess = anyTranscriber.processAudioChunk as (
+        chunk: { start: number; end: number },
+        audioFile: string | File
+      ) => Promise<TranscriptionSegment[]>;
+      let chunkCallCount = 0;
+      anyTranscriber.processAudioChunk = jest.fn().mockImplementation(async (
+        chunk: { start: number; end: number },
+        audioFile: string | File,
+      ) => {
+        chunkCallCount++;
+        if (chunkCallCount === 2) {
+          throw new Error('inner-catch crash test');
+        }
+        return origProcess.call(transcriber, chunk, audioFile);
+      });
+
+      const onProgress = jest.fn();
+
+      const promise = transcriber.transcribeStream('/audio.mp3', onProgress);
+
+      setImmediate(() => {
+        if (mockAudioInstance.onloadedmetadata) {
+          mockAudioInstance.onloadedmetadata();
+        }
+      });
+
+      // KEY: the promise must RESOLVE, not reject.
+      // Without the inner try/catch the error would propagate to the outer
+      // catch which wraps it in TranscriptionError and rejects.
+      const result = await promise;
+
+      // 1. Inner catch was triggered (logger.warn → console.warn)
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Chunk 2 processing failed'),
+        expect.any(Error),
+      );
+
+      // 2. Outer catch was NOT triggered (no logger.error about "Streaming transcription failed")
+      expect(errorSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('Streaming transcription failed'),
+        expect.anything(),
+      );
+
+      // 3. All chunks were attempted — loop continued past the error
+      // (at least 3 chunks for ~9–10s audio at 3s chunkSize)
+      expect(chunkCallCount).toBeGreaterThanOrEqual(3);
+
+      // 4. Progress fired for chunks before AND after the failed one
+      expect(onProgress.mock.calls.length).toBeGreaterThanOrEqual(2);
+
+      // 5. Session succeeded with segments from non-failed chunks
+      expect(result.success).toBe(true);
+      expect(result.segments!.length).toBeGreaterThan(0);
+
+      warnSpy.mockRestore();
+      errorSpy.mockRestore();
+    });
+
     it('all chunks failing still returns a successful result with empty segments', async () => {
       await loadModule();
       mockAudioInstance.duration = 9;
