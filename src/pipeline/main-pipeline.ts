@@ -625,6 +625,7 @@ export class MainPipeline {
       return result;
     } catch (error) {
       // ISS-007: Don't retry the same failing call; return minimal fallback result
+      logger.error('[Pipeline] Content analysis failed, returning empty fallback:', error);
       return {
         segments: [],
         diagramAnalyses: [],

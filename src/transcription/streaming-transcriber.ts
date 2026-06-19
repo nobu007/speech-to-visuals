@@ -277,11 +277,16 @@ export class StreamingTranscriber {
               speaker: 'unknown'
             };
 
-            if (onSegment && segment.confidence >= (this.config.minConfidence || 0.7)) {
-              try {
-                onSegment(segment);
-              } catch (cbError) {
-                logger.warn('[StreamingTranscriber] onSegment callback error in live transcription:', cbError);
+            if (segment.confidence >= (this.config.minConfidence || 0.7)) {
+              this.segments.push(segment);
+              this.accumulatedText += segment.text + ' ';
+
+              if (onSegment) {
+                try {
+                  onSegment(segment);
+                } catch (cbError) {
+                  logger.warn('[StreamingTranscriber] onSegment callback error in live transcription:', cbError);
+                }
               }
             }
 
@@ -328,6 +333,25 @@ export class StreamingTranscriber {
     if (this.recognition && this.isStreaming) {
       this.recognition.stop();
     }
+  }
+
+  /**
+   * Destroy the transcriber and release all resources.
+   * Removes event listeners, stops recognition, and clears state.
+   */
+  destroy(): void {
+    if (this.recognition) {
+      this.stopLiveTranscription();
+      this.recognition.onstart = null;
+      this.recognition.onend = null;
+      this.recognition.onerror = null;
+      this.recognition.onresult = null;
+      this.recognition = null;
+    }
+    this.isStreaming = false;
+    this.segments = [];
+    this.accumulatedText = '';
+    this.qualityMonitor = null;
   }
 
   /**

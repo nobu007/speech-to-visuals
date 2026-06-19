@@ -926,6 +926,142 @@ describe('StreamingTranscriber', () => {
   });
 
   // ------------------------------------------------
+  // destroy() tests
+  // ------------------------------------------------
+  describe('destroy', () => {
+    it('nullifies recognition and clears state', async () => {
+      await loadModule();
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
+
+      // Simulate streaming state
+      if (mockRecognitionInstance.onstart) {
+        mockRecognitionInstance.onstart(new Event('start'));
+      }
+      expect(transcriber.isStreamingActive()).toBe(true);
+
+      transcriber.destroy();
+
+      expect(transcriber.isStreamingActive()).toBe(false);
+      // Internal recognition should be null
+      const internal = transcriber as unknown as Record<string, unknown>;
+      expect(internal.recognition).toBeNull();
+    });
+
+    it('calls stopLiveTranscription when destroying active streaming', async () => {
+      await loadModule();
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
+
+      if (mockRecognitionInstance.onstart) {
+        mockRecognitionInstance.onstart(new Event('start'));
+      }
+
+      transcriber.destroy();
+
+      expect(mockRecognitionInstance.stop).toHaveBeenCalled();
+    });
+
+    it('nullifies all recognition event handlers', async () => {
+      await loadModule();
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
+
+      expect(mockRecognitionInstance.onstart).not.toBeNull();
+      expect(mockRecognitionInstance.onend).not.toBeNull();
+      expect(mockRecognitionInstance.onerror).not.toBeNull();
+
+      transcriber.destroy();
+
+      expect(mockRecognitionInstance.onstart).toBeNull();
+      expect(mockRecognitionInstance.onend).toBeNull();
+      expect(mockRecognitionInstance.onerror).toBeNull();
+      expect(mockRecognitionInstance.onresult).toBeNull();
+    });
+
+    it('is safe to call when recognition is null (no API)', async () => {
+      delete (globalThis as Record<string, unknown>).SpeechRecognition;
+      delete (globalThis as Record<string, unknown>).webkitSpeechRecognition;
+
+      await loadModule();
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
+
+      expect(() => transcriber.destroy()).not.toThrow();
+
+      (globalThis as Record<string, unknown>).SpeechRecognition = MockSpeechRecognition;
+      (globalThis as Record<string, unknown>).webkitSpeechRecognition = MockSpeechRecognition;
+    });
+  });
+
+  // ------------------------------------------------
+  // startLiveTranscription segment storage tests
+  // ------------------------------------------------
+  describe('startLiveTranscription segment storage', () => {
+    it('stores accepted segments in internal segments array', async () => {
+      await loadModule();
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
+      const onSegment = jest.fn();
+
+      const promise = transcriber.startLiveTranscription(onSegment);
+
+      if (mockRecognitionInstance.onresult) {
+        mockPerformanceNow.mockReturnValue(1500);
+
+        const mockEvent = {
+          resultIndex: 0,
+          results: {
+            length: 1,
+            0: {
+              isFinal: true,
+              length: 1,
+              0: { transcript: 'stored segment', confidence: 0.9 },
+            },
+          } as unknown as SpeechRecognitionResultList,
+        } as unknown as SpeechRecognitionEvent;
+
+        mockRecognitionInstance.onresult(mockEvent);
+      }
+
+      await promise;
+
+      // The segment should be stored internally
+      const internal = transcriber as unknown as { segments: unknown[] };
+      expect(internal.segments.length).toBe(1);
+      expect((internal.segments[0] as { text: string }).text).toBe('stored segment');
+    });
+
+    it('segmentCount in progress reflects stored segments', async () => {
+      await loadModule();
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
+      const onProgress = jest.fn();
+
+      const promise = transcriber.startLiveTranscription(undefined, onProgress);
+
+      if (mockRecognitionInstance.onresult) {
+        mockPerformanceNow.mockReturnValue(1500);
+
+        const mockEvent = {
+          resultIndex: 0,
+          results: {
+            length: 1,
+            0: {
+              isFinal: true,
+              length: 1,
+              0: { transcript: 'count test', confidence: 0.9 },
+            },
+          } as unknown as SpeechRecognitionResultList,
+        } as unknown as SpeechRecognitionEvent;
+
+        mockRecognitionInstance.onresult(mockEvent);
+      }
+
+      await promise;
+
+      expect(onProgress).toHaveBeenCalled();
+      const progress = onProgress.mock.calls[0][0];
+      // Before the fix, segmentCount was always 0 because segments were never stored
+      expect(progress.segmentCount).toBe(1);
+    });
+  });
+
+  // ------------------------------------------------
   // isStreamingActive tests
   // ------------------------------------------------
   describe('isStreamingActive', () => {

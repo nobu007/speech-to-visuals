@@ -201,6 +201,7 @@ export function generateLottieAnimation(
     h: height,
     nm: "AudioDiagramAnimation",
     layers,
+    meta: { g: "Speech-to-Visuals", d: `${layers.length} layer(s)` },
   };
 }
 

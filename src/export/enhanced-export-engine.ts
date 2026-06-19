@@ -939,6 +939,8 @@ export class EnhancedExportEngine {
   }
 
   private generateInteractiveHTML(sceneData: SceneData, frames: FrameData[]): string {
+    // Escape </script> to prevent XSS when embedding JSON in <script> tags
+    const sceneDataJson = JSON.stringify(sceneData).replace(/<\/script>/gi, '<\\/script>');
     return `
 <!DOCTYPE html>
 <html>
@@ -964,7 +966,7 @@ export class EnhancedExportEngine {
         // Interactive video player implementation
         const canvas = document.getElementById('videoCanvas');
         const ctx = canvas.getContext('2d');
-        const sceneData = ${JSON.stringify(sceneData)};
+        const sceneData = ${sceneDataJson};
 
         // Add interactive controls here
     </script>
