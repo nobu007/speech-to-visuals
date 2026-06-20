@@ -212,6 +212,17 @@ describe('readDependencyCount', () => {
     }));
     expect(readDependencyCount(pkgPath)).toBe(2);
   });
+
+  it('returns 0 for malformed JSON without crashing', () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const pkgPath = path.join(tmpDir, 'package.json');
+    fs.writeFileSync(pkgPath, '{ this is not valid JSON !!!');
+    expect(readDependencyCount(pkgPath)).toBe(0);
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to parse'),
+    );
+    warnSpy.mockRestore();
+  });
 });
 
 // ---------------------------------------------------------------------------
