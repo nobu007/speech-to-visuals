@@ -11,7 +11,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/glo
 import express from 'express';
 import cors from 'cors';
 import request from 'supertest';
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 
 import { authMiddleware, type AuthenticatedRequest } from '../auth';
 

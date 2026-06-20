@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
+import type { AuthenticatedRequest } from '@/api/middleware/auth';
 
 // ---------------------------------------------------------------------------
 // 1) Auth functions tests (signIn / signOut / signUp / onAuthStateChange)
@@ -138,7 +139,6 @@ describe('Auth functions', () => {
 // ---------------------------------------------------------------------------
 
 const { authMiddleware } = await import('@/api/middleware/auth');
-import type { AuthenticatedRequest } from '@/api/middleware/auth';
 
 describe('authMiddleware', () => {
   beforeAll(() => {

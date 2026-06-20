@@ -9,7 +9,7 @@
  */
 import { describe, it, expect, beforeEach, jest, afterEach } from '@jest/globals';
 import type { Request, Response, NextFunction } from 'express';
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 
 import { authMiddleware, type AuthenticatedRequest } from '../auth';
 

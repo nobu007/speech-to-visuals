@@ -12,7 +12,7 @@
  */
 
 import type { Server as SocketServer, Socket } from 'socket.io';
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { PipelineConfigError } from '../pipeline/pipeline-errors';
 
 // UUID v4 validation regex (ISS-025: mirrors REST validation from batch.ts)

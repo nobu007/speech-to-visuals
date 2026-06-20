@@ -8,7 +8,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 const testDir = process.cwd();
 
 import { WhisperTranscriber } from '@/transcription/whisper-transcriber';

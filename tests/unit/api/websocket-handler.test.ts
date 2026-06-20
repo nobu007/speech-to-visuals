@@ -12,7 +12,7 @@
  */
 
 import { jest } from '@jest/globals';
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 
 import { createMockIo, createMockSocket, MockIo, MockSocket } from '../../__mocks__/socket-io';
 

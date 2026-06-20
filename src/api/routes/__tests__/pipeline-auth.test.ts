@@ -8,7 +8,7 @@
 
 import express from 'express';
 import request from 'supertest';
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { authMiddleware, AuthenticatedRequest } from '../../middleware/auth';
 import { createPipelineRouter, PipelineStateManager } from '../pipeline';
 
