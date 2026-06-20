@@ -532,9 +532,10 @@ describe('ExportJobQueue', () => {
       q.dequeue();
       q.completeJob(j4.jobId, true);
 
-      // Oldest two evicted regardless of their terminal status
+      // Oldest two evicted from completed list regardless of terminal status
       expect(q.findJob(j0.jobId)).toBeUndefined();
-      expect(q.findJob(j1.jobId)).toBeUndefined();
+      // j1 was dead-lettered, so it remains in the DLQ after completed-list pruning
+      expect(q.findJob(j1.jobId)).toBeDefined();
 
       // Newer three retained (cancelled j2 is still in the completed array)
       expect(q.findJob(j2.jobId)).toBeDefined();

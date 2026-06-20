@@ -229,7 +229,7 @@ describe('Export Job Not Found & Conflict Errors', () => {
     expect(cancelRes.body.error.message).toContain('completed');
   });
 
-  test('DELETE failed job returns 409', async () => {
+  test('DELETE dead-lettered job returns 409', async () => {
     const { app, jobQueue } = createTestServer();
 
     const createRes = await request(app)
@@ -243,7 +243,7 @@ describe('Export Job Not Found & Conflict Errors', () => {
     const cancelRes = await request(app).delete(`/api/v1/export/jobs/${jobId}`);
 
     expect(cancelRes.status).toBe(409);
-    expect(cancelRes.body.error.message).toContain('failed');
+    expect(cancelRes.body.error.message).toContain('dead-lettered');
   });
 });
 

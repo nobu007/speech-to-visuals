@@ -17,6 +17,7 @@ function createApp() {
     maxConcurrent: 3,
     maxQueueSize: 10,
     starvationPreventionInterval: 60_000,
+    maxRetries: 0,
   });
 
   const app = express();
@@ -197,6 +198,7 @@ describe('Export Job Management API (REQ-241~243)', () => {
         completed: 0,
         failed: 0,
         cancelled: 0,
+        deadLettered: 0,
         maxConcurrent: 3,
       });
       expect(res.body.data.activeJobs).toEqual([]);
@@ -338,7 +340,7 @@ describe('Export Job Management API (REQ-241~243)', () => {
       const res = await request(app).get(`/api/v1/export/jobs/${job.jobId}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.data.status).toBe('failed');
+      expect(res.body.data.status).toBe('dead-lettered');
     });
 
     it('returns 404 for non-existent job', async () => {
@@ -413,7 +415,7 @@ describe('Export Job Management API (REQ-241~243)', () => {
       expect(res.body.error.code).toBe('JOB_ALREADY_TERMINATED');
     });
 
-    it('returns 409 when cancelling a failed job', async () => {
+    it('returns 409 when cancelling a dead-lettered job', async () => {
       const job = queue.enqueue({ format: 'svg', inputHash: 'abc' });
       queue.dequeue();
       queue.completeJob(job.jobId, false);

@@ -503,7 +503,7 @@ describe('ExportJobQueue — retry and dead letter queue', () => {
   // -------------------------------------------------------------------------
 
   describe('maxRetries = 0', () => {
-    it('sets status to failed (not dead-lettered) when maxRetries is 0', () => {
+    it('sets status to dead-lettered when maxRetries is 0', () => {
       const noRetryQueue = new ExportJobQueue({
         maxConcurrent: 1,
         maxQueueSize: 50,
@@ -526,7 +526,7 @@ describe('ExportJobQueue — retry and dead letter queue', () => {
 
       const found = noRetryQueue.findJob(job.jobId);
       expect(found).toBeDefined();
-      expect(found!.status).toBe('failed');
+      expect(found!.status).toBe('dead-lettered');
       expect(found!.deadLetteredAt).toBeDefined();
       expect(noRetryQueue.getQueueStats().deadLettered).toBe(1);
     });

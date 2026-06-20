@@ -265,8 +265,8 @@ export class ExportJobQueue {
       return true;
     }
 
-    // Retries exhausted, retries disabled, or queue at capacity
-    const isDeadLettered = this.options.maxRetries > 0;
+    // Retries exhausted, retries disabled, or queue at capacity — always dead-letter
+    const isDeadLettered = true;
     job.status = isDeadLettered ? 'dead-lettered' : 'failed';
     job.completedAt = Date.now();
     job.lastError = errorMessage;

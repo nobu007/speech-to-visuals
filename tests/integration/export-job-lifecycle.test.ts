@@ -134,7 +134,7 @@ describe('Export Job Full Lifecycle Integration', () => {
     // Verify failed status
     const statusRes = await request(app).get(`/api/v1/export/jobs/${jobId}`);
 
-    expect(statusRes.body.data.status).toBe('failed');
+    expect(statusRes.body.data.status).toBe('dead-lettered');
     expect(statusRes.body.data.artifactId).toBeNull();
     expect(statusRes.body.data.completedAt).toBeGreaterThan(0);
   });
