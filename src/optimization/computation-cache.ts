@@ -107,6 +107,7 @@ export class ComputationCache {
     const now = Date.now();
     if (now - entry.meta.createdAt > this.ttlMs) {
       this.cache.delete(key);
+      this.removeFromTagIndex(key);
       this.misses++;
       return undefined;
     }
@@ -127,6 +128,7 @@ export class ComputationCache {
       const oldestKey = this.cache.keys().next().value;
       if (oldestKey !== undefined) {
         this.cache.delete(oldestKey);
+        this.removeFromTagIndex(oldestKey);
         this.evictions++;
       }
     }
@@ -157,7 +159,11 @@ export class ComputationCache {
    * Invalidate a specific cache entry by key.
    */
   invalidate(key: ComputationKey): boolean {
-    return this.cache.delete(key);
+    const deleted = this.cache.delete(key);
+    if (deleted) {
+      this.removeFromTagIndex(key);
+    }
+    return deleted;
   }
 
   /**
@@ -187,6 +193,7 @@ export class ComputationCache {
     for (const [key, entry] of this.cache) {
       if (predicate(key, entry.meta)) {
         this.cache.delete(key);
+        this.removeFromTagIndex(key);
         removed++;
       }
     }
@@ -203,6 +210,19 @@ export class ComputationCache {
     this.misses = 0;
     this.evictions = 0;
     this.totalComputeTimeMs = 0;
+  }
+
+  /**
+   * Remove a key from all tag index entries.
+   * Called whenever a cache entry is deleted to prevent stale tag references.
+   */
+  private removeFromTagIndex(key: ComputationKey): void {
+    for (const [tag, keys] of this.tagIndex) {
+      keys.delete(key);
+      if (keys.size === 0) {
+        this.tagIndex.delete(tag);
+      }
+    }
   }
 
   /**

@@ -206,7 +206,7 @@ export class ErrorRecoveryEventBus {
     const listeners = this.listeners.get(event);
     if (listeners) {
       for (const fn of listeners) {
-        try { fn(payload); } catch { /* swallow listener errors */ }
+        try { fn(payload); } catch (e) { console.error('[ErrorRecoveryEventBus] Listener error for event "%s":', event, e); }
       }
     }
 
@@ -214,7 +214,7 @@ export class ErrorRecoveryEventBus {
     const once = this.onceListeners.get(event);
     if (once) {
       for (const fn of once) {
-        try { fn(payload); } catch { /* swallow listener errors */ }
+        try { fn(payload); } catch (e) { console.error('[ErrorRecoveryEventBus] Once-listener error for event "%s":', event, e); }
       }
       once.clear();
     }

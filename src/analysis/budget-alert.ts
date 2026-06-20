@@ -100,7 +100,7 @@ export class BudgetAlertSystem {
     // Notify callbacks
     for (const alert of newAlerts) {
       for (const cb of this.alertCallbacks) {
-        try { cb(alert); } catch { /* ignore callback errors */ }
+        try { cb(alert); } catch (e) { console.error('[BudgetAlertSystem] Callback error:', e); }
       }
     }
 
