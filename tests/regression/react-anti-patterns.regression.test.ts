@@ -18,9 +18,13 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename_esm = fileURLToPath(import.meta.url);
+const __dirname_esm = path.dirname(__filename_esm);
 
 const SRC_DIRS = ['src/hooks', 'src/components'];
-const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
+const PROJECT_ROOT = path.resolve(__dirname_esm, '..', '..');
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 

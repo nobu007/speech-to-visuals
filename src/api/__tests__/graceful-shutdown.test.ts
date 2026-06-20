@@ -53,6 +53,8 @@ jest.unstable_mockModule('@/api/server', () => ({
     use: jest.fn(),
     get: jest.fn(),
   },
+  artifactStore: { stop: jest.fn().mockResolvedValue(undefined) },
+  jobQueue: { stop: jest.fn().mockResolvedValue(undefined) },
 }));
 
 jest.unstable_mockModule('@/utils/logger', () => ({

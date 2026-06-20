@@ -289,7 +289,7 @@ describe('Monitoring REST API Endpoints', () => {
       expect(parsed.dashboard).toBeDefined();
       expect(parsed.dashboard.title).toBe('Speech-to-Visuals Monitoring');
       expect(parsed.dashboard.uid).toMatch(/^s2v-monitoring-/);
-      expect(parsed.dashboard.panels).toHaveLength(8);
+      expect(parsed.dashboard.panels).toHaveLength(11);
       expect(parsed.overwrite).toBe(true);
     });
 
@@ -308,6 +308,9 @@ describe('Monitoring REST API Endpoints', () => {
       expect(titles).toContain('Process Uptime');
       expect(titles).toContain('Request Volume');
       expect(titles).toContain('Errors by Route');
+      expect(titles).toContain('Export Queue Size');
+      expect(titles).toContain('Export Queue Wait Time');
+      expect(titles).toContain('Export Queue Dequeue Rate by Priority');
     });
 
     it('should accept datasource query parameter', async () => {

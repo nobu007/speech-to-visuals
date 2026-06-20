@@ -98,7 +98,7 @@ describe('REQ-210: GET /api/v1/monitoring/dashboard', () => {
     expect(body.dashboard).toBeDefined();
     expect(body.overwrite).toBe(true);
     expect(body.dashboard.title).toBe('Speech-to-Visuals Monitoring');
-    expect(body.dashboard.panels).toHaveLength(8);
+    expect(body.dashboard.panels).toHaveLength(11);
     expect(body.dashboard.tags).toContain('speech-to-visuals');
   });
 

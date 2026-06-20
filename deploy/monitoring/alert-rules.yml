@@ -92,6 +92,16 @@ groups:
           description: "Export dead letter queue has {{ $value }} job(s) that failed after exhausting all retries. Check /api/v1/export/jobs/dead-letter for details and consider replaying after fixing root cause."
           runbook_url: "docs/runbooks/export-queue-backlog.md"
 
+      - alert: SpeechToVisualsExportDLQReplayRate
+        expr: rate(export_queue_dlq_replay_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Export DLQ replay rate is high"
+          description: "Dead-lettered export jobs are being replayed at a rate above 0.1/s. Frequent replays indicate recurring failures that require investigation."
+          runbook_url: "docs/runbooks/export-queue-backlog.md"
+
       - alert: SpeechToVisualsExportHighRetryRate
         expr: rate(export_queue_retry_total[5m]) > 0.5
         for: 5m
