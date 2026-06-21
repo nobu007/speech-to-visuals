@@ -18,13 +18,25 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
-import { fileURLToPath } from 'url';
 
-const __filename_esm = fileURLToPath(import.meta.url);
-const __dirname_esm = path.dirname(__filename_esm);
+/**
+ * Walk up from process.cwd() to find the directory containing jest.config.cjs.
+ * This is more robust than import.meta.url (which fails under ts-jest ESM)
+ * or process.cwd() alone (which may differ under Jest worker contexts).
+ */
+function findProjectRoot(): string {
+  let dir = process.cwd();
+  for (let i = 0; i < 20; i++) {
+    if (fs.existsSync(path.join(dir, 'jest.config.cjs'))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return process.cwd();
+}
 
 const SRC_DIRS = ['src/hooks', 'src/components'];
-const PROJECT_ROOT = path.resolve(__dirname_esm, '..', '..');
+const PROJECT_ROOT = findProjectRoot();
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
