@@ -333,6 +333,110 @@ describe('Bypass: OWASP XSS Filter Evasion Cheat Sheet vectors', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Tests: SVG foreignObject bypass vector
+// ---------------------------------------------------------------------------
+
+describe('Bypass: SVG <foreignObject> element', () => {
+  const foreignObjectPayloads = [
+    '<svg><foreignObject><script>alert(1)</script></foreignObject></svg>',
+    '<foreignObject><body onload=alert(1)></foreignObject>',
+    '<foreignObject width="100" height="50"><iframe src=//evil.com></foreignObject>',
+    '<foreignObject/src=data:text/html,<script>alert(1)</script>>',
+  ];
+
+  test.each(foreignObjectPayloads)(
+    'detects foreignObject tag: "%s"',
+    (payload) => {
+      const result = validateExportPayload({ data: payload });
+      expect(hasHighFinding(result.findings)).toBe(true);
+      expect(
+        result.findings.some((f) => f.pattern === 'foreign-object-tag'),
+      ).toBe(true);
+    },
+  );
+
+  test.each(foreignObjectPayloads)(
+    'blocks in strict mode: "%s"',
+    (payload) => {
+      const result = validateExportPayload({ data: payload }, undefined, {
+        strict: true,
+      });
+      expect(result.passed).toBe(false);
+    },
+  );
+
+  test('foreignObject in SceneGraph node label is detected', () => {
+    const scene = makeCleanScene();
+    scene.nodes[0].label =
+      '<svg><foreignObject><script>alert(1)</script></foreignObject></svg>';
+    const result = validateSceneGraphForExport(scene);
+    expect(
+      result.findings.some((f) => f.pattern === 'foreign-object-tag'),
+    ).toBe(true);
+    expect(result.findings.some((f) => f.field === 'nodes[0].label')).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests: executable data URI MIME types (SVG, XHTML)
+// ---------------------------------------------------------------------------
+
+describe('Bypass: executable data URI MIME types', () => {
+  const dataUriPayloads: Array<{ payload: string; pattern: string }> = [
+    {
+      payload: 'url("data:image/svg+xml,<svg onload=alert(1)>)',
+      pattern: 'data-svg-uri',
+    },
+    {
+      payload: "url('data:image/svg+xml,<svg/onload=alert(1)>)",
+      pattern: 'data-svg-uri',
+    },
+    {
+      payload: 'url(data:image/svg+xml;base64,PHN2ZyBvbmxvYWQ9YWxlcnQoMSk+)',
+      pattern: 'data-svg-uri',
+    },
+    {
+      payload: 'url("data:application/xhtml+xml,<script>alert(1)</script>")',
+      pattern: 'data-xhtml-uri',
+    },
+    {
+      payload: 'url(data:application/xhtml+xml,<body onload=alert(1)>)',
+      pattern: 'data-xhtml-uri',
+    },
+  ];
+
+  test.each(dataUriPayloads)(
+    'detects executable data URI: "$pattern"',
+    ({ payload, pattern }) => {
+      const result = validateExportPayload({ data: payload });
+      expect(hasMediumFinding(result.findings)).toBe(true);
+      expect(result.findings.some((f) => f.pattern === pattern)).toBe(true);
+    },
+  );
+
+  test.each(dataUriPayloads)(
+    'detects in CSS-style field: "$pattern"',
+    ({ payload }) => {
+      const scene = makeCleanScene();
+      scene.nodes[0].label = `background: ${payload}`;
+      const result = validateSceneGraphForExport(scene);
+      expect(result.findings.length).toBeGreaterThan(0);
+    },
+  );
+
+  test('data:image/svg+xml in SceneGraph is detected', () => {
+    const scene = makeCleanScene();
+    scene.nodes[0].meta = {
+      style: 'background: url("data:image/svg+xml,<svg onload=alert(1)>)',
+    };
+    const result = validateSceneGraphForExport(scene);
+    expect(
+      result.findings.some((f) => f.pattern === 'data-svg-uri'),
+    ).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Helper re-export for tests above
 // ---------------------------------------------------------------------------
 

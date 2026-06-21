@@ -65,6 +65,8 @@ const HIGH_SEVERITY_PATTERNS: Array<{ regex: RegExp; name: string }> = [
   { regex: /<embed[\s/>]/i, name: 'embed-tag' },
   { regex: /<object[\s/>]/i, name: 'object-tag' },
   { regex: /<base[\s/>]/i, name: 'base-tag' },
+  // SVG foreignObject allows embedding arbitrary HTML (including scripts) inside SVG
+  { regex: /<foreignobject[\s/>]/i, name: 'foreign-object-tag' },
   { regex: /\) Tj \(/i, name: 'pdf-operator-injection' },
   // CSS-based injection vectors
   { regex: /expression\s*\(/i, name: 'css-expression' },
@@ -80,7 +82,10 @@ const MEDIUM_SEVERITY_PATTERNS: Array<{ regex: RegExp; name: string }> = [
   // CSS injection vectors (lower severity than active script execution)
   { regex: /@import\s+['"]?\s*url\s*\(/i, name: 'css-import' },
   { regex: /behavior\s*:\s*url\s*\(/i, name: 'css-behavior' },
+  // data: URIs with executable MIME types — SVG and XHTML can run scripts in browsers
   { regex: /url\s*\(\s*['"]?\s*data:text\/html/i, name: 'data-html-uri' },
+  { regex: /url\s*\(\s*['"]?\s*data:image\/svg\+xml/i, name: 'data-svg-uri' },
+  { regex: /url\s*\(\s*['"]?\s*data:application\/xhtml\+xml/i, name: 'data-xhtml-uri' },
 ];
 
 const MAX_PREVIEW_LENGTH = 80;
