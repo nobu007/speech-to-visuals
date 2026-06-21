@@ -13,6 +13,7 @@
 
 import type { SceneGraph, NodeDatum, EdgeDatum } from '../types/diagram';
 import { logger } from '../utils/logger';
+import { securityMetricsCollector } from './security-metrics-collector';
 
 export interface ContentFinding {
   field: string;
@@ -25,6 +26,30 @@ export interface ValidationResult {
   passed: boolean;
   findings: ContentFinding[];
 }
+
+// HTML5 event handler names commonly exploited in XSS attacks.
+// Extracted to a named constant array for maintainability — prevents
+// copy-paste drift when new event types need to be added.
+const EVENT_HANDLER_NAMES = [
+  'click', 'load', 'error', 'mouseover', 'mouseout', 'mouseenter',
+  'mouseleave', 'focus', 'blur', 'input', 'change', 'submit', 'reset',
+  'toggle', 'drag', 'dragstart', 'dragend', 'dragenter', 'dragleave',
+  'dragover', 'drop', 'wheel', 'scroll', 'resize', 'pointerdown',
+  'pointerup', 'pointermove', 'pointerover', 'pointerout', 'pointerenter',
+  'pointerleave', 'animationstart', 'animationend', 'animationiteration',
+  'transitionend', 'contextmenu', 'copy', 'paste', 'cut', 'canplay',
+  'play', 'playing', 'seeked', 'seeking', 'stalled', 'suspend', 'waiting',
+  'loadeddata', 'loadedmetadata', 'loadstart', 'durationchange', 'ended',
+  'abort', 'ratechange', 'timeupdate', 'volumechange', 'progress',
+  'hashchange', 'offline', 'online', 'pagehide', 'pageshow', 'popstate',
+  'storage', 'unload', 'beforeunload', 'message', 'afterprint',
+  'beforeprint', 'securitypolicyviolation', 'begin', 'end', 'repeat',
+] as const;
+
+const EVENT_HANDLER_RE = new RegExp(
+  `on(${EVENT_HANDLER_NAMES.join('|')})\\s*=`,
+  'i',
+);
 
 // Patterns that indicate active injection attempts in string data.
 // These are checked against raw (pre-escaping) content — if found, they
@@ -48,8 +73,7 @@ const HIGH_SEVERITY_PATTERNS: Array<{ regex: RegExp; name: string }> = [
 ];
 
 const MEDIUM_SEVERITY_PATTERNS: Array<{ regex: RegExp; name: string }> = [
-  // Expanded event-handler list: HTML5 events commonly used in XSS
-  { regex: /on(click|load|error|mouseover|mouseout|mouseenter|mouseleave|focus|blur|input|change|submit|reset|toggle|drag|dragstart|dragend|dragenter|dragleave|dragover|drop|wheel|scroll|resize|pointerdown|pointerup|pointermove|pointerover|pointerout|pointerenter|pointerleave|animationstart|animationend|animationiteration|transitionend|contextmenu|copy|paste|cut|canplay|play|playing|seeked|seeking|stalled|suspend|waiting|loadeddata|loadedmetadata|loadstart|durationchange|ended|abort|ratechange|timeupdate|volumechange|progress|hashchange|offline|online|pagehide|pageshow|popstate|storage|unload|beforeunload|message|afterprint|beforeprint|securitypolicyviolation|begin|end|repeat)\s*=/i, name: 'event-handler' },
+  { regex: EVENT_HANDLER_RE, name: 'event-handler' },
   { regex: /<a[^>]+\bhref\s*=\s*["']?\s*(javascript|data):/i, name: 'dangerous-href' },
   { regex: /<meta[\s/>]/i, name: 'meta-tag' },
   { regex: /\0/, name: 'null-byte' },
@@ -201,6 +225,12 @@ export function validateSceneGraphForExport(
     } else {
       logger.warn(msg);
     }
+    // Record metrics for defense-in-depth observability
+    const layer = strict && hasHighSeverity ? 'strict-mode-block' : 'content-validator';
+    securityMetricsCollector.recordFindings(
+      layer,
+      findings.map((f) => ({ severity: f.severity, pattern: f.pattern })),
+    );
   }
 
   return { passed, findings };
@@ -258,6 +288,12 @@ export function validateExportPayload(
     } else {
       logger.warn(msg);
     }
+    // Record metrics for defense-in-depth observability
+    const layer = strict && hasHighSeverity ? 'strict-mode-block' : 'content-validator';
+    securityMetricsCollector.recordFindings(
+      layer,
+      findings.map((f) => ({ severity: f.severity, pattern: f.pattern })),
+    );
   }
 
   return { passed, findings };

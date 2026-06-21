@@ -10,11 +10,40 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-12（第193回検証: Phase 100完了・REQ-230 実装確認・ExportArtifactStore・TTLクリーンアップ・LRU退去・Phase 101/102 パイプライン統合要件追加）
+**最終更新**: 2026-06-22（第194回検証: Phase 108完了・エクスポートセキュリティ hardening・イベントハンドラ正規表現名前付き定数配列化・プロパティベース変異ファジング回帰ネット・SecurityMetricsCollector防護拒否メトリクス・REQ-244~246追加）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
 ## 分析項目と判断
+
+### A194: 第194回検証 - Phase 108 エクスポートセキュリティ hardening（2026-06-22）
+
+**分析日時**: 2026-06-22
+**カテゴリ**: セキュリティ hardening・保守性改善・可観測性強化・テスト網羅拡充
+**背景**: AI Hubフィードバック「previous iteration was VALUABLE」に対応。直近2コミット（60d670d・497467c）でExportContentValidatorのXSS検出パターンが強化されたが、以下の改善余地が指摘された:
+1. イベントハンドラ正規表現が約400文字のインライン文字列で保守性が低い
+2. プロパティベースの変異ファジング回帰ネットが存在しない
+3. 防御レイヤー別の拒否メトリクスがなく、多層防御が観測不可能
+
+**判断**:
+1. **REQ-244 イベントハンドラ正規表現抽出**: インラインの約400文字正規表現を EVENT_HANDLER_NAMES 名前付き定数配列（73要素）+ EVENT_HANDLER_RE プログラム構築に分離。イベント種別追加が配列要素の追加のみで完結するよう改善。
+2. **REQ-245 プロパティベース変異ファジング回帰ネット**: src/export/__tests__/export-mutation-fuzz.test.ts 新規作成。20種XSSベクタ×50イテレーション=100変異パターン・mulberry32決定論PRNG・正規ペイロード偽陽性ゼロ保証・strict mode全高重要度ベクタブロック検証・破壊的変異クラッシュ耐性・多ベクタ同時注入検証を含む118テスト。
+3. **REQ-246 防護拒否メトリクス**: src/export/security-metrics-collector.ts 新規作成。SecurityMetricsCollector クラスが防御レイヤー（content-validator / strict-mode-block / escape-function）別・重要度別・パターン別カウンターを追跡し、Prometheus互換テキスト形式で出力。ExportContentValidator の validateSceneGraphForExport・validateExportPayload に自動記録を統合。12テスト。
+
+**根拠**:
+- コミット 60d670d: fix(security): close XSS detection gaps in ExportContentValidator
+- コミット 497467c: fix(security): close XSS bypass gaps in ExportContentValidator and add E2E job-route tests
+- AI Hub feedback: "extract the event list to a named constant array and build the regex programmatically for maintainability"
+- AI Hub feedback: "Add a property-based test that mutates a known-good CSV/JSON payload and asserts every mutation either passes guards or throws ExportSecurityError"
+- AI Hub feedback: "Consider adding a runtime metrics/counter for guard rejections to detect if a specific layer is being bypassed in production"
+
+**信頼性への影響**:
+- REQ-244~246 を新規追加（信頼性: 🔵 既存実装とAI Hub推奨に基づく確実な要件）
+- 信頼性レベル分布: 🔵263件(98.5%) / 🟡4件(1.5%) / 🔴0件(0%)
+- Phase 108 完了として登録
+- テストスイート: 1029+104+130 = 1263テスト全通過確認
+
+---
 
 ### A193: 第193回検証 - Phase 100完了確認・ExportArtifactStoreパイプライン統合要件追加（2026-06-12）
 

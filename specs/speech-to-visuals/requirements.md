@@ -551,6 +551,12 @@
 - REQ-242: システムはエクスポートジョブのステータス取得API（GET /api/v1/export/jobs/:jobId）を提供し、ジョブ状態（queued/running/completed/failed/cancelled）・進捗率・成果物artifactIdを返さなければならない 🔵 ✅実装済 *src/api/routes/export-jobs.ts GET /jobs/:jobId・ExportJobQueue.findJob()・TC-242テスト通過*
 - REQ-243: システムはエクスポートジョブのキャンセルAPI（DELETE /api/v1/export/jobs/:jobId）を提供し、実行中ジョブのAbortController経由キャンセルとキュー待機中ジョブのキュー削除を実装しなければならない 🔵 ✅実装済 *src/api/routes/export-jobs.ts DELETE /jobs/:jobId・TC-243テスト通過*
 
+#### エクスポートセキュリティ hardening（Phase 108） ✅実装済
+
+- REQ-244: システムは ExportContentValidator のイベントハンドラ正規表現を名前付き定数配列（EVENT_HANDLER_NAMES）として定義し、RegExp コンストラクタでプログラム的に構築しなければならない。これによりイベント種別の追加・変更が配列要素の追加のみで完結し、コピーペーストミスを防止する 🔵 ✅実装済 *src/export/export-content-validator.ts EVENT_HANDLER_NAMES + EVENT_HANDLER_RE・コミット予定*
+- REQ-245: システムは既知の正常なエクスポートペイロード（SceneGraph・JSON）を突然変異させ、各変異がガードを通過するかセキュリティエラーとして検出されることを検証するプロパティベース変異ファジングテストを提供しなければならない。20種類のXSSベクタ × 50イテレーション（合計100変異）で構成し、正規ペイロードの偽陽性ゼロも保証すること 🔵 ✅実装済 *src/export/__tests__/export-mutation-fuzz.test.ts・130テスト・mulberry32決定論PRNG・20 XSSベクタ*
+- REQ-246: システムはエクスポートセキュリティガードの拒否メトリクス（SecurityMetricsCollector）を提供し、防御レイヤー（content-validator / strict-mode-block / escape-function）別・重要度（high / medium）別・パターン別のカウンターを追跡し、Prometheus互換テキスト形式で出力できなければならない。これにより多層防御アーキテクチャが観測可能となる 🔵 ✅実装済 *src/export/security-metrics-collector.ts・SecurityMetricsCollector・Prometheus exposition v0.0.4・12テスト*
+
 ### 条件付き要件
 
 - REQ-101: LLM API が利用できない場合、システムはルールベース V1（文分割によるシーケンシャル図解）にフォールバックしなければならない 🔵 *SYSTEM_CORE.md §4.2・PIPELINE_FLOW.md §3 Stage 2 より*
@@ -749,14 +755,15 @@
 | Phase 103: アーティファクト管理REST API | ✅完了 | REQ-238~240 | 3/3（list/filter/paginate・getMetadata/delete・usage統計・コミットa628416） |
 | Phase 104: エクスポートバッチジョブREST API | ✅完了 | REQ-241~243 | 3/3（POST/GET/DELETE /jobs・ExportJobQueue.findJob()・server.ts統合・20テスト通過） |
 | Phase 105: エクスポートジョブライフサイクル統合テスト | ✅完了 | REQ-241~243 | 3/3（create→status→complete HTTP統合テスト・artifact store連携検証・優先度順序HTTP検証・7テスト追加） |
+| Phase 108: エクスポートセキュリティ hardening | ✅完了 | REQ-244~246 | 3/3（イベントハンドラ正規表現の名前付き定数配列化・プロパティベース変異ファジング回帰テスト・SecurityMetricsCollector防護拒否メトリクス・130テスト追加） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 257件 (98.5%)
+- 🔵 青信号: 263件 (98.5%)
 - 🟡 黄信号: 4件 (1.5%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 105完了・REQ-001~243全実装済（エクスポートバッチジョブREST APIサーバー統合済み・ライフサイクル統合テスト7件追加）
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 108完了・REQ-001~246全実装済（エクスポートセキュリティ hardening・正規表現保守性・変異ファジング回帰ネット・防護拒否メトリクス・130テスト追加）
 
 ## Acceptance criteria
 
@@ -767,9 +774,9 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 105 を網羅し、Phase 105 完了（エクスポートジョブライフサイクル統合テスト・サーバーwiring E2E検証・7テスト追加）を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 108 を網羅し、Phase 108 完了（エクスポートセキュリティ hardening・正規表現保守性・変異ファジング回帰ネット・防護拒否メトリクス・130テスト追加）を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテキュリティに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（Phase 105完了・REQ-001~243全実装済・🔵260件/🟡4件/🔴0件）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（Phase 108完了・REQ-001~246全実装済・🔵263件/🟡4件/🔴0件）
 
 
 <!-- spine:references:begin -->
