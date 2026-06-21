@@ -479,8 +479,8 @@ function eventRecoverySuccessNotification(
       fallbackUsed,
       timestamp: Date.now(),
     });
-  } catch {
-    // Event bus errors must not break recovery
+  } catch (err) {
+    logger.error('[RecoveryStrategyChain] Failed to emit recovery:success event', err);
   }
 }
 
@@ -497,8 +497,8 @@ function eventRecoveryFailureNotification(
       nextAction: 'fallback',
       timestamp: Date.now(),
     });
-  } catch {
-    // Event bus errors must not break recovery
+  } catch (err) {
+    logger.error('[RecoveryStrategyChain] Failed to emit recovery:failure event', err);
   }
 }
 

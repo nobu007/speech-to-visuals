@@ -9,7 +9,7 @@
 
 import express from 'express';
 import request from 'supertest';
-import { createErrorsRouter, errorRegistry } from '../errors';
+import { createErrorsRouter, errorRegistry, sanitizeMessage } from '../errors';
 import { UserGuidedErrorRecovery } from '../../../quality/user-guided-error-recovery';
 
 function createApp(recoveryService?: UserGuidedErrorRecovery) {
@@ -330,6 +330,111 @@ describe('Error Recovery REST API Endpoints (REQ-037)', () => {
 
       expect(recoverRes.status).toBe(200);
       expect(recoverRes.body.data.strategyUsed).toBe(strategyId);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // sanitizeMessage: XSS prevention
+  // ---------------------------------------------------------------------------
+
+  describe('sanitizeMessage XSS prevention', () => {
+    it('should strip HTML tags from error messages', () => {
+      // Tags are stripped, text content between tags is preserved
+      const result = sanitizeMessage('<script>alert(1)</script>hello');
+      expect(result).not.toContain('<');
+      expect(result).not.toContain('>');
+      expect(result).toContain('hello');
+
+      const result2 = sanitizeMessage('<img src=x onerror=alert(1)>test');
+      expect(result2).not.toContain('<');
+      expect(result2).not.toContain('>');
+      expect(result2).toContain('test');
+    });
+
+    it('should HTML-encode ampersands', () => {
+      expect(sanitizeMessage('a & b')).toBe('a &amp; b');
+    });
+
+    it('should HTML-encode double quotes', () => {
+      expect(sanitizeMessage('say "hello"')).toBe('say &quot;hello&quot;');
+    });
+
+    it('should HTML-encode single quotes (apostrophes)', () => {
+      expect(sanitizeMessage("it's")).toBe('it&#x27;s');
+    });
+
+    it('should handle XSS payload: <script> tag with attributes', () => {
+      const payload = '<script type="text/javascript">alert("XSS")</script>';
+      const result = sanitizeMessage(payload);
+      expect(result).not.toContain('<script');
+      expect(result).not.toMatch(/<[^]/);
+    });
+
+    it('should handle XSS payload: <img> with onerror handler', () => {
+      const payload = '<img src="x" onerror="alert(1)">';
+      const result = sanitizeMessage(payload);
+      expect(result).not.toContain('<img');
+      expect(result).not.toContain('onerror');
+      expect(result).not.toMatch(/<[^]/);
+    });
+
+    it('should handle XSS payload: <svg> with onload', () => {
+      const payload = '<svg onload="alert(1)">';
+      const result = sanitizeMessage(payload);
+      expect(result).not.toContain('<svg');
+      expect(result).not.toContain('onload');
+    });
+
+    it('should handle XSS payload: encoded script injection', () => {
+      const payload = '<scr<script>ipt>alert(1)</script>';
+      const result = sanitizeMessage(payload);
+      expect(result).not.toMatch(/<script/i);
+    });
+
+    it('should handle nested tags - all HTML structure removed', () => {
+      const payload = '<div><p><script>alert(1)</script></p></div>safe';
+      const result = sanitizeMessage(payload);
+      expect(result).not.toMatch(/<[^]/);
+      expect(result).toContain('safe');
+    });
+
+    it('should preserve plain text without special characters', () => {
+      expect(sanitizeMessage('File format unsupported')).toBe('File format unsupported');
+    });
+
+    it('should handle empty string', () => {
+      expect(sanitizeMessage('')).toBe('');
+    });
+
+    it('should handle string with only HTML tags', () => {
+      expect(sanitizeMessage('<script></script>')).toBe('');
+    });
+
+    it('should handle mixed content: text with embedded XSS', () => {
+      const payload = 'Error: file.wav <script>document.cookie</script> not found';
+      const result = sanitizeMessage(payload);
+      expect(result).not.toContain('<script');
+      expect(result).not.toMatch(/<[^]/);
+      expect(result).toContain('not found');
+    });
+
+    it('should prevent stored XSS via /register endpoint', async () => {
+      const xssPayload = '<img src=x onerror=alert(document.cookie)>Transcription failed';
+      const response = await request(app)
+        .post('/api/v1/errors/register')
+        .send({ errorId: 'xss-test', errorMessage: xssPayload });
+
+      expect(response.status).toBe(200);
+
+      // Retrieve the stored error to verify sanitization
+      const optionsResponse = await request(app)
+        .get('/api/v1/errors/xss-test/options');
+
+      expect(optionsResponse.status).toBe(200);
+      const msg = optionsResponse.body.data.userMessage as string;
+      // The stored message must not contain raw HTML tags
+      expect(msg).not.toContain('<img');
+      expect(msg).not.toContain('onerror');
     });
   });
 });

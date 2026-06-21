@@ -58,9 +58,15 @@ const RegisterBodySchema = z.object({
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Strip HTML tags from a string to prevent stored XSS */
-function sanitizeMessage(input: string): string {
-  return input.replace(/<[^>]*>/g, '');
+/** Strip HTML tags and encode special characters to prevent stored XSS */
+export function sanitizeMessage(input: string): string {
+  return input
+    .replace(/<[^>]*>/g, '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
 }
 
 /** Validate errorId format (used in path params where Zod isn't applied) */

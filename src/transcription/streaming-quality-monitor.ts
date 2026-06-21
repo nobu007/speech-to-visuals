@@ -250,8 +250,8 @@ export class StreamingQualityMonitor {
     for (const cb of this.alertCallbacks) {
       try {
         cb(alert);
-      } catch {
-        // Prevent callback errors from disrupting the pipeline
+      } catch (err) {
+        logger.error('[StreamingQualityMonitor] Alert callback threw', err);
       }
     }
 
