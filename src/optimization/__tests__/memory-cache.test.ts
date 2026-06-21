@@ -6,7 +6,7 @@
 
 import { jest } from '@jest/globals';
 
-const { MemoryCache } = await import('../memory-cache');
+import { MemoryCache } from '../memory-cache';
 
 describe('MemoryCache', () => {
   let cache: InstanceType<typeof MemoryCache<string>>;
