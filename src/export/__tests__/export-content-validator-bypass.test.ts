@@ -437,6 +437,134 @@ describe('Bypass: executable data URI MIME types', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Tests: scriptless XSS tags (marquee, isindex)
+// ---------------------------------------------------------------------------
+
+describe('Bypass: scriptless XSS tags (marquee, isindex)', () => {
+  const scriptlessPayloads: Array<{ payload: string; pattern: string }> = [
+    { payload: '<marquee onstart=alert(1)>x</marquee>', pattern: 'marquee-tag' },
+    { payload: '<marquee direction=up onstart=alert(1)>scrolling</marquee>', pattern: 'marquee-tag' },
+    { payload: '<isindex action="javascript:alert(1)">', pattern: 'isindex-tag' },
+    { payload: '<isindex type=submit value=click>', pattern: 'isindex-tag' },
+  ];
+
+  test.each(scriptlessPayloads)(
+    'detects scriptless XSS tag: "$payload"',
+    ({ payload, pattern }) => {
+      const result = validateExportPayload({ data: payload });
+      expect(hasHighFinding(result.findings)).toBe(true);
+      expect(result.findings.some((f) => f.pattern === pattern)).toBe(true);
+    },
+  );
+
+  test.each(scriptlessPayloads)(
+    'blocks in strict mode: "$payload"',
+    ({ payload }) => {
+      const result = validateExportPayload({ data: payload }, undefined, {
+        strict: true,
+      });
+      expect(result.passed).toBe(false);
+    },
+  );
+
+  test('marquee tag in SceneGraph node label is detected', () => {
+    const scene = makeCleanScene();
+    scene.nodes[0].label = '<marquee onstart=alert(1)>infected</marquee>';
+    const result = validateSceneGraphForExport(scene);
+    expect(result.findings.some((f) => f.pattern === 'marquee-tag')).toBe(true);
+    expect(result.findings.some((f) => f.field === 'nodes[0].label')).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests: expanded event handlers (keyboard, touch, focus, IME)
+// ---------------------------------------------------------------------------
+
+describe('Bypass: expanded event handlers (keyboard/touch/focus/IME)', () => {
+  const expandedHandlers = [
+    'onkeydown=alert(1)',
+    'onkeyup=alert(1)',
+    'onkeypress=alert(1)',
+    'ontouchstart=alert(1)',
+    'ontouchend=alert(1)',
+    'ontouchmove=alert(1)',
+    'onfocusin=alert(1)',
+    'onfocusout=alert(1)',
+    'onselect=alert(1)',
+    'onsearch=alert(1)',
+    'onbeforeinput=alert(1)',
+    'onauxclick=alert(1)',
+    'oncompositionstart=alert(1)',
+    'oncompositionend=alert(1)',
+    'oncompositionupdate=alert(1)',
+    'onstart=alert(1)',
+  ];
+
+  test.each(expandedHandlers)('detects event handler: "%s"', (payload) => {
+    const result = validateExportPayload({ data: payload });
+    expect(hasMediumFinding(result.findings)).toBe(true);
+    expect(result.findings.some((f) => f.pattern === 'event-handler')).toBe(true);
+  });
+
+  test('onstart in SceneGraph is detected (marquee legacy)', () => {
+    const scene = makeCleanScene();
+    scene.summary = 'text onstart=alert(1) more text';
+    const result = validateSceneGraphForExport(scene);
+    expect(result.findings.some((f) => f.pattern === 'event-handler')).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests: additional data URI variants and formaction injection
+// ---------------------------------------------------------------------------
+
+describe('Bypass: data URI XML variants and formaction', () => {
+  const additionalPayloads: Array<{ payload: string; pattern: string }> = [
+    {
+      payload: 'url("data:application/xml,<script>alert(1)</script>")',
+      pattern: 'data-xml-uri',
+    },
+    {
+      payload: "url('data:text/xml,<script>alert(1)</script>')",
+      pattern: 'data-text-xml-uri',
+    },
+    {
+      payload: '<button formaction="javascript:alert(1)">Click</button>',
+      pattern: 'formaction-injection',
+    },
+    {
+      payload: '<input type=submit formaction=data:text/html,<script>alert(1)</script>>',
+      pattern: 'formaction-injection',
+    },
+  ];
+
+  test.each(additionalPayloads)(
+    'detects injection pattern: "$pattern"',
+    ({ payload, pattern }) => {
+      const result = validateExportPayload({ data: payload });
+      expect(hasMediumFinding(result.findings)).toBe(true);
+      expect(result.findings.some((f) => f.pattern === pattern)).toBe(true);
+    },
+  );
+
+  test('data:application/xml in SceneGraph meta is detected', () => {
+    const scene = makeCleanScene();
+    scene.nodes[0].meta = {
+      style: 'background: url("data:application/xml,<script>alert(1)</script>")',
+    };
+    const result = validateSceneGraphForExport(scene);
+    expect(result.findings.some((f) => f.pattern === 'data-xml-uri')).toBe(true);
+  });
+
+  test('formaction in SceneGraph edge label is detected', () => {
+    const scene = makeCleanScene();
+    scene.edges[0].label = '<button formaction="javascript:alert(1)">x</button>';
+    const result = validateSceneGraphForExport(scene);
+    expect(result.findings.some((f) => f.pattern === 'formaction-injection')).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Helper re-export for tests above
 // ---------------------------------------------------------------------------
 

@@ -44,6 +44,20 @@ const EVENT_HANDLER_NAMES = [
   'hashchange', 'offline', 'online', 'pagehide', 'pageshow', 'popstate',
   'storage', 'unload', 'beforeunload', 'message', 'afterprint',
   'beforeprint', 'securitypolicyviolation', 'begin', 'end', 'repeat',
+  // Keyboard events — onkeydown/keypress/keyup can execute arbitrary JS
+  'keydown', 'keypress', 'keyup',
+  // Touch events — ontouchstart etc. on mobile
+  'touchstart', 'touchend', 'touchmove', 'touchcancel',
+  // Focus delegation — onfocusin/focusout bubble (unlike focus/blur)
+  'focusin', 'focusout',
+  // Input/selection events
+  'select', 'search', 'beforeinput',
+  // Auxiliary click (middle-click)
+  'auxclick',
+  // IME composition events
+  'compositionstart', 'compositionend', 'compositionupdate',
+  // Legacy: marquee onstart
+  'start',
 ] as const;
 
 const EVENT_HANDLER_RE = new RegExp(
@@ -67,6 +81,9 @@ const HIGH_SEVERITY_PATTERNS: Array<{ regex: RegExp; name: string }> = [
   { regex: /<base[\s/>]/i, name: 'base-tag' },
   // SVG foreignObject allows embedding arbitrary HTML (including scripts) inside SVG
   { regex: /<foreignobject[\s/>]/i, name: 'foreign-object-tag' },
+  // Legacy tags that enable scriptless XSS via auto-firing events
+  { regex: /<marquee[\s>]/i, name: 'marquee-tag' },
+  { regex: /<isindex[\s>]/i, name: 'isindex-tag' },
   { regex: /\) Tj \(/i, name: 'pdf-operator-injection' },
   // CSS-based injection vectors
   { regex: /expression\s*\(/i, name: 'css-expression' },
@@ -86,6 +103,11 @@ const MEDIUM_SEVERITY_PATTERNS: Array<{ regex: RegExp; name: string }> = [
   { regex: /url\s*\(\s*['"]?\s*data:text\/html/i, name: 'data-html-uri' },
   { regex: /url\s*\(\s*['"]?\s*data:image\/svg\+xml/i, name: 'data-svg-uri' },
   { regex: /url\s*\(\s*['"]?\s*data:application\/xhtml\+xml/i, name: 'data-xhtml-uri' },
+  // XML data: URIs can also execute scripts in some browsers
+  { regex: /url\s*\(\s*['"]?\s*data:application\/xml/i, name: 'data-xml-uri' },
+  { regex: /url\s*\(\s*['"]?\s*data:text\/xml/i, name: 'data-text-xml-uri' },
+  // formaction attribute with dangerous protocol (bypasses href-based detection)
+  { regex: /formaction\s*=\s*['"]?\s*(javascript|data):/i, name: 'formaction-injection' },
 ];
 
 const MAX_PREVIEW_LENGTH = 80;
