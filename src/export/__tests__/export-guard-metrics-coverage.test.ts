@@ -7,6 +7,7 @@
  *
  * Coverage:
  * - MultiFormatExporter (SVG/JSON export paths)
+ * - ProductionExporter (video export job creation path)
  * - ExportContentValidator (strict-mode + non-strict)
  * - Safe payload regression (no false-positive metrics)
  */
@@ -18,8 +19,10 @@ import {
 import {
   MultiFormatExporter,
 } from '../multi-format-exporter';
+import { ProductionExporter } from '../production-exporter';
 import { securityMetricsCollector } from '../security-metrics-collector';
 import type { SceneGraph } from '../../types/diagram';
+import type { EnhancedSceneGraph } from '../../visualization/advanced-visual-engine';
 
 // ---------------------------------------------------------------------------
 // Test fixtures
@@ -63,6 +66,32 @@ function createMaliciousScene(): SceneGraph {
     summary: '<script>alert("xss")</script> malicious summary',
     keyphrases: ['<script>alert(1)</script>'],
   };
+}
+
+/** Minimal EnhancedSceneGraph wrapper for ProductionExporter tests */
+function toEnhanced(scene: SceneGraph): EnhancedSceneGraph {
+  return {
+    ...scene,
+    visualStyle: {
+      theme: 'modern',
+      colorScheme: 'blue',
+      animation: 'smooth',
+      nodeStyle: 'rounded',
+      edgeStyle: 'curved',
+      fontSize: 'medium',
+      spacing: 'normal',
+    },
+    animations: [],
+    background: { type: 'solid', primary: '#ffffff', opacity: 1 },
+  };
+}
+
+function createSafeEnhancedScene(): EnhancedSceneGraph {
+  return toEnhanced(createSafeScene());
+}
+
+function createMaliciousEnhancedScene(): EnhancedSceneGraph {
+  return toEnhanced(createMaliciousScene());
 }
 
 // ---------------------------------------------------------------------------
@@ -150,11 +179,63 @@ describe('REQ-248: Export Path Guard Metrics Coverage', () => {
     });
   });
 
+  describe('ProductionExporter emits guard metrics for malicious payloads', () => {
+    it('createExportJob with malicious scenes records content-validator metrics', async () => {
+      const exporter = new ProductionExporter();
+      const snapshotBefore = securityMetricsCollector.getSnapshot();
+
+      try {
+        await exporter.createExportJob(
+          'malicious-job',
+          [createMaliciousEnhancedScene()],
+          { width: 1920, height: 1080, fps: 30, quality: 'standard', format: 'mp4' },
+        );
+      } catch {
+        // Strict mode may throw — that's fine
+      }
+
+      const snapshotAfter = securityMetricsCollector.getSnapshot();
+      expect(snapshotAfter.totalRejections).toBeGreaterThan(
+        snapshotBefore.totalRejections,
+      );
+    });
+
+    it('createExportJob with multiple malicious scenes records metrics for all', async () => {
+      const exporter = new ProductionExporter();
+
+      try {
+        await exporter.createExportJob(
+          'multi-malicious',
+          [createMaliciousEnhancedScene(), createMaliciousEnhancedScene()],
+          { width: 1280, height: 720, fps: 24, quality: 'standard', format: 'webm' },
+        );
+      } catch {
+        // strict mode may throw
+      }
+
+      const snapshot = securityMetricsCollector.getSnapshot();
+      expect(snapshot.totalRejections).toBeGreaterThan(0);
+    });
+  });
+
   describe('Safe payloads do NOT emit guard metrics (no false positives)', () => {
     it('Safe SceneGraph through MultiFormatExporter does not record metrics', async () => {
       const exporter = new MultiFormatExporter();
 
       await exporter.export(createSafeScene(), { format: 'json' });
+
+      const snapshot = securityMetricsCollector.getSnapshot();
+      expect(snapshot.totalRejections).toBe(0);
+    });
+
+    it('Safe scenes through ProductionExporter does not record metrics', async () => {
+      const exporter = new ProductionExporter();
+
+      await exporter.createExportJob(
+        'safe-job',
+        [createSafeEnhancedScene()],
+        { width: 1920, height: 1080, fps: 30, quality: 'standard', format: 'mp4' },
+      );
 
       const snapshot = securityMetricsCollector.getSnapshot();
       expect(snapshot.totalRejections).toBe(0);

@@ -3,14 +3,15 @@
  *
  * Exercises the full export → sanitize → guard-metrics → download pipeline
  * end-to-end with a malicious payload, proving the defense-in-depth chain
- * holds across all export services (SVG, JSON, interactive HTML).
+ * holds across all export services (SVG, JSON, interactive HTML, video).
  *
  * Pipeline stages tested:
  * 1. Malicious SceneGraph creation (multiple XSS vectors embedded)
  * 2. validateSceneGraphForExport → findings detected + metrics recorded
  * 3. MultiFormatExporter.export → format-specific sanitization applied
- * 4. SecurityMetricsCollector → guard rejection counters incremented
- * 5. Output verification → XSS vectors absent from exported content
+ * 4. ProductionExporter.createExportJob → validation gates scene data
+ * 5. SecurityMetricsCollector → guard rejection counters incremented
+ * 6. Output verification → XSS vectors absent from exported content
  */
 
 import {
@@ -19,8 +20,10 @@ import {
 import {
   MultiFormatExporter,
 } from '../multi-format-exporter';
+import { ProductionExporter } from '../production-exporter';
 import { securityMetricsCollector } from '../security-metrics-collector';
 import type { SceneGraph } from '../../types/diagram';
+import type { EnhancedSceneGraph } from '../../visualization/advanced-visual-engine';
 
 // ---------------------------------------------------------------------------
 // Test fixtures
@@ -78,6 +81,24 @@ function createSafeScene(): SceneGraph {
     durationMs: 5000,
     summary: 'Audio to video processing pipeline',
     keyphrases: ['audio', 'video', 'processing'],
+  };
+}
+
+/** Wrap a SceneGraph as EnhancedSceneGraph for ProductionExporter tests */
+function toEnhanced(scene: SceneGraph): EnhancedSceneGraph {
+  return {
+    ...scene,
+    visualStyle: {
+      theme: 'modern',
+      colorScheme: 'blue',
+      animation: 'smooth',
+      nodeStyle: 'rounded',
+      edgeStyle: 'curved',
+      fontSize: 'medium',
+      spacing: 'normal',
+    },
+    animations: [],
+    background: { type: 'solid', primary: '#ffffff', opacity: 1 },
   };
 }
 
@@ -243,6 +264,90 @@ describe('REQ-249: E2E Security Pipeline Integration', () => {
       const snapshot2 = securityMetricsCollector.getSnapshot();
       expect(snapshot2.totalRejections).toBeGreaterThanOrEqual(
         snapshot1.totalRejections,
+      );
+    });
+  });
+
+  describe('ProductionExporter: full pipeline with malicious scene data', () => {
+    it('Malicious scenes trigger guard metrics via ProductionExporter', async () => {
+      const scene = toEnhanced(createMaliciousScene());
+
+      const exporter = new ProductionExporter();
+
+      try {
+        await exporter.createExportJob(
+          'e2e-malicious',
+          [scene],
+          { width: 1920, height: 1080, fps: 30, quality: 'standard', format: 'mp4' },
+        );
+      } catch {
+        // Strict mode may throw — expected
+      }
+
+      // Guard metrics must have been recorded
+      const snapshot = securityMetricsCollector.getSnapshot();
+      expect(snapshot.totalRejections).toBeGreaterThan(0);
+    });
+
+    it('Defense-in-depth: all XSS vectors in enhanced scene detected before rendering', () => {
+      const scene = toEnhanced(createMaliciousScene());
+
+      // Direct validation catches all vectors
+      const validation = validateSceneGraphForExport(scene, { strict: false });
+      expect(validation.findings.length).toBeGreaterThanOrEqual(5);
+
+      // Metrics reflect the findings
+      const snapshot = securityMetricsCollector.getSnapshot();
+      expect(snapshot.totalRejections).toBeGreaterThanOrEqual(5);
+    });
+
+    it('Safe enhanced scene through ProductionExporter produces zero guard metrics', async () => {
+      const scene = toEnhanced(createSafeScene());
+
+      const exporter = new ProductionExporter();
+
+      await exporter.createExportJob(
+        'e2e-safe',
+        [scene],
+        { width: 1920, height: 1080, fps: 30, quality: 'standard', format: 'mp4' },
+      );
+
+      const snapshot = securityMetricsCollector.getSnapshot();
+      expect(snapshot.totalRejections).toBe(0);
+    });
+  });
+
+  describe('Cross-service guard metrics accumulation', () => {
+    it('Metrics from MultiFormatExporter and ProductionExporter accumulate', async () => {
+      const scene = createMaliciousScene();
+      const enhancedScene = toEnhanced(scene);
+
+      // MultiFormatExporter path
+      const mfExporter = new MultiFormatExporter();
+      try {
+        await mfExporter.export(scene, { format: 'svg', width: 800, height: 600 });
+      } catch {
+        // may throw
+      }
+
+      const snapshotAfterMF = securityMetricsCollector.getSnapshot();
+      expect(snapshotAfterMF.totalRejections).toBeGreaterThan(0);
+
+      // ProductionExporter path — additional metrics should accumulate
+      const pExporter = new ProductionExporter();
+      try {
+        await pExporter.createExportJob(
+          'cross-service-test',
+          [enhancedScene],
+          { width: 1920, height: 1080, fps: 30, quality: 'standard', format: 'mp4' },
+        );
+      } catch {
+        // may throw
+      }
+
+      const snapshotAfterBoth = securityMetricsCollector.getSnapshot();
+      expect(snapshotAfterBoth.totalRejections).toBeGreaterThan(
+        snapshotAfterMF.totalRejections,
       );
     });
   });

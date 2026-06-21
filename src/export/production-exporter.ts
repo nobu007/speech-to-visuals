@@ -10,6 +10,10 @@ import { SceneGraph } from '@/types/diagram';
 import { logger } from '../utils/logger';
 import { PipelineConfigError } from '@/pipeline/pipeline-errors';
 import type { ExportArtifactStore } from './export-artifact-store';
+import {
+  validateExportPayload,
+  isStrictValidationEnabled,
+} from './export-content-validator';
 
 export interface ExportJob {
   id: string;
@@ -208,6 +212,21 @@ export class ProductionExporter {
       throw new PipelineConfigError(
         'fps',
         `Invalid fps: ${options.fps}. fps must be a positive number.`,
+      );
+    }
+
+    // Defense-in-depth: scan scene data for injection patterns before processing.
+    // When EXPORT_STRICT_VALIDATION=true, high-severity findings block the export.
+    const validation = validateExportPayload(
+      scenes, `productionExporter:${name}`,
+      { strict: isStrictValidationEnabled() },
+    );
+    if (!validation.passed) {
+      const highFindings = validation.findings.filter((f) => f.severity === 'high');
+      throw new PipelineConfigError(
+        'scenes',
+        `Export blocked: ${highFindings.length} high-severity injection pattern(s) detected` +
+        ` (${highFindings.map((f) => f.pattern).join(', ')})`,
       );
     }
 
