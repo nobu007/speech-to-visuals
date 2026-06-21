@@ -16,11 +16,13 @@
 
 import {
   validateSceneGraphForExport,
+  validateExportPayload,
 } from '../export-content-validator';
 import {
   MultiFormatExporter,
 } from '../multi-format-exporter';
 import { ProductionExporter } from '../production-exporter';
+import { EnhancedExportEngine } from '../enhanced-export-engine';
 import { securityMetricsCollector } from '../security-metrics-collector';
 import type { SceneGraph } from '../../types/diagram';
 import type { EnhancedSceneGraph } from '../../visualization/advanced-visual-engine';
@@ -349,6 +351,163 @@ describe('REQ-249: E2E Security Pipeline Integration', () => {
       expect(snapshotAfterBoth.totalRejections).toBeGreaterThan(
         snapshotAfterMF.totalRejections,
       );
+    });
+  });
+
+  describe('EnhancedExportEngine: full export→sanitize→guard-metrics pipeline', () => {
+    it('Malicious scene data triggers guard metrics via EnhancedExportEngine', async () => {
+      const engine = new EnhancedExportEngine(1, false);
+
+      const result = await engine.exportVideo(
+        {
+          scenes: XSS_VECTORS.map((v) => ({
+            duration: 2,
+            title: v,
+            summary: `Scene with ${v}`,
+          })),
+        },
+        {
+          format: 'mp4',
+          quality: { resolution: '1080p', fps: 30, bitrate: 'auto', hdr: false },
+          settings: {
+            duration: 20,
+            loop: false,
+            includeAudio: false,
+            watermark: false,
+            compression: 'low',
+            optimization: 'speed',
+          },
+        },
+      );
+
+      // Export may fail for rendering reasons, but guard metrics MUST be recorded
+      const snapshot = securityMetricsCollector.getSnapshot();
+      expect(snapshot.totalRejections).toBeGreaterThan(0);
+    });
+
+    it('Defense-in-depth: all XSS vectors in scene data detected before rendering', () => {
+      const sceneData = {
+        scenes: XSS_VECTORS.map((v) => ({
+          duration: 2,
+          title: v,
+          summary: v,
+        })),
+      };
+
+      const validation = validateExportPayload(sceneData, 'e2e-enhanced-engine');
+      expect(validation.findings.length).toBeGreaterThanOrEqual(5);
+
+      const snapshot = securityMetricsCollector.getSnapshot();
+      expect(snapshot.totalRejections).toBeGreaterThanOrEqual(5);
+    });
+
+    it('Safe scene data through EnhancedExportEngine produces zero guard metrics', async () => {
+      const engine = new EnhancedExportEngine(1, false);
+
+      await engine.exportVideo(
+        {
+          scenes: [
+            { duration: 5, title: 'Introduction', summary: 'Safe overview of the topic' },
+            { duration: 3, title: 'Details', summary: 'Further explanation' },
+          ],
+        },
+        {
+          format: 'mp4',
+          quality: { resolution: '1080p', fps: 30, bitrate: 'auto', hdr: false },
+          settings: {
+            duration: 8,
+            loop: false,
+            includeAudio: false,
+            watermark: false,
+            compression: 'low',
+            optimization: 'speed',
+          },
+        },
+      );
+
+      const snapshot = securityMetricsCollector.getSnapshot();
+      expect(snapshot.totalRejections).toBe(0);
+    });
+  });
+
+  describe('Cross-service full pipeline: all three export paths with identical payload', () => {
+    it('MultiFormatExporter + ProductionExporter + EnhancedExportEngine all emit metrics', async () => {
+      // Run each service independently and verify each emits guard metrics
+      const scene = createMaliciousScene();
+      const enhanced = toEnhanced(scene);
+
+      // 1. MultiFormatExporter
+      securityMetricsCollector.reset();
+      const mfExporter = new MultiFormatExporter();
+      try {
+        await mfExporter.export(scene, { format: 'svg', width: 800, height: 600 });
+      } catch { /* may throw in strict mode */ }
+      expect(securityMetricsCollector.getSnapshot().totalRejections).toBeGreaterThan(0);
+
+      // 2. ProductionExporter
+      securityMetricsCollector.reset();
+      const pExporter = new ProductionExporter();
+      try {
+        await pExporter.createExportJob(
+          'e2e-cross-service',
+          [enhanced],
+          { width: 1920, height: 1080, fps: 30, quality: 'standard', format: 'mp4' },
+        );
+      } catch { /* may throw */ }
+      expect(securityMetricsCollector.getSnapshot().totalRejections).toBeGreaterThan(0);
+
+      // 3. EnhancedExportEngine
+      securityMetricsCollector.reset();
+      const engine = new EnhancedExportEngine(1, false);
+      await engine.exportVideo(
+        {
+          scenes: [{ duration: 5, title: '<script>alert(1)</script>', summary: '<img src=x onerror=alert(1)>' }],
+        },
+        {
+          format: 'mp4',
+          quality: { resolution: '1080p', fps: 30, bitrate: 'auto', hdr: false },
+          settings: { duration: 5, loop: false, includeAudio: false, watermark: false, compression: 'low', optimization: 'speed' },
+        },
+      );
+      expect(securityMetricsCollector.getSnapshot().totalRejections).toBeGreaterThan(0);
+    });
+
+    it('Metrics accumulate across all three services in sequence', async () => {
+      const scene = createMaliciousScene();
+      const enhanced = toEnhanced(scene);
+
+      securityMetricsCollector.reset();
+
+      // Run all three services sequentially without reset
+      const mfExporter = new MultiFormatExporter();
+      try { await mfExporter.export(scene, { format: 'json' }); } catch { /* */ }
+
+      const pExporter = new ProductionExporter();
+      try {
+        await pExporter.createExportJob(
+          'accumulate-test',
+          [enhanced],
+          { width: 1280, height: 720, fps: 24, quality: 'standard', format: 'webm' },
+        );
+      } catch { /* */ }
+
+      const engine = new EnhancedExportEngine(1, false);
+      await engine.exportVideo(
+        {
+          scenes: [{ duration: 3, title: '<svg onload=alert(1)>', summary: '<iframe src=//evil.com>' }],
+        },
+        {
+          format: 'mp4',
+          quality: { resolution: '720p', fps: 30, bitrate: 'medium', hdr: false },
+          settings: { duration: 3, loop: false, includeAudio: false, watermark: false, compression: 'low', optimization: 'speed' },
+        },
+      );
+
+      const snapshot = securityMetricsCollector.getSnapshot();
+      // Each service should have contributed guard rejections
+      expect(snapshot.totalRejections).toBeGreaterThanOrEqual(3);
+      // Multiple distinct patterns should be present
+      expect(snapshot.byPattern.length).toBeGreaterThanOrEqual(3);
     });
   });
 

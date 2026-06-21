@@ -20,6 +20,7 @@ import {
   MultiFormatExporter,
 } from '../multi-format-exporter';
 import { ProductionExporter } from '../production-exporter';
+import { EnhancedExportEngine } from '../enhanced-export-engine';
 import { securityMetricsCollector } from '../security-metrics-collector';
 import type { SceneGraph } from '../../types/diagram';
 import type { EnhancedSceneGraph } from '../../visualization/advanced-visual-engine';
@@ -273,6 +274,168 @@ describe('REQ-248: Export Path Guard Metrics Coverage', () => {
       const snapshot = securityMetricsCollector.getSnapshot();
       // Strict mode records through the validator path
       expect(snapshot.totalRejections).toBeGreaterThan(0);
+    });
+  });
+
+  describe('EnhancedExportEngine emits guard metrics for malicious payloads', () => {
+    it('exportVideo with malicious scene data records content-validator metrics', async () => {
+      const engine = new EnhancedExportEngine(1, false);
+      const snapshotBefore = securityMetricsCollector.getSnapshot();
+
+      const result = await engine.exportVideo(
+        {
+          scenes: [
+            { duration: 5, title: '<script>alert(1)</script>', summary: '<img src=x onerror=alert(1)>' },
+            { duration: 3, title: 'javascript:alert(1)', summary: '<svg onload=alert(1)>' },
+          ],
+        },
+        {
+          format: 'mp4',
+          quality: { resolution: '1080p', fps: 30, bitrate: 'auto', hdr: false },
+          settings: { duration: 8, loop: false, includeAudio: false, watermark: false, compression: 'low', optimization: 'speed' },
+        },
+      );
+
+      // Export may fail due to rendering environment, but guard metrics must be recorded
+      const snapshotAfter = securityMetricsCollector.getSnapshot();
+      expect(snapshotAfter.totalRejections).toBeGreaterThan(
+        snapshotBefore.totalRejections,
+      );
+    });
+
+    it('exportVideo with multiple malicious scenes accumulates metrics', async () => {
+      const engine = new EnhancedExportEngine(1, false);
+
+      await engine.exportVideo(
+        {
+          scenes: [
+            { duration: 2, title: '<iframe src=//evil.com></iframe>', node: '<object data=//evil.com>' },
+            { duration: 2, title: '<embed src=//evil.com>', node: '<base href=//evil.com>' },
+            { duration: 2, title: 'expression(alert(1))', node: 'vbscript:msgbox(1)' },
+          ],
+        },
+        {
+          format: 'webm',
+          quality: { resolution: '720p', fps: 24, bitrate: 'medium', hdr: false },
+          settings: { duration: 6, loop: false, includeAudio: false, watermark: false, compression: 'low', optimization: 'speed' },
+        },
+      );
+
+      const snapshot = securityMetricsCollector.getSnapshot();
+      expect(snapshot.totalRejections).toBeGreaterThan(0);
+    });
+
+    it('exportVideo with safe scene data does NOT emit guard metrics', async () => {
+      const engine = new EnhancedExportEngine(1, false);
+
+      const result = await engine.exportVideo(
+        {
+          scenes: [
+            { duration: 5, title: 'Introduction', summary: 'Safe overview' },
+            { duration: 3, title: 'Details', summary: 'Content description' },
+          ],
+        },
+        {
+          format: 'mp4',
+          quality: { resolution: '1080p', fps: 30, bitrate: 'auto', hdr: false },
+          settings: { duration: 8, loop: false, includeAudio: false, watermark: false, compression: 'low', optimization: 'speed' },
+        },
+      );
+
+      // Export may fail for rendering reasons, but no security findings should be recorded
+      const snapshot = securityMetricsCollector.getSnapshot();
+      expect(snapshot.totalRejections).toBe(0);
+    });
+  });
+
+  describe('Cross-service guard metrics regression (REQ-250)', () => {
+    /**
+     * Regression assertion: ALL three export services (MultiFormatExporter,
+     * ProductionExporter, EnhancedExportEngine) must emit guard metrics when
+     * processing the same malicious payload. This prevents silent coverage
+     * gaps where a future code change could bypass the SecurityMetricsCollector
+     * in one service while the others remain instrumented.
+     */
+
+    it('ALL export services emit guard metrics for identical malicious payload', async () => {
+      const maliciousScene = createMaliciousScene();
+      const maliciousEnhanced = createMaliciousEnhancedScene();
+
+      // --- MultiFormatExporter ---
+      securityMetricsCollector.reset();
+      const mfExporter = new MultiFormatExporter();
+      try {
+        await mfExporter.export(maliciousScene, { format: 'svg', width: 800, height: 600 });
+      } catch { /* strict mode may throw */ }
+      const mfSnapshot = securityMetricsCollector.getSnapshot();
+      expect(mfSnapshot.totalRejections).toBeGreaterThan(0);
+
+      // --- ProductionExporter ---
+      securityMetricsCollector.reset();
+      const pExporter = new ProductionExporter();
+      try {
+        await pExporter.createExportJob(
+          'regression-test',
+          [maliciousEnhanced],
+          { width: 1920, height: 1080, fps: 30, quality: 'standard', format: 'mp4' },
+        );
+      } catch { /* strict mode may throw */ }
+      const pSnapshot = securityMetricsCollector.getSnapshot();
+      expect(pSnapshot.totalRejections).toBeGreaterThan(0);
+
+      // --- EnhancedExportEngine ---
+      securityMetricsCollector.reset();
+      const engine = new EnhancedExportEngine(1, false);
+      await engine.exportVideo(
+        {
+          scenes: [
+            { duration: 5, title: '<script>alert(1)</script>', summary: '<img src=x onerror=alert(1)>' },
+          ],
+        },
+        {
+          format: 'mp4',
+          quality: { resolution: '1080p', fps: 30, bitrate: 'auto', hdr: false },
+          settings: { duration: 5, loop: false, includeAudio: false, watermark: false, compression: 'low', optimization: 'speed' },
+        },
+      );
+      const eeSnapshot = securityMetricsCollector.getSnapshot();
+      expect(eeSnapshot.totalRejections).toBeGreaterThan(0);
+    });
+
+    it('NO export service emits guard metrics for identical safe payload', async () => {
+      const safeScene = createSafeScene();
+      const safeEnhanced = createSafeEnhancedScene();
+
+      // --- MultiFormatExporter ---
+      securityMetricsCollector.reset();
+      const mfExporter = new MultiFormatExporter();
+      await mfExporter.export(safeScene, { format: 'json' });
+      expect(securityMetricsCollector.getSnapshot().totalRejections).toBe(0);
+
+      // --- ProductionExporter ---
+      securityMetricsCollector.reset();
+      const pExporter = new ProductionExporter();
+      await pExporter.createExportJob(
+        'safe-regression',
+        [safeEnhanced],
+        { width: 1920, height: 1080, fps: 30, quality: 'standard', format: 'mp4' },
+      );
+      expect(securityMetricsCollector.getSnapshot().totalRejections).toBe(0);
+
+      // --- EnhancedExportEngine ---
+      securityMetricsCollector.reset();
+      const engine = new EnhancedExportEngine(1, false);
+      await engine.exportVideo(
+        {
+          scenes: [{ duration: 5, title: 'Safe Scene', summary: 'Nothing malicious' }],
+        },
+        {
+          format: 'mp4',
+          quality: { resolution: '1080p', fps: 30, bitrate: 'auto', hdr: false },
+          settings: { duration: 5, loop: false, includeAudio: false, watermark: false, compression: 'low', optimization: 'speed' },
+        },
+      );
+      expect(securityMetricsCollector.getSnapshot().totalRejections).toBe(0);
     });
   });
 

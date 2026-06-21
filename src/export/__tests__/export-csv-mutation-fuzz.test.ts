@@ -419,3 +419,56 @@ describe('CSV-format mutation fuzzing regression net', () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Multi-Seed CI Fuzzing Mode for CSV mutation tests
+//
+// When FUZZ_SEEDS env var is set (e.g., in CI), additional fuzzing iterations
+// run with random seeds to expand the CSV fuzzing surface beyond the fixed
+// deterministic seed. This catches edge cases the fixed seed misses.
+//
+// Local dev (FUZZ_SEEDS unset): only fixed-seed iterations run (fast).
+// CI (FUZZ_SEEDS=3): 3 additional random seeds × iterations each.
+// ---------------------------------------------------------------------------
+const CSV_CI_SEED_COUNT = (() => {
+  const raw = process.env.FUZZ_SEEDS;
+  if (raw === undefined) return 0;
+  const n = parseInt(raw, 10);
+  return Number.isNaN(n) ? 0 : Math.max(0, Math.min(10, n));
+})();
+
+if (CSV_CI_SEED_COUNT > 0) {
+  describe('CSV Multi-Seed CI Fuzzing Mode', () => {
+    const ciSeeds: number[] = [];
+    for (let i = 0; i < CSV_CI_SEED_COUNT; i++) {
+      const [sec, nano] = process.hrtime();
+      ciSeeds.push((sec * 1000000 + nano + i * 0x9E3779B9) >>> 0);
+    }
+
+    for (let seedIdx = 0; seedIdx < ciSeeds.length; seedIdx++) {
+      const ciSeed = ciSeeds[seedIdx];
+
+      describe(`CSV CI random seed #${seedIdx} (0x${ciSeed.toString(16)})`, () => {
+        const ciIterations = Math.max(10, Math.floor(FUZZ_ITERATIONS / 2));
+
+        for (let i = 0; i < ciIterations; i++) {
+          const vectorIdx = i % CSV_XSS_VECTORS.length;
+          const vector = CSV_XSS_VECTORS[vectorIdx];
+
+          it(`CSV CI fuzz seed#${seedIdx} iter#${i}: "${vector.pattern}" → detected`, () => {
+            const rng = mulberry32(ciSeed + i);
+            const csv = createSafeCsvString();
+            const { mutated } = mutateCsvRow(csv, vector.payload, rng);
+
+            const result = validateExportPayload({ format: 'csv', data: mutated });
+
+            expect(result.findings.length).toBeGreaterThan(0);
+            expect(
+              result.findings.some((f) => f.pattern === vector.pattern),
+            ).toBe(true);
+          });
+        }
+      });
+    }
+  });
+}
