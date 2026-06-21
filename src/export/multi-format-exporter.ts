@@ -18,6 +18,7 @@ import type { NodeDatum, EdgeDatum } from '@/types/diagram';
 import { logger } from '../utils/logger';
 import { sanitizeFilename } from '../utils/sanitize';
 import { validateSceneGraphForExport, isStrictValidationEnabled } from './export-content-validator';
+import { securityMetricsCollector } from './security-metrics-collector';
 
 export type ExportFormat = 'svg' | 'png' | 'pdf' | 'json';
 
@@ -72,6 +73,17 @@ export class MultiFormatExporter {
         ` (${highFindings.map((f) => f.pattern).join(', ')})`,
         options.format,
         { findings: highFindings.map((f) => ({ field: f.field, pattern: f.pattern })) },
+      );
+    }
+
+    // Defense-in-depth observability: when validation found dangerous content but
+    // did not block (non-strict mode), the format-specific escape functions will
+    // neutralize it. Record this so the 'escape-function' layer metrics reflect
+    // how often escaping is actively protecting against flagged content.
+    if (validation.findings.length > 0) {
+      securityMetricsCollector.recordFindings(
+        'escape-function',
+        validation.findings.map((f) => ({ severity: f.severity, pattern: f.pattern })),
       );
     }
 

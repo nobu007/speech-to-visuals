@@ -45,6 +45,7 @@ import {
   type ExportFormatMetrics,
   type ExportStageDurationAggregate,
 } from '../export/export-metrics-collector';
+import { securityMetricsCollector } from '../export/security-metrics-collector';
 
 // ---------------------------------------------------------------------------
 // Prometheus types
@@ -492,6 +493,17 @@ export function exportPrometheusMetrics(options?: PrometheusExportOptions): stri
   }
 
   const output = metrics.map(renderMetric).join('\n\n');
+
+  // Append security guard rejection metrics when data exists
+  const securitySnap = securityMetricsCollector.getSnapshot();
+  if (securitySnap.totalRejections > 0) {
+    const securityText = securityMetricsCollector.toPrometheusText();
+    const combined = output + '\n\n' + securityText;
+    if (prefix) {
+      return combined.replace(/^(# (?:HELP|TYPE) )(\w)/gm, `$1${prefix}${'$2'}`) + '\n';
+    }
+    return combined + '\n';
+  }
 
   if (prefix) {
     return output.replace(/^(# (?:HELP|TYPE) )(\w)/gm, `$1${prefix}${'$2'}`);

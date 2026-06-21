@@ -1,4 +1,19 @@
 /**
+ * Sanitize a label value for Prometheus exposition format.
+ *
+ * Prometheus label values must not contain unescaped double-quotes, backslashes,
+ * or newlines. Without sanitization, a malicious pattern name could inject
+ * fake metric lines into the output (label injection attack).
+ */
+function sanitizePrometheusLabel(value: string): string {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, '\\n')
+    .slice(0, 200);
+}
+
+/**
  * Security Guard Rejection Metrics Collector
  *
  * Tracks how often each defense-in-depth layer catches dangerous content,
@@ -136,7 +151,7 @@ export class SecurityMetricsCollector {
     );
     for (const { layer, severity, pattern, count } of sorted) {
       lines.push(
-        `security_guard_rejections_total{layer="${layer}",severity="${severity}",pattern="${pattern}"} ${count}`,
+        `security_guard_rejections_total{layer="${sanitizePrometheusLabel(layer)}",severity="${sanitizePrometheusLabel(severity)}",pattern="${sanitizePrometheusLabel(pattern)}"} ${count}`,
       );
     }
 
