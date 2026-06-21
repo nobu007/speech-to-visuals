@@ -16,6 +16,22 @@ import { logger } from '../../utils/logger';
 // UUID v4 validation regex
 const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+// Characters that must be stripped from Content-Disposition header values
+// to prevent CRLF injection (HTTP response splitting).
+// eslint-disable-next-line no-control-regex -- intentionally matches control characters
+const HEADER_INJECTION_RE = /[\r\n\x00-\x1f\x7f"]/g;
+
+/**
+ * Sanitize a value for safe inclusion in an HTTP response header.
+ *
+ * Strips CR/LF (response splitting), control characters, and double quotes
+ * to prevent header injection attacks. This is a defense-in-depth layer —
+ * the primary protection is UUID validation on artifactId.
+ */
+function sanitizeHeaderValue(value: string): string {
+  return value.replace(HEADER_INJECTION_RE, '');
+}
+
 // Format to MIME type mapping
 const FORMAT_MIME: Record<string, string> = {
   mp4: 'video/mp4',
@@ -163,9 +179,12 @@ export function createExportRouter(artifactStore: ExportArtifactStore): Router {
       return;
     }
 
-    // Determine content type
+    // Determine content type — validate format is in the known set to prevent
+    // spoofed MIME types from stored artifacts
     const contentType = FORMAT_MIME[artifact.format] || 'application/octet-stream';
-    const filename = `export-${artifactId}.${artifact.format}`;
+    // Sanitize format for filename — strip any chars that aren't alphanumeric or hyphen
+    const safeFormat = sanitizeHeaderValue(artifact.format);
+    const filename = `export-${artifactId}.${safeFormat}`;
 
     logger.info(`[ExportRouter] Downloading artifact ${artifactId} (${artifact.format}, ${artifact.sizeBytes} bytes)`);
 

@@ -17,6 +17,7 @@ import { ExportError } from '@/pipeline/pipeline-errors';
 import type { NodeDatum, EdgeDatum } from '@/types/diagram';
 import { logger } from '../utils/logger';
 import { sanitizeFilename } from '../utils/sanitize';
+import { validateSceneGraphForExport } from './export-content-validator';
 
 export type ExportFormat = 'svg' | 'png' | 'pdf' | 'json';
 
@@ -58,6 +59,11 @@ export class MultiFormatExporter {
     scene: SceneGraph,
     options: ExportOptions
   ): Promise<ExportResult> {
+
+    // Defense-in-depth: validate scene content before format-specific escaping.
+    // Non-blocking — logs warnings but lets the export proceed since the
+    // per-format escaping functions are the primary protection.
+    validateSceneGraphForExport(scene);
 
     try {
       switch (options.format) {
