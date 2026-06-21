@@ -499,7 +499,7 @@ class AdaptiveQualityGatesSystem {
     }
 
     const recent = this.qualityHistory.slice(-20);
-    const passRates = recent.map(h => h.summary.passed / h.summary.total);
+    const passRates = recent.map(h => h.summary.total > 0 ? h.summary.passed / h.summary.total : 0);
     const timestamps = recent.map(h => h.timestamp);
 
     // Calculate trend
@@ -509,7 +509,7 @@ class AdaptiveQualityGatesSystem {
     const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
     const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
 
-    const improvement = firstAvg !== 0 ? (secondAvg - firstAvg) / firstAvg : 0;
+    const improvement = firstAvg !== 0 && Number.isFinite(firstAvg) ? (secondAvg - firstAvg) / firstAvg : 0;
 
     let trend: 'improving' | 'stable' | 'degrading';
     if (improvement > 0.05) {
