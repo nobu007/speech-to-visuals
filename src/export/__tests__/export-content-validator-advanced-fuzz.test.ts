@@ -79,20 +79,28 @@ describe('Advanced SVG: <animate>/<set> attribute injection', () => {
     },
   ];
 
-  // Payloads using SVG-specific events (onbegin, onend, onrepeat) that are
-  // NOT in the current event-handler pattern list — known coverage gap.
-  const svgAnimateKnownGaps: Array<{ payload: string; desc: string }> = [
+  // Payloads using SVG-specific events (onbegin, onend, onrepeat) —
+  // previously a known coverage gap, now detected after pattern list expansion.
+  const svgAnimateDetected: Array<{ payload: string; desc: string }> = [
     {
       payload: '<svg><animate onbegin=alert(1) attributeName=x dur=1s>',
-      desc: 'animate onbegin event handler (SVG-only event, not in pattern list)',
+      desc: 'animate onbegin event handler (SVG SMIL event)',
     },
     {
       payload: '<svg><set onbegin=alert(1) attributename=onload>',
-      desc: 'set element with onbegin handler (SVG-only event)',
+      desc: 'set element with onbegin handler (SVG SMIL event)',
     },
     {
       payload: '<svg><text><animate onbegin=alert(1) attributeName=x dur=1s></text></svg>',
-      desc: 'animate inside text element (SVG-only event)',
+      desc: 'animate inside text element (SVG SMIL event)',
+    },
+    {
+      payload: '<svg><animate onend=alert(1) attributeName=x dur=1s>',
+      desc: 'animate onend event handler (SVG SMIL event)',
+    },
+    {
+      payload: '<svg><animate onrepeat=alert(1) attributeName=x dur=1s>',
+      desc: 'animate onrepeat event handler (SVG SMIL event)',
     },
   ];
 
@@ -102,14 +110,12 @@ describe('Advanced SVG: <animate>/<set> attribute injection', () => {
     expect(hasHighFinding(result.findings)).toBe(true); // javascript: protocol
   });
 
-  test.each(svgAnimateKnownGaps)('SVG known gap: "$desc" → no crash (coverage gap)', ({ payload }) => {
+  test.each(svgAnimateDetected)('SVG SMIL event: "$desc" → detected as medium', ({ payload }) => {
     const result = validateExportPayload({ data: payload });
-    // These SVG-specific events (onbegin, onend, onrepeat) are NOT in the
-    // current pattern list. The validator correctly does not crash, but
-    // detection coverage does not extend to SVG SMIL events.
-    // Primary protection relies on downstream escaping functions.
+    // SVG SMIL events (onbegin, onend, onrepeat) are now in the pattern list.
     expect(result).toBeDefined();
-    expect(Array.isArray(result.findings)).toBe(true);
+    expect(hasAnyFinding(result.findings)).toBe(true);
+    expect(result.findings.some((f) => f.pattern === 'event-handler')).toBe(true);
   });
 });
 
@@ -178,13 +184,13 @@ describe('Advanced: protocol handler bypass vectors', () => {
     },
     {
       payload: 'javascript\t:alert(1)',
-      expectHigh: false, // tab after javascript — regex requires \S after colon
-      desc: 'javascript with tab before colon (may evade)',
+      expectHigh: true, // tab before colon — now detected with \s*: pattern
+      desc: 'javascript with tab before colon',
     },
     {
       payload: 'javascript :alert(1)',
-      expectHigh: false, // space before colon
-      desc: 'javascript with space before colon (may evade)',
+      expectHigh: true, // space before colon — now detected with \s*: pattern
+      desc: 'javascript with space before colon',
     },
     {
       payload: 'data:text/html,<script>alert(1)</script>',
@@ -198,8 +204,8 @@ describe('Advanced: protocol handler bypass vectors', () => {
     },
     {
       payload: 'vbscript:msgbox("evil")',
-      expectHigh: false, // vbscript: not in pattern list
-      desc: 'vbscript: protocol (not in pattern list)',
+      expectHigh: true, // vbscript: now detected
+      desc: 'vbscript: protocol',
     },
     {
       payload: 'javascript://%0aalert(1)',
