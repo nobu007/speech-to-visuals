@@ -188,14 +188,30 @@ export function validateSceneGraphForExport(
   if (findings.length > 0) {
     const highCount = findings.filter((f) => f.severity === 'high').length;
     const medCount = findings.filter((f) => f.severity === 'medium').length;
-    logger.warn(
+    const msg =
       `[ExportValidator] ${findings.length} content finding(s) ` +
       `(${highCount} high, ${medCount} medium) in scene ${scene.id ?? '<unnamed>'}: ` +
-      findings.map((f) => `${f.field}=${f.pattern}`).join(', ')
-    );
+      findings.map((f) => `${f.field}=${f.pattern}`).join(', ');
+    if (strict && hasHighSeverity) {
+      logger.error(msg);
+    } else {
+      logger.warn(msg);
+    }
   }
 
   return { passed, findings };
+}
+
+/**
+ * Check whether strict export validation is enabled via environment variable.
+ *
+ * When `EXPORT_STRICT_VALIDATION=true`, the export pipeline will reject
+ * payloads containing high-severity injection patterns instead of merely
+ * logging warnings. This provides defense-in-depth beyond per-format
+ * escaping functions.
+ */
+export function isStrictValidationEnabled(): boolean {
+  return process.env.EXPORT_STRICT_VALIDATION === 'true';
 }
 
 /**
@@ -203,30 +219,42 @@ export function validateSceneGraphForExport(
  * for dangerous content patterns. This is a generalized defense-in-depth scan
  * that recursively checks all string values in the payload object.
  *
- * Non-blocking — logs warnings but does not throw. The per-format escaping
- * functions remain the primary protection.
+ * In non-strict mode (default), findings are logged as warnings but do not
+ * block the export — the downstream escaping functions are the primary
+ * protection. In strict mode, any high-severity finding causes validation
+ * to fail.
  *
  * @param payload - Arbitrary object to scan (typically scene data)
  * @param contextLabel - Label for log messages (e.g. job ID)
+ * @param options.strict - If true, fail on any high-severity finding
  * @returns ValidationResult with findings array
  */
 export function validateExportPayload(
   payload: unknown,
   contextLabel?: string,
+  options?: { strict?: boolean }
 ): ValidationResult {
   const findings: ContentFinding[] = [];
   checkObject(payload, '', findings, 0);
 
+  const strict = options?.strict ?? false;
+  const hasHighSeverity = findings.some((f) => f.severity === 'high');
+  const passed = !(strict && hasHighSeverity);
+
   if (findings.length > 0) {
     const highCount = findings.filter((f) => f.severity === 'high').length;
     const medCount = findings.filter((f) => f.severity === 'medium').length;
-    logger.warn(
+    const msg =
       `[ExportValidator] ${findings.length} content finding(s) ` +
       `(${highCount} high, ${medCount} medium) in export payload` +
       (contextLabel ? ` (${contextLabel})` : '') + ': ' +
-      findings.map((f) => `${f.field}=${f.pattern}`).join(', ')
-    );
+      findings.map((f) => `${f.field}=${f.pattern}`).join(', ');
+    if (strict && hasHighSeverity) {
+      logger.error(msg);
+    } else {
+      logger.warn(msg);
+    }
   }
 
-  return { passed: true, findings };
+  return { passed, findings };
 }

@@ -26,7 +26,7 @@ import { exportMetricsCollector, type ExportStatus } from './export-metrics-coll
 import type { ExportArtifactStore } from './export-artifact-store';
 import { EXPORT_RETRY_LIMITS, EXPORT_STAGE_TIMEOUTS } from '@/config/limits';
 import { logger } from '../utils/logger';
-import { validateExportPayload } from './export-content-validator';
+import { validateExportPayload, isStrictValidationEnabled } from './export-content-validator';
 
 export interface ExportConfiguration {
   format: ExportFormat;
@@ -525,8 +525,20 @@ export class EnhancedExportEngine {
     }
 
     // Defense-in-depth: scan scene data for injection patterns before processing.
-    // Non-blocking — logs warnings. Per-format escaping remains primary protection.
-    validateExportPayload(job.sceneData, `job=${job.id}`);
+    // When EXPORT_STRICT_VALIDATION=true, high-severity findings block the export.
+    const validation = validateExportPayload(
+      job.sceneData, `job=${job.id}`,
+      { strict: isStrictValidationEnabled() },
+    );
+    if (!validation.passed) {
+      const highFindings = validation.findings.filter((f) => f.severity === 'high');
+      throw new FormatValidationError(
+        `Export blocked: ${highFindings.length} high-severity injection pattern(s) detected` +
+        ` (${highFindings.map((f) => f.pattern).join(', ')})`,
+        job.config.format,
+        { findings: highFindings.map((f) => ({ field: f.field, pattern: f.pattern })) },
+      );
+    }
 
     // Calculate optimal settings
     job.optimizedSettings = this.optimizeSettings(job.config);

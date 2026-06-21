@@ -2,7 +2,7 @@
  * Tests for the export content validator — defense-in-depth pre-export scanner.
  */
 
-import { validateSceneGraphForExport, validateExportPayload } from '../export-content-validator';
+import { validateSceneGraphForExport, validateExportPayload, isStrictValidationEnabled } from '../export-content-validator';
 import type { SceneGraph } from '../../types/diagram';
 
 function makeCleanScene(): SceneGraph {
@@ -317,7 +317,7 @@ describe('Export Content Validator', () => {
       expect(result.findings.some((f) => f.pattern === 'iframe-tag')).toBe(true);
     });
 
-    test('always returns passed=true (non-blocking)', () => {
+    test('returns passed=true in default (non-strict) mode', () => {
       const payload = { data: '<script>alert(1)</script>' };
       const result = validateExportPayload(payload);
       expect(result.passed).toBe(true);
@@ -357,6 +357,103 @@ describe('Export Content Validator', () => {
       const payload = { data: '<script>x</script>' };
       const result = validateExportPayload(payload, 'job=test-123');
       expect(result.findings.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('strict mode for validateExportPayload', () => {
+    test('blocks payload with high-severity finding in strict mode', () => {
+      const payload = { data: '<script>alert(1)</script>' };
+      const result = validateExportPayload(payload, undefined, { strict: true });
+      expect(result.passed).toBe(false);
+      expect(result.findings.some((f) => f.severity === 'high')).toBe(true);
+    });
+
+    test('allows payload with only medium-severity findings in strict mode', () => {
+      const payload = { data: 'onclick=alert(1)' };
+      const result = validateExportPayload(payload, undefined, { strict: true });
+      expect(result.passed).toBe(true);
+      expect(result.findings.some((f) => f.severity === 'medium')).toBe(true);
+    });
+
+    test('allows clean payload in strict mode', () => {
+      const payload = { data: 'normal content' };
+      const result = validateExportPayload(payload, undefined, { strict: true });
+      expect(result.passed).toBe(true);
+      expect(result.findings).toHaveLength(0);
+    });
+
+    test('blocks on any high-severity pattern type', () => {
+      const payloads = [
+        '<script>x</script>',
+        '<img src=x onerror=alert(1)>',
+        '<iframe src="evil"></iframe>',
+        '<embed src="malicious">',
+        '<object data="evil">',
+        'javascript:alert(1)',
+        '<svg onload=alert(1)>',
+        ') Tj (',
+        'expression(alert(1))',
+        '-moz-binding: url(evil)',
+        "url('javascript:alert(1)')",
+      ];
+      for (const evil of payloads) {
+        const result = validateExportPayload({ d: evil }, undefined, { strict: true });
+        expect(result.passed).toBe(false);
+      }
+    });
+  });
+
+  describe('strict mode for validateSceneGraphForExport', () => {
+    test('blocks scene with script tag in strict mode', () => {
+      const scene = makeCleanScene();
+      scene.nodes[0].label = '<script>alert(1)</script>';
+      const result = validateSceneGraphForExport(scene, { strict: true });
+      expect(result.passed).toBe(false);
+    });
+
+    test('allows scene with only medium findings in strict mode', () => {
+      const scene = makeCleanScene();
+      scene.summary = 'onclick=doSomething()';
+      const result = validateSceneGraphForExport(scene, { strict: true });
+      expect(result.passed).toBe(true);
+    });
+
+    test('allows clean scene in strict mode', () => {
+      const scene = makeCleanScene();
+      const result = validateSceneGraphForExport(scene, { strict: true });
+      expect(result.passed).toBe(true);
+    });
+  });
+
+  describe('isStrictValidationEnabled', () => {
+    const originalValue = process.env.EXPORT_STRICT_VALIDATION;
+
+    afterEach(() => {
+      if (originalValue === undefined) {
+        delete process.env.EXPORT_STRICT_VALIDATION;
+      } else {
+        process.env.EXPORT_STRICT_VALIDATION = originalValue;
+      }
+    });
+
+    test('returns false when env var is not set', () => {
+      delete process.env.EXPORT_STRICT_VALIDATION;
+      expect(isStrictValidationEnabled()).toBe(false);
+    });
+
+    test('returns true when env var is "true"', () => {
+      process.env.EXPORT_STRICT_VALIDATION = 'true';
+      expect(isStrictValidationEnabled()).toBe(true);
+    });
+
+    test('returns false when env var is "false"', () => {
+      process.env.EXPORT_STRICT_VALIDATION = 'false';
+      expect(isStrictValidationEnabled()).toBe(false);
+    });
+
+    test('returns false for arbitrary value', () => {
+      process.env.EXPORT_STRICT_VALIDATION = '1';
+      expect(isStrictValidationEnabled()).toBe(false);
     });
   });
 });
