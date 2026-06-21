@@ -604,10 +604,10 @@ function createRenderFinalCriteria(): QualityCriterion[] {
         const data = input as Record<string, unknown>;
         const fps = (data.fps as number) ?? 0;
         return {
-          passed: fps === 30,
+          passed: fps >= 30,
           score: fps,
           threshold: 30,
-          details: `FPS ${fps} (threshold = 30)`,
+          details: `FPS ${fps} (threshold >= 30)`,
         };
       },
     },
