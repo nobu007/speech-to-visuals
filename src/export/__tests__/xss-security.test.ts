@@ -378,6 +378,91 @@ describe('XSS Security: PDF Export (MultiFormatExporter)', () => {
       expect(pdf.startsWith('%PDF')).toBe(true);
     }
   });
+
+  test('PDF export escapes newline characters in labels (CRLF injection defense)', async () => {
+    const payloads = [
+      'line1\nline2',
+      'line1\rline2',
+      'line1\r\nline2',
+      'line1\n\rline2',
+    ];
+
+    for (const payload of payloads) {
+      const scene = makeSceneWithXssLabels(payload);
+      const result = await exporter.export(scene, { format: 'pdf' });
+
+      expect(result.success).toBe(true);
+      const pdf = await (result.data as Blob).text();
+      // Raw \n or \r must NOT appear inside the Tj string parentheses
+      // They should be escaped as \n and \r (backslash-n, backslash-r)
+      const tjMatches = pdf.match(/\(([^)]*)\)\s*Tj/g);
+      if (tjMatches) {
+        for (const tj of tjMatches) {
+          // The text inside Tj should not contain raw control characters
+          // that could be interpreted as content stream operators
+          expect(tj).not.toMatch(/[^\x20-\x7e\\()]/);
+        }
+      }
+    }
+  });
+
+  test('PDF export strips null bytes from labels', async () => {
+    const scene = makeSceneWithXssLabels('before\x00after');
+    const result = await exporter.export(scene, { format: 'pdf' });
+
+    expect(result.success).toBe(true);
+    const pdf = await (result.data as Blob).text();
+    // Null byte should be stripped, not present in output
+    expect(pdf).not.toContain('\x00');
+  });
+
+  test('PDF export escapes tab and form-feed characters in labels', async () => {
+    const scene = makeSceneWithXssLabels('col1\tcol2\fend');
+    const result = await exporter.export(scene, { format: 'pdf' });
+
+    expect(result.success).toBe(true);
+    const pdf = await (result.data as Blob).text();
+    // Tab and form-feed should be escaped
+    expect(pdf).toContain('\\t');
+    expect(pdf).toContain('\\f');
+  });
+
+  test('PDF export escapes other control characters (0x01-0x1f except allowed)', async () => {
+    const controlChars = '\x01\x02\x03\x04\x05\x06\x07\x0b\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f';
+    const scene = makeSceneWithXssLabels(`prefix${controlChars}suffix`);
+    const result = await exporter.export(scene, { format: 'pdf' });
+
+    expect(result.success).toBe(true);
+    const pdf = await (result.data as Blob).text();
+    // Raw control characters should not appear inside Tj strings
+    const tjMatches = pdf.match(/\(([^)]*)\)\s*Tj/g);
+    if (tjMatches) {
+      for (const tj of tjMatches) {
+        expect(tj).not.toMatch(/[\x01-\x08\x0b\x0e-\x1f\x7f]/);
+      }
+    }
+  });
+
+  test('PDF export escapes DEL character (0x7f) in labels', async () => {
+    const scene = makeSceneWithXssLabels('text\x7fdel');
+    const result = await exporter.export(scene, { format: 'pdf' });
+
+    expect(result.success).toBe(true);
+    const pdf = await (result.data as Blob).text();
+    // DEL should be escaped as octal
+    expect(pdf).toContain('\\177');
+  });
+
+  test('PDF export escapes backslash before parenthesis to prevent injection', async () => {
+    // \\( should become \\\\(
+    const scene = makeSceneWithXssLabels('text\\(inject');
+    const result = await exporter.export(scene, { format: 'pdf' });
+
+    expect(result.success).toBe(true);
+    const pdf = await (result.data as Blob).text();
+    // The backslash should be doubled, and the paren escaped
+    expect(pdf).toContain('text\\\\\\(inject');
+  });
 });
 
 // ===========================================================================

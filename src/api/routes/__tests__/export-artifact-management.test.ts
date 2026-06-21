@@ -92,12 +92,46 @@ describe('Export Artifact Management API (REQ-238~240)', () => {
       expect(res.body.data.limit).toBe(200);
     });
 
-    it('uses defaults when limit/offset are invalid', async () => {
-      const res = await request(app).get('/api/v1/export/artifacts?limit=abc&offset=-1');
+    it('uses defaults when limit/offset are not numbers', async () => {
+      const res = await request(app).get('/api/v1/export/artifacts?limit=abc&offset=xyz');
 
       expect(res.status).toBe(200);
       expect(res.body.data.limit).toBe(50);
       expect(res.body.data.offset).toBe(0);
+    });
+
+    it('rejects negative limit with 400 VALIDATION_ERROR', async () => {
+      const res = await request(app).get('/api/v1/export/artifacts?limit=-5');
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+      expect(res.body.error.message).toMatch(/limit/i);
+    });
+
+    it('rejects negative offset with 400 VALIDATION_ERROR', async () => {
+      const res = await request(app).get('/api/v1/export/artifacts?offset=-1');
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+      expect(res.body.error.message).toMatch(/offset/i);
+    });
+
+    it('rejects astronomically large limit with 400 VALIDATION_ERROR', async () => {
+      const res = await request(app).get('/api/v1/export/artifacts?limit=999999999');
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('rejects astronomically large offset with 400 VALIDATION_ERROR', async () => {
+      const res = await request(app).get('/api/v1/export/artifacts?offset=999999999');
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
     });
   });
 

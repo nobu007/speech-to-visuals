@@ -57,8 +57,31 @@ export function createExportRouter(artifactStore: ExportArtifactStore): Router {
       return;
     }
 
+    // Reject negative or astronomically large limit/offset values
+    const MAX_SAFE_PARAM = 1_000_000;
+    if (!Number.isNaN(rawLimit) && (rawLimit < 0 || rawLimit > MAX_SAFE_PARAM)) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: `limit must be between 0 and ${MAX_SAFE_PARAM}`,
+        },
+      });
+      return;
+    }
+    if (!Number.isNaN(rawOffset) && (rawOffset < 0 || rawOffset > MAX_SAFE_PARAM)) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: `offset must be between 0 and ${MAX_SAFE_PARAM}`,
+        },
+      });
+      return;
+    }
+
     const limit = Number.isNaN(rawLimit) ? DEFAULT_LIST_LIMIT : Math.min(rawLimit, MAX_LIST_LIMIT);
-    const offset = Number.isNaN(rawOffset) ? 0 : Math.max(rawOffset, 0);
+    const offset = Number.isNaN(rawOffset) ? 0 : rawOffset;
 
     const result = artifactStore.list({ format, limit, offset });
 

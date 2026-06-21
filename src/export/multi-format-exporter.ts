@@ -525,13 +525,26 @@ export class MultiFormatExporter {
   }
 
   /**
-   * Escape special characters for PDF string literal
+   * Escape special characters for PDF string literal (defense-in-depth).
+   *
+   * PDF spec §7.3.4.2: Within a literal string, backslash starts an escape
+   * sequence. Unbalanced parentheses or raw control characters could be
+   * misinterpreted by lenient parsers, so we escape them explicitly.
    */
   private escapePDFString(str: string): string {
     return str
       .replace(/\\/g, '\\\\')
       .replace(/\(/g, '\\(')
-      .replace(/\)/g, '\\)');
+      .replace(/\)/g, '\\)')
+      .replace(/\r/g, '\\r')
+      .replace(/\n/g, '\\n')
+      .replace(/\t/g, '\\t')
+      .replace(/\f/g, '\\f')
+      .replace(/\0/g, '')
+      .replace(/[\x01-\x08\x0b\x0e-\x1f\x7f]/g, (ch) => {
+        const oct = ch.charCodeAt(0).toString(8).padStart(3, '0');
+        return `\\${oct}`;
+      });
   }
 
   /**
