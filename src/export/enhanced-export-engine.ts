@@ -26,6 +26,7 @@ import { exportMetricsCollector, type ExportStatus } from './export-metrics-coll
 import type { ExportArtifactStore } from './export-artifact-store';
 import { EXPORT_RETRY_LIMITS, EXPORT_STAGE_TIMEOUTS } from '@/config/limits';
 import { logger } from '../utils/logger';
+import { validateExportPayload } from './export-content-validator';
 
 export interface ExportConfiguration {
   format: ExportFormat;
@@ -522,6 +523,10 @@ export class EnhancedExportEngine {
     if (!job.sceneData || !job.sceneData.scenes) {
       throw new FormatValidationError('Invalid scene data provided', 'unknown');
     }
+
+    // Defense-in-depth: scan scene data for injection patterns before processing.
+    // Non-blocking — logs warnings. Per-format escaping remains primary protection.
+    validateExportPayload(job.sceneData, `job=${job.id}`);
 
     // Calculate optimal settings
     job.optimizedSettings = this.optimizeSettings(job.config);

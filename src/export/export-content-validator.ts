@@ -3,7 +3,8 @@
  *
  * Inspects SceneGraph string fields for dangerous patterns BEFORE format-specific
  * escaping runs. The primary protection is the per-format escaping functions
- * (escapeXML, escapePDFString, </script> regex). This validator provides:
+ * (escapeXML, escapePDFString, </script> regex). This validator provides
+ * defense-in-depth across HTML, JS, PDF, CSS, and data-URI injection vectors:
  *
  * 1. Audit trail — logs warnings when dangerous content is detected
  * 2. Fail-safe — if escaping is ever bypassed, content is still caught
@@ -37,6 +38,10 @@ const HIGH_SEVERITY_PATTERNS: Array<{ regex: RegExp; name: string }> = [
   { regex: /<embed[\s>]/i, name: 'embed-tag' },
   { regex: /<object[\s>]/i, name: 'object-tag' },
   { regex: /\) Tj \(/i, name: 'pdf-operator-injection' },
+  // CSS-based injection vectors
+  { regex: /expression\s*\(/i, name: 'css-expression' },
+  { regex: /-moz-binding\s*:/i, name: 'css-moz-binding' },
+  { regex: /url\s*\(\s*['"]?\s*javascript:/i, name: 'css-url-javascript' },
 ];
 
 const MEDIUM_SEVERITY_PATTERNS: Array<{ regex: RegExp; name: string }> = [
@@ -44,6 +49,10 @@ const MEDIUM_SEVERITY_PATTERNS: Array<{ regex: RegExp; name: string }> = [
   { regex: /<a[^>]+\bhref\s*=\s*["']?\s*(javascript|data):/i, name: 'dangerous-href' },
   { regex: /<meta[\s>]/i, name: 'meta-tag' },
   { regex: /\0/, name: 'null-byte' },
+  // CSS injection vectors (lower severity than active script execution)
+  { regex: /@import\s+['"]?\s*url\s*\(/i, name: 'css-import' },
+  { regex: /behavior\s*:\s*url\s*\(/i, name: 'css-behavior' },
+  { regex: /url\s*\(\s*['"]?\s*data:text\/html/i, name: 'data-html-uri' },
 ];
 
 const MAX_PREVIEW_LENGTH = 80;
@@ -187,4 +196,37 @@ export function validateSceneGraphForExport(
   }
 
   return { passed, findings };
+}
+
+/**
+ * Validate an arbitrary export payload (e.g. SceneData in EnhancedExportEngine)
+ * for dangerous content patterns. This is a generalized defense-in-depth scan
+ * that recursively checks all string values in the payload object.
+ *
+ * Non-blocking — logs warnings but does not throw. The per-format escaping
+ * functions remain the primary protection.
+ *
+ * @param payload - Arbitrary object to scan (typically scene data)
+ * @param contextLabel - Label for log messages (e.g. job ID)
+ * @returns ValidationResult with findings array
+ */
+export function validateExportPayload(
+  payload: unknown,
+  contextLabel?: string,
+): ValidationResult {
+  const findings: ContentFinding[] = [];
+  checkObject(payload, '', findings, 0);
+
+  if (findings.length > 0) {
+    const highCount = findings.filter((f) => f.severity === 'high').length;
+    const medCount = findings.filter((f) => f.severity === 'medium').length;
+    logger.warn(
+      `[ExportValidator] ${findings.length} content finding(s) ` +
+      `(${highCount} high, ${medCount} medium) in export payload` +
+      (contextLabel ? ` (${contextLabel})` : '') + ': ' +
+      findings.map((f) => `${f.field}=${f.pattern}`).join(', ')
+    );
+  }
+
+  return { passed: true, findings };
 }
