@@ -30,13 +30,15 @@ export interface ValidationResult {
 // These are checked against raw (pre-escaping) content — if found, they
 // indicate that user-controlled data contains exploit payloads.
 const HIGH_SEVERITY_PATTERNS: Array<{ regex: RegExp; name: string }> = [
-  { regex: /<script[\s>]/i, name: 'script-tag' },
+  // [\s/>] catches <script/...> slash-separated bypass vectors (e.g. <script/src=//evil.com>)
+  { regex: /<script[\s/>]/i, name: 'script-tag' },
   { regex: /<img[^>]+\bonerror\s*=/i, name: 'img-onerror' },
   { regex: /<svg[^>]+\bonload\s*=/i, name: 'svg-onload' },
-  { regex: /<iframe[\s>]/i, name: 'iframe-tag' },
+  { regex: /<iframe[\s/>]/i, name: 'iframe-tag' },
   { regex: /javascript:\s*\S/i, name: 'javascript-protocol' },
-  { regex: /<embed[\s>]/i, name: 'embed-tag' },
-  { regex: /<object[\s>]/i, name: 'object-tag' },
+  { regex: /<embed[\s/>]/i, name: 'embed-tag' },
+  { regex: /<object[\s/>]/i, name: 'object-tag' },
+  { regex: /<base[\s/>]/i, name: 'base-tag' },
   { regex: /\) Tj \(/i, name: 'pdf-operator-injection' },
   // CSS-based injection vectors
   { regex: /expression\s*\(/i, name: 'css-expression' },
@@ -45,9 +47,10 @@ const HIGH_SEVERITY_PATTERNS: Array<{ regex: RegExp; name: string }> = [
 ];
 
 const MEDIUM_SEVERITY_PATTERNS: Array<{ regex: RegExp; name: string }> = [
-  { regex: /on(click|load|error|mouseover|focus|blur)\s*=/i, name: 'event-handler' },
+  // Expanded event-handler list: HTML5 events commonly used in XSS
+  { regex: /on(click|load|error|mouseover|mouseout|mouseenter|mouseleave|focus|blur|input|change|submit|reset|toggle|drag|dragstart|dragend|dragenter|dragleave|dragover|drop|wheel|scroll|resize|pointerdown|pointerup|pointermove|pointerover|pointerout|pointerenter|pointerleave|animationstart|animationend|animationiteration|transitionend|contextmenu|copy|paste|cut|canplay|play|playing|seeked|seeking|stalled|suspend|waiting|loadeddata|loadedmetadata|loadstart|durationchange|ended|abort|ratechange|timeupdate|volumechange|progress|hashchange|offline|online|pagehide|pageshow|popstate|storage|unload|beforeunload|message|afterprint|beforeprint|securitypolicyviolation)\s*=/i, name: 'event-handler' },
   { regex: /<a[^>]+\bhref\s*=\s*["']?\s*(javascript|data):/i, name: 'dangerous-href' },
-  { regex: /<meta[\s>]/i, name: 'meta-tag' },
+  { regex: /<meta[\s/>]/i, name: 'meta-tag' },
   { regex: /\0/, name: 'null-byte' },
   // CSS injection vectors (lower severity than active script execution)
   { regex: /@import\s+['"]?\s*url\s*\(/i, name: 'css-import' },
