@@ -45,6 +45,18 @@ export function createExportRouter(artifactStore: ExportArtifactStore): Router {
     const rawLimit = parseInt(req.query.limit as string, 10);
     const rawOffset = parseInt(req.query.offset as string, 10);
 
+    // Validate format parameter if provided
+    if (format !== undefined && !(format in FORMAT_MIME)) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: `Invalid format. Allowed: ${Object.keys(FORMAT_MIME).join(', ')}`,
+        },
+      });
+      return;
+    }
+
     const limit = Number.isNaN(rawLimit) ? DEFAULT_LIST_LIMIT : Math.min(rawLimit, MAX_LIST_LIMIT);
     const offset = Number.isNaN(rawOffset) ? 0 : Math.max(rawOffset, 0);
 
