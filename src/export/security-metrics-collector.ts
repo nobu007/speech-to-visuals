@@ -44,7 +44,8 @@ export class SecurityMetricsCollector {
     'escape-function': 0,
   };
   private bySeverity: Record<Severity, number> = { high: 0, medium: 0 };
-  private byPatternMap = new Map<string, number>();
+  /** Compound key: `${layer}\0${severity}\0${pattern}` → count */
+  private byCompoundKey = new Map<string, { layer: SecurityLayer; severity: Severity; pattern: string; count: number }>();
   private matrix: Record<SecurityLayer, Record<Severity, number>> = {
     'content-validator': { high: 0, medium: 0 },
     'strict-mode-block': { high: 0, medium: 0 },
@@ -68,8 +69,13 @@ export class SecurityMetricsCollector {
     this.bySeverity[severity]++;
     this.matrix[layer][severity]++;
 
-    const current = this.byPatternMap.get(patternName) ?? 0;
-    this.byPatternMap.set(patternName, current + 1);
+    const key = `${layer}\0${severity}\0${patternName}`;
+    const entry = this.byCompoundKey.get(key);
+    if (entry) {
+      entry.count++;
+    } else {
+      this.byCompoundKey.set(key, { layer, severity, pattern: patternName, count: 1 });
+    }
   }
 
   /**
@@ -86,7 +92,12 @@ export class SecurityMetricsCollector {
 
   /** Get a snapshot of all collected security metrics. */
   getSnapshot(): SecurityRejectionSnapshot {
-    const byPattern = Array.from(this.byPatternMap.entries())
+    // Aggregate by pattern name across all layers/severities for the snapshot
+    const patternTotals = new Map<string, number>();
+    for (const { pattern, count } of this.byCompoundKey.values()) {
+      patternTotals.set(pattern, (patternTotals.get(pattern) ?? 0) + count);
+    }
+    const byPattern = Array.from(patternTotals.entries())
       .map(([pattern, count]) => ({ pattern, count }))
       .sort((a, b) => b.count - a.count);
 
@@ -119,21 +130,14 @@ export class SecurityMetricsCollector {
       '# TYPE security_guard_rejections_total counter',
     ];
 
-    for (const [pattern, count] of this.byPatternMap) {
-      // Find which layer/severity this pattern was recorded under
-      for (const layer of Object.keys(this.matrix) as SecurityLayer[]) {
-        for (const sev of Object.keys(this.matrix[layer]) as Severity[]) {
-          // We can't separate by pattern in the matrix, so we output aggregate per pattern
-          // with the layer/severity from which we know it was recorded
-          if (count > 0) {
-            lines.push(
-              `security_guard_rejections_total{layer="${layer}",severity="${sev}",pattern="${pattern}"} ${count}`,
-            );
-            break; // only output once per pattern
-          }
-        }
-        if (count > 0) break;
-      }
+    // Output each (layer, severity, pattern) combination with its correct count
+    const sorted = Array.from(this.byCompoundKey.values()).sort((a, b) =>
+      b.count - a.count,
+    );
+    for (const { layer, severity, pattern, count } of sorted) {
+      lines.push(
+        `security_guard_rejections_total{layer="${layer}",severity="${severity}",pattern="${pattern}"} ${count}`,
+      );
     }
 
     // Also output per-layer totals
@@ -163,7 +167,7 @@ export class SecurityMetricsCollector {
     this.totalRejections = 0;
     this.byLayer = { 'content-validator': 0, 'strict-mode-block': 0, 'escape-function': 0 };
     this.bySeverity = { high: 0, medium: 0 };
-    this.byPatternMap.clear();
+    this.byCompoundKey.clear();
     this.matrix = {
       'content-validator': { high: 0, medium: 0 },
       'strict-mode-block': { high: 0, medium: 0 },

@@ -130,6 +130,42 @@ describe('SecurityMetricsCollector', () => {
       expect(text).toContain('# HELP security_guard_rejections_by_layer');
       expect(text).toContain('security_guard_rejections_by_layer{layer="content-validator"} 0');
     });
+
+    it('should output correct layer and severity per pattern in Prometheus text', () => {
+      // Record the same pattern under different layers/severities
+      collector.recordRejection('content-validator', 'high', 'script-tag');
+      collector.recordRejection('strict-mode-block', 'high', 'script-tag');
+      collector.recordRejection('content-validator', 'medium', 'event-handler');
+
+      const text = collector.toPrometheusText();
+
+      // script-tag should appear under BOTH layers, not just the first one
+      expect(text).toContain(
+        'security_guard_rejections_total{layer="content-validator",severity="high",pattern="script-tag"} 1',
+      );
+      expect(text).toContain(
+        'security_guard_rejections_total{layer="strict-mode-block",severity="high",pattern="script-tag"} 1',
+      );
+      expect(text).toContain(
+        'security_guard_rejections_total{layer="content-validator",severity="medium",pattern="event-handler"} 1',
+      );
+
+      // Should NOT have any entry with wrong layer attribution
+      expect(text).not.toContain(
+        'security_guard_rejections_total{layer="strict-mode-block",severity="medium",pattern="event-handler"}',
+      );
+    });
+
+    it('should aggregate counts for same layer+severity+pattern combo', () => {
+      collector.recordRejection('content-validator', 'high', 'script-tag');
+      collector.recordRejection('content-validator', 'high', 'script-tag');
+      collector.recordRejection('content-validator', 'high', 'script-tag');
+
+      const text = collector.toPrometheusText();
+      expect(text).toContain(
+        'security_guard_rejections_total{layer="content-validator",severity="high",pattern="script-tag"} 3',
+      );
+    });
   });
 
   describe('reset', () => {
