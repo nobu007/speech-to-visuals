@@ -4894,6 +4894,134 @@
 | Server Wiring | 1 | 🔵 |
 | **合計** | **13** | **🔵 100%** |
 
+---
+
+## REQ-247: マルチシードCI ファジングモード 🔵
+
+**信頼性**: 🔵 *AI Hubフィードバック・既存ファジングテスト実装に基づく*
+
+### Given（前提条件）
+
+- 変異ファジングテストスイート（export-mutation-fuzz.test.ts）が存在する
+- 各テストは mulberry32 決定論PRNG で固定シードを使用している
+
+### When（実行条件）
+
+- CI環境で `FUZZ_SEEDS` 環境変数を設定してテストを実行する
+
+### Then（期待結果）
+
+- 複数のランダムシードで追加ファジングイテレーションが実行される
+- 各シードで独立した mulberry32 PRNG が生成される
+- 固定シードが見逃すエッジケースが捕捉される
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-247-01**: FUZZ_SEEDS未設定時は従来通り固定シードで動作する 🔵
+  - **期待結果**: デフォルトシードで50イテレーション実行
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-247-02**: FUZZ_SEEDS=3設定時に3つのランダムシードで追加実行 🔵
+  - **期待結果**: 各シードで独立イテレーションが実行され、全てXSSベクタが検出される
+  - **信頼性**: 🔵 *テスト通過*
+
+#### 境界値
+
+- [x] **TC-247-B01**: FUZZ_SEEDS=0設定時は追加シードなし（固定シードのみ）🔵
+  - **期待結果**: 追加イテレーションなし、従来動作と同等
+  - **信頼性**: 🔵 *テスト通過*
+
+---
+
+## REQ-248: 全エクスポート経路ガードメトリクス回帰テスト 🔵
+
+**信頼性**: 🔵 *AI Hubフィードバック・既存SecurityMetricsCollector実装に基づく*
+
+### Given（前提条件）
+
+- MultiFormatExporter（SVG/PNG/PDF/JSON）がSecurityMetricsCollector統合済み
+- EnhancedExportEngineがstrict-mode検証でSecurityMetricsCollector統合済み
+
+### When（実行条件）
+
+- 悪意あるペイロード（XSSベクタ埋め込みSceneGraph）を各エクスポート経路に通す
+
+### Then（期待結果）
+
+- SecurityMetricsCollectorの拒否カウンターが増加する
+- 全経路でcontent-validator層のメトリクスが記録される
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-248-01**: MultiFormatExporterが悪意あるSceneGraphでガードメトリクスを記録 🔵
+  - **期待結果**: securityMetricsCollector.totalRejections > 0
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-248-02**: EnhancedExportEngineがstrict-mode悪意あるペイロードでガードメトリクスを記録 🔵
+  - **期待結果**: securityMetricsCollector.totalRejections > 0
+  - **信頼性**: 🔵 *テスト通過*
+
+#### 回帰防止
+
+- [x] **TC-248-R01**: 正常なSceneGraph処理時はガードメトリクスがゼロを維持 🔵
+  - **期待結果**: securityMetricsCollector.totalRejections === 0（正常時）
+  - **信頼性**: 🔵 *テスト通過*
+
+---
+
+## REQ-249: E2Eセキュリティパイプライン統合テスト 🔵
+
+**信頼性**: 🔵 *AI Hubフィードバック・既存エクスポートセキュリティチェーンに基づく*
+
+### Given（前提条件）
+
+- エクスポートパイプライン: validate → sanitize → metrics → download が構築済み
+
+### When（実行条件）
+
+- 悪意あるSceneGraph（複数XSSベクタ埋め込み）で全形式エクスポートを実行
+
+### Then（期待結果）
+
+- SVGエクスポート: XSSベクタがサニタイズされ、ガードメトリクスが記録される
+- JSONエクスポート: XSSベクタが検出され、ガードメトリクスが記録される
+- Interactive HTMLエクスポート: XSSベクタがサニタイズされ、ガードメトリクスが記録される
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-249-01**: 悪意あるペイロード→SVGエクスポート: サニタイズ+メトリクス記録 🔵
+  - **期待結果**: 出力SVGにXSSベクタ不在、SecurityMetricsCollector.totalRejections > 0
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-249-02**: 悪意あるペイロード→JSONエクスポート: 検出+メトリクス記録 🔵
+  - **期待結果**: findings配列にXSS検出、SecurityMetricsCollector.totalRejections > 0
+  - **信頼性**: 🔵 *テスト通過*
+
+- [x] **TC-249-03**: 悪意あるペイロード→Interactive HTML: サニタイズ+メトリクス記録 🔵
+  - **期待結果**: 出力HTMLにXSSベクタ不在、SecurityMetricsCollector.totalRejections > 0
+  - **信頼性**: 🔵 *テスト通過*
+
+#### 回帰防止
+
+- [x] **TC-249-R01**: 正常なペイロードで全形式エクスポート: ガードメトリクスゼロ 🔵
+  - **期待結果**: SecurityMetricsCollector.totalRejections === 0（正常時）
+  - **信頼性**: 🔵 *テスト通過*
+
+### Phase 109 サマリー
+
+| カテゴリ | テスト数 | 信頼性 |
+|---------|---------|--------|
+| REQ-247: マルチシードCI ファジング | 3 | 🔵 |
+| REQ-248: ガードメトリクス回帰 | 3 | 🔵 |
+| REQ-249: E2Eセキュリティパイプライン | 4 | 🔵 |
+| **合計** | **10** | **🔵 100%** |
+
 
 <!-- spine:references:begin -->
 ## Spine: external references

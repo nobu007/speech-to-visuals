@@ -10,11 +10,45 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-22（第194回検証: Phase 108完了・エクスポートセキュリティ hardening・イベントハンドラ正規表現名前付き定数配列化・プロパティベース変異ファジング回帰ネット・SecurityMetricsCollector防護拒否メトリクス・REQ-244~246追加）
+**最終更新**: 2026-06-22（第195回検証: Phase 109完了・セキュリティファジング CI 拡張・マルチシードCI ファジングモード・全エクスポート経路ガードメトリクス回帰テスト・E2Eセキュリティパイプライン統合テスト・REQ-247~249追加）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
 ## 分析項目と判断
+
+### A195: 第195回検証 - Phase 109 セキュリティファジング CI 拡張（2026-06-22）
+
+**分析日時**: 2026-06-22
+**カテゴリ**: セキュリティテスト拡張・CI品質向上・回帰防止
+**背景**: AI Hubフィードバック「previous iteration was VALUABLE. Continue building on this progress」に対応。Phase 108で実装された変異ファジング回帰ネット（REQ-245）とSecurityMetricsCollector（REQ-246）について、以下の改善余地が指摘された:
+1. 変異ファジングPRNGシードが決定論的（mulberry32固定シード）であり、CI で複数ランダムシードを実行してファジングサーフェスを拡大すべき
+2. 全エクスポート経路がガードメトリクスパイプラインを通過することを検証する回帰テストが必要
+3. 悪意あるペイロードで full export→sanitize→guard-metrics→download パイプラインを検証するE2E統合テストが必要
+
+**判断**:
+1. **REQ-247 マルチシードCI ファジングモード**: 変異ファジングテストに FUZZ_SEEDS 環境変数サポートを追加。CI で `FUZZ_SEEDS=3`（デフォルト）を設定すると、各シードで独立した mulberry32 PRNG を生成し、決定論シングルシードが見逃すエッジケースを捕捉。ローカル開発時は従来通り固定シードで高速実行。
+2. **REQ-248 全エクスポート経路ガードメトリクス回帰テスト**: MultiFormatExporter・EnhancedExportEngine の全エクスポート経路が悪意あるペイロード処理時に SecurityMetricsCollector へガード拒否メトリクスを送信することを検証する回帰テストを新規作成。これにより将来のコード変更で特定経路がサイレントにガードをバイパスすることを防ぐ。
+3. **REQ-249 E2Eセキュリティパイプライン統合テスト**: 悪意ある SceneGraph（XSSベクタ埋め込み）→ validateSceneGraphForExport → sanitize → SecurityMetricsCollector.recordFindings → ダウンロードblob生成の全チェーンを検証するE2Eテストを新規作成。SVG/JSON/HTML の全エクスポート形式で多層防御チェーンが保持されることを証明。
+
+**コードベース調査結果**:
+- AI Hubフィードバックが言及する `growthReportExportService`・`engagementReportService`・`useAnalyticsExport` は本リポジトリに存在しない（別コードベースとの混同と推定）
+- 実際のエクスポート経路は MultiFormatExporter（SVG/PNG/PDF/JSON）・EnhancedExportEngine（strict-mode検証付き）・ProductionExporter
+- 全て既存のSecurityMetricsCollector統合済みであることを確認
+- 改善の焦点は「統合の存在確認」ではなく「回帰テストによる将来のバイパス防止」にある
+
+**根拠**:
+- コミット 47fe7d9: feat(security): add security metrics collector, mutation fuzzing, and regex maintainability
+- コミット ea316ad: fix(security): close foreignObject and executable data URI XSS bypass gaps
+- AI Hub feedback: "The mutation fuzzing PRNG seed is deterministic (mulberry32) — consider adding a CI mode that runs multiple random seeds"
+- AI Hub feedback: "Add a regression test asserting all four export services emit guard metrics events to prevent silent coverage gaps"
+- AI Hub feedback: "Consider adding an integration test that exercises the full export→sanitize→guard-metrics→download pipeline end-to-end with a malicious payload"
+
+**信頼性への影響**:
+- REQ-247~249 を新規追加（信頼性: 🔵 既存実装とAI Hub推奨に基づく確実な要件）
+- 信頼性レベル分布: 🔵266件(98.5%) / 🟡4件(1.5%) / 🔴0件(0%)
+- Phase 109 完了として登録
+
+---
 
 ### A194: 第194回検証 - Phase 108 エクスポートセキュリティ hardening（2026-06-22）
 

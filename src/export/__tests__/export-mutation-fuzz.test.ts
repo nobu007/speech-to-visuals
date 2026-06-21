@@ -311,3 +311,69 @@ describe('REQ-245: Property-Based Mutation Fuzzing Regression Net', () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// REQ-247: Multi-Seed CI Fuzzing Mode
+//
+// When FUZZ_SEEDS env var is set (e.g., in CI), additional fuzzing iterations
+// run with random seeds to expand the fuzzing surface beyond the fixed
+// deterministic seed. This catches edge cases the fixed seed misses.
+//
+// Local dev (FUZZ_SEEDS unset): only fixed-seed iterations run (fast).
+// CI (FUZZ_SEEDS=3): 3 additional random seeds × FUZZ_ITERATIONS each.
+// ---------------------------------------------------------------------------
+const CI_SEED_COUNT = (() => {
+  const raw = process.env.FUZZ_SEEDS;
+  if (raw === undefined) return 0;
+  const n = parseInt(raw, 10);
+  return Number.isNaN(n) ? 0 : Math.max(0, Math.min(10, n));
+})();
+
+if (CI_SEED_COUNT > 0) {
+  describe('REQ-247: Multi-Seed CI Fuzzing Mode', () => {
+    // Generate random seeds from process.hrtime for each CI run.
+    // These are intentionally non-deterministic across CI runs to maximize
+    // the fuzzing surface over time.
+    const ciSeeds: number[] = [];
+    for (let i = 0; i < CI_SEED_COUNT; i++) {
+      const [sec, nano] = process.hrtime();
+      ciSeeds.push((sec * 1000000 + nano + i * 0x9E3779B9) >>> 0);
+    }
+
+    for (let seedIdx = 0; seedIdx < ciSeeds.length; seedIdx++) {
+      const ciSeed = ciSeeds[seedIdx];
+
+      describe(`CI random seed #${seedIdx} (0x${ciSeed.toString(16)})`, () => {
+        // Run half the normal iterations per seed to keep total runtime bounded
+        const ciIterations = Math.max(10, Math.floor(FUZZ_ITERATIONS / 2));
+
+        for (let i = 0; i < ciIterations; i++) {
+          const vectorIdx = i % XSS_VECTORS.length;
+          const vector = XSS_VECTORS[vectorIdx];
+
+          it(`CI fuzz seed#${seedIdx} iter#${i}: "${vector.pattern}" → detected`, () => {
+            const rng = mulberry32(ciSeed + i);
+            const safe = createSafeSceneGraph();
+            const { mutated } = mutateRandomField(
+              safe as unknown as Record<string, unknown>,
+              vector.payload,
+              rng,
+            );
+
+            const result = validateSceneGraphForExport(
+              mutated as unknown as SceneGraph,
+              { strict: false },
+            );
+
+            // Every XSS injection MUST be detected regardless of seed
+            expect(result.findings.length).toBeGreaterThan(0);
+            expect(
+              result.findings.some((f) => f.pattern === vector.pattern),
+            ).toBe(true);
+          });
+        }
+      });
+    }
+  });
+}
+
