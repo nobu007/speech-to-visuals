@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-19（第195回検証: 非同期エラーハンドリング堅牢化・クラッシュ耐性強化・11setInterval try/catchラップ・ストリーミング文字起こしチャンクループエラー耐性・976行テスト追加）
+**最終更新**: 2026-06-22（第196回検証: Phase 108-109 セキュリティハードening設計反映・defense-in-depth エクスポート検証・SecurityMetricsCollector・GuardMetricsDashboard・プロパティベースXSS テスト・CI ファジング・レッドフェーズ検証・REQ-244~249）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -66,7 +66,8 @@
 - **スキーマ検証**: Zod 3.25 🔵 *package.json より*
 - **グラフ可視化**: Recharts 2.15 🔵 *src/monitoring/performance-dashboard.tsx より*
 - **通知**: Sonner 2.0 🔵 *package.json より*
-- **主要コンポーネント**: SimplePipelineInterface（メインUI）、EnhancedFileUploader（D&D）、ProcessingStatus、VideoRenderer、EnhancedVideoPreview、AudioUploader
+- **主要コンポーネント**: SimplePipelineInterface（メインUI）、EnhancedFileUploader（D&D）、ProcessingStatus、VideoRenderer、EnhancedVideoPreview、AudioUploader、GuardMetricsDashboard（セキュリティ観測ダッシュボード・`/security`ルート）🔵 *Phase 109 REQ-248 追加*
+- **セキュリティ観測フック**: useExportGuardMetrics（5秒ポーリング・SecurityMetricsCollector 統合・Prometheus エクスポート）🔵 *Phase 109 REQ-248・src/hooks/useExportGuardMetrics.ts より*
 
 ### バックエンド 🔵
 
@@ -565,6 +566,24 @@ Fallback LLM
 - **データ保護**: API キーは環境変数管理（GOOGLE_API_KEY）、ログ出力なし
 - **ストレージアクセス**: 公開読み取り、認証済み書き込み/削除のみ
 
+#### エクスポート defense-in-depth アーキテクチャ 🔵
+
+**信頼性**: 🔵 *src/export/export-content-validator.ts・src/export/security-metrics-collector.ts・Phase 108-109 REQ-244~249 より*
+
+3層防御モデルによるエクスポートパイプラインXSS 防御:
+
+- **Layer 1 - Content Validator** 🔵: `validateSceneGraphForExport` / `validateExportPayload` による事前エスケープパターン検出
+  - HIGH セベリティ: 15パターン（script-tag, img-onerror, svg-onload, iframe, embed, object, base, foreignObject, marquee, isindex, javascript:/vbscript:, PDF演算子, CSS expression/-moz-binding/url(javascript:))
+  - MEDIUM セベリティ: 9+パターン（イベントハンドラ61種・危険href・meta refresh・null byte・CSS import/behavior・データURI・formaction）
+  - フェイルモード: non-strict では fail-open（findings記録のみ）・strict では HIGH severity でブロック
+- **Layer 2 - Strict Mode Block** 🔵: `EXPORT_STRICT_VALIDATION=true` 時に HIGH severity findings がエクスポートをブロック（ProductionExporter・EnhancedExportEngine）
+- **Layer 3 - Escape Functions** 🔵: フォーマット別エスケープ関数（escapeXML/escapeXml: &, <, >, ", '・escapePDFString: \, (, )・JSON.stringify + </script>エスケープ・sanitizeFilename: パストラバーサル防御）
+- **SecurityMetricsCollector** 🔵: 3層の検出効果をシングルトンで測定（`security_guard_rejections_total{layer,severity,pattern}` Prometheus メトリクス）
+- **GuardMetricsDashboard** 🔵: `/security` ルートでリアルタイムダッシュボード表示（脅威レベル・レイヤー別内訳・パターンランキング・Prometheus エクスポート）🔵 *Phase 109 REQ-248*
+- **プロパティベースXSS テスト** 🔵: タグ×イベントハンドラ×ペイロード関数の組み合わせから新規ペイロードを生成（既知ペイロードの変異ではない）・428+ テストケース・`PB_XSS_ITERATIONS` 環境変数で反復制御 🔵 *Phase 109 REQ-249*
+- **レッドフェーズ検証** 🔵: 23個のカナリアペイロードで各検出パターンが固有のカバレッジに貢献することを証明・常にグリーンでないことを確認 🔵 *Phase 109 REQ-249*
+- **CI multi-seed ファジング** 🔵: `.github/workflows/ci.yml` security-fuzz ジョブ・`FUZZ_SEEDS=3` で3つの追加ランダムシード・`npm run test:fuzz:multi-seed` 🔵 *Phase 109 REQ-247*
+
 ### スケーラビリティ 🔵
 
 **信頼性**: 🔵 *QUALITY_METRICS.md・SYSTEM_CORE.md §9・src/workers/ より*
@@ -599,11 +618,14 @@ Fallback LLM
 
 ### セキュリティ制約 🔵
 
-**信頼性**: 🔵 *PIPELINE_FLOW.md §8.1・supabase/migrations/ より*
+**信頼性**: 🔵 *PIPELINE_FLOW.md §8.1・supabase/migrations/・src/export/export-content-validator.ts より*
 
 - API キーのハードコード禁止（環境変数のみ）
 - Supabase RLS によるデータアクセス制御
 - レート制限: API エンドポイント毎に適用
+- エクスポートXSS 防御: 全エクスポート形式（SVG/PNG/PDF/JSON/HTML/Lottie/APNG/Animated SVG）でパターンベース検出 + フォーマット別エスケープ 🔵 *Phase 108-109*
+- エクスポート strict モード: `EXPORT_STRICT_VALIDATION=true` で HIGH severity findings がエクスポートブロック 🔵 *Phase 108-109*
+- ファイル名パストラバーサル防御: `sanitizeFilename()` による scene.id サニタイズ（全4形式）🔵 *Phase 52*
 
 ### 互換性制約 🔵
 
@@ -685,6 +707,8 @@ Fallback LLM
 - [x] エクスポートジョブライフサイクル管理（Phase 98）が完了している（cancelExport+AbortController・runStageWithTimeout・EXPORT_STAGE_TIMEOUTS・REQ-228・15テスト追加）
 - [x] エクスポートジョブキューサービス（Phase 99）が完了している（ExportJobQueue・優先度スケジューリング・同時実行制御・キュー位置追跡・ETA推定・フェアスケジューリング・ExportMetricsCollector統合・REQ-229）
 - [x] エクスポートアーティファクト管理（Phase 100）が完了している（ExportArtifactStore・TTL自動クリーンアップ・LRU退去・ダウンロードURL・使用量追跡・ExportMetricsCollector統合・REQ-230）
+- [x] エクスポートセキュリティハードening（Phase 108）が完了している（REQ-244~246・イベントハンドラ正規表現名前付き定数配列化・プロパティベース変異ファジング回帰ネット・SecurityMetricsCollector防護拒否メトリクス・130テスト追加）
+- [x] セキュリティファジングCI 拡張（Phase 109）が完了している（REQ-247~249・マルチシードCI ファジングモード・全エクスポート経路ガードメトリクス回帰テスト・E2Eセキュリティパイプライン統合テスト・GuardMetricsDashboard・プロパティベースXSS・レッドフェーズ検証）
 
 ## 関連文書
 
@@ -699,11 +723,11 @@ Fallback LLM
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 181件 (97%)
-- 🟡 黄信号: 4件 (3%)
+- 🔵 青信号: 198件 (98%)
+- 🟡 黄信号: 4件 (2%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第194回検証: Phase 98完了・Phase 99/100計画・エクスポートキューサービス・アーティファクト管理REQ-229/230・384ファイル・249テストファイル・TypeScriptエラー0件・SYSTEM_CONSTITUTION V2.6適合）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第196回検証: Phase 108-109完了・セキュリティハードening・defense-in-depth エクスポート検証・SecurityMetricsCollector・GuardMetricsDashboard・プロパティベースXSS テスト・CI ファジング・REQ-244~249・TypeScriptエラー0件・SYSTEM_CONSTITUTION V2.6適合）
 
 
 <!-- spine:children:begin -->

@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-11（第189回検証: Phase 92エラーリカバリREST API堅牢化・REQ-222・RegisterBodySchema・errorId形式検証・XSSサニタイズ・LRU退去・382ファイル・351テストファイル）
+**最終更新**: 2026-06-22（第196回検証: Phase 108-109セキュリティハードening設計反映・エクスポート defense-in-depth データフロー・SecurityMetricsCollector・GuardMetricsDashboard・プロパティベースXSS テスト・CI ファジング・REQ-244~249）
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](requirements.md)
 
@@ -2004,6 +2004,7 @@ sequenceDiagram
 - [x] 品質ゲート評価フロー（5段階品質基準）が記述されている
 - [x] 全データフローの関連要件（REQ-*）が参照可能であり、要件定義書とのトレーサビリティが確保されている
 - [x] 信頼性レベルサマリーが 99% 以上 🔵（青信号）であり、🔴（赤信号）が 0 件である
+- [x] エクスポートセキュリティ defense-in-depth フロー（機能26 Phase 108-109）が Mermaid flowchart で記述されている（3層防御モデル・SecurityMetricsCollector・GuardMetricsDashboard・プロパティベースXSS テスト・CI ファジング・REQ-244~249）
 
 ### 機能17: 型付きパイプラインエラーフロー（Phase 56） 🔵
 
@@ -2172,3 +2173,58 @@ flowchart TD
 2. 各シーンは DEFAULT_SCENE_DURATION_MS (5000ms) の固定長。ノード数に応じてキャプションを均等分割 🔵
 3. scene 2 以降は必ず startMs > 0（逐次オフセット）。フレーム番号は msToFrame() で計算 🔵
 4. 入力が単一オブジェクトの場合、buildScenes で startMs=0 の単一シーンを生成 🔵
+
+### 機能26: エクスポートセキュリティ defense-in-depth フロー（Phase 108-109） 🔵
+
+**信頼性**: 🔵 *src/export/export-content-validator.ts・src/export/security-metrics-collector.ts・src/export/production-exporter.ts・Phase 108-109 REQ-244~249 より*
+
+**関連要件**: REQ-244, REQ-245, REQ-246, REQ-247, REQ-248, REQ-249
+
+**説明**: 全エクスポート形式でのXSS検出・ブロック・メトリクス収集・ダッシュボード表示のデータフロー
+
+```mermaid
+flowchart TD
+    A[SceneGraph ペイロード] --> B[Layer 1: Content Validator]
+    B --> C{validateExportPayload}
+    C -->|HIGH severity pattern| D[SecurityMetricsCollector.recordRejection]
+    C -->|MEDIUM severity pattern| D
+    C -->|clean payload| E[Layer 2: Strict Mode Check]
+
+    D --> F[Layer 2: Strict Mode Check]
+    F -->|EXPORT_STRICT_VALIDATION=true AND HIGH| G[Block: throw PipelineConfigError]
+    F -->|non-strict OR MEDIUM only| H[Layer 3: Escape Functions]
+
+    E --> H
+    H -->|SVG/PNG| I[escapeXML: amp/lt/gt/quot/apos]
+    H -->|PDF| J[escapePDFString: backslash/parens]
+    H -->|HTML/JSON inline| K[JSON.stringify + </script> escape]
+    H -->|Filename| L[sanitizeFilename: path traversal defense]
+
+    I --> M[Sanitized Output]
+    J --> M
+    K --> M
+    L --> M
+
+    D --> N[SecurityMetricsCollector]
+    N --> O[getSnapshot: byLayer/bySeverity/byPattern]
+    O --> P[useExportGuardMetrics Hook 5s poll]
+    P --> Q[GuardMetricsDashboard /security route]
+    O --> R[toPrometheusText: guard_rejections_total]
+```
+
+**詳細ステップ**:
+
+1. エクスポートリクエスト受信時、SceneGraph ペイロードを `validateExportPayload()` に渡して15のHIGH severity パターンと9+のMEDIUM severity パターンを検査 🔵
+2. 検出されたfindingsは全て `SecurityMetricsCollector.recordRejection()` に記録され、layer/severity/pattern 別に集計される 🔵
+3. `EXPORT_STRICT_VALIDATION=true` の場合、HIGH severity findings があると `PipelineConfigError` をスローしてエクスポートをブロック（ProductionExporter・EnhancedExportEngine）🔵
+4. エクスポート許可時、フォーマット別エスケープ関数がXSS予防を適用（escapeXML/escapePDFString/JSON escape/sanitizeFilename）🔵
+5. `useExportGuardMetrics` フックが5秒間隔で `SecurityMetricsCollector.getSnapshot()` をポーリングし、React state を更新 🔵
+6. `GuardMetricsDashboard` コンポーネントがリアルタイムで脅威レベル・レイヤー別内訳・パターンランキングを表示 🔵
+7. Prometheus エクスポート形式で `security_guard_rejections_total{layer,severity,pattern}` カウンターを提供 🔵
+
+**テスト戦略** 🔵:
+
+- プロパティベースXSS テスト: タグ×ハンドラ×ペイロード組み合わせから新規ペイロード生成（428+ cases・`PB_XSS_ITERATIONS` 環境変数）🔵 *REQ-249*
+- レッドフェーズ検証: 23個のカナリアペイロードで各検出パターンが固有カバレッジに貢献することを証明 🔵 *REQ-249*
+- CI multi-seed ファジング: `FUZZ_SEEDS=3` で3つの追加ランダムシードによる自動実行（`.github/workflows/ci.yml` security-fuzz ジョブ）🔵 *REQ-247*
+- クロスサービスE2E: 全3エクスポートサービス（MultiFormatExporter・ProductionExporter・EnhancedExportEngine）が同一悪意ペイロードでガードメトリクスをエミットすることを検証 🔵 *REQ-250*

@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-19（第195回検証: 非同期エラーハンドリング堅牢化・11setInterval try/catchラップ・ストリーミング文字起こしチャンクループエラー耐性・processingTime計算修正・セグメント収集順序修正・976行テスト追加）
+**最終更新**: 2026-06-22（第196回検証: Phase 108-109セキュリティハードening設計反映・defense-in-depth エクスポート検証アーキテクチャ・SecurityMetricsCollector・GuardMetricsDashboard・プロパティベースXSSテスト・CI ファジング・レッドフェーズ検証・REQ-244~249）
 **履歴**: 第176回検証(2026-06-02)・第171回検証(2026-06-01)・第170回検証(2026-05-29)・第167回検証(2026-05-27)・第165回検証(2026-05-26)・第158回検証(2026-05-20)・第157回検証(2026-05-18)・第151回検証(2026-05-18)・第150回検証(2026-05-18)・第149回検証(2026-05-17)・第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-05-01)・第22回検証(2026-04-30)
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 
@@ -22,6 +22,134 @@
 **最終更新（2026-04-29 Phase 4反映）**: Phase 4 完了に伴う要件定義更新（REQ-025~REQ-035 追加）と、新規モジュール（Remotion Animation・Renderer・SRT Parser・Pipeline UI）の差分反映を実施。
 
 ## 分析項目と判断
+
+### A111: 第196回検証 - Phase 109 プロパティベースXSS テスト・GuardMetricsDashboard・CI ファジング・レッドフェーズ検証（2026-06-22）
+
+**分析日時**: 2026-06-22
+**カテゴリ**: セキュリティ・テスト品質・観測性
+**背景**: Phase 108 でエクスポートセキュリティの検出力とメトリクス収集を拡張したが、AI Hub フィードバックにより「既知パターンの変異にすぎないファジングでは未知の攻撃ベクトルを発見できない」「SecurityMetricsCollector がフックAPI止まりでエンドユーザーに価値を届けていない」「テストが常にグリーンでないことを確認すべき（レッドフェーズ検証）」「CI で multi-seed ファジングを自動実行すべき」と指摘された。
+
+**判断**: 以下の差分を反映:
+
+1. **プロパティベースXSS テスト** 🔵: `src/export/__tests__/export-property-based-xss.test.ts`（374行）
+   - 既知ペイロードの変異ではなく、タグ×イベントハンドラ×ペイロード関数の組み合わせから新規ペイロードを生成
+   - 決定論的PRNG（mulberry32）による再現可能なテスト実行
+   - 環境変数 `PB_XSS_ITERATIONS` で反復回数を制御（デフォルト200+）
+   - 428以上のテストケースが `validateSceneGraphForExport` と `validateExportPayload` の両方をテスト
+   - DANGEROUS_TAGS（script, iframe, embed, object, base, foreignObject, marquee, isindex）× EVENT_HANDLERS（37種）× JS_PAYLOADS × PROTOCOLS × OBFUSCATIONS の組み合わせ網羅
+
+2. **GuardMetricsDashboard UI コンポーネント** 🔵: `src/components/GuardMetricsDashboard.tsx`（269行）
+   - Reactダッシュボードコンポーネント（`/security` ルート）
+   - `useExportGuardMetrics` フック（5秒ポーリング）でリアルタイムメトリクス取得
+   - 脅威レベル表示（Critical/Elevated/Clear）
+   - ディフェンスレイヤー別内訳（content-validator, strict-mode-block, escape-function）
+   - 検出パターンランキング
+   - Prometheus テキストエクスポート形式でのコピー機能
+   - リフレッシュ・ポーズ/レジューム・リセット操作
+
+3. **useExportGuardMetrics フック** 🔵: `src/hooks/useExportGuardMetrics.ts`（92行）
+   - `SecurityMetricsCollector` をポーリング（デフォルト5秒間隔）
+   - `metrics`, `isPolling`, `refresh()`, `start()`, `stop()`, `reset()` をエクスポート
+   - `prometheusText` でPrometheusフォーマット文字列を提供
+   - マウント時に自動開始（`autoStart` オプション）
+
+4. **レッドフェーズ検証テスト** 🔵: `src/export/__tests__/guard-red-phase-verification.test.ts`（192行）
+   - 23個のカナリアペイロード（各検出パターンに特化）
+   - 各カナリアが対応する正規表現によってのみ捕捉されることを検証
+   - 全テストが実際の回帰網であり、常にグリーンのボイラープレートでないことを証明
+   - Strict/non-strict 両モードでのfindings検出とメトリクスエミッションを検証
+
+5. **CI multi-seed ファジング** 🔵: `.github/workflows/ci.yml` security-fuzz ジョブ
+   - テスト後に自動実行
+   - `FUZZ_SEEDS=3` で3つの追加ランダムシードによるファジング
+   - `npm run test:fuzz:multi-seed` スクリプト実行
+
+6. **package.json スクリプト** 🔵:
+   - `test:fuzz`: プロパティベースXSS、ミューテーションファズ、コンテンツバリデータファズを一括実行
+   - `test:fuzz:multi-seed`: `FUZZ_SEEDS=3` でマルチシードファジング
+
+7. **テスト追加** 🔵:
+   - `src/hooks/__tests__/useExportGuardMetrics.test.ts`（134行）: フックのポーリング・状態管理・クリーンアップ検証
+   - `src/export/__tests__/export-content-validator-bypass.test.ts`（128行）: foreignObject・実行可能データURI バイパステスト
+
+**根拠**:
+- git log: 20ddc4e (property-based XSS + dashboard + CI fuzzing + red-phase)
+- git log: 7fdf165 (EnhancedExportEngine guard metrics + CSV multi-seed + E2E)
+- git log: 8f5dd66 (ProductionExporter guard metrics instrumentation)
+- テスト結果: 全セキュリティテストスイート通過（428+ プロパティベースケース・23 レッドフェーズケース）
+
+**信頼性への影響**:
+- architecture.md: 🔵 セキュリティセクション拡張（defense-in-depth観測性・GuardMetricsDashboard・プロパティベーステスト・CIファジング）
+- architecture.md: 🔵 フロントエンドコンポーネント構成にGuardMetricsDashboard追加
+- dataflow.md: 🔵 セキュリティガードメトリクスデータフロー追加
+- design-interview.md: A111追加
+- 信頼性レベル: 全追加項目 🔵（実装済みコードとテストを直接参照）
+
+---
+
+### A110: 第196回検証 - Phase 108 エクスポートセキュリティハードening・XSS検出拡張・SecurityMetricsCollector（2026-06-22）
+
+**分析日時**: 2026-06-22
+**カテゴリ**: セキュリティ・エクスポート検証・観測性
+**背景**: エクスポートパイプラインのXSS検出は既知のスクリプトタグ・イベントハンドラに限定されており、新しい攻撃ベクトル（スクリプトレスXSS・キーボード/タッチ/IMEイベント・データURIインジェクション）が未検出だった。また、セキュリティガードの効果が測定不能で、どの防御層が機能しているか不明だった。
+
+**判断**: 以下の差分を反映:
+
+1. **XSS 検出パターン拡張** 🔵: `src/export/export-content-validator.ts`
+   - **スクリプトレスXSS タグ**: `<marquee>`（onstart自動発火）、`<isindex>`（レガシー実行ベクトル）
+   - **キーボードイベント**: keydown, keypress, keyup（任意JS実行可能）
+   - **タッチイベント**: touchstart, touchend, touchmove, touchcancel（モバイルベクトル）
+   - **IMEイベント**: compositionstart, compositionend, compositionupdate（入力メソッド悪用）
+   - **フォーカスイベント**: focusin, focusout（focus/blurと異なりバブルする）
+   - **データURI バリアント**: data:text/html, data:image/svg+xml, data:application/xhtml+xml, data:application/xml, data:text/xml
+   - **foreignObject SVG インジェクション**: SVG内の外部オブジェクト埋め込み検出
+   - HIGH セキュリティパターン: 15種（script-tag, img-onerror, svg-onload, iframe, embed, object, base, foreignObject, marquee, isindex, javascript:/vbscript:, PDF演算子, CSS expression/-moz-binding/url(javascript:))
+   - MEDIUM セベリティパターン: 9+種（イベントハンドラ61種、危険href、meta refresh、null byte、CSS import/behavior、データURI、formaction）
+
+2. **SecurityMetricsCollector** 🔵: `src/export/security-metrics-collector.ts`（202行）
+   - シングルトンによる防御層効果測定
+   - 3層ディフェンスモデル: content-validator（Pre-escaping検出）、strict-mode-block（HIGH severity ブロック）、escape-function（フォーマット別エスケープ）
+   - `recordRejection(layer, severity, patternName)`: 個別検出イベント記録
+   - `recordFindings(layer, findings)`: バッチ記録
+   - `getSnapshot()`: SecurityRejectionSnapshot 返却（totalRejections, byLayer, bySeverity, byPattern, matrix）
+   - `toPrometheusText()`: Prometheus カウンサーメトリクス出力
+   - ラベルインジェクション防御: 改行・ダブルクォート・バックスラッシュ サニタイズ・200文字切り詰め
+
+3. **ProductionExporter ガードメトリクス計装** 🔵: `src/export/production-exporter.ts`
+   - `createExportJob()` で `validateExportPayload()` 呼び出し
+   - `EXPORT_STRICT_VALIDATION=true` 時は HIGH severity でエクスポートブロック
+   - 検出結果を `SecurityMetricsCollector` に記録（コンテキストラベル: `productionExporter:${jobName}`）
+
+4. **EnhancedExportEngine ガードメトリクス** 🔵: `src/export/enhanced-export-engine.ts`
+   - 全8エクスポート形式でセキュリティ検証統合
+   - ガードメトリクス計装による検出イベント記録
+
+5. **クロスサービス回帰テスト** 🔵: REQ-250
+   - 全3エクスポートサービス（MultiFormatExporter, ProductionExporter, EnhancedExportEngine）が同一悪意ペイロードに対してガードメトリクスをエミットすることを検証
+
+6. **テスト追加（130+ cases）** 🔵:
+   - `export-mutation-fuzz.test.ts`（118 cases）: ミューテーションベースファジング
+   - `export-csv-mutation-fuzz.test.ts`（91+15 CI cases）: CSV特化ファジング
+   - `security-metrics.test.ts`（24 cases）: SecurityMetricsCollector 検証
+   - `export-guard-metrics-coverage.test.ts`（20 cases）: 全エクスポートサービスタイプのガードメトリクスカバレッジ
+   - `export-security-e2e.test.ts`（18 cases）: E2Eセキュリティパイプライン
+
+7. **環境変数 `FUZZ_SEEDS`** 🔵: 両ファジングテストにランダムシード反復を追加（main: 118→143, CSV: 91→106 with FUZZ_SEEDS=1）
+
+**根拠**:
+- git log: 502aa36 (XSS detection expansion: scriptless tags, keyboard/touch/IME events, data URI variants)
+- git log: 7fdf165 (EnhancedExportEngine guard metrics + CSV multi-seed + E2E)
+- git log: 8f5dd66 (ProductionExporter guard metrics)
+- テスト結果: 全エクスポートセキュリティテストスイート通過
+
+**信頼性への影響**:
+- architecture.md: 🔵 セキュリティセクション拡張（defense-in-depth パターン検出・SecurityMetricsCollector・3層モデル）
+- architecture.md: 🔵 エクスポートモジュール構成にSecurityMetricsCollector追加
+- dataflow.md: 🔵 エクスポートセキュリティ検証データフロー追加
+- design-interview.md: A110追加
+- 信頼性レベル: 全追加項目 🔵（実装済みコードとテストを直接参照）
+
+---
 
 ### A109: 第195回検証 - 非同期エラーハンドリング堅牢化・クラッシュ耐性強化（2026-06-19）
 
