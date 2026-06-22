@@ -104,5 +104,28 @@ jobs:
         env:
           FUZZ_SEEDS: 3
         run: npm run test:fuzz:multi-seed
-      - name: Run red-phase verification
-        run: npx jest --config jest.config.cjs --testPathPattern='guard-red-phase-verification'
+      - name: Run red-phase verification gate
+        run: ./scripts/verify-red-phase.sh
+
+  # Gate job — blocks PR merge if any required job fails.
+  # Add this as a required status check in GitHub branch protection settings.
+  all-checks-pass:
+    runs-on: ubuntu-latest
+    needs: [code-size-audit, lint, type-check, test, monitoring-config-validate, monitoring-drift-check, build, security-fuzz]
+    if: always()
+    steps:
+      - name: Check all required jobs passed
+        if: ${{ !((needs.code-size-audit.result == 'success') && (needs.lint.result == 'success') && (needs.type-check.result == 'success') && (needs.test.result == 'success') && (needs.monitoring-config-validate.result == 'success') && (needs.monitoring-drift-check.result == 'success') && (needs.build.result == 'success') && (needs.security-fuzz.result == 'success')) }}
+        run: |
+          echo "One or more required checks failed:"
+          echo "  code-size-audit: ${{ needs.code-size-audit.result }}"
+          echo "  lint: ${{ needs.lint.result }}"
+          echo "  type-check: ${{ needs.type-check.result }}"
+          echo "  test: ${{ needs.test.result }}"
+          echo "  monitoring-config-validate: ${{ needs.monitoring-config-validate.result }}"
+          echo "  monitoring-drift-check: ${{ needs.monitoring-drift-check.result }}"
+          echo "  build: ${{ needs.build.result }}"
+          echo "  security-fuzz: ${{ needs.security-fuzz.result }}"
+          exit 1
+      - name: All checks passed
+        run: echo "✅ All required checks passed"

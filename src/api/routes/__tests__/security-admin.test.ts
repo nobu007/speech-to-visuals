@@ -121,15 +121,51 @@ describe('Phase 201: Security Guard Admin API', () => {
   });
 
   // -------------------------------------------------------------------------
-  // POST /metrics/reset
+  // POST /metrics/reset (admin token protected)
   // -------------------------------------------------------------------------
 
   describe('POST /api/v1/security/metrics/reset', () => {
-    it('should reset all collected metrics', async () => {
-      securityMetricsCollector.recordRejection('content-validator', 'high', 'script-tag');
-      securityMetricsCollector.recordRejection('escape-function', 'medium', 'event-handler');
+    const TEST_TOKEN = 'test-admin-token-abc123';
 
+    beforeEach(() => {
+      process.env.ADMIN_TOKEN = TEST_TOKEN;
+    });
+
+    afterEach(() => {
+      delete process.env.ADMIN_TOKEN;
+    });
+
+    it('should reject reset without Authorization header (401)', async () => {
       const res = await request(app).post('/api/v1/security/metrics/reset');
+
+      expect(res.status).toBe(401);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('UNAUTHORIZED');
+    });
+
+    it('should reject reset with wrong token (401)', async () => {
+      const res = await request(app)
+        .post('/api/v1/security/metrics/reset')
+        .set('Authorization', 'Bearer wrong-token');
+
+      expect(res.status).toBe(401);
+      expect(res.body.success).toBe(false);
+    });
+
+    it('should reject reset with malformed Authorization header (401)', async () => {
+      const res = await request(app)
+        .post('/api/v1/security/metrics/reset')
+        .set('Authorization', 'NotBearer test-admin-token-abc123');
+
+      expect(res.status).toBe(401);
+    });
+
+    it('should accept reset with valid Bearer token', async () => {
+      securityMetricsCollector.recordRejection('content-validator', 'high', 'script-tag');
+
+      const res = await request(app)
+        .post('/api/v1/security/metrics/reset')
+        .set('Authorization', `Bearer ${TEST_TOKEN}`);
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -137,11 +173,24 @@ describe('Phase 201: Security Guard Admin API', () => {
       expect(res.body.metrics.totalRejections).toBe(0);
     });
 
+    it('should accept reset with valid X-Admin-Token header', async () => {
+      securityMetricsCollector.recordRejection('content-validator', 'high', 'test1');
+
+      const res = await request(app)
+        .post('/api/v1/security/metrics/reset')
+        .set('X-Admin-Token', TEST_TOKEN);
+
+      expect(res.status).toBe(200);
+      expect(res.body.metrics.totalRejections).toBe(0);
+    });
+
     it('should return zeroed snapshot after reset', async () => {
       securityMetricsCollector.recordRejection('content-validator', 'high', 'test1');
       securityMetricsCollector.recordRejection('content-validator', 'high', 'test2');
 
-      const res = await request(app).post('/api/v1/security/metrics/reset');
+      const res = await request(app)
+        .post('/api/v1/security/metrics/reset')
+        .set('Authorization', `Bearer ${TEST_TOKEN}`);
 
       expect(res.body.metrics.totalRejections).toBe(0);
       expect(res.body.metrics.byPattern).toEqual([]);
@@ -149,10 +198,39 @@ describe('Phase 201: Security Guard Admin API', () => {
     });
 
     it('should be idempotent (reset on empty metrics)', async () => {
-      const res = await request(app).post('/api/v1/security/metrics/reset');
+      const res = await request(app)
+        .post('/api/v1/security/metrics/reset')
+        .set('Authorization', `Bearer ${TEST_TOKEN}`);
 
       expect(res.status).toBe(200);
       expect(res.body.metrics.totalRejections).toBe(0);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // POST /metrics/reset — ADMIN_TOKEN not configured
+  // -------------------------------------------------------------------------
+
+  describe('POST /api/v1/security/metrics/reset without ADMIN_TOKEN', () => {
+    it('should refuse reset (403) when ADMIN_TOKEN is not set', async () => {
+      delete process.env.ADMIN_TOKEN;
+
+      const res = await request(app)
+        .post('/api/v1/security/metrics/reset')
+        .set('Authorization', 'Bearer any-token');
+
+      expect(res.status).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('ADMIN_NOT_CONFIGURED');
+    });
+
+    it('should refuse reset even without any auth attempt (403)', async () => {
+      delete process.env.ADMIN_TOKEN;
+
+      const res = await request(app).post('/api/v1/security/metrics/reset');
+
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('ADMIN_NOT_CONFIGURED');
     });
   });
 

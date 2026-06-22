@@ -622,20 +622,23 @@ export class ProductionExporter {
   }
 
   /**
-   * Calculate total frames for all scenes
+   * Calculate total frames for all scenes.
+   * Guards against negative/zero durationMs to prevent invalid frame counts.
    */
   private calculateTotalFrames(scenes: EnhancedSceneGraph[], options: RenderOptions): number {
     return scenes.reduce((total, scene) => {
-      const duration = scene.durationMs / 1000; // Convert to seconds
+      const durationMs = Math.max(0, scene.durationMs || 0);
+      const duration = durationMs / 1000; // Convert to seconds
       return total + Math.ceil(duration * options.fps);
     }, 0);
   }
 
   /**
-   * Estimate final file size
+   * Estimate final file size.
+   * Guards against negative durationMs to prevent negative size estimates.
    */
   private estimateFileSize(scenes: EnhancedSceneGraph[], options: RenderOptions): number {
-    const totalDuration = scenes.reduce((sum, scene) => sum + scene.durationMs, 0) / 1000;
+    const totalDuration = scenes.reduce((sum, scene) => sum + Math.max(0, scene.durationMs || 0), 0) / 1000;
     const bitrate = this.calculateBitrate(options);
 
     return Math.round((bitrate * totalDuration * 1000) / 8); // Size in bytes
