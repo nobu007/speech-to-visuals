@@ -9,6 +9,7 @@ import { createMonitoringRouter } from './routes/monitoring';
 import { createErrorsRouter } from './routes/errors';
 import { createExportRouter } from './routes/export';
 import { createExportJobRouter } from './routes/export-jobs';
+import { createSecurityAdminRouter } from './routes/security-admin';
 import { ExportArtifactStore } from '../export/export-artifact-store';
 import { ExportJobQueue } from '../export/export-job-queue';
 import { exportMetricsCollector } from '../export/export-metrics-collector';
@@ -106,6 +107,9 @@ app.use('/api/v1/export', createExportRouter(artifactStore));
 const jobQueue = new ExportJobQueue({ maxConcurrent: 3, maxQueueSize: 100 }, exportMetricsCollector, artifactStore);
 jobQueue.start();
 app.use('/api/v1/export', createExportJobRouter(jobQueue));
+
+// Phase 201: Security guard admin dashboard endpoints
+app.use('/api/v1/security', createSecurityAdminRouter());
 
 // Error handler (must be after routes)
 app.use(errorHandler);
