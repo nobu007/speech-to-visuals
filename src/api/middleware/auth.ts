@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { PipelineConfigError } from '../../pipeline/pipeline-errors';
+import { logger } from '../../utils/logger';
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -47,7 +48,8 @@ export function authMiddleware(req: AuthenticatedRequest, res: Response, next: N
       role: decoded.role || 'authenticated',
     };
     next();
-  } catch {
+  } catch (err) {
+    logger.error(`[auth] JWT verification failed: ${err instanceof Error ? err.message : String(err)}`);
     res.status(401).json({
       success: false,
       error: { code: 'TOKEN_ERROR', message: 'Failed to process JWT token' },
