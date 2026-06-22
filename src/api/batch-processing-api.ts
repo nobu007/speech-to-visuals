@@ -23,6 +23,8 @@ import { BatchValidationError, JobNotFoundError } from './routes/batch';
 import { BATCH_LIMITS } from '../config/limits';
 import { logger } from '../utils/logger';
 import { pipelineMetricsCollector } from '@/monitoring/pipeline-metrics-collector';
+import { validateAudioFile } from '@/utils/audio-validation';
+import { sanitizeFilename } from '@/utils/sanitize';
 
 export interface BatchJobRequest {
   files: File[];
@@ -193,6 +195,17 @@ export class BatchProcessingAPI {
       throw new BatchValidationError(`Maximum ${BATCH_LIMITS.MAX_FILES_PER_BATCH} files per batch`);
     }
 
+    // Validate each file: reject oversized, empty, or non-audio files early
+    // before consuming pipeline resources.
+    for (const file of request.files) {
+      const validation = validateAudioFile(file);
+      if (!validation.valid) {
+        throw new BatchValidationError(
+          `File "${sanitizeFilename(file.name)}" rejected: ${validation.errors.join('; ')}`,
+        );
+      }
+    }
+
     // Deduplicate files by content hash + size to avoid redundant processing.
     // Content-based hashing catches identical files with different names and
     // avoids false negatives that name+size alone would miss.
@@ -207,7 +220,7 @@ export class BatchProcessingAPI {
       const hash = await computeFileHash(file);
       const dedupKey = `${hash}::${file.size}`;
       if (seen.has(dedupKey)) {
-        skippedFiles.push(file.name);
+        skippedFiles.push(sanitizeFilename(file.name));
         continue;
       }
       seen.set(dedupKey, dedupedFiles.length);
@@ -350,7 +363,7 @@ export class BatchProcessingAPI {
         // Progress callback after each file completes
         const done = skippedCount + completedCount.value + failedCount.value;
         jobStore.updateJobStatus(jobId, {
-          currentFile: request.files[Math.min(done - skippedCount, request.files.length - 1)]?.name,
+          currentFile: sanitizeFilename(request.files[Math.min(done - skippedCount, request.files.length - 1)]?.name ?? ''),
           progress: {
             total: originalTotal,
             completed: skippedCount + completedCount.value,
@@ -442,7 +455,7 @@ export class BatchProcessingAPI {
       const file = files[fileIndex];
       const fileStartTime = Date.now();
 
-      jobStore.updateJobStatus(jobId, { currentFile: file.name });
+      jobStore.updateJobStatus(jobId, { currentFile: sanitizeFilename(file.name) });
 
       try {
         const pipelineInput = adaptiveQualityPresets.toPipelineOptions(file);
@@ -454,7 +467,7 @@ export class BatchProcessingAPI {
         const result = await simplePipeline.process(pipelineInput);
 
         slots[fileIndex] = {
-          filename: file.name,
+          filename: sanitizeFilename(file.name),
           success: result.success,
           result,
           processingTime: Date.now() - fileStartTime,
@@ -466,9 +479,9 @@ export class BatchProcessingAPI {
           failedCount.value++;
         }
       } catch (error) {
-        logger.error(`File ${fileIndex + 1}/${files.length} failed:`, error);
+        logger.error(`File ${fileIndex + 1}/${files.length} (${sanitizeFilename(file.name)}) failed:`, error);
         slots[fileIndex] = {
-          filename: file.name,
+          filename: sanitizeFilename(file.name),
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error',
           processingTime: Date.now() - fileStartTime,
@@ -523,11 +536,13 @@ export class BatchProcessingAPI {
     completed: number,
     total: number
   ): number {
-    if (completed === 0) return 0;
+    if (completed === 0 || total <= 0) return 0;
 
     const elapsed = Date.now() - startTime;
     const avgTimePerFile = elapsed / completed;
     const remaining = total - completed;
+
+    if (remaining <= 0) return 0;
 
     return Math.round((avgTimePerFile * remaining) / 1000); // Convert to seconds
   }
