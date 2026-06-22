@@ -149,10 +149,11 @@ function parseAlertRulesYaml(content: string): { groups: Array<{ name: string; i
     const kvMatch = line.match(/^          (\w+):\s*"?(.*?)"?\s*$/);
     if (kvMatch && currentRule) {
       const [, key, value] = kvMatch;
+      const cleaned = stripQuotes(value.trim());
       if (inLabels) {
-        currentRule.labels[key] = value;
+        currentRule.labels[key] = cleaned;
       } else if (inAnnotations) {
-        currentRule.annotations[key] = value;
+        currentRule.annotations[key] = cleaned;
       }
     }
   }
