@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-13（第196回検証: Phase 107完了 - エクスポートサービスのグレースフルシャットダウン修正と統合テスト追加）
+**最終更新**: 2026-06-23（第197回検証: Phase 110完了 - CI品質ゲート・ガード関数ファジング・red-phase CI統合・security-fuzzビルド依存・REQ-250~252追加）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -5021,6 +5021,121 @@
 | REQ-248: ガードメトリクス回帰 | 3 | 🔵 |
 | REQ-249: E2Eセキュリティパイプライン | 4 | 🔵 |
 | **合計** | **10** | **🔵 100%** |
+
+---
+
+## REQ-250: CI red-phase 検証ゲート 🔵
+
+**信頼性**: 🔵 *AI Hubフィードバック・既存guard-red-phase-verification.test.ts・.github/workflows/ci.ymlより*
+
+### Given（前提条件）
+
+- `guard-red-phase-verification.test.ts` が23キャナリペイロードを含んでいる
+- CI security-fuzz ジョブが定義されている
+
+### When（実行条件）
+
+- CIパイプラインがプッシュ/PRで実行される
+
+### Then（期待結果）
+
+- red-phase 検証テストがCI security-fuzz ジョブで実行される
+- test:fuzz / test:fuzz:multi-seed パターンに guard-red-phase-verification が含まれる
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-250-01**: test:fuzz パターンに guard-red-phase-verification が含まれる 🔵
+  - **期待結果**: `npm run test:fuzz` が guard-red-phase-verification.test.ts を実行する
+  - **信頼性**: 🔵 *package.json testPathPattern更新*
+
+- [x] **TC-250-02**: CI security-fuzz ジョブで red-phase 検証が実行される 🔵
+  - **期待結果**: CI ワークフローに red-phase 検証ステップが含まれる
+  - **信頼性**: 🔵 *ci.yml更新*
+
+---
+
+## REQ-251: エクスポートガード関数ファジング 🔵
+
+**信頼性**: 🔵 *AI Hubフィードバック・既存ガード関数・export-guard-fuzz.test.tsより*
+
+### Given（前提条件）
+
+- validateSceneGraphForExport・validateExportPayload・sanitizeFilename が実装済み
+- ファジングテストインフラ（mulberry32 PRNG・FUZZ_SEEDS）が存在する
+
+### When（実行条件）
+
+- ファジングテストが実行される（ローカル or CI）
+
+### Then（期待結果）
+
+- ガード関数が多様な悪意入力を確実に検出・サニタイズする
+- FUZZ_SEEDS環境変数でマルチシード対応する
+- 偽陽性ゼロ（安全なコンテンツは検出しない）
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-251-01**: validateSceneGraphForExport ファジング: 150イテレーション 🔵
+  - **入力**: 3シード × 50イテレーション、ランダムフィールド・ランダムベクタ注入
+  - **期待結果**: 全ての危険ベクタが検出される（findings.length > 0）
+  - **信頼性**: 🔵 *540テスト通過*
+
+- [x] **TC-251-02**: validateExportPayload ネストファジング: 150イテレーション 🔵
+  - **入力**: 3シード × 50イテレーション、深度0-3のネストオブジェクト
+  - **期待結果**: ネストされた悪意コンテンツが検出される
+  - **信頼性**: 🔵 *540テスト通過*
+
+- [x] **TC-251-03**: sanitizeFilename ファジング: 150イテレーション 🔵
+  - **入力**: 3シード × 50イテレーション、パストラバーサル・制御文字・ヌルバイト
+  - **期待結果**: サニタイズ結果に `..`, `/`, `\`, `\0`, 制御文字が含まれない
+  - **信頼性**: 🔵 *540テスト通過*
+
+#### 偽陽性防止
+
+- [x] **TC-251-04**: 安全なコンテンツで findins がゼロ: 30イテレーション 🔵
+  - **入力**: 安全なランダム文字列（<>"'=/\\を除外）
+  - **期待結果**: validateSceneGraphForExport が findings を報告しない
+  - **信頼性**: 🔵 *テスト通過*
+
+---
+
+## REQ-252: security-fuzz ビルド依存 🔵
+
+**信頼性**: 🔵 *AI Hubフィードバック・.github/workflows/ci.ymlより*
+
+### Given（前提条件）
+
+- CI security-fuzz ジョブと build ジョブが定義されている
+
+### When（実行条件）
+
+- ビルドが失敗するコードがプッシュされる
+
+### Then（期待結果）
+
+- security-fuzz ジョブが実行されない（build ジョブの成功に依存）
+- ビルドが壊れたコードがマージされない
+
+### テストケース
+
+#### 正常系
+
+- [x] **TC-252-01**: security-fuzz ジョブ needs に build が含まれる 🔵
+  - **期待結果**: `needs: [test, build]` がci.ymlに記述される
+  - **信頼性**: 🔵 *ci.yml更新*
+
+### Phase 110 サマリー
+
+| カテゴリ | テスト数 | 信頼性 |
+|---------|---------|--------|
+| REQ-250: red-phase CI統合 | 2 | 🔵 |
+| REQ-251: ガード関数ファジング | 540 | 🔵 |
+| REQ-252: security-fuzzビルド依存 | 1 | 🔵 |
+| **合計** | **543** | **🔵 100%** |
 
 
 <!-- spine:references:begin -->

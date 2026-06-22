@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-22（第195回検証: Phase 109完了・セキュリティファジング CI 拡張・マルチシードCI ファジングモード・全エクスポート経路ガードメトリクス回帰テスト・E2Eセキュリティパイプライン統合テスト・REQ-247~249追加）
+**最終更新**: 2026-06-23（第196回検証: Phase 110完了・CI品質ゲート・ガード関数ファジング・red-phase CI統合・security-fuzzビルド依存・REQ-250~252追加）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
@@ -3485,6 +3485,33 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 - この分析により、REQ-241~243の受け入れ基準の検証カバレッジが向上（信頼性レベル: 🔵 変更なし、既に🔵）
 - 信頼性レベル分布: 🔵257件(98.5%) / 🟡4件(1.5%) / 🔴0件(0%) — 変更なし
 - HTTP API層→JobQueue→ArtifactStoreの完全なサーバーwiringが統合テストで検証された
+
+---
+
+### A196: 第196回検証 - Phase 110 CI品質ゲート・ガード関数ファジング（2026-06-23）
+
+**分析日時**: 2026-06-23
+**カテゴリ**: CI品質向上・セキュリティテスト拡張・回帰防止
+**背景**: AI Hubフィードバック「Prioritize shipping behavioral fixes and features over backfilling tests. Next priority: run verify-red-phase.sh in CI (or as a pre-merge gate) to continuously enforce red-phase compliance. Also consider adding fuzz seed coverage for the export guard functions themselves, not just the existing fuzz-multi-seed.sh target.」に対応。以下のギャップを特定:
+1. `guard-red-phase-verification.test.ts` が存在するがCI `test:fuzz` パターンに含まれておず、security-fuzz ジョブで実行されていなかった
+2. エクスポートガード関数（validateExportPayload・validateSceneGraphForExport・sanitizeFilename）に対する専用ファジングテストが存在せず、変異ファジングは既存のエクスポート形式テストのみ
+3. CI security-fuzz ジョブが build ジョブに依存しておらず、ビルドが壊れていてもファジングテストが通過する可能性があった
+
+**判断**:
+1. **REQ-250 red-phase CI統合**: `test:fuzz` / `test:fuzz:multi-seed` の `--testPathPattern` に `guard-red-phase-verification` を追加。CI security-fuzz ジョブに red-phase 検証ステップを追加。これにより23キャナリペイロードの検出がマージ前に継続的に検証される。
+2. **REQ-251 ガード関数ファジング**: `src/export/__tests__/export-guard-fuzz.test.ts` を新規作成。validateSceneGraphForExport・validateExportPayload・sanitizeFilename に対する専用ファジングテスト。mulberry32 PRNG + FUZZ_SEEDS対応。540テストケース（3決定論シード × 50イテレーション × 4テスト群 + 偽陽性検証30ケース）。
+3. **REQ-252 security-fuzzビルド依存**: CI `security-fuzz` ジョブの `needs` を `[test]` から `[test, build]` に変更。テスト通過＋ビルド成功の両方をマージ条件化。
+
+**根拠**:
+- `src/export/__tests__/guard-red-phase-verification.test.ts` - 既存の23キャナリペイロールド検証テスト（CI未統合だった）
+- `.github/workflows/ci.yml` - security-fuzz ジョブ（needs: [test] のみ → [test, build] に修正）
+- `package.json` - test:fuzz / test:fuzz:multi-seed パターン（guard-red-phase-verification が未含）
+- AI Hubフィードバック: "run verify-red-phase.sh in CI" + "add fuzz seed coverage for the export guard functions themselves"
+
+**信頼性への影響**:
+- REQ-250~252 新規追加（信頼性レベル: 🔵 全て）
+- 信頼性レベル分布: 🔵269件(98.5%) / 🟡4件(1.5%) / 🔴0件(0%) — 🔵が266→269に増加
+- CI品質ゲートが強化され、セキュリティガードの回帰がマージ前に捕捉されるようになった
 
 ---
 

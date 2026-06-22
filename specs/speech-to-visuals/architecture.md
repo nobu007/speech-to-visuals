@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-22（第196回検証: Phase 108-109 セキュリティハードening設計反映・defense-in-depth エクスポート検証・SecurityMetricsCollector・GuardMetricsDashboard・プロパティベースXSS テスト・CI ファジング・レッドフェーズ検証・REQ-244~249）
+**最終更新**: 2026-06-23（第197回検証: Phase 110 CI品質ゲート・ガード関数ファジング・red-phase CI統合・security-fuzzビルド依存・REQ-250~252追加）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
