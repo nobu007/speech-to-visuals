@@ -30,7 +30,13 @@ const RenderRequestSchema = z.object({
   quality: z.enum(['low', 'medium', 'high']).optional(),
   outputName: z.string().max(PIPELINE_LIMITS.MAX_OUTPUT_NAME_LENGTH, `outputName must be at most ${PIPELINE_LIMITS.MAX_OUTPUT_NAME_LENGTH} characters`).optional(),
   options: z.object({
-    resolution: z.string().max(50).regex(RESOLUTION_REGEX, 'resolution must be in WIDTHxHEIGHT format (e.g. 1920x1080)').optional(),
+    resolution: z.string().max(50).regex(RESOLUTION_REGEX, 'resolution must be in WIDTHxHEIGHT format (e.g. 1920x1080)').refine(
+      (val) => {
+        const [w, h] = val.split('x').map(Number);
+        return w <= PIPELINE_LIMITS.MAX_RESOLUTION_DIMENSION && h <= PIPELINE_LIMITS.MAX_RESOLUTION_DIMENSION;
+      },
+      `resolution dimensions must not exceed ${PIPELINE_LIMITS.MAX_RESOLUTION_DIMENSION}px`,
+    ).optional(),
     fps: z.number().int().min(1).max(PIPELINE_LIMITS.MAX_FPS, `fps must be between 1 and ${PIPELINE_LIMITS.MAX_FPS}`).optional(),
     codec: z.enum(VALID_CODECS, { message: `codec must be one of: ${(VALID_CODECS as readonly string[]).join(', ')}` }).optional(),
   }).optional(),

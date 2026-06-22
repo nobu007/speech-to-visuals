@@ -3,6 +3,8 @@
  * Defers loading of heavy modules until they are actually needed
  */
 
+import { logger } from '../utils/logger';
+
 export interface LazyModule<T> {
   module: T;
   loadTimeMs: number;
@@ -12,6 +14,7 @@ export interface LazyLoaderStats {
   loadedModules: number;
   totalLoadTimeMs: number;
   averageLoadTimeMs: number;
+  preloadFailures: number;
 }
 
 type ModuleLoader<T> = () => Promise<T>;
@@ -26,6 +29,7 @@ export class LazyLoader {
   private cache: Map<string, LazyModule<unknown>> = new Map();
   private loadPromises: Map<string, Promise<unknown>> = new Map();
   private totalLoadTimeMs = 0;
+  private preloadFailures = 0;
 
   /**
    * Load a module lazily. The loader function is called only once;
@@ -89,8 +93,9 @@ export class LazyLoader {
    */
   preload<T>(key: string, loader: ModuleLoader<T>): void {
     if (!this.cache.has(key)) {
-      this.load(key, loader).catch(() => {
-        // Preload failures are non-critical; the next explicit load will retry.
+      this.load(key, loader).catch((err) => {
+        this.preloadFailures++;
+        logger.warn(`[LazyLoader] Preload failed for key "${key}":`, err);
       });
     }
   }
@@ -109,6 +114,7 @@ export class LazyLoader {
     this.cache.clear();
     this.loadPromises.clear();
     this.totalLoadTimeMs = 0;
+    this.preloadFailures = 0;
   }
 
   /**
@@ -122,6 +128,7 @@ export class LazyLoader {
       averageLoadTimeMs: loadedModules > 0
         ? this.totalLoadTimeMs / loadedModules
         : 0,
+      preloadFailures: this.preloadFailures,
     };
   }
 

@@ -221,7 +221,8 @@ describe('LazyLoader', () => {
 
   // --- Error handling (preload) ---
 
-  it('should silently handle preload failures', async () => {
+  it('should log preload failures and track them in stats', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     loader.preload('fail', async () => {
       throw new Error('preload failed');
     });
@@ -229,6 +230,35 @@ describe('LazyLoader', () => {
     await new Promise(r => setTimeout(r, 10));
     // Should not be loaded, should not throw
     expect(loader.isLoaded('fail')).toBe(false);
+    // Should have logged the failure
+    expect(warnSpy).toHaveBeenCalled();
+    expect(loader.getStats().preloadFailures).toBe(1);
+    warnSpy.mockRestore();
+  });
+
+  it('should track multiple preload failures', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    loader.preload('fail1', async () => { throw new Error('fail'); });
+    loader.preload('fail2', async () => { throw new Error('fail'); });
+    await new Promise(r => setTimeout(r, 10));
+    expect(loader.getStats().preloadFailures).toBe(2);
+    warnSpy.mockRestore();
+  });
+
+  it('should reset preloadFailures on clear', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    loader.preload('fail', async () => { throw new Error('fail'); });
+    await new Promise(r => setTimeout(r, 10));
+    expect(loader.getStats().preloadFailures).toBe(1);
+    loader.clear();
+    expect(loader.getStats().preloadFailures).toBe(0);
+    warnSpy.mockRestore();
+  });
+
+  it('should not increment preloadFailures on successful preload', async () => {
+    loader.preload('ok', async () => ({ ok: true }));
+    await new Promise(r => setTimeout(r, 10));
+    expect(loader.getStats().preloadFailures).toBe(0);
   });
 
   // --- Multiple keys ---
