@@ -89,3 +89,18 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+
+  security-fuzz:
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+      - run: npm ci
+      - name: Run multi-seed security fuzz tests
+        env:
+          FUZZ_SEEDS: 3
+        run: npm run test:fuzz:multi-seed

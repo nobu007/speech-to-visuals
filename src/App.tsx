@@ -12,6 +12,7 @@ import ErrorAlertSystem from "./components/ErrorAlertSystem";
 import SimplePipelineInterface from "./components/SimplePipelineInterface";
 import SimplePipeline from "./pages/SimplePipeline";
 import FrameworkDashboardPage from "./components/FrameworkDashboardPage";
+import { GuardMetricsDashboard } from "./components/GuardMetricsDashboard";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/iteration43" element={<Iteration43Interface />} />
           <Route path="/production" element={<ProductionDashboard />} />
           <Route path="/framework" element={<FrameworkDashboardPage />} />
+          <Route path="/security" element={<GuardMetricsDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
