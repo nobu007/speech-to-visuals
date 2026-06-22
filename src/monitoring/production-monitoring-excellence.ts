@@ -482,6 +482,17 @@ export class ProductionMonitoringExcellence {
     await new Promise(resolve => setTimeout(resolve, 50));
     return Math.random() * 15 + 5; // 5-20% improvement
   }
+
+  /**
+   * Clean up all background intervals to prevent resource leaks
+   */
+  public destroy(): void {
+    for (const id of this.intervalIds) {
+      clearInterval(id);
+    }
+    this.intervalIds = [];
+    this.monitoringEnabled = false;
+  }
 }
 
 /**

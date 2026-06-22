@@ -92,6 +92,7 @@ class RealTimePerformanceMonitor extends EventEmitter {
   private monitoringStartTime: number = Date.now();
   private lastSnapshotTime: number = 0;
   private snapshotIntervalMs: number = 5000; // 5 seconds
+  private snapshotIntervalId?: NodeJS.Timeout;
 
   // Real-time counters
   private counters = {
@@ -574,7 +575,7 @@ class RealTimePerformanceMonitor extends EventEmitter {
    * Start periodic snapshot emission
    */
   private startPeriodicSnapshot(): void {
-    setInterval(() => {
+    this.snapshotIntervalId = setInterval(() => {
       try {
         const snapshot = this.getSnapshot();
         this.emit('snapshot', snapshot);
@@ -583,6 +584,17 @@ class RealTimePerformanceMonitor extends EventEmitter {
         console.error('[RealTimePerformanceMonitor] Snapshot emission failed:', err);
       }
     }, this.snapshotIntervalMs);
+  }
+
+  /**
+   * Stop periodic snapshot and clean up resources
+   */
+  public stop(): void {
+    if (this.snapshotIntervalId) {
+      clearInterval(this.snapshotIntervalId);
+      this.snapshotIntervalId = undefined;
+    }
+    this.removeAllListeners();
   }
 
   /**
