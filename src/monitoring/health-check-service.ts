@@ -45,11 +45,23 @@ class HealthCheckService {
   private lastHealthCheck: HealthCheckResult | null = null;
   private componentHealthCache: Map<string, ComponentHealth> = new Map();
   private readonly HEALTH_CACHE_TTL_MS = 5000; // 5 seconds
+  private healthCheckInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     // Skip background intervals in test environment to prevent Jest worker leaks
     if (process.env.NODE_ENV !== 'test') {
       this.startPeriodicHealthChecks();
+    }
+  }
+
+  /**
+   * Stop periodic health checks and clean up resources.
+   * Call this on shutdown or in afterAll() to prevent interval leaks.
+   */
+  public destroy(): void {
+    if (this.healthCheckInterval !== null) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = null;
     }
   }
 
@@ -546,7 +558,7 @@ class HealthCheckService {
    */
   private startPeriodicHealthChecks(): void {
     // Perform health check every 10 seconds
-    setInterval(async () => {
+    this.healthCheckInterval = setInterval(async () => {
       try {
         await this.performHealthCheck();
       } catch (error) {
@@ -587,5 +599,5 @@ class HealthCheckService {
 // Global singleton instance
 export const healthCheckService = new HealthCheckService();
 
-// Export types
-export type { HealthCheckService };
+// Export class for testing and custom instantiation
+export { HealthCheckService };
