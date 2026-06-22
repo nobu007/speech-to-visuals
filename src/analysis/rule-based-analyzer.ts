@@ -7,6 +7,7 @@
  */
 
 import type { NodeDatum, EdgeDatum, DiagramType } from '@/types/diagram';
+import { logger } from '@/utils/logger';
 
 /**
  * Scene segment for input
@@ -132,8 +133,9 @@ export class RuleBasedAnalyzer {
 
       const nodes = createNodesFromSentences(sentences);
       return generateSequentialDiagram(nodes);
-    } catch {
+    } catch (err) {
       // Never throw - return empty result on any unexpected error
+      logger.error('[RuleBasedAnalyzer] Unexpected error during analysis:', err instanceof Error ? err.message : String(err));
       return this.emptyResult();
     }
   }

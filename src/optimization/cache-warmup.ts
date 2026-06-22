@@ -13,6 +13,7 @@
  */
 
 import { LLMCache } from '@/analysis/llm-cache';
+import { logger } from '@/utils/logger';
 
 /**
  * Represents a query pattern used for cache warmup
@@ -234,7 +235,8 @@ export class CacheWarmupManager<T> {
         const result = await resolver(pattern.text);
         this.cache.set(pattern.text, result);
         successCount++;
-      } catch {
+      } catch (err) {
+        logger.error('[CacheWarmup] Failed to warm pattern:', { pattern: pattern.text, error: err instanceof Error ? err.message : String(err) });
         failureCount++;
       }
     }

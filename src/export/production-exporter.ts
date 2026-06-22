@@ -571,7 +571,7 @@ export class ProductionExporter {
       fileSize: encodedResult.estimatedSize,
       duration: encodedResult.totalFrames / (job.options.fps || 30),
       sceneCount: job.scenes.length,
-      processingTime: job.endTime! - job.startTime!,
+      processingTime: performance.now() - (job.startTime ?? performance.now()),
       version: `iteration-${this.iteration}`
     };
 
