@@ -165,17 +165,20 @@ export class OverlapResolver {
     }
     
     // Create a promise that will reject after the timeout
+    let timer: ReturnType<typeof setTimeout>;
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => {
+      timer = setTimeout(() => {
         reject(new VisualizationError(`Strategy ${strategy.name} timed out after ${timeout}ms`));
       }, timeout);
     });
-    
-    // Race the strategy against the timeout
+
+    // Race the strategy against the timeout, then clear the timer
     return Promise.race([
       strategy.apply(nodes as unknown as NodeDatum[], edges as unknown as EdgeDatum[], config, existingLayout),
       timeoutPromise
-    ]);
+    ]).finally(() => {
+      clearTimeout(timer!);
+    });
   }
   
   /**

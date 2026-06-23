@@ -4,7 +4,7 @@
  * Following custom instructions for user experience excellence
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,25 +44,30 @@ export const ErrorAlertSystem: React.FC<ErrorAlertSystemProps> = ({
   const [executingRecovery, setExecutingRecovery] = useState<Set<string>>(new Set());
   const [expandedAlerts, setExpandedAlerts] = useState<Set<string>>(new Set());
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
+  const autoHideTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  const alertsRef = useRef<ErrorAlert[]>([]);
+  alertsRef.current = alerts;
 
   // Subscribe to error handler
   useEffect(() => {
     const updateAlerts = (alert: ErrorAlert) => {
+      const exists = alertsRef.current.find(a => a.id === alert.id);
+      if (exists) return;
+
       setAlerts(prev => {
-        const exists = prev.find(a => a.id === alert.id);
-        if (exists) return prev;
-
-        const newAlerts = [alert, ...prev];
-
-        // Auto-hide low priority alerts after 5 seconds
-        if (autoHide && alert.severity === 'low') {
-          setTimeout(() => {
-            setDismissedAlerts(prev => new Set([...prev, alert.id]));
-          }, 5000);
-        }
-
-        return newAlerts;
+        const found = prev.find(a => a.id === alert.id);
+        if (found) return prev;
+        return [alert, ...prev];
       });
+
+      // Auto-hide low priority alerts after 5 seconds
+      if (autoHide && alert.severity === 'low') {
+        const timer = setTimeout(() => {
+          setDismissedAlerts(prev => new Set([...prev, alert.id]));
+          autoHideTimers.current.delete(timer);
+        }, 5000);
+        autoHideTimers.current.add(timer);
+      }
     };
 
     productionErrorHandler.onError('ErrorAlertSystem', updateAlerts);
@@ -82,6 +87,8 @@ export const ErrorAlertSystem: React.FC<ErrorAlertSystemProps> = ({
 
     return () => {
       clearInterval(metricsInterval);
+      autoHideTimers.current.forEach(t => clearTimeout(t));
+      autoHideTimers.current.clear();
     };
   }, [showMetrics, autoHide]);
 
