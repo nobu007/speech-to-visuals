@@ -274,3 +274,128 @@ describe('REQ-253/256 Extended Integration: Listener stability with maxRetries=5
     }
   }, 30000);
 });
+
+/**
+ * TC-253-01 & TC-253-02: Listener stability with maxRetries=10.
+ */
+const tenRetryConfig: RetryConfig = {
+  maxRetries: 10,
+  initialDelayMs: 50,
+  maxDelayMs: 500,
+  jitterMaxMs: 10,
+};
+
+describe('TC-253-01: maxRetries=10 listener stability', () => {
+  test('10 retries with always-failing mock: listener add/remove balanced', async () => {
+    const engine = new EnhancedExportEngine(1, false, undefined, undefined, tenRetryConfig);
+
+    let attemptCount = 0;
+    let addCount = 0;
+    let removeCount = 0;
+    let trackedSignal: AbortSignal | null = null;
+
+    jest.spyOn(engine as unknown as Record<string, unknown>, 'encodeVideo').mockImplementation(
+      async function (...args: unknown[]) {
+        attemptCount++;
+        const job = args[0] as { abortController: AbortController };
+        const sig = job.abortController.signal;
+
+        if (!trackedSignal) {
+          trackedSignal = sig;
+          const origAdd = sig.addEventListener.bind(sig);
+          const origRemove = sig.removeEventListener.bind(sig);
+          sig.addEventListener = ((type: string, listener: EventListenerOrEventListenerObject, options?: AddEventListenerOptions) => {
+            if (type === 'abort') addCount++;
+            return origAdd(type, listener, options);
+          }) as typeof sig.addEventListener;
+          sig.removeEventListener = ((type: string, listener: EventListenerOrEventListenerObject, options?: EventListenerOptions) => {
+            if (type === 'abort') removeCount++;
+            return origRemove(type, listener, options);
+          }) as typeof sig.removeEventListener;
+        }
+
+        // Always fail with transient error (recognized by isTransientExportError)
+        throw new Error('Worker timed out');
+      }
+    );
+
+    jest.useFakeTimers();
+    const resultPromise = engine.exportVideo(createSceneData(), createConfig());
+    await jest.advanceTimersByTimeAsync(30000);
+    let result: { success: boolean } | undefined;
+    try {
+      result = await resultPromise;
+    } catch {
+      // May throw if all retries exhausted
+    }
+    jest.useRealTimers();
+
+    expect(attemptCount).toBe(11); // 1 initial + 10 retries
+    // Listener count stable: every add matched by remove
+    expect(addCount).toBe(removeCount);
+    expect(addCount).toBeGreaterThan(0);
+    expect(trackedSignal).not.toBeNull();
+  }, 60000);
+});
+
+describe('TC-253-02: Abort during retry → immediate listener cleanup', () => {
+  test('abort on 5th attempt: listeners cleaned up immediately', async () => {
+    const engine = new EnhancedExportEngine(1, false, undefined, undefined, tenRetryConfig);
+
+    let attemptCount = 0;
+    let addCount = 0;
+    let removeCount = 0;
+    let trackedController: AbortController | null = null;
+
+    jest.spyOn(engine as unknown as Record<string, unknown>, 'encodeVideo').mockImplementation(
+      async function (...args: unknown[]) {
+        attemptCount++;
+        const job = args[0] as { abortController: AbortController };
+        const sig = job.abortController.signal;
+
+        if (!trackedController) {
+          trackedController = job.abortController;
+          const origAdd = sig.addEventListener.bind(sig);
+          const origRemove = sig.removeEventListener.bind(sig);
+          sig.addEventListener = ((type: string, listener: EventListenerOrEventListenerObject, options?: AddEventListenerOptions) => {
+            if (type === 'abort') addCount++;
+            return origAdd(type, listener, options);
+          }) as typeof sig.addEventListener;
+          sig.removeEventListener = ((type: string, listener: EventListenerOrEventListenerObject, options?: EventListenerOptions) => {
+            if (type === 'abort') removeCount++;
+            return origRemove(type, listener, options);
+          }) as typeof sig.removeEventListener;
+        }
+
+        // On 5th attempt, abort the signal
+        if (attemptCount === 5) {
+          job.abortController.abort();
+          throw new Error('Worker timed out');
+        }
+
+        // All other attempts also fail with transient error
+        throw new Error('Worker timed out');
+      }
+    );
+
+    jest.useFakeTimers();
+    const resultPromise = engine.exportVideo(createSceneData(), createConfig());
+    await jest.advanceTimersByTimeAsync(30000);
+    try {
+      await resultPromise;
+    } catch {
+      // Expected to fail/throw
+    }
+    jest.useRealTimers();
+
+    // Abort happened at attempt 5; further retries may or may not occur
+    expect(attemptCount).toBeGreaterThanOrEqual(5);
+
+    // All listeners that were added must have been removed (no leak)
+    expect(addCount).toBe(removeCount);
+
+    // Signal should be aborted
+    expect(trackedController).not.toBeNull();
+    expect(trackedController!.signal.aborted).toBe(true);
+  }, 60000);
+});
