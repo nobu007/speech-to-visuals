@@ -3535,6 +3535,38 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A198: Abort listener leak + console.error正規化（第198回検証）
+
+**分析日時**: 2026-06-24
+**カテゴリ**: 既存実装確認/追加要件/影響範囲
+**背景**: AI Hubフィードバックで「finding and fixing additional runtime bugs」と「verify no downstream log-parsing consumer depends on the old message format」が指摘された。前回のコミット（78efa1b）でperformance-dashboard.tsとreal-time-performance-monitor.tsのconsole.error→logger.error正規化を実施したが、他のファイルは未対応だった。また、enhanced-export-engine.tsのリトライ遅延中のabort listenerがタイマー完了時に削除されていないことをコードレビューで発見した。
+
+**判断**:
+1. **Abort listener leak（EDGE-010）**: enhanced-export-engine.tsのencodeVideoWithRetry()内のリトライ遅延（delay待機）で、setTimeoutがabortより先に完了した場合、sig.addEventListener('abort', ...)で追加したリスナーがsignalに残り続ける。runStageWithTimeout（line 401）はfinally blockでremoveEventListenerしているが、retry delayの無名Promise（line 463-477）は対応していなかった。修正：タイマーコールバック内でsig.removeEventListener(onAbort)を呼び出すよう変更。
+
+2. **console.error残存5ファイル（EDGE-011）**: src/optimization/memory-cache.ts、src/analysis/budget-alert.ts、src/monitoring/production-monitoring-excellence.ts、src/quality/error-recovery-event-bus.ts（2箇所）にconsole.errorが残存。これらはログレベルフィルタリング（logger.tsのLogLevel）をバイパスするため、logger.errorに統一。
+
+3. **ログフォーマット影響確認**: logger.errorはconsole.errorと同じメッセージ本文を出力するが、`[ERROR]`プレフィックスを付与する。既存のメッセージテキスト（例：`[PerformanceDashboard] Monitoring tick failed:`）は保持されるため、メッセージ内容でgrepするダウンストリームコンシューマーへの影響は最小限。プレフィックス変更のみで、フォーマットスキーマの breaking change はない。
+
+**根拠**:
+- `src/export/enhanced-export-engine.ts` lines 463-477（修正前：タイマー完了時のリスナー削除なし）vs lines 389-410（runStageWithTimeoutの正しいパターン：finally blockでremoveEventListener）
+- `src/utils/logger.ts` — logger.errorは `[ERROR] ${message}` 形式でconsole.errorを呼び出す
+- `src/optimization/memory-cache.ts` line 59 — console.error残存
+- `src/analysis/budget-alert.ts` line 103 — console.error残存
+- `src/monitoring/production-monitoring-excellence.ts` line 172 — console.error残存
+- `src/quality/error-recovery-event-bus.ts` lines 209, 217 — console.error残存
+
+**信頼性への影響**:
+- EDGE-010 新規追加（信頼性レベル: 🔵）
+- EDGE-011 新規追加（信頼性レベル: 🔵）
+- 信頼性レベル分布: 🔵271件(98.5%) / 🟡4件(1.5%) / 🔴0件(0%) — 🔵が269→271に増加
+- 3テスト新規追加（export-abort-listener-cleanup.test.ts）
+- 全162既存enhanced-export-engineテスト通過確認
+- 全160関連モジュールテスト通過確認
+- TypeScript型チェック0エラー確認
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)

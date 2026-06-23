@@ -5,6 +5,8 @@
  * and comprehensive real-time system health optimization.
  */
 
+import { logger } from '@/utils/logger';
+
 export interface MonitoringEnhancement {
   aiAnomalyDetection: AnomalyDetectionConfig;
   predictiveAnalytics: PredictiveAnalyticsConfig;
@@ -169,7 +171,7 @@ export class ProductionMonitoringExcellence {
       try {
         this.executeRealTimeOptimization();
       } catch (err) {
-        console.error('[ProductionMonitoringExcellence] Real-time optimization tick failed:', err);
+        logger.error('[ProductionMonitoringExcellence] Real-time optimization tick failed:', err);
       }
     }, 5000)); // Optimize every 5 seconds
   }

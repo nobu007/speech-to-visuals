@@ -5,6 +5,8 @@
  * budget thresholds and fires alerts when thresholds are exceeded.
  */
 
+import { logger } from '@/utils/logger';
+
 export interface BudgetConfig {
   sessionBudget: number;   // e.g. 1.00 = $1.00 per session
   dailyBudget: number;     // e.g. 10.00 = $10.00 per day
@@ -100,7 +102,7 @@ export class BudgetAlertSystem {
     // Notify callbacks
     for (const alert of newAlerts) {
       for (const cb of this.alertCallbacks) {
-        try { cb(alert); } catch (e) { console.error('[BudgetAlertSystem] Callback error:', e); }
+        try { cb(alert); } catch (e) { logger.error('[BudgetAlertSystem] Callback error:', e); }
       }
     }
 

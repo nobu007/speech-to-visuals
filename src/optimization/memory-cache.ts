@@ -3,6 +3,8 @@
  * Provides generic in-memory caching with configurable size limits and expiration
  */
 
+import { logger } from '@/utils/logger';
+
 export interface CacheEntry<V> {
   value: V;
   expiresAt: number;
@@ -56,7 +58,7 @@ export class MemoryCache<V> {
           try {
             this.cleanup();
           } catch (err) {
-            console.error('[MemoryCache] Cleanup tick failed:', err);
+            logger.error('[MemoryCache] Cleanup tick failed:', err);
           }
         },
         resolved.cleanupIntervalMs

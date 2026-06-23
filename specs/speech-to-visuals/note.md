@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-23（第196回検証・Phase 110完了・CI品質ゲート・ガード関数ファジング・red-phase CI統合・security-fuzzビルド依存・REQ-250~252追加）
+**最終更新**: 2026-06-24（第198回検証・EDGE-010/011追加・abort listener leak fix・console.error→logger.error 正規化5ファイル・3テスト追加）
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム
 
 ## 技術スタック
@@ -124,6 +124,8 @@ src/
 - [x] Phase 108 エクスポートセキュリティ hardening 完了（REQ-244~246・イベントハンドラ正規表現名前付き定数配列化・プロパティベース変異ファジング回帰ネット・SecurityMetricsCollector防護拒否メトリクス・130テスト追加）
 - [x] Phase 109 セキュリティファジング CI 拡張完了（REQ-247~249・マルチシードCI ファジングモード・全エクスポート経路ガードメトリクス回帰テスト・E2Eセキュリティパイプライン統合テスト）
 - [x] Phase 110 CI品質ゲート・ガード関数ファジング完了（REQ-250~252・red-phase CI統合・guard-fuzz test追加540ケース・security-fuzzビルド依存）
+- [x] 第198回検証: EDGE-010 abort listener leak fix（EnhancedExportEngine リトライ遅延のAbortSignal listener cleanup・3テスト追加）
+- [x] 第198回検証: EDGE-011 console.error→logger.error 正規化（memory-cache・budget-alert・production-monitoring-excellence・error-recovery-event-bus・5箇所修正）
 
 ## 注意事項
 

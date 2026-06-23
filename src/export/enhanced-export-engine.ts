@@ -461,18 +461,22 @@ export class EnhancedExportEngine {
         // Abortable delay: if the job is cancelled during the retry wait,
         // reject immediately instead of continuing to retry.
         await new Promise<void>((resolve, reject) => {
-          const timer = setTimeout(resolve, delay);
           const sig = job.abortController?.signal;
+          const onAbort = () => {
+            clearTimeout(timer);
+            reject(new DOMException('Export cancelled', 'AbortError'));
+          };
+          const timer = setTimeout(() => {
+            sig?.removeEventListener('abort', onAbort);
+            resolve();
+          }, delay);
           if (sig) {
             if (sig.aborted) {
               clearTimeout(timer);
               reject(new DOMException('Export cancelled', 'AbortError'));
               return;
             }
-            sig.addEventListener('abort', () => {
-              clearTimeout(timer);
-              reject(new DOMException('Export cancelled', 'AbortError'));
-            }, { once: true });
+            sig.addEventListener('abort', onAbort, { once: true });
           }
         });
       }

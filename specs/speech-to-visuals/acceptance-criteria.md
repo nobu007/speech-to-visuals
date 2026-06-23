@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-23（第197回検証: Phase 110完了 - CI品質ゲート・ガード関数ファジング・red-phase CI統合・security-fuzzビルド依存・REQ-250~252追加）
+**最終更新**: 2026-06-24（第198回検証: EDGE-010/011追加 - abort listener cleanup・console.error正規化・3テスト追加）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -5136,6 +5136,56 @@
 | REQ-251: ガード関数ファジング | 540 | 🔵 |
 | REQ-252: security-fuzzビルド依存 | 1 | 🔵 |
 | **合計** | **543** | **🔵 100%** |
+
+---
+
+## EDGE-008~011: リソースリーク・ログ正規化テスト（第198回検証追加）
+
+### EDGE-008: ErrorAlertSystem timer cleanup 🔵
+
+- [x] **TC-EDGE-008-01**: auto-hide setTimeout が useRef Set で追跡される 🔵
+  - **テスト**: tests/components/error-alert-system-timer.test.ts
+  - **期待結果**: 全タイマーが unmount 時に clearTimeout される
+  - **信頼性**: 🔵 *実装確認済*
+
+### EDGE-009: OverlapResolver timer cleanup 🔵
+
+- [x] **TC-EDGE-009-01**: Promise.race 完了後に clearTimeout が呼ばれる 🔵
+  - **テスト**: tests/visualization/overlap-resolver-timer-cleanup.test.ts
+  - **期待結果**: タイマー参照が解放される
+  - **信頼性**: 🔵 *実装確認済*
+
+### EDGE-010: EnhancedExportEngine abort listener cleanup 🔵
+
+- [x] **TC-EDGE-010-01**: リトライ遅延タイマー勝利時の removeEventListener 呼び出し 🔵
+  - **テスト**: src/export/__tests__/export-abort-listener-cleanup.test.ts
+  - **期待結果**: タイマー完了後、AbortSignal から abort リスナーが削除される
+  - **信頼性**: 🔵 *実装修正済*
+
+- [x] **TC-EDGE-010-02**: リトライ中のabortで即時reject 🔵
+  - **テスト**: src/export/__tests__/export-abort-listener-cleanup.test.ts
+  - **期待結果**: abort発生時にリトライ遅延がキャンセルされ、即座にエクスポートがキャンセルされる
+  - **信頼性**: 🔵 *実装修正済*
+
+- [x] **TC-EDGE-010-03**: リトライ成功後にリスナーが蓄積しない 🔵
+  - **テスト**: src/export/__tests__/export-abort-listener-cleanup.test.ts
+  - **期待結果**: 複数リトライ後も addEventListener と removeEventListener の呼び出し回数が均衡する
+  - **信頼性**: 🔵 *実装修正済*
+
+### EDGE-011: console.error → logger.error 正規化 🔵
+
+- [x] **TC-EDGE-011-01**: 全プロダクションコードの catch ブロックが logger.error を使用 🔵
+  - **対象**: src/optimization/memory-cache.ts, src/analysis/budget-alert.ts, src/monitoring/production-monitoring-excellence.ts, src/quality/error-recovery-event-bus.ts
+  - **期待結果**: console.error が src/utils/logger.ts の logger.error に置換される（logger.ts 自身を除く）
+  - **信頼性**: 🔵 *ソースコード検証済*
+
+### 第198回検証サマリー
+
+| カテゴリ | テスト数 | 信頼性 |
+|---------|---------|--------|
+| EDGE-010: abort listener cleanup | 3 | 🔵 |
+| EDGE-011: console.error正規化 | 1 | 🔵 |
+| **合計** | **4** | **🔵 100%** |
 
 
 <!-- spine:references:begin -->
