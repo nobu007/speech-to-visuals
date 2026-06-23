@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-24（第198回検証: EDGE-010/011追加 - abort listener cleanup・console.error正規化・3テスト追加）
+**最終更新**: 2026-06-24（第199回検証: COV-001~003追加・EDGE-008/009サマリー修正・spec-to-test traceability強化）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -5139,21 +5139,21 @@
 
 ---
 
-## EDGE-008~011: リソースリーク・ログ正規化テスト（第198回検証追加）
+## EDGE-008~011: リソースリーク・ログ正規化テスト（第198~199回検証追加）
 
 ### EDGE-008: ErrorAlertSystem timer cleanup 🔵
 
 - [x] **TC-EDGE-008-01**: auto-hide setTimeout が useRef Set で追跡される 🔵
-  - **テスト**: tests/components/error-alert-system-timer.test.ts
+  - **テスト**: tests/components/error-alert-system-timer.test.ts（5テスト）
   - **期待結果**: 全タイマーが unmount 時に clearTimeout される
   - **信頼性**: 🔵 *実装確認済*
 
 ### EDGE-009: OverlapResolver timer cleanup 🔵
 
 - [x] **TC-EDGE-009-01**: Promise.race 完了後に clearTimeout が呼ばれる 🔵
-  - **テスト**: tests/visualization/overlap-resolver-timer-cleanup.test.ts
+  - **テスト**: tests/visualization/overlap-resolver-timer-cleanup.test.ts（2テスト）
   - **期待結果**: タイマー参照が解放される
-  - **信頼性**: 🔵 *実装確認済*
+  - **信頼性**: 🔵 *実装確認済（第199回検証で startTime 初期化バグ修正）*
 
 ### EDGE-010: EnhancedExportEngine abort listener cleanup 🔵
 
@@ -5175,17 +5175,53 @@
 ### EDGE-011: console.error → logger.error 正規化 🔵
 
 - [x] **TC-EDGE-011-01**: 全プロダクションコードの catch ブロックが logger.error を使用 🔵
-  - **対象**: src/optimization/memory-cache.ts, src/analysis/budget-alert.ts, src/monitoring/production-monitoring-excellence.ts, src/quality/error-recovery-event-bus.ts
+  - **対象**: src/optimization/memory-cache.ts, src/analysis/budget-alert.ts, src/monitoring/production-monitoring-excellence.ts, src/quality/error-recovery-event-bus.ts, src/monitoring/performance-dashboard.ts, src/monitoring/real-time-performance-monitor.ts
   - **期待結果**: console.error が src/utils/logger.ts の logger.error に置換される（logger.ts 自身を除く）
   - **信頼性**: 🔵 *ソースコード検証済*
 
-### 第198回検証サマリー
+### 第198~199回検証サマリー
 
 | カテゴリ | テスト数 | 信頼性 |
 |---------|---------|--------|
+| EDGE-008: React timer leak | 5 | 🔵 |
+| EDGE-009: Promise.race timer leak | 2 | 🔵 |
 | EDGE-010: abort listener cleanup | 3 | 🔵 |
 | EDGE-011: console.error正規化 | 1 | 🔵 |
-| **合計** | **4** | **🔵 100%** |
+| **合計** | **11** | **🔵 100%** |
+
+---
+
+## COV-001~003: 未テストモジュール カバレッジ拡充（第198回検証追加）
+
+### COV-001: ExportVerifier フォーマット検証 🔵
+
+- [x] **TC-COV-001-01**: MP4/WebM/GIF/PNG/APNG/PDF/SVG/JSON/Lottie 形式検証 🔵
+  - **テスト**: src/export/__tests__/export-verifier.test.ts（138テスト）
+  - **期待結果**: 各フォーマットのマジックバイト検証・最小ファイルサイズ・破損ファイル検出
+  - **信頼性**: 🔵 *実装確認済*
+
+### COV-002: RecoveryStrategyChain エラー回復 🔵
+
+- [x] **TC-COV-002-01**: ChainBuilder・実行・時間予算・統計・トレース 🔵
+  - **テスト**: src/quality/__tests__/recovery-strategy-chain.test.ts（59テスト）
+  - **期待結果**: 戦略チェーン構築・実行・タイムアウト・統計収集・トレース出力
+  - **信頼性**: 🔵 *実装確認済*
+
+### COV-003: BatchJobManager バッチ処理 🔵
+
+- [x] **TC-COV-003-01**: BatchJobManager・ルートハンドラー・UUID検証 🔵
+  - **テスト**: src/api/routes/__tests__/batch.test.ts（52テスト・パラメータ化展開含む）
+  - **期待結果**: ジョブ作成・ステータス取得・キャンセル・UUID形式検証・エラーハンドリング
+  - **信頼性**: 🔵 *実行確認済（Jest実行時52テスト・静的カウント46+パラメータ化展開6）*
+
+### カバレッジ拡充サマリー
+
+| モジュール | テスト数 | 信頼性 |
+|-----------|---------|--------|
+| COV-001: ExportVerifier | 138 | 🔵 |
+| COV-002: RecoveryStrategyChain | 59 | 🔵 |
+| COV-003: BatchJobManager | 52 | 🔵 |
+| **合計** | **249** | **🔵 100%** |
 
 
 <!-- spine:references:begin -->

@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-24（第198回検証・EDGE-010/011追加・abort listener leak fix・console.error→logger.error 正規化5ファイル・3テスト追加）
+**最終更新**: 2026-06-24（第199回検証・EDGE-008~011設計反映・COV-001~003追加・overlap-resolver テストバグ修正・spec-to-test traceability強化）
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム
 
 ## 技術スタック

@@ -41,7 +41,10 @@ describe('OverlapResolver timer cleanup', () => {
   });
 
   it('should clear the timeout timer when strategy completes first', async () => {
-    const resolver = new OverlapResolver(1);
+    const resolver = new OverlapResolver();
+    // Set startTime so the timeout calculation doesn't go negative
+    (resolver as unknown as { startTime: number }).startTime = performance.now();
+
     // Use a fast strategy that resolves immediately
     const fastStrategy = {
       name: 'fast',
@@ -71,7 +74,10 @@ describe('OverlapResolver timer cleanup', () => {
   });
 
   it('should clear the timeout timer when strategy rejects', async () => {
-    const resolver = new OverlapResolver(1);
+    const resolver = new OverlapResolver();
+    // Set startTime so the timeout calculation doesn't go negative
+    (resolver as unknown as { startTime: number }).startTime = performance.now();
+
     const failingStrategy = {
       name: 'failing',
       apply: async () => {

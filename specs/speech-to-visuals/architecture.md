@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-23（第197回検証: Phase 110 CI品質ゲート・ガード関数ファジング・red-phase CI統合・security-fuzzビルド依存・REQ-250~252追加）
+**最終更新**: 2026-06-24（第199回検証: EDGE-008~011リソースリーク修正・console.error正規化・243テスト追加・非推奨Jestフラグ置換・overlap-resolverテストバグ修正）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -297,6 +297,19 @@ Phase 55 で実装されたパイプライン音声入力検証の統合:
 - **validateAudioFile**: File オブジェクトのサイズ上限（EDGE-101: 50MB）・空ファイル検出（EDGE-001）・対応形式（MIME type + 拡張子）検証を一元化。SimplePipelineInterface のファイル選択ハンドラに統合 🔵 *src/utils/audio-validation.ts より*
 - **validateAudioDuration**: 音声再生時間の下限（EDGE-102: 1秒未満拒否）・長時間警告（EDGE-103: 1時間超過警告）・無効値（NaN/Infinity/負数）検出を一元化。SimplePipelineInterface の非同期チェックに統合 🔵 *src/utils/audio-validation.ts より*
 - **UI統合**: SimplePipelineInterface の検証ロジックをインラインから validateAudioFile/validateAudioDuration に置換。EDGE-102 の1秒未満拒否が UI に新規追加 🔵 *src/components/SimplePipelineInterface.tsx より*
+
+### リソースリーク防止・ログ正規化 🔵 【EDGE-008~011 追加】
+
+**信頼性**: 🔵 *src/components/ErrorAlertSystem.tsx・src/visualization/layout/OverlapResolver.ts・src/export/enhanced-export-engine.ts・src/utils/logger.ts より*
+
+EDGE-008~011 で実装されたリソース管理・ログ品質の改善:
+
+- **EDGE-008: React timer leak修正** 🔵: ErrorAlertSystem.tsx の `setTimeout` が React state updater 内で呼ばれるアンチパターンを修正。`useRef<Set<ReturnType<typeof setTimeout>>>` で全タイマーを追跡し、unmount 時に一括クリア。5テスト追加（tests/components/error-alert-system-timer.test.ts）
+- **EDGE-009: Promise.race timer leak修正** 🔵: OverlapResolver.ts の `applyStrategyWithTimeout` で `setTimeout` が戦略完了時にクリアされない問題を修正。`.finally(() => clearTimeout(timer))` を追加。2テスト追加（tests/visualization/overlap-resolver-timer-cleanup.test.ts）
+- **EDGE-010: AbortSignal listener leak修正** 🔵: enhanced-export-engine.ts の `encodeVideoWithRetry` リトライ遅延 Promise で、タイマー勝利時に `AbortSignal.removeEventListener` を呼び出すよう修正。3テスト追加（src/export/__tests__/export-abort-listener-cleanup.test.ts）
+- **EDGE-011: console.error → logger.error 正規化** 🔵: 全プロダクションコードの `console.error` を `logger.error` に統一。対象: memory-cache.ts, budget-alert.ts, production-monitoring-excellence.ts, error-recovery-event-bus.ts, performance-dashboard.ts, real-time-performance-monitor.ts。logger.ts形式: `[ERROR] ${message}`（下流ログ消費者への影響なし・構造化ログパーサー不存在・Prometheus メトリクスは別経路）
+- **非推奨Jestフラグ置換** 🔵: Jest 30.4.1 で `--testPathPattern` → `--testPathPatterns` に置換。CI互換性確保
+- **overlap-resolver テストバグ修正** 🔵: `applyStrategyWithTimeout` テストで `this.startTime` 未初期化によるタイムアウト計算負値化を修正
 
 ### 最適化・パフォーマンス 🔵
 

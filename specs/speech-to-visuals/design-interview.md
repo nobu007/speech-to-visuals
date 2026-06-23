@@ -10,8 +10,8 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-22（第196回検証: Phase 108-109セキュリティハードening設計反映・defense-in-depth エクスポート検証アーキテクチャ・SecurityMetricsCollector・GuardMetricsDashboard・プロパティベースXSSテスト・CI ファジング・レッドフェーズ検証・REQ-244~249）
-**履歴**: 第176回検証(2026-06-02)・第171回検証(2026-06-01)・第170回検証(2026-05-29)・第167回検証(2026-05-27)・第165回検証(2026-05-26)・第158回検証(2026-05-20)・第157回検証(2026-05-18)・第151回検証(2026-05-18)・第150回検証(2026-05-18)・第149回検証(2026-05-17)・第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-05-01)・第22回検証(2026-04-30)
+**最終更新**: 2026-06-24（第199回検証: EDGE-008~011リソースリーク修正・console.error正規化・243テスト追加・非推奨Jestフラグ置換・overlap-resolverテストバグ修正）
+**履歴**: 第197回検証(2026-06-23)・第196回検証(2026-06-22)・第176回検証(2026-06-02)・第171回検証(2026-06-01)・第170回検証(2026-05-29)・第167回検証(2026-05-27)・第165回検証(2026-05-26)・第158回検証(2026-05-20)・第157回検証(2026-05-18)・第151回検証(2026-05-18)・第150回検証(2026-05-18)・第149回検証(2026-05-17)・第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-05-01)・第22回検証(2026-04-30)
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 
 ## 分析目的
@@ -84,6 +84,127 @@
 - dataflow.md: 🔵 セキュリティガードメトリクスデータフロー追加
 - design-interview.md: A111追加
 - 信頼性レベル: 全追加項目 🔵（実装済みコードとテストを直接参照）
+
+---
+
+### A115: 第199回検証 - overlap-resolver timer test修正・非推奨Jestフラグ置換（2026-06-24）
+
+**分析日時**: 2026-06-24
+**カテゴリ**: テスト品質・CI互換性
+**背景**: overlap-resolver-timer-cleanup.test.tsの2テストが失敗していた。原因はOverlapResolverのコンストラクタ引数（存在しない）と、`this.startTime`未初期化による`applyStrategyWithTimeout`のタイムアウト計算負値化。またJest 30.4.1で`--testPathPattern`が非推奨となり`--testPathPatterns`に置換済みだが、テスト本体にも修正が必要だった。
+
+**判断**: 以下の修正を実施:
+
+1. **overlap-resolver test修正** 🔵: `tests/visualization/overlap-resolver-timer-cleanup.test.ts`
+   - `new OverlapResolver(1)` → `new OverlapResolver()`（コンストラクタ引数なし）
+   - `applyStrategyWithTimeout`呼び出し前に`(resolver as unknown as { startTime: number }).startTime = performance.now()`を設定
+   - 原因: `this.startTime`が0のままだったため、`timeout = Math.min(2000, 5000 - (performance.now() - 0))`が負になり、"Out of time"エラーが発生
+   - 修正後2テスト全通過確認
+
+2. **Jest非推奨フラグ置換検証** 🔵: Jest 30.4.1で確認
+   - `--testPathPattern` → `--testPathPatterns`（commit 78efa1bで対応済み）
+   - グローバルテスト実行に影響なし（package.jsonのスクリプトで対応済み）
+
+**根拠**:
+- テスト実行結果: 修正前2失敗 → 修正後2通過（10スイート全通過）
+- git log: e2666ad, 78efa1b
+
+**信頼性への影響**:
+- design-interview.md: A115追加
+- テスト安定性向上: CI非ブロッキング化
+
+---
+
+### A114: 第198回検証 - EDGE-010 abort listener leak修正・EDGE-011 console.error正規化完了（2026-06-24）
+
+**分析日時**: 2026-06-24
+**カテゴリ**: リソース管理・ログ品質
+**背景**: enhanced-export-engine.tsの`encodeVideoWithRetry`内のリトライ遅延AbortSignalリスナーがクリアされていなかった（EDGE-010）。また、一部のソースファイルで`console.error`が残存しており、ログフォーマットの一貫性が損なわれていた（EDGE-011）。
+
+**判断**: 以下の修正を実施:
+
+1. **EDGE-010: AbortSignal listener leak修正** 🔵: `src/export/enhanced-export-engine.ts`
+   - `encodeVideoWithRetry`のリトライ遅延Promise（line 463付近）で`AbortSignal.addEventListener('abort', ...)`のコールバックがタイマー勝利時に`removeEventListener`されていなかった
+   - 修正: タイマーコールバック内で`sig.removeEventListener(onAbort)`を呼び出し
+   - パターンは`runStageWithTimeout`（line 401、finally blockあり）では正しかったが、リトライ遅延Promiseでは漏れていた
+   - 3テスト追加: `src/export/__tests__/export-abort-listener-cleanup.test.ts`（179行）
+
+2. **EDGE-011: console.error → logger.error正規化** 🔵: 全ソースファイル完了
+   - 修正ファイル: memory-cache.ts, budget-alert.ts, production-monitoring-excellence.ts, error-recovery-event-bus.ts（2箇所）
+   - 前回commit 78efa1b: performance-dashboard.ts, real-time-performance-monitor.ts
+   - logger.ts形式: `[ERROR] ${message}`（レベルプレフィックス追加・メッセージ本文同一）
+   - 下流ログ消費者への影響: なし（全てstderr出力・構造化ログパーサーなし・Prometheusメトリクスは別経路）
+
+**根拠**:
+- git log: e2666ad (abort listener + console.error normalization)
+- git log: 78efa1b (monitoring log normalization)
+- logger.ts ソースコード確認: error format = `[ERROR] ${message}`
+
+**信頼性への影響**:
+- architecture.md: 🔵 インフラ層にリソースリーク防止パターン追加
+- 信頼性レベル: 全追加項目 🔵
+
+---
+
+### A113: 第198回検証 - 3未テストモジュールへ243テスト追加（2026-06-24）
+
+**分析日時**: 2026-06-24
+**カテゴリ**: テストカバレッジ
+**背景**: 3つの重要モジュール（1,423行のビジネスロジック）が未テストのまま残存していた: ExportVerifier（エクスポート検証）、RecoveryStrategyChain（エラー回復戦略チェーン）、BatchJobManager（バッチ処理APIルート）。
+
+**判断**: 以下のテストスイートを追加:
+
+1. **export-verifier.test.ts** 🔵: 138テスト
+   - MP4/WebM/GIF/PNG/APNG/PDF/SVG/JSON/Lottie形式検証
+   - マジックバイト検証・最小ファイルサイズ・破損ファイル検出
+   - APNG test buffers must be >100 bytes (default minFileSizeBytes)
+
+2. **recovery-strategy-chain.test.ts** 🔵: 59テスト
+   - ChainBuilder・実行・時間予算・統計・トレース
+
+3. **batch.test.ts** 🔵: 52テスト（静的カウント46+パラメータ化展開6）
+   - BatchJobManager・ルートハンドラー・UUID検証
+
+4. **テスト実行結果** 🔵: 257通過・2失敗（A115で修正済み）→ 現在259全通過
+
+**根拠**:
+- git log: 8e6ebc9 (243 tests for 3 untested modules)
+- テスト実行確認: 10スイート・259テスト全通過（A115修正後）
+
+**信頼性への影響**:
+- acceptance-criteria.md: EDGE-008~011テストケース追加済み（第198回検証）
+- テストカバレッジ: 3重要モジュールの未テスト状態解消
+- spec-to-test traceability: RecoveryStrategyChain（59テスト）とbatch routes（46テスト）にTC-IDマッピングが必要
+
+---
+
+### A112: 第197回検証 - EDGE-008/009 timer leak修正・リソース管理設計（2026-06-23）
+
+**分析日時**: 2026-06-23
+**カテゴリ**: リソース管理・Reactアンチパターン
+**背景**: ErrorAlertSystem.tsxのsetTimeoutがReact state updater内で呼ばれ、unmount後にクリーンアップされないアンチパターンが存在（EDGE-008）。OverlapResolver.tsのPromise.raceタイマーがクリアされずにリーク（EDGE-009）。
+
+**判断**: 以下の修正を実施:
+
+1. **EDGE-008: ErrorAlertSystem Reactアンチパターン修正** 🔵: `src/components/ErrorAlertSystem.tsx`
+   - 問題: `setState`コールバック内で`setTimeout`を呼び出し（React anti-pattern）+ 未追跡
+   - 修正: `useRef<Set<ReturnType<typeof setTimeout>>>`で全タイマーを追跡
+   - クリーンアップ: `useEffect`のunmountで`clearTimeout`を全タイマーに適用
+   - 5テスト追加: `tests/components/error-alert-system-timer.test.ts`（58行）
+
+2. **EDGE-009: OverlapResolver timer leak修正** 🔵: `src/visualization/layout/OverlapResolver.ts`
+   - 問題: `Promise.race`の`setTimeout`が戦略完了時にクリアされず、rejectコールバックが生き続ける
+   - 修正: `.finally(() => clearTimeout(timer))`を追加
+   - 2テスト追加: `tests/visualization/overlap-resolver-timer-cleanup.test.ts`（99行）
+
+**根拠**:
+- git log: c3254a3 (timer leak fixes)
+- specs/speech-to-visuals/acceptance-criteria.md: EDGE-008/009エントリ追加済み
+
+**信頼性への影響**:
+- architecture.md: 🔵 インフラ層にリソースリーク防止パターン（useRef Set + clearTimeout・Promise.race .finally）
+- React anti-pattern regression guard: 既存270チェックに追加すべき検出パターン
+- 信頼性レベル: 全追加項目 🔵
 
 ---
 
@@ -3734,4 +3855,10 @@ interfaces.ts には既にこれらの主要型が反映済み。
 
 - 🔵 青信号: 490 (+25)
 - 🟡 黄信号: 6 (+2)
+- 🔴 赤信号: 0
+
+**現在（第199回検証 - EDGE-008~011・COV-001~003反映後）**:
+
+- 🔵 青信号: 560 (+70)
+- 🟡 黄信号: 6 (±0)
 - 🔴 赤信号: 0
