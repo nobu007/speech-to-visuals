@@ -1,4 +1,4 @@
-import {useState, memo, useCallback, useMemo} from 'react';
+import {useState, useRef, useEffect, memo, useCallback, useMemo} from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -22,6 +22,11 @@ export const VideoRenderer: React.FC<VideoRendererProps> = ({ scenes, audioUrl }
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [quality, setQuality] = useState<'low' | 'medium' | 'high'>('medium');
   const [showSettings, setShowSettings] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const totalDuration = scenes.reduce((acc, scene) => acc + scene.durationMs, 0);
   const minutes = Math.floor(totalDuration / 60000);
@@ -43,18 +48,22 @@ export const VideoRenderer: React.FC<VideoRendererProps> = ({ scenes, audioUrl }
           outputName: `diagram-video-${Date.now()}`
         },
         (progress) => {
-          setRenderProgress(progress);
+          if (mountedRef.current) setRenderProgress(progress);
         }
       );
 
-      setVideoUrl(resultUrl);
-      toast.success('動画のレンダリングが完了しました！');
+      if (mountedRef.current) {
+        setVideoUrl(resultUrl);
+        toast.success('動画のレンダリングが完了しました！');
+      }
 
     } catch (error) {
       logger.error('Render error:', error);
-      toast.error('動画のレンダリング中にエラーが発生しました');
+      if (mountedRef.current) {
+        toast.error('動画のレンダリング中にエラーが発生しました');
+      }
     } finally {
-      setIsRendering(false);
+      if (mountedRef.current) setIsRendering(false);
     }
   };
 

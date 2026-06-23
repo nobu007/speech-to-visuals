@@ -1169,6 +1169,7 @@ export class MainPipeline {
       await this.applyRecoveryStrategy(recoveryStrategy, stageName);
       return true;
     } catch (recoveryError) {
+      logger.error(`[Pipeline Recovery] Failed to apply strategy "${recoveryStrategy}" for ${stageName} (attempt ${attempt}):`, recoveryError);
       return false;
     }
   }
