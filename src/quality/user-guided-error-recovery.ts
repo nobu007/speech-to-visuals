@@ -13,6 +13,8 @@
  * - Section 9.2: Continuous Improvement - User experience
  */
 
+import { logger } from '@/utils/logger';
+
 export type ErrorCategory =
   | 'file_format'
   | 'file_size'
@@ -126,6 +128,10 @@ export class UserGuidedErrorRecovery {
 
         return { success: true, result };
       } catch (error) {
+        logger.error(
+          `[UserGuidedRecovery] Strategy "${strategy.id}" failed:`,
+          error instanceof Error ? error.message : String(error)
+        );
         continue;
       }
     }

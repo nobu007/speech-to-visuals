@@ -11,7 +11,7 @@
 #   ./scripts/verify-red-phase.sh          # run with default Jest config
 #   FUZZ_SEEDS=3 ./scripts/verify-red-phase.sh  # add random seed iterations
 #
-set -euo pipefail
+set -uo pipefail
 
 echo "=== Red-Phase Verification Gate ==="
 echo "Running guard-red-phase-verification test suite..."
@@ -20,7 +20,7 @@ echo "Running guard-red-phase-verification test suite..."
 # Exit code 0 = all canaries detected (pass)
 # Exit code non-0 = at least one canary slipped through (FAIL)
 npx jest --config jest.config.cjs \
-  --testPathPattern='guard-red-phase-verification' \
+  --testPathPatterns='guard-red-phase-verification' \
   --verbose \
   --no-coverage
 
