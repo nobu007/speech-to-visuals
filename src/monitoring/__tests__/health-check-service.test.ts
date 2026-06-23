@@ -37,6 +37,7 @@ jest.mock('@/utils/logger', () => ({
 const { realTimeMonitor } = require('../real-time-performance-monitor');
 const { globalCache } = require('@/performance/intelligent-cache');
 const { getMemoryUsage } = require('@/utils/memory-usage');
+const { logger } = require('@/utils/logger');
 
 function makeHealthySnapshot(): PerformanceSnapshot {
   return {
@@ -650,6 +651,102 @@ describe('HealthCheckService', () => {
     it('can be called multiple times safely', () => {
       service.destroy();
       expect(() => service.destroy()).not.toThrow();
+    });
+  });
+
+  describe('error logging in catch blocks', () => {
+    it('logs error when getSnapshot fails for metrics fallback', async () => {
+      // Force getSnapshot to throw for the metrics section (after all checks pass)
+      // Pipeline(#1), LLM(#2), ErrorRecovery(#3), then metrics(#4) should throw
+      let callCount = 0;
+      realTimeMonitor.getSnapshot.mockImplementation(() => {
+        callCount++;
+        if (callCount >= 4) throw new Error('Snapshot failed');
+        return makeHealthySnapshot();
+      });
+
+      await service.performHealthCheck();
+
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('[HealthCheck]'),
+        expect.any(Error)
+      );
+    });
+
+    it('logs warning when cache getStats throws', async () => {
+      globalCache.getStats.mockImplementation(() => {
+        throw new Error('Cache error');
+      });
+
+      const result = await service.performHealthCheck();
+
+      expect(result.checks.cache.status).toBe('degraded');
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('[HealthCheck] Cache health check failed'),
+        expect.any(Error)
+      );
+    });
+
+    it('logs warning when getSnapshot throws for pipeline check', async () => {
+      realTimeMonitor.getSnapshot.mockImplementation(() => {
+        throw new Error('Monitor error');
+      });
+
+      const result = await service.performHealthCheck();
+
+      expect(result.checks.pipeline.status).toBe('degraded');
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('[HealthCheck] Pipeline health check failed'),
+        expect.any(Error)
+      );
+    });
+
+    it('logs warning when getSnapshot throws for LLM check', async () => {
+      let callCount = 0;
+      realTimeMonitor.getSnapshot.mockImplementation(() => {
+        callCount++;
+        if (callCount === 2) throw new Error('LLM monitor error');
+        return makeHealthySnapshot();
+      });
+
+      const result = await service.performHealthCheck();
+
+      expect(result.checks.llm.status).toBe('degraded');
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('[HealthCheck] LLM health check failed'),
+        expect.any(Error)
+      );
+    });
+
+    it('logs warning when getSnapshot throws for error recovery check', async () => {
+      let callCount = 0;
+      realTimeMonitor.getSnapshot.mockImplementation(() => {
+        callCount++;
+        if (callCount === 3) throw new Error('Recovery monitor error');
+        return makeHealthySnapshot();
+      });
+
+      const result = await service.performHealthCheck();
+
+      expect(result.checks.errorRecovery.status).toBe('degraded');
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('[HealthCheck] Error recovery health check failed'),
+        expect.any(Error)
+      );
+    });
+
+    it('logs warning when analyzeTrends throws for performance check', async () => {
+      realTimeMonitor.analyzeTrends.mockImplementation(() => {
+        throw new Error('Trends analysis error');
+      });
+
+      const result = await service.performHealthCheck();
+
+      expect(result.checks.performance.status).toBe('degraded');
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('[HealthCheck] Performance health check failed'),
+        expect.any(Error)
+      );
     });
   });
 });

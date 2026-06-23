@@ -504,7 +504,8 @@ export class PerformanceDashboard {
         memoryUsage: stats.memoryUsage,
         size: stats.totalEntries,
       };
-    } catch {
+    } catch (error) {
+      logger.warn('[PerformanceDashboard] Failed to get cache metrics:', error);
       return { hitRate: 0, efficiency: 0, memoryUsage: 0, size: 0 };
     }
   }

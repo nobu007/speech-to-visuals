@@ -88,7 +88,8 @@ class HealthCheckService {
     let metrics: PerformanceSnapshot;
     try {
       metrics = realTimeMonitor.getSnapshot();
-    } catch {
+    } catch (error) {
+      logger.error('[HealthCheck] Failed to get performance snapshot for metrics:', error);
       // Fallback: construct minimal metrics so health check still succeeds
       metrics = {
         timestamp: Date.now(),
@@ -166,7 +167,8 @@ class HealthCheckService {
     let stats: Awaited<ReturnType<typeof globalCache.getStats>>;
     try {
       stats = globalCache.getStats();
-    } catch {
+    } catch (error) {
+      logger.warn('[HealthCheck] Cache health check failed:', error);
       return {
         status: 'degraded',
         message: 'Cache backend unreachable',
@@ -218,7 +220,8 @@ class HealthCheckService {
     let snapshot: PerformanceSnapshot;
     try {
       snapshot = realTimeMonitor.getSnapshot();
-    } catch {
+    } catch (error) {
+      logger.warn('[HealthCheck] Pipeline health check failed:', error);
       return {
         status: 'degraded',
         message: 'Pipeline metrics unavailable',
@@ -269,7 +272,8 @@ class HealthCheckService {
     let snapshot: PerformanceSnapshot;
     try {
       snapshot = realTimeMonitor.getSnapshot();
-    } catch {
+    } catch (error) {
+      logger.warn('[HealthCheck] LLM health check failed:', error);
       return {
         status: 'degraded',
         message: 'LLM metrics unavailable',
@@ -320,7 +324,8 @@ class HealthCheckService {
     let snapshot: PerformanceSnapshot;
     try {
       snapshot = realTimeMonitor.getSnapshot();
-    } catch {
+    } catch (error) {
+      logger.warn('[HealthCheck] Error recovery health check failed:', error);
       return {
         status: 'degraded',
         message: 'Error recovery metrics unavailable',
@@ -369,7 +374,8 @@ class HealthCheckService {
     let trends: Array<{ metric: string; trend: string; changePercent: number }>;
     try {
       trends = realTimeMonitor.analyzeTrends();
-    } catch {
+    } catch (error) {
+      logger.warn('[HealthCheck] Performance health check failed:', error);
       return {
         status: 'degraded',
         message: 'Performance trend analysis unavailable',
