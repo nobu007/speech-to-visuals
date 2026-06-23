@@ -10,11 +10,48 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-23（第197回検証: タイマーリーク修正・EDGE-008/009追加・コミットc3254a3）
+**最終更新**: 2026-06-24（第198回検証: Phase 111 CI・インテグレーション検証ハードening要件定義・REQ-253~257追加）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
 ## 分析項目と判断
+
+### A198: 第198回検証 - Phase 111 CI・インテグレーション検証ハードening要件定義（2026-06-24）
+
+**分析日時**: 2026-06-24
+**カテゴリ**: CI堅牢化・統合テスト検証・回帰防止・テスト容易性改善
+**背景**: AI Hub make-runフィードバック「previous iteration was VALUABLE」を踏まえ、以下4点の検証・ハードeningを推奨:
+
+1. **エクスポートリトライ5+サイクル統合テスト**: EDGE-010修正（abort listener leak）の単体テストは完了したが、5+サイクルでのリスナー数安定性が未検証
+2. **CI timeout-minutes + ELAPSED assertion**: .github/workflows/ci.yml の全ジョブに timeout-minutes が未設定。::warning は情報提供のみでジョブをブロックしない
+3. **ESLint no-console回帰防止**: console.error→logger.error正規化は完了したが、リグレッションを防ぐリントルールが未設定
+4. **シーンデュレーション統合検証**: actualVideoRenderer.ts のデュレーション修正は単体テストのみで、複数シーンの累積デュレーションが未検証
+
+**分析と判断**:
+
+1. **REQ-253 エクスポートリトライ5+サイクル統合テスト**: src/ をgrep検索し、console.error使用箇所を確認。logger.ts:29が唯一の正当な使用。EnhancedExportEngine の encodeVideoWithRetry はMAX_RETRIES=3でハードコードされており、5+サイクルのテストが不可能。設定注入が必要。
+
+2. **REQ-254 CI timeout-minutes + ELAPSED assertion**: .github/workflows/ci.ymlを確認。全ジョブ（code-size-audit, lint, type-check, test, monitoring-config-validate, monitoring-drift-check, build, security-fuzz）に timeout-minutes が未設定。BMad template（5-60分）を参考値として採用。::warning を step conclusion に昇格させる必要がある。
+
+3. **REQ-255 ESLint no-console回帰防止**: src/全体のgrepで console.error 使用は logger.ts:29（logger実装の正当な使用）とテストヘルパーのみ。ESLint の no-console ルールを src/ に適用し、logger.ts に allow 設定を行うことで回帰を防止可能。
+
+4. **REQ-256 EnhancedExportEngine リトライ設定DI**: EXPORT_RETRY_LIMITS.MAX_RETRIES=3 が import された定数として使用され、コンストラクタ経由での上書きが不可能。テスト引数として retryConfig?: Partial<typeof EXPORT_RETRY_LIMITS> を追加し、5+リトライサイクルの再現を可能にする。
+
+5. **REQ-257 シーンデュレーション統合検証**: actualVideoRenderer.ts では scene.durationMs を使って累積デュレーションを計算するよう修正済み（コミット2ea5a98）。単体テストは6件追加済みだが、複数シーンの動画レンダリングで実際のタイムスタンプとの照合が必要。
+
+**根拠**:
+- AI Hub make-run feedback: "run the full export pipeline with retry scenarios end-to-end and confirm listener counts stabilize over 5+ retry cycles"
+- AI Hub make-run feedback: "add an assertion-style guard so that if ELAPSED exceeds a warning threshold, the job steps produce a non-zero exit"
+- AI Hub make-run feedback: "grep for any remaining console.error calls in src/ to confirm completeness, and add a lint rule to prevent regression"
+- AI Hub make-run feedback: "The duration fix should be validated against real video files with known scene timings"
+- ソースコード確認: .github/workflows/ci.yml（timeout-minutes未設定）, src/export/enhanced-export-engine.ts（MAX_RETRIES=3ハードコード）, src/utils/logger.ts:29（唯一の正当なconsole.error）
+
+**信頼性への影響**:
+- REQ-253~257 を新規追加（信頼性: 🔵 既存実装とAI Hub推奨に基づく確実な要件）
+- 信頼性レベル分布: 🔵274件(98.6%) / 🟡4件(1.4%) / 🔴0件(0%)
+- Phase 111 要件定義として登録（実装は未完了）
+
+---
 
 ### A197: 第197回検証 - タイマーリーク修正（2026-06-23）
 

@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-24（第199回検証: COV-001~003追加・EDGE-008/009サマリー修正・spec-to-test traceability強化）
+**最終更新**: 2026-06-24（第200回検証: Phase 111 CI・インテグレーション検証ハードening要件の受け入れ基準・テストケース追加・REQ-253~257・10テストケース）
 **関連要件定義**: [requirements.md](requirements.md)
 **関連ユーザストーリー**: [user-stories.md](user-stories.md)
 **分析記録**: [interview-record.md](interview-record.md)
@@ -5222,6 +5222,181 @@
 | COV-002: RecoveryStrategyChain | 59 | 🔵 |
 | COV-003: BatchJobManager | 52 | 🔵 |
 | **合計** | **249** | **🔵 100%** |
+
+---
+
+## REQ-253: エクスポートリトライ5+サイクル統合テスト 🔵
+
+**信頼性**: 🔵 *AI Hub make-runフィードバック・EDGE-010修正の統合検証より*
+
+### Given（前提条件）
+
+- EnhancedExportEngine がリトライ設定のDIを受け入れること（REQ-256実装済み）
+- encodeVideoWithRetry の abort listener cleanup（EDGE-010）が適用済みであること
+
+### When（実行条件）
+
+- EnhancedExportEngine を maxRetries=10 で初期化
+- encodeVideo を常に失敗するモックに設定し、10回リトライを実行
+
+### Then（期待結果）
+
+- 各リトライサイクル後に AbortSignal のリスナー数が増加しない（安定）
+- 全リトライ試行後にリスナー数がゼロに戻る
+
+### テストケース
+
+- [ ] **TC-253-01**: 10回リトライでのリスナー数安定性検証 🔵
+  - **入力**: maxRetries=10, 常に失敗するencodeVideoモック
+  - **期待結果**: リスナー数が各サイクルで一定、最終的にゼロ
+  - **信頼性**: 🔵 *EDGE-010 cleanup メカニズム検証*
+
+- [ ] **TC-253-02**: 中断時のリスナークリーンアップ検証 🔵
+  - **入力**: maxRetries=10, 5回目でAbortSignal発火
+  - **期待結果**: 即座にリスナーがクリーンアップされる
+  - **信頼性**: 🔵 *EDGE-010 abort path検証*
+
+---
+
+## REQ-254: CIワークフロー timeout-minutes + ELAPSED assertion 🔵
+
+**信頼性**: 🔵 *AI Hub make-runフィードバック・BMad template参照より*
+
+### Given（前提条件）
+
+- .github/workflows/ci.yml に全ジョブが定義されている
+- サマリージョブが最終ステップとして存在する
+
+### When（実行条件）
+
+- 各ジョブに timeout-minutes を設定（lint=5, type-check=5, test=30, build=10, security-fuzz=20）
+- 各ジョブ終了時にELAPSED経過時間を記録し、警告閾値（timeout-minutes×0.8）を超えた場合フラグを設定
+
+### Then（期待結果）
+
+- サマリージョブが警告フラグを検出した場合、非ゼロ終了コードで失敗を報告する
+
+### テストケース
+
+- [ ] **TC-254-01**: ci.yml全ジョブのtimeout-minutes設定確認 🔵
+  - **入力**: ci.yml ワークフロー定義
+  - **期待結果**: 全ジョブに timeout-minutes が設定されている
+  - **信頼性**: 🔵 *静的検証*
+
+- [ ] **TC-254-02**: ELAPSED警告閾値超過時の非ゼロ終了 🔵
+  - **入力**: テストジョブのELAPSEDが24分（30分×0.8）を超えた場合
+  - **期待結果**: サマリージョブが失敗を報告する
+  - **信頼性**: 🔵 *CI統合検証*
+
+---
+
+## REQ-255: ESLint no-console 回帰防止 🔵
+
+**信頼性**: 🔵 *AI Hub make-runフィードバック・EDGE-011正規化完了より*
+
+### Given（前提条件）
+
+- ESLint 9 設定（eslint.config.js）が利用可能
+- src/utils/logger.ts が console.error の唯一の正当な使用
+
+### When（実行条件）
+
+- eslint.config.js の src/ ルールに 'no-console' を追加
+- logger.ts のみ allow 設定を適用
+
+### Then（期待結果）
+
+- CI の lint ジョブで新たな console.error 使用が検出された場合、ビルドが失敗する
+- logger.ts の既存の console.error 使用は許可される
+
+### テストケース
+
+- [ ] **TC-255-01**: no-console ルール追加後の lint パス 🔵
+  - **入力**: 現在のコードベース + no-console ルール（logger.ts allow）
+  - **期待結果**: ESLint エラー0件
+  - **信頼性**: 🔵 *静的検証*
+
+- [ ] **TC-255-02**: 新規 console.error 挿入時の lint フェイル 🔵
+  - **入力**: src/ の任意ファイルに console.error を追加
+  - **期待結果**: ESLint がエラーを報告する
+  - **信頼性**: 🔵 *リグレッションテスト*
+
+---
+
+## REQ-256: EnhancedExportEngine リトライ設定DI 🔵
+
+**信頼性**: 🔵 *AI Hub make-runフィードバック・MAX_RETRIES=3ハードコード問題より*
+
+### Given（前提条件）
+
+- EnhancedExportEngine が EXPORT_RETRY_LIMITS.MAX_RETRIES=3 を import して使用している
+
+### When（実行条件）
+
+- EnhancedExportEngine コンストラクタに retryConfig?: Partial<typeof EXPORT_RETRY_LIMITS> を追加
+
+### Then（期待結果）
+
+- テスト時に maxRetries=10 を指定して5+リトライサイクルを再現できる
+- デフォルト動作は従来通り MAX_RETRIES=3 を維持
+
+### テストケース
+
+- [ ] **TC-256-01**: カスタムmaxRetriesでのリトライ回数検証 🔵
+  - **入力**: maxRetries=5, 常に失敗するencodeVideo
+  - **期待結果**: 6回（1+5リトライ）の試行後に最終失敗
+  - **信頼性**: 🔵 *DI検証*
+
+- [ ] **TC-256-02**: デフォルトmaxRetries=3の後方互換性 🔵
+  - **入力**: retryConfig未指定
+  - **期待結果**: 従来通り4回（1+3リトライ）の試行
+  - **信頼性**: 🔵 *後方互換性検証*
+
+---
+
+## REQ-257: シーンデュレーション統合検証 🔵
+
+**信頼性**: 🔵 *AI Hub make-runフィードバック・コミット2ea5a98修正より*
+
+### Given（前提条件）
+
+- actualVideoRenderer.ts の scene.durationMs 累積計算修正が適用済み
+- 単体テスト（actualVideoRenderer-duration.test.ts 6件）が通過済み
+
+### When（実行条件）
+
+- 既知のタイムスタンプを持つ3シーン（2s+5s+1s）でレンダリングを実行
+- 10シーン、20シーンに増やして同様に検証
+
+### Then（期待結果）
+
+- 総デュレーションが各シーンの durationMs の合計と正確に一致する
+- 各シーンの開始・終了タイミングが期待値通り
+
+### テストケース
+
+- [ ] **TC-257-01**: 3シーン累積デュレーション検証 🔵
+  - **入力**: intro(2s) + content(5s) + outro(1s)
+  - **期待結果**: 総デュレーション=8s、各シーン境界が正確
+  - **信頼性**: 🔵 *統合検証*
+
+- [ ] **TC-257-02**: 10シーン累積デュレーション検証 🔵
+  - **入力**: 10シーンの様々なdurationMs
+  - **期待結果**: 総デュレーション=全シーンdurationMs合計
+  - **信頼性**: 🔵 *スケール検証*
+
+---
+
+### Phase 111 受け入れ基準サマリー
+
+| 要件 | テストケース数 | 信頼性 |
+|------|--------------|--------|
+| REQ-253: リトライ5+サイクル統合 | 2 | 🔵 |
+| REQ-254: CI timeout assertion | 2 | 🔵 |
+| REQ-255: ESLint no-console | 2 | 🔵 |
+| REQ-256: リトライ設定DI | 2 | 🔵 |
+| REQ-257: シーンデュレーション統合 | 2 | 🔵 |
+| **合計** | **10** | **🔵 100%** |
 
 
 <!-- spine:references:begin -->

@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-24（第199回検証・EDGE-008~011設計反映・COV-001~003追加・overlap-resolver テストバグ修正・spec-to-test traceability強化）
+**最終更新**: 2026-06-24（第200回検証・Phase 111 CI・インテグレーション検証ハードening要件定義・REQ-253~257追加・エピック21 4ストーリー追加）
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム
 
 ## 技術スタック
@@ -126,6 +126,7 @@ src/
 - [x] Phase 110 CI品質ゲート・ガード関数ファジング完了（REQ-250~252・red-phase CI統合・guard-fuzz test追加540ケース・security-fuzzビルド依存）
 - [x] 第198回検証: EDGE-010 abort listener leak fix（EnhancedExportEngine リトライ遅延のAbortSignal listener cleanup・3テスト追加）
 - [x] 第198回検証: EDGE-011 console.error→logger.error 正規化（memory-cache・budget-alert・production-monitoring-excellence・error-recovery-event-bus・5箇所修正）
+- [x] 第200回検証: Phase 111 CI・インテグレーション検証ハードening要件定義（REQ-253~257・エクスポートリトライ5+サイクル統合テスト・CI timeout+ELAPSED assertion・ESLint no-console・EnhancedExportEngine リトライDI・シーンデュレーション統合検証）
 
 ## 注意事項
 

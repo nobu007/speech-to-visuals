@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-09（第185回検証・Phase 90完了・381ファイル・246テストファイル・68ストーリー・241要件（REQ-001~220+NFR+EDGE）・要件カバレッジ100%維持・全品質基準達成）
+**最終更新**: 2026-06-24（第198回検証・Phase 111要件定義・REQ-253~257・エピック21追加・68ストーリー・257要件）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [interview-record.md](interview-record.md)
 
@@ -605,6 +605,12 @@
 
 エピック20: エクスポートパイプライン統合テスト（Phase 90）
 └── ストーリー 20.1 (🔵 Must Have) - エクスポートパイプラインE2E統合テスト
+
+エピック21: CI・インテグレーション検証ハードening（Phase 111）
+├── ストーリー 21.1 (🔵 Must Have) - エクスポートリトライ5+サイクルリスナー安定性
+├── ストーリー 21.2 (🔵 Must Have) - CI timeout-minutes + ELAPSED assertion
+├── ストーリー 21.3 (🔵 Must Have) - ESLint no-console回帰防止
+└── ストーリー 21.4 (🔵 Must Have) - 複数シーンデュレーション統合検証
 ```
 
 ---
@@ -1625,9 +1631,114 @@
 
 ---
 
+## エピック21: CI・インテグレーション検証ハードening（Phase 111）
+
+### ストーリー 21.1: エクスポートリトライ5+サイクルでのリスナー安定性検証 🔵
+
+**信頼性**: 🔵 *AI Hub make-runフィードバック・EDGE-010 abort listener leak修正に基づく*
+
+**私は** エクスポートパイプライン品質エンジニア **として**
+**5回以上のリトライサイクルでAbortSignalリスナーが蓄積しないことを統合テストで検証したい**
+**そうすることで** 長期間のエクスポート運用でのリソースリークを防止できる
+
+**関連要件**: REQ-253, REQ-256
+
+**詳細シナリオ**:
+
+1. EnhancedExportEngine のコンストラクタで maxRetries=10 を指定してテスト可能にする
+2. encodeVideo を常に失敗するモックに設定し、10回リトライを実行
+3. 各リトライサイクル後に AbortSignal のリスナー数をカウント
+4. リスナー数が各サイクルで増加しない（安定している）ことを確認
+5. 全リトライ試行後にリスナー数がゼロに戻ることを確認
+
+**前提条件**:
+- EnhancedExportEngine がリトライ設定のDIを受け入れること（REQ-256）
+- EDGE-010 abort listener cleanup修正が適用済みであること
+
+**優先度**: Must Have
+
+---
+
+### ストーリー 21.2: CIワークフロー timeout-minutes + ELAPSED assertion 🔵
+
+**信頼性**: 🔵 *AI Hub make-runフィードバック・BMad template参照・.github/workflows/ci.yml現状より*
+
+**私は** DevOpsエンジニア **として**
+**CI全ジョブに timeout-minutes を設定し、ELAPSEDが閾値を超えた際にサマリージョブで失敗を検出したい**
+**そうすることで** CIの実行時間異常を自動的にブロック・アラートできる
+
+**関連要件**: REQ-254
+
+**詳細シナリオ**:
+
+1. ci.yml の全ジョブ（lint, type-check, test, build, security-fuzz等）に timeout-minutes を設定
+2. 参照値: lint=5min, type-check=5min, test=30min, build=10min, security-fuzz=20min
+3. 各ジョブの終了時に ELAPSED 経過時間を記録
+4. ELAPSED が警告閾値（timeout-minutes の80%）を超えた場合、ジョブの出力に warning フラグを設定
+5. サマリージョブが warning フラグをチェックし、存在する場合は非ゼロ終了コードで失敗を報告
+
+**前提条件**:
+- GitHub Actions ワークフローが定義されていること
+- サマリージョブが最終ステップとして存在すること
+
+**優先度**: Must Have
+
+---
+
+### ストーリー 21.3: ESLint no-console ルールによる console.error 回帰防止 🔵
+
+**信頼性**: 🔵 *AI Hub make-runフィードバック・EDGE-011正規化完了に基づく*
+
+**私は** コード品質管理者 **として**
+**ESLint の no-console ルールで logger.ts 以外の console.error 使用をCIで自動ブロックしたい**
+**そうすることで** console.error→logger.error 正規化のリグレッションを永続的に防止できる
+
+**関連要件**: REQ-255
+
+**詳細シナリオ**:
+
+1. eslint.config.js の src/ ルールに 'no-console' を追加
+2. 許可設定: src/utils/logger.ts のみ allow（console.error が正当）
+3. CI の lint ジョブで新たな console.error 使用が検出された場合、ビルドを失敗させる
+4. 既存のテストヘルパー（src/test/, src/helpers/）は別ルールセットで除外
+
+**前提条件**:
+- ESLint 9 設定（eslint.config.js）が利用可能であること
+- src/utils/logger.ts が console.error の唯一の正当な使用であること
+
+**優先度**: Must Have
+
+---
+
+### ストーリー 21.4: 複数シーン動画レンダリングのデュレーション統合検証 🔵
+
+**信頼性**: 🔵 *AI Hub make-runフィードバック・actualVideoRenderer.ts修正（コミット2ea5a98）に基づく*
+
+**私は** 動画生成パイプライン品質エンジニア **として**
+**既知のタイムスタンプを持つ複数シーンの動画レンダリングで累積デュレーションが正確であることを検証したい**
+**そうすることで** シーンデュレーション計算の修正が実際の動画出力で正しく反映されることを保証できる
+
+**関連要件**: REQ-257
+
+**詳細シナリオ**:
+
+1. 3シーン（intro:2s, content:5s, outro:1s）のテストデータを用意
+2. actualVideoRenderer で動画をレンダリング（またはモック）
+3. 出力の総デュレーションが 8s（2+5+1）であることを確認
+4. 各シーンの開始・終了タイミングが期待値と一致することを確認
+5. 10シーン、20シーンと増やして同様に累積デュレーションを検証
+
+**前提条件**:
+- actualVideoRenderer.ts の scene.durationMs 累積計算修正が適用済みであること
+- 単体テスト（actualVideoRenderer-duration.test.ts 6件）が通過していること
+
+**優先度**: Must Have
+
+---
+
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 67件 (100%)
+- 🔵 青信号: 71件 (100%)
 - 🟡 黄信号: 0件 (0%)
 - 🔴 赤信号: 0件 (0%)
 
@@ -1637,10 +1748,10 @@
 
 ## Acceptance criteria
 
-- [x] AC-1: 全64ストーリーが一意のストーリー番号（1.1〜20.1）を持ち、「私は〜として」「〜したい」「そうすることで〜」の3要素フォーマットに従っている
+- [x] AC-1: 全68ストーリーが一意のストーリー番号（1.1〜21.4）を持ち、「私は〜として」「〜したい」「そうすることで〜」の3要素フォーマットに従っている
 - [x] AC-2: 全ストーリーが関連要件（REQ-xxx / NFR-xxx）を参照し、requirements.md とのトレーサビリティが確保されている
 - [x] AC-3: 全ストーリーに優先度（Must Have / Should Have / Could Have）が付与されている
 - [x] AC-4: 全ストーリーに信頼性レベル（🔵青信号 / 🟡黄信号 / 🔴赤信号）が付与されている
-- [x] AC-5: ストーリーマップが全20エピック・全64ストーリーを網羅している
+- [x] AC-5: ストーリーマップが全21エピック・全68ストーリーを網羅している
 - [x] AC-6: 全ストーリーが SYSTEM_CONSTITUTION.md の許可カテゴリに収まり、禁止カテゴリに違反していない
 - [x] AC-7: エピック構成が要件定義書の機能カテゴリに対応している

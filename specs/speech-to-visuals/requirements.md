@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 110 完了・384ソースファイル・249テストファイル・107パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・192タスク全完了・テストスイート安定化完了（26+テスト障害解消・ESM互換性修正・エラー型伝播バグ修正）・バッチ処理プログレス正確性修正完了（progress.total original count反映）・パイプラインオーケストレーター入力検証完了（AudioValidationError・防御 in depth）・エラーリカバリ可観測性完了（RecoveryTelemetryAggregator・テレメトリAPI endpoint）・相関IDミドルウェア完了（X-Request-ID伝播）・構造化HTTPリクエスト/レスポンスロギング完了（レベル別ログ出力・ヘルスエンドポイント除外）・HTTPリクエストメトリクス収集完了（per-route percentiles・bounded memory）・Prometheus互換メトリクスエクスポート完了（text/plain v0.0.4）・ヘルスチェックliveness/readiness probe完了（Kubernetesスタイル）・GrafanaダッシュボードJSON model完了（8パネル）・Prometheus alert rules完了（4ルール）・監視APIデプロイメント統合完了（GET /monitoring/dashboard・GET /monitoring/alerts）・パイプラインステージ所要時間メトリクス完了（pipeline_stage_duration_ms・PipelineMetricsCollector・14テスト）・監視エンドポイントZodクエリ検証完了（REQ-216）・LLM応答図解構造検証完了（ノード重複排除・自己ループフィルタ・孤立エッジ検出・REQ-217）・シーン駆動アニメーションエクスポート完了（Animated SVG・Lottie JSON・REQ-218~219）・animated-scene-renderer モジュール抽出完了（視覚形状コンテンツ付きLottieレイヤー・36テスト）・エラーリカバリREST API完了（POST/GET/POST /errors・REQ-037拡張・28テスト追加）・エクスポートパイプライン統合テスト完了（TASK-0199/0200・E2E+renderer↔engine結合・38テスト）・シーンレンダラー入力検証完了（validateFrameInfo・clampSceneDuration・REQ-221・29テスト追加）・エラーリカバリREST API堅牢化完了（RegisterBodySchema・errorId形式検証・XSSサニタイズ・レジストリLRU退去・ERROR_REGISTRY_LIMITS・REQ-222・94テスト追加）・エクスポート検証拡張完了（APNG acTL/fcTLチャンク検証・Lottie JSON構造検証・REQ-223・31テスト追加）・エクスポートレート制限・レンダー検証強化完了（exportRateLimiter 10req/15min・codec列挙型・resolution正規表現・REQ-224・2テスト追加）・エクスポートメトリクス収集完了（ExportMetricsCollector・Prometheus統合4メトリック・stage/per-export instrumentation・REQ-226・17テスト追加）・エクスポートリトライレジリエンス完了（encodeVideoWithRetry指数バックオフ・isTransientExportError分類・EXPORT_RETRY_LIMITS・REQ-227・15テスト追加）・エクスポートジョブライフサイクル管理完了（cancelExport+AbortController・runStageWithTimeout・EXPORT_STAGE_TIMEOUTS・REQ-228）・エクスポートジョブキューサービス完了（ExportJobQueue・優先度スケジューリング・フェアスケジューリング・ExportMetricsCollector統合・REQ-229・32テスト）・エクスポートアーティファクト管理完了（ExportArtifactStore・TTLクリーンアップ・LRU退去・ダウンロードURL・REQ-230・26テスト）・エクスポートアーティファクトパイプライン統合完了（EnhancedExportEngine・ProductionExporter・ExportJobQueueのstore統合・REQ-231~234・616テスト通過）・エクスポートアーティファクトE2E検証完了（LRU退去・TTL期限切れ・ライフサイクルE2E・REQ-235~237）・アーティファクト管理REST API完了（list/get/delete/usage・REQ-238~240・Phase 103）・エクスポートバッチジョブREST API完了（POST/GET/DELETE /jobs・ExportJobQueue.findJob()・server.ts統合・REQ-241~243・Phase 104・7891テスト通過）・CI品質ゲート・ガードファジング拡張完了（red-phase CI統合・ガード関数ファジング・security-fuzzビルド依存・REQ-250~252・Phase 110）・abort listener leak fix完了（EnhancedExportEngine リトライ遅延のAbortSignal listener cleanup・EDGE-010）・console.error→logger.error 正規化完了（5ファイル修正・EDGE-011）
+**実装状況**: Phase 110 完了・Phase 111 要件定義中・384ソースファイル・249テストファイル・107パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・192タスク全完了・テストスイート安定化完了（26+テスト障害解消・ESM互換性修正・エラー型伝播バグ修正）・バッチ処理プログレス正確性修正完了（progress.total original count反映）・パイプラインオーケストレーター入力検証完了（AudioValidationError・防御 in depth）・エラーリカバリ可観測性完了（RecoveryTelemetryAggregator・テレメトリAPI endpoint）・相関IDミドルウェア完了（X-Request-ID伝播）・構造化HTTPリクエスト/レスポンスロギング完了（レベル別ログ出力・ヘルスエンドポイント除外）・HTTPリクエストメトリクス収集完了（per-route percentiles・bounded memory）・Prometheus互換メトリクスエクスポート完了（text/plain v0.0.4）・ヘルスチェックliveness/readiness probe完了（Kubernetesスタイル）・GrafanaダッシュボードJSON model完了（8パネル）・Prometheus alert rules完了（4ルール）・監視APIデプロイメント統合完了（GET /monitoring/dashboard・GET /monitoring/alerts）・パイプラインステージ所要時間メトリクス完了（pipeline_stage_duration_ms・PipelineMetricsCollector・14テスト）・監視エンドポイントZodクエリ検証完了（REQ-216）・LLM応答図解構造検証完了（ノード重複排除・自己ループフィルタ・孤立エッジ検出・REQ-217）・シーン駆動アニメーションエクスポート完了（Animated SVG・Lottie JSON・REQ-218~219）・animated-scene-renderer モジュール抽出完了（視覚形状コンテンツ付きLottieレイヤー・36テスト）・エラーリカバリREST API完了（POST/GET/POST /errors・REQ-037拡張・28テスト追加）・エクスポートパイプライン統合テスト完了（TASK-0199/0200・E2E+renderer↔engine結合・38テスト）・シーンレンダラー入力検証完了（validateFrameInfo・clampSceneDuration・REQ-221・29テスト追加）・エラーリカバリREST API堅牢化完了（RegisterBodySchema・errorId形式検証・XSSサニタイズ・レジストリLRU退去・ERROR_REGISTRY_LIMITS・REQ-222・94テスト追加）・エクスポート検証拡張完了（APNG acTL/fcTLチャンク検証・Lottie JSON構造検証・REQ-223・31テスト追加）・エクスポートレート制限・レンダー検証強化完了（exportRateLimiter 10req/15min・codec列挙型・resolution正規表現・REQ-224・2テスト追加）・エクスポートメトリクス収集完了（ExportMetricsCollector・Prometheus統合4メトリック・stage/per-export instrumentation・REQ-226・17テスト追加）・エクスポートリトライレジリエンス完了（encodeVideoWithRetry指数バックオフ・isTransientExportError分類・EXPORT_RETRY_LIMITS・REQ-227・15テスト追加）・エクスポートジョブライフサイクル管理完了（cancelExport+AbortController・runStageWithTimeout・EXPORT_STAGE_TIMEOUTS・REQ-228）・エクスポートジョブキューサービス完了（ExportJobQueue・優先度スケジューリング・フェアスケジューリング・ExportMetricsCollector統合・REQ-229・32テスト）・エクスポートアーティファクト管理完了（ExportArtifactStore・TTLクリーンアップ・LRU退去・ダウンロードURL・REQ-230・26テスト）・エクスポートアーティファクトパイプライン統合完了（EnhancedExportEngine・ProductionExporter・ExportJobQueueのstore統合・REQ-231~234・616テスト通過）・エクスポートアーティファクトE2E検証完了（LRU退去・TTL期限切れ・ライフサイクルE2E・REQ-235~237）・アーティファクト管理REST API完了（list/get/delete/usage・REQ-238~240・Phase 103）・エクスポートバッチジョブREST API完了（POST/GET/DELETE /jobs・ExportJobQueue.findJob()・server.ts統合・REQ-241~243・Phase 104・7891テスト通過）・CI品質ゲート・ガードファジング拡張完了（red-phase CI統合・ガード関数ファジング・security-fuzzビルド依存・REQ-250~252・Phase 110）・abort listener leak fix完了（EnhancedExportEngine リトライ遅延のAbortSignal listener cleanup・EDGE-010）・console.error→logger.error 正規化完了（5ファイル修正・EDGE-011）・Phase 111要件定義追加完了（CI・インテグレーション検証ハードening・REQ-253~257・エクスポートリトライ5+サイクル統合テスト・CI timeout assertion・ESLint no-console回帰防止・EnhancedExportEngineリトライDI・シーンデュレーション統合検証）
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -658,6 +658,14 @@
 - EDGE-102: 非常に短い音声（1秒未満）はエラーとして処理しなければならない 🔵 *PIPELINE_FLOW.md §7.1 Quality Gates より*
 - EDGE-103: 1時間を超える音声ファイルは処理前に警告を表示しなければならない 🟡 *PIPELINE_FLOW.md §7.1 Quality Gates から妥当な推測*
 
+### CI・インテグレーション検証ハードening（Phase 111）
+
+- REQ-253: システムはエクスポートリトライパイプラインの統合テストとして、5回以上のリトライサイクルでAbortSignalリスナー数が安定（リークしない）ことを検証しなければならない 🔵 *AI Hub make-runフィードバック・EDGE-010修正の統合検証・src/export/enhanced-export-engine.ts encodeVideoWithRetry より*
+- REQ-254: CIワークフロー（.github/workflows/ci.yml）の全ジョブに timeout-minutes を設定し、ELAPSED時間が警告閾値を超えた際にサマリージョブで非ゼロ終了または失敗フラグを設定しなければならない 🔵 *AI Hub make-runフィードバック・_bmad/bmm/workflows/testarch/ci/github-actions-template.yaml参照・.github/workflows/ci.yml現状（timeout-minutes未設定）より*
+- REQ-255: ESLintルール（no-console）を src/ ディレクトリに適用し、logger.ts以外のconsole.error使用をCIで検出・ブロックしなければならない 🔵 *AI Hub make-runフィードバック・EDGE-011 console.error→logger.error正規化完了の回帰防止・src/utils/logger.ts:29が唯一の正当なconsole.error使用より*
+- REQ-256: EnhancedExportEngine はリトライ設定（maxRetries等）をコンストラクタまたはオプション経由で外部から指定可能にし、テスト時に5回以上のリトライサイクルを再現できるようにしなければならない 🔵 *AI Hub make-runフィードバック・EXPORT_RETRY_LIMITS.MAX_RETRIES=3のハードコードが高リトライ回数テストを妨げている現状より*
+- REQ-257: シーンデュレーション計算修正（actualVideoRenderer.ts）の統合テストとして、既知のタイムスタンプを持つ複数シーンの動画レンダリングで累積デュレーションが正確であることを検証しなければならない 🔵 *AI Hub make-runフィードバック・コミット2ea5a98のactualVideoRenderer.ts修正はユニットテストのみ・統合検証が必要より*
+
 ## 実装進捗サマリー
 
 | フェーズ | ステータス | タスク範囲 | 完了率 |
@@ -773,14 +781,16 @@
 | Phase 105: エクスポートジョブライフサイクル統合テスト | ✅完了 | REQ-241~243 | 3/3（create→status→complete HTTP統合テスト・artifact store連携検証・優先度順序HTTP検証・7テスト追加） |
 | Phase 108: エクスポートセキュリティ hardening | ✅完了 | REQ-244~246 | 3/3（イベントハンドラ正規表現の名前付き定数配列化・プロパティベース変異ファジング回帰テスト・SecurityMetricsCollector防護拒否メトリクス・130テスト追加） |
 | Phase 109: セキュリティファジング CI 拡張 | ✅完了 | REQ-247~249 | 3/3（マルチシードCI ファジングモード・全エクスポート経路ガードメトリクス回帰テスト・E2Eセキュリティパイプライン統合テスト・テスト追加） |
+| Phase 110: CI品質ゲート・ガードファジング | ✅完了 | REQ-250~252 | 3/3（red-phase CI統合・guard-fuzz test追加540ケース・security-fuzzビルド依存） |
+| Phase 111: CI・インテグレーション検証ハードening | 🔶要件定義 | REQ-253~257 | 0/5（エクスポートリトライ5+サイクル統合テスト・CI timeout-minutes + ELAPSED assertion・ESLint no-console回帰防止・EnhancedExportEngine リトライ設定DI・シーンデュレーション統合検証） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 269件 (98.5%)
-- 🟡 黄信号: 4件 (1.5%) — NFR-203, REQ-303, EDGE-103
+- 🔵 青信号: 274件 (98.6%)
+- 🟡 黄信号: 4件 (1.4%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 110要件追加・REQ-001~252（CI品質ゲート・ガードファジング拡張・red-phase CI統合・ガード関数ファジング・security-fuzzビルド依存）
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 111要件追加・REQ-001~257（CI・インテグレーション検証ハードening: エクスポートリトライ5+サイクル統合テスト・CI timeout-minutes+ELAPSED assertion・ESLint no-console回帰防止・EnhancedExportEngineリトライ設定DI・シーンデュレーション統合検証）
 
 ## Acceptance criteria
 
@@ -791,9 +801,9 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 110 を網羅し、Phase 110（CI品質ゲート・ガード関数ファジング・red-phase CI統合・security-fuzzビルド依存）を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 111 を網羅し、Phase 111（CI・インテグレーション検証ハードening・REQ-253~257要件定義）を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテキュリティに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（Phase 110要件追加・REQ-001~252・🔵269件/🟡4件/🔴0件）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（Phase 111要件追加・REQ-001~257・🔵274件/🟡4件/🔴0件）
 
 
 <!-- spine:references:begin -->
