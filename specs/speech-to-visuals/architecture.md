@@ -892,5 +892,7 @@ Fallback LLM
 - [TASK-0201: エクスポートフォーマット横断一貫性テスト](tasks/TASK-0201.md)
 - [TASK-0205: エクスポートジョブキューサービス](tasks/TASK-0205.md)
 - [TASK-0206: エクスポートアーティファクト管理](tasks/TASK-0206.md)
+- [TASK-0207: ヘルスチェック・監視モジュールのサイレントキャッチ修正](tasks/TASK-0207.md)
+- [TASK-0208: ログ正規化の下流影響検証・未テストモジュールgap分析](tasks/TASK-0208.md)
 
 <!-- spine:references:end -->
