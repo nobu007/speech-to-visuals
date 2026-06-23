@@ -9,6 +9,7 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
     - uses: actions/checkout@v4
@@ -23,6 +24,7 @@ jobs:
 
   monitoring-schema-validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: validate
     steps:
     - uses: actions/checkout@v4
@@ -37,6 +39,7 @@ jobs:
   deploy:
     needs: [validate, monitoring-schema-validate]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
 
     steps:

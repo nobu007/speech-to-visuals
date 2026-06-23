@@ -25,6 +25,14 @@ import { ExportVerifier, type VerificationFormat, type VerificationResult } from
 import { exportMetricsCollector, type ExportStatus } from './export-metrics-collector';
 import type { ExportArtifactStore } from './export-artifact-store';
 import { EXPORT_RETRY_LIMITS, EXPORT_STAGE_TIMEOUTS } from '@/config/limits';
+
+/** Retry configuration for export encoding (REQ-256). */
+export interface RetryConfig {
+  maxRetries: number;
+  initialDelayMs: number;
+  maxDelayMs: number;
+  jitterMaxMs: number;
+}
 import { logger } from '../utils/logger';
 import { validateExportPayload, isStrictValidationEnabled } from './export-content-validator';
 
@@ -150,18 +158,21 @@ export class EnhancedExportEngine {
   private workerFactory?: () => Worker;
 
   private artifactStore?: ExportArtifactStore;
+  private retryConfig: RetryConfig;
 
   /**
    * @param maxConcurrentExports - Maximum concurrent export jobs
    * @param useWorkers - Whether to use Web Workers for CPU-intensive processing
    * @param workerFactory - Optional factory to create Worker instances (for testing)
    * @param artifactStore - Optional artifact store for REQ-231 integration
+   * @param retryConfig - Optional retry configuration for encoding (REQ-256, defaults to EXPORT_RETRY_LIMITS)
    */
   constructor(
     maxConcurrentExports = 2,
     useWorkers = false,
     workerFactory?: () => Worker,
     artifactStore?: ExportArtifactStore,
+    retryConfig?: RetryConfig,
   ) {
     this.activeExports = new Map();
     this.exportQueue = [];
@@ -171,6 +182,12 @@ export class EnhancedExportEngine {
     this.verifier = new ExportVerifier();
     this.workerFactory = workerFactory;
     this.artifactStore = artifactStore;
+    this.retryConfig = retryConfig ?? {
+      maxRetries: EXPORT_RETRY_LIMITS.MAX_RETRIES,
+      initialDelayMs: EXPORT_RETRY_LIMITS.INITIAL_DELAY_MS,
+      maxDelayMs: EXPORT_RETRY_LIMITS.MAX_DELAY_MS,
+      jitterMaxMs: EXPORT_RETRY_LIMITS.JITTER_MAX_MS,
+    };
   }
 
   /** Lazily initialize and return the worker pool */
@@ -414,12 +431,7 @@ export class EnhancedExportEngine {
    * Encode video with exponential backoff retry on transient errors (REQ-227).
    */
   private async encodeVideoWithRetry(job: ExportJob, frames: FrameData[]): Promise<EncodedVideo> {
-    const { maxRetries, initialDelayMs, maxDelayMs, jitterMaxMs } = {
-      maxRetries: EXPORT_RETRY_LIMITS.MAX_RETRIES,
-      initialDelayMs: EXPORT_RETRY_LIMITS.INITIAL_DELAY_MS,
-      maxDelayMs: EXPORT_RETRY_LIMITS.MAX_DELAY_MS,
-      jitterMaxMs: EXPORT_RETRY_LIMITS.JITTER_MAX_MS,
-    };
+    const { maxRetries, initialDelayMs, maxDelayMs, jitterMaxMs } = this.retryConfig;
 
     let lastError: Error | undefined;
 
