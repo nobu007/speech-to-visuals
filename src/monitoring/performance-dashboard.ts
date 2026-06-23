@@ -160,7 +160,7 @@ export class PerformanceDashboard {
         this.checkThresholds();
         this.autoOptimize();
       } catch (err) {
-        console.error('[PerformanceDashboard] Monitoring tick failed:', err);
+        logger.error('[PerformanceDashboard] Monitoring tick failed:', err);
       }
     }, 5000);
 

@@ -8,6 +8,7 @@
 
 import { EventEmitter } from 'events';
 import { getMemoryUsage } from '@/utils/memory-usage';
+import { logger } from '@/utils/logger';
 
 export interface PerformanceMetric {
   timestamp: number;
@@ -581,7 +582,7 @@ class RealTimePerformanceMonitor extends EventEmitter {
         this.emit('snapshot', snapshot);
         this.lastSnapshotTime = Date.now();
       } catch (err) {
-        console.error('[RealTimePerformanceMonitor] Snapshot emission failed:', err);
+        logger.error('[RealTimePerformanceMonitor] Snapshot emission failed:', err);
       }
     }, this.snapshotIntervalMs);
   }
