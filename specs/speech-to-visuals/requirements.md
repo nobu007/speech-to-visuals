@@ -647,6 +647,8 @@
 - EDGE-005: 品質スコアが閾値を下回った場合、システムは低品質設定で自動再試行しなければならない 🔵 *src/quality/enhanced-error-recovery.ts より*
 - EDGE-006: キャッシュウォームアップ中にネットワークエラー（DNS解決失敗・接続タイムアウト・ECONNREFUSED）が発生した場合、システムはウォームアップを安全に中止し、サーバー起動を継続し、ヘルスエンドポイントに failed ステータスを報告しなければならない 🔵 *src/api/startup-warmup.ts .catch() フロー・monitoring.ts cacheWarmup フィールドより*
 - EDGE-007: キャッシュウォームアップが完了する前にヘルスエンドポイントが呼び出された場合（pending 状態）、システムは正常なヘルスレスポンスを返し、cacheWarmup.status を 'pending' として報告しなければならない 🔵 *src/api/startup-warmup.ts 初期状態・monitoring.ts health エンドポイントより*
+- EDGE-008: ErrorAlertSystem コンポーネントの auto-hide setTimeout は useRef Set で追跡され、useEffect クリーンアップで全て clearTimeout されなければならない。setTimeout を state updater 関数内で呼び出してはならない（React anti-pattern） 🔵 ✅実装済 *src/components/ErrorAlertSystem.tsx・コミットc3254a3・7テスト追加*
+- EDGE-009: OverlapResolver の applyStrategyWithTimeout は Promise.race 完了後に clearTimeout を呼び出し、戦略がタイムアウト前に完了した場合でもタイマー参照を解放しなければならない 🔵 ✅実装済 *src/visualization/layout/OverlapResolver.ts・コミットc3254a3・2テスト追加*
 
 ### 境界値
 

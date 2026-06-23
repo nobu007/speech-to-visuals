@@ -10,11 +10,31 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-23（第196回検証: Phase 110完了・CI品質ゲート・ガード関数ファジング・red-phase CI統合・security-fuzzビルド依存・REQ-250~252追加）
+**最終更新**: 2026-06-23（第197回検証: タイマーリーク修正・EDGE-008/009追加・コミットc3254a3）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
 ## 分析項目と判断
+
+### A197: 第197回検証 - タイマーリーク修正（2026-06-23）
+
+**分析日時**: 2026-06-23
+**カテゴリ**: リソースリーク修正・Reactアンチパターン解消・タイマークリーンアップ
+**背景**: AI Hubフィードバック「verify the full test suite passes」「focus on producing code or test changes that fix bugs or add verified behavior」に対応。コードベース全体の静的解析を実施し、2件のタイマーリークを発見:
+
+1. **ErrorAlertSystem.tsx**: auto-hide用の setTimeout が state updater 関数内で呼び出され（React anti-pattern）、タイマー参照が追跡されていなかった。コンポーネントアンマウント後に setTimeout コールバックが発火するとアンマウント済みコンポーネントへ setState が発生する
+2. **OverlapResolver.ts**: applyStrategyWithTimeout の Promise.race パターンで、戦略がタイムアウト前に完了した場合でも setTimeout クリアされず、タイマー参照と reject コールバックが残存する
+
+**判断**:
+1. **EDGE-008 ErrorAlertSystem タイマー追跡**: setTimeout を state updater 外に移動し、useRef<Set<timeoutId>> で全タイマーを追跡。useEffect クリーンアップで clearTimeout + clear() を実行。alertsRef も追加して stale closure を解消
+2. **EDGE-009 OverlapResolver タイマークリーンアップ**: Promise.race().finally() で clearTimeout を呼び出し、戦略完了・タイムアウト・例外の全ケースでタイマーを解放
+
+**根拠**: src/components/ErrorAlertSystem.tsx（コミットc3254a3修正後）、src/visualization/layout/OverlapResolver.ts（同上）、tests/components/error-alert-system-timer.test.ts（5テスト）、tests/visualization/overlap-resolver-timer-cleanup.test.ts（2テスト）
+
+**信頼性への影響**:
+- EDGE-008/EDGE-009 の信頼性レベルは 🔵（既存実装から確実な要件）
+- 7新規テスト追加（全通過）
+- 既存328テスト（react-anti-patterns回帰 + overlap-resolver + error-alert関連）も全通過・回帰なし
 
 ### A195: 第195回検証 - Phase 109 セキュリティファジング CI 拡張（2026-06-22）
 
