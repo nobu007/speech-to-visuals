@@ -268,11 +268,29 @@ jobs:
           exit 1
       - name: Assert no job exceeded time budget (REQ-254)
         run: |
-          # Verify timeout-minutes is set on all jobs in ci.yml
-          # This assertion gate ensures timing regressions are surfaced
-          # If a job's ELAPSED exceeded its budget, the budget_exceeded flag
-          # would have been set and the job would have already failed or warned.
-          # This step serves as the summary-level assertion.
+          # Enforce budget_exceeded flags: if any job exceeded its time budget,
+          # the gate fails. This converts informational warnings into hard failures.
+          BUDGET_FAILURES=""
+          check_budget() {
+            local job="$1"
+            local exceeded="$2"
+            if [ "$exceeded" = "true" ]; then
+              BUDGET_FAILURES="$BUDGET_FAILURES $job"
+            fi
+          }
+          check_budget "code-size-audit" "${{ needs.code-size-audit.outputs.budget_exceeded }}"
+          check_budget "lint" "${{ needs.lint.outputs.budget_exceeded }}"
+          check_budget "type-check" "${{ needs.type-check.outputs.budget_exceeded }}"
+          check_budget "test" "${{ needs.test.outputs.budget_exceeded }}"
+          check_budget "monitoring-config-validate" "${{ needs.monitoring-config-validate.outputs.budget_exceeded }}"
+          check_budget "monitoring-drift-check" "${{ needs.monitoring-drift-check.outputs.budget_exceeded }}"
+          check_budget "build" "${{ needs.build.outputs.budget_exceeded }}"
+          check_budget "security-fuzz" "${{ needs.security-fuzz.outputs.budget_exceeded }}"
+          if [ -n "$BUDGET_FAILURES" ]; then
+            echo "::error::Jobs exceeded their time budget:$BUDGET_FAILURES"
+            echo "Time budget violations detected. Investigate performance regressions."
+            exit 1
+          fi
           echo "All required checks passed within their time budgets."
           echo "Timeout configuration verified per REQ-254."
       - name: All checks passed

@@ -160,6 +160,38 @@ describe('REQ-254: CI timeout-minutes configuration', () => {
     expect(content).toContain('budget_exceeded');
     expect(content).toContain('THRESHOLD');
   });
+
+  test('gate job enforces budget_exceeded from all timed jobs', () => {
+    const content = fs.readFileSync(ciYmlPath, 'utf-8');
+
+    // The gate job must check budget_exceeded outputs, not just print a message.
+    // REQ-254 enforcement: informational ::warning is insufficient;
+    // the gate must exit 1 if any job's budget_exceeded is "true".
+    const gateJobStart = content.indexOf('all-checks-pass:');
+    expect(gateJobStart).toBeGreaterThan(-1);
+
+    const gateJobSection = content.slice(gateJobStart);
+
+    // Must reference budget_exceeded from needs context
+    expect(gateJobSection).toContain('budget_exceeded');
+
+    // Must have an exit 1 path when budget is exceeded
+    expect(gateJobSection).toContain('exit 1');
+
+    // Must reference the outputs from individual jobs
+    expect(gateJobSection).toContain('needs.code-size-audit.outputs.budget_exceeded');
+    expect(gateJobSection).toContain('needs.lint.outputs.budget_exceeded');
+    expect(gateJobSection).toContain('needs.test.outputs.budget_exceeded');
+    expect(gateJobSection).toContain('needs.build.outputs.budget_exceeded');
+    expect(gateJobSection).toContain('needs.security-fuzz.outputs.budget_exceeded');
+
+    // Must NOT be a passive "just print success" step (the old behavior)
+    // If the step body contains only echo lines without conditional logic, it's passive.
+    const assertStepStart = gateJobSection.indexOf('Assert no job exceeded time budget');
+    const assertStepSection = gateJobSection.slice(assertStepStart);
+    expect(assertStepSection).toContain('check_budget');
+    expect(assertStepSection).toContain('BUDGET_FAILURES');
+  });
 });
 
 describe('REQ-254: Infrastructure workflow timeout-minutes', () => {
