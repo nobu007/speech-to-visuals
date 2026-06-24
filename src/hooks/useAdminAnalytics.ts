@@ -23,6 +23,7 @@ import {
 import {
   continuousLearner,
   type LearningStatus,
+  type LearningReportEntry,
 } from '@/framework/continuous-learner';
 
 export interface UseAdminAnalyticsOptions {
@@ -83,6 +84,8 @@ export interface AdminAnalyticsSnapshot {
     actionable: boolean;
     recommendation: string;
   }>;
+  /** Chronological history of learning report entries */
+  reportHistory: LearningReportEntry[];
 }
 
 export interface UseAdminAnalyticsReturn {
@@ -136,6 +139,7 @@ function collectSnapshot(): AdminAnalyticsSnapshot {
     actionable: i.actionable,
     recommendation: i.recommendation,
   }));
+  const reportHistory = continuousLearner.getReportHistory().map(h => ({ ...h }));
 
   return {
     healthCheck,
@@ -150,6 +154,7 @@ function collectSnapshot(): AdminAnalyticsSnapshot {
     learningReport,
     detectedPatterns,
     systemInsights,
+    reportHistory,
   };
 }
 
@@ -181,6 +186,7 @@ const EMPTY_SNAPSHOT: AdminAnalyticsSnapshot = {
   },
   detectedPatterns: [],
   systemInsights: [],
+  reportHistory: [],
 };
 
 export function useAdminAnalytics(

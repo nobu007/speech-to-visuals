@@ -61,6 +61,16 @@ export interface LearningStatus {
   lastAnalysisSuccess: boolean;
 }
 
+export interface LearningReportEntry {
+  timestamp: number;
+  iteration: number;
+  dataPoints: number;
+  detectedPatterns: number;
+  systemInsights: number;
+  learningVelocity: number;
+  success: boolean;
+}
+
 interface CommitRecord {
   component: string;
   reason: string;
@@ -75,6 +85,8 @@ export class ContinuousLearner {
   private optimizationStrategies: OptimizationStrategy[] = [];
   private systemInsights: SystemInsight[] = [];
   private commitHistory: CommitRecord[] = [];
+  private reportHistory: LearningReportEntry[] = [];
+  private static readonly MAX_REPORT_HISTORY = 20;
   private iterationCount: number = 0;
 
   // 学習設定
@@ -215,12 +227,33 @@ export class ContinuousLearner {
         await this.applyAutomaticOptimizations();
         this.lastAnalysisAt = Date.now();
         this.lastAnalysisSuccess = true;
+        this.recordReportEntry(true);
       } catch (error) {
         this.lastAnalysisAt = Date.now();
         this.lastAnalysisSuccess = false;
+        this.recordReportEntry(false);
         logger.warn('ContinuousLearner: learning cycle failed', { error: String(error), iteration: this.iterationCount });
       }
     }, this.LEARNING_CONFIG.patternAnalysisInterval);
+  }
+
+  /**
+   * Record a snapshot of key metrics after each analysis cycle.
+   * Maintains a ring buffer for dashboard history visualization.
+   */
+  private recordReportEntry(success: boolean): void {
+    this.reportHistory.push({
+      timestamp: this.lastAnalysisAt!,
+      iteration: this.iterationCount,
+      dataPoints: this.learningDatabase.length,
+      detectedPatterns: this.detectedPatterns.length,
+      systemInsights: this.systemInsights.length,
+      learningVelocity: this.calculateLearningVelocity(),
+      success,
+    });
+    if (this.reportHistory.length > ContinuousLearner.MAX_REPORT_HISTORY) {
+      this.reportHistory.shift();
+    }
   }
 
   /**
@@ -1090,6 +1123,14 @@ Co-Authored-By: Claude <noreply@anthropic.com>`;
    */
   getSystemInsights(): readonly SystemInsight[] {
     return [...this.systemInsights];
+  }
+
+  /**
+   * Learning report history for dashboard visualization (read-only snapshot).
+   * Returns chronological entries from the ring buffer, oldest to newest.
+   */
+  getReportHistory(): readonly LearningReportEntry[] {
+    return [...this.reportHistory];
   }
 
   /**

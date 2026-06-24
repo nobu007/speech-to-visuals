@@ -210,7 +210,7 @@ export const AdminAnalyticsDashboard: React.FC = () => {
     autoStart: true,
   });
 
-  const { healthCheck, productionHealth, productionMetrics, performanceSnapshot, trends, learningStatus, learningReport, detectedPatterns, systemInsights } = snapshot;
+  const { healthCheck, productionHealth, productionMetrics, performanceSnapshot, trends, learningStatus, learningReport, detectedPatterns, systemInsights, reportHistory } = snapshot;
 
   const overallStatus = healthCheck?.status ?? productionHealth?.status ?? 'unknown';
 
@@ -548,6 +548,60 @@ export const AdminAnalyticsDashboard: React.FC = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Report history */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Report History</CardTitle>
+              <CardDescription>
+                Learning metrics snapshots from past analysis cycles (max 20)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {reportHistory.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No history yet. Entries appear after each scheduled analysis cycle.
+                </p>
+              ) : (
+                <ScrollArea className="max-h-64">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left text-xs text-muted-foreground">
+                        <th className="pb-1 pr-2">Time</th>
+                        <th className="pb-1 pr-2">Iter</th>
+                        <th className="pb-1 pr-2">Data</th>
+                        <th className="pb-1 pr-2">Patterns</th>
+                        <th className="pb-1 pr-2">Insights</th>
+                        <th className="pb-1 pr-2">Velocity</th>
+                        <th className="pb-1">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reportHistory.map((entry, i) => (
+                        <tr key={i} className="border-b last:border-0">
+                          <td className="py-1 pr-2 text-xs text-muted-foreground">
+                            {new Date(entry.timestamp).toLocaleTimeString()}
+                          </td>
+                          <td className="py-1 pr-2">{entry.iteration}</td>
+                          <td className="py-1 pr-2">{entry.dataPoints}</td>
+                          <td className="py-1 pr-2">{entry.detectedPatterns}</td>
+                          <td className="py-1 pr-2">{entry.systemInsights}</td>
+                          <td className="py-1 pr-2">{entry.learningVelocity}</td>
+                          <td className="py-1">
+                            {entry.success ? (
+                              <CheckCircle className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <AlertCircle className="h-4 w-4 text-red-500" />
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Recommendations tab */}

@@ -104,6 +104,10 @@ const mockSnapshot = {
   systemInsights: [
     { type: 'performance', description: 'Processing time above threshold', confidence: 0.9, actionable: true, recommendation: 'Consider caching' },
   ],
+  reportHistory: [
+    { timestamp: 1700000000000, iteration: 4, dataPoints: 140, detectedPatterns: 2, systemInsights: 0, learningVelocity: 1, success: true },
+    { timestamp: 1700000060000, iteration: 5, dataPoints: 150, detectedPatterns: 3, systemInsights: 1, learningVelocity: 2, success: true },
+  ],
 };
 
 // -- mock setup --
@@ -323,6 +327,7 @@ describe('AdminAnalyticsDashboard', () => {
         },
         detectedPatterns: [],
         systemInsights: [],
+        reportHistory: [],
       },
     };
     render(<AdminAnalyticsDashboard />);
