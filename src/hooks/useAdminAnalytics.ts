@@ -59,6 +59,13 @@ export interface AdminAnalyticsSnapshot {
     systemInsights: number;
     recentOptimizations: string[];
     learningVelocity: number;
+    commitHistory: Array<{
+      component: string;
+      reason: string;
+      iteration: number;
+      message: string;
+      timestamp: string;
+    }>;
   };
   /** Detected learning patterns for display */
   detectedPatterns: Array<{
@@ -170,6 +177,7 @@ const EMPTY_SNAPSHOT: AdminAnalyticsSnapshot = {
     systemInsights: 0,
     recentOptimizations: [],
     learningVelocity: 0,
+    commitHistory: [],
   },
   detectedPatterns: [],
   systemInsights: [],

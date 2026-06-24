@@ -107,11 +107,6 @@ export class IterationManager {
     this.history.push(iteration);
     await this.logIteration(iteration);
 
-
-    if (error) {
-      // Intentionally empty: error already logged and stored in iteration history
-    }
-
     return iteration;
   }
 

@@ -79,6 +79,31 @@ const mockSnapshot = {
     { metric: 'memoryUsage', trend: 'degrading', changePercent: 12.3 },
   ],
   uptime: 3600000,
+  learningStatus: {
+    isRunning: true,
+    iteration: 5,
+    intervalMs: 60_000,
+    nextAnalysisAt: Date.now() + 60_000,
+    lastAnalysisAt: Date.now(),
+    lastAnalysisSuccess: true,
+  },
+  learningReport: {
+    totalDataPoints: 150,
+    detectedPatterns: 3,
+    optimizationStrategies: 2,
+    systemInsights: 1,
+    recentOptimizations: ['transcription_optimization', 'quality_enhancement'],
+    learningVelocity: 2,
+    commitHistory: [
+      { component: 'transcription', reason: 'improvement_achieved', iteration: 3, message: 'feat(transcription): improvement_achieved', timestamp: '2026-06-24T12:00:00.000Z' },
+    ],
+  },
+  detectedPatterns: [
+    { pattern: 'slow_processing', confidence: 0.85, improvementSuggestion: 'Add caching', expectedGain: 0.3, validationCount: 5 },
+  ],
+  systemInsights: [
+    { type: 'performance', description: 'Processing time above threshold', confidence: 0.9, actionable: true, recommendation: 'Consider caching' },
+  ],
 };
 
 // -- mock setup --
@@ -196,11 +221,12 @@ describe('AdminAnalyticsDashboard', () => {
 
   // -- tab tests --
 
-  it('renders all four tab triggers', () => {
+  it('renders all five tab triggers', () => {
     render(<AdminAnalyticsDashboard />);
     expect(screen.getByRole('tab', { name: /health/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /alerts/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /trends/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /learning/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /recommendations/i })).toBeInTheDocument();
   });
 
@@ -278,6 +304,25 @@ describe('AdminAnalyticsDashboard', () => {
         performanceSnapshot: null,
         trends: [],
         uptime: 0,
+        learningStatus: {
+          isRunning: false,
+          iteration: 0,
+          intervalMs: 60_000,
+          nextAnalysisAt: null,
+          lastAnalysisAt: null,
+          lastAnalysisSuccess: false,
+        },
+        learningReport: {
+          totalDataPoints: 0,
+          detectedPatterns: 0,
+          optimizationStrategies: 0,
+          systemInsights: 0,
+          recentOptimizations: [],
+          learningVelocity: 0,
+          commitHistory: [],
+        },
+        detectedPatterns: [],
+        systemInsights: [],
       },
     };
     render(<AdminAnalyticsDashboard />);

@@ -29,6 +29,7 @@ interface LearningPattern {
   improvementSuggestion: string;
   expectedGain: number;     // 予想改善効果 (0.0-1.0)
   validationCount: number;  // パターン検証回数
+  detectedAt: Date;         // パターン検出日時
 }
 
 interface OptimizationStrategy {
@@ -60,11 +61,20 @@ export interface LearningStatus {
   lastAnalysisSuccess: boolean;
 }
 
+interface CommitRecord {
+  component: string;
+  reason: string;
+  iteration: number;
+  message: string;
+  timestamp: string;
+}
+
 export class ContinuousLearner {
   private learningDatabase: LearningData[] = [];
   private detectedPatterns: LearningPattern[] = [];
   private optimizationStrategies: OptimizationStrategy[] = [];
   private systemInsights: SystemInsight[] = [];
+  private commitHistory: CommitRecord[] = [];
   private iterationCount: number = 0;
 
   // 学習設定
@@ -313,7 +323,8 @@ export class ContinuousLearner {
           applicableComponents: [component],
           improvementSuggestion: 'Optimize processing algorithms or add caching',
           expectedGain: 0.3,
-          validationCount: outliers.length
+          validationCount: outliers.length,
+          detectedAt: new Date(),
         };
 
         this.addOrUpdatePattern(pattern);
@@ -340,7 +351,8 @@ export class ContinuousLearner {
             ? `Enhance ${factor} to improve quality`
             : `Reduce impact of ${factor} on quality`,
           expectedGain: Math.abs(correlation) * 0.2,
-          validationCount: recentData.length
+          validationCount: recentData.length,
+          detectedAt: new Date(),
         };
 
         this.addOrUpdatePattern(pattern);
@@ -398,7 +410,8 @@ export class ContinuousLearner {
         applicableComponents: ['error_handling'],
         improvementSuggestion: `Address root cause of ${error} to reduce frequency`,
         expectedGain: count / recentData.length,
-        validationCount: count
+        validationCount: count,
+        detectedAt: new Date(),
       };
 
       this.addOrUpdatePattern(pattern);
@@ -462,7 +475,8 @@ export class ContinuousLearner {
             ? `Increase ${feature} to improve user satisfaction`
             : `Optimize ${feature} balance for better user experience`,
           expectedGain: Math.abs(difference) * 0.15,
-          validationCount: feedbackData.length
+          validationCount: feedbackData.length,
+          detectedAt: new Date(),
         };
 
         this.addOrUpdatePattern(pattern);
@@ -695,10 +709,14 @@ export class ContinuousLearner {
       this.detectedPatterns[existingIndex] = {
         ...this.detectedPatterns[existingIndex],
         confidence: (this.detectedPatterns[existingIndex].confidence + pattern.confidence) / 2,
-        validationCount: this.detectedPatterns[existingIndex].validationCount + 1
+        validationCount: this.detectedPatterns[existingIndex].validationCount + 1,
+        detectedAt: this.detectedPatterns[existingIndex].detectedAt,
       };
     } else {
-      this.detectedPatterns.push(pattern);
+      this.detectedPatterns.push({
+        ...pattern,
+        detectedAt: pattern.detectedAt ?? new Date(),
+      });
     }
   }
 
@@ -746,6 +764,7 @@ export class ContinuousLearner {
           improvementSuggestion: `Investigate and fix recurring error: ${error}`,
           expectedGain: 0.3,
           validationCount: count,
+          detectedAt: new Date(),
         });
       }
     }
@@ -967,6 +986,15 @@ export class ContinuousLearner {
 🤖 Generated with Claude Code Recursive Framework
 Co-Authored-By: Claude <noreply@anthropic.com>`;
 
+    this.commitHistory.push({
+      component,
+      reason,
+      iteration: this.iterationCount,
+      message: commitMessage,
+      timestamp: new Date().toISOString(),
+    });
+
+    logger.info(`ContinuousLearner: commit triggered for ${component}`, { reason, iteration: this.iterationCount });
   }
 
   /**
@@ -1074,6 +1102,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>`;
     systemInsights: number;
     recentOptimizations: string[];
     learningVelocity: number;
+    commitHistory: CommitRecord[];
   } {
     return {
       totalDataPoints: this.learningDatabase.length,
@@ -1081,14 +1110,17 @@ Co-Authored-By: Claude <noreply@anthropic.com>`;
       optimizationStrategies: this.optimizationStrategies.length,
       systemInsights: this.systemInsights.length,
       recentOptimizations: this.optimizationStrategies.slice(0, 5).map(s => s.name),
-      learningVelocity: this.calculateLearningVelocity()
+      learningVelocity: this.calculateLearningVelocity(),
+      commitHistory: [...this.commitHistory],
     };
   }
 
   private calculateLearningVelocity(): number {
     // 学習速度計算（新パターン発見率）
+    const now = Date.now();
+    const twentyFourHours = 24 * 60 * 60 * 1000;
     const recentPatterns = this.detectedPatterns.filter(p =>
-      Date.now() - new Date().getTime() < 24 * 60 * 60 * 1000 // 24時間以内
+      now - p.detectedAt.getTime() < twentyFourHours
     );
 
     return recentPatterns.length;

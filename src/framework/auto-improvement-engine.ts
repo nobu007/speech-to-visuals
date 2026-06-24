@@ -366,8 +366,6 @@ export class AutoImprovementEngine {
 
         if (result.success) {
           improved = true;
-        } else {
-          // Intentionally empty: non-successful result tracked in history, no additional action needed
         }
       } catch (error) {
         logger.error(`Failed to apply improvement: ${error}`);
@@ -450,10 +448,6 @@ export class AutoImprovementEngine {
 
       if (currentScore >= targetScore) {
         return { success: true, cycles: cycle, finalScore: currentScore };
-      }
-
-      if (!result.improved) {
-        // Intentionally empty: stagnation detected, continue to next cycle
       }
 
       // Small delay between cycles
