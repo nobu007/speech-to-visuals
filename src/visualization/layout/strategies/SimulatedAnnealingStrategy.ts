@@ -93,10 +93,6 @@ export class SimulatedAnnealingStrategy extends BaseLayoutStrategy {
     let iteration = 0;
     
     while (temperature > this.minTemperature && iteration < this.maxIterations) {
-      // Store current state for rollback if needed
-      const previousNodes = this.cloneNodes(nodes);
-      const previousEnergy = this.currentEnergy;
-      
       // Try several perturbations at this temperature
       let accepted = 0;
       
