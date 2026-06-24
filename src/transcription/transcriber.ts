@@ -275,7 +275,7 @@ export class TranscriptionPipeline {
       startMs: segment.start,
       endMs: segment.end,
       timestampMs: segment.start,
-      confidence: segment.confidence || 0.9
+      confidence: segment.confidence ?? 0.9
     }));
 
     return captions;
@@ -300,7 +300,9 @@ export class TranscriptionPipeline {
       // Intentionally empty: all success criteria met, no action needed
     } else {
       Object.entries(successCriteria).forEach(([key, passed]) => {
-        if (!passed) { /* criterion not met: ${key} */ }
+        if (!passed) {
+          logger.warn(`[Transcription] Success criterion not met: ${key}`);
+        }
       });
     }
 
