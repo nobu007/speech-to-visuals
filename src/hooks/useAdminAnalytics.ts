@@ -20,6 +20,10 @@ import {
   realTimeMonitor,
   type PerformanceSnapshot,
 } from '@/monitoring/real-time-performance-monitor';
+import {
+  continuousLearner,
+  type LearningStatus,
+} from '@/framework/continuous-learner';
 
 export interface UseAdminAnalyticsOptions {
   /** Polling interval in milliseconds (default: 10000) */
@@ -45,6 +49,33 @@ export interface AdminAnalyticsSnapshot {
   trends: Array<{ metric: string; trend: string; changePercent: number }>;
   /** System uptime in ms */
   uptime: number;
+  /** ContinuousLearner scheduling status */
+  learningStatus: LearningStatus;
+  /** Learning report summary */
+  learningReport: {
+    totalDataPoints: number;
+    detectedPatterns: number;
+    optimizationStrategies: number;
+    systemInsights: number;
+    recentOptimizations: string[];
+    learningVelocity: number;
+  };
+  /** Detected learning patterns for display */
+  detectedPatterns: Array<{
+    pattern: string;
+    confidence: number;
+    improvementSuggestion: string;
+    expectedGain: number;
+    validationCount: number;
+  }>;
+  /** System insights for display */
+  systemInsights: Array<{
+    type: string;
+    description: string;
+    confidence: number;
+    actionable: boolean;
+    recommendation: string;
+  }>;
 }
 
 export interface UseAdminAnalyticsReturn {
@@ -82,6 +113,23 @@ function collectSnapshot(): AdminAnalyticsSnapshot {
     // Monitor may not be available in all environments
   }
 
+  const learningStatus = continuousLearner.getLearningStatus();
+  const learningReport = continuousLearner.getLearningReport();
+  const detectedPatterns = continuousLearner.getDetectedPatterns().map(p => ({
+    pattern: p.pattern,
+    confidence: p.confidence,
+    improvementSuggestion: p.improvementSuggestion,
+    expectedGain: p.expectedGain,
+    validationCount: p.validationCount,
+  }));
+  const systemInsights = continuousLearner.getSystemInsights().map(i => ({
+    type: i.type,
+    description: i.description,
+    confidence: i.confidence,
+    actionable: i.actionable,
+    recommendation: i.recommendation,
+  }));
+
   return {
     healthCheck,
     nextDueAt,
@@ -91,6 +139,10 @@ function collectSnapshot(): AdminAnalyticsSnapshot {
     performanceSnapshot,
     trends,
     uptime: healthCheckService.getUptime(),
+    learningStatus,
+    learningReport,
+    detectedPatterns,
+    systemInsights,
   };
 }
 
@@ -103,6 +155,24 @@ const EMPTY_SNAPSHOT: AdminAnalyticsSnapshot = {
   performanceSnapshot: null,
   trends: [],
   uptime: 0,
+  learningStatus: {
+    isRunning: false,
+    iteration: 0,
+    intervalMs: 60_000,
+    nextAnalysisAt: null,
+    lastAnalysisAt: null,
+    lastAnalysisSuccess: false,
+  },
+  learningReport: {
+    totalDataPoints: 0,
+    detectedPatterns: 0,
+    optimizationStrategies: 0,
+    systemInsights: 0,
+    recentOptimizations: [],
+    learningVelocity: 0,
+  },
+  detectedPatterns: [],
+  systemInsights: [],
 };
 
 export function useAdminAnalytics(

@@ -51,6 +51,15 @@ interface SystemInsight {
   recommendation: string;
 }
 
+export interface LearningStatus {
+  isRunning: boolean;
+  iteration: number;
+  intervalMs: number;
+  nextAnalysisAt: number | null;
+  lastAnalysisAt: number | null;
+  lastAnalysisSuccess: boolean;
+}
+
 export class ContinuousLearner {
   private learningDatabase: LearningData[] = [];
   private detectedPatterns: LearningPattern[] = [];
@@ -69,6 +78,8 @@ export class ContinuousLearner {
   };
 
   private analysisInterval: NodeJS.Timeout | null = null;
+  private lastAnalysisAt: number | null = null;
+  private lastAnalysisSuccess: boolean = false;
 
   constructor(autoStart: boolean = true) {
     if (autoStart) {
@@ -192,7 +203,11 @@ export class ContinuousLearner {
         await this.updateOptimizationStrategies();
         await this.generateSystemInsights();
         await this.applyAutomaticOptimizations();
+        this.lastAnalysisAt = Date.now();
+        this.lastAnalysisSuccess = true;
       } catch (error) {
+        this.lastAnalysisAt = Date.now();
+        this.lastAnalysisSuccess = false;
         logger.warn('ContinuousLearner: learning cycle failed', { error: String(error), iteration: this.iterationCount });
       }
     }, this.LEARNING_CONFIG.patternAnalysisInterval);
@@ -1016,6 +1031,37 @@ Co-Authored-By: Claude <noreply@anthropic.com>`;
 
     const avgTime = latestData.reduce((sum, d) => sum + d.processingTime, 0) / latestData.length;
     return `${(avgTime / 1000).toFixed(1)}s avg`;
+  }
+
+  /**
+   * Learning scheduling status for dashboard integration.
+   * Exposes nextDueAt / lastResult for admin UI display.
+   */
+  getLearningStatus(): LearningStatus {
+    return {
+      isRunning: this.analysisInterval !== null,
+      iteration: this.iterationCount,
+      intervalMs: this.LEARNING_CONFIG.patternAnalysisInterval,
+      nextAnalysisAt: this.lastAnalysisAt !== null
+        ? this.lastAnalysisAt + this.LEARNING_CONFIG.patternAnalysisInterval
+        : null,
+      lastAnalysisAt: this.lastAnalysisAt,
+      lastAnalysisSuccess: this.lastAnalysisSuccess,
+    };
+  }
+
+  /**
+   * Detected patterns for dashboard display (read-only snapshot)
+   */
+  getDetectedPatterns(): readonly LearningPattern[] {
+    return [...this.detectedPatterns];
+  }
+
+  /**
+   * System insights for dashboard display (read-only snapshot)
+   */
+  getSystemInsights(): readonly SystemInsight[] {
+    return [...this.systemInsights];
   }
 
   /**

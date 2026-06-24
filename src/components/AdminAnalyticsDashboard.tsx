@@ -22,13 +22,16 @@ import {
   Activity,
   AlertCircle,
   AlertTriangle,
+  Brain,
   CheckCircle,
   Clock,
   HeartPulse,
+  Lightbulb,
   Pause,
   Play,
   RefreshCw,
   Server,
+  Target,
   TrendingDown,
   TrendingUp,
   Zap,
@@ -207,7 +210,7 @@ export const AdminAnalyticsDashboard: React.FC = () => {
     autoStart: true,
   });
 
-  const { healthCheck, productionHealth, productionMetrics, performanceSnapshot, trends } = snapshot;
+  const { healthCheck, productionHealth, productionMetrics, performanceSnapshot, trends, learningStatus, learningReport, detectedPatterns, systemInsights } = snapshot;
 
   const overallStatus = healthCheck?.status ?? productionHealth?.status ?? 'unknown';
 
@@ -290,6 +293,12 @@ export const AdminAnalyticsDashboard: React.FC = () => {
             )}
           </TabsTrigger>
           <TabsTrigger value="trends">Trends</TabsTrigger>
+          <TabsTrigger value="learning">
+            Learning
+            {learningReport.detectedPatterns > 0 && (
+              <Badge className="ml-1 bg-blue-500 text-white">{learningReport.detectedPatterns}</Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
         </TabsList>
 
@@ -385,6 +394,160 @@ export const AdminAnalyticsDashboard: React.FC = () => {
               <TrendList trends={trends} />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Learning tab */}
+        <TabsContent value="learning" className="space-y-4">
+          {/* Learning status cards */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard
+              title="Learning Process"
+              value={learningStatus.isRunning ? 'Active' : 'Stopped'}
+              subtitle={`Iteration: ${learningStatus.iteration}`}
+              icon={Brain}
+            />
+            <StatCard
+              title="Next Analysis"
+              value={formatTimestamp(learningStatus.nextAnalysisAt)}
+              subtitle={learningStatus.isRunning ? 'Auto-scheduled' : 'Not running'}
+              icon={Clock}
+            />
+            <StatCard
+              title="Data Points"
+              value={learningReport.totalDataPoints.toLocaleString()}
+              subtitle={`Patterns: ${learningReport.detectedPatterns}`}
+              icon={Target}
+            />
+            <StatCard
+              title="Last Analysis"
+              value={
+                learningStatus.lastAnalysisAt !== null
+                  ? formatTimestamp(learningStatus.lastAnalysisAt)
+                  : '—'
+              }
+              subtitle={
+                learningStatus.lastAnalysisAt !== null
+                  ? learningStatus.lastAnalysisSuccess
+                    ? 'Completed successfully'
+                    : 'Completed with errors'
+                  : 'No analysis yet'
+              }
+              icon={Activity}
+            />
+          </div>
+
+          {/* Detected patterns */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Detected Patterns</CardTitle>
+              <CardDescription>
+                Learning patterns identified from processing history
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {detectedPatterns.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No patterns detected yet</p>
+              ) : (
+                <ScrollArea className="max-h-64">
+                  <div className="space-y-2">
+                    {detectedPatterns.map((p, i) => (
+                      <div key={i} className="rounded-md border p-3">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{p.pattern}</span>
+                          <Badge className={
+                            p.confidence >= 0.8
+                              ? 'bg-green-100 text-green-800'
+                              : p.confidence >= 0.5
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-gray-100 text-gray-600'
+                          }>
+                            {(p.confidence * 100).toFixed(0)}%
+                          </Badge>
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {p.improvementSuggestion}
+                        </p>
+                        <div className="mt-1 flex items-center gap-4 text-xs text-muted-foreground">
+                          <span>Gain: {(p.expectedGain * 100).toFixed(0)}%</span>
+                          <span>Validations: {p.validationCount}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* System insights */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">System Insights</CardTitle>
+              <CardDescription>
+                AI-driven insights from continuous learning analysis
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {systemInsights.length === 0 ? (
+                <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
+                  <Lightbulb className="h-4 w-4" />
+                  No insights generated yet. Insights appear after sufficient data collection.
+                </div>
+              ) : (
+                <ScrollArea className="max-h-64">
+                  <div className="space-y-2">
+                    {systemInsights.map((insight, i) => (
+                      <div key={i} className="rounded-md border p-3">
+                        <div className="flex items-center gap-2">
+                          {insight.type === 'performance' ? (
+                            <Zap className="h-4 w-4 text-orange-500" />
+                          ) : insight.type === 'quality' ? (
+                            <CheckCircle className="h-4 w-4 text-blue-500" />
+                          ) : insight.type === 'reliability' ? (
+                            <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                          ) : (
+                            <Lightbulb className="h-4 w-4 text-purple-500" />
+                          )}
+                          <span className="font-medium">{insight.description}</span>
+                          {insight.actionable && (
+                            <Badge className="bg-blue-100 text-blue-800">Actionable</Badge>
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {insight.recommendation}
+                        </p>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          Confidence: {(insight.confidence * 100).toFixed(0)}%
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Recent optimizations */}
+          {learningReport.recentOptimizations.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Recent Optimizations</CardTitle>
+                <CardDescription>
+                  Applied optimization strategies from learning cycles
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-1">
+                  {learningReport.recentOptimizations.map((opt, i) => (
+                    <div key={i} className="flex items-center gap-2 rounded-md border p-2">
+                      <Target className="h-4 w-4 text-blue-500" />
+                      <span className="text-sm">{opt}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Recommendations tab */}
