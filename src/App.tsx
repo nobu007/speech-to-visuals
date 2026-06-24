@@ -13,6 +13,7 @@ import SimplePipelineInterface from "./components/SimplePipelineInterface";
 import SimplePipeline from "./pages/SimplePipeline";
 import FrameworkDashboardPage from "./components/FrameworkDashboardPage";
 import { GuardMetricsDashboard } from "./components/GuardMetricsDashboard";
+import { AdminAnalyticsDashboard } from "./components/AdminAnalyticsDashboard";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/production" element={<ProductionDashboard />} />
           <Route path="/framework" element={<FrameworkDashboardPage />} />
           <Route path="/security" element={<GuardMetricsDashboard />} />
+          <Route path="/admin" element={<AdminAnalyticsDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
