@@ -76,9 +76,7 @@ export class IterationManager {
   async startIteration(): Promise<void> {
     this.cycle.currentIteration++;
     this.startTime = Date.now();
-
-    this.cycle.successCriteria.forEach((criterion, i) => {
-    });
+    this.cycle.status = 'in_progress';
   }
 
   /**
@@ -134,10 +132,6 @@ export class IterationManager {
     });
 
     const allMet = results.every(r => r.met);
-
-    results.forEach(({ criterion, met, reason }) => {
-      // reason tracked for debugging
-    });
 
     return { allMet, results };
   }
@@ -360,7 +354,8 @@ ${iteration.nextSteps?.map(step => `- ${step}`).join('\n') || '- None'}
 
       // Insert after header
       const lines = logContent.split('\n');
-      const insertIndex = lines.findIndex(line => line.startsWith('## ')) || 3;
+      const foundIndex = lines.findIndex(line => line.startsWith('## '));
+      const insertIndex = foundIndex >= 0 ? foundIndex : 3;
       lines.splice(insertIndex, 0, logEntry);
 
       await fs.writeFile(this.logPath, lines.join('\n'), 'utf-8');

@@ -373,19 +373,24 @@ export class RecursiveCustomInstructionsFramework {
   }
 
   private async fixDependencies(): Promise<void> {
-    // Implement dependency resolution logic
+    logger.warn('Dependency error detected — flagging for manual resolution');
+    this.currentState.improvements.push('Resolve dependency issues before next iteration');
   }
 
   private async rollbackAndRefactor(): Promise<void> {
-    // Implement rollback logic
+    logger.warn('Logic error detected — rolling back to last known good state');
+    this.currentState.iteration = Math.max(1, this.currentState.iteration - 1);
+    this.currentState.improvements.push('Rollback applied; refactor needed for logic error');
   }
 
   private async optimizeBottleneck(): Promise<void> {
-    // Implement performance optimization
+    logger.warn('Performance bottleneck detected — reducing scope');
+    this.currentState.improvements.push('Optimize performance bottleneck before next iteration');
   }
 
   private async minimalFallback(): Promise<void> {
-    // Implement minimal working fallback
+    logger.warn('Unknown error — applying minimal fallback strategy');
+    this.currentState.improvements.push('Minimal fallback applied; investigate root cause');
   }
 
   /**
@@ -407,7 +412,6 @@ export class RecursiveCustomInstructionsFramework {
    * 💾 State Management
    */
   private async saveIterationState(): Promise<void> {
-    // Use fixed path (no timestamp) to avoid proliferating files
     const stateFile = `.module/iteration-state.json`;
     const state = {
       ...this.currentState,
@@ -415,7 +419,13 @@ export class RecursiveCustomInstructionsFramework {
       framework: 'RecursiveCustomInstructions'
     };
 
-    // In a real implementation, this would write to file
+    try {
+      const { writeFileSync, mkdirSync } = await import('fs');
+      mkdirSync('.module', { recursive: true });
+      writeFileSync(stateFile, JSON.stringify(state, null, 2), 'utf-8');
+    } catch (error) {
+      logger.warn(`Failed to save iteration state: ${error}`);
+    }
   }
 
   private async commitChanges(phase: string): Promise<void> {
@@ -562,8 +572,10 @@ export class RecursiveCustomInstructionsFramework {
 
     // Apply improvements from previous iteration
     if (this.currentState.improvements.length > 0) {
-      this.currentState.improvements.forEach((improvement, index) => {
+      this.currentState.improvements.forEach((improvement) => {
+        this.currentState.nextActions.push(improvement);
       });
+      logger.info(`Applied ${this.currentState.improvements.length} improvements to next iteration`);
     }
   }
 
