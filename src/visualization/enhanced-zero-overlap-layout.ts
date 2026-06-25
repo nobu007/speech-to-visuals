@@ -475,8 +475,11 @@ export class ZeroOverlapLayoutEngine {
     // Initialize nodes with better distributed positions
     const positionedNodes: PositionedNode[] = this.initializeNetworkNodes(nodes, optimalSpacing);
 
+    // Apply enhanced force-directed algorithm for optimal node distribution
+    if (nodes.length > 1) {
+      await this.applyEnhancedForceDirectedAlgorithm(positionedNodes, edges, optimalSpacing);
+    }
 
-    // Enhanced force-directed algorithm with multiple phases
     const layoutEdges: LayoutEdge[] = edges
       .map(edge => {
         const source = positionedNodes.find(n => n.id === edge.from);

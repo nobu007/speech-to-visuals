@@ -7,8 +7,8 @@ import { LayoutConfig, Point, NodeDimensionsConfig } from './types';
 export function calculateNodeWidth(node: NodeDatum, config: NodeDimensionsConfig): number {
   const baseWidth = config.nodeWidth;
   const labelLength = node.label?.length || 0;
-  const charWidth = config.charWidth;
-  const padding = config.padding;
+  const charWidth = config.charWidth ?? 8;   // 8px default per character
+  const padding = config.padding ?? 16;       // 16px default padding
 
   const textWidth = labelLength * charWidth + padding;
   return Math.max(baseWidth, Math.min(textWidth, baseWidth * 2));

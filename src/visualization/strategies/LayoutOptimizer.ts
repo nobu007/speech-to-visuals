@@ -144,16 +144,26 @@ export class LayoutOptimizer {
    * Adjust spacing based on node importance
    */
   private async adjustSpacingByImportance(layout: DiagramLayout): Promise<DiagramLayout> {
+    if (layout.nodes.length === 0) return layout;
+
+    // Calculate centroid to scale relative to center, not origin
+    const centerX = layout.nodes.reduce((sum, n) => sum + (n.x + n.w / 2), 0) / layout.nodes.length;
+    const centerY = layout.nodes.reduce((sum, n) => sum + (n.y + n.h / 2), 0) / layout.nodes.length;
+
     const nodes = layout.nodes.map(node => {
       const importance = node.meta?.importance || 0.5;
 
       // More important nodes get more space around them
       const spacingMultiplier = 1 + importance * 0.5;
 
+      // Scale relative to centroid to avoid pushing nodes off-canvas
+      const nodeCenterX = node.x + node.w / 2;
+      const nodeCenterY = node.y + node.h / 2;
+
       return {
         ...node,
-        x: node.x * spacingMultiplier,
-        y: node.y * spacingMultiplier
+        x: centerX + (nodeCenterX - centerX) * spacingMultiplier - node.w / 2,
+        y: centerY + (nodeCenterY - centerY) * spacingMultiplier - node.h / 2
       };
     });
 
