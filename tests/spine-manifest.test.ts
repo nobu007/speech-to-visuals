@@ -9,7 +9,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { validateSpineManifest, extractPathsFromSpine } from '../scripts/validate-spine-manifest';
+import { validateSpineManifest, extractPathsFromSpine, validateSpineSchema, parseSpineSections } from '../scripts/validate-spine-manifest';
 
 const REPO_ROOT = process.cwd();
 const SPINE_PATH = path.join(REPO_ROOT, 'specs', '_doc_spine.yml');
@@ -153,6 +153,123 @@ system_design:
       }
 
       expect(missing).toEqual([]);
+    });
+  });
+
+  describe('validateSpineSchema', () => {
+    it('should return no errors for the current spine manifest', () => {
+      const content = fs.readFileSync(SPINE_PATH, 'utf-8');
+      const errors = validateSpineSchema(content);
+      expect(errors).toEqual([]);
+    });
+
+    it('should detect entrypoint missing path', () => {
+      const yaml = `entrypoints:\n  - audience: contributor\n`;
+      const errors = validateSpineSchema(yaml);
+      expect(errors.some((e) => e.includes("missing required key 'path'"))).toBe(true);
+    });
+
+    it('should detect entrypoint missing audience', () => {
+      const yaml = `entrypoints:\n  - path: README.md\n`;
+      const errors = validateSpineSchema(yaml);
+      expect(errors.some((e) => e.includes("missing required key 'audience'"))).toBe(true);
+    });
+
+    it('should detect system_design item missing path', () => {
+      const yaml = `system_design:\n  - children:\n`;
+      const errors = validateSpineSchema(yaml);
+      expect(errors.some((e) => e.includes("missing required key 'path'"))).toBe(true);
+    });
+
+    it('should detect reference missing doc', () => {
+      const yaml = `references:\n  - referenced_by:\n    - architecture.md\n`;
+      const errors = validateSpineSchema(yaml);
+      expect(errors.some((e) => e.includes("missing required key 'doc'"))).toBe(true);
+    });
+
+    it('should accept a well-formed manifest', () => {
+      const yaml = [
+        'constitution: SYSTEM_CONSTITUTION.md',
+        'purpose: null',
+        'entrypoints:',
+        '  - path: README.md',
+        '    audience: contributor',
+        'system_design:',
+        '  - path: architecture.md',
+        '    children:',
+        '      - path: acceptance-criteria.md',
+        'references:',
+        '  - doc: api-endpoints.md',
+        '    referenced_by:',
+        '      - architecture.md',
+      ].join('\n');
+      const errors = validateSpineSchema(yaml);
+      expect(errors).toEqual([]);
+    });
+
+    it('should be integrated into validateSpineManifest results', () => {
+      const result = validateSpineManifest();
+      expect(result.schemaErrors).toBeDefined();
+      expect(Array.isArray(result.schemaErrors)).toBe(true);
+      // Current manifest should have zero schema errors
+      expect(result.schemaErrors).toHaveLength(0);
+    });
+  });
+
+  describe('parseSpineSections', () => {
+    it('should parse entrypoints with path and audience', () => {
+      const yaml = [
+        'entrypoints:',
+        '  - path: README.md',
+        '    audience: contributor',
+        '  - path: AGENTS.md',
+        '    audience: ai-agent',
+      ].join('\n');
+      const sections = parseSpineSections(yaml);
+      expect(sections.entrypoints).toHaveLength(2);
+      expect(sections.entrypoints[0].path).toBe('README.md');
+      expect(sections.entrypoints[0].audience).toBe('contributor');
+      expect(sections.entrypoints[1].path).toBe('AGENTS.md');
+    });
+
+    it('should parse system_design with children', () => {
+      const yaml = [
+        'system_design:',
+        '  - path: architecture.md',
+        '    children:',
+        '      - path: acceptance-criteria.md',
+        '      - path: dataflow.md',
+      ].join('\n');
+      const sections = parseSpineSections(yaml);
+      expect(sections.systemDesign).toHaveLength(1);
+      expect(sections.systemDesign[0].path).toBe('architecture.md');
+      expect(sections.systemDesign[0].children).toHaveLength(2);
+      expect(sections.systemDesign[0].children![0].path).toBe('acceptance-criteria.md');
+      expect(sections.systemDesign[0].children![1].path).toBe('dataflow.md');
+    });
+
+    it('should parse references with doc key', () => {
+      const yaml = [
+        'references:',
+        '  - doc: api-endpoints.md',
+        '    referenced_by:',
+        '      - architecture.md',
+      ].join('\n');
+      const sections = parseSpineSections(yaml);
+      expect(sections.references).toHaveLength(1);
+      expect(sections.references[0].doc).toBe('api-endpoints.md');
+    });
+
+    it('should parse the actual spine manifest', () => {
+      const content = fs.readFileSync(SPINE_PATH, 'utf-8');
+      const sections = parseSpineSections(content);
+      expect(sections.entrypoints.length).toBeGreaterThanOrEqual(3);
+      expect(sections.systemDesign.length).toBeGreaterThanOrEqual(1);
+      // All entrypoints should have both path and audience
+      sections.entrypoints.forEach((ep) => {
+        expect(ep.path).toBeDefined();
+        expect(ep.audience).toBeDefined();
+      });
     });
   });
 });

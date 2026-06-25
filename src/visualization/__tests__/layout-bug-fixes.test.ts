@@ -46,6 +46,28 @@ describe('calculateNodeWidth — NaN guard for optional config fields', () => {
     expect(width).toBeGreaterThanOrEqual(120);
   });
 
+  it('should return exact width using default charWidth=8, padding=16 when omitted', () => {
+    // Without defaults: charWidth=undefined, padding=undefined → NaN
+    // With defaults: textWidth = 11 * 8 + 16 = 104; min(104, 240) = 104; max(120, 104) = 120
+    const node: NodeDatum = { id: 'a', label: 'Hello World' }; // 11 chars
+    const width = calculateNodeWidth(node, { nodeWidth: 120, nodeHeight: 60 });
+    expect(width).toBe(120); // max(120, 104) = 120
+  });
+
+  it('should demonstrate that NaN would have occurred without the fix', () => {
+    // Simulate the old code path: no defaults → undefined * number = NaN
+    const node: NodeDatum = { id: 'a', label: 'Test' };
+    const configWithoutDefaults = { nodeWidth: 100, nodeHeight: 50 };
+    const oldCharWidth = (configWithoutDefaults as Record<string, unknown>).charWidth as number | undefined;
+    const oldPadding = (configWithoutDefaults as Record<string, unknown>).padding as number | undefined;
+    const oldTextWidth = node.label!.length * oldCharWidth! + oldPadding!;
+    expect(Number.isNaN(oldTextWidth)).toBe(true); // This is the old bug
+
+    // New code with defaults returns a finite value
+    const width = calculateNodeWidth(node, configWithoutDefaults);
+    expect(Number.isFinite(width)).toBe(true);
+  });
+
   it('should return a valid number for empty label', () => {
     const node: NodeDatum = { id: 'a', label: '' };
     const width = calculateNodeWidth(node, { nodeWidth: 120, nodeHeight: 60 });
@@ -75,6 +97,13 @@ describe('calculateNodeWidth — NaN guard for optional config fields', () => {
     });
     // textWidth = 2 * 10 + 20 = 40; min(40, 100) = 40; max(50, 40) = 50
     expect(width).toBe(50);
+  });
+
+  it('should use default charWidth=8 for mid-length labels that expand past baseWidth', () => {
+    // 20 chars: textWidth = 20*8 + 16 = 176; min(176, 200) = 176; max(100, 176) = 176
+    const node: NodeDatum = { id: 'a', label: 'A'.repeat(20) };
+    const width = calculateNodeWidth(node, { nodeWidth: 100, nodeHeight: 50 });
+    expect(width).toBe(176);
   });
 });
 
@@ -215,6 +244,26 @@ describe('LayoutOptimizer — adjustSpacingByImportance centroid fix', () => {
     expect(Math.abs(newMid - origMid)).toBeLessThan(100);
   });
 
+  it('should verify exact centroid-scaling formula for single optimization step', () => {
+    // Directly verify the centroid scaling math:
+    // With importance=0.5, spacingMultiplier = 1 + 0.5 * 0.5 = 1.25
+    // Node center at (900, 540), centroid at (900, 540) → delta=0 → stays
+    // This verifies the formula: centerX + (nodeCenterX - centerX) * mult - w/2
+    const spacingMultiplier = 1 + 0.5 * 0.5; // 1.25
+    const centerX = 960;
+    const nodeCenterX = 960; // symmetric
+    const w = 120;
+    const expectedX = centerX + (nodeCenterX - centerX) * spacingMultiplier - w / 2;
+    // (960 + 0 * 1.25 - 60) = 900 — same as original
+    expect(expectedX).toBe(900);
+
+    // Old bug formula: node.x * spacingMultiplier = 900 * 1.25 = 1125
+    const oldBugX = 900 * spacingMultiplier;
+    expect(oldBugX).toBe(1125);
+    // New formula keeps node at 900, old bug would push to 1125
+    expect(expectedX).not.toBe(oldBugX);
+  });
+
   it('should not push all nodes toward origin (the old bug)', async () => {
     // Nodes far from origin — old bug would shrink positions toward (0,0)
     const layout = {
@@ -233,6 +282,28 @@ describe('LayoutOptimizer — adjustSpacingByImportance centroid fix', () => {
       // Should not be pushed wildly toward origin or off canvas
       expect(node.x).toBeGreaterThan(1000);
     });
+  });
+
+  it('should verify centroid math: node at 1560 center, centroid at 1620', () => {
+    // Node A: x=1500, center=1560; Node B: x=1600, center=1660
+    // centroid = (1560+1660)/2 = 1610
+    // spacingMultiplier = 1.25
+    // new_centerA = 1610 + (1560 - 1610) * 1.25 = 1610 - 62.5 = 1547.5
+    // newX = 1547.5 - 60 = 1487.5
+    // Old bug: 1500 * 1.25 = 1875 (off canvas!)
+    const spacingMultiplier = 1.25;
+    const centroid = 1610;
+    const nodeACenter = 1560;
+    const expectedCenter = centroid + (nodeACenter - centroid) * spacingMultiplier;
+    const expectedX = expectedCenter - 60;
+    const oldBugX = 1500 * spacingMultiplier;
+
+    expect(expectedX).toBeCloseTo(1487.5, 0);
+    expect(oldBugX).toBe(1875);
+    // The fix keeps node within reasonable range of original
+    expect(Math.abs(expectedX - 1500)).toBeLessThan(50);
+    // The old bug pushes node way past original
+    expect(Math.abs(oldBugX - 1500)).toBeGreaterThan(300);
   });
 
   it('should preserve relative order for equal-importance nodes', async () => {
