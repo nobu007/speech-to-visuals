@@ -38,6 +38,7 @@
     "cache:warmup": "tsx scripts/cache-warmup.ts",
     "audit:code-size": "tsx scripts/code-size-audit.ts --ci",
     "spine:validate": "tsx scripts/validate-spine-manifest.ts",
+    "setup:hooks": "sh scripts/install-hooks.sh",
     "monitoring:validate": "tsx scripts/validate-monitoring-configs.ts",
     "test": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.config.cjs",
     "test:coverage": "jest --config jest.config.cjs --coverage",

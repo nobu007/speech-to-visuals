@@ -159,13 +159,14 @@ export class AdaptiveContentProcessor {
       return result;
 
     } catch (error) {
-      logger.error('Strategy selection failed:', error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      logger.error('Strategy selection failed:', errorMsg);
 
       // Fallback to balanced strategy
       return {
         strategy: this.strategies.balanced,
         confidence: 0.5,
-        reasoning: ['Error occurred, using balanced strategy', error.message],
+        reasoning: ['Error occurred, using balanced strategy', errorMsg],
         expectedImprovement: 0,
         processingTime: performance.now() - startTime
       };
