@@ -100,11 +100,14 @@ export class SimpleDiagramDetector {
 
     const confidence = Math.min(scores[bestType] * this.CONFIDENCE_SCALE_FACTOR, this.MAX_CONFIDENCE_CAP); // Scale up confidence
 
-    // Generate simple nodes and edges based on detected type
-    const { nodes, edges } = this.generateSimpleElements(text, bestType);
+    // When no keywords match at all, use default elements instead of
+    // falsely presenting hardcoded flow-chart elements for unknown content
+    const isUnrecognized = scores[bestType] === 0;
+    const { nodes, edges } = isUnrecognized
+      ? this.generateDefaultElements(text)
+      : this.generateSimpleElements(text, bestType);
 
     const reasoning = this.explainReasoning(bestType, scores[bestType], text);
-
 
     return {
       type: bestType,
@@ -342,27 +345,30 @@ export class SimpleDiagramDetector {
   /**
    * Test detector with sample texts
    * 🔄 Custom Instructions: テスト機能内蔵
+   * Returns a summary of pass/fail results.
    */
-  async testDetector(): Promise<void> {
+  async testDetector(): Promise<{ total: number; passed: number; failures: { text: string; expected: string; got: string }[] }> {
 
     const testCases = [
       {
         text: "First, we start the process. Then we check the condition. Finally, we complete the workflow.",
-        expected: 'flow'
+        expected: 'flow' as DiagramType
       },
       {
         text: "The organization has a CEO at the top, with departments below and teams under each department.",
-        expected: 'tree'
+        expected: 'tree' as DiagramType
       },
       {
         text: "In 2020, we started the project. In 2021, we completed development. In 2022, we launched.",
-        expected: 'timeline'
+        expected: 'timeline' as DiagramType
       },
       {
         text: "This process repeats continuously. After the final step, it loops back to the beginning.",
-        expected: 'cycle'
+        expected: 'cycle' as DiagramType
       }
     ];
+
+    const failures: { text: string; expected: string; got: string }[] = [];
 
     for (const testCase of testCases) {
       const result = await this.analyze({
@@ -371,9 +377,20 @@ export class SimpleDiagramDetector {
         endMs: this.TEST_END_MS
       });
 
-      const success = result.type === testCase.expected;
+      if (result.type !== testCase.expected) {
+        failures.push({
+          text: testCase.text.slice(0, 60),
+          expected: testCase.expected,
+          got: result.type
+        });
+      }
     }
 
+    return {
+      total: testCases.length,
+      passed: testCases.length - failures.length,
+      failures
+    };
   }
 }
 
