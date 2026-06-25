@@ -5387,7 +5387,85 @@
 
 ---
 
-### Phase 111 受け入れ基準サマリー
+### REQ-258: Spine manifest validator CI統合 🔵
+
+**信頼性**: 🔵 *scripts/validate-spine-manifest.ts・.github/workflows/ci.yml より*
+
+#### Given（前提条件）
+- `specs/_doc_spine.yml` が存在し、全参照パスがディスク上に存在する
+
+#### When（実行操作）
+- CI で `npm run spine:validate` を実行
+
+#### Then（期待結果）
+- spine-validate ジョブが正常終了（exit code 0）
+- 全参照パスの存在が確認される
+- orphaned specファイルが warnings として報告される
+
+#### テストケース
+
+- [x] **TC-258-01**: spine manifestの全参照パスがディスク上に存在する 🔵
+  - **信頼性**: 🔵 *tests/spine-manifest.test.ts*
+- [x] **TC-258-02**: orphaned specファイルが正しく検出される 🔵
+  - **信頼性**: 🔵 *tests/spine-manifest.test.ts*
+- [x] **TC-258-03**: CI spine-validateジョブがbuild/all-checks-passの必須依存に含まれる 🔵
+  - **信頼性**: 🔵 *ci.ymlのspine-validateジョブ定義*
+
+---
+
+### REQ-259: Recovery path silent catch修正 🔵
+
+**信頼性**: 🔵 *src/quality/enhanced-error-recovery.ts・src/pipeline/pipeline-error-recovery-orchestrator.ts より*
+
+#### Given（前提条件）
+- エラー回復戦略の実行中に例外が発生する
+
+#### When（実行操作）
+- simplified_export / re_segmentation / skip_animation / fallback 戦略の実行
+
+#### Then（期待結果）
+- サイレントcatchブロックが `logger.error()` でエラー詳細を記録する
+- エラー発生時に回復失敗結果が返却される
+
+#### テストケース
+
+- [x] **TC-259-01**: 4箇所のsilent catchがlogger.errorでログ出力する 🔵
+  - **信頼性**: 🔵 *git diff e244be3*
+- [x] **TC-259-02**: pipeline-error-recovery-orchestrator.tsのcatchがログ出力する 🔵
+  - **信頼性**: 🔵 *git diff e244be3*
+- [x] **TC-259-03**: recovery-telemetry-aggregator.test.ts（354行）が全て通過する 🔵
+  - **信頼性**: 🔵 *src/quality/__tests__/recovery-telemetry-aggregator.test.ts*
+- [x] **TC-259-04**: regression-detector.test.ts（410行）が全て通過する 🔵
+  - **信頼性**: 🔵 *src/quality/__tests__/regression-detector.test.ts*
+
+---
+
+### REQ-260: SimpleDiagramDetector バグ修正 🔵
+
+**信頼性**: 🔵 *src/analysis/simple-diagram-detector.ts・src/analysis/__tests__/simple-diagram-detector.test.ts より*
+
+#### Given（前提条件）
+- SimpleDiagramDetector がテキストセグメントを分析する
+
+#### When（実行操作）
+- キーワードスコアが全て0のテキストを入力、またはtestDetector()を呼び出し
+
+#### Then（期待結果）
+- 認識不可テキスト（score=0）の場合、generateDefaultElements() が呼ばれる（flow-chart要素ではない）
+- testDetector() が `{ total, passed, failures[] }` 構造化結果を返す
+
+#### テストケース
+
+- [x] **TC-260-01**: スコア0テキストでデフォルト要素が生成される 🔵
+  - **信頼性**: 🔵 *src/analysis/simple-diagram-detector.ts L105-108*
+- [x] **TC-260-02**: testDetector()が構造化結果を返す 🔵
+  - **信頼性**: 🔵 *src/analysis/simple-diagram-detector.ts L350-394*
+- [x] **TC-260-03**: simple-diagram-detector.test.ts（436行）が全て通過する 🔵
+  - **信頼性**: 🔵 *src/analysis/__tests__/simple-diagram-detector.test.ts*
+
+---
+
+### Phase 111+ 受け入れ基準サマリー
 
 | 要件 | テストケース数 | 信頼性 |
 |------|--------------|--------|
@@ -5396,7 +5474,10 @@
 | REQ-255: ESLint no-console | 2 | 🔵 |
 | REQ-256: リトライ設定DI | 2 | 🔵 |
 | REQ-257: シーンデュレーション統合 | 2 | 🔵 |
-| **合計** | **10** | **🔵 100%** |
+| REQ-258: Spine manifest CI統合 | 3 | 🔵 |
+| REQ-259: Recovery silent catch修正 | 4 | 🔵 |
+| REQ-260: SimpleDiagramDetector修正 | 3 | 🔵 |
+| **合計** | **20** | **🔵 100%** |
 
 
 <!-- spine:references:begin -->

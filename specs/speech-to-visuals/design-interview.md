@@ -10,8 +10,8 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-24（第199回検証: EDGE-008~011リソースリーク修正・console.error正規化・243テスト追加・非推奨Jestフラグ置換・overlap-resolverテストバグ修正）
-**履歴**: 第197回検証(2026-06-23)・第196回検証(2026-06-22)・第176回検証(2026-06-02)・第171回検証(2026-06-01)・第170回検証(2026-05-29)・第167回検証(2026-05-27)・第165回検証(2026-05-26)・第158回検証(2026-05-20)・第157回検証(2026-05-18)・第151回検証(2026-05-18)・第150回検証(2026-05-18)・第149回検証(2026-05-17)・第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-05-01)・第22回検証(2026-04-30)
+**最終更新**: 2026-06-26（第201回検証: spine manifest validator CI統合・recovery path silent catch修正・SimpleDiagramDetectorバグ修正）
+**履歴**: 第200回検証(2026-06-24)・第199回検証(2026-06-24)・第197回検証(2026-06-23)・第196回検証(2026-06-22)・第176回検証(2026-06-02)・第171回検証(2026-06-01)・第170回検証(2026-05-29)・第167回検証(2026-05-27)・第165回検証(2026-05-26)・第158回検証(2026-05-20)・第157回検証(2026-05-18)・第151回検証(2026-05-18)・第150回検証(2026-05-18)・第149回検証(2026-05-17)・第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-05-01)・第22回検証(2026-04-30)
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 
 ## 分析目的
@@ -83,6 +83,65 @@
 - architecture.md: 🔵 フロントエンドコンポーネント構成にGuardMetricsDashboard追加
 - dataflow.md: 🔵 セキュリティガードメトリクスデータフロー追加
 - design-interview.md: A111追加
+- 信頼性レベル: 全追加項目 🔵（実装済みコードとテストを直接参照）
+
+---
+
+### A116: 第201回検証 - spine manifest validator CI統合・recovery path silent catch修正・SimpleDiagramDetectorバグ修正（2026-06-26）
+
+**分析日時**: 2026-06-26
+**カテゴリ**: CI/CD品質・エラー回復・図解検出
+**背景**: AI Hubフィードバック「spine validator を CI に統合すべき」「recovery path の silent catch がランタイムデバッグを阻害」「SimpleDiagramDetector の自己テストが結果を返さない」に対応する3つのコミット（739fade・292178f・e244be3）の差分を設計に反映。
+
+**判断**: 以下の差分を反映:
+
+1. **Spine manifest validator** 🔵: `scripts/validate-spine-manifest.ts`（208行）
+   - `specs/_doc_spine.yml` の全参照パスの存在確認
+   - orphaned specファイル（spineに未参照の.md）の検出
+   - 必須トップレベルフィールド（constitution/entrypoints/system_design/references）の検証
+   - `extractPathsFromSpine()`: YAMLからpath/doc値を正規表現で抽出・重複排除
+   - `getAllSpecFiles()`: specs/ディレクトリ配下の.mdファイルを再帰収集
+   - TASK-*.mdとtasks/overview.mdはorphan判定から除外（推移的参照）
+
+2. **CI spine-validate ジョブ統合** 🔵: `.github/workflows/ci.yml`
+   - `spine-validate` ジョブ: `npm run spine:validate` 実行・timeout-minutes=5
+   - `build` ジョブの依存に `spine-validate` を追加
+   - `all-checks-pass` ジョブの必須チェックに `spine-validate` を追加
+   - `budget-warning` に `spine-validate` のELAPSED計測を追加（閾値240秒）
+   - `package.json` に `"spine:validate": "tsx scripts/validate-spine-manifest.ts"` スクリプトを追加
+
+3. **Recovery path silent catch修正** 🔵: `src/quality/enhanced-error-recovery.ts`・`src/pipeline/pipeline-error-recovery-orchestrator.ts`
+   - 4箇所の `catch {}` を `catch (err) { logger.error(...) }` に変更:
+     - `simplified_export` 戦略のcatch → `[Recovery] simplified_export strategy failed:`
+     - `re_segmentation` 戦略のcatch → `[Recovery] re_segmentation strategy failed:`
+     - `skip_animation` 戦略のcatch → `[Recovery] skip_animation strategy failed:`
+     - fallback パスのcatch → `[Recovery] Fallback also failed:`
+   - `pipeline-error-recovery-orchestrator.ts` の1箇所も同様にログ追加
+
+4. **SimpleDiagramDetector バグ修正** 🔵: `src/analysis/simple-diagram-detector.ts`
+   - **バグ1**: `testDetector()` が `Promise<void>` を返し、テスト結果を呼び出し元が利用できなかった → `{ total, passed, failures[] }` 構造を返すよう修正
+   - **バグ2**: 全キーワードスコアが0（認識不可テキスト）の場合でも、ハードコードされたflow-chart要素を生成していた → `isUnrecognized` チェックを追加し、`generateDefaultElements()` にフォールバック
+   - `simple-diagram-detector.test.ts`（436行）: キーワードマッチング・スコア正規化・タイプ別要素生成・デフォルト要素フォールバック・testDetector結果構造を検証
+
+5. **CI timeout guard テスト拡張** 🔵: `tests/regression/ci-timeout-guard.test.ts`
+   - spine-validate ジョブのtimeout-minutes=5を検証するアサーションを追加
+
+6. **新規テスト** 🔵:
+   - `src/quality/__tests__/recovery-telemetry-aggregator.test.ts`（354行）: リカバリテレメトリ集計の検証
+   - `src/quality/__tests__/regression-detector.test.ts`（410行）: リグレッション検出の検証
+
+**根拠**:
+- git log: 739fade (spine validator + tests + package.json script)
+- git log: 292178f (SimpleDiagramDetector fix + 436行テスト)
+- git log: e244be3 (CI integration + recovery catch fixes + 808行テスト)
+- git log: 3a1ebb9 (spine manifest normalization)
+
+**信頼性への影響**:
+- architecture.md: 🔵 CI インフラセクションに spine validator 統合を追加
+- architecture.md: 🔵 AI・処理モジュールセクションに SimpleDiagramDetector を追加
+- architecture.md: 🔵 信頼性サマリー更新（198→203件）
+- design-interview.md: A116 追加
+- acceptance-criteria.md: REQ-258~260 追加
 - 信頼性レベル: 全追加項目 🔵（実装済みコードとテストを直接参照）
 
 ---
@@ -3857,8 +3916,8 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - 🟡 黄信号: 6 (+2)
 - 🔴 赤信号: 0
 
-**現在（第199回検証 - EDGE-008~011・COV-001~003反映後）**:
+**現在（第201回検証 - spine CI統合・recovery catch修正・SimpleDiagramDetector修正反映後）**:
 
-- 🔵 青信号: 560 (+70)
+- 🔵 青信号: 575 (+15)
 - 🟡 黄信号: 6 (±0)
 - 🔴 赤信号: 0

@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-24（第200回検証: health-check-service.ts 6箇所・performance-dashboard.ts 1箇所のサイレントcatchブロック修正・6つのエラーログ検証テスト追加・ログ正規化下流影響検証完了）
+**最終更新**: 2026-06-26（第201回検証: spine manifest validator CI統合・recovery path silent catch 4箇所ログ追加・SimpleDiagramDetector default element generation修正・CI timeout guard拡張・436行のdiagram detectorテスト追加）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -95,6 +95,7 @@
 - **形態素解析**: Kuromoji 0.1（日本語）
 - **グラフレイアウト**: @dagrejs/dagre 1.1
 - **多言語検出**: 6言語対応（日本語・英語・中国語・スペイン語・フランス語・ドイツ語）・文字種別スコアリング・ダイアクリティカルマーク分析 🔵 *Phase 44 REQ-303・src/analysis/language-detector.ts より*
+- **SimpleDiagramDetector**: ルールベース図解タイプ検出（flow/tree/timeline/cycle/network の5種類）・キーワードマッチングによる信頼度スコアリング・自己テスト機能（testDetector() が pass/fail 構造化結果を返す）・認識不可テキストのデフォルト要素生成フォールバック 🔵 *src/analysis/simple-diagram-detector.ts・436行のテスト追加*
 
 ### データベース 🔵
 
@@ -597,6 +598,17 @@ Fallback LLM
 - **レッドフェーズ検証** 🔵: 23個のカナリアペイロードで各検出パターンが固有のカバレッジに貢献することを証明・常にグリーンでないことを確認 🔵 *Phase 109 REQ-249*
 - **CI multi-seed ファジング** 🔵: `.github/workflows/ci.yml` security-fuzz ジョブ・`FUZZ_SEEDS=3` で3つの追加ランダムシード・`npm run test:fuzz:multi-seed` 🔵 *Phase 109 REQ-247*
 
+#### Spine manifest validator CI統合 🔵
+
+**信頼性**: 🔵 *scripts/validate-spine-manifest.ts・.github/workflows/ci.yml・tests/spine-manifest.test.ts より*
+
+spec整合性の自動検証システム:
+
+- **SpineManifestValidator** 🔵: `scripts/validate-spine-manifest.ts`（208行）が `specs/_doc_spine.yml` の全参照パスの存在確認・orphaned specファイル検出・必須トップレベルフィールド検証を実行
+- **CI gate統合** 🔵: ci.yml の `spine-validate` ジョブが `npm run spine:validate` を実行し、`build`・`all-checks-pass` の必須依存に追加。spec drift の自動検出を保証
+- **テストカバレッジ** 🔵: `tests/spine-manifest.test.ts`（158行）がパス抽出・orphan検出・バリデーション結果をユニットテストで検証
+- **Recovery path エラーログ強化** 🔵: `enhanced-error-recovery.ts` の4箇所のサイレントcatch（simplified_export/re_segmentation/skip_animation/fallback）が `logger.error()` でエラー詳細を記録するよう修正。`pipeline-error-recovery-orchestrator.ts` の1箇所も同様にログ追加
+
 ### スケーラビリティ 🔵
 
 **信頼性**: 🔵 *QUALITY_METRICS.md・SYSTEM_CORE.md §9・src/workers/ より*
@@ -722,6 +734,9 @@ Fallback LLM
 - [x] エクスポートアーティファクト管理（Phase 100）が完了している（ExportArtifactStore・TTL自動クリーンアップ・LRU退去・ダウンロードURL・使用量追跡・ExportMetricsCollector統合・REQ-230）
 - [x] エクスポートセキュリティハードening（Phase 108）が完了している（REQ-244~246・イベントハンドラ正規表現名前付き定数配列化・プロパティベース変異ファジング回帰ネット・SecurityMetricsCollector防護拒否メトリクス・130テスト追加）
 - [x] セキュリティファジングCI 拡張（Phase 109）が完了している（REQ-247~249・マルチシードCI ファジングモード・全エクスポート経路ガードメトリクス回帰テスト・E2Eセキュリティパイプライン統合テスト・GuardMetricsDashboard・プロパティベースXSS・レッドフェーズ検証）
+- [x] spine manifest validator CI統合（第201回検証）が完了している（scripts/validate-spine-manifest.ts 208行・CI spine-validate ジョブ・build/all-checks-pass必須依存・tests/spine-manifest.test.ts 158行・package.json spine:validateスクリプト）
+- [x] recovery path silent catch修正（第201回検証）が完了している（enhanced-error-recovery.ts 4箇所・pipeline-error-recovery-orchestrator.ts 1箇所のサイレントcatch→logger.error()・recovery-telemetry-aggregator.test.ts 354行・regression-detector.test.ts 410行）
+- [x] SimpleDiagramDetector修正（第201回検証）が完了している（testDetector()構造化結果返却・認識不可テキストのデフォルト要素生成・simple-diagram-detector.test.ts 436行追加）
 
 ## 関連文書
 
@@ -736,11 +751,11 @@ Fallback LLM
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 198件 (98%)
+- 🔵 青信号: 203件 (98%)
 - 🟡 黄信号: 4件 (2%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第196回検証: Phase 108-109完了・セキュリティハードening・defense-in-depth エクスポート検証・SecurityMetricsCollector・GuardMetricsDashboard・プロパティベースXSS テスト・CI ファジング・REQ-244~249・TypeScriptエラー0件・SYSTEM_CONSTITUTION V2.6適合）
+**品質評価**: 高品質 - 全項目が既存設計文書と実装に基づいている（第201回検証: spine manifest validator CI統合・recovery path silent catch修正・SimpleDiagramDetector default element generation修正・CI timeout guard拡張・全項目実装コード直接参照・TypeScriptエラー0件・SYSTEM_CONSTITUTION V2.6適合）
 
 
 <!-- spine:children:begin -->
