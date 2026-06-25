@@ -229,7 +229,11 @@ export const TutorialSystem: React.FC = () => {
     const newCompleted = new Set(completedSteps);
     newCompleted.add(stepId);
     setCompletedSteps(newCompleted);
-    localStorage.setItem('tutorial-progress', JSON.stringify(Array.from(newCompleted)));
+    try {
+      localStorage.setItem('tutorial-progress', JSON.stringify(Array.from(newCompleted)));
+    } catch {
+      // localStorage unavailable (private browsing, quota) — progress kept in memory only
+    }
   };
 
   const getProgress = () => {
