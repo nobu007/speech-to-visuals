@@ -117,7 +117,7 @@ describe('REQ-254: CI timeout-minutes configuration', () => {
     const content = fs.readFileSync(ciYmlPath, 'utf-8');
     const jobBlocks = extractJobBlocks(content);
 
-    expect(jobBlocks.size).toBeGreaterThanOrEqual(8); // at least 8 jobs
+    expect(jobBlocks.size).toBeGreaterThanOrEqual(9); // at least 9 jobs
 
     const missing: string[] = [];
     for (const [jobName, lines] of jobBlocks) {
@@ -184,6 +184,7 @@ describe('REQ-254: CI timeout-minutes configuration', () => {
     expect(gateJobSection).toContain('needs.test.outputs.budget_exceeded');
     expect(gateJobSection).toContain('needs.build.outputs.budget_exceeded');
     expect(gateJobSection).toContain('needs.security-fuzz.outputs.budget_exceeded');
+    expect(gateJobSection).toContain('needs.spine-validate.outputs.budget_exceeded');
 
     // Must NOT be a passive "just print success" step (the old behavior)
     // If the step body contains only echo lines without conditional logic, it's passive.

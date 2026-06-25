@@ -348,8 +348,8 @@ export class PipelineErrorRecoveryOrchestrator {
   private getRecommendation(stage: RecoveryStage): RecoveryRecommendation {
     try {
       return this.tracker.getRecommendedStrategy(stage);
-    } catch {
-      // No active run — return defaults
+    } catch (err) {
+      logger.warn('[Recovery Orchestrator] No active run for recommendation:', err);
       return {
         maxRetries: 3,
         preferFallback: false,

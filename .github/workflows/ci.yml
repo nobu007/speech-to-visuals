@@ -186,10 +186,36 @@ jobs:
             echo "budget_exceeded=false" >> $GITHUB_OUTPUT
           fi
 
+  spine-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+      - run: npm ci
+      - name: Validate spine manifest
+        id: spine
+        run: |
+          START=$(date +%s)
+          npm run spine:validate
+          END=$(date +%s)
+          ELAPSED=$((END - START))
+          echo "elapsed_seconds=$ELAPSED" >> $GITHUB_OUTPUT
+          THRESHOLD=240
+          if [ "$ELAPSED" -gt "$THRESHOLD" ]; then
+            echo "::warning::spine-validate exceeded ${THRESHOLD}s (ELAPSED=${ELAPSED}s)"
+            echo "budget_exceeded=true" >> $GITHUB_OUTPUT
+          else
+            echo "budget_exceeded=false" >> $GITHUB_OUTPUT
+          fi
+
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: [lint, type-check, test, monitoring-config-validate, monitoring-drift-check]
+    needs: [lint, type-check, test, monitoring-config-validate, monitoring-drift-check, spine-validate]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -250,11 +276,11 @@ jobs:
   all-checks-pass:
     runs-on: ubuntu-latest
     timeout-minutes: 3
-    needs: [code-size-audit, lint, type-check, test, monitoring-config-validate, monitoring-drift-check, build, security-fuzz]
+    needs: [code-size-audit, lint, type-check, test, monitoring-config-validate, monitoring-drift-check, spine-validate, build, security-fuzz]
     if: always()
     steps:
       - name: Check all required jobs passed
-        if: ${{ !((needs.code-size-audit.result == 'success') && (needs.lint.result == 'success') && (needs.type-check.result == 'success') && (needs.test.result == 'success') && (needs.monitoring-config-validate.result == 'success') && (needs.monitoring-drift-check.result == 'success') && (needs.build.result == 'success') && (needs.security-fuzz.result == 'success')) }}
+        if: ${{ !((needs.code-size-audit.result == 'success') && (needs.lint.result == 'success') && (needs.type-check.result == 'success') && (needs.test.result == 'success') && (needs.monitoring-config-validate.result == 'success') && (needs.monitoring-drift-check.result == 'success') && (needs.spine-validate.result == 'success') && (needs.build.result == 'success') && (needs.security-fuzz.result == 'success')) }}
         run: |
           echo "One or more required checks failed:"
           echo "  code-size-audit: ${{ needs.code-size-audit.result }}"
@@ -263,6 +289,7 @@ jobs:
           echo "  test: ${{ needs.test.result }}"
           echo "  monitoring-config-validate: ${{ needs.monitoring-config-validate.result }}"
           echo "  monitoring-drift-check: ${{ needs.monitoring-drift-check.result }}"
+          echo "  spine-validate: ${{ needs.spine-validate.result }}"
           echo "  build: ${{ needs.build.result }}"
           echo "  security-fuzz: ${{ needs.security-fuzz.result }}"
           exit 1
@@ -284,6 +311,7 @@ jobs:
           check_budget "test" "${{ needs.test.outputs.budget_exceeded }}"
           check_budget "monitoring-config-validate" "${{ needs.monitoring-config-validate.outputs.budget_exceeded }}"
           check_budget "monitoring-drift-check" "${{ needs.monitoring-drift-check.outputs.budget_exceeded }}"
+          check_budget "spine-validate" "${{ needs.spine-validate.outputs.budget_exceeded }}"
           check_budget "build" "${{ needs.build.outputs.budget_exceeded }}"
           check_budget "security-fuzz" "${{ needs.security-fuzz.outputs.budget_exceeded }}"
           if [ -n "$BUDGET_FAILURES" ]; then

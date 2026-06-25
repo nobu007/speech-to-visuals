@@ -1077,7 +1077,8 @@ export class EnhancedErrorRecovery {
               improvements: ['Exported with simplified parameters'],
               nextAction: 'retry' as const,
             };
-          } catch {
+          } catch (err) {
+            logger.error('[Recovery] simplified_export strategy failed:', err);
             return {
               success: false,
               fallbackUsed: true,
@@ -1111,7 +1112,8 @@ export class EnhancedErrorRecovery {
               improvements: ['Re-segmented with adjusted parameters'],
               nextAction: 'retry' as const,
             };
-          } catch {
+          } catch (err) {
+            logger.error('[Recovery] re_segmentation strategy failed:', err);
             return {
               success: false,
               fallbackUsed: false,
@@ -1145,7 +1147,8 @@ export class EnhancedErrorRecovery {
               improvements: ['Skipped animation, generated static output'],
               nextAction: 'retry' as const,
             };
-          } catch {
+          } catch (err) {
+            logger.error('[Recovery] skip_animation strategy failed:', err);
             return {
               success: false,
               fallbackUsed: true,
@@ -2393,8 +2396,9 @@ export class EnhancedErrorRecovery {
           timeSpentMs: performance.now() - startTime,
           notification: this.createErrorNotification(context.error, { stage, severity }),
         };
-      } catch {
-        // Fallback also failed — fall through to error result
+      } catch (fallbackErr) {
+        // Fallback also failed — log and fall through to error result
+        logger.error('[Recovery] Fallback also failed:', fallbackErr);
       }
     }
 
