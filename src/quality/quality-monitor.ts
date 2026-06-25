@@ -140,11 +140,11 @@ export class QualityMonitor {
     };
 
     // 🔄 Implement Custom Instructions Evaluation Cycle
-    await this.evaluateRecursiveDevelopmentCompliance(result, assessment);
-    await this.assessPhaseSuccessCriteria(result, assessment);
-    await this.evaluateIterationQuality(result, assessment);
-
     try {
+      await this.evaluateRecursiveDevelopmentCompliance(result, assessment);
+      await this.assessPhaseSuccessCriteria(result, assessment);
+      await this.evaluateIterationQuality(result, assessment);
+
       // 1. Performance Assessment (30% weight)
       assessment.performanceScore = await this.assessPerformance(result);
       assessment.overallScore += assessment.performanceScore * 0.3;
@@ -166,7 +166,7 @@ export class QualityMonitor {
       // 6. Log assessment results
       await this.logAssessment(assessment);
 
-      const assessmentTime = performance.now() - startTime;
+      void startTime; // measured for future instrumentation
 
       return assessment;
 
@@ -607,16 +607,19 @@ export class QualityMonitor {
 
     if (assessment.improvements.length > 0) {
       assessment.improvements.forEach(improvement => {
+        logger.info(`Quality improvement: ${improvement}`);
       });
     }
 
     if (assessment.recommendations.length > 0) {
       assessment.recommendations.forEach(rec => {
+        logger.info(`Quality recommendation: ${rec}`);
       });
     }
 
     if (assessment.concerns.length > 0) {
       assessment.concerns.forEach(concern => {
+        logger.warn(`Quality concern: ${concern}`);
       });
     }
 
@@ -631,7 +634,9 @@ export class QualityMonitor {
    * Append assessment to iteration log
    */
   private async appendToIterationLog(assessment: QualityAssessment): Promise<void> {
-    // In real implementation, this would append to .module/ITERATION_LOG.md
+    logger.info(
+      `Quality assessment logged: iteration=${assessment.iteration}, overall=${assessment.overallScore.toFixed(3)}`
+    );
   }
 
   /**
@@ -767,8 +772,12 @@ export class QualityMonitor {
   ): Promise<void> {
 
     const iterationMetrics = {
-      processingTime: result.metrics?.totalProcessingTime < 30000 ? 1.0 : 0.5,
-      memoryUsage: result.metrics?.memoryUsage < 256 * 1024 * 1024 ? 1.0 : 0.5,
+      processingTime: typeof result.metrics?.totalProcessingTime === 'number' && Number.isFinite(result.metrics.totalProcessingTime)
+        ? (result.metrics.totalProcessingTime < 30000 ? 1.0 : 0.5)
+        : 0.5,
+      memoryUsage: typeof result.metrics?.memoryUsage === 'number' && Number.isFinite(result.metrics.memoryUsage)
+        ? (result.metrics.memoryUsage < 256 * 1024 * 1024 ? 1.0 : 0.5)
+        : 0.5,
       errorHandling: result.stages.length > 0
         ? result.stages.filter(s => s.success).length / result.stages.length
         : 0,
