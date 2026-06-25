@@ -88,20 +88,20 @@ export interface RawDiagram {
 
 function toNodeDatum(raw: Array<Record<string, unknown>>): NodeDatum[] {
   return raw.map((n, i) => ({
-    id: (n.id as string) ?? `node-${i}`,
-    label: (n.label as string) ?? `Node ${i}`,
-    type: n.type as string | undefined,
-    width: n.width as number | undefined,
-    height: n.height as number | undefined,
+    id: n.id != null ? String(n.id) : `node-${i}`,
+    label: n.label != null ? String(n.label) : `Node ${i}`,
+    type: n.type != null ? String(n.type) : undefined,
+    width: typeof n.width === 'number' ? n.width : undefined,
+    height: typeof n.height === 'number' ? n.height : undefined,
   }));
 }
 
 function toEdgeDatum(raw: Array<Record<string, unknown>>): EdgeDatum[] {
   return raw.map((e, i) => ({
-    from: (e.from as string) ?? (e.source as string) ?? `node-0`,
-    to: (e.to as string) ?? (e.target as string) ?? `node-1`,
-    label: e.label as string | undefined,
-    id: (e.id as string) ?? `edge-${i}`,
+    from: e.from != null ? String(e.from) : e.source != null ? String(e.source) : 'node-0',
+    to: e.to != null ? String(e.to) : e.target != null ? String(e.target) : 'node-1',
+    label: e.label != null ? String(e.label) : undefined,
+    id: e.id != null ? String(e.id) : `edge-${i}`,
   }));
 }
 
@@ -113,7 +113,8 @@ export function buildSingleScene(diagram: RawDiagram, startMs: number, fps: numb
 } {
   const nodes = toNodeDatum(diagram.nodes ?? []);
   const edges = toEdgeDatum(diagram.edges ?? []);
-  const durationMs = diagram.durationMs ?? DEFAULT_SCENE_DURATION_MS;
+  const rawDuration = diagram.durationMs ?? DEFAULT_SCENE_DURATION_MS;
+  const durationMs = Math.max(rawDuration, 1);
 
   const scene: SceneGraph = {
     id: `scene-${startMs}`,

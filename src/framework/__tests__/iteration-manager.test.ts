@@ -25,6 +25,8 @@ jest.mock('../../utils/logger', () => ({
 }));
 
 describe('IterationManager', () => {
+  // Re-import logger mock for verification
+  const { logger } = require('../../utils/logger');
   let tmpDir: string;
 
   beforeEach(() => {
@@ -257,6 +259,63 @@ describe('IterationManager', () => {
       const content = fs.readFileSync(logFile, 'utf-8');
       expect(content).toContain('Some intro');
       expect(content).toContain('TestPhase');
+    });
+
+    it('creates new log when file does not exist (ENOENT)', async () => {
+      const logFile = path.join(tmpDir, 'nonexistent-log.md');
+      expect(fs.existsSync(logFile)).toBe(false);
+
+      const mgrNew = new IterationManager(
+        {
+          phase: 'TestPhase',
+          maxIterations: 3,
+          successCriteria: ['accuracy > 80%'],
+          failureRecovery: 'fallback',
+          commitTrigger: 'on_success',
+          currentIteration: 0,
+          status: 'in_progress' as const,
+        },
+        logFile,
+      );
+      await mgrNew.startIteration();
+      await mgrNew.completeIteration('success', { accuracy: 90 });
+
+      // File should have been created
+      expect(fs.existsSync(logFile)).toBe(true);
+      const content = fs.readFileSync(logFile, 'utf-8');
+      expect(content).toContain('Iteration History');
+      expect(content).toContain('TestPhase');
+    });
+
+    it('logs error for non-ENOENT read failures (e.g. permission denied)', async () => {
+      // Create a directory at the log path — reading a directory throws EISDIR
+      const dirPath = path.join(tmpDir, 'I_AM_A_DIRECTORY.md');
+      fs.mkdirSync(dirPath);
+
+      const mgrWithDir: IterationManager = new IterationManager(
+        {
+          phase: 'TestPhase',
+          maxIterations: 3,
+          successCriteria: ['accuracy > 80%'],
+          failureRecovery: 'fallback',
+          commitTrigger: 'on_success',
+          currentIteration: 0,
+          status: 'in_progress' as const,
+        },
+        dirPath,
+      );
+
+      // Reset logger mock
+      (logger.error as jest.Mock).mockClear();
+
+      await mgrWithDir.startIteration();
+      // completeIteration should not throw — outer catch logs warning
+      await mgrWithDir.completeIteration('success', { accuracy: 90 });
+
+      // The inner catch should have logged the I/O error (not silently treated as ENOENT)
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining(dirPath),
+      );
     });
   });
 

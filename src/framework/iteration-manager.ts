@@ -324,9 +324,15 @@ export class IterationManager {
 
       try {
         logContent = await fs.readFile(this.logPath, 'utf-8');
-      } catch {
-        // File doesn't exist, create new
-        logContent = '# Iteration History\n\nLast Updated: ' + new Date().toISOString() + '\n\n';
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+          // File doesn't exist yet — create new
+          logContent = '# Iteration History\n\nLast Updated: ' + new Date().toISOString() + '\n\n';
+        } else {
+          // Permission, disk, or other I/O error — log and rethrow to outer catch
+          logger.error(`Failed to read iteration log at ${this.logPath}: ${err}`);
+          throw err;
+        }
       }
 
       const logEntry = `
