@@ -353,9 +353,14 @@ export class PipelineRunRecoveryTracker {
       success,
     };
 
-    // Reset state
+    // Reset state — clear all run-scoped fields so getCurrentState()
+    // returns a clean snapshot between runs (not stale data).
     this.active = false;
     this.activeStage = undefined;
+    this.runId = null;
+    this.stageRecords.clear();
+    this.totalRetries = 0;
+    this.totalFallbacks = 0;
 
     logger.info(
       `[RunRecovery] Finalized run ${report.runId}: ` +
