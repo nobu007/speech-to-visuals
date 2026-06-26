@@ -184,6 +184,17 @@ export function validateSpineSchema(content: string): string[] {
   // Track all paths for duplicate detection
   const allPaths: string[] = [];
 
+  // Collect system_design paths for cross-reference validation
+  const systemDesignPaths = new Set<string>();
+
+  // Detect empty sections (structural corruption indicator)
+  if (sections.entrypoints.length === 0) {
+    errors.push('entrypoints section is empty — at least one entrypoint required');
+  }
+  if (sections.systemDesign.length === 0) {
+    errors.push('system_design section is empty — at least one design document required');
+  }
+
   // Entrypoints: must have 'path' and 'audience'
   for (let i = 0; i < sections.entrypoints.length; i++) {
     const ep = sections.entrypoints[i];
@@ -191,6 +202,8 @@ export function validateSpineSchema(content: string): string[] {
       errors.push(`entrypoints[${i}]: missing required key 'path'`);
     } else {
       allPaths.push(ep.path);
+      // Validate path format: no leading/trailing whitespace, no backslashes
+      validatePathFormat(ep.path, `entrypoints[${i}]`, errors);
     }
     if (!ep.audience) {
       errors.push(`entrypoints[${i}] (${ep.path ?? '?'}): missing required key 'audience'`);
@@ -206,6 +219,8 @@ export function validateSpineSchema(content: string): string[] {
       errors.push(`system_design[${i}]: missing required key 'path'`);
     } else {
       allPaths.push(sd.path);
+      systemDesignPaths.add(sd.path);
+      validatePathFormat(sd.path, `system_design[${i}]`, errors);
     }
     // Children (if present): must have 'path'
     if (sd.children) {
@@ -214,18 +229,33 @@ export function validateSpineSchema(content: string): string[] {
           errors.push(`system_design[${i}].children[${j}]: missing required key 'path'`);
         } else {
           allPaths.push(sd.children[j].path!);
+          systemDesignPaths.add(sd.children[j].path!);
+          validatePathFormat(sd.children[j].path!, `system_design[${i}].children[${j}]`, errors);
         }
       }
     }
   }
 
-  // References: must have 'doc'
+  // References: must have 'doc' and at least one 'referenced_by'
   for (let i = 0; i < sections.references.length; i++) {
     const ref = sections.references[i];
     if (!ref.doc) {
       errors.push(`references[${i}]: missing required key 'doc'`);
     } else {
       allPaths.push(ref.doc);
+      validatePathFormat(ref.doc, `references[${i}].doc`, errors);
+    }
+    // referenced_by entries should reference known system_design paths
+    if (ref.referenced_by && ref.referenced_by.length > 0) {
+      for (const rb of ref.referenced_by) {
+        if (!systemDesignPaths.has(rb)) {
+          errors.push(
+            `references[${i}] (${ref.doc}): referenced_by '${rb}' not found in system_design paths`
+          );
+        }
+      }
+    } else if (ref.doc) {
+      errors.push(`references[${i}] (${ref.doc}): missing or empty 'referenced_by' — at least one referencing document required`);
     }
   }
 
@@ -241,6 +271,19 @@ export function validateSpineSchema(content: string): string[] {
   }
 
   return errors;
+}
+
+/** Validate that a path string is well-formed (no whitespace, backslashes, absolute paths). */
+function validatePathFormat(p: string, context: string, errors: string[]): void {
+  if (p !== p.trim()) {
+    errors.push(`${context}: path has leading or trailing whitespace '${p}'`);
+  }
+  if (p.includes('\\')) {
+    errors.push(`${context}: path uses backslashes '${p}' — forward slashes required`);
+  }
+  if (p.startsWith('/')) {
+    errors.push(`${context}: path is absolute '${p}' — relative paths required`);
+  }
 }
 
 /** Get all .md files under specs/ directory recursively. */

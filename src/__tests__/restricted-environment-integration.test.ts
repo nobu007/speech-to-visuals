@@ -317,4 +317,195 @@ describe('Restricted-environment integration: localStorage denial', () => {
       expect(loadProgress().size).toBe(0);
     });
   });
+
+  describe('ProductionConfigManager with corrupted localStorage data', () => {
+    it('should not crash when localStorage returns corrupted JSON for config overrides', () => {
+      Object.defineProperty(globalThis, 'localStorage', {
+        value: {
+          getItem: (key: string) => key === 'production-config-overrides' ? '{corrupt' : null,
+          setItem: () => {},
+          removeItem: () => {},
+          clear: () => {},
+          key: () => null,
+          length: 0,
+        },
+        writable: true,
+        configurable: true,
+      });
+
+      expect(() => {
+        const { ProductionConfigManager } = require('../config/production-config');
+        const mgr = new ProductionConfigManager();
+        expect(mgr.getConfig()).toBeDefined();
+      }).not.toThrow();
+    });
+
+    it('should not crash when localStorage returns non-object JSON for config overrides', () => {
+      Object.defineProperty(globalThis, 'localStorage', {
+        value: {
+          getItem: (key: string) => key === 'production-config-overrides' ? '"just a string"' : null,
+          setItem: () => {},
+          removeItem: () => {},
+          clear: () => {},
+          key: () => null,
+          length: 0,
+        },
+        writable: true,
+        configurable: true,
+      });
+
+      expect(() => {
+        const { ProductionConfigManager } = require('../config/production-config');
+        const mgr = new ProductionConfigManager();
+        expect(mgr.getConfig().name).toBe('development');
+      }).not.toThrow();
+    });
+
+    it('should survive rapid sequential instantiation under localStorage denial', () => {
+      denyLocalStorage();
+
+      // Rapidly create and discard multiple instances — simulates
+      // hot-module reloading or fast page transitions
+      for (let i = 0; i < 10; i++) {
+        const { ProductionConfigManager } = require('../config/production-config');
+        const mgr = new ProductionConfigManager();
+        mgr.updateConfig({ apiBaseUrl: `http://test-${i}/api` });
+        expect(mgr.getConfig().apiBaseUrl).toBe(`http://test-${i}/api`);
+        jest.resetModules();
+      }
+    });
+  });
+
+  describe('Partial localStorage failure modes', () => {
+    it('should handle getItem succeeding but setItem throwing (read-only mode)', () => {
+      const securityError = new DOMException('Security error', 'SecurityError');
+      Object.defineProperty(globalThis, 'localStorage', {
+        value: {
+          getItem: () => JSON.stringify({ apiBaseUrl: 'http://stored/api' }),
+          setItem: () => { throw securityError; },
+          removeItem: () => { throw securityError; },
+          clear: () => { throw securityError; },
+          key: () => null,
+          length: 0,
+        },
+        writable: true,
+        configurable: true,
+      });
+
+      // ProductionConfigManager should still work in read-only mode
+      const { ProductionConfigManager } = require('../config/production-config');
+      expect(() => {
+        const mgr = new ProductionConfigManager();
+        // updateConfig will try to persist but fail — should not throw
+        mgr.updateConfig({ apiBaseUrl: 'http://new/api' });
+        // In-memory override should still work
+        expect(mgr.getConfig().apiBaseUrl).toBe('http://new/api');
+      }).not.toThrow();
+    });
+
+    it('should handle localStorage key enumeration throwing during denial', () => {
+      denyLocalStorage();
+
+      // Accessing .length and .key() should not crash consumers
+      const { ProductionConfigManager } = require('../config/production-config');
+      expect(() => {
+        const mgr = new ProductionConfigManager();
+        mgr.getConfig();
+        mgr.validateConfig();
+        mgr.generatePerformanceReport();
+      }).not.toThrow();
+    });
+
+    it('should handle intermittent localStorage availability (flapping)', () => {
+      // Simulate localStorage that works sometimes and fails sometimes
+      let callCount = 0;
+      Object.defineProperty(globalThis, 'localStorage', {
+        value: {
+          getItem: () => {
+            callCount++;
+            if (callCount % 2 === 0) {
+              throw new DOMException('Intermittent failure', 'SecurityError');
+            }
+            return null;
+          },
+          setItem: () => {
+            callCount++;
+            if (callCount % 3 === 0) {
+              throw new DOMException('Intermittent failure', 'SecurityError');
+            }
+          },
+          removeItem: () => {},
+          clear: () => {},
+          key: () => null,
+          length: 0,
+        },
+        writable: true,
+        configurable: true,
+      });
+
+      // Should survive multiple instantiations despite flapping
+      for (let i = 0; i < 3; i++) {
+        expect(() => {
+          const { ProductionConfigManager } = require('../config/production-config');
+          const mgr = new ProductionConfigManager();
+          mgr.getConfig();
+        }).not.toThrow();
+        jest.resetModules();
+      }
+    });
+  });
+
+  describe('LocalStorage type coercion resilience', () => {
+    it('should handle getItem returning non-string values gracefully', () => {
+      Object.defineProperty(globalThis, 'localStorage', {
+        value: {
+          getItem: () => null as unknown as string, // null like empty storage
+          setItem: () => {},
+          removeItem: () => {},
+          clear: () => {},
+          key: () => null,
+          length: 0,
+        },
+        writable: true,
+        configurable: true,
+      });
+
+      const { ProductionConfigManager } = require('../config/production-config');
+      expect(() => new ProductionConfigManager()).not.toThrow();
+    });
+
+    it('should handle extremely long stored values without crashing', () => {
+      const hugeValue = 'x'.repeat(10_000_000); // 10MB string
+      Object.defineProperty(globalThis, 'localStorage', {
+        value: {
+          getItem: (key: string) => key === 'tutorial-progress' ? hugeValue : null,
+          setItem: () => {},
+          removeItem: () => {},
+          clear: () => {},
+          key: () => null,
+          length: 0,
+        },
+        writable: true,
+        configurable: true,
+      });
+
+      // TutorialSystem pattern: parse and validate
+      const loadProgress = (): Set<string> => {
+        try {
+          const saved = localStorage.getItem('tutorial-progress');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) return new Set(parsed);
+          }
+        } catch {
+          // Corrupted or too large
+        }
+        return new Set();
+      };
+
+      // Should not crash — JSON.parse will fail on non-JSON huge string
+      expect(() => loadProgress()).not.toThrow();
+      expect(loadProgress().size).toBe(0);
+    });
+  });
 });

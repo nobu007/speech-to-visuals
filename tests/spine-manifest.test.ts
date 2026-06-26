@@ -301,6 +301,128 @@ system_design:
       const errors = validateSpineSchema(yaml);
       expect(errors.filter((e) => e.includes('Duplicate path'))).toHaveLength(0);
     });
+
+    // --- New: cross-reference validation ---
+
+    it('should detect referenced_by pointing to non-existent system_design path', () => {
+      const yaml = [
+        'entrypoints:',
+        '  - path: README.md',
+        '    audience: contributor',
+        'system_design:',
+        '  - path: architecture.md',
+        'references:',
+        '  - doc: api-endpoints.md',
+        '    referenced_by:',
+        '      - nonexistent.md',
+      ].join('\n');
+      const errors = validateSpineSchema(yaml);
+      expect(errors.some((e) => e.includes("referenced_by 'nonexistent.md' not found in system_design"))).toBe(true);
+    });
+
+    it('should accept referenced_by that matches a system_design child path', () => {
+      const yaml = [
+        'entrypoints:',
+        '  - path: README.md',
+        '    audience: contributor',
+        'system_design:',
+        '  - path: architecture.md',
+        '    children:',
+        '      - path: dataflow.md',
+        'references:',
+        '  - doc: api-endpoints.md',
+        '    referenced_by:',
+        '      - dataflow.md',
+      ].join('\n');
+      const errors = validateSpineSchema(yaml);
+      expect(errors.filter((e) => e.includes('referenced_by') && e.includes('not found'))).toHaveLength(0);
+    });
+
+    it('should detect reference missing referenced_by entirely', () => {
+      const yaml = [
+        'entrypoints:',
+        '  - path: README.md',
+        '    audience: contributor',
+        'system_design:',
+        '  - path: architecture.md',
+        'references:',
+        '  - doc: api-endpoints.md',
+      ].join('\n');
+      const errors = validateSpineSchema(yaml);
+      expect(errors.some((e) => e.includes("missing or empty 'referenced_by'"))).toBe(true);
+    });
+
+    // --- New: empty section validation ---
+
+    it('should detect empty entrypoints section', () => {
+      const yaml = [
+        'entrypoints:',
+        'system_design:',
+        '  - path: architecture.md',
+        'references:',
+        '  - doc: api-endpoints.md',
+        '    referenced_by:',
+        '      - architecture.md',
+      ].join('\n');
+      const errors = validateSpineSchema(yaml);
+      expect(errors.some((e) => e.includes('entrypoints section is empty'))).toBe(true);
+    });
+
+    it('should detect empty system_design section', () => {
+      const yaml = [
+        'entrypoints:',
+        '  - path: README.md',
+        '    audience: contributor',
+        'system_design:',
+        'references:',
+        '  - doc: api-endpoints.md',
+        '    referenced_by:',
+        '      - architecture.md',
+      ].join('\n');
+      const errors = validateSpineSchema(yaml);
+      expect(errors.some((e) => e.includes('system_design section is empty'))).toBe(true);
+    });
+
+    // --- New: path format validation ---
+
+    it('should detect path with backslashes', () => {
+      const yaml = [
+        'entrypoints:',
+        '  - path: README\\md',
+        '    audience: contributor',
+        'system_design:',
+        '  - path: architecture.md',
+        'references:',
+        '  - doc: api-endpoints.md',
+        '    referenced_by:',
+        '      - architecture.md',
+      ].join('\n');
+      const errors = validateSpineSchema(yaml);
+      expect(errors.some((e) => e.includes('backslashes'))).toBe(true);
+    });
+
+    it('should detect absolute path', () => {
+      const yaml = [
+        'entrypoints:',
+        '  - path: /absolute/path.md',
+        '    audience: contributor',
+        'system_design:',
+        '  - path: architecture.md',
+        'references:',
+        '  - doc: api-endpoints.md',
+        '    referenced_by:',
+        '      - architecture.md',
+      ].join('\n');
+      const errors = validateSpineSchema(yaml);
+      expect(errors.some((e) => e.includes('absolute'))).toBe(true);
+    });
+
+    it('should pass the actual spine manifest with new validations', () => {
+      const content = fs.readFileSync(SPINE_PATH, 'utf-8');
+      const errors = validateSpineSchema(content);
+      // The real manifest should have zero schema errors including new checks
+      expect(errors).toEqual([]);
+    });
   });
 
   describe('parseSpineSections', () => {
