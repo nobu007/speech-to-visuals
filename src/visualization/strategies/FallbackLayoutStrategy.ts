@@ -49,7 +49,9 @@ export class FallbackLayoutStrategy {
       x: startX,
       y: startY + index * (nodeHeight + spacing),
       w: nodeWidth,
-      h: nodeHeight
+      h: nodeHeight,
+      width: nodeWidth,
+      height: nodeHeight
     }));
 
     const layoutEdges = edges.map(edge => {
@@ -152,7 +154,9 @@ export class FallbackLayoutStrategy {
         x: centerX + radius * Math.cos(angle) - nodeWidth / 2,
         y: centerY + radius * Math.sin(angle) - nodeHeight / 2,
         w: nodeWidth,
-        h: nodeHeight
+        h: nodeHeight,
+        width: nodeWidth,
+        height: nodeHeight
       };
     });
 
@@ -201,7 +205,9 @@ export class FallbackLayoutStrategy {
         x: col * spacingX + (spacingX - nodeWidth) / 2,
         y: row * spacingY + (spacingY - nodeHeight) / 2,
         w: nodeWidth,
-        h: nodeHeight
+        h: nodeHeight,
+        width: nodeWidth,
+        height: nodeHeight
       };
     });
 

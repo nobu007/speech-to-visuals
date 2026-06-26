@@ -58,6 +58,9 @@ export const TutorialSystem: React.FC = () => {
         const parsed = JSON.parse(savedProgress);
         if (Array.isArray(parsed)) {
           setCompletedSteps(new Set(parsed));
+        } else {
+          console.warn('[TutorialSystem] localStorage "tutorial-progress" contained non-array value; resetting');
+          try { localStorage.removeItem('tutorial-progress'); } catch { /* noop */ }
         }
       } catch {
         // Corrupted localStorage data — reset

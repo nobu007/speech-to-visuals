@@ -65,7 +65,9 @@ export class TimelineLayoutStrategy implements ILayoutStrategy {
           x: currentX,
           y: baseY - height / 2,
           w: width,
-          h: height
+          h: height,
+          width,
+          height
         };
 
         currentX += width;
