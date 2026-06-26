@@ -18,7 +18,8 @@ import {
   LayoutParams,
 } from '@/visualization/layout-auto-optimizer';
 import { StrategySelector } from '@/visualization/strategy-selector';
-import { PositionedNode, LayoutEdge, DiagramType } from '@/types/diagram';
+import { PositionedNode, LayoutEdge, DiagramType, NodeDatum, EdgeDatum } from '@/types/diagram';
+import { LayoutStrategy, StrategyLayoutResult } from '@/visualization/types';
 import { scoreLayout } from '@/visualization/layout-quality-composite';
 
 // ── Test Helpers ──
@@ -530,6 +531,107 @@ describe('regression: strategy reselection uses currentEdges', () => {
         expect(edges[0].from).toBe('a');
         expect(edges[0].to).toBe('b');
       });
+  });
+
+  // Focused regression: construct a 3-element fallback chain where
+  // Strategy B modifies edge from/to values, then verify Strategy C
+  // receives the modified edges (not the original stale input).
+  it('second strategy reselection receives edges modified by first reselection, not stale originals', async () => {
+    const edgesReceivedByC: EdgeDatum[][] = [];
+    const baseMetrics = { overlapCount: 0, edgeCrossings: 0, aspectRatio: 1 };
+    const baseCanvas = { width: 1920, height: 1080 };
+
+    // Strategy A (index 0): primary, never called for reselection
+    const strategyA: LayoutStrategy = {
+      name: 'A',
+      canEscapeLocalMinimum: false,
+      estimateComplexity: (n: NodeDatum[]) => n.length,
+      apply: (nodes: NodeDatum[], edges: EdgeDatum[]): StrategyLayoutResult => ({
+        nodes: nodes.map(n => ({
+          id: n.id, label: n.label, x: 0, y: 0,
+          width: n.width ?? 120, height: n.height ?? 60,
+        })),
+        edges: edges.map(e => ({
+          from: e.from, to: e.to,
+          points: [{ x: 0, y: 0 }, { x: 0, y: 0 }],
+        })),
+        canvas: baseCanvas,
+        metrics: baseMetrics,
+      }),
+    };
+
+    // Strategy B (index 1): spreads nodes out AND modifies edge from/to
+    // by appending '_B' suffix — this must be reflected in subsequent calls
+    const strategyB: LayoutStrategy = {
+      name: 'B',
+      canEscapeLocalMinimum: false,
+      estimateComplexity: (n: NodeDatum[]) => n.length,
+      apply: (nodes: NodeDatum[], edges: EdgeDatum[]): StrategyLayoutResult => ({
+        nodes: nodes.map((n, i) => ({
+          id: n.id, label: n.label, x: 200 * (i + 1), y: 200,
+          width: n.width ?? 120, height: n.height ?? 60,
+        })),
+        edges: edges.map(e => ({
+          from: e.from + '_B',
+          to: e.to + '_B',
+          points: [{ x: 0, y: 0 }, { x: 100, y: 100 }],
+        })),
+        canvas: baseCanvas,
+        metrics: baseMetrics,
+      }),
+    };
+
+    // Strategy C (index 2): captures edges it receives
+    const strategyC: LayoutStrategy = {
+      name: 'C',
+      canEscapeLocalMinimum: false,
+      estimateComplexity: (n: NodeDatum[]) => n.length,
+      apply: (nodes: NodeDatum[], edges: EdgeDatum[]): StrategyLayoutResult => {
+        edgesReceivedByC.push([...edges]);
+        return ({
+          nodes: nodes.map((n, i) => ({
+            id: n.id, label: n.label, x: 300, y: 300 + i * 100,
+            width: n.width ?? 120, height: n.height ?? 60,
+          })),
+          edges: edges.map(e => ({
+            from: e.from, to: e.to,
+            points: [{ x: 0, y: 0 }, { x: 100, y: 100 }],
+          })),
+          canvas: baseCanvas,
+          metrics: baseMetrics,
+        });
+      },
+    };
+
+    const mockSelector = {
+      getFallbackChain: () => [strategyA, strategyB, strategyC],
+      select: () => strategyA,
+    } as unknown as StrategySelector;
+
+    const optimizer = new LayoutAutoOptimizer(mockSelector, 3, 0.99);
+
+    const nodes = [
+      makeNode('a', 0, 0),
+      makeNode('b', 0, 0),
+      makeNode('c', 0, 0),
+    ];
+    const edges: LayoutEdge[] = [
+      { from: 'a', to: 'b', points: [{ x: 0, y: 0 }] },
+      { from: 'b', to: 'c', points: [{ x: 0, y: 0 }] },
+    ];
+
+    await optimizer.optimize(nodes, edges, 'tree', { width: 1920, height: 1080 });
+
+    // Strategy C must have been called at least once
+    expect(edgesReceivedByC.length).toBeGreaterThan(0);
+
+    // KEY ASSERTION: Strategy C received Strategy B's MODIFIED edges
+    // (from='a_B', to='b_B'), NOT the stale original edges (from='a', to='b').
+    // If the bug were present, these would be 'a' and 'b' instead of 'a_B' and 'b_B'.
+    expect(edgesReceivedByC[0][0].from).toBe('a_B');
+    expect(edgesReceivedByC[0][0].to).toBe('b_B');
+    expect(edgesReceivedByC[0][1].from).toBe('b_B');
+    expect(edgesReceivedByC[0][1].to).toBe('c_B');
   });
 });
 
