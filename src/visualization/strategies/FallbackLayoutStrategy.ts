@@ -92,15 +92,20 @@ export class FallbackLayoutStrategy {
   private createTimelineLayout(nodes: NodeDatum[], edges: EdgeDatum[]): DiagramLayout {
     const nodeWidth = 160;
     const nodeHeight = 60;
-    const spacing = (this.config.width - 2 * 50) / Math.max(1, nodes.length - 1);
+    const margin = 50;
+    const spacing = nodes.length > 1 ? (this.config.width - 2 * margin) / (nodes.length - 1) : 0;
     const y = (this.config.height - nodeHeight) / 2;
 
     const positionedNodes = nodes.map((node, index) => ({
       ...node,
-      x: 50 + index * spacing - nodeWidth / 2,
+      x: nodes.length === 1
+        ? (this.config.width - nodeWidth) / 2
+        : margin + index * spacing - nodeWidth / 2,
       y: y,
       w: nodeWidth,
-      h: nodeHeight
+      h: nodeHeight,
+      width: nodeWidth,
+      height: nodeHeight
     }));
 
     const layoutEdges = edges.map(edge => {

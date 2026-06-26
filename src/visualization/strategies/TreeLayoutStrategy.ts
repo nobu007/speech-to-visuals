@@ -195,7 +195,7 @@ export class TreeLayoutStrategy implements ILayoutStrategy {
         // Non-leaf node: center under parent
         const childrenWidth = node.children.reduce((sum, child) => sum + child.width, 0) +
           (node.children.length - 1) * horizontalSpacing;
-        x = parentX + (root.width - childrenWidth) / 2;
+        x = parentX + (node.width - childrenWidth) / 2;
       } else {
         // Fallback
         const currentLevelX = levelPositions.get(node.level) || 100;
@@ -209,7 +209,9 @@ export class TreeLayoutStrategy implements ILayoutStrategy {
         x,
         y,
         w: node.width,
-        h: node.height
+        h: node.height,
+        width: node.width,
+        height: node.height
       });
 
       // Position children
