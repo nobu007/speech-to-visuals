@@ -563,7 +563,9 @@ export class MainPipeline {
 
       // Update metrics with successful execution
       if (metrics) {
-        metrics.avgTime = (metrics.avgTime + duration) / Math.max(metrics.attempts, 1);
+        // Welford's incremental mean: avoids the bug where treating a
+        // running average as a single data point produces wrong results.
+        metrics.avgTime = metrics.avgTime + (duration - metrics.avgTime) / metrics.attempts;
       }
 
       return result;
