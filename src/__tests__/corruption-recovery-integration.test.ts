@@ -18,6 +18,7 @@ jest.mock('@/utils/logger', () => ({
 
 import { ProductionConfigManager } from '@/config/production-config';
 import { logger } from '@/utils/logger';
+import { setCorruptionHandler, type CorruptionReport } from '@/utils/report-corruption';
 
 // ── localStorage mock ──
 const mockStorage: Record<string, string> = {};
@@ -219,6 +220,59 @@ describe('corruption recovery: end-to-end integration', () => {
       const config = mgr.getConfig();
       expect(config.name).toBe('development');
       expect(mgr.validateConfig().isValid).toBe(true);
+    });
+  });
+
+  // ── Centralized reportCorruption integration ──
+  describe('scenario 7: reportCorruption is called from production-config', () => {
+    let receivedReports: CorruptionReport[];
+
+    beforeEach(() => {
+      receivedReports = [];
+      setCorruptionHandler((r) => receivedReports.push(r));
+    });
+
+    afterEach(() => {
+      setCorruptionHandler(null);
+    });
+
+    it('emits reportCorruption when localStorage has malformed field types', () => {
+      mockStorage['production-config-overrides'] = JSON.stringify({ apiBaseUrl: 999 });
+
+      new ProductionConfigManager();
+
+      expect(receivedReports.length).toBeGreaterThanOrEqual(1);
+      expect(receivedReports[0].source).toBe('ProductionConfig');
+      expect(receivedReports[0].detail).toContain('malformed');
+    });
+
+    it('emits reportCorruption when localStorage has non-object value', () => {
+      mockStorage['production-config-overrides'] = JSON.stringify([1, 2, 3]);
+
+      new ProductionConfigManager();
+
+      expect(receivedReports.length).toBeGreaterThanOrEqual(1);
+      expect(receivedReports[0].source).toBe('ProductionConfig');
+      expect(receivedReports[0].detail).toContain('non-object');
+    });
+
+    it('does NOT emit reportCorruption for valid config', () => {
+      mockStorage['production-config-overrides'] = JSON.stringify({
+        apiBaseUrl: 'http://valid/api',
+      });
+
+      new ProductionConfigManager();
+
+      expect(receivedReports).toHaveLength(0);
+    });
+
+    it('recovered flag is true (corruption is recovered from)', () => {
+      mockStorage['production-config-overrides'] = JSON.stringify({ features: null });
+
+      new ProductionConfigManager();
+
+      expect(receivedReports.length).toBeGreaterThanOrEqual(1);
+      expect(receivedReports[0].recovered).toBe(true);
     });
   });
 });
