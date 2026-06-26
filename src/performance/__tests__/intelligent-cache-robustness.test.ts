@@ -3,6 +3,7 @@
  * Verifies that corrupted cache data returns null instead of throwing.
  */
 import { IntelligentCache } from '@/performance/intelligent-cache';
+import { logger } from '@/utils/logger';
 import type { DiagramType } from '@/types/diagram';
 
 function makeMetadata(overrides: Partial<{
@@ -71,5 +72,62 @@ describe('IntelligentCache - corrupted data robustness (ISS-019)', () => {
     await cache.store('null-key', null, makeMetadata());
     const val = await cache.get('null-key');
     expect(val).toBeNull();
+  });
+});
+
+describe('IntelligentCache - corruption logging', () => {
+  let cache: IntelligentCache;
+
+  beforeEach(() => {
+    cache = new IntelligentCache();
+    jest.spyOn(logger, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test('should log warning when decompressData encounters corrupted JSON', () => {
+    // Access the private decompressData method
+    const internals = cache as unknown as {
+      decompressData: (compressed: string, originalSize: number, cacheKey?: string) => unknown;
+      corruptedKeys: Set<string>;
+      stats: { corruptionCount: number };
+    };
+
+    // Pass corrupted data that will fail JSON.parse
+    const result = internals.decompressData('{invalid json!!!', 100, 'test-key-corrupt');
+
+    expect(result).toBeNull();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('IntelligentCache: corrupted cache entry for key "test-key-corrupt"'),
+      expect.objectContaining({ error: expect.any(String) })
+    );
+  });
+
+  test('should track corruption count and corrupted keys on decompression failure', () => {
+    const internals = cache as unknown as {
+      decompressData: (compressed: string, originalSize: number, cacheKey?: string) => unknown;
+      corruptedKeys: Set<string>;
+      stats: { corruptionCount: number };
+    };
+
+    internals.decompressData('not json', 50, 'corrupt-key-1');
+    internals.decompressData('also not json', 50, 'corrupt-key-2');
+
+    expect(internals.stats.corruptionCount).toBe(2);
+    expect(internals.corruptedKeys.has('corrupt-key-1')).toBe(true);
+    expect(internals.corruptedKeys.has('corrupt-key-2')).toBe(true);
+  });
+
+  test('should not log when decompression succeeds', () => {
+    const internals = cache as unknown as {
+      decompressData: (compressed: string, originalSize: number, cacheKey?: string) => unknown;
+    };
+
+    const validJson = JSON.stringify({ data: 'test' });
+    internals.decompressData(validJson, validJson.length, 'good-key');
+
+    expect(logger.warn).not.toHaveBeenCalled();
   });
 });

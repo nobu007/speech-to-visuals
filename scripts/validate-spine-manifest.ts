@@ -178,14 +178,24 @@ export function validateSpineSchema(content: string): string[] {
   const errors: string[] = [];
   const sections = parseSpineSections(content);
 
+  // Valid audience values
+  const validAudiences = new Set(['contributor', 'ai-agent', 'ai-agent-claude', 'ai-agent-gemini']);
+
+  // Track all paths for duplicate detection
+  const allPaths: string[] = [];
+
   // Entrypoints: must have 'path' and 'audience'
   for (let i = 0; i < sections.entrypoints.length; i++) {
     const ep = sections.entrypoints[i];
     if (!ep.path) {
       errors.push(`entrypoints[${i}]: missing required key 'path'`);
+    } else {
+      allPaths.push(ep.path);
     }
     if (!ep.audience) {
       errors.push(`entrypoints[${i}] (${ep.path ?? '?'}): missing required key 'audience'`);
+    } else if (!validAudiences.has(ep.audience)) {
+      errors.push(`entrypoints[${i}] (${ep.path}): invalid audience '${ep.audience}' (expected one of: ${[...validAudiences].join(', ')})`);
     }
   }
 
@@ -194,12 +204,16 @@ export function validateSpineSchema(content: string): string[] {
     const sd = sections.systemDesign[i];
     if (!sd.path) {
       errors.push(`system_design[${i}]: missing required key 'path'`);
+    } else {
+      allPaths.push(sd.path);
     }
     // Children (if present): must have 'path'
     if (sd.children) {
       for (let j = 0; j < sd.children.length; j++) {
         if (!sd.children[j].path) {
           errors.push(`system_design[${i}].children[${j}]: missing required key 'path'`);
+        } else {
+          allPaths.push(sd.children[j].path!);
         }
       }
     }
@@ -210,6 +224,19 @@ export function validateSpineSchema(content: string): string[] {
     const ref = sections.references[i];
     if (!ref.doc) {
       errors.push(`references[${i}]: missing required key 'doc'`);
+    } else {
+      allPaths.push(ref.doc);
+    }
+  }
+
+  // Detect duplicate paths
+  const seen = new Map<string, number>();
+  for (const p of allPaths) {
+    seen.set(p, (seen.get(p) || 0) + 1);
+  }
+  for (const [p, count] of seen) {
+    if (count > 1) {
+      errors.push(`Duplicate path '${p}' appears ${count} times in spine manifest`);
     }
   }
 

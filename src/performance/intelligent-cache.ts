@@ -7,6 +7,7 @@
  */
 
 import { DiagramType } from '@/types/diagram';
+import { logger } from '../utils/logger';
 
 interface CacheEntry {
   id: string;
@@ -182,6 +183,7 @@ export class IntelligentCache {
       if (cacheKey) {
         this.corruptedKeys.add(cacheKey);
       }
+      logger.warn(`IntelligentCache: corrupted cache entry for key "${cacheKey ?? 'unknown'}"`, { error: String(error) });
       return null;
     }
   }

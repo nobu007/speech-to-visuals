@@ -214,6 +214,93 @@ system_design:
       // Current manifest should have zero schema errors
       expect(result.schemaErrors).toHaveLength(0);
     });
+
+    it('should detect duplicate paths across sections', () => {
+      const yaml = [
+        'constitution: SYSTEM_CONSTITUTION.md',
+        'purpose: null',
+        'entrypoints:',
+        '  - path: README.md',
+        '    audience: contributor',
+        'system_design:',
+        '  - path: README.md',
+        'references:',
+        '  - doc: api-endpoints.md',
+        '    referenced_by:',
+        '      - architecture.md',
+      ].join('\n');
+      const errors = validateSpineSchema(yaml);
+      expect(errors.some((e) => e.includes("Duplicate path 'README.md'") && e.includes('2 times'))).toBe(true);
+    });
+
+    it('should detect duplicate paths within the same section', () => {
+      const yaml = [
+        'entrypoints:',
+        '  - path: README.md',
+        '    audience: contributor',
+        '  - path: README.md',
+        '    audience: ai-agent',
+      ].join('\n');
+      const errors = validateSpineSchema(yaml);
+      expect(errors.some((e) => e.includes("Duplicate path 'README.md'"))).toBe(true);
+    });
+
+    it('should detect invalid audience value', () => {
+      const yaml = [
+        'entrypoints:',
+        '  - path: README.md',
+        '    audience: invalid-role',
+      ].join('\n');
+      const errors = validateSpineSchema(yaml);
+      expect(errors.some((e) => e.includes("invalid audience 'invalid-role'"))).toBe(true);
+    });
+
+    it('should accept all valid audience values', () => {
+      const yaml = [
+        'entrypoints:',
+        '  - path: README.md',
+        '    audience: contributor',
+        '  - path: AGENTS.md',
+        '    audience: ai-agent',
+        '  - path: CLAUDE.md',
+        '    audience: ai-agent-claude',
+        '  - path: GEMINI.md',
+        '    audience: ai-agent-gemini',
+      ].join('\n');
+      const errors = validateSpineSchema(yaml);
+      // Should have no audience errors (may have duplicate path errors since these aren't real files)
+      expect(errors.filter((e) => e.includes('invalid audience'))).toHaveLength(0);
+    });
+
+    it('should detect duplicate paths in children', () => {
+      const yaml = [
+        'system_design:',
+        '  - path: architecture.md',
+        '    children:',
+        '      - path: dataflow.md',
+        '      - path: dataflow.md',
+      ].join('\n');
+      const errors = validateSpineSchema(yaml);
+      expect(errors.some((e) => e.includes("Duplicate path 'dataflow.md'") && e.includes('2 times'))).toBe(true);
+    });
+
+    it('should not report duplicates for unique paths', () => {
+      const yaml = [
+        'entrypoints:',
+        '  - path: README.md',
+        '    audience: contributor',
+        'system_design:',
+        '  - path: architecture.md',
+        '    children:',
+        '      - path: dataflow.md',
+        'references:',
+        '  - doc: api-endpoints.md',
+        '    referenced_by:',
+        '      - architecture.md',
+      ].join('\n');
+      const errors = validateSpineSchema(yaml);
+      expect(errors.filter((e) => e.includes('Duplicate path'))).toHaveLength(0);
+    });
   });
 
   describe('parseSpineSections', () => {
