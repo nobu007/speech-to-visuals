@@ -230,7 +230,7 @@ export class LayoutAutoOptimizer {
       if (strategyIndex < fallbackChain.length - 1) {
         const nextStrategy = fallbackChain[strategyIndex + 1];
         const reselectResult = this.applyStrategy(
-          nextStrategy, currentNodes, edges,
+          nextStrategy, currentNodes, currentEdges,
         );
         const reselectScore = scoreLayout(
           reselectResult.nodes, reselectResult.edges, bounds.width, bounds.height,
