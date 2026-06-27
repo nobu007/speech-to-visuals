@@ -419,7 +419,7 @@ export class EnhancedErrorRecovery {
 
     // Update completion statistics (would be enhanced with actual tracking)
     const currentLoad = this.activeRequests.size;
-    const utilization = currentLoad / this.dynamicCapacity;
+    const utilization = this.dynamicCapacity > 0 ? currentLoad / this.dynamicCapacity : 0;
 
     // Estimate statistics based on load patterns
     this.requestStats.completed += Math.floor(Math.max(0, this.dynamicCapacity - currentLoad));
@@ -745,7 +745,7 @@ export class EnhancedErrorRecovery {
     baseTimeout *= priorityMultiplier;
 
     // Load-based adjustments
-    const loadFactor = this.activeRequests.size / this.dynamicCapacity;
+    const loadFactor = this.dynamicCapacity > 0 ? this.activeRequests.size / this.dynamicCapacity : 0;
     const loadMultiplier = 1 + loadFactor * 0.3; // Up to 30% increase under load
     baseTimeout *= loadMultiplier;
 
@@ -788,8 +788,10 @@ export class EnhancedErrorRecovery {
     details: unknown;
   } {
     // Enhanced load handling with dynamic capacity consideration
-    const currentLoad = this.activeRequests.size / this.dynamicCapacity;
-    const capacityUtilization = this.dynamicCapacity / this.loadBalancingConfig.maxConcurrentRequests;
+    const currentLoad = this.dynamicCapacity > 0 ? this.activeRequests.size / this.dynamicCapacity : 0;
+    const capacityUtilization = this.loadBalancingConfig.maxConcurrentRequests > 0
+      ? this.dynamicCapacity / this.loadBalancingConfig.maxConcurrentRequests
+      : 0;
     const loadHandling = Math.max(0, (1 - currentLoad) * 0.7 + capacityUtilization * 0.3);
 
     // Circuit breaker effectiveness with state consideration
@@ -798,9 +800,9 @@ export class EnhancedErrorRecovery {
     const halfOpenCircuits = circuitStates.filter(cb => cb.state === 'half-open').length;
     const totalCircuits = this.circuitBreakers.size;
 
-    const circuitBreakerEffectiveness = Math.max(0,
+    const circuitBreakerEffectiveness = totalCircuits > 0 ? Math.max(0,
       1 - (openCircuits * 1.0 + halfOpenCircuits * 0.3) / totalCircuits
-    );
+    ) : 1;
 
     // Enhanced error recovery speed with recent performance trends
     const recentMetrics = this.loadMetrics.slice(-10);
@@ -818,7 +820,7 @@ export class EnhancedErrorRecovery {
     // New: Queue management effectiveness
     const queueLength = this.requestQueue.length;
     const queueCapacity = this.loadBalancingConfig.maxConcurrentRequests * 2; // 2x capacity as reasonable queue
-    const queueEfficiency = Math.max(0, 1 - queueLength / queueCapacity);
+    const queueEfficiency = queueCapacity > 0 ? Math.max(0, 1 - queueLength / queueCapacity) : 1;
 
     const successRate = this.requestStats.completed > 0 ?
       this.requestStats.completed / (this.requestStats.completed + this.requestStats.failed) : 0.5;
