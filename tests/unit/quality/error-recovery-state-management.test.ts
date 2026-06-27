@@ -111,6 +111,7 @@ describe('EnhancedErrorRecovery - getErrorSnapshot', () => {
       recovery['loadMetrics'].push({
         concurrentRequests: i,
         averageResponseTime: 100,
+        responseTimeCount: 1,
         errorRate: 0.01,
         memoryPressure: 0.2,
         cpuUtilization: 0.3,

@@ -92,6 +92,7 @@ interface ErrorAnalytics {
 interface LoadMetrics {
   concurrentRequests: number;
   averageResponseTime: number;
+  responseTimeCount: number;
   errorRate: number;
   memoryPressure: number;
   cpuUtilization: number;
@@ -435,6 +436,7 @@ export class EnhancedErrorRecovery {
     const currentMetrics: LoadMetrics = {
       concurrentRequests: this.activeRequests.size,
       averageResponseTime: this.calculateAverageResponseTime(),
+      responseTimeCount: 0,
       errorRate: this.calculateRecentErrorRate(),
       memoryPressure: memoryUsage.heapTotal > 0
         ? memoryUsage.heapUsed / memoryUsage.heapTotal
@@ -765,7 +767,11 @@ export class EnhancedErrorRecovery {
   private updateResponseTimeMetrics(responseTime: number): void {
     if (this.loadMetrics.length > 0) {
       const latest = this.loadMetrics[this.loadMetrics.length - 1];
-      latest.averageResponseTime = (latest.averageResponseTime + responseTime) / 2;
+      latest.responseTimeCount += 1;
+      // Welford's incremental mean — each observation gets equal weight
+      latest.averageResponseTime =
+        latest.averageResponseTime +
+        (responseTime - latest.averageResponseTime) / latest.responseTimeCount;
     }
   }
 

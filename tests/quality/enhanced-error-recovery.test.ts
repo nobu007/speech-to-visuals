@@ -1005,6 +1005,7 @@ describe('EnhancedErrorRecovery', () => {
         loadMetrics: Array<{
           concurrentRequests: number;
           averageResponseTime: number;
+          responseTimeCount: number;
           errorRate: number;
           memoryPressure: number;
           cpuUtilization: number;
@@ -1017,6 +1018,7 @@ describe('EnhancedErrorRecovery', () => {
       rec.loadMetrics = Array.from({ length: 5 }, () => ({
         concurrentRequests: 10,
         averageResponseTime: 4000, // Very high response time
+        responseTimeCount: 1,
         errorRate: 0.8, // High error rate
         memoryPressure: 0.9, // High memory pressure
         cpuUtilization: 0.95,
@@ -1036,6 +1038,7 @@ describe('EnhancedErrorRecovery', () => {
         loadMetrics: Array<{
           concurrentRequests: number;
           averageResponseTime: number;
+          responseTimeCount: number;
           errorRate: number;
           memoryPressure: number;
           cpuUtilization: number;
@@ -1048,6 +1051,7 @@ describe('EnhancedErrorRecovery', () => {
       rec.loadMetrics = Array.from({ length: 5 }, () => ({
         concurrentRequests: 1,
         averageResponseTime: 100, // Fast response
+        responseTimeCount: 1,
         errorRate: 0.01, // Low error rate
         memoryPressure: 0.2, // Low memory
         cpuUtilization: 0.1,
@@ -1067,6 +1071,7 @@ describe('EnhancedErrorRecovery', () => {
         loadMetrics: Array<{
           concurrentRequests: number;
           averageResponseTime: number;
+          responseTimeCount: number;
           errorRate: number;
           memoryPressure: number;
           cpuUtilization: number;
@@ -1082,6 +1087,7 @@ describe('EnhancedErrorRecovery', () => {
       rec.loadMetrics = Array.from({ length: 5 }, () => ({
         concurrentRequests: 10,
         averageResponseTime: 4000,
+        responseTimeCount: 1,
         errorRate: 0.8,
         memoryPressure: 0.9,
         cpuUtilization: 0.95,
