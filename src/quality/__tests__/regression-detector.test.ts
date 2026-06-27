@@ -9,7 +9,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
-jest.mock('../../pipeline/quality-monitor');
+jest.mock('@/pipeline/quality-monitor');
 
 import { RegressionDetector } from '../regression-detector';
 import { formatRegressionReport } from '../regression-detector';

@@ -10,7 +10,7 @@ import { LLMCache } from '../llm-cache';
 import { setCorruptionHandler, type CorruptionReport } from '../../utils/report-corruption';
 
 // Mock logger
-jest.mock('../../utils/logger', () => ({
+jest.mock('@/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

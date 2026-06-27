@@ -22,7 +22,7 @@ import { TranscriptionSegment } from '../types';
 
 // --- Mocks ---
 
-jest.mock('../whisper-transcriber', () => {
+jest.mock('@/transcription/whisper-transcriber', () => {
   return {
     WhisperTranscriber: jest.fn().mockImplementation(() => ({
       transcribe: jest.fn(),
@@ -34,7 +34,7 @@ jest.mock('@/analysis/language-detector', () => ({
   detectLanguage: jest.fn().mockReturnValue({ language: 'en', confidence: 0.95 }),
 }));
 
-jest.mock('../../utils/logger', () => ({
+jest.mock('@/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

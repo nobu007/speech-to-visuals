@@ -15,7 +15,7 @@ import {
   DEVELOPMENT_CYCLES,
 } from '../iteration-manager';
 
-jest.mock('../../utils/logger', () => ({
+jest.mock('@/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -24,17 +24,20 @@ jest.mock('../../utils/logger', () => ({
   },
 }));
 
+import { logger } from '@/utils/logger';
+
 describe('IterationManager', () => {
-  // Re-import logger mock for verification
-  const { logger } = require('../../utils/logger');
   let tmpDir: string;
+  let errorSpy: jest.SpyInstance;
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'im-test-'));
+    errorSpy = jest.spyOn(logger, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
+    errorSpy.mockRestore();
   });
 
   function createManager(trigger: 'on_success' | 'on_checkpoint' | 'on_review' = 'on_success') {
@@ -305,8 +308,8 @@ describe('IterationManager', () => {
         dirPath,
       );
 
-      // Reset logger mock
-      (logger.error as jest.Mock).mockClear();
+      // Reset logger spy
+      errorSpy.mockClear();
 
       await mgrWithDir.startIteration();
       // completeIteration should not throw — outer catch logs warning
