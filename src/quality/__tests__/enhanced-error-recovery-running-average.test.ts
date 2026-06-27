@@ -147,6 +147,161 @@ describe('EnhancedErrorRecovery running-average fix', () => {
     });
   });
 
+  describe('NaN/Infinity rejection in updateResponseTimeMetrics', () => {
+    /** Helper: inject a valid value first, then the rejected value, verify no corruption */
+    function setupWithValidValue() {
+      const i = internals(recovery);
+      i.updateLoadMetrics();
+      i.updateResponseTimeMetrics(100);
+      return i;
+    }
+
+    test('NaN is rejected — count stays 1, average stays 100', () => {
+      const i = setupWithValidValue();
+
+      i.updateResponseTimeMetrics(NaN);
+
+      const latest = i.loadMetrics[i.loadMetrics.length - 1];
+      expect(latest.responseTimeCount).toBe(1);
+      expect(latest.averageResponseTime).toBe(100);
+    });
+
+    test('Infinity is rejected — count stays 1, average stays 100', () => {
+      const i = setupWithValidValue();
+
+      i.updateResponseTimeMetrics(Infinity);
+
+      const latest = i.loadMetrics[i.loadMetrics.length - 1];
+      expect(latest.responseTimeCount).toBe(1);
+      expect(latest.averageResponseTime).toBe(100);
+    });
+
+    test('-Infinity is rejected — count stays 1, average stays 100', () => {
+      const i = setupWithValidValue();
+
+      i.updateResponseTimeMetrics(-Infinity);
+
+      const latest = i.loadMetrics[i.loadMetrics.length - 1];
+      expect(latest.responseTimeCount).toBe(1);
+      expect(latest.averageResponseTime).toBe(100);
+    });
+
+    test('negative finite value is rejected — count stays 1, average stays 100', () => {
+      const i = setupWithValidValue();
+
+      i.updateResponseTimeMetrics(-50);
+
+      const latest = i.loadMetrics[i.loadMetrics.length - 1];
+      expect(latest.responseTimeCount).toBe(1);
+      expect(latest.averageResponseTime).toBe(100);
+    });
+
+    test('NaN followed by valid value — valid value is accepted normally', () => {
+      const i = setupWithValidValue();
+
+      i.updateResponseTimeMetrics(NaN);   // rejected
+      i.updateResponseTimeMetrics(200);   // accepted
+
+      const latest = i.loadMetrics[i.loadMetrics.length - 1];
+      expect(latest.responseTimeCount).toBe(2);
+      // Welford: 100 + (200 - 100) / 2 = 150
+      expect(latest.averageResponseTime).toBe(150);
+    });
+
+    test('all four bad values in sequence leave state untouched', () => {
+      const i = setupWithValidValue();
+
+      i.updateResponseTimeMetrics(NaN);
+      i.updateResponseTimeMetrics(Infinity);
+      i.updateResponseTimeMetrics(-Infinity);
+      i.updateResponseTimeMetrics(-1);
+
+      const latest = i.loadMetrics[i.loadMetrics.length - 1];
+      expect(latest.responseTimeCount).toBe(1);
+      expect(latest.averageResponseTime).toBe(100);
+    });
+  });
+
+  describe('getResilienceMetrics downstream finiteness guard', () => {
+    /** Extended internals to access getResilienceMetrics dependencies */
+    function internalsWithResilience(rec: EnhancedErrorRecovery) {
+      return rec as unknown as {
+        loadMetrics: Array<{
+          averageResponseTime: number;
+          responseTimeCount: number;
+          timestamp: number;
+        }>;
+        updateResponseTimeMetrics: (t: number) => void;
+        updateLoadMetrics: () => void;
+      };
+    }
+
+    test('resilience metrics are finite when all loadMetrics are valid', () => {
+      const i = internalsWithResilience(recovery);
+      i.updateLoadMetrics();
+      i.updateResponseTimeMetrics(100);
+      i.updateResponseTimeMetrics(200);
+
+      const r = recovery.getResilienceMetrics();
+      expect(Number.isFinite(r.errorRecoverySpeed)).toBe(true);
+      expect(Number.isFinite(r.overallResilience)).toBe(true);
+      expect(r.errorRecoverySpeed).toBeGreaterThanOrEqual(0);
+      expect(r.errorRecoverySpeed).toBeLessThanOrEqual(1);
+    });
+
+    test('resilience metrics are finite with NaN-corrupted loadMetrics entry', () => {
+      const i = internalsWithResilience(recovery);
+      i.updateLoadMetrics();
+      // Manually inject corrupted data (bypassing the guard)
+      i.loadMetrics[0].averageResponseTime = NaN;
+
+      const r = recovery.getResilienceMetrics();
+      expect(Number.isFinite(r.errorRecoverySpeed)).toBe(true);
+      expect(Number.isFinite(r.overallResilience)).toBe(true);
+    });
+
+    test('resilience metrics are finite with Infinity-corrupted loadMetrics entry', () => {
+      const i = internalsWithResilience(recovery);
+      i.updateLoadMetrics();
+      i.loadMetrics[0].averageResponseTime = Infinity;
+
+      const r = recovery.getResilienceMetrics();
+      expect(Number.isFinite(r.errorRecoverySpeed)).toBe(true);
+      expect(Number.isFinite(r.overallResilience)).toBe(true);
+    });
+
+    test('resilience metrics are finite with mixed valid and corrupted entries', () => {
+      const i = internalsWithResilience(recovery);
+      i.updateLoadMetrics();
+      i.updateResponseTimeMetrics(100);  // valid
+      i.loadMetrics[0].averageResponseTime = NaN;
+
+      i.updateLoadMetrics();
+      i.updateResponseTimeMetrics(200);  // valid in a new entry
+      // Now: entry[0] has NaN average, entry[1] has 200
+
+      const r = recovery.getResilienceMetrics();
+      expect(Number.isFinite(r.errorRecoverySpeed)).toBe(true);
+      expect(Number.isFinite(r.overallResilience)).toBe(true);
+      // The NaN entry should be filtered out; avg from entry[1] only
+      const details = r.details as { avgResponseTime: number };
+      expect(details.avgResponseTime).toBe(200);
+    });
+
+    test('all entries corrupted → defaults to 0 response time (recovery speed = 1)', () => {
+      const i = internalsWithResilience(recovery);
+      i.updateLoadMetrics();
+      i.updateLoadMetrics();
+      i.loadMetrics[0].averageResponseTime = NaN;
+      i.loadMetrics[1].averageResponseTime = Infinity;
+
+      const r = recovery.getResilienceMetrics();
+      expect(Number.isFinite(r.errorRecoverySpeed)).toBe(true);
+      // No valid metrics → avgResponseTime = 0 → recovery speed = 1.0
+      expect(r.errorRecoverySpeed).toBe(1);
+    });
+  });
+
   describe('getErrorSnapshot exposes responseTimeCount', () => {
     test('snapshot includes responseTimeCount in loadMetrics', () => {
       const i = internals(recovery);

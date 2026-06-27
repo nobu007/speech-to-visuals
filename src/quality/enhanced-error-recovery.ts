@@ -464,7 +464,10 @@ export class EnhancedErrorRecovery {
   private calculateAverageResponseTime(): number {
     if (this.loadMetrics.length === 0) return 0;
 
-    const recentMetrics = this.loadMetrics.slice(-10);
+    const recentMetrics = this.loadMetrics
+      .slice(-10)
+      .filter(m => Number.isFinite(m.averageResponseTime) && m.averageResponseTime >= 0);
+    if (recentMetrics.length === 0) return 0;
     return recentMetrics.reduce((sum, m) => sum + m.averageResponseTime, 0) / recentMetrics.length;
   }
 
@@ -808,12 +811,18 @@ export class EnhancedErrorRecovery {
     ) : 1;
 
     // Enhanced error recovery speed with recent performance trends
-    const recentMetrics = this.loadMetrics.slice(-10);
+    // Filter non-finite values to prevent NaN/Infinity propagation from
+    // any historically corrupted entries that bypassed the input guard.
+    const recentMetrics = this.loadMetrics
+      .slice(-10)
+      .filter(m => Number.isFinite(m.averageResponseTime) && m.averageResponseTime >= 0);
     const avgResponseTime = recentMetrics.length > 0 ?
       recentMetrics.reduce((sum, m) => sum + m.averageResponseTime, 0) / recentMetrics.length : 0;
 
     const targetResponseTime = 3000; // 3 second target for optimized system
-    const errorRecoverySpeed = Math.max(0, 1 - (avgResponseTime / targetResponseTime));
+    const errorRecoverySpeed = Number.isFinite(avgResponseTime)
+      ? Math.max(0, 1 - (avgResponseTime / targetResponseTime))
+      : 0;
 
     // New: Adaptive capacity score
     const capacityAdjustmentEffectiveness = this.loadBalancingConfig.adaptiveCapacity ?
