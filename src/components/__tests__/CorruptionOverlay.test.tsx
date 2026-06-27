@@ -200,6 +200,74 @@ describe('CorruptionOverlay', () => {
     expect(badges).toHaveLength(2);
   });
 
+  it('should show Clear All Corrupt Keys when multiple reports have extractable keys', async () => {
+    render(<CorruptionOverlay />);
+    await act(async () => {});
+
+    act(() => {
+      reportCorruption('Source1', 'localStorage "key1" corrupt');
+      reportCorruption('Source2', 'localStorage "key2" corrupt');
+    });
+
+    expect(screen.getByText('Clear All Corrupt Keys')).toBeInTheDocument();
+  });
+
+  it('should NOT show Clear All Corrupt Keys when reports lack storage keys', async () => {
+    render(<CorruptionOverlay />);
+    await act(async () => {});
+
+    act(() => {
+      reportCorruption('Source1', 'Generic corruption without key');
+      reportCorruption('Source2', 'Another generic corruption');
+    });
+
+    expect(screen.queryByText('Clear All Corrupt Keys')).toBeNull();
+    // Reset All to Defaults should still be available
+    expect(screen.getByText('Reset All to Defaults')).toBeInTheDocument();
+  });
+
+  it('should clear only corrupt keys when Clear All Corrupt Keys is clicked', async () => {
+    localStorage.setItem('corrupt-key-1', 'bad');
+    localStorage.setItem('corrupt-key-2', 'bad');
+    // This key is NOT in any corruption report, so it should survive
+    localStorage.setItem('untouched-key', 'good');
+
+    render(<CorruptionOverlay />);
+    await act(async () => {});
+
+    act(() => {
+      reportCorruption('Source1', 'localStorage "corrupt-key-1" corrupt');
+      reportCorruption('Source2', 'localStorage "corrupt-key-2" corrupt');
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Clear All Corrupt Keys'));
+    });
+
+    expect(localStorage.getItem('corrupt-key-1')).toBeNull();
+    expect(localStorage.getItem('corrupt-key-2')).toBeNull();
+    // Untouched key should still exist — Clear All only removes keys from reports
+    expect(localStorage.getItem('untouched-key')).toBe('good');
+  });
+
+  it('should dismiss all reports after Clear All Corrupt Keys', async () => {
+    render(<CorruptionOverlay />);
+    await act(async () => {});
+
+    act(() => {
+      reportCorruption('Source1', 'localStorage "key1" corrupt');
+      reportCorruption('Source2', 'localStorage "key2" corrupt');
+    });
+
+    expect(screen.getByTestId('corruption-overlay')).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Clear All Corrupt Keys'));
+    });
+
+    expect(screen.queryByTestId('corruption-overlay')).toBeNull();
+  });
+
   it('should unsubscribe from corruption handler on unmount', async () => {
     const { unmount } = render(<CorruptionOverlay />);
     await act(async () => {});

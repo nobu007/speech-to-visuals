@@ -77,6 +77,25 @@ export const CorruptionOverlay: React.FC<CorruptionOverlayProps> = ({
     }
   }, []);
 
+  const clearAllCorruptKeys = useCallback(() => {
+    // Clear only the keys extracted from visible corruption reports
+    const keysToClear = new Set<string>();
+    for (const report of reportsRef.current) {
+      if (dismissedIds.has(report.id)) continue;
+      const key = extractStorageKey(report.detail);
+      if (key) keysToClear.add(key);
+    }
+    keysToClear.forEach(key => {
+      try {
+        localStorage.removeItem(key);
+        logger.info(`[CorruptionOverlay] Cleared corrupt key: ${key}`);
+      } catch {
+        logger.warn(`[CorruptionOverlay] Failed to clear key: ${key}`);
+      }
+    });
+    setDismissedIds(new Set(reportsRef.current.map(r => r.id)));
+  }, [dismissedIds]);
+
   const resetToDefaults = useCallback(() => {
     // Clear all known application storage keys
     const knownKeys = [
@@ -157,14 +176,26 @@ export const CorruptionOverlay: React.FC<CorruptionOverlayProps> = ({
         </Alert>
       ))}
       {visibleReports.length > 1 && (
-        <Button
-          size="sm"
-          variant="outline"
-          className="w-full"
-          onClick={resetToDefaults}
-        >
-          Reset All to Defaults
-        </Button>
+        <div className="flex gap-2">
+          {visibleReports.some(r => extractStorageKey(r.detail)) && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1"
+              onClick={clearAllCorruptKeys}
+            >
+              Clear All Corrupt Keys
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="ghost"
+            className="flex-1"
+            onClick={resetToDefaults}
+          >
+            Reset All to Defaults
+          </Button>
+        </div>
       )}
     </div>
   );

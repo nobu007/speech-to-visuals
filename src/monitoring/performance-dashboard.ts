@@ -252,11 +252,15 @@ export class PerformanceDashboard {
     // Performance degradation analysis
     if (this.metrics.length >= 10) {
       const recent = this.metrics.slice(-10);
-      const avgRecentResponseTime = recent.reduce((sum, m) => sum + m.throughput.avgResponseTime, 0) / recent.length;
+      const validRecent = recent.filter(m => Number.isFinite(m.throughput.avgResponseTime));
+      if (validRecent.length === 0) return;
+      const avgRecentResponseTime = validRecent.reduce((sum, m) => sum + m.throughput.avgResponseTime, 0) / validRecent.length;
 
       const earlier = this.metrics.slice(-20, -10);
       if (earlier.length === 0) return;
-      const avgEarlierResponseTime = earlier.reduce((sum, m) => sum + m.throughput.avgResponseTime, 0) / earlier.length;
+      const validEarlier = earlier.filter(m => Number.isFinite(m.throughput.avgResponseTime));
+      if (validEarlier.length === 0) return;
+      const avgEarlierResponseTime = validEarlier.reduce((sum, m) => sum + m.throughput.avgResponseTime, 0) / validEarlier.length;
 
       if (avgRecentResponseTime > avgEarlierResponseTime * 1.2) {
         this.createAlert('warning', 'performance', 'Performance degradation detected',
@@ -517,7 +521,9 @@ export class PerformanceDashboard {
     if (this.metrics.length < 5) return 0;
 
     const recent = this.metrics.slice(-5);
-    return recent.reduce((sum, m) => sum + m.processing.totalTime, 0) / recent.length;
+    const valid = recent.filter(m => Number.isFinite(m.processing.totalTime));
+    if (valid.length === 0) return 0;
+    return valid.reduce((sum, m) => sum + m.processing.totalTime, 0) / valid.length;
   }
 
   /**

@@ -765,6 +765,9 @@ export class EnhancedErrorRecovery {
    * Update response time metrics
    */
   private updateResponseTimeMetrics(responseTime: number): void {
+    // Reject non-finite or negative values — a single NaN permanently corrupts
+    // the Welford running average (NaN propagates through all future updates).
+    if (!Number.isFinite(responseTime) || responseTime < 0) return;
     if (this.loadMetrics.length > 0) {
       const latest = this.loadMetrics[this.loadMetrics.length - 1];
       latest.responseTimeCount += 1;
