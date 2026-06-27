@@ -99,9 +99,12 @@ describe('IntelligentCache - corruption logging', () => {
     const result = internals.decompressData('{invalid json!!!', 100, 'test-key-corrupt');
 
     expect(result).toBeNull();
+    // reportCorruption now handles logging: [Corruption:IntelligentCache] ...
     expect(logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('IntelligentCache: corrupted cache entry for key "test-key-corrupt"'),
-      expect.objectContaining({ error: expect.any(String) })
+      expect.stringContaining('[Corruption:IntelligentCache]'),
+    );
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('test-key-corrupt'),
     );
   });
 

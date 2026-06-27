@@ -12,6 +12,7 @@ import fs from 'fs';
 import path from 'path';
 import { calculateSemanticSimilarity, SemanticMetricsTracker } from './semantic-similarity';
 import { logger } from '../utils/logger';
+import { reportCorruption } from '../utils/report-corruption';
 
 interface CacheEntry<T> {
   data: T;
@@ -337,7 +338,7 @@ export class LLMCache<T> {
       const semanticSupport = parsed.version === '2.0' ? ' (with semantic support)' : '';
 
     } catch (error) {
-      logger.warn('Failed to load LLM cache from disk:', error);
+      reportCorruption('LLMCache', `Failed to load cache from disk: ${String(error)}`);
     }
   }
 

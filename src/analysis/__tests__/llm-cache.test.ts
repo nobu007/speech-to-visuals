@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { LLMCache } from '../llm-cache';
+import { setCorruptionHandler, type CorruptionReport } from '../../utils/report-corruption';
 
 // Mock logger
 jest.mock('../../utils/logger', () => ({
@@ -269,6 +270,24 @@ describe('LLMCache', () => {
       // Should not throw, start fresh
       expect(cache.get('anything')).toBeNull();
       cache.destroy();
+    });
+
+    it('emits reportCorruption when disk cache is corrupted', () => {
+      const reports: CorruptionReport[] = [];
+      setCorruptionHandler((r) => reports.push(r));
+
+      fs.writeFileSync(cachePath, '{ invalid json }', 'utf8');
+      const cache = new LLMCache<string>({
+        persistPath: cachePath,
+        enableSemantic: false,
+      });
+      cache.destroy();
+
+      setCorruptionHandler(null);
+
+      expect(reports.length).toBeGreaterThanOrEqual(1);
+      expect(reports[0].source).toBe('LLMCache');
+      expect(reports[0].detail).toContain('disk');
     });
 
     it('handles version mismatch', () => {
