@@ -17,7 +17,6 @@ jest.mock('@/utils/logger', () => ({
 }));
 
 import { ProductionConfigManager } from '@/config/production-config';
-import { logger } from '@/utils/logger';
 import { setCorruptionHandler, type CorruptionReport } from '@/utils/report-corruption';
 
 // ── localStorage mock ──
@@ -173,17 +172,16 @@ describe('corruption recovery: end-to-end integration', () => {
 
   describe('scenario 5: corruption telemetry', () => {
     it('emits warning when corruption is detected', () => {
+      let receivedReports: CorruptionReport[] = [];
+      setCorruptionHandler((r) => receivedReports.push(r));
+
       mockStorage['production-config-overrides'] = JSON.stringify({ apiBaseUrl: 999 });
 
       new ProductionConfigManager();
 
-      // Should have logged a warning about the corruption
-      const corruptionWarnings = (logger.warn as jest.Mock).mock.calls.filter(
-        (args: unknown[]) =>
-          typeof args[0] === 'string' &&
-          (args[0].includes('malformed') || args[0].includes('non-object')),
-      );
-      expect(corruptionWarnings.length).toBeGreaterThan(0);
+      setCorruptionHandler(null);
+      expect(receivedReports.length).toBeGreaterThan(0);
+      expect(receivedReports[0].source).toBe('ProductionConfig');
     });
 
     it('removes corrupted entry from localStorage', () => {
@@ -197,6 +195,9 @@ describe('corruption recovery: end-to-end integration', () => {
 
   describe('scenario 6: no corruption — normal operation unaffected', () => {
     it('valid overrides are applied without warnings', () => {
+      let receivedReports: CorruptionReport[] = [];
+      setCorruptionHandler((r) => receivedReports.push(r));
+
       mockStorage['production-config-overrides'] = JSON.stringify({
         apiBaseUrl: 'http://custom/api',
       });
@@ -204,15 +205,9 @@ describe('corruption recovery: end-to-end integration', () => {
       const mgr = new ProductionConfigManager();
       const config = mgr.getConfig();
 
+      setCorruptionHandler(null);
       expect(config.apiBaseUrl).toBe('http://custom/api');
-
-      // No corruption warnings
-      const corruptionWarnings = (logger.warn as jest.Mock).mock.calls.filter(
-        (args: unknown[]) =>
-          typeof args[0] === 'string' &&
-          (args[0].includes('malformed') || args[0].includes('non-object')),
-      );
-      expect(corruptionWarnings).toHaveLength(0);
+      expect(receivedReports).toHaveLength(0);
     });
 
     it('empty localStorage produces default config', () => {
@@ -243,7 +238,7 @@ describe('corruption recovery: end-to-end integration', () => {
 
       expect(receivedReports.length).toBeGreaterThanOrEqual(1);
       expect(receivedReports[0].source).toBe('ProductionConfig');
-      expect(receivedReports[0].detail).toContain('malformed');
+      expect(receivedReports[0].detail).toContain('failed type validation');
     });
 
     it('emits reportCorruption when localStorage has non-object value', () => {
@@ -253,7 +248,7 @@ describe('corruption recovery: end-to-end integration', () => {
 
       expect(receivedReports.length).toBeGreaterThanOrEqual(1);
       expect(receivedReports[0].source).toBe('ProductionConfig');
-      expect(receivedReports[0].detail).toContain('non-object');
+      expect(receivedReports[0].detail).toContain('failed type validation');
     });
 
     it('does NOT emit reportCorruption for valid config', () => {

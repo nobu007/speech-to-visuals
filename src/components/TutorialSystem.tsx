@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { reportCorruption } from '@/utils/report-corruption';
+import { safeLoadFromStorage } from '@/utils/safe-storage';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -45,28 +45,21 @@ export const TutorialSystem: React.FC = () => {
   // Initialize tutorial state from localStorage
   useEffect(() => {
     // ISS-014: Wrap all localStorage access in try-catch for private browsing / quota errors
-    let savedProgress: string | null = null;
     let firstVisit: string | null = null;
     try {
-      savedProgress = localStorage.getItem('tutorial-progress');
       firstVisit = localStorage.getItem('first-visit');
     } catch {
       // localStorage unavailable (private browsing, quota) — use defaults
     }
 
-    if (savedProgress) {
-      try {
-        const parsed = JSON.parse(savedProgress);
-        if (Array.isArray(parsed)) {
-          setCompletedSteps(new Set(parsed));
-        } else {
-          reportCorruption('TutorialSystem', 'localStorage "tutorial-progress" contained non-array value; resetting');
-          try { localStorage.removeItem('tutorial-progress'); } catch { /* noop */ }
-        }
-      } catch {
-        // Corrupted localStorage data — reset
-        try { localStorage.removeItem('tutorial-progress'); } catch { /* noop */ }
-      }
+    const parsed = safeLoadFromStorage<unknown[]>(
+      'tutorial-progress',
+      (v): v is unknown[] => Array.isArray(v),
+      'TutorialSystem',
+      [],
+    );
+    if (parsed.length > 0) {
+      setCompletedSteps(new Set(parsed as string[]));
     }
 
     if (firstVisit === null) {

@@ -107,7 +107,7 @@ describe('TutorialSystem corruption recovery: end-to-end', () => {
 
       const tutorialReports = receivedReports.filter(r => r.source === 'TutorialSystem');
       expect(tutorialReports.length).toBeGreaterThanOrEqual(1);
-      expect(tutorialReports[0].detail).toContain('non-array');
+      expect(tutorialReports[0].detail).toContain('tutorial-progress');
       expect(tutorialReports[0].recovered).toBe(true);
     });
 
@@ -116,9 +116,10 @@ describe('TutorialSystem corruption recovery: end-to-end', () => {
 
       render(<TutorialSystem />);
 
-      // JSON.parse throws → caught → removeItem (no reportCorruption for parse error,
-      // only for type mismatch). Verify no crash either way.
-      expect(receivedReports.filter(r => r.source === 'TutorialSystem').length).toBeGreaterThanOrEqual(0);
+      // safeLoadFromStorage reports unparseable JSON and removes the key
+      const tutorialReports = receivedReports.filter(r => r.source === 'TutorialSystem');
+      expect(tutorialReports.length).toBeGreaterThanOrEqual(1);
+      expect(tutorialReports[0].detail).toContain('unparseable');
     });
 
     it('clears corrupted entry from localStorage on non-array detection', () => {

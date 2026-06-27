@@ -108,7 +108,7 @@ export const CorruptionOverlay: React.FC<CorruptionOverlayProps> = ({
       try {
         localStorage.removeItem(key);
       } catch {
-        // noop
+        logger.warn(`[CorruptionOverlay] Failed to clear key during reset: ${key}`);
       }
     });
     logger.info('[CorruptionOverlay] Reset all known storage keys to defaults');
