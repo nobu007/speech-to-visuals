@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { reportCorruption } from '@/utils/report-corruption';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -59,7 +60,7 @@ export const TutorialSystem: React.FC = () => {
         if (Array.isArray(parsed)) {
           setCompletedSteps(new Set(parsed));
         } else {
-          console.warn('[TutorialSystem] localStorage "tutorial-progress" contained non-array value; resetting');
+          reportCorruption('TutorialSystem', 'localStorage "tutorial-progress" contained non-array value; resetting');
           try { localStorage.removeItem('tutorial-progress'); } catch { /* noop */ }
         }
       } catch {

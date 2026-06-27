@@ -633,6 +633,86 @@ describe('regression: strategy reselection uses currentEdges', () => {
     expect(edgesReceivedByC[0][1].from).toBe('b_B');
     expect(edgesReceivedByC[0][1].to).toBe('c_B');
   });
+
+  // Focused output-level regression: verify the FINAL output edges reflect
+  // currentEdges modifications (from Strategy B), not stale original edges.
+  // If the bug were present, result.finalEdges would contain original edge
+  // from/to values instead of the modified ones.
+  it('finalEdges in output reflects currentEdges modifications, not stale input', async () => {
+    const baseMetrics = { overlapCount: 0, edgeCrossings: 0, aspectRatio: 1 };
+    const baseCanvas = { width: 1920, height: 1080 };
+
+    // Strategy A: baseline, produces low score
+    const strategyA: LayoutStrategy = {
+      name: 'A',
+      canEscapeLocalMinimum: false,
+      estimateComplexity: (n: NodeDatum[]) => n.length,
+      apply: (nodes: NodeDatum[], edges: EdgeDatum[]): StrategyLayoutResult => ({
+        nodes: nodes.map(n => ({
+          id: n.id, label: n.label, x: 0, y: 0,
+          width: n.width ?? 120, height: n.height ?? 60,
+        })),
+        edges: edges.map(e => ({
+          from: e.from, to: e.to,
+          points: [{ x: 0, y: 0 }, { x: 0, y: 0 }],
+        })),
+        canvas: baseCanvas,
+        metrics: baseMetrics,
+      }),
+    };
+
+    // Strategy B: produces higher score AND modifies edge from/to with suffix
+    const strategyB: LayoutStrategy = {
+      name: 'B',
+      canEscapeLocalMinimum: false,
+      estimateComplexity: (n: NodeDatum[]) => n.length,
+      apply: (nodes: NodeDatum[], edges: EdgeDatum[]): StrategyLayoutResult => ({
+        nodes: nodes.map((n, i) => ({
+          id: n.id, label: n.label, x: 200 * (i + 1), y: 200,
+          width: n.width ?? 120, height: n.height ?? 60,
+        })),
+        // Modify edge from/to to prove currentEdges propagation
+        edges: edges.map(e => ({
+          from: e.from + '_B',
+          to: e.to + '_B',
+          points: [{ x: 100, y: 100 }, { x: 200, y: 200 }],
+        })),
+        canvas: baseCanvas,
+        // Higher metrics than A → will be adopted
+        metrics: { overlapCount: 0, edgeCrossings: 0, aspectRatio: 2 },
+      }),
+    };
+
+    const mockSelector = {
+      getFallbackChain: () => [strategyA, strategyB],
+      select: () => strategyA,
+    } as unknown as StrategySelector;
+
+    const optimizer = new LayoutAutoOptimizer(mockSelector, 3, 0.99);
+
+    const nodes = [
+      makeNode('x', 0, 0),
+      makeNode('y', 0, 0),
+    ];
+    const edges: LayoutEdge[] = [
+      { from: 'x', to: 'y', points: [{ x: 0, y: 0 }] },
+    ];
+
+    const result = await optimizer.optimize(nodes, edges, 'flow', { width: 1920, height: 1080 });
+
+    // KEY ASSERTION: finalEdges must contain the MODIFIED edge data
+    // from Strategy B ('x_B', 'y_B'), not the stale originals ('x', 'y').
+    // If the currentEdges bug were present, finalEdges would have 'x' and 'y'.
+    expect(result.finalEdges.length).toBeGreaterThanOrEqual(1);
+    const hasModifiedEdges = result.finalEdges.some(
+      e => e.from === 'x_B' && e.to === 'y_B',
+    );
+    expect(hasModifiedEdges).toBe(true);
+
+    // Also verify original input edges were NOT mutated
+    expect(edges[0].from).toBe('x');
+    expect(edges[0].to).toBe('y');
+  });
 });
 
 // ── Score Consistency Verification ──
