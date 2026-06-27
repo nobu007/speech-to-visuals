@@ -322,4 +322,110 @@ describe('TASK-0016: ComplexityDetector', () => {
       }
     });
   });
+
+  // -----------------------------------------------------------------------
+  // Test case 7: COMPLEXITY_THRESHOLD env var + NaN guard
+  // -----------------------------------------------------------------------
+  describe('Test case 7: COMPLEXITY_THRESHOLD env var + NaN guard', () => {
+    it('should use custom threshold from env var', () => {
+      process.env.COMPLEXITY_THRESHOLD = '0.5';
+      // Score 0.3 < 0.5 → flash
+      expect(detector.selectModel(0.3)).toBe('gemini-2.5-flash');
+      // Score 0.6 >= 0.5 → pro
+      expect(detector.selectModel(0.6)).toBe('gemini-2.5-pro');
+    });
+
+    it('should fall back to default 0.2 when threshold is non-numeric ("abc")', () => {
+      process.env.COMPLEXITY_THRESHOLD = 'abc';
+      // parseFloat('abc') = NaN → guard falls back to 0.2
+      expect(detector.selectModel(0.1)).toBe('gemini-2.5-flash');
+      expect(detector.selectModel(0.3)).toBe('gemini-2.5-pro');
+    });
+
+    it('should fall back to default 0.2 when threshold is empty string', () => {
+      process.env.COMPLEXITY_THRESHOLD = '';
+      // parseFloat('') = NaN → guard falls back to 0.2
+      expect(detector.selectModel(0.1)).toBe('gemini-2.5-flash');
+      expect(detector.selectModel(0.3)).toBe('gemini-2.5-pro');
+    });
+
+    it('should parse partial numeric strings (parseFloat behavior)', () => {
+      process.env.COMPLEXITY_THRESHOLD = '0.3extra';
+      // parseFloat('0.3extra') = 0.3 → valid
+      expect(detector.selectModel(0.2)).toBe('gemini-2.5-flash');
+      expect(detector.selectModel(0.4)).toBe('gemini-2.5-pro');
+    });
+
+    it('should use threshold of 0 to always select pro', () => {
+      process.env.COMPLEXITY_THRESHOLD = '0';
+      // score < 0 is never true for non-negative scores → always pro
+      expect(detector.selectModel(0)).toBe('gemini-2.5-pro');
+      expect(detector.selectModel(0.01)).toBe('gemini-2.5-pro');
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Test case 8: getComplexityStats() — previously untested
+  // -----------------------------------------------------------------------
+  describe('Test case 8: getComplexityStats()', () => {
+    it('should return zero stats for empty array', () => {
+      const stats = detector.getComplexityStats([]);
+      expect(stats.avgComplexity).toBe(0);
+      expect(stats.modelDistribution).toEqual({});
+      expect(stats.levelDistribution).toEqual({});
+    });
+
+    it('should compute average complexity across analyses', () => {
+      const analyses: ComplexityAnalysis[] = [
+        { score: 0.1, level: 'simple', recommendedModel: 'flash', factors: {} as never, reasoning: '' },
+        { score: 0.3, level: 'complex', recommendedModel: 'pro', factors: {} as never, reasoning: '' },
+      ];
+      const stats = detector.getComplexityStats(analyses);
+      expect(stats.avgComplexity).toBeCloseTo(0.2, 5);
+    });
+
+    it('should count model distribution correctly', () => {
+      const analyses: ComplexityAnalysis[] = [
+        { score: 0.1, level: 'simple', recommendedModel: 'gemini-2.5-flash', factors: {} as never, reasoning: '' },
+        { score: 0.1, level: 'simple', recommendedModel: 'gemini-2.5-flash', factors: {} as never, reasoning: '' },
+        { score: 0.5, level: 'complex', recommendedModel: 'gemini-2.5-pro', factors: {} as never, reasoning: '' },
+      ];
+      const stats = detector.getComplexityStats(analyses);
+      expect(stats.modelDistribution['gemini-2.5-flash']).toBe(2);
+      expect(stats.modelDistribution['gemini-2.5-pro']).toBe(1);
+    });
+
+    it('should count level distribution correctly', () => {
+      const analyses: ComplexityAnalysis[] = [
+        { score: 0.1, level: 'simple', recommendedModel: 'm', factors: {} as never, reasoning: '' },
+        { score: 0.15, level: 'moderate', recommendedModel: 'm', factors: {} as never, reasoning: '' },
+        { score: 0.15, level: 'moderate', recommendedModel: 'm', factors: {} as never, reasoning: '' },
+        { score: 0.5, level: 'complex', recommendedModel: 'm', factors: {} as never, reasoning: '' },
+      ];
+      const stats = detector.getComplexityStats(analyses);
+      expect(stats.levelDistribution['simple']).toBe(1);
+      expect(stats.levelDistribution['moderate']).toBe(2);
+      expect(stats.levelDistribution['complex']).toBe(1);
+    });
+
+    it('should handle single analysis', () => {
+      const analyses: ComplexityAnalysis[] = [
+        { score: 0.42, level: 'complex', recommendedModel: 'gemini-2.5-pro', factors: {} as never, reasoning: '' },
+      ];
+      const stats = detector.getComplexityStats(analyses);
+      expect(stats.avgComplexity).toBe(0.42);
+      expect(stats.modelDistribution).toEqual({ 'gemini-2.5-pro': 1 });
+      expect(stats.levelDistribution).toEqual({ 'complex': 1 });
+    });
+
+    it('should work with real analyze() output', () => {
+      const a1 = detector.analyze('これは猫です。');
+      const a2 = detector.analyze('非同期プログラミングにおけるPromiseチェーンの例外伝播メカニズム');
+      const stats = detector.getComplexityStats([a1, a2]);
+      expect(stats.avgComplexity).toBeGreaterThanOrEqual(0);
+      expect(stats.avgComplexity).toBeLessThanOrEqual(1);
+      expect(Object.keys(stats.modelDistribution).length).toBeGreaterThan(0);
+      expect(Object.keys(stats.levelDistribution).length).toBeGreaterThan(0);
+    });
+  });
 });

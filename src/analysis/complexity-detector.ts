@@ -337,7 +337,8 @@ export class ComplexityDetector {
     }
 
     // Default: score-based selection with 20% threshold
-    const threshold = parseFloat(safeEnv('COMPLEXITY_THRESHOLD') ?? '0.2');
+    const rawThreshold = parseFloat(safeEnv('COMPLEXITY_THRESHOLD') ?? '0.2');
+    const threshold = Number.isFinite(rawThreshold) ? rawThreshold : 0.2;
     return score < threshold ? 'gemini-2.5-flash' : 'gemini-2.5-pro';
   }
 
