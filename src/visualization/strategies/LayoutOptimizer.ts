@@ -39,19 +39,22 @@ export class LayoutOptimizer {
     const centerY = this.config.height / 2;
     const radius = Math.min(this.config.width, this.config.height) * 0.3;
 
-    nodes.forEach((node, index) => {
+    const repositioned = nodes.map((node, index) => {
       const angle = (2 * Math.PI * index) / Math.max(1, nodes.length);
-      node.x = centerX + radius * Math.cos(angle) - node.w / 2;
-      node.y = centerY + radius * Math.sin(angle) - node.h / 2;
+      return {
+        ...node,
+        x: centerX + radius * Math.cos(angle) - node.w / 2,
+        y: centerY + radius * Math.sin(angle) - node.h / 2,
+      };
     });
 
     // Update edges to follow the circular arrangement
     const edges = layout.edges.map(edge => ({
       ...edge,
-      points: this.calculateCircularEdgePoints(edge, nodes)
+      points: this.calculateCircularEdgePoints(edge, repositioned)
     }));
 
-    return { nodes, edges };
+    return { nodes: repositioned, edges };
   }
 
   /**
@@ -66,12 +69,13 @@ export class LayoutOptimizer {
     // Ensure even spacing (guard single-node case to avoid division by zero)
     const usableWidth = this.config.width - 2 * this.config.marginX;
     const spacing = nodes.length > 1 ? usableWidth / (nodes.length - 1) : 0;
-    sortedNodes.forEach((node, index) => {
-      node.x = this.config.marginX + index * spacing - node.w / 2;
-      node.y = this.config.height / 2 - node.h / 2; // Center vertically
-    });
+    const repositioned = sortedNodes.map((node, index) => ({
+      ...node,
+      x: this.config.marginX + index * spacing - node.w / 2,
+      y: this.config.height / 2 - node.h / 2, // Center vertically
+    }));
 
-    return { nodes: sortedNodes, edges: layout.edges };
+    return { nodes: repositioned, edges: layout.edges };
   }
 
   /**
@@ -85,14 +89,17 @@ export class LayoutOptimizer {
     const cellWidth = (this.config.width - 2 * this.config.marginX) / gridSize;
     const cellHeight = (this.config.height - 2 * this.config.marginY) / gridSize;
 
-    nodes.forEach((node, index) => {
+    const repositioned = nodes.map((node, index) => {
       const row = Math.floor(index / gridSize);
       const col = index % gridSize;
-      node.x = this.config.marginX + col * cellWidth + cellWidth / 2 - node.w / 2;
-      node.y = this.config.marginY + row * cellHeight + cellHeight / 2 - node.h / 2;
+      return {
+        ...node,
+        x: this.config.marginX + col * cellWidth + cellWidth / 2 - node.w / 2,
+        y: this.config.marginY + row * cellHeight + cellHeight / 2 - node.h / 2,
+      };
     });
 
-    return { nodes, edges: layout.edges };
+    return { nodes: repositioned, edges: layout.edges };
   }
 
   /**
@@ -210,19 +217,23 @@ export class LayoutOptimizer {
       levels.get(level)!.push(node);
     });
 
-    // Center each level
-    levels.forEach((levelNodes, level) => {
+    // Center each level — map over all nodes to avoid mutating inputs
+    const updated = new Map<string, PositionedNode>();
+    levels.forEach((levelNodes) => {
       const centerX = this.config.width / 2;
       const totalWidth = levelNodes.length * 150; // Approximate spacing
       const startX = centerX - totalWidth / 2;
 
-      levelNodes.sort((a, b) => a.x - b.x);
-      levelNodes.forEach((node, index) => {
-        node.x = startX + index * 150;
+      const sorted = [...levelNodes].sort((a, b) => a.x - b.x);
+      sorted.forEach((node, index) => {
+        updated.set(node.id, {
+          ...node,
+          x: startX + index * 150,
+        });
       });
     });
 
-    return nodes;
+    return nodes.map(n => updated.get(n.id) ?? n);
   }
 
   /**
