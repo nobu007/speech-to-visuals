@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { validateAudioFile, validateAudioDuration } from '@/utils/audio-validation';
+import { logger } from '@/utils/logger';
 
 type AudioUploaderProps = {
   onUpload: (file: File) => void;
@@ -63,9 +64,8 @@ export const AudioUploader = memo(({ onUpload, isProcessing }: AudioUploaderProp
         return;
       }
       durationResult.warnings.forEach(w => toast.warning(w));
-    } catch {
-      // If duration can't be determined, allow file selection.
-      // Duration will be validated at pipeline level.
+    } catch (error) {
+      logger.warn('[AudioUploader] Could not determine audio duration, skipping duration validation:', error);
     }
 
     setSelectedFile(file);

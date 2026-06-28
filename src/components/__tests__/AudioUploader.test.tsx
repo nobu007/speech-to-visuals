@@ -57,6 +57,17 @@ jest.unstable_mockModule('lucide-react', () => ({
   FileAudio: () => React.createElement('svg', { 'data-testid': 'icon-file-audio' }),
 }));
 
+const mockLoggerWarn = jest.fn();
+
+jest.unstable_mockModule('@/utils/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    warn: mockLoggerWarn,
+    error: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
 // ---------------------------------------------------------------------------
 // Dynamic imports (after mocks)
 // ---------------------------------------------------------------------------
@@ -680,6 +691,38 @@ describe('AudioUploader', () => {
       // File should still be selected even if duration validation fails
       expect(screen.getByText('unknown.mp3')).toBeInTheDocument();
       expect(mockValidateAudioDuration).not.toHaveBeenCalled();
+    });
+
+    it('logs warning when duration cannot be determined', async () => {
+      const { container } = render(React.createElement(AudioUploader, defaultProps));
+      const file = createAudioFile('unknown.mp3');
+
+      // Mock Audio that triggers onerror
+      (globalThis as typeof globalThis & { Audio?: unknown }).Audio = jest.fn().mockImplementation(() => {
+        const instance: Record<string, (() => void) | null> = {
+          onloadedmetadata: null,
+          onerror: null,
+        };
+        Object.defineProperty(instance, 'src', {
+          set(_val: string) {
+            queueMicrotask(() => {
+              if (instance.onerror) instance.onerror();
+            });
+          },
+          configurable: true,
+        });
+        return instance;
+      });
+
+      await act(async () => {
+        selectFileViaInput(container, file);
+        await new Promise(r => setTimeout(r, 0));
+      });
+
+      expect(mockLoggerWarn).toHaveBeenCalledWith(
+        expect.stringContaining('[AudioUploader] Could not determine audio duration'),
+        expect.any(Error),
+      );
     });
   });
 

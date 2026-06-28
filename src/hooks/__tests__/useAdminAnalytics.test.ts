@@ -72,8 +72,19 @@ jest.mock('@/monitoring/real-time-performance-monitor', () => ({
   },
 }));
 
+jest.mock('@/utils/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
 import { useAdminAnalytics } from '../useAdminAnalytics';
 import { healthCheckService } from '@/monitoring/health-check-service';
+import { realTimeMonitor } from '@/monitoring/real-time-performance-monitor';
+import { logger } from '@/utils/logger';
 
 const mockedGetCachedHealth = jest.mocked(healthCheckService.getCachedHealth);
 const mockedGetUptime = jest.mocked(healthCheckService.getUptime);
@@ -267,5 +278,41 @@ describe('useAdminAnalytics', () => {
 
     // Previous snapshot is kept (empty in this case)
     expect(result.current.snapshot.healthCheck).toBeNull();
+  });
+
+  it('logs warning when realTimeMonitor.getSnapshot throws', () => {
+    const mockedGetSnapshot = jest.mocked(realTimeMonitor.getSnapshot);
+    mockedGetSnapshot.mockImplementationOnce(() => { throw new Error('monitor crashed'); });
+
+    const { result } = renderHook(() =>
+      useAdminAnalytics({ autoStart: false }),
+    );
+
+    act(() => {
+      result.current.refresh();
+    });
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('[useAdminAnalytics] Performance monitor unavailable'),
+      expect.any(Error),
+    );
+  });
+
+  it('logs warning when snapshot collection throws', () => {
+    const { getProductionMonitor } = jest.requireMock('@/monitoring/production-monitor');
+    getProductionMonitor.mockImplementationOnce(() => { throw new Error('collection crashed'); });
+
+    const { result } = renderHook(() =>
+      useAdminAnalytics({ autoStart: false }),
+    );
+
+    act(() => {
+      result.current.refresh();
+    });
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('[useAdminAnalytics] Snapshot collection failed'),
+      expect.any(Error),
+    );
   });
 });

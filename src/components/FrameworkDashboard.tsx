@@ -184,8 +184,8 @@ export const FrameworkDashboard: React.FC<FrameworkDashboardProps> = ({
           estimatedRemaining: Math.max(0, prev.estimatedRemaining - refreshInterval)
         }));
       }
-    } catch {
-      // API unreachable; fall back to simulated progress
+    } catch (error) {
+      logger.warn('[FrameworkDashboard] API unreachable, falling back to simulated progress:', error);
       setExecutionStatus(prev => ({
         ...prev,
         progress: Math.min(100, prev.progress + 2),
