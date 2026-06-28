@@ -195,15 +195,16 @@ export class TranscriptionPipeline {
       : 0;
 
     const totalWords = segments.reduce((count, seg) =>
-      count + seg.text.split(' ').length, 0);
+      count + (seg.text.trim() ? seg.text.trim().split(/\s+/).length : 0), 0);
 
-    const avgConfidence = segments.reduce((sum, seg) =>
-      sum + (seg.confidence || 0), 0) / segments.length;
+    const avgConfidence = segments.length > 0
+      ? segments.reduce((sum, seg) => sum + (seg.confidence || 0), 0) / segments.length
+      : 0;
 
     return {
       duration: totalDuration,
       segmentCount: segments.length,
-      avgConfidence: isNaN(avgConfidence) ? 0 : avgConfidence,
+      avgConfidence,
       processingTime: performance.now() - startTime,
       wordsPerMinute: totalDuration > 0 ? (totalWords * 60000) / totalDuration : 0
     };

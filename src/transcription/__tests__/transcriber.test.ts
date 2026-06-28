@@ -609,6 +609,88 @@ describe('TranscriptionPipeline', () => {
     });
   });
 
+  // ---------- calculateMetrics regression tests ----------
+
+  describe('calculateMetrics division-by-zero regression', () => {
+    test('does not produce NaN avgConfidence for empty segments', () => {
+      const p = new TranscriptionPipeline();
+      const metrics = (p as unknown as {
+        calculateMetrics: (segs: TranscriptionSegment[], start: number) => {
+          avgConfidence: number; segmentCount: number; wordsPerMinute: number;
+        };
+      }).calculateMetrics([], performance.now());
+
+      expect(metrics.avgConfidence).toBe(0);
+      expect(isNaN(metrics.avgConfidence)).toBe(false);
+    });
+
+    test('does not produce NaN for single-segment with no text', () => {
+      const p = new TranscriptionPipeline();
+      const metrics = (p as unknown as {
+        calculateMetrics: (segs: TranscriptionSegment[], start: number) => {
+          avgConfidence: number; segmentCount: number; wordsPerMinute: number;
+        };
+      }).calculateMetrics(
+        [{ start: 0, end: 1000, text: '', confidence: 0.5 }],
+        performance.now(),
+      );
+
+      expect(isNaN(metrics.avgConfidence)).toBe(false);
+      expect(metrics.avgConfidence).toBe(0.5);
+    });
+
+    test('empty text segments contribute 0 words (not 1)', () => {
+      const p = new TranscriptionPipeline();
+      const metrics = (p as unknown as {
+        calculateMetrics: (segs: TranscriptionSegment[], start: number) => {
+          avgConfidence: number; segmentCount: number; wordsPerMinute: number;
+        };
+      }).calculateMetrics(
+        [
+          { start: 0, end: 5000, text: '', confidence: 0.5 },
+          { start: 5000, end: 10000, text: '   ', confidence: 0.5 },
+          { start: 10000, end: 15000, text: 'four words here', confidence: 0.5 },
+        ],
+        performance.now(),
+      );
+
+      // Only the last segment has words: "four words here" = 3 words
+      // WPM = 3 * 60000 / 15000 = 12
+      expect(metrics.wordsPerMinute).toBe(12);
+    });
+
+    test('handles multiple whitespace between words correctly', () => {
+      const p = new TranscriptionPipeline();
+      const metrics = (p as unknown as {
+        calculateMetrics: (segs: TranscriptionSegment[], start: number) => {
+          wordsPerMinute: number;
+        };
+      }).calculateMetrics(
+        [{ start: 0, end: 60000, text: 'one  two   three', confidence: 0.9 }],
+        performance.now(),
+      );
+
+      // 'one  two   three'.split(/\s+/) = ['one', 'two', 'three'] = 3 words
+      // WPM = 3 * 60000 / 60000 = 3
+      expect(metrics.wordsPerMinute).toBe(3);
+    });
+
+    test('Infinity-safe wordsPerMinute when duration is 0', () => {
+      const p = new TranscriptionPipeline();
+      const metrics = (p as unknown as {
+        calculateMetrics: (segs: TranscriptionSegment[], start: number) => {
+          wordsPerMinute: number;
+        };
+      }).calculateMetrics(
+        [{ start: 0, end: 0, text: 'test', confidence: 0.9 }],
+        performance.now(),
+      );
+
+      expect(metrics.wordsPerMinute).toBe(0);
+      expect(isFinite(metrics.wordsPerMinute)).toBe(true);
+    });
+  });
+
   // ---------- Multiple segments ----------
 
   describe('multiple segments', () => {

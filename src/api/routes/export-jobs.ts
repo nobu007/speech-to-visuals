@@ -78,6 +78,47 @@ export function createExportJobRouter(jobQueue: ExportJobQueue): Router {
     });
   });
 
+  // ---------------------------------------------------------------------------
+  // Dead-letter routes MUST be registered before /:jobId to avoid route
+  // shadowing (Express matches /jobs/dead-letter against /jobs/:jobId first).
+  // ---------------------------------------------------------------------------
+
+  // -- GET /jobs/dead-letter: List dead-lettered jobs ---------------------
+
+  router.get('/jobs/dead-letter', (_req: Request, res: Response) => {
+    const dlqJobs = jobQueue.listDeadLetterJobs();
+
+    res.json({
+      success: true,
+      data: {
+        count: dlqJobs.length,
+        jobs: dlqJobs.map((j) => ({
+          jobId: j.jobId,
+          priority: j.priority,
+          status: j.status,
+          format: j.format,
+          enqueuedAt: j.enqueuedAt,
+          deadLetteredAt: j.deadLetteredAt ?? null,
+          retryCount: j.retryCount ?? 0,
+          lastError: j.lastError ?? null,
+        })),
+      },
+    });
+  });
+
+  // -- DELETE /jobs/dead-letter: Purge all dead-lettered jobs -------------
+
+  router.delete('/jobs/dead-letter', (_req: Request, res: Response) => {
+    const purged = jobQueue.purgeDeadLetterJobs();
+
+    logger.info(`[ExportJobRouter] Purged ${purged} dead-lettered jobs`);
+
+    res.json({
+      success: true,
+      data: { purged },
+    });
+  });
+
   // -- REQ-241: Submit export job -----------------------------------------
 
   router.post('/jobs', (req: Request, res: Response) => {
@@ -247,31 +288,6 @@ export function createExportJobRouter(jobQueue: ExportJobQueue): Router {
     });
   });
 
-  // -- Dead letter queue endpoints ----------------------------------------
-
-  // -- GET /jobs/dead-letter: List dead-lettered jobs ---------------------
-
-  router.get('/jobs/dead-letter', (_req: Request, res: Response) => {
-    const dlqJobs = jobQueue.listDeadLetterJobs();
-
-    res.json({
-      success: true,
-      data: {
-        count: dlqJobs.length,
-        jobs: dlqJobs.map((j) => ({
-          jobId: j.jobId,
-          priority: j.priority,
-          status: j.status,
-          format: j.format,
-          enqueuedAt: j.enqueuedAt,
-          deadLetteredAt: j.deadLetteredAt ?? null,
-          retryCount: j.retryCount ?? 0,
-          lastError: j.lastError ?? null,
-        })),
-      },
-    });
-  });
-
   // -- POST /jobs/:jobId/replay: Replay a dead-lettered job ---------------
 
   router.post('/jobs/:jobId/replay', (req: Request, res: Response) => {
@@ -328,19 +344,6 @@ export function createExportJobRouter(jobQueue: ExportJobQueue): Router {
         error: { code: 'REPLAY_FAILED', message },
       });
     }
-  });
-
-  // -- DELETE /jobs/dead-letter: Purge all dead-lettered jobs -------------
-
-  router.delete('/jobs/dead-letter', (_req: Request, res: Response) => {
-    const purged = jobQueue.purgeDeadLetterJobs();
-
-    logger.info(`[ExportJobRouter] Purged ${purged} dead-lettered jobs`);
-
-    res.json({
-      success: true,
-      data: { purged },
-    });
   });
 
   return router;

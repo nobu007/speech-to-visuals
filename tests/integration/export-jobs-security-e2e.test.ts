@@ -330,22 +330,35 @@ describe('E2E: Valid job submission lifecycle', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Tests: Non-UUID path segments are rejected (route ordering defense)
+// Tests: Route ordering — dead-letter routes are reachable (not shadowed)
 // ---------------------------------------------------------------------------
 
-describe('E2E: Non-UUID path segments in /jobs/:jobId are rejected', () => {
+describe('E2E: Dead-letter routes are not shadowed by :jobId', () => {
   let app: express.Express;
 
   beforeEach(() => {
     ({ app } = createApp());
   });
 
-  // "dead-letter" as a literal path segment hits the :jobId route first due to
-  // Express route ordering — this is correct behavior (400, not 200) since the
-  // UUID validation rejects it. The dedicated /jobs/dead-letter route would
-  // need to be registered before /jobs/:jobId to be reachable.
-  test('"dead-letter" path segment is rejected as invalid UUID', async () => {
+  // After the route-ordering fix, /jobs/dead-letter is registered BEFORE
+  // /jobs/:jobId, so it is correctly matched as a dedicated route (200)
+  // rather than falling through to UUID validation (400).
+  test('GET /jobs/dead-letter returns DLQ listing (not 400)', async () => {
     const res = await request(app).get('/api/v1/export/jobs/dead-letter');
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).toBeDefined();
+  });
+
+  test('DELETE /jobs/dead-letter purges DLQ (not 400)', async () => {
+    const res = await request(app).delete('/api/v1/export/jobs/dead-letter');
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+  });
+
+  // Non-UUID, non-reserved path segments should still be rejected.
+  test('random non-UUID string is rejected as invalid UUID', async () => {
+    const res = await request(app).get('/api/v1/export/jobs/not-a-uuid');
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
   });
