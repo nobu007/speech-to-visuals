@@ -21,6 +21,7 @@ import { httpMetricsCollector, type HttpMetricsSnapshot } from '../../monitoring
 import { exportPrometheusMetrics, PROMETHEUS_CONTENT_TYPE } from '../../monitoring/prometheus-exporter';
 import { exportDashboardJson, type DashboardGenerateOptions } from '../../monitoring/grafana-dashboard-model';
 import { exportAlertRulesYaml, type AlertRulesOptions } from '../../monitoring/alert-rules';
+import { logger } from '../../utils/logger';
 
 // ---------------------------------------------------------------------------
 // Zod validation schemas
@@ -64,6 +65,9 @@ const AlertsQuerySchema = z.object({
 // ---------------------------------------------------------------------------
 
 function sendError(res: Response, statusCode: number, code: string, message: string): void {
+  if (statusCode >= 500) {
+    logger.error(`[MonitoringRoute] ${code}: ${message}`);
+  }
   res.status(statusCode).json({ success: false, error: { code, message } });
 }
 

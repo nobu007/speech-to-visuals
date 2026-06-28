@@ -910,6 +910,7 @@ export class EnhancedErrorRecovery {
               nextAction: 'retry' as const
             };
           } catch (error) {
+            logger.error('[EnhancedErrorRecovery] intelligent_retry strategy failed:', error);
             return {
               success: false,
               fallbackUsed: false,
@@ -948,6 +949,7 @@ export class EnhancedErrorRecovery {
               nextAction: 'retry' as const
             };
           } catch (error) {
+            logger.error('[EnhancedErrorRecovery] degraded_quality_fallback strategy failed:', error);
             return {
               success: false,
               fallbackUsed: true,
@@ -992,6 +994,7 @@ export class EnhancedErrorRecovery {
 
             throw new QualityGateError('cache-recovery', 'No suitable cached content found');
           } catch (error) {
+            logger.error('[EnhancedErrorRecovery] cache_recovery strategy failed:', error);
             return {
               success: false,
               fallbackUsed: true,
@@ -1028,6 +1031,7 @@ export class EnhancedErrorRecovery {
               nextAction: 'retry' as const
             };
           } catch (error) {
+            logger.error('[EnhancedErrorRecovery] alternative_algorithm strategy failed:', error);
             return {
               success: false,
               fallbackUsed: true,
@@ -1064,6 +1068,7 @@ export class EnhancedErrorRecovery {
               nextAction: 'retry' as const
             };
           } catch (error) {
+            logger.error('[EnhancedErrorRecovery] minimal_viable_output strategy failed:', error);
             return {
               success: false,
               fallbackUsed: true,
