@@ -278,13 +278,13 @@ export class ZeroOverlapLayoutEngine {
 
     // Extract layout edges — skip edges whose source/target node is missing
     const layoutEdges: LayoutEdge[] = edges
-      .map(edge => {
+      .flatMap(edge => {
         const source = positionedNodes.find(n => n.id === edge.from);
         const target = positionedNodes.find(n => n.id === edge.to);
         if (!source || !target) {
-          return { ...edge, points: [] } as LayoutEdge;
+          return [];
         }
-        return { ...edge, points: generateEdgePoints(source, target) };
+        return [{ ...edge, points: generateEdgePoints(source, target) }];
       });
 
     return { nodes: positionedNodes, edges: layoutEdges };
@@ -347,13 +347,13 @@ export class ZeroOverlapLayoutEngine {
 
     // Extract layout edges — skip edges whose source/target node is missing
     const layoutEdges: LayoutEdge[] = edges
-      .map(edge => {
+      .flatMap(edge => {
         const source = positionedNodes.find(n => n.id === edge.from);
         const target = positionedNodes.find(n => n.id === edge.to);
         if (!source || !target) {
-          return { ...edge, points: [] } as LayoutEdge;
+          return [];
         }
-        return { ...edge, points: generateEdgePoints(source, target) };
+        return [{ ...edge, points: generateEdgePoints(source, target) }];
       });
 
     return { nodes: positionedNodes, edges: layoutEdges };
@@ -449,13 +449,13 @@ export class ZeroOverlapLayoutEngine {
     });
 
     const layoutEdges: LayoutEdge[] = edges
-      .map(edge => {
+      .flatMap(edge => {
         const source = positionedNodes.find(n => n.id === edge.from);
         const target = positionedNodes.find(n => n.id === edge.to);
         if (!source || !target) {
-          return { ...edge, points: [] } as LayoutEdge;
+          return [];
         }
-        return { ...edge, points: generateEdgePoints(source, target) };
+        return [{ ...edge, points: generateEdgePoints(source, target) }];
       });
 
     return { nodes: positionedNodes, edges: layoutEdges };
@@ -481,13 +481,13 @@ export class ZeroOverlapLayoutEngine {
     }
 
     const layoutEdges: LayoutEdge[] = edges
-      .map(edge => {
+      .flatMap(edge => {
         const source = positionedNodes.find(n => n.id === edge.from);
         const target = positionedNodes.find(n => n.id === edge.to);
         if (!source || !target) {
-          return { ...edge, points: [] } as LayoutEdge;
+          return [];
         }
-        return { ...edge, points: generateEdgePoints(source, target) };
+        return [{ ...edge, points: generateEdgePoints(source, target) }];
       });
 
     return { nodes: positionedNodes, edges: layoutEdges };
@@ -703,13 +703,13 @@ export class ZeroOverlapLayoutEngine {
     });
 
     const layoutEdges: LayoutEdge[] = edges
-      .map(edge => {
+      .flatMap(edge => {
         const source = positionedNodes.find(n => n.id === edge.from);
         const target = positionedNodes.find(n => n.id === edge.to);
         if (!source || !target) {
-          return { ...edge, points: [] } as LayoutEdge;
+          return [];
         }
-        return { ...edge, points: generateEdgePoints(source, target) };
+        return [{ ...edge, points: generateEdgePoints(source, target) }];
       });
 
     return { nodes: positionedNodes, edges: layoutEdges };
@@ -724,6 +724,7 @@ export class ZeroOverlapLayoutEngine {
 
     let currentNodes = [...layout.nodes];
     let iteration = 0;
+    let prevOverlapCount = Infinity;
     const maxIterations = this.config.optimization.maxIterations;
 
     while (iteration < maxIterations) {
@@ -733,10 +734,13 @@ export class ZeroOverlapLayoutEngine {
         break;
       }
 
-      // ITERATION 45: Log progress less frequently to reduce noise
-      if (iteration % 50 === 0 || iteration < 10) {
-        // Intentionally empty: diagnostic logging checkpoint, noise reduced per ITERATION 45
+      // Progress detection: break early if overlap count is not decreasing
+      if (overlaps.length >= prevOverlapCount) {
+        logger.warn(`[ZeroOverlap] No progress detected (${overlaps.length} overlaps at iteration ${iteration}), terminating early`);
+        break;
       }
+      prevOverlapCount = overlaps.length;
+
       currentNodes = this.resolveOverlapsBatch(currentNodes, overlaps);
       iteration++;
     }
@@ -747,13 +751,13 @@ export class ZeroOverlapLayoutEngine {
 
     // Regenerate edges for new positions — skip edges whose node was removed
     const updatedEdges = layout.edges
-      .map(edge => {
+      .flatMap(edge => {
         const source = currentNodes.find(n => n.id === edge.from);
         const target = currentNodes.find(n => n.id === edge.to);
         if (!source || !target) {
-          return { ...edge, points: [] } as LayoutEdge;
+          return [];
         }
-        return { ...edge, points: generateEdgePoints(source, target) };
+        return [{ ...edge, points: generateEdgePoints(source, target) }];
       });
 
     return { nodes: currentNodes, edges: updatedEdges };
@@ -877,10 +881,17 @@ export class ZeroOverlapLayoutEngine {
       const adjustedX = node.x + force.x * damping;
       const adjustedY = node.y + force.y * damping;
 
+      const nw = Number.isFinite(node.w) ? node.w! : (node.width ?? this.config.nodeWidth);
+      const nh = Number.isFinite(node.h) ? node.h! : (node.height ?? this.config.nodeHeight);
+
+      // Guard against NaN propagation from invalid forces
+      const safeX = Number.isFinite(adjustedX) ? Math.max(0, Math.min(this.config.canvasWidth - nw, adjustedX)) : node.x;
+      const safeY = Number.isFinite(adjustedY) ? Math.max(0, Math.min(this.config.canvasHeight - nh, adjustedY)) : node.y;
+
       adjustedNodes[index] = {
         ...node,
-        x: Math.max(0, Math.min(this.config.canvasWidth - node.w, adjustedX)),
-        y: Math.max(0, Math.min(this.config.canvasHeight - node.h, adjustedY))
+        x: safeX,
+        y: safeY,
       };
     });
 
@@ -891,12 +902,25 @@ export class ZeroOverlapLayoutEngine {
    * Calculate optimal separation distance for two overlapping nodes
    */
   private calculateOptimalSeparation(node1: PositionedNode, node2: PositionedNode): number {
+    // Guard against NaN/Infinity dimensions — return fallback to prevent NaN propagation
+    const n1w = node1.w ?? node1.width ?? 0;
+    const n1h = node1.h ?? node1.height ?? 0;
+    const n2w = node2.w ?? node2.width ?? 0;
+    const n2h = node2.h ?? node2.height ?? 0;
+
+    if (!Number.isFinite(n1w) || !Number.isFinite(n1h) ||
+        !Number.isFinite(n2w) || !Number.isFinite(n2h) ||
+        !Number.isFinite(node1.x) || !Number.isFinite(node1.y) ||
+        !Number.isFinite(node2.x) || !Number.isFinite(node2.y)) {
+      return this.config.minimumSpacing.nodeToNode;
+    }
+
     const centerDistance = Math.sqrt(
-      Math.pow(node1.x + node1.w / 2 - node2.x - node2.w / 2, 2) +
-      Math.pow(node1.y + node1.h / 2 - node2.y - node2.h / 2, 2)
+      Math.pow(node1.x + n1w / 2 - node2.x - n2w / 2, 2) +
+      Math.pow(node1.y + n1h / 2 - node2.y - n2h / 2, 2)
     );
 
-    const requiredDistance = Math.max(node1.w, node1.h, node2.w, node2.h) / 2 +
+    const requiredDistance = Math.max(n1w, n1h, n2w, n2h) / 2 +
                             this.config.minimumSpacing.nodeToNode;
 
     return Math.max(0, requiredDistance - centerDistance);
@@ -910,8 +934,13 @@ export class ZeroOverlapLayoutEngine {
     node2: PositionedNode,
     distance: number
   ): { x: number; y: number } {
-    const dx = (node1.x + node1.w / 2) - (node2.x + node2.w / 2);
-    const dy = (node1.y + node1.h / 2) - (node2.y + node2.h / 2);
+    const n1w = Number.isFinite(node1.w) ? node1.w! : (node1.width ?? 0);
+    const n1h = Number.isFinite(node1.h) ? node1.h! : (node1.height ?? 0);
+    const n2w = Number.isFinite(node2.w) ? node2.w! : (node2.width ?? 0);
+    const n2h = Number.isFinite(node2.h) ? node2.h! : (node2.height ?? 0);
+
+    const dx = (node1.x + n1w / 2) - (node2.x + n2w / 2);
+    const dy = (node1.y + n1h / 2) - (node2.y + n2h / 2);
 
     const length = Math.sqrt(dx * dx + dy * dy);
 
@@ -975,13 +1004,13 @@ export class ZeroOverlapLayoutEngine {
     }));
 
     const adjustedEdges = layout.edges
-      .map(edge => {
+      .flatMap(edge => {
         const source = adjustedNodes.find(n => n.id === edge.from);
         const target = adjustedNodes.find(n => n.id === edge.to);
         if (!source || !target) {
-          return { ...edge, points: [] } as LayoutEdge;
+          return [];
         }
-        return { ...edge, points: generateEdgePoints(source, target) };
+        return [{ ...edge, points: generateEdgePoints(source, target) }];
       });
 
     return { nodes: adjustedNodes, edges: adjustedEdges };

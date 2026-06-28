@@ -1350,30 +1350,27 @@ describe('ZeroOverlapLayoutEngine', () => {
 
     test('mixed valid and dangling edges should keep valid edges intact', async () => {
       const edges = makeEdges([['n0', 'n1'], ['n1', 'n999'], ['n0', 'n2']]);
-      // Use comparison layout (keeps dangling edges with empty points)
+      // Edges referencing non-existent nodes are now filtered out (TASK-0212)
       const result = await engine.generateZeroOverlapLayout('comparison', nodes, edges);
 
       expect(result).toBeDefined();
       expect(result.nodes).toHaveLength(3);
-      // The two valid edges (n0→n1, n0→n2) should have non-empty points
+      // Only the two valid edges (n0→n1, n0→n2) should remain
       const edgesWithPoints = result.edges.filter(e => e.points.length > 0);
       expect(edgesWithPoints.length).toBeGreaterThanOrEqual(2);
-      // The dangling edge (n1→n999) should have empty points
+      // The dangling edge (n1→n999) should be filtered out
       const danglingEdge = result.edges.find(e => e.from === 'n1' && e.to === 'n999');
-      expect(danglingEdge).toBeDefined();
-      expect(danglingEdge!.points).toHaveLength(0);
+      expect(danglingEdge).toBeUndefined();
     });
 
-    test('all-dangling edges should produce all empty-point edges', async () => {
+    test('all-dangling edges should be filtered out', async () => {
       const edges = makeEdges([['n999', 'n998'], ['n997', 'n996']]);
       const result = await engine.generateZeroOverlapLayout('network', nodes, edges);
 
       expect(result).toBeDefined();
       expect(result.nodes).toHaveLength(3);
-      expect(result.edges).toHaveLength(2);
-      result.edges.forEach(edge => {
-        expect(edge.points).toHaveLength(0);
-      });
+      // All edges referenced non-existent nodes, so none should remain
+      expect(result.edges).toHaveLength(0);
     });
   });
 });
