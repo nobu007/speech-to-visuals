@@ -1240,7 +1240,8 @@ export class ZeroOverlapLayoutEngine {
     const usedArea = (maxX - minX) * (maxY - minY);
     const totalArea = this.config.canvasWidth * this.config.canvasHeight;
 
-    return Math.min(1, usedArea / totalArea);
+    if (totalArea <= 0) return 0;
+    return Math.min(1, Math.max(0, usedArea / totalArea));
   }
 
   private calculateSymmetryScore(nodes: PositionedNode[]): number {
