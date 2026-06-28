@@ -698,6 +698,7 @@ export class EnhancedErrorRecovery {
         if (breaker) {
           breaker.recordFailure();
         }
+        logger.warn(`[EnhancedErrorRecovery] Request ${requestId} failed at stage "${stage}":`, error);
       }
 
       // Track failure statistics

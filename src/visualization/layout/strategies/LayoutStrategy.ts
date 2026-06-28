@@ -1,5 +1,6 @@
 import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge, DiagramLayout } from '@/types/diagram';
 import { BoundingBox, LayoutConfig, LayoutResult, LayoutMetrics, OverlapPair } from '../../types';
+import { logger } from '@/utils/logger';
 
 export interface LayoutStrategy {
   /**
@@ -125,6 +126,7 @@ export abstract class BaseLayoutStrategy implements LayoutStrategy {
         metrics
       };
     } catch (error) {
+      logger.warn(`[BaseLayoutStrategy] Layout computation failed for ${this.name}, using fallback:`, error);
       return {
         layout: {
           nodes: nodes.map(node => ({

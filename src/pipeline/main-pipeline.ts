@@ -667,7 +667,7 @@ export class MainPipeline {
             };
           }
         } catch (error) {
-          logger.warn(`Layout generation failed for segment: ${segment.summary as string}`);
+          logger.warn(`Layout generation failed for segment: ${segment.summary as string}`, error);
           return {
             segment,
             analysis,

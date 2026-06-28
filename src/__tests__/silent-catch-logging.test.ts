@@ -1,6 +1,7 @@
 /**
  * Tests verifying that previously-silent catch blocks now log errors/warnings.
- * Covers: DagreLayoutStrategy, code-size-audit, production-config, enhanced-error-recovery.
+ * Covers: BaseLayoutStrategy, DagreLayoutStrategy, code-size-audit, production-config,
+ *         enhanced-error-recovery (executeWithFallback + executeWithLoadBalancing).
  */
 
 import { logger } from '@/utils/logger';
@@ -195,6 +196,131 @@ describe('Silent catch blocks now log errors', () => {
         expect.stringContaining('[EnhancedErrorRecovery]'),
         expect.anything(),
       );
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // BaseLayoutStrategy apply() catch block
+  // -----------------------------------------------------------------------
+  describe('BaseLayoutStrategy apply() fallback', () => {
+    it('logs warning with strategy name when performLayout throws', async () => {
+      const { BaseLayoutStrategy } = await import(
+        '@/visualization/layout/strategies/LayoutStrategy'
+      );
+
+      // Create a concrete strategy that always throws in performLayout
+      class FailingStrategy extends BaseLayoutStrategy {
+        readonly name = 'FailingTestStrategy';
+        readonly canEscapeLocalMinimum = false;
+
+        protected async performLayout(): Promise<{ nodes: any[]; edges: any[] }> {
+          throw new Error('Layout computation exploded');
+        }
+      }
+
+      const strategy = new FailingStrategy();
+      const config = { nodeWidth: 120, nodeHeight: 60 } as any;
+      const nodes = [{ id: 'a', label: 'A' }] as any;
+      const edges: any[] = [];
+
+      const result = await strategy.apply(nodes, edges, config);
+
+      // Should return fallback layout
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Layout computation exploded');
+
+      // Should have logged the failure
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('[BaseLayoutStrategy]'),
+        expect.any(Error),
+      );
+      const warnCall = (logger.warn as jest.Mock).mock.calls.find(
+        (c: unknown[]) => typeof c[0] === 'string' && c[0].includes('FailingTestStrategy'),
+      );
+      expect(warnCall).toBeDefined();
+      expect(warnCall![0]).toContain('FailingTestStrategy');
+    });
+
+    it('does not log when performLayout succeeds', async () => {
+      const { BaseLayoutStrategy } = await import(
+        '@/visualization/layout/strategies/LayoutStrategy'
+      );
+
+      class SuccessStrategy extends BaseLayoutStrategy {
+        readonly name = 'SuccessTestStrategy';
+        readonly canEscapeLocalMinimum = false;
+
+        protected async performLayout(nodes: any[]) {
+          return { nodes, edges: [] };
+        }
+      }
+
+      const strategy = new SuccessStrategy();
+      const config = { nodeWidth: 120, nodeHeight: 60 } as any;
+      const nodes = [{ id: 'a', label: 'A' }] as any;
+
+      const result = await strategy.apply(nodes, [], config);
+
+      expect(result.success).toBe(true);
+      // No warning should be logged for successful execution
+      const strategyWarnCalls = (logger.warn as jest.Mock).mock.calls.filter(
+        (c: unknown[]) => typeof c[0] === 'string' && c[0].includes('SuccessTestStrategy'),
+      );
+      expect(strategyWarnCalls).toHaveLength(0);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // EnhancedErrorRecovery executeWithLoadBalancing catch block
+  // -----------------------------------------------------------------------
+  describe('EnhancedErrorRecovery executeWithLoadBalancing', () => {
+    it('logs warning when request fails at a known stage', async () => {
+      const { EnhancedErrorRecovery } = await import('@/quality/enhanced-error-recovery');
+      const recovery = new EnhancedErrorRecovery();
+
+      const stage = 'analysis' as any;
+      const boom = new Error('Stage operation failed');
+
+      // executeWithLoadBalancing re-throws, so we must catch
+      await expect(
+        recovery.executeWithLoadBalancing(
+          'req-test-1',
+          async () => { throw boom; },
+          stage,
+        ),
+      ).rejects.toThrow('Stage operation failed');
+
+      // The catch block should have logged with the stage and request id
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('[EnhancedErrorRecovery]'),
+        expect.any(Error),
+      );
+      const warnCall = (logger.warn as jest.Mock).mock.calls.find(
+        (c: unknown[]) =>
+          typeof c[0] === 'string' &&
+          c[0].includes('req-test-1') &&
+          c[0].includes('analysis'),
+      );
+      expect(warnCall).toBeDefined();
+    });
+
+    it('does not log warning when request succeeds', async () => {
+      const { EnhancedErrorRecovery } = await import('@/quality/enhanced-error-recovery');
+      const recovery = new EnhancedErrorRecovery();
+
+      const result = await recovery.executeWithLoadBalancing(
+        'req-success-1',
+        async () => 'ok',
+        'analysis' as any,
+      );
+
+      expect(result).toBe('ok');
+
+      const stageWarnCalls = (logger.warn as jest.Mock).mock.calls.filter(
+        (c: unknown[]) =>
+          typeof c[0] === 'string' && c[0].includes('req-success-1'),
+      );
+      expect(stageWarnCalls).toHaveLength(0);
     });
   });
 });
