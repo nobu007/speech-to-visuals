@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-26（第201回検証・spine manifest validator CI統合・recovery path silent catch修正・SimpleDiagramDetectorバグ修正・REQ-258~260追加）
+**最終更新**: 2026-06-28（第202回検証・Phase 112エラー回復可観測性・未テストモジュールカバレッジ・5戦略silent catch修正・監視APIエラーロギング・BatchOperationRecovery/ErrorRecoveryMonitorテスト追加・REQ-258~262追加）
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム
 
 ## 技術スタック
@@ -130,6 +130,10 @@ src/
 - [x] 第201回検証: spine manifest validator CI統合（REQ-258・scripts/validate-spine-manifest.ts・CI spine-validate ジョブ・158行テスト）
 - [x] 第201回検証: recovery path silent catch修正（REQ-259・enhanced-error-recovery.ts 4箇所・pipeline-error-recovery-orchestrator.ts 1箇所・764行テスト追加）
 - [x] 第201回検証: SimpleDiagramDetectorバグ修正（REQ-260・testDetector()構造化結果返却・認識不可テキストのデフォルト要素生成・436行テスト）
+- [x] 第202回検証: EnhancedErrorRecovery 5戦略silent catch修正（REQ-258・intelligent_retry/degraded_quality/cache_recovery/alternative_algorithm/minimal_viable_output・logger.error追加）
+- [x] 第202回検証: 監視APIルートエラーロギング（REQ-259/262・monitoring.ts sendError 500エラー時にlogger.error呼出・5テスト追加）
+- [x] 第202回検証: BatchOperationRecoveryテスト追加（REQ-260・逐次/並行/リトライ/フォールバック/集計統計/エッジケース・39テスト追加）
+- [x] 第202回検証: ErrorRecoveryMonitorテスト追加（REQ-261・ライフサイクル/サンプリング/アラート計算/リセット・21テスト追加）
 
 ## 注意事項
 
