@@ -1,19 +1,24 @@
 /**
- * Regression guard: No raw JSON.parse(localStorage.getItem(...)) in production source.
+ * Regression guard: No raw localStorage.getItem / localStorage.setItem in
+ * production source.
  *
- * Ensures all localStorage read operations go through safeLoadFromStorage(),
- * which provides corruption detection, type validation, and self-healing.
+ * Ensures ALL localStorage read and write operations go through the safe
+ * wrappers (safeLoadFromStorage / safeSaveToStorage), which provide:
+ *   - corruption detection + self-healing (removeItem on bad data)
+ *   - type-guard validation
+ *   - serialisation safety
+ *   - quota / private-mode resilience
  *
  * Allowed exceptions:
  *   - src/utils/safe-storage.ts (the implementation itself)
- *   - Non-JSON string reads (e.g. 'first-visit' flag)
+ *   - localStorage.removeItem / localStorage.clear (safe by nature)
  *   - Test files (__tests__/, *.test.*, *.spec.*)
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
 
-/** Files exempt from the JSON.parse(localStorage) ban. */
+/** Files exempt from the localStorage ban. */
 const ALLOWED_FILES = new Set([
   'src/utils/safe-storage.ts',
 ]);
@@ -26,6 +31,15 @@ const INLINE_PATTERN = /JSON\.parse\s*\(\s*localStorage\.getItem\s*\(/;
  * Detects the intermediate-variable variant.
  */
 const INTERMEDIATE_GETITEM = /(?:const|let|var)\s+\w+\s*=\s*localStorage\.getItem\s*\(/;
+
+/** Raw getItem: any localStorage.getItem( call */
+const RAW_GETITEM = /localStorage\.getItem\s*\(/;
+
+/** Raw setItem: any localStorage.setItem( call */
+const RAW_SETITEM = /localStorage\.setItem\s*\(/;
+
+/** Unsafe write: localStorage.setItem(..., JSON.stringify(...)) */
+const UNSAFE_WRITE = /localStorage\.setItem\s*\([^)]*JSON\.stringify/;
 
 function getAllSourceFiles(dir: string): string[] {
   const results: string[] = [];
@@ -45,7 +59,7 @@ function getAllSourceFiles(dir: string): string[] {
   return results;
 }
 
-describe('Regression: localStorage safety — all reads must use safeLoadFromStorage', () => {
+describe('Regression: localStorage safety — all access must use safe wrappers', () => {
   test('no inline JSON.parse(localStorage.getItem(...)) in production source', () => {
     const projectRoot = path.resolve(__dirname, '../../');
     const srcDir = path.join(projectRoot, 'src');
@@ -103,36 +117,110 @@ describe('Regression: localStorage safety — all reads must use safeLoadFromSto
       const lines = content.split('\n');
 
       for (let i = 0; i < lines.length; i++) {
-        // Detect: const/let/var x = localStorage.getItem(...)
-        // This is allowed for non-JSON string reads (like 'first-visit'),
-        // but flag it so reviewers can verify it's not JSON-parsed later.
         if (INTERMEDIATE_GETITEM.test(lines[i])) {
-          // Check if this file also contains JSON.parse anywhere
-          const hasJsonParse = lines.some(l => l.includes('JSON.parse'));
-          if (hasJsonParse) {
-            violations.push({
-              file: relativePath,
-              line: i + 1,
-              content: lines[i].trim(),
-            });
-          }
+          violations.push({
+            file: relativePath,
+            line: i + 1,
+            content: lines[i].trim(),
+          });
         }
       }
     }
 
-    // Currently TutorialSystem.tsx reads 'first-visit' as a plain string (not JSON)
-    // and uses safeLoadFromStorage for the JSON 'tutorial-progress' key.
-    // This is the baseline — new violations indicate a new raw localStorage read.
-    const knownAcceptable = violations.filter(v =>
-      v.file === 'src/components/TutorialSystem.tsx' &&
-      v.content.includes("'first-visit'")
-    );
-    const newViolations = violations.filter(v =>
-      !(v.file === 'src/components/TutorialSystem.tsx' &&
-        v.content.includes("'first-visit'"))
-    );
+    // All production reads now go through safeLoadFromStorage.
+    // Zero violations expected — no known exceptions remain.
+    expect(violations).toHaveLength(0);
+  });
 
-    expect(newViolations).toHaveLength(0);
+  test('no raw localStorage.getItem in production source (use safeLoadFromStorage)', () => {
+    const projectRoot = path.resolve(__dirname, '../../');
+    const srcDir = path.join(projectRoot, 'src');
+    const sourceFiles = getAllSourceFiles(srcDir);
+    const violations: { file: string; line: number; content: string }[] = [];
+
+    for (const file of sourceFiles) {
+      const relativePath = path.relative(projectRoot, file);
+      if (ALLOWED_FILES.has(relativePath)) continue;
+
+      const content = fs.readFileSync(file, 'utf-8');
+      const lines = content.split('\n');
+
+      for (let i = 0; i < lines.length; i++) {
+        if (RAW_GETITEM.test(lines[i])) {
+          violations.push({
+            file: relativePath,
+            line: i + 1,
+            content: lines[i].trim(),
+          });
+        }
+      }
+    }
+
+    expect(violations).toHaveLength(0);
+  });
+
+  test('no raw localStorage.setItem in production source (use safeSaveToStorage)', () => {
+    const projectRoot = path.resolve(__dirname, '../../');
+    const srcDir = path.join(projectRoot, 'src');
+    const sourceFiles = getAllSourceFiles(srcDir);
+    const violations: { file: string; line: number; content: string }[] = [];
+
+    for (const file of sourceFiles) {
+      const relativePath = path.relative(projectRoot, file);
+      if (ALLOWED_FILES.has(relativePath)) continue;
+
+      const content = fs.readFileSync(file, 'utf-8');
+      const lines = content.split('\n');
+
+      for (let i = 0; i < lines.length; i++) {
+        if (RAW_SETITEM.test(lines[i])) {
+          violations.push({
+            file: relativePath,
+            line: i + 1,
+            content: lines[i].trim(),
+          });
+        }
+      }
+    }
+
+    if (violations.length > 0) {
+      const formatted = violations
+        .map(v => `  ${v.file}:${v.line} → ${v.content}`)
+        .join('\n');
+      console.error(
+        `Found ${violations.length} raw localStorage.setItem calls in production code.\n` +
+        `Use safeSaveToStorage() from '@/utils/safe-storage' instead.\n${formatted}`,
+      );
+    }
+
+    expect(violations).toHaveLength(0);
+  });
+
+  test('no unsafe localStorage.setItem(JSON.stringify(...)) in production source', () => {
+    const projectRoot = path.resolve(__dirname, '../../');
+    const srcDir = path.join(projectRoot, 'src');
+    const sourceFiles = getAllSourceFiles(srcDir);
+    const violations: { file: string; line: number; content: string }[] = [];
+
+    for (const file of sourceFiles) {
+      const relativePath = path.relative(projectRoot, file);
+      if (ALLOWED_FILES.has(relativePath)) continue;
+
+      const content = fs.readFileSync(file, 'utf-8');
+      const lines = content.split('\n');
+
+      for (let i = 0; i < lines.length; i++) {
+        if (UNSAFE_WRITE.test(lines[i])) {
+          violations.push({
+            file: relativePath,
+            line: i + 1,
+            content: lines[i].trim(),
+          });
+        }
+      }
+    }
+
+    expect(violations).toHaveLength(0);
   });
 
   test('safe-storage.ts exports both safeLoadFromStorage and safeSaveToStorage', () => {

@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { safeLoadFromStorage } from '@/utils/safe-storage';
+import { safeLoadFromStorage, safeSaveToStorage } from '@/utils/safe-storage';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -44,13 +44,12 @@ export const TutorialSystem: React.FC = () => {
 
   // Initialize tutorial state from localStorage
   useEffect(() => {
-    // ISS-014: Wrap all localStorage access in try-catch for private browsing / quota errors
-    let firstVisit: string | null = null;
-    try {
-      firstVisit = localStorage.getItem('first-visit');
-    } catch {
-      // localStorage unavailable (private browsing, quota) — use defaults
-    }
+    const firstVisit = safeLoadFromStorage<boolean>(
+      'first-visit',
+      (v): v is boolean => typeof v === 'boolean',
+      'TutorialSystem',
+      true, // default: treat as first visit when key is absent
+    );
 
     const parsed = safeLoadFromStorage<unknown[]>(
       'tutorial-progress',
@@ -62,9 +61,9 @@ export const TutorialSystem: React.FC = () => {
       setCompletedSteps(new Set(parsed as string[]));
     }
 
-    if (firstVisit === null) {
+    if (firstVisit) {
       setShowTutorial(true);
-      try { localStorage.setItem('first-visit', 'false'); } catch { /* noop */ }
+      safeSaveToStorage('first-visit', false, 'TutorialSystem');
     } else {
       setIsFirstVisit(false);
     }
@@ -226,11 +225,7 @@ export const TutorialSystem: React.FC = () => {
     const newCompleted = new Set(completedSteps);
     newCompleted.add(stepId);
     setCompletedSteps(newCompleted);
-    try {
-      localStorage.setItem('tutorial-progress', JSON.stringify(Array.from(newCompleted)));
-    } catch {
-      // localStorage unavailable (private browsing, quota) — progress kept in memory only
-    }
+    safeSaveToStorage('tutorial-progress', Array.from(newCompleted), 'TutorialSystem');
   };
 
   const getProgress = () => {
