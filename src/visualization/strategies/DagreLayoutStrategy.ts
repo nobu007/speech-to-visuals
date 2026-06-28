@@ -3,6 +3,7 @@ import { DiagramType, NodeDatum, EdgeDatum, DiagramLayout, PositionedNode, Layou
 import { LayoutConfig } from '../types';
 import { getGraphConfig, calculateNodeWidth as calculateNodeWidthUtil } from '../layout-utils';
 import { FallbackLayoutStrategy } from './FallbackLayoutStrategy';
+import { logger } from '@/utils/logger';
 
 export class DagreLayoutStrategy {
   private config: LayoutConfig;
@@ -74,6 +75,7 @@ export class DagreLayoutStrategy {
       };
 
     } catch (error) {
+      logger.warn('[DagreLayoutStrategy] Layout failed, falling back to fallback layout:', error);
       return this.fallbackLayoutStrategy.fallbackLayout(nodes, edges, diagramType);
     }
   }

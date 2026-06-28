@@ -2180,6 +2180,7 @@ export class EnhancedErrorRecovery {
         return { success: true, result, fallbackUsed: true, primaryError: primaryErr };
       } catch (fallbackError) {
         const fallbackErr = fallbackError instanceof Error ? fallbackError : new Error(String(fallbackError));
+        logger.error('[EnhancedErrorRecovery] Both primary and fallback operations failed:', { primaryError: primaryErr.message, fallbackError: fallbackErr.message });
         return { success: false, fallbackUsed: true, primaryError: primaryErr };
       }
     }
