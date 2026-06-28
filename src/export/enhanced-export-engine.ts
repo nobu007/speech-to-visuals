@@ -642,8 +642,8 @@ export class EnhancedExportEngine {
         return null;
       }
       return (response.payload as ExportWorkerResult) ?? null;
-    } catch {
-      logger.warn('Export worker failed, falling back to main thread');
+    } catch (error) {
+      logger.warn('Export worker failed, falling back to main thread:', error instanceof Error ? error.message : String(error));
       return null;
     }
   }

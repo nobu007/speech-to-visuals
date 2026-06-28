@@ -1,6 +1,18 @@
 import { DiagramLayout, PositionedNode, DiagramType, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 
+/** Get effective node width (handles w, width, and config fallback) */
+function nodeW(n: PositionedNode, config: LayoutConfig): number {
+  const w = n.w ?? n.width;
+  return Number.isFinite(w) ? w : config.nodeWidth;
+}
+
+/** Get effective node height (handles h, height, and config fallback) */
+function nodeH(n: PositionedNode, config: LayoutConfig): number {
+  const h = n.h ?? n.height;
+  return Number.isFinite(h) ? h : config.nodeHeight;
+}
+
 export class LayoutOptimizer {
   private config: LayoutConfig;
 
@@ -43,8 +55,8 @@ export class LayoutOptimizer {
       const angle = (2 * Math.PI * index) / Math.max(1, nodes.length);
       return {
         ...node,
-        x: centerX + radius * Math.cos(angle) - node.w / 2,
-        y: centerY + radius * Math.sin(angle) - node.h / 2,
+        x: centerX + radius * Math.cos(angle) - nodeW(node, this.config) / 2,
+        y: centerY + radius * Math.sin(angle) - nodeH(node, this.config) / 2,
       };
     });
 
@@ -71,8 +83,8 @@ export class LayoutOptimizer {
     const spacing = nodes.length > 1 ? usableWidth / (nodes.length - 1) : 0;
     const repositioned = sortedNodes.map((node, index) => ({
       ...node,
-      x: this.config.marginX + index * spacing - node.w / 2,
-      y: this.config.height / 2 - node.h / 2, // Center vertically
+      x: this.config.marginX + index * spacing - nodeW(node, this.config) / 2,
+      y: this.config.height / 2 - nodeH(node, this.config) / 2, // Center vertically
     }));
 
     return { nodes: repositioned, edges: layout.edges };
@@ -94,8 +106,8 @@ export class LayoutOptimizer {
       const col = index % gridSize;
       return {
         ...node,
-        x: this.config.marginX + col * cellWidth + cellWidth / 2 - node.w / 2,
-        y: this.config.marginY + row * cellHeight + cellHeight / 2 - node.h / 2,
+        x: this.config.marginX + col * cellWidth + cellWidth / 2 - nodeW(node, this.config) / 2,
+        y: this.config.marginY + row * cellHeight + cellHeight / 2 - nodeH(node, this.config) / 2,
       };
     });
 
@@ -117,8 +129,8 @@ export class LayoutOptimizer {
     }
 
     return [
-      { x: fromNode.x + fromNode.w / 2, y: fromNode.y + fromNode.h / 2 },
-      { x: toNode.x + toNode.w / 2, y: toNode.y + toNode.h / 2 }
+      { x: fromNode.x + nodeW(fromNode, this.config) / 2, y: fromNode.y + nodeH(fromNode, this.config) / 2 },
+      { x: toNode.x + nodeW(toNode, this.config) / 2, y: toNode.y + nodeH(toNode, this.config) / 2 }
     ];
   }
 
@@ -154,8 +166,8 @@ export class LayoutOptimizer {
     if (layout.nodes.length === 0) return layout;
 
     // Calculate centroid to scale relative to center, not origin
-    const centerX = layout.nodes.reduce((sum, n) => sum + (n.x + n.w / 2), 0) / layout.nodes.length;
-    const centerY = layout.nodes.reduce((sum, n) => sum + (n.y + n.h / 2), 0) / layout.nodes.length;
+    const centerX = layout.nodes.reduce((sum, n) => sum + (n.x + nodeW(n, this.config) / 2), 0) / layout.nodes.length;
+    const centerY = layout.nodes.reduce((sum, n) => sum + (n.y + nodeH(n, this.config) / 2), 0) / layout.nodes.length;
 
     const nodes = layout.nodes.map(node => {
       const importance = node.meta?.importance || 0.5;
@@ -164,13 +176,15 @@ export class LayoutOptimizer {
       const spacingMultiplier = 1 + importance * 0.5;
 
       // Scale relative to centroid to avoid pushing nodes off-canvas
-      const nodeCenterX = node.x + node.w / 2;
-      const nodeCenterY = node.y + node.h / 2;
+      const nw = nodeW(node, this.config);
+      const nh = nodeH(node, this.config);
+      const nodeCenterX = node.x + nw / 2;
+      const nodeCenterY = node.y + nh / 2;
 
       return {
         ...node,
-        x: centerX + (nodeCenterX - centerX) * spacingMultiplier - node.w / 2,
-        y: centerY + (nodeCenterY - centerY) * spacingMultiplier - node.h / 2
+        x: centerX + (nodeCenterX - centerX) * spacingMultiplier - nw / 2,
+        y: centerY + (nodeCenterY - centerY) * spacingMultiplier - nh / 2
       };
     });
 
@@ -250,8 +264,8 @@ export class LayoutOptimizer {
       const angle = (2 * Math.PI * index) / Math.max(1, nodes.length);
       return {
         ...node,
-        x: centerX + radius * Math.cos(angle) - node.w / 2,
-        y: centerY + radius * Math.sin(angle) - node.h / 2
+        x: centerX + radius * Math.cos(angle) - nodeW(node, this.config) / 2,
+        y: centerY + radius * Math.sin(angle) - nodeH(node, this.config) / 2
       };
     });
   }
@@ -263,7 +277,7 @@ export class LayoutOptimizer {
     if (nodes.length === 0) return nodes;
 
     const sortedNodes = [...nodes].sort((a, b) => a.x - b.x);
-    const y = this.config.height / 2 - sortedNodes[0].h / 2;
+    const y = this.config.height / 2 - nodeH(sortedNodes[0], this.config) / 2;
     const usableWidth = this.config.width - 2 * this.config.marginX;
     const spacing = nodes.length > 1 ? usableWidth / (nodes.length - 1) : 0;
 
@@ -289,11 +303,13 @@ export class LayoutOptimizer {
     return nodes.map((node, index) => {
       const row = Math.floor(index / cols);
       const col = index % cols;
+      const nw = nodeW(node, this.config);
+      const nh = nodeH(node, this.config);
 
       return {
         ...node,
-        x: this.config.marginX + col * cellWidth + (cellWidth - node.w) / 2,
-        y: this.config.marginY + row * cellHeight + (cellHeight - node.h) / 2
+        x: this.config.marginX + col * cellWidth + (cellWidth - nw) / 2,
+        y: this.config.marginY + row * cellHeight + (cellHeight - nh) / 2
       };
     });
   }
@@ -326,10 +342,15 @@ export class LayoutOptimizer {
    * Get optimal connection point to minimize crossings
    */
   private getOptimalConnectionPoint(fromNode: PositionedNode, toNode: PositionedNode): { x: number; y: number } {
-    const fromCenterX = fromNode.x + fromNode.w / 2;
-    const fromCenterY = fromNode.y + fromNode.h / 2;
-    const toCenterX = toNode.x + toNode.w / 2;
-    const toCenterY = toNode.y + toNode.h / 2;
+    const fw = nodeW(fromNode, this.config);
+    const fh = nodeH(fromNode, this.config);
+    const tw = nodeW(toNode, this.config);
+    const th = nodeH(toNode, this.config);
+
+    const fromCenterX = fromNode.x + fw / 2;
+    const fromCenterY = fromNode.y + fh / 2;
+    const toCenterX = toNode.x + tw / 2;
+    const toCenterY = toNode.y + th / 2;
 
     // Determine which side of the node to connect to
     const dx = toCenterX - fromCenterX;
@@ -338,14 +359,14 @@ export class LayoutOptimizer {
     if (Math.abs(dx) > Math.abs(dy)) {
       // Connect horizontally
       return {
-        x: dx > 0 ? fromNode.x + fromNode.w : fromNode.x,
+        x: dx > 0 ? fromNode.x + fw : fromNode.x,
         y: fromCenterY
       };
     } else {
       // Connect vertically
       return {
         x: fromCenterX,
-        y: dy > 0 ? fromNode.y + fromNode.h : fromNode.y
+        y: dy > 0 ? fromNode.y + fh : fromNode.y
       };
     }
   }
