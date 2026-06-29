@@ -221,8 +221,7 @@ export class AdvancedLayoutEngine {
       animationStyle: options.animationStyle || 'smooth',
       colorScheme: options.colorScheme || 'professional',
       nodeShape: options.nodeShape || 'rounded',
-      edgeStyle: options.edgeStyle || 'curved',
-      ...options
+      edgeStyle: options.edgeStyle || 'curved'
     };
   }
 
