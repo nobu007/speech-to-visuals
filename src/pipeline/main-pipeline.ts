@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { SceneGraph, DiagramType, NodeDatum, EdgeDatum } from '@/types/diagram';
+import { sanitizeFinite, sanitizeDiagramType } from '@/utils/guards';
 import { TranscriptionPipeline, TranscriptionSegment } from '@/transcription';
 import { SceneSegmenter, DiagramDetector } from '@/analysis';
 import { LayoutEngine } from '@/visualization';
@@ -647,12 +648,13 @@ export class MainPipeline {
     const layoutPromises = diagramAnalyses.map(async (item) => {
       const segment = item.segment as Record<string, unknown>;
       const analysis = item.analysis as Record<string, unknown>;
+      const safeType = sanitizeDiagramType(analysis.type);
       if ((analysis.nodes as NodeDatum[]).length > 0) {
         try {
           const layoutResult = await this.layoutEngine.generateLayout(
             analysis.nodes as NodeDatum[],
             analysis.edges as EdgeDatum[],
-            analysis.type as DiagramType,
+            safeType,
             this.iteration // Pass current iteration
           );
 
@@ -694,7 +696,7 @@ export class MainPipeline {
       const analysis = layoutItem.analysis as Record<string, unknown>;
 
       return {
-        type: analysis.type as DiagramType,
+        type: sanitizeDiagramType(analysis.type),
         nodes: analysis.nodes as SceneGraph['nodes'],
         edges: analysis.edges as SceneGraph['edges'],
         layout: layoutItem.layout as SceneGraph['layout'],
@@ -753,7 +755,7 @@ export class MainPipeline {
       averageConfidence: diagramAnalyses.length > 0
         ? diagramAnalyses.reduce((sum: number, item: Record<string, unknown>) => {
             const analysis = item.analysis as Record<string, unknown>;
-            return sum + (analysis.confidence as number);
+            return sum + sanitizeFinite(analysis.confidence);
           }, 0) / diagramAnalyses.length
         : 0,
       hasNodes: diagramAnalyses.some((item: Record<string, unknown>) => {
@@ -878,7 +880,7 @@ export class MainPipeline {
         const layoutResult = await this.layoutEngine.generateLayout(
           analysis.nodes as NodeDatum[],
           analysis.edges as EdgeDatum[],
-          analysis.type as DiagramType,
+          sanitizeDiagramType(analysis.type),
           this.iteration // Pass current iteration
         );
 
@@ -910,7 +912,7 @@ export class MainPipeline {
       const analysis = layoutItem.analysis as Record<string, unknown>;
 
       return {
-        type: analysis.type as DiagramType,
+        type: sanitizeDiagramType(analysis.type),
         nodes: analysis.nodes as SceneGraph['nodes'],
         edges: analysis.edges as SceneGraph['edges'],
         layout: layoutItem.layout as SceneGraph['layout'],

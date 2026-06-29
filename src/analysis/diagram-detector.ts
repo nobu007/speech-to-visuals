@@ -2,6 +2,7 @@ import { DiagramType, NodeDatum, EdgeDatum, isDiagramType } from '@/types/diagra
 import { ContentSegment, DiagramAnalysis, KeywordAnalysis, SemanticRelation } from './types';
 import { GeminiAnalyzer } from './gemini-analyzer';
 import { logger } from '../utils/logger';
+import { sanitizeFinite, sanitizeDiagramType } from '@/utils/guards';
 
 // ========================================
 // TASK-0021: Diagram Detection Result Types
@@ -892,7 +893,7 @@ export class DiagramDetector {
   private async statisticalAnalysis(segment: ContentSegment, baseAnalysis: DiagramAnalysis): Promise<DiagramAnalysis> {
     try {
       // Boost base analysis with statistical insights
-      const safeBaseConf = Number.isFinite(baseAnalysis.confidence) ? baseAnalysis.confidence : 0;
+      const safeBaseConf = sanitizeFinite(baseAnalysis.confidence);
       const boostedConfidence = Math.min(safeBaseConf * 1.15, 0.95);
 
       return {
@@ -935,12 +936,8 @@ export class DiagramDetector {
       };
 
       candidates.forEach(candidate => {
-        const confidence = Number.isFinite(candidate.result.confidence)
-          ? candidate.result.confidence
-          : 0;
-        const type = isDiagramType(candidate.result.type)
-          ? candidate.result.type
-          : 'general';
+        const confidence = sanitizeFinite(candidate.result.confidence);
+        const type = sanitizeDiagramType(candidate.result.type);
         const weightedScore = confidence * candidate.weight;
         typeScores[type].score += weightedScore;
         typeScores[type].methods.push(candidate.method);
@@ -958,8 +955,8 @@ export class DiagramDetector {
 
       // Get the best result for the consensus type
       const bestCandidate = candidates
-        .filter(c => (isDiagramType(c.result.type) ? c.result.type : 'general') === consensusType.type)
-        .sort((a, b) => (Number.isFinite(b.result.confidence) ? b.result.confidence : 0) - (Number.isFinite(a.result.confidence) ? a.result.confidence : 0))[0];
+        .filter(c => sanitizeDiagramType(c.result.type) === consensusType.type)
+        .sort((a, b) => sanitizeFinite(b.result.confidence) - sanitizeFinite(a.result.confidence))[0];
 
       if (bestCandidate) {
         return {
@@ -970,14 +967,12 @@ export class DiagramDetector {
       } else {
         // Fallback to highest confidence result
         const highestConfidence = candidates.reduce((best, current) =>
-          (Number.isFinite(current.result.confidence) ? current.result.confidence : 0) >
-          (Number.isFinite(best.result.confidence) ? best.result.confidence : 0)
+          sanitizeFinite(current.result.confidence) >
+          sanitizeFinite(best.result.confidence)
             ? current : best
         );
 
-        const fallbackConf = Number.isFinite(highestConfidence.result.confidence)
-          ? highestConfidence.result.confidence
-          : 0;
+        const fallbackConf = sanitizeFinite(highestConfidence.result.confidence);
         return {
           ...highestConfidence.result,
           confidence: Math.min(fallbackConf * this.HYBRID_HIGHEST_CONFIDENCE_BOOST_FACTOR, this.HYBRID_HIGHEST_CONFIDENCE_CAP),
@@ -989,7 +984,7 @@ export class DiagramDetector {
       logger.warn(`[V${this.iteration}] Hybrid analysis failed:`, error);
 
       // Fallback to enhanced base analysis
-      const catchConf = Number.isFinite(baseAnalysis.confidence) ? baseAnalysis.confidence : 0;
+      const catchConf = sanitizeFinite(baseAnalysis.confidence);
       return {
         ...baseAnalysis,
         confidence: Math.min(catchConf * this.HYBRID_FALLBACK_BOOST_FACTOR, this.HYBRID_FALLBACK_CONFIDENCE_CAP),

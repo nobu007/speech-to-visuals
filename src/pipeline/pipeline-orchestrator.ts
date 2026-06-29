@@ -47,6 +47,7 @@ import { ErrorClassifier } from '@/quality/error-classifier';
 import type { ClassifiedError } from '@/quality/error-classifier';
 import type { RecoveryStage, RunRecoveryReport } from '@/quality/pipeline-run-recovery-tracker';
 import { logger } from '@/utils/logger';
+import { sanitizeDiagramType } from '@/utils/guards';
 
 // ---------- Public Interfaces ----------
 
@@ -569,7 +570,7 @@ export class PipelineOrchestrator {
         const layoutResult = await this.layoutEngine.generateLayout(
           diag.nodes as NodeDatum[],
           diag.edges as EdgeDatum[],
-          diag.type as DiagramType,
+          sanitizeDiagramType(diag.type),
           1
         );
         if (layoutResult.success) {

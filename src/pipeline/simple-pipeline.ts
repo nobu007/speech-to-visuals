@@ -13,6 +13,7 @@ import { VideoGenerator, VideoGenerationOptions } from './video-generator';
 import { continuousLearner } from '@/framework/continuous-learner';
 import { getQualityMonitor, formatQualityReport } from './quality-monitor';
 import { getHeapUsed } from '@/utils/memory-usage';
+import { sanitizeFinite, sanitizeDiagramType } from '@/utils/guards';
 import { ErrorClassifier } from '@/quality/error-classifier';
 import { TranscriptionError, SegmentationError, PipelineError } from './pipeline-errors';
 import type { ErrorType } from '../quality/error-classifier';
@@ -233,18 +234,22 @@ export class SimplePipeline {
 
           const diagramDetectionTime = Date.now() - sceneStartTime;
 
+          // Sanitize detection results to prevent NaN/invalid type propagation
+          const detConfidence = sanitizeFinite(diagramAnalysis.confidence);
+          const detType = sanitizeDiagramType(diagramAnalysis.type);
+
           // Custom Instructions: Learn from diagram detection
           await continuousLearner.learnFromProcessingResult(
             'diagram_detection',
             { content: (segment as Record<string, unknown>).text },
             diagramAnalysis,
             diagramDetectionTime,
-            diagramAnalysis.confidence,
-            diagramAnalysis.confidence > 0.6,
-            diagramAnalysis.confidence <= 0.6 ? ['low_confidence_detection'] : [],
+            detConfidence,
+            detConfidence > 0.6,
+            detConfidence <= 0.6 ? ['low_confidence_detection'] : [],
             {
               segmentId: `scene-${index}`,
-              detectedType: diagramAnalysis.type,
+              detectedType: detType,
               customInstructionsPhase: '図解生成',
               parallelProcessing: true
             }
@@ -258,7 +263,7 @@ export class SimplePipeline {
           if (useEnhancedLayout) {
 
             const enhancedResult = await this.enhancedLayoutEngine.generateZeroOverlapLayout(
-              diagramAnalysis.type,
+              detType,
               diagramAnalysis.nodes || [],
               diagramAnalysis.edges || []
             );
@@ -273,7 +278,7 @@ export class SimplePipeline {
             layoutResult = await this.layoutEngine.generateLayout(
               diagramAnalysis.nodes || [],
               diagramAnalysis.edges || [],
-              diagramAnalysis.type,
+              detType,
               this.iterationCount
             );
           }
@@ -286,7 +291,7 @@ export class SimplePipeline {
           // Custom Instructions: Learn from layout generation
           await continuousLearner.learnFromProcessingResult(
             'layout_generation',
-            { type: diagramAnalysis.type, nodeCount: diagramAnalysis.nodes?.length || 0 },
+            { type: detType, nodeCount: diagramAnalysis.nodes?.length || 0 },
             layoutResult,
             layoutProcessingTime,
             layoutQuality,
@@ -294,7 +299,7 @@ export class SimplePipeline {
             lr.success ? [] : ['layout_generation_failed'],
             {
               segmentId: `scene-${index}`,
-              diagramType: diagramAnalysis.type,
+              diagramType: detType,
               nodeCount: diagramAnalysis.nodes?.length || 0,
               customInstructionsPhase: '図解生成',
               parallelProcessing: true
@@ -317,10 +322,10 @@ export class SimplePipeline {
               keyphrases: diagramAnalysis.nodes?.map(n => n.label).filter(Boolean) ?? [],
               nodes: diagramAnalysis.nodes ?? [],
               edges: diagramAnalysis.edges ?? [],
-              type: diagramAnalysis.type,
+              type: detType,
               layout: lr.layout,
               confidence: Math.min(
-                diagramAnalysis.confidence,
+                detConfidence,
                 (lr.confidence as number) || 1
               )
             } as SceneGraph;
