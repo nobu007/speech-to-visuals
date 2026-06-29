@@ -139,8 +139,13 @@ export class TranscriptionPipeline {
    */
   private async blobUrlToFile(blobUrl: string): Promise<File> {
     const response = await fetch(blobUrl);
+    if (!response.ok) {
+      throw new TranscriptionError(`Failed to fetch blob URL: HTTP ${response.status}`);
+    }
     const blob = await response.blob();
-    return new File([blob], 'audio.wav', { type: 'audio/wav' });
+    const mimeType = blob.type || 'audio/wav';
+    const ext = mimeType.split('/')[1]?.split(';')[0] || 'wav';
+    return new File([blob], `audio.${ext}`, { type: mimeType });
   }
 
   /**
@@ -260,7 +265,7 @@ export class TranscriptionPipeline {
       'auto': 'unknown'
     };
 
-    const detectedLang = languageMap[detection.language];
+    const detectedLang = languageMap[detection.language] ?? 'unknown';
 
 
     return detectedLang;

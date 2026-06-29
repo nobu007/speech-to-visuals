@@ -719,4 +719,114 @@ describe('TranscriptionPipeline', () => {
       expect(result.duration).toBe(25000 - 0);
     });
   });
+
+  // ---------- blobUrlToFile MIME type preservation ----------
+
+  describe('blobUrlToFile MIME type preservation', () => {
+    test('preserves audio/webm MIME type from blob', async () => {
+      const segments = [makeSegment()];
+      const whisperMock = (pipeline as unknown as { whisperTranscriber: { transcribe: jest.Mock } }).whisperTranscriber;
+      whisperMock.transcribe.mockImplementation(async (input: File | string) => {
+        if (input instanceof File) {
+          expect(input.type).toBe('audio/webm');
+          expect(input.name).toBe('audio.webm');
+        }
+        return makeWhisperResult(segments);
+      });
+
+      const originalFetch = global.fetch;
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        blob: jest.fn().mockResolvedValue(new Blob(['data'], { type: 'audio/webm' })),
+      });
+
+      const result = await pipeline.transcribe('blob:https://example.com/abc-webm');
+
+      expect(result.error).toBeUndefined();
+      global.fetch = originalFetch;
+    });
+
+    test('preserves audio/mp4 MIME type from blob', async () => {
+      const segments = [makeSegment()];
+      const whisperMock = (pipeline as unknown as { whisperTranscriber: { transcribe: jest.Mock } }).whisperTranscriber;
+      whisperMock.transcribe.mockImplementation(async (input: File | string) => {
+        if (input instanceof File) {
+          expect(input.type).toBe('audio/mp4');
+          expect(input.name).toBe('audio.mp4');
+        }
+        return makeWhisperResult(segments);
+      });
+
+      const originalFetch = global.fetch;
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        blob: jest.fn().mockResolvedValue(new Blob(['data'], { type: 'audio/mp4' })),
+      });
+
+      const result = await pipeline.transcribe('blob:https://example.com/abc-mp4');
+
+      expect(result.error).toBeUndefined();
+      global.fetch = originalFetch;
+    });
+
+    test('defaults to audio/wav when blob has no type', async () => {
+      const segments = [makeSegment()];
+      const whisperMock = (pipeline as unknown as { whisperTranscriber: { transcribe: jest.Mock } }).whisperTranscriber;
+      whisperMock.transcribe.mockImplementation(async (input: File | string) => {
+        if (input instanceof File) {
+          expect(input.type).toBe('audio/wav');
+          expect(input.name).toBe('audio.wav');
+        }
+        return makeWhisperResult(segments);
+      });
+
+      const originalFetch = global.fetch;
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        blob: jest.fn().mockResolvedValue(new Blob(['data'])), // no type
+      });
+
+      const result = await pipeline.transcribe('blob:https://example.com/abc-notype');
+
+      expect(result.error).toBeUndefined();
+      global.fetch = originalFetch;
+    });
+
+    test('handles non-ok HTTP response from blob fetch gracefully', async () => {
+      const originalFetch = global.fetch;
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+      });
+
+      const result = await pipeline.transcribe('blob:https://example.com/expired');
+
+      // The error is caught by runWhisperTranscription's catch block,
+      // which falls back to placeholder segments
+      expect(result.fallback).toBe(true);
+      global.fetch = originalFetch;
+    });
+  });
+
+  // ---------- Language detection fallback ----------
+
+  describe('language detection fallback', () => {
+    test('returns "unknown" for unexpected language value', async () => {
+      const { detectLanguage } = jest.requireMock('@/analysis/language-detector');
+      detectLanguage.mockReturnValueOnce({ language: 'klingon', confidence: 0.5 });
+
+      const segments = [makeSegment({ text: 'Some text' })];
+      const whisperMock = (pipeline as unknown as { whisperTranscriber: { transcribe: jest.Mock } }).whisperTranscriber;
+      whisperMock.transcribe.mockResolvedValue(makeWhisperResult(segments));
+
+      jest.doMock('fs', () => ({
+        promises: { access: jest.fn().mockResolvedValue(undefined) },
+        constants: { R_OK: 4 },
+      }));
+
+      const result = await pipeline.transcribe('/tmp/test.wav');
+
+      expect(result.language).toBe('unknown');
+    });
+  });
 });

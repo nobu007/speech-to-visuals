@@ -359,11 +359,15 @@ export abstract class BaseLayoutStrategy implements LayoutStrategy {
   }
   
   protected areNodesOverlapping(a: PositionedNode, b: PositionedNode, padding: number = 0): boolean {
+    const aw = a.width ?? a.w ?? 0;
+    const ah = a.height ?? a.h ?? 0;
+    const bw = b.width ?? b.w ?? 0;
+    const bh = b.height ?? b.h ?? 0;
     return !(
-      a.x + a.width / 2 + padding < b.x - b.width / 2 ||
-      a.x - a.width / 2 - padding > b.x + b.width / 2 ||
-      a.y + a.height / 2 + padding < b.y - b.height / 2 ||
-      a.y - a.height / 2 - padding > b.y + b.height / 2
+      a.x + aw / 2 + padding < b.x - bw / 2 ||
+      a.x - aw / 2 - padding > b.x + bw / 2 ||
+      a.y + ah / 2 + padding < b.y - bh / 2 ||
+      a.y - ah / 2 - padding > b.y + bh / 2
     );
   }
   

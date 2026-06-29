@@ -2,6 +2,16 @@ import { PositionedNode, LayoutEdge, DiagramLayout } from '@/types/diagram';
 import { BaseLayoutStrategy } from './LayoutStrategy';
 import { LayoutConfig, LayoutResult, BoundingBox } from '../../types';
 
+/** Get effective node width (handles both `w` and `width` properties, consistent with other layout modules) */
+function effWidth(node: PositionedNode): number {
+  return node.width ?? node.w ?? 120;
+}
+
+/** Get effective node height (handles both `h` and `height` properties, consistent with other layout modules) */
+function effHeight(node: PositionedNode): number {
+  return node.height ?? node.h ?? 60;
+}
+
 interface AnnealingNode extends PositionedNode {
   initialX: number;
   initialY: number;
@@ -158,8 +168,9 @@ export class SimulatedAnnealingStrategy extends BaseLayoutStrategy {
     // Scale perturbation by temperature and node's individual temperature
     const scale = temperature * node.temperature;
     
-    // Generate random delta within bounds
-    const maxDelta = Math.min(config.width, config.height) * 0.1 * scale;
+    // Generate random delta within bounds (guard against zero dimensions)
+    const minDim = Math.min(config.width, config.height);
+    const maxDelta = Math.max(1, minDim) * 0.1 * scale;
     const dx = (Math.random() * 2 - 1) * maxDelta;
     const dy = (Math.random() * 2 - 1) * maxDelta;
     
@@ -337,15 +348,20 @@ export class SimulatedAnnealingStrategy extends BaseLayoutStrategy {
   }
   
   private calculateOverlap(a: PositionedNode, b: PositionedNode): number {
-    const aLeft = a.x - a.width / 2;
-    const aRight = a.x + a.width / 2;
-    const aTop = a.y - a.height / 2;
-    const aBottom = a.y + a.height / 2;
-    
-    const bLeft = b.x - b.width / 2;
-    const bRight = b.x + b.width / 2;
-    const bTop = b.y - b.height / 2;
-    const bBottom = b.y + b.height / 2;
+    const aW = effWidth(a);
+    const aH = effHeight(a);
+    const bW = effWidth(b);
+    const bH = effHeight(b);
+
+    const aLeft = a.x - aW / 2;
+    const aRight = a.x + aW / 2;
+    const aTop = a.y - aH / 2;
+    const aBottom = a.y + aH / 2;
+
+    const bLeft = b.x - bW / 2;
+    const bRight = b.x + bW / 2;
+    const bTop = b.y - bH / 2;
+    const bBottom = b.y + bH / 2;
     
     // Calculate overlap area
     const xOverlap = Math.max(0, Math.min(aRight, bRight) - Math.max(aLeft, bLeft));
@@ -376,8 +392,8 @@ export class SimulatedAnnealingStrategy extends BaseLayoutStrategy {
   
   private applyBoundaryConstraints(node: PositionedNode, config: LayoutConfig): void {
     const padding = 10;
-    const halfWidth = (node.width || 10) / 2;
-    const halfHeight = (node.height || 10) / 2;
+    const halfWidth = effWidth(node) / 2;
+    const halfHeight = effHeight(node) / 2;
     
     // Keep nodes within canvas bounds with padding
     node.x = Math.max(padding + halfWidth, Math.min(config.width - padding - halfWidth, node.x));

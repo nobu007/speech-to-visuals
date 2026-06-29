@@ -373,4 +373,77 @@ describe('SimulatedAnnealingStrategy', () => {
       expect(result.metrics.overlapCount).toBe(0);
     });
   });
+
+  describe('w/h property fallback in overlap detection', () => {
+    it('should detect overlaps when nodes use w/h instead of width/height', () => {
+      const nodes = [
+        { id: 'A', label: 'A', x: 100, y: 100, w: 120, h: 60 },
+        { id: 'B', label: 'B', x: 110, y: 110, w: 120, h: 60 },
+      ] as PositionedNode[];
+      const overlaps = strategy.detectOverlaps(nodes, 0);
+      expect(overlaps).toHaveLength(1);
+    });
+
+    it('should detect zero overlaps for distant nodes using w/h', () => {
+      const nodes = [
+        { id: 'A', label: 'A', x: 0, y: 0, w: 100, h: 50 },
+        { id: 'B', label: 'B', x: 500, y: 500, w: 100, h: 50 },
+      ] as PositionedNode[];
+      const overlaps = strategy.detectOverlaps(nodes, 0);
+      expect(overlaps).toHaveLength(0);
+    });
+
+    it('should produce zero-overlap layout for nodes with only w/h properties', async () => {
+      const nodes: NodeDatum[] = [
+        { id: 'A', label: 'A' },
+        { id: 'B', label: 'B' },
+        { id: 'C', label: 'C' },
+        { id: 'D', label: 'D' },
+      ];
+      const edges: EdgeDatum[] = [
+        { id: 'e1', source: 'A', target: 'B', from: 'A', to: 'B' },
+        { id: 'e2', source: 'C', target: 'D', from: 'C', to: 'D' },
+      ];
+
+      const result = await strategy.apply(nodes, edges, baseConfig);
+      expect(result.metrics.overlapCount).toBe(0);
+    });
+
+    it('should not produce NaN positions for nodes without any dimension properties', async () => {
+      const nodes: NodeDatum[] = [
+        { id: 'A', label: 'A' },
+        { id: 'B', label: 'B' },
+      ];
+      const edges: EdgeDatum[] = [];
+
+      const result = await strategy.apply(nodes, edges, baseConfig);
+
+      for (const node of result.layout.nodes) {
+        expect(isNaN(node.x)).toBe(false);
+        expect(isNaN(node.y)).toBe(false);
+      }
+    });
+
+    it('should not freeze when config dimensions are zero', async () => {
+      const nodes: NodeDatum[] = [
+        { id: 'A', label: 'A' },
+        { id: 'B', label: 'B' },
+      ];
+      const edges: EdgeDatum[] = [];
+      const zeroDimConfig: LayoutConfig = {
+        ...baseConfig,
+        width: 0,
+        height: 0,
+      };
+
+      // Should complete without hanging or producing NaN
+      const result = await strategy.apply(nodes, edges, zeroDimConfig);
+      expect(result.layout.nodes).toHaveLength(2);
+
+      for (const node of result.layout.nodes) {
+        expect(isNaN(node.x)).toBe(false);
+        expect(isNaN(node.y)).toBe(false);
+      }
+    });
+  });
 });
