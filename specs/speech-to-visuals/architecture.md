@@ -909,5 +909,13 @@ spec整合性の自動検証システム:
 - [TASK-0206: エクスポートアーティファクト管理](tasks/TASK-0206.md)
 - [TASK-0207: ヘルスチェック・監視モジュールのサイレントキャッチ修正](tasks/TASK-0207.md)
 - [TASK-0208: ログ正規化の下流影響検証・未テストモジュールgap分析](tasks/TASK-0208.md)
+- [TASK-0209: 既存テスト失敗の修正](tasks/TASK-0209.md)
+- [TASK-0210: enhanced-error-recovery.ts のPromise Leak修正](tasks/TASK-0210.md)
+- [TASK-0211: continuous-learner.ts のTimer Leak修正と相関計算の安全性向上](tasks/TASK-0211.md)
+- [TASK-0212: レイアウトエンジンのNaN伝播防止とオーバーラップ解決ループの進捗検出追加](tasks/TASK-0212.md)
+- [TASK-0213: pipeline-orchestrator.ts のタイムアウトAbortSignal追加とNull安全修正](tasks/TASK-0213.md)
+- [TASK-0214: 残存サイレントキャッチ2箇所のエラーログ追加](tasks/TASK-0214.md)
+- [TASK-0215: main-pipeline.ts のリトライカウンタスレッド安全性とエラー伝播改善](tasks/TASK-0215.md)
+- [TASK-0216: monitoring APIルートのエラーハンドリング改善](tasks/TASK-0216.md)
 
 <!-- spine:references:end -->
