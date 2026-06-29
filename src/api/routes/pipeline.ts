@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { PIPELINE_LIMITS } from '../../config/limits';
 import { sanitizeFilename } from '../../utils/sanitize';
 import { exportRateLimiter } from '../middleware/rate-limit';
+import { logger } from '../../utils/logger';
 
 /** Supported codecs for rendering */
 const VALID_CODECS = ['h264', 'h265', 'vp9', 'av1'] as const;
@@ -173,6 +174,9 @@ class PipelineStateManager {
 // ---------------------------------------------------------------------------
 
 function sendError(res: Response, statusCode: number, code: string, message: string): void {
+  if (statusCode >= 500) {
+    logger.error(`[PipelineRoute] ${code}: ${message}`);
+  }
   res.status(statusCode).json({ success: false, error: { code, message } });
 }
 

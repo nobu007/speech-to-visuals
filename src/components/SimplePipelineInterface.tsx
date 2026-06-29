@@ -124,6 +124,7 @@ export const SimplePipelineInterface: React.FC = () => {
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : '不明なエラーが発生しました';
+      logger.error(`[SimplePipeline] Processing error: ${message}`);
       dispatch({ type: 'PROCESSING_ERROR', error: message });
     }
   }, [file]);

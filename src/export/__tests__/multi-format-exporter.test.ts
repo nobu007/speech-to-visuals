@@ -234,4 +234,53 @@ describe('MultiFormatExporter', () => {
       expect(result.error).toContain('Unsupported export format');
     });
   });
+
+  describe('pdfColorFill NaN guard', () => {
+    it('does not produce NaN for malformed short hex color', async () => {
+      const scene = makeScene({ id: 'nan-short' });
+      const result = await exporter.export(scene, {
+        format: 'pdf',
+        backgroundColor: '#ff',
+      });
+
+      const text = await (result.data as Blob).text();
+      expect(text).not.toContain('NaN');
+    });
+
+    it('does not produce NaN for empty hex color', async () => {
+      const scene = makeScene({ id: 'nan-empty' });
+      const result = await exporter.export(scene, {
+        format: 'pdf',
+        backgroundColor: '',
+      });
+
+      const text = await (result.data as Blob).text();
+      expect(text).not.toContain('NaN');
+    });
+
+    it('does not produce NaN for non-hex characters', async () => {
+      const scene = makeScene({ id: 'nan-invalid' });
+      const result = await exporter.export(scene, {
+        format: 'pdf',
+        backgroundColor: 'not-a-color',
+      });
+
+      const text = await (result.data as Blob).text();
+      expect(text).not.toContain('NaN');
+    });
+
+    it('produces correct values for valid hex color', async () => {
+      const scene = makeScene({ id: 'valid-hex' });
+      const result = await exporter.export(scene, {
+        format: 'pdf',
+        backgroundColor: '#ff0000',
+      });
+
+      const text = await (result.data as Blob).text();
+      // Red: 255/255 = 1.000
+      expect(text).toContain('1.000');
+      // Should NOT contain NaN
+      expect(text).not.toContain('NaN');
+    });
+  });
 });
