@@ -292,7 +292,7 @@ export class ComplexityDetector {
       };
     }
 
-    const avgComplexity = analyses.reduce((sum, a) => sum + a.score, 0) / analyses.length;
+    const avgComplexity = analyses.reduce((sum, a) => sum + (Number.isFinite(a.score) ? a.score : 0), 0) / analyses.length;
 
     const modelDistribution = analyses.reduce((dist, a) => {
       dist[a.recommendedModel] = (dist[a.recommendedModel] || 0) + 1;

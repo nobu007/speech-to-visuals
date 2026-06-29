@@ -15,6 +15,7 @@
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig, LayoutResult, LayoutMetrics, Point, BoundingBox, OverlapPair } from '../types';
 import { calculateNodeWidth, calculateNodeHeight, calculateNodeCenter, calculateDistance, calculateNodeDistance, generateEdgePoints, nodesOverlap } from '../layout-utils';
+import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 import { logger } from '@/utils/logger';
 
 /**
@@ -258,8 +259,8 @@ export abstract class BaseLayoutEngine {
    * Constrain a single node to canvas bounds
    */
   protected constrainNodeToBounds(node: PositionedNode, margin: number = 10): void {
-    const w = node.w ?? node.width ?? 0;
-    const h = node.h ?? node.height ?? 0;
+    const w = getNodeWidth(node, 0);
+    const h = getNodeHeight(node, 0);
     if (node.x - w / 2 < margin) {
       node.x = w / 2 + margin;
     }

@@ -11,6 +11,7 @@ import { scoreLayout, CompositeScoreResult } from './layout-quality-composite';
 import { minimizeEdgeCrossings } from './edge-crossing-minimizer';
 import { StrategySelector } from './strategy-selector';
 import { LayoutStrategy, StrategyLayoutResult } from './types';
+import { getNodeWidth, getNodeHeight } from './node-dimensions';
 
 // ── Legacy function-based API (kept for backward compat) ──
 
@@ -331,8 +332,8 @@ export class LayoutAutoOptimizer {
       label: n.label,
       type: n.type,
       meta: n.meta,
-      width: n.w ?? n.width ?? 120,
-      height: n.h ?? n.height ?? 60,
+      width: getNodeWidth(n, 120),
+      height: getNodeHeight(n, 60),
     }));
 
     const edgeData: EdgeDatum[] = originalEdges.map(e => ({
@@ -392,8 +393,8 @@ export class LayoutAutoOptimizer {
     // Compute bounding box center
     let cx = 0, cy = 0;
     for (const n of nodes) {
-      const w = n.w ?? n.width ?? 0;
-      const h = n.h ?? n.height ?? 0;
+      const w = getNodeWidth(n, 0);
+      const h = getNodeHeight(n, 0);
       cx += n.x + w / 2;
       cy += n.y + h / 2;
     }
@@ -401,8 +402,8 @@ export class LayoutAutoOptimizer {
     cy /= nodes.length;
 
     return nodes.map(n => {
-      const w = n.w ?? n.width ?? 120;
-      const h = n.h ?? n.height ?? 60;
+      const w = getNodeWidth(n, 120);
+      const h = getNodeHeight(n, 60);
       const ncx = n.x + w / 2;
       const ncy = n.y + h / 2;
 
@@ -442,8 +443,8 @@ export class LayoutAutoOptimizer {
 
     let sumX = 0, sumY = 0;
     for (const n of optNodes) {
-      const w = n.w ?? n.width ?? 0;
-      const h = n.h ?? n.height ?? 0;
+      const w = getNodeWidth(n, 0);
+      const h = getNodeHeight(n, 0);
       sumX += n.x + w / 2;
       sumY += n.y + h / 2;
     }
@@ -503,8 +504,8 @@ function strategyRecenter(
   let sumX = 0;
   let sumY = 0;
   for (const n of nodes) {
-    const w = n.w ?? n.width ?? 0;
-    const h = n.h ?? n.height ?? 0;
+    const w = getNodeWidth(n, 0);
+    const h = getNodeHeight(n, 0);
     sumX += n.x + w / 2;
     sumY += n.y + h / 2;
   }
@@ -532,10 +533,10 @@ function strategySpreadOut(
 
   for (let i = 0; i < result.length; i++) {
     for (let j = i + 1; j < result.length; j++) {
-      const w1 = result[i].w ?? result[i].width ?? 0;
-      const h1 = result[i].h ?? result[i].height ?? 0;
-      const w2 = result[j].w ?? result[j].width ?? 0;
-      const h2 = result[j].h ?? result[j].height ?? 0;
+      const w1 = getNodeWidth(result[i], 0);
+      const h1 = getNodeHeight(result[i], 0);
+      const w2 = getNodeWidth(result[j], 0);
+      const h2 = getNodeHeight(result[j], 0);
 
       const cx1 = result[i].x + w1 / 2;
       const cy1 = result[i].y + h1 / 2;

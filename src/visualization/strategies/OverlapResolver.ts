@@ -2,16 +2,7 @@ import { DiagramLayout, PositionedNode, DiagramType } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { nodesOverlap } from '../layout-utils';
 import { logger } from '../../utils/logger';
-
-/** Get effective node width (handles both `w` and `width` properties) */
-function nodeW(n: PositionedNode): number {
-  return n.w ?? n.width ?? 120;
-}
-
-/** Get effective node height (handles both `h` and `height` properties) */
-function nodeH(n: PositionedNode): number {
-  return n.h ?? n.height ?? 60;
-}
+import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
 export class OverlapResolver {
   private config: LayoutConfig;
@@ -27,8 +18,8 @@ export class OverlapResolver {
    * Ensures nodes don't go off-canvas
    */
   private constrainNodeToBounds(node: PositionedNode, margin: number = 10): void {
-    const maxX = Math.max(margin, this.config.width - nodeW(node) - margin);
-    const maxY = Math.max(margin, this.config.height - nodeH(node) - margin);
+    const maxX = Math.max(margin, this.config.width - getNodeWidth(node) - margin);
+    const maxY = Math.max(margin, this.config.height - getNodeHeight(node) - margin);
     node.x = Math.max(margin, Math.min(node.x, maxX));
     node.y = Math.max(margin, Math.min(node.y, maxY));
   }
@@ -40,8 +31,8 @@ export class OverlapResolver {
   private buildSpatialGrid(nodes: PositionedNode[], cellSize: number): Map<number, PositionedNode[]> {
     const grid = new Map<number, PositionedNode[]>();
     for (const node of nodes) {
-      const w = nodeW(node);
-      const h = nodeH(node);
+      const w = getNodeWidth(node);
+      const h = getNodeHeight(node);
       const minCol = Math.floor(node.x / cellSize);
       const maxCol = Math.floor((node.x + w) / cellSize);
       const minRow = Math.floor(node.y / cellSize);
@@ -68,7 +59,7 @@ export class OverlapResolver {
     // Calculate cell size from max node dimension
     let maxDim = 0;
     for (const n of nodes) {
-      const d = Math.max(nodeW(n), nodeH(n));
+      const d = Math.max(getNodeWidth(n), getNodeHeight(n));
       if (d > maxDim) maxDim = d;
     }
     const cellSize = Math.max(maxDim + 10, 50);
@@ -172,8 +163,8 @@ export class OverlapResolver {
   private async resolveSpecificOverlap(node1: PositionedNode, node2: PositionedNode, diagramType: DiagramType): Promise<void> {
     const separation = this.getMinimumSeparationForType(diagramType);
 
-    const w1 = nodeW(node1), h1 = nodeH(node1);
-    const w2 = nodeW(node2), h2 = nodeH(node2);
+    const w1 = getNodeWidth(node1), h1 = getNodeHeight(node1);
+    const w2 = getNodeWidth(node2), h2 = getNodeHeight(node2);
     const centerX1 = node1.x + w1 / 2;
     const centerY1 = node1.y + h1 / 2;
     const centerX2 = node2.x + w2 / 2;

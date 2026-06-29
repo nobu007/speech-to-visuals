@@ -440,7 +440,7 @@ export class SceneSegmenter {
             text: current.text + next.text,
             summary: this.generateSummary(current.text + next.text),
             keyphrases: [...new Set([...current.keyphrases, ...next.keyphrases])],
-            confidence: Math.max(current.confidence, next.confidence),
+            confidence: Math.max(Number.isFinite(current.confidence) ? current.confidence : 0, Number.isFinite(next.confidence) ? next.confidence : 0),
           };
           i++;
         } else {
@@ -552,7 +552,7 @@ export class SceneSegmenter {
       text,
       summary: this.generateSummary(text),
       keyphrases: [...new Set(group.flatMap(s => s.keyphrases))],
-      confidence: Math.max(...group.map(s => s.confidence)),
+      confidence: Math.max(...group.map(s => Number.isFinite(s.confidence) ? s.confidence : 0)),
     };
   }
 
@@ -564,7 +564,7 @@ export class SceneSegmenter {
       segmentCount: segments.length,
       avgSegmentLength: segments.length > 0 ? segments.reduce((sum, seg) => sum + (seg.endMs - seg.startMs), 0) / segments.length : 0,
       avgKeyphraseCount: segments.length > 0 ? segments.reduce((sum, seg) => sum + seg.keyphrases.length, 0) / segments.length : 0,
-      avgConfidence: segments.length > 0 ? segments.reduce((sum, seg) => sum + seg.confidence, 0) / segments.length : 0,
+      avgConfidence: segments.length > 0 ? segments.reduce((sum, seg) => sum + (Number.isFinite(seg.confidence) ? seg.confidence : 0), 0) / segments.length : 0,
       processingTime
     };
 
@@ -878,7 +878,7 @@ export class SceneSegmenter {
           text: prev.text + last.text,
           summary: prev.summary,
           keyphrases: [...new Set([...prev.keyphrases, ...last.keyphrases])],
-          confidence: Math.max(prev.confidence, last.confidence),
+          confidence: Math.max(Number.isFinite(prev.confidence) ? prev.confidence : 0, Number.isFinite(last.confidence) ? last.confidence : 0),
         };
         result.pop();
       }

@@ -15,6 +15,7 @@ import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagra
 import { LayoutStrategy, StrategyLayoutResult } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
 import { getImportance, importanceSizeScale } from '../importance-scaler';
+import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
 const DEFAULT_NODE_WIDTH = 120;
 const DEFAULT_NODE_HEIGHT = 60;
@@ -70,8 +71,8 @@ export class NetworkStrategy implements LayoutStrategy {
       const imp = getImportance(node);
       const radius = maxRadius * (1.2 - imp * 0.5); // 0.7–1.2 multiplier
       const scale = importanceSizeScale(node);
-      const w = Math.round((node.width ?? DEFAULT_NODE_WIDTH) * scale);
-      const h = Math.round((node.height ?? DEFAULT_NODE_HEIGHT) * scale);
+      const w = Math.round(getNodeWidth(node, DEFAULT_NODE_WIDTH) * scale);
+      const h = Math.round(getNodeHeight(node, DEFAULT_NODE_HEIGHT) * scale);
       return {
         ...node,
         x: cx + radius * Math.cos(angle) - w / 2,
@@ -106,10 +107,10 @@ export class NetworkStrategy implements LayoutStrategy {
       for (let j = i + 1; j < nodes.length; j++) {
         const a = nodes[i];
         const b = nodes[j];
-        const ax = a.x + (a.width ?? DEFAULT_NODE_WIDTH) / 2;
-        const ay = a.y + (a.height ?? DEFAULT_NODE_HEIGHT) / 2;
-        const bx = b.x + (b.width ?? DEFAULT_NODE_WIDTH) / 2;
-        const by = b.y + (b.height ?? DEFAULT_NODE_HEIGHT) / 2;
+        const ax = a.x + getNodeWidth(a, DEFAULT_NODE_WIDTH) / 2;
+        const ay = a.y + getNodeHeight(a, DEFAULT_NODE_HEIGHT) / 2;
+        const bx = b.x + getNodeWidth(b, DEFAULT_NODE_WIDTH) / 2;
+        const by = b.y + getNodeHeight(b, DEFAULT_NODE_HEIGHT) / 2;
         const dx = bx - ax;
         const dy = by - ay;
         const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
@@ -131,10 +132,10 @@ export class NetworkStrategy implements LayoutStrategy {
       const src = nodeMap.get(edge.from);
       const tgt = nodeMap.get(edge.to);
       if (!src || !tgt) continue;
-      const sx = src.x + (src.width ?? DEFAULT_NODE_WIDTH) / 2;
-      const sy = src.y + (src.height ?? DEFAULT_NODE_HEIGHT) / 2;
-      const tx = tgt.x + (tgt.width ?? DEFAULT_NODE_WIDTH) / 2;
-      const ty = tgt.y + (tgt.height ?? DEFAULT_NODE_HEIGHT) / 2;
+      const sx = src.x + getNodeWidth(src, DEFAULT_NODE_WIDTH) / 2;
+      const sy = src.y + getNodeHeight(src, DEFAULT_NODE_HEIGHT) / 2;
+      const tx = tgt.x + getNodeWidth(tgt, DEFAULT_NODE_WIDTH) / 2;
+      const ty = tgt.y + getNodeHeight(tgt, DEFAULT_NODE_HEIGHT) / 2;
       const dx = tx - sx;
       const dy = ty - sy;
       const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
@@ -166,8 +167,8 @@ export class NetworkStrategy implements LayoutStrategy {
       node.x += f.x * damping * scale;
       node.y += f.y * damping * scale;
       // Keep within bounds
-      const w = node.width ?? DEFAULT_NODE_WIDTH;
-      const h = node.height ?? DEFAULT_NODE_HEIGHT;
+      const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
+      const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
       node.x = Math.max(20, Math.min(DEFAULT_CANVAS_WIDTH - w - 20, node.x));
       node.y = Math.max(20, Math.min(DEFAULT_CANVAS_HEIGHT - h - 20, node.y));
     }
@@ -185,8 +186,8 @@ export class NetworkStrategy implements LayoutStrategy {
         from: edge.from,
         to: edge.to,
         points: [
-          { x: src.x + (src.width ?? DEFAULT_NODE_WIDTH) / 2, y: src.y + (src.height ?? DEFAULT_NODE_HEIGHT) / 2 },
-          { x: tgt.x + (tgt.width ?? DEFAULT_NODE_WIDTH) / 2, y: tgt.y + (tgt.height ?? DEFAULT_NODE_HEIGHT) / 2 },
+          { x: src.x + getNodeWidth(src, DEFAULT_NODE_WIDTH) / 2, y: src.y + getNodeHeight(src, DEFAULT_NODE_HEIGHT) / 2 },
+          { x: tgt.x + getNodeWidth(tgt, DEFAULT_NODE_WIDTH) / 2, y: tgt.y + getNodeHeight(tgt, DEFAULT_NODE_HEIGHT) / 2 },
         ],
         label: edge.label,
         id: edge.id,

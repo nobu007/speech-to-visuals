@@ -9,6 +9,7 @@
 import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
+import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
 const DEFAULT_NODE_WIDTH = 120;
 const DEFAULT_NODE_HEIGHT = 60;
@@ -52,10 +53,10 @@ export class ComparisonStrategy implements LayoutStrategy {
         return { from: edge.from, to: edge.to, points: [], label: edge.label, id: edge.id };
       }
       const sourceIsLeft = source.x < target.x;
-      const sw = source.w ?? source.width ?? DEFAULT_NODE_WIDTH;
-      const sh = source.h ?? source.height ?? DEFAULT_NODE_HEIGHT;
-      const tw = target.w ?? target.width ?? DEFAULT_NODE_WIDTH;
-      const th = target.h ?? target.height ?? DEFAULT_NODE_HEIGHT;
+      const sw = getNodeWidth(source, DEFAULT_NODE_WIDTH);
+      const sh = getNodeHeight(source, DEFAULT_NODE_HEIGHT);
+      const tw = getNodeWidth(target, DEFAULT_NODE_WIDTH);
+      const th = getNodeHeight(target, DEFAULT_NODE_HEIGHT);
       return {
         from: edge.from,
         to: edge.to,
@@ -85,8 +86,8 @@ export class ComparisonStrategy implements LayoutStrategy {
     const startY = Math.max(40, (DEFAULT_CANVAS_HEIGHT - totalHeight) / 2);
 
     return nodes.map((node, i) => {
-      const w = node.width ?? DEFAULT_NODE_WIDTH;
-      const h = node.height ?? DEFAULT_NODE_HEIGHT;
+      const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
+      const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
       return {
         ...node,
         x: centerX - w / 2,

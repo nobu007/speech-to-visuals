@@ -14,6 +14,7 @@ import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@
 import { calculateNodeWidth, calculateNodeHeight, calculateNodeCenter, calculateDistance, calculateNodeDistance, generateEdgePoints, nodesOverlap } from './layout-utils';
 import { Point } from './types';
 import { logger } from '../utils/logger';
+import { getNodeWidth, getNodeHeight } from './node-dimensions';
 
 export interface ZeroOverlapConfig {
   // Canvas configuration
@@ -881,8 +882,8 @@ export class ZeroOverlapLayoutEngine {
       const adjustedX = node.x + force.x * damping;
       const adjustedY = node.y + force.y * damping;
 
-      const nw = Number.isFinite(node.w) ? node.w! : (node.width ?? this.config.nodeWidth);
-      const nh = Number.isFinite(node.h) ? node.h! : (node.height ?? this.config.nodeHeight);
+      const nw = getNodeWidth(node, this.config.nodeWidth);
+      const nh = getNodeHeight(node, this.config.nodeHeight);
 
       // Guard against NaN propagation from invalid forces
       const safeX = Number.isFinite(adjustedX) ? Math.max(0, Math.min(this.config.canvasWidth - nw, adjustedX)) : node.x;
@@ -902,11 +903,12 @@ export class ZeroOverlapLayoutEngine {
    * Calculate optimal separation distance for two overlapping nodes
    */
   private calculateOptimalSeparation(node1: PositionedNode, node2: PositionedNode): number {
-    // Guard against NaN/Infinity dimensions — return fallback to prevent NaN propagation
-    const n1w = node1.w ?? node1.width ?? 0;
-    const n1h = node1.h ?? node1.height ?? 0;
-    const n2w = node2.w ?? node2.width ?? 0;
-    const n2h = node2.h ?? node2.height ?? 0;
+    // Use raw property access to detect NaN/Infinity (the shared helper would
+    // mask NaN with a fallback, preventing the guard below from firing).
+    const n1w = node1.width ?? node1.w ?? 0;
+    const n1h = node1.height ?? node1.h ?? 0;
+    const n2w = node2.width ?? node2.w ?? 0;
+    const n2h = node2.height ?? node2.h ?? 0;
 
     if (!Number.isFinite(n1w) || !Number.isFinite(n1h) ||
         !Number.isFinite(n2w) || !Number.isFinite(n2h) ||
@@ -934,10 +936,10 @@ export class ZeroOverlapLayoutEngine {
     node2: PositionedNode,
     distance: number
   ): { x: number; y: number } {
-    const n1w = Number.isFinite(node1.w) ? node1.w! : (node1.width ?? 0);
-    const n1h = Number.isFinite(node1.h) ? node1.h! : (node1.height ?? 0);
-    const n2w = Number.isFinite(node2.w) ? node2.w! : (node2.width ?? 0);
-    const n2h = Number.isFinite(node2.h) ? node2.h! : (node2.height ?? 0);
+    const n1w = getNodeWidth(node1, 0);
+    const n1h = getNodeHeight(node1, 0);
+    const n2w = getNodeWidth(node2, 0);
+    const n2h = getNodeHeight(node2, 0);
 
     const dx = (node1.x + n1w / 2) - (node2.x + n2w / 2);
     const dy = (node1.y + n1h / 2) - (node2.y + n2h / 2);

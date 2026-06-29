@@ -1,6 +1,7 @@
 import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge, DiagramLayout } from '@/types/diagram';
 import { BoundingBox, LayoutConfig, LayoutResult, LayoutMetrics, OverlapPair } from '../../types';
 import { logger } from '@/utils/logger';
+import { getNodeWidth, getNodeHeight } from '../../node-dimensions';
 
 export interface LayoutStrategy {
   /**
@@ -176,8 +177,8 @@ export abstract class BaseLayoutStrategy implements LayoutStrategy {
     // Calculate total area covered by all nodes
     let totalArea = 0;
     for (const node of nodes) {
-      const nw = node.w ?? node.width ?? 1;
-      const nh = node.h ?? node.height ?? 1;
+      const nw = getNodeWidth(node, 1);
+      const nh = getNodeHeight(node, 1);
       totalArea += nw * nh;
     }
     
@@ -268,8 +269,8 @@ export abstract class BaseLayoutStrategy implements LayoutStrategy {
     let maxY = -Infinity;
     
     for (const node of nodes) {
-      const halfWidth = (node.w ?? node.width ?? 0) / 2;
-      const halfHeight = (node.h ?? node.height ?? 0) / 2;
+      const halfWidth = getNodeWidth(node, 0) / 2;
+      const halfHeight = getNodeHeight(node, 0) / 2;
       
       minX = Math.min(minX, node.x - halfWidth);
       minY = Math.min(minY, node.y - halfHeight);
@@ -361,10 +362,10 @@ export abstract class BaseLayoutStrategy implements LayoutStrategy {
   }
   
   protected areNodesOverlapping(a: PositionedNode, b: PositionedNode, padding: number = 0): boolean {
-    const aw = a.width ?? a.w ?? 0;
-    const ah = a.height ?? a.h ?? 0;
-    const bw = b.width ?? b.w ?? 0;
-    const bh = b.height ?? b.h ?? 0;
+    const aw = getNodeWidth(a, 0);
+    const ah = getNodeHeight(a, 0);
+    const bw = getNodeWidth(b, 0);
+    const bh = getNodeHeight(b, 0);
     return !(
       a.x + aw / 2 + padding < b.x - bw / 2 ||
       a.x - aw / 2 - padding > b.x + bw / 2 ||

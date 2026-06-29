@@ -6,6 +6,7 @@ import GridSnapStrategy from './strategies/GridSnapStrategy';
 import { LayoutConfig, LayoutResult, LayoutMetrics } from '../types';
 import { logger } from '../../utils/logger';
 import { VisualizationError } from '@/pipeline/pipeline-errors';
+import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
 export class OverlapResolver {
   private strategies: LayoutStrategy[] = [];
@@ -190,8 +191,8 @@ export class OverlapResolver {
         ...node,
         x: Math.random() * 1000 - 500,
         y: Math.random() * 1000 - 500,
-        width: node.width ?? 100,
-        height: node.height ?? 50
+        width: getNodeWidth(node, 100),
+        height: getNodeHeight(node, 50)
       }));
     }
     
@@ -205,8 +206,8 @@ export class OverlapResolver {
         ...node,
         x: existingNode?.x ?? Math.random() * 1000 - 500,
         y: existingNode?.y ?? Math.random() * 1000 - 500,
-        width: node.width ?? existingNode?.width ?? existingNode?.w ?? 100,
-        height: node.height ?? existingNode?.height ?? existingNode?.h ?? 50
+        width: getNodeWidth(node, getNodeWidth(existingNode ?? {}, 100)),
+        height: getNodeHeight(node, getNodeHeight(existingNode ?? {}, 50))
       };
     });
   }
@@ -280,10 +281,10 @@ export class OverlapResolver {
    * Check if two nodes overlap
    */
   private nodesOverlap(a: PositionedNode, b: PositionedNode): boolean {
-    const aw = a.w ?? a.width ?? 0;
-    const ah = a.h ?? a.height ?? 0;
-    const bw = b.w ?? b.width ?? 0;
-    const bh = b.h ?? b.height ?? 0;
+    const aw = getNodeWidth(a, 0);
+    const ah = getNodeHeight(a, 0);
+    const bw = getNodeWidth(b, 0);
+    const bh = getNodeHeight(b, 0);
     return !(
       a.x + aw / 2 < b.x - bw / 2 ||
       a.x - aw / 2 > b.x + bw / 2 ||
@@ -365,8 +366,8 @@ export class OverlapResolver {
     let maxY = -Infinity;
     
     for (const node of nodes) {
-      const nw = node.w ?? node.width ?? 0;
-      const nh = node.h ?? node.height ?? 0;
+      const nw = getNodeWidth(node, 0);
+      const nh = getNodeHeight(node, 0);
       minX = Math.min(minX, node.x - nw / 2);
       minY = Math.min(minY, node.y - nh / 2);
       maxX = Math.max(maxX, node.x + nw / 2);
@@ -465,8 +466,8 @@ export class OverlapResolver {
     let maxY = -Infinity;
     
     for (const node of nodes) {
-      const nw = node.w ?? node.width ?? 0;
-      const nh = node.h ?? node.height ?? 0;
+      const nw = getNodeWidth(node, 0);
+      const nh = getNodeHeight(node, 0);
       minX = Math.min(minX, node.x - nw / 2);
       minY = Math.min(minY, node.y - nh / 2);
       maxX = Math.max(maxX, node.x + nw / 2);

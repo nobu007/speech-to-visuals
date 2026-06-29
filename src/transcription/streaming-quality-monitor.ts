@@ -184,8 +184,8 @@ export class StreamingQualityMonitor {
       acceptedChunks: acceptedCount,
       rejectedChunks: this.records.length - acceptedCount,
       averageConfidence: avg,
-      minConfidence: Math.min(...confidences),
-      maxConfidence: Math.max(...confidences),
+      minConfidence: confidences.length > 0 ? Math.min(...confidences.filter(c => Number.isFinite(c))) : 0,
+      maxConfidence: confidences.length > 0 ? Math.max(...confidences.filter(c => Number.isFinite(c))) : 0,
       alerts: [...this.alerts],
       status,
     };

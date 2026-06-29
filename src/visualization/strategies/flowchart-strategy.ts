@@ -11,6 +11,7 @@ const dagre = (dagreLib as unknown as { default?: typeof dagreLib }).default ?? 
 import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult, CanvasSize, StrategyLayoutMetrics } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
+import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
 const DEFAULT_NODE_WIDTH = 120;
 const DEFAULT_NODE_HEIGHT = 60;
@@ -43,8 +44,8 @@ export class FlowchartStrategy implements LayoutStrategy {
     g.setDefaultEdgeLabel(() => ({}));
 
     for (const node of nodes) {
-      const w = node.width ?? DEFAULT_NODE_WIDTH;
-      const h = node.height ?? DEFAULT_NODE_HEIGHT;
+      const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
+      const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
       g.setNode(node.id, { width: w, height: h, label: node.label });
     }
 
@@ -56,8 +57,8 @@ export class FlowchartStrategy implements LayoutStrategy {
 
     const positionedNodes: PositionedNode[] = nodes.map((node) => {
       const dagreNode = g.node(node.id);
-      const w = node.width ?? DEFAULT_NODE_WIDTH;
-      const h = node.height ?? DEFAULT_NODE_HEIGHT;
+      const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
+      const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
       return {
         ...node,
         x: dagreNode.x - w / 2,

@@ -17,6 +17,7 @@ import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagra
 import { LayoutStrategy, StrategyLayoutResult } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
 import { getImportance, importanceSizeScale } from '../importance-scaler';
+import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
 const DEFAULT_NODE_WIDTH = 120;
 const DEFAULT_NODE_HEIGHT = 60;
@@ -44,8 +45,8 @@ export class ConceptMapStrategy implements LayoutStrategy {
 
     if (nodes.length === 1) {
       const scale = importanceSizeScale(nodes[0]);
-      const w = Math.round((nodes[0].width ?? DEFAULT_NODE_WIDTH) * scale);
-      const h = Math.round((nodes[0].height ?? DEFAULT_NODE_HEIGHT) * scale);
+      const w = Math.round(getNodeWidth(nodes[0], DEFAULT_NODE_WIDTH) * scale);
+      const h = Math.round(getNodeHeight(nodes[0], DEFAULT_NODE_HEIGHT) * scale);
       const positioned: PositionedNode[] = [{
         ...nodes[0],
         x: (DEFAULT_CANVAS_WIDTH - w) / 2,
@@ -184,7 +185,7 @@ export class ConceptMapStrategy implements LayoutStrategy {
       const widths = ids.map(id => {
         const node = nodeMap.get(id);
         const scale = node ? importanceSizeScale(node) : 1;
-        return Math.round((node?.width ?? DEFAULT_NODE_WIDTH) * scale);
+        return Math.round(getNodeWidth(node ?? { width: 0, w: 0 }, DEFAULT_NODE_WIDTH) * scale);
       });
 
       const totalWidth = widths.reduce((sum, w) => sum + w, 0) + (ids.length - 1) * NODE_SEP_X;
@@ -203,8 +204,8 @@ export class ConceptMapStrategy implements LayoutStrategy {
     return nodes.map(node => {
       const pos = positions.get(node.id)!;
       const scale = importanceSizeScale(node);
-      const w = Math.round((node.width ?? DEFAULT_NODE_WIDTH) * scale);
-      const h = Math.round((node.height ?? DEFAULT_NODE_HEIGHT) * scale);
+      const w = Math.round(getNodeWidth(node, DEFAULT_NODE_WIDTH) * scale);
+      const h = Math.round(getNodeHeight(node, DEFAULT_NODE_HEIGHT) * scale);
       return { ...node, x: pos.x, y: pos.y, width: w, height: h };
     });
   }
@@ -222,8 +223,8 @@ export class ConceptMapStrategy implements LayoutStrategy {
         from: edge.from,
         to: edge.to,
         points: [
-          { x: src.x + (src.width ?? DEFAULT_NODE_WIDTH) / 2, y: src.y + (src.height ?? DEFAULT_NODE_HEIGHT) / 2 },
-          { x: tgt.x + (tgt.width ?? DEFAULT_NODE_WIDTH) / 2, y: tgt.y + (tgt.height ?? DEFAULT_NODE_HEIGHT) / 2 },
+          { x: src.x + getNodeWidth(src, DEFAULT_NODE_WIDTH) / 2, y: src.y + getNodeHeight(src, DEFAULT_NODE_HEIGHT) / 2 },
+          { x: tgt.x + getNodeWidth(tgt, DEFAULT_NODE_WIDTH) / 2, y: tgt.y + getNodeHeight(tgt, DEFAULT_NODE_HEIGHT) / 2 },
         ],
         label: edge.label,
         id: edge.id,

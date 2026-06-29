@@ -1,15 +1,16 @@
 import { PositionedNode, LayoutEdge, DiagramLayout } from '@/types/diagram';
 import { BaseLayoutStrategy } from './LayoutStrategy';
 import { LayoutConfig, LayoutResult, BoundingBox } from '../../types';
+import { getNodeWidth, getNodeHeight } from '../../node-dimensions';
 
 /** Get effective node width (handles both `w` and `width` properties, consistent with other layout modules) */
 function effWidth(node: PositionedNode): number {
-  return node.width ?? node.w ?? 120;
+  return getNodeWidth(node, 120);
 }
 
 /** Get effective node height (handles both `h` and `height` properties, consistent with other layout modules) */
 function effHeight(node: PositionedNode): number {
-  return node.height ?? node.h ?? 60;
+  return getNodeHeight(node, 60);
 }
 
 interface AnnealingNode extends PositionedNode {

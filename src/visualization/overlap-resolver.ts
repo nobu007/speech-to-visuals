@@ -1,19 +1,10 @@
 import { PositionedNode, LayoutEdge } from '@/types/diagram';
 import { SpatialHash, GridSpatialHash } from './spatial-hash';
+import { getNodeWidth as effWidth, getNodeHeight as effHeight } from './node-dimensions';
 
 export interface OverlapPair {
   node1: PositionedNode;
   node2: PositionedNode;
-}
-
-/** Get effective width, checking both `w` and `width` properties */
-function effWidth(node: PositionedNode): number {
-  return node.width ?? node.w ?? 0;
-}
-
-/** Get effective height, checking both `h` and `height` properties */
-function effHeight(node: PositionedNode): number {
-  return node.height ?? node.h ?? 0;
 }
 
 export class OverlapResolver {
@@ -109,10 +100,10 @@ export class OverlapResolver {
       const i2 = indexMap.get(node2.id);
       if (i1 === undefined || i2 === undefined) continue;
 
-      const w1 = effWidth(node1);
-      const h1 = effHeight(node1);
-      const w2 = effWidth(node2);
-      const h2 = effHeight(node2);
+      const w1 = effWidth(node1, 0);
+      const h1 = effHeight(node1, 0);
+      const w2 = effWidth(node2, 0);
+      const h2 = effHeight(node2, 0);
 
       const overlapX = Math.min(node1.x + w1, node2.x + w2) -
                         Math.max(node1.x, node2.x);
@@ -146,8 +137,8 @@ export class OverlapResolver {
   private gridSnapFallback(nodes: PositionedNode[]): PositionedNode[] {
     if (nodes.length === 0) return nodes;
 
-    const maxNodeWidth = Math.max(...nodes.map(n => effWidth(n)));
-    const maxNodeHeight = Math.max(...nodes.map(n => effHeight(n)));
+    const maxNodeWidth = Math.max(...nodes.map(n => effWidth(n, 0)));
+    const maxNodeHeight = Math.max(...nodes.map(n => effHeight(n, 0)));
     const cellWidth = maxNodeWidth + 20;
     const cellHeight = maxNodeHeight + 20;
 
@@ -172,10 +163,10 @@ export class OverlapResolver {
   }
 
   private nodesOverlap(a: PositionedNode, b: PositionedNode): boolean {
-    const aw = effWidth(a);
-    const ah = effHeight(a);
-    const bw = effWidth(b);
-    const bh = effHeight(b);
+    const aw = effWidth(a, 0);
+    const ah = effHeight(a, 0);
+    const bw = effWidth(b, 0);
+    const bh = effHeight(b, 0);
     return (
       a.x < b.x + bw &&
       a.x + aw > b.x &&

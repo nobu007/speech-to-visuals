@@ -13,6 +13,7 @@ import {
   StrategyLayoutMetrics,
 } from '@/visualization/types';
 import { calculateCanvasSize, calculateMetrics } from '@/visualization/layout-engine-v2';
+import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
 const DEFAULT_NODE_WIDTH = 120;
 const DEFAULT_NODE_HEIGHT = 60;
@@ -82,10 +83,10 @@ function determineNodeOrder(nodes: NodeDatum[], edges: EdgeDatum[]): NodeDatum[]
 }
 
 function nodesOverlap(a: PositionedNode, b: PositionedNode): boolean {
-  const aw = a.w ?? a.width ?? 0;
-  const ah = a.h ?? a.height ?? 0;
-  const bw = b.w ?? b.width ?? 0;
-  const bh = b.h ?? b.height ?? 0;
+  const aw = getNodeWidth(a, 0);
+  const ah = getNodeHeight(a, 0);
+  const bw = getNodeWidth(b, 0);
+  const bh = getNodeHeight(b, 0);
   return (
     a.x < b.x + bw &&
     a.x + aw > b.x &&
@@ -118,9 +119,9 @@ function gridSnapResolve(
         foundOverlap = true;
 
         // Try to resolve by spreading X first
-        const wi = result[i].w ?? result[i].width ?? 0;
-        const wj = result[j].w ?? result[j].width ?? 0;
-        const hi = result[i].h ?? result[i].height ?? 0;
+        const wi = getNodeWidth(result[i], 0);
+        const wj = getNodeWidth(result[j], 0);
+        const hi = getNodeHeight(result[i], 0);
         const xOverlap =
           Math.min(result[i].x + wi, result[j].x + wj) -
           Math.max(result[i].x, result[j].x);
@@ -248,8 +249,8 @@ export class TimelineStrategy implements LayoutStrategy {
       ...node,
       x: centerX,
       y: startY + index * ySpacing,
-      width: node.width ?? DEFAULT_NODE_WIDTH,
-      height: node.height ?? DEFAULT_NODE_HEIGHT,
+      width: getNodeWidth(node, DEFAULT_NODE_WIDTH),
+      height: getNodeHeight(node, DEFAULT_NODE_HEIGHT),
     }));
 
     // Single node: no need for force-directed or grid-snap
@@ -313,9 +314,9 @@ export class TimelineStrategy implements LayoutStrategy {
       }
 
       // Vertical connection: source bottom-center to target top-center
-      const sw = source.w ?? source.width ?? DEFAULT_NODE_WIDTH;
-      const sh = source.h ?? source.height ?? DEFAULT_NODE_HEIGHT;
-      const tw = target.w ?? target.width ?? DEFAULT_NODE_WIDTH;
+      const sw = getNodeWidth(source, DEFAULT_NODE_WIDTH);
+      const sh = getNodeHeight(source, DEFAULT_NODE_HEIGHT);
+      const tw = getNodeWidth(target, DEFAULT_NODE_WIDTH);
       const sourcePoint = {
         x: source.x + sw / 2,
         y: source.y + sh,

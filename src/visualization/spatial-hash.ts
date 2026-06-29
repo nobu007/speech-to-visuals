@@ -1,4 +1,5 @@
 import { PositionedNode } from '@/types/diagram';
+import { getNodeWidth as nodeW, getNodeHeight as nodeH } from './node-dimensions';
 
 export interface Rect {
   x: number;
@@ -15,15 +16,6 @@ export interface SpatialHash {
   clear(): void;
 }
 
-/** Get effective width/height from a PositionedNode (supports w/h and width/height). */
-function nodeW(n: PositionedNode): number {
-  return n.w ?? n.width ?? 0;
-}
-
-function nodeH(n: PositionedNode): number {
-  return n.h ?? n.height ?? 0;
-}
-
 export class GridSpatialHash implements SpatialHash {
   private grid = new Map<string, Set<PositionedNode>>();
   private cellSize: number;
@@ -38,7 +30,7 @@ export class GridSpatialHash implements SpatialHash {
   private calculateCellSize(nodes: PositionedNode[]): number {
     if (nodes.length === 0) return 200;
     const maxSize = Math.max(
-      ...nodes.map(n => Math.max(nodeW(n), nodeH(n)))
+      ...nodes.map(n => Math.max(nodeW(n, 0), nodeH(n, 0)))
     );
     return Math.max(maxSize, 50);
   }
@@ -65,7 +57,7 @@ export class GridSpatialHash implements SpatialHash {
   }
 
   private getNodeCells(node: PositionedNode): string[] {
-    return this.getRectCells(node.x, node.y, nodeW(node), nodeH(node));
+    return this.getRectCells(node.x, node.y, nodeW(node, 0), nodeH(node, 0));
   }
 
   insert(node: PositionedNode): void {

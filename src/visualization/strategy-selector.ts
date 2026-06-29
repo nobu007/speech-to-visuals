@@ -1,4 +1,5 @@
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
+import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from './node-dimensions';
 import { LayoutStrategy, StrategyLayoutResult, CanvasSize, StrategyRegistry } from './types';
 import { DefaultStrategyRegistry } from './strategies/base-strategy';
 import { OverlapResolver } from './overlap-resolver';
@@ -82,8 +83,8 @@ class GridSnapFallbackStrategy implements LayoutStrategy {
       ...n,
       x: (i % 5) * 160 + 40,
       y: Math.floor(i / 5) * 100 + 40,
-      width: n.width ?? 120,
-      height: n.height ?? 60,
+      width: getNodeWidth(n, DEFAULT_NODE_WIDTH),
+      height: getNodeHeight(n, DEFAULT_NODE_HEIGHT),
     }));
 
     const layoutEdges = edges.map(e => ({
@@ -146,8 +147,8 @@ export async function executeLayout(
 function calculateBoundingBox(nodes: PositionedNode[]) {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const n of nodes) {
-    const w = n.w ?? n.width ?? 0;
-    const h = n.h ?? n.height ?? 0;
+    const w = getNodeWidth(n, 0);
+    const h = getNodeHeight(n, 0);
     if (n.x < minX) minX = n.x;
     if (n.y < minY) minY = n.y;
     if (n.x + w > maxX) maxX = n.x + w;

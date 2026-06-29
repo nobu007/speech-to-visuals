@@ -7,6 +7,7 @@
  */
 
 import { PositionedNode } from '@/types/diagram';
+import { getNodeWidth, getNodeHeight } from './node-dimensions';
 
 const DEFAULT_CANVAS_WIDTH = 1920;
 const DEFAULT_CANVAS_HEIGHT = 1080;
@@ -48,8 +49,8 @@ export class CanvasCalculator {
 
     for (const node of nodes) {
       const left = Number.isFinite(node.x) ? node.x : 0;
-      const w = node.w ?? node.width;
-      const h = node.h ?? node.height;
+      const w = getNodeWidth(node, 0);
+      const h = getNodeHeight(node, 0);
       const right = left + (Number.isFinite(w) ? w : 0);
       const top = Number.isFinite(node.y) ? node.y : 0;
       const bottom = top + (Number.isFinite(h) ? h : 0);
@@ -123,8 +124,8 @@ export class CanvasCalculator {
 
     for (const node of nodes) {
       const left = Number.isFinite(node.x) ? node.x : 0;
-      const w = node.w ?? node.width;
-      const h = node.h ?? node.height;
+      const w = getNodeWidth(node, 0);
+      const h = getNodeHeight(node, 0);
       const right = left + (Number.isFinite(w) ? w : 0);
       const top = Number.isFinite(node.y) ? node.y : 0;
       const bottom = top + (Number.isFinite(h) ? h : 0);

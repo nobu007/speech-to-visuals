@@ -8,6 +8,7 @@
 import { PositionedNode, LayoutEdge, DiagramType } from '@/types/diagram';
 import { VisualBalanceScorer } from './visual-balance-scorer';
 import { detectEdgeCrossings } from './edge-crossing-minimizer';
+import { getNodeWidth, getNodeHeight } from './node-dimensions';
 
 export interface CompositeScoreInput {
   balanceScore?: number;
@@ -130,8 +131,8 @@ export function scoreLayout(
   // Count overflows (nodes exceeding canvas bounds)
   let overflowCount = 0;
   for (const n of nodes) {
-    const w = n.w ?? n.width ?? 0;
-    const h = n.h ?? n.height ?? 0;
+    const w = getNodeWidth(n, 0);
+    const h = getNodeHeight(n, 0);
     if (n.x + w > cw || n.y + h > ch || n.x < 0 || n.y < 0) {
       overflowCount++;
     }
@@ -186,8 +187,8 @@ export class LayoutQualityCompositeScorer {
     // Overflow score: fraction of nodes within bounds
     let overflowCount = 0;
     for (const n of nodes) {
-      const w = n.w ?? n.width ?? 0;
-      const h = n.h ?? n.height ?? 0;
+      const w = getNodeWidth(n, 0);
+      const h = getNodeHeight(n, 0);
       if (n.x + w > bounds.width || n.y + h > bounds.height || n.x < 0 || n.y < 0) {
         overflowCount++;
       }

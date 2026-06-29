@@ -70,7 +70,7 @@ export class ImprovementDetector {
         const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
         if (priorityDiff !== 0) return priorityDiff;
         // Then by impact (confidence-weighted)
-        return (b.confidence * 10) - (a.confidence * 10);
+        return (Number.isFinite(b.confidence) ? b.confidence : 0) * 10 - (Number.isFinite(a.confidence) ? a.confidence : 0) * 10;
       }),
       trends,
       nextIterationFocus,
@@ -384,7 +384,8 @@ export class ImprovementDetector {
                      opp.priority === 'medium' ? '🟡' : '🟢';
         md += `### ${icon} ${opp.area} (${opp.priority.toUpperCase()})\n\n`;
         md += `**Impact**: ${opp.impact}\n\n`;
-        md += `**Current**: ${opp.currentValue} | **Target**: ${opp.targetValue} | **Confidence**: ${(opp.confidence * 100).toFixed(0)}%\n\n`;
+        const conf = Number.isFinite(opp.confidence) ? opp.confidence : 0;
+        md += `**Current**: ${opp.currentValue} | **Target**: ${opp.targetValue} | **Confidence**: ${(conf * 100).toFixed(0)}%\n\n`;
         md += '**Suggested Actions**:\n';
         for (const action of opp.suggestedActions) {
           md += `- ${action}\n`;

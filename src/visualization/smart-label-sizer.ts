@@ -8,6 +8,7 @@
  */
 
 import { PositionedNode } from '@/types/diagram';
+import { getNodeWidth, getNodeHeight } from './node-dimensions';
 
 /**
  * Unicode ranges for CJK characters that are typically rendered at ~2x the
@@ -128,8 +129,8 @@ export function sizeAllLabels(
   const results = new Map<string, LabelSizingResult>();
 
   for (const node of nodes) {
-    const w = node.w ?? node.width ?? 120;
-    const h = node.h ?? node.height ?? 60;
+    const w = getNodeWidth(node, 120);
+    const h = getNodeHeight(node, 60);
     results.set(node.id, sizeLabel(node.label, w, h, config));
   }
 

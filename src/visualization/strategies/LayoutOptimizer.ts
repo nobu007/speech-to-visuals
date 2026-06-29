@@ -1,17 +1,6 @@
 import { DiagramLayout, PositionedNode, DiagramType, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
-
-/** Get effective node width (handles w, width, and config fallback) */
-function nodeW(n: PositionedNode, config: LayoutConfig): number {
-  const w = n.w ?? n.width;
-  return Number.isFinite(w) ? w : config.nodeWidth;
-}
-
-/** Get effective node height (handles h, height, and config fallback) */
-function nodeH(n: PositionedNode, config: LayoutConfig): number {
-  const h = n.h ?? n.height;
-  return Number.isFinite(h) ? h : config.nodeHeight;
-}
+import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
 export class LayoutOptimizer {
   private config: LayoutConfig;
@@ -55,8 +44,8 @@ export class LayoutOptimizer {
       const angle = (2 * Math.PI * index) / Math.max(1, nodes.length);
       return {
         ...node,
-        x: centerX + radius * Math.cos(angle) - nodeW(node, this.config) / 2,
-        y: centerY + radius * Math.sin(angle) - nodeH(node, this.config) / 2,
+        x: centerX + radius * Math.cos(angle) - getNodeWidth(node, this.config.nodeWidth) / 2,
+        y: centerY + radius * Math.sin(angle) - getNodeHeight(node, this.config.nodeHeight) / 2,
       };
     });
 
@@ -83,8 +72,8 @@ export class LayoutOptimizer {
     const spacing = nodes.length > 1 ? usableWidth / (nodes.length - 1) : 0;
     const repositioned = sortedNodes.map((node, index) => ({
       ...node,
-      x: this.config.marginX + index * spacing - nodeW(node, this.config) / 2,
-      y: this.config.height / 2 - nodeH(node, this.config) / 2, // Center vertically
+      x: this.config.marginX + index * spacing - getNodeWidth(node, this.config.nodeWidth) / 2,
+      y: this.config.height / 2 - getNodeHeight(node, this.config.nodeHeight) / 2, // Center vertically
     }));
 
     return { nodes: repositioned, edges: layout.edges };
@@ -106,8 +95,8 @@ export class LayoutOptimizer {
       const col = index % gridSize;
       return {
         ...node,
-        x: this.config.marginX + col * cellWidth + cellWidth / 2 - nodeW(node, this.config) / 2,
-        y: this.config.marginY + row * cellHeight + cellHeight / 2 - nodeH(node, this.config) / 2,
+        x: this.config.marginX + col * cellWidth + cellWidth / 2 - getNodeWidth(node, this.config.nodeWidth) / 2,
+        y: this.config.marginY + row * cellHeight + cellHeight / 2 - getNodeHeight(node, this.config.nodeHeight) / 2,
       };
     });
 
@@ -129,8 +118,8 @@ export class LayoutOptimizer {
     }
 
     return [
-      { x: fromNode.x + nodeW(fromNode, this.config) / 2, y: fromNode.y + nodeH(fromNode, this.config) / 2 },
-      { x: toNode.x + nodeW(toNode, this.config) / 2, y: toNode.y + nodeH(toNode, this.config) / 2 }
+      { x: fromNode.x + getNodeWidth(fromNode, this.config.nodeWidth) / 2, y: fromNode.y + getNodeHeight(fromNode, this.config.nodeHeight) / 2 },
+      { x: toNode.x + getNodeWidth(toNode, this.config.nodeWidth) / 2, y: toNode.y + getNodeHeight(toNode, this.config.nodeHeight) / 2 }
     ];
   }
 
@@ -166,8 +155,8 @@ export class LayoutOptimizer {
     if (layout.nodes.length === 0) return layout;
 
     // Calculate centroid to scale relative to center, not origin
-    const centerX = layout.nodes.reduce((sum, n) => sum + (n.x + nodeW(n, this.config) / 2), 0) / layout.nodes.length;
-    const centerY = layout.nodes.reduce((sum, n) => sum + (n.y + nodeH(n, this.config) / 2), 0) / layout.nodes.length;
+    const centerX = layout.nodes.reduce((sum, n) => sum + (n.x + getNodeWidth(n, this.config.nodeWidth) / 2), 0) / layout.nodes.length;
+    const centerY = layout.nodes.reduce((sum, n) => sum + (n.y + getNodeHeight(n, this.config.nodeHeight) / 2), 0) / layout.nodes.length;
 
     const nodes = layout.nodes.map(node => {
       const importance = node.meta?.importance || 0.5;
@@ -176,8 +165,8 @@ export class LayoutOptimizer {
       const spacingMultiplier = 1 + importance * 0.5;
 
       // Scale relative to centroid to avoid pushing nodes off-canvas
-      const nw = nodeW(node, this.config);
-      const nh = nodeH(node, this.config);
+      const nw = getNodeWidth(node, this.config.nodeWidth);
+      const nh = getNodeHeight(node, this.config.nodeHeight);
       const nodeCenterX = node.x + nw / 2;
       const nodeCenterY = node.y + nh / 2;
 
@@ -264,8 +253,8 @@ export class LayoutOptimizer {
       const angle = (2 * Math.PI * index) / Math.max(1, nodes.length);
       return {
         ...node,
-        x: centerX + radius * Math.cos(angle) - nodeW(node, this.config) / 2,
-        y: centerY + radius * Math.sin(angle) - nodeH(node, this.config) / 2
+        x: centerX + radius * Math.cos(angle) - getNodeWidth(node, this.config.nodeWidth) / 2,
+        y: centerY + radius * Math.sin(angle) - getNodeHeight(node, this.config.nodeHeight) / 2
       };
     });
   }
@@ -277,7 +266,7 @@ export class LayoutOptimizer {
     if (nodes.length === 0) return nodes;
 
     const sortedNodes = [...nodes].sort((a, b) => a.x - b.x);
-    const y = this.config.height / 2 - nodeH(sortedNodes[0], this.config) / 2;
+    const y = this.config.height / 2 - getNodeHeight(sortedNodes[0], this.config.nodeHeight) / 2;
     const usableWidth = this.config.width - 2 * this.config.marginX;
     const spacing = nodes.length > 1 ? usableWidth / (nodes.length - 1) : 0;
 
@@ -303,8 +292,8 @@ export class LayoutOptimizer {
     return nodes.map((node, index) => {
       const row = Math.floor(index / cols);
       const col = index % cols;
-      const nw = nodeW(node, this.config);
-      const nh = nodeH(node, this.config);
+      const nw = getNodeWidth(node, this.config.nodeWidth);
+      const nh = getNodeHeight(node, this.config.nodeHeight);
 
       return {
         ...node,
@@ -342,10 +331,10 @@ export class LayoutOptimizer {
    * Get optimal connection point to minimize crossings
    */
   private getOptimalConnectionPoint(fromNode: PositionedNode, toNode: PositionedNode): { x: number; y: number } {
-    const fw = nodeW(fromNode, this.config);
-    const fh = nodeH(fromNode, this.config);
-    const tw = nodeW(toNode, this.config);
-    const th = nodeH(toNode, this.config);
+    const fw = getNodeWidth(fromNode, this.config.nodeWidth);
+    const fh = getNodeHeight(fromNode, this.config.nodeHeight);
+    const tw = getNodeWidth(toNode, this.config.nodeWidth);
+    const th = getNodeHeight(toNode, this.config.nodeHeight);
 
     const fromCenterX = fromNode.x + fw / 2;
     const fromCenterY = fromNode.y + fh / 2;

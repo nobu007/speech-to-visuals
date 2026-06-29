@@ -741,7 +741,7 @@ export class ContinuousLearner {
       // 既存パターンの更新
       this.detectedPatterns[existingIndex] = {
         ...this.detectedPatterns[existingIndex],
-        confidence: (this.detectedPatterns[existingIndex].confidence + pattern.confidence) / 2,
+        confidence: ((Number.isFinite(this.detectedPatterns[existingIndex].confidence) ? this.detectedPatterns[existingIndex].confidence : 0) + (Number.isFinite(pattern.confidence) ? pattern.confidence : 0)) / 2,
         validationCount: this.detectedPatterns[existingIndex].validationCount + 1,
         detectedAt: this.detectedPatterns[existingIndex].detectedAt,
       };

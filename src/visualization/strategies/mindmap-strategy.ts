@@ -2,6 +2,7 @@ import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagra
 import { LayoutStrategy, StrategyLayoutResult } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
 import { getImportance, importanceSizeScale } from '../importance-scaler';
+import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
 const DEFAULT_NODE_WIDTH = 120;
 const DEFAULT_NODE_HEIGHT = 60;
@@ -41,8 +42,8 @@ export class MindMapStrategy implements LayoutStrategy {
 
     if (nodes.length === 1) {
       const scale = importanceSizeScale(nodes[0]);
-      const w = Math.round((nodes[0].width ?? DEFAULT_NODE_WIDTH) * scale);
-      const h = Math.round((nodes[0].height ?? DEFAULT_NODE_HEIGHT) * scale);
+      const w = Math.round(getNodeWidth(nodes[0], DEFAULT_NODE_WIDTH) * scale);
+      const h = Math.round(getNodeHeight(nodes[0], DEFAULT_NODE_HEIGHT) * scale);
       const positioned: PositionedNode[] = [{
         ...nodes[0],
         x: (DEFAULT_CANVAS_WIDTH - w) / 2,
@@ -187,8 +188,8 @@ export class MindMapStrategy implements LayoutStrategy {
     return nodes.map(node => {
       const pos = positions.get(node.id)!;
       const scale = importanceSizeScale(node);
-      const w = Math.round((nodeMap.get(node.id)?.width ?? node.width ?? DEFAULT_NODE_WIDTH) * scale);
-      const h = Math.round((nodeMap.get(node.id)?.height ?? node.height ?? DEFAULT_NODE_HEIGHT) * scale);
+      const w = Math.round(getNodeWidth(node, DEFAULT_NODE_WIDTH) * scale);
+      const h = Math.round(getNodeHeight(node, DEFAULT_NODE_HEIGHT) * scale);
       return { ...node, x: pos.x - w / 2, y: pos.y - h / 2, width: w, height: h };
     });
   }
@@ -259,14 +260,14 @@ export class MindMapStrategy implements LayoutStrategy {
     return nodes.map((node, i) => {
       if (positions.has(node.id)) {
         const pos = positions.get(node.id)!;
-        const w = node.width ?? DEFAULT_NODE_WIDTH;
-        const h = node.height ?? DEFAULT_NODE_HEIGHT;
+        const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
+        const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
         return { ...node, x: pos.x - w / 2, y: pos.y - h / 2, width: w, height: h };
       }
       const angle = (2 * Math.PI * i) / nodes.length;
       const radius = CENTER_MARGIN + i * 20;
-      const w = node.width ?? DEFAULT_NODE_WIDTH;
-      const h = node.height ?? DEFAULT_NODE_HEIGHT;
+      const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
+      const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
       return {
         ...node,
         x: cx + Math.cos(angle) * radius - w / 2,

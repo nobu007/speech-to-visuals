@@ -19,6 +19,7 @@ import { logger } from '../utils/logger';
 import { sanitizeFilename } from '../utils/sanitize';
 import { validateSceneGraphForExport, isStrictValidationEnabled } from './export-content-validator';
 import { securityMetricsCollector } from './security-metrics-collector';
+import { getNodeWidth, getNodeHeight } from '../visualization/node-dimensions';
 
 export type ExportFormat = 'svg' | 'png' | 'pdf' | 'json';
 
@@ -274,10 +275,10 @@ export class MultiFormatExporter {
       const toNode = nodes.find((n) => n.id === edge.to);
 
       if (fromNode && toNode) {
-        const fw = fromNode.w ?? fromNode.width ?? 120;
-        const fh = fromNode.h ?? fromNode.height ?? 60;
-        const tw = toNode.w ?? toNode.width ?? 120;
-        const th = toNode.h ?? toNode.height ?? 60;
+        const fw = getNodeWidth(fromNode, 120);
+        const fh = getNodeHeight(fromNode, 60);
+        const tw = getNodeWidth(toNode, 120);
+        const th = getNodeHeight(toNode, 60);
         const fx = (fromNode.x || 0) + fw / 2;
         const fy = (fromNode.y || 0) + fh / 2;
         const tx = (toNode.x || 0) + tw / 2;
@@ -297,8 +298,8 @@ export class MultiFormatExporter {
     for (const node of nodes) {
       const x = node.x || 0;
       const y = node.y || 0;
-      const w = node.w ?? node.width ?? 120;
-      const h = node.h ?? node.height ?? 60;
+      const w = getNodeWidth(node, 120);
+      const h = getNodeHeight(node, 60);
 
       svg += `    <g id="${this.escapeXML(node.id)}">
       <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#4A90E2" stroke="#2E5C8A" stroke-width="2" rx="5"/>
@@ -355,10 +356,10 @@ export class MultiFormatExporter {
       const toNode = nodes.find((n) => n.id === edge.to);
 
       if (fromNode && toNode) {
-        const fw = fromNode.w ?? fromNode.width ?? 120;
-        const fh = fromNode.h ?? fromNode.height ?? 60;
-        const tw = toNode.w ?? toNode.width ?? 120;
-        const th = toNode.h ?? toNode.height ?? 60;
+        const fw = getNodeWidth(fromNode, 120);
+        const fh = getNodeHeight(fromNode, 60);
+        const tw = getNodeWidth(toNode, 120);
+        const th = getNodeHeight(toNode, 60);
         const fx = (fromNode.x || 0) + fw / 2;
         const fy = (fromNode.y || 0) + fh / 2;
         const tx = (toNode.x || 0) + tw / 2;
@@ -383,8 +384,8 @@ export class MultiFormatExporter {
     for (const node of nodes) {
       const x = node.x || 0;
       const y = node.y || 0;
-      const w = node.w ?? node.width ?? 120;
-      const h = node.h ?? node.height ?? 60;
+      const w = getNodeWidth(node, 120);
+      const h = getNodeHeight(node, 60);
 
       // Node rectangle
       ctx.fillStyle = '#4A90E2';
@@ -474,8 +475,8 @@ export class MultiFormatExporter {
     for (const node of nodes) {
       const x = node.x || 0;
       const y = node.y || 0;
-      const w = node.width || 120;
-      const h = node.height || 60;
+      const w = getNodeWidth(node, 120);
+      const h = getNodeHeight(node, 60);
       // PDF rect: lower-left corner
       const rx = x - w / 2;
       const ry = pageHeight - y - h / 2;

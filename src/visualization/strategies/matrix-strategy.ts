@@ -13,6 +13,7 @@ import {
   StrategyLayoutMetrics,
 } from '@/visualization/types';
 import { calculateCanvasSize, calculateMetrics } from '@/visualization/layout-engine-v2';
+import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
 const DEFAULT_NODE_WIDTH = 120;
 const DEFAULT_NODE_HEIGHT = 60;
@@ -52,8 +53,8 @@ export class MatrixStrategy implements LayoutStrategy {
       const col = index % columns;
       const row = Math.floor(index / columns);
 
-      const nodeWidth = node.width ?? DEFAULT_NODE_WIDTH;
-      const nodeHeight = node.height ?? DEFAULT_NODE_HEIGHT;
+      const nodeWidth = getNodeWidth(node, DEFAULT_NODE_WIDTH);
+      const nodeHeight = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
 
       // Center the node within its cell
       const cellX = CANVAS_PADDING + col * cellWidth;
@@ -106,10 +107,10 @@ export class MatrixStrategy implements LayoutStrategy {
       }
 
       // Straight line from source center to target center
-      const sw = source.w ?? source.width ?? DEFAULT_NODE_WIDTH;
-      const sh = source.h ?? source.height ?? DEFAULT_NODE_HEIGHT;
-      const tw = target.w ?? target.width ?? DEFAULT_NODE_WIDTH;
-      const th = target.h ?? target.height ?? DEFAULT_NODE_HEIGHT;
+      const sw = getNodeWidth(source, DEFAULT_NODE_WIDTH);
+      const sh = getNodeHeight(source, DEFAULT_NODE_HEIGHT);
+      const tw = getNodeWidth(target, DEFAULT_NODE_WIDTH);
+      const th = getNodeHeight(target, DEFAULT_NODE_HEIGHT);
       const sourcePoint = {
         x: source.x + sw / 2,
         y: source.y + sh / 2,

@@ -1,4 +1,5 @@
 import { LayoutQualityCompositeScorer } from '@/visualization/layout-quality-composite';
+import { getNodeWidth, getNodeHeight } from '@/visualization/node-dimensions';
 
 /**
  * TASK-0044: Quality Gate and Quality Monitoring Module
@@ -524,8 +525,8 @@ function createLayoutCriteria(): QualityCriterion[] {
           const positionedNodes = nodes.map((n) => ({
             x: n.x,
             y: n.y,
-            w: n.w ?? n.width ?? 0,
-            h: n.h ?? n.height ?? 0,
+            w: getNodeWidth(n, 0),
+            h: getNodeHeight(n, 0),
             id: '',
             label: '',
           }));

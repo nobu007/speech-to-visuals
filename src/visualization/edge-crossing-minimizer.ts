@@ -6,6 +6,7 @@
  */
 
 import { DiagramType, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { getNodeWidth, getNodeHeight } from './node-dimensions';
 
 export interface Point {
   x: number;
@@ -59,8 +60,8 @@ export function detectEdgeCrossings(
 
   const positions = new Map<string, Point>();
   for (const n of nodes) {
-    const w = n.w ?? n.width ?? 0;
-    const h = n.h ?? n.height ?? 0;
+    const w = getNodeWidth(n, 0);
+    const h = getNodeHeight(n, 0);
     positions.set(n.id, { x: n.x + w / 2, y: n.y + h / 2 });
   }
 
@@ -362,8 +363,8 @@ export class EdgeCrossingMinimizer {
         const mag = Math.sqrt(d.x * d.x + d.y * d.y);
         if (mag > 0) {
           const capped = Math.min(mag, temperature);
-          const w = n.w ?? n.width ?? 0;
-          const h = n.h ?? n.height ?? 0;
+          const w = getNodeWidth(n, 0);
+          const h = getNodeHeight(n, 0);
           n.x += (d.x / mag) * capped * damping;
           n.y += (d.y / mag) * capped * damping;
           positions.set(n.id, { x: n.x + w / 2, y: n.y + h / 2 });
@@ -439,8 +440,8 @@ export class EdgeCrossingMinimizer {
 function buildPositionMap(nodes: PositionedNode[]): Map<string, Point> {
   const map = new Map<string, Point>();
   for (const n of nodes) {
-    const w = n.w ?? n.width ?? 0;
-    const h = n.h ?? n.height ?? 0;
+    const w = getNodeWidth(n, 0);
+    const h = getNodeHeight(n, 0);
     map.set(n.id, { x: n.x + w / 2, y: n.y + h / 2 });
   }
   return map;

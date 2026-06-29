@@ -18,6 +18,7 @@ import {
   StrategyLayoutMetrics,
 } from '@/visualization/types';
 import { calculateCanvasSize, calculateMetrics } from '@/visualization/layout-engine-v2';
+import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
 const DEFAULT_CANVAS_WIDTH = 1920;
 const DEFAULT_CANVAS_HEIGHT = 1080;
@@ -76,8 +77,8 @@ export class CycleLayoutStrategy implements LayoutStrategy {
 
     if (n === 1) {
       const node = nodes[0];
-      const w = node.width ?? DEFAULT_NODE_WIDTH;
-      const h = node.height ?? DEFAULT_NODE_HEIGHT;
+      const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
+      const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
       return [
         {
           ...node,
@@ -89,8 +90,8 @@ export class CycleLayoutStrategy implements LayoutStrategy {
       ];
     }
 
-    const maxNodeWidth = Math.max(...nodes.map((n) => n.width ?? DEFAULT_NODE_WIDTH));
-    const maxNodeHeight = Math.max(...nodes.map((n) => n.height ?? DEFAULT_NODE_HEIGHT));
+    const maxNodeWidth = Math.max(...nodes.map((n) => getNodeWidth(n, DEFAULT_NODE_WIDTH)));
+    const maxNodeHeight = Math.max(...nodes.map((n) => getNodeHeight(n, DEFAULT_NODE_HEIGHT)));
     const circumferenceNeeded = n * Math.max(maxNodeWidth, maxNodeHeight) * OVERLAP_SPACING_FACTOR;
     const minRadius = circumferenceNeeded / (2 * Math.PI);
     const radius = Math.max(minRadius, MIN_RADIUS);
@@ -101,8 +102,8 @@ export class CycleLayoutStrategy implements LayoutStrategy {
     const positioned: PositionedNode[] = [];
     for (let i = 0; i < n; i++) {
       const node = nodes[i];
-      const w = node.width ?? DEFAULT_NODE_WIDTH;
-      const h = node.height ?? DEFAULT_NODE_HEIGHT;
+      const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
+      const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
       const angle = (2 * Math.PI * i) / n;
 
       const x = centerX + radius * Math.cos(angle) - w / 2;
@@ -132,10 +133,10 @@ export class CycleLayoutStrategy implements LayoutStrategy {
   }
 
   private nodesOverlap(a: PositionedNode, b: PositionedNode): boolean {
-    const aw = a.w ?? a.width ?? 0;
-    const ah = a.h ?? a.height ?? 0;
-    const bw = b.w ?? b.width ?? 0;
-    const bh = b.h ?? b.height ?? 0;
+    const aw = getNodeWidth(a, 0);
+    const ah = getNodeHeight(a, 0);
+    const bw = getNodeWidth(b, 0);
+    const bh = getNodeHeight(b, 0);
     return (
       a.x < b.x + bw &&
       a.x + aw > b.x &&
@@ -162,10 +163,10 @@ export class CycleLayoutStrategy implements LayoutStrategy {
           const b = forceNodes[j].positioned;
 
           if (this.nodesOverlap(a, b)) {
-            const aCx = a.x + (a.w ?? a.width ?? 0) / 2;
-            const aCy = a.y + (a.h ?? a.height ?? 0) / 2;
-            const bCx = b.x + (b.w ?? b.width ?? 0) / 2;
-            const bCy = b.y + (b.h ?? b.height ?? 0) / 2;
+            const aCx = a.x + getNodeWidth(a, 0) / 2;
+            const aCy = a.y + getNodeHeight(a, 0) / 2;
+            const bCx = b.x + getNodeWidth(b, 0) / 2;
+            const bCy = b.y + getNodeHeight(b, 0) / 2;
 
             let dx = bCx - aCx;
             let dy = bCy - aCy;
@@ -187,12 +188,12 @@ export class CycleLayoutStrategy implements LayoutStrategy {
       // Apply light attraction toward circle position to keep circular shape
       for (let i = 0; i < forceNodes.length; i++) {
         const n = forceNodes[i].positioned;
-        const ncx = n.x + (n.w ?? n.width ?? 0) / 2;
-        const ncy = n.y + (n.h ?? n.height ?? 0) / 2;
+        const ncx = n.x + getNodeWidth(n, 0) / 2;
+        const ncy = n.y + getNodeHeight(n, 0) / 2;
 
         const angle = (2 * Math.PI * i) / forceNodes.length;
-        const maxNodeWidth = Math.max(...nodes.map((nd) => nd.w ?? nd.width ?? DEFAULT_NODE_WIDTH));
-        const maxNodeHeight = Math.max(...nodes.map((nd) => nd.h ?? nd.height ?? DEFAULT_NODE_HEIGHT));
+        const maxNodeWidth = Math.max(...nodes.map((nd) => getNodeWidth(nd, DEFAULT_NODE_WIDTH)));
+        const maxNodeHeight = Math.max(...nodes.map((nd) => getNodeHeight(nd, DEFAULT_NODE_HEIGHT)));
         const circumferenceNeeded = forceNodes.length * Math.max(maxNodeWidth, maxNodeHeight) * OVERLAP_SPACING_FACTOR;
         const minRadius = circumferenceNeeded / (2 * Math.PI);
         const radius = Math.max(minRadius, MIN_RADIUS);
@@ -237,13 +238,13 @@ export class CycleLayoutStrategy implements LayoutStrategy {
       }
 
       const sourcePoint = {
-        x: source.x + (source.w ?? source.width ?? 0) / 2,
-        y: source.y + (source.h ?? source.height ?? 0) / 2,
+        x: source.x + getNodeWidth(source, 0) / 2,
+        y: source.y + getNodeHeight(source, 0) / 2,
       };
 
       const targetPoint = {
-        x: target.x + (target.w ?? target.width ?? 0) / 2,
-        y: target.y + (target.h ?? target.height ?? 0) / 2,
+        x: target.x + getNodeWidth(target, 0) / 2,
+        y: target.y + getNodeHeight(target, 0) / 2,
       };
 
       return {

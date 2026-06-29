@@ -9,6 +9,7 @@
  */
 
 import { PositionedNode } from '@/types/diagram';
+import { getNodeWidth as nodeWidth, getNodeHeight as nodeHeight } from './node-dimensions';
 
 export interface VisualBalanceResult {
   /** Composite balance score 0.0~1.0, higher = more balanced */
@@ -25,21 +26,11 @@ export interface VisualBalanceResult {
   quadrantCounts: [number, number, number, number];
 }
 
-/** Get effective width (handles both `w` and `width` properties) */
-function nodeWidth(node: PositionedNode): number {
-  return node.w ?? node.width ?? 0;
-}
-
-/** Get effective height (handles both `h` and `height` properties) */
-function nodeHeight(node: PositionedNode): number {
-  return node.h ?? node.height ?? 0;
-}
-
 /** Get center point of a node */
 function nodeCenter(node: PositionedNode): { x: number; y: number } {
   return {
-    x: node.x + nodeWidth(node) / 2,
-    y: node.y + nodeHeight(node) / 2,
+    x: node.x + nodeWidth(node, 0) / 2,
+    y: node.y + nodeHeight(node, 0) / 2,
   };
 }
 

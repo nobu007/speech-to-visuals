@@ -256,7 +256,7 @@ export class ErrorRecoveryHealthTracker {
       return latest?.overallResilience ?? 1;
     }
 
-    const avg = stageScores.reduce((a, s) => a + s.score, 0) / stageScores.length;
+    const avg = stageScores.reduce((a, s) => a + (Number.isFinite(s.score) ? s.score : 0), 0) / stageScores.length;
     return Math.round(avg * 1000) / 1000;
   }
 
