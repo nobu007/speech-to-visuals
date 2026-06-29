@@ -90,6 +90,17 @@ export class TreeLayoutStrategy implements ILayoutStrategy {
   }
 
   /**
+   * Resolve effective node height, respecting explicit overrides.
+   */
+  private resolveNodeHeight(node: NodeDatum, config: LayoutConfig): number {
+    const explicit = node.height ?? (node as NodeDatum & { h?: number }).h;
+    if (typeof explicit === 'number' && isFinite(explicit) && explicit > 0) {
+      return explicit;
+    }
+    return config.nodeHeight || 60;
+  }
+
+  /**
    * Build tree structure from flat node list
    */
   private buildTree(
@@ -110,7 +121,7 @@ export class TreeLayoutStrategy implements ILayoutStrategy {
         children: [],
         level,
         width: this.calculateNodeWidth(node, config),
-        height: config.nodeHeight || 60
+        height: this.resolveNodeHeight(node, config)
       };
     }
 
@@ -133,7 +144,7 @@ export class TreeLayoutStrategy implements ILayoutStrategy {
       children,
       level,
       width: this.calculateNodeWidth(node, config),
-      height: config.nodeHeight || 60
+      height: this.resolveNodeHeight(node, config)
     };
   }
 
@@ -273,9 +284,16 @@ export class TreeLayoutStrategy implements ILayoutStrategy {
   }
 
   /**
-   * Calculate node width based on label
+   * Calculate node width based on label.
+   * Respects explicit node.width override from NodeDatum when present.
    */
   private calculateNodeWidth(node: NodeDatum, config: LayoutConfig): number {
+    // Respect explicit dimension if provided on the node
+    const explicitWidth = node.width ?? (node as NodeDatum & { w?: number }).w;
+    if (typeof explicitWidth === 'number' && isFinite(explicitWidth) && explicitWidth > 0) {
+      return explicitWidth;
+    }
+
     const baseWidth = config.nodeWidth || 120;
     const labelLength = node.label?.length || 0;
     const charWidth = 8;

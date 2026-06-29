@@ -187,8 +187,20 @@ export class QualityGateEvaluator {
   /**
    * Detect regression by comparing current score against baseline.
    * Blocks if quality degrades >5% from baseline.
+   * Guards against NaN/Infinity inputs to prevent corrupted results.
    */
   detectRegression(jobId: string, currentScore: number): RegressionResult {
+    // Guard: invalid currentScore → no regression, safe defaults
+    if (!Number.isFinite(currentScore)) {
+      return {
+        isRegression: false,
+        previousScore: this.baselines.get(jobId) ?? 0,
+        currentScore: 0,
+        degradationPercent: 0,
+        shouldBlock: false,
+      };
+    }
+
     const previousScore = this.baselines.get(jobId) ?? 0;
 
     if (previousScore === 0) {
@@ -226,6 +238,9 @@ export class QualityGateEvaluator {
     stage: number,
     input: { score: number; passed: boolean }
   ): void {
+    // Guard: reject NaN/Infinity scores to prevent metrics corruption
+    const safeScore = Number.isFinite(input.score) ? input.score : 0;
+
     let entries = this.jobMetrics.get(jobId);
     if (!entries) {
       entries = [];
@@ -233,7 +248,7 @@ export class QualityGateEvaluator {
     }
     entries.push({
       stage,
-      score: input.score,
+      score: safeScore,
       passed: input.passed,
     });
   }
