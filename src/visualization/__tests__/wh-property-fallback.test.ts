@@ -297,3 +297,167 @@ describe('w/h property fallback — nodesOverlap consistency', () => {
     expect(nodesOverlap(node1, node2)).toBe(true);
   });
 });
+
+// ---------- Strategy edge-point w/h fallback ----------
+
+describe('w/h property fallback — ComparisonStrategy edges', () => {
+  it('produces finite edge points for nodes with only w/h', () => {
+    const { ComparisonStrategy } = require('../strategies/comparison-strategy');
+    const strategy = new ComparisonStrategy();
+
+    const nodes: NodeDatum[] = [
+      { id: 'a', label: 'A', w: 100, h: 50 } as NodeDatum,
+      { id: 'b', label: 'B', w: 100, h: 50 } as NodeDatum,
+    ];
+    const edges: EdgeDatum[] = [
+      { from: 'a', to: 'b' },
+    ];
+
+    const result = strategy.apply(nodes, edges);
+    for (const edge of result.edges) {
+      for (const pt of edge.points) {
+        expect(Number.isFinite(pt.x)).toBe(true);
+        expect(Number.isFinite(pt.y)).toBe(true);
+      }
+    }
+  });
+
+  it('produces finite edge points for nodes without any dimension', () => {
+    const { ComparisonStrategy } = require('../strategies/comparison-strategy');
+    const strategy = new ComparisonStrategy();
+
+    const nodes: NodeDatum[] = [
+      { id: 'a', label: 'A' },
+      { id: 'b', label: 'B' },
+    ];
+    const edges: EdgeDatum[] = [{ from: 'a', to: 'b' }];
+
+    const result = strategy.apply(nodes, edges);
+    for (const edge of result.edges) {
+      for (const pt of edge.points) {
+        expect(Number.isFinite(pt.x)).toBe(true);
+        expect(Number.isFinite(pt.y)).toBe(true);
+      }
+    }
+  });
+});
+
+describe('w/h property fallback — MatrixStrategy edges', () => {
+  it('produces finite edge points for nodes with only w/h', () => {
+    const { MatrixStrategy } = require('../strategies/matrix-strategy');
+    const strategy = new MatrixStrategy();
+
+    const nodes: NodeDatum[] = [
+      { id: 'a', label: 'A', w: 100, h: 50 } as NodeDatum,
+      { id: 'b', label: 'B', w: 100, h: 50 } as NodeDatum,
+    ];
+    const edges: EdgeDatum[] = [{ from: 'a', to: 'b' }];
+
+    const result = strategy.apply(nodes, edges);
+    for (const edge of result.edges) {
+      for (const pt of edge.points) {
+        expect(Number.isFinite(pt.x)).toBe(true);
+        expect(Number.isFinite(pt.y)).toBe(true);
+      }
+    }
+  });
+});
+
+describe('w/h property fallback — GeneralStrategy edges', () => {
+  it('produces finite edge points for nodes with only w/h', () => {
+    const { GeneralStrategy } = require('../strategies/general-strategy');
+    const strategy = new GeneralStrategy();
+
+    const nodes: NodeDatum[] = [
+      { id: 'a', label: 'A', w: 100, h: 50 } as NodeDatum,
+      { id: 'b', label: 'B', w: 100, h: 50 } as NodeDatum,
+    ];
+    const edges: EdgeDatum[] = [{ from: 'a', to: 'b' }];
+
+    const result = strategy.apply(nodes, edges);
+    for (const edge of result.edges) {
+      for (const pt of edge.points) {
+        expect(Number.isFinite(pt.x)).toBe(true);
+        expect(Number.isFinite(pt.y)).toBe(true);
+      }
+    }
+  });
+});
+
+describe('w/h property fallback — TimelineStrategy edges and overlap', () => {
+  it('produces finite edge points for nodes with only w/h', () => {
+    const { TimelineStrategy } = require('../strategies/timeline-strategy');
+    const strategy = new TimelineStrategy();
+
+    const nodes: NodeDatum[] = [
+      { id: 'a', label: 'A', w: 100, h: 50 } as NodeDatum,
+      { id: 'b', label: 'B', w: 100, h: 50 } as NodeDatum,
+    ];
+    const edges: EdgeDatum[] = [{ from: 'a', to: 'b' }];
+
+    const result = strategy.apply(nodes, edges);
+
+    // All node positions should be finite
+    for (const node of result.nodes) {
+      expect(Number.isFinite(node.x)).toBe(true);
+      expect(Number.isFinite(node.y)).toBe(true);
+    }
+
+    // All edge points should be finite
+    for (const edge of result.edges) {
+      for (const pt of edge.points) {
+        expect(Number.isFinite(pt.x)).toBe(true);
+        expect(Number.isFinite(pt.y)).toBe(true);
+      }
+    }
+  });
+
+  it('produces finite edge points for nodes without any dimension', () => {
+    const { TimelineStrategy } = require('../strategies/timeline-strategy');
+    const strategy = new TimelineStrategy();
+
+    const nodes: NodeDatum[] = [
+      { id: 'a', label: 'A' },
+      { id: 'b', label: 'B' },
+      { id: 'c', label: 'C' },
+    ];
+    const edges: EdgeDatum[] = [
+      { from: 'a', to: 'b' },
+      { from: 'b', to: 'c' },
+    ];
+
+    const result = strategy.apply(nodes, edges);
+
+    for (const node of result.nodes) {
+      expect(Number.isFinite(node.x)).toBe(true);
+      expect(Number.isFinite(node.y)).toBe(true);
+    }
+    for (const edge of result.edges) {
+      for (const pt of edge.points) {
+        expect(Number.isFinite(pt.x)).toBe(true);
+        expect(Number.isFinite(pt.y)).toBe(true);
+      }
+    }
+  });
+
+  it('resolves overlaps without NaN for overlapping w/h-only nodes', () => {
+    const { TimelineStrategy } = require('../strategies/timeline-strategy');
+    const strategy = new TimelineStrategy();
+
+    // Create many nodes to force overlap resolution
+    const nodes: NodeDatum[] = Array.from({ length: 8 }, (_, i) =>
+      ({ id: `n${i}`, label: `N${i}`, w: 200, h: 80 }) as NodeDatum
+    );
+    const edges: EdgeDatum[] = nodes.slice(1).map((n, i) => ({
+      from: `n${i}`, to: n.id,
+    }));
+
+    const result = strategy.apply(nodes, edges);
+
+    // After grid-snap resolution, all positions should still be finite
+    for (const node of result.nodes) {
+      expect(Number.isFinite(node.x)).toBe(true);
+      expect(Number.isFinite(node.y)).toBe(true);
+    }
+  });
+});

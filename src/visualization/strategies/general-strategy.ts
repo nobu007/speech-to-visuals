@@ -71,12 +71,16 @@ export class GeneralStrategy implements LayoutStrategy {
       if (!source || !target) {
         return { from: edge.from, to: edge.to, points: [], label: edge.label, id: edge.id };
       }
+      const sw = source.w ?? source.width ?? DEFAULT_NODE_WIDTH;
+      const sh = source.h ?? source.height ?? DEFAULT_NODE_HEIGHT;
+      const tw = target.w ?? target.width ?? DEFAULT_NODE_WIDTH;
+      const th = target.h ?? target.height ?? DEFAULT_NODE_HEIGHT;
       return {
         from: edge.from,
         to: edge.to,
         points: [
-          { x: source.x + source.width / 2, y: source.y + source.height / 2 },
-          { x: target.x + target.width / 2, y: target.y + target.height / 2 },
+          { x: source.x + sw / 2, y: source.y + sh / 2 },
+          { x: target.x + tw / 2, y: target.y + th / 2 },
         ],
         label: edge.label,
         id: edge.id,

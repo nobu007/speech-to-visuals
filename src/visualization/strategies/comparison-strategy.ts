@@ -52,12 +52,16 @@ export class ComparisonStrategy implements LayoutStrategy {
         return { from: edge.from, to: edge.to, points: [], label: edge.label, id: edge.id };
       }
       const sourceIsLeft = source.x < target.x;
+      const sw = source.w ?? source.width ?? DEFAULT_NODE_WIDTH;
+      const sh = source.h ?? source.height ?? DEFAULT_NODE_HEIGHT;
+      const tw = target.w ?? target.width ?? DEFAULT_NODE_WIDTH;
+      const th = target.h ?? target.height ?? DEFAULT_NODE_HEIGHT;
       return {
         from: edge.from,
         to: edge.to,
         points: [
-          { x: sourceIsLeft ? source.x + source.width : source.x, y: source.y + source.height / 2 },
-          { x: sourceIsLeft ? target.x : target.x + target.width, y: target.y + target.height / 2 },
+          { x: sourceIsLeft ? source.x + sw : source.x, y: source.y + sh / 2 },
+          { x: sourceIsLeft ? target.x : target.x + tw, y: target.y + th / 2 },
         ],
         label: edge.label,
         id: edge.id,

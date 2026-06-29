@@ -82,11 +82,15 @@ function determineNodeOrder(nodes: NodeDatum[], edges: EdgeDatum[]): NodeDatum[]
 }
 
 function nodesOverlap(a: PositionedNode, b: PositionedNode): boolean {
+  const aw = a.w ?? a.width ?? 0;
+  const ah = a.h ?? a.height ?? 0;
+  const bw = b.w ?? b.width ?? 0;
+  const bh = b.h ?? b.height ?? 0;
   return (
-    a.x < b.x + b.width &&
-    a.x + a.width > b.x &&
-    a.y < b.y + b.height &&
-    a.y + a.height > b.y
+    a.x < b.x + bw &&
+    a.x + aw > b.x &&
+    a.y < b.y + bh &&
+    a.y + ah > b.y
   );
 }
 
@@ -114,8 +118,11 @@ function gridSnapResolve(
         foundOverlap = true;
 
         // Try to resolve by spreading X first
+        const wi = result[i].w ?? result[i].width ?? 0;
+        const wj = result[j].w ?? result[j].width ?? 0;
+        const hi = result[i].h ?? result[i].height ?? 0;
         const xOverlap =
-          Math.min(result[i].x + result[i].width, result[j].x + result[j].width) -
+          Math.min(result[i].x + wi, result[j].x + wj) -
           Math.max(result[i].x, result[j].x);
 
         if (xOverlap > 0 && result[i].x !== result[j].x) {
@@ -124,27 +131,27 @@ function gridSnapResolve(
           if (result[i].x < result[j].x) {
             result[i].x = Math.max(CANVAS_PADDING, snapToGrid(result[i].x - push, gridSnapSize));
             result[j].x = Math.min(
-              canvasWidth - result[j].width - CANVAS_PADDING,
+              canvasWidth - wj - CANVAS_PADDING,
               snapToGrid(result[j].x + push, gridSnapSize),
             );
           } else {
             result[i].x = Math.min(
-              canvasWidth - result[i].width - CANVAS_PADDING,
+              canvasWidth - wi - CANVAS_PADDING,
               snapToGrid(result[i].x + push, gridSnapSize),
             );
             result[j].x = Math.max(CANVAS_PADDING, snapToGrid(result[j].x - push, gridSnapSize));
           }
         } else {
           // Same X or purely vertical overlap: nudge the later node's Y downward
-          const minYForJ = result[i].y + result[i].height + gridSnapSize;
+          const minYForJ = result[i].y + hi + gridSnapSize;
           if (result[j].y < minYForJ) {
             result[j].y = snapToGrid(minYForJ, gridSnapSize);
           }
           // Also spread X for extra safety
-          const push = (result[i].width + gridSnapSize) / 2;
+          const push = (wi + gridSnapSize) / 2;
           result[i].x = Math.max(CANVAS_PADDING, snapToGrid(result[i].x - push, gridSnapSize));
           result[j].x = Math.min(
-            canvasWidth - result[j].width - CANVAS_PADDING,
+            canvasWidth - wj - CANVAS_PADDING,
             snapToGrid(result[j].x + push, gridSnapSize),
           );
         }
@@ -306,12 +313,15 @@ export class TimelineStrategy implements LayoutStrategy {
       }
 
       // Vertical connection: source bottom-center to target top-center
+      const sw = source.w ?? source.width ?? DEFAULT_NODE_WIDTH;
+      const sh = source.h ?? source.height ?? DEFAULT_NODE_HEIGHT;
+      const tw = target.w ?? target.width ?? DEFAULT_NODE_WIDTH;
       const sourcePoint = {
-        x: source.x + source.width / 2,
-        y: source.y + source.height,
+        x: source.x + sw / 2,
+        y: source.y + sh,
       };
       const targetPoint = {
-        x: target.x + target.width / 2,
+        x: target.x + tw / 2,
         y: target.y,
       };
 

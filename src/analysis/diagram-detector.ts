@@ -1,4 +1,4 @@
-import { DiagramType, NodeDatum, EdgeDatum } from '@/types/diagram';
+import { DiagramType, NodeDatum, EdgeDatum, isDiagramType } from '@/types/diagram';
 import { ContentSegment, DiagramAnalysis, KeywordAnalysis, SemanticRelation } from './types';
 import { GeminiAnalyzer } from './gemini-analyzer';
 import { logger } from '../utils/logger';
@@ -892,7 +892,8 @@ export class DiagramDetector {
   private async statisticalAnalysis(segment: ContentSegment, baseAnalysis: DiagramAnalysis): Promise<DiagramAnalysis> {
     try {
       // Boost base analysis with statistical insights
-      const boostedConfidence = Math.min(baseAnalysis.confidence * 1.15, 0.95);
+      const safeBaseConf = Number.isFinite(baseAnalysis.confidence) ? baseAnalysis.confidence : 0;
+      const boostedConfidence = Math.min(safeBaseConf * 1.15, 0.95);
 
       return {
         ...baseAnalysis,
@@ -934,9 +935,15 @@ export class DiagramDetector {
       };
 
       candidates.forEach(candidate => {
-        const weightedScore = candidate.result.confidence * candidate.weight;
-        typeScores[candidate.result.type].score += weightedScore;
-        typeScores[candidate.result.type].methods.push(candidate.method);
+        const confidence = Number.isFinite(candidate.result.confidence)
+          ? candidate.result.confidence
+          : 0;
+        const type = isDiagramType(candidate.result.type)
+          ? candidate.result.type
+          : 'general';
+        const weightedScore = confidence * candidate.weight;
+        typeScores[type].score += weightedScore;
+        typeScores[type].methods.push(candidate.method);
       });
 
       // Find consensus winner
@@ -951,8 +958,8 @@ export class DiagramDetector {
 
       // Get the best result for the consensus type
       const bestCandidate = candidates
-        .filter(c => c.result.type === consensusType.type)
-        .sort((a, b) => b.result.confidence - a.result.confidence)[0];
+        .filter(c => (isDiagramType(c.result.type) ? c.result.type : 'general') === consensusType.type)
+        .sort((a, b) => (Number.isFinite(b.result.confidence) ? b.result.confidence : 0) - (Number.isFinite(a.result.confidence) ? a.result.confidence : 0))[0];
 
       if (bestCandidate) {
         return {
@@ -963,12 +970,17 @@ export class DiagramDetector {
       } else {
         // Fallback to highest confidence result
         const highestConfidence = candidates.reduce((best, current) =>
-          current.result.confidence > best.result.confidence ? current : best
+          (Number.isFinite(current.result.confidence) ? current.result.confidence : 0) >
+          (Number.isFinite(best.result.confidence) ? best.result.confidence : 0)
+            ? current : best
         );
 
+        const fallbackConf = Number.isFinite(highestConfidence.result.confidence)
+          ? highestConfidence.result.confidence
+          : 0;
         return {
           ...highestConfidence.result,
-          confidence: Math.min(highestConfidence.result.confidence * this.HYBRID_HIGHEST_CONFIDENCE_BOOST_FACTOR, this.HYBRID_HIGHEST_CONFIDENCE_CAP),
+          confidence: Math.min(fallbackConf * this.HYBRID_HIGHEST_CONFIDENCE_BOOST_FACTOR, this.HYBRID_HIGHEST_CONFIDENCE_CAP),
           reasoning: `${highestConfidence.result.reasoning} + hybrid validation`
         };
       }
@@ -977,9 +989,10 @@ export class DiagramDetector {
       logger.warn(`[V${this.iteration}] Hybrid analysis failed:`, error);
 
       // Fallback to enhanced base analysis
+      const catchConf = Number.isFinite(baseAnalysis.confidence) ? baseAnalysis.confidence : 0;
       return {
         ...baseAnalysis,
-        confidence: Math.min(baseAnalysis.confidence * this.HYBRID_FALLBACK_BOOST_FACTOR, this.HYBRID_FALLBACK_CONFIDENCE_CAP),
+        confidence: Math.min(catchConf * this.HYBRID_FALLBACK_BOOST_FACTOR, this.HYBRID_FALLBACK_CONFIDENCE_CAP),
         reasoning: `${baseAnalysis.reasoning} + hybrid fallback`
       };
     }
