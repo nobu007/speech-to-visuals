@@ -17,9 +17,9 @@ export function calculateCanvasSize(nodes: PositionedNode[]): CanvasSize {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const node of nodes) {
     const left = node.x;
-    const right = node.x + node.width;
+    const right = node.x + (node.w ?? node.width ?? 0);
     const top = node.y;
-    const bottom = node.y + node.height;
+    const bottom = node.y + (node.h ?? node.height ?? 0);
     if (left < minX) minX = left;
     if (top < minY) minY = top;
     if (right > maxX) maxX = right;
@@ -86,11 +86,15 @@ export function calculateMetrics(
 }
 
 function nodesOverlap(a: PositionedNode, b: PositionedNode): boolean {
+  const aw = a.w ?? a.width ?? 0;
+  const ah = a.h ?? a.height ?? 0;
+  const bw = b.w ?? b.width ?? 0;
+  const bh = b.h ?? b.height ?? 0;
   return (
-    a.x < b.x + b.width &&
-    a.x + a.width > b.x &&
-    a.y < b.y + b.height &&
-    a.y + a.height > b.y
+    a.x < b.x + bw &&
+    a.x + aw > b.x &&
+    a.y < b.y + bh &&
+    a.y + ah > b.y
   );
 }
 

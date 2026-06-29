@@ -176,7 +176,9 @@ export abstract class BaseLayoutStrategy implements LayoutStrategy {
     // Calculate total area covered by all nodes
     let totalArea = 0;
     for (const node of nodes) {
-      totalArea += (node.width || 1) * (node.height || 1);
+      const nw = node.w ?? node.width ?? 1;
+      const nh = node.h ?? node.height ?? 1;
+      totalArea += nw * nh;
     }
     
     // Calculate node spacing (minimum distance between any two nodes)
@@ -266,8 +268,8 @@ export abstract class BaseLayoutStrategy implements LayoutStrategy {
     let maxY = -Infinity;
     
     for (const node of nodes) {
-      const halfWidth = (node.width || 0) / 2;
-      const halfHeight = (node.height || 0) / 2;
+      const halfWidth = (node.w ?? node.width ?? 0) / 2;
+      const halfHeight = (node.h ?? node.height ?? 0) / 2;
       
       minX = Math.min(minX, node.x - halfWidth);
       minY = Math.min(minY, node.y - halfHeight);

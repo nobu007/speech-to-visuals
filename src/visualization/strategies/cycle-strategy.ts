@@ -132,11 +132,15 @@ export class CycleLayoutStrategy implements LayoutStrategy {
   }
 
   private nodesOverlap(a: PositionedNode, b: PositionedNode): boolean {
+    const aw = a.w ?? a.width ?? 0;
+    const ah = a.h ?? a.height ?? 0;
+    const bw = b.w ?? b.width ?? 0;
+    const bh = b.h ?? b.height ?? 0;
     return (
-      a.x < b.x + b.width &&
-      a.x + a.width > b.x &&
-      a.y < b.y + b.height &&
-      a.y + a.height > b.y
+      a.x < b.x + bw &&
+      a.x + aw > b.x &&
+      a.y < b.y + bh &&
+      a.y + ah > b.y
     );
   }
 
@@ -158,10 +162,10 @@ export class CycleLayoutStrategy implements LayoutStrategy {
           const b = forceNodes[j].positioned;
 
           if (this.nodesOverlap(a, b)) {
-            const aCx = a.x + a.width / 2;
-            const aCy = a.y + a.height / 2;
-            const bCx = b.x + b.width / 2;
-            const bCy = b.y + b.height / 2;
+            const aCx = a.x + (a.w ?? a.width ?? 0) / 2;
+            const aCy = a.y + (a.h ?? a.height ?? 0) / 2;
+            const bCx = b.x + (b.w ?? b.width ?? 0) / 2;
+            const bCy = b.y + (b.h ?? b.height ?? 0) / 2;
 
             let dx = bCx - aCx;
             let dy = bCy - aCy;
@@ -183,12 +187,12 @@ export class CycleLayoutStrategy implements LayoutStrategy {
       // Apply light attraction toward circle position to keep circular shape
       for (let i = 0; i < forceNodes.length; i++) {
         const n = forceNodes[i].positioned;
-        const ncx = n.x + n.width / 2;
-        const ncy = n.y + n.height / 2;
+        const ncx = n.x + (n.w ?? n.width ?? 0) / 2;
+        const ncy = n.y + (n.h ?? n.height ?? 0) / 2;
 
         const angle = (2 * Math.PI * i) / forceNodes.length;
-        const maxNodeWidth = Math.max(...nodes.map((nd) => nd.width));
-        const maxNodeHeight = Math.max(...nodes.map((nd) => nd.height));
+        const maxNodeWidth = Math.max(...nodes.map((nd) => nd.w ?? nd.width ?? DEFAULT_NODE_WIDTH));
+        const maxNodeHeight = Math.max(...nodes.map((nd) => nd.h ?? nd.height ?? DEFAULT_NODE_HEIGHT));
         const circumferenceNeeded = forceNodes.length * Math.max(maxNodeWidth, maxNodeHeight) * OVERLAP_SPACING_FACTOR;
         const minRadius = circumferenceNeeded / (2 * Math.PI);
         const radius = Math.max(minRadius, MIN_RADIUS);
@@ -233,13 +237,13 @@ export class CycleLayoutStrategy implements LayoutStrategy {
       }
 
       const sourcePoint = {
-        x: source.x + source.width / 2,
-        y: source.y + source.height / 2,
+        x: source.x + (source.w ?? source.width ?? 0) / 2,
+        y: source.y + (source.h ?? source.height ?? 0) / 2,
       };
 
       const targetPoint = {
-        x: target.x + target.width / 2,
-        y: target.y + target.height / 2,
+        x: target.x + (target.w ?? target.width ?? 0) / 2,
+        y: target.y + (target.h ?? target.height ?? 0) / 2,
       };
 
       return {

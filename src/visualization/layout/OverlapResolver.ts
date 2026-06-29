@@ -190,8 +190,8 @@ export class OverlapResolver {
         ...node,
         x: Math.random() * 1000 - 500,
         y: Math.random() * 1000 - 500,
-        width: node.width || 100,
-        height: node.height || 50
+        width: node.width ?? 100,
+        height: node.height ?? 50
       }));
     }
     
@@ -205,8 +205,8 @@ export class OverlapResolver {
         ...node,
         x: existingNode?.x ?? Math.random() * 1000 - 500,
         y: existingNode?.y ?? Math.random() * 1000 - 500,
-        width: node.width || existingNode?.width || 100,
-        height: node.height || existingNode?.height || 50
+        width: node.width ?? existingNode?.width ?? existingNode?.w ?? 100,
+        height: node.height ?? existingNode?.height ?? existingNode?.h ?? 50
       };
     });
   }
@@ -280,11 +280,15 @@ export class OverlapResolver {
    * Check if two nodes overlap
    */
   private nodesOverlap(a: PositionedNode, b: PositionedNode): boolean {
+    const aw = a.w ?? a.width ?? 0;
+    const ah = a.h ?? a.height ?? 0;
+    const bw = b.w ?? b.width ?? 0;
+    const bh = b.h ?? b.height ?? 0;
     return !(
-      a.x + a.width / 2 < b.x - b.width / 2 ||
-      a.x - a.width / 2 > b.x + b.width / 2 ||
-      a.y + a.height / 2 < b.y - b.height / 2 ||
-      a.y - a.height / 2 > b.y + b.height / 2
+      a.x + aw / 2 < b.x - bw / 2 ||
+      a.x - aw / 2 > b.x + bw / 2 ||
+      a.y + ah / 2 < b.y - bh / 2 ||
+      a.y - ah / 2 > b.y + bh / 2
     );
   }
   
@@ -361,12 +365,14 @@ export class OverlapResolver {
     let maxY = -Infinity;
     
     for (const node of nodes) {
-      minX = Math.min(minX, node.x - node.width / 2);
-      minY = Math.min(minY, node.y - node.height / 2);
-      maxX = Math.max(maxX, node.x + node.width / 2);
-      maxY = Math.max(maxY, node.y + node.height / 2);
+      const nw = node.w ?? node.width ?? 0;
+      const nh = node.h ?? node.height ?? 0;
+      minX = Math.min(minX, node.x - nw / 2);
+      minY = Math.min(minY, node.y - nh / 2);
+      maxX = Math.max(maxX, node.x + nw / 2);
+      maxY = Math.max(maxY, node.y + nh / 2);
     }
-    
+
     return (maxX - minX) * (maxY - minY);
   }
   
@@ -459,12 +465,14 @@ export class OverlapResolver {
     let maxY = -Infinity;
     
     for (const node of nodes) {
-      minX = Math.min(minX, node.x - node.width / 2);
-      minY = Math.min(minY, node.y - node.height / 2);
-      maxX = Math.max(maxX, node.x + node.width / 2);
-      maxY = Math.max(maxY, node.y + node.height / 2);
+      const nw = node.w ?? node.width ?? 0;
+      const nh = node.h ?? node.height ?? 0;
+      minX = Math.min(minX, node.x - nw / 2);
+      minY = Math.min(minY, node.y - nh / 2);
+      maxX = Math.max(maxX, node.x + nw / 2);
+      maxY = Math.max(maxY, node.y + nh / 2);
     }
-    
+
     return {
       width: maxX - minX,
       height: maxY - minY,
