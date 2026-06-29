@@ -6,6 +6,16 @@ export interface OverlapPair {
   node2: PositionedNode;
 }
 
+/** Get effective width, checking both `w` and `width` properties */
+function effWidth(node: PositionedNode): number {
+  return node.width ?? node.w ?? 0;
+}
+
+/** Get effective height, checking both `h` and `height` properties */
+function effHeight(node: PositionedNode): number {
+  return node.height ?? node.h ?? 0;
+}
+
 export class OverlapResolver {
   private maxIterations: number;
 
@@ -99,9 +109,14 @@ export class OverlapResolver {
       const i2 = indexMap.get(node2.id);
       if (i1 === undefined || i2 === undefined) continue;
 
-      const overlapX = Math.min(node1.x + node1.width, node2.x + node2.width) -
+      const w1 = effWidth(node1);
+      const h1 = effHeight(node1);
+      const w2 = effWidth(node2);
+      const h2 = effHeight(node2);
+
+      const overlapX = Math.min(node1.x + w1, node2.x + w2) -
                         Math.max(node1.x, node2.x);
-      const overlapY = Math.min(node1.y + node1.height, node2.y + node2.height) -
+      const overlapY = Math.min(node1.y + h1, node2.y + h2) -
                         Math.max(node1.y, node2.y);
 
       const step = 0.5;
@@ -131,8 +146,8 @@ export class OverlapResolver {
   private gridSnapFallback(nodes: PositionedNode[]): PositionedNode[] {
     if (nodes.length === 0) return nodes;
 
-    const maxNodeWidth = Math.max(...nodes.map(n => n.width));
-    const maxNodeHeight = Math.max(...nodes.map(n => n.height));
+    const maxNodeWidth = Math.max(...nodes.map(n => effWidth(n)));
+    const maxNodeHeight = Math.max(...nodes.map(n => effHeight(n)));
     const cellWidth = maxNodeWidth + 20;
     const cellHeight = maxNodeHeight + 20;
 
@@ -157,11 +172,15 @@ export class OverlapResolver {
   }
 
   private nodesOverlap(a: PositionedNode, b: PositionedNode): boolean {
+    const aw = effWidth(a);
+    const ah = effHeight(a);
+    const bw = effWidth(b);
+    const bh = effHeight(b);
     return (
-      a.x < b.x + b.width &&
-      a.x + a.width > b.x &&
-      a.y < b.y + b.height &&
-      a.y + a.height > b.y
+      a.x < b.x + bw &&
+      a.x + aw > b.x &&
+      a.y < b.y + bh &&
+      a.y + ah > b.y
     );
   }
 }
