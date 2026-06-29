@@ -69,8 +69,8 @@ export class GridSnapStrategy extends BaseLayoutStrategy {
     let maxHeight = 0;
     
     for (const node of nodes) {
-      maxWidth = Math.max(maxWidth, node.width || 100);
-      maxHeight = Math.max(maxHeight, node.height || 50);
+      maxWidth = Math.max(maxWidth, node.w ?? node.width ?? 100);
+      maxHeight = Math.max(maxHeight, node.h ?? node.height ?? 50);
     }
     
     // Set cell size to accommodate the largest node plus padding
@@ -112,8 +112,8 @@ export class GridSnapStrategy extends BaseLayoutStrategy {
   private sortNodesBySize(nodes: PositionedNode[]): PositionedNode[] {
     // Sort by area (largest first) to improve packing
     return [...nodes].sort((a, b) => {
-      const areaA = (a.width || 0) * (a.height || 0);
-      const areaB = (b.width || 0) * (b.height || 0);
+      const areaA = (a.w ?? a.width ?? 0) * (a.h ?? a.height ?? 0);
+      const areaB = (b.w ?? b.width ?? 0) * (b.h ?? b.height ?? 0);
       return areaB - areaA; // Descending order
     });
   }
@@ -135,8 +135,8 @@ export class GridSnapStrategy extends BaseLayoutStrategy {
   
   private placeNode(node: PositionedNode, config: LayoutConfig): PositionedNode | null {
     // Calculate how many cells this node needs
-    const cellsWide = Math.ceil((node.width || 100) / this.cellSize) + 1;
-    const cellsHigh = Math.ceil((node.height || 50) / this.cellSize) + 1;
+    const cellsWide = Math.ceil((node.w ?? node.width ?? 100) / this.cellSize) + 1;
+    const cellsHigh = Math.ceil((node.h ?? node.height ?? 50) / this.cellSize) + 1;
     
     // Try to find an empty spot for this node
     const position = this.findEmptySpot(cellsWide, cellsHigh);

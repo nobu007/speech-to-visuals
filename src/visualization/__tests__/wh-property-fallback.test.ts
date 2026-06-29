@@ -461,3 +461,163 @@ describe('w/h property fallback — TimelineStrategy edges and overlap', () => {
     }
   });
 });
+
+// ---------- CanvasCalculator w/h fallback ----------
+
+describe('w/h property fallback — CanvasCalculator', () => {
+  it('calculate() produces finite canvas for nodes with only w/h', () => {
+    const { CanvasCalculator } = require('../canvas-calculator');
+    const calc = new CanvasCalculator();
+
+    const nodes: PositionedNode[] = [
+      { id: 'a', label: 'A', x: 0, y: 0, w: 200, h: 100 },
+      { id: 'b', label: 'B', x: 300, y: 200, w: 150, h: 80 },
+    ];
+
+    const result = calc.calculate(nodes);
+    expect(Number.isFinite(result.width)).toBe(true);
+    expect(Number.isFinite(result.height)).toBe(true);
+    expect(result.width).toBeGreaterThan(0);
+    expect(result.height).toBeGreaterThan(0);
+  });
+
+  it('calculate() produces finite canvas for nodes without any dimension', () => {
+    const { CanvasCalculator } = require('../canvas-calculator');
+    const calc = new CanvasCalculator();
+
+    const nodes: PositionedNode[] = [
+      { id: 'a', label: 'A', x: 0, y: 0 },
+      { id: 'b', label: 'B', x: 100, y: 50 },
+    ];
+
+    const result = calc.calculate(nodes);
+    expect(Number.isFinite(result.width)).toBe(true);
+    expect(Number.isFinite(result.height)).toBe(true);
+  });
+
+  it('center() produces finite positions for w/h-only nodes', () => {
+    const { CanvasCalculator } = require('../canvas-calculator');
+    const calc = new CanvasCalculator();
+
+    const nodes: PositionedNode[] = [
+      { id: 'a', label: 'A', x: 0, y: 0, w: 200, h: 100 },
+      { id: 'b', label: 'B', x: 300, y: 200, w: 150, h: 80 },
+    ];
+
+    const canvas = calc.calculate(nodes);
+    const centered = calc.center(nodes, canvas);
+
+    for (const node of centered) {
+      expect(Number.isFinite(node.x)).toBe(true);
+      expect(Number.isFinite(node.y)).toBe(true);
+    }
+  });
+
+  it('center() produces finite positions for nodes without any dimension', () => {
+    const { CanvasCalculator } = require('../canvas-calculator');
+    const calc = new CanvasCalculator();
+
+    const nodes: PositionedNode[] = [
+      { id: 'a', label: 'A', x: 0, y: 0 },
+      { id: 'b', label: 'B', x: 100, y: 50 },
+    ];
+
+    const canvas = calc.calculate(nodes);
+    const centered = calc.center(nodes, canvas);
+
+    for (const node of centered) {
+      expect(Number.isFinite(node.x)).toBe(true);
+      expect(Number.isFinite(node.y)).toBe(true);
+    }
+  });
+});
+
+// ---------- GridSnapStrategy w/h fallback ----------
+
+describe('w/h property fallback — GridSnapStrategy', () => {
+  it('lays out w/h-only nodes without producing NaN', async () => {
+    const { GridSnapStrategy } = require('../layout/strategies/GridSnapStrategy');
+    const strategy = new GridSnapStrategy();
+
+    const config = {
+      width: 1920,
+      height: 1080,
+      nodeWidth: 120,
+      nodeHeight: 60,
+      marginX: 50,
+      marginY: 50,
+      rankDirection: 'TB' as const,
+      nodeSeparation: 50,
+      edgeSeparation: 10,
+      rankSeparation: 50,
+    };
+
+    const nodes: PositionedNode[] = [
+      { id: 'a', label: 'A', x: 0, y: 0, w: 200, h: 100 } as PositionedNode,
+      { id: 'b', label: 'B', x: 0, y: 0, w: 150, h: 80 } as PositionedNode,
+      { id: 'c', label: 'C', x: 0, y: 0, w: 100, h: 50 } as PositionedNode,
+    ];
+
+    const result = await strategy.performLayout(nodes, [], config);
+
+    for (const node of result.nodes) {
+      expect(Number.isFinite(node.x)).toBe(true);
+      expect(Number.isFinite(node.y)).toBe(true);
+    }
+  });
+
+  it('lays out nodes without any dimension without producing NaN', async () => {
+    const { GridSnapStrategy } = require('../layout/strategies/GridSnapStrategy');
+    const strategy = new GridSnapStrategy();
+
+    const config = {
+      width: 1920,
+      height: 1080,
+      nodeWidth: 120,
+      nodeHeight: 60,
+      marginX: 50,
+      marginY: 50,
+      rankDirection: 'TB' as const,
+      nodeSeparation: 50,
+      edgeSeparation: 10,
+      rankSeparation: 50,
+    };
+
+    const nodes: PositionedNode[] = [
+      { id: 'a', label: 'A', x: 0, y: 0 } as PositionedNode,
+      { id: 'b', label: 'B', x: 0, y: 0 } as PositionedNode,
+      { id: 'c', label: 'C', x: 0, y: 0 } as PositionedNode,
+    ];
+
+    const result = await strategy.performLayout(nodes, [], config);
+
+    for (const node of result.nodes) {
+      expect(Number.isFinite(node.x)).toBe(true);
+      expect(Number.isFinite(node.y)).toBe(true);
+    }
+  });
+});
+
+// ---------- StrategySelector GridSnapFallbackStrategy w/h fallback ----------
+
+describe('w/h property fallback — GridSnapFallbackStrategy', () => {
+  it('positions w/h-only nodes with correct dimensions', async () => {
+    const { executeLayout } = require('../strategy-selector');
+
+    const nodes: NodeDatum[] = [
+      { id: 'a', label: 'A', w: 150, h: 75 } as NodeDatum,
+      { id: 'b', label: 'B', w: 120, h: 60 } as NodeDatum,
+    ];
+    const edges: EdgeDatum[] = [{ from: 'a', to: 'b' }];
+
+    // Use a diagram type that triggers fallback
+    const result = await executeLayout(nodes, edges, 'general');
+
+    for (const node of result.nodes) {
+      expect(Number.isFinite(node.x)).toBe(true);
+      expect(Number.isFinite(node.y)).toBe(true);
+      expect(Number.isFinite(node.w ?? node.width ?? 0)).toBe(true);
+      expect(Number.isFinite(node.h ?? node.height ?? 0)).toBe(true);
+    }
+  });
+});

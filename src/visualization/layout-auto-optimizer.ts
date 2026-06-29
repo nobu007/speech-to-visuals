@@ -331,8 +331,8 @@ export class LayoutAutoOptimizer {
       label: n.label,
       type: n.type,
       meta: n.meta,
-      width: n.w ?? n.width,
-      height: n.h ?? n.height,
+      width: n.w ?? n.width ?? 120,
+      height: n.h ?? n.height ?? 60,
     }));
 
     const edgeData: EdgeDatum[] = originalEdges.map(e => ({

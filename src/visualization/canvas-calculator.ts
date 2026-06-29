@@ -48,9 +48,11 @@ export class CanvasCalculator {
 
     for (const node of nodes) {
       const left = Number.isFinite(node.x) ? node.x : 0;
-      const right = left + (Number.isFinite(node.width) ? node.width : 0);
+      const w = node.w ?? node.width;
+      const h = node.h ?? node.height;
+      const right = left + (Number.isFinite(w) ? w : 0);
       const top = Number.isFinite(node.y) ? node.y : 0;
-      const bottom = top + (Number.isFinite(node.height) ? node.height : 0);
+      const bottom = top + (Number.isFinite(h) ? h : 0);
       if (left < minX) minX = left;
       if (top < minY) minY = top;
       if (right > maxX) maxX = right;
@@ -121,9 +123,11 @@ export class CanvasCalculator {
 
     for (const node of nodes) {
       const left = Number.isFinite(node.x) ? node.x : 0;
-      const right = left + (Number.isFinite(node.width) ? node.width : 0);
+      const w = node.w ?? node.width;
+      const h = node.h ?? node.height;
+      const right = left + (Number.isFinite(w) ? w : 0);
       const top = Number.isFinite(node.y) ? node.y : 0;
-      const bottom = top + (Number.isFinite(node.height) ? node.height : 0);
+      const bottom = top + (Number.isFinite(h) ? h : 0);
       if (left < minX) minX = left;
       if (top < minY) minY = top;
       if (right > maxX) maxX = right;

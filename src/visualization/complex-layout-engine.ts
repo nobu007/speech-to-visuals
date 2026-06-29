@@ -846,8 +846,8 @@ export class ComplexLayoutEngine {
           label: originalNode?.label ?? '',
           x: n.x,
           y: n.y,
-          w: n.width,
-          h: n.height,
+          w: n.width ?? 0,
+          h: n.height ?? 0,
           ...(originalNode?.meta ? { meta: originalNode.meta } : {}),
         } as PositionedNode;
       });
