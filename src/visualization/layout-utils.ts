@@ -1,5 +1,6 @@
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig, Point, NodeDimensionsConfig } from './types';
+import { getNodeWidth, getNodeHeight } from './node-dimensions';
 
 /**
  * Calculate node width based on label and config
@@ -26,8 +27,8 @@ export function calculateNodeHeight(node: NodeDatum, config: NodeDimensionsConfi
  */
 export function calculateNodeCenter(node: PositionedNode): Point {
   return {
-    x: node.x + effectiveWidth(node) / 2,
-    y: node.y + effectiveHeight(node) / 2
+    x: node.x + getNodeWidth(node, 0) / 2,
+    y: node.y + getNodeHeight(node, 0) / 2
   };
 }
 
@@ -64,20 +65,6 @@ export function generateEdgePoints(
 }
 
 /**
- * Get effective node width (handles both `w` and `width` properties)
- */
-function effectiveWidth(node: PositionedNode): number {
-  return node.w ?? node.width ?? 0;
-}
-
-/**
- * Get effective node height (handles both `h` and `height` properties)
- */
-function effectiveHeight(node: PositionedNode): number {
-  return node.h ?? node.height ?? 0;
-}
-
-/**
  * Check if two nodes overlap
  * Includes minimum spacing requirement
  */
@@ -86,10 +73,10 @@ export function nodesOverlap(
   node2: PositionedNode,
   spacing: number = 0
 ): boolean {
-  const w1 = effectiveWidth(node1);
-  const h1 = effectiveHeight(node1);
-  const w2 = effectiveWidth(node2);
-  const h2 = effectiveHeight(node2);
+  const w1 = getNodeWidth(node1, 0);
+  const h1 = getNodeHeight(node1, 0);
+  const w2 = getNodeWidth(node2, 0);
+  const h2 = getNodeHeight(node2, 0);
 
   const left1 = node1.x - spacing / 2;
   const right1 = node1.x + w1 + spacing / 2;

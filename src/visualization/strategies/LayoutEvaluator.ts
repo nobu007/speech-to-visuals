@@ -1,6 +1,7 @@
 import { DiagramLayout, DiagramType, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig, LayoutResult, LayoutMetrics, Point, OverlapPair, BoundingBox } from '../types';
 import { nodesOverlap, calculateNodeCenter, calculateNodeDistance } from '../layout-utils';
+import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
 export class LayoutEvaluator {
   private config: LayoutConfig;
@@ -19,7 +20,7 @@ export class LayoutEvaluator {
     edges: LayoutEdge[]
   ): LayoutMetrics {
     const overlapCount = this.countOverlaps(nodes);
-    const totalArea = nodes.reduce((sum, node) => sum + node.w * node.h, 0);
+    const totalArea = nodes.reduce((sum, node) => sum + getNodeWidth(node, 0) * getNodeHeight(node, 0), 0);
     const nodeSpacing = this.calculateAverageNodeSpacing(nodes);
     const layoutBalance = this.calculateLayoutBalance(nodes);
     const edgeCrossings = this.detectEdgeCrossings(nodes, edges);

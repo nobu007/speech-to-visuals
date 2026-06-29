@@ -141,9 +141,9 @@ export abstract class BaseLayoutEngine {
     }
 
     const minX = Math.min(...nodes.map(n => n.x));
-    const maxX = Math.max(...nodes.map(n => n.x + n.w));
+    const maxX = Math.max(...nodes.map(n => n.x + getNodeWidth(n, 0)));
     const minY = Math.min(...nodes.map(n => n.y));
-    const maxY = Math.max(...nodes.map(n => n.y + n.h));
+    const maxY = Math.max(...nodes.map(n => n.y + getNodeHeight(n, 0)));
 
     return {
       minX,
