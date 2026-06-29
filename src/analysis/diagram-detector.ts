@@ -263,8 +263,8 @@ export class DiagramDetector {
         const llm = await this.gemini.analyzeText(segment.text);
         if (llm) {
           analysis = {
-            type: llm.type,
-            confidence: llm.confidence ?? 0.9,
+            type: sanitizeDiagramType(llm.type),
+            confidence: sanitizeFinite(llm.confidence, 0.9),
             nodes: llm.nodes || [],
             edges: llm.edges || [],
             reasoning: llm.reasoning || 'LLM (Gemini) 解析結果に基づく構造化データ'
