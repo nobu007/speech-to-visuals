@@ -18,6 +18,7 @@ import {
 import { getAudioDuration, formatDuration } from '@/utils/audio-duration';
 import { validateAudioFile, validateAudioDuration } from '@/utils/audio-validation';
 import { AUDIO_LIMITS } from '@/config/limits';
+import { logger } from '@/utils/logger';
 
 // ========================================
 // Pipeline Stage Configuration
@@ -77,8 +78,8 @@ export const SimplePipelineInterface: React.FC = () => {
           );
         }
       })
-      .catch(() => {
-        // Duration check failed silently — backend will still validate
+      .catch((err) => {
+        logger.warn('[SimplePipeline] Audio duration check failed — backend will still validate', err);
       });
   }, []);
 
