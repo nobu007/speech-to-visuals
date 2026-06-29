@@ -3645,6 +3645,27 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A116: iteration-logger.ts 重複ヘッダーバグ修正（第113回検証）
+
+**分析日時**: 2026-06-30
+**カテゴリ**: バグ修正・テストカバレッジ拡充
+**背景**: `src/utils/iteration-logger.ts`（373行）は Phase 34 から存在するパイプライン反復ログ機能だが、専用テストがなく、generateEntryMarkdown() でマークダウンヘッダーが2重に出力されるバグが放置されていた。
+
+**判断**: 以下の修正を実施：
+1. `generateEntryMarkdown()` の `### Iteration N - status` 行が2行連続で出力されるバグを修正（line 102-103の重複行を削除）
+2. 23のテストケースを新規追加（`src/utils/__tests__/iteration-logger.test.ts`）
+
+**根拠**:
+- `src/utils/iteration-logger.ts` lines 102-103 — 同じヘッダー行が2回記述されていた
+- readHistory() の正規表現（line 235）は2番目のヘッダーにマッチして機能していたが、生成されるMarkdownは不正確だった
+
+**信頼性への影響**:
+- バグ修正により反復ログのMarkdown出力が正確化
+- iteration-logger.ts のテストカバレッジが0%から全体カバー（23テスト）
+- 信頼性レベル: 🔵（実装コードとテストの両方が存在・通過確認済）
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)
