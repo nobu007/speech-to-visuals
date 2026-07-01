@@ -8,6 +8,7 @@
 
 import dagre from '@dagrejs/dagre';
 import { DiagramType, NodeDatum, EdgeDatum, DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { getNodeWidth, getNodeHeight } from './node-dimensions';
 import { LayoutConfig, LayoutResult } from './types';
 import { nodesOverlap } from './layout-utils';
 import { OverlapResolver } from './strategies/OverlapResolver';
@@ -479,8 +480,8 @@ export class ComplexLayoutEngine {
           from: edge.from,
           to: edge.to,
           points: [
-            { x: fromNode.x + fromNode.w / 2, y: fromNode.y + fromNode.h / 2 },
-            { x: toNode.x + toNode.w / 2, y: toNode.y + toNode.h / 2 }
+            { x: fromNode.x + getNodeWidth(fromNode) / 2, y: fromNode.y + getNodeHeight(fromNode) / 2 },
+            { x: toNode.x + getNodeWidth(toNode) / 2, y: toNode.y + getNodeHeight(toNode) / 2 }
           ],
           label: edge.label
         });
@@ -524,8 +525,8 @@ export class ComplexLayoutEngine {
       return { width: 0, height: 0, minX: 0, minY: 0, maxX: 0, maxY: 0 };
     }
 
-    const xs = layout.nodes.map(n => [n.x, n.x + n.w]).flat();
-    const ys = layout.nodes.map(n => [n.y, n.y + n.h]).flat();
+    const xs = layout.nodes.map(n => [n.x, n.x + getNodeWidth(n)]).flat();
+    const ys = layout.nodes.map(n => [n.y, n.y + getNodeHeight(n)]).flat();
 
     const minX = Math.min(...xs);
     const maxX = Math.max(...xs);
@@ -859,8 +860,8 @@ export class ComplexLayoutEngine {
           from: e.from,
           to: e.to,
           points: [
-            { x: (fromNode?.x ?? 0) + (fromNode?.w ?? 0) / 2, y: (fromNode?.y ?? 0) + (fromNode?.h ?? 0) / 2 },
-            { x: (toNode?.x ?? 0) + (toNode?.w ?? 0) / 2, y: (toNode?.y ?? 0) + (toNode?.h ?? 0) / 2 },
+            { x: (fromNode?.x ?? 0) + getNodeWidth(fromNode ?? {}) / 2, y: (fromNode?.y ?? 0) + getNodeHeight(fromNode ?? {}) / 2 },
+            { x: (toNode?.x ?? 0) + getNodeWidth(toNode ?? {}) / 2, y: (toNode?.y ?? 0) + getNodeHeight(toNode ?? {}) / 2 },
           ],
           label: e.label,
         };
@@ -916,8 +917,8 @@ export class ComplexLayoutEngine {
         from: e.from,
         to: e.to,
         points: [
-          { x: (fromNode?.x ?? 0) + (fromNode?.w ?? 0) / 2, y: (fromNode?.y ?? 0) + (fromNode?.h ?? 0) / 2 },
-          { x: (toNode?.x ?? 0) + (toNode?.w ?? 0) / 2, y: (toNode?.y ?? 0) + (toNode?.h ?? 0) / 2 },
+          { x: (fromNode?.x ?? 0) + getNodeWidth(fromNode ?? {}) / 2, y: (fromNode?.y ?? 0) + getNodeHeight(fromNode ?? {}) / 2 },
+          { x: (toNode?.x ?? 0) + getNodeWidth(toNode ?? {}) / 2, y: (toNode?.y ?? 0) + getNodeHeight(toNode ?? {}) / 2 },
         ],
         label: e.label,
       };
@@ -940,9 +941,9 @@ export class ComplexLayoutEngine {
       return { width: 0, height: 0 };
     }
     const minX = Math.min(...nodes.map(node => (node as unknown as PositionedNode).x || 0));
-    const maxX = Math.max(...nodes.map(node => ((node as unknown as PositionedNode).x || 0) + ((node as unknown as PositionedNode).w || 0)));
+    const maxX = Math.max(...nodes.map(node => ((node as unknown as PositionedNode).x || 0) + getNodeWidth(node as unknown as Record<string, unknown>)));
     const minY = Math.min(...nodes.map(node => (node as unknown as PositionedNode).y || 0));
-    const maxY = Math.max(...nodes.map(node => ((node as unknown as PositionedNode).y || 0) + ((node as unknown as PositionedNode).h || 0)));
+    const maxY = Math.max(...nodes.map(node => ((node as unknown as PositionedNode).y || 0) + getNodeHeight(node as unknown as Record<string, unknown>)));
 
     return { width: maxX - minX, height: maxY - minY };
   }

@@ -1053,20 +1053,20 @@ export class DiagramDetector {
       };
     });
 
-    // Sort by confidence descending
-    allScores.sort((a, b) => b.confidence - a.confidence);
+    // Sort by confidence descending (sanitize to prevent NaN sort instability)
+    allScores.sort((a, b) => sanitizeFinite(b.confidence, 0) - sanitizeFinite(a.confidence, 0));
 
     // LLM recommendation bonus: if analysisResult suggests a type, boost it
     if (analysisResult && analysisResult.type) {
-      const llmRecommended = analysisResult.type;
+      const llmRecommended = sanitizeDiagramType(analysisResult.type);
       const matchEntry = allScores.find(s => s.type === llmRecommended);
       if (matchEntry) {
-        matchEntry.confidence = Math.min(matchEntry.confidence * 1.15, 0.95);
+        matchEntry.confidence = Math.min(sanitizeFinite(matchEntry.confidence, 0) * 1.15, 0.95);
       }
     }
 
     // Re-sort after LLM bonus
-    allScores.sort((a, b) => b.confidence - a.confidence);
+    allScores.sort((a, b) => sanitizeFinite(b.confidence, 0) - sanitizeFinite(a.confidence, 0));
 
     const primary = allScores[0];
     if (!primary) {
@@ -1384,17 +1384,20 @@ export class DiagramDetector {
    * 🔄 Custom Instructions: Update Detection Metrics (Continuous Learning)
    */
   private updateDetectionMetrics(analysis: DiagramAnalysis, processingTime: number, qualityScore: number): void {
+    const safeType = sanitizeDiagramType(analysis.type);
+    const safeConfidence = sanitizeFinite(analysis.confidence, 0);
+
     // Store historical data for trend analysis
-    this.detectionMetrics.confidenceHistory.push(analysis.confidence);
+    this.detectionMetrics.confidenceHistory.push(safeConfidence);
     this.detectionMetrics.processingTimeHistory.push(processingTime);
     this.detectionMetrics.qualityScores.set(this.iteration, qualityScore);
 
     // Update type distribution
-    const currentCount = this.detectionMetrics.typeDistribution.get(analysis.type) || 0;
-    this.detectionMetrics.typeDistribution.set(analysis.type, currentCount + 1);
+    const currentCount = this.detectionMetrics.typeDistribution.get(safeType) || 0;
+    this.detectionMetrics.typeDistribution.set(safeType, currentCount + 1);
 
     // Calculate iterative improvements
-    this.detectionMetrics.iterativeImprovements.set('avgConfidence', analysis.confidence);
+    this.detectionMetrics.iterativeImprovements.set('avgConfidence', safeConfidence);
     this.detectionMetrics.iterativeImprovements.set('avgProcessingTime', processingTime);
     this.detectionMetrics.iterativeImprovements.set('qualityScore', qualityScore);
 
@@ -1413,7 +1416,7 @@ export class DiagramDetector {
 
   private async enhancedStatisticalAnalysis(segment: ContentSegment, baseAnalysis: DiagramAnalysis): Promise<DiagramAnalysis> {
     // Apply learned improvements from previous iterations
-    const enhancedConfidence = Math.min(baseAnalysis.confidence * this.ENHANCED_STATISTICAL_BOOST_FACTOR, this.HYBRID_CONFIDENCE_CAP);
+    const enhancedConfidence = Math.min(sanitizeFinite(baseAnalysis.confidence, 0) * this.ENHANCED_STATISTICAL_BOOST_FACTOR, this.HYBRID_CONFIDENCE_CAP);
 
     return {
       ...baseAnalysis,
@@ -1423,8 +1426,9 @@ export class DiagramDetector {
   }
 
   private async testConfidenceThreshold(analysis: DiagramAnalysis): Promise<{ passed: boolean; score: number; name: string }> {
-    const passed = analysis.confidence >= 0.6;
-    const score = analysis.confidence;
+    const safeConfidence = sanitizeFinite(analysis.confidence, 0);
+    const passed = safeConfidence >= 0.6;
+    const score = safeConfidence;
     return { passed, score, name: 'Confidence Threshold' };
   }
 
@@ -1457,10 +1461,12 @@ export class DiagramDetector {
       cycle: ['cycle', 'loop', 'circular', 'iterative']
     };
 
-    const keywords = typeKeywords[analysis.type] || [];
+    const safeType = sanitizeDiagramType(analysis.type);
+    const safeConfidence = sanitizeFinite(analysis.confidence, 0);
+    const keywords = typeKeywords[safeType] || [];
     const hasTypeKeywords = keywords.some(keyword => text.includes(keyword));
-    const passed = hasTypeKeywords || analysis.confidence > this.TYPE_APPROPRIATENESS_CONFIDENCE_THRESHOLD;
-    const score = hasTypeKeywords ? this.TYPE_APPROPRIATENESS_SCORE_FULL : analysis.confidence;
+    const passed = hasTypeKeywords || safeConfidence > this.TYPE_APPROPRIATENESS_CONFIDENCE_THRESHOLD;
+    const score = hasTypeKeywords ? this.TYPE_APPROPRIATENESS_SCORE_FULL : safeConfidence;
     return { passed, score, name: 'Type Appropriateness' };
   }
 

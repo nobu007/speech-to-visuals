@@ -1,5 +1,6 @@
 import { DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { ComplexLayoutConfig } from '../complex-layout-engine'; // Assuming this path is correct
+import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
 export class CulturalLayoutAdapter {
   private config: ComplexLayoutConfig;
@@ -49,7 +50,7 @@ export class CulturalLayoutAdapter {
 
     const flippedNodes = layout.nodes.map(node => ({
       ...node,
-      x: centerX + (centerX - node.x - node.w)
+      x: centerX + (centerX - node.x - getNodeWidth(node))
     }));
 
     const flippedEdges = layout.edges.map(edge => ({
@@ -146,8 +147,8 @@ export class CulturalLayoutAdapter {
 
     const styledNodes = layout.nodes.map(node => ({
       ...node,
-      w: node.w * sizeMultiplier,
-      h: node.h * sizeMultiplier
+      w: getNodeWidth(node) * sizeMultiplier,
+      h: getNodeHeight(node) * sizeMultiplier
     }));
 
     return { ...layout, nodes: styledNodes };
@@ -158,8 +159,8 @@ export class CulturalLayoutAdapter {
       return { width: 0, height: 0, minX: 0, minY: 0, maxX: 0, maxY: 0 };
     }
 
-    const xs = layout.nodes.map(n => [n.x, n.x + n.w]).flat();
-    const ys = layout.nodes.map(n => [n.y, n.y + n.h]).flat();
+    const xs = layout.nodes.map(n => [n.x, n.x + getNodeWidth(n)]).flat();
+    const ys = layout.nodes.map(n => [n.y, n.y + getNodeHeight(n)]).flat();
 
     const minX = Math.min(...xs);
     const maxX = Math.max(...xs);

@@ -1,6 +1,7 @@
 import { TranscriptionSegment } from '@/transcription/types';
 import { ContentSegment, AnalysisConfig } from './types';
 import { logger } from '../utils/logger';
+import { sanitizeFinite } from '@/utils/guards';
 
 /**
  * Scene Segmentation Engine - Iterative Implementation
@@ -626,7 +627,7 @@ export class SceneSegmenter {
 
     const testResults = await Promise.all(tests);
     const overallScore = testResults.length > 0
-      ? testResults.reduce((sum, result) => sum + result.score, 0) / testResults.length
+      ? testResults.reduce((sum, result) => sum + sanitizeFinite(result.score, 0), 0) / testResults.length
       : 0;
     const passed = overallScore > this.TEST_SEGMENTATION_OVERALL_SCORE_THRESHOLD; // 80% threshold
 
@@ -654,7 +655,7 @@ export class SceneSegmenter {
         ? segments.reduce((sum, seg) => sum + seg.keyphrases.length, 0) / segCount
         : 0,
       avgConfidence: segCount > 0
-        ? segments.reduce((sum, seg) => sum + seg.confidence, 0) / segCount
+        ? segments.reduce((sum, seg) => sum + sanitizeFinite(seg.confidence, 0), 0) / segCount
         : 0,
       processingTime: performance.now() - startTime
     };
@@ -757,7 +758,7 @@ export class SceneSegmenter {
 
   private async testConfidenceScores(segments: ContentSegment[]): Promise<{ passed: boolean; score: number; name: string }> {
     if (segments.length === 0) return { passed: false, score: 0, name: 'Confidence Scores' };
-    const avgConfidence = segments.reduce((sum, seg) => sum + seg.confidence, 0) / segments.length;
+    const avgConfidence = segments.reduce((sum, seg) => sum + sanitizeFinite(seg.confidence, 0), 0) / segments.length;
     const passed = avgConfidence >= this.TEST_CONFIDENCE_MIN_SCORE;
     const score = avgConfidence;
     return { passed, score, name: 'Confidence Scores' };

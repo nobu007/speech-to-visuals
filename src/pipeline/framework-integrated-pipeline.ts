@@ -18,6 +18,7 @@ import { MainPipeline } from './main-pipeline';
 import { PipelineInput, PipelineResult, PipelineConfig } from './types';
 import { getHeapUsed } from '@/utils/memory-usage';
 import { logger } from '../utils/logger';
+import { getNodeWidth, getNodeHeight } from '@/visualization/node-dimensions';
 import {
   IterationManager,
   createIterationManager,
@@ -334,11 +335,11 @@ export class FrameworkIntegratedPipeline {
           const n1 = nodes[i];
           const n2 = nodes[j];
 
-          // Check for overlap (assuming nodes have x, y, width, height or w, h)
-          const w1 = ('width' in n1 ? n1.width : 'w' in n1 ? n1.w : 120) as number;
-          const h1 = ('height' in n1 ? n1.height : 'h' in n1 ? n1.h : 60) as number;
-          const w2 = ('width' in n2 ? n2.width : 'w' in n2 ? n2.w : 120) as number;
-          const h2 = ('height' in n2 ? n2.height : 'h' in n2 ? n2.h : 60) as number;
+          // Use shared NaN-safe helpers for width/height extraction
+          const w1 = getNodeWidth(n1 as Record<string, unknown>);
+          const h1 = getNodeHeight(n1 as Record<string, unknown>);
+          const w2 = getNodeWidth(n2 as Record<string, unknown>);
+          const h2 = getNodeHeight(n2 as Record<string, unknown>);
 
           const overlaps = !(
             n1.x + w1 < n2.x ||

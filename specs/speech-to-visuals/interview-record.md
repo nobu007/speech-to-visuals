@@ -10,11 +10,66 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-26（第199回検証: スパインバリデータ拡張・制限環境テスト拡張）
+**最終更新**: 2026-07-02（第203回検証: NaN/Type Safetyコンソリデーション完結・w/h移行6ファイル完了・diagram-detector/scene-segmenterサニタイゼーションガード追加）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
 ## 分析項目と判断
+
+### A203: 第203回検証 - NaN/Type Safetyコンソリデーション完結（2026-07-02）
+
+**分析日時**: 2026-07-02
+**カテゴリ**: NaN安全性完結・型サニタイゼーション拡張・テストカバレッジ
+**背景**: AI Hub make-runフィードバック「previous iteration was VALUABLE」を踏まえ、以下を推奨:
+
+1. **w/h fallback pattern consolidation完了**: 15モジュールで統一されたgetNodeWidth/getNodeHeightヘルパー使用が完了したが、さらに残存する未ガードアクセスの完全排除を推奨
+2. **テストスイート検証**: 全12のcorruption-resilienceテストスイートがパスすることを確認
+3. **unguarded result.totalScore/result.type access audit**: src/services/外の未ガードアクセスポイントの完全監査
+
+**分析と判断**:
+
+1. **w/h移行残存6ファイルの完全排除** 🔵:
+   - コードベース全体監査の結果、以下6ファイルに残存する直接 `.w`/`.h` アクセスを発見:
+     - `src/quality/quality-gate.ts`: rectsOverlap関数が `a.w`/`a.h` 直接使用 → getNodeWidth/getNodeHeight使用に変更
+     - `src/pipeline/framework-integrated-pipeline.ts`: 手動プロパティチェック `'width' in n1 ? n1.width : ...` → getNodeWidth/getNodeHeight使用に変更
+     - `src/visualization/complex-layout-engine.ts`: 4箇所の直接 `.w`/`.h` アクセス（エッジ中点計算・クラスタ境界計算） → helpers使用に変更
+     - `src/visualization/strategies/FallbackLayoutStrategy.ts`: 4箇所（フロー・ツリー・タイムライン・サイクルレイアウトのエッジ中点） → helpers使用に変更
+     - `src/visualization/strategies/CulturalLayoutAdapter.ts`: 3箇所（RTL反転・スタイル適応・境界計算） → helpers使用に変更
+   - 結果: src/内の全アクティブソースファイルから直接 `.w`/`.h` アクセスが完全排除
+
+2. **diagram-detector.ts サニタイゼーションガード追加** 🔵:
+   - 以下の未ガードアクセスポイントを特定し修正:
+     - 行1057: `allScores.sort((a, b) => b.confidence - a.confidence)` → `sanitizeFinite(b.confidence, 0) - sanitizeFinite(a.confidence, 0)` に変更
+     - 行1060-1064: LLM推奨ボーナスの `analysisResult.type` と `matchEntry.confidence` → sanitizeDiagramType/sanitizeFinite使用に変更
+     - 行1388-1397: `updateDetectionMetrics` の `analysis.type`/`analysis.confidence` → sanitizeDiagramType/sanitizeFinite使用に変更
+     - 行1416: `baseAnalysis.confidence * BOOST_FACTOR` → sanitizeFinite使用に変更
+     - 行1426-1427: `testConfidenceThreshold` の `analysis.confidence` → sanitizeFinite使用に変更
+     - 行1460-1463: `testTypeAppropriateность` の `analysis.type`/`analysis.confidence` → sanitizeDiagramType/sanitizeFinite使用に変更
+
+3. **scene-segmenter.ts サニタイゼーションガード追加** 🔵:
+   - 以下のreduce操作にsanitizeFinite追加:
+     - 行629: テスト結果スコアの還元 `sum + result.score` → `sum + sanitizeFinite(result.score, 0)`
+     - 行657: 平均信頼度計算 `sum + seg.confidence` → `sum + sanitizeFinite(seg.confidence, 0)`
+     - 行760: testConfidenceScores `sum + seg.confidence` → `sum + sanitizeFinite(seg.confidence, 0)`
+
+4. **新規テストスイート追加** 🔵:
+   - `src/visualization/__tests__/wh-migration-completeness.test.ts`: 17テスト（NaN・Infinity・null・undefined・混合ディメンションのフォールバック検証、全移行ファイルのコンテキスト別検証）
+   - `src/analysis/__tests__/diagram-detector-metrics-sanitization.test.ts`: 15テスト（ソート安定性・Map安全性・信頼度ブースト・シーンセグメンタ還元のNaN耐性）
+
+5. **テスト検証** 🔵:
+   - corruption-resilienceスイート: 11スイート・230テスト全パス
+   - diagram-detector/node-dimensions/nan-safe/guards/sanitizeスイート: 17スイート・1510テスト全パス
+   - 新規テスト: 2スイート・26テスト全パス
+   - 型チェック: エラー0件（tsconfig.app.json）
+   - 先行失敗（pre-existing）: quality-gate-nan-guard.test.ts (ESM module構文), framework-integrated-pipeline.test.ts (mock不一致)
+
+**ルート確認**: commit 7a8ca46で15モジュールのw/h移行が完了した後も、6ファイルに残存する直接アクセスを完全排除。diagram-detector.tsのLLM境界サニタイゼーション（commit 79ec53e）の後に残存していた内部アクセスポイント（メトリクス追跡・品質評価・ソートコンパレータ）も完全ガード。
+
+**信頼性への影響**:
+- REQ-263~266 を新規追加（信頼性: 🔵 既存実装とAI Hub推奨に基づく確実な要件）
+- src/内の全 `.w`/`.h` 直接アクセス: 0件（完全排除達成）
+
+---
 
 ### A199: 第199回検証 - スパインバリデータスキーマ拡張・制限環境テスト拡張（2026-06-26）
 

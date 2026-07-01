@@ -1,5 +1,6 @@
 import { DiagramLayout, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge, DiagramType } from '@/types/diagram';
 import { LayoutConfig } from '../types';
+import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
 export class FallbackLayoutStrategy {
   private config: LayoutConfig;
@@ -71,8 +72,8 @@ export class FallbackLayoutStrategy {
         from: edge.from,
         to: edge.to,
         points: [
-          { x: fromNode.x + fromNode.w / 2, y: fromNode.y + fromNode.h },
-          { x: toNode.x + toNode.w / 2, y: toNode.y }
+          { x: fromNode.x + getNodeWidth(fromNode) / 2, y: fromNode.y + getNodeHeight(fromNode) },
+          { x: toNode.x + getNodeWidth(toNode) / 2, y: toNode.y }
         ],
         label: edge.label
       };
@@ -127,8 +128,8 @@ export class FallbackLayoutStrategy {
         from: edge.from,
         to: edge.to,
         points: [
-          { x: fromNode.x + fromNode.w, y: fromNode.y + fromNode.h / 2 },
-          { x: toNode.x, y: toNode.y + toNode.h / 2 }
+          { x: fromNode.x + getNodeWidth(fromNode), y: fromNode.y + getNodeHeight(fromNode) / 2 },
+          { x: toNode.x, y: toNode.y + getNodeHeight(toNode) / 2 }
         ],
         label: edge.label
       };
@@ -177,8 +178,8 @@ export class FallbackLayoutStrategy {
         from: edge.from,
         to: edge.to,
         points: [
-          { x: fromNode.x + fromNode.w / 2, y: fromNode.y + fromNode.h / 2 },
-          { x: toNode.x + toNode.w / 2, y: toNode.y + toNode.h / 2 }
+          { x: fromNode.x + getNodeWidth(fromNode) / 2, y: fromNode.y + getNodeHeight(fromNode) / 2 },
+          { x: toNode.x + getNodeWidth(toNode) / 2, y: toNode.y + getNodeHeight(toNode) / 2 }
         ],
         label: edge.label
       };
@@ -228,8 +229,8 @@ export class FallbackLayoutStrategy {
         from: edge.from,
         to: edge.to,
         points: [
-          { x: fromNode.x + fromNode.w / 2, y: fromNode.y + fromNode.h / 2 },
-          { x: toNode.x + toNode.w / 2, y: toNode.y + toNode.h / 2 }
+          { x: fromNode.x + getNodeWidth(fromNode) / 2, y: fromNode.y + getNodeHeight(fromNode) / 2 },
+          { x: toNode.x + getNodeWidth(toNode) / 2, y: toNode.y + getNodeHeight(toNode) / 2 }
         ],
         label: edge.label
       };

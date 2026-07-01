@@ -5477,7 +5477,11 @@
 | REQ-258: Spine manifest CI統合 | 3 | 🔵 |
 | REQ-259: Recovery silent catch修正 | 4 | 🔵 |
 | REQ-260: SimpleDiagramDetector修正 | 3 | 🔵 |
-| **合計** | **20** | **🔵 100%** |
+| REQ-263: w/h移行完全完了 | 5 | 🔵 |
+| REQ-264: diagram-detector sant guard | 4 | 🔵 |
+| REQ-265: scene-segmenter sant guard | 3 | 🔵 |
+| REQ-266: NaN safety検証テスト | 2 | 🔵 |
+| **合計** | **34** | **🔵 100%** |
 
 
 <!-- spine:references:begin -->

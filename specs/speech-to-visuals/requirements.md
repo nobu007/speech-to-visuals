@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 112 完了・384ソースファイル・252テストファイル・107パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・192タスク全完了・テストスイート安定化完了・Phase 112 エラー回復可観測性・未テストモジュールカバレッジ完了（5戦略silent catch logger.error追加・9監視APIルートのエラーロギング・BatchOperationRecovery 39テスト・ErrorRecoveryMonitor 21テスト・監視APIエラーロギング 5テスト・REQ-258~262）
+**実装状況**: Phase 113 完了・384ソースファイル・254テストファイル・107パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・192タスク全完了・テストスイート安定化完了・Phase 112 エラー回復可観測性・未テストモジュールカバレッジ完了・Phase 113 NaN/Type Safetyコンソリデーション完完了（w/h直接アクセス完全排除・diagram-detector/scene-segmenterサニタイゼーションガード・32新規テスト・REQ-263~266）
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -673,6 +673,13 @@
 - REQ-260: BatchOperationRecovery（src/quality/batch-operation-recovery.ts, 276行）のユニットテストカバレッジとして、逐次処理・並行処理・リトライ・フォールバック・集計統計・エッジケースを検証しなければならない 🔵 *未テストモジュールgap分析（Phase 110）・AI Hub make-runフィードバックより*
 - REQ-261: ErrorRecoveryMonitor（src/quality/error-recovery-monitor.ts, 278行）のユニットテストカバレッジとして、ライフサイクル・サンプリング・アラートレベル計算・リセット・getTrackerを検証しなければならない 🔵 *未テストモジュールgap分析（Phase 110）・AI Hub make-runフィードバックより*
 - REQ-262: 監視APIルートのエラーロギングを検証するテストとして、ダッシュボード例外発生時にlogger.errorが呼ばれること・400エラーでは呼ばれないことを検証しなければならない 🔵 *REQ-259修正のテスト検証・src/api/routes/__tests__/monitoring-error-logging.test.tsより*
+
+### NaN/Type Safety コンソリデーション完結（Phase 113） ✅実装済
+
+- REQ-263: システムの品質ゲート（quality-gate.ts）・パイプライン統合（framework-integrated-pipeline.ts）・複合レイアウトエンジン（complex-layout-engine.ts）・フォールバックレイアウト（FallbackLayoutStrategy.ts）・文化適応レイアウト（CulturalLayoutAdapter.ts）の全てが getNodeWidth/getNodeHeight ヘルパーを使用し、直接 .w/.h アクセスを行わないことで NaN 伝播を防止しなければならない 🔵 ✅実装済 *AI Hub make-runフィードバック: w/h fallback consolidation completion・コミット7a8ca46から継続・6ファイルの残存アクセスを移行*
+- REQ-264: システムの図解検出器（diagram-detector.ts）のメトリクス追跡・品質評価・信頼度スコアリングが sanitizeFinite/sanitizeDiagramType を使用し、NaN や不正タイプ値の伝播を防止しなければならない。ソートコンパレータ・LLM推奨ボーナス・メトリクス履歴・信頼度閾値テスト・タイプ適切性テストを含む 🔵 ✅実装済 *AI Hub make-runフィードバック: unguarded result.totalScore/type access audit・src/analysis/diagram-detector.ts の5箇所の未ガードアクセスを修正*
+- REQ-265: システムのシーン分割器（scene-segmenter.ts）のスコア還元・信頼度平均計算が sanitizeFinite を使用し、NaN値を含むセグメントデータから NaN が伝播しないことを保証しなければならない 🔵 ✅実装済 *AI Hub make-runフィードバック: unguarded result.score access audit・src/analysis/scene-segmenter.ts の3箇所のreduce操作を修正*
+- REQ-266: システムは NaN/Type Safety コンソリデーションの完了を検証するテストスイートとして、(1) w/h移行完了性テスト（NaN・Infinity・undefined・null・混合ディメンションのフォールバック検証）、(2) メトリクス・サニタイゼーション検証テスト（ソート安定性・Map安全性・信頼度ブースト計算のNaN耐性）を提供しなければならない 🔵 ✅実装済 *src/visualization/__tests__/wh-migration-completeness.test.ts（17テスト）・src/analysis/__tests__/diagram-detector-metrics-sanitization.test.ts（15テスト）*
 
 ## 実装進捗サマリー
 

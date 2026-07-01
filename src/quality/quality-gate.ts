@@ -271,15 +271,17 @@ export class QualityGateEvaluator {
  * Helper: check if two axis-aligned rectangles overlap.
  */
 function rectsOverlap(
-  a: { x: number; y: number; w: number; h: number },
-  b: { x: number; y: number; w: number; h: number },
+  a: { x: number; y: number; width?: number; w?: number; height?: number; h?: number },
+  b: { x: number; y: number; width?: number; w?: number; height?: number; h?: number },
   margin = 10
 ): boolean {
+  const aw = getNodeWidth(a), ah = getNodeHeight(a);
+  const bw = getNodeWidth(b), bh = getNodeHeight(b);
   return !(
-    a.x + a.w + margin <= b.x ||
-    b.x + b.w + margin <= a.x ||
-    a.y + a.h + margin <= b.y ||
-    b.y + b.h + margin <= a.y
+    a.x + aw + margin <= b.x ||
+    b.x + bw + margin <= a.x ||
+    a.y + ah + margin <= b.y ||
+    b.y + bh + margin <= a.y
   );
 }
 
@@ -415,7 +417,7 @@ function createLayoutCriteria(): QualityCriterion[] {
       threshold: 0,
       evaluate: (input: unknown): QualityResult => {
         const data = input as Record<string, unknown>;
-        const nodes = (data.nodes as Array<{ x: number; y: number; w: number; h: number }>) ?? [];
+        const nodes = (data.nodes as Array<{ x: number; y: number; width?: number; w?: number; height?: number; h?: number }>) ?? [];
         let overlapCount = 0;
         for (let i = 0; i < nodes.length; i++) {
           for (let j = i + 1; j < nodes.length; j++) {
