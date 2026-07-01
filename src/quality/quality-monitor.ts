@@ -1,6 +1,7 @@
 import { PipelineResult, PipelineStage } from '@/pipeline/types';
 import { SceneGraph } from '@/types/diagram';
 import { logger } from '../utils/logger';
+import { getNodeWidth, getNodeHeight } from '@/visualization/node-dimensions';
 
 /**
  * Quality Assessment Interfaces
@@ -388,11 +389,20 @@ export class QualityMonitor {
     const a = node1 as Record<string, unknown>;
     const b = node2 as Record<string, unknown>;
 
+    const ax = (a.x as number) || 0;
+    const ay = (a.y as number) || 0;
+    const bx = (b.x as number) || 0;
+    const by = (b.y as number) || 0;
+    const aw = getNodeWidth(a as never);
+    const ah = getNodeHeight(a as never);
+    const bw = getNodeWidth(b as never);
+    const bh = getNodeHeight(b as never);
+
     return !(
-      ((a.x as number) || 0) + ((a.w as number) || 120) + margin < ((b.x as number) || 0) ||
-      ((b.x as number) || 0) + ((b.w as number) || 120) + margin < ((a.x as number) || 0) ||
-      ((a.y as number) || 0) + ((a.h as number) || 60) + margin < ((b.y as number) || 0) ||
-      ((b.y as number) || 0) + ((b.h as number) || 60) + margin < ((a.y as number) || 0)
+      ax + aw + margin < bx ||
+      bx + bw + margin < ax ||
+      ay + ah + margin < by ||
+      by + bh + margin < ay
     );
   }
 

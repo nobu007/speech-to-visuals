@@ -18,6 +18,7 @@ import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@
 import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { logger } from '../../utils/logger';
+import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
 export class ComparisonLayoutStrategy implements ILayoutStrategy {
   readonly name = 'comparison';
@@ -140,13 +141,13 @@ export class ComparisonLayoutStrategy implements ILayoutStrategy {
       const sourceIsLeft = source.x < target.x;
 
       const sourcePoint = {
-        x: sourceIsLeft ? source.x + source.w : source.x,  // Right or left edge
-        y: source.y + source.h / 2                          // Vertical center
+        x: sourceIsLeft ? source.x + getNodeWidth(source) : source.x,  // Right or left edge
+        y: source.y + getNodeHeight(source) / 2                          // Vertical center
       };
 
       const targetPoint = {
-        x: sourceIsLeft ? target.x : target.x + target.w,   // Left or right edge
-        y: target.y + target.h / 2                           // Vertical center
+        x: sourceIsLeft ? target.x : target.x + getNodeWidth(target),   // Left or right edge
+        y: target.y + getNodeHeight(target) / 2                           // Vertical center
       };
 
       return {

@@ -18,6 +18,7 @@ import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@
 import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { logger } from '../../utils/logger';
+import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
 export class ConceptMapLayoutStrategy implements ILayoutStrategy {
   readonly name = 'conceptmap';
@@ -107,13 +108,13 @@ export class ConceptMapLayoutStrategy implements ILayoutStrategy {
 
       // Simple straight line from center to center
       const sourcePoint = {
-        x: source.x + source.w / 2,
-        y: source.y + source.h / 2
+        x: source.x + getNodeWidth(source) / 2,
+        y: source.y + getNodeHeight(source) / 2
       };
 
       const targetPoint = {
-        x: target.x + target.w / 2,
-        y: target.y + target.h / 2
+        x: target.x + getNodeWidth(target) / 2,
+        y: target.y + getNodeHeight(target) / 2
       };
 
       return {

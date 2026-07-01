@@ -19,6 +19,7 @@ import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { nodesOverlap } from '../layout-utils';
 import { logger } from '../../utils/logger';
+import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
 export class NetworkLayoutStrategy implements ILayoutStrategy {
   readonly name = 'network';
@@ -162,12 +163,12 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
         const node1 = nodes[i];
         const node2 = nodes[j];
 
-        const dx = (node2.x + node2.w / 2) - (node1.x + node1.w / 2);
-        const dy = (node2.y + node2.h / 2) - (node1.y + node1.h / 2);
+        const dx = (node2.x + getNodeWidth(node2) / 2) - (node1.x + getNodeWidth(node1) / 2);
+        const dy = (node2.y + getNodeHeight(node2) / 2) - (node1.y + getNodeHeight(node1) / 2);
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         if (distance > 0) {
-          const idealDistance = optimalSpacing + (node1.w + node2.w) / 2;
+          const idealDistance = optimalSpacing + (getNodeWidth(node1) + getNodeWidth(node2)) / 2;
           let repulsion = 0;
 
           if (distance < idealDistance) {
@@ -200,8 +201,8 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
       const target = nodes.find(n => n.id === edge.to);
 
       if (source && target) {
-        const dx = (target.x + target.w / 2) - (source.x + source.w / 2);
-        const dy = (target.y + target.h / 2) - (source.y + source.h / 2);
+        const dx = (target.x + getNodeWidth(target) / 2) - (source.x + getNodeWidth(source) / 2);
+        const dy = (target.y + getNodeHeight(target) / 2) - (source.y + getNodeHeight(source) / 2);
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         if (distance > 0) {
@@ -242,8 +243,8 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
 
       // Constrain to canvas bounds
       const margin = 20;
-      node.x = Math.max(margin, Math.min(config.width - node.w - margin, node.x));
-      node.y = Math.max(margin, Math.min(config.height - node.h - margin, node.y));
+      node.x = Math.max(margin, Math.min(config.width - getNodeWidth(node) - margin, node.x));
+      node.y = Math.max(margin, Math.min(config.height - getNodeHeight(node) - margin, node.y));
     });
   }
 
@@ -289,13 +290,13 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
 
       // Straight line from center to center
       const sourcePoint = {
-        x: source.x + source.w / 2,
-        y: source.y + source.h / 2
+        x: source.x + getNodeWidth(source) / 2,
+        y: source.y + getNodeHeight(source) / 2
       };
 
       const targetPoint = {
-        x: target.x + target.w / 2,
-        y: target.y + target.h / 2
+        x: target.x + getNodeWidth(target) / 2,
+        y: target.y + getNodeHeight(target) / 2
       };
 
       return {

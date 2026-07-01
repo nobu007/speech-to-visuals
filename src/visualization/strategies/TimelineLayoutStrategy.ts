@@ -18,6 +18,7 @@ import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@
 import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { logger } from '../../utils/logger';
+import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
 export class TimelineLayoutStrategy implements ILayoutStrategy {
   readonly name = 'timeline';
@@ -113,13 +114,13 @@ export class TimelineLayoutStrategy implements ILayoutStrategy {
 
       // Create horizontal arrow from source right-center to target left-center
       const sourcePoint = {
-        x: source.x + source.w,      // Right edge of source
-        y: source.y + source.h / 2   // Vertical center
+        x: source.x + getNodeWidth(source),      // Right edge of source
+        y: source.y + getNodeHeight(source) / 2   // Vertical center
       };
 
       const targetPoint = {
         x: target.x,                 // Left edge of target
-        y: target.y + target.h / 2   // Vertical center
+        y: target.y + getNodeHeight(target) / 2   // Vertical center
       };
 
       return {

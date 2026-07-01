@@ -19,6 +19,7 @@ import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { logger } from '../../utils/logger';
 import { VisualizationError } from '@/pipeline/pipeline-errors';
+import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
 interface TreeNode {
   id: string;
@@ -265,12 +266,12 @@ export class TreeLayoutStrategy implements ILayoutStrategy {
 
       // Create straight line from source center-bottom to target center-top
       const sourcePoint = {
-        x: source.x + source.w / 2,
-        y: source.y + source.h  // Bottom of source
+        x: source.x + getNodeWidth(source) / 2,
+        y: source.y + getNodeHeight(source)  // Bottom of source
       };
 
       const targetPoint = {
-        x: target.x + target.w / 2,
+        x: target.x + getNodeWidth(target) / 2,
         y: target.y  // Top of target
       };
 
