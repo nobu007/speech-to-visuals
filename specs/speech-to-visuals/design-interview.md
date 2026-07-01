@@ -3921,3 +3921,49 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - 🔵 青信号: 575 (+15)
 - 🟡 黄信号: 6 (±0)
 - 🔴 赤信号: 0
+
+---
+
+### A116: NaN安全性統合の完全性検証とコンパイル時型強制の追加
+
+**分析日時**: 2026-07-02
+**カテゴリ**: 型安全性・アーキテクチャパターン
+**背景**: 直前の6コミット（596e4e8～ac3bd3a）で15モジュールにわたる`.w`/`.h`プロパティフォールバックを`getNodeWidth`/`getNodeHeight`ヘルパーに統合した。本イテレーションでは残存する非安全なアクセスの有無を網羅検査し、さらに型レベルでの予防策を追加する。
+
+**判断**:
+
+1. **`.w`/`.h`直接アクセス残存検査**: `src/visualization/`、`src/quality/`、`src/analysis/`の全ファイルで`.w`/`.h`の直接アクセスパターンをgrep検索 → **ゼロ件**。コミットac3bd3aによる統合が完全であることを確認。
+
+2. **`result.totalScore`/`result.type`未ガードアクセス検査**: `src/utils/`、`src/contexts/`、`src/components/`、`src/hooks/`、`src/pages/`、`src/api/`、`src/framework/`、`src/optimization/`、`src/monitoring/`の241ファイルを対象に検査 → **ゼロ件**。全アクセスが`sanitizeFinite`/`sanitizeDiagramType`で保護されている。
+
+3. **コンパイル時型強制の追加**:
+   - `PositionedNode.w`/`.h`に`@deprecated`JSDocタグを付与し、IDE警告を発生させる
+   - `NodeDimensionsSafe`ブランド型を新設し、`width`/`height`が有限数であることを型レベルで保証
+   - `hasSafeDimensions()`型ガード関数と`withSafeDimensions()`解決関数を追加
+   - `withSafeDimensions()`は元ノードをin-placeで更新し、`w`/`h`を`undefined`にクリアして将来の分岐を防止
+
+**根拠**:
+- `src/visualization/node-dimensions.ts`実装確認
+- `src/types/diagram.ts`のPositionedNode型定義確認
+- `src/utils/guards.ts`のsanitizeFinite/sanitizeDiagramType実装確認
+- tsc型チェック全通過（エラーゼロ）
+- node-dimensions.test.ts 48テスト全通過（既存30 + 新規18）
+
+**信頼性への影響**:
+- `PositionedNode.w`/`.h`の`@deprecated`化により、新規コードでの直接アクセスがIDEレベルで警告される → 🔵型安全性向上
+- `NodeDimensionsSafe`ブランド型により、関数境界で次元安全をコンパイル時に強制可能 → 🔵コンパイル時検出
+- NaN伝播バグの再発防止策が「ランタイムヘルパーのみ」から「ランタイム+コンパイル時+IDE警告」の三重防御に強化 → 🔵防御深度向上
+
+---
+
+### 信頼性レベル分布（第202回検証）
+
+**分析前（第201回検証時）**:
+- 🔵 青信号: 575
+- 🟡 黄信号: 6
+- 🔴 赤信号: 0
+
+**分析後**:
+- 🔵 青信号: 578 (+3)
+- 🟡 黄信号: 6 (±0)
+- 🔴 赤信号: 0

@@ -53,3 +53,55 @@ export function getNodeHeight(node: Pick<PositionedNode, 'height' | 'h'>, fallba
   if (Number.isFinite(h)) return h!;
   return fallback;
 }
+
+// ─── Branded type for compile-time dimension safety ──────────────
+
+/**
+ * Unique symbol brand so `NodeDimensionsSafe` can only be created
+ * by calling {@link withSafeDimensions}.
+ */
+declare const __safeDim: unique symbol;
+
+/**
+ * A `PositionedNode` whose effective dimensions have been resolved
+ * to finite `width` and `height` values.  The `w` / `h` aliases are
+ * set to `undefined` to prevent accidental use.
+ *
+ * Create via {@link withSafeDimensions}; verify via {@link hasSafeDimensions}.
+ */
+export type NodeDimensionsSafe = PositionedNode & {
+  width: number;
+  height: number;
+  w: undefined;
+  h: undefined;
+  readonly [__safeDim]: true;
+};
+
+/**
+ * Type guard: returns `true` when the node already has finite
+ * `width` and `height` (the canonical pair) and therefore needs
+ * no fallback resolution.
+ */
+export function hasSafeDimensions(node: PositionedNode): boolean {
+  return Number.isFinite(node.width) && Number.isFinite(node.height);
+}
+
+/**
+ * Resolve a node's dimensions to finite values and return a
+ * {@link NodeDimensionsSafe} branded type.
+ *
+ * The returned object is the **same node reference** (mutated in place)
+ * with:
+ *   - `width` / `height` guaranteed finite
+ *   - `w` / `h` set to `undefined` to prevent future divergence
+ *
+ * Use at function boundaries where downstream code should be
+ * dimension-safe by construction.
+ */
+export function withSafeDimensions(node: PositionedNode): NodeDimensionsSafe {
+  node.width = getNodeWidth(node);
+  node.height = getNodeHeight(node);
+  node.w = undefined;
+  node.h = undefined;
+  return node as unknown as NodeDimensionsSafe;
+}

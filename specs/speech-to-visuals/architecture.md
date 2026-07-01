@@ -918,4 +918,16 @@ spec整合性の自動検証システム:
 - [TASK-0215: main-pipeline.ts のリトライカウンタスレッド安全性とエラー伝播改善](tasks/TASK-0215.md)
 - [TASK-0216: monitoring APIルートのエラーハンドリング改善](tasks/TASK-0216.md)
 
+### NaN Safety 三重防御モデル 🔵
+
+**信頼性**: 🔵 *src/visualization/node-dimensions.ts・src/utils/guards.ts・src/types/diagram.ts より*
+
+`PositionedNode`の`width`/`height`と`w`/`h`の二重プロパティ問題に対する三層防御:
+
+1. **ランタイムヘルパー層** (🔵): `getNodeWidth(node, fallback)` / `getNodeHeight(node, fallback)` が`width`→`w`→fallbackの順で`Number.isFinite`チェック付き fallback chainを提供。全15モジュールがこのヘルパーを使用。
+
+2. **コンパイル時型層** (🔵): `PositionedNode.w`/`.h`に`@deprecated`タグを付与し、IDE警告を発生。新規コードでの直接アクセスを開発時に検出。`NodeDimensionsSafe`ブランド型と`withSafeDimensions()`で、関数境界において次元安全をコンパイル時に強制可能。
+
+3. **入力サニタイゼーション層** (🔵): `sanitizeFinite(value, default)` / `sanitizeDiagramType(value, default)` が、LLM解析結果や外部入力のNaN/Infinity/不正型を境界で捕捉。`diagram-detector.ts`、`main-pipeline.ts`、`simple-pipeline.ts`の全resultアクセスポイントで使用。
+
 <!-- spine:references:end -->

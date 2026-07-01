@@ -1,5 +1,12 @@
 import { describe, it, expect } from '@jest/globals';
-import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import {
+  getNodeWidth,
+  getNodeHeight,
+  DEFAULT_NODE_WIDTH,
+  DEFAULT_NODE_HEIGHT,
+  hasSafeDimensions,
+  withSafeDimensions,
+} from '../node-dimensions';
 import type { PositionedNode } from '@/types/diagram';
 
 describe('node-dimensions', () => {
@@ -179,6 +186,188 @@ describe('node-dimensions', () => {
       };
       expect(getNodeWidth(node)).toBe(100);
       expect(getNodeHeight(node)).toBe(40);
+    });
+  });
+
+  // ---------- hasSafeDimensions ----------
+
+  describe('hasSafeDimensions', () => {
+    it('returns true when both width and height are finite', () => {
+      const node = { width: 100, height: 50 } as PositionedNode;
+      expect(hasSafeDimensions(node)).toBe(true);
+    });
+
+    it('returns true when width and height are 0', () => {
+      const node = { width: 0, height: 0 } as PositionedNode;
+      expect(hasSafeDimensions(node)).toBe(true);
+    });
+
+    it('returns false when width is undefined', () => {
+      const node = { height: 50 } as PositionedNode;
+      expect(hasSafeDimensions(node)).toBe(false);
+    });
+
+    it('returns false when height is undefined', () => {
+      const node = { width: 100 } as PositionedNode;
+      expect(hasSafeDimensions(node)).toBe(false);
+    });
+
+    it('returns false when width is NaN', () => {
+      const node = { width: NaN, height: 50 } as PositionedNode;
+      expect(hasSafeDimensions(node)).toBe(false);
+    });
+
+    it('returns false when height is NaN', () => {
+      const node = { width: 100, height: NaN } as PositionedNode;
+      expect(hasSafeDimensions(node)).toBe(false);
+    });
+
+    it('returns false when width is Infinity', () => {
+      const node = { width: Infinity, height: 50 } as PositionedNode;
+      expect(hasSafeDimensions(node)).toBe(false);
+    });
+
+    it('returns false when only w/h are set (no width/height)', () => {
+      const node = { w: 100, h: 50 } as PositionedNode;
+      expect(hasSafeDimensions(node)).toBe(false);
+    });
+
+    it('returns false for empty node', () => {
+      const node = {} as PositionedNode;
+      expect(hasSafeDimensions(node)).toBe(false);
+    });
+  });
+
+  // ---------- withSafeDimensions ----------
+
+  describe('withSafeDimensions', () => {
+    it('resolves width/height from canonical properties', () => {
+      const node: PositionedNode = {
+        id: 'n1',
+        label: 'A',
+        x: 0,
+        y: 0,
+        width: 200,
+        height: 80,
+      };
+      const safe = withSafeDimensions(node);
+      expect(safe.width).toBe(200);
+      expect(safe.height).toBe(80);
+    });
+
+    it('resolves width/height from w/h fallback', () => {
+      const node: PositionedNode = {
+        id: 'n1',
+        label: 'A',
+        x: 0,
+        y: 0,
+        w: 150,
+        h: 70,
+      };
+      const safe = withSafeDimensions(node);
+      expect(safe.width).toBe(150);
+      expect(safe.height).toBe(70);
+    });
+
+    it('applies default fallbacks when no dimension is set', () => {
+      const node: PositionedNode = {
+        id: 'n1',
+        label: 'A',
+        x: 0,
+        y: 0,
+      };
+      const safe = withSafeDimensions(node);
+      expect(safe.width).toBe(DEFAULT_NODE_WIDTH);
+      expect(safe.height).toBe(DEFAULT_NODE_HEIGHT);
+    });
+
+    it('clears w/h after resolution to prevent divergence', () => {
+      const node: PositionedNode = {
+        id: 'n1',
+        label: 'A',
+        x: 0,
+        y: 0,
+        w: 150,
+        h: 70,
+      };
+      const safe = withSafeDimensions(node);
+      expect(safe.w).toBeUndefined();
+      expect(safe.h).toBeUndefined();
+    });
+
+    it('handles NaN width by falling back to w then default', () => {
+      const node: PositionedNode = {
+        id: 'n1',
+        label: 'A',
+        x: 0,
+        y: 0,
+        width: NaN,
+        w: 180,
+        height: 50,
+      };
+      const safe = withSafeDimensions(node);
+      expect(safe.width).toBe(180);
+      expect(safe.height).toBe(50);
+    });
+
+    it('handles all-NaN by applying fallbacks', () => {
+      const node: PositionedNode = {
+        id: 'n1',
+        label: 'A',
+        x: 0,
+        y: 0,
+        width: NaN,
+        height: NaN,
+        w: NaN,
+        h: NaN,
+      };
+      const safe = withSafeDimensions(node);
+      expect(safe.width).toBe(DEFAULT_NODE_WIDTH);
+      expect(safe.height).toBe(DEFAULT_NODE_HEIGHT);
+    });
+
+    it('mutates the original node in place (same reference)', () => {
+      const node: PositionedNode = {
+        id: 'n1',
+        label: 'A',
+        x: 0,
+        y: 0,
+        w: 100,
+        h: 50,
+      };
+      const safe = withSafeDimensions(node);
+      expect(safe).toBe(node);
+      expect(node.width).toBe(100);
+      expect(node.w).toBeUndefined();
+    });
+
+    it('preserves x/y and other properties', () => {
+      const node: PositionedNode = {
+        id: 'n1',
+        label: 'Test',
+        x: 42,
+        y: 99,
+        w: 100,
+        h: 50,
+      };
+      const safe = withSafeDimensions(node);
+      expect(safe.x).toBe(42);
+      expect(safe.y).toBe(99);
+      expect(safe.id).toBe('n1');
+      expect(safe.label).toBe('Test');
+    });
+
+    it('result passes hasSafeDimensions check', () => {
+      const node: PositionedNode = {
+        id: 'n1',
+        label: 'A',
+        x: 0,
+        y: 0,
+        w: 100,
+        h: 50,
+      };
+      const safe = withSafeDimensions(node);
+      expect(hasSafeDimensions(safe)).toBe(true);
     });
   });
 });
