@@ -270,7 +270,14 @@ export class ProgressiveForceStrategy extends BaseLayoutStrategy {
             
             // Only consider nodes within a certain distance
             if (distSq > this.gridSize * this.gridSize * 4) continue;
-            
+
+            // Guard against zero-distance (identical positions) — mirrors applyRepulsionAllPairs
+            if (distSq < 1e-6) {
+              node.x += (Math.random() - 0.5) * 10;
+              node.y += (Math.random() - 0.5) * 10;
+              continue;
+            }
+
             // Calculate repulsive force
             const dist = Math.sqrt(distSq);
             const force = k * k / distSq;

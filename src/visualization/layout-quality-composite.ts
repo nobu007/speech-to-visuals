@@ -202,7 +202,7 @@ export class LayoutQualityCompositeScorer {
 
     // Weighted composite
     const w = this.weights;
-    const totalWeight = w.balance + w.crossing + w.overflow + w.density;
+    const totalWeight = Math.max(w.balance + w.crossing + w.overflow + w.density, 1e-10);
     const compositeScore = Math.max(0, Math.min(1,
       (balanceScore * w.balance +
        crossingScore * w.crossing +

@@ -342,5 +342,21 @@ describe('LayoutQualityCompositeScorer', () => {
       const result = scorer.evaluate(nodes, edges, bounds);
       expect(result.crossingScore).toBe(1);
     });
+
+    it('does not produce NaN when all weights are zero', () => {
+      const scorer = new LayoutQualityCompositeScorer({
+        balance: 0,
+        crossing: 0,
+        overflow: 0,
+        density: 0,
+      });
+      const nodes = [
+        node(100, 100, 120, 60, 'A'),
+        node(300, 100, 120, 60, 'B'),
+      ];
+      const edges = [edge('A', 'B')];
+      const result = scorer.evaluate(nodes, edges, bounds);
+      expect(Number.isFinite(result.compositeScore)).toBe(true);
+    });
   });
 });
