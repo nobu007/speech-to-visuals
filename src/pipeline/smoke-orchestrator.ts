@@ -220,6 +220,12 @@ export async function runSmokePipeline(
     );
   }
 
+  if (diagrams.length === 0) {
+    throw new SegmentationError(
+      'Smoke pipeline: parsed LLM text contains no diagram objects',
+    );
+  }
+
   // ── Stage 2: Build scenes and synchronise captions ──────────────────────
   const { result: sceneBuild, timing: t2 } = await timeStage(
     'scene-sync',

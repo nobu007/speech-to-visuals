@@ -11,6 +11,7 @@
 import {
   buildSingleScene,
   buildMultiScenes,
+  runSmokePipeline,
   type RawDiagram,
 } from '../smoke-orchestrator';
 
@@ -225,6 +226,13 @@ describe('smoke-orchestrator', () => {
       const { scenes } = buildMultiScenes(diagrams, 30);
       expect(scenes[0].nodes[0].id).toBe('1');
       expect(scenes[1].nodes[0].id).toBe('2');
+    });
+  });
+
+  describe('runSmokePipeline — empty array guard', () => {
+    it('throws SegmentationError when LLM returns empty array', async () => {
+      await expect(runSmokePipeline({ rawLlmText: '[]' }))
+        .rejects.toThrow(/no diagram objects/);
     });
   });
 });
