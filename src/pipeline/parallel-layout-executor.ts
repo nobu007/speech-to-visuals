@@ -2,7 +2,7 @@
  * TASK-0143: Parallel Layout Executor (REQ-097)
  *
  * Executes layout generation for multiple diagrams in parallel
- * with configurable concurrency limits and optional retry support.
+ * with configurable concurrency limits, per-item timeout, and optional retry support.
  */
 
 import { retryWithBackoff, type RetryWithBackoffOptions } from './retry';
@@ -19,6 +19,25 @@ const DEFAULT_LAYOUT_CONFIG: ParallelLayoutConfig = {
   maxConcurrency: 3,
   timeoutMs: 30000,
 };
+
+/**
+ * Race a promise against a timeout.  The timer is cleaned up via
+ * `.finally()` so no dangling reference remains regardless of outcome.
+ */
+function raceWithTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`${label} timed out after ${timeoutMs}ms`)),
+      timeoutMs,
+    );
+    // Don't keep the event loop alive solely for the timeout timer.
+    if (timer && typeof timer.unref === 'function') timer.unref();
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
 
 /**
  * Run an array of async tasks with a concurrency limiter.
@@ -62,15 +81,18 @@ export async function executeLayoutsInParallel<T, R>(
 
   if (diagrams.length === 0) return [];
 
-  const taskFn = fullConfig.retryOptions
-    ? async (diagram: T, index: number) => {
-        const { result } = await retryWithBackoff(
-          () => layoutFn(diagram, index),
-          { ...fullConfig.retryOptions, label: fullConfig.retryOptions.label ?? `layout:${index}` },
-        );
-        return result;
-      }
-    : layoutFn;
+  const taskFn = async (diagram: T, index: number) => {
+    const label = `layout:${index}`;
+
+    const execPromise = fullConfig.retryOptions
+      ? retryWithBackoff(() => layoutFn(diagram, index), {
+          ...fullConfig.retryOptions,
+          label: fullConfig.retryOptions.label ?? label,
+        }).then(r => r.result)
+      : layoutFn(diagram, index);
+
+    return raceWithTimeout(execPromise, fullConfig.timeoutMs, label);
+  };
 
   return runWithConcurrency(diagrams, fullConfig.maxConcurrency, taskFn);
 }
