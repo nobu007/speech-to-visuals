@@ -47,23 +47,23 @@ describe('evaluateAudit', () => {
 
   it('reports warning when file count exceeds limit', () => {
     const result = evaluateAudit(
-      makeMetrics({ fileCount: 350 }),
+      makeMetrics({ fileCount: 400 }),
       defaultLimits,
     );
     expect(result.isCompliant).toBe(false);
     expect(result.warnings).toEqual(
-      expect.arrayContaining([expect.stringContaining('File count 350 exceeds limit of 340')]),
+      expect.arrayContaining([expect.stringContaining('File count 400 exceeds limit of 380')]),
     );
   });
 
   it('reports warning when total lines exceeds limit', () => {
     const result = evaluateAudit(
-      makeMetrics({ lineCount: 110_000 }),
+      makeMetrics({ lineCount: 120_000 }),
       defaultLimits,
     );
     expect(result.isCompliant).toBe(false);
     expect(result.warnings).toEqual(
-      expect.arrayContaining([expect.stringContaining('exceeds limit of 100,000')]),
+      expect.arrayContaining([expect.stringContaining('exceeds limit of 115,000')]),
     );
   });
 
@@ -103,7 +103,7 @@ describe('evaluateAudit', () => {
 
   it('reports no warning when file count is exactly at limit', () => {
     const result = evaluateAudit(
-      makeMetrics({ fileCount: 340 }),
+      makeMetrics({ fileCount: 380 }),
       defaultLimits,
     );
     expect(result.isCompliant).toBe(true);
@@ -111,7 +111,7 @@ describe('evaluateAudit', () => {
 
   it('reports no warning when line count is exactly at limit', () => {
     const result = evaluateAudit(
-      makeMetrics({ lineCount: 100_000 }),
+      makeMetrics({ lineCount: 115_000 }),
       defaultLimits,
     );
     expect(result.isCompliant).toBe(true);
