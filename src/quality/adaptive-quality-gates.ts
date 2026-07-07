@@ -391,13 +391,10 @@ class AdaptiveQualityGatesSystem {
       return baseThreshold; // Not enough data
     }
 
-    // Calculate statistics
+    // Calculate statistics — use (N-1)*p indexing (linear interpolation method,
+    // same as NumPy default / R type 7) to avoid off-by-one where p90 == max
     const sorted = [...historicalValues].sort((a, b) => a - b);
-    const mean = sorted.reduce((sum, val) => sum + val, 0) / sorted.length;
-    const p50 = sorted[Math.floor(sorted.length * 0.5)];
-    const p75 = sorted[Math.floor(sorted.length * 0.75)];
-    const p90 = sorted[Math.floor(sorted.length * 0.90)];
-    const p95 = sorted[Math.floor(sorted.length * 0.95)];
+    const p90 = sorted[Math.floor((sorted.length - 1) * 0.90)];
 
     // Adapt threshold based on operator and historical performance
     switch (operator) {
@@ -410,10 +407,10 @@ class AdaptiveQualityGatesSystem {
 
       case 'gt': // For metrics where higher is better (e.g., cache hit rate)
         // Use P10 as adaptive threshold (allows for some variance)
-        return Math.min(baseThreshold * 1.2, sorted[Math.floor(sorted.length * 0.1)] * 0.9);
+        return Math.min(baseThreshold * 1.2, sorted[Math.floor((sorted.length - 1) * 0.1)] * 0.9);
 
       case 'gte': { // For metrics where higher or equal is better (e.g., success rate)
-        const p10 = sorted[Math.floor(sorted.length * 0.1)];
+        const p10 = sorted[Math.floor((sorted.length - 1) * 0.1)];
         return Math.min(baseThreshold * 1.2, p10 * 0.9); // At most 120% of base, but allow 10% below P10
       }
 

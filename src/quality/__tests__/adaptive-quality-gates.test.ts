@@ -413,6 +413,68 @@ describe('AdaptiveQualityGatesSystem', () => {
       expect(info).toBeTruthy();
       expect(info!.historicalValues.length).toBeLessThanOrEqual(100);
     });
+
+    test('p90 percentile uses (N-1)*p indexing — not N*p (off-by-one fix)', async () => {
+      // Set up a gate with low base threshold so p90 value dominates
+      gates.getGates().forEach(g => gates.removeGate(g.name));
+      gates.addGate({
+        name: 'test-p90',
+        metric: 'avgProcessingTime',
+        threshold: 50,
+        operator: 'lt',
+        severity: 'minor',
+        adaptable: true,
+      });
+
+      // Feed exactly 10 values: [50, 60, 70, 80, 90, 100, 110, 120, 130, 200]
+      const values = [50, 60, 70, 80, 90, 100, 110, 120, 130, 200];
+      for (const v of values) {
+        mockGetSnapshot.mockReturnValue(makeSnapshot({
+          pipeline: { avgProcessingTime: v },
+        }));
+        await gates.evaluateGates();
+      }
+
+      const info = gates.getAdaptiveThresholdInfo('avgProcessingTime');
+      expect(info).toBeTruthy();
+      expect(info!.historicalValues).toHaveLength(10);
+
+      // sorted = [50, 60, 70, 80, 90, 100, 110, 120, 130, 200]
+      // Correct p90 = sorted[8] = 130  ( (10-1)*0.9 = floor(8.1) = 8 )
+      // Old buggy p90 = sorted[9] = 200  ( 10*0.9 = floor(9.0) = 9 — the max! )
+      // adaptedThreshold = max(50*0.8, 130*1.1) = max(40, 143) = 143
+      expect(info!.adaptedThreshold).toBe(143);
+    });
+
+    test('p10 percentile uses (N-1)*p indexing for gte operator', async () => {
+      gates.getGates().forEach(g => gates.removeGate(g.name));
+      gates.addGate({
+        name: 'test-p10',
+        metric: 'successRate',
+        threshold: 0.5,
+        operator: 'gte',
+        severity: 'minor',
+        adaptable: true,
+      });
+
+      // 10 values where min differs from p10
+      const values = [0.5, 0.6, 0.7, 0.75, 0.8, 0.82, 0.85, 0.88, 0.9, 0.95];
+      for (const v of values) {
+        mockGetSnapshot.mockReturnValue(makeSnapshot({
+          pipeline: { successRate: v },
+        }));
+        await gates.evaluateGates();
+      }
+
+      const info = gates.getAdaptiveThresholdInfo('successRate');
+      expect(info).toBeTruthy();
+      expect(info!.historicalValues).toHaveLength(10);
+
+      // sorted = [0.5, 0.6, 0.7, 0.75, 0.8, 0.82, 0.85, 0.88, 0.9, 0.95]
+      // Correct p10 = sorted[0] = 0.5  ( (10-1)*0.1 = floor(0.9) = 0 )
+      // adaptedThreshold = min(0.5*1.2, 0.5*0.9) = min(0.6, 0.45) = 0.45
+      expect(info!.adaptedThreshold).toBeCloseTo(0.45, 5);
+    });
   });
 
   // ─── extractMetricValue coverage ────────────────────────────────
