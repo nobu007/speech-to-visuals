@@ -649,10 +649,11 @@ export class MainPipeline {
       const segment = item.segment as Record<string, unknown>;
       const analysis = item.analysis as Record<string, unknown>;
       const safeType = sanitizeDiagramType(analysis.type);
-      if ((analysis.nodes as NodeDatum[]).length > 0) {
+      const nodes = (analysis.nodes as NodeDatum[] | undefined) ?? [];
+      if (nodes.length > 0) {
         try {
           const layoutResult = await this.layoutEngine.generateLayout(
-            analysis.nodes as NodeDatum[],
+            nodes,
             analysis.edges as EdgeDatum[],
             safeType,
             this.iteration // Pass current iteration
@@ -665,7 +666,7 @@ export class MainPipeline {
             return {
               segment,
               analysis,
-              layout: this.createFallbackLayout(analysis.nodes as unknown[], analysis.edges as unknown[])
+              layout: this.createFallbackLayout(nodes as unknown[], analysis.edges as unknown[])
             };
           }
         } catch (error) {
@@ -673,7 +674,7 @@ export class MainPipeline {
           return {
             segment,
             analysis,
-            layout: this.createFallbackLayout(analysis.nodes as unknown[], analysis.edges as unknown[])
+            layout: this.createFallbackLayout(nodes as unknown[], analysis.edges as unknown[])
           };
         }
       }
@@ -681,7 +682,12 @@ export class MainPipeline {
     });
 
     // Wait for all layouts to complete
-    const layouts = (await Promise.all(layoutPromises)).filter(Boolean);
+    const allResults = await Promise.all(layoutPromises);
+    const layouts = allResults.filter((r): r is NonNullable<typeof r> => r !== null);
+    const droppedCount = allResults.length - layouts.length;
+    if (droppedCount > 0) {
+      logger.warn(`${droppedCount} segment(s) dropped in layout generation — no nodes in analysis`);
+    }
 
     return layouts;
   }
