@@ -297,8 +297,8 @@ export class FrameworkIntegratedPipeline {
   private estimateEntityExtractionQuality(result: PipelineResult): number {
     if (!result.success || (result.scenes?.length ?? 0) === 0) return 0;
 
-    const scenesWithNodes = result.scenes!.filter(s => s.nodes.length > 0);
-    const avgNodesPerScene = scenesWithNodes.reduce((sum, s) => sum + s.nodes.length, 0) / Math.max(scenesWithNodes.length, 1);
+    const scenesWithNodes = result.scenes!.filter(s => (s.nodes || []).length > 0);
+    const avgNodesPerScene = scenesWithNodes.reduce((sum, s) => sum + (s.nodes || []).length, 0) / Math.max(scenesWithNodes.length, 1);
 
     // Good extraction: 2-10 nodes per scene
     if (avgNodesPerScene >= 2 && avgNodesPerScene <= 10) return 0.90;
@@ -312,8 +312,8 @@ export class FrameworkIntegratedPipeline {
   private estimateRelationAccuracy(result: PipelineResult): number {
     if (!result.success || (result.scenes?.length ?? 0) === 0) return 0;
 
-    const scenesWithEdges = result.scenes!.filter(s => s.edges.length > 0);
-    const avgEdgesPerScene = scenesWithEdges.reduce((sum, s) => sum + s.edges.length, 0) / Math.max(scenesWithEdges.length, 1);
+    const scenesWithEdges = result.scenes!.filter(s => (s.edges || []).length > 0);
+    const avgEdgesPerScene = scenesWithEdges.reduce((sum, s) => sum + (s.edges || []).length, 0) / Math.max(scenesWithEdges.length, 1);
 
     // Good relations: at least some edges, reasonable ratio
     if (avgEdgesPerScene >= 1) return 0.85;

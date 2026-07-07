@@ -118,7 +118,7 @@ export function getActiveScene(
   fps: number
 ): { scene: KeyphraseScene; startFrame: number; endFrame: number } | null {
   for (const scene of scenes) {
-    if (scene.keyphrases.length === 0) continue;
+    if (!scene.keyphrases || scene.keyphrases.length === 0) continue;
     const startFrame = msToFrame(scene.startMs, fps);
     const endFrame = msToFrame(scene.startMs + scene.durationMs, fps);
     if (frame >= startFrame && frame <= endFrame) {
@@ -152,7 +152,7 @@ export const KeyphraseOverlay: React.FC<KeyphraseOverlayProps> = ({
   const opacity = calculateKeyphraseOpacity(frame, startFrame, endFrame);
 
   // Stagger animation: each tag fades in slightly after the previous
-  const displayKeyphrases = scene.keyphrases.slice(0, MAX_KEYPHRASES_DISPLAY);
+  const displayKeyphrases = (scene.keyphrases || []).slice(0, MAX_KEYPHRASES_DISPLAY);
 
   return (
     <AbsoluteFill

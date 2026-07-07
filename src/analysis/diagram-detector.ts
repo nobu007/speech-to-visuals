@@ -505,7 +505,7 @@ export class DiagramDetector {
     const diagramContent = this.generateDiagramSpecificContent(segment, diagramType);
 
     // Use the generated content to create nodes and edges
-    diagramContent.nodes.forEach((nodeData, index) => {
+    (diagramContent.nodes || []).forEach((nodeData, index) => {
       nodes.push({
         id: `node_${index}`,
         label: nodeData.label,
@@ -517,7 +517,7 @@ export class DiagramDetector {
     });
 
     // Create edges based on diagram type patterns
-    diagramContent.edges.forEach(edgeData => {
+    (diagramContent.edges || []).forEach(edgeData => {
       edges.push({
         from: edgeData.from,
         to: edgeData.to,

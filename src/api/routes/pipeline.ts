@@ -205,7 +205,7 @@ export function createPipelineRouter(stateManager?: PipelineStateManager, render
       const quality = body.quality || 'medium';
 
       // Simulate rendering process with scene data
-      const sceneCount = body.scenes.length;
+      const sceneCount = (body.scenes || []).length;
       const estimatedDuration = sceneCount * 2.5;
       const estimatedFileSize = sceneCount * 512 * 1024;
 

@@ -81,14 +81,14 @@ export const DiagramPreview = ({ scenes, onRender, isRendering }: DiagramPreview
                   </div>
                   <h3 className="font-semibold text-foreground mb-2">{scene.summary}</h3>
                   <div className="flex flex-wrap gap-2">
-                    {scene.keyphrases.map((phrase, i) => (
+                    {(scene.keyphrases || []).map((phrase, i) => (
                       <Badge key={i} variant="outline" className="text-xs">
                         {phrase}
                       </Badge>
                     ))}
                   </div>
                   <div className="mt-3 text-sm text-muted-foreground">
-                    {scene.nodes.length}個のノード・{scene.edges.length}個のエッジ
+                    {(scene.nodes || []).length}個のノード・{(scene.edges || []).length}個のエッジ
                   </div>
                 </div>
               </div>

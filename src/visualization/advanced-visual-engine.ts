@@ -239,7 +239,8 @@ export class AdvancedVisualEngine {
     const animations: AnimationSequence[] = [];
 
     // Node entrance animations
-    scene.nodes.forEach((node, index) => {
+    const safeNodes = scene.nodes || [];
+    safeNodes.forEach((node, index) => {
       animations.push({
         type: 'entrance',
         target: node.id,
@@ -257,12 +258,13 @@ export class AdvancedVisualEngine {
     });
 
     // Edge connection animations
-    scene.edges.forEach((edge, index) => {
+    const safeEdges = scene.edges || [];
+    safeEdges.forEach((edge, index) => {
       animations.push({
         type: 'connection',
         target: edge.id || `edge-${index}`,
         timing: {
-          delay: (scene.nodes.length * 200) + (index * 100),
+          delay: (safeNodes.length * 200) + (index * 100),
           duration: 800,
           easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
         },
@@ -451,9 +453,9 @@ export class AdvancedVisualEngine {
    */
   private async evaluateVisualQuality(scene: EnhancedSceneGraph, processingTime: number): Promise<void> {
     const metrics = {
-      nodeCount: scene.nodes.length,
-      edgeCount: scene.edges.length,
-      animationCount: scene.animations.length,
+      nodeCount: (scene.nodes || []).length,
+      edgeCount: (scene.edges || []).length,
+      animationCount: (scene.animations || []).length,
       processingTime,
       hasBackground: !!scene.background,
       hasWatermark: !!scene.watermark,

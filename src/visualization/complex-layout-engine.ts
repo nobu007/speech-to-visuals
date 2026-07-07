@@ -521,12 +521,13 @@ export class ComplexLayoutEngine {
 
   // Helper methods...
   private calculateBounds(layout: DiagramLayout) {
-    if (layout.nodes.length === 0) {
+    const safeNodes = layout.nodes || [];
+    if (safeNodes.length === 0) {
       return { width: 0, height: 0, minX: 0, minY: 0, maxX: 0, maxY: 0 };
     }
 
-    const xs = layout.nodes.map(n => [n.x, n.x + getNodeWidth(n)]).flat();
-    const ys = layout.nodes.map(n => [n.y, n.y + getNodeHeight(n)]).flat();
+    const xs = safeNodes.map(n => [n.x, n.x + getNodeWidth(n)]).flat();
+    const ys = safeNodes.map(n => [n.y, n.y + getNodeHeight(n)]).flat();
 
     const minX = Math.min(...xs);
     const maxX = Math.max(...xs);

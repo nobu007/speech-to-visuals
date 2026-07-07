@@ -326,7 +326,7 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
               Processing Results
             </CardTitle>
             <CardDescription>
-              Generated {result.scenes.length} diagram scenes in {(result.processingTime / 1000).toFixed(1)}s
+              Generated {(result.scenes || []).length} diagram scenes in {(result.processingTime / 1000).toFixed(1)}s
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -334,12 +334,12 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
               {/* Summary Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center p-3 bg-blue-50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">{result.scenes.length}</div>
+                  <div className="text-2xl font-bold text-blue-600">{(result.scenes || []).length}</div>
                   <div className="text-sm text-blue-600">Scenes</div>
                 </div>
                 <div className="text-center p-3 bg-green-50 rounded-lg">
                   <div className="text-2xl font-bold text-green-600">
-                    {result.scenes.filter(s => s.nodes.length > 0).length}
+                    {(result.scenes || []).filter(s => (s.nodes || []).length > 0).length}
                   </div>
                   <div className="text-sm text-green-600">Diagrams</div>
                 </div>
@@ -361,7 +361,7 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
               <div className="space-y-2">
                 <h4 className="font-medium">Generated Scenes:</h4>
                 <div className="max-h-60 overflow-y-auto space-y-2">
-                  {result.scenes.map((scene, index) => (
+                  {(result.scenes || []).map((scene, index) => (
                     <div key={index} className="p-3 border rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <Badge variant="outline">{scene.type}</Badge>
@@ -371,7 +371,7 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
                       </div>
                       <p className="text-sm">{scene.summary}</p>
                       <div className="flex gap-1 mt-2">
-                        {scene.keyphrases.slice(0, 3).map((phrase, idx) => (
+                        {(scene.keyphrases || []).slice(0, 3).map((phrase, idx) => (
                           <Badge key={idx} variant="secondary" className="text-xs">
                             {phrase}
                           </Badge>

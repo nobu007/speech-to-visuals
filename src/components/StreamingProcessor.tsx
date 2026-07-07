@@ -597,7 +597,7 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
                   </div>
                   <p className="text-sm">{scene.summary}</p>
                   <div className="flex gap-1 mt-2">
-                    {scene.keyphrases.slice(0, 3).map((phrase, idx) => (
+                    {(scene.keyphrases || []).slice(0, 3).map((phrase, idx) => (
                       <Badge key={idx} variant="secondary" className="text-xs">
                         {phrase}
                       </Badge>
