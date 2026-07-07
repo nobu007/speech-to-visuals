@@ -94,7 +94,10 @@ export class OverlapResolver {
    */
   public async ensureZeroOverlaps(layout: DiagramLayout, diagramType: DiagramType): Promise<DiagramLayout> {
 
-    const nodes = [...layout.nodes];
+    const nodes = layout.nodes ? [...layout.nodes] : [];
+    if (nodes.length === 0) {
+      return { ...layout, nodes: [] };
+    }
     // Scale max iterations down for large datasets to maintain performance
     const maxIterations = Math.min(50, Math.max(10, Math.floor(2000 / nodes.length)));
     let overlapCount = 0;
@@ -143,7 +146,10 @@ export class OverlapResolver {
    */
   public async finalOverlapResolution(layout: DiagramLayout): Promise<DiagramLayout> {
 
-    const nodes = [...layout.nodes];
+    const nodes = layout.nodes ? [...layout.nodes] : [];
+    if (nodes.length === 0) {
+      return { ...layout, nodes: [] };
+    }
     const overlappingPairs = this.detectOverlapsFast(nodes);
 
     if (overlappingPairs.length === 0) {

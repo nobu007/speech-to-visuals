@@ -646,8 +646,16 @@ export class MainPipeline {
 
     // Process layouts in parallel for better performance
     const layoutPromises = diagramAnalyses.map(async (item) => {
-      const segment = item.segment as Record<string, unknown>;
-      const analysis = item.analysis as Record<string, unknown>;
+      if (!item || typeof item !== 'object') {
+        logger.warn('Skipping layout generation - invalid diagramAnalysis item (null or non-object)');
+        return null;
+      }
+      const segment = item.segment as Record<string, unknown> | undefined;
+      const analysis = item.analysis as Record<string, unknown> | undefined;
+      if (!segment || !analysis) {
+        logger.warn('Skipping layout generation - missing segment or analysis data');
+        return null;
+      }
       const safeType = sanitizeDiagramType(analysis.type);
       const nodes = (analysis.nodes as NodeDatum[] | undefined) ?? [];
       if (nodes.length > 0) {
