@@ -569,10 +569,10 @@ describe('AdvancedVisualEngine', () => {
     });
 
     it('creates fallback scene on enhancement failure', async () => {
-      // Create a scene that will fail during enhanceLayout
-      const badScene = makeScene({
-        layout: undefined as unknown as DiagramLayout,
-      });
+      // Force an error by spying on evaluateVisualQuality to throw
+      const badScene = makeScene();
+      jest.spyOn(engine as unknown as { evaluateVisualQuality: unknown }, 'evaluateVisualQuality')
+        .mockRejectedValue(new Error('quality evaluation failed'));
 
       const results = await engine.enhanceMultipleScenes([badScene]);
 
@@ -746,13 +746,39 @@ describe('AdvancedVisualEngine', () => {
     });
 
     it('handles enhanceScene error propagation', async () => {
-      // Scene with null layout that will cause enhanceLayout to throw
-      const scene = makeScene({
-        layout: null as unknown as DiagramLayout,
-      });
+      // Force an error via spy to test error propagation
+      const scene = makeScene();
+      jest.spyOn(engine as unknown as { evaluateVisualQuality: unknown }, 'evaluateVisualQuality')
+        .mockRejectedValue(new Error('quality evaluation failed'));
 
       // enhanceScene catches and re-throws errors
       await expect(engine.enhanceScene(scene)).rejects.toThrow();
+    });
+
+    it('handles scene with undefined layout without crashing', async () => {
+      const scene = makeScene({
+        layout: undefined,
+      });
+
+      const result = await engine.enhanceScene(scene);
+
+      expect(result).toBeDefined();
+      expect(result.visualStyle).toBeDefined();
+      expect(result.layout.nodes).toEqual([]);
+      expect(result.layout.edges).toEqual([]);
+    });
+
+    it('handles scene with null layout without crashing', async () => {
+      const scene = makeScene({
+        layout: null as unknown as undefined,
+      });
+
+      const result = await engine.enhanceScene(scene);
+
+      expect(result).toBeDefined();
+      expect(result.visualStyle).toBeDefined();
+      expect(result.layout.nodes).toEqual([]);
+      expect(result.layout.edges).toEqual([]);
     });
 
     it('handles large number of nodes and edges', async () => {

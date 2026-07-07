@@ -189,6 +189,16 @@ export class AdvancedVisualEngine {
 
     const sceneEdgeList = scene.edges as Array<Record<string, unknown>>;
 
+    // Guard: return safe default if layout is not yet computed
+    if (!baseLayout) {
+      return {
+        nodes: [],
+        edges: [],
+        bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+        center: { x: 960, y: 540 }
+      };
+    }
+
     // Apply visual enhancements to nodes
     const enhancedNodes = baseLayout.nodes.map(node => {
       const sceneNode = sceneNodeMap.get(node.id);
