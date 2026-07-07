@@ -706,18 +706,18 @@ export class MainPipeline {
   private async prepareScenesEnhanced(analysisResult: unknown, layouts: unknown[]): Promise<SceneGraph[]> {
     const scenes: SceneGraph[] = layouts.map((item: unknown) => {
       const layoutItem = item as Record<string, unknown>;
-      const segment = layoutItem.segment as Record<string, unknown>;
-      const analysis = layoutItem.analysis as Record<string, unknown>;
+      const segment = (layoutItem.segment ?? {}) as Record<string, unknown>;
+      const analysis = (layoutItem.analysis ?? {}) as Record<string, unknown>;
 
       return {
         type: sanitizeDiagramType(analysis.type),
-        nodes: analysis.nodes as SceneGraph['nodes'],
-        edges: analysis.edges as SceneGraph['edges'],
+        nodes: (analysis.nodes ?? []) as SceneGraph['nodes'],
+        edges: (analysis.edges ?? []) as SceneGraph['edges'],
         layout: layoutItem.layout as SceneGraph['layout'],
-        startMs: segment.startMs as number,
-        durationMs: (segment.endMs as number) - (segment.startMs as number),
-        summary: segment.summary as string,
-        keyphrases: segment.keyphrases as string[]
+        startMs: (segment.startMs ?? 0) as number,
+        durationMs: ((segment.endMs ?? 0) as number) - ((segment.startMs ?? 0) as number),
+        summary: (segment.summary ?? '') as string,
+        keyphrases: (segment.keyphrases ?? []) as string[]
       };
     });
 
@@ -849,7 +849,7 @@ export class MainPipeline {
 
     const transcriptionResult = await this.transcriber.transcribe(audioPath);
 
-    if (!transcriptionResult.success || transcriptionResult.segments.length === 0) {
+    if (!transcriptionResult.success || (transcriptionResult.segments ?? []).length === 0) {
       throw new TranscriptionError('Audio transcription failed or produced no segments');
     }
 
@@ -924,18 +924,18 @@ export class MainPipeline {
 
     const scenes: SceneGraph[] = layouts.map((item: unknown) => {
       const layoutItem = item as Record<string, unknown>;
-      const segment = layoutItem.segment as Record<string, unknown>;
-      const analysis = layoutItem.analysis as Record<string, unknown>;
+      const segment = (layoutItem.segment ?? {}) as Record<string, unknown>;
+      const analysis = (layoutItem.analysis ?? {}) as Record<string, unknown>;
 
       return {
         type: sanitizeDiagramType(analysis.type),
-        nodes: analysis.nodes as SceneGraph['nodes'],
-        edges: analysis.edges as SceneGraph['edges'],
+        nodes: (analysis.nodes ?? []) as SceneGraph['nodes'],
+        edges: (analysis.edges ?? []) as SceneGraph['edges'],
         layout: layoutItem.layout as SceneGraph['layout'],
-        startMs: segment.startMs as number,
-        durationMs: (segment.endMs as number) - (segment.startMs as number),
-        summary: segment.summary as string,
-        keyphrases: segment.keyphrases as string[]
+        startMs: (segment.startMs ?? 0) as number,
+        durationMs: ((segment.endMs ?? 0) as number) - ((segment.startMs ?? 0) as number),
+        summary: (segment.summary ?? '') as string,
+        keyphrases: (segment.keyphrases ?? []) as string[]
       };
     });
 

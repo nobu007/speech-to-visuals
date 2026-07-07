@@ -273,7 +273,7 @@ export class DiagramDetector {
       }
 
       // 🔄 実装段階: Apply iterative detection improvements (used when LLM is unavailable or as enhancement)
-      if (!analysis || analysis.nodes.length === 0) {
+      if (!analysis || (analysis.nodes ?? []).length === 0) {
         analysis = await this.applyIterativeDetection(segment);
       }
 
@@ -997,11 +997,13 @@ export class DiagramDetector {
    * Evaluate detection quality
    */
   private async evaluateDetection(analysis: DiagramAnalysis, processingTime: number): Promise<void> {
+    const safeNodes = analysis.nodes ?? [];
+    const safeEdges = analysis.edges ?? [];
     const metrics = {
       confidence: analysis.confidence,
-      nodeCount: analysis.nodes.length,
-      edgeCount: analysis.edges.length,
-      hasValidStructure: analysis.nodes.length >= 2,
+      nodeCount: safeNodes.length,
+      edgeCount: safeEdges.length,
+      hasValidStructure: safeNodes.length >= 2,
       processingTime
     };
 
@@ -1329,11 +1331,13 @@ export class DiagramDetector {
     needsImprovement: boolean;
     suggestions: string[];
   }> {
+    const safeNodes = analysis.nodes ?? [];
+    const safeEdges = analysis.edges ?? [];
     const metrics = {
       confidence: analysis.confidence,
-      nodeCount: analysis.nodes.length,
-      edgeCount: analysis.edges.length,
-      structuralComplexity: analysis.edges.length / Math.max(analysis.nodes.length, 1),
+      nodeCount: safeNodes.length,
+      edgeCount: safeEdges.length,
+      structuralComplexity: safeEdges.length / Math.max(safeNodes.length, 1),
       processingTime: performance.now() - startTime
     };
 
@@ -1433,7 +1437,9 @@ export class DiagramDetector {
   }
 
   private async testStructuralValidity(analysis: DiagramAnalysis): Promise<{ passed: boolean; score: number; name: string }> {
-    const hasValidStructure = analysis.nodes.length >= this.MIN_NODES_FOR_VALID_STRUCTURE && analysis.edges.length >= this.MIN_EDGES_FOR_VALID_STRUCTURE;
+    const safeNodes = analysis.nodes ?? [];
+    const safeEdges = analysis.edges ?? [];
+    const hasValidStructure = safeNodes.length >= this.MIN_NODES_FOR_VALID_STRUCTURE && safeEdges.length >= this.MIN_EDGES_FOR_VALID_STRUCTURE;
     const passed = hasValidStructure;
     const score = hasValidStructure ? this.STRUCTURAL_VALIDITY_SCORE_FULL : this.STRUCTURAL_VALIDITY_SCORE_PARTIAL;
     return { passed, score, name: 'Structural Validity' };
@@ -1442,7 +1448,8 @@ export class DiagramDetector {
   private async testSemanticRelevance(analysis: DiagramAnalysis, segment: ContentSegment): Promise<{ passed: boolean; score: number; name: string }> {
     // Simplified semantic relevance test
     const text = (segment.summary || segment.text || '').toLowerCase();
-    const hasRelevantNodes = analysis.nodes.some(node =>
+    const safeNodes = analysis.nodes ?? [];
+    const hasRelevantNodes = safeNodes.some(node =>
       node.label && text.includes(node.label.toLowerCase())
     );
     const passed = hasRelevantNodes;
