@@ -562,9 +562,9 @@ export class QualityMonitor {
     }
 
     // Scene-specific recommendations
-    if (result.scenes.length === 0) {
+    if ((result.scenes?.length ?? 0) === 0) {
       assessment.concerns.push('No scenes generated - check content analysis pipeline');
-    } else if (result.scenes.length > 10) {
+    } else if ((result.scenes?.length ?? 0) > 10) {
       assessment.recommendations.push('Consider scene consolidation - too many scenes may impact video flow');
     }
 

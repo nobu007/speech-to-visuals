@@ -96,7 +96,7 @@ export class FrameworkIntegratedPipeline {
       const metricsForEvaluation = {
         success: result.success,
         processingTime: result.processingTime,
-        sceneCount: result.scenes.length,
+        sceneCount: result.scenes?.length ?? 0,
         overallScore: qualityMetrics.overallScore,
         ...qualityMetrics
       };
@@ -236,7 +236,7 @@ export class FrameworkIntegratedPipeline {
       // Performance Metrics
       processingTime: result.processingTime,
       memoryUsage,
-      throughput: result.processingTime > 0 ? result.scenes.length / (result.processingTime / 1000) : 0,
+      throughput: result.processingTime > 0 ? (result.scenes?.length ?? 0) / (result.processingTime / 1000) : 0,
 
       // Accuracy Metrics
       transcriptionAccuracy,
@@ -267,17 +267,17 @@ export class FrameworkIntegratedPipeline {
     // In production, this would compare against ground truth
     // For now, estimate based on success and scene count
     if (!result.success) return 0;
-    return result.scenes.length > 0 ? 0.90 : 0.50;
+    return (result.scenes?.length ?? 0) > 0 ? 0.90 : 0.50;
   }
 
   /**
    * Estimate segmentation quality
    */
   private estimateSegmentationQuality(result: PipelineResult): number {
-    if (!result.success || result.scenes.length === 0) return 0;
+    if (!result.success || (result.scenes?.length ?? 0) === 0) return 0;
 
     // Good segmentation: 2-10 scenes, reasonable duration
-    const sceneCount = result.scenes.length;
+    const sceneCount = result.scenes!.length;
     const avgDuration = result.duration / sceneCount;
 
     let score = 0.7; // Base score
@@ -295,9 +295,9 @@ export class FrameworkIntegratedPipeline {
    * Estimate entity extraction quality
    */
   private estimateEntityExtractionQuality(result: PipelineResult): number {
-    if (!result.success || result.scenes.length === 0) return 0;
+    if (!result.success || (result.scenes?.length ?? 0) === 0) return 0;
 
-    const scenesWithNodes = result.scenes.filter(s => s.nodes.length > 0);
+    const scenesWithNodes = result.scenes!.filter(s => s.nodes.length > 0);
     const avgNodesPerScene = scenesWithNodes.reduce((sum, s) => sum + s.nodes.length, 0) / Math.max(scenesWithNodes.length, 1);
 
     // Good extraction: 2-10 nodes per scene
@@ -310,9 +310,9 @@ export class FrameworkIntegratedPipeline {
    * Estimate relation accuracy
    */
   private estimateRelationAccuracy(result: PipelineResult): number {
-    if (!result.success || result.scenes.length === 0) return 0;
+    if (!result.success || (result.scenes?.length ?? 0) === 0) return 0;
 
-    const scenesWithEdges = result.scenes.filter(s => s.edges.length > 0);
+    const scenesWithEdges = result.scenes!.filter(s => s.edges.length > 0);
     const avgEdgesPerScene = scenesWithEdges.reduce((sum, s) => sum + s.edges.length, 0) / Math.max(scenesWithEdges.length, 1);
 
     // Good relations: at least some edges, reasonable ratio
@@ -326,7 +326,7 @@ export class FrameworkIntegratedPipeline {
   private detectLayoutOverlaps(result: PipelineResult): number {
     let totalOverlaps = 0;
 
-    for (const scene of result.scenes) {
+    for (const scene of result.scenes || []) {
       if (!scene.layout?.nodes) continue;
 
       const nodes = scene.layout.nodes;

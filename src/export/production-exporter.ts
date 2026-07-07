@@ -349,7 +349,7 @@ export class ProductionExporter {
         fps: options.fps,
         quality: options.quality,
         // Adjust animation timing based on FPS
-        animations: scene.animations.map(anim => ({
+        animations: (scene.animations || []).map(anim => ({
           ...anim,
           timing: {
             ...anim.timing,
@@ -409,11 +409,11 @@ export class ProductionExporter {
     // Create render instructions for each frame
     return {
       background: scene.background,
-      nodes: scene.layout.nodes.map(node => ({
+      nodes: (scene.layout?.nodes || []).map(node => ({
         ...node,
         renderStyle: this.optimizeNodeForRender(node, options)
       })),
-      edges: scene.layout.edges.map(edge => ({
+      edges: (scene.layout?.edges || []).map(edge => ({
         ...edge,
         renderStyle: this.optimizeEdgeForRender(edge, options)
       })),

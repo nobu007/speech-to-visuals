@@ -503,7 +503,7 @@ export class AdvancedVisualEngine {
   private evaluateLayoutBalance(scene: EnhancedSceneGraph): number {
     // Simplified layout balance evaluation
     // In production, this would analyze spacing, alignment, visual weight, etc.
-    const nodes = scene.layout.nodes;
+    const nodes = scene.layout?.nodes ?? [];
 
     if (nodes.length === 0) return 0;
 

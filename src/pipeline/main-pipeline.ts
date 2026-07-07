@@ -1004,8 +1004,8 @@ export class MainPipeline {
       analysisTime: this.getStageTime('analysis'),
       layoutTime: this.getStageTime('layout'),
       renderTime: this.getStageTime('preparation'),
-      segmentCount: result.scenes.length,
-      diagramCount: result.scenes.filter(s => s.nodes.length > 0).length,
+      segmentCount: result.scenes?.length ?? 0,
+      diagramCount: (result.scenes || []).filter(s => s.nodes.length > 0).length,
       successRate: result.success ? 1 : 0
     };
 
