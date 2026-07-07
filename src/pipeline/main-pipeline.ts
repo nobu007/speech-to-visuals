@@ -882,10 +882,12 @@ export class MainPipeline {
     for (const item of diagramAnalyses) {
       const segment = item.segment as Record<string, unknown>;
       const analysis = item.analysis as Record<string, unknown>;
-      if ((analysis.nodes as NodeDatum[]).length > 0) {
+      const nodes = (analysis.nodes as NodeDatum[] | undefined) ?? [];
+      const edges = (analysis.edges as EdgeDatum[] | undefined) ?? [];
+      if (nodes.length > 0) {
         const layoutResult = await this.layoutEngine.generateLayout(
-          analysis.nodes as NodeDatum[],
-          analysis.edges as EdgeDatum[],
+          nodes,
+          edges,
           sanitizeDiagramType(analysis.type),
           this.iteration // Pass current iteration
         );
@@ -898,7 +900,7 @@ export class MainPipeline {
           layouts.push({
             segment,
             analysis,
-            layout: this.createFallbackLayout(analysis.nodes as unknown[], analysis.edges as unknown[])
+            layout: this.createFallbackLayout(nodes as unknown[], edges as unknown[])
           });
         }
       }
@@ -936,7 +938,9 @@ export class MainPipeline {
    * Create a fallback layout when automatic layout fails
    */
   private createFallbackLayout(nodes: unknown[], edges: unknown[]) {
-    const layoutNodes = nodes.map((node: unknown, index: number) => ({
+    const safeNodes = nodes ?? [];
+    const safeEdges = edges ?? [];
+    const layoutNodes = safeNodes.map((node: unknown, index: number) => ({
       ...(node as Record<string, unknown>),
       x: 100 + (index % 3) * 200,
       y: 100 + Math.floor(index / 3) * 150,
@@ -944,7 +948,7 @@ export class MainPipeline {
       h: this.config.layout.nodeHeight
     }));
 
-    const layoutEdges = edges.map((edge: unknown) => ({
+    const layoutEdges = safeEdges.map((edge: unknown) => ({
       ...(edge as Record<string, unknown>),
       points: [
         { x: 150, y: 150 },
