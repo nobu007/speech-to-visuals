@@ -533,179 +533,203 @@ export class DiagramDetector {
    * Generate diagram-specific content based on type and segment
    */
   private generateDiagramSpecificContent(segment: ContentSegment, diagramType: DiagramType) {
-    const text = segment.text.toLowerCase();
+    return this.generateContentFromText(segment.text, diagramType);
+  }
+
+  /**
+   * Generate diagram content from actual input text.
+   * Extracts key phrases and creates nodes/edges based on the text content
+   * rather than returning generic hardcoded templates.
+   */
+  private generateContentFromText(text: string, diagramType: DiagramType): {
+    nodes: { label: string; importance: number }[];
+    edges: { from: string; to: string; label: string }[];
+  } {
+    const phrases = this.extractKeyPhrases(text);
+
+    // If text is too short to extract meaningful phrases, use minimal fallback
+    if (phrases.length < 2) {
+      const fallbackLabel = text.trim().substring(0, 40) || 'Content';
+      return {
+        nodes: [
+          { label: fallbackLabel, importance: 1.0 },
+          { label: 'Details', importance: 0.7 },
+        ],
+        edges: [
+          { from: 'node_0', to: 'node_1', label: this.getDefaultEdgeLabel(diagramType) },
+        ],
+      };
+    }
+
+    // Create nodes from extracted phrases (max 8)
+    const maxNodes = Math.min(phrases.length, 8);
+    const nodes = phrases.slice(0, maxNodes).map((phrase, index) => ({
+      label: phrase,
+      importance: Math.max(0.5, 1.0 - index * 0.08),
+    }));
+
+    // Generate edges based on diagram type
+    const edges = this.generateEdgesForType(nodes.length, diagramType);
+
+    return { nodes, edges };
+  }
+
+  /**
+   * Extract meaningful key phrases from text for use as diagram node labels.
+   * Handles both Japanese and English text.
+   */
+  private extractKeyPhrases(text: string): string[] {
+    const trimmed = text.trim();
+    if (!trimmed) return [];
+
+    // Split into sentences using Japanese and English delimiters
+    const sentences = trimmed
+      .split(/[。！？\n.!?;]+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+
+    const phrases: string[] = [];
+    const seen = new Set<string>();
+
+    for (const sentence of sentences) {
+      // Try splitting on commas and conjunctions for sub-phrases
+      const subPhrases = sentence
+        .split(/[、，,]|\s+(?:and|then|また|そして|その後|次に)\s+/i)
+        .map(s => s.trim())
+        .filter(s => s.length >= 2 && s.length <= 40);
+
+      for (const phrase of subPhrases) {
+        const normalized = phrase.toLowerCase();
+        if (!seen.has(normalized) && !this.isStopPhrase(phrase)) {
+          seen.add(normalized);
+          phrases.push(phrase);
+        }
+      }
+    }
+
+    // If sentence splitting didn't yield enough phrases, try word-level extraction
+    if (phrases.length < 3) {
+      const words = trimmed
+        .split(/[\s、。,.!?；;：:（）()\[\]「」『』"'\/]+/)
+        .filter(w => w.length >= 2 && w.length <= 30 && !this.isStopPhrase(w));
+
+      for (const word of words) {
+        const normalized = word.toLowerCase();
+        if (!seen.has(normalized)) {
+          seen.add(normalized);
+          phrases.push(word);
+        }
+        if (phrases.length >= 8) break;
+      }
+    }
+
+    return phrases.slice(0, 10);
+  }
+
+  /**
+   * Check if a phrase is a stop word/phrase that shouldn't be a node label
+   */
+  private isStopPhrase(phrase: string): boolean {
+    const stopWords = new Set([
+      // English
+      'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+      'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+      'should', 'may', 'might', 'must', 'can', 'shall', 'to', 'of', 'in',
+      'on', 'at', 'by', 'for', 'with', 'about', 'as', 'into', 'through',
+      'during', 'before', 'after', 'above', 'below', 'from', 'up', 'down',
+      'and', 'or', 'but', 'not', 'no', 'nor', 'so', 'yet', 'both',
+      'either', 'neither', 'each', 'every', 'all', 'any', 'few', 'more',
+      'most', 'other', 'some', 'such', 'only', 'own', 'same', 'than',
+      'too', 'very', 'just', 'now', 'here', 'there', 'when', 'where',
+      'why', 'how', 'what', 'which', 'who', 'whom', 'this', 'that',
+      'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they',
+      'me', 'him', 'her', 'us', 'them', 'my', 'your', 'his', 'its',
+      'our', 'their', 'mine', 'yours', 'hers', 'ours', 'theirs',
+      'step', 'first', 'next', 'then', 'finally',
+      // Common Japanese particles/filler
+      'の', 'に', 'は', 'を', 'が', 'で', 'と', 'も', 'から', 'まで',
+      'より', 'など', 'そして', 'また', 'しかし', 'ただし', 'つまり',
+      '因为', '所以', '但是', '然后', '现在', '这个', '那个',
+    ]);
+    return stopWords.has(phrase.toLowerCase());
+  }
+
+  /**
+   * Generate edges based on diagram type topology
+   */
+  private generateEdgesForType(nodeCount: number, diagramType: DiagramType): {
+    from: string; to: string; label: string;
+  }[] {
+    const defaultLabel = this.getDefaultEdgeLabel(diagramType);
+    const edges: { from: string; to: string; label: string }[] = [];
+
+    if (nodeCount < 2) return edges;
 
     switch (diagramType) {
+      case 'cycle': {
+        // Sequential chain with last → first closing the cycle
+        for (let i = 0; i < nodeCount - 1; i++) {
+          edges.push({ from: `node_${i}`, to: `node_${i + 1}`, label: defaultLabel });
+        }
+        edges.push({ from: `node_${nodeCount - 1}`, to: 'node_0', label: 'returns to' });
+        break;
+      }
       case 'tree':
-        return this.generateTreeContent(text);
-      case 'timeline':
-        return this.generateTimelineContent(text);
-      case 'cycle':
-        return this.generateCycleContent(text);
-      case 'matrix':
-        return this.generateMatrixContent(text);
-      case 'flowchart':
-        return this.generateFlowchartContent(text);
-      case 'comparison':
-        return this.generateComparisonContent(text);
-      case 'network':
-        return this.generateNetworkContent(text);
-      default:
-        return this.generateFlowContent(text);
+      case 'mindmap': {
+        // Hub-and-spoke: first node is root, all others connect to it
+        for (let i = 1; i < nodeCount; i++) {
+          edges.push({ from: 'node_0', to: `node_${i}`, label: defaultLabel });
+        }
+        break;
+      }
+      case 'network': {
+        // First node connects to a few others, plus some cross-links
+        const hubConnections = Math.min(nodeCount - 1, 4);
+        for (let i = 1; i <= hubConnections; i++) {
+          edges.push({ from: 'node_0', to: `node_${i}`, label: 'connects' });
+        }
+        // Add a few cross-links for network structure
+        if (nodeCount > 3) {
+          edges.push({ from: 'node_1', to: `node_${Math.min(3, nodeCount - 1)}`, label: 'links' });
+        }
+        if (nodeCount > 4) {
+          edges.push({ from: 'node_2', to: `node_${Math.min(4, nodeCount - 1)}`, label: 'links' });
+        }
+        break;
+      }
+      case 'comparison': {
+        // Split into two groups with comparison edges
+        const mid = Math.ceil(nodeCount / 2);
+        for (let i = 0; i < mid && i < nodeCount - 1; i++) {
+          const j = mid + i;
+          if (j < nodeCount) {
+            edges.push({ from: `node_${i}`, to: `node_${j}`, label: 'compared to' });
+          }
+        }
+        if (edges.length === 0) {
+          edges.push({ from: 'node_0', to: 'node_1', label: defaultLabel });
+        }
+        break;
+      }
+      case 'flowchart': {
+        // Branching flow: first → second, first or second → others
+        edges.push({ from: 'node_0', to: 'node_1', label: 'begins' });
+        for (let i = 2; i < nodeCount; i++) {
+          const source = i <= Math.ceil(nodeCount / 2) ? 1 : i - 1;
+          edges.push({ from: `node_${Math.min(source, nodeCount - 2)}`, to: `node_${i}`, label: defaultLabel });
+        }
+        break;
+      }
+      default: {
+        // Sequential chain (flow, timeline, matrix, conceptmap, general)
+        for (let i = 0; i < nodeCount - 1; i++) {
+          edges.push({ from: `node_${i}`, to: `node_${i + 1}`, label: defaultLabel });
+        }
+        break;
+      }
     }
-  }
 
-  private generateTreeContent(text: string) {
-    return {
-      nodes: [
-        { label: 'Organization', importance: 1.0 },
-        { label: 'Management', importance: 0.9 },
-        { label: 'Departments', importance: 0.8 },
-        { label: 'Teams', importance: 0.7 },
-        { label: 'Employees', importance: 0.6 }
-      ],
-      edges: [
-        { from: 'node_0', to: 'node_1', label: 'includes' },
-        { from: 'node_0', to: 'node_2', label: 'contains' },
-        { from: 'node_2', to: 'node_3', label: 'divided into' },
-        { from: 'node_3', to: 'node_4', label: 'comprised of' }
-      ]
-    };
-  }
-
-  private generateTimelineContent(text: string) {
-    return {
-      nodes: [
-        { label: '2020: Conception', importance: 1.0 },
-        { label: '2021: Planning', importance: 0.9 },
-        { label: '2022: Development', importance: 0.8 },
-        { label: '2023: Testing', importance: 0.7 },
-        { label: '2024: Deployment', importance: 0.8 }
-      ],
-      edges: [
-        { from: 'node_0', to: 'node_1', label: 'followed by' },
-        { from: 'node_1', to: 'node_2', label: 'led to' },
-        { from: 'node_2', to: 'node_3', label: 'progressed to' },
-        { from: 'node_3', to: 'node_4', label: 'culminated in' }
-      ]
-    };
-  }
-
-  private generateCycleContent(text: string) {
-    return {
-      nodes: [
-        { label: 'Initial Stage', importance: 1.0 },
-        { label: 'Processing', importance: 0.9 },
-        { label: 'Evaluation', importance: 0.8 },
-        { label: 'Feedback', importance: 0.7 },
-        { label: 'Optimization', importance: 0.8 }
-      ],
-      edges: [
-        { from: 'node_0', to: 'node_1', label: 'begins' },
-        { from: 'node_1', to: 'node_2', label: 'leads to' },
-        { from: 'node_2', to: 'node_3', label: 'generates' },
-        { from: 'node_3', to: 'node_4', label: 'enables' },
-        { from: 'node_4', to: 'node_0', label: 'returns to' }
-      ]
-    };
-  }
-
-  private generateMatrixContent(text: string) {
-    return {
-      nodes: [
-        { label: 'Option A', importance: 0.9 },
-        { label: 'Option B', importance: 0.9 },
-        { label: 'Criteria 1', importance: 0.8 },
-        { label: 'Criteria 2', importance: 0.8 },
-        { label: 'Analysis', importance: 1.0 }
-      ],
-      edges: [
-        { from: 'node_4', to: 'node_0', label: 'evaluates' },
-        { from: 'node_4', to: 'node_1', label: 'evaluates' },
-        { from: 'node_2', to: 'node_0', label: 'applies to' },
-        { from: 'node_3', to: 'node_1', label: 'applies to' }
-      ]
-    };
-  }
-
-  private generateFlowContent(text: string) {
-    return {
-      nodes: [
-        { label: 'Input', importance: 1.0 },
-        { label: 'Process', importance: 0.9 },
-        { label: 'Transform', importance: 0.8 },
-        { label: 'Validate', importance: 0.7 },
-        { label: 'Output', importance: 1.0 }
-      ],
-      edges: [
-        { from: 'node_0', to: 'node_1', label: 'flows to' },
-        { from: 'node_1', to: 'node_2', label: 'transforms' },
-        { from: 'node_2', to: 'node_3', label: 'validated by' },
-        { from: 'node_3', to: 'node_4', label: 'produces' }
-      ]
-    };
-  }
-
-  private generateFlowchartContent(text: string) {
-    return {
-      nodes: [
-        { label: 'Start', importance: 1.0 },
-        { label: 'Condition', importance: 0.95 },
-        { label: 'Path A (Yes)', importance: 0.85 },
-        { label: 'Path B (No)', importance: 0.85 },
-        { label: 'Merge', importance: 0.8 },
-        { label: 'End', importance: 1.0 }
-      ],
-      edges: [
-        { from: 'node_0', to: 'node_1', label: 'begins' },
-        { from: 'node_1', to: 'node_2', label: 'Yes' },
-        { from: 'node_1', to: 'node_3', label: 'No' },
-        { from: 'node_2', to: 'node_4', label: 'continues' },
-        { from: 'node_3', to: 'node_4', label: 'continues' },
-        { from: 'node_4', to: 'node_5', label: 'ends' }
-      ]
-    };
-  }
-
-  private generateComparisonContent(text: string) {
-    return {
-      nodes: [
-        { label: 'Subject A', importance: 0.9 },
-        { label: 'Subject B', importance: 0.9 },
-        { label: 'Strengths A', importance: 0.8 },
-        { label: 'Weaknesses A', importance: 0.7 },
-        { label: 'Strengths B', importance: 0.8 },
-        { label: 'Weaknesses B', importance: 0.7 }
-      ],
-      edges: [
-        { from: 'node_2', to: 'node_0', label: 'advantage of' },
-        { from: 'node_3', to: 'node_0', label: 'limitation of' },
-        { from: 'node_4', to: 'node_1', label: 'advantage of' },
-        { from: 'node_5', to: 'node_1', label: 'limitation of' },
-        { from: 'node_0', to: 'node_1', label: 'compared to' }
-      ]
-    };
-  }
-
-  private generateNetworkContent(text: string) {
-    return {
-      nodes: [
-        { label: 'Central Hub', importance: 1.0 },
-        { label: 'Node A', importance: 0.85 },
-        { label: 'Node B', importance: 0.85 },
-        { label: 'Node C', importance: 0.8 },
-        { label: 'Node D', importance: 0.8 },
-        { label: 'Node E', importance: 0.7 }
-      ],
-      edges: [
-        { from: 'node_0', to: 'node_1', label: 'connects' },
-        { from: 'node_0', to: 'node_2', label: 'connects' },
-        { from: 'node_0', to: 'node_3', label: 'connects' },
-        { from: 'node_1', to: 'node_4', label: 'links' },
-        { from: 'node_2', to: 'node_5', label: 'links' },
-        { from: 'node_3', to: 'node_4', label: 'links' }
-      ]
-    };
+    return edges;
   }
 
   private getDefaultEdgeLabel(diagramType: DiagramType): string {
