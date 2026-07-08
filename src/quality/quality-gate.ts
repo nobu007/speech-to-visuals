@@ -1,5 +1,6 @@
 import { LayoutQualityCompositeScorer } from '@/visualization/layout-quality-composite';
 import { getNodeWidth, getNodeHeight } from '@/visualization/node-dimensions';
+import { safeArray } from '../lib/safe-array';
 
 /**
  * TASK-0044: Quality Gate and Quality Monitoring Module
@@ -103,7 +104,7 @@ export class StageQualityGate {
   }
 
   evaluate(input: unknown): StageEvaluationResult {
-    const results: StageCriterionResult[] = this.config.criteria.map(
+    const results: StageCriterionResult[] = safeArray(this.config.criteria).map(
       (criterion) => {
         const r = criterion.evaluate(input);
         return {

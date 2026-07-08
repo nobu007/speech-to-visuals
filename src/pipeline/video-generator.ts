@@ -8,6 +8,7 @@ import { SimplePipelineResult } from './simple-pipeline';
 import { SceneGraph } from '@/types/diagram';
 import { logger } from '../utils/logger';
 import { QualityGateError, RenderingError } from './pipeline-errors';
+import { safeArray } from '../lib/safe-array';
 
 export interface VideoGenerationOptions {
   outputFormat: 'mp4' | 'webm' | 'gif';
@@ -182,7 +183,7 @@ export class VideoGenerator {
     const audioUrl = result.audioUrl;
 
     // シーンデータ変換
-    const scenes: RemotionSceneData[] = result.scenes.map((scene, index) => {
+    const scenes: RemotionSceneData[] = safeArray(result.scenes).map((scene, index) => {
       return this.convertSceneToRemotionFormat(scene, index);
     });
 

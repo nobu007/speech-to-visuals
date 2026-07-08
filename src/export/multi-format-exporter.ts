@@ -13,6 +13,7 @@
  */
 
 import type { SceneGraph } from '@/types/diagram';
+import { safeArray } from '../lib/safe-array';
 import { ExportError, FormatValidationError } from '@/pipeline/pipeline-errors';
 import type { NodeDatum, EdgeDatum } from '@/types/diagram';
 import { logger } from '../utils/logger';
@@ -81,10 +82,11 @@ export class MultiFormatExporter {
     // did not block (non-strict mode), the format-specific escape functions will
     // neutralize it. Record this so the 'escape-function' layer metrics reflect
     // how often escaping is actively protecting against flagged content.
-    if (validation.findings.length > 0) {
+    const findings = safeArray(validation.findings);
+    if (findings.length > 0) {
       securityMetricsCollector.recordFindings(
         'escape-function',
-        validation.findings.map((f) => ({ severity: f.severity, pattern: f.pattern })),
+        findings.map((f) => ({ severity: f.severity, pattern: f.pattern })),
       );
     }
 

@@ -3,6 +3,7 @@ import { logger } from '../../utils/logger';
 import { PipelineError } from '../../pipeline/pipeline-errors';
 import { pipelineErrorGuidance, type PipelineErrorGuidance } from '../../quality/pipeline-error-guidance';
 import type { ErrorType } from '../../quality/error-classifier';
+import { safeArray } from '../../lib/safe-array';
 
 export class AppError extends Error {
   public readonly statusCode: number;
@@ -115,7 +116,7 @@ export function errorHandler(
         suggestedAction: guidance.suggestedAction,
         severity: guidance.severity,
         stage: err.stage,
-        strategies: guidance.recoveryStrategies.map((s) => s.description),
+        strategies: safeArray(guidance.recoveryStrategies).map((s) => s.description),
         preventionTips: guidance.preventionTips,
       },
     };

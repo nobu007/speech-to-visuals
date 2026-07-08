@@ -287,9 +287,9 @@ export class ImprovementDetector {
     const baseline = this.qualityMonitor.compareToBaseline();
 
     return {
-      improving: baseline.improved.map(i => `${i} (trending up)`),
-      stable: baseline.stable.map(s => `${s} (consistent)`),
-      degrading: baseline.regressed.map(r => `${r} (needs attention)`),
+      improving: safeArray(baseline.improved).map(i => `${i} (trending up)`),
+      stable: safeArray(baseline.stable).map(s => `${s} (consistent)`),
+      degrading: safeArray(baseline.regressed).map(r => `${r} (needs attention)`),
     };
   }
 

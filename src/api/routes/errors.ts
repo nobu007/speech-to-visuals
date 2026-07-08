@@ -16,6 +16,7 @@ import {
 } from '../../quality/user-guided-error-recovery';
 import { logger } from '../../utils/logger';
 import { ERROR_REGISTRY_LIMITS } from '../../config/limits';
+import { safeArray } from '../../lib/safe-array';
 
 // ---------------------------------------------------------------------------
 // Zod validation schemas
@@ -156,7 +157,7 @@ export function createErrorsRouter(
           category: guidance.category,
           severity: guidance.severity,
           userMessage: guidance.userMessage,
-          recoveryStrategies: guidance.recoveryStrategies.map((s) => ({
+          recoveryStrategies: safeArray(guidance.recoveryStrategies).map((s) => ({
             id: s.id,
             name: s.name,
             description: s.description,
@@ -177,7 +178,7 @@ export function createErrorsRouter(
         category: guidance.category,
         severity: guidance.severity,
         userMessage: guidance.userMessage,
-        recoveryStrategies: guidance.recoveryStrategies.map((s) => ({
+        recoveryStrategies: safeArray(guidance.recoveryStrategies).map((s) => ({
           id: s.id,
           name: s.name,
           description: s.description,
@@ -249,7 +250,7 @@ export function createErrorsRouter(
         success: false,
         error: {
           code: 'INVALID_STRATEGY',
-          message: `Strategy '${strategyId}' not found. Available: ${guidance.recoveryStrategies.map((s) => s.id).join(', ')}`,
+          message: `Strategy '${strategyId}' not found. Available: ${safeArray(guidance.recoveryStrategies).map((s) => s.id).join(', ')}`,
         },
       });
       return;

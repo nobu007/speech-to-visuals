@@ -8,6 +8,7 @@
  */
 
 import type { SceneGraph, DiagramType } from '@/types/diagram';
+import { safeArray } from '../lib/safe-array';
 import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
 import { RenderingError } from './pipeline-errors';
 
@@ -184,15 +185,16 @@ export function validateRenderPlan(plan: RenderPlan): { valid: boolean; issues: 
   }
 
   // Scene index uniqueness
-  const indices = new Set(plan.scenes.map((s) => s.sceneIndex));
-  if (indices.size !== plan.scenes.length) {
+  const scenes = safeArray(plan.scenes);
+  const indices = new Set(scenes.map((s) => s.sceneIndex));
+  if (indices.size !== scenes.length) {
     issues.push('Duplicate scene indices detected');
   }
 
   // Scene count check
-  if (plan.sceneCount !== plan.scenes.length) {
+  if (plan.sceneCount !== scenes.length) {
     issues.push(
-      `Scene count mismatch: header says ${plan.sceneCount}, actual array length is ${plan.scenes.length}`,
+      `Scene count mismatch: header says ${plan.sceneCount}, actual array length is ${scenes.length}`,
     );
   }
 

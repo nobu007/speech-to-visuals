@@ -15,6 +15,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { PipelineConfigError } from '@/pipeline/pipeline-errors';
 import { logger } from '../utils/logger';
+import { safeArray } from '../lib/safe-array';
 
 export type IterationStatus = 'in_progress' | 'success' | 'failure';
 export type CommitTrigger = 'on_success' | 'on_checkpoint' | 'on_review';
@@ -94,7 +95,7 @@ export class IterationManager {
       status,
       timestamp: new Date().toISOString(),
       duration,
-      successCriteria: this.cycle.successCriteria.map(criterion => ({
+      successCriteria: safeArray(this.cycle.successCriteria).map(criterion => ({
         criterion,
         met: status === 'success',
         value: metrics[criterion],
@@ -117,7 +118,7 @@ export class IterationManager {
     allMet: boolean;
     results: { criterion: string; met: boolean; reason?: string }[];
   } {
-    const results = this.cycle.successCriteria.map(criterion => {
+    const results = safeArray(this.cycle.successCriteria).map(criterion => {
       const met = this.checkCriterion(criterion, metrics);
       return {
         criterion,
@@ -343,11 +344,11 @@ export class IterationManager {
 **Duration**: ${(iteration.duration / 1000).toFixed(2)}s
 
 **Metrics**:
-${Object.entries(iteration.metrics).map(([key, value]) => `- ${key}: ${value}`).join('\n')}
+${safeArray(Object.entries(iteration.metrics)).map(([key, value]) => `- ${key}: ${value}`).join('\n')}
 
 ${iteration.error ? `**Error**:\n\`\`\`\n${iteration.error}\n\`\`\`\n` : ''}
 **Next Steps**:
-${iteration.nextSteps?.map(step => `- ${step}`).join('\n') || '- None'}
+${safeArray(iteration.nextSteps).map(step => `- ${step}`).join('\n') || '- None'}
 
 ---
 

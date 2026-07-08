@@ -2,6 +2,7 @@ import { PipelineResult, PipelineStage } from '@/pipeline/types';
 import { SceneGraph } from '@/types/diagram';
 import { logger } from '../utils/logger';
 import { getNodeWidth, getNodeHeight } from '@/visualization/node-dimensions';
+import { safeArray } from '../lib/safe-array';
 
 /**
  * Quality Assessment Interfaces
@@ -665,11 +666,12 @@ export class QualityMonitor {
     reliability: number[];
     overall: number[];
   } {
+    const history = safeArray(this.iterationHistory);
     return {
-      performance: this.iterationHistory.map(a => a.performanceScore),
-      accuracy: this.iterationHistory.map(a => a.accuracyScore),
-      reliability: this.iterationHistory.map(a => a.reliabilityScore),
-      overall: this.iterationHistory.map(a => a.overallScore)
+      performance: history.map(a => a.performanceScore),
+      accuracy: history.map(a => a.accuracyScore),
+      reliability: history.map(a => a.reliabilityScore),
+      overall: history.map(a => a.overallScore)
     };
   }
 

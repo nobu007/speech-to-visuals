@@ -17,6 +17,8 @@
  * 10. ExportDLQReplayRate: DLQ replay rate > 0.1/s → warning
  */
 
+import { safeArray } from '../lib/safe-array';
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -318,5 +320,5 @@ export function exportAlertRulesYaml(options?: AlertRulesOptions): string {
  */
 export function getAlertRuleNames(): string[] {
   const config = generateAlertRules();
-  return config.groups.flatMap(g => g.rules.map(r => r.alert));
+  return config.groups.flatMap(g => safeArray(g.rules).map(r => r.alert));
 }

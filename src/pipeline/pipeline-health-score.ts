@@ -82,9 +82,10 @@ const REGRESSION_SEVERITY_SCORE: Record<string, number> = {
  * When multiple stages are bottlenecked, average their scores.
  */
 export function scoreBottlenecks(report: BottleneckReport): number {
-  if (report.stages.length === 0) return 100;
+  const stages = report.stages ?? [];
+  if (stages.length === 0) return 100;
 
-  const scores = report.stages.map(s => SEVERITY_SCORE_MAP[s.severity]);
+  const scores = stages.map(s => SEVERITY_SCORE_MAP[s.severity]);
   return scores.reduce((a, b) => a + b, 0) / scores.length;
 }
 
