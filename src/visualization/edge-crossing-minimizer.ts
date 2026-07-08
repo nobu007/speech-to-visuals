@@ -7,6 +7,7 @@
 
 import { DiagramType, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { getNodeWidth, getNodeHeight } from './node-dimensions';
+import { safeArray } from '../lib/safe-array';
 
 export interface Point {
   x: number;
@@ -56,10 +57,12 @@ export function detectEdgeCrossings(
   nodes: PositionedNode[],
   edges: LayoutEdge[]
 ): number {
-  if (edges.length < 2) return 0;
+  const safeNodes = safeArray(nodes);
+  const safeEdges = safeArray(edges);
+  if (safeEdges.length < 2) return 0;
 
   const positions = new Map<string, Point>();
-  for (const n of nodes) {
+  for (const n of safeNodes) {
     const w = getNodeWidth(n, 0);
     const h = getNodeHeight(n, 0);
     positions.set(n.id, { x: n.x + w / 2, y: n.y + h / 2 });
@@ -73,7 +76,7 @@ export function detectEdgeCrossings(
   }
 
   const segments: Segment[] = [];
-  for (const e of edges) {
+  for (const e of safeEdges) {
     const fromId = e.from ?? e.source;
     const toId = e.to ?? e.target;
     const start = positions.get(fromId);
@@ -112,12 +115,14 @@ export function minimizeEdgeCrossings(
   edges: LayoutEdge[],
   maxIterations: number = 10
 ): { nodes: PositionedNode[]; crossingCount: number } {
-  if (edges.length < 2 || nodes.length < 2) {
-    return { nodes: [...nodes], crossingCount: detectEdgeCrossings(nodes, edges) };
+  const safeNodes = safeArray(nodes);
+  const safeEdges = safeArray(edges);
+  if (safeEdges.length < 2 || safeNodes.length < 2) {
+    return { nodes: [...safeNodes], crossingCount: detectEdgeCrossings(safeNodes, safeEdges) };
   }
 
-  let current = nodes.map(n => ({ ...n }));
-  let bestCount = detectEdgeCrossings(current, edges);
+  let current = safeNodes.map(n => ({ ...n }));
+  let bestCount = detectEdgeCrossings(current, safeEdges);
   let bestNodes = current.map(n => ({ ...n }));
 
   for (let iter = 0; iter < maxIterations; iter++) {
@@ -184,12 +189,14 @@ export class EdgeCrossingMinimizer {
     nodes: PositionedNode[],
     edges: LayoutEdge[],
   ): Pick<EdgeCrossingResult, 'crossingCount' | 'crossingPairs'> {
-    if (edges.length < 2) {
+    const safeNodes = safeArray(nodes);
+    const safeEdges = safeArray(edges);
+    if (safeEdges.length < 2) {
       return { crossingCount: 0, crossingPairs: [] };
     }
 
-    const positions = buildPositionMap(nodes);
-    const segments = buildSegments(edges, positions);
+    const positions = buildPositionMap(safeNodes);
+    const segments = buildSegments(safeEdges, positions);
 
     const crossingPairs: CrossingPair[] = [];
     for (let i = 0; i < segments.length; i++) {
@@ -221,14 +228,16 @@ export class EdgeCrossingMinimizer {
     edges: LayoutEdge[],
     maxIterations: number = 50,
   ): EdgeCrossingResult {
+    const safeNodes = safeArray(nodes);
+    const safeEdges = safeArray(edges);
     const { crossingCount: originalCount, crossingPairs } =
-      this.detectCrossings(nodes, edges);
+      this.detectCrossings(safeNodes, safeEdges);
 
-    if (originalCount === 0 || nodes.length < 2 || edges.length < 2) {
+    if (originalCount === 0 || safeNodes.length < 2 || safeEdges.length < 2) {
       return {
         crossingCount: originalCount,
         crossingPairs,
-        minimizedNodes: nodes.map(n => ({ ...n })),
+        minimizedNodes: safeNodes.map(n => ({ ...n })),
         minimizedCrossings: 0,
         improvementPercent: 100,
       };

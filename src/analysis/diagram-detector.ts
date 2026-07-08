@@ -3,6 +3,7 @@ import { ContentSegment, DiagramAnalysis, KeywordAnalysis, SemanticRelation } fr
 import { GeminiAnalyzer } from './gemini-analyzer';
 import { logger } from '../utils/logger';
 import { sanitizeFinite, sanitizeDiagramType } from '@/utils/guards';
+import { safeMap } from '../lib/safe-array';
 
 // ========================================
 // TASK-0021: Diagram Detection Result Types
@@ -312,7 +313,7 @@ export class DiagramDetector {
    */
   private async ruleBasedDetection(segment: ContentSegment): Promise<DiagramAnalysis> {
     const text = segment.text.toLowerCase();
-    const keyphrases = segment.keyphrases.map(kp => kp.toLowerCase());
+    const keyphrases = safeMap(segment.keyphrases, kp => kp.toLowerCase());
 
     // ITERATION 45 ENHANCEMENT: Enhanced matrix/cycle keyword detection with negative keywords
     // Extended: flowchart, comparison, network patterns for rule-based detection
