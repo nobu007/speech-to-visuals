@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useAdminAnalytics } from '@/hooks/useAdminAnalytics';
+import { safeToLocaleString } from '@/utils/guards';
 import {
   Activity,
   AlertCircle,
@@ -264,7 +265,7 @@ export const AdminAnalyticsDashboard: React.FC = () => {
         />
         <StatCard
           title="Total Requests"
-          value={totalRequests.toLocaleString()}
+          value={safeToLocaleString(totalRequests)}
           subtitle={`Success: ${pct(successRate)}`}
           icon={Activity}
         />
@@ -414,7 +415,7 @@ export const AdminAnalyticsDashboard: React.FC = () => {
             />
             <StatCard
               title="Data Points"
-              value={learningReport.totalDataPoints.toLocaleString()}
+              value={safeToLocaleString(learningReport.totalDataPoints)}
               subtitle={`Patterns: ${learningReport.detectedPatterns}`}
               icon={Target}
             />

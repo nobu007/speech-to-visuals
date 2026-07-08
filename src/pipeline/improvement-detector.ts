@@ -8,6 +8,7 @@
  */
 
 import { QualityMonitor, getQualityMonitor } from './quality-monitor';
+import { safeArray } from '../lib/safe-array';
 
 export interface ImprovementOpportunity {
   area: string;
@@ -346,13 +347,15 @@ export class ImprovementDetector {
     }
 
     // Monitor degrading trends
-    if ((tr.degrading as unknown[]).length > 0) {
-      nextSteps.push(`📉 Monitor degrading metrics: ${(tr.degrading as string[]).slice(0, 3).join(', ')}`);
+    const degradingMetrics = safeArray(tr.degrading as string[] | null | undefined);
+    if (degradingMetrics.length > 0) {
+      nextSteps.push(`📉 Monitor degrading metrics: ${degradingMetrics.slice(0, 3).join(', ')}`);
     }
 
     // Continue improving areas
-    if ((tr.improving as unknown[]).length > 0) {
-      nextSteps.push(`✅ Continue optimizing: ${(tr.improving as string[]).slice(0, 2).join(', ')}`);
+    const improvingMetrics = safeArray(tr.improving as string[] | null | undefined);
+    if (improvingMetrics.length > 0) {
+      nextSteps.push(`✅ Continue optimizing: ${improvingMetrics.slice(0, 2).join(', ')}`);
     }
 
     // If no issues, suggest proactive improvements
