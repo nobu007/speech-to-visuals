@@ -649,12 +649,24 @@ export class ContinuousLearner {
 
     const qualityScores = data.map(d => d.qualityScore);
     const pearson = (xs: number[], ys: number[]): number => {
-      const n = xs.length;
-      const sumX = xs.reduce((a, b) => a + b, 0);
-      const sumY = ys.reduce((a, b) => a + b, 0);
-      const sumXY = xs.reduce((acc, x, i) => acc + x * ys[i], 0);
-      const sumX2 = xs.reduce((acc, x) => acc + x * x, 0);
-      const sumY2 = ys.reduce((acc, y) => acc + y * y, 0);
+      // Guard: array length mismatch
+      if (xs.length !== ys.length) return 0;
+      // Filter out non-finite values (NaN, Infinity) from both arrays
+      const validPairs: [number, number][] = [];
+      for (let i = 0; i < xs.length; i++) {
+        if (Number.isFinite(xs[i]) && Number.isFinite(ys[i])) {
+          validPairs.push([xs[i], ys[i]]);
+        }
+      }
+      if (validPairs.length < 2) return 0;
+      const validXs = validPairs.map(p => p[0]);
+      const validYs = validPairs.map(p => p[1]);
+      const n = validPairs.length;
+      const sumX = validXs.reduce((a, b) => a + b, 0);
+      const sumY = validYs.reduce((a, b) => a + b, 0);
+      const sumXY = validXs.reduce((acc, x, i) => acc + x * validYs[i], 0);
+      const sumX2 = validXs.reduce((acc, x) => acc + x * x, 0);
+      const sumY2 = validYs.reduce((acc, y) => acc + y * y, 0);
       const denom = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
       return denom === 0 ? 0 : (n * sumXY - sumX * sumY) / denom;
     };
@@ -1175,6 +1187,22 @@ Co-Authored-By: Claude <noreply@anthropic.com>`;
       clearInterval(this.analysisInterval);
       this.analysisInterval = null;
     }
+  }
+
+  /**
+   * Comprehensive resource cleanup — clears timer and all internal state.
+   * Safe to call multiple times.
+   */
+  destroy(): void {
+    this.stopLearning();
+    this.learningDatabase = [];
+    this.detectedPatterns = [];
+    this.optimizationStrategies = [];
+    this.systemInsights = [];
+    this.commitHistory = [];
+    this.reportHistory = [];
+    this.lastAnalysisAt = null;
+    this.lastAnalysisSuccess = false;
   }
 }
 
