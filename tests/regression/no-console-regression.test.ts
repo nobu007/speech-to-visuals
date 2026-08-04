@@ -11,6 +11,9 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 /** Files that are allowed to use console methods directly. */
 const ALLOWED_FILES = new Set([

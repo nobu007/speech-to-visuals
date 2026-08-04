@@ -11,24 +11,14 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 
 // ─── Helper: Read component source ──────────────────────────────────────────
 
-function findProjectRoot(): string {
-  let dir = process.cwd();
-  for (let i = 0; i < 10; i++) {
-    if (fs.existsSync(path.resolve(dir, 'package.json'))) {
-      return dir;
-    }
-    const parent = path.resolve(dir, '..');
-    if (parent === dir) break;
-    dir = parent;
-  }
-  return process.cwd();
-}
+const projectRoot = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..', '..', '..');
 
 function readComponentSource(filename: string): string {
-  const filePath = path.resolve(findProjectRoot(), 'src/components', filename);
+  const filePath = path.resolve(projectRoot, 'src/components', filename);
   return fs.readFileSync(filePath, 'utf-8');
 }
 

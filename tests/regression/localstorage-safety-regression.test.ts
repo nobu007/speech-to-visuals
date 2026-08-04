@@ -17,6 +17,9 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 /** Files exempt from the localStorage ban. */
 const ALLOWED_FILES = new Set([
