@@ -8,11 +8,37 @@
 
 import request from 'supertest';
 
+/**
+ * Clean up background timers from monitoring singletons that get
+ * instantiated when the server module is imported with NODE_ENV !== 'test'.
+ *
+ * When tests set NODE_ENV to 'development' or 'production' before importing
+ * the server, the HealthCheckService and RealTimePerformanceMonitor
+ * constructors start setInterval timers. These must be stopped to prevent
+ * Jest worker hangs (especially with maxWorkers > 1).
+ */
+async function cleanupMonitoringTimers(): Promise<void> {
+  try {
+    const { healthCheckService } = await import('../../monitoring/health-check-service');
+    healthCheckService.stop?.();
+  } catch { /* module not loaded */ }
+  try {
+    const { realTimeMonitor } = await import('../../monitoring/real-time-performance-monitor');
+    realTimeMonitor.stop?.();
+  } catch { /* module not loaded */ }
+  try {
+    const { globalDashboard } = await import('../../monitoring/performance-dashboard');
+    globalDashboard.destroy?.();
+  } catch { /* module not loaded */ }
+}
+
 describe('server CORS configuration', () => {
   const originalEnv = process.env.NODE_ENV;
   const originalJwtSecret = process.env.JWT_SECRET;
 
-  afterEach(() => {
+  afterEach(async () => {
+    await cleanupMonitoringTimers();
+    jest.resetModules();
     process.env.NODE_ENV = originalEnv;
     if (originalJwtSecret) process.env.JWT_SECRET = originalJwtSecret;
     else delete process.env.JWT_SECRET;
@@ -46,6 +72,11 @@ describe('server CORS configuration', () => {
 // TASK-0147: Verify monitoring routes are wired into production server
 // ---------------------------------------------------------------------------
 describe('server monitoring route registration', () => {
+  afterEach(async () => {
+    await cleanupMonitoringTimers();
+    jest.resetModules();
+  });
+
   it('should register monitoring endpoints at /api/v1/monitoring', async () => {
     jest.resetModules();
     process.env.NODE_ENV = 'development';

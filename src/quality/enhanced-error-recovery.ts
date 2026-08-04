@@ -297,8 +297,9 @@ export class EnhancedErrorRecovery {
     this.initializeHealthMetrics();
     this.initializePreventiveActions();
     this.initializeCircuitBreakers();
-    // Skip background timers in test environment to prevent Jest worker leaks
-    if (process.env.NODE_ENV !== 'test') {
+    // Skip background timers in test environment to prevent Jest worker leaks.
+    // JEST_WORKER_ID is set by Jest regardless of NODE_ENV overrides in tests.
+    if (process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
       this.startHealthMonitoring();
       this.startLoadMonitoring();
     }

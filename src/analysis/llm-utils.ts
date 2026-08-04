@@ -112,9 +112,16 @@ export function parseJsonFromLLMText<T = unknown>(rawText: string): T {
       .replace(/,\s*]/g, ']')  // Remove trailing commas in arrays
       .replace(/'/g, '"')      // Replace single quotes with double quotes
       // Fix missing colon between quoted key and quoted value: "key" "value" → "key": "value"
+      // Handles values followed by comma, closing bracket, closing brace, or opening of nested object/array
       .replace(/"([^"\\]*(?:\\.[^"\\]*)*)"\s+"([^"\\]*(?:\\.[^"\\]*)*)"(\s*[,\]}])/g, '"$1": "$2"$3')
+      // Fix missing colon between quoted key and quoted value at end of nested object: "key" "value"}
+      .replace(/"([^"\\]*(?:\\.[^"\\]*)*)"\s+"([^"\\]*(?:\\.[^"\\]*)*)"(\s*\{)/g, '"$1": "$2"$3')
       // Fix missing colon between quoted key and non-string value: "key" 42 → "key": 42
-      .replace(/"([^"\\]*(?:\\.[^"\\]*)*)"\s+(true|false|null|-?\d+\.?\d*|-?\d+)(\s*[,\]}])/g, '"$1": $2$3');
+      .replace(/"([^"\\]*(?:\\.[^"\\]*)*)"\s+(true|false|null|-?\d+\.?\d*|-?\d+)(\s*[,\]}])/g, '"$1": $2$3')
+      // Fix missing colon between quoted key and opening brace (nested object): "key" { → "key": {
+      .replace(/"([^"\\]*(?:\\.[^"\\]*)*)"\s+(\{)/g, '"$1": $2')
+      // Fix missing colon between quoted key and opening bracket (array): "key" [ → "key": [
+      .replace(/"([^"\\]*(?:\\.[^"\\]*)*)"\s+(\[)/g, '"$1": $2');
 
     try {
       return JSON.parse(fixed) as T;

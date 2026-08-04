@@ -172,6 +172,48 @@ describe('parseJsonFromLLMText', () => {
       const input = '{"flag" true}';
       expect(parseJsonFromLLMText(input)).toEqual({ flag: true });
     });
+
+    it('fixes missing colon when value is a nested object', () => {
+      const input = '{"meta" {"nested": true}}';
+      expect(parseJsonFromLLMText(input)).toEqual({ meta: { nested: true } });
+    });
+
+    it('fixes missing colon when value is an array', () => {
+      const input = '{"items" [1, 2, 3]}';
+      expect(parseJsonFromLLMText(input)).toEqual({ items: [1, 2, 3] });
+    });
+
+    it('fixes missing colon for null value', () => {
+      const input = '{"data" null}';
+      expect(parseJsonFromLLMText(input)).toEqual({ data: null });
+    });
+
+    it('fixes multiple missing colons in the same object', () => {
+      const input = '{"a" "x", "b" 42, "c" true}';
+      expect(parseJsonFromLLMText(input)).toEqual({ a: 'x', b: 42, c: true });
+    });
+
+    it('fixes missing colon in nested object', () => {
+      const input = '{"outer" {"inner" "val"}}';
+      expect(parseJsonFromLLMText(input)).toEqual({ outer: { inner: 'val' } });
+    });
+
+    it('fixes missing colon for negative number', () => {
+      const input = '{"offset" -42}';
+      expect(parseJsonFromLLMText(input)).toEqual({ offset: -42 });
+    });
+
+    it('fixes missing colon for float number', () => {
+      const input = '{"ratio" 3.14}';
+      expect(parseJsonFromLLMText(input)).toEqual({ ratio: 3.14 });
+    });
+
+    it('fixes missing colon followed by opening brace of nested value', () => {
+      const input = '{"config" {"debug" true, "verbose" false}}';
+      expect(parseJsonFromLLMText(input)).toEqual({
+        config: { debug: true, verbose: false },
+      });
+    });
   });
 
   describe('generic type parameter', () => {
