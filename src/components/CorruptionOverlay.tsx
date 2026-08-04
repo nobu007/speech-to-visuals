@@ -71,8 +71,8 @@ export const CorruptionOverlay: React.FC<CorruptionOverlayProps> = ({
       try {
         localStorage.removeItem(key);
         logger.info(`[CorruptionOverlay] Cleared corrupt key: ${key}`);
-      } catch {
-        logger.warn(`[CorruptionOverlay] Failed to clear key: ${key}`);
+      } catch (e) {
+        logger.warn(`[CorruptionOverlay] Failed to clear key: ${key}: ${String(e)}`);
       }
     }
   }, []);
@@ -89,8 +89,8 @@ export const CorruptionOverlay: React.FC<CorruptionOverlayProps> = ({
       try {
         localStorage.removeItem(key);
         logger.info(`[CorruptionOverlay] Cleared corrupt key: ${key}`);
-      } catch {
-        logger.warn(`[CorruptionOverlay] Failed to clear key: ${key}`);
+      } catch (e) {
+        logger.warn(`[CorruptionOverlay] Failed to clear key: ${key}: ${String(e)}`);
       }
     });
     setDismissedIds(new Set(reportsRef.current.map(r => r.id)));
@@ -107,8 +107,8 @@ export const CorruptionOverlay: React.FC<CorruptionOverlayProps> = ({
     knownKeys.forEach(key => {
       try {
         localStorage.removeItem(key);
-      } catch {
-        logger.warn(`[CorruptionOverlay] Failed to clear key during reset: ${key}`);
+      } catch (e) {
+        logger.warn(`[CorruptionOverlay] Failed to clear key during reset: ${key}: ${String(e)}`);
       }
     });
     logger.info('[CorruptionOverlay] Reset all known storage keys to defaults');

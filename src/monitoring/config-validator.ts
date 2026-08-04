@@ -173,8 +173,8 @@ export function validateAlertRules(yamlContent: string): ValidationError[] {
 
   try {
     parsed = parseAlertRulesYaml(yamlContent);
-  } catch {
-    errors.push({ file: 'alert-rules.yml', message: 'Failed to parse YAML structure' });
+  } catch (e) {
+    errors.push({ file: 'alert-rules.yml', message: `Failed to parse YAML structure: ${String(e)}` });
     return errors;
   }
 
