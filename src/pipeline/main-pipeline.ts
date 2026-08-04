@@ -620,21 +620,11 @@ export class MainPipeline {
   }
 
   /**
-   * Enhanced content analysis with adaptive processing
+   * Enhanced content analysis with adaptive processing.
+   * Errors propagate to executeStageWithFramework for retry / failure recording.
    */
   private async analyzeContentEnhanced(transcriptionResult: unknown) {
-    try {
-      const result = await this.analyzeContent(transcriptionResult);
-      return result;
-    } catch (error) {
-      // ISS-007: Don't retry the same failing call; return minimal fallback result
-      logger.error('[Pipeline] Content analysis failed, returning empty fallback:', error);
-      return {
-        segments: [],
-        diagramAnalyses: [],
-        contentAnalysis: { type: 'general', complexity: 0 },
-      };
-    }
+    return this.analyzeContent(transcriptionResult);
   }
 
   /**

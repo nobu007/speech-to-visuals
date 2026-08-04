@@ -25,7 +25,6 @@ import {
   type LearningStatus,
   type LearningReportEntry,
 } from '@/framework/continuous-learner';
-import { logger } from '@/utils/logger';
 
 export interface UseAdminAnalyticsOptions {
   /** Polling interval in milliseconds (default: 10000) */
@@ -115,14 +114,8 @@ function collectSnapshot(): AdminAnalyticsSnapshot {
   const productionMetrics = productionMonitor.getMetrics();
   const productionHealth = productionMonitor.performHealthCheck();
 
-  let performanceSnapshot: PerformanceSnapshot | null = null;
-  let trends: Array<{ metric: string; trend: string; changePercent: number }> = [];
-  try {
-    performanceSnapshot = realTimeMonitor.getSnapshot();
-    trends = realTimeMonitor.analyzeTrends();
-  } catch (error) {
-    logger.warn('[useAdminAnalytics] Performance monitor unavailable:', error);
-  }
+  const performanceSnapshot = realTimeMonitor.getSnapshot();
+  const trends = realTimeMonitor.analyzeTrends();
 
   const learningStatus = continuousLearner.getLearningStatus();
   const learningReport = continuousLearner.getLearningReport();
@@ -200,11 +193,7 @@ export function useAdminAnalytics(
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const refresh = useCallback(() => {
-    try {
-      setSnapshot(collectSnapshot());
-    } catch (error) {
-      logger.warn('[useAdminAnalytics] Snapshot collection failed:', error);
-    }
+    setSnapshot(collectSnapshot());
   }, []);
 
   const stop = useCallback(() => {
