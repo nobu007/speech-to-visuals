@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-26（第201回検証: spine manifest validator CI統合・recovery path silent catch修正・SimpleDiagramDetectorバグ修正）
+**最終更新**: 2026-08-04（第204回検証: Phase 115 テストスイート安定化・Lint完全修正・ESLint 234エラー→0・jest.mock ESM修正・validateAudioFile クラッシュ修正・CJKトークン化テスト・キリル文字混入修正）
 **履歴**: 第200回検証(2026-06-24)・第199回検証(2026-06-24)・第197回検証(2026-06-23)・第196回検証(2026-06-22)・第176回検証(2026-06-02)・第171回検証(2026-06-01)・第170回検証(2026-05-29)・第167回検証(2026-05-27)・第165回検証(2026-05-26)・第158回検証(2026-05-20)・第157回検証(2026-05-18)・第151回検証(2026-05-18)・第150回検証(2026-05-18)・第149回検証(2026-05-17)・第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-05-01)・第22回検証(2026-04-30)
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 
@@ -143,6 +143,49 @@
 - design-interview.md: A116 追加
 - acceptance-criteria.md: REQ-258~260 追加
 - 信頼性レベル: 全追加項目 🔵（実装済みコードとテストを直接参照）
+
+---
+
+### A117: 第204回検証 - Phase 115 テストスイート安定化・Lint完全修正（2026-08-04）
+
+**分析日時**: 2026-08-04
+**カテゴリ**: コード品質・テスト安定性・CI/CD
+**背景**: 直近4コミット（137cb82~3fd2f0e）で実施されたテストスイート安定化とLint完全修正の内容を設計文档に反映。これらの修正はAI Hub make-runフィードバックへの対応として実施された。
+
+**判断**: 以下の差分を反映:
+
+1. **ESLint 234エラー→0解消** 🔵: コミット 73b7aea
+   - `eslint.config.js`: `no-console` ルールの override 対象拡張（scripts/・tests/・supabase/）
+   - 16ファイル修正（corruption-recovery-integration・diagram-detector-llm-boundary・multi-format-exporter・config-validator・batch-operation-recovery・streaming-transcriber・sanitize-fuzz・layout-pipeline-deep-integration・monitoring-optimization-mutation・ci-timeout-guard・no-console-regression・pipeline-enhanced-layout-null-item-guard）
+   - `npm run lint` がエラー0件・警告1件（react-hooks/exhaustive-deps ref warning、既知の非致命的警告）で完了
+
+2. **jest.mock ESM修正** 🔵: コミット 558398d
+   - `gemini-analyzer-comprehensive.test.ts`・`llm-service-comprehensive.test.ts`
+   - 非推奨の `jest.unstable_mockModule` を標準 `jest.mock` に置換
+   - ESM環境でのテストモック安定性向上
+
+3. **validateAudioFile クラッシュ修正** 🔵: コミット 3fd2f0e
+   - `src/utils/audio-validation.ts`: File オブジェクトの size プロパティへの安全でないアクセス修正
+   - `tests/unit/async-resource-cleanup.test.ts`・`src/framework/__tests__/continuous-learner-numeric-safety.test.ts`: テスト環境修正
+   - 9件の失敗テストを解消
+
+4. **CJKトークン化テスト追加** 🔵: コミット 137cb82
+   - `src/analysis/__tests__/semantic-similarity.test.ts`: CJK文字レベルトークン化のエッジケーステスト追加
+   - 空文字・単一文字・長文・混言語テキストの類似度計算検証
+
+5. **キリル文字混入メソッド名修正** 🔵: コミット 9a3cefe
+   - `src/analysis/diagram-detector.ts`: `testTypeAppropriateность` → `testTypeAppropriateness`
+   - `src/analysis/__tests__/diagram-detector.test.ts`: テストのメソッド名参照修正・35行追加
+
+**根拠**:
+- git log: 137cb82, 558398d, 73b7aea, 9a3cefe, 3fd2f0e
+- npm run type-check: 0 errors
+- npm run lint: 0 errors, 1 warning
+- テスト実行: 2200 tests passed（analysis/utils/framework テストスイート）
+
+**信頼性への影響**:
+- 全追加項目 🔵（コミット・テスト・lint結果を直接検証）
+- 設計文档の正確性向上: Phase 115 の実績を反映し、要件と実装のトレーサビリティを維持
 
 ---
 

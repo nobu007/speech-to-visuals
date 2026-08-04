@@ -687,6 +687,13 @@
 - REQ-268: システムの継続的学習モジュール（continuous-learner.ts）は destroy() メソッドを提供し、setInterval タイマーのクリアに加えて全ての内部状態（学習データ・最適化戦略キャッシュ等）を解放しなければならない。destroy() 呼出後はタイマーコールバックが実行されないことを保証すること 🔵 ✅実装済 *コミット 9ec2a09: destroy() メソッド追加・src/framework/continuous-learner.ts・src/framework/__tests__/continuous-learner-safety.test.ts*
 - REQ-269: システムの継続的学習モジュール（continuous-learner.ts）のピアソン相関計算は、配列長の不一致を検出して0を返し、NaN・Infinity・undefinedを含む入力から NaN が伝播しないことを保証しなければならない 🔵 ✅実装済 *コミット 9ec2a09: pearson() に xs.length !== ys.length 早期リターン追加・非有限値ガード追加・src/framework/__tests__/continuous-learner-safety.test.ts（9テスト）*
 
+### テストスイート安定化・Lint完全修正（Phase 115） ✅実装済
+
+- REQ-270: プロジェクト全体のESLintエラーを0件にしなければならない。eslint.config.js の設定調整・テストファイル・ソースファイルのlint修正を含む。修正後は `npm run lint` がエラー0件で完了すること 🔵 ✅実装済 *コミット 73b7aea: ESLint 234エラー→0解消・16ファイル修正（eslint.config.js・corruption-recovery-integration・diagram-detector-llm-boundary・multi-format-exporter・config-validator・batch-operation-recovery・streaming-transcriber・sanitize-fuzz・layout-pipeline-deep-integration・monitoring-optimization-mutation・ci-timeout-guard・no-console-regression・pipeline-enhanced-layout-null-item-guard）*
+- REQ-271: ESM環境でのテストモックは、非推奨の `jest.unstable_mockModule` ではなく標準の `jest.mock` を使用しなければならない。これによりテストランナーの安定性と保守性を確保すること 🔵 ✅実装済 *コミット 558398d: gemini-analyzer-comprehensive.test.ts・llm-service-comprehensive.test.ts の unstable_mockModule → jest.mock 置換*
+- REQ-272: 音声ファイル検証（validateAudioFile）は、File オブジェクトの size プロパティへの安全でないアクセスによりクラッシュしてはならない。また、テスト環境でのFile グローバルの不在に対してグレースフルに処理しなければならない 🔵 ✅実装済 *コミット 3fd2f0e: src/utils/audio-validation.ts の file.size 安全アクセス修正・tests/unit/async-resource-cleanup.test.ts・src/framework/__tests__/continuous-learner-numeric-safety.test.ts のテスト環境修正*
+- REQ-273: セマンティック類似度計算（semantic-similarity.ts）は、CJK（中国語・日本語・韓国語）テキストの文字レベルトークン化をサポートし、空文字・単一文字・長文のエッジケースで正しい類似度スコアを返さなければならない。また、コード内に非ASCIIメソッド名（キリル文字等）が混入していてはならない 🔵 ✅実装済 *コミット 137cb82: CJKトークン化エッジケーステスト追加・コミット 9a3cefe: testTypeAppropriateность → testTypeAppropriateness メソッド名修正（キリル文字混入解消）*
+
 ## 実装進捗サマリー
 
 | フェーズ | ステータス | タスク範囲 | 完了率 |
@@ -806,14 +813,15 @@
 | Phase 111: CI・インテグレーション検証ハードening | 🔶要件定義 | REQ-253~257 | 0/5（エクスポートリトライ5+サイクル統合テスト・CI timeout-minutes + ELAPSED assertion・ESLint no-console回帰防止・EnhancedExportEngine リトライ設定DI・シーンデュレーション統合検証） |
 | Phase 113: NaN/Type Safety コンソリデーション | ✅完了 | REQ-263~266 | 4/4（w/h直接アクセス完全排除・diagram-detector/scene-segmenterサニタイゼーションガード・32新規テスト） |
 | Phase 114: ルールベースフォールバック品質改善・継続的学習安全性 | ✅完了 | REQ-267~269 | 3/3（ハードコードテンプレート→テキストベース抽出・continuous-learner destroy()・pearson NaNガード・20新規テスト） |
+| Phase 115: テストスイート安定化・Lint完全修正 | ✅完了 | REQ-270~273 | 4/4（ESLint 234エラー→0解消・jest.mock ESM修正・validateAudioFile クラッシュ修正・CJKトークン化テスト追加・キリル文字混入修正） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 277件 (98.6%)
+- 🔵 青信号: 281件 (98.6%)
 - 🟡 黄信号: 4件 (1.4%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 114要件追加・REQ-001~269（ルールベースフォールバック品質改善: diagram-detectorテキストベースコンテンツ抽出・continuous-learner destroy()/pearson NaNガード）
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 115要件追加・REQ-001~273（テストスイート安定化: ESLint 0エラー・jest.mock ESM修正・validateAudioFile クラッシュ修正・CJKトークン化テスト・キリル文字混入修正）
 
 ## Acceptance criteria
 
@@ -824,9 +832,9 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 114 を網羅し、Phase 114（ルールベースフォールバック品質改善・継続的学習安全性・REQ-267~269）を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 115 を網羅し、Phase 115（テストスイート安定化・Lint完全修正・REQ-270~273）を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテキュリティに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（Phase 114要件追加・REQ-001~269・🔵277件/🟡4件/🔴0件）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（Phase 115要件追加・REQ-001~273・🔵281件/🟡4件/🔴0件）
 
 
 <!-- spine:references:begin -->

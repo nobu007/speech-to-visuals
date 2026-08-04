@@ -5559,7 +5559,11 @@
 | REQ-267: テキストベースコンテンツ抽出 | 3 | 🔵 |
 | REQ-268: continuous-learner destroy() | 2 | 🔵 |
 | REQ-269: pearson NaNガード | 2 | 🔵 |
-| **合計** | **41** | **🔵 100%** |
+| REQ-270: ESLint 0エラー達成 | 3 | 🔵 |
+| REQ-271: jest.mock ESM修正 | 2 | 🔵 |
+| REQ-272: validateAudioFile クラッシュ修正 | 2 | 🔵 |
+| REQ-273: CJKトークン化・キリル文字修正 | 2 | 🔵 |
+| **合計** | **52** | **🔵 100%** |
 
 
 <!-- spine:references:begin -->

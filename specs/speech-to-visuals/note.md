@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-07-02（第203回検証・Phase 113 NaN/Type Safetyコンソリデーション完結・w/h移行6ファイル完了・diagram-detector/scene-segmenterサニタイゼーションガード追加・REQ-263~266追加・32新規テスト）
+**最終更新**: 2026-08-04（第204回検証・Phase 115 テストスイート安定化・Lint完全修正完了・ESLint 234エラー→0・jest.mock ESM修正・validateAudioFile クラッシュ修正・CJKトークン化テスト追加・キリル文字混入メソッド名修正・REQ-270~273追加）
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム
 
 ## 技術スタック
