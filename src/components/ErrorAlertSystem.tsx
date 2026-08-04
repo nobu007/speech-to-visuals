@@ -44,12 +44,13 @@ export const ErrorAlertSystem: React.FC<ErrorAlertSystemProps> = ({
   const [executingRecovery, setExecutingRecovery] = useState<Set<string>>(new Set());
   const [expandedAlerts, setExpandedAlerts] = useState<Set<string>>(new Set());
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
-  const autoHideTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
   const alertsRef = useRef<ErrorAlert[]>([]);
   alertsRef.current = alerts;
 
   // Subscribe to error handler
   useEffect(() => {
+    const timers = new Set<ReturnType<typeof setTimeout>>();
+
     const updateAlerts = (alert: ErrorAlert) => {
       const exists = alertsRef.current.find(a => a.id === alert.id);
       if (exists) return;
@@ -64,9 +65,9 @@ export const ErrorAlertSystem: React.FC<ErrorAlertSystemProps> = ({
       if (autoHide && alert.severity === 'low') {
         const timer = setTimeout(() => {
           setDismissedAlerts(prev => new Set([...prev, alert.id]));
-          autoHideTimers.current.delete(timer);
+          timers.delete(timer);
         }, 5000);
-        autoHideTimers.current.add(timer);
+        timers.add(timer);
       }
     };
 
@@ -87,8 +88,7 @@ export const ErrorAlertSystem: React.FC<ErrorAlertSystemProps> = ({
 
     return () => {
       clearInterval(metricsInterval);
-      autoHideTimers.current.forEach(t => clearTimeout(t));
-      autoHideTimers.current.clear();
+      timers.forEach(t => clearTimeout(t));
     };
   }, [showMetrics, autoHide]);
 
