@@ -2,6 +2,7 @@ import {
   UserGuidedErrorRecovery,
   type ErrorGuidance,
 } from '../user-guided-error-recovery';
+import { logger } from '@/utils/logger';
 
 describe('UserGuidedErrorRecovery', () => {
   let recovery: UserGuidedErrorRecovery;
@@ -180,7 +181,7 @@ describe('UserGuidedErrorRecovery', () => {
     it('should log errors when strategies fail (not silently swallow)', async () => {
       const error = new Error('Network connection failed');
       const guidance = recovery.analyzeError(error);
-      const loggerSpy = jest.spyOn(require('@/utils/logger').logger, 'error');
+      const loggerSpy = jest.spyOn(logger, 'error');
 
       await recovery.attemptRecovery(guidance, async () => {
         throw new Error('strategy failed');

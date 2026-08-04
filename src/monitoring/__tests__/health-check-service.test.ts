@@ -3,41 +3,92 @@
  * Covers: health checks (memory, cache, pipeline, LLM, error recovery, performance),
  *         readiness/liveness probes, overall status calculation, recommendations,
  *         destroy() cleanup, cached health retrieval
+ *
+ * Note: Uses jest.unstable_mockModule for ESM-compatible mocking.
  */
 
-import { HealthCheckService } from '../health-check-service';
-import type { PerformanceSnapshot } from '../real-time-performance-monitor';
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 
-// Mock dependencies
-jest.mock('../real-time-performance-monitor', () => ({
+// Define mock functions at module scope
+const mockGetSnapshot = jest.fn();
+const mockAnalyzeTrends = jest.fn();
+const mockGetCacheStats = jest.fn();
+const mockGetMemoryUsage = jest.fn();
+const mockLoggerError = jest.fn();
+const mockLoggerWarn = jest.fn();
+const mockLoggerInfo = jest.fn();
+
+// Use jest.unstable_mockModule for ESM-compatible mocking
+// Must use top-level await for the import that consumes the mocked modules
+jest.unstable_mockModule('../real-time-performance-monitor', () => ({
   realTimeMonitor: {
-    getSnapshot: jest.fn(),
-    analyzeTrends: jest.fn(),
+    getSnapshot: mockGetSnapshot,
+    analyzeTrends: mockAnalyzeTrends,
   },
 }));
 
-jest.mock('@/performance/intelligent-cache', () => ({
+jest.unstable_mockModule('@/performance/intelligent-cache', () => ({
   globalCache: {
-    getStats: jest.fn(),
+    getStats: mockGetCacheStats,
   },
 }));
 
-jest.mock('@/utils/memory-usage', () => ({
-  getMemoryUsage: jest.fn(),
+jest.unstable_mockModule('@/utils/memory-usage', () => ({
+  getMemoryUsage: mockGetMemoryUsage,
 }));
 
-jest.mock('@/utils/logger', () => ({
+jest.unstable_mockModule('@/utils/logger', () => ({
   logger: {
-    error: jest.fn(),
-    warn: jest.fn(),
-    info: jest.fn(),
+    error: mockLoggerError,
+    warn: mockLoggerWarn,
+    info: mockLoggerInfo,
   },
 }));
 
-const { realTimeMonitor } = require('../real-time-performance-monitor');
-const { globalCache } = require('@/performance/intelligent-cache');
-const { getMemoryUsage } = require('@/utils/memory-usage');
-const { logger } = require('@/utils/logger');
+// Convenience aliases
+const realTimeMonitor = { getSnapshot: mockGetSnapshot, analyzeTrends: mockAnalyzeTrends };
+const globalCache = { getStats: mockGetCacheStats };
+const getMemoryUsage = mockGetMemoryUsage;
+const logger = { error: mockLoggerError, warn: mockLoggerWarn, info: mockLoggerInfo };
+
+interface PerformanceSnapshot {
+  timestamp: number;
+  pipeline: {
+    totalRequests: number;
+    successRate: number;
+    avgProcessingTime: number;
+    p95ProcessingTime: number;
+    p99ProcessingTime: number;
+    activeRequests: number;
+  };
+  llm: {
+    totalRequests: number;
+    flashUsagePercent: number;
+    proUsagePercent: number;
+    avgFlashResponseTime: number;
+    avgProResponseTime: number;
+    cacheHitRate: number;
+    estimatedCostSavings: number;
+  };
+  system: {
+    cpuUsagePercent: number;
+    memoryUsageMB: number;
+    memoryUsagePercent: number;
+    heapUsedMB: number;
+    heapTotalMB: number;
+  };
+  errors: {
+    totalErrors: number;
+    errorRate: number;
+    recentErrors: string[];
+    recoverySuccessRate: number;
+  };
+  quality: {
+    transcriptionAccuracy: number;
+    layoutOverlapRate: number;
+    avgSceneQuality: number;
+  };
+}
 
 function makeHealthySnapshot(): PerformanceSnapshot {
   return {
@@ -143,8 +194,42 @@ function makeUnhealthySnapshot(): PerformanceSnapshot {
   };
 }
 
+// Lazy-loaded HealthCheckService (must be imported AFTER mocks are registered)
+interface HealthCheckResult {
+  status: string;
+  uptime: number;
+  timestamp: number;
+  checks: {
+    memory: { status: string; details?: { usagePercent: number } };
+    cache: { status: string; message?: string };
+    pipeline: { status: string; message?: string };
+    llm: { status: string };
+    errorRecovery: { status: string };
+    performance: { status: string };
+  };
+  recommendations: string[];
+}
+
+interface HealthCheckServiceInstance {
+  performHealthCheck(): Promise<HealthCheckResult>;
+  checkReadiness(): Promise<{ ready: boolean; reason?: string }>;
+  checkLiveness(): Promise<{ alive: boolean; reason: string }>;
+  getCachedHealth(): HealthCheckResult | null;
+  getUptime(): number;
+  getUptimeString(): string;
+  destroy(): void;
+}
+
+type HealthCheckServiceConstructor = new () => HealthCheckServiceInstance;
+
 describe('HealthCheckService', () => {
-  let service: HealthCheckService;
+  let HealthCheckService: HealthCheckServiceConstructor;
+  let service: HealthCheckServiceInstance;
+
+  beforeAll(async () => {
+    const healthMod = await import('../health-check-service');
+    HealthCheckService = healthMod.HealthCheckService as HealthCheckServiceConstructor;
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -200,7 +285,6 @@ describe('HealthCheckService', () => {
 
     it('returns unhealthy status when pipeline is critical', async () => {
       realTimeMonitor.getSnapshot.mockReturnValue(makeUnhealthySnapshot());
-      // Also mock high memory usage for unhealthy memory check
       getMemoryUsage.mockReturnValue({
         heapUsed: 190 * 1024 * 1024,
         heapTotal: 200 * 1024 * 1024,
@@ -525,11 +609,8 @@ describe('HealthCheckService', () => {
     });
 
     it('returns ready=false with reason on error', async () => {
-      // Force performHealthCheck to have been cached, then corrupt it
       const probe = await service.checkReadiness();
 
-      // If no cached health, it runs performHealthCheck which succeeds
-      // so this tests the cached path
       expect(probe.ready).toBeDefined();
     });
   });
@@ -581,9 +662,7 @@ describe('HealthCheckService', () => {
     });
 
     it('formats seconds correctly', () => {
-      // Mock startTime by checking format pattern
       const str = service.getUptimeString();
-      // Should match patterns like "5s", "3m 10s", "2h 15m 30s", "1d 3h 20m"
       expect(str).toMatch(/^\d+[smhd]/);
     });
   });
@@ -656,8 +735,6 @@ describe('HealthCheckService', () => {
 
   describe('error logging in catch blocks', () => {
     it('logs error when getSnapshot fails for metrics fallback', async () => {
-      // Force getSnapshot to throw for the metrics section (after all checks pass)
-      // Pipeline(#1), LLM(#2), ErrorRecovery(#3), then metrics(#4) should throw
       let callCount = 0;
       realTimeMonitor.getSnapshot.mockImplementation(() => {
         callCount++;

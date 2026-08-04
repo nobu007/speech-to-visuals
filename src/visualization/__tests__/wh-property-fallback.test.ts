@@ -3,11 +3,39 @@
  *
  * PositionedNode has optional width/height/w/h properties. Modules that
  * access these without a fallback produce NaN when properties are missing.
- * This suite verifies the fallback pattern (w ?? width ?? default) works.
+ * This suite verifies the fallback pattern (width ?? w ?? default) works.
  */
 import { describe, it, expect } from '@jest/globals';
 import { calculateCanvasSize } from '../layout-engine-v2';
+import { CycleLayoutStrategy } from '../strategies/cycle-strategy';
+import { ComparisonStrategy } from '../strategies/comparison-strategy';
+import { MatrixStrategy } from '../strategies/matrix-strategy';
+import { GeneralStrategy } from '../strategies/general-strategy';
+import { TimelineStrategy } from '../strategies/timeline-strategy';
+import { CanvasCalculator } from '../canvas-calculator';
+import { nodesOverlap } from '../layout-utils';
 import type { PositionedNode, NodeDatum, EdgeDatum } from '@/types/diagram';
+
+// Lazy-loaded modules (may not exist or have different export patterns)
+let OverlapResolver: any;
+let BaseLayoutStrategy: any;
+let GridSnapStrategy: any;
+let executeLayout: any;
+
+beforeAll(async () => {
+  try {
+    ({ OverlapResolver } = await import('../layout/OverlapResolver'));
+  } catch { /* module may not exist */ }
+  try {
+    ({ BaseLayoutStrategy } = await import('../layout/strategies/LayoutStrategy'));
+  } catch { /* module may not exist */ }
+  try {
+    ({ GridSnapStrategy } = await import('../layout/strategies/GridSnapStrategy'));
+  } catch { /* module may not exist */ }
+  try {
+    ({ executeLayout } = await import('../strategy-selector'));
+  } catch { /* module may not exist */ }
+});
 
 describe('w/h property fallback — calculateCanvasSize', () => {
   it('handles nodes with only w/h (no width/height)', () => {
@@ -47,7 +75,6 @@ describe('w/h property fallback — calculateCanvasSize', () => {
 
 describe('w/h property fallback — CycleLayoutStrategy', () => {
   it('lays out nodes that only have w/h without producing NaN', () => {
-    const { CycleLayoutStrategy } = require('../strategies/cycle-strategy');
     const strategy = new CycleLayoutStrategy();
 
     const nodes: NodeDatum[] = [
@@ -80,7 +107,6 @@ describe('w/h property fallback — CycleLayoutStrategy', () => {
   });
 
   it('lays out nodes that have neither width/height nor w/h', () => {
-    const { CycleLayoutStrategy } = require('../strategies/cycle-strategy');
     const strategy = new CycleLayoutStrategy();
 
     const nodes: NodeDatum[] = [
@@ -105,7 +131,6 @@ describe('w/h property fallback — CycleLayoutStrategy', () => {
 
 describe('w/h property fallback — OverlapResolver', () => {
   it('initializes nodes with w/h fallback for width/height', async () => {
-    const { OverlapResolver } = require('../layout/OverlapResolver');
     const resolver = new OverlapResolver();
 
     const nodes: NodeDatum[] = [
@@ -137,7 +162,6 @@ describe('w/h property fallback — OverlapResolver', () => {
   });
 
   it('does not produce NaN for nodes without any dimension properties', async () => {
-    const { OverlapResolver } = require('../layout/OverlapResolver');
     const resolver = new OverlapResolver();
 
     const nodes: NodeDatum[] = [
@@ -170,22 +194,14 @@ describe('w/h property fallback — OverlapResolver', () => {
 
 describe('w/h property fallback — BaseLayoutStrategy metrics & bounding box', () => {
   it('calculateMetrics produces finite results for w/h-only nodes', () => {
-    const { BaseLayoutStrategy } = require('../layout/strategies/LayoutStrategy');
-
-    // Create a minimal concrete subclass to test protected methods
-    class TestStrategy extends BaseLayoutStrategy {
+    const strategy = new (class extends BaseLayoutStrategy {
       readonly name = 'test';
       readonly canEscapeLocalMinimum = false;
-
       protected async performLayout(
         nodes: PositionedNode[],
         edges: import('@/types/diagram').LayoutEdge[],
-      ) {
-        return { nodes, edges };
-      }
-    }
-
-    const strategy = new TestStrategy();
+      ) { return { nodes, edges }; }
+    })();
     const nodes: PositionedNode[] = [
       { id: 'a', label: 'A', x: 0, y: 0, w: 100, h: 50 },
       { id: 'b', label: 'B', x: 200, y: 100, w: 120, h: 60 },
@@ -197,21 +213,14 @@ describe('w/h property fallback — BaseLayoutStrategy metrics & bounding box', 
   });
 
   it('calculateBoundingBox produces finite results for w/h-only nodes', () => {
-    const { BaseLayoutStrategy } = require('../layout/strategies/LayoutStrategy');
-
-    class TestStrategy extends BaseLayoutStrategy {
+    const strategy = new (class extends BaseLayoutStrategy {
       readonly name = 'test';
       readonly canEscapeLocalMinimum = false;
-
       protected async performLayout(
         nodes: PositionedNode[],
         edges: import('@/types/diagram').LayoutEdge[],
-      ) {
-        return { nodes, edges };
-      }
-    }
-
-    const strategy = new TestStrategy();
+      ) { return { nodes, edges }; }
+    })();
     const nodes: PositionedNode[] = [
       { id: 'a', label: 'A', x: 0, y: 0, w: 100, h: 50 },
       { id: 'b', label: 'B', x: 200, y: 100, w: 120, h: 60 },
@@ -225,21 +234,14 @@ describe('w/h property fallback — BaseLayoutStrategy metrics & bounding box', 
   });
 
   it('calculateMetrics handles nodes with no dimension properties', () => {
-    const { BaseLayoutStrategy } = require('../layout/strategies/LayoutStrategy');
-
-    class TestStrategy extends BaseLayoutStrategy {
+    const strategy = new (class extends BaseLayoutStrategy {
       readonly name = 'test';
       readonly canEscapeLocalMinimum = false;
-
       protected async performLayout(
         nodes: PositionedNode[],
         edges: import('@/types/diagram').LayoutEdge[],
-      ) {
-        return { nodes, edges };
-      }
-    }
-
-    const strategy = new TestStrategy();
+      ) { return { nodes, edges }; }
+    })();
     const nodes: PositionedNode[] = [
       { id: 'a', label: 'A', x: 0, y: 0 },
       { id: 'b', label: 'B', x: 200, y: 100 },
@@ -250,21 +252,14 @@ describe('w/h property fallback — BaseLayoutStrategy metrics & bounding box', 
   });
 
   it('calculateBoundingBox handles nodes with no dimension properties', () => {
-    const { BaseLayoutStrategy } = require('../layout/strategies/LayoutStrategy');
-
-    class TestStrategy extends BaseLayoutStrategy {
+    const strategy = new (class extends BaseLayoutStrategy {
       readonly name = 'test';
       readonly canEscapeLocalMinimum = false;
-
       protected async performLayout(
         nodes: PositionedNode[],
         edges: import('@/types/diagram').LayoutEdge[],
-      ) {
-        return { nodes, edges };
-      }
-    }
-
-    const strategy = new TestStrategy();
+      ) { return { nodes, edges }; }
+    })();
     const nodes: PositionedNode[] = [
       { id: 'a', label: 'A', x: 0, y: 0 },
       { id: 'b', label: 'B', x: 200, y: 100 },
@@ -278,8 +273,6 @@ describe('w/h property fallback — BaseLayoutStrategy metrics & bounding box', 
 
 describe('w/h property fallback — nodesOverlap consistency', () => {
   it('detects overlap correctly for nodes with only w/h', () => {
-    const { nodesOverlap } = require('../layout-utils');
-
     const node1: PositionedNode = { id: 'a', label: 'A', x: 0, y: 0, w: 100, h: 50 };
     const node2: PositionedNode = { id: 'b', label: 'B', x: 50, y: 25, w: 100, h: 50 };
     const node3: PositionedNode = { id: 'c', label: 'C', x: 500, y: 500, w: 100, h: 50 };
@@ -289,8 +282,6 @@ describe('w/h property fallback — nodesOverlap consistency', () => {
   });
 
   it('detects overlap correctly for nodes with mixed w/h and width/height', () => {
-    const { nodesOverlap } = require('../layout-utils');
-
     const node1: PositionedNode = { id: 'a', label: 'A', x: 0, y: 0, w: 100, h: 50 };
     const node2: PositionedNode = { id: 'b', label: 'B', x: 50, y: 25, width: 100, height: 50 };
 
@@ -302,7 +293,6 @@ describe('w/h property fallback — nodesOverlap consistency', () => {
 
 describe('w/h property fallback — ComparisonStrategy edges', () => {
   it('produces finite edge points for nodes with only w/h', () => {
-    const { ComparisonStrategy } = require('../strategies/comparison-strategy');
     const strategy = new ComparisonStrategy();
 
     const nodes: NodeDatum[] = [
@@ -323,7 +313,6 @@ describe('w/h property fallback — ComparisonStrategy edges', () => {
   });
 
   it('produces finite edge points for nodes without any dimension', () => {
-    const { ComparisonStrategy } = require('../strategies/comparison-strategy');
     const strategy = new ComparisonStrategy();
 
     const nodes: NodeDatum[] = [
@@ -344,7 +333,6 @@ describe('w/h property fallback — ComparisonStrategy edges', () => {
 
 describe('w/h property fallback — MatrixStrategy edges', () => {
   it('produces finite edge points for nodes with only w/h', () => {
-    const { MatrixStrategy } = require('../strategies/matrix-strategy');
     const strategy = new MatrixStrategy();
 
     const nodes: NodeDatum[] = [
@@ -365,7 +353,6 @@ describe('w/h property fallback — MatrixStrategy edges', () => {
 
 describe('w/h property fallback — GeneralStrategy edges', () => {
   it('produces finite edge points for nodes with only w/h', () => {
-    const { GeneralStrategy } = require('../strategies/general-strategy');
     const strategy = new GeneralStrategy();
 
     const nodes: NodeDatum[] = [
@@ -386,7 +373,6 @@ describe('w/h property fallback — GeneralStrategy edges', () => {
 
 describe('w/h property fallback — TimelineStrategy edges and overlap', () => {
   it('produces finite edge points for nodes with only w/h', () => {
-    const { TimelineStrategy } = require('../strategies/timeline-strategy');
     const strategy = new TimelineStrategy();
 
     const nodes: NodeDatum[] = [
@@ -413,7 +399,6 @@ describe('w/h property fallback — TimelineStrategy edges and overlap', () => {
   });
 
   it('produces finite edge points for nodes without any dimension', () => {
-    const { TimelineStrategy } = require('../strategies/timeline-strategy');
     const strategy = new TimelineStrategy();
 
     const nodes: NodeDatum[] = [
@@ -441,7 +426,6 @@ describe('w/h property fallback — TimelineStrategy edges and overlap', () => {
   });
 
   it('resolves overlaps without NaN for overlapping w/h-only nodes', () => {
-    const { TimelineStrategy } = require('../strategies/timeline-strategy');
     const strategy = new TimelineStrategy();
 
     // Create many nodes to force overlap resolution
@@ -466,7 +450,6 @@ describe('w/h property fallback — TimelineStrategy edges and overlap', () => {
 
 describe('w/h property fallback — CanvasCalculator', () => {
   it('calculate() produces finite canvas for nodes with only w/h', () => {
-    const { CanvasCalculator } = require('../canvas-calculator');
     const calc = new CanvasCalculator();
 
     const nodes: PositionedNode[] = [
@@ -482,7 +465,6 @@ describe('w/h property fallback — CanvasCalculator', () => {
   });
 
   it('calculate() produces finite canvas for nodes without any dimension', () => {
-    const { CanvasCalculator } = require('../canvas-calculator');
     const calc = new CanvasCalculator();
 
     const nodes: PositionedNode[] = [
@@ -496,7 +478,6 @@ describe('w/h property fallback — CanvasCalculator', () => {
   });
 
   it('center() produces finite positions for w/h-only nodes', () => {
-    const { CanvasCalculator } = require('../canvas-calculator');
     const calc = new CanvasCalculator();
 
     const nodes: PositionedNode[] = [
@@ -514,7 +495,6 @@ describe('w/h property fallback — CanvasCalculator', () => {
   });
 
   it('center() produces finite positions for nodes without any dimension', () => {
-    const { CanvasCalculator } = require('../canvas-calculator');
     const calc = new CanvasCalculator();
 
     const nodes: PositionedNode[] = [
@@ -536,7 +516,6 @@ describe('w/h property fallback — CanvasCalculator', () => {
 
 describe('w/h property fallback — GridSnapStrategy', () => {
   it('lays out w/h-only nodes without producing NaN', async () => {
-    const { GridSnapStrategy } = require('../layout/strategies/GridSnapStrategy');
     const strategy = new GridSnapStrategy();
 
     const config = {
@@ -567,7 +546,6 @@ describe('w/h property fallback — GridSnapStrategy', () => {
   });
 
   it('lays out nodes without any dimension without producing NaN', async () => {
-    const { GridSnapStrategy } = require('../layout/strategies/GridSnapStrategy');
     const strategy = new GridSnapStrategy();
 
     const config = {
@@ -602,8 +580,6 @@ describe('w/h property fallback — GridSnapStrategy', () => {
 
 describe('w/h property fallback — GridSnapFallbackStrategy', () => {
   it('positions w/h-only nodes with correct dimensions', async () => {
-    const { executeLayout } = require('../strategy-selector');
-
     const nodes: NodeDatum[] = [
       { id: 'a', label: 'A', w: 150, h: 75 } as NodeDatum,
       { id: 'b', label: 'B', w: 120, h: 60 } as NodeDatum,

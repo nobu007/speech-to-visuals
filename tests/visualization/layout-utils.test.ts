@@ -106,9 +106,9 @@ describe('calculateNodeCenter', () => {
     expect(calculateNodeCenter(node)).toEqual({ x: 60, y: 50 });
   });
 
-  it('prefers w/h when both w/width are present', () => {
+  it('prefers width/height when both w/width are present (canonical property)', () => {
     const node = makeNode({ x: 0, y: 0, w: 80, h: 40, width: 999, height: 999 });
-    expect(calculateNodeCenter(node)).toEqual({ x: 40, y: 20 });
+    expect(calculateNodeCenter(node)).toEqual({ x: 499.5, y: 499.5 });
   });
 
   it('does not return NaN for nodes with only w/h (regression)', () => {

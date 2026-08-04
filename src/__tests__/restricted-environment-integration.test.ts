@@ -66,15 +66,15 @@ describe('Restricted-environment integration: localStorage denial', () => {
   }
 
   describe('ProductionConfigManager under localStorage denial', () => {
-    it('should not throw when constructing with localStorage denied', () => {
+    it('should not throw when constructing with localStorage denied', async () => {
       denyLocalStorage();
-      const { ProductionConfigManager } = require('../config/production-config');
+      const { ProductionConfigManager } = await import('../config/production-config');
       expect(() => new ProductionConfigManager()).not.toThrow();
     });
 
-    it('should return valid config even when localStorage is denied', () => {
+    it('should return valid config even when localStorage is denied', async () => {
       denyLocalStorage();
-      const { ProductionConfigManager } = require('../config/production-config');
+      const { ProductionConfigManager } = await import('../config/production-config');
       const mgr = new ProductionConfigManager();
       const config = mgr.getConfig();
       expect(config).toBeDefined();
@@ -82,18 +82,18 @@ describe('Restricted-environment integration: localStorage denial', () => {
       expect(config.performance).toBeDefined();
     });
 
-    it('should not throw when updateConfig tries to persist to denied localStorage', () => {
+    it('should not throw when updateConfig tries to persist to denied localStorage', async () => {
       denyLocalStorage();
-      const { ProductionConfigManager } = require('../config/production-config');
+      const { ProductionConfigManager } = await import('../config/production-config');
       const mgr = new ProductionConfigManager();
       expect(() => mgr.updateConfig({ apiBaseUrl: 'http://test/api' })).not.toThrow();
       // Override should still be in memory
       expect(mgr.getConfig().apiBaseUrl).toBe('http://test/api');
     });
 
-    it('should not throw when resetConfig tries to clear denied localStorage', () => {
+    it('should not throw when resetConfig tries to clear denied localStorage', async () => {
       denyLocalStorage();
-      const { ProductionConfigManager } = require('../config/production-config');
+      const { ProductionConfigManager } = await import('../config/production-config');
       const mgr = new ProductionConfigManager();
       mgr.updateConfig({ apiBaseUrl: 'http://override/api' });
       expect(() => mgr.resetConfig()).not.toThrow();
@@ -101,9 +101,9 @@ describe('Restricted-environment integration: localStorage denial', () => {
       expect(mgr.getConfig().apiBaseUrl).toContain('localhost');
     });
 
-    it('should produce a valid performance report under localStorage denial', () => {
+    it('should produce a valid performance report under localStorage denial', async () => {
       denyLocalStorage();
-      const { ProductionConfigManager } = require('../config/production-config');
+      const { ProductionConfigManager } = await import('../config/production-config');
       const mgr = new ProductionConfigManager();
       const report = mgr.generatePerformanceReport();
       expect(report).toHaveProperty('environment');
@@ -111,9 +111,9 @@ describe('Restricted-environment integration: localStorage denial', () => {
       expect(report.configValidation.isValid).toBe(true);
     });
 
-    it('should validate config correctly under localStorage denial', () => {
+    it('should validate config correctly under localStorage denial', async () => {
       denyLocalStorage();
-      const { ProductionConfigManager } = require('../config/production-config');
+      const { ProductionConfigManager } = await import('../config/production-config');
       const mgr = new ProductionConfigManager();
       const result = mgr.validateConfig();
       expect(result.isValid).toBe(true);
@@ -179,11 +179,11 @@ describe('Restricted-environment integration: localStorage denial', () => {
   });
 
   describe('Cross-service localStorage denial resilience', () => {
-    it('all localStorage consumers should survive concurrent denial', () => {
+    it('all localStorage consumers should survive concurrent denial', async () => {
       denyLocalStorage();
 
       // 1. ProductionConfigManager
-      const { ProductionConfigManager } = require('../config/production-config');
+      const { ProductionConfigManager } = await import('../config/production-config');
       const mgr = new ProductionConfigManager();
       expect(() => mgr.updateConfig({ apiBaseUrl: 'http://x/api' })).not.toThrow();
       expect(() => mgr.resetConfig()).not.toThrow();
@@ -319,7 +319,7 @@ describe('Restricted-environment integration: localStorage denial', () => {
   });
 
   describe('ProductionConfigManager with corrupted localStorage data', () => {
-    it('should not crash when localStorage returns corrupted JSON for config overrides', () => {
+    it('should not crash when localStorage returns corrupted JSON for config overrides', async () => {
       Object.defineProperty(globalThis, 'localStorage', {
         value: {
           getItem: (key: string) => key === 'production-config-overrides' ? '{corrupt' : null,
@@ -333,14 +333,14 @@ describe('Restricted-environment integration: localStorage denial', () => {
         configurable: true,
       });
 
+      const { ProductionConfigManager } = await import('../config/production-config');
       expect(() => {
-        const { ProductionConfigManager } = require('../config/production-config');
         const mgr = new ProductionConfigManager();
         expect(mgr.getConfig()).toBeDefined();
       }).not.toThrow();
     });
 
-    it('should not crash when localStorage returns non-object JSON for config overrides', () => {
+    it('should not crash when localStorage returns non-object JSON for config overrides', async () => {
       Object.defineProperty(globalThis, 'localStorage', {
         value: {
           getItem: (key: string) => key === 'production-config-overrides' ? '"just a string"' : null,
@@ -354,20 +354,20 @@ describe('Restricted-environment integration: localStorage denial', () => {
         configurable: true,
       });
 
+      const { ProductionConfigManager } = await import('../config/production-config');
       expect(() => {
-        const { ProductionConfigManager } = require('../config/production-config');
         const mgr = new ProductionConfigManager();
         expect(mgr.getConfig().name).toBe('development');
       }).not.toThrow();
     });
 
-    it('should survive rapid sequential instantiation under localStorage denial', () => {
+    it('should survive rapid sequential instantiation under localStorage denial', async () => {
       denyLocalStorage();
 
       // Rapidly create and discard multiple instances — simulates
       // hot-module reloading or fast page transitions
       for (let i = 0; i < 10; i++) {
-        const { ProductionConfigManager } = require('../config/production-config');
+        const { ProductionConfigManager } = await import('../config/production-config');
         const mgr = new ProductionConfigManager();
         mgr.updateConfig({ apiBaseUrl: `http://test-${i}/api` });
         expect(mgr.getConfig().apiBaseUrl).toBe(`http://test-${i}/api`);
@@ -377,7 +377,7 @@ describe('Restricted-environment integration: localStorage denial', () => {
   });
 
   describe('Partial localStorage failure modes', () => {
-    it('should handle getItem succeeding but setItem throwing (read-only mode)', () => {
+    it('should handle getItem succeeding but setItem throwing (read-only mode)', async () => {
       const securityError = new DOMException('Security error', 'SecurityError');
       Object.defineProperty(globalThis, 'localStorage', {
         value: {
@@ -393,7 +393,7 @@ describe('Restricted-environment integration: localStorage denial', () => {
       });
 
       // ProductionConfigManager should still work in read-only mode
-      const { ProductionConfigManager } = require('../config/production-config');
+      const { ProductionConfigManager } = await import('../config/production-config');
       expect(() => {
         const mgr = new ProductionConfigManager();
         // updateConfig will try to persist but fail — should not throw
@@ -403,11 +403,11 @@ describe('Restricted-environment integration: localStorage denial', () => {
       }).not.toThrow();
     });
 
-    it('should handle localStorage key enumeration throwing during denial', () => {
+    it('should handle localStorage key enumeration throwing during denial', async () => {
       denyLocalStorage();
 
       // Accessing .length and .key() should not crash consumers
-      const { ProductionConfigManager } = require('../config/production-config');
+      const { ProductionConfigManager } = await import('../config/production-config');
       expect(() => {
         const mgr = new ProductionConfigManager();
         mgr.getConfig();
@@ -416,7 +416,7 @@ describe('Restricted-environment integration: localStorage denial', () => {
       }).not.toThrow();
     });
 
-    it('should handle intermittent localStorage availability (flapping)', () => {
+    it('should handle intermittent localStorage availability (flapping)', async () => {
       // Simulate localStorage that works sometimes and fails sometimes
       let callCount = 0;
       Object.defineProperty(globalThis, 'localStorage', {
@@ -445,8 +445,8 @@ describe('Restricted-environment integration: localStorage denial', () => {
 
       // Should survive multiple instantiations despite flapping
       for (let i = 0; i < 3; i++) {
+        const { ProductionConfigManager } = await import('../config/production-config');
         expect(() => {
-          const { ProductionConfigManager } = require('../config/production-config');
           const mgr = new ProductionConfigManager();
           mgr.getConfig();
         }).not.toThrow();
@@ -456,7 +456,7 @@ describe('Restricted-environment integration: localStorage denial', () => {
   });
 
   describe('LocalStorage type coercion resilience', () => {
-    it('should handle getItem returning non-string values gracefully', () => {
+    it('should handle getItem returning non-string values gracefully', async () => {
       Object.defineProperty(globalThis, 'localStorage', {
         value: {
           getItem: () => null as unknown as string, // null like empty storage
@@ -470,7 +470,7 @@ describe('Restricted-environment integration: localStorage denial', () => {
         configurable: true,
       });
 
-      const { ProductionConfigManager } = require('../config/production-config');
+      const { ProductionConfigManager } = await import('../config/production-config');
       expect(() => new ProductionConfigManager()).not.toThrow();
     });
 

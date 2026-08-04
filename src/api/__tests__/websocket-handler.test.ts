@@ -100,8 +100,8 @@ describe('WebSocket Handler — Auth Middleware', () => {
     jest.resetModules();
   });
 
-  it('should call next() without error for valid JWT', () => {
-    const { createWsAuthMiddleware } = require('../websocket-handler');
+  it('should call next() without error for valid JWT', async () => {
+    const { createWsAuthMiddleware } = await import('../websocket-handler');
     const token = makeToken({ sub: 'user1', email: 'test@test.com', role: 'admin' }, JWT_SECRET);
     const socket = createMockSocket(token);
     const middleware = createWsAuthMiddleware();
@@ -115,8 +115,8 @@ describe('WebSocket Handler — Auth Middleware', () => {
     expect(socket.data.user.role).toBe('admin');
   });
 
-  it('should call next() with error when token is missing', () => {
-    const { createWsAuthMiddleware } = require('../websocket-handler');
+  it('should call next() with error when token is missing', async () => {
+    const { createWsAuthMiddleware } = await import('../websocket-handler');
     const socket = createMockSocket(undefined);
     const middleware = createWsAuthMiddleware();
     let nextError: Error | undefined;
@@ -126,8 +126,8 @@ describe('WebSocket Handler — Auth Middleware', () => {
     expect(nextError!.message).toBe('Authentication required');
   });
 
-  it('should call next() with error for invalid JWT', () => {
-    const { createWsAuthMiddleware } = require('../websocket-handler');
+  it('should call next() with error for invalid JWT', async () => {
+    const { createWsAuthMiddleware } = await import('../websocket-handler');
     const socket = createMockSocket('invalid.token.here');
     const middleware = createWsAuthMiddleware();
     let nextError: Error | undefined;
@@ -137,8 +137,8 @@ describe('WebSocket Handler — Auth Middleware', () => {
     expect(nextError!.message).toBeTruthy();
   });
 
-  it('should call next() with error for expired JWT', () => {
-    const { createWsAuthMiddleware } = require('../websocket-handler');
+  it('should call next() with error for expired JWT', async () => {
+    const { createWsAuthMiddleware } = await import('../websocket-handler');
     const expiredToken = jwt.sign(
       { sub: 'user1', email: 'test@test.com' },
       JWT_SECRET,
@@ -152,10 +152,10 @@ describe('WebSocket Handler — Auth Middleware', () => {
     expect(nextError).toBeDefined();
   });
 
-  it('should call next() with error when JWT secret env var is missing', () => {
+  it('should call next() with error when JWT secret env var is missing', async () => {
     delete process.env.JWT_SECRET;
     delete process.env.SUPABASE_JWT_SECRET;
-    const { createWsAuthMiddleware } = require('../websocket-handler');
+    const { createWsAuthMiddleware } = await import('../websocket-handler');
     const token = makeToken({ sub: 'user1' }, 'different-secret');
     const socket = createMockSocket(token);
     const middleware = createWsAuthMiddleware();
@@ -165,11 +165,11 @@ describe('WebSocket Handler — Auth Middleware', () => {
     expect(nextError).toBeDefined();
   });
 
-  it('should use SUPABASE_JWT_SECRET when JWT_SECRET is not set', () => {
+  it('should use SUPABASE_JWT_SECRET when JWT_SECRET is not set', async () => {
     delete process.env.JWT_SECRET;
     process.env.SUPABASE_JWT_SECRET = 'supabase-secret';
     const token = makeToken({ sub: 'user1' }, 'supabase-secret');
-    const { createWsAuthMiddleware } = require('../websocket-handler');
+    const { createWsAuthMiddleware } = await import('../websocket-handler');
     const socket = createMockSocket(token);
     const middleware = createWsAuthMiddleware();
     let nextError: Error | undefined;
@@ -179,8 +179,8 @@ describe('WebSocket Handler — Auth Middleware', () => {
     expect(socket.data.user.id).toBe('user1');
   });
 
-  it('should handle JWT with missing sub/email/role fields', () => {
-    const { createWsAuthMiddleware } = require('../websocket-handler');
+  it('should handle JWT with missing sub/email/role fields', async () => {
+    const { createWsAuthMiddleware } = await import('../websocket-handler');
     const token = makeToken({}, JWT_SECRET);
     const socket = createMockSocket(token);
     const middleware = createWsAuthMiddleware();
@@ -209,28 +209,28 @@ describe('WebSocket Handler — registerWebSocketHandler', () => {
     jest.resetModules();
   });
 
-  it('should register connection handler on io', () => {
+  it('should register connection handler on io', async () => {
     const mockIo = createMockIo();
     let connectionCallCount = 0;
     mockIo.on = (_event: string, _handler: (socket: MockSocket) => void) => {
       connectionCallCount++;
     };
 
-    const { registerWebSocketHandler } = require('../websocket-handler');
+    const { registerWebSocketHandler } = await import('../websocket-handler');
     registerWebSocketHandler(mockIo as unknown as Parameters<typeof registerWebSocketHandler>[0]);
 
     expect(connectionCallCount).toBe(1);
   });
 
   describe('join:job handler', () => {
-    function setupConnection() {
+    async function setupConnection() {
       const mockIo = createMockIo();
       let connectionHandler: ((socket: MockSocket) => void) | undefined;
       mockIo.on = (_event: string, handler: (socket: MockSocket) => void) => {
         connectionHandler = handler;
       };
 
-      const { registerWebSocketHandler } = require('../websocket-handler');
+      const { registerWebSocketHandler } = await import('../websocket-handler');
       registerWebSocketHandler(mockIo as unknown as Parameters<typeof registerWebSocketHandler>[0]);
 
       const socket = createMockSocket();
@@ -239,8 +239,8 @@ describe('WebSocket Handler — registerWebSocketHandler', () => {
       return socket;
     }
 
-    it('should join job room on valid UUID', () => {
-      const socket = setupConnection();
+    it('should join job room on valid UUID', async () => {
+      const socket = await setupConnection();
       const handler = socket.eventHandlers.get('join:job');
       expect(handler).toBeDefined();
 
@@ -249,8 +249,8 @@ describe('WebSocket Handler — registerWebSocketHandler', () => {
       expect(socket.emitted.some(e => e.event === 'job:joined')).toBe(true);
     });
 
-    it('should emit error for non-UUID jobId', () => {
-      const socket = setupConnection();
+    it('should emit error for non-UUID jobId', async () => {
+      const socket = await setupConnection();
       const handler = socket.eventHandlers.get('join:job');
 
       handler!({ jobId: 'not-a-uuid' });
@@ -258,32 +258,32 @@ describe('WebSocket Handler — registerWebSocketHandler', () => {
       expect(socket.joinedRooms).toHaveLength(0);
     });
 
-    it('should emit error for missing jobId', () => {
-      const socket = setupConnection();
+    it('should emit error for missing jobId', async () => {
+      const socket = await setupConnection();
       const handler = socket.eventHandlers.get('join:job');
 
       handler!({});
       expect(socket.emitted.some(e => e.event === 'error')).toBe(true);
     });
 
-    it('should emit error for null payload', () => {
-      const socket = setupConnection();
+    it('should emit error for null payload', async () => {
+      const socket = await setupConnection();
       const handler = socket.eventHandlers.get('join:job');
 
       handler!(null);
       expect(socket.emitted.some(e => e.event === 'error' && (e.data as { message: string }).message.includes('non-null'))).toBe(true);
     });
 
-    it('should emit error for array payload', () => {
-      const socket = setupConnection();
+    it('should emit error for array payload', async () => {
+      const socket = await setupConnection();
       const handler = socket.eventHandlers.get('join:job');
 
       handler!([1, 2, 3]);
       expect(socket.emitted.some(e => e.event === 'error' && (e.data as { message: string }).message.includes('non-null'))).toBe(true);
     });
 
-    it('should reject SQL injection attempts in jobId', () => {
-      const socket = setupConnection();
+    it('should reject SQL injection attempts in jobId', async () => {
+      const socket = await setupConnection();
       const handler = socket.eventHandlers.get('join:job');
 
       const injections = [
@@ -301,8 +301,8 @@ describe('WebSocket Handler — registerWebSocketHandler', () => {
       }
     });
 
-    it('should reject payload with too many keys (>20)', () => {
-      const socket = setupConnection();
+    it('should reject payload with too many keys (>20)', async () => {
+      const socket = await setupConnection();
       const handler = socket.eventHandlers.get('join:job');
 
       const bloated: Record<string, unknown> = { jobId: VALID_UUID };
@@ -314,14 +314,14 @@ describe('WebSocket Handler — registerWebSocketHandler', () => {
   });
 
   describe('leave:job handler', () => {
-    function setupConnection() {
+    async function setupConnection() {
       const mockIo = createMockIo();
       let connectionHandler: ((socket: MockSocket) => void) | undefined;
       mockIo.on = (_event: string, handler: (socket: MockSocket) => void) => {
         connectionHandler = handler;
       };
 
-      const { registerWebSocketHandler } = require('../websocket-handler');
+      const { registerWebSocketHandler } = await import('../websocket-handler');
       registerWebSocketHandler(mockIo as unknown as Parameters<typeof registerWebSocketHandler>[0]);
 
       const socket = createMockSocket();
@@ -329,8 +329,8 @@ describe('WebSocket Handler — registerWebSocketHandler', () => {
       return socket;
     }
 
-    it('should leave job room on valid UUID', () => {
-      const socket = setupConnection();
+    it('should leave job room on valid UUID', async () => {
+      const socket = await setupConnection();
       const handler = socket.eventHandlers.get('leave:job');
 
       // First join
@@ -341,16 +341,16 @@ describe('WebSocket Handler — registerWebSocketHandler', () => {
       expect(socket.emitted.some(e => e.event === 'job:left')).toBe(true);
     });
 
-    it('should emit error for invalid UUID on leave', () => {
-      const socket = setupConnection();
+    it('should emit error for invalid UUID on leave', async () => {
+      const socket = await setupConnection();
       const handler = socket.eventHandlers.get('leave:job');
 
       handler!({ jobId: 'invalid' });
       expect(socket.emitted.some(e => e.event === 'error')).toBe(true);
     });
 
-    it('should emit error for missing jobId on leave', () => {
-      const socket = setupConnection();
+    it('should emit error for missing jobId on leave', async () => {
+      const socket = await setupConnection();
       const handler = socket.eventHandlers.get('leave:job');
 
       handler!({});
@@ -359,14 +359,14 @@ describe('WebSocket Handler — registerWebSocketHandler', () => {
   });
 
   describe('disconnect handler', () => {
-    it('should register disconnect handler without errors', () => {
+    it('should register disconnect handler without errors', async () => {
       const mockIo = createMockIo();
       let connectionHandler: ((socket: MockSocket) => void) | undefined;
       mockIo.on = (_event: string, handler: (socket: MockSocket) => void) => {
         connectionHandler = handler;
       };
 
-      const { registerWebSocketHandler } = require('../websocket-handler');
+      const { registerWebSocketHandler } = await import('../websocket-handler');
       registerWebSocketHandler(mockIo as unknown as Parameters<typeof registerWebSocketHandler>[0]);
 
       const socket = createMockSocket();
@@ -394,9 +394,9 @@ describe('WebSocket Handler — emit helpers', () => {
     jest.resetModules();
   });
 
-  it('emitJobProgress should target correct room', () => {
+  it('emitJobProgress should target correct room', async () => {
     const mockIo = createMockIo();
-    const { emitJobProgress } = require('../websocket-handler');
+    const { emitJobProgress } = await import('../websocket-handler');
 
     emitJobProgress(mockIo, {
       jobId: VALID_UUID,
@@ -408,9 +408,9 @@ describe('WebSocket Handler — emit helpers', () => {
     expect(mockIo.emitted[0].event).toBe('job:progress');
   });
 
-  it('emitJobComplete should target correct room', () => {
+  it('emitJobComplete should target correct room', async () => {
     const mockIo = createMockIo();
-    const { emitJobComplete } = require('../websocket-handler');
+    const { emitJobComplete } = await import('../websocket-handler');
 
     emitJobComplete(mockIo, {
       jobId: VALID_UUID,
@@ -422,9 +422,9 @@ describe('WebSocket Handler — emit helpers', () => {
     expect(mockIo.emitted[0].event).toBe('job:complete');
   });
 
-  it('emitJobError should target correct room', () => {
+  it('emitJobError should target correct room', async () => {
     const mockIo = createMockIo();
-    const { emitJobError } = require('../websocket-handler');
+    const { emitJobError } = await import('../websocket-handler');
 
     emitJobError(mockIo, {
       jobId: VALID_UUID,
@@ -434,9 +434,9 @@ describe('WebSocket Handler — emit helpers', () => {
     expect(mockIo.emitted[0].event).toBe('job:error');
   });
 
-  it('emitFileStatus should target correct room', () => {
+  it('emitFileStatus should target correct room', async () => {
     const mockIo = createMockIo();
-    const { emitFileStatus } = require('../websocket-handler');
+    const { emitFileStatus } = await import('../websocket-handler');
 
     emitFileStatus(mockIo, {
       jobId: VALID_UUID,
@@ -449,9 +449,9 @@ describe('WebSocket Handler — emit helpers', () => {
     expect(mockIo.emitted[0].event).toBe('file:status');
   });
 
-  it('emitStageProgress should target correct room', () => {
+  it('emitStageProgress should target correct room', async () => {
     const mockIo = createMockIo();
-    const { emitStageProgress } = require('../websocket-handler');
+    const { emitStageProgress } = await import('../websocket-handler');
 
     emitStageProgress(mockIo, {
       jobId: VALID_UUID,
@@ -464,9 +464,9 @@ describe('WebSocket Handler — emit helpers', () => {
     expect(mockIo.emitted[0].event).toBe('stage:progress');
   });
 
-  it('emitStreamingSegment should target correct room', () => {
+  it('emitStreamingSegment should target correct room', async () => {
     const mockIo = createMockIo();
-    const { emitStreamingSegment } = require('../websocket-handler');
+    const { emitStreamingSegment } = await import('../websocket-handler');
 
     emitStreamingSegment(mockIo, {
       jobId: VALID_UUID,
@@ -481,9 +481,9 @@ describe('WebSocket Handler — emit helpers', () => {
     expect(mockIo.emitted[0].event).toBe('streaming:segment');
   });
 
-  it('emitStreamingComplete should target correct room', () => {
+  it('emitStreamingComplete should target correct room', async () => {
     const mockIo = createMockIo();
-    const { emitStreamingComplete } = require('../websocket-handler');
+    const { emitStreamingComplete } = await import('../websocket-handler');
 
     emitStreamingComplete(mockIo, {
       jobId: VALID_UUID,
@@ -496,9 +496,9 @@ describe('WebSocket Handler — emit helpers', () => {
     expect(mockIo.emitted[0].event).toBe('streaming:complete');
   });
 
-  it('emitErrorRecovery should target correct room', () => {
+  it('emitErrorRecovery should target correct room', async () => {
     const mockIo = createMockIo();
-    const { emitErrorRecovery } = require('../websocket-handler');
+    const { emitErrorRecovery } = await import('../websocket-handler');
 
     emitErrorRecovery(mockIo, {
       jobId: VALID_UUID,
@@ -510,9 +510,9 @@ describe('WebSocket Handler — emit helpers', () => {
     expect(mockIo.emitted[0].event).toBe('error:recovery');
   });
 
-  it('emitErrorRecovered should target correct room', () => {
+  it('emitErrorRecovered should target correct room', async () => {
     const mockIo = createMockIo();
-    const { emitErrorRecovered } = require('../websocket-handler');
+    const { emitErrorRecovered } = await import('../websocket-handler');
 
     emitErrorRecovered(mockIo, {
       jobId: VALID_UUID,
@@ -536,14 +536,14 @@ describe('WebSocket Handler — UUID v4 validation', () => {
     jest.resetModules();
   });
 
-  function setupConnection() {
+  async function setupConnection() {
     const mockIo = createMockIo();
     let connectionHandler: ((socket: MockSocket) => void) | undefined;
     mockIo.on = (_event: string, handler: (socket: MockSocket) => void) => {
       connectionHandler = handler;
     };
 
-    const { registerWebSocketHandler } = require('../websocket-handler');
+    const { registerWebSocketHandler } = await import('../websocket-handler');
     registerWebSocketHandler(mockIo as unknown as Parameters<typeof registerWebSocketHandler>[0]);
 
     const socket = createMockSocket();
@@ -568,8 +568,8 @@ describe('WebSocket Handler — UUID v4 validation', () => {
   ];
 
   for (const uuid of validUuids) {
-    it(`should accept valid UUID v4: ${uuid}`, () => {
-      const socket = setupConnection();
+    it(`should accept valid UUID v4: ${uuid}`, async () => {
+      const socket = await setupConnection();
       const handler = socket.eventHandlers.get('join:job');
       handler!({ jobId: uuid });
       expect(socket.joinedRooms).toContain(`job:${uuid}`);
@@ -577,8 +577,8 @@ describe('WebSocket Handler — UUID v4 validation', () => {
   }
 
   for (const uuid of invalidUuids) {
-    it(`should reject invalid UUID: ${uuid}`, () => {
-      const socket = setupConnection();
+    it(`should reject invalid UUID: ${uuid}`, async () => {
+      const socket = await setupConnection();
       const handler = socket.eventHandlers.get('join:job');
       handler!({ jobId: uuid });
       expect(socket.joinedRooms).toHaveLength(0);
