@@ -51,6 +51,81 @@ describe('semantic-similarity', () => {
       // Both 2 chars, ratio = 1, but no common tokens
       expect(sim).toBeGreaterThanOrEqual(0);
     });
+
+    // --- CJK (Japanese/Chinese/Korean) tokenization tests ---
+
+    it('should return 1.0 for identical Japanese text', () => {
+      expect(calculateSemanticSimilarity('音声認識のテスト', '音声認識のテスト')).toBe(1.0);
+    });
+
+    it('should return high similarity for similar Japanese text', () => {
+      const sim = calculateSemanticSimilarity(
+        '音声認識システムのテスト',
+        '音声認識システムをテストする'
+      );
+      expect(sim).toBeGreaterThan(0.5);
+    });
+
+    it('should handle mixed CJK and Latin text', () => {
+      const sim = calculateSemanticSimilarity(
+        'Whisperによる音声認識',
+        'Whisperによる音声認識テスト'
+      );
+      expect(sim).toBeGreaterThan(0.5);
+    });
+
+    it('should return low similarity for different CJK content', () => {
+      const sim = calculateSemanticSimilarity(
+        '完全に異なる日本語の文章',
+        'まったく関係ない別の内容'
+      );
+      expect(sim).toBeLessThan(0.5);
+    });
+
+    it('should handle Korean text (Hangul)', () => {
+      const sim = calculateSemanticSimilarity(
+        '음성 인식 시스템',
+        '음성 인식 시스템 테스트'
+      );
+      expect(sim).toBeGreaterThan(0.5);
+    });
+
+    it('should return 0 for one empty and one non-empty text', () => {
+      expect(calculateSemanticSimilarity('', 'hello')).toBe(0);
+      expect(calculateSemanticSimilarity('hello', '')).toBe(0);
+    });
+
+    it('should handle texts at exactly 0.5 length ratio boundary', () => {
+      // 'abcd' and 'ab' → ratio = 2/4 = 0.5, should not be rejected
+      const sim = calculateSemanticSimilarity('abcd', 'ab');
+      expect(sim).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should clamp threshold outside [0,1] range in findMostSimilar', () => {
+      const candidates = [{ text: 'hello world', data: 1 }];
+      // threshold > 1 gets clamped to 1, so only exact match qualifies
+      const resultAbove = findMostSimilar('hello world', candidates, 5);
+      expect(resultAbove).not.toBeNull();
+      expect(resultAbove!.similarity).toBe(1.0);
+    });
+
+    it('should clamp threshold below 0 in areTextsSimilar', () => {
+      // threshold < 0 gets clamped to 0, so any non-negative similarity qualifies
+      expect(areTextsSimilar('abc', 'xyz', -1)).toBe(true);
+    });
+
+    it('should handle SemanticMetricsTracker score history cap', () => {
+      const tracker = new SemanticMetricsTracker();
+      // Record more than MAX_SCORE_HISTORY (1000) entries
+      for (let i = 0; i < 1050; i++) {
+        tracker.recordSemanticHit(0.5);
+      }
+      const metrics = tracker.getMetrics();
+      // All hits are counted
+      expect(metrics.semanticHits).toBe(1050);
+      // But avg is still computed from trimmed history
+      expect(metrics.avgSimilarityScore).toBeCloseTo(0.5, 1);
+    });
   });
 
   describe('findMostSimilar', () => {
