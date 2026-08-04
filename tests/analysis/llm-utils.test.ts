@@ -252,6 +252,68 @@ describe('parseJsonFromLLMText: missing colon repair', () => {
     const result = parseJsonFromLLMText(input);
     expect(result).toEqual({ outer: { inner: 'value' } });
   });
+
+  // --- Edge cases for null, arrays, and objects as values ---
+
+  it('fixes missing colon with null value', () => {
+    const input = '{"data" null}';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual({ data: null });
+  });
+
+  it('fixes missing colon with array value', () => {
+    const input = '{"items" [1, 2, 3]}';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual({ items: [1, 2, 3] });
+  });
+
+  it('fixes missing colon with empty array value', () => {
+    const input = '{"items" []}';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual({ items: [] });
+  });
+
+  it('fixes missing colon with nested object value', () => {
+    const input = '{"meta" {"x": 1}}';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual({ meta: { x: 1 } });
+  });
+
+  it('fixes missing colon with empty object value', () => {
+    const input = '{"meta" {}}';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual({ meta: {} });
+  });
+
+  it('fixes missing colon in objects inside arrays', () => {
+    const input = '[{"a" "b"}, {"c" "d"}]';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual([{ a: 'b' }, { c: 'd' }]);
+  });
+
+  it('fixes missing colon with newline between key and value', () => {
+    const input = '{\n  "key"\n  "value"\n}';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual({ key: 'value' });
+  });
+
+  it('fixes missing colon with mixed valid and invalid entries', () => {
+    const input = '{"valid": 1, "invalid" "2", "also_valid": true}';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual({ valid: 1, invalid: '2', also_valid: true });
+  });
+
+  it('fixes missing colon with negative number value', () => {
+    const input = '{"offset" -42}';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual({ offset: -42 });
+  });
+
+  it('fixes missing colon with float value', () => {
+    const input = '{"ratio" 3.14}';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual({ ratio: 3.14 });
+  });
 });
 
 // ---------------------------------------------------------------------------
