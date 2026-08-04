@@ -66,10 +66,10 @@ describe('ContinuousLearner numeric safety', () => {
 
     it('returns valid timeline for non-empty data', () => {
       const mockData = [
-        { timestamp: new Date('2024-01-01'), success: true },
-        { timestamp: new Date('2024-01-02'), success: false },
+        { timestamp: new Date('2024-01-01T10:00:00Z'), success: true },
+        { timestamp: new Date('2024-01-01T14:00:00Z'), success: false },
       ];
-      const timeline = (learner as any).createTimeline(mockData, 'hourly');
+      const timeline = (learner as any).createTimeline(mockData, 'daily');
 
       expect(timeline).toHaveLength(1);
       expect(timeline[0].successRate).toBe(0.5);

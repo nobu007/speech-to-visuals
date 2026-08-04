@@ -11,6 +11,12 @@
  */
 import { jest } from '@jest/globals';
 
+// Polyfill TextDecoder for jsdom environment (needed by express → content-disposition)
+if (typeof globalThis.TextDecoder === 'undefined') {
+  const { TextDecoder } = await import('util');
+  globalThis.TextDecoder = TextDecoder;
+}
+
 // ---------------------------------------------------------------------------
 // ISS-A: StreamingTranscriber – Object URL cleanup
 // ---------------------------------------------------------------------------
@@ -208,9 +214,8 @@ describe('ISS-C: BatchProcessingAPI sequential dedup', () => {
       },
     }));
 
-    // Mock crypto hash to return consistent hashes
+    // Mock crypto hash to return consistent hashes for dedup testing
     jest.doMock('crypto', () => ({
-      ...jest.requireActual('crypto'),
       randomUUID: jest.fn(() => 'mock-uuid'),
       createHash: jest.fn().mockReturnValue({
         update: jest.fn().mockReturnThis(),
@@ -304,10 +309,10 @@ describe('ISS-D: ProductionErrorHandler double-initialization guard', () => {
     jest.resetModules();
   });
 
-  it('should not register duplicate listeners on re-construction', () => {
+  it('should not register duplicate listeners on re-construction', async () => {
     const addEventListenerSpy = jest.spyOn(window, 'addEventListener');
 
-    const { ProductionErrorHandler } = require('@/monitoring/production-error-handler');
+    const { ProductionErrorHandler } = await import('@/monitoring/production-error-handler');
 
     const handler1 = new ProductionErrorHandler();
     const listenersAfter1 = addEventListenerSpy.mock.calls.length;
