@@ -29,7 +29,7 @@ export default tseslint.config(
     rules: { "no-console": "off" },
   },
   {
-    files: ["src/test/**", "**/__tests__/**"],
+    files: ["src/test/**", "**/__tests__/**", "tests/**", "scripts/**", "supabase/**"],
     rules: { "no-console": "off" },
   },
 );
