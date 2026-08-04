@@ -217,6 +217,36 @@ describe('parseJsonFromLLMText: missing colon repair', () => {
     expect(result).toEqual({ url: 'https://example.com', time: '12:30' });
   });
 
+  it('fixes missing colon with scientific notation value (1e5)', () => {
+    const input = '{"val" 1e5}';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual({ val: 100000 });
+  });
+
+  it('fixes missing colon with uppercase scientific notation (1E5)', () => {
+    const input = '{"val" 1E5}';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual({ val: 100000 });
+  });
+
+  it('fixes missing colon with negative float exponent (-1.5e3)', () => {
+    const input = '{"val" -1.5e3}';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual({ val: -1500 });
+  });
+
+  it('fixes missing colon with scientific notation and negative exponent (1.2E-3)', () => {
+    const input = '{"val" 1.2E-3}';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual({ val: 0.0012 });
+  });
+
+  it('fixes missing colon with scientific notation and plus sign (1e+10)', () => {
+    const input = '{"val" 1e+10}';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual({ val: 10000000000 });
+  });
+
   it('fixes missing colon in nested object', () => {
     const input = '{"outer": {"inner" "value"}}';
     const result = parseJsonFromLLMText(input);
