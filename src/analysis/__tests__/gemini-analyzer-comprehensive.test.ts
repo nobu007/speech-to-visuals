@@ -20,20 +20,19 @@
  */
 
 import { jest } from '@jest/globals';
+import { GeminiAnalyzer } from '../gemini-analyzer';
+import { LLMService } from '../llm-service';
 import type { DiagramAnalysis, DiagramData } from '../types';
 
 // ---------------------------------------------------------------------------
 // Mock quality-monitor to avoid side effects
 // ---------------------------------------------------------------------------
 
-jest.unstable_mockModule('@/pipeline/quality-monitor', () => ({
+jest.mock('@/pipeline/quality-monitor', () => ({
   getQualityMonitor: jest.fn(() => ({
     recordMetrics: jest.fn(),
   })),
 }));
-
-const { GeminiAnalyzer } = await import('../gemini-analyzer');
-const { LLMService } = await import('../llm-service');
 
 // ---------------------------------------------------------------------------
 // Suppress console output
@@ -686,7 +685,7 @@ describe('GeminiAnalyzer', () => {
         nodes: [
           { id: 'n1', label: 'Valid' },
           { id: '', label: 'Empty id' },
-          { label: 'Missing id' } as any,
+          { label: 'Missing id' } as Record<string, unknown>,
           { id: 'n2', label: 'Also Valid' },
         ],
         edges: [{ from: 'n1', to: 'n2' }],
