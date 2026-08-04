@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 113 完了・384ソースファイル・254テストファイル・107パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・192タスク全完了・テストスイート安定化完了・Phase 112 エラー回復可観測性・未テストモジュールカバレッジ完了・Phase 113 NaN/Type Safetyコンソリデーション完完了（w/h直接アクセス完全排除・diagram-detector/scene-segmenterサニタイゼーションガード・32新規テスト・REQ-263~266）
+**実装状況**: Phase 114 完了・384ソースファイル・254テストファイル・107パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・192タスク全完了・テストスイート安定化完了・Phase 112 エラー回復可観測性・未テストモジュールカバレッジ完了・Phase 113 NaN/Type Safetyコンソリデーション完完了（w/h直接アクセス完全排除・diagram-detector/scene-segmenterサニタイゼーションガード・32新規テスト・REQ-263~266）・Phase 114 ルールベースフォールバック品質改善・継続的学習安全性完了（ハードコードテンプレート→テキストベースコンテンツ抽出・continuous-learner destroy()/pearson NaNガード・20新規テスト・REQ-267~269）
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -681,6 +681,12 @@
 - REQ-265: システムのシーン分割器（scene-segmenter.ts）のスコア還元・信頼度平均計算が sanitizeFinite を使用し、NaN値を含むセグメントデータから NaN が伝播しないことを保証しなければならない 🔵 ✅実装済 *AI Hub make-runフィードバック: unguarded result.score access audit・src/analysis/scene-segmenter.ts の3箇所のreduce操作を修正*
 - REQ-266: システムは NaN/Type Safety コンソリデーションの完了を検証するテストスイートとして、(1) w/h移行完了性テスト（NaN・Infinity・undefined・null・混合ディメンションのフォールバック検証）、(2) メトリクス・サニタイゼーション検証テスト（ソート安定性・Map安全性・信頼度ブースト計算のNaN耐性）を提供しなければならない 🔵 ✅実装済 *src/visualization/__tests__/wh-migration-completeness.test.ts（17テスト）・src/analysis/__tests__/diagram-detector-metrics-sanitization.test.ts（15テスト）*
 
+### ルールベースフォールバック品質改善・継続的学習安全性（Phase 114） ✅実装済
+
+- REQ-267: システムの図解検出器（diagram-detector.ts）のルールベースフォールバックパスは、入力テキストからキーフレーズを抽出し、図解タイプに応じた適切なトポロジー（順次・ハブスポーク・循環・分岐・ペア）でノード・エッジを生成しなければならない。ハードコードされた固定ラベルを使用せず、入力テキストの内容を反映したノードラベルを生成すること。日本語・英語の両方をサポートし、短文・空文字の場合はグレースフルにフォールバックすること 🔵 ✅実装済 *コミット eeb74e8: generateDiagramSpecificContent() の8つのハードコードサブメソッドを generateContentFromText() に統合・src/analysis/diagram-detector.ts・src/analysis/__tests__/diagram-content-generation.test.ts（11テスト）*
+- REQ-268: システムの継続的学習モジュール（continuous-learner.ts）は destroy() メソッドを提供し、setInterval タイマーのクリアに加えて全ての内部状態（学習データ・最適化戦略キャッシュ等）を解放しなければならない。destroy() 呼出後はタイマーコールバックが実行されないことを保証すること 🔵 ✅実装済 *コミット 9ec2a09: destroy() メソッド追加・src/framework/continuous-learner.ts・src/framework/__tests__/continuous-learner-safety.test.ts*
+- REQ-269: システムの継続的学習モジュール（continuous-learner.ts）のピアソン相関計算は、配列長の不一致を検出して0を返し、NaN・Infinity・undefinedを含む入力から NaN が伝播しないことを保証しなければならない 🔵 ✅実装済 *コミット 9ec2a09: pearson() に xs.length !== ys.length 早期リターン追加・非有限値ガード追加・src/framework/__tests__/continuous-learner-safety.test.ts（9テスト）*
+
 ## 実装進捗サマリー
 
 | フェーズ | ステータス | タスク範囲 | 完了率 |
@@ -798,14 +804,16 @@
 | Phase 109: セキュリティファジング CI 拡張 | ✅完了 | REQ-247~249 | 3/3（マルチシードCI ファジングモード・全エクスポート経路ガードメトリクス回帰テスト・E2Eセキュリティパイプライン統合テスト・テスト追加） |
 | Phase 110: CI品質ゲート・ガードファジング | ✅完了 | REQ-250~252 | 3/3（red-phase CI統合・guard-fuzz test追加540ケース・security-fuzzビルド依存） |
 | Phase 111: CI・インテグレーション検証ハードening | 🔶要件定義 | REQ-253~257 | 0/5（エクスポートリトライ5+サイクル統合テスト・CI timeout-minutes + ELAPSED assertion・ESLint no-console回帰防止・EnhancedExportEngine リトライ設定DI・シーンデュレーション統合検証） |
+| Phase 113: NaN/Type Safety コンソリデーション | ✅完了 | REQ-263~266 | 4/4（w/h直接アクセス完全排除・diagram-detector/scene-segmenterサニタイゼーションガード・32新規テスト） |
+| Phase 114: ルールベースフォールバック品質改善・継続的学習安全性 | ✅完了 | REQ-267~269 | 3/3（ハードコードテンプレート→テキストベース抽出・continuous-learner destroy()・pearson NaNガード・20新規テスト） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 274件 (98.6%)
+- 🔵 青信号: 277件 (98.6%)
 - 🟡 黄信号: 4件 (1.4%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 111要件追加・REQ-001~257（CI・インテグレーション検証ハードening: エクスポートリトライ5+サイクル統合テスト・CI timeout-minutes+ELAPSED assertion・ESLint no-console回帰防止・EnhancedExportEngineリトライ設定DI・シーンデュレーション統合検証）
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 114要件追加・REQ-001~269（ルールベースフォールバック品質改善: diagram-detectorテキストベースコンテンツ抽出・continuous-learner destroy()/pearson NaNガード）
 
 ## Acceptance criteria
 
@@ -816,9 +824,9 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 111 を網羅し、Phase 111（CI・インテグレーション検証ハードening・REQ-253~257要件定義）を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 114 を網羅し、Phase 114（ルールベースフォールバック品質改善・継続的学習安全性・REQ-267~269）を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテキュリティに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（Phase 111要件追加・REQ-001~257・🔵274件/🟡4件/🔴0件）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（Phase 114要件追加・REQ-001~269・🔵277件/🟡4件/🔴0件）
 
 
 <!-- spine:references:begin -->

@@ -5465,6 +5465,81 @@
 
 ---
 
+### REQ-267: ルールベースフォールバックのテキストベースコンテンツ抽出 🔵
+
+**信頼性**: 🔵 *コミット eeb74e8・src/analysis/diagram-detector.ts・src/analysis/__tests__/diagram-content-generation.test.ts（11テスト）*
+
+#### Given（前提条件）
+- Gemini LLMが利用できず、ルールベースフォールバックパスが実行される
+- ユーザーの音声文字起こしテキストが入力として与えられる
+
+#### When（実行操作）
+- `generateContentFromText()` がテキストと図解タイプを引数に呼び出される
+
+#### Then（期待結果）
+- 入力テキストから抽出したキーフレーズがノードラベルに含まれる
+- ハードコードされた固定ラベルが使用されない（入力と異なる場合）
+- 異なる入力で異なる出力が生成される
+- エッジ構造が図解タイプのトポロジーに一致する
+- 空文字・短文に対してグレースフルにフォールバックする
+
+#### テストケース
+
+- [x] **TC-267-01**: ノードラベルが入力テキストの単語を含む 🔵
+  - **信頼性**: 🔵 *src/analysis/__tests__/diagram-content-generation.test.ts*
+- [x] **TC-267-02**: 異なる入力で異なる出力が生成される・ハードコードラベルが出現しない 🔵
+  - **信頼性**: 🔵 *src/analysis/__tests__/diagram-content-generation.test.ts*
+- [x] **TC-267-03**: 空文字・短文・長文のグレースフルフォールバック 🔵
+  - **信頼性**: 🔵 *src/analysis/__tests__/diagram-content-generation.test.ts*
+
+---
+
+### REQ-268: continuous-learner destroy() メソッド 🔵
+
+**信頼性**: 🔵 *コミット 9ec2a09・src/framework/continuous-learner.ts・src/framework/__tests__/continuous-learner-safety.test.ts*
+
+#### Given（前提条件）
+- ContinuousLearnerインスタンスが生成され、学習プロセスが開始されている
+
+#### When（実行操作）
+- `destroy()` を呼び出した後、一定時間待機する
+
+#### Then（期待結果）
+- interval callback が実行されない（iterationCountが増加しない）
+- 全内部状態（学習データ・最適化戦略キャッシュ）がクリアされる
+
+#### テストケース
+
+- [x] **TC-268-01**: destroy()後にタイマーコールバックが実行されない 🔵
+  - **信頼性**: 🔵 *src/framework/__tests__/continuous-learner-safety.test.ts*
+- [x] **TC-268-02**: destroy()で全内部状態がクリアされる 🔵
+  - **信頼性**: 🔵 *src/framework/__tests__/continuous-learner-safety.test.ts*
+
+---
+
+### REQ-269: pearson相関のNaNガード 🔵
+
+**信頼性**: 🔵 *コミット 9ec2a09・src/framework/continuous-learner.ts・src/framework/__tests__/continuous-learner-safety.test.ts*
+
+#### Given（前提条件）
+- 異なる長さの配列、またはNaN・Infinity・undefinedを含む配列
+
+#### When（実行操作）
+- `pearson(xs, ys)` を呼び出す
+
+#### Then（期待結果）
+- 配列長不一致の場合は0が返される（NaNが伝播しない）
+- 非有限値を含む配列の場合は0が返される
+
+#### テストケース
+
+- [x] **TC-269-01**: 異なる長さの配列で0が返される 🔵
+  - **信頼性**: 🔵 *src/framework/__tests__/continuous-learner-safety.test.ts*
+- [x] **TC-269-02**: NaN・Infinityを含む配列で0が返される 🔵
+  - **信頼性**: 🔵 *src/framework/__tests__/continuous-learner-safety.test.ts*
+
+---
+
 ### Phase 111+ 受け入れ基準サマリー
 
 | 要件 | テストケース数 | 信頼性 |
@@ -5481,7 +5556,10 @@
 | REQ-264: diagram-detector sant guard | 4 | 🔵 |
 | REQ-265: scene-segmenter sant guard | 3 | 🔵 |
 | REQ-266: NaN safety検証テスト | 2 | 🔵 |
-| **合計** | **34** | **🔵 100%** |
+| REQ-267: テキストベースコンテンツ抽出 | 3 | 🔵 |
+| REQ-268: continuous-learner destroy() | 2 | 🔵 |
+| REQ-269: pearson NaNガード | 2 | 🔵 |
+| **合計** | **41** | **🔵 100%** |
 
 
 <!-- spine:references:begin -->

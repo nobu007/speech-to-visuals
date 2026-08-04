@@ -3721,6 +3721,55 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A117: ルールベースフォールバックのコンテンツ抽出改善（Phase 114）
+
+**分析日時**: 2026-08-04
+**カテゴリ**: バグ修正・品質改善
+**背景**: `src/analysis/diagram-detector.ts` の `generateDiagramSpecificContent()` メソッドと8つのサブメソッド（generateTreeContent, generateFlowContent等）はtextパラメータを受け取っていたが完全に無視し、入力に関わらず同一のハードコードされたラベルを返していた。これはGemini LLMが利用できない際のルールベースフォールバックパスで、ユーザーの実際のコンテンツと無関係な汎用図解が生成されることを意味していた。
+
+**判断**: 以下の修正を実施（コミット eeb74e8）：
+1. 8つのハードコードサブメソッドを `generateContentFromText()` に統合
+2. 入力テキストから文・接続詞分割でキーフレーズを抽出
+3. 抽出したフレーズからノードを生成（日本語・英語サポート）
+4. 図解タイプに応じたエッジトポロジーを生成（順次・ハブスポーク・循環・分岐・ペア）
+5. 短文・空文字の場合はグレースフルにフォールバック
+6. 11の回帰テストを追加
+
+**根拠**:
+- `src/analysis/diagram-detector.ts` — generateDiagramSpecificContent() の8つのハードコードメソッド
+- `src/analysis/__tests__/diagram-content-generation.test.ts` — 11テスト追加
+
+**信頼性への影響**:
+- REQ-267 新規追加（信頼性レベル: 🔵）
+- ルールベースフォールバックパスの品質が大幅向上
+- 信頼性レベル分布: 🔵274→277件
+
+---
+
+### A118: continuous-learner リソースリーク・NaN伝播修正（Phase 114）
+
+**分析日時**: 2026-08-04
+**カテゴリ**: バグ修正・安全性改善
+**背景**: `src/framework/continuous-learner.ts` のコンストラクタが `setInterval` を開始するが、`stopLearning()` が呼ばれない場合タイマーがリークする。また、`pearson` 相関計算で `xs.length === ys.length` のチェックがないため、配列長が異なる場合に `ys[i]` が `undefined` となりNaNが伝播する。
+
+**判断**: 以下の修正を実施（コミット 9ec2a09）：
+1. `destroy()` メソッドを追加し、`stopLearning()` に加えて全内部状態（学習データ・最適化戦略キャッシュ等）を解放
+2. `pearson()` 関数に配列長不一致の早期リターン（0を返す）を追加
+3. 非有限値（NaN・Infinity・undefined）のガードを追加
+4. 9つのテストを追加（タイマークリーンアップ・データクリア・NaN伝播防止）
+
+**根拠**:
+- `src/framework/continuous-learner.ts` — destroy() メソッド追加・pearson() にガード追加
+- `src/framework/__tests__/continuous-learner-safety.test.ts` — 9テスト追加
+- TASK-0211 の完了
+
+**信頼性への影響**:
+- REQ-268 新規追加（信頼性レベル: 🔵）— destroy() メソッド
+- REQ-269 新規追加（信頼性レベル: 🔵）— pearson NaNガード
+- 信頼性レベル分布: 🔵277件（+3 from REQ-267~269）
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)
