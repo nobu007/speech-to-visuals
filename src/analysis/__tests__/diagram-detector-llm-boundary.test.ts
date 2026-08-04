@@ -42,7 +42,7 @@ function mockGemini(overrides: Partial<DiagramAnalysis>): {
 
 describe('DiagramDetector LLM boundary sanitization', () => {
   let detector: DiagramDetector;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   let geminiAccessor: any;
 
   beforeEach(() => {
@@ -53,7 +53,7 @@ describe('DiagramDetector LLM boundary sanitization', () => {
 
   it('sanitizes invalid LLM type into valid DiagramType', async () => {
     geminiAccessor.gemini = mockGemini({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       type: 'totally-invalid-type' as any,
     });
 
@@ -65,7 +65,7 @@ describe('DiagramDetector LLM boundary sanitization', () => {
 
   it('sanitizes undefined LLM type into valid DiagramType', async () => {
     geminiAccessor.gemini = mockGemini({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       type: undefined as any,
     });
 
@@ -85,7 +85,7 @@ describe('DiagramDetector LLM boundary sanitization', () => {
 
   it('sanitizes undefined LLM confidence to default 0.9', async () => {
     geminiAccessor.gemini = mockGemini({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       confidence: undefined as any,
     });
 
@@ -115,7 +115,7 @@ describe('DiagramDetector LLM boundary sanitization', () => {
 
   it('sanitizes combined invalid type + NaN confidence', async () => {
     geminiAccessor.gemini = mockGemini({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       type: '' as any,
       confidence: NaN,
     });

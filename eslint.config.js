@@ -30,6 +30,12 @@ export default tseslint.config(
   },
   {
     files: ["src/test/**", "**/__tests__/**", "tests/**", "scripts/**", "supabase/**"],
-    rules: { "no-console": "off" },
+    rules: {
+      "no-console": "off",
+      // Tests routinely spy on private methods via `as any` casts
+      "@typescript-eslint/no-explicit-any": "off",
+      // Tests use dynamic require() for conditional module loading
+      "@typescript-eslint/no-require-imports": "off",
+    },
   },
 );

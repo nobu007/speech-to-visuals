@@ -42,7 +42,7 @@ function makeStubPipeline(
     },
     async generateLayoutsEnhanced(analysisResult: unknown) {
       const analysisData = analysisResult as Record<string, unknown>;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const diagramAnalyses = (analysisData.diagramAnalyses as Array<any>) ?? [];
 
       const layoutPromises = diagramAnalyses.map(async (item) => {

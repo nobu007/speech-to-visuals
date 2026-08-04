@@ -68,7 +68,7 @@ describe('Mutation Testing: BatchOptimizer', () => {
     let mutationChangedBehavior = false;
 
     proto.process = async function (this: BatchOptimizer, items: unknown[], processor: (item: unknown, index: number) => Promise<unknown>) {
-      const result = await (original as Function).call(this, items, processor);
+      const result = await (original as (...args: unknown[]) => Promise<unknown>).call(this, items, processor);
       return {
         ...result,
         successCount: (result as { failureCount: number }).failureCount,
@@ -163,11 +163,11 @@ describe('Mutation Testing: BatchOptimizer', () => {
 
     proto.process = async function (this: BatchOptimizer, items: unknown[], processor: (item: unknown, index: number) => Promise<unknown>) {
       // Call original but intercept and suppress onProgress
-      const opts = (this as unknown as { options: { onProgress?: Function } }).options;
+      const opts = (this as unknown as { options: { onProgress?: (...args: unknown[]) => void } }).options;
       const savedCallback = opts.onProgress;
       opts.onProgress = undefined;
       try {
-        return await (original as Function).call(this, items, processor);
+        return await (original as (...args: unknown[]) => Promise<unknown>).call(this, items, processor);
       } finally {
         opts.onProgress = savedCallback;
       }
@@ -196,7 +196,7 @@ describe('Mutation Testing: BatchOptimizer', () => {
     const original = proto.process;
 
     proto.process = async function (this: BatchOptimizer, items: unknown[], processor: (item: unknown, index: number) => Promise<unknown>) {
-      const result = await (original as Function).call(this, items, processor);
+      const result = await (original as (...args: unknown[]) => Promise<unknown>).call(this, items, processor);
       // Reverse the results array
       const results = [...(result as { results: unknown[] }).results];
       results.reverse();
@@ -230,7 +230,7 @@ describe('Mutation Testing: BatchOptimizer', () => {
       errors: (Error | null)[],
     ) {
       let succeeded = 0;
-      let failed = 0;
+      const failed = 0;
       for (let i = start; i < end; i++) {
         if (this.options.signal?.aborted) break;
         try {
@@ -1073,11 +1073,11 @@ describe('Mutation Score Summary', () => {
     const survived = mutationResults.filter((m) => !m.killed).length;
     const score = total > 0 ? Math.round((killed / total) * 100) : 0;
 
-    // eslint-disable-next-line no-console
+     
     console.log(`\n  Mutation Score: ${killed}/${total} killed (${score}%)`);
     if (survived > 0) {
       const survivors = mutationResults.filter((m) => !m.killed).map((m) => m.id);
-      // eslint-disable-next-line no-console
+       
       console.log(`  Surviving mutations: ${survivors.join(', ')}`);
     }
 

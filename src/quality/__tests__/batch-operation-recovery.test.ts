@@ -289,7 +289,7 @@ describe('BatchOperationRecovery', () => {
     test('should handle non-Error throw values', async () => {
       const items = [1];
       const processor = async () => {
-        throw 'string error'; // eslint-disable-line no-throw-literal
+        throw 'string error';  
       };
 
       const result = await recovery.process(items, processor, undefined, {
@@ -324,7 +324,7 @@ describe('BatchOperationRecovery', () => {
   describe('backoff configuration', () => {
     test('should use custom backoffMultiplier', async () => {
       const items = [1];
-      let timestamps: number[] = [];
+      const timestamps: number[] = [];
       let callCount = 0;
       const start = Date.now();
       const processor = async () => {

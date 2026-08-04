@@ -705,7 +705,9 @@ describe('Deep Integration: LayoutEngine full pipeline invariants', () => {
           void key;
         }
       }
-      expect(result.confidence).toBeUndefined || expect(typeof result.confidence).toBe('number');
+      if (result.confidence !== undefined) {
+        expect(typeof result.confidence).toBe('number');
+      }
     });
 
     it('should produce finite confidence value when present', async () => {

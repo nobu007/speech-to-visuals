@@ -54,7 +54,7 @@ function makeStats(overrides: Partial<QueueStats> = {}): QueueStats {
 function mockJobQueue(overrides: Record<string, unknown> = {}): ExportJobQueue {
   const jobs = new Map<string, QueuedExportJob>();
   const dlqJobs: QueuedExportJob[] = [];
-  let maxQueueSize = 100;
+  const maxQueueSize = 100;
 
   const base: Record<string, unknown> = {
     getQueueStats: () => makeStats(),

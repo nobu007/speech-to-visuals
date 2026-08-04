@@ -27,7 +27,7 @@ function parseYamlJobs(yamlContent: string): Map<string, string> {
     if (!inJobsSection) continue;
 
     // Job name lines are indented exactly 2 spaces with no further indentation
-    const jobMatch = line.match(/^  (\S+):/);
+    const jobMatch = line.match(/^ {2}(\S+):/);
     if (jobMatch) {
       currentJob = jobMatch[1];
       currentIndent = 2;
@@ -38,7 +38,7 @@ function parseYamlJobs(yamlContent: string): Map<string, string> {
     // Collect lines for current job to check for timeout-minutes
     if (currentJob && line.startsWith('  ') && !line.startsWith('    ')) {
       // This is a direct property of the job
-      if (/^  \S/.test(line)) {
+      if (/^ {2}\S/.test(line)) {
         // Could be a new property or a nested key
       }
     }

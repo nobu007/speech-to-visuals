@@ -575,6 +575,7 @@ export class MultiFormatExporter {
       .replace(/\t/g, '\\t')
       .replace(/\f/g, '\\f')
       .replace(/\0/g, '')
+      // eslint-disable-next-line no-control-regex
       .replace(/[\x01-\x08\x0b\x0e-\x1f\x7f]/g, (ch) => {
         const oct = ch.charCodeAt(0).toString(8).padStart(3, '0');
         return `\\${oct}`;

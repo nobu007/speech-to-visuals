@@ -2121,7 +2121,7 @@ describe('StreamingTranscriber', () => {
       ) => {
         chunkCallCount++;
         if (chunkCallCount === 1) {
-          throw 'non-Error string throw'; // eslint-disable-line no-throw-literal
+          throw 'non-Error string throw';  
         }
         return origProcess.call(transcriber, chunk, audioFile);
       });

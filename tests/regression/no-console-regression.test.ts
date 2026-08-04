@@ -86,7 +86,7 @@ describe('REQ-255: No console.* calls in production source code', () => {
       const formatted = violations
         .map(v => `  ${v.file}:${v.line} → ${v.content}`)
         .join('\n');
-      // eslint-disable-next-line no-console
+       
       console.error(`Found ${violations.length} console.* violations in production code:\n${formatted}`);
     }
 

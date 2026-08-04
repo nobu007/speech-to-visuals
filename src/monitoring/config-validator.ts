@@ -80,7 +80,7 @@ function parseAlertRulesYaml(content: string): { groups: Array<{ name: string; i
     if (line === 'groups:') continue;
 
     // Group start: "  - name: ..."
-    const groupMatch = line.match(/^  - name:\s*(.+)$/);
+    const groupMatch = line.match(/^ {2}- name:\s*(.+)$/);
     if (groupMatch) {
       currentGroup = { name: groupMatch[1].trim(), interval: '30s', rules: [] };
       groups.push(currentGroup);
@@ -91,7 +91,7 @@ function parseAlertRulesYaml(content: string): { groups: Array<{ name: string; i
     }
 
     // interval
-    const intervalMatch = line.match(/^    interval:\s*(.+)$/);
+    const intervalMatch = line.match(/^ {4}interval:\s*(.+)$/);
     if (intervalMatch && currentGroup) {
       currentGroup.interval = intervalMatch[1].trim();
       continue;
@@ -101,7 +101,7 @@ function parseAlertRulesYaml(content: string): { groups: Array<{ name: string; i
     if (line === '    rules:') continue;
 
     // Rule start: "      - alert: ..."
-    const ruleMatch = line.match(/^      - alert:\s*(.+)$/);
+    const ruleMatch = line.match(/^ {6}- alert:\s*(.+)$/);
     if (ruleMatch && currentGroup) {
       if (currentRule) {
         currentGroup.rules.push(currentRule as ParsedAlertRule);
@@ -118,14 +118,14 @@ function parseAlertRulesYaml(content: string): { groups: Array<{ name: string; i
     }
 
     // expr
-    const exprMatch = line.match(/^        expr:\s*(.+)$/);
+    const exprMatch = line.match(/^ {8}expr:\s*(.+)$/);
     if (exprMatch && currentRule) {
       currentRule.expr = stripQuotes(exprMatch[1].trim());
       continue;
     }
 
     // for
-    const forMatch = line.match(/^        for:\s*(.+)$/);
+    const forMatch = line.match(/^ {8}for:\s*(.+)$/);
     if (forMatch && currentRule) {
       currentRule.for = stripQuotes(forMatch[1].trim());
       continue;
@@ -146,7 +146,7 @@ function parseAlertRulesYaml(content: string): { groups: Array<{ name: string; i
     }
 
     // Label or annotation key-value
-    const kvMatch = line.match(/^          (\w+):\s*"?(.*?)"?\s*$/);
+    const kvMatch = line.match(/^ {10}(\w+):\s*"?(.*?)"?\s*$/);
     if (kvMatch && currentRule) {
       const [, key, value] = kvMatch;
       const cleaned = stripQuotes(value.trim());

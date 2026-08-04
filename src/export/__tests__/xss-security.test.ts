@@ -438,6 +438,7 @@ describe('XSS Security: PDF Export (MultiFormatExporter)', () => {
     const tjMatches = pdf.match(/\(([^)]*)\)\s*Tj/g);
     if (tjMatches) {
       for (const tj of tjMatches) {
+        // eslint-disable-next-line no-control-regex
         expect(tj).not.toMatch(/[\x01-\x08\x0b\x0e-\x1f\x7f]/);
       }
     }
@@ -758,6 +759,7 @@ describe('Security: Filename sanitization in export paths', () => {
       // Must not contain directory separators (except the extension dot)
       expect(filename.replace(/\.svg$/, '')).not.toMatch(/[/\\]/);
       // Must not contain null bytes or control characters
+      // eslint-disable-next-line no-control-regex
       expect(filename).not.toMatch(/[\x00-\x1f\x7f]/);
       // Must end with .svg
       expect(filename).toMatch(/\.svg$/);
@@ -775,6 +777,7 @@ describe('Security: Filename sanitization in export paths', () => {
       const filename = result.filename!;
       expect(filename).not.toContain('..');
       expect(filename.replace(/\.json$/, '')).not.toMatch(/[/\\]/);
+      // eslint-disable-next-line no-control-regex
       expect(filename).not.toMatch(/[\x00-\x1f\x7f]/);
       expect(filename).toMatch(/\.json$/);
     },

@@ -610,7 +610,7 @@ export class DiagramDetector {
     // If sentence splitting didn't yield enough phrases, try word-level extraction
     if (phrases.length < 3) {
       const words = trimmed
-        .split(/[\s、。,.!?；;：:（）()\[\]「」『』"'\/]+/)
+        .split(/[\s、。,.!?；;：:（）()「」『』"'/]+/)
         .filter(w => w.length >= 2 && w.length <= 30 && !this.isStopPhrase(w));
 
       for (const word of words) {

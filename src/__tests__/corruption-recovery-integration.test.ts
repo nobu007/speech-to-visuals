@@ -172,7 +172,7 @@ describe('corruption recovery: end-to-end integration', () => {
 
   describe('scenario 5: corruption telemetry', () => {
     it('emits warning when corruption is detected', () => {
-      let receivedReports: CorruptionReport[] = [];
+      const receivedReports: CorruptionReport[] = [];
       setCorruptionHandler((r) => receivedReports.push(r));
 
       mockStorage['production-config-overrides'] = JSON.stringify({ apiBaseUrl: 999 });
@@ -195,7 +195,7 @@ describe('corruption recovery: end-to-end integration', () => {
 
   describe('scenario 6: no corruption — normal operation unaffected', () => {
     it('valid overrides are applied without warnings', () => {
-      let receivedReports: CorruptionReport[] = [];
+      const receivedReports: CorruptionReport[] = [];
       setCorruptionHandler((r) => receivedReports.push(r));
 
       mockStorage['production-config-overrides'] = JSON.stringify({
