@@ -1335,7 +1335,7 @@ export class DiagramDetector {
       this.testConfidenceThreshold(analysis),
       this.testStructuralValidity(analysis),
       this.testSemanticRelevance(analysis, segment),
-      this.testTypeAppropriateность(analysis, segment)
+      this.testTypeAppropriateness(analysis, segment)
     ];
 
     const testResults = await Promise.all(tests);
@@ -1482,7 +1482,7 @@ export class DiagramDetector {
     return { passed, score, name: 'Semantic Relevance' };
   }
 
-  private async testTypeAppropriateность(analysis: DiagramAnalysis, segment: ContentSegment): Promise<{ passed: boolean; score: number; name: string }> {
+  private async testTypeAppropriateness(analysis: DiagramAnalysis, segment: ContentSegment): Promise<{ passed: boolean; score: number; name: string }> {
     // Test if the detected type is appropriate for the content
     const text = (segment.summary || segment.text || '').toLowerCase();
     const typeKeywords = {

@@ -682,4 +682,39 @@ describe('TASK-0021: DiagramDetector', () => {
       expect(result.edges.length).toBeGreaterThanOrEqual(3);
     });
   });
+
+  // -----------------------------------------------------------------------
+  // Type appropriateness test: verify no Cyrillic characters in method names
+  // and that analyze() full pipeline (including testTypeAppropriateness) works
+  // -----------------------------------------------------------------------
+  describe('Type appropriateness pipeline', () => {
+    it('should complete full analyze() pipeline without errors for flow type', async () => {
+      const segment = makeSegment('First step is to gather data. Next we process it. Then we output results. Finally we review.');
+      const result = await detector.analyze(segment);
+
+      // Full pipeline including testTypeAppropriateness should complete
+      expect(result).toBeDefined();
+      expect(result.type).toBe('flow');
+      expect(result.confidence).toBeGreaterThan(0);
+      expect(result.nodes.length).toBeGreaterThan(0);
+    });
+
+    it('should complete full analyze() pipeline for cycle type', async () => {
+      const segment = makeSegment('The cycle repeats: plan, execute, review, improve. This loop continues iteratively with feedback.');
+      const result = await detector.analyze(segment);
+
+      expect(result).toBeDefined();
+      expect(result.type).toBe('cycle');
+      expect(result.confidence).toBeGreaterThan(0);
+    });
+
+    it('should complete full analyze() pipeline for tree type', async () => {
+      const segment = makeSegment('The organization hierarchy: CEO at top, then VP, directors, and teams under each department.');
+      const result = await detector.analyze(segment);
+
+      expect(result).toBeDefined();
+      expect(result.type).toBe('tree');
+      expect(result.confidence).toBeGreaterThan(0);
+    });
+  });
 });

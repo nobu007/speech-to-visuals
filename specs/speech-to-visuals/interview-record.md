@@ -44,7 +44,7 @@
      - 行1388-1397: `updateDetectionMetrics` の `analysis.type`/`analysis.confidence` → sanitizeDiagramType/sanitizeFinite使用に変更
      - 行1416: `baseAnalysis.confidence * BOOST_FACTOR` → sanitizeFinite使用に変更
      - 行1426-1427: `testConfidenceThreshold` の `analysis.confidence` → sanitizeFinite使用に変更
-     - 行1460-1463: `testTypeAppropriateность` の `analysis.type`/`analysis.confidence` → sanitizeDiagramType/sanitizeFinite使用に変更
+     - 行1460-1463: `testTypeAppropriateness` の `analysis.type`/`analysis.confidence` → sanitizeDiagramType/sanitizeFinite使用に変更
 
 3. **scene-segmenter.ts サニタイゼーションガード追加** 🔵:
    - 以下のreduce操作にsanitizeFinite追加:
