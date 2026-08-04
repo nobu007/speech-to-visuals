@@ -1,0 +1,317 @@
+/**
+ * Integration test: MainPipeline error propagation
+ *
+ * Verifies that after catch-block removal, errors thrown deep inside
+ * executeFrameworkIntegratedPipeline → executeStageWithFramework propagate
+ * all the way to execute()'s catch handler (handlePipelineFailure) without
+ * being silently swallowed.
+ *
+ * Key assertion: when a stage throws, pipeline.execute() must return a
+ * PipelineResult with success=false and the error message preserved — not
+ * hang, not return success=true, and not lose the error.
+ */
+
+import { jest } from '@jest/globals';
+
+// ---------- Module mocks (hoisted) ----------
+
+type MockFn = ReturnType<typeof jest.fn>;
+const mockTranscribe: MockFn = jest.fn();
+const mockSegment: MockFn = jest.fn();
+const mockAnalyze: MockFn = jest.fn();
+const mockExecuteWithLoadBalancing: MockFn = jest.fn();
+const mockRecoverFromError: MockFn = jest.fn();
+const mockHandleIterationFailure: MockFn = jest.fn();
+const mockRecordStageFailure: MockFn = jest.fn();
+
+jest.mock('@/transcription', () => ({
+  TranscriptionPipeline: jest.fn().mockImplementation(() => ({
+    transcribe: mockTranscribe,
+    nextIteration: jest.fn(),
+  })),
+}));
+
+jest.mock('@/analysis', () => ({
+  SceneSegmenter: jest.fn().mockImplementation(() => ({
+    segment: mockSegment,
+    nextIteration: jest.fn(),
+  })),
+  DiagramDetector: jest.fn().mockImplementation(() => ({
+    analyze: mockAnalyze,
+    nextIteration: jest.fn(),
+  })),
+}));
+
+jest.mock('@/visualization', () => ({
+  LayoutEngine: jest.fn().mockImplementation(() => ({
+    generateLayout: jest.fn(),
+  })),
+}));
+
+jest.mock('@/quality', () => ({
+  qualityMonitor: {
+    assessPipelineQuality: jest.fn().mockResolvedValue({ overallScore: 0.8 }),
+    nextIteration: jest.fn(),
+  },
+}));
+
+jest.mock('@/quality/enhanced-error-recovery', () => ({
+  globalErrorRecovery: {
+    executeWithLoadBalancing: mockExecuteWithLoadBalancing,
+    recoverFromError: mockRecoverFromError,
+  },
+}));
+
+jest.mock('@/performance/intelligent-cache', () => ({
+  globalCache: {
+    get: jest.fn().mockResolvedValue(null),
+    store: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
+jest.mock('@/optimization/smart-parameter-tuner', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(() => ({})),
+}));
+
+jest.mock('@/optimization/adaptive-content-processor', () => ({
+  adaptiveContentProcessor: {},
+}));
+
+jest.mock('@/framework/recursive-custom-instructions', () => ({
+  RecursiveCustomInstructionsFramework: jest.fn().mockImplementation(() => ({
+    startCycle: jest.fn().mockResolvedValue(undefined),
+    evaluateIteration: jest.fn().mockResolvedValue({
+      shouldIterate: false,
+      shouldAdvancePhase: false,
+      shouldCommit: false,
+    }),
+    handleIterationFailure: mockHandleIterationFailure.mockResolvedValue(undefined),
+    recordStageSuccess: jest.fn().mockResolvedValue(undefined),
+    recordStageFailure: mockRecordStageFailure.mockResolvedValue(undefined),
+    recordQualityIssue: jest.fn().mockResolvedValue(undefined),
+    prepareNextIteration: jest.fn().mockResolvedValue(undefined),
+    advanceToPhase: jest.fn().mockResolvedValue(undefined),
+    commitIteration: jest.fn().mockResolvedValue(undefined),
+  })),
+}));
+
+jest.mock('@/utils/iteration-logger', () => ({
+  globalIterationLogger: {
+    appendIteration: jest.fn().mockResolvedValue(undefined),
+    calculateImprovementTrends: jest
+      .fn()
+      .mockResolvedValue({ recommendations: [] }),
+  },
+}));
+
+jest.mock('@/utils/memory-usage', () => ({
+  getHeapUsed: jest.fn().mockReturnValue(0),
+  getMemoryUsage: jest.fn().mockReturnValue({ heapUsed: 0, heapTotal: 0 }),
+}));
+
+jest.mock('@/utils/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
+// ---------- Tests ----------
+
+describe('MainPipeline error propagation integration', () => {
+  let MainPipeline: typeof import('@/pipeline/main-pipeline').MainPipeline;
+
+  beforeAll(async () => {
+    MainPipeline = (await import('@/pipeline/main-pipeline')).MainPipeline;
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // Default: recovery returns failure
+    mockRecoverFromError.mockResolvedValue({ success: false });
+  });
+
+  /**
+   * Scenario: Transcription stage throws TranscriptionError.
+   *
+   * The error must propagate through:
+   *   executeStageWithFramework → retryWithBackoff (exhausts retries)
+   *   → executeFrameworkIntegratedPipeline catch (re-throws after
+   *     framework.handleIterationFailure)
+   *   → globalErrorRecovery.executeWithLoadBalancing (re-throws)
+   *   → execute() catch → handlePipelineFailure
+   *
+   * Expected: execute() returns { success: false, error: "..." }
+   */
+  it('propagates transcription stage error to handlePipelineFailure result', async () => {
+    const errorMessage = 'Whisper API returned 500';
+
+    // executeWithLoadBalancing calls the fn directly — make it throw
+    mockExecuteWithLoadBalancing.mockImplementation(
+      async (_id: string, fn: () => Promise<unknown>) => fn(),
+    );
+
+    // transcribe throws, which propagates through the pipeline
+    mockTranscribe.mockRejectedValue(new Error(errorMessage));
+
+    const pipeline = new MainPipeline();
+    const result = await pipeline.execute({ audioFile: 'test.wav' });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(errorMessage);
+  });
+
+  /**
+   * Scenario: Analysis stage throws SegmentationError.
+   *
+   * Since transcription succeeds but analysis throws, the error must
+   * still propagate to execute() and result in failure.
+   */
+  it('propagates analysis stage error when segmentation fails', async () => {
+    const errorMessage = 'Content segmentation produced no segments';
+
+    mockExecuteWithLoadBalancing.mockImplementation(
+      async (_id: string, fn: () => Promise<unknown>) => fn(),
+    );
+
+    // Transcription succeeds
+    mockTranscribe.mockResolvedValue({
+      success: true,
+      segments: [{ text: 'test', startMs: 0, endMs: 5000 }],
+    });
+
+    // Segmentation throws
+    mockSegment.mockRejectedValue(new Error(errorMessage));
+
+    const pipeline = new MainPipeline();
+    const result = await pipeline.execute({ audioFile: 'test.wav' });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(errorMessage);
+  });
+
+  /**
+   * Scenario: Error in handlePipelineFailure itself when recovery fails.
+   *
+   * globalErrorRecovery.recoverFromError returns { success: false },
+   * so handlePipelineFailure must return a structured failure result,
+   * not throw or return undefined.
+   */
+  it('returns structured failure result when recovery is unsuccessful', async () => {
+    const errorMessage = 'Unrecoverable pipeline failure';
+
+    mockExecuteWithLoadBalancing.mockImplementation(
+      async (_id: string, fn: () => Promise<unknown>) => fn(),
+    );
+
+    mockTranscribe.mockRejectedValue(new Error(errorMessage));
+    mockRecoverFromError.mockResolvedValue({ success: false });
+
+    const pipeline = new MainPipeline();
+    const result = await pipeline.execute({ audioFile: 'test.wav' });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+    expect(typeof result.error).toBe('string');
+    expect(result.processingTime).toBeGreaterThanOrEqual(0);
+  });
+
+  /**
+   * Scenario: Framework.handleIterationFailure is called when an error occurs,
+   * and the error is re-thrown after framework notification.
+   *
+   * This verifies that the framework records the failure but does NOT
+   * swallow the error.
+   */
+  it('notifies framework of failure and re-throws error', async () => {
+    const error = new Error('Stage explosion');
+
+    mockExecuteWithLoadBalancing.mockImplementation(
+      async (_id: string, fn: () => Promise<unknown>) => fn(),
+    );
+
+    mockTranscribe.mockRejectedValue(error);
+
+    const pipeline = new MainPipeline();
+    const result = await pipeline.execute({ audioFile: 'test.wav' });
+
+    expect(result.success).toBe(false);
+
+    // The framework's handleIterationFailure should have been called
+    // during executeFrameworkIntegratedPipeline's catch block
+    expect(mockHandleIterationFailure).toHaveBeenCalledTimes(1);
+    expect(mockHandleIterationFailure).toHaveBeenCalledWith(
+      expect.any(String), // currentPhase
+      expect.any(Number), // iteration
+      error,              // the original error
+    );
+
+    // recordStageFailure should also be called by executeStageWithFramework
+    expect(mockRecordStageFailure).toHaveBeenCalled();
+  });
+
+  /**
+   * Scenario: Multiple stage errors — the first error propagates immediately.
+   *
+   * Only the first stage failure should be reported; subsequent stages
+   * should not execute.
+   */
+  it('stops at first stage failure and does not continue to later stages', async () => {
+    let stageCallCount = 0;
+
+    mockExecuteWithLoadBalancing.mockImplementation(
+      async (_id: string, fn: () => Promise<unknown>) => {
+        stageCallCount++;
+        return fn();
+      },
+    );
+
+    mockTranscribe.mockImplementation(() => {
+      throw new Error('Transcription failed immediately');
+    });
+
+    const pipeline = new MainPipeline();
+    const result = await pipeline.execute({ audioFile: 'test.wav' });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Transcription failed');
+
+    // Only the first stage should have been attempted
+    expect(stageCallCount).toBe(1);
+  });
+
+  /**
+   * Scenario: Recovery succeeds — pipeline returns the recovery result.
+   *
+   * When globalErrorRecovery.recoverFromError returns success with a result,
+   * handlePipelineFailure should use that result.
+   */
+  it('returns recovery result when recovery succeeds', async () => {
+    const mockRecoveryResult = {
+      success: true,
+      scenes: [],
+      audioUrl: '',
+      duration: 0,
+      processingTime: 100,
+      stages: [],
+    };
+
+    mockExecuteWithLoadBalancing.mockImplementation(
+      async (_id: string, fn: () => Promise<unknown>) => fn(),
+    );
+
+    mockTranscribe.mockRejectedValue(new Error('Initial failure'));
+    mockRecoverFromError.mockResolvedValue({
+      success: true,
+      result: mockRecoveryResult,
+    });
+
+    const pipeline = new MainPipeline();
+    const result = await pipeline.execute({ audioFile: 'test.wav' });
+
+    expect(result.success).toBe(true);
+  });
+});

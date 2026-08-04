@@ -178,6 +178,53 @@ describe('parseJsonFromLLMText: trailing comma and single-quote fixes', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Strategy 4 (extended): Fix missing colon between key and value
+// ---------------------------------------------------------------------------
+describe('parseJsonFromLLMText: missing colon repair', () => {
+  it('fixes missing colon in simple object', () => {
+    const input = '{"key" "value"}';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual({ key: 'value' });
+  });
+
+  it('fixes missing colon for multiple key-value pairs', () => {
+    const input = '{"a" "1", "b" "2"}';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual({ a: '1', b: '2' });
+  });
+
+  it('fixes missing colon at end of object (before closing brace)', () => {
+    const input = '{"a": 1, "b" "2"}';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual({ a: 1, b: '2' });
+  });
+
+  it('fixes missing colon with numeric value', () => {
+    const input = '{"count" 42}';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual({ count: 42 });
+  });
+
+  it('fixes missing colon with boolean value', () => {
+    const input = '{"flag" true}';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual({ flag: true });
+  });
+
+  it('does not break valid JSON with colons in values', () => {
+    const input = '{"url": "https://example.com", "time": "12:30"}';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual({ url: 'https://example.com', time: '12:30' });
+  });
+
+  it('fixes missing colon in nested object', () => {
+    const input = '{"outer": {"inner" "value"}}';
+    const result = parseJsonFromLLMText(input);
+    expect(result).toEqual({ outer: { inner: 'value' } });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Strategy 5: Close unclosed brackets/braces
 // ---------------------------------------------------------------------------
 describe('parseJsonFromLLMText: unclosed bracket/brace closure', () => {

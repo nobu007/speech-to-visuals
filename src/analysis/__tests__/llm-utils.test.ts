@@ -157,6 +157,23 @@ describe('parseJsonFromLLMText', () => {
     });
   });
 
+  describe('error recovery - missing colon between key and value', () => {
+    it('fixes missing colon for string value', () => {
+      const input = '{"key" "value"}';
+      expect(parseJsonFromLLMText(input)).toEqual({ key: 'value' });
+    });
+
+    it('fixes missing colon for numeric value', () => {
+      const input = '{"count" 42}';
+      expect(parseJsonFromLLMText(input)).toEqual({ count: 42 });
+    });
+
+    it('fixes missing colon for boolean value', () => {
+      const input = '{"flag" true}';
+      expect(parseJsonFromLLMText(input)).toEqual({ flag: true });
+    });
+  });
+
   describe('generic type parameter', () => {
     it('supports typed return', () => {
       interface MyShape { name: string; age: number; }
