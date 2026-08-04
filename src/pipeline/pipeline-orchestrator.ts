@@ -293,7 +293,7 @@ export class PipelineOrchestrator {
     const maxSceneConcurrency = this.config.maxSceneConcurrency ?? 4;
 
     // Start per-run recovery tracking via multi-layer orchestrator
-    const runId = `run-${Date.now()}`;
+    const runId = `run-${Date.now()}${process.hrtime.bigint() % 1000000n}`;
     this.errorRecoveryOrchestrator.startRun(runId);
     let runRecoveryReport: RunRecoveryReport | undefined;
 

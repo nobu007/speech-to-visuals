@@ -75,10 +75,6 @@ jest.unstable_mockModule('@/config', () => ({
   config: { geminiApiKey: 'test-key', supabaseUrl: 'http://localhost:54321', supabaseAnonKey: 'test-key' },
 }));
 
-jest.unstable_mockModule('@/types/diagram', () => ({
-  SceneGraph: jest.fn().mockImplementation(() => ({})),
-  ProcessingStatus: { Complete: 'complete', Failed: 'failed' },
-}));
 
 // ---------- Helpers ----------
 
