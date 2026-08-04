@@ -35,13 +35,13 @@ export class BudgetAlertSystem {
     const dailyBudget = config.dailyBudget ?? 10.00;
     const alertThreshold = config.alertThreshold ?? 0.8;
 
-    if (typeof sessionBudget !== 'number' || !Number.isFinite(sessionBudget) || sessionBudget < 0) {
+    if (!Number.isFinite(sessionBudget) || sessionBudget < 0) {
       throw new BudgetConfigError('sessionBudget must be a non-negative finite number', { sessionBudget });
     }
-    if (typeof dailyBudget !== 'number' || !Number.isFinite(dailyBudget) || dailyBudget < 0) {
+    if (!Number.isFinite(dailyBudget) || dailyBudget < 0) {
       throw new BudgetConfigError('dailyBudget must be a non-negative finite number', { dailyBudget });
     }
-    if (typeof alertThreshold !== 'number' || !Number.isFinite(alertThreshold) || alertThreshold < 0 || alertThreshold > 1) {
+    if (!Number.isFinite(alertThreshold) || alertThreshold < 0 || alertThreshold > 1) {
       throw new BudgetConfigError('alertThreshold must be a number between 0 and 1', { alertThreshold });
     }
 
@@ -54,7 +54,7 @@ export class BudgetAlertSystem {
    * @throws {BudgetConfigError} if cost is not a valid non-negative finite number
    */
   addCost(cost: number): BudgetAlert[] {
-    if (typeof cost !== 'number' || !Number.isFinite(cost) || cost < 0) {
+    if (!Number.isFinite(cost) || cost < 0) {
       throw new BudgetConfigError('cost must be a non-negative finite number', { cost });
     }
 
@@ -116,7 +116,7 @@ export class BudgetAlertSystem {
    * @throws {BudgetConfigError} if the resulting cost would be negative
    */
   adjustCost(delta: number): void {
-    if (typeof delta !== 'number' || !Number.isFinite(delta)) {
+    if (!Number.isFinite(delta)) {
       throw new BudgetConfigError('delta must be a finite number', { delta });
     }
     const newSession = this.sessionCost + delta;

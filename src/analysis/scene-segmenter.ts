@@ -1,6 +1,5 @@
 import { TranscriptionSegment } from '@/transcription/types';
 import { ContentSegment, AnalysisConfig } from './types';
-import { logger } from '../utils/logger';
 import { sanitizeFinite } from '@/utils/guards';
 
 /**
@@ -116,32 +115,26 @@ export class SceneSegmenter {
   async segment(transcriptionSegments: TranscriptionSegment[]): Promise<ContentSegment[]> {
     const startTime = performance.now();
 
-    try {
-      // 🔄 実装段階: Apply iterative segmentation improvements
-      let segments = await this.applyIterativeSegmentation(transcriptionSegments);
+    // 🔄 実装段階: Apply iterative segmentation improvements
+    let segments = await this.applyIterativeSegmentation(transcriptionSegments);
 
-      // 🔄 テスト段階: Validate segmentation quality
-      const testResults = await this.testSegmentationQuality(segments);
+    // 🔄 テスト段階: Validate segmentation quality
+    const testResults = await this.testSegmentationQuality(segments);
 
-      // 🔄 評価段階: Assess segmentation performance
-      const evaluationResults = await this.evaluateSegmentationPerformance(segments, startTime);
+    // 🔄 評価段階: Assess segmentation performance
+    const evaluationResults = await this.evaluateSegmentationPerformance(segments, startTime);
 
-      // 🔄 改善段階: Apply improvements if needed
-      if (evaluationResults.needsImprovement) {
-        segments = await this.applyIterativeImprovements(segments, evaluationResults.suggestions);
-      }
-
-      const processingTime = performance.now() - startTime;
-
-      // Store metrics for continuous improvement
-      this.updateIterativeMetrics(segments, processingTime, evaluationResults.qualityScore);
-
-      return segments;
-
-    } catch (error) {
-      logger.error('[Scene Segmentation] Error:', error);
-      return [];
+    // 🔄 改善段階: Apply improvements if needed
+    if (evaluationResults.needsImprovement) {
+      segments = await this.applyIterativeImprovements(segments, evaluationResults.suggestions);
     }
+
+    const processingTime = performance.now() - startTime;
+
+    // Store metrics for continuous improvement
+    this.updateIterativeMetrics(segments, processingTime, evaluationResults.qualityScore);
+
+    return segments;
   }
 
   /**
