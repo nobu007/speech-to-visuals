@@ -7,7 +7,7 @@
  * Uses Remotion 4.0 renderMedia() API.
  */
 
-import { renderMedia, type RenderMediaOnProgress } from '@remotion/renderer';
+import type { RenderMediaOnProgress } from '@remotion/renderer';
 
 // ----------------------------------------------------------------
 // Types
@@ -207,6 +207,7 @@ export async function renderVideo(
   config: RenderConfig,
   params: RenderParams,
 ): Promise<{ buffer: Buffer | null; slowestFrames: Array<{ frame: number; time: number }> }> {
+  const { renderMedia } = await import('@remotion/renderer');
   const options = buildRenderOptions(config, params);
   const result = await renderMedia(options as Parameters<typeof renderMedia>[0]);
   return {
