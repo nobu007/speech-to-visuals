@@ -891,9 +891,11 @@ export class LLMService {
 // TASK-0017: Response Parser (standalone export)
 // =========================================================================
 
-/** Valid diagram types for validation */
-const VALID_DIAGRAM_TYPES = ['flow', 'tree', 'timeline', 'matrix', 'cycle'] as const;
-type ValidDiagramType = typeof VALID_DIAGRAM_TYPES[number];
+/** Valid diagram types for validation — full DiagramType union */
+const VALID_DIAGRAM_TYPES: readonly string[] = [
+  'flow', 'flowchart', 'tree', 'timeline', 'matrix', 'cycle',
+  'comparison', 'network', 'conceptmap', 'mindmap', 'general',
+] as const;
 
 /** Default AnalysisResult returned when parsing fails entirely */
 const DEFAULT_ANALYSIS_RESULT: AnalysisResult = {

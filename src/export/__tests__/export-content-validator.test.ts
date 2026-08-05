@@ -342,6 +342,27 @@ describe('Export Content Validator', () => {
       expect(result.passed).toBe(true);
     });
 
+    test('respects custom maxDepth option', () => {
+      // With maxDepth=3, a payload nested 4 levels deep should be skipped
+      let obj: Record<string, unknown> = { evil: '<script>x</script>' };
+      for (let i = 0; i < 5; i++) {
+        obj = { child: obj };
+      }
+      const result = validateExportPayload(obj, undefined, { maxDepth: 3 });
+      // Evil content is too deep to be detected with maxDepth=3
+      expect(result.findings).toHaveLength(0);
+    });
+
+    test('custom maxDepth allows deeper traversal', () => {
+      // With maxDepth=20, a payload nested 12 levels deep should still be checked
+      let obj: Record<string, unknown> = { evil: '<script>x</script>' };
+      for (let i = 0; i < 12; i++) {
+        obj = { child: obj };
+      }
+      const result = validateExportPayload(obj, undefined, { maxDepth: 20 });
+      expect(result.findings.some((f) => f.pattern === 'script-tag')).toBe(true);
+    });
+
     test('handles clean payload without findings', () => {
       const payload = {
         scenes: [

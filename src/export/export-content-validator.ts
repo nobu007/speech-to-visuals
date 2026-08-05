@@ -111,6 +111,7 @@ const MEDIUM_SEVERITY_PATTERNS: Array<{ regex: RegExp; name: string }> = [
 ];
 
 const MAX_PREVIEW_LENGTH = 80;
+const DEFAULT_MAX_RECURSION_DEPTH = 10;
 
 function truncate(value: string): string {
   return value.length > MAX_PREVIEW_LENGTH
@@ -158,9 +159,10 @@ function checkObject(
   obj: unknown,
   fieldPath: string,
   findings: ContentFinding[],
-  depth = 0
+  depth = 0,
+  maxDepth = DEFAULT_MAX_RECURSION_DEPTH,
 ): void {
-  if (depth > 10) return; // prevent deep-recursion DoS
+  if (depth > maxDepth) return; // prevent deep-recursion DoS
 
   if (typeof obj === 'string') {
     checkString(obj, fieldPath, findings);
@@ -169,14 +171,14 @@ function checkObject(
 
   if (Array.isArray(obj)) {
     for (let i = 0; i < obj.length; i++) {
-      checkObject(obj[i], `${fieldPath}[${i}]`, findings, depth + 1);
+      checkObject(obj[i], `${fieldPath}[${i}]`, findings, depth + 1, maxDepth);
     }
     return;
   }
 
   if (obj !== null && typeof obj === 'object') {
     for (const [key, val] of Object.entries(obj)) {
-      checkObject(val, fieldPath ? `${fieldPath}.${key}` : key, findings, depth + 1);
+      checkObject(val, fieldPath ? `${fieldPath}.${key}` : key, findings, depth + 1, maxDepth);
     }
   }
 }
@@ -195,9 +197,12 @@ function checkObject(
  */
 export function validateSceneGraphForExport(
   scene: SceneGraph,
-  options?: { strict?: boolean }
+  options?: { strict?: boolean; maxDepth?: number }
 ): ValidationResult {
   const findings: ContentFinding[] = [];
+
+  const strict = options?.strict ?? false;
+  const maxDepth = options?.maxDepth ?? DEFAULT_MAX_RECURSION_DEPTH;
 
   // Check top-level string fields
   checkString(scene.id ?? '', 'id', findings);
@@ -219,7 +224,7 @@ export function validateSceneGraphForExport(
     checkString(node.label, `nodes[${i}].label`, findings);
     checkString(node.type ?? '', `nodes[${i}].type`, findings);
     if (node.meta) {
-      checkObject(node.meta, `nodes[${i}].meta`, findings);
+      checkObject(node.meta, `nodes[${i}].meta`, findings, 0, maxDepth);
     }
   });
 
@@ -233,10 +238,9 @@ export function validateSceneGraphForExport(
 
   // Check layout (recursively, since it has nested structures)
   if (scene.layout) {
-    checkObject(scene.layout, 'layout', findings);
+    checkObject(scene.layout, 'layout', findings, 0, maxDepth);
   }
 
-  const strict = options?.strict ?? false;
   const hasHighSeverity = findings.some((f) => f.severity === 'high');
   const passed = !(strict && hasHighSeverity);
 
@@ -293,10 +297,11 @@ export function isStrictValidationEnabled(): boolean {
 export function validateExportPayload(
   payload: unknown,
   contextLabel?: string,
-  options?: { strict?: boolean }
+  options?: { strict?: boolean; maxDepth?: number }
 ): ValidationResult {
   const findings: ContentFinding[] = [];
-  checkObject(payload, '', findings, 0);
+  const maxDepth = options?.maxDepth ?? DEFAULT_MAX_RECURSION_DEPTH;
+  checkObject(payload, '', findings, 0, maxDepth);
 
   const strict = options?.strict ?? false;
   const hasHighSeverity = findings.some((f) => f.severity === 'high');

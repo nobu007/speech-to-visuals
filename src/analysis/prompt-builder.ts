@@ -12,9 +12,6 @@
 import { getGeminiAnalyzerPrompt } from './prompt-templates';
 import type { Language } from './language-detector';
 
-/** Diagram types that Gemini can detect */
-const VALID_DIAGRAM_TYPES = ['flow', 'tree', 'timeline', 'matrix', 'cycle'] as const;
-
 /** Model names for prompt optimization */
 type ModelType = 'gemini-2.5-flash' | 'gemini-2.5-pro';
 

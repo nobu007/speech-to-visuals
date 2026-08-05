@@ -11,6 +11,23 @@ import { Player } from '@remotion/player';
 import { logger } from '@/utils/logger';
 import { toast } from 'sonner';
 
+type VideoQuality = 'low' | 'medium' | 'high';
+type VideoRenderStage = VideoRenderProgress['stage'];
+
+const QUALITY_LABELS: Record<VideoQuality, { label: string; description: string }> = {
+  low: { label: '低画質 (720p)', description: '高速・小容量' },
+  medium: { label: '中画質 (1080p)', description: 'バランス重視' },
+  high: { label: '高画質 (1080p)', description: '高品質・時間長' },
+};
+
+const STAGE_LABELS: Record<VideoRenderStage, string> = {
+  preparing: '準備中',
+  rendering: 'レンダリング中',
+  encoding: 'エンコード中',
+  complete: '完了',
+  error: 'エラー',
+};
+
 interface VideoRendererProps {
   scenes: SceneGraph[];
   audioUrl: string;
@@ -20,7 +37,7 @@ export const VideoRenderer: React.FC<VideoRendererProps> = ({ scenes, audioUrl }
   const [isRendering, setIsRendering] = useState(false);
   const [renderProgress, setRenderProgress] = useState<VideoRenderProgress | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [quality, setQuality] = useState<'low' | 'medium' | 'high'>('medium');
+  const [quality, setQuality] = useState<VideoQuality>('medium');
   const [showSettings, setShowSettings] = useState(false);
   const mountedRef = useRef(true);
 
@@ -67,20 +84,6 @@ export const VideoRenderer: React.FC<VideoRendererProps> = ({ scenes, audioUrl }
     }
   };
 
-  const qualityLabels = {
-    low: { label: '低画質 (720p)', description: '高速・小容量' },
-    medium: { label: '中画質 (1080p)', description: 'バランス重視' },
-    high: { label: '高画質 (1080p)', description: '高品質・時間長' }
-  };
-
-  const stageLabels = {
-    preparing: '準備中',
-    rendering: 'レンダリング中',
-    encoding: 'エンコード中',
-    complete: '完了',
-    error: 'エラー'
-  };
-
   return (
     <Card className="p-6 bg-card shadow-lg">
       <div className="space-y-6">
@@ -107,12 +110,12 @@ export const VideoRenderer: React.FC<VideoRendererProps> = ({ scenes, audioUrl }
           <div className="p-4 bg-muted/50 rounded-lg border space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">画質設定</label>
-              <Select value={quality} onValueChange={(value: string) => setQuality(value as 'low' | 'medium' | 'high')}>
+              <Select value={quality} onValueChange={(value: string) => setQuality(value as VideoQuality)}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(qualityLabels).map(([key, { label, description }]) => (
+                  {Object.entries(QUALITY_LABELS).map(([key, { label, description }]) => (
                     <SelectItem key={key} value={key}>
                       <div className="flex flex-col">
                         <span>{label}</span>
@@ -131,7 +134,7 @@ export const VideoRenderer: React.FC<VideoRendererProps> = ({ scenes, audioUrl }
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-foreground">
-                {stageLabels[renderProgress.stage]}
+                {STAGE_LABELS[renderProgress.stage]}
               </span>
               <Badge variant={renderProgress.stage === 'error' ? 'destructive' : 'default'}>
                 {renderProgress.progress.toFixed(0)}%
