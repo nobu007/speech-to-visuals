@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useExportGuardMetrics } from '@/hooks/useExportGuardMetrics';
+import type { SecurityLayer } from '@/export/security-metrics-collector';
 import {
   Shield,
   ShieldCheck,
@@ -29,7 +30,7 @@ export const GuardMetricsDashboard: React.FC = () => {
   const { metrics, isPolling, refresh, start, stop, reset, prometheusText } =
     useExportGuardMetrics({ intervalMs: 5000, autoStart: true });
 
-  const layerLabels: Record<string, string> = {
+  const layerLabels: Record<SecurityLayer, string> = {
     'content-validator': 'Content Validator',
     'strict-mode-block': 'Strict Mode',
     'escape-function': 'Escape Function',

@@ -11,13 +11,14 @@ import { globalCache } from '@/performance/intelligent-cache';
 import { getMemoryUsage } from '@/utils/memory-usage';
 import { logger } from '../utils/logger';
 
+/** Names of components checked during a health check. */
+type ComponentName = 'memory' | 'cache' | 'pipeline' | 'llm' | 'errorRecovery' | 'performance';
+
 export interface HealthCheckResult {
   status: 'healthy' | 'degraded' | 'unhealthy';
   timestamp: number;
   uptime: number;
-  checks: {
-    [key: string]: ComponentHealth;
-  };
+  checks: Record<ComponentName, ComponentHealth>;
   metrics: PerformanceSnapshot;
   recommendations: string[];
 }
@@ -43,7 +44,7 @@ export interface LivenessProbe {
 class HealthCheckService {
   private startTime: number = Date.now();
   private lastHealthCheck: HealthCheckResult | null = null;
-  private componentHealthCache: Map<string, ComponentHealth> = new Map();
+  private componentHealthCache: Map<ComponentName, ComponentHealth> = new Map();
   private readonly HEALTH_CACHE_TTL_MS = 5000; // 5 seconds
   private healthCheckInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -71,7 +72,7 @@ class HealthCheckService {
    */
   public async performHealthCheck(): Promise<HealthCheckResult> {
     const startTime = Date.now();
-    const checks: { [key: string]: ComponentHealth } = {};
+    const checks = {} as Record<ComponentName, ComponentHealth>;
 
     // Check all system components
     checks.memory = await this.checkMemoryHealth();
@@ -450,7 +451,7 @@ class HealthCheckService {
    * Generate recommendations based on health checks
    */
   private generateRecommendations(
-    checks: { [key: string]: ComponentHealth },
+    checks: Record<ComponentName, ComponentHealth>,
     metrics: PerformanceSnapshot
   ): string[] {
     const recommendations: string[] = [];

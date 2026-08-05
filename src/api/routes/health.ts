@@ -1,10 +1,10 @@
 import { Router, type Request, type Response } from 'express';
-import { healthCheckService } from '../../monitoring/health-check-service';
+import { healthCheckService, type HealthCheckResult } from '../../monitoring/health-check-service';
 import { logger } from '../../utils/logger';
 
 export const healthRouter = Router();
 
-const HTTP_STATUS: Record<string, number> = {
+const HTTP_STATUS: Record<HealthCheckResult['status'], number> = {
   healthy: 200,
   degraded: 200,
   unhealthy: 503,
@@ -16,7 +16,7 @@ const HTTP_STATUS: Record<string, number> = {
 healthRouter.get('/health', async (_req: Request, res: Response) => {
   try {
     const result = await healthCheckService.performHealthCheck();
-    const httpStatus = HTTP_STATUS[result.status] ?? 503;
+    const httpStatus = HTTP_STATUS[result.status];
     res.status(httpStatus).json({
       success: result.status !== 'unhealthy',
       data: {

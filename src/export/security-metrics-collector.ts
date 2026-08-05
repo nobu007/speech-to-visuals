@@ -80,8 +80,12 @@ export class SecurityMetricsCollector {
   /** Rejection TTL in ms. 0 = disabled. */
   private maxAgeMs: number;
 
-  constructor(maxAgeMs = 0) {
-    this.maxAgeMs = maxAgeMs;
+  /**
+   * @param maxAgeMs - Rejection entries older than this are pruned on snapshot/export.
+   *                   Default: reads from SECURITY_METRICS_TTL_MS env var, or 0 (disabled).
+   */
+  constructor(maxAgeMs?: number) {
+    this.maxAgeMs = maxAgeMs ?? resolveTtlFromEnv();
   }
 
   /** Update the TTL for rejection entries. Set to 0 to disable. */
@@ -274,4 +278,15 @@ export class SecurityMetricsCollector {
  * - ExportContentValidator: call `recordFindings('content-validator', findings)` after validation
  * - EnhancedExportEngine: call `recordRejection('strict-mode-block', 'high', pattern)` when strict mode blocks
  */
+/**
+ * Read TTL configuration from SECURITY_METRICS_TTL_MS environment variable.
+ * Returns 0 if unset or invalid (TTL disabled).
+ */
+function resolveTtlFromEnv(): number {
+  const raw = process.env['SECURITY_METRICS_TTL_MS'];
+  if (!raw) return 0;
+  const parsed = parseInt(raw, 10);
+  return Number.isNaN(parsed) || parsed < 0 ? 0 : parsed;
+}
+
 export const securityMetricsCollector = new SecurityMetricsCollector();

@@ -33,7 +33,13 @@ function sanitizeHeaderValue(value: string): string {
 }
 
 // Format to MIME type mapping
-const FORMAT_MIME: Record<string, string> = {
+/** All artifact formats accepted by the export API (animated + basic). */
+type ArtifactFormat =
+  | 'mp4' | 'webm' | 'gif' | 'apng'
+  | 'interactive-html' | 'pdf-animated' | 'svg-animated' | 'json-lottie'
+  | 'json' | 'svg' | 'pdf' | 'html';
+
+const FORMAT_MIME: Record<ArtifactFormat, string> = {
   mp4: 'video/mp4',
   webm: 'video/webm',
   gif: 'image/gif',
@@ -48,8 +54,8 @@ const FORMAT_MIME: Record<string, string> = {
   html: 'text/html',
 };
 
-const DEFAULT_LIST_LIMIT = 50;
-const MAX_LIST_LIMIT = 200;
+const DEFAULT_LIST_LIMIT = parseInt(process.env['EXPORT_LIST_DEFAULT_LIMIT'] ?? '', 10) || 50;
+const MAX_LIST_LIMIT = parseInt(process.env['EXPORT_LIST_MAX_LIMIT'] ?? '', 10) || 200;
 
 export function createExportRouter(artifactStore: ExportArtifactStore): Router {
   const router = Router();

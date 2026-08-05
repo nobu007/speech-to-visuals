@@ -331,13 +331,13 @@ export class VideoGenerator {
    * Helper: Convert quality setting to JPEG quality
    */
   private getJpegQualityFromQualitySetting(): number {
-    const qualityMap: { [key: string]: number } = {
+    const qualityMap: Record<VideoGenerationOptions['quality'], number> = {
       low: 60,
       medium: 75,
       high: 85,
       ultra: 95
     };
-    return qualityMap[this.options.quality || 'high'] || 85;
+    return qualityMap[this.options.quality || 'high'];
   }
 
   /**
@@ -528,26 +528,26 @@ export class VideoGenerator {
   }
 
   private getResolutionWidth(): number {
-    const resolutions: { [key: string]: number } = {
+    const resolutions: Record<VideoGenerationOptions['resolution'], number> = {
       '720p': 1280,
       '1080p': 1920,
       '4k': 3840
     };
-    return resolutions[this.options.resolution || '1080p'] || 1920;
+    return resolutions[this.options.resolution || '1080p'];
   }
 
   private getResolutionHeight(): number {
-    const resolutions: { [key: string]: number } = {
+    const resolutions: Record<VideoGenerationOptions['resolution'], number> = {
       '720p': 720,
       '1080p': 1080,
       '4k': 2160
     };
-    return resolutions[this.options.resolution || '1080p'] || 1080;
+    return resolutions[this.options.resolution || '1080p'];
   }
 
   private estimateFileSize(config: unknown): number {
     // 簡易ファイルサイズ推定（品質・解像度・時間を考慮）
-    const baseSizePerSecond = {
+    const baseSizePerSecond: Record<VideoGenerationOptions['quality'], number> = {
       low: 1024 * 1024,     // 1MB/秒
       medium: 2048 * 1024,  // 2MB/秒
       high: 4096 * 1024,    // 4MB/秒

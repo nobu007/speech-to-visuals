@@ -136,11 +136,6 @@ describe('scoreRegressions', () => {
     // (100 + 50) / 2 = 75
     expect(scoreRegressions(report)).toBeCloseTo(75);
   });
-
-  test('defaults unknown severity to 100', () => {
-    const report = makeRegressionReport(['unknown_severity']);
-    expect(scoreRegressions(report)).toBe(100);
-  });
 });
 
 // ── scoreCost ────────────────────────────────────────────────────────

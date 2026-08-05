@@ -22,6 +22,7 @@ import {
 import {
   detectPerformanceRegressions,
   RegressionReport,
+  type RegressionResult,
 } from './performance-regression-detector';
 import { StageMeasurement, DEFAULT_BASELINES } from './performance-baseline';
 
@@ -68,7 +69,7 @@ const SEVERITY_SCORE_MAP: Record<BottleneckSeverity, number> = {
   critical: 20,
 };
 
-const REGRESSION_SEVERITY_SCORE: Record<string, number> = {
+const REGRESSION_SEVERITY_SCORE: Record<RegressionResult['severity'], number> = {
   none: 100,
   warning: 50,
   critical: 15,
@@ -97,7 +98,7 @@ export function scoreRegressions(report: RegressionReport): number {
   if (report.results.length === 0) return 100;
 
   const scores = report.results.map(r =>
-    REGRESSION_SEVERITY_SCORE[r.severity] ?? 100,
+    REGRESSION_SEVERITY_SCORE[r.severity],
   );
   return scores.reduce((a, b) => a + b, 0) / scores.length;
 }
