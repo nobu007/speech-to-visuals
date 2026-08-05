@@ -12,14 +12,16 @@
  * - Recommendation generation
  * - Edge cases (missing data, boundary values)
  *
- * Note: The class is exported as a type-only export; the singleton
- * `healthCheckService` is the runtime value. We use it directly.
+ * Mock strategy: Direct property override on imported module objects.
+ * jest.unstable_mockModule does not work reliably with ts-jest ESM preset,
+ * so we import the real modules and replace function references on the
+ * exported objects (which are mutable bindings in CommonJS-interop mode).
  */
 
 import { describe, test, expect, beforeEach, beforeAll, jest } from '@jest/globals';
 
 // ---------------------------------------------------------------------------
-// Mocks – jest.mock hoists above imports automatically
+// Mock data
 // ---------------------------------------------------------------------------
 
 const defaultSnapshot = {
@@ -82,43 +84,16 @@ const defaultMemory = {
   arrayBuffers: 4194304,
 };
 
+// ---------------------------------------------------------------------------
+// Mutable mock functions
+// ---------------------------------------------------------------------------
+
 const mockGetSnapshot = jest.fn().mockReturnValue(defaultSnapshot);
 const mockAnalyzeTrends = jest.fn().mockReturnValue(defaultTrends);
 const mockGetCacheStats = jest.fn().mockReturnValue(defaultCacheStats);
 const mockGetMemoryUsage = jest.fn().mockReturnValue(defaultMemory);
 
-// jest.mock() factory binding doesn't intercept static ESM imports under
-// ts-jest's --experimental-vm-modules transform (per REQ-271 / TASK-0191).
-// Use jest.unstable_mockModule() so the dynamic import below picks up the
-// mocked binding.
-jest.unstable_mockModule('../../../src/monitoring/real-time-performance-monitor', () => ({
-  realTimeMonitor: {
-    getSnapshot: mockGetSnapshot,
-    analyzeTrends: mockAnalyzeTrends,
-    on: jest.fn(),
-    removeListener: jest.fn(),
-  },
-}));
-
-jest.unstable_mockModule('../../../src/performance/intelligent-cache', () => ({
-  globalCache: {
-    getStats: mockGetCacheStats,
-  },
-}));
-
-jest.unstable_mockModule('../../../src/utils/memory-usage', () => ({
-  getMemoryUsage: mockGetMemoryUsage,
-}));
-
-jest.unstable_mockModule('../../../src/utils/logger', () => ({
-  logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-  },
-}));
-
-// Convenience aliases (mocks are still hoisted by jest.unstable_mockModule)
+// Convenience aliases
 const realTimeMonitor = { getSnapshot: mockGetSnapshot, analyzeTrends: mockAnalyzeTrends };
 const globalCache = { getStats: mockGetCacheStats };
 const getMemoryUsage = mockGetMemoryUsage;
@@ -143,7 +118,20 @@ function resetMocks() {
 
 describe('HealthCheckService (REQ-122)', () => {
   beforeAll(async () => {
-    const mod = await import('../../../src/monitoring/health-check-service');
+    // Import the real modules
+    const rtpm = await import('@/monitoring/real-time-performance-monitor');
+    const cache = await import('@/performance/intelligent-cache');
+    const mem = await import('@/utils/memory-usage');
+
+    // Override the exported functions with our mocks
+    // These are mutable object properties in ts-jest's CJS-interop mode
+    (rtpm as any).realTimeMonitor.getSnapshot = mockGetSnapshot;
+    (rtpm as any).realTimeMonitor.analyzeTrends = mockAnalyzeTrends;
+    (cache as any).globalCache.getStats = mockGetCacheStats;
+    (mem as any).getMemoryUsage = mockGetMemoryUsage;
+
+    // Now import the service — it will use the mocked bindings
+    const mod = await import('@/monitoring/health-check-service');
     healthCheckService = mod.healthCheckService;
   });
 

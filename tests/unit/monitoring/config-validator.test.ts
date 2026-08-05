@@ -7,15 +7,30 @@
  */
 
 import { describe, it, expect } from '@jest/globals';
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import { readFileSync, existsSync } from 'fs';
+import { join, resolve, dirname } from 'path';
 import {
   validateAlertRules,
   validateGrafanaDashboard,
   validateMonitoringConfigs,
 } from '@/monitoring/config-validator';
 
-const DEPLOY_DIR = join(process.cwd(), 'deploy', 'monitoring');
+/**
+ * Walk up from cwd to find the project root (directory containing jest.config.cjs).
+ * This is robust against Jest workers that may change the working directory.
+ */
+function findProjectRoot(): string {
+  let dir = process.cwd();
+  for (let i = 0; i < 10; i++) {
+    if (existsSync(join(dir, 'jest.config.cjs'))) return dir;
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return process.cwd();
+}
+
+const DEPLOY_DIR = join(findProjectRoot(), 'deploy', 'monitoring');
 
 // ---------------------------------------------------------------------------
 // Alert Rules — Real File

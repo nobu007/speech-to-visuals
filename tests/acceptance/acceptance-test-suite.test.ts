@@ -9,7 +9,22 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import jwt from 'jsonwebtoken';
-const testDir = process.cwd();
+
+/**
+ * Walk up from cwd to find the project root (directory containing jest.config.cjs).
+ * This is robust against Jest workers that may change the working directory.
+ */
+function findProjectRoot(): string {
+  let dir = process.cwd();
+  for (let i = 0; i < 10; i++) {
+    if (fs.existsSync(path.join(dir, 'jest.config.cjs'))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return process.cwd();
+}
+const testDir = findProjectRoot();
 
 import { WhisperTranscriber } from '@/transcription/whisper-transcriber';
 import { SUPPORTED_AUDIO_FORMATS, FileSizeExceededError, MAX_FILE_SIZE } from '@/transcription/types';

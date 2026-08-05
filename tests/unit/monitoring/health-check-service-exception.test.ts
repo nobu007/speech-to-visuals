@@ -8,12 +8,17 @@
  * The existing REQ-122 suite covers normal boundary-value paths; this file
  * focuses exclusively on the try/catch fallback branches added in Phase 51
  * (REQ-131).
+ *
+ * Mock strategy: Direct property override on imported module objects.
+ * jest.unstable_mockModule does not work reliably with ts-jest ESM preset,
+ * so we import the real modules and replace function references on the
+ * exported objects (which are mutable bindings in CommonJS-interop mode).
  */
 
 import { describe, it, expect, beforeEach, beforeAll, jest } from '@jest/globals';
 
 // ---------------------------------------------------------------------------
-// Mocks – jest.mock hoists above imports automatically
+// Mock data
 // ---------------------------------------------------------------------------
 
 const defaultSnapshot = {
@@ -71,39 +76,16 @@ const defaultMemory = {
   arrayBuffers: 4194304,
 };
 
+// ---------------------------------------------------------------------------
+// Mutable mock functions
+// ---------------------------------------------------------------------------
+
 const mockGetSnapshot = jest.fn().mockReturnValue(defaultSnapshot);
 const mockAnalyzeTrends = jest.fn().mockReturnValue([]);
 const mockOn = jest.fn();
 const mockRemoveListener = jest.fn();
 const mockGetCacheStats = jest.fn().mockReturnValue(defaultCacheStats);
 const mockGetMemoryUsage = jest.fn().mockReturnValue(defaultMemory);
-
-jest.unstable_mockModule('../../../src/monitoring/real-time-performance-monitor', () => ({
-  realTimeMonitor: {
-    getSnapshot: mockGetSnapshot,
-    analyzeTrends: mockAnalyzeTrends,
-    on: mockOn,
-    removeListener: mockRemoveListener,
-  },
-}));
-
-jest.unstable_mockModule('../../../src/performance/intelligent-cache', () => ({
-  globalCache: {
-    getStats: mockGetCacheStats,
-  },
-}));
-
-jest.unstable_mockModule('../../../src/utils/memory-usage', () => ({
-  getMemoryUsage: mockGetMemoryUsage,
-}));
-
-jest.unstable_mockModule('../../../src/utils/logger', () => ({
-  logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-  },
-}));
 
 // Convenience aliases
 const realTimeMonitor = {
@@ -135,7 +117,21 @@ function resetMocks() {
 
 describe('HealthCheckService – exception fallback (REQ-134)', () => {
   beforeAll(async () => {
-    const mod = await import('../../../src/monitoring/health-check-service');
+    // Import the real modules
+    const rtpm = await import('@/monitoring/real-time-performance-monitor');
+    const cache = await import('@/performance/intelligent-cache');
+    const mem = await import('@/utils/memory-usage');
+
+    // Override the exported functions with our mocks
+    (rtpm as any).realTimeMonitor.getSnapshot = mockGetSnapshot;
+    (rtpm as any).realTimeMonitor.analyzeTrends = mockAnalyzeTrends;
+    (rtpm as any).realTimeMonitor.on = mockOn;
+    (rtpm as any).realTimeMonitor.removeListener = mockRemoveListener;
+    (cache as any).globalCache.getStats = mockGetCacheStats;
+    (mem as any).getMemoryUsage = mockGetMemoryUsage;
+
+    // Now import the service
+    const mod = await import('@/monitoring/health-check-service');
     healthCheckService = mod.healthCheckService;
   });
 
