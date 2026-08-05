@@ -18,6 +18,7 @@ import {
   type ComplexityAnalysis,
   type ComplexityFactor,
 } from '../complexity-detector';
+import { logger } from '@/utils/logger';
 
 describe('TASK-0016: ComplexityDetector', () => {
   let detector: ComplexityDetector;
@@ -426,6 +427,47 @@ describe('TASK-0016: ComplexityDetector', () => {
       expect(stats.avgComplexity).toBeLessThanOrEqual(1);
       expect(Object.keys(stats.modelDistribution).length).toBeGreaterThan(0);
       expect(Object.keys(stats.levelDistribution).length).toBeGreaterThan(0);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Test case 9: safeEnv error logging (silent catch → logger.warn)
+  // -----------------------------------------------------------------------
+  describe('Test case 9: safeEnv error logging', () => {
+    it('should call logger.warn when process.env access throws', () => {
+      const warnSpy = jest.spyOn(logger, 'warn').mockImplementation();
+      const descriptor = Object.getOwnPropertyDescriptor(process, 'env');
+      Object.defineProperty(process, 'env', {
+        get() { throw new Error('env access denied'); },
+        configurable: true,
+      });
+
+      try {
+        // selectModel calls safeEnv internally — any model selection will trigger env access
+        detector.selectModel(0.5);
+        // selectModel calls safeEnv up to 3 times: GEMINI_MODEL_OVERRIDE, DISABLE_GEMINI, COMPLEXITY_THRESHOLD
+        const complexityWarnings = warnSpy.mock.calls.filter(
+          (c: unknown[]) => typeof c[0] === 'string' && (c[0] as string).includes('complexity-detector')
+        );
+        expect(complexityWarnings.length).toBeGreaterThanOrEqual(1);
+      } finally {
+        if (descriptor) {
+          Object.defineProperty(process, 'env', descriptor);
+        }
+      }
+
+      warnSpy.mockRestore();
+    });
+
+    it('should not call logger.warn on normal env access', () => {
+      const warnSpy = jest.spyOn(logger, 'warn').mockImplementation();
+      detector.selectModel(0.5);
+      // Normal access path should not log warnings from safeEnv
+      const safeEnvCalls = warnSpy.mock.calls.filter(c =>
+        typeof c[0] === 'string' && c[0].includes('complexity-detector')
+      );
+      expect(safeEnvCalls).toHaveLength(0);
+      warnSpy.mockRestore();
     });
   });
 });

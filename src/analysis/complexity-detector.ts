@@ -9,11 +9,14 @@
  * Target: 60-75% processing time reduction for simple content
  */
 
+import { logger } from '@/utils/logger';
+
 /** Browser-safe env accessor — returns undefined when process is unavailable (ISS-021) */
 function safeEnv(key: string): string | undefined {
   try {
     return (typeof process !== 'undefined' && process.env) ? process.env[key] : undefined;
-  } catch {
+  } catch (err) {
+    logger.warn(`[complexity-detector] process.env access failed for key "${key}"`, err);
     return undefined;
   }
 }

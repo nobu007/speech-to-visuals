@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { PipelineConfigError } from '@/pipeline/pipeline-errors';
+import { logger } from '@/utils/logger';
 import type { Database } from './types';
 
 let supabaseInstance: SupabaseClient<Database> | null = null;
@@ -12,7 +13,8 @@ let supabaseInstance: SupabaseClient<Database> | null = null;
 function resolveSupabaseUrl(): string {
   try {
     return (typeof process !== 'undefined' && process.env) ? (process.env.SUPABASE_URL || '') : '';
-  } catch {
+  } catch (err) {
+    logger.warn('[supabase/client] process.env access failed in resolveSupabaseUrl', err);
     return '';
   }
 }
@@ -25,7 +27,8 @@ function resolveSupabaseUrl(): string {
 function resolveSupabaseAnonKey(): string {
   try {
     return (typeof process !== 'undefined' && process.env) ? (process.env.SUPABASE_ANON_KEY || '') : '';
-  } catch {
+  } catch (err) {
+    logger.warn('[supabase/client] process.env access failed in resolveSupabaseAnonKey', err);
     return '';
   }
 }
