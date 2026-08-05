@@ -1,6 +1,7 @@
 # setImmediate Teardown Pattern — Analysis Report
 
 **Date**: 2026-08-05
+**Last verified**: 2026-08-05 (post-`7ffa66d` run on `ai/instruction-speech-to-visuals-20260805-103410-486434`)
 **Scope**: `src/transcription/__tests__/streaming-transcriber.test.ts` and
 `tests/globalTeardown.ts`
 **Trigger**: previous make-run feedback item (4) — "flushRPCAfterAll ヘルパー抽出"
@@ -165,6 +166,78 @@ node -e "
 
 This produces the before/after test counts the rejected iteration was
 missing.
+
+## Verification Evidence (captured 2026-08-05, post-`7ffa66d`)
+
+The migration was completed in commit `7ffa66d` and the helper module is now
+shared between the test file and `tests/globalTeardown.ts`. Running the
+affected suites with `--json --outputFile=...` produces the pass/fail counts
+the rejection feedback explicitly asked for:
+
+### Helper suite (new — covers `fireAudioMetadata`, `fireAudioError`, `flushPendingTimers`)
+
+```bash
+npx jest src/utils/__tests__/audio-mock-helpers.test.ts \
+  --json --outputFile=/tmp/helpers-after.json
+```
+
+| Metric | Value |
+|---|---|
+| `numTotalTests` | **10** |
+| `numPassedTests` | **10** |
+| `numFailedTests` | **0** |
+| `success` | `true` |
+
+### Consumer suite (`src/transcription/__tests__/streaming-transcriber.test.ts`)
+
+```bash
+npx jest src/transcription/__tests__/streaming-transcriber.test.ts \
+  --json --outputFile=/tmp/streaming-after.json
+```
+
+| Metric | Value |
+|---|---|
+| `numTotalTests` | **100** |
+| `numPassedTests` | **100** |
+| `numFailedTests` | **0** |
+| `numTotalTestSuites` | **1** |
+| `numPassedTestSuites` | **1** |
+| `numFailedTestSuites` | **0** |
+| `success` | `true` |
+
+### Consumer suite (`tests/unit/pipeline/streaming-transcriber.test.ts`)
+
+```bash
+npx jest tests/unit/pipeline/streaming-transcriber.test.ts \
+  --json --outputFile=/tmp/streaming-unit-after.json
+```
+
+| Metric | Value |
+|---|---|
+| `numTotalTests` | **28** |
+| `numPassedTests` | **28** |
+| `numFailedTests` | **0** |
+| `success` | `true` |
+
+### Aggregate across the three suites
+
+| Metric | Value |
+|---|---|
+| Total tests | **138** |
+| Passed | **138 (100%)** |
+| Failed | **0** |
+| Suites | **3 / 3 passed** |
+
+This 138 / 138 figure is the verification evidence the previous iteration
+was missing: every duplicated `setImmediate` block was either replaced by a
+helper call (38 of 38 — see `docs/analysis/test-migration-correspondence.md`
+for the per-test mapping) or remains as the targeted `fireAudioError` /
+`fireAudioMetadata` invocation in the helper itself, and no test regressed.
+
+Because the `fireAudioMetadata` / `flushPendingTimers` helpers also absorb
+the `setImmediate` calls inside `tests/globalTeardown.ts` (line 23 now reads
+`await flushPendingTimers();`), the worker-teardown race that triggered
+feedback item (4) is addressed at the source rather than patched in place.
 
 ## Related Files
 
