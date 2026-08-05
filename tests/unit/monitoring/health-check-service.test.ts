@@ -87,9 +87,11 @@ const mockAnalyzeTrends = jest.fn().mockReturnValue(defaultTrends);
 const mockGetCacheStats = jest.fn().mockReturnValue(defaultCacheStats);
 const mockGetMemoryUsage = jest.fn().mockReturnValue(defaultMemory);
 
-// Use jest.mock (hoisted) instead of jest.unstable_mockModule to avoid
-// top-level await issues with ts-jest ESM transform.
-jest.mock('../../../src/monitoring/real-time-performance-monitor', () => ({
+// jest.mock() factory binding doesn't intercept static ESM imports under
+// ts-jest's --experimental-vm-modules transform (per REQ-271 / TASK-0191).
+// Use jest.unstable_mockModule() so the dynamic import below picks up the
+// mocked binding.
+jest.unstable_mockModule('../../../src/monitoring/real-time-performance-monitor', () => ({
   realTimeMonitor: {
     getSnapshot: mockGetSnapshot,
     analyzeTrends: mockAnalyzeTrends,
@@ -98,17 +100,17 @@ jest.mock('../../../src/monitoring/real-time-performance-monitor', () => ({
   },
 }));
 
-jest.mock('../../../src/performance/intelligent-cache', () => ({
+jest.unstable_mockModule('../../../src/performance/intelligent-cache', () => ({
   globalCache: {
     getStats: mockGetCacheStats,
   },
 }));
 
-jest.mock('../../../src/utils/memory-usage', () => ({
+jest.unstable_mockModule('../../../src/utils/memory-usage', () => ({
   getMemoryUsage: mockGetMemoryUsage,
 }));
 
-jest.mock('../../../src/utils/logger', () => ({
+jest.unstable_mockModule('../../../src/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -116,7 +118,7 @@ jest.mock('../../../src/utils/logger', () => ({
   },
 }));
 
-// Convenience aliases
+// Convenience aliases (mocks are still hoisted by jest.unstable_mockModule)
 const realTimeMonitor = { getSnapshot: mockGetSnapshot, analyzeTrends: mockAnalyzeTrends };
 const globalCache = { getStats: mockGetCacheStats };
 const getMemoryUsage = mockGetMemoryUsage;

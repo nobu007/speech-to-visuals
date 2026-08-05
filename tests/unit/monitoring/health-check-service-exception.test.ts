@@ -78,7 +78,7 @@ const mockRemoveListener = jest.fn();
 const mockGetCacheStats = jest.fn().mockReturnValue(defaultCacheStats);
 const mockGetMemoryUsage = jest.fn().mockReturnValue(defaultMemory);
 
-jest.mock('../../../src/monitoring/real-time-performance-monitor', () => ({
+jest.unstable_mockModule('../../../src/monitoring/real-time-performance-monitor', () => ({
   realTimeMonitor: {
     getSnapshot: mockGetSnapshot,
     analyzeTrends: mockAnalyzeTrends,
@@ -87,17 +87,17 @@ jest.mock('../../../src/monitoring/real-time-performance-monitor', () => ({
   },
 }));
 
-jest.mock('../../../src/performance/intelligent-cache', () => ({
+jest.unstable_mockModule('../../../src/performance/intelligent-cache', () => ({
   globalCache: {
     getStats: mockGetCacheStats,
   },
 }));
 
-jest.mock('../../../src/utils/memory-usage', () => ({
+jest.unstable_mockModule('../../../src/utils/memory-usage', () => ({
   getMemoryUsage: mockGetMemoryUsage,
 }));
 
-jest.mock('../../../src/utils/logger', () => ({
+jest.unstable_mockModule('../../../src/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
