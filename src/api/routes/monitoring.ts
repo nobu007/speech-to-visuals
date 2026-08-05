@@ -64,11 +64,61 @@ const AlertsQuerySchema = z.object({
 // Error helper
 // ---------------------------------------------------------------------------
 
-function sendError(res: Response, statusCode: number, code: string, message: string): void {
+function sendError(
+  res: Response,
+  statusCode: number,
+  code: string,
+  message: string,
+  details?: unknown,
+): void {
   if (statusCode >= 500) {
     logger.error(`[MonitoringRoute] ${code}: ${message}`);
   }
-  res.status(statusCode).json({ success: false, error: { code, message } });
+  const body: Record<string, unknown> = { success: false, error: { code, message } };
+  if (details !== undefined) {
+    body.error = { ...((body.error as Record<string, unknown>)), details };
+  }
+  res.status(statusCode).json(body);
+}
+
+/**
+ * Wrap an async handler with a timeout. On timeout, responds with 503.
+ * The timeout value defaults to 10s and can be overridden via MONITORING_TIMEOUT_MS.
+ */
+const MONITORING_TIMEOUT_MS = (() => {
+  const raw = process.env.MONITORING_TIMEOUT_MS;
+  if (!raw) return 10_000;
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 ? n : 10_000;
+})();
+
+type AsyncRouteHandler = (req: Request, res: Response) => Promise<unknown>;
+
+function withTimeout(
+  handler: AsyncRouteHandler,
+  timeoutMs: number = MONITORING_TIMEOUT_MS,
+) {
+  return (req: Request, res: Response): void => {
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      sendError(res, 503, 'TIMEOUT', `Request exceeded ${timeoutMs}ms timeout`);
+    }, timeoutMs);
+
+    handler(req, res)
+      .catch((error) => {
+        if (timedOut) return;
+        sendError(
+          res,
+          500,
+          'INTERNAL_ERROR',
+          error instanceof Error ? error.message : 'Unexpected error',
+        );
+      })
+      .finally(() => {
+        clearTimeout(timer);
+      });
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -80,7 +130,7 @@ export function createMonitoringRouter(dashboard?: PerformanceDashboard): Router
   const monitoring = dashboard ?? globalDashboard;
 
   // GET /metrics - Current dashboard data
-  router.get('/metrics', (_req: Request, res: Response) => {
+  router.get('/metrics', withTimeout(async (_req: Request, res: Response) => {
     try {
       const data = monitoring.getDashboardData();
       return res.status(200).json({ success: true, data });
@@ -92,10 +142,10 @@ export function createMonitoringRouter(dashboard?: PerformanceDashboard): Router
         error instanceof Error ? error.message : 'Failed to retrieve metrics',
       );
     }
-  });
+  }));
 
   // GET /cost - LLM cost and token usage metrics
-  router.get('/cost', (_req: Request, res: Response) => {
+  router.get('/cost', withTimeout(async (_req: Request, res: Response) => {
     try {
       const data = monitoring.getCostMetrics();
       return res.status(200).json({ success: true, data });
@@ -107,14 +157,15 @@ export function createMonitoringRouter(dashboard?: PerformanceDashboard): Router
         error instanceof Error ? error.message : 'Failed to retrieve cost metrics',
       );
     }
-  });
+  }));
 
   // GET /trends - Performance trends over time
   router.get('/trends', (req: Request, res: Response) => {
     const parsed = TrendsQuerySchema.safeParse(req.query);
     if (!parsed.success) {
-      const msg = parsed.error.issues[0]?.message ?? 'Invalid timespan parameter';
-      return sendError(res, 400, 'VALIDATION_ERROR', msg);
+      const details = parsed.error.issues.map(i => ({ path: i.path.join('.'), message: i.message, code: i.code }));
+      const msg = details[0]?.message ?? 'Invalid timespan parameter';
+      return sendError(res, 400, 'VALIDATION_ERROR', msg, details);
     }
 
     try {
@@ -207,8 +258,9 @@ export function createMonitoringRouter(dashboard?: PerformanceDashboard): Router
   router.get('/dashboard', (req: Request, res: Response) => {
     const parsed = DashboardQuerySchema.safeParse(req.query);
     if (!parsed.success) {
-      const msg = parsed.error.issues[0]?.message ?? 'Invalid query parameters';
-      return sendError(res, 400, 'VALIDATION_ERROR', msg);
+      const details = parsed.error.issues.map(i => ({ path: i.path.join('.'), message: i.message, code: i.code }));
+      const msg = details[0]?.message ?? 'Invalid query parameters';
+      return sendError(res, 400, 'VALIDATION_ERROR', msg, details);
     }
 
     try {
@@ -234,8 +286,9 @@ export function createMonitoringRouter(dashboard?: PerformanceDashboard): Router
   router.get('/alerts', (req: Request, res: Response) => {
     const parsed = AlertsQuerySchema.safeParse(req.query);
     if (!parsed.success) {
-      const msg = parsed.error.issues[0]?.message ?? 'Invalid query parameters';
-      return sendError(res, 400, 'VALIDATION_ERROR', msg);
+      const details = parsed.error.issues.map(i => ({ path: i.path.join('.'), message: i.message, code: i.code }));
+      const msg = details[0]?.message ?? 'Invalid query parameters';
+      return sendError(res, 400, 'VALIDATION_ERROR', msg, details);
     }
 
     try {
