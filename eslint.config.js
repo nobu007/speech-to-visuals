@@ -22,6 +22,8 @@ export default tseslint.config(
       "react-refresh/only-export-components": "off",
       "@typescript-eslint/no-unused-vars": "off",
       "no-console": "error",
+      // Prevent silent catch blocks — require at least a comment or logging
+      "no-empty": ["error", { "allowEmptyCatch": false }],
     },
   },
   {
@@ -32,6 +34,8 @@ export default tseslint.config(
     files: ["src/test/**", "**/__tests__/**", "tests/**", "scripts/**", "supabase/**"],
     rules: {
       "no-console": "off",
+      // Tests may intentionally swallow errors in fire-and-forget scenarios
+      "no-empty": "off",
       // Tests routinely spy on private methods via `as any` casts
       "@typescript-eslint/no-explicit-any": "off",
       // Tests use dynamic require() for conditional module loading

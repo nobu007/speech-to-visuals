@@ -108,6 +108,7 @@ function withTimeout(
     handler(req, res)
       .catch((error) => {
         if (timedOut) return;
+        logger.error('[monitoring] Route handler error:', error);
         sendError(
           res,
           500,

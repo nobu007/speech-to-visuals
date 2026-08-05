@@ -218,6 +218,7 @@ export function createPipelineRouter(stateManager?: PipelineStateManager, render
 
       return res.status(200).json(response);
     } catch (error) {
+      logger.error('[pipeline] Render error:', error);
       return sendError(res, 500, 'RENDER_ERROR', error instanceof Error ? error.message : 'Render failed');
     }
   });
@@ -242,6 +243,7 @@ export function createPipelineRouter(stateManager?: PipelineStateManager, render
 
       return res.status(200).json(response);
     } catch (error) {
+      logger.error('[pipeline] Commit error:', error);
       return sendError(res, 500, 'COMMIT_ERROR', error instanceof Error ? error.message : 'Commit failed');
     }
   });
@@ -259,6 +261,7 @@ export function createPipelineRouter(stateManager?: PipelineStateManager, render
 
       return res.status(200).json(response);
     } catch (error) {
+      logger.error('[pipeline] Iteration log error:', error);
       return sendError(res, 500, 'ITERATION_LOG_ERROR', error instanceof Error ? error.message : 'Failed to retrieve iteration log');
     }
   });
@@ -280,6 +283,7 @@ export function createPipelineRouter(stateManager?: PipelineStateManager, render
 
       return res.status(200).json(response);
     } catch (error) {
+      logger.error('[pipeline] Framework status error:', error);
       return sendError(res, 500, 'STATUS_ERROR', error instanceof Error ? error.message : 'Failed to get framework status');
     }
   });

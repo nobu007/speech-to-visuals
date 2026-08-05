@@ -185,6 +185,7 @@ export function createExportJobRouter(jobQueue: ExportJobQueue): Router {
       });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unknown error';
+      logger.error('[export-jobs] Create job error:', err);
       if (message.includes('queue is full')) {
         res.status(503).json({
           success: false,
@@ -339,6 +340,7 @@ export function createExportJobRouter(jobQueue: ExportJobQueue): Router {
       });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unknown error';
+      logger.error('[export-jobs] Replay job error:', err);
       res.status(500).json({
         success: false,
         error: { code: 'REPLAY_FAILED', message },

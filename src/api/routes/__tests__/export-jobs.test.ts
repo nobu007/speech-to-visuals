@@ -670,4 +670,54 @@ describe('Export Job Routes', () => {
       expect(res.body.error.code).toBe('REPLAY_FAILED');
     });
   });
+
+  // -------------------------------------------------------------------------
+  // Error logging verification
+  // -------------------------------------------------------------------------
+
+  describe('error logging on 500', () => {
+    let loggerSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { logger } = require('../../../utils/logger');
+      loggerSpy = jest.spyOn(logger, 'error').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      loggerSpy.mockRestore();
+    });
+
+    test('POST /jobs logs via logger.error on 500 internal error', async () => {
+      const queue = mockJobQueue({
+        enqueue: () => { throw new Error('database is down'); },
+      });
+      const app = createApp(queue);
+      const res = await request(app, 'POST', '/api/v1/export/jobs', {
+        format: 'mp4',
+        inputHash: 'abc',
+      });
+
+      expect(res.status).toBe(500);
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[export-jobs]'),
+        expect.any(Error),
+      );
+    });
+
+    test('POST /jobs/:jobId/replay logs via logger.error on 500', async () => {
+      const queue = mockJobQueue({
+        findJob: () => makeJob({ status: 'dead-lettered' }),
+        replayDeadLetterJob: () => { throw new Error('Queue is full'); },
+      });
+      const app = createApp(queue);
+      const res = await request(app, 'POST', `/api/v1/export/jobs/${VALID_UUID}/replay`);
+
+      expect(res.status).toBe(500);
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[export-jobs]'),
+        expect.any(Error),
+      );
+    });
+  });
 });

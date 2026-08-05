@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { healthCheckService } from '../../monitoring/health-check-service';
+import { logger } from '../../utils/logger';
 
 export const healthRouter = Router();
 
@@ -27,6 +28,7 @@ healthRouter.get('/health', async (_req: Request, res: Response) => {
       },
     });
   } catch (error) {
+    logger.error('[health] Health check failed:', error);
     res.status(503).json({
       success: false,
       data: {
