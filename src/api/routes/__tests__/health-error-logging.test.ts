@@ -6,10 +6,10 @@
 import express from 'express';
 import request from 'supertest';
 import { healthRouter } from '../health';
-import { healthCheckService } from '../../../monitoring/health-check-service';
-import { logger } from '../../../utils/logger';
+import { healthCheckService } from '@/monitoring/health-check-service';
+import { logger } from '@/utils/logger';
 
-jest.mock('../../../monitoring/health-check-service');
+jest.mock('@/monitoring/health-check-service');
 
 describe('Health route error logging', () => {
   let loggerSpy: jest.SpyInstance;
