@@ -2,7 +2,7 @@
  * speech-to-visuals 型定義
  *
  * 作成日: 2026-04-27
- * 最終更新: 2026-05-21（第162回検証: Phase 1-57完了・多層エラー回復システム6モジュール型追加・RecoveryStrategyChain・PipelineRunRecoveryTracker・BatchOperationRecovery・ErrorRecoveryHealthTracker・ErrorRecoveryEventBus・ErrorRecoveryMonitor・352ファイル・177テストファイル・TypeScript/ESLintエラー0件・依存105パッケージ）
+ * 最終更新: 2026-08-06（第208回検証: Phase 116 Record<UnionType,T>完全性強化・Prometheus export・SecurityMetrics TTL・DiagramType 11種完全対応・570ファイル・543テストファイル・TypeScript/ESLintエラー0件・依存107パッケージ）
  * 関連設計: architecture.md
  *
  * 信頼性レベル:
@@ -656,7 +656,7 @@ export type PermissionKey = keyof typeof PERMISSIONS; // 🔵 パーミッショ
  * - 🟡 黄信号: 4件 (1%)
  * - 🔴 赤信号: 0件 (0%)
  *
- * 品質評価: 高品質（第162回検証: Phase 57 多層エラー回復システム6モジュール型追加・352ファイル状態確認済み）
+ * 品質評価: 高品質（第208回検証: Phase 116 Record<UnionType,T>完全性強化・Prometheus export・SecurityMetrics TTL・570ファイル状態確認済み）
  */
 
 // ========================================
@@ -2076,4 +2076,70 @@ export interface MonitorHealthStatus {
   lastSampleTime: number; // 🔵 最終サンプル時刻
   overallScore: number; // 🔵 総合スコア
   alertsActive: number; // 🔵 アクティブアラート数
+}
+
+// ========================================
+// Phase 116 Record<UnionType,T> 完全性強制・Prometheus export 型
+// ========================================
+
+/**
+ * 全 DiagramType バリアントの検証用辞書型
+ * 🔵 信頼性: tests/unit/types/record-completeness.test.ts・Phase 116 より
+ *
+ * Record<DiagramType, T> を使用することで、DiagramType に新しい
+ * バリアントが追加された際、コンパイル時に全ての辞書が更新済みか
+ * tsc が検出する。
+ */
+export type DiagramTypeRecord<T> = Record<DiagramType, T>; // 🔵 Phase 116
+
+/**
+ * 全 ErrorType バリアントの検証用辞書型
+ * 🔵 信頼性: src/quality/error-classifier.ts・Phase 116 より
+ */
+export type ErrorTypeRecord<T> = Record<ErrorType, T>; // 🔵 Phase 116
+
+/**
+ * Prometheus メトリクスサンプル
+ * 🔵 信頼性: src/monitoring/prometheus-export.ts・要件定義REQ-270 より
+ */
+export interface PrometheusMetricSample {
+  name: string; // 🔵 メトリクス名（例: pipeline_processing_time_seconds）
+  help: string; // 🔵 ヘルプテキスト
+  type: 'counter' | 'gauge' | 'histogram'; // 🔵 メトリクスタイプ
+  labels?: Record<string, string>; // 🔵 ラベルセット
+  value: number; // 🔵 メトリクス値
+}
+
+/**
+ * Prometheus exposition 形式出力オプション
+ * 🔵 信頼性: src/monitoring/prometheus-export.ts・Phase 116 より
+ */
+export interface PrometheusExportOptions {
+  includeTimestamps?: boolean; // 🔵 タイムスタンプ付与（デフォルト: false）
+  metricTtlHours?: number; // 🔵 メトリクスTTL時間（デフォルト: 1、環境変数 METRIC_TTL_HOURS）
+}
+
+/**
+ * セキュリティメトリクススナップショット
+ * 🔵 信頼性: src/export/security-metrics-collector.ts・要件定義REQ-246 より
+ */
+export interface SecurityMetricsSnapshot {
+  totalRejections: number; // 🔵 総リジェクト数
+  byLayer: Record<string, number>; // 🔵 レイヤー別（content_validator/strict_mode/escape_function）
+  bySeverity: Record<string, number>; // 🔵 深刻度別（HIGH/MEDIUM）
+  byPattern: Record<string, number>; // 🔵 パターン別
+  timestamp: number; // 🔵 スナップショット時刻
+}
+
+/**
+ * エクスポートメトリクス収集結果
+ * 🔵 信頼性: src/export/export-metrics-collector.ts・Phase 116 より
+ */
+export interface ExportMetricsSummary {
+  totalExports: number; // 🔵 総エクスポート数
+  successCount: number; // 🔵 成功数
+  failureCount: number; // 🔵 失敗数
+  averageProcessingTimeMs: number; // 🔵 平均処理時間
+  byFormat: Record<string, { count: number; avgTimeMs: number }>; // 🔵 形式別統計
+  securitySnapshot: SecurityMetricsSnapshot; // 🔵 セキュリティメトリクス
 }

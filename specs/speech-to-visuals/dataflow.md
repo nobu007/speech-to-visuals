@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-06-22（第196回検証: Phase 108-109セキュリティハードening設計反映・エクスポート defense-in-depth データフロー・SecurityMetricsCollector・GuardMetricsDashboard・プロパティベースXSS テスト・CI ファジング・REQ-244~249）
+**最終更新**: 2026-08-06（第208回検証: Phase 116 Record<UnionType,T>完全性強化・Prometheus export・SecurityMetrics TTL・DiagramType 11種完全対応・ErrorType Record<ErrorType,T> enforcement・570ファイル・543テストファイル・107パッケージ・REQ-244~273）
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](requirements.md)
 
@@ -2227,4 +2227,78 @@ flowchart TD
 - プロパティベースXSS テスト: タグ×ハンドラ×ペイロード組み合わせから新規ペイロード生成（428+ cases・`PB_XSS_ITERATIONS` 環境変数）🔵 *REQ-249*
 - レッドフェーズ検証: 23個のカナリアペイロードで各検出パターンが固有カバレッジに貢献することを証明 🔵 *REQ-249*
 - CI multi-seed ファジング: `FUZZ_SEEDS=3` で3つの追加ランダムシードによる自動実行（`.github/workflows/ci.yml` security-fuzz ジョブ）🔵 *REQ-247*
+
+### 機能27: Record<UnionType,T> 完全性強制フロー（Phase 116） 🔵
+
+**信頼性**: 🔵 *src/quality/error-classifier.ts・src/analysis/llm-service.ts・src/pipeline/video-generator.ts・src/optimization/intelligent-cache.ts・src/export/multi-format-exporter.ts・Phase 116 より*
+
+**関連要件**: REQ-051, REQ-270~273
+
+**説明**: DiagramType・ErrorType の全バリアントを Record<UnionType,T> で網羅し、コンパイル時に未処理分岐を検出するデータフロー
+
+```mermaid
+flowchart TD
+    A[DiagramType 定義 11種] --> B[Record<DiagramType, T> 辞書]
+    B --> C{コンパイル時チェック}
+    C -->|全バリアントカバ済み| D[型チェック成功]
+    C -->|未カバー バリアント| E[tsc エラー: missing key]
+
+    F[ErrorType 定義 11種] --> G[Record<ErrorType, T> 辞書]
+    G --> H{コンパイル時チェック}
+    H -->|全バリアントカバ済み| I[型チェック成功]
+    H -->|未カバー バリアント| J[tsc エラー: missing key]
+
+    D --> K[実行時: switch/default不要]
+    I --> K
+    K --> L[全バリアントで明示的処理]
+    L --> M[サイレントフォールスルー防止]
+
+    style E fill:#ffcdd2
+    style J fill:#ffcdd2
+    style M fill:#c8e6c9
+```
+
+**詳細ステップ**:
+
+1. DiagramType (flow/flowchart/tree/timeline/matrix/cycle/comparison/network/conceptmap/mindmap/general) の11バリアント全てを `Record<DiagramType, T>` 辞書で網羅し、欠落キーを tsc が検出 🔵
+2. ErrorType (FILE_FORMAT_INVALID/FILE_SIZE_EXCEEDED/LLM_API_ERROR/LLM_RATE_LIMITED/LLM_TIMEOUT/RENDERING_ERROR/RENDERING_OOM/NETWORK_ERROR/STORAGE_ERROR/QUALITY_GATE_FAILED/UNKNOWN) の11バリアントも同様に `Record<ErrorType, T>` で網羅 🔵
+3. 従来の `switch (type) { default: }` パターンを `DICTIONARY[type]` 参照に置き換え、default ケースでのサイレントフォールスルーを排除 🔵
+4. 適用ファイル: error-classifier.ts, pipeline-error-guidance.ts, error-handler.ts, llm-service.ts, video-generator.ts, intelligent-cache.ts, multi-format-exporter.ts, DiagramPreview.tsx 🔵
+5. 完了テスト: `tests/unit/types/record-completeness.test.ts` で全辞書のキー網羅性を実行時検証 🔵
+
+### 機能28: Prometheus メトリクスエクスポートフロー（Phase 116） 🔵
+
+**信頼性**: 🔵 *src/export/export-metrics-collector.ts・src/monitoring/prometheus-export.ts・Phase 116 より*
+
+**関連要件**: REQ-270~273
+
+**説明**: 品質・エクスポート・セキュリティメトリクスを Prometheus text exposition 形式でエクスポートするデータフロー
+
+```mermaid
+sequenceDiagram
+    participant P as Pipeline実行
+    participant M as MetricsCollector
+    participant S as SecurityMetricsCollector
+    participant E as PrometheusExporter
+    participant H as HTTP /metrics
+
+    P->>M: recordProcessingTime / recordQualityScore
+    P->>S: recordRejection (XSS検出時)
+    M->>M: TTL-based expiration (デフォルト1h)
+    S->>S: セキュリティメトリクス蓄積
+
+    H->>E: GET /metrics
+    E->>M: collectMetrics()
+    E->>S: getSnapshot()
+    E->>E: toPrometheusText() 変換
+    E-->>H: text/plain exposition形式レスポンス
+```
+
+**詳細ステップ**:
+
+1. パイプライン実行中、ExportMetricsCollector が処理時間・品質スコア・キャッシュヒット率等を記録 🔵
+2. SecurityMetricsCollector はXSS検出パターン・レイヤー別リジェクト数を記録 🔵
+3. メトリクスはTTL（環境変数 `METRIC_TTL_HOURS`、デフォルト1時間）で自動期限切れし、メモリリークを防止 🔵
+4. `/metrics` エンドポイントで PrometheusExporter が両コレクターからデータを収集し、Prometheus text exposition形式で出力 🔵
+5. 出力例: `pipeline_processing_time_seconds_bucket`, `security_guard_rejections_total{layer,severity,pattern}` 🔵
 - クロスサービスE2E: 全3エクスポートサービス（MultiFormatExporter・ProductionExporter・EnhancedExportEngine）が同一悪意ペイロードでガードメトリクスをエミットすることを検証 🔵 *REQ-250*
