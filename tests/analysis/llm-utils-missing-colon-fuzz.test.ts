@@ -1,0 +1,406 @@
+/**
+ * Fuzz / property-based tests for parseJsonFromLLMText missing-colon repair.
+ *
+ * Strategy: generate random valid JSON objects, strip colons after keys to
+ * simulate common LLM output errors, then verify that parseJsonFromLLmText
+ * either (a) recovers the original structure (roundtrip) or (b) throws a
+ * typed LLMParsingError (never crashes with a bare TypeError / SyntaxError).
+ *
+ * Uses a deterministic mulberry32 PRNG for reproducibility.
+ * Override seed via FUZZ_SEED env var.
+ */
+
+import { parseJsonFromLLMText } from '../../src/analysis/llm-utils';
+import { LLMParsingError } from '../../src/analysis/analysis-errors';
+
+// ---------------------------------------------------------------------------
+// Deterministic PRNG (mulberry32) — reproducible fuzz runs
+// ---------------------------------------------------------------------------
+function mulberry32(seed: number): () => number {
+  let s = seed;
+  return () => {
+    s = (s + 0x6d2b79f5) | 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Random JSON value generators
+// ---------------------------------------------------------------------------
+const SAMPLE_KEYS = [
+  'name', 'id', 'type', 'value', 'data', 'config', 'items',
+  'count', 'active', 'description', 'timestamp', 'version',
+  'title', 'summary', 'nodes', 'edges', 'label', 'status',
+];
+
+const SAMPLE_STRING_VALUES = [
+  'hello', 'world', 'test', 'production', 'development',
+  'alpha', 'beta', 'gamma', 'scene-1', 'node-a',
+  '音声入力', '図解生成', '動画出力',
+];
+
+type JSONValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JSONValue[]
+  | { [key: string]: JSONValue };
+
+function randomString(rng: () => number): string {
+  return SAMPLE_STRING_VALUES[Math.floor(rng() * SAMPLE_STRING_VALUES.length)];
+}
+
+function randomNumber(rng: () => number): number {
+  const choice = Math.floor(rng() * 4);
+  switch (choice) {
+    case 0:
+      return Math.floor(rng() * 1000);
+    case 1:
+      return +(rng() * 100).toFixed(2);
+    case 2:
+      // scientific notation-worthy values
+      return Math.floor(rng() * 1e6) * (rng() > 0.5 ? 1e-5 : 1);
+    default:
+      return Math.floor(rng() * 100) * (rng() > 0.5 ? -1 : 1);
+  }
+}
+
+function randomJSONValue(rng: () => number, depth: number): JSONValue {
+  const choice = Math.floor(rng() * (depth >= 3 ? 4 : 6));
+
+  switch (choice) {
+    case 0:
+      return randomString(rng);
+    case 1:
+      return randomNumber(rng);
+    case 2:
+      return rng() > 0.5;
+    case 3:
+      return null;
+    case 4: {
+      // nested object
+      const obj: Record<string, JSONValue> = {};
+      const nKeys = 1 + Math.floor(rng() * 3);
+      for (let i = 0; i < nKeys; i++) {
+        const key = SAMPLE_KEYS[Math.floor(rng() * SAMPLE_KEYS.length)];
+        obj[`${key}_${i}`] = randomJSONValue(rng, depth + 1);
+      }
+      return obj;
+    }
+    default: {
+      // array
+      const nElems = 1 + Math.floor(rng() * 3);
+      const arr: JSONValue[] = [];
+      for (let i = 0; i < nElems; i++) {
+        arr.push(randomJSONValue(rng, depth + 1));
+      }
+      return arr;
+    }
+  }
+}
+
+function randomJSONObject(
+  rng: () => number,
+  maxKeys = 5,
+): Record<string, JSONValue> {
+  const obj: Record<string, JSONValue> = {};
+  const nKeys = 1 + Math.floor(rng() * maxKeys);
+  for (let i = 0; i < nKeys; i++) {
+    const key = SAMPLE_KEYS[Math.floor(rng() * SAMPLE_KEYS.length)];
+    obj[`${key}_${i}`] = randomJSONValue(rng, 0);
+  }
+  return obj;
+}
+
+// ---------------------------------------------------------------------------
+// Colon-stripping mutations
+// ---------------------------------------------------------------------------
+
+/**
+ * Remove colons after quoted keys in a JSON string, simulating common
+ * LLM output errors. Operates on the string level.
+ *
+ * Modes:
+ * - 'all':      strip every colon after a key
+ * - 'random':   strip each colon with ~50% probability
+ * - 'first':    strip only the first colon occurrence
+ * - 'nested':   strip colons only inside nested objects
+ */
+function stripColons(json: string, mode: string, rng: () => number): string {
+  switch (mode) {
+    case 'all':
+      // Remove colon between "key" and value (string, number, bool, null, {, [)
+      return json
+        .replace(
+          /"([^"\\]*(?:\\.[^"\\]*)*)"\s*:\s+"/g,
+          '"$1 "',
+        )
+        .replace(
+          /"([^"\\]*(?:\\.[^"\\]*)*)"\s*:\s*(true|false|null|-?\d)/g,
+          '"$1 $2',
+        )
+        .replace(/"([^"\\]*(?:\\.[^"\\]*)*)"\s*:\s*\{/g, '"$1 {')
+        .replace(/"([^"\\]*(?:\\.[^"\\]*)*)"\s*:\s*\[/g, '"$1 [');
+
+    case 'random':
+      return json.replace(
+        /"([^"\\]*(?:\\.[^"\\]*)*)"\s*:/g,
+        (match) => (rng() > 0.5 ? match.replace(':', ' ') : match),
+      );
+
+    case 'first':
+      return json.replace(
+        /"([^"\\]*(?:\\.[^"\\]*)*)"\s*:/,
+        '"$1 "',
+      );
+
+    case 'nested': {
+      // Find nested objects (after first { there's another {)
+      let depth = 0;
+      let result = '';
+      for (let i = 0; i < json.length; i++) {
+        const ch = json[i];
+        if (ch === '{') depth++;
+        if (ch === '}') depth--;
+        // Only strip colons at depth >= 2
+        if (ch === ':' && depth >= 2) {
+          result += ' ';
+        } else {
+          result += ch;
+        }
+      }
+      return result;
+    }
+
+    default:
+      return json;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+const SEED = process.env.FUZZ_SEED
+  ? parseInt(process.env.FUZZ_SEED, 10)
+  : 0x5eed1234;
+
+describe('parseJsonFromLLMText — missing-colon fuzz tests', () => {
+  describe('roundtrip correctness (all colons stripped → repaired)', () => {
+    const ITERATIONS = 200;
+    const rng = mulberry32(SEED);
+
+    for (let i = 0; i < ITERATIONS; i++) {
+      const original = randomJSONObject(rng, 4);
+      const correctJSON = JSON.stringify(original);
+      const stripped = stripColons(correctJSON, 'all', rng);
+
+      it(`iteration ${i}: all-colons-stripped object roundtrips`, () => {
+        let result: unknown;
+        let threw = false;
+        try {
+          result = parseJsonFromLLMText(stripped);
+        } catch (e) {
+          // Must throw LLMParsingError, not bare SyntaxError or TypeError
+          threw = true;
+          expect(e).toBeInstanceOf(LLMParsingError);
+        }
+        if (!threw) {
+          // If parsed, the result should deep-equal the original
+          expect(result).toEqual(original);
+        }
+      });
+    }
+  });
+
+  describe('random colon stripping roundtrips', () => {
+    const ITERATIONS = 150;
+    const rng = mulberry32(SEED + 1);
+
+    for (let i = 0; i < ITERATIONS; i++) {
+      const original = randomJSONObject(rng, 5);
+      const correctJSON = JSON.stringify(original);
+      const stripped = stripColons(correctJSON, 'random', rng);
+
+      it(`iteration ${i}: random-colons-stripped object roundtrips`, () => {
+        let result: unknown;
+        let threw = false;
+        try {
+          result = parseJsonFromLLMText(stripped);
+        } catch (e) {
+          threw = true;
+          expect(e).toBeInstanceOf(LLMParsingError);
+        }
+        if (!threw) {
+          expect(result).toEqual(original);
+        }
+      });
+    }
+  });
+
+  describe('nested-only colon stripping', () => {
+    const ITERATIONS = 100;
+    const rng = mulberry32(SEED + 2);
+
+    for (let i = 0; i < ITERATIONS; i++) {
+      // Force at least 1 level of nesting
+      const original = {
+        outer: randomJSONObject(rng, 3),
+        scalar: rng() > 0.5 ? 'value' : 42,
+      };
+      const correctJSON = JSON.stringify(original);
+      const stripped = stripColons(correctJSON, 'nested', rng);
+
+      it(`iteration ${i}: nested-colons-stripped object roundtrips`, () => {
+        let result: unknown;
+        let threw = false;
+        try {
+          result = parseJsonFromLLMText(stripped);
+        } catch (e) {
+          threw = true;
+          expect(e).toBeInstanceOf(LLMParsingError);
+        }
+        if (!threw) {
+          expect(result).toEqual(original);
+        }
+      });
+    }
+  });
+
+  describe('deeply nested structures (3+ levels)', () => {
+    const ITERATIONS = 80;
+    const rng = mulberry32(SEED + 3);
+
+    for (let i = 0; i < ITERATIONS; i++) {
+      // Build a 3-level deep object
+      const original = {
+        level0: {
+          level1: {
+            level2: randomJSONObject(rng, 3),
+            scalar: 'deep-value',
+          },
+          items: [randomJSONValue(rng, 2), randomJSONValue(rng, 2)],
+        },
+        top: 'ok',
+      };
+      const correctJSON = JSON.stringify(original);
+      const stripped = stripColons(correctJSON, 'all', rng);
+
+      it(`iteration ${i}: deeply-nested missing-colon roundtrips`, () => {
+        let result: unknown;
+        let threw = false;
+        try {
+          result = parseJsonFromLLMText(stripped);
+        } catch (e) {
+          threw = true;
+          expect(e).toBeInstanceOf(LLMParsingError);
+        }
+        if (!threw) {
+          expect(result).toEqual(original);
+        }
+      });
+    }
+  });
+
+  describe('mixed-value-type coverage', () => {
+    const ITERATIONS = 100;
+    const rng = mulberry32(SEED + 4);
+
+    for (let i = 0; i < ITERATIONS; i++) {
+      // Force all value types
+      const original: Record<string, JSONValue> = {
+        str: randomString(rng),
+        int: Math.floor(rng() * 1000),
+        float: +(rng() * 100).toFixed(3),
+        bool: rng() > 0.5,
+        nul: null,
+        arr: [randomString(rng), Math.floor(rng() * 100), rng() > 0.5],
+        obj: { nested: randomString(rng), deep: { x: 1 } },
+        sci: 1.5e3 * (rng() > 0.5 ? 1 : -1),
+      };
+      const correctJSON = JSON.stringify(original);
+      const stripped = stripColons(correctJSON, 'all', rng);
+
+      it(`iteration ${i}: mixed-types missing-colon roundtrips`, () => {
+        let result: unknown;
+        let threw = false;
+        try {
+          result = parseJsonFromLLMText(stripped);
+        } catch (e) {
+          threw = true;
+          expect(e).toBeInstanceOf(LLMParsingError);
+        }
+        if (!threw) {
+          expect(result).toEqual(original);
+        }
+      });
+    }
+  });
+
+  describe('error type safety — never bare SyntaxError or TypeError', () => {
+    const ITERATIONS = 200;
+    const rng = mulberry32(SEED + 5);
+
+    for (let i = 0; i < ITERATIONS; i++) {
+      const original = randomJSONObject(rng, 6);
+      const correctJSON = JSON.stringify(original);
+
+      // Combine multiple malformation strategies
+      let malformed = stripColons(correctJSON, 'random', rng);
+      // Sometimes also remove trailing braces
+      if (rng() > 0.7) {
+        malformed = malformed.replace(/}\s*$/, '');
+      }
+      // Sometimes add trailing commas
+      if (rng() > 0.6) {
+        malformed = malformed.replace(/"/g, (m, _idx, full) => {
+          return m; // keep quotes
+        });
+        malformed = malformed.replace(/(\w)"\s*}/, '$1",}');
+      }
+
+      it(`iteration ${i}: malformed input throws LLMParsingError`, () => {
+        try {
+          parseJsonFromLLMText(malformed);
+        } catch (e) {
+          // The key invariant: never a bare SyntaxError or TypeError leak
+          expect(e).not.toBeInstanceOf(SyntaxError);
+          expect(e).not.toBeInstanceOf(TypeError);
+          // Should be LLMParsingError or at minimum an Error
+          expect(e).toBeInstanceOf(Error);
+        }
+      });
+    }
+  });
+
+  describe('code-fence + missing-colon combination', () => {
+    const ITERATIONS = 60;
+    const rng = mulberry32(SEED + 6);
+
+    for (let i = 0; i < ITERATIONS; i++) {
+      const original = randomJSONObject(rng, 4);
+      const correctJSON = JSON.stringify(original);
+      const stripped = stripColons(correctJSON, 'all', rng);
+      // Wrap in code fence like LLM output
+      const fenced = '```json\n' + stripped + '\n```';
+
+      it(`iteration ${i}: code-fenced missing-colon roundtrips`, () => {
+        let result: unknown;
+        let threw = false;
+        try {
+          result = parseJsonFromLLMText(fenced);
+        } catch (e) {
+          threw = true;
+          expect(e).toBeInstanceOf(LLMParsingError);
+        }
+        if (!threw) {
+          expect(result).toEqual(original);
+        }
+      });
+    }
+  });
+});

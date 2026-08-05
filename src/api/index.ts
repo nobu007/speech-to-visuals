@@ -5,6 +5,9 @@ import { llmService } from '../analysis/llm-service';
 import { triggerStartupWarmup } from './startup-warmup';
 import { globalErrorRecovery } from '../quality/enhanced-error-recovery';
 import { continuousLearner } from '../framework/continuous-learner';
+import { realTimeMonitor } from '../monitoring/real-time-performance-monitor';
+import { globalDashboard } from '../monitoring/performance-dashboard';
+import { healthCheckService } from '../monitoring/health-check-service';
 
 const PORT = parseInt(process.env.PORT || '3001', 10);
 const SHUTDOWN_TIMEOUT_MS = 30_000;
@@ -32,6 +35,7 @@ async function gracefulShutdown(signal: string): Promise<void> {
   });
 
   // Clean up background services with a hard deadline
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
   try {
     await Promise.race([
       Promise.allSettled([
@@ -39,14 +43,22 @@ async function gracefulShutdown(signal: string): Promise<void> {
         Promise.resolve(continuousLearner.stopLearning()),
         Promise.resolve(jobQueue.stop()),
         Promise.resolve(artifactStore.stop()),
+        Promise.resolve(realTimeMonitor.stop()),
+        Promise.resolve(globalDashboard.destroy()),
+        Promise.resolve(healthCheckService.destroy()),
       ]),
-      new Promise<void>((_, reject) =>
-        setTimeout(() => reject(new Error('Shutdown timeout exceeded')), SHUTDOWN_TIMEOUT_MS),
-      ),
+      new Promise<void>((_, reject) => {
+        timeoutHandle = setTimeout(
+          () => reject(new Error('Shutdown timeout exceeded')),
+          SHUTDOWN_TIMEOUT_MS,
+        );
+      }),
     ]);
     logger.info('All background services shut down');
   } catch (err) {
     logger.error('Error during graceful shutdown', err);
+  } finally {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
   }
 
   process.exit(0);
