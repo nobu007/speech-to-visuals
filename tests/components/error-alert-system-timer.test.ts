@@ -1,13 +1,9 @@
 /**
- * Static-analysis test verifying ErrorAlertSystem.tsx no longer has
- * untracked setTimeout calls inside state updater functions.
+ * Static-analysis test verifying ErrorAlertSystem.tsx properly tracks
+ * and cleans up setTimeout calls to prevent timer leaks.
  *
- * Bug: setTimeout was called inside setAlerts(prev => {...}) which is a
- * React anti-pattern (side effects in reducers) and the timer was not
- * tracked for cleanup, causing potential setState-after-unmount.
- *
- * Fix: setTimeout is now called outside the state updater, tracked in a
- * useRef Set, and cleared in the useEffect cleanup function.
+ * The component uses a local Set<ReturnType<typeof setTimeout>> inside
+ * useEffect to track auto-hide timers, and clears them in cleanup.
  */
 import * as fs from 'fs';
 import * as path from 'path';
@@ -30,29 +26,26 @@ describe('ErrorAlertSystem timer leak fix', () => {
 
   it('should not call setTimeout inside a state updater function', () => {
     // The anti-pattern is: setSomething(prev => { ... setTimeout(...) ... })
-    // Check that setTimeout is NOT between setAlerts(prev => { and the matching return
     const setAlertsMatch = content.match(/setAlerts\(prev\s*=>\s*\{[\s\S]*?\}\)/);
     if (setAlertsMatch) {
       expect(setAlertsMatch[0]).not.toContain('setTimeout');
     }
   });
 
-  it('should track auto-hide timers in a ref for cleanup', () => {
-    expect(content).toContain('autoHideTimers');
-    expect(content).toMatch(/autoHideTimers\s*=\s*useRef/);
-  });
-
-  it('should clear all tracked timers in useEffect cleanup', () => {
-    expect(content).toContain('autoHideTimers.current.forEach');
-    expect(content).toContain('clearTimeout');
-    expect(content).toContain('autoHideTimers.current.clear()');
+  it('should track timers in a Set for cleanup', () => {
+    expect(content).toMatch(/Set<ReturnType<typeof setTimeout>>/);
   });
 
   it('should add timers to the tracking set when created', () => {
-    expect(content).toContain('autoHideTimers.current.add(timer)');
+    expect(content).toContain('timers.add(timer)');
   });
 
   it('should remove timers from tracking set after they fire', () => {
-    expect(content).toContain('autoHideTimers.current.delete(timer)');
+    expect(content).toContain('timers.delete(timer)');
+  });
+
+  it('should clear all tracked timers in useEffect cleanup', () => {
+    expect(content).toContain('timers.forEach');
+    expect(content).toContain('clearTimeout');
   });
 });
