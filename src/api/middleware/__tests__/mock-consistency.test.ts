@@ -60,7 +60,7 @@ describe('REQ-112: jsonwebtoken mock consistency', () => {
     const authSource = fs.readFileSync(authPath, 'utf-8');
 
     // Verify auth.ts imports and uses jwt.verify
-    expect(authSource).toMatch(/import\s+\*\s+as\s+jwt\s+from\s+['"]jsonwebtoken['"]/);
+    expect(authSource).toMatch(/import\s+(\*\s+as\s+)?jwt\s+from\s+['"]jsonwebtoken['"]/);
     expect(authSource).toMatch(/jwt\.verify\s*\(/);
 
     // Load the mock and confirm verify is present

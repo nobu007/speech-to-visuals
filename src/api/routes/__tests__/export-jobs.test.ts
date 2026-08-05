@@ -679,7 +679,6 @@ describe('Export Job Routes', () => {
     let loggerSpy: jest.SpyInstance;
 
     beforeEach(() => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { logger } = require('../../../utils/logger');
       loggerSpy = jest.spyOn(logger, 'error').mockImplementation(() => {});
     });

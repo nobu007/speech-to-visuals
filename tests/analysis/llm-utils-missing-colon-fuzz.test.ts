@@ -645,7 +645,7 @@ describe('parseJsonFromLLMText — missing-colon fuzz tests', () => {
 
     for (let i = 0; i < ITERATIONS; i++) {
       const original = randomJSONObject(rng, 4);
-      let correctJSON = JSON.stringify(original);
+      const correctJSON = JSON.stringify(original);
 
       // Apply multiple malformations simultaneously:
       // 1. Strip all colons

@@ -732,7 +732,10 @@ describe('EnhancedErrorRecovery', () => {
         const op = new Promise<string>((resolve) => {
           slowOps.push({ resolve });
         });
-        recovery.executeWithLoadBalancing(`fill-${i}`, () => op, 'analysis', 5).catch(() => {});
+        recovery.executeWithLoadBalancing(`fill-${i}`, () => op, 'analysis', 5).catch((err: unknown) => {
+          // Capacity-fill promises should never reject, but if they do we must surface it
+          throw new Error(`Unexpected rejection in capacity fill: ${err}`);
+        });
       }
 
       // Give time for active requests to register

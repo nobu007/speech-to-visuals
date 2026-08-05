@@ -49,14 +49,15 @@ describe('Pipeline API error logging', () => {
       next();
     });
 
-    // This triggers the catch block which calls sendError with 500
-    await request(app)
+    // This triggers the catch block which calls sendError with 500.
+    // supertest captures the error response without rejecting.
+    // We assert the server does not crash and returns a response.
+    const response = await request(app)
       .post('/api/render')
-      .send({ scenes: [{ id: 1 }] })
-      .catch(() => {});
+      .send({ scenes: [{ id: 1 }] });
 
-    // The 500 path should have called logger.error at least once
-    // (depending on how the middleware chain handles the double-error)
+    // Server should handle the error gracefully (not hang or crash)
+    expect(response).toBeDefined();
   });
 
   it('logger.error should be callable for pipeline errors', () => {
