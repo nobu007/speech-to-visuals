@@ -9,6 +9,7 @@
 // ---------- Mock setup for browser APIs ----------
 
 import type { TranscriptionSegment } from '../types';
+import { fireAudioMetadata, fireAudioError } from '@/utils/__tests__/audio-mock-helpers';
 
 type MockSpeechRecognitionInstance = {
   continuous: boolean;
@@ -329,11 +330,7 @@ describe('StreamingTranscriber', () => {
       const promise = transcriber.transcribeStream('/path/to/audio.mp3');
 
       // Trigger loadedmetadata to resolve getAudioDuration
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -358,11 +355,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream(mockFile);
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -383,11 +376,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3', onProgress);
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       await promise;
 
@@ -413,11 +402,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3', undefined, onSegment);
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       await promise;
 
@@ -445,11 +430,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3', undefined, onSegment);
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -465,11 +446,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/bad-audio.mp3');
 
-      setImmediate(() => {
-        if (mockAudioInstance.onerror) {
-          mockAudioInstance.onerror();
-        }
-      });
+      fireAudioError(mockAudioInstance);
 
       await expect(promise).rejects.toThrow('Streaming transcription failed: Failed to load audio file');
     });
@@ -487,11 +464,7 @@ describe('StreamingTranscriber', () => {
       // but the chunk processing has internal setTimeout that can fail
       const promise = transcriber.transcribeStream('/audio.mp3');
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       // Should complete without throwing
       const result = await promise;
@@ -511,11 +484,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/long-audio.mp3', onProgress);
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       await promise;
 
@@ -537,11 +506,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3', onProgress);
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       await promise;
 
@@ -562,11 +527,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3');
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -1231,11 +1192,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/empty.mp3');
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -1257,11 +1214,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/short.mp3');
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -1309,11 +1262,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3');
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -1332,11 +1281,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3');
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -1378,11 +1323,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3', onProgress);
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -1423,11 +1364,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3');
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -1469,11 +1406,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3', onProgress);
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       await promise;
 
@@ -1506,11 +1439,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3');
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -1560,11 +1489,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3');
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -1614,11 +1539,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3');
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -1640,11 +1561,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3');
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -1700,11 +1617,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3');
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -1725,11 +1638,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3', onProgress);
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       await promise;
 
@@ -1752,11 +1661,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3', onProgress);
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -1777,11 +1682,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3');
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -1802,11 +1703,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3');
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -1831,11 +1728,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3', onProgress);
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -2049,11 +1942,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3', onProgress);
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -2084,11 +1973,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3', undefined, onSegment);
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -2128,11 +2013,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3');
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -2169,11 +2050,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3');
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -2206,11 +2083,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3');
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -2247,11 +2120,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3');
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -2309,11 +2178,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3', onProgress);
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       // KEY: the promise must RESOLVE, not reject.
       // Without the inner try/catch the error would propagate to the outer
@@ -2365,11 +2230,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3');
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -2570,11 +2431,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3', onProgress);
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -2612,11 +2469,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3', onProgress, onSegment);
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
@@ -2647,11 +2500,7 @@ describe('StreamingTranscriber', () => {
 
       const promise = transcriber.transcribeStream('/audio.mp3', undefined, onSegment);
 
-      setImmediate(() => {
-        if (mockAudioInstance.onloadedmetadata) {
-          mockAudioInstance.onloadedmetadata();
-        }
-      });
+      fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 

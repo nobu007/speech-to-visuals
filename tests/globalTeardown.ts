@@ -5,6 +5,8 @@
  * Also logs memory usage at teardown to support maxWorkers tuning decisions.
  * The data is emitted to stderr so it doesn't interfere with --json output.
  */
+import { flushPendingTimers } from '../src/utils/__tests__/audio-mock-helpers';
+
 module.exports = async function globalTeardown() {
   // Log memory snapshot for maxWorkers capacity planning
   if (process.env.JEST_MEMORY_LOG === '1') {
@@ -16,11 +18,7 @@ module.exports = async function globalTeardown() {
     );
   }
 
-  // Allow pending microtasks and timer callbacks to flush before workers exit
-  await new Promise<void>((resolve) => {
-    // Use setImmediate to yield to any pending I/O callbacks
-    setImmediate(() => {
-      resolve();
-    });
-  });
+  // Allow pending microtasks and timer callbacks to flush before workers exit.
+  // See src/utils/__tests__/audio-mock-helpers.ts for the helper rationale.
+  await flushPendingTimers();
 };
