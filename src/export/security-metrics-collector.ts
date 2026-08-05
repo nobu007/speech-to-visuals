@@ -43,6 +43,8 @@ export interface SecurityRejectionSnapshot {
   byPattern: Array<{ pattern: string; count: number }>;
   /** Per-layer × severity matrix */
   matrix: Record<SecurityLayer, Record<Severity, number>>;
+  /** Timestamp of the oldest non-expired entry (ms since epoch), null if empty or all expired */
+  oldestEntryAt: number | null;
 }
 
 /**
@@ -50,6 +52,9 @@ export interface SecurityRejectionSnapshot {
  *
  * Each time a defense layer detects dangerous content, call `recordRejection()`.
  * The accumulated data can be exported as Prometheus text or JSON snapshot.
+ *
+ * @param maxAgeMs - Rejection entries older than this are pruned on snapshot/export.
+ *                   Default: 0 (disabled). Set to e.g. 86_400_000 for 24-hour retention.
  */
 export class SecurityMetricsCollector {
   private totalRejections = 0;
@@ -59,13 +64,30 @@ export class SecurityMetricsCollector {
     'escape-function': 0,
   };
   private bySeverity: Record<Severity, number> = { high: 0, medium: 0 };
-  /** Compound key: `${layer}\0${severity}\0${pattern}` → count */
-  private byCompoundKey = new Map<string, { layer: SecurityLayer; severity: Severity; pattern: string; count: number }>();
+  /** Compound key: `${layer}\0${severity}\0${pattern}` → aggregate */
+  private byCompoundKey = new Map<string, {
+    layer: SecurityLayer;
+    severity: Severity;
+    pattern: string;
+    count: number;
+    lastSeen: number;
+  }>();
   private matrix: Record<SecurityLayer, Record<Severity, number>> = {
     'content-validator': { high: 0, medium: 0 },
     'strict-mode-block': { high: 0, medium: 0 },
     'escape-function': { high: 0, medium: 0 },
   };
+  /** Rejection TTL in ms. 0 = disabled. */
+  private maxAgeMs: number;
+
+  constructor(maxAgeMs = 0) {
+    this.maxAgeMs = maxAgeMs;
+  }
+
+  /** Update the TTL for rejection entries. Set to 0 to disable. */
+  setMaxAge(maxAgeMs: number): void {
+    this.maxAgeMs = maxAgeMs;
+  }
 
   /**
    * Record a security guard rejection.
@@ -79,6 +101,7 @@ export class SecurityMetricsCollector {
     severity: Severity,
     patternName: string,
   ): void {
+    const now = Date.now();
     this.totalRejections++;
     this.byLayer[layer]++;
     this.bySeverity[severity]++;
@@ -88,8 +111,15 @@ export class SecurityMetricsCollector {
     const entry = this.byCompoundKey.get(key);
     if (entry) {
       entry.count++;
+      entry.lastSeen = now;
     } else {
-      this.byCompoundKey.set(key, { layer, severity, pattern: patternName, count: 1 });
+      this.byCompoundKey.set(key, {
+        layer,
+        severity,
+        pattern: patternName,
+        count: 1,
+        lastSeen: now,
+      });
     }
   }
 
@@ -105,12 +135,55 @@ export class SecurityMetricsCollector {
     }
   }
 
+  /**
+   * Remove expired entries when TTL is configured.
+   * Recalculates aggregate counters from the remaining compound-key entries.
+   */
+  private pruneExpired(): void {
+    if (this.maxAgeMs <= 0) return;
+
+    const cutoff = Date.now() - this.maxAgeMs;
+    let pruned = false;
+
+    for (const [key, entry] of this.byCompoundKey) {
+      if (entry.lastSeen < cutoff) {
+        this.byCompoundKey.delete(key);
+        pruned = true;
+      }
+    }
+
+    if (!pruned) return;
+
+    // Recalculate aggregates from remaining entries
+    this.totalRejections = 0;
+    this.byLayer = { 'content-validator': 0, 'strict-mode-block': 0, 'escape-function': 0 };
+    this.bySeverity = { high: 0, medium: 0 };
+    this.matrix = {
+      'content-validator': { high: 0, medium: 0 },
+      'strict-mode-block': { high: 0, medium: 0 },
+      'escape-function': { high: 0, medium: 0 },
+    };
+
+    for (const { layer, severity, count } of this.byCompoundKey.values()) {
+      this.totalRejections += count;
+      this.byLayer[layer] += count;
+      this.bySeverity[severity] += count;
+      this.matrix[layer][severity] += count;
+    }
+  }
+
   /** Get a snapshot of all collected security metrics. */
   getSnapshot(): SecurityRejectionSnapshot {
+    this.pruneExpired();
+
     // Aggregate by pattern name across all layers/severities for the snapshot
     const patternTotals = new Map<string, number>();
-    for (const { pattern, count } of this.byCompoundKey.values()) {
+    let oldestEntryAt: number | null = null;
+    for (const { pattern, count, lastSeen } of this.byCompoundKey.values()) {
       patternTotals.set(pattern, (patternTotals.get(pattern) ?? 0) + count);
+      if (oldestEntryAt === null || lastSeen < oldestEntryAt) {
+        oldestEntryAt = lastSeen;
+      }
     }
     const byPattern = Array.from(patternTotals.entries())
       .map(([pattern, count]) => ({ pattern, count }))
@@ -126,6 +199,7 @@ export class SecurityMetricsCollector {
         'strict-mode-block': { ...this.matrix['strict-mode-block'] },
         'escape-function': { ...this.matrix['escape-function'] },
       },
+      oldestEntryAt,
     };
   }
 
@@ -140,6 +214,8 @@ export class SecurityMetricsCollector {
    * ```
    */
   toPrometheusText(): string {
+    this.pruneExpired();
+
     const lines: string[] = [
       '# HELP security_guard_rejections_total Total content rejections by defense layer',
       '# TYPE security_guard_rejections_total counter',

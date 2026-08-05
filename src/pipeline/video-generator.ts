@@ -5,7 +5,7 @@
  */
 
 import { SimplePipelineResult } from './simple-pipeline';
-import { SceneGraph } from '@/types/diagram';
+import { SceneGraph, DiagramType } from '@/types/diagram';
 import { logger } from '../utils/logger';
 import { QualityGateError, RenderingError } from './pipeline-errors';
 import { safeArray } from '../lib/safe-array';
@@ -462,38 +462,56 @@ export class VideoGenerator {
   /**
    * ヘルパーメソッド群
    */
-  private getNodeTypeFromDiagramType(type: string): string {
-    const typeMap: { [key: string]: string } = {
+  private getNodeTypeFromDiagramType(type: DiagramType): string {
+    const typeMap: Record<DiagramType, string> = {
       flow: 'process',
+      flowchart: 'process',
       tree: 'hierarchy',
       timeline: 'event',
       matrix: 'comparison',
-      cycle: 'stage'
+      cycle: 'stage',
+      comparison: 'comparison',
+      network: 'node',
+      conceptmap: 'concept',
+      mindmap: 'idea',
+      general: 'default',
     };
-    return typeMap[type] || 'default';
+    return typeMap[type];
   }
 
-  private getColorFromDiagramType(type: string): string {
-    const colorMap: { [key: string]: string } = {
+  private getColorFromDiagramType(type: DiagramType): string {
+    const colorMap: Record<DiagramType, string> = {
       flow: '#3b82f6',     // 青
+      flowchart: '#3b82f6', // 青
       tree: '#10b981',     // 緑
       timeline: '#f59e0b', // オレンジ
       matrix: '#ef4444',   // 赤
-      cycle: '#8b5cf6'     // 紫
+      cycle: '#8b5cf6',    // 紫
+      comparison: '#ef4444', // 赤
+      network: '#06b6d4',  // シアン
+      conceptmap: '#ec4899', // ピンク
+      mindmap: '#f97316',  // オレンジ
+      general: '#6b7280',  // グレー
     };
-    return colorMap[type] || '#6b7280';
+    return colorMap[type];
   }
 
   private generateSceneTitle(scene: SceneGraph): string {
-    const typeLabels: { [key: string]: string } = {
+    const typeLabels: Record<DiagramType, string> = {
       flow: 'プロセスフロー',
+      flowchart: 'プロセスフロー',
       tree: '階層構造',
       timeline: 'タイムライン',
       matrix: '比較表',
-      cycle: '循環プロセス'
+      cycle: '循環プロセス',
+      comparison: '比較',
+      network: 'ネットワーク',
+      conceptmap: 'コンセプトマップ',
+      mindmap: 'マインドマップ',
+      general: 'ダイアグラム',
     };
 
-    const typeLabel = typeLabels[scene.type] || 'ダイアグラム';
+    const typeLabel = typeLabels[scene.type];
     return `${typeLabel} - ${scene.content.substring(0, 30)}...`;
   }
 

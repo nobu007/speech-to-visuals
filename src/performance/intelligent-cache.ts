@@ -549,12 +549,18 @@ export class IntelligentCache {
    * Predict likely diagram type
    */
   private predictDiagramType(content: string): DiagramType {
-    const indicators = {
-      'flow': ['process', 'step', 'flow', 'procedure', 'sequence'],
-      'tree': ['hierarchy', 'structure', 'organization', 'branch', 'category'],
-      'timeline': ['timeline', 'chronology', 'history', 'evolution', 'progression'],
-      'matrix': ['matrix', 'comparison', 'table', 'grid', 'relationship'],
-      'cycle': ['cycle', 'circular', 'loop', 'recurring', 'iterative']
+    const indicators: Record<DiagramType, string[]> = {
+      flow: ['process', 'step', 'flow', 'procedure', 'sequence'],
+      flowchart: ['flowchart', 'diagram', 'decision', 'branch', 'arrow'],
+      tree: ['hierarchy', 'structure', 'organization', 'branch', 'category'],
+      timeline: ['timeline', 'chronology', 'history', 'evolution', 'progression'],
+      matrix: ['matrix', 'comparison', 'table', 'grid', 'relationship'],
+      cycle: ['cycle', 'circular', 'loop', 'recurring', 'iterative'],
+      comparison: ['compare', 'versus', 'difference', 'contrast', 'better'],
+      network: ['network', 'connection', 'node', 'link', 'graph'],
+      conceptmap: ['concept', 'idea', 'relate', 'connect', 'theme'],
+      mindmap: ['mindmap', 'brainstorm', 'central', 'topic', 'branch'],
+      general: [],
     };
 
     const scores = Object.entries(indicators).map(([type, words]) => ({
