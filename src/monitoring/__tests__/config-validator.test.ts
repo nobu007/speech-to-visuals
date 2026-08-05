@@ -5,7 +5,8 @@ import {
   ValidationError,
   ValidationResult,
 } from '../config-validator';
-import * as fs from 'fs';
+
+import { logger } from '@/utils/logger';
 
 // ---------------------------------------------------------------------------
 // validateAlertRules
@@ -528,6 +529,16 @@ describe('validateGrafanaDashboard', () => {
 // ---------------------------------------------------------------------------
 
 describe('validateMonitoringConfigs', () => {
+  let warnSpy: ReturnType<typeof jest.spyOn>;
+
+  beforeEach(() => {
+    warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    warnSpy.mockRestore();
+  });
+
   it('returns errors when alert-rules.yml is not found', () => {
     const result = validateMonitoringConfigs('/nonexistent/path');
     expect(result.valid).toBe(false);
@@ -541,5 +552,19 @@ describe('validateMonitoringConfigs', () => {
     expect(result).toHaveProperty('warnings');
     expect(Array.isArray(result.errors)).toBe(true);
     expect(Array.isArray(result.warnings)).toBe(true);
+  });
+
+  it('logs warning when alert-rules.yml read fails', () => {
+    validateMonitoringConfigs('/nonexistent/path');
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('alert-rules.yml read failed')
+    );
+  });
+
+  it('logs warning when grafana-dashboard.json read fails', () => {
+    validateMonitoringConfigs('/nonexistent/path');
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('grafana-dashboard.json read failed')
+    );
   });
 });

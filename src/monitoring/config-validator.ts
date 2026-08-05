@@ -11,6 +11,7 @@
 
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { logger } from '../utils/logger';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -485,7 +486,8 @@ export function validateMonitoringConfigs(deployDir: string): ValidationResult {
   try {
     const yamlContent = readFileSync(alertRulesPath, 'utf-8');
     errors.push(...validateAlertRules(yamlContent));
-  } catch {
+  } catch (e) {
+    logger.warn(`config-validator: alert-rules.yml read failed: ${String(e)}`);
     errors.push({ file: 'alert-rules.yml', message: `File not found: ${alertRulesPath}` });
   }
 
@@ -494,7 +496,8 @@ export function validateMonitoringConfigs(deployDir: string): ValidationResult {
   try {
     const jsonContent = readFileSync(dashboardPath, 'utf-8');
     errors.push(...validateGrafanaDashboard(jsonContent));
-  } catch {
+  } catch (e) {
+    logger.warn(`config-validator: grafana-dashboard.json read failed: ${String(e)}`);
     errors.push({ file: 'grafana-dashboard.json', message: `File not found: ${dashboardPath}` });
   }
 

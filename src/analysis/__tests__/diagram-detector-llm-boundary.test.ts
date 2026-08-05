@@ -138,4 +138,21 @@ describe('DiagramDetector LLM boundary sanitization', () => {
     expect(result.confidence).toBeGreaterThanOrEqual(0);
     expect(result.confidence).toBeLessThanOrEqual(1);
   });
+
+  it('fallback type from invalid LLM output is a usable DiagramType in downstream logic', async () => {
+    geminiAccessor.gemini = mockGemini({
+      type: null as any,
+      confidence: NaN,
+    });
+
+    const result = await detector.analyze(makeSegment('テスト'));
+
+    // The sanitized type must be a string usable as an object key
+    expect(typeof result.type).toBe('string');
+    expect(result.type.length).toBeGreaterThan(0);
+
+    // The sanitized confidence must be usable in arithmetic without producing NaN
+    const computed = result.confidence * 2 + 0.1;
+    expect(Number.isFinite(computed)).toBe(true);
+  });
 });
