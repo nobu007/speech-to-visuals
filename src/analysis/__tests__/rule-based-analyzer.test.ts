@@ -10,6 +10,7 @@ import {
   RuleBasedAnalyzer,
   type SceneSegment,
 } from '../rule-based-analyzer';
+import { logger } from '@/utils/logger';
 
 describe('RuleBasedAnalyzer', () => {
   // === Test Case 1: Always returns a result ===
@@ -101,6 +102,42 @@ describe('RuleBasedAnalyzer', () => {
     it('should return false when ANALYSIS_DISABLE_GEMINI=0', () => {
       process.env.ANALYSIS_DISABLE_GEMINI = '0';
       expect(isDisabledGemini()).toBe(false);
+    });
+
+    it('should call logger.warn when process.env access throws', () => {
+      const warnSpy = jest.spyOn(logger, 'warn').mockImplementation();
+
+      // Make process.env getter throw
+      const descriptor = Object.getOwnPropertyDescriptor(process, 'env');
+      Object.defineProperty(process, 'env', {
+        get() { throw new Error('env access denied'); },
+        configurable: true,
+      });
+
+      try {
+        const result = isDisabledGemini();
+        expect(result).toBe(false);
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+        expect(warnSpy.mock.calls[0][0]).toContain('isDisabledGemini');
+      } finally {
+        // Restore original process.env
+        if (descriptor) {
+          Object.defineProperty(process, 'env', descriptor);
+        }
+      }
+
+      warnSpy.mockRestore();
+    });
+
+    it('should not call logger.warn on normal access', () => {
+      const warnSpy = jest.spyOn(logger, 'warn').mockImplementation();
+      process.env.ANALYSIS_DISABLE_GEMINI = '0';
+
+      const result = isDisabledGemini();
+      expect(result).toBe(false);
+      expect(warnSpy).not.toHaveBeenCalled();
+
+      warnSpy.mockRestore();
     });
   });
 

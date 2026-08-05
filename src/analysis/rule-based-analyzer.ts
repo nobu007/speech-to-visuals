@@ -101,7 +101,8 @@ export function isDisabledGemini(): boolean {
     return (typeof process !== 'undefined' && process.env)
       ? process.env.ANALYSIS_DISABLE_GEMINI === '1'
       : false;
-  } catch {
+  } catch (err) {
+    logger.warn('[rule-based-analyzer] process.env access failed in isDisabledGemini', err);
     return false;
   }
 }
