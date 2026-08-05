@@ -1,4 +1,4 @@
-import { SceneGraph } from '@/types/diagram';
+import { SceneGraph, DiagramType } from '@/types/diagram';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,20 +10,32 @@ type DiagramPreviewProps = {
   isRendering: boolean;
 };
 
-const typeLabels = {
+const typeLabels: Record<DiagramType, string> = {
   flow: 'フローチャート',
+  flowchart: 'フローチャート',
   tree: 'ツリー構造',
   timeline: 'タイムライン',
   matrix: 'マトリクス',
   cycle: 'サイクル図',
+  comparison: '比較図',
+  network: 'ネットワーク図',
+  conceptmap: 'コンセプトマップ',
+  mindmap: 'マインドマップ',
+  general: '汎用図',
 };
 
-const typeColors = {
+const typeColors: Record<DiagramType, string> = {
   flow: 'bg-[hsl(var(--diagram-flow))]',
+  flowchart: 'bg-[hsl(var(--diagram-flow))]',
   tree: 'bg-[hsl(var(--diagram-tree))]',
   timeline: 'bg-[hsl(var(--diagram-timeline))]',
   matrix: 'bg-[hsl(var(--diagram-matrix))]',
   cycle: 'bg-[hsl(var(--diagram-cycle))]',
+  comparison: 'bg-[hsl(var(--diagram-matrix))]',
+  network: 'bg-[hsl(var(--diagram-tree))]',
+  conceptmap: 'bg-[hsl(var(--diagram-tree))]',
+  mindmap: 'bg-[hsl(var(--diagram-tree))]',
+  general: 'bg-[hsl(var(--diagram-flow))]',
 };
 
 export const DiagramPreview = ({ scenes, onRender, isRendering }: DiagramPreviewProps) => {
