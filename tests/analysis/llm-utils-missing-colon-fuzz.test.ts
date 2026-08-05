@@ -2,7 +2,7 @@
  * Fuzz / property-based tests for parseJsonFromLLMText missing-colon repair.
  *
  * Strategy: generate random valid JSON objects, strip colons after keys to
- * simulate common LLM output errors, then verify that parseJsonFromLLmText
+ * simulate common LLM output errors, then verify that parseJsonFromLLMText
  * either (a) recovers the original structure (roundtrip) or (b) throws a
  * typed LLMParsingError (never crashes with a bare TypeError / SyntaxError).
  *
@@ -393,6 +393,152 @@ describe('parseJsonFromLLMText — missing-colon fuzz tests', () => {
         let threw = false;
         try {
           result = parseJsonFromLLMText(fenced);
+        } catch (e) {
+          threw = true;
+          expect(e).toBeInstanceOf(LLMParsingError);
+        }
+        if (!threw) {
+          expect(result).toEqual(original);
+        }
+      });
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // New: Sequential regex interaction tests — strip colons from only the
+  // first N occurrences to probe boundary between repaired/unrepaired regions.
+  // -------------------------------------------------------------------------
+  describe('partial colon stripping (first-N only)', () => {
+    const ITERATIONS = 100;
+    const rng = mulberry32(SEED + 7);
+
+    for (let i = 0; i < ITERATIONS; i++) {
+      const original = randomJSONObject(rng, 4);
+      const correctJSON = JSON.stringify(original);
+
+      // Strip exactly the first N colons
+      const nToStrip = 1 + Math.floor(rng() * 5);
+      let stripCount = 0;
+      const stripped = correctJSON.replace(
+        /"([^"\\]*(?:\\.[^"\\]*)*)"\s*:/g,
+        (match) => {
+          if (stripCount < nToStrip) {
+            stripCount++;
+            return match.replace(':', ' ');
+          }
+          return match;
+        },
+      );
+
+      it(`iteration ${i}: first-${nToStrip}-colons-stripped object roundtrips`, () => {
+        let result: unknown;
+        let threw = false;
+        try {
+          result = parseJsonFromLLMText(stripped);
+        } catch (e) {
+          threw = true;
+          expect(e).toBeInstanceOf(LLMParsingError);
+        }
+        if (!threw) {
+          expect(result).toEqual(original);
+        }
+      });
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // New: Extra whitespace around stripped colons — tests regex robustness
+  // -------------------------------------------------------------------------
+  describe('missing-colon with extra whitespace', () => {
+    const ITERATIONS = 80;
+    const rng = mulberry32(SEED + 8);
+
+    for (let i = 0; i < ITERATIONS; i++) {
+      const original = randomJSONObject(rng, 3);
+      const correctJSON = JSON.stringify(original);
+
+      // Strip colons and add extra spaces/tabs
+      const stripped = stripColons(correctJSON, 'all', rng)
+        .replace(/"([^"\\]*)\s+"/g, '"$1     "')
+        .replace(/\n/g, '  \n  ');
+
+      it(`iteration ${i}: whitespace-heavy missing-colon roundtrips`, () => {
+        let result: unknown;
+        let threw = false;
+        try {
+          result = parseJsonFromLLMText(stripped);
+        } catch (e) {
+          threw = true;
+          expect(e).toBeInstanceOf(LLMParsingError);
+        }
+        if (!threw) {
+          expect(result).toEqual(original);
+        }
+      });
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // New: Objects containing arrays with missing colons
+  // -------------------------------------------------------------------------
+  describe('arrays with missing-colon object elements', () => {
+    const ITERATIONS = 80;
+    const rng = mulberry32(SEED + 9);
+
+    for (let i = 0; i < ITERATIONS; i++) {
+      // Build object with array of sub-objects
+      const original = {
+        items: [
+          randomJSONObject(rng, 2),
+          randomJSONObject(rng, 2),
+        ],
+        metadata: {
+          count: 2,
+          label: 'test',
+        },
+      };
+      const correctJSON = JSON.stringify(original);
+      const stripped = stripColons(correctJSON, 'all', rng);
+
+      it(`iteration ${i}: array-of-objects missing-colon roundtrips`, () => {
+        let result: unknown;
+        let threw = false;
+        try {
+          result = parseJsonFromLLMText(stripped);
+        } catch (e) {
+          threw = true;
+          expect(e).toBeInstanceOf(LLMParsingError);
+        }
+        if (!threw) {
+          expect(result).toEqual(original);
+        }
+      });
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // New: Unicode/CJK key names with missing colons
+  // -------------------------------------------------------------------------
+  describe('unicode key names with missing colons', () => {
+    const ITERATIONS = 60;
+    const rng = mulberry32(SEED + 10);
+    const CJK_KEYS = ['名前', 'タイプ', '値', 'データ', '設定', 'アイテム', 'ステータス'];
+
+    for (let i = 0; i < ITERATIONS; i++) {
+      const original: Record<string, JSONValue> = {};
+      const nKeys = 2 + Math.floor(rng() * 3);
+      for (let k = 0; k < nKeys; k++) {
+        const key = CJK_KEYS[Math.floor(rng() * CJK_KEYS.length)] + '_' + k;
+        original[key] = randomJSONValue(rng, 1);
+      }
+      const correctJSON = JSON.stringify(original);
+      const stripped = stripColons(correctJSON, 'all', rng);
+
+      it(`iteration ${i}: CJK-key missing-colon roundtrips`, () => {
+        let result: unknown;
+        let threw = false;
+        try {
+          result = parseJsonFromLLMText(stripped);
         } catch (e) {
           threw = true;
           expect(e).toBeInstanceOf(LLMParsingError);

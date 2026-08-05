@@ -14,34 +14,35 @@
  * - getMetricHistory with limit
  */
 
-import { jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, jest } from '@jest/globals';
 
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
 
-jest.unstable_mockModule('../../../src/utils/memory-usage', () => ({
-  getMemoryUsage: jest.fn(() => ({
-    heapUsed: 100 * 1024 * 1024,  // 100 MB
-    heapTotal: 200 * 1024 * 1024, // 200 MB
-    rss: 300 * 1024 * 1024,
-    external: 10 * 1024 * 1024,
-  })),
+const mockGetMemoryUsage = jest.fn(() => ({
+  heapUsed: 100 * 1024 * 1024,  // 100 MB
+  heapTotal: 200 * 1024 * 1024, // 200 MB
+  rss: 300 * 1024 * 1024,
+  external: 10 * 1024 * 1024,
 }));
 
-// Import after mocks
-const { RealTimePerformanceMonitor } = await import('../../../src/monitoring/real-time-performance-monitor');
-const { getMemoryUsage } = await import('../../../src/utils/memory-usage') as { getMemoryUsage: jest.Mock };
+jest.mock('../../../src/utils/memory-usage', () => ({
+  getMemoryUsage: mockGetMemoryUsage,
+}));
 
-const mockedGetMemoryUsage = getMemoryUsage;
+const mockedGetMemoryUsage = mockGetMemoryUsage;
+
+// Lazy-loaded class
+let RealTimePerformanceMonitorClass: any;
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function createMonitor(): RealTimePerformanceMonitor {
+function createMonitor(): any {
   // Constructor skips periodic snapshot in test env (NODE_ENV=test)
-  return new (RealTimePerformanceMonitor as unknown as new () => RealTimePerformanceMonitor)();
+  return new RealTimePerformanceMonitorClass();
 }
 
 function advanceTime(ms: number): void {
@@ -53,7 +54,12 @@ function advanceTime(ms: number): void {
 // ---------------------------------------------------------------------------
 
 describe('RealTimePerformanceMonitor', () => {
-  let monitor: RealTimePerformanceMonitor;
+  let monitor: any;
+
+  beforeAll(async () => {
+    const mod = await import('../../../src/monitoring/real-time-performance-monitor');
+    RealTimePerformanceMonitorClass = mod.RealTimePerformanceMonitor;
+  });
 
   beforeEach(() => {
     jest.restoreAllMocks();
@@ -463,7 +469,7 @@ describe('RealTimePerformanceMonitor', () => {
       }
 
       const trends = monitor.analyzeTrends();
-      const processingTrend = trends.find(t => t.metric === 'processingTime');
+      const processingTrend = trends.find((t: any) => t.metric === 'processingTime');
       expect(processingTrend).toBeDefined();
       expect(processingTrend!.trend).toBe('stable');
     });
@@ -474,7 +480,7 @@ describe('RealTimePerformanceMonitor', () => {
       }
 
       const trends = monitor.analyzeTrends();
-      const processingTrend = trends.find(t => t.metric === 'processingTime');
+      const processingTrend = trends.find((t: any) => t.metric === 'processingTime');
       expect(processingTrend).toBeDefined();
       expect(processingTrend!.trend).toBe('degrading');
     });
@@ -485,7 +491,7 @@ describe('RealTimePerformanceMonitor', () => {
       }
 
       const trends = monitor.analyzeTrends();
-      const processingTrend = trends.find(t => t.metric === 'processingTime');
+      const processingTrend = trends.find((t: any) => t.metric === 'processingTime');
       expect(processingTrend!.prediction).toBeDefined();
       expect(processingTrend!.prediction.next5min).toBeGreaterThanOrEqual(0);
       expect(processingTrend!.prediction.next15min).toBeGreaterThanOrEqual(0);
@@ -498,7 +504,7 @@ describe('RealTimePerformanceMonitor', () => {
       }
 
       const trends = monitor.analyzeTrends();
-      const processingTrend = trends.find(t => t.metric === 'processingTime');
+      const processingTrend = trends.find((t: any) => t.metric === 'processingTime');
       expect(processingTrend!.confidence).toBe(0.85); // >= 20 samples
     });
 

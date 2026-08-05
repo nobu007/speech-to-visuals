@@ -49,15 +49,25 @@ jest.unstable_mockModule('../../../src/utils/logger', () => ({
   },
 }));
 
-// Import the class (not the singleton, so we get fresh instances)
-const { ProductionErrorHandler } = await import('../../../src/monitoring/production-error-handler');
+// Import the class lazily inside beforeAll (top-level await is not supported
+// by ts-jest's ESM transform — it drops the async wrapper).
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
+// Use a loose type to avoid complex conditional types
+interface ProductionErrorHandler {
+  handleError(...args: unknown[]): Promise<unknown>;
+  exportErrorReport(): string;
+  destroy(): void;
+  [key: string]: unknown;
+}
+
+let ProductionErrorHandlerClass: new () => ProductionErrorHandler;
+
 function createHandler(): ProductionErrorHandler {
-  return new ProductionErrorHandler();
+  return new ProductionErrorHandlerClass();
 }
 
 // ---------------------------------------------------------------------------
@@ -66,6 +76,11 @@ function createHandler(): ProductionErrorHandler {
 
 describe('ProductionErrorHandler (REQ-173)', () => {
   let handler: ProductionErrorHandler;
+
+  beforeAll(async () => {
+    const mod = await import('../../../src/monitoring/production-error-handler');
+    ProductionErrorHandlerClass = mod.ProductionErrorHandler;
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();

@@ -8,6 +8,7 @@ import { continuousLearner } from '../framework/continuous-learner';
 import { realTimeMonitor } from '../monitoring/real-time-performance-monitor';
 import { globalDashboard } from '../monitoring/performance-dashboard';
 import { healthCheckService } from '../monitoring/health-check-service';
+import { globalProductionMonitoring } from '../monitoring/production-monitoring-excellence';
 
 const PORT = parseInt(process.env.PORT || '3001', 10);
 const SHUTDOWN_TIMEOUT_MS = 30_000;
@@ -46,6 +47,7 @@ async function gracefulShutdown(signal: string): Promise<void> {
         Promise.resolve(realTimeMonitor.stop()),
         Promise.resolve(globalDashboard.destroy()),
         Promise.resolve(healthCheckService.destroy()),
+        Promise.resolve(globalProductionMonitoring.destroy()),
       ]),
       new Promise<void>((_, reject) => {
         timeoutHandle = setTimeout(

@@ -18,7 +18,7 @@
 import { jest } from '@jest/globals';
 
 // ---------------------------------------------------------------------------
-// Mock dependencies
+// Mock dependencies — use jest.mock (hoisted) for reliable interception
 // ---------------------------------------------------------------------------
 
 const mockGenerateContent = jest.fn();
@@ -28,13 +28,13 @@ const mockGetGenerativeModel = jest.fn(() => ({
   generateContentStream: mockGenerateContentStream,
 }));
 
-jest.unstable_mockModule('@google/generative-ai', () => ({
+jest.mock('@google/generative-ai', () => ({
   GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
     getGenerativeModel: mockGetGenerativeModel,
   })),
 }));
 
-jest.unstable_mockModule('@/analysis/llm-cache', () => {
+jest.mock('@/analysis/llm-cache', () => {
   return {
     LLMCache: jest.fn().mockImplementation(() => {
       const store = new Map<string, unknown>();
@@ -64,7 +64,8 @@ jest.unstable_mockModule('@/analysis/llm-cache', () => {
   };
 });
 
-const { LLMService } = await import('@/analysis/llm-service');
+// Defer import to beforeAll — ts-jest ESM transform does not support top-level await
+let LLMService: new (apiKey?: string) => any;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -103,6 +104,11 @@ function uniqueContext(prefix = 'ctx') {
 // ---------------------------------------------------------------------------
 // Setup / Teardown
 // ---------------------------------------------------------------------------
+
+beforeAll(async () => {
+  const mod = await import('@/analysis/llm-service');
+  LLMService = mod.LLMService;
+});
 
 beforeEach(() => {
   jest.clearAllMocks();

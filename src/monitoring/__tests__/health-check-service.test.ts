@@ -7,7 +7,7 @@
  * Note: Uses jest.unstable_mockModule for ESM-compatible mocking.
  */
 
-import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, jest } from '@jest/globals';
 
 // Define mock functions at module scope
 const mockGetSnapshot = jest.fn();
@@ -18,26 +18,25 @@ const mockLoggerError = jest.fn();
 const mockLoggerWarn = jest.fn();
 const mockLoggerInfo = jest.fn();
 
-// Use jest.unstable_mockModule for ESM-compatible mocking
-// Must use top-level await for the import that consumes the mocked modules
-jest.unstable_mockModule('../real-time-performance-monitor', () => ({
+// Use jest.mock (hoisted) for reliable module interception
+jest.mock('../real-time-performance-monitor', () => ({
   realTimeMonitor: {
     getSnapshot: mockGetSnapshot,
     analyzeTrends: mockAnalyzeTrends,
   },
 }));
 
-jest.unstable_mockModule('@/performance/intelligent-cache', () => ({
+jest.mock('@/performance/intelligent-cache', () => ({
   globalCache: {
     getStats: mockGetCacheStats,
   },
 }));
 
-jest.unstable_mockModule('@/utils/memory-usage', () => ({
+jest.mock('@/utils/memory-usage', () => ({
   getMemoryUsage: mockGetMemoryUsage,
 }));
 
-jest.unstable_mockModule('@/utils/logger', () => ({
+jest.mock('@/utils/logger', () => ({
   logger: {
     error: mockLoggerError,
     warn: mockLoggerWarn,

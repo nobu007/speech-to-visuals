@@ -16,27 +16,35 @@ jest.mock('@/utils/memory-usage', () => ({
   })),
 }));
 
-jest.mock('@/analysis/token-usage-tracker', () => ({
-  TokenUsageTracker: jest.fn().mockImplementation(() => ({
-    recordTokenUsage: jest.fn(),
-    getSummary: jest.fn(() => ({
-      totalInputTokens: 1000,
-      totalOutputTokens: 500,
-      totalTokens: 1500,
-      recordCount: 5,
+jest.mock('@/analysis/token-usage-tracker', () => {
+  const records: unknown[] = [];
+  return {
+    TokenUsageTracker: jest.fn().mockImplementation(() => ({
+      recordTokenUsage: jest.fn((data: unknown) => records.push(data)),
+      getSummary: jest.fn(() => ({
+        totalInputTokens: 1000,
+        totalOutputTokens: 500,
+        totalTokens: 1500,
+        recordCount: records.length,
+      })),
+      getRecords: jest.fn(() => records),
+      reset: jest.fn(() => { records.length = 0; }),
     })),
-    getRecords: jest.fn(() => []),
-    reset: jest.fn(),
-  })),
-}));
+  };
+});
 
 jest.mock('@/analysis/cost-estimator', () => ({
-  estimateCost: jest.fn(() => ({
-    totalCost: 0.025,
-    inputCost: 0.01,
-    outputCost: 0.015,
-    currency: 'USD',
-  })),
+  estimateCost: jest.fn((records: unknown[]) => {
+    if (!records || records.length === 0) {
+      return { totalCost: 0, inputCost: 0, outputCost: 0, currency: 'USD' };
+    }
+    return {
+      totalCost: 0.025,
+      inputCost: 0.01,
+      outputCost: 0.015,
+      currency: 'USD',
+    };
+  }),
 }));
 
 jest.mock('@/performance/intelligent-cache', () => ({

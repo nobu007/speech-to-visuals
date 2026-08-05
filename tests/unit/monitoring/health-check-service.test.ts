@@ -16,10 +16,10 @@
  * `healthCheckService` is the runtime value. We use it directly.
  */
 
-import { jest } from '@jest/globals';
+import { describe, test, expect, beforeEach, beforeAll, jest } from '@jest/globals';
 
 // ---------------------------------------------------------------------------
-// Mocks – must be before importing the system under test
+// Mocks – jest.mock hoists above imports automatically
 // ---------------------------------------------------------------------------
 
 const defaultSnapshot = {
@@ -82,26 +82,33 @@ const defaultMemory = {
   arrayBuffers: 4194304,
 };
 
-jest.unstable_mockModule('../../../src/monitoring/real-time-performance-monitor', () => ({
+const mockGetSnapshot = jest.fn().mockReturnValue(defaultSnapshot);
+const mockAnalyzeTrends = jest.fn().mockReturnValue(defaultTrends);
+const mockGetCacheStats = jest.fn().mockReturnValue(defaultCacheStats);
+const mockGetMemoryUsage = jest.fn().mockReturnValue(defaultMemory);
+
+// Use jest.mock (hoisted) instead of jest.unstable_mockModule to avoid
+// top-level await issues with ts-jest ESM transform.
+jest.mock('../../../src/monitoring/real-time-performance-monitor', () => ({
   realTimeMonitor: {
-    getSnapshot: jest.fn().mockReturnValue(defaultSnapshot),
-    analyzeTrends: jest.fn().mockReturnValue(defaultTrends),
+    getSnapshot: mockGetSnapshot,
+    analyzeTrends: mockAnalyzeTrends,
     on: jest.fn(),
     removeListener: jest.fn(),
   },
 }));
 
-jest.unstable_mockModule('../../../src/performance/intelligent-cache', () => ({
+jest.mock('../../../src/performance/intelligent-cache', () => ({
   globalCache: {
-    getStats: jest.fn().mockReturnValue(defaultCacheStats),
+    getStats: mockGetCacheStats,
   },
 }));
 
-jest.unstable_mockModule('../../../src/utils/memory-usage', () => ({
-  getMemoryUsage: jest.fn().mockReturnValue(defaultMemory),
+jest.mock('../../../src/utils/memory-usage', () => ({
+  getMemoryUsage: mockGetMemoryUsage,
 }));
 
-jest.unstable_mockModule('../../../src/utils/logger', () => ({
+jest.mock('../../../src/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -109,13 +116,13 @@ jest.unstable_mockModule('../../../src/utils/logger', () => ({
   },
 }));
 
-// Import singleton after mocks are in place
-const { healthCheckService } = await import('../../../src/monitoring/health-check-service');
+// Convenience aliases
+const realTimeMonitor = { getSnapshot: mockGetSnapshot, analyzeTrends: mockAnalyzeTrends };
+const globalCache = { getStats: mockGetCacheStats };
+const getMemoryUsage = mockGetMemoryUsage;
 
-// Re-import mock modules for per-test control
-const { realTimeMonitor } = await import('../../../src/monitoring/real-time-performance-monitor') as { realTimeMonitor: { getSnapshot: jest.Mock; analyzeTrends: jest.Mock; on: jest.Mock; removeListener: jest.Mock } };
-const { globalCache } = await import('../../../src/performance/intelligent-cache') as { globalCache: { getStats: jest.Mock } };
-const { getMemoryUsage } = await import('../../../src/utils/memory-usage') as { getMemoryUsage: jest.Mock };
+// Lazy-loaded singleton
+let healthCheckService: any;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -133,6 +140,11 @@ function resetMocks() {
 // ---------------------------------------------------------------------------
 
 describe('HealthCheckService (REQ-122)', () => {
+  beforeAll(async () => {
+    const mod = await import('../../../src/monitoring/health-check-service');
+    healthCheckService = mod.healthCheckService;
+  });
+
   beforeEach(() => {
     resetMocks();
   });
@@ -566,7 +578,7 @@ describe('HealthCheckService (REQ-122)', () => {
       });
 
       const result = await healthCheckService.performHealthCheck();
-      const memRecs = result.recommendations.filter(r => r.toLowerCase().includes('memory'));
+      const memRecs = result.recommendations.filter((r: string) => r.toLowerCase().includes('memory'));
       expect(memRecs.length).toBeGreaterThan(0);
     });
 
@@ -577,7 +589,7 @@ describe('HealthCheckService (REQ-122)', () => {
       });
 
       const result = await healthCheckService.performHealthCheck();
-      const criticalRecs = result.recommendations.filter(r => r.includes('CRITICAL'));
+      const criticalRecs = result.recommendations.filter((r: string) => r.includes('CRITICAL'));
       expect(criticalRecs.length).toBeGreaterThan(0);
     });
   });

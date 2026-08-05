@@ -123,7 +123,19 @@ class HealthCheckService {
    */
   private async checkMemoryHealth(): Promise<ComponentHealth> {
     const startTime = Date.now();
-    const memoryUsage = getMemoryUsage();
+
+    let memoryUsage;
+    try {
+      memoryUsage = getMemoryUsage();
+    } catch (err) {
+      logger?.warn?.(`[HealthCheck] Memory health check failed: ${(err as Error).message}`, err as Error);
+      return {
+        status: 'degraded',
+        message: `Memory monitoring unavailable: ${(err as Error).message}`,
+        latency: Date.now() - startTime,
+        lastChecked: Date.now(),
+      };
+    }
     const heapUsedMB = memoryUsage.heapUsed / 1024 / 1024;
     const heapTotalMB = memoryUsage.heapTotal / 1024 / 1024;
     const usagePercent = memoryUsage.heapTotal > 0
