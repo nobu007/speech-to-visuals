@@ -333,6 +333,19 @@ describe('ErrorClassifier', () => {
       expect(stats.mostCommonType).toBe('UNKNOWN');
     });
 
+    it('should return all ErrorType keys initialized to 0', () => {
+      const stats = classifier.getStatistics();
+      // Every ErrorType member must be present with value 0 (no undefined)
+      const allTypes: ErrorType[] = [
+        'FILE_FORMAT_INVALID', 'FILE_SIZE_EXCEEDED', 'LLM_API_ERROR', 'LLM_RATE_LIMITED',
+        'LLM_TIMEOUT', 'RENDERING_ERROR', 'RENDERING_OOM', 'NETWORK_ERROR', 'STORAGE_ERROR',
+        'QUALITY_GATE_FAILED', 'UNKNOWN',
+      ];
+      for (const t of allTypes) {
+        expect(stats.byType[t]).toBe(0);
+      }
+    });
+
     it('should count types correctly', () => {
       classifier.classify(new Error('network error'));
       classifier.classify(new Error('connection refused'));

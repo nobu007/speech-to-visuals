@@ -304,6 +304,111 @@ export class ExportMetricsCollector {
     return { formats, stages, totalExports, successfulExports, failedExports, queue };
   }
 
+  /**
+   * Export metrics in Prometheus text exposition format (v0.0.4).
+   *
+   * Emits:
+   * - export_operations_total{format,status} counter
+   * - export_duration_ms{format} summary (count, sum, p50, p95, p99)
+   * - export_file_size_bytes{format} summary (count, sum, p50, p95, p99)
+   * - export_stage_duration_ms{stage} summary (count, sum, p50, p95, p99)
+   * - export_queue_size gauge
+   * - export_queue_dequeue_total counter
+   * - export_queue_wait_time_ms summary
+   * - export_dlq_size gauge
+   * - export_retries_total counter
+   * - export_dead_lettered_total counter
+   * - export_replayed_total counter
+   */
+  toPrometheusText(): string {
+    const snap = this.getSnapshot();
+    const lines: string[] = [];
+
+    // -- export_operations_total --
+    lines.push('# HELP export_operations_total Total export operations by format and status');
+    lines.push('# TYPE export_operations_total counter');
+    for (const f of snap.formats) {
+      lines.push(`export_operations_total{format="${f.format}",status="success"} ${f.successfulExports}`);
+      lines.push(`export_operations_total{format="${f.format}",status="failure"} ${f.failedExports}`);
+    }
+
+    // -- export_duration_ms --
+    lines.push('');
+    lines.push('# HELP export_duration_ms Export duration in ms by format');
+    lines.push('# TYPE export_duration_ms summary');
+    for (const f of snap.formats) {
+      lines.push(`export_duration_ms{format="${f.format}",quantile="0.5"} ${f.duration.percentiles.p50}`);
+      lines.push(`export_duration_ms{format="${f.format}",quantile="0.95"} ${f.duration.percentiles.p95}`);
+      lines.push(`export_duration_ms{format="${f.format}",quantile="0.99"} ${f.duration.percentiles.p99}`);
+      lines.push(`export_duration_ms_count{format="${f.format}"} ${f.duration.count}`);
+      lines.push(`export_duration_ms_sum{format="${f.format}"} ${f.duration.sumMs}`);
+    }
+
+    // -- export_file_size_bytes --
+    lines.push('');
+    lines.push('# HELP export_file_size_bytes Exported file size in bytes by format');
+    lines.push('# TYPE export_file_size_bytes summary');
+    for (const f of snap.formats) {
+      lines.push(`export_file_size_bytes{format="${f.format}",quantile="0.5"} ${f.fileSize.percentiles.p50}`);
+      lines.push(`export_file_size_bytes{format="${f.format}",quantile="0.95"} ${f.fileSize.percentiles.p95}`);
+      lines.push(`export_file_size_bytes{format="${f.format}",quantile="0.99"} ${f.fileSize.percentiles.p99}`);
+      lines.push(`export_file_size_bytes_count{format="${f.format}"} ${f.fileSize.count}`);
+      lines.push(`export_file_size_bytes_sum{format="${f.format}"} ${f.fileSize.sum}`);
+    }
+
+    // -- export_stage_duration_ms --
+    lines.push('');
+    lines.push('# HELP export_stage_duration_ms Export stage duration in ms');
+    lines.push('# TYPE export_stage_duration_ms summary');
+    for (const s of snap.stages) {
+      lines.push(`export_stage_duration_ms{stage="${s.stage}",quantile="0.5"} ${s.percentiles.p50}`);
+      lines.push(`export_stage_duration_ms{stage="${s.stage}",quantile="0.95"} ${s.percentiles.p95}`);
+      lines.push(`export_stage_duration_ms{stage="${s.stage}",quantile="0.99"} ${s.percentiles.p99}`);
+      lines.push(`export_stage_duration_ms_count{stage="${s.stage}"} ${s.count}`);
+      lines.push(`export_stage_duration_ms_sum{stage="${s.stage}"} ${s.sumMs}`);
+    }
+
+    // -- Queue metrics --
+    lines.push('');
+    lines.push('# HELP export_queue_size Current export queue size');
+    lines.push('# TYPE export_queue_size gauge');
+    lines.push(`export_queue_size ${snap.queue.queueSize}`);
+
+    lines.push('');
+    lines.push('# HELP export_queue_dequeue_total Total dequeues by priority');
+    lines.push('# TYPE export_queue_dequeue_total counter');
+    lines.push(`export_queue_dequeue_total{priority="high"} ${snap.queue.dequeueByPriority.high}`);
+    lines.push(`export_queue_dequeue_total{priority="normal"} ${snap.queue.dequeueByPriority.normal}`);
+    lines.push(`export_queue_dequeue_total{priority="low"} ${snap.queue.dequeueByPriority.low}`);
+
+    lines.push('');
+    lines.push('# HELP export_queue_wait_time_ms Queue wait time in ms');
+    lines.push('# TYPE export_queue_wait_time_ms gauge');
+    lines.push(`export_queue_wait_time_ms ${snap.queue.avgWaitTimeMs}`);
+
+    lines.push('');
+    lines.push('# HELP export_dlq_size Current dead letter queue size');
+    lines.push('# TYPE export_dlq_size gauge');
+    lines.push(`export_dlq_size ${snap.queue.dlqSize}`);
+
+    lines.push('');
+    lines.push('# HELP export_retries_total Total retry attempts');
+    lines.push('# TYPE export_retries_total counter');
+    lines.push(`export_retries_total ${snap.queue.totalRetries}`);
+
+    lines.push('');
+    lines.push('# HELP export_dead_lettered_total Total jobs moved to dead letter queue');
+    lines.push('# TYPE export_dead_lettered_total counter');
+    lines.push(`export_dead_lettered_total ${snap.queue.totalDeadLettered}`);
+
+    lines.push('');
+    lines.push('# HELP export_replayed_total Total jobs replayed from dead letter queue');
+    lines.push('# TYPE export_replayed_total counter');
+    lines.push(`export_replayed_total ${snap.queue.totalReplayed}`);
+
+    return lines.join('\n');
+  }
+
   /** Reset all collected metrics. */
   reset(): void {
     this.formats.clear();

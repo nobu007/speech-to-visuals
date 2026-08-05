@@ -45,7 +45,7 @@ export interface ClassifyContext {
 
 export interface ClassificationStatistics {
   total: number;
-  byType: Partial<Record<ErrorType, number>>;
+  byType: Record<ErrorType, number>;
   mostCommonType: ErrorType;
 }
 
@@ -53,6 +53,18 @@ export interface ClassificationStatistics {
  * Maps error types to their default severity, recoverability,
  * user message, and suggested action.
  */
+const ALL_ERROR_TYPES: readonly ErrorType[] = [
+  'FILE_FORMAT_INVALID', 'FILE_SIZE_EXCEEDED', 'LLM_API_ERROR', 'LLM_RATE_LIMITED',
+  'LLM_TIMEOUT', 'RENDERING_ERROR', 'RENDERING_OOM', 'NETWORK_ERROR', 'STORAGE_ERROR',
+  'QUALITY_GATE_FAILED', 'UNKNOWN',
+];
+
+function createEmptyByType(): Record<ErrorType, number> {
+  const obj = {} as Record<ErrorType, number>;
+  for (const t of ALL_ERROR_TYPES) obj[t] = 0;
+  return obj;
+}
+
 const ERROR_PROFILES: Record<ErrorType, {
   severity: ErrorSeverity;
   recoverable: boolean;
@@ -242,18 +254,18 @@ export class ErrorClassifier {
    */
   getStatistics(): ClassificationStatistics {
     const total = this.classificationHistory.length;
-    const byType: Partial<Record<ErrorType, number>> = {};
+    const byType = createEmptyByType();
 
     for (const classified of this.classificationHistory) {
-      byType[classified.type] = (byType[classified.type] || 0) + 1;
+      byType[classified.type]++;
     }
 
     let mostCommonType: ErrorType = 'UNKNOWN';
     let maxCount = 0;
-    for (const [type, count] of Object.entries(byType)) {
-      if (count! > maxCount) {
-        maxCount = count!;
-        mostCommonType = type as ErrorType;
+    for (const type of ALL_ERROR_TYPES) {
+      if (byType[type] > maxCount) {
+        maxCount = byType[type];
+        mostCommonType = type;
       }
     }
 

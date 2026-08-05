@@ -193,4 +193,60 @@ describe('ExportMetricsCollector', () => {
       expect(mp4!.duration.percentiles.p50).toBeGreaterThan(0);
     });
   });
+
+  describe('toPrometheusText', () => {
+    it('returns empty-but-valid Prometheus text for fresh collector', () => {
+      const text = collector.toPrometheusText();
+      expect(text).toContain('# HELP export_queue_size');
+      expect(text).toContain('export_queue_size 0');
+      expect(text).toContain('export_dlq_size 0');
+      expect(text).toContain('export_retries_total 0');
+    });
+
+    it('includes format-specific counters and summaries', () => {
+      collector.recordExport('mp4', 'success', 5000, 1000000);
+      collector.recordExport('mp4', 'failure', 2000);
+      collector.recordExport('webm', 'success', 3000, 500000);
+      const text = collector.toPrometheusText();
+
+      // Counter lines
+      expect(text).toContain('export_operations_total{format="mp4",status="success"} 1');
+      expect(text).toContain('export_operations_total{format="mp4",status="failure"} 1');
+      expect(text).toContain('export_operations_total{format="webm",status="success"} 1');
+
+      // Duration summary
+      expect(text).toContain('export_duration_ms{format="mp4",quantile="0.5"}');
+      expect(text).toContain('export_duration_ms_count{format="mp4"} 2');
+
+      // File size summary (only for success)
+      expect(text).toContain('export_file_size_bytes_count{format="mp4"} 1');
+      expect(text).toContain('export_file_size_bytes_sum{format="mp4"} 1000000');
+    });
+
+    it('includes stage duration summaries', () => {
+      collector.recordStageDuration('rendering', 2000);
+      collector.recordStageDuration('encoding', 1000);
+      const text = collector.toPrometheusText();
+      expect(text).toContain('export_stage_duration_ms{stage="rendering"');
+      expect(text).toContain('export_stage_duration_ms{stage="encoding"');
+    });
+
+    it('includes queue metrics', () => {
+      collector.recordQueueSize(5);
+      collector.recordQueueDequeue('high');
+      collector.recordQueueWaitTimeMs(100);
+      collector.recordDlqSize(3);
+      collector.recordRetry();
+      collector.recordDeadLetter();
+      collector.recordReplay();
+      const text = collector.toPrometheusText();
+
+      expect(text).toContain('export_queue_size 5');
+      expect(text).toContain('export_queue_dequeue_total{priority="high"} 1');
+      expect(text).toContain('export_dlq_size 3');
+      expect(text).toContain('export_retries_total 1');
+      expect(text).toContain('export_dead_lettered_total 1');
+      expect(text).toContain('export_replayed_total 1');
+    });
+  });
 });
