@@ -324,7 +324,11 @@ describe('SpeechToVisualsVideo component', () => {
     const { container } = render(
       React.createElement(SpeechToVisualsVideo, { scenes })
     );
-    expect(container.firstChild).toBeTruthy();
+    // Verify the AbsoluteFill wrapper renders with the default background
+    const outerDiv = container.querySelector('[data-testid="absolute-fill"]');
+    expect(outerDiv).toBeTruthy();
+    // The default backgroundColor '#0f0f23' should be applied inline
+    expect((outerDiv as HTMLElement).style.backgroundColor).toBe('rgb(15, 15, 35)');
   });
 });
 
