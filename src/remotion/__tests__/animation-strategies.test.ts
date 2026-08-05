@@ -1,6 +1,7 @@
 /**
  * Tests for animation-strategies.ts
- * 5 diagram type animation strategies: flow, tree, timeline, matrix, cycle
+ * 11 diagram types mapped to 5 base strategies:
+ *   flow, tree, timeline, matrix, cycle (+ aliases)
  */
 
 import {

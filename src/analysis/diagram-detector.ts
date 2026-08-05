@@ -365,7 +365,25 @@ export class DiagramDetector {
         secondary: ['connected', 'association', 'relationship', 'hub', 'cluster', 'peer', 'topology'],
         context: ['system', 'infrastructure', 'architecture', 'endpoint'],
         negative: ['process', 'step', 'timeline', 'history']
-      }
+      },
+      conceptmap: {
+        primary: ['concept map', 'concept', 'proposition', 'knowledge map'],
+        secondary: ['relates', 'connected', 'linked', 'depends on', 'influences', 'associated'],
+        context: ['theory', 'model', 'framework', 'understanding'],
+        negative: ['process', 'timeline', 'cycle']
+      },
+      mindmap: {
+        primary: ['mind map', 'brainstorm', 'mindmap', 'radial'],
+        secondary: ['central', 'branch', 'topic', 'subtopic', 'idea', 'thought'],
+        context: ['organize', 'structure', 'expand', 'creative'],
+        negative: ['comparison', 'versus', 'timeline']
+      },
+      general: {
+        primary: ['diagram', 'chart', 'illustration', 'visual', 'schematic'],
+        secondary: ['represent', 'depict', 'show', 'display', 'visualize'],
+        context: ['data', 'information', 'structure', 'overview'],
+        negative: []
+      },
     };
 
     // Calculate weighted scores for each diagram type
@@ -1485,12 +1503,18 @@ export class DiagramDetector {
   private async testTypeAppropriateness(analysis: DiagramAnalysis, segment: ContentSegment): Promise<{ passed: boolean; score: number; name: string }> {
     // Test if the detected type is appropriate for the content
     const text = (segment.summary || segment.text || '').toLowerCase();
-    const typeKeywords = {
+    const typeKeywords: Record<DiagramType, string[]> = {
       flow: ['process', 'step', 'flow', 'procedure'],
+      flowchart: ['flowchart', 'decision', 'branch', 'condition'],
       tree: ['hierarchy', 'structure', 'tree', 'branch'],
       timeline: ['time', 'sequence', 'history', 'chronological'],
       matrix: ['compare', 'matrix', 'grid', 'table'],
-      cycle: ['cycle', 'loop', 'circular', 'iterative']
+      cycle: ['cycle', 'loop', 'circular', 'iterative'],
+      comparison: ['compare', 'versus', 'pros', 'cons'],
+      network: ['network', 'graph', 'node', 'connection'],
+      conceptmap: ['concept', 'relate', 'connect', 'associate'],
+      mindmap: ['mindmap', 'brainstorm', 'central', 'topic'],
+      general: ['diagram', 'chart', 'visual', 'overview'],
     };
 
     const safeType = sanitizeDiagramType(analysis.type);

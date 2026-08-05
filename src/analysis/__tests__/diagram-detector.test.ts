@@ -717,4 +717,125 @@ describe('TASK-0021: DiagramDetector', () => {
       expect(result.confidence).toBeGreaterThan(0);
     });
   });
+
+  // -----------------------------------------------------------------------
+  // Extended diagram type detection: conceptmap, mindmap, general
+  // These types were previously missing from ruleBasedDetection patterns
+  // -----------------------------------------------------------------------
+  describe('Conceptmap type detection', () => {
+    it('should detect conceptmap from concept/relationship text (English)', () => {
+      const segments = [
+        makeSegment('This concept map illustrates how ideas relate and connect. The knowledge map shows dependencies and influences in the theoretical framework.'),
+      ];
+
+      const result = detector.detect(null, segments);
+
+      expect(result.primaryType).toBe('conceptmap');
+      expect(result.confidence).toBeGreaterThanOrEqual(0.3);
+    });
+
+    it('should detect conceptmap from Japanese concept text', () => {
+      const segments = [
+        makeSegment('コンセプトマップは概念図として知識マップを表現します。各要素が関連し、依存や影響を結びつけます。'),
+      ];
+
+      const result = detector.detect(null, segments);
+
+      expect(result.primaryType).toBe('conceptmap');
+      expect(result.confidence).toBeGreaterThanOrEqual(0.3);
+    });
+
+    it('should generate conceptmap nodes via analyze()', async () => {
+      const segment = makeSegment('The concept map shows how the theoretical model relates to the framework. Concepts are connected and associated within the knowledge structure.');
+      const result = await detector.analyze(segment);
+
+      expect(result.type).toBe('conceptmap');
+      expect(result.nodes.length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  describe('Mindmap type detection', () => {
+    it('should detect mindmap from brainstorm/central text (English)', () => {
+      const segments = [
+        makeSegment('This mind map brainstorm expands from the central topic. Each branch covers a subtopic with related ideas and thoughts.'),
+      ];
+
+      const result = detector.detect(null, segments);
+
+      expect(result.primaryType).toBe('mindmap');
+      expect(result.confidence).toBeGreaterThanOrEqual(0.3);
+    });
+
+    it('should detect mindmap from Japanese brainstorm text', () => {
+      const segments = [
+        makeSegment('マインドマップでブレインストーミングを行います。中心となるトピックから枝が広がり、サブトピックやアイデアを連想します。'),
+      ];
+
+      const result = detector.detect(null, segments);
+
+      expect(result.primaryType).toBe('mindmap');
+      expect(result.confidence).toBeGreaterThanOrEqual(0.3);
+    });
+
+    it('should generate mindmap nodes via analyze()', async () => {
+      const segment = makeSegment('The mind map starts from a central topic and branches into subtopics. Each branch expands with creative ideas and thoughts.');
+      const result = await detector.analyze(segment);
+
+      expect(result.type).toBe('mindmap');
+      expect(result.nodes.length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  describe('General type detection', () => {
+    it('should detect general from generic diagram/visual text', () => {
+      const segments = [
+        makeSegment('This diagram is a visual schematic that depicts and illustrates the overall chart representation of the data.'),
+      ];
+
+      const result = detector.detect(null, segments);
+
+      expect(result.primaryType).toBe('general');
+    });
+
+    it('should generate general nodes via analyze()', async () => {
+      const segment = makeSegment('The diagram illustrates and depicts a visual schematic showing an overview of the chart and its representation.');
+      const result = await detector.analyze(segment);
+
+      expect(result.type).toBe('general');
+      expect(result.nodes.length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Edge generation topology tests for all diagram types
+  // Verifies generateEdgesForType produces correct structure per type
+  // -----------------------------------------------------------------------
+  describe('Edge generation topology by diagram type', () => {
+    it('should generate hub-and-spoke edges for mindmap (like tree)', async () => {
+      const segment = makeSegment('The mind map has a central topic with branches. Branch one, branch two, branch three, branch four.');
+      const result = await detector.analyze(segment);
+
+      // mindmap should have node_0 as hub connecting to others
+      const hubEdges = result.edges.filter(e => e.from === 'node_0');
+      expect(hubEdges.length).toBeGreaterThan(0);
+    });
+
+    it('should generate cross-link edges for network', async () => {
+      const segment = makeSegment('The network shows connected nodes. Hub A links to peers. The cluster topology has mesh connections between graph endpoints.');
+      const result = await detector.analyze(segment);
+
+      // network should have more complex edge structure than simple chain
+      const fromNodes = new Set(result.edges.map(e => e.from));
+      expect(fromNodes.size).toBeGreaterThan(1);
+    });
+
+    it('should generate comparison edges for comparison type', async () => {
+      const segment = makeSegment('Comparing the pros and cons: A is superior with advantages, but B has different strengths and fewer weaknesses. The differences are clear.');
+      const result = await detector.analyze(segment);
+
+      // comparison should have 'compared to' edge labels
+      const compareEdges = result.edges.filter(e => e.label === 'compared to');
+      expect(compareEdges.length).toBeGreaterThan(0);
+    });
+  });
 });

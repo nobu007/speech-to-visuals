@@ -1,6 +1,7 @@
 /**
  * Animation Strategies for Diagram Types
- * 5 diagram type strategies: flow, tree, timeline, matrix, cycle
+ * 11 diagram type strategies mapped to 5 base animation patterns:
+ *   flow, tree, timeline, matrix, cycle (+ aliases for extended types)
  * Each strategy defines how nodes and edges animate based on diagram type.
  */
 
