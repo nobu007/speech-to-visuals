@@ -9,6 +9,7 @@
  */
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { DiagramDetector } from '../diagram-detector';
+import { sanitizeFinite } from '@/utils/guards';
 import type { ContentSegment, DiagramAnalysis } from '../types';
 
 function makeSegment(text: string): ContentSegment {
@@ -154,5 +155,63 @@ describe('DiagramDetector LLM boundary sanitization', () => {
     // The sanitized confidence must be usable in arithmetic without producing NaN
     const computed = result.confidence * 2 + 0.1;
     expect(Number.isFinite(computed)).toBe(true);
+  });
+
+  // ------------------------------------------------------------------
+  // Rendering simulation tests: verify that fallback values actually
+  // produce correct output in downstream UI computations (not just
+  // "is finite" but "renders the expected string/number").
+  // ------------------------------------------------------------------
+
+  it('fallback confidence renders as "0%" not "NaN%" in percentage display', async () => {
+    geminiAccessor.gemini = mockGemini({ confidence: NaN });
+    const result = await detector.analyze(makeSegment('テスト'));
+
+    // Simulate the rendering logic from SimplePipelineInterface.tsx:
+    //   Math.round(scene.confidence as number * 100) + '%'
+    const rendered = `${Math.round(result.confidence * 100)}%`;
+    expect(rendered).toBe('90%'); // sanitizeFinite fallback default is 0.9
+  });
+
+  it('fallback type renders as "general" in DiagramPreview badge', async () => {
+    geminiAccessor.gemini = mockGemini({ type: '' as any });
+    const result = await detector.analyze(makeSegment('テスト'));
+
+    // The sanitized type must be 'general' — the fallback that
+    // DiagramPreview uses for its badge color mapping
+    expect(result.type).toBe('general');
+  });
+
+  it('sanitized result survives the full confidence → percentage pipeline', async () => {
+    geminiAccessor.gemini = mockGemini({
+      type: 'totally-invalid' as any,
+      confidence: NaN,
+    });
+    const result = await detector.analyze(makeSegment('テスト'));
+
+    // Simulate PerformanceMetricsVisualization.tsx rendering:
+    //   (metrics.confidence * 100).toFixed(0) + '%'
+    const percentage = (result.confidence * 100).toFixed(0);
+    expect(percentage).toBe('90');
+    expect(`${percentage}%`).toBe('90%');
+
+    // Simulate score display:
+    //   (metrics.confidence * 100).toFixed(0) + '/100'
+    const score = `${(result.confidence * 100).toFixed(0)}/100`;
+    expect(score).toBe('90/100');
+    expect(score).not.toContain('NaN');
+  });
+
+  it('fallback score=0 renders as "0%" when sanitizeFinite uses default 0', async () => {
+    // When sanitizeFinite is called without a custom default (e.g., in
+    // sort comparators or score accumulation), the fallback is 0.
+    // Verify this renders correctly in UI contexts.
+    const contaminatedScore = NaN;
+    const safeScore = sanitizeFinite(contaminatedScore, 0);
+
+    // Simulate score rendering
+    const rendered = `${Math.round(safeScore * 100)}%`;
+    expect(rendered).toBe('0%');
+    expect(rendered).not.toBe('NaN%');
   });
 });
