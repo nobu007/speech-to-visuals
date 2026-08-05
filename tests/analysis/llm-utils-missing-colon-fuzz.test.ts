@@ -64,8 +64,11 @@ function randomNumber(rng: () => number): number {
     case 2:
       // scientific notation-worthy values
       return Math.floor(rng() * 1e6) * (rng() > 0.5 ? 1e-5 : 1);
-    default:
-      return Math.floor(rng() * 100) * (rng() > 0.5 ? -1 : 1);
+    default: {
+      // Add 1 to avoid producing -0 (JSON.stringify converts -0 to "0")
+      const v = Math.floor(rng() * 100) * (rng() > 0.5 ? -1 : 1);
+      return v === 0 ? 0 : v; // normalize -0 to 0
+    }
   }
 }
 
@@ -544,6 +547,240 @@ describe('parseJsonFromLLMText — missing-colon fuzz tests', () => {
           expect(e).toBeInstanceOf(LLMParsingError);
         }
         if (!threw) {
+          expect(result).toEqual(original);
+        }
+      });
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // Alternating colon stripping — probes regex interaction boundaries
+  // -------------------------------------------------------------------------
+  describe('alternating colon stripping (odd/even pattern)', () => {
+    const ITERATIONS = 100;
+    const rng = mulberry32(SEED + 11);
+
+    for (let i = 0; i < ITERATIONS; i++) {
+      const original = randomJSONObject(rng, 6);
+      const correctJSON = JSON.stringify(original);
+
+      // Strip colons at odd positions only (1st, 3rd, 5th, ...)
+      let count = 0;
+      const stripped = correctJSON.replace(
+        /"([^"\\]*(?:\\.[^"\\]*)*)"\s*:/g,
+        (match) => {
+          count++;
+          if (count % 2 === 1) {
+            return match.replace(':', ' ');
+          }
+          return match;
+        },
+      );
+
+      it(`iteration ${i}: odd-position colon stripping roundtrips`, () => {
+        let result: unknown;
+        let threw = false;
+        try {
+          result = parseJsonFromLLMText(stripped);
+        } catch (e) {
+          threw = true;
+          expect(e).toBeInstanceOf(LLMParsingError);
+        }
+        if (!threw) {
+          expect(result).toEqual(original);
+        }
+      });
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // Objects inside arrays inside objects — stress sequential regex ordering
+  // -------------------------------------------------------------------------
+  describe('alternating object/array nesting with missing colons', () => {
+    const ITERATIONS = 80;
+    const rng = mulberry32(SEED + 12);
+
+    for (let i = 0; i < ITERATIONS; i++) {
+      const original = {
+        matrix: [
+          {
+            row: [
+              { cell: randomJSONValue(rng, 0), id: Math.floor(rng() * 100) },
+              { cell: randomJSONValue(rng, 0), id: Math.floor(rng() * 100) },
+            ],
+          },
+          {
+            row: [
+              { cell: randomJSONValue(rng, 0), id: Math.floor(rng() * 100) },
+            ],
+          },
+        ],
+        meta: { count: 2, label: 'test' },
+      };
+      const correctJSON = JSON.stringify(original);
+      const stripped = stripColons(correctJSON, 'all', rng);
+
+      it(`iteration ${i}: obj-array-obj nesting missing-colon roundtrips`, () => {
+        let result: unknown;
+        let threw = false;
+        try {
+          result = parseJsonFromLLMText(stripped);
+        } catch (e) {
+          threw = true;
+          expect(e).toBeInstanceOf(LLMParsingError);
+        }
+        if (!threw) {
+          expect(result).toEqual(original);
+        }
+      });
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // Combined malformations: missing colons + trailing commas + single quotes
+  // -------------------------------------------------------------------------
+  describe('combined malformations (colon + comma + quotes)', () => {
+    const ITERATIONS = 100;
+    const rng = mulberry32(SEED + 13);
+
+    for (let i = 0; i < ITERATIONS; i++) {
+      const original = randomJSONObject(rng, 4);
+      let correctJSON = JSON.stringify(original);
+
+      // Apply multiple malformations simultaneously:
+      // 1. Strip all colons
+      let malformed = stripColons(correctJSON, 'all', rng);
+
+      // 2. With ~30% chance, add trailing commas before closing brackets
+      if (rng() > 0.7) {
+        malformed = malformed.replace(/(\w)"\s*([}\]])/g, '$1",');
+      }
+
+      // 3. With ~30% chance, swap some double quotes to single quotes
+      if (rng() > 0.7) {
+        malformed = malformed.replace(/"/g, (m, _idx: number, full: string) => {
+          // Only swap ~20% of quotes
+          return rng() > 0.8 ? "'" : m;
+        });
+      }
+
+      it(`iteration ${i}: combined-malformation roundtrips or throws typed error`, () => {
+        try {
+          const result = parseJsonFromLLMText(malformed);
+          // If it parses, it must deep-equal the original
+          expect(result).toEqual(original);
+        } catch (e) {
+          // Must throw LLMParsingError, never bare SyntaxError or TypeError
+          expect(e).not.toBeInstanceOf(SyntaxError);
+          expect(e).not.toBeInstanceOf(TypeError);
+          expect(e).toBeInstanceOf(Error);
+        }
+      });
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // Edge-case keys: empty, numeric, special characters
+  // -------------------------------------------------------------------------
+  describe('edge-case key names with missing colons', () => {
+    const ITERATIONS = 80;
+    const rng = mulberry32(SEED + 14);
+
+    const EDGE_KEYS = [
+      '', 'a', '1', '123', 'key.with.dots', 'key-with-dashes',
+      'key with spaces', 'UPPER', 'Mixed_Case',
+    ];
+
+    for (let i = 0; i < ITERATIONS; i++) {
+      const original: Record<string, JSONValue> = {};
+      const nKeys = 2 + Math.floor(rng() * 3);
+      for (let k = 0; k < nKeys; k++) {
+        const key = EDGE_KEYS[Math.floor(rng() * EDGE_KEYS.length)] + '_' + k;
+        original[key] = randomJSONValue(rng, 1);
+      }
+      const correctJSON = JSON.stringify(original);
+      const stripped = stripColons(correctJSON, 'all', rng);
+
+      it(`iteration ${i}: edge-case-key missing-colon roundtrips`, () => {
+        let result: unknown;
+        let threw = false;
+        try {
+          result = parseJsonFromLLMText(stripped);
+        } catch (e) {
+          threw = true;
+          expect(e).toBeInstanceOf(LLMParsingError);
+        }
+        if (!threw) {
+          expect(result).toEqual(original);
+        }
+      });
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // Very large flat objects (20+ keys) — stress tests regex global replace
+  // -------------------------------------------------------------------------
+  describe('large flat objects with all colons stripped', () => {
+    const ITERATIONS = 40;
+    const rng = mulberry32(SEED + 15);
+
+    for (let i = 0; i < ITERATIONS; i++) {
+      const original = randomJSONObject(rng, 20);
+      const correctJSON = JSON.stringify(original);
+      const stripped = stripColons(correctJSON, 'all', rng);
+
+      it(`iteration ${i}: large-flat-object missing-colon roundtrips`, () => {
+        let result: unknown;
+        let threw = false;
+        try {
+          result = parseJsonFromLLMText(stripped);
+        } catch (e) {
+          threw = true;
+          expect(e).toBeInstanceOf(LLMParsingError);
+        }
+        if (!threw) {
+          expect(result).toEqual(original);
+        }
+      });
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // Strict roundtrip invariant: parsed result MUST deep-equal original
+  // (no partial recovery allowed — if it parses, it must be correct)
+  // -------------------------------------------------------------------------
+  describe('strict roundtrip invariant (random + nested stripping combined)', () => {
+    const ITERATIONS = 150;
+    const rng = mulberry32(SEED + 16);
+
+    for (let i = 0; i < ITERATIONS; i++) {
+      // Build complex structure
+      const original: Record<string, JSONValue> = {
+        a: randomJSONValue(rng, 0),
+        b: { c: randomJSONValue(rng, 1), d: [randomJSONValue(rng, 2), randomJSONValue(rng, 2)] },
+        e: null,
+        f: rng() > 0.5 ? true : false,
+        g: randomNumber(rng),
+      };
+
+      const correctJSON = JSON.stringify(original);
+
+      // Randomly choose stripping mode
+      const mode = ['all', 'random', 'first', 'nested'][Math.floor(rng() * 4)];
+      const stripped = stripColons(correctJSON, mode, rng);
+
+      it(`iteration ${i}: mode=${mode} strict roundtrip`, () => {
+        let result: unknown;
+        let threw = false;
+        try {
+          result = parseJsonFromLLMText(stripped);
+        } catch (e) {
+          threw = true;
+          // Must always be LLMParsingError
+          expect(e).toBeInstanceOf(LLMParsingError);
+        }
+        if (!threw) {
+          // Strict invariant: must match exactly
           expect(result).toEqual(original);
         }
       });

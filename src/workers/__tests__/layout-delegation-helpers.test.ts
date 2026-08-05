@@ -328,8 +328,9 @@ describe('computeLayoutViaWorker (private)', () => {
     const result = await testInternals(engine).computeLayoutViaWorker(nodes, edges);
 
     expect(result!.edges).toHaveLength(1);
-    expect(result!.edges[0].points[1].x).toBe(0);
-    expect(result!.edges[0].points[1].y).toBe(0);
+    // Unknown node 'b' falls back to (0,0) position + default size offset (120/2, 60/2)
+    expect(result!.edges[0].points[1].x).toBe(60);
+    expect(result!.edges[0].points[1].y).toBe(30);
   });
 });
 

@@ -61,6 +61,7 @@ export class ProductionErrorHandler {
   private metricsIntervalId: NodeJS.Timeout | null = null;
   private globalErrorHandler: ((event: ErrorEvent) => void) | null = null;
   private unhandledRejectionHandler: ((event: PromiseRejectionEvent) => void) | null = null;
+  private pageHideHandler: (() => void) | null = null;
 
   constructor() {
     this.sessionId = this.generateSessionId();
@@ -69,6 +70,7 @@ export class ProductionErrorHandler {
     // JEST_WORKER_ID is set by Jest regardless of NODE_ENV overrides in tests.
     if (process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
       this.startMetricsCollection();
+      this.registerPageLifecycleCleanup();
     }
   }
 
@@ -124,6 +126,17 @@ export class ProductionErrorHandler {
   }
 
   /**
+   * Register cleanup on page lifecycle events (browser production scenario).
+   * Ensures timers and listeners are torn down when the user navigates away
+   * or the tab is closed, preventing interval leaks outside of test/Node.js.
+   */
+  private registerPageLifecycleCleanup(): void {
+    if (this.pageHideHandler) return;
+    this.pageHideHandler = () => { this.destroy(); };
+    window.addEventListener('pagehide', this.pageHideHandler);
+  }
+
+  /**
    * Clean up resources and stop monitoring
    */
   public destroy(): void {
@@ -131,6 +144,12 @@ export class ProductionErrorHandler {
     if (this.metricsIntervalId) {
       clearInterval(this.metricsIntervalId);
       this.metricsIntervalId = null;
+    }
+
+    // Remove page lifecycle listener
+    if (this.pageHideHandler) {
+      window.removeEventListener('pagehide', this.pageHideHandler);
+      this.pageHideHandler = null;
     }
 
     // Remove event listeners
