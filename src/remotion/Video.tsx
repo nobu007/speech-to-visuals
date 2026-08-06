@@ -28,7 +28,7 @@ export interface VideoProps {
 export function scenesToKeyphraseScenes(scenes: SceneGraph[]): KeyphraseScene[] {
   let offset = 0;
   return scenes.map((scene) => {
-    const dur = scene.durationMs ?? 0;
+    const dur = Number.isFinite(scene.durationMs) ? scene.durationMs : 0;
     const entry: KeyphraseScene = {
       startMs: offset,
       durationMs: dur,
@@ -69,7 +69,7 @@ export function calculateTotalFrames(scenes: SceneGraph[], fps: number = DEFAULT
     return DEFAULT_FPS * 10; // Default 10 seconds at 30fps
   }
 
-  const totalMs = scenes.reduce((sum, scene) => sum + (scene.durationMs ?? 0), 0);
+  const totalMs = scenes.reduce((sum, scene) => sum + (Number.isFinite(scene.durationMs) ? scene.durationMs : 0), 0);
   return Math.ceil((totalMs / 1000) * fps);
 }
 
@@ -85,7 +85,8 @@ export function findSceneAtTime(
 ): { scene: SceneGraph; index: number; timeInScene: number } | null {
   let elapsed = 0;
   for (let i = 0; i < scenes.length; i++) {
-    const sceneEnd = elapsed + scenes[i].durationMs;
+    const dur = Number.isFinite(scenes[i].durationMs) ? scenes[i].durationMs : 0;
+    const sceneEnd = elapsed + dur;
     if (currentTimeMs >= elapsed && currentTimeMs < sceneEnd) {
       return {
         scene: scenes[i],
@@ -129,8 +130,8 @@ export const SpeechToVisualsVideo: React.FC<VideoProps> = ({
   const SCENE_FADE_FRAMES = 5;
   let sceneTransitionOpacity = 1;
   if (sceneInfo) {
-    const sceneStartFrame = Math.round((sceneInfo.timeInScene / 1000) * fps);
-    const sceneRemainingFrames = Math.round(((sceneInfo.scene.durationMs ?? 0) / 1000) * fps) - sceneStartFrame;
+    const sceneStartFrame = Math.round((sceneInfo.timeInScene / 1000) * Math.max(fps, 1));
+    const sceneRemainingFrames = Math.round(((Number.isFinite(sceneInfo.scene.durationMs) ? sceneInfo.scene.durationMs : 0) / 1000) * Math.max(fps, 1)) - sceneStartFrame;
 
     // Fade in at scene start
     const fadeIn = interpolate(sceneStartFrame, [0, SCENE_FADE_FRAMES], [0, 1], {

@@ -49,10 +49,15 @@ export function calculateEdgeProgress(
  * Calculate the total Euclidean length of a path defined by points
  */
 export function calculatePathLength(points: { x: number; y: number }[]): number {
+  if (!points || points.length === 0) return 0;
   let length = 0;
   for (let i = 1; i < points.length; i++) {
-    const dx = points[i].x - points[i - 1].x;
-    const dy = points[i].y - points[i - 1].y;
+    const x1 = Number.isFinite(points[i - 1].x) ? points[i - 1].x : 0;
+    const y1 = Number.isFinite(points[i - 1].y) ? points[i - 1].y : 0;
+    const x2 = Number.isFinite(points[i].x) ? points[i].x : 0;
+    const y2 = Number.isFinite(points[i].y) ? points[i].y : 0;
+    const dx = x2 - x1;
+    const dy = y2 - y1;
     length += Math.sqrt(dx * dx + dy * dy);
   }
   return length;

@@ -138,11 +138,12 @@ export function estimateFileSize(config: RenderConfig, durationSeconds: number):
 
   // Scale bitrate with CRF: every +6 CRF roughly halves bitrate
   // Using exponential factor: 2^((crf - 23) / 6)
-  const crfFactor = Math.pow(2, (config.quality - CRF_REFERENCE) / 6);
+  const quality = Number.isFinite(config.quality) ? config.quality : CRF_REFERENCE;
+  const crfFactor = Math.max(Math.pow(2, (quality - CRF_REFERENCE) / 6), 0.01);
   videoBitrate = videoBitrate / crfFactor;
 
   // Scale with fps (higher fps = proportionally more data)
-  const fpsFactor = config.fps / 30;
+  const fpsFactor = Math.max(config.fps, 1) / 30;
   videoBitrate = videoBitrate * fpsFactor;
 
   // Codec efficiency adjustments

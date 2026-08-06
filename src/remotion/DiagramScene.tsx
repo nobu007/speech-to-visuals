@@ -38,7 +38,8 @@ export const DiagramScene: React.FC<DiagramSceneProps> = ({ scene, sceneIndex, c
   const { fps } = useVideoConfig();
 
   // Frame within the scene (sceneStartFrame calculated from startMs)
-  const sceneStartFrame = ((scene.startMs ?? 0) * fps) / 1000;
+  const safeStartMs = Number.isFinite(scene.startMs) ? scene.startMs! : 0;
+  const sceneStartFrame = (safeStartMs * Math.max(fps, 1)) / 1000;
   const frameInScene = frame - sceneStartFrame;
 
   // Get animation strategy for this diagram type
