@@ -304,12 +304,10 @@ export class EdgeCrossingMinimizer {
       }
     }
 
-    // Identify nodes involved in crossings
-    const crossingNodes = new Set<string>();
-    for (const pair of crossingPairs) {
-      crossingNodes.add(pair.edge1);
-      crossingNodes.add(pair.edge2);
-    }
+    // Identify nodes involved in crossings.
+    // crossingPairs carry edge segment ids (see collectCrossingNodeIds),
+    // not node ids; resolve them to their endpoint node ids before lookup.
+    const crossingNodes = collectCrossingNodeIds(crossingPairs, edges);
 
     const idealLen = 120;
     const repulsionStrength = 8000;
@@ -454,6 +452,37 @@ function buildPositionMap(nodes: PositionedNode[]): Map<string, Point> {
     map.set(n.id, { x: n.x + w / 2, y: n.y + h / 2 });
   }
   return map;
+}
+
+/**
+ * Resolve the set of NODE ids that are endpoints of crossing edges.
+ *
+ * `CrossingPair.edge1`/`edge2` are edge segment ids
+ * (`e.id ?? `${fromId}-${toId}``), produced by `buildSegments`/`detectCrossings`.
+ * They must be mapped back to their endpoint node ids before they can be
+ * compared against `PositionedNode.id` — a node id never equals an edge id,
+ * so comparing the namespaces directly (the original bug) always missed.
+ */
+export function collectCrossingNodeIds(
+  crossingPairs: CrossingPair[],
+  edges: LayoutEdge[],
+): Set<string> {
+  const edgeIdToNodes = new Map<string, { from: string; to: string }>();
+  for (const e of edges) {
+    const fromId = e.from ?? e.source;
+    const toId = e.to ?? e.target;
+    if (fromId && toId) {
+      edgeIdToNodes.set(e.id ?? `${fromId}-${toId}`, { from: fromId, to: toId });
+    }
+  }
+  const crossingNodes = new Set<string>();
+  for (const pair of crossingPairs) {
+    const e1 = edgeIdToNodes.get(pair.edge1);
+    const e2 = edgeIdToNodes.get(pair.edge2);
+    if (e1) { crossingNodes.add(e1.from); crossingNodes.add(e1.to); }
+    if (e2) { crossingNodes.add(e2.from); crossingNodes.add(e2.to); }
+  }
+  return crossingNodes;
 }
 
 function buildSegments(
