@@ -197,4 +197,49 @@ describe('CSV sanitizer delimiter injection resistance', () => {
       expect(result).toContain("'=cmd");
     });
   });
+
+  // -----------------------------------------------------------------------
+  // CRLF inside quoted fields (RFC 4180 §2.6 / §2.7)
+  // Ensures the parser does not treat embedded CRLF as record separators.
+  // -----------------------------------------------------------------------
+  describe('CRLF inside quoted fields', () => {
+    it('auditCsvFormulaInjection parser handles CRLF inside quotes', () => {
+      // Manually craft a CSV with CRLF inside a quoted field.
+      // The CRLF must NOT split the record — it is part of the cell value.
+      const malicious = 'safe,"a\r\nb"\r\n=evil,normal\r\n';
+      const findings = auditCsvFormulaInjection(malicious);
+      // Only =evil on the second real row should be flagged
+      expect(findings.length).toBe(1);
+      expect(findings[0].row).toBe(1); // second physical row after CRLF-in-quote
+      expect(findings[0].value).toContain('=evil');
+    });
+
+    it('buildCsvDocument + auditCsvFormulaInjection round-trip preserves CRLF in quotes', () => {
+      // Cell value containing CRLF
+      const csv = buildCsvDocument([['header', 'multiline'], ['safe', 'line1\r\nline2']]);
+      // Audit should find no formula injection in the sanitized output
+      const findings = auditCsvFormulaInjection(csv);
+      expect(findings).toHaveLength(0);
+      // The output should contain the CRLF inside the quoted field
+      expect(csv).toContain('"line1\r\nline2"');
+    });
+
+    it('multiple CRLF sequences inside a single quoted field', () => {
+      const csv = buildCsvDocument([['=cmd', 'a\r\nb\r\nc', 'normal']]);
+      const findings = auditCsvFormulaInjection(csv);
+      expect(findings).toHaveLength(0);
+      // Verify the quoted field has embedded CRLFs preserved
+      // sanitizeCsvCell adds ' prefix only for formula triggers; 'a\r\nb\r\nc' does not start with a trigger
+      expect(csv).toContain('"a\r\nb\r\nc"');
+    });
+
+    it('CRLF inside quotes does not create false positive formula detection', () => {
+      // A quoted field with CRLF followed by a formula-like char on the next "line"
+      // The parser should NOT treat the post-CRLF content as a new cell start.
+      const malicious = '"hello\r\n=cmd"\r\nnormal';
+      const findings = auditCsvFormulaInjection(malicious);
+      // =cmd is inside the quoted field → should NOT be flagged
+      expect(findings).toHaveLength(0);
+    });
+  });
 });

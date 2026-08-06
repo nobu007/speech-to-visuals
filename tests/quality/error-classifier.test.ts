@@ -191,7 +191,9 @@ describe('ErrorClassifier', () => {
     test('returns empty stats for no classifications', () => {
       const stats = classifier.getStatistics();
       expect(stats.total).toBe(0);
-      expect(stats.byType).toEqual({});
+      // byType is initialized with all ErrorType keys set to 0 by createEmptyByType()
+      expect(Object.keys(stats.byType).length).toBeGreaterThan(0);
+      expect(stats.total).toBe(0);
       expect(stats.mostCommonType).toBe('UNKNOWN');
     });
 

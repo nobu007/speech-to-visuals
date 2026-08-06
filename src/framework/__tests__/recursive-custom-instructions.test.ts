@@ -6,22 +6,22 @@
 
 import { jest } from '@jest/globals';
 import { RecursiveCustomInstructionsFramework } from '../recursive-custom-instructions';
-import { logger } from '../../utils/logger';
+import * as loggerModule from '../../utils/logger';
 
-jest.mock('../../utils/logger', () => ({
-  logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
-  },
-}));
+// Spy on the actual logger methods so ESM module resolution works correctly
+const infoSpy = jest.spyOn(loggerModule.logger, 'info');
+const errorSpy = jest.spyOn(loggerModule.logger, 'error');
+const warnSpy = jest.spyOn(loggerModule.logger, 'warn');
+const debugSpy = jest.spyOn(loggerModule.logger, 'debug');
 
 describe('RecursiveCustomInstructionsFramework', () => {
   let framework: RecursiveCustomInstructionsFramework;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    infoSpy.mockClear();
+    errorSpy.mockClear();
+    warnSpy.mockClear();
+    debugSpy.mockClear();
     framework = new RecursiveCustomInstructionsFramework({});
   });
 
@@ -53,14 +53,14 @@ describe('RecursiveCustomInstructionsFramework', () => {
     it('logs when improvements are applied', async () => {
       await framework.recordStageFailure('transcription', new Error('test'), 1000);
       await framework.prepareNextIteration('test-phase', 2);
-      expect(logger.info).toHaveBeenCalledWith(
+      expect(infoSpy).toHaveBeenCalledWith(
         expect.stringContaining('Applied')
       );
     });
 
     it('does nothing when no improvements exist', async () => {
       await framework.prepareNextIteration('clean-phase', 1);
-      expect(logger.info).not.toHaveBeenCalled();
+      expect(infoSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -70,7 +70,7 @@ describe('RecursiveCustomInstructionsFramework', () => {
       await framework.handleIterationFailure('test-phase', 1, error);
       const report = framework.generateProgressReport();
       expect(report.improvements.length).toBeGreaterThan(0);
-      expect(logger.error).toHaveBeenCalled();
+      expect(errorSpy).toHaveBeenCalled();
     });
 
     it('API failure sets ANALYSIS_DISABLE_GEMINI flag', async () => {
@@ -132,7 +132,7 @@ describe('RecursiveCustomInstructionsFramework', () => {
       const mockImpl = jest.fn().mockRejectedValue(new Error('test error'));
       const state = await framework.executeDevelopmentCycle('fail-test', mockImpl);
       expect(state).toBeDefined();
-      expect(logger.error).toHaveBeenCalled();
+      expect(errorSpy).toHaveBeenCalled();
     });
   });
 

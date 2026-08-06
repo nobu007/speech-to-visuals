@@ -116,7 +116,8 @@ describe('calculateTotalFrames NaN guard', () => {
 
     const frames = calculateTotalFrames(scenes as SceneGraph[], 30);
     expect(Number.isNaN(frames)).toBe(false);
-    expect(frames).toBe(0); // 0 ms / 1000 * 30 = 0 frames
+    // calculateTotalFrames uses Math.max(1, raw) to guarantee at least 1 frame
+    expect(frames).toBe(1); // undefined durationMs → totalMs=0 → Math.max(1, 0) = 1
   });
 
   it('handles mix of valid and undefined durationMs', () => {

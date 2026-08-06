@@ -22,11 +22,37 @@ const mockServerListen = jest.fn((_port: number, cb?: () => void) => {
 });
 
 jest.mock('http', () => {
-  const actual = jest.requireActual('http');
+  // In ESM, jest.requireActual may not work. Provide a minimal mock.
   return {
-    ...actual,
-    createServer: jest.fn(),
+    createServer: jest.fn(() => mockServerLike),
+    Server: jest.fn().mockImplementation(() => mockServerLike),
   };
+});
+
+// Mock express to avoid importing the real module which needs http internals
+jest.mock('express', () => {
+  const factory = jest.fn(() => ({
+    listen: mockServerListen,
+    use: jest.fn(),
+    get: jest.fn(),
+    post: jest.fn(),
+    set: jest.fn(),
+    on: jest.fn(),
+    once: jest.fn(),
+    close: mockServerClose,
+  }));
+  // Provide named exports that ESM imports expect
+  (factory as any).Router = jest.fn(() => ({
+    get: jest.fn(),
+    post: jest.fn(),
+    use: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  }));
+  (factory as any).json = jest.fn();
+  (factory as any).urlencoded = jest.fn();
+  (factory as any).static = jest.fn();
+  return factory;
 });
 
 const mockShutdown = jest.fn().mockResolvedValue(undefined);
@@ -63,6 +89,10 @@ jest.mock('@/monitoring/health-check-service', () => ({
   healthCheckService: { destroy: mockHealthCheckServiceDestroy },
 }));
 
+jest.mock('@/monitoring/production-monitoring-excellence', () => ({
+  globalProductionMonitoring: { destroy: jest.fn().mockResolvedValue(undefined) },
+}));
+
 jest.mock('@/api/server', () => ({
   app: {
     listen: mockServerListen,
@@ -87,7 +117,7 @@ const originalExit = process.exit;
 // Capture registered signal handlers
 const registeredHandlers: Map<string, (...args: unknown[]) => void> = new Map();
 
-beforeAll(() => {
+beforeAll(async () => {
   process.exit = mockExit as typeof process.exit;
 
   // Intercept process.on to capture signal handlers
@@ -102,7 +132,8 @@ beforeAll(() => {
   ) as typeof origOn;
 
   // Load the module once — signal handlers get registered
-  require('../index');
+  // Use dynamic import for ESM compatibility
+  await import('../index');
 });
 
 afterAll(() => {

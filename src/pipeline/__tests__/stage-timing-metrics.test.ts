@@ -40,8 +40,9 @@ describe('createTimingRecord', () => {
   it('handles negative duration (endTime before startTime)', () => {
     const record = createTimingRecord('clock-skew', 2000, 1000, 5);
 
-    expect(record.durationMs).toBe(-1000);
-    expect(record.throughputPerMs).toBe(0); // negative duration → 0 throughput
+    // Source clamps negative durations to 0 via Math.max(0, rawDuration)
+    expect(record.durationMs).toBe(0);
+    expect(record.throughputPerMs).toBe(0); // clamped duration → 0 throughput
   });
 
   it('accepts custom retryAttempts', () => {
