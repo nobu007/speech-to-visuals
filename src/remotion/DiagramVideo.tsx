@@ -7,6 +7,7 @@ import React from 'react';
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, Audio } from 'remotion';
 import { DiagramVideoProps } from './Root';
 import { DiagramScene } from './DiagramScene';
+import { findSceneAtTime } from './Video';
 
 export const DiagramVideo: React.FC<DiagramVideoProps> = ({
   scenes,
@@ -14,29 +15,30 @@ export const DiagramVideo: React.FC<DiagramVideoProps> = ({
   backgroundColor = '#0f0f23',
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, durationInFrames } = useVideoConfig();
 
-  // 現在のフレームに対応するシーンを検索
+  // 現在のフレームに対応するシーンを検索（ミリ秒）
   const currentTime = (frame / Math.max(fps, 1)) * 1000; // ミリ秒
-  const currentScene = scenes.find(
-    (scene) => {
-      const startMs = Number.isFinite(scene.startTime) ? scene.startTime! : 0;
-      const dur = Number.isFinite(scene.durationMs) ? scene.durationMs! : 0;
-      // durationMs is in milliseconds; add directly to startMs (also ms).
-      // Previous code divided dur by 1000 (treating it as seconds), causing
-      // scenes to be ~1000x shorter than intended.
-      const endMs = Number.isFinite(scene.endTime) ? scene.endTime! : (startMs + dur);
-      return currentTime >= startMs && currentTime < endMs;
-    }
-  );
+  // Resolve the active scene from cumulative `durationMs` offsets via the same
+  // helper SpeechToVisualsVideo (the registered composition) uses. This
+  // deliberately does NOT read scene.startTime/endTime: simple-pipeline.ts
+  // emits those in SECONDS (`startTime: segStartMs / 1000`) while
+  // `currentTime` here is in milliseconds, so a direct comparison made every
+  // scene fall through to the "準備中..." fallback a few seconds in. `durationMs`
+  // is consistently milliseconds across the pipeline, so offset-based lookup is
+  // unit-safe.
+  const sceneInfo = findSceneAtTime(scenes, currentTime);
+  const currentScene = sceneInfo?.scene ?? null;
 
   // シーンインデックス
-  const sceneIndex = currentScene ? scenes.indexOf(currentScene) : -1;
+  const sceneIndex = sceneInfo?.index ?? -1;
 
-  // フェードイン/アウトアニメーション
+  // フェードイン/アウトアニメーション（durationInFrames ベースで動画長に追従）
+  const FADE_FRAMES = 15;
+  const safeDuration = Math.max(durationInFrames, FADE_FRAMES * 2);
   const opacity = interpolate(
     frame,
-    [0, 15, 285, 300], // フェードイン15フレーム、フェードアウト15フレーム
+    [0, FADE_FRAMES, safeDuration - FADE_FRAMES, safeDuration],
     [0, 1, 1, 0],
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
   );

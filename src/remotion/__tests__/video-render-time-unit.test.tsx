@@ -13,9 +13,11 @@
  * (only `remotion` is mocked so we can sweep the frame), renders them with
  * React Testing Library, and asserts which scene's content is visible at each
  * frame. If `durationMs` is ever misinterpreted as seconds again (the original
- * bug that made scenes ~1000x shorter), the wrong scene — or the
- * "Preparing..." / "準備中..." fallback — would render, failing these tests
- * at the integration layer.
+ * bug that made scenes ~1000x shorter), or if the seconds-based
+ * startTime/endTime are compared against a ms `currentTime`, the wrong scene —
+ * or the "Preparing..." / "準備中..." fallback — would render, failing these
+ * tests at the integration layer. Test scenes are built in real pipeline units
+ * (startTime/endTime in seconds) so both bug classes are caught here.
  */
 
 import { jest } from '@jest/globals';
@@ -106,7 +108,15 @@ afterEach(() => {
   cleanup();
 });
 
-/** Build a scene with ms-consistent startTime/endTime/durationMs. */
+/**
+ * Build a scene in the SAME units simple-pipeline.ts emits:
+ *   startMs / durationMs  -> milliseconds
+ *   startTime / endTime   -> SECONDS (segStartMs / 1000)
+ * Constructing test data in these real units is precisely what lets these
+ * component-level tests catch a regression where a ms-based `currentTime` is
+ * compared against the seconds-based startTime/endTime — the bug class that
+ * made every scene past the first few seconds render the fallback.
+ */
 function makeScene(
   startMs: number,
   durationMs: number,
@@ -120,8 +130,8 @@ function makeScene(
     edges: [],
     startMs,
     durationMs,
-    startTime: startMs,
-    endTime: startMs + durationMs,
+    startTime: startMs / 1000,
+    endTime: (startMs + durationMs) / 1000,
     keyphrases: [],
   };
 }
@@ -211,8 +221,11 @@ describe('SpeechToVisualsVideo: time-unit regression guard (ms, not seconds)', (
 });
 
 describe('DiagramVideo: rendered scene matches frame→duration mapping', () => {
-  // DiagramVideo uses startTime/endTime directly (not findSceneAtTime), which
-  // is exactly where the original /1000 bug lived. This guards that code path.
+  // DiagramVideo resolves its active scene via findSceneAtTime (durationMs
+  // offsets), the same path SpeechToVisualsVideo uses. Because makeScene now
+  // emits startTime/endTime in seconds (pipeline units), any reversion to
+  // comparing a ms `currentTime` against startTime/endTime would surface here
+  // as the "準備中..." fallback instead of the expected scene.
   const scenes = [
     makeScene(0, 3000, 'Gamma scene content'),
     makeScene(3000, 3000, 'Delta scene content'),
