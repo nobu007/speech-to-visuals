@@ -69,8 +69,14 @@ export function calculateTotalFrames(scenes: SceneGraph[], fps: number = DEFAULT
     return DEFAULT_FPS * 10; // Default 10 seconds at 30fps
   }
 
-  const totalMs = scenes.reduce((sum, scene) => sum + (Number.isFinite(scene.durationMs) ? scene.durationMs : 0), 0);
-  return Math.ceil((totalMs / 1000) * fps);
+  const safeFps = Number.isFinite(fps) && fps > 0 ? fps : DEFAULT_FPS;
+  const totalMs = scenes.reduce(
+    (sum, scene) => sum + (Number.isFinite(scene.durationMs) ? Math.max(0, scene.durationMs) : 0),
+    0,
+  );
+  const raw = Math.ceil((totalMs / 1000) * safeFps);
+  // Guard against overflow when many scenes have extremely large durationMs
+  return Number.isFinite(raw) ? Math.max(1, raw) : Number.MAX_SAFE_INTEGER;
 }
 
 /**
@@ -118,10 +124,14 @@ export const SpeechToVisualsVideo: React.FC<VideoProps> = ({
   // Find the current scene
   const sceneInfo = findSceneAtTime(scenes, currentTimeMs);
 
-  // Calculate fade in/out opacity
+  // Calculate fade in/out opacity.
+  // Guard: when durationInFrames is very small (< 2 * FADE_DURATION_FRAMES),
+  // the fade-out start point would precede the fade-in end, producing
+  // non-monotonic input ranges that cause interpolate() to return NaN.
+  const safeDuration = Math.max(durationInFrames, FADE_DURATION_FRAMES * 2);
   const opacity = interpolate(
     frame,
-    [0, FADE_DURATION_FRAMES, durationInFrames - FADE_DURATION_FRAMES, durationInFrames],
+    [0, FADE_DURATION_FRAMES, safeDuration - FADE_DURATION_FRAMES, safeDuration],
     [0, 1, 1, 0],
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
   );

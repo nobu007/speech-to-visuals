@@ -136,7 +136,8 @@ describe('calculateTotalFrames – NaN durationMs guard', () => {
     const scenes = [makeScene({ durationMs: NaN })];
     const result = calculateTotalFrames(scenes, 30);
     expect(Number.isFinite(result)).toBe(true);
-    expect(result).toBe(0);
+    // Minimum 1 frame — 0 would cause Remotion composition errors
+    expect(result).toBeGreaterThanOrEqual(1);
   });
 });
 

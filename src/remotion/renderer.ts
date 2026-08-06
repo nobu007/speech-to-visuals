@@ -8,6 +8,7 @@
  */
 
 import type { RenderMediaOnProgress } from '@remotion/renderer';
+import { sanitizeFinite, clampFinite } from '@/utils/guards';
 
 // ----------------------------------------------------------------
 // Types
@@ -162,7 +163,11 @@ export function estimateFileSize(config: RenderConfig, durationSeconds: number):
   }
 
   // Size in bytes = bitrate * duration / 8
-  return Math.round((totalBitrate * (Number.isFinite(durationSeconds) ? durationSeconds : 0)) / 8);
+  // Negative durations (from misordered timestamps) produce 0, not negative sizes.
+  // Extremely large durations can cause overflow to Infinity — clamp to MAX_SAFE_INTEGER.
+  const safeDuration = Number.isFinite(durationSeconds) ? Math.max(0, durationSeconds) : 0;
+  const rawSize = Math.round((totalBitrate * safeDuration) / 8);
+  return Number.isFinite(rawSize) ? rawSize : Number.MAX_SAFE_INTEGER;
 }
 
 /**
@@ -178,6 +183,16 @@ export function buildRenderOptions(
 ): Record<string, unknown> {
   const resolution = getResolution(config.resolution);
 
+  // Guard durationInFrames: must be a positive finite integer.
+  // NaN/undefined/Infinity/negative values would crash Remotion or produce
+  // zero-length videos silently.
+  const rawDuration = sanitizeFinite(params.durationInFrames, 1);
+  const durationInFrames = Math.max(1, Math.round(rawDuration));
+
+  // Guard quality (CRF): clamp to valid range [1, 100] — values outside
+  // this range cause encoder errors.
+  const quality = Math.round(clampFinite(config.quality, 1, 100));
+
   return {
     codec: config.codec,
     composition: {
@@ -185,9 +200,9 @@ export function buildRenderOptions(
       width: resolution.width,
       height: resolution.height,
       fps: config.fps,
-      durationInFrames: params.durationInFrames,
+      durationInFrames,
     },
-    crf: config.quality,
+    crf: quality,
     outputLocation: params.outputLocation,
     serveUrl: params.serveUrl,
     audioBitrate: config.includeAudio

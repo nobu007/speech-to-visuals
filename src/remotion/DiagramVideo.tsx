@@ -22,8 +22,11 @@ export const DiagramVideo: React.FC<DiagramVideoProps> = ({
     (scene) => {
       const startMs = Number.isFinite(scene.startTime) ? scene.startTime! : 0;
       const dur = Number.isFinite(scene.durationMs) ? scene.durationMs! : 0;
-      const endMs = Number.isFinite(scene.endTime) ? scene.endTime! : (startMs + dur / 1000);
-      return currentTime >= startMs * 1000 && currentTime < endMs * 1000;
+      // durationMs is in milliseconds; add directly to startMs (also ms).
+      // Previous code divided dur by 1000 (treating it as seconds), causing
+      // scenes to be ~1000x shorter than intended.
+      const endMs = Number.isFinite(scene.endTime) ? scene.endTime! : (startMs + dur);
+      return currentTime >= startMs && currentTime < endMs;
     }
   );
 
