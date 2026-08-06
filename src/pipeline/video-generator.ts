@@ -262,7 +262,10 @@ export class VideoGenerator {
       nodes,
       edges,
       transcript: scene.content,
-      confidence: scene.confidence || 0.8,
+      // 0.0 is a legitimate "layout/detection broke down" signal; use ?? so it
+      // is not masked to 0.8 (which would also silence the low-confidence
+      // warning in validateRemotionData: confidence < 0.5).
+      confidence: scene.confidence ?? 0.8,
       keyphrases: scene.keyphrases || []
     };
   }

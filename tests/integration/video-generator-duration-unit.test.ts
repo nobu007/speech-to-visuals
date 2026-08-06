@@ -112,6 +112,23 @@ describe('VideoGenerator scene-duration time-unit correctness (real methods)', (
     });
   });
 
+  describe('convertSceneToRemotionFormat preserves a legit-zero confidence signal', () => {
+    // confidence is a 0-1 layout/detection score; 0.0 means "broke down".
+    // `|| 0.8` would mask that breakdown signal to a HIGH-confidence value,
+    // AND silence validateRemotionData's low-confidence warning (confidence < 0.5).
+    // Same bug class as the fixed `layout.confidence || 1` (432060e).
+    it('confidence: 0 is preserved, not masked to the 0.8 default', () => {
+      const scene = { ...makeSceneSec(0, 5), confidence: 0 };
+      const out = api.convertSceneToRemotionFormat(scene, 0);
+      expect(out.confidence).toBe(0);
+    });
+
+    it('a missing confidence still falls back to the 0.8 default', () => {
+      const out = api.convertSceneToRemotionFormat(makeSceneSec(0, 5), 0);
+      expect(out.confidence).toBe(0.8);
+    });
+  });
+
   describe('calculateTotalDuration never yields NaN/Infinity', () => {
     it('finite for normal sequential scenes', () => {
       const scenes = [
