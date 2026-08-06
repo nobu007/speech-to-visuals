@@ -247,6 +247,34 @@ describe('ProductionErrorHandler', () => {
     });
   });
 
+  describe('user-visible notification survives downstream failures', () => {
+    // Feedback: handleError 呼出時のユーザー可視状態(同期失敗通知等)の回帰強化。
+    // notifyErrorCallbacks (ユーザー向け通知) は handleError 内で await sendTelemetry
+    // の後に呼ばれる。この await が reject すると通知がスキップされ、ユーザーは
+    // エラーに気づかない。telemetry が失敗してもユーザー通知は必ず届くことを保証する。
+
+    it('delivers the error callback even when telemetry send rejects', async () => {
+      const callback = jest.fn();
+      handler.onError('TestComponent', callback);
+
+      // Simulate a production telemetry/network failure (sendTelemetry is private).
+      jest.spyOn(
+        handler as unknown as {
+          sendTelemetry: (e: Error, c: unknown, a: ErrorAlert) => Promise<void>;
+        },
+        'sendTelemetry',
+      ).mockRejectedValue(new Error('telemetry network down'));
+
+      // Low-severity error → automatic recovery is skipped, isolating telemetry
+      // as the only pre-notification await that can reject.
+      await expect(handler.handleError(new Error('something broke'))).resolves.toBeDefined();
+
+      // The user-facing callback STILL fired despite telemetry being down.
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect((callback.mock.calls[0][0] as ErrorAlert).message).toBe('something broke');
+    });
+  });
+
   describe('getMetrics', () => {
     it('returns initial metrics', () => {
       const metrics: ErrorMetrics = handler.getMetrics();

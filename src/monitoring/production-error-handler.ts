@@ -213,10 +213,23 @@ export class ProductionErrorHandler {
     // Update metrics
     this.updateErrorMetrics(severity);
 
-    // Send telemetry (if enabled)
-    await this.sendTelemetry(error, fullContext, alert);
+    // Send telemetry (if enabled). This is a fire-and-forget side-effect: a
+    // telemetry/network failure must NEVER suppress the user-facing
+    // notification (notifyErrorCallbacks) below. Without this guard, a rejected
+    // telemetry send propagates out of handleError, skipping the callback
+    // entirely and leaving the user with no visible error feedback.
+    try {
+      await this.sendTelemetry(error, fullContext, alert);
+    } catch (telemetryError) {
+      logger.warn(
+        '[ProductionErrorHandler] Telemetry send failed; user notification will still be delivered.',
+        telemetryError,
+      );
+    }
 
-    // Attempt automatic recovery for high-priority errors
+    // Attempt automatic recovery for high-priority errors. attemptAutomaticRecovery
+    // is internally guarded (each strategy.execute() is try/caught), so it cannot
+    // propagate and threaten the notification that follows.
     if (severity === 'critical' || severity === 'high') {
       await this.attemptAutomaticRecovery(alert);
     }
