@@ -10,27 +10,31 @@ import { jest } from '@jest/globals';
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 
-jest.mock('@remotion/player', () => ({
+jest.unstable_mockModule('@remotion/player', () => ({
+  __esModule: true,
   Player: () => null,
 }));
 
-jest.mock('sonner', () => ({
+jest.unstable_mockModule('sonner', () => ({
+  __esModule: true,
   toast: { info: jest.fn(), success: jest.fn(), error: jest.fn() },
 }));
 
-jest.mock('@/lib/videoRenderer', () => ({
+jest.unstable_mockModule('@/lib/videoRenderer', () => ({
+  __esModule: true,
   videoRenderer: {
     renderVideo: jest.fn(),
   },
   VideoRenderProgress: {},
 }));
 
-jest.mock('@/utils/logger', () => ({
+jest.unstable_mockModule('@/utils/logger', () => ({
+  __esModule: true,
   logger: { error: jest.fn(), warn: jest.fn(), info: jest.fn() },
 }));
 
-import { VideoRenderer } from '../VideoRenderer';
-import { videoRenderer } from '@/lib/videoRenderer';
+const { VideoRenderer } = await import('../VideoRenderer');
+const { videoRenderer } = await import('@/lib/videoRenderer');
 import type { SceneGraph } from '@/types/diagram';
 
 function makeScenes(count = 2): SceneGraph[] {

@@ -2,8 +2,13 @@ import { jest } from '@jest/globals';
 
 // ─── Mock Setup ──────────────────────────────────────────────────────────────
 
-// Mock the error-handler module's fetchWithTimeout
-jest.mock('#supabase/functions/_shared/error-handler.ts', () => ({
+// Mock the error-handler module's fetchWithTimeout. jest.mock is a no-op under
+// the ESM jest preset, so register the factory via unstable_mockModule and
+// resolve the bindings through dynamic import (after registration). The mock
+// module is cached, so the SUT's `import { fetchWithTimeout }` and the test's
+// re-import below receive the same jest.fn() instance.
+jest.unstable_mockModule('#supabase/functions/_shared/error-handler.ts', () => ({
+  __esModule: true,
   CORS_HEADERS: {},
   corsResponse: jest.fn(),
   optionsResponse: jest.fn(),
@@ -19,8 +24,8 @@ jest.mock('#supabase/functions/_shared/error-handler.ts', () => ({
   fetchWithTimeout: jest.fn(),
 }));
 
-import { handleTranscribe, TRANSCRIBE_TIMEOUT_MS } from '#supabase/functions/transcribe-audio/index';
-import { fetchWithTimeout } from '#supabase/functions/_shared/error-handler.ts';
+const { handleTranscribe, TRANSCRIBE_TIMEOUT_MS } = await import('#supabase/functions/transcribe-audio/index');
+const fetchWithTimeout = (await import('#supabase/functions/_shared/error-handler.ts')).fetchWithTimeout as jest.Mock;
 
 const VALID_ENV = { LOVABLE_API_KEY: 'test-api-key' };
 const USER_ID = 'user-test-001';

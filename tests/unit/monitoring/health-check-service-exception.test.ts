@@ -9,10 +9,11 @@
  * focuses exclusively on the try/catch fallback branches added in Phase 51
  * (REQ-131).
  *
- * Mock strategy: Direct property override on imported module objects.
- * jest.unstable_mockModule does not work reliably with ts-jest ESM preset,
- * so we import the real modules and replace function references on the
- * exported objects (which are mutable bindings in CommonJS-interop mode).
+ * Mock strategy: hybrid. realTimeMonitor and globalCache are exported OBJECT
+ * instances, so we import the real modules and replace method references on
+ * those mutable instances. getMemoryUsage, by contrast, is a named FUNCTION
+ * binding on the '@/utils/memory-usage' ESM namespace (frozen), so it is
+ * supplied via jest.unstable_mockModule instead of a direct assignment.
  */
 
 import { describe, it, expect, beforeEach, beforeAll, jest } from '@jest/globals';
@@ -97,6 +98,18 @@ const realTimeMonitor = {
 const globalCache = { getStats: mockGetCacheStats };
 const getMemoryUsage = mockGetMemoryUsage;
 
+// getMemoryUsage is a named FUNCTION binding on the '@/utils/memory-usage' ESM
+// namespace, which (unlike realTimeMonitor / globalCache, whose exported object
+// instances are mutable) is frozen — a direct `(ns).getMemoryUsage = mock`
+// throws "Cannot assign to read only property". Mock the module instead so the
+// service's `import { getMemoryUsage }` resolves to our mock. The factory is
+// lazy (runs on first import, i.e. during the service import in beforeAll), by
+// which point the module-scope jest.fn() above is initialized.
+jest.unstable_mockModule('@/utils/memory-usage', () => ({
+  __esModule: true,
+  getMemoryUsage: mockGetMemoryUsage,
+}));
+
 // Lazy-loaded singleton
 let healthCheckService: any;
 
@@ -120,7 +133,6 @@ describe('HealthCheckService – exception fallback (REQ-134)', () => {
     // Import the real modules
     const rtpm = await import('@/monitoring/real-time-performance-monitor');
     const cache = await import('@/performance/intelligent-cache');
-    const mem = await import('@/utils/memory-usage');
 
     // Override the exported functions with our mocks
     (rtpm as any).realTimeMonitor.getSnapshot = mockGetSnapshot;
@@ -128,7 +140,6 @@ describe('HealthCheckService – exception fallback (REQ-134)', () => {
     (rtpm as any).realTimeMonitor.on = mockOn;
     (rtpm as any).realTimeMonitor.removeListener = mockRemoveListener;
     (cache as any).globalCache.getStats = mockGetCacheStats;
-    (mem as any).getMemoryUsage = mockGetMemoryUsage;
 
     // Now import the service
     const mod = await import('@/monitoring/health-check-service');
