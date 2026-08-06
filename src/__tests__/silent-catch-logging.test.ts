@@ -4,9 +4,10 @@
  *         enhanced-error-recovery (executeWithFallback + executeWithLoadBalancing).
  */
 
-import { logger } from '@/utils/logger';
-
-jest.mock('@/utils/logger', () => ({
+// ESM: jest.mock is a no-op — must use unstable_mockModule and obtain the
+// mocked logger via dynamic import so the production modules under test share
+// the same mocked instance. See [[jest-esm-mock-pattern]].
+jest.unstable_mockModule('@/utils/logger', () => ({
   logger: {
     warn: jest.fn(),
     error: jest.fn(),
@@ -14,6 +15,8 @@ jest.mock('@/utils/logger', () => ({
     debug: jest.fn(),
   },
 }));
+
+const { logger } = await import('@/utils/logger');
 
 describe('Silent catch blocks now log errors', () => {
   beforeEach(() => {
