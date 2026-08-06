@@ -199,8 +199,10 @@ describe('PrometheusExporter', () => {
     });
 
     const output = exportPrometheusMetrics({ snapshot });
-    // Special characters should be replaced with underscores
-    expect(output).toMatch(/path="\/api\/v1\/users_name_Test__User_"/);
+    // Double quotes should be escaped per Prometheus spec
+    expect(output).toContain('\\"');
+    // Should not contain unescaped quotes inside label values
+    expect(output).not.toContain('path="/api/v1/users?name=Test "User""');
   });
 
   // ---- Multiple routes ----

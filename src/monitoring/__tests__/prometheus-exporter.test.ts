@@ -484,5 +484,56 @@ describe('prometheus-exporter', () => {
         expect(name).toMatch(/^[a-z][a-z0-9_]*$/);
       }
     });
+
+    it('should not contain raw newlines in label values (injection prevention)', () => {
+      // Simulate a malicious path with embedded newline that could inject fake metric lines
+      const maliciousPath = '/api/v1/health\n# HELP fake_metric_total injected';
+      const output = exportPrometheusMetrics({
+        snapshot: makeHttpSnapshot({
+          routes: [{
+            method: 'GET',
+            path: maliciousPath,
+            count: 1,
+            errorCount: 0,
+            avgMs: 10,
+            minMs: 5,
+            maxMs: 20,
+            percentiles: { p50: 8, p95: 18, p99: 20 },
+          }],
+        }),
+        pipelineSnapshot: makePipelineSnapshot({ stages: [], totalRuns: 0, successfulRuns: 0, failedRuns: 0 }),
+        exportSnapshot: makeExportSnapshot({ formats: [], stages: [], queue: { queueSize: 0, dequeueCount: 0, avgWaitTimeMs: 0, dequeueByPriority: {}, dlqSize: 0, totalRetries: 0, totalDeadLettered: 0, totalReplayed: 0 } }),
+      });
+      // The key assertion: no output line should start with "# HELP fake_metric"
+      // (i.e., the embedded newline cannot create a fake HELP line)
+      const lines = output.split('\n');
+      const fakeHelpLines = lines.filter(l => l.startsWith('# HELP fake_metric'));
+      expect(fakeHelpLines).toHaveLength(0);
+      // Also verify: no output line should be a fake metric data line
+      const fakeDataLines = lines.filter(l => l.startsWith('fake_metric_total'));
+      expect(fakeDataLines).toHaveLength(0);
+    });
+
+    it('should escape backslashes and double quotes in label values', () => {
+      const output = exportPrometheusMetrics({
+        snapshot: makeHttpSnapshot({
+          routes: [{
+            method: 'GET',
+            path: '/api/v1/\\test"path',
+            count: 1,
+            errorCount: 0,
+            avgMs: 10,
+            minMs: 5,
+            maxMs: 20,
+            percentiles: { p50: 8, p95: 18, p99: 20 },
+          }],
+        }),
+        pipelineSnapshot: makePipelineSnapshot({ stages: [], totalRuns: 0, successfulRuns: 0, failedRuns: 0 }),
+        exportSnapshot: makeExportSnapshot({ formats: [], stages: [], queue: { queueSize: 0, dequeueCount: 0, avgWaitTimeMs: 0, dequeueByPriority: {}, dlqSize: 0, totalRetries: 0, totalDeadLettered: 0, totalReplayed: 0 } }),
+      });
+      // Backslashes and quotes should be escaped per Prometheus spec
+      expect(output).toContain('\\\\');
+      expect(output).toContain('\\"');
+    });
   });
 });

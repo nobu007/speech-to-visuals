@@ -82,4 +82,71 @@ describe('processExportPayload', () => {
     expect(result.duration).toBe(10);
     expect(result.outputSize).toBe(300 * 50000); // 10s * 30fps * 50KB
   });
+
+  it('should use default fps when options.fps is a non-numeric string', () => {
+    const payload: ExportWorkerPayload = {
+      format: 'mp4',
+      data: { scenes: [] },
+      options: { fps: 'invalid', duration: 5 },
+    };
+
+    const result = processExportPayload(payload);
+
+    // fps falls back to 30, so totalFrames = 5 * 30 = 150
+    expect(result.duration).toBe(5);
+    expect(result.outputSize).toBe(150 * 50000);
+  });
+
+  it('should use default duration when options.duration is undefined', () => {
+    const payload: ExportWorkerPayload = {
+      format: 'mp4',
+      data: { scenes: [] },
+      options: { fps: 60 },
+    };
+
+    const result = processExportPayload(payload);
+
+    // duration falls back to 10, so totalFrames = 10 * 60 = 600
+    expect(result.duration).toBe(10);
+    expect(result.outputSize).toBe(600 * 50000);
+  });
+
+  it('should use default avgFrameSize when options.avgFrameSize is a string', () => {
+    const payload: ExportWorkerPayload = {
+      format: 'mp4',
+      data: { scenes: [] },
+      options: { fps: 30, duration: 2, avgFrameSize: 'large' },
+    };
+
+    const result = processExportPayload(payload);
+
+    // avgFrameSize falls back to 50000, so outputSize = 60 * 50000
+    expect(result.outputSize).toBe(60 * 50000);
+  });
+
+  it('should handle negative fps by clamping to default', () => {
+    const payload: ExportWorkerPayload = {
+      format: 'mp4',
+      data: { scenes: [] },
+      options: { fps: -10, duration: 5 },
+    };
+
+    const result = processExportPayload(payload);
+
+    expect(result.duration).toBe(5);
+    // fps falls back to 30 since -10 is <= 0
+    expect(result.outputSize).toBe(150 * 50000);
+  });
+
+  it('should handle NaN duration by clamping to default', () => {
+    const payload: ExportWorkerPayload = {
+      format: 'mp4',
+      data: { scenes: [] },
+      options: { fps: 30, duration: NaN },
+    };
+
+    const result = processExportPayload(payload);
+
+    expect(result.duration).toBe(10);
+  });
 });

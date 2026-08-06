@@ -30,13 +30,18 @@ export function processExportPayload(
   }
 
   // Calculate frame count based on options (clamp to positive values)
-  const fps = Math.max(1, (options.fps as number) || 30);
-  const duration = Math.max(0.1, (options.duration as number) || 10);
+  // Guard against non-numeric inputs (strings, objects) that would produce NaN
+  const rawFps = Number(options.fps);
+  const rawDuration = Number(options.duration);
+  const rawAvgFrameSize = Number(options.avgFrameSize);
+  const fps = Math.max(1, Number.isFinite(rawFps) && rawFps > 0 ? rawFps : 30);
+  const duration = Math.max(0.1, Number.isFinite(rawDuration) && rawDuration > 0 ? rawDuration : 10);
   const totalFrames = Math.ceil(duration * fps);
 
   // Process scene data for rendering
   const sceneCount = Array.isArray(data.scenes) ? data.scenes.length : 0;
-  const estimatedSize = totalFrames * (options.avgFrameSize as number || 50000);
+  const avgFrameSize = Number.isFinite(rawAvgFrameSize) && rawAvgFrameSize > 0 ? rawAvgFrameSize : 50000;
+  const estimatedSize = totalFrames * avgFrameSize;
 
   // Prepare rendering metadata
   const warnings: string[] = [];

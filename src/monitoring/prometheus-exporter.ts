@@ -66,9 +66,17 @@ export interface PrometheusMetric {
 // Sanitization helpers
 // ---------------------------------------------------------------------------
 
-/** Prometheus label values must be strings; sanitize to prevent injection. */
+/** Prometheus label values must be strings; sanitize to prevent injection.
+ * Strips control characters (including newlines, tabs) that would break the
+ * Prometheus exposition format, then replaces any remaining disallowed chars.
+ * See: https://prometheus.io/docs/instrumenting/exposition_formats/
+ */
 function sanitizeLabelValue(value: string): string {
-  return value.replace(/[^a-zA-Z0-9_/.\\-]/g, '_').slice(0, 200);
+  return value
+    .replace(/[\x00-\x1f\x7f]/g, '') // remove control chars (newlines, tabs, etc.)
+    .replace(/\\/g, '\\\\')           // escape backslashes
+    .replace(/"/g, '\\"')             // escape double quotes
+    .slice(0, 200);
 }
 
 /** Convert a path like /api/v1/monitoring/health to api_v1_monitoring_health. */
