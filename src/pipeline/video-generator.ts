@@ -517,7 +517,9 @@ export class VideoGenerator {
 
   private calculateTotalDuration(scenes: RemotionSceneData[]): number {
     return scenes.reduce((total, scene) => {
-      const sceneEnd = (Number.isFinite(scene.startMs) ? scene.startMs : 0) + (Number.isFinite(scene.durationMs) ? scene.durationMs : 0);
+      const start = Number.isFinite(scene.startMs) ? scene.startMs : 0;
+      const dur = Number.isFinite(scene.durationMs) ? scene.durationMs : 0;
+      const sceneEnd = Number.isFinite(start + dur) ? start + dur : Math.max(start, dur);
       return Math.max(total, sceneEnd);
     }, 0);
   }

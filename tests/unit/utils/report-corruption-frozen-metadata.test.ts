@@ -114,7 +114,7 @@ describe('reportCorruption frozen-metadata robustness', () => {
 
       expect(accumulator.count).toBe(2);
       expect(accumulator.lastSource).toBe('Sealed2');
-      expect(accumulator.lastTimestamp).toHaveLength > 0;
+      expect(accumulator.lastTimestamp.length).toBeGreaterThan(0);
     });
 
     it('handler with Object.preventExtensions does not crash on reads', () => {

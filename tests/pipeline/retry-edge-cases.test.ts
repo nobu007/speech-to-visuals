@@ -178,7 +178,19 @@ describe('ErrorClassifier edge cases', () => {
     const stats = classifier.getStatistics();
 
     expect(stats.total).toBe(0);
-    expect(stats.byType).toEqual({});
+    expect(stats.byType).toEqual({
+      FILE_FORMAT_INVALID: 0,
+      FILE_SIZE_EXCEEDED: 0,
+      LLM_API_ERROR: 0,
+      LLM_RATE_LIMITED: 0,
+      LLM_TIMEOUT: 0,
+      NETWORK_ERROR: 0,
+      QUALITY_GATE_FAILED: 0,
+      RENDERING_ERROR: 0,
+      RENDERING_OOM: 0,
+      STORAGE_ERROR: 0,
+      UNKNOWN: 0,
+    });
     expect(stats.mostCommonType).toBe('UNKNOWN');
   });
 

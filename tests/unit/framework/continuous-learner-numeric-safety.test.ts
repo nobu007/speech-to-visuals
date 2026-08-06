@@ -8,7 +8,7 @@
 import { jest } from '@jest/globals';
 
 // Mock logger to avoid side effects
-jest.unstable_mockModule('../../../src/utils/logger', () => ({
+jest.mock('../../../src/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -17,10 +17,10 @@ jest.unstable_mockModule('../../../src/utils/logger', () => ({
   },
 }));
 
-const { ContinuousLearner } = await import('../../../src/framework/continuous-learner');
+import { ContinuousLearner } from '../../../src/framework/continuous-learner';
 
 describe('ContinuousLearner numeric safety', () => {
-  let learner: InstanceType<typeof ContinuousLearner>;
+  let learner: any;
 
   beforeEach(() => {
     learner = new ContinuousLearner(false);

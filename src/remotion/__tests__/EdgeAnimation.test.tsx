@@ -13,7 +13,7 @@ import { EDGE_DRAW_DURATION_FRAMES } from '../animation-strategies';
 let mockFrame = 0;
 let mockFps = 30;
 
-jest.unstable_mockModule('remotion', () => ({
+jest.mock('remotion', () => ({
   useCurrentFrame: () => mockFrame,
   useVideoConfig: () => ({ fps: mockFps, width: 1920, height: 1080 }),
   interpolate: (frame: number, inputRange: number[], outputRange: number[]) => {
@@ -24,13 +24,13 @@ jest.unstable_mockModule('remotion', () => ({
   },
 }));
 
-const {
+import {
   EdgeAnimation,
   calculateEdgeProgress,
   EDGE_DRAW_DURATION_SEC,
   calculatePathLength,
   generatePathD,
-} = await import('../EdgeAnimation');
+} from '../EdgeAnimation';
 
 // Helper factories
 function makeEdge(overrides: Partial<LayoutEdge> = {}): LayoutEdge {
