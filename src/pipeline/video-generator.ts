@@ -62,6 +62,27 @@ export interface RemotionSceneData {
 }
 
 /**
+ * Quality tier accepted by the real renderer (ActualVideoRenderOptions.quality).
+ * The renderer has no 'ultra' tier, unlike VideoGenerationOptions.quality.
+ */
+export type ActualRenderQuality = 'low' | 'medium' | 'high';
+
+/**
+ * Map a VideoGenerator quality setting (which includes an 'ultra' tier) down to
+ * the quality value the actual renderer accepts ('low' | 'medium' | 'high').
+ * 'ultra' maps to the highest real tier ('high').
+ *
+ * This is the single source of truth for which quality reaches the encode CRF —
+ * executeRemotionRender must route this.options.quality through here rather than
+ * hardcoding a tier, or the configured/default quality is silently ignored.
+ */
+export function toRenderQuality(
+  quality: VideoGenerationOptions['quality'] | undefined
+): ActualRenderQuality {
+  return quality === 'ultra' || quality === undefined ? 'high' : quality;
+}
+
+/**
  * Phase 4-1 メインクラス: SimplePipeline結果をRemotionに変換
  * カスタムインストラクション: 実装→テスト→評価→改善のサイクル
  */
@@ -375,7 +396,7 @@ export class VideoGenerator {
           scenes: inputProps.scenes as SceneGraph[],
           audioUrl: inputProps.audioUrl as string,
           outputPath,
-          quality: 'medium',
+          quality: toRenderQuality(this.options.quality),
         },
         (progress) => {
           // プログレス更新を伝播
