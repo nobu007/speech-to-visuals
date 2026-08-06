@@ -6,6 +6,7 @@
 
 import { SimplePipelineResult } from './simple-pipeline';
 import { SceneGraph, DiagramType } from '@/types/diagram';
+import { COMPOSITION_ID } from '@/remotion/composition-id';
 import { logger } from '../utils/logger';
 import { QualityGateError, RenderingError } from './pipeline-errors';
 import { safeArray } from '../lib/safe-array';
@@ -305,7 +306,7 @@ export class VideoGenerator {
   private async prepareRenderConfiguration(data: unknown) {
     const d = data as Record<string, unknown>;
     return {
-      composition: 'DiagramVideo',
+      composition: COMPOSITION_ID,
       inputProps: {
         scenes: d.scenes,
         audioUrl: d.audioUrl,

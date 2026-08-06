@@ -19,8 +19,14 @@ import {
 // Re-export VideoProps for backward compatibility
 export type { VideoProps as DiagramVideoProps } from './Video';
 
-/** Composition ID for the Speech-to-Visuals video */
-export const COMPOSITION_ID = 'SpeechToVisualsVideo';
+/**
+ * Composition ID for the Speech-to-Visuals video.
+ * Canonical definition lives in the side-effect-free `./composition-id` module
+ * so the server-side render path can import the same contract without pulling
+ * in React/Remotion. Re-exported here for existing consumers.
+ */
+import { COMPOSITION_ID } from './composition-id';
+export { COMPOSITION_ID };
 
 /** Remotion Root - registers the main Composition */
 export const RemotionRoot: React.FC = () => {
