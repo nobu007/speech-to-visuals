@@ -241,5 +241,53 @@ describe('CSV sanitizer delimiter injection resistance', () => {
       // =cmd is inside the quoted field → should NOT be flagged
       expect(findings).toHaveLength(0);
     });
+
+    // -----------------------------------------------------------------------
+    // Mid-field (malformed) opening quote + embedded CRLF.
+    // Covers the literal edge case from review feedback: `a"\nb"` — a quote
+    // that opens AFTER non-quote content, with a newline before it closes.
+    // This is a distinct parser branch from the start-quote cases above
+    // (wasQuoted flips true mid-cell), and the newline must still NOT act as
+    // a record separator. Verified by checking that a formula on the next
+    // physical line lands on the expected row index (no spurious extra row).
+    // -----------------------------------------------------------------------
+    it('mid-field quote + CRLF `a"\\r\\nb"` stays one record (LF mid-quote)', () => {
+      // `a"\nb"`: quote opens after `a`, newline before close.
+      const malicious = 'a"\nb"\n=evil,normal';
+      const findings = auditCsvFormulaInjection(malicious);
+      // Only =evil on the second real record is flagged — the embedded LF did
+      // not split `a"\nb"` into two records.
+      expect(findings).toHaveLength(1);
+      expect(findings[0].row).toBe(1);
+      expect(findings[0].value).toContain('=evil');
+    });
+
+    it('mid-field quote + CRLF `a"\\r\\nb"` stays one record (CRLF mid-quote)', () => {
+      const malicious = 'a"\r\nb"\r\n=evil,normal';
+      const findings = auditCsvFormulaInjection(malicious);
+      expect(findings).toHaveLength(1);
+      expect(findings[0].row).toBe(1);
+      expect(findings[0].value).toContain('=evil');
+    });
+
+    it('mid-field quote content with CRLF is treated as a single quoted cell', () => {
+      // The mid-opened quote makes wasQuoted=true for the whole cell, so even
+      // a formula trigger inside it must NOT be flagged (quoting protects it).
+      const malicious = 'x"=cmd\r\ninjected"\r\nsafe';
+      const findings = auditCsvFormulaInjection(malicious);
+      expect(findings).toHaveLength(0);
+    });
+
+    it('mid-field quote does not inflate the record count across multiple rows', () => {
+      // Two genuine records, each with a mid-quote CRLF field. The audit must
+      // see exactly 2 records (one formula finding per real malicious row),
+      // proving neither embedded CRLF created an extra phantom row.
+      const malicious = 'a"\r\nb"\r\n=evil1\r\nc"\r\nd"\r\n=evil2';
+      const findings = auditCsvFormulaInjection(malicious);
+      expect(findings).toHaveLength(2);
+      const rows = findings.map((f) => f.row).sort((a, b) => a - b);
+      // Findings on the two real rows (index 1 and 3), not on phantom rows.
+      expect(rows).toEqual([1, 3]);
+    });
   });
 });
