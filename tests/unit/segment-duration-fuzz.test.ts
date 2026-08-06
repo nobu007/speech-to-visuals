@@ -10,6 +10,7 @@
  */
 
 import { describe, it, expect } from '@jest/globals';
+import { mulberry32 } from '@tests/helpers/fuzz';
 
 // ---------------------------------------------------------------------------
 // Types (mirroring internal structures)
@@ -26,17 +27,6 @@ interface ContentSegmentLike {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 /**
  * Replicates the guarded reduce logic from scene-segmenter.ts.

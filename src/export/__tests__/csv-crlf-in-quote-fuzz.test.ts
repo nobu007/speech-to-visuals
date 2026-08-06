@@ -28,28 +28,13 @@
 
 import { auditCsvFormulaInjection, buildCsvDocument } from '../csv-sanitizer';
 import { describe, it, expect } from '@jest/globals';
-
-// ---------------------------------------------------------------------------
-// Deterministic PRNG (mulberry32) — no Date/Math.random for reproducibility.
-// ---------------------------------------------------------------------------
-function mulberry32(seed: number): () => number {
-  let s = seed >>> 0;
-  return () => {
-    s = (s + 0x6d2b79f5) >>> 0;
-    let t = s;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-const FORMULA_TRIGGERS = ['=', '+', '-', '@', '\t', '\r'];
-const SAFE_CHARS = 'ABCDEFGHabcdefgh0123456789 .';
-const NEWLINES = ['\n', '\r\n', '\r'];
-
-function pick<T>(arr: T[], rng: () => number): T {
-  return arr[Math.floor(rng() * arr.length)];
-}
+import {
+  mulberry32,
+  pick,
+  CSV_FORMULA_TRIGGERS as FORMULA_TRIGGERS,
+  CSV_NEWLINES as NEWLINES,
+  CSV_SAFE_CHARS as SAFE_CHARS,
+} from '@tests/helpers/fuzz';
 
 function randomSafeToken(rng: () => number): string {
   const len = 1 + Math.floor(rng() * 6);

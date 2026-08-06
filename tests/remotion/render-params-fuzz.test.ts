@@ -15,44 +15,11 @@ import {
   type RenderParams,
 } from '@/remotion/renderer';
 import { calculateTotalFrames } from '@/remotion/Video';
+import { mulberry32, degenerateNumbers } from '@tests/helpers/fuzz';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function degenerateNumbers(): number[] {
-  return [
-    NaN,
-    Infinity,
-    -Infinity,
-    Number.MAX_VALUE,
-    -Number.MAX_VALUE,
-    0,
-    -0,
-    Number.EPSILON,
-    Number.MAX_SAFE_INTEGER,
-    Number.MIN_SAFE_INTEGER,
-    1e308,
-    -1e308,
-    1e-308,
-    -1e-308,
-    0.1,
-    -0.1,
-    1234.5678,
-    -1234.5678,
-  ];
-}
 
 const BASE_CONFIG: RenderConfig = {
   resolution: '1080p',
