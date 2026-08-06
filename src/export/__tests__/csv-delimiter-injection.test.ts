@@ -290,4 +290,40 @@ describe('CSV sanitizer delimiter injection resistance', () => {
       expect(rows).toEqual([1, 3]);
     });
   });
+
+  // -----------------------------------------------------------------------
+  // Whitespace formula triggers (\t, \r).
+  // Regression: trimStart() in auditCsvFormulaInjection stripped \t/\r, which
+  // ARE formula triggers, so tab/CR-prefixed cells bypassed the audit even
+  // though sanitizeCsvCell() neutralizes them. The auditor must agree with the
+  // sanitizer and flag unquoted tab-prefixed cells.
+  // -----------------------------------------------------------------------
+  describe('whitespace formula triggers (\t, \r) are detected', () => {
+    it('unquoted tab-prefixed cell is flagged (was silently missed)', () => {
+      const findings = auditCsvFormulaInjection('\tcmd');
+      expect(findings).toHaveLength(1);
+      expect(findings[0].trigger).toBe('\t');
+    });
+
+    it('unquoted tab-prefixed cell after a quoted-CRLF cell is flagged', () => {
+      // Cross-cell parser-state interaction: the quoted-CRLF cell must not
+      // "absorb" the following unquoted tab cell.
+      const findings = auditCsvFormulaInjection('"a\nb",\tcmd');
+      expect(findings).toHaveLength(1);
+      expect(findings[0].col).toBe(1);
+      expect(findings[0].trigger).toBe('\t');
+    });
+
+    it('audit agrees with sanitizer: sanitized tab-prefixed cell is clean', () => {
+      // sanitizeCsvCell neutralizes \tcmd -> '\tcmd ; audit must find nothing.
+      const csv = buildCsvDocument([['\tcmd', 'normal']]);
+      expect(auditCsvFormulaInjection(csv)).toHaveLength(0);
+    });
+
+    it('space-then-tab-then-eq bypass is still caught via trimmed check', () => {
+      // " \t=cmd": rawFirst is ' ' (not a trigger) but trimmedFirst is '='.
+      const findings = auditCsvFormulaInjection(' \t=cmd');
+      expect(findings).toHaveLength(1);
+    });
+  });
 });

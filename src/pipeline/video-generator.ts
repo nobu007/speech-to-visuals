@@ -203,9 +203,14 @@ export class VideoGenerator {
    */
   private convertSceneToRemotionFormat(scene: SceneGraph, index: number): RemotionSceneData {
     // シーン持続時間（デフォルト5秒、最小3秒、最大10秒）
+    // scene.startTime/endTime are in SECONDS (see simple-pipeline.ts:
+    // `startTime: segStartMs / 1000`), so convert to ms before clamping to the
+    // [3000, 10000] ms range. Without the * 1000, a 5 s segment evaluates to
+    // (5 - 0) = 5 and collapses to the 3000 ms floor, making every scene a
+    // uniform 3 s regardless of real length.
     const defaultDuration = 5000;
     const sceneDuration = Math.max(3000, Math.min(10000,
-      (scene.endTime - scene.startTime) || defaultDuration
+      (scene.endTime - scene.startTime) * 1000 || defaultDuration
     ));
 
     // レイアウトからRemotionノード変換

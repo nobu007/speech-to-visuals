@@ -256,13 +256,27 @@ export function auditCsvFormulaInjection(
       // Skip neutralized cells (they start with ')
       if (cell.startsWith("'")) continue;
 
+      // Detect a formula trigger at the cell start. We must check the RAW
+      // first character as well as the first non-whitespace character:
+      //   - rawFirst catches \t and \r, which are formula triggers in their
+      //     own right but would be stripped by trimStart() (leaving the cell
+      //     looking safe). Without this, a tab/CR-prefixed cell bypasses the
+      //     audit even though sanitizeCsvCell() neutralizes it — an auditor
+      //     vs sanitizer inconsistency.
+      //   - trimmedFirst catches the "   =cmd" whitespace-bypass case.
+      const rawFirst = cell.length > 0 ? cell[0] : '';
       const trimmed = cell.trimStart();
-      if (trimmed.length > 0 && FORMULA_PREFIXES.has(trimmed[0])) {
+      const trimmedFirst = trimmed.length > 0 ? trimmed[0] : '';
+      let trigger = '';
+      if (rawFirst && FORMULA_PREFIXES.has(rawFirst)) trigger = rawFirst;
+      else if (trimmedFirst && FORMULA_PREFIXES.has(trimmedFirst)) trigger = trimmedFirst;
+
+      if (trigger) {
         findings.push({
           row: rowIdx,
           col: colIdx,
           value: cell.slice(0, 80),
-          trigger: trimmed[0],
+          trigger,
         });
       }
     }
