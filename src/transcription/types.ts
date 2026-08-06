@@ -2,7 +2,9 @@ import { Caption } from '@remotion/captions';
 
 export interface TranscriptionSegment {
   id?: number;
+  /** Segment start time in MILLISECONDS (matches whisper/browser/transcriber/srt; same unit as TranscriptionResult.duration). */
   start: number;
+  /** Segment end time in MILLISECONDS. */
   end: number;
   text: string;
   confidence?: number;

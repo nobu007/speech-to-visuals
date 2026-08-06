@@ -274,11 +274,15 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
         summary: segment.text.substring(0, 100) + '...',
         nodes: extractNodes(combinedText),
         edges: extractEdges(combinedText),
-        startMs: segment.start * 1000,
-        durationMs: (segment.end - segment.start) * 1000,
+        // segment.start/end are MILLISECONDS (TranscriptionSegment contract),
+        // matching whisper/browser/transcriber. startMs/durationMs stay in ms;
+        // startTime/endTime are the SceneGraph SECONDS fields (formatTime expects
+        // seconds at the render site), so divide by 1000.
+        startMs: segment.start,
+        durationMs: segment.end - segment.start,
         keyphrases: extractKeyphrases(segment.text),
-        startTime: segment.start,
-        endTime: segment.end,
+        startTime: segment.start / 1000,
+        endTime: segment.end / 1000,
       };
 
       setScenes(prev => {

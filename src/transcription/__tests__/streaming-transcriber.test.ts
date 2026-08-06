@@ -1523,19 +1523,20 @@ describe('StreamingTranscriber', () => {
         chunk: { start: number; end: number }
       ) => {
         chunkIndex++;
-        // First chunk: segment at 0-1s, second chunk: segment at 5-6s (gap > 0.5s)
+        // Segments are MILLISECONDS. First chunk: 0-1000ms, second chunk:
+        // 5000-6000ms (gap 4000ms > 500ms tolerance → must NOT merge).
         if (chunkIndex === 1) {
           return [{
             start: 0,
-            end: 1,
+            end: 1000,
             text: 'first segment',
             confidence: 0.9,
             speaker: 'unknown',
           }];
         }
         return [{
-          start: 5,
-          end: 6,
+          start: 5000,
+          end: 6000,
           text: 'second segment',
           confidence: 0.85,
           speaker: 'unknown',
@@ -1548,7 +1549,7 @@ describe('StreamingTranscriber', () => {
 
       const result = await promise;
 
-      // Segments should NOT be merged since they don't overlap (gap > 0.5s)
+      // Segments should NOT be merged since they don't overlap (gap > 500ms tolerance)
       expect(result.segments!.length).toBeGreaterThanOrEqual(2);
       // Text should contain both segments
       expect(result.text).toContain('first segment');
@@ -1576,16 +1577,17 @@ describe('StreamingTranscriber', () => {
         if (chunkIndex === 1) {
           return [{
             start: 0,
-            end: 2,
+            end: 2000,
             text: 'first segment',
             confidence: 0.9,
             speaker: 'unknown',
           }];
         }
-        // Second segment overlaps (starts at 2.3, within 0.5s of first ending at 2)
+        // Segments are MILLISECONDS. Second segment starts at 2300ms, within the
+        // 500ms tolerance of the first ending at 2000ms → must merge.
         return [{
-          start: 2.3,
-          end: 4,
+          start: 2300,
+          end: 4000,
           text: 'overlapping segment',
           confidence: 0.85,
           speaker: 'unknown',
@@ -1677,6 +1679,36 @@ describe('StreamingTranscriber', () => {
       const result = await promise;
 
       expect(result.duration).toBe(3500);
+    });
+
+    it('emits segment start/end in milliseconds, consistent with result.duration', async () => {
+      // Contract (whisper/browser/transcriber/srt all agree):
+      // TranscriptionSegment.start/end are MILLISECONDS. streaming-transcriber
+      // previously emitted SECONDS, so within ONE TranscriptionResult the
+      // segments were seconds while `duration` was milliseconds (audioDuration*1000)
+      // — a 1000x internal inconsistency, and 1000x off from every other producer.
+      await loadModule();
+      mockAudioInstance.duration = 5;
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 5000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+
+      const promise = transcriber.transcribeStream('/audio.mp3');
+      fireAudioMetadata(mockAudioInstance);
+
+      const result = await promise;
+
+      const segs = result.segments!;
+      expect(segs.length).toBeGreaterThan(0);
+      const last = segs[segs.length - 1];
+
+      // Final segment of a 5s clip ends near 5000ms, NOT 5 (seconds).
+      expect(last.end).toBeGreaterThan(1000);
+      // Same unit as result.duration (both ms): final segment end ≈ full duration.
+      expect(Math.abs(last.end - result.duration)).toBeLessThan(50);
     });
 
     it('transcribeStream progress has correct totalDuration', async () => {

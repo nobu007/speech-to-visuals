@@ -254,7 +254,11 @@ export class StreamingTranscriber {
 
       let interimTranscript = '';
       let finalTranscript = '';
-      let segmentStartTime = performance.now();
+      // Origin for recording-relative timestamps. performance.now() is measured
+      // from page load, so subtracting this base keeps the first spoken segment
+      // near 0ms instead of offset by however long the page had been open.
+      const recordingStartTime = performance.now();
+      let segmentStartTime = recordingStartTime;
 
       this.recognition.onresult = (event) => {
         interimTranscript = '';
@@ -268,10 +272,11 @@ export class StreamingTranscriber {
           if (event.results[i].isFinal) {
             finalTranscript += transcript + ' ';
 
-            // Create segment for completed phrase
+            // Create segment for completed phrase — timestamps in MILLISECONDS,
+            // recording-relative (see TranscriptionSegment contract).
             const segment: TranscriptionSegment = {
-              start: segmentStartTime / 1000,
-              end: performance.now() / 1000,
+              start: segmentStartTime - recordingStartTime,
+              end: performance.now() - recordingStartTime,
               text: transcript.trim(),
               confidence: Number.isFinite(confidence) && confidence > 0 ? confidence : 0.8,
               speaker: 'unknown'
@@ -303,8 +308,8 @@ export class StreamingTranscriber {
               processedDuration: performance.now() - segmentStartTime,
               totalDuration: -1, // Unknown for live
               currentSegment: interimTranscript ? {
-                start: segmentStartTime / 1000,
-                end: performance.now() / 1000,
+                start: segmentStartTime - recordingStartTime,
+                end: performance.now() - recordingStartTime,
                 text: interimTranscript,
                 confidence: 0.5, // Interim confidence
                 speaker: 'unknown'
@@ -393,9 +398,13 @@ export class StreamingTranscriber {
       const segmentStart = chunk.start + (i * chunkDuration / segmentCount);
       const segmentEnd = chunk.start + ((i + 1) * chunkDuration / segmentCount);
 
+      // Chunk math above is in seconds, but the TranscriptionSegment contract is
+      // MILLISECONDS (whisper/browser/transcriber/srt-generator all agree, and
+      // this file's own result.duration is audioDuration*1000). Emit ms so the
+      // segments are consistent with duration and every other producer.
       segments.push({
-        start: segmentStart,
-        end: segmentEnd,
+        start: segmentStart * 1000,
+        end: segmentEnd * 1000,
         text: `Processed segment ${i + 1} from chunk ${chunk.start.toFixed(1)}s-${chunk.end.toFixed(1)}s`,
         confidence: 0.75 + (Math.random() * 0.2), // 75-95% confidence
         speaker: 'unknown'
@@ -454,8 +463,8 @@ export class StreamingTranscriber {
       const current = sorted[i];
       const lastMerged = merged[merged.length - 1];
 
-      // Check for overlap
-      if (current.start <= lastMerged.end + 0.5) { // 0.5s tolerance
+      // Check for overlap (segments are in milliseconds → 500ms tolerance)
+      if (current.start <= lastMerged.end + 500) {
         // Merge segments
         lastMerged.end = Math.max(lastMerged.end, current.end);
         lastMerged.text += ' ' + current.text;
