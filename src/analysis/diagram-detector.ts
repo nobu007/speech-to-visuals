@@ -315,76 +315,10 @@ export class DiagramDetector {
     const text = segment.text.toLowerCase();
     const keyphrases = safeMap(segment.keyphrases, kp => kp.toLowerCase());
 
-    // ITERATION 45 ENHANCEMENT: Enhanced matrix/cycle keyword detection with negative keywords
-    // Extended: flowchart, comparison, network patterns for rule-based detection
-    const patterns: Record<string, { primary: string[]; secondary: string[]; context: string[]; negative: string[] }> = {
-      flow: {
-        primary: ['process', 'workflow', 'pipeline', 'procedure', 'sequence'],
-        secondary: ['step', 'flow', 'first', 'next', 'then', 'finally', 'after', 'before', 'follows'],
-        context: ['data', 'information', 'system', 'through', 'input', 'output'],
-        negative: ['comparison', 'matrix', 'versus', 'cycle', 'loop', 'circular']
-      },
-      flowchart: {
-        primary: ['flowchart', 'decision tree', 'decision flow', 'branching logic', 'conditional flow'],
-        secondary: ['decision', 'branch', 'condition', 'if', 'else', 'yes/no', 'true/false', 'gateway'],
-        context: ['path', 'route', 'outcome', 'result', 'option', 'rule'],
-        negative: ['comparison', 'versus', 'timeline', 'history']
-      },
-      tree: {
-        primary: ['hierarchy', 'organization', 'structure', 'taxonomy', 'ceo', 'vp', 'director', 'management'],
-        secondary: ['parent', 'child', 'branch', 'root', 'category', 'classification', 'breakdown', 'reports', 'under', 'supervisor', 'team'],
-        context: ['levels', 'components', 'parts', 'subdivide', 'organize', 'department', 'division', 'company'],
-        negative: ['comparison', 'versus', 'cycle', 'loop']
-      },
-      timeline: {
-        primary: ['timeline', 'chronology', 'history', 'evolution', 'january', 'february', 'march', 'april', 'may', 'june'],
-        secondary: ['development', 'year', 'month', 'date', 'time', 'period', 'era', 'phase', 'project', 'milestone'],
-        context: ['when', 'during', 'since', 'until', 'progress', 'stages', 'schedule', 'roadmap'],
-        negative: ['comparison', 'versus', 'cycle', 'loop', 'circular']
-      },
-      matrix: {
-        primary: ['comparison', 'matrix', 'table', 'versus', 'compare', 'against', 'vs', 'vs.'],
-        secondary: ['criteria', 'features', 'properties', 'characteristics', 'options', 'alternatives', 'evaluate', 'assessment'],
-        context: ['different', 'similar', 'choices', 'contrasting', 'weighing', 'pros', 'cons'],
-        negative: []
-      },
-      cycle: {
-        primary: ['cycle', 'loop', 'circular', 'recurring', 'repeat', 'continuous', 'iterative'],
-        secondary: ['iteration', 'ongoing', 'cyclical', 'returns', 'repeatedly', 'feedback', 'recursive'],
-        context: ['back', 'again', 'continuously', 'infinite', 'perpetual', 'round'],
-        negative: []
-      },
-      comparison: {
-        primary: ['pros and cons', 'advantages disadvantages', 'better worse'],
-        secondary: ['better', 'worse', 'superior', 'inferior', 'difference', 'similarity', 'contrast'],
-        context: ['feature', 'benefit', 'drawback', 'strength', 'weakness'],
-        negative: ['process', 'step', 'cycle', 'loop']
-      },
-      network: {
-        primary: ['network', 'graph', 'nodes', 'connections', 'linked', 'mesh'],
-        secondary: ['connected', 'association', 'relationship', 'hub', 'cluster', 'peer', 'topology'],
-        context: ['system', 'infrastructure', 'architecture', 'endpoint'],
-        negative: ['process', 'step', 'timeline', 'history']
-      },
-      conceptmap: {
-        primary: ['concept map', 'concept', 'proposition', 'knowledge map'],
-        secondary: ['relates', 'connected', 'linked', 'depends on', 'influences', 'associated'],
-        context: ['theory', 'model', 'framework', 'understanding'],
-        negative: ['process', 'timeline', 'cycle']
-      },
-      mindmap: {
-        primary: ['mind map', 'brainstorm', 'mindmap', 'radial'],
-        secondary: ['central', 'branch', 'topic', 'subtopic', 'idea', 'thought'],
-        context: ['organize', 'structure', 'expand', 'creative'],
-        negative: ['comparison', 'versus', 'timeline']
-      },
-      general: {
-        primary: ['diagram', 'chart', 'illustration', 'visual', 'schematic'],
-        secondary: ['represent', 'depict', 'show', 'display', 'visualize'],
-        context: ['data', 'information', 'structure', 'overview'],
-        negative: []
-      },
-    };
+    // Use the shared DIAGRAM_KEYWORDS dictionary (Japanese + English) instead of
+    // a local English-only copy.  This ensures ruleBasedDetection benefits from
+    // the same bilingual keyword coverage that the rest of the module uses.
+    const patterns = DIAGRAM_KEYWORDS;
 
     // Calculate weighted scores for each diagram type
     const scores: Record<DiagramType, number> = {
