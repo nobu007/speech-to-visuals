@@ -172,18 +172,21 @@ describe('encodeAPNG', () => {
 
   // ---- Frame delay ----
 
-  it('computes delay numerator from fps', () => {
+  it('encodes frame delay as the 1/fps rational in seconds', () => {
     const frame = solidFrame(2, 2, 0, 0, 0);
     const buf = encodeAPNG([frame], { fps: 30 });
     const chunks = parsePngChunks(buf);
 
     const fctl = chunks.find(c => c.type === 'fcTL')!;
-    // delay_num at offset 20 (big-endian u16)
+    // delay_num at offset 20, delay_den at offset 22 (big-endian u16).
+    // Per the APNG spec the frame delay is delay_num/delay_den in SECONDS, so a
+    // 30fps frame (1/30 s ≈ 33.33ms) is encoded as the exact rational 1/30:
+    // delayNum=1, delayDen=30. Encoding it as ms (e.g. 3333/100) makes decoders
+    // read 33.33 SECONDS per frame — an animation ~1000x too slow.
     const delayNum = (fctl.data[20] << 8) | fctl.data[21];
     const delayDen = (fctl.data[22] << 8) | fctl.data[23];
-    // 30fps → 33.33ms → delayNum ≈ 3333, delayDen = 100
-    expect(delayDen).toBe(100);
-    expect(delayNum).toBe(Math.round((1000 / 30) * 100));
+    expect(delayNum).toBe(1);
+    expect(delayDen).toBe(30);
   });
 
   // ---- Binary integrity ----
