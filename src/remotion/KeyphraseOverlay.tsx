@@ -98,11 +98,14 @@ export function calculateKeyphraseOpacity(
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
   );
 
-  // For short scenes, ensure visibility at midpoint
+  // For short scenes, ensure visibility at midpoint. When the scene is shorter
+  // than fadeIn+fadeOut the two fade windows overlap and min(fadeIn,fadeOut)
+  // never reaches full opacity — take the MAX so the keyphrase stays at least
+  // as visible as the more-faded side.
   if (totalDuration <= KEYPHRASE_FADE_IN_FRAMES + KEYPHRASE_FADE_OUT_FRAMES) {
     const midpoint = (sceneStartFrame + sceneEndFrame) / 2;
     if (frame >= midpoint - 1 && frame <= midpoint + 1) {
-      return Math.min(fadeIn, fadeOut);
+      return Math.max(fadeIn, fadeOut);
     }
   }
 

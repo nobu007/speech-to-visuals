@@ -129,6 +129,18 @@ describe('KeyphraseOverlay', () => {
       expect(opacity).toBeGreaterThanOrEqual(0);
       expect(opacity).toBeLessThanOrEqual(1);
     });
+
+    it('boosts short-scene midpoint visibility (uses the more-faded side, not the min)', () => {
+      // When a scene is shorter than fadeIn+fadeOut (8+8=16) the fade windows
+      // overlap, so the naive min(fadeIn,fadeOut) keeps the keyphrase dim. The
+      // midpoint branch exists to ensure visibility — it must take the MAX.
+      //   frame 4 in [0,10] (within midpoint±1 window [4,6]):
+      //   fadeIn  = interpolate(4,[0,8],[0,1])  = 0.5
+      //   fadeOut = interpolate(4,[2,10],[1,0]) = 0.75
+      // Buggy Math.min -> 0.5; correct Math.max -> 0.75.
+      const opacity = calculateKeyphraseOpacity(4, 0, 10);
+      expect(opacity).toBeGreaterThanOrEqual(0.75);
+    });
   });
 
   describe('getActiveScene', () => {
