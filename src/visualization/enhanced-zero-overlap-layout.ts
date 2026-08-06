@@ -790,7 +790,18 @@ export class ZeroOverlapLayoutEngine {
 
   /**
    * Grid-based spatial overlap detection — O(n) average case for large diagrams.
-   * Uses the instance collisionGrid for spatial partitioning.
+   *
+   * Each node is registered in EVERY grid cell its (spacing-expanded) bounding
+   * box covers, and queries probe exactly those cells. This is the standard
+   * uniform-grid broad phase: two overlapping boxes always share at least one
+   * cell, so every colliding pair is found.
+   *
+   * A prior version registered a node only in the single cell containing its
+   * top-left corner and probed ±1 neighbor cells. That missed a pair whenever a
+   * node was wider than `cellSize` (real node widths reach 2× the configured
+   * nodeWidth via calculateNodeWidth), because the far cells it spanned were
+   * neither registered nor probed — silently breaking the zero-overlap
+   * guarantee.
    */
   private detectOverlapsWithSpatialGrid(
     nodes: PositionedNode[],
@@ -798,37 +809,53 @@ export class ZeroOverlapLayoutEngine {
   ): { node1: PositionedNode; node2: PositionedNode }[] {
     const overlaps: { node1: PositionedNode; node2: PositionedNode }[] = [];
 
-    // Cell size must be large enough to contain a node plus spacing
     const maxNodeDim = Math.max(this.config.nodeWidth, this.config.nodeHeight, 120);
     const cellSize = maxNodeDim + minSpacing;
 
-    const grid = new Map<string, PositionedNode[]>();
+    // Grid cell indices spanned by a [start, end] interval (end inclusive).
+    const cellIndices = (start: number, end: number): number[] => {
+      const lo = Math.floor(start / cellSize);
+      const hi = Math.floor(end / cellSize);
+      const out: number[] = [];
+      for (let c = lo; c <= hi; c++) out.push(c);
+      return out;
+    };
 
+    // Expand the box by spacing/2 on every side to mirror nodesOverlap(), which
+    // tests AABBs each inflated by spacing/2. Two such inflated boxes intersect
+    // iff the originals are within `minSpacing`, and intersecting boxes always
+    // share a cell — so no colliding pair can slip through the grid.
+    const cellsFor = (node: PositionedNode): string[] => {
+      const w = getNodeWidth(node, 0);
+      const h = getNodeHeight(node, 0);
+      const pad = minSpacing / 2;
+      const xs = cellIndices(node.x - pad, node.x + w + pad);
+      const ys = cellIndices(node.y - pad, node.y + h + pad);
+      const keys: string[] = [];
+      for (const cx of xs) for (const cy of ys) keys.push(`${cx},${cy}`);
+      return keys;
+    };
+
+    const grid = new Map<string, PositionedNode[]>();
     for (const node of nodes) {
-      const cx = Math.floor(node.x / cellSize);
-      const cy = Math.floor(node.y / cellSize);
-      const key = `${cx},${cy}`;
-      if (!grid.has(key)) grid.set(key, []);
-      grid.get(key)!.push(node);
+      for (const key of cellsFor(node)) {
+        if (!grid.has(key)) grid.set(key, []);
+        grid.get(key)!.push(node);
+      }
     }
 
     const seen = new Set<string>();
     for (const node of nodes) {
-      const cx = Math.floor(node.x / cellSize);
-      const cy = Math.floor(node.y / cellSize);
-
-      for (let dx = -1; dx <= 1; dx++) {
-        for (let dy = -1; dy <= 1; dy++) {
-          const cell = grid.get(`${cx + dx},${cy + dy}`);
-          if (!cell) continue;
-          for (const other of cell) {
-            if (other.id === node.id) continue;
-            const pairKey = node.id < other.id ? `${node.id},${other.id}` : `${other.id},${node.id}`;
-            if (seen.has(pairKey)) continue;
-            if (nodesOverlap(node, other, minSpacing)) {
-              seen.add(pairKey);
-              overlaps.push({ node1: node, node2: other });
-            }
+      for (const key of cellsFor(node)) {
+        const cell = grid.get(key);
+        if (!cell) continue;
+        for (const other of cell) {
+          if (other.id === node.id) continue;
+          const pairKey = node.id < other.id ? `${node.id},${other.id}` : `${other.id},${node.id}`;
+          if (seen.has(pairKey)) continue;
+          if (nodesOverlap(node, other, minSpacing)) {
+            seen.add(pairKey);
+            overlaps.push({ node1: node, node2: other });
           }
         }
       }
