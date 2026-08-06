@@ -80,6 +80,32 @@ export function clampSceneDuration(duration: unknown): number {
   return Math.min(duration, 3600); // cap at 1 hour
 }
 
+/**
+ * Resolve a scene's duration in SECONDS for the export renderers.
+ *
+ * Two scene shapes reach these pure renderers:
+ *   - ad-hoc `SceneItem` data carrying an explicit `duration` field (seconds);
+ *   - pipeline `SceneGraph`, which carries `durationMs` (milliseconds) and NO
+ *     `duration` field.
+ * Reading only `scene.duration` made every pipeline-fed scene fall through to
+ * the default, so the exported SVG/Lottie animation timing was unrelated to the
+ * real scene lengths. Prefer the explicit seconds `duration`; otherwise convert
+ * `durationMs`. Returns undefined when neither is a finite number (the caller's
+ * clamp then applies its own default).
+ */
+export function sceneDurationSeconds(scene: {
+  duration?: unknown;
+  durationMs?: unknown;
+}): number | undefined {
+  if (typeof scene.duration === 'number' && Number.isFinite(scene.duration)) {
+    return scene.duration;
+  }
+  if (typeof scene.durationMs === 'number' && Number.isFinite(scene.durationMs)) {
+    return scene.durationMs / 1000;
+  }
+  return undefined;
+}
+
 // ---------------------------------------------------------------------------
 // REQ-218: Animated SVG
 // ---------------------------------------------------------------------------
@@ -106,7 +132,7 @@ export function generateAnimatedSVG(
   }
 
   const totalDuration = scenes.length > 0
-    ? scenes.reduce((acc, s) => acc + clampSceneDuration(s.duration), 0)
+    ? scenes.reduce((acc, s) => acc + clampSceneDuration(sceneDurationSeconds(s)), 0)
     : 0;
   const safeDuration = totalDuration > 0 ? totalDuration : scenes.length;
   const keyframes: string[] = [];
@@ -115,7 +141,7 @@ export function generateAnimatedSVG(
 
   for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i];
-    const duration = clampSceneDuration(scene.duration);
+    const duration = clampSceneDuration(sceneDurationSeconds(scene));
     const startPct = roundPct((offset / safeDuration) * 100);
     const fadeInEnd = roundPct(Math.min(startPct + 3, ((offset + duration * 0.15) / safeDuration) * 100));
     const fadeOutStart = roundPct(((offset + duration * 0.85) / safeDuration) * 100);
@@ -162,7 +188,7 @@ export function generateLottieAnimation(
   let frameOffset = 0;
 
   const layers = scenes.map((scene, i) => {
-    const duration = clampSceneDuration(scene.duration);
+    const duration = clampSceneDuration(sceneDurationSeconds(scene));
     const totalFrames = Math.round(duration * fps);
     const label = String(scene.label ?? scene.type ?? `Scene ${i + 1}`);
     const layer: Record<string, unknown> = {

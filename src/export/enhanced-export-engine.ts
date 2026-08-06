@@ -20,7 +20,7 @@ import type {
   ExportWorkerResult,
 } from '../workers';
 import { encodeAPNG as realEncodeAPNG } from './apng-encoder';
-import { generateAnimatedSVG, generateLottieAnimation } from './animated-scene-renderer';
+import { generateAnimatedSVG, generateLottieAnimation, sceneDurationSeconds } from './animated-scene-renderer';
 import { ExportVerifier, type VerificationFormat, type VerificationResult } from './export-verifier';
 import { exportMetricsCollector, type ExportStatus } from './export-metrics-collector';
 import type { ExportArtifactStore } from './export-artifact-store';
@@ -1080,8 +1080,17 @@ export class EnhancedExportEngine {
   }
 
   private calculateDuration(sceneData: SceneData): number {
-    // Calculate total duration from scene data
-    return sceneData.scenes?.reduce((total: number, scene: { duration?: number; [key: string]: unknown }) => total + (scene.duration || 3), 0) || 10;
+    // Total duration (seconds) from scene data. Pipeline scenes carry
+    // `durationMs` (ms) rather than `duration` (s); sceneDurationSeconds resolves
+    // either so the render frame count reflects real scene lengths. A non-positive
+    // resolved duration keeps the historical 3 s default.
+    return sceneData.scenes?.reduce(
+      (total: number, scene: { duration?: number; durationMs?: number; [key: string]: unknown }) => {
+        const secs = sceneDurationSeconds(scene);
+        return total + (typeof secs === 'number' && secs > 0 ? secs : 3);
+      },
+      0,
+    ) || 10;
   }
 
   private updateProgress(job: ExportJob, stage: ExportStage, progress: number, details?: string): void {

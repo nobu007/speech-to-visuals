@@ -19,6 +19,7 @@ import {
   buildLayerShapes,
   validateFrameInfo,
   clampSceneDuration,
+  sceneDurationSeconds,
   SceneRendererValidationError,
 } from '@/export/animated-scene-renderer';
 import type { SceneDataset, FrameInfo } from '@/export/animated-scene-renderer';
@@ -210,6 +211,78 @@ describe('REQ-218: generateAnimatedSVG', () => {
     expect(svg).toContain('width="800"');
     expect(svg).toContain('height="600"');
     expect(svg).toContain('viewBox="0 0 800 600"');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Pipeline unit bridge: honor durationMs (ms) when duration (s) is absent.
+// The pipeline feeds SceneGraph scenes (durationMs in ms, no `duration`) into
+// these renderers. Before sceneDurationSeconds, scene.duration was always
+// undefined, so every scene collapsed to the 2 s default and the exported
+// SVG/Lottie timing was unrelated to the real scene lengths.
+// ---------------------------------------------------------------------------
+
+describe('scene duration honors pipeline durationMs (ms)', () => {
+  it('sceneDurationSeconds prefers explicit duration (s)', () => {
+    expect(sceneDurationSeconds({ duration: 3 })).toBe(3);
+    // When both are present, the explicit seconds field wins (no double conversion).
+    expect(sceneDurationSeconds({ duration: 3, durationMs: 9000 })).toBe(3);
+  });
+
+  it('sceneDurationSeconds converts durationMs (ms) -> seconds', () => {
+    expect(sceneDurationSeconds({ durationMs: 5000 })).toBe(5);
+    expect(sceneDurationSeconds({ durationMs: 750 })).toBe(0.75);
+  });
+
+  it('sceneDurationSeconds ignores non-finite / missing values', () => {
+    expect(sceneDurationSeconds({ durationMs: NaN })).toBeUndefined();
+    expect(sceneDurationSeconds({ duration: Infinity })).toBeUndefined();
+    expect(sceneDurationSeconds({})).toBeUndefined();
+  });
+
+  it('SVG total animation duration reflects durationMs', () => {
+    const svg = generateAnimatedSVG(
+      { scenes: [{ durationMs: 5000, label: 'A' }, { durationMs: 10000, label: 'B' }] },
+      HD,
+    );
+    // 5 s + 10 s = 15 s total. Bug (durationMs ignored → 2 s each): 4 s.
+    expect(svg).toMatch(/animation:s0 15s/);
+    expect(svg).toMatch(/animation:s1 15s/);
+    expect(svg).not.toMatch(/animation:s0 4s/);
+  });
+
+  it('Lottie layer frame counts reflect durationMs', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ durationMs: 5000, label: 'A' }, { durationMs: 10000, label: 'B' }] },
+      HD,
+    );
+    const layers = lottie.layers as Record<string, unknown>[];
+    // 5 s × 30 fps = 150 frames; 10 s × 30 fps = 300 frames; sequential.
+    // Bug (2 s each): layer A op=60, layer B ip=60, total op=120.
+    expect(layers[0].op).toBe(150);
+    expect(layers[1].ip).toBe(150);
+    expect(layers[1].op).toBe(450);
+    expect(lottie.op).toBe(450);
+  });
+
+  it('explicit duration (s) still takes precedence over durationMs', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ duration: 3, durationMs: 5000, label: 'A' }] },
+      HD,
+    );
+    const layers = lottie.layers as Record<string, unknown>[];
+    // duration=3 wins → 90 frames (not 150 from durationMs).
+    expect(layers[0].op).toBe(90);
+  });
+
+  it('durationMs below the clamp floor still defaults (no sub-frame scene)', () => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ durationMs: 0, label: 'Zero' }] },
+      HD,
+    );
+    const layers = lottie.layers as Record<string, unknown>[];
+    // 0 ms → 0 s → clampSceneDuration default 2 s → 60 frames.
+    expect(layers[0].op).toBe(60);
   });
 });
 
