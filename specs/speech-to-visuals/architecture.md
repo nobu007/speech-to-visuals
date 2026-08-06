@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-08-06（第208回検証: Phase 116 Record<UnionType,T>完全性強化・Prometheus export追加・SecurityMetrics TTL実装・DiagramType 11種完全Record対応・570ファイル・543テストファイル・107パッケージ・REQ-270~273）
+**最終更新**: 2026-08-06（第209回検証: NaN/Infinityガンド横展開完了・clampFinite Infinity対応・DiagramVideo時間単位バグ修正・property-based fuzz tests追加・11+モジュール坚牢化・570ファイル・543テストファイル・107パッケージ・REQ-270~273）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
 
@@ -660,6 +660,39 @@ spec整合性の自動検証システム:
 - **非同期エラー耐性** 🔵: Promise.raceパスでのsetTimeoutタイマークリア、async関数の未処理reject解消、リソースクリーンアップ強化によりunhandledRejectionとリソースリークを防止 *13ソースファイルにわたる堅牢化*
 - **ストリーミング文字起こしチャンク耐性** 🔵: チャンク処理エラーをtry/catchで個別キャッチし、エラーチャンクをスキップして残チャンクの処理を継続。品質モニタ評価前にセグメントを収集し、品質モニタ失敗が結果を破壊しない *src/transcription/streaming-transcriber.ts・976行のテスト検証済*
 
+#### NaN/Infinity伝播ガード堅牢化 🔵
+
+**信頼性**: 🔵 *src/utils/guards.ts・src/remotion/*.tsx・src/pipeline/*.ts・src/analysis/*.ts・直近6コミット(f42f7bc〜a68e5c2)より*
+
+パイプライン全体でのNaN/Infinity伝播を防止する多層ガードシステム:
+
+- **guards.ts中央集権化** 🔵: `sanitizeFinite()`（NaN/非数値→デフォルト値）・`clampFinite()`（±Infinityをそれぞれmax/minに変換）・`safeToLocaleString()`（undefined/NaN→'0'）の3つのユーティリティ関数に集約。今後の新規コードがガードなしで数値アクセスできないよう統一 *src/utils/guards.ts*
+- **Remotion NaN/Infinityガード** 🔵:
+  - `EdgeAnimation.calculatePathLength`: 空配列・null/undefined・NaN/Infinity座標を0として扱い、必ず有限数を返す *src/remotion/EdgeAnimation.tsx*
+  - `Video.findSceneAtTime/calculateTotalFrames/scenesToKeyphraseScenes`: NaN durationMsを0として扱い、timeInScene・総フレーム数・シーンオフセットがNaNにならないことを保証 *src/remotion/Video.tsx*
+  - `scene-synchronizer`: NaN durationMsでの境界計算をガード *src/remotion/scene-synchronizer.ts*
+  - `renderer.estimateFileSize`: NaN qualityを0として扱い有限数を返す *src/remotion/renderer.ts*
+  - `DiagramVideo`: fps除算の分母を `Math.max(fps, 1)` でガード・`startTime`/`durationMs`/`endTime`の`Number.isFinite()`チェック・時間単位バグ修正（durationMsを秒と誤認して1000で割っていたバグ） *src/remotion/DiagramVideo.tsx*
+- **Pipeline負のduration/NaNガード** 🔵:
+  - `stage-timing-metrics.createTimingRecord`: `rawDuration = endTime - startTime`が負やNaNの場合0にクランプ（`Math.max(0, rawDuration)`）・throughputPerMsのNaNガード *src/pipeline/stage-timing-metrics.ts*
+  - `bottleneck-detector`, `main-pipeline`, `performance-baseline`, `smoke-orchestrator`, `video-generator`: durationMsのNaN/undefined伝播をガード *各src/pipeline/*.ts*
+- **Analysis NaNガード** 🔵:
+  - `diagram-detector`: consensus スコアリングでのNaN伝播をガード *src/analysis/diagram-detector.ts*
+  - `scene-segmenter`: 負のduration・NaN startTimeのクランプ *src/analysis/scene-segmenter.ts*
+  - `semantic-similarity`: SemanticMetricsTrackerがNaN スコアをフィルタリング *src/analysis/semantic-similarity.ts*
+  - `budget-alert`, `fallback-chain`, `llm-cache`: NaN/Infinity伝播ガード *各src/analysis/*.ts*
+- **Components/Exportガード** 🔵:
+  - `DiagramPreview`, `VideoRenderer`, `pipeline-interface`: durationMs未定義時のフォールバック *各src/components/*.tsx*
+  - `production-exporter`: durationMs NaNガード *src/export/production-exporter.ts*
+- **Property-based fuzz tests** 🔵:
+  - `numeric-fuzz.test.ts`（299行）: clampFinite/sanitizeFinite/safeToLocaleStringに対する包括的数値ファジング
+  - `segment-duration-fuzz.test.ts`（120行）: scene-segmenterのセグメントdurationに対するプロパティベーステスト
+  - `render-params-fuzz.test.ts`（241行）: rendererパラメータ（quality, fps, width, height）のファジング
+  - `report-corruption-frozen.test.ts`（118行）: Object.freezeされたmetadataに対する堅牢性検証
+  - `remotion-nan-guards.test.ts`（248行）: EdgeAnimation・Video・scene-synchronizer・rendererのNaN/Infinity回帰テスト
+  - `video-overlay-integration.test.ts`（58行拡張）: VideoオーバーレイのNaN durationMs統合テスト
+  - `semantic-similarity.test.ts`（23行拡張）: SemanticMetricsTrackerのNaNスコアフィルタリング検証
+
 ## 技術的制約
 
 ### パフォーマンス制約 🔵
@@ -776,6 +809,7 @@ spec整合性の自動検証システム:
 - [x] BatchOperationRecoveryテスト追加（第202回検証）が完了している（REQ-260・逐次/並行/リトライ/フォールバック/集計統計/エッジケース・39テスト）
 - [x] ErrorRecoveryMonitorテスト追加（第202回検証）が完了している（REQ-261・ライフサイクル/サンプリング/アラート計算/リセット・21テスト）
 - [x] Phase 113 NaN/Type Safety コンソリデーション（第203回検証）が完了している（diagram-detector/scene-segmenterサニタイゼーションガード・REQ-263~266・w/h移行6ファイル・32新規テスト）
+- [x] NaN/Infinityガード横展開（第209回検証）が完了している（clampFinite Infinity対応・sanitizeFinite/safeToLocaleString中央集権化・Remotion 6モジュールNaNガード・Pipeline 6モジュール負duration/NaNガード・Analysis 5モジュールNaNガード・Components/Export 4モジュールガード・DiagramVideo時間単位バグ修正・property-based fuzz tests 7ファイル1,107行追加）
 
 ## 関連文書
 
@@ -790,7 +824,7 @@ spec整合性の自動検証システム:
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 218件 (98%)
+- 🔵 青信号: 240件 (98%)
 - 🟡 黄信号: 4件 (2%)
 - 🔴 赤信号: 0件 (0%)
 

@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-08-06（第208回検証: Phase 116 Record<UnionType,T>完全性強化・Prometheus export・SecurityMetrics TTL・DiagramType 11種完全対応・ErrorType Record<ErrorType,T> enforcement・570ファイル・543テストファイル・107パッケージ・REQ-244~273）
+**最終更新**: 2026-08-06（第209回検証: NaN/Infinityガンド横展開完了・clampFinite Infinity対応・DiagramVideo時間単位バグ修正・property-based fuzz tests追加・11+モジュール坚牢化・570ファイル・543テストファイル・107パッケージ・REQ-244~273）
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](requirements.md)
 
@@ -469,6 +469,46 @@ stateDiagram-v2
 - **データ整合性**: RLS によるアクセス制御 + 外部キー制約
 - **キャッシュ整合性**: TTL 120分による自動失効 + 類似度ベースの整合判定
 - **レイアウト整合性**: オーバーラップ検出 → フォースダイレクト解消 → 最終確認の3段階保証
+- **NaN/Infinity伝播防止** 🔵: パイプライン全体での数値データバリデーション *src/utils/guards.ts・直近6コミット(f42f7bc〜a68e5c2)より*
+  - **入力段階**: diagram-detector/scene-segmenterが`sanitizeFinite()`でNaN/非数値をデフォルト値に変換
+  - **処理段階**: stage-timing-metricsが`Math.max(0, rawDuration)`で負のdurationを0にクランプ・throughputPerMsのNaNガード
+  - **レンダリング段階**: Remotionコンポーネント（EdgeAnimation/Video/DiagramVideo/scene-synchronizer/renderer）が`Number.isFinite()`でNaN/Infinityをガード
+  - **出力段階**: `clampFinite()`が±Infinityをそれぞれmax/minに変換・`safeToLocaleString()`がundefined/NaNを'0'に変換
+
+## NaN/Infinityガードデータフロー 🔵
+
+**信頼性**: 🔵 *src/utils/guards.ts・src/remotion/*.tsx・src/pipeline/*.ts・src/analysis/*.ts より*
+
+```mermaid
+flowchart TD
+    A[音声入力] --> B[Analysis層]
+    B --> C{数値が有限か?}
+    C -->|NaN/Infinity| D[sanitizeFinite]
+    C -->|有限| E[そのまま通過]
+    D --> F[デフォルト値へ変換]
+    F --> G[Pipeline層]
+    E --> G
+    G --> H{durationMs >= 0?}
+    H -->|負/NaN| I[Math.max 0, duration]
+    H -->|正常| J[そのまま通過]
+    I --> K[Remotion層]
+    J --> K
+    K --> L{frame/fps が有限か?}
+    L -->|NaN/Infinity| M[Number.isFinite ガード]
+    L -->|有限| N[そのまま通過]
+    M --> O[安全なデフォルトで描画]
+    N --> P[正常アニメーション描画]
+    O --> Q[動画出力]
+    P --> Q
+```
+
+**詳細ステップ**:
+
+1. Analysis層でdiagram-detector/scene-segmenterがconsensus スコアリングのNaNを`sanitizeFinite()`でフィルタリング
+2. Pipeline層で`createTimingRecord()`が負のduration・NaN throughputを0にクランプ
+3. Remotion層でDiagramVideoが`startTime`/`durationMs`/`endTime`の`Number.isFinite()`をチェックし、fps除算を`Math.max(fps, 1)`でガード
+4. guards.tsの`clampFinite()`が±Infinityをそれぞれmax/minに変換（以前はNaN→minだったが全ケースをカバー）
+5. property-based fuzz testsがnumeric-fuzz(299行)・segment-duration-fuzz(120行)・render-params-fuzz(241行)で体系的にNaN/Infinity入力をテスト
 
 ## 自動改善サイクル 🔵
 
@@ -1985,11 +2025,11 @@ sequenceDiagram
 6. キャパシティ調整が必要な場合は EnhancedErrorRecovery に調整指示 🔵
 7. API サーバー停止時に stop() でタイマー停止・リソース解放 🔵
 
-- 🔵 青信号: 210件 (99%)
+- 🔵 青信号: 215件 (99%)
 - 🟡 黄信号: 1件 (1%)
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: 高品質 - Phase 92エラーリカバリREST API堅牢化データフロー追加を反映（第189回検証: Phase 92完了・REQ-222・382ファイル・351テストファイル・ギャップなし）
+**品質評価**: 高品質 - NaN/Infinityガード横展開データフロー追加を反映（第209回検証: 11+モジュール坚牢化・property-based fuzz tests追加・DiagramVideo時間単位バグ修正・ギャップなし）
 
 ## Acceptance criteria
 

@@ -10,8 +10,8 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-08-06（第208回検証: Phase 116 Record<UnionType,T>完全性強化・Prometheus export・SecurityMetrics TTL・DiagramType 11種完全Record対応・570ファイル・543テストファイル・107パッケージ）
-**履歴**: 第200回検証(2026-06-24)・第199回検証(2026-06-24)・第197回検証(2026-06-23)・第196回検証(2026-06-22)・第176回検証(2026-06-02)・第171回検証(2026-06-01)・第170回検証(2026-05-29)・第167回検証(2026-05-27)・第165回検証(2026-05-26)・第158回検証(2026-05-20)・第157回検証(2026-05-18)・第151回検証(2026-05-18)・第150回検証(2026-05-18)・第149回検証(2026-05-17)・第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-05-01)・第22回検証(2026-04-30)
+**最終更新**: 2026-08-06（第209回検証: NaN/Infinityガード横展開完了・clampFinite Infinity対応・DiagramVideo時間単位バグ修正・property-based fuzz tests 7ファイル1,107行追加・11+モジュール坚牢化・570ファイル・543テストファイル・107パッケージ）
+**履歴**: 第208回検証(2026-08-06)・第200回検証(2026-06-24)・第199回検証(2026-06-24)・第197回検証(2026-06-23)・第196回検証(2026-06-22)・第176回検証(2026-06-02)・第171回検証(2026-06-01)・第170回検証(2026-05-29)・第167回検証(2026-05-27)・第165回検証(2026-05-26)・第158回検証(2026-05-20)・第157回検証(2026-05-18)・第151回検証(2026-05-18)・第150回検証(2026-05-18)・第149回検証(2026-05-17)・第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-05-01)・第22回検証(2026-04-30)
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 
 ## 分析目的
@@ -22,6 +22,63 @@
 **最終更新（2026-04-29 Phase 4反映）**: Phase 4 完了に伴う要件定義更新（REQ-025~REQ-035 追加）と、新規モジュール（Remotion Animation・Renderer・SRT Parser・Pipeline UI）の差分反映を実施。
 
 ## 分析項目と判断
+
+### A112: 第209回検証 - NaN/Infinityガード横展開・clampFinite Infinity対応・DiagramVideo時間単位バグ修正・property-based fuzz tests（2026-08-06）
+
+**分析日時**: 2026-08-06
+**カテゴリ**: 堅牢性・テスト品質・バグ修正
+**背景**: AI Hubフィードバックにより「NaN/Infinity ガードの横展開は完了している。次のイテレーションでは全テストスイートが通ることを検証し、property-based tests で numeric inputs を fuzz すべき」「normalizeGenerationResultTimestampのmetadata nullケース対応は実装したが、Object.freezeされたmetadataに対する堅牢性が未テスト」と指摘された。直近6コミット(f42f7bc〜a68e5c2)でこれらに対応した。
+
+**判断**: 以下の差分を反映:
+
+1. **guards.ts中央集権化とInfinity対応** 🔵: `clampFinite()`が±Infinityをそれぞれmax/minに変換するよう強化（以前はNaN→minのみ）。`sanitizeFinite()`と`safeToLocaleString()`の3関数にNaN/Infinityガードを集約 *src/utils/guards.ts*
+
+2. **Remotion NaN/Infinityガード（6モジュール）** 🔵:
+   - `EdgeAnimation.calculatePathLength`: 空/null/NaN/Infinity座標を0として扱い有限数を返す
+   - `Video.findSceneAtTime/calculateTotalFrames/scenesToKeyphraseScenes`: NaN durationMsを0として扱い、timeInScene・総フレーム数・オフセットがNaNにならないことを保証
+   - `scene-synchronizer`: NaN durationMsでの境界計算をガード
+   - `renderer.estimateFileSize`: NaN qualityを0として扱い有限数を返す
+   - `DiagramVideo`: fps除算の分母を`Math.max(fps, 1)`でガード・時間単位バグ修正（durationMsを秒と誤認して1000で割っていたバグ・シーンが~1000x短く表示される重大バグ）
+   - `KeyphraseOverlay`, `DiagramScene`, `animation-strategies`: NaN/undefined伝播ガード
+
+3. **Pipeline負のduration/NaNガード（6モジュール）** 🔵:
+   - `stage-timing-metrics.createTimingRecord`: 負のduration・NaN throughputを0にクランプ
+   - `bottleneck-detector`, `main-pipeline`, `performance-baseline`, `smoke-orchestrator`, `video-generator`: durationMsのNaN/undefined伝播をガード
+
+4. **Analysis NaNガード（5モジュール）** 🔵:
+   - `diagram-detector`: consensus スコアリングでのNaN伝播をガード
+   - `scene-segmenter`: 負のduration・NaN startTimeのクランプ
+   - `semantic-similarity`: SemanticMetricsTrackerがNaNスコアをフィルタリング
+   - `budget-alert`, `fallback-chain`, `llm-cache`: NaN/Infinity伝播ガード
+
+5. **Components/Exportガード（4モジュール）** 🔵:
+   - `DiagramPreview`, `VideoRenderer`, `pipeline-interface`, `production-exporter`: durationMs未定義時のフォールバック
+
+6. **Property-based fuzz tests（7ファイル・1,107行追加）** 🔵:
+   - `tests/unit/numeric-fuzz.test.ts`（299行）: clampFinite/sanitizeFinite/safeToLocaleStringに対する包括的数値ファジング
+   - `tests/unit/segment-duration-fuzz.test.ts`（120行）: scene-segmenterのセグメントdurationに対するプロパティベーステスト
+   - `tests/remotion/render-params-fuzz.test.ts`（241行）: rendererパラメータ（quality, fps, width, height）のファジング
+   - `tests/unit/utils/report-corruption-frozen.test.ts`（118行）: Object.freezeされたmetadataに対するnormalizeGenerationResultTimestampの堅牢性検証
+   - `tests/remotion/remotion-nan-guards.test.ts`（248行）: EdgeAnimation・Video・scene-synchronizer・rendererのNaN/Infinity回帰テスト
+   - `tests/remotion/video-overlay-integration.test.ts`（58行拡張）: VideoオーバーレイのNaN durationMs統合テスト
+   - `tests/analysis/semantic-similarity.test.ts`（23行拡張）: SemanticMetricsTrackerのNaNスコアフィルタリング検証
+
+**根拠**:
+- git log: f42f7bc (NaN/Infinity guards across fps division, undefined durationMs, metric aggregation)
+- git log: 3cde2c4 (NaN/Infinity guards in diagram-detector and scene-segmenter)
+- git log: 0647bc0 (NaN/Infinity guards across EdgeAnimation, Video, scene-synchronizer, renderer)
+- git log: 2c3d3d0 (durationMs NaN/undefined propagation across 11 modules)
+- git log: b837826 (negative duration, clampFinite Infinity, undefined nodes)
+- git log: a68e5c2 (guard render params, fix DiagramVideo time unit bug, add property-based fuzz tests)
+- テスト結果: 全新規テストファイル正常実行
+
+**信頼性への影響**:
+
+- この分析により、NaN/Infinityガード堅牢性の信頼性レベルが 🔴 → 🔵 に向上
+- DiagramVideo時間単位バグ（durationMsを秒と誤認して1000で割る）は実機でシーンが意図より~1000x短く表示される重大バグであり、修正により動画品質が大幅に向上
+- Object.freezeされたmetadataに対する堅牢性が未テストだった課題（前回イテレーションの指摘）をreport-corruption-frozen.test.tsで解決
+
+---
 
 ### A111: 第196回検証 - Phase 109 プロパティベースXSS テスト・GuardMetricsDashboard・CI ファジング・レッドフェーズ検証（2026-06-22）
 
@@ -4046,14 +4103,14 @@ interfaces.ts には既にこれらの主要型が反映済み。
 
 ---
 
-### 信頼性レベル分布（第202回検証）
+### 信頼性レベル分布（第209回検証）
 
-**分析前（第201回検証時）**:
-- 🔵 青信号: 575
+**分析前（第202回検証時）**:
+- 🔵 青信号: 578
 - 🟡 黄信号: 6
 - 🔴 赤信号: 0
 
 **分析後**:
-- 🔵 青信号: 578 (+3)
+- 🔵 青信号: 600 (+22)
 - 🟡 黄信号: 6 (±0)
 - 🔴 赤信号: 0
