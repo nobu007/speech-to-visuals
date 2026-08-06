@@ -304,7 +304,9 @@ export class LLMService {
           primaryModel,
           request.prompt,
           {
-            temperature: request.options?.temperature || 0.1,
+            // `?? 0.1` not `|| 0.1`: temperature 0 is a legit deterministic
+            // value and must not be replaced with the default.
+            temperature: request.options?.temperature ?? 0.1,
             maxOutputTokens: request.options?.maxOutputTokens || 2048
           },
           timeout,
@@ -412,7 +414,9 @@ export class LLMService {
           fallbackModel,
           request.prompt,
           {
-            temperature: request.options?.temperature || 0.1,
+            // `?? 0.1` not `|| 0.1`: temperature 0 is a legit deterministic
+            // value and must not be replaced with the default.
+            temperature: request.options?.temperature ?? 0.1,
             maxOutputTokens: request.options?.maxOutputTokens || 2048
           },
           timeout,

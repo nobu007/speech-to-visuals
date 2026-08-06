@@ -12,7 +12,9 @@
  */
 
 import { jest } from '@jest/globals';
-import { LLMService } from '../llm-service';
+// NOTE: LLMService is imported dynamically (below, AFTER jest.unstable_mockModule)
+// because under native ESM `jest.mock()` is a no-op and static imports are
+// hoisted above the mock registration. See [[jest-esm-mock-pattern]].
 
 // ---------------------------------------------------------------------------
 // Mock dependencies
@@ -26,14 +28,14 @@ const mockGetGenerativeModel = jest.fn(() => ({
   generateContentStream: mockGenerateContentStream,
 }));
 
-jest.mock('@google/generative-ai', () => ({
+jest.unstable_mockModule('@google/generative-ai', () => ({
   GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
     getGenerativeModel: mockGetGenerativeModel,
   })),
 }));
 
 // Mock LLMCache - each instance gets its own isolated storage
-jest.mock('@/analysis/llm-cache', () => {
+jest.unstable_mockModule('@/analysis/llm-cache', () => {
   return {
     LLMCache: jest.fn().mockImplementation(() => {
       const store = new Map<string, unknown>();
@@ -62,6 +64,10 @@ jest.mock('@/analysis/llm-cache', () => {
     }),
   };
 });
+
+// ESM: import the SUT AFTER the module mocks above are registered, so the
+// mocked @google/generative-ai and @/analysis/llm-cache intercept its imports.
+const { LLMService } = await import('../llm-service');
 
 // Mock console to reduce noise
 let consoleLogSpy: jest.SpyInstance;
@@ -289,6 +295,32 @@ describe('LLMService', () => {
           generationConfig: expect.objectContaining({
             temperature: 0.5,
             maxOutputTokens: 4096,
+          }),
+        })
+      );
+    });
+
+    it('should respect an explicit temperature of 0 (deterministic), not || 0.1', async () => {
+      // temperature: 0 is a legit, intended value — greedy/deterministic
+      // decoding (cf. whisper-transcriber uses 0.0, gemini-analyzer near-zero
+      // "for deterministic output"). `|| 0.1` silently replaced 0 with 0.1,
+      // losing determinism; `?? 0.1` keeps the genuine 0.
+      const service = new LLMService('test-key');
+
+      mockGenerateContent.mockResolvedValueOnce(
+        createLLMResponse(JSON.stringify({ ok: true }))
+      );
+
+      await service.execute({
+        prompt: 'test',
+        context: uniqueContext(),
+        options: { temperature: 0 },
+      });
+
+      expect(mockGetGenerativeModel).toHaveBeenCalledWith(
+        expect.objectContaining({
+          generationConfig: expect.objectContaining({
+            temperature: 0,
           }),
         })
       );
