@@ -74,21 +74,30 @@ function guardedSceneDuration(scene: SceneLike): number {
 }
 
 /**
- * Replicates calculateTotalDuration from video-generator.ts:
- *   scenes.reduce((total, scene) => {
- *     const start = Number.isFinite(scene.startMs) ? scene.startMs : 0;
- *     const dur = Number.isFinite(scene.durationMs) ? scene.durationMs : 0;
- *     const sceneEnd = Number.isFinite(start + dur) ? start + dur : Math.max(start, dur);
- *     return Math.max(total, sceneEnd);
- *   }, 0);
+ * Replicates calculateTotalDuration from video-generator.ts: SUM of each scene's
+ * finite durationMs. The render path plays scenes back-to-back cumulatively and
+ * ignores absolute startMs, so the reported total is the SUM of durationMs
+ * (NOT max(startMs + durationMs)). An overflow guard freezes the running sum if
+ * it ever exceeds Number.MAX_VALUE, keeping the result finite.
+ *   let total = 0;
+ *   for (const scene of scenes) {
+ *     const dur = Number.isFinite(scene.durationMs) ? Math.max(0, scene.durationMs) : 0;
+ *     const next = total + dur;
+ *     total = Number.isFinite(next) ? next : total;
+ *   }
+ *   return total;
+ *
+ * `startMs` is intentionally unused here, mirroring production (playback ignores
+ * it); the fuzz inputs still carry it to exercise the full input shape.
  */
 function guardedTotalDuration(scenes: RemotionSceneLike[]): number {
-  return scenes.reduce((total, scene) => {
-    const start = Number.isFinite(scene.startMs) ? scene.startMs : 0;
-    const dur = Number.isFinite(scene.durationMs) ? scene.durationMs : 0;
-    const sceneEnd = Number.isFinite(start + dur) ? start + dur : Math.max(start, dur);
-    return Math.max(total, sceneEnd);
-  }, 0);
+  let total = 0;
+  for (const scene of scenes) {
+    const dur = Number.isFinite(scene.durationMs) ? Math.max(0, scene.durationMs) : 0;
+    const next = total + dur;
+    total = Number.isFinite(next) ? next : total;
+  }
+  return total;
 }
 
 // ---------------------------------------------------------------------------
@@ -183,14 +192,15 @@ describe('VideoGenerator total duration fuzz', () => {
     expect(guardedTotalDuration([])).toBe(0);
   });
 
-  it('returns max scene end time, not sum', () => {
+  it('returns the SUM of durationMs (matches cumulative render), not max(startMs+dur)', () => {
     const scenes: RemotionSceneLike[] = [
       { startMs: 0, durationMs: 5000 },
       { startMs: 3000, durationMs: 4000 },
       { startMs: 5000, durationMs: 3000 },
     ];
-    // max(0+5000, 3000+4000, 5000+3000) = max(5000, 7000, 8000) = 8000
-    expect(guardedTotalDuration(scenes)).toBe(8000);
+    // Legacy max(0+5000, 3000+4000, 5000+3000) = 8000 — WRONG for cumulative
+    // playback. Correct SUM(durationMs) = 5000 + 4000 + 3000 = 12000.
+    expect(guardedTotalDuration(scenes)).toBe(12000);
   });
 
   it('all-NaN scenes produce total = 0', () => {
@@ -209,24 +219,35 @@ describe('VideoGenerator total duration fuzz', () => {
     expect(guardedTotalDuration(scenes)).toBe(0);
   });
 
-  it('mixed valid and invalid scenes use only valid values', () => {
+  it('mixed valid and invalid scenes SUM only the finite durations', () => {
     const scenes: RemotionSceneLike[] = [
-      { startMs: 0, durationMs: 5000 },   // valid, end=5000
-      { startMs: NaN, durationMs: 3000 },  // invalid startMs → 0+3000=3000
-      { startMs: 1000, durationMs: NaN },  // invalid durationMs → 1000+0=1000
+      { startMs: 0, durationMs: 5000 },   // valid → 5000
+      { startMs: NaN, durationMs: 3000 },  // invalid startMs ignored; dur 3000
+      { startMs: 1000, durationMs: NaN },  // invalid durationMs → 0
     ];
-    // max(5000, 3000, 1000) = 5000
-    expect(guardedTotalDuration(scenes)).toBe(5000);
+    // SUM of finite durations: 5000 + 3000 + 0 = 8000
+    expect(guardedTotalDuration(scenes)).toBe(8000);
   });
 
-  it('handles very large finite values without overflow to Infinity', () => {
+  it('handles a very large finite durationMs without overflow to Infinity', () => {
+    // SUM ignores startMs, so a single scene contributes just its durationMs.
     const scenes: RemotionSceneLike[] = [
       { startMs: Number.MAX_SAFE_INTEGER, durationMs: Number.MAX_SAFE_INTEGER },
     ];
     const total = guardedTotalDuration(scenes);
-    // MAX_SAFE_INTEGER + MAX_SAFE_INTEGER = 2^53, which is finite
     expect(Number.isFinite(total)).toBe(true);
-    expect(total).toBe(Number.MAX_SAFE_INTEGER + Number.MAX_SAFE_INTEGER);
+    expect(total).toBe(Number.MAX_SAFE_INTEGER);
+  });
+
+  it('overflow guard freezes the running SUM at Number.MAX_VALUE (no Infinity)', () => {
+    // Many near-MAX_VALUE durations would overflow a naive SUM to Infinity.
+    // The guard must keep the result finite.
+    const scenes: RemotionSceneLike[] = Array.from({ length: 10 }, () => ({
+      startMs: 0,
+      durationMs: Number.MAX_VALUE,
+    }));
+    const total = guardedTotalDuration(scenes);
+    expect(Number.isFinite(total)).toBe(true);
   });
 });
 

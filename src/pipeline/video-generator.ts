@@ -521,13 +521,32 @@ export class VideoGenerator {
     return `${typeLabel} - ${scene.content.substring(0, 30)}...`;
   }
 
+  /**
+   * Total playback duration of the generated video, in milliseconds.
+   *
+   * MUST equal the SUM of each scene's durationMs — not max(startMs + durationMs).
+   * The render path plays scenes back-to-back via cumulative durationMs offsets:
+   *   - @/remotion/Video `findSceneAtTime` / `calculateTotalFrames` (SUM)
+   *   - ActualVideoRenderer.getComposition (SUM, ignores absolute startMs)
+   * Each scene's absolute `startMs` (the original audio timestamp) is IGNORED by
+   * playback, so it cannot define the video's end point. Using max(startMs+dur)
+   * diverged from the real video length whenever scenes were duration-clamped
+   * (simple-pipeline clamps durationMs to [3000, 10000] ms) or non-contiguous,
+   * making the reported `duration`, `durationInFrames`, and file-size estimate
+   * disagree with what actually rendered.
+   */
   private calculateTotalDuration(scenes: RemotionSceneData[]): number {
-    return scenes.reduce((total, scene) => {
-      const start = Number.isFinite(scene.startMs) ? scene.startMs : 0;
-      const dur = Number.isFinite(scene.durationMs) ? scene.durationMs : 0;
-      const sceneEnd = Number.isFinite(start + dur) ? start + dur : Math.max(start, dur);
-      return Math.max(total, sceneEnd);
-    }, 0);
+    let total = 0;
+    for (const scene of scenes) {
+      // Match calculateTotalFrames: clamp negatives to 0 (production scenes are
+      // always in [3000, 10000] ms, but defend against malformed input).
+      const dur = Number.isFinite(scene.durationMs) ? Math.max(0, scene.durationMs) : 0;
+      const next = total + dur;
+      // Overflow guard: if the running sum overflows to Infinity, freeze it so
+      // the result stays finite (matches the previous Number.isFinite guarding).
+      total = Number.isFinite(next) ? next : total;
+    }
+    return total;
   }
 
   private generateOutputPath(): string {

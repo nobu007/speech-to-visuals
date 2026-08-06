@@ -11,7 +11,8 @@
  *
  *   - @/remotion/Video `calculateTotalFrames(scenes, fps)`  → SUM of durationMs
  *   - video-generator `prepareRenderConfiguration`           → durationInFrames
- *     derived from `calculateTotalDuration` (max of startMs+durationMs)
+ *     derived from `calculateTotalDuration` (SUM of durationMs; matches the
+ *     cumulative render path, which ignores absolute startMs)
  *
  * A latent time-unit bug existed in `convertSceneToRemotionFormat`: it derived
  * `durationMs` from `(endTime - startTime)` where startTime/endTime are in
@@ -119,8 +120,69 @@ describe('VideoGenerator scene-duration time-unit correctness (real methods)', (
       ];
       const total = api.calculateTotalDuration(scenes);
       expect(Number.isFinite(total)).toBe(true);
-      // max(5000, 10000) = 10000
+      // 5000ms + 5000ms = 10000ms (SUM of durationMs — contiguous scenes where
+      // the legacy max(startMs+dur) formula happened to agree).
       expect(total).toBe(10000);
+    });
+  });
+
+  describe('calculateTotalDuration matches the cumulative render path (SUM, not max)', () => {
+    // Regression for a real divergence: simple-pipeline emits scenes with
+    // ABSOLUTE audio startMs and clamps durationMs to [3000, 10000] ms. The
+    // render path plays scenes back-to-back via cumulative durationMs (SUM),
+    // ignoring absolute startMs. The legacy max(startMs + durationMs) formula
+    // therefore reported a duration that did NOT match the rendered video
+    // whenever scenes were clamped up to the 3000 ms floor (short segments) or
+    // non-contiguous. These cases assert SUM so reported duration ≡ real render.
+    it('three sub-floor segments clamped to 3000ms: SUM=9000, not max(startMs+dur)=7000', () => {
+      // Each 2s segment clamps to 3000ms; absolute startMs are 0/2000/4000.
+      const scenes = [
+        api.convertSceneToRemotionFormat(makeSceneSec(0, 2, 'a'), 0),
+        api.convertSceneToRemotionFormat(makeSceneSec(2, 4, 'b'), 1),
+        api.convertSceneToRemotionFormat(makeSceneSec(4, 6, 'c'), 2),
+      ];
+      // Sanity: each scene was clamped to the 3000ms floor.
+      expect(scenes.map((s) => s.durationMs)).toEqual([3000, 3000, 3000]);
+      // Legacy max(0+3000, 2000+3000, 4000+3000) = 7000 — wrong.
+      // Correct SUM = 9000.
+      expect(api.calculateTotalDuration(scenes)).toBe(9000);
+    });
+
+    it('non-contiguous scenes (trailing gap): SUM of durationMs, startMs ignored', () => {
+      // Scene A 0→5s (5000ms), Scene C 100→103s (clamped 3000ms). The huge
+      // absolute gap (100s) must NOT inflate the reported duration: playback
+      // is cumulative, so the real video is 5000+3000 = 8000ms.
+      const scenes = [
+        api.convertSceneToRemotionFormat(makeSceneSec(0, 5, 'a'), 0),
+        api.convertSceneToRemotionFormat(makeSceneSec(100, 103, 'c'), 1),
+      ];
+      expect(api.calculateTotalDuration(scenes)).toBe(8000);
+    });
+
+    it('reported durationInFrames ≡ calculateTotalFrames for clamped scenes', async () => {
+      // The decisive integration invariant: the frame count VideoGenerator
+      // derives (from calculateTotalDuration) must equal the frame count the
+      // real composition registers (calculateTotalFrames, which SUMs durationMs).
+      // Pre-fix this failed for clamped scenes (210 vs 270 frames).
+      const remotionScenes = [
+        api.convertSceneToRemotionFormat(makeSceneSec(0, 2, 'a'), 0),
+        api.convertSceneToRemotionFormat(makeSceneSec(2, 4, 'b'), 1),
+        api.convertSceneToRemotionFormat(makeSceneSec(4, 6, 'c'), 2),
+      ];
+      const totalDuration = api.calculateTotalDuration(remotionScenes);
+      const cfg = await api.prepareRenderConfiguration({
+        scenes: remotionScenes,
+        audioUrl: 'x',
+        totalDuration,
+      });
+      const asGraph = remotionScenes.map((s) => ({
+        ...makeSceneSec(0, 0),
+        durationMs: s.durationMs,
+      })) as SceneGraph[];
+      const compositionFrames = calculateTotalFrames(asGraph, DEFAULT_FPS);
+      // 9000ms → 270 frames on both sides.
+      expect(cfg.config.durationInFrames).toBe(compositionFrames);
+      expect(cfg.config.durationInFrames).toBe(270);
     });
   });
 
