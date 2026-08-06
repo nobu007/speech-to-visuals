@@ -366,7 +366,7 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
                       <div className="flex items-center justify-between mb-2">
                         <Badge variant="outline">{scene.type}</Badge>
                         <span className="text-sm text-gray-600">
-                          {(scene.durationMs / 1000).toFixed(1)}s
+                          {((Number.isFinite(scene.durationMs) ? scene.durationMs : 0) / 1000).toFixed(1)}s
                         </span>
                       </div>
                       <p className="text-sm">{scene.summary}</p>

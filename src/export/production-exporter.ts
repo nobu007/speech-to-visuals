@@ -374,7 +374,7 @@ export class ProductionExporter {
       const scene = preparedScenes[i];
 
       // Calculate frame count for this scene
-      const sceneDuration = scene.durationMs / 1000; // Convert to seconds
+      const sceneDuration = (Number.isFinite(scene.durationMs) ? scene.durationMs : 0) / 1000; // Convert to seconds
       const sceneFrames = Math.ceil(sceneDuration * options.fps);
 
       // Generate frames for this scene

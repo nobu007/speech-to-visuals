@@ -52,7 +52,7 @@ export function createTimingRecord(
  * Aggregate multiple timing records into a full report.
  */
 export function aggregateTimingReport(stages: StageTimingRecord[]): StageTimingReport {
-  const totalDurationMs = stages.reduce((s, r) => s + r.durationMs, 0);
+  const totalDurationMs = stages.reduce((s, r) => s + (Number.isFinite(r.durationMs) ? r.durationMs : 0), 0);
   const totalItemsProcessed = stages.reduce((s, r) => s + r.itemsProcessed, 0);
   return {
     timestamp: Date.now(),

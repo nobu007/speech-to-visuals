@@ -39,7 +39,7 @@ const typeColors: Record<DiagramType, string> = {
 };
 
 export const DiagramPreview = ({ scenes, onRender, isRendering }: DiagramPreviewProps) => {
-  const totalDuration = scenes.reduce((acc, s) => acc + s.durationMs, 0);
+  const totalDuration = scenes.reduce((acc, s) => acc + (Number.isFinite(s.durationMs) ? s.durationMs : 0), 0);
   const minutes = Math.floor(totalDuration / 60000);
   const seconds = Math.floor((totalDuration % 60000) / 1000);
 
@@ -88,7 +88,7 @@ export const DiagramPreview = ({ scenes, onRender, isRendering }: DiagramPreview
                       {typeLabels[scene.type]}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
-                      {(scene.durationMs / 1000).toFixed(1)}秒
+                      {((Number.isFinite(scene.durationMs) ? scene.durationMs : 0) / 1000).toFixed(1)}秒
                     </span>
                   </div>
                   <h3 className="font-semibold text-foreground mb-2">{scene.summary}</h3>

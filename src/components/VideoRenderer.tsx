@@ -45,7 +45,7 @@ export const VideoRenderer: React.FC<VideoRendererProps> = ({ scenes, audioUrl }
     return () => { mountedRef.current = false; };
   }, []);
 
-  const totalDuration = scenes.reduce((acc, scene) => acc + scene.durationMs, 0);
+  const totalDuration = scenes.reduce((acc, scene) => acc + (Number.isFinite(scene.durationMs) ? scene.durationMs : 0), 0);
   const minutes = Math.floor(totalDuration / 60000);
   const seconds = Math.floor((totalDuration % 60000) / 1000);
 

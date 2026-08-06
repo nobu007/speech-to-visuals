@@ -120,7 +120,8 @@ export function getActiveScene(
   for (const scene of scenes) {
     if (!scene.keyphrases || scene.keyphrases.length === 0) continue;
     const startFrame = msToFrame(scene.startMs, fps);
-    const endFrame = msToFrame(scene.startMs + scene.durationMs, fps);
+    const sceneDuration = Number.isFinite(scene.durationMs) ? scene.durationMs : 0;
+    const endFrame = msToFrame((Number.isFinite(scene.startMs) ? scene.startMs : 0) + sceneDuration, fps);
     if (frame >= startFrame && frame <= endFrame) {
       return { scene, startFrame, endFrame };
     }

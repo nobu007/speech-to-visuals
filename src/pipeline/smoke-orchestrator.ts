@@ -161,7 +161,7 @@ export function buildMultiScenes(diagrams: RawDiagram[], fps: number): {
       globalIndex++;
       allCaptions.push({ ...cap, index: globalIndex });
     }
-    currentMs += scene.durationMs;
+    currentMs += (Number.isFinite(scene.durationMs) ? scene.durationMs : 0);
   }
 
   return { scenes, captions: allCaptions };
