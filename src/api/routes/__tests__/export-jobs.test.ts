@@ -16,6 +16,7 @@
 import express from 'express';
 import http from 'http';
 import { createExportJobRouter } from '../export-jobs';
+import { logger } from '../../../utils/logger';
 import type { ExportJobQueue, QueuedExportJob, JobPriority, QueueStats } from '../../../export/export-job-queue';
 
 // ---------------------------------------------------------------------------
@@ -679,7 +680,10 @@ describe('Export Job Routes', () => {
     let loggerSpy: jest.SpyInstance;
 
     beforeEach(() => {
-      const { logger } = require('../../../utils/logger');
+      // `logger` is the SAME module instance the route handler imports and
+      // calls `logger.error(...)` on, so spying on its `error` property here
+      // intercepts the SUT's calls. (A static import is required — `require`
+      // is undefined under native ESM / `"type": "module"`.)
       loggerSpy = jest.spyOn(logger, 'error').mockImplementation(() => {});
     });
 

@@ -12,10 +12,12 @@
  * - Recommendation generation
  * - Edge cases (missing data, boundary values)
  *
- * Mock strategy: Direct property override on imported module objects.
- * jest.unstable_mockModule does not work reliably with ts-jest ESM preset,
- * so we import the real modules and replace function references on the
- * exported objects (which are mutable bindings in CommonJS-interop mode).
+ * Mock strategy: hybrid. The SUT consumes three dependencies:
+ *  - realTimeMonitor / globalCache: EXPORTED OBJECTS — their method properties
+ *    are mutable, so we import the real modules and replace the methods.
+ *  - getMemoryUsage: a DIRECT ESM namespace function export — immutable under
+ *    native ESM, so it is mocked with jest.unstable_mockModule before the SUT
+ *    is imported. See [[jest-esm-mock-pattern]].
  */
 
 import { describe, test, expect, beforeEach, beforeAll, jest } from '@jest/globals';
@@ -98,6 +100,17 @@ const realTimeMonitor = { getSnapshot: mockGetSnapshot, analyzeTrends: mockAnaly
 const globalCache = { getStats: mockGetCacheStats };
 const getMemoryUsage = mockGetMemoryUsage;
 
+// `getMemoryUsage` is a DIRECT ESM namespace export from @/utils/memory-usage,
+// so its binding on the module object is immutable (native ESM live bindings).
+// You cannot reassign it like a regular object property (which is how
+// realTimeMonitor/globalCache below still work — they are exported OBJECTS, so
+// their method properties are mutable). Mock the whole module instead, BEFORE
+// importing the SUT. See [[jest-esm-mock-pattern]].
+jest.unstable_mockModule('@/utils/memory-usage', () => ({
+  __esModule: true,
+  getMemoryUsage: mockGetMemoryUsage,
+}));
+
 // Lazy-loaded singleton
 let healthCheckService: any;
 
@@ -118,17 +131,17 @@ function resetMocks() {
 
 describe('HealthCheckService (REQ-122)', () => {
   beforeAll(async () => {
-    // Import the real modules
+    // Import the real modules. (@/utils/memory-usage is mocked via
+    // unstable_mockModule above, so importing it here would just return the
+    // mock; we only need the two exported-object modules to mutate.)
     const rtpm = await import('@/monitoring/real-time-performance-monitor');
     const cache = await import('@/performance/intelligent-cache');
-    const mem = await import('@/utils/memory-usage');
 
-    // Override the exported functions with our mocks
-    // These are mutable object properties in ts-jest's CJS-interop mode
+    // Override the EXPORTED OBJECTS' methods with our mocks. These are mutable
+    // object properties (unlike a direct function export — see note above).
     (rtpm as any).realTimeMonitor.getSnapshot = mockGetSnapshot;
     (rtpm as any).realTimeMonitor.analyzeTrends = mockAnalyzeTrends;
     (cache as any).globalCache.getStats = mockGetCacheStats;
-    (mem as any).getMemoryUsage = mockGetMemoryUsage;
 
     // Now import the service — it will use the mocked bindings
     const mod = await import('@/monitoring/health-check-service');

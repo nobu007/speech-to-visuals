@@ -18,7 +18,11 @@
 import { jest } from '@jest/globals';
 
 // ---------------------------------------------------------------------------
-// Mock dependencies — use jest.mock (hoisted) for reliable interception
+// Mock dependencies. Under native ESM `jest.mock()` is a no-op and does NOT
+// intercept, so the real GoogleGenerativeAI SDK runs and makes live network
+// calls (which fail with "API key not valid" in CI). Use unstable_mockModule +
+// a deferred dynamic import (below) so the mocks actually take effect.
+// See [[jest-esm-mock-pattern]].
 // ---------------------------------------------------------------------------
 
 const mockGenerateContent = jest.fn();
@@ -28,13 +32,13 @@ const mockGetGenerativeModel = jest.fn(() => ({
   generateContentStream: mockGenerateContentStream,
 }));
 
-jest.mock('@google/generative-ai', () => ({
+jest.unstable_mockModule('@google/generative-ai', () => ({
   GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
     getGenerativeModel: mockGetGenerativeModel,
   })),
 }));
 
-jest.mock('@/analysis/llm-cache', () => {
+jest.unstable_mockModule('@/analysis/llm-cache', () => {
   return {
     LLMCache: jest.fn().mockImplementation(() => {
       const store = new Map<string, unknown>();
@@ -64,7 +68,9 @@ jest.mock('@/analysis/llm-cache', () => {
   };
 });
 
-// Defer import to beforeAll — ts-jest ESM transform does not support top-level await
+// Defer the SUT import to beforeAll so it resolves AFTER the
+// jest.unstable_mockModule registrations above (which must run first so the
+// mocked @google/generative-ai / @/analysis/llm-cache intercept the import).
 let LLMService: new (apiKey?: string) => any;
 
 // ---------------------------------------------------------------------------
