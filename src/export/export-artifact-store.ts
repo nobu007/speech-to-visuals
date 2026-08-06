@@ -97,6 +97,21 @@ export class ExportArtifactStore {
   private cleanupTimer?: ReturnType<typeof setInterval>;
   private started = false;
 
+  /**
+   * Monotonic access sequence — the TRUE recency authority for LRU.
+   *
+   * `lastAccessedAt` is a wall-clock millisecond and collides whenever two
+   * accesses land in the same `Date.now()` tick (common under high
+   * throughput and the default for any test using fake timers without
+   * `advanceTimersByTime`). On collision, evictLRU used to fall back to Map
+   * insertion order, evicting the just-accessed artifact instead of the real
+   * LRU — the root cause of the secure-download-pipeline LRU flake. A strictly
+   * increasing sequence number assigned on every store/get/resolve removes the
+   * clock-resolution dependency entirely.
+   */
+  private accessSeq = 0;
+  private readonly accessOrder = new Map<string, number>();
+
   constructor(options?: Partial<ArtifactStoreOptions>, metrics?: ArtifactMetricsSink) {
     this.options = { ...DEFAULT_OPTIONS, ...options };
     this.metrics = metrics;
@@ -113,16 +128,18 @@ export class ExportArtifactStore {
     ttlMs?: number,
   ): StoredArtifact {
     const effectiveTtl = ttlMs ?? this.options.defaultTtlMs;
+    const now = Date.now();
 
     const artifact: StoredArtifact = {
       ...input,
       artifactId: randomUUID(),
-      createdAt: Date.now(),
-      lastAccessedAt: Date.now(),
-      expiresAt: Date.now() + effectiveTtl,
+      createdAt: now,
+      lastAccessedAt: now,
+      expiresAt: now + effectiveTtl,
     };
 
     this.artifacts.set(artifact.artifactId, artifact);
+    this.touch(artifact.artifactId, artifact);
     this.enforceQuota();
 
     this.metrics?.recordArtifactStored();
@@ -149,7 +166,7 @@ export class ExportArtifactStore {
       return undefined;
     }
 
-    artifact.lastAccessedAt = Date.now();
+    this.touch(artifactId, artifact);
     return artifact;
   }
 
@@ -196,11 +213,10 @@ export class ExportArtifactStore {
    * Returns true if the artifact was found and removed.
    */
   remove(artifactId: string): boolean {
-    const deleted = this.artifacts.delete(artifactId);
-    if (deleted) {
-      logger.info(`[ArtifactStore] Removed artifact ${artifactId}`);
-    }
-    return deleted;
+    if (!this.artifacts.has(artifactId)) return false;
+    this.deleteArtifact(artifactId);
+    logger.info(`[ArtifactStore] Removed artifact ${artifactId}`);
+    return true;
   }
 
   /**
@@ -248,7 +264,7 @@ export class ExportArtifactStore {
     const validToken = tokens.find((t) => t.token === token && t.expiresAt > now);
     if (!validToken) return undefined;
 
-    artifact.lastAccessedAt = now;
+    this.touch(artifactId, artifact);
     return artifact;
   }
 
@@ -326,7 +342,7 @@ export class ExportArtifactStore {
 
     for (const [id, artifact] of this.artifacts) {
       if (now > artifact.expiresAt) {
-        this.artifacts.delete(id);
+        this.deleteArtifact(id);
         expiredCount++;
       }
     }
@@ -364,26 +380,51 @@ export class ExportArtifactStore {
 
   /**
    * Evict the least recently used artifact.
+   *
+   * Ordering is driven by the monotonic `accessOrder` sequence (correct even
+   * when several accesses share a `Date.now()` millisecond); `lastAccessedAt`
+   * is only a defensive fallback for an artifact that somehow lacks a sequence
+   * entry.
    */
   private evictLRU(): StoredArtifact | undefined {
     let lruId: string | undefined;
-    let lruTime = Infinity;
+    let lruRank = Infinity;
 
     for (const [id, artifact] of this.artifacts) {
-      if (artifact.lastAccessedAt < lruTime) {
-        lruTime = artifact.lastAccessedAt;
+      const rank = this.accessOrder.get(id) ?? artifact.lastAccessedAt;
+      if (rank < lruRank) {
+        lruRank = rank;
         lruId = id;
       }
     }
 
     if (lruId) {
       const evicted = this.artifacts.get(lruId);
-      this.artifacts.delete(lruId);
+      this.deleteArtifact(lruId);
       this.metrics?.recordArtifactExpired();
       logger.info(`[ArtifactStore] LRU evicted artifact ${lruId}`);
       return evicted;
     }
 
     return undefined;
+  }
+
+  /**
+   * Mark an artifact as accessed right now: bump its wall-clock
+   * `lastAccessedAt` (public API field) and its monotonic access sequence
+   * (the real LRU authority).
+   */
+  private touch(artifactId: string, artifact: StoredArtifact): void {
+    artifact.lastAccessedAt = Date.now();
+    this.accessOrder.set(artifactId, ++this.accessSeq);
+  }
+
+  /**
+   * Remove an artifact from both the data map and the access-sequence map,
+   * keeping them in sync so evictLRU never reads a stale rank.
+   */
+  private deleteArtifact(artifactId: string): void {
+    this.artifacts.delete(artifactId);
+    this.accessOrder.delete(artifactId);
   }
 }
