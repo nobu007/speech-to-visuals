@@ -88,11 +88,13 @@ export function calculateCaptionOpacity(
 
   // For very short captions, ensure we don't get stuck at 0
   if (totalDuration <= FADE_IN_FRAMES + FADE_OUT_FRAMES) {
-    // Simple approach: just use the minimum of fade-in and fade-out
-    // but ensure we can still see the caption in the middle
+    // When the fade-in and fade-out windows overlap, min(fadeIn, fadeOut)
+    // dims the caption to near-zero across its whole span. Use max at the
+    // midpoint window so the caption stays visible (mirrors the
+    // KeyphraseOverlay short-scene fix in af1d032).
     const midpoint = (startFrame + endFrame) / 2;
     if (frame >= midpoint - 1 && frame <= midpoint + 1) {
-      return Math.min(fadeIn, fadeOut);
+      return Math.max(fadeIn, fadeOut);
     }
   }
 

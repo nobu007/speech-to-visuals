@@ -121,6 +121,17 @@ describe('CaptionOverlay', () => {
       expect(opacity1).toBeGreaterThanOrEqual(0);
       expect(opacity1).toBeLessThanOrEqual(1);
     });
+
+    it('keeps short captions visible at the midpoint (max fade, not min)', () => {
+      // Fades overlap: totalDuration (4) <= FADE_IN + FADE_OUT (10).
+      // midpoint = 102, visibility window [101, 103].
+      // At frame 101: fadeIn = 0.2, fadeOut = 0.6.
+      //   min(fadeIn, fadeOut) = 0.2  (caption nearly invisible — bug)
+      //   max(fadeIn, fadeOut) = 0.6  (caption stays visible — intent)
+      const caption = createCaption({ startFrame: 100, endFrame: 104 });
+      const opacity = calculateCaptionOpacity(101, caption);
+      expect(opacity).toBeGreaterThanOrEqual(0.5);
+    });
   });
 
   describe('getActiveCaptionText', () => {
