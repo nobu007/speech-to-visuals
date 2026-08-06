@@ -90,9 +90,12 @@ export class SimplePipeline {
       maxRetries: 2
     });
 
+    // Thresholds are MILLISECONDS (compared against endMs - startMs in
+    // SceneSegmenter). Use the same 3s/15s scale as every other producer
+    // (scene-segmenter defaults, main-pipeline, pipeline-orchestrator).
     this.segmenter = new SceneSegmenter({
-      minSegmentLengthMs: 30,
-      maxSegmentLengthMs: 180,
+      minSegmentLengthMs: 3000,
+      maxSegmentLengthMs: 15000,
       confidenceThreshold: 0.6
     });
 

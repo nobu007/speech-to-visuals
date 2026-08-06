@@ -116,7 +116,11 @@ jest.unstable_mockModule('@/pipeline/quality-monitor', () => ({
 
 const { SimplePipeline } = await import('@/pipeline/simple-pipeline');
 const { __mockTranscribe } = await import('@/transcription') as { __mockTranscribe: jest.Mock };
-const analysisMock = await import('@/analysis') as { __mockSegment: jest.Mock; __mockAnalyze: jest.Mock };
+const analysisMock = await import('@/analysis') as {
+  __mockSegment: jest.Mock;
+  __mockAnalyze: jest.Mock;
+  SceneSegmenter: jest.Mock;
+};
 const { __mockGenerateLayout } = await import('@/visualization') as { __mockGenerateLayout: jest.Mock };
 const { __mockGenerateZeroOverlapLayout } = await import('@/visualization/enhanced-zero-overlap-layout') as { __mockGenerateZeroOverlapLayout: jest.Mock };
 const { __mockGenerateVideo } = await import('@/pipeline/video-generator') as { __mockGenerateVideo: jest.Mock };
@@ -503,6 +507,26 @@ describe('SimplePipeline', () => {
       expect(caps.visualization).toBeDefined();
       expect(caps.progressiveEnhancement).toBeDefined();
       expect(caps.progressiveEnhancement.enabled).toBe(true);
+    });
+  });
+
+  describe('segmenter thresholds', () => {
+    // Regression: SceneSegmenter thresholds are MILLISECONDS (compared against
+    // endMs - startMs in src/analysis/scene-segmenter.ts). Every other producer
+    // (scene-segmenter defaults 3000/15000, main-pipeline 3000/15000,
+    // pipeline-orchestrator 3000/15000, iteration-logger fallback 3000/15000)
+    // uses 3s/15s. A prior value of 30/180 was 100x too small — splitting every
+    // segment longer than 180ms and producing sub-second scenes.
+    it('configures SceneSegmenter with millisecond-scale thresholds (3000/15000)', () => {
+      expect(analysisMock.SceneSegmenter).toHaveBeenCalledTimes(1);
+      const config = analysisMock.SceneSegmenter.mock.calls[0][0] as {
+        minSegmentLengthMs: number;
+        maxSegmentLengthMs: number;
+        confidenceThreshold: number;
+      };
+      expect(config.minSegmentLengthMs).toBe(3000);
+      expect(config.maxSegmentLengthMs).toBe(15000);
+      expect(config.confidenceThreshold).toBe(0.6);
     });
   });
 });
