@@ -404,9 +404,8 @@ export class DiagramDetector {
     const PKW = 8;  // PRIMARY_KEYPHRASE_WEIGHT
     const SKW = 4;  // SECONDARY_KEYPHRASE_WEIGHT
     const CKW = 2;  // CONTEXT_KEYPHRASE_WEIGHT
-    const maxPossibleScore = Math.max(
-      ...Object.values(patterns).map((p) => p.primary.length * PKW + p.secondary.length * SKW + p.context.length * CKW)
-    );
+    const patternScores = Object.values(patterns).map((p) => p.primary.length * PKW + p.secondary.length * SKW + p.context.length * CKW);
+    const maxPossibleScore = patternScores.length > 0 ? Math.max(...patternScores) : 1;
     const CONFIDENCE_DENOMINATOR_FACTOR = 0.3;
     const MAX_CONFIDENCE = 1;
     const ORG_CHART_BOOST_FACTOR = 1.3;
@@ -927,7 +926,7 @@ export class DiagramDetector {
       );
 
       // Calculate final confidence based on consensus strength
-      const methodAgreement = consensusType.methods.length / candidates.length;
+      const methodAgreement = candidates.length > 0 ? consensusType.methods.length / candidates.length : 0;
       const finalConfidence = Math.min(consensusType.score * methodAgreement, this.HYBRID_CONFIDENCE_CAP);
 
       // Get the best result for the consensus type
@@ -1291,7 +1290,9 @@ export class DiagramDetector {
     ];
 
     const testResults = await Promise.all(tests);
-    const overallScore = testResults.reduce((sum, result) => sum + result.score, 0) / testResults.length;
+    const overallScore = testResults.length > 0
+      ? testResults.reduce((sum, result) => sum + result.score, 0) / testResults.length
+      : 0;
     const passed = overallScore > this.TEST_QUALITY_THRESHOLD; // 75% threshold
 
     return { passed, testResults, overallScore };

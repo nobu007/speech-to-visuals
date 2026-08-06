@@ -882,4 +882,28 @@ describe('TASK-0021: DiagramDetector', () => {
       expect(result.confidence).toBeGreaterThan(0);
     });
   });
+
+  // =========================================================================
+  // NaN/Infinity Regression: empty-array / zero-division guards
+  // =========================================================================
+  describe('NaN/Infinity guards', () => {
+    it('should not produce NaN confidence on empty text', async () => {
+      const segment = makeSegment('');
+      const result = await detector.analyze(segment);
+      expect(Number.isFinite(result.confidence)).toBe(true);
+      expect(Number.isNaN(result.confidence)).toBe(false);
+    });
+
+    it('should not produce NaN confidence on minimal gibberish text', async () => {
+      const segment = makeSegment('x');
+      const result = await detector.analyze(segment);
+      expect(Number.isFinite(result.confidence)).toBe(true);
+    });
+
+    it('should not produce NaN confidence on whitespace-only text', async () => {
+      const segment = makeSegment('   ');
+      const result = await detector.analyze(segment);
+      expect(Number.isFinite(result.confidence)).toBe(true);
+    });
+  });
 });

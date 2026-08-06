@@ -310,4 +310,31 @@ describe('SceneSegmenter', () => {
       }
     });
   });
+
+  // =========================================================================
+  // NaN/Infinity Regression: empty-array guards in mergeGroups
+  // =========================================================================
+  describe('NaN/Infinity guards', () => {
+    it('should not produce NaN when segmenting empty input', async () => {
+      const segments: TranscriptionSegment[] = [];
+      const result = await segmenter.segment(segments);
+      // Should return empty array or valid segments without NaN
+      for (const s of result) {
+        expect(Number.isFinite(s.startMs)).toBe(true);
+        expect(Number.isFinite(s.endMs)).toBe(true);
+        expect(Number.isFinite(s.confidence)).toBe(true);
+      }
+    });
+
+    it('should not produce NaN confidence from mergeGroups with degenerate input', async () => {
+      // Single very short segment — exercises edge case in group merging
+      const segments: TranscriptionSegment[] = [
+        seg(0, 100, 'a'),
+      ];
+      const result = await segmenter.segment(segments);
+      for (const s of result) {
+        expect(Number.isFinite(s.confidence)).toBe(true);
+      }
+    });
+  });
 });

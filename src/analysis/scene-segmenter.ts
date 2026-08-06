@@ -537,6 +537,9 @@ export class SceneSegmenter {
    * Merge a contiguous group of segments into a single ContentSegment.
    */
   private mergeSegmentGroup(group: ContentSegment[]): ContentSegment {
+    if (group.length === 0) {
+      return { startMs: 0, endMs: 0, text: '', summary: '', keyphrases: [], confidence: 0 };
+    }
     if (group.length === 1) return group[0];
 
     const text = group.map(s => s.text).join('');
@@ -662,7 +665,10 @@ export class SceneSegmenter {
       performanceQuality: this.evaluatePerformanceQuality(metrics.processingTime)
     };
 
-    const qualityScore = Object.values(qualityFactors).reduce((a, b) => a + b, 0) / Object.keys(qualityFactors).length;
+    const factorValues = Object.values(qualityFactors);
+    const qualityScore = factorValues.length > 0
+      ? factorValues.reduce((a, b) => a + b, 0) / factorValues.length
+      : 0;
 
     // Generate improvement suggestions
     const suggestions = this.generateImprovementSuggestions(qualityFactors, metrics);
