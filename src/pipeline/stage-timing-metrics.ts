@@ -36,14 +36,18 @@ export function createTimingRecord(
   itemsProcessed: number,
   retryAttempts: number = 0,
 ): StageTimingRecord {
-  const durationMs = endTime - startTime;
+  const rawDuration = endTime - startTime;
+  const durationMs = Number.isFinite(rawDuration) ? Math.max(0, rawDuration) : 0;
+  const safeItems = Number.isFinite(itemsProcessed) ? Math.max(0, itemsProcessed) : 0;
+  const rawThroughput = durationMs > 0 ? safeItems / durationMs : 0;
+  const throughputPerMs = Number.isFinite(rawThroughput) ? rawThroughput : 0;
   return {
     stageName,
     startTime,
     endTime,
     durationMs,
-    itemsProcessed,
-    throughputPerMs: durationMs > 0 ? itemsProcessed / durationMs : 0,
+    itemsProcessed: safeItems,
+    throughputPerMs,
     retryAttempts,
   };
 }
@@ -52,8 +56,14 @@ export function createTimingRecord(
  * Aggregate multiple timing records into a full report.
  */
 export function aggregateTimingReport(stages: StageTimingRecord[]): StageTimingReport {
-  const totalDurationMs = stages.reduce((s, r) => s + (Number.isFinite(r.durationMs) ? r.durationMs : 0), 0);
-  const totalItemsProcessed = stages.reduce((s, r) => s + r.itemsProcessed, 0);
+  const totalDurationMs = stages.reduce((s, r) => {
+    const d = Number.isFinite(r.durationMs) ? Math.max(0, r.durationMs) : 0;
+    return s + d;
+  }, 0);
+  const totalItemsProcessed = stages.reduce((s, r) => {
+    const items = Number.isFinite(r.itemsProcessed) ? Math.max(0, r.itemsProcessed) : 0;
+    return s + items;
+  }, 0);
   return {
     timestamp: Date.now(),
     stages,

@@ -559,7 +559,10 @@ export class SceneSegmenter {
   private async evaluateSegmentation(segments: ContentSegment[], processingTime: number): Promise<void> {
     const metrics = {
       segmentCount: segments.length,
-      avgSegmentLength: segments.length > 0 ? segments.reduce((sum, seg) => sum + (seg.endMs - seg.startMs), 0) / segments.length : 0,
+      avgSegmentLength: segments.length > 0 ? segments.reduce((sum, seg) => {
+        const d = seg.endMs - seg.startMs;
+        return sum + (Number.isFinite(d) ? Math.max(0, d) : 0);
+      }, 0) / segments.length : 0,
       avgKeyphraseCount: segments.length > 0 ? segments.reduce((sum, seg) => sum + seg.keyphrases.length, 0) / segments.length : 0,
       avgConfidence: segments.length > 0 ? segments.reduce((sum, seg) => sum + (Number.isFinite(seg.confidence) ? seg.confidence : 0), 0) / segments.length : 0,
       processingTime
@@ -645,7 +648,10 @@ export class SceneSegmenter {
     const metrics = {
       segmentCount: segCount,
       avgLength: segCount > 0
-        ? segments.reduce((sum, seg) => sum + (seg.endMs - seg.startMs), 0) / segCount
+        ? segments.reduce((sum, seg) => {
+          const d = seg.endMs - seg.startMs;
+          return sum + (Number.isFinite(d) ? Math.max(0, d) : 0);
+        }, 0) / segCount
         : 0,
       avgKeyphrases: segCount > 0
         ? segments.reduce((sum, seg) => sum + seg.keyphrases.length, 0) / segCount

@@ -183,11 +183,11 @@ export class AdvancedVisualEngine {
 
     // Build lookup maps from scene nodes/edges for metadata
     const sceneNodeMap = new Map<string, Record<string, unknown>>();
-    for (const node of scene.nodes) {
+    for (const node of (scene.nodes ?? [])) {
       sceneNodeMap.set(node.id, node as Record<string, unknown>);
     }
 
-    const sceneEdgeList = scene.edges as Array<Record<string, unknown>>;
+    const sceneEdgeList = (scene.edges ?? []) as Array<Record<string, unknown>>;
 
     // Guard: return safe default if layout is not yet computed
     if (!baseLayout) {
