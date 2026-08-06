@@ -256,6 +256,32 @@ describe('SimplePipeline', () => {
       expect(mockGenerateLayout).toHaveBeenCalled();
     });
 
+    it('preserves a legit-zero layout confidence instead of || 1 (regression)', async () => {
+      // LayoutEngine can legitimately report confidence: 0 — e.g.
+      // calculateLayoutConfidence clamps to 0 for ≥8 overlaps + delay, a real
+      // "layout broke down" signal. `(lr.confidence) || 1` erased that 0 to 1,
+      // so scene confidence became detConfidence (0.85) and hid the breakdown.
+      // `?? 1` keeps the genuine 0 so Math.min surfaces it for re-layout.
+      mockGenerateLayout.mockResolvedValue({
+        success: true,
+        layout: {
+          nodes: [{ id: 'n1', x: 100, y: 100, w: 120, h: 60, label: 'Node 1' }],
+          edges: [],
+        },
+        confidence: 0, // legitimate zero: bad layout
+      });
+      const result = await pipeline.process({
+        audioFile: createMockFile(),
+        options: { includeVideoGeneration: false, useEnhancedLayout: false },
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.scenes!.length).toBeGreaterThan(0);
+      // Bug: 0 || 1 → 1 → Math.min(0.85, 1) = 0.85 (breakdown hidden).
+      // Fix:  0 ?? 1 → 0 → Math.min(0.85, 0) = 0 (breakdown surfaced).
+      expect(result.scenes![0].confidence).toBe(0);
+    });
+
     it('should process sequentially when enableParallelProcessing is false', async () => {
       const result = await pipeline.process({
         audioFile: createMockFile(),

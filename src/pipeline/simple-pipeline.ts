@@ -323,7 +323,11 @@ export class SimplePipeline {
               layout: lr.layout,
               confidence: Math.min(
                 detConfidence,
-                (lr.confidence as number) || 1
+                // `?? 1` not `|| 1`: a layout confidence of exactly 0 is a
+                // legitimate "layout broke down" signal (e.g. ≥8 overlaps →
+                // calculateLayoutConfidence clamps to 0) and must NOT be
+                // erased to 1, which would hide the breakdown.
+                (lr.confidence as number) ?? 1
               )
             } as SceneGraph;
           }
