@@ -27,6 +27,19 @@ interface PrivatePipelineAccess {
   analyzeErrorPattern(error: Error, stageName: string): string;
   selectRecoveryStrategy(errorPattern: string, stageName: string): string;
   generateCacheKey(input: PipelineInput): string;
+  buildQualityMetrics(
+    transcription: Record<string, unknown>,
+    analysis: Record<string, unknown>,
+    layout: Record<string, unknown>,
+    renderTime: number,
+  ): {
+    transcriptionAccuracy: number;
+    sceneSegmentationF1: number;
+    layoutOverlap: number;
+    renderTime: number;
+    memoryUsage: number;
+    timestamp: Date;
+  };
 }
 
 // ---------- Module mocks (hoisted) ----------
@@ -486,6 +499,88 @@ describe('MainPipeline', () => {
       const key = (pipeline as PrivatePipelineAccess).generateCacheKey(input);
 
       expect(key).toBe('transcription-/path/to/recording.mp3-base');
+    });
+  });
+
+  // ------------------------------------------------------------------
+  // Private method: buildQualityMetrics (legit-zero preservation)
+  // Regression net: the OLD code used `value || fallback`, which erased a
+  // legitimate 0 metric (0% accuracy, F1=0) to the fallback and fooled the
+  // self-improvement loop into accepting a catastrophic run.
+  // ------------------------------------------------------------------
+
+  describe('buildQualityMetrics', () => {
+    it('PRESERVES a legitimate 0 transcription accuracy (regression: was erased to 0.85)', () => {
+      const pipeline = new MainPipeline();
+      const metrics = (pipeline as PrivatePipelineAccess).buildQualityMetrics(
+        { accuracy: 0 },
+        {},
+        {},
+        1000,
+      );
+      expect(metrics.transcriptionAccuracy).toBe(0);
+    });
+
+    it('PRESERVES a legitimate 0 segmentation F1 (regression: was erased to 0.75)', () => {
+      const pipeline = new MainPipeline();
+      const metrics = (pipeline as PrivatePipelineAccess).buildQualityMetrics(
+        {},
+        { segmentationScore: 0 },
+        {},
+        1000,
+      );
+      expect(metrics.sceneSegmentationF1).toBe(0);
+    });
+
+    it('PRESERVES a legitimate 0 layout overlap count', () => {
+      const pipeline = new MainPipeline();
+      const metrics = (pipeline as PrivatePipelineAccess).buildQualityMetrics(
+        {},
+        {},
+        { overlapCount: 0 },
+        1000,
+      );
+      expect(metrics.layoutOverlap).toBe(0);
+    });
+
+    it('falls back to defaults when stage outputs are ABSENT (undefined)', () => {
+      const pipeline = new MainPipeline();
+      const metrics = (pipeline as PrivatePipelineAccess).buildQualityMetrics(
+        {},
+        {},
+        {},
+        1000,
+      );
+      expect(metrics.transcriptionAccuracy).toBe(0.85);
+      expect(metrics.sceneSegmentationF1).toBe(0.75);
+      expect(metrics.layoutOverlap).toBe(0);
+    });
+
+    it('falls back to defaults for NaN / non-number metric values', () => {
+      const pipeline = new MainPipeline();
+      const metrics = (pipeline as PrivatePipelineAccess).buildQualityMetrics(
+        { accuracy: NaN },
+        { segmentationScore: 'oops' },
+        { overlapCount: undefined },
+        1000,
+      );
+      expect(metrics.transcriptionAccuracy).toBe(0.85);
+      expect(metrics.sceneSegmentationF1).toBe(0.75);
+      expect(metrics.layoutOverlap).toBe(0);
+    });
+
+    it('keeps real non-zero metric values and passes through renderTime', () => {
+      const pipeline = new MainPipeline();
+      const metrics = (pipeline as PrivatePipelineAccess).buildQualityMetrics(
+        { accuracy: 0.42 },
+        { segmentationScore: 0.9 },
+        { overlapCount: 3 },
+        4242,
+      );
+      expect(metrics.transcriptionAccuracy).toBe(0.42);
+      expect(metrics.sceneSegmentationF1).toBe(0.9);
+      expect(metrics.layoutOverlap).toBe(3);
+      expect(metrics.renderTime).toBe(4242);
     });
   });
 });

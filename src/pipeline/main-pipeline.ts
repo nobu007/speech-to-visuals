@@ -261,15 +261,14 @@ export class MainPipeline {
       const totalTime = performance.now() - startTime;
       const result = this.createSuccessResult(scenes, input, totalTime);
 
-      // Update framework metrics
-      this.qualityMetrics = {
-        transcriptionAccuracy: (transcriptionResult as Record<string, unknown>).accuracy as number || 0.85,
-        sceneSegmentationF1: (analysisResult as Record<string, unknown>).segmentationScore as number || 0.75,
-        layoutOverlap: (layoutResult as unknown as Record<string, unknown>).overlapCount as number || 0,
-        renderTime: totalTime,
-        memoryUsage: getHeapUsed(),
-        timestamp: new Date()
-      };
+      // Update framework metrics. Delegated to buildQualityMetrics() so the
+      // legit-zero contract is unit-testable — see that method for rationale.
+      this.qualityMetrics = this.buildQualityMetrics(
+        transcriptionResult as Record<string, unknown>,
+        analysisResult as Record<string, unknown>,
+        layoutResult as unknown as Record<string, unknown>,
+        totalTime,
+      );
 
       return result;
 
@@ -325,6 +324,33 @@ export class MainPipeline {
   }
 
   /**
+   * Build the framework quality-metrics record from stage outputs.
+   *
+   * Uses `sanitizeFinite` (NOT `value || fallback`): a metric value of exactly
+   * `0` is a legitimate worst-case signal — 0% transcription accuracy, F1 = 0,
+   * zero layout overlap — and must NOT be erased to the fallback. The previous
+   * `||` form silently turned a real `0` into `0.85` / `0.75`, which made the
+   * self-improvement loop (evaluateIteration) believe a catastrophically bad
+   * run was acceptable and skip re-iteration. `sanitizeFinite` keeps any real
+   * finite number (including 0) and only falls back for undefined/NaN/non-numbers.
+   */
+  private buildQualityMetrics(
+    transcription: Record<string, unknown>,
+    analysis: Record<string, unknown>,
+    layout: Record<string, unknown>,
+    renderTime: number,
+  ): FrameworkQualityMetrics {
+    return {
+      transcriptionAccuracy: sanitizeFinite(transcription.accuracy, 0.85),
+      sceneSegmentationF1: sanitizeFinite(analysis.segmentationScore, 0.75),
+      layoutOverlap: sanitizeFinite(layout.overlapCount, 0),
+      renderTime,
+      memoryUsage: getHeapUsed(),
+      timestamp: new Date(),
+    };
+  }
+
+  /**
    * 🔄 Evaluate results and determine next iteration based on custom instructions
    */
   private async evaluateAndIterate(result: PipelineResult, startTime: number): Promise<void> {
@@ -334,7 +360,13 @@ export class MainPipeline {
     const evaluation = await this.framework.evaluateIteration(this.qualityMetrics, {
       processingTime: totalTime,
       success: result.success,
-      qualityScore: (result.metrics as unknown as Record<string, unknown> | undefined)?.quality as number || 0.8
+      // `sanitizeFinite` (not `|| 0.8`): a real quality score of 0 is a
+      // legitimate "worst quality" signal that must reach evaluateIteration,
+      // not be masked to 0.8 — same legit-zero contract as buildQualityMetrics.
+      qualityScore: sanitizeFinite(
+        (result.metrics as unknown as Record<string, unknown> | undefined)?.quality,
+        0.8,
+      ),
     });
 
 
