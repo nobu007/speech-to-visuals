@@ -49,7 +49,17 @@ export class FlowchartStrategy implements LayoutStrategy {
       g.setNode(node.id, { width: w, height: h, label: node.label });
     }
 
-    for (const edge of edges) {
+    // Filter edges whose endpoints are not in the input node set BEFORE handing
+    // them to dagre. dagre auto-creates phantom nodes for unknown edge
+    // endpoints, corrupting the layout and emitting edges that point at
+    // non-existent nodes. Mirrors the f178cbf hardening in
+    // enhanced-zero-overlap-layout.ts.
+    const nodeIds = new Set(nodes.map((node) => node.id));
+    const safeEdges = edges.filter(
+      (edge) => nodeIds.has(edge.from) && nodeIds.has(edge.to)
+    );
+
+    for (const edge of safeEdges) {
       g.setEdge(edge.from, edge.to, { label: edge.label ?? '' });
     }
 
@@ -68,7 +78,7 @@ export class FlowchartStrategy implements LayoutStrategy {
       };
     });
 
-    const layoutEdges: LayoutEdge[] = edges.map((edge) => {
+    const layoutEdges: LayoutEdge[] = safeEdges.map((edge) => {
       const dagreEdge = g.edge(edge.from, edge.to);
       return {
         from: edge.from,

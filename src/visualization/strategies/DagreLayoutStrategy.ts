@@ -37,7 +37,18 @@ export class DagreLayoutStrategy {
         });
       });
 
-      edges.forEach(edge => {
+      // Filter edges whose endpoints are not in the input node set BEFORE
+      // handing them to dagre. dagre auto-creates phantom nodes for unknown
+      // edge endpoints, which corrupts the layout (real nodes get pulled
+      // toward phantom positions and propagate NaN) and emits edges pointing
+      // at non-existent nodes. Mirrors the concept-map / flowchart / tree
+      // paths in enhanced-zero-overlap-layout.ts (commit f178cbf).
+      const nodeIds = new Set(nodes.map(node => node.id));
+      const safeEdges = edges.filter(
+        edge => nodeIds.has(edge.from) && nodeIds.has(edge.to)
+      );
+
+      safeEdges.forEach(edge => {
         g.setEdge(edge.from, edge.to, {
           label: edge.label || ''
         });
@@ -56,7 +67,7 @@ export class DagreLayoutStrategy {
         };
       });
 
-      const layoutEdges: LayoutEdge[] = edges.map(edge => {
+      const layoutEdges: LayoutEdge[] = safeEdges.map(edge => {
         const dagreEdge = g.edge(edge.from, edge.to);
         return {
           from: edge.from,
