@@ -61,7 +61,7 @@ export class CulturalLayoutAdapter {
       }))
     }));
 
-    return { nodes: flippedNodes, edges: flippedEdges };
+    return { ...layout, nodes: flippedNodes, edges: flippedEdges };
   }
 
   /**

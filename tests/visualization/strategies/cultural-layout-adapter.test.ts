@@ -152,6 +152,28 @@ describe('CulturalLayoutAdapter (TASK-0065)', () => {
         expect(result.nodes[i].y).toBe(originalYs[i]);
       }
     });
+
+    it('should preserve layout metadata (bounds/center) during RTL mirroring', async () => {
+      // applyRTLLayout previously returned { nodes, edges } without spreading
+      // `layout`, dropping the optional bounds/center metadata — every sibling
+      // adaptation (vertical/emphasize/flatten/visualStyle) spreads ...layout.
+      const layout: DiagramLayout = {
+        ...makeSampleLayout(),
+        bounds: { x: 0, y: 0, width: 1000, height: 800 },
+        center: { x: 500, y: 400 },
+      };
+
+      const result = await adapter.applyCulturalAdaptation(layout, {
+        languageCode: 'ar',
+        readingPattern: 'rtl',
+        hierarchyPreference: 'moderate',
+        visualStyle: 'minimalist',
+        colorHarmony: [],
+      });
+
+      expect(result.bounds).toEqual({ x: 0, y: 0, width: 1000, height: 800 });
+      expect(result.center).toEqual({ x: 500, y: 400 });
+    });
   });
 
   describe('TTB vertical layout adaptation', () => {
