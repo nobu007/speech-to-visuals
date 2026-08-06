@@ -256,6 +256,38 @@ describe('KeyphraseOverlay', () => {
       const element = renderOverlay({ scenes });
       expect(element).toBeDefined();
     });
+
+    it('does not double-dim tags during scene fade-out (container already carries the scene fade)', () => {
+      // CSS opacity compounds (parent × child). The container <div> already applies
+      // the scene-level fade via calculateKeyphraseOpacity. Each tag <span> must
+      // therefore apply ONLY its own stagger fade-in (tagOpacity) — re-applying the
+      // scene opacity makes the effective tag opacity opacity × min(opacity, tagOpacity),
+      // which collapses to opacity² during fade-out (tagOpacity is already 1 there), so
+      // tags fade out twice as fast as the rest of the scene.
+      //
+      // scene [0, 5000]ms = frames [0, 150] @30fps. At frame 146 (fade-out midpoint):
+      //   scene opacity = 0.5, tagOpacity = 1 (fully faded in long ago).
+      //   span must stay at tagOpacity (1) → effective 0.5 × 1 = 0.5 (matches scene).
+      //   Buggy min(0.5, 1) = 0.5 → effective 0.5 × 0.5 = 0.25 (tags too dim).
+      mockFrame = 146;
+      const scenes = [createScene({ startMs: 0, durationMs: 5000, keyphrases: ['キーワード'] })];
+      const element = renderOverlay({ scenes });
+
+      const container = element.props.children as React.ReactElement;
+      // The container carries the scene-level fade (0.5 at the fade-out midpoint).
+      expect((container.props.style as React.CSSProperties).opacity).toBe(0.5);
+
+      const spans = (container.props.children as React.ReactElement[]).filter(
+        (c): c is React.ReactElement =>
+          !!c && typeof c === 'object' && (c as React.ReactElement).type === 'span'
+      );
+      expect(spans.length).toBeGreaterThan(0);
+      // Each tag span must rely on the container for the scene fade and only apply its
+      // own stagger fade-in — at the fade-out midpoint the tag is fully faded in (1).
+      for (const span of spans) {
+        expect((span.props.style as React.CSSProperties).opacity).toBe(1);
+      }
+    });
   });
 });
 

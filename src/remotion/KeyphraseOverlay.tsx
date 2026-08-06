@@ -201,7 +201,12 @@ export const KeyphraseOverlay: React.FC<KeyphraseOverlayProps> = ({
                 fontWeight: 600,
                 padding: TAG_PADDING,
                 borderRadius: TAG_BORDER_RADIUS,
-                opacity: Math.min(opacity, tagOpacity),
+                // The container <div> above already applies the scene-level fade
+                // (calculateKeyphraseOpacity) as its own opacity, and CSS opacity
+                // compounds (parent × child). Applying the scene opacity here too
+                // would double-dim the tags (opacity² during fade-out). Apply ONLY
+                // the per-tag stagger fade-in; the scene fade is the container's job.
+                opacity: tagOpacity,
                 whiteSpace: 'nowrap',
                 letterSpacing: '0.02em',
               }}
