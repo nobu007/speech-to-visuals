@@ -2600,4 +2600,110 @@ describe('StreamingTranscriber', () => {
       expect(segmentCallCount).toBeGreaterThanOrEqual(3);
     });
   });
+
+  // ------------------------------------------------
+  // Falsy-guard on legit-zero config values
+  // Regression: `config.x || default` falls back to the default when x is a
+  // legitimate 0, silently ignoring an explicit user value. Validation already
+  // ALLOWS minConfidence=0 and overlapMs=0, so 0 is a valid intent ("accept
+  // all segments" / "no chunk overlap") that must be honored. Must use nullish
+  // coalescing (`??`) so only undefined/null trigger the fallback.
+  // ------------------------------------------------
+  describe('falsy-guard on legit-zero config values', () => {
+    it('minConfidence=0 keeps sub-0.7 chunk segments (|| would fall back to 0.7)', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 6;
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 6000,
+        overlapMs: 0,
+        minConfidence: 0, // explicit "accept all"
+      });
+
+      const anyTranscriber = transcriber as unknown as Record<string, unknown>;
+      anyTranscriber.processAudioChunk = jest.fn().mockResolvedValue([
+        { start: 0, end: 1000, text: 'uncertain', confidence: 0.4, speaker: 'unknown' },
+      ] as never);
+
+      const promise = transcriber.transcribeStream('/audio.mp3');
+      fireAudioMetadata(mockAudioInstance);
+
+      const result = await promise;
+
+      // minConfidence=0 means accept all; a 0.4-confidence segment must survive.
+      // Buggy `this.config.minConfidence || 0.7` → 0 || 0.7 = 0.7 → 0.4 dropped.
+      expect(result.segments!.length).toBe(1);
+      expect(result.segments![0].confidence).toBe(0.4);
+    });
+
+    it('minConfidence=0 keeps sub-0.7 live segments (|| would fall back to 0.7)', async () => {
+      await loadModule();
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        minConfidence: 0, // explicit "accept all"
+      });
+      const onSegment = jest.fn();
+
+      const promise = transcriber.startLiveTranscription(onSegment);
+
+      if (mockRecognitionInstance.onresult) {
+        mockPerformanceNow.mockReturnValue(1500);
+        const mockEvent = {
+          resultIndex: 0,
+          results: {
+            length: 1,
+            0: {
+              isFinal: true,
+              length: 1,
+              0: { transcript: 'uncertain', confidence: 0.5 },
+            },
+          } as unknown as SpeechRecognitionResultList,
+        } as unknown as SpeechRecognitionEvent;
+        mockRecognitionInstance.onresult(mockEvent);
+      }
+
+      await promise;
+
+      // minConfidence=0 → 0.5 must be accepted. Buggy `|| 0.7` drops it.
+      expect(onSegment).toHaveBeenCalledWith(
+        expect.objectContaining({ text: 'uncertain' })
+      );
+    });
+
+    it('overlapMs=0 produces non-overlapping chunks (|| would fall back to 500ms)', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 10;
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 3000,
+        overlapMs: 0, // explicit "no overlap"
+        minConfidence: 0,
+      });
+
+      const anyTranscriber = transcriber as unknown as Record<string, unknown>;
+      const origProcess = anyTranscriber.processAudioChunk as (
+        chunk: { start: number; end: number },
+        audioFile: string | File
+      ) => Promise<TranscriptionSegment[]>;
+      const capturedChunks: Array<{ start: number; end: number }> = [];
+      anyTranscriber.processAudioChunk = jest.fn().mockImplementation(async (chunk) => {
+        capturedChunks.push(chunk);
+        return origProcess.call(transcriber, chunk);
+      });
+
+      const promise = transcriber.transcribeStream('/audio.mp3');
+      fireAudioMetadata(mockAudioInstance);
+
+      await promise;
+
+      expect(capturedChunks.length).toBeGreaterThanOrEqual(2);
+      // With overlapMs=0 each chunk must start where the previous ended (no
+      // overlap). Buggy `this.config.overlapMs || 500` → 0 || 500 = 500ms gap
+      // step, producing 0.5s of overlap between consecutive chunks.
+      for (let i = 1; i < capturedChunks.length; i++) {
+        expect(capturedChunks[i].start).toBeGreaterThanOrEqual(
+          capturedChunks[i - 1].end - 1e-6
+        );
+      }
+    });
+  });
 });

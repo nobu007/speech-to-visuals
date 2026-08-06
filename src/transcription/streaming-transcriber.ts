@@ -158,8 +158,10 @@ export class StreamingTranscriber {
           const chunkSegments = await this.processAudioChunk(chunk, audioFile);
 
           // Add segments with confidence filtering
+          // minConfidence can legitimately be 0 (accept all); use ?? so only
+          // undefined falls back to the 0.7 default, not an explicit 0.
           const validSegments = chunkSegments.filter(
-            segment => segment.confidence >= (this.config.minConfidence || 0.7)
+            segment => segment.confidence >= (this.config.minConfidence ?? 0.7)
           );
 
           // Collect segments BEFORE quality monitoring so that a quality
@@ -282,7 +284,7 @@ export class StreamingTranscriber {
               speaker: 'unknown'
             };
 
-            if (segment.confidence >= (this.config.minConfidence || 0.7)) {
+            if (segment.confidence >= (this.config.minConfidence ?? 0.7)) {
               this.segments.push(segment);
               this.accumulatedText += segment.text + ' ';
 
@@ -366,7 +368,9 @@ export class StreamingTranscriber {
     const chunks: Array<{ start: number; end: number }> = [];
     if (!Number.isFinite(duration) || duration <= 0) return chunks;
     const chunkSize = (this.config.chunkSizeMs || 3000) / 1000;
-    const overlap = (this.config.overlapMs || 500) / 1000;
+    // overlapMs can legitimately be 0 (no overlap); use ?? so only undefined
+    // falls back to the 500ms default, not an explicit 0.
+    const overlap = (this.config.overlapMs ?? 500) / 1000;
 
     let start = 0;
     while (start < duration) {

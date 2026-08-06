@@ -338,7 +338,10 @@ export class BrowserTranscriber {
 
           if (result.isFinal) {
             const text = result[0]?.transcript?.trim() ?? '';
-            const confidence = result[0]?.confidence || 0.9;
+            // Web Speech confidence is [0,1]; 0 is a legit "very uncertain"
+            // final result. Use ?? so only undefined falls back to 0.9 — `||`
+            // would invert a real 0 into 0.9 (highly confident), backwards.
+            const confidence = result[0]?.confidence ?? 0.9;
             const currentTime = audio.currentTime * 1000; // Convert to ms
 
             if (text) {

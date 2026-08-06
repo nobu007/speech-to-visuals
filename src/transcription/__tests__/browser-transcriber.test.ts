@@ -974,6 +974,63 @@ describe('BrowserTranscriber', () => {
       expect(result.segments.length).toBeGreaterThan(0);
     });
 
+    it('preserves a confidence of exactly 0 instead of inverting it to 0.9 (|| → ??)', async () => {
+      // Web Speech API confidence is [0,1]; 0 is a legitimate "very uncertain"
+      // final result. `result[0]?.confidence || 0.9` inverts 0 → 0.9 (highly
+      // confident), exactly backwards. Must be `?? 0.9` so only undefined/null
+      // falls back.
+      const mockAudioObj = {
+        src: '',
+        onloadedmetadata: null as (() => void) | null,
+        onerror: null as (() => void) | null,
+        duration: 10,
+        play: jest.fn(),
+        currentTime: 5,
+      };
+      (globalThis as Record<string, unknown>).Audio = jest.fn().mockImplementation(() => mockAudioObj);
+      (globalThis as Record<string, unknown>).URL = {
+        createObjectURL: jest.fn().mockReturnValue('blob:http://localhost/fake'),
+        revokeObjectURL: jest.fn(),
+      };
+
+      BrowserTranscriber = (await import('../browser-transcriber')).BrowserTranscriber;
+      const transcriber = new BrowserTranscriber();
+
+      const resultPromise = transcriber.transcribeAudioFile(
+        new File(['audio data'], 'test.wav', { type: 'audio/wav' })
+      );
+
+      setImmediate(() => {
+        if (mockRecognitionInstance.onstart) {
+          mockRecognitionInstance.onstart(new Event('start'));
+        }
+        if (mockRecognitionInstance.onresult) {
+          const mockEvent = {
+            resultIndex: 0,
+            results: {
+              length: 1,
+              0: {
+                isFinal: true,
+                length: 1,
+                0: { transcript: 'very uncertain result', confidence: 0 },
+              },
+            } as unknown as SpeechRecognitionResultList,
+          } as unknown as SpeechRecognitionEvent;
+          mockRecognitionInstance.onresult(mockEvent);
+        }
+        if (mockRecognitionInstance.onend) {
+          mockRecognitionInstance.onend(new Event('end'));
+        }
+      });
+
+      const result = await resultPromise;
+
+      expect(result.success).toBe(true);
+      expect(result.segments.length).toBeGreaterThan(0);
+      // Confidence 0 must be preserved, NOT silently turned into 0.9.
+      expect(result.segments[0].confidence).toBe(0);
+    });
+
     it('returns mock segments when Web Speech API produces no segments', async () => {
       const mockAudioObj = {
         src: '',
@@ -1240,7 +1297,7 @@ describe('BrowserTranscriber', () => {
       expect(mockRevokeObjectURL).toHaveBeenCalled();
     });
 
-    it('uses default confidence 0.9 when result confidence is 0', async () => {
+    it('preserves a confidence of exactly 0 instead of inverting it to 0.9', async () => {
       const mockAudioObj = {
         src: '',
         onloadedmetadata: null as (() => void) | null,
@@ -1277,7 +1334,7 @@ describe('BrowserTranscriber', () => {
                 length: 1,
                 0: {
                   transcript: 'No confidence',
-                  confidence: 0, // Falsy - should default to 0.9
+                  confidence: 0, // Legit "very uncertain" — must be preserved, not defaulted
                 },
               },
             } as unknown as SpeechRecognitionResultList,
@@ -1292,7 +1349,9 @@ describe('BrowserTranscriber', () => {
 
       const result = await resultPromise;
 
-      expect(result.segments[0].confidence).toBe(0.9);
+      // Confidence 0 is a real value and must be preserved (the `?? 0.9`
+      // fallback applies only to undefined/null, not to a legitimate 0).
+      expect(result.segments[0].confidence).toBe(0);
     });
 
     it('ignores empty transcript in final results', async () => {
