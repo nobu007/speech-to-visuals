@@ -65,7 +65,6 @@ export class SimplePipeline {
   private detector: DiagramDetector;
   private layoutEngine: LayoutEngine;
   private enhancedLayoutEngine: InstanceType<typeof EnhancedZeroOverlapLayoutEngine>;
-  private videoGenerator: VideoGenerator;
 
   // Progressive enhancement tracking (段階的改善追跡)
   private iterationCount: number = 0;
@@ -117,13 +116,8 @@ export class SimplePipeline {
       qualityThreshold: 100 // Zero overlap requirement
     });
 
-    this.videoGenerator = new VideoGenerator({
-      outputFormat: 'mp4',
-      quality: 'high',
-      resolution: '1080p',
-      fps: 30,
-      includeAudio: true
-    });
+    // Note: VideoGenerator is constructed per-process() call so that the
+    // caller's per-request videoOptions can override the pipeline defaults.
   }
 
   /**
@@ -416,7 +410,19 @@ export class SimplePipeline {
           processingTime: 0 // Will be updated later
         };
 
-        const videoResult = await this.videoGenerator.generateVideo(
+        // Construct per-call so the caller's videoOptions override the pipeline
+        // defaults (quality/resolution/fps). Mirrors the quality-propagation
+        // fix in 6937b8b: previously the generator was built once with
+        // hardcoded high/1080p/30 and videoOptions was silently ignored.
+        const videoGenerator = new VideoGenerator({
+          outputFormat: 'mp4',
+          quality: 'high',
+          resolution: '1080p',
+          fps: 30,
+          includeAudio: true,
+          ...input.options?.videoOptions,
+        });
+        const videoResult = await videoGenerator.generateVideo(
           pipelineResult,
           (stage, progress) => {
             onProgress?.(stage, 85 + (progress * 0.15)); // 85-100%

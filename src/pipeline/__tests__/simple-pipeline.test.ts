@@ -123,14 +123,14 @@ const analysisMock = await import('@/analysis') as {
 };
 const { __mockGenerateLayout } = await import('@/visualization') as { __mockGenerateLayout: jest.Mock };
 const { __mockGenerateZeroOverlapLayout } = await import('@/visualization/enhanced-zero-overlap-layout') as { __mockGenerateZeroOverlapLayout: jest.Mock };
-const { __mockGenerateVideo } = await import('@/pipeline/video-generator') as { __mockGenerateVideo: jest.Mock };
+const videoGeneratorMock = await import('@/pipeline/video-generator') as { __mockGenerateVideo: jest.Mock; VideoGenerator: jest.Mock };
 
 const mockTranscribe = __mockTranscribe;
 const mockSegment = analysisMock.__mockSegment;
 const mockAnalyze = analysisMock.__mockAnalyze;
 const mockGenerateLayout = __mockGenerateLayout;
 const mockGenerateZeroOverlapLayout = __mockGenerateZeroOverlapLayout;
-const mockGenerateVideo = __mockGenerateVideo;
+const mockGenerateVideo = videoGeneratorMock.__mockGenerateVideo;
 
 // Mock URL.createObjectURL / revokeObjectURL
 beforeEach(() => {
@@ -527,6 +527,42 @@ describe('SimplePipeline', () => {
       expect(config.minSegmentLengthMs).toBe(3000);
       expect(config.maxSegmentLengthMs).toBe(15000);
       expect(config.confidenceThreshold).toBe(0.6);
+    });
+  });
+
+  describe('videoOptions propagation', () => {
+    // Regression: VideoGenerator was constructed ONCE in the constructor with
+    // hardcoded quality:'high'/1080p/30, so input.options.videoOptions was
+    // silently ignored. The generator must be built per-call, merging the
+    // caller's videoOptions over the pipeline defaults (mirrors the
+    // quality-propagation fix in 6937b8b).
+    it('passes input.options.videoOptions into the VideoGenerator config', async () => {
+      const result = await pipeline.process({
+        audioFile: createMockFile(),
+        options: {
+          includeVideoGeneration: true,
+          videoOptions: { quality: 'low', resolution: '720p', fps: 24 },
+        },
+      });
+
+      expect(result.success).toBe(true);
+      const calls = videoGeneratorMock.VideoGenerator.mock.calls;
+      const config = calls[calls.length - 1][0] as Record<string, unknown>;
+      expect(config).toMatchObject({ quality: 'low', resolution: '720p', fps: 24 });
+      // Pipeline defaults still present where not overridden
+      expect(config).toMatchObject({ outputFormat: 'mp4', includeAudio: true });
+    });
+
+    it('uses high/1080p/30 defaults when videoOptions is omitted', async () => {
+      const result = await pipeline.process({
+        audioFile: createMockFile(),
+        options: { includeVideoGeneration: true },
+      });
+
+      expect(result.success).toBe(true);
+      const calls = videoGeneratorMock.VideoGenerator.mock.calls;
+      const config = calls[calls.length - 1][0] as Record<string, unknown>;
+      expect(config).toMatchObject({ quality: 'high', resolution: '1080p', fps: 30 });
     });
   });
 });
