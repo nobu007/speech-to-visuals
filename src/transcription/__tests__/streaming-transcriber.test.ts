@@ -1084,6 +1084,61 @@ describe('StreamingTranscriber', () => {
   });
 
   // ------------------------------------------------
+  // updateConfig input validation
+  // Regression: updateConfig previously applied new values WITHOUT validating,
+  // so an overlapMs >= chunkSizeMs (or chunkSizeMs <= 0) made createAudioChunks
+  // advance by a non-positive step and loop forever. Mirrors constructor guards.
+  // ------------------------------------------------
+  describe('updateConfig — input validation', () => {
+    it('throws when overlapMs >= chunkSizeMs (would infinite-loop createAudioChunks)', async () => {
+      await loadModule();
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({ chunkSizeMs: 3000 });
+      expect(() => transcriber.updateConfig({ chunkSizeMs: 100, overlapMs: 500 })).toThrow('overlapMs');
+    });
+
+    it('throws when overlapMs alone exceeds current chunkSizeMs', async () => {
+      await loadModule();
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({ chunkSizeMs: 3000 });
+      expect(() => transcriber.updateConfig({ overlapMs: 3000 })).toThrow('overlapMs');
+    });
+
+    it('throws when chunkSizeMs is lowered below existing overlapMs', async () => {
+      await loadModule();
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({ chunkSizeMs: 5000, overlapMs: 500 });
+      expect(() => transcriber.updateConfig({ chunkSizeMs: 100 })).toThrow('overlapMs');
+    });
+
+    it('throws when chunkSizeMs is non-positive', async () => {
+      await loadModule();
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
+      expect(() => transcriber.updateConfig({ chunkSizeMs: 0 })).toThrow('chunkSizeMs');
+      expect(() => transcriber.updateConfig({ chunkSizeMs: -1 })).toThrow('chunkSizeMs');
+    });
+
+    it('throws when chunkSizeMs exceeds 60000', async () => {
+      await loadModule();
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
+      expect(() => transcriber.updateConfig({ chunkSizeMs: 70000 })).toThrow('chunkSizeMs');
+    });
+
+    it('throws when minConfidence is out of [0,1]', async () => {
+      await loadModule();
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
+      expect(() => transcriber.updateConfig({ minConfidence: -0.1 })).toThrow('minConfidence');
+      expect(() => transcriber.updateConfig({ minConfidence: 1.5 })).toThrow('minConfidence');
+    });
+
+    it('rejects invalid config without mutating the existing config', async () => {
+      await loadModule();
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({ chunkSizeMs: 3000, overlapMs: 500 });
+      expect(() => transcriber.updateConfig({ chunkSizeMs: 100, overlapMs: 500 })).toThrow();
+      const config = transcriber.getConfig();
+      expect(config.chunkSizeMs).toBe(3000);
+      expect(config.overlapMs).toBe(500);
+    });
+  });
+
+  // ------------------------------------------------
   // createStreamingTranscriber factory function
   // ------------------------------------------------
   describe('createStreamingTranscriber', () => {

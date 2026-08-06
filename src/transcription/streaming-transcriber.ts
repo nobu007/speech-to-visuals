@@ -496,9 +496,38 @@ export class StreamingTranscriber {
 
   /**
    * Update configuration
+   *
+   * Validates the merged config with the same rules as the constructor. This is
+   * required because createAudioChunks advances by `chunkSize - overlap`; an
+   * overlapMs >= chunkSizeMs (or chunkSizeMs <= 0) makes that step non-positive
+   * and the chunk loop never terminates.
    */
   updateConfig(newConfig: Partial<StreamingTranscriptionConfig>): void {
-    this.config = { ...this.config, ...newConfig };
+    const candidate: StreamingTranscriptionConfig = { ...this.config, ...newConfig };
+
+    if (candidate.chunkSizeMs <= 0 || candidate.chunkSizeMs > 60000) {
+      throw new TranscriptionError(
+        `chunkSizeMs must be > 0 and <= 60000, got ${candidate.chunkSizeMs}`
+      );
+    }
+    if (candidate.minConfidence < 0 || candidate.minConfidence > 1) {
+      throw new TranscriptionError(
+        `minConfidence must be between 0 and 1, got ${candidate.minConfidence}`
+      );
+    }
+    if (candidate.overlapMs < 0) {
+      throw new TranscriptionError(`overlapMs must be >= 0, got ${candidate.overlapMs}`);
+    }
+    // Validate against the EFFECTIVE (merged) chunkSizeMs so a combined update
+    // such as { chunkSizeMs: 100, overlapMs: 500 } is rejected — otherwise
+    // createAudioChunks would loop forever.
+    if (candidate.overlapMs >= candidate.chunkSizeMs) {
+      throw new TranscriptionError(
+        `overlapMs (${candidate.overlapMs}) must be less than chunkSizeMs (${candidate.chunkSizeMs})`
+      );
+    }
+
+    this.config = candidate;
   }
 
   // --- REQ-091: Quality Monitoring API ---
