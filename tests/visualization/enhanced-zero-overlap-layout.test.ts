@@ -1373,4 +1373,36 @@ describe('ZeroOverlapLayoutEngine', () => {
       expect(result.edges).toHaveLength(0);
     });
   });
+
+  describe('diagram-type routing (flow is a flowchart synonym)', () => {
+    // The detector's default / most-common output is 'flow' (analysis/diagram-detector
+    // returns 'flow' for its low-confidence fallback), while the DiagramType union also
+    // defines 'flowchart'. generateInitialLayout must route both to the hierarchical
+    // Dagre flowchart layout; otherwise every detected flow diagram falls through to the
+    // default concept-map grid (silent quality degradation on the enhanced-layout path).
+    type RoutingInternals = {
+      generateInitialLayout(
+        diagramType: DiagramType,
+        nodes: NodeDatum[],
+        edges: EdgeDatum[]
+      ): Promise<{ nodes: PositionedNode[]; edges: unknown[] }>;
+    };
+    const routingInternals = (e: ZeroOverlapLayoutEngine) => e as unknown as RoutingInternals;
+
+    test("'flow' is laid out identically to 'flowchart'", async () => {
+      const nodes = makeNodes(4);
+      const edges = makeEdges([['n0', 'n1'], ['n1', 'n2'], ['n2', 'n3']]);
+      const eng = new ZeroOverlapLayoutEngine();
+
+      // generateFlowchartLayout is deterministic (Dagre, no Math.random), so once
+      // 'flow' routes to it the two outputs must be byte-for-byte equal. Before the
+      // fix 'flow' hit the concept-map grid default and diverged.
+      const flow = await routingInternals(eng).generateInitialLayout('flow', nodes, edges);
+      const flowchart = await routingInternals(eng).generateInitialLayout('flowchart', nodes, edges);
+
+      const positions = (l: { nodes: PositionedNode[] }) =>
+        l.nodes.map((n) => `${n.id}:${n.x},${n.y}`);
+      expect(positions(flow)).toEqual(positions(flowchart));
+    });
+  });
 });

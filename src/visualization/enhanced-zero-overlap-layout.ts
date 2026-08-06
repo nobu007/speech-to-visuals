@@ -209,6 +209,7 @@ export class ZeroOverlapLayoutEngine {
   ): Promise<{ nodes: PositionedNode[]; edges: LayoutEdge[] }> {
 
     switch (diagramType) {
+      case 'flow':
       case 'flowchart':
         return this.generateFlowchartLayout(nodes, edges);
       case 'tree':
@@ -257,10 +258,16 @@ export class ZeroOverlapLayoutEngine {
       });
     });
 
-    // Add edges
-    edges.forEach(edge => {
-      g.setEdge(edge.from, edge.to);
-    });
+    // Add edges — only those whose endpoints exist among the input nodes. dagre
+    // auto-creates nodes for unknown edge endpoints, which corrupts the layout
+    // (and can make downstream NaN-guards drop otherwise-valid edges). Dangling
+    // edges are also filtered at layout-edge extraction below.
+    const flowchartNodeIds = new Set(nodes.map(n => n.id));
+    edges
+      .filter(edge => flowchartNodeIds.has(edge.from) && flowchartNodeIds.has(edge.to))
+      .forEach(edge => {
+        g.setEdge(edge.from, edge.to);
+      });
 
     // Generate layout
     dagre.layout(g);
@@ -326,10 +333,13 @@ export class ZeroOverlapLayoutEngine {
       });
     });
 
-    // Add edges
-    edges.forEach(edge => {
-      g.setEdge(edge.from, edge.to);
-    });
+    // Add edges — filter dangling endpoints before dagre (see generateFlowchartLayout).
+    const treeNodeIds = new Set(nodes.map(n => n.id));
+    edges
+      .filter(edge => treeNodeIds.has(edge.from) && treeNodeIds.has(edge.to))
+      .forEach(edge => {
+        g.setEdge(edge.from, edge.to);
+      });
 
     // Generate layout
     dagre.layout(g);
