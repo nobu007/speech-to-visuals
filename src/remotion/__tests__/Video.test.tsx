@@ -119,9 +119,11 @@ describe('calculateTotalFrames', () => {
   });
 
   describe('edge cases', () => {
-    it('should handle zero-duration scenes', () => {
+    it('should handle zero-duration scenes (minimum 1 frame)', () => {
       const scenes = [createScene({ durationMs: 0 })];
-      expect(calculateTotalFrames(scenes)).toBe(0);
+      // calculateTotalFrames returns Math.max(1, raw) to guarantee at least
+      // one frame for rendering even when total duration is zero.
+      expect(calculateTotalFrames(scenes)).toBe(1);
     });
 
     it('should handle mix of zero and non-zero durations', () => {

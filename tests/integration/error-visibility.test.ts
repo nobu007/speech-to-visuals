@@ -133,4 +133,77 @@ describe('Error visibility: handleError → user notification', () => {
     expect(alerts[0].message).toContain('Sync metadata fetch failed');
     expect(alerts[0].userMessage).toBeDefined();
   });
+
+  it('.catch chain: handleError rejection is surfaced, not silently swallowed', async () => {
+    // When handleError itself throws (e.g. internal error in the handler),
+    // the .catch chain must still surface the error rather than silently
+    // swallowing it. This is the sync-failure-notification regression guard.
+    const alerts: ErrorAlert[] = [];
+    handler.onError('ResilientComponent', (alert) => alerts.push(alert));
+
+    const failingOperation = async (): Promise<void> => {
+      throw new Error('Original pipeline failure');
+    };
+
+    // Simulate .catch where handleError also fails — the outer .catch
+    // must still produce a visible notification
+    let outerCatchTriggered = false;
+    let surfacedError: Error | null = null;
+
+    await failingOperation()
+      .catch(async (err: Error) => {
+        // Register the original error
+        await handler.handleError(err, { component: 'ResilientComponent' });
+        // Simulate an internal handler failure
+        throw new Error('handleError internal failure');
+      })
+      .catch((err: Error) => {
+        outerCatchTriggered = true;
+        surfacedError = err;
+      });
+
+    // The outer .catch was triggered → error not swallowed
+    expect(outerCatchTriggered).toBe(true);
+    expect(surfacedError).not.toBeNull();
+    expect(surfacedError!.message).toContain('handleError internal failure');
+
+    // The original error was still registered via callbacks before the throw
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].message).toContain('Original pipeline failure');
+  });
+
+  it('.catch chain: concurrent failures all produce visible notifications', async () => {
+    // Multiple async operations failing concurrently — each .catch must
+    // independently surface its error to the notification system.
+    // Both callbacks receive both alerts (notifyErrorCallbacks broadcasts
+    // to all registered callbacks), so we expect 4 total (2 errors × 2 callbacks).
+    const alerts: ErrorAlert[] = [];
+    handler.onError('ConcurrentA', (alert) => alerts.push(alert));
+    handler.onError('ConcurrentB', (alert) => alerts.push(alert));
+
+    const opA = async () => {
+      throw new Error('Concurrent A failed');
+    };
+    const opB = async () => {
+      throw new Error('Concurrent B failed');
+    };
+
+    await Promise.all([
+      opA().catch(async (err: Error) => {
+        await handler.handleError(err, { component: 'ConcurrentA' });
+      }),
+      opB().catch(async (err: Error) => {
+        await handler.handleError(err, { component: 'ConcurrentB' });
+      }),
+    ]);
+
+    // Both errors broadcast to both callbacks → 4 alerts
+    expect(alerts).toHaveLength(4);
+    const messages = alerts.map((a) => a.message);
+    expect(messages).toContain('Concurrent A failed');
+    expect(messages).toContain('Concurrent B failed');
+    // Verify unique error IDs (two distinct errors)
+    const uniqueIds = new Set(alerts.map((a) => a.id));
+    expect(uniqueIds.size).toBe(2);
+  });
 });
