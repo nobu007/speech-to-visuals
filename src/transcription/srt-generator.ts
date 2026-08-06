@@ -12,7 +12,7 @@ export function formatTimestamp(ms: number): string {
   const clamped = Math.max(0, ms);
 
   const totalSeconds = Math.floor(clamped / 1000);
-  const milliseconds = clamped % 1000;
+  const milliseconds = Math.floor(clamped % 1000);
   const seconds = totalSeconds % 60;
   const totalMinutes = Math.floor(totalSeconds / 60);
   const minutes = totalMinutes % 60;

@@ -92,6 +92,33 @@ describe('srt-generator', () => {
       // 1h 23m 45s 678ms = 3600000 + 23*60000 + 45*1000 + 678
       expect(formatTimestamp(5025678)).toBe('01:23:45,678');
     });
+
+    // --- Floating-point input edge cases (Math.floor on milliseconds) ---
+    it('should floor fractional milliseconds (1234.5 → 01:23:45,234 not ,234.5)', () => {
+      expect(formatTimestamp(1234.5)).toBe('00:00:01,234');
+    });
+
+    it('should floor milliseconds when fractional part is near 1.0 (1999.999)', () => {
+      expect(formatTimestamp(1999.999)).toBe('00:00:01,999');
+    });
+
+    it('should handle fractional input that crosses the second boundary', () => {
+      // 1000.9999 → floor(1000.9999/1000)=1, floor(1000.9999%1000)=0 → 00:00:01,000
+      expect(formatTimestamp(1000.9999)).toBe('00:00:01,000');
+    });
+
+    // --- Non-finite value handling ---
+    it('should return default for NaN', () => {
+      expect(formatTimestamp(NaN)).toBe('00:00:00,000');
+    });
+
+    it('should return default for Infinity', () => {
+      expect(formatTimestamp(Infinity)).toBe('00:00:00,000');
+    });
+
+    it('should return default for -Infinity', () => {
+      expect(formatTimestamp(-Infinity)).toBe('00:00:00,000');
+    });
   });
 
   // ---------------------------------------------------------------------------

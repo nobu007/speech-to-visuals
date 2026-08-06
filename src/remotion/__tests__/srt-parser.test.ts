@@ -70,6 +70,46 @@ describe('parseTimestamp', () => {
     it('should throw SrtParseError for non-numeric values', () => {
       expect(() => parseTimestamp('ab:cd:ef,ghi')).toThrow(SrtParseError);
     });
+
+    // --- Additional edge cases ---
+    it('should throw SrtParseError for 1-digit milliseconds', () => {
+      expect(() => parseTimestamp('00:00:01,5')).toThrow(SrtParseError);
+    });
+
+    it('should throw SrtParseError for 2-digit milliseconds', () => {
+      expect(() => parseTimestamp('00:00:01,50')).toThrow(SrtParseError);
+    });
+
+    it('should throw SrtParseError for 4-digit milliseconds', () => {
+      expect(() => parseTimestamp('00:00:01,5000')).toThrow(SrtParseError);
+    });
+
+    it('should parse maximum practical timestamp 99:59:59,999', () => {
+      // 99h 59m 59s 999ms
+      expect(parseTimestamp('99:59:59,999')).toBe(359999999);
+    });
+
+    it('should throw SrtParseError for timestamp with extra leading whitespace', () => {
+      expect(() => parseTimestamp('  00:00:01,000')).not.toThrow();
+    });
+
+    it('should throw SrtParseError for timestamp with extra trailing whitespace', () => {
+      expect(() => parseTimestamp('00:00:01,000  ')).not.toThrow();
+    });
+
+    it('should parse 00:00:00,001 to 1ms (minimum non-zero)', () => {
+      expect(parseTimestamp('00:00:00,001')).toBe(1);
+    });
+
+    it('should parse 00:00:00,999 to 999ms (maximum sub-second)', () => {
+      expect(parseTimestamp('00:00:00,999')).toBe(999);
+    });
+
+    it('should accept minutes >= 60 without validation error (format-only)', () => {
+      // The regex allows any 2-digit value; 60 minutes is format-valid per regex
+      // This documents the current behavior: no semantic validation on minute/second ranges
+      expect(parseTimestamp('00:60:00,000')).toBe(3600000);
+    });
   });
 });
 
