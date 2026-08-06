@@ -3,7 +3,7 @@
  * Covers: detectRegression with invalid scores, recordStageMetrics with invalid scores
  */
 
-const { QualityGateEvaluator } = await import('../quality-gate');
+import { QualityGateEvaluator } from '../quality-gate';
 
 describe('QualityGateEvaluator NaN guards', () => {
   let evaluator: InstanceType<typeof QualityGateEvaluator>;
