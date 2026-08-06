@@ -1,6 +1,6 @@
 /**
  * Tests for DiagramScene.tsx
- * Strategy-based animation dispatch for 5 diagram types
+ * Strategy-based animation dispatch for all 11 diagram types
  */
 
 import { jest } from '@jest/globals';
@@ -155,7 +155,10 @@ describe('DiagramScene', () => {
   });
 
   describe('diagram type dispatch', () => {
-    const types: DiagramType[] = ['flow', 'tree', 'timeline', 'matrix', 'cycle'];
+    const types: DiagramType[] = [
+      'flow', 'flowchart', 'tree', 'timeline', 'matrix',
+      'cycle', 'comparison', 'network', 'conceptmap', 'mindmap', 'general',
+    ];
 
     for (const type of types) {
       it(`should render ${type} type using correct strategy`, () => {
@@ -290,12 +293,18 @@ describe('DiagramScene', () => {
   });
 
   describe('title display', () => {
-    const titleMap: Record<string, string> = {
+    const titleMap: Record<DiagramType, string> = {
       flow: 'プロセスフロー',
+      flowchart: 'プロセスフロー',
       tree: '階層構造',
       timeline: 'タイムライン',
       matrix: '比較表',
       cycle: '循環プロセス',
+      comparison: '比較',
+      network: 'ネットワーク',
+      conceptmap: 'コンセプトマップ',
+      mindmap: 'マインドマップ',
+      general: 'ダイアグラム',
     };
 
     for (const [type, expectedTitle] of Object.entries(titleMap)) {

@@ -4,7 +4,9 @@
  * 🔄 Focus: 小さく作り、確実に動作確認
  */
 
-export type DiagramType = 'flow' | 'tree' | 'timeline' | 'cycle' | 'network';
+import type { DiagramType } from '@/types/diagram';
+
+export type { DiagramType };
 
 export interface SimpleNode {
   id: string;

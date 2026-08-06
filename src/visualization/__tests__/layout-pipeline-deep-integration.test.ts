@@ -180,7 +180,7 @@ describe('Deep Integration: LayoutEngine full pipeline invariants', () => {
 
     it('should handle concurrent calls with different diagram types', async () => {
       const engine = await getEngine();
-      const types: DiagramType[] = ['flow', 'tree', 'cycle', 'timeline', 'matrix'];
+      const types: DiagramType[] = ALL_TYPES;
 
       const calls = types.map(async (type) => {
         const nodes = Array.from({ length: 4 }, (_, j) => makeNode(`${type}-n${j}`, `Node ${j}`));
