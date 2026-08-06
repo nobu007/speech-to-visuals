@@ -161,6 +161,38 @@ const DEFAULT_PARAMS: LayoutParams = {
 const DEFAULT_THRESHOLD = 0.7;
 const DEFAULT_MAX_ITERATIONS = 3;
 
+/**
+ * Pure parameter-adjustment arithmetic, extracted from `adjustParams` for
+ * unit testing. Each score value is in [0,1] (1 = good); values below 0.5
+ * trigger a corrective boost.
+ */
+export function adjustLayoutParams(
+  params: LayoutParams,
+  scores: { balanceValue: number; crossingValue: number; overflowValue: number },
+): LayoutParams {
+  const newParams = { ...params };
+
+  // Low balance → increase spacing to spread nodes out
+  if (scores.balanceValue < 0.5) {
+    newParams.nodeSpacing = Math.round(params.nodeSpacing * 1.2);
+    newParams.rankSeparation = Math.round(params.rankSeparation * 1.2);
+  }
+
+  // High crossing → also increase spacing (compounds on the balance boost;
+  // read from newParams, not params, or the balance boost above is discarded)
+  if (scores.crossingValue < 0.5) {
+    newParams.nodeSpacing = Math.round(newParams.nodeSpacing * 1.15);
+  }
+
+  // High overflow → scale down nodes
+  if (scores.overflowValue < 0.5) {
+    newParams.nodeWidthScale = params.nodeWidthScale * 0.9;
+    newParams.nodeHeightScale = params.nodeHeightScale * 0.9;
+  }
+
+  return newParams;
+}
+
 export class LayoutAutoOptimizer {
   private readonly strategySelector: StrategySelector;
   private readonly maxIterations: number;
@@ -359,26 +391,11 @@ export class LayoutAutoOptimizer {
   ): LayoutParams {
     const score = scoreLayout(nodes, edges, bounds.width, bounds.height);
     const c = score.contributions;
-    const newParams = { ...params };
-
-    // Low balance → increase spacing to spread nodes out
-    if (c.balance.value < 0.5) {
-      newParams.nodeSpacing = Math.round(params.nodeSpacing * 1.2);
-      newParams.rankSeparation = Math.round(params.rankSeparation * 1.2);
-    }
-
-    // High crossing → also increase spacing
-    if (c.crossing.value < 0.5) {
-      newParams.nodeSpacing = Math.round(params.nodeSpacing * 1.15);
-    }
-
-    // High overflow → scale down nodes
-    if (c.overflow.value < 0.5) {
-      newParams.nodeWidthScale = params.nodeWidthScale * 0.9;
-      newParams.nodeHeightScale = params.nodeHeightScale * 0.9;
-    }
-
-    return newParams;
+    return adjustLayoutParams(params, {
+      balanceValue: c.balance.value,
+      crossingValue: c.crossing.value,
+      overflowValue: c.overflow.value,
+    });
   }
 
   /**
