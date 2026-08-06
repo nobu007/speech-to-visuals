@@ -24,7 +24,7 @@ import {
   StageQualityScores,
 } from './types';
 import { QualityMonitor } from './quality-monitor';
-import { TranscriptionPipeline, TranscriptionSegment } from '@/transcription';
+import { TranscriptionPipeline, TranscriptionSegment, TranscriptionResult } from '@/transcription';
 import { SceneSegmenter, DiagramDetector } from '@/analysis';
 import { LayoutEngine } from '@/visualization';
 import { SceneGraph, ProcessingStatus, NodeDatum, EdgeDatum, DiagramType, DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
@@ -109,6 +109,38 @@ const STAGE_NAMES = [
   'preparation',
   'rendering',
 ] as const;
+
+/**
+ * Build a minimal, valid TranscriptionResult used when the real transcription
+ * engine returns nothing or throws. Exported (rather than inlined as a private
+ * method) so the time-unit contract can be asserted directly by unit tests.
+ */
+export function createDefaultTranscriptionResult(): TranscriptionResult {
+  // All time fields are MILLISECONDS, matching the TranscriptionSegment contract
+  // (src/transcription/types.ts) and every other producer (whisper/browser/
+  // TranscriptionPipeline fallback). Mirrors makeDefaultAnalysisResult's timeline.
+  return {
+    success: true,
+    segments: [
+      {
+        id: 0,
+        start: 0,
+        end: 5000,
+        text: 'Default transcription segment one.',
+        confidence: 0.85,
+      },
+      {
+        id: 1,
+        start: 5000,
+        end: 10000,
+        text: 'Default transcription segment two.',
+        confidence: 0.82,
+      },
+    ],
+    language: 'en',
+    duration: 10000,
+  };
+}
 
 // ---------- Implementation ----------
 
@@ -903,28 +935,8 @@ export class PipelineOrchestrator {
     return { nodes: layoutNodes, edges: layoutEdges };
   }
 
-  private makeDefaultTranscriptionResult(): unknown {
-    return {
-      success: true,
-      segments: [
-        {
-          id: 0,
-          start: 0,
-          end: 5,
-          text: 'Default transcription segment one.',
-          confidence: 0.85,
-        },
-        {
-          id: 1,
-          start: 5,
-          end: 10,
-          text: 'Default transcription segment two.',
-          confidence: 0.82,
-        },
-      ],
-      language: 'en',
-      duration: 10,
-    };
+  private makeDefaultTranscriptionResult(): TranscriptionResult {
+    return createDefaultTranscriptionResult();
   }
 
   private makeDefaultAnalysisResult(): {
