@@ -307,5 +307,42 @@ describe('EdgeAnimation', () => {
 
       expect(pathElement.props.d).toBe('M10,20 L110,20');
     });
+
+    it('should not produce NaN dimensions for empty points array', () => {
+      mockFrame = 0;
+      const edge = makeEdge({ points: [] });
+      const element = React.createElement(EdgeAnimation, {
+        edge,
+        edgeIndex: 0,
+        delayFrames: 0,
+        durationFrames: EDGE_DRAW_DURATION_FRAMES,
+        pathLength: 0,
+      });
+      const rendered = renderEdge(element);
+
+      const style = rendered.props.style;
+      expect(Number.isFinite(style.width)).toBe(true);
+      expect(Number.isFinite(style.height)).toBe(true);
+      // With no points, bounding box should be [-pad, +pad] = [-10, 10] => 20
+      expect(style.width).toBe(20);
+      expect(style.height).toBe(20);
+    });
+
+    it('should not produce NaN dimensions for single-point edge', () => {
+      mockFrame = 0;
+      const edge = makeEdge({ points: [{ x: 50, y: 75 }] });
+      const element = React.createElement(EdgeAnimation, {
+        edge,
+        edgeIndex: 0,
+        delayFrames: 0,
+        durationFrames: EDGE_DRAW_DURATION_FRAMES,
+        pathLength: 0,
+      });
+      const rendered = renderEdge(element);
+
+      const style = rendered.props.style;
+      expect(Number.isFinite(style.width)).toBe(true);
+      expect(Number.isFinite(style.height)).toBe(true);
+    });
   });
 });

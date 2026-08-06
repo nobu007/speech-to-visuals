@@ -163,6 +163,17 @@ describe('SmartParameterTuner', () => {
       expect(result.parameters.layoutDensity).toBeGreaterThanOrEqual(0.8);
     });
 
+    it('should set medium layoutDensity for medium complexity', async () => {
+      const medium: ContentCharacteristics = {
+        ...baseCharacteristics,
+        complexity: 'medium',
+      };
+      const result = await tuner.optimizeParameters(medium);
+      expect(result.parameters.layoutDensity).toBe(0.7);
+      // medium should NOT override processingMode from speech-rate adjustments
+      expect(result.parameters.processingMode).toBeDefined();
+    });
+
     it('should adjust for poor audio quality', async () => {
       const poorAudio: ContentCharacteristics = {
         ...baseCharacteristics,

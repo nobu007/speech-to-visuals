@@ -108,6 +108,10 @@ class SmartParameterTuner {
         parameters.processingMode = 'accurate';
         parameters.layoutDensity = 0.6; // More space for complex diagrams
         break;
+      case 'medium':
+        // Medium complexity: keep defaults, only nudge density
+        parameters.layoutDensity = 0.7;
+        break;
       case 'low':
         parameters.confidenceThreshold = Math.max(0.65, parameters.confidenceThreshold - 0.1);
         parameters.processingMode = 'fast';

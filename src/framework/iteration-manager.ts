@@ -141,7 +141,7 @@ export class IterationManager {
     const numberMatch = criterion.match(/(\d+)/);
 
     if (percentMatch) {
-      const threshold = parseInt(percentMatch[1]);
+      const threshold = parseInt(percentMatch[1], 10);
       // Check various metric keys that might match
       const possibleKeys = [
         'accuracy', 'precision', 'rate', 'score', 'pass_rate', 'success_rate'

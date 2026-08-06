@@ -88,10 +88,13 @@ export const EdgeAnimation: React.FC<EdgeAnimationProps> = ({
 
   // Calculate bounding box from points for SVG viewBox
   const points = edge.points;
-  const minX = Math.min(...points.map((p) => p.x)) - 10;
-  const minY = Math.min(...points.map((p) => p.y)) - 10;
-  const maxX = Math.max(...points.map((p) => p.x)) + 10;
-  const maxY = Math.max(...points.map((p) => p.y)) + 10;
+  const xs = points.map((p) => p.x);
+  const ys = points.map((p) => p.y);
+  const pad = 10;
+  const minX = (xs.length > 0 ? Math.min(...xs) : 0) - pad;
+  const minY = (ys.length > 0 ? Math.min(...ys) : 0) - pad;
+  const maxX = (xs.length > 0 ? Math.max(...xs) : 0) + pad;
+  const maxY = (ys.length > 0 ? Math.max(...ys) : 0) + pad;
   const width = maxX - minX;
   const height = maxY - minY;
 
