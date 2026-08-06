@@ -215,8 +215,9 @@ export class SemanticMetricsTracker {
   }
 
   getMetrics(): SemanticCacheMetrics {
-    const avgSimilarity = this.similarityScores.length > 0
-      ? this.similarityScores.reduce((sum, s) => sum + s, 0) / this.similarityScores.length
+    const validScores = this.similarityScores.filter(s => Number.isFinite(s));
+    const avgSimilarity = validScores.length > 0
+      ? validScores.reduce((sum, s) => sum + s, 0) / validScores.length
       : 0;
 
     return {

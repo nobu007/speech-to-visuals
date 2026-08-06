@@ -17,7 +17,7 @@ export const DiagramVideo: React.FC<DiagramVideoProps> = ({
   const { fps } = useVideoConfig();
 
   // 現在のフレームに対応するシーンを検索
-  const currentTime = (frame / fps) * 1000; // ミリ秒
+  const currentTime = (frame / Math.max(fps, 1)) * 1000; // ミリ秒
   const currentScene = scenes.find(
     (scene) => currentTime >= (scene.startTime ?? 0) * 1000 && currentTime < (scene.endTime ?? (scene.startTime ?? 0) + scene.durationMs / 1000) * 1000
   );
@@ -78,7 +78,7 @@ export const DiagramVideo: React.FC<DiagramVideoProps> = ({
           style={{
             height: '100%',
             backgroundColor: '#3b82f6',
-            width: `${(sceneIndex / Math.max(scenes.length - 1, 1)) * 100}%`,
+            width: `${(Math.max(sceneIndex, 0) / Math.max(scenes.length - 1, 1)) * 100}%`,
             transition: 'width 0.3s ease',
           }}
         />

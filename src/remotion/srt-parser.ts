@@ -71,7 +71,7 @@ export function parseTimestamp(timestamp: string): number {
  * @returns Frame number (rounded to nearest integer)
  */
 function msToFrame(ms: number, fps: number): number {
-  return Math.round((ms / 1000) * fps);
+  return Math.round((ms / 1000) * Math.max(fps, 1));
 }
 
 /**

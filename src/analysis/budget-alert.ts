@@ -64,7 +64,7 @@ export class BudgetAlertSystem {
     this.dailyCost += cost;
 
     // Check session threshold
-    const sessionPct = this.config.sessionBudget > 0
+    const sessionPct = this.config.sessionBudget > 0 && Number.isFinite(this.sessionCost)
       ? this.sessionCost / this.config.sessionBudget
       : 0;
 
@@ -82,7 +82,7 @@ export class BudgetAlertSystem {
     }
 
     // Check daily threshold
-    const dailyPct = this.config.dailyBudget > 0
+    const dailyPct = this.config.dailyBudget > 0 && Number.isFinite(this.dailyCost)
       ? this.dailyCost / this.config.dailyBudget
       : 0;
 

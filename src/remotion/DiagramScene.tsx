@@ -38,7 +38,7 @@ export const DiagramScene: React.FC<DiagramSceneProps> = ({ scene, sceneIndex, c
   const { fps } = useVideoConfig();
 
   // Frame within the scene (sceneStartFrame calculated from startMs)
-  const sceneStartFrame = (scene.startMs * fps) / 1000;
+  const sceneStartFrame = ((scene.startMs ?? 0) * fps) / 1000;
   const frameInScene = frame - sceneStartFrame;
 
   // Get animation strategy for this diagram type
@@ -158,8 +158,8 @@ export const DiagramScene: React.FC<DiagramSceneProps> = ({ scene, sceneIndex, c
             fontFamily: 'sans-serif',
           }}
         >
-          {scene.summary.substring(0, 150)}
-          {scene.summary.length > 150 ? '...' : ''}
+          {(scene.summary ?? '').substring(0, 150)}
+          {(scene.summary ?? '').length > 150 ? '...' : ''}
         </p>
       </div>
 

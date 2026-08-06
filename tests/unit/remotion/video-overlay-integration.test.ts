@@ -4,8 +4,7 @@
  * for KeyphraseOverlay and CaptionOverlay wiring.
  */
 
-import { describe, it, expect } from '@jest/globals';
-import { scenesToKeyphraseScenes } from '@/remotion/Video';
+import { scenesToKeyphraseScenes, calculateTotalFrames } from '@/remotion/Video';
 import type { SceneGraph } from '@/types/diagram';
 
 function makeScene(overrides: Partial<SceneGraph> & { durationMs: number }): SceneGraph {
@@ -76,5 +75,60 @@ describe('scenesToKeyphraseScenes', () => {
 
     expect(result[0].keyphrases).toEqual([]);
     expect(result[1].keyphrases).toEqual(['hello']);
+  });
+
+  it('handles scenes with undefined durationMs without producing NaN', () => {
+    const scenes = [
+      makeScene({ durationMs: 3000 }),
+      makeScene({ durationMs: 0 }),
+    ];
+    // Force durationMs to undefined on second scene
+    (scenes[1] as Record<string, unknown>).durationMs = undefined;
+
+    const result = scenesToKeyphraseScenes(scenes as SceneGraph[]);
+    expect(result).toHaveLength(2);
+    expect(result[0].startMs).toBe(0);
+    expect(result[0].durationMs).toBe(3000);
+    // Second scene should have durationMs 0, startMs 3000 (no NaN propagation)
+    expect(result[1].durationMs).toBe(0);
+    expect(result[1].startMs).toBe(3000);
+    expect(Number.isNaN(result[1].startMs)).toBe(false);
+    expect(Number.isNaN(result[1].durationMs)).toBe(false);
+  });
+});
+
+describe('calculateTotalFrames NaN guard', () => {
+  it('handles scenes with undefined durationMs', () => {
+    const scenes: SceneGraph[] = [
+      {
+        type: 'flow',
+        title: 'Test',
+        nodes: [],
+        edges: [],
+        startMs: 0,
+        durationMs: 5000,
+        summary: '',
+        keyphrases: [],
+      },
+    ];
+    // Force durationMs to undefined
+    (scenes[0] as Record<string, unknown>).durationMs = undefined;
+
+    const frames = calculateTotalFrames(scenes as SceneGraph[], 30);
+    expect(Number.isNaN(frames)).toBe(false);
+    expect(frames).toBe(0); // 0 ms / 1000 * 30 = 0 frames
+  });
+
+  it('handles mix of valid and undefined durationMs', () => {
+    const scenes = [
+      { type: 'flow', title: 'A', nodes: [], edges: [], startMs: 0, durationMs: 3000, summary: '', keyphrases: [] },
+      { type: 'flow', title: 'B', nodes: [], edges: [], startMs: 0, durationMs: undefined, summary: '', keyphrases: [] },
+      { type: 'flow', title: 'C', nodes: [], edges: [], startMs: 0, durationMs: 2000, summary: '', keyphrases: [] },
+    ];
+
+    const frames = calculateTotalFrames(scenes as unknown as SceneGraph[], 30);
+    expect(Number.isNaN(frames)).toBe(false);
+    // (3000 + 0 + 2000) / 1000 * 30 = 150
+    expect(frames).toBe(150);
   });
 });

@@ -63,7 +63,7 @@ export interface KeyphraseOverlayProps {
  * Convert milliseconds to frame number given fps.
  */
 export function msToFrame(ms: number, fps: number): number {
-  return Math.round((ms / 1000) * fps);
+  return Math.round((ms / 1000) * Math.max(fps, 1));
 }
 
 /**

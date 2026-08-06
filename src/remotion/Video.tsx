@@ -28,12 +28,13 @@ export interface VideoProps {
 export function scenesToKeyphraseScenes(scenes: SceneGraph[]): KeyphraseScene[] {
   let offset = 0;
   return scenes.map((scene) => {
+    const dur = scene.durationMs ?? 0;
     const entry: KeyphraseScene = {
       startMs: offset,
-      durationMs: scene.durationMs,
+      durationMs: dur,
       keyphrases: scene.keyphrases ?? [],
     };
-    offset += scene.durationMs;
+    offset += dur;
     return entry;
   });
 }
@@ -68,7 +69,7 @@ export function calculateTotalFrames(scenes: SceneGraph[], fps: number = DEFAULT
     return DEFAULT_FPS * 10; // Default 10 seconds at 30fps
   }
 
-  const totalMs = scenes.reduce((sum, scene) => sum + scene.durationMs, 0);
+  const totalMs = scenes.reduce((sum, scene) => sum + (scene.durationMs ?? 0), 0);
   return Math.ceil((totalMs / 1000) * fps);
 }
 
@@ -111,7 +112,7 @@ export const SpeechToVisualsVideo: React.FC<VideoProps> = ({
   const { fps, durationInFrames } = useVideoConfig();
 
   // Calculate current time in milliseconds
-  const currentTimeMs = (frame / fps) * 1000;
+  const currentTimeMs = (frame / Math.max(fps, 1)) * 1000;
 
   // Find the current scene
   const sceneInfo = findSceneAtTime(scenes, currentTimeMs);
@@ -129,7 +130,7 @@ export const SpeechToVisualsVideo: React.FC<VideoProps> = ({
   let sceneTransitionOpacity = 1;
   if (sceneInfo) {
     const sceneStartFrame = Math.round((sceneInfo.timeInScene / 1000) * fps);
-    const sceneRemainingFrames = Math.round((sceneInfo.scene.durationMs / 1000) * fps) - sceneStartFrame;
+    const sceneRemainingFrames = Math.round(((sceneInfo.scene.durationMs ?? 0) / 1000) * fps) - sceneStartFrame;
 
     // Fade in at scene start
     const fadeIn = interpolate(sceneStartFrame, [0, SCENE_FADE_FRAMES], [0, 1], {

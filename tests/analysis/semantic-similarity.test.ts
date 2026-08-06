@@ -289,4 +289,27 @@ describe('SemanticMetricsTracker', () => {
     tracker.recordMiss();
     expect(tracker.getMetrics().avgSimilarityScore).toBe(0);
   });
+
+  it('filters out NaN scores in getMetrics', () => {
+    const tracker = new SemanticMetricsTracker();
+    // @ts-expect-error -- intentionally passing NaN to test runtime guard
+    tracker.recordSemanticHit(NaN);
+    tracker.recordSemanticHit(0.8);
+    tracker.recordSemanticHit(0.9);
+    const metrics = tracker.getMetrics();
+    // avg should only include finite scores: (0.8 + 0.9) / 2 = 0.85
+    expect(metrics.avgSimilarityScore).toBeCloseTo(0.85, 3);
+    expect(Number.isFinite(metrics.avgSimilarityScore)).toBe(true);
+  });
+
+  it('returns 0 avgSimilarity when all scores are NaN', () => {
+    const tracker = new SemanticMetricsTracker();
+    // @ts-expect-error -- intentionally passing NaN to test runtime guard
+    tracker.recordSemanticHit(NaN);
+    // @ts-expect-error -- intentionally passing NaN to test runtime guard
+    tracker.recordSemanticHit(NaN);
+    const metrics = tracker.getMetrics();
+    expect(metrics.avgSimilarityScore).toBe(0);
+    expect(Number.isFinite(metrics.avgSimilarityScore)).toBe(true);
+  });
 });

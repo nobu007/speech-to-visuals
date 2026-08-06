@@ -192,7 +192,7 @@ export class LLMCache<T> {
   getStats() {
     const entries = Array.from(this.cache.values());
     const validEntries = entries.filter(e => this.isValid(e));
-    const totalHits = entries.reduce((sum, e) => sum + e.hits, 0);
+    const totalHits = entries.reduce((sum, e) => sum + (Number.isFinite(e.hits) ? e.hits : 0), 0);
     const semanticMetrics = this.semanticMetrics.getMetrics();
 
     const totalRequests = semanticMetrics.exactHits + semanticMetrics.semanticHits + semanticMetrics.misses;

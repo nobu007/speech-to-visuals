@@ -348,8 +348,8 @@ export function detectSyncDrift(
     const endFrameDiff = Math.abs(caption.endFrame - expectedEndFrame);
 
     // Convert frame differences to ms
-    const startDriftMs = startFrameDiff * (1000 / fps);
-    const endDriftMs = endFrameDiff * (1000 / fps);
+    const startDriftMs = startFrameDiff * (1000 / Math.max(fps, 1));
+    const endDriftMs = endFrameDiff * (1000 / Math.max(fps, 1));
     const captionDriftMs = Math.max(startDriftMs, endDriftMs);
 
     maxDriftMs = Math.max(maxDriftMs, captionDriftMs);

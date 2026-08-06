@@ -161,7 +161,7 @@ export function estimateFileSize(config: RenderConfig, durationSeconds: number):
   }
 
   // Size in bytes = bitrate * duration / 8
-  return Math.round((totalBitrate * durationSeconds) / 8);
+  return Math.round((totalBitrate * (Number.isFinite(durationSeconds) ? durationSeconds : 0)) / 8);
 }
 
 /**

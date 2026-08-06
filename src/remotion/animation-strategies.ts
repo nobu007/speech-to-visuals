@@ -54,6 +54,7 @@ export interface AnimationStrategy {
  * Calculate the Euclidean path length from an array of points
  */
 function calculatePathLength(points: { x: number; y: number }[]): number {
+  if (!points || points.length === 0) return 0;
   let length = 0;
   for (let i = 1; i < points.length; i++) {
     const dx = points[i].x - points[i - 1].x;

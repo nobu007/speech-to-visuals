@@ -196,7 +196,7 @@ export class FallbackChain {
 
   private updateSuccessRate(): void {
     const total = this.stats.primarySuccess + this.stats.fallbackSuccess + this.stats.ruleBasedSuccess;
-    this.stats.successRate = this.stats.totalRequests > 0
+    this.stats.successRate = this.stats.totalRequests > 0 && Number.isFinite(total)
       ? (total / this.stats.totalRequests) * 100
       : 0;
   }
