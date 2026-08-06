@@ -259,3 +259,76 @@ describe('DiagramVideo: rendered scene matches frame→duration mapping', () => 
     expect(screen.queryByText('準備中...')).toBeNull();
   });
 });
+
+/**
+ * Per-scene intro-animation timing must be SCENE-RELATIVE, not derived from the
+ * scene's absolute audio startMs.
+ *
+ * Scenes reach the composition in mixed units: startMs = the ABSOLUTE audio
+ * timestamp, durationMs = the (clamped) length. simple-pipeline clamps every
+ * segment to [3000, 10000] ms, so a 1 s utterance becomes a 3000 ms scene while
+ * its startMs keeps the original audio position. Playback concatenates scenes by
+ * cumulative durationMs (findSceneAtTime), so a later scene's cumulative
+ * playback start diverges from its absolute startMs whenever any earlier scene
+ * was clamped.
+ *
+ * DiagramScene drives its title fade-in (and node/edge entrance) off a
+ * scene-local frame. Deriving that offset from scene.startMs (absolute) made
+ * every scene after the first begin its intro animations already-completed
+ * (title at full opacity 1). Deriving it from the scene-relative timeInScene
+ * makes the title fade in from opacity 0 at the scene boundary. Reading the
+ * rendered title <h1> container's inline opacity distinguishes the two.
+ */
+describe('per-scene intro animation is scene-relative (not absolute startMs)', () => {
+  // Scene B's absolute startMs (1000) intentionally ≠ its cumulative playback
+  // start (3000). This is the exact divergence clamping produces in production.
+  const scenes = [
+    makeScene(0, 3000, 'Alpha clamped scene'),
+    makeScene(1000, 3000, 'Beta clamped scene'),
+  ];
+  const total = calculateTotalFrames(scenes, DEFAULT_FPS); // 180
+
+  /** Read the DiagramScene title container's opacity for the rendered scene. */
+  function titleOpacity(container: HTMLElement): string {
+    const h1 = container.querySelector('h1');
+    expect(h1).not.toBeNull();
+    // The <h1> lives inside DiagramScene's title <div style={{ opacity: titleOpacity }}>.
+    return (h1 as HTMLElement).parentElement!.style.opacity;
+  }
+
+  it('SpeechToVisualsVideo: scene B title fades in from opacity 0 at its boundary (frame 90)', () => {
+    // frame 90 = 3000 ms = scene B's cumulative playback start.
+    // timeInScene = 0 → frameInScene = 0 → titleOpacity = 0.
+    // Under the startMs bug: frameInScene = 90 - 30 = 60 → titleOpacity = 1.
+    const { container } = renderAtFrame(
+      SpeechToVisualsVideo as unknown as React.ComponentType<Record<string, unknown>>,
+      { scenes },
+      90,
+      total,
+    );
+    expect(titleOpacity(container)).toBe('0');
+  });
+
+  it('SpeechToVisualsVideo: scene B title is mid-fade shortly after its boundary (frame 95)', () => {
+    // frame 95 → 3166 ms → scene B, timeInScene ≈ 166 ms → frameInScene ≈ 5 → opacity ≈ 0.17
+    const { container } = renderAtFrame(
+      SpeechToVisualsVideo as unknown as React.ComponentType<Record<string, unknown>>,
+      { scenes },
+      95,
+      total,
+    );
+    const opacity = parseFloat(titleOpacity(container));
+    expect(opacity).toBeGreaterThan(0);
+    expect(opacity).toBeLessThan(0.5);
+  });
+
+  it('DiagramVideo: scene B title fades in from opacity 0 at its boundary (frame 90)', () => {
+    const { container } = renderAtFrame(
+      DiagramVideo as unknown as React.ComponentType<Record<string, unknown>>,
+      { scenes },
+      90,
+      total,
+    );
+    expect(titleOpacity(container)).toBe('0');
+  });
+});

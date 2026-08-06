@@ -323,15 +323,17 @@ describe('DiagramScene', () => {
   });
 
   describe('scene timing', () => {
-    it('should calculate frameInScene from scene startMs', () => {
+    it('should derive animation timing from currentTime (scene-relative), not startMs', () => {
       mockFrame = 100;
       const scene = makeSceneGraph({
+        // startMs is the ABSOLUTE audio timestamp — it must NOT drive timing.
         startMs: 1000,
         durationMs: 5000,
         layout: { nodes: [], edges: [] },
       });
 
-      const el = renderDiagramScene(scene);
+      // currentTime = 0 → scene just started → intro animations at their start.
+      const el = renderDiagramScene(scene, 0, 0);
       expect(el).toBeTruthy();
     });
 

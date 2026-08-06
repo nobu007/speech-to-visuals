@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate } from 'remotion';
+import { AbsoluteFill, useVideoConfig, interpolate } from 'remotion';
 import { SceneGraph } from '@/types/diagram';
 import { getAnimationStrategy } from './animation-strategies';
 import { NodeAnimation } from './NodeAnimation';
@@ -15,6 +15,17 @@ import { calculatePathLength } from './EdgeAnimation';
 interface DiagramSceneProps {
   scene: SceneGraph;
   sceneIndex: number;
+  /**
+   * Time elapsed within THIS scene, in milliseconds. Drives all scene-local
+   * animations (title fade-in, node/edge entrance). Callers must pass the
+   * scene-relative time — Video.findSceneAtTime().timeInScene — NOT the global
+   * playback time and NOT scene.startMs. scene.startMs is the scene's ABSOLUTE
+   * audio timestamp; playback instead concatenates scenes at cumulative
+   * durationMs offsets, so the two diverge whenever a scene's duration is
+   * clamped (simple-pipeline clamps to [3000, 10000] ms) or segments are
+   * non-contiguous. Deriving the offset from startMs previously made every
+   * scene after the first begin its intro animations already-completed.
+   */
   currentTime: number;
 }
 
@@ -34,13 +45,14 @@ const DIAGRAM_TITLES: Record<SceneGraph['type'], string> = {
 };
 
 export const DiagramScene: React.FC<DiagramSceneProps> = ({ scene, sceneIndex, currentTime }) => {
-  const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Frame within the scene (sceneStartFrame calculated from startMs)
-  const safeStartMs = Number.isFinite(scene.startMs) ? scene.startMs! : 0;
-  const sceneStartFrame = (safeStartMs * Math.max(fps, 1)) / 1000;
-  const frameInScene = frame - sceneStartFrame;
+  // Scene-local frame: frames elapsed since THIS scene began playing.
+  // Playback concatenates scenes by cumulative durationMs (see findSceneAtTime),
+  // so the local frame must come from the scene-relative `currentTime`, never
+  // from the absolute audio startMs.
+  const safeCurrentTime = Number.isFinite(currentTime) ? currentTime : 0;
+  const frameInScene = (safeCurrentTime * Math.max(fps, 1)) / 1000;
 
   // Get animation strategy for this diagram type
   const strategy = getAnimationStrategy(scene.type);
@@ -72,6 +84,7 @@ export const DiagramScene: React.FC<DiagramSceneProps> = ({ scene, sceneIndex, c
           node={node}
           delayFrames={config.delayFrames}
           durationFrames={config.durationFrames}
+          currentFrame={frameInScene}
         >
           <div
             style={{
@@ -120,6 +133,7 @@ export const DiagramScene: React.FC<DiagramSceneProps> = ({ scene, sceneIndex, c
           delayFrames={config.delayFrames}
           durationFrames={config.durationFrames}
           pathLength={pathLength}
+          currentFrame={frameInScene}
         />
       );
     });

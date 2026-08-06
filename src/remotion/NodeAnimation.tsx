@@ -17,6 +17,12 @@ interface NodeAnimationProps {
   delayFrames: number;
   /** Duration of the fade-in (in frames) */
   durationFrames: number;
+  /**
+   * Frame to animate against. When a parent scene passes its scene-local frame,
+   * entrance animations correctly restart at each scene boundary. Defaults to
+   * the composition's global frame for standalone use.
+   */
+  currentFrame?: number;
   children: React.ReactNode;
 }
 
@@ -72,10 +78,12 @@ export const NodeAnimation: React.FC<NodeAnimationProps> = ({
   node,
   delayFrames,
   durationFrames,
+  currentFrame,
   children,
 }) => {
-  const frame = useCurrentFrame();
+  const globalFrame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const frame = currentFrame ?? globalFrame;
 
   const opacity = calculateNodeOpacity(frame, delayFrames, fps, durationFrames);
   const scale = calculateNodeScale(frame, delayFrames, fps, durationFrames);

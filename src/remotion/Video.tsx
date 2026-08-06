@@ -170,7 +170,7 @@ export const SpeechToVisualsVideo: React.FC<VideoProps> = ({
             <DiagramScene
               scene={sceneInfo.scene}
               sceneIndex={sceneInfo.index}
-              currentTime={currentTimeMs}
+              currentTime={sceneInfo.timeInScene}
             />
           </div>
         ) : (

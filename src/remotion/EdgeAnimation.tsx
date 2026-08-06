@@ -21,6 +21,12 @@ interface EdgeAnimationProps {
   durationFrames: number;
   /** Total length of the edge path (for stroke-dasharray) */
   pathLength: number;
+  /**
+   * Frame to animate against. When a parent scene passes its scene-local frame,
+   * entrance animations correctly restart at each scene boundary. Defaults to
+   * the composition's global frame for standalone use.
+   */
+  currentFrame?: number;
 }
 
 /**
@@ -85,9 +91,11 @@ export const EdgeAnimation: React.FC<EdgeAnimationProps> = ({
   delayFrames,
   durationFrames,
   pathLength,
+  currentFrame,
 }) => {
-  const frame = useCurrentFrame();
+  const globalFrame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const frame = currentFrame ?? globalFrame;
 
   const progress = calculateEdgeProgress(frame, delayFrames, fps, durationFrames);
 

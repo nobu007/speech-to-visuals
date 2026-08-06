@@ -54,7 +54,7 @@ export const DiagramVideo: React.FC<DiagramVideoProps> = ({
           <DiagramScene
             scene={currentScene}
             sceneIndex={sceneIndex}
-            currentTime={currentTime}
+            currentTime={sceneInfo?.timeInScene ?? 0}
           />
         ) : (
           <AbsoluteFill
