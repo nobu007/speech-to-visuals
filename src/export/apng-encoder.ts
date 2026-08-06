@@ -145,12 +145,13 @@ export function encodeAPNG(
 
   const numPlays = options.numPlays ?? 0; // infinite loop by default
 
-  // Delay as a rational fraction (num/denom in milliseconds)
-  const delayMs = 1000 / (fps || 30);
-  // Express as numerator/denominator pair avoiding fractional ms
-  // e.g. 30fps → 1000/30 = 33.33ms → use 100/3 (33.33ms)
-  const delayNum = Math.round(delayMs * 100);
-  const delayDen = 100;
+  // Per the APNG spec (Mozilla APNG Specification), the fcTL frame delay is
+  // delay_num / delay_den in SECONDS. One frame period is 1/fps seconds, so we
+  // encode it exactly as the rational 1/fps. (A prior implementation treated the
+  // pair as milliseconds and wrote 3333/100 at 30fps, which decoders read as
+  // 33.33 SECONDS per frame — an animation ~1000x too slow.)
+  const delayNum = 1;
+  const delayDen = Math.min(0xffff, Math.max(1, Math.round(fps)));
 
   // Build chunk arrays
   const chunks: Uint8Array[] = [];

@@ -454,12 +454,14 @@ describe('APNG encoder (real encoding)', () => {
     const apng = encodeAPNG([makeFrame(2, 2, 128, 128, 128)], { fps });
     const chunks = parsePngChunks(apng);
     const fctl = chunks.find((c) => c.type === 'fcTL')!;
-    // delay_num at offset 20 (big-endian uint16), delay_den at offset 22
+    // APNG spec: delay = delay_num / delay_den in SECONDS. One frame = 1/fps s.
     const delayNum = (fctl.data[20] << 8) | fctl.data[21];
     const delayDen = (fctl.data[22] << 8) | fctl.data[23];
-    const delayMs = delayNum / delayDen;
-    const expectedMs = 1000 / fps;
-    expect(delayMs).toBeCloseTo(expectedMs, 1);
+    const delaySeconds = delayNum / delayDen;
+    const expectedSeconds = 1 / fps;
+    expect(delaySeconds).toBeCloseTo(expectedSeconds, 5);
+    // A single frame must be well under a second (guards the 1000x-too-slow bug).
+    expect(delaySeconds).toBeLessThan(1);
   });
 
   test('first frame uses IDAT, subsequent frames use fdAT', () => {

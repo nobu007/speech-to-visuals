@@ -210,8 +210,11 @@ describe('APNG Encoder — fcTL chunks', () => {
     expect(h).toBe(8);
   });
 
-  it('should encode delay as rational (num/denom)', () => {
-    // 30fps → delay = 1000/30 = 33.33ms → delayNum = round(33.33*100) = 3333, delayDen = 100
+  it('should encode delay as a rational of SECONDS (APNG spec), not milliseconds', () => {
+    // APNG spec: fcTL delay = delay_num / delay_den SECONDS (Mozilla APNG spec).
+    // At 30 fps the frame period is 1/30 s ≈ 0.0333 s, encoded as delayNum=1, delayDen=30.
+    // Regression guard: a previous implementation wrote 3333/100, which decoders read as
+    // 33.33 SECONDS per frame — an animation ~1000x too slow.
     const apng = encodeAPNG(
       [makeSolidFrame(1, 1, [0, 0, 0, 255])],
       { fps: 30 },
@@ -220,8 +223,32 @@ describe('APNG Encoder — fcTL chunks', () => {
     const fctl = chunks.find(c => c.type === 'fcTL');
     const delayNum = (fctl!.data[20] << 8) | fctl!.data[21];
     const delayDen = (fctl!.data[22] << 8) | fctl!.data[23];
-    expect(delayDen).toBe(100);
-    expect(delayNum).toBe(3333); // 33.33ms * 100
+
+    // Decoded delay in SECONDS must equal one frame period (1/fps), not ~33 s.
+    const delaySeconds = delayNum / delayDen;
+    expect(delaySeconds).toBeCloseTo(1 / 30, 5);
+    // Hard guard against the 1000x regression: a single frame must be < 1 second.
+    expect(delaySeconds).toBeLessThan(1);
+  });
+
+  it('should keep the decoded frame delay ≈ 1/fps across frame rates', () => {
+    for (const fps of [1, 10, 15, 24, 30, 60]) {
+      const apng = encodeAPNG(
+        [makeSolidFrame(1, 1, [0, 0, 0, 255])],
+        { fps },
+      );
+      const chunks = parsePngChunks(apng);
+      const fctl = chunks.find(c => c.type === 'fcTL')!;
+      const delayNum = (fctl.data[20] << 8) | fctl.data[21];
+      const delayDen = (fctl.data[22] << 8) | fctl.data[23];
+      // delay_num / delay_den (seconds) must reproduce the requested frame period.
+      expect(delayNum / delayDen).toBeCloseTo(1 / fps, 5);
+      // uint16 bounds for both fields.
+      expect(delayNum).toBeGreaterThanOrEqual(0);
+      expect(delayNum).toBeLessThanOrEqual(0xffff);
+      expect(delayDen).toBeGreaterThanOrEqual(1);
+      expect(delayDen).toBeLessThanOrEqual(0xffff);
+    }
   });
 
   it('should set dispose_op=NONE and blend_op=SOURCE', () => {
