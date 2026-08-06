@@ -13,7 +13,16 @@
 
 import { jest } from '@jest/globals';
 
-// ---------- Module mocks (hoisted) ----------
+// ---------- Module mocks ----------
+// IMPORTANT: this project runs Jest in ESM mode (--experimental-vm-modules),
+// where jest.mock() CANNOT intercept ESM imports. jest.unstable_mockModule is
+// required, and MainPipeline is loaded via dynamic import in beforeAll() so
+// the mocks register first. With jest.mock the REAL pipeline ran instead,
+// hitting a real ENOENT on test.wav whose recoverable classification made
+// retryWithBackoff sleep on real 500/1000/2000ms backoffs — the suite hung
+// past 200s and every test failed. The mocked generic Errors classify as
+// non-recoverable, so retryWithBackoff throws immediately (no sleeps) and the
+// suite finishes in seconds. (Same root cause as EdgeAnimation.test.tsx.)
 
 type MockFn = ReturnType<typeof jest.fn>;
 const mockTranscribe: MockFn = jest.fn();
@@ -24,14 +33,14 @@ const mockRecoverFromError: MockFn = jest.fn();
 const mockHandleIterationFailure: MockFn = jest.fn();
 const mockRecordStageFailure: MockFn = jest.fn();
 
-jest.mock('@/transcription', () => ({
+jest.unstable_mockModule('@/transcription', () => ({
   TranscriptionPipeline: jest.fn().mockImplementation(() => ({
     transcribe: mockTranscribe,
     nextIteration: jest.fn(),
   })),
 }));
 
-jest.mock('@/analysis', () => ({
+jest.unstable_mockModule('@/analysis', () => ({
   SceneSegmenter: jest.fn().mockImplementation(() => ({
     segment: mockSegment,
     nextIteration: jest.fn(),
@@ -42,43 +51,43 @@ jest.mock('@/analysis', () => ({
   })),
 }));
 
-jest.mock('@/visualization', () => ({
+jest.unstable_mockModule('@/visualization', () => ({
   LayoutEngine: jest.fn().mockImplementation(() => ({
     generateLayout: jest.fn(),
   })),
 }));
 
-jest.mock('@/quality', () => ({
+jest.unstable_mockModule('@/quality', () => ({
   qualityMonitor: {
     assessPipelineQuality: jest.fn().mockResolvedValue({ overallScore: 0.8 }),
     nextIteration: jest.fn(),
   },
 }));
 
-jest.mock('@/quality/enhanced-error-recovery', () => ({
+jest.unstable_mockModule('@/quality/enhanced-error-recovery', () => ({
   globalErrorRecovery: {
     executeWithLoadBalancing: mockExecuteWithLoadBalancing,
     recoverFromError: mockRecoverFromError,
   },
 }));
 
-jest.mock('@/performance/intelligent-cache', () => ({
+jest.unstable_mockModule('@/performance/intelligent-cache', () => ({
   globalCache: {
     get: jest.fn().mockResolvedValue(null),
     store: jest.fn().mockResolvedValue(undefined),
   },
 }));
 
-jest.mock('@/optimization/smart-parameter-tuner', () => ({
+jest.unstable_mockModule('@/optimization/smart-parameter-tuner', () => ({
   __esModule: true,
   default: jest.fn().mockImplementation(() => ({})),
 }));
 
-jest.mock('@/optimization/adaptive-content-processor', () => ({
+jest.unstable_mockModule('@/optimization/adaptive-content-processor', () => ({
   adaptiveContentProcessor: {},
 }));
 
-jest.mock('@/framework/recursive-custom-instructions', () => ({
+jest.unstable_mockModule('@/framework/recursive-custom-instructions', () => ({
   RecursiveCustomInstructionsFramework: jest.fn().mockImplementation(() => ({
     startCycle: jest.fn().mockResolvedValue(undefined),
     evaluateIteration: jest.fn().mockResolvedValue({
@@ -96,7 +105,7 @@ jest.mock('@/framework/recursive-custom-instructions', () => ({
   })),
 }));
 
-jest.mock('@/utils/iteration-logger', () => ({
+jest.unstable_mockModule('@/utils/iteration-logger', () => ({
   globalIterationLogger: {
     appendIteration: jest.fn().mockResolvedValue(undefined),
     calculateImprovementTrends: jest
@@ -105,12 +114,12 @@ jest.mock('@/utils/iteration-logger', () => ({
   },
 }));
 
-jest.mock('@/utils/memory-usage', () => ({
+jest.unstable_mockModule('@/utils/memory-usage', () => ({
   getHeapUsed: jest.fn().mockReturnValue(0),
   getMemoryUsage: jest.fn().mockReturnValue({ heapUsed: 0, heapTotal: 0 }),
 }));
 
-jest.mock('@/utils/logger', () => ({
+jest.unstable_mockModule('@/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

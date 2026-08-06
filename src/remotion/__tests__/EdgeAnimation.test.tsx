@@ -9,11 +9,19 @@ import * as React from 'react';
 import { LayoutEdge, PositionedNode } from '@/types/diagram';
 import { EDGE_DRAW_DURATION_FRAMES } from '../animation-strategies';
 
-// Mock remotion hooks
+// Mock remotion hooks - return controlled values via module-level variables.
+// IMPORTANT: this project runs Jest in ESM mode (--experimental-vm-modules),
+// where jest.mock() CANNOT intercept ESM imports. jest.unstable_mockModule is
+// required, and the module under test must be loaded via dynamic import AFTER
+// the mock is registered (cf. NodeAnimation.test.tsx and every other test in
+// this directory). With the old jest.mock('remotion', ...) the REAL remotion
+// stayed in place, so EdgeAnimation's useCurrentFrame() hit React.useContext
+// with no Remotion provider and threw "Cannot read properties of null" — the
+// 9 component-rendering failures this conversion fixes.
 let mockFrame = 0;
 let mockFps = 30;
 
-jest.mock('remotion', () => ({
+jest.unstable_mockModule('remotion', () => ({
   useCurrentFrame: () => mockFrame,
   useVideoConfig: () => ({ fps: mockFps, width: 1920, height: 1080 }),
   interpolate: (frame: number, inputRange: number[], outputRange: number[]) => {
@@ -24,13 +32,13 @@ jest.mock('remotion', () => ({
   },
 }));
 
-import {
+const {
   EdgeAnimation,
   calculateEdgeProgress,
   EDGE_DRAW_DURATION_SEC,
   calculatePathLength,
   generatePathD,
-} from '../EdgeAnimation';
+} = await import('../EdgeAnimation');
 
 // Helper factories
 function makeEdge(overrides: Partial<LayoutEdge> = {}): LayoutEdge {

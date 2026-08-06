@@ -63,6 +63,27 @@ const createConfig = (overrides: Partial<ExportConfiguration> = {}): ExportConfi
   ...overrides,
 });
 
+// Format magic bytes — mirror EnhancedExportEngine.simulateEncoding exactly.
+// The real encodeVideo always emits format-correct magic bytes, so an
+// encodeVideo spy MUST too: stage-5 verification (ExportVerifier) rejects the
+// export with "Invalid <FMT> magic byte ..." when the bytes are wrong/zero,
+// even though encoding itself succeeded. Without this the retry-succeeds tests
+// below fail at finalization rather than at the retry logic under test.
+const FORMAT_MAGIC: Record<string, { bytes: number[]; offset: number }> = {
+  mp4: { bytes: [0x66, 0x74, 0x79, 0x70], offset: 4 }, // "ftyp" at offset 4
+  webm: { bytes: [0x1A, 0x45, 0xDF, 0xA3], offset: 0 }, // EBML header
+  gif: { bytes: [0x47, 0x49, 0x46, 0x38, 0x39, 0x61], offset: 0 }, // "GIF89a"
+};
+
+/** Build a Uint8Array that passes ExportVerifier's magic-byte + min-size
+ * (100 bytes) checks for the given format. */
+function mockVideoData(format: 'mp4' | 'webm' | 'gif'): Uint8Array {
+  const data = new Uint8Array(128);
+  const header = FORMAT_MAGIC[format];
+  if (header) data.set(header.bytes, header.offset);
+  return data;
+}
+
 beforeEach(() => {
   jest.spyOn(console, 'log').mockImplementation(() => {});
   jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -86,7 +107,7 @@ describe('Retry → ExportMetricsCollector integration', () => {
       if (encodeAttempts === 1) {
         throw new Error('Encoding timeout');
       }
-      return { data: new Uint8Array(100), duration: 1, codec: 'h264', container: 'mp4' };
+      return { data: mockVideoData('mp4'), duration: 1, codec: 'h264', container: 'mp4' };
     });
 
     jest.useFakeTimers();
@@ -149,7 +170,8 @@ describe('Retry exhaustion → engine queue drain → next job', () => {
       if (callCount <= EXPORT_RETRY_LIMITS.MAX_RETRIES + 1) {
         throw new Error('Out of memory during encoding');
       }
-      return { data: new Uint8Array(100), duration: 1, codec: 'h264', container: 'mp4' };
+      // Second job is webm (promise2) → verification checks EBML magic.
+      return { data: mockVideoData('webm'), duration: 1, codec: 'vp9', container: 'webm' };
     });
 
     jest.useFakeTimers();
@@ -380,12 +402,12 @@ describe('Concurrent exports → metrics accuracy', () => {
         if (job2Attempts <= 1) {
           throw new Error('Out of memory during encoding');
         }
-        return { data: new Uint8Array(100), duration: 1, codec: 'vp9', container: 'webm' };
+        return { data: mockVideoData('webm'), duration: 1, codec: 'vp9', container: 'webm' };
       }
       if (job.config.format === 'gif') {
         throw new Error('Invalid format: unsupported codec');
       }
-      return { data: new Uint8Array(100), duration: 1, codec: 'h264', container: 'mp4' };
+      return { data: mockVideoData('mp4'), duration: 1, codec: 'h264', container: 'mp4' };
     });
 
     jest.useFakeTimers();
