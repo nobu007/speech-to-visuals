@@ -227,9 +227,12 @@ describe('VideoGenerator', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should handle scenes with different diagram types', async () => {
+    it('should handle scenes with different diagram types (all 11)', async () => {
       const gen = new VideoGenerator({ concurrency: 1 });
-      const types = ['flow', 'tree', 'timeline', 'matrix', 'cycle'] as const;
+      const types = [
+        'flow', 'flowchart', 'tree', 'timeline', 'matrix', 'cycle',
+        'comparison', 'network', 'conceptmap', 'mindmap', 'general',
+      ] as const;
       const scenes = types.map((type, i) => ({
         type,
         nodes: [{ id: `n-${i}`, label: `Node ${i}` }],

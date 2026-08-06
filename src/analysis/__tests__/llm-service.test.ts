@@ -105,8 +105,11 @@ describe('TASK-0017: LLMService parseResponse', () => {
       expect(result.summary).toBe('Alpha leads to Beta.');
     });
 
-    it('should parse all valid diagram types', () => {
-      const validTypes = ['flow', 'tree', 'timeline', 'matrix', 'cycle'];
+    it('should parse all valid diagram types (all 11)', () => {
+      const validTypes = [
+        'flow', 'flowchart', 'tree', 'timeline', 'matrix', 'cycle',
+        'comparison', 'network', 'conceptmap', 'mindmap', 'general',
+      ];
 
       for (const type of validTypes) {
         const rawResponse = JSON.stringify({

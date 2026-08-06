@@ -27,6 +27,7 @@ import { TokenUsageTracker, type ModelType, type StageType, type TokenUsageSumma
 import { calculateModelCost, estimateCost, type CostBreakdown, type CostEstimate } from './cost-estimator';
 import { BudgetAlertSystem, type BudgetAlert } from './budget-alert';
 import { CacheWarmupManager, type WarmupStats, type HitRateReport } from '@/optimization/cache-warmup';
+import { isDiagramType } from '@/types/diagram';
 
 /**
  * Phase 33: Streaming progress callback
@@ -891,12 +892,6 @@ export class LLMService {
 // TASK-0017: Response Parser (standalone export)
 // =========================================================================
 
-/** Valid diagram types for validation — full DiagramType union */
-const VALID_DIAGRAM_TYPES: readonly string[] = [
-  'flow', 'flowchart', 'tree', 'timeline', 'matrix', 'cycle',
-  'comparison', 'network', 'conceptmap', 'mindmap', 'general',
-] as const;
-
 /** Default AnalysisResult returned when parsing fails entirely */
 const DEFAULT_ANALYSIS_RESULT: AnalysisResult = {
   entities: [],
@@ -1008,8 +1003,8 @@ function extractDiagramType(parsed: Record<string, unknown>): AnalysisResult['di
   const type = typeof dt.type === 'string' ? dt.type : 'flow';
   const confidence = typeof dt.confidence === 'number' ? dt.confidence : 0.5;
 
-  // Validate diagram type
-  if (!(VALID_DIAGRAM_TYPES as readonly string[]).includes(type)) {
+  // Validate diagram type using shared type guard (eliminates duplicate type list)
+  if (!isDiagramType(type)) {
     return defaultDiagram;
   }
 

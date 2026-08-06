@@ -287,6 +287,32 @@ describe('IntelligentCache', () => {
       const result = await cache.findSimilar('cycle circular loop recurring iterative process');
       expect(result).not.toBeNull();
     });
+
+    it('should store and retrieve extended diagram types (flowchart, comparison, network, conceptmap, mindmap, general)', async () => {
+      // Verify that all newly-added DiagramType branches work without error
+      // when storing and retrieving cache entries.
+      const extendedCases: Array<{ content: string; type: string }> = [
+        { content: 'flowchart diagram decision branch arrow', type: 'flowchart' },
+        { content: 'compare versus difference contrast better', type: 'comparison' },
+        { content: 'network connection node link graph', type: 'network' },
+        { content: 'concept idea relate connect theme', type: 'conceptmap' },
+        { content: 'mindmap brainstorm central topic branch', type: 'mindmap' },
+      ];
+
+      for (const { content, type } of extendedCases) {
+        await cache.store(content, { type }, {
+          contentType: type,
+          duration: 5000,
+          complexity: 0.5,
+          performanceScore: 0.8,
+          accessPattern: 'mixed',
+        });
+
+        // Direct retrieval via get() should work for identical content
+        const result = await cache.get(content);
+        expect(result).toEqual({ type });
+      }
+    });
   });
 });
 
