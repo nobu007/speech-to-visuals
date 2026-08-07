@@ -138,6 +138,7 @@ export class AutoImprovementEngine {
    * Analyze current metrics and identify improvement opportunities
    */
   analyzeMetrics(metrics: QualityMetrics): {
+    overallScore: number;
     needsImprovement: boolean;
     issues: string[];
     recommendations: ImprovementStrategy[];
@@ -239,6 +240,12 @@ export class AutoImprovementEngine {
     const needsImprovement = issues.length > 0;
 
     return {
+      // Surface the already-computed 0-100 score so consumers (e.g.
+      // useFrameworkPipeline reading execution.qualityAnalysis.overallScore,
+      // and FrameworkDashboard's headline "総合品質スコア") see the real value
+      // instead of an absent field collapsing to 0. The score is computed by
+      // calculateQualityScore before this is called (see extractQualityMetrics).
+      overallScore: metrics.overallScore,
       needsImprovement,
       issues,
       recommendations: recommendations.sort((a, b) => b.expectedImprovement - a.expectedImprovement),

@@ -191,6 +191,23 @@ describe('AutoImprovementEngine', () => {
       expect(result.issues.some(i => i.includes('Overall quality score'))).toBe(true);
     });
 
+    // Regression: analyzeMetrics MUST echo the input overallScore in its result.
+    // The score is computed upstream (calculateQualityScore, 0-100) and passed in
+    // via metrics.overallScore. FrameworkIntegratedPipeline.execute() returns this
+    // analysis as `qualityAnalysis`, and useFrameworkPipeline reads
+    // `execution.qualityAnalysis.overallScore || 0`. Before the fix the field was
+    // absent, so the FrameworkDashboard headline "総合品質スコア / 100" was always 0
+    // even for a 95-point run. The value must surface dynamically (not be a
+    // constant) so two different inputs yield two different results.
+    it('should surface the computed overallScore in its result (consumer wiring)', () => {
+      const hi = engine.analyzeMetrics({ ...goodMetrics, overallScore: 92 });
+      const lo = engine.analyzeMetrics({ ...goodMetrics, overallScore: 41 });
+      expect(hi.overallScore).toBe(92);
+      expect(lo.overallScore).toBe(41);
+      // Positive + negative anchors: a high score reads back high, a low one low.
+      expect(hi.overallScore).not.toBe(lo.overallScore);
+    });
+
     it('should detect multiple issues simultaneously', () => {
       const result = engine.analyzeMetrics(badMetrics);
       expect(result.needsImprovement).toBe(true);
