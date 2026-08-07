@@ -283,4 +283,42 @@ describe('MultiFormatExporter', () => {
       expect(text).not.toContain('NaN');
     });
   });
+
+  describe('PNG export quality pass-through', () => {
+    // jsdom has no real 2D canvas context, so stub createCanvas (permissive
+    // no-op ctx via Proxy) and spy on canvasToBlob to observe the quality arg
+    // that exportPNG forwards to the encoder.
+    const makeStubbedExporter = () => {
+      const exp = new MultiFormatExporter();
+      const ctxStub = new Proxy(
+        {},
+        { get: () => () => {}, set: () => true },
+      ) as unknown as CanvasRenderingContext2D;
+      const canvasStub = { getContext: () => ctxStub } as unknown as HTMLCanvasElement;
+      jest.spyOn(exp as unknown as { createCanvas: () => HTMLCanvasElement }, 'createCanvas').mockReturnValue(canvasStub);
+      const blobSpy = jest
+        .spyOn(exp as unknown as { canvasToBlob: (c: HTMLCanvasElement, t: string, q: number) => Promise<Blob> }, 'canvasToBlob')
+        .mockResolvedValue(new Blob([], { type: 'image/png' }));
+      return { exp, canvasStub, blobSpy };
+    };
+
+    it('forwards an explicit quality of 0 to the encoder (regression: || collapsed 0 to 0.95)', async () => {
+      const { exp, canvasStub, blobSpy } = makeStubbedExporter();
+      await exp.export(makeScene({ id: 'png-q0' }), { format: 'png', quality: 0 });
+      // quality arg (3rd positional) must be exactly 0, not the 0.95 default.
+      expect(blobSpy).toHaveBeenCalledWith(canvasStub, 'image/png', 0);
+    });
+
+    it('uses the 0.95 default when quality is omitted', async () => {
+      const { exp, canvasStub, blobSpy } = makeStubbedExporter();
+      await exp.export(makeScene({ id: 'png-q-default' }), { format: 'png' });
+      expect(blobSpy).toHaveBeenCalledWith(canvasStub, 'image/png', 0.95);
+    });
+
+    it('forwards an explicit mid-range quality unchanged', async () => {
+      const { exp, canvasStub, blobSpy } = makeStubbedExporter();
+      await exp.export(makeScene({ id: 'png-q-mid' }), { format: 'png', quality: 0.5 });
+      expect(blobSpy).toHaveBeenCalledWith(canvasStub, 'image/png', 0.5);
+    });
+  });
 });

@@ -150,7 +150,9 @@ export class MultiFormatExporter {
   ): Promise<ExportResult> {
     const width = options.width || this.defaultWidth;
     const height = options.height || this.defaultHeight;
-    const quality = options.quality || 0.95;
+    // `??` not `||`: ExportOptions.quality is a 0-1 value, so a legitimate 0
+    // must pass through to the encoder rather than collapsing to the 0.95 default.
+    const quality = options.quality ?? 0.95;
 
     // Create canvas
     const canvas = this.createCanvas(width, height);
