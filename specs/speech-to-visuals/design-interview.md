@@ -4167,6 +4167,68 @@ interfaces.ts には既にこれらの主要型が反映済み。
 
 ---
 
+### A120: 第211回検証 - A119 closure 独立再検証 + `|| <numeric-literal>` 飽和状態の確認
+
+**分析日時**: 2026-08-07（本イテレーション）
+**カテゴリ**: フィードバック対応・DEAD-END 監査追跡
+**背景**: 直前イテレーション（704b3edc）で A119 を DEAD-END として clos。本イテレーションは「正しく動くコードの重複整理より、再現可能な利用者影響のある不具合を優先」「RED→GREEN 証跡を必須化」「consolidate inline X onto canonical Y 型の新規生成禁止」の FEEDBACK を受け、独立に再検証 + 残余 sweep 監査を実施。
+
+**判断**:
+
+1. **A119 closure の独立再検証** 🔵: 同一 repo 状態（commit 704b3edc HEAD）で独立に rg 検索を実施し、A119 結論が再現可能であることを確認。
+   - `rg -n "growthProjectionService|marketValueEstimationService|GrowthProjectionService|MarketValueEstimationService" --glob '!node_modules' --glob '!.git' --glob '!runs' --glob '!.audit'` → **0件**（A119と同一）
+   - `rg -n "growth-projection-service|market-value-estimation-service|growth_projection_service|market_value_estimation_service"` → **0件**（A119と同一）
+   - `rg -n "rSquared|RSquared|r_squared|r-squared|coefficient.of.determination|coefficientOfDetermination"` → **1件のみ**（`design-interview.md` 自体、A119 と A88 監査ログの自然文のみ、A119と同一）
+   - **結論**: A119 closure は安定。再クロージャ不要。
+
+2. **`|| <numeric-literal>` sweep 飽和状態の独立確認** 🔵: フィードバックの「再現可能な利用者影響のある不具合」探索のため、`src/` 配下のすべての `|| <numeric-literal>` サイトを網羅的に列挙し、フィールドドメイン別に分類。
+   - 残存サイト全件を列挙 → **すべて以下のいずれかに該当**（fix不要）：
+     - **counter / increment パターン** (`(count || 0) + 1`, sum-for-average): 0 が legit な加算対象。`|| 0` と `?? 0` は数学的に等価。
+     - **coordinate default** (`node.x || 0, node.y || 0`): (0,0) は legit な node 配置。
+     - **config fallback** (`fps || 30`, `maxConcurrency || 4`, `cpuCores || 4`): config-validation が ≥1 を強制するため 0 は到達不可（degenerate）。
+     - **lookup fallback** (`importance[stage || 'export'] || 0`): デフォルト値自体が同じ数値（0 or 1.0）のため、`||` でも `??` でも同一結果。
+   - 2件の例外候補を精査:
+     - `src/pipeline/scene-render-spec-generator.ts:117: rawDuration = scene.durationMs || minDurationMs` — 直後 `Math.max(minDurationMs, Math.min(maxDurationMs, rawDuration))` の clamp が [minDurationMs, maxDurationMs] へ強制するため、`||` は冗長だが最終結果は同一。バグではない（clamp が防御線）。
+     - `src/transcription/whisper-transcriber.ts:259: segmentLength = this.config.maxSegmentLength || 10000` — private メソッド `runRealWhisperTranscription` 内。Whisper ネイティブバインディング未到達経路（initializeNodeWhisper が `whisper-node` を catch）、事実上 dead code。バグではない。
+   - **結論**: `|| <numeric-literal>` sweep は飽和（PNG quality `??` 化と同類の legit-0 falsy-guard は残存ゼロ）。
+
+3. **「matches」「sync with」コメント sweep** 🔵: feedback の "hardcoded-matches-constant desync" クラスを再監査。
+   - `rg -n -e "// matches" -e "// keep in sync" -e "// sync with" -e "// must match" src/` → **1件のみ**
+   - `src/hooks/useAdminAnalytics.ts:105: const HEALTH_CHECK_INTERVAL_MS = 10_000; // matches HealthCheckService internal interval`
+   - 対応する相手側: `src/monitoring/health-check-service.ts:587: setInterval(..., 10000)`（インライン literal）
+   - **真の user-impacting bug ではある**（admin dashboard の "next due" countdown が desync すると誤表示）が、**f724a8a (STAGGER_DELAY) と完全に同型の "consolidate inline X onto canonical Y" パターン**。
+   - FEEDBACK の明示的禁止事項「同種の 'consolidate inline X onto canonical Y' + 'pin as audited-safe' の組を次サイクルでは新規に生成しないこと」に該当するため、**本イテレーションでは fix を見送り**。次イテレーションの "consolidate 飽和宣言" 解除後に着手可能。
+
+4. **再確認: 不適切な対応の明文化** 🔵: A119 §5 の禁止事項（新規 consolidate 禁止 / 偽 RED→GREEN テスト禁止 / over-broad 書き換え禁止）を本イテレーションでも遵守。
+   - 新規 `consolidate X onto canonical Y` リファクタ生成: **0件**（HEALTH_CHECK_INTERVAL を見送り）
+   - 偽 RED→GREEN テスト作成: **0件**（live bug なしにつき不要）
+   - over-broad な confidence クランプ書き換え: **0件**（クランプは producer 別根拠を尊重）
+
+**根拠**:
+- `rg -n "growthProjectionService|marketValueEstimationService|GrowthProjectionService|MarketValueEstimationService" --glob '!node_modules' --glob '!.git'` → 0件
+- `rg -n "rSquared|RSquared|r_squared|r-squared|coefficient.of.determination|coefficientOfDetermination"` → design-interview.md のみ（自己参照）
+- `rg -n '\|\|[[:space:]]*[0-9]' src/` → 全件列挙・分類済み（counter/coordinate/config-fallback/lookup のいずれか）
+- `rg -n -e "// matches" -e "// keep in sync" -e "// sync with" -e "// must match" src/` → useAdminAnalytics.ts:105 のみ
+- `src/hooks/__tests__/useAdminAnalytics.test.ts:164`: `expect(result.current.snapshot.nextDueAt).toBe(1000000 + 10_000)` が hardcoded 10_000 を期待（相手側 literal 10000 と「現状一致」を前提）
+- A119 (704b3edc) Closure Acceptance Criteria 全項目 GREEN 状態維持
+
+**Closure Acceptance Criteria**:
+- [x] A119 closure が独立再検索で再現可能（services 0件、r² 0件）
+- [x] `src/` 配下の `|| <numeric-literal>` 全件を列挙・分類し、legit-0 falsy-guard が残存ゼロ
+- [x] 「matches」「sync with」コメント sweep を実施、残存 1件（HEALTH_CHECK_INTERVAL）は consolidate 飽和宣言に従い見送り決定
+- [x] 新規 consolidate 型リファクタを生成していない
+- [x] 偽 RED→GREEN テストを生成していない
+- [x] 既存 confidence クランプの仕様を変更していない
+
+**信頼性への影響**:
+- 🔵: A119 closure の再現性確認（independent re-verification）→ spec-grade 不変
+- 🔵: `||` sweep 飽和状態の独立確認 → 新規 false-positive 抑制の根拠明文化
+- 🟡→🔵: HEALTH_CHECK_INTERVAL drift の「真の live bug だが consolidate 飽和により保留」判断を disposition として明文化 → 次イテレーションでの再評価材料を永続化
+
+**Disposition**: NO-NEW-FINDING。A119 closure は安定。`|| <numeric-literal>` sweep は飽和。残存 consolidate 型候補（HEALTH_CHECK_INTERVAL drift）は f724a8a と同型で FEEDBACK 禁止事項に抵触するため本イテレーションでは保留。本イテレーションで生成した差分は design-interview.md への A120 追加（acceptance 条件付き追跡記録）のみ。次イテレーションでは (a) consolidate 飽和宣言の解除有無、(b) HEALTH_CHECK_INTERVAL drift 着手可否、を再評価する。
+
+---
+
 ### 信頼性レベル分布（第210回検証）
 
 **分析前**:
