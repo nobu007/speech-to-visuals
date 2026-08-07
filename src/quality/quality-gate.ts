@@ -269,12 +269,32 @@ export class QualityGateEvaluator {
 // ---------------------------------------------------------------------------
 
 /**
+ * Overlap-detection margin for the zero-overlap gate criterion.
+ *
+ * MUST stay in sync with the layout engine's overlap predicate `nodesOverlap`
+ * (src/visualization/layout-utils.ts, default spacing 0). The producer's
+ * OverlapResolver resolves until `nodesOverlap` reports no overlaps, i.e. it
+ * guarantees strict zero-overlap (touching edges are NOT an overlap) — it does
+ * NOT enforce any breathing-room gap. If this gate used a positive margin, it
+ * would reject legitimately zero-overlap layouts the producer intentionally
+ * emits (e.g. two nodes left a few px apart by the resolver), producing false
+ * failures. Keeping the margin at 0 makes the gate's verdict agree with the
+ * producer's guarantee by construction.
+ *
+ * Pinned against drift by zero-overlap-cross-invariant-fuzz.test.ts, which
+ * asserts the gate and `nodesOverlap` always return the same verdict for the
+ * same nodes — including the 0–10 px danger zone where the two previously
+ * disagreed.
+ */
+const ZERO_OVERLAP_MARGIN = 0;
+
+/**
  * Helper: check if two axis-aligned rectangles overlap.
  */
 function rectsOverlap(
   a: { x: number; y: number; width?: number; w?: number; height?: number; h?: number },
   b: { x: number; y: number; width?: number; w?: number; height?: number; h?: number },
-  margin = 10
+  margin = ZERO_OVERLAP_MARGIN
 ): boolean {
   const aw = getNodeWidth(a), ah = getNodeHeight(a);
   const bw = getNodeWidth(b), bh = getNodeHeight(b);
