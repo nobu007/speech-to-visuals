@@ -12,6 +12,10 @@
  */
 
 import { logger } from '@/utils/logger';
+import { computePercentiles, type Percentiles } from '@/lib/metrics-utils';
+
+// Re-exported so the previously-local `Percentiles` type keeps its public path.
+export type { Percentiles };
 
 // ---------------------------------------------------------------------------
 // Types
@@ -36,12 +40,6 @@ export interface SlowRequest {
   statusCode: number;
   timestamp: number;
   correlationId: string;
-}
-
-export interface Percentiles {
-  p50: number;
-  p95: number;
-  p99: number;
 }
 
 export interface RouteMetricsSnapshot {
@@ -88,16 +86,6 @@ const DEFAULT_CONFIG: HttpMetricsConfig = {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function computePercentiles(sorted: number[]): Percentiles {
-  if (sorted.length === 0) return { p50: 0, p95: 0, p99: 0 };
-  const p = (rank: number) => sorted[Math.min(Math.floor(rank), sorted.length - 1)];
-  return {
-    p50: p(sorted.length * 0.5),
-    p95: p(sorted.length * 0.95),
-    p99: p(sorted.length * 0.99),
-  };
-}
 
 function routeKey(method: string, path: string): string {
   return `${method} ${path}`;
