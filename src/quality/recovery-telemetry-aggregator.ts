@@ -61,6 +61,10 @@ export interface TelemetrySnapshot {
   stages: StageRecoveryStats[];
   /** Active degradation alerts. */
   degradationAlerts: DegradationAlert[];
+  /** Recent stage-degradation events (bounded FIFO, ≤100). */
+  stageDegradedEvents: StageDegradedEvent[];
+  /** Recent cascade-detection events (bounded FIFO, ≤50). */
+  cascadeEvents: CascadeDetectedEvent[];
   /** Error type distribution. */
   errorTypeDistribution: ErrorTypeDistribution[];
   /** Whether success rate has degraded >10% vs. previous window. */
@@ -201,6 +205,8 @@ export class RecoveryTelemetryAggregator {
       p95RecoveryTimeMs,
       stages,
       degradationAlerts: [...this.activeAlerts],
+      stageDegradedEvents: [...this.stageDegradedEvents],
+      cascadeEvents: [...this.cascadeEvents],
       errorTypeDistribution,
       degraded,
     };

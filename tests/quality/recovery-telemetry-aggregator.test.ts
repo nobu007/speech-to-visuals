@@ -12,8 +12,11 @@
 import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 import {
   ErrorRecoveryEventBus,
+  errorRecoveryEventBus,
   type RecoverySuccessEvent,
   type RecoveryFailureEvent,
+  type StageDegradedEvent,
+  type CascadeDetectedEvent,
 } from '@/quality/error-recovery-event-bus';
 import { RecoveryTelemetryAggregator, type TelemetrySnapshot } from '@/quality/recovery-telemetry-aggregator';
 
@@ -48,6 +51,35 @@ describe('RecoveryTelemetryAggregator', () => {
       expect(snapshot.meanRecoveryTimeMs).toBe(0);
       expect(snapshot.stages).toEqual([]);
       expect(snapshot.degraded).toBe(false);
+      // REQ-292: stage-degradation and cascade events are accumulated with a
+      // bounded FIFO history but must also be surfaced — before the fix these
+      // fields were absent (undefined) because getSnapshot dropped them.
+      expect(snapshot.stageDegradedEvents).toEqual([]);
+      expect(snapshot.cascadeEvents).toEqual([]);
+    });
+
+    test('surfaces stage-degraded and cascade events accumulated from the bus (REQ-292)', () => {
+      const now = Date.now();
+      const degradedEvt: StageDegradedEvent = {
+        stage: 'analysis', score: 0.4, threshold: 0.7, trend: 'degrading', timestamp: now,
+      };
+      const cascadeEvt: CascadeDetectedEvent = {
+        triggerStage: 'rendering',
+        affectedStages: ['rendering', 'export'],
+        rootCause: 'out-of-memory',
+        frequency: 3,
+        timestamp: now + 50,
+      };
+
+      // The aggregator subscribes to the singleton bus on construction.
+      errorRecoveryEventBus.emit('stage:degraded', degradedEvt);
+      errorRecoveryEventBus.emit('cascade:detected', cascadeEvt);
+
+      const snapshot = aggregator.getSnapshot();
+      expect(snapshot.stageDegradedEvents).toHaveLength(1);
+      expect(snapshot.stageDegradedEvents[0]).toEqual(degradedEvt);
+      expect(snapshot.cascadeEvents).toHaveLength(1);
+      expect(snapshot.cascadeEvents[0]).toEqual(cascadeEvt);
     });
 
     test('captures success and failure events from event bus', () => {
