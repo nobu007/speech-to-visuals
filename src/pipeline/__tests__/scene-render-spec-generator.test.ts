@@ -17,6 +17,7 @@ import {
   type SceneRenderSpec,
 } from '../scene-render-spec-generator';
 import type { SceneGraph, DiagramType } from '@/types/diagram';
+import { STAGGER_DELAY, NODE_FADE_DURATION_FRAMES } from '@/remotion/animation-strategies';
 
 // ---------- Helpers ----------
 
@@ -211,6 +212,39 @@ describe('generateRenderPlan — content-ready frame', () => {
 
     // contentReadyFrame = 15 + 0 + 9 = 24
     expect(plan.scenes[0].contentReadyFrame).toBe(24);
+  });
+});
+
+describe('generateRenderPlan — contentReadyFrame tracks the animation engine constants', () => {
+  // Cross-invariant: the producer must compute contentReadyFrame from the SAME
+  // stagger/fade constants the animation engine (animation-strategies.ts) uses
+  // to actually fade nodes in. Previously these were hard-coded 5/9 literals
+  // with "matches" comments — a silent desync the moment either constant
+  // changed. These assertions read the constants from their source of truth, so
+  // they track the coupling (not a magic number) and fail only if the producer
+  // re-inlines a value that diverges from the animation engine.
+
+  it('each additional node delays content-ready by exactly the exported STAGGER_DELAY', () => {
+    const crf: number[] = [];
+    for (let n = 1; n <= 6; n++) {
+      const scene = makeScene({
+        nodes: Array.from({ length: n }, (_, i) => ({ id: `n${i}`, label: `Node ${i}` })),
+      });
+      const plan = generateRenderPlan([scene], { fps: 30, transitionFrames: 8 });
+      crf.push(plan.scenes[0].contentReadyFrame);
+    }
+    // crf[i] is for nodeCount = i+1. Each +1 node must add exactly STAGGER_DELAY
+    // frames (the linear index-based stagger the flow/timeline strategies use).
+    // durationMs defaults to 5000ms (150 frames) so none of these clamp.
+    for (let i = 1; i < crf.length; i++) {
+      expect(crf[i] - crf[i - 1]).toBe(STAGGER_DELAY);
+    }
+  });
+
+  it('a single-node scene is content-ready at transitionFrames + NODE_FADE_DURATION_FRAMES', () => {
+    const scene = makeScene({ nodes: [{ id: 'n0', label: 'Node 0' }] });
+    const spec = generateRenderPlan([scene], { fps: 30, transitionFrames: 8 }).scenes[0];
+    expect(spec.contentReadyFrame).toBe(spec.transitionFrames + NODE_FADE_DURATION_FRAMES);
   });
 });
 

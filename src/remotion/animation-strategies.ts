@@ -13,8 +13,15 @@ export const NODE_FADE_DURATION_FRAMES = 9;
 /** Edge drawing duration: 0.5s = 15 frames at 30fps */
 export const EDGE_DRAW_DURATION_FRAMES = 15;
 
-/** Stagger delay between animation groups (in frames) */
-const STAGGER_DELAY = 5;
+/**
+ * Stagger delay between animation groups (in frames).
+ *
+ * Exported so the render-plan producer (scene-render-spec-generator) can import
+ * the single source of truth for contentReadyFrame timing instead of
+ * re-hard-coding the value with a "matches" comment — which silently desyncs
+ * the moment this constant changes.
+ */
+export const STAGGER_DELAY = 5;
 
 /**
  * Configuration for a single node's animation

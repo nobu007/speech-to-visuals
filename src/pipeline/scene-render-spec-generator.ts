@@ -10,6 +10,7 @@
 import type { SceneGraph, DiagramType } from '@/types/diagram';
 import { safeArray } from '../lib/safe-array';
 import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
+import { STAGGER_DELAY, NODE_FADE_DURATION_FRAMES } from '@/remotion/animation-strategies';
 import { RenderingError } from './pipeline-errors';
 
 // ---------------------------------------------------------------------------
@@ -118,11 +119,17 @@ export function generateRenderPlan(
     const totalFrames = Math.round((durationMs / 1000) * fps);
 
     // Estimate when main content is fully visible:
-    // transition + (nodeCount * staggerDelay) + nodeFadeDuration
+    // transition + ((nodeCount-1) * staggerDelay) + nodeFadeDuration.
+    // Constants are imported from the animation engine that actually drives the
+    // fade-in (animation-strategies.ts), so this estimate tracks the real
+    // animation timing rather than re-hard-coding the values (the previous
+    // 5/9 literals with "matches" comments silently desynced on change). The
+    // (nodeCount-1)*STAGGER_DELAY term is exact for the flow/timeline
+    // strategies' linear index-based stagger and a reasonable upper bound
+    // elsewhere; the hard invariant is contentReadyFrame ≤ totalFrames below.
     const nodeCount = scene.nodes?.length ?? 0;
-    const staggerDelay = 5; // matches STAGGER_DELAY in animation-strategies.ts
-    const nodeFadeFrames = 9; // matches NODE_FADE_DURATION_FRAMES
-    const contentReadyFrame = transitionFrames + (nodeCount > 0 ? (nodeCount - 1) * staggerDelay : 0) + nodeFadeFrames;
+    const contentReadyFrame =
+      transitionFrames + (nodeCount > 0 ? (nodeCount - 1) * STAGGER_DELAY : 0) + NODE_FADE_DURATION_FRAMES;
 
     const spec: SceneRenderSpec = {
       sceneIndex: i,
