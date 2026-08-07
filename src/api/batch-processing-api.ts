@@ -388,10 +388,15 @@ export class BatchProcessingAPI {
     const successCount = results.filter((r) => r.success).length;
     const failureCount = results.filter((r) => !r.success).length;
 
-    // Calculate quality scores
+    // Calculate quality scores — prefer the qualityScore the pipeline already
+    // computed and surfaced on its result (canonical value). Only fall back to
+    // re-deriving when it is absent (older results / mocks). The previous
+    // unconditional recompute was a divergent copy of SimplePipeline's formula
+    // (falsy-guarded on processingTime), so the batch summary could silently
+    // disagree with the pipeline's own recorded metric. (REQ-299)
     const qualityScores = results
       .filter((r) => r.success && r.result)
-      .map((r) => this.calculateQualityScore(r.result!));
+      .map((r) => r.result!.qualityScore ?? this.calculateQualityScore(r.result!));
     const totalQualityScore = qualityScores.reduce((sum, score) => sum + score, 0);
     const averageQualityScore = qualityScores.length > 0 ? totalQualityScore / qualityScores.length : 0;
 

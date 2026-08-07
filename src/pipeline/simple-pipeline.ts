@@ -49,6 +49,11 @@ export interface SimplePipelineResult {
   videoUrl?: string;
   error?: string;
   processingTime?: number;
+  /** Pipeline quality score (0-100). Present on success; computed by
+   *  calculateQualityScore and surfaced here so downstream consumers (e.g.
+   *  BatchProcessingAPI's batch summary) read the canonical value instead of
+   *  re-deriving it from a divergent copy of the formula. */
+  qualityScore?: number;
   [key: string]: unknown;
 }
 
@@ -562,7 +567,15 @@ export class SimplePipeline {
         transcript,
         scenes,
         videoUrl,
-        processingTime
+        processingTime,
+        // Surface the computed qualityScore at the boundary. Previously this
+        // value was computed (line ~468) and consumed internally (qualityMonitor,
+        // continuousLearner, performanceHistory) but DROPPED from the result,
+        // forcing BatchProcessingAPI to re-derive it via a divergent copy of the
+        // formula (its recompute is falsy-guarded on processingTime, so the two
+        // disagree when processingTime is 0/missing). Delivering the canonical
+        // score removes the duplicate and its divergence hazard. (REQ-299)
+        qualityScore
       };
 
     } catch (error) {

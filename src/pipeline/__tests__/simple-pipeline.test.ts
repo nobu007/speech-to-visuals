@@ -645,4 +645,25 @@ describe('SimplePipeline', () => {
       expect(qualityScoreArg).toBeCloseTo(recorded!.confidenceScore as number, 5);
     });
   });
+
+  describe('qualityScore surfaced on success result (REQ-299)', () => {
+    // Regression: calculateQualityScore was computed (~line 468) and consumed
+    // internally (qualityMonitor, continuousLearner, performanceHistory,
+    // qualityMetrics) but DROPPED from the success return. The only external
+    // consumer (BatchProcessingAPI) re-derived it via a divergent copy of the
+    // formula (falsy-guarded on processingTime). The fix surfaces the canonical
+    // score at the boundary so consumers read it instead of re-deriving.
+    it('includes a finite 0-100 qualityScore on a successful result', async () => {
+      const result = await pipeline.process({
+        audioFile: createMockFile(),
+        options: { includeVideoGeneration: false },
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.qualityScore).toBeDefined();
+      expect(Number.isFinite(result.qualityScore)).toBe(true);
+      expect(result.qualityScore).toBeGreaterThanOrEqual(0);
+      expect(result.qualityScore).toBeLessThanOrEqual(100);
+    });
+  });
 });
