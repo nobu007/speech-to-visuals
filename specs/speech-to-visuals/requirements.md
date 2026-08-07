@@ -723,6 +723,10 @@
 
 - REQ-287: システムの図解構造抽出器（src/analysis/gemini-analyzer.ts）は、O(V+E) の DFS で検出した循環グラフ情報（`hasCycles`）を抽出品質の confidence に反映しなければならない。従来 `createEnhancedParser` は `hasCycles = this.detectCycles(validEdges, nodeIds)` を計算しながら、兄弟メトリクスである `edgeRatio`（スパース関係性ペナルティ）や `disconnectedNodes`（孤立ノードペナルティ）と異なり一度も消費せず、循環を含む非-'cycle' 図解でも confidence が初期値 0.9 のまま据え置かれていた。これは「producer-computes-but-DROPS」クラス（overallScore wiring d96dd6c6 / recommendations 型投影 5ece068f と同系）であり、JSDoc が「for quality assessment」と明記する意図に対する未配線であった。修正は循環を非-'cycle' タイプでのみ −0.1 ペナルティとし、'cycle' 型は最終ノード→先頭ノードの閉路が意図構造（diagram-content-generation の createCircularEdge）であるため免除する型 aware 設計とする（無条件ペナルティは cycle 型ダイアグラムへの誤罰 = 修正対象と同種の「correct output への誤ペナルティ」となるため）。confidence は recordMetrics（relationshipAccuracy）および戻り値に伝播する。実装とテストを同一コミットに co-locate 🔵 ✅実装済 *本コミット: src/analysis/gemini-analyzer.ts に `if (hasCycles && mappedType !== 'cycle') confidence -= 0.1;` 追加・src/analysis/__tests__/gemini-analyzer-comprehensive.test.ts の「should detect cycles」stale trap（`>=0.5` のみで base 0.9 常に green）を `<0.9` に修正 + cycle 型免除テスト追加・ガード検証: 修正前は RED（Received: 0.9）→ 修正後 GREEN（39/39）。全 analysis 691 テスト + 型チェック green*
 
+### レイアウト評価 overlap 閾値のプロデューサ一致（Phase 121） ✅実装済
+
+- REQ-288: システムのレイアウト品質評価器（src/visualization/strategies/LayoutEvaluator.ts）は、ノード重なり検出（detectAllOverlaps / countOverlaps）を *視覚的な実重なり*（gap < 0）で判定しなければならず、レイアウト生成のプロデューサ（src/visualization/strategies/OverlapResolver.ts）が保証する「gap ≥ 0」と同じ述語を用いなければならない。従来 detectAllOverlaps の既定バッファは `config.nodeSeparation`（LayoutEngine 既定 50）であり、`nodesOverlap(a,b,50)` は両軸とも gap < 50 のペアを「重なり」とした。しかしプロデューサは `getMinimumSeparationForType`（flow=30/tree=40/timeline=20/matrix=25/cycle=35）で中心距離を `separation + (w1+w2)/2` に分離し、`finalOverlapResolution` が `nodesOverlap(a,b,0)` が偽になるまで反復するため、最大目標 tree=40 でさえ < 50 となり、**解決済みの全合法ペア（gap 20-40px）が偽の重なりとして検出**されていた。これは `calculateLayoutConfidence` の no-overlap 上限（≈0.95）を −0.1/ペアの罰則床へ押し下げ、SceneGraph.confidence → simple-pipeline の layoutQuality/scene confidence（simple-pipeline.ts:286/330）→ video-generator.ts:312 の偽 "Low confidence" 警告へと伝播する「invariant-split」クラス（overlap margin バグ 6923806 / overlap-delegate c34f5f12 と同方向）。修正は checker 既定バッファを 0（実重なり）に変更しプロデューサ定義へ委譲する（明示的 `spacing` 引数は維持）。実装とテストを同一コミットに co-locate 🔵 ✅実装済 *本コミット: src/visualization/strategies/LayoutEvaluator.ts detectAllOverlaps の `spacing ?? this.config.nodeSeparation` → `spacing ?? 0`・tests/visualization/strategies/layout-evaluator.test.ts に production config（nodeSeparation:50）で 30px gap 合法ペアの overlapCount=0 + confidence ≥0.95、実重なりは検出維持、の RED→GREEN 検証を追加。ガード検証: 修正無効化で2テストが RED（overlapCount 1・confidence 0.8）→ 復元で GREEN（16/16）*
+
 ## 実装進捗サマリー
 
 | フェーズ | ステータス | タスク範囲 | 完了率 |
@@ -848,14 +852,15 @@
 | Phase 118: 品質モニタ diagram-type パリティ | ✅完了 | REQ-285 | 1/1（assessContentRelevance validTypes ハードコード → isDiagramType 委譇・flowchart 等6正典タイプの不当スコアペナルティ解消・11タイプ完全パリティテスト） |
 | Phase 119: 動画レンダリング fps 伝搬 | ✅完了 | REQ-286 | 1/1（VideoGenerator.options.fps → ActualVideoRenderer 境界での fps 破棄修正・composition.fps/durationInFrames 反映・frame↔duration 乖離解消・実装+テスト同一コミット co-locate） |
 | Phase 120: 解析器循環検出 confidence 反映 | ✅完了 | REQ-287 | 1/1（gemini-analyzer hasCycles producer-computes-but-DROPS 修正・非-cycle 型のみ −0.1 ペナルティ・cycle 型は免除・stale trap テスト修正 + cycle 型免除テスト・実装+テスト同一コミット co-locate） |
+| Phase 121: レイアウト評価 overlap 閾値のプロデューサ一致 | ✅完了 | REQ-288 | 1/1（LayoutEvaluator.detectAllOverlaps 既定バッファ nodeSeparation(50) → 0 実重なりに変更・OverlapResolver プロデューサ保証と一致・合法 gap 20-40px ペアの偽重なり検出解消・偽 Low confidence 警告解消・実装+テスト同一コミット co-locate） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 295件 (98.7%)
+- 🔵 青信号: 296件 (98.7%)
 - 🟡 黄信号: 4件 (1.3%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 115要件追加・REQ-001~273（テストスイート安定化: ESLint 0エラー・jest.mock ESM修正・validateAudioFile クラッシュ修正・CJKトークン化テスト・キリル文字混入修正） / Phase 116 追加・REQ-274~279（Record<UnionType,T>完全性強制・Prometheus export・SecurityMetrics TTL）/ Phase 117 追加・REQ-280~284（フレームワーク境界型安全性・Constant-desync 解消・recommendations overallScore wiring・HEALTH_CHECK single-source-of-truth・node-dimension default・async-resource-cleanup ESM）/ Phase 118 追加・REQ-285（品質モニタ assessContentRelevance の diagram-type ハードコード → isDiagramType 委譇・実装+テスト同一コミット co-locate）/ Phase 119 追加・REQ-286（動画レンダリング VideoGenerator.options.fps → ActualVideoRenderer 境界での fps 破棄修正・composition.fps/durationInFrames 反映・実装+テスト同一コミット co-locate）/ Phase 120 追加・REQ-287（解析器 gemini-analyzer の hasCycles producer-computes-but-DROPS 修正・非-cycle 型のみ循環ペナルティ・cycle 型免除・stale trap テスト修正 + cycle 型免除テスト・実装+テスト同一コミット co-locate）
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 115要件追加・REQ-001~273（テストスイート安定化: ESLint 0エラー・jest.mock ESM修正・validateAudioFile クラッシュ修正・CJKトークン化テスト・キリル文字混入修正） / Phase 116 追加・REQ-274~279（Record<UnionType,T>完全性強制・Prometheus export・SecurityMetrics TTL）/ Phase 117 追加・REQ-280~284（フレームワーク境界型安全性・Constant-desync 解消・recommendations overallScore wiring・HEALTH_CHECK single-source-of-truth・node-dimension default・async-resource-cleanup ESM）/ Phase 118 追加・REQ-285（品質モニタ assessContentRelevance の diagram-type ハードコード → isDiagramType 委譇・実装+テスト同一コミット co-locate）/ Phase 119 追加・REQ-286（動画レンダリング VideoGenerator.options.fps → ActualVideoRenderer 境界での fps 破棄修正・composition.fps/durationInFrames 反映・実装+テスト同一コミット co-locate）/ Phase 120 追加・REQ-287（解析器 gemini-analyzer の hasCycles producer-computes-but-DROPS 修正・非-cycle 型のみ循環ペナルティ・cycle 型免除・stale trap テスト修正 + cycle 型免除テスト・実装+テスト同一コミット co-locate）/ Phase 121 追加・REQ-288（レイアウト評価 LayoutEvaluator.detectAllOverlaps の overlap 既定バッファを nodeSeparation(50) → 0 実重なりに変更し OverlapResolver プロデューサ保証と一致・合法 gap 20-40px の偽重なり検出解消・実装+テスト同一コミット co-locate）
 
 ## Acceptance criteria
 
@@ -866,9 +871,9 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 119 を網羅し、Phase 115（テストスイート安定化・Lint完全修正・REQ-270~273）, Phase 116（Record<UnionType,T>完全性強制・Prometheus export・SecurityMetrics TTL・REQ-274~279）, Phase 117（フレームワーク境界型安全性・Constant-desync 解消・REQ-280~284）, Phase 118（品質モニタ diagram-type パリティ・REQ-285）, Phase 119（動画レンダリング fps 伝搬・REQ-286）, Phase 120（解析器循環検出 confidence 反映・REQ-287）を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 121 を網羅し、Phase 115（テストスイート安定化・Lint完全修正・REQ-270~273）, Phase 116（Record<UnionType,T>完全性強制・Prometheus export・SecurityMetrics TTL・REQ-274~279）, Phase 117（フレームワーク境界型安全性・Constant-desync 解消・REQ-280~284）, Phase 118（品質モニタ diagram-type パリティ・REQ-285）, Phase 119（動画レンダリング fps 伝搬・REQ-286）, Phase 120（解析器循環検出 confidence 反映・REQ-287）, Phase 121（レイアウト評価 overlap 閾値のプロデューサ一致・REQ-288）を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテキュリティに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（Phase 115要件追加・REQ-001~273 / Phase 116・REQ-274~279 / Phase 117・REQ-280~284 / Phase 118・REQ-285 / Phase 119・REQ-286 / Phase 120・REQ-287 を追加・🔵295件/🟡4件/🔴0件）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（Phase 115要件追加・REQ-001~273 / Phase 116・REQ-274~279 / Phase 117・REQ-280~284 / Phase 118・REQ-285 / Phase 119・REQ-286 / Phase 120・REQ-287 / Phase 121・REQ-288 を追加・🔵296件/🟡4件/🔴0件）
 
 
 <!-- spine:references:begin -->

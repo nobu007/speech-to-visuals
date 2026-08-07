@@ -128,6 +128,62 @@ describe('LayoutEvaluator', () => {
     });
   });
 
+  // Regression: LayoutEvaluator must judge ACTUAL overlaps (gap < 0), matching
+  // the OverlapResolver producer guarantee, not config.nodeSeparation (50).
+  // The producer resolves node pairs to a 20-40px gap (getMinimumSeparationForType),
+  // so a 50px buffer falsely flagged every legitimately-separated pair.
+  describe('overlap threshold matches producer (invariant-split)', () => {
+    // Production LayoutEngine default (layout-engine.ts getDefaultConfig).
+    const productionConfig = {
+      width: 1920,
+      height: 1080,
+      nodeWidth: 120,
+      nodeHeight: 60,
+      marginX: 50,
+      marginY: 50,
+      nodeSeparation: 50,
+    };
+    const productionEvaluator = new LayoutEvaluator(productionConfig);
+
+    it('does NOT flag a legitimately-separated pair (30px gap < nodeSeparation 50)', () => {
+      // node1 right edge x=220, node2 left edge x=250 → 30px gap (producer
+      // flow/matrix target, squarely < 50). Same y row → would be flagged
+      // by the old nodesOverlap(a,b,50) buffer.
+      const nodes: PositionedNode[] = [
+        { id: 'a', label: 'A', x: 100, y: 100, w: 120, h: 60, width: 120, height: 60 },
+        { id: 'b', label: 'B', x: 250, y: 100, w: 120, h: 60, width: 120, height: 60 },
+      ];
+      const metrics = productionEvaluator.calculateLayoutMetrics(nodes, []);
+      expect(metrics.overlapCount).toBe(0); // RED before fix (1), GREEN after (0)
+    });
+
+    it('STILL flags a real intersection (gap < 0)', () => {
+      const nodes: PositionedNode[] = [
+        { id: 'a', label: 'A', x: 100, y: 100, w: 120, h: 60, width: 120, height: 60 },
+        { id: 'b', label: 'B', x: 110, y: 110, w: 120, h: 60, width: 120, height: 60 },
+      ];
+      const metrics = productionEvaluator.calculateLayoutMetrics(nodes, []);
+      expect(metrics.overlapCount).toBeGreaterThan(0);
+    });
+
+    it('gives a legitimately-separated layout high confidence (>=0.95, not penalized)', () => {
+      const nodes: PositionedNode[] = [
+        { id: 'a', label: 'A', x: 100, y: 100, w: 120, h: 60, width: 120, height: 60 },
+        { id: 'b', label: 'B', x: 250, y: 100, w: 120, h: 60, width: 120, height: 60 },
+      ];
+      const edges: LayoutEdge[] = [
+        { from: 'a', to: 'b', points: [{ x: 220, y: 130 }, { x: 250, y: 130 }] },
+      ];
+      const confidence = productionEvaluator.calculateLayoutConfidence(
+        { nodes, edges },
+        100
+      );
+      // Before fix: overlapCount=1 → 0.8-0.1+0.05+0.05 = 0.8 (< 0.95, RED).
+      // After fix:  overlapCount=0 → 0.8+0.15+0.05+0.05 = 1.0 (>= 0.95, GREEN).
+      expect(confidence).toBeGreaterThanOrEqual(0.95);
+    });
+  });
+
   describe('evaluateLayout', () => {
     it('should evaluate a successful layout', async () => {
       const nodes = makePositionedNodes();

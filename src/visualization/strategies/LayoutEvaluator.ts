@@ -157,10 +157,23 @@ export class LayoutEvaluator {
   /**
    * Detect all overlapping node pairs
    * Custom Instructions: Zero overlap tolerance
+   *
+   * "Overlap" means a *visual* intersection (gap < 0). This must match the
+   * OverlapResolver producer guarantee: it resolves node pairs to gap >= 0
+   * (center distance = getMinimumSeparationForType + (w1+w2)/2, then a
+   * finalOverlapResolution pass iterates until `nodesOverlap(a,b,0)` is
+   * false). Using config.nodeSeparation (50) as the buffer here flagged
+   * every legitimately-separated pair (producer targets a 20-40px gap, and
+   * even the largest target, tree=40, is < 50) as a false overlap. That
+   * drove confidence from its no-overlap ceiling (~0.95) down toward the
+   * −0.1/pair penalty floor and raised false "Low confidence" warnings
+   * (video-generator.ts). Invariant-split fix: judge the same predicate the
+   * producer resolves against (mirror of overlap-margin fix 6923806 /
+   * overlap-delegate c34f5f12). An explicit `spacing` may still be passed.
    */
   protected detectAllOverlaps(nodes: PositionedNode[], spacing?: number): OverlapPair[] {
     const overlaps: OverlapPair[] = [];
-    const minSpacing = spacing ?? this.config.nodeSeparation;
+    const minSpacing = spacing ?? 0;
 
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
