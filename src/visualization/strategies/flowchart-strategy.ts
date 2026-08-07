@@ -11,10 +11,8 @@ const dagre = (dagreLib as unknown as { default?: typeof dagreLib }).default ?? 
 import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult, CanvasSize, StrategyLayoutMetrics } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
-import { getNodeWidth, getNodeHeight } from '../node-dimensions';
+import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 
-const DEFAULT_NODE_WIDTH = 120;
-const DEFAULT_NODE_HEIGHT = 60;
 const NODE_SEP = 50;
 const RANK_SEP = 70;
 const DEFAULT_CANVAS_WIDTH = 1920;

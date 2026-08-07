@@ -5,12 +5,12 @@ import { getNodeWidth, getNodeHeight } from '../../node-dimensions';
 
 /** Get effective node width (handles both `w` and `width` properties, consistent with other layout modules) */
 function effWidth(node: PositionedNode): number {
-  return getNodeWidth(node, 120);
+  return getNodeWidth(node);
 }
 
 /** Get effective node height (handles both `h` and `height` properties, consistent with other layout modules) */
 function effHeight(node: PositionedNode): number {
-  return getNodeHeight(node, 60);
+  return getNodeHeight(node);
 }
 
 interface AnnealingNode extends PositionedNode {

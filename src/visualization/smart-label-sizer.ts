@@ -129,8 +129,8 @@ export function sizeAllLabels(
   const results = new Map<string, LabelSizingResult>();
 
   for (const node of nodes) {
-    const w = getNodeWidth(node, 120);
-    const h = getNodeHeight(node, 60);
+    const w = getNodeWidth(node);
+    const h = getNodeHeight(node);
     results.set(node.id, sizeLabel(node.label, w, h, config));
   }
 

@@ -9,10 +9,8 @@
 import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
-import { getNodeWidth, getNodeHeight } from '../node-dimensions';
+import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 
-const DEFAULT_NODE_WIDTH = 120;
-const DEFAULT_NODE_HEIGHT = 60;
 const NODE_VERTICAL_SEP = 70;
 const COLUMN_GAP = 300;
 const DEFAULT_CANVAS_WIDTH = 1920;

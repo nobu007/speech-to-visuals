@@ -280,10 +280,10 @@ export class MultiFormatExporter {
       const toNode = nodes.find((n) => n.id === edge.to);
 
       if (fromNode && toNode) {
-        const fw = getNodeWidth(fromNode, 120);
-        const fh = getNodeHeight(fromNode, 60);
-        const tw = getNodeWidth(toNode, 120);
-        const th = getNodeHeight(toNode, 60);
+        const fw = getNodeWidth(fromNode);
+        const fh = getNodeHeight(fromNode);
+        const tw = getNodeWidth(toNode);
+        const th = getNodeHeight(toNode);
         const fx = (fromNode.x || 0) + fw / 2;
         const fy = (fromNode.y || 0) + fh / 2;
         const tx = (toNode.x || 0) + tw / 2;
@@ -303,8 +303,8 @@ export class MultiFormatExporter {
     for (const node of nodes) {
       const x = node.x || 0;
       const y = node.y || 0;
-      const w = getNodeWidth(node, 120);
-      const h = getNodeHeight(node, 60);
+      const w = getNodeWidth(node);
+      const h = getNodeHeight(node);
 
       svg += `    <g id="${escapeXml(node.id)}">
       <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#4A90E2" stroke="#2E5C8A" stroke-width="2" rx="5"/>
@@ -361,10 +361,10 @@ export class MultiFormatExporter {
       const toNode = nodes.find((n) => n.id === edge.to);
 
       if (fromNode && toNode) {
-        const fw = getNodeWidth(fromNode, 120);
-        const fh = getNodeHeight(fromNode, 60);
-        const tw = getNodeWidth(toNode, 120);
-        const th = getNodeHeight(toNode, 60);
+        const fw = getNodeWidth(fromNode);
+        const fh = getNodeHeight(fromNode);
+        const tw = getNodeWidth(toNode);
+        const th = getNodeHeight(toNode);
         const fx = (fromNode.x || 0) + fw / 2;
         const fy = (fromNode.y || 0) + fh / 2;
         const tx = (toNode.x || 0) + tw / 2;
@@ -389,8 +389,8 @@ export class MultiFormatExporter {
     for (const node of nodes) {
       const x = node.x || 0;
       const y = node.y || 0;
-      const w = getNodeWidth(node, 120);
-      const h = getNodeHeight(node, 60);
+      const w = getNodeWidth(node);
+      const h = getNodeHeight(node);
 
       // Node rectangle
       ctx.fillStyle = '#4A90E2';
@@ -480,8 +480,8 @@ export class MultiFormatExporter {
     for (const node of nodes) {
       const x = node.x || 0;
       const y = node.y || 0;
-      const w = getNodeWidth(node, 120);
-      const h = getNodeHeight(node, 60);
+      const w = getNodeWidth(node);
+      const h = getNodeHeight(node);
       // PDF rect: lower-left corner
       const rx = x - w / 2;
       const ry = pageHeight - y - h / 2;

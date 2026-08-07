@@ -364,8 +364,8 @@ export class LayoutAutoOptimizer {
       label: n.label,
       type: n.type,
       meta: n.meta,
-      width: getNodeWidth(n, 120),
-      height: getNodeHeight(n, 60),
+      width: getNodeWidth(n),
+      height: getNodeHeight(n),
     }));
 
     const edgeData: EdgeDatum[] = originalEdges.map(e => ({
@@ -419,8 +419,8 @@ export class LayoutAutoOptimizer {
     cy /= nodes.length;
 
     return nodes.map(n => {
-      const w = getNodeWidth(n, 120);
-      const h = getNodeHeight(n, 60);
+      const w = getNodeWidth(n);
+      const h = getNodeHeight(n);
       const ncx = n.x + w / 2;
       const ncy = n.y + h / 2;
 
