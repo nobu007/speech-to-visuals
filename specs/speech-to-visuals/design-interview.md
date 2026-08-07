@@ -4302,6 +4302,55 @@ interfaces.ts には既にこれらの主要型が反映済み。
 
 ---
 
+### A122: 第213回検証 — 「ローカライズ」再表現ファントムの最小クロージャ + A121 保留 HEALTH_CHECK_INTERVAL drift の着手（2026-08-07）
+
+**背景**: 直前イテレーション（A121, commit f714dc33）で r² デッドエンドの第3ラウンド再検証を行い、A119 closure の安定性を永続化した。本イテレーションの FEEDBACK は、(1) A119 デッドエンドの再検証停止を明示的に指示しつつ、(2) 同一の不存在サービス群（engagement/growth report）を**「ローカライズ」**という新表現で再投下し、(3) 「1フィールド修正ではなく全出力フィールドと兄弟サービスを1スイープで監査し、バグクラス全体を一括で閉じる」系統的アプローチを要求した。本イテレーションは (a) ローカライズ表現が新規証拠として有効かを**単一スイープ**で確認（A119 r² の再検証ではない）、(b) FEEDBACK の方針転換（系統的スイープ奨励 = 旧「consolidate 禁止」方針の解除）により A121 が次イテレーションに保留した `HEALTH_CHECK_INTERVAL` drift を着手し、(c) 実在バグクラスの探索スイープを実施する。
+
+**分析項目と判断**:
+
+1. **「ローカライズ」表現の新規性確認（A119 r² の再検証ではない）** 🔵: FEEDBACK は「export のローカライズ修正は系統的ギャップの兆候」とし、engagement/growth レポートの全出力フィールドのローカライズを要求。A119/A120/A121 が対象としたのは **r²（統計的決定係数）計算**であり、「ローカライズ/i18n」は新規の表現軸。したがって本項は新規証拠の確認であり、FEEDBACK #1「デッドエンドを再検証するな」には抵触しない。
+   - **単一スイープ結果**（Explore エージェント very-thorough）: 
+     - i18n 基盤（`i18n`, `Intl.NumberFormat/DateTimeFormat`, `formatMessage`, `gettext`, translation map, `locales/`/`i18n/` ディレクトリ）→ **src/ 全体で 0 件**。唯一の locale-sensitive 出力は `src/utils/guards.ts:74` の `safeToLocaleString`（`toLocaleString()` の null-safety ラッパー、locale 選択なし）。即ち**ローカライズ対象となる基盤自体が存在しない**。
+     - engagement/growth レポート生成モジュール（`engagementReport`, `growthReport`, `marketValueReport`, および `growthProjectionService`/`marketValueEstimationService`/`growthReportExportService`/`engagementReportService`/`useAnalyticsExport` の camel/kebab/snake/PascalCase）→ **0 件**（A119-A121 と同一結論。services 不在の再検証は**既存 closure を引用し本項では再実施しない**＝FEEDBACK #1 遵守）。
+     - `r2-clamp-policy.md`（FEEDBACK #4 のアンカー元）→ **0 件**（`.audit/` ディレクトリ自体も不在）。file:line アンカー `marketValueEstimationService.ts:125`/`growthProjectionService.ts:106` は**存在しないファイル**を指すファントム。
+   - **判断**: 「ローカライズ」表現も r² 表現も同一ファントム（interview-record.md:187 既記録「別コードベースとの混同」）に帰着。**DEAD-END（再クロージャ不要、本エントリで新表現軸を永久記録）**。
+
+2. **A121 保留 HEALTH_CHECK_INTERVAL drift の着手** 🔵: A121 §2/Disposition が `HEALTH_CHECK_INTERVAL_MS`（`useAdminAnalytics.ts:105` = `10_000` + "// matches HealthCheckService internal interval" コメント ↔ `health-check-service.ts:587` = `10000` リテラル）を「次イテレーションで着手可否を再評価」と保留した。保留理由は当時の FEEDBACK「consolidate 型新規生成禁止」。**本イテレーションの FEEDBACK は逆に系統的スイープ（バグクラス一括クローズ）を要求**しており、方針転換により保留理由が消滅。これは f724a8a（STAGGER_DELAY import）と同一の「`matches X` コメント + 独立リテラル」desync クラス。
+   - **実施**: `health-check-service.ts` が `export const HEALTH_CHECK_INTERVAL_MS = 10_000` を定義し `setInterval` 引数に使用。`useAdminAnalytics.ts` は import して `nextDueAt = lastCheckedAt + HEALTH_CHECK_INTERVAL_MS` を計算（ローカル定義と "matches" コメント削除）。producer/consumer 間の単一真実源化。
+   - **証跡**: desync は latent（両リテラルが現状一致）のため behavioral RED は不可能（A121 §3 の RED→GREEN 不可能性と同根）。代わりに**構造的 coupling guard** `src/hooks/__tests__/health-check-interval-coupling.test.ts`（6 アンカー: export 存在・setInterval の定数使用・consumer import・ローカル再定義禁止・"matches" コメント不存在・runtime 有限性）を追加。`git stash` で旧ソースに戻して実行 → **RED**（`does not provide an export named 'HEALTH_CHECK_INTERVAL_MS'` でロード失敗）。復元後 → **GREEN**（coupling 6件 + useAdminAnalytics 既存 12件 = 18/18 PASS）。`tsc -p tsconfig.app.json --noEmit` → exit 0。
+   - **影響**: `nextDueAt`（ダッシュボードの「次回チェック予定時刻」）がサービス実更新間隔と乖離する潜在バグを、単一真実源化で根絶。値は不変（10_000）なので現行挙動は同一、drift 防止。
+
+3. **実在バグクラス探索スイープ（FEEDBACK「バグクラス全体を一括で閉じる」の実地適用）** 🟡: 別途 Explore エージェント（very-thorough）で falsy-zero / unit / min-max fade / 定数 desync を探索。主な候補と disposition:
+   - **Finding 1（FrameworkDashboard 品質スコア常時0）**: producer（`framework-integrated-pipeline.ts`）は `qualityMetrics.overallScore` を計算するが `execute()` 戻り値に含めず、consumer（`useFrameworkPipeline.ts`）はスコアなしの `qualityAnalysis` から読む → 常時0。**ただし** hook が期待する `breakdown.{performance,accuracy,stability}` を生成する producer が**どこにも存在しない**（pipeline の QualityMetrics 型は平坦な指標のみ）。完全修正には breakdown 導出公式のプロダクト決定が必要＝機能追加。**DEFER（実在するが機能ギャップ、minimal bug-fix スコープ外）**。
+   - **ProductionDashboard 閾値 `parseInt/parseFloat(x) || default` クラスタ（7件）**: MEMORY 原則「0=退化/有害なら `\|\|` 維持、0=正当なら修正」を各フィールドに適用 → maxConcurrentJobs/memoryLimit/timeoutMs/metricsCollectionInterval/responseTime/memoryUsage の **6件は 0 が退化**（何も実行しない/常時発火）で `\|\|` **正解**。errorRate（0=厳格監視「エラー即検知」で正当）のみ修正候補だが low-severity かつ判断割れ。**MEMORY「`\|\|` sweep 飽和、以降は false-positive のみ」と整合 → スイープ中止**（誤って正しい `\|\|` を破壊するリンクを回避）。
+   - **Finding 2（EnhancedVideoPreview unmute `volume || 0.5`）**: volume=0（=ミュート状態）から unmute 時に 0.5 に復元するのは「ミュート解除→音声」の妥当な UX。エージェントの修正案（`volume` そのまま）は「unmute で無音」を生む誤り。**NOT-A-BUG（意図的UX）**。
+   - **min/max fade 逆転クラス**: 残存欠陥なし（Video.tsx:158 `min(fadeIn,fadeOut)` は正、overlay 系は既に `max` 修正済み）。
+
+**根拠**:
+- 単一ローカライズスイープ（Explore very-thorough）: i18n 基盤 0件 / engagement-growth レポート 0件 / `r2-clamp-policy.md` 0件 / `.audit/` ディレクトリ不在
+- A119 (704b3edc) / A120 (2cdf0866) / A121 (f714dc33) closure（services 不在・r² 不在）→ 引用のみ、再検索せず（FEEDBACK #1 遵守）
+- `specs/speech-to-visuals/interview-record.md:187`（「engagement/growth 系サービスは別コードベースとの混同」既記録）
+- HEALTH_CHECK_INTERVAL 修正: `src/monitoring/health-check-service.ts`（export + setInterval）/ `src/hooks/useAdminAnalytics.ts`（import）/ `src/hooks/__tests__/health-check-interval-coupling.test.ts`（構造的 guard）/ `src/hooks/__tests__/useAdminAnalytics.test.ts`（ESM モック factory に export 追加）
+- `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs src/hooks/__tests__/health-check-interval-coupling.test.ts src/hooks/__tests__/useAdminAnalytics.test.ts` → **18/18 PASS**
+- `npx -p typescript tsc -p tsconfig.app.json --noEmit` → exit 0
+
+**Closure Acceptance Criteria**:
+- [x] 「ローカライズ」新表現軸を単一スイープで確認（i18n 基盤 0件）し、A119-A121 r² closure は再検証せず（FEEDBACK #1 遵守）
+- [x] `r2-clamp-policy.md` および参照先サービスファイルが存在しないことを確認（FEEDBACK #4 アンカー = ファントム）
+- [x] A121 保留の HEALTH_CHECK_INTERVAL drift を着手（FEEDBACK 方針転換による保留解除）し、構造的 RED→GREEN 証跡を添付
+- [x] 実在バグクラス探索を実施し、Finding 1（機能ギャップ DEFER）・閾値クラスタ（6/7 正しい `\|\|`）・Finding 2（意図的UX）の disposition を記録
+- [x] 偽 r²/engagement/growth サービス捏造をしていない（FACTORY禁止遵守）
+- [x] 偽 RED→GREEN テストを生成していない（latent desync には構造的 guard を使用、A121 §3 根拠）
+
+**信頼性への影響**:
+- 🔵: 「ローカライズ」表現軸でもファントム確定 → 表現を変えた再投下に対する永久クロージャ根拠
+- 🔵: HEALTH_CHECK_INTERVAL drift 根絶（producer/consumer 単一真実源化 + 構造的 coupling guard）→ A121 保留項目の解消
+- 🟡: Finding 1（品質スコア breakdown）を実在するが機能ギャップとして DEFER 記録 → 将来のプロダクト決定待ち
+
+**Disposition**: PHANTOM-RECONFIRMATION + ONE-REAL-FIX。FEEDBACK #2（ローカライズスイープ）と #4（r2-clamp-policy.md アンカー検証）は、いずれも本リポジトリに存在しないサービス/ファイルを対象とするファントム（A119-A121 + interview-record.md:187 と同一結論、「ローカライズ」は新表現軸のみ追記）。FEEDBACK #1（デッドエンド再検証禁止）に従い r² services 不在の再検索は行わず、新規の「ローカライズ/i18n 基盤不在」単一スイープのみ実施。実差分として、FEEDBACK の方針転換（系統的スイープ奨励）により A121 が保留していた HEALTH_CHECK_INTERVAL drift を着手・証跡化（`src/` 3ファイル + テスト1ファイル新規）。コミットは実装と本 disposition を意味的に対応する2コミット（fix + docs）に分割し、孤立掃き出しコミットを生成しない（FEEDBACK #3 遵守）。
+
+---
+
 ### 信頼性レベル分布（第212回検証）
 
 **分析前**:
