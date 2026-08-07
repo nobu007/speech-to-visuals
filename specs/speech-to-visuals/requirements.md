@@ -711,6 +711,10 @@
 - REQ-283: システムのレイアウト計算（getNodeWidth/getNodeHeight）は `DEFAULT_NODE_WIDTH`/`DEFAULT_NODE_HEIGHT` デフォルトパラメータを単一ソースとし、呼び出し側の `120`/`60` リテラル渡しを排除しなければならない 🔵 ✅実装済 *コミット 5bfeb709: 22呼び出しサイト（layout-auto-optimizer 4 / smart-label-sizer 2 / SimulatedAnnealing 2 / multi-format-exporter 14）から冗長引数を削除・node-dimension-default-coupling.test.ts で構造結合ガード*
 - REQ-284: async-resource-cleanup 等の ESM テストモック環境では、`jest.doMock('crypto')` のようなモジュール単位モックが no-op となる制約に対し、決定的な実入力（同一 ArrayBuffer 共有）によってコンポーネントのリアルパス（computeFileHash content-hash 分岐）をトリガーし、テストの意図した不変条件を検証しなければならない 🔵 ✅実装済 *コミット 28fc8476: StubFile に同一 ArrayBuffer を持たせて content-hash 分岐で衝突*
 
+### 品質モニタ diagram-type パリティ（Phase 118） ✅実装済
+
+- REQ-285: システムの品質モニタ（src/quality/quality-monitor.ts）のコンテンツ妥当性スコアリング（assessContentRelevance）は、有効な図解タイプ判定をハードコードされた5種リスト（flow/tree/timeline/matrix/cycle）ではなく、正典ガード `isDiagramType`（src/types/diagram.ts・11種 DiagramType 単一ソース）に委譲しなければならない。LLM 分析器（content-analyzer.ts / prompt-templates.ts）が主要タイプとして 'flowchart'（'flow' ではなく）を排出し、ルールベース検出が mindmap/comparison 等を排出するため、ハードコードリストは flowchart/comparison/network/conceptmap/mindmap/general の6正典タイプを見逃し、それらのシーンが accuracyScore/overallScore で不当なペナルティ（同一シーンで約0.036点低下・checkDeploymentReadiness ≥0.7 帯への影響）を受けていた。'flow' vs 'flowchart' 名前空間バグ（f178cbf）と同クラス、overlap margin バグ（6923806）と同「correct output への誤ペナルティ」系。実装とテストを同一コミットに co-locate 🔵 ✅実装済 *本コミット: src/quality/quality-monitor.ts validTypes ハードコード → isDiagramType 委譇・src/quality/__tests__/quality-monitor-diagram-type-parity.test.ts で11タイプ完全パリティ + 非正典タイプ拒否の RED→GREEN 検証（flowchart 0.836→0.872 修正確認）*
+
 ## 実装進捗サマリー
 
 | フェーズ | ステータス | タスク範囲 | 完了率 |
@@ -833,14 +837,15 @@
 | Phase 115: テストスイート安定化・Lint完全修正 | ✅完了 | REQ-270~273 | 4/4（ESLint 234エラー→0解消・jest.mock ESM修正・validateAudioFile クラッシュ修正・CJKトークン化テスト追加・キリル文字混入修正） |
 | Phase 116: Record<UnionType,T>完全性強制・Prometheus export・SecurityMetrics TTL | ✅完了 | REQ-274~279 | 6/6（Record<DiagramType, T> 完全性・Record<ErrorType, T> 完全性・ruleBasedDetection 11種完全対応・Prometheus export・SecurityMetrics TTL・バリデータ深度設定） |
 | Phase 117: フレームワーク境界型安全性・Constant-desync 解消 | ✅完了 | REQ-280~284 | 5/5（recommendations quality 型投影・overallScore wiring 修正・HEALTH_CHECK single-source-of-truth・node-dimension default fallback 単一化・async-resource-cleanup ESM決定化） |
+| Phase 118: 品質モニタ diagram-type パリティ | ✅完了 | REQ-285 | 1/1（assessContentRelevance validTypes ハードコード → isDiagramType 委譇・flowchart 等6正典タイプの不当スコアペナルティ解消・11タイプ完全パリティテスト） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 292件 (98.6%)
-- 🟡 黄信号: 4件 (1.4%) — NFR-203, REQ-303, EDGE-103
+- 🔵 青信号: 293件 (98.7%)
+- 🟡 黄信号: 4件 (1.3%) — NFR-203, REQ-303, EDGE-103
 - 🔴 赤信号: 0件 (0%)
 
-**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 115要件追加・REQ-001~273（テストスイート安定化: ESLint 0エラー・jest.mock ESM修正・validateAudioFile クラッシュ修正・CJKトークン化テスト・キリル文字混入修正） / Phase 116 追加・REQ-274~279（Record<UnionType,T>完全性強制・Prometheus export・SecurityMetrics TTL）/ Phase 117 追加・REQ-280~284（フレームワーク境界型安全性・Constant-desync 解消・recommendations overallScore wiring・HEALTH_CHECK single-source-of-truth・node-dimension default・async-resource-cleanup ESM）
+**品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 115要件追加・REQ-001~273（テストスイート安定化: ESLint 0エラー・jest.mock ESM修正・validateAudioFile クラッシュ修正・CJKトークン化テスト・キリル文字混入修正） / Phase 116 追加・REQ-274~279（Record<UnionType,T>完全性強制・Prometheus export・SecurityMetrics TTL）/ Phase 117 追加・REQ-280~284（フレームワーク境界型安全性・Constant-desync 解消・recommendations overallScore wiring・HEALTH_CHECK single-source-of-truth・node-dimension default・async-resource-cleanup ESM）/ Phase 118 追加・REQ-285（品質モニタ assessContentRelevance の diagram-type ハードコード → isDiagramType 委譇・実装+テスト同一コミット co-locate）
 
 ## Acceptance criteria
 
@@ -851,9 +856,9 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 117 を網羅し、Phase 115（テストスイート安定化・Lint完全修正・REQ-270~273）, Phase 116（Record<UnionType,T>完全性強制・Prometheus export・SecurityMetrics TTL・REQ-274~279）, Phase 117（フレームワーク境界型安全性・Constant-desync 解消・REQ-280~284）を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 118 を網羅し、Phase 115（テストスイート安定化・Lint完全修正・REQ-270~273）, Phase 116（Record<UnionType,T>完全性強制・Prometheus export・SecurityMetrics TTL・REQ-274~279）, Phase 117（フレームワーク境界型安全性・Constant-desync 解消・REQ-280~284）, Phase 118（品質モニタ diagram-type パリティ・REQ-285）を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテキュリティに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（Phase 115要件追加・REQ-001~273 / Phase 116・REQ-274~279 / Phase 117・REQ-280~284 を追加・🔵292件/🟡4件/🔴0件）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（Phase 115要件追加・REQ-001~273 / Phase 116・REQ-274~279 / Phase 117・REQ-280~284 / Phase 118・REQ-285 を追加・🔵293件/🟡4件/🔴0件）
 
 
 <!-- spine:references:begin -->

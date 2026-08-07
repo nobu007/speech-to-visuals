@@ -5540,6 +5540,31 @@
 
 ---
 
+## REQ-285: 品質モニタ diagram-type パリティ（Phase 118） 🔵
+
+**信頼性**: 🔵 *src/quality/quality-monitor.ts assessContentRelevance・src/quality/__tests__/quality-monitor-diagram-type-parity.test.ts*
+
+### Given（前提条件）
+- 品質モニタの `assessPipelineQuality` が、1シーン・同一レイアウトノード（オーバーラップなし・十分な配置広がり）・要約あり・キーフレーズありの PipelineResult に対して呼ばれる
+
+### When（実行操作）
+- 同一シーンで `type` のみ `flow` / `flowchart`（および他9種の正典 DiagramType）を切り替えて `assessPipelineQuality` を呼ぶ
+
+### Then（期待結果）
+- 11種すべての正典タイプが同一の overallScore / accuracyScore を返す（flowchart 等の6種が 0.3 の valid-type ボーナスを失わない）
+- 修正前は flowchart が flow に対し約0.036点低くスコアリングされた（accuracyScore の contentRelevance 成分で0.3ポイント欠落）
+
+### テストケース
+
+- [x] **TC-285-01**: flow と flowchart の同一シーンが同一点数（overallScore/accuracyScore 一致） 🔵
+  - **信頼性**: 🔵 *修正前 RED（flowchart 0.836 vs flow 0.872）→ 修正後 GREEN*
+- [x] **TC-285-02**: 11種の正典 DiagramType 全てが flow 基準と1e-9以内で一致 🔵
+  - **信頼性**: 🔵 *CANONICAL_TYPES パリティループ + isDiagramType カバレッジ結合ガード*
+- [x] **TC-285-03**: 非正典タイプ（`__not_a_real_type__`）は正典タイプより厳密に低くスコアリング（ガードの過緩和防止） 🔵
+  - **信頼性**: 🔵 *ボーナス拒否の回帰ガード*
+
+---
+
 ### Phase 111+ 受け入れ基準サマリー
 
 | 要件 | テストケース数 | 信頼性 |
@@ -5563,7 +5588,8 @@
 | REQ-271: jest.mock ESM修正 | 2 | 🔵 |
 | REQ-272: validateAudioFile クラッシュ修正 | 2 | 🔵 |
 | REQ-273: CJKトークン化・キリル文字修正 | 2 | 🔵 |
-| **合計** | **52** | **🔵 100%** |
+| REQ-285: 品質モニタ diagram-type パリティ | 3 | 🔵 |
+| **合計** | **55** | **🔵 100%** |
 
 
 <!-- spine:references:begin -->

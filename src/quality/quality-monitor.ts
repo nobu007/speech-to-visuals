@@ -1,5 +1,5 @@
 import { PipelineResult, PipelineStage } from '@/pipeline/types';
-import { SceneGraph, PositionedNode } from '@/types/diagram';
+import { SceneGraph, PositionedNode, isDiagramType } from '@/types/diagram';
 import { logger } from '../utils/logger';
 import { nodesOverlap as producerNodesOverlap } from '@/visualization/layout-utils';
 import { safeArray } from '../lib/safe-array';
@@ -446,9 +446,15 @@ export class QualityMonitor {
     scenes.forEach(scene => {
       let sceneScore = 0;
 
-      // Check for valid diagram type
-      const validTypes = ['flow', 'tree', 'timeline', 'matrix', 'cycle'];
-      if (validTypes.includes(scene.type)) {
+      // Check for valid diagram type. Delegate to the canonical type guard
+      // (src/types/diagram.ts) — the single source for the 11-type DiagramType
+      // union — instead of a hardcoded subset. The pipeline's LLM analyzer
+      // emits 'flowchart' (not 'flow') and rule-based detection emits
+      // mindmap/comparison/etc.; a hardcoded list silently penalized those 6
+      // canonical types, dragging accuracyScore/overallScore down on the most
+      // common output. Same namespace class as the 'flow' vs 'flowchart'
+      // producer bug (f178cbf).
+      if (isDiagramType(scene.type)) {
         sceneScore += 0.3;
       }
 
