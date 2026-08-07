@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto';
 import { SceneGraph, DiagramType, NodeDatum, EdgeDatum } from '@/types/diagram';
 import { sanitizeFinite, sanitizeDiagramType } from '@/utils/guards';
 import { TranscriptionPipeline, TranscriptionSegment } from '@/transcription';
-import { SceneSegmenter, DiagramDetector } from '@/analysis';
+import { SceneSegmenter, DiagramDetector, DEFAULT_MIN_SEGMENT_LENGTH_MS, DEFAULT_MAX_SEGMENT_LENGTH_MS } from '@/analysis';
 import { LayoutEngine } from '@/visualization';
 import { qualityMonitor, QualityAssessment } from '@/quality';
 import { globalErrorRecovery } from '@/quality/enhanced-error-recovery';
@@ -97,8 +97,8 @@ export class MainPipeline {
         ...config.transcription
       },
       analysis: {
-        minSegmentLengthMs: 3000,
-        maxSegmentLengthMs: 15000,
+        minSegmentLengthMs: DEFAULT_MIN_SEGMENT_LENGTH_MS,
+        maxSegmentLengthMs: DEFAULT_MAX_SEGMENT_LENGTH_MS,
         confidenceThreshold: 0.7,
         ...config.analysis
       },

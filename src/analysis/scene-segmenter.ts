@@ -3,6 +3,15 @@ import { ContentSegment, AnalysisConfig } from './types';
 import { sanitizeFinite } from '@/utils/guards';
 
 /**
+ * Default segment-length bounds (milliseconds). Single source of truth — every
+ * pipeline producer that constructs an `AnalysisConfig` MUST source these here so
+ * the min/max scale cannot drift across modules. Compared against `endMs - startMs`
+ * in {@link SceneSegmenter}, so the unit is milliseconds.
+ */
+export const DEFAULT_MIN_SEGMENT_LENGTH_MS = 3000;
+export const DEFAULT_MAX_SEGMENT_LENGTH_MS = 15000;
+
+/**
  * Scene Segmentation Engine - Iterative Implementation
  * Converts transcription segments into meaningful content scenes
  * 🔄 Enhanced with Custom Instructions Recursive Development Framework
@@ -19,8 +28,6 @@ export class SceneSegmenter {
     qualityScores: new Map<number, number>() // iteration -> score
   };
 
-  private readonly DEFAULT_MIN_SEGMENT_LENGTH_MS = 3000;
-  private readonly DEFAULT_MAX_SEGMENT_LENGTH_MS = 15000;
   private readonly DEFAULT_CONFIDENCE_THRESHOLD = 0.7;
   private readonly DEFAULT_KEYWORD_DENSITY_THRESHOLD = 0.3;
 
@@ -99,8 +106,8 @@ export class SceneSegmenter {
 
   constructor(config: Partial<AnalysisConfig> = {}) {
     this.config = {
-      minSegmentLengthMs: this.DEFAULT_MIN_SEGMENT_LENGTH_MS, // 3 seconds minimum
-      maxSegmentLengthMs: this.DEFAULT_MAX_SEGMENT_LENGTH_MS, // 15 seconds maximum
+      minSegmentLengthMs: DEFAULT_MIN_SEGMENT_LENGTH_MS, // 3 seconds minimum
+      maxSegmentLengthMs: DEFAULT_MAX_SEGMENT_LENGTH_MS, // 15 seconds maximum
       confidenceThreshold: this.DEFAULT_CONFIDENCE_THRESHOLD,
       keywordDensityThreshold: this.DEFAULT_KEYWORD_DENSITY_THRESHOLD,
       enableSemanticAnalysis: false, // Enable in iteration 2+

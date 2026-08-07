@@ -5,7 +5,7 @@
  */
 
 import { TranscriptionPipeline } from '@/transcription';
-import { SceneSegmenter, DiagramDetector, ContentSegment } from '@/analysis';
+import { SceneSegmenter, DiagramDetector, ContentSegment, DEFAULT_MIN_SEGMENT_LENGTH_MS, DEFAULT_MAX_SEGMENT_LENGTH_MS } from '@/analysis';
 import { LayoutEngine } from '@/visualization';
 import { EnhancedZeroOverlapLayoutEngine } from '@/visualization/enhanced-zero-overlap-layout';
 import { SceneGraph } from '@/types/diagram';
@@ -94,8 +94,8 @@ export class SimplePipeline {
     // SceneSegmenter). Use the same 3s/15s scale as every other producer
     // (scene-segmenter defaults, main-pipeline, pipeline-orchestrator).
     this.segmenter = new SceneSegmenter({
-      minSegmentLengthMs: 3000,
-      maxSegmentLengthMs: 15000,
+      minSegmentLengthMs: DEFAULT_MIN_SEGMENT_LENGTH_MS,
+      maxSegmentLengthMs: DEFAULT_MAX_SEGMENT_LENGTH_MS,
       confidenceThreshold: 0.6
     });
 

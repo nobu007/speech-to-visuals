@@ -60,6 +60,9 @@ jest.mock('@/analysis', () => ({
     analyze: jest.fn(),
     nextIteration: jest.fn(),
   })),
+  // main-pipeline sources these from the barrel; mirror canonical values.
+  DEFAULT_MIN_SEGMENT_LENGTH_MS: 3000,
+  DEFAULT_MAX_SEGMENT_LENGTH_MS: 15000,
 }));
 
 jest.mock('@/visualization', () => ({

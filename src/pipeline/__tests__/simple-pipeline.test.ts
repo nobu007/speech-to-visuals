@@ -40,6 +40,10 @@ jest.unstable_mockModule('@/analysis', () => {
     DiagramDetector: jest.fn().mockImplementation(() => ({
       analyze: mockAnalyze,
     })),
+    // Constants simple-pipeline sources from the barrel — mirror the canonical
+    // scene-segmenter values so the wiring assertion below stays meaningful.
+    DEFAULT_MIN_SEGMENT_LENGTH_MS: 3000,
+    DEFAULT_MAX_SEGMENT_LENGTH_MS: 15000,
     __mockSegment: mockSegment,
     __mockAnalyze: mockAnalyze,
   };

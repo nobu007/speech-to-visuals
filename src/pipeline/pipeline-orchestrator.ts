@@ -25,7 +25,7 @@ import {
 } from './types';
 import { QualityMonitor } from './quality-monitor';
 import { TranscriptionPipeline, TranscriptionSegment, TranscriptionResult } from '@/transcription';
-import { SceneSegmenter, DiagramDetector } from '@/analysis';
+import { SceneSegmenter, DiagramDetector, DEFAULT_MIN_SEGMENT_LENGTH_MS, DEFAULT_MAX_SEGMENT_LENGTH_MS } from '@/analysis';
 import { LayoutEngine } from '@/visualization';
 import { SceneGraph, ProcessingStatus, NodeDatum, EdgeDatum, DiagramType, DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { validateConfig, ValidationError } from '@/config/validate';
@@ -172,8 +172,8 @@ export class PipelineOrchestrator {
     this.defaultPipelineConfig = {
       transcription: { model: 'base', language: 'en' },
       analysis: {
-        minSegmentLengthMs: 3000,
-        maxSegmentLengthMs: 15000,
+        minSegmentLengthMs: DEFAULT_MIN_SEGMENT_LENGTH_MS,
+        maxSegmentLengthMs: DEFAULT_MAX_SEGMENT_LENGTH_MS,
         confidenceThreshold: 0.7,
       },
       layout: { width: 1920, height: 1080, nodeWidth: 120, nodeHeight: 60 },
@@ -188,8 +188,8 @@ export class PipelineOrchestrator {
     });
 
     this.segmenter = new SceneSegmenter({
-      minSegmentLengthMs: 3000,
-      maxSegmentLengthMs: 15000,
+      minSegmentLengthMs: DEFAULT_MIN_SEGMENT_LENGTH_MS,
+      maxSegmentLengthMs: DEFAULT_MAX_SEGMENT_LENGTH_MS,
       confidenceThreshold: 0.7,
     });
 

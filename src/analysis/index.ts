@@ -1,4 +1,4 @@
-export { SceneSegmenter } from './scene-segmenter';
+export { SceneSegmenter, DEFAULT_MIN_SEGMENT_LENGTH_MS, DEFAULT_MAX_SEGMENT_LENGTH_MS } from './scene-segmenter';
 export { DiagramDetector } from './diagram-detector';
 export { ContentAnalyzer } from './content-analyzer';
 export { LLMService, llmService } from './llm-service';
