@@ -18,7 +18,7 @@ import { MainPipeline } from './main-pipeline';
 import { PipelineInput, PipelineResult, PipelineConfig } from './types';
 import { getHeapUsed } from '@/utils/memory-usage';
 import { logger } from '../utils/logger';
-import { getNodeWidth, getNodeHeight } from '@/visualization/node-dimensions';
+import { nodesOverlap } from '@/visualization/layout-utils';
 import {
   IterationManager,
   createIterationManager,
@@ -332,23 +332,19 @@ export class FrameworkIntegratedPipeline {
       const nodes = scene.layout.nodes;
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
-          const n1 = nodes[i];
-          const n2 = nodes[j];
-
-          // Use shared NaN-safe helpers for width/height extraction
-          const w1 = getNodeWidth(n1 as Record<string, unknown>);
-          const h1 = getNodeHeight(n1 as Record<string, unknown>);
-          const w2 = getNodeWidth(n2 as Record<string, unknown>);
-          const h2 = getNodeHeight(n2 as Record<string, unknown>);
-
-          const overlaps = !(
-            n1.x + w1 < n2.x ||
-            n2.x + w2 < n1.x ||
-            n1.y + h1 < n2.y ||
-            n2.y + h2 < n1.y
-          );
-
-          if (overlaps) totalOverlaps++;
+          // Delegate to the canonical layout-engine predicate
+          // (src/visualization/layout-utils nodesOverlap, spacing 0) so this
+          // overlap check can NEVER drift from the producer or the quality gate.
+          // An earlier inline AABB test re-derived the predicate by hand and
+          // diverged: it used strict `<` for the separation axes, so two nodes
+          // that merely TOUCH (right edge of one == left edge of the other)
+          // were counted as OVERLAPPING, while nodesOverlap (and the quality
+          // gate) treat touching as NON-overlap (`<=`/`>=`). It also pulled
+          // dimensions via the 1-arg getNodeWidth (fallback 120) instead of the
+          // canonical fallback 0. Both drifts are eliminated by delegating to
+          // the single source of truth. See
+          // framework-overlap-cross-invariant-fuzz.test.ts.
+          if (nodesOverlap(nodes[i], nodes[j], 0)) totalOverlaps++;
         }
       }
     }
