@@ -487,7 +487,7 @@ describe('GeminiAnalyzer', () => {
       expect(result!.edges[0].to).toBe('n2');
     });
 
-    it('should detect cycles in the graph', async () => {
+    it('should detect cycles in the graph and reduce confidence (non-cycle types)', async () => {
       const { llm, setParserResult } = createParserMockLLMService();
       setParserResult(JSON.stringify({
         title: 'Cycle',
@@ -509,8 +509,41 @@ describe('GeminiAnalyzer', () => {
 
       expect(result).not.toBeNull();
       expect(result!.edges).toHaveLength(3);
-      // Confidence should be adjusted (still >= 0.5 minimum)
-      expect(result!.confidence).toBeGreaterThanOrEqual(0.5);
+      // Base confidence is 0.9; an unexpected cycle (in a non-cycle diagram
+      // type) must reduce confidence below the baseline. Before the fix,
+      // hasCycles was computed (detectCycles, O(V+E) DFS) but never consumed,
+      // so confidence stayed at 0.9 and this assertion failed.
+      expect(result!.confidence).toBeLessThan(0.9);
+    });
+
+    it('should not penalize legitimate cycles in cycle-type diagrams', async () => {
+      const { llm, setParserResult } = createParserMockLLMService();
+      setParserResult(JSON.stringify({
+        title: 'Continuous cycle',
+        type: 'cycle',
+        nodes: [
+          { id: 'n1', label: 'Plan' },
+          { id: 'n2', label: 'Do' },
+          { id: 'n3', label: 'Check' },
+          { id: 'n4', label: 'Act' },
+        ],
+        edges: [
+          { from: 'n1', to: 'n2' },
+          { from: 'n2', to: 'n3' },
+          { from: 'n3', to: 'n4' },
+          { from: 'n4', to: 'n1' }, // intentional cycle back to start
+        ],
+      }));
+
+      const analyzer = new GeminiAnalyzer('test-key', llm);
+      const result = await analyzer.analyzeText('A continuous PDCA cycle.');
+
+      expect(result).not.toBeNull();
+      expect(result!.type).toBe('cycle');
+      // Cycles are the intended structure of a 'cycle' diagram — must NOT
+      // reduce confidence. Without the type-aware exemption, the blanket
+      // cycle penalty would wrongly drop this to 0.8.
+      expect(result!.confidence).toBeGreaterThanOrEqual(0.9);
     });
 
     it('should detect disconnected nodes and reduce confidence', async () => {

@@ -212,6 +212,13 @@ export class GeminiAnalyzer {
       if (disconnectedNodes.length > nodes.length * 0.3) {
         confidence -= 0.1; // Penalty for too many isolated nodes
       }
+      // Penalty for unexpected cycles. A cyclic edge graph in a non-'cycle'
+      // diagram type signals structural extraction noise. The 'cycle' type is
+      // exempt because a closed loop (last node → first node) is its intended
+      // structure (see diagram-content-generation: createCircularEdge).
+      if (hasCycles && mappedType !== 'cycle') {
+        confidence -= 0.1; // Penalty for unexpected cyclic relationships
+      }
 
 
       // Phase 27: Record relationship extraction quality
