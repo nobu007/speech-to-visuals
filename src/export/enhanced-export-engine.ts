@@ -147,6 +147,25 @@ export interface ExportResult {
   artifactId?: string;
 }
 
+/**
+ * Escape a JSON string for safe embedding inside an HTML <script> block.
+ *
+ * The HTML tokenizer terminates a <script> element on ANY "</script" sequence
+ * followed by whitespace, "/", or ">" — not only the exact "</script>" token.
+ * A naive replace of the literal "</script>" therefore leaves whitespace
+ * variants ("</script >", "</script\t>", "</script\n>", "</script/>") intact,
+ * letting attacker-controlled text (transcription-derived labels/summaries)
+ * break out of the script block and execute injected markup.
+ *
+ * Neutralizing "<" and ">" entirely is the bulletproof fix: no raw angle
+ * bracket can appear in the serialized text, so no HTML tag — script or
+ * otherwise — can be introduced. JSON parsers decode "\u003c"/"\u003e" back to
+ * "<"/">", so the embedded data round-trips without corruption.
+ */
+export function escapeJsonForScript(json: string): string {
+  return json.replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
+}
+
 export class EnhancedExportEngine {
   private activeExports: Map<string, ExportJob>;
   private exportQueue: ExportJob[];
@@ -972,8 +991,9 @@ export class EnhancedExportEngine {
   }
 
   private generateInteractiveHTML(sceneData: SceneData, frames: FrameData[]): string {
-    // Escape </script> to prevent XSS when embedding JSON in <script> tags
-    const sceneDataJson = JSON.stringify(sceneData).replace(/<\/script>/gi, '<\\/script>');
+    // Neutralize every "</script" end-tag variant (and any other "<"/">")
+    // before embedding JSON inside <script> — see escapeJsonForScript.
+    const sceneDataJson = escapeJsonForScript(JSON.stringify(sceneData));
     return `
 <!DOCTYPE html>
 <html>

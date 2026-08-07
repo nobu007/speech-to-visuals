@@ -18,7 +18,7 @@
 
 import { MultiFormatExporter } from '../multi-format-exporter';
 import { generateAnimatedSVG, generateLottieAnimation, escapeXml } from '../animated-scene-renderer';
-import { EnhancedExportEngine } from '../enhanced-export-engine';
+import { EnhancedExportEngine, escapeJsonForScript } from '../enhanced-export-engine';
 import type { SceneGraph } from '@/types/diagram';
 
 beforeEach(() => {
@@ -338,6 +338,91 @@ describe('XSS Security: Interactive HTML Export (EnhancedExportEngine)', () => {
 
     expect(result.success).toBe(true);
     expect(result.verification).toBeDefined();
+  });
+
+  test('Interactive HTML neutralizes ALL </script> end-tag variants — no script-block breakout', () => {
+    // HTML5 ends a <script> element on "</script" + (whitespace | "/" | ">"),
+    // NOT only the exact "</script>" token. The prior /<\/script>/gi escape
+    // matched solely the literal "</script>" and left these variants intact,
+    // so a transcription-derived label could close the outer <script> block
+    // and let the following "<script>alert(...)</script>" execute (XSS).
+    const breakoutPayloads = [
+      '</script><script>alert(1)</script>', // baseline exact token (already handled)
+      '</script ><script>alert(2)</script>', // space before '>'  — BYPASSED old regex
+      '</script\t><script>alert(3)</script>', // tab before '>'   — BYPASSED old regex
+      '</script\n><script>alert(4)</script>', // newline before '>'— BYPASSED old regex
+      '</script/><script>alert(5)</script>', // '/' before '>'    — BYPASSED old regex
+      '</script foo="bar"><script>alert(6)</script>', // attribute — BYPASSED old regex
+    ];
+    const sceneData = {
+      scenes: breakoutPayloads.map((text, i) => ({ duration: i + 1, type: 'xss', text })),
+    };
+
+    // Drive the real assembly path. generateInteractiveHTML is private but is
+    // the security-critical boundary where the embedded JSON is produced.
+    const html = (
+      engine as unknown as {
+        generateInteractiveHTML: (s: unknown, f: unknown[]) => string;
+      }
+    ).generateInteractiveHTML(sceneData, []);
+
+    // The document has exactly ONE legitimate script close — the wrapper's.
+    // Any data-derived "</script" that survived escaping adds another and
+    // breaks the script block out.
+    const scriptCloseCount = (html.match(/<\/script/gi) || []).length;
+    expect(scriptCloseCount).toBe(1);
+
+    // Bulletproof invariant: the embedded JSON data has no raw angle brackets,
+    // so no HTML tag (script or otherwise) can be introduced into the doc.
+    const dataMatch = html.match(/const sceneData = (\{[\s\S]*?\});/);
+    expect(dataMatch).not.toBeNull();
+    const embeddedJson = dataMatch![1];
+    expect(embeddedJson).not.toMatch(/[<>]/);
+
+    // Data integrity: the escaped JSON decodes back to the original payloads.
+    const restored = embeddedJson.replace(/\\u003c/g, '<').replace(/\\u003e/g, '>');
+    expect(JSON.parse(restored).scenes.map((s: { text: string }) => s.text)).toEqual(
+      breakoutPayloads,
+    );
+  });
+});
+
+// ===========================================================================
+// 3b. escapeJsonForScript helper (EnhancedExportEngine)
+//     Direct unit test of the JSON-in-<script> escape. The helper is the single
+//     source of truth for neutralizing HTML angle brackets in embedded JSON.
+// ===========================================================================
+
+describe('XSS Security: escapeJsonForScript helper', () => {
+  test.each([
+    ['exact token', '</script>'],
+    ['space before >', '</script >'],
+    ['tab before >', '</script\t>'],
+    ['newline before >', '</script\n>'],
+    ['slash before >', '</script/>'],
+    ['attribute after tag name', '</script foo="bar">'],
+    ['uppercase', '</SCRIPT>'],
+    ['mixed case', '</ScRiPt>'],
+    ['open tag', '<script>alert(1)</script>'],
+    ['HTML comment opener', '<!--'],
+    ['combined attack', '</script ><script>alert(document.cookie)</script>'],
+    ['plain angle brackets', 'a < b > c'],
+  ])('neutralizes <%s> with no raw angle brackets + round-trips', (_label, payload) => {
+    const json = JSON.stringify({ label: payload });
+    const escaped = escapeJsonForScript(json);
+
+    // No raw "<" or ">" survives → no tag can be introduced into <script>.
+    expect(escaped).not.toMatch(/[<>]/);
+
+    // Decoded output equals the original JSON (data integrity).
+    const restored = escaped.replace(/\\u003c/g, '<').replace(/\\u003e/g, '>');
+    expect(restored).toBe(json);
+    expect(JSON.parse(restored).label).toBe(payload);
+  });
+
+  test('a payload with no angle brackets is returned unchanged', () => {
+    const json = JSON.stringify({ label: 'plain text 123' });
+    expect(escapeJsonForScript(json)).toBe(json);
   });
 });
 
