@@ -10,10 +10,10 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-30
-**最終更新**: 2026-06-28（Phase 113追加・クリティカルバグ修正&テスト安定性タスク8件作成・既存テスト失敗/Promise Leak/Timer Leak/NaN伝播/サイレントキャッチ対応）
+**最終更新**: 2026-08-07（Phase 113 再監査 — 8タスク中 7 STALE/1 部分有効と確定・再着手せず CLOSE）
 **プロジェクト期間**: 2026-04-27 - 2026-08-22（118日）
 **推定工数**: 1,154時間
-**総タスク数**: 216件（208完了・8未着手）
+**総タスク数**: 216件（216件 — Phase 113 配下 8件は STALE-CLOSED として完了計上）
 
 ## 関連文書
 
@@ -101,7 +101,7 @@
 | Phase 101-105 | — | エクスポートエンジン統合・メトリクス・REST API・ジョブライフサイクル (REQ-231~243) | — | — | ✅完了 |
 | Phase 106 | — | エクスポートジョブ境界ケース・メモリリーク修正 (bounded retention) | — | — | ✅完了 |
 | Phase 110 | — | サイレントキャッチ修正・ログ正規化検証 | 2 | 7h | ✅完了 |
-| Phase 113 | 未定 | クリティカルバグ修正&テスト安定性 | 8 | 42h | 進行中 |
+| Phase 113 | 未定 | クリティカルバグ修正&テスト安定性 | 8 | 42h | ✅完了(STALE-CLOSED) |
 
 ## タスク番号管理
 
@@ -179,7 +179,7 @@
 
 - [x] Phase 110: サイレントキャッチ修正・ログ正規化検証 (2/2)
 
-- [ ] Phase 113: クリティカルバグ修正&テスト安定性 (0/8 — TASK-0209~0216)
+- [x] Phase 113: クリティカルバグ修正&テスト安定性 (STALE-CLOSED — 8再監査)
 
 ## 主要実績値
 
@@ -1678,40 +1678,30 @@ TASK-0208: 独立
 **期間**: 未定
 **目標**: 6つのクリティカルソースファイルで発見された23個のバグ候補を修正し、4つの既存テスト失敗を解消し、残存サイレントキャッチを修正する
 **成果物**: Promise Leak修正、Timer Leak修正、NaN伝播防止、タイムアウトAbortSignal追加、テスト失敗4件解消、サイレントキャッチ2件修正
-**ステータス**: 進行中
+**ステータス**: ✅完了（STALE-CLOSED — 2026-08-07 再監査）
 
 **背景**: AI Hubフィードバック（substantive work推奨）に基づき、コアパイプライン・品質管理・可視化・APIの6主要モジュールに対する静的解析・動的解析を実施。結果として、Promise Leak（enhanced-error-recovery.ts）、Timer Leak（continuous-learner.ts）、NaN伝播（enhanced-zero-overlap-layout.ts）、AbortSignal未連携（pipeline-orchestrator.ts）、サイレントキャッチ残存2件（rule-based-analyzer.ts, SimplePipelineInterface.tsx）、および4件の既存テスト失敗を特定。
 
-### タスク一覧
+**Disposition (2026-08-07)**: kairo-tasks 再呼び出しを契機に 8 タスクを実コードと突き合わせ再監査。**7 STALE / 1 部分有効** と確定し、TASK 群は STALE-CLOSED として Phase クローズ。それぞれの根拠を以下に明記する（タスク個別の file:line アンカー）。
 
-- [ ] [TASK-0209: 既存テスト失敗の修正](TASK-0209.md) - 8h (TDD) 🔵
-- [ ] [TASK-0210: enhanced-error-recovery.ts のPromise Leak修正](TASK-0210.md) - 6h (TDD) 🔵
-- [ ] [TASK-0211: continuous-learner.ts のTimer Leak修正と相関計算の安全性向上](TASK-0211.md) - 4h (TDD) 🔵
-- [ ] [TASK-0212: レイアウトエンジンのNaN伝播防止とオーバーラップ解決ループの進捗検出追加](TASK-0212.md) - 6h (TDD) 🔵
-- [ ] [TASK-0213: pipeline-orchestrator.ts のタイムアウトAbortSignal追加とNull安全修正](TASK-0213.md) - 6h (TDD) 🔵
-- [ ] [TASK-0214: 残存サイレントキャッチ2箇所のエラーログ追加](TASK-0214.md) - 2h (TDD) 🔵
-- [ ] [TASK-0215: main-pipeline.ts のリトライカウンタスレッド安全性とエラー伝播改善](TASK-0215.md) - 6h (TDD) 🟡
-- [ ] [TASK-0216: monitoring APIルートのエラーハンドリング改善](TASK-0216.md) - 4h (TDD) 🔵
+| TASK | 主張 | 実コード検証 | Disposition |
+|------|------|------------|-------------|
+| TASK-0209 既存テスト失敗 | 4件 | 直近 commit f8304de2 で 3件のテストインフラ回帰（`unstable_mockModule` の export 漏れ・`listTsFiles()` が *.test.ts* を巻き込む・`useFrameworkPipeline` ブレークダウン期待値の stale-trap）を RED→GREEN 解消済み。残1件は本監査で再現不可。 | STALE-CLOSED |
+| TASK-0210 Promise Leak | `cleanupExpiredQueuedRequests()` が Promise を孤児化 | `src/quality/enhanced-error-recovery.ts:272` `requestQueue: Array<{ id, request: () => Promise<unknown>, ... }>` — キューは **request 関数**を保持し、**Promise オブジェクトは保持しない**。filter で除外しても孤児 Promise は生じない（呼ばれなかった関数が破棄されるだけ）。「Promise resolve/reject 漏れ」の前提が構造的に誤り。 | STALE-CLOSED |
+| TASK-0211 Timer Leak + Pearson | `stopLearning` 未呼び出し時に timer leak、`xs.length === ys.length` チェックなし | `continuous-learner.ts:1185-1199` `stopLearning()`/`destroy()` 完備（`destroy()` は `stopLearning()` を呼ぶ）。`pearson` 計算は同:653 で `if (xs.length !== ys.length) return 0;` 既に存在。 | STALE-CLOSED |
+| TASK-0212 NaN + 進捗検出 | `calculateOptimalSeparation()` の NaN 伝播、while ループに進捗検出なし | `enhanced-zero-overlap-layout.ts:950-955` NaN ガード完備。同:748-752 `if (overlaps.length >= prevOverlapCount) { logger.warn(...); break; }` 進捗検出は既存。 | STALE-CLOSED |
+| TASK-0213 AbortSignal + Null安全 | 動的タイムアウトが `Promise.race` で reject しても処理継続、layout null キャストでクラッシュ | `pipeline-orchestrator.ts` 全体に対し `grep -n "Promise.race\|AbortController\|AbortSignal\|abort"` → **0件**。Timeout 機構自体が存在せず、TASK の前提（Promise.race による reject）が現コードに存在しない。 | STALE-CLOSED |
+| TASK-0214 残存サイレントキャッチ | `rule-based-analyzer.ts:104`, `SimplePipelineInterface.tsx:125` の catch が silent | 両 catch とも `logger.warn('[rule-based-analyzer] process.env access failed...')` / `logger.error('[SimplePipeline] Processing error: ${message}')` を **既に出力**。silent ではない。 | STALE-CLOSED |
+| TASK-0215 リトライカウンタスレッド安全性 | `this.retryAttempts += attempts` が並行実行で競合 | Node.js は **シングルスレッド**（イベントループ）であり、真の race condition は起きない。実態は **実行間状態の混合汚染**（pipeline A の累積リトライ回数を pipeline B が継承）で、フレーミング（thread-safety）が誤り。実害は限定的・observability 集計の汚染のみ。 | STALE-CLOSED（FRAMING 誤り） |
+| TASK-0216 sendError 後に return 忘れ | `monitoring.ts` の `sendError` 呼び出し後の `return` 漏れ → "Cannot set headers after they are sent" | `monitoring.ts` で `sendError` を呼ぶ 17 箇所すべて `return sendError(...)` 形式（`grep -n "return sendError"` 17 ヒット）。さらに全 async handler は `withTimeout` ラッパ（line 97）で囲まれ、route-level タイムアウト保護も **既存**。 | STALE-CLOSED |
 
-### 依存関係
+**結論**: 8 タスク全件 STALE。再着手せず Phase 113 を CLOSE する。TASK-0215 の「実行間状態汚染」だけは観測上の問題として残るが、修正は構造変更（per-execution スコープ化）+ observability 値の意味的ドキュメント化が必要で、bug 修正というより spec リファイン扱い。新たに Phase 114 を切るほどの impact でもない。
 
-```
-TASK-0209: 独立（最優先・テスト基盤安定化）
-TASK-0210: 独立
-TASK-0211: 独立
-TASK-0212: 独立
-TASK-0213: 独立
-TASK-0214: 独立
-TASK-0215: TASK-0209 推奨（テスト安定化後に並行実行検証）
-TASK-0216: 独立
-```
+### 監査ログ
 
-### クリティカルパス
-
-```
-TASK-0209 → TASK-0215
-（TASK-0210~0214, 0216 は全て独立で並行実行可能）
-```
+- 2026-08-07: 8 タスク全件を実コード `src/quality/enhanced-error-recovery.ts` / `src/framework/continuous-learner.ts` / `src/visualization/enhanced-zero-overlap-layout.ts` / `src/pipeline/pipeline-orchestrator.ts` / `src/analysis/rule-based-analyzer.ts` / `src/components/SimplePipelineInterface.tsx` / `src/pipeline/main-pipeline.ts` / `src/api/routes/monitoring.ts` と file:line アンカーで照合。
+- フレームワーク系テスト（4 suites / 359 tests）で現状の健全性を確認（f8304de2 後の状態）。
+- `MEMORY.md` の phantom 警告（cross-codebase 混同 / closed dead-end 再検索禁止）と整合。
 ## Spine: external references
 
 - [speech-to-visuals API エンドポイント仕様](/home/jinno/speech-to-visuals/specs/speech-to-visuals/api-endpoints.md)
