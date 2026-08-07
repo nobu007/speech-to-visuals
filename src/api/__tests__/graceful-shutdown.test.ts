@@ -21,7 +21,7 @@ const mockServerListen = jest.fn((_port: number, cb?: () => void) => {
   return mockServerLike;
 });
 
-jest.mock('http', () => {
+jest.unstable_mockModule('http', () => {
   // In ESM, jest.requireActual may not work. Provide a minimal mock.
   return {
     createServer: jest.fn(() => mockServerLike),
@@ -30,7 +30,7 @@ jest.mock('http', () => {
 });
 
 // Mock express to avoid importing the real module which needs http internals
-jest.mock('express', () => {
+jest.unstable_mockModule('express', () => {
   const factory = jest.fn(() => ({
     listen: mockServerListen,
     use: jest.fn(),
@@ -61,39 +61,39 @@ const mockRealTimeMonitorStop = jest.fn();
 const mockGlobalDashboardDestroy = jest.fn();
 const mockHealthCheckServiceDestroy = jest.fn();
 
-jest.mock('@/quality/enhanced-error-recovery', () => ({
+jest.unstable_mockModule('@/quality/enhanced-error-recovery', () => ({
   globalErrorRecovery: { shutdown: mockShutdown },
 }));
 
-jest.mock('@/framework/continuous-learner', () => ({
+jest.unstable_mockModule('@/framework/continuous-learner', () => ({
   continuousLearner: { stopLearning: mockStopLearning },
 }));
 
-jest.mock('@/analysis/llm-service', () => ({
+jest.unstable_mockModule('@/analysis/llm-service', () => ({
   llmService: {},
 }));
 
-jest.mock('@/api/startup-warmup', () => ({
+jest.unstable_mockModule('@/api/startup-warmup', () => ({
   triggerStartupWarmup: jest.fn(),
 }));
 
-jest.mock('@/monitoring/real-time-performance-monitor', () => ({
+jest.unstable_mockModule('@/monitoring/real-time-performance-monitor', () => ({
   realTimeMonitor: { stop: mockRealTimeMonitorStop },
 }));
 
-jest.mock('@/monitoring/performance-dashboard', () => ({
+jest.unstable_mockModule('@/monitoring/performance-dashboard', () => ({
   globalDashboard: { destroy: mockGlobalDashboardDestroy },
 }));
 
-jest.mock('@/monitoring/health-check-service', () => ({
+jest.unstable_mockModule('@/monitoring/health-check-service', () => ({
   healthCheckService: { destroy: mockHealthCheckServiceDestroy },
 }));
 
-jest.mock('@/monitoring/production-monitoring-excellence', () => ({
+jest.unstable_mockModule('@/monitoring/production-monitoring-excellence', () => ({
   globalProductionMonitoring: { destroy: jest.fn().mockResolvedValue(undefined) },
 }));
 
-jest.mock('@/api/server', () => ({
+jest.unstable_mockModule('@/api/server', () => ({
   app: {
     listen: mockServerListen,
     use: jest.fn(),
@@ -103,7 +103,7 @@ jest.mock('@/api/server', () => ({
   jobQueue: { stop: jest.fn().mockResolvedValue(undefined) },
 }));
 
-jest.mock('@/utils/logger', () => ({
+jest.unstable_mockModule('@/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     error: jest.fn(),
