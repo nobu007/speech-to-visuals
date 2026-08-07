@@ -10,6 +10,7 @@ import { LayoutEngine } from '@/visualization';
 import { EnhancedZeroOverlapLayoutEngine } from '@/visualization/enhanced-zero-overlap-layout';
 import { SceneGraph } from '@/types/diagram';
 import { VideoGenerator, VideoGenerationOptions } from './video-generator';
+import { calculatePipelineQualityScore } from './quality-score';
 import { continuousLearner } from '@/framework/continuous-learner';
 import { getQualityMonitor, formatQualityReport } from './quality-monitor';
 import { getHeapUsed } from '@/utils/memory-usage';
@@ -739,30 +740,9 @@ export class SimplePipeline {
     processingTime: number;
     videoUrl?: string;
   }): number {
-    let score = 0;
-
-    // Transcript quality (30%)
-    if (result.transcript) {
-      const transcriptScore = Math.min(result.transcript.length / 100, 1) * 30;
-      score += transcriptScore;
-    }
-
-    // Scene detection quality (30%)
-    if (result.scenes && result.scenes.length > 0) {
-      const avgConfidence = result.scenes.reduce((sum, scene) => sum + (scene.confidence || 0), 0) / result.scenes.length;
-      score += avgConfidence * 30;
-    }
-
-    // Performance score (20%)
-    const performanceScore = Math.max(0, 20 - (result.processingTime / 1000)); // Penalty for slow processing
-    score += Math.max(0, performanceScore);
-
-    // Video generation bonus (20%)
-    if (result.videoUrl) {
-      score += 20;
-    }
-
-    return Math.min(score, 100);
+    // Delegate to the single-source formula so SimplePipeline and
+    // BatchProcessingAPI can never drift apart. See src/pipeline/quality-score.ts.
+    return calculatePipelineQualityScore(result);
   }
 
   /**

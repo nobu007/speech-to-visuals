@@ -15,6 +15,7 @@
 
 import type { SimplePipelineInput, SimplePipelineResult } from '@/pipeline/simple-pipeline';
 import { simplePipeline } from '@/pipeline/simple-pipeline';
+import { calculatePipelineQualityScore } from '@/pipeline/quality-score';
 import type { QualityPreset } from '@/pipeline/adaptive-quality-presets';
 import { adaptiveQualityPresets } from '@/pipeline/adaptive-quality-presets';
 import { randomUUID } from 'crypto';
@@ -553,36 +554,15 @@ export class BatchProcessingAPI {
   }
 
   /**
-   * Calculate quality score from pipeline result
+   * Calculate quality score from pipeline result.
+   *
+   * Delegates to the single-source `calculatePipelineQualityScore` so the
+   * batch fallback can never diverge from the score SimplePipeline records.
+   * This is only reached when a result lacks a surfaced `qualityScore`
+   * (older results / mocks); otherwise the surfaced value is preferred (REQ-299).
    */
   private calculateQualityScore(result: SimplePipelineResult): number {
-    let score = 0;
-
-    // Transcript quality (30%)
-    if (result.transcript && result.transcript.length > 0) {
-      score += Math.min(result.transcript.length / 100, 1) * 30;
-    }
-
-    // Scene detection quality (30%)
-    if (result.scenes && result.scenes.length > 0) {
-      const avgConfidence =
-        result.scenes.reduce((sum, scene) => sum + (scene.confidence || 0), 0) /
-        result.scenes.length;
-      score += avgConfidence * 30;
-    }
-
-    // Performance score (20%)
-    if (result.processingTime) {
-      const performanceScore = Math.max(0, 20 - result.processingTime / 1000);
-      score += Math.max(0, performanceScore);
-    }
-
-    // Video generation bonus (20%)
-    if (result.videoUrl) {
-      score += 20;
-    }
-
-    return Math.min(score, 100);
+    return calculatePipelineQualityScore(result);
   }
 }
 

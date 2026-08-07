@@ -57,4 +57,41 @@ describe('BatchProcessingAPI quality-score propagation (REQ-299)', () => {
     expect(result).not.toBeNull();
     expect(result!.summary.averageQualityScore).toBe(73);
   });
+
+  it('fallback (no surfaced qualityScore) uses the canonical single-source formula', async () => {
+    // REQ-300: when a result lacks a surfaced qualityScore, the batch summary
+    // must fall back to the SAME formula SimplePipeline uses (now both delegate
+    // to calculatePipelineQualityScore), not a divergent re-derivation.
+    const { BatchProcessingAPI } = await import('../batch-processing-api');
+    const { calculatePipelineQualityScore } = await import('@/pipeline/quality-score');
+    const { __mockProcess } = (await import('@/pipeline/simple-pipeline')) as {
+      __mockProcess: jest.Mock;
+    };
+
+    // No qualityScore surfaced → forces the fallback path.
+    // transcript 150 → 30, scene 0.5 → 15, perf 5000ms → 15, video → 20  == 80.
+    const fallbackResult = {
+      success: true,
+      transcript: 'x'.repeat(150),
+      scenes: [{ confidence: 0.5 }],
+      processingTime: 5000,
+      videoUrl: '/out/canonical.mp4',
+    };
+    __mockProcess.mockResolvedValue(fallbackResult);
+
+    const canonical = calculatePipelineQualityScore(fallbackResult);
+    expect(canonical).toBe(80); // distinctive sentinel the old divergent copy could not reproduce
+
+    const api = new BatchProcessingAPI();
+    const file = new File(['audio'], 'fallback.wav', { type: 'audio/wav' });
+    const { jobId } = await api.submitJob({ files: [file] });
+    await api.waitForJob(jobId, { timeoutMs: 5000, intervalMs: 25 });
+
+    const result = api.getJobResult(jobId);
+    expect(result).not.toBeNull();
+    // The summary must equal the canonical single-source value, proving the
+    // fallback delegates rather than re-deriving via a stale duplicate formula.
+    expect(result!.summary.averageQualityScore).toBe(canonical);
+    expect(result!.summary.averageQualityScore).toBe(80);
+  });
 });
