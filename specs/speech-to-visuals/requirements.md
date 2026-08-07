@@ -751,6 +751,10 @@
 
 - REQ-294: 本番サーバー（src/api/server.ts:107）が `new ExportJobQueue({ maxConcurrent: 3, maxQueueSize: 100 }, ...)` とキュー同時実行数/キューサイズをベアリテラル `3`/`100` でハードコードしていた。これらは `EXPORT_QUEUE_LIMITS.MAX_CONCURRENT`/`MAX_QUEUE_SIZE`（src/config/limits.ts）と偶然一致するが結合なし — 正典を変更しても本番ルートは古いリテラルに留まり、DEFAULT_OPTIONS 経由で正典に従う他全コンシューマとの暗黙ドリフトを生む latent-coincident の constant-desync シード（T2-B）。修正は EXPORT_QUEUE_LIMITS をインポートし同構成で参照。振る舞い RED→GREEN 不可能（同値）のためソース結合ガード（`__tests__/server-queue-config-coupling.test.ts`）がリテラル再インライン化と非インポートを検出する。実装とテストを同一コミットに co-locate 🔵 ✅実装済 *本コミット: server.ts インポート追加+正典参照化 + ガード。検証: RED→GREEN（server.ts 戻しで3テスト失敗→復元で成功）・export-job-queue+server 5スイート78テスト green・tsc green*
 
+### simple-pipeline 対応音声形式の単一ソース化（Phase 128） ✅実装済
+
+- REQ-295: `SimplePipeline.getCapabilities()`（src/pipeline/simple-pipeline.ts:774）が `supportedFormats: ['mp3','wav','ogg','m4a']` を正典 `SUPPORTED_AUDIO_FORMATS`（src/config/limits.ts）と一致するが結合なしでハードコード重複していた。新形式追加で正典だけ更新しても simple-pipeline は古いセットを広告し続ける latent-coincident の constant-desync シード（兄弟 whisper-transcriber.ts:413 は正しく `[...SUPPORTED_AUDIO_FORMATS]` を使用）。修正は SUPPORTED_AUDIO_FORMATS をインポートしスプレッド。振る舞い RED→GREEN 不可能（同値）のためソース結合ガード（`__tests__/simple-pipeline-audio-formats-coupling.test.ts`）がリテラル再インライン化と非インポートを検出する。実装とテストを同一コミットに co-locate 🔵 ✅実装済 *本コミット: simple-pipeline.ts インポート+スプレッド化 + ガード。検証: RED→GREEN（戻しで2テスト失敗→復元で成功）・simple-pipeline 2スイート29テスト green・tsc green*
+
 ## 実装進捗サマリー
 
 | フェーズ | ステータス | タスク範囲 | 完了率 |

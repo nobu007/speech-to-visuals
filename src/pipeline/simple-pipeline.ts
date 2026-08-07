@@ -16,6 +16,7 @@ import { getHeapUsed } from '@/utils/memory-usage';
 import { sanitizeFinite, sanitizeDiagramType } from '@/utils/guards';
 import { ErrorClassifier } from '@/quality/error-classifier';
 import { TranscriptionError, SegmentationError, PipelineError } from './pipeline-errors';
+import { SUPPORTED_AUDIO_FORMATS } from '@/config/limits';
 import type { ErrorType } from '../quality/error-classifier';
 import { retryWithBackoff } from './retry';
 import { logger } from '../utils/logger';
@@ -771,7 +772,7 @@ export class SimplePipeline {
     return {
       transcription: {
         model: 'whisper-base',
-        supportedFormats: ['mp3', 'wav', 'ogg', 'm4a'],
+        supportedFormats: [...SUPPORTED_AUDIO_FORMATS],
         maxDuration: '30 minutes'
       },
       analysis: {
