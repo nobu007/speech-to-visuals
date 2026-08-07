@@ -11,6 +11,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { FrameworkIntegratedPipeline } from '@/pipeline/framework-integrated-pipeline';
 import { PipelineInput, PipelineResult } from '@/pipeline/types';
 import { DEVELOPMENT_CYCLES } from '@/framework/iteration-manager';
+import { QualityRecommendation } from '@/framework/auto-improvement-engine';
 import { MonitoringError } from '@/pipeline/pipeline-errors';
 import { logger } from '@/utils/logger';
 
@@ -46,7 +47,7 @@ interface IterationData {
 interface QualityMetrics {
   overallScore: number;
   needsImprovement: boolean;
-  recommendations: string[];
+  recommendations: QualityRecommendation[];
   breakdown: {
     performance: number;
     accuracy: number;
@@ -229,17 +230,23 @@ export function useFrameworkPipeline(
 
       setIterationHistory(prev => [...prev, iterationData]);
 
-      // Update quality metrics
-      const qa = execution.qualityAnalysis as Record<string, unknown>;
+      // Update quality metrics. `qualityAnalysis` is typed by
+      // FrameworkIntegratedPipeline.execute()'s return contract (A124): it
+      // carries the serializable QualityRecommendation[] projection, so no cast
+      // is needed and recommendations render as {name, description} (not the old
+      // lying `as string[]` that yielded "[object Object]").
+      const qa = execution.qualityAnalysis;
       const qualityData: QualityMetrics = {
-        overallScore: (qa.overallScore as number) || 0,
-        needsImprovement: qa.needsImprovement as boolean,
-        recommendations: (qa.recommendations as string[]) || [],
-        breakdown: {
-          performance: (qa.performanceScore as number) || 0,
-          accuracy: (qa.accuracyScore as number) || 0,
-          stability: (qa.stabilityScore as number) || 0
-        }
+        overallScore: qa.overallScore,
+        needsImprovement: qa.needsImprovement,
+        recommendations: qa.recommendations,
+        // DEFERRED (A124): the engine has NO per-category score derivation —
+        // calculateQualityScore produces only the flat weighted overallScore, so
+        // performance/accuracy/stability have no producer. Surfacing a real
+        // breakdown is a product/scoring decision, not a wiring fix. The previous
+        // code read qa.performanceScore/accuracyScore/stabilityScore, which the
+        // producer never emits (always undefined → 0); kept at 0 explicitly.
+        breakdown: { performance: 0, accuracy: 0, stability: 0 }
       };
 
       setQualityMetrics(qualityData);

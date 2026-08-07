@@ -24,6 +24,8 @@ const {
   createAutoImprovementEngine,
   QualityMetrics,
   ImprovementStrategy,
+  QualityRecommendation,
+  toQualityRecommendations,
 } = await import('../auto-improvement-engine');
 const { IterationManager } = await import('@/framework/iteration-manager');
 
@@ -234,6 +236,38 @@ describe('AutoImprovementEngine', () => {
         expect(rec).toHaveProperty('execute');
         expect(typeof rec.execute).toBe('function');
       }
+    });
+
+    // Regression (A124): analyzeMetrics returns ImprovementStrategy[], each
+    // carrying a non-serializable `execute` closure (used by runImprovementCycle).
+    // The framework dashboard / JSON API boundary cannot carry functions, so
+    // recommendations must be projected to QualityRecommendation[] before crossing
+    // out of the engine. Before this fix, consumers declared `recommendations:
+    // string[]` (useFrameworkPipeline) / rendered each entry as `{rec}`
+    // (FrameworkDashboard), which produced "[object Object]" (and is a latent
+    // React crash: "Objects are not valid as a React child"). toQualityRecommendations
+    // is the single boundary projection; FrameworkIntegratedPipeline.execute()
+    // applies it and types its `qualityAnalysis` return accordingly.
+    it('toQualityRecommendations projects ImprovementStrategy[] to a serializable {name, description}[]', () => {
+      const strategies = engine.analyzeMetrics(badMetrics).recommendations;
+      expect(strategies.length).toBeGreaterThan(0);
+      // source strategies DO carry the non-serializable execute closure
+      expect(typeof strategies[0].execute).toBe('function');
+
+      const projected: QualityRecommendation[] = toQualityRecommendations(strategies);
+      expect(projected).toHaveLength(strategies.length);
+      for (const r of projected) {
+        expect(typeof r.name).toBe('string');
+        expect(r.name.length).toBeGreaterThan(0);
+        expect(typeof r.description).toBe('string');
+        // execute / targetMetric / etc. must NOT cross the boundary
+        expect(r).not.toHaveProperty('execute');
+        expect(r).not.toHaveProperty('targetMetric');
+        // JSON round-trip safe (functions serialize away and break React children)
+        expect(JSON.parse(JSON.stringify(r))).toEqual(r);
+      }
+      // name/description preserved 1:1 from the source strategies
+      expect(projected.map(r => r.name)).toEqual(strategies.map(s => s.name));
     });
 
     it('execute() should improve the target metric (higher-is-better)', async () => {

@@ -56,6 +56,34 @@ export interface ImprovementStrategy {
   execute: () => Promise<QualityMetrics>;
 }
 
+/**
+ * Serializable, UI-facing projection of an ImprovementStrategy.
+ *
+ * ImprovementStrategy carries a non-serializable `execute` closure (consumed by
+ * runImprovementCycle). The framework dashboard and the JSON API boundary cannot
+ * carry functions, so recommendations must be projected to this plain shape
+ * before crossing out of the engine. This is the single source of truth for what
+ * a "recommendation" looks like to consumers — previously the dashboard declared
+ * `recommendations: string[]` and rendered each entry as `{rec}`, which produced
+ * "[object Object]" because the producer (analyzeMetrics) actually emits
+ * ImprovementStrategy[] objects (and is a latent React crash: "Objects are not
+ * valid as a React child"). See A124.
+ */
+export interface QualityRecommendation {
+  name: string;
+  description: string;
+}
+
+/**
+ * Project engine-internal ImprovementStrategy[] (with execute closures) into the
+ * serializable QualityRecommendation[] consumed by the dashboard / API boundary.
+ */
+export function toQualityRecommendations(
+  strategies: ImprovementStrategy[]
+): QualityRecommendation[] {
+  return strategies.map(({ name, description }) => ({ name, description }));
+}
+
 export interface ImprovementResult {
   strategy: string;
   before: QualityMetrics;

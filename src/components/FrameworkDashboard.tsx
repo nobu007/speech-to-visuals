@@ -38,6 +38,7 @@ import {
   FastForward
 } from 'lucide-react';
 import { logger } from '@/utils/logger';
+import { QualityRecommendation } from '@/framework/auto-improvement-engine';
 
 /**
  * Phase information from DEVELOPMENT_CYCLES
@@ -68,7 +69,7 @@ interface IterationMetrics {
 interface QualityAnalysis {
   overallScore: number;
   needsImprovement: boolean;
-  recommendations: string[];
+  recommendations: QualityRecommendation[];
   breakdown: {
     performance: number;
     accuracy: number;
@@ -542,7 +543,8 @@ export const FrameworkDashboard: React.FC<FrameworkDashboardProps> = ({
             {qualityAnalysis.recommendations.map((rec, index) => (
               <Alert key={index}>
                 <FastForward className="h-4 w-4" />
-                <AlertDescription className="text-sm">{rec}</AlertDescription>
+                <AlertTitle className="text-sm">{rec.name}</AlertTitle>
+                <AlertDescription className="text-xs">{rec.description}</AlertDescription>
               </Alert>
             ))}
           </div>

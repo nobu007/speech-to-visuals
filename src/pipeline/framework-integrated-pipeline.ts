@@ -28,8 +28,23 @@ import {
   AutoImprovementEngine,
   createAutoImprovementEngine,
   QualityMetrics,
-  QualityThresholds
+  QualityThresholds,
+  QualityRecommendation,
+  toQualityRecommendations
 } from '@/framework/auto-improvement-engine';
+
+/**
+ * Serializable quality-analysis contract returned by execute() and consumed by
+ * useFrameworkPipeline / the dashboard. Recommendations are projected here to
+ * QualityRecommendation[] so the non-serializable ImprovementStrategy.execute
+ * closure never crosses the engine→UI boundary. See A124.
+ */
+export interface QualityAnalysisResult {
+  overallScore: number;
+  needsImprovement: boolean;
+  issues: string[];
+  recommendations: QualityRecommendation[];
+}
 
 /**
  * Enhanced pipeline with framework integration
@@ -66,7 +81,7 @@ export class FrameworkIntegratedPipeline {
   async execute(input: PipelineInput): Promise<{
     result: PipelineResult;
     iterationMetrics: unknown;
-    qualityAnalysis: unknown;
+    qualityAnalysis: QualityAnalysisResult;
     shouldCommit: boolean;
     commitMessage?: string;
   }> {
@@ -89,8 +104,18 @@ export class FrameworkIntegratedPipeline {
       // Convert pipeline result to quality metrics
       const qualityMetrics = this.extractQualityMetrics(result);
 
-      // Analyze quality with improvement engine
-      const qualityAnalysis = this.improvementEngine.analyzeMetrics(qualityMetrics);
+      // Analyze quality with improvement engine, then project recommendations to
+      // the serializable UI shape. analyzeMetrics returns ImprovementStrategy[]
+      // (each carrying a non-serializable `execute` closure for runImprovementCycle);
+      // that closure cannot cross the dashboard / JSON-API boundary, so we project
+      // to QualityRecommendation[] here. See A124.
+      const rawAnalysis = this.improvementEngine.analyzeMetrics(qualityMetrics);
+      const qualityAnalysis: QualityAnalysisResult = {
+        overallScore: rawAnalysis.overallScore,
+        needsImprovement: rawAnalysis.needsImprovement,
+        issues: rawAnalysis.issues,
+        recommendations: toQualityRecommendations(rawAnalysis.recommendations),
+      };
 
       // Evaluate success criteria
       const metricsForEvaluation = {
@@ -188,7 +213,7 @@ export class FrameworkIntegratedPipeline {
         }
 
         // Run improvement cycle if needed
-        if ((execution.qualityAnalysis as Record<string, unknown>).needsImprovement) {
+        if (execution.qualityAnalysis.needsImprovement) {
 
           const improvementResult = await this.improvementEngine.runImprovementCycle(
             async () => this.extractQualityMetrics(execution.result)
