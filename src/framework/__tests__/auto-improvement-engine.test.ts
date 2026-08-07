@@ -95,6 +95,34 @@ describe('AutoImprovementEngine', () => {
       const e = new AutoImprovementEngine({ renderTime: 60000 });
       expect(e).toBeDefined();
     });
+
+    // Regression: a threshold of 0 is the natural "disable this gate" sentinel
+    // for `metric < threshold` checks. Previously `||` rewrote an explicit 0 back
+    // to the default (0.85/0.75/0.80/0.85/90), silently re-enabling a gate the
+    // caller disabled. Must use `??` to preserve the legit-zero sentinel.
+    it('should preserve legit-zero thresholds as a gate-disable sentinel', () => {
+      const e = new AutoImprovementEngine({
+        transcriptionAccuracy: 0,
+        sceneSegmentationF1: 0,
+        entityExtractionF1: 0,
+        relationAccuracy: 0,
+        overallScore: 0,
+      });
+      const thresholds = (e as unknown as { thresholds: Record<string, number> }).thresholds;
+      expect(thresholds.transcriptionAccuracy).toBe(0);
+      expect(thresholds.sceneSegmentationF1).toBe(0);
+      expect(thresholds.entityExtractionF1).toBe(0);
+      expect(thresholds.relationAccuracy).toBe(0);
+      expect(thresholds.overallScore).toBe(0);
+    });
+
+    it('threshold 0 disables the transcription gate even for 0% accuracy', () => {
+      const e = new AutoImprovementEngine({ transcriptionAccuracy: 0 });
+      const result = e.analyzeMetrics({ ...goodMetrics, transcriptionAccuracy: 0 });
+      // With threshold 0, `0 < 0` is false → no transcription issue raised.
+      // (Before the fix, threshold 0 became 0.85, so 0% accuracy was flagged.)
+      expect(result.issues.some(i => i.includes('Transcription accuracy'))).toBe(false);
+    });
   });
 
   // --- analyzeMetrics ---

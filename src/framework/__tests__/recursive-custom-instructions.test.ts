@@ -207,6 +207,22 @@ describe('RecursiveCustomInstructionsFramework', () => {
       const report = framework.generateProgressReport();
       expect(report.metrics.layoutOverlap).toBe(0);
     });
+
+    // Regression: accuracy 0 (complete transcription/analysis failure) is a
+    // legitimate value that must be recorded, not masked to the 0.85/0.75
+    // default. Previously `||` rewrote 0 → 0.85, letting a 0%-accuracy run
+    // pass the quality threshold. Same class as the buildQualityMetrics fix.
+    it('preserves accuracy 0 for transcription (not masked to 0.85)', async () => {
+      await framework.recordStageSuccess('transcription', { accuracy: 0, duration: 1500 });
+      const report = framework.generateProgressReport();
+      expect(report.metrics.transcriptionAccuracy).toBe(0);
+    });
+
+    it('preserves accuracy 0 for analysis (not masked to 0.75)', async () => {
+      await framework.recordStageSuccess('analysis', { accuracy: 0, duration: 2000 });
+      const report = framework.generateProgressReport();
+      expect(report.metrics.sceneSegmentationF1).toBe(0);
+    });
   });
 
   describe('recordStageFailure', () => {

@@ -462,7 +462,10 @@ export class DiagramDetector {
         id: `node_${index}`,
         label: nodeData.label,
         meta: {
-          importance: nodeData.importance || 0.8,
+          // `??` not `||`: importance 0 ("lowest importance") is a legitimate value
+          // per the getImportance() contract (importance-scaler.ts); `||` would
+          // promote a deliberately-minimal node to 0.8.
+          importance: nodeData.importance ?? 0.8,
           category: this.categorizeEntity(nodeData.label, diagramType)
         }
       });

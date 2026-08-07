@@ -950,7 +950,9 @@ export class ComplexLayoutEngine {
   }
 
   private calculateClusterImportance(nodes: NodeDatum[]): number {
-    return nodes.reduce((sum, node) => sum + (node.meta?.importance || 1), 0);
+    // `??` not `||`: a node with importance 0 contributes 0 to the cluster sum,
+    // not 1. `||` would inflate the normalization base for low-importance clusters.
+    return nodes.reduce((sum, node) => sum + (node.meta?.importance ?? 1), 0);
   }
 
 

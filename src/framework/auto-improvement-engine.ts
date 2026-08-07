@@ -75,15 +75,20 @@ export class AutoImprovementEngine {
   private iterationManager?: IterationManager;
 
   constructor(thresholds?: Partial<QualityThresholds>) {
+    // `??` not `||` for ratio/score thresholds: a threshold of 0 is the natural
+    // "disable this gate (always pass)" sentinel for `metric < threshold` checks.
+    // `||` would rewrite a caller's explicit 0 back to the default, silently
+    // re-enabling a gate the caller disabled. (layoutOverlap/renderTime/memoryUsage
+    // are lower-is-better where 0 is a natural lower limit, not a disable sentinel.)
     this.thresholds = {
-      transcriptionAccuracy: thresholds?.transcriptionAccuracy || 0.85,
-      sceneSegmentationF1: thresholds?.sceneSegmentationF1 || 0.75,
-      layoutOverlap: thresholds?.layoutOverlap || 0,
-      renderTime: thresholds?.renderTime || 30000,
-      memoryUsage: thresholds?.memoryUsage || 512,
-      entityExtractionF1: thresholds?.entityExtractionF1 || 0.80,
-      relationAccuracy: thresholds?.relationAccuracy || 0.85,
-      overallScore: thresholds?.overallScore || 90,
+      transcriptionAccuracy: thresholds?.transcriptionAccuracy ?? 0.85,
+      sceneSegmentationF1: thresholds?.sceneSegmentationF1 ?? 0.75,
+      layoutOverlap: thresholds?.layoutOverlap ?? 0,
+      renderTime: thresholds?.renderTime ?? 30000,
+      memoryUsage: thresholds?.memoryUsage ?? 512,
+      entityExtractionF1: thresholds?.entityExtractionF1 ?? 0.80,
+      relationAccuracy: thresholds?.relationAccuracy ?? 0.85,
+      overallScore: thresholds?.overallScore ?? 90,
     };
 
   }

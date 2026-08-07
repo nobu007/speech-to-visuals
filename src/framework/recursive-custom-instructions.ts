@@ -642,10 +642,13 @@ export class RecursiveCustomInstructionsFramework {
     // Update relevant metrics based on stage
     switch (stageName) {
       case 'transcription':
-        this.currentState.metrics.transcriptionAccuracy = metrics.accuracy || 0.85;
+        // `??` not `||`: accuracy 0 (complete transcription failure) is a legitimate
+        // value that must be recorded, not masked to the 0.85 default — otherwise a
+        // 0%-accuracy run passes the quality threshold (see buildQualityMetrics fix).
+        this.currentState.metrics.transcriptionAccuracy = metrics.accuracy ?? 0.85;
         break;
       case 'analysis':
-        this.currentState.metrics.sceneSegmentationF1 = metrics.accuracy || 0.75;
+        this.currentState.metrics.sceneSegmentationF1 = metrics.accuracy ?? 0.75;
         break;
       case 'layout':
         this.currentState.metrics.layoutOverlap = 0; // Success means no overlap

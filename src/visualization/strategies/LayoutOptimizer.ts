@@ -1,6 +1,7 @@
 import { DiagramLayout, PositionedNode, DiagramType, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
+import { getImportance } from '../importance-scaler';
 
 export class LayoutOptimizer {
   private config: LayoutConfig;
@@ -159,7 +160,10 @@ export class LayoutOptimizer {
     const centerY = layout.nodes.reduce((sum, n) => sum + (n.y + getNodeHeight(n, this.config.nodeHeight) / 2), 0) / layout.nodes.length;
 
     const nodes = layout.nodes.map(node => {
-      const importance = node.meta?.importance || 0.5;
+      // Use the canonical helper: it treats importance 0 as a legitimate "lowest"
+      // value (→ no extra spacing) rather than masking it to the 0.5 default, and
+      // it clamps/handles NaN consistently with the rest of the layout pipeline.
+      const importance = getImportance(node);
 
       // More important nodes get more space around them
       const spacingMultiplier = 1 + importance * 0.5;
