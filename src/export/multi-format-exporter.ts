@@ -19,6 +19,7 @@ import type { NodeDatum, EdgeDatum } from '@/types/diagram';
 import { logger } from '../utils/logger';
 import { sanitizeFilename } from '../utils/sanitize';
 import { validateSceneGraphForExport, isStrictValidationEnabled } from './export-content-validator';
+import { escapeXml } from './xml-escape';
 import { securityMetricsCollector } from './security-metrics-collector';
 import { getNodeWidth, getNodeHeight } from '../visualization/node-dimensions';
 
@@ -266,7 +267,7 @@ export class MultiFormatExporter {
 
     let svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-  <title>${this.escapeXML(scene.id)}</title>
+  <title>${escapeXml(scene.id)}</title>
   <rect width="${width}" height="${height}" fill="${bgColor}"/>
   <g id="diagram">
 `;
@@ -290,7 +291,7 @@ export class MultiFormatExporter {
         if (edge.label) {
           const midX = (fx + tx) / 2;
           const midY = (fy + ty) / 2;
-          svg += `    <text x="${midX}" y="${midY - 5}" fill="#666" font-size="12" text-anchor="middle">${this.escapeXML(edge.label)}</text>
+          svg += `    <text x="${midX}" y="${midY - 5}" fill="#666" font-size="12" text-anchor="middle">${escapeXml(edge.label)}</text>
 `;
         }
       }
@@ -303,9 +304,9 @@ export class MultiFormatExporter {
       const w = getNodeWidth(node, 120);
       const h = getNodeHeight(node, 60);
 
-      svg += `    <g id="${this.escapeXML(node.id)}">
+      svg += `    <g id="${escapeXml(node.id)}">
       <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#4A90E2" stroke="#2E5C8A" stroke-width="2" rx="5"/>
-      <text x="${x + w / 2}" y="${y + h / 2}" fill="white" font-size="14" text-anchor="middle" dominant-baseline="middle">${this.escapeXML(node.label)}</text>
+      <text x="${x + w / 2}" y="${y + h / 2}" fill="white" font-size="14" text-anchor="middle" dominant-baseline="middle">${escapeXml(node.label)}</text>
     </g>
 `;
     }
@@ -580,18 +581,6 @@ export class MultiFormatExporter {
         const oct = ch.charCodeAt(0).toString(8).padStart(3, '0');
         return `\\${oct}`;
       });
-  }
-
-  /**
-   * Escape XML special characters
-   */
-  private escapeXML(str: string): string {
-    return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
   }
 
   /**

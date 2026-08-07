@@ -9,6 +9,8 @@
  * making them independently testable without the full export pipeline.
  */
 
+import { escapeXml } from './xml-escape';
+
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
@@ -234,15 +236,14 @@ export function generateLottieAnimation(
 // ---------------------------------------------------------------------------
 // Shared helpers (exported for testability)
 // ---------------------------------------------------------------------------
-
-export function escapeXml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
+//
+// escapeXml is the canonical XML/SVG escaper and lives in ./xml-escape so every
+// SVG emitter shares one definition (previously this file and
+// multi-format-exporter.ts each kept a private byte-identical copy that could
+// drift apart). It is imported at the top of this module for local use and
+// re-exported here to preserve the existing public surface used by the XSS /
+// escape fuzz suites.
+export { escapeXml };
 
 export function formatSceneSubtitle(scene: SceneItem): string {
   const d = clampSceneDuration(scene.duration);
