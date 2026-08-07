@@ -465,6 +465,11 @@ export class PipelineOrchestrator {
           ...qualityMetrics,
           qualityScores,
           stageTimings: stageTimings,
+          // REQ-297: surface the aggregated timing report (totalDurationMs /
+          // totalItemsProcessed / overallThroughputPerMs). It was computed above
+          // but previously dropped at this return boundary — the sibling
+          // smoke-orchestrator already wires it (SmokeRunResult.timingReport).
+          timingReport,
           bottleneckReport,
           totalRetryAttempts: this.retryAttempts,
           recoveryReport: runRecoveryReport,

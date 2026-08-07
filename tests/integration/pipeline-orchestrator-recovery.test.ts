@@ -673,6 +673,33 @@ describe('PipelineOrchestrator Full E2E Recovery', () => {
       orchestrator.recoveryOrchestrator.destroy();
     });
 
+    it('timingReport (aggregated timing) is surfaced on metrics, not dropped (REQ-297)', async () => {
+      // aggregateTimingReport() derives totalDurationMs / totalItemsProcessed /
+      // overallThroughputPerMs — pre-computed aggregates the raw stageTimings
+      // array does not carry. The sibling smoke-orchestrator wires this field
+      // (SmokeRunResult.timingReport); pipeline-orchestrator must too, otherwise
+      // the computed report is silently discarded at the return boundary.
+      const orchestrator = new PipelineOrchestrator();
+
+      const result = await orchestrator.execute(createValidInput());
+
+      expect(result.metrics?.timingReport).toBeDefined();
+      const report = result.metrics!.timingReport!;
+      expect(typeof report.totalDurationMs).toBe('number');
+      expect(report.totalDurationMs).toBeGreaterThanOrEqual(0);
+      expect(typeof report.totalItemsProcessed).toBe('number');
+      expect(typeof report.overallThroughputPerMs).toBe('number');
+      // The aggregate duration must equal the sum of the raw per-stage records,
+      // proving timingReport carries consistent derived data, not a stale copy.
+      const sumDuration = (result.metrics!.stageTimings ?? []).reduce(
+        (s, r) => s + (r.durationMs ?? 0),
+        0,
+      );
+      expect(report.totalDurationMs).toBe(sumDuration);
+
+      orchestrator.recoveryOrchestrator.destroy();
+    });
+
     it('recovery report reflects degraded level after failures', async () => {
       const orchestrator = new PipelineOrchestrator({
         qualityGates: [

@@ -3,7 +3,7 @@ import { TranscriptionResult } from '@/transcription/types';
 import { ContentSegment, DiagramAnalysis } from '@/analysis/types';
 import { LayoutResult } from '@/visualization/types';
 import { QualityAssessment } from '@/quality';
-import type { StageTimingRecord } from './stage-timing-metrics';
+import type { StageTimingRecord, StageTimingReport } from './stage-timing-metrics';
 import type { BottleneckReport } from './bottleneck-detector';
 
 export interface PipelineInput {
@@ -98,6 +98,8 @@ export interface ExtendedPipelineMetrics extends PipelineMetrics {
   qualityScores?: StageQualityScores;
   /** Per-stage timing records for bottleneck detection (REQ-097 / TASK-0143) */
   stageTimings?: StageTimingRecord[];
+  /** Aggregated timing report (totalDurationMs/totalItemsProcessed/overallThroughputPerMs) — REQ-297 */
+  timingReport?: StageTimingReport;
   /** Bottleneck analysis report (REQ-097 / TASK-0143) */
   bottleneckReport?: BottleneckReport;
   /** Total retry attempts across all stages (for observability) */
