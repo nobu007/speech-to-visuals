@@ -6,6 +6,7 @@
 
 import { randomUUID } from 'crypto';
 import { getMemoryUsage } from '@/utils/memory-usage';
+import { percentileCeil } from '@/lib/metrics-utils';
 import { logger } from '@/utils/logger';
 import { MonitoringError } from '@/pipeline/pipeline-errors';
 import { TokenUsageTracker, type StageType } from '@/analysis/token-usage-tracker';
@@ -556,8 +557,9 @@ export class PerformanceDashboard {
 
     const result: Record<number, number> = {};
     for (const p of percentiles) {
-      const index = Math.max(0, Math.ceil((p / 100) * values.length) - 1);
-      result[p] = values[index];
+      // Canonical ceil-rank percentile (values is non-empty here — guarded by
+      // the early return above); see src/lib/metrics-utils.ts.
+      result[p] = percentileCeil(values, p / 100);
     }
     return result;
   }

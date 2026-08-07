@@ -20,6 +20,7 @@ import {
   type StageDegradedEvent,
   type CascadeDetectedEvent,
 } from './error-recovery-event-bus';
+import { percentileCeil } from '@/lib/metrics-utils';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -153,10 +154,10 @@ export class RecoveryTelemetryAggregator {
     const meanRecoveryTimeMs = recoveryTimes.length > 0
       ? recoveryTimes.reduce((a, b) => a + b, 0) / recoveryTimes.length
       : 0;
-    const p95Index = Math.ceil(recoveryTimes.length * 0.95) - 1;
-    const p95RecoveryTimeMs = recoveryTimes.length > 0
-      ? recoveryTimes[Math.max(0, p95Index)]
-      : 0;
+    // Canonical ceil-rank p95 (returns 0 for an empty sample); single-sourced
+    // in src/lib/metrics-utils.ts with every other percentile feeding health
+    // status + the deployment-readiness gate.
+    const p95RecoveryTimeMs = percentileCeil(recoveryTimes, 0.95);
 
     // Per-stage stats
     const stageMap = new Map<string, { attempts: number; successes: number; times: number[] }>();
@@ -177,7 +178,6 @@ export class RecoveryTelemetryAggregator {
     for (const [stage, data] of stageMap) {
       const sorted = data.times.sort((a, b) => a - b);
       const mean = sorted.length > 0 ? sorted.reduce((a, b) => a + b, 0) / sorted.length : 0;
-      const p95Idx = Math.ceil(sorted.length * 0.95) - 1;
       stages.push({
         stage,
         attempts: data.attempts,
@@ -185,7 +185,7 @@ export class RecoveryTelemetryAggregator {
         failures: data.attempts - data.successes,
         successRate: data.attempts > 0 ? data.successes / data.attempts : 1,
         meanRecoveryTimeMs: mean,
-        p95RecoveryTimeMs: sorted.length > 0 ? sorted[Math.max(0, p95Idx)] : 0,
+        p95RecoveryTimeMs: percentileCeil(sorted, 0.95),
       });
     }
 

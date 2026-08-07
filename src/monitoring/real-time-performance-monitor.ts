@@ -8,6 +8,7 @@
 
 import { EventEmitter } from 'events';
 import { getMemoryUsage } from '@/utils/memory-usage';
+import { percentileCeil } from '@/lib/metrics-utils';
 import { logger } from '@/utils/logger';
 
 export interface PerformanceMetric {
@@ -486,13 +487,14 @@ class RealTimePerformanceMonitor extends EventEmitter {
   }
 
   /**
-   * Calculate percentile from array
+   * Calculate percentile from array.
+   *
+   * Delegates to the canonical ceil-rank `percentileCeil` (single source for
+   * every percentile feeding health status + the deployment-readiness gate);
+   * see src/lib/metrics-utils.ts.
    */
   private calculatePercentile(values: number[], percentile: number): number {
-    if (values.length === 0) return 0;
-    const sorted = [...values].sort((a, b) => a - b);
-    const index = Math.ceil(sorted.length * percentile) - 1;
-    return sorted[Math.max(0, index)] || 0;
+    return percentileCeil([...values].sort((a, b) => a - b), percentile);
   }
 
   /**

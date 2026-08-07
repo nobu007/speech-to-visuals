@@ -23,6 +23,7 @@ import { LLMCache } from "./llm-cache";
 import { ComplexityDetector, ComplexityAnalysis } from "./complexity-detector";
 import { parseJsonFromLLMText } from "./llm-utils";
 import { logger } from '../utils/logger';
+import { percentileCeil } from '@/lib/metrics-utils';
 import { TokenUsageTracker, type ModelType, type StageType, type TokenUsageSummary } from './token-usage-tracker';
 import { calculateModelCost, estimateCost, type CostBreakdown, type CostEstimate } from './cost-estimator';
 import { BudgetAlertSystem, type BudgetAlert } from './budget-alert';
@@ -675,10 +676,11 @@ export class LLMService {
       return this.TIMEOUT_DEFAULT_MS;
     }
 
-    // Calculate P95
+    // Calculate P95 via the canonical ceil-rank percentile (single-sourced in
+    // src/lib/metrics-utils.ts); this percentile drives the adaptive timeout
+    // gate enforced on every LLM request.
     const sorted = [...this.responseTimeHistory].sort((a, b) => a - b);
-    const p95Index = Math.ceil(sorted.length * 0.95) - 1;
-    const p95ResponseTime = sorted[Math.max(0, p95Index)];
+    const p95ResponseTime = percentileCeil(sorted, 0.95);
 
     // Use P95 + buffer as timeout
     const adaptiveTimeout = Math.max(
@@ -725,9 +727,11 @@ export class LLMService {
     let p50 = 0, p95 = 0, p99 = 0;
     if (this.responseTimeHistory.length > 0) {
       const sorted = [...this.responseTimeHistory].sort((a, b) => a - b);
+      // p50 stays floor-rank by design (median convention) — deliberately NOT
+      // delegated to the ceil-rank `percentileCeil`; the two methods disagree.
       p50 = sorted[Math.floor(sorted.length * 0.5)] || 0;
-      p95 = sorted[Math.ceil(sorted.length * 0.95) - 1] || 0;
-      p99 = sorted[Math.ceil(sorted.length * 0.99) - 1] || 0;
+      p95 = percentileCeil(sorted, 0.95);
+      p99 = percentileCeil(sorted, 0.99);
     }
 
     const flashPercent = this.modelMetrics.totalRequests > 0
