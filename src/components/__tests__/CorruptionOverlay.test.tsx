@@ -14,16 +14,11 @@ import { jest } from '@jest/globals';
 import React from 'react';
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { mockLogger } from '@tests/helpers/logger-mock';
 
-// Mock logger
-jest.unstable_mockModule('@/utils/logger', () => ({
-  logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
-  },
-}));
+// Mock logger via the shared factory (unstable_mockModule is not hoisted, so
+// the imported binding is safe to reference here).
+jest.unstable_mockModule('@/utils/logger', () => mockLogger());
 
 let CorruptionOverlay: typeof import('../CorruptionOverlay').CorruptionOverlay;
 let reportCorruption: typeof import('@/utils/report-corruption').reportCorruption;
