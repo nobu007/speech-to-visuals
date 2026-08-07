@@ -49,7 +49,17 @@ function listTsFiles(dir: string): string[] {
     const full = path.join(absDir, entry.name);
     if (entry.isDirectory()) {
       results.push(...listTsFiles(path.relative(PROJECT_ROOT, full)));
-    } else if (entry.name.endsWith('.ts') || entry.name.endsWith('.tsx')) {
+    } else if (
+      (entry.name.endsWith('.ts') || entry.name.endsWith('.tsx')) &&
+      // Skip *test files — the guard checks production hooks/components for
+      // runtime anti-patterns (uncleared timers, missing revokes, etc.).
+      // Structural-prevention tests legitimately reference `setInterval`,
+      // `clearInterval`, `createObjectURL`, etc. in comments/regex strings to
+      // pin producer↔consumer coupling, so scanning them produces false
+      // positives that re-tighten the moment anyone adds such a guard.
+      !entry.name.endsWith('.test.ts') &&
+      !entry.name.endsWith('.test.tsx')
+    ) {
       results.push(full);
     }
   }

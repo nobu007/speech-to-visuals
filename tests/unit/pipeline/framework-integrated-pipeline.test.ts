@@ -91,6 +91,14 @@ jest.unstable_mockModule('@/framework/auto-improvement-engine', () => ({
     generateReport: jest.fn().mockReturnValue(''),
   })),
   createAutoImprovementEngine: mockCreateAutoImprovementEngine,
+  // A124 added toQualityRecommendations + QualityRecommendation at the
+  // engine boundary. The SUT (framework-integrated-pipeline) imports
+  // toQualityRecommendations directly, so ESM mocks must export every name
+  // the consumer reads — otherwise module-link throws "does not provide an
+  // export named 'toQualityRecommendations'" before any test runs.
+  toQualityRecommendations: jest.fn((strategies: Array<{ name: string; description: string }>) =>
+    strategies.map(({ name, description }) => ({ name, description })),
+  ),
 }));
 
 // ---------------------------------------------------------------------------

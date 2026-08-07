@@ -220,10 +220,16 @@ describe('useFrameworkPipeline (REQ-137)', () => {
         await result.current.execute(defaultPipelineInput);
       });
 
+      // overallScore flows from qa.overallScore (A123 wiring fix).
       expect(result.current.qualityMetrics.overallScore).toBe(92);
-      expect(result.current.qualityMetrics.breakdown.performance).toBe(90);
-      expect(result.current.qualityMetrics.breakdown.accuracy).toBe(94);
-      expect(result.current.qualityMetrics.breakdown.stability).toBe(92);
+      // breakdown.{performance,accuracy,stability} is an A124 DEFER (the engine
+      // emits no per-category derivation — see useFrameworkPipeline.ts:243-249).
+      // Asserting 0 here pins the typed deferral so a regression that silently
+      // re-surfaces the pre-A124 lying `qa.performanceScore||0` (which always
+      // read 0 because the producer never emitted those keys) is caught.
+      expect(result.current.qualityMetrics.breakdown.performance).toBe(0);
+      expect(result.current.qualityMetrics.breakdown.accuracy).toBe(0);
+      expect(result.current.qualityMetrics.breakdown.stability).toBe(0);
     });
   });
 
