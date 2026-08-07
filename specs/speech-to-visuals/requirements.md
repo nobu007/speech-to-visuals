@@ -747,6 +747,10 @@
 
 - REQ-293: 図解キャンバス寸法 `DEFAULT_CANVAS_WIDTH`(1920) / `DEFAULT_CANVAS_HEIGHT`(1080) が 13 の可視化モジュール（canvas-calculator, layout-engine-v2, 全11レイアウト戦略）でローカル `const` として個別再宣言されていた。全サイトが同一値だったため振る舞い RED→GREEN は不可能だが、正典との結合は偶然のみで共有バインディングなし — 1箇所変更しても残り12は同期せず暗黙ドリフトする latent-coincident の constant-desync シード（T2-D nodeWidth/Height 94b3e8e8 と同クラスのキャンバス版）。新設した正典 `src/visualization/canvas-dimensions.ts` のみがリテラルを保持し、全13ファイルをインポート化、構造的ソース結合ガードテスト（`__tests__/canvas-dimension-default-coupling.test.ts`）が再宣言を検出する。なお src/remotion/Video.tsx の `DEFAULT_WIDTH/HEIGHT`（動画出力解像度、同1920×1080）は別モジュール境界の別概念として意図的に分離。実装とテストを同一コミットに co-locate 🔵 ✅実装済 *本コミット: canvas-dimensions.ts 新設 + 13ファイル import 化 + ソース結合ガード。検証: RED→GREEN（13ファイル退避でガード1件失敗→復元で成功）・戦略系42スイート769テスト green・tsc green・振る舞い完全保存*
 
+### サーバーエクスポートキュー設定の単一ソース化（Phase 127） ✅実装済
+
+- REQ-294: 本番サーバー（src/api/server.ts:107）が `new ExportJobQueue({ maxConcurrent: 3, maxQueueSize: 100 }, ...)` とキュー同時実行数/キューサイズをベアリテラル `3`/`100` でハードコードしていた。これらは `EXPORT_QUEUE_LIMITS.MAX_CONCURRENT`/`MAX_QUEUE_SIZE`（src/config/limits.ts）と偶然一致するが結合なし — 正典を変更しても本番ルートは古いリテラルに留まり、DEFAULT_OPTIONS 経由で正典に従う他全コンシューマとの暗黙ドリフトを生む latent-coincident の constant-desync シード（T2-B）。修正は EXPORT_QUEUE_LIMITS をインポートし同構成で参照。振る舞い RED→GREEN 不可能（同値）のためソース結合ガード（`__tests__/server-queue-config-coupling.test.ts`）がリテラル再インライン化と非インポートを検出する。実装とテストを同一コミットに co-locate 🔵 ✅実装済 *本コミット: server.ts インポート追加+正典参照化 + ガード。検証: RED→GREEN（server.ts 戻しで3テスト失敗→復元で成功）・export-job-queue+server 5スイート78テスト green・tsc green*
+
 ## 実装進捗サマリー
 
 | フェーズ | ステータス | タスク範囲 | 完了率 |

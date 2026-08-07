@@ -20,7 +20,7 @@ import { authMiddleware, AuthenticatedRequest } from './middleware/auth';
 import { correlationId } from './middleware/correlation-id';
 import { requestLogger } from './middleware/request-logger';
 import { requestMetrics } from './middleware/request-metrics';
-import { RATE_LIMITS, SERVER_LIMITS } from '../config/limits';
+import { RATE_LIMITS, SERVER_LIMITS, EXPORT_QUEUE_LIMITS } from '../config/limits';
 import { validateSecurityEnv } from '../config/validate';
 import { logger } from '../utils/logger';
 import { PipelineConfigError } from '../pipeline/pipeline-errors';
@@ -104,7 +104,13 @@ app.use('/api/v1/export/artifacts/:artifactId/download', exportRateLimiter);
 app.use('/api/v1/export', createExportRouter(artifactStore));
 
 // REQ-241~243: Export job management endpoints (Phase 104)
-const jobQueue = new ExportJobQueue({ maxConcurrent: 3, maxQueueSize: 100 }, exportMetricsCollector, artifactStore);
+// Single-source the queue concurrency/size from EXPORT_QUEUE_LIMITS rather than
+// re-inlining `3`/`100` — a latent desync seed (see __tests__/server-queue-config-coupling.test.ts).
+const jobQueue = new ExportJobQueue(
+  { maxConcurrent: EXPORT_QUEUE_LIMITS.MAX_CONCURRENT, maxQueueSize: EXPORT_QUEUE_LIMITS.MAX_QUEUE_SIZE },
+  exportMetricsCollector,
+  artifactStore,
+);
 jobQueue.start();
 app.use('/api/v1/export', createExportJobRouter(jobQueue));
 
