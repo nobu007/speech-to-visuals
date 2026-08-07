@@ -65,6 +65,23 @@ export interface LayoutMetrics {
   layoutBalance: number;
 }
 
+/**
+ * Result of a Custom-Instructions compliance evaluation of a layout.
+ *
+ * `evaluateLayoutWithCustomInstructions` previously computed this object and
+ * then returned `void`, discarding every field (producer-computes-but-DROPS).
+ * It is now returned so the live caller can act on a failing layout instead of
+ * the compliance check being a silent no-op.
+ */
+export interface LayoutComplianceResult {
+  /** True when `complianceScore` meets the required threshold (>= 0.75). */
+  passed: boolean;
+  /** Fraction of compliance criteria satisfied, in [0, 1]. */
+  complianceScore: number;
+  /** Names of the compliance criteria that were NOT satisfied. */
+  failures: string[];
+}
+
 // --- Phase 3: Strategy-based Layout Architecture ---
 
 export interface LayoutStrategy {

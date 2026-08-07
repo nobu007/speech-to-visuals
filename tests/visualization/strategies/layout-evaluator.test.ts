@@ -231,9 +231,12 @@ describe('LayoutEvaluator', () => {
         iteration: 1,
       };
 
-      await expect(
-        evaluator.evaluateLayoutWithCustomInstructions(result, 'flow')
-      ).resolves.toBeUndefined();
+      // REQ-289: the evaluator must RETURN the compliance it computes (previously
+      // computed-and-dropped as void). A clean layout satisfies every criterion.
+      const compliance = await evaluator.evaluateLayoutWithCustomInstructions(result, 'flow');
+      expect(compliance.passed).toBe(true);
+      expect(compliance.complianceScore).toBe(1);
+      expect(compliance.failures).toEqual([]);
     });
 
     it('should report failures for overlapping layouts', async () => {
@@ -250,9 +253,17 @@ describe('LayoutEvaluator', () => {
         iteration: 1,
       };
 
-      await expect(
-        evaluator.evaluateLayoutWithCustomInstructions(result, 'flow')
-      ).resolves.toBeUndefined();
+      // REQ-289: the test name promises failures are REPORTED. Previously the
+      // method returned void and the only assertion was resolves.toBeUndefined,
+      // so a failing layout was indistinguishable from a passing one. The
+      // evaluator must surface the failed criteria: 10px-overlapping nodes fail
+      // `zeroOverlaps`, and processingTime 6000ms fails `fastProcessing`.
+      const compliance = await evaluator.evaluateLayoutWithCustomInstructions(result, 'flow');
+      expect(compliance.passed).toBe(false);
+      expect(compliance.complianceScore).toBe(0.5);
+      expect(compliance.failures).toEqual(expect.arrayContaining(['zeroOverlaps', 'fastProcessing']));
+      expect(compliance.failures).not.toContain('hasValidStructure');
+      expect(compliance.failures).not.toContain('withinBounds');
     });
   });
 });

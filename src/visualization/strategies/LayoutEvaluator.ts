@@ -1,5 +1,5 @@
 import { DiagramLayout, DiagramType, PositionedNode, LayoutEdge } from '@/types/diagram';
-import { LayoutConfig, LayoutResult, LayoutMetrics, Point, OverlapPair, BoundingBox } from '../types';
+import { LayoutConfig, LayoutResult, LayoutMetrics, LayoutComplianceResult, Point, OverlapPair, BoundingBox } from '../types';
 import { nodesOverlap, calculateNodeCenter, calculateNodeDistance } from '../layout-utils';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
@@ -279,9 +279,14 @@ export class LayoutEvaluator {
 
   /**
    * 🎯 Custom Instructions: Enhanced Layout Evaluation
-   * Evaluates against Custom Instructions Phase 4 requirements
+   * Evaluates against Custom Instructions Phase 4 requirements.
+   *
+   * Returns the compliance result so the caller can surface failures. Previously
+   * this method computed the compliance, score, and `passed` flag and then
+   * returned `void` — every computed field was dropped (producer-computes-but-
+   * DROPS), so failing layouts were silently swallowed on the live path.
    */
-  public async evaluateLayoutWithCustomInstructions(result: LayoutResult, diagramType: DiagramType): Promise<void> {
+  public async evaluateLayoutWithCustomInstructions(result: LayoutResult, diagramType: DiagramType): Promise<LayoutComplianceResult> {
     const metrics = this.calculateLayoutMetrics(result.layout.nodes, result.layout.edges);
 
     // Custom Instructions compliance check
@@ -292,7 +297,10 @@ export class LayoutEvaluator {
       withinBounds: result.bounds.width <= this.config.width && result.bounds.height <= this.config.height
     };
 
-    const complianceScore = Object.values(compliance).filter(v => v).length / Object.keys(compliance).length;
+    const failures = Object.entries(compliance).filter(([, satisfied]) => !satisfied).map(([criterion]) => criterion);
+    const complianceScore = 1 - failures.length / Object.keys(compliance).length;
     const passed = complianceScore >= 0.75; // 75% compliance required
+
+    return { passed, complianceScore, failures };
   }
 }

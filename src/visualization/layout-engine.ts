@@ -179,7 +179,16 @@ export class LayoutEngine extends BaseLayoutEngine {
       confidence: this.layoutEvaluator.calculateLayoutConfidence(layout, processingTime)
     };
 
-    await this.layoutEvaluator.evaluateLayoutWithCustomInstructions(result, diagramType);
+    // 🎯 Custom Instructions: compliance evaluation (Phase 4 requirements).
+    // Previously awaited as a fire-and-forget void; the evaluator now returns the
+    // compliance result so failures (overlaps, out-of-bounds, slow, empty) are
+    // surfaced instead of silently dropped.
+    const compliance = await this.layoutEvaluator.evaluateLayoutWithCustomInstructions(result, diagramType);
+    if (!compliance.passed) {
+      this.logger.warn(
+        `⚠️ Layout compliance check failed (score ${compliance.complianceScore.toFixed(2)}): ${compliance.failures.join(', ') || 'unknown criteria'}`
+      );
+    }
     return result;
   }
 
