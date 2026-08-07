@@ -214,35 +214,39 @@ describe('ISS-C: BatchProcessingAPI sequential dedup', () => {
       },
     }));
 
-    // Mock crypto hash to return consistent hashes for dedup testing
-    jest.doMock('crypto', () => ({
-      randomUUID: jest.fn(() => 'mock-uuid'),
-      createHash: jest.fn().mockReturnValue({
-        update: jest.fn().mockReturnThis(),
-        digest: jest.fn().mockReturnValue({
-          slice: jest.fn().mockReturnValue('hashedval'),
-        }),
-      }),
-    }));
-
+    // NOTE: we deliberately do NOT mock `crypto` here. Under Jest's experimental
+    // ESM mode `jest.doMock('crypto', …)` is a silent no-op (only
+    // `jest.unstable_mockModule` intercepts ESM imports), so a crypto mock would
+    // never apply and the test would exercise the real (filename-based) hash
+    // fallback — making two same-size/different-name files NOT collide. Instead
+    // we give the duplicate files an identical backing ArrayBuffer so the real
+    // content-hash branch (the production path for genuine File objects)
+    // deterministically produces a collision, independent of hash resolution order.
     const { BatchProcessingAPI } = await import('@/api/batch-processing-api');
 
     class StubFile {
       name: string;
       size: number;
-      arrayBuffer?: () => Promise<ArrayBuffer>;
-      constructor(name: string, size: number) {
+      private readonly body: ArrayBuffer;
+      constructor(name: string, size: number, body?: ArrayBuffer) {
         this.name = name;
         this.size = size;
+        this.body = body ?? new ArrayBuffer(size);
+      }
+      arrayBuffer(): Promise<ArrayBuffer> {
+        return Promise.resolve(this.body);
       }
     }
+
+    // a.wav and b.wav share `dupBody` → identical content hash → collision.
+    const dupBody = new ArrayBuffer(100);
 
     const api = new BatchProcessingAPI();
     const result = await api.submitJob({
       files: [
-        new StubFile('a.wav', 100) as unknown as File,
-        new StubFile('b.wav', 100) as unknown as File, // same hash+size → dup
-        new StubFile('c.wav', 200) as unknown as File, // different size → unique
+        new StubFile('a.wav', 100, dupBody) as unknown as File,
+        new StubFile('b.wav', 100, dupBody) as unknown as File, // identical content+size → dup
+        new StubFile('c.wav', 200) as unknown as File,           // different content → unique
       ],
     });
 
