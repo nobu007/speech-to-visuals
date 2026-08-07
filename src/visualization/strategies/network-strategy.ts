@@ -16,10 +16,9 @@ import { LayoutStrategy, StrategyLayoutResult } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
 import { getImportance, importanceSizeScale } from '../importance-scaler';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
 
 const NODE_SEP = 80;
-const DEFAULT_CANVAS_WIDTH = 1920;
-const DEFAULT_CANVAS_HEIGHT = 1080;
 const TARGET_ASPECT_RATIO = 16 / 9;
 
 const PHASES = [

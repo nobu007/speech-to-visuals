@@ -8,9 +8,8 @@
 
 import { PositionedNode } from '@/types/diagram';
 import { getNodeWidth, getNodeHeight } from './node-dimensions';
+import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from './canvas-dimensions';
 
-const DEFAULT_CANVAS_WIDTH = 1920;
-const DEFAULT_CANVAS_HEIGHT = 1080;
 const TARGET_ASPECT_RATIO = 16 / 9;
 const PADDING_RATIO = 0.05;
 const MIN_PADDING = 40;

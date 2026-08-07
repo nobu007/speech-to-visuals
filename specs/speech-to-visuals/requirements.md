@@ -743,6 +743,10 @@
 
 - REQ-292: エラー復旧テレメトリ集約器（src/quality/recovery-telemetry-aggregator.ts）は `stage:degraded` / `cascade:detected` イベントを bounded FIFO（各100/50件）で蓄積するが、`getSnapshot()` はこれらを一切表面化してはならない（現状は破棄）。兄弟の `activeAlerts` は `degradationAlerts: [...this.activeAlerts]` で TelemetrySnapshot に伝搬しており、`reset()` も4配列すべて（records / stageDegradedEvents / cascadeEvents / activeAlerts）を一括クリアするため蓄積意図は明白である。それにもかかわらず stageDegradedEvents / cascadeEvents は push/cap/reset のみで読込ゼロであり、LIVE 消費者である監視API（src/api/routes/monitoring.ts:215 が `getSnapshot()` を呼び `res.json({ data: telemetry })` で返却）に届かない。これは「producer-computes-but-DROPS」クラス（hasCycles 8d8a245e / LayoutEvaluator compliance 307846c6 と同系）であり、ステージ劣化・カスケード伝播の診断データが収集されつつ一切観測不能な状態であった。修正は TelemetrySnapshot に `stageDegradedEvents: StageDegradedEvent[]` / `cascadeEvents: CascadeDetectedEvent[]` を追加し、getSnapshot が `[...this.stageDegradedEvents]` / `[...this.cascadeEvents]` で伝搬する（degradationAlerts と同一パターン・配列は既に上限付きで非有界成長なし）。実装とテストを同一コミットに co-locate 🔵 ✅実装済 *本コミット: TelemetrySnapshot に2フィールド追加・getSnapshot に伝搬追加・tests/quality/recovery-telemetry-aggregator.test.ts に空スナップショット検証（[]）とシングルトンバス経由のキャプチャ検証を追加。検証: RED→GREEN（旧 getSnapshot に戻すと新テストが cascadeEvents undefined で RED・復元で GREEN）・テレメトリ34テスト + tsc green・TelemetrySnapshot リテラル構築者なしで加算的後方互換*
 
+### キャンバス寸法デフォルトの単一ソース化（Phase 126） ✅実装済
+
+- REQ-293: 図解キャンバス寸法 `DEFAULT_CANVAS_WIDTH`(1920) / `DEFAULT_CANVAS_HEIGHT`(1080) が 13 の可視化モジュール（canvas-calculator, layout-engine-v2, 全11レイアウト戦略）でローカル `const` として個別再宣言されていた。全サイトが同一値だったため振る舞い RED→GREEN は不可能だが、正典との結合は偶然のみで共有バインディングなし — 1箇所変更しても残り12は同期せず暗黙ドリフトする latent-coincident の constant-desync シード（T2-D nodeWidth/Height 94b3e8e8 と同クラスのキャンバス版）。新設した正典 `src/visualization/canvas-dimensions.ts` のみがリテラルを保持し、全13ファイルをインポート化、構造的ソース結合ガードテスト（`__tests__/canvas-dimension-default-coupling.test.ts`）が再宣言を検出する。なお src/remotion/Video.tsx の `DEFAULT_WIDTH/HEIGHT`（動画出力解像度、同1920×1080）は別モジュール境界の別概念として意図的に分離。実装とテストを同一コミットに co-locate 🔵 ✅実装済 *本コミット: canvas-dimensions.ts 新設 + 13ファイル import 化 + ソース結合ガード。検証: RED→GREEN（13ファイル退避でガード1件失敗→復元で成功）・戦略系42スイート769テスト green・tsc green・振る舞い完全保存*
+
 ## 実装進捗サマリー
 
 | フェーズ | ステータス | タスク範囲 | 完了率 |

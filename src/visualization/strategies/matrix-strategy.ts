@@ -14,9 +14,8 @@ import {
 } from '@/visualization/types';
 import { calculateCanvasSize, calculateMetrics } from '@/visualization/layout-engine-v2';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
 
-const DEFAULT_CANVAS_WIDTH = 1920;
-const DEFAULT_CANVAS_HEIGHT = 1080;
 const CANVAS_PADDING = 80;
 const ASPECT_RATIO = 16 / 9;
 
