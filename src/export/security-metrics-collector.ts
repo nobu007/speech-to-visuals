@@ -1,17 +1,7 @@
-/**
- * Sanitize a label value for Prometheus exposition format.
- *
- * Prometheus label values must not contain unescaped double-quotes, backslashes,
- * or newlines. Without sanitization, a malicious pattern name could inject
- * fake metric lines into the output (label injection attack).
- */
-function sanitizePrometheusLabel(value: string): string {
-  return value
-    .replace(/\\/g, '\\\\')
-    .replace(/"/g, '\\"')
-    .replace(/\n/g, '\\n')
-    .slice(0, 200);
-}
+// Prometheus label-value sanitization is consolidated in the shared helper —
+// see src/utils/prometheus-label-escape.ts (formerly a private copy here that
+// drifted from the sibling copy in prometheus-exporter.ts).
+import { sanitizePrometheusLabel } from '@/utils/prometheus-label-escape';
 
 /**
  * Security Guard Rejection Metrics Collector
