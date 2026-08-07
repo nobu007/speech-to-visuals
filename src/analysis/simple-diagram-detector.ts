@@ -6,6 +6,7 @@
 
 import type { DiagramType } from '@/types/diagram';
 import { escapeRegex } from '@/utils/regex-escape';
+import { MAX_DIAGRAM_CONFIDENCE } from './diagram-detection-constants';
 
 export type { DiagramType };
 
@@ -71,7 +72,6 @@ export class SimpleDiagramDetector {
   ];
 
   private readonly CONFIDENCE_SCALE_FACTOR = 2;
-  private readonly MAX_CONFIDENCE_CAP = 0.95;
 
   private readonly NORMALIZATION_FACTOR = 0.1;
   private readonly MIN_NORMALIZATION_DIVISOR = 1;
@@ -101,7 +101,7 @@ export class SimpleDiagramDetector {
       current[1] > best[1] ? current : best
     )[0] as DiagramType;
 
-    const confidence = Math.min(scores[bestType] * this.CONFIDENCE_SCALE_FACTOR, this.MAX_CONFIDENCE_CAP); // Scale up confidence
+    const confidence = Math.min(scores[bestType] * this.CONFIDENCE_SCALE_FACTOR, MAX_DIAGRAM_CONFIDENCE); // Scale up confidence
 
     // When no keywords match at all, use default elements instead of
     // falsely presenting hardcoded flow-chart elements for unknown content

@@ -3,6 +3,7 @@ import {
   type DiagramType,
   type TextSegment,
 } from '../simple-diagram-detector';
+import { MAX_DIAGRAM_CONFIDENCE } from '../diagram-detection-constants';
 
 describe('SimpleDiagramDetector', () => {
   let detector: SimpleDiagramDetector;
@@ -64,11 +65,12 @@ describe('SimpleDiagramDetector', () => {
   // ─── analyze() — confidence scoring ───
 
   describe('analyze() — confidence scoring', () => {
-    test('confidence is capped at 0.95', async () => {
+    test('confidence is capped at MAX_DIAGRAM_CONFIDENCE (single-source ceiling)', async () => {
       const result = await detector.analyze(
         makeSegment('process step process step process step process step process step process step')
       );
-      expect(result.confidence).toBeLessThanOrEqual(0.95);
+      expect(MAX_DIAGRAM_CONFIDENCE).toBe(0.95);
+      expect(result.confidence).toBeLessThanOrEqual(MAX_DIAGRAM_CONFIDENCE);
     });
 
     test('confidence is between 0 and 0.95', async () => {

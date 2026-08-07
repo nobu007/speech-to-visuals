@@ -5,6 +5,7 @@ import { escapeRegex } from '@/utils/regex-escape';
 import { logger } from '../utils/logger';
 import { sanitizeFinite, sanitizeDiagramType } from '@/utils/guards';
 import { safeMap } from '../lib/safe-array';
+import { MAX_DIAGRAM_CONFIDENCE } from './diagram-detection-constants';
 
 // ========================================
 // TASK-0021: Diagram Detection Result Types
@@ -234,7 +235,6 @@ export class DiagramDetector {
   private readonly STATISTICAL_ANALYSIS_ENABLE_THRESHOLD = 0.85;
   private readonly ENHANCED_STATISTICAL_BOOST_FACTOR = 1.1;
   private readonly BOOST_CONFIDENCE_FACTOR = 1.15;
-  private readonly HYBRID_CONFIDENCE_CAP = 0.95;
   private readonly HYBRID_FALLBACK_BOOST_FACTOR = 1.05;
   private readonly HYBRID_FALLBACK_CONFIDENCE_CAP = 0.85;
   private readonly HYBRID_HIGHEST_CONFIDENCE_BOOST_FACTOR = 1.1;
@@ -411,7 +411,6 @@ export class DiagramDetector {
     const MAX_CONFIDENCE = 1;
     const ORG_CHART_BOOST_FACTOR = 1.3;
     const TIMELINE_BOOST_FACTOR = 1.2;
-    const HIGH_CONFIDENCE_CAP = 0.95;
     const LOW_SCORE_THRESHOLD = 3;
     const LOW_SCORE_PENALTY_FACTOR = 0.7;
 
@@ -421,12 +420,12 @@ export class DiagramDetector {
     // Boost confidence for clear organizational indicators
     let adjustedConfidence = confidence;
     if (bestType.type === 'tree' && (text.includes('ceo') || text.includes('vp') || text.includes('director'))) {
-      adjustedConfidence = Math.min(confidence * ORG_CHART_BOOST_FACTOR, HIGH_CONFIDENCE_CAP); // Strong boost for org charts
+      adjustedConfidence = Math.min(confidence * ORG_CHART_BOOST_FACTOR, MAX_DIAGRAM_CONFIDENCE); // Strong boost for org charts
     }
 
     // Boost confidence for clear timeline indicators
     if (bestType.type === 'timeline' && (text.includes('january') || text.includes('project') || text.includes('phase'))) {
-      adjustedConfidence = Math.min(confidence * TIMELINE_BOOST_FACTOR, HIGH_CONFIDENCE_CAP);
+      adjustedConfidence = Math.min(confidence * TIMELINE_BOOST_FACTOR, MAX_DIAGRAM_CONFIDENCE);
     }
 
     // Penalize if the score is too low (likely wrong detection)
@@ -874,7 +873,7 @@ export class DiagramDetector {
     try {
       // Boost base analysis with statistical insights
       const safeBaseConf = sanitizeFinite(baseAnalysis.confidence);
-      const boostedConfidence = Math.min(safeBaseConf * 1.15, 0.95);
+      const boostedConfidence = Math.min(safeBaseConf * 1.15, MAX_DIAGRAM_CONFIDENCE);
 
       return {
         ...baseAnalysis,
@@ -931,7 +930,7 @@ export class DiagramDetector {
 
       // Calculate final confidence based on consensus strength
       const methodAgreement = candidates.length > 0 ? consensusType.methods.length / candidates.length : 0;
-      const finalConfidence = Math.min(consensusType.score * methodAgreement, this.HYBRID_CONFIDENCE_CAP);
+      const finalConfidence = Math.min(consensusType.score * methodAgreement, MAX_DIAGRAM_CONFIDENCE);
 
       // Get the best result for the consensus type
       const bestCandidate = candidates
@@ -1046,7 +1045,7 @@ export class DiagramDetector {
       const llmRecommended = sanitizeDiagramType(analysisResult.type);
       const matchEntry = allScores.find(s => s.type === llmRecommended);
       if (matchEntry) {
-        matchEntry.confidence = Math.min(sanitizeFinite(matchEntry.confidence, 0) * 1.15, 0.95);
+        matchEntry.confidence = Math.min(sanitizeFinite(matchEntry.confidence, 0) * 1.15, MAX_DIAGRAM_CONFIDENCE);
       }
     }
 
@@ -1217,8 +1216,8 @@ export class DiagramDetector {
     // Combined score
     let confidence = varietyScore + frequencyScore + relationScore;
 
-    // Cap at 0.95
-    confidence = Math.min(confidence, 0.95);
+    // Cap detection confidence below certainty (see MAX_DIAGRAM_CONFIDENCE).
+    confidence = Math.min(confidence, MAX_DIAGRAM_CONFIDENCE);
 
     // Floor: ensure minimum confidence for strong matches
     if (hits.length >= 3 && freq >= 5) {
@@ -1405,7 +1404,7 @@ export class DiagramDetector {
 
   private async enhancedStatisticalAnalysis(segment: ContentSegment, baseAnalysis: DiagramAnalysis): Promise<DiagramAnalysis> {
     // Apply learned improvements from previous iterations
-    const enhancedConfidence = Math.min(sanitizeFinite(baseAnalysis.confidence, 0) * this.ENHANCED_STATISTICAL_BOOST_FACTOR, this.HYBRID_CONFIDENCE_CAP);
+    const enhancedConfidence = Math.min(sanitizeFinite(baseAnalysis.confidence, 0) * this.ENHANCED_STATISTICAL_BOOST_FACTOR, MAX_DIAGRAM_CONFIDENCE);
 
     return {
       ...baseAnalysis,
@@ -1519,7 +1518,7 @@ export class DiagramDetector {
 
   // Improvement implementation methods (simplified for demo)
   private async boostDetectionConfidence(analysis: DiagramAnalysis, segment: ContentSegment): Promise<DiagramAnalysis> {
-    const boostedConfidence = Math.min(analysis.confidence * this.BOOST_CONFIDENCE_FACTOR, this.HYBRID_CONFIDENCE_CAP);
+    const boostedConfidence = Math.min(analysis.confidence * this.BOOST_CONFIDENCE_FACTOR, MAX_DIAGRAM_CONFIDENCE);
     return { ...analysis, confidence: boostedConfidence };
   }
 
