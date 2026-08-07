@@ -400,6 +400,11 @@ export class VideoGenerator {
           audioUrl: inputProps.audioUrl as string,
           outputPath,
           quality: toRenderQuality(this.options.quality),
+          // Thread the configured fps into the renderer. Previously dropped at
+          // this boundary (actualVideoRenderer hardcoded `const fps = 30`), so
+          // 24/60 fps requests silently rendered at 30fps. Mirrors the quality
+          // propagation fix (6937b8b) at the same boundary.
+          fps: this.options.fps || 30,
         },
         (progress) => {
           // プログレス更新を伝播

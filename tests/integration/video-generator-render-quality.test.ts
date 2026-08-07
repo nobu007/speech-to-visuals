@@ -83,3 +83,47 @@ describe('VideoGenerator render quality propagation', () => {
     expect(passedOptions.quality).toBe('high');
   });
 });
+
+/**
+ * fps propagation: executeRemotionRender must hand the configured fps to the
+ * renderer instead of letting actualVideoRenderer hardcode 30.
+ *
+ * Bug: executeRemotionRender called renderVideo without an `fps` field, and
+ * ActualVideoRenderer.getComposition used a hardcoded `const fps = 30`. So a
+ * 60 fps (high-quality preset) or 24 fps (fast preset) request silently rendered
+ * at 30 fps, and durationInFrames was computed at 30 fps (frame↔duration drift).
+ */
+describe('VideoGenerator render fps propagation', () => {
+  beforeEach(() => {
+    renderVideoMock.mockReset();
+    renderVideoMock.mockResolvedValue(undefined);
+  });
+
+  it('passes the configured 60 fps to the renderer (not hardcoded 30)', async () => {
+    const gen = new VideoGenerator({ fps: 60 });
+
+    await internals(gen).executeRemotionRender(renderConfig());
+
+    expect(renderVideoMock).toHaveBeenCalledTimes(1);
+    const passedOptions = renderVideoMock.mock.calls[0][0] as { fps?: number };
+    expect(passedOptions.fps).toBe(60);
+  });
+
+  it('passes 24 fps through', async () => {
+    const gen = new VideoGenerator({ fps: 24 });
+
+    await internals(gen).executeRemotionRender(renderConfig());
+
+    const passedOptions = renderVideoMock.mock.calls[0][0] as { fps?: number };
+    expect(passedOptions.fps).toBe(24);
+  });
+
+  it('defaults to 30 fps when fps is not configured', async () => {
+    const gen = new VideoGenerator({ quality: 'high' }); // no fps
+
+    await internals(gen).executeRemotionRender(renderConfig());
+
+    const passedOptions = renderVideoMock.mock.calls[0][0] as { fps?: number };
+    expect(passedOptions.fps).toBe(30);
+  });
+});
