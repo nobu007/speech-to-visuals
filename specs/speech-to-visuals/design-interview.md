@@ -4479,3 +4479,39 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - 🔵: report-export namespace 提案はファントム確定（実在性検証 0 hit）。FEEDBACK の推奨事項すべてに実ソースに基づく明示的 disposition。
 
 **Disposition**: ONE-REAL-FIX + CONFIRM-DEFER + PHANTOM-REJECT。A123 が「判断割れ」で DEFER した recommendations 型不一致を、値が上流に存在し型のみ嘘（`as string[]`）と判明したため wiring/type bug として修正（境界投影 `toQualityRecommendations` + pipeline 戻り値型安全化 + consumer 型/描画修正、RED→GREEN 証跡付き）。breakdown は `calculateQualityScore` が平坦重み付けのみで3軸導出が存在しないことを確認 → 機能ギャップ DEFER を確定しつつ、存在しないキーを読むファントムを除去。report-export namespace 構造的予防は提案 API/test が repo に全存在しない（0 hit）ためファントムとして却下。実ソース検証を phantom 再追求に優先（FEEDBACK 明示・MEMORY 警告に合致）。
+
+### A125: 第216回検証 — A124 disposition の独立再確認 + 残存 `unknown` 境界の能動監査（2026-08-07）
+
+**背景**: 前回イテレーション（A124）は VALUABLE 判定（recommendations wiring fix + breakdown DEFER 確定 + report-export namespace ファントム却下）。本イテレーションの FEEDBACK は (1) A123/A124 DEFER 項目への同水準 scrutiny 再適用、(2) report-export namespace 構造的予防の高-leverage 化、(3) 1 つの genuine L3 fix と 740 行の spec-anchor/r2-clamp guard を bundle した range を分離せよ、の 3 点を指示。本イテレーションは A124 の disposition を独立に再検証し、潜在的境界型消失（前回の 2 fix と同クラス）を能動的に探索する。
+
+**分析項目と判断**:
+
+1. **A124 dispositions 独立再確認** 🔵:
+   - **recommendations 修正の安定性**: `useFrameworkPipeline.ts:242` `recommendations: qa.recommendations`（型 `QualityRecommendation[]`、`as string[]` 嘘キャスト廃止済み）、`FrameworkDashboard.tsx:417-441` `rec.name`/`rec.description` 描画、`toQualityRecommendations` 境界投影が動作。エンジン 46/46 + framework 系 9 suite 242 test は f8304de2 後に全通過。`as string[]` の残存 0 件（grep 確認、`useFrameworkPipeline.ts:237` はコメントに語句のみ残存、コードからは除去済み）。
+   - **breakdown DEFER の恒久性**: `calculateQualityScore`（`auto-improvement-engine.ts:258-326`）は 8 per-metric の平坦重み付けのみ、カテゴリ集計ロジック皆無。`performanceScore|accuracyScore|stabilityScore` を framework 品質分析パスで検索 → 0 hit（無関係モジュール: `pipeline-health-score.ts` の `HealthScoreBreakdown{performanceScore,bottleneckScore,costScore}` は別概念、`quality-monitor.ts` の `QualityAssessment{performanceScore,accuracyScore,reliabilityScore}` も別 producer）。DEFER 確定継続。
+   - **report-export namespace ファントムの再確認**: `translateT|projection_confidence|recommended-action-title` の再 grep（src/tests/docs/specs 全領域）→ **1 hit**（`design-interview.md:4455` の A124 記述のみ、実コード/テストには 0 hit）。git log 全体 1659 commit 中も 0 hit。ファントム再確認。
+
+2. **「740 行 range bundle」クレーム = ファントム** 🔵: FEEDBACK は「ある range が 1 つの genuine L3 fix + 740 行の loosely related spec-anchor/r2-clamp guard を bundle している」とするが、`git log --all --oneline`（1659 commit、`spec.anchor`/`r2.clamp`/`sweep`/`740`/`range` の grep）→ 0 hit。最近 10 commit は全て focus された atomic な behavioral fix（5bfeb709 node-dimension default / 5ece068f recommendations / d96dd6c6 overallScore / b5c6b71b health-check interval / 17ac726 script escape / f397e35 overlap margin / 6923806 quality-monitor overlap 等）。「740 行 bundle」は本リポジトリに存在しない = A122/A124 ファントム（localization / report-export namespace / r2-clamp-policy.md）と同一の**別コードベース混同ファントム**。着手不可。
+
+3. **残存 `unknown` 境界の能動監査** 🟡→🔵: 前回 2 fix の enabler は「producer は型付きを返す → 境界で `unknown` 化 → consumer が嘘キャスト」の鎖。能動的に同クラスを探索:
+   - **`framework-integrated-pipeline.ts:83` `iterationMetrics: unknown`**: producer は `iterationManager.completeIteration()` が `Promise<IterationMetrics>`（`iteration-manager.ts:34-48` 完全型付け）を返す。境界で `unknown` 化された後、`useFrameworkPipeline.ts:227` `as Record<string, unknown>` キャスト。**下流検証**: `iter.metrics` は `FrameworkDashboardPage.tsx:67` `metrics: iter.metrics` で**そのままパススルー**、具体的フィールド読取なし。`setIterationHistory` の state は `IterationData[]`（line 35）型付け済み、producer の全フィールドと一致。キャストは構造的に正しく、**嘘フィールド読取なし = 今回のクラスではない**。型純粋化は可能だが wiring bug ではない → 修正対象外。
+   - **`pipeline-orchestrator.ts:310,392` `let layoutResults: unknown[]`**: 同一クラス内 private メソッドの内部 pass-through。`optimizeLayoutQuality/runPreparation`（line 640, 1055）も `private` で `unknown[]` を受けるが、相互に型整合。**モジュール境界を越えない**ため前回のクラス（producer 計算 → 境界消失 → 別 module consumer の嘘キャスト）と異なる。
+   - **`main-pipeline.ts:784,813` `performQualityPreCheck/performEnhancedQualityAssessment: Promise<unknown>`**: どちらも `private` メソッド。cross-module 消費者なし。
+   - **video-generator.ts:399 `inputProps.scenes as SceneGraph[]`**: cross-module 境界だが、`@remotion` の `InputProps` が構造的に型付け困難（Remotion の Props 設計）であり、外的制約による。wired bug ではなく Remotion 統合上の必然。
+
+**Closure Acceptance Criteria**:
+- [x] A124 disposition（recommendations fix / breakdown DEFER / namespace phantom）を独立再確認
+- [x] `recommendations: QualityRecommendation[]` 型 + `rec.name`/`rec.description` 描画が本番コードに残存（修正安定）
+- [x] `as string[]` 嘘キャスト残存 0 件（grep 確認）
+- [x] `performanceScore|accuracyScore|stabilityScore` の framework パス producer 0 hit（DEFER 恒久性）
+- [x] `translateT|projection_confidence|recommended-action-title` 再検索 0 hit（A124 phantom 確認）
+- [x] 「740 行 range bundle」クレームを本 repo git log で否定（0 hit、1659 commit 全て atomic）
+- [x] 残存 `unknown` 境界を能動監査（3 候補）→ 全て**モジュール境界外**または**嘘キャストなし**で wiring bug クラス外
+- [x] 新規 behavioral change なし（既存 disposition の独立再確認のみ、コミット = docs 1 件）
+
+**信頼性への影響**:
+- 🔵: A124 修正は安定稼働、`as string[]` 嘘キャスト再発なし、フレームワーク UI が正常描画継続
+- 🟡: breakdown は依然として機能ギャップ（プロダクト決定待ち）、DEFER 継続
+- 🔵: report-export namespace / 740 行 range の 2 提案は本 repo に存在しない別コードベース参照のファントム
+
+**Disposition**: ALL-CONFIRM-NO-NEW-FIX。A124 で確定した 3 disposition（recommendations fix 安定 / breakdown 真の機能ギャップ / report-export namespace ファントム）を独立に再確認し、追加 behavioral change 不要と判定。「740 行 range bundle」「report-export typed helper 化」の 2 提案は本 repo に存在しない概念であり、適用対象なし（phantom 警告継続）。残存 `unknown` 境界の能動監査では、`iterationMetrics` `layoutResults` `performQualityPreCheck` の 3 候補を精査 → いずれもモジュール境界外または嘘キャストなしで wiring bug クラス外。本イテレーションは design interview の disposition 記録（1 docs コミット）のみを生成。
