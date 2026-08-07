@@ -14,6 +14,7 @@
  */
 
 import { logger } from '@/utils/logger';
+import type { ErrorSeverity } from './error-classifier';
 
 export type ErrorCategory =
   | 'file_format'
@@ -28,7 +29,14 @@ export type ErrorCategory =
   | 'timeout'
   | 'unknown';
 
-export type ErrorSeverity = 'low' | 'medium' | 'high' | 'critical';
+/**
+ * Error severity is single-sourced in `error-classifier.ts` (the classification
+ * module that assigns severity to ClassifiedError) and re-exported here so this
+ * module's public API is unchanged. Previously this was an independent duplicate
+ * union — identical today, but a latent desync: adding/changing a severity level
+ * in one definition would silently leave the other stale.
+ */
+export type { ErrorSeverity };
 
 export interface RecoveryStrategy {
   id: string;
