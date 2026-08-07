@@ -1,6 +1,7 @@
 import { DiagramType, NodeDatum, EdgeDatum, isDiagramType } from '@/types/diagram';
 import { ContentSegment, DiagramAnalysis, KeywordAnalysis, SemanticRelation } from './types';
 import { GeminiAnalyzer } from './gemini-analyzer';
+import { escapeRegex } from '@/utils/regex-escape';
 import { logger } from '../utils/logger';
 import { sanitizeFinite, sanitizeDiagramType } from '@/utils/guards';
 import { safeMap } from '../lib/safe-array';
@@ -792,7 +793,7 @@ export class DiagramDetector {
    * Helper methods
    */
   private countOccurrences(text: string, term: string): number {
-    const escaped = term.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escaped = escapeRegex(term.toLowerCase());
     return (text.toLowerCase().match(new RegExp(escaped, 'g')) || []).length;
   }
 
@@ -1144,7 +1145,7 @@ export class DiagramDetector {
       for (const keyword of allKw) {
         const lowerKeyword = keyword.toLowerCase();
         // Count occurrences
-        const regex = new RegExp(lowerKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        const regex = new RegExp(escapeRegex(lowerKeyword), 'gi');
         const matches = text.match(regex);
         if (matches && matches.length > 0) {
           keywordHits[diagramType].push(keyword);

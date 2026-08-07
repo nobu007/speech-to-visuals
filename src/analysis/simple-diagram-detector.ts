@@ -5,6 +5,7 @@
  */
 
 import type { DiagramType } from '@/types/diagram';
+import { escapeRegex } from '@/utils/regex-escape';
 
 export type { DiagramType };
 
@@ -129,7 +130,7 @@ export class SimpleDiagramDetector {
 
     for (const keyword of keywords) {
       // ISS-013: Escape special regex chars to prevent ReDoS
-      const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const escaped = escapeRegex(keyword);
       const regex = new RegExp(`\\b${escaped}\\b`, 'gi');
       const keywordMatches = (text.match(regex) || []).length;
       matches += keywordMatches;
