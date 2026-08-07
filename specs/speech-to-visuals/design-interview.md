@@ -4430,3 +4430,52 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - 🔵 青信号: 600 (+22)
 - 🟡 黄信号: 6 (±0)
 - 🔴 赤信号: 0
+
+---
+
+### A124: 第215回検証 — FrameworkDashboard 推奨事項の `[object Object]` 化（recommendations 型不一致）修正 + breakdown DEFER 確定 + report-export namespace ファントム却下（2026-08-07）
+
+**背景**: 前回イテレーション（A123）は VALUABLE と判定（overallScore wiring 修正 + HEALTH_CHECK drift）。FEEDBACK は A123 が DEFER した残り2項目（recommendations 型不一致 / breakdown 無producer）へ overallScore と同一の「wiring bug vs 機能ギャップ」再審査を指示しつつ、第3に「report-export namespace の構造的予防（typed helper / lint gate）」を提案した。本イテレーションは実ソースに対し各項目を検証し、修正可能なもののみ着手する。
+
+**分析項目と判断**:
+
+1. **recommendations 型不一致 = wiring/type bug → DEFER 解除・修正** 🔵: A123 は「射影 vs リッチ描画で判断割れ」と DEFER したが、再審査の結果**値は上流に存在し単に型が嘘**と判明（overallScore と同クラス）。
+   - **Producer**: `src/framework/auto-improvement-engine.ts:140-145` `analyzeMetrics()` は `recommendations: ImprovementStrategy[]`（`{name, description, targetMetric, expectedImprovement, complexity, execute}` オブジェクト、`execute` は `runImprovementCycle` が消費する非シリアライザブル関数クロージャ）を返す。
+   - **Boundary**: `framework-integrated-pipeline.ts:69` が戻り値型 `qualityAnalysis: unknown` で型情報を喪失（嘘キャストを許容する温床）。
+   - **Consumer**: `useFrameworkPipeline.ts:237` `(qa.recommendations as string[]) || []` — **嘘キャスト**。`FrameworkDashboard.tsx:545` は `{rec}` を React child として描画 → runtime で `rec` はオブジェクトのため **"[object Object]"** 表示（React は "Objects are not valid as a React child" でクラッシュする潜在欠陥）。
+   - **修正**: (a) `auto-improvement-engine.ts` にシリアライザブル UI 投影型 `QualityRecommendation {name, description}` と純粋関数 `toQualityRecommendations()` を単一ソースとして追加。(b) `framework-integrated-pipeline.ts` で境界投影（`execute` クロージャをここで削除）し、戻り値型 `qualityAnalysis: QualityAnalysisResult` で型安全化（`unknown` を削除、`executeWithImprovement` の不要キャストも削除）。(c) hook は嘘 `as string[]` を廃止し `qa.recommendations` を直接参照、型 `QualityRecommendation[]` へ。(d) dashboard は `{rec}` → `rec.name`(AlertTitle) + `rec.description`(AlertDescription) へ。`runImprovementCycle` は `analyzeMetrics` の生 `ImprovementStrategy[]`（execute 付き）を直接消費するため影響なし（producer 変更なし）。
+   - **証跡**: `auto-improvement-engine.test.ts` に `toQualityRecommendations` の境界投影テスト追加（`execute`/`targetMetric` が境界を越えないこと・JSON 往復安全・name 1:1 保存を検証）。`git stash push -- <source 4 files>` でテスト以外を旧ソースに戻し実行 → **RED**（`TypeError: toQualityRecommendations is not a function`）。`stash pop` 後 → **GREEN**（engine suite 46/46、framework 系 9 suite 242 test 全通過）。`tsc -p tsconfig.app.json --noEmit` → **exit 0, error 0**。
+
+2. **breakdown.{performance,accuracy,stability} = 真の機能ギャップ → DEFER 確定（ファントム読取を除去）** 🟡: FEEDBACK 指示「既存の導出が本当に無いか確認してからプロダクト決定扱いせよ」に従い厳密検証。
+   - **導出の有無**: `calculateQualityScore`（`auto-improvement-engine.ts:258-326`）は**平坦な per-metric 重み付けのみ**（transcriptionAccuracy 0.15 / sceneSegmentationF1 0.15 / entityExtractionF1 0.15 / relationAccuracy 0.15 / layoutOverlap 0.10 / processingTime 0.10 / memoryUsage 0.10 / successRate 0.10）。カテゴリ集計ロジックは存在せず、単一の加重平均 `overallScore` のみ出力。
+   - **producer 検索**: `performanceScore|accuracyScore|stabilityScore` を repo 全体で検索 → framework 品質分析パスに**producer なし**。hit はすべて無関係モジュール（`pipeline-health-score.ts` の `HealthScoreBreakdown{performanceScore,bottleneckScore,costScore}`・`intelligent-cache` の stats・`batch-processing-api` の局所変数・`tests/quality-check.ts` の別 assessment オブジェクト）。
+   - **判断**: performance/accuracy/stability の3軸へのマッピング重み付けは**既存導出なし = プロダクト/スコアリング決定**（A123 disposition を再確認・確定）。機能ギャップとして DEFER 継続。
+   - **副次クリーンアップ**: hook は存在しない `qa.performanceScore/accuracyScore/stabilityScore` を読んでいた（常に `undefined → ||0 → 0`）。これを**明示的リテラル 0 + DEFER コメント**に置換（挙動保存・ファントムキー読取を除去）。型安全化（`qa` を `QualityAnalysisResult` に）によりファントム読取は型エラーになるため、これを残さない構造的措置でもある。
+
+3. **report-export namespace 構造的予防提案 = ファントム → 却下** 🔵: FEEDBACK は「report-export サービスが dashboard 名前空間のキーを誤名前空間で解決し続ける（projection_confidence / recommended-action-title と同バグクラス）。625行の sweep test で個別 catch するのをやめ、typed helper / lint gate で構造的予防せよ」と提案。**実在性検証**: `translateT`（提案の核心 API）・`projection_confidence/projectionConfidence`・`recommended-action-title/recommendedActionTitle`・「625行 sweep test」を src/tests/docs/specs/git log 全体で検索 → **全件 0 hit**。A122 の localization（engagement/growth レポート）・r2-clamp-policy.md と同一の**別コードベース混同ファントム**と確定。存在しない API/helper/test への構造的予防は適用対象なし → 着手せず（FEEDBACK #1「クローズ済みデッドエンド/ファントムは再検索せず」の精神、および `MEMORY.md` の phantom 警告に合致）。
+
+**根拠**:
+- `src/framework/auto-improvement-engine.ts:59-81`（`QualityRecommendation` + `toQualityRecommendations` 追加）、`50-57`（`ImprovementStrategy`、execute クロージャ）、`258-326`（`calculateQualityScore` 平坦重み付け）
+- `src/pipeline/framework-integrated-pipeline.ts:34-45`（`QualityAnalysisResult`）、`66-72`（戻り値型 `unknown`→`QualityAnalysisResult`）、`92-103`（境界投影）、`191`（不要キャスト削除）
+- `src/hooks/useFrameworkPipeline.ts:13-15`（import）、`46-55`（`recommendations: QualityRecommendation[]`）、`233-249`（嘘キャスト廃止 + breakdown ファントム読取 → 明示的 0/DEFER コメント）
+- `src/components/FrameworkDashboard.tsx:40-41`（import）、`68-77`（型）、`542-547`（`{rec}` → `rec.name`/`rec.description`）
+- `src/framework/__tests__/auto-improvement-engine.test.ts:22-29`（import 拡張）、`239-273`（`toQualityRecommendations` 境界投影テスト）
+- RED→GREEN: `git stash push -- <4 source files>` → RED (`TypeError: toQualityRecommendations is not a function`); `stash pop` → 46/46 PASS
+- `npx -p typescript tsc -p tsconfig.app.json --noEmit` → exit 0, error 0
+- ファントム検証: `rg "translateT|projection[_-]?confidence|recommended[_-]?action[_-]?title"` 全領域 0 hit
+
+**Closure Acceptance Criteria**:
+- [x] recommendations 型不一致を wiring/type bug と判定し修正（A123 DEFER を解除）
+- [x] RED→GREEN 証跡（`git stash` で RED 再現、`TypeError: toQualityRecommendations is not a function`）
+- [x] tsc exit 0 / error 0、framework 系 9 suite 242 test 回帰なし
+- [x] breakdown について既存導出の有無を厳密確認 → producer なし → 機能ギャップ DEFER 確定（プロダクト決定待ち）
+- [x] breakdown ファントムキー読取を除去（明示的 0 + コメント、型安全化で再発防止構造化）
+- [x] report-export namespace 構造的予防提案をファントムと判定し着手せず（実在性 0 hit 検証）
+- [x] コミットを意味的対応する単位に分割（実装+テスト=1、本 disposition=1）、孤立掃き出しコミットなし
+
+**信頼性への影響**:
+- 🔴→🔵: FrameworkDashboard 推奨事項パネルが "[object Object]"（/React クラッシュ潜在）→ `name`(タイトル)+`description`(本文) の正常描画。A123 DEFER 項目の修正可能部分を解除。
+- 🟡: breakdown.{performance,accuracy,stability} は既存導出なしのため機能ギャップ DEFER 継続（プロダクト決定待ち）。ただしファントム読取は除去済み。
+- 🔵: report-export namespace 提案はファントム確定（実在性検証 0 hit）。FEEDBACK の推奨事項すべてに実ソースに基づく明示的 disposition。
+
+**Disposition**: ONE-REAL-FIX + CONFIRM-DEFER + PHANTOM-REJECT。A123 が「判断割れ」で DEFER した recommendations 型不一致を、値が上流に存在し型のみ嘘（`as string[]`）と判明したため wiring/type bug として修正（境界投影 `toQualityRecommendations` + pipeline 戻り値型安全化 + consumer 型/描画修正、RED→GREEN 証跡付き）。breakdown は `calculateQualityScore` が平坦重み付けのみで3軸導出が存在しないことを確認 → 機能ギャップ DEFER を確定しつつ、存在しないキーを読むファントムを除去。report-export namespace 構造的予防は提案 API/test が repo に全存在しない（0 hit）ためファントムとして却下。実ソース検証を phantom 再追求に優先（FEEDBACK 明示・MEMORY 警告に合致）。
