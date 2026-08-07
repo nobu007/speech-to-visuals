@@ -1,7 +1,7 @@
 import { PipelineResult, PipelineStage } from '@/pipeline/types';
-import { SceneGraph } from '@/types/diagram';
+import { SceneGraph, PositionedNode } from '@/types/diagram';
 import { logger } from '../utils/logger';
-import { getNodeWidth, getNodeHeight } from '@/visualization/node-dimensions';
+import { nodesOverlap as producerNodesOverlap } from '@/visualization/layout-utils';
 import { safeArray } from '../lib/safe-array';
 
 /**
@@ -383,28 +383,33 @@ export class QualityMonitor {
   }
 
   /**
-   * Check if two nodes overlap
+   * Check if two nodes overlap.
+   *
+   * Delegates to the layout engine's canonical predicate
+   * (`nodesOverlap` from layout-utils, spacing 0) so the quality monitor can
+   * never disagree with the producer's own definition of "overlap". The layout
+   * resolver advances nodes until that predicate reports no overlap — i.e. it
+   * guarantees strict zero-overlap (gap ≥ 0; touching edges are NOT an overlap).
+   *
+   * Previously this inlined a hardcoded `margin = 10` with strict `<`, so a
+   * legitimately zero-overlap layout left with a 0–10 px gap (the resolver
+   * stops the moment nodes no longer strictly intersect) was scored 0.3 instead
+   * of 1.0 in assessLayoutQuality, dragging accuracyScore/overallScore down and
+   * potentially failing checkDeploymentReadiness (overallScore ≥ 0.7) — a false
+   * quality penalty on correct output. Same bug class as the fixed
+   * quality-gate.ts zero-overlap margin; pinned here against re-divergence by
+   * quality-monitor-overlap-cross-invariant-fuzz.test.ts.
    */
   private nodesOverlap(node1: unknown, node2: unknown): boolean {
-    const margin = 10; // Minimum margin between nodes
     const a = node1 as Record<string, unknown>;
     const b = node2 as Record<string, unknown>;
-
-    const ax = (a.x as number) || 0;
-    const ay = (a.y as number) || 0;
-    const bx = (b.x as number) || 0;
-    const by = (b.y as number) || 0;
-    const aw = getNodeWidth(a as never);
-    const ah = getNodeHeight(a as never);
-    const bw = getNodeWidth(b as never);
-    const bh = getNodeHeight(b as never);
-
-    return !(
-      ax + aw + margin < bx ||
-      bx + bw + margin < ax ||
-      ay + ah + margin < by ||
-      by + bh + margin < ay
-    );
+    // Coerce defensively (missing coords default to 0, matching the prior
+    // `|| 0` behavior) before delegating. The canonical predicate reads .x/.y
+    // as the top-left corner — the convention the producer and every layout
+    // strategy use — and extracts dimensions via the same getNodeWidth/Height.
+    const na = { ...(a as object), x: Number(a.x) || 0, y: Number(a.y) || 0 } as PositionedNode;
+    const nb = { ...(b as object), x: Number(b.x) || 0, y: Number(b.y) || 0 } as PositionedNode;
+    return producerNodesOverlap(na, nb, 0);
   }
 
   /**
