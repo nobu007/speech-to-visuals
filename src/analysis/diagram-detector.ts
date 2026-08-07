@@ -1,4 +1,4 @@
-import { DiagramType, NodeDatum, EdgeDatum, isDiagramType } from '@/types/diagram';
+import { DiagramType, NodeDatum, EdgeDatum, isDiagramType, DIAGRAM_TYPES } from '@/types/diagram';
 import { ContentSegment, DiagramAnalysis, KeywordAnalysis, SemanticRelation } from './types';
 import { GeminiAnalyzer } from './gemini-analyzer';
 import { escapeRegex } from '@/utils/regex-escape';
@@ -1025,8 +1025,11 @@ export class DiagramDetector {
     // Extract text features
     const features = this.extractTextFeatures(lowerText, keyphrases);
 
-    // Calculate confidence for each type using calculateConfidence
-    const allScores: DiagramScore[] = (['flow', 'flowchart', 'tree', 'timeline', 'matrix', 'cycle', 'comparison', 'network', 'conceptmap', 'mindmap', 'general'] as DiagramType[]).map(type => {
+    // Calculate confidence for each canonical type using calculateConfidence.
+    // REQ-290: delegate to the single-source `DIAGRAM_TYPES` instead of a
+    // re-literalized array — the prior `as DiagramType[]` cast defeated the
+    // type-checker, so a newly-added DiagramType would be silently un-scored.
+    const allScores: DiagramScore[] = DIAGRAM_TYPES.map(type => {
       const confidence = this.calculateConfidence(type, features);
       return {
         type,
