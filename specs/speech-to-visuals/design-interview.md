@@ -4351,6 +4351,60 @@ interfaces.ts には既にこれらの主要型が反映済み。
 
 ---
 
+### A123: 第214回検証 — FrameworkDashboard 品質スコア常時0 の wiring bug 修正（A122 Finding 1 部分解除）+ フィードバック 4項目の disposition
+
+**背景**: 本イテレーションの FEEDBACK は (1) A119 デッドエンドの再検証停止、(2) ローカライズ系統スイープ、(3) 孤立掃き出しコミットの排除、(4) r2-clamp-policy.md アンカー行ズレ検証、を指示しつつ「substantive, verifiable diffs を継続」を求めた。(2)(4) は A122 で確定済みファントムのため、(1) に従い再検索せず引用のみで処理し、実差分は A122 が「機能ギャップ」として DEFER した Finding 1（FrameworkDashboard 品質スコア常時0）の**修正可能部分**を再評価・着手する。
+
+**分析項目と判断**:
+
+1. **フィードバック #1（A119 デッドエンド再検証禁止）遵守** 🔵: r²/ローカライズ/engagement-growth サービス群の再検索は実施しない。A119(704b3edc)/A120(2cdf0866)/A121(f714dc33)/A122(7c0a345b) の closure と `specs/speech-to-visuals/interview-record.md:187`（別コードベースとの混同）を引用し、本項はクローズ済みとして扱う。セッション開始時の軽量確認（`find ... -name "r2-clamp-policy.md"` → 0件）は実施済みだが、これは再検証ではなく存在確認1行のみ。
+
+2. **フィードバック #2（ローカライズスイープ）= ファントム** 🔵: A122 §1 で確定済み（i18n 基盤 0件 / engagement-growth レポート 0件）。本イテレーションでは再スイープせず、A122 closure を引用。FEEDBACK #1 との整合（「クローズ済みデッドエンドは1エントリで十分」）。
+
+3. **実バグ修正: overallScore wiring（A122 Finding 1 の部分解除）** 🔵→🟡: A122 は Finding 1（FrameworkDashboard 品質スコア常時0）を「`breakdown.{performance,accuracy,stability}` に producer が存在せず、導出公式のプロダクト決定が必要 = 機能ギャップ」と DEFER した。再評価の結果、**`overallScore`（ヘッドライン数値）部分は機能ギャップではなく wiring bug** と判明:
+   - **Producer**: `src/framework/auto-improvement-engine.ts` `analyzeMetrics(metrics)` は `metrics.overallScore`（0-100、`extractQualityMetrics`→`calculateQualityScore` で計算済み、エンジン内部でも閾値判定に使用）を受け取るが、戻り値 `{needsImprovement, issues, recommendations}` に含めず破棄。
+   - **Boundary**: `framework-integrated-pipeline.ts:93` がこの analysis を `qualityAnalysis` として return（型 `unknown`）。
+   - **Consumer**: `useFrameworkPipeline.ts:235` `overallScore: (qa.overallScore as number) || 0` → フィールド不在のため常に **0**。
+   - **UI 影響**: `FrameworkDashboard.tsx:399-403` ヘッドライン「総合品質スコア / 100」が実スコア（例: 95）に関わらず常に **0** 表示。`getQualityColor(0)` → 常に赤。
+   - **修正**: `analyzeMetrics` の戻り値型と return 文に `overallScore: metrics.overallScore` を追加（producer 側1箇所、2行）。consumer は既に `qa.overallScore` を読むため、UI 変更不要。値は 0-100 スケール（`QualityMetrics.overallScore: number; // 0-100`、threshold default 90）で dashboard 期待値と一致。
+   - **証跡**: `src/framework/__tests__/auto-improvement-engine.test.ts` に positive(92)/negative(41) 両アンカーの回帰テスト追加。`git stash` で旧ソースに戻し実行 → **RED**（`Expected: 92, Received: undefined`）。復元後 → **GREEN**（45/45 PASS、従来44+新規1）。`tsc -p tsconfig.app.json --noEmit` → exit 0。他テスト・他 consumer は `analyzeMetrics` 戻り値形状に非依存（grep 確認: consumer は pipeline:93 と engine:340 のみ、後者は `.needsImprovement` のみ読取）。
+
+4. **残存ギャップの DEFER 継続** 🟡: A122 と同一 disposition を維持。
+   - **breakdown.{performance,accuracy,stability}**: producer の `QualityMetrics` は平坦な指標（transcriptionAccuracy/sceneSegmentationF1/...）であり、performance/accuracy/stability の3軸へのマッピング重み付けはプロダクト決定 → 機能ギャップ DEFER 継続。本イテレーションは `overallScore`（修正可能で user-impact 最大）のみ着手。
+   - **recommendations 型不一致**: producer は `ImprovementStrategy[]`（オブジェクト）、consumer/dashboard は `string[]` 期待。`FrameworkDashboard.tsx:545` で `{rec}` を React child として描画するため、推奨あり時に "Objects are not valid as a React child" で落ちる潜在クラッシュ。修正方向（`strategy.name` への射影 vs リッチ描画）は判断割れ → 別イテレーション評価として DEFER 記録。
+
+5. **フィードバック #3（孤立掃き出しコミット排除）遵守** 🔵: 本イテレーションの差分は意味的対応するコミットに分割（実装+テスト=1コミット、本 disposition=1コミット）。`chore(make-run): commit 1 remaining change(s)` 型の孤立コミットは生成しない。
+
+6. **フィードバック #4（r2-clamp-policy.md アンカー行ズレ検証）= ファントム** 🔵: A122 §1 で `r2-clamp-policy.md` および参照先 `marketValueEstimationService.ts`/`growthProjectionService.ts` が存在しないことを確認済み（セッション開始時 `find` でも再確認 → 0件）。存在しないファイルの行ズレは検証対象外。
+
+**根拠**:
+- `src/framework/auto-improvement-engine.ts:140-145`（戻り値型）、`241-247`（return 文）: `overallScore: metrics.overallScore` 追加
+- `src/framework/__tests__/auto-improvement-engine.test.ts`: `should surface the computed overallScore in its result (consumer wiring)` 追加
+- `src/pipeline/framework-integrated-pipeline.ts:90,93,123`: `qualityMetrics.overallScore` 計算→`analyzeMetrics`→`qualityAnalysis` return の chain
+- `src/hooks/useFrameworkPipeline.ts:233-235`: consumer が `qa.overallScore || 0` を読む
+- `src/components/FrameworkDashboard.tsx:68-77,399-403`: `QualityAnalysis.overallScore` 型 + ヘッドライン描画
+- RED→GREEN: `git stash` (旧ソース) → RED (`Expected: 92, Received: undefined`); 復元 → 45/45 PASS
+- `npx -p typescript tsc -p tsconfig.app.json --noEmit` → exit 0
+- A119-A122 closure + interview-record.md:187（ファントム引用、再検索なし = FEEDBACK #1 遵守）
+
+**Closure Acceptance Criteria**:
+- [x] A119 デッドエンドを再検証せず（FEEDBACK #1）、A122 closure を引用
+- [x] ローカライズスイープ/r2-clamp-policy.md アンカーを再スイープせず（FEEDBACK #2/#4 ファントム）
+- [x] overallScore wiring bug を producer 側1箇所で修正（機能ギャップではなく wiring bug と判明）
+- [x] RED→GREEN 証跡（positive/negative 両アンカー、`git stash` で RED 再現）
+- [x] tsc exit 0、他テスト/consumer への回帰なし
+- [x] breakdown/recommendations の残存ギャップを DEFER 記録（プロダクト決定待ち）
+- [x] コミットを意味的対応する単位に分割（FEEDBACK #3）、孤立掃き出しコミットなし
+
+**信頼性への影響**:
+- 🔴→🔵: FrameworkDashboard ヘッドライン品質スコアが常時0→実スコア（0-100）表示。A122 Finding 1 の修正可能部分を解除。
+- 🟡: breakdown.{performance,accuracy,stability} と recommendations 型不一致は機能ギャップ/判断割れとして DEFER 継続。
+- 🔵: フィードバック 4項目すべてに明示的 disposition（#1/#2/#4 引用、#3 コミット分割で遵守）。
+
+**Disposition**: ONE-REAL-FIX。A122 が「機能ギャップ」と一括 DEFER した Finding 1 を分解し、`overallScore`（producer が計算済みだが boundary で破棄されていた）を wiring bug として修正。RED→GREEN 証跡付き。フィードバック #1/#2/#4 は A122 closure の引用のみで処理（再検証・再スイープ禁止遵守）、#3 は意味的コミット分割で遵守。残存する breakdown 導出と recommendations 型は別イテレーションのプロダクト決定待ちとして DEFER。
+
+---
+
 ### 信頼性レベル分布（第212回検証）
 
 **分析前**:
