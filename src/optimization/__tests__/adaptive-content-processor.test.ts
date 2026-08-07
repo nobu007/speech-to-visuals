@@ -72,6 +72,20 @@ describe('AdaptiveContentProcessor', () => {
       expect(result2.expectedImprovement).toBe(20);
     });
 
+    it('generateFingerprint buckets a legit-zero audioQuality as q0, not the q0.8 default', () => {
+      // Regression: `audioQuality || 0.8` collapsed quality 0 into the 0.8 bucket,
+      // conflating worst-quality audio with good audio in the strategy-cache key.
+      // Two distinct qualities then shared one fingerprint, defeating cache lookup.
+      const fp = (processor as unknown as {
+        generateFingerprint: (c: AudioCharacteristics) => string;
+      }).generateFingerprint;
+      const fp0 = fp({ ...baseCharacteristics, audioQuality: 0 });
+      const fp08 = fp({ ...baseCharacteristics, audioQuality: 0.8 });
+      // Exact bucket: quality 0 → `-q0` (anchored), not the `-q0.8` default.
+      expect(fp0).toMatch(/-q0$/);
+      expect(fp0).not.toBe(fp08);
+    });
+
     it('should customize for poor audio quality', async () => {
       const chars = { ...baseCharacteristics, audioQuality: 0.4 };
       const result = await processor.selectStrategy(chars, baseParameters);

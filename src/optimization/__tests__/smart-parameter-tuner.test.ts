@@ -36,6 +36,15 @@ describe('SmartParameterTuner', () => {
       expect(result.audioQuality).toBe(0.5);
     });
 
+    it('preserves a legit-zero audio quality instead of masking it as the 0.8 default', async () => {
+      // Regression: `quality || 0.8` collapsed a genuine 0 (worst-quality audio)
+      // into the 0.8 default, hiding the poor-audio signal from optimizeParameters
+      // (which skips the "raise confidence threshold / lengthen segments" branch
+      // when audioQuality is not seen as < 0.6). `??` keeps the real 0.
+      const result = await tuner.analyzeContent('test', { quality: 0 });
+      expect(result.audioQuality).toBe(0);
+    });
+
     it('should detect technical domain', async () => {
       const result = await tuner.analyzeContent(
         'The algorithm processes data through the API and stores it in the database using the framework.',

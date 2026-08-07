@@ -227,7 +227,7 @@ export class AdaptiveContentProcessor {
       speechRate: Math.round(characteristics.speechRate / 50) * 50,
       complexity: characteristics.complexity,
       domain: characteristics.domain,
-      audioQuality: Math.round((characteristics.audioQuality || 0.8) * 10) / 10
+      audioQuality: Math.round((characteristics.audioQuality ?? 0.8) * 10) / 10
     };
 
     return `${normalized.domain}-${normalized.complexity}-sr${normalized.speechRate}-q${normalized.audioQuality}`;

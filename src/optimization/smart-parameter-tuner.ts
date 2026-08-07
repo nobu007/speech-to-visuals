@@ -68,7 +68,11 @@ class SmartParameterTuner {
       speechRate,
       complexity,
       domain,
-      audioQuality: audioMetadata.quality || 0.8,
+      // `??` not `||`: audioQuality is a 0-1 score where 0 means "worst quality"
+      // — a genuine signal that must reach optimizeParameters() (it raises the
+      // confidence threshold and lengthens segments for poor audio). `|| 0.8`
+      // erased a real 0, masking terrible audio as good and skipping that branch.
+      audioQuality: audioMetadata.quality ?? 0.8,
       keywordDensity,
       diagramLikelihood
     };
