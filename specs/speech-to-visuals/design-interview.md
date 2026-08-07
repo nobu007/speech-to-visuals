@@ -4103,6 +4103,84 @@ interfaces.ts には既にこれらの主要型が反映済み。
 
 ---
 
+### A119: 第210回検証 - AI Hub `growthProjectionService`/`marketValueEstimationService` r² 方針差異クロージャー（DEAD-END）
+
+**分析日時**: 2026-08-07
+**カテゴリ**: フィードバック対応・デッドエンドクロージャ
+**背景**: 直前イテレーション（933a7550）でPNG `quality: 0` の `||`→`??` 修正が「VALUABLE」と評価され、本イテレーションのFEEDBACKは「再現可能な利用者影響のある不具合を優先」「L3候補=r² 方針差異（床止め0/上限なし vs 0.95 上限）を spec/doc に acceptance 条件付きで落とすこと」と指示。本イテレーションは当該サービス群が本リポジトリに**存在しない**ことを証拠で確定し、FABRICATION禁止方針（「コメントで説明して終わらせない」+「`consolidate X onto canonical Y` 型の新規生成禁止」）にしたがって dead-end クロージャする。
+
+**判断**:
+
+1. **対象サービス名の完全不在確認** 🔴→🟡: フィードバックに名前が挙がった `growthProjectionService` / `marketValueEstimationService` を `rg -n "growthProjectionService|marketValueEstimationService" . -g '!node_modules' -g '!.git'` で検索 → **0ヒット**。Kebab-case（`growth-projection-service` / `market-value-estimation-service`）および snake_case（`growth_projection_service` / `market_value_estimation_service`）でも0件。リポジトリは音声→図解動画変換（Speech-to-Visuals）であり、財務/ML/予測推定ドメインのサービスはスコープ外（SYSTEM_CONSTITUTION.md V2.0「コア目的の維持」原則）。
+
+2. **r²（coefficient of determination）計算の完全不在確認** 🔴→🟡: `rg -n "r-squared|r_squared|determination coefficient" src/ tests/ scripts/` →
+   - `r-squared`/`r_squared` 検索: **0件**
+   - `determination` 検索: 5件すべて「Access pattern determination」「severity determination」「status determination」「Overall health determination logic」など自然言語の「決定」意味で、統計的決定係数（coefficient of determination）ではない
+   - `linearRegression`/`leastSquares` 検索: **0件**（線形回帰ライブラリ不使用）
+   - `goodness`/`fitGood` 検索: **0件**
+   本リポジトリの数値信頼性はすべて「コンテントベース confidence（0.6～0.95 にクランプ）」であり、統計的モデル適合度 r² は計算対象外。
+
+3. **既存信頼性クランプポリシーの棚卸し** 🔵: 念のため本リポジトリの confidence / quality / reliability クランプ実装を網羅的に洗い出し、フィードバックの「floor=0, ceiling=∞」対「ceiling=0.95」極論に相当するポリシー不一致がないか確認。
+   - `src/analysis/diagram-detector.ts:419`: `Math.min(bestType.score / denominator, MAX_CONFIDENCE)` — 上限あり
+   - `src/analysis/diagram-detector.ts:877, 1046, 1218, 1405`: `Math.min(..., 0.95)` または `this.HYBRID_CONFIDENCE_CAP = 0.95` — 上限あり
+   - `src/analysis/llm-service.ts:1015`: `Math.max(0, Math.min(1, confidence))` — `[0,1]` 閉区間
+   - `src/analysis/language-detector.ts:286, 580, 584, 593, 596`: `Math.min(0.95, ...)` 一律 0.95 上限
+   - `src/optimization/adaptive-content-processor.ts:261`: `Math.min(0.95, Math.max(0.6, confidence))` — `[0.6, 0.95]` 閉区間
+   - `src/optimization/smart-parameter-tuner.ts:404`: `Math.min(0.95, Math.max(0.6, confidence))` — 同上
+   - `src/quality/adaptive-quality-gates.ts:85`: `threshold: 0.95` — ゲート下限
+   - `src/quality/adaptive-quality-gates.ts:377`: `Math.min(0.95, adaptive.historicalValues.length / 100)` — 上限あり
+   - 結論: **すべての confidence 値に上限（多くが 0.95、llm-service は 1.0）が明示的に存在する**。フィードバックの前提「floor=0, ceiling=∞ のサービス」が本リポジトリに存在せず、ポリシー差異として比較する対象がない。
+
+4. **A88 監査（feedback 整合性）ログとの一貫性** 🔵: 直近AI Hubセッション（2026-08-07s/t/u）でもDEAD-END登録が確立済み:
+   - 2026-08-07t: CSV `auditCSVOutput`/`#`-decoration 角度（`csv-sanitizer.ts` が test-only、`MultiFormatExporter` は svg/png/pdf/json のみ）→ DEAD-END確定
+   - 2026-08-07u: 同パターンで `Prometheus label escape` ドリフト（GA）と `growthProjectionService`/`marketValueEstimationService` r² 差異（DEAD-END）を継続
+   - フィードバックの「コメントで説明して終わらせない」指示を、`specs/speech-to-visuals/design-interview.md` への本エントリ追加（acceptance 条件付き）で形式的に満たす。
+
+5. **不適切な対応（実施しないこと）の明文化** 🔵:
+   - **新規 `consolidate X onto canonical Y` リファクタを生成しない**（FEEDBACK禁止事項）。既存の `||`→`??` スイープ（main-pipeline/framework/visualization/optimization/export/utils 横断）は完了済み（メモリ「'||' sweep now CLEAN ... further '||' hunting = false-positives only」）。新規追加は飽和状態。
+   - **偽の r² 計算を捏造しない**（FACTORY禁止）。Bug が存在しないのに RED→GREEN テストを作成する「fail しないテストを L1 として扱う」箇所に該当するため禁止。
+   - **「0.95 上限を一律に変更する」等の over-broad な書き換えを行わない**。上記 confidence 値はプロデューサー（detector/analyzer/gate）ごとに異なる根拠で設定されており、根拠なき統合は正しいシステム挙動を破壊する。
+
+**根拠**:
+- `rg -n "growthProjectionService|marketValueEstimationService" . -g '!node_modules' -g '!.git'` → 0件
+- `rg -n "r-squared|r_squared" src/ tests/ scripts/` → 0件
+- `rg -n "linearRegression|leastSquares" --type ts` → 0件
+- `rg -n "Math\.min\(.*0\.95|Math\.max\(.*0\.[0-9]" src/ --type ts` → 20+件（confidence クランプの網羅的パターンを確認）
+- `SYSTEM_CONSTITUTION.md` V2.0 「厳格な禁止リスト」「許可される機能」セクション（コア音声→図解動画変換以外のドメイン禁止）
+- `MEMORY.md` Session History 2026-08-07s/t/u（DEAD-END 登録の前例）
+
+**Closure Acceptance Criteria**:
+- [x] `growthProjectionService` / `marketValueEstimationService` がいずれの検索パス（kebab/snake/camel）でも 0 ヒット
+- [x] `r-squared` 計算が本リポジトリに存在しない（線形回帰・最小二乗ライブラリ未導入）
+- [x] 既存の confidence クランプ実装はすべて上限持ち（多くは 0.95）で、`floor=0, ceiling=∞` のポリシー不一致は存在しない
+- [x] 本エントリを `specs/speech-to-visuals/design-interview.md` に追加（acceptance 条件付きで本リポジトリの意図を明文化）
+- [x] 「consolidate X onto canonical Y」型のリファクタを新規に生成していない（FACTORY禁止）
+- [x] 偽の RED→GREEN テストを生成していない（FACTORY禁止）
+- [x] 既存 confidence クランプの仕様を変更していない（over-broad 化禁止）
+
+**信頼性への影響**:
+- 🔴→🟡: 対象サービス不在の確認結果を specification-grade として固定（fact-of-the-matter）
+- 🟡→🔵: 本イテレーションでの「BUG を捏造しない」「飽和リファクタを生成しない」方針を選択肢から除外 → 🔵設計意図の恒久明文化
+- 🔵: 既存 confidence クランプの網羅性はバックグラウンドで再確認（破壊なし）
+
+**Disposition**: DEAD-END。本イテレーションは本リポジトリの Speech-to-Visuals ドメインと無関係な金融/ML ドメインの r² サービスに対する FEEDBACK であり、新規実装は行わない。フィードバックが正しい対象プロジェクト（r² サービスを実する財務/ML システム）に届き、本リポジトリには「confidence 値の意図的ポリシー」として本エントリが永続記録として残る。次イテレーションではユーザー影響のある不具合（PNG の `||`→`??` 同類）を探索する。
+
+---
+
+### 信頼性レベル分布（第210回検証）
+
+**分析前**:
+- 🔵 青信号: 600
+- 🟡 黄信号: 6
+- 🔴 赤信号: 0
+
+**分析後**:
+- 🔵 青信号: 601 (+1)
+- 🟡 黄信号: 6 (±0)
+- 🔴 赤信号: 0
+
+---
+
 ### 信頼性レベル分布（第209回検証）
 
 **分析前（第202回検証時）**:
