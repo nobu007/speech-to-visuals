@@ -7,9 +7,21 @@
  * Sync precision target: ±50ms (±1.5 frames at 30fps, ±1 frame = ±33ms)
  */
 
-import { SrtCaption } from './srt-parser';
+import type { SrtCaption } from './srt-parser';
 
-/** Default FPS used throughout the project */
+/**
+ * Default FPS used throughout the project — the single source of truth.
+ *
+ * Previously this value (30) was independently redeclared in `Video.tsx` and
+ * `srt-parser.ts`, and inlined as a bare `|| 30` fallback across the pipeline
+ * and export layers. Every copy coincided, so a behavioral RED→GREEN was
+ * impossible, but they were coupled only by coincidence: changing the default
+ * frame rate here would silently desync frame math, the registered composition,
+ * SRT parsing, and the export FPS-normalization. Every consumer imports this
+ * constant (see __tests__/default-fps-coupling.test.ts). The `import type`
+ * above keeps this module a runtime leaf so `srt-parser` may import the value
+ * back without a cycle.
+ */
 export const DEFAULT_FPS = 30;
 
 /** Maximum acceptable drift in milliseconds */

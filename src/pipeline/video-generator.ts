@@ -7,6 +7,7 @@
 import { SimplePipelineResult } from './simple-pipeline';
 import { SceneGraph, DiagramType } from '@/types/diagram';
 import { COMPOSITION_ID } from '@/remotion/composition-id';
+import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
 import { logger } from '../utils/logger';
 import { QualityGateError, RenderingError } from './pipeline-errors';
 import { safeArray } from '../lib/safe-array';
@@ -340,8 +341,8 @@ export class VideoGenerator {
       config: {
         width: this.getResolutionWidth(),
         height: this.getResolutionHeight(),
-        fps: this.options.fps || 30,
-        durationInFrames: Math.ceil(((d.totalDuration as number) / 1000) * (this.options.fps || 30))
+        fps: this.options.fps || DEFAULT_FPS,
+        durationInFrames: Math.ceil(((d.totalDuration as number) / 1000) * (this.options.fps || DEFAULT_FPS))
       },
       // Phase 14: Performance optimization settings
       renderOptions: {
@@ -404,7 +405,7 @@ export class VideoGenerator {
           // this boundary (actualVideoRenderer hardcoded `const fps = 30`), so
           // 24/60 fps requests silently rendered at 30fps. Mirrors the quality
           // propagation fix (6937b8b) at the same boundary.
-          fps: this.options.fps || 30,
+          fps: this.options.fps || DEFAULT_FPS,
         },
         (progress) => {
           // プログレス更新を伝播

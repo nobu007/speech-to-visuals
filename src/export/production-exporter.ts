@@ -7,6 +7,7 @@
 import { randomUUID } from 'crypto';
 import { EnhancedSceneGraph, RenderOptions } from '@/visualization/advanced-visual-engine';
 import { SceneGraph } from '@/types/diagram';
+import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
 import { logger } from '../utils/logger';
 import { PipelineConfigError } from '@/pipeline/pipeline-errors';
 import type { ExportArtifactStore } from './export-artifact-store';
@@ -353,7 +354,7 @@ export class ProductionExporter {
           ...anim,
           timing: {
             ...anim.timing,
-            duration: anim.timing.duration * (30 / (options.fps || 30)) // Normalize for FPS
+            duration: anim.timing.duration * (DEFAULT_FPS / (options.fps || DEFAULT_FPS)) // Normalize for FPS
           }
         }))
       }
@@ -545,7 +546,7 @@ export class ProductionExporter {
    * Calculate encoded file size
    */
   private calculateEncodedSize(renderResult: RenderResult, options: RenderOptions): number {
-    const duration = renderResult.totalFrames / (options.fps || 30);
+    const duration = renderResult.totalFrames / (options.fps || DEFAULT_FPS);
     const bitrate = this.calculateBitrate(options);
 
     // Estimate size in bytes (bitrate in kbps)
@@ -569,7 +570,7 @@ export class ProductionExporter {
       quality: job.options.quality,
       format: job.options.format,
       fileSize: encodedResult.estimatedSize,
-      duration: encodedResult.totalFrames / (job.options.fps || 30),
+      duration: encodedResult.totalFrames / (job.options.fps || DEFAULT_FPS),
       sceneCount: job.scenes.length,
       processingTime: performance.now() - (job.startTime ?? performance.now()),
       version: `iteration-${this.iteration}`

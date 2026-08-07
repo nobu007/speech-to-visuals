@@ -10,6 +10,7 @@ import { SceneGraph } from '@/types/diagram';
 import { DiagramScene } from './DiagramScene';
 import { KeyphraseOverlay, type KeyphraseScene } from './KeyphraseOverlay';
 import { CaptionOverlay } from './CaptionOverlay';
+import { DEFAULT_FPS } from './scene-synchronizer';
 import type { SrtCaption } from './srt-parser';
 
 /** Video component props */
@@ -46,8 +47,8 @@ export const defaultVideoProps: VideoProps = {
   captions: [],
 };
 
-/** Default FPS for the composition */
-export const DEFAULT_FPS = 30;
+/** Default FPS for the composition — re-exported from scene-synchronizer (single source of truth). */
+export { DEFAULT_FPS };
 
 /** Default width for the composition (1080p) */
 export const DEFAULT_WIDTH = 1920;

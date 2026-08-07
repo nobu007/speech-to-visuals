@@ -4,8 +4,7 @@
  * and validates SRT format integrity.
  */
 
-/** Default FPS used for frame mapping */
-const DEFAULT_FPS = 30;
+import { DEFAULT_FPS } from './scene-synchronizer';
 
 /**
  * Custom error for SRT parsing failures

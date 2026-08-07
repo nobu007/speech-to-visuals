@@ -25,6 +25,7 @@ import { ExportVerifier, type VerificationFormat, type VerificationResult } from
 import { exportMetricsCollector, type ExportStatus } from './export-metrics-collector';
 import type { ExportArtifactStore } from './export-artifact-store';
 import { EXPORT_RETRY_LIMITS, EXPORT_STAGE_TIMEOUTS } from '@/config/limits';
+import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
 
 /** Retry configuration for export encoding (REQ-256). */
 export interface RetryConfig {
@@ -595,7 +596,7 @@ export class EnhancedExportEngine {
     this.updateProgress(job, 'rendering', 30, 'Rendering video frames...');
 
     const { quality, settings } = job.config;
-    const fps = quality.fps || 30;
+    const fps = quality.fps || DEFAULT_FPS;
     const duration = settings.duration || this.calculateDuration(job.sceneData);
     const totalFrames = Math.ceil(duration * fps);
 
@@ -863,7 +864,7 @@ export class EnhancedExportEngine {
 
     return {
       data: await this.simulateEncoding(frames, 'mp4', codec),
-      duration: frames.length / (quality.fps || 30),
+      duration: frames.length / (quality.fps || DEFAULT_FPS),
       codec,
       profile,
       container: 'mp4'
@@ -875,7 +876,7 @@ export class EnhancedExportEngine {
 
     return {
       data: await this.simulateEncoding(frames, 'webm', 'vp9'),
-      duration: frames.length / (quality.fps || 30),
+      duration: frames.length / (quality.fps || DEFAULT_FPS),
       codec: 'vp9',
       container: 'webm'
     };
@@ -885,7 +886,7 @@ export class EnhancedExportEngine {
     // GIF encoding with optimization
     return {
       data: await this.simulateEncoding(frames, 'gif', 'gif'),
-      duration: frames.length / (job.config.quality.fps || 30),
+      duration: frames.length / (job.config.quality.fps || DEFAULT_FPS),
       codec: 'gif',
       container: 'gif'
     };
@@ -898,7 +899,7 @@ export class EnhancedExportEngine {
     );
     return {
       data: apngData,
-      duration: frames.length / (job.config.quality.fps || 30),
+      duration: frames.length / (job.config.quality.fps || DEFAULT_FPS),
       codec: 'apng',
       container: 'apng',
     };
@@ -910,7 +911,7 @@ export class EnhancedExportEngine {
 
     return {
       data: new TextEncoder().encode(htmlContent),
-      duration: frames.length / (job.config.quality.fps || 30),
+      duration: frames.length / (job.config.quality.fps || DEFAULT_FPS),
       codec: 'html',
       container: 'html',
       interactive: true
@@ -923,7 +924,7 @@ export class EnhancedExportEngine {
 
     return {
       data: pdfData,
-      duration: frames.length / (job.config.quality.fps || 30),
+      duration: frames.length / (job.config.quality.fps || DEFAULT_FPS),
       codec: 'pdf',
       container: 'pdf'
     };
@@ -935,7 +936,7 @@ export class EnhancedExportEngine {
 
     return {
       data: new TextEncoder().encode(svgContent),
-      duration: frames.length / (job.config.quality.fps || 30),
+      duration: frames.length / (job.config.quality.fps || DEFAULT_FPS),
       codec: 'svg',
       container: 'svg'
     };
@@ -947,7 +948,7 @@ export class EnhancedExportEngine {
 
     return {
       data: new TextEncoder().encode(JSON.stringify(lottieData)),
-      duration: frames.length / (job.config.quality.fps || 30),
+      duration: frames.length / (job.config.quality.fps || DEFAULT_FPS),
       codec: 'lottie',
       container: 'json'
     };
