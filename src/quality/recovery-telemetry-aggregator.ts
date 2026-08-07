@@ -77,10 +77,15 @@ export interface TelemetrySnapshot {
 
 /** Degradation alert emitted when success rate drops >10%. */
 export interface DegradationAlert {
+  /** Scope of the alert. `'overall'` for whole-window success-rate degradation. */
   stage: string;
+  /** Previous window's success rate, as a 0-1 fraction. */
   previousRate: number;
+  /** Current window's success rate, as a 0-1 fraction. */
   currentRate: number;
+  /** Magnitude of the success-rate drop (`previousRate - currentRate`), as a percent (0-100). */
   dropPercent: number;
+  /** ISO timestamp the degradation was detected. */
   detectedAt: string;
 }
 
@@ -103,6 +108,8 @@ interface RecoveryRecord {
 const DEFAULT_WINDOW_MS = 300_000; // 5 minutes
 const DEGRADATION_THRESHOLD = 0.10; // 10%
 const MAX_RECORDS = 5_000;
+/** Upper bound on retained degradation alerts (FIFO eviction). */
+const MAX_DEGRADATION_ALERTS = 100;
 
 // ---------------------------------------------------------------------------
 // RecoveryTelemetryAggregator
@@ -325,8 +332,26 @@ export class RecoveryTelemetryAggregator {
       return false;
     }
 
-    const drop = this.previousWindowSuccessRate - currentRate;
+    // Capture the previous rate before it is overwritten below.
+    const previousRate = this.previousWindowSuccessRate;
+    const drop = previousRate - currentRate;
     const isDegraded = drop > DEGRADATION_THRESHOLD;
+
+    // Surface a structured alert carrying the computed rates — without this the
+    // `degraded` boolean is the only signal that escapes, and the per-window
+    // previous/current rates are computed then dropped at this boundary.
+    if (isDegraded) {
+      this.activeAlerts.push({
+        stage: 'overall',
+        previousRate,
+        currentRate,
+        dropPercent: drop * 100,
+        detectedAt: new Date().toISOString(),
+      });
+      if (this.activeAlerts.length > MAX_DEGRADATION_ALERTS) {
+        this.activeAlerts.shift();
+      }
+    }
 
     // Update for next comparison — only update on significant activity
     if (this.records.length >= 5) {

@@ -230,6 +230,30 @@ describe('RecoveryTelemetryAggregator', () => {
       expect(snap.degraded).toBe(true);
     });
 
+    test('surfaces a structured degradationAlert when success rate drops > 10%', () => {
+      // First window: 100% success rate
+      for (let i = 0; i < 10; i++) {
+        emitSuccess('a', 's', 100);
+      }
+      aggregator.getSnapshot(); // establishes baseline rate
+
+      // Lower the overall rate significantly: 10 successes / 20 total = 0.5
+      for (let i = 0; i < 10; i++) {
+        emitFailure('a', 's', 100);
+      }
+      const snap = aggregator.getSnapshot();
+      expect(snap.degraded).toBe(true);
+      // The computed rates must reach the consumer as a structured alert,
+      // not be dropped in favor of a bare boolean.
+      expect(snap.degradationAlerts).toHaveLength(1);
+      const alert = snap.degradationAlerts[0];
+      expect(alert.stage).toBe('overall');
+      expect(alert.previousRate).toBeCloseTo(1.0); // 0-1 fraction
+      expect(alert.currentRate).toBeCloseTo(0.5); // 0-1 fraction
+      expect(alert.dropPercent).toBeCloseTo(50); // 0.5 drop expressed as percent (0-100)
+      expect(() => new Date(alert.detectedAt).toISOString()).not.toThrow();
+    });
+
     test('does not flag degradation when rate stays similar', () => {
       for (let i = 0; i < 10; i++) {
         emitSuccess('a', 's', 100);
