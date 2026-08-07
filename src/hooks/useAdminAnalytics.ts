@@ -25,6 +25,7 @@ import {
   type LearningStatus,
   type LearningReportEntry,
 } from '@/framework/continuous-learner';
+import { logger } from '@/utils/logger';
 
 export interface UseAdminAnalyticsOptions {
   /** Polling interval in milliseconds (default: 10000) */
@@ -110,12 +111,27 @@ function collectSnapshot(): AdminAnalyticsSnapshot {
     ? lastCheckedAt + HEALTH_CHECK_INTERVAL_MS
     : null;
 
-  const productionMonitor = getProductionMonitor();
-  const productionMetrics = productionMonitor.getMetrics();
-  const productionHealth = productionMonitor.performHealthCheck();
+  // Each backing service is isolated: a throw in one must degrade that section
+  // to its empty value (and warn) rather than crash the whole dashboard refresh,
+  // so a transiently-unavailable monitor never blanks the entire panel.
+  let productionMetrics: ProductionMetrics | null = null;
+  let productionHealth: ProdHealthResult | null = null;
+  try {
+    const productionMonitor = getProductionMonitor();
+    productionMetrics = productionMonitor.getMetrics();
+    productionHealth = productionMonitor.performHealthCheck();
+  } catch (error) {
+    logger.warn('[useAdminAnalytics] Snapshot collection failed', error);
+  }
 
-  const performanceSnapshot = realTimeMonitor.getSnapshot();
-  const trends = realTimeMonitor.analyzeTrends();
+  let performanceSnapshot: PerformanceSnapshot | null = null;
+  let trends: ReturnType<typeof realTimeMonitor.analyzeTrends> = [];
+  try {
+    performanceSnapshot = realTimeMonitor.getSnapshot();
+    trends = realTimeMonitor.analyzeTrends();
+  } catch (error) {
+    logger.warn('[useAdminAnalytics] Performance monitor unavailable', error);
+  }
 
   const learningStatus = continuousLearner.getLearningStatus();
   const learningReport = continuousLearner.getLearningReport();

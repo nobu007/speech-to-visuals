@@ -12,6 +12,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { jest } from '@jest/globals';
 
 // -- mock data --
 
@@ -120,11 +121,12 @@ let mockReturn: {
   stop: ReturnType<typeof jest.fn>;
 };
 
-jest.mock('@/hooks/useAdminAnalytics', () => ({
+jest.unstable_mockModule('@/hooks/useAdminAnalytics', () => ({
+  __esModule: true,
   useAdminAnalytics: jest.fn(() => mockReturn),
 }));
 
-import { AdminAnalyticsDashboard } from '../AdminAnalyticsDashboard';
+const { AdminAnalyticsDashboard } = await import('../AdminAnalyticsDashboard');
 
 describe('AdminAnalyticsDashboard', () => {
   beforeEach(() => {

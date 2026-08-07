@@ -10,84 +10,88 @@
  */
 
 import { renderHook, act } from '@testing-library/react';
+import { jest } from '@jest/globals';
 
-// Mock the monitoring modules before importing the hook
-jest.mock('@/monitoring/health-check-service', () => ({
-  healthCheckService: {
-    getCachedHealth: jest.fn(() => null),
-    getUptime: jest.fn(() => 0),
+// Mock fns are declared at MODULE scope so individual tests can configure return
+// values directly. jest.mock is a no-op under the ESM preset and jest.requireMock
+// is a CommonJS-only API, so we register factories via unstable_mockModule that
+// close over these named fns and resolve the SUT through a dynamic import.
+const mockedGetCachedHealth = jest.fn(() => null);
+const mockedGetUptime = jest.fn(() => 0);
+
+const mockProdMetrics = {
+  totalRequests: 10,
+  successfulRequests: 8,
+  failedRequests: 2,
+  averageProcessingTime: 15000,
+  p95ProcessingTime: 30000,
+  p99ProcessingTime: 45000,
+  errorsByType: new Map([['timeout', 2]]),
+  componentMetrics: {
+    transcription: { requests: 10, successes: 9, failures: 1, averageLatency: 5000, p95Latency: 8000, errors: [] },
+    analysis: { requests: 10, successes: 8, failures: 2, averageLatency: 8000, p95Latency: 15000, errors: [] },
+    visualization: { requests: 10, successes: 10, failures: 0, averageLatency: 2000, p95Latency: 4000, errors: [] },
+    rendering: { requests: 10, successes: 9, failures: 1, averageLatency: 10000, p95Latency: 20000, errors: [] },
   },
+};
+const mockHealthResult = {
+  timestamp: new Date('2026-06-25T10:00:00Z'),
+  status: 'healthy',
+  components: {
+    transcription: { name: 'transcription', status: 'healthy', metrics: { successRate: 0.9, averageLatency: 5000, errorRate: 0.1 } },
+    analysis: { name: 'analysis', status: 'degraded', metrics: { successRate: 0.8, averageLatency: 8000, errorRate: 0.2 } },
+    visualization: { name: 'visualization', status: 'healthy', metrics: { successRate: 1.0, averageLatency: 2000, errorRate: 0 } },
+    rendering: { name: 'rendering', status: 'healthy', metrics: { successRate: 0.9, averageLatency: 10000, errorRate: 0.1 } },
+  },
+  alerts: [],
+  recommendations: ['System healthy. Continue monitoring for trends.'],
+};
+const mockGetProductionMonitor = jest.fn(() => ({
+  getMetrics: jest.fn(() => mockProdMetrics),
+  performHealthCheck: jest.fn(() => mockHealthResult),
 }));
 
-jest.mock('@/monitoring/production-monitor', () => {
-  const mockProdMetrics = {
-    totalRequests: 10,
-    successfulRequests: 8,
-    failedRequests: 2,
-    averageProcessingTime: 15000,
-    p95ProcessingTime: 30000,
-    p99ProcessingTime: 45000,
-    errorsByType: new Map([['timeout', 2]]),
-    componentMetrics: {
-      transcription: { requests: 10, successes: 9, failures: 1, averageLatency: 5000, p95Latency: 8000, errors: [] },
-      analysis: { requests: 10, successes: 8, failures: 2, averageLatency: 8000, p95Latency: 15000, errors: [] },
-      visualization: { requests: 10, successes: 10, failures: 0, averageLatency: 2000, p95Latency: 4000, errors: [] },
-      rendering: { requests: 10, successes: 9, failures: 1, averageLatency: 10000, p95Latency: 20000, errors: [] },
-    },
-  };
-  const mockHealthResult = {
-    timestamp: new Date('2026-06-25T10:00:00Z'),
-    status: 'healthy',
-    components: {
-      transcription: { name: 'transcription', status: 'healthy', metrics: { successRate: 0.9, averageLatency: 5000, errorRate: 0.1 } },
-      analysis: { name: 'analysis', status: 'degraded', metrics: { successRate: 0.8, averageLatency: 8000, errorRate: 0.2 } },
-      visualization: { name: 'visualization', status: 'healthy', metrics: { successRate: 1.0, averageLatency: 2000, errorRate: 0 } },
-      rendering: { name: 'rendering', status: 'healthy', metrics: { successRate: 0.9, averageLatency: 10000, errorRate: 0.1 } },
-    },
-    alerts: [],
-    recommendations: ['System healthy. Continue monitoring for trends.'],
-  };
-  return {
-    getProductionMonitor: jest.fn(() => ({
-      getMetrics: jest.fn(() => mockProdMetrics),
-      performHealthCheck: jest.fn(() => mockHealthResult),
-    })),
-  };
-});
+const mockedGetSnapshot = jest.fn(() => ({
+  timestamp: Date.now(),
+  pipeline: { totalRequests: 10, successRate: 0.8, avgProcessingTime: 15000, p95ProcessingTime: 30000, p99ProcessingTime: 45000, activeRequests: 1 },
+  llm: { totalRequests: 5, flashUsagePercent: 80, proUsagePercent: 20, avgFlashResponseTime: 2000, avgProResponseTime: 5000, cacheHitRate: 0.6, estimatedCostSavings: 50 },
+  system: { cpuUsagePercent: 25, memoryUsageMB: 200, memoryUsagePercent: 40, heapUsedMB: 100, heapTotalMB: 200 },
+  errors: { totalErrors: 2, errorRate: 0.2, recentErrors: [], recoverySuccessRate: 0.5 },
+  quality: { transcriptionAccuracy: 0.92, layoutOverlapRate: 0, avgSceneQuality: 0.88 },
+}));
+const mockAnalyzeTrends = jest.fn(() => [
+  { metric: 'processingTime', trend: 'improving', changePercent: -5.2 },
+  { metric: 'errorRate', trend: 'stable', changePercent: 0.1 },
+]);
 
-jest.mock('@/monitoring/real-time-performance-monitor', () => ({
-  realTimeMonitor: {
-    getSnapshot: jest.fn(() => ({
-      timestamp: Date.now(),
-      pipeline: { totalRequests: 10, successRate: 0.8, avgProcessingTime: 15000, p95ProcessingTime: 30000, p99ProcessingTime: 45000, activeRequests: 1 },
-      llm: { totalRequests: 5, flashUsagePercent: 80, proUsagePercent: 20, avgFlashResponseTime: 2000, avgProResponseTime: 5000, cacheHitRate: 0.6, estimatedCostSavings: 50 },
-      system: { cpuUsagePercent: 25, memoryUsageMB: 200, memoryUsagePercent: 40, heapUsedMB: 100, heapTotalMB: 200 },
-      errors: { totalErrors: 2, errorRate: 0.2, recentErrors: [], recoverySuccessRate: 0.5 },
-      quality: { transcriptionAccuracy: 0.92, layoutOverlapRate: 0, avgSceneQuality: 0.88 },
-    })),
-    analyzeTrends: jest.fn(() => [
-      { metric: 'processingTime', trend: 'improving', changePercent: -5.2 },
-      { metric: 'errorRate', trend: 'stable', changePercent: 0.1 },
-    ]),
-  },
+const logger = {
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  debug: jest.fn(),
+};
+
+jest.unstable_mockModule('@/monitoring/health-check-service', () => ({
+  __esModule: true,
+  healthCheckService: { getCachedHealth: mockedGetCachedHealth, getUptime: mockedGetUptime },
 }));
 
-jest.mock('@/utils/logger', () => ({
-  logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
-  },
+jest.unstable_mockModule('@/monitoring/production-monitor', () => ({
+  __esModule: true,
+  getProductionMonitor: mockGetProductionMonitor,
 }));
 
-import { useAdminAnalytics } from '../useAdminAnalytics';
-import { healthCheckService } from '@/monitoring/health-check-service';
-import { realTimeMonitor } from '@/monitoring/real-time-performance-monitor';
-import { logger } from '@/utils/logger';
+jest.unstable_mockModule('@/monitoring/real-time-performance-monitor', () => ({
+  __esModule: true,
+  realTimeMonitor: { getSnapshot: mockedGetSnapshot, analyzeTrends: mockAnalyzeTrends },
+}));
 
-const mockedGetCachedHealth = jest.mocked(healthCheckService.getCachedHealth);
-const mockedGetUptime = jest.mocked(healthCheckService.getUptime);
+jest.unstable_mockModule('@/utils/logger', () => ({
+  __esModule: true,
+  logger,
+}));
+
+const { useAdminAnalytics } = await import('../useAdminAnalytics');
 
 describe('useAdminAnalytics', () => {
   beforeEach(() => {
@@ -261,7 +265,7 @@ describe('useAdminAnalytics', () => {
 
   it('refresh handles errors gracefully', () => {
     // Temporarily make getProductionMonitor throw
-    const { getProductionMonitor } = jest.requireMock('@/monitoring/production-monitor');
+    const getProductionMonitor = mockGetProductionMonitor;
     getProductionMonitor.mockReturnValueOnce({
       getMetrics: jest.fn(() => { throw new Error('DB connection failed'); }),
       performHealthCheck: jest.fn(() => { throw new Error('DB connection failed'); }),
@@ -281,7 +285,6 @@ describe('useAdminAnalytics', () => {
   });
 
   it('logs warning when realTimeMonitor.getSnapshot throws', () => {
-    const mockedGetSnapshot = jest.mocked(realTimeMonitor.getSnapshot);
     mockedGetSnapshot.mockImplementationOnce(() => { throw new Error('monitor crashed'); });
 
     const { result } = renderHook(() =>
@@ -299,7 +302,7 @@ describe('useAdminAnalytics', () => {
   });
 
   it('logs warning when snapshot collection throws', () => {
-    const { getProductionMonitor } = jest.requireMock('@/monitoring/production-monitor');
+    const getProductionMonitor = mockGetProductionMonitor;
     getProductionMonitor.mockImplementationOnce(() => { throw new Error('collection crashed'); });
 
     const { result } = renderHook(() =>
