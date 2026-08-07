@@ -9,6 +9,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   healthCheckService,
+  HEALTH_CHECK_INTERVAL_MS,
   type HealthCheckResult,
 } from '@/monitoring/health-check-service';
 import {
@@ -102,7 +103,9 @@ export interface UseAdminAnalyticsReturn {
   stop: () => void;
 }
 
-const HEALTH_CHECK_INTERVAL_MS = 10_000; // matches HealthCheckService internal interval
+// HEALTH_CHECK_INTERVAL_MS is imported from the producer (health-check-service)
+// so the dashboard's `nextDueAt` tracks the real refresh cadence instead of a
+// re-hard-coded literal. See health-check-service.ts for the rationale.
 
 function collectSnapshot(): AdminAnalyticsSnapshot {
   const healthCheck = healthCheckService.getCachedHealth();

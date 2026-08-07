@@ -11,6 +11,17 @@ import { globalCache } from '@/performance/intelligent-cache';
 import { getMemoryUsage } from '@/utils/memory-usage';
 import { logger } from '../utils/logger';
 
+/**
+ * Interval at which {@link HealthCheckService} refreshes its cached health
+ * snapshot in `startPeriodicHealthChecks`. Exported so consumers that derive
+ * timing FROM that cached snapshot (e.g. useAdminAnalytics computes
+ * `nextDueAt = lastCheckedAt + HEALTH_CHECK_INTERVAL_MS`) read the SAME value
+ * rather than re-hard-coding `10000` behind a "// matches" comment — the
+ * producer/consumer desync trap where changing this interval would silently
+ * make the dashboard's "next check due" countdown wrong.
+ */
+export const HEALTH_CHECK_INTERVAL_MS = 10_000;
+
 /** Names of components checked during a health check. */
 type ComponentName = 'memory' | 'cache' | 'pipeline' | 'llm' | 'errorRecovery' | 'performance';
 
@@ -577,14 +588,16 @@ class HealthCheckService {
    * Start periodic health checks
    */
   private startPeriodicHealthChecks(): void {
-    // Perform health check every 10 seconds
+    // Refresh every HEALTH_CHECK_INTERVAL_MS (10s). This export is the single
+    // source of truth — useAdminAnalytics derives `nextDueAt` from the same
+    // constant so the producer (here) and consumer never drift apart.
     this.healthCheckInterval = setInterval(async () => {
       try {
         await this.performHealthCheck();
       } catch (error) {
         logger.error('[HealthCheck] Periodic health check failed:', error);
       }
-    }, 10000);
+    }, HEALTH_CHECK_INTERVAL_MS);
   }
 
   /**

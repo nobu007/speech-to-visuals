@@ -74,6 +74,10 @@ const logger = {
 jest.unstable_mockModule('@/monitoring/health-check-service', () => ({
   __esModule: true,
   healthCheckService: { getCachedHealth: mockedGetCachedHealth, getUptime: mockedGetUptime },
+  // Mirror the real export so the SUT's `import { HEALTH_CHECK_INTERVAL_MS }`
+  // resolves under the ESM mock. The producer↔consumer coupling itself is
+  // enforced structurally in health-check-interval-coupling.test.ts.
+  HEALTH_CHECK_INTERVAL_MS: 10_000,
 }));
 
 jest.unstable_mockModule('@/monitoring/production-monitor', () => ({
@@ -92,6 +96,7 @@ jest.unstable_mockModule('@/utils/logger', () => ({
 }));
 
 const { useAdminAnalytics } = await import('../useAdminAnalytics');
+const { HEALTH_CHECK_INTERVAL_MS } = await import('@/monitoring/health-check-service');
 
 describe('useAdminAnalytics', () => {
   beforeEach(() => {
@@ -161,7 +166,7 @@ describe('useAdminAnalytics', () => {
 
     expect(result.current.snapshot.healthCheck).toEqual(mockHC);
     expect(result.current.snapshot.lastCheckedAt).toBe(1000000);
-    expect(result.current.snapshot.nextDueAt).toBe(1000000 + 10_000);
+    expect(result.current.snapshot.nextDueAt).toBe(1000000 + HEALTH_CHECK_INTERVAL_MS);
     expect(result.current.snapshot.uptime).toBe(42000);
   });
 
