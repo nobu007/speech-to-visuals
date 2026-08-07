@@ -51,6 +51,10 @@ export interface TelemetrySnapshot {
   windowMs: number;
   /** Total events in the window. */
   totalEvents: number;
+  /** Successful recoveries in the window (= totalEvents - totalFailures). */
+  totalSuccesses: number;
+  /** Failed recoveries in the window. */
+  totalFailures: number;
   /** Overall recovery success rate (0-1). */
   overallSuccessRate: number;
   /** Mean recovery time across all stages (ms). */
@@ -200,6 +204,8 @@ export class RecoveryTelemetryAggregator {
       capturedAt: new Date(now).toISOString(),
       windowMs: this.windowMs,
       totalEvents: totalAttempts,
+      totalSuccesses,
+      totalFailures: failureRecords.length,
       overallSuccessRate,
       meanRecoveryTimeMs,
       p95RecoveryTimeMs,

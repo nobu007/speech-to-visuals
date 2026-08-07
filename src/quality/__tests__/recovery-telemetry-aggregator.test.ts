@@ -130,6 +130,9 @@ describe('RecoveryTelemetryAggregator', () => {
       emitFailure('analysis', 's2', 200);
       const snap = aggregator.getSnapshot();
       expect(snap.totalEvents).toBe(2);
+      expect(snap.totalSuccesses).toBe(1);
+      expect(snap.totalFailures).toBe(1);
+      expect(snap.totalSuccesses + snap.totalFailures).toBe(snap.totalEvents);
       expect(snap.overallSuccessRate).toBeCloseTo(0.5);
     });
 
@@ -137,6 +140,8 @@ describe('RecoveryTelemetryAggregator', () => {
       emitFailure('analysis', 's1', 100);
       emitFailure('analysis', 's2', 200);
       const snap = aggregator.getSnapshot();
+      expect(snap.totalSuccesses).toBe(0);
+      expect(snap.totalFailures).toBe(2);
       expect(snap.overallSuccessRate).toBe(0);
     });
   });
