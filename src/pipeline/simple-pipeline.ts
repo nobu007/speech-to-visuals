@@ -519,7 +519,13 @@ export class SimplePipeline {
           qualityScore
         },
         processingTime,
-        qualityScore,
+        // Normalize the 0-100 qualityScore to the 0-1 contract continuousLearner
+        // expects (thresholds 0.85/0.75; *100 rescale on aggregate). Passing the
+        // raw 0-100 value made `score >= 0.85` always true, silently disabling
+        // the pipeline_complete self-improvement trigger. Mirrors the sibling
+        // recordMetrics.confidenceScore boundary (qualityScore / 100) and all
+        // other 0-1 continuousLearner call sites.
+        qualityScore / 100,
         true,
         [],
         {

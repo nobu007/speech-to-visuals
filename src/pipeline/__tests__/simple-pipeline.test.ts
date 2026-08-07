@@ -136,6 +136,14 @@ const mockGenerateLayout = __mockGenerateLayout;
 const mockGenerateZeroOverlapLayout = __mockGenerateZeroOverlapLayout;
 const mockGenerateVideo = videoGeneratorMock.__mockGenerateVideo;
 
+// Handles to the boundary mocks under test
+const learnerNs = await import('@/framework/continuous-learner') as {
+  continuousLearner: { learnFromProcessingResult: jest.Mock };
+};
+const qualityMonitorNs = await import('@/pipeline/quality-monitor') as {
+  getQualityMonitor: jest.Mock;
+};
+
 // Mock URL.createObjectURL / revokeObjectURL
 beforeEach(() => {
   globalThis.URL.createObjectURL = jest.fn(() => 'blob:test');
@@ -593,6 +601,48 @@ describe('SimplePipeline', () => {
       const calls = videoGeneratorMock.VideoGenerator.mock.calls;
       const config = calls[calls.length - 1][0] as Record<string, unknown>;
       expect(config).toMatchObject({ quality: 'high', resolution: '1080p', fps: 30 });
+    });
+  });
+
+  describe('continuous-learner quality-score normalization', () => {
+    // Regression: calculateQualityScore returns a 0-100 value (Math.min(score,100)).
+    // The sibling recordMetrics boundary already normalizes via `/100`
+    // (confidenceScore), and ALL other continuousLearner call sites pass a 0-1
+    // value (transcription 0.9/0.3, segmentation Math.min(0.95,…), detection
+    // detConfidence, layout Math.min(0.95,…), diagram 0.9/0.3, video 0.95/0.3,
+    // failure 0.0). But the 'pipeline_complete' call passed the raw 0-100 score.
+    // The consumer treats qualityScore as 0-1 (thresholds 0.85/0.75 at
+    // continuous-learner.ts:147/164/901; *100 rescale at :1079), so a 0-100 value
+    // made `75 >= 0.85` numerically true → the pipeline_complete component was
+    // always graded "excellent" and triggerCustomInstructionsImprovement never
+    // fired, silently disabling the recursive self-improvement loop for the
+    // overall pipeline.
+    it("passes a 0-1 qualityScore (not raw 0-100) for 'pipeline_complete'", async () => {
+      const result = await pipeline.process({
+        audioFile: createMockFile(),
+        options: { includeVideoGeneration: false },
+      });
+      expect(result.success).toBe(true);
+
+      const learnSpy = learnerNs.continuousLearner.learnFromProcessingResult;
+      const call = learnSpy.mock.calls.find(
+        (c: unknown[]) => c[0] === 'pipeline_complete',
+      );
+      expect(call).toBeTruthy();
+      const qualityScoreArg = (call as unknown[])[4] as number; // 5th positional param
+
+      // Consumer contract: qualityScore is 0-1.
+      expect(qualityScoreArg).toBeGreaterThanOrEqual(0);
+      expect(qualityScoreArg).toBeLessThanOrEqual(1);
+
+      // Must equal the already-correct sibling boundary: recordMetrics receives
+      // confidenceScore = qualityScore / 100. Both must carry the same value.
+      const qm = qualityMonitorNs.getQualityMonitor() as { recordMetrics: jest.Mock };
+      const recorded = qm.recordMetrics.mock.calls[0]?.[0] as
+        | { confidenceScore?: number }
+        | undefined;
+      expect(recorded?.confidenceScore).toBeDefined();
+      expect(qualityScoreArg).toBeCloseTo(recorded!.confidenceScore as number, 5);
     });
   });
 });
