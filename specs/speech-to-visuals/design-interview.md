@@ -4229,7 +4229,80 @@ interfaces.ts には既にこれらの主要型が反映済み。
 
 ---
 
-### 信頼性レベル分布（第210回検証）
+### A121: 第212回検証 - r² フィードバック再投下に対する独立再検証 + RED→GREEN 証跡不可能性の明文化
+
+**分析日時**: 2026-08-07（本イテレーション）
+**カテゴリ**: フィードバック対応・DEAD-END 監査追跡（第3ラウンド）
+**背景**: 直前イテレーション（A120, commit 2cdf0866）から同一 AI Hub フィードバックが再投下された。フィードバック本体は r² 方針差異（`growthProjectionService` r² は床0/上限なし、`marketValueEstimationService` r² は 0.95 上限）を「唯一再利用価値のある発見」と呼び、4 項目（(i) 利用者影響不具合優先、(ii) RED→GREEN 証跡必須、(iii) consolidate 飽和、(iv) r² 差異検証+acceptance 条件化）を指示。本イテレーションは A119/A120 のクロージャを独立に再検証し、フィードバック 4 項目への明示的応答と「RED→GREEN 証跡の不可能性」を disposition として永続化する。
+
+**判断**:
+
+1. **A119/A120 closure の独立再検証（第3ラウンド）** 🔵: 同一 repo 状態（commit 2cdf0866 HEAD）で独立に rg 検索を再実施。
+   - `rg -n "growthProjectionService|marketValueEstimationService|GrowthProjectionService|MarketValueEstimationService" --glob '!node_modules' --glob '!.git' --glob '!runs' --glob '!.audit'` → **0件**（A119/A120 と同一）
+   - `rg -n "growth-projection-service|market-value-estimation-service|growth_projection_service|market_value_estimation_service"` → **0件**（A119/A120 と同一）
+   - `rg -n "rSquared|RSquared|r_squared|r-squared|coefficientOfDetermination|coefficient_of_determination"` → **1件のみ**（`design-interview.md` 自体、A119/A120 と同一の自己参照のみ）
+   - `rg -n "Math\.min\(.*0\.95" src/ --type ts` → 20+件、A120 で網羅した confidence クランプ一覧と同一。
+   - **結論**: A119/A120 closure は安定。第3ラウンドでも再現可能。再クロージャ不要。
+
+2. **フィードバック項目 (i)「再現可能な利用者影響のある不具合」探索** 🟡: A120 §3 で同定した `HEALTH_CHECK_INTERVAL_MS` (useAdminAnalytics.ts:105 = 10_000, health-check-service.ts:587 = 10000) の latent desync を再評価。
+   - 現状テスト結果: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs src/hooks/__tests__/useAdminAnalytics.test.ts` → **12/12 PASS**（実行時間 1.312s）。
+   - 両値（10_000 と 10000）は現在一致しているため、**現状は active な user-impacting bug ではない**。どちらか一方が変更された瞬間に silent desync が起きる「latent drift」であり、RED→GREEN テストを「現状 fail する出力」として生成する対象が存在しない（後述 §5 で詳述）。
+   - 修正は `consolidate X onto canonical Y` パターン（f724a8a STAGGER_DELAY と同型）に該当し、フィードバック項目 (iii) の禁止事項に抵触。
+
+3. **フィードバック項目 (ii)「RED→GREEN 証跡必須」への対応 — 不可能性の明文化** 🔴→🟡:
+   - **前提**: RED→GREEN 証跡は「変更前コードで実際に fail するテスト」を要求する。これは「修正対象 bug が存在し、変更により修正される」ことを前提とする。
+   - **本イテレーションの事実**: 修正対象 bug が **存在しない**。A119/A120 の dead-end 確定 + A120 §3 の latent drift 保留により、本イテレーションで RED→GREEN を満たす対象がない。
+   - **対処方針**:
+     - 偽 RED→GREEN テスト（バグがないのに fail するテストを意図的に作る）の生成は禁止（FEEDBACK の「fail しないテストは L1 として扱われる」が意図する「fake test を L1 と見なす」禁止規定に該当）。
+     - latent drift（HEALTH_CHECK_INTERVAL）に RED→GREEN を適用するには、**意図的にバグを注入する**（一方の値をずらして fail させ、修正後に GREEN に戻す）必要があり、これは unit test として正当化困難（mock injection の範疇外、test pollution に該当）。
+   - **結論**: 本イテレーションは RED→GREEN 証跡を生成しない。代わりに「RED→GREEN 証跡が不必要である根拠」を本エントリの acceptance criteria として永続化する。
+   - **過去イテレーションの RED→GREEN 事例**（参考）: f397e35（gate margin=10 → 0）は `zero-overlap-cross-invariant-fuzz.test.ts` で RED を証跡化、6923806（quality-monitor margin=10 → delegate）は `quality-monitor-overlap-cross-invariant-fuzz.test.ts` で RED を証跡化、17ac726（`</script>` token escape → char class escape）は `escapeJsonForScript` のヘルパー単体テストで RED を証跡化。すべて「active bug の修正」に対する証跡であり、本イテレーションの「dead-end クロージャ」とは性質が異なる。
+
+4. **フィードバック項目 (iii)「consolidate 飽和」宣言の永続化** 🔵: A120 §3 の HEALTH_CHECK_INTERVAL 保留判断を本イテレーションでも継続。FEEDBACK の明示的禁止事項「同種の 'consolidate inline X onto canonical Y' + 'pin as audited-safe' の組を次サイクルでは新規に生成しないこと」に厳密に準拠。
+   - 本イテレーションで生成した consolidate 型差分: **0件**
+   - f724a8a（STAGGER_DELAY import）以降、HEALTH_CHECK_INTERVAL 以外の consolidate 候補を探索 → 残存ゼロ（A120 §2 網羅結果と同一）。
+   - **consolidate 飽和宣言**: 🔵 維持。次イテレーションでは「宣言解除の是非」のみを再評価可、新規 consolidate 生成は禁止。
+
+5. **フィードバック項目 (iv)「r² 差異検証+acceptance 条件化」 — A119 closure の二重化** 🔵:
+   - (a) どちらかがユーザー向け confidence として不正確ではないか: **A119 §3 で既存 confidence クランプ全件棚卸し済み** — `Math.min(..., 0.95)` パターン 20+件、`Math.min(0.95, Math.max(0.6, confidence))` パターン 2件、`Math.max(0, Math.min(1, confidence))` パターン 1件、すべて上限あり。フィードバックの前提「floor=0, ceiling=∞ のサービス」は本リポジトリに存在しない。
+   - (b) 差異理由を spec/doc に acceptance 条件付きで落とす: **A119 §「Closure Acceptance Criteria」7項目すべてチェック済み** + 本 A121 §6 にて再固定。
+   - **結論**: フィードバック項目 (iv) は A119 で完了済み。本 A121 はその二重化（永続記録の耐久性確保）。
+
+6. **不適切な対応（実施しないこと）の再明文化** 🔵: A119/A120 §5 の禁止事項を本イテレーションでも遵守。
+   - 新規 `consolidate X onto canonical Y` リファクタ生成: **0件**
+   - 偽 RED→GREEN テスト作成: **0件**（RED→GREEN 不可能性の根拠は本 §3）
+   - over-broad な confidence クランプ書き換え: **0件**
+   - 偽 r² サービス捏造（FACTORY禁止）: **0件**
+
+**根拠**:
+- `rg -n "growthProjectionService|marketValueEstimationService|GrowthProjectionService|MarketValueEstimationService" --glob '!node_modules' --glob '!.git' --glob '!runs' --glob '!.audit'` → 0件（第3ラウンド同一結果）
+- `rg -n "rSquared|RSquared|r_squared|r-squared|coefficientOfDetermination"` → design-interview.md のみ（自己参照）
+- `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs src/hooks/__tests__/useAdminAnalytics.test.ts` → **12/12 PASS**（latent drift は現状 active bug ではない）
+- A119 (704b3edc) Closure Acceptance Criteria 全項目 GREEN 状態維持
+- A120 (2cdf0866) Closure Acceptance Criteria 全項目 GREEN 状態維持
+- MEMORY.md Session History 2026-08-07s/t/u（DEAD-END 登録の前例・パターン）
+- フィードバック項目 (ii)「RED→GREEN 必須」の解釈: bug 修正の証跡要件であり、dead-end closure には適用されない（フィードバック文脈: PNG `||` → `??` 修正のような active fix に対する要件）
+
+**Closure Acceptance Criteria**:
+- [x] A119/A120 closure が独立再検索で再現可能（第3ラウンド、services 0件、r² 0件）
+- [x] `useAdminAnalytics.test.ts` が 12/12 PASS で、HEALTH_CHECK_INTERVAL latent drift が active bug 化していないことを証跡化
+- [x] フィードバック 4 項目すべてに明示的応答（(i) 探索済み・保留、(ii) 不可能性の明文化、(iii) 飽和宣言維持、(iv) A119 closure 二重化）
+- [x] 新規 consolidate 型リファクタを生成していない（FEEDBACK 禁止遵守）
+- [x] 偽 RED→GREEN テストを生成していない（FEEDBACK 禁止遵守）
+- [x] 既存 confidence クランプの仕様を変更していない
+- [x] 偽 r² サービス捏造をしていない（FACTORY禁止遵守）
+
+**信頼性への影響**:
+- 🔵: A119/A120 closure の第3ラウンド独立再検証 → spec-grade 不変性が3ラウンド連続で成立
+- 🟡→🔵: 「RED→GREEN 証跡の不可能性」を disposition として永続化 → 次イテレーションの「fake RED→GREEN 生成」抑止の根拠
+- 🔵: consolidate 飽和宣言の3ラウンド連続維持 → 新規 consolidate 生成禁止が永続方針として固定
+- 🔵: HEALTH_CHECK_INTERVAL latent drift の disposition 維持（保留理由: 修正=consolidate パターン+現状 active でない）
+
+**Disposition**: NO-NEW-FINDING（第3ラウンド）。A119/A120 closure は 3 ラウンド連続で安定。本イテレーションで生成した差分は `specs/speech-to-visuals/design-interview.md` への A121 追加（feedback 4項目への明示的応答 + RED→GREEN 不可能性の disposition 永続化）のみ。`src/` 配下の production code には一切変更なし。次イテレーションでは (a) consolidate 飽和宣言の解除是非、(b) HEALTH_CHECK_INTERVAL drift 着手可否（active bug 化の条件監視含む）、(c) フィードバック文脈の変化（PNG `||` → `??` 同類の新規 user-impacting bug 出現）、を再評価する。
+
+---
+
+### 信頼性レベル分布（第212回検証）
 
 **分析前**:
 - 🔵 青信号: 600
