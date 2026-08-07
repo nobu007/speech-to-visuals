@@ -273,6 +273,11 @@ describe('RealTimePerformanceMonitor', () => {
       expect(snapshot).toHaveProperty('system');
       expect(snapshot).toHaveProperty('errors');
       expect(snapshot).toHaveProperty('quality');
+      // uptime was previously computed (now - monitoringStartTime) but dropped
+      // at the return boundary — assert it now propagates (ms, >= 0).
+      expect(snapshot).toHaveProperty('uptime');
+      expect(typeof snapshot.uptime).toBe('number');
+      expect(snapshot.uptime).toBeGreaterThanOrEqual(0);
     });
 
     it('calculates P95/P99 processing times', () => {

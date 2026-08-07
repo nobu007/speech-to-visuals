@@ -33,6 +33,8 @@ export interface PerformanceAlert {
 
 export interface PerformanceSnapshot {
   timestamp: number;
+  /** How long the monitor has been running, in milliseconds (`now - monitoringStartTime`). */
+  uptime: number;
   pipeline: {
     totalRequests: number;
     successRate: number;
@@ -439,6 +441,12 @@ class RealTimePerformanceMonitor extends EventEmitter {
 
     return {
       timestamp: now,
+      // `uptime` was computed above (line 404) but previously dropped at this
+      // return boundary — every sibling telemetry snapshot (HttpMetricsSnapshot,
+      // HealthCheckResult) surfaces uptime; surface it here too so consumers
+      // (HealthCheckResult.metrics, useAdminAnalytics) can read the monitor's
+      // actual uptime instead of it being inaccessible. Unit: milliseconds.
+      uptime,
       pipeline: {
         totalRequests: this.counters.totalRequests,
         successRate: Math.round(successRate * 1000) / 1000,
