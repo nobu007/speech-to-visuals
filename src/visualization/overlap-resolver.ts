@@ -1,6 +1,8 @@
 import { PositionedNode, LayoutEdge } from '@/types/diagram';
 import { SpatialHash, GridSpatialHash } from './spatial-hash';
 import { getNodeWidth as effWidth, getNodeHeight as effHeight } from './node-dimensions';
+// Canonical overlap predicate — single source of truth (see layout-utils.ts).
+import { nodesOverlap } from './layout-utils';
 
 export interface OverlapPair {
   node1: PositionedNode;
@@ -31,7 +33,7 @@ export class OverlapResolver {
         if (checked.has(pairKey)) continue;
         checked.add(pairKey);
 
-        if (this.nodesOverlap(node, candidate)) {
+        if (nodesOverlap(node, candidate)) {
           pairs.push({ node1: node, node2: candidate });
         }
       }
@@ -160,18 +162,5 @@ export class OverlapResolver {
         y: row * cellHeight + 40,
       };
     });
-  }
-
-  private nodesOverlap(a: PositionedNode, b: PositionedNode): boolean {
-    const aw = effWidth(a, 0);
-    const ah = effHeight(a, 0);
-    const bw = effWidth(b, 0);
-    const bh = effHeight(b, 0);
-    return (
-      a.x < b.x + bw &&
-      a.x + aw > b.x &&
-      a.y < b.y + bh &&
-      a.y + ah > b.y
-    );
   }
 }

@@ -19,6 +19,8 @@ import {
 } from '@/visualization/types';
 import { calculateCanvasSize, calculateMetrics } from '@/visualization/layout-engine-v2';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
+// Canonical overlap predicate — single source of truth (see layout-utils.ts).
+import { nodesOverlap } from '../layout-utils';
 
 const DEFAULT_CANVAS_WIDTH = 1920;
 const DEFAULT_CANVAS_HEIGHT = 1080;
@@ -124,25 +126,12 @@ export class CycleLayoutStrategy implements LayoutStrategy {
   private detectOverlaps(nodes: PositionedNode[]): boolean {
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
-        if (this.nodesOverlap(nodes[i], nodes[j])) {
+        if (nodesOverlap(nodes[i], nodes[j])) {
           return true;
         }
       }
     }
     return false;
-  }
-
-  private nodesOverlap(a: PositionedNode, b: PositionedNode): boolean {
-    const aw = getNodeWidth(a, 0);
-    const ah = getNodeHeight(a, 0);
-    const bw = getNodeWidth(b, 0);
-    const bh = getNodeHeight(b, 0);
-    return (
-      a.x < b.x + bw &&
-      a.x + aw > b.x &&
-      a.y < b.y + bh &&
-      a.y + ah > b.y
-    );
   }
 
   private applyForceDirectedFallback(nodes: PositionedNode[]): PositionedNode[] {
@@ -162,7 +151,7 @@ export class CycleLayoutStrategy implements LayoutStrategy {
           const a = forceNodes[i].positioned;
           const b = forceNodes[j].positioned;
 
-          if (this.nodesOverlap(a, b)) {
+          if (nodesOverlap(a, b)) {
             const aCx = a.x + getNodeWidth(a, 0) / 2;
             const aCy = a.y + getNodeHeight(a, 0) / 2;
             const bCx = b.x + getNodeWidth(b, 0) / 2;

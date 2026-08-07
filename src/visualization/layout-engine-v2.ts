@@ -2,6 +2,10 @@ import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@
 import { LayoutStrategy, StrategyLayoutResult, StrategyLayoutMetrics, CanvasSize, StrategyRegistry } from './types';
 import { DefaultStrategyRegistry } from './strategies/base-strategy';
 import { getNodeWidth, getNodeHeight } from './node-dimensions';
+// Canonical overlap predicate — single source of truth (see layout-utils.ts).
+// A local byte-identical copy previously lived here; any future edit to the
+// shared predicate MUST propagate through this import, not a re-inlined copy.
+import { nodesOverlap } from './layout-utils';
 
 const DEFAULT_CANVAS_WIDTH = 1920;
 const DEFAULT_CANVAS_HEIGHT = 1080;
@@ -84,19 +88,6 @@ export function calculateMetrics(
   const aspectRatio = canvas.height > 0 ? canvas.width / canvas.height : TARGET_ASPECT_RATIO;
 
   return { overlapCount, edgeCrossings, aspectRatio };
-}
-
-function nodesOverlap(a: PositionedNode, b: PositionedNode): boolean {
-  const aw = getNodeWidth(a, 0);
-  const ah = getNodeHeight(a, 0);
-  const bw = getNodeWidth(b, 0);
-  const bh = getNodeHeight(b, 0);
-  return (
-    a.x < b.x + bw &&
-    a.x + aw > b.x &&
-    a.y < b.y + bh &&
-    a.y + ah > b.y
-  );
 }
 
 export class LayoutEngineV2 {

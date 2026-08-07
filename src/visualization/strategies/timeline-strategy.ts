@@ -14,6 +14,8 @@ import {
 } from '@/visualization/types';
 import { calculateCanvasSize, calculateMetrics } from '@/visualization/layout-engine-v2';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
+// Canonical overlap predicate — single source of truth (see layout-utils.ts).
+import { nodesOverlap } from '../layout-utils';
 
 const DEFAULT_NODE_WIDTH = 120;
 const DEFAULT_NODE_HEIGHT = 60;
@@ -80,19 +82,6 @@ function determineNodeOrder(nodes: NodeDatum[], edges: EdgeDatum[]): NodeDatum[]
   }
 
   return ordered.map((id) => nodeMap.get(id)!);
-}
-
-function nodesOverlap(a: PositionedNode, b: PositionedNode): boolean {
-  const aw = getNodeWidth(a, 0);
-  const ah = getNodeHeight(a, 0);
-  const bw = getNodeWidth(b, 0);
-  const bh = getNodeHeight(b, 0);
-  return (
-    a.x < b.x + bw &&
-    a.x + aw > b.x &&
-    a.y < b.y + bh &&
-    a.y + ah > b.y
-  );
 }
 
 /**
