@@ -444,4 +444,51 @@ describe('buildAnalyzerCacheKey', () => {
   it('embeds the analyzer cache version tag', () => {
     expect(buildAnalyzerCacheKey('x')).toContain(GEMINI_ANALYZER_CACHE_VERSION);
   });
+
+  // -----------------------------------------------------------------------
+  // Injectivity / content-faithfulness invariants (property form)
+  //
+  // The key incorporates the FULL text, so two different analyses can never
+  // share a key. These turn that contract into a property so a future
+  // reintroduction of prefix truncation (the f6d5dc43 fix) fails loudly.
+  // -----------------------------------------------------------------------
+
+  it('is injective over many distinct texts sharing a long common prefix', () => {
+    // Prefix-truncation regression, generalized: 100 texts that differ only
+    // past char 150 must each map to a distinct key. The old text.slice(0,100)
+    // key collapsed all of these to one slot.
+    const prefix = 'Z'.repeat(150);
+    const seen = new Set<string>();
+    for (let i = 0; i < 100; i++) {
+      const key = buildAnalyzerCacheKey(`${prefix}__unique_suffix_${i}__`);
+      expect(seen.has(key)).toBe(false);
+      seen.add(key);
+    }
+    expect(seen.size).toBe(100);
+  });
+
+  it('is injective over randomly generated distinct texts', () => {
+    // General content-faithfulness lock: distinct texts -> distinct keys.
+    // A collision is only legal for identical text.
+    const seen = new Map<string, string>();
+    let seed = 0x12345;
+    const rng = () => {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      return seed / 0x100000000;
+    };
+    const alphabet = 'ABあ12 xy.、\nZq';
+    for (let i = 0; i < 500; i++) {
+      const len = 1 + Math.floor(rng() * 80);
+      let text = '';
+      for (let c = 0; c < len; c++) {
+        text += alphabet[Math.floor(rng() * alphabet.length)];
+      }
+      const key = buildAnalyzerCacheKey(text);
+      if (seen.has(key)) {
+        expect(seen.get(key)).toBe(text); // same key ⇒ same text
+      } else {
+        seen.set(key, text);
+      }
+    }
+  });
 });
