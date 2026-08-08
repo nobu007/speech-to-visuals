@@ -294,7 +294,7 @@ export class MultiFormatExporter {
         if (edge.label) {
           const midX = (fx + tx) / 2;
           const midY = (fy + ty) / 2;
-          svg += `    <text x="${midX}" y="${midY - 5}" fill="#666" font-size="12" text-anchor="middle">${escapeXml(edge.label)}</text>
+          svg += `    <text x="${midX}" y="${midY - 5}" fill="#666" font-size="12" font-family="sans-serif" text-anchor="middle">${escapeXml(edge.label)}</text>
 `;
         }
       }
@@ -308,8 +308,8 @@ export class MultiFormatExporter {
       const h = getNodeHeight(node);
 
       svg += `    <g id="${escapeXml(node.id)}">
-      <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#3b82f6" stroke="#2E5C8A" stroke-width="2" rx="5"/>
-      <text x="${x + w / 2}" y="${y + h / 2}" fill="white" font-size="14" text-anchor="middle" dominant-baseline="middle">${escapeXml(node.label)}</text>
+      <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#3b82f6" stroke="#2E5C8A" stroke-width="2" rx="8"/>
+      <text x="${x + w / 2}" y="${y + h / 2}" fill="white" font-size="14" font-weight="bold" font-family="sans-serif" text-anchor="middle" dominant-baseline="middle">${escapeXml(node.label)}</text>
     </g>
 `;
     }
@@ -394,18 +394,20 @@ export class MultiFormatExporter {
       const h = getNodeHeight(node);
 
       // Node rectangle (#3b82f6 — matches the on-screen DiagramScene fill so
-      // downloads are WYSIWYG with the rendered video)
+      // downloads are WYSIWYG with the rendered video). Corner radius 8 matches
+      // the on-screen `borderRadius: 8` (previously a divergent 5).
       ctx.fillStyle = '#3b82f6';
       ctx.strokeStyle = '#2E5C8A';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.roundRect(x, y, w, h, 5);
+      ctx.roundRect(x, y, w, h, 8);
       ctx.fill();
       ctx.stroke();
 
-      // Node label
+      // Node label — bold sans-serif matches the on-screen `fontWeight: 'bold'`
+      // / `fontFamily: 'sans-serif'` (previously regular-weight Arial).
       ctx.fillStyle = 'white';
-      ctx.font = '14px Arial';
+      ctx.font = 'bold 14px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(node.label, x + w / 2, y + h / 2);

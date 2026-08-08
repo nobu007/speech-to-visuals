@@ -458,4 +458,68 @@ describe('MultiFormatExporter', () => {
       expect(pdf).not.toContain('0.29 0.56 0.89 rg'); // previous divergent color
     });
   });
+
+  describe('node geometry & typography — WYSIWYG parity with on-screen render', () => {
+    // The on-screen DiagramScene (src/remotion/DiagramScene.tsx) renders nodes
+    // with `borderRadius: 8`, `fontWeight: 'bold'`, and `fontFamily: 'sans-serif'`.
+    // The export previously diverged: corner radius 5 (SVG/Canvas), node labels
+    // in regular weight, and SVG text with no font-family (defaults to a serif in
+    // many viewers). Downloads must match the rendered video, not a stale variant.
+    // (Edge/label COLORS stay #666 — a deliberate adaptation to the default white
+    // export background, where the render's translucent-white strokes would be
+    // invisible. Color is parity-checked separately above for the node FILL.)
+
+    it('SVG node corner radius matches the on-screen borderRadius (8, not 5)', async () => {
+      const scene = makeScene({ id: 'svg-radius-parity' });
+      const svg = await (await exporter.export(scene, { format: 'svg' })).data.text();
+      expect(svg).toContain('rx="8"');
+      expect(svg).not.toContain('rx="5"');
+    });
+
+    it('SVG node label is bold sans-serif, matching the on-screen typography', async () => {
+      const scene = makeScene({ id: 'svg-typography-parity' });
+      const svg = await (await exporter.export(scene, { format: 'svg' })).data.text();
+      expect(svg).toContain('font-weight="bold"');
+      expect(svg).toContain('font-family="sans-serif"');
+    });
+
+    it('Canvas node corner radius is 8 and the label font is bold, matching the render', async () => {
+      // jsdom has no real 2D context; record roundRect args and every font
+      // assignment so the Canvas path's radius and weight are verifiable.
+      const exp = new MultiFormatExporter();
+      const roundRectCalls: number[][] = [];
+      const fonts: string[] = [];
+      const ctxStub = new Proxy(
+        {},
+        {
+          get: (_t, prop) => {
+            if (prop === 'roundRect') return (...args: number[]) => roundRectCalls.push(args);
+            return () => {};
+          },
+          set: (_t, prop, value) => {
+            if (prop === 'font') fonts.push(value);
+            return true;
+          },
+        },
+      ) as unknown as CanvasRenderingContext2D;
+      const canvasStub = { getContext: () => ctxStub } as unknown as HTMLCanvasElement;
+      jest
+        .spyOn(exp as unknown as { createCanvas: () => HTMLCanvasElement }, 'createCanvas')
+        .mockReturnValue(canvasStub);
+      jest
+        .spyOn(exp as unknown as { canvasToBlob: (c: HTMLCanvasElement, t: string, q: number) => Promise<Blob> }, 'canvasToBlob')
+        .mockResolvedValue(new Blob([], { type: 'image/png' }));
+
+      await exp.export(makeScene({ id: 'canvas-radius-parity' }), { format: 'png' });
+
+      // Every node rect is drawn with the 5th roundRect arg (radius) === 8.
+      expect(roundRectCalls.length).toBeGreaterThan(0);
+      expect(roundRectCalls.every((args) => args[4] === 8)).toBe(true);
+      // The node-label font is the bold form; the previous regular-weight form
+      // must not appear as an EXACT font string (substring match would be fooled
+      // by 'bold 14px Arial', so compare the whole string).
+      expect(fonts).toContain('bold 14px Arial');
+      expect(fonts.filter((f) => f === '14px Arial')).toEqual([]);
+    });
+  });
 });
