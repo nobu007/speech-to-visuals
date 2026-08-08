@@ -235,9 +235,16 @@ describe('MultiFormatExporter', () => {
 
       const pdfText = await (await exporter.export(scene, { format: 'pdf' })).data as Blob;
       const pdf = await pdfText.text();
-      // PDF `re` operator: "<x> <y> <w> <h> re" — corner x is 200, not 140.
-      expect(pdf).toMatch(/200 \d+ 120 60 re/);
-      expect(pdf).not.toMatch(/140 \d+ 120 60 re/);
+      // Rounded-rect path (the sharp `re B` node body was replaced by a cubic-Bézier
+      // path). The path starts on the bottom edge at rx+radius = 200+8 = 208 (corner
+      // convention); a center convention would start at 140+8 = 148. The node's w×h
+      // (120 60) no longer appears in any `re` operator — only the full-page
+      // background `0 0 1920 1080 re f` does.
+      expect(pdf).toMatch(/208 [\d.]+ m/);
+      expect(pdf).not.toMatch(/148 [\d.]+ m/);
+      expect(pdf).not.toMatch(/120 60 re/);
+      // Four cubic-Bézier `c` corner operators are emitted (rounded corners).
+      expect((pdf.match(/ c/g) || []).length).toBeGreaterThanOrEqual(4);
     });
 
     it('draws edges between node centers in both SVG and PDF', async () => {
@@ -318,6 +325,77 @@ describe('MultiFormatExporter', () => {
         // Sanity: the offset is at most ~half a label width, not absurdly far.
         expect(x).toBeGreaterThan(centerX - 120);
       }
+    });
+  });
+
+  describe('PDF node WYSIWYG parity — rounded corners / bold font / vertical baseline', () => {
+    // The SVG/Canvas parity pass (08ae) left the PDF path using a sharp `re`
+    // rectangle, the non-bold `/F1` font, and a node-label `Td` whose origin sat
+    // exactly on the node center (glyphs extend UP from the baseline, so labels
+    // appeared ~0.35em too high). These guard the raw-PDF-op rewrite that brings
+    // PDF to the same WYSIWYG contract as the on-screen DiagramScene render,
+    // SVG and Canvas.
+
+    it('draws node bodies with rounded corners (radius 8), not sharp rectangles', async () => {
+      const scene = makeScene({
+        id: 'pdf-rounded',
+        layout: {
+          nodes: [{ id: 'n1', label: 'Box', x: 100, y: 100, w: 120, h: 60 }],
+          edges: [],
+        },
+      });
+      const pdf = await (await exporter.export(scene, { format: 'pdf' })).data as Blob;
+      const text = await pdf.text();
+
+      // No sharp `re` paints the node body — the only `re` left is the full-page
+      // background. The node's 120×60 must not appear in a `re` operator.
+      expect(text).not.toMatch(/120 60 re/);
+      // Four cubic-Bézier corner operators (one per rounded corner).
+      expect((text.match(/ c/g) || []).length).toBe(4);
+      // The path begins on the bottom edge at x+radius = 100+8 = 108 (the
+      // bottom-left corner's arc start), confirming a radius-8 rounded rect.
+      expect(text).toMatch(/108 [\d.]+ m/);
+    });
+
+    it('renders node labels in bold (/F2 Helvetica-Bold) while edge labels stay regular (/F1)', async () => {
+      const scene = makeScene({ id: 'pdf-bold' }); // 2 nodes (Start/End) + 1 edge ('next')
+      const pdf = await (await exporter.export(scene, { format: 'pdf' })).data as Blob;
+      const text = await pdf.text();
+
+      // A second font resource — Helvetica-Bold — is registered as /F2.
+      expect(text).toContain('/F2 6 0 R');
+      expect(text).toContain('/BaseFont /Helvetica-Bold');
+      // Node labels select the bold /F2 (matching on-screen fontWeight 'bold' /
+      // SVG font-weight="bold" / Canvas `bold 14px`); edge labels keep regular /F1
+      // (SVG/Canvas edge text is non-bold).
+      expect(text).toContain('/F2 14 Tf');
+      expect(text).toContain('/F1 12 Tf');
+      // Regression: node labels no longer use the non-bold /F1 at 14pt.
+      expect(text).not.toContain('/F1 14 Tf');
+    });
+
+    it('drops the node label origin below the node center so glyphs sit vertically centered', async () => {
+      // Single node, no edges → exactly one `Td` in the stream (the node label),
+      // so the parsed Y is unambiguous. Page height defaults to 1080; node at
+      // y=100, h=60 → vertical center (screen) = 130 → PDF center Y = 1080-130 = 950.
+      const scene = makeScene({
+        id: 'pdf-baseline',
+        layout: {
+          nodes: [{ id: 'n1', label: 'Node', x: 0, y: 100, width: 120, height: 60 }],
+          edges: [],
+        },
+      });
+      const pdf = await (await exporter.export(scene, { format: 'pdf' })).data as Blob;
+      const text = await pdf.text();
+
+      const centerY = 1080 - (100 + 60 / 2); // 950
+      const tdYs = [...text.matchAll(/[\d.]+ ([\d.]+) Td/g)].map((m) => parseFloat(m[1]));
+      expect(tdYs.length).toBe(1);
+      // Pre-fix the origin sat exactly AT center (950); now it drops ~0.35em
+      // (≈4.9pt at 14pt) below center so the glyph bodies center on the node —
+      // matching SVG `dominant-baseline="middle"` / Canvas `textBaseline="middle"`.
+      expect(tdYs[0]).toBeLessThan(centerY);
+      expect(tdYs[0]).toBeCloseTo(centerY - 14 * 0.35, 0);
     });
   });
 

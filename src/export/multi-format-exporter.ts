@@ -57,6 +57,24 @@ export class MultiFormatExporter {
   private defaultWidth = 1920;
   private defaultHeight = 1080;
 
+  // --- PDF WYSIWYG parity constants (match the on-screen DiagramScene render) ---
+  // Node corner radius — on-screen NodeAnimation `borderRadius: 8`, SVG `rx="8"`,
+  // Canvas `roundRect(x,y,w,h,8)`. PDF has no rounded-rect operator, so the body
+  // is a hand-built cubic-Bézier path using this radius.
+  private static readonly PDF_NODE_CORNER_RADIUS = 8;
+  // Cubic-Bézier quarter-circle approximation factor (4/3·(√2−1) ≈ 0.5523): the
+  // control-point distance along each axis that best fits a true arc.
+  private static readonly PDF_BEZIER_K = 0.5523;
+  // Node label font size — on-screen/SVG/Canvas all use 14px for node labels.
+  private static readonly PDF_NODE_LABEL_FONT_SIZE = 14;
+  // Baseline-to-vertical-center offset. PDF `Tj` draws glyphs sitting on the text
+  // origin (baseline); SVG/Canvas center via `dominant-baseline="middle"` /
+  // `textBaseline="middle"`, whose glyph CENTER sits on the line. Placing the PDF
+  // origin at the node's vertical center therefore leaves the glyphs ~0.35×fontSize
+  // too HIGH. Dropping the origin by this fraction centers them (Helvetica cap/x
+  // height ≈ 0.35em from baseline to visual midline).
+  private static readonly PDF_LABEL_BASELINE_OFFSET = 0.35;
+
   /**
    * Export scene graph to specified format
    */
@@ -508,20 +526,34 @@ export class MultiFormatExporter {
       const rx = x;
       const ry = pageHeight - y - h;
 
-      // Node background (#3b82f6 — matches on-screen DiagramScene fill)
+      // Node background (#3b82f6 — matches on-screen DiagramScene fill). Rounded
+      // corners (radius 8) match the on-screen `borderRadius: 8`, SVG `rx="8"` and
+      // Canvas `roundRect(...,8)`. PDF has no rounded-rect operator, so the body
+      // is drawn as a cubic-Bézier path (4 quarter-circle corners) then filled +
+      // stroked with `B` (previously a sharp `re B`).
       parts.push('0.23 0.51 0.96 rg');
       parts.push('0.18 0.36 0.54 RG');
       parts.push('2 w');
-      parts.push(`${rx} ${ry} ${w} ${h} re B`);
+      for (const op of this.pdfRoundedRectOps(rx, ry, w, h)) {
+        parts.push(op);
+      }
+      parts.push('B');
 
       // Node label centered on the rect center (corner + half size), matching
       // SVG/Canvas text-anchor middle. Offset the origin left by half the label
-      // width so it sits on the center instead of extending right.
+      // width so it sits on the center instead of extending right. Bold
+      // Helvetica (/F2) matches the on-screen `fontWeight: 'bold'`, SVG
+      // `font-weight="bold"` and Canvas `bold 14px` (previously regular /F1).
       parts.push('BT');
-      parts.push('/F1 14 Tf');
+      parts.push(`/F2 ${MultiFormatExporter.PDF_NODE_LABEL_FONT_SIZE} Tf`);
       parts.push('1 1 1 rg');
-      const nodeLabelX = x + w / 2 - this.estimatePdfTextWidth(node.label, 14) / 2;
-      parts.push(`${nodeLabelX} ${pageHeight - (y + h / 2)} Td`);
+      const nodeLabelX = x + w / 2 - this.estimatePdfTextWidth(node.label, MultiFormatExporter.PDF_NODE_LABEL_FONT_SIZE) / 2;
+      // Drop the origin below the node center by ~0.35×fontSize so the glyph
+      // bodies — which extend UP from the PDF baseline — sit visually centered,
+      // matching SVG `dominant-baseline="middle"` / Canvas `textBaseline="middle"`
+      // (previously the origin sat exactly at center, leaving labels ~0.35em high).
+      const nodeLabelY = pageHeight - (y + h / 2) - MultiFormatExporter.PDF_NODE_LABEL_FONT_SIZE * MultiFormatExporter.PDF_LABEL_BASELINE_OFFSET;
+      parts.push(`${nodeLabelX} ${nodeLabelY} Td`);
       parts.push(`(${this.escapePDFString(node.label)}) Tj`);
       parts.push('ET');
     }
@@ -541,22 +573,28 @@ export class MultiFormatExporter {
     offsets.push(pdf.length);
     pdf += '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n';
 
-    // Object 3: Page
+    // Object 3: Page — /F1 (Helvetica, regular) for edge labels, /F2 (Helvetica-Bold)
+    // for node labels, matching SVG/Canvas `font-weight="bold"` on nodes only.
     offsets.push(pdf.length);
-    pdf += `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n`;
+    pdf += `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>\nendobj\n`;
 
     // Object 4: Content stream
     offsets.push(pdf.length);
     pdf += `4 0 obj\n<< /Length ${streamContent.length} >>\nstream\n${streamContent}\nendstream\nendobj\n`;
 
-    // Object 5: Font (Helvetica)
+    // Object 5: Font (Helvetica — regular, used for edge labels)
     offsets.push(pdf.length);
     pdf += '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj\n';
+
+    // Object 6: Font (Helvetica-Bold — used for node labels, matching on-screen
+    // `fontWeight: 'bold'` / SVG `font-weight="bold"` / Canvas `bold`).
+    offsets.push(pdf.length);
+    pdf += '6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj\n';
 
     // Cross-reference table
     const xrefOffset = pdf.length;
     pdf += 'xref\n';
-    pdf += `0 6\n`;
+    pdf += `0 7\n`;
     pdf += '0000000000 65535 f \n';
     for (const off of offsets) {
       pdf += `${String(off).padStart(10, '0')} 00000 n \n`;
@@ -564,12 +602,57 @@ export class MultiFormatExporter {
 
     // Trailer
     pdf += 'trailer\n';
-    pdf += `<< /Size 6 /Root 1 0 R >>\n`;
+    pdf += `<< /Size 7 /Root 1 0 R >>\n`;
     pdf += 'startxref\n';
     pdf += `${xrefOffset}\n`;
     pdf += '%%EOF';
 
     return new Blob([pdf], { type: 'application/pdf' });
+  }
+
+  /**
+   * Build the PDF path operators for a rounded rectangle, tracing four
+   * quarter-circle corners with cubic Béziers and connecting them with lines.
+   *
+   * PDF has no native rounded-rect operator (only the sharp `re`), so to match
+   * the on-screen `borderRadius: 8` / SVG `rx="8"` / Canvas `roundRect(...,8)`
+   * each corner is approximated by a cubic Bézier whose control points sit at
+   * `k = radius·0.5523` along the two adjacent edges — the standard quarter-circle
+   * approximation (deviates <0.1% from a true arc, visually identical to SVG's
+   * circular corners). The caller fills + strokes the resulting path with `B`.
+   *
+   * @param rx  lower-left x (PDF bottom-left origin; node top-left flipped by caller)
+   * @param ry  lower-left y
+   * @param w   width
+   * @param h   height
+   * @returns   ordered PDF path operators (`m`/`l`/`c`/`h`), no paint operator
+   */
+  private pdfRoundedRectOps(rx: number, ry: number, w: number, h: number): string[] {
+    // Clamp the radius so it can never exceed half the smaller dimension (two
+    // corners would otherwise overlap and invert the path on tiny nodes).
+    const cr = Math.max(0, Math.min(MultiFormatExporter.PDF_NODE_CORNER_RADIUS, w / 2, h / 2));
+    const k = cr * MultiFormatExporter.PDF_BEZIER_K;
+    // Round to 2 dp to keep the content stream compact and deterministic.
+    const f = (n: number): string => (Math.round(n * 100) / 100).toString();
+
+    // Trace counter-clockwise (PDF y-up) from the bottom edge, just right of the
+    // bottom-left corner, around all four corners.
+    return [
+      `${f(rx + cr)} ${f(ry)} m`,
+      `${f(rx + w - cr)} ${f(ry)} l`,
+      // bottom-right corner: arc from below-center to right-of-center
+      `${f(rx + w - cr + k)} ${f(ry)} ${f(rx + w)} ${f(ry + cr - k)} ${f(rx + w)} ${f(ry + cr)} c`,
+      `${f(rx + w)} ${f(ry + h - cr)} l`,
+      // top-right corner: arc from right-of-center to above-center
+      `${f(rx + w)} ${f(ry + h - cr + k)} ${f(rx + w - cr + k)} ${f(ry + h)} ${f(rx + w - cr)} ${f(ry + h)} c`,
+      `${f(rx + cr)} ${f(ry + h)} l`,
+      // top-left corner: arc from above-center to left-of-center
+      `${f(rx + cr - k)} ${f(ry + h)} ${f(rx)} ${f(ry + h - cr + k)} ${f(rx)} ${f(ry + h - cr)} c`,
+      `${f(rx)} ${f(ry + cr)} l`,
+      // bottom-left corner: arc from left-of-center to below-center
+      `${f(rx)} ${f(ry + cr - k)} ${f(rx + cr - k)} ${f(ry)} ${f(rx + cr)} ${f(ry)} c`,
+      `h`,
+    ];
   }
 
   /**
