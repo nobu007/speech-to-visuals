@@ -776,6 +776,48 @@ describe('IntelligentCache', () => {
       expect(cache.getStats().evictionCount).toBeGreaterThan(0);
     });
 
+    it('enforces maxSize as a hard ceiling even when advancedCleanup evicts 0', async () => {
+      // Reproduce the production failure mode: every entry is "hot" — accessed
+      // within the 30-minute window that advancedCleanup() protects (and with
+      // high enough priority/utility to also hit the value-protection guard),
+      // so the advisory cleanup evicts ZERO entries. Before the LRU backstop,
+      // store() then inserted unconditionally and the cache grew past maxSize
+      // indefinitely (unbounded growth / OOM under sustained access).
+      const internalCache = internals(cache).cache;
+      for (let i = 0; i < 1000; i++) {
+        const k = `hot-${i}`;
+        internalCache.set(k, {
+          id: k,
+          contentHash: k,
+          timestamp: Date.now() - 1 * 60 * 60 * 1000, // 1 hour ago (not expired)
+          accessCount: 5,
+          lastAccessed: Date.now() - 1 * 60 * 1000, // 1 min ago → inside 30-min protection
+          data: { v: i },
+          compressed: false,
+          compressedSize: 0,
+          priority: 0.9,
+          metadata: makeMetadata({ performanceScore: 0.9, accessPattern: 'frequent' }),
+        });
+        internals(cache).fingerprints.set(k, {} as unknown as TestFingerprint);
+        internals(cache).accessOrder.push(k);
+      }
+      internals(cache).stats.totalEntries = 1000;
+
+      // Demonstrate the root cause: advancedCleanup alone evicts nothing here.
+      const evictionsBefore = cache.getStats().evictionCount;
+      await internals(cache).advancedCleanup();
+      expect(cache.getStats().evictionCount).toBe(evictionsBefore); // 0 evicted
+      expect(internalCache.size).toBe(1000); // still at capacity
+
+      // The LRU backstop must still keep the cache within maxSize.
+      await cache.store('overflow', { v: 'overflow' }, makeMetadata());
+      expect(internalCache.size).toBeLessThanOrEqual(1000);
+      expect(cache.getStats().evictionCount).toBeGreaterThan(evictionsBefore);
+      // The newly stored entry survived (the backstop evicts LRU, not the in-flight key).
+      const overflowKey = internals(cache).generateCacheKey('overflow');
+      expect(internalCache.has(overflowKey)).toBe(true);
+    });
+
     it('updates memoryUsage after cleanup', async () => {
       await cache.store('mem-test', { v: 1 }, makeMetadata());
       const key = internals(cache).generateCacheKey('mem-test');

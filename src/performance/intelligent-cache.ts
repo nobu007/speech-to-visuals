@@ -414,6 +414,50 @@ export class IntelligentCache {
   }
 
   /**
+   * Hard backstop enforcing the `maxSize` ceiling.
+   *
+   * `advancedCleanup()` is advisory: it skips entries accessed within the last
+   * 30 minutes and high-priority entries, so under sustained access — every
+   * `get()`/`findSimilar()` refreshes `lastAccessed` — it can evict ZERO entries
+   * while the cache is already at capacity. `store()` previously inserted
+   * unconditionally, so the cache grew past `maxSize` indefinitely: the
+   * documented "LRU eviction (maxSize = 1000)" contract was unenforceable
+   * (unbounded memory growth / OOM under load).
+   *
+   * This backstop evicts the true least-recently-used entry, drawn from
+   * `accessOrder` (maintained on every access but never previously used for
+   * eviction), until the cache is below capacity. It runs after the advisory
+   * cleanup, so the intelligent heuristics keep first pick; the LRU evictions
+   * here only cover what they left behind.
+   */
+  private evictToCapacity(): void {
+    while (this.cache.size >= this.maxSize) {
+      // accessOrder[0] is least-recently-used (tail = most recent). Drop stale
+      // head slots: entries can be removed elsewhere (expiry in get(),
+      // decompression-failure purge) without updating accessOrder.
+      while (this.accessOrder.length > 0 && !this.cache.has(this.accessOrder[0])) {
+        this.accessOrder.shift();
+      }
+
+      let lruKey: string | null = null;
+      if (this.accessOrder.length > 0) {
+        lruKey = this.accessOrder.shift() as string;
+      } else if (this.cache.size > 0) {
+        // accessOrder desynced from the cache (e.g. direct insertion): still
+        // honor the ceiling by evicting an arbitrary entry rather than looping.
+        lruKey = this.cache.keys().next().value as string;
+      }
+
+      if (lruKey === null) break;
+      this.cache.delete(lruKey);
+      this.fingerprints.delete(lruKey);
+      this.preloadQueue.delete(lruKey);
+      this.stats.evictionCount++;
+    }
+    this.stats.totalEntries = this.cache.size;
+  }
+
+  /**
    * Calculate utility score for intelligent eviction decisions
    */
   private calculateUtilityScore(entry: CacheEntry): number {
@@ -746,6 +790,11 @@ export class IntelligentCache {
     if (this.cache.size >= this.maxSize) {
       await this.advancedCleanup();
     }
+
+    // Hard backstop: advancedCleanup is advisory (it protects recent and
+    // high-priority entries and can evict 0 under sustained access), so enforce
+    // the maxSize ceiling directly before inserting. See evictToCapacity.
+    this.evictToCapacity();
 
     // Compress data if enabled and beneficial
     let finalData = data;
