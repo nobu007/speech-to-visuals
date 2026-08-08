@@ -25,6 +25,10 @@ interface CacheEntry {
    *  compressedSize made the length check always true, so compressed entries
    *  were JSON.parse'd as their still-encoded form and silently lost. */
   originalSize: number;
+  /** Exact content string this entry was stored under. get() verifies this
+   *  against the requested content so a generateCacheKey hash collision can
+   *  never cause one content's data to be returned for another. */
+  sourceContent: string;
   priority: number; // For LRU-W (Weighted) algorithm
   metadata: {
     contentType: DiagramType;
@@ -773,6 +777,7 @@ export class IntelligentCache {
       compressed,
       compressedSize,
       originalSize,
+      sourceContent: content,
       priority: 1.0, // New entries start with high priority
       metadata: {
         ...metadata,
@@ -803,6 +808,15 @@ export class IntelligentCache {
       this.cache.delete(key);
       this.fingerprints.delete(key);
       this.preloadQueue.delete(key);
+      return null;
+    }
+
+    // Guard against generateCacheKey collisions: the key is a 32-bit hash plus
+    // length, so two different contents (e.g. "Aa" vs "BB", both length 2) can
+    // map to the same slot. Without this check, one content's data would be
+    // silently returned for another. Treat a mismatch as a miss rather than
+    // returning foreign data.
+    if (entry.sourceContent !== content) {
       return null;
     }
 

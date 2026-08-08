@@ -177,6 +177,21 @@ describe('IntelligentCache', () => {
       await cache.store('bool-false', false, makeMetadata());
       expect(await cache.get('bool-false')).toBe(false);
     });
+
+    it('never returns a colliding key\'s data for a different content', async () => {
+      // "Aa" and "BB" are the canonical Java-hash collision: both length 2 and
+      // hash 2112, so generateCacheKey yields the identical slot. Without the
+      // sourceContent check, storing BB would make get('Aa') return BB's data.
+      await cache.store('Aa', { who: 'Aa-data' }, makeMetadata());
+      await cache.store('BB', { who: 'BB-data' }, makeMetadata());
+
+      // The slot now belongs to BB; Aa must be a miss, never BB's data.
+      const aa = await cache.get('Aa');
+      expect(aa).toBeNull();
+
+      const bb = await cache.get('BB');
+      expect(bb).toEqual({ who: 'BB-data' });
+    });
   });
 
   // ---- TTL / expiration ----
