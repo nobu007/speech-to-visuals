@@ -365,7 +365,7 @@ export class EnhancedExportEngine {
       } catch (error) {
         if (this.isAbortError(error) && job.fileWritten) {
           // File already written during finalization — return success instead of cancelling
-          const exportDuration = job.startTime ? performance.now() - job.startTime.getTime() : 0;
+          const exportDuration = job.startTime ? Date.now() - job.startTime.getTime() : 0;
           exportMetricsCollector.recordExport(job.config.format, 'success', exportDuration);
           finalResult = {
             success: true,
@@ -387,7 +387,7 @@ export class EnhancedExportEngine {
       }
       logger.error('Export job failed:', error);
 
-      const exportDuration = job.startTime ? performance.now() - job.startTime.getTime() : 0;
+      const exportDuration = job.startTime ? Date.now() - job.startTime.getTime() : 0;
       exportMetricsCollector.recordExport(job.config.format, 'failure', exportDuration);
 
       return {
@@ -805,8 +805,13 @@ export class EnhancedExportEngine {
 
     this.updateProgress(job, 'complete', 100, 'Export complete!');
 
-    // REQ-226: Record export metric (use 'success' or 'failed' based on verification)
-    const exportDuration = job.startTime ? performance.now() - job.startTime.getTime() : 0;
+    // REQ-226: Record export metric (use 'success' or 'failed' based on verification).
+    // job.startTime is a `Date` (epoch-ms via .getTime()), so the elapsed delta
+    // must use another epoch-ms reading. performance.now() is ms since process/
+    // page origin — a small number — and subtracting it from an epoch-ms yields a
+    // ~-1.7e12 negative duration that the collector's `durationMs < 0` guard
+    // silently drops (every successful export was missing from the metrics).
+    const exportDuration = job.startTime ? Date.now() - job.startTime.getTime() : 0;
     const exportStatus: ExportStatus = verification.valid ? 'success' : 'failure';
     exportMetricsCollector.recordExport(job.config.format, exportStatus, exportDuration, outputSize);
 

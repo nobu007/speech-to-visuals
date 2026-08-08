@@ -15,6 +15,7 @@ import {
   parsePngChunks,
   type ApngFrameInput,
 } from '../apng-encoder';
+import { exportMetricsCollector } from '../export-metrics-collector';
 
 // Suppress console
 beforeEach(() => {
@@ -794,5 +795,47 @@ describe('REQ-225: Export verification integration', () => {
     );
     expect(result.success).toBe(true);
     expect(result.verification).toBeDefined();
+  });
+
+  // --- Export metrics duration (time-origin parity) ---
+  describe('export metrics duration', () => {
+    // Guards the time-origin mismatch on the overall-export duration.
+    // `job.startTime` is a `Date` (epoch-ms via .getTime()), so the elapsed
+    // delta must be taken against another epoch-ms reading. The previous form
+    // used performance.now() — ms since process/page origin, a small number —
+    // so `performance.now() - job.startTime.getTime()` was a ~-1.7e12 negative
+    // value. recordExport's `durationMs < 0` guard then dropped it BEFORE
+    // incrementing any counter, so every successful export was missing from the
+    // Prometheus metrics (export_duration_ms_count 0, ~0% success tally).
+
+    it('records a positive, sane elapsed duration for a successful export', async () => {
+      // jest.spyOn mutates the shared singleton object's method in place — the
+      // engine imports the same instance, so it calls through to the spy (ESM
+      // object-instance mutation, not a frozen namespace binding).
+      const recordSpy = jest.spyOn(exportMetricsCollector, 'recordExport');
+      const before = exportMetricsCollector.getSnapshot();
+
+      const result = await engine.exportVideo(createSceneData(), createConfig({ format: 'mp4' }));
+      expect(result.success).toBe(true);
+
+      const successCalls = recordSpy.mock.calls.filter(
+        (c) => c[0] === 'mp4' && c[1] === 'success',
+      );
+      expect(successCalls.length).toBeGreaterThan(0);
+      for (const call of successCalls) {
+        const durationMs = call[2] as number;
+        // Decisive: a -1.7e12 (process-origin vs epoch) mix is negative and
+        // ~13 orders of magnitude off any plausible real export time.
+        expect(Number.isFinite(durationMs)).toBe(true);
+        expect(durationMs).toBeGreaterThanOrEqual(0);
+        expect(durationMs).toBeLessThan(1_000_000);
+      }
+
+      // Behavioral impact: the export is no longer dropped — the global success
+      // tally advances. With the bug the negative duration hit the guard and
+      // this delta stayed 0.
+      const after = exportMetricsCollector.getSnapshot();
+      expect(after.successfulExports).toBeGreaterThan(before.successfulExports);
+    });
   });
 });
