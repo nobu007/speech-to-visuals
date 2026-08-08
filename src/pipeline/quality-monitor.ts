@@ -7,6 +7,8 @@
  * Based on Custom Instructions: development_philosophy.recursive
  */
 
+import { percentChange } from '@/lib/metrics-utils';
+
 export interface QualityMetrics {
   timestamp: Date;
   phase: string;
@@ -524,7 +526,7 @@ export class QualityMonitor {
 
       if (current === undefined || baseline_val === 0) continue;
 
-      const change = ((current - baseline_val) / baseline_val) * 100;
+      const change = percentChange(current, baseline_val);
 
       if (Math.abs(change) < 5) {
         stable.push(`${metric}: ${change.toFixed(1)}%`);

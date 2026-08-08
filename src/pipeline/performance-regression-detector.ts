@@ -7,6 +7,7 @@
  */
 
 import { PerformanceBaseline, StageMeasurement, DEFAULT_BASELINES } from './performance-baseline';
+import { percentChange } from '@/lib/metrics-utils';
 
 /** Result of comparing one stage's actual timing against its baseline */
 export interface RegressionResult {
@@ -51,7 +52,7 @@ export function compareWithBaseline(
     };
   }
 
-  const regressionPercent = ((measurement.durationMs - baselineMs) / baselineMs) * 100;
+  const regressionPercent = percentChange(measurement.durationMs, baselineMs);
   const isRegression = regressionPercent >= REGRESSION_THRESHOLD_PERCENT;
   const severity = classifyRegression(regressionPercent);
 

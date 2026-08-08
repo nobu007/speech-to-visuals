@@ -9,6 +9,8 @@
  * a configurable threshold above the baseline.
  */
 
+import { percentChange } from '@/lib/metrics-utils';
+
 /** Raw cost data for a single run */
 export interface CostData {
   totalCostUsd: number;
@@ -68,10 +70,10 @@ export function compareCostEfficiency(
   baselineTokensPerAnalysis: number = DEFAULT_BASELINE_TOKENS_PER_ANALYSIS,
 ): CostEfficiencyResult {
   const costRegression = baselineCostPerVideo > 0
-    ? ((current.costPerVideo - baselineCostPerVideo) / baselineCostPerVideo) * 100 >= COST_REGRESSION_THRESHOLD_PERCENT
+    ? percentChange(current.costPerVideo, baselineCostPerVideo) >= COST_REGRESSION_THRESHOLD_PERCENT
     : false;
   const tokenRegression = baselineTokensPerAnalysis > 0
-    ? ((current.tokensPerAnalysis - baselineTokensPerAnalysis) / baselineTokensPerAnalysis) * 100 >= COST_REGRESSION_THRESHOLD_PERCENT
+    ? percentChange(current.tokensPerAnalysis, baselineTokensPerAnalysis) >= COST_REGRESSION_THRESHOLD_PERCENT
     : false;
 
   let summary: string;

@@ -18,6 +18,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from '@/utils/logger';
 import { QualityGateError } from '@/pipeline/pipeline-errors';
+import { percentChange } from '@/lib/metrics-utils';
 
 export interface RegressionReport {
   timestamp: Date;
@@ -212,8 +213,8 @@ export class RegressionDetector {
       if (baselineValue === undefined || currentValue === undefined) continue;
       if (baselineValue === 0) continue; // Cannot compute meaningful % change from zero baseline
 
-      // Calculate percentage change
-      const changePercent = ((currentValue - baselineValue) / Math.abs(baselineValue)) * 100;
+      // Calculate percentage change (canonical abs-denominator — see metrics-utils)
+      const changePercent = percentChange(currentValue, baselineValue);
 
       // Determine if this is a regression or improvement
       const isReverseMetric = this.lowerIsBetter.includes(metric as string);
