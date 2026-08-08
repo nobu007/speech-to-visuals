@@ -14,7 +14,30 @@
  */
 
 import type { SimplePipelineInput } from './simple-pipeline';
+import type { VideoGenerationOptions } from './video-generator';
 import { PipelineConfigError } from './pipeline-errors';
+
+/**
+ * Map a preset's video-quality tier onto the renderer's quality enum.
+ *
+ * The two enums share only the literal "high": preset tiers are
+ * 'draft' | 'good' | 'high' | 'best' while VideoGenerationOptions.quality is
+ * 'low' | 'medium' | 'high' | 'ultra'. Casting one to the other (as) silently
+ * let 'draft'/'good'/'best' flow through as unknown tiers, which the renderer's
+ * quality lookup tables (crf/scale, jpegQuality, fileSize) keyed only by
+ * low/medium/high/ultra received as undefined — so the configured quality was
+ * ignored and fileSize estimated as NaN. This Record makes the mapping explicit
+ * and lets the compiler flag any future drift between the two enums.
+ */
+const VIDEO_QUALITY_BY_PRESET_TIER: Record<
+  PresetConfiguration['parameters']['videoQuality'],
+  VideoGenerationOptions['quality']
+> = {
+  draft: 'low',
+  good: 'medium',
+  high: 'high',
+  best: 'ultra',
+};
 
 export type QualityPreset = 'fast' | 'balanced' | 'quality' | 'custom';
 
@@ -247,7 +270,7 @@ export class AdaptiveQualityPresetsManager {
         layoutQuality: params.layoutQuality,
         videoOptions: {
           outputFormat: 'mp4',
-          quality: params.videoQuality as 'low' | 'medium' | 'high' | 'ultra',
+          quality: VIDEO_QUALITY_BY_PRESET_TIER[params.videoQuality],
           resolution: params.videoResolution,
           fps: params.videoFps,
           includeAudio: true,

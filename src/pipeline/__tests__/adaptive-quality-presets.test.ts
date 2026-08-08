@@ -215,6 +215,25 @@ describe('AdaptiveQualityPresetsManager', () => {
       expect(options.options.maxConcurrency).toBe(16);
       expect(options.options.videoOptions.resolution).toBe('4k');
     });
+
+    it('maps each preset video-quality tier onto a valid renderer quality', () => {
+      // Preset tiers (draft/good/high/best) and the renderer quality enum
+      // (low/medium/high/ultra) share only "high". The tier must be mapped, not
+      // cast — otherwise 'good' etc. reach the renderer as unknown tiers,
+      // yielding undefined CRF/scale and a NaN fileSize estimate.
+      const cases: Array<[QualityPreset, string]> = [
+        ['fast', 'low'],
+        ['balanced', 'medium'],
+        ['quality', 'ultra'],
+        ['custom', 'high'],
+      ];
+      for (const [preset, expectedQuality] of cases) {
+        manager.setPreset(preset);
+        const file = createMockFile(5000);
+        const options = manager.toPipelineOptions(file);
+        expect(options.options.videoOptions.quality).toBe(expectedQuality);
+      }
+    });
   });
 
   // --- autoSelectPreset ---
