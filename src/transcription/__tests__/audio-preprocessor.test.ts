@@ -262,6 +262,30 @@ describe('AudioPreprocessor', () => {
       expect(result.effectiveSpeechDuration).toBeGreaterThan(1);
     });
 
+    test('effectiveSpeechDuration excludes the silence gap between speech segments', () => {
+      // 1s speech + 2s silence + 1s speech: the span from first to last speech
+      // window is ~4s, but only ~2s is actual speech. The previous
+      // implementation returned the full span (gap included), violating the
+      // "excluding silence" contract on effectiveSpeechDuration.
+      const buffer = concatGenerators(44100, [
+        { duration: 1.0, generator: sineWave(440, 0.3) }, // 0-1s: speech
+        { duration: 2.0, generator: silence() },          // 1-3s: gap (> minSilenceDuration)
+        { duration: 1.0, generator: sineWave(440, 0.3) }, // 3-4s: speech
+      ]);
+      const result = preprocessor.analyze(buffer);
+
+      const span = result.speechEnd - result.speechStart;
+      // Span must be wide enough for the assertion to be meaningful.
+      expect(span).toBeGreaterThan(3);
+
+      // Invariant: effective speech can never exceed the span it lies within.
+      expect(result.effectiveSpeechDuration).toBeLessThanOrEqual(span);
+      // The ~2s gap must be subtracted, so effective speech is well below span.
+      expect(result.effectiveSpeechDuration).toBeLessThan(span - 1.0);
+      // Two 1s speech segments remain, so it is still substantial.
+      expect(result.effectiveSpeechDuration).toBeGreaterThan(1.0);
+    });
+
     test('should report zero boundaries for all-silent audio', () => {
       const buffer = createAudioBuffer(44100, 2, silence());
       const result = preprocessor.analyze(buffer);

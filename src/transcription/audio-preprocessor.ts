@@ -162,9 +162,10 @@ export class AudioPreprocessor {
     // 3. Noise estimation
     const noise = this.estimateNoise(channelData, sampleRate);
 
-    // 4. Compute speech boundaries
+    // 4. Compute speech boundaries (silenceRegions fed in so the gap between
+    //    the first and last speech window can be subtracted from the span).
     const { speechStart, speechEnd, effectiveSpeechDuration } =
-      this.computeSpeechBounds(channelData, sampleRate, durationSeconds);
+      this.computeSpeechBounds(channelData, sampleRate, durationSeconds, silenceRegions);
 
     // 5. Build recommendation
     const { recommendation, messages } = this.buildRecommendation(
@@ -337,11 +338,19 @@ export class AudioPreprocessor {
 
   /**
    * Compute speech start/end boundaries.
+   *
+   * `effectiveSpeechDuration` is the time actually spent speaking, i.e. the
+   * span from the first to the last speech window MINUS any silence regions
+   * that fall inside that span (per the "excluding silence" contract on
+   * AudioPreprocessingResult.effectiveSpeechDuration). Without subtracting
+   * those gaps, a recording of "talk 1s, pause 2s, talk 1s" would report ~4s
+   * of speech instead of ~2s, skewing downstream recommendations.
    */
   private computeSpeechBounds(
     channelData: Float32Array,
     sampleRate: number,
     totalDuration: number,
+    silenceRegions: SilenceRegion[],
   ): { speechStart: number; speechEnd: number; effectiveSpeechDuration: number } {
     const windowSize = this.config.analysisWindowSize;
     const hopSize = Math.floor(windowSize / 2);
@@ -368,7 +377,15 @@ export class AudioPreprocessor {
       speechEnd = 0;
     }
 
-    const effectiveSpeechDuration = speechEnd > speechStart ? speechEnd - speechStart : 0;
+    const span = speechEnd > speechStart ? speechEnd - speechStart : 0;
+    // Subtract the portion of each silence region that overlaps the speech
+    // span (clamped to [speechStart, speechEnd]); leading/trailing silence
+    // outside the span contributes nothing.
+    const silenceWithinSpan = silenceRegions.reduce((sum, region) => {
+      const overlap = Math.min(region.end, speechEnd) - Math.max(region.start, speechStart);
+      return sum + (overlap > 0 ? overlap : 0);
+    }, 0);
+    const effectiveSpeechDuration = Math.max(0, span - silenceWithinSpan);
 
     return { speechStart, speechEnd, effectiveSpeechDuration };
   }
