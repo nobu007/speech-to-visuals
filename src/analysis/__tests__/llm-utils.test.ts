@@ -124,6 +124,36 @@ describe('parseJsonFromLLMText', () => {
     });
   });
 
+  describe('error recovery - apostrophes inside double-quoted values', () => {
+    // Regression: the single→double quote repair pass is DESTRUCTIVE for
+    // legitimate apostrophes inside double-quoted values. When a trailing
+    // comma (or other NON-destructive repair) alone would yield valid JSON,
+    // the destructive pass must not run and corrupt it. These labels model the
+    // real failure surface — gemini-analyzer parses LLM diagram JSON whose
+    // node/edge labels routinely contain "Don't", "User's", etc.
+    it('preserves an apostrophe in a value when a trailing comma is also present', () => {
+      const input = '{"nodes": [{"label": "User\'s input"}],}';
+      expect(parseJsonFromLLMText(input)).toEqual({
+        nodes: [{ label: "User's input" }],
+      });
+    });
+
+    it('preserves an apostrophe in a value when a missing-colon repair is needed', () => {
+      // The non-destructive colon repair (attempt 1) must fix the missing colon
+      // WITHOUT converting the apostrophe to a double quote.
+      const input = '{"label" "Don\'t repeat yourself"}';
+      expect(parseJsonFromLLMText(input)).toEqual({
+        label: "Don't repeat yourself",
+      });
+    });
+
+    it('still repairs genuinely single-quoted JSON without value apostrophes', () => {
+      // Capability preserved: single-quoted JSON is still fixed by attempt 2.
+      const input = "{'greeting': 'hello world'}";
+      expect(parseJsonFromLLMText(input)).toEqual({ greeting: 'hello world' });
+    });
+  });
+
   describe('error recovery - incomplete structures', () => {
     it('repairs missing closing brace', () => {
       const input = '{"a": 1';

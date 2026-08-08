@@ -103,53 +103,77 @@ export function parseJsonFromLLMText<T = unknown>(rawText: string): T {
     .replace(/^JSON.*?:/i, "")
     .trim();
 
+  // Strategy 4 helpers. The colon-repair regexes match DOUBLE-quoted
+  // keys/values, so they must always run AFTER any single→double quote
+  // conversion (when that conversion is applied at all).
+  const removeTrailingCommas = (s: string): string =>
+    s.replace(/,\s*}/g, '}')  // Remove trailing commas in objects
+     .replace(/,\s*]/g, ']'); // Remove trailing commas in arrays
+
+  // Fix a missing colon between a quoted key and its value. Assumes the key
+  // and any string value are already double-quoted.
+  const fixMissingColons = (s: string): string =>
+    s
+      // "key" "value" → "key": "value"  (value followed by , ] or })
+      .replace(/"([^"\\]*(?:\\.[^"\\]*)*)"\s+"([^"\\]*(?:\\.[^"\\]*)*)"(\s*[,\]}])/g, '"$1": "$2"$3')
+      // "key" "value"  (value at end of nested object, followed by {)
+      .replace(/"([^"\\]*(?:\\.[^"\\]*)*)"\s+"([^"\\]*(?:\\.[^"\\]*)*)"(\s*\{)/g, '"$1": "$2"$3')
+      // "key" 42 / true / null → "key": 42  (integers, floats, scientific notation)
+      .replace(/"([^"\\]*(?:\\.[^"\\]*)*)"\s+(true|false|null|-?\d+\.?\d*(?:[eE][+-]?\d+)?|-?\d+(?:[eE][+-]?\d+)?)(\s*[,\]}])/g, '"$1": $2$3')
+      // "key" { → "key": {  (nested object)
+      .replace(/"([^"\\]*(?:\\.[^"\\]*)*)"\s+(\{)/g, '"$1": $2')
+      // "key" [ → "key": [  (array)
+      .replace(/"([^"\\]*(?:\\.[^"\\]*)*)"\s+(\[)/g, '"$1": $2');
+
   try {
     return JSON.parse(cleaned) as T;
   } catch (err) {
-    // Strategy 4: Try to fix common JSON issues
-    let fixed = cleaned
-      .replace(/,\s*}/g, '}')  // Remove trailing commas in objects
-      .replace(/,\s*]/g, ']')  // Remove trailing commas in arrays
-      .replace(/'/g, '"')      // Replace single quotes with double quotes
-      // Fix missing colon between quoted key and quoted value: "key" "value" → "key": "value"
-      // Handles values followed by comma, closing bracket, closing brace, or opening of nested object/array
-      .replace(/"([^"\\]*(?:\\.[^"\\]*)*)"\s+"([^"\\]*(?:\\.[^"\\]*)*)"(\s*[,\]}])/g, '"$1": "$2"$3')
-      // Fix missing colon between quoted key and quoted value at end of nested object: "key" "value"}
-      .replace(/"([^"\\]*(?:\\.[^"\\]*)*)"\s+"([^"\\]*(?:\\.[^"\\]*)*)"(\s*\{)/g, '"$1": "$2"$3')
-      // Fix missing colon between quoted key and non-string value: "key" 42 → "key": 42
-      // Supports integers, floats, and scientific notation (e.g. 1e5, -3.14E-2)
-      .replace(/"([^"\\]*(?:\\.[^"\\]*)*)"\s+(true|false|null|-?\d+\.?\d*(?:[eE][+-]?\d+)?|-?\d+(?:[eE][+-]?\d+)?)(\s*[,\]}])/g, '"$1": $2$3')
-      // Fix missing colon between quoted key and opening brace (nested object): "key" { → "key": {
-      .replace(/"([^"\\]*(?:\\.[^"\\]*)*)"\s+(\{)/g, '"$1": $2')
-      // Fix missing colon between quoted key and opening bracket (array): "key" [ → "key": [
-      .replace(/"([^"\\]*(?:\\.[^"\\]*)*)"\s+(\[)/g, '"$1": $2');
-
+    // Strategy 4: Try to fix common JSON issues.
+    //
+    // Attempt 1 — NON-destructive repairs (trailing commas + missing colons).
+    // These never touch a legitimate apostrophe inside a double-quoted value.
+    // Trailing commas are a frequent LLM slip and fixing them alone often
+    // yields already-valid JSON, so we parse that BEFORE any quote conversion.
+    // (Previously the single→double quote pass ran first and CORRUPTED such
+    // inputs: `{"label": "User's input"},` was comma-repaired to valid JSON,
+    // then `'`→`"` broke it into `"User"s input"` and the parse threw.)
+    let fixed = fixMissingColons(removeTrailingCommas(cleaned));
     try {
       return JSON.parse(fixed) as T;
-    } catch (secondErr) {
-      // Strategy 5: Handle incomplete nested structures
-      // Add missing closing brackets and braces
-      const openCurly = (fixed.match(/\{/g) || []).length;
-      const closeCurly = (fixed.match(/\}/g) || []).length;
-      const openSquare = (fixed.match(/\[/g) || []).length;
-      const closeSquare = (fixed.match(/\]/g) || []).length;
-
-      // Close arrays first, then objects
-      if (openSquare > closeSquare) {
-        fixed += ']'.repeat(openSquare - closeSquare);
-      }
-      if (openCurly > closeCurly) {
-        fixed += '}'.repeat(openCurly - closeCurly);
-      }
-
+    } catch {
+      // Attempt 2 — additionally convert single quotes to double quotes.
+      // Required to repair single-quoted JSON (`{'k': 'v'}`), but DESTRUCTIVE
+      // for apostrophes inside double-quoted values, so it runs only after the
+      // safe attempt fails. Colon repairs run AFTER the conversion so the
+      // regexes see double quotes — preserving the original repair capability.
+      fixed = fixMissingColons(removeTrailingCommas(cleaned).replace(/'/g, '"'));
       try {
         return JSON.parse(fixed) as T;
-      } catch (thirdErr) {
-        const preview = cleaned.slice(0, 300).replace(/\n/g, ' ');
-        throw new LLMParsingError(
-          `Failed to parse LLM JSON after all strategies. Preview: ${preview}`,
-          { preview },
-        );
+      } catch (secondErr) {
+        // Strategy 5: Handle incomplete nested structures
+        // Add missing closing brackets and braces
+        const openCurly = (fixed.match(/\{/g) || []).length;
+        const closeCurly = (fixed.match(/\}/g) || []).length;
+        const openSquare = (fixed.match(/\[/g) || []).length;
+        const closeSquare = (fixed.match(/\]/g) || []).length;
+
+        // Close arrays first, then objects
+        if (openSquare > closeSquare) {
+          fixed += ']'.repeat(openSquare - closeSquare);
+        }
+        if (openCurly > closeCurly) {
+          fixed += '}'.repeat(openCurly - closeCurly);
+        }
+
+        try {
+          return JSON.parse(fixed) as T;
+        } catch (thirdErr) {
+          const preview = cleaned.slice(0, 300).replace(/\n/g, ' ');
+          throw new LLMParsingError(
+            `Failed to parse LLM JSON after all strategies. Preview: ${preview}`,
+            { preview },
+          );
+        }
       }
     }
   }
