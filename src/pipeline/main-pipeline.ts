@@ -739,7 +739,14 @@ export class MainPipeline {
         startMs: (segment.startMs ?? 0) as number,
         durationMs: ((segment.endMs ?? 0) as number) - ((segment.startMs ?? 0) as number),
         summary: (segment.summary ?? '') as string,
-        keyphrases: (segment.keyphrases ?? []) as string[]
+        keyphrases: (segment.keyphrases ?? []) as string[],
+        // Wire the detector's per-scene confidence (0-1) onto the scene so
+        // downstream consumers (video-generator `?? 0.8`, quality-score `|| 0`)
+        // read the real value instead of a constant fallback. The sibling
+        // SimplePipeline wires the same field. Layout confidence is not folded
+        // in: generateLayouts* keep only `layoutResult.layout`, dropping the
+        // LayoutResult.confidence wrapper.
+        confidence: analysis.confidence as number | undefined
       };
     });
 
@@ -985,7 +992,14 @@ export class MainPipeline {
         startMs: (segment.startMs ?? 0) as number,
         durationMs: ((segment.endMs ?? 0) as number) - ((segment.startMs ?? 0) as number),
         summary: (segment.summary ?? '') as string,
-        keyphrases: (segment.keyphrases ?? []) as string[]
+        keyphrases: (segment.keyphrases ?? []) as string[],
+        // Wire the detector's per-scene confidence (0-1) onto the scene so
+        // downstream consumers (video-generator `?? 0.8`, quality-score `|| 0`)
+        // read the real value instead of a constant fallback. The sibling
+        // SimplePipeline wires the same field. Layout confidence is not folded
+        // in: generateLayouts* keep only `layoutResult.layout`, dropping the
+        // LayoutResult.confidence wrapper.
+        confidence: analysis.confidence as number | undefined
       };
     });
 
