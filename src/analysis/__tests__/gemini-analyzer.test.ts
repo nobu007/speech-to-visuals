@@ -8,7 +8,7 @@
  * 7. Model selection (Flash/Pro based on complexity)
  */
 
-import { GeminiAnalyzer } from '../gemini-analyzer';
+import { GeminiAnalyzer, buildAnalyzerCacheKey, GEMINI_ANALYZER_CACHE_VERSION } from '../gemini-analyzer';
 import { LLMService } from '../llm-service';
 import type { DiagramAnalysis } from '../types';
 
@@ -415,5 +415,33 @@ describe('TASK-0017: GeminiAnalyzer', () => {
 
       expect(result).toBeNull();
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildAnalyzerCacheKey — cache-collision regression
+// ---------------------------------------------------------------------------
+describe('buildAnalyzerCacheKey', () => {
+  it('produces distinct keys for inputs that share a long common prefix', () => {
+    // Regression: the key previously truncated to the first 100 chars of the
+    // text, so two distinct transcripts sharing a prefix collided in the
+    // LLM cache and the second analyzeText() call returned the first call's
+    // (wrong) analysis.
+    const prefix = 'A'.repeat(120);
+    const keyA = buildAnalyzerCacheKey(`${prefix} tail one`);
+    const keyB = buildAnalyzerCacheKey(`${prefix} tail two`);
+    expect(keyA).not.toBe(keyB);
+  });
+
+  it('is stable for identical input', () => {
+    expect(buildAnalyzerCacheKey('same text')).toBe(buildAnalyzerCacheKey('same text'));
+  });
+
+  it('incorporates the full text rather than a truncated prefix', () => {
+    expect(buildAnalyzerCacheKey('abcdefghij')).toContain('abcdefghij');
+  });
+
+  it('embeds the analyzer cache version tag', () => {
+    expect(buildAnalyzerCacheKey('x')).toContain(GEMINI_ANALYZER_CACHE_VERSION);
   });
 });

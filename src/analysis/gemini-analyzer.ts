@@ -52,6 +52,25 @@ const typeMap: Record<GeminiDiagramType, DiagramType> = {
 const INITIAL_LLM_CONFIDENCE = 0.9;
 
 /**
+ * Cache-key version tag for GeminiAnalyzer results. Bump when the analyzer
+ * prompt or output schema changes so stale cached analyses are invalidated.
+ */
+export const GEMINI_ANALYZER_CACHE_VERSION = 'v26';
+
+/**
+ * Build the LLM cache key for a given analysis text.
+ *
+ * The key incorporates the FULL text — not a truncated prefix. Two inputs that
+ * differ only past the first N characters must NOT share a key, or the cache
+ * returns the wrong analysis for the second input. LLMService forwards this
+ * key to LLMCache, which hashes it (sha256) before storage, so using the full
+ * text here carries no memory cost.
+ */
+export function buildAnalyzerCacheKey(text: string): string {
+  return `gemini-analyzer-${GEMINI_ANALYZER_CACHE_VERSION}:${text}`;
+}
+
+/**
  * GeminiAnalyzer: Specialized analyzer for diagram structure extraction
  * Now powered by unified LLMService for consistency and performance
  */
@@ -267,7 +286,7 @@ export class GeminiAnalyzer {
         temperature: 0.1, // Very low temperature for consistent, deterministic outputs
         maxOutputTokens: 2048, // Increased to prevent truncation
         timeout: timeoutMs,
-        cacheKey: `gemini-analyzer-v26:${text.slice(0, 100)}`, // v26 cache key for new prompt
+        cacheKey: buildAnalyzerCacheKey(text), // full-text key (no truncation → no collision)
         maxRetries: 3
       },
       parser
