@@ -327,6 +327,102 @@ describe('IntelligentCache', () => {
     });
   });
 
+  // ---- get() hit/miss accounting ----
+  //
+  // `get()` is the primary lookup the production pipeline calls
+  // (main-pipeline.ts: `globalCache.get(cacheKey)`). It MUST record every
+  // outcome via updateHitRate() so the hit/miss stats — read by the
+  // health-check service (which marks the cache "unhealthy" at a 0% hit rate)
+  // and the efficiency recommendation gate — reflect real usage. Previously
+  // get() recorded nothing, so a fully-warm cache reported 0% hit rate and was
+  // flagged unhealthy.
+
+  describe('get() hit/miss accounting', () => {
+    it('records a hit when get() returns stored data', async () => {
+      await cache.store('hit-key', { v: 1 }, makeMetadata());
+      await cache.get('hit-key');
+
+      const stats = cache.getStats();
+      expect(stats.totalHits).toBe(1);
+      expect(stats.totalMisses).toBe(0);
+      expect(stats.hitRate).toBe(1);
+    });
+
+    it('records a miss when get() finds no entry', async () => {
+      await cache.get('absent-key');
+
+      const stats = cache.getStats();
+      expect(stats.totalHits).toBe(0);
+      expect(stats.totalMisses).toBe(1);
+      expect(stats.hitRate).toBe(0);
+    });
+
+    it('records a miss for an expired entry', async () => {
+      await cache.store('expiring', { v: 1 }, makeMetadata());
+      // Rewind the stored timestamp far past maxAge so get() takes the
+      // expire-and-purge branch (a distinct miss return point).
+      const internals = cache as unknown as {
+        cache: Map<string, { timestamp: number }>;
+        generateCacheKey: (s: string) => string;
+      };
+      const entry = internals.cache.get(internals.generateCacheKey('expiring'));
+      expect(entry).toBeDefined();
+      entry!.timestamp = Date.now() - 1000 * 60 * 60 * 24 * 365; // 1 year ago
+
+      const val = await cache.get('expiring');
+      expect(val).toBeNull();
+
+      expect(cache.getStats().totalMisses).toBe(1);
+      expect(cache.getStats().totalHits).toBe(0);
+    });
+
+    it('records a miss for a colliding-key content mismatch', async () => {
+      // "Aa" and "BB" collide on generateCacheKey; storing BB shadows Aa, so
+      // get('Aa') hits the sourceContent-mismatch branch — a recorded miss,
+      // not a silent skip.
+      await cache.store('Aa', { who: 'Aa-data' }, makeMetadata());
+      await cache.store('BB', { who: 'BB-data' }, makeMetadata());
+
+      const aa = await cache.get('Aa');
+      expect(aa).toBeNull();
+
+      expect(cache.getStats().totalMisses).toBe(1);
+      expect(cache.getStats().totalHits).toBe(0);
+    });
+
+    it('reports a mixed hit/miss sequence accurately', async () => {
+      await cache.store('present', { v: 1 }, makeMetadata());
+
+      await cache.get('present');  // hit
+      await cache.get('missing');  // miss
+      await cache.get('present');  // hit
+      await cache.get('missing2'); // miss
+      await cache.get('present');  // hit
+
+      const stats = cache.getStats();
+      expect(stats.totalHits).toBe(3);
+      expect(stats.totalMisses).toBe(2);
+      expect(stats.hitRate).toBeCloseTo(0.6, 5);
+    });
+
+    it('keeps the health-check-derived hit rate above the unhealthy threshold for a warm cache', async () => {
+      // Mirrors health-check-service.checkCacheHealth, which derives the
+      // displayed hit rate from totalHits/(totalHits+totalMisses) and marks the
+      // component 'unhealthy' at <= 0.2 and 'healthy' at > 0.5. A warm cache
+      // must read as 1.0, not 0.0.
+      await cache.store('warm', { v: 1 }, makeMetadata());
+      await cache.get('warm');
+      await cache.get('warm');
+
+      const stats = cache.getStats();
+      const derived = (stats.totalHits + stats.totalMisses) > 0
+        ? stats.totalHits / (stats.totalHits + stats.totalMisses)
+        : 0;
+      expect(derived).toBe(1);
+      expect(derived).toBeGreaterThan(0.5);
+    });
+  });
+
   // ---- clear() ----
 
   describe('clear()', () => {

@@ -801,13 +801,22 @@ export class IntelligentCache {
     const key = this.generateCacheKey(content);
     const entry = this.cache.get(key);
 
-    if (!entry) return null;
+    if (!entry) {
+      // Record every primary-lookup outcome so the hit/miss stats fed to the
+      // health-check service and the recommendation gate reflect actual cache
+      // usage. `get()` is the only lookup the production pipeline
+      // (main-pipeline.ts) calls; without recording here, totalHits/totalMisses
+      // stayed 0 and a fully-warm cache was reported "unhealthy (0% hit rate)".
+      this.updateHitRate(false);
+      return null;
+    }
 
     // Check if entry is expired
     if (Date.now() - entry.timestamp > this.maxAge) {
       this.cache.delete(key);
       this.fingerprints.delete(key);
       this.preloadQueue.delete(key);
+      this.updateHitRate(false);
       return null;
     }
 
@@ -817,6 +826,7 @@ export class IntelligentCache {
     // silently returned for another. Treat a mismatch as a miss rather than
     // returning foreign data.
     if (entry.sourceContent !== content) {
+      this.updateHitRate(false);
       return null;
     }
 
@@ -837,11 +847,14 @@ export class IntelligentCache {
         this.fingerprints.delete(key);
         this.preloadQueue.delete(key);
         this.updateMemoryUsage();
+        this.updateHitRate(false);
         return null;
       }
+      this.updateHitRate(true);
       return data;
     }
 
+    this.updateHitRate(true);
     return entry.data;
   }
 
