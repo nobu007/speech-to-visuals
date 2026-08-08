@@ -58,10 +58,25 @@ export class LLMCache<T> {
   }
 
   /**
-   * Generate a stable cache key from input text
+   * Generate a stable cache key from input text.
+   *
+   * The hash is taken over the FULL normalized text — never a truncated prefix.
+   * The earlier `slice(0, 2000)` made two distinct inputs that shared a long
+   * common prefix collapse onto a single slot, so a lookup for one returned the
+   * other's data. This bit the GeminiAnalyzer path in particular: it forwards
+   * its full-text key `gemini-analyzer-v26:${text}` here, and that 21-char
+   * prefix meant only the first ~1979 chars of a real transcript reached the
+   * hash — the same prefix-truncation class as buildAnalyzerCacheKey (f6d5dc43),
+   * surviving at the storage layer that the analyzer's own injectivity test
+   * never exercised. sha256 streams over arbitrary length at negligible cost,
+   * and buildAnalyzerCacheKey relies on exactly this full-text hashing.
+   *
+   * (The OUTPUT hex is sliced to 16 chars / 64 bits — a deliberate, fixed
+   * shortening of the digest, astronomically unlikely to collide at this
+   * cache's scale. Only the INPUT must not be truncated.)
    */
   private generateKey(text: string, prefix: string = ''): string {
-    const normalized = text.trim().toLowerCase().slice(0, 2000);
+    const normalized = text.trim().toLowerCase();
     const hash = crypto.createHash('sha256').update(normalized).digest('hex').slice(0, 16);
     return prefix ? `${prefix}:${hash}` : hash;
   }
