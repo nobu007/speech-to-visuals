@@ -9,6 +9,7 @@ import { DiagramType, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { getNodeWidth, getNodeHeight } from './node-dimensions';
 import { distance } from './layout-utils';
 import { safeArray } from '../lib/safe-array';
+import { roundTo } from '../lib/metrics-utils';
 
 export interface Point {
   x: number;
@@ -278,7 +279,7 @@ export class EdgeCrossingMinimizer {
       crossingPairs,
       minimizedNodes: bestNodes,
       minimizedCrossings: bestCount,
-      improvementPercent: Math.round(improvement * 10) / 10,
+      improvementPercent: roundTo(improvement, 1),
     };
   }
 

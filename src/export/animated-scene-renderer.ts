@@ -10,6 +10,7 @@
  */
 
 import { escapeXml } from './xml-escape';
+import { roundTo } from '../lib/metrics-utils';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -144,10 +145,10 @@ export function generateAnimatedSVG(
   for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i];
     const duration = clampSceneDuration(sceneDurationSeconds(scene));
-    const startPct = roundPct((offset / safeDuration) * 100);
-    const fadeInEnd = roundPct(Math.min(startPct + 3, ((offset + duration * 0.15) / safeDuration) * 100));
-    const fadeOutStart = roundPct(((offset + duration * 0.85) / safeDuration) * 100);
-    const endPct = roundPct(((offset + duration) / safeDuration) * 100);
+    const startPct = roundTo((offset / safeDuration) * 100, 2);
+    const fadeInEnd = roundTo(Math.min(startPct + 3, ((offset + duration * 0.15) / safeDuration) * 100), 2);
+    const fadeOutStart = roundTo(((offset + duration * 0.85) / safeDuration) * 100, 2);
+    const endPct = roundTo(((offset + duration) / safeDuration) * 100, 2);
 
     const animName = `s${i}`;
     keyframes.push(`@keyframes ${animName}{0%,${startPct}%{opacity:0}${fadeInEnd}%{opacity:1}${fadeOutStart}%{opacity:1}${endPct}%,100%{opacity:0}}`);
@@ -303,8 +304,4 @@ export function buildLayerShapes(
       nm: 'Background Group',
     },
   ];
-}
-
-function roundPct(n: number): number {
-  return Math.round(n * 100) / 100;
 }

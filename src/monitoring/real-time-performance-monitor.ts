@@ -8,7 +8,7 @@
 
 import { EventEmitter } from 'events';
 import { getMemoryUsage } from '@/utils/memory-usage';
-import { percentileCeil } from '@/lib/metrics-utils';
+import { percentileCeil, roundTo } from '@/lib/metrics-utils';
 import { logger } from '@/utils/logger';
 
 export interface PerformanceMetric {
@@ -450,7 +450,7 @@ class RealTimePerformanceMonitor extends EventEmitter {
       uptime,
       pipeline: {
         totalRequests: this.counters.totalRequests,
-        successRate: Math.round(successRate * 1000) / 1000,
+        successRate: roundTo(successRate, 3),
         avgProcessingTime: Math.round(avgProcessingTime),
         p95ProcessingTime: Math.round(p95),
         p99ProcessingTime: Math.round(p99),
@@ -462,21 +462,21 @@ class RealTimePerformanceMonitor extends EventEmitter {
         proUsagePercent: 0,   // Populated externally
         avgFlashResponseTime: 0, // Populated externally
         avgProResponseTime: 0,   // Populated externally
-        cacheHitRate: Math.round(cacheHitRate * 1000) / 1000,
+        cacheHitRate: roundTo(cacheHitRate, 3),
         estimatedCostSavings: 0 // Populated externally
       },
       system: {
         cpuUsagePercent: 0, // Would require external library
-        memoryUsageMB: Math.round(memoryUsageMB * 100) / 100,
-        memoryUsagePercent: Math.round(memoryUsagePercent * 100) / 100,
-        heapUsedMB: Math.round((memoryUsage.heapUsed / 1024 / 1024) * 100) / 100,
-        heapTotalMB: Math.round((memoryUsage.heapTotal / 1024 / 1024) * 100) / 100
+        memoryUsageMB: roundTo(memoryUsageMB, 2),
+        memoryUsagePercent: roundTo(memoryUsagePercent, 2),
+        heapUsedMB: roundTo(memoryUsage.heapUsed / 1024 / 1024, 2),
+        heapTotalMB: roundTo(memoryUsage.heapTotal / 1024 / 1024, 2)
       },
       errors: {
         totalErrors: this.counters.totalErrors,
-        errorRate: Math.round(errorRate * 1000) / 1000,
+        errorRate: roundTo(errorRate, 3),
         recentErrors: this.getRecentErrors(),
-        recoverySuccessRate: Math.round(recoveryRate * 1000) / 1000
+        recoverySuccessRate: roundTo(recoveryRate, 3)
       },
       quality: {
         transcriptionAccuracy: 0.90, // Populated externally
@@ -573,7 +573,7 @@ class RealTimePerformanceMonitor extends EventEmitter {
     return {
       metric,
       trend,
-      changePercent: Math.round(changePercent * 100) / 100,
+      changePercent: roundTo(changePercent, 2),
       prediction: {
         next5min: Math.max(0, Math.round(next5min)),
         next15min: Math.max(0, Math.round(next15min)),

@@ -12,6 +12,7 @@ import {
   ErrorReport,
   ErrorSnapshot,
 } from './enhanced-error-recovery';
+import { roundTo } from '../lib/metrics-utils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -222,7 +223,7 @@ export class ErrorRecoveryHealthTracker {
 
       return {
         stage,
-        score: Math.round(score * 1000) / 1000,
+        score: roundTo(score, 3),
         trend,
         sampleCount: this.samples.length,
         lastErrorCount,
@@ -257,7 +258,7 @@ export class ErrorRecoveryHealthTracker {
     }
 
     const avg = stageScores.reduce((a, s) => a + (Number.isFinite(s.score) ? s.score : 0), 0) / stageScores.length;
-    return Math.round(avg * 1000) / 1000;
+    return roundTo(avg, 3);
   }
 
   private generateRecommendations(

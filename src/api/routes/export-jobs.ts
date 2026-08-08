@@ -13,6 +13,7 @@
 import { Router, Request, Response } from 'express';
 import { ExportJobQueue, type JobPriority } from '../../export/export-job-queue';
 import { logger } from '../../utils/logger';
+import { roundTo } from '../../lib/metrics-utils';
 
 // UUID v4 validation regex
 const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -54,10 +55,10 @@ export function createExportJobRouter(jobQueue: ExportJobQueue): Router {
         status,
         queueDepth: stats.queued,
         maxQueueSize,
-        queueUtilization: Math.round(queueUtilization * 100) / 100,
+        queueUtilization: roundTo(queueUtilization, 2),
         running: stats.running,
         maxConcurrent: stats.maxConcurrent,
-        concurrencyUtilization: Math.round(concurrencyUtilization * 100) / 100,
+        concurrencyUtilization: roundTo(concurrencyUtilization, 2),
         availableSlots: jobQueue.getAvailableSlots(),
       },
     });

@@ -8,6 +8,7 @@
 
 import { realTimeMonitor, PerformanceSnapshot } from './real-time-performance-monitor';
 import { globalCache } from '@/performance/intelligent-cache';
+import { roundTo } from '@/lib/metrics-utils';
 import { getMemoryUsage } from '@/utils/memory-usage';
 import { logger } from '../utils/logger';
 
@@ -175,11 +176,11 @@ class HealthCheckService {
       latency: Date.now() - startTime,
       lastChecked: Date.now(),
       details: {
-        heapUsedMB: Math.round(heapUsedMB * 100) / 100,
-        heapTotalMB: Math.round(heapTotalMB * 100) / 100,
-        usagePercent: Math.round(usagePercent * 100) / 100,
-        rss: Math.round((memoryUsage.rss / 1024 / 1024) * 100) / 100,
-        external: Math.round((memoryUsage.external / 1024 / 1024) * 100) / 100
+        heapUsedMB: roundTo(heapUsedMB, 2),
+        heapTotalMB: roundTo(heapTotalMB, 2),
+        usagePercent: roundTo(usagePercent, 2),
+        rss: roundTo(memoryUsage.rss / 1024 / 1024, 2),
+        external: roundTo(memoryUsage.external / 1024 / 1024, 2)
       }
     };
   }
@@ -229,7 +230,7 @@ class HealthCheckService {
       details: {
         currentSize: stats.currentSize ?? stats.totalEntries,
         maxSize: stats.maxSize ?? -1,
-        hitRate: Math.round(hitRate * 1000) / 1000,
+        hitRate: roundTo(hitRate, 3),
         totalHits,
         totalMisses,
         evictions: stats.evictions ?? stats.evictionCount
@@ -281,7 +282,7 @@ class HealthCheckService {
       lastChecked: Date.now(),
       details: {
         totalRequests: snapshot.pipeline.totalRequests,
-        successRate: Math.round(successRate * 1000) / 1000,
+        successRate: roundTo(successRate, 3),
         avgProcessingTime: Math.round(avgProcessingTime),
         p95ProcessingTime: snapshot.pipeline.p95ProcessingTime,
         activeRequests
@@ -332,7 +333,7 @@ class HealthCheckService {
       lastChecked: Date.now(),
       details: {
         totalRequests,
-        cacheHitRate: Math.round(cacheHitRate * 1000) / 1000,
+        cacheHitRate: roundTo(cacheHitRate, 3),
         flashUsagePercent: snapshot.llm.flashUsagePercent,
         proUsagePercent: snapshot.llm.proUsagePercent,
         avgFlashResponseTime: snapshot.llm.avgFlashResponseTime,
@@ -384,8 +385,8 @@ class HealthCheckService {
       lastChecked: Date.now(),
       details: {
         totalErrors: snapshot.errors.totalErrors,
-        errorRate: Math.round(errorRate * 1000) / 1000,
-        recoverySuccessRate: Math.round(recoveryRate * 1000) / 1000,
+        errorRate: roundTo(errorRate, 3),
+        recoverySuccessRate: roundTo(recoveryRate, 3),
         recentErrors: snapshot.errors.recentErrors.slice(0, 5)
       }
     };

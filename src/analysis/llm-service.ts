@@ -23,7 +23,7 @@ import { LLMCache } from "./llm-cache";
 import { ComplexityDetector, ComplexityAnalysis } from "./complexity-detector";
 import { parseJsonFromLLMText } from "./llm-utils";
 import { logger } from '../utils/logger';
-import { percentileCeil } from '@/lib/metrics-utils';
+import { percentileCeil, roundTo } from '@/lib/metrics-utils';
 import { clamp01 } from '@/utils/guards';
 import { TokenUsageTracker, type ModelType, type StageType, type TokenUsageSummary } from './token-usage-tracker';
 import { calculateModelCost, estimateCost, type CostBreakdown, type CostEstimate } from './cost-estimator';
@@ -751,11 +751,11 @@ export class LLMService {
       totalRequests: this.modelMetrics.totalRequests,
       cacheHits: cacheStats.totalHits,
       cacheMisses: cacheStats.semantic.misses,
-      cacheHitRate: Math.round(cacheHitRate * 10) / 10,
+      cacheHitRate: roundTo(cacheHitRate, 1),
       modelUsage: {
         flash: this.modelMetrics.flashRequests,
         pro: this.modelMetrics.proRequests,
-        flashPercent: Math.round(flashPercent * 10) / 10
+        flashPercent: roundTo(flashPercent, 1)
       },
       performance: {
         avgResponseTime: Math.round(avgResponseTime),
@@ -766,8 +766,8 @@ export class LLMService {
         p99: Math.round(p99)
       },
       reliability: {
-        successRate: Math.round(successRate * 10) / 10,
-        fallbackRate: Math.round(fallbackRate * 10) / 10,
+        successRate: roundTo(successRate, 1),
+        fallbackRate: roundTo(fallbackRate, 1),
         totalRetries: this.modelMetrics.totalRetries
       },
       timeSavings: this.calculateTimeSavings()
