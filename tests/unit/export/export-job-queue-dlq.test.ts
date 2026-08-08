@@ -320,6 +320,37 @@ describe('ExportJobQueue — retry and dead letter queue', () => {
       const found = queue.findJob(replayed!.jobId);
       expect(found!.status).toBe('completed');
     });
+
+    it('throws and preserves the DLQ job when the queue is at capacity (no cap bypass)', () => {
+      // Regression: replayDeadLetterJob used to splice the job out of the DLQ
+      // and unconditionally re-insert it, bypassing the maxQueueSize cap that
+      // enqueue() enforces. It must instead throw — the same invariant as
+      // enqueue — and, because the check runs before the splice, leave the job
+      // in the DLQ so a later replay (once the queue drains) still works.
+      const full = new ExportJobQueue({
+        maxConcurrent: 2,
+        maxQueueSize: 2,
+        maxRetries: 0,
+        maxDlqJobs: 50,
+      });
+
+      // Dead-letter a victim job while the queue still has capacity.
+      const victim = full.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'victim' });
+      full.dequeue();
+      full.completeJob(victim.jobId, false, undefined, 'boom'); // maxRetries:0 → immediate DLQ
+      expect(full.getQueueStats().deadLettered).toBe(1);
+
+      // Now fill the queue to its declared capacity.
+      full.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'q1' });
+      full.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'q2' });
+      expect(full.getQueueStats().queued).toBe(2);
+
+      // Replay must refuse rather than exceed the cap, and must not lose the DLQ entry.
+      expect(() => full.replayDeadLetterJob(victim.jobId)).toThrow(/Export queue is full/);
+      expect(full.getQueueStats().queued).toBe(2); // cap honored, not 3
+      expect(full.getQueueStats().deadLettered).toBe(1); // victim still recoverable
+      expect(full.findJob(victim.jobId)?.status).toBe('dead-lettered');
+    });
   });
 
   describe('purgeDeadLetterJobs', () => {

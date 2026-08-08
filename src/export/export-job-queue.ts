@@ -461,6 +461,17 @@ export class ExportJobQueue {
     const idx = this.deadLetterQueue.findIndex((j) => j.jobId === jobId);
     if (idx === -1) return undefined;
 
+    // Enforce the same capacity invariant as enqueue() — checked BEFORE the
+    // splice so that (a) a full queue can never be exceeded via replay and
+    // (b) the DLQ entry is preserved when replay is rejected, leaving the job
+    // recoverable for a later replay once the queue drains. The replay API
+    // route already maps this throw to a 500 REPLAY_FAILED response.
+    if (this.queue.length >= this.options.maxQueueSize) {
+      throw new Error(
+        `Export queue is full (${this.options.maxQueueSize} jobs)`,
+      );
+    }
+
     const [dlqJob] = this.deadLetterQueue.splice(idx, 1);
 
     // Reset retry state and re-enqueue
