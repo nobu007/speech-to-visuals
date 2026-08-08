@@ -961,10 +961,12 @@ export class ZeroOverlapLayoutEngine {
       return this.config.minimumSpacing.nodeToNode;
     }
 
-    const centerDistance = Math.sqrt(
-      Math.pow(node1.x + n1w / 2 - node2.x - n2w / 2, 2) +
-      Math.pow(node1.y + n1h / 2 - node2.y - n2h / 2, 2)
-    );
+    // Center-to-center distance via the canonical `distance(dx, dy)` (the same
+    // sqrt(dx²+dy²) arithmetic used by the 9 other call sites in this file);
+    // `distance` uses `dx*dx`, bit-equivalent to the prior `Math.pow(dx, 2)`.
+    const centerDx = node1.x + n1w / 2 - node2.x - n2w / 2;
+    const centerDy = node1.y + n1h / 2 - node2.y - n2h / 2;
+    const centerDistance = distance(centerDx, centerDy);
 
     // Center-to-center distance at which the two AABBs just touch along an
     // axis: the larger of the per-axis half-sums, plus the requested spacing.
@@ -1295,7 +1297,10 @@ export class ZeroOverlapLayoutEngine {
     const totalArea = this.config.canvasWidth * this.config.canvasHeight;
 
     if (totalArea <= 0) return 0;
-    return Math.min(1, Math.max(0, usedArea / totalArea));
+    // `clamp01` (not a bare `Math.min(1, Math.max(0, …))`): identical for every
+    // finite ratio, and NaN-safe — a NaN ratio (unreachable while the NaN guard
+    // holds upstream, but defensive) maps to 0 instead of poisoning the score.
+    return clamp01(usedArea / totalArea);
   }
 
   private calculateSymmetryScore(nodes: PositionedNode[]): number {
@@ -1392,12 +1397,11 @@ export class ZeroOverlapLayoutEngine {
     const node2CenterX = node2.x + getNodeWidth(node2) / 2;
     const node2CenterY = node2.y + getNodeHeight(node2) / 2;
 
-    // Move nodes away from center to maintain balance
-    const moveNode1TowardCenter = Math.sqrt(
-      Math.pow(node1CenterX - centerX, 2) + Math.pow(node1CenterY - centerY, 2)
-    ) > Math.sqrt(
-      Math.pow(node2CenterX - centerX, 2) + Math.pow(node2CenterY - centerY, 2)
-    );
+    // Move nodes away from center to maintain balance — compare each node's
+    // center-to-canvas-center distance via the canonical `distance(dx, dy)`.
+    const moveNode1TowardCenter =
+      distance(node1CenterX - centerX, node1CenterY - centerY) >
+      distance(node2CenterX - centerX, node2CenterY - centerY);
 
     const separation = this.calculateOptimalSeparation(node1, node2);
     const moveVector = this.calculateMoveVector(node1, node2, separation);

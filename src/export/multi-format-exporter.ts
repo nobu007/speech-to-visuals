@@ -15,6 +15,7 @@
 import type { SceneGraph } from '@/types/diagram';
 import { safeArray } from '../lib/safe-array';
 import { ExportError, FormatValidationError } from '@/pipeline/pipeline-errors';
+import { roundTo } from '@/lib/metrics-utils';
 import type { NodeDatum, EdgeDatum } from '@/types/diagram';
 import { logger } from '../utils/logger';
 import { sanitizeFilename } from '../utils/sanitize';
@@ -633,7 +634,9 @@ export class MultiFormatExporter {
     const cr = Math.max(0, Math.min(MultiFormatExporter.PDF_NODE_CORNER_RADIUS, w / 2, h / 2));
     const k = cr * MultiFormatExporter.PDF_BEZIER_K;
     // Round to 2 dp to keep the content stream compact and deterministic.
-    const f = (n: number): string => (Math.round(n * 100) / 100).toString();
+    // `roundTo(n, 2)` is the canonical decimal rounder (byte-identical to the
+    // prior `Math.round(n * 100) / 100` — same arithmetic, no EPSILON shift).
+    const f = (n: number): string => roundTo(n, 2).toString();
 
     // Trace counter-clockwise (PDF y-up) from the bottom edge, just right of the
     // bottom-left corner, around all four corners.

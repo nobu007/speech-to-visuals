@@ -142,5 +142,31 @@ describe('2-D distance: single source of truth (layout-utils.distance)', () => {
 
       expect(violations).toEqual([]);
     });
+
+    it('src/visualization + src/remotion do not re-inline sqrt(Math.pow(x,2)+Math.pow(y,2)) (the multi-line Math.pow form)', () => {
+      // The line-scoped SQ_FORM / POW_FORM above catch the single-line
+      // `sqrt(x*x + y*y)` and `sqrt(x**2 + y**2)` spellings. They miss TWO
+      // things at once: the `Math.pow(x, 2)` FUNCTION form (neither `*` nor
+      // `**`), and any inline split across multiple lines (the guard above
+      // tests one line at a time). Together those gaps let a residual distance
+      // formula stay inline in enhanced-zero-overlap-layout.ts long after the
+      // consolidation. Read whole-file source here so newlines cannot hide a
+      // copy, and forbid the Math.pow form as well.
+      const POW_FN_FORM =
+        /Math\.sqrt\(\s*Math\.pow\([\s\S]+?,\s*2\s*\)\s*\+\s*Math\.pow\([\s\S]+?,\s*2\s*\)\s*\)/;
+      const files = [...collectTs('src/visualization'), ...collectTs('src/remotion')];
+      const violations: string[] = [];
+      for (const file of files) {
+        if (file.endsWith('layout-utils.ts')) continue; // canonical definition
+        // Test CODE only: strip comments so a doc comment quoting the formula
+        // cannot false-positive (same convention as the clamp01 single-source
+        // guard).
+        const src = readFileSync(file, 'utf8')
+          .replace(/^\s*\/\/.*$/gm, '')
+          .replace(/\/\*[\s\S]*?\*\//g, '');
+        if (POW_FN_FORM.test(src)) violations.push(file);
+      }
+      expect(violations).toEqual([]);
+    });
   });
 });
