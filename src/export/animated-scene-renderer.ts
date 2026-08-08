@@ -247,7 +247,11 @@ export function generateLottieAnimation(
 export { escapeXml };
 
 export function formatSceneSubtitle(scene: SceneItem): string {
-  const d = clampSceneDuration(scene.duration);
+  // Resolve via sceneDurationSeconds — the same converter the animation timing
+  // uses — so pipeline SceneGraphs carrying `durationMs` (ms) with no `duration`
+  // (s) field are labeled correctly. Reading `scene.duration` directly fell
+  // through to the 2s default, mislabeling every pipeline-fed scene's subtitle.
+  const d = clampSceneDuration(sceneDurationSeconds(scene));
   const mins = Math.floor(d / 60);
   const secs = Math.round(d % 60);
   return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;

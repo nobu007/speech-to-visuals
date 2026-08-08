@@ -65,6 +65,18 @@ describe('formatSceneSubtitle', () => {
   it('defaults to 2s when no duration', () => {
     expect(formatSceneSubtitle({})).toBe('2s');
   });
+
+  // Pipeline SceneGraphs carry `durationMs` (ms) with NO `duration` (s) field.
+  // The subtitle must read durationMs via sceneDurationSeconds — the same
+  // converter the animation timing uses — not `scene.duration`, which silently
+  // falls through to the 2s default and mislabels every pipeline-fed scene.
+  it('formats duration from pipeline SceneGraph durationMs', () => {
+    expect(formatSceneSubtitle({ durationMs: 5000 })).toBe('5s');
+  });
+
+  it('formats minutes+seconds from pipeline SceneGraph durationMs', () => {
+    expect(formatSceneSubtitle({ durationMs: 125000 })).toBe('2m 5s');
+  });
 });
 
 // ---------------------------------------------------------------------------
