@@ -104,13 +104,19 @@ describe('cached() decorator — no truncating prefix on serialized args', () =>
 });
 
 describe('cache-key truncation — broad cross-layer sweep', () => {
-  // Belt-and-suspenders: no production file in the analysis or performance cache
-  // layers may construct a cache key by truncating its input. Catches a future
-  // 4th site even if it isn't one of the three known call sites above.
-  it('no analysis/performance source file truncates a cacheKey value', () => {
+  // Belt-and-suspenders: no production file in any keying layer may construct a
+  // cache key by truncating its input. Catches a future site even if it isn't
+  // one of the known call sites below. The dir list spans EVERY layer that
+  // builds a content-derived key (analysis/performance + pipeline + api): the
+  // 08y lesson was that a guard scoped to analysis/performance let the SAME
+  // defect class survive in `main-pipeline.generateCacheKey` because that key
+  // builder lived in a different dir and built its key its own way.
+  it('no keying-layer source file truncates a cacheKey value', () => {
     const files: string[] = [
       ...globSync('src/analysis/*.ts'),
       ...globSync('src/performance/*.ts'),
+      ...globSync('src/pipeline/*.ts'),
+      ...globSync('src/api/*.ts'),
     ].filter(f => !f.includes('__tests__') && !f.endsWith('cache-key.ts'));
 
     const offenders: string[] = [];
@@ -125,6 +131,98 @@ describe('cache-key truncation — broad cross-layer sweep', () => {
         offenders.push(file);
       }
     }
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe('key-builder function bodies — no truncation of the keying INPUT', () => {
+  // The 08y KEY LESSON: centralizing the canonical FN is insufficient if the
+  // guard's scope excludes other dirs that build keys their own way. The audit
+  // must grep key-BUILDERS (`generateCacheKey` / `computeFileHash` /
+  // `generateKey` / `buildAnalyzerCacheKey`) across ALL keying dirs, not just
+  // the `cacheKey:` consumers in two. This targets the builder FUNCTIONS
+  // themselves: a truncating slice on the keying INPUT inside any of them is the
+  // prefix-truncation class that bit f6d5dc43 / f172f017 (and would have caught
+  // a regression in main-pipeline's 08y layer, which lived outside the old
+  // 2-dir guard). OUTPUT shortening of a digest (`.digest('hex').slice(0,16)`)
+  // is allowed — only the INPUT must not be truncated.
+  const KEY_BUILDERS: Array<{ file: string; fn: string }> = [
+    { file: 'src/pipeline/main-pipeline.ts', fn: 'generateCacheKey' },
+    { file: 'src/performance/intelligent-cache.ts', fn: 'generateCacheKey' },
+    { file: 'src/analysis/llm-cache.ts', fn: 'generateKey' },
+    { file: 'src/api/batch-processing-api.ts', fn: 'computeFileHash' },
+    { file: 'src/analysis/gemini-analyzer.ts', fn: 'buildAnalyzerCacheKey' },
+  ];
+
+  /** Strip comments (block + line) so doc references to old bugs don't match. */
+  function stripComments(src: string): string {
+    return src
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/^\s*\/\/.*$/gm, '');
+  }
+
+  /**
+   * Match a function/method DEFINITION (not a call) and return the index of its
+   * opening `{`. Requires `{` to follow `)` — possibly with a return-type
+   * annotation — so call sites (`this.fn(x);`) never match.
+   */
+  function findDefBodyBrace(src: string, fn: string): number {
+    const defRe = new RegExp(`\\b${fn}\\s*\\([^)]*\\)\\s*(:[\\s\\S]*?)?\\{`);
+    const m = defRe.exec(src);
+    return m ? m.index + m[0].length - 1 : -1;
+  }
+
+  /**
+   * Balanced-brace extraction from `braceIdx` (pointing at `{`). Comment-stripped
+   * source only; the five target builders contain no literal braces inside plain
+   * string literals, and template `${…}` interpolations are brace-balanced, so a
+   * naive depth counter terminates at the function's true close.
+   */
+  function extractBody(src: string, braceIdx: number): string {
+    let depth = 0;
+    for (let i = braceIdx; i < src.length; i++) {
+      const c = src[i];
+      if (c === '{') depth++;
+      else if (c === '}') {
+        depth--;
+        if (depth === 0) return src.slice(braceIdx, i + 1);
+      }
+    }
+    return src.slice(braceIdx);
+  }
+
+  it('every key builder is present (rename/removal surfaces here, not silently)', () => {
+    // If a builder is renamed or deleted, the truncation guard below would skip
+    // it via `findDefBodyBrace === -1`. This assertion makes that loud instead.
+    for (const { file, fn } of KEY_BUILDERS) {
+      const src = stripComments(readFileSync(resolve(process.cwd(), file), 'utf8'));
+      expect(findDefBodyBrace(src, fn)).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('no key builder truncates its input before hashing (digest OUTPUT shortening allowed)', () => {
+    const offenders: string[] = [];
+
+    for (const { file, fn } of KEY_BUILDERS) {
+      const src = stripComments(readFileSync(resolve(process.cwd(), file), 'utf8'));
+      const braceIdx = findDefBodyBrace(src, fn);
+      if (braceIdx < 0) continue;
+      const body = extractBody(src, braceIdx);
+
+      // Neutralize OUTPUT shortening: `.digest('hex').slice(0, 16)` (optionally
+      // across newlines/whitespace) shortens the OUTPUT digest, not the INPUT,
+      // and is the sanctioned pattern. Any truncating slice that remains is an
+      // INPUT truncation = the prefix-truncation defect class.
+      const INPUT_TRUNCATION = /\.(?:slice|substring|substr)\s*\(\s*0\s*,/;
+      const DIGEST_OUTPUT = /\.digest\s*\([^)]*\)\s*\.\s*(?:slice|substring|substr)\s*\(\s*0\s*,/;
+      const residual = body.replace(new RegExp(DIGEST_OUTPUT, 'g'), '/*digest-output*/');
+
+      const m = residual.match(INPUT_TRUNCATION);
+      if (m) {
+        offenders.push(`${file} :: ${fn}`);
+      }
+    }
+
     expect(offenders).toEqual([]);
   });
 });
