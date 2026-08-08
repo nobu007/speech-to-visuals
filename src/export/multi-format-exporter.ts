@@ -22,6 +22,7 @@ import { validateSceneGraphForExport, isStrictValidationEnabled } from './export
 import { escapeXml } from './xml-escape';
 import { securityMetricsCollector } from './security-metrics-collector';
 import { getNodeWidth, getNodeHeight } from '../visualization/node-dimensions';
+import { textWidth } from '../visualization/smart-label-sizer';
 
 export type ExportFormat = 'svg' | 'png' | 'pdf' | 'json';
 
@@ -476,10 +477,15 @@ export class MultiFormatExporter {
         if (edge.label) {
           const midX = (fx + tx) / 2;
           const midY = pageHeight - (fy + ty) / 2;
+          // Offset the text origin left by half the label width so the label is
+          // horizontally centered on the edge midpoint — matching SVG/Canvas
+          // (text-anchor / textAlign middle). Without this, `Td` anchors the
+          // left edge at midX and the label extends right, half a width off.
+          const edgeLabelX = midX - this.estimatePdfTextWidth(edge.label, 12) / 2;
           parts.push('BT');
           parts.push('/F1 12 Tf');
           parts.push('0.4 0.4 0.4 rg');
-          parts.push(`${midX} ${midY + 5} Td`);
+          parts.push(`${edgeLabelX} ${midY + 5} Td`);
           parts.push(`(${this.escapePDFString(edge.label)}) Tj`);
           parts.push('ET');
         }
@@ -506,11 +512,14 @@ export class MultiFormatExporter {
       parts.push('2 w');
       parts.push(`${rx} ${ry} ${w} ${h} re B`);
 
-      // Node label at the rect center (corner + half size), matching SVG.
+      // Node label centered on the rect center (corner + half size), matching
+      // SVG/Canvas text-anchor middle. Offset the origin left by half the label
+      // width so it sits on the center instead of extending right.
       parts.push('BT');
       parts.push('/F1 14 Tf');
       parts.push('1 1 1 rg');
-      parts.push(`${x + w / 2} ${pageHeight - (y + h / 2)} Td`);
+      const nodeLabelX = x + w / 2 - this.estimatePdfTextWidth(node.label, 14) / 2;
+      parts.push(`${nodeLabelX} ${pageHeight - (y + h / 2)} Td`);
       parts.push(`(${this.escapePDFString(node.label)}) Tj`);
       parts.push('ET');
     }
@@ -573,6 +582,30 @@ export class MultiFormatExporter {
     const gn = Number.isFinite(g) ? g / 255 : 1;
     const bn = Number.isFinite(b) ? b / 255 : 1;
     return `${rn.toFixed(3)} ${gn.toFixed(3)} ${bn.toFixed(3)} rg`;
+  }
+
+  /**
+   * Estimate the rendered width (in PDF user-space units ≈ px) of a text label
+   * at the given font size, for horizontal centering.
+   *
+   * Why this exists: SVG/Canvas/on-screen all center labels via the renderer's
+   * `text-anchor="middle"` / `textAlign="center"` (which use exact font
+   * metrics). PDF here is a hand-rolled content stream with no access to those
+   * metrics, so the `Td` operator places the text ORIGIN (left edge) and `Tj`
+   * draws left→right — leaving every label shifted right by half its width
+   * relative to the other formats. To center, we offset the origin left by
+   * half the estimated width.
+   *
+   * The estimate reuses the CJK-aware `textWidth` char-unit model (CJK glyphs
+   * count as 2 units, Latin as 1) scaled by ~0.5×fontSize — Helvetica (the
+   * embedded /F1) averages ~0.5em per Latin glyph and ~1em per CJK glyph, so
+   * the double-counting of CJK lands at the right magnitude. It is an
+   * approximation (not pixel-exact), but it removes the gross half-width
+   * asymmetry and brings PDF label placement into WYSIWYG parity with the
+   * other export formats and the on-screen render.
+   */
+  private estimatePdfTextWidth(text: string, fontSize: number): number {
+    return textWidth(text) * fontSize * 0.5;
   }
 
   /**

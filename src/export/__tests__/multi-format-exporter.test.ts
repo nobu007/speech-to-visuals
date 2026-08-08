@@ -287,6 +287,38 @@ describe('MultiFormatExporter', () => {
       expect(nodeLabels).toEqual(expect.arrayContaining(['Start', 'End']));
       expect(edgeLabels).toEqual(expect.arrayContaining(['next']));
     });
+
+    it('horizontally centers node and edge labels in PDF (text-anchor parity)', async () => {
+      // SVG/Canvas center labels via text-anchor / textAlign middle. PDF writes
+      // the content stream by hand, so it must offset the `Td` text origin LEFT
+      // by half the label width rather than anchoring the left edge at the
+      // geometric center (which shifts every label half a width to the right).
+      const scene = makeScene({
+        id: 'parity-label-center',
+        layout: {
+          nodes: [
+            { id: 'n1', label: 'Start Node', x: 300, y: 100, w: 160, h: 60 },
+            { id: 'n2', label: 'End Node', x: 300, y: 300, w: 160, h: 60 },
+          ],
+          edges: [{ from: 'n1', to: 'n2', label: 'flows to', points: [] }],
+        },
+      });
+
+      const pdf = await (await exporter.export(scene, { format: 'pdf' })).data as Blob;
+      const pdfText = await pdf.text();
+
+      // Every node center x = 300 + 160/2 = 380; the edge midpoint x is also 380.
+      // A centered label's origin sits strictly LEFT of 380 (offset by half its
+      // width). A left-anchored-at-center label would be exactly 380.
+      const centerX = 380;
+      const tdXs = [...pdfText.matchAll(/([\d.]+) [\d.]+ Td/g)].map((m) => parseFloat(m[1]));
+      expect(tdXs.length).toBe(3); // 2 node labels + 1 edge label
+      for (const x of tdXs) {
+        expect(x).toBeLessThan(centerX);
+        // Sanity: the offset is at most ~half a label width, not absurdly far.
+        expect(x).toBeGreaterThan(centerX - 120);
+      }
+    });
   });
 
   describe('JSON export', () => {
