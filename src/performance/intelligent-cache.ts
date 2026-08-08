@@ -20,6 +20,11 @@ interface CacheEntry {
   data: unknown;
   compressed: boolean;
   compressedSize: number;
+  /** Original (pre-compression) byte length. decompressData needs this to tell
+   *  a genuinely RLE-compressed payload from an incompressible one; storing only
+   *  compressedSize made the length check always true, so compressed entries
+   *  were JSON.parse'd as their still-encoded form and silently lost. */
+  originalSize: number;
   priority: number; // For LRU-W (Weighted) algorithm
   metadata: {
     contentType: DiagramType;
@@ -715,7 +720,7 @@ export class IntelligentCache {
 
       // Return decompressed data
       if (bestMatch.compressed) {
-        const decompressedData = this.decompressData(bestMatch.data as string, bestMatch.compressedSize, bestMatch.id);
+        const decompressedData = this.decompressData(bestMatch.data as string, bestMatch.originalSize, bestMatch.id);
         return { ...bestMatch, data: decompressedData };
       }
     } else {
@@ -742,9 +747,11 @@ export class IntelligentCache {
     let finalData = data;
     let compressed = false;
     let compressedSize = 0;
+    let originalSize = 0;
 
     if (this.compressionEnabled) {
       const compressionResult = this.compressData(data);
+      originalSize = compressionResult.originalSize;
       if (compressionResult.compressedSize < compressionResult.originalSize * 0.8) {
         finalData = compressionResult.compressed;
         compressed = true;
@@ -765,6 +772,7 @@ export class IntelligentCache {
       data: finalData,
       compressed,
       compressedSize,
+      originalSize,
       priority: 1.0, // New entries start with high priority
       metadata: {
         ...metadata,
@@ -808,7 +816,7 @@ export class IntelligentCache {
 
     // Return decompressed data if needed
     if (entry.compressed) {
-      const data = this.decompressData(entry.data as string, entry.compressedSize, key);
+      const data = this.decompressData(entry.data as string, entry.originalSize, key);
       if (data === null) {
         // Decompression failed — purge corrupted entry
         this.cache.delete(key);
@@ -886,7 +894,7 @@ export class IntelligentCache {
       if (age > oldestAge) oldestAge = age;
 
       if (entry.compressed) {
-        const data = this.decompressData(entry.data as string, entry.compressedSize, key);
+        const data = this.decompressData(entry.data as string, entry.originalSize, key);
         if (data === null && !this.corruptedKeys.has(key)) {
           corruptedKeys.push(key);
         }

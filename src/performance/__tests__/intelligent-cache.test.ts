@@ -252,17 +252,15 @@ describe('IntelligentCache', () => {
       expect(entry.compressed).toBe(false);
     });
 
-    it('returns data via get() for compressed entries (using stored compressed format)', async () => {
-      // Note: There's a bug in the source where decompressData receives compressedSize
-      // instead of originalSize, so get() for compressed data returns the RLE string
-      // parsed as JSON (which may throw or return unexpected data).
-      // We test that get() doesn't throw and returns something.
+    it('returns data via get() for compressed entries (round-trips through RLE)', async () => {
+      // Regression guard: decompressData must receive originalSize (not
+      // compressedSize) so the length check correctly routes to RLE decoding.
+      // Previously every compressed entry was JSON.parse'd in its still-encoded
+      // form and either returned garbage or was purged as corrupt.
       const bigData = { text: 'a'.repeat(2000) };
       await cache.store('big-get', bigData, makeMetadata());
-      // This will likely return the raw compressed string due to the bug,
-      // but at minimum it should not throw
       const val = await cache.get('big-get');
-      expect(val).toBeDefined();
+      expect(val).toEqual(bigData);
     });
 
     it('correctly handles uncompressed small data round-trip', async () => {
