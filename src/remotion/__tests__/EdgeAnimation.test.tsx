@@ -353,4 +353,96 @@ describe('EdgeAnimation', () => {
       expect(Number.isFinite(style.height)).toBe(true);
     });
   });
+
+  // -------------------------------------------------------------------------
+  // Edge label rendering — WYSIWYG parity with SVG/Canvas/PDF exports
+  // -------------------------------------------------------------------------
+  // The exports render edge.label at the path midpoint; the on-screen video
+  // previously drew edges as bare lines and dropped the label entirely.
+  describe('edge label rendering (WYSIWYG parity with exports)', () => {
+    // Find a child element by SVG type. children is a single element when no
+    // label is present and an array [path, text] once a label is added.
+    function findChild(
+      rendered: React.ReactElement,
+      type: string
+    ): React.ReactElement | undefined {
+      const children = rendered.props.children;
+      const arr: React.ReactElement[] = Array.isArray(children) ? children : [children];
+      return arr.find((c) => c && c.type === type);
+    }
+
+    it('renders edge.label as <text> at the path midpoint when a label is present', () => {
+      mockFrame = 20; // animation complete → progress 1, label fully visible
+      const edge = makeEdge({
+        label: 'leads to',
+        points: [
+          { x: 100, y: 200 },
+          { x: 300, y: 400 },
+        ],
+      });
+      const element = React.createElement(EdgeAnimation, {
+        edge,
+        edgeIndex: 0,
+        delayFrames: 0,
+        durationFrames: EDGE_DRAW_DURATION_FRAMES,
+        pathLength: 100,
+      });
+      const rendered = renderEdge(element);
+
+      const text = findChild(rendered, 'text');
+      expect(text).toBeDefined();
+      expect(text!.props.children).toBe('leads to');
+      // midpoint = ((100+300)/2, (200+400)/2 - 5) = (200, 295)
+      expect(text!.props.x).toBe(200);
+      expect(text!.props.y).toBe(295);
+    });
+
+    it('fades the label in alongside the drawing progress', () => {
+      const edge = makeEdge({ label: 'x' });
+      const labelAt = (frame: number): number => {
+        mockFrame = frame;
+        const el = React.createElement(EdgeAnimation, {
+          edge,
+          edgeIndex: 0,
+          delayFrames: 0,
+          durationFrames: EDGE_DRAW_DURATION_FRAMES,
+          pathLength: 200,
+        });
+        return findChild(renderEdge(el), 'text')!.props.opacity;
+      };
+      expect(labelAt(0)).toBe(0); // before/at start: invisible
+      expect(labelAt(20)).toBe(1); // after completion: fully visible
+    });
+
+    it('does not render a <text> when the edge has no label (path stays the direct child)', () => {
+      mockFrame = 20;
+      const edge = makeEdge(); // no label
+      const element = React.createElement(EdgeAnimation, {
+        edge,
+        edgeIndex: 0,
+        delayFrames: 0,
+        durationFrames: EDGE_DRAW_DURATION_FRAMES,
+        pathLength: 200,
+      });
+      const rendered = renderEdge(element);
+
+      expect(findChild(rendered, 'text')).toBeUndefined();
+      // Back-compat: callers that grab the path directly still get it.
+      expect(rendered.props.children.type).toBe('path');
+    });
+
+    it('does not render a label when fewer than 2 points are available', () => {
+      mockFrame = 20;
+      const edge = makeEdge({ label: 'orphan', points: [{ x: 5, y: 5 }] });
+      const element = React.createElement(EdgeAnimation, {
+        edge,
+        edgeIndex: 0,
+        delayFrames: 0,
+        durationFrames: EDGE_DRAW_DURATION_FRAMES,
+        pathLength: 0,
+      });
+      const rendered = renderEdge(element);
+      expect(findChild(rendered, 'text')).toBeUndefined();
+    });
+  });
 });

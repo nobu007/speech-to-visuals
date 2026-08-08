@@ -116,6 +116,36 @@ export const EdgeAnimation: React.FC<EdgeAnimationProps> = ({
 
   const pathD = generatePathD(points);
 
+  // Edge label, drawn at the path midpoint to match the SVG/Canvas/PDF exports
+  // (WYSIWYG). Previously the on-screen video rendered edges as bare lines
+  // while every downloadable format included the label. The label fades in
+  // alongside the drawing animation. When there is no label the SVG keeps a
+  // single child (the path) so callers that grab the path directly are stable.
+  const showLabel = Boolean(edge.label) && points.length >= 2;
+  let labelX = 0;
+  let labelY = 0;
+  if (showLabel) {
+    const first = points[0];
+    const last = points[points.length - 1];
+    labelX = (first.x + last.x) / 2;
+    // Mirror the export's `midY - 5` vertical offset so the label sits just
+    // above the line, identical to the downloaded SVG/Canvas/PDF.
+    labelY = (first.y + last.y) / 2 - 5;
+  }
+
+  const pathElement = (
+    <path
+      key="edge-path"
+      d={pathD}
+      stroke="rgba(255, 255, 255, 0.5)"
+      strokeWidth={2}
+      fill="none"
+      strokeDasharray={pathLength}
+      strokeDashoffset={dashOffset}
+      strokeLinecap="round"
+    />
+  );
+
   return (
     <svg
       style={{
@@ -129,15 +159,25 @@ export const EdgeAnimation: React.FC<EdgeAnimationProps> = ({
       }}
       viewBox={`${minX} ${minY} ${width} ${height}`}
     >
-      <path
-        d={pathD}
-        stroke="rgba(255, 255, 255, 0.5)"
-        strokeWidth={2}
-        fill="none"
-        strokeDasharray={pathLength}
-        strokeDashoffset={dashOffset}
-        strokeLinecap="round"
-      />
+      {showLabel ? (
+        [
+          pathElement,
+          <text
+            key="edge-label"
+            x={labelX}
+            y={labelY}
+            fill="rgba(255, 255, 255, 0.9)"
+            fontSize={12}
+            textAnchor="middle"
+            opacity={progress}
+            style={{ fontFamily: 'sans-serif' }}
+          >
+            {edge.label}
+          </text>,
+        ]
+      ) : (
+        pathElement
+      )}
     </svg>
   );
 };
