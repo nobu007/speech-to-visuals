@@ -7,6 +7,7 @@
 
 import { DiagramType, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { getNodeWidth, getNodeHeight } from './node-dimensions';
+import { distance } from './layout-utils';
 import { safeArray } from '../lib/safe-array';
 
 export interface Point {
@@ -327,7 +328,7 @@ export class EdgeCrossingMinimizer {
           const pj = positions.get(nj.id) ?? { x: 0, y: 0 };
           const dx = pj.x - pi.x;
           const dy = pj.y - pi.y;
-          const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
+          const dist = Math.max(distance(dx, dy), 1);
 
           // Stronger repulsion for crossing nodes
           const weight = (crossingNodes.has(ni.id) || crossingNodes.has(nj.id)) ? 2 : 1;
@@ -353,7 +354,7 @@ export class EdgeCrossingMinimizer {
 
         const dx = pt.x - pf.x;
         const dy = pt.y - pf.y;
-        const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
+        const dist = Math.max(distance(dx, dy), 1);
         const force = attractionStrength * (dist - idealLen);
 
         const df = disp.get(fromId);
@@ -367,7 +368,7 @@ export class EdgeCrossingMinimizer {
       for (const n of current) {
         const d = disp.get(n.id);
         if (!d) continue;
-        const mag = Math.sqrt(d.x * d.x + d.y * d.y);
+        const mag = distance(d.x, d.y);
         if (mag > 0) {
           const capped = Math.min(mag, temperature);
           const w = getNodeWidth(n, 0);
@@ -420,7 +421,7 @@ export class EdgeCrossingMinimizer {
       // Offset control point perpendicular to the edge direction
       const dx = pt.x - pf.x;
       const dy = pt.y - pf.y;
-      const len = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
+      const len = Math.max(distance(dx, dy), 1);
       const nx = -dy / len;
       const ny = dx / len;
       const offset = 30;

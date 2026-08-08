@@ -12,6 +12,7 @@ import { minimizeEdgeCrossings } from './edge-crossing-minimizer';
 import { StrategySelector } from './strategy-selector';
 import { LayoutStrategy, StrategyLayoutResult } from './types';
 import { getNodeWidth, getNodeHeight } from './node-dimensions';
+import { distance } from './layout-utils';
 
 // ── Legacy function-based API (kept for backward compat) ──
 
@@ -560,7 +561,7 @@ function strategySpreadOut(
       const cx2 = result[j].x + w2 / 2;
       const cy2 = result[j].y + h2 / 2;
 
-      const dist = Math.sqrt((cx1 - cx2) ** 2 + (cy1 - cy2) ** 2);
+      const dist = distance(cx1 - cx2, cy1 - cy2);
       const minDist = (w1 + w2) / 2 + minSpacing;
 
       if (dist < minDist && dist > 0) {

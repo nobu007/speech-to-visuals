@@ -17,6 +17,7 @@ import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
 import { getImportance, importanceSizeScale } from '../importance-scaler';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
+import { distance } from '../layout-utils';
 
 const NODE_SEP = 80;
 const TARGET_ASPECT_RATIO = 16 / 9;
@@ -110,7 +111,7 @@ export class NetworkStrategy implements LayoutStrategy {
         const by = b.y + getNodeHeight(b, DEFAULT_NODE_HEIGHT) / 2;
         const dx = bx - ax;
         const dy = by - ay;
-        const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+        const dist = Math.max(1, distance(dx, dy));
         // Important nodes repel more strongly
         const impScale = 0.7 + 0.6 * (getImportance(a) + getImportance(b)) / 2;
         const force = (repulsionK * impScale) / (dist * dist);
@@ -135,7 +136,7 @@ export class NetworkStrategy implements LayoutStrategy {
       const ty = tgt.y + getNodeHeight(tgt, DEFAULT_NODE_HEIGHT) / 2;
       const dx = tx - sx;
       const dy = ty - sy;
-      const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+      const dist = Math.max(1, distance(dx, dy));
       // Edges involving important nodes attract more strongly
       const impScale = 0.8 + 0.4 * Math.max(getImportance(src), getImportance(tgt));
       const force = attractionK * impScale * (dist - NODE_SEP * 2);
@@ -159,7 +160,7 @@ export class NetworkStrategy implements LayoutStrategy {
       const f = forces.get(node.id);
       if (!f) continue;
       const maxV = NODE_SEP * 2;
-      const v = Math.sqrt(f.x * f.x + f.y * f.y);
+      const v = distance(f.x, f.y);
       const scale = v > maxV ? maxV / v : 1;
       node.x += f.x * damping * scale;
       node.y += f.y * damping * scale;

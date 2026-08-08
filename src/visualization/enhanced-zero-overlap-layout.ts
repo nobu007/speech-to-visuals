@@ -11,7 +11,7 @@
 
 import dagre from '@dagrejs/dagre';
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
-import { calculateNodeWidth, calculateNodeHeight, calculateNodeCenter, calculateDistance, calculateNodeDistance, generateEdgePoints, nodesOverlap } from './layout-utils';
+import { calculateNodeWidth, calculateNodeHeight, calculateNodeCenter, calculateDistance, calculateNodeDistance, distance, generateEdgePoints, nodesOverlap } from './layout-utils';
 import { clamp01 } from '@/utils/guards';
 import { Point } from './types';
 import { logger } from '../utils/logger';
@@ -601,24 +601,24 @@ export class ZeroOverlapLayoutEngine {
 
         const dx = (node2.x + getNodeWidth(node2) / 2) - (node1.x + getNodeWidth(node1) / 2);
         const dy = (node2.y + getNodeHeight(node2) / 2) - (node1.y + getNodeHeight(node1) / 2);
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        const dist = distance(dx, dy);
 
-        if (distance > 0) {
+        if (dist > 0) {
           // Enhanced repulsion calculation
           const idealDistance = optimalSpacing + (getNodeWidth(node1) + getNodeWidth(node2)) / 2;
           let repulsion = 0;
 
-          if (distance < idealDistance) {
+          if (dist < idealDistance) {
             // Strong repulsion when too close
-            repulsion = strength * (idealDistance - distance) / distance * 100;
-          } else if (distance < idealDistance * 2) {
+            repulsion = strength * (idealDistance - dist) / dist * 100;
+          } else if (dist < idealDistance * 2) {
             // Moderate repulsion in intermediate range
-            repulsion = strength * idealDistance / (distance * distance) * 50;
+            repulsion = strength * idealDistance / (dist * dist) * 50;
           }
 
           if (repulsion > 0) {
-            const fx = (dx / distance) * repulsion;
-            const fy = (dy / distance) * repulsion;
+            const fx = (dx / dist) * repulsion;
+            const fy = (dy / dist) * repulsion;
 
             const force1 = forces.get(node1.id) ?? { x: 0, y: 0 };
             const force2 = forces.get(node2.id) ?? { x: 0, y: 0 };
@@ -640,14 +640,14 @@ export class ZeroOverlapLayoutEngine {
       if (source && target) {
         const dx = (target.x + getNodeWidth(target) / 2) - (source.x + getNodeWidth(source) / 2);
         const dy = (target.y + getNodeHeight(target) / 2) - (source.y + getNodeHeight(source) / 2);
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        const dist = distance(dx, dy);
 
-        if (distance > 0) {
+        if (dist > 0) {
           const idealEdgeLength = optimalSpacing * 2;
-          const attraction = strength * (distance - idealEdgeLength) * 0.1;
+          const attraction = strength * (dist - idealEdgeLength) * 0.1;
 
-          const fx = (dx / distance) * attraction;
-          const fy = (dy / distance) * attraction;
+          const fx = (dx / dist) * attraction;
+          const fy = (dy / dist) * attraction;
 
           const forceSource = forces.get(source.id) ?? { x: 0, y: 0 };
           const forceTarget = forces.get(target.id) ?? { x: 0, y: 0 };
@@ -667,7 +667,7 @@ export class ZeroOverlapLayoutEngine {
 
       // Apply force with velocity limiting
       const maxVelocity = optimalSpacing / 4;
-      const velocity = Math.sqrt(force.x * force.x + force.y * force.y);
+      const velocity = distance(force.x, force.y);
 
       if (velocity > maxVelocity) {
         force.x = (force.x / velocity) * maxVelocity;
@@ -972,7 +972,7 @@ export class ZeroOverlapLayoutEngine {
   private calculateMoveVector(
     node1: PositionedNode,
     node2: PositionedNode,
-    distance: number
+    moveDistance: number
   ): { x: number; y: number } {
     const n1w = getNodeWidth(node1, 0);
     const n1h = getNodeHeight(node1, 0);
@@ -982,19 +982,19 @@ export class ZeroOverlapLayoutEngine {
     const dx = (node1.x + n1w / 2) - (node2.x + n2w / 2);
     const dy = (node1.y + n1h / 2) - (node2.y + n2h / 2);
 
-    const length = Math.sqrt(dx * dx + dy * dy);
+    const length = distance(dx, dy);
 
     if (length === 0) {
       // If nodes are at exact same position, move them apart arbitrarily
-      return { x: distance, y: 0 };
+      return { x: moveDistance, y: 0 };
     }
 
     const unitX = dx / length;
     const unitY = dy / length;
 
     return {
-      x: unitX * distance,
-      y: unitY * distance
+      x: unitX * moveDistance,
+      y: unitY * moveDistance
     };
   }
 
@@ -1180,12 +1180,12 @@ export class ZeroOverlapLayoutEngine {
 
         const dx = (node2.x + getNodeWidth(node2) / 2) - (node1.x + getNodeWidth(node1) / 2);
         const dy = (node2.y + getNodeHeight(node2) / 2) - (node1.y + getNodeHeight(node1) / 2);
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        const dist = distance(dx, dy);
 
-        if (distance > 0 && distance < 200) {
-          const repulsion = this.config.optimization.forceStrength * 1000 / (distance * distance);
-          const fx = (dx / distance) * repulsion;
-          const fy = (dy / distance) * repulsion;
+        if (dist > 0 && dist < 200) {
+          const repulsion = this.config.optimization.forceStrength * 1000 / (dist * dist);
+          const fx = (dx / dist) * repulsion;
+          const fy = (dy / dist) * repulsion;
 
           const force1 = forces.get(node1.id) ?? { x: 0, y: 0 };
           const force2 = forces.get(node2.id) ?? { x: 0, y: 0 };
@@ -1206,12 +1206,12 @@ export class ZeroOverlapLayoutEngine {
       if (source && target) {
         const dx = (target.x + getNodeWidth(target) / 2) - (source.x + getNodeWidth(source) / 2);
         const dy = (target.y + getNodeHeight(target) / 2) - (source.y + getNodeHeight(source) / 2);
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        const dist = distance(dx, dy);
 
-        if (distance > 0) {
-          const attraction = this.config.optimization.forceStrength * distance * 0.1;
-          const fx = (dx / distance) * attraction;
-          const fy = (dy / distance) * attraction;
+        if (dist > 0) {
+          const attraction = this.config.optimization.forceStrength * dist * 0.1;
+          const fx = (dx / dist) * attraction;
+          const fy = (dy / dist) * attraction;
 
           const forceSource = forces.get(source.id) ?? { x: 0, y: 0 };
           const forceTarget = forces.get(target.id) ?? { x: 0, y: 0 };
@@ -1231,7 +1231,7 @@ export class ZeroOverlapLayoutEngine {
 
       // Apply force with velocity limiting
       const maxVelocity = optimalSpacing / 4;
-      const velocity = Math.sqrt(force.x * force.x + force.y * force.y);
+      const velocity = distance(force.x, force.y);
 
       if (velocity > maxVelocity) {
         force.x = (force.x / velocity) * maxVelocity;
@@ -1263,7 +1263,7 @@ export class ZeroOverlapLayoutEngine {
       for (let i = 1; i < points.length; i++) {
         const dx = points[i].x - points[i-1].x;
         const dy = points[i].y - points[i-1].y;
-        length += Math.sqrt(dx * dx + dy * dy);
+        length += distance(dx, dy);
       }
       return total + length;
     }, 0);

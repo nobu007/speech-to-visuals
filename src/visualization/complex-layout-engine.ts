@@ -10,7 +10,7 @@ import dagre from '@dagrejs/dagre';
 import { DiagramType, NodeDatum, EdgeDatum, DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { getNodeWidth, getNodeHeight } from './node-dimensions';
 import { LayoutConfig, LayoutResult } from './types';
-import { nodesOverlap } from './layout-utils';
+import { nodesOverlap, distance } from './layout-utils';
 import { OverlapResolver } from './strategies/OverlapResolver';
 import { LayoutOptimizer } from './strategies/LayoutOptimizer';
 import { DagreLayoutStrategy } from './strategies/DagreLayoutStrategy';
@@ -706,7 +706,7 @@ export class ComplexLayoutEngine {
         const pj = state.positions.get(nodes[j].id) ?? { x: 0, y: 0, vx: 0, vy: 0 };
         const dx = pi.x - pj.x;
         const dy = pi.y - pj.y;
-        const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 0.1);
+        const dist = Math.max(distance(dx, dy), 0.1);
         const force = repulsionStrength / (dist * dist);
         const fx = (dx / dist) * force;
         const fy = (dy / dist) * force;
@@ -726,7 +726,7 @@ export class ComplexLayoutEngine {
 
       const dx = pj.x - pi.x;
       const dy = pj.y - pi.y;
-      const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 0.1);
+      const dist = Math.max(distance(dx, dy), 0.1);
       const force = springStrength * (dist - idealLength);
       const fx = (dx / dist) * force;
       const fy = (dy / dist) * force;
@@ -750,7 +750,7 @@ export class ComplexLayoutEngine {
       pos.vy = (pos.vy + f.fy) * damping;
 
       // Clamp displacement to prevent large jumps
-      const disp = Math.sqrt(pos.vx * pos.vx + pos.vy * pos.vy);
+      const disp = distance(pos.vx, pos.vy);
       if (disp > maxDisplacement) {
         pos.vx = (pos.vx / disp) * maxDisplacement;
         pos.vy = (pos.vy / disp) * maxDisplacement;

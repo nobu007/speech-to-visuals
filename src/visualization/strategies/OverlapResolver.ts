@@ -1,6 +1,6 @@
 import { DiagramLayout, PositionedNode, DiagramType } from '@/types/diagram';
 import { LayoutConfig } from '../types';
-import { nodesOverlap } from '../layout-utils';
+import { nodesOverlap, distance } from '../layout-utils';
 import { logger } from '../../utils/logger';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
@@ -178,18 +178,18 @@ export class OverlapResolver {
 
     const dx = centerX1 - centerX2;
     const dy = centerY1 - centerY2;
-    const distance = Math.sqrt(dx * dx + dy * dy);
+    const dist = distance(dx, dy);
 
-    if (distance === 0) {
+    if (dist === 0) {
       // Handle identical positions with type-specific logic
       await this.handleIdenticalPositions(node1, node2, diagramType);
       return;
     }
 
-    const unitX = dx / distance;
-    const unitY = dy / distance;
+    const unitX = dx / dist;
+    const unitY = dy / dist;
     const requiredDistance = separation + (w1 + w2) / 2;
-    const moveDistance = (requiredDistance - distance) / 2;
+    const moveDistance = (requiredDistance - dist) / 2;
 
     // Move nodes apart
     node1.x += unitX * moveDistance;

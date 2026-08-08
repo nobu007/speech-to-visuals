@@ -6,6 +6,7 @@
  */
 
 import { DiagramType, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { distance } from '@/visualization/layout-utils';
 
 /** Node fade-in duration: 0.3s = 9 frames at 30fps */
 export const NODE_FADE_DURATION_FRAMES = 9;
@@ -66,7 +67,7 @@ function calculatePathLength(points: { x: number; y: number }[]): number {
   for (let i = 1; i < points.length; i++) {
     const dx = points[i].x - points[i - 1].x;
     const dy = points[i].y - points[i - 1].y;
-    length += Math.sqrt(dx * dx + dy * dy);
+    length += distance(dx, dy);
   }
   return length;
 }

@@ -2,6 +2,7 @@ import { PositionedNode, LayoutEdge, DiagramLayout } from '@/types/diagram';
 import { BaseLayoutStrategy } from './LayoutStrategy';
 import { LayoutConfig, LayoutResult, BoundingBox } from '../../types';
 import { getNodeWidth, getNodeHeight } from '../../node-dimensions';
+import { distance } from '../../layout-utils';
 
 /** Get effective node width (handles both `w` and `width` properties, consistent with other layout modules) */
 function effWidth(node: PositionedNode): number {
@@ -246,7 +247,7 @@ export class SimulatedAnnealingStrategy extends BaseLayoutStrategy {
       if (source && target) {
         const dx = target.x - source.x;
         const dy = target.y - source.y;
-        const length = Math.sqrt(dx * dx + dy * dy);
+        const length = distance(dx, dy);
         
         // Quadratic penalty for edge lengths different from target
         const diff = length - targetLength;

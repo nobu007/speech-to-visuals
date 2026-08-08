@@ -8,6 +8,7 @@ import React from 'react';
 import { useCurrentFrame, useVideoConfig, interpolate } from 'remotion';
 import { LayoutEdge } from '@/types/diagram';
 import { EDGE_DRAW_DURATION_FRAMES } from './animation-strategies';
+import { distance } from '@/visualization/layout-utils';
 
 /** Edge drawing duration in seconds */
 export const EDGE_DRAW_DURATION_SEC = 0.5;
@@ -64,7 +65,7 @@ export function calculatePathLength(points: { x: number; y: number }[]): number 
     const y2 = Number.isFinite(points[i].y) ? points[i].y : 0;
     const dx = x2 - x1;
     const dy = y2 - y1;
-    length += Math.sqrt(dx * dx + dy * dy);
+    length += distance(dx, dy);
   }
   return length;
 }

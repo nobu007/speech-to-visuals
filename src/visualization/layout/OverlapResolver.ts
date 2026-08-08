@@ -7,6 +7,7 @@ import { LayoutConfig, LayoutResult, LayoutMetrics } from '../types';
 import { logger } from '../../utils/logger';
 import { VisualizationError } from '@/pipeline/pipeline-errors';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
+import { distance } from '../layout-utils';
 
 export class OverlapResolver {
   private strategies: LayoutStrategy[] = [];
@@ -392,9 +393,9 @@ export class OverlapResolver {
         const b = nodes[j];
         const dx = a.x - b.x;
         const dy = a.y - b.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        minDistance = Math.min(minDistance, distance);
+        const dist = distance(dx, dy);
+
+        minDistance = Math.min(minDistance, dist);
       }
     }
     
@@ -426,8 +427,8 @@ export class OverlapResolver {
     const dy = (centerY - targetY) / targetY;
     
     // Calculate balance (1 - normalized distance from center)
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    return Math.max(0, 1 - distance);
+    const dist = distance(dx, dy);
+    return Math.max(0, 1 - dist);
   }
   
   /**

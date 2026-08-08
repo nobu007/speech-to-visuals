@@ -1,6 +1,7 @@
 import { PositionedNode, LayoutEdge, DiagramLayout } from '@/types/diagram';
 import { BaseLayoutStrategy, LayoutStrategy } from './LayoutStrategy';
 import { LayoutConfig, LayoutResult } from '../../types';
+import { distance } from '../../layout-utils';
 
 interface ForceNode extends PositionedNode {
   fx?: number | null;
@@ -410,7 +411,7 @@ export class ProgressiveForceStrategy extends BaseLayoutStrategy {
       if (source && target) {
         const dx = target.node.x - source.node.x;
         const dy = target.node.y - source.node.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+        const dist = distance(dx, dy);
         const delta = dist - this.linkDistance;
         energy += delta * delta * 0.5;
       }

@@ -53,6 +53,7 @@ jest.unstable_mockModule('@/visualization/layout-utils', () => ({
   nodesOverlap: jest.fn(() => false),
   getGraphConfig: jest.fn(() => ({})),
   calculateNodeWidth: jest.fn(() => 120),
+  distance: jest.fn((dx: number, dy: number) => Math.sqrt(dx * dx + dy * dy)),
 }));
 
 const { ComplexLayoutEngine } = await import('../../visualization/complex-layout-engine');

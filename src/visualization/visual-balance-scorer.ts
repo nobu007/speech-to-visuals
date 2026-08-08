@@ -9,6 +9,7 @@
  */
 
 import { PositionedNode } from '@/types/diagram';
+import { distance } from './layout-utils';
 import { getNodeWidth as nodeWidth, getNodeHeight as nodeHeight } from './node-dimensions';
 
 export interface VisualBalanceResult {
@@ -107,12 +108,12 @@ export class VisualBalanceScorer {
 
     const dx = cx - canvasCenterX;
     const dy = cy - canvasCenterY;
-    const distance = Math.sqrt(dx * dx + dy * dy);
+    const devDistance = distance(dx, dy);
 
-    const maxDistance = Math.sqrt(canvasCenterX * canvasCenterX + canvasCenterY * canvasCenterY);
+    const maxDistance = distance(canvasCenterX, canvasCenterY);
     if (maxDistance === 0) return 1;
 
-    return 1 - distance / maxDistance;
+    return 1 - devDistance / maxDistance;
   }
 
   /**

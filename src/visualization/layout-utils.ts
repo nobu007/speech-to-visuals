@@ -33,12 +33,31 @@ export function calculateNodeCenter(node: PositionedNode): Point {
 }
 
 /**
+ * Euclidean length of a (dx, dy) delta: `sqrt(dx² + dy²)`.
+ *
+ * This is the single source of truth for the 2-D distance arithmetic.
+ * Previously every layout / overlap / edge-crossing / visual-balance module
+ * inlined its own `Math.sqrt(dx * dx + dy * dy)` (plus a `** 2` variant) —
+ * each an independent copy that could silently drift, the duplicate-formula
+ * hazard that repeatedly bit this codebase (see {@link nodesOverlap} for the
+ * same consolidation of the AABB predicate). Delegating here guarantees one
+ * definition; callers that need a non-zero floor before dividing keep their
+ * OWN guard (`Math.max(_, 1)` / `|| 1`) applied to the result, because that
+ * guard is a deliberate invariant-split (div-by-zero avoidance), not part of
+ * the distance formula.
+ *
+ * @param dx  x-component of the delta (or a vector's x).
+ * @param dy  y-component of the delta (or a vector's y).
+ */
+export function distance(dx: number, dy: number): number {
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+/**
  * Calculate distance between two points
  */
 export function calculateDistance(p1: Point, p2: Point): number {
-  const dx = p2.x - p1.x;
-  const dy = p2.y - p1.y;
-  return Math.sqrt(dx * dx + dy * dy);
+  return distance(p2.x - p1.x, p2.y - p1.y);
 }
 
 /**

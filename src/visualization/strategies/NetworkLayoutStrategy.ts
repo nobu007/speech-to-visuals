@@ -17,7 +17,7 @@
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
-import { nodesOverlap } from '../layout-utils';
+import { nodesOverlap, distance } from '../layout-utils';
 import { logger } from '../../utils/logger';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
@@ -165,23 +165,23 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
 
         const dx = (node2.x + getNodeWidth(node2) / 2) - (node1.x + getNodeWidth(node1) / 2);
         const dy = (node2.y + getNodeHeight(node2) / 2) - (node1.y + getNodeHeight(node1) / 2);
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        const dist = distance(dx, dy);
 
-        if (distance > 0) {
+        if (dist > 0) {
           const idealDistance = optimalSpacing + (getNodeWidth(node1) + getNodeWidth(node2)) / 2;
           let repulsion = 0;
 
-          if (distance < idealDistance) {
+          if (dist < idealDistance) {
             // Strong repulsion when too close
-            repulsion = strength * (idealDistance - distance) / distance * 100;
-          } else if (distance < idealDistance * 2) {
+            repulsion = strength * (idealDistance - dist) / dist * 100;
+          } else if (dist < idealDistance * 2) {
             // Moderate repulsion in intermediate range
-            repulsion = strength * idealDistance / (distance * distance) * 50;
+            repulsion = strength * idealDistance / (dist * dist) * 50;
           }
 
           if (repulsion > 0) {
-            const fx = (dx / distance) * repulsion;
-            const fy = (dy / distance) * repulsion;
+            const fx = (dx / dist) * repulsion;
+            const fy = (dy / dist) * repulsion;
 
             const force1 = forces.get(node1.id) ?? { x: 0, y: 0 };
             const force2 = forces.get(node2.id) ?? { x: 0, y: 0 };
@@ -203,14 +203,14 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
       if (source && target) {
         const dx = (target.x + getNodeWidth(target) / 2) - (source.x + getNodeWidth(source) / 2);
         const dy = (target.y + getNodeHeight(target) / 2) - (source.y + getNodeHeight(source) / 2);
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        const dist = distance(dx, dy);
 
-        if (distance > 0) {
+        if (dist > 0) {
           const idealEdgeLength = optimalSpacing * 2;
-          const attraction = strength * (distance - idealEdgeLength) * 0.1;
+          const attraction = strength * (dist - idealEdgeLength) * 0.1;
 
-          const fx = (dx / distance) * attraction;
-          const fy = (dy / distance) * attraction;
+          const fx = (dx / dist) * attraction;
+          const fy = (dy / dist) * attraction;
 
           const forceSource = forces.get(source.id) ?? { x: 0, y: 0 };
           const forceTarget = forces.get(target.id) ?? { x: 0, y: 0 };
@@ -230,7 +230,7 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
 
       // Limit maximum velocity
       const maxVelocity = optimalSpacing / 4;
-      const velocity = Math.sqrt(force.x * force.x + force.y * force.y);
+      const velocity = distance(force.x, force.y);
 
       if (velocity > maxVelocity) {
         force.x = (force.x / velocity) * maxVelocity;

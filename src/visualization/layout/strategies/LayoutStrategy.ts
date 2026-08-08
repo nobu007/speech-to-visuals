@@ -2,6 +2,7 @@ import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge, DiagramLayout } from 
 import { BoundingBox, LayoutConfig, LayoutResult, LayoutMetrics, OverlapPair } from '../../types';
 import { logger } from '@/utils/logger';
 import { getNodeWidth, getNodeHeight } from '../../node-dimensions';
+import { distance } from '../../layout-utils';
 
 export interface LayoutStrategy {
   /**
@@ -188,7 +189,7 @@ export abstract class BaseLayoutStrategy implements LayoutStrategy {
       for (let j = i + 1; j < nodes.length; j++) {
         const dx = Math.abs(nodes[i].x - nodes[j].x);
         const dy = Math.abs(nodes[i].y - nodes[j].y);
-        const spacing = Math.sqrt(dx * dx + dy * dy);
+        const spacing = distance(dx, dy);
         minSpacing = Math.min(minSpacing, spacing);
       }
     }
@@ -198,7 +199,7 @@ export abstract class BaseLayoutStrategy implements LayoutStrategy {
     const centerX = (bounds.minX + bounds.maxX) / 2;
     const centerY = (bounds.minY + bounds.maxY) / 2;
     const maxDist = Math.max(
-      Math.sqrt(centerX * centerX + centerY * centerY),
+      distance(centerX, centerY),
       1
     );
     

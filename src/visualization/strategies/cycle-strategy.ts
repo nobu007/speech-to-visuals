@@ -21,7 +21,7 @@ import { calculateCanvasSize, calculateMetrics } from '@/visualization/layout-en
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
 // Canonical overlap predicate — single source of truth (see layout-utils.ts).
-import { nodesOverlap } from '../layout-utils';
+import { nodesOverlap, distance } from '../layout-utils';
 
 const MIN_RADIUS = 200;
 const OVERLAP_SPACING_FACTOR = 1.2;
@@ -156,7 +156,7 @@ export class CycleLayoutStrategy implements LayoutStrategy {
 
             let dx = bCx - aCx;
             let dy = bCy - aCy;
-            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            const dist = distance(dx, dy) || 1;
 
             dx = dx / dist;
             dy = dy / dist;
