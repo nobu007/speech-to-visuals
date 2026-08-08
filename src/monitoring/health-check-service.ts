@@ -8,7 +8,7 @@
 
 import { realTimeMonitor, PerformanceSnapshot } from './real-time-performance-monitor';
 import { globalCache } from '@/performance/intelligent-cache';
-import { roundTo } from '@/lib/metrics-utils';
+import { roundTo, heapUsagePercent } from '@/lib/metrics-utils';
 import { getMemoryUsage } from '@/utils/memory-usage';
 import { logger } from '../utils/logger';
 
@@ -152,9 +152,7 @@ class HealthCheckService {
     }
     const heapUsedMB = memoryUsage.heapUsed / 1024 / 1024;
     const heapTotalMB = memoryUsage.heapTotal / 1024 / 1024;
-    const usagePercent = memoryUsage.heapTotal > 0
-      ? (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100
-      : 0;
+    const usagePercent = heapUsagePercent(memoryUsage.heapUsed, memoryUsage.heapTotal);
 
     let status: 'healthy' | 'degraded' | 'unhealthy';
     let message: string;

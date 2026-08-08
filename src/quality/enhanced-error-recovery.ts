@@ -10,6 +10,7 @@ import { DiagramType } from '@/types/diagram';
 import { globalCache } from '../performance/intelligent-cache';
 import { logger } from '@/utils/logger';
 import { getMemoryUsage } from '@/utils/memory-usage';
+import { heapUsageRatio } from '@/lib/metrics-utils';
 import { errorRecoveryEventBus } from './error-recovery-event-bus';
 import { QualityGateError, PipelineConfigError } from '@/pipeline/pipeline-errors';
 
@@ -439,9 +440,7 @@ export class EnhancedErrorRecovery {
       averageResponseTime: this.calculateAverageResponseTime(),
       responseTimeCount: 0,
       errorRate: this.calculateRecentErrorRate(),
-      memoryPressure: memoryUsage.heapTotal > 0
-        ? memoryUsage.heapUsed / memoryUsage.heapTotal
-        : 0,
+      memoryPressure: heapUsageRatio(memoryUsage.heapUsed, memoryUsage.heapTotal),
       cpuUtilization: this.estimateCpuUsage(),
       timestamp: now
     };
