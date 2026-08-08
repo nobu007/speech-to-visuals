@@ -8,7 +8,7 @@
 
 import { EventEmitter } from 'events';
 import { getMemoryUsage } from '@/utils/memory-usage';
-import { percentileCeil, roundTo, heapUsagePercent } from '@/lib/metrics-utils';
+import { percentileCeil, roundTo, heapUsagePercent, bytesToMb } from '@/lib/metrics-utils';
 import { logger } from '@/utils/logger';
 
 export interface PerformanceMetric {
@@ -434,8 +434,8 @@ class RealTimePerformanceMonitor extends EventEmitter {
 
     // Get system metrics
     const memoryUsage = getMemoryUsage();
-    const memoryUsageMB = memoryUsage.heapUsed / 1024 / 1024;
-    const memoryTotalMB = memoryUsage.heapTotal / 1024 / 1024;
+    const memoryUsageMB = bytesToMb(memoryUsage.heapUsed);
+    const memoryTotalMB = bytesToMb(memoryUsage.heapTotal);
     const memoryUsagePercent = heapUsagePercent(memoryUsage.heapUsed, memoryUsage.heapTotal);
 
     return {
@@ -467,8 +467,8 @@ class RealTimePerformanceMonitor extends EventEmitter {
         cpuUsagePercent: 0, // Would require external library
         memoryUsageMB: roundTo(memoryUsageMB, 2),
         memoryUsagePercent: roundTo(memoryUsagePercent, 2),
-        heapUsedMB: roundTo(memoryUsage.heapUsed / 1024 / 1024, 2),
-        heapTotalMB: roundTo(memoryUsage.heapTotal / 1024 / 1024, 2)
+        heapUsedMB: roundTo(bytesToMb(memoryUsage.heapUsed), 2),
+        heapTotalMB: roundTo(bytesToMb(memoryUsage.heapTotal), 2)
       },
       errors: {
         totalErrors: this.counters.totalErrors,

@@ -9,6 +9,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { bytesToMb } from '@/lib/metrics-utils';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -460,7 +461,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                   <div className="flex-1">
                     <div className="font-medium text-green-900">Export Complete!</div>
                     <div className="text-sm text-green-700">
-                      File size: {exportResult.outputSize ? `${(exportResult.outputSize / 1024 / 1024).toFixed(1)}MB` : 'Unknown'}
+                      File size: {exportResult.outputSize ? `${bytesToMb(exportResult.outputSize).toFixed(1)}MB` : 'Unknown'}
                       {exportResult.duration && ` • Duration: ${exportResult.duration.toFixed(1)}s`}
                     </div>
                   </div>

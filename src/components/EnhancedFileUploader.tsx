@@ -17,6 +17,7 @@ import React, { useState, useCallback, useRef, DragEvent } from 'react';
 import { Upload, FileAudio, CheckCircle, AlertCircle, Loader2, X } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { bytesToMb } from '@/lib/metrics-utils';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
@@ -248,7 +249,7 @@ export const EnhancedFileUploader: React.FC<EnhancedFileUploaderProps> = ({
                     <span className="truncate max-w-[200px] sm:max-w-none">{selectedFile.name}</span>
                   </h3>
                   <p className="text-xs sm:text-sm text-green-600 dark:text-green-400">
-                    サイズ: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                    サイズ: {bytesToMb(selectedFile.size).toFixed(2)} MB
                   </p>
                   <Button
                     variant="outline"

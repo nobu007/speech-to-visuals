@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, memo } from 'react';
 import { Upload, FileAudio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { bytesToMb } from '@/lib/metrics-utils';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { validateAudioFile, validateAudioDuration } from '@/utils/audio-validation';
@@ -146,7 +147,7 @@ export const AudioUploader = memo(({ onUpload, isProcessing }: AudioUploaderProp
             <div className="text-center space-y-3">
               <p className="text-lg font-semibold text-foreground">{selectedFile.name}</p>
               <p className="text-sm text-muted-foreground">
-                サイズ: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                サイズ: {bytesToMb(selectedFile.size).toFixed(2)} MB
               </p>
               <div className="flex gap-3 justify-center pt-2">
                 <Button

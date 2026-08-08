@@ -25,6 +25,7 @@ import {
 } from './types';
 import { QualityMonitor } from './quality-monitor';
 import { TranscriptionPipeline, TranscriptionSegment, TranscriptionResult } from '@/transcription';
+import { bytesToMb } from '@/lib/metrics-utils';
 import { SceneSegmenter, DiagramDetector, DEFAULT_MIN_SEGMENT_LENGTH_MS, DEFAULT_MAX_SEGMENT_LENGTH_MS } from '@/analysis';
 import { LayoutEngine } from '@/visualization';
 import { SceneGraph, ProcessingStatus, NodeDatum, EdgeDatum, DiagramType, DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
@@ -252,7 +253,7 @@ export class PipelineOrchestrator {
       const file = input.audioFile as File;
       if (file.size > AUDIO_LIMITS.MAX_FILE_SIZE_BYTES) {
         throw new AudioValidationError(
-          `Audio file size (${(file.size / 1024 / 1024).toFixed(1)} MB) exceeds limit (${AUDIO_LIMITS.MAX_FILE_SIZE_BYTES / 1024 / 1024} MB)`,
+          `Audio file size (${bytesToMb(file.size).toFixed(1)} MB) exceeds limit (${bytesToMb(AUDIO_LIMITS.MAX_FILE_SIZE_BYTES)} MB)`,
           typeof file.type === 'string' ? file.type.split('/')[1] ?? '' : '',
           { fileSize: file.size, maxSize: AUDIO_LIMITS.MAX_FILE_SIZE_BYTES },
         );

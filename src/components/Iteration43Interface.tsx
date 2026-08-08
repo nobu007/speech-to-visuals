@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { bytesToMb } from '@/lib/metrics-utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Upload, Play, Download, Settings, Activity, CheckCircle, AlertCircle, Info } from 'lucide-react';
@@ -78,7 +79,7 @@ const Iteration43Interface: React.FC = () => {
     const file = event.target.files?.[0];
     if (file && (file.type.startsWith('audio/') || file.name.endsWith('.wav') || file.name.endsWith('.mp3'))) {
       setAudioFile(file);
-      addIterationLog(`📁 Audio file uploaded: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+      addIterationLog(`📁 Audio file uploaded: ${file.name} (${bytesToMb(file.size).toFixed(2)}MB)`);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -241,7 +242,7 @@ const Iteration43Interface: React.FC = () => {
                     <div>
                       <p className="font-medium">{audioFile.name}</p>
                       <p className="text-sm text-gray-600">
-                        サイズ: {(audioFile.size / 1024 / 1024).toFixed(2)}MB
+                        サイズ: {bytesToMb(audioFile.size).toFixed(2)}MB
                       </p>
                     </div>
                     <Button onClick={startProcessing} disabled={isProcessing}>
@@ -382,7 +383,7 @@ const Iteration43Interface: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-orange-600">
-                  {(qualityMetrics.memoryUsage / 1024 / 1024).toFixed(0)}MB
+                  {bytesToMb(qualityMetrics.memoryUsage).toFixed(0)}MB
                 </div>
                 <p className="text-sm text-gray-600">閾値: &lt;512MB</p>
               </CardContent>

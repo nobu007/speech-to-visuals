@@ -2,6 +2,7 @@ import React, { useReducer, useRef, useCallback, useEffect, useState } from 'rea
 import { Upload, Play, Download, AlertCircle, CheckCircle, Loader2, Video, HelpCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { bytesToMb } from '@/lib/metrics-utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -308,7 +309,7 @@ export const SimplePipelineInterface: React.FC = () => {
               <div className="flex-1 min-w-0">
                 <h3 className="font-medium truncate">{file.name}</h3>
                 <p className="text-sm text-muted-foreground">
-                  サイズ: {(file.size / 1024 / 1024).toFixed(2)} MB
+                  サイズ: {bytesToMb(file.size).toFixed(2)} MB
                 </p>
               </div>
               <div className="flex gap-2 w-full sm:w-auto">

@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { bytesToMb } from '@/lib/metrics-utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Upload, Play, Download, Settings, BarChart3 } from 'lucide-react';
@@ -223,7 +224,7 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
                 <div>
                   <p className="font-medium">{selectedFile.name}</p>
                   <p className="text-sm text-gray-600">
-                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                    {bytesToMb(selectedFile.size).toFixed(2)} MB
                   </p>
                 </div>
                 <Button
