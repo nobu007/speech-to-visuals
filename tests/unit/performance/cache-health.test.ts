@@ -29,6 +29,10 @@ describe('IntelligentCache – health monitoring', () => {
         data: unknown;
         compressed: boolean;
         compressedSize: number;
+        /** Must match the content string passed to get() so the 08r
+         *  sourceContent-equality guard does not short-circuit before the
+         *  decompression/corruption-detection path is reached. */
+        sourceContent: string;
         priority: number;
         metadata: {
           contentType: string;
@@ -51,6 +55,10 @@ describe('IntelligentCache – health monitoring', () => {
       data: '}}}}invalid-compressed{{{{{',
       compressed: true,
       compressedSize: 99999, // mismatch forces decompression path
+      // Without this, get()'s sourceContent guard returns null at the
+      // hash-collision check and never reaches decompressData — so corruption
+      // was never detected/counted and the corruptionCount tests stayed RED.
+      sourceContent: key,
       priority: 0.5,
       metadata: {
         contentType: 'flow',
