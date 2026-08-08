@@ -8,6 +8,7 @@
  */
 import { describe, it, expect } from '@jest/globals';
 import { ZeroOverlapLayoutEngine } from '../enhanced-zero-overlap-layout';
+import { nodesOverlap } from '../layout-utils';
 import type { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
 
 /* ---------- helpers ---------- */
@@ -189,6 +190,65 @@ describe('resolveAllOverlaps — progress detection and early termination', () =
       expect(Number.isFinite(node.x)).toBe(true);
       expect(Number.isFinite(node.y)).toBe(true);
     }
+  });
+});
+
+/* ================================================================ */
+/* 4. Repulsion direction & separation threshold (zero-overlap)     */
+/* ================================================================ */
+
+describe('resolveAllOverlaps — repulsion direction & AABB separation threshold', () => {
+  // Regression: the per-overlap force was applied with an INVERTED sign
+  // (force1 -= moveVector pulls node1 toward node2 instead of away), AND the
+  // required center-distance was half the AABB-correct value (max of all four
+  // edges / 2 instead of max of the per-axis half-sums). Together these left
+  // detected overlaps either pulled tighter or unforced, so the loop's
+  // no-progress guard early-exited with overlaps still present — breaking the
+  // "zero-overlap" guarantee. Each case asserts the canonical nodesOverlap
+  // predicate is FALSE after resolution.
+
+  const bigCanvas = {
+    canvasWidth: 2000,
+    canvasHeight: 2000,
+    optimization: { maxIterations: 300, convergenceThreshold: 0.01, forceStrength: 0.5, aestheticWeight: 0.3 },
+  };
+
+  it('pushes overlapping nodes apart, not together (force sign is repulsive)', async () => {
+    // Node a is pinned at the left wall; b overlaps it from the right. With the
+    // INVERTED force, a is pushed right (into b) and b left (into a) → they
+    // collide, make no progress, and the loop early-exits still overlapping.
+    // Correct repulsion clamps a at the wall and pushes b clear to the right.
+    const engine = new ZeroOverlapLayoutEngine(bigCanvas);
+    const priv = getPrivateMethods(engine);
+    const nodes: PositionedNode[] = [
+      makeNode({ id: 'a', x: 0, y: 500, w: 120, h: 60 }),
+      makeNode({ id: 'b', x: 60, y: 500, w: 120, h: 60 }),
+    ];
+    expect(nodesOverlap(nodes[0], nodes[1], 0)).toBe(true); // precondition
+
+    const result = await priv.resolveAllOverlaps({ nodes, edges: [] });
+    const a = result.nodes.find((n) => n.id === 'a')!;
+    const b = result.nodes.find((n) => n.id === 'b')!;
+    expect(nodesOverlap(a, b, 0)).toBe(false);
+  });
+
+  it('separates barely-overlapping large nodes (AABB-correct threshold)', async () => {
+    // Two 100×100 nodes overlapping by 20px on x (centers 80 apart). The old
+    // half-value threshold (max(all edges)/2 = 50) made requiredDistance <
+    // centerDistance (80) → zero force → the overlap stuck. The AABB-correct
+    // threshold (max((w1+w2)/2, (h1+h2)/2) = 100) exceeds 80 → force applied.
+    const engine = new ZeroOverlapLayoutEngine(bigCanvas);
+    const priv = getPrivateMethods(engine);
+    const nodes: PositionedNode[] = [
+      makeNode({ id: 'a', x: 900, y: 900, w: 100, h: 100 }),
+      makeNode({ id: 'b', x: 980, y: 900, w: 100, h: 100 }),
+    ];
+    expect(nodesOverlap(nodes[0], nodes[1], 0)).toBe(true); // precondition
+
+    const result = await priv.resolveAllOverlaps({ nodes, edges: [] });
+    const a = result.nodes.find((n) => n.id === 'a')!;
+    const b = result.nodes.find((n) => n.id === 'b')!;
+    expect(nodesOverlap(a, b, 0)).toBe(false);
   });
 });
 

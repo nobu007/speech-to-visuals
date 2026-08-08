@@ -905,10 +905,16 @@ export class ZeroOverlapLayoutEngine {
       const force1 = forces.get(node1.id) ?? { x: 0, y: 0 };
       const force2 = forces.get(node2.id) ?? { x: 0, y: 0 };
 
-      force1.x -= moveVector.x;
-      force1.y -= moveVector.y;
-      force2.x += moveVector.x;
-      force2.y += moveVector.y;
+      // moveVector points from node2's center toward node1's center (the
+      // direction node1 must travel to move AWAY from node2). So node1 is pushed
+      // ALONG moveVector (away) and node2 AGAINST it (away). The previous form
+      // had the signs inverted, pulling the two nodes together whenever they
+      // overlapped — which made the no-progress guard early-exit with overlaps
+      // still present, defeating the zero-overlap guarantee.
+      force1.x += moveVector.x;
+      force1.y += moveVector.y;
+      force2.x -= moveVector.x;
+      force2.y -= moveVector.y;
     });
 
     // Apply accumulated forces to nodes
@@ -960,7 +966,15 @@ export class ZeroOverlapLayoutEngine {
       Math.pow(node1.y + n1h / 2 - node2.y - n2h / 2, 2)
     );
 
-    const requiredDistance = Math.max(n1w, n1h, n2w, n2h) / 2 +
+    // Center-to-center distance at which the two AABBs just touch along an
+    // axis: the larger of the per-axis half-sums, plus the requested spacing.
+    // The previous form `max(all four edges) / 2` was half this value for
+    // equal-sized nodes, so once the centers were more than that (tiny)
+    // distance apart the separation shortfall went to 0 — no force was applied
+    // to a pair that nodesOverlap still flagged as overlapping, leaving the
+    // overlap stuck. This keeps the resolver's "needs more separation"
+    // threshold consistent with the AABB overlap predicate it converges toward.
+    const requiredDistance = Math.max((n1w + n2w) / 2, (n1h + n2h) / 2) +
                             this.config.minimumSpacing.nodeToNode;
 
     return Math.max(0, requiredDistance - centerDistance);
