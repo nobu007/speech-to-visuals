@@ -1,5 +1,6 @@
 import { PipelineResult, PipelineStage } from '@/pipeline/types';
 import { SceneGraph, PositionedNode, isDiagramType } from '@/types/diagram';
+import { clamp01 } from '@/utils/guards';
 import { logger } from '../utils/logger';
 import { nodesOverlap as producerNodesOverlap } from '@/visualization/layout-utils';
 import { safeArray } from '../lib/safe-array';
@@ -293,8 +294,8 @@ export class QualityMonitor {
 
     if (hasEntity || hasRelation) {
       const parts: number[] = [];
-      if (hasEntity && m) parts.push(this.clamp01(m.entityExtractionF1Score as number));
-      if (hasRelation && m) parts.push(this.clamp01(m.relationAccuracy as number));
+      if (hasEntity && m) parts.push(clamp01(m.entityExtractionF1Score as number));
+      if (hasRelation && m) parts.push(clamp01(m.relationAccuracy as number));
       return parts.length ? parts.reduce((a, b) => a + b, 0) / parts.length : 0;
     }
 
@@ -309,8 +310,6 @@ export class QualityMonitor {
     const relationScore = anyEdges ? 0.8 : 0.5;
     return (entityScore + relationScore) / 2;
   }
-
-  private clamp01(v: number): number { return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0; }
 
   /**
    * Assess scene generation quality

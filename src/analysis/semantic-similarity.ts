@@ -12,6 +12,8 @@
  * 5. CJK (Chinese/Japanese/Korean) character-level tokenization
  */
 
+import { clamp01 } from '@/utils/guards';
+
 /** Maximum number of similarity scores kept in memory */
 const MAX_SCORE_HISTORY = 1000;
 
@@ -141,7 +143,7 @@ export function findMostSimilar<T>(
   threshold: number = 0.75
 ): { text: string; data: T; similarity: number } | null {
   // Clamp threshold to valid range
-  const clampedThreshold = Math.max(0, Math.min(1, threshold));
+  const clampedThreshold = clamp01(threshold);
   let bestMatch: { text: string; data: T; similarity: number } | null = null;
 
   for (const candidate of candidates) {
@@ -168,7 +170,7 @@ export function findMostSimilar<T>(
  * @returns true if similarity meets or exceeds threshold
  */
 export function areTextsSimilar(text1: string, text2: string, threshold: number = 0.75): boolean {
-  const clampedThreshold = Math.max(0, Math.min(1, threshold));
+  const clampedThreshold = clamp01(threshold);
   return calculateSemanticSimilarity(text1, text2) >= clampedThreshold;
 }
 

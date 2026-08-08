@@ -7,6 +7,7 @@
  */
 
 import { DiagramType } from '@/types/diagram';
+import { clamp01 } from '@/utils/guards';
 
 import { reportCorruption } from '../utils/report-corruption';
 
@@ -439,14 +440,14 @@ export class IntelligentCache {
     const stabilityScore = Math.max(0, 1 - evictionCount / Math.max(this.cache.size, 1));
 
     // Optimized weighted performance calculation
-    this.stats.performanceScore = Math.max(0, Math.min(1,
+    this.stats.performanceScore = clamp01(
       hitRateScore * 0.35 +                    // Increased hit rate importance
       speedScore * 0.25 +                      // Speed is critical
       memoryEfficiencyScore * 0.15 +           // Memory management
       compressionEfficiencyScore * 0.10 +      // Compression benefits
       preloadEffectivenessScore * 0.10 +       // Preloading effectiveness
       stabilityScore * 0.05                    // Cache stability
-    ));
+    );
   }
 
   /**

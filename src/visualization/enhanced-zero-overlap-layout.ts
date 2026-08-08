@@ -12,6 +12,7 @@
 import dagre from '@dagrejs/dagre';
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { calculateNodeWidth, calculateNodeHeight, calculateNodeCenter, calculateDistance, calculateNodeDistance, generateEdgePoints, nodesOverlap } from './layout-utils';
+import { clamp01 } from '@/utils/guards';
 import { Point } from './types';
 import { logger } from '../utils/logger';
 import { getNodeWidth, getNodeHeight } from './node-dimensions';
@@ -1070,7 +1071,7 @@ export class ZeroOverlapLayoutEngine {
       metrics.readabilityScore * 0.1  // Text readability
     );
 
-    return Math.max(0, Math.min(1, score));
+    return clamp01(score);
   }
 
   /**

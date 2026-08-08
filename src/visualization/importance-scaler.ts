@@ -13,6 +13,7 @@
 
 import { NodeDatum } from '@/types/diagram';
 import { VisualizationError } from '@/pipeline/pipeline-errors';
+import { clamp01 } from '@/utils/guards';
 
 /** Minimum importance value (assigned when no importance is specified) */
 const DEFAULT_IMPORTANCE = 0.5;
@@ -32,7 +33,7 @@ export function getImportance(node: NodeDatum): number {
   if (raw === undefined || raw === null || Number.isNaN(raw)) {
     return DEFAULT_IMPORTANCE;
   }
-  return Math.max(0, Math.min(1, raw));
+  return clamp01(raw);
 }
 
 /**

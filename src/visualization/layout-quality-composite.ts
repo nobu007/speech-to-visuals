@@ -6,6 +6,7 @@
  */
 
 import { PositionedNode, LayoutEdge, DiagramType } from '@/types/diagram';
+import { clamp01 } from '@/utils/guards';
 import { VisualBalanceScorer } from './visual-balance-scorer';
 import { detectEdgeCrossings } from './edge-crossing-minimizer';
 import { getNodeWidth, getNodeHeight } from './node-dimensions';
@@ -102,12 +103,12 @@ export function calculateCompositeScore(
   };
 
   const totalWeight = Math.max(w.balance + w.crossing + w.overflow + w.density, 1e-10);
-  const compositeScore = Math.max(0, Math.min(1,
+  const compositeScore = clamp01(
     (contributions.balance.contribution +
      contributions.crossing.contribution +
      contributions.overflow.contribution +
      contributions.density.contribution) / totalWeight
-  ));
+  );
 
   return { compositeScore, contributions };
 }
@@ -203,12 +204,12 @@ export class LayoutQualityCompositeScorer {
     // Weighted composite
     const w = this.weights;
     const totalWeight = Math.max(w.balance + w.crossing + w.overflow + w.density, 1e-10);
-    const compositeScore = Math.max(0, Math.min(1,
+    const compositeScore = clamp01(
       (balanceScore * w.balance +
        crossingScore * w.crossing +
        overflowScore * w.overflow +
        densityScore * w.density) / totalWeight
-    ));
+    );
 
     const passed = compositeScore >= this.threshold;
 

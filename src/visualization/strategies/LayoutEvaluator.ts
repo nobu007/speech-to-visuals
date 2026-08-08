@@ -1,5 +1,6 @@
 import { DiagramLayout, DiagramType, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig, LayoutResult, LayoutMetrics, LayoutComplianceResult, Point, OverlapPair, BoundingBox } from '../types';
+import { clamp01 } from '@/utils/guards';
 import { nodesOverlap, calculateNodeCenter, calculateNodeDistance } from '../layout-utils';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
@@ -274,7 +275,7 @@ export class LayoutEvaluator {
       confidence += 0.05; // Has valid structure
     }
 
-    return Math.max(0, Math.min(1, confidence));
+    return clamp01(confidence);
   }
 
   /**

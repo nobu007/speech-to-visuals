@@ -24,6 +24,7 @@ import { ComplexityDetector, ComplexityAnalysis } from "./complexity-detector";
 import { parseJsonFromLLMText } from "./llm-utils";
 import { logger } from '../utils/logger';
 import { percentileCeil } from '@/lib/metrics-utils';
+import { clamp01 } from '@/utils/guards';
 import { TokenUsageTracker, type ModelType, type StageType, type TokenUsageSummary } from './token-usage-tracker';
 import { calculateModelCost, estimateCost, type CostBreakdown, type CostEstimate } from './cost-estimator';
 import { BudgetAlertSystem, type BudgetAlert } from './budget-alert';
@@ -1016,7 +1017,7 @@ function extractDiagramType(parsed: Record<string, unknown>): AnalysisResult['di
     return defaultDiagram;
   }
 
-  return { type, confidence: Math.max(0, Math.min(1, confidence)) };
+  return { type, confidence: clamp01(confidence) };
 }
 
 /**
