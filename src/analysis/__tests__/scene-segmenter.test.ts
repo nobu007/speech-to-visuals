@@ -338,3 +338,57 @@ describe('SceneSegmenter', () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// splitTextAtSentenceBoundaries — long-segment splitting helper
+// ---------------------------------------------------------------------------
+// Exercises the private helper via the public instance. Regression coverage
+// for two prior defects: (1) English "." never split (the boundary test was
+// inverted, requiring a NON-whitespace follower, so the dominant ". " case and
+// end-of-string were never boundaries — while decimals like "3.14" were wrongly
+// split); (2) trailing text was unconditionally glued onto the previous part,
+// merging distinct sentences (e.g. "A. B. C" → ["A.", "B.C"]).
+describe('SceneSegmenter.splitTextAtSentenceBoundaries', () => {
+  const segmenter = new SceneSegmenter();
+  const split = (text: string): string[] =>
+    (segmenter as unknown as { splitTextAtSentenceBoundaries: (t: string) => string[] })
+      .splitTextAtSentenceBoundaries(text);
+
+  it('splits English sentences on ". " boundaries', () => {
+    expect(split('Hello world. This is great.')).toEqual([
+      'Hello world.',
+      'This is great.',
+    ]);
+  });
+
+  it('treats a trailing "." at end-of-string as a boundary', () => {
+    expect(split('Step one. Step two. Step three.')).toEqual([
+      'Step one.',
+      'Step two.',
+      'Step three.',
+    ]);
+  });
+
+  it('does NOT split a decimal point (e.g. "3.14")', () => {
+    // A '.' followed by a non-whitespace char is not a sentence boundary.
+    expect(split('The value 3.14 is pi.')).toEqual(['The value 3.14 is pi.']);
+  });
+
+  it('splits Japanese sentences on "。"', () => {
+    expect(split('これは文です。次の文です。')).toEqual([
+      'これは文です。',
+      '次の文です。',
+    ]);
+  });
+
+  it('does not glue a substantial trailing fragment onto the previous part', () => {
+    expect(split('First sentence. trailing fragment here')).toEqual([
+      'First sentence.',
+      'trailing fragment here',
+    ]);
+  });
+
+  it('returns the whole text as one part when there is no boundary', () => {
+    expect(split('no punctuation here')).toEqual(['no punctuation here']);
+  });
+});

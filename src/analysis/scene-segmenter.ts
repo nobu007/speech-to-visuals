@@ -952,7 +952,10 @@ export class SceneSegmenter {
    * Split text at sentence boundaries (Japanese "。" and English ".").
    */
   private splitTextAtSentenceBoundaries(text: string): string[] {
-    // Split on Japanese period or English period followed by non-whitespace
+    // Split on the Japanese period "。", or an English "." that ends a
+    // sentence — i.e. a '.' followed by whitespace (". Next") or at
+    // end-of-string. A '.' followed by a non-whitespace char (e.g. the "1"
+    // in "3.14", or an abbreviation) is NOT a sentence boundary.
     const parts: string[] = [];
     let current = '';
 
@@ -960,7 +963,9 @@ export class SceneSegmenter {
       current += text[i];
 
       const isJapanesePeriod = text[i] === '\u3002'; // "。"
-      const isEnglishPeriod = text[i] === '.' && i + 1 < text.length && /\S/.test(text[i + 1]);
+      const isEnglishPeriod =
+        text[i] === '.' &&
+        (i + 1 >= text.length || /\s/.test(text[i + 1]));
 
       if (isJapanesePeriod || isEnglishPeriod) {
         const trimmed = current.trim();
@@ -971,15 +976,12 @@ export class SceneSegmenter {
       }
     }
 
-    // Add remaining text
+    // Trailing text after the last boundary becomes its own part. The
+    // previous implementation unconditionally glued this onto the last part,
+    // which merged distinct sentences (e.g. "A. B. C" → ["A.", "B.C"]).
     const remaining = current.trim();
     if (remaining.length > 0) {
-      if (parts.length > 0) {
-        // Merge last part with remaining if remaining is very short
-        parts[parts.length - 1] += remaining;
-      } else {
-        parts.push(remaining);
-      }
+      parts.push(remaining);
     }
 
     return parts;
