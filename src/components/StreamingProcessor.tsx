@@ -77,6 +77,13 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
   const startTime = useRef<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const statsTimer = useRef<NodeJS.Timeout | null>(null);
+  // Synchronous mirrors of the latest scenes/segments. Async callbacks that run
+  // after `await transcribeStream(...)` (notably onComplete) must read these refs:
+  // the `scenes`/`segments` React state captured in the click-time closure is
+  // stale (reset to [] at processing start), which previously made onComplete
+  // report "0 scenes" even when scenes had been generated.
+  const scenesRef = useRef<SceneGraph[]>([]);
+  const segmentsRef = useRef<TranscriptionSegment[]>([]);
 
   // Browser capability validation
   const [browserSupport] = useState(() => validateStreamingSupport());
@@ -147,6 +154,8 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
       setError(null);
       setSegments([]);
       setScenes([]);
+      segmentsRef.current = [];
+      scenesRef.current = [];
       startTime.current = performance.now();
 
 
@@ -163,14 +172,14 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
 
       // Segment callback for incremental building
       const onSegment = (segment: TranscriptionSegment) => {
-        setSegments(prev => {
-          const updated = [...prev, segment];
+        // Mirror synchronously (not via the setState updater) so diagram
+        // processing and the post-stream onComplete read fresh data
+        // regardless of when React flushes the pending render.
+        segmentsRef.current = [...segmentsRef.current, segment];
+        setSegments(segmentsRef.current);
 
-          // Process segment for diagram generation
-          processSegmentForDiagram(segment, updated);
-
-          return updated;
-        });
+        // Process segment for diagram generation (runs now, not at render time)
+        processSegmentForDiagram(segment, segmentsRef.current);
       };
 
       // Execute streaming transcription
@@ -180,7 +189,8 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
         setStatus('complete');
 
         if (onComplete) {
-          onComplete(scenes);
+          // Read the synchronously-maintained ref, not the stale closure value.
+          onComplete(scenesRef.current);
         }
       } else {
         setStatus('error');
@@ -193,7 +203,7 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
       logger.error('Streaming processing error:', err);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scenes, onComplete]);
+  }, [onComplete]);
 
   /**
    * Handle live microphone processing
@@ -215,6 +225,8 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
       setError(null);
       setSegments([]);
       setScenes([]);
+      segmentsRef.current = [];
+      scenesRef.current = [];
       startTime.current = performance.now();
 
 
@@ -231,14 +243,11 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
 
       // Segment callback for real-time processing
       const onSegment = (segment: TranscriptionSegment) => {
-        setSegments(prev => {
-          const updated = [...prev, segment];
+        segmentsRef.current = [...segmentsRef.current, segment];
+        setSegments(segmentsRef.current);
 
-          // Process segment for real-time diagram updates
-          processSegmentForDiagram(segment, updated);
-
-          return updated;
-        });
+        // Process segment for real-time diagram updates (runs now, not at render time)
+        processSegmentForDiagram(segment, segmentsRef.current);
       };
 
       // Start live transcription
@@ -251,7 +260,7 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
       logger.error('Live processing error:', err);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [browserSupport, scenes]);
+  }, [browserSupport]);
 
   /**
    * Process individual segment for diagram generation
@@ -285,15 +294,14 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
         endTime: segment.end / 1000,
       };
 
-      setScenes(prev => {
-        const updated = [...prev, scene];
+      // Accumulate synchronously via the ref so the post-stream onComplete reads
+      // the true latest scenes; mirror to state for the on-screen scene list.
+      scenesRef.current = [...scenesRef.current, scene];
+      setScenes(scenesRef.current);
 
-        if (onSceneGenerated) {
-          onSceneGenerated(scene);
-        }
-
-        return updated;
-      });
+      if (onSceneGenerated) {
+        onSceneGenerated(scene);
+      }
     }
   }, [onSceneGenerated]);
 
@@ -334,6 +342,8 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
     stopAllProcessing();
     setSegments([]);
     setScenes([]);
+    segmentsRef.current = [];
+    scenesRef.current = [];
     setError(null);
     setProgress(null);
     setStats({
