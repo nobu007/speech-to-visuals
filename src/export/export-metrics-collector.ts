@@ -13,6 +13,12 @@
  */
 
 import { computePercentiles } from '@/lib/metrics-utils';
+import type { JobPriority } from './export-job-queue';
+
+// Re-export so existing type-only consumers can keep importing JobPriority from
+// this module's public surface without re-deriving the union. The single source
+// of truth lives in export-job-queue.ts (see job-priority-canon.test.ts).
+export type { JobPriority };
 
 // ---------------------------------------------------------------------------
 // Types
@@ -30,7 +36,6 @@ export type ExportFormat =
 
 export type ExportStage = 'preparing' | 'rendering' | 'encoding' | 'finalizing';
 export type ExportStatus = 'success' | 'failure';
-export type JobPriority = 'high' | 'normal' | 'low';
 
 export interface ExportStageDurationAggregate {
   stage: ExportStage;
