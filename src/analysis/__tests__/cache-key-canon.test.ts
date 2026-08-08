@@ -46,6 +46,82 @@ const intelligentCacheSrc = readFileSync(
 /** Matches a truncating slice of the keying text: `.slice(0,N)` / `.substring(0,N)` / `.substr(0,N)`. */
 const TRUNCATING_SLICE = /\.(slice|substring|substr)\s*\(\s*0\s*,/;
 
+/**
+ * Files that build a content-derived cache/dedup key — guarded end-to-end
+ * (truncation + metadata fingerprint). Hoisted to module scope so the
+ * truncation guard and the metadata-fingerprint guard share ONE list.
+ */
+const KEY_BUILDERS: Array<{ file: string; fn: string }> = [
+  { file: 'src/pipeline/main-pipeline.ts', fn: 'generateCacheKey' },
+  { file: 'src/performance/intelligent-cache.ts', fn: 'generateCacheKey' },
+  { file: 'src/analysis/llm-cache.ts', fn: 'generateKey' },
+  { file: 'src/api/batch-processing-api.ts', fn: 'computeFileHash' },
+  { file: 'src/analysis/gemini-analyzer.ts', fn: 'buildAnalyzerCacheKey' },
+];
+
+/** Strip comments (block + line) so doc references to old bugs don't match. */
+function stripComments(src: string): string {
+  return src
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '');
+}
+
+/**
+ * Match a function/method DEFINITION (not a call) and return the index of its
+ * opening `{`. Requires `{` to follow `)` — possibly with a return-type
+ * annotation — so call sites (`this.fn(x);`) never match.
+ */
+function findDefBodyBrace(src: string, fn: string): number {
+  const defRe = new RegExp(`\\b${fn}\\s*\\([^)]*\\)\\s*(:[\\s\\S]*?)?\\{`);
+  const m = defRe.exec(src);
+  return m ? m.index + m[0].length - 1 : -1;
+}
+
+/**
+ * Balanced-brace extraction from `braceIdx` (pointing at `{`). Comment-stripped
+ * source only; the five target builders contain no literal braces inside plain
+ * string literals, and template `${…}` interpolations are brace-balanced, so a
+ * naive depth counter terminates at the function's true close.
+ */
+function extractBody(src: string, braceIdx: number): string {
+  let depth = 0;
+  for (let i = braceIdx; i < src.length; i++) {
+    const c = src[i];
+    if (c === '{') depth++;
+    else if (c === '}') {
+      depth--;
+      if (depth === 0) return src.slice(braceIdx, i + 1);
+    }
+  }
+  return src.slice(braceIdx);
+}
+
+// --- Metadata-fingerprint detection (08y defect class) ----------------------
+// A cache/dedup key built from file METADATA (name+size) instead of content.
+// Two files can share a name+size yet differ in content → silently cross-return
+// the wrong cached/dedup result. A content key reads arrayBuffer()/text and
+// NEVER interpolates both a file-name and a file-size property into the same key.
+/** A file-NAME property used as keying metadata (NOT content). */
+const NAME_META = /\.(?:name|fileName|originalName|audioFileName|inputFileName)\b/;
+/**
+ * A file-SIZE property used as keying metadata. Excludes `.byteLength`
+ * (content-derived) and capacity fields surface only via the keying-context
+ * filter below, never as a name+size pair in a key expression.
+ */
+const SIZE_META = /\.(?:size|fileSize)\b/;
+/** True if `keyExpr` interpolates BOTH a file-name and a file-size property. */
+function hasMetadataFingerprint(keyExpr: string): boolean {
+  return NAME_META.test(keyExpr) && SIZE_META.test(keyExpr);
+}
+/** All backtick template-literal bodies in `src` (content between backticks). */
+function templateLiterals(src: string): string[] {
+  const out: string[] = [];
+  const re = /`([^`]*)`/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(src)) !== null) out.push(m[1]);
+  return out;
+}
+
 describe('buildContentCacheKey — canonical cache-key builder', () => {
   it('exports a function that returns `${scope}:${text}` verbatim (full text)', () => {
     // Runtime anchor: full text round-trips through the key unchanged.
@@ -146,50 +222,8 @@ describe('key-builder function bodies — no truncation of the keying INPUT', ()
   // a regression in main-pipeline's 08y layer, which lived outside the old
   // 2-dir guard). OUTPUT shortening of a digest (`.digest('hex').slice(0,16)`)
   // is allowed — only the INPUT must not be truncated.
-  const KEY_BUILDERS: Array<{ file: string; fn: string }> = [
-    { file: 'src/pipeline/main-pipeline.ts', fn: 'generateCacheKey' },
-    { file: 'src/performance/intelligent-cache.ts', fn: 'generateCacheKey' },
-    { file: 'src/analysis/llm-cache.ts', fn: 'generateKey' },
-    { file: 'src/api/batch-processing-api.ts', fn: 'computeFileHash' },
-    { file: 'src/analysis/gemini-analyzer.ts', fn: 'buildAnalyzerCacheKey' },
-  ];
-
-  /** Strip comments (block + line) so doc references to old bugs don't match. */
-  function stripComments(src: string): string {
-    return src
-      .replace(/\/\*[\s\S]*?\*\//g, '')
-      .replace(/^\s*\/\/.*$/gm, '');
-  }
-
-  /**
-   * Match a function/method DEFINITION (not a call) and return the index of its
-   * opening `{`. Requires `{` to follow `)` — possibly with a return-type
-   * annotation — so call sites (`this.fn(x);`) never match.
-   */
-  function findDefBodyBrace(src: string, fn: string): number {
-    const defRe = new RegExp(`\\b${fn}\\s*\\([^)]*\\)\\s*(:[\\s\\S]*?)?\\{`);
-    const m = defRe.exec(src);
-    return m ? m.index + m[0].length - 1 : -1;
-  }
-
-  /**
-   * Balanced-brace extraction from `braceIdx` (pointing at `{`). Comment-stripped
-   * source only; the five target builders contain no literal braces inside plain
-   * string literals, and template `${…}` interpolations are brace-balanced, so a
-   * naive depth counter terminates at the function's true close.
-   */
-  function extractBody(src: string, braceIdx: number): string {
-    let depth = 0;
-    for (let i = braceIdx; i < src.length; i++) {
-      const c = src[i];
-      if (c === '{') depth++;
-      else if (c === '}') {
-        depth--;
-        if (depth === 0) return src.slice(braceIdx, i + 1);
-      }
-    }
-    return src.slice(braceIdx);
-  }
+  // KEY_BUILDERS + stripComments/findDefBodyBrace/extractBody are hoisted to
+  // module scope above (shared with the metadata-fingerprint guard below).
 
   it('every key builder is present (rename/removal surfaces here, not silently)', () => {
     // If a builder is renamed or deleted, the truncation guard below would skip
@@ -224,5 +258,90 @@ describe('key-builder function bodies — no truncation of the keying INPUT', ()
     }
 
     expect(offenders).toEqual([]);
+  });
+});
+
+describe('cache-key metadata fingerprint — no key built from file name+size', () => {
+  // The 08y defect class (5071f017): main-pipeline keyed the transcription cache
+  // on `${audioFile.name}-${audioFile.size}` METADATA, so two files that shared a
+  // name+size but differed in content cross-returned the WRONG cached result. The
+  // per-layer fixes (GeminiAnalyzer / LLMCache / ContentAnalyzer / MainPipeline)
+  // each paired with a per-layer guard, but a 5th instance could still slip in.
+  // This is the repo-wide structural close: a cache/dedup key built from file
+  // METADATA (name+size) instead of CONTENT is forbidden ANYWHERE under src/.
+  //
+  // A content key reads arrayBuffer()/text and NEVER interpolates both a file-NAME
+  // and a file-SIZE property into the same key expression. A validation ERROR
+  // MESSAGE that happens to mention name+size (`File ${meta.name} size ${meta.size}MB
+  // exceeds …`) is NOT a key and must not trip the guard — hence the keying-context
+  // filter (`.update(…)` argument / `*Key` assignment) in the broad sweep.
+
+  it('no key builder interpolates file name+size metadata into its key', () => {
+    // Targets the enumerated builder BODIES — a bare `return \`...name...size...\``
+    // reintroduction (the 08y shape) inside generateCacheKey/computeFileHash/…
+    // is caught here even though it is neither a `.update()` arg nor a `*Key=`.
+    const offenders: string[] = [];
+    for (const { file, fn } of KEY_BUILDERS) {
+      const src = stripComments(readFileSync(resolve(process.cwd(), file), 'utf8'));
+      const braceIdx = findDefBodyBrace(src, fn);
+      if (braceIdx < 0) continue;
+      const body = extractBody(src, braceIdx);
+      for (const tmpl of templateLiterals(body)) {
+        if (hasMetadataFingerprint(tmpl)) {
+          offenders.push(`${file} :: ${fn}: \`${tmpl}\``);
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('no production file builds a cache/dedup key from file name+size metadata', () => {
+    // Repo-wide sweep: catches a brand-new key builder added in ANY src/ dir, not
+    // just the enumerated KEY_BUILDERS. Scans for the two keying contexts:
+    //   (1) createHash(...).update(<key-expr>)  — the hash INPUT is the key
+    //   (2) <…>Key = <key-expr> / cacheKey: <key-expr>  — key assignment/property
+    // Only flag when BOTH a file-name and file-size property appear in the same
+    // key expression. The dedup form `${hash}::${file.size}` (content hash + size)
+    // is NOT flagged because it carries no name; an error message is NOT flagged
+    // because it is neither context.
+    const files = (globSync('src/**/*.ts') as string[]).filter(
+      f => !f.includes('__tests__'),
+    );
+    const offenders: string[] = [];
+    for (const file of files) {
+      const src = stripComments(readFileSync(resolve(process.cwd(), file), 'utf8'));
+
+      let m: RegExpExecArray | null;
+      // (1) hash INPUT: `.update( <expr> )`
+      const updateRe = /\.update\s*\(\s*([^)]{0,200}?)\s*\)/g;
+      while ((m = updateRe.exec(src)) !== null) {
+        if (hasMetadataFingerprint(m[1])) offenders.push(`${file}: .update(${m[1].trim()})`);
+      }
+      // (2) key assignment: `<…>[Kk]ey` = `:` <expr>  (e.g. cacheKey, dedupKey, contentKey)
+      const keyAssignRe = /\b\w*[Kk]ey\b\s*[:=]\s*(.{0,150}?)(?:[,;)\n}])/g;
+      while ((m = keyAssignRe.exec(src)) !== null) {
+        if (hasMetadataFingerprint(m[1])) offenders.push(`${file}: Key<-${m[1].trim()}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('main-pipeline transcription cache key is derived from CONTENT (sha256), not metadata', () => {
+    // Directly pins the 08y fix: generateCacheKey must hash the audio CONTENT
+    // (arrayBuffer) for File inputs, and must NOT interpolate name/size. This is
+    // the explicit contract assertion that the old code-comment-only contract
+    // lacked — a future loop-bound / metadata regression fails loudly here.
+    const src = readFileSync(resolve(process.cwd(), 'src/pipeline/main-pipeline.ts'), 'utf8');
+    const braceIdx = findDefBodyBrace(stripComments(src), 'generateCacheKey');
+    expect(braceIdx).toBeGreaterThanOrEqual(0);
+    const body = extractBody(stripComments(src), braceIdx);
+
+    // Content path is present: hashes the File's arrayBuffer bytes.
+    expect(body).toMatch(/\.arrayBuffer\s*\(\s*\)/);
+    expect(body).toMatch(/createHash\s*\(\s*['"]sha256['"]\s*\)/);
+    // Metadata path is absent: no name/size interpolation anywhere in the key.
+    for (const tmpl of templateLiterals(body)) {
+      expect(hasMetadataFingerprint(tmpl)).toBe(false);
+    }
   });
 });

@@ -22,13 +22,25 @@ jest.mock('@/pipeline/simple-pipeline', () => ({
   },
 }));
 
-/** Minimal File-like stub for testing */
+/**
+ * Minimal File-like stub for testing. Provides `arrayBuffer()` so the dedup key
+ * is derived from CONTENT bytes (via computeFileHash), matching how a real File
+ * behaves — never from name+size metadata (the 08y collision class). The content
+ * is deterministic in name+size, so the dedup contract (same name+size ⇒ same
+ * bytes ⇒ duplicate; same name, different size ⇒ distinct) is preserved.
+ */
 class StubFile {
   name: string;
   size: number;
   constructor(name: string, size: number) {
     this.name = name;
     this.size = size;
+  }
+  arrayBuffer(): Promise<ArrayBuffer> {
+    const bytes = Buffer.from(`${this.name}::${this.size}`);
+    const ab = new ArrayBuffer(bytes.length);
+    new Uint8Array(ab).set(bytes);
+    return Promise.resolve(ab);
   }
 }
 

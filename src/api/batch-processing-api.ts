@@ -166,16 +166,26 @@ class JobStore {
 const jobStore = new JobStore();
 
 /**
- * Compute a SHA-256 content hash for a File.
- * Falls back to name+size when the blob API is unavailable (e.g. test stubs).
+ * Compute a SHA-256 CONTENT hash for a File.
+ *
+ * ALWAYS keys on file CONTENT (sha256 over `arrayBuffer()`), never on file
+ * METADATA. The former `${file.name}::${file.size}` fallback is the 08y
+ * cache-collision defect class: two files can share a name+size yet differ in
+ * content, silently cross-returning the wrong cached/dedup result. Real File
+ * objects (browser `File`, Node `File`/`Blob`) expose `arrayBuffer()`, so a File
+ * lacking it is a malformed stub — fail loud rather than fabricate a
+ * collision-prone metadata key. The `cache-key-canon` structural guard forbids
+ * reintroducing any name+size key anywhere under src/.
  */
 async function computeFileHash(file: File): Promise<string> {
-  if (typeof file.arrayBuffer === 'function') {
-    const buffer = await file.arrayBuffer();
-    return createHash('sha256').update(Buffer.from(buffer)).digest('hex').slice(0, 16);
+  if (typeof file.arrayBuffer !== 'function') {
+    throw new Error(
+      'computeFileHash: File lacks arrayBuffer(); cannot derive a content hash. ' +
+        'Metadata-based (name+size) hashing is forbidden — see cache-key-canon guard.',
+    );
   }
-  // Fallback for non-standard File objects (test mocks)
-  return createHash('sha256').update(`${file.name}::${file.size}`).digest('hex').slice(0, 16);
+  const buffer = await file.arrayBuffer();
+  return createHash('sha256').update(Buffer.from(buffer)).digest('hex').slice(0, 16);
 }
 
 /**

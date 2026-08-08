@@ -29,9 +29,21 @@ jest.unstable_mockModule('@/pipeline/adaptive-quality-presets', () => ({
 
 const { BatchProcessingAPI } = await import('@/api/batch-processing-api');
 
-// Helper: create a stub File-like object
+// Helper: create a stub File-like object. Provides `arrayBuffer()` so the dedup
+// key derives from CONTENT bytes (via computeFileHash), never name+size metadata
+// (the 08y collision class). Content is deterministic in name+size.
 function stubFile(name: string, size = 1024): File {
-  return { name, size, type: 'audio/wav' } as File;
+  return {
+    name,
+    size,
+    type: 'audio/wav',
+    arrayBuffer: async () => {
+      const bytes = Buffer.from(`${name}::${size}`);
+      const ab = new ArrayBuffer(bytes.length);
+      new Uint8Array(ab).set(bytes);
+      return ab;
+    },
+  } as File;
 }
 
 describe('REQ-213: BatchProcessingAPI lifecycle metrics integration', () => {
