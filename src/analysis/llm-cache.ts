@@ -89,24 +89,39 @@ export class LLMCache<T> {
   }
 
   /**
-   * Evict oldest entries when cache is full
+   * Evict oldest-timestamp entries until the cache holds at most `targetSize`
+   * entries.
+   *
+   * Single canonical eviction routine. `set()` makes room for one new entry by
+   * trimming to `maxSize - 1`; `loadFromDisk()` re-enforces the `maxSize` cap
+   * after bulk-loading. Trimming by oldest timestamp matches the per-entry
+   * policy, and looping (rather than removing a single entry) lets an over-cap
+   * state self-heal — the previous single-evict form could only ever remove one
+   * entry per call, so a cache ever loaded past its cap stayed past its cap
+   * permanently (each `set()` was net-zero at best).
    */
-  private evictOldest(): void {
-    if (this.cache.size < this.maxSize) return;
+  private evictToSize(targetSize: number): void {
+    while (this.cache.size > targetSize) {
+      let oldestKey: string | null = null;
+      let oldestTime = Infinity;
 
-    let oldestKey: string | null = null;
-    let oldestTime = Infinity;
-
-    for (const [key, entry] of this.cache.entries()) {
-      if (entry.timestamp < oldestTime) {
-        oldestTime = entry.timestamp;
-        oldestKey = key;
+      for (const [key, entry] of this.cache.entries()) {
+        if (entry.timestamp < oldestTime) {
+          oldestTime = entry.timestamp;
+          oldestKey = key;
+        }
       }
-    }
 
-    if (oldestKey) {
+      if (!oldestKey) break;
       this.cache.delete(oldestKey);
     }
+  }
+
+  /**
+   * Make room for one new entry: trim to `maxSize - 1`.
+   */
+  private evictOldest(): void {
+    this.evictToSize(this.maxSize - 1);
   }
 
   /**
@@ -349,6 +364,14 @@ export class LLMCache<T> {
           expiredCount++;
         }
       }
+
+      // Re-enforce the maxSize cap on the bulk-loaded set. The primary set()
+      // path maintains the cap one entry at a time, but the loop above inserts
+      // every valid disk entry with no cap check — so a persisted file holding
+      // more entries than the configured maxSize (e.g. after the cap was
+      // lowered) would otherwise leave the cache over its cap. evictToSize
+      // keeps the newest entries by timestamp, matching the per-entry policy.
+      this.evictToSize(this.maxSize);
 
       const semanticSupport = parsed.version === '2.0' ? ' (with semantic support)' : '';
 

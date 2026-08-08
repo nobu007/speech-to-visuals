@@ -345,3 +345,106 @@ describe('LLMCache TTL boundary and eviction precision', () => {
     });
   });
 });
+
+// ─── loadFromDisk maxSize enforcement (09g capacity-bypass class) ────
+//
+// The primary set() path maintains maxSize one entry at a time via
+// evictOldest(), but loadFromDisk() bulk-inserted every valid disk entry with
+// no cap check. A persisted file holding more entries than the configured
+// maxSize (e.g. after the cap was lowered) therefore left the cache over its
+// cap — and the single-evict evictOldest() could never drain it back. The file
+// is populated through the real set() path so the on-disk keys are the hashed
+// keys get() looks up.
+
+describe('LLMCache loadFromDisk maxSize enforcement', () => {
+  let tmpDir: string;
+  let cachePath: string;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'llm-cache-cap-'));
+    cachePath = path.join(tmpDir, 'cache.json');
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  /** Populate `cachePath` with `count` entries (distinct timestamps) via set(). */
+  function populateDisk(count: number): void {
+    const src = new LLMCache<string>({
+      persistPath: cachePath,
+      maxSize: count + 5, // large enough that the source never evicts
+      persistDebounceMs: 0,
+      ttlMinutes: 60,
+      enableSemantic: false,
+    });
+    for (let i = 0; i < count; i++) {
+      src.set(`key-${i}`, `val-${i}`);
+      jest.advanceTimersByTime(1000); // distinct, ascending timestamps
+    }
+    src.persist();
+    src.destroy();
+  }
+
+  test('caps loaded entries at maxSize, keeping the newest by timestamp', () => {
+    populateDisk(5);
+
+    const cache = new LLMCache<string>({
+      persistPath: cachePath,
+      maxSize: 2,
+      persistDebounceMs: 0,
+      ttlMinutes: 60,
+      enableSemantic: false,
+    });
+
+    // loadFromDisk inserted all 5 valid entries with no cap check → was 5.
+    expect(cache.getStats().size).toBe(2);
+
+    // Newest two (highest timestamps) survive the trim.
+    expect(cache.get('key-4')).toBe('val-4');
+    expect(cache.get('key-3')).toBe('val-3');
+    // Oldest three evicted.
+    expect(cache.get('key-2')).toBeNull();
+    expect(cache.get('key-1')).toBeNull();
+    expect(cache.get('key-0')).toBeNull();
+  });
+
+  test('a cache loaded exactly at maxSize is unchanged', () => {
+    populateDisk(3);
+
+    const cache = new LLMCache<string>({
+      persistPath: cachePath,
+      maxSize: 3,
+      persistDebounceMs: 0,
+      ttlMinutes: 60,
+      enableSemantic: false,
+    });
+
+    expect(cache.getStats().size).toBe(3);
+    expect(cache.get('key-0')).toBe('val-0');
+    expect(cache.get('key-1')).toBe('val-1');
+    expect(cache.get('key-2')).toBe('val-2');
+  });
+
+  test('an over-cap cache does not climb back over maxSize on subsequent set()', () => {
+    populateDisk(4);
+
+    const cache = new LLMCache<string>({
+      persistPath: cachePath,
+      maxSize: 2,
+      persistDebounceMs: 0,
+      ttlMinutes: 60,
+      enableSemantic: false,
+    });
+
+    // Before the fix the load left 4 entries; a single set() then evicted only
+    // one (4 -> 3 -> 4), so the cache stayed permanently over maxSize.
+    cache.set('fresh', 'vfresh');
+    expect(cache.getStats().size).toBe(2);
+  });
+});
