@@ -5,7 +5,7 @@ import { escapeRegex } from '@/utils/regex-escape';
 import { logger } from '../utils/logger';
 import { sanitizeFinite, sanitizeDiagramType } from '@/utils/guards';
 import { safeMap } from '../lib/safe-array';
-import { MAX_DIAGRAM_CONFIDENCE } from './diagram-detection-constants';
+import { MAX_DIAGRAM_CONFIDENCE, GOOD_DETECTION_CONFIDENCE_THRESHOLD } from './diagram-detection-constants';
 
 // ========================================
 // TASK-0021: Diagram Detection Result Types
@@ -178,6 +178,22 @@ const DIAGRAM_KEYWORDS: Record<DiagramType, {
     negative: [],
   },
 };
+
+/**
+ * Does a diagram-detection confidence meet the "good" threshold?
+ *
+ * Single canonical answer to "is this detection confidence good enough?" —
+ * boundary-INCLUSIVE on {@link GOOD_DETECTION_CONFIDENCE_THRESHOLD}. Both the
+ * detector's own confidence gate (`testConfidenceThreshold`) and downstream
+ * consumers (e.g. `SimplePipeline`'s high-/low-confidence flags) MUST call this
+ * instead of re-comparing against a bare `0.6`, so the gate and its consumers
+ * can never disagree at the boundary value (see the constant's docstring).
+ *
+ * Sanitizes first: an undefined/NaN confidence is treated as 0 (fails).
+ */
+export function meetsGoodDetectionConfidence(confidence: number): boolean {
+  return sanitizeFinite(confidence) >= GOOD_DETECTION_CONFIDENCE_THRESHOLD;
+}
 
 /**
  * Diagram Type Detection Engine - Iterative Implementation
@@ -1415,7 +1431,9 @@ export class DiagramDetector {
 
   private async testConfidenceThreshold(analysis: DiagramAnalysis): Promise<{ passed: boolean; score: number; name: string }> {
     const safeConfidence = sanitizeFinite(analysis.confidence, 0);
-    const passed = safeConfidence >= 0.6;
+    // Delegate to the canonical boundary predicate so the gate and downstream
+    // consumers (SimplePipeline high/low-confidence flags) agree at exactly 0.6.
+    const passed = meetsGoodDetectionConfidence(safeConfidence);
     const score = safeConfidence;
     return { passed, score, name: 'Confidence Threshold' };
   }

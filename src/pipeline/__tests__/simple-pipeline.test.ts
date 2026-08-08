@@ -1,5 +1,7 @@
 
 import { jest } from '@jest/globals';
+import { sanitizeFinite } from '@/utils/guards';
+import { GOOD_DETECTION_CONFIDENCE_THRESHOLD } from '@/analysis/diagram-detection-constants';
 
 // Mock all dependencies - define mocks inside factory to avoid hoisting issues
 jest.unstable_mockModule('@/transcription', () => {
@@ -44,6 +46,12 @@ jest.unstable_mockModule('@/analysis', () => {
     // scene-segmenter values so the wiring assertion below stays meaningful.
     DEFAULT_MIN_SEGMENT_LENGTH_MS: 3000,
     DEFAULT_MAX_SEGMENT_LENGTH_MS: 15000,
+    // simple-pipeline now imports this predicate from the barrel. Provide the
+    // REAL semantics (canonical constant + sanitizeFinite) so the high/low-
+    // confidence boundary the pipeline computes matches production exactly —
+    // only the (trivial) operator is mirrored, the value stays single-sourced.
+    meetsGoodDetectionConfidence: (confidence: number) =>
+      sanitizeFinite(confidence) >= GOOD_DETECTION_CONFIDENCE_THRESHOLD,
     __mockSegment: mockSegment,
     __mockAnalyze: mockAnalyze,
   };

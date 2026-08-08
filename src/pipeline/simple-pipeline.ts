@@ -5,7 +5,7 @@
  */
 
 import { TranscriptionPipeline } from '@/transcription';
-import { SceneSegmenter, DiagramDetector, ContentSegment, DEFAULT_MIN_SEGMENT_LENGTH_MS, DEFAULT_MAX_SEGMENT_LENGTH_MS } from '@/analysis';
+import { SceneSegmenter, DiagramDetector, ContentSegment, DEFAULT_MIN_SEGMENT_LENGTH_MS, DEFAULT_MAX_SEGMENT_LENGTH_MS, meetsGoodDetectionConfidence } from '@/analysis';
 import { LayoutEngine } from '@/visualization';
 import { EnhancedZeroOverlapLayoutEngine } from '@/visualization/enhanced-zero-overlap-layout';
 import { SceneGraph } from '@/types/diagram';
@@ -249,8 +249,11 @@ export class SimplePipeline {
             diagramAnalysis,
             diagramDetectionTime,
             detConfidence,
-            detConfidence > 0.6,
-            detConfidence <= 0.6 ? ['low_confidence_detection'] : [],
+            // Delegate to the canonical predicate so this "high confidence" flag
+            // agrees with DiagramDetector's own confidence gate at exactly 0.6
+            // (both boundary-inclusive via GOOD_DETECTION_CONFIDENCE_THRESHOLD).
+            meetsGoodDetectionConfidence(detConfidence),
+            meetsGoodDetectionConfidence(detConfidence) ? [] : ['low_confidence_detection'],
             {
               segmentId: `scene-${index}`,
               detectedType: detType,
