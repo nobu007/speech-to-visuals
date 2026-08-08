@@ -95,6 +95,8 @@ export class IntelligentCache {
     preloadHits: 0,
     performanceScore: 0,
     corruptionCount: 0,
+    totalHits: 0,
+    totalMisses: 0,
   };
   /** Keys that failed decompression — tracked for health reporting */
   private corruptedKeys: Set<string> = new Set();
@@ -698,7 +700,7 @@ export class IntelligentCache {
       bestMatch.metadata.accessPattern = this.determineAccessPattern(bestMatch);
 
       this.updateAccessOrder(bestMatch.id);
-      this.stats.hitRate = this.updateHitRate(true);
+      this.updateHitRate(true);
       this.stats.totalSavedTime += 1000; // Estimate saved processing time
 
       if (isPreloadHit) {
@@ -711,7 +713,7 @@ export class IntelligentCache {
         return { ...bestMatch, data: decompressedData };
       }
     } else {
-      this.stats.missRate = this.updateHitRate(false);
+      this.updateHitRate(false);
     }
 
     this.updatePerformanceScore();
@@ -823,15 +825,26 @@ export class IntelligentCache {
   }
 
   /**
-   * Update hit rate statistics
+   * Update hit rate statistics.
+   *
+   * Maintains cumulative hit/miss COUNTS and derives the rates from them.
+   * The previous implementation fed the ratio fields (`hitRate`/`missRate`)
+   * back into the denominator (`hitRate + missRate + 1`), a self-referential
+   * formula that systematically OVERSTATED the hit rate — e.g. 2 misses
+   * followed by 3 hits reported 100% instead of the true 60% — which masked
+   * cache inefficiency from the health-check service and the `< 0.3`
+   * recommendation gate below.
    */
   private updateHitRate(isHit: boolean): number {
-    const totalRequests = this.stats.hitRate + this.stats.missRate + 1;
     if (isHit) {
-      return (this.stats.hitRate + 1) / totalRequests;
+      this.stats.totalHits = (this.stats.totalHits ?? 0) + 1;
     } else {
-      return this.stats.hitRate / totalRequests;
+      this.stats.totalMisses = (this.stats.totalMisses ?? 0) + 1;
     }
+    const totalRequests = (this.stats.totalHits ?? 0) + (this.stats.totalMisses ?? 0);
+    this.stats.hitRate = totalRequests > 0 ? (this.stats.totalHits ?? 0) / totalRequests : 0;
+    this.stats.missRate = totalRequests > 0 ? (this.stats.totalMisses ?? 0) / totalRequests : 0;
+    return this.stats.hitRate;
   }
 
   /**
@@ -945,6 +958,8 @@ export class IntelligentCache {
       preloadHits: 0,
       performanceScore: 0,
       corruptionCount: 0,
+      totalHits: 0,
+      totalMisses: 0,
     };
   }
 

@@ -1389,12 +1389,32 @@ describe('IntelligentCache', () => {
     });
 
     it('properly tracks cumulative hit rate', () => {
-      internals(cache).stats.hitRate = 0.5;
-      internals(cache).stats.missRate = 0.5;
+      // Seed a realistic prior state: 1 hit, 1 miss (50%).
+      internals(cache).stats.totalHits = 1;
+      internals(cache).stats.totalMisses = 1;
 
-      // A hit should increase the rate
+      // A hit should push the rate above 50% (→ 2/3).
       const rate = internals(cache).updateHitRate(true);
+      expect(rate).toBeCloseTo(2 / 3, 5);
       expect(rate).toBeGreaterThan(0.5);
+    });
+
+    it('reports the true hit rate, not an overstated one', () => {
+      // 2 misses then 3 hits → true hit rate is 3/5 = 0.6. The previous
+      // self-referential formula (rates fed back into the denominator)
+      // reported 1.0 here, masking cache inefficiency from the health-check
+      // service and the `hitRate < 0.3` recommendation gate.
+      internals(cache).updateHitRate(false);
+      internals(cache).updateHitRate(false);
+      internals(cache).updateHitRate(true);
+      internals(cache).updateHitRate(true);
+      const rate = internals(cache).updateHitRate(true);
+
+      expect(rate).toBeCloseTo(0.6, 5);
+      expect(internals(cache).stats.totalHits).toBe(3);
+      expect(internals(cache).stats.totalMisses).toBe(2);
+      expect(internals(cache).stats.hitRate).toBeCloseTo(0.6, 5);
+      expect(internals(cache).stats.missRate).toBeCloseTo(0.4, 5);
     });
   });
 
