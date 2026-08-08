@@ -1,7 +1,16 @@
 import { DiagramData } from "./types";
 import { LLMService, llmService } from "./llm-service";
 import { getContentAnalyzerPrompt, type Language } from "./prompt-templates";
+import { buildContentCacheKey } from "./cache-key";
 import { logger } from '../utils/logger';
+
+/**
+ * Cache-key version tag for ContentAnalyzer results. Bump when the analyzer
+ * prompt or output schema changes so stale cached analyses are invalidated.
+ * Combined with the full text via {@link buildContentCacheKey} — never a
+ * truncated prefix (see src/analysis/cache-key.ts).
+ */
+export const CONTENT_ANALYZER_CACHE_VERSION = 'v1';
 
 /**
  * Phase 22: Content Analyzer - Refactored to use Unified LLMService
@@ -74,7 +83,17 @@ export class ContentAnalyzer {
       options: {
         temperature: 0.1,
         maxOutputTokens: 2048,
-        cacheKey: `content-analyzer:${text.substring(0, 100)}`
+        // Full-text cache key (canonical builder). Previously this truncated to
+        // the first 100 chars (`content-analyzer:${text.substring(0,100)}`), so
+        // two distinct texts sharing a 100-char prefix collapsed onto one cache
+        // slot and the second analyzeV2() returned the first text's (wrong)
+        // diagram — the same prefix-truncation class as buildAnalyzerCacheKey
+        // (f6d5dc43) and LLMCache.generateKey (f172f017). The versioned scope
+        // also invalidates any stale entries cached under the old truncated key.
+        cacheKey: buildContentCacheKey(
+          `content-analyzer-${CONTENT_ANALYZER_CACHE_VERSION}`,
+          text,
+        )
       }
     });
 

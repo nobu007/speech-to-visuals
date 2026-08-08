@@ -1040,9 +1040,19 @@ export function cached(keyGenerator?: (args: unknown[]) => string) {
     const method = descriptor.value;
 
     descriptor.value = async function (...args: unknown[]) {
+      // Build the cache key from the FULL serialized args — never a truncated
+      // prefix. The previous default sliced to the first 100 chars, so two
+      // distinct arg-sets whose JSON shared a 100-char prefix produced the same
+      // key; IntelligentCache.get's sourceContent guard then compared the two
+      // truncated strings and passed, returning the first call's (wrong) result
+      // for the second. That is the same prefix-truncation class as the analysis
+      // cache keys (f6d5dc43 / f172f017): a guard over a pre-truncated value
+      // proves nothing. generateCacheKey (below) hashes the full string and the
+      // sourceContent guard then compares full content, so the lookup contract
+      // (exact match or null, never a sibling's data) holds.
       const cacheKey = keyGenerator ?
         keyGenerator(args) :
-        `${propertyName}_${JSON.stringify(args).slice(0, 100)}`;
+        `${propertyName}_${JSON.stringify(args)}`;
 
       // Try exact match first
       const exactMatch = await globalCache.get(cacheKey);

@@ -35,6 +35,7 @@ import { LLMService, llmService } from "./llm-service";
 import { getQualityMonitor } from "@/pipeline/quality-monitor";
 import { getGeminiAnalyzerPrompt, type Language } from "./prompt-templates";
 import { DiagramStructureError } from "./analysis-errors";
+import { buildContentCacheKey } from "./cache-key";
 import { logger } from '../utils/logger';
 
 type GeminiDiagramType = DiagramData['type'];
@@ -60,14 +61,17 @@ export const GEMINI_ANALYZER_CACHE_VERSION = 'v26';
 /**
  * Build the LLM cache key for a given analysis text.
  *
- * The key incorporates the FULL text — not a truncated prefix. Two inputs that
- * differ only past the first N characters must NOT share a key, or the cache
- * returns the wrong analysis for the second input. LLMService forwards this
- * key to LLMCache, which hashes it (sha256) before storage, so using the full
- * text here carries no memory cost.
+ * Delegates to the canonical `buildContentCacheKey` (src/analysis/cache-key.ts)
+ * — the single source of truth for the "scope + FULL text" caller-side keying
+ * pattern consumed by LLMService → LLMCache. The key incorporates the FULL text,
+ * never a truncated prefix: two inputs that differ only past the first N
+ * characters must NOT share a key, or the cache returns the wrong analysis for
+ * the second input. LLMService forwards this key to LLMCache, which hashes it
+ * (sha256) before storage, so using the full text here carries no memory cost.
+ * See cache-key.ts for the cross-layer recurrence this centralization closes.
  */
 export function buildAnalyzerCacheKey(text: string): string {
-  return `gemini-analyzer-${GEMINI_ANALYZER_CACHE_VERSION}:${text}`;
+  return buildContentCacheKey(`gemini-analyzer-${GEMINI_ANALYZER_CACHE_VERSION}`, text);
 }
 
 /**
