@@ -464,6 +464,83 @@ describe('AutoImprovementEngine', () => {
       const result = await engine.runImprovementCycle(getMetrics, strategies);
       expect(result.results.length).toBeLessThanOrEqual(3);
     });
+
+    it('marks a successful lower-is-better improvement as success (sign fix)', async () => {
+      // layoutOverlap is LOWER_IS_BETTER: a strategy that reduces overlap
+      // 5 -> 0 is a genuine improvement. Before the sign fix, after < before
+      // made the raw after-before delta negative, so success (improvement > 0)
+      // was false and the cycle reported `improved: false` with a negative %.
+      const getMetrics = jest.fn().mockResolvedValue(badMetrics);
+      const strategy: ImprovementStrategy = {
+        name: 'Fix Layout Overlaps',
+        description: 'Resolve every overlap',
+        targetMetric: 'layoutOverlap',
+        expectedImprovement: 100,
+        complexity: 'low',
+        execute: async () => ({ ...badMetrics, layoutOverlap: 0 }),
+      };
+
+      const result = await engine.runImprovementCycle(getMetrics, [strategy]);
+      expect(result.results).toHaveLength(1);
+      expect(result.results[0].success).toBe(true);
+      expect(result.results[0].improvement).toBeGreaterThan(0);
+      expect(result.improved).toBe(true);
+    });
+
+    it('reports a positive improvement % for lower-is-better metrics', async () => {
+      // processingTime 45000 -> 31500 is a 30% reduction; improvement must read
+      // +30%, not -30%. Matches the report's `improvement > 0 ? '+' : ''` sign.
+      const getMetrics = jest.fn().mockResolvedValue(badMetrics);
+      const strategy: ImprovementStrategy = {
+        name: 'Reduce Processing Time',
+        description: 'Optimize hot path',
+        targetMetric: 'processingTime',
+        expectedImprovement: 30,
+        complexity: 'low',
+        execute: async () => ({ ...badMetrics, processingTime: 31500 }),
+      };
+
+      const result = await engine.runImprovementCycle(getMetrics, [strategy]);
+      expect(result.results[0].improvement).toBeCloseTo(30, 0);
+      expect(result.results[0].success).toBe(true);
+    });
+
+    it('still marks a successful higher-is-better improvement as success', async () => {
+      // Regression guard: the sign flip must not break the higher-is-better
+      // path (transcriptionAccuracy 0.60 -> 0.90 is +50%).
+      const getMetrics = jest.fn().mockResolvedValue(badMetrics);
+      const strategy: ImprovementStrategy = {
+        name: 'Improve Transcription',
+        description: 'Better model',
+        targetMetric: 'transcriptionAccuracy',
+        expectedImprovement: 30,
+        complexity: 'low',
+        execute: async () => ({ ...badMetrics, transcriptionAccuracy: 0.90 }),
+      };
+
+      const result = await engine.runImprovementCycle(getMetrics, [strategy]);
+      expect(result.results[0].success).toBe(true);
+      expect(result.results[0].improvement).toBeGreaterThan(0);
+      expect(result.improved).toBe(true);
+    });
+
+    it('still marks a no-op (unchanged value) lower-is-better strategy as not improved', async () => {
+      // delta 0 must stay success=false after the sign flip (-0 === 0).
+      const getMetrics = jest.fn().mockResolvedValue(badMetrics);
+      const strategy: ImprovementStrategy = {
+        name: 'No-op',
+        description: 'Changes nothing',
+        targetMetric: 'layoutOverlap',
+        expectedImprovement: 10,
+        complexity: 'low',
+        execute: async () => ({ ...badMetrics }),
+      };
+
+      const result = await engine.runImprovementCycle(getMetrics, [strategy]);
+      expect(result.results[0].success).toBe(false);
+      expect(result.results[0].improvement).toBe(0);
+      expect(result.improved).toBe(false);
+    });
   });
 
   // --- autonomousImprovement ---

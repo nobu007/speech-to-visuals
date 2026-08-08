@@ -390,7 +390,18 @@ export class AutoImprovementEngine {
 
         const beforeValue = before[strategy.targetMetric] as number;
         const afterValue = after[strategy.targetMetric] as number;
-        const improvement = beforeValue !== 0 ? ((afterValue - beforeValue) / beforeValue) * 100 : 0;
+        const delta = beforeValue !== 0 ? ((afterValue - beforeValue) / beforeValue) * 100 : 0;
+        // "improvement" is signed positive-when-better for BOTH metric
+        // directions. For lower-is-better metrics (overlap, processingTime,
+        // memoryUsage, errorRate, crashCount) the executor REDUCES the value
+        // (after < before), so the raw after-before delta is negative even on a
+        // successful fix. Without flipping it, every lower-is-better
+        // improvement read as a failure (`success: improvement > 0`) and the
+        // report showed a negative % — the sign was inverted relative to the
+        // report's own `improvement > 0 ? '+' : ''` convention.
+        const improvement = AutoImprovementEngine.LOWER_IS_BETTER.has(strategy.targetMetric)
+          ? 0 - delta
+          : delta;
 
         const result: ImprovementResult = {
           strategy: strategy.name,
