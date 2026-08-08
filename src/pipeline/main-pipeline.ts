@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { randomUUID, createHash } from 'crypto';
 import { SceneGraph, DiagramType, NodeDatum, EdgeDatum } from '@/types/diagram';
 import { sanitizeFinite, sanitizeDiagramType } from '@/utils/guards';
 import { TranscriptionPipeline, TranscriptionSegment } from '@/transcription';
@@ -627,7 +627,7 @@ export class MainPipeline {
    */
   private async transcribeAudioEnhanced(input: PipelineInput) {
     // Check cache first
-    const cacheKey = this.generateCacheKey(input);
+    const cacheKey = await this.generateCacheKey(input);
     const cached = await globalCache.get(cacheKey);
 
     if (cached) {
@@ -845,14 +845,42 @@ export class MainPipeline {
   }
 
   /**
-   * Generate cache key for input
+   * Generate a CONTENT-derived cache key for a transcription request.
+   *
+   * The key MUST be derived from the audio CONTENT, never from name/size/path
+   * metadata alone. The previous form (`transcription-${name}-${size}-${model}`
+   * for File objects) collapsed two distinct uploads that happened to share a
+   * name and byte-size onto one slot, so the second file's transcription
+   * silently returned the FIRST file's cached result. globalCache (IntelligentCache)
+   * stores this key string as `sourceContent`, so its hash-collision guard could
+   * not catch the collision — the guard compared identical metadata-derived
+   * strings and passed. This is the same metadata-vs-content /
+   * hash-equality-vs-content-equality defect class that recurred in
+   * GeminiAnalyzer.buildAnalyzerCacheKey (f6d5dc43), LLMCache.generateKey
+   * (f172f017) and ContentAnalyzer (0501c548), surviving here in a 4th keying
+   * layer (the pipeline transcription cache) outside the analysis/performance
+   * structural guard.
+   *
+   * Content identity:
+   *   - File object: sha256 over `arrayBuffer()` — full content, browser-safe
+   *     (`Uint8Array` feeds the hash so no node-only `Buffer` global is pulled
+   *     into the browser bundle; `createHash` rides the same `crypto` import the
+   *     module already uses for `randomUUID`, consistent with LLMCache).
+   *   - string path: kept as a path identifier (best-effort — a browser bundle
+   *     has no fs to hash the bytes). Distinct paths still get distinct keys;
+   *     the only residual risk is a file overwritten in place at a fixed path.
    */
-  private generateCacheKey(input: PipelineInput): string {
-    const inputStr = typeof input.audioFile === 'string' ?
-      input.audioFile :
-      `${input.audioFile.name}-${input.audioFile.size}`;
-
-    return `transcription-${inputStr}-${this.config.transcription.model}`;
+  private async generateCacheKey(input: PipelineInput): Promise<string> {
+    const model = this.config.transcription.model;
+    if (typeof input.audioFile !== 'string') {
+      const buffer = await input.audioFile.arrayBuffer();
+      const contentHash = createHash('sha256')
+        .update(new Uint8Array(buffer))
+        .digest('hex')
+        .slice(0, 16);
+      return `transcription:${contentHash}:${model}`;
+    }
+    return `transcription:path:${input.audioFile}:${model}`;
   }
 
   /**

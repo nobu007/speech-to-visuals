@@ -5,6 +5,7 @@
  * helper methods accessed via `(instance as PrivatePipelineAccess).methodName()`.
  */
 
+import { createHash } from 'crypto';
 import { MainPipeline } from '@/pipeline/main-pipeline';
 import { PipelineConfig, PipelineInput } from '@/pipeline/types';
 import type { SceneGraph } from '@/types/diagram';
@@ -26,7 +27,7 @@ interface PrivatePipelineAccess {
   ): { nodes: Array<Record<string, unknown> & { x: number; y: number; w: number; h: number }>; edges: Array<Record<string, unknown> & { points: Array<{ x: number; y: number }> }> };
   analyzeErrorPattern(error: Error, stageName: string): string;
   selectRecoveryStrategy(errorPattern: string, stageName: string): string;
-  generateCacheKey(input: PipelineInput): string;
+  generateCacheKey(input: PipelineInput): Promise<string>;
   buildQualityMetrics(
     transcription: Record<string, unknown>,
     analysis: Record<string, unknown>,
@@ -485,23 +486,77 @@ describe('MainPipeline', () => {
   // ------------------------------------------------------------------
 
   describe('generateCacheKey', () => {
-    it('generates key for File input', () => {
+    // Helper: a File-like with a real arrayBuffer() so the content hash is
+    // exercised (a plain {name,size} cast would have no bytes to hash).
+    const mockAudioFile = (name: string, contents: string): File => {
+      const bytes = new TextEncoder().encode(contents);
+      const ab = bytes.buffer.slice(
+        bytes.byteOffset,
+        bytes.byteOffset + bytes.byteLength,
+      );
+      return {
+        name,
+        size: bytes.byteLength,
+        arrayBuffer: async () => ab,
+      } as unknown as File;
+    };
+
+    it('generates a content-derived key for File input', async () => {
       const pipeline = new MainPipeline();
-      const mockFile = { name: 'audio.wav', size: 10240 } as File;
-      const input: PipelineInput = { audioFile: mockFile };
+      const contents = 'audio-payload-A';
+      const bytes = new TextEncoder().encode(contents);
+      const expectedHash = createHash('sha256')
+        .update(bytes)
+        .digest('hex')
+        .slice(0, 16);
 
-      const key = (pipeline as PrivatePipelineAccess).generateCacheKey(input);
+      const key = await (pipeline as PrivatePipelineAccess).generateCacheKey({
+        audioFile: mockAudioFile('audio.wav', contents),
+      });
 
-      expect(key).toBe('transcription-audio.wav-10240-base');
+      expect(key).toBe(`transcription:${expectedHash}:base`);
     });
 
-    it('generates key for string input', () => {
+    it('generates a path-derived key for string input', async () => {
       const pipeline = new MainPipeline();
-      const input: PipelineInput = { audioFile: '/path/to/recording.mp3' };
 
-      const key = (pipeline as PrivatePipelineAccess).generateCacheKey(input);
+      const key = await (pipeline as PrivatePipelineAccess).generateCacheKey({
+        audioFile: '/path/to/recording.mp3',
+      });
 
-      expect(key).toBe('transcription-/path/to/recording.mp3-base');
+      expect(key).toBe('transcription:path:/path/to/recording.mp3:base');
+    });
+
+    // Regression (metadata-vs-content keying class): the OLD key was
+    // `transcription-${name}-${size}-${model}`, so two distinct uploads sharing
+    // a name + byte-size collapsed onto one slot and the second file's
+    // transcription returned the FIRST file's cached result. globalCache stores
+    // this string as `sourceContent`, so its hash-collision guard compared
+    // identical metadata strings and passed. The key must now be injective on
+    // CONTENT — the 4th keying layer of the class that recurred in
+    // GeminiAnalyzer (f6d5dc43), LLMCache (f172f017) and ContentAnalyzer
+    // (0501c548).
+    it('distinct-content File objects with identical name+size get DISTINCT keys', async () => {
+      const pipeline = new MainPipeline();
+      // Same name, same byte-length, DIFFERENT bytes.
+      const keyA = await (pipeline as PrivatePipelineAccess).generateCacheKey({
+        audioFile: mockAudioFile('clip.wav', 'AAAAAAAAAA'),
+      });
+      const keyB = await (pipeline as PrivatePipelineAccess).generateCacheKey({
+        audioFile: mockAudioFile('clip.wav', 'BBBBBBBBBB'),
+      });
+      expect(keyA).not.toBe(keyB);
+    });
+
+    it('same-content File objects (different names) share a key (correct cache hit)', async () => {
+      const pipeline = new MainPipeline();
+      const keyA = await (pipeline as PrivatePipelineAccess).generateCacheKey({
+        audioFile: mockAudioFile('take-1.wav', 'identical-audio'),
+      });
+      const keyB = await (pipeline as PrivatePipelineAccess).generateCacheKey({
+        audioFile: mockAudioFile('take-2.wav', 'identical-audio'),
+      });
+      expect(keyA).toBe(keyB);
     });
   });
 
