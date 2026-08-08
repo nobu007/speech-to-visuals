@@ -4,7 +4,7 @@
  * and validates SRT format integrity.
  */
 
-import { DEFAULT_FPS } from './scene-synchronizer';
+import { DEFAULT_FPS, msToFrame } from './scene-synchronizer';
 
 /**
  * Custom error for SRT parsing failures
@@ -60,17 +60,6 @@ export function parseTimestamp(timestamp: string): number {
   const milliseconds = parseInt(match[4], 10);
 
   return hours * 3600000 + minutes * 60000 + seconds * 1000 + milliseconds;
-}
-
-/**
- * Convert milliseconds to frame number at a given FPS.
- *
- * @param ms - Time in milliseconds
- * @param fps - Frames per second
- * @returns Frame number (rounded to nearest integer)
- */
-function msToFrame(ms: number, fps: number): number {
-  return Math.round((ms / 1000) * Math.max(fps, 1));
 }
 
 /**

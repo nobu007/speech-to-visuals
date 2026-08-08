@@ -29,7 +29,6 @@ const {
   KeyphraseOverlay,
   calculateKeyphraseOpacity,
   getActiveScene,
-  msToFrame,
   KEYPHRASE_FADE_IN_FRAMES,
   KEYPHRASE_FADE_OUT_FRAMES,
   MAX_KEYPHRASES_DISPLAY,
@@ -71,18 +70,6 @@ describe('KeyphraseOverlay', () => {
 
     it('should define MAX_KEYPHRASES_DISPLAY', () => {
       expect(MAX_KEYPHRASES_DISPLAY).toBe(5);
-    });
-  });
-
-  describe('msToFrame', () => {
-    it('should convert milliseconds to frame number', () => {
-      expect(msToFrame(1000, 30)).toBe(30);
-      expect(msToFrame(2000, 30)).toBe(60);
-      expect(msToFrame(500, 24)).toBe(12);
-    });
-
-    it('should handle zero milliseconds', () => {
-      expect(msToFrame(0, 30)).toBe(0);
     });
   });
 

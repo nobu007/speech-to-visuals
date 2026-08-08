@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { useCurrentFrame, useVideoConfig, AbsoluteFill, interpolate, spring } from 'remotion';
+import { msToFrame } from './scene-synchronizer';
 
 /** Number of frames for fade-in animation */
 export const KEYPHRASE_FADE_IN_FRAMES = 8;
@@ -57,13 +58,6 @@ export interface KeyphraseOverlayProps {
   tagColor?: string;
   /** Text color for tags (default: white) */
   color?: string;
-}
-
-/**
- * Convert milliseconds to frame number given fps.
- */
-export function msToFrame(ms: number, fps: number): number {
-  return Math.round((ms / 1000) * Math.max(fps, 1));
 }
 
 /**
