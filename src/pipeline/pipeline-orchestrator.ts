@@ -681,7 +681,7 @@ export class PipelineOrchestrator {
       layout: item.layout as DiagramLayout | undefined,
       startMs: (segment?.startMs ?? index * 5000) as number,
       durationMs:
-        segment?.endMs && segment?.startMs
+        segment?.endMs != null && segment?.startMs != null
           ? (segment.endMs as number) - (segment.startMs as number)
           : 5000,
       summary: (segment?.summary ?? `Scene ${index + 1}`) as string,
