@@ -401,4 +401,29 @@ describe('MultiFormatExporter', () => {
       expect(blobSpy).toHaveBeenCalledWith(canvasStub, 'image/png', 0.5);
     });
   });
+
+  describe('node fill color — WYSIWYG parity with on-screen render', () => {
+    // The on-screen DiagramScene renders nodes with #3b82f6 (the canonical
+    // diagram blue, also used by Video.tsx / DiagramVideo / advanced-layouts).
+    // Downloads must use the same fill — not a different blue — so the exported
+    // file matches what the user sees in the rendered video.
+    const ON_SCREEN_NODE_FILL = '#3b82f6';
+
+    it('SVG node fill matches the on-screen canonical color', async () => {
+      const scene = makeScene({ id: 'svg-color-parity' });
+      const result = await exporter.export(scene, { format: 'svg' });
+      const svg = await (result.data as Blob).text();
+      expect(svg).toContain(`fill="${ON_SCREEN_NODE_FILL}"`);
+      expect(svg).not.toContain('#4A90E2'); // previous divergent color
+    });
+
+    it('PDF node fill matches the on-screen canonical color', async () => {
+      const scene = makeScene({ id: 'pdf-color-parity' });
+      const result = await exporter.export(scene, { format: 'pdf' });
+      const pdf = await (result.data as Blob).text();
+      // #3b82f6 = rgb(59,130,246) ≈ 0.23 0.51 0.96 in normalized PDF RGB
+      expect(pdf).toContain('0.23 0.51 0.96 rg');
+      expect(pdf).not.toContain('0.29 0.56 0.89 rg'); // previous divergent color
+    });
+  });
 });

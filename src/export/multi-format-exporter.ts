@@ -307,7 +307,7 @@ export class MultiFormatExporter {
       const h = getNodeHeight(node);
 
       svg += `    <g id="${escapeXml(node.id)}">
-      <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#4A90E2" stroke="#2E5C8A" stroke-width="2" rx="5"/>
+      <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#3b82f6" stroke="#2E5C8A" stroke-width="2" rx="5"/>
       <text x="${x + w / 2}" y="${y + h / 2}" fill="white" font-size="14" text-anchor="middle" dominant-baseline="middle">${escapeXml(node.label)}</text>
     </g>
 `;
@@ -392,8 +392,9 @@ export class MultiFormatExporter {
       const w = getNodeWidth(node);
       const h = getNodeHeight(node);
 
-      // Node rectangle
-      ctx.fillStyle = '#4A90E2';
+      // Node rectangle (#3b82f6 — matches the on-screen DiagramScene fill so
+      // downloads are WYSIWYG with the rendered video)
+      ctx.fillStyle = '#3b82f6';
       ctx.strokeStyle = '#2E5C8A';
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -499,8 +500,8 @@ export class MultiFormatExporter {
       const rx = x;
       const ry = pageHeight - y - h;
 
-      // Node background (#4A90E2)
-      parts.push('0.29 0.56 0.89 rg');
+      // Node background (#3b82f6 — matches on-screen DiagramScene fill)
+      parts.push('0.23 0.51 0.96 rg');
       parts.push('0.18 0.36 0.54 RG');
       parts.push('2 w');
       parts.push(`${rx} ${ry} ${w} ${h} re B`);
