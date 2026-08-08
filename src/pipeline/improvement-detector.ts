@@ -55,7 +55,6 @@ export class ImprovementDetector {
    */
   generateReport(): ImprovementReport {
     const qualityReport = this.qualityMonitor.generateReport();
-    const baseline = this.qualityMonitor.compareToBaseline();
     const opportunities = this.detectOpportunities();
     const trends = this.analyzeTrends();
     const overallHealth = this.assessOverallHealth(qualityReport, trends);
