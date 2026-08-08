@@ -209,6 +209,86 @@ describe('MultiFormatExporter', () => {
     });
   });
 
+  describe('cross-format WYSIWYG parity', () => {
+    // Guards the "a field rendered on screen is dropped/distorted by a
+    // download format" class. The on-screen NodeAnimation positions each
+    // node by its top-LEFT corner (left: node.x, top: node.y); every export
+    // format must agree on that convention, and every node/edge label that
+    // the producer emits must reach each downloadable format.
+
+    it('renders the node rect at the same top-left position in SVG and PDF', async () => {
+      // node.x=200, w=120 → corner convention puts the rect at x=200;
+      // a center convention would put it at 200 - 120/2 = 140.
+      const scene = makeScene({
+        id: 'parity-pos',
+        layout: {
+          nodes: [{ id: 'n1', label: 'Solo', x: 200, y: 150, w: 120, h: 60 }],
+          edges: [],
+        },
+      });
+
+      const svg = await (await exporter.export(scene, { format: 'svg' })).data as Blob;
+      const svgText = await svg.text();
+      expect(svgText).toContain('x="200"');
+      expect(svgText).toContain('y="150"');
+      expect(svgText).not.toContain('x="140"');
+
+      const pdfText = await (await exporter.export(scene, { format: 'pdf' })).data as Blob;
+      const pdf = await pdfText.text();
+      // PDF `re` operator: "<x> <y> <w> <h> re" — corner x is 200, not 140.
+      expect(pdf).toMatch(/200 \d+ 120 60 re/);
+      expect(pdf).not.toMatch(/140 \d+ 120 60 re/);
+    });
+
+    it('draws edges between node centers in both SVG and PDF', async () => {
+      // n1{x:0,w:100} center=50, n2{x:200,w:100} center=250.
+      const scene = makeScene({
+        id: 'parity-edge',
+        layout: {
+          nodes: [
+            { id: 'n1', label: 'A', x: 0, y: 0, w: 100, h: 40 },
+            { id: 'n2', label: 'B', x: 200, y: 0, w: 100, h: 40 },
+          ],
+          edges: [{ from: 'n1', to: 'n2', label: 'next', points: [] }],
+        },
+      });
+
+      const svgText = await (await (await exporter.export(scene, { format: 'svg' })).data as Blob).text();
+      expect(svgText).toContain('x1="50"');
+      expect(svgText).toContain('x2="250"');
+
+      const pdf = await (await (await exporter.export(scene, { format: 'pdf' })).data as Blob).text();
+      // Edge path "<fx> <y> m <tx> <y> l S" connects centers (50, 250),
+      // not the raw corners (0, 200) the previous center-convention used.
+      expect(pdf).toMatch(/50 \d+ m 250 \d+ l S/);
+      expect(pdf).not.toMatch(/0 \d+ m 200 \d+ l S/);
+    });
+
+    it('every node and edge label reaches SVG, PDF, and JSON (no field dropped)', async () => {
+      const scene = makeScene({ id: 'parity-labels' });
+      // makeScene ships nodes Start/End and a 'next' edge — assert each
+      // producer-rendered label is present in every download format.
+      const svg = await (await exporter.export(scene, { format: 'svg' })).data as Blob;
+      const pdf = await (await exporter.export(scene, { format: 'pdf' })).data as Blob;
+      const json = await (await exporter.export(scene, { format: 'json' })).data as Blob;
+
+      const svgText = await svg.text();
+      const pdfText = await pdf.text();
+      const jsonText = await json.text();
+
+      for (const label of ['Start', 'End', 'next']) {
+        expect(svgText).toContain(label);
+        expect(pdfText).toContain(label);
+      }
+      // JSON is structurally complete — labels are reachable via the nodes/edges arrays.
+      const parsed = JSON.parse(jsonText);
+      const nodeLabels = parsed.layout.nodes.map((n: { label: string }) => n.label);
+      const edgeLabels = parsed.layout.edges.map((e: { label?: string }) => e.label);
+      expect(nodeLabels).toEqual(expect.arrayContaining(['Start', 'End']));
+      expect(edgeLabels).toEqual(expect.arrayContaining(['next']));
+    });
+  });
+
   describe('JSON export', () => {
     it('exports scene data as JSON', async () => {
       const scene = makeScene({ id: 'json-test', content: 'test content' });

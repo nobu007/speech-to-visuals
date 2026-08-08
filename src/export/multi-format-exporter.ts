@@ -462,10 +462,19 @@ export class MultiFormatExporter {
       const from = nodes.find((n) => n.id === edge.from);
       const to = nodes.find((n) => n.id === edge.to);
       if (from && to) {
-        parts.push(`${from.x || 0} ${pageHeight - (from.y || 0)} m ${(to.x || 0)} ${pageHeight - (to.y || 0)} l S`);
+        // node.x/y is the top-LEFT corner (matching generateSVG/renderToCanvas
+        // and the on-screen NodeAnimation), so the center is corner + half
+        // size. The previous form used the raw corner as the endpoint, which
+        // only matched a CENTER convention — shifting every edge endpoint
+        // up-left by half a node relative to the other formats.
+        const fx = (from.x || 0) + getNodeWidth(from) / 2;
+        const fy = (from.y || 0) + getNodeHeight(from) / 2;
+        const tx = (to.x || 0) + getNodeWidth(to) / 2;
+        const ty = (to.y || 0) + getNodeHeight(to) / 2;
+        parts.push(`${fx} ${pageHeight - fy} m ${tx} ${pageHeight - ty} l S`);
         if (edge.label) {
-          const midX = ((from.x || 0) + (to.x || 0)) / 2;
-          const midY = pageHeight - ((from.y || 0) + (to.y || 0)) / 2;
+          const midX = (fx + tx) / 2;
+          const midY = pageHeight - (fy + ty) / 2;
           parts.push('BT');
           parts.push('/F1 12 Tf');
           parts.push('0.4 0.4 0.4 rg');
@@ -482,9 +491,13 @@ export class MultiFormatExporter {
       const y = node.y || 0;
       const w = getNodeWidth(node);
       const h = getNodeHeight(node);
-      // PDF rect: lower-left corner
-      const rx = x - w / 2;
-      const ry = pageHeight - y - h / 2;
+      // PDF rect lower-left corner. node.x/y is the top-left corner (matching
+      // generateSVG/renderToCanvas and the on-screen NodeAnimation); flip to
+      // PDF's bottom-left origin. The previous `x - w/2` / `y - h/2` treated
+      // node.x/y as the CENTER, shifting every node up-left by half its size
+      // relative to SVG/PNG and the on-screen render.
+      const rx = x;
+      const ry = pageHeight - y - h;
 
       // Node background (#4A90E2)
       parts.push('0.29 0.56 0.89 rg');
@@ -492,11 +505,11 @@ export class MultiFormatExporter {
       parts.push('2 w');
       parts.push(`${rx} ${ry} ${w} ${h} re B`);
 
-      // Node label
+      // Node label at the rect center (corner + half size), matching SVG.
       parts.push('BT');
       parts.push('/F1 14 Tf');
       parts.push('1 1 1 rg');
-      parts.push(`${x} ${pageHeight - y + 2} Td`);
+      parts.push(`${x + w / 2} ${pageHeight - (y + h / 2)} Td`);
       parts.push(`(${this.escapePDFString(node.label)}) Tj`);
       parts.push('ET');
     }
