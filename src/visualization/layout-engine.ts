@@ -94,7 +94,16 @@ export class LayoutEngine extends BaseLayoutEngine {
         this.logger.info('🔧 Using complex layout engine for large diagram...');
         // Safely check if complexEngine is initialized
         if (this.complexEngine) {
-          return await this.complexEngine.generateComplexLayout(nodes, edges, diagramType);
+          const complexResult = await this.complexEngine.generateComplexLayout(nodes, edges, diagramType);
+          // ComplexLayoutEngine bypasses _logAndEvaluateLayout and never sets
+          // `confidence` (the canonical path sets it via calculateLayoutConfidence).
+          // Route its result through the same evaluation so large diagrams get a
+          // real, quality-derived confidence — otherwise SimplePipeline consumers
+          // default-mask the missing field (constant 0.8 layout quality,
+          // scene.confidence never lowered). Same DROPS class as e0f269af.
+          return complexResult.success
+            ? this._evaluateLayoutResult(complexResult, diagramType)
+            : complexResult;
         } else {
           // Fallback to simple mode if complexEngine is not initialized (e.g., in simple mode)
           this.logger.warn('Complex engine not initialized, falling back to simple mode layout.');
@@ -171,25 +180,40 @@ export class LayoutEngine extends BaseLayoutEngine {
       this.logger.info(`✅ Layout completed within performance target: ${processingTime.toFixed(0)}ms`);
     }
 
-    const result: LayoutResult = {
-      layout,
-      bounds,
-      processingTime,
-      success: true,
-      confidence: this.layoutEvaluator.calculateLayoutConfidence(layout, processingTime)
+    return this._evaluateLayoutResult(
+      { layout, bounds, processingTime, success: true },
+      diagramType
+    );
+  }
+
+  /**
+   * Attach the layout confidence + Custom-Instructions compliance evaluation to
+   * a LayoutResult. Single source for BOTH layout paths: the standard path (via
+   * _logAndEvaluateLayout) and the complex path (>=20-node diagrams routed to
+   * ComplexLayoutEngine, which returns a result without `confidence`). Keeps the
+   * confidence + compliance contract identical across paths so neither can
+   * silently drop the layout-quality metric.
+   */
+  private async _evaluateLayoutResult(
+    result: LayoutResult,
+    diagramType: DiagramType
+  ): Promise<LayoutResult> {
+    const evaluated: LayoutResult = {
+      ...result,
+      confidence: this.layoutEvaluator.calculateLayoutConfidence(result.layout, result.processingTime),
     };
 
     // 🎯 Custom Instructions: compliance evaluation (Phase 4 requirements).
     // Previously awaited as a fire-and-forget void; the evaluator now returns the
     // compliance result so failures (overlaps, out-of-bounds, slow, empty) are
     // surfaced instead of silently dropped.
-    const compliance = await this.layoutEvaluator.evaluateLayoutWithCustomInstructions(result, diagramType);
+    const compliance = await this.layoutEvaluator.evaluateLayoutWithCustomInstructions(evaluated, diagramType);
     if (!compliance.passed) {
       this.logger.warn(
         `⚠️ Layout compliance check failed (score ${compliance.complianceScore.toFixed(2)}): ${compliance.failures.join(', ') || 'unknown criteria'}`
       );
     }
-    return result;
+    return evaluated;
   }
 
 
