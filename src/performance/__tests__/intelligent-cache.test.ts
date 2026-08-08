@@ -1291,6 +1291,34 @@ describe('IntelligentCache', () => {
       await cache.store('ps-test', { v: 1 }, makeMetadata());
       expect(cache.getStats().performanceScore).toBeGreaterThanOrEqual(0);
     });
+
+    it('derives preload effectiveness from the real request count, not the rate fields', () => {
+      // updatePerformanceScore previously computed totalRequests as
+      // `hitRate + missRate + 1` — feeding the ratio fields (each in [0,1],
+      // summing to ~1) back into what should be a request COUNT. That
+      // collapsed the denominator to ~2 regardless of real volume, so
+      // preloadEffectivenessScore saturated at a single preload hit. Same
+      // self-referential class as the updateHitRate bug fixed in 2428e472;
+      // that fix left this sibling method untouched.
+      const s = internals(cache).stats;
+      // Zero every score component EXCEPT preload effectiveness:
+      s.hitRate = 0;                       // hitRateScore = min(0 * 1.2, 1) = 0
+      s.missRate = 0;
+      s.averageRetrievalTime = 30;         // speedScore = 1 - 30/30 = 0
+      s.memoryUsage = 50 * 1024 * 1024;    // memoryEfficiencyScore = 1 - max/max = 0
+      s.compressionRatio = 0;              // compressionEfficiencyScore = 0
+      s.evictionCount = 1;                 // stabilityScore = 1 - 1/max(0,1) = 0
+      // Real request volume vs. what the buggy denominator would read:
+      s.totalHits = 8;
+      s.totalMisses = 2;
+      s.preloadHits = 4;
+
+      internals(cache).updatePerformanceScore();
+
+      // Correct: preloadEffectiveness = min(4 / (8 + 2) * 2, 1) = 0.8 → 0.8 * 0.10 = 0.08.
+      // Buggy:    preloadEffectiveness = min(4 / (0 + 0 + 1) * 2, 1) = 1.0 → 1.0 * 0.10 = 0.10.
+      expect(cache.getStats().performanceScore).toBeCloseTo(0.08, 5);
+    });
   });
 
   // ---- Memory usage ----

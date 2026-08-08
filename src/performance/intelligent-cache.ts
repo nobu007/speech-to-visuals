@@ -431,7 +431,13 @@ export class IntelligentCache {
     const { hitRate, averageRetrievalTime, compressionRatio, memoryUsage, preloadHits, evictionCount } = this.stats;
     const maxMemory = 50 * 1024 * 1024; // 50MB target
     const maxRetrievalTime = 30; // Optimized target: 30ms
-    const totalRequests = this.stats.hitRate + this.stats.missRate + 1;
+    // Derive total request volume from the cumulative COUNTS, never from the
+    // rate fields. The previous form (`hitRate + missRate + 1`) fed the ratio
+    // fields (each in [0,1], summing to ~1) back into what should be a count,
+    // collapsing the denominator to ~2 regardless of real volume — the same
+    // self-referential class as the updateHitRate bug fixed in 2428e472, which
+    // saturated preloadEffectivenessScore at a single preload hit.
+    const totalRequests = (this.stats.totalHits ?? 0) + (this.stats.totalMisses ?? 0);
 
     // Enhanced scoring with additional factors
     const hitRateScore = Math.min(hitRate * 1.2, 1); // Bonus for high hit rates
