@@ -210,6 +210,16 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
  * severity, recoverability, and suggested actions.
  */
 export class ErrorClassifier {
+  /**
+   * Upper bound on retained classification records (FIFO eviction).
+   *
+   * `classificationHistory` accumulates one entry per `classify` call, and the
+   * instance held by the `simplePipeline` singleton (src/pipeline/simple-pipeline.ts)
+   * classifies every pipeline error — so without a cap the array (and the
+   * `originalError` references it holds) grows without bound for the lifetime of
+   * the process, and `getStatistics()` degrades as an O(n) full scan.
+   */
+  private static readonly MAX_CLASSIFICATION_HISTORY = 200;
   private classificationHistory: ClassifiedError[] = [];
 
   /**
@@ -239,6 +249,11 @@ export class ErrorClassifier {
     };
 
     this.classificationHistory.push(classified);
+    // `classify` is the ONLY push site (classifyBatch delegates here), so
+    // enforcing the cap here bounds every ingest path including batch loops.
+    if (this.classificationHistory.length > ErrorClassifier.MAX_CLASSIFICATION_HISTORY) {
+      this.classificationHistory.shift();
+    }
     return classified;
   }
 

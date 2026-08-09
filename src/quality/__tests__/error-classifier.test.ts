@@ -407,4 +407,38 @@ describe('ErrorClassifier', () => {
       });
     }
   });
+
+  // ---------------------------------------------------------------------------
+  // Capacity: classificationHistory must be bounded on the singleton path (09o)
+  // The instance held by simplePipeline classifies every pipeline error; without
+  // a cap the history (and the O(n) getStatistics scan) grows without bound.
+  // ---------------------------------------------------------------------------
+
+  describe('classificationHistory capacity', () => {
+    it('caps retained history at 200 via FIFO eviction on classify()', () => {
+      const classifier = new ErrorClassifier();
+      // classify() is the only ingest path; push well past the cap.
+      for (let i = 0; i < 250; i++) {
+        classifier.classify(new Error(`boom ${i}`));
+      }
+      expect(classifier.getStatistics().total).toBe(200);
+    });
+
+    it('caps history when filled via classifyBatch (delegated ingest path)', () => {
+      const classifier = new ErrorClassifier();
+      const errors = Array.from({ length: 250 }, (_, i) => new Error(`batch ${i}`));
+      classifier.classifyBatch(errors);
+      // classifyBatch delegates to classify(), so the same cap applies.
+      expect(classifier.getStatistics().total).toBe(200);
+    });
+
+    it('does not truncate history below the cap', () => {
+      const classifier = new ErrorClassifier();
+      for (let i = 0; i < 100; i++) {
+        classifier.classify(new Error(`ok ${i}`));
+      }
+      // Under the cap, nothing is evicted.
+      expect(classifier.getStatistics().total).toBe(100);
+    });
+  });
 });
