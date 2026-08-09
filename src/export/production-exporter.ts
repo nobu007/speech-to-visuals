@@ -8,6 +8,7 @@ import { randomUUID } from 'crypto';
 import { EnhancedSceneGraph, RenderOptions } from '@/visualization/advanced-visual-engine';
 import { SceneGraph } from '@/types/diagram';
 import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
+import { BATCH_LIMITS } from '@/config/limits';
 import { logger } from '../utils/logger';
 import { PipelineConfigError } from '@/pipeline/pipeline-errors';
 import type { ExportArtifactStore } from './export-artifact-store';
@@ -252,6 +253,14 @@ export class ProductionExporter {
       }
     };
 
+    // Prune terminal jobs BEFORE inserting so the in-memory jobs Map (which is
+    // never otherwise deleted from) cannot grow without bound on the
+    // `productionExporter` singleton. Mirrors the sibling job-stores in
+    // src/api/batch-processing-api.ts (JobStore.pruneOldJobs) and
+    // src/api/routes/batch.ts, which share the same MAX_STORED_JOBS source —
+    // without this, completed/error jobs accumulate forever for status lookups.
+    this.pruneCompletedJobs();
+
     this.jobs.set(jobId, job);
 
     // Start processing if capacity available
@@ -260,6 +269,28 @@ export class ProductionExporter {
     }
 
     return jobId;
+  }
+
+  /**
+   * Evict terminal ('complete' / 'error') jobs once the store exceeds
+   * `BATCH_LIMITS.MAX_STORED_JOBS`. Non-terminal jobs (queued / processing)
+   * are always retained so active/pollable jobs are never dropped. Same policy
+   * + shared cap constant as the sibling JobStore implementations.
+   *
+   * Note: like the siblings, this cannot reclaim jobs that get permanently
+   * stuck in 'processing' — only terminal ones — which is the accepted
+   * trade-off for never deleting a job a client may still be polling.
+   */
+  private pruneCompletedJobs(): void {
+    if (this.jobs.size <= BATCH_LIMITS.MAX_STORED_JOBS) return;
+    const terminal = new Set<ExportJob['status']>(['complete', 'error']);
+    for (const [id, job] of this.jobs) {
+      if (terminal.has(job.status)) {
+        this.jobs.delete(id);
+        this.activeJobs.delete(id);
+        if (this.jobs.size <= BATCH_LIMITS.MAX_STORED_JOBS) return;
+      }
+    }
   }
 
   /**

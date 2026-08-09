@@ -12,6 +12,7 @@
 
 import { ProductionExporter } from '../production-exporter';
 import { PipelineConfigError } from '@/pipeline/pipeline-errors';
+import { BATCH_LIMITS } from '@/config/limits';
 import type { EnhancedSceneGraph } from '@/visualization/advanced-visual-engine';
 
 // Minimal valid scene for testing
@@ -211,6 +212,58 @@ describe('ProductionExporter', () => {
       // Cleanup
       exporter.cancelJob(id1);
       exporter.cancelJob(id2);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Capacity: the in-memory jobs Map must be pruned (09o)
+  // The `productionExporter` singleton never deletes completed jobs, so without
+  // pruning the Map grows without bound for status lookups. The sibling
+  // JobStore (batch-processing-api.ts) caps via BATCH_LIMITS.MAX_STORED_JOBS;
+  // ProductionExporter now mirrors it (terminal-only eviction).
+  // ---------------------------------------------------------------------------
+
+  describe('jobs Map capacity (pruneCompletedJobs)', () => {
+    it('prunes terminal jobs when the store exceeds MAX_STORED_JOBS', async () => {
+      const exporter = new ProductionExporter();
+      // Prevent fire-and-forget processing so the test stays deterministic.
+      (exporter as unknown as { maxConcurrentJobs: number }).maxConcurrentJobs = 0;
+      const jobs = (exporter as unknown as { jobs: Map<string, { status: string }> }).jobs;
+
+      // Seed well over the cap with terminal jobs that would otherwise accumulate forever.
+      const seeded = BATCH_LIMITS.MAX_STORED_JOBS + 50;
+      for (let i = 0; i < seeded; i++) {
+        jobs.set(`seed-complete-${i}`, { status: 'complete' });
+      }
+      expect(jobs.size).toBe(seeded);
+
+      // Creating one more job runs pruneCompletedJobs() before the insert.
+      await exporter.createExportJob('prune-test', [createMinimalScene()], baseOptions);
+
+      // Prune trims back to the cap (oldest terminal jobs evicted), then the new job is inserted.
+      expect(jobs.size).toBe(BATCH_LIMITS.MAX_STORED_JOBS + 1);
+      expect(jobs.has('seed-complete-0')).toBe(false);   // oldest terminal evicted
+      expect(jobs.has('seed-complete-49')).toBe(false);  // 50 evicted total
+      expect(jobs.has('seed-complete-50')).toBe(true);   // remainder retained
+    });
+
+    it('never prunes non-terminal (queued) jobs even when over the cap', async () => {
+      const exporter = new ProductionExporter();
+      (exporter as unknown as { maxConcurrentJobs: number }).maxConcurrentJobs = 0;
+      const jobs = (exporter as unknown as { jobs: Map<string, { status: string }> }).jobs;
+
+      // Over-cap but ALL non-terminal — the documented stuck-job trade-off:
+      // a job a client may still poll must never be dropped.
+      const seeded = BATCH_LIMITS.MAX_STORED_JOBS + 5;
+      for (let i = 0; i < seeded; i++) {
+        jobs.set(`seed-queued-${i}`, { status: 'queued' });
+      }
+
+      await exporter.createExportJob('no-prune', [createMinimalScene()], baseOptions);
+
+      // Nothing terminal to reclaim → every queued job retained + the new job.
+      expect(jobs.size).toBe(seeded + 1);
+      expect(jobs.has('seed-queued-0')).toBe(true);
     });
   });
 });
