@@ -687,6 +687,14 @@ export class PipelineOrchestrator {
           : 5000,
       summary: (segment?.summary ?? `Scene ${index + 1}`) as string,
       keyphrases: (segment?.keyphrases ?? []) as string[],
+      // Wire the detector's per-scene confidence (0-1) onto the scene so
+      // downstream consumers (quality-score `scene.confidence || 0`,
+      // video-generator `?? 0.8`) read the real value instead of a constant
+      // fallback. Mirrors MainPipeline.prepareScenes / prepareScenesEnhanced;
+      // without this, the orchestrator path silently drops the 30-point
+      // "Scene confidence" score component (masked to 0) and the low-confidence
+      // validation warning never fires.
+      confidence: analysis?.confidence as number | undefined,
     };
   }
 
