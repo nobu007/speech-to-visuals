@@ -141,6 +141,19 @@ describe('QualityMonitor', () => {
       expect(monitor.getQualityTrends().overall).toHaveLength(2);
     });
 
+    it('caps iterationHistory at MAX_HISTORY_SIZE (no-cap-sibling regression)', async () => {
+      // assessPipelineQuality pushes one assessment per call via
+      // logAssessment on a process-lifetime singleton; without a cap this
+      // grows forever. Drive it past the cap and assert the FIFO ceiling.
+      const OVER = 100 + 25;
+      for (let i = 0; i < OVER; i++) {
+        await monitor.assessPipelineQuality(makeResult());
+        monitor.nextIteration();
+      }
+
+      expect(monitor.getQualityTrends().overall).toHaveLength(100);
+    });
+
     it('returns overallScore=0 when assessment throws', async () => {
       // Force an error by passing null as result (will throw in evaluateRecursiveDevelopmentCompliance)
       const assessment = await monitor.assessPipelineQuality(null as unknown as PipelineResult);

@@ -6,6 +6,17 @@ import { nodesOverlap as producerNodesOverlap } from '@/visualization/layout-uti
 import { safeArray } from '../lib/safe-array';
 
 /**
+ * FIFO cap for `iterationHistory`. This module-level singleton (the
+ * `qualityMonitor` export) is pushed once per pipeline run via
+ * `assessPipelineQuality` → `logAssessment` (MainPipeline calls it at L462 and
+ * L821), and `nextIteration` only bumps a counter — it never trims — so without
+ * a cap the history grows without bound for the process lifetime. Mirrors the
+ * sibling `src/pipeline/quality-monitor.ts` (`MAX_HISTORY_SIZE = 100`); the two
+ * are separate monitors (0-1 vs 0-100 scale) but share the entry count.
+ */
+const MAX_HISTORY_SIZE = 100;
+
+/**
  * Quality Assessment Interfaces
  */
 export interface QualityMetrics {
@@ -646,6 +657,13 @@ export class QualityMonitor {
 
     // Store assessment for historical comparison
     this.iterationHistory.push(assessment);
+
+    // FIFO cap — no-cap-sibling capacity class. Without this the
+    // process-lifetime singleton grows one entry per pipeline run forever;
+    // `getQualityTrends` / `exportIterationHistory` are O(n) over the lot.
+    if (this.iterationHistory.length > MAX_HISTORY_SIZE) {
+      this.iterationHistory.shift();
+    }
 
     // Log to iteration file (in real implementation)
     await this.appendToIterationLog(assessment);
