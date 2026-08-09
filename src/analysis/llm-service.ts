@@ -320,12 +320,8 @@ export class LLMService {
         const responseTime = Date.now() - startTime;
         this.recordResponseTime(responseTime);
 
-        // Track by model
-        if (primaryModel === 'gemini-2.5-flash') {
-          this.modelMetrics.flashResponseTimes.push(responseTime);
-        } else {
-          this.modelMetrics.proResponseTimes.push(responseTime);
-        }
+        // Track by model (capped — see recordModelResponseTime)
+        this.recordModelResponseTime(primaryModel, responseTime);
 
         // Parse result
         let parsedData: T;
@@ -430,12 +426,8 @@ export class LLMService {
         const responseTime = Date.now() - startTime;
         this.recordResponseTime(responseTime);
 
-        // Track by model
-        if (fallbackModel === 'gemini-2.5-flash') {
-          this.modelMetrics.flashResponseTimes.push(responseTime);
-        } else {
-          this.modelMetrics.proResponseTimes.push(responseTime);
-        }
+        // Track by model (capped — see recordModelResponseTime)
+        this.recordModelResponseTime(fallbackModel, responseTime);
 
         // Parse result
         let parsedData: T;
@@ -700,6 +692,30 @@ export class LLMService {
 
     if (this.responseTimeHistory.length > this.MAX_HISTORY_SIZE) {
       this.responseTimeHistory.shift();
+    }
+  }
+
+  /**
+   * Record per-model response time, capped to MAX_HISTORY_SIZE.
+   *
+   * Mirrors `recordResponseTime`'s cap. Without it, `flashResponseTimes` and
+   * `proResponseTimes` grew unboundedly — one entry per Gemini call on the
+   * long-lived `llmService` module singleton (imported by the API server) —
+   * while their sibling `responseTimeHistory` stayed bounded. The unbounded
+   * arrays also made `getStats()`/`calculateTimeSavings()` degrade to O(n) on
+   * every read. Same "missed sibling" capacity class as LLMCache vs
+   * IntelligentCache: the cap exists on one collection but was forgotten on
+   * its same-module siblings.
+   */
+  private recordModelResponseTime(model: string, timeMs: number): void {
+    const times =
+      model === 'gemini-2.5-flash'
+        ? this.modelMetrics.flashResponseTimes
+        : this.modelMetrics.proResponseTimes;
+    times.push(timeMs);
+
+    if (times.length > this.MAX_HISTORY_SIZE) {
+      times.shift();
     }
   }
 
