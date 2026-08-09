@@ -63,6 +63,15 @@ export interface ErrorGuidance {
  * User-Guided Error Recovery Manager
  */
 export class UserGuidedErrorRecovery {
+  /**
+   * Upper bound on retained error records (FIFO eviction).
+   *
+   * The exported `userGuidedErrorRecovery` singleton accumulates one entry per
+   * `analyzeError` call for the lifetime of the process; without a cap the
+   * history (and `getErrorStatistics()`, an O(n) full scan) grows unbounded on
+   * a long-running API server.
+   */
+  private static readonly MAX_ERROR_HISTORY = 200;
   private errorHistory: Array<{
     timestamp: string;
     category: ErrorCategory;
@@ -85,6 +94,11 @@ export class UserGuidedErrorRecovery {
       message: error.message,
       recovered: false,
     });
+    // `analyzeError` is the ONLY push site for errorHistory, so enforcing the
+    // cap here bounds the singleton's growth on every ingest path.
+    if (this.errorHistory.length > UserGuidedErrorRecovery.MAX_ERROR_HISTORY) {
+      this.errorHistory.shift();
+    }
 
     const guidance: ErrorGuidance = {
       error,

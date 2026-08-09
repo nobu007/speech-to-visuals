@@ -364,4 +364,31 @@ describe('UserGuidedErrorRecovery', () => {
       expect(guidance.userMessage).toContain('quantum decoherence');
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // Capacity: errorHistory must be bounded on the singleton path (09o)
+  // The exported `userGuidedErrorRecovery` singleton accumulates one entry per
+  // analyzeError() call for the process lifetime; without a cap the history
+  // (and the O(n) getErrorStatistics scan) grows without bound.
+  // ---------------------------------------------------------------------------
+
+  describe('errorHistory capacity', () => {
+    it('caps retained history at 200 via FIFO eviction', () => {
+      const recovery = new UserGuidedErrorRecovery();
+      // analyzeError() is the only ingest path; push well past the cap.
+      for (let i = 0; i < 250; i++) {
+        recovery.analyzeError(new Error(`failure ${i}`));
+      }
+      expect(recovery.getErrorStatistics().total).toBe(200);
+    });
+
+    it('does not truncate history below the cap', () => {
+      const recovery = new UserGuidedErrorRecovery();
+      for (let i = 0; i < 50; i++) {
+        recovery.analyzeError(new Error(`failure ${i}`));
+      }
+      // Under the cap, nothing is evicted.
+      expect(recovery.getErrorStatistics().total).toBe(50);
+    });
+  });
 });
