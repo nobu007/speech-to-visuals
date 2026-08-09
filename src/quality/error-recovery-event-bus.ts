@@ -14,6 +14,7 @@
  */
 
 import { logger } from '@/utils/logger';
+import { CappedArray } from '@/lib/capped-array';
 
 // ---------------------------------------------------------------------------
 // Event types
@@ -133,12 +134,16 @@ type EventListener<T> = (payload: T) => void;
 export class ErrorRecoveryEventBus {
   private readonly listeners = new Map<string, Set<EventListener<unknown>>>();
   private readonly onceListeners = new Map<string, Set<EventListener<unknown>>>();
-  private readonly history: Array<{ event: string; payload: unknown; timestamp: number }> = [];
+  // CappedArray makes the maxHistory cap STRUCTURAL: every push auto-evicts the
+  // oldest entry, so a future second emit/push path can never grow history past
+  // the cap (the recurring "no-cap sibling" defect class).
+  private readonly history: CappedArray<{ event: string; payload: unknown; timestamp: number }>;
   private readonly maxHistory: number;
   private muted = false;
 
   constructor(options?: { maxHistory?: number }) {
     this.maxHistory = options?.maxHistory ?? 200;
+    this.history = new CappedArray(this.maxHistory);
   }
 
   // ---- Public API ---------------------------------------------------------
@@ -198,11 +203,8 @@ export class ErrorRecoveryEventBus {
   ): void {
     if (this.muted) return;
 
-    // Record in history
+    // Record in history (CappedArray auto-evicts beyond maxHistory)
     this.history.push({ event, payload, timestamp: Date.now() });
-    if (this.history.length > this.maxHistory) {
-      this.history.shift();
-    }
 
     // Deliver to persistent listeners
     const listeners = this.listeners.get(event);
@@ -260,7 +262,7 @@ export class ErrorRecoveryEventBus {
    * Clear event history.
    */
   clearHistory(): void {
-    this.history.length = 0;
+    this.history.clear();
   }
 
   /**

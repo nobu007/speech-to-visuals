@@ -5,6 +5,8 @@
  * grouped by stage (analysis, fallback, cache-warmup).
  */
 
+import { CappedArray } from '@/lib/capped-array';
+
 export type ModelType = 'gemini-2.5-flash' | 'gemini-2.5-pro';
 
 export type StageType = 'analysis' | 'fallback' | 'cache-warmup';
@@ -31,7 +33,10 @@ export interface TokenUsageSummary {
 let idCounter = 0;
 
 export class TokenUsageTracker {
-  private records: TokenUsageRecord[] = [];
+  // CappedArray makes the maxRecords cap STRUCTURAL: every push auto-evicts the
+  // oldest record, so a future second record path can never grow history past
+  // the cap (the recurring "no-cap sibling" defect class).
+  private records: CappedArray<TokenUsageRecord>;
   private maxRecords: number;
   private maxTokensPerRequest: number;
   private tokenWarnings: Array<{ requestId: string; totalTokens: number; maxTokens: number }> = [];
@@ -39,6 +44,7 @@ export class TokenUsageTracker {
   constructor(options?: { maxRecords?: number; maxTokensPerRequest?: number }) {
     this.maxRecords = options?.maxRecords ?? 10_000;
     this.maxTokensPerRequest = options?.maxTokensPerRequest ?? Infinity;
+    this.records = new CappedArray(this.maxRecords);
   }
 
   /**
@@ -66,11 +72,6 @@ export class TokenUsageTracker {
     };
 
     this.records.push(record);
-
-    // Trim oldest records if over limit
-    if (this.records.length > this.maxRecords) {
-      this.records.shift();
-    }
 
     // Check token limit per request
     if (totalTokens > this.maxTokensPerRequest) {
@@ -135,7 +136,7 @@ export class TokenUsageTracker {
    * Clear all records and warnings.
    */
   reset(): void {
-    this.records = [];
+    this.records.clear();
     this.tokenWarnings = [];
   }
 }

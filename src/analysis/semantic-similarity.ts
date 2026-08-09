@@ -13,6 +13,7 @@
  */
 
 import { clamp01 } from '@/utils/guards';
+import { CappedArray } from '@/lib/capped-array';
 
 /** Maximum number of similarity scores kept in memory */
 const MAX_SCORE_HISTORY = 1000;
@@ -192,7 +193,10 @@ export class SemanticMetricsTracker {
   private exactHits = 0;
   private semanticHits = 0;
   private misses = 0;
-  private similarityScores: number[] = [];
+  // CappedArray makes the MAX_SCORE_HISTORY cap STRUCTURAL: every push
+  // auto-evicts the oldest score, so a future second push path can never grow
+  // history past the cap (the recurring "no-cap sibling" defect class).
+  private similarityScores = new CappedArray<number>(MAX_SCORE_HISTORY);
   private totalComparisons = 0;
 
   recordExactHit(): void {
@@ -202,10 +206,6 @@ export class SemanticMetricsTracker {
   recordSemanticHit(similarity: number): void {
     this.semanticHits++;
     this.similarityScores.push(similarity);
-    // Prevent unbounded growth - keep only recent scores
-    if (this.similarityScores.length > MAX_SCORE_HISTORY) {
-      this.similarityScores = this.similarityScores.slice(-MAX_SCORE_HISTORY);
-    }
   }
 
   recordMiss(): void {
@@ -235,7 +235,7 @@ export class SemanticMetricsTracker {
     this.exactHits = 0;
     this.semanticHits = 0;
     this.misses = 0;
-    this.similarityScores = [];
+    this.similarityScores.clear();
     this.totalComparisons = 0;
   }
 }

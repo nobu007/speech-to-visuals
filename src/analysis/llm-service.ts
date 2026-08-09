@@ -24,6 +24,7 @@ import { ComplexityDetector, ComplexityAnalysis } from "./complexity-detector";
 import { parseJsonFromLLMText } from "./llm-utils";
 import { logger } from '../utils/logger';
 import { percentileCeil, roundTo } from '@/lib/metrics-utils';
+import { CappedArray } from '@/lib/capped-array';
 import { clamp01 } from '@/utils/guards';
 import { TokenUsageTracker, type ModelType, type StageType, type TokenUsageSummary } from './token-usage-tracker';
 import { calculateModelCost, estimateCost, type CostBreakdown, type CostEstimate } from './cost-estimator';
@@ -122,8 +123,11 @@ export class LLMService {
   private lastRequestTime: number = 0;
 
   // Performance tracking
-  private responseTimeHistory: number[] = [];
   private readonly MAX_HISTORY_SIZE = 20;
+  // CappedArray makes the MAX_HISTORY_SIZE cap STRUCTURAL: every push
+  // auto-evicts the oldest sample, so a future second push path can never grow
+  // history past the cap (the recurring "no-cap sibling" defect class).
+  private responseTimeHistory = new CappedArray<number>(this.MAX_HISTORY_SIZE);
 
   // Model selection metrics
   private modelMetrics = {
@@ -134,8 +138,8 @@ export class LLMService {
     totalRetries: 0,
     successCount: 0,
     failureCount: 0,
-    flashResponseTimes: [] as number[],
-    proResponseTimes: [] as number[]
+    flashResponseTimes: new CappedArray<number>(this.MAX_HISTORY_SIZE),
+    proResponseTimes: new CappedArray<number>(this.MAX_HISTORY_SIZE)
   };
 
   // REQ-098: LLM cost & token monitoring
@@ -689,23 +693,14 @@ export class LLMService {
    */
   private recordResponseTime(timeMs: number): void {
     this.responseTimeHistory.push(timeMs);
-
-    if (this.responseTimeHistory.length > this.MAX_HISTORY_SIZE) {
-      this.responseTimeHistory.shift();
-    }
   }
 
   /**
-   * Record per-model response time, capped to MAX_HISTORY_SIZE.
-   *
-   * Mirrors `recordResponseTime`'s cap. Without it, `flashResponseTimes` and
-   * `proResponseTimes` grew unboundedly — one entry per Gemini call on the
-   * long-lived `llmService` module singleton (imported by the API server) —
-   * while their sibling `responseTimeHistory` stayed bounded. The unbounded
-   * arrays also made `getStats()`/`calculateTimeSavings()` degrade to O(n) on
-   * every read. Same "missed sibling" capacity class as LLMCache vs
-   * IntelligentCache: the cap exists on one collection but was forgotten on
-   * its same-module siblings.
+   * Record per-model response time. The MAX_HISTORY_SIZE cap is structural
+   * (CappedArray auto-evicts on every push), so `flashResponseTimes` and
+   * `proResponseTimes` stay bounded — previously these were the "no-cap
+   * sibling" of `responseTimeHistory` (unbounded growth on the `llmService`
+   * module singleton); the structural cap closes that class for all three.
    */
   private recordModelResponseTime(model: string, timeMs: number): void {
     const times =
@@ -713,10 +708,6 @@ export class LLMService {
         ? this.modelMetrics.flashResponseTimes
         : this.modelMetrics.proResponseTimes;
     times.push(timeMs);
-
-    if (times.length > this.MAX_HISTORY_SIZE) {
-      times.shift();
-    }
   }
 
   /**
@@ -835,10 +826,10 @@ export class LLMService {
       totalRetries: 0,
       successCount: 0,
       failureCount: 0,
-      flashResponseTimes: [],
-      proResponseTimes: []
+      flashResponseTimes: new CappedArray<number>(this.MAX_HISTORY_SIZE),
+      proResponseTimes: new CappedArray<number>(this.MAX_HISTORY_SIZE)
     };
-    this.responseTimeHistory = [];
+    this.responseTimeHistory.clear();
     // REQ-098: Reset monitoring state
     this.tokenTracker.reset();
     this.budgetAlert.resetSession();
