@@ -619,6 +619,50 @@ describe('QualityMonitor', () => {
       expect(exported).toContain('Fixed bug A');
       expect(exported).toContain('Test feature B');
     });
+
+    it('caps iterationHistory at MAX_HISTORY_SIZE (FIFO), mirroring metricsHistory', () => {
+      // Regression: iterationHistory had NO cap while sibling metricsHistory
+      // was capped at 100. On this process-lifetime singleton every pipeline
+      // run (simple-pipeline, main-pipeline) calls logIteration, so the array
+      // grew unbounded and exportIterationHistory is O(n) over the lot.
+      const logOne = (n: number) =>
+        monitor.logIteration({
+          phaseId: 'phase-cap',
+          iterationNumber: n,
+          action: `Action-${n}`,
+          result: 'success',
+          metrics: {
+            timestamp: new Date(),
+            phase: 'phase-cap',
+            iteration: n,
+            processingTime: 10,
+            memoryUsage: 10,
+            layoutOverlap: 0,
+            errorCount: 0,
+            warningCount: 0,
+            fallbackTriggered: false,
+          },
+          improvements: [],
+          nextSteps: [],
+        });
+
+      // Push well past the 100-entry cap.
+      for (let i = 1; i <= 105; i++) logOne(i);
+
+      const exported = monitor.exportIterationHistory();
+
+      // Oldest 5 (1-5) evicted; newest 100 (6-105) retained.
+      // Use the unique `### Iteration N - success` heading (not the bare
+      // action string: "Action-1" is a substring of "Action-10"/"Action-100").
+      expect(exported).not.toContain('### Iteration 1 - success');
+      expect(exported).not.toContain('### Iteration 5 - success');
+      expect(exported).toContain('### Iteration 6 - success');
+      expect(exported).toContain('### Iteration 105 - success');
+
+      // Count retained iteration headings == cap, not 105.
+      const retainedHeaders = exported.match(/### Iteration \d+ - success/g) ?? [];
+      expect(retainedHeaders.length).toBe(100);
+    });
   });
 
   // -----------------------------------------------------------------------

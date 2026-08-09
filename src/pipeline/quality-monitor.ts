@@ -80,6 +80,17 @@ export interface IterationLog {
 }
 
 /**
+ * Cap on retained entries for both `metricsHistory` and `iterationHistory`.
+ *
+ * Single source for the two parallel FIFO histories: `metricsHistory` already
+ * trimmed to 100, but `iterationHistory` (pushed every pipeline run via
+ * `logIteration` on this process-lifetime singleton) had NO cap and grew
+ * unbounded — the no-cap-sibling capacity class. Both now share one constant
+ * so the two cannot drift apart.
+ */
+const MAX_HISTORY_SIZE = 100;
+
+/**
  * QualityMonitor - Autonomous quality assessment and improvement tracking
  *
  * Implements recursive improvement cycle:
@@ -136,8 +147,8 @@ export class QualityMonitor {
 
     this.metricsHistory.push(fullMetrics);
 
-    // Keep only last 100 metrics to prevent memory bloat
-    if (this.metricsHistory.length > 100) {
+    // Keep only last MAX_HISTORY_SIZE metrics to prevent memory bloat
+    if (this.metricsHistory.length > MAX_HISTORY_SIZE) {
       this.metricsHistory.shift();
     }
   }
@@ -417,6 +428,12 @@ export class QualityMonitor {
 
     this.iterationHistory.push(fullLog);
 
+    // FIFO cap — mirror the sibling `metricsHistory`. Without this, every
+    // pipeline run appends a full IterationLog to this process-lifetime
+    // singleton forever (exportIterationHistory is O(n) over the lot).
+    if (this.iterationHistory.length > MAX_HISTORY_SIZE) {
+      this.iterationHistory.shift();
+    }
   }
 
   /**
