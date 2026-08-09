@@ -87,6 +87,17 @@ export class ContinuousLearner {
   private commitHistory: CommitRecord[] = [];
   private reportHistory: LearningReportEntry[] = [];
   private static readonly MAX_REPORT_HISTORY = 20;
+  // Capacity backstops for the derived collections below. These are the
+  // no-cap siblings of the capped `learningDatabase` (maxDataPoints=1000),
+  // `reportHistory` (=20) and `systemInsights` (=10): every one of them is
+  // `.push`ed from learnFromProcessingResult on each pipeline run while this
+  // is a process-lifetime singleton (imported by the API server), so without a
+  // backstop they grow unbounded. Eviction keeps the most valuable entries:
+  // commitHistory is FIFO (append-only log), detectedPatterns keeps the most
+  // validated patterns, optimizationStrategies keeps the highest-priority ones.
+  private static readonly MAX_COMMIT_HISTORY = 50;
+  private static readonly MAX_DETECTED_PATTERNS = 100;
+  private static readonly MAX_OPTIMIZATION_STRATEGIES = 50;
   private iterationCount: number = 0;
 
   // 学習設定
@@ -762,6 +773,7 @@ export class ContinuousLearner {
         ...pattern,
         detectedAt: pattern.detectedAt ?? new Date(),
       });
+      this.trimDetectedPatterns();
     }
   }
 
@@ -772,7 +784,44 @@ export class ContinuousLearner {
       this.optimizationStrategies[existingIndex] = strategy;
     } else {
       this.optimizationStrategies.push(strategy);
+      this.trimOptimizationStrategies();
     }
+  }
+
+  /**
+   * Enforce the detectedPatterns capacity backstop. Each addOrUpdate* call
+   * inserts at most one entry, so evicting a single entry per call keeps the
+   * array at or below the cap. Evict the least-validated pattern (lowest
+   * validationCount; oldest detectedAt breaks ties) so frequently-recurring
+   * patterns survive — mirrors the sibling caps on reportHistory/learningDatabase.
+   */
+  private trimDetectedPatterns(): void {
+    if (this.detectedPatterns.length <= ContinuousLearner.MAX_DETECTED_PATTERNS) return;
+    let worst = 0;
+    for (let i = 1; i < this.detectedPatterns.length; i++) {
+      const cur = this.detectedPatterns[i];
+      const wst = this.detectedPatterns[worst];
+      if (cur.validationCount < wst.validationCount ||
+          (cur.validationCount === wst.validationCount && cur.detectedAt < wst.detectedAt)) {
+        worst = i;
+      }
+    }
+    this.detectedPatterns.splice(worst, 1);
+  }
+
+  /**
+   * Enforce the optimizationStrategies capacity backstop. Evict the
+   * lowest-priority strategy so the most impactful optimizations survive.
+   */
+  private trimOptimizationStrategies(): void {
+    if (this.optimizationStrategies.length <= ContinuousLearner.MAX_OPTIMIZATION_STRATEGIES) return;
+    let worst = 0;
+    for (let i = 1; i < this.optimizationStrategies.length; i++) {
+      if (this.optimizationStrategies[i].priority < this.optimizationStrategies[worst].priority) {
+        worst = i;
+      }
+    }
+    this.optimizationStrategies.splice(worst, 1);
   }
 
   private async detectPerformanceAnomaly(data: LearningData): Promise<string | null> {
@@ -1038,6 +1087,11 @@ Co-Authored-By: Claude <noreply@anthropic.com>`;
       message: commitMessage,
       timestamp: new Date().toISOString(),
     });
+    // Enforce the capacity backstop (mirrors reportHistory's shift). Append-only
+    // log, so evict the oldest entry.
+    if (this.commitHistory.length > ContinuousLearner.MAX_COMMIT_HISTORY) {
+      this.commitHistory.shift();
+    }
 
     logger.info(`ContinuousLearner: commit triggered for ${component}`, { reason, iteration: this.iterationCount });
   }
