@@ -29,6 +29,18 @@ export class BudgetAlertSystem {
   private sessionAlerts: BudgetAlert[] = [];
   private dailyAlerts: BudgetAlert[] = [];
   private alertCallbacks: Array<(alert: BudgetAlert) => void> = [];
+  /**
+   * Re-armed edge detectors: an alert fires only on the UPWARD threshold
+   * crossing, not on every `addCost` while cost stays at/above the threshold.
+   * Without this, once cumulative cost crosses `alertThreshold` it never comes
+   * back down (cost is monotonic up via `addCost`), so EVERY subsequent LLM
+   * call pushed a new alert + logged a warning (llm-service recordApiCallMetrics)
+   * — unbounded growth and log spam on the per-call hot path. Re-arming when
+   * cost drops back below the threshold keeps a legitimate refund→re-cross
+   * able to fire again.
+   */
+  private sessionAlerted: boolean = false;
+  private dailyAlerted: boolean = false;
 
   constructor(config: Partial<BudgetConfig> = {}) {
     const sessionBudget = config.sessionBudget ?? 1.00;
@@ -69,16 +81,22 @@ export class BudgetAlertSystem {
       : 0;
 
     if (sessionPct >= this.config.alertThreshold) {
-      const alert: BudgetAlert = {
-        type: 'session',
-        currentCost: this.sessionCost,
-        budget: this.config.sessionBudget,
-        threshold: this.config.alertThreshold,
-        percentage: sessionPct,
-        message: `Session cost $${this.sessionCost.toFixed(4)} has reached ${(sessionPct * 100).toFixed(1)}% of $${this.config.sessionBudget.toFixed(2)} budget`,
-      };
-      this.sessionAlerts.push(alert);
-      newAlerts.push(alert);
+      if (!this.sessionAlerted) {
+        const alert: BudgetAlert = {
+          type: 'session',
+          currentCost: this.sessionCost,
+          budget: this.config.sessionBudget,
+          threshold: this.config.alertThreshold,
+          percentage: sessionPct,
+          message: `Session cost $${this.sessionCost.toFixed(4)} has reached ${(sessionPct * 100).toFixed(1)}% of $${this.config.sessionBudget.toFixed(2)} budget`,
+        };
+        this.sessionAlerts.push(alert);
+        newAlerts.push(alert);
+        this.sessionAlerted = true;
+      }
+    } else {
+      // Re-arm so a refund→re-cross (via adjustCost) can fire again.
+      this.sessionAlerted = false;
     }
 
     // Check daily threshold
@@ -87,16 +105,21 @@ export class BudgetAlertSystem {
       : 0;
 
     if (dailyPct >= this.config.alertThreshold) {
-      const alert: BudgetAlert = {
-        type: 'daily',
-        currentCost: this.dailyCost,
-        budget: this.config.dailyBudget,
-        threshold: this.config.alertThreshold,
-        percentage: dailyPct,
-        message: `Daily cost $${this.dailyCost.toFixed(4)} has reached ${(dailyPct * 100).toFixed(1)}% of $${this.config.dailyBudget.toFixed(2)} budget`,
-      };
-      this.dailyAlerts.push(alert);
-      newAlerts.push(alert);
+      if (!this.dailyAlerted) {
+        const alert: BudgetAlert = {
+          type: 'daily',
+          currentCost: this.dailyCost,
+          budget: this.config.dailyBudget,
+          threshold: this.config.alertThreshold,
+          percentage: dailyPct,
+          message: `Daily cost $${this.dailyCost.toFixed(4)} has reached ${(dailyPct * 100).toFixed(1)}% of $${this.config.dailyBudget.toFixed(2)} budget`,
+        };
+        this.dailyAlerts.push(alert);
+        newAlerts.push(alert);
+        this.dailyAlerted = true;
+      }
+    } else {
+      this.dailyAlerted = false;
     }
 
     // Notify callbacks
@@ -130,6 +153,18 @@ export class BudgetAlertSystem {
     }
     this.sessionCost = newSession;
     this.dailyCost = newDaily;
+
+    // Re-arm the alert edge when an adjustment (typically a refund) drops cost
+    // back below threshold, so a subsequent upward re-crossing via addCost
+    // fires again. Mirrors the re-arm in addCost's below-threshold branch.
+    const sessionPct = this.config.sessionBudget > 0 && Number.isFinite(newSession)
+      ? newSession / this.config.sessionBudget
+      : 0;
+    const dailyPct = this.config.dailyBudget > 0 && Number.isFinite(newDaily)
+      ? newDaily / this.config.dailyBudget
+      : 0;
+    if (sessionPct < this.config.alertThreshold) this.sessionAlerted = false;
+    if (dailyPct < this.config.alertThreshold) this.dailyAlerted = false;
   }
 
   /**
@@ -165,6 +200,7 @@ export class BudgetAlertSystem {
   resetSession(): void {
     this.sessionCost = 0;
     this.sessionAlerts = [];
+    this.sessionAlerted = false;
   }
 
   /**
@@ -173,6 +209,7 @@ export class BudgetAlertSystem {
   resetDaily(): void {
     this.dailyCost = 0;
     this.dailyAlerts = [];
+    this.dailyAlerted = false;
   }
 }
 

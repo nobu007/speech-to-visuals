@@ -92,14 +92,17 @@ describe('BudgetAlertSystem: cumulative cost crosses threshold', () => {
       alertThreshold: 0.8,
     });
 
-    // First call triggers alert at 85%
+    // First call triggers alert at 85% (upward crossing)
     const alerts1 = budget.addCost(0.85);
     expect(alerts1).toHaveLength(1);
 
-    // Second call: still above threshold — fires again (each addCost re-evaluates)
+    // Second call: still above threshold — must NOT re-fire. Previously every
+    // addCost above threshold pushed a new alert, growing sessionAlerts without
+    // bound on the per-LLM-call hot path (and spamming logger.warn). The alert
+    // fires once per upward crossing, not once per call.
     const alerts2 = budget.addCost(0.10);
-    expect(alerts2).toHaveLength(1);
-    expect(alerts2[0].currentCost).toBeCloseTo(0.95, 4);
+    expect(alerts2).toHaveLength(0);
+    expect(budget.getSessionAlerts()).toHaveLength(1);
   });
 });
 
@@ -347,14 +350,15 @@ describe('BudgetAlertSystem: callback error isolation', () => {
 // 9. Alert accumulation across addCost calls
 // ---------------------------------------------------------------------------
 describe('BudgetAlertSystem: alert accumulation', () => {
-  it('accumulates session alerts in getSessionAlerts()', () => {
+  it('accumulates session alerts in getSessionAlerts() across separate crossings', () => {
     const budget = new BudgetAlertSystem({
       sessionBudget: 1.00,
       alertThreshold: 0.8,
     });
 
-    budget.addCost(0.85); // triggers session alert
-    budget.addCost(0.10); // triggers another session alert (95%)
+    budget.addCost(0.85); // upward crossing → session alert
+    budget.adjustCost(-0.85); // refund below threshold → re-arm the edge
+    budget.addCost(0.95); // re-cross → second session alert
 
     const allSessionAlerts = budget.getSessionAlerts();
     expect(allSessionAlerts).toHaveLength(2);

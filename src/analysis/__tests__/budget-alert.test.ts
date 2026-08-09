@@ -66,6 +66,37 @@ describe('BudgetAlertSystem', () => {
       expect(alerts.some(a => a.type === 'daily')).toBe(true);
     });
 
+    it('fires once per threshold crossing, not on every call above threshold', () => {
+      // Regression: addCost pushed a new alert on EVERY call while cost stayed
+      // at/above alertThreshold. Cost is monotonic up, so once crossed it
+      // stayed crossed → unbounded sessionAlerts/dailyAlerts + a per-call
+      // logger.warn spam (llm-service recordApiCallMetrics) on the LLM hot path.
+      const first = system.addCost(0.85); // 85% → upward crossing
+      expect(first.some(a => a.type === 'session')).toBe(true);
+      expect(system.getSessionAlerts().filter(a => a.type === 'session')).toHaveLength(1);
+
+      // Subsequent calls remain above threshold but must NOT re-alert.
+      const second = system.addCost(0.05); // 90%
+      const third = system.addCost(0.05);  // 95%
+      expect(second).toHaveLength(0);
+      expect(third).toHaveLength(0);
+      expect(system.getSessionAlerts().filter(a => a.type === 'session')).toHaveLength(1);
+    });
+
+    it('re-arms after cost drops below threshold, so a re-cross alerts again', () => {
+      system.addCost(0.85); // cross → 1 session alert
+      expect(system.getSessionAlerts().filter(a => a.type === 'session')).toHaveLength(1);
+
+      // Refund drops cost below threshold → edge re-arms.
+      system.adjustCost(-0.5); // 0.85 → 0.35 (below 0.8)
+      expect(system.addCost(0.05)).toHaveLength(0); // 0.40, still below
+
+      // Re-crossing fires a fresh alert.
+      const reCross = system.addCost(0.5); // 0.90 → upward crossing again
+      expect(reCross.some(a => a.type === 'session')).toBe(true);
+      expect(system.getSessionAlerts().filter(a => a.type === 'session')).toHaveLength(2);
+    });
+
     it('throws on invalid cost', () => {
       expect(() => system.addCost(-1)).toThrow(BudgetConfigError);
       expect(() => system.addCost(NaN)).toThrow(BudgetConfigError);

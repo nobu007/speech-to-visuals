@@ -257,14 +257,15 @@ describe('BudgetAlertSystem', () => {
   });
 
   describe('alert accumulation', () => {
-    test('multiple alerts accumulate in session alerts', () => {
+    test('multiple alerts accumulate in session alerts across separate crossings', () => {
       const system = new BudgetAlertSystem({
         sessionBudget: 1,
         dailyBudget: 100,
         alertThreshold: 0.5,
       });
-      system.addCost(0.6); // alert 1
-      system.addCost(0.3); // alert 2
+      system.addCost(0.6); // upward crossing → alert 1
+      system.adjustCost(-0.6); // refund below threshold → re-arm
+      system.addCost(0.6); // re-cross → alert 2
       expect(system.getSessionAlerts()).toHaveLength(2);
     });
   });
