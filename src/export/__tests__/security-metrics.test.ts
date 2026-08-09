@@ -188,6 +188,53 @@ describe('SecurityMetricsCollector', () => {
     });
   });
 
+  describe('size cap (bounded distinct compound keys)', () => {
+    it('FIFO-evicts oldest patterns and bounds the entry count', () => {
+      // TTL disabled (the default config) — without the size cap this map grew
+      // without bound because `pattern` is an arbitrary string.
+      const capped = new SecurityMetricsCollector(0, 3);
+      capped.recordRejection('content-validator', 'high', 'p1');
+      capped.recordRejection('content-validator', 'high', 'p2');
+      capped.recordRejection('content-validator', 'high', 'p3');
+      capped.recordRejection('content-validator', 'high', 'p4'); // evict p1
+      capped.recordRejection('content-validator', 'high', 'p5'); // evict p2
+
+      const snap = capped.getSnapshot();
+      // Only the newest 3 distinct patterns are retained.
+      expect(snap.byPattern).toHaveLength(3);
+      expect(snap.byPattern.map((p) => p.pattern).sort()).toEqual(['p3', 'p4', 'p5']);
+    });
+
+    it('keeps aggregate counters consistent with retained entries after eviction', () => {
+      // The denormalized counters must equal the sum of retained entries, not
+      // the sum of all-ever inserts. Eviction rebuilds them.
+      const capped = new SecurityMetricsCollector(0, 2);
+      capped.recordRejection('content-validator', 'high', 'p1');
+      capped.recordRejection('content-validator', 'high', 'p2');
+      capped.recordRejection('content-validator', 'high', 'p3'); // evict p1
+
+      const snap = capped.getSnapshot();
+      // Retained: p2, p3 (1 each) → counters must be 2, NOT 3.
+      expect(snap.totalRejections).toBe(2);
+      expect(snap.byLayer['content-validator']).toBe(2);
+      expect(snap.bySeverity.high).toBe(2);
+      expect(snap.matrix['content-validator'].high).toBe(2);
+    });
+
+    it('does not evict or recompute when re-recording an existing pattern', () => {
+      const capped = new SecurityMetricsCollector(0, 2);
+      capped.recordRejection('content-validator', 'high', 'p1');
+      capped.recordRejection('content-validator', 'high', 'p2');
+      // p1 already exists → increment in place, no eviction.
+      capped.recordRejection('content-validator', 'high', 'p1');
+
+      const snap = capped.getSnapshot();
+      expect(snap.byPattern).toHaveLength(2);
+      expect(snap.totalRejections).toBe(3);
+      expect(snap.byPattern.find((p) => p.pattern === 'p1')!.count).toBe(2);
+    });
+  });
+
   describe('integration with ExportContentValidator', () => {
     it('should be importable without circular dependency', () => {
       // This test verifies the import chain works:
