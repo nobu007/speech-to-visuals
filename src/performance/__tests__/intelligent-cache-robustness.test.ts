@@ -134,3 +134,82 @@ describe('IntelligentCache - corruption logging', () => {
     expect(logger.warn).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * Guards the "unbounded .add onto a process-lifetime singleton" bug class.
+ *
+ * `corruptedKeys` is the asymmetric-cleanup sibling of the otherwise-capped
+ * collections: every eviction/expiry/purge path deleted from
+ * cache/fingerprints/preloadQueue/accessOrder but NOT corruptedKeys, so any key
+ * that ever failed decompression was retained forever on the `globalCache`
+ * singleton (key domain = arbitrary input content → unbounded). The fix routes
+ * all removal paths through `removeEntry()`, which deletes symmetrically.
+ */
+describe('IntelligentCache - corruptedKeys unbounded-growth guard', () => {
+  test('get()-path decompression failure purges the key from corruptedKeys (no leak)', async () => {
+    const cache = new IntelligentCache();
+    const internals = cache as unknown as {
+      cache: Map<string, { data: string; compressed: boolean; originalSize: number; sourceContent: string }>;
+      corruptedKeys: Set<string>;
+      generateCacheKey: (content: string) => string;
+    };
+
+    // Force many DISTINCT keys through the real runtime decompression-failure
+    // path. Before the fix each one was retained in corruptedKeys for the
+    // singleton's lifetime; after the fix the purge routes through removeEntry
+    // and deletes it, so the set stays bounded regardless of distinct count.
+    for (let i = 0; i < 25; i++) {
+      const content = `corrupt-content-${i}`;
+      await cache.store(content, { i }, makeMetadata());
+
+      const key = internals.generateCacheKey(content);
+      const entry = internals.cache.get(key)!;
+      // Force the compressed branch + a payload that fails JSON.parse so the
+      // get() path hits decompressData -> corruptedKeys.add -> purge.
+      entry.compressed = true;
+      entry.data = '!!!not-valid-json!!!';
+      entry.originalSize = entry.data.length;
+
+      const result = await cache.get(content);
+      expect(result).toBeNull();
+      // The purge must have evicted the corrupt entry itself.
+      expect(internals.cache.has(key)).toBe(false);
+    }
+
+    expect(internals.corruptedKeys.size).toBe(0);
+  });
+
+  test('removeEntry clears every shadow collection symmetrically', () => {
+    const cache = new IntelligentCache();
+    const internals = cache as unknown as {
+      cache: Map<string, unknown>;
+      fingerprints: Map<string, unknown>;
+      preloadQueue: Set<string>;
+      corruptedKeys: Set<string>;
+      accessOrder: string[];
+      removeEntry: (key: string) => void;
+    };
+
+    const key = 'shadowed-key';
+    internals.cache.set(key, {});
+    internals.fingerprints.set(key, {});
+    internals.preloadQueue.add(key);
+    internals.corruptedKeys.add(key);
+    internals.accessOrder.push('keep-before', key, 'keep-after');
+
+    internals.removeEntry(key);
+
+    // Dynamically assert no collection-typed instance field still references
+    // the key — covers the current set AND any future shadow collection added
+    // without being wired into removeEntry (the asymmetric-cleanup regression).
+    for (const [, value] of Object.entries(internals)) {
+      if (value instanceof Map || value instanceof Set) {
+        expect(value.has(key)).toBe(false);
+      } else if (Array.isArray(value)) {
+        expect(value).not.toContain(key);
+      }
+    }
+    // Splice must remove only the target, preserving neighbors.
+    expect(internals.accessOrder).toEqual(['keep-before', 'keep-after']);
+  });
+});

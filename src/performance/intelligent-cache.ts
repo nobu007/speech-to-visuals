@@ -396,16 +396,7 @@ export class IntelligentCache {
     }
 
     // Perform deletion and update stats
-    toDelete.forEach(key => {
-      this.cache.delete(key);
-      this.fingerprints.delete(key);
-      this.preloadQueue.delete(key);
-
-      const orderIndex = this.accessOrder.indexOf(key);
-      if (orderIndex > -1) {
-        this.accessOrder.splice(orderIndex, 1);
-      }
-    });
+    toDelete.forEach(key => this.removeEntry(key));
 
     this.stats.evictionCount += toDelete.length;
     this.stats.totalEntries = this.cache.size;
@@ -449,12 +440,34 @@ export class IntelligentCache {
       }
 
       if (lruKey === null) break;
-      this.cache.delete(lruKey);
-      this.fingerprints.delete(lruKey);
-      this.preloadQueue.delete(lruKey);
+      this.removeEntry(lruKey);
       this.stats.evictionCount++;
     }
     this.stats.totalEntries = this.cache.size;
+  }
+
+  /**
+   * Single-source entry removal across EVERY collection that shadows the cache.
+   *
+   * All eviction/expiry/purge paths MUST route through here. Previously each
+   * site deleted from `cache`/`fingerprints`/`preloadQueue`/`accessOrder` but
+   * NOT from `corruptedKeys`, so any key that ever failed decompression was
+   * retained in `corruptedKeys` for the lifetime of the process-lifetime
+   * `globalCache` singleton — an unbounded `.add` leak (the asymmetric-cleanup
+   * sibling of the otherwise-capped collections; key domain is arbitrary input
+   * content, so not bounded by construction). Centralizing the deletes also
+   * means a future shadow collection only needs adding HERE, not remembering at
+   * every eviction site — the class cannot recur by omission.
+   */
+  private removeEntry(key: string): void {
+    this.cache.delete(key);
+    this.fingerprints.delete(key);
+    this.preloadQueue.delete(key);
+    this.corruptedKeys.delete(key);
+    const orderIndex = this.accessOrder.indexOf(key);
+    if (orderIndex > -1) {
+      this.accessOrder.splice(orderIndex, 1);
+    }
   }
 
   /**
@@ -862,9 +875,7 @@ export class IntelligentCache {
 
     // Check if entry is expired
     if (Date.now() - entry.timestamp > this.maxAge) {
-      this.cache.delete(key);
-      this.fingerprints.delete(key);
-      this.preloadQueue.delete(key);
+      this.removeEntry(key);
       this.updateHitRate(false);
       return null;
     }
@@ -892,9 +903,7 @@ export class IntelligentCache {
       const data = this.decompressData(entry.data as string, entry.originalSize, key);
       if (data === null) {
         // Decompression failed — purge corrupted entry
-        this.cache.delete(key);
-        this.fingerprints.delete(key);
-        this.preloadQueue.delete(key);
+        this.removeEntry(key);
         this.updateMemoryUsage();
         this.updateHitRate(false);
         return null;
