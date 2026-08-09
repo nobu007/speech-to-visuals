@@ -226,6 +226,53 @@ describe('ContinuousLearner scheduling status', () => {
       expect(i1).not.toBe(i2);
       expect(i1).toEqual(i2);
     });
+
+    it('caps systemInsights on every insert path (secondary-bypass regression)', async () => {
+      // analyzeSuccessRateTrends (called by performComprehensiveAnalysis) pushes
+      // one insight per component with a declining success trend — a SECONDARY
+      // insert path that historically bypassed the only trim, which lived inside
+      // generateSystemInsights. When generateSystemInsights early-returns
+      // (< 10 data points) that trim never runs, so the secondary pushes grew
+      // without bound. The fix routes every push through addSystemInsight, which
+      // enforces the MAX_SYSTEM_INSIGHTS FIFO ceiling unconditionally.
+      jest.useFakeTimers();
+      const tl = new ContinuousLearner(false); // no interval — fire cycles manually
+      try {
+        const HOUR = 3600_000;
+        // 4 components, each 2 hourly buckets: success (rate 1.0) then failure
+        // (rate 0.0) -> calculateTrend([1.0, 0.0]) = -1.0 < -0.1 triggers a push.
+        // 8 entries < 10, so generateSystemInsights early-returns (no primary trim).
+        for (let c = 0; c < 4; c++) {
+          const comp = `decliningComp${c}`;
+          jest.setSystemTime(HOUR * 1);
+          await tl.learnFromProcessingResult(comp, {}, {}, 1000, 0.9, true, [], {});
+          jest.setSystemTime(HOUR * 2);
+          await tl.learnFromProcessingResult(comp, {}, {}, 1000, 0.9, false, [], {});
+        }
+
+        // Mirror the interval body (performComprehensiveAnalysis then
+        // generateSystemInsights) across several cycles. Each cycle pushes 4
+        // insights (one per declining component); generateSystemInsights
+        // early-returns and adds/trims nothing.
+        const internal = tl as unknown as {
+          performComprehensiveAnalysis: () => Promise<void>;
+          generateSystemInsights: () => Promise<void>;
+        };
+        for (let i = 0; i < 4; i++) {
+          await internal.performComprehensiveAnalysis();
+          await internal.generateSystemInsights();
+        }
+
+        // 4 components × 4 cycles = 16 secondary pushes; without the cap this
+        // would be 16. With addSystemInsight it plateaus at MAX_SYSTEM_INSIGHTS.
+        const insights = tl.getSystemInsights();
+        expect(insights.length).toBeLessThanOrEqual(10);
+        expect(insights.length).toBe(10);
+      } finally {
+        tl.stopLearning();
+        jest.useRealTimers();
+      }
+    });
   });
 
   describe('integration with getLearningReport', () => {

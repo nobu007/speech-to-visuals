@@ -98,6 +98,15 @@ export class ContinuousLearner {
   private static readonly MAX_COMMIT_HISTORY = 50;
   private static readonly MAX_DETECTED_PATTERNS = 100;
   private static readonly MAX_OPTIMIZATION_STRATEGIES = 50;
+  // `systemInsights` cap. The trim used to live ONLY inside
+  // `generateSystemInsights` (the primary path), but two SECONDARY insert
+  // paths — `analyzeSuccessRateTrends` and `analyzeUserSatisfaction`, each
+  // pushing once per qualifying component in a loop — bypassed it, and the
+  // primary's `recentData.length < 10` early-return skipped its own trim. So
+  // on cycles where the primary early-returned, the secondary pushes
+  // accumulated without bound. The cap is now enforced by `addSystemInsight`
+  // on EVERY insert path (same-invariant-on-every-path lesson, 09g).
+  private static readonly MAX_SYSTEM_INSIGHTS = 10;
   private iterationCount: number = 0;
 
   // 学習設定
@@ -270,6 +279,21 @@ export class ContinuousLearner {
   /**
    * システムインサイト生成
    */
+  /**
+   * Single capped insert path for `systemInsights`. Every push site (the
+   * primary `generateSystemInsights` AND the secondary
+   * `analyzeSuccessRateTrends` / `analyzeUserSatisfaction` loops) MUST route
+   * through here so the FIFO `MAX_SYSTEM_INSIGHTS` ceiling is enforced
+   * unconditionally — previously the secondary paths bypassed the trim and the
+   * primary's early-return skipped it, so insights grew without bound.
+   */
+  private addSystemInsight(insight: SystemInsight): void {
+    this.systemInsights.push(insight);
+    if (this.systemInsights.length > ContinuousLearner.MAX_SYSTEM_INSIGHTS) {
+      this.systemInsights = this.systemInsights.slice(-ContinuousLearner.MAX_SYSTEM_INSIGHTS);
+    }
+  }
+
   private async generateSystemInsights(): Promise<void> {
     // システム全体の状態を分析してインサイトを生成
     const recentData = this.getRecentData(100);
@@ -283,7 +307,7 @@ export class ContinuousLearner {
 
     // パフォーマンスインサイト
     if (avgProcessingTime > 20000) { // 20秒以上
-      this.systemInsights.push({
+      this.addSystemInsight({
         type: 'performance',
         description: 'System processing time is above optimal threshold',
         evidence: recentData.filter(d => d.processingTime > 20000).slice(-5),
@@ -295,7 +319,7 @@ export class ContinuousLearner {
 
     // 品質インサイト
     if (avgQuality < 0.85) {
-      this.systemInsights.push({
+      this.addSystemInsight({
         type: 'quality',
         description: 'Overall quality score below target threshold',
         evidence: recentData.filter(d => d.qualityScore < 0.85).slice(-5),
@@ -307,7 +331,7 @@ export class ContinuousLearner {
 
     // 信頼性インサイト
     if (successRate < 0.95) {
-      this.systemInsights.push({
+      this.addSystemInsight({
         type: 'reliability',
         description: 'Success rate below production-ready threshold',
         evidence: recentData.filter(d => !d.success).slice(-5),
@@ -317,10 +341,10 @@ export class ContinuousLearner {
       });
     }
 
-    // インサイトの数を制限（最新の10件のみ保持）
-    if (this.systemInsights.length > 10) {
-      this.systemInsights = this.systemInsights.slice(-10);
-    }
+    // No standalone trim here: every push above goes through `addSystemInsight`,
+    // which enforces the MAX_SYSTEM_INSIGHTS FIFO ceiling on every insert path
+    // (including the secondary analyzeSuccessRateTrends/analyzeUserSatisfaction
+    // loops that previously bypassed this trim).
   }
 
   /**
@@ -424,7 +448,7 @@ export class ContinuousLearner {
           recommendation: `Investigate and address reliability issues in ${component}`
         };
 
-        this.systemInsights.push(insight);
+        this.addSystemInsight(insight);
       }
     }
   }
@@ -487,7 +511,7 @@ export class ContinuousLearner {
           recommendation: `Improve user experience and output quality in ${component}`
         };
 
-        this.systemInsights.push(insight);
+        this.addSystemInsight(insight);
       }
     }
   }
