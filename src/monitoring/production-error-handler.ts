@@ -6,6 +6,7 @@
 
 import { randomUUID } from 'crypto';
 import { logger } from '../utils/logger';
+import { CappedArray } from '../lib/capped-array';
 
 interface ErrorContext {
   component: string;
@@ -58,7 +59,7 @@ export interface ErrorAlert {
 const MAX_ERROR_QUEUE_SIZE = 200;
 
 export class ProductionErrorHandler {
-  private errorQueue: ErrorAlert[] = [];
+  private errorQueue = new CappedArray<ErrorAlert>(MAX_ERROR_QUEUE_SIZE);
   private metrics: ErrorMetrics = {
     errorRate: 0,
     meanTimeToRecovery: 0,
@@ -218,15 +219,12 @@ export class ProductionErrorHandler {
       timestamp: Date.now()
     };
 
-    // Add to error queue
+    // Add to error queue. CappedArray enforces the FIFO cap on every push, so
+    // the queue is bounded without a per-call-site cap (see MAX_ERROR_QUEUE_SIZE
+    // and src/lib/capped-array.ts). This bounds the O(n) export/copy/scan
+    // consumers; `clearResolvedErrors` (1-hour retention) is the intended
+    // time-based trim but is never wired in production.
     this.errorQueue.push(alert);
-
-    // FIFO cap (hard backstop) — see MAX_ERROR_QUEUE_SIZE. `clearResolvedErrors`
-    // is the intended time-based retention but is never wired, so enforce a
-    // count ceiling here to bound the O(n) export/copy/scan consumers.
-    if (this.errorQueue.length > MAX_ERROR_QUEUE_SIZE) {
-      this.errorQueue.shift();
-    }
 
     // Update metrics
     this.updateErrorMetrics(severity);
@@ -664,8 +662,13 @@ export class ProductionErrorHandler {
     const retentionTime = 3600000; // 1 hour
     const now = Date.now();
 
-    this.errorQueue = this.errorQueue.filter(
-      alert => (now - alert.timestamp) < retentionTime
+    // replaceWith preserves the CappedArray identity (and its cap) — a plain
+    // reassignment `this.errorQueue = this.errorQueue.filter(...)` would
+    // downgrade the field to an uncapped plain array.
+    this.errorQueue.replaceWith(
+      this.errorQueue.filter(
+        alert => (now - alert.timestamp) < retentionTime
+      )
     );
 
   }

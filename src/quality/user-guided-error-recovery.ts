@@ -14,6 +14,7 @@
  */
 
 import { logger } from '@/utils/logger';
+import { CappedArray } from '@/lib/capped-array';
 import type { ErrorSeverity } from './error-classifier';
 
 export type ErrorCategory =
@@ -72,12 +73,12 @@ export class UserGuidedErrorRecovery {
    * a long-running API server.
    */
   private static readonly MAX_ERROR_HISTORY = 200;
-  private errorHistory: Array<{
+  private errorHistory = new CappedArray<{
     timestamp: string;
     category: ErrorCategory;
     message: string;
     recovered: boolean;
-  }> = [];
+  }>(UserGuidedErrorRecovery.MAX_ERROR_HISTORY);
 
   /**
    * Analyze error and provide guidance
@@ -87,18 +88,15 @@ export class UserGuidedErrorRecovery {
     const category = this.categorizeError(error, context);
     const severity = this.assessSeverity(category, error);
 
-    // Record in history
+    // Record in history. CappedArray enforces FIFO eviction on every push, so
+    // the singleton's growth is bounded on every ingest path without a
+    // per-call-site cap — see src/lib/capped-array.ts.
     this.errorHistory.push({
       timestamp: new Date().toISOString(),
       category,
       message: error.message,
       recovered: false,
     });
-    // `analyzeError` is the ONLY push site for errorHistory, so enforcing the
-    // cap here bounds the singleton's growth on every ingest path.
-    if (this.errorHistory.length > UserGuidedErrorRecovery.MAX_ERROR_HISTORY) {
-      this.errorHistory.shift();
-    }
 
     const guidance: ErrorGuidance = {
       error,

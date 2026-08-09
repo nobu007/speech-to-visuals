@@ -5,6 +5,8 @@
  * recoverability, stage context, and suggested actions.
  */
 
+import { CappedArray } from '@/lib/capped-array';
+
 // Forward declaration — avoid circular import by using dynamic check
 type PipelineErrorLike = { errorType: ErrorType; stage: string };
 
@@ -220,7 +222,9 @@ export class ErrorClassifier {
    * the process, and `getStatistics()` degrades as an O(n) full scan.
    */
   private static readonly MAX_CLASSIFICATION_HISTORY = 200;
-  private classificationHistory: ClassifiedError[] = [];
+  private classificationHistory = new CappedArray<ClassifiedError>(
+    ErrorClassifier.MAX_CLASSIFICATION_HISTORY,
+  );
 
   /**
    * Classify a single error.
@@ -248,12 +252,10 @@ export class ErrorClassifier {
       suggestedAction: profile.suggestedAction,
     };
 
+    // CappedArray enforces FIFO eviction on every push, so the singleton's
+    // growth is bounded on every ingest path (including classifyBatch loops)
+    // without a per-call-site cap — see src/lib/capped-array.ts.
     this.classificationHistory.push(classified);
-    // `classify` is the ONLY push site (classifyBatch delegates here), so
-    // enforcing the cap here bounds every ingest path including batch loops.
-    if (this.classificationHistory.length > ErrorClassifier.MAX_CLASSIFICATION_HISTORY) {
-      this.classificationHistory.shift();
-    }
     return classified;
   }
 
