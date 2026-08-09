@@ -179,6 +179,39 @@ describe('HttpMetricsCollector', () => {
 
   // --- Multiple routes ---
 
+  it('should bound distinct route entries (FIFO-evicts oldest-inserted)', () => {
+    // The route key is `${method} ${path}` and the middleware feeds the raw
+    // request path (high-cardinality dynamic segments). Without a cap the
+    // `routes` map grew forever. CappedMap bounds it at maxRoutes.
+    const bounded = new HttpMetricsCollector({ maxRoutes: 3 });
+    // 5 distinct high-cardinality paths → only the newest 3 are retained.
+    bounded.recordRequest('GET', '/api/job/1', 200, 10);
+    bounded.recordRequest('GET', '/api/job/2', 200, 10);
+    bounded.recordRequest('GET', '/api/job/3', 200, 10);
+    bounded.recordRequest('GET', '/api/job/4', 200, 10);
+    bounded.recordRequest('GET', '/api/job/5', 200, 10);
+
+    const snap = bounded.getSnapshot();
+    expect(snap.routes).toHaveLength(3);
+    const paths = snap.routes.map((r) => r.path).sort();
+    expect(paths).toEqual(['/api/job/3', '/api/job/4', '/api/job/5']);
+    // Global counters are cumulative and unaffected by route eviction.
+    expect(snap.totalRequests).toBe(5);
+  });
+
+  it('should not evict when re-hitting an existing route (update in place)', () => {
+    const bounded = new HttpMetricsCollector({ maxRoutes: 2 });
+    bounded.recordRequest('GET', '/a', 200, 10);
+    bounded.recordRequest('GET', '/b', 200, 10);
+    // '/a' already exists → update, not insert → no eviction, '/b' must remain.
+    bounded.recordRequest('GET', '/a', 200, 20);
+
+    const snap = bounded.getSnapshot();
+    expect(snap.routes).toHaveLength(2);
+    expect(snap.routes.find((r) => r.path === '/a')!.count).toBe(2);
+    expect(snap.routes.find((r) => r.path === '/b')).toBeDefined();
+  });
+
   it('should separate metrics by route', () => {
     collector.recordRequest('GET', '/a', 200, 10);
     collector.recordRequest('POST', '/a', 201, 20);

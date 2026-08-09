@@ -13,6 +13,7 @@
 
 import { logger } from '@/utils/logger';
 import { computePercentiles, type Percentiles } from '@/lib/metrics-utils';
+import { CappedMap } from '@/lib/capped-map';
 
 // Re-exported so the previously-local `Percentiles` type keeps its public path.
 export type { Percentiles };
@@ -75,12 +76,24 @@ export interface HttpMetricsConfig {
   slowRequestThresholdMs: number;
   /** Max slow request records retained (default: 50) */
   maxSlowRequests: number;
+  /**
+   * Max distinct route entries retained (default: 1000).
+   *
+   * The route key is `${method} ${path}`, and the metrics middleware feeds the
+   * RAW `req.path` — which carries high-cardinality dynamic segments
+   * (`/api/batch/status/<jobId>`). Without a cap the `routes` map grew without
+   * bound (one entry per distinct path ever seen). The `CappedMap` enforces this
+   * ceiling on every insert, FIFO-evicting the oldest-inserted route, so memory
+   * is bounded regardless of path cardinality.
+   */
+  maxRoutes: number;
 }
 
 const DEFAULT_CONFIG: HttpMetricsConfig = {
   maxSamplesPerRoute: 1000,
   slowRequestThresholdMs: 5000,
   maxSlowRequests: 50,
+  maxRoutes: 1000,
 };
 
 // ---------------------------------------------------------------------------
@@ -96,7 +109,15 @@ function routeKey(method: string, path: string): string {
 // ---------------------------------------------------------------------------
 
 export class HttpMetricsCollector {
-  private routes = new Map<string, RouteMetrics>();
+  /**
+   * Per-route metrics, keyed `${method} ${path}`. A `CappedMap` (not a plain
+   * `Map`) so the entry count is structurally bounded: the key is the raw
+   * request path, which is high-cardinality, and a plain `Map` grew without
+   * limit. The cap (`config.maxRoutes`) FIFO-evicts the oldest-inserted route
+   * on every new-key insert — the sibling arrays (`latencies`, `slowRequests`)
+   * were always capped; the map itself was the missing-cap sibling.
+   */
+  private routes!: CappedMap<string, RouteMetrics>;
   private slowRequests: SlowRequest[] = [];
   private activeRequests = 0;
   private totalRequests = 0;
@@ -106,6 +127,7 @@ export class HttpMetricsCollector {
 
   constructor(config?: Partial<HttpMetricsConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
+    this.routes = new CappedMap<string, RouteMetrics>(this.config.maxRoutes);
   }
 
   // ---- Recording ----
