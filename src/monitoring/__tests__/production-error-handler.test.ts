@@ -91,6 +91,19 @@ describe('ProductionErrorHandler', () => {
       expect(queue[0].message).toBe('Second');
       expect(queue[1].message).toBe('First');
     });
+
+    it('caps errorQueue at MAX_ERROR_QUEUE_SIZE (unbounded-growth regression)', async () => {
+      // handleError appends one alert per call on a process-lifetime singleton
+      // and clearResolvedErrors is never wired, so the queue must be bounded by
+      // a count cap. Drive it past the cap and assert the FIFO ceiling.
+      const OVER = 200 + 30;
+      for (let i = 0; i < OVER; i++) {
+        await handler.handleError(new Error(`burst ${i}`));
+      }
+
+      // getErrorQueue() returns [...errorQueue].reverse() — same length.
+      expect(handler.getErrorQueue()).toHaveLength(200);
+    });
   });
 
   describe('error severity classification', () => {

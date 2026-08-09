@@ -46,6 +46,17 @@ export interface ErrorAlert {
   timestamp: number;
 }
 
+/**
+ * Hard FIFO cap for the process-lifetime `errorQueue`. The module exports a
+ * singleton (`productionErrorHandler`); `handleError` appends one alert per
+ * error and NOTHING ever trims it in production — `clearResolvedErrors()` (the
+ * intended 1-hour retention) is never invoked, and `destroy()` only runs at
+ * teardown. So without this backstop the queue grows without bound and the
+ * O(n) consumers (`exportErrorReport` serializes the lot, `getErrorQueue`
+ * copies it, `.find`/`.filter` scan) degrade over a long session.
+ */
+const MAX_ERROR_QUEUE_SIZE = 200;
+
 export class ProductionErrorHandler {
   private errorQueue: ErrorAlert[] = [];
   private metrics: ErrorMetrics = {
@@ -209,6 +220,13 @@ export class ProductionErrorHandler {
 
     // Add to error queue
     this.errorQueue.push(alert);
+
+    // FIFO cap (hard backstop) — see MAX_ERROR_QUEUE_SIZE. `clearResolvedErrors`
+    // is the intended time-based retention but is never wired, so enforce a
+    // count ceiling here to bound the O(n) export/copy/scan consumers.
+    if (this.errorQueue.length > MAX_ERROR_QUEUE_SIZE) {
+      this.errorQueue.shift();
+    }
 
     // Update metrics
     this.updateErrorMetrics(severity);
