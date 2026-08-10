@@ -90,6 +90,43 @@ describe('validateAudioFileMetadata', () => {
     );
   });
 
+  // --- Non-finite / negative size (mirror validateAudioDuration's guard) ---
+  // A file size can be neither non-finite nor negative. JSON.parse('1e400')
+  // yields Infinity at the API boundary, so these must be rejected like the
+  // duration validator already rejects them.
+
+  it('rejects Infinity size', () => {
+    const result = validateAudioFileMetadata({ name: 'inf.mp3', size: Infinity });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([expect.stringContaining('Invalid file size')]),
+    );
+  });
+
+  it('rejects -Infinity size', () => {
+    const result = validateAudioFileMetadata({ name: 'ninf.mp3', size: -Infinity });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([expect.stringContaining('Invalid file size')]),
+    );
+  });
+
+  it('rejects NaN size', () => {
+    const result = validateAudioFileMetadata({ name: 'nan.mp3', size: NaN });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([expect.stringContaining('Invalid file size')]),
+    );
+  });
+
+  it('rejects negative size', () => {
+    const result = validateAudioFileMetadata({ name: 'neg.mp3', size: -100 });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([expect.stringContaining('Invalid file size')]),
+    );
+  });
+
   // --- Combined errors ---
 
   it('reports both extension and size errors', () => {
