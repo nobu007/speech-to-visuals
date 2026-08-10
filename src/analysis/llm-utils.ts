@@ -81,6 +81,26 @@ export function sanitizeUntrustedJsonValue(value: unknown, depth = 0): unknown {
 }
 
 /**
+ * Parse a JSON string received across a trust boundary — an HTTP response body
+ * from a remote service, an API boundary, a disk file not written by this code
+ * — and neutralize the two vectors handled by `sanitizeUntrustedJsonValue`
+ * (numeric overflow `1e400` → Infinity, and `__proto__`/`constructor`/
+ * `prototype` keys) in a single step.
+ *
+ * Use this for STRUCTURED JSON from a trust boundary (the response is already
+ * valid JSON). Use `parseJsonFromLLMText` for free-form LLM text that also
+ * needs markdown-fence stripping and repair. This is the structured-JSON
+ * companion to that text-mode helper, so every external JSON parse site can
+ * aggregate onto the same chokepoint instead of re-deriving the guard.
+ *
+ * No-op on legitimate JSON. Throws `SyntaxError` on invalid JSON exactly as
+ * `JSON.parse` does, so callers' existing parse-failure handling is preserved.
+ */
+export function parseUntrustedJson(text: string): unknown {
+  return sanitizeUntrustedJsonValue(JSON.parse(text));
+}
+
+/**
  * Extract and parse JSON from an LLM text response.
  * - Strips optional triple backtick code fences (``` or ```json)
  * - Removes markdown formatting and extra text
@@ -204,7 +224,9 @@ export function parseJsonFromLLMText<T = unknown>(rawText: string): T {
   // Parse + sanitize untrusted model output in one step so EVERY successful
   // parse path — including the repair fallbacks below — is guarded against
   // numeric overflow (1e400 → Infinity) and prototype-pollution keys.
-  const parseSanitized = (s: string): unknown => sanitizeUntrustedJsonValue(JSON.parse(s));
+  // Delegates to parseUntrustedJson so the text-mode and structured-JSON trust
+  // boundaries share one sanitized-parse implementation.
+  const parseSanitized = parseUntrustedJson;
 
   try {
     return parseSanitized(cleaned) as T;

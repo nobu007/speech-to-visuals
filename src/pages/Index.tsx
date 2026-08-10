@@ -9,6 +9,7 @@ import { ProcessingStatus as StatusType, ProcessingResult } from '@/types/diagra
 import { MainPipeline } from '@/pipeline';
 import { PipelineError } from '@/pipeline/pipeline-errors';
 import { getSupabaseClient } from '@/integrations/supabase/client';
+import { parseUntrustedJson } from '@/analysis/llm-utils';
 import { toast } from 'sonner';
 import { Sparkles } from 'lucide-react';
 import { logger } from '@/utils/logger';
@@ -63,7 +64,14 @@ const Index = () => {
         throw new PipelineError('文字起こしに失敗しました', 'LLM_API_ERROR', 'transcription');
       }
 
-      const transcriptData = await transcriptResponse.json();
+      // The transcription result crosses a trust boundary (external Supabase
+      // Edge Function). Parse through the sanitized chokepoint so a tampered or
+      // buggy response carrying `1e400` (→ Infinity) or `__proto__` keys cannot
+      // poison downstream state. `|| 0` below would NOT catch Infinity.
+      const transcriptData = parseUntrustedJson(await transcriptResponse.text()) as {
+        transcript: string;
+        duration?: number;
+      };
 
       setStatus('analyzing');
       setProgress(60);
@@ -85,7 +93,12 @@ const Index = () => {
         throw new PipelineError('シーン生成に失敗しました', 'RENDERING_ERROR', 'scene_generation');
       }
 
-      const scenesData = await scenesResponse.json();
+      // LLM-generated scene data from an external service: same trust boundary
+      // as the transcription response. Sanitize before the scenes flow into
+      // React state and downstream rendering arithmetic.
+      const scenesData = parseUntrustedJson(await scenesResponse.text()) as {
+        scenes: ProcessingResult['scenes'];
+      };
 
       setStatus('generating');
       setProgress(90);

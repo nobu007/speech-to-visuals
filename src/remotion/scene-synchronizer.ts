@@ -70,11 +70,15 @@ export interface SyncDriftResult {
  * Uses rounding for the closest frame match.
  *
  * @param ms - Time in milliseconds (negative values clamped to 0)
- * @param fps - Frames per second (must be > 0, defaults to DEFAULT_FPS)
+ * @param fps - Frames per second (must be a finite positive number, defaults to DEFAULT_FPS)
  * @returns Frame number (rounded to nearest integer, minimum 0)
  */
 export function msToFrame(ms: number, fps: number = DEFAULT_FPS): number {
-  if (fps <= 0) fps = DEFAULT_FPS;
+  // `<= 0` alone admits Infinity and NaN (both compare false to <= 0), which
+  // would make `(ms / 1000) * fps` yield Infinity/NaN frame numbers and break
+  // the caption binary-search. Callers pass `input.fps ?? DEFAULT_FPS`, which
+  // only catches null/undefined — so a non-finite fps must fall back here.
+  if (!Number.isFinite(fps) || fps <= 0) fps = DEFAULT_FPS;
   if (ms <= 0) return 0;
   return Math.round((ms / 1000) * fps);
 }
@@ -83,11 +87,11 @@ export function msToFrame(ms: number, fps: number = DEFAULT_FPS): number {
  * Convert a frame number to milliseconds at a given FPS.
  *
  * @param frame - Frame number (negative values clamped to 0)
- * @param fps - Frames per second (must be > 0, defaults to DEFAULT_FPS)
+ * @param fps - Frames per second (must be a finite positive number, defaults to DEFAULT_FPS)
  * @returns Time in milliseconds
  */
 export function frameToMs(frame: number, fps: number = DEFAULT_FPS): number {
-  if (fps <= 0) fps = DEFAULT_FPS;
+  if (!Number.isFinite(fps) || fps <= 0) fps = DEFAULT_FPS;
   if (frame <= 0) return 0;
   return (frame / fps) * 1000;
 }

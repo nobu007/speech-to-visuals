@@ -16,7 +16,7 @@
  * LLM-derived data and now sanitizes at the read boundary.
  */
 
-import { parseJsonFromLLMText, sanitizeUntrustedJsonValue } from '@/analysis/llm-utils';
+import { parseJsonFromLLMText, parseUntrustedJson, sanitizeUntrustedJsonValue } from '@/analysis/llm-utils';
 
 // ---------------------------------------------------------------------------
 // sanitizeUntrustedJsonValue: finiteness
@@ -248,5 +248,67 @@ describe('parseJsonFromLLMText: guards applied on the parse boundary', () => {
     ) as Record<string, unknown>;
     expect(result.score).toBeNull();
     expect(result.type).toBe('flow');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// parseUntrustedJson: structured-JSON trust boundary (HTTP/API responses)
+// ---------------------------------------------------------------------------
+// Companion to parseJsonFromLLMText for already-structured JSON that crosses a
+// trust boundary — e.g. a Supabase Edge Function response parsed in the browser
+// (src/pages/Index.tsx). It must apply the same two vectors (overflow + proto-
+// pollution) without the markdown-fence/repair machinery, and throw SyntaxError
+// on invalid JSON so callers' existing parse-failure handling is preserved.
+describe('parseUntrustedJson: API-boundary structured JSON', () => {
+  afterEach(() => {
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
+
+  it('neutralizes Infinity (1e400) in a structured response to null', () => {
+    // Mirrors the Index.tsx transcription/scene response shape: a `duration`
+    // field of Infinity would survive `|| 0` (Infinity is truthy) and poison
+    // downstream rendering arithmetic.
+    const result = parseUntrustedJson('{"transcript": "hi", "duration": 1e400}') as Record<string, unknown>;
+    expect(result.transcript).toBe('hi');
+    expect(result.duration).toBeNull();
+  });
+
+  it('neutralizes Infinity nested in a scenes array element', () => {
+    const result = parseUntrustedJson(
+      '{"scenes": [{"id": "s1", "durationMs": 1e400}]}',
+    ) as Record<string, unknown>;
+    const scenes = result.scenes as Array<Record<string, unknown>>;
+    expect(scenes[0].id).toBe('s1');
+    expect(scenes[0].durationMs).toBeNull();
+  });
+
+  it('strips __proto__ from a structured response', () => {
+    const result = parseUntrustedJson(
+      '{"__proto__": {"polluted": true}, "scenes": []}',
+    ) as Record<string, unknown>;
+    expect(Object.prototype.hasOwnProperty.call(result, '__proto__')).toBe(false);
+    expect(Array.isArray(result.scenes)).toBe(true);
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
+
+  it('strips constructor.prototype pollution from a structured response', () => {
+    const result = parseUntrustedJson(
+      '{"constructor": {"prototype": {"polluted": true}}, "ok": true}',
+    ) as Record<string, unknown>;
+    expect(Object.prototype.hasOwnProperty.call(result, 'constructor')).toBe(false);
+    expect(result.ok).toBe(true);
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
+
+  it('passes legitimate structured JSON through unchanged', () => {
+    const result = parseUntrustedJson(
+      '{"scenes": [{"id": "a", "durationMs": 3000}], "total": 3000}',
+    );
+    expect(result).toEqual({ scenes: [{ id: 'a', durationMs: 3000 }], total: 3000 });
+  });
+
+  it('throws SyntaxError on invalid JSON (preserves caller parse-failure handling)', () => {
+    expect(() => parseUntrustedJson('not json')).toThrow(SyntaxError);
+    expect(() => parseUntrustedJson('{trailing}')).toThrow(SyntaxError);
   });
 });

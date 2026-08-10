@@ -49,6 +49,51 @@ function createCaption(overrides: Partial<SrtCaption> = {}): SrtCaption {
 }
 
 // ============================================================
+// msToFrame / frameToMs: non-finite fps falls back to DEFAULT_FPS
+// ---------------------------------------------------------------------------
+// The fps guard previously read `if (fps <= 0)`, which admits Infinity and NaN
+// (both compare false to <= 0). Callers pass `input.fps ?? DEFAULT_FPS`, which
+// only catches null/undefined, so a non-finite fps would flow through and make
+// the frame product Infinity/NaN — breaking the caption binary-search. The
+// guard must reject non-finite fps and fall back to DEFAULT_FPS.
+// ============================================================
+
+describe('msToFrame / frameToMs: non-finite fps falls back to DEFAULT_FPS', () => {
+  it('msToFrame treats Infinity fps as DEFAULT_FPS (not Infinity frame)', () => {
+    expect(msToFrame(1000, Infinity)).toBe(msToFrame(1000, DEFAULT_FPS));
+    expect(msToFrame(1000, Infinity)).toBe(30);
+    expect(Number.isFinite(msToFrame(1000, Infinity))).toBe(true);
+  });
+
+  it('msToFrame treats NaN fps as DEFAULT_FPS', () => {
+    expect(msToFrame(1000, NaN)).toBe(msToFrame(1000, DEFAULT_FPS));
+    expect(Number.isFinite(msToFrame(1000, NaN))).toBe(true);
+  });
+
+  it('msToFrame treats -Infinity fps as DEFAULT_FPS', () => {
+    expect(msToFrame(1000, -Infinity)).toBe(msToFrame(1000, DEFAULT_FPS));
+  });
+
+  it('frameToMs treats Infinity fps as DEFAULT_FPS (not 0 ms)', () => {
+    // Without the guard, (frame / Infinity) * 1000 = 0 — silently collapsing
+    // every caption to frame 0. Must instead match DEFAULT_FPS conversion.
+    expect(frameToMs(30, Infinity)).toBe(frameToMs(30, DEFAULT_FPS));
+    expect(frameToMs(30, Infinity)).toBe(1000);
+  });
+
+  it('frameToMs treats NaN fps as DEFAULT_FPS', () => {
+    expect(frameToMs(30, NaN)).toBe(frameToMs(30, DEFAULT_FPS));
+    expect(Number.isFinite(frameToMs(30, NaN))).toBe(true);
+  });
+
+  it('still rejects non-positive finite fps as before (no regression)', () => {
+    expect(msToFrame(1000, 0)).toBe(msToFrame(1000, DEFAULT_FPS));
+    expect(msToFrame(1000, -5)).toBe(msToFrame(1000, DEFAULT_FPS));
+    expect(frameToMs(30, 0)).toBe(frameToMs(30, DEFAULT_FPS));
+  });
+});
+
+// ============================================================
 // msToFrame / frameToMs
 // ============================================================
 
