@@ -89,6 +89,47 @@ describe('ProductionExporter', () => {
       expect(job!.endTime).toBeDefined();
     }, 10000);
 
+    it('should persist a detailed progress snapshot reachable via getJobStatus', async () => {
+      // Regression: updateProgress() built an ExportProgress object (sub-stage,
+      // current frame, ETA via calculateRemainingTime, current operation) on every
+      // stage of processJob yet DISCARDED it — only the coarse `progress`
+      // percentage was written to the job. The detail was computed-but-unreachable
+      // by any consumer (ExportProgress had zero readers). The fix persists the
+      // snapshot onto the job so getJobStatus()/getAllJobs() can surface it.
+      const exporter = new ProductionExporter(1);
+      const jobId = await exporter.createExportJob(
+        'progress-detail-test',
+        [createMinimalScene({ durationMs: 1000 })],
+        { ...baseOptions, fps: 30 },
+      );
+
+      const deadline = Date.now() + 5000;
+      let job = exporter.getJobStatus(jobId);
+      while (job && job.status !== 'complete' && job.status !== 'error' && Date.now() < deadline) {
+        await new Promise(r => setTimeout(r, 200));
+        job = exporter.getJobStatus(jobId);
+      }
+
+      expect(job).not.toBeNull();
+      expect(job!.status).toBe('complete');
+
+      // The last updateProgress call is the 'finalizing' stage (progress 95);
+      // completion only sets progress=100 and does not overwrite progressDetail,
+      // so the snapshot is the deterministic finalizing one.
+      const detail = job!.progressDetail;
+      expect(detail).toBeDefined();
+      expect(detail!.jobId).toBe(jobId);
+      expect(detail!.stage).toBe('finalizing');
+      expect(detail!.progress).toBe(95);
+      expect(detail!.currentOperation).toBe('Finalizing export...');
+      // 1 scene × 1000ms ÷ 1000 × 30fps = 30 frames; currentFrame at 95% = round(0.95 × 30) = 29.
+      expect(detail!.totalFrames).toBe(30);
+      expect(detail!.currentFrame).toBe(29);
+      // ETA is timing-dependent but must be a finite, non-negative number — not dropped.
+      expect(Number.isFinite(detail!.estimatedTimeRemaining)).toBe(true);
+      expect(detail!.estimatedTimeRemaining).toBeGreaterThanOrEqual(0);
+    }, 10000);
+
     it('should report valid (non-NaN) processing time in statistics', async () => {
       const exporter = new ProductionExporter(1);
       const jobId = await exporter.createExportJob(

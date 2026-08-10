@@ -28,6 +28,15 @@ export interface ExportJob {
   endTime?: number;
   outputPath?: string;
   error?: string;
+  /**
+   * Latest detailed progress snapshot (sub-stage, current frame, ETA, current
+   * operation). Populated by `updateProgress` at each pipeline stage so polling
+   * clients (`getJobStatus` / `getAllJobs`) can surface more than the coarse
+   * `progress` percentage. Previously `updateProgress` built this object and
+   * discarded it — the detail (including the `calculateRemainingTime` ETA) was
+   * computed on every stage yet never reachable by any consumer.
+   */
+  progressDetail?: ExportProgress;
   metadata: {
     totalFrames: number;
     estimatedSize: number;
@@ -638,6 +647,11 @@ export class ProductionExporter {
       currentOperation: operation
     };
 
+    // Persist the snapshot onto the job so polling clients (getJobStatus /
+    // getAllJobs) can read the sub-stage, current frame, and ETA — not just the
+    // coarse `progress` percentage. Without this assignment the object above was
+    // built (and `calculateRemainingTime` invoked) on every stage yet discarded.
+    job.progressDetail = progressInfo;
   }
 
   /**
