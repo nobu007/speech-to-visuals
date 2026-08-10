@@ -154,6 +154,89 @@ describe('RegressionDetector', () => {
       injectMockQualityMonitor(d);
       expect(await d.loadBaseline()).toBeNull();
     });
+
+    // --- finiteness guard (TASK-0217, mirrors c9216907 Lottie export fix) ---
+    //
+    // JSON.parse('1e400') returns Infinity and `new Date(Infinity)` returns
+    // an Invalid Date — silently poisoning the regression baseline. These
+    // tests assert the rejection surface: any payload whose timestamp cannot
+    // produce a finite Date is dropped, the poisoned file is removed, and
+    // loadBaseline returns null so the caller falls back to "no baseline yet".
+
+    test('rejects Infinity timestamp (1e400 → poisoned baseline deleted)', async () => {
+      const metrics = makeMetrics();
+      const baseline = {
+        timestamp: 1e400,
+        metrics: { ...metrics, timestamp: '2025-01-01T00:00:00.000Z' },
+        sampleSize: 10,
+        confidenceLevel: 0.1,
+      };
+      fs.writeFileSync(currentTestPath, JSON.stringify(baseline));
+
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
+      expect(await d.loadBaseline()).toBeNull();
+
+      // The poisoned baseline must NOT linger on disk for the next call.
+      expect(fs.existsSync(currentTestPath)).toBe(false);
+    });
+
+    test('rejects Infinity timestamp at metrics level', async () => {
+      const metrics = makeMetrics();
+      const baseline = {
+        timestamp: '2025-01-01T00:00:00.000Z',
+        metrics: { ...metrics, timestamp: -1e400 },
+        sampleSize: 10,
+        confidenceLevel: 0.1,
+      };
+      fs.writeFileSync(currentTestPath, JSON.stringify(baseline));
+
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
+      expect(await d.loadBaseline()).toBeNull();
+      expect(fs.existsSync(currentTestPath)).toBe(false);
+    });
+
+    test('rejects non-date string that JSON.parse cannot rescue', async () => {
+      const metrics = makeMetrics();
+      const baseline = {
+        timestamp: 'not-a-date',
+        metrics: { ...metrics, timestamp: '2025-01-01T00:00:00.000Z' },
+        sampleSize: 10,
+        confidenceLevel: 0.1,
+      };
+      fs.writeFileSync(currentTestPath, JSON.stringify(baseline));
+
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
+      expect(await d.loadBaseline()).toBeNull();
+    });
+
+    test('rejects object payload without metrics', async () => {
+      fs.writeFileSync(currentTestPath, JSON.stringify({ timestamp: '2025-01-01T00:00:00.000Z' }));
+
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
+      expect(await d.loadBaseline()).toBeNull();
+    });
+
+    test('still accepts legitimate ISO-string timestamps (no regression)', async () => {
+      const metrics = makeMetrics();
+      const baseline = {
+        timestamp: '2025-01-01T00:00:00.000Z',
+        metrics: { ...metrics, timestamp: '2025-01-01T00:00:00.000Z' },
+        sampleSize: 10,
+        confidenceLevel: 0.1,
+      };
+      fs.writeFileSync(currentTestPath, JSON.stringify(baseline));
+
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
+      const loaded = await d.loadBaseline();
+      expect(loaded).not.toBeNull();
+      expect(loaded!.timestamp).toBeInstanceOf(Date);
+      expect(loaded!.timestamp.getTime()).toBe(new Date('2025-01-01T00:00:00.000Z').getTime());
+    });
   });
 
   describe('detectRegressions', () => {

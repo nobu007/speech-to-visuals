@@ -126,26 +126,81 @@ export class RegressionDetector {
   }
 
   /**
-   * Load existing baseline from disk
+   * Load existing baseline from disk.
+   *
+   * Rejects payloads whose `timestamp` / `metrics.timestamp` resolve to an
+   * Invalid Date — `JSON.parse("1e400")` returns `Infinity` and
+   * `new Date(Infinity)` returns an Invalid Date (NaN `.getTime()`), which
+   * silently breaks every downstream comparison with the baseline. The Lottie
+   * export finiteness fix (c9216907) closed the same vector in the export
+   * pipeline; this method is the matching guard for the regression baseline.
    */
   async loadBaseline(): Promise<BaselineData | null> {
-    try {
-      if (fs.existsSync(this.baselinePath)) {
-        const data = await fs.promises.readFile(this.baselinePath, 'utf-8');
-        const parsed = JSON.parse(data);
-
-        // Convert timestamp strings back to Date objects
-        this.baseline = {
-          ...parsed,
-          timestamp: new Date(parsed.timestamp),
-          metrics: {
-            ...parsed.metrics,
-            timestamp: new Date(parsed.metrics.timestamp),
-          },
-        };
-
-        return this.baseline;
+    const removeBadBaseline = (reason: string): void => {
+      logger.warn(
+        `Removing poisoned baseline at ${this.baselinePath}: ${reason}`,
+      );
+      try {
+        if (fs.existsSync(this.baselinePath)) {
+          void fs.promises.unlink(this.baselinePath);
+        }
+      } catch (removeErr) {
+        logger.warn(`Failed to remove poisoned baseline ${this.baselinePath}: ${String(removeErr)}`);
       }
+    };
+
+    const coerceFiniteDate = (raw: unknown, label: string): Date | null => {
+      if (raw === null || raw === undefined) {
+        removeBadBaseline(`${label} is ${raw}`);
+        return null;
+      }
+      const d = raw instanceof Date ? raw : new Date(raw as number | string);
+      if (!Number.isFinite(d.getTime())) {
+        removeBadBaseline(`${label} is not a valid date (got ${JSON.stringify(raw)})`);
+        return null;
+      }
+      return d;
+    };
+
+    try {
+      if (!fs.existsSync(this.baselinePath)) return null;
+      const data = await fs.promises.readFile(this.baselinePath, 'utf-8');
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(data);
+      } catch (parseErr) {
+        removeBadBaseline(`JSON parse failure: ${String(parseErr)}`);
+        return null;
+      }
+      if (!parsed || typeof parsed !== 'object') {
+        removeBadBaseline('payload is not a JSON object');
+        return null;
+      }
+      const obj = parsed as Record<string, unknown>;
+
+      const tsTop = coerceFiniteDate(obj.timestamp, 'timestamp');
+      if (tsTop === null) return null;
+
+      const metricsObj = obj.metrics;
+      if (!metricsObj || typeof metricsObj !== 'object') {
+        removeBadBaseline('metrics is missing or not an object');
+        return null;
+      }
+      const tsMetrics = coerceFiniteDate(
+        (metricsObj as Record<string, unknown>).timestamp,
+        'metrics.timestamp',
+      );
+      if (tsMetrics === null) return null;
+
+      this.baseline = {
+        ...(obj as unknown as BaselineData),
+        timestamp: tsTop,
+        metrics: {
+          ...(metricsObj as unknown as QualityMetrics),
+          timestamp: tsMetrics,
+        },
+      };
+      return this.baseline;
     } catch (error) {
       logger.warn(`⚠️  Failed to load baseline: ${error}`);
     }
