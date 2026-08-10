@@ -256,6 +256,33 @@ describe('SimplePipeline', () => {
       expect(Array.isArray(scene.keyphrases)).toBe(true);
     });
 
+    it('propagates the segmenter summary to scene.summary, not the full segment text (regression)', async () => {
+      // BUG: SimplePipeline assigned `summary: segText` (the FULL segment text)
+      // instead of `segment.summary`, so DiagramScene rendered the entire
+      // segment text (truncated mid-sentence at 150 chars) in place of the
+      // concise first-sentence summary the segmenter deliberately generated
+      // (SceneSegmenter.generateSummary). The sibling pipelines — MainPipeline
+      // (`summary: segment.summary ?? ''`) and PipelineOrchestrator
+      // (`summary: segment?.summary ?? ...`) — correctly propagate the summary;
+      // only SimplePipeline dropped it, making `content` and `summary` identical.
+      // The mock segmenter returns DISTINCT text ('Test content') and summary
+      // ('Summary') so a wrong-field assignment is unambiguous: mapping summary
+      // to .text yields scene.summary === 'Test content' (RED).
+      const result = await pipeline.process({
+        audioFile: createMockFile(),
+        options: { includeVideoGeneration: false, useEnhancedLayout: true },
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.scenes!.length).toBeGreaterThan(0);
+      const scene = result.scenes![0];
+      // scene.summary must be the segmenter's summary, NOT the full text.
+      expect(scene.summary).toBe('Summary');
+      // Core invariant: when the segmenter produced a distinct summary, the
+      // scene's summary must differ from its full content.
+      expect(scene.summary).not.toBe(scene.content);
+    });
+
     it('should use standard layout engine when useEnhancedLayout is false', async () => {
       const result = await pipeline.process({
         audioFile: createMockFile(),

@@ -318,6 +318,16 @@ export class SimplePipeline {
             const segStartMs = (segment as Record<string, unknown>).startMs as number;
             const segEndMs = (segment as Record<string, unknown>).endMs as number;
             const segText = (segment as Record<string, unknown>).text as string;
+            // Propagate the segmenter-generated summary (concise first sentence
+            // from SceneSegmenter.generateSummary), NOT the full segment text.
+            // The sibling pipelines (MainPipeline, PipelineOrchestrator) read
+            // segment.summary; assigning segText here made scene.summary identical
+            // to scene.content, so DiagramScene rendered the entire segment text
+            // (truncated mid-sentence at 150 chars) instead of the intended
+            // concise title. `?? ''` mirrors MainPipeline's `segment.summary ?? ''`.
+            const segSummary = (segment as Record<string, unknown>).summary as
+              | string
+              | undefined;
             return {
               id: sceneId,
               startMs: segStartMs,
@@ -325,7 +335,7 @@ export class SimplePipeline {
               startTime: segStartMs / 1000,
               endTime: segEndMs / 1000,
               content: segText,
-              summary: segText,
+              summary: segSummary ?? '',
               keyphrases: diagramAnalysis.nodes?.map(n => n.label).filter(Boolean) ?? [],
               nodes: diagramAnalysis.nodes ?? [],
               edges: diagramAnalysis.edges ?? [],
