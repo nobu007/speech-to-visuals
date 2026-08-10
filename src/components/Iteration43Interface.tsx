@@ -96,7 +96,14 @@ const Iteration43Interface: React.FC = () => {
     setCurrentPhase('processing');
     addIterationLog(`🚀 Starting Iteration ${developmentCycle.currentIteration} processing pipeline`);
 
-    // Simulate the recursive development methodology
+    // Simulate the recursive development methodology.
+    // Local accumulator for the final score: the setQualityMetrics calls in
+    // the loop are async and do NOT update the `qualityMetrics` closure binding
+    // within this invocation, so reading `qualityMetrics.overallScore` after the
+    // loop logged the stale pre-run value (0.0%) instead of the computed score
+    // (stale-closure bug, 09c class — same shape as StreamingProcessor onComplete).
+    let finalOverallScore = 0;
+
     for (let i = 0; i < processingPhases.length; i++) {
       const phase = processingPhases[i];
       addIterationLog(`🔄 Phase ${i + 1}: ${phase.name} - Iteration ${phase.iteration} starting`);
@@ -140,7 +147,11 @@ const Iteration43Interface: React.FC = () => {
         idx === i ? { ...p, status: 'completed', progress: 100 } : p
       ));
 
-      // Update quality metrics
+      // Update quality metrics. Compute overallScore once and mirror it into the
+      // local accumulator so the post-loop log reads the value just produced,
+      // not the stale closure (see finalOverallScore declaration above).
+      const overallScore = Math.min((i + 1) * 20, 96 + Math.random() * 4);
+      finalOverallScore = overallScore;
       setQualityMetrics(prev => ({
         ...prev,
         transcriptionAccuracy: i >= 0 ? 95 + Math.random() * 3 : prev.transcriptionAccuracy,
@@ -148,13 +159,13 @@ const Iteration43Interface: React.FC = () => {
         layoutOverlap: 0,
         renderTime: i >= 3 ? 25000 + Math.random() * 10000 : prev.renderTime,
         memoryUsage: i >= 2 ? 300 + Math.random() * 100 : prev.memoryUsage,
-        overallScore: Math.min((i + 1) * 20, 96 + Math.random() * 4)
+        overallScore
       }));
     }
 
     // Final completion
     addIterationLog(`🎉 Iteration ${developmentCycle.currentIteration} completed successfully!`);
-    addIterationLog(`📊 Overall quality score: ${qualityMetrics.overallScore.toFixed(1)}%`);
+    addIterationLog(`📊 Overall quality score: ${finalOverallScore.toFixed(1)}%`);
     setVideoUrl('/demo-output/sample-video.mp4'); // Mock video URL
     setIsProcessing(false);
     setCurrentPhase('completed');
@@ -165,7 +176,7 @@ const Iteration43Interface: React.FC = () => {
       completedCriteria: prev.successCriteria.length
     }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [audioFile, developmentCycle.currentIteration, processingPhases.length, qualityMetrics.overallScore]);
+  }, [audioFile, developmentCycle.currentIteration, processingPhases.length]);
 
   const getPhaseIcon = (status: string) => {
     switch (status) {
