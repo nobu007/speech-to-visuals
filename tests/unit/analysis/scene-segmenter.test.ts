@@ -202,4 +202,47 @@ describe('REQ-163: SceneSegmenter', () => {
       }
     });
   });
+
+  // ─── Topic-shift keyword case-insensitivity ───────────────────────────────
+  // EN_TOPIC_SHIFT_PATTERNS are stored lowercase ('next', 'however', ...).
+  // Boundary detection must be case-insensitive or a sentence-initial "Next,"
+  // never matches and the whole segment runs together until maxSegmentLengthMs.
+  describe('topic-shift keyword matching (case-insensitive)', () => {
+    it('splits at a capitalized English topic-shift keyword mid-sentence', () => {
+      const parts = (segmenter as unknown as {
+        splitAtTopicShift: (t: string, s: number, e: number) => Array<{ text: string }>;
+      }).splitAtTopicShift(
+        'First we set up the database. Next we configure the API. Then we deploy.',
+        0,
+        12000,
+      );
+      expect(parts.length).toBe(2);
+      expect(parts[0].text).toContain('database');
+      expect(parts[1].text).toMatch(/^Next we configure/);
+    });
+
+    it('still matches lowercase topic-shift keywords (no regression)', () => {
+      const parts = (segmenter as unknown as {
+        splitAtTopicShift: (t: string, s: number, e: number) => Array<{ text: string }>;
+      }).splitAtTopicShift(
+        'First we set up the database. next we configure the API.',
+        0,
+        8000,
+      );
+      expect(parts.length).toBe(2);
+    });
+
+    it('preserves original capitalization in the split sub-segment text', () => {
+      const parts = (segmenter as unknown as {
+        splitAtTopicShift: (t: string, s: number, e: number) => Array<{ text: string }>;
+      }).splitAtTopicShift(
+        'First we set up the database. However the API needs work. Then we deploy.',
+        0,
+        12000,
+      );
+      expect(parts.length).toBe(2);
+      // Output keeps original case — only matching is case-insensitive.
+      expect(parts[1].text).toContain('However');
+    });
+  });
 });

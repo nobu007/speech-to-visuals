@@ -217,12 +217,21 @@ export class SceneSegmenter {
     const totalDuration = safeEnd - safeStart;
     if (text.length === 0) return [{ text, startMs: safeStart, endMs: safeEnd }];
 
+    // EN_TOPIC_SHIFT_PATTERNS are stored lowercase ('next', 'however', ...).
+    // Match case-insensitively against a lowercased copy so a sentence-initial
+    // "Next," / "However," still marks a boundary. toLowerCase() preserves
+    // string length for this pipeline's scripts (ASCII, Latin-1, CJK), so the
+    // index found in `lowerText` is valid for slicing the original (case-
+    // preserving) `text` below. Without this, English topic-shift detection
+    // silently matched nothing and every English segment ran together until
+    // maxSegmentLengthMs forced a cut.
+    const lowerText = text.toLowerCase();
     // Find all topic-shift keyword positions
     const boundaries: number[] = [];
     for (const keyword of [...this.JA_TOPIC_SHIFT_PATTERNS, ...this.EN_TOPIC_SHIFT_PATTERNS]) {
       let searchFrom = 0;
       while (true) {
-        const idx = text.indexOf(keyword, searchFrom);
+        const idx = lowerText.indexOf(keyword, searchFrom);
         if (idx === -1) break;
         // Only add as boundary if keyword is not at the very beginning
         if (idx > 0) {
