@@ -552,9 +552,16 @@ export class DiagramDetector {
     const trimmed = text.trim();
     if (!trimmed) return [];
 
-    // Split into sentences using Japanese and English delimiters
+    // Split into sentences using Japanese and English delimiters. A CJK
+    // sentence ender (。！？), newline, !, ?, or ; is always a boundary. An
+    // English '.' is a boundary ONLY when it ends a sentence — followed by
+    // whitespace or end-of-string — NOT inside a token, so the decimal in
+    // "1.5"/"3.14", a version "2.0", or an IP "192.168.1.1" is preserved.
+    // (Bare '.' in the class below split on EVERY dot and tore decimals across
+    // node labels.) Mirrors the sibling fix in scene-segmenter's
+    // splitTextAtSentenceBoundaries, pinned by scene-segmenter.test.ts.
     const sentences = trimmed
-      .split(/[。！？\n.!?;]+/)
+      .split(/[。！？\n!?;]+|\.(?:\s+|$)/)
       .map(s => s.trim())
       .filter(s => s.length > 0);
 
