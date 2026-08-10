@@ -5565,6 +5565,112 @@
 
 ---
 
+### Phase 125-130 受け入れ基準
+
+#### REQ-292: 視覚化 flow/flowchart スイッチパリティ 🔵
+
+**信頼性**: 🔵 *コミット 9b88a5f5 + diagram-type-switch-parity-guard.test.ts 205行*
+
+- [x] **TC-292-01**: legacy LayoutEngine で `flowchart` が `flow` と同じ rankdir=TB / align=UL で dagre にルーティング 🔵
+  - **信頼性**: 🔵 *getGraphConfig RED-on-revert ピン + 修正後 GREEN*
+- [x] **TC-292-02**: FallbackLayoutStrategy.fallbackLayout で `flowchart` が `flow` と同じ grid layout を返す 🔵
+  - **信頼性**: 🔵 *fallbackLayout RED-on-revert ピン + layout-bug-fixes.test.ts で regression guard*
+- [x] **TC-292-03**: diagram-type-switch-parity-guard が DiagramType-TYPED-PARAM 関数の switch-CASE パリティを機械的に検証 🔵
+  - **信頼性**: 🔵 *ガード 205行 + 既知修正ピン 4 件*
+
+#### REQ-293: config-restore 有限性 LAST tail 🔵
+
+**信頼性**: 🔵 *コミット 1bfb25cd*
+
+- [x] **TC-293-01**: qualityPresets[].{width,height,fps,quality} 配列内 Infinity/負値/null 経由 0 が reject される 🔵
+  - **信頼性**: 🔵 *isPositiveFiniteNumber + Array.isArray + element shape check*
+- [x] **TC-293-02**: safe-storage 復元 predicate がプリセット未指定時に既定値委譲する 🔵
+  - **信頼性**: 🔵 *21 RED → 152 GREEN 全ケース*
+- [x] **TC-293-03**: 8 関連 suites 242/242, guards + safe-storage 41/41 が no regression 🔵
+  - **信頼性**: 🔵 *Phase 126 実装+テスト同一コミット co-locate*
+
+#### REQ-294: ExportJobQueue ETA オフバイワン 🔵
+
+**信頼性**: 🔵 *コミット cc2ebd23*
+
+- [x] **TC-294-01**: busy queue の head pos0 で ETA > 0 が返る 🔵
+  - **信頼性**: 🔵 *position+1-availableSlots RED 3 → GREEN 39*
+- [x] **TC-294-02**: 利用可能スロットが多い場合 ETA が head でも短縮される 🔵
+  - **信頼性**: 🔵 *112 ETA/route テスト*
+- [x] **TC-294-03**: queue/ETA ordering バグクラスが memory に記録されている 🔵
+  - **信頼性**: 🔵 *memory MEMORY.md 更新*
+
+#### REQ-295: config-restore 有限性 monitoring/export/memoryLimit SCALARS 🔵
+
+**信頼性**: 🔵 *コミット db746769*
+
+- [x] **TC-295-01**: monitoring.metricsCollectionInterval + alertThresholds ×4 の Infinity/負値/null 経由 0 が reject 🔵
+  - **信頼性**: 🔵 *isPositiveFiniteNumber RED 33 → GREEN 130*
+- [x] **TC-295-02**: export.concurrentExports + performance.memoryLimit が reject 🔵
+  - **信頼性**: 🔵 *179/179 no regression + tsc 0*
+- [x] **TC-295-03**: 7 フィールドすべてがガードされていることを構造的に検証 🔵
+  - **信頼性**: 🔵 *Phase 128 実装+テスト同一コミット co-locate*
+
+#### REQ-296: config-restore 有限性 performance SCALARS 🔵
+
+**信頼性**: 🔵 *コミット 9e3fede5*
+
+- [x] **TC-296-01**: performance.maxConcurrentJobs + timeoutMs + maxFileSize の Infinity/負値/null 経由 0 が reject 🔵
+  - **信頼性**: 🔵 *isPositiveFiniteNumber RED 19 → GREEN 96*
+- [x] **TC-296-02**: 139/139 persistence-path, tsc 0 🔵
+  - **信頼性**: 🔵 *safe-storage の全 scalar/array numeric chokepoint 完結*
+- [x] **TC-296-03**: consumer (intelligent-cache, orchestrator, upload) が safe-storage 経由 🔵
+  - **信頼性**: 🔵 *Phase 129 実装+テスト同一コミット co-locate*
+
+#### REQ-297: stale-closure/async-setState クラス GUARDED-STRUCTURAL 🔵
+
+**信頼性**: 🔵 *コミット d1ccf4b1*
+
+- [x] **TC-297-01**: async-state-stale-closure-guard.test.ts が既知修正ピン 2 件を構造的に保護 🔵
+  - **信頼性**: 🔵 *既知修正 site 2 件を safe handler として登録*
+- [x] **TC-297-02**: handler-BODY 粒度 sweep が 0 live bugs 🔵
+  - **信頼性**: 🔵 *広範囲 sweep + 4/4 + tsc 0*
+- [x] **TC-297-03**: JSX 除外 / ${...} 保持 / 0 live bugs 🔵
+  - **信頼性**: 🔵 *構文契約が薄いバグクラスに対する「コード形制約」方針を確立*
+
+#### REQ-298: diagram-type-switch-parity 他同値クラス展開 🟡
+
+**信頼性**: 🟡 *AI Hub steering feedback A から妥当な推測（提案）*
+
+- [ ] **TC-298-01**: `src/types/diagram.ts` に `'sequence' vs 'timeline'` 等の同義語 alias があるか再評価 🟡
+  - **信頼性**: 🟡 *現状 0 件確認済*
+- [ ] **TC-298-02**: 1 ガードファイル/同値クラスの生成戦略を文書化 🟡
+  - **信頼性**: 🟡 *ROI 評価が必要*
+
+#### REQ-299: storageParser JSON.parse vs JSON.stringify 非対称監査 🟡
+
+**信頼性**: 🟡 *AI Hub steering feedback B から妥当な推測（提案）*
+
+- [ ] **TC-299-01**: `rg "JSON.parse|parse\(" src/ --type ts | rg "isInteger|isFinite"` で safe-storage 以外の storage-side validator を 0-hit 確認 🟡
+  - **信頼性**: 🟡 *現状 0 件確認済*
+- [ ] **TC-299-02**: 明示的な再監査サイクルを CI に追加 🟡
+  - **信頼性**: 🟡 *Phase 131+ 実装待ち*
+
+#### REQ-300: async-setState positive-case fixture 🟡
+
+**信頼性**: 🟡 *AI Hub steering feedback C から妥当な推測（提案）*
+
+- [ ] **TC-300-01**: `src/hooks/__tests__/__fixtures__/async-state-guarded-pattern.example.tsx` を生成（observer/raf inside hook + 実 cleanup）🟡
+  - **信頼性**: 🟡 *developer ergonomics 改善*
+- [ ] **TC-300-02**: developer copy-paste 検証（guarded pattern の動作確認）🟡
+  - **信頼性**: 🟡 *Phase 131+ 実装待ち*
+
+#### REQ-301: timestamp guard mutation-verified CI ピン留め 🟡
+
+**信頼性**: 🟡 *AI Hub steering feedback D から妥当な推測（提案）*
+
+- [ ] **TC-301-01**: `tests/guards/timestamp-guard-mutation-pinning.test.ts` を生成（Phase 09f guard 行を mutation test で保護）🟡
+  - **信頼性**: 🟡 *regression mutation test パターン*
+- [ ] **TC-301-02**: fixture-mode test で当該行を一時除去 → 新テストが失敗することを確認 🟡
+  - **信頼性**: 🟡 *mutation-verified claim の CI ピン留め*
+
+---
+
 ### Phase 111+ 受け入れ基準サマリー
 
 | 要件 | テストケース数 | 信頼性 |
@@ -5589,7 +5695,17 @@
 | REQ-272: validateAudioFile クラッシュ修正 | 2 | 🔵 |
 | REQ-273: CJKトークン化・キリル文字修正 | 2 | 🔵 |
 | REQ-285: 品質モニタ diagram-type パリティ | 3 | 🔵 |
-| **合計** | **55** | **🔵 100%** |
+| REQ-292: 視覚化 flow/flowchart スイッチパリティ | 3 | 🔵 |
+| REQ-293: qualityPresets[].{w,h,fps,q} 有限性 | 3 | 🔵 |
+| REQ-294: ExportJobQueue ETA オフバイワン | 3 | 🔵 |
+| REQ-295: monitoring/export/memoryLimit 有限性 | 3 | 🔵 |
+| REQ-296: performance スカラー有限性 | 3 | 🔵 |
+| REQ-297: stale-closure/async-setState 構造ガード | 3 | 🔵 |
+| REQ-298: diagram-type-switch-parity 他ペア展開 | 2 | 🟡 |
+| REQ-299: storageParser JSON.parse 非対称監査 | 2 | 🟡 |
+| REQ-300: async-setState positive-case fixture | 2 | 🟡 |
+| REQ-301: timestamp guard mutation-verified CI | 2 | 🟡 |
+| **合計** | **79** | **🔵 96.2% / 🟡 3.8%** |
 
 
 <!-- spine:references:begin -->

@@ -3770,6 +3770,218 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A119: legacy 視覚化 flow/flowchart スイッチパリティ CLOSED（Phase 125）
+
+**分析日時**: 2026-08-10
+**カテゴリ**: バグ修正・構造ガード
+**背景**: 現代 `strategy-selector.ts` は DiagramType ごとに専用 `FlowchartStrategy` を登録し `flow`/`flowchart` を等価に扱うが、legacy `layout-engine.ts → DagreLayoutStrategy + FallbackLayoutStrategy` パス（main-pipeline と pipeline-orchestrator が LIVE 使用）は `'flow'` のみ扱い `flowchart` を default（bare-config/grid/random）にフォールスルーさせていた。これにより、LLM が `flowchart` タイプを返すケースで quality 100% をうたうレイアウトが実際には grid/random レイアウトに degrade していた。
+
+**判断**: 以下の修正を実施（コミット 9b88a5f5）：
+1. `getGraphConfig()`: `case 'flowchart':` フォールスルー追加（flow と同じ rankdir=TB, align=UL）
+2. `FallbackLayoutStrategy.fallbackLayout()`: `case 'flowchart':` → `createGridLayout` フォールスルー
+3. `OverlapResolver.getMinimumSeparationForType()`: coincident default フォールスルー
+4. `OverlapResolver.handleIdenticalPositions()`: `Math.random` default フォールスルー
+5. `simple-diagram-detector.explainReasoning()`: cosmetic フォールスルー
+6. 新ガード `diagram-type-switch-parity-guard.test.ts`（205行）= DiagramType-TYPED-PARAM 関数の switch-CASE パリティ検査（4 known-fix pin RED-on-revert + 広範囲 sweep, edge-type `'flow'` スイッチと composite-key fusion map は除外）
+
+**根拠**:
+- `src/visualization/layout-engine.ts getGraphConfig / FallbackLayoutStrategy.fallbackLayout`
+- `src/visualization/strategies/OverlapResolver.{getMinimumSeparationForType, handleIdenticalPositions}`
+- `src/analysis/simple-diagram-detector.ts explainReasoning`
+- `src/visualization/__tests__/diagram-type-switch-parity-guard.test.ts`
+
+**信頼性への影響**:
+- REQ-292 新規追加（信頼性レベル: 🔵）— legacy 視覚化パスの DiagramType パリティ保証
+- 同値クラス再発防止の構造ガード追加により、Phase 124 単一ソース化と相補的に「全 switch ケースが DiagramType を canon 参照する」契約を永続化
+- テスト: parity-guard + layout-bug-fixes + stale-closure-guard + production-config 4 suites / 184 pass, layout/overlap 9 suites / 133, simple-diagram-detector 2 suites / 46, tsc 0
+- 信頼性レベル分布: 🔵 297件（+1 from REQ-292）
+
+---
+
+### A120: config-restore 有限性 LAST tail CLOSED（Phase 126）
+
+**分析日時**: 2026-08-10
+**カテゴリ**: バグ修正・永続化境界安全性
+**背景**: Phase 09z（db746769）で `monitoring/export/memoryLimit` のスカラーを finiteness ガードしたが、`export.qualityPresets[].{width, height, fps, quality}` という**配列内オブジェクト**が未ガードのまま残っていた。`JSON.parse('1e400')` は Infinity を返し、`ProductionDashboard.updateConfig` 経由でラウンドトリップ、exporter `sceneDuration * fps` フレームループと `width * height` ピクセルバッファに伝播する。
+
+**判断**: 以下の修正を実施（コミット 1bfb25cd）：
+1. `isPositiveFiniteNumber` を `Array.isArray(arr) && arr.every(isPresetShape)` + 各フィールド `isPositiveFiniteNumber` に拡張
+2. `updateConfig` の preset 復元パスを finiteness チェック対象に追加
+3. 21 RED → 152 GREEN, 8 関連 suites 242/242, guards + safe-storage 41/41
+
+**根拠**:
+- `src/config/safe-storage.ts` 復元 predicate 拡張
+- `src/config/__tests__/safe-storage-qualityPresets-finiteness.test.ts` 21 RED ケース
+- exporter 呼び出し site: `src/export/{videoExporter,productionExporter}.ts`
+
+**信頼性への影響**:
+- REQ-293 新規追加（信頼性レベル: 🔵）— 配列内オブジェクト numeric の finite 検証
+- **教訓**: finiteness sweep を scalar paths のみでキー付けすると array-element フィールドを見落とす → 永続化 TYPE の全数値（ネストした配列含む）を列挙する
+- 信頼性レベル分布: 🔵 298件（+1 from REQ-293）
+
+---
+
+### A121: ExportJobQueue ETA オフバイワン修正（Phase 127）
+
+**分析日時**: 2026-08-10
+**カテゴリ**: バグ修正・API 正確性
+**背景**: `src/export/ExportJobQueue.getEstimatedWaitTime` が `position` のみで ETA を計算しており、自分のジョブのスロットが必要であることを忘れていた。busy queue の head pos0 のジョブに対して `/export/jobs` が ETA 0 を返し、実測 5-15 秒の待機が発生。
+
+**判断**: 以下の修正を実施（コミット cc2ebd23）：
+1. `position + 1 - availableSlots` に変更（自分のジョブ + 利用可能スロットを反映）
+2. RED 3 → GREEN 39 ユニットテスト + 112 ETA/route テスト
+3. tsc 0
+
+**根拠**:
+- `src/export/ExportJobQueue.ts getEstimatedWaitTime`
+- `src/export/__tests__/ExportJobQueue-eta.test.ts`
+
+**信頼性への影響**:
+- REQ-294 新規追加（信頼性レベル: 🔵）— Queue/ETA 計算で自分を含む
+- **新規バグクラス**: queue/ETA ordering（先行タスクの head が busy のとき自分のジョブを忘れる）
+- 信頼性レベル分布: 🔵 299件（+1 from REQ-294）
+
+---
+
+### A122: config-restore 有限性 monitoring/export/memoryLimit SCALARS（Phase 128）
+
+**分析日時**: 2026-08-10
+**カテゴリ**: バグ修正・永続化境界安全性
+**背景**: `config-restore` の `safe-storage` ガードは `typeof === 'number'` のみで Infinity を通す。`JSON.parse('1e400')` や `-1`、負の値、`null` 経由 `0` などがスカラーを通じて exporter / monitor / memoryLimit に流入し得る。
+
+**判断**: 以下の修正を実施（コミット db746769）：
+1. `monitoring.metricsCollectionInterval`, `monitoring.alertThresholds.{errorRate, responseTime, memoryUsage, queueLength}` を `isPositiveFiniteNumber` でガード
+2. `export.concurrentExports` をガード
+3. `performance.memoryLimit` をガード
+4. RED 33 → GREEN 130, 179/179 no regression, tsc 0
+
+**根拠**:
+- `src/config/safe-storage.ts` predicate 拡張
+- `src/config/__tests__/safe-storage-monitoring-export-memoryLimit-finiteness.test.ts`
+- `src/monitoring/*.ts`, `src/export/*.ts`, `src/performance/*.ts`
+
+**信頼性への影響**:
+- REQ-295 新規追加（信頼性レベル: 🔵）— monitoring/export/memoryLimit スカラーの finiteness 検証
+- 信頼性レベル分布: 🔵 300件（+1 from REQ-295）
+
+---
+
+### A123: config-restore 有限性 performance SCALARS（Phase 129）
+
+**分析日時**: 2026-08-10
+**カテゴリ**: バグ修正・永続化境界安全性
+**背景**: Phase 09z/Phase 128 同様、performance.{maxConcurrentJobs, timeoutMs, maxFileSize} が未ガードのまま残っていた。これらは並行実行制御と I/O タイムアウトの根拠値であり、Infinity や負値で安全装置が機能不全になる。
+
+**判断**: 以下の修正を実施（コミット 9e3fede5）：
+1. `performance.maxConcurrentJobs`, `performance.timeoutMs`, `performance.maxFileSize` を `isPositiveFiniteNumber` でガード
+2. RED 19 → GREEN 96, 139/139 persistence-path, tsc 0
+
+**根拠**:
+- `src/config/safe-storage.ts` predicate 拡張
+- `src/config/__tests__/safe-storage-performance-finiteness.test.ts`
+- consumer: `src/performance/intelligent-cache.ts`, `src/pipeline/orchestrator.ts`, `src/api/upload.ts`
+
+**信頼性への影響**:
+- REQ-296 新規追加（信頼性レベル: 🔵）— performance スカラーの finiteness 検証
+- これで `safe-storage` の **全 scalar/array numeric chokepoint 完結**（TutorialSystem は非数値、performanceMonitor/reportSchedulerService は localStorage 不使用＝PHANTOM 確認済）
+- 信頼性レベル分布: 🔵 301件（+1 from REQ-296）
+
+---
+
+### A124: stale-closure/async-setState class GUARDED-STRUCTURAL（Phase 130）
+
+**分析日時**: 2026-08-10
+**カテゴリ**: 構造ガード・async state 安全性
+**背景**: Phase 09c（修正）と Phase 09v（Iteration43 post-loop 修正）で個別修正してきた「await 後の state クロージャ stale 読み」クラスに対し、構文契約が無く新たな async handler 追加時に再発リスクがある。`ref.current` を post-await で読む、またはループ variant は local accumulator を使う、という 2 パターンを**機械的に検証するガード**が必要。
+
+**判断**: 以下の修正を実施（コミット d1ccf4b1）：
+1. 既知修正ピン（d1ccf4b1 内の修正 site を fixture で参照）+ 広範囲 async-handler-body sweep
+2. `async-state-stale-closure-guard.test.ts`: handler-BODY 粒度、JSX 除外、`${...}` 保持
+3. 0 live bugs, 4/4 + tsc 0
+
+**根拠**:
+- `tests/guards/async-state-stale-closure-guard.test.ts`
+- 既知修正 site 2 件（safe handler として登録）
+
+**信頼性への影響**:
+- REQ-297 新規追加（信頼性レベル: 🔵）— async setState クロージャ安全性の構造ガード
+- **教訓**: 構文契約が薄いバグクラスは個別修正で閉じるより、構造ガードで「コード形を制約」する方が長期的に安価
+- 信頼性レベル分布: 🔵 302件（+1 from REQ-297）
+
+---
+
+### A125: AI Hub steering feedback — diagram-type-switch-parity の他同値クラスへの展開（Phase 131+ 提案）
+
+**分析日時**: 2026-08-10
+**カテゴリ**: 将来 Phase 提案・パターン横展開
+**背景**: Phase 125 で導入した `diagram-type-switch-parity-guard.test.ts` は DiagramType-TYPED-PARAM 関数の switch-CASE パリティを保証する。AI Hub steering feedback A は `src/types/diagram.ts` に `'sequence' vs 'timeline'` のような他の同義語 alias が存在するか確認し、あれば同値クラスごとにガードファイルを 1 つずつ生成することを推奨。
+
+**判断**: 現状 `'sequence' vs 'timeline'` 等の alias は存在しない（canonical 11 type が既に正典）。ただし `'flow' vs 'flowchart'` 以外のエッジタイプ内同値ペア（例: `'matrix'` vs `'comparison'` の semantic overlap）を再評価することで、別系統の subtle drift を検出できる可能性がある。
+
+**根拠**:
+- `src/types/diagram.ts` — 11 type のみ（alias なし）
+- Phase 125 ガードのスキャン対象は DiagramType-TYPED-PARAM 関数のみ
+
+**信頼性への影響**:
+- REQ-298 新規追加（信頼性レベル: 🟡）— 他の DiagramType 同値クラスの監査（提案）
+- 信頼性レベル分布: 🔵 302件 / 🟡 5件（+1）
+
+---
+
+### A126: AI Hub steering feedback — storageParser validators JSON.parse vs JSON.stringify 非対称監査（Phase 131+ 提案）
+
+**分析日時**: 2026-08-10
+**カテゴリ**: 将来 Phase 提案・永続化境界安全性
+**背景**: Phase 09y/09z/09ab/Phase 128/129 で `safe-storage` の復元 predicate を閉じたが、AI Hub steering feedback B は**他の storageParser-side validators**で `parse(` または `JSON.parse` 近くに `isInteger`/`isFinite` ガードがある validator を検索し、同じ Infinity ベクトルが silent pass していないか監査することを推奨。
+
+**判断**: 既知の `safe-storage` 以外で storage 復帰経路は `supabase/storage.ts`（typed JSON.parse）と `production-dashboard.ts updateConfig` があるが、両者とも safe-storage 経由に統合されている。**新規独立経路は現状未確認**（grep で hit 0 件）だが、Phase 131+ で明示的な再監査サイクルを推奨。
+
+**根拠**:
+- `rg "JSON\\.parse|parse\\(" src/ --type ts | rg "isInteger|isFinite|Number\\.isFinite"`
+- 0-hit: safe-storage.ts 以外の storage-side validator は無い
+
+**信頼性への影響**:
+- REQ-299 新規追加（信頼性レベル: 🟡）— storageParser validators の JSON.parse vs JSON.stringify 非対称監査サイクル（提案）
+- 信頼性レベル分布: 🔵 302件 / 🟡 6件（+1）
+
+---
+
+### A127: AI Hub steering feedback — async-setState positive-case fixture 追加（Phase 131+ 提案）
+
+**分析日時**: 2026-08-10
+**カテゴリ**: 将来 Phase 提案・developer ergonomics
+**背景**: Phase 130 の構造ガードは trigger token のみで、guarded pattern の「見える例」がない。AI Hub steering feedback C は observer/raf inside a hook + 実 cleanup の concrete positive-case fixture 追加を推奨。
+
+**判断**: `src/hooks/__tests__/__fixtures__/async-state-guarded-pattern.example.tsx` を生成し、ガarded pattern（call-time ref mirror, loop variant は local accumulator, useEffect cleanup は return ref-counted unsubscribe）を developer が copy-paste できる形で配置する。
+
+**根拠**:
+- Phase 130 ガードには既知修正ピンのみ
+- developer ergonomics の改善余地
+
+**信頼性への影響**:
+- REQ-300 新規追加（信頼性レベル: 🟡）— guarded pattern の positive-case fixture 追加（提案）
+- 信頼性レベル分布: 🔵 302件 / 🟡 7件（+1）
+
+---
+
+### A128: AI Hub steering feedback — timestamp guard mutation-verified claim の CI ピン留め（Phase 131+ 提案）
+
+**分析日時**: 2026-08-10
+**カテゴリ**: 将来 Phase 提案・regression mutation test
+**背景**: AI Hub steering feedback D は Phase 09f の timestamp guard（time-origin mismatch）の 'mutation-verified' claim を CI でピン留めする提案。fixture-mode test で当該 guard 行を一時除去 → 新テストが失敗することを確認することで、将来の edit で guard が別形で再追加される regression を防ぐ。
+
+**判断**: `tests/guards/timestamp-guard-mutation-pinning.test.ts` を生成し、Phase 09f の guard 行（`Date.now()` 強制置換 site）を mutation test で保護する。
+
+**根拠**:
+- Phase 09f の guard site は既知だが、mutation-verified チェックは未実装
+- memory 内 'Time-origin mismatch (09f)' クラスが同パターン再発リスク
+
+**信頼性への影響**:
+- REQ-301 新規追加（信頼性レベル: 🟡）— mutation-verified ガードの CI ピン留め（提案）
+- 信頼性レベル分布: 🔵 302件 / 🟡 8件（+1）
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)

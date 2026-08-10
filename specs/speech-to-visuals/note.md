@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-08-06（第209回検証・NaN/Infinityガード横展開完了・clampFinite Infinity対応・DiagramVideo時間単位バグ修正・property-based fuzz tests 7ファイル1,107行追加・11+モジュール坚牢化・570ファイル・543テストファイル・107パッケージ・REQ-270~273）
+**最終更新**: 2026-08-10（第210回検証・Phase 125-130 完了・REQ-292~297 追加・Phase 131+ 提案 REQ-298~301 追加・diagram-type-switch-parity CLOSED・config-restore 有限性 LAST tail CLOSED・ExportJobQueue ETA オフバイワン修正・stale-closure/async-setState クラス GUARDED-STRUCTURAL・AI Hub steering feedback A〜D 統合）
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム
 
 ## 技術スタック
@@ -134,6 +134,13 @@ src/
 - [x] 第202回検証: 監視APIルートエラーロギング（REQ-259/262・monitoring.ts sendError 500エラー時にlogger.error呼出・5テスト追加）
 - [x] 第202回検証: BatchOperationRecoveryテスト追加（REQ-260・逐次/並行/リトライ/フォールバック/集計統計/エッジケース・39テスト追加）
 - [x] 第202回検証: ErrorRecoveryMonitorテスト追加（REQ-261・ライフサイクル/サンプリング/アラート計算/リセット・21テスト追加）
+- [x] 第210回検証: Phase 125 legacy 視覚化 flow/flowchart スイッチパリティ CLOSED（REQ-292・5 サイト修正 + diagram-type-switch-parity-guard.test.ts 205行・4 known-fix pin + 広範囲 sweep）
+- [x] 第210回検証: Phase 126 config-restore 有限性 LAST tail CLOSED（REQ-293・export.qualityPresets[].{w,h,fps,q} 配列内オブジェクト + isPositiveFiniteNumber + Array.isArray + element shape check・RED 21→GREEN 152/8 関連 suites 242/242）
+- [x] 第210回検証: Phase 127 ExportJobQueue ETA オフバイワン修正（REQ-294・getEstimatedWaitTime position+1-availableSlots・新規 queue/ETA ordering バグクラス記録・RED 3→GREEN 39+112）
+- [x] 第210回検証: Phase 128 config-restore 有限性 monitoring/export/memoryLimit SCALARS（REQ-295・7 フィールド + RED 33→GREEN 130/179/179 no regression/tsc 0）
+- [x] 第210回検証: Phase 129 config-restore 有限性 performance SCALARS（REQ-296・3 フィールド + RED 19→GREEN 96/139/139 persistence-path/tsc 0・safe-storage 全 scalar/array numeric chokepoint 完結）
+- [x] 第210回検証: Phase 130 stale-closure/async-setState クラス GUARDED-STRUCTURAL（REQ-297・async-state-stale-closure-guard.test.ts + 既知修正ピン 2 件 + handler-BODY 粒度 + JSX 除外 + ${...} 保持・0 live bugs・4/4+tsc 0）
+- [x] 第210回検証: Phase 131+ パターン横展開提案（REQ-298~301・AI Hub steering feedback A〜D・diagram-type-switch-parity 他同値クラス展開 / storageParser validators JSON.parse vs JSON.stringify 非対称監査 / async-setState positive-case fixture / timestamp guard mutation-verified CI ピン留め）
 
 ## 注意事項
 

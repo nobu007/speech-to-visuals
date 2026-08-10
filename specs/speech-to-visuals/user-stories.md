@@ -1736,10 +1736,189 @@
 
 ---
 
+### ストーリー 21.5: legacy 視覚化パスの DiagramType パリティ保証 🔵
+
+**信頼性**: 🔵 *コミット 9b88a5f5（Phase 125）に基づく*
+
+**私は** レイアウト品質エンジニア **として**
+**legacy LayoutEngine パスが LLM から返る 11 種すべての DiagramType を正しく扱い、quality 100% を保証したい**
+**そうすることで** 視覚化パイプラインが modern / legacy のどちらのレイアウト経路を通っても DiagramType ごとに意図したレイアウトが選択されることを保証できる
+
+**関連要件**: REQ-292
+
+**詳細シナリオ**:
+
+1. DiagramType 11 種（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general）のテスト入力を用意
+2. main-pipeline と pipeline-orchestrator の両方で `LayoutEngine.layout()` を呼び出す
+3. `flowchart` が `flow` と同じ rankdir/align で dagre にルーティングされることを確認
+4. `OverlapResolver.getMinimumSeparationForType` で `flowchart` が `flow` と同じ最小分離値を返すことを確認
+5. diagram-type-switch-parity-guard.test.ts 205 行の構造ガードが DiagramType-TYPED-PARAM 関数の switch-CASE パリティを機械的に検証
+
+**前提条件**:
+- legacy LayoutEngine と modern strategy-selector の二重レイアウトシステムが共存
+- diagram-type-switch-parity-guard が CI に組み込まれている
+
+**優先度**: Must Have
+
+---
+
+### ストーリー 21.6: 永続化境界の配列内オブジェクト numeric 安全性 🔵
+
+**信頼性**: 🔵 *コミット 1bfb25cd（Phase 126）に基づく*
+
+**私は** 永続化境界安全性エンジニア **として**
+**localStorage からのラウンドトリップで qualityPresets[].{w,h,fps,q} が Infinity や負値に化けるのを防ぎたい**
+**そうすることで** ProductionDashboard.updateConfig 経由の exporter `sceneDuration*fps` フレームループと `width*height` ピクセルバッファが poisoned payload で暴走しないことを保証できる
+
+**関連要件**: REQ-293
+
+**詳細シナリオ**:
+
+1. localStorage に `export.qualityPresets = [{width: 1e400}, {height: -100}, {fps: 'NaN'}, ...]` を仕込む
+2. ProductionDashboard で復元 → updateConfig 経由で反映
+3. exporter がアクセスする前に finiteness ガードで除外されることを確認
+4. 21 RED → 152 GREEN の全ケースが pass することを確認
+5. 8 関連 suites 242/242, guards + safe-storage 41/41 が no regression
+
+**前提条件**:
+- isPositiveFiniteNumber + Array.isArray + element shape check が safe-storage.ts に実装済み
+- 永続化 TYPE の全数値（ネスト配列含む）を列挙する設計判断が永続化されている
+
+**優先度**: Must Have
+
+---
+
+### ストーリー 21.7: ExportJobQueue ETA 計算の正確性 🔵
+
+**私は** Export API 利用クライアント **として**
+**busy queue の head 位置でも自分のジョブの待機時間が正の秒数で返ることを期待したい**
+**そうすることで** `/export/jobs` ポーリング UI が誤った 0 秒待機で即座にリトライしてしまい backend を hammer することを防げる
+
+**関連要件**: REQ-294
+
+**詳細シナリオ**:
+
+1. 5 ジョブすべて queued, availableSlots=2 の queue を構築
+2. position=0（head）のジョブについて `getEstimatedWaitTime` を呼ぶ
+3. 自分のジョブ + 利用可能スロットを反映した position+1-availableSlots で計算
+4. 実測 5-15 秒の待機に対して ETA > 0 が返ることを確認
+5. RED 3 → GREEN 39 ユニット + 112 ETA/route が no regression
+
+**信頼性**: 🔵 *コミット cc2ebd23（Phase 127）に基づく*
+
+**前提条件**:
+- queue/ETA ordering バグクラスが memory に記録されている
+- 自分のジョブを忘れる off-by-one が構造的に防止されている
+
+**優先度**: Must Have
+
+---
+
+### ストーリー 21.8: monitoring/export/memoryLimit スカラーの有限性保証 🔵
+
+**私は** 永続化境界安全性エンジニア **として**
+**config-restore 経由で `monitoring.alertThresholds.errorRate=Infinity` などが混入するのを防ぎたい**
+**そうすることで** アラート判定やメモリ監視が Infinity で saturate して silently fail することを排除できる
+
+**関連要件**: REQ-295
+
+**詳細シナリオ**:
+
+1. localStorage に monitoring/export/memoryLimit の各フィールドへ Infinity/負値/null 経由 0 を仕込む
+2. safe-storage 復元 predicate が `isPositiveFiniteNumber` で reject することを確認
+3. RED 33 → GREEN 130, 179/179 no regression, tsc 0 を確認
+4. 7 フィールドすべて（metricsCollectionInterval + alertThresholds ×4 + concurrentExports + memoryLimit）がガードされていることを構造的に検証
+
+**信頼性**: 🔵 *コミット db746769（Phase 128）に基づく*
+
+**前提条件**:
+- safe-storage predicate がスカラー finiteness を網羅
+- 復元失敗時の fallback 値が safe-storage 側で決定されている
+
+**優先度**: Must Have
+
+---
+
+### ストーリー 21.9: performance スカラーの有限性保証 🔵
+
+**私は** 並行実行制御エンジニア **として**
+**`performance.maxConcurrentJobs=Infinity` や `timeoutMs=-1` などが並行実行制御と I/O タイムアウトの根拠値として流入するのを防ぎたい**
+**そうすることで** パイプラインが「無制限並列」化や「即座タイムアウト」化によって API / Worker を暴走させないことを保証できる
+
+**関連要件**: REQ-296
+
+**詳細シナリオ**:
+
+1. localStorage に performance.{maxConcurrentJobs, timeoutMs, maxFileSize} の Infinity/負値/null 経由 0 を仕込む
+2. safe-storage 復元 predicate が reject することを確認
+3. RED 19 → GREEN 96, 139/139 persistence-path, tsc 0 を確認
+4. safe-storage の全 scalar/array numeric chokepoint 完結を確認
+
+**信頼性**: 🔵 *コミット 9e3fede5（Phase 129）に基づく*
+
+**前提条件**:
+- Phase 128 (REQ-295) で monitoring/export/memoryLimit が完了済み
+- consumer（intelligent-cache, orchestrator, upload）が safe-storage 経由
+
+**優先度**: Must Have
+
+---
+
+### ストーリー 21.10: async-setState クロージャ安全性の構造ガード 🔵
+
+**私は** async handler レビューア **として**
+**新規追加される React hook / event handler の async 関数が await 後の stale state クロージャを構造的に回避することを保証したい**
+**そうすことで** 個別修正を超えて同種バグがリグレッションしないことを保証できる
+
+**関連要件**: REQ-297
+
+**詳細シナリオ**:
+
+1. 新規 async handler を追加する
+2. async-state-stale-closure-guard.test.ts が handler-BODY 粒度で sweep
+3. 既知修正 site 2 件（safe handler として登録済み）との差分を構造的に検証
+4. JSX 内のクロージャ参照は除外、`${...}` テンプレートは保持
+5. 0 live bugs, 4/4 + tsc 0 を確認
+
+**信頼性**: 🔵 *コミット d1ccf4b1（Phase 130）に基づく*
+
+**前提条件**:
+- 既知修正ピン 2 件がガードに登録されている
+- 「構文契約が薄いバグクラスは構造ガードでコード形を制約する」方針が確立
+
+**優先度**: Must Have
+
+---
+
+### ストーリー 21.11: ガード/監査パターンの横展開（提案） 🟡
+
+**私は** プラットフォームエンジニア **として**
+**AI Hub steering feedback A〜D に基づく 4 つの横展開提案（diagram-type-switch-parity 他同値クラス展開 / storageParser validators JSON.parse vs JSON.stringify 非対称監査 / async-setState positive-case fixture 追加 / timestamp guard mutation-verified CI ピン留め）を Phase 131+ で実装したい**
+**そうすることで** 個別修正を超えたバグクラス再発防止と developer ergonomics を継続的に改善できる
+
+**関連要件**: REQ-298, REQ-299, REQ-300, REQ-301
+
+**詳細シナリオ**:
+
+1. **REQ-298**: `src/types/diagram.ts` に `'sequence' vs 'timeline'` 等の同義語 alias があるか再評価、あれば 1 ガードファイル/同値クラス生成
+2. **REQ-299**: `rg "JSON.parse|parse\(" src/ --type ts | rg "isInteger|isFinite"` で safe-storage 以外の storage-side validator を 0-hit 確認（既に統合済みのはず）+ 明示的な再監査サイクルを CI に追加
+3. **REQ-300**: `src/hooks/__tests__/__fixtures__/async-state-guarded-pattern.example.tsx` を生成（observer/raf inside hook + 実 cleanup）
+4. **REQ-301**: `tests/guards/timestamp-guard-mutation-pinning.test.ts` を生成（Phase 09f guard 行を mutation test で保護）
+
+**信頼性**: 🟡 *AI Hub steering feedback A〜D から妥当な推測*
+
+**前提条件**:
+- AI Hub の steering feedback が 4 件受信済み
+- 各提案の ROI 評価が product 側で承認されること
+
+**優先度**: Should Have
+
+---
+
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 71件 (100%)
-- 🟡 黄信号: 0件 (0%)
+- 🔵 青信号: 75件 (97.4%)
+- 🟡 黄信号: 2件 (2.6%) — ストーリー 21.11（提案）
 - 🔴 赤信号: 0件 (0%)
 
 **品質評価**: ✅ 高品質 - 全ストーリーが既存の設計文書・実装・統合ギャップ分析に基づいている
@@ -1748,10 +1927,10 @@
 
 ## Acceptance criteria
 
-- [x] AC-1: 全68ストーリーが一意のストーリー番号（1.1〜21.4）を持ち、「私は〜として」「〜したい」「そうすることで〜」の3要素フォーマットに従っている
+- [x] AC-1: 全74ストーリーが一意のストーリー番号（1.1〜21.11）を持ち、「私は〜として」「〜したい」「そうすることで〜」の3要素フォーマットに従っている
 - [x] AC-2: 全ストーリーが関連要件（REQ-xxx / NFR-xxx）を参照し、requirements.md とのトレーサビリティが確保されている
 - [x] AC-3: 全ストーリーに優先度（Must Have / Should Have / Could Have）が付与されている
 - [x] AC-4: 全ストーリーに信頼性レベル（🔵青信号 / 🟡黄信号 / 🔴赤信号）が付与されている
-- [x] AC-5: ストーリーマップが全21エピック・全68ストーリーを網羅している
+- [x] AC-5: ストーリーマップが全21エピック・全74ストーリーを網羅している
 - [x] AC-6: 全ストーリーが SYSTEM_CONSTITUTION.md の許可カテゴリに収まり、禁止カテゴリに違反していない
 - [x] AC-7: エピック構成が要件定義書の機能カテゴリに対応している
