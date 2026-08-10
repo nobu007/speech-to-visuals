@@ -19,6 +19,7 @@ import { PipelineInput, PipelineResult, PipelineConfig } from './types';
 import { getHeapUsed } from '@/utils/memory-usage';
 import { logger } from '../utils/logger';
 import { nodesOverlap } from '@/visualization/layout-utils';
+import { CappedArray } from '@/lib/capped-array';
 import {
   IterationManager,
   createIterationManager,
@@ -47,6 +48,19 @@ export interface QualityAnalysisResult {
 }
 
 /**
+ * Maximum pipeline results retained in `pipelineHistory`.
+ *
+ * useFrameworkPipeline holds a FrameworkIntegratedPipeline in a React useRef for
+ * a dashboard session, and each execute() appends a full PipelineResult (scenes,
+ * audio, metrics). Without a cap the history grew without bound over a long
+ * session. FIFO-bounded via CappedArray so a future push site can never
+ * reintroduce unbounded growth. Reads work unchanged — last-result selection and
+ * the history export in executeWithImprovement — because CappedArray extends
+ * Array (indexing, spread, .length, .map/.filter all behave as a plain array).
+ */
+export const MAX_PIPELINE_HISTORY = 20;
+
+/**
  * Enhanced pipeline with framework integration
  */
 export class FrameworkIntegratedPipeline {
@@ -54,7 +68,7 @@ export class FrameworkIntegratedPipeline {
   private iterationManager?: IterationManager;
   private improvementEngine: AutoImprovementEngine;
   private currentPhase: keyof typeof DEVELOPMENT_CYCLES;
-  private pipelineHistory: PipelineResult[] = [];
+  private pipelineHistory = new CappedArray<PipelineResult>(MAX_PIPELINE_HISTORY);
 
   constructor(config?: Partial<PipelineConfig>, thresholds?: Partial<QualityThresholds>) {
     this.pipeline = new MainPipeline(config);

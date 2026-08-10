@@ -26,6 +26,7 @@ const {
   ImprovementStrategy,
   QualityRecommendation,
   toQualityRecommendations,
+  MAX_IMPROVEMENT_HISTORY,
 } = await import('../auto-improvement-engine');
 const { IterationManager } = await import('@/framework/iteration-manager');
 
@@ -576,7 +577,9 @@ describe('AutoImprovementEngine', () => {
   describe('getImprovementHistory', () => {
     it('should return empty history initially', () => {
       const history = engine.getImprovementHistory();
-      expect(history).toEqual([]);
+      // improvementHistory is a CappedArray (FIFO-bounded). An empty CappedArray
+      // carries a `maxSize` own property, so assert length rather than toEqual([]).
+      expect(history).toHaveLength(0);
     });
 
     it('should return history after running improvement cycle', async () => {
@@ -599,6 +602,35 @@ describe('AutoImprovementEngine', () => {
       expect(history[0]).toHaveProperty('improvement');
       expect(history[0]).toHaveProperty('success');
       expect(history[0]).toHaveProperty('timestamp');
+    });
+
+    it('caps improvementHistory FIFO — session-lifetime growth stays bounded', async () => {
+      // Regression guard: the engine is held for a dashboard session
+      // (FrameworkIntegratedPipeline → useFrameworkPipeline useRef) and each
+      // runImprovementCycle appends results. Before CappedArray this grew without
+      // bound for the session. Pin the FIFO cap so a future push site cannot
+      // reintroduce unbounded growth.
+      const getMetrics = jest.fn().mockResolvedValue(badMetrics);
+      const mkStrategy = (name: string): ImprovementStrategy => ({
+        name,
+        description: name,
+        targetMetric: 'transcriptionAccuracy',
+        expectedImprovement: 10,
+        complexity: 'low',
+        execute: async () => ({ ...badMetrics, transcriptionAccuracy: 0.75 }),
+      });
+      const strategies = [mkStrategy('S0'), mkStrategy('S1'), mkStrategy('S2')];
+
+      // runImprovementCycle applies up to 3 strategies per call (top-3 slice),
+      // each pushing one ImprovementResult. 25 cycles × 3 = 75 pushes ≫ 50.
+      for (let i = 0; i < 25; i++) {
+        await engine.runImprovementCycle(getMetrics, strategies);
+      }
+
+      const history = engine.getImprovementHistory();
+      expect(history.length).toBe(MAX_IMPROVEMENT_HISTORY); // bounded, NOT 75
+      // FIFO: oldest evicted, the collection never exceeds the cap.
+      expect(history.length).toBeLessThanOrEqual(MAX_IMPROVEMENT_HISTORY);
     });
   });
 

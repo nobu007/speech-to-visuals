@@ -107,11 +107,13 @@ jest.unstable_mockModule('@/framework/auto-improvement-engine', () => ({
 
 let FrameworkIntegratedPipeline: typeof import('@/pipeline/framework-integrated-pipeline').FrameworkIntegratedPipeline;
 let createFrameworkIntegratedPipeline: typeof import('@/pipeline/framework-integrated-pipeline').createFrameworkIntegratedPipeline;
+let MAX_PIPELINE_HISTORY: number;
 
 beforeAll(async () => {
   const mod = await import('@/pipeline/framework-integrated-pipeline');
   FrameworkIntegratedPipeline = mod.FrameworkIntegratedPipeline;
   createFrameworkIntegratedPipeline = mod.createFrameworkIntegratedPipeline;
+  MAX_PIPELINE_HISTORY = mod.MAX_PIPELINE_HISTORY;
 });
 
 import type { PipelineResult } from '@/pipeline/types';
@@ -156,6 +158,36 @@ describe('FrameworkIntegratedPipeline', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     pipeline = new FrameworkIntegratedPipeline();
+  });
+
+  // ── pipelineHistory cap (session-lifetime growth) ───────────
+
+  describe('pipelineHistory cap', () => {
+    it('bounds pipelineHistory FIFO — session-lifetime growth stays bounded', () => {
+      // Regression guard: useFrameworkPipeline holds a FrameworkIntegratedPipeline
+      // in a useRef for a dashboard session, and each execute() appends a full
+      // PipelineResult (scenes, audio, metrics). Before CappedArray this grew
+      // without bound over a long session. White-box access mirrors the existing
+      // detectLayoutOverlaps / estimate* private-field-access pattern.
+      type WithHistory = {
+        pipelineHistory: {
+          push(item: PipelineResult): unknown;
+          length: number;
+          [n: number]: PipelineResult;
+        };
+      };
+      const history = (pipeline as unknown as WithHistory).pipelineHistory;
+
+      // Push well past the cap; most-recent results are retained, oldest FIFO.
+      const total = MAX_PIPELINE_HISTORY + 5;
+      for (let i = 0; i < total; i++) {
+        history.push(makeResult({ processingTime: i }));
+      }
+
+      expect(history.length).toBe(MAX_PIPELINE_HISTORY); // bounded, NOT total
+      // FIFO eviction: the last retained entry is the most-recently-pushed.
+      expect(history[history.length - 1].processingTime).toBe(total - 1);
+    });
   });
 
   // ── Constructor ──────────────────────────────────────────────

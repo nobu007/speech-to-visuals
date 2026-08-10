@@ -13,6 +13,7 @@
 
 import { IterationManager, createIterationManager } from './iteration-manager';
 import { logger } from '../utils/logger';
+import { CappedArray } from '@/lib/capped-array';
 
 export interface QualityMetrics {
   // Performance Metrics
@@ -94,11 +95,22 @@ export interface ImprovementResult {
 }
 
 /**
+ * Maximum improvement-cycle results retained in `improvementHistory`.
+ *
+ * The engine is held for the lifetime of a FrameworkIntegratedPipeline, which
+ * useFrameworkPipeline keeps in a React useRef for a dashboard session. Each
+ * runImprovementCycle appends an ImprovementResult, so over a long session the
+ * history grew without bound. FIFO-bounded via CappedArray so a future push site
+ * can never reintroduce unbounded session-lifetime growth.
+ */
+export const MAX_IMPROVEMENT_HISTORY = 50;
+
+/**
  * AutoImprovementEngine: Automatically detects and applies improvements
  */
 export class AutoImprovementEngine {
   private thresholds: QualityThresholds;
-  private improvementHistory: ImprovementResult[] = [];
+  private improvementHistory = new CappedArray<ImprovementResult>(MAX_IMPROVEMENT_HISTORY);
   private currentMetrics?: QualityMetrics;
   private iterationManager?: IterationManager;
 
