@@ -615,7 +615,7 @@ describe('ExportVerifier – Lottie verification (REQ-223)', () => {
     ];
     const result = verifier.verify('lottie', makeLottie({ layers: badLayers }));
     expect(result.valid).toBe(false);
-    expect(result.errors).toContain('Lottie layer[0] missing required "ty" (type) field');
+    expect(result.errors).toContain('Lottie layer[0] missing or non-finite required "ty" (type) field');
   });
 
   test('should warn about layers missing ip/op in deep validation', () => {
@@ -624,7 +624,7 @@ describe('ExportVerifier – Lottie verification (REQ-223)', () => {
     ];
     const result = verifier.verify('lottie', makeLottie({ layers: incompleteLayers }));
     expect(result.valid).toBe(true);
-    expect(result.warnings).toContain('Lottie layer[0] missing ip/op frame boundaries');
+    expect(result.warnings).toContain('Lottie layer[0] missing or non-finite ip/op frame boundaries');
   });
 
   test('should skip layer deep validation when deepValidation is false', () => {
@@ -645,5 +645,44 @@ describe('ExportVerifier – Lottie verification (REQ-223)', () => {
   test('verifyExport convenience works for Lottie', () => {
     const result = verifyExport('lottie', makeLottie(), { minFileSizeBytes: 1 });
     expect(result.valid).toBe(true);
+  });
+
+  // -------------------------------------------------------------------------
+  // Non-finite numeric guards — JSON.parse coerces `1e400` to `Infinity`,
+  // which `typeof === 'number'` would silently accept and push into
+  // metadata (corrupting downstream frame loops: op * fr overflows).
+  // We bypass makeLottie's JSON.stringify helper because
+  // `JSON.stringify(Infinity) === 'null'` would erase the overflow.
+  // -------------------------------------------------------------------------
+
+  test('should not propagate Infinity from JSON.parse overflow into Lottie metadata', () => {
+    const text = '{"v":"5.7.4","fr":1e400,"ip":0,"op":1e400,"w":1e400,"h":1e400,"nm":"Test","layers":[]}';
+    const data = new TextEncoder().encode(text).buffer;
+    const result = verifier.verify('lottie', data);
+    expect(result.metadata.lottieFrameRate).toBeUndefined();
+    expect(result.metadata.lottieDimensions).toBeUndefined();
+    expect(result.metadata.lottieFrameRange).toBeUndefined();
+  });
+
+  test('should not propagate -Infinity or NaN into Lottie metadata', () => {
+    // NaN literals are not allowed in JSON — we use `1e400` (→Infinity)
+    // and `-1e400` (→-Infinity). NaN is covered separately via the
+    // `__proto__` trick below because raw NaN cannot survive JSON.
+    const text = '{"v":"5.7.4","fr":-1e400,"ip":1e400,"op":-1e400,"w":-1e400,"h":1e400,"nm":"Test","layers":[]}';
+    const data = new TextEncoder().encode(text).buffer;
+    const result = verifier.verify('lottie', data);
+    expect(result.metadata.lottieFrameRate).toBeUndefined();
+    expect(result.metadata.lottieDimensions).toBeUndefined();
+    expect(result.metadata.lottieFrameRange).toBeUndefined();
+  });
+
+  test('should flag non-finite layer ty / ip / op during deep validation', () => {
+    const v = new ExportVerifier({ minFileSizeBytes: 1, deepValidation: true });
+    // Layer with non-finite ty and ip/op
+    const text = '{"v":"5.7.4","fr":30,"ip":0,"op":90,"w":1920,"h":1080,"nm":"Test","layers":[{"ty":1e400,"ip":1e400,"op":-1e400}]}';
+    const data = new TextEncoder().encode(text).buffer;
+    const result = v.verify('lottie', data);
+    expect(result.errors.some(e => e.includes('layer[0] missing or non-finite required "ty"'))).toBe(true);
+    expect(result.warnings.some(w => w.includes('layer[0] missing or non-finite ip/op frame boundaries'))).toBe(true);
   });
 });

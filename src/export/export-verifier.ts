@@ -473,21 +473,32 @@ export class ExportVerifier {
       }
     }
 
-    // Numeric field validation
-    if (typeof parsed.fr === 'number') {
-      metadata.lottieFrameRate = parsed.fr;
-      if (parsed.fr <= 0) errors.push('Lottie frame rate (fr) must be positive');
+    // Numeric field validation.
+    // Use Number.isFinite (NOT `typeof === 'number'`) because JSON.parse
+    // coerces the literal `1e400` to `Infinity`, which `typeof` accepts as
+    // a number. Pushing `Infinity` into metadata breaks downstream frame
+    // loops (frame count = op * fr overflows) and silently disables the
+    // `<= 0` checks below (Infinity > 0). The Lottie spec only ever
+    // encodes finite numbers for these fields.
+    const fr = parsed.fr;
+    if (typeof fr === 'number' && Number.isFinite(fr)) {
+      metadata.lottieFrameRate = fr;
+      if (fr <= 0) errors.push('Lottie frame rate (fr) must be positive');
     }
 
-    if (typeof parsed.w === 'number' && typeof parsed.h === 'number') {
-      metadata.lottieDimensions = { width: parsed.w, height: parsed.h };
-      if (parsed.w <= 0) errors.push('Lottie width (w) must be positive');
-      if (parsed.h <= 0) errors.push('Lottie height (h) must be positive');
+    const w = parsed.w;
+    const h = parsed.h;
+    if (typeof w === 'number' && typeof h === 'number' && Number.isFinite(w) && Number.isFinite(h)) {
+      metadata.lottieDimensions = { width: w, height: h };
+      if (w <= 0) errors.push('Lottie width (w) must be positive');
+      if (h <= 0) errors.push('Lottie height (h) must be positive');
     }
 
-    if (typeof parsed.ip === 'number' && typeof parsed.op === 'number') {
-      metadata.lottieFrameRange = { ip: parsed.ip, op: parsed.op };
-      if (parsed.op <= parsed.ip) {
+    const ip = parsed.ip;
+    const op = parsed.op;
+    if (typeof ip === 'number' && typeof op === 'number' && Number.isFinite(ip) && Number.isFinite(op)) {
+      metadata.lottieFrameRange = { ip, op };
+      if (op <= ip) {
         errors.push('Lottie out-point (op) must be greater than in-point (ip)');
       }
     }
@@ -500,11 +511,15 @@ export class ExportVerifier {
       } else if (this.options.deepValidation) {
         for (let i = 0; i < parsed.layers.length; i++) {
           const layer = parsed.layers[i] as Record<string, unknown>;
-          if (typeof layer.ty !== 'number') {
-            errors.push(`Lottie layer[${i}] missing required "ty" (type) field`);
+          const ty = layer.ty;
+          const layerIp = layer.ip;
+          const layerOp = layer.op;
+          if (typeof ty !== 'number' || !Number.isFinite(ty)) {
+            errors.push(`Lottie layer[${i}] missing or non-finite required "ty" (type) field`);
           }
-          if (typeof layer.ip !== 'number' || typeof layer.op !== 'number') {
-            warnings.push(`Lottie layer[${i}] missing ip/op frame boundaries`);
+          if (typeof layerIp !== 'number' || typeof layerOp !== 'number'
+              || !Number.isFinite(layerIp) || !Number.isFinite(layerOp)) {
+            warnings.push(`Lottie layer[${i}] missing or non-finite ip/op frame boundaries`);
           }
         }
       }
