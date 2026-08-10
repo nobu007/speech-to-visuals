@@ -38,6 +38,7 @@ import {
   FastForward
 } from 'lucide-react';
 import { logger } from '@/utils/logger';
+import { parseUntrustedJson } from '@/analysis/llm-utils';
 import { QualityRecommendation } from '@/framework/auto-improvement-engine';
 
 /**
@@ -166,7 +167,15 @@ export const FrameworkDashboard: React.FC<FrameworkDashboardProps> = ({
     try {
       const response = await fetch('/api/framework/status');
       if (response.ok) {
-        const data = await response.json();
+        // Route the trust-boundary JSON body through the sanitized chokepoint
+        // (parseUntrustedJson) rather than the raw `response.json()`, so an
+        // Infinity/proto-pollution payload from the backend cannot reach app
+        // state via this intake — same hardening as Index.tsx.
+        const data = parseUntrustedJson(await response.text()) as {
+          executionStatus?: ExecutionStatus;
+          iterationHistory?: IterationMetrics[];
+          qualityAnalysis?: QualityAnalysis;
+        };
         if (data.executionStatus) {
           setExecutionStatus(data.executionStatus);
         }

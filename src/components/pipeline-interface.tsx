@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { MainPipeline } from '@/pipeline';
 import { PipelineResult, PipelineStage } from '@/pipeline/types';
 import { ProcessingStatus } from '@/types/diagram';
+import { parseUntrustedJson } from '@/analysis/llm-utils';
 import { logger } from '@/utils/logger';
 
 interface PipelineInterfaceProps {
@@ -159,7 +160,11 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
         return;
       }
 
-      const data = await response.json();
+      // Route the trust-boundary JSON body through the sanitized chokepoint
+      // (parseUntrustedJson) rather than the raw `response.json()`, so an
+      // Infinity/proto-pollution payload from the backend cannot reach app state
+      // via this intake — same hardening as Index.tsx.
+      const data = parseUntrustedJson(await response.text()) as { videoUrl?: string };
       if (data.videoUrl) {
         window.open(data.videoUrl, '_blank');
       }
