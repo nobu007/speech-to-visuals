@@ -353,9 +353,18 @@ export class ExportJobQueue {
     if (position === undefined) return 0;
 
     const avgDuration = this.getAverageDuration();
-    // Jobs ahead that won't start immediately due to no available slots
+    // Free slots that would let queued jobs start immediately.
     const availableSlots = Math.max(0, this.options.maxConcurrent - this.running.size);
-    const effectiveAhead = Math.max(0, position - availableSlots);
+    // Count the slot-freeings this job must wait for: it needs a slot itself, so
+    // it is included. The first `availableSlots` queued jobs (positions
+    // 0..availableSlots-1) start immediately; everyone from there on waits, and
+    // this job is the (position + 1 - availableSlots)-th waiter. Without the
+    // `+ 1` the queue HEAD with every slot busy computed 0 waiters → ETA 0,
+    // even though it cannot start until a running job finishes.
+    const effectiveAhead = Math.max(0, position + 1 - availableSlots);
+    // Serial upper bound (as if one job clears per avgDuration); does not model
+    // parallel slot-freeing — same coarseness as before, only the off-by-one is
+    // corrected here.
     return effectiveAhead * avgDuration;
   }
 

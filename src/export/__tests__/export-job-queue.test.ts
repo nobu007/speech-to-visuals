@@ -233,9 +233,11 @@ describe('ExportJobQueue', () => {
       const c = q.enqueue({ priority: 'normal', format: 'mp4', inputHash: '3' });
 
       const eta = q.getEstimatedWaitTime(c.jobId);
-      // Position 2, 0 running, availableSlots=1 => effectiveAhead=1
-      // 1 * 10000 = 10000
-      expect(eta).toBe(10_000);
+      // Position 2, 0 running, availableSlots=1 => the head (pos 0) starts in
+      // the free slot immediately, but this job must wait for BOTH ahead jobs to
+      // clear serially (maxConcurrent=1): effectiveAhead = max(0, 2 + 1 - 1) = 2.
+      // 2 * 10000 = 20000
+      expect(eta).toBe(20_000);
 
       q.stop();
     });
@@ -251,10 +253,28 @@ describe('ExportJobQueue', () => {
       q.dequeue();
 
       const eta = q.getEstimatedWaitTime(c.jobId);
-      // Position 1, 1 running, maxConcurrent=1 => effectiveAhead = max(0, 1-0) = 1
-      // (running jobs are processing, they free slots for queued jobs)
-      // 1 * 10000 = 10000
-      expect(eta).toBe(10_000);
+      // Position 1, 1 running (maxConcurrent=1) → availableSlots=0. This job
+      // must wait for the running job AND the one ahead of it to clear serially:
+      // effectiveAhead = max(0, position + 1 - availableSlots) = max(0, 2) = 2.
+      // 2 * 10000 = 20000
+      expect(eta).toBe(20_000);
+
+      q.stop();
+    });
+
+    it('reports a non-zero ETA for the queue head when every slot is busy', () => {
+      // Regression: the OLD formula `max(0, position - availableSlots)` forgot
+      // that the job ITSELF needs a slot. With every slot busy, the queue head
+      // (position 0) computed effectiveAhead = max(0, 0 - 0) = 0 → ETA 0, even
+      // though it cannot start until a running job finishes. A queued head with
+      // no free slot MUST report a positive wait.
+      const q = new ExportJobQueue({ maxConcurrent: 1, maxQueueSize: 100 });
+      q.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'running' });
+      q.dequeue(); // fills the only slot: running.size=1, availableSlots=0
+      const head = q.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'head' });
+
+      expect(q.getQueuePosition(head.jobId)).toBe(0);
+      expect(q.getEstimatedWaitTime(head.jobId)).toBeGreaterThan(0);
 
       q.stop();
     });

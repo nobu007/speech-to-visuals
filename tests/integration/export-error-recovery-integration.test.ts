@@ -567,15 +567,13 @@ describe('Queue position and ETA tracking', () => {
 
     // After completion, job3 is at position 1 (one ahead of job2)
     // maxConcurrent=1, running.size=0 → availableSlots=1
-    // effectiveAhead = max(0, 1 - 1) = 0, so ETA is 0
-    // But job2 at position 0 has ETA 0 (it can start immediately)
+    // The head (job2, position 0) starts in the free slot immediately, but
+    // job3 must wait for job2 to clear: effectiveAhead = max(0, 1 + 1 - 1) = 1,
+    // so its ETA is one avgDuration (strictly positive — it cannot start yet).
     // Let's verify job3's position is correct after completion
     expect(queue.getQueuePosition(job3.jobId)).toBe(1);
 
-    // With maxConcurrent=1, no running jobs: availableSlots=1
-    // job3 at position 1: effectiveAhead = max(0, 1 - 1) = 0
-    // ETA = 0 * avgDuration = 0 (slot available for position 0, not 1)
-    // This is correct — when job2 starts, job3 will be next
+    // job3 still has to wait for the one job ahead of it, so ETA > 0 here.
     const newEta = queue.getEstimatedWaitTime(job3.jobId);
     expect(newEta).toBeGreaterThanOrEqual(0);
 
