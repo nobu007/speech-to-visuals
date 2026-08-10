@@ -139,7 +139,9 @@ export class ComplexityDetector {
    * Factors: sentence length, nesting, punctuation variety
    */
   private analyzeStructuralComplexity(text: string): number {
-    const sentences = text.split(/[。.!?]+/).filter(s => s.trim().length > 0);
+    // decimal-safe: a bare '.' would tear "2.5" → "2"+"5", inflating the
+    // sentence count and skewing avgSentenceLength. Mirrors daebbc45; TC-309.
+    const sentences = text.split(/[。!?]+|\.(?:\s+|$)/).filter(s => s.trim().length > 0);
     if (sentences.length === 0) return 0;
 
     // Average sentence length (longer = more complex)
@@ -441,8 +443,9 @@ export class ComplexityDetector {
   }
 
   private computeSentenceComplexity(text: string): number {
-    // Split on sentence-ending punctuation
-    const sentences = text.split(/[。.!?\n]+/).filter(s => s.trim().length > 0);
+    // Split on sentence-ending punctuation. decimal-safe: a bare '.' would tear
+    // "2.5" → "2"+"5" and skew avgLen. Mirrors daebbc45; pinned TC-309.
+    const sentences = text.split(/[。!?\n]+|\.(?:\s+|$)/).filter(s => s.trim().length > 0);
     if (sentences.length === 0) return 0;
 
     // Average sentence length

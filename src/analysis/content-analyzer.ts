@@ -46,8 +46,12 @@ export class ContentAnalyzer {
 
   // Iteration 1: simple rule-based baseline using sentence splitting
   analyzeV1(text: string): DiagramData {
+    // A bare '.' in the class would split on EVERY dot and tear the decimal in
+    // "1.5"/"2.0"/"192.168.1.1" across node labels — this method decides the
+    // rule-based diagram's NODE LABELS. An English '.' is a boundary only via
+    // `\.(?:\s+|$)`. Mirrors daebbc45; pinned by TC-309.
     const sentences = text
-      .split(/[。.!?\n]+/)
+      .split(/[。!?\n]+|\.(?:\s+|$)/)
       .map((s) => s.trim())
       .filter(Boolean)
       .slice(0, 10);

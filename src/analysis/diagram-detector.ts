@@ -586,8 +586,11 @@ export class DiagramDetector {
 
     // If sentence splitting didn't yield enough phrases, try word-level extraction
     if (phrases.length < 3) {
+      // Drop '.' from the delimiter class: a decimal "1.5", version "2.0", or
+      // IP "192.168.1.1" is a SINGLE token, not three — a bare '.' here
+      // disintegrated them into node-label words. Mirrors daebbc45; pinned TC-309.
       const words = trimmed
-        .split(/[\s、。,.!?；;：:（）()「」『』"'/]+/)
+        .split(/[\s、。,!?；;：:（）()「」『』"'/]+/)
         .filter(w => w.length >= 2 && w.length <= 30 && !this.isStopPhrase(w));
 
       for (const word of words) {
@@ -820,7 +823,9 @@ export class DiagramDetector {
   }
 
   private extractContext(text: string, term: string): string[] {
-    const sentences = text.split(/[.!?]+/);
+    // `\.(?:\s+|$)`, not a bare class '.', so a decimal/version/IP inside a
+    // context snippet stays intact. Mirrors daebbc45 (same file); pinned TC-309.
+    const sentences = text.split(/[!?]+|\.(?:\s+|$)/);
     return sentences.filter(sentence =>
       sentence.toLowerCase().includes(term.toLowerCase())
     ).map(s => s.trim()).slice(0, 2);

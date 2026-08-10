@@ -403,7 +403,13 @@ export class SceneSegmenter {
     // regex previously omitted it, so Japanese text (no ASCII ".!?") was never
     // split and the summary fell through to a 100-char truncation of the whole
     // segment. 「。！？」are the common Japanese terminators.
-    const sentences = text.split(/[.!?。！？]+/).filter(s => s.trim().length > 0);
+    //
+    // A bare '.' inside the class would split on EVERY dot, tearing the decimal
+    // in "2.5"/"3.14" out of the summary ("The growth rate is 2.5" → "...is 2").
+    // Treat an English '.' as a boundary only via `\.(?:\s+|$)` so intra-token
+    // dots survive. Mirrors daebbc45 / splitTextAtSentenceBoundaries; pinned by
+    // analysis-decimal-split-siblings.test.ts (TC-309).
+    const sentences = text.split(/[!?。！？]+|\.(?:\s+|$)/).filter(s => s.trim().length > 0);
 
     if (sentences.length > 0) {
       const firstSentence = sentences[0].trim();
