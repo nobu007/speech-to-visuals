@@ -214,6 +214,11 @@ export const CaptionOverlay: React.FC<CaptionOverlayProps> = ({
           borderRadius: 8,
           maxWidth: '80%',
           lineHeight: 1.4,
+          // Honor the '\n' separators emitted by splitCaptionLines as line
+          // breaks. The CSS default `white-space: normal` collapses '\n' to a
+          // space, which would merge every multi-line caption (bilingual SRT,
+          // MAX_CHARS_PER_LINE wrapping) into one run-on line.
+          whiteSpace: 'pre-line',
         }}
       >
         {lines.join('\n')}

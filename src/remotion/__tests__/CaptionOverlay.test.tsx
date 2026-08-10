@@ -283,6 +283,28 @@ describe('CaptionOverlay', () => {
       expect(textContent).toContain('Line one');
       expect(textContent).toContain('Line two');
     });
+
+    // Regression: splitCaptionLines joins lines with '\n', but the caption
+    // container div previously had NO `whiteSpace` rule. CSS `white-space:
+    // normal` (the default) collapses '\n' to a single space, so every
+    // multi-line caption — bilingual SRT ("Hello\nこんにちは") and the
+    // MAX_CHARS_PER_LINE wrapping output alike — rendered as one run-on line,
+    // silently defeating the line-splitting logic. The container must declare
+    // a whitespace mode that honors '\n' as a line break.
+    it('honors explicit newlines via a line-break whitespace mode', () => {
+      mockFrame = 15;
+      const captions = [createCaption({
+        startFrame: 0,
+        endFrame: 30,
+        text: 'Line one\nLine two',
+      })];
+      const element = renderOverlay({ captions });
+      const containerStyle = getContainerStyle(element);
+
+      // pre-line is ideal for captions: collapse runs of spaces but still wrap
+      // long lines at maxWidth AND break at each '\n'. pre-wrap/pre also work.
+      expect(['pre-line', 'pre-wrap', 'pre']).toContain(containerStyle.whiteSpace);
+    });
   });
 });
 
