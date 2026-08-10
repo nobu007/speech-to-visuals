@@ -113,6 +113,22 @@ describe('formatElapsed', () => {
     expect(formatElapsed(60.5)).toBe('1分1秒'); // 0.5 rounds to 1
     expect(formatElapsed(90.6)).toBe('1分31秒');
   });
+
+  // Round-then-decompose: the TOTAL must be rounded to an integer BEFORE it is
+  // decomposed into minutes + seconds. Rounding the seconds remainder in
+  // isolation lets it reach 60 ("1分60秒"), and rounding under the <60 guard
+  // yields "60秒" for a sub-minute input. `calcElapsed` returns fractional
+  // seconds (a Date.now() delta / 1000), so these inputs are reached in
+  // production for any stage lasting ≈N minutes − 0.5 s. Sibling of the
+  // animated-scene-renderer subtitle bug; pinned here against regression.
+  it('never emits a 60-second remainder (round total before decomposing)', () => {
+    // Remainder ∈ [59.5, 60): previously "1分60秒" / "2分60秒" / "3分60秒".
+    expect(formatElapsed(119.5)).toBe('2分');
+    expect(formatElapsed(179.5)).toBe('3分');
+    expect(formatElapsed(239.5)).toBe('4分');
+    // <60 branch rounding into the next minute: previously "60秒".
+    expect(formatElapsed(59.5)).toBe('1分');
+  });
 });
 
 // ========================================

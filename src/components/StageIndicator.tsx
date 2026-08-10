@@ -103,13 +103,23 @@ export function calcElapsed(stage: StageInfo, nowMs?: number): number {
   return Math.max(0, (end - stage.startedAt) / 1000);
 }
 
-/** Format elapsed seconds to human-readable string. */
+/**
+ * Format elapsed seconds to human-readable string.
+ *
+ * Round-then-decompose: round the TOTAL to an integer BEFORE splitting into
+ * minutes + seconds. Rounding the seconds remainder in isolation lets it reach
+ * 60 (e.g. 119.5 s → "1分60秒"), and rounding under the <60 guard yields
+ * "60秒" for a sub-minute input (59.5 s). `calcElapsed` returns fractional
+ * seconds (a Date.now() delta / 1000), so these inputs occur in production.
+ * Sibling of the animated-scene-renderer subtitle formatter; fixed identically.
+ */
 export function formatElapsed(seconds: number): string {
-  if (seconds < 60) {
-    return `${Math.round(seconds)}秒`;
+  const total = Math.round(seconds);
+  if (total < 60) {
+    return `${total}秒`;
   }
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.round(seconds % 60);
+  const mins = Math.floor(total / 60);
+  const secs = total % 60;
   return secs > 0 ? `${mins}分${secs}秒` : `${mins}分`;
 }
 
