@@ -78,10 +78,11 @@ describe('Non-finite timestamp guards', () => {
   });
 
   // -------------------------------------------------------------------------
-  // whisper-transcriber.ts: formatSrtTime (tested via WhisperTranscriber.generateSrt)
+  // whisper-transcriber.ts: generateSrt (delegates to the shared
+  // srt-generator.formatTimestamp — the canonical ms→"HH:MM:SS,mmm" formatter)
   // -------------------------------------------------------------------------
 
-  describe('WhisperTranscriber formatSrtTime non-finite guard', () => {
+  describe('WhisperTranscriber.generateSrt non-finite + negative guard', () => {
     let WhisperTranscriber: typeof import('../../src/transcription/whisper-transcriber').WhisperTranscriber;
 
     beforeAll(async () => {
@@ -95,6 +96,25 @@ describe('Non-finite timestamp guards', () => {
       ]);
       // Non-finite values should produce '00:00:00,000' not 'NaN:NaN:NaN,NaN'
       expect(srt).not.toContain('NaN');
+    });
+
+    // Regression: the canonical srt-generator.formatTimestamp clamps negative
+    // finite timestamps to '00:00:00,000' (test('should clamp negative finite
+    // values to 0') above). WhisperTranscriber previously kept a private,
+    // drifted copy of the SRT formatter that lacked that clamp, so a negative
+    // start/end emitted sign-bearing garbage such as '-1:-1:-1,-500'. The two
+    // formatters must agree: negative finite values clamp to 0 here too.
+    test('should clamp negative finite start/end to 0 (parity with srt-generator)', () => {
+      const t = new WhisperTranscriber();
+      const srt = t.generateSrt([
+        { start: -500, end: 1500, text: 'rewound' } as never,
+      ]);
+      expect(srt).toContain('00:00:00,000 --> 00:00:01,500');
+      // The timestamp line must match the strict HH:MM:SS,mmm form with no
+      // leading sign (a negative would render as e.g. "-1:-1:-1,-500").
+      expect(srt).toMatch(
+        /^\d+\n\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}\nrewound$/,
+      );
     });
   });
 

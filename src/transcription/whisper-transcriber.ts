@@ -11,6 +11,7 @@ import {
   SUPPORTED_AUDIO_FORMATS,
   MAX_FILE_SIZE,
 } from './types';
+import { formatTimestamp } from './srt-generator';
 import { Caption } from '@remotion/captions';
 import { logger } from '../utils/logger';
 import { validateAudioFile } from '@/utils/audio-validation';
@@ -21,18 +22,6 @@ export interface WhisperConfig {
   temperature?: number;
   maxSegmentLength?: number;
   enableTimestamps?: boolean;
-}
-
-/**
- * Format a timestamp in milliseconds to SRT time format (HH:MM:SS,mmm)
- */
-function formatSrtTime(ms: number): string {
-  if (!Number.isFinite(ms)) return '00:00:00,000';
-  const hours = Math.floor(ms / 3600000);
-  const minutes = Math.floor((ms % 3600000) / 60000);
-  const seconds = Math.floor((ms % 60000) / 1000);
-  const millis = Math.floor(ms % 1000);
-  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')},${String(millis).padStart(3, '0')}`;
 }
 
 /**
@@ -378,8 +367,12 @@ export class WhisperTranscriber {
    */
   generateSrt(segments: TranscriptionSegment[]): string {
     return segments.map((segment, index) => {
-      const startTime = formatSrtTime(segment.start);
-      const endTime = formatSrtTime(segment.end);
+      // Use the canonical formatter from ./srt-generator (single source of
+      // truth for ms→"HH:MM:SS,mmm"). It clamps negative timestamps to 0 and
+      // returns a safe fallback for non-finite values; a private copy here
+      // previously drifted and emitted sign-bearing garbage for negatives.
+      const startTime = formatTimestamp(segment.start);
+      const endTime = formatTimestamp(segment.end);
       return `${index + 1}\n${startTime} --> ${endTime}\n${segment.text}`;
     }).join('\n\n');
   }
