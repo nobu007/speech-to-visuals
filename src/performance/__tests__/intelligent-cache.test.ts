@@ -137,6 +137,43 @@ describe('IntelligentCache', () => {
       expect(val).toEqual({ v: 2 });
     });
 
+    it('does not evict the LRU entry when overwriting an existing key at capacity', async () => {
+      // Regression: store() ran evictToCapacity() UNCONDITIONALLY before
+      // inserting, so overwriting an existing key in a FULL cache evicted the
+      // LRU entry for nothing — the overwrite does not grow the cache (Map.set
+      // replaces in place), so the eviction only shrank the cache below
+      // capacity and discarded a still-useful entry. The ceiling backstop must
+      // fire only for genuinely new keys.
+      const full = new IntelligentCache(3);
+      await full.store('A', { v: 1 }, makeMetadata());
+      await full.store('B', { v: 2 }, makeMetadata());
+      await full.store('C', { v: 3 }, makeMetadata());
+      expect(full.getStats().totalEntries).toBe(3); // at capacity [A(LRU), B, C]
+
+      // Overwrite B — a key that already exists. Must NOT evict anything.
+      await full.store('B', { v: 22 }, makeMetadata());
+
+      expect(await full.get('A')).toEqual({ v: 1 }); // LRU preserved (bug evicted it)
+      expect(await full.get('B')).toEqual({ v: 22 }); // overwrite applied
+      expect(await full.get('C')).toEqual({ v: 3 }); // untouched
+      expect(full.getStats().totalEntries).toBe(3); // still at capacity, not shrunk to 2
+    });
+
+    it('still evicts the LRU entry when inserting a NEW key at capacity', async () => {
+      // Guarantees the eviction backstop still fires for genuinely new keys —
+      // the fix must skip eviction only for overwrites, not disable it.
+      const full = new IntelligentCache(3);
+      await full.store('A', { v: 1 }, makeMetadata());
+      await full.store('B', { v: 2 }, makeMetadata());
+      await full.store('C', { v: 3 }, makeMetadata());
+
+      await full.store('D', { v: 4 }, makeMetadata()); // new key → evict LRU 'A'
+
+      expect(await full.get('A')).toBeNull(); // LRU evicted to make room
+      expect(await full.get('D')).toEqual({ v: 4 });
+      expect(full.getStats().totalEntries).toBe(3); // at capacity, not grown to 4
+    });
+
     it('stores primitive values', async () => {
       await cache.store('num', 123, makeMetadata());
       const val = await cache.get('num');

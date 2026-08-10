@@ -110,11 +110,21 @@ export class IntelligentCache {
   /** Keys that failed decompression — tracked for health reporting */
   private corruptedKeys: Set<string> = new Set();
 
-  private readonly maxSize = 1000;
+  private readonly maxSize: number;
   private readonly maxAge = 24 * 60 * 60 * 1000; // 24 hours
   private readonly similarityThreshold = 0.85;
   private readonly compressionThreshold = 1024; // 1KB minimum for compression
   private readonly preloadThreshold = 0.7; // Similarity threshold for preloading
+
+  /**
+   * @param maxSize Maximum entries before LRU eviction. Defaults to 1000 (the
+   *   documented contract). Exposed as a parameter so capacity/eviction
+   *   behavior is unit-testable without filling 1000 slots, and so callers can
+   *   right-size the cache for constrained environments.
+   */
+  constructor(maxSize: number = 1000) {
+    this.maxSize = maxSize;
+  }
 
   /**
    * Compress data using simple LZ-like compression for memory efficiency
@@ -806,8 +816,14 @@ export class IntelligentCache {
 
     // Hard backstop: advancedCleanup is advisory (it protects recent and
     // high-priority entries and can evict 0 under sustained access), so enforce
-    // the maxSize ceiling directly before inserting. See evictToCapacity.
-    this.evictToCapacity();
+    // the maxSize ceiling directly before inserting a NEW key. An overwrite
+    // (key already present) does not grow the cache, so evicting for it would
+    // needlessly drop the LRU entry and leave the cache under capacity — the
+    // ceiling is inherently preserved because Map.set replaces the existing
+    // entry in place. See evictToCapacity.
+    if (!this.cache.has(key)) {
+      this.evictToCapacity();
+    }
 
     // Compress data if enabled and beneficial
     let finalData = data;
