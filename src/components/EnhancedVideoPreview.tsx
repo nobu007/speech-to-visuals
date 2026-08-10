@@ -12,6 +12,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { formatPlaybackTime as formatTime } from '@/utils/playback-time';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -229,12 +230,7 @@ export const EnhancedVideoPreview: React.FC<EnhancedVideoPreviewProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [togglePlayPause, skipBackward, skipForward, toggleMute, toggleFullscreen]);
 
-  // Format time display
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
+  // formatTime is the shared, finite-guarded playback formatter (see import).
 
   // Calculate timeline position for scene markers
   const getSceneMarkerPosition = (sceneStartTime: number) => {

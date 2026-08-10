@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { logger } from '@/utils/logger';
+import { formatPlaybackTime as formatTime } from '@/utils/playback-time';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -374,14 +375,7 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
     }
   };
 
-  /**
-   * Format time duration
-   */
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  // formatTime is the shared, finite-guarded playback formatter (see import).
 
   return (
     <div className={`space-y-6 ${className}`}>
