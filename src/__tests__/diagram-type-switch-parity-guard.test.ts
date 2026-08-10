@@ -48,7 +48,7 @@
  * fragile and would drown the guard in special-casing.
  */
 import { describe, it, expect } from '@jest/globals';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { globSync } from 'node:fs';
 
 // --- comment stripping (string literals PRESERVED so 'flow' tokens survive) ---
@@ -201,5 +201,100 @@ describe('flow/flowchart switch parity — sweep closes the class', () => {
     // ZERO flow/flowchart switches the detector has gone blind (a parse change)
     // and the parity assertion above would pass vacuously.
     expect(sites.length).toBeGreaterThan(0);
+  });
+});
+
+// --- canonical equivalence-pair inventory ------------------------------------
+//
+// STRATEGY (AI Hub steering feedback A): "one guard file per equivalence
+// class keeps the AST-scan cost bounded while extending protection." Concretely:
+//   1. The canonical DiagramType pair inventory lives in `EQUIVALENCE_PAIRS`
+//      below. Currently only `{ canonical: 'flow', aliases: ['flowchart'] }`.
+//   2. When a NEW pair is added to the canonical DiagramType (e.g. an alias
+//      type for an existing diagram semantic), add it here and create a NEW
+//      guard file (`diagram-type-switch-parity-<canonical>.guard.test.ts`)
+//      keyed on the new canonical. The new guard mirrors the structure of
+//      this file (known-fixes-pinned + sweep), and this inventory test
+//      verifies the new guard file exists for every pair in EQUIVALENCE_PAIRS.
+//   3. The single-pair sweep above does NOT have to grow into a multi-pair
+//      monolith — each pair keeps its own self-contained AST scan.
+//
+// CURRENT STATE (REQ-298 TC-298-01): The canonical DiagramType has exactly
+// ONE semantic equivalence pair — `flow` / `flowchart`. No other types share
+// semantics (`sequence` is NOT in DIAGRAM_TYPES; `hierarchy` is a tree-detection
+// KEYWORD, not a DiagramType member; etc.). This test pins that inventory.
+
+const EQUIVALENCE_PAIRS: ReadonlyArray<{
+  canonical: string;
+  aliases: ReadonlyArray<string>;
+}> = [
+  { canonical: 'flow', aliases: ['flowchart'] },
+];
+
+describe('diagram-type equivalence pair inventory — pinned canonical set (REQ-298)', () => {
+  it('EQUIVALENCE_PAIRS is non-empty (otherwise the parity-guard sweep is undefined)', () => {
+    expect(EQUIVALENCE_PAIRS.length).toBeGreaterThan(0);
+  });
+
+  it('every alias is a canonical DIAGRAM_TYPES member (no drift)', () => {
+    // Importing from the source-of-truth: see `DIAGRAM_TYPES` in
+    // src/types/diagram.ts. We re-read it rather than import to keep this
+    // test pure-string (the guard is an AST sweep — no runtime deps).
+    const src = readFileSync('src/types/diagram.ts', 'utf8');
+    const m = src.match(/DIAGRAM_TYPES:\s*readonly DiagramType\[\]\s*=\s*\[([^\]]+)\]/);
+    expect(m).not.toBeNull();
+    const members = (m![1].match(/'[^']+'/g) ?? []).map((s) => s.slice(1, -1));
+    for (const pair of EQUIVALENCE_PAIRS) {
+      expect(members).toContain(pair.canonical);
+      for (const alias of pair.aliases) {
+        expect(members).toContain(alias);
+      }
+    }
+  });
+
+  it('every canonical is distinct from every alias (no self-pair)', () => {
+    for (const pair of EQUIVALENCE_PAIRS) {
+      for (const alias of pair.aliases) {
+        expect(alias).not.toBe(pair.canonical);
+      }
+    }
+  });
+
+  it('no duplicate canonical or alias across pairs (each diagram type belongs to at most one equivalence class)', () => {
+    const seen = new Set<string>();
+    for (const pair of EQUIVALENCE_PAIRS) {
+      expect(seen.has(pair.canonical)).toBe(false);
+      seen.add(pair.canonical);
+      for (const alias of pair.aliases) {
+        expect(seen.has(alias)).toBe(false);
+        seen.add(alias);
+      }
+    }
+  });
+
+  it('the parity-guard test file for each canonical pair exists (strategy enforcement)', () => {
+    // For every canonical, a dedicated guard test file must exist. Today only
+    // `diagram-type-switch-parity-guard.test.ts` exists (for flow/flowchart).
+    // Adding a NEW pair REQUIRES adding a NEW guard test file of the naming
+    // convention `diagram-type-switch-parity-<canonical>-guard.test.ts`.
+    // (The flow/flowchart guard keeps its current single-file name for
+    // historical/back-compat reasons; new pairs MUST follow the suffix form.)
+    for (const pair of EQUIVALENCE_PAIRS) {
+      // The flow/flowchart file is grandfathered; new pairs use the suffix.
+      const candidates =
+        pair.canonical === 'flow'
+          ? ['src/__tests__/diagram-type-switch-parity-guard.test.ts']
+          : [`src/__tests__/diagram-type-switch-parity-${pair.canonical}-guard.test.ts`];
+      const found = candidates.some((c) => existsSync(c));
+      if (!found) {
+        throw new Error(
+          `Missing guard file for equivalence pair canonical='${pair.canonical}' ` +
+          `aliases=[${pair.aliases.join(', ')}]. Expected one of:\n` +
+          candidates.map((c) => `  ${c}`).join('\n') +
+          `\nPer strategy: one guard file per equivalence class keeps the AST ` +
+          `scan cost bounded while extending protection.`,
+        );
+      }
+    }
   });
 });

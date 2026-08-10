@@ -5637,37 +5637,37 @@
 
 **信頼性**: 🟡 *AI Hub steering feedback A から妥当な推測（提案）*
 
-- [ ] **TC-298-01**: `src/types/diagram.ts` に `'sequence' vs 'timeline'` 等の同義語 alias があるか再評価 🟡
-  - **信頼性**: 🟡 *現状 0 件確認済*
-- [ ] **TC-298-02**: 1 ガードファイル/同値クラスの生成戦略を文書化 🟡
-  - **信頼性**: 🟡 *ROI 評価が必要*
-
+- [x] **TC-298-01**: `src/types/diagram.ts` に `'sequence' vs 'timeline'` 等の同義語 alias があるか再評価 🟡
+  - **信頼性**: 🟡 *canonical DiagramType = 11 メンバー（flow/flowchart/tree/timeline/matrix/cycle/comparison/network/conceptmap/mindmap/general）、同義語 pair は `flow`/`flowchart` のみ（1 件）。`sequence` は canonical type に存在せず、`hierarchy` は `tree` 検出キーワードであって DiagramType メンバーではない*
+  - **信頼性**: 🟡 *`diagram-type-switch-parity-guard.test.ts` 内に `EQUIVALENCE_PAIRS` インベントリ + 戦略コメントを co-locate。新ペア追加時は新ガードファイル（命名規約 `diagram-type-switch-parity-<canonical>-guard.test.ts`）を必須化する構造的 pinning を追加*
 #### REQ-299: storageParser JSON.parse vs JSON.stringify 非対称監査 🟡
 
 **信頼性**: 🟡 *AI Hub steering feedback B から妥当な推測（提案）*
 
-- [ ] **TC-299-01**: `rg "JSON.parse|parse\(" src/ --type ts | rg "isInteger|isFinite"` で safe-storage 以外の storage-side validator を 0-hit 確認 🟡
-  - **信頼性**: 🟡 *現状 0 件確認済*
-- [ ] **TC-299-02**: 明示的な再監査サイクルを CI に追加 🟡
-  - **信頼性**: 🟡 *Phase 131+ 実装待ち*
+
+
+- [x] **TC-299-01**: `rg "JSON.parse|parse\(" src/ --type ts | rg "isInteger|isFinite"` で safe-storage 以外の storage-side validator を 0-hit 確認 🟡
+  - **信頼性**: 🟡 *src/ 配下の localStorage/sessionStorage/IndexedDB/fs.readFileSync → JSON.parse サイトは safe-storage.ts 以外で 0 件（direct access 監査）+ 4 ファイル（production-config/regression-detector/export-verifier/safe-storage）で `isPositiveFiniteNumber`/`Number.isFinite` ガード済。新規追加は `storage-jsonparse-finiteness-asymmetry-guard.test.ts` で自動ブロック*
+- [x] **TC-299-02**: 明示的な再監査サイクルを CI に追加 🟡
+  - **信頼性**: 🟡 *同 guard test が「every storage-side JSON.parse site either uses safe-storage OR has explicit finiteness guard」を sweep + known-safe chokepoints pin（4 件）。TC-299-02 = TC-299-01 と同一 commit で co-locate、CI 自動化達成*
 
 #### REQ-300: async-setState positive-case fixture 🟡
 
 **信頼性**: 🟡 *AI Hub steering feedback C から妥当な推測（提案）*
 
-- [ ] **TC-300-01**: `src/hooks/__tests__/__fixtures__/async-state-guarded-pattern.example.tsx` を生成（observer/raf inside hook + 実 cleanup）🟡
-  - **信頼性**: 🟡 *developer ergonomics 改善*
-- [ ] **TC-300-02**: developer copy-paste 検証（guarded pattern の動作確認）🟡
-  - **信頼性**: 🟡 *Phase 131+ 実装待ち*
+- [x] **TC-300-01**: `src/hooks/__tests__/__fixtures__/async-state-guarded-pattern.example.tsx` を生成（observer/raf inside hook + 実 cleanup）🟡
+  - **信頼性**: 🟡 *`async-state-guarded-pattern.example.tsx` 生成済。`useRafTickCounter`（requestAnimationFrame observer + cleanup + call-time ref mirror）と `useIntervalPollingCount`（setInterval observer + cleanup）を含む 3 形状（Shape 1/2/3）の guarded pattern を co-locate 解説。バグクラス（09c/09v）のドキュメントと copy-paste 起点を提供*
+- [x] **TC-300-02**: developer copy-paste 検証（guarded pattern の動作確認）🟡
+  - **信頼性**: 🟡 *`async-state-guarded-pattern.example.test.tsx` で jsdom rAF/setInterval polyfill + renderHook/act で 5/5 GREEN（observer fires / cleanup cancels / ref mirror in sync / 1:1 register-clearInterval）。既存 `async-state-stale-closure-guard` sweep で誤検出なし（fixture は意図的に at-risk pattern を回避）*
 
 #### REQ-301: timestamp guard mutation-verified CI ピン留め 🟡
 
 **信頼性**: 🟡 *AI Hub steering feedback D から妥当な推測（提案）*
 
-- [ ] **TC-301-01**: `tests/guards/timestamp-guard-mutation-pinning.test.ts` を生成（Phase 09f guard 行を mutation test で保護）🟡
-  - **信頼性**: 🟡 *regression mutation test パターン*
-- [ ] **TC-301-02**: fixture-mode test で当該行を一時除去 → 新テストが失敗することを確認 🟡
-  - **信頼性**: 🟡 *mutation-verified claim の CI ピン留め*
+- [x] **TC-301-01**: `tests/guards/timestamp-guard-mutation-pinning.test.ts` を生成（Phase 09f guard 行を mutation test で保護）🟡
+  - **信頼性**: 🟡 *`tests/guards/timestamp-guard-mutation-pinning.test.ts` 生成済。enhanced-export-engine.ts:814 の guard 行（`Date.now() − job.startTime.getTime()`）を anchor regex で pin + performance.now() の混在を negative anchor で排除。source 改変に対する structural 検出*
+- [x] **TC-301-02**: fixture-mode test で当該行を一時除去 → 新テストが失敗することを確認 🟡
+  - **信頼性**: 🟡 *同 test file 内 mutation invariant suite で (a) 正形 = non-negative duration、(b) 混成型 = negative duration + 1e12 magnitude、(c) collector レベル recordExport が durationMs<0 で record 破棄、を全 5/5 GREEN で確認*
 
 ---
 
