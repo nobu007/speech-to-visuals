@@ -2,7 +2,7 @@ export { SceneSegmenter, DEFAULT_MIN_SEGMENT_LENGTH_MS, DEFAULT_MAX_SEGMENT_LENG
 export { DiagramDetector, meetsGoodDetectionConfidence } from './diagram-detector';
 export { ContentAnalyzer } from './content-analyzer';
 export { LLMService, llmService } from './llm-service';
-export { parseJsonFromLLMText } from './llm-utils';
+export { parseJsonFromLLMText, sanitizeUntrustedJsonValue } from './llm-utils';
 export {
   AnalysisError,
   LLMParsingError,

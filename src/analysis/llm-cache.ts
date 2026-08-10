@@ -13,6 +13,7 @@ import path from 'path';
 import { calculateSemanticSimilarity, SemanticMetricsTracker } from './semantic-similarity';
 import { logger } from '../utils/logger';
 import { reportCorruption } from '../utils/report-corruption';
+import { sanitizeUntrustedJsonValue } from './llm-utils';
 
 interface CacheEntry<T> {
   data: T;
@@ -337,7 +338,13 @@ export class LLMCache<T> {
       }
 
       const content = fs.readFileSync(this.persistPath, 'utf8');
-      const parsed = JSON.parse(content);
+      // The cache file round-trips LLM-derived data and may be a legacy/tampered
+      // artifact on disk, so sanitize at the read boundary: drop prototype-
+      // pollution keys and neutralize non-finite numbers (1e400 → Infinity).
+      const parsed = sanitizeUntrustedJsonValue(JSON.parse(content)) as {
+        version?: string;
+        entries?: Array<{ key: string; data: unknown; timestamp: number; hits: number; originalText?: string }>;
+      };
 
       // Support both v1.0 (without semantic) and v2.0 (with semantic)
       if (parsed.version !== '1.0' && parsed.version !== '2.0') {
@@ -349,9 +356,9 @@ export class LLMCache<T> {
       let loadedCount = 0;
       let expiredCount = 0;
 
-      for (const entry of parsed.entries) {
+      for (const entry of parsed.entries ?? []) {
         const cacheEntry: CacheEntry<T> = {
-          data: entry.data,
+          data: entry.data as T,
           timestamp: entry.timestamp,
           hits: entry.hits,
           originalText: entry.originalText, // May be undefined for v1.0 caches

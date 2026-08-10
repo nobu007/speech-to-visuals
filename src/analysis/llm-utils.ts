@@ -5,6 +5,82 @@
 import { LLMParsingError } from './analysis-errors';
 
 /**
+ * Keys that are never legitimate in LLM-produced diagram/analysis JSON but are
+ * reachable attack surface whenever the parsed object is later spread, deep-
+ * merged, or walked by a generic assigner. Keeping one of these as an own
+ * property (e.g. `{"__proto__": {...}}` or `{"constructor": {...}}`) can mutate
+ * Object.prototype downstream. They are dropped unconditionally at the parse
+ * boundary — diagram data has no field by these names.
+ */
+const PROTOTYPE_POLLUTION_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+/**
+ * Maximum nesting depth the sanitizer will walk before pruning a branch.
+ * Diagram/analysis JSON is shallow (response → nodes[] → {position:{x,y}} ≈ 4
+ * levels); 128 is far beyond any legitimate payload yet bounds the recursion so
+ * a pathologically deep (but parseable) model output cannot overflow the stack
+ * inside the sanitizer itself.
+ */
+const MAX_SANITIZE_DEPTH = 128;
+
+/**
+ * Sanitize a value parsed from untrusted (model-generated) JSON.
+ *
+ * Two attack vectors are neutralized at the trust boundary, pairing with the
+ * storage-side finiteness guards (safe-storage.ts) to close the class:
+ *
+ * 1. Numeric overflow — `JSON.parse('1e400')` yields `Infinity` (typeof ===
+ *    'number'), which sails past `typeof x === 'number'` guards and poisons
+ *    downstream arithmetic (frame loops, pixel buffers, quality metrics).
+ *    Non-finite numbers are replaced with `null`.
+ *
+ * 2. Prototype pollution — `__proto__` / `constructor` / `prototype` keys are
+ *    dropped from every object. (`JSON.parse` itself creates these as own
+ *    properties rather than mutating the prototype, but any later spread/merge
+ *    of the parsed value re-introduces the hazard; stripping at the boundary is
+ *    defense-in-depth with no downside.)
+ *
+ * The input is otherwise returned unchanged, so legitimate JSON is unaffected.
+ */
+export function sanitizeUntrustedJsonValue(value: unknown, depth = 0): unknown {
+  // Depth guard: prune deeply nested branches to a safe value rather than risk
+  // stack exhaustion inside this recursive walk.
+  if (depth > MAX_SANITIZE_DEPTH) {
+    return null;
+  }
+
+  if (Array.isArray(value)) {
+    const out: unknown[] = new Array(value.length);
+    for (let i = 0; i < value.length; i++) {
+      out[i] = sanitizeUntrustedJsonValue(value[i], depth + 1);
+    }
+    return out;
+  }
+
+  if (value !== null && typeof value === 'object') {
+    const source = value as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    // Object.keys returns own enumerable string keys only — never the inherited
+    // prototype chain — so reading `source[key]` here touches no polluted state.
+    for (const key of Object.keys(source)) {
+      if (PROTOTYPE_POLLUTION_KEYS.has(key)) {
+        continue;
+      }
+      out[key] = sanitizeUntrustedJsonValue(source[key], depth + 1);
+    }
+    return out;
+  }
+
+  // Neutralize Infinity / -Infinity (and NaN, which cannot originate from
+  // JSON.parse but is covered defensively) to null.
+  if (typeof value === 'number' && !Number.isFinite(value)) {
+    return null;
+  }
+
+  return value;
+}
+
+/**
  * Extract and parse JSON from an LLM text response.
  * - Strips optional triple backtick code fences (``` or ```json)
  * - Removes markdown formatting and extra text
@@ -125,8 +201,13 @@ export function parseJsonFromLLMText<T = unknown>(rawText: string): T {
       // "key" [ → "key": [  (array)
       .replace(/"([^"\\]*(?:\\.[^"\\]*)*)"\s+(\[)/g, '"$1": $2');
 
+  // Parse + sanitize untrusted model output in one step so EVERY successful
+  // parse path — including the repair fallbacks below — is guarded against
+  // numeric overflow (1e400 → Infinity) and prototype-pollution keys.
+  const parseSanitized = (s: string): unknown => sanitizeUntrustedJsonValue(JSON.parse(s));
+
   try {
-    return JSON.parse(cleaned) as T;
+    return parseSanitized(cleaned) as T;
   } catch (err) {
     // Strategy 4: Try to fix common JSON issues.
     //
@@ -139,7 +220,7 @@ export function parseJsonFromLLMText<T = unknown>(rawText: string): T {
     // then `'`→`"` broke it into `"User"s input"` and the parse threw.)
     let fixed = fixMissingColons(removeTrailingCommas(cleaned));
     try {
-      return JSON.parse(fixed) as T;
+      return parseSanitized(fixed) as T;
     } catch {
       // Attempt 2 — additionally convert single quotes to double quotes.
       // Required to repair single-quoted JSON (`{'k': 'v'}`), but DESTRUCTIVE
@@ -148,7 +229,7 @@ export function parseJsonFromLLMText<T = unknown>(rawText: string): T {
       // regexes see double quotes — preserving the original repair capability.
       fixed = fixMissingColons(removeTrailingCommas(cleaned).replace(/'/g, '"'));
       try {
-        return JSON.parse(fixed) as T;
+        return parseSanitized(fixed) as T;
       } catch (secondErr) {
         // Strategy 5: Handle incomplete nested structures
         // Add missing closing brackets and braces
@@ -166,7 +247,7 @@ export function parseJsonFromLLMText<T = unknown>(rawText: string): T {
         }
 
         try {
-          return JSON.parse(fixed) as T;
+          return parseSanitized(fixed) as T;
         } catch (thirdErr) {
           const preview = cleaned.slice(0, 300).replace(/\n/g, ' ');
           throw new LLMParsingError(
