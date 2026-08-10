@@ -18,9 +18,13 @@ export class FallbackLayoutStrategy {
     diagramType: DiagramType
   ): DiagramLayout {
 
-    // Different layout strategies based on diagram type
+    // Different layout strategies based on diagram type.
+    // 'flowchart' is a distinct canonical DiagramType but semantically a flow
+    // diagram; without this case it fell through to createGridLayout, producing
+    // a grid for a flowchart on the DagreLayoutStrategy failure-fallback path.
     switch (diagramType) {
       case 'flow':
+      case 'flowchart':
         return this.createFlowLayout(nodes, edges);
       case 'tree':
         return this.createTreeLayout(nodes, edges);

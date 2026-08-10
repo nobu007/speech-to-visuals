@@ -208,6 +208,7 @@ export class OverlapResolver {
   private getMinimumSeparationForType(diagramType: DiagramType): number {
     const separations = {
       flow: 30,      // Flow diagrams need clear paths
+      flowchart: 30, // Flowchart is a flow diagram (canonical distinct DiagramType)
       tree: 40,      // Hierarchy needs breathing room
       timeline: 20,  // Timeline can be more compact
       matrix: 25,    // Grid layout moderate spacing
@@ -223,7 +224,11 @@ export class OverlapResolver {
     const separation = this.getMinimumSeparationForType(diagramType);
 
     switch (diagramType) {
+      // 'flowchart' shares flow's deterministic y-axis separation; previously it
+      // hit the default branch's Math.random() displacement, giving a flowchart
+      // non-deterministic jitter on the identical-position edge case.
       case 'flow':
+      case 'flowchart':
         node1.y -= separation;
         node2.y += separation;
         break;

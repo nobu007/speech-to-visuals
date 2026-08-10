@@ -128,7 +128,12 @@ export function getGraphConfig(diagramType: DiagramType, config: LayoutConfig) {
   };
 
   switch (diagramType) {
+    // 'flowchart' is a distinct canonical DiagramType (see DIAGRAM_TYPES) but is
+    // semantically a flow diagram; in the legacy LayoutEngine→DagreLayoutStrategy
+    // path there is no flowchart-specific config, so it must share flow's rank
+    // direction + alignment rather than fall through to the bare baseConfig.
     case 'flow':
+    case 'flowchart':
       return {
         ...baseConfig,
         rankdir: 'TB', // Top to bottom for flow diagrams

@@ -294,7 +294,10 @@ export class SimpleDiagramDetector {
     const reasons = [];
 
     switch (type) {
+      // 'flowchart' is a canonical DiagramType and semantically a flow diagram;
+      // share flow's reasoning rather than fall through to the default branch.
       case 'flow':
+      case 'flowchart':
         reasons.push('プロセスや手順を示すキーワードが検出されました');
         if (text.includes('then') || text.includes('next')) {
           reasons.push('順序性を示す語句が含まれています');

@@ -5,9 +5,10 @@
  * 3. LayoutOptimizer.adjustSpacingByImportance scales from centroid, not origin
  */
 import { describe, it, expect, beforeEach } from '@jest/globals';
-import { calculateNodeWidth, calculateNodeHeight } from '../layout-utils';
+import { calculateNodeWidth, calculateNodeHeight, getGraphConfig } from '../layout-utils';
 import { ZeroOverlapLayoutEngine } from '../enhanced-zero-overlap-layout';
 import { LayoutOptimizer } from '../strategies/LayoutOptimizer';
+import { FallbackLayoutStrategy } from '../strategies/FallbackLayoutStrategy';
 import type { NodeDatum, EdgeDatum } from '@/types/diagram';
 import type { LayoutConfig } from '../types';
 
@@ -343,5 +344,42 @@ describe('LayoutOptimizer — adjustSpacingByImportance centroid fix', () => {
     // Single node IS the centroid → distance from centroid = 0 → stays in place
     expect(Math.abs(result.nodes[0].x - 500)).toBeLessThan(5);
     expect(Math.abs(result.nodes[0].y - 500)).toBeLessThan(5);
+  });
+});
+
+// Regression: 'flow' vs 'flowchart' switch parity on the legacy LayoutEngine path.
+// 'flowchart' is a distinct canonical DiagramType but semantically a flow diagram;
+// both getGraphConfig and FallbackLayoutStrategy previously handled only 'flow',
+// letting flowchart fall through — to bare baseConfig (no rankdir/align) and to
+// createGridLayout respectively. After the fix, flowchart must be routed exactly
+// like flow. See diagram-type-switch-parity-guard.test.ts for the class guard.
+describe('flow/flowchart layout parity (legacy LayoutEngine path)', () => {
+  it('getGraphConfig gives flowchart the same rankdir+align as flow', () => {
+    const flow = getGraphConfig('flow', STANDARD_CONFIG);
+    const flowchart = getGraphConfig('flowchart', STANDARD_CONFIG);
+    // flowchart no longer falls to the bare baseConfig default (which omits
+    // rankdir/align) — it shares flow's TB + UL config.
+    expect(flowchart.rankdir).toBe('TB');
+    expect(flowchart.align).toBe('UL');
+    expect(flowchart.rankdir).toBe(flow.rankdir);
+    expect(flowchart.align).toBe(flow.align);
+  });
+
+  it('FallbackLayoutStrategy.fallbackLayout routes flowchart to the flow layout, not grid', () => {
+    const strategy = new FallbackLayoutStrategy(STANDARD_CONFIG);
+    const nodes = makeNodes(4);
+    const edges = makeChainEdges(4);
+    const flow = strategy.fallbackLayout(nodes, edges, 'flow');
+    const flowchart = strategy.fallbackLayout(nodes, edges, 'flowchart');
+    // 'general' has no specific case → createGridLayout (the previous flowchart path).
+    const grid = strategy.fallbackLayout(nodes, edges, 'general');
+
+    const pos = (layout: typeof flow) =>
+      layout.nodes.map((n) => `${n.id}:${n.x},${n.y}`).join('|');
+
+    // flowchart now follows createFlowLayout exactly …
+    expect(pos(flowchart)).toBe(pos(flow));
+    // … and no longer matches the grid fallback it used to hit before the fix.
+    expect(pos(flowchart)).not.toBe(pos(grid));
   });
 });
