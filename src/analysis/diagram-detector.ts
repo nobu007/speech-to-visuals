@@ -678,13 +678,18 @@ export class DiagramDetector {
         break;
       }
       case 'comparison': {
-        // Split into two groups with comparison edges
+        // Split into two groups with comparison edges: group A (node_0..
+        // node_{mid-1}) compared pairwise with group B (node_mid..node_{n-1}).
+        // For an ODD nodeCount group A has one extra member whose counterpart
+        // j = mid+i would be >= nodeCount; the previous `if (j < nodeCount)`
+        // guard simply DROPPED it, leaving the middle node (index mid-1) with
+        // zero edges — a floating, unconnected node in the rendered diagram
+        // (3 nodes → only node_0→node_2, node_1 orphaned; 5 → node_2 orphaned).
+        // Clamp the overflow to the last node instead so every node participates.
         const mid = Math.ceil(nodeCount / 2);
         for (let i = 0; i < mid && i < nodeCount - 1; i++) {
-          const j = mid + i;
-          if (j < nodeCount) {
-            edges.push({ from: `node_${i}`, to: `node_${j}`, label: 'compared to' });
-          }
+          const j = Math.min(mid + i, nodeCount - 1);
+          edges.push({ from: `node_${i}`, to: `node_${j}`, label: 'compared to' });
         }
         if (edges.length === 0) {
           edges.push({ from: 'node_0', to: 'node_1', label: defaultLabel });

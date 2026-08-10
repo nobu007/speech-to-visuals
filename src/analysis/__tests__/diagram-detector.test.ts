@@ -839,6 +839,41 @@ describe('TASK-0021: DiagramDetector', () => {
       const compareEdges = result.edges.filter(e => e.label === 'compared to');
       expect(compareEdges.length).toBeGreaterThan(0);
     });
+
+    it('does not orphan the middle node for an odd-node comparison (regression)', () => {
+      // generateEdgesForType is a private pure-topology helper; reach it via a
+      // cast to assert the structural invariant directly (the defect is in the
+      // edge topology, independent of text/keyphrase extraction). BUG: for an
+      // ODD nodeCount the pairing loop dropped group A's extra member
+      // (index mid-1) because its counterpart j=mid+i was >= nodeCount and the
+      // `if (j < nodeCount)` guard skipped it — leaving that node with ZERO
+      // edges, a floating unconnected node in the rendered diagram (3 nodes →
+      // only node_0→node_2, node_1 orphaned; 5 → node_2 orphaned; 7 → node_3).
+      const gen = (
+        detector as unknown as {
+          generateEdgesForType: (
+            n: number,
+            t: string,
+          ) => Array<{ from: string; to: string; label: string }>;
+        }
+      ).generateEdgesForType;
+
+      for (const nodeCount of [3, 5, 7]) {
+        const edges = gen.call(detector, nodeCount, 'comparison');
+        expect(edges.length).toBeGreaterThan(0);
+        // Every node index 0..nodeCount-1 must participate in at least one edge.
+        const connected = new Set<string>();
+        for (const e of edges) {
+          connected.add(e.from);
+          connected.add(e.to);
+          // No self-loops.
+          expect(e.from).not.toBe(e.to);
+        }
+        for (let i = 0; i < nodeCount; i++) {
+          expect(connected.has(`node_${i}`)).toBe(true);
+        }
+      }
+    });
   });
 
   // -----------------------------------------------------------------------
