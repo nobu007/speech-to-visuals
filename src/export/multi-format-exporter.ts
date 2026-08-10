@@ -471,6 +471,15 @@ export class MultiFormatExporter {
     const nodes = scene.layout?.nodes || [];
     const edges = scene.layout?.edges || [];
 
+    // Whether ANY label holds a glyph WinAnsiEncoding cannot represent. The base
+    // 14 Helvetica fonts cover only Latin-1 (U+0000–U+00FF); CJK and other
+    // >U+00FF code points have no glyph there and would render as nothing or
+    // mojibake. Such labels are routed to a CJK-capable Type0 composite font
+    // (/F3) as UTF-16BE hex strings. Detected once for the whole scene so the
+    // /F3 resource and its two font objects are declared only when used — a
+    // Latin-only PDF stays byte-identical to before (6 objects).
+    const needsCjk = this.sceneNeedsCjkFont(nodes, edges);
+
     // Build content stream
     const parts: string[] = [];
 
@@ -503,11 +512,15 @@ export class MultiFormatExporter {
           // (text-anchor / textAlign middle). Without this, `Td` anchors the
           // left edge at midX and the label extends right, half a width off.
           const edgeLabelX = midX - this.estimatePdfTextWidth(edge.label, 12) / 2;
+          // A CJK (or any >U+00FF) edge label cannot be shown by Helvetica —
+          // route it to /F3 (Type0) as a UTF-16BE hex string; otherwise keep
+          // the regular Helvetica (/F1) WinAnsi literal.
+          const edgeIsCjk = needsCjk && this.hasNonWinAnsiChar(edge.label);
           parts.push('BT');
-          parts.push('/F1 12 Tf');
+          parts.push(`${edgeIsCjk ? '/F3' : '/F1'} 12 Tf`);
           parts.push('0.4 0.4 0.4 rg');
           parts.push(`${edgeLabelX} ${midY + 5} Td`);
-          parts.push(`(${this.escapePDFString(edge.label)}) Tj`);
+          parts.push(`${edgeIsCjk ? this.pdfUtf16BeHexString(edge.label) : `(${this.escapePDFString(edge.label)})`} Tj`);
           parts.push('ET');
         }
       }
@@ -542,11 +555,14 @@ export class MultiFormatExporter {
 
       // Node label centered on the rect center (corner + half size), matching
       // SVG/Canvas text-anchor middle. Offset the origin left by half the label
-      // width so it sits on the center instead of extending right. Bold
-      // Helvetica (/F2) matches the on-screen `fontWeight: 'bold'`, SVG
+      // width so it sits on the center instead of extending right. A CJK (or any
+      // >U+00FF) node label cannot be shown by Helvetica — route it to /F3
+      // (Type0) as a UTF-16BE hex string; otherwise keep the bold Helvetica
+      // (/F2) WinAnsi literal, matching the on-screen `fontWeight: 'bold'`, SVG
       // `font-weight="bold"` and Canvas `bold 14px` (previously regular /F1).
+      const nodeIsCjk = needsCjk && this.hasNonWinAnsiChar(node.label);
       parts.push('BT');
-      parts.push(`/F2 ${MultiFormatExporter.PDF_NODE_LABEL_FONT_SIZE} Tf`);
+      parts.push(`${nodeIsCjk ? '/F3' : '/F2'} ${MultiFormatExporter.PDF_NODE_LABEL_FONT_SIZE} Tf`);
       parts.push('1 1 1 rg');
       const nodeLabelX = x + w / 2 - this.estimatePdfTextWidth(node.label, MultiFormatExporter.PDF_NODE_LABEL_FONT_SIZE) / 2;
       // Drop the origin below the node center by ~0.35×fontSize so the glyph
@@ -555,7 +571,7 @@ export class MultiFormatExporter {
       // (previously the origin sat exactly at center, leaving labels ~0.35em high).
       const nodeLabelY = pageHeight - (y + h / 2) - MultiFormatExporter.PDF_NODE_LABEL_FONT_SIZE * MultiFormatExporter.PDF_LABEL_BASELINE_OFFSET;
       parts.push(`${nodeLabelX} ${nodeLabelY} Td`);
-      parts.push(`(${this.escapePDFString(node.label)}) Tj`);
+      parts.push(`${nodeIsCjk ? this.pdfUtf16BeHexString(node.label) : `(${this.escapePDFString(node.label)})`} Tj`);
       parts.push('ET');
     }
 
@@ -593,7 +609,7 @@ export class MultiFormatExporter {
     // Object 3: Page — /F1 (Helvetica, regular) for edge labels, /F2 (Helvetica-Bold)
     // for node labels, matching SVG/Canvas `font-weight="bold"` on nodes only.
     offsets.push(pdfBytes);
-    append(`3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>\nendobj\n`);
+    append(`3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R${needsCjk ? ' /F3 7 0 R' : ''} >> >> >>\nendobj\n`);
 
     // Object 4: Content stream — /Length must be the BYTE length of the stream.
     offsets.push(pdfBytes);
@@ -608,10 +624,32 @@ export class MultiFormatExporter {
     offsets.push(pdfBytes);
     append('6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj\n');
 
+    if (needsCjk) {
+      // Object 7: Type0 composite font (/F3) for >U+00FF glyphs. Its /Encoding
+      // /UniJIS-UCS2-H CMap maps the 2-byte UTF-16BE units emitted into the
+      // content stream to Adobe-Japan1 CIDs, so CJK labels resolve to
+      // displayable glyphs that Helvetica/WinAnsiEncoding provably cannot
+      // render — the actual visual fix for this Japan-first pipeline (the prior
+      // byte-offset fix only made the file structurally valid). Non-embedded:
+      // conforming readers with CJK support (PDFium/Chrome, macOS Preview,
+      // Acrobat + free Asian font pack) substitute the face; embedding a CJK
+      // TrueType subset is a deferred size optimization.
+      offsets.push(pdfBytes);
+      append('7 0 obj\n<< /Type /Font /Subtype /Type0 /BaseFont /HeiseiKakuGo-W5 /Encoding /UniJIS-UCS2-H /DescendantFonts [8 0 R] >>\nendobj\n');
+
+      // Object 8: CIDFont descendant (Type 1-based, Adobe-Japan1 collection).
+      offsets.push(pdfBytes);
+      append('8 0 obj\n<< /Type /Font /Subtype /CIDFontType0 /BaseFont /HeiseiKakuGo-W5 /CIDSystemInfo << /Registry (Adobe) /Ordering (Japan1) /Supplement 4 >> >>\nendobj\n');
+    }
+
     // Cross-reference table
     const xrefOffset = pdfBytes;
+    // xref entry count = 1 (free object 0) + every declared object. Generalized
+    // from the fixed `7` so the two CJK font objects (7, 8) are counted when
+    // present; a Latin-only PDF still emits `0 7` / `/Size 7` (6 objects).
+    const objectCount = offsets.length + 1;
     append('xref\n');
-    append(`0 7\n`);
+    append(`0 ${objectCount}\n`);
     append('0000000000 65535 f \n');
     for (const off of offsets) {
       append(`${String(off).padStart(10, '0')} 00000 n \n`);
@@ -619,7 +657,7 @@ export class MultiFormatExporter {
 
     // Trailer
     append('trailer\n');
-    append(`<< /Size 7 /Root 1 0 R >>\n`);
+    append(`<< /Size ${objectCount} /Root 1 0 R >>\n`);
     append('startxref\n');
     append(`${xrefOffset}\n`);
     append('%%EOF');
@@ -734,6 +772,54 @@ export class MultiFormatExporter {
         const oct = ch.charCodeAt(0).toString(8).padStart(3, '0');
         return `\\${oct}`;
       });
+  }
+
+  /**
+   * Whether a label holds any glyph WinAnsiEncoding (Latin-1, U+0000–U+00FF)
+   * cannot represent. Such code points — CJK, Cyrillic, emoji, etc. — have no
+   * glyph in the base 14 Helvetica fonts and must be routed to the /F3 Type0
+   * composite font. `for…of` iterates by code point so astral characters are
+   * evaluated as their full code point (> 0xFFFF > 0xFF).
+   */
+  private hasNonWinAnsiChar(text: string): boolean {
+    for (const ch of text) {
+      if (ch.codePointAt(0)! > 0xff) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Whether the scene needs the CJK Type0 font resource at all — true iff any
+   * node or edge label contains a non-WinAnsi character. Drives the conditional
+   * declaration of the /F3 resource and its two font objects so a Latin-only
+   * PDF stays unchanged (6 objects).
+   */
+  private sceneNeedsCjkFont(
+    nodes: ReadonlyArray<{ label?: string }>,
+    edges: ReadonlyArray<{ label?: string }>,
+  ): boolean {
+    const labels = [
+      ...nodes.map((n) => n.label ?? ''),
+      ...edges.map((e) => e.label ?? ''),
+    ];
+    return labels.some((label) => this.hasNonWinAnsiChar(label));
+  }
+
+  /**
+   * Encode a label as a PDF hex string of UTF-16BE code units for the /F3 Type0
+   * font. Its /Encoding /UniJIS-UCS2-H CMap maps each 2-byte big-endian unit to
+   * a Japan1 CID → glyph, so this is the form in which CJK labels become
+   * displayable. Iterate UTF-16 CODE UNITS (charCodeAt), not code points:
+   * astral characters are naturally emitted as their surrogate pair — exactly
+   * how UTF-16BE serializes them — while BMP CJK (the common case) is one
+   * 4-hex-digit unit per glyph (e.g. 処理 → `<51E67406>`).
+   */
+  private pdfUtf16BeHexString(text: string): string {
+    let hex = '';
+    for (let i = 0; i < text.length; i++) {
+      hex += text.charCodeAt(i).toString(16).padStart(4, '0');
+    }
+    return `<${hex.toUpperCase()}>`;
   }
 
   /**

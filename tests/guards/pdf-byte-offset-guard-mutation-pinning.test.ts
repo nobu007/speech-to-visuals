@@ -19,11 +19,14 @@
  * pointed into the middle of the xref table itself.
  *
  * `escapePDFString` deliberately leaves non-ASCII bytes raw (it only escapes
- * `()\` and ASCII control chars), so CJK reaches the PDF content stream as
- * multi-byte UTF-8 — the exact span where code-unit ≠ byte. Objects 1/2/3
- * and 5/6 are pure ASCII; ALL divergence between code-unit count and byte
- * count therefore lives inside object 4's content stream, which is what
- * shifts the offsets of every later object.
+ * `()\` and ASCII control chars). Since the CJK-font fix (this iteration),
+ * >U+00FF labels are routed to a Type0 font as ASCII UTF-16BE hex, so they no
+ * longer carry multi-byte UTF-8 in the stream. But accented LATIN-1 labels
+ * (é, ü, ñ — code points ≤ 0xFF, which WinAnsiEncoding CAN render, so they
+ * stay Helvetica literals) STILL reach the content stream as 2-byte UTF-8 —
+ * the remaining span where code-unit ≠ byte. Objects 1/2/3 and 5/6 (+ 7/8
+ * when CJK fonts are declared) are pure ASCII; ALL divergence therefore lives
+ * inside object 4's content stream, which is what shifts later offsets.
  *
  * THE GUARD. The PDF builder tracks a running UTF-8 byte count:
  *   const encoder = new TextEncoder();
@@ -85,10 +88,19 @@ describe('PDF byte-offset guard — source anchors pinned (TC-303-01)', () => {
 
 // --- (TC-303-02) structural invariant: every xref offset lands on its object --
 
-// A scene whose node + edge labels are CJK — the span where UTF-8 bytes
-// diverge from UTF-16 code units. Both labels pass through `escapePDFString`
-// raw, so they reach the PDF content stream as multi-byte UTF-8.
-function makeCjkScene(): SceneGraph {
+// A scene whose node + edge labels are accented LATIN-1 (é/ü/ä — code points
+// ≤ 0xFF, so WinAnsiEncoding renders them and they stay Helvetica literals).
+// They pass through `escapePDFString` raw and reach the content stream as
+// 2-byte UTF-8 — the span where UTF-8 bytes diverge from UTF-16 code units.
+//
+// Why accented-Latin and NOT CJK here: since the CJK-font fix, >U+00FF labels
+// are routed to the Type0 font as ASCII UTF-16BE hex, so a CJK scene's content
+// stream is now pure ASCII (no divergence) and its PDF carries 8 objects
+// (the 2 CJK font objects). That CJK path is pinned separately in
+// pdf-cjk-font-routing-guard-mutation-pinning.test.ts. THIS guard's remaining
+// domain — multi-byte UTF-8 in the stream — is exactly accented Latin-1,
+// which keeps the 6-object Latin layout AND the byte divergence.
+function makeAccentedLatinScene(): SceneGraph {
   const n = (id: string, label: string, x: number) => ({
     id,
     label,
@@ -98,35 +110,35 @@ function makeCjkScene(): SceneGraph {
     height: 70,
   });
   return {
-    id: 'cjk-scene',
+    id: 'accented-latin-scene',
     type: 'flow',
-    nodes: [n('n1', 'データ入力', 100), n('n2', '結果出力', 500)],
-    edges: [{ from: 'n1', to: 'n2', label: '次へ進む' }],
+    nodes: [n('n1', 'Café', 100), n('n2', 'Résumé Über', 500)],
+    edges: [{ from: 'n1', to: 'n2', label: 'Nächste' }],
     startMs: 0,
     durationMs: 5000,
-    summary: 'CJK PDF offset guard',
+    summary: 'Accented-Latin PDF offset guard',
     keyphrases: [],
     layout: {
-      nodes: [n('n1', 'データ入力', 100), n('n2', '結果出力', 500)],
-      edges: [{ from: 'n1', to: 'n2', label: '次へ進む' }],
+      nodes: [n('n1', 'Café', 100), n('n2', 'Résumé Über', 500)],
+      edges: [{ from: 'n1', to: 'n2', label: 'Nächste' }],
     },
   };
 }
 
 // Decode the PDF bytes as latin1 so a character index == a byte offset.
-// (UTF-8 decoding would collapse multi-byte CJK back to one char per glyph
-// and break the offset arithmetic — the whole point of the guard.)
-async function cjkPdfLatin1(): Promise<string> {
+// (UTF-8 decoding would collapse multi-byte accented chars back to one char
+// per glyph and break the offset arithmetic — the whole point of the guard.)
+async function accentedPdfLatin1(): Promise<string> {
   const exporter = new MultiFormatExporter();
-  const result = await exporter.export(makeCjkScene(), { format: 'pdf' } as ExportOptions);
+  const result = await exporter.export(makeAccentedLatinScene(), { format: 'pdf' } as ExportOptions);
   expect(result.success).toBe(true);
   const buf = Buffer.from(await (result.data as Blob).arrayBuffer());
   return buf.toString('latin1');
 }
 
-describe('PDF byte-offset guard — structural invariant on a CJK PDF (TC-303-02)', () => {
+describe('PDF byte-offset guard — structural invariant on an accented-Latin PDF (TC-303-02)', () => {
   it('every xref offset points to its declared object header', async () => {
-    const text = await cjkPdfLatin1();
+    const text = await accentedPdfLatin1();
 
     // Slice from the xref table so the regex cannot match stream content.
     const xrefIdx = text.indexOf('\nxref\n');
@@ -139,7 +151,7 @@ describe('PDF byte-offset guard — structural invariant on a CJK PDF (TC-303-02
 
     // The strong invariant: at each declared BYTE offset the file actually
     // begins the matching "K 0 obj" header. If any offset was tracked via
-    // code units, it lands mid-CJK-sequence inside object 4's stream → RED.
+    // code units, it lands mid-accented-sequence inside object 4's stream → RED.
     offsets.forEach((off, i) => {
       const objNum = i + 1;
       // Header "K 0 obj" is 7 chars; the 8th is the object's trailing "\n".
@@ -148,7 +160,7 @@ describe('PDF byte-offset guard — structural invariant on a CJK PDF (TC-303-02
   });
 
   it('startxref points exactly at the "xref" keyword', async () => {
-    const text = await cjkPdfLatin1();
+    const text = await accentedPdfLatin1();
     // Byte offset of the 'x' in the "xref" table header (table appears before
     // "startxref", so indexOf finds the table, not the trailer keyword).
     const xrefByteOff = text.indexOf('\nxref\n') + 1;
@@ -158,7 +170,7 @@ describe('PDF byte-offset guard — structural invariant on a CJK PDF (TC-303-02
   });
 
   it('the content-stream /Length equals the byte distance stream→endstream', async () => {
-    const text = await cjkPdfLatin1();
+    const text = await accentedPdfLatin1();
     const lenMatch = text.match(/\/Length (\d+) >>\nstream\n/);
     expect(lenMatch).not.toBeNull();
     const declared = Number(lenMatch![1]);
@@ -182,14 +194,14 @@ describe('PDF byte-offset guard — mutation witness (TC-303-03)', () => {
   });
 
   it('offsets tracked via .length would NOT land on the object headers', async () => {
-    // Reconstruct the BUGGY shape from the real CJK PDF. Objects 1/2/3 and
+    // Reconstruct the BUGGY shape from the real accented-Latin PDF. Objects 1/2/3 and
     // 5/6 are ASCII, so ALL byte/codeunit divergence up to object 5 lives in
     // object 4's CJK-laden content stream. A `.length` tracker under-counts
     // that span by (bytes − codeUnits), so the object-5 offset it would
     // report is short by exactly that divergence — landing inside the
     // stream instead of on "5 0 obj". Proves a revert to code-unit counting
     // is caught by the Layer 2 invariant.
-    const text = await cjkPdfLatin1();
+    const text = await accentedPdfLatin1();
 
     const lenMatch = text.match(/\/Length (\d+) >>\nstream\n/);
     expect(lenMatch).not.toBeNull();

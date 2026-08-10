@@ -175,8 +175,11 @@ describe('MultiFormatExporter', () => {
       expect(endstreamStart - streamStart).toBe(declaredLength);
 
       // Every xref-declared object offset must point (in BYTES) at "<n> 0 obj".
+      // 8 objects: 1 Catalog, 2 Pages, 3 Page, 4 content stream, 5/6 Helvetica
+      // fonts, plus 7/8 — the CJK Type0 composite font + its CIDFont descendant,
+      // declared because this scene's labels need them (see assertions below).
       const xrefOffsets = [...text.matchAll(/^(\d{10}) 00000 n\b/gm)].map((m) => Number(m[1]));
-      expect(xrefOffsets).toHaveLength(6);
+      expect(xrefOffsets).toHaveLength(8);
       const decodeAt = (off: number, len: number) =>
         new TextDecoder().decode(bytes.subarray(off, off + len));
       xrefOffsets.forEach((off, i) => {
@@ -186,6 +189,72 @@ describe('MultiFormatExporter', () => {
       // startxref must point (in BYTES) at the "xref" table.
       const startxref = Number(text.match(/startxref\n(\d+)/)![1]);
       expect(decodeAt(startxref, 4)).toBe('xref');
+    });
+
+    it('routes CJK labels to a CJK-capable Type0 font as displayable UTF-16BE glyphs', async () => {
+      // The byte-offset fix made CJK PDFs structurally valid, but the labels
+      // still could not RENDER: the content stream used Helvetica + WinAnsi
+      // (Latin-1 only), so 処理/入力/次へ had no resolvable glyph. The fix routes
+      // >U+00FF labels to a non-embedded Adobe-Japan1 Type0 composite font
+      // (/F3) and emits them as UTF-16BE hex strings its UniJIS-UCS2-H CMap
+      // maps to CIDs. This asserts that resolution, not just file structure.
+      const cjkNodes = [
+        { id: 'n1', label: '処理', x: 100, y: 100, width: 120, height: 60 },
+        { id: 'n2', label: '入力', x: 400, y: 100, width: 120, height: 60 },
+      ];
+      const scene = makeScene({
+        id: 'cjk-glyph',
+        nodes: cjkNodes,
+        edges: [{ from: 'n1', to: 'n2', label: '次へ' }],
+        layout: {
+          nodes: cjkNodes,
+          edges: [{ from: 'n1', to: 'n2', label: '次へ', points: [] }],
+        },
+      });
+      const result = await exporter.export(scene, { format: 'pdf' });
+      expect(result.success).toBe(true);
+      const text = await (result.data as Blob).text();
+
+      // A Type0 composite font is declared and referenced from the Page.
+      expect(text).toContain('/Subtype /Type0');
+      expect(text).toContain('/BaseFont /HeiseiKakuGo-W5');
+      expect(text).toContain('/Encoding /UniJIS-UCS2-H');
+      expect(text).toContain('/Subtype /CIDFontType0');
+      expect(text).toContain('/Ordering (Japan1)');
+      expect(text).toContain('/F3 7 0 R');
+
+      // CJK labels are encoded as UTF-16BE hex (the form UniJIS-UCS2-H shows),
+      // proving they resolve to glyphs the font CAN render.
+      //   処理 = U+51E6 U+7406 | 入力 = U+5165 U+529B | 次へ = U+6B21 U+3078
+      expect(text).toContain('<51E67406>');
+      expect(text).toContain('<5165529B>');
+      expect(text).toContain('<6B213078>');
+
+      // The CJK node labels select the Type0 font (/F3), not Helvetica (/F2).
+      expect(text).toContain('/F3 14 Tf');
+      // The CJK edge label selects /F3 too; Latin-only scenes use /F1 12 Tf.
+      expect(text).toContain('/F3 12 Tf');
+
+      // Negative — the CJK labels are NOT emitted as WinAnsi literal strings
+      // under Helvetica (which provably cannot represent them). If a future
+      // change reverted CJK to raw literals, these would reappear as `(処理)`.
+      expect(text).not.toContain('(処理)');
+      expect(text).not.toContain('(次へ)');
+    });
+
+    it('keeps a Latin-only PDF on Helvetica (no CJK font objects)', async () => {
+      // A scene with only ASCII/Latin-1 labels must not declare the Type0 font
+      // — it stays on the 6-object Helvetica layout (byte-identical to before).
+      const scene = makeScene({ id: 'latin-only' }); // Start/End nodes, 'next' edge
+      const result = await exporter.export(scene, { format: 'pdf' });
+      expect(result.success).toBe(true);
+      const text = await (result.data as Blob).text();
+
+      expect(text).not.toContain('/Subtype /Type0');
+      expect(text).not.toContain('/F3');
+      // 6 xref entries (no CJK font objects 7/8).
+      const xrefOffsets = [...text.matchAll(/^(\d{10}) 00000 n\b/gm)].map((m) => Number(m[1]));
+      expect(xrefOffsets).toHaveLength(6);
     });
   });
 
