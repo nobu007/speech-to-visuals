@@ -547,11 +547,17 @@ export class StreamingTranscriber {
 
   /**
    * Register a callback for quality alerts during streaming.
+   *
+   * Propagates the unsubscribe from the underlying StreamingQualityMonitor (see
+   * `onAlert`). If no session monitor is active the callback is not registered,
+   * so a no-op unsubscribe is returned — still safe to call on teardown per the
+   * listener-leak contract.
    */
-  onQualityAlert(callback: StreamingQualityAlertCallback): void {
+  onQualityAlert(callback: StreamingQualityAlertCallback): () => void {
     if (this.qualityMonitor) {
-      this.qualityMonitor.onAlert(callback);
+      return this.qualityMonitor.onAlert(callback);
     }
+    return () => {};
   }
 
   /**

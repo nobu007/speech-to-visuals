@@ -103,9 +103,23 @@ export class StreamingQualityMonitor {
 
   /**
    * Register a callback to be invoked when a quality alert is emitted.
+   *
+   * Returns an unsubscribe function. Although a `StreamingQualityMonitor` is
+   * recreated per streaming session (so its callbacks are collected when the
+   * session monitor is replaced), the register API itself must follow the
+   * listener-leak contract enforced across the codebase: a caller that
+   * registers repeatedly against the same instance — or holds a long-lived
+   * reference — needs an unsubscribe to release the callback and its closure
+   * rather than relying on incidental GC. Mirrors
+   * ProductionErrorHandler.onError (ref-counted: same reference registered N
+   * times needs N unsubscribes).
    */
-  onAlert(callback: QualityAlertCallback): void {
+  onAlert(callback: QualityAlertCallback): () => void {
     this.alertCallbacks.push(callback);
+    return () => {
+      const idx = this.alertCallbacks.indexOf(callback);
+      if (idx !== -1) this.alertCallbacks.splice(idx, 1);
+    };
   }
 
   /**

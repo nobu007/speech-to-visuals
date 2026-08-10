@@ -218,6 +218,71 @@ describe('StreamingQualityMonitor', () => {
     });
   });
 
+  describe('onAlert unsubscribe (listener-registration leak)', () => {
+    // onAlert MUST return an unsubscribe so a caller registering repeatedly
+    // against the same instance releases the callback (and its closure) rather
+    // than relying on incidental GC. Mirrors ProductionErrorHandler.onError
+    // (09t): ref-counted — same reference registered N times needs N
+    // unsubscribes. The public evaluateChunk path fires alerts on every chunk
+    // once the rolling window is full and the average stays below threshold.
+    const newMonitor = () =>
+      new StreamingQualityMonitor({
+        rollingWindowSize: 2,
+        warningThreshold: 0.6,
+        criticalThreshold: 0.3,
+      });
+
+    it('returns an unsubscribe that stops the callback from firing', () => {
+      const monitor = newMonitor();
+      const cb = jest.fn();
+      const unsubscribe = monitor.onAlert(cb);
+
+      monitor.evaluateChunk(0, 0.3); // window not full yet
+      monitor.evaluateChunk(1, 0.3); // window full → warning alert fires
+      expect(cb).toHaveBeenCalledTimes(1);
+
+      unsubscribe();
+
+      monitor.evaluateChunk(2, 0.3); // would fire again — but cb is released
+      monitor.evaluateChunk(3, 0.3);
+      expect(cb).toHaveBeenCalledTimes(1);
+    });
+
+    it('is ref-counted: N registrations need N unsubscribes', () => {
+      const monitor = newMonitor();
+      const cb = jest.fn();
+      const unsub1 = monitor.onAlert(cb);
+      const unsub2 = monitor.onAlert(cb);
+
+      monitor.evaluateChunk(0, 0.3);
+      monitor.evaluateChunk(1, 0.3); // 2 registrations → fires twice
+      expect(cb).toHaveBeenCalledTimes(2);
+
+      unsub1();
+      monitor.evaluateChunk(2, 0.3); // 1 registration remains
+      expect(cb).toHaveBeenCalledTimes(3);
+
+      unsub2();
+      monitor.evaluateChunk(3, 0.3); // fully released
+      expect(cb).toHaveBeenCalledTimes(3);
+    });
+
+    it('unsubscribe is idempotent and isolates siblings', () => {
+      const monitor = newMonitor();
+      const cbA = jest.fn();
+      const cbB = jest.fn();
+      const unsubA = monitor.onAlert(cbA);
+      monitor.onAlert(cbB);
+
+      expect(() => { unsubA(); unsubA(); }).not.toThrow();
+
+      monitor.evaluateChunk(0, 0.3);
+      monitor.evaluateChunk(1, 0.3);
+      expect(cbA).not.toHaveBeenCalled();
+      expect(cbB).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('getSummary', () => {
     it('should return empty summary when no chunks evaluated', () => {
       const monitor = new StreamingQualityMonitor();

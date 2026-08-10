@@ -606,17 +606,39 @@ export class PerformanceDashboard {
   }
 
   /**
-   * 🔔 Register alert callback
+   * 🔔 Register alert callback.
+   *
+   * Returns an unsubscribe function. ALWAYS invoke it when the owning scope
+   * tears down (e.g. in a React `useEffect` cleanup). `globalDashboard` is a
+   * process-lifetime singleton: without unsubscribe a callback registered per
+   * mount/request accumulates in `alertCallbacks` for the whole session,
+   * retaining its closure and re-firing on every future alert — the listener-
+   * registration leak (distinct from bounded-collection growth: it cannot be
+   * solved by a cap, only by explicit unsubscribe). Same ref-count rule as
+   * ProductionErrorHandler.onError: registering the same reference N times
+   * needs N unsubscribes to fully release.
    */
-  onAlert(callback: (alert: Alert) => void): void {
+  onAlert(callback: (alert: Alert) => void): () => void {
     this.alertCallbacks.push(callback);
+    return () => {
+      const idx = this.alertCallbacks.indexOf(callback);
+      if (idx !== -1) this.alertCallbacks.splice(idx, 1);
+    };
   }
 
   /**
-   * ⚡ Register optimization callback
+   * ⚡ Register optimization callback.
+   *
+   * Returns an unsubscribe function — see `onAlert` for the rationale. The
+   * singleton's `optimizationCallbacks` array otherwise grows one entry per
+   * registration for the process lifetime, each retaining a closure.
    */
-  onOptimization(callback: () => Promise<void>): void {
+  onOptimization(callback: () => Promise<void>): () => void {
     this.optimizationCallbacks.push(callback);
+    return () => {
+      const idx = this.optimizationCallbacks.indexOf(callback);
+      if (idx !== -1) this.optimizationCallbacks.splice(idx, 1);
+    };
   }
 
   /**

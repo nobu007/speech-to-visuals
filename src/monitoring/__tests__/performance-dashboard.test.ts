@@ -267,6 +267,91 @@ describe('PerformanceDashboard', () => {
     });
   });
 
+  describe('onAlert / onOptimization unsubscribe (listener-registration leak)', () => {
+    // globalDashboard is a module-level singleton, so its alertCallbacks /
+    // optimizationCallbacks arrays live for the whole process. onAlert and
+    // onOptimization MUST return an unsubscribe so a caller registering per
+    // mount/request cannot accumulate callbacks (each retaining a closure, each
+    // re-firing on every future alert). Mirrors ProductionErrorHandler.onError
+    // (09t): ref-counted — same reference registered N times needs N
+    // unsubscribes. createAlert (the firing path) is private and normally
+    // reached only via the monitoring interval, so it is invoked directly here
+    // to test the release contract deterministically.
+    type DashboardInternals = {
+      alertCallbacks: Array<(alert: unknown) => void>;
+      optimizationCallbacks: Array<() => Promise<void>>;
+      createAlert: (
+        level: string, category: string, message: string,
+        metric: string, value: number, threshold: number, recommendation: string,
+      ) => void;
+    };
+    const internals = (): DashboardInternals => dashboard as unknown as DashboardInternals;
+    const fireAlert = () =>
+      internals().createAlert('error', 'memory', 't', 'heapUsedMB', 999, 512, 'r');
+
+    it('onAlert returns an unsubscribe that stops the callback from firing', () => {
+      const cb = jest.fn();
+      const unsubscribe = dashboard.onAlert(cb);
+
+      fireAlert();
+      expect(cb).toHaveBeenCalledTimes(1);
+
+      unsubscribe();
+
+      fireAlert();
+      expect(cb).toHaveBeenCalledTimes(1);
+    });
+
+    it('onAlert is ref-counted: N registrations need N unsubscribes', () => {
+      const cb = jest.fn();
+      const unsub1 = dashboard.onAlert(cb);
+      const unsub2 = dashboard.onAlert(cb);
+
+      fireAlert();
+      expect(cb).toHaveBeenCalledTimes(2);
+
+      unsub1();
+      fireAlert();
+      expect(cb).toHaveBeenCalledTimes(3);
+
+      unsub2();
+      fireAlert();
+      expect(cb).toHaveBeenCalledTimes(3);
+    });
+
+    it('onAlert unsubscribe is idempotent and does not affect other callbacks', () => {
+      const cbA = jest.fn();
+      const cbB = jest.fn();
+      const unsubA = dashboard.onAlert(cbA);
+      dashboard.onAlert(cbB);
+
+      expect(() => { unsubA(); unsubA(); }).not.toThrow();
+
+      fireAlert();
+      expect(cbA).not.toHaveBeenCalled();
+      expect(cbB).toHaveBeenCalledTimes(1);
+    });
+
+    it('onOptimization returns an unsubscribe that removes the callback (ref-counted)', () => {
+      const cb = jest.fn().mockResolvedValue(undefined);
+      const internalsRef = internals();
+
+      const unsub1 = dashboard.onOptimization(cb);
+      const unsub2 = dashboard.onOptimization(cb);
+      expect(internalsRef.optimizationCallbacks).toHaveLength(2);
+
+      unsub1();
+      expect(internalsRef.optimizationCallbacks).toHaveLength(1);
+
+      unsub2();
+      expect(internalsRef.optimizationCallbacks).toHaveLength(0);
+
+      // Idempotent: extra calls are a no-op.
+      expect(() => unsub2()).not.toThrow();
+      expect(internalsRef.optimizationCallbacks).toHaveLength(0);
+    });
+  });
+
   describe('recordTokenUsage', () => {
     it('records valid token usage', () => {
       expect(() => {

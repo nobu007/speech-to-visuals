@@ -855,9 +855,14 @@ export class LLMService {
 
   /**
    * Register a callback for budget alert notifications.
+   *
+   * Propagates the unsubscribe from the underlying BudgetAlertSystem (see
+   * `onAlert`). The caller MUST invoke the returned function on teardown so the
+   * process-lifetime singleton's callback array does not accumulate one entry
+   * per registration.
    */
-  onBudgetAlert(callback: (alert: BudgetAlert) => void): void {
-    this.budgetAlert.onAlert(callback);
+  onBudgetAlert(callback: (alert: BudgetAlert) => void): () => void {
+    return this.budgetAlert.onAlert(callback);
   }
 
   /**

@@ -159,6 +159,73 @@ describe('BudgetAlertSystem', () => {
     });
   });
 
+  describe('onAlert unsubscribe (listener-registration leak)', () => {
+    // BudgetAlertSystem is owned by the process-lifetime singleton llmService,
+    // so its alertCallbacks array lives for the whole session. onAlert MUST
+    // return an unsubscribe so a caller that registers per mount/request does
+    // not accumulate callbacks (each retaining a closure, each re-firing on
+    // every future alert). Mirrors ProductionErrorHandler.onError (09t) and the
+    // removeEntry dynamic meta-test: a handler registered N times is released
+    // only after N teardowns.
+    // addCost fires the alert only on the UPWARD threshold crossing (re-armed
+    // edge detector); resetSession re-arms so a second addCost fires again.
+
+    it('returns an unsubscribe that stops the callback from firing', () => {
+      const cb = jest.fn();
+      const unsubscribe = system.onAlert(cb);
+
+      system.addCost(0.85);
+      expect(cb).toHaveBeenCalledTimes(1);
+
+      unsubscribe();
+
+      system.resetSession(); // re-arm the threshold edge
+      system.addCost(0.85); // would fire again — but cb is released
+      expect(cb).toHaveBeenCalledTimes(1);
+    });
+
+    it('a handler registered N times is fully released only after N unsubscribes (ref-count)', () => {
+      const cb = jest.fn();
+      const unsub1 = system.onAlert(cb);
+      const unsub2 = system.onAlert(cb); // same reference → fires twice per alert
+
+      system.addCost(0.85);
+      expect(cb).toHaveBeenCalledTimes(2);
+
+      unsub1(); // one registration remains
+      system.resetSession();
+      system.addCost(0.85);
+      expect(cb).toHaveBeenCalledTimes(3);
+
+      unsub2(); // fully released
+      system.resetSession();
+      system.addCost(0.85);
+      expect(cb).toHaveBeenCalledTimes(3);
+    });
+
+    it('unsubscribe is idempotent', () => {
+      const cb = jest.fn();
+      const unsubscribe = system.onAlert(cb);
+      expect(() => {
+        unsubscribe();
+        unsubscribe();
+      }).not.toThrow();
+    });
+
+    it('releasing one callback does not affect other registered callbacks', () => {
+      const cbA = jest.fn();
+      const cbB = jest.fn();
+      const unsubA = system.onAlert(cbA);
+      system.onAlert(cbB);
+
+      unsubA();
+
+      system.addCost(0.85);
+      expect(cbA).not.toHaveBeenCalled();
+      expect(cbB).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('resetSession', () => {
     it('resets session cost and alerts', () => {
       system.addCost(0.9);

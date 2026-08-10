@@ -169,9 +169,22 @@ export class BudgetAlertSystem {
 
   /**
    * Register a callback to be invoked on budget alerts.
+   *
+   * Returns an unsubscribe function. `BudgetAlertSystem` is owned by the
+   * process-lifetime singleton `llmService`, so its `alertCallbacks` array
+   * lives for the whole session: without unsubscribe a callback registered per
+   * mount/request accumulates, retaining its closure and re-firing on every
+   * future alert — the listener-registration leak (cannot be solved by a cap,
+   * only by explicit unsubscribe). Same ref-count rule as
+   * ProductionErrorHandler.onError: registering the same reference N times
+   * needs N unsubscribes to fully release.
    */
-  onAlert(callback: (alert: BudgetAlert) => void): void {
+  onAlert(callback: (alert: BudgetAlert) => void): () => void {
     this.alertCallbacks.push(callback);
+    return () => {
+      const idx = this.alertCallbacks.indexOf(callback);
+      if (idx !== -1) this.alertCallbacks.splice(idx, 1);
+    };
   }
 
   /** Get current session cost. */
