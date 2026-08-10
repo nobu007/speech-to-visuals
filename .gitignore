@@ -349,3 +349,5 @@ worktrees/
 # auto-added by instructions/10_storage/100_audit_storage_policy.md
 .goal_driven_parallel_dev/
 
+# ai-hub tool-internal state
+.ai/
