@@ -63,8 +63,18 @@ export class FlowchartLayoutStrategy implements ILayoutStrategy {
         });
       });
 
-      // Add edges to graph
-      edges.forEach(edge => {
+      // Filter dangling edges BEFORE dagre. dagre silently auto-creates phantom
+      // nodes for any edge endpoint not in the input node set, which corrupts
+      // the layout (real nodes pulled toward phantom positions, NaN propagation)
+      // and emits edges pointing at non-existent nodes. Mirrors the hardening in
+      // flowchart-strategy.ts / enhanced-zero-overlap-layout.ts (commit f178cbf).
+      const nodeIds = new Set(nodes.map(node => node.id));
+      const safeEdges = edges.filter(
+        edge => nodeIds.has(edge.from) && nodeIds.has(edge.to)
+      );
+
+      // Add (filtered) edges to graph
+      safeEdges.forEach(edge => {
         g.setEdge(edge.from, edge.to, {
           label: edge.label || ''
         });
@@ -87,8 +97,10 @@ export class FlowchartLayoutStrategy implements ILayoutStrategy {
         };
       });
 
-      // Extract layout edges with points from Dagre
-      const layoutEdges: LayoutEdge[] = edges.map(edge => {
+      // Extract layout edges with points from Dagre (only the filtered edges
+      // were added to the graph; `g.edge`/`g.node` would be undefined for a
+      // dangling endpoint and crash on `.x` below).
+      const layoutEdges: LayoutEdge[] = safeEdges.map(edge => {
         const dagreEdge = g.edge(edge.from, edge.to);
         const sourceNode = g.node(edge.from);
         const targetNode = g.node(edge.to);

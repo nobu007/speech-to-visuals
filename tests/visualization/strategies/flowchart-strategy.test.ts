@@ -235,6 +235,41 @@ describe('FlowchartLayoutStrategy', () => {
     });
   });
 
+  describe('generateLayout() - dangling-edge hardening', () => {
+    // Regression: dagre auto-creates phantom nodes for edge endpoints not in the
+    // input node set, corrupting layout positions and emitting edges to
+    // non-existent nodes. Edges MUST be filtered to the node-id set before
+    // g.setEdge (mirrors flowchart-strategy.ts / enhanced-zero-overlap-layout.ts).
+    it('drops edges whose endpoints are not in the node set (no phantom dagre nodes)', async () => {
+      const nodes: NodeDatum[] = [
+        { id: 'a', label: 'A' },
+        { id: 'b', label: 'B' },
+        { id: 'c', label: 'C' },
+      ];
+      const edges: EdgeDatum[] = [
+        { from: 'a', to: 'b', label: 'valid' },
+        // Both endpoints below reference ids NOT in `nodes`. Without filtering,
+        // dagre silently creates phantom nodes for 'ghost'/'ghost2'.
+        { from: 'b', to: 'ghost', label: 'dangling-target' },
+        { from: 'ghost2', to: 'c', label: 'dangling-source' },
+      ];
+
+      const result = await strategy.generateLayout(nodes, edges, defaultConfig);
+
+      // Only the three real nodes are laid out — no phantom 'ghost'/'ghost2'.
+      expect(result.nodes.map((n) => n.id).sort()).toEqual(['a', 'b', 'c']);
+      // Only the valid edge survives.
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0].from).toBe('a');
+      expect(result.edges[0].to).toBe('b');
+      // Real-node positions stay finite (phantom positions must not corrupt them).
+      for (const n of result.nodes) {
+        expect(Number.isFinite(n.x)).toBe(true);
+        expect(Number.isFinite(n.y)).toBe(true);
+      }
+    });
+  });
+
   describe('getStrategyDefaults()', () => {
     it('should return flowchart-specific defaults', () => {
       const defaults = strategy.getStrategyDefaults!();
