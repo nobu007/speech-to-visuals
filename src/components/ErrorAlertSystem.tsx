@@ -71,7 +71,8 @@ export const ErrorAlertSystem: React.FC<ErrorAlertSystemProps> = ({
       }
     };
 
-    productionErrorHandler.onError('ErrorAlertSystem', updateAlerts);
+    // Capture the unsubscribe so the cleanup tears the registration down.
+    const unsubscribe = productionErrorHandler.onError('ErrorAlertSystem', updateAlerts);
 
     // Periodically update metrics
     const metricsInterval = setInterval(() => {
@@ -87,6 +88,10 @@ export const ErrorAlertSystem: React.FC<ErrorAlertSystemProps> = ({
     }
 
     return () => {
+      // Release this registration so the singleton's callback array does not
+      // accumulate one entry per mount (and so the stale closure stops firing
+      // on future errors after unmount).
+      unsubscribe();
       clearInterval(metricsInterval);
       timers.forEach(t => clearTimeout(t));
     };

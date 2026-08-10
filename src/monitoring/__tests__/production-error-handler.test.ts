@@ -260,6 +260,75 @@ describe('ProductionErrorHandler', () => {
     });
   });
 
+  describe('onError unsubscribe (listener-registration leak)', () => {
+    // `productionErrorHandler` is a process-lifetime singleton. `onError`
+    // previously had NO unsubscribe, so every React mount/StrictMode double-
+    // invoke appended a callback that was never released — the array grew
+    // without bound and each leaked closure re-fired on every future error
+    // (retaining stale state). This is a DISTINCT class from the bounded-
+    // collection growth fixed elsewhere: it needs unsubscribe, not a cap.
+    // Mirrors the removeEntry dynamic meta-test pattern: assert a handler
+    // registered N times is released only after N teardowns.
+
+    it('returns an unsubscribe that stops the callback from firing', async () => {
+      const cb = jest.fn();
+      const unsubscribe = handler.onError('Comp', cb);
+
+      await handler.handleError(new Error('a'));
+      expect(cb).toHaveBeenCalledTimes(1);
+
+      unsubscribe();
+
+      await handler.handleError(new Error('b'));
+      // Not fired again after teardown.
+      expect(cb).toHaveBeenCalledTimes(1);
+    });
+
+    it('a handler registered N times is fully released only after N unsubscribes (ref-count)', async () => {
+      const cb = jest.fn();
+      // Same reference registered twice → fires twice per error while live.
+      const unsub1 = handler.onError('Comp', cb);
+      const unsub2 = handler.onError('Comp', cb);
+
+      await handler.handleError(new Error('a'));
+      expect(cb).toHaveBeenCalledTimes(2);
+
+      unsub1(); // one registration remains
+      await handler.handleError(new Error('b'));
+      expect(cb).toHaveBeenCalledTimes(3);
+
+      unsub2(); // fully released
+      await handler.handleError(new Error('c'));
+      expect(cb).toHaveBeenCalledTimes(3);
+    });
+
+    it('unsubscribe is idempotent and safe when never registered', () => {
+      const cb = jest.fn();
+      const unsubscribe = handler.onError('Comp', cb);
+      expect(() => {
+        unsubscribe();
+        unsubscribe();
+      }).not.toThrow();
+    });
+
+    it('does not affect other components or other callbacks for the same component', async () => {
+      const cbA = jest.fn();
+      const cbB = jest.fn();
+      const otherCb = jest.fn();
+      const unsubA = handler.onError('Comp', cbA);
+      handler.onError('Comp', cbB);
+      handler.onError('Other', otherCb);
+
+      unsubA();
+
+      await handler.handleError(new Error('a'));
+      // cbA released; cbB (same component) and otherCb (other component) still fire.
+      expect(cbA).not.toHaveBeenCalled();
+      expect(cbB).toHaveBeenCalledTimes(1);
+      expect(otherCb).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('user-visible notification survives downstream failures', () => {
     // Feedback: handleError 呼出時のユーザー可視状態(同期失敗通知等)の回帰強化。
     // notifyErrorCallbacks (ユーザー向け通知) は handleError 内で await sendTelemetry

@@ -584,13 +584,32 @@ export class ProductionErrorHandler {
   }
 
   /**
-   * Register callback for error notifications
+   * Register callback for error notifications.
+   *
+   * Returns an unsubscribe function. ALWAYS invoke it when the owning scope
+   * tears down (e.g. in a React `useEffect` cleanup). Without it the callback
+   * stays in the singleton's `errorCallbacks` map for the process lifetime,
+   * retaining its closure and re-firing on every future error — the
+   * listener-registration leak. This is a DISTINCT class from the bounded-
+   * collection growth fixed elsewhere: it cannot be solved by a cap, only by
+   * explicit unsubscribe, because each leaked registration also pins a (often
+   * stale) closure.
+   *
+   * Registering the same callback reference N times is ref-counted: N
+   * unsubscribes are required to fully release it.
    */
-  onError(component: string, callback: (alert: ErrorAlert) => void): void {
+  onError(component: string, callback: (alert: ErrorAlert) => void): () => void {
     if (!this.errorCallbacks.has(component)) {
       this.errorCallbacks.set(component, []);
     }
     this.errorCallbacks.get(component)!.push(callback);
+    return () => {
+      const arr = this.errorCallbacks.get(component);
+      if (!arr) return;
+      const idx = arr.indexOf(callback);
+      if (idx !== -1) arr.splice(idx, 1);
+      if (arr.length === 0) this.errorCallbacks.delete(component);
+    };
   }
 
   /**
