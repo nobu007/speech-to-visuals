@@ -72,7 +72,12 @@ export class CulturalLayoutAdapter {
     const verticalSpacing = 80;
     const horizontalSpacing = 150;
 
-    const sortedNodes = layout.nodes.sort((a, b) => a.y - b.y);
+    // Copy before sorting: Array.prototype.sort mutates in place, and `layout`
+    // here is a shallow copy ({ ...layout } in applyCulturalAdaptation) whose
+    // `nodes` array is the SAME reference as the caller's input — sorting it
+    // would reorder the caller's nodes as a silent side effect
+    // (destructive-input class). Non-destructive pass.
+    const sortedNodes = [...layout.nodes].sort((a, b) => a.y - b.y);
     const columns = 3; // Adjustable based on content
 
     const verticalNodes = sortedNodes.map((node, index) => {
