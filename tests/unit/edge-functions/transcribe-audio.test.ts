@@ -190,4 +190,33 @@ describe('handleTranscribe', () => {
 
     expect(result.segments).toEqual([]);
   });
+
+  // TC-312 behavioral witness for the trust-boundary sanitizer wired at the
+  // external Whisper-response parse site. RED before the fix: a malformed
+  // gateway response carrying `1e400` parses to `Infinity`, which is truthy so
+  // `transcription.duration || 0` yields `Infinity` and leaks out as
+  // result.duration (non-finite → poisons downstream frame arithmetic). GREEN
+  // after: sanitizeUntrustedJsonValue neutralizes Infinity → null, so
+  // `null || 0` yields a finite 0. Built via JSON.parse so `1e400` becomes a
+  // real Infinity and `__proto__` a real own property, mirroring production.
+  it('neutralizes non-finite duration and poison keys from the Whisper response', async () => {
+    const adversarial = JSON.parse(
+      '{"text":"hi","duration":1e400,"language":"en","__proto__":{"polluted":true},"segments":[]}'
+    );
+
+    (fetchWithTimeout as jest.Mock).mockResolvedValueOnce(mockAudioResponse(new ArrayBuffer(100)));
+    (fetchWithTimeout as jest.Mock).mockResolvedValueOnce(mockTranscriptionResponse(adversarial));
+
+    const result = await handleTranscribe(
+      { audioUrl: 'https://example.com/audio.mp3' },
+      USER_ID,
+      VALID_ENV
+    );
+
+    // The defect symptom: pre-fix this was Infinity (truthy || 0 === Infinity).
+    expect(Number.isFinite(result.duration)).toBe(true);
+    expect(result.duration).toBe(0);
+    // Defense-in-depth: __proto__ key must not have polluted Object.prototype.
+    expect((Object.prototype as Record<string, unknown>).polluted).toBeUndefined();
+  });
 });

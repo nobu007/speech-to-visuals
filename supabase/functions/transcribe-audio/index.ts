@@ -9,6 +9,7 @@ import {
   createTimeout,
   fetchWithTimeout,
 } from '../_shared/error-handler.ts';
+import { sanitizeUntrustedJsonValue } from '../_shared/untrusted-json.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // ─── Handler (testable, extracted from serve) ────────────────────────────────
@@ -106,7 +107,17 @@ export async function handleTranscribe(
     throw new Error(`Transcription failed: ${transcriptionResponse.status}`);
   }
 
-  const transcription = await transcriptionResponse.json();
+  // Sanitize at the trust boundary: a malformed gateway response could carry
+  // `1e400`→Infinity into `duration`/`start`/`end` (poisoning frame arithmetic)
+  // or `__proto__` keys. No-op on well-formed Whisper output.
+  const transcription = sanitizeUntrustedJsonValue(
+    await transcriptionResponse.json()
+  ) as {
+    text: string;
+    duration?: number;
+    language?: string;
+    segments?: Array<{ id?: number; start: number; end: number; text: string; avg_logprob?: number }>;
+  };
 
   // Process segments with confidence scores
   const segments: TranscribeSegment[] = (transcription.segments || []).map(
@@ -146,8 +157,10 @@ serve(async (req) => {
     const supabaseClient: SupabaseAuthClient = createClient(supabaseUrl, supabaseAnonKey);
     const { userId } = await authenticateRequest(req, supabaseClient);
 
-    // Parse body
-    const body: TranscribeRequest = await req.json();
+    // Parse body (sanitize at the trust boundary — no-op on valid JSON)
+    const body: TranscribeRequest = sanitizeUntrustedJsonValue(
+      await req.json()
+    ) as TranscribeRequest;
 
     // Process
     const result = await handleTranscribe(body, userId, {

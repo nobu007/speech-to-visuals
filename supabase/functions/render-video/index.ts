@@ -6,6 +6,7 @@ import {
   errorResponse,
   validateRequired,
 } from '../_shared/error-handler.ts';
+import { sanitizeUntrustedJsonValue } from '../_shared/untrusted-json.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -135,8 +136,10 @@ serve(async (req) => {
     const supabaseClient: SupabaseAuthClient = createClient(supabaseUrl, supabaseAnonKey);
     const { userId } = await authenticateRequest(req, supabaseClient);
 
-    // Parse body
-    const body: RenderVideoRequest = await req.json();
+    // Parse body (sanitize at the trust boundary — no-op on valid JSON)
+    const body: RenderVideoRequest = sanitizeUntrustedJsonValue(
+      await req.json()
+    ) as RenderVideoRequest;
 
     // Process
     const result = await handleRenderVideo(body, userId);
