@@ -193,6 +193,18 @@ export function generateLottieAnimation(
   const layers = scenes.map((scene, i) => {
     const duration = clampSceneDuration(sceneDurationSeconds(scene));
     const totalFrames = Math.round(duration * fps);
+    // Clamp each fade to at most half the scene so the fade-out-START keyframe
+    // can never precede the fade-in-END keyframe. Without this, a scene shorter
+    // than 2×0.3s (totalFrames < 18 at 30fps — clampSceneDuration deliberately
+    // preserves fractional durations down to 0.5s and below, an explicit
+    // contract) yields non-monotonic keyframe `t` values: e.g. 0.5s →
+    // [0,9,6,15], 0.1s → a NEGATIVE kf3. Lottie/Bodymovin keyframe times MUST
+    // be monotonic non-decreasing; inverted/negative times are undefined
+    // behavior in every player (lottie-web/skottie/rlottie flicker,
+    // reverse-interpolate, or skip the layer). For normal scenes (totalFrames
+    // ≥ 18) Math.floor(totalFrames/2) ≥ 9 so the clamp is inert and the fade
+    // stays the full 0.3s/9 frames — byte-identical to before.
+    const fadeFrames = Math.min(Math.round(fps * 0.3), Math.floor(totalFrames / 2));
     const label = String(scene.label ?? scene.type ?? `Scene ${i + 1}`);
     const layer: Record<string, unknown> = {
       ddd: 0,
@@ -203,8 +215,8 @@ export function generateLottieAnimation(
       ks: {
         o: { a: 1, k: [
           { t: frameOffset, s: [0], e: [100] },
-          { t: frameOffset + Math.round(fps * 0.3), s: [100], e: [100] },
-          { t: frameOffset + totalFrames - Math.round(fps * 0.3), s: [100], e: [0] },
+          { t: frameOffset + fadeFrames, s: [100], e: [100] },
+          { t: frameOffset + totalFrames - fadeFrames, s: [100], e: [0] },
           { t: frameOffset + totalFrames, s: [0] },
         ] },
         p: { a: 0, k: [width / 2, height / 2, 0] },

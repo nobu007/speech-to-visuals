@@ -531,6 +531,64 @@ describe('REQ-219: generateLottieAnimation', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Short-scene opacity keyframes MUST stay monotonic non-decreasing.
+//
+// The fade-in and fade-out are each 0.3s (Math.round(fps*0.3) = 9 frames at
+// 30fps). For a scene whose totalFrames < 2×9 = 18 (i.e. duration < 0.6s), the
+// fade-out-START keyframe (kf3.t = totalFrames − 9) falls BEFORE the fade-in-END
+// keyframe (kf2.t = 9) — and for very short scenes kf3.t even goes NEGATIVE.
+// e.g. duration 0.5s → totalFrames 15 → keyframe t = [0, 9, 6, 15] (kf3 < kf2);
+//      duration 0.3s → totalFrames  9 → keyframe t = [0, 9, 0, 9];
+//      duration 0.1s → totalFrames  3 → keyframe t = [0, 9, -6, 3] (negative!).
+//
+// Lottie/Bodymovin keyframe times MUST be monotonic non-decreasing — every
+// player (lottie-web, skottie, rlottie) interpolates between consecutive
+// keyframes and treats inverted times as undefined behavior (flicker,
+// reverse-interpolation, layer skip). clampSceneDuration(0.5) === 0.5 is an
+// explicit supported contract (see the clampSceneDuration suite), so these
+// short scenes are in-domain, not invalid input.
+// ---------------------------------------------------------------------------
+
+describe('REQ-219: short-scene opacity keyframes stay monotonic', () => {
+  const kfTimes = (duration: number): number[] => {
+    const lottie = generateLottieAnimation(
+      { scenes: [{ duration, label: 'Short' }] },
+      HD,
+    );
+    const layer = (lottie.layers as Record<string, unknown>[])[0];
+    const ks = layer.ks as Record<string, unknown>;
+    const keyframes = (ks.o as Record<string, unknown>).k as { t: number }[];
+    return keyframes.map((kf) => kf.t);
+  };
+
+  it('a 0.5s scene emits non-decreasing keyframe times (was [0,9,6,15])', () => {
+    const times = kfTimes(0.5);
+    // Bug shape: totalFrames=15, fade=9 → [0, 9, 6, 15] (kf3=6 < kf2=9).
+    for (let i = 1; i < times.length; i++) {
+      expect(times[i]).toBeGreaterThanOrEqual(times[i - 1]);
+    }
+  });
+
+  it('sub-0.6s durations never produce a negative or inverted keyframe time', () => {
+    for (const d of [0.1, 0.2, 0.3, 0.4, 0.5, 0.58]) {
+      const times = kfTimes(d);
+      // No keyframe may precede the layer in-point (frameOffset = 0 here).
+      expect(Math.min(...times)).toBeGreaterThanOrEqual(0);
+      for (let i = 1; i < times.length; i++) {
+        expect(times[i]).toBeGreaterThanOrEqual(times[i - 1]);
+      }
+    }
+  });
+
+  it('a long scene is unaffected (fade still 9 frames each side)', () => {
+    // Regression guard: the clamp must not shrink the fade for normal scenes.
+    // duration 5s → totalFrames 150 → fadeFrames 9 → [0, 9, 141, 150].
+    const times = kfTimes(5);
+    expect(times).toEqual([0, 9, 141, 150]);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // REQ-219 extended: Lottie shape content (visual shapes in layers)
 // ---------------------------------------------------------------------------
 
