@@ -5,6 +5,18 @@
 import { MultiFormatExporter } from '../multi-format-exporter';
 import type { SceneGraph } from '@/types/diagram';
 
+/** First byte-index of `needle` within `haystack`, or -1 (naive, byte-exact). */
+function indexOfBytes(haystack: Uint8Array, needle: Uint8Array): number {
+  for (let i = 0; i <= haystack.length - needle.length; i++) {
+    let j = 0;
+    for (; j < needle.length; j++) {
+      if (haystack[i + j] !== needle[j]) break;
+    }
+    if (j === needle.length) return i;
+  }
+  return -1;
+}
+
 beforeEach(() => {
   jest.spyOn(console, 'log').mockImplementation(() => {});
   jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -129,6 +141,51 @@ describe('MultiFormatExporter', () => {
       const text = await (result.data as Blob).text();
       // Parentheses must be escaped in PDF string literals
       expect(text).toContain('(Hello \\(World\\))');
+    });
+
+    it('declares byte-accurate /Length and xref offsets for CJK labels', async () => {
+      // Non-ASCII labels are 1 UTF-16 code unit but 3 UTF-8 bytes each. Offsets
+      // previously used JS `.length` (code units) while `new Blob([pdf])` emits
+      // UTF-8, so any CJK content corrupted /Length and every xref offset after
+      // the content stream — the common case in this Japanese-first pipeline.
+      const cjkNodes = [
+        { id: 'n1', label: '処理', x: 100, y: 100, width: 120, height: 60 },
+        { id: 'n2', label: '入力', x: 400, y: 100, width: 120, height: 60 },
+      ];
+      const scene = makeScene({
+        id: 'cjk-pdf',
+        nodes: cjkNodes,
+        edges: [{ from: 'n1', to: 'n2', label: '次へ' }],
+        layout: {
+          nodes: cjkNodes,
+          edges: [{ from: 'n1', to: 'n2', label: '次へ', points: [] }],
+        },
+      });
+      const result = await exporter.export(scene, { format: 'pdf' });
+      expect(result.success).toBe(true);
+      const bytes = new Uint8Array(await (result.data as Blob).arrayBuffer());
+      const text = new TextDecoder().decode(bytes);
+
+      // /Length must equal the BYTE span between "stream\n" and "\nendstream".
+      const declaredLength = Number(text.match(/\/Length (\d+)/)![1]);
+      const streamMark = new TextEncoder().encode('stream\n');
+      const endstreamMark = new TextEncoder().encode('\nendstream');
+      const streamStart = indexOfBytes(bytes, streamMark) + streamMark.length;
+      const endstreamStart = indexOfBytes(bytes, endstreamMark);
+      expect(endstreamStart - streamStart).toBe(declaredLength);
+
+      // Every xref-declared object offset must point (in BYTES) at "<n> 0 obj".
+      const xrefOffsets = [...text.matchAll(/^(\d{10}) 00000 n\b/gm)].map((m) => Number(m[1]));
+      expect(xrefOffsets).toHaveLength(6);
+      const decodeAt = (off: number, len: number) =>
+        new TextDecoder().decode(bytes.subarray(off, off + len));
+      xrefOffsets.forEach((off, i) => {
+        expect(decodeAt(off, 7).startsWith(`${i + 1} 0 obj`)).toBe(true);
+      });
+
+      // startxref must point (in BYTES) at the "xref" table.
+      const startxref = Number(text.match(/startxref\n(\d+)/)![1]);
+      expect(decodeAt(startxref, 4)).toBe('xref');
     });
   });
 

@@ -309,6 +309,24 @@ describe('SceneSegmenter', () => {
         expect(typeof s.summary).toBe('string');
       }
     });
+
+    it('generateSummary splits on the Japanese "。" terminator (regression: previously only ASCII ".!?" split)', () => {
+      // generateSummary feeds every segment's `summary`; the semantic-merge
+      // path (semanticSegmentation) passes it the concatenated text of two
+      // segments, so it must handle CJK terminators. It previously split only
+      // on ASCII ".!?", so multi-sentence Japanese text came back whole.
+      // `generateSummary` is private; exercise it directly to pin the contract
+      // independently of how `segment()` happens to pre-split the input.
+      const summarize = (segmenter as unknown as {
+        generateSummary: (t: string) => string;
+      }).generateSummary.bind(segmenter);
+
+      const summary = summarize('プロジェクトの概要を説明します。重要なポイントです。');
+      // First sentence only ...
+      expect(summary).toMatch(/プロジェクトの概要を説明します/);
+      // ... the second sentence must not bleed in.
+      expect(summary).not.toMatch(/重要なポイント/);
+    });
   });
 
   // =========================================================================

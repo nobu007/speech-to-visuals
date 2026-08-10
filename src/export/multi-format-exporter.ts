@@ -561,52 +561,68 @@ export class MultiFormatExporter {
 
     const streamContent = parts.join('\n');
 
-    // Build minimal valid PDF with a content stream
+    // Build minimal valid PDF with a content stream.
+    //
+    // PDF xref offsets and the content-stream /Length are defined in BYTES
+    // (PDF spec §7.5.4), but `new Blob([pdf])` UTF-8-encodes the string while
+    // JS `.length` counts UTF-16 code units. For any non-ASCII label — CJK
+    // node/edge text, the common case in this Japanese-first pipeline — one
+    // BMP character is 1 code unit but 3 UTF-8 bytes, so every offset declared
+    // after the first such character was too small and the file structure
+    // silently broke. We therefore track the running UTF-8 byte count and use
+    // it for every offset and /Length.
     const objects: string[] = [];
     const offsets: number[] = [];
+    const encoder = new TextEncoder();
+    const byteLength = (s: string): number => encoder.encode(s).length;
     let pdf = '%PDF-1.4\n';
+    let pdfBytes = byteLength(pdf);
+    const append = (segment: string): void => {
+      pdf += segment;
+      pdfBytes += byteLength(segment);
+    };
 
     // Object 1: Catalog
-    offsets.push(pdf.length);
-    pdf += '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n';
+    offsets.push(pdfBytes);
+    append('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
 
     // Object 2: Pages
-    offsets.push(pdf.length);
-    pdf += '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n';
+    offsets.push(pdfBytes);
+    append('2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n');
 
     // Object 3: Page — /F1 (Helvetica, regular) for edge labels, /F2 (Helvetica-Bold)
     // for node labels, matching SVG/Canvas `font-weight="bold"` on nodes only.
-    offsets.push(pdf.length);
-    pdf += `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>\nendobj\n`;
+    offsets.push(pdfBytes);
+    append(`3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>\nendobj\n`);
 
-    // Object 4: Content stream
-    offsets.push(pdf.length);
-    pdf += `4 0 obj\n<< /Length ${streamContent.length} >>\nstream\n${streamContent}\nendstream\nendobj\n`;
+    // Object 4: Content stream — /Length must be the BYTE length of the stream.
+    offsets.push(pdfBytes);
+    append(`4 0 obj\n<< /Length ${byteLength(streamContent)} >>\nstream\n${streamContent}\nendstream\nendobj\n`);
 
     // Object 5: Font (Helvetica — regular, used for edge labels)
-    offsets.push(pdf.length);
-    pdf += '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj\n';
+    offsets.push(pdfBytes);
+    append('5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj\n');
 
     // Object 6: Font (Helvetica-Bold — used for node labels, matching on-screen
     // `fontWeight: 'bold'` / SVG `font-weight="bold"` / Canvas `bold`).
-    offsets.push(pdf.length);
-    pdf += '6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj\n';
+    offsets.push(pdfBytes);
+    append('6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj\n');
 
     // Cross-reference table
-    const xrefOffset = pdf.length;
-    pdf += 'xref\n';
-    pdf += `0 7\n`;
-    pdf += '0000000000 65535 f \n';
+    const xrefOffset = pdfBytes;
+    append('xref\n');
+    append(`0 7\n`);
+    append('0000000000 65535 f \n');
     for (const off of offsets) {
-      pdf += `${String(off).padStart(10, '0')} 00000 n \n`;
+      append(`${String(off).padStart(10, '0')} 00000 n \n`);
     }
 
     // Trailer
-    pdf += 'trailer\n';
-    pdf += `<< /Size 7 /Root 1 0 R >>\n`;
-    pdf += 'startxref\n';
-    pdf += `${xrefOffset}\n`;
-    pdf += '%%EOF';
+    append('trailer\n');
+    append(`<< /Size 7 /Root 1 0 R >>\n`);
+    append('startxref\n');
+    append(`${xrefOffset}\n`);
+    append('%%EOF');
 
     return new Blob([pdf], { type: 'application/pdf' });
   }

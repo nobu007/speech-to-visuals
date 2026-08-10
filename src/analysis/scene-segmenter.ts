@@ -398,7 +398,12 @@ export class SceneSegmenter {
    * Generate simple summary (iteration 1: first sentence or truncated text)
    */
   private generateSummary(text: string): string {
-    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    // Split on ASCII AND CJK sentence terminators. The sibling
+    // splitTextAtSentenceBoundaries handles "。" (U+3002) explicitly; this
+    // regex previously omitted it, so Japanese text (no ASCII ".!?") was never
+    // split and the summary fell through to a 100-char truncation of the whole
+    // segment. 「。！？」are the common Japanese terminators.
+    const sentences = text.split(/[.!?。！？]+/).filter(s => s.trim().length > 0);
 
     if (sentences.length > 0) {
       const firstSentence = sentences[0].trim();

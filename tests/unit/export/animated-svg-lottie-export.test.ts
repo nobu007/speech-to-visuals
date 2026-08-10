@@ -77,6 +77,17 @@ describe('formatSceneSubtitle', () => {
   it('formats minutes+seconds from pipeline SceneGraph durationMs', () => {
     expect(formatSceneSubtitle({ durationMs: 125000 })).toBe('2m 5s');
   });
+
+  // Rounding `d % 60` in isolation returns 60 when d%60 >= 59.5, producing
+  // "60s" (d=59.5) and "1m 60s" (d=119.5). The minute carry must come from the
+  // rounded whole-second total, not a separately-rounded seconds field.
+  it('carries the minute at the rounding boundary (59.5s → 1m 0s)', () => {
+    expect(formatSceneSubtitle({ duration: 59.5 })).toBe('1m 0s');
+  });
+
+  it('carries the minute at the 2-minute rounding boundary (119.5s → 2m 0s)', () => {
+    expect(formatSceneSubtitle({ duration: 119.5 })).toBe('2m 0s');
+  });
 });
 
 // ---------------------------------------------------------------------------

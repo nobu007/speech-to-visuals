@@ -252,8 +252,12 @@ export function formatSceneSubtitle(scene: SceneItem): string {
   // (s) field are labeled correctly. Reading `scene.duration` directly fell
   // through to the 2s default, mislabeling every pipeline-fed scene's subtitle.
   const d = clampSceneDuration(sceneDurationSeconds(scene));
-  const mins = Math.floor(d / 60);
-  const secs = Math.round(d % 60);
+  // Round the whole-second total FIRST, then decompose — rounding `d % 60` in
+  // isolation lets it return 60 (e.g. d=59.5 → "60s", d=119.5 → "1m 60s"),
+  // carrying the minute overflow incorrectly.
+  const totalSeconds = Math.round(d);
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
   return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
 }
 
