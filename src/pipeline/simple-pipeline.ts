@@ -323,8 +323,8 @@ export class SimplePipeline {
             // breakdown signal, matching the prior inline computation. See
             // src/pipeline/scene-graph-builder.ts for the divergence history.
             return buildSceneGraph({
-              segment: segment as Record<string, unknown>,
-              analysis: diagramAnalysis as Record<string, unknown>,
+              segment,
+              analysis: diagramAnalysis,
               layout: lr.layout,
               index,
               layoutConfidence: lr.confidence as number | undefined,

@@ -29,10 +29,21 @@ import { sanitizeFinite, sanitizeDiagramType } from '@/utils/guards';
  * so a new pipeline (or a future edit) cannot silently drop one.
  */
 export interface BuildSceneGraphInput {
-  /** Segmenter output: carries `startMs`/`endMs` (ms), `text`, `summary`, `keyphrases`. */
-  segment: Record<string, unknown>;
-  /** DiagramDetector output: `type`, `nodes`, `edges`, `confidence`. */
-  analysis: Record<string, unknown>;
+  /**
+   * Segmenter output: carries `startMs`/`endMs` (ms), `text`, `summary`,
+   * `keyphrases`.
+   *
+   * Typed STRUCTURALLY (optional fields, no string index signature) rather than
+   * as `Record<string, unknown>` so callers can pass the concrete
+   * `ContentSegment` directly — a concrete interface lacks an index signature
+   * and is therefore NOT assignable to `Record<string, unknown>`, which forced
+   * a `diagramAnalysis as unknown as Record<...>` double-cast at the
+   * SimplePipeline site (TS2352). A loose `Record<string, unknown>` remains
+   * assignable here too, so the other call sites are unaffected.
+   */
+  segment: { startMs?: unknown; endMs?: unknown; text?: unknown; summary?: unknown; keyphrases?: unknown };
+  /** DiagramDetector output: `type`, `nodes`, `edges`, `confidence` (structural — see {@link segment}). */
+  analysis: { type?: unknown; nodes?: unknown; edges?: unknown; confidence?: unknown };
   /** LayoutEngine output: positioned nodes/edges. */
   layout: unknown;
   /** 0-based scene index — used for the `scene-${index}` id. */
