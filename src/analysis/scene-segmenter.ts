@@ -873,7 +873,14 @@ export class SceneSegmenter {
           startMs: prev.startMs,
           endMs: current.endMs,
           text: prev.text + current.text,
-          summary: prev.summary,
+          // Regenerate the summary from the MERGED text — mirroring every
+          // sibling ContentSegment constructor (finalizeSegment:394,
+          // semanticSegmentation:462, mergeSegmentGroup:577). Copying
+          // `prev.summary` left the summary describing only the first fragment,
+          // silently dropping the merged-in content from the scene title /
+          // caption and from diagram-type detection (diagram-detector reads
+          // `segment.summary || segment.text`).
+          summary: this.generateSummary(prev.text + current.text),
           keyphrases: [...new Set([...prev.keyphrases, ...current.keyphrases])],
           confidence: Math.max(prev.confidence, current.confidence),
         };
@@ -890,7 +897,8 @@ export class SceneSegmenter {
           startMs: current.startMs,
           endMs: next.endMs,
           text: current.text + next.text,
-          summary: current.summary,
+          // Regenerate from merged text (see the backward-merge note above).
+          summary: this.generateSummary(current.text + next.text),
           keyphrases: [...new Set([...current.keyphrases, ...next.keyphrases])],
           confidence: Math.max(current.confidence, next.confidence),
         };
@@ -909,7 +917,8 @@ export class SceneSegmenter {
           startMs: prev.startMs,
           endMs: last.endMs,
           text: prev.text + last.text,
-          summary: prev.summary,
+          // Regenerate from merged text (see the backward-merge note above).
+          summary: this.generateSummary(prev.text + last.text),
           keyphrases: [...new Set([...prev.keyphrases, ...last.keyphrases])],
           confidence: Math.max(Number.isFinite(prev.confidence) ? prev.confidence : 0, Number.isFinite(last.confidence) ? last.confidence : 0),
         };

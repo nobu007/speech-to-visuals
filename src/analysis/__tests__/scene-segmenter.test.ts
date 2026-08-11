@@ -410,3 +410,84 @@ describe('SceneSegmenter.splitTextAtSentenceBoundaries', () => {
     expect(split('no punctuation here')).toEqual(['no punctuation here']);
   });
 });
+
+// ---------------------------------------------------------------------------
+// mergeShortSegments — summary regeneration after merge
+// ---------------------------------------------------------------------------
+// Regression: mergeShortSegments built the merged segment's `summary` by
+// COPYING the first sub-segment's stale summary (`prev.summary` /
+// `current.summary`) instead of regenerating it from the merged text via
+// generateSummary — unlike every sibling ContentSegment constructor
+// (finalizeSegment:394, semanticSegmentation:462, mergeSegmentGroup:577,
+// splitLongSegments:954). A merge that joined "alpha intro" + "beta goals"
+// kept summary "alpha intro", silently dropping the second fragment's content
+// from the scene title/caption AND from diagram-type detection
+// (diagram-detector.ts:1469/1481 read `segment.summary || segment.text`).
+describe('SceneSegmenter.mergeShortSegments — summary regenerated from merged text', () => {
+  const segmenter = new SceneSegmenter();
+
+  const merge = (segs: ContentSegment[]) =>
+    (segmenter as unknown as {
+      mergeShortSegments: (s: ContentSegment[]) => Promise<ContentSegment[]>;
+    }).mergeShortSegments(segs);
+
+  const summarize = (t: string) =>
+    (segmenter as unknown as { generateSummary: (t: string) => string })
+      .generateSummary(t);
+
+  /** Build a ContentSegment. */
+  function cseg(startMs: number, endMs: number, text: string): ContentSegment {
+    // Pre-fix the input summary to the fragment's own text (no sentence
+    // terminator → generateSummary returns it unchanged) so the "stale copy"
+    // behavior is unambiguous.
+    return { startMs, endMs, text, summary: summarize(text), keyphrases: [], confidence: 0.8 };
+  }
+
+  it('backward merge: regenerates summary from BOTH fragments (prev is long, current is short)', async () => {
+    // longA (4000ms, OK) then shortB (1000ms, < min 3000ms) → B merges back into A.
+    const longA = cseg(0, 4000, 'alpha introduction overview');
+    const shortB = cseg(4000, 5000, 'beta goals milestones discussed');
+
+    const result = await merge([longA, shortB]);
+
+    expect(result).toHaveLength(1);
+    const merged = result[0];
+    // Text completeness: both fragments present.
+    expect(merged.text).toBe('alpha introduction overview' + 'beta goals milestones discussed');
+    // The summary must be regenerated from the merged text — it must contain
+    // the SECOND fragment's content. Before the fix it was `longA.summary`
+    // ("alpha introduction overview") and dropped "beta" entirely.
+    expect(merged.summary).toContain('beta');
+    // Pin the regeneration invariant exactly: summary === generateSummary(merged text).
+    expect(merged.summary).toBe(summarize(longA.text + shortB.text));
+  });
+
+  it('forward merge: regenerates summary when the first segment is too short', async () => {
+    // shortA (< min) has no previous result to merge into, so it merges FORWARD
+    // with longB.
+    const shortA = cseg(0, 1000, 'alpha introduction overview');
+    const longB = cseg(1000, 5000, 'beta goals milestones discussed');
+
+    const result = await merge([shortA, longB]);
+
+    expect(result).toHaveLength(1);
+    const merged = result[0];
+    expect(merged.text).toBe('alpha introduction overview' + 'beta goals milestones discussed');
+    // Before the fix the forward-merge copied `current.summary` (shortA's),
+    // dropping "beta".
+    expect(merged.summary).toContain('beta');
+    expect(merged.summary).toBe(summarize(shortA.text + longB.text));
+  });
+
+  it('does not regress when no merge is needed (all segments already long enough)', async () => {
+    const a = cseg(0, 5000, 'alpha sentence one');
+    const b = cseg(5000, 10000, 'beta sentence two');
+
+    const result = await merge([a, b]);
+
+    expect(result).toHaveLength(2);
+    // Summaries untouched (each already long enough → no merge → no regeneration).
+    expect(result[0].summary).toBe(summarize('alpha sentence one'));
+    expect(result[1].summary).toBe(summarize('beta sentence two'));
+  });
+});
