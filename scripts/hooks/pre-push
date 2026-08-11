@@ -1,0 +1,45 @@
+#!/bin/sh
+# Pre-push hook:
+#   1. Verifies the generated Edge sanitizer copy matches the core source
+#      (re-runs TC-313 to catch codegen drift before it becomes shared history)
+#
+# Install: npm run setup:hooks
+#
+# This is the CI-equivalent safety net that mirrors the pre-commit check.
+# pre-commit catches drift at commit time; pre-push is the last chance to
+# catch drift before the commit lands on the remote. Together they enforce
+# "the Edge copy is always a faithful regeneration of the client core" —
+# a property that survives `git commit --no-verify` because the same check
+# fires on push.
+#
+# Both checks are drift detectors: they only fail when the working tree
+# disagrees with the source of truth. No background polling, no stale
+# fixtures — the hook fires ONLY when something actually drifted.
+
+# --- Edge sanitizer sync (TC-313) --------------------------------------
+# Only run if both the core source and the generated Edge copy exist on disk.
+# See tests/guards/edge-untrusted-json-sync.test.ts for the contract.
+if [ -f "src/analysis/untrusted-json-core.ts" ] && \
+   [ -f "supabase/functions/_shared/untrusted-json.ts" ]; then
+  echo "🔍 [pre-push] Checking Edge sanitizer sync (TC-313)..."
+
+  NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' \
+    npx jest --config jest.config.cjs \
+    --testPathPatterns='edge-untrusted-json-sync' \
+    --silent --passWithNoTests
+  result=$?
+
+  if [ $result -ne 0 ]; then
+    echo ""
+    echo "❌ [pre-push] Edge sanitizer out of sync with core source (TC-313 failed)!"
+    echo "   Run: npm run sync:edge"
+    echo "   Then re-push."
+    echo "   Bypass: git push --no-verify"
+    echo ""
+    exit 1
+  fi
+
+  echo "✅ [pre-push] Edge sanitizer in sync."
+fi
+
+exit 0

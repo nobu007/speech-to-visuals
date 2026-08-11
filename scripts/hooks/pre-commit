@@ -1,30 +1,71 @@
 #!/bin/sh
-# Pre-commit hook: validates spine manifest to catch spec drift before landing
+# Pre-commit hook:
+#   1. Validates spine manifest (if it exists) to catch spec drift before landing
+#   2. Verifies the generated Edge sanitizer copy matches the core source
+#      (re-runs TC-313 to catch codegen drift before it lands)
+#
 # Install: npm run setup:hooks
+#
+# Both checks are "drift detectors" — they only fail when the working tree
+# disagrees with the source of truth. Together they enforce: spine docs agree
+# with the on-disk spec paths, and the generated Edge copy agrees with the
+# client core module. No background polling, no stale fixtures — the hook
+# fires ONLY when something actually drifted.
 
-# Only run if specs/_doc_spine.yml exists
-if [ ! -f "specs/_doc_spine.yml" ]; then
-  exit 0
+# --- 1. Spine manifest validation --------------------------------------
+# Only run if specs/_doc_spine.yml exists (optional in repos without a spine)
+if [ -f "specs/_doc_spine.yml" ]; then
+  # Skip if spine:validate script is not available
+  if grep -q '"spine:validate"' package.json 2>/dev/null; then
+    echo "🔍 Validating spine manifest..."
+
+    # Run spine validation
+    npx tsx scripts/validate-spine-manifest.ts
+    result=$?
+
+    if [ $result -ne 0 ]; then
+      echo ""
+      echo "❌ Spine manifest validation failed!"
+      echo "   Fix the errors above, or bypass with: git commit --no-verify"
+      echo ""
+      exit 1
+    fi
+
+    echo "✅ Spine manifest is valid."
+  fi
 fi
 
-# Skip if spine:validate script is not available
-if ! grep -q '"spine:validate"' package.json 2>/dev/null; then
-  exit 0
+# --- 2. Edge sanitizer sync (TC-313) -----------------------------------
+# Only run if both the core source and the generated Edge copy exist on disk.
+# The TC-313 jest test asserts byte-identity between the on-disk Edge file
+# and the live `generateEdgeUntrustedJson()` output (which reads the core at
+# run time). If anything drifted, the commit fails before the drift lands.
+#
+# Why this check lives in the hook (not just in CI): TC-313 is the canonical
+# safety net for the codegen contract — running it at commit time means "fire
+# only on real drift" is enforced close to the source edit, not hours later
+# when CI eventually runs the same suite.
+if [ -f "src/analysis/untrusted-json-core.ts" ] && \
+   [ -f "supabase/functions/_shared/untrusted-json.ts" ]; then
+  echo "🔍 Checking Edge sanitizer sync (TC-313)..."
+
+  NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' \
+    npx jest --config jest.config.cjs \
+    --testPathPatterns='edge-untrusted-json-sync' \
+    --silent --passWithNoTests
+  result=$?
+
+  if [ $result -ne 0 ]; then
+    echo ""
+    echo "❌ Edge sanitizer out of sync with core source (TC-313 failed)!"
+    echo "   Run: npm run sync:edge"
+    echo "   Then re-commit."
+    echo "   Bypass: git commit --no-verify"
+    echo ""
+    exit 1
+  fi
+
+  echo "✅ Edge sanitizer in sync."
 fi
 
-echo "🔍 Validating spine manifest..."
-
-# Run spine validation
-npx tsx scripts/validate-spine-manifest.ts
-result=$?
-
-if [ $result -ne 0 ]; then
-  echo ""
-  echo "❌ Spine manifest validation failed!"
-  echo "   Fix the errors above, or bypass with: git commit --no-verify"
-  echo ""
-  exit 1
-fi
-
-echo "✅ Spine manifest is valid."
 exit 0
