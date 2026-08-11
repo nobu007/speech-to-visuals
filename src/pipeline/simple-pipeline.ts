@@ -10,6 +10,7 @@ import { LayoutEngine } from '@/visualization';
 import { EnhancedZeroOverlapLayoutEngine } from '@/visualization/enhanced-zero-overlap-layout';
 import { SceneGraph } from '@/types/diagram';
 import { VideoGenerator, VideoGenerationOptions } from './video-generator';
+import { buildSceneGraph } from './scene-graph-builder';
 import { calculatePipelineQualityScore } from './quality-score';
 import { continuousLearner } from '@/framework/continuous-learner';
 import { getQualityMonitor, formatQualityReport } from './quality-monitor';
@@ -314,55 +315,20 @@ export class SimplePipeline {
           );
 
           if (lr.success && lr.layout) {
-            const sceneId = `scene-${index}`;
-            const segStartMs = (segment as Record<string, unknown>).startMs as number;
-            const segEndMs = (segment as Record<string, unknown>).endMs as number;
-            const segText = (segment as Record<string, unknown>).text as string;
-            // Propagate the segmenter-generated summary (concise first sentence
-            // from SceneSegmenter.generateSummary), NOT the full segment text.
-            // The sibling pipelines (MainPipeline, PipelineOrchestrator) read
-            // segment.summary; assigning segText here made scene.summary identical
-            // to scene.content, so DiagramScene rendered the entire segment text
-            // (truncated mid-sentence at 150 chars) instead of the intended
-            // concise title. `?? ''` mirrors MainPipeline's `segment.summary ?? ''`.
-            const segSummary = (segment as Record<string, unknown>).summary as
-              | string
-              | undefined;
-            // Propagate the SEGMENTER-extracted keyphrases
-            // (SceneSegmenter.extractKeywords, unioned across merges), NOT the
-            // diagram node labels. The sibling pipelines — MainPipeline
-            // (`segment.keyphrases ?? []`, 2 sites) and PipelineOrchestrator
-            // (`segment?.keyphrases ?? []`) — all read segment.keyphrases; only
-            // SimplePipeline projected node labels here, so the same transcript
-            // through the Simple path fed diagram-entity labels (already exposed
-            // via `nodes` below) into KeyphraseOverlay / exporters / quality-
-            // score instead of the speech keywords. Same wrong-field-in-parallel-
-            // pipelines class as the `summary` fix above.
-            const segKeyphrases = (segment as Record<string, unknown>).keyphrases as
-              | string[]
-              | undefined;
-            return {
-              id: sceneId,
-              startMs: segStartMs,
-              durationMs: segEndMs - segStartMs,
-              startTime: segStartMs / 1000,
-              endTime: segEndMs / 1000,
-              content: segText,
-              summary: segSummary ?? '',
-              keyphrases: Array.isArray(segKeyphrases) ? segKeyphrases : [],
-              nodes: diagramAnalysis.nodes ?? [],
-              edges: diagramAnalysis.edges ?? [],
-              type: detType,
+            // Delegate to the shared assembler so this site can never diverge
+            // from MainPipeline / PipelineOrchestrator on the consumer-required
+            // field contract. `layoutConfidence` is passed (property present)
+            // so the helper folds it via `Math.min(detConfidence, lr.confidence
+            // ?? 1)` — the `?? 1` (not `|| 1`) preserves a legit-zero layout
+            // breakdown signal, matching the prior inline computation. See
+            // src/pipeline/scene-graph-builder.ts for the divergence history.
+            return buildSceneGraph({
+              segment: segment as Record<string, unknown>,
+              analysis: diagramAnalysis as Record<string, unknown>,
               layout: lr.layout,
-              confidence: Math.min(
-                detConfidence,
-                // `?? 1` not `|| 1`: a layout confidence of exactly 0 is a
-                // legitimate "layout broke down" signal (e.g. ≥8 overlaps →
-                // calculateLayoutConfidence clamps to 0) and must NOT be
-                // erased to 1, which would hide the breakdown.
-                (lr.confidence as number) ?? 1
-              )
-            } as SceneGraph;
+              index,
+              layoutConfidence: lr.confidence as number | undefined,
+            });
           }
 
           return null;

@@ -22,6 +22,7 @@ import {
   PipelineMetrics
 } from './types';
 import { retryWithBackoff } from './retry';
+import { buildSceneGraph } from './scene-graph-builder';
 import { TranscriptionError, SegmentationError } from './pipeline-errors';
 // Phase 34: Persistent iteration logging system
 import { globalIterationLogger } from '@/utils/iteration-logger';
@@ -731,33 +732,15 @@ export class MainPipeline {
       const segment = (layoutItem.segment ?? {}) as Record<string, unknown>;
       const analysis = (layoutItem.analysis ?? {}) as Record<string, unknown>;
 
-      return {
-        // Mirror the sibling SimplePipeline scene shape: emit the four fields
-        // every downstream consumer reads. video-generator.convertSceneToRemotionFormat
-        // re-derives startMs from `startTime * 1000`, copies `id`/`content`
-        // verbatim, and generateSceneTitle calls `content.substring` — so
-        // omitting them propagated NaN startMs and crashed `.substring`.
-        // startTime/endTime are SECONDS (ms / 1000), matching SimplePipeline.
-        id: `scene-${index}`,
-        type: sanitizeDiagramType(analysis.type),
-        nodes: (analysis.nodes ?? []) as SceneGraph['nodes'],
-        edges: (analysis.edges ?? []) as SceneGraph['edges'],
-        layout: layoutItem.layout as SceneGraph['layout'],
-        startMs: (segment.startMs ?? 0) as number,
-        durationMs: ((segment.endMs ?? 0) as number) - ((segment.startMs ?? 0) as number),
-        startTime: ((segment.startMs ?? 0) as number) / 1000,
-        endTime: ((segment.endMs ?? 0) as number) / 1000,
-        content: (segment.text ?? '') as string,
-        summary: (segment.summary ?? '') as string,
-        keyphrases: (segment.keyphrases ?? []) as string[],
-        // Wire the detector's per-scene confidence (0-1) onto the scene so
-        // downstream consumers (video-generator `?? 0.8`, quality-score `|| 0`)
-        // read the real value instead of a constant fallback. The sibling
-        // SimplePipeline wires the same field. Layout confidence is not folded
-        // in: generateLayouts* keep only `layoutResult.layout`, dropping the
-        // LayoutResult.confidence wrapper.
-        confidence: analysis.confidence as number | undefined
-      };
+      // Delegate to the shared assembler so this site can never diverge from
+      // SimplePipeline / PipelineOrchestrator on the consumer-required field
+      // contract (id, startTime/endTime in SECONDS, content, summary,
+      // keyphrases, type, confidence). See src/pipeline/scene-graph-builder.ts.
+      // Layout confidence is intentionally not folded in: generateLayouts*
+      // keep only `layoutResult.layout`, dropping the LayoutResult.confidence
+      // wrapper, so the detector confidence is passed through raw (omitting the
+      // `layoutConfidence` property selects that passthrough branch).
+      return buildSceneGraph({ segment, analysis, layout: layoutItem.layout, index });
     });
 
     // Optimize scene timing for better flow
@@ -994,30 +977,9 @@ export class MainPipeline {
       const segment = (layoutItem.segment ?? {}) as Record<string, unknown>;
       const analysis = (layoutItem.analysis ?? {}) as Record<string, unknown>;
 
-      return {
-        // Same four consumer-required fields as prepareScenesEnhanced /
-        // SimplePipeline (id, startTime/endTime in SECONDS, content). See the
-        // rationale in prepareScenesEnhanced above.
-        id: `scene-${index}`,
-        type: sanitizeDiagramType(analysis.type),
-        nodes: (analysis.nodes ?? []) as SceneGraph['nodes'],
-        edges: (analysis.edges ?? []) as SceneGraph['edges'],
-        layout: layoutItem.layout as SceneGraph['layout'],
-        startMs: (segment.startMs ?? 0) as number,
-        durationMs: ((segment.endMs ?? 0) as number) - ((segment.startMs ?? 0) as number),
-        startTime: ((segment.startMs ?? 0) as number) / 1000,
-        endTime: ((segment.endMs ?? 0) as number) / 1000,
-        content: (segment.text ?? '') as string,
-        summary: (segment.summary ?? '') as string,
-        keyphrases: (segment.keyphrases ?? []) as string[],
-        // Wire the detector's per-scene confidence (0-1) onto the scene so
-        // downstream consumers (video-generator `?? 0.8`, quality-score `|| 0`)
-        // read the real value instead of a constant fallback. The sibling
-        // SimplePipeline wires the same field. Layout confidence is not folded
-        // in: generateLayouts* keep only `layoutResult.layout`, dropping the
-        // LayoutResult.confidence wrapper.
-        confidence: analysis.confidence as number | undefined
-      };
+      // Same shared assembler as prepareScenesEnhanced / SimplePipeline /
+      // PipelineOrchestrator — see src/pipeline/scene-graph-builder.ts.
+      return buildSceneGraph({ segment, analysis, layout: layoutItem.layout, index });
     });
 
     return scenes;

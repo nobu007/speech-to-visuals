@@ -28,7 +28,7 @@ import { TranscriptionPipeline, TranscriptionSegment, TranscriptionResult } from
 import { bytesToMb } from '@/lib/metrics-utils';
 import { SceneSegmenter, DiagramDetector, DEFAULT_MIN_SEGMENT_LENGTH_MS, DEFAULT_MAX_SEGMENT_LENGTH_MS } from '@/analysis';
 import { LayoutEngine } from '@/visualization';
-import { SceneGraph, ProcessingStatus, NodeDatum, EdgeDatum, DiagramType, DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { SceneGraph, ProcessingStatus, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { validateConfig, ValidationError } from '@/config/validate';
 import type { ConfigSchema } from '@/config/schema';
 import SmartParameterTuner from '@/optimization/smart-parameter-tuner';
@@ -49,6 +49,7 @@ import type { ClassifiedError } from '@/quality/error-classifier';
 import type { RecoveryStage, RunRecoveryReport } from '@/quality/pipeline-run-recovery-tracker';
 import { logger } from '@/utils/logger';
 import { sanitizeDiagramType } from '@/utils/guards';
+import { buildSceneGraph } from './scene-graph-builder';
 
 // ---------- Public Interfaces ----------
 
@@ -672,38 +673,21 @@ export class PipelineOrchestrator {
     diagrams: unknown[],
   ): SceneGraph {
     const item = layoutItem as Record<string, unknown>;
-    const segment = (item.segment ?? segments[index]) as Record<string, unknown>;
-    const analysis = (item.analysis ?? diagrams[index]) as Record<string, unknown>;
+    const segment = (item.segment ?? segments[index] ?? {}) as Record<string, unknown>;
+    const analysis = (item.analysis ?? diagrams[index] ?? {}) as Record<string, unknown>;
 
-    return {
-      // Delegate to the canonical guard, matching MainPipeline.prepareScenes*
-      // (`sanitizeDiagramType(analysis.type)`) and SimplePipeline. The previous
-      // `(analysis?.type ?? 'flow') as DiagramType` only coalesced null/undefined
-      // and then cross-cast, so any non-canonical STRING (an unmapped LLM label,
-      // a stale cache entry) survived onto scene.type — while generateSingleLayout
-      // above sanitizes the SAME value for the layout engine, leaving the scene
-      // labeled with a type its layout was never computed for. Invariant-split /
-      // missed-sibling-site (switch-parity covers switch shape, not field assign).
-      type: sanitizeDiagramType(analysis?.type),
-      nodes: (analysis?.nodes ?? []) as NodeDatum[],
-      edges: (analysis?.edges ?? []) as EdgeDatum[],
-      layout: item.layout as DiagramLayout | undefined,
-      startMs: (segment?.startMs ?? index * 5000) as number,
-      durationMs:
-        segment?.endMs != null && segment?.startMs != null
-          ? (segment.endMs as number) - (segment.startMs as number)
-          : 5000,
-      summary: (segment?.summary ?? `Scene ${index + 1}`) as string,
-      keyphrases: (segment?.keyphrases ?? []) as string[],
-      // Wire the detector's per-scene confidence (0-1) onto the scene so
-      // downstream consumers (quality-score `scene.confidence || 0`,
-      // video-generator `?? 0.8`) read the real value instead of a constant
-      // fallback. Mirrors MainPipeline.prepareScenes / prepareScenesEnhanced;
-      // without this, the orchestrator path silently drops the 30-point
-      // "Scene confidence" score component (masked to 0) and the low-confidence
-      // validation warning never fires.
-      confidence: analysis?.confidence as number | undefined,
-    };
+    // Delegate to the shared assembler. This fixes the LIVE omission bug: the
+    // inline literal previously emitted ONLY type/nodes/edges/layout/startMs/
+    // durationMs/summary/keyphrases/confidence and OMITTED id, startTime,
+    // endTime, and content — the same wrong-field-in-parallel-pipelines class
+    // fixed in MainPipeline (a741844f). Because SceneGraph marks those optional,
+    // the omission compiled cleanly but video-generator's `scene.content.
+    // substring` threw TypeError and `scene.startTime * 1000` produced NaN for
+    // every Orchestrator-produced scene. Centralizing here also keeps the type
+    // sanitization (`sanitizeDiagramType`) consistent with the sibling sites —
+    // the previous `(analysis?.type ?? 'flow') as DiagramType` cross-cast
+    // non-canonical strings (fixed standalone in 716f79fc, now structural).
+    return buildSceneGraph({ segment, analysis, layout: item.layout, index });
   }
 
   private async runRendering(
