@@ -85,6 +85,17 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
   // report "0 scenes" even when scenes had been generated.
   const scenesRef = useRef<SceneGraph[]>([]);
   const segmentsRef = useRef<TranscriptionSegment[]>([]);
+  // `mountedRef` gates every post-await side effect in this component. The file
+  // stream (`handleFileProcessing`) awaits `transcribeStream(...)`, then invokes
+  // the `onComplete` prop with the accumulated scenes. If the component unmounts
+  // mid-stream (route/tab switch), `stopAllProcessing` runs in cleanup but
+  // CANNOT cancel the in-flight `transcribeStream` promise — so without this
+  // guard the post-await branch would fire `onComplete` for an abandoned stream
+  // (plus setState on an unmounted component). Mirrors TC-316/317/318.
+  // Deliberately a dedicated empty-deps effect: folding the flip into the
+  // config-dependent init effect below would falsely report "unmounted" on a
+  // config change while still mounted.
+  const mountedRef = useRef(true);
 
   // Browser capability validation
   const [browserSupport] = useState(() => validateStreamingSupport());
@@ -109,6 +120,15 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config]);
+
+  // Flip the mounted flag on true unmount only. Empty deps => never re-runs on
+  // config/state changes, so `mountedRef.current` stays `true` for the whole
+  // mounted lifetime and only flips in the final teardown.
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Statistics update timer
   useEffect(() => {
@@ -186,6 +206,14 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
       // Execute streaming transcription
       const result = await transcriber.current.transcribeStream(file, onProgress, onSegment);
 
+      // The component may have unmounted during the (long) transcription await.
+      // `stopAllProcessing` in the cleanup cannot cancel the in-flight
+      // `transcribeStream` promise, so gate the post-await side effects — most
+      // importantly the `onComplete` prop, which would otherwise fire for an
+      // abandoned stream. Order matters: this must run BEFORE the
+      // `setStatus('complete')` / `onComplete(...)` block below.
+      if (!mountedRef.current) return;
+
       if (result.segments.length > 0) {
         setStatus('complete');
 
@@ -199,8 +227,13 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
       }
 
     } catch (err) {
-      setStatus('error');
-      setError(err instanceof Error ? err.message : 'Processing failed');
+      // Guard the unmount race on the rejection path too: a stream that rejects
+      // after unmount must not setState on the gone component. The error log is
+      // harmless to keep either way.
+      if (mountedRef.current) {
+        setStatus('error');
+        setError(err instanceof Error ? err.message : 'Processing failed');
+      }
       logger.error('Streaming processing error:', err);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps

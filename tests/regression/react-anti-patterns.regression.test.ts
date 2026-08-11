@@ -96,7 +96,9 @@ const ALLOW_MISSING_MOUNT_GUARD: string[] = [
   'src/components/FrameworkDashboard.tsx',
   'src/hooks/useFrameworkPipeline.ts',
   'src/components/ErrorAlertSystem.tsx',
-  'src/components/StreamingProcessor.tsx',
+  // src/components/StreamingProcessor.tsx — GRADUATED: handleFileProcessing now
+  // gates its post-await onComplete/onStatus side effects on `mountedRef`
+  // (TC-319). Removed from the allow-list so the sweep re-tightens.
   'src/components/EnhancedFileUploader.tsx',
 ];
 
