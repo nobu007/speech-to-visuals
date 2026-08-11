@@ -491,3 +491,68 @@ describe('SceneSegmenter.mergeShortSegments — summary regenerated from merged 
     expect(result[1].summary).toBe(summarize('beta sentence two'));
   });
 });
+
+// ---------------------------------------------------------------------------
+// splitLongSegments — proportional duration distribution
+// ---------------------------------------------------------------------------
+// Regression: splitLongSegments distributed the segment's duration across the
+// split parts using `totalLen = segment.text.length` (the UN-trimmed original)
+// as the denominator, while each part's length came from the TRIMMED parts
+// emitted by splitTextAtSentenceBoundaries (it calls `.trim()`). For any
+// whitespace-bearing script (English etc.) Σ partLen < totalLen, so the
+// proportional shares summed to less than the full duration and the residual
+// was dumped into the last segment by the `endMs = segment.endMs` override —
+// leaving the final scene ~1.3–2.5× longer than its siblings.
+describe('SceneSegmenter.splitLongSegments — proportional duration distribution', () => {
+  const segmenter = new SceneSegmenter();
+
+  const splitLong = (segs: ContentSegment[]) =>
+    (segmenter as unknown as {
+      splitLongSegments: (s: ContentSegment[]) => Promise<ContentSegment[]>;
+    }).splitLongSegments(segs);
+
+  /** Build a ContentSegment. */
+  function cseg(startMs: number, endMs: number, text: string): ContentSegment {
+    return { startMs, endMs, text, summary: text, keyphrases: [], confidence: 0.8 };
+  }
+
+  it('distributes duration proportional to each part — no residual dumped into the last segment', async () => {
+    // 20s > maxSegmentLengthMs (15s) → splits. Inter-sentence spaces make the
+    // untrimmed length (58) exceed the sum of trimmed part lengths (55).
+    const text = 'Sentence one. Sentence two. Sentence three. Sentence four.';
+    const segment = cseg(0, 20000, text);
+
+    const result = await splitLong([segment]);
+
+    expect(result.length).toBeGreaterThan(1);
+    const totalDuration = 20000;
+    const sumPartLen = result.reduce((n, s) => n + s.text.length, 0);
+    // Each part's duration must be proportional to its OWN (trimmed) length.
+    // Before the fix the denominator was the larger untrimmed total, so every
+    // part was short and the last absorbed the entire whitespace deficit.
+    for (const part of result) {
+      const expected = (part.text.length / sumPartLen) * totalDuration;
+      expect(Math.abs((part.endMs - part.startMs) - expected)).toBeLessThan(50);
+    }
+  });
+
+  it('keeps equal-length parts at approximately equal duration', async () => {
+    // "A." "B." "C." "D." are all length 2 → all four scenes should last about
+    // the same time. Before the fix the last scene was ~2.5× longer.
+    const text = 'A. B. C. D.';
+    const segment = cseg(0, 20000, text);
+
+    const result = await splitLong([segment]);
+
+    expect(result).toHaveLength(4);
+    const durations = result.map(s => s.endMs - s.startMs);
+    const spread = Math.max(...durations) - Math.min(...durations);
+    expect(spread).toBeLessThan(50);
+  });
+
+  it('does not regress when the segment is already short enough', async () => {
+    const a = cseg(0, 5000, 'alpha sentence one');
+    const result = await splitLong([a]);
+    expect(result).toEqual([a]);
+  });
+});

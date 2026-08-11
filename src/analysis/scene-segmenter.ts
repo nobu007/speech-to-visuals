@@ -947,8 +947,15 @@ export class SceneSegmenter {
         continue;
       }
 
-      // Distribute time proportionally across split parts
-      const totalLen = segment.text.length;
+      // Distribute time proportionally across split parts.
+      // The denominator MUST be the sum of the (trimmed) part lengths, NOT
+      // `segment.text.length`: splitTextAtSentenceBoundaries calls `.trim()` on
+      // every part, so for any whitespace-bearing script (English) the trimmed
+      // parts are shorter than the original and Σ partLen < text.length. Using
+      // the untrimmed length made the proportional shares sum to less than the
+      // full duration, and the residual was dumped into the last segment by
+      // the `endMs = segment.endMs` override below — inflating the final scene.
+      const totalLen = splitTexts.reduce((sum, part) => sum + part.length, 0);
       let currentStartMs = segment.startMs;
 
       for (let i = 0; i < splitTexts.length; i++) {
