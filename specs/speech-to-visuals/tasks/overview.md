@@ -105,8 +105,8 @@
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0216
-**次回開始番号**: TASK-0217
+**使用済みタスク番号**: TASK-0001 ~ TASK-0222（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222）
+**次回開始番号**: TASK-0223
 
 ## 全体進捗
 
@@ -1702,6 +1702,44 @@ TASK-0208: 独立
 - 2026-08-07: 8 タスク全件を実コード `src/quality/enhanced-error-recovery.ts` / `src/framework/continuous-learner.ts` / `src/visualization/enhanced-zero-overlap-layout.ts` / `src/pipeline/pipeline-orchestrator.ts` / `src/analysis/rule-based-analyzer.ts` / `src/components/SimplePipelineInterface.tsx` / `src/pipeline/main-pipeline.ts` / `src/api/routes/monitoring.ts` と file:line アンカーで照合。
 - フレームワーク系テスト（4 suites / 359 tests）で現状の健全性を確認（f8304de2 後の状態）。
 - `MEMORY.md` の phantom 警告（cross-codebase 混同 / closed dead-end 再検索禁止）と整合。
+
+---
+
+## Phase 132: Steering feedback A1 grounding + commit policy
+
+**期間**: 2026-08-11 〜
+**目標**: 直近 AI_HUB_MAKE_RUN_FEEDBACK に基づき、Phase 131+ 提案（REQ-298/299/300）の具現化と critical-path guard 1 ペアの real fix、commit 粒度ポリシーの明文化を行う
+**成果物**: 11図解タイプ string literal inventory、storageParser 双方向 validator、useEffectWithUnmountGuard hook、async-setState-after-unmount real fix、commit-policy.md
+**ステータス**: 🔵進行中
+
+**背景**: 直近 4 commit（5c373b72 / 0318ddfb / 3fbece7d / 4800ae75）はすべて「sibling RED-witness standard への引き上げ」系で同種。steering feedback は (1) guard 拡張の横展開、(2) critical-path guard の real fix ペア grounding、(3) commit 粒度の 1 commit / 3-4 file 化を推奨。本フェーズはこれらを Phase 132 タスクとして実装する。
+
+### タスク一覧
+
+- [x] [TASK-0217: JSON.parse-vs-finiteness 監査と残余 Infinity ベクタの修正](TASK-0217.md) - 4h (TDD) 🔵 *既存 Phase 131*
+- [ ] [TASK-0218: storageParser validators JSON.parse⇔JSON.stringify 非対称監査 (REQ-299)](TASK-0218.md) - 5h (TDD) 🔵
+- [ ] [TASK-0219: async-setState positive-case fixture (REQ-300)](TASK-0219.md) - 4h (TDD) 🔵
+- [ ] [TASK-0220: critical-path guard real fix + mutation witness pair (async-setState-after-unmount)](TASK-0220.md) - 6h (TDD) 🔵
+- [ ] [TASK-0221: commit 粒度統合（4-5 commit / 3-4 file 再編）](TASK-0221.md) - 3h (DIRECT) 🔵
+- [ ] [TASK-0222: Phase 132 overview 更新](TASK-0222.md) - 1h (DIRECT) 🔵
+
+### 依存関係
+
+```
+TASK-0218 → TASK-0220（real fix 前提として storage 経路 inventory が要）
+TASK-0219 → TASK-0220（useEffectWithUnmountGuard hook 抽出が real fix の前提）
+TASK-0220 → TASK-0222（real fix 完了後に overview 更新）
+TASK-0221 → TASK-0222（commit policy 確定後に overview 更新）
+```
+
+### 信頼性レベルサマリー（Phase 132 追加分）
+
+- 全 6 タスク 🔵（steering feedback 明示 + REQ-298/299/300 提案整合基盤あり）
+- 推定工数: 23 時間（既存 TASK-0217 の 4h 含む）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0223
 ## Spine: external references
 
 - [speech-to-visuals API エンドポイント仕様](/home/jinno/speech-to-visuals/specs/speech-to-visuals/api-endpoints.md)
