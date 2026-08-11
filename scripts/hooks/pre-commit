@@ -2,7 +2,8 @@
 # Pre-commit hook:
 #   1. Validates spine manifest (if it exists) to catch spec drift before landing
 #   2. Verifies the generated Edge sanitizer copy matches the core source
-#      (re-runs TC-313 to catch codegen drift before it lands)
+#      (runs the codegen in --check mode — a pure drift detector that writes
+#      nothing and depends on no test runtime)
 #
 # Install: npm run setup:hooks
 #
@@ -36,29 +37,26 @@ if [ -f "specs/_doc_spine.yml" ]; then
 fi
 
 # --- 2. Edge sanitizer sync (TC-313) -----------------------------------
-# Only run if both the core source and the generated Edge copy exist on disk.
-# The TC-313 jest test asserts byte-identity between the on-disk Edge file
-# and the live `generateEdgeUntrustedJson()` output (which reads the core at
-# run time). If anything drifted, the commit fails before the drift lands.
+# Only run if the core source exists on disk. We call the codegen in --check
+# (verify) mode: it regenerates the Edge copy IN MEMORY from the core source
+# and compares against the on-disk file, writing nothing. The hook therefore
+# fires ONLY when the committed Edge copy has drifted from the core — a true
+# drift safety-net with no dependency on the jest/ts-jest runtime (the prior
+# jest invocation was the source of the env noise that forced --no-verify).
 #
-# Why this check lives in the hook (not just in CI): TC-313 is the canonical
-# safety net for the codegen contract — running it at commit time means "fire
-# only on real drift" is enforced close to the source edit, not hours later
-# when CI eventually runs the same suite.
-if [ -f "src/analysis/untrusted-json-core.ts" ] && \
-   [ -f "supabase/functions/_shared/untrusted-json.ts" ]; then
+# The companion jest guard tests/guards/edge-untrusted-json-sync.test.ts
+# (TC-313) stays in the suite as a belt-and-suspenders check that runs in CI
+# and `npm test`; the hook just needs the fast, env-independent path.
+if [ -f "src/analysis/untrusted-json-core.ts" ]; then
   echo "🔍 Checking Edge sanitizer sync (TC-313)..."
 
-  NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' \
-    npx jest --config jest.config.cjs \
-    --testPathPatterns='edge-untrusted-json-sync' \
-    --silent --passWithNoTests
+  npm run --silent verify:edge
   result=$?
 
   if [ $result -ne 0 ]; then
     echo ""
-    echo "❌ Edge sanitizer out of sync with core source (TC-313 failed)!"
-    echo "   Run: npm run sync:edge"
+    echo "❌ Edge sanitizer out of sync with core source (TC-313 drift)!"
+    echo "   Run: npm run sync:edge && git add supabase/functions/_shared/untrusted-json.ts"
     echo "   Then re-commit."
     echo "   Bypass: git commit --no-verify"
     echo ""

@@ -3,6 +3,12 @@
  * truth `src/analysis/untrusted-json-core.ts`.
  *
  *   Usage:  npm run sync:edge        (or: tsx scripts/generate-edge-untrusted-json.ts)
+ *           npm run verify:edge      (or: tsx scripts/generate-edge-untrusted-json.ts --check)
+ *
+ * `--check` is the pure drift detector the git hooks call: it compares the
+ * on-disk Edge copy against the freshly-generated output, writes nothing,
+ * and exits non-zero on drift. The hook therefore fires ONLY on real drift,
+ * with no dependency on the jest/ts-jest runtime.
  *
  * WHY
  * ----
@@ -54,6 +60,36 @@ export function writeEdgeUntrustedJson(repoRoot: string = process.cwd()): string
   return outPath;
 }
 
+/**
+ * Verify the on-disk Edge copy matches the freshly-generated output WITHOUT
+ * writing anything. Pure drift detector: returns `{ ok: true }` when the
+ * committed copy is a faithful regeneration of the core source, `{ ok: false }`
+ * (with the expected/actual strings) when it has drifted, and `{ ok: false,
+ * missing: true }` when the Edge copy does not exist yet.
+ *
+ * Why this exists separately from `writeEdgeUntrustedJson`. The pre-commit /
+ * pre-push hooks need a drift check that (a) fires ONLY on real drift and
+ * (b) never mutates the working tree or depends on the jest/ts-jest runtime.
+ * Comparing the pure generator output against the on-disk file satisfies both:
+ * no subprocess, no test harness, no working-tree side effects — exactly the
+ * "true drift safety-net" the steering feedback asked the hooks to become.
+ *
+ * @param repoRoot Absolute path to the repository root (defaults to cwd).
+ */
+export function verifyEdgeUntrustedJson(
+  repoRoot: string = process.cwd(),
+): { ok: boolean; missing: boolean; expected: string; actual: string } {
+  const expected = generateEdgeUntrustedJson(repoRoot);
+  let actual = '';
+  let missing = false;
+  try {
+    actual = readFileSync(path.join(repoRoot, REL_EDGE), 'utf8');
+  } catch {
+    missing = true;
+  }
+  return { ok: !missing && actual === expected, missing, expected, actual };
+}
+
 const GENERATED_BANNER = `/**
  * ⚠️  GENERATED FILE — DO NOT EDIT BY HAND.
  *
@@ -81,7 +117,38 @@ const GENERATED_BANNER = `/**
  */
 `;
 
+/**
+ * CLI entry point.
+ *
+ *   tsx scripts/generate-edge-untrusted-json.ts           → write (sync:edge)
+ *   tsx scripts/generate-edge-untrusted-json.ts --check   → verify, no write (verify:edge)
+ *
+ * `--check` is the drift detector the git hooks call: exit 0 when the on-disk
+ * Edge copy matches the generated output, exit 1 when it has drifted (with a
+ * pointer to `npm run sync:edge`). It performs NO writes, so the hook never
+ * mutates the working tree.
+ */
 function main(): void {
+  const args = process.argv.slice(2);
+  const checkMode = args.includes('--check') || args.includes('check') || args.includes('--verify');
+
+  if (checkMode) {
+    const { ok, missing } = verifyEdgeUntrustedJson();
+    if (ok) {
+      // eslint-disable-next-line no-console
+      console.log(`✓ Edge sanitizer in sync with ${REL_CORE}.`);
+      return;
+    }
+    // eslint-disable-next-line no-console
+    console.error(
+      missing
+        ? `✗ Edge sanitizer missing — run \`npm run sync:edge\` to generate it.`
+        : `✗ Edge sanitizer drifted from ${REL_CORE} — run \`npm run sync:edge\` then re-stage the file.`,
+    );
+    process.exitCode = 1;
+    return;
+  }
+
   const outPath = writeEdgeUntrustedJson();
   // eslint-disable-next-line no-console
   console.log(`Generated ${path.relative(process.cwd(), outPath)} from ${REL_CORE}`);
