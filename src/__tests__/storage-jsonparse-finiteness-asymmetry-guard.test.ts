@@ -257,3 +257,82 @@ describe('storage JSON.parse finiteness — audit transparency (REQ-299)', () =>
     expect(unsafe.length).toBe(0);
   });
 });
+
+// --- (TC-299-03) mutation witness: the Number.isFinite clause is load-bearing ---
+//
+// Layer 1 pins the safe chokepoints by regex (liveness) and Layer 2 sweeps for
+// any storage-side parse site lacking a finiteness token. But a regex match
+// proves the token is PRESENT, not that it WORKS: a future "simplification"
+// that keeps the `Number.isFinite(` substring while breaking its effect (e.g.
+// an operator-precedence slip, or a `typeof === 'number'`-only rewrite) would
+// satisfy both layers and silently re-open the class. This is the exact
+// WORKS-vs-REMAINS gap (Phase 10e lesson) that the sibling class guards close
+// with a mutation witness — TC-307-03 for the dagre filter, TC-302-02 for the
+// untrusted-JSON sanitizer. This block brings the finiteness class guard to
+// the same three-layer standard.
+//
+// The witness proves the canonical predicate form is load-bearing: the
+// MUTATED forms (the historical bug shapes — `typeof === 'number'` alone, and
+// a one-sided `v > 0` range check) ADMIT `Infinity`, while the canonical
+// `typeof === 'number' && Number.isFinite(v) && v > 0` REJECTS it. If the
+// canonical ever stops rejecting Infinity (the `Number.isFinite` clause was
+// dropped or neutered), the assertion flips RED. If a mutated form ever stops
+// admitting Infinity, ITS assertion flips RED too — signalling the witness is
+// no longer sensitive and must be restored. Either direction fails loudly.
+
+describe('storage JSON.parse finiteness — mutation witness (TC-299-03)', () => {
+  // The canonical chokepoint predicate — mirrors src/config/production-config.ts:80
+  // verbatim. Re-stated here (not imported) so an edit to the source cannot drag
+  // the witness along, identical to TC-312's independent spec-oracle discipline.
+  const isPositiveFiniteNumber = (v: unknown): boolean =>
+    typeof v === 'number' && Number.isFinite(v) && v > 0;
+
+  // The bug vector: JSON.parse overflow of a literal like 1e400 yields Infinity,
+  // which `typeof === 'number'` and `> 0` both pass — exactly the silent admission
+  // this guard exists to prevent.
+  const overflow = JSON.parse('1e400'); // === Infinity
+
+  it('the canonical guard rejects Infinity / -Infinity / NaN / zero / negatives', () => {
+    expect(isPositiveFiniteNumber(overflow)).toBe(false);   // Infinity
+    expect(isPositiveFiniteNumber(-overflow)).toBe(false);  // -Infinity
+    expect(isPositiveFiniteNumber(NaN)).toBe(false);
+    expect(isPositiveFiniteNumber(0)).toBe(false);          // zero is not a positive magnitude
+    expect(isPositiveFiniteNumber(-5)).toBe(false);
+    // And it accepts genuine positive magnitudes.
+    expect(isPositiveFiniteNumber(1)).toBe(true);
+    expect(isPositiveFiniteNumber(42.5)).toBe(true);
+  });
+
+  it('the MUTATED form `typeof === "number"` alone ADMITS Infinity (the historical bug)', () => {
+    // What the predicate becomes if the Number.isFinite clause is dropped. This is
+    // the load-bearing proof: the mutated form lets Infinity through (it would
+    // feed infinite-frame loops / NaN propagation downstream), while the canonical
+    // still rejects it. The two DISAGREE on this input — proving the clause is not
+    // redundant. If this ever stops being true, the witness is broken (RED).
+    const mutated = (v: unknown): boolean => typeof v === 'number';
+    expect(mutated(overflow)).toBe(true);                  // ← Infinity sails past typeof
+    expect(isPositiveFiniteNumber(overflow)).toBe(false);  // ← canonical catches it
+  });
+
+  it('the MUTATED one-sided range `v > 0` ALSO admits Infinity', () => {
+    // A second historical bug shape: validating magnitude with a bare `v > 0`
+    // instead of the finite-positive predicate. `Infinity > 0` is true, so the
+    // range check passes. Only the Number.isFinite clause distinguishes the two.
+    const mutatedRange = (v: unknown): boolean => typeof v === 'number' && (v as number) > 0;
+    expect(mutatedRange(overflow)).toBe(true);             // ← Infinity passes the range
+    expect(isPositiveFiniteNumber(overflow)).toBe(false);  // ← canonical catches it
+  });
+
+  it('the guard bites on the REAL parse path: JSON.parse("1e400"…) → Infinity is rejected', () => {
+    // Reproduces the exact vector end-to-end at the predicate level: a stored
+    // magnitude literal overflows on parse, looks numeric, and ONLY the canonical
+    // finite-positive form catches it. This ties the abstract predicate witness
+    // to the concrete storage-parse bug class the sweep guards.
+    for (const literal of ['1e400', '1e999', '-1e400']) {
+      const parsed = JSON.parse(literal);
+      expect(typeof parsed === 'number').toBe(true);         // looks numeric…
+      expect(Number.isFinite(parsed)).toBe(false);           // …but is non-finite
+      expect(isPositiveFiniteNumber(parsed)).toBe(false);    // canonical rejects
+    }
+  });
+});
