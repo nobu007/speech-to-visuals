@@ -23,6 +23,33 @@
  * `parseJsonFromLLMText` (markdown-fence stripping + repair); that text-mode
  * helper is NOT needed on the edge (functions receive structured JSON only),
  * so it is deliberately not duplicated here.
+ *
+ * ─── REMOVAL PATH (this duplicate is intentional, but not permanent) ────────
+ * The goal is ONE source of truth, not two hand-kept copies. The removal route,
+ * in priority order:
+ *
+ *   1. PREFERRED — publish the sanitizer to a version-pinned Deno module URL
+ *      (jsr.io or a tagged deno.land/x release) and import it here via
+ *      `https://`, while the client builds the SAME module from a local package
+ *      alias. The parity test then guards ONE external module instead of two
+ *      in-repo copies that can rot together. Land this once CI can resolve the
+ *      network import (or a vendored mirror) in the test pipeline.
+ *
+ *   2. UNAVAILABLE-NETWORK FALLBACK (current state) — keep the two copies but
+ *      make the lockstep guard bite hard:
+ *        • TC-312 parity corpus (hand-built + known-output anchors).
+ *        • TC-312-FUZZ: a SEEDED generated corpus asserting client === Deno
+ *          === an independent spec oracle, so a drift introduced into BOTH
+ *          copies identically (which parity alone cannot see) is still caught.
+ *        • TC-312-MUT: a mutation RED witness proving each realistic drift
+ *          (drop a poison key, add a spurious key, change the depth cap, drop
+ *          the finite branch, skip array recursion) would make the two outputs
+ *          diverge — i.e. the lockstep guard is non-vacuous, not comment-only.
+ *
+ * When path 1 becomes feasible, DELETE this file, point the edge functions at
+ * the import URL, and the parity test stays green (it then compares the client
+ * build against the same published module). Do NOT delete the test with the
+ * copy — it is the witness that the removal did not silently change behavior.
  */
 
 /**
