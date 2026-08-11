@@ -726,18 +726,28 @@ export class MainPipeline {
    * Enhanced scene preparation with optimization
    */
   private async prepareScenesEnhanced(analysisResult: unknown, layouts: unknown[]): Promise<SceneGraph[]> {
-    const scenes: SceneGraph[] = layouts.map((item: unknown) => {
+    const scenes: SceneGraph[] = layouts.map((item: unknown, index: number) => {
       const layoutItem = item as Record<string, unknown>;
       const segment = (layoutItem.segment ?? {}) as Record<string, unknown>;
       const analysis = (layoutItem.analysis ?? {}) as Record<string, unknown>;
 
       return {
+        // Mirror the sibling SimplePipeline scene shape: emit the four fields
+        // every downstream consumer reads. video-generator.convertSceneToRemotionFormat
+        // re-derives startMs from `startTime * 1000`, copies `id`/`content`
+        // verbatim, and generateSceneTitle calls `content.substring` — so
+        // omitting them propagated NaN startMs and crashed `.substring`.
+        // startTime/endTime are SECONDS (ms / 1000), matching SimplePipeline.
+        id: `scene-${index}`,
         type: sanitizeDiagramType(analysis.type),
         nodes: (analysis.nodes ?? []) as SceneGraph['nodes'],
         edges: (analysis.edges ?? []) as SceneGraph['edges'],
         layout: layoutItem.layout as SceneGraph['layout'],
         startMs: (segment.startMs ?? 0) as number,
         durationMs: ((segment.endMs ?? 0) as number) - ((segment.startMs ?? 0) as number),
+        startTime: ((segment.startMs ?? 0) as number) / 1000,
+        endTime: ((segment.endMs ?? 0) as number) / 1000,
+        content: (segment.text ?? '') as string,
         summary: (segment.summary ?? '') as string,
         keyphrases: (segment.keyphrases ?? []) as string[],
         // Wire the detector's per-scene confidence (0-1) onto the scene so
@@ -979,18 +989,25 @@ export class MainPipeline {
    */
   private async prepareScenes(analysisResult: unknown, layouts: unknown[]): Promise<SceneGraph[]> {
 
-    const scenes: SceneGraph[] = layouts.map((item: unknown) => {
+    const scenes: SceneGraph[] = layouts.map((item: unknown, index: number) => {
       const layoutItem = item as Record<string, unknown>;
       const segment = (layoutItem.segment ?? {}) as Record<string, unknown>;
       const analysis = (layoutItem.analysis ?? {}) as Record<string, unknown>;
 
       return {
+        // Same four consumer-required fields as prepareScenesEnhanced /
+        // SimplePipeline (id, startTime/endTime in SECONDS, content). See the
+        // rationale in prepareScenesEnhanced above.
+        id: `scene-${index}`,
         type: sanitizeDiagramType(analysis.type),
         nodes: (analysis.nodes ?? []) as SceneGraph['nodes'],
         edges: (analysis.edges ?? []) as SceneGraph['edges'],
         layout: layoutItem.layout as SceneGraph['layout'],
         startMs: (segment.startMs ?? 0) as number,
         durationMs: ((segment.endMs ?? 0) as number) - ((segment.startMs ?? 0) as number),
+        startTime: ((segment.startMs ?? 0) as number) / 1000,
+        endTime: ((segment.endMs ?? 0) as number) / 1000,
+        content: (segment.text ?? '') as string,
         summary: (segment.summary ?? '') as string,
         keyphrases: (segment.keyphrases ?? []) as string[],
         // Wire the detector's per-scene confidence (0-1) onto the scene so
