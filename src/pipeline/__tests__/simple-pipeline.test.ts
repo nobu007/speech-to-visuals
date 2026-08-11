@@ -283,6 +283,50 @@ describe('SimplePipeline', () => {
       expect(scene.summary).not.toBe(scene.content);
     });
 
+    it('propagates the segmenter keyphrases to scene.keyphrases, not diagram node labels (regression)', async () => {
+      // BUG (same class as the summary regression above — wrong-field-in-
+      // parallel-pipelines): SimplePipeline assigned
+      //   `keyphrases: diagramAnalysis.nodes?.map(n => n.label)`
+      // i.e. the DIAGRAM node labels, while the sibling pipelines — MainPipeline
+      // (`segment.keyphrases ?? []`, 2 sites) and PipelineOrchestrator
+      // (`segment?.keyphrases ?? []`) — propagate the SEGMENTER-extracted
+      // keyphrases (SceneSegmenter.extractKeywords, unioned across merges).
+      // Node labels are already exposed via `scene.nodes`; routing them into
+      // `keyphrases` made the Simple path's KeyphraseOverlay / exporters /
+      // quality-score consume diagram-entity labels instead of the speech
+      // keywords every other pipeline agrees on. Same input transcript must
+      // yield semantically equivalent keyphrases regardless of pipeline.
+      //
+      // Make the two sources unambiguously distinct so a wrong-field assignment
+      // is caught: segment keyphrases = ['alpha','beta'], node label = 'NodeX'.
+      mockSegment.mockResolvedValue([
+        {
+          startMs: 0, endMs: 10000, text: 'Test content',
+          summary: 'Summary', keyphrases: ['alpha', 'beta'], confidence: 0.9,
+        },
+      ]);
+      mockAnalyze.mockResolvedValue({
+        type: 'flow', confidence: 0.85,
+        nodes: [{ id: 'n1', label: 'NodeX' }],
+        edges: [],
+        reasoning: 'Test',
+      });
+
+      const result = await pipeline.process({
+        audioFile: createMockFile(),
+        options: { includeVideoGeneration: false, useEnhancedLayout: true },
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.scenes!.length).toBeGreaterThan(0);
+      const scene = result.scenes![0];
+      // scene.keyphrases must be the segmenter's keywords, NOT node labels.
+      expect(scene.keyphrases).toEqual(['alpha', 'beta']);
+      // Core invariant: when the segmenter keywords differ from node labels,
+      // keyphrases must NOT be the node-label projection.
+      expect(scene.keyphrases).not.toContain('NodeX');
+    });
+
     it('should use standard layout engine when useEnhancedLayout is false', async () => {
       const result = await pipeline.process({
         audioFile: createMockFile(),

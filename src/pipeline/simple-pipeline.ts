@@ -328,6 +328,19 @@ export class SimplePipeline {
             const segSummary = (segment as Record<string, unknown>).summary as
               | string
               | undefined;
+            // Propagate the SEGMENTER-extracted keyphrases
+            // (SceneSegmenter.extractKeywords, unioned across merges), NOT the
+            // diagram node labels. The sibling pipelines — MainPipeline
+            // (`segment.keyphrases ?? []`, 2 sites) and PipelineOrchestrator
+            // (`segment?.keyphrases ?? []`) — all read segment.keyphrases; only
+            // SimplePipeline projected node labels here, so the same transcript
+            // through the Simple path fed diagram-entity labels (already exposed
+            // via `nodes` below) into KeyphraseOverlay / exporters / quality-
+            // score instead of the speech keywords. Same wrong-field-in-parallel-
+            // pipelines class as the `summary` fix above.
+            const segKeyphrases = (segment as Record<string, unknown>).keyphrases as
+              | string[]
+              | undefined;
             return {
               id: sceneId,
               startMs: segStartMs,
@@ -336,7 +349,7 @@ export class SimplePipeline {
               endTime: segEndMs / 1000,
               content: segText,
               summary: segSummary ?? '',
-              keyphrases: diagramAnalysis.nodes?.map(n => n.label).filter(Boolean) ?? [],
+              keyphrases: Array.isArray(segKeyphrases) ? segKeyphrases : [],
               nodes: diagramAnalysis.nodes ?? [],
               edges: diagramAnalysis.edges ?? [],
               type: detType,
