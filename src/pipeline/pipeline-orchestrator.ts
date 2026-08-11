@@ -676,7 +676,15 @@ export class PipelineOrchestrator {
     const analysis = (item.analysis ?? diagrams[index]) as Record<string, unknown>;
 
     return {
-      type: (analysis?.type ?? 'flow') as DiagramType,
+      // Delegate to the canonical guard, matching MainPipeline.prepareScenes*
+      // (`sanitizeDiagramType(analysis.type)`) and SimplePipeline. The previous
+      // `(analysis?.type ?? 'flow') as DiagramType` only coalesced null/undefined
+      // and then cross-cast, so any non-canonical STRING (an unmapped LLM label,
+      // a stale cache entry) survived onto scene.type — while generateSingleLayout
+      // above sanitizes the SAME value for the layout engine, leaving the scene
+      // labeled with a type its layout was never computed for. Invariant-split /
+      // missed-sibling-site (switch-parity covers switch shape, not field assign).
+      type: sanitizeDiagramType(analysis?.type),
       nodes: (analysis?.nodes ?? []) as NodeDatum[],
       edges: (analysis?.edges ?? []) as EdgeDatum[],
       layout: item.layout as DiagramLayout | undefined,
