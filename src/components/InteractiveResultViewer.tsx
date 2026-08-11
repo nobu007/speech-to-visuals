@@ -90,6 +90,18 @@ export const InteractiveResultViewer: React.FC<InteractiveResultViewerProps> = (
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const exportEngineRef = useRef<EnhancedExportEngine>(new EnhancedExportEngine());
+  // TASK-0220: async-setState-after-unmount guard. The thumbnail-generation
+  // and export flows both await long-running work; if the user navigates away
+  // before the await resolves, a naive `setX(...)` after the await would fire
+  // on an unmounted component and emit the classic React warning. `mountedRef`
+  // is the single source of truth for "still alive" — flip it in the unmount
+  // cleanup and every post-await setX/toast is gated by `if (mountedRef.current)`.
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   /**
    * Generate scene thumbnails on mount
@@ -130,14 +142,19 @@ export const InteractiveResultViewer: React.FC<InteractiveResultViewerProps> = (
         cumulativeTime += duration;
       }
 
+      if (!mountedRef.current) return;
       setThumbnails(generatedThumbnails);
       toast.success(`${generatedThumbnails.length} scene previews generated`);
 
     } catch (error) {
       logger.error('[InteractiveResultViewer] Thumbnail generation failed:', error);
-      toast.error('Failed to generate scene previews');
+      if (mountedRef.current) {
+        toast.error('Failed to generate scene previews');
+      }
     } finally {
-      setIsGeneratingThumbnails(false);
+      if (mountedRef.current) {
+        setIsGeneratingThumbnails(false);
+      }
     }
   }, [result]);
 
@@ -266,6 +283,7 @@ export const InteractiveResultViewer: React.FC<InteractiveResultViewerProps> = (
         result,
         config,
         (progress) => {
+          if (!mountedRef.current) return;
           setExportState(prev => ({
             ...prev,
             progress: progress.progress
@@ -273,6 +291,7 @@ export const InteractiveResultViewer: React.FC<InteractiveResultViewerProps> = (
         }
       );
 
+      if (!mountedRef.current) return;
       if (exportResult.success) {
         toast.success(`Export completed: ${exportResult.outputPath}`);
         onExport(config);
@@ -282,9 +301,13 @@ export const InteractiveResultViewer: React.FC<InteractiveResultViewerProps> = (
 
     } catch (error) {
       logger.error('[InteractiveResultViewer] Export failed:', error);
-      toast.error('Export failed');
+      if (mountedRef.current) {
+        toast.error('Export failed');
+      }
     } finally {
-      setExportState(prev => ({ ...prev, isExporting: false, progress: 0 }));
+      if (mountedRef.current) {
+        setExportState(prev => ({ ...prev, isExporting: false, progress: 0 }));
+      }
     }
   }, [exportState, result, onExport]);
 
