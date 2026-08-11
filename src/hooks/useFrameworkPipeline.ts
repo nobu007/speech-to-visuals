@@ -104,6 +104,18 @@ export function useFrameworkPipeline(
   const abortControllerRef = useRef<AbortController | null>(null);
   const startTimeRef = useRef<number>(0);
 
+  // TASK-0220 sibling (REQ-300): async-setState-after-unmount guard.
+  // `execute` awaits `pipelineRef.current.execute()` and, when shouldCommit +
+  // enableAutoCommit hold, a second `await fetch('/api/git/commit')`. Both are
+  // non-trivial (a full framework pipeline run; a network POST). If the
+  // dashboard unmounts mid-run (tab switch / route change), a naive post-await
+  // setState would fire on an unmounted hook — and worse, the post-await
+  // commit branch would fire a stray `git commit` for an abandoned session.
+  // `mountedRef` is the single "still alive" flag; flip it in the unmount
+  // cleanup and gate every post-await side effect on it. Mirrors the reference
+  // pattern in InteractiveResultViewer.tsx / AudioUploader.tsx (TC-316/317).
+  const mountedRef = useRef(true);
+
   // State
   const [executionState, setExecutionState] = useState<ExecutionState>({
     isRunning: false,
@@ -136,6 +148,21 @@ export function useFrameworkPipeline(
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
+    };
+  }, []);
+
+  /**
+   * mountedRef teardown — the async-setState-after-unmount guard.
+   *
+   * Distinct from the abort-controller cleanup above: aborting the controller
+   * cancels in-flight work the pipeline OPTS to observe, but `execute`'s own
+   * post-await resume is not abortable (an awaited promise resolves regardless).
+   * This flag is what `execute` checks after each await to bail before any
+   * setState or the stray commit fetch.
+   */
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
     };
   }, []);
 
@@ -216,6 +243,12 @@ export function useFrameworkPipeline(
       // Execute main pipeline with framework
       const execution = await pipelineRef.current.execute(input);
 
+      // Unmounted while the framework run was in flight: skip ALL post-await
+      // work — no setState on an unmounted hook and, critically, no stray
+      // /api/git/commit POST for an abandoned session (the load-bearing side
+      // effect this guard exists to close; witnessed by TC-318-03).
+      if (!mountedRef.current) return;
+
       setExecutionState(prev => ({ ...prev, progress: 85 }));
 
       // Extract iteration metrics
@@ -269,6 +302,9 @@ export function useFrameworkPipeline(
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ message: execution.commitMessage }),
             });
+            // A second await boundary: the dashboard may have unmounted while
+            // the commit POST was in flight. Bail before the trailing setState.
+            if (!mountedRef.current) return;
             if (!response.ok) {
               logger.error('[useFrameworkPipeline] Auto-commit failed:', response.status, response.statusText);
             }
@@ -278,16 +314,20 @@ export function useFrameworkPipeline(
         }
       }
 
-      setExecutionState(prev => ({ ...prev, progress: 100, isRunning: false }));
+      if (mountedRef.current) {
+        setExecutionState(prev => ({ ...prev, progress: 100, isRunning: false }));
+      }
 
     } catch (error: unknown) {
       logger.error('[useFrameworkPipeline] Pipeline execution failed:', error);
-      setExecutionState(prev => ({
-        ...prev,
-        isRunning: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        progress: 0
-      }));
+      if (mountedRef.current) {
+        setExecutionState(prev => ({
+          ...prev,
+          isRunning: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          progress: 0
+        }));
+      }
 
       // Add failed iteration to history
       const failedIteration: IterationData = {
@@ -299,7 +339,9 @@ export function useFrameworkPipeline(
         timestamp: new Date().toISOString()
       };
 
-      setIterationHistory(prev => [...prev, failedIteration]);
+      if (mountedRef.current) {
+        setIterationHistory(prev => [...prev, failedIteration]);
+      }
     }
   }, [executionState.isRunning, executionState.currentPhase, iterationHistory.length, enableAutoCommit]);
 
@@ -365,6 +407,18 @@ export function useIterationLog() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // TASK-0220 sibling (REQ-300): async-setState-after-unmount guard. This hook
+  // AUTO-FIRES fetchLog on mount (the useEffect below), so an unmount during
+  // the initial /api/iteration-log fetch — e.g. landing on the dashboard then
+  // immediately switching tabs — is a common vector. Without the guard, the
+  // post-await setLog/setError/setLoading fire on an unmounted hook.
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   const fetchLog = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -373,15 +427,25 @@ export function useIterationLog() {
       // Frontend implementation complete; backend /api/iteration-log endpoint
       // is managed separately.
       const response = await fetch('/api/iteration-log');
+      // Unmounted while the fetch was in flight: bail before any post-await
+      // setState (setLog/setError/setLoading).
+      if (!mountedRef.current) return;
       if (!response.ok) throw new MonitoringError('Failed to fetch iteration log');
 
       const text = await response.text();
+      if (!mountedRef.current) return;
       setLog(text);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      if (mountedRef.current) {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      }
       logger.error('[useIterationLog] Failed to fetch iteration log:', err);
     } finally {
-      setLoading(false);
+      // `finally` runs even on the early-return path; guard the trailing
+      // setLoading so it never fires on an unmounted hook.
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 

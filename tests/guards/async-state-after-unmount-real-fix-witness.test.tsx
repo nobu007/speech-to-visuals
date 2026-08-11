@@ -185,9 +185,14 @@ describe('async-state-after-unmount guard — structural sweep (TC-316-02)', () 
   //     handleDownloadVideo — three async handlers with setX after awaits.
   //     The pipeline lifecycle is tied to a parent route; unmount hazards
   //     are bounded by the route-transition slow-render gap. FIX DEFERRED.
-  //   - `useFrameworkPipeline.ts`: execute, fetchLog — async with setX after
-  //     awaits. Consumed only by `FrameworkDashboard`, so the unmount window
-  //     is the dashboard-tab transition. FIX DEFERRED.
+  //   - `useFrameworkPipeline.ts`: FIXED (TASK-0220 sibling). Both hooks
+  //     (`useFrameworkPipeline.execute` and `useIterationLog.fetchLog`) now
+  //     gate every post-await side effect on `mountedRef`; the load-bearing
+  //     guard is the early return after `await pipelineRef.current.execute()`,
+  //     which prevents a stray `/api/git/commit` POST for an abandoned
+  //     dashboard session. Removed from the whitelist below and pinned by
+  //     `framework-pipeline-unmount-real-fix-witness.test.ts` (TC-318). The
+  //     sweep catches a regression here directly.
   //
   // A new file (or an existing file losing its mountedRef) that matches (a)
   // ∧ (b) ∧ (c) ∧ ¬(d) is RED. Forces human classification or a fix.
@@ -203,7 +208,6 @@ describe('async-state-after-unmount guard — structural sweep (TC-316-02)', () 
     'src/components/Iteration43Interface.tsx',
     'src/components/StreamingProcessor.tsx',
     'src/components/pipeline-interface.tsx',
-    'src/hooks/useFrameworkPipeline.ts',
   ] as const;
 
   function findTsxFiles(dir: string): string[] {
