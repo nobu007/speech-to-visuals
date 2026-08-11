@@ -49,9 +49,18 @@ export const DEFAULT_RESOLUTION: PreviewResolution = '720p';
  * Format frame number to MM:SS time string
  * @param frame - Current frame number
  * @param fps - Frames per second
- * @returns Formatted time string in MM:SS format
+ * @returns Formatted time string in MM:SS format, or '00:00' for non-finite
+ *     inputs (e.g. NaN/Infinity frame indices, or a non-positive fps). Sibling
+ *     of the canonical `formatPlaybackTime` chokepoint in
+ *     `src/utils/playback-time.ts`; the same `!Number.isFinite || value <= 0`
+ *     shape is required because the bare `<= 0` / `=== 0` form admits Infinity
+ *     and NaN (Infinity <= 0 is false; NaN <= 0 is false). Pinned by
+ *     TC-314 (inline-mmss-formatter-guard-mutation-pinning.test.ts).
  */
 export function formatTime(frame: number, fps: number): string {
+  if (!Number.isFinite(frame) || !Number.isFinite(fps) || fps <= 0) {
+    return '00:00';
+  }
   const totalSeconds = Math.floor(frame / fps);
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
