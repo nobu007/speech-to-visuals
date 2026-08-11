@@ -4,26 +4,33 @@
 /**
  * untrusted-json-deno-parity.test.ts — TC-312
  *
- * PARITY GUARD between the two intentionally-duplicated untrusted-JSON
- * sanitizers:
- *   - CLIENT:  src/analysis/llm-utils.ts        (sanitizeUntrustedJsonValue / parseUntrustedJson)
- *   - DENO:    supabase/functions/_shared/untrusted-json.ts (same names)
+ * BEHAVIORAL PARITY GUARD between the two surfaces of the untrusted-JSON
+ * sanitizer, both derived from one source:
+ *   - CLIENT:  src/analysis/untrusted-json-core.ts  (re-exported by llm-utils.ts)
+ *   - DENO:    supabase/functions/_shared/untrusted-json.ts (GENERATED from core)
  *
- * WHY DUPLICATED. Edge Functions run under Deno and cannot import the client
- * `src/` tree, so the sanitizer is hand-copied. The two copies must neutralize
- * identical inputs identically — otherwise the Deno trust boundary
- * (request bodies, external API responses parsed in the edge functions) drifts
- * from the client trust boundary and one side re-opens the class the other
- * closed (TC-302: `1e400`→Infinity poisoning + `__proto__`/`constructor`/
- * `prototype` prototype-pollution).
+ * WHY A PHYSICAL COPY EXISTS. Edge Functions run under Deno and cannot import
+ * the client `src/` tree, so the sanitizer must be present as a real file in
+ * the Edge tree. Rather than hand-maintaining a second copy, that file is now
+ * GENERATED from the single source `src/analysis/untrusted-json-core.ts` by
+ * `scripts/generate-edge-untrusted-json.ts`. Structural drift between source
+ * and generated copy is now impossible and is enforced separately by TC-313
+ * (edge-untrusted-json-sync.test.ts), which asserts the committed Edge file is
+ * byte-identical to the generator output. TC-312's REMAINING job is the
+ * BEHAVIORAL witness that generation did not silently change behavior, and the
+ * independent-oracle assertion (layer 2) that neither surface drifts from the
+ * contract — a drift introduced into the shared core would slip past a
+ * client===deno comparison alone.
  *
- * WHY THIS TEST. Before TC-312 the lockstep was a COMMENT only ("keep the
- * algorithm in lockstep"). A comment cannot witness drift in
- * `PROTOTYPE_POLLUTION_KEYS`, `MAX_SANITIZE_DEPTH`, or the walk order. This
- * test imports BOTH modules through the jest ESM pipeline and asserts
- * deep-strict-equal output on a shared adversarial corpus, so editing one copy
- * without the other goes RED — the invariant is pinned mechanically, not by
- * prose. This is the parity equivalent of the source-anchor guards in TC-302.
+ * WHY THIS TEST STILL MATTERS. A generated copy removes the human lockstep
+ * hazard but does NOT by itself prove the shared algorithm is correct: a buggy
+ * edit to the core propagates identically to both surfaces. This test imports
+ * BOTH modules through the jest ESM pipeline and asserts deep-strict-equal
+ * output on a shared adversarial corpus AND against an independent spec oracle,
+ * so a behavioral regression in the core (a dropped poison key, a changed depth
+ * cap, a removed finite branch) goes RED here even though client===deno would
+ * stay green. This is the parity equivalent of the source-anchor guards in
+ * TC-302.
  *
  * RED/GREEN. The Deno module did not exist before this change, so importing it
  * failed (structural RED). After creation it must match the client on every

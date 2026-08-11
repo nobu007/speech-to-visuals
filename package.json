@@ -39,6 +39,7 @@
     "audit:code-size": "tsx scripts/code-size-audit.ts --ci",
     "spine:validate": "tsx scripts/validate-spine-manifest.ts",
     "setup:hooks": "sh scripts/install-hooks.sh",
+    "sync:edge": "tsx scripts/generate-edge-untrusted-json.ts",
     "monitoring:validate": "tsx scripts/validate-monitoring-configs.ts",
     "test": "NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' jest --config jest.config.cjs",
     "test:memory": "NODE_OPTIONS='--experimental-vm-modules --expose-gc' JEST_MEMORY_LOG=1 jest --config jest.config.cjs --logHeapUsage",

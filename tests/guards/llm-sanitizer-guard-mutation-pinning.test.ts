@@ -4,8 +4,9 @@
 /**
  * llm-sanitizer-guard-mutation-pinning.test.ts — TC-302
  *
- * Pins the untrusted-JSON sanitizer at `src/analysis/llm-utils.ts`
- * (`sanitizeUntrustedJsonValue`, consumed by `parseJsonFromLLMText` AND
+ * Pins the untrusted-JSON sanitizer at its single source of truth
+ * `src/analysis/untrusted-json-core.ts` (re-exported by `src/analysis/llm-utils.ts`;
+ * `sanitizeUntrustedJsonValue`, consumed by `parseJsonFromLLMText` AND
  * `parseUntrustedJson`) against silent regression.
  *
  * THE BUG CLASS. Model output / API-boundary JSON is untrusted. Two vectors
@@ -41,9 +42,17 @@
  */
 import { describe, it, expect } from '@jest/globals';
 import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { sanitizeUntrustedJsonValue } from '@/analysis/llm-utils';
 
-const GUARD_FILE = 'src/analysis/llm-utils.ts';
+// The sanitizer lives in the dependency-free core module (the single source
+// the Supabase Edge copy is generated from); llm-utils.ts only re-exports it.
+// Resolve from this test file's own location (not process.cwd()) so a jest ESM
+// worker whose cwd is not the repo root still finds the source — the bare
+// relative form flaked under --maxWorkers>1.
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const GUARD_FILE = path.join(REPO_ROOT, 'src/analysis/untrusted-json-core.ts');
 
 // --- (TC-302-01) source anchors: pin the two neutralization branches --------
 

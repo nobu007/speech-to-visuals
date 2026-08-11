@@ -1,30 +1,4 @@
 /**
- * ⚠️  GENERATED FILE — DO NOT EDIT BY HAND.
- *
- * This Deno module is generated from the single source of truth
- * `src/analysis/untrusted-json-core.ts` by
- * `scripts/generate-edge-untrusted-json.ts`. To change it, edit the core
- * module and re-run `npm run sync:edge`.
- *
- * Why a physical copy exists: Supabase Edge Functions run under Deno and cannot
- * import the client `src/` tree (no shared bundler, `https://` module
- * resolution), so the sanitizer must be present as a real file here. Generating
- * it from the one source removes the two-hand-maintained-copies hazard that
- * previously required a lockstep guard.
- *
- * Guarantees:
- *   - tests/guards/edge-untrusted-json-sync.test.ts (TC-313) fails if this file
- *     ever drifts from the generator output.
- *   - tests/guards/untrusted-json-deno-parity.test.ts (TC-312) still compares
- *     the client sanitizer against this copy behaviorally — the witness that
- *     generation did not change behavior.
- *
- * Further collapse: once CI can resolve network imports, publish the core
- * module to a version-pinned Deno URL (jsr.io / deno.land/x), import it here via
- * `https://`, and delete this generated file.
- */
-
-/**
  * Untrusted-JSON sanitizer — single source of truth.
  *
  * Two runtimes need this exact algorithm:

@@ -1,104 +1,22 @@
 /**
  * Utility helpers for working with LLM responses
+ *
+ * The untrusted-JSON sanitizer (`sanitizeUntrustedJsonValue` /
+ * `parseUntrustedJson`) is defined ONCE in the dependency-free module
+ * `./untrusted-json-core` so the Supabase Edge copy can be generated from it
+ * (scripts/generate-edge-untrusted-json.ts). It is re-exported below for
+ * existing `@/analysis/llm-utils` importers; this file additionally keeps the
+ * free-form-LLM-text helper `parseJsonFromLLMText`, which delegates to the
+ * shared sanitizer for the sanitized parse step.
  */
 
 import { LLMParsingError } from './analysis-errors';
+import { sanitizeUntrustedJsonValue, parseUntrustedJson } from './untrusted-json-core';
 
-/**
- * Keys that are never legitimate in LLM-produced diagram/analysis JSON but are
- * reachable attack surface whenever the parsed object is later spread, deep-
- * merged, or walked by a generic assigner. Keeping one of these as an own
- * property (e.g. `{"__proto__": {...}}` or `{"constructor": {...}}`) can mutate
- * Object.prototype downstream. They are dropped unconditionally at the parse
- * boundary — diagram data has no field by these names.
- */
-const PROTOTYPE_POLLUTION_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
-
-/**
- * Maximum nesting depth the sanitizer will walk before pruning a branch.
- * Diagram/analysis JSON is shallow (response → nodes[] → {position:{x,y}} ≈ 4
- * levels); 128 is far beyond any legitimate payload yet bounds the recursion so
- * a pathologically deep (but parseable) model output cannot overflow the stack
- * inside the sanitizer itself.
- */
-const MAX_SANITIZE_DEPTH = 128;
-
-/**
- * Sanitize a value parsed from untrusted (model-generated) JSON.
- *
- * Two attack vectors are neutralized at the trust boundary, pairing with the
- * storage-side finiteness guards (safe-storage.ts) to close the class:
- *
- * 1. Numeric overflow — `JSON.parse('1e400')` yields `Infinity` (typeof ===
- *    'number'), which sails past `typeof x === 'number'` guards and poisons
- *    downstream arithmetic (frame loops, pixel buffers, quality metrics).
- *    Non-finite numbers are replaced with `null`.
- *
- * 2. Prototype pollution — `__proto__` / `constructor` / `prototype` keys are
- *    dropped from every object. (`JSON.parse` itself creates these as own
- *    properties rather than mutating the prototype, but any later spread/merge
- *    of the parsed value re-introduces the hazard; stripping at the boundary is
- *    defense-in-depth with no downside.)
- *
- * The input is otherwise returned unchanged, so legitimate JSON is unaffected.
- */
-export function sanitizeUntrustedJsonValue(value: unknown, depth = 0): unknown {
-  // Depth guard: prune deeply nested branches to a safe value rather than risk
-  // stack exhaustion inside this recursive walk.
-  if (depth > MAX_SANITIZE_DEPTH) {
-    return null;
-  }
-
-  if (Array.isArray(value)) {
-    const out: unknown[] = new Array(value.length);
-    for (let i = 0; i < value.length; i++) {
-      out[i] = sanitizeUntrustedJsonValue(value[i], depth + 1);
-    }
-    return out;
-  }
-
-  if (value !== null && typeof value === 'object') {
-    const source = value as Record<string, unknown>;
-    const out: Record<string, unknown> = {};
-    // Object.keys returns own enumerable string keys only — never the inherited
-    // prototype chain — so reading `source[key]` here touches no polluted state.
-    for (const key of Object.keys(source)) {
-      if (PROTOTYPE_POLLUTION_KEYS.has(key)) {
-        continue;
-      }
-      out[key] = sanitizeUntrustedJsonValue(source[key], depth + 1);
-    }
-    return out;
-  }
-
-  // Neutralize Infinity / -Infinity (and NaN, which cannot originate from
-  // JSON.parse but is covered defensively) to null.
-  if (typeof value === 'number' && !Number.isFinite(value)) {
-    return null;
-  }
-
-  return value;
-}
-
-/**
- * Parse a JSON string received across a trust boundary — an HTTP response body
- * from a remote service, an API boundary, a disk file not written by this code
- * — and neutralize the two vectors handled by `sanitizeUntrustedJsonValue`
- * (numeric overflow `1e400` → Infinity, and `__proto__`/`constructor`/
- * `prototype` keys) in a single step.
- *
- * Use this for STRUCTURED JSON from a trust boundary (the response is already
- * valid JSON). Use `parseJsonFromLLMText` for free-form LLM text that also
- * needs markdown-fence stripping and repair. This is the structured-JSON
- * companion to that text-mode helper, so every external JSON parse site can
- * aggregate onto the same chokepoint instead of re-deriving the guard.
- *
- * No-op on legitimate JSON. Throws `SyntaxError` on invalid JSON exactly as
- * `JSON.parse` does, so callers' existing parse-failure handling is preserved.
- */
-export function parseUntrustedJson(text: string): unknown {
-  return sanitizeUntrustedJsonValue(JSON.parse(text));
-}
+// Single source of truth: ./untrusted-json-core. The Edge-function copy
+// (supabase/functions/_shared/untrusted-json.ts) is GENERATED from that same
+// module — do not hand-maintain a second copy.
+export { sanitizeUntrustedJsonValue, parseUntrustedJson };
 
 /**
  * Extract and parse JSON from an LLM text response.
