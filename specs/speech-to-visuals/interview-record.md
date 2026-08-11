@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-07-02（第203回検証: NaN/Type Safetyコンソリデーション完結・w/h移行6ファイル完了・diagram-detector/scene-segmenterサニタイゼーションガード追加）
+**最終更新**: 2026-08-11（第211回検証: Phase 131+ 提案統合・REQ-298/299/300 具体化・REQ-301 codec option 衝突解消・信頼性レベル分布 🟡6件に整合化・実装状況ヘッダ Phase 131+ 提案段階に更新・requirements.md/note.md 整合化）
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **移行元**: `docs/spec/speech-to-visuals/interview-record.md`（第20回検証済）
 
@@ -3970,15 +3970,52 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 **カテゴリ**: 将来 Phase 提案・regression mutation test
 **背景**: AI Hub steering feedback D は Phase 09f の timestamp guard（time-origin mismatch）の 'mutation-verified' claim を CI でピン留めする提案。fixture-mode test で当該 guard 行を一時除去 → 新テストが失敗することを確認することで、将来の edit で guard が別形で再追加される regression を防ぐ。
 
-**判断**: `tests/guards/timestamp-guard-mutation-pinning.test.ts` を生成し、Phase 09f の guard 行（`Date.now()` 強制置換 site）を mutation test で保護する。
+**判断**: 当初 REQ-301 として提案予定だったが、**REQ-301 は既に動画レンダリング設定（解像度/FPS/コーデック）のオプション要件（🔵）で占有**されているため番号衝突が発生。本Phase では REQ-301 化を断念し、`tests/guards/timestamp-guard-mutation-pinning.test.ts` の生成は **別経路で段階実装**する。具体的には TC-314（VideoPreview.formatTime の finiteness ガード・コミット 5c373b72 経由）の mutation witness として配置するか、`tests/guards/timestamp-mutation-pinning.test.ts` として独立ファイル化する。実装着手時に正式な REQ 番号（候補: REQ-306 以降）を採番する。
 
 **根拠**:
 - Phase 09f の guard site は既知だが、mutation-verified チェックは未実装
 - memory 内 'Time-origin mismatch (09f)' クラスが同パターン再発リスク
+- requirements.md line 587: REQ-301 は既に codec option 🔵 で占有
 
 **信頼性への影響**:
-- REQ-301 新規追加（信頼性レベル: 🟡）— mutation-verified ガードの CI ピン留め（提案）
-- 信頼性レベル分布: 🔵 302件 / 🟡 8件（+1）
+- REQ-301 新規追加 → **保留**（番号衝突のため）
+- 信頼性レベル分布: 🔵 302件 / 🟡 6件（+0 from A125/A126/A127、REQ-298/299/300 のみ追加・A128 は保留）
+
+---
+
+### A129: Phase 131+ 提案統合・REQ-298~300 具体化（2026-08-11 第211回検証）
+
+**分析日時**: 2026-08-11
+**カテゴリ**: 要件定義統合・AI Hub steering feedback 具体化・要件番号衝突解消
+**背景**: A125/A126/A127/A128 で提案された Phase 131+ REQ-298~301（AI Hub steering feedback A〜D）のうち、requirements.md の本体セクションに具体的な REQ テキストが存在せず、信頼性レベル分布ヘッダ（🔵302件/🟡8件/🔴0件）と AC-8/AC-10 のみが参照されている状態であった。同時に、A128 が提案した REQ-301（timestamp guard）は既存 REQ-301（codec option 🔵）と番号衝突する。具体的な REQ 定義の欠落・番号衝突・実装状況ヘッダの遅延（"Phase 114 完了"表記、本来は Phase 131+ 提案段階）を整合化する必要があった。
+
+**判断**: 以下の統合を実施：
+
+1. **REQ-298/299/300 の具体化**: requirements.md に新セクション「パターン横展開（Phase 131+ 提案） 🟡未着手」を追加し、A125/A126/A127 由来の3件を 🟡 提案エントリとして明文化。各エントリには REQ-292/293/295/296/297 兄弟への参照、関連ガードテストファイル名、背景バグクラス（diagram-type-switch-parity / storage-parser-asymmetry / async-state-positive-fixture）を含めた。
+
+2. **REQ-301 衝突の解消**: codec option（既存 REQ-301 🔵）との衝突を避けるため、A128 由来の「timestamp guard mutation-verified CI ピン留め」を REQ 番号体系から除外。代替実装経路として (a) TC-314（VideoPreview.formatTime finiteness）の mutation witness 拡張、(b) `tests/guards/timestamp-mutation-pinning.test.ts` 独立ファイル化、(c) 実装着手時の REQ-306 以降採番、の3経路を提示。本要件定義書では「別経路で段階実装」と注記し、番号衝突を回避。
+
+3. **信頼性レベル分布の整合化**: 🟡 8件 → 🟡 6件 に修正。元の「8件」は (a) 実在 🟡3件（NFR-203/REQ-303/EDGE-103）+ 提案3件（REQ-298/299/300）+ 誤計上1件（REQ-301 codec option 🔵 を 🟡 に算入）= 7件で「8件」と1件過大計上の状態だった。新分布 🔵302件/🟡6件/🔴0件 は本体・A125-A127 の累計と一致する。
+
+4. **実装状況ヘッダの更新**: "Phase 114 完了" → "Phase 131+ 提案段階まで進行" に更新。Phase 115〜130 の主要マイルストーン（REQ-270〜297 の各Phase別達成内容）を追記し、現在位置を明示。
+
+5. **Phase 131+ テーブル行の更新**: 「REQ-298~301 | 4/4」→「REQ-298~300 | 3/3」に修正。理由を括弧内に明記。
+
+6. **AC-8/AC-10 の整合化**: Phase 131+ 言及を「REQ-298~301」→「REQ-298~300」に、🟡 件数を「8件」→「6件」に修正。
+
+7. **note.md の更新**: 最終更新ヘッダに第211回検証・Phase 131+ 提案 REQ-298~300 具体化・REQ-301 codec option 衝突経緯を反映。Acceptance criteria チェックリストに第211回検証エントリを追加。
+
+**根拠**:
+- requirements.md line 587: 既存 REQ-301 codec option の存在確認
+- A125/A126/A127 の提案内容と requirements.md 本体の欠落
+- 信頼性レベル分布ヘッダ（line 898）と本体エントリの不一致
+- 実装状況ヘッダ（line 16）の遅延（Phase 114 完了 → 実際 Phase 131+ 提案段階）
+
+**信頼性への影響**:
+- REQ-298/299/300 を新規追加（信頼性レベル: 🟡）— Phase 131+ 提案として本体に明文化
+- REQ-301（timestamp guard）は保留（codec option 衝突回避、別経路で段階実装）
+- 信頼性レベル分布: 🔵 302件 / 🟡 6件 / 🔴 0件（合計 308件）
+- 要件定義書 ↔ interview-record ↔ note.md の3点間整合達成
 
 ---
 

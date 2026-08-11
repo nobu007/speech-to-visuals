@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-08-10（第210回検証・Phase 125-130 完了・REQ-292~297 追加・Phase 131+ 提案 REQ-298~301 追加・diagram-type-switch-parity CLOSED・config-restore 有限性 LAST tail CLOSED・ExportJobQueue ETA オフバイワン修正・stale-closure/async-setState クラス GUARDED-STRUCTURAL・AI Hub steering feedback A〜D 統合）
+**最終更新**: 2026-08-11（第211回検証・Phase 131+ 提案 REQ-298~300 具体化・AI Hub steering feedback A〜C を REQ 化・feedback D「timestamp guard」は REQ-301 codec option 占有のため別経路で段階実装・要件定義書ヘッダ「Phase 114 完了」→「Phase 131+ 提案段階」整合化・信頼性レベル分布 🟡6件/🔵302件/🔴0件 に整合化・interview-record A129 追加）
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム
 
 ## 技術スタック
@@ -141,6 +141,7 @@ src/
 - [x] 第210回検証: Phase 129 config-restore 有限性 performance SCALARS（REQ-296・3 フィールド + RED 19→GREEN 96/139/139 persistence-path/tsc 0・safe-storage 全 scalar/array numeric chokepoint 完結）
 - [x] 第210回検証: Phase 130 stale-closure/async-setState クラス GUARDED-STRUCTURAL（REQ-297・async-state-stale-closure-guard.test.ts + 既知修正ピン 2 件 + handler-BODY 粒度 + JSX 除外 + ${...} 保持・0 live bugs・4/4+tsc 0）
 - [x] 第210回検証: Phase 131+ パターン横展開提案（REQ-298~301・AI Hub steering feedback A〜D・diagram-type-switch-parity 他同値クラス展開 / storageParser validators JSON.parse vs JSON.stringify 非対称監査 / async-setState positive-case fixture / timestamp guard mutation-verified CI ピン留め）
+- [x] 第211回検証: Phase 131+ 提案具体化（REQ-298/299/300 追加・feedback A/B/C 統合・feedback D「timestamp guard」は REQ-301 codec option 占有のため除外し別経路で段階実装・interview-record A129 参照）
 
 ## 注意事項
 
