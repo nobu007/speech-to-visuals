@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, memo } from 'react';
+import { useState, useRef, useCallback, useEffect, memo } from 'react';
 import { Upload, FileAudio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -37,6 +37,20 @@ export const AudioUploader = memo(({ onUpload, isProcessing }: AudioUploaderProp
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // TASK-0220 sibling (REQ-300): async-setState-after-unmount guard.
+  // `validateAndSelect` awaits `getAudioDuration` (browser metadata parse via
+  // `new Audio()` + `onloadedmetadata`), which is non-trivial for large files.
+  // If the user navigates away before it resolves, a naive post-await
+  // setSelectedFile/validation-toast would fire on an unmounted component.
+  // `mountedRef` is the single "still alive" flag; flip it in the unmount
+  // cleanup and gate every post-await side effect on it. Mirrors the reference
+  // pattern in InteractiveResultViewer.tsx / VideoRenderer.tsx.
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -59,6 +73,10 @@ export const AudioUploader = memo(({ onUpload, isProcessing }: AudioUploaderProp
     // Duration validation (async)
     try {
       const duration = await getAudioDuration(file);
+      // Unmounted while the metadata parse was in flight: skip ALL post-await
+      // work — no stray validation toasts for an abandoned file and no
+      // setState on an unmounted component.
+      if (!mountedRef.current) return;
       const durationResult = validateAudioDuration(duration);
       if (!durationResult.valid) {
         durationResult.errors.forEach(err => toast.error(err));
@@ -69,7 +87,10 @@ export const AudioUploader = memo(({ onUpload, isProcessing }: AudioUploaderProp
       logger.warn('[AudioUploader] Could not determine audio duration, skipping duration validation:', error);
     }
 
-    setSelectedFile(file);
+    // Reachable from the catch fallthrough too; guard the setState.
+    if (mountedRef.current) {
+      setSelectedFile(file);
+    }
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {

@@ -164,9 +164,10 @@ describe('async-state-after-unmount guard — structural sweep (TC-316-02)', () 
   // KNOWN LATENT SITES (not yet fixed; tracked here so the sweep only fails
   // on NEW violations, not on pre-existing ones). Each entry documents the
   // hazard so the next iteration can either fix it or extend the rationale:
-  //   - `AudioUploader.tsx`: validateAndSelect (useCallback async) — calls
-  //     `setError` after `await readAsArrayBuffer`; short-running file reads
-  //     so the unmount window is small but non-zero. FIX DEFERRED.
+  //   - `AudioUploader.tsx`: FIXED (TASK-0220 sibling). validateAndSelect now
+  //     gates post-await work on `mountedRef`; removed from the whitelist
+  //     below and pinned by `audio-uploader-unmount-real-fix-witness.test.tsx`
+  //     (TC-317). The sweep catches a regression here directly.
   //   - `FrameworkDashboard.tsx`: fetchIterationData, handleExecute — both
   //     call setX after awaits. Component lives inside a dashboard tab that
   //     rarely unmounts mid-fetch, so the practical hazard is low. FIX
@@ -196,8 +197,8 @@ describe('async-state-after-unmount guard — structural sweep (TC-316-02)', () 
     'src/hooks/useAdminAnalytics.ts',
     // Known latent sites — see the rationale above. Each one would benefit
     // from a follow-up TASK-0220-style real fix; tracked here so the sweep
-    // fails only on NEW violations, not on these.
-    'src/components/AudioUploader.tsx',
+    // fails only on NEW violations, not on these. (AudioUploader was here;
+    // FIXED and removed — see TC-317.)
     'src/components/FrameworkDashboard.tsx',
     'src/components/Iteration43Interface.tsx',
     'src/components/StreamingProcessor.tsx',
