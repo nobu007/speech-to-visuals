@@ -114,6 +114,13 @@ const STAGE_NAMES = [
 ] as const;
 
 /**
+ * Default scene duration (ms) re-applied by prepareSingleScene when a segment
+ * carries no timing. Mirrors the convention in smoke-orchestrator.ts /
+ * video-generator.ts. See prepareSingleScene for the layering rationale.
+ */
+const DEFAULT_SCENE_DURATION_MS = 5000;
+
+/**
  * Build a minimal, valid TranscriptionResult used when the real transcription
  * engine returns nothing or throws. Exported (rather than inlined as a private
  * method) so the time-unit contract can be asserted directly by unit tests.
@@ -714,7 +721,23 @@ export class PipelineOrchestrator {
     // sanitization (`sanitizeDiagramType`) consistent with the sibling sites —
     // the previous `(analysis?.type ?? 'flow') as DiagramType` cross-cast
     // non-canonical strings (fixed standalone in 716f79fc, now structural).
-    return buildSceneGraph({ segment, analysis, layout: item.layout, index });
+    const scene = buildSceneGraph({ segment, analysis, layout: item.layout, index });
+
+    // Re-apply the default-scene-duration fallback prepareSingleScene used
+    // before scene assembly was centralized into buildSceneGraph (fb398796 →
+    // 4800ae75). buildSceneGraph intentionally emits durationMs=0 for a segment
+    // with no timing (codified at scene-graph-builder.test.ts), but a 0-duration
+    // scene renders no frames, so the orchestrator layers its historical 5000ms
+    // default on top — the same layering pattern MainPipeline uses
+    // (optimizeSceneTiming clamps the raw output to [2000,15000]ms). Only a
+    // non-positive duration (untimed/malformed, also catches NaN) is replaced;
+    // a real span is kept untouched. startMs/startTime are already correct
+    // (buildSceneGraph defaults startMs to 0); only the span/endTime move.
+    if (!(scene.durationMs > 0)) {
+      scene.durationMs = DEFAULT_SCENE_DURATION_MS;
+      scene.endTime = scene.startTime + DEFAULT_SCENE_DURATION_MS / 1000;
+    }
+    return scene;
   }
 
   private async runRendering(
