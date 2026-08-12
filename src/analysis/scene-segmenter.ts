@@ -849,6 +849,23 @@ export class SceneSegmenter {
       suggestions.push('improve_confidence');
     }
 
+    // lengthQuality is folded into qualityScore, so a poor length distribution
+    // already flips needsImprovement (qualityScore < 0.85) — but without this
+    // branch no length action was emitted, leaving over-long/over-short
+    // segments unsplit/unmerged through every pipeline runner (segment() is
+    // called by main/simple/orchestrator). Direction mirrors the segment-count
+    // branch: average too long → split, too short → merge. The outer guard
+    // (lengthQuality < threshold) only fires outside the acceptable band,
+    // where OPTIMAL_MIN/MAX agree with it on direction, so the comparison is
+    // never ambiguous in the regime where this branch executes.
+    if (qualityFactors.lengthQuality < this.SUGGESTION_QUALITY_THRESHOLD) {
+      if (metrics.avgLength > this.EVAL_LENGTH_DISTRIBUTION_OPTIMAL_MAX) {
+        suggestions.push('split_long_segments');
+      } else if (metrics.avgLength < this.EVAL_LENGTH_DISTRIBUTION_OPTIMAL_MIN) {
+        suggestions.push('merge_short_segments');
+      }
+    }
+
     return suggestions;
   }
 

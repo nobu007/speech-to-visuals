@@ -245,4 +245,70 @@ describe('REQ-163: SceneSegmenter', () => {
       expect(parts[1].text).toContain('However');
     });
   });
+
+  // generateImprovementSuggestions previously checked only segmentCount,
+  // keyphrase and confidence factors. lengthQuality was computed and folded
+  // into qualityScore, so a bad length distribution dragged qualityScore below
+  // 0.85 (→ needsImprovement) yet emitted NO length action — leaving
+  // over-long/over-short segments unsplit/unmerged through every pipeline
+  // runner (main/simple/orchestrator all call segment()).
+  describe('generateImprovementSuggestions — lengthQuality drives length actions', () => {
+    type SuggestionsFn = (q: Record<string, number>, m: Record<string, number>) => string[];
+    const call = () =>
+      segmenter as unknown as { generateImprovementSuggestions: SuggestionsFn };
+    // Every factor OTHER than length kept healthy so only the length branch
+    // can be the source of any length-correction suggestion.
+    const healthy = {
+      segmentCountQuality: 1,
+      keyphraseQuality: 1,
+      confidenceQuality: 1,
+      performanceQuality: 1,
+    };
+    const goodMetrics = {
+      segmentCount: 5, // within optimal [3,10] → no count-branch suggestion
+      avgKeyphrases: 4,
+      avgConfidence: 0.9,
+      processingTime: 500,
+    };
+
+    it('emits split_long_segments when avgLength exceeds the optimal range', () => {
+      const suggestions = call().generateImprovementSuggestions(
+        { ...healthy, lengthQuality: 0.5 }, // evaluateLengthDistribution(16000) < threshold
+        { ...goodMetrics, avgLength: 16000 }, // > OPTIMAL_MAX (12000)
+      );
+      expect(suggestions).toContain('split_long_segments');
+    });
+
+    it('emits merge_short_segments when avgLength is below the optimal range', () => {
+      const suggestions = call().generateImprovementSuggestions(
+        { ...healthy, lengthQuality: 0.5 },
+        { ...goodMetrics, avgLength: 2000 }, // < OPTIMAL_MIN (5000)
+      );
+      expect(suggestions).toContain('merge_short_segments');
+    });
+
+    it('does not emit a length action when lengthQuality is healthy', () => {
+      const suggestions = call().generateImprovementSuggestions(
+        { ...healthy, lengthQuality: 1 },
+        { ...goodMetrics, avgLength: 16000 },
+      );
+      expect(suggestions).not.toContain('split_long_segments');
+      expect(suggestions).not.toContain('merge_short_segments');
+    });
+
+    // Source-anchored REMAINS guard (TC-302/313: resolve from import.meta.url
+    // — cwd-relative reads flake under --maxWorkers>1). A behavioral GREEN
+    // proves the branch WORKS today; this proves it REMAINS after future edits.
+    it('source: consults lengthQuality against the suggestion threshold', async () => {
+      const { fileURLToPath } = await import('node:url');
+      const fs = await import('node:fs');
+      const path = await import('node:path');
+      const here = fileURLToPath(new URL('.', import.meta.url));
+      const src = path.join(here, '../../../src/analysis/scene-segmenter.ts');
+      const content = fs.readFileSync(src, 'utf-8');
+      expect(content).toMatch(
+        /qualityFactors\.lengthQuality\s*<\s*this\.SUGGESTION_QUALITY_THRESHOLD/,
+      );
+    });
+  });
 });
