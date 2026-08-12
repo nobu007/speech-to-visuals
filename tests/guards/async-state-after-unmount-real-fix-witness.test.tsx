@@ -186,10 +186,16 @@ describe('async-state-after-unmount guard — structural sweep (TC-316-02)', () 
   //     Removed from the whitelist below and pinned by
   //     `streaming-processor-unmount-real-fix-witness.test.tsx` (TC-319). The
   //     sweep catches a regression here directly.
-  //   - `pipeline-interface.tsx`: handleProcessAudio, saveAudioFile,
-  //     handleDownloadVideo — three async handlers with setX after awaits.
-  //     The pipeline lifecycle is tied to a parent route; unmount hazards
-  //     are bounded by the route-transition slow-render gap. FIX DEFERRED.
+  //   - `pipeline-interface.tsx`: FIXED (TASK-0220 sibling). handleProcessAudio
+  //     (post-`pipeline.execute` setState + catch) and handleDownloadVideo
+  //     (post-`fetch('/api/render')` toast/window.open + catch) now gate every
+  //     post-await side effect on `mountedRef`, flipped in the dedicated
+  //     empty-deps unmount-cleanup effect. The load-bearing guard is the early
+  //     return after the render fetch, which prevents a stray `window.open` /
+  //     toast for an action the user abandoned by switching tabs. Removed from
+  //     the whitelist below and pinned by
+  //     `pipeline-interface-unmount-real-fix-witness.test.tsx` (TC-321). The
+  //     sweep catches a regression here directly.
   //   - `useFrameworkPipeline.ts`: FIXED (TASK-0220 sibling). Both hooks
   //     (`useFrameworkPipeline.execute` and `useIterationLog.fetchLog`) now
   //     gate every post-await side effect on `mountedRef`; the load-bearing
@@ -210,9 +216,9 @@ describe('async-state-after-unmount guard — structural sweep (TC-316-02)', () 
     // fails only on NEW violations, not on these. (AudioUploader was here;
     // FIXED and removed — see TC-317. useFrameworkPipeline was here; FIXED and
     // removed — see TC-318. Iteration43Interface was here; FIXED and removed —
-    // see TC-320. StreamingProcessor was here; FIXED and removed — see TC-319.)
+    // see TC-320. StreamingProcessor was here; FIXED and removed — see TC-319.
+    // pipeline-interface was here; FIXED and removed — see TC-321.)
     'src/components/FrameworkDashboard.tsx',
-    'src/components/pipeline-interface.tsx',
   ] as const;
 
   function findTsxFiles(dir: string): string[] {

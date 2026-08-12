@@ -30,10 +30,19 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
   const [streamingProgress, setStreamingProgress] = useState<string>('');
   const [showStreamingDetails, setShowStreamingDetails] = useState(false);
   const audioBlobUrlRef = useRef<string | null>(null);
+  // Guards against setState / external side effects (toast, window.open) firing
+  // after the component unmounts mid-await — e.g. a long `pipeline.execute` or
+  // `/api/render` fetch resolving after a route/tab switch. Flipped in the
+  // unmount-cleanup effect below; every post-await side effect reads it first.
+  const mountedRef = useRef(true);
 
-  // Cleanup blob URL on unmount
+  // Cleanup blob URL on unmount + flip the mounted guard. Both are unmount-only
+  // teardown, so they share this dedicated empty-deps effect (the `[]` terminator
+  // pins it as the unmount effect — never fold into a non-empty-deps effect,
+  // which would falsely report "unmounted" on a re-render while still mounted).
   useEffect(() => {
     return () => {
+      mountedRef.current = false;
       if (audioBlobUrlRef.current) {
         URL.revokeObjectURL(audioBlobUrlRef.current);
         audioBlobUrlRef.current = null;
@@ -80,6 +89,11 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
         audioFile: tempAudioPath
       });
 
+      // If the component unmounted while the pipeline was running (route/tab
+      // switch), abandon every post-await setState — they would target a gone
+      // component.
+      if (!mountedRef.current) return;
+
       // Revoke blob URL after pipeline completes
       if (audioBlobUrlRef.current) {
         URL.revokeObjectURL(audioBlobUrlRef.current);
@@ -112,14 +126,17 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
       }
 
     } catch (err) {
-      setStatus('error');
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
       logger.error('[PipelineInterface] Pipeline error:', err);
-      // Revoke blob URL on error too
+      // Revoke blob URL on error too (safe regardless of mount state).
       if (audioBlobUrlRef.current) {
         URL.revokeObjectURL(audioBlobUrlRef.current);
         audioBlobUrlRef.current = null;
       }
+      // A rejection landing after unmount must not setState on the gone
+      // component.
+      if (!mountedRef.current) return;
+      setStatus('error');
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     }
   }, [selectedFile, pipeline]);
 
@@ -154,9 +171,14 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
         }),
       });
 
+      // If the component unmounted while the render request was in flight
+      // (route/tab switch), do not surface a stray toast or open a window for
+      // an action the user abandoned.
+      if (!mountedRef.current) return;
+
       if (!response.ok) {
         logger.error('[PipelineInterface] Video render request failed:', response.status);
-        toast.error('Video rendering failed. Please try again.');
+        if (mountedRef.current) toast.error('Video rendering failed. Please try again.');
         return;
       }
 
@@ -165,12 +187,14 @@ export const PipelineInterface: React.FC<PipelineInterfaceProps> = ({ className 
       // Infinity/proto-pollution payload from the backend cannot reach app state
       // via this intake — same hardening as Index.tsx.
       const data = parseUntrustedJson(await response.text()) as { videoUrl?: string };
+      // Second await point (response.text()) — re-check before opening a window.
+      if (!mountedRef.current) return;
       if (data.videoUrl) {
         window.open(data.videoUrl, '_blank');
       }
     } catch (err) {
       logger.error('[PipelineInterface] Video render error:', err);
-      toast.error('Video rendering encountered an error. Please try again.');
+      if (mountedRef.current) toast.error('Video rendering encountered an error. Please try again.');
     }
   }, [result]);
 
