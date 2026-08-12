@@ -50,6 +50,7 @@ import type { RecoveryStage, RunRecoveryReport } from '@/quality/pipeline-run-re
 import { logger } from '@/utils/logger';
 import { sanitizeDiagramType } from '@/utils/guards';
 import { buildSceneGraph } from './scene-graph-builder';
+import { applyConfigToCollaborators } from './config-sync';
 
 // ---------- Public Interfaces ----------
 
@@ -551,51 +552,22 @@ export class PipelineOrchestrator {
       }
     }
 
-    // Sync the effective analysis config (user overrides + auto-tuning) into the
-    // segmenter. The segmenter is constructed ONCE with module defaults; without
-    // this sync, `config.analysis` — whether from the user or the tuner — never
-    // reached segmentation, making auto-tuning (and user analysis overrides) a
-    // silent no-op. Run before Stage 2 analysis so the values take effect.
-    this.segmenter.updateConfig({
-      minSegmentLengthMs: config.analysis.minSegmentLengthMs,
-      maxSegmentLengthMs: config.analysis.maxSegmentLengthMs,
-      confidenceThreshold: config.analysis.confidenceThreshold,
-    });
-
-    // Sync the effective transcription config (user overrides) into the
-    // transcriber. The transcriber is constructed ONCE with module defaults;
-    // without this sync, `config.transcription` — validated by
-    // validatePipelineConfig but never applied — made user model/language
-    // overrides a silent no-op. Mirrors the analysis→segmenter sync above.
-    // Run before Stage 1 transcription so the values take effect.
-    this.transcriber.updateConfig({
-      model: config.transcription.model,
-      ...(config.transcription.language !== undefined
-        ? { language: config.transcription.language }
-        : {}),
-    });
-
-    // Sync the effective layout config (user overrides) into the layout engine.
-    // The layout engine is constructed ONCE with fixed defaults; without this
-    // sync, `config.layout` (width/height/nodeWidth/nodeHeight) never reached
-    // layout GENERATION. Only the post-layout scoring path (optimizeLayoutQuality)
-    // read width/height, so:
-    //   - user nodeWidth/nodeHeight overrides were a silent no-op (the Dagre
-    //     strategy sizes nodes from the engine's construction-time config), and
-    //   - width/height diverged between generation (engine's fixed canvas) and
-    //     scoring (config's canvas) when a user changed the dimensions.
-    // Same class as the analysis→segmenter (REQ-039) and transcription→
-    // transcriber (REQ-041) syncs above. Run before Stage 3 layout so the values
-    // take effect. marginX/marginY are intentionally NOT overwritten here — the
-    // orchestrator sets them at construction (40/40) and they are not part of
-    // the user-facing PipelineConfig.layout surface; updateConfig merges, so
-    // passing only the four user fields preserves them.
-    this.layoutEngine.updateConfig({
-      width: config.layout.width,
-      height: config.layout.height,
-      nodeWidth: config.layout.nodeWidth,
-      nodeHeight: config.layout.nodeHeight,
-    });
+    // Sync the effective config (user overrides + auto-tuning) into the
+    // construction-once collaborators via the shared helper. The segmenter /
+    // transcriber / layoutEngine are built ONCE with module defaults; without
+    // this sync `config` (validated by validatePipelineConfig and, for analysis,
+    // mutated by the tuner above) never reached the stages, making user AND
+    // auto-tuned overrides a silent no-op at generation. Run before each stage
+    // so the values take effect. `config` is the fully-merged pipelineConfig
+    // (defaults ⊕ user ⊕ tuner), so every defined field propagates — identical
+    // to the previous per-section guards, now centralized alongside
+    // MainPipeline.nextIteration so the two sync sites cannot drift. The helper
+    // pushes only PipelineConfig fields, so marginX/marginY (set at construction
+    // 40/40, not on the user-facing layout surface) are preserved by the merge.
+    applyConfigToCollaborators(
+      { transcriber: this.transcriber, segmenter: this.segmenter, layoutEngine: this.layoutEngine },
+      config,
+    );
 
     try {
       const result = await this.transcriber.transcribe(audioPath);

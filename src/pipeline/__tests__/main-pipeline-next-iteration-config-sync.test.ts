@@ -37,7 +37,7 @@ interface ConfigAwareCollaborator {
 }
 
 interface MainPipelineInternals {
-  transcriber: ConfigAwareCollaborator;
+  transcriber: ConfigAwareCollaborator & { config: { model: string } };
   segmenter: ConfigAwareCollaborator;
   layoutEngine: ConfigAwareCollaborator;
 }
@@ -127,5 +127,65 @@ describe('MainPipeline.nextIteration — propagates runtime config to constructi
     expect(transcriber).not.toHaveBeenCalled();
     expect(segmenter).not.toHaveBeenCalled();
     expect(layoutEngine).not.toHaveBeenCalled();
+  });
+});
+
+describe('MainPipeline.nextIteration — partial section updates do not clobber retained fields', () => {
+  // REQ-045 hardening. `nextIteration({ transcription: { language: 'ja' } })`
+  // updates ONLY language, leaving the construction-time model intact. Two
+  // layers must both preserve `model`:
+  //   1. the collaborator sync — updateConfig must not receive `model: undefined`
+  //      (its `{ ...config, ...partial }` merge would then overwrite model).
+  //   2. the `this.config` merge — must deep-merge per section, not shallow-replace
+  //      the whole transcription object (which would drop model from getConfig()
+  //      and the transcription cache key at generateCacheKey).
+  // jest's toEqual ignores undefined properties, so these assert on the live
+  // resulting state (transcriber.config.model / getConfig) rather than spy args.
+
+  it('preserves the transcriber model when only language is updated', () => {
+    const pipeline = new MainPipeline({});
+    const transcriber = (pipeline as unknown as MainPipelineInternals).transcriber;
+    expect(transcriber.config.model).toBe('base'); // construction default
+
+    pipeline.nextIteration({
+      transcription: { language: 'ja' },
+    } as Partial<PipelineConfig>);
+
+    // Without the model conditional spread, updateConfig({ model: undefined,
+    // language: 'ja' }) would merge model → undefined, clobbering 'base'.
+    expect(transcriber.config.model).toBe('base');
+  });
+
+  it('preserves transcription.model in getConfig() when only language is updated', () => {
+    const pipeline = new MainPipeline({});
+    // Construction default model is 'base'.
+    expect(pipeline.getConfig().transcription.model).toBe('base');
+
+    pipeline.nextIteration({
+      transcription: { language: 'ja' },
+    } as Partial<PipelineConfig>);
+
+    const transcription = pipeline.getConfig().transcription;
+    // A shallow top-level merge would replace the whole transcription section
+    // with { language: 'ja' }, dropping model → getConfig() and even the cache
+    // key at generateCacheKey would report an undefined model (the exact
+    // "cache key lied" defect REQ-045 closed at the collaborator level).
+    expect(transcription.model).toBe('base');
+    expect(transcription.language).toBe('ja');
+  });
+
+  it('preserves unrelated analysis fields when only one threshold is updated', () => {
+    const pipeline = new MainPipeline({});
+    const before = pipeline.getConfig().analysis;
+
+    pipeline.nextIteration({
+      analysis: { confidenceThreshold: 0.9 },
+    } as Partial<PipelineConfig>);
+
+    const after = pipeline.getConfig().analysis;
+    expect(after.confidenceThreshold).toBe(0.9);
+    // Retained siblings survive the partial-section update.
+    expect(after.minSegmentLengthMs).toBe(before.minSegmentLengthMs);
+    expect(after.maxSegmentLengthMs).toBe(before.maxSegmentLengthMs);
   });
 });

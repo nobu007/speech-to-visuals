@@ -23,6 +23,7 @@ import {
 } from './types';
 import { retryWithBackoff } from './retry';
 import { buildSceneGraph } from './scene-graph-builder';
+import { applyConfigToCollaborators } from './config-sync';
 import { TranscriptionError, SegmentationError } from './pipeline-errors';
 // Phase 34: Persistent iteration logging system
 import { globalIterationLogger } from '@/utils/iteration-logger';
@@ -1118,47 +1119,44 @@ export class MainPipeline {
    */
   public nextIteration(configUpdates: Partial<PipelineConfig> = {}): void {
     this.iteration++;
-    this.config = { ...this.config, ...configUpdates };
 
-    // Re-sync runtime config into the construction-once collaborators. The
-    // transcriber / segmenter / layoutEngine are built ONCE in the constructor
-    // from `this.config` at that time and never re-read it, so without this
-    // sync every `configUpdates` override updated `this.config` but never
-    // reached the collaborators — a silent no-op where `getConfig()` (and even
-    // the transcription cache key at generateCacheKey, which reads
-    // this.config.transcription.model) reported the NEW config while the
-    // collaborators kept running the construction-time one. Same construction-
-    // once-collaborator / runtime-config-not-propagated class as the orchestrator
-    // →{segmenter, transcriber, layoutEngine} syncs (REQ-039/041/042) and the
-    // SimplePipeline {language, maxScenes} wiring (REQ-043/044): a collaborator
-    // built with fixed defaults must be re-synced when runtime config changes.
-    // Only the sections actually present in configUpdates are pushed (mirrors
-    // the orchestrator's per-field guards; `language` is optional → conditional
-    // spread so an omitted language never overwrites an existing one with
-    // undefined). The DiagramDetector carries no config, so it is excluded.
-    if (configUpdates.transcription) {
-      this.transcriber.updateConfig({
-        model: configUpdates.transcription.model,
-        ...(configUpdates.transcription.language !== undefined
-          ? { language: configUpdates.transcription.language }
-          : {}),
-      });
-    }
-    if (configUpdates.analysis) {
-      this.segmenter.updateConfig({
-        minSegmentLengthMs: configUpdates.analysis.minSegmentLengthMs,
-        maxSegmentLengthMs: configUpdates.analysis.maxSegmentLengthMs,
-        confidenceThreshold: configUpdates.analysis.confidenceThreshold,
-      });
-    }
-    if (configUpdates.layout) {
-      this.layoutEngine.updateConfig({
-        width: configUpdates.layout.width,
-        height: configUpdates.layout.height,
-        nodeWidth: configUpdates.layout.nodeWidth,
-        nodeHeight: configUpdates.layout.nodeHeight,
-      });
-    }
+    // Deep-merge per section (NOT a shallow top-level spread). A shallow
+    // `{ ...this.config, ...configUpdates }` REPLACES a present section
+    // wholesale, so a PARTIAL section update — e.g. `nextIteration({
+    // transcription: { language: 'ja' } })` with `model` omitted — would drop
+    // the retained `model`. That made `this.config.transcription.model`
+    // `undefined`, so `getConfig()` and even the transcription cache key at
+    // generateCacheKey (which reads this.config.transcription.model) reported an
+    // undefined model — the same "cache key lied" defect REQ-045 closed at the
+    // collaborator level, here at the this.config layer. Mirrors the per-section
+    // merge the orchestrator builds for `pipelineConfig`.
+    this.config = {
+      transcription: { ...this.config.transcription, ...(configUpdates.transcription ?? {}) },
+      analysis: { ...this.config.analysis, ...(configUpdates.analysis ?? {}) },
+      layout: { ...this.config.layout, ...(configUpdates.layout ?? {}) },
+      output: { ...this.config.output, ...(configUpdates.output ?? {}) },
+    };
+
+    // Re-sync runtime config into the construction-once collaborators via the
+    // shared helper. The transcriber / segmenter / layoutEngine are built ONCE
+    // in the constructor from `this.config` at that time and never re-read it,
+    // so without this sync every `configUpdates` override updated `this.config`
+    // but never reached the collaborators — a silent no-op where `getConfig()`
+    // (and the transcription cache key at generateCacheKey) reported the NEW
+    // config while the collaborators kept running the construction-time one.
+    // Same construction-once-collaborator / runtime-config-not-propagated class
+    // as the orchestrator→{segmenter, transcriber, layoutEngine} syncs
+    // (REQ-039/041/042) and the SimplePipeline {language, maxScenes} wiring
+    // (REQ-043/044). Centralizing here means this call site and the
+    // orchestrator's can never drift apart, and every pushed field is a
+    // conditional spread — so an omitted field (e.g. `model` when only
+    // `language` is updated) never overwrites the collaborator's retained value
+    // with `undefined` via updateConfig's merge. The DiagramDetector carries no
+    // config and is intentionally not part of the helper's collaborator set.
+    applyConfigToCollaborators(
+      { transcriber: this.transcriber, segmenter: this.segmenter, layoutEngine: this.layoutEngine },
+      configUpdates,
+    );
 
     // Update component iterations
     if (this.transcriber && typeof this.transcriber.nextIteration === 'function') {
