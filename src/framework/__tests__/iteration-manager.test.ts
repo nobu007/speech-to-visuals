@@ -347,4 +347,62 @@ describe('IterationManager', () => {
       expect(DEVELOPMENT_CYCLES['品質向上']).toBeDefined();
     });
   });
+
+  // checkCriterion parsing fix — three defects in the original stub, each
+  // pinned by a witness that is RED on the pre-fix code:
+  //   1. bare-number thresholds (">95") were never honored — numberMatch was
+  //      computed then discarded;
+  //   2. the comparison operator was ignored — every check used ">=", so a
+  //      less-than criterion ("<90%") was evaluated backwards;
+  //   3. percent thresholds (0-100) were compared against 0-1 fraction
+  //      metrics (successRate, *F1) without scaling, so 0.90 >= 80 was always
+  //      false.
+  describe('checkCriterion — parses bare-number, operator, and 0-1 scale (BUG FIX)', () => {
+    function mgrWith(successCriteria: string[]): IterationManager {
+      return new IterationManager(
+        {
+          phase: 'CriterionFix',
+          maxIterations: 1,
+          successCriteria,
+          failureRecovery: 'fallback',
+          commitTrigger: 'on_success',
+          currentIteration: 0,
+          status: 'in_progress' as const,
+        },
+        path.join(tmpDir, 'criterion-log.md'),
+      );
+    }
+
+    it('honors a bare-number threshold (previously dead numberMatch)', () => {
+      // "全体品質スコア>95" with score 50 must be NOT met. Old code parsed
+      // only "%", found none, and fell through to "any metric present" → true.
+      const m = mgrWith(['全体品質スコア>95']);
+      expect(m.evaluateSuccessCriteria({ overallScore: 50 }).allMet).toBe(false);
+      expect(m.evaluateSuccessCriteria({ overallScore: 96 }).allMet).toBe(true);
+    });
+
+    it('honors a less-than operator (previously forced ">=")', () => {
+      // "成功率<90%" with a 50% rate: the <90 bar IS met (true). Old code used
+      // ">=", so 0.5 >= 90 → false (backwards).
+      const m = mgrWith(['成功率<90%']);
+      expect(m.evaluateSuccessCriteria({ successRate: 0.5 }).allMet).toBe(true);
+      expect(m.evaluateSuccessCriteria({ successRate: 0.95 }).allMet).toBe(false);
+    });
+
+    it('normalizes a 0-1 fraction against a percent threshold (0-100 vs 0-1)', () => {
+      // "精度>80%" with accuracy 0.90 (=90%) must be met. Old code compared
+      // 0.90 >= 80 → false (scale bug).
+      const m = mgrWith(['精度>80%']);
+      expect(m.evaluateSuccessCriteria({ accuracy: 0.9 }).allMet).toBe(true);
+      expect(m.evaluateSuccessCriteria({ accuracy: 0.5 }).allMet).toBe(false);
+    });
+
+    it('maps "シーン分割精度" to sceneSegmentationF1, not accuracy (specificity order)', () => {
+      // The 分割 keyword must win over the generic 精度 keyword.
+      const m = mgrWith(['シーン分割精度>80%']);
+      expect(
+        m.evaluateSuccessCriteria({ sceneSegmentationF1: 0.85, accuracy: 0.1 }).allMet,
+      ).toBe(true);
+    });
+  });
 });

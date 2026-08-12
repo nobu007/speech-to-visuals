@@ -133,30 +133,98 @@ export class IterationManager {
   }
 
   /**
-   * Check if a specific criterion is met
+   * Check if a specific criterion is met.
+   *
+   * Parses (a) a comparison operator, (b) a numeric threshold — percent
+   * ("accuracy > 80%") OR bare number ("全体品質スコア>95") — and (c) which
+   * metric the criterion refers to (by keyword), then compares the first
+   * present metric value against the threshold.
+   *
+   * Fixes three defects in the original stub:
+   *  1. Bare-number thresholds were never honored — `numberMatch` was
+   *     computed then discarded, so criteria like "全体品質スコア>95" silently
+   *     always passed (fell through to "any metric present").
+   *  2. The comparison operator was ignored — every comparison used ">=", so
+   *     a less-than criterion ("成功率<90%") was evaluated backwards.
+   *  3. Percent thresholds are 0-100, but several metrics are 0-1 fractions
+   *     (successRate, *F1, transcriptionAccuracy — see auto-improvement-engine
+   *     QualityMetrics). A 0.90 accuracy compared with `>= 80` was always
+   *     false. Fractions in [0,1] are now scaled to 0-100 when the threshold
+   *     is a percent.
+   *
+   * Criterion→key mapping is keyword-based and best-effort. Criteria whose
+   * metric cannot be identified retain the legacy "met when any metric is
+   * present" behavior so this change introduces no regression for unhandled
+   * shapes (e.g. "平均処理時間<60秒", whose `processingTime` is milliseconds
+   * while the threshold is seconds — a separate unit mismatch).
    */
   private checkCriterion(criterion: string, metrics: Record<string, unknown>): boolean {
-    // Extract threshold from criterion string (e.g., "accuracy > 80%" -> 80)
-    const percentMatch = criterion.match(/(\d+)%/);
-    const numberMatch = criterion.match(/(\d+)/);
+    // (a) Comparison operator; default ">=" (preserves the legacy default for
+    // operator-less criteria like "シーン分割精度80%").
+    const opMatch = criterion.match(/>=|<=|>|</);
+    const op = opMatch?.[0] ?? '>=';
 
-    if (percentMatch) {
-      const threshold = parseInt(percentMatch[1], 10);
-      // Check various metric keys that might match
-      const possibleKeys = [
-        'accuracy', 'precision', 'rate', 'score', 'pass_rate', 'success_rate'
-      ];
+    // (b) Threshold: prefer a percent ("80%"), fall back to any bare number
+    // ("95"). Both are real shapes in DEVELOPMENT_CYCLES.
+    const percentMatch = criterion.match(/(\d+(?:\.\d+)?)\s*%/);
+    const numberMatch = criterion.match(/(\d+(?:\.\d+)?)/);
+    const thresholdMatch = percentMatch ?? numberMatch;
 
-      for (const key of possibleKeys) {
-        if (metrics[key] !== undefined) {
-          const value = typeof metrics[key] === 'number' ? metrics[key] :
-                       parseFloat(String(metrics[key]));
+    if (!thresholdMatch) {
+      // Descriptive criterion with no numeric bar — met whenever metrics were
+      // reported (e.g. "音声入力→字幕付き動画出力が動作").
+      return Object.keys(metrics).length > 0;
+    }
+
+    const threshold = parseFloat(thresholdMatch[1]);
+    const isPercent = !!percentMatch;
+
+    // (c) Which metric does this criterion quantify? Keyword → candidate keys,
+    // first present key wins. Order specifics before generics so e.g.
+    // "シーン分割精度" maps to sceneSegmentationF1, not accuracy.
+    const KEY_MAP: ReadonlyArray<readonly [RegExp, readonly string[]]> = [
+      [/f1|分割|segment/i,               ['sceneSegmentationF1', 'f1']],
+      [/エンティティ|entity/i,           ['entityExtractionF1']],
+      [/関係|relation/i,                 ['relationAccuracy']],
+      [/スコア|品質|score|quality/i,     ['overallScore', 'overall_score', 'score']],
+      [/成功率|success/i,                ['successRate', 'success_rate']],
+      [/精度|正確|accuracy|precision/i,  ['accuracy', 'precision', 'transcriptionAccuracy']],
+      [/エラー|error/i,                  ['errorRate']],
+    ];
+    let keys: readonly string[] | null = null;
+    for (const [re, ks] of KEY_MAP) {
+      if (re.test(criterion)) {
+        keys = ks;
+        break;
+      }
+    }
+    const possibleKeys = keys ?? ['accuracy', 'precision', 'rate', 'score', 'pass_rate', 'success_rate'];
+
+    for (const key of possibleKeys) {
+      if (metrics[key] === undefined) continue;
+      const raw =
+        typeof metrics[key] === 'number'
+          ? (metrics[key] as number)
+          : parseFloat(String(metrics[key]));
+      if (!Number.isFinite(raw)) continue;
+      // (defect 3) Normalize a 0-1 fraction to 0-100 for percent thresholds.
+      const value = isPercent && raw >= 0 && raw <= 1 ? raw * 100 : raw;
+      switch (op) {
+        case '>':
+          return value > threshold;
+        case '<':
+          return value < threshold;
+        case '<=':
+          return value <= threshold;
+        case '>=':
+        default:
           return value >= threshold;
-        }
       }
     }
 
-    // For criteria without clear thresholds, check if relevant metrics exist
+    // A numeric bar was requested but no identifiable metric could supply a
+    // value: preserve the legacy "met when any metric is present" result so
+    // criteria this heuristic cannot yet map do not regress.
     return Object.keys(metrics).length > 0;
   }
 
