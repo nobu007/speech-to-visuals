@@ -11,6 +11,8 @@ import { jest } from '@jest/globals';
 
 jest.unstable_mockModule('@/transcription', () => ({
   TranscriptionPipeline: jest.fn().mockImplementation(() => ({
+    // REQ-045/046: runTranscription syncs config via updateConfig before transcribing.
+    updateConfig: jest.fn(),
     transcribe: jest.fn().mockResolvedValue({
       text: 'テスト文字起こし結果',
       segments: [{ start: 0, end: 2, text: 'テスト' }],
@@ -21,7 +23,14 @@ jest.unstable_mockModule('@/transcription', () => ({
 }));
 
 jest.unstable_mockModule('@/analysis', () => ({
+  // Segment-length defaults the orchestrator pipelines import from the
+  // @/analysis barrel to build their analysis config. The ESM mock must
+  // export them or the suite fails at import with "does not provide an
+  // export named 'DEFAULT_MAX_SEGMENT_LENGTH_MS'". Canonical: 3000/15000 ms.
+  DEFAULT_MIN_SEGMENT_LENGTH_MS: 3000,
+  DEFAULT_MAX_SEGMENT_LENGTH_MS: 15000,
   SceneSegmenter: jest.fn().mockImplementation(() => ({
+    updateConfig: jest.fn(),
     segment: jest.fn().mockResolvedValue([{ id: 's1', start: 0, end: 2, text: 'テスト' }]),
   })),
   DiagramDetector: jest.fn().mockImplementation(() => ({
@@ -31,6 +40,7 @@ jest.unstable_mockModule('@/analysis', () => ({
 
 jest.unstable_mockModule('@/visualization', () => ({
   LayoutEngine: jest.fn().mockImplementation(() => ({
+    updateConfig: jest.fn(),
     calculate: jest.fn().mockResolvedValue({
       scenes: [{ id: 'scene-1', elements: [], bounds: { width: 1920, height: 1080 } }],
     }),
