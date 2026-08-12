@@ -46,6 +46,14 @@
  *
  * AUDIT RESULT (the "RED-verify each field" deliverable)
  * ------------------------------------------------------
+ * The boundary itself is additionally STRUCTURALLY GUARDED by
+ * `config-sync-forwarding-exhaustive.test.ts` (REQ-053): a source-anchored pin
+ * asserting every PipelineConfig.{transcription,analysis,layout} field is
+ * forwarded by applyConfigToCollaborators, so a NEW field added to the type
+ * without routing through the helper fails loudly instead of becoming the next
+ * silent dead option. The per-field verdicts below are the behavioral read;
+ * that file is the structural one.
+ *
  * SimplePipelineInput.options → generation:
  *   language .............. WIRED (REQ-043, simple-pipeline.test.ts)
  *   maxScenes ............. WIRED (REQ-044, generation-site cap, tested)
