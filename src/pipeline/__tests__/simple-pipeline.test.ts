@@ -14,11 +14,18 @@ jest.unstable_mockModule('@/transcription', () => {
     language: 'en',
     duration: 10,
   } as never);
+  // updateConfig is recorded so the REQ-043 language-sync wiring (now routed
+  // through applyConfigToCollaborators) can be asserted end-to-end. Previously
+  // the mock omitted it, so any options.language test crashed with TypeError —
+  // the wiring was entirely untested.
+  const mockUpdateConfig = jest.fn();
   return {
     TranscriptionPipeline: jest.fn().mockImplementation(() => ({
       transcribe: mockTranscribe,
+      updateConfig: mockUpdateConfig,
     })),
     __mockTranscribe: mockTranscribe,
+    __mockUpdateConfig: mockUpdateConfig,
   };
 });
 
@@ -127,7 +134,7 @@ jest.unstable_mockModule('@/pipeline/quality-monitor', () => ({
 }));
 
 const { SimplePipeline } = await import('@/pipeline/simple-pipeline');
-const { __mockTranscribe } = await import('@/transcription') as { __mockTranscribe: jest.Mock };
+const { __mockTranscribe, __mockUpdateConfig } = await import('@/transcription') as { __mockTranscribe: jest.Mock; __mockUpdateConfig: jest.Mock };
 const analysisMock = await import('@/analysis') as {
   __mockSegment: jest.Mock;
   __mockAnalyze: jest.Mock;
@@ -138,6 +145,7 @@ const { __mockGenerateZeroOverlapLayout } = await import('@/visualization/enhanc
 const videoGeneratorMock = await import('@/pipeline/video-generator') as { __mockGenerateVideo: jest.Mock; VideoGenerator: jest.Mock };
 
 const mockTranscribe = __mockTranscribe;
+const mockUpdateConfig = __mockUpdateConfig;
 const mockSegment = analysisMock.__mockSegment;
 const mockAnalyze = analysisMock.__mockAnalyze;
 const mockGenerateLayout = __mockGenerateLayout;
@@ -589,6 +597,44 @@ describe('SimplePipeline', () => {
       expect(result.success).toBe(true);
       // 0 is not a meaningful "produce zero scenes" instruction → no cap.
       expect(result.scenes!.length).toBe(5);
+    });
+  });
+
+  describe('transcription language sync (REQ-043)', () => {
+    it('routes options.language to the transcriber via the centralized helper', async () => {
+      // The pushed partial must carry ONLY `language` (no `model` key): the
+      // helper builds a conditional-spread partial, so omitting model must not
+      // clobber the construction-time model via updateConfig's merge. jest's
+      // toEqual ignores undefined, so assert the key set directly (mirrors
+      // config-sync.test.ts).
+      await pipeline.process({
+        audioFile: createMockFile(),
+        options: { includeVideoGeneration: false, language: 'ja' },
+      });
+
+      expect(mockUpdateConfig).toHaveBeenCalledTimes(1);
+      expect(Object.keys(mockUpdateConfig.mock.calls[0][0])).toEqual(['language']);
+      expect(mockUpdateConfig.mock.calls[0][0]).toEqual({ language: 'ja' });
+    });
+
+    it('does NOT sync language when the option is omitted', async () => {
+      await pipeline.process({
+        audioFile: createMockFile(),
+        options: { includeVideoGeneration: false },
+      });
+
+      expect(mockUpdateConfig).not.toHaveBeenCalled();
+    });
+
+    it('does NOT sync an empty-string language (would clobber Whisper "auto")', async () => {
+      await pipeline.process({
+        audioFile: createMockFile(),
+        options: { includeVideoGeneration: false, language: '' },
+      });
+
+      // Truthy guard: '' is not forwarded, so WhisperTranscriber keeps its
+      // construction-time 'auto' default rather than being overwritten with ''.
+      expect(mockUpdateConfig).not.toHaveBeenCalled();
     });
   });
 

@@ -24,6 +24,32 @@ export interface ConfigurableCollaborators {
 }
 
 /**
+ * Runtime-config update shape the helper actually consumes: each section
+ * optional, and within a present section EVERY field optional.
+ *
+ * This is intentionally narrower than `Partial<PipelineConfig>`, which only
+ * makes the TOP-level sections optional while leaving each section's required
+ * fields (e.g. `transcription.model`) mandatory. Against `Partial<PipelineConfig>`
+ * a genuine partial-section update — `{ transcription: { language: 'ja' } }`
+ * with `model` omitted — does NOT type-check (model is required), forcing a
+ * cast at every call site that supplies a real partial. But the helper reads
+ * every field defensively (`!== undefined`), so partial fields are valid at
+ * runtime; this type makes that contract expressible at the type level so call
+ * sites pass real partials directly instead of `as Partial<PipelineConfig>`.
+ *
+ * A complete section (and therefore a full `PipelineConfig`, passed by
+ * {@link PipelineOrchestrator.runTranscription}) and a `Partial<PipelineConfig>`
+ * (passed by {@link MainPipeline.applyRuntimeConfig}, which also carries an
+ * `output` section this helper ignores) both remain assignable: required→optional
+ * is a widening, and excess/ignored keys on a variable-typed argument are fine.
+ */
+export type PipelineConfigSyncUpdate = {
+  transcription?: Partial<PipelineConfig['transcription']>;
+  analysis?: Partial<PipelineConfig['analysis']>;
+  layout?: Partial<PipelineConfig['layout']>;
+};
+
+/**
  * Push only the {@link PipelineConfig} sections actually present in `updates`
  * into the construction-once collaborators — and within each section, only the
  * fields actually defined. This is the single source for the per-collaborator
@@ -44,15 +70,21 @@ export interface ConfigurableCollaborators {
  * is intentionally not part of this interface.)
  *
  * Callers:
- *  - {@link MainPipeline.nextIteration}: passes a *partial* `configUpdates`, so
- *    only present sections/fields propagate (the partial-update path).
+ *  - {@link MainPipeline.nextIteration} / {@link MainPipeline.execute}: pass a
+ *    *partial* `configUpdates` / `input.config`, so only present sections/fields
+ *    propagate (the partial-update path).
  *  - {@link PipelineOrchestrator.runTranscription}: passes the fully-merged
  *    `pipelineConfig` (defaults ⊕ user ⊕ auto-tuner), so every defined field
  *    propagates — identical to the previous inline guards, now centralized.
+ *  - {@link SimplePipeline.process}: maps its narrower `options` surface
+ *    (only `transcription.language` is mappable today) onto a partial
+ *    `PipelineConfigSyncUpdate` and routes through the helper — eliminating the
+ *    last hand-copied config-sync guard (REQ-043 was previously an inline
+ *    `transcription.updateConfig({ language })`).
  */
 export function applyConfigToCollaborators(
   collaborators: ConfigurableCollaborators,
-  updates: Partial<PipelineConfig>,
+  updates: PipelineConfigSyncUpdate,
 ): void {
   if (updates.transcription) {
     const { model, language } = updates.transcription;

@@ -11,6 +11,7 @@ import { EnhancedZeroOverlapLayoutEngine } from '@/visualization/enhanced-zero-o
 import { SceneGraph } from '@/types/diagram';
 import { VideoGenerator, VideoGenerationOptions } from './video-generator';
 import { buildSceneGraph } from './scene-graph-builder';
+import { applyConfigToCollaborators } from './config-sync';
 import { calculatePipelineQualityScore } from './quality-score';
 import { continuousLearner } from '@/framework/continuous-learner';
 import { getQualityMonitor, formatQualityReport } from './quality-monitor';
@@ -151,17 +152,28 @@ export class SimplePipeline {
       // Step 2: Transcription with Continuous Learning Integration
       const transcriptionStartTime = Date.now();
 
-      // Sync the user-provided transcription language into the transcriber.
-      // The transcriber is constructed ONCE in the constructor with fixed
-      // defaults (`{ model: 'base' }`); without this sync, `options.language`
-      // — advertised on the public SimplePipelineInput type — never reached
-      // transcription, making a user language override a silent no-op. Same
-      // class as the orchestrator→transcriber sync (REQ-041) and the
-      // analysis/layout sibling syncs (REQ-039/042): a construction-once
-      // collaborator whose runtime-resolved config must be re-synced before
-      // its stage runs. Run before transcribe() so the value takes effect.
-      if (input.options?.language) {
-        this.transcription.updateConfig({ language: input.options.language });
+      // Sync the user-provided transcription language into the transcriber
+      // through the SAME centralized helper MainPipeline.nextIteration/
+      // .execute and PipelineOrchestrator.runTranscription use
+      // (applyConfigToCollaborators) — eliminating the last hand-copied
+      // config-sync guard flagged by REQ-046. The transcriber is constructed
+      // ONCE in the constructor with fixed defaults (`{ model: 'base' }`);
+      // without this sync, `options.language` — advertised on the public
+      // SimplePipelineInput type — never reached transcription, a silent
+      // no-op (REQ-043). SimplePipeline's options surface is narrower than
+      // PipelineConfig (only transcription.language is mappable today), so the
+      // helper is fed a partial PipelineConfig built from those options; any
+      // future SimplePipeline config exposure automatically flows through this
+      // single source instead of a new hand-copied guard. Run before
+      // transcribe() so the value takes effect. Truthy guard (not
+      // `!== undefined`): an empty language string would otherwise be forwarded
+      // by the helper and clobber WhisperTranscriber's 'auto' default with ''.
+      const language = input.options?.language;
+      if (language) {
+        applyConfigToCollaborators(
+          { transcriber: this.transcription, segmenter: this.segmenter, layoutEngine: this.layoutEngine },
+          { transcription: { language } },
+        );
       }
 
       const transcriptionResult = await this.transcription.transcribe(audioUrl);

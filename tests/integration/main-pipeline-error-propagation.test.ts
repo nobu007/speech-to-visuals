@@ -49,6 +49,13 @@ jest.unstable_mockModule('@/analysis', () => ({
     analyze: mockAnalyze,
     nextIteration: jest.fn(),
   })),
+  // main-pipeline imports these segment-length defaults from the barrel to
+  // build its analysis config. Without them the ESM mock throws
+  // "does not provide an export named 'DEFAULT_MAX_SEGMENT_LENGTH_MS'" at import
+  // time, failing the whole suite before any test body runs. Mirror the
+  // canonical values (src/analysis/scene-segmenter.ts: 3000/15000 ms).
+  DEFAULT_MIN_SEGMENT_LENGTH_MS: 3000,
+  DEFAULT_MAX_SEGMENT_LENGTH_MS: 15000,
 }));
 
 jest.unstable_mockModule('@/visualization', () => ({
