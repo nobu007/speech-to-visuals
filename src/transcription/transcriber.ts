@@ -1,6 +1,6 @@
 import { TranscriptionResult, TranscriptionConfig, TranscriptionSegment, TranscriptionMetrics, SUPPORTED_AUDIO_FORMATS, TranscriptionError, type SupportedAudioFormat } from './types';
 import { BrowserTranscriber } from './browser-transcriber';
-import { WhisperTranscriber } from './whisper-transcriber';
+import { WhisperTranscriber, type WhisperConfig } from './whisper-transcriber';
 import { Caption } from '@remotion/captions';
 import { detectLanguage, type Language } from '@/analysis/language-detector';
 import { logger } from '../utils/logger';
@@ -42,6 +42,30 @@ export class TranscriptionPipeline {
       enableTimestamps: true,
       maxSegmentLength: this.config.chunkSizeMs
     });
+  }
+
+  /**
+   * Update config after construction and re-sync the inner WhisperTranscriber.
+   * The orchestrator builds this pipeline ONCE with fixed defaults; without an
+   * update path, a transcription config the caller validated (model/language)
+   * never reached transcription — a silent no-op (sibling of the analysis config
+   * bug). WhisperTranscriber reads its config live, so forwarding a merge takes
+   * effect on the next transcribe() call. Maps TranscriptionConfig fields onto
+   * the WhisperConfig shape (chunkSizeMs → maxSegmentLength).
+   */
+  updateConfig(partial: Partial<TranscriptionConfig>): void {
+    this.config = { ...this.config, ...partial };
+    const whisperPartial: Partial<WhisperConfig> = {};
+    if (partial.model !== undefined) {
+      whisperPartial.model = partial.model;
+    }
+    if (partial.language !== undefined) {
+      whisperPartial.language = partial.language;
+    }
+    if (partial.chunkSizeMs !== undefined) {
+      whisperPartial.maxSegmentLength = partial.chunkSizeMs;
+    }
+    this.whisperTranscriber.updateConfig(whisperPartial);
   }
 
   /**

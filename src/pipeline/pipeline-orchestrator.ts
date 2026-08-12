@@ -562,6 +562,19 @@ export class PipelineOrchestrator {
       confidenceThreshold: config.analysis.confidenceThreshold,
     });
 
+    // Sync the effective transcription config (user overrides) into the
+    // transcriber. The transcriber is constructed ONCE with module defaults;
+    // without this sync, `config.transcription` — validated by
+    // validatePipelineConfig but never applied — made user model/language
+    // overrides a silent no-op. Mirrors the analysis→segmenter sync above.
+    // Run before Stage 1 transcription so the values take effect.
+    this.transcriber.updateConfig({
+      model: config.transcription.model,
+      ...(config.transcription.language !== undefined
+        ? { language: config.transcription.language }
+        : {}),
+    });
+
     try {
       const result = await this.transcriber.transcribe(audioPath);
       if (!result.success || !result.segments || result.segments.length === 0) {

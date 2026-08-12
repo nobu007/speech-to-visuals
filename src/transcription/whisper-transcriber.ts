@@ -62,6 +62,18 @@ export class WhisperTranscriber {
   }
 
   /**
+   * Update config after construction. Config values are read LIVE at
+   * transcribe-time (language at detection, maxSegmentLength at chunking,
+   * model/enableTimestamps in the emitted result), so a plain merge takes
+   * effect on the next transcribe() call without re-running the
+   * side-effectful initializeWhisper(). Lets the orchestrator push
+   * user/auto-tuned transcription config into an instance it built once.
+   */
+  updateConfig(partial: Partial<WhisperConfig>): void {
+    this.config = { ...this.config, ...partial };
+  }
+
+  /**
    * Initialize Whisper.cpp with progressive enhancement
    */
   private async initializeWhisper(): Promise<void> {

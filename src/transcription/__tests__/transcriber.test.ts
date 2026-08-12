@@ -745,4 +745,63 @@ describe('TranscriptionPipeline', () => {
       expect(result).toBe('en');
     });
   });
+
+  // ---------- updateConfig (REQ-041) ----------
+
+  describe('updateConfig (REQ-041)', () => {
+    function wireWhisperSpy() {
+      const whisperUpdate = jest.fn();
+      const p = new TranscriptionPipeline();
+      (
+        p as unknown as {
+          whisperTranscriber: { updateConfig: jest.Mock; transcribe: jest.Mock };
+        }
+      ).whisperTranscriber = { updateConfig: whisperUpdate, transcribe: mockTranscribe };
+      return { p, whisperUpdate };
+    }
+
+    test('merges config and propagates mapped fields to the WhisperTranscriber', () => {
+      const { p, whisperUpdate } = wireWhisperSpy();
+
+      // chunkSizeMs maps onto WhisperConfig.maxSegmentLength; model/language pass through.
+      p.updateConfig({ model: 'small', language: 'ja', chunkSizeMs: 5000 });
+
+      expect(whisperUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: 'small',
+          language: 'ja',
+          maxSegmentLength: 5000,
+        }),
+      );
+    });
+
+    test('does not forward undefined fields, so whisper defaults are not clobbered', () => {
+      const { p, whisperUpdate } = wireWhisperSpy();
+
+      // Only model is provided; language/chunkSizeMs must be absent (not undefined).
+      p.updateConfig({ model: 'medium' });
+
+      expect(whisperUpdate).toHaveBeenCalledTimes(1);
+      const arg = whisperUpdate.mock.calls[0][0] as Record<string, unknown>;
+      expect(arg.model).toBe('medium');
+      expect(arg).not.toHaveProperty('language');
+      expect(arg).not.toHaveProperty('maxSegmentLength');
+    });
+
+    test('updates its own config (observable via a subsequent update)', () => {
+      // this.config is private; verify the merge took effect by checking that a
+      // second updateConfig with no new fields still forwards the retained model.
+      const { p, whisperUpdate } = wireWhisperSpy();
+      p.updateConfig({ model: 'large' });
+      whisperUpdate.mockClear();
+      p.updateConfig({ chunkSizeMs: 9000 });
+
+      // chunkSizeMs only — model is NOT re-forwarded when not in the partial.
+      expect(whisperUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ maxSegmentLength: 9000 }),
+      );
+      const arg = whisperUpdate.mock.calls[0][0] as Record<string, unknown>;
+      expect(arg).not.toHaveProperty('model');
+    });
+  });
 });

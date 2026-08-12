@@ -835,4 +835,51 @@ describe('PipelineOrchestrator', () => {
       );
     });
   });
+
+  // ====== Transcription config wiring (REQ-041) ======
+
+  describe('transcription config wiring (REQ-041)', () => {
+    it('syncs user-provided transcription model/language to the transcriber', async () => {
+      // Auto-tuning off so only the user override is in play.
+      orchestrator = new PipelineOrchestrator(config);
+
+      const transcriber = (
+        orchestrator as unknown as {
+          transcriber: { updateConfig: (...a: unknown[]) => void };
+        }
+      ).transcriber;
+      const updateSpy = jest.spyOn(transcriber, 'updateConfig');
+
+      const input = makeValidPipelineInput();
+      input.config!.transcription.model = 'small';
+      input.config!.transcription.language = 'ja';
+
+      await orchestrator.execute(input);
+
+      // The transcriber must receive the user's model/language. Previously the
+      // transcriber was constructed once with `{ model: 'base' }` and
+      // `input.config.transcription` (validated but never applied) was dead.
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ model: 'small', language: 'ja' }),
+      );
+    });
+
+    it('still syncs the default model when no user override is given', async () => {
+      orchestrator = new PipelineOrchestrator(config);
+
+      const transcriber = (
+        orchestrator as unknown as {
+          transcriber: { updateConfig: (...a: unknown[]) => void };
+        }
+      ).transcriber;
+      const updateSpy = jest.spyOn(transcriber, 'updateConfig');
+
+      await orchestrator.execute(makeValidPipelineInput());
+
+      // Default config flows through too — the sync runs unconditionally.
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ model: 'base', language: 'en' }),
+      );
+    });
+  });
 });
