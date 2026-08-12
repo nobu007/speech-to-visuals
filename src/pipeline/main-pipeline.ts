@@ -1120,6 +1120,46 @@ export class MainPipeline {
     this.iteration++;
     this.config = { ...this.config, ...configUpdates };
 
+    // Re-sync runtime config into the construction-once collaborators. The
+    // transcriber / segmenter / layoutEngine are built ONCE in the constructor
+    // from `this.config` at that time and never re-read it, so without this
+    // sync every `configUpdates` override updated `this.config` but never
+    // reached the collaborators — a silent no-op where `getConfig()` (and even
+    // the transcription cache key at generateCacheKey, which reads
+    // this.config.transcription.model) reported the NEW config while the
+    // collaborators kept running the construction-time one. Same construction-
+    // once-collaborator / runtime-config-not-propagated class as the orchestrator
+    // →{segmenter, transcriber, layoutEngine} syncs (REQ-039/041/042) and the
+    // SimplePipeline {language, maxScenes} wiring (REQ-043/044): a collaborator
+    // built with fixed defaults must be re-synced when runtime config changes.
+    // Only the sections actually present in configUpdates are pushed (mirrors
+    // the orchestrator's per-field guards; `language` is optional → conditional
+    // spread so an omitted language never overwrites an existing one with
+    // undefined). The DiagramDetector carries no config, so it is excluded.
+    if (configUpdates.transcription) {
+      this.transcriber.updateConfig({
+        model: configUpdates.transcription.model,
+        ...(configUpdates.transcription.language !== undefined
+          ? { language: configUpdates.transcription.language }
+          : {}),
+      });
+    }
+    if (configUpdates.analysis) {
+      this.segmenter.updateConfig({
+        minSegmentLengthMs: configUpdates.analysis.minSegmentLengthMs,
+        maxSegmentLengthMs: configUpdates.analysis.maxSegmentLengthMs,
+        confidenceThreshold: configUpdates.analysis.confidenceThreshold,
+      });
+    }
+    if (configUpdates.layout) {
+      this.layoutEngine.updateConfig({
+        width: configUpdates.layout.width,
+        height: configUpdates.layout.height,
+        nodeWidth: configUpdates.layout.nodeWidth,
+        nodeHeight: configUpdates.layout.nodeHeight,
+      });
+    }
+
     // Update component iterations
     if (this.transcriber && typeof this.transcriber.nextIteration === 'function') {
       this.transcriber.nextIteration();
