@@ -276,7 +276,26 @@ export class SimplePipeline {
 
         try {
           // Detect diagram type for this scene
-          const diagramAnalysis = await this.detector.analyze(segment as ContentSegment);
+          let diagramAnalysis = await this.detector.analyze(segment as ContentSegment);
+
+          // Honor a user-requested layoutType override. The option is advertised
+          // on SimplePipelineInput as `'flow' | 'tree' | 'timeline' | 'auto'` but,
+          // until now, was read NOWHERE — every scene used the detected type
+          // regardless, a silent no-op in the same family as the REQ-043..048
+          // config-not-propagated defects (a value exposed on the public boundary
+          // that never reached generation). Overriding the type HERE — the single
+          // chokepoint every downstream consumer reads from — propagates the
+          // forced type consistently: `detType` (below, via sanitizeDiagramType),
+          // BOTH layout engines (generateZeroOverlapLayout / generateLayout take
+          // `detType` as their first diagram-type arg), and buildSceneGraph (which
+          // re-reads `analysis.type` to stamp scene.type). A non-destructive
+          // spread keeps the rest of the analysis (nodes/edges/confidence) intact.
+          // `'auto'` or omitted preserves the detection result, so existing
+          // behavior is unchanged unless the caller explicitly requests a type.
+          const requestedLayoutType = input.options?.layoutType;
+          if (requestedLayoutType && requestedLayoutType !== 'auto') {
+            diagramAnalysis = { ...diagramAnalysis, type: requestedLayoutType };
+          }
 
           const diagramDetectionTime = Date.now() - sceneStartTime;
 

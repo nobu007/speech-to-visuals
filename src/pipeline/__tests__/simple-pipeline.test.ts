@@ -638,6 +638,67 @@ describe('SimplePipeline', () => {
     });
   });
 
+  describe('layoutType option (REQ-049)', () => {
+    // Regression: layoutType was declared on the public SimplePipelineInput
+    // type as `'flow' | 'tree' | 'timeline' | 'auto'` but NEVER consumed — every
+    // scene used the detected type regardless of the user's request, a silent
+    // no-op in the same dead-option family as REQ-039/041/042/043/044 (a value
+    // advertised on the boundary that never reached generation). The detector
+    // mock returns `type: 'flow'` (resetMocks); a forced layoutType must override
+    // it at the detection chokepoint so BOTH the layout engine AND the emitted
+    // scene.type reflect the user's choice, while 'auto'/omitted keeps detection.
+
+    it('forces the diagram type to the requested layoutType (enhanced path)', async () => {
+      // Detector says 'flow'; user requests 'tree'.
+      const result = await pipeline.process({
+        audioFile: createMockFile(),
+        options: { includeVideoGeneration: false, useEnhancedLayout: true, layoutType: 'tree' },
+      });
+
+      expect(result.success).toBe(true);
+      // Forced type wins over the detected 'flow' on the emitted scene.
+      expect(result.scenes![0].type).toBe('tree');
+      // ...and reaches the layout generation site (first arg = diagram type).
+      expect(mockGenerateZeroOverlapLayout).toHaveBeenCalledTimes(1);
+      expect(mockGenerateZeroOverlapLayout.mock.calls[0][0]).toBe('tree');
+    });
+
+    it('forces the diagram type on the standard layout path too (engine-agnostic)', async () => {
+      // The override is at the chokepoint BEFORE the engine is selected, so the
+      // base LayoutEngine.generateLayout(nodes, edges, detType, iter) must also
+      // receive the forced type as its 3rd arg (index 2), not the detected one.
+      const result = await pipeline.process({
+        audioFile: createMockFile(),
+        options: { includeVideoGeneration: false, useEnhancedLayout: false, layoutType: 'timeline' },
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.scenes![0].type).toBe('timeline');
+      expect(mockGenerateLayout).toHaveBeenCalledTimes(1);
+      expect(mockGenerateLayout.mock.calls[0][2]).toBe('timeline');
+    });
+
+    it('preserves the detected type when layoutType is "auto"', async () => {
+      const result = await pipeline.process({
+        audioFile: createMockFile(),
+        options: { includeVideoGeneration: false, useEnhancedLayout: true, layoutType: 'auto' },
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.scenes![0].type).toBe('flow');
+    });
+
+    it('preserves the detected type when layoutType is omitted', async () => {
+      const result = await pipeline.process({
+        audioFile: createMockFile(),
+        options: { includeVideoGeneration: false, useEnhancedLayout: true },
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.scenes![0].type).toBe('flow');
+    });
+  });
+
   describe('processWithRetry', () => {
     it('should retry on failure and eventually succeed', async () => {
       mockTranscribe
