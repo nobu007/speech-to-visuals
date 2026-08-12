@@ -172,15 +172,20 @@ describe('async-state-after-unmount guard — structural sweep (TC-316-02)', () 
   //     call setX after awaits. Component lives inside a dashboard tab that
   //     rarely unmounts mid-fetch, so the practical hazard is low. FIX
   //     DEFERRED.
-  //   - `Iteration43Interface.tsx`: startProcessing — post-await setQuality.
-  //     Was fixed for stale-closure (09v) but the unmount hazard remains.
-  //     FIX DEFERRED.
-  //   - `StreamingProcessor.tsx`: handleFileProcessing, handleLiveProcessing
-  //     — were fixed for stale-closure (09c) with scenesRef. The unmount
-  //     hazard is mitigated by `StreamingTranscriber.dispose()` in the
-  //     cleanup useEffect which aborts the underlying recognition; the
-  //     outstanding setX call would no-op on an unmounted fiber. FIX
-  //     DEFERRED (covered by dispose chain).
+  //   - `Iteration43Interface.tsx`: FIXED (TASK-0220 sibling). `startProcessing`
+  //     now declares `mountedRef` + an empty-deps unmount-cleanup useEffect and
+  //     bails with `if (!mountedRef.current) return;` right after the in-loop
+  //     `await new Promise(setTimeout)`, gating every post-await setState
+  //     (setProcessingPhases, setQualityMetrics, the final-completion block).
+  //     Removed from the whitelist below and pinned by
+  //     `iteration43-interface-unmount-real-fix-witness.test.tsx` (TC-320). The
+  //     sweep catches a regression here directly.
+  //   - `StreamingProcessor.tsx`: FIXED (TASK-0220 sibling). `handleFileProcessing`
+  //     now gates the post-await branch (`onComplete` + setStatus/setError) on
+  //     `mountedRef`; the `dispose()` chain remains as defense-in-depth.
+  //     Removed from the whitelist below and pinned by
+  //     `streaming-processor-unmount-real-fix-witness.test.tsx` (TC-319). The
+  //     sweep catches a regression here directly.
   //   - `pipeline-interface.tsx`: handleProcessAudio, saveAudioFile,
   //     handleDownloadVideo — three async handlers with setX after awaits.
   //     The pipeline lifecycle is tied to a parent route; unmount hazards
@@ -203,10 +208,10 @@ describe('async-state-after-unmount guard — structural sweep (TC-316-02)', () 
     // Known latent sites — see the rationale above. Each one would benefit
     // from a follow-up TASK-0220-style real fix; tracked here so the sweep
     // fails only on NEW violations, not on these. (AudioUploader was here;
-    // FIXED and removed — see TC-317.)
+    // FIXED and removed — see TC-317. useFrameworkPipeline was here; FIXED and
+    // removed — see TC-318. Iteration43Interface was here; FIXED and removed —
+    // see TC-320. StreamingProcessor was here; FIXED and removed — see TC-319.)
     'src/components/FrameworkDashboard.tsx',
-    'src/components/Iteration43Interface.tsx',
-    'src/components/StreamingProcessor.tsx',
     'src/components/pipeline-interface.tsx',
   ] as const;
 

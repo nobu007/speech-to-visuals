@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -75,6 +75,24 @@ const Iteration43Interface: React.FC = () => {
     completedCriteria: 0
   });
 
+  // `mountedRef` gates every post-await side effect in `startProcessing`. The
+  // processing loop awaits `new Promise(setTimeout)` between iterations; if the
+  // user navigates away mid-loop (route/tab switch), the unmount cleanup flips
+  // this ref but CANNOT cancel the in-flight setTimeout promise — so without
+  // this guard the post-await setState calls (setProcessingPhases,
+  // setQualityMetrics, the final-completion block) would fire on an unmounted
+  // component. Mirrors TC-316/317/318/319.
+  const mountedRef = useRef(true);
+
+  // Flip the mounted flag on true unmount only. Empty deps => never re-runs, so
+  // `mountedRef.current` stays `true` for the whole mounted lifetime and only
+  // flips in the final teardown.
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && (file.type.startsWith('audio/') || file.name.endsWith('.wav') || file.name.endsWith('.mp3'))) {
@@ -116,6 +134,14 @@ const Iteration43Interface: React.FC = () => {
       // Simulate iterative improvement (as per custom instructions)
       for (let iteration = 1; iteration <= 3; iteration++) {
         await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // The component may have unmounted during the iteration await. The
+        // cleanup useEffect cannot cancel this in-flight setTimeout promise,
+        // so bail before any post-await setState. Returning here also exits the
+        // outer loop, skipping the final-completion block below — every
+        // post-await side effect is reachable only past this guard (no further
+        // await separates them within an iteration). Mirrors TC-316/317/318/319.
+        if (!mountedRef.current) return;
 
         const progress = (iteration / 3) * 100;
         setProcessingPhases(prev => prev.map((p, idx) =>
