@@ -155,3 +155,50 @@ describe('TC-313 — verifyEdgeUntrustedJson drift detector (hook --check path)'
     expect(existsSync(edgePath)).toBe(false);
   });
 });
+
+// --- prebuild regeneration wiring (REQ-2148 / TC-2147-01 "CI regenerates") --
+//
+// REQ-2148 asked for the Edge copy to be a build-time artifact that CI
+// *regenerates and verifies*, not merely a committed file policed by a drift
+// check. The `edge-sanitizer-sync` CI job + the hooks above are the "verifies"
+// half (the --check drift detector). The "regenerates" half is a `prebuild` npm
+// lifecycle hook that re-runs the generator before every `npm run build`, so the
+// CI `build` job (and any local build) emits a fresh copy from the core rather
+// than shipping whatever was last hand-committed. This is the unblocked path to
+// "CI regenerates and verifies" — the truly ideal collapse (publish the core to
+// a version-pinned Deno URL and `https://`-import it, deleting the copy) stays
+// blocked on CI network-import stabilization.
+//
+// This anchor fails if that hook is removed or pointed at the verify (--check)
+// form instead of the regenerate (write) form — closing the "behavioral tests
+// prove WORKS not REMAINS" gap (TC-302 / 10e) a runtime-only check would leave.
+
+describe('TC-313 — build path regenerates the Edge copy (prebuild wiring, REQ-2148)', () => {
+  function readScripts(): Record<string, string> {
+    const pkg = JSON.parse(readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8')) as {
+      scripts?: Record<string, string>;
+    };
+    return pkg.scripts ?? {};
+  }
+
+  it('npm run build wires a prebuild hook that regenerates the Edge copy from core', () => {
+    const { prebuild } = readScripts();
+    // A prebuild lifecycle hook must exist so the CI build job regenerates the
+    // copy before vite builds — the "CI regenerates" half of REQ-2148.
+    expect(typeof prebuild).toBe('string');
+    // It must invoke the regenerator target (sync:edge), as a real command token.
+    expect(prebuild).toMatch(/(^|\s)sync:edge\b/);
+    // And it must NOT be the verify (--check) form — prebuild must WRITE the
+    // artifact, otherwise the build ships a stale copy.
+    expect(prebuild).not.toMatch(/--check/);
+  });
+
+  it('prebuild target (sync:edge) is the codegen generator in WRITE form, closing the loop', () => {
+    const scripts = readScripts();
+    // sync:edge must run the generator script this guard already proves correct
+    // above — so the chain prebuild → sync:edge → generateEdgeUntrustedJson is
+    // one unbroken regeneration path, not a stub.
+    expect(scripts['sync:edge']).toMatch(/generate-edge-untrusted-json\.ts/);
+    expect(scripts['sync:edge']).not.toMatch(/--check|--verify|\bcheck\b/);
+  });
+});

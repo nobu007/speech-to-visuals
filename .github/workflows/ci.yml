@@ -225,6 +225,12 @@ jobs:
   # is a first-class, fast, drift-only check instead of being witnessed only
   # transitively inside the long-running `test` job. The behavioral jest guards
   # TC-312/TC-313 remain in `test` as belt-and-suspenders.
+  #
+  # REQ-2148 "CI regenerates AND verifies": this job is the *verifies* half. The
+  # *regenerates* half is the `prebuild` npm hook (`npm run sync:edge`) that fires
+  # inside the `build` job below, so a built/deployed Edge artifact is always
+  # freshly derived from the core, not just drift-checked. Source-anchored by
+  # tests/guards/edge-untrusted-json-sync.test.ts (TC-313 prebuild wiring).
   edge-sanitizer-sync:
     runs-on: ubuntu-latest
     timeout-minutes: 5
