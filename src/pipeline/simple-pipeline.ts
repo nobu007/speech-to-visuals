@@ -225,6 +225,21 @@ export class SimplePipeline {
         throw new SegmentationError('Scene segmentation failed');
       }
 
+      // Honor the advertised maxScenes option. It was declared on the public
+      // SimplePipelineInput type but NEVER consumed — a user-set cap silently did
+      // nothing, so every segment became a scene regardless of the limit. Same
+      // construction-once-collaborator / dead-option class as the language,
+      // transcription and analysis wiring fixes (REQ-039/041/042/043): an option
+      // advertised on the boundary must reach its GENERATION site. Capping the
+      // SEGMENTS fed to scene generation guarantees output scenes ≤ maxScenes
+      // (each segment yields ≤1 scene) and skips the detect+layout work for
+      // scenes that would be discarded. A non-positive maxScenes is treated as
+      // "no cap" (0 is not a meaningful "produce zero scenes" instruction).
+      const maxScenes = input.options?.maxScenes;
+      const segmentsToProcess = (typeof maxScenes === 'number' && maxScenes > 0 && maxScenes < contentSegments.length)
+        ? contentSegments.slice(0, maxScenes)
+        : contentSegments;
+
       onProgress?.('Detecting diagram types', 70);
 
       // Step 4: Diagram Detection & Layout with PARALLEL Processing (Phase 14 Optimization)
@@ -359,8 +374,8 @@ export class SimplePipeline {
         // Parallel processing with controlled concurrency
         // Split into batches to avoid overwhelming the API
         const batches: unknown[][] = [];
-        for (let i = 0; i < contentSegments.length; i += maxConcurrency) {
-          batches.push(contentSegments.slice(i, i + maxConcurrency));
+        for (let i = 0; i < segmentsToProcess.length; i += maxConcurrency) {
+          batches.push(segmentsToProcess.slice(i, i + maxConcurrency));
         }
 
         sceneResults = [];
@@ -382,8 +397,8 @@ export class SimplePipeline {
       } else {
         // Sequential processing (fallback for compatibility)
         sceneResults = [];
-        for (let i = 0; i < contentSegments.length; i++) {
-          const result = await processScene(contentSegments[i], i);
+        for (let i = 0; i < segmentsToProcess.length; i++) {
+          const result = await processScene(segmentsToProcess[i], i);
           sceneResults.push(result);
         }
       }
@@ -397,16 +412,16 @@ export class SimplePipeline {
       // Custom Instructions: Learn from overall diagram pipeline performance
       await continuousLearner.learnFromProcessingResult(
         'diagram_pipeline',
-        { segmentCount: contentSegments.length },
+        { segmentCount: segmentsToProcess.length },
         { scenes, totalScenes: scenes.length },
         totalDiagramProcessingTime,
         scenes.length > 0 ? 0.9 : 0.3,
         scenes.length > 0,
         scenes.length === 0 ? ['no_scenes_generated'] : [],
         {
-          inputSegments: contentSegments.length,
+          inputSegments: segmentsToProcess.length,
           outputScenes: scenes.length,
-          successRate: scenes.length / contentSegments.length,
+          successRate: scenes.length / segmentsToProcess.length,
           customInstructionsPhase: '図解生成'
         }
       );

@@ -518,6 +518,80 @@ describe('SimplePipeline', () => {
     });
   });
 
+  describe('maxScenes option', () => {
+    // Regression: maxScenes was declared on the public SimplePipelineInput type
+    // but NEVER consumed — a user-set cap silently did nothing, so every segment
+    // became a scene regardless of the limit. Same dead-option class as the
+    // language / transcription / analysis wiring fixes (REQ-039/041/042/043):
+    // an option advertised on the boundary must reach its generation site.
+
+    beforeEach(() => {
+      // 5 distinct segments; every mock analyze/layout succeeds, so without a
+      // cap each segment yields exactly one scene (5 scenes).
+      mockSegment.mockResolvedValue([
+        { startMs: 0, endMs: 2000, text: 'Seg 1', confidence: 0.9 },
+        { startMs: 2000, endMs: 4000, text: 'Seg 2', confidence: 0.9 },
+        { startMs: 4000, endMs: 6000, text: 'Seg 3', confidence: 0.9 },
+        { startMs: 6000, endMs: 8000, text: 'Seg 4', confidence: 0.9 },
+        { startMs: 8000, endMs: 10000, text: 'Seg 5', confidence: 0.9 },
+      ] as never);
+    });
+
+    it('caps output scenes at maxScenes', async () => {
+      const result = await pipeline.process({
+        audioFile: createMockFile(),
+        options: { includeVideoGeneration: false, maxScenes: 2 },
+      });
+
+      expect(result.success).toBe(true);
+      // Output capped at exactly maxScenes (not all 5).
+      expect(result.scenes!.length).toBe(2);
+    });
+
+    it('applies the cap at the generation site (no wasted detect+layout)', async () => {
+      // The cap must bound the SEGMENTS fed to scene generation, not truncate
+      // scenes after processing all segments. A post-hoc truncate would still
+      // call analyze() 5 times; a generation-site cap calls it maxScenes times.
+      await pipeline.process({
+        audioFile: createMockFile(),
+        options: { includeVideoGeneration: false, maxScenes: 2 },
+      });
+
+      expect(mockAnalyze).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not cap when maxScenes exceeds the segment count', async () => {
+      const result = await pipeline.process({
+        audioFile: createMockFile(),
+        options: { includeVideoGeneration: false, maxScenes: 99 },
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.scenes!.length).toBe(5);
+    });
+
+    it('does not cap when maxScenes is omitted', async () => {
+      const result = await pipeline.process({
+        audioFile: createMockFile(),
+        options: { includeVideoGeneration: false },
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.scenes!.length).toBe(5);
+    });
+
+    it('treats a non-positive maxScenes as no cap', async () => {
+      const result = await pipeline.process({
+        audioFile: createMockFile(),
+        options: { includeVideoGeneration: false, maxScenes: 0 },
+      });
+
+      expect(result.success).toBe(true);
+      // 0 is not a meaningful "produce zero scenes" instruction → no cap.
+      expect(result.scenes!.length).toBe(5);
+    });
+  });
+
   describe('processWithRetry', () => {
     it('should retry on failure and eventually succeed', async () => {
       mockTranscribe
