@@ -882,4 +882,90 @@ describe('PipelineOrchestrator', () => {
       );
     });
   });
+
+  // ====== Layout config wiring (REQ-042) ======
+  //
+  // Third sibling of REQ-039 (analysis→segmenter) and REQ-041 (transcription→
+  // transcriber): the layout engine is constructed ONCE with fixed defaults, so
+  // the resolved `config.layout` must be re-synced before Stage 3 or every
+  // layout field a user can set is a silent no-op. nodeWidth/nodeHeight are the
+  // sharpest witness — the Dagre strategy reads them off the engine's own
+  // config, so without the sync a user override never changed node sizing.
+
+  describe('layout config wiring (REQ-042)', () => {
+    it('syncs user-provided layout config to the layout engine', async () => {
+      orchestrator = new PipelineOrchestrator(config);
+
+      const layoutEngine = (
+        orchestrator as unknown as {
+          layoutEngine: { updateConfig: (...a: unknown[]) => void };
+        }
+      ).layoutEngine;
+      const updateSpy = jest.spyOn(layoutEngine, 'updateConfig');
+
+      const input = makeValidPipelineInput();
+      input.config!.layout.width = 1280;
+      input.config!.layout.height = 720;
+      input.config!.layout.nodeWidth = 200;
+      input.config!.layout.nodeHeight = 90;
+
+      await orchestrator.execute(input);
+
+      // The layout engine must receive the user's dimensions + node sizes.
+      // Previously the engine kept its construction-time defaults and
+      // `input.config.layout` was dead for generation (only post-layout scoring
+      // read width/height).
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          width: 1280,
+          height: 720,
+          nodeWidth: 200,
+          nodeHeight: 90,
+        }),
+      );
+    });
+
+    it('still syncs default layout config when no user override is given', async () => {
+      orchestrator = new PipelineOrchestrator(config);
+
+      const layoutEngine = (
+        orchestrator as unknown as {
+          layoutEngine: { updateConfig: (...a: unknown[]) => void };
+        }
+      ).layoutEngine;
+      const updateSpy = jest.spyOn(layoutEngine, 'updateConfig');
+
+      await orchestrator.execute(makeValidPipelineInput());
+
+      // Default config flows through too — the sync runs unconditionally.
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          width: 1920,
+          height: 1080,
+          nodeWidth: 120,
+          nodeHeight: 60,
+        }),
+      );
+    });
+
+    it('does NOT clobber the engine construction-time marginX/marginY', async () => {
+      // The orchestrator sets marginX/marginY=40 at construction; they are not
+      // part of the user-facing PipelineConfig.layout surface. The sync must
+      // MERGE (preserve them), not reset them to the engine's getDefaultConfig
+      // default of 50.
+      orchestrator = new PipelineOrchestrator(config);
+
+      const layoutEngine = (
+        orchestrator as unknown as {
+          layoutEngine: { getConfig: () => { marginX: number; marginY: number } };
+        }
+      ).layoutEngine;
+
+      await orchestrator.execute(makeValidPipelineInput());
+
+      const engineConfig = layoutEngine.getConfig();
+      expect(engineConfig.marginX).toBe(40);
+      expect(engineConfig.marginY).toBe(40);
+    });
+  });
 });

@@ -575,6 +575,28 @@ export class PipelineOrchestrator {
         : {}),
     });
 
+    // Sync the effective layout config (user overrides) into the layout engine.
+    // The layout engine is constructed ONCE with fixed defaults; without this
+    // sync, `config.layout` (width/height/nodeWidth/nodeHeight) never reached
+    // layout GENERATION. Only the post-layout scoring path (optimizeLayoutQuality)
+    // read width/height, so:
+    //   - user nodeWidth/nodeHeight overrides were a silent no-op (the Dagre
+    //     strategy sizes nodes from the engine's construction-time config), and
+    //   - width/height diverged between generation (engine's fixed canvas) and
+    //     scoring (config's canvas) when a user changed the dimensions.
+    // Same class as the analysis→segmenter (REQ-039) and transcription→
+    // transcriber (REQ-041) syncs above. Run before Stage 3 layout so the values
+    // take effect. marginX/marginY are intentionally NOT overwritten here — the
+    // orchestrator sets them at construction (40/40) and they are not part of
+    // the user-facing PipelineConfig.layout surface; updateConfig merges, so
+    // passing only the four user fields preserves them.
+    this.layoutEngine.updateConfig({
+      width: config.layout.width,
+      height: config.layout.height,
+      nodeWidth: config.layout.nodeWidth,
+      nodeHeight: config.layout.nodeHeight,
+    });
+
     try {
       const result = await this.transcriber.transcribe(audioPath);
       if (!result.success || !result.segments || result.segments.length === 0) {
