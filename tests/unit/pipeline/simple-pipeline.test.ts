@@ -15,6 +15,7 @@ import type { SceneGraph } from '@/types/diagram';
 jest.mock('@/transcription', () => ({
   TranscriptionPipeline: jest.fn().mockImplementation(() => ({
     transcribe: jest.fn(),
+    updateConfig: jest.fn(),
   })),
 }));
 
@@ -405,5 +406,57 @@ describe('SimplePipeline', () => {
 
       expect(internals(pipeline).performanceHistory.length).toBe(100);
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Transcription config wiring (REQ-043)
+//
+// Sibling of the orchestrator→transcriber sync (REQ-041): SimplePipeline
+// constructs the transcriber ONCE in its constructor with fixed defaults
+// (`{ model: 'base' }`). `input.options.language` is advertised on the public
+// SimplePipelineInput type but — without a sync before transcribe() — never
+// reached the transcriber, making a user language override a silent no-op.
+// These witnesses pin that the resolved language now reaches the transcriber
+// before Stage 1 transcription.
+// ---------------------------------------------------------------------------
+
+describe('SimplePipeline — transcription language wiring (REQ-043)', () => {
+  /** Grab the mocked transcriber instance off the pipeline to spy on updateConfig. */
+  function getTranscription(p: SimplePipeline): { updateConfig: (...a: unknown[]) => void } {
+    return (p as unknown as {
+      transcription: { updateConfig: (...a: unknown[]) => void };
+    }).transcription;
+  }
+
+  /** A minimal audio File sufficient to reach the transcription stage. */
+  function audioFile(): File {
+    return new File(['audio-bytes'], 'speech.wav', { type: 'audio/wav' });
+  }
+
+  it('syncs a user-provided options.language to the transcriber before transcribe', async () => {
+    const pipeline = createPipeline();
+    const updateSpy = jest.spyOn(getTranscription(pipeline), 'updateConfig');
+
+    // process() resolves (with success:false) even when the mocked transcriber
+    // returns no segments — the sync runs before transcribe(), so the spy is
+    // invoked regardless of the downstream failure.
+    await pipeline.process({ audioFile: audioFile(), options: { language: 'ja' } });
+
+    // The transcriber must receive the user's language. Previously the
+    // transcriber was constructed once with `{ model: 'base' }` and
+    // options.language (advertised on SimplePipelineInput) was dead.
+    expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ language: 'ja' }));
+  });
+
+  it('does not push a language override when the caller omits options.language', async () => {
+    const pipeline = createPipeline();
+    const updateSpy = jest.spyOn(getTranscription(pipeline), 'updateConfig');
+
+    await pipeline.process({ audioFile: audioFile() });
+
+    // No language override → the transcriber keeps its construction-time
+    // default; updateConfig is not invoked for transcription at all.
+    expect(updateSpy).not.toHaveBeenCalled();
   });
 });

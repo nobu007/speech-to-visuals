@@ -150,6 +150,20 @@ export class SimplePipeline {
 
       // Step 2: Transcription with Continuous Learning Integration
       const transcriptionStartTime = Date.now();
+
+      // Sync the user-provided transcription language into the transcriber.
+      // The transcriber is constructed ONCE in the constructor with fixed
+      // defaults (`{ model: 'base' }`); without this sync, `options.language`
+      // — advertised on the public SimplePipelineInput type — never reached
+      // transcription, making a user language override a silent no-op. Same
+      // class as the orchestrator→transcriber sync (REQ-041) and the
+      // analysis/layout sibling syncs (REQ-039/042): a construction-once
+      // collaborator whose runtime-resolved config must be re-synced before
+      // its stage runs. Run before transcribe() so the value takes effect.
+      if (input.options?.language) {
+        this.transcription.updateConfig({ language: input.options.language });
+      }
+
       const transcriptionResult = await this.transcription.transcribe(audioUrl);
 
       const transcriptionProcessingTime = Date.now() - transcriptionStartTime;
