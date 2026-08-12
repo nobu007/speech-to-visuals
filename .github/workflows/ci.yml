@@ -212,10 +212,49 @@ jobs:
             echo "budget_exceeded=false" >> $GITHUB_OUTPUT
           fi
 
+  # REQ-2148 / TC-313 — the Supabase Edge sanitizer copy
+  # (supabase/functions/_shared/untrusted-json.ts) is a GENERATED build artifact
+  # from the single source of truth src/analysis/untrusted-json-core.ts. Deno
+  # (the Edge runtime) cannot import the client src/ tree, and the ideal
+  # collapse — publish the core to a version-pinned Deno URL (jsr.io /
+  # deno.land/x) and import it via https:// — is blocked on CI network-import
+  # stabilization. This gate is the unblocked enforcement path the ticket asks
+  # for: CI regenerates the copy IN MEMORY from the core (`verify:edge`) and
+  # fails on any drift. It is the env-independent codegen --check path (no
+  # jest/ts-jest runtime), mirroring scripts/hooks/pre-commit, so copy-freshness
+  # is a first-class, fast, drift-only check instead of being witnessed only
+  # transitively inside the long-running `test` job. The behavioral jest guards
+  # TC-312/TC-313 remain in `test` as belt-and-suspenders.
+  edge-sanitizer-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+      - run: npm ci
+      - name: Verify Edge sanitizer copy is regenerated from core (TC-313)
+        id: edge_sync
+        run: |
+          START=$(date +%s)
+          npm run --silent verify:edge
+          END=$(date +%s)
+          ELAPSED=$((END - START))
+          echo "elapsed_seconds=$ELAPSED" >> $GITHUB_OUTPUT
+          THRESHOLD=240
+          if [ "$ELAPSED" -gt "$THRESHOLD" ]; then
+            echo "::warning::edge-sanitizer-sync exceeded ${THRESHOLD}s (ELAPSED=${ELAPSED}s)"
+            echo "budget_exceeded=true" >> $GITHUB_OUTPUT
+          else
+            echo "budget_exceeded=false" >> $GITHUB_OUTPUT
+          fi
+
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: [lint, type-check, test, monitoring-config-validate, monitoring-drift-check, spine-validate]
+    needs: [lint, type-check, test, monitoring-config-validate, monitoring-drift-check, spine-validate, edge-sanitizer-sync]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -276,11 +315,11 @@ jobs:
   all-checks-pass:
     runs-on: ubuntu-latest
     timeout-minutes: 3
-    needs: [code-size-audit, lint, type-check, test, monitoring-config-validate, monitoring-drift-check, spine-validate, build, security-fuzz]
+    needs: [code-size-audit, lint, type-check, test, monitoring-config-validate, monitoring-drift-check, spine-validate, edge-sanitizer-sync, build, security-fuzz]
     if: always()
     steps:
       - name: Check all required jobs passed
-        if: ${{ !((needs.code-size-audit.result == 'success') && (needs.lint.result == 'success') && (needs.type-check.result == 'success') && (needs.test.result == 'success') && (needs.monitoring-config-validate.result == 'success') && (needs.monitoring-drift-check.result == 'success') && (needs.spine-validate.result == 'success') && (needs.build.result == 'success') && (needs.security-fuzz.result == 'success')) }}
+        if: ${{ !((needs.code-size-audit.result == 'success') && (needs.lint.result == 'success') && (needs.type-check.result == 'success') && (needs.test.result == 'success') && (needs.monitoring-config-validate.result == 'success') && (needs.monitoring-drift-check.result == 'success') && (needs.spine-validate.result == 'success') && (needs.edge-sanitizer-sync.result == 'success') && (needs.build.result == 'success') && (needs.security-fuzz.result == 'success')) }}
         run: |
           echo "One or more required checks failed:"
           echo "  code-size-audit: ${{ needs.code-size-audit.result }}"
@@ -290,6 +329,7 @@ jobs:
           echo "  monitoring-config-validate: ${{ needs.monitoring-config-validate.result }}"
           echo "  monitoring-drift-check: ${{ needs.monitoring-drift-check.result }}"
           echo "  spine-validate: ${{ needs.spine-validate.result }}"
+          echo "  edge-sanitizer-sync: ${{ needs.edge-sanitizer-sync.result }}"
           echo "  build: ${{ needs.build.result }}"
           echo "  security-fuzz: ${{ needs.security-fuzz.result }}"
           exit 1
@@ -312,6 +352,7 @@ jobs:
           check_budget "monitoring-config-validate" "${{ needs.monitoring-config-validate.outputs.budget_exceeded }}"
           check_budget "monitoring-drift-check" "${{ needs.monitoring-drift-check.outputs.budget_exceeded }}"
           check_budget "spine-validate" "${{ needs.spine-validate.outputs.budget_exceeded }}"
+          check_budget "edge-sanitizer-sync" "${{ needs.edge-sanitizer-sync.outputs.budget_exceeded }}"
           check_budget "build" "${{ needs.build.outputs.budget_exceeded }}"
           check_budget "security-fuzz" "${{ needs.security-fuzz.outputs.budget_exceeded }}"
           if [ -n "$BUDGET_FAILURES" ]; then
