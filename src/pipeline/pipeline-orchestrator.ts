@@ -532,15 +532,35 @@ export class PipelineOrchestrator {
           quality: 0.8,
         } as { duration?: number; format?: string; sampleRate?: number });
         const optimization = await this.tuner.optimizeParameters(characteristics);
-        // Apply tuned confidence threshold if available
-        if (optimization.parameters?.confidenceThreshold) {
-          config.analysis.confidenceThreshold =
-            optimization.parameters.confidenceThreshold;
+        const tuned = optimization.parameters;
+        // Apply the tuned analysis thresholds to the run config. Previously ONLY
+        // confidenceThreshold was wired and the segment-length bounds the tuner
+        // computes were silently dropped. `Number.isFinite` (not truthiness) so a
+        // legit tuned 0 would never be skipped.
+        if (Number.isFinite(tuned?.confidenceThreshold)) {
+          config.analysis.confidenceThreshold = tuned.confidenceThreshold;
+        }
+        if (Number.isFinite(tuned?.segmentMinLength)) {
+          config.analysis.minSegmentLengthMs = tuned.segmentMinLength;
+        }
+        if (Number.isFinite(tuned?.segmentMaxLength)) {
+          config.analysis.maxSegmentLengthMs = tuned.segmentMaxLength;
         }
       } catch (error) {
         logger.warn('[PipelineOrchestrator] Auto-tuning failed, using default parameters:', error);
       }
     }
+
+    // Sync the effective analysis config (user overrides + auto-tuning) into the
+    // segmenter. The segmenter is constructed ONCE with module defaults; without
+    // this sync, `config.analysis` — whether from the user or the tuner — never
+    // reached segmentation, making auto-tuning (and user analysis overrides) a
+    // silent no-op. Run before Stage 2 analysis so the values take effect.
+    this.segmenter.updateConfig({
+      minSegmentLengthMs: config.analysis.minSegmentLengthMs,
+      maxSegmentLengthMs: config.analysis.maxSegmentLengthMs,
+      confidenceThreshold: config.analysis.confidenceThreshold,
+    });
 
     try {
       const result = await this.transcriber.transcribe(audioPath);

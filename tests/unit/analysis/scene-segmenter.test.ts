@@ -6,7 +6,12 @@
  *   - Topic-based clustering (cosine similarity)
  */
 
-import { SceneSegmenter } from '@/analysis/scene-segmenter';
+import {
+  SceneSegmenter,
+  DEFAULT_MIN_SEGMENT_LENGTH_MS,
+  DEFAULT_MAX_SEGMENT_LENGTH_MS,
+} from '@/analysis/scene-segmenter';
+import type { AnalysisConfig } from '@/analysis/types';
 import type { TranscriptionSegment } from '@/transcription/types';
 
 // ---------------------------------------------------------------------------
@@ -309,6 +314,32 @@ describe('REQ-163: SceneSegmenter', () => {
       expect(content).toMatch(
         /qualityFactors\.lengthQuality\s*<\s*this\.SUGGESTION_QUALITY_THRESHOLD/,
       );
+    });
+  });
+
+  // ─── updateConfig: runtime threshold sync (REQ-039 auto-tuning wiring) ─────
+
+  describe('updateConfig (runtime threshold sync)', () => {
+    it('merges partial overrides into the effective config (not a full replace)', () => {
+      const before = (segmenter as unknown as { config: AnalysisConfig }).config;
+      // Sanity: constructed from the module defaults.
+      expect(before.minSegmentLengthMs).toBe(DEFAULT_MIN_SEGMENT_LENGTH_MS);
+      expect(before.maxSegmentLengthMs).toBe(DEFAULT_MAX_SEGMENT_LENGTH_MS);
+
+      segmenter.updateConfig({
+        minSegmentLengthMs: 8000,
+        maxSegmentLengthMs: 20000,
+        confidenceThreshold: 0.82,
+      });
+
+      const after = (segmenter as unknown as { config: AnalysisConfig }).config;
+      // Overridden fields take the new values.
+      expect(after.minSegmentLengthMs).toBe(8000);
+      expect(after.maxSegmentLengthMs).toBe(20000);
+      expect(after.confidenceThreshold).toBe(0.82);
+      // Untouched fields are PRESERVED (merge semantics, not replace).
+      expect(after.enableSemanticAnalysis).toBe(before.enableSemanticAnalysis);
+      expect(after.keywordDensityThreshold).toBe(before.keywordDensityThreshold);
     });
   });
 });

@@ -116,6 +116,21 @@ export class SceneSegmenter {
   }
 
   /**
+   * Update segmentation thresholds at runtime.
+   *
+   * The orchestrator constructs this segmenter ONCE with module defaults, then
+   * (per run) resolves an effective `AnalysisConfig` from user overrides plus
+   * {@link SmartParameterTuner} output. Without this sync point the segmenter
+   * keeps using the construction-time defaults forever, so neither user config
+   * nor auto-tuned bounds could ever change segmentation. Values are read live
+   * from `this.config` at segmentation time, so a pre-Stage-2 update takes
+   * effect for the current run.
+   */
+  updateConfig(partial: Partial<AnalysisConfig>): void {
+    this.config = { ...this.config, ...partial };
+  }
+
+  /**
    * Segment transcription into content scenes
    * 🔄 Enhanced with Custom Instructions: 実装→テスト→評価→改善→コミット
    */

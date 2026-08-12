@@ -757,4 +757,82 @@ describe('PipelineOrchestrator', () => {
       expect(score).toBeLessThanOrEqual(1);
     });
   });
+
+  // ====== Auto-tuning wiring (REQ-039) ======
+
+  describe('auto-tuning wiring (REQ-039)', () => {
+    it('applies tuned confidence threshold AND segment-length bounds to the segmenter', async () => {
+      config.enableAutoTuning = true;
+      orchestrator = new PipelineOrchestrator(config);
+
+      // Force the tuner to return a known parameter set covering all fields.
+      const tuner = (
+        orchestrator as unknown as {
+          tuner: { optimizeParameters: (...a: unknown[]) => Promise<unknown> };
+        }
+      ).tuner;
+      jest.spyOn(tuner, 'optimizeParameters').mockResolvedValue({
+        parameters: {
+          confidenceThreshold: 0.82,
+          segmentMinLength: 8000,
+          segmentMaxLength: 20000,
+          keywordWeights: { flow: 1.2 },
+          layoutDensity: 0.6,
+          processingMode: 'accurate',
+        },
+        expectedPerformance: { accuracy: 0.9, speed: 5, reliability: 0.95 },
+        confidence: 0.85,
+      });
+
+      const segmenter = (
+        orchestrator as unknown as {
+          segmenter: { updateConfig: (...a: unknown[]) => void };
+        }
+      ).segmenter;
+      const updateSpy = jest.spyOn(segmenter, 'updateConfig');
+
+      const result = await orchestrator.execute(makeValidPipelineInput());
+
+      expect(result.success).toBe(true);
+      // The segmenter received ALL three tuned thresholds. Previously the
+      // segment-length bounds were dropped, and NONE of the values reached the
+      // segmenter at all (it was constructed once with fixed defaults).
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          confidenceThreshold: 0.82,
+          minSegmentLengthMs: 8000,
+          maxSegmentLengthMs: 20000,
+        }),
+      );
+    });
+
+    it('syncs user-provided analysis config to the segmenter without auto-tuning', async () => {
+      config.enableAutoTuning = false;
+      orchestrator = new PipelineOrchestrator(config);
+
+      const segmenter = (
+        orchestrator as unknown as {
+          segmenter: { updateConfig: (...a: unknown[]) => void };
+        }
+      ).segmenter;
+      const updateSpy = jest.spyOn(segmenter, 'updateConfig');
+
+      const input = makeValidPipelineInput();
+      input.config!.analysis.minSegmentLengthMs = 7000;
+      input.config!.analysis.maxSegmentLengthMs = 25000;
+      input.config!.analysis.confidenceThreshold = 0.66;
+
+      await orchestrator.execute(input);
+
+      // User overrides must reach the segmenter — previously the segmenter kept
+      // its construction-time defaults and `input.config.analysis` was dead.
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          minSegmentLengthMs: 7000,
+          maxSegmentLengthMs: 25000,
+          confidenceThreshold: 0.66,
+        }),
+      );
+    });
+  });
 });
