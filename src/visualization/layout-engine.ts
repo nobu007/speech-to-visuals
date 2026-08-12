@@ -290,7 +290,21 @@ export class LayoutEngine extends BaseLayoutEngine {
    */
   public updateConfig(newConfig: Partial<LayoutConfig>): void {
     const oldIsSimpleMode = this.config.isSimpleMode;
-    this.config = { ...this.config, ...newConfig };
+    // Mutate `this.config` IN PLACE rather than reassigning a new object.
+    // Every construction-once sub-strategy (dagre, fallback, overlap resolver,
+    // optimizer, evaluator) captured the `this.config` reference handed to it
+    // in the constructor and reads nodeWidth/nodeHeight/width/height/margins
+    // from THAT object at GENERATION time. A spread reassignment
+    // (`{ ...this.config, ...newConfig }`) broke the shared reference and left
+    // every sub-strategy holding the stale original — so layout config pushed
+    // here by the pipeline's `applyConfigToCollaborators` helper (user
+    // `PipelineConfig.layout` overrides and auto-tuner values) updated
+    // `getConfig()` (which reads `this.config` directly) but never reached
+    // `dagreLayoutStrategy.applyLayout`, a silent no-op (REQ-051).
+    // `this.config` is engine-owned (created fresh by getDefaultConfig;
+    // getConfig() returns a copy), so in-place mutation is safe and keeps the
+    // shared reference live for all sub-strategies at once.
+    Object.assign(this.config, newConfig);
     this.logger.info('📐 Layout configuration updated');
 
     // Dynamically manage complexEngine based on isSimpleMode change
