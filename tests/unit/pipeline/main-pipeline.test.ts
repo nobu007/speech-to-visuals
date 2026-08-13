@@ -7,7 +7,7 @@
 
 import { createHash } from 'crypto';
 import { MainPipeline } from '@/pipeline/main-pipeline';
-import { PipelineConfig, PipelineInput } from '@/pipeline/types';
+import { PipelineConfig, PipelineInput, PipelineResult } from '@/pipeline/types';
 import type { SceneGraph } from '@/types/diagram';
 
 /**
@@ -29,9 +29,7 @@ interface PrivatePipelineAccess {
   selectRecoveryStrategy(errorPattern: string, stageName: string): string;
   generateCacheKey(input: PipelineInput): Promise<string>;
   buildQualityMetrics(
-    transcription: Record<string, unknown>,
-    analysis: Record<string, unknown>,
-    layout: Record<string, unknown>,
+    result: PipelineResult,
     renderTime: number,
   ): {
     transcriptionAccuracy: number;
@@ -561,84 +559,120 @@ describe('MainPipeline', () => {
   });
 
   // ------------------------------------------------------------------
-  // Private method: buildQualityMetrics (legit-zero preservation)
-  // Regression net: the OLD code used `value || fallback`, which erased a
-  // legitimate 0 metric (0% accuracy, F1=0) to the fallback and fooled the
-  // self-improvement loop into accepting a catastrophic run.
+  // Private method: buildQualityMetrics — derive metrics from PipelineResult.
+  // Regression net: the OLD implementation read stage-output fields that NO
+  // producer populates — `transcription.accuracy`, `analysis.segmentationScore`,
+  // and `layout.overlapCount` read off a layout ARRAY (which has no such
+  // property). Every value was undefined → sanitizeFinite fallbacks 0.85 / 0.75
+  // / 0, which EQUAL the framework quality thresholds exactly, so three of four
+  // gates were permanently "green" and the self-improvement loop never iterated
+  // on real transcription / segmentation / overlap quality. The fix derives
+  // metrics from the actual PipelineResult via the canonical estimators shared
+  // with FrameworkIntegratedPipeline.
   // ------------------------------------------------------------------
 
   describe('buildQualityMetrics', () => {
-    it('PRESERVES a legitimate 0 transcription accuracy (regression: was erased to 0.85)', () => {
-      const pipeline = new MainPipeline();
-      const metrics = (pipeline as PrivatePipelineAccess).buildQualityMetrics(
-        { accuracy: 0 },
-        {},
-        {},
-        1000,
-      );
-      expect(metrics.transcriptionAccuracy).toBe(0);
-    });
+    // Minimal scene/result fixtures. Only the fields the estimators read matter
+    // (success, scenes.length, duration, scene.layout.nodes); the rest are
+    // stubbed and cast to satisfy the SceneGraph / PipelineResult types.
+    const scene = (overrides: Record<string, unknown> = {}): SceneGraph =>
+      ({
+        type: 'diagram',
+        nodes: [],
+        edges: [],
+        startMs: 0,
+        durationMs: 5000,
+        summary: '',
+        keyphrases: [],
+        ...overrides,
+      } as unknown as SceneGraph);
 
-    it('PRESERVES a legitimate 0 segmentation F1 (regression: was erased to 0.75)', () => {
-      const pipeline = new MainPipeline();
-      const metrics = (pipeline as PrivatePipelineAccess).buildQualityMetrics(
-        {},
-        { segmentationScore: 0 },
-        {},
-        1000,
-      );
-      expect(metrics.sceneSegmentationF1).toBe(0);
-    });
+    const result = (overrides: Partial<PipelineResult> = {}): PipelineResult =>
+      ({
+        success: true,
+        scenes: [],
+        audioUrl: '',
+        duration: 10000,
+        processingTime: 1000,
+        stages: [],
+        ...overrides,
+      } as PipelineResult);
 
-    it('PRESERVES a legitimate 0 layout overlap count', () => {
+    it('derives metrics from the real PipelineResult, NOT the dead-field defaults 0.85/0.75', () => {
+      // This fixture carries NO accuracy / segmentationScore / overlapCount
+      // fields — exactly what real producers emit. The OLD code returned the
+      // all-undefined fallbacks 0.85 / 0.75 / 0 for it; the estimators must now
+      // return real values that differ from those stale, threshold-equaling
+      // defaults.
       const pipeline = new MainPipeline();
       const metrics = (pipeline as PrivatePipelineAccess).buildQualityMetrics(
-        {},
-        {},
-        { overlapCount: 0 },
+        result({ scenes: [scene(), scene(), scene()] }),
         1000,
       );
+      // success + ≥1 scene → 0.90 (NOT the dead-field default 0.85)
+      expect(metrics.transcriptionAccuracy).toBe(0.90);
+      // 3 scenes (2-10 band) + 10000/3≈3333ms avg (2-15s band) → 1.0 (NOT 0.75)
+      expect(metrics.sceneSegmentationF1).toBe(1.0);
+      // scenes without layout.nodes → 0 overlaps, honestly computed
       expect(metrics.layoutOverlap).toBe(0);
     });
 
-    it('falls back to defaults when stage outputs are ABSENT (undefined)', () => {
+    it('a FAILED run yields transcriptionAccuracy 0 — gate now FIRES (old: 0.85, silently passed)', () => {
       const pipeline = new MainPipeline();
       const metrics = (pipeline as PrivatePipelineAccess).buildQualityMetrics(
-        {},
-        {},
-        {},
+        result({ success: false, scenes: [scene()] }),
         1000,
       );
-      expect(metrics.transcriptionAccuracy).toBe(0.85);
-      expect(metrics.sceneSegmentationF1).toBe(0.75);
-      expect(metrics.layoutOverlap).toBe(0);
+      expect(metrics.transcriptionAccuracy).toBe(0); // < threshold 0.85 → iterate
+      expect(metrics.sceneSegmentationF1).toBe(0); // < threshold 0.75 → iterate
     });
 
-    it('falls back to defaults for NaN / non-number metric values', () => {
+    it('a successful run with NO scenes yields transcriptionAccuracy 0.50', () => {
       const pipeline = new MainPipeline();
       const metrics = (pipeline as PrivatePipelineAccess).buildQualityMetrics(
-        { accuracy: NaN },
-        { segmentationScore: 'oops' },
-        { overlapCount: undefined },
+        result({ scenes: [] }),
         1000,
       );
-      expect(metrics.transcriptionAccuracy).toBe(0.85);
-      expect(metrics.sceneSegmentationF1).toBe(0.75);
-      expect(metrics.layoutOverlap).toBe(0);
+      expect(metrics.transcriptionAccuracy).toBe(0.50);
     });
 
-    it('keeps real non-zero metric values and passes through renderTime', () => {
+    it('real layout overlaps are COUNTED — gate now FIRES (old: always 0)', () => {
       const pipeline = new MainPipeline();
       const metrics = (pipeline as PrivatePipelineAccess).buildQualityMetrics(
-        { accuracy: 0.42 },
-        { segmentationScore: 0.9 },
-        { overlapCount: 3 },
+        result({
+          scenes: [
+            scene({
+              layout: {
+                // a and b overlap; c is isolated → exactly 1 overlapping pair
+                nodes: [
+                  { id: 'a', x: 0, y: 0, width: 100, height: 50 },
+                  { id: 'b', x: 50, y: 25, width: 100, height: 50 },
+                  { id: 'c', x: 500, y: 500, width: 100, height: 50 },
+                ],
+                edges: [],
+              },
+            }),
+          ],
+        }),
+        1000,
+      );
+      expect(metrics.layoutOverlap).toBe(1); // > threshold 0 → iterate
+    });
+
+    it('keeps a legit worst-case 0 and passes through renderTime/memoryUsage/timestamp', () => {
+      const pipeline = new MainPipeline();
+      const metrics = (pipeline as PrivatePipelineAccess).buildQualityMetrics(
+        result({ success: false, scenes: [] }),
         4242,
       );
-      expect(metrics.transcriptionAccuracy).toBe(0.42);
-      expect(metrics.sceneSegmentationF1).toBe(0.9);
-      expect(metrics.layoutOverlap).toBe(3);
+      // A failed run with no scenes: every quality axis is the worst-case 0,
+      // which must reach evaluateIteration unmasked (NOT erased to a fallback).
+      expect(metrics.transcriptionAccuracy).toBe(0);
+      expect(metrics.sceneSegmentationF1).toBe(0);
+      expect(metrics.layoutOverlap).toBe(0);
       expect(metrics.renderTime).toBe(4242);
+      expect(Number.isFinite(metrics.memoryUsage)).toBe(true);
+      expect(metrics.timestamp).toBeInstanceOf(Date);
     });
   });
 });

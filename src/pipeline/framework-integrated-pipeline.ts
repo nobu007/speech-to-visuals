@@ -18,7 +18,7 @@ import { MainPipeline } from './main-pipeline';
 import { PipelineInput, PipelineResult, PipelineConfig } from './types';
 import { getHeapUsed } from '@/utils/memory-usage';
 import { logger } from '../utils/logger';
-import { nodesOverlap } from '@/visualization/layout-utils';
+import * as qualityEstimators from './quality-estimators';
 import { CappedArray } from '@/lib/capped-array';
 import {
   IterationManager,
@@ -299,96 +299,41 @@ export class FrameworkIntegratedPipeline {
     return metrics;
   }
 
-  /**
-   * Estimate transcription accuracy (placeholder - would need ground truth)
-   */
+  // NOTE: the five estimators below are thin delegates to the canonical
+  // `qualityEstimators` module (single source of truth). They are kept as
+  // private methods so the existing white-box tests (PipelinePrivateMethods)
+  // and internal callers (`extractQualityMetrics`) resolve to ONE
+  // implementation shared with MainPipeline.buildQualityMetrics — previously
+  // MainPipeline re-derived these from dead fields and diverged.
+
+  /** Estimate transcription accuracy — delegates to the canonical module. */
   private estimateTranscriptionAccuracy(result: PipelineResult): number {
-    // In production, this would compare against ground truth
-    // For now, estimate based on success and scene count
-    if (!result.success) return 0;
-    return (result.scenes?.length ?? 0) > 0 ? 0.90 : 0.50;
+    return qualityEstimators.estimateTranscriptionAccuracy(result);
   }
 
-  /**
-   * Estimate segmentation quality
-   */
+  /** Estimate segmentation quality — delegates to the canonical module. */
   private estimateSegmentationQuality(result: PipelineResult): number {
-    if (!result.success || (result.scenes?.length ?? 0) === 0) return 0;
-
-    // Good segmentation: 2-10 scenes, reasonable duration
-    const sceneCount = result.scenes!.length;
-    const avgDuration = result.duration / sceneCount;
-
-    let score = 0.7; // Base score
-
-    // Bonus for good scene count
-    if (sceneCount >= 2 && sceneCount <= 10) score += 0.15;
-
-    // Bonus for reasonable scene durations (2-15 seconds)
-    if (avgDuration >= 2000 && avgDuration <= 15000) score += 0.15;
-
-    return Math.min(1.0, score);
+    return qualityEstimators.estimateSegmentationQuality(result);
   }
 
-  /**
-   * Estimate entity extraction quality
-   */
+  /** Estimate entity-extraction quality — delegates to the canonical module. */
   private estimateEntityExtractionQuality(result: PipelineResult): number {
-    if (!result.success || (result.scenes?.length ?? 0) === 0) return 0;
-
-    const scenesWithNodes = result.scenes!.filter(s => (s.nodes || []).length > 0);
-    const avgNodesPerScene = scenesWithNodes.reduce((sum, s) => sum + (s.nodes || []).length, 0) / Math.max(scenesWithNodes.length, 1);
-
-    // Good extraction: 2-10 nodes per scene
-    if (avgNodesPerScene >= 2 && avgNodesPerScene <= 10) return 0.90;
-    if (avgNodesPerScene >= 1 && avgNodesPerScene < 2) return 0.70;
-    return 0.50;
+    return qualityEstimators.estimateEntityExtractionQuality(result);
   }
 
-  /**
-   * Estimate relation accuracy
-   */
+  /** Estimate relation accuracy — delegates to the canonical module. */
   private estimateRelationAccuracy(result: PipelineResult): number {
-    if (!result.success || (result.scenes?.length ?? 0) === 0) return 0;
-
-    const scenesWithEdges = result.scenes!.filter(s => (s.edges || []).length > 0);
-    const avgEdgesPerScene = scenesWithEdges.reduce((sum, s) => sum + (s.edges || []).length, 0) / Math.max(scenesWithEdges.length, 1);
-
-    // Good relations: at least some edges, reasonable ratio
-    if (avgEdgesPerScene >= 1) return 0.85;
-    return 0.60;
+    return qualityEstimators.estimateRelationAccuracy(result);
   }
 
   /**
-   * Detect layout overlaps
+   * Detect layout overlaps — delegates to `countLayoutOverlaps` in the canonical
+   * module, which in turn delegates to `nodesOverlap` (the layout-engine
+   * predicate, spacing 0). Touching nodes are NOT overlaps. See
+   * framework-overlap-cross-invariant-fuzz.test.ts.
    */
   private detectLayoutOverlaps(result: PipelineResult): number {
-    let totalOverlaps = 0;
-
-    for (const scene of result.scenes || []) {
-      if (!scene.layout?.nodes) continue;
-
-      const nodes = scene.layout.nodes;
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          // Delegate to the canonical layout-engine predicate
-          // (src/visualization/layout-utils nodesOverlap, spacing 0) so this
-          // overlap check can NEVER drift from the producer or the quality gate.
-          // An earlier inline AABB test re-derived the predicate by hand and
-          // diverged: it used strict `<` for the separation axes, so two nodes
-          // that merely TOUCH (right edge of one == left edge of the other)
-          // were counted as OVERLAPPING, while nodesOverlap (and the quality
-          // gate) treat touching as NON-overlap (`<=`/`>=`). It also pulled
-          // dimensions via the 1-arg getNodeWidth (fallback 120) instead of the
-          // canonical fallback 0. Both drifts are eliminated by delegating to
-          // the single source of truth. See
-          // framework-overlap-cross-invariant-fuzz.test.ts.
-          if (nodesOverlap(nodes[i], nodes[j], 0)) totalOverlaps++;
-        }
-      }
-    }
-
-    return totalOverlaps;
+    return qualityEstimators.countLayoutOverlaps(result);
   }
 
   /**

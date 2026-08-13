@@ -25,6 +25,11 @@ import { retryWithBackoff } from './retry';
 import { buildSceneGraph } from './scene-graph-builder';
 import { applyConfigToCollaborators } from './config-sync';
 import { TranscriptionError, SegmentationError } from './pipeline-errors';
+import {
+  estimateTranscriptionAccuracy,
+  estimateSegmentationQuality,
+  countLayoutOverlaps,
+} from './quality-estimators';
 // Phase 34: Persistent iteration logging system
 import { globalIterationLogger } from '@/utils/iteration-logger';
 import { getHeapUsed, getMemoryUsage } from '@/utils/memory-usage';
@@ -280,14 +285,12 @@ export class MainPipeline {
       const totalTime = performance.now() - startTime;
       const result = this.createSuccessResult(scenes, input, totalTime);
 
-      // Update framework metrics. Delegated to buildQualityMetrics() so the
-      // legit-zero contract is unit-testable — see that method for rationale.
-      this.qualityMetrics = this.buildQualityMetrics(
-        transcriptionResult as Record<string, unknown>,
-        analysisResult as Record<string, unknown>,
-        layoutResult as unknown as Record<string, unknown>,
-        totalTime,
-      );
+      // Derive framework metrics from the actual pipeline result via the
+      // canonical estimators (see buildQualityMetrics). `result` is the
+      // createSuccessResult output above — the real stage outputs
+      // (transcriptionResult/analysisResult/layoutResult) do NOT carry the
+      // quality fields the old implementation tried to read.
+      this.qualityMetrics = this.buildQualityMetrics(result, totalTime);
 
       return result;
 
@@ -343,26 +346,35 @@ export class MainPipeline {
   }
 
   /**
-   * Build the framework quality-metrics record from stage outputs.
+   * Build the framework quality-metrics record from the actual pipeline result.
    *
-   * Uses `sanitizeFinite` (NOT `value || fallback`): a metric value of exactly
-   * `0` is a legitimate worst-case signal — 0% transcription accuracy, F1 = 0,
-   * zero layout overlap — and must NOT be erased to the fallback. The previous
-   * `||` form silently turned a real `0` into `0.85` / `0.75`, which made the
-   * self-improvement loop (evaluateIteration) believe a catastrophically bad
-   * run was acceptable and skip re-iteration. `sanitizeFinite` keeps any real
-   * finite number (including 0) and only falls back for undefined/NaN/non-numbers.
+   * Metrics are derived from `result` via the canonical estimators in
+   * `quality-estimators` (shared with FrameworkIntegratedPipeline) — NOT from
+   * stage-output fields. The previous implementation read
+   * `transcription.accuracy` / `analysis.segmentationScore` /
+   * `layout.overlapCount`, but NO producer ever populates those:
+   * TranscriptionResult has no `accuracy`, analyzeContent returns no
+   * `segmentationScore`, and generateLayoutsEnhanced returns an ARRAY (which has
+   * no `overlapCount`). Every value was therefore `undefined`, coerced by
+   * `sanitizeFinite` to the fallbacks 0.85 / 0.75 / 0 — which equal the
+   * framework quality thresholds EXACTLY, so three of four gates were
+   * permanently "green" and the self-improvement loop never iterated on
+   * transcription, segmentation, or overlap quality. Deriving from `result`
+   * makes those gates fire on real data.
+   *
+   * `sanitizeFinite` (fail-loud fallback 0) is retained as a defensive backstop:
+   * the estimators are total functions over PipelineResult, but if a future
+   * change ever yields a non-finite estimate, 0 is below every threshold so the
+   * gate fails loudly (forces iteration) instead of silently passing.
    */
   private buildQualityMetrics(
-    transcription: Record<string, unknown>,
-    analysis: Record<string, unknown>,
-    layout: Record<string, unknown>,
+    result: PipelineResult,
     renderTime: number,
   ): FrameworkQualityMetrics {
     return {
-      transcriptionAccuracy: sanitizeFinite(transcription.accuracy, 0.85),
-      sceneSegmentationF1: sanitizeFinite(analysis.segmentationScore, 0.75),
-      layoutOverlap: sanitizeFinite(layout.overlapCount, 0),
+      transcriptionAccuracy: sanitizeFinite(estimateTranscriptionAccuracy(result), 0),
+      sceneSegmentationF1: sanitizeFinite(estimateSegmentationQuality(result), 0),
+      layoutOverlap: sanitizeFinite(countLayoutOverlaps(result), 0),
       renderTime,
       memoryUsage: getHeapUsed(),
       timestamp: new Date(),
