@@ -6,6 +6,8 @@
  * Based on measured E2E time of ~25.2s with 10% margin.
  */
 
+import { sanitizeFinite } from '@/utils/guards';
+
 /** Per-stage performance baseline with current ceiling and Phase 36 target */
 export interface PerformanceBaseline {
   stage: string;
@@ -68,7 +70,7 @@ export function isWithinBaseline(measurement: StageMeasurement, baselines: reado
  * Aggregate an array of stage measurements into a BenchmarkResult.
  */
 export function aggregateBenchmark(stages: StageMeasurement[], baselines: readonly PerformanceBaseline[] = DEFAULT_BASELINES): BenchmarkResult {
-  const totalDurationMs = stages.reduce((s, m) => s + (Number.isFinite(m.durationMs) ? m.durationMs : 0), 0);
+  const totalDurationMs = stages.reduce((s, m) => s + sanitizeFinite(m.durationMs, 0), 0);
   const totalMemoryMB = stages.reduce((s, m) => s + m.memoryMB, 0);
   const passed = stages.every(m => isWithinBaseline(m, baselines));
   return { timestamp: Date.now(), stages, totalDurationMs, totalMemoryMB, passed };

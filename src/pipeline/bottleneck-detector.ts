@@ -6,6 +6,7 @@
  */
 
 import { StageTimingRecord } from './stage-timing-metrics';
+import { sanitizeFinite } from '@/utils/guards';
 
 /** Severity of a detected bottleneck */
 export type BottleneckSeverity = 'none' | 'warning' | 'critical';
@@ -50,7 +51,7 @@ export function classifyBottleneck(percentOfTotal: number): BottleneckSeverity {
  * the 40% threshold are flagged.
  */
 export function detectBottlenecks(stages: StageTimingRecord[]): BottleneckReport {
-  const totalDurationMs = stages.reduce((s, r) => s + (Number.isFinite(r.durationMs) ? r.durationMs : 0), 0);
+  const totalDurationMs = stages.reduce((s, r) => s + sanitizeFinite(r.durationMs, 0), 0);
 
   const stageInfos: BottleneckInfo[] = stages.map((stage) => {
     const percentOfTotal = totalDurationMs > 0 ? stage.durationMs / totalDurationMs : 0;

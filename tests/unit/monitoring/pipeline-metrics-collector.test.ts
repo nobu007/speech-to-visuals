@@ -152,6 +152,61 @@ describe('PipelineMetricsCollector', () => {
   it('exports a global singleton', () => {
     expect(pipelineMetricsCollector).toBeInstanceOf(PipelineMetricsCollector);
   });
+
+  // ---- REQ-001/002/003: NaN/Infinity leak guard at ingestion chokepoint ----
+
+  it('treats NaN durationMs as 0 so sum/avg/min/max stay finite (REQ-001/002)', () => {
+    const c = freshCollector();
+    c.recordStageDuration('transcribe', 100);
+    c.recordStageDuration('transcribe', 100);
+    c.recordStageDuration('transcribe', 100);
+    c.recordStageDuration('transcribe', NaN);
+
+    const stage = c.getSnapshot().stages.find((s) => s.stage === 'transcribe')!;
+    expect(stage.count).toBe(4);
+    expect(stage.sumMs).toBe(300); // NaN coerced to 0, not contaminating sum
+    expect(stage.avgMs).toBe(75);  // 300/4 rounded
+    expect(stage.minMs).toBe(0);   // NaN→0 IS the smallest sample
+    expect(stage.maxMs).toBe(100);
+    // All percentiles must be finite (not NaN).
+    expect(Number.isFinite(stage.percentiles.p50)).toBe(true);
+    expect(Number.isFinite(stage.percentiles.p95)).toBe(true);
+    expect(Number.isFinite(stage.percentiles.p99)).toBe(true);
+  });
+
+  it('treats +Infinity durationMs as 0 (REQ-001 boundary)', () => {
+    const c = freshCollector();
+    c.recordStageDuration('layout', 50);
+    c.recordStageDuration('layout', Number.POSITIVE_INFINITY);
+
+    const stage = c.getSnapshot().stages.find((s) => s.stage === 'layout')!;
+    expect(Number.isFinite(stage.sumMs)).toBe(true);
+    expect(stage.sumMs).toBe(50);
+    expect(stage.avgMs).toBe(25);
+  });
+
+  it('treats -Infinity durationMs as 0 (REQ-001 boundary)', () => {
+    const c = freshCollector();
+    c.recordStageDuration('render', 80);
+    c.recordStageDuration('render', Number.NEGATIVE_INFINITY);
+
+    const stage = c.getSnapshot().stages.find((s) => s.stage === 'render')!;
+    expect(Number.isFinite(stage.sumMs)).toBe(true);
+    expect(stage.sumMs).toBe(80);
+  });
+
+  it('does not contaminate percentiles when NaN is injected (REQ-002/003)', () => {
+    const c = freshCollector();
+    for (let i = 1; i <= 10; i++) c.recordStageDuration('analysis', i * 10);
+    c.recordStageDuration('analysis', NaN);
+
+    const stage = c.getSnapshot().stages.find((s) => s.stage === 'analysis')!;
+    expect(Number.isFinite(stage.percentiles.p50)).toBe(true);
+    expect(Number.isFinite(stage.percentiles.p95)).toBe(true);
+    expect(Number.isFinite(stage.percentiles.p99)).toBe(true);
+    // NaN must NOT be in the samples buffer (ingestion drops it).
+    expect(stage.sumMs).toBe(550); // 10+20+...+100
+  });
 });
 
 // ---------------------------------------------------------------------------

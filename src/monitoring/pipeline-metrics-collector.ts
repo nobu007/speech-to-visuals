@@ -12,6 +12,7 @@
  */
 
 import { computePercentiles } from '@/lib/metrics-utils';
+import { sanitizeFinite } from '@/utils/guards';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -89,6 +90,14 @@ export class PipelineMetricsCollector {
 
   /** Record a single stage execution duration. */
   recordStageDuration(stage: string, durationMs: number): void {
+    // REQ-001: ingestion chokepoint — NaN / ±Infinity / non-number are coerced
+    // to 0 so sumMs/avgMs/minMs/maxMs/percentiles stay finite for downstream
+    // Prometheus exporter and `/api/monitoring/metrics`. Without this guard,
+    // upstream `Date.now()-Date.now()`-style miscalculations or test fixtures
+    // leak NaN into the dashboard ("avgMs: NaN ms"). See
+    // specs/pipeline-metrics-nan-leak-fix/.
+    const safeDurationMs = sanitizeFinite(durationMs, 0);
+
     let data = this.stages.get(stage);
     if (!data) {
       data = { stage, count: 0, sumMs: 0, minMs: Infinity, maxMs: 0, samples: [] };
@@ -96,11 +105,11 @@ export class PipelineMetricsCollector {
     }
 
     data.count++;
-    data.sumMs += durationMs;
-    if (durationMs < data.minMs) data.minMs = durationMs;
-    if (durationMs > data.maxMs) data.maxMs = durationMs;
+    data.sumMs += safeDurationMs;
+    if (safeDurationMs < data.minMs) data.minMs = safeDurationMs;
+    if (safeDurationMs > data.maxMs) data.maxMs = safeDurationMs;
 
-    data.samples.push(durationMs);
+    data.samples.push(safeDurationMs);
     if (data.samples.length > this.config.maxSamplesPerStage) {
       data.samples = data.samples.slice(-Math.floor(this.config.maxSamplesPerStage / 2));
     }
