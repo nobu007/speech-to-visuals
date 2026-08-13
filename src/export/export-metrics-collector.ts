@@ -438,7 +438,25 @@ export class ExportMetricsCollector {
 
   /** Record the current priority distribution in the queue. */
   recordQueuePriorityDistribution(high: number, normal: number, low: number): void {
-    this.priorityDistribution = { high, normal, low };
+    // Closed-set ingestion guard — the sibling queue gauges (recordQueueSize /
+    // recordDlqSize) and the sample series (recordSample) all drop a non-finite
+    // or negative input. This was the sole UNGUARDED numeric ingestion point in
+    // the collector: a poisoned count would publish a non-finite
+    // `priorityDistribution` in the snapshot. Drop the WHOLE update (not a
+    // partial write, which would leave an inconsistent distribution) so the
+    // last valid distribution is retained — the same "keep previously-recorded
+    // finite" contract the queue-size / dlq-size gauges lock.
+    if (
+      !Number.isFinite(high) || !Number.isFinite(normal) || !Number.isFinite(low) ||
+      high < 0 || normal < 0 || low < 0
+    ) {
+      return;
+    }
+    this.priorityDistribution = {
+      high: Math.floor(high),
+      normal: Math.floor(normal),
+      low: Math.floor(low),
+    };
   }
 
   /** Record current dead letter queue size. */

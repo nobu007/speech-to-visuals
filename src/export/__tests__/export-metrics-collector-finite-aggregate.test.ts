@@ -162,6 +162,30 @@ describe('ExportMetricsCollector — non-finite ingestion must not leak into agg
     expect(collector.getSnapshot().queue.dlqSize).toBe(2);
   });
 
+  // --- recordQueuePriorityDistribution → snapshot.queue.priorityDistribution ---
+
+  it('drops a poisoned priority distribution and keeps the previously-recorded finite distribution', () => {
+    collector.recordQueuePriorityDistribution(3, 2, 1);
+    collector.recordQueuePriorityDistribution(NaN, 2, 1); // poisoned — whole update dropped
+    collector.recordQueuePriorityDistribution(3, Infinity, 1);
+    collector.recordQueuePriorityDistribution(3, 2, -1);
+
+    const { priorityDistribution } = collector.getSnapshot().queue;
+    // Last VALID distribution (3,2,1) retained; no poisoned update landed.
+    expect(priorityDistribution).toEqual({ high: 3, normal: 2, low: 1 });
+    expect(Number.isFinite(priorityDistribution.high)).toBe(true);
+    expect(Number.isFinite(priorityDistribution.normal)).toBe(true);
+    expect(Number.isFinite(priorityDistribution.low)).toBe(true);
+  });
+
+  it('keeps the default zero distribution when the first update is poisoned', () => {
+    collector.recordQueuePriorityDistribution(NaN, 0, 0);
+    collector.recordQueuePriorityDistribution(0, Infinity, 0);
+
+    const { priorityDistribution } = collector.getSnapshot().queue;
+    expect(priorityDistribution).toEqual({ high: 0, normal: 0, low: 0 });
+  });
+
   // --- Publish path A: prometheus-exporter.exportPrometheusMetrics ---
 
   it('renders no NaN token in the exportPrometheusMetrics publish path after poisoned ingestion', () => {
