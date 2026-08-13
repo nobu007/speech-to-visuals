@@ -10,6 +10,7 @@ import { EventEmitter } from 'events';
 import { getMemoryUsage } from '@/utils/memory-usage';
 import { percentileCeil, roundTo, heapUsagePercent, bytesToMb } from '@/lib/metrics-utils';
 import { logger } from '@/utils/logger';
+import { sanitizeFinite } from '@/utils/guards';
 
 /**
  * Metrics for which a LOWER value is better (a rise = degradation), used by
@@ -182,6 +183,13 @@ class RealTimePerformanceMonitor extends EventEmitter {
    * Record a performance metric
    */
   public recordMetric(metric: string, value: number, unit: string, tags?: Record<string, string>): void {
+    // Ingestion chokepoint: every metric value enters the history arrays that
+    // feed trend averages (analyzeTrend's reduce) and percentiles (percentileCeil)
+    // which surface in the dashboard snapshot and the deployment-readiness/health
+    // gate. A single NaN/±∞ sample is sticky through +, /, Math.round and sort,
+    // so it must be coerced to 0 here — same leak class the recordStageDuration
+    // guard closed in pipeline-metrics-collector.ts.
+    value = sanitizeFinite(value);
     const performanceMetric: PerformanceMetric = {
       timestamp: Date.now(),
       metric,
@@ -366,6 +374,11 @@ class RealTimePerformanceMonitor extends EventEmitter {
    * Record pipeline request
    */
   public recordRequest(success: boolean, processingTime: number): void {
+    // Ingestion chokepoint for the totalProcessingTime accumulator, which
+    // bypasses recordMetric and feeds avgProcessingTime in the snapshot. A
+    // non-finite processingTime (e.g. an untimed request) would make the
+    // running sum — and thus the published average — NaN/±Infinity.
+    processingTime = sanitizeFinite(processingTime);
     this.counters.totalRequests++;
     if (success) {
       this.counters.successfulRequests++;

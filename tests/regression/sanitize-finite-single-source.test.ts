@@ -54,6 +54,7 @@ const SITES = [
   'src/pipeline/performance-baseline.ts',
   'src/pipeline/bottleneck-detector.ts',
   'src/monitoring/pipeline-metrics-collector.ts',
+  'src/monitoring/real-time-performance-monitor.ts',
   'src/visualization/canvas-calculator.ts',
   'src/visualization/visual-balance-scorer.ts',
   'src/remotion/scene-synchronizer.ts',
