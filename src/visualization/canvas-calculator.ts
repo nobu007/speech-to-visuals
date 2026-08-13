@@ -7,6 +7,7 @@
  */
 
 import { PositionedNode } from '@/types/diagram';
+import { sanitizeFinite } from '@/utils/guards';
 import { getNodeWidth, getNodeHeight } from './node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from './canvas-dimensions';
 
@@ -47,12 +48,12 @@ export class CanvasCalculator {
     let maxY = -Infinity;
 
     for (const node of nodes) {
-      const left = Number.isFinite(node.x) ? node.x : 0;
+      const left = sanitizeFinite(node.x, 0);
       const w = getNodeWidth(node, 0);
       const h = getNodeHeight(node, 0);
-      const right = left + (Number.isFinite(w) ? w : 0);
-      const top = Number.isFinite(node.y) ? node.y : 0;
-      const bottom = top + (Number.isFinite(h) ? h : 0);
+      const right = left + sanitizeFinite(w, 0);
+      const top = sanitizeFinite(node.y, 0);
+      const bottom = top + sanitizeFinite(h, 0);
       if (left < minX) minX = left;
       if (top < minY) minY = top;
       if (right > maxX) maxX = right;
@@ -122,12 +123,12 @@ export class CanvasCalculator {
     let maxY = -Infinity;
 
     for (const node of nodes) {
-      const left = Number.isFinite(node.x) ? node.x : 0;
+      const left = sanitizeFinite(node.x, 0);
       const w = getNodeWidth(node, 0);
       const h = getNodeHeight(node, 0);
-      const right = left + (Number.isFinite(w) ? w : 0);
-      const top = Number.isFinite(node.y) ? node.y : 0;
-      const bottom = top + (Number.isFinite(h) ? h : 0);
+      const right = left + sanitizeFinite(w, 0);
+      const top = sanitizeFinite(node.y, 0);
+      const bottom = top + sanitizeFinite(h, 0);
       if (left < minX) minX = left;
       if (top < minY) minY = top;
       if (right > maxX) maxX = right;
@@ -147,8 +148,8 @@ export class CanvasCalculator {
 
     return nodes.map((node) => ({
       ...node,
-      x: (Number.isFinite(node.x) ? node.x : 0) + offsetX,
-      y: (Number.isFinite(node.y) ? node.y : 0) + offsetY,
+      x: sanitizeFinite(node.x, 0) + offsetX,
+      y: sanitizeFinite(node.y, 0) + offsetY,
     }));
   }
 }
