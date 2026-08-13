@@ -486,5 +486,25 @@ describe('IterationManager', () => {
       // metric present → true (silent pass); now it correctly fails.
       expect(m.evaluateSuccessCriteria({ labelReadability: 0.5 }).allMet).toBe(false);
     });
+
+    it('maps "ゼロクリティカルバグ" to crashCount and fails on a non-zero count (defect 8)', () => {
+      // "ゼロクリティカルバグ" = "zero critical bugs". crashCount is a defect
+      // COUNT (lower is better) and a REAL QualityMetrics field produced by the
+      // FIP. Two things broke this SLO before:
+      //  (a) the クリティカル/バグ keyword matched NO key in the map, and
+      //  (b) the threshold is written as the WORD "ゼロ", not the ASCII digit "0",
+      //      so the numeric threshold was never parsed.
+      // Both sent the criterion to the "any metric present → pass" fallback, so a
+      // run WITH crashes silently satisfied its own zero-crash SLO on the live FIP
+      // path (FrameworkIntegratedPipeline → evaluateSuccessCriteria →
+      // checkCriterion, with crashCount spread into metricsForEvaluation).
+      const m = mgrWith(['ゼロクリティカルバグ']);
+      // 0 crashes → exactly the "zero" bar → MET.
+      expect(m.evaluateSuccessCriteria({ crashCount: 0 }).allMet).toBe(true);
+      // 5 crashes → over the "zero" bar → NOT MET (the SLO violation this gate
+      // exists to catch). Old code: no ASCII digit + unmapped key → any metric
+      // present → true (silent pass).
+      expect(m.evaluateSuccessCriteria({ crashCount: 5 }).allMet).toBe(false);
+    });
   });
 });

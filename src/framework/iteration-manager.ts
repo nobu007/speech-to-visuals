@@ -140,7 +140,7 @@ export class IterationManager {
    * metric the criterion refers to (by keyword), then compares the first
    * present metric value against the threshold.
    *
-   * Fixes five defects in the original stub:
+   * Fixes the following defects in the original stub:
    *  1. Bare-number thresholds were never honored — `numberMatch` was
    *     computed then discarded, so criteria like "全体品質スコア>95" silently
    *     always passed (fell through to "any metric present").
@@ -173,6 +173,21 @@ export class IterationManager {
    *     `nodeOverflow`, `danglingLayoutEdges`) and a multi-key defect criterion
    *     must hold for EVERY present dimension (AND), so any one kind of
    *     breakdown fails the gate.
+   *  7. Label-readability silent-pass — "ラベル可読性100%" matched NO key and fell
+   *     through to "any metric present → pass": a layout whose node labels
+   *     truncated silently satisfied its own 100% readability SLO. The
+   *     ラベル/可読性 keyword now maps to `labelReadability` (estimated by the
+   *     canonical `estimateLabelReadability`, which delegates to the renderer's
+   *     own `sizeLabel` truncation predicate).
+   *  8. Zero-as-a-word + unmapped crash key — "ゼロクリティカルバグ" ("zero
+   *     critical bugs") carried no ASCII digit (the threshold is the WORD "ゼロ",
+   *     not "0"), so the threshold was never parsed; and the クリティカル/バグ
+   *     keyword matched NO key either. Both sent it to the "any metric present →
+   *     pass" fallback, so a run WITH crashes silently satisfied its own
+   *     zero-crash SLO on the live FIP path. A zero-word (ゼロ/零/〇/zero) is now
+   *     recognized as threshold 0 (when no explicit number/percent is given), and
+   *     the crash keyword maps to the real `crashCount` metric (a lower-is-better
+   *     QualityMetrics field produced by the FIP).
    *
    * Criterion→key mapping is keyword-based and best-effort. Criteria whose
    * metric cannot be identified retain the legacy "met when any metric is
@@ -193,15 +208,24 @@ export class IterationManager {
     // ("95"). Both are real shapes in DEVELOPMENT_CYCLES.
     const percentMatch = criterion.match(/(\d+(?:\.\d+)?)\s*%/);
     const numberMatch = criterion.match(/(\d+(?:\.\d+)?)/);
+    // (defect 8) A zero written as a WORD — Japanese ゼロ/零/〇 or English "zero"
+    // — instead of the ASCII digit "0". "ゼロクリティカルバグ" ("zero critical
+    // bugs") carries no ASCII digit, so the threshold was never parsed and the
+    // criterion fell through to the "any metric present → pass" fallback: a
+    // crash-count SLO that never fired on the live FIP path. Recognize such a
+    // zero-word as threshold 0, but ONLY when no explicit percent/number was
+    // given, so criteria that DO state a number keep their numeric bar.
+    const zeroWordMatch =
+      !percentMatch && !numberMatch && /ゼロ|零|〇|\bzero\b/i.test(criterion);
     const thresholdMatch = percentMatch ?? numberMatch;
 
-    if (!thresholdMatch) {
+    if (!thresholdMatch && !zeroWordMatch) {
       // Descriptive criterion with no numeric bar — met whenever metrics were
       // reported (e.g. "音声入力→字幕付き動画出力が動作").
       return Object.keys(metrics).length > 0;
     }
 
-    const threshold = parseFloat(thresholdMatch[1]);
+    const threshold = thresholdMatch ? parseFloat(thresholdMatch[1]) : 0;
     const isPercent = !!percentMatch;
 
     // (c) Which metric does this criterion quantify? Keyword → candidate keys,
@@ -223,6 +247,13 @@ export class IterationManager {
       // own 100% readability SLO on the live FIP path.
       [/ラベル|可読性|label|readab/i,    ['labelReadability']],
       [/エラー|error/i,                  ['errorRate']],
+      // Crash / critical-bug defect-count criteria (lower is better). "ゼロク
+      // リティカルバグ" ("zero critical bugs") previously matched NO key and fell
+      // through to the "any metric present → pass" fallback (defect 8): a run that
+      // crashed still satisfied its own zero-crash SLO on the live FIP path.
+      // `crashCount` is a real QualityMetrics field produced by the FIP, so this
+      // mapping makes the gate fire on actual crash data.
+      [/クリティカル|critical|crash|バグ|bug/i, ['crashCount']],
       // Layout defect-count criteria. All three are defect COUNTS (lower is
       // better) computed from the PipelineResult by the canonical estimators in
       // quality-estimators: layoutOverlap (overlapping node pairs), nodeOverflow
