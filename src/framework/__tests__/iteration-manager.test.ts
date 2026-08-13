@@ -404,5 +404,20 @@ describe('IterationManager', () => {
         m.evaluateSuccessCriteria({ sceneSegmentationF1: 0.85, accuracy: 0.1 }).allMet,
       ).toBe(true);
     });
+
+    it('reconciles a milliseconds metric against a seconds time criterion (平均処理時間<60秒)', () => {
+      // processingTime is a MILLISECONDS delta (performance.now()/Date.now());
+      // the "<60秒" SLO bar is in SECONDS. Previously the time key was
+      // unmapped, so the criterion fell through to "any metric present → pass":
+      // a 70-second run silently satisfied its own <60s performance SLO. This
+      // is the 4th defect of the original criterion stub. The framework passes
+      // `processingTime` (ms) into evaluateSuccessCriteria via the live
+      // FrameworkIntegratedPipeline → useFrameworkPipeline path.
+      const m = mgrWith(['平均処理時間<60秒']);
+      // 45s = 45000ms → under the 60s bar → MET
+      expect(m.evaluateSuccessCriteria({ processingTime: 45000 }).allMet).toBe(true);
+      // 70s = 70000ms → over the 60s bar → NOT MET (the SLO violation this gate exists to catch)
+      expect(m.evaluateSuccessCriteria({ processingTime: 70000 }).allMet).toBe(false);
+    });
   });
 });

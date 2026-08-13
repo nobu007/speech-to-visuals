@@ -140,7 +140,7 @@ export class IterationManager {
    * metric the criterion refers to (by keyword), then compares the first
    * present metric value against the threshold.
    *
-   * Fixes three defects in the original stub:
+   * Fixes four defects in the original stub:
    *  1. Bare-number thresholds were never honored — `numberMatch` was
    *     computed then discarded, so criteria like "全体品質スコア>95" silently
    *     always passed (fell through to "any metric present").
@@ -151,12 +151,18 @@ export class IterationManager {
    *     QualityMetrics). A 0.90 accuracy compared with `>= 80` was always
    *     false. Fractions in [0,1] are now scaled to 0-100 when the threshold
    *     is a percent.
+   *  4. Time-unit mismatch — time criteria ("平均処理時間<60秒") state the bar
+   *     in SECONDS, but the metric fields (processingTime, duration, …) are
+   *     MILLISECONDS. The time keyword was not in the key map, so the criterion
+   *     fell through to "any metric present → pass": a 70-second run silently
+   *     satisfied its own <60s performance SLO on the live framework path
+   *     (FrameworkIntegratedPipeline → useFrameworkPipeline). Millisecond
+   *     metrics are now scaled to seconds when the threshold is in seconds.
    *
    * Criterion→key mapping is keyword-based and best-effort. Criteria whose
    * metric cannot be identified retain the legacy "met when any metric is
    * present" behavior so this change introduces no regression for unhandled
-   * shapes (e.g. "平均処理時間<60秒", whose `processingTime` is milliseconds
-   * while the threshold is seconds — a separate unit mismatch).
+   * shapes.
    */
   private checkCriterion(criterion: string, metrics: Record<string, unknown>): boolean {
     // (a) Comparison operator; default ">=" (preserves the legacy default for
@@ -190,6 +196,12 @@ export class IterationManager {
       [/成功率|success/i,                ['successRate', 'success_rate']],
       [/精度|正確|accuracy|precision/i,  ['accuracy', 'precision', 'transcriptionAccuracy']],
       [/エラー|error/i,                  ['errorRate']],
+      // Time/duration criteria ("平均処理時間<60秒"). Listed LAST so a compound
+      // name still wins on its more-specific keyword (成功率 → success,
+      // 精度 → accuracy). The metric fields are milliseconds; they are
+      // reconciled against the seconds bar below (defect 4).
+      [/時間|処理時間|duration|processingtime|\btime\b/i,
+        ['processingTime', 'processing_time', 'duration', 'durationMs', 'totalTime']],
     ];
     let keys: readonly string[] | null = null;
     for (const [re, ks] of KEY_MAP) {
@@ -200,6 +212,14 @@ export class IterationManager {
     }
     const possibleKeys = keys ?? ['accuracy', 'precision', 'rate', 'score', 'pass_rate', 'success_rate'];
 
+    // Metric fields expressed in MILLISECONDS (Date.now()/performance.now()
+    // deltas). Time criteria express the threshold in seconds, so these must be
+    // scaled ms→s before the comparison (defect 4).
+    const MS_KEYS = new Set([
+      'processingTime', 'processing_time', 'duration', 'durationMs', 'totalTime', 'renderTime',
+    ]);
+    const isSecondsThreshold = /秒|secs?|seconds?/i.test(criterion);
+
     for (const key of possibleKeys) {
       if (metrics[key] === undefined) continue;
       const raw =
@@ -208,7 +228,15 @@ export class IterationManager {
           : parseFloat(String(metrics[key]));
       if (!Number.isFinite(raw)) continue;
       // (defect 3) Normalize a 0-1 fraction to 0-100 for percent thresholds.
-      const value = isPercent && raw >= 0 && raw <= 1 ? raw * 100 : raw;
+      // (defect 4) Scale a milliseconds metric to seconds when the threshold is
+      // in seconds, so "平均処理時間<60秒" actually compares 70s < 60s rather
+      // than 70000 < 60 (or silently passing via the unmapped-key fallback).
+      let value = raw;
+      if (isPercent && raw >= 0 && raw <= 1) {
+        value = raw * 100;
+      } else if (MS_KEYS.has(key) && isSecondsThreshold) {
+        value = raw / 1000;
+      }
       switch (op) {
         case '>':
           return value > threshold;
