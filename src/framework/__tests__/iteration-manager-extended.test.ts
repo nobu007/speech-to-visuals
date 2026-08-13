@@ -637,6 +637,57 @@ describe('IterationManager — extended coverage', () => {
         warnSpy.mockRestore();
       }
     });
+
+    // The generic-fallback keys (accuracy/precision/rate/score/pass_rate/
+    // success_rate) are the ONLY resolution for criteria whose keyword is the
+    // generic metric NAME itself ('rate > 50%', 'pass_rate > 90%'). But the
+    // legacy fallback evaluated them in PRIORITY ORDER, first-present-wins — so
+    // a criterion naming "rate" was satisfied by the FIRST present generic key
+    // (accuracy), not by the metric it named. This is the surviving instance of
+    // the silent-pass class: a criterion whose keyword matches no KEY_MAP entry
+    // passing on the mere presence of an UNRELATED metric. The generic fallback
+    // now only accepts a generic key the criterion textually NAMES.
+
+    test('a criterion naming "rate" is NOT satisfied by an unrelated "accuracy" metric', () => {
+      const mgr = new IterationManager(makeCycle({
+        successCriteria: ['rate > 50%'],
+      }), tmpLogPath());
+      // rate=40 fails its own bar; accuracy=95 is present and >= 50. The legacy
+      // generic fallback resolved "rate" against accuracy (first generic key)
+      // and silently passed. Only the metric the criterion names may satisfy it.
+      expect(mgr.evaluateSuccessCriteria({ accuracy: 95, rate: 40 }).allMet).toBe(false);
+      // and when the named metric genuinely meets the bar, it still passes.
+      expect(mgr.evaluateSuccessCriteria({ accuracy: 95, rate: 60 }).allMet).toBe(true);
+    });
+
+    test('a criterion naming "pass_rate" ignores the "rate" metric (no substring bleed)', () => {
+      const mgr = new IterationManager(makeCycle({
+        successCriteria: ['pass_rate > 90%'],
+      }), tmpLogPath());
+      // rate=95 would satisfy a 90% bar, but the criterion names pass_rate, and
+      // pass_rate=40 fails it. 'rate' must not bleed in as a candidate just
+      // because it is a substring of 'pass_rate'.
+      expect(mgr.evaluateSuccessCriteria({ rate: 95, pass_rate: 40 }).allMet).toBe(false);
+      expect(mgr.evaluateSuccessCriteria({ rate: 95, pass_rate: 95 }).allMet).toBe(true);
+    });
+
+    test('an unmapped numeric SLO naming no known metric FAILS even with unrelated metrics present', () => {
+      const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => {});
+      try {
+        const mgr = new IterationManager(makeCycle({
+          successCriteria: ['未知指標90%'],
+        }), tmpLogPath());
+        // accuracy is present (0.95 → 95%) and would satisfy a 90% bar, but the
+        // criterion names no known metric keyword and no generic metric token →
+        // it must NOT silently pass on accuracy's presence.
+        expect(mgr.evaluateSuccessCriteria({ accuracy: 0.95 }).allMet).toBe(false);
+        // and it fails LOUD: the unmapped-SLO warning names the criterion.
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('未知指標90%'));
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('unmapped SLO'));
+      } finally {
+        warnSpy.mockRestore();
+      }
+    });
   });
 
   // ── completeIteration: recorded verdict matches the actual SLO evaluation ─

@@ -163,19 +163,49 @@ export function mapCriterionToKeys(criterion: string): readonly string[] | null 
   return null;
 }
 
-// Generic fallback metric keys (priority order) used when a criterion's keyword
-// matches no CRITERION_KEY_MAP entry. Shared by checkCriterion (the verdict)
-// and resolveCriterionValue (the recorded value) so both resolve the SAME
-// metric — they cannot drift apart. (defect 9 — see checkCriterion.)
+// Generic fallback metric keys for a criterion whose keyword matches no
+// CRITERION_KEY_MAP entry. A criterion that literally NAMES one of these
+// metrics ("rate > 50%", "pass_rate > 90%") resolves to it via
+// genericFallbackKeys below. NOTE: these are intentionally a restricted
+// best-effort, NOT an "any metric present → pass" escape hatch — see
+// genericFallbackKeys (defect 9, terminal silent-pass closure).
 const GENERIC_FALLBACK_KEYS = [
   'accuracy', 'precision', 'rate', 'score', 'pass_rate', 'success_rate',
 ] as const;
 
 /**
- * The metric value a criterion would be evaluated against — the first
- * present candidate key (mapped keys, else GENERIC_FALLBACK_KEYS), mirroring
- * checkCriterion's first-present-wins resolution. Used to populate the
- * recorded IterationMetrics.successCriteria[].value with the value actually
+ * Candidate metric keys for a criterion whose keyword matches no
+ * CRITERION_KEY_MAP entry: the subset of GENERIC_FALLBACK_KEYS the criterion
+ * textually NAMES as a distinct (word-bounded) token.
+ *
+ * Why this restriction exists (defect 9 — terminal silent-pass closure): the
+ * legacy fallback used ALL generic keys in priority order, first-present-wins.
+ * That let a criterion naming ONE generic metric be satisfied by an UNRELATED
+ * one — "rate > 50%" passed on accuracy=95 (the first generic key) while the
+ * real rate was 40 — and let a criterion naming NO known metric ("未知指標90%")
+ * silently pass on any present generic metric. Both are the surviving instance
+ * of the class defect 9 closed for mapped criteria: a keyword matching no key
+ * passing on the mere presence of an unrelated metric. Restricting candidates
+ * to the generic tokens the criterion actually names makes "rate > 50%" resolve
+ * to ['rate'] only, and "未知指標90%" resolve to [] (→ loud fail).
+ *
+ * Word-bounded (\b) so 'rate' does not bleed into a criterion naming
+ * 'pass_rate'/'success_rate' ('_' is a word char, so \brate\b does not match
+ * inside pass_rate). Shared by the verdict (checkCriterion) and the recorded
+ * value (resolveCriterionValue) so both resolve the SAME keys — they cannot
+ * drift apart (defect 80).
+ */
+function genericFallbackKeys(criterion: string): readonly string[] {
+  return GENERIC_FALLBACK_KEYS.filter(key =>
+    new RegExp(`\\b${key}\\b`, 'i').test(criterion),
+  );
+}
+
+/**
+ * The metric value a criterion would be evaluated against — the first present
+ * candidate key (mapped keys, else the criterion's named generic keys),
+ * mirroring checkCriterion's first-present-wins resolution. Used to populate
+ * the recorded IterationMetrics.successCriteria[].value with the value actually
  * evaluated, instead of the legacy `metrics[criterion]` (which indexed by the
  * full criterion string, e.g. "平均処理時間<60秒", and so was always undefined).
  */
@@ -183,7 +213,7 @@ function resolveCriterionValue(
   criterion: string,
   metrics: Record<string, unknown>,
 ): unknown {
-  const keys = mapCriterionToKeys(criterion) ?? GENERIC_FALLBACK_KEYS;
+  const keys = mapCriterionToKeys(criterion) ?? genericFallbackKeys(criterion);
   for (const key of keys) {
     if (metrics[key] === undefined) continue;
     return metrics[key];
@@ -371,7 +401,12 @@ export class IterationManager {
    *    no test-result metric is produced by the FIP. Such an SLO now FAILS the
    *    gate with a warning naming the missing metric, so an unverifiable SLO
    *    can never silently pass again. Descriptive criteria (no numeric bar)
-   *    keep the legacy "met when metrics reported" result.
+   *    keep the legacy "met when metrics reported" result. The terminal
+   *    silent-pass — an UNMAPPED criterion satisfied by an unrelated generic
+   *    metric ("rate > 50%" passing on accuracy, or "未知指標90%" passing on any
+   *    present generic) — is closed by restricting the generic fallback to only
+   *    the generic keys the criterion textually names (genericFallbackKeys), so
+   *    an unmapped SLO naming no known metric has zero candidates and fails loud.
    */
   // `silent` suppresses the defect-9 loud-fail warning. The gate
   // (evaluateSuccessCriteria) calls with silent=false (default) so an
@@ -402,9 +437,11 @@ export class IterationManager {
 
     // (c) Which metric does this criterion quantify? Keyword → candidate keys,
     // first present key wins (specifics before generics — see CRITERION_KEY_MAP).
-    // mappedKeys === null means the keyword matched no entry: an UNMAPPED SLO.
+    // mappedKeys === null means the keyword matched no entry: an UNMAPPED SLO,
+    // whose only candidates are the generic keys it textually NAMES (none → the
+    // criterion reaches the loud fail instead of passing on an unrelated metric).
     const mappedKeys = mapCriterionToKeys(criterion);
-    const possibleKeys = mappedKeys ?? GENERIC_FALLBACK_KEYS;
+    const possibleKeys = mappedKeys ?? genericFallbackKeys(criterion);
 
     // Metric fields expressed in MILLISECONDS (Date.now()/performance.now()
     // deltas). Time criteria express the threshold in seconds, so these must be
