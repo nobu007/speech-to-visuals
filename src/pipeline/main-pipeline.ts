@@ -1040,7 +1040,7 @@ export class MainPipeline {
       ? input.audioFile
       : URL.createObjectURL(input.audioFile);
 
-    const totalDuration = scenes.reduce((sum, scene) => sum + (Number.isFinite(scene.durationMs) ? scene.durationMs : 0), 0);
+    const totalDuration = scenes.reduce((sum, scene) => sum + sanitizeFinite(scene.durationMs, 0), 0);
 
     return {
       success: true,

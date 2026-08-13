@@ -22,6 +22,7 @@ import type { SrtCaption } from '../remotion/srt-parser';
 import type { SceneGraph, DiagramType, NodeDatum, EdgeDatum, DiagramLayout } from '../types/diagram';
 import { MultiFormatExporter, type ExportFormat, type ExportResult } from '../export/multi-format-exporter';
 import { generateRenderPlan, validateRenderPlan, type RenderPlan } from './scene-render-spec-generator';
+import { sanitizeFinite } from '@/utils/guards';
 import { timeStage, aggregateTimingReport, type StageTimingRecord, type StageTimingReport } from './stage-timing-metrics';
 import { computePipelineHealth, type PipelineHealthReport } from './pipeline-health-score';
 import type { CostData } from './cost-efficiency-metrics';
@@ -161,7 +162,7 @@ export function buildMultiScenes(diagrams: RawDiagram[], fps: number): {
       globalIndex++;
       allCaptions.push({ ...cap, index: globalIndex });
     }
-    currentMs += (Number.isFinite(scene.durationMs) ? scene.durationMs : 0);
+    currentMs += sanitizeFinite(scene.durationMs, 0);
   }
 
   return { scenes, captions: allCaptions };
