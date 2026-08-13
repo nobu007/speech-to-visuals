@@ -895,6 +895,88 @@ describe('QualityMonitor', () => {
       const comparison = monitor.compareToBaseline();
       expect(comparison.regressed.length).toBeGreaterThan(0);
     });
+
+    // -------------------------------------------------------------------------
+    // Polarity-label contract (regression net for the name-substring heuristic)
+    // -------------------------------------------------------------------------
+    //
+    // compareToBaseline builds human-readable trend strings whose DIRECTION
+    // label ('increase'/'decrease') must match the metric's polarity: a
+    // lower-is-better metric (processingTime, memoryUsage) shows 'decrease'
+    // when it improves and 'increase' when it regresses; a higher-is-better
+    // metric (transcriptionAccuracy, …) is the inverse. Previously the label
+    // came from a fragile `metric.includes('Time') || metric.includes('Usage')`
+    // heuristic — correct for the current set only by naming accident — while
+    // the improved/regressed DECISION used a separate explicit check: a
+    // divergent duplicate that would silently mislabel a future lower-is-better
+    // metric whose name lacks 'Time'/'Usage' (same class as the memoryUsage
+    // trend inversion in 7ae31177). These exact-string assertions pin the label
+    // for BOTH polarities in BOTH directions so a new metric can never render a
+    // contradictory label.
+
+    it('labels a lower-is-better improvement (processingTime down) as a decrease', () => {
+      for (let i = 0; i < 5; i++) {
+        monitor.recordMetrics({
+          processingTime: 10000, memoryUsage: 100, layoutOverlap: 0,
+          errorCount: 0, warningCount: 0, fallbackTriggered: false,
+        });
+      }
+      monitor.recordMetrics({
+        processingTime: 5000, memoryUsage: 100, layoutOverlap: 0,
+        errorCount: 0, warningCount: 0, fallbackTriggered: false,
+      });
+      const comparison = monitor.compareToBaseline();
+      expect(comparison.improved).toContain('processingTime: -50.0% decrease');
+    });
+
+    it('labels a lower-is-better regression (memoryUsage up) as an increase', () => {
+      for (let i = 0; i < 5; i++) {
+        monitor.recordMetrics({
+          processingTime: 10000, memoryUsage: 200, layoutOverlap: 0,
+          errorCount: 0, warningCount: 0, fallbackTriggered: false,
+        });
+      }
+      monitor.recordMetrics({
+        processingTime: 10000, memoryUsage: 400, layoutOverlap: 0,
+        errorCount: 0, warningCount: 0, fallbackTriggered: false,
+      });
+      const comparison = monitor.compareToBaseline();
+      expect(comparison.regressed).toContain('memoryUsage: 100.0% increase');
+    });
+
+    it('labels a higher-is-better improvement (accuracy up) as an increase', () => {
+      for (let i = 0; i < 5; i++) {
+        monitor.recordMetrics({
+          processingTime: 10000, memoryUsage: 100, layoutOverlap: 0,
+          errorCount: 0, warningCount: 0, fallbackTriggered: false,
+          transcriptionAccuracy: 0.80,
+        });
+      }
+      monitor.recordMetrics({
+        processingTime: 10000, memoryUsage: 100, layoutOverlap: 0,
+        errorCount: 0, warningCount: 0, fallbackTriggered: false,
+        transcriptionAccuracy: 0.96, // +20% → improved for a higher-is-better metric
+      });
+      const comparison = monitor.compareToBaseline();
+      expect(comparison.improved).toContain('transcriptionAccuracy: 20.0% increase');
+    });
+
+    it('labels a higher-is-better regression (accuracy down) as a decrease', () => {
+      for (let i = 0; i < 5; i++) {
+        monitor.recordMetrics({
+          processingTime: 10000, memoryUsage: 100, layoutOverlap: 0,
+          errorCount: 0, warningCount: 0, fallbackTriggered: false,
+          transcriptionAccuracy: 0.90,
+        });
+      }
+      monitor.recordMetrics({
+        processingTime: 10000, memoryUsage: 100, layoutOverlap: 0,
+        errorCount: 0, warningCount: 0, fallbackTriggered: false,
+        transcriptionAccuracy: 0.45, // -50% → regressed for a higher-is-better metric
+      });
+      const comparison = monitor.compareToBaseline();
+      expect(comparison.regressed).toContain('transcriptionAccuracy: 50.0% decrease');
+    });
   });
 
   // --- Regression Detection (TASK-0044) ---

@@ -91,6 +91,27 @@ export interface IterationLog {
 const MAX_HISTORY_SIZE = 100;
 
 /**
+ * Quality metrics for which a LOWER value is better (a decrease = improvement),
+ * used by {@link QualityMonitor.compareToBaseline} to resolve change→trend
+ * polarity. Single source of truth: BOTH the improved/regressed DECISION and
+ * the human-readable direction LABEL derive from this membership, so the two
+ * cannot diverge.
+ *
+ * This replaces a fragile name-substring heuristic
+ * (`metric.includes('Time') || metric.includes('Usage')`) that was correct for
+ * the current metric set only by accident of naming: it would silently
+ * mislabel any future lower-is-better metric whose name lacks 'Time'/'Usage'.
+ * That is the same bug class as the memoryUsage trend inversion fixed in
+ * 7ae31177, which used `includes('Time') || includes('Rate')` and silently
+ * omitted memoryUsage. Adding a new lower-is-better metric now requires a
+ * single entry here; a new higher-is-better metric is simply omitted.
+ */
+const LOWER_IS_BETTER_QUALITY_METRICS: ReadonlySet<keyof QualityMetrics> = new Set([
+  'processingTime',
+  'memoryUsage',
+]);
+
+/**
  * QualityMonitor - Autonomous quality assessment and improvement tracking
  *
  * Implements recursive improvement cycle:
@@ -544,16 +565,22 @@ export class QualityMonitor {
       if (current === undefined || baseline_val === 0) continue;
 
       const change = percentChange(current, baseline_val);
+      const lowerIsBetter = LOWER_IS_BETTER_QUALITY_METRICS.has(metric);
 
       if (Math.abs(change) < 5) {
         stable.push(`${metric}: ${change.toFixed(1)}%`);
-      } else if (
-        (metric === 'processingTime' || metric === 'memoryUsage') ?
-        change < 0 : change > 0
-      ) {
-        improved.push(`${metric}: ${change.toFixed(1)}% ${metric.includes('Time') || metric.includes('Usage') ? 'decrease' : 'increase'}`);
       } else {
-        regressed.push(`${metric}: ${Math.abs(change).toFixed(1)}% ${metric.includes('Time') || metric.includes('Usage') ? 'increase' : 'decrease'}`);
+        // A metric improved when its value moved in its "good" direction: DOWN
+        // for lower-is-better metrics, UP for higher-is-better metrics. Both the
+        // bucket and the direction label derive from the single `lowerIsBetter`
+        // flag so they cannot diverge (previously the decision used an explicit
+        // name match while the label used a divergent substring heuristic).
+        const isImprovement = lowerIsBetter ? change < 0 : change > 0;
+        if (isImprovement) {
+          improved.push(`${metric}: ${change.toFixed(1)}% ${lowerIsBetter ? 'decrease' : 'increase'}`);
+        } else {
+          regressed.push(`${metric}: ${Math.abs(change).toFixed(1)}% ${lowerIsBetter ? 'increase' : 'decrease'}`);
+        }
       }
     }
 
