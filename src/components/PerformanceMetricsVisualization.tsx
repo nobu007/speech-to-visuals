@@ -104,6 +104,13 @@ export const PerformanceMetricsVisualization: React.FC<PerformanceMetricsVisuali
     }
   };
 
+  // Reconcile the quality score to its DISPLAYED value. The number is rendered
+  // rounded (toFixed(0)), but the tier/color/badge/progress below previously
+  // branched on the RAW score, so a 89.6 displayed as "90" was labelled "Good"
+  // (blue) instead of "Excellent" (green) — the rounded-display-vs-raw-threshold
+  // contradiction. Every consumer now reads the same rounded value.
+  const displayScore = Math.round(metrics.qualityScore);
+
   return (
     <div className="w-full space-y-4">
       {/* Real-time Overview Cards */}
@@ -113,15 +120,15 @@ export const PerformanceMetricsVisualization: React.FC<PerformanceMetricsVisuali
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <Activity className="w-5 h-5 text-blue-600" />
-              <Badge variant={getQualityBadge(metrics.qualityScore)}>
-                {metrics.qualityScore >= 90 ? 'Excellent' : metrics.qualityScore >= 70 ? 'Good' : 'Fair'}
+              <Badge variant={getQualityBadge(displayScore)}>
+                {displayScore >= 90 ? 'Excellent' : displayScore >= 70 ? 'Good' : 'Fair'}
               </Badge>
             </div>
-            <div className={`text-2xl font-bold ${getQualityColor(metrics.qualityScore)}`}>
-              {metrics.qualityScore.toFixed(0)}
+            <div className={`text-2xl font-bold ${getQualityColor(displayScore)}`}>
+              {displayScore.toFixed(0)}
             </div>
             <p className="text-xs text-muted-foreground">品質スコア / 100</p>
-            <Progress value={metrics.qualityScore} className="h-1 mt-2" />
+            <Progress value={displayScore} className="h-1 mt-2" />
           </CardContent>
         </Card>
 

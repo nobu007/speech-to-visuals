@@ -404,13 +404,15 @@ export const FrameworkDashboard: React.FC<FrameworkDashboardProps> = ({
         <CardDescription>AutoImprovementEngineによる品質分析</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Overall Score */}
+        {/* Overall Score — color/progress read the ROUNDED score to match the
+            toFixed(0) number, so 89.6 shown as "90" is green not blue
+            (rounded-display-vs-raw-threshold reconciliation). */}
         <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 rounded-lg">
-          <div className={`text-5xl font-bold ${getQualityColor(qualityAnalysis.overallScore)}`}>
+          <div className={`text-5xl font-bold ${getQualityColor(Math.round(qualityAnalysis.overallScore))}`}>
             {qualityAnalysis.overallScore.toFixed(0)}
           </div>
           <div className="text-sm text-muted-foreground mt-2">総合品質スコア / 100</div>
-          <Progress value={qualityAnalysis.overallScore} className="h-2 mt-4" />
+          <Progress value={Math.round(qualityAnalysis.overallScore)} className="h-2 mt-4" />
         </div>
 
         {/* Breakdown */}
