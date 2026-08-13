@@ -11,6 +11,31 @@ import { getMemoryUsage } from '@/utils/memory-usage';
 import { percentileCeil, roundTo, heapUsagePercent, bytesToMb } from '@/lib/metrics-utils';
 import { logger } from '@/utils/logger';
 
+/**
+ * Metrics for which a LOWER value is better (a rise = degradation), used by
+ * {@link analyzeTrend} to resolve trend polarity. Single source of truth for
+ * which analyzed metrics invert the change→trend mapping.
+ *
+ * Previously this was a fragile name-substring check
+ * (`metric.includes('Time') || metric.includes('Rate')`) that matched three of
+ * the four metrics analyzed by {@link RealTimePerformanceMonitor.analyzeTrends}
+ * by accident of naming and silently MISSED `memoryUsage` — inverting its
+ * trend so that rising memory was reported `'improving'` and falling memory
+ * `'degrading'`. That inverted signal flows into
+ * `HealthCheckService.checkPerformanceHealth`, which counts `'degrading'`
+ * trends to set the system health status, so a memory leak appeared as a
+ * positive performance trend. Explicit set membership makes the polarity
+ * unambiguous and robust to future metric additions (a new lower-is-better
+ * metric is added here; a new higher-is-better metric is simply omitted and
+ * falls through to the higher-is-better branch).
+ */
+const LOWER_IS_BETTER_METRICS = new Set([
+  'processingTime',
+  'memoryUsage',
+  'errorRate',
+  'llmResponseTime',
+]);
+
 export interface PerformanceMetric {
   timestamp: number;
   metric: string;
@@ -556,10 +581,11 @@ class RealTimePerformanceMonitor extends EventEmitter {
     if (Math.abs(changePercent) < 5) {
       trend = 'stable';
     } else if (changePercent < 0) {
-      // For metrics where lower is better (processing time, error rate)
-      trend = metric.includes('Time') || metric.includes('Rate') ? 'improving' : 'degrading';
+      // For metrics where lower is better (processing time, memory, error rate,
+      // LLM response time) a falling value is an improvement.
+      trend = LOWER_IS_BETTER_METRICS.has(metric) ? 'improving' : 'degrading';
     } else {
-      trend = metric.includes('Time') || metric.includes('Rate') ? 'degrading' : 'improving';
+      trend = LOWER_IS_BETTER_METRICS.has(metric) ? 'degrading' : 'improving';
     }
 
     // Simple linear prediction

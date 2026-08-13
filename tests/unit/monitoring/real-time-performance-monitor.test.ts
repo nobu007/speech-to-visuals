@@ -485,6 +485,34 @@ describe('RealTimePerformanceMonitor', () => {
       expect(processingTrend!.trend).toBe('degrading');
     });
 
+    // memoryUsage is lower-is-better (rising memory = degradation / OOM risk),
+    // exactly like processingTime. The trend-direction polarity must classify a
+    // rising memory trend as 'degrading', not 'improving'. 40 samples keep the
+    // older(-40,-20) and recent(-20) windows both at 20 samples with a clearly
+    // rising average (>5% change → not 'stable'); values stay under the 512 MB
+    // alert threshold so no threshold alert interferes.
+    it('should detect "degrading" trend for increasing memory usage', () => {
+      for (let i = 0; i < 40; i++) {
+        monitor.recordMetric('memoryUsage', 100 + i * 10, 'MB');
+      }
+
+      const trends = monitor.analyzeTrends();
+      const memoryTrend = trends.find((t: any) => t.metric === 'memoryUsage');
+      expect(memoryTrend).toBeDefined();
+      expect(memoryTrend!.trend).toBe('degrading');
+    });
+
+    it('should detect "improving" trend for decreasing memory usage', () => {
+      for (let i = 0; i < 40; i++) {
+        monitor.recordMetric('memoryUsage', 490 - i * 10, 'MB');
+      }
+
+      const trends = monitor.analyzeTrends();
+      const memoryTrend = trends.find((t: any) => t.metric === 'memoryUsage');
+      expect(memoryTrend).toBeDefined();
+      expect(memoryTrend!.trend).toBe('improving');
+    });
+
     it('should include predictions', () => {
       for (let i = 0; i < 25; i++) {
         monitor.recordMetric('processingTime', 1000 + i * 100, 'ms');
