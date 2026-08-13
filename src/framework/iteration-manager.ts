@@ -163,6 +163,34 @@ export function mapCriterionToKeys(criterion: string): readonly string[] | null 
   return null;
 }
 
+// Generic fallback metric keys (priority order) used when a criterion's keyword
+// matches no CRITERION_KEY_MAP entry. Shared by checkCriterion (the verdict)
+// and resolveCriterionValue (the recorded value) so both resolve the SAME
+// metric — they cannot drift apart. (defect 9 — see checkCriterion.)
+const GENERIC_FALLBACK_KEYS = [
+  'accuracy', 'precision', 'rate', 'score', 'pass_rate', 'success_rate',
+] as const;
+
+/**
+ * The metric value a criterion would be evaluated against — the first
+ * present candidate key (mapped keys, else GENERIC_FALLBACK_KEYS), mirroring
+ * checkCriterion's first-present-wins resolution. Used to populate the
+ * recorded IterationMetrics.successCriteria[].value with the value actually
+ * evaluated, instead of the legacy `metrics[criterion]` (which indexed by the
+ * full criterion string, e.g. "平均処理時間<60秒", and so was always undefined).
+ */
+function resolveCriterionValue(
+  criterion: string,
+  metrics: Record<string, unknown>,
+): unknown {
+  const keys = mapCriterionToKeys(criterion) ?? GENERIC_FALLBACK_KEYS;
+  for (const key of keys) {
+    if (metrics[key] === undefined) continue;
+    return metrics[key];
+  }
+  return undefined;
+}
+
 /**
  * IterationManager: Manages the recursive development cycle
  */
@@ -201,11 +229,9 @@ export class IterationManager {
       status,
       timestamp: new Date().toISOString(),
       duration,
-      successCriteria: safeArray(this.cycle.successCriteria).map(criterion => ({
-        criterion,
-        met: status === 'success',
-        value: metrics[criterion],
-      })),
+      successCriteria: safeArray(this.cycle.successCriteria).map(criterion =>
+        this.recordCriterion(criterion, metrics, error),
+      ),
       metrics,
       error,
       nextSteps: this.determineNextSteps(status),
@@ -215,6 +241,42 @@ export class IterationManager {
     await this.logIteration(iteration);
 
     return iteration;
+  }
+
+  /**
+   * Build the per-criterion record for a completed iteration: the REAL verdict
+   * (from checkCriterion — the same engine evaluateSuccessCriteria uses), the
+   * resolved metric value, and the parsed numeric threshold.
+   *
+   * The legacy code recorded `met: status === 'success'` for EVERY criterion,
+   * collapsing the per-criterion verdict evaluateSuccessCriteria had just
+   * computed into one uniform boolean — so a soft-failure iteration (allMet
+   * false) recorded even its passing criteria as not-met. It also set
+   * `value: metrics[criterion]`, indexing by the full criterion string (e.g.
+   * "平均処理時間<60秒") which is never a metrics key, so value/threshold were
+   * always undefined. This records the actual evaluation instead.
+   *
+   * An errored iteration (`error` provided — a thrown run, or a result.error)
+   * achieved none of its success criteria, so it keeps the all-not-met record.
+   * This preserves the existing contract (tests pass an error and expect every
+   * criterion not-met) and avoids spuriously marking a descriptive SLO met on
+   * the {error, success:false} stub metrics of a thrown run.
+   */
+  private recordCriterion(
+    criterion: string,
+    metrics: Record<string, unknown>,
+    error?: string,
+  ): { criterion: string; met: boolean; value?: unknown; threshold?: unknown } {
+    if (error) return { criterion, met: false };
+    const thresholdInfo = parseCriterionThreshold(criterion);
+    // silent=true: the gate (evaluateSuccessCriteria) already emits the
+    // defect-9 loud-fail warning; the record must not duplicate it.
+    return {
+      criterion,
+      met: this.checkCriterion(criterion, metrics, true),
+      value: thresholdInfo === null ? undefined : resolveCriterionValue(criterion, metrics),
+      threshold: thresholdInfo === null ? undefined : thresholdInfo.threshold,
+    };
   }
 
   /**
@@ -311,7 +373,15 @@ export class IterationManager {
    *    can never silently pass again. Descriptive criteria (no numeric bar)
    *    keep the legacy "met when metrics reported" result.
    */
-  private checkCriterion(criterion: string, metrics: Record<string, unknown>): boolean {
+  // `silent` suppresses the defect-9 loud-fail warning. The gate
+  // (evaluateSuccessCriteria) calls with silent=false (default) so an
+  // unverifiable SLO is visible; completeIteration's record path calls with
+  // silent=true so it does not duplicate the warning the gate already emitted.
+  private checkCriterion(
+    criterion: string,
+    metrics: Record<string, unknown>,
+    silent = false,
+  ): boolean {
     // (a) Comparison operator; default ">=" (preserves the legacy default for
     // operator-less criteria like "シーン分割精度80%"). Operator-less
     // lower-is-better (defect-count) criteria are re-interpreted as "<=" below.
@@ -334,8 +404,7 @@ export class IterationManager {
     // first present key wins (specifics before generics — see CRITERION_KEY_MAP).
     // mappedKeys === null means the keyword matched no entry: an UNMAPPED SLO.
     const mappedKeys = mapCriterionToKeys(criterion);
-    const possibleKeys =
-      mappedKeys ?? ['accuracy', 'precision', 'rate', 'score', 'pass_rate', 'success_rate'];
+    const possibleKeys = mappedKeys ?? GENERIC_FALLBACK_KEYS;
 
     // Metric fields expressed in MILLISECONDS (Date.now()/performance.now()
     // deltas). Time criteria express the threshold in seconds, so these must be
@@ -424,20 +493,24 @@ export class IterationManager {
     // metrics. An SLO you cannot verify must NOT silently pass: fail loud with a
     // warning that names the criterion, its bar, and the missing metric, so the
     // gap is visible and actionable instead of a green light.
-    if (mappedKeys === null) {
-      logger.warn(
-        `Iteration criterion "${criterion}" asserts a numeric bar ` +
-        `(${threshold}${isPercent ? '%' : ''}) but matched NO known metric keyword ` +
-        `(unmapped SLO). Failing the gate instead of silently passing — add a ` +
-        `KEY_MAP entry or supply the metric.`,
-      );
-    } else {
-      logger.warn(
-        `Iteration criterion "${criterion}" asserts a numeric bar ` +
-        `(${threshold}${isPercent ? '%' : ''}) but none of its candidate metrics ` +
-        `(${mappedKeys.join(', ')}) were present/finite this run. Failing the ` +
-        `gate instead of silently passing — supply the metric to make this SLO checkable.`,
-      );
+    // (defect 9) LOUD only at the gate: emit the warning unless `silent`
+    // (the record path — completeIteration — already had the gate emit it).
+    if (!silent) {
+      if (mappedKeys === null) {
+        logger.warn(
+          `Iteration criterion "${criterion}" asserts a numeric bar ` +
+          `(${threshold}${isPercent ? '%' : ''}) but matched NO known metric keyword ` +
+          `(unmapped SLO). Failing the gate instead of silently passing — add a ` +
+          `KEY_MAP entry or supply the metric.`,
+        );
+      } else {
+        logger.warn(
+          `Iteration criterion "${criterion}" asserts a numeric bar ` +
+          `(${threshold}${isPercent ? '%' : ''}) but none of its candidate metrics ` +
+          `(${mappedKeys.join(', ')}) were present/finite this run. Failing the ` +
+          `gate instead of silently passing — supply the metric to make this SLO checkable.`,
+        );
+      }
     }
     return false;
   }

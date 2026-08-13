@@ -533,16 +533,24 @@ describe('IterationManager — extended coverage', () => {
 
   // ── success criteria mapping in completeIteration ────────────────────
 
-  test('completeIteration maps criteria values from metrics', async () => {
+  test('completeIteration records the evaluated metric value per criterion', async () => {
     const mgr = new IterationManager(makeCycle({
-      successCriteria: ['accuracy > 80%', 'precision > 90%'],
+      successCriteria: ['accuracy > 80%', 'success_rate > 50%'],
     }), tmpLogPath());
     await mgr.startIteration();
-    const result = await mgr.completeIteration('success', { accuracy: 85, precision: 95 });
+    const result = await mgr.completeIteration('success', { accuracy: 85, success_rate: 60 });
     expect(result.successCriteria).toHaveLength(2);
-    // On success, all criteria are marked met=true
-    expect(result.successCriteria[0].met).toBe(true);
-    expect(result.successCriteria[1].met).toBe(true);
+    // Each criterion is evaluated for real against its mapped metric, and the
+    // recorded value is the metric actually checked (not metrics[criterion],
+    // which indexed by the full criterion string and was always undefined).
+    const acc = result.successCriteria.find(c => c.criterion === 'accuracy > 80%')!;
+    expect(acc.met).toBe(true);
+    expect(acc.value).toBe(85);
+    expect(acc.threshold).toBe(80);
+    const sr = result.successCriteria.find(c => c.criterion === 'success_rate > 50%')!;
+    expect(sr.met).toBe(true);
+    expect(sr.value).toBe(60);
+    expect(sr.threshold).toBe(50);
   });
 
   // ── logIteration write error handling ────────────────────────────────
@@ -625,6 +633,81 @@ describe('IterationManager — extended coverage', () => {
         // fallback and emits no warning.
         mgr.evaluateSuccessCriteria({ foo: 1 });
         expect(warnSpy).not.toHaveBeenCalled();
+      } finally {
+        warnSpy.mockRestore();
+      }
+    });
+  });
+
+  // ── completeIteration: recorded verdict matches the actual SLO evaluation ─
+
+  describe('completeIteration — records the REAL per-criterion verdict', () => {
+    // The legacy completeIteration recorded `met: status === 'success'` for
+    // every criterion, collapsing the per-criterion verdict into one uniform
+    // boolean, and `value: metrics[criterion]` (indexed by the full criterion
+    // string, always undefined). The record must reflect the actual evaluation.
+
+    test('a soft-failure records which criteria passed and which failed', async () => {
+      const mgr = new IterationManager(makeCycle({
+        successCriteria: ['accuracy > 80%', 'precision > 90%'],
+      }), tmpLogPath());
+      await mgr.startIteration();
+      // accuracy passes (90>80), precision fails (50<90) ⇒ allMet false, no error.
+      const result = await mgr.completeIteration('failure', { accuracy: 90, precision: 50 });
+      expect(result.status).toBe('failure');
+      const byCrit = Object.fromEntries(result.successCriteria.map(c => [c.criterion, c]));
+      expect(byCrit['accuracy > 80%'].met).toBe(true);
+      expect(byCrit['precision > 90%'].met).toBe(false);
+    });
+
+    test('records the resolved metric value and parsed threshold', async () => {
+      const mgr = new IterationManager(makeCycle({
+        successCriteria: ['accuracy > 80%'],
+      }), tmpLogPath());
+      await mgr.startIteration();
+      const result = await mgr.completeIteration('success', { accuracy: 92 });
+      // value is the evaluated metric (92), NOT metrics['accuracy > 80%'] (undefined);
+      // threshold is the parsed bar (80).
+      expect(result.successCriteria[0].value).toBe(92);
+      expect(result.successCriteria[0].threshold).toBe(80);
+    });
+
+    test('a successful iteration records every criterion met with its value', async () => {
+      const mgr = new IterationManager(makeCycle({
+        successCriteria: ['accuracy > 80%', '全体品質スコア>95'],
+      }), tmpLogPath());
+      await mgr.startIteration();
+      const result = await mgr.completeIteration('success', { accuracy: 90, overallScore: 97 });
+      expect(result.successCriteria.every(c => c.met === true)).toBe(true);
+      const acc = result.successCriteria.find(c => c.criterion === 'accuracy > 80%')!;
+      expect(acc.value).toBe(90);
+      expect(acc.threshold).toBe(80);
+    });
+
+    test('an errored iteration records all criteria not-met (contract preserved)', async () => {
+      const mgr = new IterationManager(makeCycle({
+        successCriteria: ['accuracy > 80%', 'precision > 90%'],
+      }), tmpLogPath());
+      await mgr.startIteration();
+      // Even with passing metrics, an errored run achieved none of its SLOs.
+      const result = await mgr.completeIteration('failure', { accuracy: 99, precision: 99 }, 'boom');
+      expect(result.successCriteria.every(c => c.met === false)).toBe(true);
+    });
+
+    test('the record path is silent — no duplicate defect-9 loud-fail warning', async () => {
+      const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => {});
+      try {
+        const mgr = new IterationManager(makeCycle({
+          successCriteria: ['テスト通過率100%'],
+        }), tmpLogPath());
+        await mgr.startIteration();
+        // testPassRate absent ⇒ unverifiable numeric SLO. The gate
+        // (evaluateSuccessCriteria) warns; completeIteration must NOT duplicate it.
+        await mgr.completeIteration('failure', { accuracy: 1.0 });
+        expect(warnSpy).not.toHaveBeenCalled();
+        // …whereas the gate still warns for the same criterion.
+        mgr.evaluateSuccessCriteria({ accuracy: 1.0 });
+        expect(warnSpy).toHaveBeenCalled();
       } finally {
         warnSpy.mockRestore();
       }
