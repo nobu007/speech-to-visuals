@@ -13,7 +13,7 @@
  * - Self-correcting recommendations
  */
 
-import { QualityMetrics, QualityMonitor } from '../pipeline/quality-monitor';
+import { LOWER_IS_BETTER_QUALITY_METRICS, QualityMetrics, QualityMonitor } from '../pipeline/quality-monitor';
 import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from '@/utils/logger';
@@ -79,14 +79,12 @@ export class RegressionDetector {
   // Minimum percentage change to qualify as an improvement
   private readonly improvementThresholdPercent = 5;
 
-  // Metrics where lower is better (reverse thresholds)
-  private readonly lowerIsBetter = [
-    'processingTime',
-    'memoryUsage',
-    'layoutOverlap',
-    'errorCount',
-    'warningCount',
-  ];
+  // Polarity is NOT re-declared here: RegressionDetector shares the canonical
+  // `LOWER_IS_BETTER_QUALITY_METRICS` registry exported from quality-monitor
+  // (the cross-module single source of truth). An earlier private `lowerIsBetter`
+  // array was a divergent duplicate that could drift out of sync whenever a
+  // metric was added to one list but not the other — the duplicate-formula bug
+  // class. See quality-monitor.ts for the closed-set partition contract.
 
   private constructor(baselinePath?: string) {
     this.qualityMonitor = QualityMonitor.getInstance();
@@ -296,7 +294,7 @@ export class RegressionDetector {
       const changePercent = percentChange(currentValue, baselineValue);
 
       // Determine if this is a regression or improvement
-      const isReverseMetric = this.lowerIsBetter.includes(metric as string);
+      const isReverseMetric = LOWER_IS_BETTER_QUALITY_METRICS.has(metric);
       const isRegression = isReverseMetric
         ? changePercent > 0 // For reverse metrics, increase is bad
         : changePercent < 0; // For normal metrics, decrease is bad

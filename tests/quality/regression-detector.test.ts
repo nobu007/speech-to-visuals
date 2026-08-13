@@ -377,6 +377,31 @@ describe('RegressionDetector', () => {
       expect(imp!.changePercent).toBeLessThan(0);
     });
 
+    // Polarity pin for the count/health metrics that distinguish the complete
+    // 5-entry lower-is-better registry from the incomplete 2-entry one. These
+    // flow through the shared `LOWER_IS_BETTER_QUALITY_METRICS` source; an
+    // increase must register as a regression, never an improvement. (Baseline
+    // is non-zero because a zero baseline short-circuits the comparison.)
+    test.each([
+      ['layoutOverlap', { layoutOverlap: 10 }, { layoutOverlap: 50 }],
+      ['errorCount', { errorCount: 10 }, { errorCount: 25 }],
+      ['warningCount', { warningCount: 10 }, { warningCount: 40 }],
+    ] as const)('treats a rising %s (lower-is-better) as a regression', async (metric, baseline, current) => {
+      mockGetLatestMetrics
+        .mockReturnValueOnce(makeMetrics(baseline as Record<string, unknown>))
+        .mockReturnValueOnce(makeMetrics(current as Record<string, unknown>));
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
+      await d.establishBaseline();
+      const report = await d.detectRegressions();
+
+      const regression = report.regressions.find(x => x.metric === metric);
+      expect(regression).toBeDefined();
+      expect(regression!.changePercent).toBeGreaterThan(0);
+      // And it must NOT be mis-bucketed as an improvement.
+      expect(report.improvements.find(x => x.metric === metric)).toBeUndefined();
+    });
+
     test('returns stable when no significant changes', async () => {
       const m = makeMetrics();
       mockGetLatestMetrics.mockReturnValueOnce(m).mockReturnValueOnce({ ...m });

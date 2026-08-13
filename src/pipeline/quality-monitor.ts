@@ -91,11 +91,19 @@ export interface IterationLog {
 const MAX_HISTORY_SIZE = 100;
 
 /**
- * Quality metrics for which a LOWER value is better (a decrease = improvement),
- * used by {@link QualityMonitor.compareToBaseline} to resolve change→trend
- * polarity. Single source of truth: BOTH the improved/regressed DECISION and
- * the human-readable direction LABEL derive from this membership, so the two
- * cannot diverge.
+ * Quality metrics for which a LOWER value is better (a decrease = improvement).
+ *
+ * CROSS-MODULE single source of truth for QualityMetrics polarity: BOTH
+ * {@link QualityMonitor.compareToBaseline} (decision + human-readable label)
+ * AND {@link RegressionDetector.detectRegressions} (regression vs improvement)
+ * derive from this one membership, so the two cannot diverge.
+ *
+ * The set is COMPLETE for every numeric {@link QualityMetrics} field: the
+ * complement (higher-is-better) is every numeric field NOT listed here.
+ * `tests/unit/pipeline/quality-metric-polarity-registry.test.ts` pins this as a
+ * closed-set partition, so adding a new metric REQUIRES a polarity decision in
+ * exactly this one place — the regression that recurred whenever polarity was
+ * decided separately per site (see below).
  *
  * This replaces a fragile name-substring heuristic
  * (`metric.includes('Time') || metric.includes('Usage')`) that was correct for
@@ -103,12 +111,19 @@ const MAX_HISTORY_SIZE = 100;
  * mislabel any future lower-is-better metric whose name lacks 'Time'/'Usage'.
  * That is the same bug class as the memoryUsage trend inversion fixed in
  * 7ae31177, which used `includes('Time') || includes('Rate')` and silently
- * omitted memoryUsage. Adding a new lower-is-better metric now requires a
- * single entry here; a new higher-is-better metric is simply omitted.
+ * omitted memoryUsage. The earlier centralization (4659753b) listed only the
+ * two metrics compareToBaseline happened to check, omitting layoutOverlap /
+ * errorCount / warningCount — a divergent duplicate of the separate list
+ * RegressionDetector maintained. Those three are genuinely lower-is-better
+ * (layoutOverlap: "0 is perfect"; error/warning counts are System Health), so
+ * a complete registry must list them; the closed-set test fails until it does.
  */
-const LOWER_IS_BETTER_QUALITY_METRICS: ReadonlySet<keyof QualityMetrics> = new Set([
+export const LOWER_IS_BETTER_QUALITY_METRICS: ReadonlySet<keyof QualityMetrics> = new Set([
   'processingTime',
   'memoryUsage',
+  'layoutOverlap',
+  'errorCount',
+  'warningCount',
 ]);
 
 /**
