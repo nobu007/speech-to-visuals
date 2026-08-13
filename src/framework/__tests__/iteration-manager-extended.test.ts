@@ -22,6 +22,8 @@ import {
   IterationManager,
   createIterationManager,
   DEVELOPMENT_CYCLES,
+  criterionHasNumericThreshold,
+  mapCriterionToKeys,
   type DevelopmentCycle,
 } from '../iteration-manager';
 
@@ -33,6 +35,8 @@ jest.mock('@/utils/logger', () => ({
     debug: jest.fn(),
   },
 }));
+
+import { logger } from '@/utils/logger';
 
 function makeCycle(overrides: Partial<DevelopmentCycle> = {}): DevelopmentCycle {
   return {
@@ -551,5 +555,79 @@ describe('IterationManager — extended coverage', () => {
     await mgr.startIteration();
     // Should complete without throwing despite missing directory
     await expect(mgr.completeIteration('success', { accuracy: 90 })).resolves.toBeDefined();
+  });
+
+  // ── defect 9: an unverifiable numeric SLO never silently passes ──────
+
+  describe('checkCriterion — loud fallback for unverifiable numeric SLOs (defect 9)', () => {
+    // Every criterion shipped in DEVELOPMENT_CYCLES that carries a numeric /
+    // percent / zero-word bar MUST resolve to a KEY_MAP entry. A numeric SLO
+    // whose keyword matches no entry used to silently pass ("any metric
+    // present → true"); this guard fails the moment someone adds one without a
+    // mapping. "テスト通過率100%" was the last unmapped instance and is now
+    // mapped to testPassRate.
+    test('every numeric-threshold criterion in DEVELOPMENT_CYCLES is mapped', () => {
+      const allCriteria = Object.values(DEVELOPMENT_CYCLES).flatMap(c => c.successCriteria);
+      const unmapped: string[] = [];
+      for (const criterion of allCriteria) {
+        if (criterionHasNumericThreshold(criterion)) {
+          const keys = mapCriterionToKeys(criterion);
+          if (keys === null || keys.length === 0) unmapped.push(criterion);
+        }
+      }
+      expect(unmapped).toEqual([]);
+    });
+
+    test('テスト通過率100% is no longer unmapped (the last surviving instance)', () => {
+      expect(mapCriterionToKeys('テスト通過率100%')).toEqual(['testPassRate', 'test_pass_rate']);
+    });
+
+    test('a numeric SLO whose metric is absent FAILS instead of silently passing', () => {
+      const mgr = new IterationManager(makeCycle({
+        successCriteria: ['テスト通過率100%'],
+      }), tmpLogPath());
+      // an unrelated metric is present, but no testPassRate → must NOT pass.
+      expect(mgr.evaluateSuccessCriteria({ accuracy: 1.0 }).allMet).toBe(false);
+      // no metrics at all → must fail.
+      expect(mgr.evaluateSuccessCriteria({}).allMet).toBe(false);
+      // when the real metric is supplied, the bar is honored.
+      expect(mgr.evaluateSuccessCriteria({ testPassRate: 100 }).allMet).toBe(true);
+      expect(mgr.evaluateSuccessCriteria({ testPassRate: 80 }).allMet).toBe(false);
+    });
+
+    test('an unverifiable numeric SLO emits a warning (the gate is loud)', () => {
+      const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => {});
+      try {
+        const mgr = new IterationManager(makeCycle({
+          successCriteria: ['テスト通過率100%'],
+        }), tmpLogPath());
+        mgr.evaluateSuccessCriteria({ accuracy: 1.0 });
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('テスト通過率100%'),
+        );
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Failing the gate'),
+        );
+      } finally {
+        warnSpy.mockRestore();
+      }
+    });
+
+    test('descriptive criteria (no numeric bar) keep the "met when metrics reported" result', () => {
+      const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => {});
+      try {
+        const mgr = new IterationManager(makeCycle({
+          successCriteria: ['出力品質:視認可能'],
+        }), tmpLogPath());
+        expect(mgr.evaluateSuccessCriteria({ foo: 1 }).allMet).toBe(true);
+        expect(mgr.evaluateSuccessCriteria({}).allMet).toBe(false);
+        // a descriptive criterion requests no bar, so it never reaches the loud
+        // fallback and emits no warning.
+        mgr.evaluateSuccessCriteria({ foo: 1 });
+        expect(warnSpy).not.toHaveBeenCalled();
+      } finally {
+        warnSpy.mockRestore();
+      }
+    });
   });
 });

@@ -57,6 +57,112 @@ export interface IterationHistory {
   insights: string[];
 }
 
+// ──────────────────────────────────────────────────────────────────────
+// Criterion → threshold + metric-key resolution.
+//
+// Extracted to module scope (out of the checkCriterion body) so that
+// checkCriterion and the DEVELOPMENT_CYCLES regression test share ONE
+// definition and cannot drift apart. This is the structural fix for the
+// recurring silent-pass class (defect 9): a criterion that carries a numeric
+// bar but matches no keyword silently passed via the "any metric present →
+// true" fallback. The exported helpers let a test enumerate every shipped
+// criterion and prove none of its numeric SLOs is unmapped.
+// ──────────────────────────────────────────────────────────────────────
+
+/**
+ * The numeric bar a criterion asserts, or null for a descriptive criterion
+ * that states no bar. Recognizes:
+ *  - a percent ("80%")                      → { threshold: 80,  isPercent: true }
+ *  - a bare number ("95", or the "0" in
+ *    "レイアウト破綻0")                        → { threshold,      isPercent: false }
+ *  - a zero written as a WORD — ゼロ/零/〇/zero (defect 8: "ゼロクリティカル
+ *    バグ" carries no ASCII digit)            → { threshold: 0,   isPercent: false }
+ */
+export function parseCriterionThreshold(
+  criterion: string,
+): { threshold: number; isPercent: boolean } | null {
+  const percentMatch = criterion.match(/(\d+(?:\.\d+)?)\s*%/);
+  if (percentMatch) return { threshold: parseFloat(percentMatch[1]), isPercent: true };
+  const numberMatch = criterion.match(/(\d+(?:\.\d+)?)/);
+  if (numberMatch) return { threshold: parseFloat(numberMatch[1]), isPercent: false };
+  if (/ゼロ|零|〇|\bzero\b/i.test(criterion)) return { threshold: 0, isPercent: false };
+  return null;
+}
+
+/** True when the criterion carries a numeric/percent/zero-word bar. */
+export function criterionHasNumericThreshold(criterion: string): boolean {
+  return parseCriterionThreshold(criterion) !== null;
+}
+
+/**
+ * Per-criterion keyword → candidate metric keys. ORDER MATTERS: specifics are
+ * listed before generics so e.g. "シーン分割精度" resolves to
+ * sceneSegmentationF1, not the generic accuracy/精度 entry. First matching
+ * entry wins.
+ */
+const CRITERION_KEY_MAP: ReadonlyArray<readonly [RegExp, readonly string[]]> = [
+  [/f1|分割|segment/i, ['sceneSegmentationF1', 'f1']],
+  [/エンティティ|entity/i, ['entityExtractionF1']],
+  [/関係|relation/i, ['relationAccuracy']],
+  [/スコア|品質|score|quality/i, ['overallScore', 'overall_score', 'score']],
+  [/成功率|success/i, ['successRate', 'success_rate']],
+  [/精度|正確|accuracy|precision/i, ['accuracy', 'precision', 'transcriptionAccuracy']],
+  // Label readability (0-1 fraction of non-truncated node labels, higher is
+  // better). Estimated from the PipelineResult by the canonical
+  // `estimateLabelReadability` (which delegates to the renderer's own
+  // `sizeLabel` truncation predicate). "ラベル可読性100%" previously matched
+  // NO key and fell through to the "any metric present → pass" fallback
+  // (defect 7), so a layout with truncating labels silently satisfied its own
+  // 100% readability SLO on the live FIP path.
+  [/ラベル|可読性|label|readab/i, ['labelReadability']],
+  [/エラー|error/i, ['errorRate']],
+  // Crash / critical-bug defect-count criteria (lower is better). "ゼロクリテ
+  // ィカルバグ" ("zero critical bugs") previously matched NO key and fell
+  // through to the "any metric present → pass" fallback (defect 8): a run that
+  // crashed still satisfied its own zero-crash SLO on the live FIP path.
+  // `crashCount` is a real QualityMetrics field produced by the FIP, so this
+  // mapping makes the gate fire on actual crash data.
+  [/クリティカル|critical|crash|バグ|bug/i, ['crashCount']],
+  // Layout defect-count criteria. All three are defect COUNTS (lower is better)
+  // computed from the PipelineResult by the canonical estimators in
+  // quality-estimators: layoutOverlap (overlapping node pairs), nodeOverflow
+  // (off-canvas / unpositioned nodes), danglingLayoutEdges (edges whose
+  // endpoints are absent from the node set). Specific keywords map to one
+  // dimension; the generic "レイアウト破綻0" ("layout breakdowns: 0") maps to ALL
+  // THREE because "breakdown" means any of them — and (AND-semantics in
+  // checkCriterion) a multi-key defect criterion must hold for EVERY dimension,
+  // not just the first present one, or an overflowing layout silently passes on
+  // its overlap count alone. Bare English 'layout' is intentionally omitted so
+  // "layout integrity" keeps the descriptive fallback (defect 5 + tests).
+  [/はみ出し|overflow/i, ['nodeOverflow']],
+  [/ズレ|dangling|misalign/i, ['danglingLayoutEdges']],
+  [/レイアウト|破綻|overlap/i, ['layoutOverlap', 'nodeOverflow', 'danglingLayoutEdges']],
+  // (defect 9) Test-pass-rate criteria. "テスト通過率100%" previously matched
+  // NO key and silently passed on "any metric present". `testPassRate` is not
+  // yet produced by the FIP (design-heavy), but MAPPING the keyword means the
+  // gate now fails LOUD on the missing metric instead of silently passing — and
+  // the regression test guarantees every shipped numeric SLO resolves to keys.
+  [/通過率|テスト|test\s*pass/i, ['testPassRate', 'test_pass_rate']],
+  // Time/duration criteria ("平均処理時間<60秒"). Listed LAST so a compound name
+  // still wins on its more-specific keyword (成功率 → success, 精度 → accuracy).
+  // The metric fields are milliseconds; they are reconciled against the seconds
+  // bar in checkCriterion (defect 4).
+  [/時間|処理時間|duration|processingtime|\btime\b/i,
+    ['processingTime', 'processing_time', 'duration', 'durationMs', 'totalTime']],
+];
+
+/**
+ * Resolve a criterion's keyword to candidate metric keys (first matching
+ * CRITERION_KEY_MAP entry wins). Returns null when NO keyword matches — an
+ * UNMAPPED SLO, the recurring silent-pass defect (defect 9).
+ */
+export function mapCriterionToKeys(criterion: string): readonly string[] | null {
+  for (const [re, ks] of CRITERION_KEY_MAP) {
+    if (re.test(criterion)) return ks;
+  }
+  return null;
+}
+
 /**
  * IterationManager: Manages the recursive development cycle
  */
@@ -189,101 +295,47 @@ export class IterationManager {
    *     the crash keyword maps to the real `crashCount` metric (a lower-is-better
    *     QualityMetrics field produced by the FIP).
    *
-   * Criterion→key mapping is keyword-based and best-effort. Criteria whose
-   * metric cannot be identified retain the legacy "met when any metric is
-   * present" behavior so this change introduces no regression for unhandled
-   * shapes.
+   * Criterion→key mapping is keyword-based and best-effort. The keyword→key
+   * table lives at module scope (CRITERION_KEY_MAP), shared with the
+   * DEVELOPMENT_CYCLES regression test via parseCriterionThreshold and
+   * mapCriterionToKeys so the mapping and its coverage test cannot drift.
+   *
+   * 9. Unmapped / uncheckable-SLO silent-pass — a criterion that carries a
+   *    numeric/percent/zero-word bar but resolves to ZERO checkable keys (its
+   *    keyword matches no CRITERION_KEY_MAP entry, OR its mapped metric is
+   *    absent this run) previously fell through to "any metric present → pass":
+   *    the SLO silently passed on the mere presence of unrelated metrics.
+   *    "テスト通過率100%" was the surviving instance — 通過率 matched no key and
+   *    no test-result metric is produced by the FIP. Such an SLO now FAILS the
+   *    gate with a warning naming the missing metric, so an unverifiable SLO
+   *    can never silently pass again. Descriptive criteria (no numeric bar)
+   *    keep the legacy "met when metrics reported" result.
    */
   private checkCriterion(criterion: string, metrics: Record<string, unknown>): boolean {
     // (a) Comparison operator; default ">=" (preserves the legacy default for
-    // operator-less criteria like "シーン分割精度80%").
+    // operator-less criteria like "シーン分割精度80%"). Operator-less
+    // lower-is-better (defect-count) criteria are re-interpreted as "<=" below.
     const opMatch = criterion.match(/>=|<=|>|</);
     const op = opMatch?.[0] ?? '>=';
-    // Whether the criterion spelled out an operator or we fell back to the
-    // legacy ">=" default. Operator-less lower-is-better criteria (defect 5)
-    // are re-interpreted as "<=" below, so this distinction is preserved.
     const hasExplicitOperator = opMatch !== null;
 
-    // (b) Threshold: prefer a percent ("80%"), fall back to any bare number
-    // ("95"). Both are real shapes in DEVELOPMENT_CYCLES.
-    const percentMatch = criterion.match(/(\d+(?:\.\d+)?)\s*%/);
-    const numberMatch = criterion.match(/(\d+(?:\.\d+)?)/);
-    // (defect 8) A zero written as a WORD — Japanese ゼロ/零/〇 or English "zero"
-    // — instead of the ASCII digit "0". "ゼロクリティカルバグ" ("zero critical
-    // bugs") carries no ASCII digit, so the threshold was never parsed and the
-    // criterion fell through to the "any metric present → pass" fallback: a
-    // crash-count SLO that never fired on the live FIP path. Recognize such a
-    // zero-word as threshold 0, but ONLY when no explicit percent/number was
-    // given, so criteria that DO state a number keep their numeric bar.
-    const zeroWordMatch =
-      !percentMatch && !numberMatch && /ゼロ|零|〇|\bzero\b/i.test(criterion);
-    const thresholdMatch = percentMatch ?? numberMatch;
-
-    if (!thresholdMatch && !zeroWordMatch) {
+    // (b) The numeric bar — percent, bare number, or a zero written as a word.
+    // null ⇒ a descriptive criterion that states no bar. See
+    // parseCriterionThreshold (shared with the regression test).
+    const thresholdInfo = parseCriterionThreshold(criterion);
+    if (!thresholdInfo) {
       // Descriptive criterion with no numeric bar — met whenever metrics were
       // reported (e.g. "音声入力→字幕付き動画出力が動作").
       return Object.keys(metrics).length > 0;
     }
-
-    const threshold = thresholdMatch ? parseFloat(thresholdMatch[1]) : 0;
-    const isPercent = !!percentMatch;
+    const { threshold, isPercent } = thresholdInfo;
 
     // (c) Which metric does this criterion quantify? Keyword → candidate keys,
-    // first present key wins. Order specifics before generics so e.g.
-    // "シーン分割精度" maps to sceneSegmentationF1, not accuracy.
-    const KEY_MAP: ReadonlyArray<readonly [RegExp, readonly string[]]> = [
-      [/f1|分割|segment/i,               ['sceneSegmentationF1', 'f1']],
-      [/エンティティ|entity/i,           ['entityExtractionF1']],
-      [/関係|relation/i,                 ['relationAccuracy']],
-      [/スコア|品質|score|quality/i,     ['overallScore', 'overall_score', 'score']],
-      [/成功率|success/i,                ['successRate', 'success_rate']],
-      [/精度|正確|accuracy|precision/i,  ['accuracy', 'precision', 'transcriptionAccuracy']],
-      // Label readability (0-1 fraction of non-truncated node labels, higher is
-      // better). Estimated from the PipelineResult by the canonical
-      // `estimateLabelReadability` (which delegates to the renderer's own
-      // `sizeLabel` truncation predicate). "ラベル可読性100%" previously matched
-      // NO key and fell through to the "any metric present → pass" fallback
-      // (defect 7), so a layout with truncating labels silently satisfied its
-      // own 100% readability SLO on the live FIP path.
-      [/ラベル|可読性|label|readab/i,    ['labelReadability']],
-      [/エラー|error/i,                  ['errorRate']],
-      // Crash / critical-bug defect-count criteria (lower is better). "ゼロク
-      // リティカルバグ" ("zero critical bugs") previously matched NO key and fell
-      // through to the "any metric present → pass" fallback (defect 8): a run that
-      // crashed still satisfied its own zero-crash SLO on the live FIP path.
-      // `crashCount` is a real QualityMetrics field produced by the FIP, so this
-      // mapping makes the gate fire on actual crash data.
-      [/クリティカル|critical|crash|バグ|bug/i, ['crashCount']],
-      // Layout defect-count criteria. All three are defect COUNTS (lower is
-      // better) computed from the PipelineResult by the canonical estimators in
-      // quality-estimators: layoutOverlap (overlapping node pairs), nodeOverflow
-      // (off-canvas / unpositioned nodes), danglingLayoutEdges (edges whose
-      // endpoints are absent from the node set). Specific keywords map to one
-      // dimension; the generic "レイアウト破綻0" ("layout breakdowns: 0") maps to
-      // ALL THREE because "breakdown" means any of them — and (AND-semantics
-      // below) a multi-key defect criterion must hold for EVERY dimension, not
-      // just the first present one, or an overflowing layout silently passes on
-      // its overlap count alone. Bare English 'layout' is intentionally omitted
-      // so "layout integrity" keeps the legacy descriptive fallback (defect 5 +
-      // iteration-manager-extended tests).
-      [/はみ出し|overflow/i,             ['nodeOverflow']],
-      [/ズレ|dangling|misalign/i,        ['danglingLayoutEdges']],
-      [/レイアウト|破綻|overlap/i,       ['layoutOverlap', 'nodeOverflow', 'danglingLayoutEdges']],
-      // Time/duration criteria ("平均処理時間<60秒"). Listed LAST so a compound
-      // name still wins on its more-specific keyword (成功率 → success,
-      // 精度 → accuracy). The metric fields are milliseconds; they are
-      // reconciled against the seconds bar below (defect 4).
-      [/時間|処理時間|duration|processingtime|\btime\b/i,
-        ['processingTime', 'processing_time', 'duration', 'durationMs', 'totalTime']],
-    ];
-    let keys: readonly string[] | null = null;
-    for (const [re, ks] of KEY_MAP) {
-      if (re.test(criterion)) {
-        keys = ks;
-        break;
-      }
-    }
-    const possibleKeys = keys ?? ['accuracy', 'precision', 'rate', 'score', 'pass_rate', 'success_rate'];
+    // first present key wins (specifics before generics — see CRITERION_KEY_MAP).
+    // mappedKeys === null means the keyword matched no entry: an UNMAPPED SLO.
+    const mappedKeys = mapCriterionToKeys(criterion);
+    const possibleKeys =
+      mappedKeys ?? ['accuracy', 'precision', 'rate', 'score', 'pass_rate', 'success_rate'];
 
     // Metric fields expressed in MILLISECONDS (Date.now()/performance.now()
     // deltas). Time criteria express the threshold in seconds, so these must be
@@ -356,7 +408,7 @@ export class IterationManager {
         if (!passed) return false;
       }
       if (checked > 0) return true;
-      // No defect key was present/finite → fall through to the legacy result.
+      // No defect key was present/finite → fall through to the loud fail (defect 9).
     } else {
       for (const key of possibleKeys) {
         const passed = evaluateKey(key);
@@ -364,10 +416,30 @@ export class IterationManager {
       }
     }
 
-    // A numeric bar was requested but no identifiable metric could supply a
-    // value: preserve the legacy "met when any metric is present" result so
-    // criteria this heuristic cannot yet map do not regress.
-    return Object.keys(metrics).length > 0;
+    // (defect 9) LOUD fallback: a numeric bar was requested but NO candidate
+    // key supplied a checkable value. The legacy code returned "met when any
+    // metric is present" here — a SILENT PASS that let an unverifiable SLO
+    // (e.g. "テスト通過率100%" before its metric is produced, or any future
+    // unmapped criterion) pass the gate on the mere presence of unrelated
+    // metrics. An SLO you cannot verify must NOT silently pass: fail loud with a
+    // warning that names the criterion, its bar, and the missing metric, so the
+    // gap is visible and actionable instead of a green light.
+    if (mappedKeys === null) {
+      logger.warn(
+        `Iteration criterion "${criterion}" asserts a numeric bar ` +
+        `(${threshold}${isPercent ? '%' : ''}) but matched NO known metric keyword ` +
+        `(unmapped SLO). Failing the gate instead of silently passing — add a ` +
+        `KEY_MAP entry or supply the metric.`,
+      );
+    } else {
+      logger.warn(
+        `Iteration criterion "${criterion}" asserts a numeric bar ` +
+        `(${threshold}${isPercent ? '%' : ''}) but none of its candidate metrics ` +
+        `(${mappedKeys.join(', ')}) were present/finite this run. Failing the ` +
+        `gate instead of silently passing — supply the metric to make this SLO checkable.`,
+      );
+    }
+    return false;
   }
 
   /**
