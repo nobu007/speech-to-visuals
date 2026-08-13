@@ -248,4 +248,53 @@ describe('VisualBalanceScorer', () => {
       expect(Number.isFinite(result.overallScore)).toBe(true);
     });
   });
+
+  // ---- Non-finite node positions (aggregation poison) --------------------
+  //
+  // nodeCenter reads node.x/node.y raw. A single non-finite coordinate
+  // poisoned every aggregation reduce (NaN + finite = NaN) and the local
+  // clamp (Math.max(0, Math.min(1, NaN)) === NaN) let it leak straight into
+  // the public VisualBalanceResult — and downstream into the composite layout
+  // quality gate (clamp01 collapses a NaN balanceScore to 0 → permanent
+  // false-fail / re-optimization thrash). Same node.x/node.y field that
+  // canvas-calculator.ts already sanitizes; this site was the missed sibling.
+  describe('non-finite node positions', () => {
+    it('produces finite scores when one node has a NaN position', () => {
+      const nodes = [
+        node(100, 100),
+        node(NaN, 200),
+        node(1500, 800),
+      ];
+      const result = scorer.calculateVisualBalance(nodes, BOUNDS);
+      expect(Number.isFinite(result.overallScore)).toBe(true);
+      expect(Number.isFinite(result.centroidDeviation)).toBe(true);
+      expect(Number.isFinite(result.quadrantBalance)).toBe(true);
+      expect(Number.isFinite(result.densityUniformity)).toBe(true);
+      expect(Number.isFinite(result.centroid.x)).toBe(true);
+      expect(Number.isFinite(result.centroid.y)).toBe(true);
+      expect(result.overallScore).toBeGreaterThanOrEqual(0);
+      expect(result.overallScore).toBeLessThanOrEqual(1);
+    });
+
+    it('produces finite scores when a node has ±Infinity position', () => {
+      const nodes = [
+        node(100, 100),
+        node(Infinity, -Infinity),
+        node(1500, 800),
+      ];
+      const result = scorer.calculateVisualBalance(nodes, BOUNDS);
+      expect(Number.isFinite(result.overallScore)).toBe(true);
+      expect(Number.isFinite(result.centroid.x)).toBe(true);
+      expect(Number.isFinite(result.centroid.y)).toBe(true);
+    });
+
+    it('coerces a non-finite position to 0 (sanitizeFinite default, same as canvas-calculator)', () => {
+      // sanitizeFinite(NaN, 0) → 0, so a NaN-positioned node is centered at
+      // its (0,0)-anchored geometry, identical to an explicit (0,0) node.
+      const atOrigin = scorer.calculateVisualBalance([node(0, 0)], BOUNDS);
+      const nanPos = scorer.calculateVisualBalance([node(NaN, NaN)], BOUNDS);
+      expect(nanPos.centroid.x).toBe(atOrigin.centroid.x);
+      expect(nanPos.centroid.y).toBe(atOrigin.centroid.y);
+    });
+  });
 });

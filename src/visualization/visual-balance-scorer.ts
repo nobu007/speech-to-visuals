@@ -9,6 +9,7 @@
  */
 
 import { PositionedNode } from '@/types/diagram';
+import { sanitizeFinite } from '@/utils/guards';
 import { distance } from './layout-utils';
 import { getNodeWidth as nodeWidth, getNodeHeight as nodeHeight } from './node-dimensions';
 
@@ -27,11 +28,23 @@ export interface VisualBalanceResult {
   quadrantCounts: [number, number, number, number];
 }
 
-/** Get center point of a node */
+/**
+ * Get center point of a node.
+ *
+ * `node.x` / `node.y` are sanitized at this ingestion chokepoint (the single
+ * producer of every center fed into the centroid/quadrant/density reduces)
+ * so one non-finite coordinate can never poison the aggregate. Without it,
+ * a NaN position propagates through `reduce((s, c) => s + c.x, 0)` (NaN +
+ * finite = NaN), the local `clamp` cannot mask it, and a fully-NaN position
+ * additionally crashes `computeDensityUniformity` (`grid[NaN]` → TypeError).
+ * Same `node.x`/`node.y` field `canvas-calculator.ts` already sanitizes —
+ * this was the missed sibling. Dimensions are already NaN-safe via
+ * `getNodeWidth`/`getNodeHeight`.
+ */
 function nodeCenter(node: PositionedNode): { x: number; y: number } {
   return {
-    x: node.x + nodeWidth(node, 0) / 2,
-    y: node.y + nodeHeight(node, 0) / 2,
+    x: sanitizeFinite(node.x, 0) + nodeWidth(node, 0) / 2,
+    y: sanitizeFinite(node.y, 0) + nodeHeight(node, 0) / 2,
   };
 }
 
