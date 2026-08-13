@@ -14,6 +14,8 @@ jest.mock('@/utils/logger', () => ({
     error: jest.fn(),
     debug: jest.fn(),
   },
+  // production-config imports LogLevel (monitoring.logLevel→logger, REQ-059).
+  LogLevel: { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3, SILENT: 4 },
 }));
 
 import { ProductionConfigManager } from '@/config/production-config';

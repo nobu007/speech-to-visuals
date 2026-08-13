@@ -38,6 +38,9 @@ export const ProductionDashboard: React.FC = () => {
   const [unsavedChanges, setUnsavedChanges] = useState(false);
 
   useEffect(() => {
+    // Apply the persisted runtime config (monitoring.logLevel → logger, REQ-059)
+    // when the config owner mounts, so the saved level takes effect app-wide.
+    productionConfig.applyRuntimeConfig();
     refreshData();
   }, []);
 
