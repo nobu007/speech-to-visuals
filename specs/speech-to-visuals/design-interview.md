@@ -4515,3 +4515,11 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - 🔵: report-export namespace / 740 行 range の 2 提案は本 repo に存在しない別コードベース参照のファントム
 
 **Disposition**: ALL-CONFIRM-NO-NEW-FIX。A124 で確定した 3 disposition（recommendations fix 安定 / breakdown 真の機能ギャップ / report-export namespace ファントム）を独立に再確認し、追加 behavioral change 不要と判定。「740 行 range bundle」「report-export typed helper 化」の 2 提案は本 repo に存在しない概念であり、適用対象なし（phantom 警告継続）。残存 `unknown` 境界の能動監査では、`iterationMetrics` `layoutResults` `performQualityPreCheck` の 3 候補を精査 → いずれもモジュール境界外または嘘キャストなしで wiring bug クラス外。本イテレーションは design interview の disposition 記録（1 docs コミット）のみを生成。
+
+
+<!-- spine:children:begin -->
+## Spine: child documents
+
+- [Pipeline Metrics NaN Leak Fix — 自動分析記録](../pipeline-metrics-nan-leak-fix/interview-record.md)
+
+<!-- spine:children:end -->
