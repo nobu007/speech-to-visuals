@@ -227,8 +227,8 @@ export class SceneSegmenter {
     endMs: number,
   ): Array<{ text: string; startMs: number; endMs: number }> {
     // Guard non-finite timestamps to prevent NaN propagation
-    const safeStart = Number.isFinite(startMs) ? startMs : 0;
-    const safeEnd = Number.isFinite(endMs) ? endMs : safeStart;
+    const safeStart = sanitizeFinite(startMs);
+    const safeEnd = sanitizeFinite(endMs, safeStart);
     const totalDuration = safeEnd - safeStart;
     if (text.length === 0) return [{ text, startMs: safeStart, endMs: safeEnd }];
 
@@ -476,7 +476,7 @@ export class SceneSegmenter {
             text: current.text + next.text,
             summary: this.generateSummary(current.text + next.text),
             keyphrases: [...new Set([...current.keyphrases, ...next.keyphrases])],
-            confidence: Math.max(Number.isFinite(current.confidence) ? current.confidence : 0, Number.isFinite(next.confidence) ? next.confidence : 0),
+            confidence: Math.max(sanitizeFinite(current.confidence), sanitizeFinite(next.confidence)),
           };
           i++;
         } else {
@@ -591,7 +591,7 @@ export class SceneSegmenter {
       text,
       summary: this.generateSummary(text),
       keyphrases: [...new Set(group.flatMap(s => s.keyphrases))],
-      confidence: Math.max(...group.map(s => Number.isFinite(s.confidence) ? s.confidence : 0)),
+      confidence: Math.max(...group.map(s => sanitizeFinite(s.confidence))),
     };
   }
 
@@ -603,10 +603,10 @@ export class SceneSegmenter {
       segmentCount: segments.length,
       avgSegmentLength: segments.length > 0 ? segments.reduce((sum, seg) => {
         const d = seg.endMs - seg.startMs;
-        return sum + (Number.isFinite(d) ? Math.max(0, d) : 0);
+        return sum + Math.max(0, sanitizeFinite(d));
       }, 0) / segments.length : 0,
       avgKeyphraseCount: segments.length > 0 ? segments.reduce((sum, seg) => sum + seg.keyphrases.length, 0) / segments.length : 0,
-      avgConfidence: segments.length > 0 ? segments.reduce((sum, seg) => sum + (Number.isFinite(seg.confidence) ? seg.confidence : 0), 0) / segments.length : 0,
+      avgConfidence: segments.length > 0 ? segments.reduce((sum, seg) => sum + sanitizeFinite(seg.confidence), 0) / segments.length : 0,
       processingTime
     };
 
@@ -692,7 +692,7 @@ export class SceneSegmenter {
       avgLength: segCount > 0
         ? segments.reduce((sum, seg) => {
           const d = seg.endMs - seg.startMs;
-          return sum + (Number.isFinite(d) ? Math.max(0, d) : 0);
+          return sum + Math.max(0, sanitizeFinite(d));
         }, 0) / segCount
         : 0,
       avgKeyphrases: segCount > 0
@@ -761,11 +761,11 @@ export class SceneSegmenter {
     // Calculate iterative improvements (guard non-finite timestamps)
     const avgLength = segments.reduce((sum, seg) => {
       const dur = seg.endMs - seg.startMs;
-      return sum + (Number.isFinite(dur) ? dur : 0);
+      return sum + sanitizeFinite(dur);
     }, 0) / segments.length;
     const avgKeyphrases = segments.reduce((sum, seg) => sum + seg.keyphrases.length, 0) / segments.length;
 
-    this.segmentationMetrics.iterativeImprovements.set('avgLength', Number.isFinite(avgLength) ? avgLength : 0);
+    this.segmentationMetrics.iterativeImprovements.set('avgLength', sanitizeFinite(avgLength));
     this.segmentationMetrics.iterativeImprovements.set('avgKeyphrases', avgKeyphrases);
     this.segmentationMetrics.iterativeImprovements.set('qualityScore', qualityScore);
 
@@ -952,7 +952,7 @@ export class SceneSegmenter {
           // Regenerate from merged text (see the backward-merge note above).
           summary: this.generateSummary(prev.text + last.text),
           keyphrases: [...new Set([...prev.keyphrases, ...last.keyphrases])],
-          confidence: Math.max(Number.isFinite(prev.confidence) ? prev.confidence : 0, Number.isFinite(last.confidence) ? last.confidence : 0),
+          confidence: Math.max(sanitizeFinite(prev.confidence), sanitizeFinite(last.confidence)),
         };
         result.pop();
       }
