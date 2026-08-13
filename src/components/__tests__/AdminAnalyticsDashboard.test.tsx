@@ -126,7 +126,7 @@ jest.unstable_mockModule('@/hooks/useAdminAnalytics', () => ({
   useAdminAnalytics: jest.fn(() => mockReturn),
 }));
 
-const { AdminAnalyticsDashboard } = await import('../AdminAnalyticsDashboard');
+const { AdminAnalyticsDashboard, confidencePercent, confidenceBadgeClass } = await import('../AdminAnalyticsDashboard');
 
 describe('AdminAnalyticsDashboard', () => {
   beforeEach(() => {
@@ -344,5 +344,61 @@ describe('AdminAnalyticsDashboard', () => {
     };
     render(<AdminAnalyticsDashboard />);
     expect(screen.getByText('0s')).toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Detected-Patterns confidence badge reconciliation
+//
+// The badge must derive its color from the SAME rounded value it displays.
+// Previously the color branched on the raw 0-1 confidence (>= 0.8 / >= 0.5)
+// while the text rendered `(confidence * 100).toFixed(0)`, so 0.795 showed as
+// "80%" yet was yellow (raw 0.795 < 0.8) — the rounded-display-vs-raw-threshold
+// contradiction, a sibling of the FrameworkDashboard overallScore /
+// PerformanceMetricsVisualization qualityScore reconciliations.
+// ---------------------------------------------------------------------------
+
+describe('AdminAnalyticsDashboard confidence badge reconciliation', () => {
+  it('confidencePercent rounds to the integer the badge displays', () => {
+    expect(confidencePercent(0.795)).toBe(80); // 79.5 → "80%"
+    expect(confidencePercent(0.495)).toBe(50); // 49.5 → "50%"
+    expect(confidencePercent(0.8049)).toBe(80);
+    expect(confidencePercent(0)).toBe(0);
+    expect(confidencePercent(1)).toBe(100);
+  });
+
+  it('colors the boundary value 0.795 as GREEN (shown "80%"), not yellow', () => {
+    // The exact bug: raw 0.795 < 0.8 would yield yellow, but the user sees
+    // "80%", which must be green to match the 80% threshold they perceive.
+    expect(confidenceBadgeClass(0.795)).toBe('bg-green-100 text-green-800');
+  });
+
+  it('colors the boundary value 0.495 as YELLOW (shown "50%"), not gray', () => {
+    // Raw 0.495 < 0.5 would yield gray, but "50%" must be yellow.
+    expect(confidenceBadgeClass(0.495)).toBe('bg-yellow-100 text-yellow-800');
+  });
+
+  it('green tier for displayed >= 80', () => {
+    expect(confidenceBadgeClass(0.8)).toBe('bg-green-100 text-green-800');
+    expect(confidenceBadgeClass(0.95)).toBe('bg-green-100 text-green-800');
+  });
+
+  it('yellow tier for displayed 50–79', () => {
+    expect(confidenceBadgeClass(0.5)).toBe('bg-yellow-100 text-yellow-800');
+    expect(confidenceBadgeClass(0.7949)).toBe('bg-yellow-100 text-yellow-800'); // → 79
+  });
+
+  it('gray tier for displayed < 50', () => {
+    expect(confidenceBadgeClass(0.4949)).toBe('bg-gray-100 text-gray-600'); // → 49
+    expect(confidenceBadgeClass(0)).toBe('bg-gray-100 text-gray-600');
+  });
+
+  it('displayed value and color tier never contradict across the range', () => {
+    for (const c of [0, 0.1, 0.4949, 0.495, 0.5, 0.7, 0.7949, 0.795, 0.8, 0.8049, 0.9, 1]) {
+      const displayed = confidencePercent(c);
+      const cls = confidenceBadgeClass(c);
+      const expected = displayed >= 80 ? 'green' : displayed >= 50 ? 'yellow' : 'gray';
+      expect(cls).toContain(expected);
+    }
   });
 });

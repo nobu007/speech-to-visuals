@@ -72,6 +72,34 @@ function pct(v: number, decimals = 1): string {
   return `${(v * 100).toFixed(decimals)}%`;
 }
 
+/**
+ * Rounded confidence percentage shown in the Detected-Patterns badge.
+ *
+ * This is the SINGLE source of truth for both the displayed number and the
+ * badge-color branch in {@link confidenceBadgeClass}. Both must read the same
+ * rounded value: a raw confidence like 0.795 rounds to "80%" for display, so
+ * the color must also be derived from 80 — otherwise the badge would render
+ * "80%" in yellow (raw 0.795 < 0.8) while showing exactly 80%, the
+ * rounded-display-vs-raw-threshold contradiction (same class as the
+ * FrameworkDashboard overallScore / PerformanceMetricsVisualization
+ * qualityScore reconciliations).
+ */
+export function confidencePercent(confidence: number): number {
+  return Math.round(confidence * 100);
+}
+
+/**
+ * Badge color for a learning-pattern confidence. Branches on the ROUNDED
+ * percentage (via {@link confidencePercent}) so the color always matches the
+ * number the user sees: a displayed 80% is green, 50% is yellow.
+ */
+export function confidenceBadgeClass(confidence: number): string {
+  const displayed = confidencePercent(confidence);
+  if (displayed >= 80) return 'bg-green-100 text-green-800';
+  if (displayed >= 50) return 'bg-yellow-100 text-yellow-800';
+  return 'bg-gray-100 text-gray-600';
+}
+
 // ── sub-components ───────────────────────────────────────
 
 const StatCard: React.FC<{
@@ -455,14 +483,8 @@ export const AdminAnalyticsDashboard: React.FC = () => {
                       <div key={i} className="rounded-md border p-3">
                         <div className="flex items-center justify-between">
                           <span className="font-medium">{p.pattern}</span>
-                          <Badge className={
-                            p.confidence >= 0.8
-                              ? 'bg-green-100 text-green-800'
-                              : p.confidence >= 0.5
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-gray-100 text-gray-600'
-                          }>
-                            {(p.confidence * 100).toFixed(0)}%
+                          <Badge className={confidenceBadgeClass(p.confidence)}>
+                            {confidencePercent(p.confidence)}%
                           </Badge>
                         </div>
                         <p className="mt-1 text-xs text-muted-foreground">
