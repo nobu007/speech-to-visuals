@@ -270,6 +270,8 @@ export class FrameworkIntegratedPipeline {
     const entityExtractionF1 = this.estimateEntityExtractionQuality(result);
     const relationAccuracy = this.estimateRelationAccuracy(result);
     const layoutOverlap = this.detectLayoutOverlaps(result);
+    const nodeOverflow = this.detectNodeOverflow(result);
+    const danglingLayoutEdges = this.detectDanglingLayoutEdges(result);
 
     const metrics: QualityMetrics = {
       // Performance Metrics
@@ -283,6 +285,8 @@ export class FrameworkIntegratedPipeline {
       entityExtractionF1,
       relationAccuracy,
       layoutOverlap,
+      nodeOverflow,
+      danglingLayoutEdges,
 
       // System Metrics
       errorRate: result.success ? 0 : 1,
@@ -334,6 +338,26 @@ export class FrameworkIntegratedPipeline {
    */
   private detectLayoutOverlaps(result: PipelineResult): number {
     return qualityEstimators.countLayoutOverlaps(result);
+  }
+
+  /**
+   * Count off-canvas / unpositioned nodes — delegates to `countNodeOverflow` in
+   * the canonical module (single source of truth: DEFAULT_CANVAS_* bounds +
+   * getNodeWidth/getNodeHeight). Exposed as a defect metric so the iteration
+   * criteria reject a layout that overflows even when nothing overlaps.
+   */
+  private detectNodeOverflow(result: PipelineResult): number {
+    return qualityEstimators.countNodeOverflow(result);
+  }
+
+  /**
+   * Count layout edges whose endpoints are absent from the positioned node set
+   * — delegates to `countDanglingLayoutEdges` in the canonical module. Exposed
+   * as a defect metric so the iteration criteria reject a layout whose edges
+   * point at nodes that were never placed.
+   */
+  private detectDanglingLayoutEdges(result: PipelineResult): number {
+    return qualityEstimators.countDanglingLayoutEdges(result);
   }
 
   /**

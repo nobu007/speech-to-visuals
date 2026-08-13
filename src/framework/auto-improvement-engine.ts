@@ -27,6 +27,8 @@ export interface QualityMetrics {
   entityExtractionF1: number; // 0-1
   relationAccuracy: number; // 0-1
   layoutOverlap: number; // 0 = perfect
+  nodeOverflow: number; // count of off-canvas / unpositioned nodes (0 = perfect)
+  danglingLayoutEdges: number; // count of edges with absent endpoints (0 = perfect)
 
   // System Metrics
   errorRate: number; // 0-1
@@ -145,7 +147,8 @@ export class AutoImprovementEngine {
    * "improvement" silently became a regression (the 7ae31177 inversion class).
    */
   static readonly LOWER_IS_BETTER_METRICS: ReadonlySet<keyof QualityMetrics> = new Set<keyof QualityMetrics>([
-    'processingTime', 'memoryUsage', 'layoutOverlap', 'errorRate', 'crashCount',
+    'processingTime', 'memoryUsage', 'layoutOverlap', 'nodeOverflow',
+    'danglingLayoutEdges', 'errorRate', 'crashCount',
   ]);
 
   /** Upper bound for ratio metrics (0-1 range) */

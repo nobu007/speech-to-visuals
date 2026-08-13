@@ -435,5 +435,39 @@ describe('IterationManager', () => {
       // 0 overlaps → exactly the bar → MET.
       expect(m.evaluateSuccessCriteria({ layoutOverlap: 0 }).allMet).toBe(true);
     });
+
+    it('requires EVERY layout defect dimension for "レイアウト破綻0" (defect 6, AND-semantics)', () => {
+      // "レイアウト破綻0" ("layout breakdowns: 0") now maps to ALL THREE defect
+      // counts — layoutOverlap, nodeOverflow, danglingLayoutEdges — because
+      // "breakdown" means any of them. A multi-key defect criterion must hold
+      // for EVERY present dimension, not just the first: previously a layout
+      // with zero overlaps but two off-canvas nodes silently passed on its
+      // overlap count alone (first-key-wins).
+      const m = mgrWith(['レイアウト破綻0']);
+      // overlap=0 but overflow=2 → NOT MET: the off-canvas nodes are a breakdown
+      // the old single-dimension gate let through.
+      expect(
+        m.evaluateSuccessCriteria({ layoutOverlap: 0, nodeOverflow: 2, danglingLayoutEdges: 0 }).allMet,
+      ).toBe(false);
+      // overlap=0 but a dangling edge → NOT MET.
+      expect(
+        m.evaluateSuccessCriteria({ layoutOverlap: 0, nodeOverflow: 0, danglingLayoutEdges: 1 }).allMet,
+      ).toBe(false);
+      // all three defect counts zero → MET.
+      expect(
+        m.evaluateSuccessCriteria({ layoutOverlap: 0, nodeOverflow: 0, danglingLayoutEdges: 0 }).allMet,
+      ).toBe(true);
+    });
+
+    it('maps "はみ出し0" to nodeOverflow and "ズレ0" to danglingLayoutEdges (single dimension)', () => {
+      // Specific keywords target a single defect dimension.
+      const overflow = mgrWith(['はみ出し0']);
+      expect(overflow.evaluateSuccessCriteria({ nodeOverflow: 2 }).allMet).toBe(false);
+      expect(overflow.evaluateSuccessCriteria({ nodeOverflow: 0 }).allMet).toBe(true);
+
+      const misalign = mgrWith(['ズレ0']);
+      expect(misalign.evaluateSuccessCriteria({ danglingLayoutEdges: 1 }).allMet).toBe(false);
+      expect(misalign.evaluateSuccessCriteria({ danglingLayoutEdges: 0 }).allMet).toBe(true);
+    });
   });
 });

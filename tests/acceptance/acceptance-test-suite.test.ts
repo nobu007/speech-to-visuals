@@ -339,6 +339,8 @@ describe('REQ-015: Auto-Improvement Framework', () => {
       entityExtractionF1: 0.9,
       relationAccuracy: 0.9,
       layoutOverlap: 0,
+      nodeOverflow: 0,
+      danglingLayoutEdges: 0,
       errorRate: 0.01,
       successRate: 0.99,
       crashCount: 0,

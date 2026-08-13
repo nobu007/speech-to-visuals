@@ -22,6 +22,8 @@
 
 import { PipelineResult } from './types';
 import { nodesOverlap } from '@/visualization/layout-utils';
+import { getNodeWidth, getNodeHeight } from '@/visualization/node-dimensions';
+import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '@/visualization/canvas-dimensions';
 
 /**
  * Estimate transcription accuracy from a pipeline result.
@@ -122,4 +124,97 @@ export function countLayoutOverlaps(result: PipelineResult): number {
   }
 
   return totalOverlaps;
+}
+
+/**
+ * Count nodes that overflow the canvas bounds across all scenes.
+ *
+ * A node overflows when any edge of its bounding box falls outside `[0, canvas]`
+ * — `x < 0`, `y < 0`, `x + width > canvasWidth`, or `y + height > canvasHeight`
+ * — exactly the predicate `scoreLayout` uses internally. A node whose position or
+ * dimensions are non-finite (it was never placed, or placement yielded NaN) is
+ * also counted: an unpositioned node is the worst kind of overflow.
+ *
+ * Canvas dimensions default to the single source of truth
+ * (`DEFAULT_CANVAS_WIDTH` / `DEFAULT_CANVAS_HEIGHT`) rather than bare 1920/1080
+ * literals, so this can never drift from the layout engines' own bounds.
+ *
+ * This is a defect COUNT (lower is better): the iteration criteria treat
+ * `レイアウト破綻0` ("layout breakdowns: 0") as requiring zero overflow in
+ * addition to zero overlap, so an off-canvas layout is rejected rather than
+ * silently accepted on the overlap count alone.
+ */
+export function countNodeOverflow(
+  result: PipelineResult,
+  canvasWidth: number = DEFAULT_CANVAS_WIDTH,
+  canvasHeight: number = DEFAULT_CANVAS_HEIGHT,
+): number {
+  let totalOverflow = 0;
+
+  for (const scene of result.scenes || []) {
+    const nodes = scene.layout?.nodes;
+    if (!nodes) continue;
+
+    for (const node of nodes) {
+      const w = getNodeWidth(node, 0);
+      const h = getNodeHeight(node, 0);
+      // An unpositioned / NaN box is itself a defect — count it and move on so
+      // a downstream nodesOverlap-style comparison never sees NaN geometry.
+      if (
+        !Number.isFinite(node.x) ||
+        !Number.isFinite(node.y) ||
+        !Number.isFinite(w) ||
+        !Number.isFinite(h)
+      ) {
+        totalOverflow++;
+        continue;
+      }
+      if (node.x < 0 || node.y < 0 || node.x + w > canvasWidth || node.y + h > canvasHeight) {
+        totalOverflow++;
+      }
+    }
+  }
+
+  return totalOverflow;
+}
+
+/**
+ * Count layout edges whose endpoints are absent from the scene's positioned
+ * node set — i.e. edges that point at a node the layout never placed.
+ *
+ * This is the structural "misalignment" between the edge set and the node set:
+ * the same hazard dagre exhibited when it auto-created phantom nodes for
+ * unknown edge endpoints (TC-307). A dangling edge renders to nowhere (or from
+ * nowhere), so it is a real rendering-quality defect even when no two nodes
+ * overlap and nothing overflows.
+ *
+ * Endpoints are read via `from`/`to` with a `source`/`target` fallback, matching
+ * the `LayoutEdge` shape. Scenes with no positioned nodes are skipped (there is
+ * no node set to misalign against).
+ *
+ * Defect COUNT (lower is better); `レイアウト破綻0` requires zero of these too.
+ */
+export function countDanglingLayoutEdges(result: PipelineResult): number {
+  let totalDangling = 0;
+
+  for (const scene of result.scenes || []) {
+    const layout = scene.layout;
+    const nodes = layout?.nodes;
+    const edges = layout?.edges;
+    if (!nodes || !edges) continue;
+
+    const nodeIds = new Set(
+      nodes.map(n => n.id).filter((id): id is string => typeof id === 'string'),
+    );
+    if (nodeIds.size === 0) continue;
+
+    for (const edge of edges) {
+      const from = edge.from ?? edge.source;
+      const to = edge.to ?? edge.target;
+      if (typeof from !== 'string' || typeof to !== 'string') continue;
+      if (!nodeIds.has(from) || !nodeIds.has(to)) totalDangling++;
+    }
+  }
+
+  return totalDangling;
 }

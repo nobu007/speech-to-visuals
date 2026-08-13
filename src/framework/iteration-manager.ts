@@ -165,6 +165,14 @@ export class IterationManager {
    *     never caught a real overlap. `layoutOverlap` now resolves via KEY_MAP,
    *     and operator-less lower-is-better (defect-count) criteria use "<=" so a
    *     non-zero overlap count actually fails the gate.
+   *  6. Single-dimension defect gate — "レイアウト破綻0" mapped to `layoutOverlap`
+   *     ALONE, so a layout with zero overlaps but off-canvas nodes (overflow) or
+   *     edges pointing at unplaced nodes (dangling) silently passed: "breakdown"
+   *     was checked against one of three defect dimensions. The generic layout
+   *     keyword now maps to all three defect COUNTS (`layoutOverlap`,
+   *     `nodeOverflow`, `danglingLayoutEdges`) and a multi-key defect criterion
+   *     must hold for EVERY present dimension (AND), so any one kind of
+   *     breakdown fails the gate.
    *
    * Criterion→key mapping is keyword-based and best-effort. Criteria whose
    * metric cannot be identified retain the legacy "met when any metric is
@@ -207,11 +215,21 @@ export class IterationManager {
       [/成功率|success/i,                ['successRate', 'success_rate']],
       [/精度|正確|accuracy|precision/i,  ['accuracy', 'precision', 'transcriptionAccuracy']],
       [/エラー|error/i,                  ['errorRate']],
-      // Layout-overlap criteria ("レイアウト破綻0" = "layout breakdowns: 0").
-      // layoutOverlap is a defect COUNT (countLayoutOverlaps); bare English
-      // 'layout' is intentionally omitted so "layout integrity" keeps the legacy
-      // descriptive fallback (defect 5 + iteration-manager-extended tests).
-      [/レイアウト|破綻|overlap/i,       ['layoutOverlap']],
+      // Layout defect-count criteria. All three are defect COUNTS (lower is
+      // better) computed from the PipelineResult by the canonical estimators in
+      // quality-estimators: layoutOverlap (overlapping node pairs), nodeOverflow
+      // (off-canvas / unpositioned nodes), danglingLayoutEdges (edges whose
+      // endpoints are absent from the node set). Specific keywords map to one
+      // dimension; the generic "レイアウト破綻0" ("layout breakdowns: 0") maps to
+      // ALL THREE because "breakdown" means any of them — and (AND-semantics
+      // below) a multi-key defect criterion must hold for EVERY dimension, not
+      // just the first present one, or an overflowing layout silently passes on
+      // its overlap count alone. Bare English 'layout' is intentionally omitted
+      // so "layout integrity" keeps the legacy descriptive fallback (defect 5 +
+      // iteration-manager-extended tests).
+      [/はみ出し|overflow/i,             ['nodeOverflow']],
+      [/ズレ|dangling|misalign/i,        ['danglingLayoutEdges']],
+      [/レイアウト|破綻|overlap/i,       ['layoutOverlap', 'nodeOverflow', 'danglingLayoutEdges']],
       // Time/duration criteria ("平均処理時間<60秒"). Listed LAST so a compound
       // name still wins on its more-specific keyword (成功率 → success,
       // 精度 → accuracy). The metric fields are milliseconds; they are
@@ -240,16 +258,20 @@ export class IterationManager {
     // non-negative count passes), so the layout SLO never fired on the live FIP
     // path. Operator-less lower-is-better criteria use "<=" instead; an explicit
     // operator is always honored as written (defect 5).
-    const LOWER_IS_BETTER = new Set(['layoutOverlap', 'errorRate', 'crashCount']);
+    const LOWER_IS_BETTER = new Set([
+      'layoutOverlap', 'nodeOverflow', 'danglingLayoutEdges', 'errorRate', 'crashCount',
+    ]);
     const isSecondsThreshold = /秒|secs?|seconds?/i.test(criterion);
 
-    for (const key of possibleKeys) {
-      if (metrics[key] === undefined) continue;
+    // Evaluate a single metric key against the threshold. Returns null when the
+    // key is absent or non-finite (not checkable), otherwise pass/fail.
+    const evaluateKey = (key: string): boolean | null => {
+      if (metrics[key] === undefined) return null;
       const raw =
         typeof metrics[key] === 'number'
           ? (metrics[key] as number)
           : parseFloat(String(metrics[key]));
-      if (!Number.isFinite(raw)) continue;
+      if (!Number.isFinite(raw)) return null;
       // (defect 3) Normalize a 0-1 fraction to 0-100 for percent thresholds.
       // (defect 4) Scale a milliseconds metric to seconds when the threshold is
       // in seconds, so "平均処理時間<60秒" actually compares 70s < 60s rather
@@ -274,6 +296,32 @@ export class IterationManager {
         case '>=':
         default:
           return value >= threshold;
+      }
+    };
+
+    // A defect-count criterion whose candidate keys are ALL lower-is-better —
+    // e.g. "レイアウト破綻0" → layoutOverlap + nodeOverflow + danglingLayoutEdges
+    // — must hold for EVERY dimension present, not just the first: "0 breakdowns"
+    // means zero overlaps AND zero overflow AND zero dangling edges. The legacy
+    // first-present-wins loop would silently pass a layout that only overflows.
+    // Single-key criteria (and any criterion with a higher-is-better key) keep
+    // first-present-wins, so existing mappings are unchanged.
+    const allDefectKeys =
+      possibleKeys.length > 1 && possibleKeys.every(k => LOWER_IS_BETTER.has(k));
+    if (allDefectKeys) {
+      let checked = 0;
+      for (const key of possibleKeys) {
+        const passed = evaluateKey(key);
+        if (passed === null) continue;
+        checked++;
+        if (!passed) return false;
+      }
+      if (checked > 0) return true;
+      // No defect key was present/finite → fall through to the legacy result.
+    } else {
+      for (const key of possibleKeys) {
+        const passed = evaluateKey(key);
+        if (passed !== null) return passed;
       }
     }
 

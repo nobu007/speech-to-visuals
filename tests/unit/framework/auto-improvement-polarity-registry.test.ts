@@ -37,6 +37,8 @@ const NUMERIC_METRIC_KEYS: (keyof QualityMetrics)[] = [
   'entityExtractionF1',
   'relationAccuracy',
   'layoutOverlap',
+  'nodeOverflow',
+  'danglingLayoutEdges',
   'errorRate',
   'successRate',
   'crashCount',
@@ -79,12 +81,15 @@ describe('AutoImprovementEngine.LOWER_IS_BETTER_METRICS (polarity registry)', ()
 
   it('lists the cost/health metrics as lower-is-better (0 is the good end)', () => {
     // processingTime/memoryUsage: less resource use is better.
-    // layoutOverlap: 0 = perfect; more overlap is worse.
+    // layoutOverlap/nodeOverflow/danglingLayoutEdges: 0 = perfect; more layout
+    // defects (overlaps, off-canvas nodes, dangling edges) is worse.
     // errorRate/crashCount: fewer failures is better. Omitting any one inverts
     // its "improvement" into a regression — the core bug class.
     expect(LOWER.has('processingTime')).toBe(true);
     expect(LOWER.has('memoryUsage')).toBe(true);
     expect(LOWER.has('layoutOverlap')).toBe(true);
+    expect(LOWER.has('nodeOverflow')).toBe(true);
+    expect(LOWER.has('danglingLayoutEdges')).toBe(true);
     expect(LOWER.has('errorRate')).toBe(true);
     expect(LOWER.has('crashCount')).toBe(true);
   });
