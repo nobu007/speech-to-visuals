@@ -165,13 +165,24 @@ describe('RegressionDetector', () => {
 
     test('rejects Infinity timestamp (1e400 → poisoned baseline deleted)', async () => {
       const metrics = makeMetrics();
-      const baseline = {
-        timestamp: 1e400,
+      const baselineObj = {
+        timestamp: 'TOPLEVEL_TS_SENTINEL',
         metrics: { ...metrics, timestamp: '2025-01-01T00:00:00.000Z' },
         sampleSize: 10,
         confidenceLevel: 0.1,
       };
-      fs.writeFileSync(currentTestPath, JSON.stringify(baseline));
+      // Hand-craft the file with a LITERAL `1e400` so JSON.parse yields real
+      // Infinity. Building the fixture via `JSON.stringify({ timestamp: 1e400 })`
+      // collapses 1e400 to `null` on disk (`JSON.stringify(Infinity) === 'null'`)
+      // and silently exercises coerceFiniteDate's `raw === null` branch instead of
+      // the `!Number.isFinite(d.getTime())` Infinity branch this test exists to
+      // pin — a false-green that would survive deletion of the guard. The unique
+      // sentinel disambiguates the top-level `timestamp` from metrics.timestamp.
+      const poisoned = JSON.stringify(baselineObj).replace(
+        /"timestamp":"TOPLEVEL_TS_SENTINEL"/,
+        '"timestamp":1e400',
+      );
+      fs.writeFileSync(currentTestPath, poisoned);
 
       const d = RegressionDetector.getInstance(currentTestPath);
       injectMockQualityMonitor(d);
@@ -183,13 +194,20 @@ describe('RegressionDetector', () => {
 
     test('rejects Infinity timestamp at metrics level', async () => {
       const metrics = makeMetrics();
-      const baseline = {
+      const baselineObj = {
         timestamp: '2025-01-01T00:00:00.000Z',
-        metrics: { ...metrics, timestamp: -1e400 },
+        metrics: { ...metrics, timestamp: 'METRICS_TS_SENTINEL' },
         sampleSize: 10,
         confidenceLevel: 0.1,
       };
-      fs.writeFileSync(currentTestPath, JSON.stringify(baseline));
+      // Same hand-crafted-literal technique as the top-level test above:
+      // JSON.stringify of a JS `-1e400` collapses to `null`, which would hit
+      // coerceFiniteDate's null branch rather than the Infinity branch.
+      const poisoned = JSON.stringify(baselineObj).replace(
+        /"timestamp":"METRICS_TS_SENTINEL"/,
+        '"timestamp":-1e400',
+      );
+      fs.writeFileSync(currentTestPath, poisoned);
 
       const d = RegressionDetector.getInstance(currentTestPath);
       injectMockQualityMonitor(d);

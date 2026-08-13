@@ -108,14 +108,22 @@ describe('Sanitizer-neutralized scene payload — downstream null tolerance', ()
   it('full end-to-end: raw LLM text → parseJsonFromLLMText → generateRenderPlan (no NaN anywhere)', async () => {
     // Pull in the text-mode chokepoint the same way the real pipeline does.
     const { parseJsonFromLLMText } = await import('@/analysis/llm-utils');
+    // Hand-craft the text with LITERAL overflow magnitudes. Building it via
+    // `JSON.stringify({ durationMs: 1e400 })` collapses 1e400 to `null` on disk
+    // (`JSON.stringify(Infinity) === 'null'`), so parseJsonFromLLMText would see
+    // a plain null — never exercising the sanitizer's Infinity→null
+    // neutralization that a REAL overflowing LLM payload triggers. Inject the
+    // literal so JSON.parse yields real Infinity, the vector under test.
     const rawText = JSON.stringify({
       scenes: [
-        { ...tamperedRaw, durationMs: 1e400 },
-        { ...tamperedRaw, durationMs: 5e400, summary: 'second' },
+        { ...tamperedRaw, durationMs: 9999 },
+        { ...tamperedRaw, durationMs: 8888, summary: 'second' },
       ],
-    });
+    })
+      .replace(/"durationMs":9999/, '"durationMs":1e400')
+      .replace(/"durationMs":8888/, '"durationMs":5e400');
     const parsed = parseJsonFromLLMText<{ scenes: SceneGraph[] }>(rawText);
-    // Both scenes had overflow durations neutralized to null.
+    // Both scenes' overflow durations are neutralized Infinity→null by the sanitizer.
     expect(parsed.scenes[0].durationMs).toBeNull();
     expect(parsed.scenes[1].durationMs).toBeNull();
 
