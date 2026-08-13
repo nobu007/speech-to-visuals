@@ -54,6 +54,9 @@ const SITES = [
   'src/pipeline/performance-baseline.ts',
   'src/pipeline/bottleneck-detector.ts',
   'src/monitoring/pipeline-metrics-collector.ts',
+  'src/visualization/canvas-calculator.ts',
+  'src/remotion/scene-synchronizer.ts',
+  'src/analysis/scene-segmenter.ts',
 ];
 
 // Files where the inline pattern is intentionally present (canonical helper
