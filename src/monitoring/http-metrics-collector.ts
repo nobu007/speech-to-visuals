@@ -14,6 +14,7 @@
 import { logger } from '@/utils/logger';
 import { computePercentiles, type Percentiles } from '@/lib/metrics-utils';
 import { CappedMap } from '@/lib/capped-map';
+import { sanitizeFinite } from '@/utils/guards';
 
 // Re-exported so the previously-local `Percentiles` type keeps its public path.
 export type { Percentiles };
@@ -145,6 +146,13 @@ export class HttpMetricsCollector {
     durationMs: number,
     correlationId: string = '-',
   ): void {
+    // Ingestion chokepoint: durationMs feeds the per-route sumMs accumulator
+    // (→ avgMs), the min/max bounds and the latencies buffer (→ percentiles)
+    // that the snapshot publishes to the dashboard / Prometheus exporter. A
+    // single NaN/±∞ sample is sticky through +, / and sort, contaminating every
+    // route aggregate. Same leak class as recordStageDuration
+    // (pipeline-metrics-collector) and RealTimePerformanceMonitor ingestion.
+    durationMs = sanitizeFinite(durationMs);
     this.activeRequests = Math.max(0, this.activeRequests - 1);
     this.totalRequests++;
 
