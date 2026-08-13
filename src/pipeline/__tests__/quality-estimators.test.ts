@@ -12,6 +12,7 @@ import {
   countLayoutOverlaps,
   countNodeOverflow,
   countDanglingLayoutEdges,
+  estimateLabelReadability,
 } from '../quality-estimators';
 
 /** Build a minimal PipelineResult whose single scene carries only the layout
@@ -188,5 +189,127 @@ describe('countLayoutOverlaps (regression guard)', () => {
       ],
     });
     expect(countLayoutOverlaps(r)).toBe(1);
+  });
+});
+
+describe('estimateLabelReadability', () => {
+  /** Like resultWithLayout but flags the run successful (readability is only
+   *  meaningful for a run that produced output). */
+  function successfulResult(scene: { nodes: unknown[]; edges?: unknown[] }): PipelineResult {
+    return {
+      success: true,
+      scenes: [
+        {
+          type: 'flow' as const,
+          nodes: [],
+          edges: [],
+          layout: { nodes: scene.nodes as never, edges: (scene.edges ?? []) as never },
+          startMs: 0,
+          durationMs: 1000,
+          summary: '',
+          keyphrases: [],
+        },
+      ],
+    } as unknown as PipelineResult;
+  }
+
+  it('returns 1.0 when every label fits its node box', () => {
+    // Wide/tall boxes, short labels → sizeLabel reports truncated:false for both.
+    const r = successfulResult({
+      nodes: [
+        { id: 'a', label: 'OK', x: 0, y: 0, width: 200, height: 60 },
+        { id: 'b', label: '開始', x: 100, y: 0, width: 200, height: 60 },
+      ],
+    });
+    expect(estimateLabelReadability(r)).toBe(1);
+  });
+
+  it('returns < 1.0 when a label truncates (the gate this estimator feeds)', () => {
+    // Node 'a' fits; node 'b' has a 100-char label in a 40x20 box → sizeLabel
+    // cannot fit it even at minFontSize (1 line of ~3 chars) → truncated:true.
+    const r = successfulResult({
+      nodes: [
+        { id: 'a', label: 'OK', x: 0, y: 0, width: 200, height: 60 },
+        { id: 'b', label: 'x'.repeat(100), x: 100, y: 0, width: 40, height: 20 },
+      ],
+    });
+    // 1 of 2 readable → 0.5. The ラベル可読性100% criterion requires 1.0, so this
+    // layout must FAIL the readability SLO rather than silently pass.
+    expect(estimateLabelReadability(r)).toBe(0.5);
+  });
+
+  it('returns 0 when every label truncates', () => {
+    const r = successfulResult({
+      nodes: [{ id: 'a', label: 'x'.repeat(100), x: 0, y: 0, width: 40, height: 20 }],
+    });
+    expect(estimateLabelReadability(r)).toBe(0);
+  });
+
+  it('judges fit purely on label-vs-box (position defects are countNodeOverflow\'s job)', () => {
+    // estimateLabelReadability measures ONLY whether the label fits the box —
+    // NOT whether the node is positioned on-canvas. An unpositioned (NaN x/y)
+    // node with a fitting label reads as readable here; its geometric defect is
+    // owned by countNodeOverflow (feeds レイアウト破綻0). Keeping one owner per
+    // defect dimension avoids double-counting.
+    const r = successfulResult({
+      nodes: [
+        { id: 'a', label: 'OK', x: Number.NaN, y: 0, width: 200, height: 60 },
+        { id: 'b', label: 'OK', x: 100, y: 0, width: 200, height: 60 },
+      ],
+    });
+    expect(estimateLabelReadability(r)).toBe(1);
+  });
+
+  it('returns 0 for a failed run', () => {
+    const r = {
+      success: false,
+      scenes: [
+        {
+          type: 'flow' as const,
+          nodes: [],
+          edges: [],
+          layout: { nodes: [{ id: 'a', label: 'OK', x: 0, y: 0, width: 200, height: 60 }] as never, edges: [] as never },
+          startMs: 0,
+          durationMs: 1000,
+          summary: '',
+          keyphrases: [],
+        },
+      ],
+    } as unknown as PipelineResult;
+    expect(estimateLabelReadability(r)).toBe(0);
+  });
+
+  it('returns 0 when there are no positioned nodes (does not pass vacuously)', () => {
+    const r = successfulResult({ nodes: [] });
+    expect(estimateLabelReadability(r)).toBe(0);
+  });
+
+  it('aggregates across scenes and ignores scenes without a layout', () => {
+    const r = {
+      success: true,
+      scenes: [
+        {
+          type: 'flow' as const,
+          nodes: [],
+          edges: [],
+          layout: { nodes: [{ id: 'a', label: 'OK', x: 0, y: 0, width: 200, height: 60 }] as never, edges: [] as never },
+          startMs: 0,
+          durationMs: 1000,
+          summary: '',
+          keyphrases: [],
+        },
+        {
+          type: 'flow' as const,
+          nodes: [],
+          edges: [],
+          // no layout → skipped
+          startMs: 0,
+          durationMs: 1000,
+          summary: '',
+          keyphrases: [],
+        },
+      ],
+    } as unknown as PipelineResult;
+    expect(estimateLabelReadability(r)).toBe(1);
   });
 });

@@ -272,6 +272,7 @@ export class FrameworkIntegratedPipeline {
     const layoutOverlap = this.detectLayoutOverlaps(result);
     const nodeOverflow = this.detectNodeOverflow(result);
     const danglingLayoutEdges = this.detectDanglingLayoutEdges(result);
+    const labelReadability = this.estimateLabelReadability(result);
 
     const metrics: QualityMetrics = {
       // Performance Metrics
@@ -287,6 +288,7 @@ export class FrameworkIntegratedPipeline {
       layoutOverlap,
       nodeOverflow,
       danglingLayoutEdges,
+      labelReadability,
 
       // System Metrics
       errorRate: result.success ? 0 : 1,
@@ -358,6 +360,16 @@ export class FrameworkIntegratedPipeline {
    */
   private detectDanglingLayoutEdges(result: PipelineResult): number {
     return qualityEstimators.countDanglingLayoutEdges(result);
+  }
+
+  /**
+   * Estimate label readability — delegates to `estimateLabelReadability` in the
+   * canonical module (single source of truth: the same `sizeLabel` predicate the
+   * renderer uses). Exposed as a higher-is-better quality metric so the
+   * iteration criteria reject a layout whose node labels truncate.
+   */
+  private estimateLabelReadability(result: PipelineResult): number {
+    return qualityEstimators.estimateLabelReadability(result);
   }
 
   /**

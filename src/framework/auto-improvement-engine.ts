@@ -29,6 +29,7 @@ export interface QualityMetrics {
   layoutOverlap: number; // 0 = perfect
   nodeOverflow: number; // count of off-canvas / unpositioned nodes (0 = perfect)
   danglingLayoutEdges: number; // count of edges with absent endpoints (0 = perfect)
+  labelReadability: number; // 0-1 fraction of non-truncated labels (1 = perfect)
 
   // System Metrics
   errorRate: number; // 0-1
@@ -158,6 +159,7 @@ export class AutoImprovementEngine {
     entityExtractionF1: 1,
     relationAccuracy: 1,
     successRate: 1,
+    labelReadability: 1,
     overallScore: 100,
   };
 

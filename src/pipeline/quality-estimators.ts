@@ -24,6 +24,7 @@ import { PipelineResult } from './types';
 import { nodesOverlap } from '@/visualization/layout-utils';
 import { getNodeWidth, getNodeHeight } from '@/visualization/node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '@/visualization/canvas-dimensions';
+import { sizeLabel } from '@/visualization/smart-label-sizer';
 
 /**
  * Estimate transcription accuracy from a pipeline result.
@@ -217,4 +218,59 @@ export function countDanglingLayoutEdges(result: PipelineResult): number {
   }
 
   return totalDangling;
+}
+
+/**
+ * Estimate label readability: the fraction of positioned nodes whose label fits
+ * within the node's bounding box WITHOUT truncation.
+ *
+ * Readability is judged by the SAME predicate the renderer uses to decide
+ * wrapping/truncation — {@link sizeLabel} (REQ-081 smart-label-sizer, CJK-aware)
+ * — so this estimate can never drift from the producer's own "does it fit"
+ * definition (no parallel hardcoded char-width heuristic). A node `sizeLabel`
+ * reports as `truncated` — the label did not fit even after shrinking to the
+ * minimum font size — is a real rendering-quality defect: the viewer sees an
+ * ellipsised label and loses information.
+ *
+ * Returns a 0-1 fraction (HIGHER is better): readable nodes / total nodes.
+ * - failed run → 0
+ * - no positioned nodes at all → 0 (a layout with no labels fails the 100% bar
+ *   rather than passing it vacuously, so the iteration criterion rejects a
+ *   degenerate layout).
+ *
+ * Scope: this estimator measures ONLY label-vs-box fit. Geometric defects — an
+ * unpositioned (NaN x/y) or off-canvas node — are owned by `countNodeOverflow`
+ * (which feeds the `レイアウト破綻0` criterion), not re-counted here, so each
+ * defect dimension has exactly one owner. Node dimensions resolve to a finite
+ * fallback via `getNodeWidth`/`getNodeHeight`, so `sizeLabel` always receives a
+ * concrete box.
+ *
+ * The `ラベル可読性100%` iteration criterion treats this as a higher-is-better
+ * percent: a 0-1 value of 1.0 (=100%) is required to pass, so even ONE
+ * truncating label fails the gate instead of silently passing via the
+ * unmapped-key "any metric present" fallback (the criterion-mapping silent-pass
+ * class, defect 7).
+ */
+export function estimateLabelReadability(result: PipelineResult): number {
+  if (!result.success) return 0;
+
+  let totalNodes = 0;
+  let readableNodes = 0;
+
+  for (const scene of result.scenes || []) {
+    const nodes = scene.layout?.nodes;
+    if (!nodes) continue;
+
+    for (const node of nodes) {
+      totalNodes++;
+      const w = getNodeWidth(node);
+      const h = getNodeHeight(node);
+      const label = typeof node.label === 'string' ? node.label : '';
+      const { truncated } = sizeLabel(label, w, h);
+      if (!truncated) readableNodes++;
+    }
+  }
+
+  if (totalNodes === 0) return 0;
+  return readableNodes / totalNodes;
 }

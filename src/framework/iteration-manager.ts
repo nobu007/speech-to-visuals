@@ -214,6 +214,14 @@ export class IterationManager {
       [/スコア|品質|score|quality/i,     ['overallScore', 'overall_score', 'score']],
       [/成功率|success/i,                ['successRate', 'success_rate']],
       [/精度|正確|accuracy|precision/i,  ['accuracy', 'precision', 'transcriptionAccuracy']],
+      // Label readability (0-1 fraction of non-truncated node labels, higher is
+      // better). Estimated from the PipelineResult by the canonical
+      // `estimateLabelReadability` (which delegates to the renderer's own
+      // `sizeLabel` truncation predicate). "ラベル可読性100%" previously matched
+      // NO key and fell through to the "any metric present → pass" fallback
+      // (defect 7), so a layout with truncating labels silently satisfied its
+      // own 100% readability SLO on the live FIP path.
+      [/ラベル|可読性|label|readab/i,    ['labelReadability']],
       [/エラー|error/i,                  ['errorRate']],
       // Layout defect-count criteria. All three are defect COUNTS (lower is
       // better) computed from the PipelineResult by the canonical estimators in

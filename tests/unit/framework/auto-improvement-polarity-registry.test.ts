@@ -24,7 +24,7 @@ import { AutoImprovementEngine, type QualityMetrics } from '@/framework/auto-imp
 /**
  * The complete roster of the engine's QualityMetrics fields. Unlike the pipeline
  * QualityMetrics, EVERY field here is numeric and polarity-relevant (there is no
- * `timestamp` / `phase` / `iteration` metadata field), so all twelve are
+ * `timestamp` / `phase` / `iteration` metadata field), so all fifteen are
  * partitioned. Typed `(keyof QualityMetrics)[]` so a typo or a key that is not a
  * real field is a compile-time error.
  */
@@ -39,6 +39,7 @@ const NUMERIC_METRIC_KEYS: (keyof QualityMetrics)[] = [
   'layoutOverlap',
   'nodeOverflow',
   'danglingLayoutEdges',
+  'labelReadability',
   'errorRate',
   'successRate',
   'crashCount',
@@ -52,6 +53,7 @@ const HIGHER_IS_BETTER = new Set<keyof QualityMetrics>([
   'sceneSegmentationF1',
   'entityExtractionF1',
   'relationAccuracy',
+  'labelReadability',
   'successRate',
   'overallScore',
 ]);
@@ -101,5 +103,6 @@ describe('AutoImprovementEngine.LOWER_IS_BETTER_METRICS (polarity registry)', ()
     expect(LOWER.has('transcriptionAccuracy')).toBe(false);
     expect(LOWER.has('successRate')).toBe(false);
     expect(LOWER.has('overallScore')).toBe(false);
+    expect(LOWER.has('labelReadability')).toBe(false);
   });
 });

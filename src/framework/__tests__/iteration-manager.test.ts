@@ -469,5 +469,22 @@ describe('IterationManager', () => {
       expect(misalign.evaluateSuccessCriteria({ danglingLayoutEdges: 1 }).allMet).toBe(false);
       expect(misalign.evaluateSuccessCriteria({ danglingLayoutEdges: 0 }).allMet).toBe(true);
     });
+
+    it('maps "ラベル可読性100%" to labelReadability and fails when any label truncates (defect 7)', () => {
+      // "ラベル可読性100%" = "label readability: 100%". labelReadability is a 0-1
+      // fraction of non-truncated node labels (estimateLabelReadability → the
+      // renderer's own sizeLabel truncation predicate). Previously the
+      // ラベル/可読性 keyword matched NO key in the map, so the criterion fell
+      // through to the "any metric present → pass" fallback: a layout whose node
+      // labels truncated silently satisfied its own 100% readability SLO on the
+      // live FIP path (FrameworkIntegratedPipeline → evaluateSuccessCriteria →
+      // checkCriterion, with labelReadability spread into metricsForEvaluation).
+      const m = mgrWith(['ラベル可読性100%']);
+      // 1.0 (=100%) → exactly the bar → MET.
+      expect(m.evaluateSuccessCriteria({ labelReadability: 1 }).allMet).toBe(true);
+      // 0.5 (=50%) → below the 100% bar → NOT MET. Old code: unmapped key → any
+      // metric present → true (silent pass); now it correctly fails.
+      expect(m.evaluateSuccessCriteria({ labelReadability: 0.5 }).allMet).toBe(false);
+    });
   });
 });
