@@ -197,6 +197,66 @@ describe('RegressionDetector', () => {
       expect(fs.existsSync(currentTestPath)).toBe(false);
     });
 
+    // --- finiteness guard for metric MAGNITUDES (sibling of TASK-0217) ---
+    //
+    // Sibling of the timestamp guard above. The TASK-0217 guard closes the
+    // Infinity vector for timestamps, but the metric NUMBERS actually compared
+    // in detectRegressions (processingTime, memoryUsage, accuracy ratios, …)
+    // were spread into the baseline UNVALIDATED. A corrupted/tampered baseline
+    // whose metric is a literal `1e400` — JSON.parse decodes it to Infinity,
+    // exactly the vector the timestamp guard's own comment names — reaches
+    // detectRegressions, where `percentChange(current, Infinity)` yields NaN
+    // and every NaN comparison (`> 0`, `< 0`, `>= threshold`) is false. The
+    // metric is then silently classified as "stable" and regression detection
+    // for it is disabled with no warning — a genuine silent-disable defect.
+    //
+    // (A poisoned value written through `JSON.stringify` would collapse to
+    // `null` on disk; these tests hand-craft the file with a literal `1e400`
+    // to model a corrupted/tampered baseline, the threat the guard targets.)
+
+    test('rejects Infinity metric magnitude (processingTime: 1e400)', async () => {
+      const metrics = makeMetrics();
+      const baselineObj = {
+        timestamp: '2025-01-01T00:00:00.000Z',
+        metrics: { ...metrics, timestamp: '2025-01-01T00:00:00.000Z' },
+        sampleSize: 10,
+        confidenceLevel: 0.1,
+      };
+      // Inject a literal 1e400 → JSON.parse yields Infinity (not null, which
+      // is what JSON.stringify would have produced).
+      const poisoned = JSON.stringify(baselineObj).replace(
+        /"processingTime":\d+/,
+        '"processingTime":1e400',
+      );
+      fs.writeFileSync(currentTestPath, poisoned);
+
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
+      expect(await d.loadBaseline()).toBeNull();
+      // The poisoned baseline must NOT linger for the next call.
+      expect(fs.existsSync(currentTestPath)).toBe(false);
+    });
+
+    test('rejects Infinity ratio metric (transcriptionAccuracy: 1e400)', async () => {
+      const metrics = makeMetrics();
+      const baselineObj = {
+        timestamp: '2025-01-01T00:00:00.000Z',
+        metrics: { ...metrics, timestamp: '2025-01-01T00:00:00.000Z' },
+        sampleSize: 10,
+        confidenceLevel: 0.1,
+      };
+      const poisoned = JSON.stringify(baselineObj).replace(
+        /"transcriptionAccuracy":\d+(?:\.\d+)?/,
+        '"transcriptionAccuracy":1e400',
+      );
+      fs.writeFileSync(currentTestPath, poisoned);
+
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
+      expect(await d.loadBaseline()).toBeNull();
+      expect(fs.existsSync(currentTestPath)).toBe(false);
+    });
+
     test('rejects non-date string that JSON.parse cannot rescue', async () => {
       const metrics = makeMetrics();
       const baseline = {

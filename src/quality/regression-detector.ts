@@ -186,6 +186,30 @@ export class RegressionDetector {
         removeBadBaseline('metrics is missing or not an object');
         return null;
       }
+
+      // Finiteness guard for metric MAGNITUDES — the missed sibling of
+      // `coerceFiniteDate` above. A corrupted/tampered baseline whose metric
+      // is a literal `1e400` survives JSON.parse as Infinity (the exact vector
+      // the timestamp guard's own comment names) and is then spread verbatim
+      // into the baseline below. In detectRegressions that Infinity reaches
+      // `percentChange(current, baselineValue)`, which yields NaN, and every
+      // NaN comparison (`> 0`, `< 0`, `>= threshold`) is false — so the metric
+      // is silently classified as "stable" and regression detection for it is
+      // disabled with no warning. The timestamp guard closed this Infinity
+      // vector for dates (the c9216907 Lottie sibling); this loop closes it for
+      // the numeric magnitudes that actually drive the comparison. It scans
+      // EVERY present number-typed member (not a hand-picked list), so a
+      // non-finite value in any metric — including ones added to
+      // `metricsToCheck` later — is rejected, mirroring the structural
+      // completeness of the boolean/finiteness tails elsewhere.
+      const metricsRecord = metricsObj as Record<string, unknown>;
+      for (const [key, value] of Object.entries(metricsRecord)) {
+        if (typeof value === 'number' && !Number.isFinite(value)) {
+          removeBadBaseline(`metric "${key}" is non-finite (got ${value})`);
+          return null;
+        }
+      }
+
       const tsMetrics = coerceFiniteDate(
         (metricsObj as Record<string, unknown>).timestamp,
         'metrics.timestamp',
