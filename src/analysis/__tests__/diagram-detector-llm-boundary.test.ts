@@ -6,9 +6,16 @@
  * DiagramType or a confidence that is NaN/undefined, DiagramDetector must
  * use sanitizeDiagramType / sanitizeFinite instead of passing the raw
  * values through to downstream pipeline stages.
+ *
+ * The confidence fallback is the FAIL value 0 — NOT a high pass value. An
+ * unknown LLM confidence must surface as a low-confidence detection so the
+ * good-detection gate (`meetsGoodDetectionConfidence`) fails and the
+ * self-improvement loop iterates on it, rather than silently passing every
+ * confidence gate (the "green-by-default gate" trap). See the inline comment
+ * at the sanitizeFinite call site in diagram-detector.ts.
  */
 import { describe, it, expect, beforeEach } from '@jest/globals';
-import { DiagramDetector } from '../diagram-detector';
+import { DiagramDetector, meetsGoodDetectionConfidence } from '../diagram-detector';
 import { sanitizeFinite } from '@/utils/guards';
 import type { ContentSegment, DiagramAnalysis } from '../types';
 
@@ -43,7 +50,7 @@ function mockGemini(overrides: Partial<DiagramAnalysis>): {
 
 describe('DiagramDetector LLM boundary sanitization', () => {
   let detector: DiagramDetector;
-   
+
   let geminiAccessor: any;
 
   beforeEach(() => {
@@ -54,7 +61,6 @@ describe('DiagramDetector LLM boundary sanitization', () => {
 
   it('sanitizes invalid LLM type into valid DiagramType', async () => {
     geminiAccessor.gemini = mockGemini({
-       
       type: 'totally-invalid-type' as any,
     });
 
@@ -66,7 +72,6 @@ describe('DiagramDetector LLM boundary sanitization', () => {
 
   it('sanitizes undefined LLM type into valid DiagramType', async () => {
     geminiAccessor.gemini = mockGemini({
-       
       type: undefined as any,
     });
 
@@ -75,48 +80,52 @@ describe('DiagramDetector LLM boundary sanitization', () => {
     expect(result.type).toBe('general');
   });
 
-  it('sanitizes NaN LLM confidence to default 0.9', async () => {
+  it('sanitizes NaN LLM confidence to FAIL default 0 (below good-detection threshold)', async () => {
     geminiAccessor.gemini = mockGemini({ confidence: NaN });
 
     const result = await detector.analyze(makeSegment('テスト'));
 
     expect(Number.isFinite(result.confidence)).toBe(true);
-    expect(result.confidence).toBe(0.9);
+    // An unknown LLM confidence must NOT silently pass the good-detection gate.
+    // Fallback is 0, below GOOD_DETECTION_CONFIDENCE_THRESHOLD (0.6).
+    expect(result.confidence).toBe(0);
+    expect(meetsGoodDetectionConfidence(result.confidence)).toBe(false);
   });
 
-  it('sanitizes undefined LLM confidence to default 0.9', async () => {
+  it('sanitizes undefined LLM confidence to FAIL default 0 (below good-detection threshold)', async () => {
     geminiAccessor.gemini = mockGemini({
-       
       confidence: undefined as any,
     });
 
     const result = await detector.analyze(makeSegment('テスト'));
 
     expect(Number.isFinite(result.confidence)).toBe(true);
-    expect(result.confidence).toBe(0.9);
+    expect(result.confidence).toBe(0);
+    expect(meetsGoodDetectionConfidence(result.confidence)).toBe(false);
   });
 
-  it('sanitizes Infinity LLM confidence to default 0.9', async () => {
+  it('sanitizes Infinity LLM confidence to FAIL default 0 (below good-detection threshold)', async () => {
     geminiAccessor.gemini = mockGemini({ confidence: Infinity });
 
     const result = await detector.analyze(makeSegment('テスト'));
 
     expect(Number.isFinite(result.confidence)).toBe(true);
-    expect(result.confidence).toBe(0.9);
+    expect(result.confidence).toBe(0);
+    expect(meetsGoodDetectionConfidence(result.confidence)).toBe(false);
   });
 
-  it('sanitizes negative Infinity LLM confidence to default 0.9', async () => {
+  it('sanitizes negative Infinity LLM confidence to FAIL default 0 (below good-detection threshold)', async () => {
     geminiAccessor.gemini = mockGemini({ confidence: -Infinity });
 
     const result = await detector.analyze(makeSegment('テスト'));
 
     expect(Number.isFinite(result.confidence)).toBe(true);
-    expect(result.confidence).toBe(0.9);
+    expect(result.confidence).toBe(0);
+    expect(meetsGoodDetectionConfidence(result.confidence)).toBe(false);
   });
 
   it('sanitizes combined invalid type + NaN confidence', async () => {
     geminiAccessor.gemini = mockGemini({
-       
       type: '' as any,
       confidence: NaN,
     });
@@ -125,7 +134,8 @@ describe('DiagramDetector LLM boundary sanitization', () => {
 
     expect(result.type).toBe('general');
     expect(Number.isFinite(result.confidence)).toBe(true);
-    expect(result.confidence).toBe(0.9);
+    expect(result.confidence).toBe(0);
+    expect(meetsGoodDetectionConfidence(result.confidence)).toBe(false);
   });
 
   it('preserves valid LLM type and confidence', async () => {
@@ -170,7 +180,8 @@ describe('DiagramDetector LLM boundary sanitization', () => {
     // Simulate the rendering logic from SimplePipelineInterface.tsx:
     //   Math.round(scene.confidence as number * 100) + '%'
     const rendered = `${Math.round(result.confidence * 100)}%`;
-    expect(rendered).toBe('90%'); // sanitizeFinite fallback default is 0.9
+    expect(rendered).toBe('0%'); // sanitizeFinite FAIL fallback is 0
+    expect(rendered).not.toBe('NaN%');
   });
 
   it('fallback type renders as "general" in DiagramPreview badge', async () => {
@@ -192,13 +203,13 @@ describe('DiagramDetector LLM boundary sanitization', () => {
     // Simulate PerformanceMetricsVisualization.tsx rendering:
     //   (metrics.confidence * 100).toFixed(0) + '%'
     const percentage = (result.confidence * 100).toFixed(0);
-    expect(percentage).toBe('90');
-    expect(`${percentage}%`).toBe('90%');
+    expect(percentage).toBe('0');
+    expect(`${percentage}%`).toBe('0%');
 
     // Simulate score display:
     //   (metrics.confidence * 100).toFixed(0) + '/100'
     const score = `${(result.confidence * 100).toFixed(0)}/100`;
-    expect(score).toBe('90/100');
+    expect(score).toBe('0/100');
     expect(score).not.toContain('NaN');
   });
 

@@ -282,7 +282,18 @@ export class DiagramDetector {
         if (llm) {
           analysis = {
             type: sanitizeDiagramType(llm.type),
-            confidence: sanitizeFinite(llm.confidence, 0.9),
+            // Fallback MUST be a FAIL value (0), never a pass value. An
+            // unspecified/invalid LLM confidence previously defaulted to 0.9,
+            // which is ABOVE GOOD_DETECTION_CONFIDENCE_THRESHOLD (0.6) — so a
+            // detection whose confidence was genuinely unknown silently passed
+            // every confidence gate (meetsGoodDetectionConfidence, the
+            // SimplePipeline high-/low-confidence flags) and the self-improvement
+            // loop never iterated on it. Same "green-by-default gate" trap as the
+            // MainPipeline dead-field → sanitizeFinite(threshold) defect: a
+            // fallback that coincides with (or exceeds) the pass boundary disables
+            // the gate. The fallback must be 0 (fail) so an unknown confidence is
+            // surfaced for re-evaluation instead of hidden behind a high score.
+            confidence: sanitizeFinite(llm.confidence, 0),
             nodes: llm.nodes || [],
             edges: llm.edges || [],
             reasoning: llm.reasoning || 'LLM (Gemini) 解析結果に基づく構造化データ'
