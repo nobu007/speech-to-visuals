@@ -140,7 +140,7 @@ export class IterationManager {
    * metric the criterion refers to (by keyword), then compares the first
    * present metric value against the threshold.
    *
-   * Fixes four defects in the original stub:
+   * Fixes five defects in the original stub:
    *  1. Bare-number thresholds were never honored — `numberMatch` was
    *     computed then discarded, so criteria like "全体品質スコア>95" silently
    *     always passed (fell through to "any metric present").
@@ -158,6 +158,13 @@ export class IterationManager {
    *     satisfied its own <60s performance SLO on the live framework path
    *     (FrameworkIntegratedPipeline → useFrameworkPipeline). Millisecond
    *     metrics are now scaled to seconds when the threshold is in seconds.
+   *  5. Defect-count tautology — "レイアウト破綻0" ("layout breakdowns: 0") had
+   *     no KEY_MAP entry, so it fell through to "any metric present → pass"; and
+   *     even when mapped, the default ">=" operator at threshold 0 is a
+   *     tautology (every non-negative count passes). The live FIP path therefore
+   *     never caught a real overlap. `layoutOverlap` now resolves via KEY_MAP,
+   *     and operator-less lower-is-better (defect-count) criteria use "<=" so a
+   *     non-zero overlap count actually fails the gate.
    *
    * Criterion→key mapping is keyword-based and best-effort. Criteria whose
    * metric cannot be identified retain the legacy "met when any metric is
@@ -169,6 +176,10 @@ export class IterationManager {
     // operator-less criteria like "シーン分割精度80%").
     const opMatch = criterion.match(/>=|<=|>|</);
     const op = opMatch?.[0] ?? '>=';
+    // Whether the criterion spelled out an operator or we fell back to the
+    // legacy ">=" default. Operator-less lower-is-better criteria (defect 5)
+    // are re-interpreted as "<=" below, so this distinction is preserved.
+    const hasExplicitOperator = opMatch !== null;
 
     // (b) Threshold: prefer a percent ("80%"), fall back to any bare number
     // ("95"). Both are real shapes in DEVELOPMENT_CYCLES.
@@ -196,6 +207,11 @@ export class IterationManager {
       [/成功率|success/i,                ['successRate', 'success_rate']],
       [/精度|正確|accuracy|precision/i,  ['accuracy', 'precision', 'transcriptionAccuracy']],
       [/エラー|error/i,                  ['errorRate']],
+      // Layout-overlap criteria ("レイアウト破綻0" = "layout breakdowns: 0").
+      // layoutOverlap is a defect COUNT (countLayoutOverlaps); bare English
+      // 'layout' is intentionally omitted so "layout integrity" keeps the legacy
+      // descriptive fallback (defect 5 + iteration-manager-extended tests).
+      [/レイアウト|破綻|overlap/i,       ['layoutOverlap']],
       // Time/duration criteria ("平均処理時間<60秒"). Listed LAST so a compound
       // name still wins on its more-specific keyword (成功率 → success,
       // 精度 → accuracy). The metric fields are milliseconds; they are
@@ -218,6 +234,13 @@ export class IterationManager {
     const MS_KEYS = new Set([
       'processingTime', 'processing_time', 'duration', 'durationMs', 'totalTime', 'renderTime',
     ]);
+    // Defect-count metrics (lower is better). A criterion written WITHOUT an
+    // explicit operator — e.g. "レイアウト破綻0" — means "at most this many
+    // defects". The legacy ">=" default is a tautology at threshold 0 (every
+    // non-negative count passes), so the layout SLO never fired on the live FIP
+    // path. Operator-less lower-is-better criteria use "<=" instead; an explicit
+    // operator is always honored as written (defect 5).
+    const LOWER_IS_BETTER = new Set(['layoutOverlap', 'errorRate', 'crashCount']);
     const isSecondsThreshold = /秒|secs?|seconds?/i.test(criterion);
 
     for (const key of possibleKeys) {
@@ -237,7 +260,11 @@ export class IterationManager {
       } else if (MS_KEYS.has(key) && isSecondsThreshold) {
         value = raw / 1000;
       }
-      switch (op) {
+      // (defect 5) An operator-less lower-is-better (defect-count) criterion
+      // means "at most threshold" — flip the legacy ">=" default to "<=" so a
+      // non-zero overlap/error count fails the gate instead of silently passing.
+      const effectiveOp = !hasExplicitOperator && LOWER_IS_BETTER.has(key) ? '<=' : op;
+      switch (effectiveOp) {
         case '>':
           return value > threshold;
         case '<':

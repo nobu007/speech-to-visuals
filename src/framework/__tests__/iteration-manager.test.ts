@@ -419,5 +419,21 @@ describe('IterationManager', () => {
       // 70s = 70000ms → over the 60s bar → NOT MET (the SLO violation this gate exists to catch)
       expect(m.evaluateSuccessCriteria({ processingTime: 70000 }).allMet).toBe(false);
     });
+
+    it('maps "レイアウト破綻0" to layoutOverlap and fails on a non-zero count (defect 5)', () => {
+      // "レイアウト破綻0" = "layout breakdowns: 0". layoutOverlap is a defect
+      // COUNT (countLayoutOverlaps) and the criterion has no operator, so the
+      // legacy ">=" default at threshold 0 was a tautology — any non-negative
+      // overlap count silently passed, so the layout SLO never fired on the live
+      // FIP path (FrameworkIntegratedPipeline → evaluateSuccessCriteria →
+      // checkCriterion, with layoutOverlap spread into metricsForEvaluation).
+      // Now operator-less lower-is-better criteria use "<=".
+      const m = mgrWith(['レイアウト破綻0']);
+      // 3 overlaps → over the "0 breakdowns" bar → NOT MET (the SLO violation
+      // this gate exists to catch). Old code: 3 >= 0 → true (silent pass).
+      expect(m.evaluateSuccessCriteria({ layoutOverlap: 3 }).allMet).toBe(false);
+      // 0 overlaps → exactly the bar → MET.
+      expect(m.evaluateSuccessCriteria({ layoutOverlap: 0 }).allMet).toBe(true);
+    });
   });
 });
