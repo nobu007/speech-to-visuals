@@ -513,6 +513,69 @@ describe('RealTimePerformanceMonitor', () => {
       expect(memoryTrend!.trend).toBe('improving');
     });
 
+    // -------------------------------------------------------------------------
+    // Per-metric polarity contract (regression net for 7ae31177)
+    // -------------------------------------------------------------------------
+    //
+    // analyzeTrend resolves change→trend polarity via LOWER_IS_BETTER_METRICS.
+    // EVERY metric analyzeTrends emits is lower-is-better, so a RISING series
+    // MUST classify as 'degrading' and a FALLING series as 'improving'. The
+    // original bug inverted memoryUsage because a name-substring heuristic
+    // silently omitted it; this table pins all four analyzed metrics in BOTH
+    // directions so the class cannot silently regress for any one of them.
+    //
+    // Series design: 40 samples → older window [-40,-20] and recent [-20] both
+    // hold 20 samples; a linear ramp yields >5% change (not 'stable'); ceiling
+    // values stay under each metric's alert threshold so no threshold alert is
+    // involved (memoryUsage < 512 MB, errorRate < 0.05, processingTime < 60s,
+    // llmResponseTime < 15s).
+    const ANALYZED_METRICS = [
+      { metric: 'processingTime', unit: 'ms', base: 1000, step: 500 },
+      { metric: 'memoryUsage', unit: 'MB', base: 100, step: 10 },
+      { metric: 'errorRate', unit: 'percent', base: 0.001, step: 0.0005 },
+      { metric: 'llmResponseTime', unit: 'ms', base: 1000, step: 100 },
+    ] as const;
+
+    it.each(ANALYZED_METRICS)(
+      'should classify a RISING $metric series as "degrading" (lower-is-better)',
+      ({ metric, unit, base, step }) => {
+        for (let i = 0; i < 40; i++) {
+          monitor.recordMetric(metric, base + i * step, unit);
+        }
+        const trend = monitor.analyzeTrends().find((t: any) => t.metric === metric);
+        expect(trend).toBeDefined();
+        expect(trend!.trend).toBe('degrading');
+      }
+    );
+
+    it.each(ANALYZED_METRICS)(
+      'should classify a FALLING $metric series as "improving" (lower-is-better)',
+      ({ metric, unit, base, step }) => {
+        const start = base + 39 * step;
+        for (let i = 0; i < 40; i++) {
+          monitor.recordMetric(metric, start - i * step, unit);
+        }
+        const trend = monitor.analyzeTrends().find((t: any) => t.metric === metric);
+        expect(trend).toBeDefined();
+        expect(trend!.trend).toBe('improving');
+      }
+    );
+
+    it('should emit exactly the analyzed-metric set, all "degrading" on a rising series', () => {
+      for (const { metric, unit, base, step } of ANALYZED_METRICS) {
+        for (let i = 0; i < 40; i++) {
+          monitor.recordMetric(metric, base + i * step, unit);
+        }
+      }
+      const trends = monitor.analyzeTrends();
+      // Drift guard: adding a metric to analyzeTrends/updateTrendData without
+      // declaring its polarity breaks this count, forcing a conscious update.
+      expect(trends.map((t: any) => t.metric).sort()).toEqual(
+        ANALYZED_METRICS.map((m) => m.metric).sort()
+      );
+      expect(trends.every((t: any) => t.trend === 'degrading')).toBe(true);
+    });
+
     it('should include predictions', () => {
       for (let i = 0; i < 25; i++) {
         monitor.recordMetric('processingTime', 1000 + i * 100, 'ms');
