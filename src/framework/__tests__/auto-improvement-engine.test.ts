@@ -467,7 +467,7 @@ describe('AutoImprovementEngine', () => {
     });
 
     it('marks a successful lower-is-better improvement as success (sign fix)', async () => {
-      // layoutOverlap is LOWER_IS_BETTER: a strategy that reduces overlap
+      // layoutOverlap is LOWER_IS_BETTER_METRICS: a strategy that reduces overlap
       // 5 -> 0 is a genuine improvement. Before the sign fix, after < before
       // made the raw after-before delta negative, so success (improvement > 0)
       // was false and the cycle reported `improved: false` with a negative %.

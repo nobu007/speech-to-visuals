@@ -144,7 +144,7 @@ export class AutoImprovementEngine {
    * lower-is-better metric fell through to the higher-is-better default and an
    * "improvement" silently became a regression (the 7ae31177 inversion class).
    */
-  static readonly LOWER_IS_BETTER: ReadonlySet<keyof QualityMetrics> = new Set<keyof QualityMetrics>([
+  static readonly LOWER_IS_BETTER_METRICS: ReadonlySet<keyof QualityMetrics> = new Set<keyof QualityMetrics>([
     'processingTime', 'memoryUsage', 'layoutOverlap', 'errorRate', 'crashCount',
   ]);
 
@@ -172,7 +172,7 @@ export class AutoImprovementEngine {
       const improved = { ...metrics };
       const current = metrics[targetMetric] as number;
 
-      if (AutoImprovementEngine.LOWER_IS_BETTER.has(targetMetric)) {
+      if (AutoImprovementEngine.LOWER_IS_BETTER_METRICS.has(targetMetric)) {
         (improved[targetMetric] as number) = current * (1 - pct / 100);
       } else {
         const cap = AutoImprovementEngine.METRIC_CAPS[targetMetric] ?? Infinity;
@@ -421,7 +421,7 @@ export class AutoImprovementEngine {
         // improvement read as a failure (`success: improvement > 0`) and the
         // report showed a negative % — the sign was inverted relative to the
         // report's own `improvement > 0 ? '+' : ''` convention.
-        const improvement = AutoImprovementEngine.LOWER_IS_BETTER.has(strategy.targetMetric)
+        const improvement = AutoImprovementEngine.LOWER_IS_BETTER_METRICS.has(strategy.targetMetric)
           ? 0 - delta
           : delta;
 

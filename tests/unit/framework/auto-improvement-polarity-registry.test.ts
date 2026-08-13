@@ -1,7 +1,7 @@
 /**
  * Closed-set polarity contract for the AutoImprovementEngine registry.
  *
- * `AutoImprovementEngine.LOWER_IS_BETTER` (src/framework/auto-improvement-engine.ts)
+ * `AutoImprovementEngine.LOWER_IS_BETTER_METRICS` (src/framework/auto-improvement-engine.ts)
  * decides, per QualityMetrics field, whether createImprovementExecutor should
  * REDUCE the value (lower-is-better) or INCREASE it (higher-is-better), and
  * whether runImprovementCycle must flip the delta sign to read
@@ -54,8 +54,8 @@ const HIGHER_IS_BETTER = new Set<keyof QualityMetrics>([
   'overallScore',
 ]);
 
-describe('AutoImprovementEngine.LOWER_IS_BETTER (polarity registry)', () => {
-  const LOWER = AutoImprovementEngine.LOWER_IS_BETTER;
+describe('AutoImprovementEngine.LOWER_IS_BETTER_METRICS (polarity registry)', () => {
+  const LOWER = AutoImprovementEngine.LOWER_IS_BETTER_METRICS;
 
   it('partitions every QualityMetrics field into exactly one polarity bucket', () => {
     const lower = [...LOWER];

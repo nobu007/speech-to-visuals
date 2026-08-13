@@ -5705,7 +5705,9 @@
 | REQ-299: storageParser JSON.parse 非対称監査 | 2 | 🟡 |
 | REQ-300: async-setState positive-case fixture | 2 | 🟡 |
 | REQ-301: timestamp guard mutation-verified CI | 2 | 🟡 |
-| **合計** | **79** | **🔵 96.2% / 🟡 3.8%** |
+| REQ-302: AutoImprovementEngine.LOWER_IS_BETTER_METRICS 命名統一 | 2 | 🔵 |
+| REQ-303: Number.isFinite 共通 sanitizer 集約提案 | 2 | 🟡 |
+| **合計** | **83** | **🔵 96.4% / 🟡 3.6%** |
 
 
 <!-- spine:references:begin -->

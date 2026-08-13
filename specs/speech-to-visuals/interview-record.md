@@ -4019,6 +4019,88 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A130: Phase 132 — 3レジストリ命名一貫性 REQ-302 実装（2026-08-13 第213回検証）
+
+**分析日時**: 2026-08-13
+**カテゴリ**: 既存実装改善・AI Hub make-run feedback 実在性検証・命名統一
+**背景**: AI Hub `make run` フィードバックが `LOWER_IS_BETTER_*` 名前空間の3レジストリ横断一貫性（`LOWER_IS_BETTER_METRICS` / `LOWER_IS_BETTER_QUALITY_METRICS` / 残る1レジストリ = `LOWER_IS_BETTER`）を指摘。検証手順として、(1) 3レジストリの宣言/使用箇所の grep、(2) 既存 partition テストとの整合、(3) リネーム影響範囲の特定、(4) テスト実行による挙動不変性の確認、を実施。
+
+**判断**: 
+
+1. **実在性確認**: 3レジストリは実在し、`src/framework/auto-improvement-engine.ts:147` の `static readonly LOWER_IS_BETTER` のみが短い名前で命名一貫性を欠いていた（`LOWER_IS_BETTER_METRICS` および `LOWER_IS_BETTER_QUALITY_METRICS` と非対称）。メモリ内「do NOT consolidate」（REQ-296/298 兄弟エントリの OWN-type アンカー維持）設計は維持しつつ、naming のみ統一する方針が成立すると判断。
+
+2. **影響範囲の特定**:
+   - `src/framework/auto-improvement-engine.ts` 宣言行 (147) + `.has(...)` 呼び出し 2箇所 (:175 / :424) = 3箇所
+   - `src/framework/__tests__/auto-improvement-engine.test.ts` の doc コメント 1箇所 (:470)
+   - `tests/unit/framework/auto-improvement-polarity-registry.test.ts` docコメント (:4) + describe (:57) + const (:58) = 3箇所（`AutoImprovementEngine.LOWER_IS_BETTER` への直接参照）
+   - 合計 7箇所を一括リネーム
+
+3. **実装**: `LOWER_IS_BETTER` → `LOWER_IS_BETTER_METRICS` に機械的に置換。partition テスト（`AutoImprovementEngine.LOWER_IS_BETTER_METRICS` (polarity registry)` の describe ブロック、`const LOWER = AutoImprovementEngine.LOWER_IS_BETTER_METRICS` の束縛、`HIGHER_IS_BETTER` Set との disjoint/complete/no-extras 検証）も同時更新。
+
+4. **テスト実行**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns='auto-improvement'` を実行し、2 suites / 54 tests 全て green を確認。挙動不変性を担保。
+
+**根拠**:
+- `grep -rn '\.LOWER_IS_BETTER\b\|LOWER_IS_BETTER[^_]' src/ tests/` の出力（7箇所で合致、修正後 0 合致）
+- `auto-improvement-polarity-registry.test.ts` の disjoint/complete/no-extras 検証ロジック（`expect(HIGHER_IS_BETTER.has(m)).toBe(false)` / `expect(classified.has(key)).toBe(true)` / `expect(NUMERIC_METRIC_KEYS).toContain(m)`）がリネーム後も同じ set 構造を期待することから、partition テストは型・値ともに不変
+- memory 内「name-substring metric CLASSIFICATION (63-67 CLOSED+GUARDED)」エントリで `auto-improvement-engine.LOWER_IS_BETTER` を「OWN QualityMetrics type — do NOT consolidate」と記録済み → 統合ではなく naming 統一に限定することで設計意図と整合
+
+**信頼性への影響**:
+- REQ-302 を新規追加（信頼性レベル: 🔵）— ✅実装済、commit 同梱
+- 信頼性レベル分布: 🔵 302件 → 🔵 303件（+1）、🟡 6件（変動なし）、🔴 0件
+
+---
+
+### A131: Phase 132 — Number.isFinite 共通 sanitizer 集約 REQ-303 提案（2026-08-13 第213回検証）
+
+**分析日時**: 2026-08-13
+**カテゴリ**: 既存実装改善・AI Hub make-run feedback 実在性検証・sanitizer 集約提案
+**背景**: AI Hub `make run` フィードバックが「defense-in-depth ガードが3レイヤー(email API / supabase / component)に分散した。次の自律イテレーションでは、`toFiniteNumber` / `toFiniteOr` のような共通 sanitizer ユーティリティを src/utils/ に抽出し、ガード記述を1行で書けるようにすることでコピー&ペースト欠落を防ぐと同時に、sentinel(NaN/Infinity)を境界で一括正規化する単一責任ポイントを作る」と提案。
+
+**判断**:
+
+1. **既存 sanitizer の発見**: 検証の結果、`src/utils/guards.ts` に既に `sanitizeFinite(value, defaultValue)` / `clampFinite(value, min, max)` / `clamp01(value)` / `safeToLocaleString(value, defaultValue)` / `sanitizeDiagramType(value, defaultValue)` が集約されていることを確認（REQ-296 兄弟エントリの成果）。これは AI Hub feedback の本質的目的（境界で NaN/Infinity を一括正規化する単一責任ポイント）を**既に達成済み**。
+
+2. **残存するインラインガードの規模**: `grep -rn 'Number.isFinite\b' src/` で 55ファイルに散在するインラインガードを検出。これらは (a) 値を変換する用法（`(typeof value === 'number' && Number.isFinite(value)) ? value : defaultValue` 形）と (b) 条件分岐ガード（`Number.isFinite(x) && x > 0` のように真偽値として使う用法）の2種に分類可能。`(a)` は `sanitizeFinite` に置換可能だが、`(b)` はヘルパー化しても利用パターンが単純化されない（複数条件との AND が必要なため）。
+
+3. **REQ-303 のスコープ**: 値を変換する用法のみを `sanitizeFinite` への段階移行対象とし、条件分岐ガードは対象外とする方針で要件化。55ファイルの大規模リファクタは Phase 132 内では完了せず、別タスクとして段階着手。
+
+**根拠**:
+- `src/utils/guards.ts` の doc コメント「Runtime guard functions for diagram detection results. These helpers prevent NaN/Infinity propagation ... are consolidated here so future code can't reintroduce unguarded access.」が要件の意図と一致
+- 既存の `sanitizeFinite` は REQ-296（config-restore 有限性 performance SCALARS）と兄弟で、chokepoint として既に機能
+- memory 内「config-restore 有限性 CLOSED（TC-299-03）」「chokepoint `isPositiveFiniteNumber` at `production-config.ts:80`」エントリから、config レイヤでは既に chokepoint 化が完了済み
+
+**信頼性への影響**:
+- REQ-303 を新規追加（信頼性レベル: 🟡）— 55ファイル段階集約の **提案**、Phase 132 内の実装は保留
+- 信頼性レベル分布: 🔵 303件（変動なし）、� 6件 → 🟡 7件（+1）、🔴 0件
+
+---
+
+### A132: Phase 132 — Phantom feedback 記録（2026-08-13 第213回検証）
+
+**分析日時**: 2026-08-13
+**カテゴリ**: フィードバック実在性検証・phantom feedback trap 記録・再 hunt 防止
+**背景**: AI Hub `make run` フィードバックのうち、提案3・提案4の2項目は名前から実在ファイルを想起させるが、`find . -path ./node_modules -prune -o -type f \( ... \) -print` で 0 hits となり、phantom feedback トラップに該当。memory 内「Phantom-feedback trap (recurring — do NOT fabricate)」エントリの教訓（make-run feedback の項目は phantom であることが多い）に従い、検証結果のみを記録し、実装はしない。
+
+**判断**:
+
+1. **提案3 (`nonStringTruthy` テストケース shared fixtures + `expect.string()` カスタムマッチャ昇格)**: `find . -name '*nonStringTruthy*'` で 0 hits。提案は存在しないテストヘルパー名を指しており、phantom feedback と確定。本要件定義書では対応する REQ を新規作成しない。Real lever として REQ-302（共通 sanitizer 抽出の意図を REQ-303 で具体化済み）を適用。
+
+2. **提案4 (`supabaseIntakeSanitize.test.ts` (245行) → `corruptionHelpers.test.ts` 抽出 + `expectCorruptionBlocked` アサーションラッパ)**: `find . -name 'supabaseIntakeSanitize*'` / `find . -name '*corruptionHelpers*'` で 0 hits。`supabase/` 配下の実在ファイルは auth-scaffold（`client.ts` / `auth.ts`）のみで、`diagram_projects` テーブルは TYPED だが src/ から query されておらず、`production-config.ts` 同様に process.env ガードの受益はあるが、提案が指す corruption event テストは実在せず phantom feedback と確定。
+
+3. **Phantom-feedback trap の lesson 適用**: memory 内「Phantom-feedback trap (recurring — do NOT fabricate)」エントリの lesson「verify named files, then check if the GAP exists elsewhere」「when feedback names phantom entry points, sweep for the bug CLASS elsewhere」を適用。提案3・4の GAP（corruption event テスト未整備、共有 sanitizer 不足）は実在するが、提案が指す具体的ファイル/テストは phantom。real lever = REQ-302/303 として既に具体化済み。
+
+**根拠**:
+- `find . -path ./node_modules -prune -o -type f \( -name 'supabaseIntakeSanitize*' -o -name 'nonStringTruthy*' -o -name 'corruptionHelpers*' -o -name 'corruption-helpers*' \) -print` 出力: 空（0 hits）
+- `ls src/api/__tests__/types/ 2>/dev/null` 出力: 空（`nonStringTruthy` 配置先の shared fixtures directory も不在）
+- memory 内「Phantom-feedback trap」エントリの既知パターン（`emailService`/`stripeService`/`isValidPersistedResult`/`sanitizeDiagnosticType` 0 hits）と同型
+
+**信頼性への影響**:
+- REQ 新規追加なし（phantom フィードバックの実装は不採用）
+- 信頼性レベル分布: 変動なし（phantom feedback は要件カウント外）
+- Phantom-feedback trap の再 hunt 防止策として、本 A132 を記録することで同種 phantom feedback の再検証コストを削減
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)
