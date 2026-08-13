@@ -536,4 +536,58 @@ describe('prometheus-exporter', () => {
       expect(output).toContain('\\"');
     });
   });
+
+  describe('publish-path finiteness backstop (renderMetric)', () => {
+    // Empty snapshots for the non-exercised collectors keep output deterministic.
+    const emptyQueue = { queueSize: 0, dequeueCount: 0, avgWaitTimeMs: 0, dequeueByPriority: {}, dlqSize: 0, totalRetries: 0, totalDeadLettered: 0, totalReplayed: 0 };
+
+    it('coerces a non-finite sample value to 0 so exposition never emits NaN/Infinity', () => {
+      // A snapshot carrying non-finite percentile/sum values (the exact residue
+      // an ingestion-guard MISS would leave) reaches the builder, which pushes
+      // them as sample.value. renderMetric must coerce — otherwise the output
+      // contains literal `NaN` / `Infinity` tokens (invalid exposition; every
+      // NaN alert comparison is false → silent alert disablement).
+      const poisoned = makePipelineSnapshot({
+        stages: [
+          {
+            stage: 'rendering',
+            count: 1,
+            sumMs: Infinity,
+            avgMs: NaN,
+            minMs: 0,
+            maxMs: -Infinity,
+            percentiles: { p50: 0, p95: NaN, p99: -Infinity },
+          },
+        ],
+        totalRuns: 1,
+        successfulRuns: 1,
+        failedRuns: 0,
+      });
+
+      const output = exportPrometheusMetrics({
+        snapshot: makeHttpSnapshot({ routes: [] }),
+        pipelineSnapshot: poisoned,
+        exportSnapshot: makeExportSnapshot({ formats: [], stages: [], queue: emptyQueue }),
+      });
+
+      expect(output).toContain('pipeline_stage_duration_ms');
+      expect(output).not.toMatch(/NaN/);
+      expect(output).not.toMatch(/Infinity/);
+      // Coerced _sum (Infinity→0) and p95 (NaN→0) render as 0.
+      expect(output).toMatch(/pipeline_stage_duration_ms_sum\{stage="rendering"\} 0/);
+      expect(output).toMatch(/pipeline_stage_duration_ms\{stage="rendering",quantile="0.95"\} 0/);
+    });
+
+    it('leaves finite sample values untouched (backstop is behavior-preserving for valid data)', () => {
+      const output = exportPrometheusMetrics({
+        snapshot: makeHttpSnapshot(),
+        pipelineSnapshot: makePipelineSnapshot(),
+        exportSnapshot: makeExportSnapshot(),
+      });
+      // A real finite p95 (8000) round-trips unchanged through the backstop.
+      expect(output).toMatch(/pipeline_stage_duration_ms\{stage="transcription",quantile="0.95"\} 8000/);
+      expect(output).not.toMatch(/NaN/);
+      expect(output).not.toMatch(/Infinity/);
+    });
+  });
 });

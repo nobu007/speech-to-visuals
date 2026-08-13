@@ -182,7 +182,21 @@ function renderMetric(metric: PrometheusMetric): string {
   for (const sample of metric.samples) {
     const suffix = sample.suffix ?? '';
     const labelStr = formatLabels(sample.labels);
-    lines.push(`${metric.name}${suffix}${labelStr} ${sample.value}`);
+    // Publish-path finiteness backstop. A non-finite sample value would render
+    // a literal `NaN` / `Infinity` token — invalid Prometheus exposition that
+    // silently disables every alert reading this metric (any NaN comparison is
+    // false). The per-collector ingestion guards are the primary defense, yet
+    // each prior non-finite-leak fix (Http / Pipeline / RealTime / Export
+    // collectors) was a MISSED SIBLING found one session at a time — per-site
+    // enumeration is fragile. This single render chokepoint, through which every
+    // HTTP / pipeline / export metric flows, structurally guarantees no
+    // non-finite value reaches the exposition text even if a future recordX
+    // method or a snapshot computation forgets to guard — the same SINK-guard
+    // pattern as `percentChange` (metrics-utils). Coerce to 0 (not drop) so a
+    // summary stays structurally complete. The security collector appends its
+    // own counter-only text, which is inherently finite integer arithmetic.
+    const value = Number.isFinite(sample.value) ? sample.value : 0;
+    lines.push(`${metric.name}${suffix}${labelStr} ${value}`);
   }
 
   return lines.join('\n');
