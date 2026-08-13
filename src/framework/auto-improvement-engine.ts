@@ -133,8 +133,18 @@ export class AutoImprovementEngine {
 
   }
 
-  /** Metrics where lower values are better */
-  private static readonly LOWER_IS_BETTER: ReadonlySet<string> = new Set([
+  /**
+   * Metrics where lower values are better — a type-anchored, closed-set polarity
+   * partition of QualityMetrics. Typed `keyof QualityMetrics` (not `string`) so a
+   * typo or a non-metric key is a compile error, and `static` (not `private`) so
+   * the partition test (tests/unit/framework/auto-improvement-polarity-registry.test.ts)
+   * can pin every field into exactly one bucket without re-declaring the set.
+   * This is the same backstop applied to the other two polarity registries
+   * (LOWER_IS_BETTER_METRICS, LOWER_IS_BETTER_QUALITY_METRICS); without it a new
+   * lower-is-better metric fell through to the higher-is-better default and an
+   * "improvement" silently became a regression (the 7ae31177 inversion class).
+   */
+  static readonly LOWER_IS_BETTER: ReadonlySet<keyof QualityMetrics> = new Set<keyof QualityMetrics>([
     'processingTime', 'memoryUsage', 'layoutOverlap', 'errorRate', 'crashCount',
   ]);
 
