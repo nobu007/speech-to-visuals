@@ -8,6 +8,7 @@
  */
 
 import type { SrtCaption } from './srt-parser';
+import { sanitizeFinite } from '@/utils/guards';
 
 /**
  * Default FPS used throughout the project — the single source of truth.
@@ -167,7 +168,7 @@ function getSceneBoundaries(scenes: { durationMs: number }[]): number[] {
 
   for (const scene of scenes) {
     boundaries.push(elapsed);
-    elapsed += Number.isFinite(scene.durationMs) ? scene.durationMs : 0;
+    elapsed += sanitizeFinite(scene.durationMs);
     boundaries.push(elapsed);
   }
 
@@ -186,7 +187,7 @@ function getSceneStartTimes(scenes: { durationMs: number }[]): number[] {
 
   for (const scene of scenes) {
     starts.push(elapsed);
-    elapsed += Number.isFinite(scene.durationMs) ? scene.durationMs : 0;
+    elapsed += sanitizeFinite(scene.durationMs);
   }
 
   return starts;
@@ -214,7 +215,7 @@ export function splitCaptionAtSceneBoundary(
   const boundaries: number[] = [0];
   let cumulative = 0;
   for (const scene of scenes) {
-    cumulative += Number.isFinite(scene.durationMs) ? scene.durationMs : 0;
+    cumulative += sanitizeFinite(scene.durationMs);
     boundaries.push(cumulative);
   }
 
@@ -279,7 +280,7 @@ export function validateSceneCaptionSync(
   }
 
   // Calculate total scene duration
-  const totalSceneMs = scenes.reduce((sum, s) => sum + (Number.isFinite(s.durationMs) ? s.durationMs : 0), 0);
+  const totalSceneMs = scenes.reduce((sum, s) => sum + sanitizeFinite(s.durationMs), 0);
 
   // Get scene start times for boundary checking
   const sceneStarts = getSceneStartTimes(scenes);
