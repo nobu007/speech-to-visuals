@@ -16,6 +16,7 @@ import { clamp01 } from '@/utils/guards';
 import { Point } from './types';
 import { logger } from '../utils/logger';
 import { getNodeWidth, getNodeHeight } from './node-dimensions';
+import { TARGET_ASPECT_RATIO } from './canvas-dimensions';
 
 export interface ZeroOverlapConfig {
   // Canvas configuration
@@ -136,7 +137,7 @@ export class ZeroOverlapLayoutEngine {
       qualityTargets: {
         overlapCount: 0,      // Zero overlaps guaranteed
         edgeCrossings: -1,    // Minimize (no specific target)
-        aspectRatio: 16/9,    // 16:9 aspect ratio
+        aspectRatio: TARGET_ASPECT_RATIO, // 16:9 (single source: canvas-dimensions)
         utilization: 0.75     // 75% canvas utilization target
       },
 

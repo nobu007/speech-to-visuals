@@ -9,9 +9,8 @@
 import { PositionedNode } from '@/types/diagram';
 import { sanitizeFinite } from '@/utils/guards';
 import { getNodeWidth, getNodeHeight } from './node-dimensions';
-import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from './canvas-dimensions';
+import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, TARGET_ASPECT_RATIO } from './canvas-dimensions';
 
-const TARGET_ASPECT_RATIO = 16 / 9;
 const PADDING_RATIO = 0.05;
 const MIN_PADDING = 40;
 

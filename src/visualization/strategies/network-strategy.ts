@@ -16,11 +16,10 @@ import { LayoutStrategy, StrategyLayoutResult } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
 import { getImportance, importanceSizeScale } from '../importance-scaler';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
-import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
+import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, TARGET_ASPECT_RATIO } from '../canvas-dimensions';
 import { distance } from '../layout-utils';
 
 const NODE_SEP = 80;
-const TARGET_ASPECT_RATIO = 16 / 9;
 
 const PHASES = [
   { iterations: 25, repulsion: 300, attraction: 0.05, damping: 0.3 },

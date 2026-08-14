@@ -10,10 +10,9 @@ import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagra
 import { LayoutStrategy, StrategyLayoutResult } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
-import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
+import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, TARGET_ASPECT_RATIO } from '../canvas-dimensions';
 
 const NODE_SEP = 40;
-const TARGET_ASPECT_RATIO = 16 / 9;
 
 export class GeneralStrategy implements LayoutStrategy {
   readonly name = 'general';

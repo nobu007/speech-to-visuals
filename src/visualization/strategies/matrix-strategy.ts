@@ -14,10 +14,9 @@ import {
 } from '@/visualization/types';
 import { calculateCanvasSize, calculateMetrics } from '@/visualization/layout-engine-v2';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
-import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
+import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, TARGET_ASPECT_RATIO } from '../canvas-dimensions';
 
 const CANVAS_PADDING = 80;
-const ASPECT_RATIO = 16 / 9;
 
 export class MatrixStrategy implements LayoutStrategy {
   readonly name = 'matrix';
@@ -30,13 +29,13 @@ export class MatrixStrategy implements LayoutStrategy {
         nodes: [],
         edges: [],
         canvas: { width: DEFAULT_CANVAS_WIDTH, height: DEFAULT_CANVAS_HEIGHT },
-        metrics: { overlapCount: 0, edgeCrossings: 0, aspectRatio: ASPECT_RATIO },
+        metrics: { overlapCount: 0, edgeCrossings: 0, aspectRatio: TARGET_ASPECT_RATIO },
       };
     }
 
     // Step 1: Calculate optimal grid dimensions
     const nodeCount = nodes.length;
-    const columns = Math.max(1, Math.ceil(Math.sqrt(nodeCount * ASPECT_RATIO)));
+    const columns = Math.max(1, Math.ceil(Math.sqrt(nodeCount * TARGET_ASPECT_RATIO)));
     const rows = Math.max(1, Math.ceil(nodeCount / columns));
 
     // Step 2: Calculate cell sizing

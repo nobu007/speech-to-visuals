@@ -3,6 +3,7 @@ import { SpatialHash, GridSpatialHash } from './spatial-hash';
 import { getNodeWidth as effWidth, getNodeHeight as effHeight } from './node-dimensions';
 // Canonical overlap predicate — single source of truth (see layout-utils.ts).
 import { nodesOverlap } from './layout-utils';
+import { TARGET_ASPECT_RATIO } from './canvas-dimensions';
 
 export interface OverlapPair {
   node1: PositionedNode;
@@ -144,7 +145,7 @@ export class OverlapResolver {
     const cellWidth = maxNodeWidth + 20;
     const cellHeight = maxNodeHeight + 20;
 
-    const aspectRatio = 16 / 9;
+    const aspectRatio = TARGET_ASPECT_RATIO;
     const columns = Math.max(1, Math.ceil(Math.sqrt(nodes.length * aspectRatio)));
     const rows = Math.max(1, Math.ceil(nodes.length / columns));
 

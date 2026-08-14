@@ -2,13 +2,12 @@ import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@
 import { LayoutStrategy, StrategyLayoutResult, StrategyLayoutMetrics, CanvasSize, StrategyRegistry } from './types';
 import { DefaultStrategyRegistry } from './strategies/base-strategy';
 import { getNodeWidth, getNodeHeight } from './node-dimensions';
-import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from './canvas-dimensions';
+import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, TARGET_ASPECT_RATIO } from './canvas-dimensions';
 // Canonical overlap predicate — single source of truth (see layout-utils.ts).
 // A local byte-identical copy previously lived here; any future edit to the
 // shared predicate MUST propagate through this import, not a re-inlined copy.
 import { nodesOverlap } from './layout-utils';
 
-const TARGET_ASPECT_RATIO = 16 / 9;
 const CANVAS_PADDING_RATIO = 0.05;
 
 export { DefaultStrategyRegistry } from './strategies/base-strategy';

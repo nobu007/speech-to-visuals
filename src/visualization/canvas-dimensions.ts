@@ -17,3 +17,12 @@
 
 export const DEFAULT_CANVAS_WIDTH = 1920;
 export const DEFAULT_CANVAS_HEIGHT = 1080;
+
+/**
+ * Layout target aspect ratio (16:9). Previously re-declared in 14
+ * visualization modules as `TARGET_ASPECT_RATIO`/`ASPECT_RATIO` consts or bare
+ * `16 / 9` literals — all coincident, none linked. DERIVED from the default
+ * canvas dimensions so the layout target can never contradict the canvas the
+ * empty-graph fallback returns (see tests/guards/target-aspect-ratio-single-source.test.ts).
+ */
+export const TARGET_ASPECT_RATIO = DEFAULT_CANVAS_WIDTH / DEFAULT_CANVAS_HEIGHT;
