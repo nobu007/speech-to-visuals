@@ -255,27 +255,42 @@ class AdaptiveQualityGatesSystem {
     let passed = false;
     let message = '';
 
-    switch (gate.operator) {
-      case 'gt':
-        passed = currentValue > threshold;
-        message = `${gate.metric}: ${currentValue.toFixed(2)} ${passed ? '>' : '≤'} ${threshold.toFixed(2)}`;
-        break;
-      case 'lt':
-        passed = currentValue < threshold;
-        message = `${gate.metric}: ${currentValue.toFixed(2)} ${passed ? '<' : '≥'} ${threshold.toFixed(2)}`;
-        break;
-      case 'gte':
-        passed = currentValue >= threshold;
-        message = `${gate.metric}: ${currentValue.toFixed(2)} ${passed ? '≥' : '<'} ${threshold.toFixed(2)}`;
-        break;
-      case 'lte':
-        passed = currentValue <= threshold;
-        message = `${gate.metric}: ${currentValue.toFixed(2)} ${passed ? '≤' : '>'} ${threshold.toFixed(2)}`;
-        break;
-      case 'eq':
-        passed = Math.abs(currentValue - threshold) < 0.001;
-        message = `${gate.metric}: ${currentValue.toFixed(2)} ${passed ? '=' : '≠'} ${threshold.toFixed(2)}`;
-        break;
+    // (defect-9 sibling — silent-pass closure) A gate whose `metric` is not a
+    // known snapshot field is UNMAPPED: there is no value to evaluate it
+    // against. `extractMetricValue` returns 0 for an unknown name, so a lower-
+    // is-better (`lt`/`lte`) or equality (`eq`) gate passed on that 0 — e.g. an
+    // unknown metric with operator `lt`, threshold 1 evaluated `0 < 1` → PASS,
+    // silently satisfying an SLO that was never measured. An unverifiable SLO
+    // must NOT silently pass: fail it LOUD, naming the unmapped metric, instead
+    // of passing on the absent value. (Higher-is-better `gt`/`gte` gates already
+    // failed on 0, which is why the existing `unknown metric returns 0` test —
+    // using `gt` — masked the silent-pass on the other operators.)
+    if (!this.isKnownMetric(gate.metric)) {
+      passed = false;
+      message = `${gate.metric}: UNMAPPED METRIC — no snapshot field supplies this value; gate cannot be verified`;
+    } else {
+      switch (gate.operator) {
+        case 'gt':
+          passed = currentValue > threshold;
+          message = `${gate.metric}: ${currentValue.toFixed(2)} ${passed ? '>' : '≤'} ${threshold.toFixed(2)}`;
+          break;
+        case 'lt':
+          passed = currentValue < threshold;
+          message = `${gate.metric}: ${currentValue.toFixed(2)} ${passed ? '<' : '≥'} ${threshold.toFixed(2)}`;
+          break;
+        case 'gte':
+          passed = currentValue >= threshold;
+          message = `${gate.metric}: ${currentValue.toFixed(2)} ${passed ? '≥' : '<'} ${threshold.toFixed(2)}`;
+          break;
+        case 'lte':
+          passed = currentValue <= threshold;
+          message = `${gate.metric}: ${currentValue.toFixed(2)} ${passed ? '≤' : '>'} ${threshold.toFixed(2)}`;
+          break;
+        case 'eq':
+          passed = Math.abs(currentValue - threshold) < 0.001;
+          message = `${gate.metric}: ${currentValue.toFixed(2)} ${passed ? '=' : '≠'} ${threshold.toFixed(2)}`;
+          break;
+      }
     }
 
     return {
@@ -288,38 +303,64 @@ class AdaptiveQualityGatesSystem {
   }
 
   /**
-   * Extract metric value from performance snapshot
+   * Single source of truth mapping a gate's `metric` name to the snapshot field
+   * that supplies it. A gate whose `metric` is NOT a key here is UNMAPPED — it
+   * has no snapshot field to evaluate against, so it must NOT silently pass (the
+   * defect-9 silent-pass class). `extractMetricValue` and `isKnownMetric` both
+   * read this map so the two can never drift apart.
+   */
+  private static readonly METRIC_EXTRACTORS: Readonly<
+    Record<string, (snapshot: PerformanceSnapshot) => number>
+  > = {
+    // Pipeline metrics
+    avgProcessingTime: s => s.pipeline.avgProcessingTime,
+    p95ProcessingTime: s => s.pipeline.p95ProcessingTime,
+    p99ProcessingTime: s => s.pipeline.p99ProcessingTime,
+    successRate: s => s.pipeline.successRate,
+    activeRequests: s => s.pipeline.activeRequests,
+    // LLM metrics
+    cacheHitRate: s => s.llm.cacheHitRate,
+    avgFlashResponseTime: s => s.llm.avgFlashResponseTime,
+    avgProResponseTime: s => s.llm.avgProResponseTime,
+    flashUsagePercent: s => s.llm.flashUsagePercent,
+    // System metrics
+    memoryUsagePercent: s => s.system.memoryUsagePercent,
+    memoryUsageMB: s => s.system.memoryUsageMB,
+    cpuUsagePercent: s => s.system.cpuUsagePercent,
+    // Error metrics
+    errorRate: s => s.errors.errorRate,
+    recoverySuccessRate: s => s.errors.recoverySuccessRate,
+    totalErrors: s => s.errors.totalErrors,
+    // Quality metrics
+    transcriptionAccuracy: s => s.quality.transcriptionAccuracy,
+    layoutOverlapRate: s => s.quality.layoutOverlapRate,
+    avgSceneQuality: s => s.quality.avgSceneQuality,
+  };
+
+  /**
+   * Extract metric value from performance snapshot. Returns 0 for an UNMAPPED
+   * metric name (so `currentValue` stays a finite number for display) — but
+   * `evaluateGate` consults `isKnownMetric` and FAILS such a gate LOUD instead
+   * of letting the 0 silently pass a lower-is-better / equality threshold
+   * (defect-9 sibling closure).
+   *
+   * `hasOwnProperty` (not `in`) so a stray 'constructor'/'toString' or a
+   * proto-polluted key is NOT mistaken for a known metric and invoked.
    */
   private extractMetricValue(metric: string, snapshot: PerformanceSnapshot): number {
-    // Pipeline metrics
-    if (metric === 'avgProcessingTime') return snapshot.pipeline.avgProcessingTime;
-    if (metric === 'p95ProcessingTime') return snapshot.pipeline.p95ProcessingTime;
-    if (metric === 'p99ProcessingTime') return snapshot.pipeline.p99ProcessingTime;
-    if (metric === 'successRate') return snapshot.pipeline.successRate;
-    if (metric === 'activeRequests') return snapshot.pipeline.activeRequests;
+    const extractors = AdaptiveQualityGatesSystem.METRIC_EXTRACTORS;
+    const fn = Object.prototype.hasOwnProperty.call(extractors, metric)
+      ? extractors[metric]
+      : undefined;
+    return fn ? fn(snapshot) : 0;
+  }
 
-    // LLM metrics
-    if (metric === 'cacheHitRate') return snapshot.llm.cacheHitRate;
-    if (metric === 'avgFlashResponseTime') return snapshot.llm.avgFlashResponseTime;
-    if (metric === 'avgProResponseTime') return snapshot.llm.avgProResponseTime;
-    if (metric === 'flashUsagePercent') return snapshot.llm.flashUsagePercent;
-
-    // System metrics
-    if (metric === 'memoryUsagePercent') return snapshot.system.memoryUsagePercent;
-    if (metric === 'memoryUsageMB') return snapshot.system.memoryUsageMB;
-    if (metric === 'cpuUsagePercent') return snapshot.system.cpuUsagePercent;
-
-    // Error metrics
-    if (metric === 'errorRate') return snapshot.errors.errorRate;
-    if (metric === 'recoverySuccessRate') return snapshot.errors.recoverySuccessRate;
-    if (metric === 'totalErrors') return snapshot.errors.totalErrors;
-
-    // Quality metrics
-    if (metric === 'transcriptionAccuracy') return snapshot.quality.transcriptionAccuracy;
-    if (metric === 'layoutOverlapRate') return snapshot.quality.layoutOverlapRate;
-    if (metric === 'avgSceneQuality') return snapshot.quality.avgSceneQuality;
-
-    return 0;
+  /** True when `metric` names a field the snapshot actually supplies. */
+  private isKnownMetric(metric: string): boolean {
+    return Object.prototype.hasOwnProperty.call(
+      AdaptiveQualityGatesSystem.METRIC_EXTRACTORS,
+      metric,
+    );
   }
 
   /**

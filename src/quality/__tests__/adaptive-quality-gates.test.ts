@@ -503,7 +503,94 @@ describe('AdaptiveQualityGatesSystem', () => {
       });
       const result = await gates.evaluateGates();
       expect(result.gates[0].currentValue).toBe(0);
-      expect(result.gates[0].passed).toBe(false); // 0 is not > 1
+      // Fails both because 0 is not > 1 AND because the metric is unmapped.
+      expect(result.gates[0].passed).toBe(false);
+    });
+
+    // (defect-9 sibling) An UNMAPPED metric must NOT silently pass. The legacy
+    // extractMetricValue returned 0 for an unknown name, so a lower-is-better
+    // (`lt`/`lte`) or equality (`eq`) gate passed on that 0 — silently satisfying
+    // an SLO that was never measured. The existing test above used `gt` (which
+    // already failed on 0) and so masked the silent-pass on the other operators.
+    // The gate now FAILS LOUD regardless of operator.
+
+    test('an unknown metric with operator "lt" FAILS instead of silently passing', async () => {
+      gates.getGates().forEach(g => gates.removeGate(g.name));
+      gates.addGate({
+        name: 'typo-error-rate',
+        metric: 'errorRatee', // typo — not a snapshot field
+        threshold: 1,
+        operator: 'lt',
+        severity: 'critical',
+        adaptable: false,
+      });
+      const result = await gates.evaluateGates();
+      // Legacy: extractMetricValue('errorRatee') → 0, and 0 < 1 → PASS (silent).
+      expect(result.gates[0].passed).toBe(false);
+    });
+
+    test('an unknown metric with operator "lte" FAILS at a zero threshold', async () => {
+      gates.getGates().forEach(g => gates.removeGate(g.name));
+      gates.addGate({
+        name: 'typo-overlap',
+        metric: 'layoutOverlapRatee', // typo
+        threshold: 0,
+        operator: 'lte',
+        severity: 'blocker',
+        adaptable: false,
+      });
+      const result = await gates.evaluateGates();
+      // Legacy: 0 <= 0 → PASS (silent). Now fails loud.
+      expect(result.gates[0].passed).toBe(false);
+    });
+
+    test('an unknown metric with operator "eq" FAILS at a zero threshold', async () => {
+      gates.getGates().forEach(g => gates.removeGate(g.name));
+      gates.addGate({
+        name: 'typo-eq',
+        metric: 'nonexistentMetric',
+        threshold: 0,
+        operator: 'eq',
+        severity: 'blocker',
+        adaptable: false,
+      });
+      const result = await gates.evaluateGates();
+      // Legacy: |0 - 0| < 0.001 → PASS (silent). Now fails loud.
+      expect(result.gates[0].passed).toBe(false);
+    });
+
+    test('a failed unmapped-metric gate names the metric in its message (loud)', async () => {
+      gates.getGates().forEach(g => gates.removeGate(g.name));
+      gates.addGate({
+        name: 'typo-gate',
+        metric: 'errorRatee',
+        threshold: 0.05,
+        operator: 'lte',
+        severity: 'critical',
+        adaptable: false,
+      });
+      const result = await gates.evaluateGates();
+      expect(result.gates[0].passed).toBe(false);
+      expect(result.gates[0].message).toContain('errorRatee');
+      expect(result.gates[0].message).toContain('UNMAPPED');
+    });
+
+    test('a stray "constructor" key is NOT mistaken for a known metric', async () => {
+      // The hasOwnProperty guard means an inherited key ('constructor' /
+      // 'toString' / a proto-polluted name) is treated as unmapped — no silent
+      // pass, and no crash from invoking Object() as an extractor.
+      gates.getGates().forEach(g => gates.removeGate(g.name));
+      gates.addGate({
+        name: 'proto-key',
+        metric: 'constructor',
+        threshold: 1,
+        operator: 'lt',
+        severity: 'minor',
+        adaptable: false,
+      });
+      const result = await gates.evaluateGates();
+      expect(result.gates[0].passed).toBe(false);
+      expect(result.gates[0].message).toContain('UNMAPPED');
     });
   });
 
