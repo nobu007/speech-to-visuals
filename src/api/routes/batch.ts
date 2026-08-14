@@ -16,11 +16,9 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { v4 as uuidv4 } from 'uuid';
+import { UUID_V4_RE } from '../uuid-validation';
 import { BATCH_LIMITS } from '../../config/limits';
 import { validateAudioFileMetadata } from '../../utils/audio-validation';
-
-// UUID v4 validation regex (ISS-010)
-const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 // Allowed preset values (ISS-027)
 const VALID_PRESETS = new Set(['fast', 'balanced', 'quality', 'custom']);

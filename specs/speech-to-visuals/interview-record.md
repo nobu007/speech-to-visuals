@@ -4154,6 +4154,29 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 - 既有テスト2件が誤分類を pin していた（"2xx = total minus errors"）→ 正しい per-class 理に書き換え
 - 信頼性レベル分布: 🔵 +3 / 🟡 🔴 変動なし
 
+### A135: Phase 135 — API 層 UUID v4 検証 regex の 4 サイト凍結解消（single-source round 12）（2026-08-15 第216回検証）
+
+**分析日時**: 2026-08-15
+**カテゴリ**: single-source キャンペーン round 12（freeze-guard registry への新規 family 追加）
+**背景**: steering 4項目のうち項目1（`??` 振る舞い pin）は 90666703 / TC-304-04 で実装済み、項目2・3（phase-222 / typeAxisSum / RevenueMetrics）は A133 で cross-repo contamination と確定済みのため再実装しない。META-intent（registry への新規 family 追加）は引き続き有効なので、session 109（A134）の未監査領域ハントで挙がった `UUID_V4_RE` 4 サイト重複を実ターゲットとして採用。
+
+**判断**:
+
+1. **UUID_V4_RE 4 サイト凍結 → 解消**: `src/api/routes/batch.ts`・`routes/export.ts`・`routes/export-jobs.ts`・`websocket-handler.ts` が byte-identical な `UUID_V4_RE` regex を各自 hand-roll。producer は `uuidv4()`（batch の jobId）と `crypto.randomUUID()`（export-artifact-store の artifactId/token）で常に v4 を emit するため 4 サイトは同一契約（「パス/イベントの id は UUID v4 である」）。1 コピーでも drift すると（`[89ab]` variant nibble の脱落、`/i` flag の脱落等）同一 jobId が endpoint A で受理され endpoint B で 400-reject される。修正: `src/api/uuid-validation.ts` を新設して `UUID_V4_RE` を export し、4 サイトを import に切替。
+
+2. **registry entry（round 12）**: `roots: ['src/api']`（20 ファイル、minSweptFiles 15）。pattern は2種: `const \w*UUID\w*_RE = /`（宣言形）と regex body の char-class `[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}`（rename 耐性 — `const ID_RE = …` のような名前変更 copy も捕捉）。test-side copy（tests/integration/*）は境界外の意図的除外。
+
+3. **検証は RED-first + mutation-verified**: entry 追加時点で registry test が 4 offender を正確に列挙して RED。修正後 GREEN。`src/api/routes/_probe.ts` に rename copy（`ID_RE`）を一時注入すると sweep が再び RED することを確認して削除。振る舞い pin は `tests/guards/uuid-validation-single-source.test.ts`（v4 受理・大文字受理・v1 拒否・variant `c` 拒否・path traversal/非ハイフン形状拒否 + 4 消費サイトの import pin）。
+
+**根拠**:
+- `grep -rn "UUID_V4_RE = " src/api` → 4 サイト（修正前）
+- RED 検証ログ: `Tests: 1 failed, 13 passed`（registry sweep のみ失敗、4 offender 列挙）
+- 修正後: guards 2 suite 23 test、API 層 57 suite 865 test、integration 2 suite 28 test GREEN、tsc 0 error
+
+**信頼性への影響**:
+- REQ-306 として TC-306-01~03 を追加（🔵 ×3、合計 87→90）
+- 信頼性レベル分布: 🔵 +3 / 🟡 🔴 変動なし
+
 ---
 
 ## 関連文書

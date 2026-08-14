@@ -255,4 +255,28 @@ export const FROZEN_LITERAL_RULES: FrozenLiteralRule[] = [
     ],
     minSweptFiles: 30,
   },
+
+  /**
+   * Round 12: the UUID v4 validation regex lives only in uuid-validation.ts.
+   * Before this round, four API-layer sites (batch routes, export routes,
+   * export-job routes, websocket handler) each hand-rolled the IDENTICAL
+   * `UUID_V4_RE` regex — one drift (e.g. dropping the `[89ab]` variant nibble
+   * or the `/i` flag) and the same jobId is accepted by one endpoint and
+   * 400-rejected by another. Banned shapes cover the local const declaration
+   * under any name-shadowing and the raw character-class body itself, so a
+   * rename (`const ID_RE = …`) cannot smuggle a copy past the sweep. The
+   * test-side copies (tests/integration/*) are outside the src/api boundary.
+   */
+  {
+    id: 'UUID v4 validation regex single-sourced in uuid-validation',
+    roots: ['src/api'],
+    exclude: {
+      'src/api/uuid-validation.ts': 'the canonical source itself',
+    },
+    patterns: [
+      /const\s+\w*UUID\w*_RE\s*=\s*\//,
+      /\[0-9a-f\]\{8\}-\[0-9a-f\]\{4\}-4\[0-9a-f\]\{3\}/,
+    ],
+    minSweptFiles: 15,
+  },
 ];

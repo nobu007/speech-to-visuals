@@ -14,9 +14,7 @@ import { Router, Request, Response } from 'express';
 import { ExportJobQueue, type JobPriority } from '../../export/export-job-queue';
 import { logger } from '../../utils/logger';
 import { roundTo } from '../../lib/metrics-utils';
-
-// UUID v4 validation regex
-const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+import { UUID_V4_RE } from '../uuid-validation';
 
 const VALID_PRIORITIES: JobPriority[] = ['high', 'normal', 'low'];
 

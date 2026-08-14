@@ -5698,6 +5698,17 @@
   - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs tests/analysis/llm-service-max-retries-zero.test.ts`
   - **信頼性**: 🔵 *mutation-verified: `??` を `||` に一時退行させると zero-passthrough test のみ RED（default-3 test は両セマンティクスで GREEN であることも確認済み）。round 9 の judge 指摘「`??` セマンティクス pin の欠如により L3 未達」を解消*
 
+#### REQ-306: API 層 UUID v4 検証 regex シングルソース化 🔵
+
+**信頼性**: 🔵 *single-source round 12（freeze-guard registry の 3 件目の新規エントリ）*
+
+- [x] **TC-306-01**: `UUID_V4_RE` を `src/api/uuid-validation.ts` から export し、4 消費サイト（batch routes・export routes・export-jobs routes・websocket handler）が各自 hand-rolled していた同一 regex のローカル const を削除して import に切替 🔵
+  - **信頼性**: 🔵 *値は不変（desync 耐性のみ）。producer は `uuidv4()`（batch）と `crypto.randomUUID()`（export-artifact-store）で常に v4 を emit するため 4 サイトは同一契約*
+- [x] **TC-306-02**: frozen-literal registry に当該ファミリーのエントリを 1 件追加（`roots: ['src/api']`、minSweptFiles 15、rename 耐性の char-class body pattern 含む）し、RED-first で 4 offender を検出 → 修正後に GREEN。mutation 検証: `_RE` 名を変えた rename copy（`ID_RE`）も sweep が捕捉 🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs tests/guards/frozen-literal-registry.test.ts tests/guards/uuid-validation-single-source.test.ts`
+- [x] **TC-306-03**: 振る舞い pin + 消費 import pin を `tests/guards/uuid-validation-single-source.test.ts` に配置（v4 受理・大文字受理・v1 拒否・variant `c` 拒否・path traversal 拒否）、API 層 57 suite 865 test + integration 2 suite 28 test GREEN + tsc 0 error 🔵
+  - **信頼性**: 🔵 *test-side の UUID_V4_RE copy（tests/integration/*）は sweep 境界（src/api）外であり意図的除外*
+
 ---
 
 ### Phase 111+ 受け入れ基準サマリー
@@ -5737,7 +5748,8 @@
 | REQ-302: AutoImprovementEngine.LOWER_IS_BETTER_METRICS 命名統一 | 2 | 🔵 |
 | REQ-303: Number.isFinite 共通 sanitizer 集約提案 | 2 | 🟡 |
 | REQ-304: 分析系 LLM リトライ既定値シングルソース化 | 4 | 🔵 |
-| **合計** | **87** | **🔵 96.6% / 🟡 3.4%** |
+| REQ-306: API 層 UUID v4 検証 regex シングルソース化 | 3 | 🔵 |
+| **合計** | **90** | **🔵 96.7% / 🟡 3.3%** |
 
 
 <!-- spine:references:begin -->
