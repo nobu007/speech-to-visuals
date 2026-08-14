@@ -129,6 +129,18 @@ describe('AudioPreprocessor', () => {
       expect(result.valid).toBe(false);
       expect(result.errors[0]).toContain('3.00s');
     });
+
+    // Mirrors the validateAudioDuration twin (src/utils/audio-validation.ts):
+    // every threshold comparison is false for NaN, so a non-finite duration
+    // must fail loud instead of manufacturing valid=true from absent data.
+    test.each([NaN, Infinity, -Infinity, -1])(
+      'should reject non-finite/negative duration %p',
+      (durationSeconds) => {
+        const result = preprocessor.validateDuration(durationSeconds);
+        expect(result.valid).toBe(false);
+        expect(result.errors[0]).toContain('Invalid audio duration');
+      },
+    );
   });
 
   // -------------------------------------------------------

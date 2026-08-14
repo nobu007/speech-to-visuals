@@ -84,6 +84,26 @@
  * catch path failing loud). The edge functions matched no marker. RED-
  * verified: a synthetic evaluator-shaped file in scripts/ flips the
  * completeness guard red.
+ *
+ * This iteration closed the SIXTH blind-spot shape — the VERDICT VOCABULARY of
+ * the markers themselves. Every prior clause keyed on quality-gate words
+ * (`passed`, excellent/good tiers, evaluate/assess/check/score prefixes,
+ * `export function`). A second population of verdict producers — the
+ * VALIDATOR family — uses none of those words: verdict objects keyed
+ * `valid:`/`ok:` instead of `passed:`, `validate*`/`verify*`/`audit*` prefixes
+ * instead of evaluate/assess, `export const` arrow exports instead of
+ * `export function`, and the pass/fail/partial CLI status vocabulary. The
+ * canonical proof of the blind spot: src/pipeline/scene-render-spec-generator.
+ * validateRenderPlan is a HARD gate of the live pipeline orchestrator (throws
+ * RenderingError on !valid) yet shipped unclassified for the entire life of
+ * this guard. Extending the markers surfaced 19 previously-invisible files
+ * (35 → 54), including three more production gates (render plan, caption
+ * sync, spine manifest). One LIVE closure came out of the classification:
+ * AudioPreprocessor.validateDuration manufactured valid=true for NaN/negative
+ * durations (every threshold comparison is false for NaN — the exact shape its
+ * twin src/utils/audio-validation.ts already guards with Number.isFinite).
+ * RED-verified: with only the marker edit, the completeness guard listed all
+ * 19 files as unregistered.
  */
 
 const { QualityGateEvaluator } = await import('../quality-gate');
@@ -99,6 +119,10 @@ const { EnhancedErrorRecovery } = await import('../enhanced-error-recovery');
 const { ErrorRecoveryHealthTracker } = await import('../error-recovery-health-tracker');
 const { RecoveryTelemetryAggregator } = await import('../recovery-telemetry-aggregator');
 const { StreamingQualityMonitor } = await import('../../transcription/streaming-quality-monitor');
+const { AudioPreprocessor } = await import('../../transcription/audio-preprocessor');
+const { validateRenderPlan } = await import('../../pipeline/scene-render-spec-generator');
+const { validateSceneCaptionSync } = await import('../../remotion/scene-synchronizer');
+const { validateSpineManifest } = await import('../../../scripts/validate-spine-manifest');
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -160,7 +184,7 @@ const HOST_DIRS = ['src', 'scripts', 'supabase/functions'];
 // Until these clauses, all four error-recovery health files sat in walked host
 // directories yet shipped unclassified.
 const VERDICT_MARKER =
-  /return\s*\{[^}]*(?:passed|isRegression|shouldBlock|allMet|isWithin)|determineStatus|status:\s*'(?:excellent|good|acceptable|needs_improvement|critical)'|compliance:\s*'(?:excellent|good|needs_improvement|critical)'|METRIC_EXTRACTORS|CRITERION_KEY_MAP|LOWER_IS_BETTER|overallResilience|overallSuccessRate|alertLevel|status\s*[:=]\s*'(?:healthy|degraded|unhealthy)'/;
+  /return\s*\{[^}]*(?:passed|isRegression|shouldBlock|allMet|isWithin)|determineStatus|status:\s*'(?:excellent|good|acceptable|needs_improvement|critical)'|compliance:\s*'(?:excellent|good|needs_improvement|critical)'|METRIC_EXTRACTORS|CRITERION_KEY_MAP|LOWER_IS_BETTER|overallResilience|overallSuccessRate|alertLevel|status\s*[:=]\s*'(?:healthy|degraded|unhealthy)'|valid:\s*(?:boolean|true|false|issues|errors)|ok:\s*!|status:\s*'(?:pass|fail|partial|warn)'|=>\s*\(\{\s*(?:passed|valid|ok)\s*:/;
 // Score/verdict entry-point exports. The final alternation catches a distinct
 // shape the named-evaluator clause misses: a quality-SIGNAL RESOLVER — a file
 // whose exported functions take a PipelineResult and return a number that FEEDS
@@ -171,7 +195,7 @@ const VERDICT_MARKER =
 // relation gate inputs). Without this clause the completeness guard's blind
 // spot is exactly the file most likely to re-open the class.
 const EXPORT_MARKER =
-  /export (?:async )?function (?:evaluate|assess|check|score|isWithin|isRegression|compareWith|passes|meets)[A-Za-z]*\s*\(|export function scoreCost|export class (?:QualityMonitor|QualityGateEvaluator|LayoutEvaluator|VisualBalanceScorer)|export (?:async )?function [A-Za-z]+\([^)]*PipelineResult[^)]*\):\s*number/;
+  /export (?:async )?function (?:evaluate|assess|check|score|isWithin|isRegression|compareWith|passes|meets)[A-Za-z]*\s*\(|export function scoreCost|export class (?:QualityMonitor|QualityGateEvaluator|LayoutEvaluator|VisualBalanceScorer)|export (?:async )?function [A-Za-z]+\([^)]*PipelineResult[^)]*\):\s*number|export (?:async )?function (?:validate|verify|audit)[A-Za-z]*\s*\(|export const (?:evaluate|assess|check|score|validate|verify|audit|passes|meets)[A-Za-z]*\s*=|export class [A-Za-z]*(?:Validator|Verifier|Auditor|Checker)/;
 
 function walkTs(dir: string, out: string[] = []): string[] {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -337,6 +361,45 @@ function emptyTelemetrySnapshot(): { overallSuccessRate: number; degraded: boole
   } finally {
     agg.destroy();
   }
+}
+
+/**
+ * validateDuration verdict for a NON-FINITE duration. Before the defect-9 fix,
+ * every threshold comparison in validateDuration is false for NaN, so a NaN
+ * duration manufactured valid=true with zero measured signal (the same shape
+ * its twin src/utils/audio-validation.ts already guarded with Number.isFinite).
+ */
+function nonFiniteDurationValid(): boolean {
+  return new AudioPreprocessor().validateDuration(Number.NaN).valid;
+}
+
+/** validateRenderPlan verdict for a DEGENERATE (zero-scene) render plan. */
+function emptyRenderPlanValid(): boolean {
+  return validateRenderPlan({
+    fps: 30,
+    totalFrames: 0,
+    totalDurationMs: 0,
+    sceneCount: 0,
+    scenes: [],
+  }).valid;
+}
+
+/** validateSceneCaptionSync verdict when BOTH scenes and captions are empty. */
+function emptyCaptionSyncValid(): boolean {
+  return validateSceneCaptionSync([], [], 30).valid;
+}
+
+/**
+ * validateSpineManifest verdict when the manifest file is ABSENT. Absence is
+ * the pinned BY-DESIGN skip (gitignored make-run artifact; CI never runs the
+ * generator), pinned independently by tests/spine-manifest.test.ts. Driven
+ * here via an explicit non-existent override so the check is cwd-independent.
+ */
+function absentSpineManifestValid(): { valid: boolean; skipped: boolean } {
+  const result = validateSpineManifest(
+    path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'd9-spine-')), '_doc_spine.yml'),
+  );
+  return { valid: result.valid, skipped: Boolean(result.skipped) };
 }
 
 // ---------------------------------------------------------------------------
@@ -665,6 +728,76 @@ const ROSTER: Row[] = [
       'cannot satisfy any gate. Pinned so a future consumer that gates on the absolute rate must ' +
       'first revisit this row.',
   },
+
+  // ── Discovered by the SIXTH blind-spot closure (verdict VOCABULARY: valid/
+  //    ok keys, validate*/verify*/audit* naming, export-const arrows, and the
+  //    pass/fail/partial CLI status words — none of which matched the prior
+  //    markers) ─────────────────────────────────────────────────────────────
+  {
+    id: 'audio-preprocessor/validateDurationNonFinite',
+    family: 'audio-duration-validator',
+    polarity: 'a',
+    verdict: 'CLOSED',
+    sourceFiles: ['src/transcription/audio-preprocessor.ts'],
+    gateFailsOnAbsent: () => !nonFiniteDurationValid(),
+    reason:
+      'A NON-FINITE duration (NaN/Infinity/negative) manufactured valid=true: every threshold ' +
+      'comparison in validateDuration is false for NaN, so absent/corrupt duration data sailed ' +
+      'past both the minimum-duration error and the max-duration warning. The twin validator ' +
+      '(src/utils/audio-validation.ts validateAudioDuration) already guarded this with ' +
+      'Number.isFinite — a missed sibling site. Now non-finite fails loud with an explicit ' +
+      'error, mirroring the twin. (Unreachable at the time of the fix — both callers supply ' +
+      'finite durations — but the fix makes the classification structural rather than ' +
+      'reachability-dependent.)',
+  },
+  {
+    id: 'scene-render-spec-generator/emptyRenderPlan',
+    family: 'render-plan-validator',
+    polarity: 'b',
+    verdict: 'BY-DESIGN',
+    sourceFiles: ['src/pipeline/scene-render-spec-generator.ts'],
+    gateFailsOnAbsent: () => !emptyRenderPlanValid(),
+    reason:
+      'A zero-scene render plan is vacuously consistent (0 frames summed = 0 declared, no gaps, ' +
+      'no duplicate indices) → valid:true. Unreachable as a silent pass: pipeline-orchestrator ' +
+      'throws RenderingError("No scenes to render") on the empty scene set BEFORE plan ' +
+      'validation (:747), and smoke-orchestrator throws SegmentationError on an empty diagram ' +
+      'list. Pinned so a future orchestrator that drops the upstream guard cannot inherit a ' +
+      'vacuous pass unnoticed.',
+  },
+  {
+    id: 'scene-synchronizer/emptyCaptionSync',
+    family: 'caption-sync-validator',
+    polarity: 'b',
+    verdict: 'BY-DESIGN',
+    sourceFiles: ['src/remotion/scene-synchronizer.ts'],
+    gateFailsOnAbsent: () => !emptyCaptionSyncValid(),
+    reason:
+      'Empty scenes OR empty captions → valid:true (nothing to synchronise — an early return ' +
+      'before any comparison). Both orchestrators throw on the empty-diagram/empty-scene sets ' +
+      'first, and smoke-orchestrator falls back to scene-derived autoCaptions before calling, ' +
+      'so the branch is defensive-only. The verdict is SURFACED (read by the smoke result and ' +
+      'one integration test), never a blocking gate. Pinned so a future consumer that hard-gates ' +
+      'on sync validity must first close the vacuous-empty case.',
+  },
+  {
+    id: 'spine-manifest/absentManifestSkip',
+    family: 'spine-manifest-validator',
+    polarity: 'b',
+    verdict: 'BY-DESIGN',
+    sourceFiles: ['scripts/validate-spine-manifest.ts'],
+    gateFailsOnAbsent: () => {
+      const r = absentSpineManifestValid();
+      return !(r.valid && r.skipped);
+    },
+    reason:
+      'An ABSENT spine manifest returns valid:true with skipped:true and a transparent warning — ' +
+      'a documented, test-pinned design (tests/spine-manifest.test.ts): specs/_doc_spine.yml is ' +
+      'a gitignored make-run artifact, legitimately absent on every clean checkout/CI run, and ' +
+      'failing on absence broke the required spine-validate CI gate. When the manifest IS ' +
+      'present, full strict validation runs and fails loud on any corruption. Pinned so a future ' +
+      'change to the manifest\'s tracked-ness forces a conscious revisit of this row.',
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -858,6 +991,123 @@ const DEFECT9_SURFACE: ReadonlyArray<SurfaceEntry> = [
       'hardcoded list of awaited runners — an empty results array is unreachable (the list is ' +
       'static), every catch returns passed: false, and the exit code is 0 only at a 100% count. ' +
       'No absent-input path manufactures a passing value.',
+  },
+  // ── Discovered by the SIXTH blind-spot closure (verdict VOCABULARY —
+  //    valid:/ok: keys, validate*/verify*/audit* naming, export-const arrows,
+  //    pass/fail/partial CLI statuses). 19 previously-invisible files
+  //    (35 → 54), including four more production verdict producers now
+  //    rostered above. RED-verified: the marker edit alone flipped the
+  //    completeness guard red with all 19 as unregistered.
+  { file: 'src/transcription/audio-preprocessor.ts', family: 'audio-duration-validator' },
+  { file: 'src/pipeline/scene-render-spec-generator.ts', family: 'render-plan-validator' },
+  { file: 'src/remotion/scene-synchronizer.ts', family: 'caption-sync-validator' },
+  { file: 'scripts/validate-spine-manifest.ts', family: 'spine-manifest-validator' },
+  {
+    file: 'scripts/generate-edge-untrusted-json.ts',
+    ruledOut:
+      'Discovered via the ok: verdict-key clause. verifyEdgeUntrustedJson is the pre-commit/ ' +
+      'pre-push DRIFT check: a missing or drifted generated edge file returns ok:false (fail ' +
+      'loud) — absent input can only fail the check, never satisfy it.',
+  },
+  {
+    file: 'scripts/phase40-custom-instructions-validation.ts',
+    ruledOut:
+      'Discovered via the pass/fail/partial CLI status vocabulary. Every addResult carries a ' +
+      'real measured score, and an empty results array yields NaN overallScore → `NaN >= 80` ' +
+      'is false → exit 1. Absent input fails loud in every reachable path.',
+  },
+  {
+    file: 'src/api/websocket-handler.ts',
+    ruledOut:
+      'Discovered via the valid: verdict-key clause. validateEventPayload rejects null/ ' +
+      'undefined/non-object payloads and missing required fields with valid:false + error — ' +
+      'the absent-input direction IS the failure direction.',
+  },
+  {
+    file: 'src/config/validate.ts',
+    ruledOut:
+      'Discovered via the validate* export clause. Error-COLLECTOR validators (each returns ' +
+      'ValidationError[]); absent/invalid config fields produce error entries rather than a ' +
+      'manufactured pass, and validateSecurityEnv surfaces both errors and warnings.',
+  },
+  {
+    file: 'src/export/animated-scene-renderer.ts',
+    ruledOut:
+      'Discovered via the validate* export clause. validateFrameInfo THROWS ' +
+      'SceneRendererValidationError on invalid input — fail-loud by exception, no verdict ' +
+      'literal exists to manufacture.',
+  },
+  {
+    file: 'src/export/csv-sanitizer.ts',
+    ruledOut:
+      'Discovered via the audit* export clause. auditCsvFormulaInjection returns a findings ' +
+      'list computed from parsed cell contents — a count over real data (empty CSV → nothing ' +
+      'to audit), never a threshold-satisfying tier.',
+  },
+  {
+    file: 'src/export/enhanced-export-engine.ts',
+    ruledOut:
+      'Discovered via the *Validator class clause. ExportQualityValidator fails loud in the ' +
+      'absent direction: validateExportResult requires success+outputPath+size>0, and ' +
+      'calculateExportScore returns 0 on !success.',
+  },
+  {
+    file: 'src/export/export-verifier.ts',
+    ruledOut:
+      'Discovered via the *Verifier class clause. valid = errors.length === 0 over measured ' +
+      'file CONTENT (magic bytes, chunk structure, XML well-formedness); an empty/truncated ' +
+      'blob fails the signature check — absent data cannot produce a clean verdict.',
+  },
+  {
+    file: 'src/monitoring/config-validator.ts',
+    ruledOut:
+      'Discovered via the valid: verdict-key clause. validateMonitoringConfigs pushes an ' +
+      'explicit "File not found" ERROR for each missing config file, so absent input drives ' +
+      'valid:false — the fail direction.',
+  },
+  {
+    file: 'src/pipeline/smoke-orchestrator.ts',
+    ruledOut:
+      'Discovered via the valid: verdict-key clause (as a CONSUMER): it throws RenderingError ' +
+      'when the rostered validateRenderPlan verdict is invalid, and its own guards ' +
+      '(PipelineConfigError/SegmentationError on empty/invalid parsed diagrams) fail loud. ' +
+      'No verdict is re-derived here.',
+  },
+  {
+    file: 'src/transcription/streaming-transcriber.ts',
+    ruledOut:
+      'Discovered via the export-const arrow clause. validateStreamingSupport is a browser ' +
+      'CAPABILITY PROBE (webSpeechAPI/mediaDevices/audioContext booleans measured from real ' +
+      'API presence + a recommendation string) — no threshold comparison, no tier, and no ' +
+      'gate consumes it.',
+  },
+  {
+    file: 'src/utils/audio-validation.ts',
+    ruledOut:
+      'Discovered via the validate* export clause. The fail-loud TWIN of the audio-preprocessor ' +
+      'closure above: validateAudioDuration already rejects non-finite/negative durations with ' +
+      'valid:false — the guard the CLOSED row mirrors.',
+  },
+  {
+    file: 'supabase/functions/_shared/auth.ts',
+    ruledOut:
+      'Discovered by the walk over the edge runtime. extractToken returns null for an absent ' +
+      'Authorization header (the caller then rejects with 401) — absent input fails loud; no ' +
+      'verdict tier exists in the file.',
+  },
+  {
+    file: 'supabase/functions/_shared/error-handler.ts',
+    ruledOut:
+      'Discovered by the walk over the edge runtime. classifyError maps unknowns to a 500 ' +
+      'ErrorResponse (fail direction by construction); withCors/optionsResponse are response ' +
+      'builders, not verdict producers.',
+  },
+  {
+    file: 'supabase/functions/render-video/index.ts',
+    ruledOut:
+      'Discovered via the validate* export clause. validateRenderRequest THROWS on an invalid ' +
+      'body (void return) — fail-loud by exception; the Deno handler maps the throw to an ' +
+      'error response, never a manufactured pass.',
   },
 ];
 

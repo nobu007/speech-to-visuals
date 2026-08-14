@@ -220,6 +220,14 @@ export class AudioPreprocessor {
     const errors: string[] = [];
     const warnings: string[] = [];
 
+    // Non-finite/negative durations fail loud (mirrors the validateAudioDuration
+    // twin in src/utils/audio-validation.ts): every comparison below is false
+    // for NaN, which would otherwise manufacture valid=true from absent data.
+    if (!Number.isFinite(durationSeconds) || durationSeconds < 0) {
+      errors.push(`Invalid audio duration: ${durationSeconds}`);
+      return { durationSeconds, valid: false, warnings, errors };
+    }
+
     if (durationSeconds < this.config.minDurationSeconds) {
       errors.push(
         `Audio duration ${durationSeconds.toFixed(2)}s is below minimum ${this.config.minDurationSeconds}s`,
