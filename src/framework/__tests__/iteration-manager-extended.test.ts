@@ -25,6 +25,7 @@ import {
   criterionHasNumericThreshold,
   mapCriterionToKeys,
   type DevelopmentCycle,
+  type IterationStatus,
 } from '../iteration-manager';
 
 jest.mock('@/utils/logger', () => ({
@@ -759,6 +760,75 @@ describe('IterationManager — extended coverage', () => {
         // …whereas the gate still warns for the same criterion.
         mgr.evaluateSuccessCriteria({ accuracy: 1.0 });
         expect(warnSpy).toHaveBeenCalled();
+      } finally {
+        warnSpy.mockRestore();
+      }
+    });
+  });
+
+  // ── defect 9: ONE consolidated end-to-end regression ───────────────────
+  //
+  // Defect 9 (criterion-mapping silent-pass) was closed across THREE commits
+  // — the gate's loud-fail for an unverifiable SLO (21c3521a), the real
+  // per-criterion verdict recorded in completeIteration (aebe992d), and the
+  // terminal generic-fallback branch (beda9ecb). The tests above each pin one
+  // facet in isolation. This single test drives the WHOLE chain the live
+  // FrameworkIntegratedPipeline uses
+  //   (evaluateSuccessCriteria → allMet → 'success'|'failure' → completeIteration,
+  //    src/pipeline/framework-integrated-pipeline.ts:143-150)
+  // with a MIX of a mappable criterion that genuinely passes and an UNMAPPED
+  // numeric SLO whose metric is absent. The silent-pass bug in ANY of the three
+  // facets would have made the unmapped SLO report met:true → allMet:true →
+  // status:'success', so the iteration SILENTLY PASSED on an unverifiable SLO.
+  // Locking the entire class here means a future regression in any one facet
+  // fails this one test in one place instead of being re-closed incrementally.
+
+  describe('defect 9 — consolidated end-to-end (mix of mappable + unmapped criteria)', () => {
+    test('a passing mappable criterion + an absent-metric SLO marks the iteration FAILED, not silently passed', async () => {
+      const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => {});
+      try {
+        const mgr = new IterationManager(makeCycle({
+          // MIX: 'accuracy > 80%' is mappable and genuinely passes;
+          // 'テスト通過率100%' is a numeric SLO whose metric (testPassRate) is not
+          // produced by the live FIP path, so it is unverifiable this run.
+          successCriteria: ['accuracy > 80%', 'テスト通過率100%'],
+        }), tmpLogPath());
+
+        // A passing metric IS present (accuracy=90), and an unrelated metric is
+        // present — exactly the state the silent-pass exploited.
+        const metrics = { accuracy: 90 };
+
+        // Mirror the live FrameworkIntegratedPipeline chain:
+        //   evaluateSuccessCriteria → allMet → 'success'|'failure' → completeIteration
+        const evaluation = mgr.evaluateSuccessCriteria(metrics);
+        const status: IterationStatus = evaluation.allMet ? 'success' : 'failure';
+
+        await mgr.startIteration();
+        const iteration = await mgr.completeIteration(status, metrics);
+
+        // The gate does NOT silently pass: the absent-metric SLO is not met, so
+        // allMet is false even though accuracy passed and a metric is present.
+        expect(evaluation.allMet).toBe(false);
+        // The live status derivation therefore marks the iteration failed.
+        expect(status).toBe('failure');
+        expect(iteration.status).toBe('failure');
+
+        // The record reflects the REAL per-criterion verdict (not the legacy
+        // uniform `met: status==='success'`): accuracy met with its value, the
+        // unmapped SLO not met.
+        const byCrit = Object.fromEntries(iteration.successCriteria.map(c => [c.criterion, c]));
+        expect(byCrit['accuracy > 80%'].met).toBe(true);
+        expect(byCrit['accuracy > 80%'].value).toBe(90);
+        expect(byCrit['accuracy > 80%'].threshold).toBe(80);
+        expect(byCrit['テスト通過率100%'].met).toBe(false);
+
+        // Contrast: when the missing metric IS supplied and meets its bar, the
+        // SAME chain marks the iteration a SUCCESS — proving the gate fails on
+        // the absent metric specifically, not by always-failing.
+        const okMetrics = { accuracy: 90, testPassRate: 100 };
+        const okEval = mgr.evaluateSuccessCriteria(okMetrics);
+        expect(okEval.allMet).toBe(true);
+        expect(okEval.allMet ? 'success' : 'failure').toBe('success');
       } finally {
         warnSpy.mockRestore();
       }
