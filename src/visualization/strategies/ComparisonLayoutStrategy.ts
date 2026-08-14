@@ -18,7 +18,7 @@ import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@
 import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { logger } from '../../utils/logger';
-import { getNodeWidth, getNodeHeight } from '../node-dimensions';
+import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 
 export class ComparisonLayoutStrategy implements ILayoutStrategy {
   readonly name = 'comparison';
@@ -87,7 +87,7 @@ export class ComparisonLayoutStrategy implements ILayoutStrategy {
       return [];
     }
 
-    const nodeHeight = config.nodeHeight || 60;
+    const nodeHeight = config.nodeHeight || DEFAULT_NODE_HEIGHT;
     const verticalSpacing = config.nodeSeparation || 60;
 
     // Calculate total height needed
@@ -163,7 +163,7 @@ export class ComparisonLayoutStrategy implements ILayoutStrategy {
    * Calculate node width based on label
    */
   private calculateNodeWidth(node: NodeDatum, config: LayoutConfig): number {
-    const baseWidth = config.nodeWidth || 120;
+    const baseWidth = config.nodeWidth || DEFAULT_NODE_WIDTH;
     const labelLength = node.label?.length || 0;
     const charWidth = 8;
     const padding = 20;

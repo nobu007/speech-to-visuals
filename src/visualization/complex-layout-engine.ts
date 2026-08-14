@@ -8,7 +8,7 @@
 
 import dagre from '@dagrejs/dagre';
 import { DiagramType, NodeDatum, EdgeDatum, DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
-import { getNodeWidth, getNodeHeight } from './node-dimensions';
+import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from './node-dimensions';
 import { LayoutConfig, LayoutResult } from './types';
 import { nodesOverlap, distance } from './layout-utils';
 import { OverlapResolver } from './strategies/OverlapResolver';
@@ -142,8 +142,8 @@ export class ComplexLayoutEngine {
       // Basic layout config
       width: 1920,
       height: 1080,
-      nodeWidth: 120,
-      nodeHeight: 60,
+      nodeWidth: DEFAULT_NODE_WIDTH,
+      nodeHeight: DEFAULT_NODE_HEIGHT,
       marginX: 50,
       marginY: 50,
       rankDirection: 'TB',

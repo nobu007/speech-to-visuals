@@ -15,7 +15,7 @@ import { calculateNodeWidth, calculateNodeHeight, calculateNodeCenter, calculate
 import { clamp01 } from '@/utils/guards';
 import { Point } from './types';
 import { logger } from '../utils/logger';
-import { getNodeWidth, getNodeHeight } from './node-dimensions';
+import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from './node-dimensions';
 import { TARGET_ASPECT_RATIO } from './canvas-dimensions';
 
 export interface ZeroOverlapConfig {
@@ -108,8 +108,8 @@ export class ZeroOverlapLayoutEngine {
       canvasWidth: 1920,
       canvasHeight: 1080,
 
-      nodeWidth: 120,
-      nodeHeight: 60,
+      nodeWidth: DEFAULT_NODE_WIDTH,
+      nodeHeight: DEFAULT_NODE_HEIGHT,
       nodePadding: 10,
       nodeBorderWidth: 2,
 

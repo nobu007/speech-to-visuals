@@ -1,7 +1,7 @@
 import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge, DiagramLayout } from '@/types/diagram';
 import { BoundingBox, LayoutConfig, LayoutResult, LayoutMetrics, OverlapPair } from '../../types';
 import { logger } from '@/utils/logger';
-import { getNodeWidth, getNodeHeight } from '../../node-dimensions';
+import { getNodeWidth, getNodeHeight, DEFAULT_NODE_HEIGHT } from '../../node-dimensions';
 import { distance } from '../../layout-utils';
 
 export interface LayoutStrategy {
@@ -292,7 +292,7 @@ export abstract class BaseLayoutStrategy implements LayoutStrategy {
   getDefaultConfig(diagramType: string): Partial<LayoutConfig> {
     const baseConfig: Partial<LayoutConfig> = {
       nodeWidth: 150,
-      nodeHeight: 60,
+      nodeHeight: DEFAULT_NODE_HEIGHT,
       marginX: 50,
       marginY: 50,
       nodeSeparation: 30,

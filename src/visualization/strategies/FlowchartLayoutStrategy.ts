@@ -17,6 +17,7 @@
 import dagre from '@dagrejs/dagre';
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
+import { DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { logger } from '../../utils/logger';
 
@@ -54,7 +55,7 @@ export class FlowchartLayoutStrategy implements ILayoutStrategy {
       // Add nodes to graph with calculated dimensions
       nodes.forEach(node => {
         const width = this.calculateNodeWidth(node, config);
-        const height = config.nodeHeight || 60;
+        const height = config.nodeHeight || DEFAULT_NODE_HEIGHT;
 
         g.setNode(node.id, {
           label: node.label,
@@ -136,7 +137,7 @@ export class FlowchartLayoutStrategy implements ILayoutStrategy {
    * Ensures text fits within node
    */
   private calculateNodeWidth(node: NodeDatum, config: LayoutConfig): number {
-    const baseWidth = config.nodeWidth || 120;
+    const baseWidth = config.nodeWidth || DEFAULT_NODE_WIDTH;
     const labelLength = node.label?.length || 0;
     const charWidth = 8; // Approximate character width
     const padding = 20; // Total horizontal padding

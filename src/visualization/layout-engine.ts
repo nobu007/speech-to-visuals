@@ -3,6 +3,7 @@ import { DiagramType, NodeDatum, EdgeDatum, DiagramLayout, PositionedNode, Layou
 import { LayoutConfig, LayoutResult, LayoutMetrics } from './types';
 import ComplexLayoutEngine from './complex-layout-engine';
 import { BaseLayoutEngine } from './base/BaseLayoutEngine';
+import { DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from './node-dimensions';
 
 /**
  * Diagram Layout Engine - Iterative Implementation
@@ -59,8 +60,8 @@ export class LayoutEngine extends BaseLayoutEngine {
     return {
       width: 1920,
       height: 1080,
-      nodeWidth: 120,
-      nodeHeight: 60,
+      nodeWidth: DEFAULT_NODE_WIDTH,
+      nodeHeight: DEFAULT_NODE_HEIGHT,
       marginX: 50,
       marginY: 50,
       rankDirection: 'TB',

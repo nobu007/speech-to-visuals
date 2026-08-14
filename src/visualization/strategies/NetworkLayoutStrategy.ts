@@ -19,7 +19,7 @@ import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { nodesOverlap, distance } from '../layout-utils';
 import { logger } from '../../utils/logger';
-import { getNodeWidth, getNodeHeight } from '../node-dimensions';
+import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 
 export class NetworkLayoutStrategy implements ILayoutStrategy {
   readonly name = 'network';
@@ -85,7 +85,7 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
 
     return nodes.map((node, index) => {
       const width = this.calculateNodeWidth(node, config);
-      const height = config.nodeHeight || 60;
+      const height = config.nodeHeight || DEFAULT_NODE_HEIGHT;
 
       // Calculate grid position
       const row = Math.floor(index / gridSize);
@@ -312,7 +312,7 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
    * Calculate node width based on label
    */
   private calculateNodeWidth(node: NodeDatum, config: LayoutConfig): number {
-    const baseWidth = config.nodeWidth || 120;
+    const baseWidth = config.nodeWidth || DEFAULT_NODE_WIDTH;
     const labelLength = node.label?.length || 0;
     const charWidth = 8;
     const padding = 20;

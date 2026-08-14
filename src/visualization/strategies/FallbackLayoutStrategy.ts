@@ -1,6 +1,6 @@
 import { DiagramLayout, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge, DiagramType } from '@/types/diagram';
 import { LayoutConfig } from '../types';
-import { getNodeWidth, getNodeHeight } from '../node-dimensions';
+import { getNodeWidth, getNodeHeight, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 
 export class FallbackLayoutStrategy {
   private config: LayoutConfig;
@@ -98,7 +98,7 @@ export class FallbackLayoutStrategy {
    */
   private createTimelineLayout(nodes: NodeDatum[], edges: EdgeDatum[]): DiagramLayout {
     const nodeWidth = 160;
-    const nodeHeight = 60;
+    const nodeHeight = DEFAULT_NODE_HEIGHT;
     const margin = 50;
     const spacing = nodes.length > 1 ? (this.config.width - 2 * margin) / (nodes.length - 1) : 0;
     const y = (this.config.height - nodeHeight) / 2;
@@ -150,7 +150,7 @@ export class FallbackLayoutStrategy {
     const centerY = this.config.height / 2;
     const radius = Math.min(this.config.width, this.config.height) * 0.3;
     const nodeWidth = 140;
-    const nodeHeight = 60;
+    const nodeHeight = DEFAULT_NODE_HEIGHT;
 
     const positionedNodes = nodes.map((node, index) => {
       const angle = (2 * Math.PI * index) / nodes.length;
@@ -198,7 +198,7 @@ export class FallbackLayoutStrategy {
   private createMatrixLayout(nodes: NodeDatum[], edges: EdgeDatum[]): DiagramLayout {
     const cols = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
     const nodeWidth = 140;
-    const nodeHeight = 60;
+    const nodeHeight = DEFAULT_NODE_HEIGHT;
     const spacingX = this.config.width / cols;
     const spacingY = this.config.height / Math.max(1, Math.ceil(nodes.length / cols));
 

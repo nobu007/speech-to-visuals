@@ -18,7 +18,7 @@ import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@
 import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { logger } from '../../utils/logger';
-import { getNodeWidth, getNodeHeight } from '../node-dimensions';
+import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 
 export class TimelineLayoutStrategy implements ILayoutStrategy {
   readonly name = 'timeline';
@@ -50,7 +50,7 @@ export class TimelineLayoutStrategy implements ILayoutStrategy {
 
       // Calculate vertical center position
       const baseY = config.height / 2;
-      const nodeHeight = config.nodeHeight || 60;
+      const nodeHeight = config.nodeHeight || DEFAULT_NODE_HEIGHT;
 
       // Position nodes along timeline
       let currentX = config.marginX || 50;
@@ -136,7 +136,7 @@ export class TimelineLayoutStrategy implements ILayoutStrategy {
    * Calculate node width based on label
    */
   private calculateNodeWidth(node: NodeDatum, config: LayoutConfig): number {
-    const baseWidth = config.nodeWidth || 120;
+    const baseWidth = config.nodeWidth || DEFAULT_NODE_WIDTH;
     const labelLength = node.label?.length || 0;
     const charWidth = 8;
     const padding = 20;

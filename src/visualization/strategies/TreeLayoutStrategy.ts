@@ -19,7 +19,7 @@ import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { logger } from '../../utils/logger';
 import { VisualizationError } from '@/pipeline/pipeline-errors';
-import { getNodeWidth, getNodeHeight } from '../node-dimensions';
+import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 
 interface TreeNode {
   id: string;
@@ -98,7 +98,7 @@ export class TreeLayoutStrategy implements ILayoutStrategy {
     if (typeof explicit === 'number' && isFinite(explicit) && explicit > 0) {
       return explicit;
     }
-    return config.nodeHeight || 60;
+    return config.nodeHeight || DEFAULT_NODE_HEIGHT;
   }
 
   /**
@@ -295,7 +295,7 @@ export class TreeLayoutStrategy implements ILayoutStrategy {
       return explicitWidth;
     }
 
-    const baseWidth = config.nodeWidth || 120;
+    const baseWidth = config.nodeWidth || DEFAULT_NODE_WIDTH;
     const labelLength = node.label?.length || 0;
     const charWidth = 8;
     const padding = 20;
