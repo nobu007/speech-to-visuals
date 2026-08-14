@@ -20,6 +20,7 @@ import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { logger } from '../../utils/logger';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { calculateNodeWidth as calculateNodeWidthUtil, DEFAULT_CHAR_WIDTH, DEFAULT_LABEL_PADDING } from '../layout-utils';
+import { DEFAULT_EDGE_SEPARATION, DEFAULT_MARGIN } from '../layout-spacing';
 
 export class TimelineLayoutStrategy implements ILayoutStrategy {
   readonly name = 'timeline';
@@ -44,7 +45,7 @@ export class TimelineLayoutStrategy implements ILayoutStrategy {
       const totalNodeWidth = nodeWidths.reduce((sum, width) => sum + width, 0);
 
       // Calculate spacing to distribute nodes evenly
-      const availableWidth = config.width - 2 * (config.marginX || 50);
+      const availableWidth = config.width - 2 * (config.marginX || DEFAULT_MARGIN);
       const totalSpacing = availableWidth - totalNodeWidth;
       const spacing = nodes.length > 1 ? totalSpacing / (nodes.length + 1) : availableWidth / 2;
 
@@ -54,7 +55,7 @@ export class TimelineLayoutStrategy implements ILayoutStrategy {
       const nodeHeight = config.nodeHeight || DEFAULT_NODE_HEIGHT;
 
       // Position nodes along timeline
-      let currentX = config.marginX || 50;
+      let currentX = config.marginX || DEFAULT_MARGIN;
 
       const positionedNodes: PositionedNode[] = sortedNodes.map((node, index) => {
         const width = nodeWidths[index];
@@ -184,9 +185,9 @@ export class TimelineLayoutStrategy implements ILayoutStrategy {
     return {
       rankDirection: 'LR',       // Left to right
       nodeSeparation: 80,        // Horizontal spacing between nodes
-      edgeSeparation: 10,
+      edgeSeparation: DEFAULT_EDGE_SEPARATION,
       marginX: 80,               // Larger margins for timeline
-      marginY: 50
+      marginY: DEFAULT_MARGIN
     };
   }
 }

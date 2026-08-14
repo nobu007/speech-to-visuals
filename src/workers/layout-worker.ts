@@ -12,6 +12,10 @@ import type {
   LayoutWorkerPayload,
   LayoutWorkerResult,
 } from './types';
+import {
+  DEFAULT_NODE_SEPARATION,
+  DEFAULT_RANK_SEPARATION,
+} from '../visualization/layout-spacing';
 
 /**
  * Compute graph layout using a simplified force-directed / grid algorithm.
@@ -99,8 +103,8 @@ export function computeLayout(
 
   // Position nodes using rank direction
   const isHorizontal = config.rankDirection === 'LR' || config.rankDirection === 'RL';
-  const nodeSep = config.nodeSeparation || 50;
-  const rankSep = config.rankSeparation || 50;
+  const nodeSep = config.nodeSeparation || DEFAULT_NODE_SEPARATION;
+  const rankSep = config.rankSeparation || DEFAULT_RANK_SEPARATION;
 
   const positionedNodes: LayoutWorkerResult['nodes'] = [];
   const maxLevels = Math.max(...Array.from(levelGroups.keys()), 0);

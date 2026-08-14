@@ -10,6 +10,12 @@ import dagre from '@dagrejs/dagre';
 import { DiagramType, NodeDatum, EdgeDatum, DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from './node-dimensions';
 import { LayoutConfig, LayoutResult } from './types';
+import {
+  DEFAULT_NODE_SEPARATION,
+  DEFAULT_EDGE_SEPARATION,
+  DEFAULT_RANK_SEPARATION,
+  DEFAULT_MARGIN,
+} from './layout-spacing';
 import { nodesOverlap, distance } from './layout-utils';
 import { OverlapResolver } from './strategies/OverlapResolver';
 import { LayoutOptimizer } from './strategies/LayoutOptimizer';
@@ -144,12 +150,12 @@ export class ComplexLayoutEngine {
       height: 1080,
       nodeWidth: DEFAULT_NODE_WIDTH,
       nodeHeight: DEFAULT_NODE_HEIGHT,
-      marginX: 50,
-      marginY: 50,
+      marginX: DEFAULT_MARGIN,
+      marginY: DEFAULT_MARGIN,
       rankDirection: 'TB',
-      nodeSeparation: 50,
-      edgeSeparation: 10,
-      rankSeparation: 50,
+      nodeSeparation: DEFAULT_NODE_SEPARATION,
+      edgeSeparation: DEFAULT_EDGE_SEPARATION,
+      rankSeparation: DEFAULT_RANK_SEPARATION,
 
       // Complex layout extensions
       enableClustering: true,

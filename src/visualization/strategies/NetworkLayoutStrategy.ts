@@ -20,6 +20,7 @@ import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { nodesOverlap, distance, calculateNodeWidth as calculateNodeWidthUtil, DEFAULT_CHAR_WIDTH, DEFAULT_LABEL_PADDING } from '../layout-utils';
 import { logger } from '../../utils/logger';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { DEFAULT_NODE_SEPARATION, DEFAULT_EDGE_SEPARATION } from '../layout-spacing';
 
 export class NetworkLayoutStrategy implements ILayoutStrategy {
   readonly name = 'network';
@@ -63,7 +64,7 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
    * Calculate optimal spacing based on node density
    */
   private calculateOptimalSpacing(nodeCount: number, config: LayoutConfig): number {
-    const baseSpacing = config.nodeSeparation || 50;
+    const baseSpacing = config.nodeSeparation || DEFAULT_NODE_SEPARATION;
 
     // Scale spacing with square root of node count (handles density well)
     const densityFactor = Math.sqrt(nodeCount / 10);
@@ -356,7 +357,7 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
   getStrategyDefaults(): Partial<LayoutConfig> {
     return {
       nodeSeparation: 60,        // Adaptive spacing for networks
-      edgeSeparation: 10,
+      edgeSeparation: DEFAULT_EDGE_SEPARATION,
       marginX: 40,
       marginY: 40
     };

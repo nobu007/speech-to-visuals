@@ -20,6 +20,11 @@ import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { logger } from '../../utils/logger';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { calculateNodeWidth as calculateNodeWidthUtil, DEFAULT_CHAR_WIDTH, DEFAULT_LABEL_PADDING } from '../layout-utils';
+import {
+  DEFAULT_NODE_SEPARATION,
+  DEFAULT_EDGE_SEPARATION,
+  DEFAULT_MARGIN,
+} from '../layout-spacing';
 
 export class ConceptMapLayoutStrategy implements ILayoutStrategy {
   readonly name = 'conceptmap';
@@ -174,10 +179,10 @@ export class ConceptMapLayoutStrategy implements ILayoutStrategy {
    */
   getStrategyDefaults(): Partial<LayoutConfig> {
     return {
-      nodeSeparation: 50,        // Standard spacing
-      edgeSeparation: 10,
-      marginX: 50,
-      marginY: 50
+      nodeSeparation: DEFAULT_NODE_SEPARATION,  // Standard spacing
+      edgeSeparation: DEFAULT_EDGE_SEPARATION,
+      marginX: DEFAULT_MARGIN,
+      marginY: DEFAULT_MARGIN
     };
   }
 }

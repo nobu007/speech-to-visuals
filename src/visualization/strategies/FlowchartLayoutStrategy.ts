@@ -19,6 +19,12 @@ import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@
 import { LayoutConfig } from '../types';
 import { DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { calculateNodeWidth as calculateNodeWidthUtil, DEFAULT_CHAR_WIDTH, DEFAULT_LABEL_PADDING } from '../layout-utils';
+import {
+  DEFAULT_NODE_SEPARATION,
+  DEFAULT_EDGE_SEPARATION,
+  DEFAULT_RANK_SEPARATION,
+  DEFAULT_MARGIN,
+} from '../layout-spacing';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { logger } from '../../utils/logger';
 
@@ -43,11 +49,11 @@ export class FlowchartLayoutStrategy implements ILayoutStrategy {
       // Configure graph for flowchart (top-to-bottom)
       g.setGraph({
         rankdir: 'TB',  // Top to Bottom
-        ranksep: config.rankSeparation || 50,  // Vertical spacing between ranks
-        nodesep: config.nodeSeparation || 50,  // Horizontal spacing between nodes
-        edgesep: config.edgeSeparation || 10,  // Spacing between edges
-        marginx: config.marginX || 50,
-        marginy: config.marginY || 50,
+        ranksep: config.rankSeparation || DEFAULT_RANK_SEPARATION,  // Vertical spacing between ranks
+        nodesep: config.nodeSeparation || DEFAULT_NODE_SEPARATION,  // Horizontal spacing between nodes
+        edgesep: config.edgeSeparation || DEFAULT_EDGE_SEPARATION,  // Spacing between edges
+        marginx: config.marginX || DEFAULT_MARGIN,
+        marginy: config.marginY || DEFAULT_MARGIN,
         align: 'UL'  // Align to upper-left
       });
 
@@ -186,10 +192,10 @@ export class FlowchartLayoutStrategy implements ILayoutStrategy {
     return {
       rankDirection: 'TB',       // Top to bottom
       rankSeparation: 70,        // More vertical space for flow readability
-      nodeSeparation: 50,        // Standard horizontal spacing
-      edgeSeparation: 10,        // Minimal edge spacing
-      marginX: 50,
-      marginY: 50
+      nodeSeparation: DEFAULT_NODE_SEPARATION,  // Standard horizontal spacing
+      edgeSeparation: DEFAULT_EDGE_SEPARATION,  // Minimal edge spacing
+      marginX: DEFAULT_MARGIN,
+      marginY: DEFAULT_MARGIN
     };
   }
 }

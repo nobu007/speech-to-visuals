@@ -20,6 +20,7 @@ import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { logger } from '../../utils/logger';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { calculateNodeWidth as calculateNodeWidthUtil, DEFAULT_CHAR_WIDTH, DEFAULT_LABEL_PADDING } from '../layout-utils';
+import { DEFAULT_EDGE_SEPARATION, DEFAULT_MARGIN } from '../layout-spacing';
 
 export class ComparisonLayoutStrategy implements ILayoutStrategy {
   readonly name = 'comparison';
@@ -208,9 +209,9 @@ export class ComparisonLayoutStrategy implements ILayoutStrategy {
   getStrategyDefaults(): Partial<LayoutConfig> {
     return {
       nodeSeparation: 70,        // Vertical spacing between items
-      edgeSeparation: 10,
+      edgeSeparation: DEFAULT_EDGE_SEPARATION,
       marginX: 80,               // Larger margins for columns
-      marginY: 50
+      marginY: DEFAULT_MARGIN
     };
   }
 }

@@ -4,6 +4,12 @@ import { LayoutConfig, LayoutResult, LayoutMetrics } from './types';
 import ComplexLayoutEngine from './complex-layout-engine';
 import { BaseLayoutEngine } from './base/BaseLayoutEngine';
 import { DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from './node-dimensions';
+import {
+  DEFAULT_NODE_SEPARATION,
+  DEFAULT_EDGE_SEPARATION,
+  DEFAULT_RANK_SEPARATION,
+  DEFAULT_MARGIN,
+} from './layout-spacing';
 
 /**
  * Diagram Layout Engine - Iterative Implementation
@@ -62,12 +68,12 @@ export class LayoutEngine extends BaseLayoutEngine {
       height: 1080,
       nodeWidth: DEFAULT_NODE_WIDTH,
       nodeHeight: DEFAULT_NODE_HEIGHT,
-      marginX: 50,
-      marginY: 50,
+      marginX: DEFAULT_MARGIN,
+      marginY: DEFAULT_MARGIN,
       rankDirection: 'TB',
-      nodeSeparation: 50,
-      edgeSeparation: 10,
-      rankSeparation: 50,
+      nodeSeparation: DEFAULT_NODE_SEPARATION,
+      edgeSeparation: DEFAULT_EDGE_SEPARATION,
+      rankSeparation: DEFAULT_RANK_SEPARATION,
       ...override
     };
   }

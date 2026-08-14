@@ -21,6 +21,7 @@ import { logger } from '../../utils/logger';
 import { VisualizationError } from '@/pipeline/pipeline-errors';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { calculateNodeWidth as calculateNodeWidthUtil, DEFAULT_CHAR_WIDTH, DEFAULT_LABEL_PADDING } from '../layout-utils';
+import { DEFAULT_EDGE_SEPARATION, DEFAULT_MARGIN } from '../layout-spacing';
 
 interface TreeNode {
   id: string;
@@ -344,9 +345,9 @@ export class TreeLayoutStrategy implements ILayoutStrategy {
       rankDirection: 'TB',       // Top to bottom
       rankSeparation: 100,       // Larger vertical spacing for hierarchy
       nodeSeparation: 80,        // Horizontal spacing between siblings
-      edgeSeparation: 10,
-      marginX: 50,
-      marginY: 50
+      edgeSeparation: DEFAULT_EDGE_SEPARATION,
+      marginX: DEFAULT_MARGIN,
+      marginY: DEFAULT_MARGIN
     };
   }
 }
