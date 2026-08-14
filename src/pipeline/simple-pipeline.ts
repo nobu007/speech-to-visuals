@@ -10,6 +10,7 @@ import { LayoutEngine } from '@/visualization';
 import { EnhancedZeroOverlapLayoutEngine } from '@/visualization/enhanced-zero-overlap-layout';
 import { SceneGraph } from '@/types/diagram';
 import { VideoGenerator, VideoGenerationOptions } from './video-generator';
+import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
 import { buildSceneGraph } from './scene-graph-builder';
 import { applyConfigToCollaborators } from './config-sync';
 import { calculatePipelineQualityScore } from './quality-score';
@@ -481,7 +482,7 @@ export class SimplePipeline {
           outputFormat: 'mp4',
           quality: 'high',
           resolution: '1080p',
-          fps: 30,
+          fps: DEFAULT_FPS,
           includeAudio: true,
           ...input.options?.videoOptions,
         });

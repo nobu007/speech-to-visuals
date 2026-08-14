@@ -11,6 +11,7 @@
 
 import { escapeXml } from './xml-escape';
 import { roundTo } from '../lib/metrics-utils';
+import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -186,7 +187,9 @@ export function generateLottieAnimation(
   fallbackFrameCount = 0,
 ): Record<string, unknown> {
   const scenes = sceneData?.scenes ?? [];
-  const fps = 30;
+  // The Lottie `fr` must track the canonical default frame rate — a frozen 30
+  // here would desync Lottie timing from the Remotion composition (REQ-296).
+  const fps = DEFAULT_FPS;
   const { width, height } = validateFrameInfo(frames);
   let frameOffset = 0;
 

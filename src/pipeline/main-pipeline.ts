@@ -23,6 +23,7 @@ import {
 } from './types';
 import { retryWithBackoff } from './retry';
 import { buildSceneGraph } from './scene-graph-builder';
+import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
 import {
   MIN_SCENE_DURATION_MS,
   MAX_EDITORIAL_SCENE_DURATION_MS,
@@ -121,7 +122,7 @@ export class MainPipeline {
         ...config.layout
       },
       output: {
-        fps: 30,
+        fps: DEFAULT_FPS,
         videoDuration: 60,
         includeAudio: true,
         ...config.output

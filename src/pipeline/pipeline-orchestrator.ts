@@ -41,6 +41,7 @@ import { detectBottlenecks, BottleneckReport } from './bottleneck-detector';
 import { PipelineConfigError, RenderingError, QualityGateError, PipelineAbortError, AudioValidationError } from './pipeline-errors';
 import { SUPPORTED_AUDIO_FORMATS, AUDIO_LIMITS } from '@/config/limits';
 import { generateRenderPlan, validateRenderPlan, type RenderPlan } from './scene-render-spec-generator';
+import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
 import {
   PipelineErrorRecoveryOrchestrator,
 } from '@/quality/pipeline-error-recovery-orchestrator';
@@ -187,7 +188,7 @@ export class PipelineOrchestrator {
         confidenceThreshold: 0.7,
       },
       layout: { width: 1920, height: 1080, nodeWidth: 120, nodeHeight: 60 },
-      output: { fps: 30, videoDuration: 60, includeAudio: true },
+      output: { fps: DEFAULT_FPS, videoDuration: 60, includeAudio: true },
     };
 
     // Initialize components

@@ -112,7 +112,7 @@ export class VideoGenerator {
       outputFormat: 'mp4',
       quality: 'high',
       resolution: '1080p',
-      fps: 30,
+      fps: DEFAULT_FPS,
       includeAudio: true,
       backgroundColor: '#0f0f23',
       animationStyle: 'smooth',
