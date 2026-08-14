@@ -133,6 +133,17 @@ const DIAGRAM_TYPES: DiagramType[] = ['flow', 'tree', 'cycle', 'timeline', 'matr
 // Test Suite
 // =========================================================================
 
+/**
+ * Worker-memory baseline, taken when THIS suite loads. Jest runs many suites
+ * per worker process, so absolute process.memoryUsage() readings include the
+ * heap/RSS accumulated by every previously-executed suite — under a full-suite
+ * run they exceed any fixed ceiling without this benchmark contributing. All
+ * absolute-ceiling assertions below therefore bound the DELTA from this
+ * baseline (the memory this benchmark itself allocates), which is the quantity
+ * the NFR actually intends to constrain.
+ */
+const BASELINE_MEM = getMemoryMB();
+
 describe('E2E Performance Benchmark (TASK-0075)', () => {
 
   // -----------------------------------------------------------------------
@@ -221,7 +232,9 @@ describe('E2E Performance Benchmark (TASK-0075)', () => {
   describe('Memory Usage Validation', () => {
     test('heap memory usage is within 512MB limit', () => {
       const mem = getMemoryMB();
-      expect(mem.heapUsed).toBeLessThan(NFR.MEMORY_MAX_MB);
+      // Delta from suite-load baseline (see BASELINE_MEM): absolute worker
+      // heap is polluted by co-resident suites under a full run.
+      expect(mem.heapUsed - BASELINE_MEM.heapUsed).toBeLessThan(NFR.MEMORY_MAX_MB);
     });
 
     test('memory is stable after processing 10 layouts', async () => {
@@ -246,12 +259,15 @@ describe('E2E Performance Benchmark (TASK-0075)', () => {
       // the final heap stays under the limit with headroom for test runner overhead.
       const heapGrowth = memAfter.heapUsed - memBefore.heapUsed;
       expect(heapGrowth).toBeLessThan(256);
-      expect(memAfter.heapUsed).toBeLessThan(NFR.MEMORY_MAX_MB * 1.25);
+      expect(memAfter.heapUsed - BASELINE_MEM.heapUsed).toBeLessThan(NFR.MEMORY_MAX_MB * 1.25);
     });
 
     test('RSS memory is within reasonable bounds', () => {
       const mem = getMemoryMB();
-      expect(mem.rss).toBeLessThan(NFR.MEMORY_MAX_MB * 2); // RSS includes shared libs
+      // RSS delta from suite-load baseline: absolute worker RSS under a
+      // full-suite run reflects every suite the worker has executed (observed
+      // 5.3GB), not this benchmark's footprint.
+      expect(mem.rss - BASELINE_MEM.rss).toBeLessThan(NFR.MEMORY_MAX_MB * 2); // RSS includes shared libs
     });
   });
 
@@ -508,7 +524,7 @@ describe('E2E Performance Benchmark (TASK-0075)', () => {
       expect(mem.heapUsed).toBeGreaterThan(0);
       // Allow extra headroom for test runner overhead (NFR.MEMORY_MAX_MB
       // targets production app memory, not Jest's accumulated heap).
-      expect(mem.heapUsed).toBeLessThan(NFR.MEMORY_MAX_MB * 1.5);
+      expect(mem.heapUsed - BASELINE_MEM.heapUsed).toBeLessThan(NFR.MEMORY_MAX_MB * 1.5);
     });
   });
 });

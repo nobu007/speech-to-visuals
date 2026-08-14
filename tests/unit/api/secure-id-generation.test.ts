@@ -5,28 +5,15 @@
  * Source-level static analysis tests that verify secure coding patterns.
  */
 
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync } from 'fs';
 import { resolve } from 'path';
+import { fileURLToPath } from 'node:url';
 
-/**
- * Resolve the project src/ directory.
- * Walk up from process.cwd() to find a directory containing src/api/batch-processing-api.ts.
- */
-function findSrcRoot(): string {
-  let dir = process.cwd();
-  for (let i = 0; i < 10; i++) {
-    const candidate = resolve(dir, 'src', 'api', 'batch-processing-api.ts');
-    if (existsSync(candidate)) {
-      return resolve(dir, 'src');
-    }
-    const parent = resolve(dir, '..');
-    if (parent === dir) break; // filesystem root
-    dir = parent;
-  }
-  throw new Error(`Cannot find src/api/batch-processing-api.ts from cwd=${process.cwd()}`);
-}
-
-const root = findSrcRoot();
+// Anchored to import.meta.url, not a process.cwd() walk-up: the walk-up can
+// resolve into a node_modules package's src/ directory under a full-suite
+// run (observed: whisper-node), making every readFileSync fail with ENOENT.
+// The test file itself is the only reliable anchor (same as TC-302/313).
+const root = resolve(fileURLToPath(import.meta.url), '..', '..', '..', '..', 'src');
 
 function src(relPath: string): string {
   return readFileSync(resolve(root, relPath), 'utf-8');
@@ -48,7 +35,10 @@ describe('ISS-031: Secure ID generation', () => {
 
   it.each(files)('should import randomUUID from crypto in %s', (_name, relPath) => {
     const content = src(relPath);
-    expect(content).toContain("import { randomUUID } from 'crypto'");
+    // randomUUID must be a named import from 'crypto' — but the clause may
+    // carry OTHER named imports alongside it (e.g. createHash), so anchor on
+    // the symbol, not the exact brace contents.
+    expect(content).toMatch(/import\s*\{[^}]*\brandomUUID\b[^}]*\}\s*from\s*'crypto'/);
   });
 
   it.each(files)('should NOT use Math.random().toString(36).substr in %s', (_name, relPath) => {

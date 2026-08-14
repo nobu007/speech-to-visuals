@@ -39,6 +39,12 @@
 import { describe, it, expect } from '@jest/globals';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Anchored to import.meta.url, not process.cwd(): jest workers can run with a
+// cwd that is not the repo root, which flaked the bare relative form under
+// --maxWorkers>1 (same as TC-302/313).
+const REPO_ROOT = join(fileURLToPath(import.meta.url), '..', '..', '..');
 
 // The load-bearing filter predicate — uniform across all 6 sites. Matches
 // `<set>.has(<var>.from) && <set>.has(<var>.to)` regardless of the Set / edge
@@ -64,7 +70,7 @@ const DAGRE_FILES = [
 
 describe('dagre dangling-edge filter — source anchors pinned per site (TC-307-01)', () => {
   it.each(DAGRE_FILES)('%s builds a node-id Set and filters both edge endpoints', (file) => {
-    const src = readFileSync(file, 'utf8');
+    const src = readFileSync(join(REPO_ROOT, file), 'utf8');
     expect(src).toMatch(NODE_SET_ANCHOR);
     expect(src).toMatch(FILTER_ANCHOR);
     expect(src).toMatch(SETEDGE_ANCHOR);
@@ -73,7 +79,7 @@ describe('dagre dangling-edge filter — source anchors pinned per site (TC-307-
   it('enhanced-zero-overlap-layout.ts has the filter at BOTH the flowchart and tree paths', () => {
     // Two independent dagre call sites (generateFlowchartLayout + generateTreeLayout).
     // A drift that drops one path drops the match count below 2 → RED.
-    const src = readFileSync('src/visualization/enhanced-zero-overlap-layout.ts', 'utf8');
+    const src = readFileSync(join(REPO_ROOT, 'src/visualization/enhanced-zero-overlap-layout.ts'), 'utf8');
     const matches = src.match(new RegExp(FILTER_ANCHOR.source, 'g'));
     expect(matches).not.toBeNull();
     expect(matches!.length).toBeGreaterThanOrEqual(2);
@@ -100,7 +106,7 @@ describe('dagre dangling-edge filter — structural class sweep (TC-307-02)', ()
     // THE CLASS-CLOSING INVARIANT. Any file that hands edges to dagre MUST
     // filter them to the input-node set first. A new strategy added without
     // the filter lands here with setEdge-but-no-filter → RED.
-    const repoRoot = process.cwd(); // jest runs from the repo root
+    const repoRoot = REPO_ROOT;
     const vizFiles = collectTs(join(repoRoot, 'src/visualization'));
     expect(vizFiles.length).toBeGreaterThan(0);
 

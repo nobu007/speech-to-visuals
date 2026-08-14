@@ -50,6 +50,13 @@
 import { describe, it, expect } from '@jest/globals';
 import { readFileSync, existsSync } from 'node:fs';
 import { globSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Anchored to import.meta.url, not process.cwd(): jest workers can run with a
+// cwd that is not the repo root, which flaked the bare relative form under
+// --maxWorkers>1 (same as TC-302/313).
+const REPO_ROOT = join(fileURLToPath(import.meta.url), '..', '..', '..');
 
 // --- comment stripping (string literals PRESERVED so 'flow' tokens survive) ---
 
@@ -139,8 +146,8 @@ function findDiagramTypeSwitchSites(files: string[]): SwitchSite[] {
 }
 
 const SRC_FILES = (): string[] => {
-  const ts = globSync('src/**/*.ts') as string[];
-  const tsx = globSync('src/**/*.tsx') as string[];
+  const ts = globSync(join(REPO_ROOT, 'src/**/*.ts')) as string[];
+  const tsx = globSync(join(REPO_ROOT, 'src/**/*.tsx')) as string[];
   return ts.concat(tsx).filter((f) => !f.includes('__tests__'));
 };
 
@@ -240,7 +247,7 @@ describe('diagram-type equivalence pair inventory — pinned canonical set (REQ-
     // Importing from the source-of-truth: see `DIAGRAM_TYPES` in
     // src/types/diagram.ts. We re-read it rather than import to keep this
     // test pure-string (the guard is an AST sweep — no runtime deps).
-    const src = readFileSync('src/types/diagram.ts', 'utf8');
+    const src = readFileSync(join(REPO_ROOT, 'src/types/diagram.ts'), 'utf8');
     const m = src.match(/DIAGRAM_TYPES:\s*readonly DiagramType\[\]\s*=\s*\[([^\]]+)\]/);
     expect(m).not.toBeNull();
     const members = (m![1].match(/'[^']+'/g) ?? []).map((s) => s.slice(1, -1));
@@ -283,8 +290,8 @@ describe('diagram-type equivalence pair inventory — pinned canonical set (REQ-
       // The flow/flowchart file is grandfathered; new pairs use the suffix.
       const candidates =
         pair.canonical === 'flow'
-          ? ['src/__tests__/diagram-type-switch-parity-guard.test.ts']
-          : [`src/__tests__/diagram-type-switch-parity-${pair.canonical}-guard.test.ts`];
+          ? [join(REPO_ROOT, 'src/__tests__/diagram-type-switch-parity-guard.test.ts')]
+          : [join(REPO_ROOT, `src/__tests__/diagram-type-switch-parity-${pair.canonical}-guard.test.ts`)];
       const found = candidates.some((c) => existsSync(c));
       if (!found) {
         throw new Error(

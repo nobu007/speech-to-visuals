@@ -54,6 +54,13 @@
 import { describe, it, expect } from '@jest/globals';
 import { readFileSync } from 'node:fs';
 import { globSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Anchored to import.meta.url, not process.cwd(): jest workers can run with a
+// cwd that is not the repo root, which flaked the bare relative form under
+// --maxWorkers>1 (same as TC-302/313).
+const REPO_ROOT = join(fileURLToPath(import.meta.url), '..', '..', '..');
 
 // --- Source-audit helpers (comment+string-stripped + balanced scanning) ------
 
@@ -302,7 +309,7 @@ describe('stale-closure class — known fixes pinned (RED on revert)', () => {
   // concrete bugs so a revert (or copy-paste of the old shape elsewhere) fails.
 
   it('Iteration43Interface logs the local accumulator, not the stale closure', () => {
-    const src = readFileSync('src/components/Iteration43Interface.tsx', 'utf8');
+    const src = readFileSync(join(REPO_ROOT, 'src/components/Iteration43Interface.tsx'), 'utf8');
     // The accumulator exists and is assigned in-loop.
     expect(src).toMatch(/\blet\s+finalOverallScore\s*=/);
     expect(src).toMatch(/\bfinalOverallScore\s*=/);
@@ -321,7 +328,7 @@ describe('stale-closure class — known fixes pinned (RED on revert)', () => {
   });
 
   it('StreamingProcessor reads the synchronous ref mirror after the await', () => {
-    const src = readFileSync('src/components/StreamingProcessor.tsx', 'utf8');
+    const src = readFileSync(join(REPO_ROOT, 'src/components/StreamingProcessor.tsx'), 'utf8');
     // The ref mirror exists.
     expect(src).toMatch(/\bscenesRef\s*=\s*useRef/);
     // The post-await onComplete reads scenesRef.current — NOT the stale `scenes`.
@@ -382,7 +389,7 @@ describe('stale-closure class — at-risk async handlers enumerated and swept', 
   });
 
   it('the sweep flags EXACTLY the registered at-risk handlers (no new, no stale)', () => {
-    const files = (globSync('src/**/*.tsx') as string[])
+    const files = (globSync(join(REPO_ROOT, 'src/**/*.tsx')) as string[])
       .concat(globSync('src/**/*.ts') as string)
       .filter(f => !f.includes('__tests__'));
 

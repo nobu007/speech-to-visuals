@@ -26,9 +26,15 @@
 import { describe, it, expect } from '@jest/globals';
 import { readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
+import { fileURLToPath } from 'node:url';
 import { mulberry32 } from '@tests/helpers/fuzz';
 import { distance, calculateDistance } from '../layout-utils';
 import type { Point } from '../types';
+
+// Guard reads are anchored to import.meta.url, not process.cwd(): jest workers
+// can run with a cwd that is not the repo root, which flaked the bare
+// relative 'src/visualization' form under --maxWorkers>1 (same as TC-302/313).
+const REPO_ROOT = join(fileURLToPath(import.meta.url), '..', '..', '..', '..');
 
 /** Independent reference: Math.hypot is a distinct implementation of sqrt(x²+y²). */
 function referenceDistance(dx: number, dy: number): number {
@@ -126,7 +132,7 @@ describe('2-D distance: single source of truth (layout-utils.distance)', () => {
     }
 
     it('src/visualization + src/remotion re-inline nothing (except the canonical)', () => {
-      const files = [...collectTs('src/visualization'), ...collectTs('src/remotion')];
+      const files = [...collectTs(join(REPO_ROOT, 'src/visualization')), ...collectTs(join(REPO_ROOT, 'src/remotion'))];
       const violations: string[] = [];
 
       for (const file of files) {
@@ -154,7 +160,7 @@ describe('2-D distance: single source of truth (layout-utils.distance)', () => {
       // copy, and forbid the Math.pow form as well.
       const POW_FN_FORM =
         /Math\.sqrt\(\s*Math\.pow\([\s\S]+?,\s*2\s*\)\s*\+\s*Math\.pow\([\s\S]+?,\s*2\s*\)\s*\)/;
-      const files = [...collectTs('src/visualization'), ...collectTs('src/remotion')];
+      const files = [...collectTs(join(REPO_ROOT, 'src/visualization')), ...collectTs(join(REPO_ROOT, 'src/remotion'))];
       const violations: string[] = [];
       for (const file of files) {
         if (file.endsWith('layout-utils.ts')) continue; // canonical definition

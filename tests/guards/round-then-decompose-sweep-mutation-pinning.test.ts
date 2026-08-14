@@ -42,6 +42,12 @@
 import { describe, it, expect } from '@jest/globals';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Anchored to import.meta.url, not process.cwd(): jest workers can run with a
+// cwd that is not the repo root, which flaked the bare relative form under
+// --maxWorkers>1 (same as TC-302/313).
+const REPO_ROOT = join(fileURLToPath(import.meta.url), '..', '..', '..');
 
 // Recursively collect non-test .ts/.tsx files under a directory.
 function collectTs(dir: string, acc: string[] = []): string[] {
@@ -100,7 +106,7 @@ describe('round-then-decompose — safe form pinned at StageIndicator (TC-310-01
     // The canonical fix: `const total = Math.round(seconds)` THEN `total % 60`,
     // never `Math.round(seconds % 60)`. A revert to the rounded-remainder form
     // drops BOTH anchors → RED (also re-caught by the sweep in TC-310-02).
-    const src = readFileSync('src/components/StageIndicator.tsx', 'utf8');
+    const src = readFileSync(join(REPO_ROOT, 'src/components/StageIndicator.tsx'), 'utf8');
     expect(src).toContain('const total = Math.round(seconds)');
     expect(src).toContain('total % 60');
     // The defect signature must NOT survive here.
@@ -116,7 +122,7 @@ describe('round-then-decompose — structural class sweep (TC-310-02)', () => {
     // remainder is < N); only `Math.round`/`Math.ceil` on a modulo can reach
     // the divisor ("1分60秒", "60秒"). Any formatter added with this shape
     // lands here → RED, independent of behavioral tests.
-    const repoRoot = process.cwd(); // jest runs from the repo root
+    const repoRoot = REPO_ROOT;
     const files = collectTs(join(repoRoot, 'src'));
     expect(files.length).toBeGreaterThan(0);
 

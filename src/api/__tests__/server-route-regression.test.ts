@@ -11,22 +11,20 @@
 
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'node:url';
 import request from 'supertest';
 
-function findProjectRoot(): string {
-  let dir = process.cwd();
-  for (let i = 0; i < 10; i++) {
-    if (fs.existsSync(path.resolve(dir, 'package.json'))) {
-      return dir;
-    }
-    const parent = path.resolve(dir, '..');
-    if (parent === dir) break;
-    dir = parent;
-  }
-  return process.cwd();
-}
-
-const projectRoot = findProjectRoot();
+// Anchored to import.meta.url, not a process.cwd() walk-up: the walk-up
+// searched for the nearest package.json, which under a full-suite run can
+// resolve into a node_modules package's directory (observed: whisper-node)
+// and make every readFileSync below fail with ENOENT. The test file itself
+// is the only reliable anchor (same as TC-302/313).
+const projectRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '..',
+  '..',
+);
 
 describe('server route regression: no duplicate health endpoints', () => {
   beforeEach(() => {
