@@ -40,8 +40,22 @@ const { compareWithBaseline } = await import('../../pipeline/performance-regress
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { fileURLToPath } from 'url';
 import type { PipelineResult } from '../../pipeline/types';
 import type { SceneGraph } from '../../types/diagram';
+
+// Anchor filesystem reads to THIS file, not process.cwd(). The REFERENCED-row
+// guard below does fs.existsSync on a repo-relative path; under --maxWorkers>1 a
+// worker's cwd is not guaranteed to be the repo root, which made that check flake
+// intermittently (the TC-302/313 cwd-relative-read class — same flake as the
+// distance-canonical-cross-invariant-fuzz guard). Resolving from import.meta.url
+// keeps the canonical regression net deterministic regardless of worker cwd.
+const REPO_ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '..',
+  '..',
+);
 
 // ---------------------------------------------------------------------------
 // Drivers. Each returns TRUE iff the gate FAILS on absent/empty input.
@@ -375,7 +389,7 @@ describe('defect-9 silent-pass class — consolidated cross-evaluator regression
     const referenced = ROSTER.filter((r) => r.verdict === 'REFERENCED');
     expect(referenced.length).toBeGreaterThanOrEqual(1);
     for (const row of referenced) {
-      expect({ id: row.id, exists: fs.existsSync(row.verifiedBy!) }).toEqual({
+      expect({ id: row.id, exists: fs.existsSync(path.join(REPO_ROOT, row.verifiedBy!)) }).toEqual({
         id: row.id,
         exists: true,
       });
