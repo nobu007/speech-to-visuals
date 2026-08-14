@@ -990,7 +990,15 @@ export class ContinuousLearner {
 
     // パフォーマンス基準チェック (Custom Instructions: 30秒以内処理)
     const recentData = this.getRecentData(10).filter(d => d.component === component);
-    const avgProcessingTime = recentData.reduce((sum, d) => sum + d.processingTime, 0) / Math.max(recentData.length, 1);
+    // DEFECT-9 (polarity a — silent-pass): an empty history reduced to 0 and
+    // `0 < 30000` awarded the performance-compliance points with NO processing
+    // time measured, inflating complianceScore toward the `>= 85` commit
+    // trigger. Gate the award on actually having data so absent input cannot
+    // satisfy the lower-is-better check (consistent with the score-resolver
+    // closures in defect-9-silent-pass-consolidated-regression.test.ts).
+    const avgProcessingTime = recentData.length > 0
+      ? recentData.reduce((sum, d) => sum + d.processingTime, 0) / recentData.length
+      : Infinity;
 
     if (avgProcessingTime < 30000) { // 30 seconds
       complianceScore += 10;

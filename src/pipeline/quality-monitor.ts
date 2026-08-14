@@ -127,6 +127,32 @@ export const LOWER_IS_BETTER_QUALITY_METRICS: ReadonlySet<keyof QualityMetrics> 
 ]);
 
 /**
+ * The higher-is-better quality metrics that {@link QualityMonitor.detectViolations}
+ * gates with `!== undefined && < threshold` — i.e. the metrics whose PRESENCE is
+ * the only thing that can produce a quality violation. This is the defect-9
+ * surface: when NONE of them is present, no violation is recorded and (absent the
+ * cap in calculateOverallScore) the score manufactured a PERFECT 'excellent' from
+ * a base of 100. Listed in ONE place so detectViolations and the coverage cap
+ * share the same definition of "a measured quality metric".
+ */
+const MEASURED_QUALITY_METRICS: ReadonlyArray<keyof QualityMetrics> = [
+  'transcriptionAccuracy',
+  'sceneSegmentationF1',
+  'entityExtractionF1',
+  'relationshipAccuracy',
+  'edgeCompleteness',
+];
+
+/**
+ * Ceiling for overallScore when NO measured-quality metric is present (defect-9
+ * polarity-b closure). 59 lands in the 'needs_improvement' tier
+ * (`determineStatus`: >=90 excellent, >=75 good, >=60 acceptable, >=40
+ * needs_improvement), so a record with unmeasured quality can never be reported
+ * as 'excellent' or 'good' — the manufactured-perfect silent-pass is closed.
+ */
+const MEASURED_QUALITY_ABSENT_SCORE_CEILING = 59;
+
+/**
  * QualityMonitor - Autonomous quality assessment and improvement tracking
  *
  * Implements recursive improvement cycle:
@@ -375,6 +401,22 @@ export class QualityMonitor {
     }
     if (metrics.errorCount > 0) {
       score -= metrics.errorCount * 2;
+    }
+
+    // DEFECT-9 (polarity b — silent-pass): detectViolations skips every quality
+    // metric guarded by `!== undefined`, so a record carrying NONE of the
+    // measured-quality metrics accrues zero violations and — starting from a
+    // base of 100 — manufactured a PERFECT 'excellent' score. That is the
+    // silent-pass: ABSENT quality data satisfies the `>= 90` gate. Mirror the
+    // assessLayoutQuality (empty → 0) closure: quality that was never measured
+    // cannot claim excellence, so cap below the 'good' tier when nothing was
+    // measured. (Bonus +5/+5 for zero overlap / zero errors still apply, so the
+    // cap is applied last and dominates them.)
+    const measuredQualityCount = MEASURED_QUALITY_METRICS.filter(
+      (m) => metrics[m] !== undefined,
+    ).length;
+    if (measuredQualityCount === 0) {
+      score = Math.min(score, MEASURED_QUALITY_ABSENT_SCORE_CEILING);
     }
 
     return Math.max(0, Math.min(100, score));

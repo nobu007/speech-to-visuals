@@ -337,6 +337,7 @@ describe('QualityMonitor', () => {
       monitor.recordMetrics({
         processingTime: 60000,
         memoryUsage: 128,
+        transcriptionAccuracy: 0.95,
         layoutOverlap: 0,
         errorCount: 0,
         warningCount: 0,
@@ -344,7 +345,10 @@ describe('QualityMonitor', () => {
       });
 
       const report = monitor.generateReport();
-      // -5 for info + +5 zero overlap + +5 zero errors = 105, clamped to 100
+      // -5 for info + +5 zero overlap + +5 zero errors = 105, clamped to 100.
+      // transcriptionAccuracy is supplied so this exercises the deduction
+      // arithmetic, not the defect-9 absent-quality cap (no quality metric ⇒
+      // score capped below 'good' — see pipeline-quality-monitor closure test).
       expect(report.overallScore).toBe(100);
     });
 

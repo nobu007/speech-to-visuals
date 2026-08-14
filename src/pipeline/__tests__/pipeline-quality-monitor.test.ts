@@ -309,6 +309,7 @@ describe('QualityMonitor', () => {
       monitor.recordMetrics({
         processingTime: 5000,
         memoryUsage: 200,
+        transcriptionAccuracy: 0.9,
         layoutOverlap: 0,
         errorCount: 0,
         warningCount: 0,
@@ -338,6 +339,7 @@ describe('QualityMonitor', () => {
       monitor.recordMetrics({
         processingTime: 5000,
         memoryUsage: 200,
+        transcriptionAccuracy: 0.9,
         layoutOverlap: 0,
         errorCount: 0,
         warningCount: 0,
@@ -381,7 +383,7 @@ describe('QualityMonitor', () => {
 
     it('should compute status correctly for different scores', () => {
       // Test "excellent" (>= 90)
-      monitor.recordMetrics({ processingTime: 1000, memoryUsage: 100, layoutOverlap: 0, errorCount: 0, warningCount: 0, fallbackTriggered: false });
+      monitor.recordMetrics({ processingTime: 1000, memoryUsage: 100, transcriptionAccuracy: 0.9, layoutOverlap: 0, errorCount: 0, warningCount: 0, fallbackTriggered: false });
       expect(monitor.generateReport().status).toBe('excellent');
 
       monitor.reset();
@@ -394,6 +396,7 @@ describe('QualityMonitor', () => {
       monitor.recordMetrics({
         processingTime: 40000, // info violation (-5)
         memoryUsage: 600,      // warning violation (-10)
+        transcriptionAccuracy: 0.9,
         layoutOverlap: 0,
         errorCount: 1,         // penalty -2, lose +5 zero-error bonus
         warningCount: 0,

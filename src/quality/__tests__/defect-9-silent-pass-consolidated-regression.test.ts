@@ -2,8 +2,8 @@
  * Defect-9 silent-pass class — ONE consolidated cross-evaluator regression.
  *
  * The class (absent/unmapped/empty input → a manufactured value satisfies a
- * gate) was closed incrementally across THREE gate evaluators and a score-
- * resolver family, each in its own commit and each with its own isolated test:
+ * gate) was closed incrementally across gate evaluators and a score-resolver
+ * family, each in its own commit and each with its own isolated test:
  *   - iteration-manager.checkCriterion ............ 21c3521a / beda9ecb / be0448b8
  *   - adaptive-quality-gates.evaluateGate ......... 35b845e4 (extractMetricValue)
  *   - quality-gate captionSync/audioSync .......... dbcdfaad (resolveMeasuredMetric)
@@ -18,21 +18,24 @@
  *      one closure flips its row here, in ONE place;
  *   2. the BY-DESIGN sites stay classified with a sharp, non-circular reason —
  *      so a future change forces a conscious decision instead of a silent drift;
- *   3. the COMPLETENESS GUARD ensures every known evaluator family has a row, so
- *      a NEW evaluator — the only remaining re-open vector — cannot ship
- *      unclassified. (The class is closed for both polarities: (a) absent→falsy
- *      `0` satisfies lt/lte/eq; (b) empty→PERFECT `1.0`/`100`/`true` satisfies
- *      gte/gt. Both are "absent data manufactures a value that satisfies the
- *      gate".)
+ *   3. the COMPLETENESS GUARD (discovery-authoritative) ensures every evaluator-
+ *      shaped file in src/ is classified in DEFECT9_SURFACE, so a NEW evaluator
+ *      — the only remaining re-open vector — cannot ship unclassified. (The
+ *      class is closed for both polarities: (a) absent→falsy `0` satisfies
+ *      lt/lte/eq; (b) empty→PERFECT `1.0`/`100`/`true` satisfies gte/gt. Both
+ *      are "absent data manufactures a value that satisfies the gate".)
  *
- * The sweep added one site the per-family tables had not pinned —
- * `compareWithBaseline` (unknown stage → no regression) — which is the SAME
- * fail-open-for-robustness shape as `isWithinBaseline`, classified BY-DESIGN.
+ * Extending the sweep beyond quality-GATE evaluators (this iteration) added two
+ * more CLOSED sites the gate-only sweep had missed — both live:
+ *   - pipeline/quality-monitor.generateReport ... absent quality metrics → 100/'excellent'
+ *   - continuous-learner.assessCustomInstructionsCompliance ... empty history → 0 < 30000
  */
 
 const { QualityGateEvaluator } = await import('../quality-gate');
 const { QualityMonitor } = await import('../quality-monitor');
+const { getQualityMonitor: getPipelineQualityMonitor } = await import('../../pipeline/quality-monitor');
 const { IterationManager } = await import('../../framework/iteration-manager');
+const { ContinuousLearner } = await import('../../framework/continuous-learner');
 const { VisualBalanceScorer } = await import('../../visualization/visual-balance-scorer');
 const { scoreCost } = await import('../../pipeline/pipeline-health-score');
 const { isWithinBaseline } = await import('../../pipeline/performance-baseline');
@@ -44,18 +47,78 @@ import { fileURLToPath } from 'url';
 import type { PipelineResult } from '../../pipeline/types';
 import type { SceneGraph } from '../../types/diagram';
 
-// Anchor filesystem reads to THIS file, not process.cwd(). The REFERENCED-row
-// guard below does fs.existsSync on a repo-relative path; under --maxWorkers>1 a
-// worker's cwd is not guaranteed to be the repo root, which made that check flake
-// intermittently (the TC-302/313 cwd-relative-read class — same flake as the
-// distance-canonical-cross-invariant-fuzz guard). Resolving from import.meta.url
-// keeps the canonical regression net deterministic regardless of worker cwd.
+// Anchor filesystem reads to THIS file, not process.cwd(). The discovery walk
+// and the REFERENCED-row guard both read repo-relative paths; under
+// --maxWorkers>1 a worker's cwd is not guaranteed to be the repo root, which
+// made those checks flake intermittently (the TC-302/313 cwd-relative-read
+// class — same flake as the distance-canonical-cross-invariant-fuzz guard).
+// Resolving from import.meta.url keeps the canonical regression net
+// deterministic regardless of worker cwd.
 const REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '..',
   '..',
   '..',
 );
+
+// ---------------------------------------------------------------------------
+// Discovery — the authoritative source of "which src/ files are evaluator-
+// shaped". A pure-Node walk (cwd-independent, shell-free) over the evaluator-
+// host directories; a file qualifies if it matches a verdict-producing shape
+// (a returned verdict object, a status/compliance tier mapping, or a metric/
+// polarity registry) OR exports a score/verdict entry point. The COMPLETENESS
+// GUARD below asserts this walk's result equals DEFECT9_SURFACE's keys, so a
+// NEW evaluator file is caught the moment it matches either marker.
+// ---------------------------------------------------------------------------
+
+const HOST_DIRS = [
+  'src/quality',
+  'src/pipeline',
+  'src/framework',
+  'src/visualization',
+  'src/monitoring',
+  'src/optimization',
+];
+
+// Verdict-producing shapes: a returned verdict object / a status|compliance tier
+// mapping / a metric-or-polarity registry.
+const VERDICT_MARKER =
+  /return\s*\{[^}]*(?:passed|isRegression|shouldBlock|allMet|isWithin)|determineStatus|status:\s*'(?:excellent|good|acceptable|needs_improvement|critical)'|compliance:\s*'(?:excellent|good|needs_improvement|critical)'|METRIC_EXTRACTORS|CRITERION_KEY_MAP|LOWER_IS_BETTER/;
+// Score/verdict entry-point exports.
+const EXPORT_MARKER =
+  /export (?:async )?function (?:evaluate|assess|check|score|isWithin|isRegression|compareWith|passes|meets)[A-Za-z]*\s*\(|export function scoreCost|export class (?:QualityMonitor|QualityGateEvaluator|LayoutEvaluator|VisualBalanceScorer)/;
+
+function walkTs(dir: string, out: string[] = []): string[] {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, entry.name);
+    if (entry.isDirectory()) walkTs(p, out);
+    else if (
+      entry.isFile() &&
+      p.endsWith('.ts') &&
+      !p.endsWith('.test.ts') &&
+      !p.includes('__tests__')
+    ) {
+      out.push(p);
+    }
+  }
+  return out;
+}
+
+/** Repo-relative paths of every evaluator-shaped file in the host dirs. */
+function discoverEvaluatorFiles(): string[] {
+  const found: string[] = [];
+  for (const d of HOST_DIRS) {
+    const abs = path.join(REPO_ROOT, d);
+    if (!fs.existsSync(abs)) continue;
+    for (const f of walkTs(abs)) {
+      const src = fs.readFileSync(f, 'utf8');
+      if (VERDICT_MARKER.test(src) || EXPORT_MARKER.test(src)) {
+        found.push(path.relative(REPO_ROOT, f));
+      }
+    }
+  }
+  return found.sort();
+}
 
 // ---------------------------------------------------------------------------
 // Drivers. Each returns TRUE iff the gate FAILS on absent/empty input.
@@ -106,6 +169,17 @@ async function nodelessAccuracyScore(): Promise<number> {
   return (result as { accuracyScore?: number }).accuracyScore ?? 1;
 }
 
+/** overallScore for a pipeline-quality-monitor record with NO quality metrics. */
+function pipelineQualityMonitorAbsentScore(): number {
+  // recordMetrics({}) leaves every measured-quality metric undefined; before the
+  // defect-9 fix detectViolations skipped them all and calculateOverallScore
+  // manufactured a PERFECT 100/'excellent' from a base of 100.
+  const monitor = getPipelineQualityMonitor();
+  monitor.reset();
+  monitor.recordMetrics({});
+  return monitor.generateReport().overallScore;
+}
+
 /** True iff an unverifiable SLO fails the iteration-manager gate. */
 function imUnmappedSLOFails(): boolean {
   // 'テスト通過率100%' maps to testPassRate; with NO metrics supplied the SLO
@@ -126,6 +200,30 @@ function imUnmappedSLOFails(): boolean {
   return mgr.evaluateSuccessCriteria({}).allMet === false;
 }
 
+/**
+ * continuous-learner compliance score for a component with NO history. Before
+ * the defect-9 fix, an empty history reduced to `0` and `0 < 30000` awarded the
+ * performance-compliance points with nothing measured.
+ */
+function continuousLearnerEmptyHistoryScore(): number {
+  const learner = new ContinuousLearner(false);
+  const proto = ContinuousLearner.prototype as unknown as {
+    // assessCustomInstructionsCompliance is private; reach it to assert the
+    // absent-history path without wiring a full learnFromProcessingResult run.
+    assessCustomInstructionsCompliance: (
+      component: string,
+      qualityScore: number,
+      success: boolean,
+    ) => { score: number };
+  };
+  return proto.assessCustomInstructionsCompliance.call(
+    learner,
+    'defect-9-empty-history',
+    0.95,
+    true,
+  ).score;
+}
+
 // ---------------------------------------------------------------------------
 // THE ROSTER — the single map of every defect-9 silent-pass site.
 // ---------------------------------------------------------------------------
@@ -138,6 +236,8 @@ interface Row {
   family: string;
   polarity: Polarity;
   verdict: Verdict;
+  /** Source file(s) implementing this site's resolution path (traceability). */
+  sourceFiles: string[];
   /**
    * True iff absent/empty input makes the gate FAIL. CLOSED ⇒ true, BY-DESIGN ⇒
    * false. REFERENCED rows are verified by a dedicated test (see `verifiedBy`)
@@ -155,6 +255,7 @@ const ROSTER: Row[] = [
     family: 'quality-gate',
     polarity: 'a',
     verdict: 'CLOSED',
+    sourceFiles: ['src/quality/quality-gate.ts'],
     gateFailsOnAbsent: () => !stageCriterionPassed(4, 'captionSync'),
     reason:
       'ABSENT captionSyncOffsetMs used to manufacture 0ms (`?? 0`) and satisfy `<= 50`. ' +
@@ -165,6 +266,7 @@ const ROSTER: Row[] = [
     family: 'quality-gate',
     polarity: 'a',
     verdict: 'CLOSED',
+    sourceFiles: ['src/quality/quality-gate.ts'],
     gateFailsOnAbsent: () => !stageCriterionPassed(5, 'audioSync'),
     reason: 'Same shape as captionSync; resolveMeasuredMetric closes it for all operators.',
   },
@@ -173,16 +275,33 @@ const ROSTER: Row[] = [
     family: 'iteration-manager',
     polarity: 'a',
     verdict: 'CLOSED',
+    sourceFiles: ['src/framework/iteration-manager.ts'],
     gateFailsOnAbsent: () => imUnmappedSLOFails(),
     reason:
       'A numeric SLO whose metric is absent (or whose keyword matches no CRITERION_KEY_MAP ' +
       'entry) fails loud instead of passing on an unrelated present metric.',
   },
   {
+    id: 'continuous-learner/performanceCompliance',
+    family: 'continuous-learner',
+    polarity: 'a',
+    verdict: 'CLOSED',
+    sourceFiles: ['src/framework/continuous-learner.ts'],
+    gateFailsOnAbsent: () => continuousLearnerEmptyHistoryScore() < 75,
+    reason:
+      'Found by extending the sweep beyond gate evaluators. An empty component history reduced ' +
+      'to avgProcessingTime 0 and `0 < 30000` awarded the performance-compliance points with ' +
+      'nothing measured, inflating complianceScore toward the `>= 85` commit trigger. Now gated ' +
+      'on recentData.length > 0, so absent history cannot satisfy the lower-is-better check. ' +
+      'success(+30)+quality≥0.85(+40) = 70 baseline; the +10 perf points are no longer awarded ' +
+      '(would read 80), so < 75 proves the gate fails on absent.',
+  },
+  {
     id: 'adaptive-quality-gates/evaluateGate',
     family: 'adaptive-quality-gates',
     polarity: 'a',
     verdict: 'REFERENCED',
+    sourceFiles: ['src/quality/adaptive-quality-gates.ts'],
     verifiedBy: 'src/quality/__tests__/adaptive-quality-gates.test.ts',
     reason:
       'A gate whose `metric` is not in METRIC_EXTRACTORS fails loud via isKnownMetric (the 0 ' +
@@ -196,18 +315,37 @@ const ROSTER: Row[] = [
     family: 'quality-monitor',
     polarity: 'b',
     verdict: 'CLOSED',
+    sourceFiles: ['src/quality/quality-monitor.ts'],
     gateFailsOnAbsent: async () => (await nodelessAccuracyScore()) < 0.8,
     reason:
       'An empty layout.nodes used to score a PERFECT 1.0 (detectOverlaps([]) is vacuously ' +
       '"no overlaps"), inflating accuracyScore past the 0.8 readiness bar. Now empty → 0.',
   },
+  {
+    id: 'pipeline-quality-monitor/generateReport',
+    family: 'pipeline-quality-monitor',
+    polarity: 'b',
+    verdict: 'CLOSED',
+    sourceFiles: ['src/pipeline/quality-monitor.ts'],
+    gateFailsOnAbsent: () => pipelineQualityMonitorAbsentScore() < 90,
+    reason:
+      'Found by extending the sweep beyond gate evaluators (the 0-100 sibling of the quality-' +
+      'monitor above, used live by simple-pipeline/gemini-analyzer/production-monitor). ' +
+      'detectViolations skips every metric guarded by `!== undefined`, so a record with NONE of ' +
+      'the measured-quality metrics accrued zero violations and calculateOverallScore ' +
+      'manufactured a PERFECT 100 → `determineStatus` ≥ 90 → "excellent". Now capped below the ' +
+      '"good" tier (≤ 59) when no quality metric is measured, so absent data cannot satisfy the ' +
+      'excellence gate.',
+  },
 
-  // ── BY-DESIGN (polarity b: empty→PERFECT that is legitimately vacuous) ─
+  // ── BY-DESIGN (polarity b: empty→PERFECT that is legitimately vacuous, or
+  //    fail-open-for-robustness) ───────────────────────────────────────────
   {
     id: 'quality-gate/layoutQualityComposite',
     family: 'quality-gate',
     polarity: 'b',
     verdict: 'BY-DESIGN',
+    sourceFiles: ['src/quality/quality-gate.ts', 'src/visualization/layout-quality-composite.ts'],
     gateFailsOnAbsent: () => !stageCriterionPassed(3, 'layoutQualityComposite'),
     reason:
       'A multi-criterion REFINEMENT in the Stage-3 gate. The three hard criteria ' +
@@ -222,6 +360,7 @@ const ROSTER: Row[] = [
     family: 'quality-gate',
     polarity: 'b',
     verdict: 'BY-DESIGN',
+    sourceFiles: ['src/quality/quality-gate.ts'],
     gateFailsOnAbsent: () => !stageCriterionPassed(2, 'entityExtractionRate'),
     reason:
       'When expectedEntities is EXPLICITLY 0 the rate is vacuously 100% — one cannot fail the ' +
@@ -234,6 +373,7 @@ const ROSTER: Row[] = [
     family: 'quality-gate',
     polarity: 'b',
     verdict: 'BY-DESIGN',
+    sourceFiles: ['src/quality/quality-gate.ts'],
     gateFailsOnAbsent: () => !stageCriterionPassed(2, 'relationCompleteness'),
     reason: 'Same explicit-zero vacuous-truth as entityExtractionRate.',
   },
@@ -242,6 +382,7 @@ const ROSTER: Row[] = [
     family: 'quality-gate',
     polarity: 'b',
     verdict: 'BY-DESIGN',
+    sourceFiles: ['src/quality/quality-gate.ts'],
     gateFailsOnAbsent: () => !stageCriterionPassed(3, 'zeroOverlap'),
     reason:
       'Empty nodes → genuinely zero overlaps. This is the vacuous truth of a REAL property ' +
@@ -252,6 +393,7 @@ const ROSTER: Row[] = [
     family: 'quality-gate',
     polarity: 'b',
     verdict: 'BY-DESIGN',
+    sourceFiles: ['src/quality/quality-gate.ts'],
     gateFailsOnAbsent: () => !stageCriterionPassed(3, 'timelineContinuity'),
     reason: '≤1 segment → continuity is trivially satisfied (a single span has no internal gap).',
   },
@@ -260,14 +402,30 @@ const ROSTER: Row[] = [
     family: 'quality-gate',
     polarity: 'b',
     verdict: 'BY-DESIGN',
+    sourceFiles: ['src/quality/quality-gate.ts'],
     gateFailsOnAbsent: () => !stageCriterionPassed(3, 'segmentNormalization'),
     reason: 'No segments → nothing to normalize. Vacuous, not manufactured.',
+  },
+  {
+    id: 'pipeline-quality-monitor/detectRegression',
+    family: 'pipeline-quality-monitor',
+    polarity: 'b',
+    verdict: 'BY-DESIGN',
+    sourceFiles: ['src/pipeline/quality-monitor.ts'],
+    gateFailsOnAbsent: () =>
+      getPipelineQualityMonitor().detectRegression('defect-9-unknown-id', 50).isRegression,
+    reason:
+      'Same fail-open-for-robustness shape as isWithinBaseline/compareWithBaseline (below): an ' +
+      'unknown id (no baseline ⇒ previousScore 0) is reported as no-regression rather than a ' +
+      'false alarm, so a brand-new component does not instantly block. Pinned here so the ' +
+      'symmetry with the score-resolver family is explicit.',
   },
   {
     id: 'visual-balance-scorer/calculateVisualBalance',
     family: 'score-resolver',
     polarity: 'b',
     verdict: 'BY-DESIGN',
+    sourceFiles: ['src/visualization/visual-balance-scorer.ts'],
     gateFailsOnAbsent: () =>
       new VisualBalanceScorer().calculateVisualBalance([], { width: 1920, height: 1080 })
         .overallScore < 0.7,
@@ -281,6 +439,7 @@ const ROSTER: Row[] = [
     family: 'score-resolver',
     polarity: 'b',
     verdict: 'BY-DESIGN',
+    sourceFiles: ['src/pipeline/pipeline-health-score.ts'],
     gateFailsOnAbsent: () => scoreCost(null) < 70,
     reason:
       'No cost baseline ⇒ no cost penalty (score 100). "Cannot compare" is intentionally not a ' +
@@ -291,6 +450,7 @@ const ROSTER: Row[] = [
     family: 'score-resolver',
     polarity: 'b',
     verdict: 'BY-DESIGN',
+    sourceFiles: ['src/pipeline/performance-baseline.ts'],
     gateFailsOnAbsent: () =>
       !isWithinBaseline({
         stage: 'brand-new-stage',
@@ -308,6 +468,7 @@ const ROSTER: Row[] = [
     family: 'score-resolver',
     polarity: 'b',
     verdict: 'BY-DESIGN',
+    sourceFiles: ['src/pipeline/performance-regression-detector.ts'],
     gateFailsOnAbsent: () =>
       compareWithBaseline({
         stage: 'brand-new-stage',
@@ -322,14 +483,71 @@ const ROSTER: Row[] = [
   },
 ];
 
-// Every family that owns a metric/criterion/score resolution path must appear.
-const EXPECTED_FAMILIES = new Set<Row['family']>([
-  'quality-gate',
-  'quality-monitor',
-  'iteration-manager',
-  'adaptive-quality-gates',
-  'score-resolver',
-]);
+// ---------------------------------------------------------------------------
+// DEFECT9_SURFACE — the authoritative classification of EVERY evaluator-shaped
+// file the discovery walk finds. `family` ⇒ the file's gate/verdict path is
+// covered by a roster row of that family; `ruledOut` ⇒ the file is NOT a
+// defect-9 surface, with a one-line reason. This is the single source of truth
+// the COMPLETENESS GUARD checks against discovery, so a new evaluator-shaped
+// file cannot ship unclassified.
+// ---------------------------------------------------------------------------
+
+interface SurfaceEntry {
+  file: string;
+  family?: string;
+  ruledOut?: string;
+}
+
+const DEFECT9_SURFACE: ReadonlyArray<SurfaceEntry> = [
+  { file: 'src/quality/quality-gate.ts', family: 'quality-gate' },
+  { file: 'src/quality/quality-monitor.ts', family: 'quality-monitor' },
+  { file: 'src/quality/adaptive-quality-gates.ts', family: 'adaptive-quality-gates' },
+  {
+    file: 'src/quality/regression-detector.ts',
+    ruledOut:
+      'detectRegressions skips undefined/0 baselines (lines 290-291); loadBaseline rejects ' +
+      'Infinity/NaN/non-date via exhaustive finiteness guards — no absent input reaches a comparison.',
+  },
+  { file: 'src/pipeline/quality-monitor.ts', family: 'pipeline-quality-monitor' },
+  { file: 'src/pipeline/performance-baseline.ts', family: 'score-resolver' },
+  { file: 'src/pipeline/performance-regression-detector.ts', family: 'score-resolver' },
+  { file: 'src/pipeline/pipeline-health-score.ts', family: 'score-resolver' },
+  { file: 'src/framework/iteration-manager.ts', family: 'iteration-manager' },
+  { file: 'src/framework/continuous-learner.ts', family: 'continuous-learner' },
+  {
+    file: 'src/framework/auto-improvement-engine.ts',
+    ruledOut:
+      'Metrics are required fields compared directly; calculateQualityScore normalizes absent ' +
+      'metrics out of BOTH numerator and weight (neutral), and all-absent → 0 (fails every gate). ' +
+      'The `??` defaults manufacture THRESHOLDS, not metric values.',
+  },
+  { file: 'src/visualization/visual-balance-scorer.ts', family: 'score-resolver' },
+  { file: 'src/visualization/layout-quality-composite.ts', family: 'quality-gate' },
+  {
+    file: 'src/visualization/layout-auto-optimizer.ts',
+    ruledOut:
+      'Consumer of the layout-quality-composite score (already rostered); its own `??` are config ' +
+      'defaults (maxIterations/threshold), not data-manufacturing.',
+  },
+  {
+    file: 'src/visualization/strategies/LayoutEvaluator.ts',
+    ruledOut:
+      'calculateLayoutBalance→1 for empty nodes is a DEAD value (no gate reads it); ' +
+      'overlapCount===0 for empty nodes is a genuine count, not a manufactured fallback.',
+  },
+  {
+    file: 'src/monitoring/production-monitoring-excellence.ts',
+    ruledOut:
+      'Every metric is a hardcoded literal; no absent/empty input reaches any comparison and no ' +
+      'gate operators exist.',
+  },
+  {
+    file: 'src/monitoring/real-time-performance-monitor.ts',
+    ruledOut:
+      'sanitizeFinite→0 FAILS (not satisfies) the >= alert comparisons; the getSnapshot ' +
+      'defaults (:1/:0) flow into the emitted snapshot and are never gated within the file.',
+  },
+];
 
 describe('defect-9 silent-pass class — consolidated cross-evaluator regression', () => {
   // The uniform class-level assertion: for every LIVE-driven row, absent/empty
@@ -348,7 +566,7 @@ describe('defect-9 silent-pass class — consolidated cross-evaluator regression
   // closed site fails on absent input (no silent-pass survives anywhere).
   it('every CLOSED site fails on absent/empty input (no silent-pass survives)', async () => {
     const closed = ROSTER.filter((r) => r.verdict === 'CLOSED' && r.gateFailsOnAbsent);
-    expect(closed.length).toBeGreaterThanOrEqual(3);
+    expect(closed.length).toBeGreaterThanOrEqual(4);
     for (const row of closed) {
       expect({ id: row.id, fails: await row.gateFailsOnAbsent!() }).toEqual({
         id: row.id,
@@ -371,16 +589,75 @@ describe('defect-9 silent-pass class — consolidated cross-evaluator regression
     }
   });
 
-  // COMPLETENESS GUARD — the only remaining re-open vector is a NEW evaluator
-  // family. This asserts the roster covers every known family, so adding a new
-  // resolution path forces a conscious row here rather than shipping unclassified.
-  it('completeness: every known evaluator family has at least one roster row', () => {
-    const covered = new Set(ROSTER.map((r) => r.family));
-    const missing = [...EXPECTED_FAMILIES].filter((f) => !covered.has(f));
-    expect(missing).toEqual([]);
-    // And no phantom family snuck into the roster.
-    const extra = [...covered].filter((f) => !EXPECTED_FAMILIES.has(f));
-    expect(extra).toEqual([]);
+  // COMPLETENESS GUARD (authoritative) — the only remaining re-open vector is a
+  // NEW evaluator file. The discovery walk is the source of truth for "which
+  // files are evaluator-shaped"; this asserts it matches DEFECT9_SURFACE exactly
+  // in both directions, so adding a new evaluator-shaped file (or removing one)
+  // forces a conscious classification here rather than shipping unclassified.
+  it('completeness: discovery matches DEFECT9_SURFACE exactly (no evaluator ships unclassified)', () => {
+    const discovered = discoverEvaluatorFiles();
+    const registered = DEFECT9_SURFACE.map((e) => e.file);
+    const unregistered = discovered.filter((f) => !registered.includes(f));
+    const stale = registered.filter((f) => !discovered.includes(f));
+    // Both directions: a NEW evaluator file ⇒ unregistered non-empty; a deleted
+    // evaluator ⇒ stale non-empty. Pin the exact count so the registry cannot
+    // silently drift away from reality.
+    expect({ unregistered, stale, discoveredCount: discovered.length }).toEqual({
+      unregistered: [],
+      stale: [],
+      discoveredCount: DEFECT9_SURFACE.length,
+    });
+  });
+
+  // The registry must cover every evaluator family, and the roster must cover
+  // every family the registry declares — bidirectionally, so a new family forces
+  // both a registry entry AND a roster row.
+  it('completeness: roster families cover every evaluator family in DEFECT9_SURFACE', () => {
+    const rosterFamilies = new Set(ROSTER.map((r) => r.family));
+    const registryFamilies = new Set(
+      DEFECT9_SURFACE.filter((e) => e.family).map((e) => e.family),
+    );
+    const missingFromRoster = [...registryFamilies].filter((f) => !rosterFamilies.has(f));
+    const extraInRoster = [...rosterFamilies].filter((f) => !registryFamilies.has(f));
+    expect({ missingFromRoster, extraInRoster }).toEqual({
+      missingFromRoster: [],
+      extraInRoster: [],
+    });
+  });
+
+  // Every registry file must exist (catches a moved/deleted evaluator) and every
+  // ruled-out entry must carry a non-empty reason (catches a lazy skip).
+  it('every DEFECT9_SURFACE file exists and every ruled-out entry has a reason', () => {
+    for (const entry of DEFECT9_SURFACE) {
+      expect({ file: entry.file, exists: fs.existsSync(path.join(REPO_ROOT, entry.file)) }).toEqual({
+        file: entry.file,
+        exists: true,
+      });
+      if (entry.ruledOut !== undefined) {
+        expect({ file: entry.file, reasonLength: entry.ruledOut.length }).toEqual({
+          file: entry.file,
+          reasonLength: expect.any(Number),
+        });
+        expect(entry.ruledOut.length).toBeGreaterThan(10);
+      }
+    }
+  });
+
+  // Every roster row's sourceFiles must exist and be a DEFECT9_SURFACE member
+  // of the SAME family (or a ruled-out file consumed only as context) — so a
+  // row cannot point at a phantom or mis-family'd source.
+  it('every roster row points at real DEFECT9_SURFACE source files', () => {
+    const byFile = new Map(DEFECT9_SURFACE.map((e) => [e.file, e]));
+    for (const row of ROSTER) {
+      for (const file of row.sourceFiles) {
+        const entry = byFile.get(file);
+        expect({ row: row.id, file, registered: Boolean(entry) }).toEqual({
+          row: row.id,
+          file,
+          registered: true,
+        });
+      }
+    }
   });
 
   // REFERENCED rows delegate to a dedicated test. Guard that the referenced
