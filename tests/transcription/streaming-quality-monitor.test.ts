@@ -260,4 +260,83 @@ describe('StreamingQualityMonitor', () => {
       mon.evaluateChunk(1, 0.4); // triggers alert
     }).not.toThrow();
   });
+
+  // -----------------------------------------------------------------------
+  // onAlert unsubscribe (listener-registration leak) — mirrors
+  // src/transcription/__tests__/streaming-quality-monitor.test.ts
+  // -----------------------------------------------------------------------
+
+  test('should return an unsubscribe that stops the callback from firing', () => {
+    const mon = new StreamingQualityMonitor({
+      rollingWindowSize: 2,
+      warningThreshold: 0.6,
+      criticalThreshold: 0.3,
+    });
+    let calls = 0;
+    const unsubscribe = mon.onAlert(() => {
+      calls++;
+    });
+
+    mon.evaluateChunk(0, 0.3); // window not full yet
+    mon.evaluateChunk(1, 0.3); // window full → alert fires
+    expect(calls).toBe(1);
+
+    unsubscribe();
+
+    mon.evaluateChunk(2, 0.3); // would fire again — but the callback is released
+    mon.evaluateChunk(3, 0.3);
+    expect(calls).toBe(1);
+  });
+
+  test('should be ref-counted: N registrations need N unsubscribes', () => {
+    const mon = new StreamingQualityMonitor({
+      rollingWindowSize: 2,
+      warningThreshold: 0.6,
+      criticalThreshold: 0.3,
+    });
+    let calls = 0;
+    const cb = () => {
+      calls++;
+    };
+    const unsub1 = mon.onAlert(cb);
+    const unsub2 = mon.onAlert(cb);
+
+    mon.evaluateChunk(0, 0.3);
+    mon.evaluateChunk(1, 0.3); // 2 registrations → fires twice
+    expect(calls).toBe(2);
+
+    unsub1();
+    mon.evaluateChunk(2, 0.3); // 1 registration remains
+    expect(calls).toBe(3);
+
+    unsub2();
+    mon.evaluateChunk(3, 0.3); // fully released
+    expect(calls).toBe(3);
+  });
+
+  test('unsubscribe should be idempotent and isolate siblings', () => {
+    const mon = new StreamingQualityMonitor({
+      rollingWindowSize: 2,
+      warningThreshold: 0.6,
+      criticalThreshold: 0.3,
+    });
+    let callsA = 0;
+    let callsB = 0;
+    const unsubA = mon.onAlert(() => {
+      callsA++;
+    });
+    mon.onAlert(() => {
+      callsB++;
+    });
+
+    expect(() => {
+      unsubA();
+      unsubA();
+    }).not.toThrow();
+
+    mon.evaluateChunk(0, 0.3);
+    mon.evaluateChunk(1, 0.3);
+    expect(callsA).toBe(0);
+    expect(callsB).toBe(1);
+  });
 });

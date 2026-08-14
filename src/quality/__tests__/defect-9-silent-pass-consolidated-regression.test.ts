@@ -73,6 +73,17 @@
  * The remaining six are ruled out with file-anchored reasons (empty→0 / empty→
  * passed:false / fail-safe verdicts) — including the analysis self-improvement
  * evaluators, which fail loud on empty input by construction.
+ *
+ * This iteration closed the FIFTH blind-spot class — DIRECTORY scope beyond
+ * src/: the walk covered all of src/ but nothing else, so an evaluator-shaped
+ * file in scripts/ (CLI verification gates whose console verdicts humans gate
+ * releases on) or supabase/functions (the deployable Deno edge runtime) would
+ * ship unclassified no matter how sharp the markers were. Extending the walk
+ * surfaced 3 script files (31 → 34), all classified ruled-out (worst-of
+ * aggregate verdicts, count-based summaries over static runner lists, every
+ * catch path failing loud). The edge functions matched no marker. RED-
+ * verified: a synthetic evaluator-shaped file in scripts/ flips the
+ * completeness guard red.
  */
 
 const { QualityGateEvaluator } = await import('../quality-gate');
@@ -119,15 +130,23 @@ const REPO_ROOT = path.resolve(
 // NEW evaluator file is caught the moment it matches either marker.
 // ---------------------------------------------------------------------------
 
-// The walk covers ALL of src/, not a hand-picked host-dir subset. The first
-// version of this guard walked only 6 directories (quality/pipeline/framework/
-// visualization/monitoring/optimization), which left every evaluator-shaped
-// file in analysis/, transcription/, export/, api/ and config/ OUTSIDE the
-// discovery walk — a FOURTH blind spot, one directory-level up from the three
-// marker-shape ones below: a new evaluator in src/analysis shipped unclassified
-// not because its naming evaded the markers but because the walk never read the
-// file. The walk found 7 more files the moment it covered src/ (24 → 31).
-const HOST_DIRS = ['src'];
+// The walk covers ALL of src/ — plus scripts/ and the Deno edge functions —
+// not a hand-picked host-dir subset. The first version of this guard walked
+// only 6 directories (quality/pipeline/framework/visualization/monitoring/
+// optimization), which left every evaluator-shaped file in analysis/,
+// transcription/, export/, api/ and config/ OUTSIDE the discovery walk — a
+// FOURTH blind spot, one directory-level up from the three marker-shape ones
+// below: a new evaluator in src/analysis shipped unclassified not because its
+// naming evaded the markers but because the walk never read the file. The walk
+// found 7 more files the moment it covered src/ (24 → 31). Extending past src/
+// (FIFTH blind spot class — production-shaped code outside the client tree)
+// closes the last directory-level re-open vector this guard can reach: the
+// deployable edge functions (supabase/functions — a separate runtime whose
+// request handling is user-facing) and the CI/CLI-facing verification scripts
+// (scripts/ — several of which compute and PRINT pass/fail verdicts a human
+// gates releases on). Over-inclusion is the point: a marker-matched file here
+// forces a DEFECT9_SURFACE row (ruledOut is fine) instead of shipping unseen.
+const HOST_DIRS = ['src', 'scripts', 'supabase/functions'];
 
 // Verdict-producing shapes: a returned verdict object / a status|compliance tier
 // mapping / a metric-or-polarity registry.
@@ -808,6 +827,37 @@ const DEFECT9_SURFACE: ReadonlyArray<SurfaceEntry> = [
       'checker (warnings per exceeded limit; isCompliant = zero warnings) over REQUIRED measured ' +
       'metrics — there is no absent-input path: every metric field is a mandatory number produced ' +
       'by collectMetrics itself, and no default literal is ever compared to a threshold.',
+  },
+  // ── Discovered by extending the walk BEYOND src/ (scripts/ + the Deno edge
+  //    functions) — the FIFTH blind-spot class: production-shaped code outside
+  //    the client tree. None is a silent-pass; each is classified so a future
+  //    edit cannot introduce one unclassified.
+  {
+    file: 'scripts/validate-deployment-readiness.ts',
+    ruledOut:
+      'Discovered by extending the walk beyond src/. A CLI readiness gate whose overallStatus ' +
+      'is worst-of over REQUIRED check results (failedChecks > 0 → not_ready): every check ' +
+      'measures a real signal (package.json presence, .env keys, tsc exit code, file structure) ' +
+      'and every catch path pushes status "fail", so absent data fails the gate — the process ' +
+      'then exits non-zero on not_ready. No default literal is ever compared to a threshold.',
+  },
+  {
+    file: 'scripts/validate-llm-integration-phase42.ts',
+    ruledOut:
+      'Discovered by extending the walk beyond src/. A one-shot validation script whose ' +
+      'passed booleans all derive from REAL extraction outputs (nodes/edges length, model ' +
+      'selection per complexity score) with every catch path returning passed: false and the ' +
+      'config check requiring the API key to be PRESENT (missing key → failed). Absent input ' +
+      'fails loud in every branch; the summary exits non-zero unless all components passed.',
+  },
+  {
+    file: 'scripts/test-phase37.ts',
+    ruledOut:
+      'Discovered by extending the walk beyond src/. A phase test harness whose aggregate ' +
+      'verdict is a COUNT of real sub-test results (successRate = passed/total) over a ' +
+      'hardcoded list of awaited runners — an empty results array is unreachable (the list is ' +
+      'static), every catch returns passed: false, and the exit code is 0 only at a 100% count. ' +
+      'No absent-input path manufactures a passing value.',
   },
 ];
 
