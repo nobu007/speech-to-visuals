@@ -3,13 +3,27 @@ import { LayoutConfig, Point, NodeDimensionsConfig } from './types';
 import { getNodeWidth, getNodeHeight } from './node-dimensions';
 
 /**
+ * px-per-character estimate for the label-driven node width (round 10
+ * single-source; was independently frozen in 6 strategies + 2 engines).
+ */
+export const DEFAULT_CHAR_WIDTH = 8;
+
+/**
+ * Horizontal padding added to the label width by every strategy that sizes
+ * nodes from text (round 10 single-source). Distinct from the omitted-field
+ * default `?? 16` below — callers that omit padding get the tighter packing
+ * pinned by layout-bug-fixes.test.ts, by design.
+ */
+export const DEFAULT_LABEL_PADDING = 20;
+
+/**
  * Calculate node width based on label and config
  */
 export function calculateNodeWidth(node: NodeDatum, config: NodeDimensionsConfig): number {
   const baseWidth = config.nodeWidth;
   const labelLength = node.label?.length || 0;
-  const charWidth = config.charWidth ?? 8;   // 8px default per character
-  const padding = config.padding ?? 16;       // 16px default padding
+  const charWidth = config.charWidth ?? DEFAULT_CHAR_WIDTH;
+  const padding = config.padding ?? 16;       // 16px default padding (see above)
 
   const textWidth = labelLength * charWidth + padding;
   return Math.max(baseWidth, Math.min(textWidth, baseWidth * 2));

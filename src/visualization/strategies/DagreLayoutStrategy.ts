@@ -1,7 +1,7 @@
 import dagre from '@dagrejs/dagre';
 import { DiagramType, NodeDatum, EdgeDatum, DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
-import { getGraphConfig, calculateNodeWidth as calculateNodeWidthUtil } from '../layout-utils';
+import { getGraphConfig, calculateNodeWidth as calculateNodeWidthUtil, DEFAULT_CHAR_WIDTH, DEFAULT_LABEL_PADDING } from '../layout-utils';
 import { FallbackLayoutStrategy } from './FallbackLayoutStrategy';
 import { logger } from '@/utils/logger';
 
@@ -97,14 +97,11 @@ export class DagreLayoutStrategy {
    */
   private calculateNodeWidth(node: NodeDatum): number {
     // Provide default values for charWidth and padding, as they are not in LayoutConfig
-    const DEFAULT_CHAR_WIDTH = 8; // px per character
-    const DEFAULT_PADDING = 20; // px padding
-
     return calculateNodeWidthUtil(node, {
       nodeWidth: this.config.nodeWidth,
       nodeHeight: this.config.nodeHeight, // nodeHeight is also part of NodeDimensionsConfig
       charWidth: DEFAULT_CHAR_WIDTH,
-      padding: DEFAULT_PADDING,
+      padding: DEFAULT_LABEL_PADDING,
     });
   }
 }

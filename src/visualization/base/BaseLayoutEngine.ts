@@ -14,7 +14,7 @@
 
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig, LayoutResult, LayoutMetrics, Point, BoundingBox, OverlapPair } from '../types';
-import { calculateNodeWidth, calculateNodeHeight, calculateNodeCenter, calculateDistance, calculateNodeDistance, generateEdgePoints, nodesOverlap } from '../layout-utils';
+import { calculateNodeWidth, calculateNodeHeight, calculateNodeCenter, calculateDistance, calculateNodeDistance, generateEdgePoints, nodesOverlap, DEFAULT_CHAR_WIDTH, DEFAULT_LABEL_PADDING } from '../layout-utils';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 import { logger } from '@/utils/logger';
 
@@ -88,14 +88,11 @@ export abstract class BaseLayoutEngine {
    */
   protected calculateNodeWidth(node: NodeDatum): number {
     // Provide default values for charWidth and padding, as they are not in LayoutConfig
-    const DEFAULT_CHAR_WIDTH = 8; // px per character
-    const DEFAULT_PADDING = 20; // px padding
-
     return calculateNodeWidth(node, {
       nodeWidth: this.config.nodeWidth,
       nodeHeight: this.config.nodeHeight, // nodeHeight is also part of NodeDimensionsConfig
       charWidth: DEFAULT_CHAR_WIDTH,
-      padding: DEFAULT_PADDING,
+      padding: DEFAULT_LABEL_PADDING,
     });
   }
 

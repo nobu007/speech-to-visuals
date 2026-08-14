@@ -18,6 +18,7 @@ import dagre from '@dagrejs/dagre';
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { calculateNodeWidth as calculateNodeWidthUtil, DEFAULT_CHAR_WIDTH, DEFAULT_LABEL_PADDING } from '../layout-utils';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { logger } from '../../utils/logger';
 
@@ -137,13 +138,15 @@ export class FlowchartLayoutStrategy implements ILayoutStrategy {
    * Ensures text fits within node
    */
   private calculateNodeWidth(node: NodeDatum, config: LayoutConfig): number {
+    // Label-driven width delegates to the shared util (round 10 single-source
+    // of charWidth 8 / padding 20 — see layout-utils.ts).
     const baseWidth = config.nodeWidth || DEFAULT_NODE_WIDTH;
-    const labelLength = node.label?.length || 0;
-    const charWidth = 8; // Approximate character width
-    const padding = 20; // Total horizontal padding
-
-    const textWidth = labelLength * charWidth + padding;
-    return Math.max(baseWidth, Math.min(textWidth, baseWidth * 2));
+    return calculateNodeWidthUtil(node, {
+      nodeWidth: baseWidth,
+      nodeHeight: config.nodeHeight,
+      charWidth: DEFAULT_CHAR_WIDTH,
+      padding: DEFAULT_LABEL_PADDING,
+    });
   }
 
   /**

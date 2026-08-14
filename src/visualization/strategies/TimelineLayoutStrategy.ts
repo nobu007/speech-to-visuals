@@ -19,6 +19,7 @@ import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { logger } from '../../utils/logger';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { calculateNodeWidth as calculateNodeWidthUtil, DEFAULT_CHAR_WIDTH, DEFAULT_LABEL_PADDING } from '../layout-utils';
 
 export class TimelineLayoutStrategy implements ILayoutStrategy {
   readonly name = 'timeline';
@@ -136,13 +137,15 @@ export class TimelineLayoutStrategy implements ILayoutStrategy {
    * Calculate node width based on label
    */
   private calculateNodeWidth(node: NodeDatum, config: LayoutConfig): number {
+    // Label-driven width delegates to the shared util (round 10 single-source
+    // of charWidth 8 / padding 20 — see layout-utils.ts).
     const baseWidth = config.nodeWidth || DEFAULT_NODE_WIDTH;
-    const labelLength = node.label?.length || 0;
-    const charWidth = 8;
-    const padding = 20;
-
-    const textWidth = labelLength * charWidth + padding;
-    return Math.max(baseWidth, Math.min(textWidth, baseWidth * 2));
+    return calculateNodeWidthUtil(node, {
+      nodeWidth: baseWidth,
+      nodeHeight: config.nodeHeight,
+      charWidth: DEFAULT_CHAR_WIDTH,
+      padding: DEFAULT_LABEL_PADDING,
+    });
   }
 
   /**
