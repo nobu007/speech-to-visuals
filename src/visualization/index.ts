@@ -5,7 +5,8 @@ export { ComplexLayoutEngine } from './complex-layout-engine';
 
 // Correct export path to match actual filename
 export { EnhancedZeroOverlapLayoutEngine } from './enhanced-zero-overlap-layout';
-export { AdvancedVisualEngine } from './advanced-visual-engine';
+// advanced-visual-engine.ts is types-only now (engine class retired — 0 prod callers);
+// its type exports are consumed directly from the module, not via this barrel.
 export { AdvancedLayoutEngine } from './advanced-layouts';
 export type {
   LayoutConfig,

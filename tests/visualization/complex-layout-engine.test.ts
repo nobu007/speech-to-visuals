@@ -276,6 +276,29 @@ describe('ComplexLayoutEngine (TASK-0063)', () => {
   });
 
   describe('Force-directed simulation convergence', () => {
+    it('should be deterministic: identical input graph → identical layout output', async () => {
+      // Regression: initial positions were seeded with Math.random(), so the
+      // same graph converged differently per run — layout-quality assertions
+      // (e.g. the star-graph distance test below) flaked on unlucky seeds.
+      const run = async () => {
+        const engine = createEngine({
+          enableClustering: false,
+          enableMultiLevel: false,
+          enableForceDirected: true,
+          iterations: 50,
+          levelThreshold: 5,
+        });
+        const { nodes, edges } = makeChainGraph(8);
+        const result = await engine.generateComplexLayout(nodes, edges, 'flow');
+        return result.layout.nodes
+          .map(n => `${n.id}:${n.x.toFixed(3)},${n.y.toFixed(3)}`)
+          .join(' | ');
+      };
+
+      // Two fresh engine instances must agree bit-for-bit on the same input.
+      await expect(run()).resolves.toBe(await run());
+    });
+
     it('should produce finite positions after force-directed layout', async () => {
       const engine = createEngine({
         enableClustering: false,
