@@ -351,8 +351,14 @@ export class QualityMonitor {
     scenes.forEach(scene => {
       let sceneScore = 0;
 
-      // Check for layout existence
-      if (!scene.layout || !scene.layout.nodes) {
+      // Check for layout existence. A scene whose `nodes` array is EMPTY is
+      // degenerate (nothing was placed), NOT a perfect layout — `detectOverlaps`
+      // vacuously reports "no overlaps" on an empty set, which previously scored
+      // 1.0 and inflated accuracyScore/overallScore on a nodeless scene (the
+      // empty→perfect-score silent-pass class, higher-is-better polarity). Score
+      // it 0 like every other empty-input assessor in this file
+      // (assessSceneGeneration / assessContentRelevance / assessLLMExtractionQuality).
+      if (!scene.layout || !scene.layout.nodes || scene.layout.nodes.length === 0) {
         sceneScore = 0;
       } else {
         // Check for overlaps (critical)
@@ -426,7 +432,11 @@ export class QualityMonitor {
    * Assess positioning quality of nodes
    */
   private assessPositioning(nodes: Array<{ x?: number; y?: number }>): number {
-    if (nodes.length === 0) return 1.0;
+    // Empty node set → 0 (degenerate), NOT 1.0. There is nothing positioned to
+    // call "excellent"; awarding a perfect score to an empty layout is the
+    // empty→perfect-score silent-pass (it would satisfy any `>= threshold`
+    // consumer). 0 matches the file-wide empty-input convention.
+    if (nodes.length === 0) return 0;
 
     // Check for reasonable distribution
     const positions = nodes.map(n => ({ x: n.x || 0, y: n.y || 0 }));
