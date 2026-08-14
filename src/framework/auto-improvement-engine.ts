@@ -14,6 +14,15 @@
 import { IterationManager, createIterationManager } from './iteration-manager';
 import { logger } from '../utils/logger';
 import { CappedArray } from '@/lib/capped-array';
+import {
+  DEFAULT_TRANSCRIPTION_ACCURACY_THRESHOLD,
+  DEFAULT_SCENE_SEGMENTATION_F1_THRESHOLD,
+  DEFAULT_LAYOUT_OVERLAP_THRESHOLD,
+  DEFAULT_RENDER_TIME_THRESHOLD_MS,
+  DEFAULT_MEMORY_USAGE_THRESHOLD_MB,
+  DEFAULT_ENTITY_EXTRACTION_F1_THRESHOLD,
+  DEFAULT_RELATION_ACCURACY_THRESHOLD,
+} from './quality-thresholds';
 
 export interface QualityMetrics {
   // Performance Metrics
@@ -124,13 +133,13 @@ export class AutoImprovementEngine {
     // re-enabling a gate the caller disabled. (layoutOverlap/renderTime/memoryUsage
     // are lower-is-better where 0 is a natural lower limit, not a disable sentinel.)
     this.thresholds = {
-      transcriptionAccuracy: thresholds?.transcriptionAccuracy ?? 0.85,
-      sceneSegmentationF1: thresholds?.sceneSegmentationF1 ?? 0.75,
-      layoutOverlap: thresholds?.layoutOverlap ?? 0,
-      renderTime: thresholds?.renderTime ?? 30000,
-      memoryUsage: thresholds?.memoryUsage ?? 512,
-      entityExtractionF1: thresholds?.entityExtractionF1 ?? 0.80,
-      relationAccuracy: thresholds?.relationAccuracy ?? 0.85,
+      transcriptionAccuracy: thresholds?.transcriptionAccuracy ?? DEFAULT_TRANSCRIPTION_ACCURACY_THRESHOLD,
+      sceneSegmentationF1: thresholds?.sceneSegmentationF1 ?? DEFAULT_SCENE_SEGMENTATION_F1_THRESHOLD,
+      layoutOverlap: thresholds?.layoutOverlap ?? DEFAULT_LAYOUT_OVERLAP_THRESHOLD,
+      renderTime: thresholds?.renderTime ?? DEFAULT_RENDER_TIME_THRESHOLD_MS,
+      memoryUsage: thresholds?.memoryUsage ?? DEFAULT_MEMORY_USAGE_THRESHOLD_MB,
+      entityExtractionF1: thresholds?.entityExtractionF1 ?? DEFAULT_ENTITY_EXTRACTION_F1_THRESHOLD,
+      relationAccuracy: thresholds?.relationAccuracy ?? DEFAULT_RELATION_ACCURACY_THRESHOLD,
       overallScore: thresholds?.overallScore ?? 90,
     };
 

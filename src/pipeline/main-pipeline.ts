@@ -15,6 +15,13 @@ import {
   QualityMetrics as FrameworkQualityMetrics
 } from '@/framework/recursive-custom-instructions';
 import {
+  DEFAULT_TRANSCRIPTION_ACCURACY_THRESHOLD,
+  DEFAULT_SCENE_SEGMENTATION_F1_THRESHOLD,
+  DEFAULT_LAYOUT_OVERLAP_THRESHOLD,
+  DEFAULT_RENDER_TIME_THRESHOLD_MS,
+  DEFAULT_MEMORY_USAGE_THRESHOLD_BYTES,
+} from '@/framework/quality-thresholds';
+import {
   PipelineInput,
   PipelineConfig,
   PipelineResult,
@@ -94,11 +101,11 @@ export class MainPipeline {
       version: "1.0.0-iteration39",
       enableAutoCommit: true,
       qualityThresholds: {
-        transcriptionAccuracy: 0.85,
-        sceneSegmentationF1: 0.75,
-        layoutOverlap: 0,
-        renderTime: 30000,
-        memoryUsage: 512 * 1024 * 1024
+        transcriptionAccuracy: DEFAULT_TRANSCRIPTION_ACCURACY_THRESHOLD,
+        sceneSegmentationF1: DEFAULT_SCENE_SEGMENTATION_F1_THRESHOLD,
+        layoutOverlap: DEFAULT_LAYOUT_OVERLAP_THRESHOLD,
+        renderTime: DEFAULT_RENDER_TIME_THRESHOLD_MS,
+        memoryUsage: DEFAULT_MEMORY_USAGE_THRESHOLD_BYTES
       }
     });
 

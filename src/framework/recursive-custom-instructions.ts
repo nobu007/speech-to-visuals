@@ -13,6 +13,13 @@
  */
 
 import { logger } from '../utils/logger';
+import {
+  DEFAULT_TRANSCRIPTION_ACCURACY_THRESHOLD,
+  DEFAULT_SCENE_SEGMENTATION_F1_THRESHOLD,
+  DEFAULT_LAYOUT_OVERLAP_THRESHOLD,
+  DEFAULT_RENDER_TIME_THRESHOLD_MS,
+  DEFAULT_MEMORY_USAGE_THRESHOLD_BYTES,
+} from './quality-thresholds';
 
 export interface DevelopmentCycle {
   phase: string;
@@ -115,11 +122,11 @@ export class RecursiveCustomInstructionsFramework {
     ];
 
     this.qualityThresholds = {
-      transcriptionAccuracy: 0.85,
-      sceneSegmentationF1: 0.75,
-      layoutOverlap: 0,
-      renderTime: 30000, // 30秒以内
-      memoryUsage: 512 * 1024 * 1024, // 512MB以内
+      transcriptionAccuracy: DEFAULT_TRANSCRIPTION_ACCURACY_THRESHOLD,
+      sceneSegmentationF1: DEFAULT_SCENE_SEGMENTATION_F1_THRESHOLD,
+      layoutOverlap: DEFAULT_LAYOUT_OVERLAP_THRESHOLD,
+      renderTime: DEFAULT_RENDER_TIME_THRESHOLD_MS, // 30秒以内
+      memoryUsage: DEFAULT_MEMORY_USAGE_THRESHOLD_BYTES, // 512MB以内 (bytes)
       timestamp: new Date()
     };
 

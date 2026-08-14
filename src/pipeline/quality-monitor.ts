@@ -8,6 +8,17 @@
  */
 
 import { percentChange } from '@/lib/metrics-utils';
+import {
+  DEFAULT_TRANSCRIPTION_ACCURACY_THRESHOLD,
+  DEFAULT_SCENE_SEGMENTATION_F1_THRESHOLD,
+  DEFAULT_ENTITY_EXTRACTION_F1_THRESHOLD,
+  DEFAULT_RELATION_ACCURACY_THRESHOLD,
+  DEFAULT_LAYOUT_OVERLAP_THRESHOLD,
+  DEFAULT_RENDER_TIME_THRESHOLD_MS,
+  DEFAULT_MEMORY_USAGE_THRESHOLD_MB,
+  DEFAULT_EDGE_COMPLETENESS_THRESHOLD,
+  DEFAULT_EDGE_RATIO_QUALITY_THRESHOLD,
+} from '@/framework/quality-thresholds';
 
 export interface QualityMetrics {
   timestamp: Date;
@@ -165,15 +176,15 @@ export class QualityMonitor {
   private static instance: QualityMonitor;
 
   private thresholds: QualityThresholds = {
-    transcriptionAccuracy: 0.85,
-    sceneSegmentationF1: 0.75,
-    entityExtractionF1: 0.80,
-    relationshipAccuracy: 0.85,
-    layoutOverlap: 0,
-    renderTime: 30000, // 30 seconds
-    memoryUsage: 512, // 512 MB
-    edgeCompleteness: 0.70,
-    edgeRatioQuality: 0.80,
+    transcriptionAccuracy: DEFAULT_TRANSCRIPTION_ACCURACY_THRESHOLD,
+    sceneSegmentationF1: DEFAULT_SCENE_SEGMENTATION_F1_THRESHOLD,
+    entityExtractionF1: DEFAULT_ENTITY_EXTRACTION_F1_THRESHOLD,
+    relationshipAccuracy: DEFAULT_RELATION_ACCURACY_THRESHOLD,
+    layoutOverlap: DEFAULT_LAYOUT_OVERLAP_THRESHOLD,
+    renderTime: DEFAULT_RENDER_TIME_THRESHOLD_MS, // 30 seconds
+    memoryUsage: DEFAULT_MEMORY_USAGE_THRESHOLD_MB, // 512 MB
+    edgeCompleteness: DEFAULT_EDGE_COMPLETENESS_THRESHOLD,
+    edgeRatioQuality: DEFAULT_EDGE_RATIO_QUALITY_THRESHOLD,
   };
 
   private metricsHistory: QualityMetrics[] = [];
