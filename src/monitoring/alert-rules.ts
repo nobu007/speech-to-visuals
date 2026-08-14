@@ -18,6 +18,7 @@
  */
 
 import { safeArray } from '../lib/safe-array';
+import { ERROR_RATE_WARNING_THRESHOLD } from './error-rate-thresholds';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -55,7 +56,7 @@ export interface AlertingConfig {
 export interface AlertRulesOptions {
   /** Metric namespace prefix (default: '') */
   metricPrefix?: string;
-  /** Error rate threshold (default: 0.05 = 5%) */
+  /** Error rate threshold (default: ERROR_RATE_WARNING_THRESHOLD = 5%) */
   errorRateThreshold?: number;
   /** P95 latency threshold in ms (default: 20000 = 20s) */
   latencyP95ThresholdMs?: number;
@@ -77,7 +78,7 @@ export interface AlertRulesOptions {
 
 const DEFAULT_THRESHOLDS: Required<AlertRulesOptions> = {
   metricPrefix: '',
-  errorRateThreshold: 0.05,
+  errorRateThreshold: ERROR_RATE_WARNING_THRESHOLD,
   latencyP95ThresholdMs: 20000,
   healthCheckFailureThreshold: 3,
   llmBudgetWarningPercent: 80,

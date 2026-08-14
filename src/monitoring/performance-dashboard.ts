@@ -12,6 +12,7 @@ import { MonitoringError } from '@/pipeline/pipeline-errors';
 import { TokenUsageTracker, type StageType } from '@/analysis/token-usage-tracker';
 import { estimateCost, type CostEstimate } from '@/analysis/cost-estimator';
 import { globalCache } from '@/performance/intelligent-cache';
+import { ERROR_RATE_WARNING_THRESHOLD } from './error-rate-thresholds';
 
 interface PerformanceMetrics {
   timestamp: number;
@@ -134,7 +135,7 @@ export class PerformanceDashboard {
       },
       quality: {
         minSuccessRate: 0.95, // 95% minimum success rate
-        maxErrorRate: 0.05,   // 5% maximum error rate
+        maxErrorRate: ERROR_RATE_WARNING_THRESHOLD, // 5% maximum error rate
         ...thresholds.quality
       }
     };

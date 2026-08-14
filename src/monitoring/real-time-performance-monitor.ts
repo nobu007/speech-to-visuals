@@ -11,6 +11,7 @@ import { getMemoryUsage } from '@/utils/memory-usage';
 import { percentileCeil, roundTo, heapUsagePercent, bytesToMb } from '@/lib/metrics-utils';
 import { logger } from '@/utils/logger';
 import { sanitizeFinite } from '@/utils/guards';
+import { ERROR_RATE_WARNING_THRESHOLD, ERROR_RATE_CRITICAL_THRESHOLD } from './error-rate-thresholds';
 
 /**
  * Metrics for which a LOWER value is better (a rise = degradation), used by
@@ -166,7 +167,10 @@ class RealTimePerformanceMonitor extends EventEmitter {
    */
   private initializeDefaultThresholds(): void {
     this.setAlertThreshold('processingTime', { warning: 60000, critical: 120000 }); // 1min, 2min
-    this.setAlertThreshold('errorRate', { warning: 0.05, critical: 0.10 }); // 5%, 10%
+    this.setAlertThreshold('errorRate', {
+      warning: ERROR_RATE_WARNING_THRESHOLD, // 5%
+      critical: ERROR_RATE_CRITICAL_THRESHOLD, // 15% (was drifted to 10% before 09a fix)
+    });
     this.setAlertThreshold('memoryUsage', { warning: 512, critical: 1024 }); // MB
     this.setAlertThreshold('llmResponseTime', { warning: 15000, critical: 30000 }); // 15s, 30s
     this.setAlertThreshold('cacheHitRate', { warning: 0.3, critical: 0.1 }); // Below 30%, 10%

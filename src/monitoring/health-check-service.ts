@@ -7,6 +7,7 @@
  */
 
 import { realTimeMonitor, PerformanceSnapshot } from './real-time-performance-monitor';
+import { ERROR_RATE_WARNING_THRESHOLD, ERROR_RATE_CRITICAL_THRESHOLD } from './error-rate-thresholds';
 import { globalCache } from '@/performance/intelligent-cache';
 import { roundTo, heapUsagePercent, bytesToMb } from '@/lib/metrics-utils';
 import { getMemoryUsage } from '@/utils/memory-usage';
@@ -365,10 +366,10 @@ class HealthCheckService {
     let status: 'healthy' | 'degraded' | 'unhealthy';
     let message: string;
 
-    if (errorRate < 0.05 && recoveryRate > 0.80) {
+    if (errorRate < ERROR_RATE_WARNING_THRESHOLD && recoveryRate > 0.80) {
       status = 'healthy';
       message = `Error recovery is functioning well (${(errorRate * 100).toFixed(1)}% error rate, ${(recoveryRate * 100).toFixed(1)}% recovery rate)`;
-    } else if (errorRate < 0.15 || recoveryRate > 0.50) {
+    } else if (errorRate < ERROR_RATE_CRITICAL_THRESHOLD || recoveryRate > 0.50) {
       status = 'degraded';
       message = `Error recovery is degraded (${(errorRate * 100).toFixed(1)}% error rate, ${(recoveryRate * 100).toFixed(1)}% recovery rate)`;
     } else {

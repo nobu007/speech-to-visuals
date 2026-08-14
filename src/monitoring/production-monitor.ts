@@ -14,6 +14,7 @@
  */
 
 import { QualityMonitor, QualityMetrics, QualityReport } from '../pipeline/quality-monitor';
+import { ERROR_RATE_WARNING_THRESHOLD, ERROR_RATE_CRITICAL_THRESHOLD } from './error-rate-thresholds';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -99,8 +100,8 @@ export class ProductionMonitor {
     successRate: 0.9, // Min 90% success rate
     averageLatency: 60000, // Max 60s average processing time
     p95Latency: 90000, // Max 90s for 95th percentile
-    errorRateWarning: 0.05, // Warning at 5% error rate
-    errorRateCritical: 0.15, // Critical at 15% error rate
+    errorRateWarning: ERROR_RATE_WARNING_THRESHOLD, // Warning at 5% error rate
+    errorRateCritical: ERROR_RATE_CRITICAL_THRESHOLD, // Critical at 15% error rate
   };
 
   private constructor() {
