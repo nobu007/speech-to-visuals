@@ -22,6 +22,7 @@ import { LLMResponseError } from "./analysis-errors";
 import { LLMCache } from "./llm-cache";
 import { ComplexityDetector, ComplexityAnalysis } from "./complexity-detector";
 import { parseJsonFromLLMText } from "./llm-utils";
+import { DEFAULT_RETRY_OPTIONS } from "./retry-strategy";
 import { logger } from '../utils/logger';
 import { percentileCeil, roundTo } from '@/lib/metrics-utils';
 import { CappedArray } from '@/lib/capped-array';
@@ -298,7 +299,7 @@ export class LLMService {
 
     // Get adaptive timeout
     const timeout = request.options?.timeout || this.getAdaptiveTimeout();
-    const maxRetries = request.options?.maxRetries || 3;
+    const maxRetries = request.options?.maxRetries ?? DEFAULT_RETRY_OPTIONS.maxRetries;
 
     let retryCount = 0;
     let lastError: unknown = null;

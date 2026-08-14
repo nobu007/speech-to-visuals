@@ -24,7 +24,16 @@ export interface RetryAttempt {
   timestamp: number;
 }
 
-const DEFAULT_OPTIONS: Required<RetryOptions> = {
+/**
+ * Canonical LLM-call retry defaults (single source, round 9).
+ * Consumers that need "the default" (llm-service `||` fallback, gemini-analyzer
+ * explicit override, fallback-chain constructor fallback) MUST import this —
+ * re-typing 3/1000/10000 at a consumer re-freezes the family (guarded by the
+ * frozen-literal registry rule 'analysis retry defaults …').
+ * The pipeline-layer retry system (src/pipeline/retry.ts, ErrorClassifier-driven,
+ * 500ms base) is a different concept and keeps its own defaults.
+ */
+export const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
   maxRetries: 3,
   baseDelay: 1000,
   maxDelay: 10000,
@@ -46,8 +55,8 @@ const NON_RETRYABLE_STATUS_CODES = new Set([400, 401, 403, 404]);
  */
 export function calculateBackoff(
   attempt: number,
-  baseDelay: number = DEFAULT_OPTIONS.baseDelay,
-  maxDelay: number = DEFAULT_OPTIONS.maxDelay
+  baseDelay: number = DEFAULT_RETRY_OPTIONS.baseDelay,
+  maxDelay: number = DEFAULT_RETRY_OPTIONS.maxDelay
 ): number {
   const delay = baseDelay * Math.pow(2, attempt);
   return Math.min(delay, maxDelay);
@@ -69,8 +78,8 @@ export function generateJitter(maxMs: number, seededRandom?: () => number): numb
  */
 export function calculateBackoffWithJitter(
   attempt: number,
-  baseDelay: number = DEFAULT_OPTIONS.baseDelay,
-  maxDelay: number = DEFAULT_OPTIONS.maxDelay,
+  baseDelay: number = DEFAULT_RETRY_OPTIONS.baseDelay,
+  maxDelay: number = DEFAULT_RETRY_OPTIONS.maxDelay,
   seededRandom?: () => number
 ): number {
   const backoff = calculateBackoff(attempt, baseDelay, maxDelay);
@@ -130,7 +139,7 @@ export async function executeWithRetry<T>(
   fn: () => Promise<T>,
   options?: RetryOptions
 ): Promise<T> {
-  const opts = { ...DEFAULT_OPTIONS, ...options };
+  const opts = { ...DEFAULT_RETRY_OPTIONS, ...options };
   const log: RetryAttempt[] = [];
   let lastError: unknown;
 
@@ -174,7 +183,7 @@ export class RetryStrategy {
   private options: Required<RetryOptions>;
 
   constructor(options?: RetryOptions) {
-    this.options = { ...DEFAULT_OPTIONS, ...options };
+    this.options = { ...DEFAULT_RETRY_OPTIONS, ...options };
   }
 
   calculateBackoff(attempt: number): number {

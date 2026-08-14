@@ -11,7 +11,7 @@
 
 import { DiagramType } from '@/types/diagram';
 import { RuleBasedAnalysisResult, SceneSegment, isDisabledGemini } from './rule-based-analyzer';
-import { executeWithRetry, isRetryable, type RetryOptions } from './retry-strategy';
+import { executeWithRetry, isRetryable, DEFAULT_RETRY_OPTIONS, type RetryOptions } from './retry-strategy';
 import { logger } from '../utils/logger';
 
 /**
@@ -83,7 +83,7 @@ export class FallbackChain {
     this.primaryExecutor = primaryExecutor;
     this.fallbackExecutor = fallbackExecutor;
     this.ruleBasedExecutor = ruleBasedExecutor;
-    this.retryOptions = retryOptions || { maxRetries: 3, baseDelay: 1000, maxDelay: 10000 };
+    this.retryOptions = retryOptions || { ...DEFAULT_RETRY_OPTIONS };
   }
 
   /**

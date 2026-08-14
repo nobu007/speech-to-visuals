@@ -5669,6 +5669,17 @@
 - [x] **TC-301-02**: fixture-mode test で当該行を一時除去 → 新テストが失敗することを確認 🟡
   - **信頼性**: 🟡 *同 test file 内 mutation invariant suite で (a) 正形 = non-negative duration、(b) 混成型 = negative duration + 1e12 magnitude、(c) collector レベル recordExport が durationMs<0 で record 破棄、を全 5/5 GREEN で確認*
 
+#### REQ-304: 分析系 LLM リトライ既定値シングルソース化 🔵
+
+**信頼性**: 🔵 *single-source round 9（round 8 freeze-guard registry の最初の新規エントリ）*
+
+- [x] **TC-304-01**: `DEFAULT_RETRY_OPTIONS`（maxRetries 3 / baseDelay 1000 / maxDelay 10000）を `src/analysis/retry-strategy.ts` から export し、llm-service（`|| 3` フォールバック）、gemini-analyzer（明示的 `maxRetries: 3`）、fallback-chain（三重リテラル `{3, 1000, 10000}`）の 3 消費サイトを接続 🔵
+  - **信頼性**: 🔵 *値は不変（desync 耐性のみ）。副次修正: llm-service の `|| 3` → `??` で明示的 `maxRetries: 0` が 3 に強制されていた falsy-guard を解消*
+- [x] **TC-304-02**: frozen-literal registry に当該ファミリーのエントリを 1 件追加（`roots: ['src/analysis']`、minSweptFiles 20）し、RED-first で 3 offender を検出 → 修正後に GREEN 🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs tests/guards/frozen-literal-registry.test.ts tests/guards/analysis-retry-defaults-single-source.test.ts`
+- [x] **TC-304-03**: 値 pin + 消費 import pin + behavioral pin を `tests/guards/analysis-retry-defaults-single-source.test.ts` に配置、既存 8 suite（llm-service/gemini-analyzer/fallback-chain/retry-strategy）157 test GREEN + tsc 0 error 🔵
+  - **信頼性**: 🔵 *パイプライン層 retry（src/pipeline/retry.ts、500ms base、ErrorClassifier 駆動）は別概念として scope 外と明示。main-pipeline `retryConfig = {maxRetries: 3, backoffMs: 1000}` は backoffMs=1000 が既定 500 と異なる意図的 tuning のため同一ファミリー外と判定*
+
 ---
 
 ### Phase 111+ 受け入れ基準サマリー
@@ -5707,7 +5718,8 @@
 | REQ-301: timestamp guard mutation-verified CI | 2 | 🟡 |
 | REQ-302: AutoImprovementEngine.LOWER_IS_BETTER_METRICS 命名統一 | 2 | 🔵 |
 | REQ-303: Number.isFinite 共通 sanitizer 集約提案 | 2 | 🟡 |
-| **合計** | **83** | **🔵 96.4% / 🟡 3.6%** |
+| REQ-304: 分析系 LLM リトライ既定値シングルソース化 | 3 | 🔵 |
+| **合計** | **86** | **🔵 96.5% / 🟡 3.5%** |
 
 
 <!-- spine:references:begin -->

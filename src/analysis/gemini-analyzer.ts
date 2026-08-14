@@ -31,6 +31,7 @@ import 'dotenv/config';
 import type { DiagramType, NodeDatum, EdgeDatum } from "@/types/diagram";
 import type { DiagramAnalysis, DiagramData } from "./types";
 import { parseJsonFromLLMText } from "./llm-utils";
+import { DEFAULT_RETRY_OPTIONS } from "./retry-strategy";
 import { LLMService, llmService } from "./llm-service";
 import { getQualityMonitor } from "@/pipeline/quality-monitor";
 import { getGeminiAnalyzerPrompt, type Language } from "./prompt-templates";
@@ -291,7 +292,7 @@ export class GeminiAnalyzer {
         maxOutputTokens: 2048, // Increased to prevent truncation
         timeout: timeoutMs,
         cacheKey: buildAnalyzerCacheKey(text), // full-text key (no truncation → no collision)
-        maxRetries: 3
+        maxRetries: DEFAULT_RETRY_OPTIONS.maxRetries
       },
       parser
     });
