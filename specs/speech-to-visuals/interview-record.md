@@ -4177,6 +4177,31 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 - REQ-306 として TC-306-01~03 を追加（🔵 ×3、合計 87→90）
 - 信頼性レベル分布: 🔵 +3 / 🟡 🔴 変動なし
 
+### A136: Phase 136 — 図解タイプ日本語タイトル map の 2 サイト凍結解消（single-source round 13）（2026-08-15 第217回検証）
+
+**分析日時**: 2026-08-15
+**カテゴリ**: single-source キャンペーン round 13（freeze-guard registry 4 件目の新規 family）+ stale pin 修正
+**背景**: steering の typeAxisSum/RevenueMetrics 項目は A133 で cross-repo contamination 確定済み、`??` pin は TC-304-04 shipped。registry への新規 family 追加（META-intent）を継続。値ベース重複スキャン（key=value ペアを全 src で group-by）で発見: 同一目的の「diagram type → 日本語タイトル」map が `video-generator.generateSceneTitle` と `DiagramScene.DIAGRAM_TITLES` に独立凍結されていた。
+
+**判断**:
+
+1. **タイトル map 凍結 → しかも既に drift 済み**: 2 map は同一契約（同一シーンのタイトル）なのに値が乖離 — `flowchart` が生成シーンタイトルでは「プロセスフロー」、レンダリング帧では「フローチャート」、`general` が「ダイアグラム」vs「一般」。つまり coincidence ではなく live な desync（シーンリストと動画フレームが同一シーンのタイトルで不一致）。修正: `src/types/diagram.ts` に `DIAGRAM_TYPE_TITLES`（DIAGRAM_TYPES と同居、REQ-290 delegate precedent）を新設し、両サイトを import に切替。振る舞いも変わる（video-generator 側の flowchart/general が canonical 値に修正）= behavioral RED が可能な family。
+
+2. **registry entry（round 13）**: `roots: ['src']`（minSweptFiles 200）。pattern は object-literal member 形 `<diagramType>: '<title>'`（key は union 全種、value は canonical 値 + DiagramPreview の badge wording 変異も含む → 異なる文言での再凍結も捕捉）。`DiagramPreview.tsx` の badge map は別 surface（プレビューカードの UI 略称で動画タイトルではない）として理由付き除外。diagram-detector の keyword 配列（quoted key / 配列要素）は unquoted-key shape では match しないことを確認済み。
+
+3. **検証は RED-first + mutation-verified**: entry 追加 + ソース修正を stash した状態で registry test が 22 offender（video-generator 11 行 + DiagramScene 11 行）を列挙して RED、修正で GREEN。mutation 2 種: (a) canonical 値を一時変更 → 値 pin + behavioral pin が RED（delegate が実効であることの証明）、(b) 無関係ファイルに rename copy（`LOCAL_TITLE_COPY`）を注入 → sweep が RED（rename 耐性）。
+
+4. **副次修正 — stale な clamp pin**: `tests/integration/video-generator-duration-unit.test.ts` が旧 clamp [3000, 10000] を硬結字したまま round 98/99 の scene-duration-limits 单一ソース化（2000/15000）に追随しておらず、HEAD 時点で 4 test RED（worktree の full-suite 実行からは `--testPathIgnorePatterns="video-generator"` で除外されるため潜在化）。期待値を literal から `MIN_SCENE_DURATION_MS` / `MAX_EDITORIAL_SCENE_DURATION_MS` import に導出する形へ再 pin（キャンペーン方針と同一: literal の再凍結をやめて single source から導出）。
+
+**根拠**:
+- RED 検証ログ: `Tests: 1 failed, 14 passed` + suite import fail（修正 stash 時、22 offender 列挙）
+- 修正後: guards 2 suite 31 test、`src/pipeline/__tests__` + `src/remotion/__tests__/DiagramScene` + `tests/guards` + duration fuzz の 73 suite 988 test GREEN、tsc 0 error
+- 副次修正後: `tests/integration/video-generator-duration-unit.test.ts` 13/13 GREEN（修正前 4 RED を HEAD stash でも再現し pre-existing と確認）
+
+**信頼性への影響**:
+- REQ-308 として TC-308-01~03 を追加（🔵 ×3、合計 90→93）
+- 信頼性レベル分布: 🔵 +3 / 🟡 🔴 変動なし
+
 ---
 
 ## 関連文書

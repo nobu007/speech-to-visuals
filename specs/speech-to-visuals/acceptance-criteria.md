@@ -5709,6 +5709,17 @@
 - [x] **TC-306-03**: 振る舞い pin + 消費 import pin を `tests/guards/uuid-validation-single-source.test.ts` に配置（v4 受理・大文字受理・v1 拒否・variant `c` 拒否・path traversal 拒否）、API 層 57 suite 865 test + integration 2 suite 28 test GREEN + tsc 0 error 🔵
   - **信頼性**: 🔵 *test-side の UUID_V4_RE copy（tests/integration/*）は sweep 境界（src/api）外であり意図的除外*
 
+#### REQ-308: 図解タイプ日本語タイトル map シングルソース化 🔵
+
+**信頼性**: 🔵 *single-source round 13（freeze-guard registry の 4 件目の新規エントリ）*
+
+- [x] **TC-308-01**: `DIAGRAM_TYPE_TITLES` を `src/types/diagram.ts`（`DIAGRAM_TYPES` と同居）から export し、`video-generator.generateSceneTitle` と `DiagramScene` のレンダリングタイトルの 2 消費サイトをローカル map から import に切替 🔵
+  - **信頼性**: 🔵 *両 map は drift 済みだった（flowchart「プロセスフロー」vs「フローチャート」、general「ダイアグラム」vs「一般」）ため値変更を伴う実挙動修正 — シーンリストと動画フレームのタイトル不一致を解消。DiagramPreview の badge wording（ツリー構造/マトリクス/…）は別 surface の UI 略称として理由付き除外*
+- [x] **TC-308-02**: frozen-literal registry に当該ファミリーのエントリを 1 件追加（`roots: ['src']`、minSweptFiles 200、object-literal member 形 pattern で canonical 値 + 変異文言の両方を捕捉）し、RED-first で 22 offender を検出 → 修正後に GREEN。mutation 検証: 別ファイルへの rename copy（`LOCAL_TITLE_COPY`）も sweep が捕捉 🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs tests/guards/frozen-literal-registry.test.ts tests/guards/diagram-type-titles-single-source.test.ts`
+- [x] **TC-308-03**: 値 pin + 完全性 pin（DIAGRAM_TYPES 全 key・余分 key なし）+ behavioral pin（`VideoGenerator.convertSceneToRemotionFormat` の title が全タイプで canonical 接頭辞を持つこと、drift 済みだった flowchart/general を明示）+ 消費 import pin を `tests/guards/diagram-type-titles-single-source.test.ts` に配置。mutation: canonical 値変更で behavioral pin が RED。副次修正: `tests/integration/video-generator-duration-unit.test.ts` の旧 clamp literal pin（3000/10000、HEAD 時点で 4 RED）を scene-duration-limits からの import 導出に再 pin 🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs tests/guards/diagram-type-titles-single-source.test.ts tests/integration/video-generator-duration-unit.test.ts`
+
 ---
 
 ### Phase 111+ 受け入れ基準サマリー
@@ -5749,6 +5760,7 @@
 | REQ-303: Number.isFinite 共通 sanitizer 集約提案 | 2 | 🟡 |
 | REQ-304: 分析系 LLM リトライ既定値シングルソース化 | 4 | 🔵 |
 | REQ-306: API 層 UUID v4 検証 regex シングルソース化 | 3 | 🔵 |
+| REQ-308: 図解タイプ日本語タイトル map シングルソース化 | 3 | 🔵 |
 | **合計** | **90** | **🔵 96.7% / 🟡 3.3%** |
 
 

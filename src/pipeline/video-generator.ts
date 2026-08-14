@@ -5,7 +5,7 @@
  */
 
 import { SimplePipelineResult } from './simple-pipeline';
-import { SceneGraph, DiagramType } from '@/types/diagram';
+import { SceneGraph, DiagramType, DIAGRAM_TYPE_TITLES } from '@/types/diagram';
 import { COMPOSITION_ID } from '@/remotion/composition-id';
 import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
 import { logger } from '../utils/logger';
@@ -544,21 +544,10 @@ export class VideoGenerator {
   }
 
   private generateSceneTitle(scene: SceneGraph): string {
-    const typeLabels: Record<DiagramType, string> = {
-      flow: 'プロセスフロー',
-      flowchart: 'プロセスフロー',
-      tree: '階層構造',
-      timeline: 'タイムライン',
-      matrix: '比較表',
-      cycle: '循環プロセス',
-      comparison: '比較',
-      network: 'ネットワーク',
-      conceptmap: 'コンセプトマップ',
-      mindmap: 'マインドマップ',
-      general: 'ダイアグラム',
-    };
-
-    const typeLabel = typeLabels[scene.type];
+    // Single source: the canonical title map in src/types/diagram.ts. The
+    // local copy here had already drifted from DiagramScene's rendered titles
+    // (flowchart/general), so the scene list and the video frame disagreed.
+    const typeLabel = DIAGRAM_TYPE_TITLES[scene.type];
     return `${typeLabel} - ${scene.content.substring(0, 30)}...`;
   }
 

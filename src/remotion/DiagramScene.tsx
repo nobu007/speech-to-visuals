@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { AbsoluteFill, useVideoConfig, interpolate } from 'remotion';
-import { SceneGraph } from '@/types/diagram';
+import { SceneGraph, DIAGRAM_TYPE_TITLES } from '@/types/diagram';
 import { getAnimationStrategy } from './animation-strategies';
 import { NodeAnimation } from './NodeAnimation';
 import { EdgeAnimation } from './EdgeAnimation';
@@ -30,20 +30,11 @@ interface DiagramSceneProps {
   currentTime: number;
 }
 
-/** Map diagram types to Japanese titles */
-const DIAGRAM_TITLES: Record<SceneGraph['type'], string> = {
-  flow: 'プロセスフロー',
-  flowchart: 'フローチャート',
-  tree: '階層構造',
-  timeline: 'タイムライン',
-  matrix: '比較表',
-  cycle: '循環プロセス',
-  comparison: '比較',
-  network: 'ネットワーク',
-  conceptmap: 'コンセプトマップ',
-  mindmap: 'マインドマップ',
-  general: '一般',
-};
+/**
+ * Titles come from the canonical DIAGRAM_TYPE_TITLES (src/types/diagram.ts).
+ * video-generator's scene-title map previously drifted from this one
+ * (flowchart/general), which is why both now share the single source.
+ */
 
 export const DiagramScene: React.FC<DiagramSceneProps> = ({ scene, sceneIndex, currentTime }) => {
   const { fps } = useVideoConfig();
@@ -141,7 +132,7 @@ export const DiagramScene: React.FC<DiagramSceneProps> = ({ scene, sceneIndex, c
   };
 
   // Get the title for this diagram type
-  const title = DIAGRAM_TITLES[scene.type] || 'ダイアグラム';
+  const title = DIAGRAM_TYPE_TITLES[scene.type] || 'ダイアグラム';
 
   return (
     <AbsoluteFill>

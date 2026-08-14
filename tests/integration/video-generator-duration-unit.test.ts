@@ -31,6 +31,13 @@ import { VideoGenerator } from '@/pipeline/video-generator';
 import type { RemotionSceneData } from '@/pipeline/video-generator';
 import { calculateTotalFrames, DEFAULT_FPS } from '@/remotion/Video';
 import type { SceneGraph } from '@/types/diagram';
+// Clamp boundaries are pinned to the single source (defect 08ae), not
+// re-literalized here — the original [3000, 10000] pins went stale when the
+// clamp moved to scene-duration-limits.ts and kept failing at 2000/15000.
+import {
+  MIN_SCENE_DURATION_MS,
+  MAX_EDITORIAL_SCENE_DURATION_MS,
+} from '@/pipeline/scene-duration-limits';
 
 // ---------------------------------------------------------------------------
 // Cast helpers: reach the real private methods so we test production code,
@@ -95,14 +102,16 @@ describe('VideoGenerator scene-duration time-unit correctness (real methods)', (
       expect(out.startMs).toBe(10000);
     });
 
-    it('2-second segment clamps UP to the 3000ms minimum', () => {
-      const out = api.convertSceneToRemotionFormat(makeSceneSec(0, 2), 0);
-      expect(out.durationMs).toBe(3000);
+    it(`sub-floor segment clamps UP to the ${MIN_SCENE_DURATION_MS}ms minimum`, () => {
+      // 1s = 1000ms < MIN (2000) → clamped up.
+      const out = api.convertSceneToRemotionFormat(makeSceneSec(0, 1), 0);
+      expect(out.durationMs).toBe(MIN_SCENE_DURATION_MS);
     });
 
-    it('15-second segment clamps DOWN to the 10000ms maximum', () => {
-      const out = api.convertSceneToRemotionFormat(makeSceneSec(0, 15), 0);
-      expect(out.durationMs).toBe(10000);
+    it(`over-cap segment clamps DOWN to the ${MAX_EDITORIAL_SCENE_DURATION_MS}ms maximum`, () => {
+      // 20s = 20000ms > MAX (15000) → clamped down.
+      const out = api.convertSceneToRemotionFormat(makeSceneSec(0, 20), 0);
+      expect(out.durationMs).toBe(MAX_EDITORIAL_SCENE_DURATION_MS);
     });
 
     it('zero-length segment falls back to default 5000ms', () => {
@@ -151,40 +160,44 @@ describe('VideoGenerator scene-duration time-unit correctness (real methods)', (
     // therefore reported a duration that did NOT match the rendered video
     // whenever scenes were clamped up to the 3000 ms floor (short segments) or
     // non-contiguous. These cases assert SUM so reported duration ≡ real render.
-    it('three sub-floor segments clamped to 3000ms: SUM=9000, not max(startMs+dur)=7000', () => {
-      // Each 2s segment clamps to 3000ms; absolute startMs are 0/2000/4000.
+    it(`three sub-floor segments clamped to ${MIN_SCENE_DURATION_MS}ms: SUM=${MIN_SCENE_DURATION_MS * 3}, not max(startMs+dur)`, () => {
+      // Each 1s segment clamps to the 2000ms floor; absolute startMs are 0/1000/2000.
       const scenes = [
-        api.convertSceneToRemotionFormat(makeSceneSec(0, 2, 'a'), 0),
-        api.convertSceneToRemotionFormat(makeSceneSec(2, 4, 'b'), 1),
-        api.convertSceneToRemotionFormat(makeSceneSec(4, 6, 'c'), 2),
+        api.convertSceneToRemotionFormat(makeSceneSec(0, 1, 'a'), 0),
+        api.convertSceneToRemotionFormat(makeSceneSec(1, 2, 'b'), 1),
+        api.convertSceneToRemotionFormat(makeSceneSec(2, 3, 'c'), 2),
       ];
-      // Sanity: each scene was clamped to the 3000ms floor.
-      expect(scenes.map((s) => s.durationMs)).toEqual([3000, 3000, 3000]);
-      // Legacy max(0+3000, 2000+3000, 4000+3000) = 7000 — wrong.
-      // Correct SUM = 9000.
-      expect(api.calculateTotalDuration(scenes)).toBe(9000);
+      // Sanity: each scene was clamped to the floor.
+      expect(scenes.map((s) => s.durationMs)).toEqual([
+        MIN_SCENE_DURATION_MS,
+        MIN_SCENE_DURATION_MS,
+        MIN_SCENE_DURATION_MS,
+      ]);
+      // Legacy max(0+2000, 1000+2000, 2000+2000) = 4000 — wrong.
+      // Correct SUM = 6000.
+      expect(api.calculateTotalDuration(scenes)).toBe(MIN_SCENE_DURATION_MS * 3);
     });
 
     it('non-contiguous scenes (trailing gap): SUM of durationMs, startMs ignored', () => {
-      // Scene A 0→5s (5000ms), Scene C 100→103s (clamped 3000ms). The huge
+      // Scene A 0→5s (5000ms), Scene C 100→101s (clamped 2000ms). The huge
       // absolute gap (100s) must NOT inflate the reported duration: playback
-      // is cumulative, so the real video is 5000+3000 = 8000ms.
+      // is cumulative, so the real video is 5000+2000 = 7000ms.
       const scenes = [
         api.convertSceneToRemotionFormat(makeSceneSec(0, 5, 'a'), 0),
-        api.convertSceneToRemotionFormat(makeSceneSec(100, 103, 'c'), 1),
+        api.convertSceneToRemotionFormat(makeSceneSec(100, 101, 'c'), 1),
       ];
-      expect(api.calculateTotalDuration(scenes)).toBe(8000);
+      expect(api.calculateTotalDuration(scenes)).toBe(5000 + MIN_SCENE_DURATION_MS);
     });
 
     it('reported durationInFrames ≡ calculateTotalFrames for clamped scenes', async () => {
       // The decisive integration invariant: the frame count VideoGenerator
       // derives (from calculateTotalDuration) must equal the frame count the
       // real composition registers (calculateTotalFrames, which SUMs durationMs).
-      // Pre-fix this failed for clamped scenes (210 vs 270 frames).
+      // Pre-fix this failed for clamped scenes.
       const remotionScenes = [
-        api.convertSceneToRemotionFormat(makeSceneSec(0, 2, 'a'), 0),
-        api.convertSceneToRemotionFormat(makeSceneSec(2, 4, 'b'), 1),
-        api.convertSceneToRemotionFormat(makeSceneSec(4, 6, 'c'), 2),
+        api.convertSceneToRemotionFormat(makeSceneSec(0, 1, 'a'), 0),
+        api.convertSceneToRemotionFormat(makeSceneSec(1, 2, 'b'), 1),
+        api.convertSceneToRemotionFormat(makeSceneSec(2, 3, 'c'), 2),
       ];
       const totalDuration = api.calculateTotalDuration(remotionScenes);
       const cfg = await api.prepareRenderConfiguration({
@@ -197,9 +210,11 @@ describe('VideoGenerator scene-duration time-unit correctness (real methods)', (
         durationMs: s.durationMs,
       })) as SceneGraph[];
       const compositionFrames = calculateTotalFrames(asGraph, DEFAULT_FPS);
-      // 9000ms → 270 frames on both sides.
+      // 6000ms → 180 frames on both sides.
       expect(cfg.config.durationInFrames).toBe(compositionFrames);
-      expect(cfg.config.durationInFrames).toBe(270);
+      expect(cfg.config.durationInFrames).toBe(
+        (MIN_SCENE_DURATION_MS * 3 / 1000) * DEFAULT_FPS,
+      );
     });
   });
 
