@@ -13,6 +13,7 @@ import { QualityGateError, RenderingError } from './pipeline-errors';
 import {
   MIN_SCENE_DURATION_MS,
   MAX_EDITORIAL_SCENE_DURATION_MS,
+  DEFAULT_SCENE_DURATION_MS,
 } from './scene-duration-limits';
 import { safeArray } from '../lib/safe-array';
 
@@ -240,7 +241,7 @@ export class VideoGenerator {
     // range the main-pipeline timing optimizer applies. The former local
     // [3000, 10000] clamp truncated every 10–15 s scene to 10 s, ending the
     // rendered scene before its audio segment ended.
-    const defaultDuration = 5000;
+    const defaultDuration = DEFAULT_SCENE_DURATION_MS;
     const sceneDuration = Math.max(MIN_SCENE_DURATION_MS, Math.min(
       MAX_EDITORIAL_SCENE_DURATION_MS,
       (scene.endTime - scene.startTime) * 1000 || defaultDuration

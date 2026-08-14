@@ -39,3 +39,15 @@ export const MAX_EDITORIAL_SCENE_DURATION_MS = 15000;
 
 /** Renderer hard ceiling: the render plan never schedules a longer scene. */
 export const MAX_RENDERABLE_SCENE_DURATION_MS = 30000;
+
+/**
+ * 4. DEFAULT_SCENE_DURATION_MS — the span used when a scene carries NO usable
+ * timing (zero/NaN/absent). Distinct from the boundaries above: it is not a
+ * clamp, it is the substitute value. Three paths substitute it and must agree
+ * (smoke path video length == orchestrator path == render path):
+ * pipeline-orchestrator's non-positive durationMs fallback, smoke-orchestrator's
+ * absent diagram.durationMs fallback, and video-generator's zero/NaN span
+ * fallback in scene conversion. Guarded by
+ * tests/guards/scene-duration-limits-single-source.test.ts.
+ */
+export const DEFAULT_SCENE_DURATION_MS = 5000;

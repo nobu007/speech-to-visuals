@@ -25,7 +25,7 @@
  * flake under --maxWorkers>1 (TC-302/313, AGENTS.md テスト規約).
  */
 
-import { readFileSync } from 'fs';
+import { readFileSync, readdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { join, dirname } from 'path';
 import { describe, it, expect } from '@jest/globals';
@@ -33,6 +33,7 @@ import {
   MIN_SCENE_DURATION_MS,
   MAX_EDITORIAL_SCENE_DURATION_MS,
   MAX_RENDERABLE_SCENE_DURATION_MS,
+  DEFAULT_SCENE_DURATION_MS,
 } from '@/pipeline/scene-duration-limits';
 import { generateRenderPlan } from '@/pipeline/scene-render-spec-generator';
 import { VideoGenerator } from '@/pipeline/video-generator';
@@ -150,5 +151,57 @@ describe('video-generator scene conversion uses the shared boundaries (08ae clos
     // The old shape: Math.min(10000, ...) / Math.max(3000, ...) inline clamp.
     expect(src).not.toMatch(/Math\.min\(10000,/);
     expect(src).not.toMatch(/Math\.max\(3000,/);
+  });
+});
+
+/**
+ * The 4th scene-duration concept: the DEFAULT span used when a scene carries
+ * no usable timing. Before this block, `5000` was frozen in THREE places —
+ * pipeline-orchestrator (`DEFAULT_SCENE_DURATION_MS = 5000`, replaces a
+ * non-positive durationMs), smoke-orchestrator (same local const, diagram
+ * durationMs fallback), and video-generator (`const defaultDuration = 5000`,
+ * zero/NaN span fallback in scene conversion). The 08ae closure guard above
+ * already pins the 5 s fallback BEHAVIOR; this block pins the VALUE's single
+ * source so the smoke path, the orchestrator path, and the render path can
+ * never disagree on what an untimed scene lasts.
+ */
+describe('default scene duration single source (08ae follow-up)', () => {
+  const DEFAULT_CONSUMERS = [
+    'src/pipeline/pipeline-orchestrator.ts',
+    'src/pipeline/smoke-orchestrator.ts',
+    'src/pipeline/video-generator.ts',
+  ];
+
+  /** Local re-definitions of the 5000ms default under any name. */
+  const LOCAL_DEFAULT =
+    /DEFAULT_SCENE_DURATION_MS\s*=\s*5000\b|\bdefaultDuration\s*=\s*5000\b/;
+
+  it('canonical module exports the 5000ms default, in-range of the clamps', () => {
+    expect(DEFAULT_SCENE_DURATION_MS).toBe(5000);
+    expect(MIN_SCENE_DURATION_MS).toBeLessThan(DEFAULT_SCENE_DURATION_MS);
+    expect(DEFAULT_SCENE_DURATION_MS).toBeLessThanOrEqual(
+      MAX_EDITORIAL_SCENE_DURATION_MS,
+    );
+  });
+
+  it.each(DEFAULT_CONSUMERS)('%s imports the canonical default', (rel) => {
+    const src = readSource(rel);
+    expect(src).toMatch(/from '\.\/scene-duration-limits'/);
+    expect(src).toMatch(/DEFAULT_SCENE_DURATION_MS/);
+    expect(src.split('\n').filter((l) => LOCAL_DEFAULT.test(l))).toEqual([]);
+  });
+
+  it('discovery sweep: no src/pipeline file re-freezes the 5000ms default', () => {
+    const offenders: string[] = [];
+    for (const entry of readdirSync(join(REPO_ROOT, 'src/pipeline'))) {
+      if (!/\.ts$/.test(entry) || /\.(test|spec)\./.test(entry)) continue;
+      const rel = `src/pipeline/${entry}`;
+      if (rel === 'src/pipeline/scene-duration-limits.ts') continue;
+      const hits = readSource(rel)
+        .split('\n')
+        .filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l) && LOCAL_DEFAULT.test(l));
+      if (hits.length > 0) offenders.push(`${rel}: ${hits[0].trim()}`);
+    }
+    expect(offenders).toEqual([]);
   });
 });

@@ -22,6 +22,7 @@ import type { SrtCaption } from '../remotion/srt-parser';
 import type { SceneGraph, DiagramType, NodeDatum, EdgeDatum, DiagramLayout } from '../types/diagram';
 import { MultiFormatExporter, type ExportFormat, type ExportResult } from '../export/multi-format-exporter';
 import { generateRenderPlan, validateRenderPlan, type RenderPlan } from './scene-render-spec-generator';
+import { DEFAULT_SCENE_DURATION_MS } from './scene-duration-limits';
 import { sanitizeFinite } from '@/utils/guards';
 import { timeStage, aggregateTimingReport, type StageTimingRecord, type StageTimingReport } from './stage-timing-metrics';
 import { computePipelineHealth, type PipelineHealthReport } from './pipeline-health-score';
@@ -106,7 +107,9 @@ function toEdgeDatum(raw: Array<Record<string, unknown>>): EdgeDatum[] {
   }));
 }
 
-const DEFAULT_SCENE_DURATION_MS = 5000;
+// Default span when the diagram carries no durationMs — single-sourced in
+// scene-duration-limits.ts (same default the orchestrator and video-generator
+// substitute for untimed scenes).
 
 export function buildSingleScene(diagram: RawDiagram, startMs: number, fps: number): {
   scene: SceneGraph;

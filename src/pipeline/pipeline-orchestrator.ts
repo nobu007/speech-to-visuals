@@ -41,6 +41,7 @@ import { detectBottlenecks, BottleneckReport } from './bottleneck-detector';
 import { PipelineConfigError, RenderingError, QualityGateError, PipelineAbortError, AudioValidationError } from './pipeline-errors';
 import { SUPPORTED_AUDIO_FORMATS, AUDIO_LIMITS } from '@/config/limits';
 import { generateRenderPlan, validateRenderPlan, type RenderPlan } from './scene-render-spec-generator';
+import { DEFAULT_SCENE_DURATION_MS } from './scene-duration-limits';
 import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
 import {
   PipelineErrorRecoveryOrchestrator,
@@ -118,8 +119,8 @@ const STAGE_NAMES = [
  * Default scene duration (ms) re-applied by prepareSingleScene when a segment
  * carries no timing. Mirrors the convention in smoke-orchestrator.ts /
  * video-generator.ts. See prepareSingleScene for the layering rationale.
+ * Value comes from scene-duration-limits.ts (single source).
  */
-const DEFAULT_SCENE_DURATION_MS = 5000;
 
 /**
  * Build a minimal, valid TranscriptionResult used when the real transcription
