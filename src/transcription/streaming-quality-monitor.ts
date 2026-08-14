@@ -182,7 +182,16 @@ export class StreamingQualityMonitor {
         minConfidence: 0,
         maxConfidence: 0,
         alerts: [...this.alerts],
-        status: 'excellent',
+        // A session with NO evaluated chunks is a FAILED session (a dropped
+        // Web Speech stream, a chunk loop that threw before storing its first
+        // record), not a perfect one. Manufacturing the TOP quality tier from
+        // nothing — while the same summary reports averageConfidence 0, the
+        // bottom of the scale — is the defect-9 polarity-b shape: absent data
+        // satisfies the best gate. Fail loud with the WORST tier so a
+        // status-gating consumer cannot read an empty session as excellent.
+        // (determineStatus(0) would say 'poor'; 'poor' verbatim keeps the
+        // empty summary a literal, auditable branch.)
+        status: 'poor',
       };
     }
 

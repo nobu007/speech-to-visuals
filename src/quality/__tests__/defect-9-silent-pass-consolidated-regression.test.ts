@@ -61,6 +61,18 @@
  * health-check-service / production-monitor are ruled out because their
  * absent-input paths already fail loud ('degraded' / 'unknown' — never a
  * manufactured healthy tier).
+ *
+ * This iteration found the FOURTH blind spot one directory level up: the
+ * discovery WALK itself only covered 6 host directories (quality/pipeline/
+ * framework/visualization/monitoring/optimization), so every evaluator-shaped
+ * file in analysis/, transcription/, export/, api/ and config/ was outside the
+ * guard's authority regardless of marker shape. Extending the walk to all of
+ * src/ surfaced 7 previously-invisible files (24 → 31). One is a LIVE defect-9
+ * site, now closed:
+ *   - transcription/streaming-quality-monitor.getSummary ... empty session → 'excellent'
+ * The remaining six are ruled out with file-anchored reasons (empty→0 / empty→
+ * passed:false / fail-safe verdicts) — including the analysis self-improvement
+ * evaluators, which fail loud on empty input by construction.
  */
 
 const { QualityGateEvaluator } = await import('../quality-gate');
@@ -75,6 +87,7 @@ const { compareWithBaseline } = await import('../../pipeline/performance-regress
 const { EnhancedErrorRecovery } = await import('../enhanced-error-recovery');
 const { ErrorRecoveryHealthTracker } = await import('../error-recovery-health-tracker');
 const { RecoveryTelemetryAggregator } = await import('../recovery-telemetry-aggregator');
+const { StreamingQualityMonitor } = await import('../../transcription/streaming-quality-monitor');
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -106,14 +119,15 @@ const REPO_ROOT = path.resolve(
 // NEW evaluator file is caught the moment it matches either marker.
 // ---------------------------------------------------------------------------
 
-const HOST_DIRS = [
-  'src/quality',
-  'src/pipeline',
-  'src/framework',
-  'src/visualization',
-  'src/monitoring',
-  'src/optimization',
-];
+// The walk covers ALL of src/, not a hand-picked host-dir subset. The first
+// version of this guard walked only 6 directories (quality/pipeline/framework/
+// visualization/monitoring/optimization), which left every evaluator-shaped
+// file in analysis/, transcription/, export/, api/ and config/ OUTSIDE the
+// discovery walk — a FOURTH blind spot, one directory-level up from the three
+// marker-shape ones below: a new evaluator in src/analysis shipped unclassified
+// not because its naming evaded the markers but because the walk never read the
+// file. The walk found 7 more files the moment it covered src/ (24 → 31).
+const HOST_DIRS = ['src'];
 
 // Verdict-producing shapes: a returned verdict object / a status|compliance tier
 // mapping / a metric-or-polarity registry.
@@ -599,6 +613,23 @@ const ROSTER: Row[] = [
       'turns this into an excellence gate forces a conscious decision.',
   },
   {
+    id: 'streaming-quality-monitor/emptySessionStatus',
+    family: 'streaming-quality-monitor',
+    polarity: 'b',
+    verdict: 'CLOSED',
+    sourceFiles: ['src/transcription/streaming-quality-monitor.ts'],
+    gateFailsOnAbsent: () => new StreamingQualityMonitor().getSummary().status !== 'excellent',
+    reason:
+      'Found by extending the discovery WALK to all of src/ (the FOURTH blind spot was ' +
+      'directory-level, not marker-shaped: transcription/ sat outside the 6 host dirs, so this ' +
+      'file was invisible to the guard no matter how good its markers were). getSummary() with ' +
+      'ZERO evaluated chunks manufactured the TOP tier status \'excellent\' while the SAME summary ' +
+      'reported averageConfidence 0 — a self-contradictory verdict where absent data satisfies ' +
+      'the best gate (polarity b). An empty session is a FAILED session (dropped stream / a chunk ' +
+      'loop that threw before storing its first record), so the summary now fails loud with ' +
+      '\'poor\'.',
+  },
+  {
     id: 'recovery-telemetry-aggregator/overallSuccessRate',
     family: 'error-recovery-health',
     polarity: 'b',
@@ -717,6 +748,66 @@ const DEFECT9_SURFACE: ReadonlyArray<SurfaceEntry> = [
       'manufacture a passing tier (the defect-9 discipline, already built in). The hardcoded ' +
       '0.05/0.15 alert thresholds are the separate, documented alerting-vs-readiness ' +
       'threshold-drift concern (09a), not an absent-data silent-pass.',
+  },
+  { file: 'src/transcription/streaming-quality-monitor.ts', family: 'streaming-quality-monitor' },
+  {
+    file: 'src/analysis/diagram-detector.ts',
+    ruledOut:
+      'Discovered by extending the walk to all of src/. The self-improvement evaluator ' +
+      '(testDetectionQuality) runs four sub-tests whose empty-input paths all fail loud: ' +
+      'sanitizeFinite(confidence, 0) feeds meetsGoodDetectionConfidence from the FAIL value (the ' +
+      'LLM-confidence 0.9-fallback defect was already closed in this very file), and an analysis ' +
+      'with no nodes fails Structural/Semantic with passed:false rather than a manufactured pass. ' +
+      'Empty testResults reduce to overallScore 0 → passed false (0 > 0.75 is false).',
+  },
+  {
+    file: 'src/analysis/scene-segmenter.ts',
+    ruledOut:
+      'Discovered by extending the walk to all of src/. Same self-improvement evaluator shape as ' +
+      'diagram-detector: every sub-test returns { passed: false, score: 0 } on empty segments, ' +
+      'scores fold through sanitizeFinite(result.score, 0), and empty testResults → overallScore 0 ' +
+      '→ passed false against the 80% threshold. No empty input can manufacture a pass.',
+  },
+  {
+    file: 'src/analysis/simple-diagram-detector.ts',
+    ruledOut:
+      'Discovered by extending the walk to all of src/. The testDetector shape matched by the ' +
+      'markers is a self-test harness counting cases (passed = total − failures), not a gate ' +
+      'evaluator: zero cases yield passed 0/0 — a count, never a threshold-satisfying verdict.',
+  },
+  {
+    file: 'src/export/export-content-validator.ts',
+    ruledOut:
+      'Discovered by extending the walk to all of src/. validateSceneGraphForExport / ' +
+      'validateExportPayload are explicitly fail-safe by documented design: the verdict is ' +
+      'passed = !(strict && hasHighSeverity) with every finding still surfaced, and the ' +
+      'non-strict open mode is the pinned WYSIWYG parity contract (validator recurses ' +
+      'scene.layout; findings are never dropped). Not a manufactured pass.',
+  },
+  {
+    file: 'src/api/routes/export-jobs.ts',
+    ruledOut:
+      'Discovered by extending the walk to all of src/. The health-status vocabulary matched by ' +
+      'the markers gates in the FAIL direction: utilization 0 (idle/absent queue) maps to ' +
+      "'healthy' from a REAL measured signal (stats.queued / maxQueueSize), and the route maps " +
+      'unhealthy → HTTP 503. No absent input manufactures a passing tier; utilization is computed ' +
+      'from required queue stats, not a ?? fallback literal.',
+  },
+  {
+    file: 'src/api/routes/health.ts',
+    ruledOut:
+      'Discovered by extending the walk to all of src/. Thin transport wrapper over ' +
+      "health-check-service (already ruled out above): it derives HTTP status FROM the service " +
+      "verdict (unhealthy → 503) and its own fallbacks fail loud ('unhealthy', success:false). " +
+      'No tier is manufactured here.',
+  },
+  {
+    file: 'src/config/code-size-audit.ts',
+    ruledOut:
+      'Discovered by extending the walk to all of src/. evaluateAudit is a count-vs-limit ' +
+      'checker (warnings per exceeded limit; isCompliant = zero warnings) over REQUIRED measured ' +
+      'metrics — there is no absent-input path: every metric field is a mandatory number produced ' +
+      'by collectMetrics itself, and no default literal is ever compared to a threshold.',
   },
 ];
 

@@ -291,7 +291,10 @@ describe('StreamingQualityMonitor', () => {
       expect(summary.acceptedChunks).toBe(0);
       expect(summary.rejectedChunks).toBe(0);
       expect(summary.averageConfidence).toBe(0);
-      expect(summary.status).toBe('excellent');
+      // Defect-9 polarity b: an empty session must NOT manufacture the TOP
+      // quality tier from nothing (status 'excellent' while averageConfidence
+      // is 0 — a self-contradictory summary). Absent data fails loud.
+      expect(summary.status).toBe('poor');
     });
 
     it('should compute summary statistics correctly', () => {
