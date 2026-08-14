@@ -112,6 +112,23 @@ describe('ModuleName', () => {
 });
 ```
 
+#### ソースアンカーテストのパス解決は import.meta.url 基準（禁止: process.cwd() 基準）
+
+テストがリポジトリ内のソースを直接読む（source-anchor / mutation-pinning / canon guard 系）場合、
+パスは必ず `import.meta.url` から解決すること。`process.cwd()` 基準（`resolve(process.cwd(), 'src/...')`、
+ bare relative（`readFileSync('src/...')`、`globSync('src/**')`）は禁止。
+
+- 理由1: 依存パッケージが module-load 時に `process.chdir()` することがある
+  （実例: whisper-node → `tests/__mocks__/whisper-node.ts`）。chdir 後に同一 jest worker で
+  実行された全スイートが誤った cwd で ENOENT → フル実行が非決定的に赤になる（16ed9ccf）。
+- 理由2: `--maxWorkers>1` のスケジューリングでも cwd 相対読みは flake する（TC-302/313）。
+- 理由3（最重要）: `existsSync` 前提が false になるとスイート全体が `it.skip` で
+  「緑のまま無害化」する。赤より悪い。
+- 正しい型: `const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');`
+  （深さはテストファイルの場所に合わせる）。glob は `globSync('src/**/*.ts', { cwd: REPO_ROOT })`。
+- 構造ガード: `tests/guards/source-anchor-cwd-discipline.test.ts` が全テストファイルを走査し、
+  cwd 相対アンカーの新規追加を自動 FAIL する（例外は行末 `// cwd-anchor-exempt:` で宣言）。
+
 ## 3. 実装前の必須確認
 
 ```bash

@@ -13,6 +13,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 
 export interface SpineValidationResult {
   valid: boolean;
@@ -36,9 +37,19 @@ export interface SpineValidationResult {
   schemaErrors: string[];
 }
 
-/** Resolve repo root from process.cwd() (works in both CLI and test contexts). */
+/**
+ * Resolve the repo root: prefer cwd (CLI context), but fall back to this
+ * file's own location when cwd is wrong. Under jest, a dependency's
+ * module-load side effect can process.chdir() the whole worker (whisper-node
+ * does — see tests/__mocks__/whisper-node.ts), which would otherwise make
+ * every spine path resolve inside node_modules and the manifest silently
+ * read as "absent" (tests it.skip instead of failing — worse than red).
+ */
 function getRepoRoot(): string {
-  return process.cwd();
+  if (fs.existsSync(path.join(process.cwd(), 'specs', '_doc_spine.yml'))) {
+    return process.cwd();
+  }
+  return path.resolve(fileURLToPath(import.meta.url), '..', '..');
 }
 
 function getSpinePath(): string {

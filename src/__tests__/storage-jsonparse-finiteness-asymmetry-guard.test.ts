@@ -40,6 +40,14 @@
 import { describe, it, expect } from '@jest/globals';
 import { readFileSync } from 'node:fs';
 import { globSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Anchored to import.meta.url, not process.cwd(): a jest worker's cwd can be
+// moved by a module-load side effect (whisper-node chdir — see
+// tests/__mocks__/whisper-node.ts) or simply differ under --maxWorkers>1
+// (TC-302/313); cwd-relative source reads then flake with ENOENT.
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 function stripComments(src: string): string {
   const chars = src.split('');
@@ -167,7 +175,7 @@ function findStorageParseSites(files: string[]): StorageParseSite[] {
 }
 
 const SRC_FILES = (): string[] => {
-  const ts = globSync('src/**/*.ts') as string[];
+  const ts = globSync('src/**/*.ts', { cwd: REPO_ROOT }) as string[];
   return ts.filter((f) => !f.includes('__tests__'));
 };
 

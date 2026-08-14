@@ -390,7 +390,7 @@ describe('stale-closure class — at-risk async handlers enumerated and swept', 
 
   it('the sweep flags EXACTLY the registered at-risk handlers (no new, no stale)', () => {
     const files = (globSync(join(REPO_ROOT, 'src/**/*.tsx')) as string[])
-      .concat(globSync('src/**/*.ts') as string)
+      .concat(globSync('src/**/*.ts', { cwd: REPO_ROOT }) as string)
       .filter(f => !f.includes('__tests__'));
 
     const found: Offender[] = [];

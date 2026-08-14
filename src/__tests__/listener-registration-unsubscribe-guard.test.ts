@@ -41,8 +41,15 @@
  */
 import { describe, it, expect } from '@jest/globals';
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { globSync } from 'node:fs';
+
+// Anchored to import.meta.url, not process.cwd(): a jest worker's cwd can be
+// moved by a module-load side effect (whisper-node chdir — see
+// tests/__mocks__/whisper-node.ts) or simply differ under --maxWorkers>1
+// (TC-302/313); cwd-relative source reads then flake with ENOENT.
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 // --- Source-audit helpers (comment-stripped + balanced scanning) -------------
 
@@ -255,7 +262,7 @@ const REGISTER_APIS: Array<{ file: string; method: string; owner: string }> = [
 const BROAD_SWEEP_EXEMPT: Array<{ file: string; reason: string }> = [];
 
 function readCode(file: string): string {
-  return stripComments(readFileSync(resolve(process.cwd(), file), 'utf8'));
+  return stripComments(readFileSync(resolve(REPO_ROOT, file), 'utf8'));
 }
 
 // --- Tests -------------------------------------------------------------------
@@ -315,7 +322,7 @@ describe('listener-registration leak — broad sweep (no void register API anywh
 
   it('no production method registers a callback without declaring `() => void`', () => {
     const exemptFiles = new Set(BROAD_SWEEP_EXEMPT.map(e => e.file));
-    const files = (globSync('src/**/*.ts') as string[]).filter(
+    const files = (globSync('src/**/*.ts', { cwd: REPO_ROOT }) as string[]).filter(
       f => !f.includes('__tests__') && !exemptFiles.has(f),
     );
 

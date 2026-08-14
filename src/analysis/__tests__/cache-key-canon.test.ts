@@ -21,25 +21,32 @@
  */
 import { describe, it, expect } from '@jest/globals';
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { globSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 import { buildContentCacheKey } from '../cache-key';
 
+// Anchored to import.meta.url, not process.cwd(): a jest worker's cwd can be
+// moved by a module-load side effect (whisper-node chdir — see
+// tests/__mocks__/whisper-node.ts) or simply differ under --maxWorkers>1
+// (TC-302/313); cwd-relative source reads then flake with ENOENT.
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+
 const cacheKeySrc = readFileSync(
-  resolve(process.cwd(), 'src/analysis/cache-key.ts'),
+  resolve(REPO_ROOT, 'src/analysis/cache-key.ts'),
   'utf8',
 );
 const contentAnalyzerSrc = readFileSync(
-  resolve(process.cwd(), 'src/analysis/content-analyzer.ts'),
+  resolve(REPO_ROOT, 'src/analysis/content-analyzer.ts'),
   'utf8',
 );
 const geminiAnalyzerSrc = readFileSync(
-  resolve(process.cwd(), 'src/analysis/gemini-analyzer.ts'),
+  resolve(REPO_ROOT, 'src/analysis/gemini-analyzer.ts'),
   'utf8',
 );
 const intelligentCacheSrc = readFileSync(
-  resolve(process.cwd(), 'src/performance/intelligent-cache.ts'),
+  resolve(REPO_ROOT, 'src/performance/intelligent-cache.ts'),
   'utf8',
 );
 
@@ -189,15 +196,15 @@ describe('cache-key truncation — broad cross-layer sweep', () => {
   // builder lived in a different dir and built its key its own way.
   it('no keying-layer source file truncates a cacheKey value', () => {
     const files: string[] = [
-      ...globSync('src/analysis/*.ts'),
-      ...globSync('src/performance/*.ts'),
-      ...globSync('src/pipeline/*.ts'),
-      ...globSync('src/api/*.ts'),
+      ...globSync('src/analysis/*.ts', { cwd: REPO_ROOT }),
+      ...globSync('src/performance/*.ts', { cwd: REPO_ROOT }),
+      ...globSync('src/pipeline/*.ts', { cwd: REPO_ROOT }),
+      ...globSync('src/api/*.ts', { cwd: REPO_ROOT }),
     ].filter(f => !f.includes('__tests__') && !f.endsWith('cache-key.ts'));
 
     const offenders: string[] = [];
     for (const file of files) {
-      const src = readFileSync(resolve(process.cwd(), file), 'utf8');
+      const src = readFileSync(resolve(REPO_ROOT, file), 'utf8');
       // Strip comments so doc references to the old `.slice(0,100)` patterns
       // (which deliberately document the bug) don't false-positive.
       const codeOnly = src
@@ -229,7 +236,7 @@ describe('key-builder function bodies — no truncation of the keying INPUT', ()
     // If a builder is renamed or deleted, the truncation guard below would skip
     // it via `findDefBodyBrace === -1`. This assertion makes that loud instead.
     for (const { file, fn } of KEY_BUILDERS) {
-      const src = stripComments(readFileSync(resolve(process.cwd(), file), 'utf8'));
+      const src = stripComments(readFileSync(resolve(REPO_ROOT, file), 'utf8'));
       expect(findDefBodyBrace(src, fn)).toBeGreaterThanOrEqual(0);
     }
   });
@@ -238,7 +245,7 @@ describe('key-builder function bodies — no truncation of the keying INPUT', ()
     const offenders: string[] = [];
 
     for (const { file, fn } of KEY_BUILDERS) {
-      const src = stripComments(readFileSync(resolve(process.cwd(), file), 'utf8'));
+      const src = stripComments(readFileSync(resolve(REPO_ROOT, file), 'utf8'));
       const braceIdx = findDefBodyBrace(src, fn);
       if (braceIdx < 0) continue;
       const body = extractBody(src, braceIdx);
@@ -282,7 +289,7 @@ describe('cache-key metadata fingerprint — no key built from file name+size', 
     // is caught here even though it is neither a `.update()` arg nor a `*Key=`.
     const offenders: string[] = [];
     for (const { file, fn } of KEY_BUILDERS) {
-      const src = stripComments(readFileSync(resolve(process.cwd(), file), 'utf8'));
+      const src = stripComments(readFileSync(resolve(REPO_ROOT, file), 'utf8'));
       const braceIdx = findDefBodyBrace(src, fn);
       if (braceIdx < 0) continue;
       const body = extractBody(src, braceIdx);
@@ -304,12 +311,12 @@ describe('cache-key metadata fingerprint — no key built from file name+size', 
     // key expression. The dedup form `${hash}::${file.size}` (content hash + size)
     // is NOT flagged because it carries no name; an error message is NOT flagged
     // because it is neither context.
-    const files = (globSync('src/**/*.ts') as string[]).filter(
+    const files = (globSync('src/**/*.ts', { cwd: REPO_ROOT }) as string[]).filter(
       f => !f.includes('__tests__'),
     );
     const offenders: string[] = [];
     for (const file of files) {
-      const src = stripComments(readFileSync(resolve(process.cwd(), file), 'utf8'));
+      const src = stripComments(readFileSync(resolve(REPO_ROOT, file), 'utf8'));
 
       let m: RegExpExecArray | null;
       // (1) hash INPUT: `.update( <expr> )`
@@ -331,7 +338,7 @@ describe('cache-key metadata fingerprint — no key built from file name+size', 
     // (arrayBuffer) for File inputs, and must NOT interpolate name/size. This is
     // the explicit contract assertion that the old code-comment-only contract
     // lacked — a future loop-bound / metadata regression fails loudly here.
-    const src = readFileSync(resolve(process.cwd(), 'src/pipeline/main-pipeline.ts'), 'utf8');
+    const src = readFileSync(resolve(REPO_ROOT, 'src/pipeline/main-pipeline.ts'), 'utf8');
     const braceIdx = findDefBodyBrace(stripComments(src), 'generateCacheKey');
     expect(braceIdx).toBeGreaterThanOrEqual(0);
     const body = extractBody(stripComments(src), braceIdx);

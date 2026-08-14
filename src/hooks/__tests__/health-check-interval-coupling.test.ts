@@ -23,16 +23,23 @@
  */
 import { describe, it, expect } from '@jest/globals';
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { HEALTH_CHECK_INTERVAL_MS } from '@/monitoring/health-check-service';
 
+// Anchored to import.meta.url, not process.cwd(): a jest worker's cwd can be
+// moved by a module-load side effect (whisper-node chdir — see
+// tests/__mocks__/whisper-node.ts) or simply differ under --maxWorkers>1
+// (TC-302/313); cwd-relative source reads then flake with ENOENT.
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+
 const serviceSrc = readFileSync(
-  resolve(process.cwd(), 'src/monitoring/health-check-service.ts'),
+  resolve(REPO_ROOT, 'src/monitoring/health-check-service.ts'),
   'utf8',
 );
 const hookSrc = readFileSync(
-  resolve(process.cwd(), 'src/hooks/useAdminAnalytics.ts'),
+  resolve(REPO_ROOT, 'src/hooks/useAdminAnalytics.ts'),
   'utf8',
 );
 

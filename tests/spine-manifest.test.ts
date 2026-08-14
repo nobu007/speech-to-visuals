@@ -9,9 +9,15 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { validateSpineManifest, extractPathsFromSpine, validateSpineSchema, parseSpineSections } from '../scripts/validate-spine-manifest';
 
-const REPO_ROOT = process.cwd();
+// Anchored to import.meta.url, not process.cwd(): a jest worker's cwd can be
+// moved by a module-load side effect (whisper-node chdir — see
+// tests/__mocks__/whisper-node.ts); a cwd anchor then reads the manifest as
+// absent and these tests silently it.skip instead of running.
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SPINE_PATH = path.join(REPO_ROOT, 'specs', '_doc_spine.yml');
 const SPINE_EXISTS = fs.existsSync(SPINE_PATH);
 

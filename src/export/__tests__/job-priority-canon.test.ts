@@ -27,17 +27,24 @@
  */
 import { describe, it, expect } from '@jest/globals';
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { globSync } from 'node:fs';
 
 import type { JobPriority } from '../export-job-queue';
 
+// Anchored to import.meta.url, not process.cwd(): a jest worker's cwd can be
+// moved by a module-load side effect (whisper-node chdir — see
+// tests/__mocks__/whisper-node.ts) or simply differ under --maxWorkers>1
+// (TC-302/313); cwd-relative source reads then flake with ENOENT.
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+
 const jobQueueSrc = readFileSync(
-  resolve(process.cwd(), 'src/export/export-job-queue.ts'),
+  resolve(REPO_ROOT, 'src/export/export-job-queue.ts'),
   'utf8',
 );
 const metricsSrc = readFileSync(
-  resolve(process.cwd(), 'src/export/export-metrics-collector.ts'),
+  resolve(REPO_ROOT, 'src/export/export-metrics-collector.ts'),
   'utf8',
 );
 
@@ -81,12 +88,12 @@ describe('JobPriority — metrics collector delegates, does not redefine', () =>
 describe('JobPriority — no re-definition anywhere under src/', () => {
   it('exactly one file defines the JobPriority type (the canonical owner)', () => {
     const files = ([
-      ...globSync('src/**/*.ts'),
-      ...globSync('src/**/*.tsx'),
+      ...globSync('src/**/*.ts', { cwd: REPO_ROOT }),
+      ...globSync('src/**/*.tsx', { cwd: REPO_ROOT }),
     ] as string[]).filter(f => !f.includes('__tests__'));
 
     const definers = files.filter(
-      f => stripComments(readFileSync(resolve(process.cwd(), f), 'utf8')).match(JOB_PRIORITY_DEF),
+      f => stripComments(readFileSync(resolve(REPO_ROOT, f), 'utf8')).match(JOB_PRIORITY_DEF),
     );
 
     // The canonical owner is the sole permitted definition site.
