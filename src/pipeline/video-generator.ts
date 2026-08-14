@@ -10,6 +10,10 @@ import { COMPOSITION_ID } from '@/remotion/composition-id';
 import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
 import { logger } from '../utils/logger';
 import { QualityGateError, RenderingError } from './pipeline-errors';
+import {
+  MIN_SCENE_DURATION_MS,
+  MAX_EDITORIAL_SCENE_DURATION_MS,
+} from './scene-duration-limits';
 import { safeArray } from '../lib/safe-array';
 
 export interface VideoGenerationOptions {
@@ -225,18 +229,20 @@ export class VideoGenerator {
    * 個別シーンのRemotionフォーマット変換
    */
   private convertSceneToRemotionFormat(scene: SceneGraph, index: number): RemotionSceneData {
-    // シーン持続時間（デフォルト5秒、最小3秒、最大10秒）
+    // シーン持続時間（デフォルト5秒）
     // scene.startTime/endTime are in SECONDS (see simple-pipeline.ts:
     // `startTime: segStartMs / 1000`), so convert to ms before clamping.
     // Without the * 1000, a 5 s segment evaluates to (5 - 0) = 5 and collapses
-    // to the 3000 ms floor, making every scene a uniform 3 s regardless of
+    // to the floor, making every scene a uniform minimum regardless of
     // real length.
-    // NOTE: this [3000, 10000] clamp is a legacy normalization LOCAL to the
-    // VideoGenerator conversion path. It intentionally differs from the
-    // pipeline-level clamps in scene-duration-limits.ts (single source) —
-    // see that module for the boundary inventory.
+    // Boundaries come from scene-duration-limits.ts (single source, defect
+    // 08ae): the same [MIN_SCENE_DURATION_MS, MAX_EDITORIAL_SCENE_DURATION_MS]
+    // range the main-pipeline timing optimizer applies. The former local
+    // [3000, 10000] clamp truncated every 10–15 s scene to 10 s, ending the
+    // rendered scene before its audio segment ended.
     const defaultDuration = 5000;
-    const sceneDuration = Math.max(3000, Math.min(10000,
+    const sceneDuration = Math.max(MIN_SCENE_DURATION_MS, Math.min(
+      MAX_EDITORIAL_SCENE_DURATION_MS,
       (scene.endTime - scene.startTime) * 1000 || defaultDuration
     ));
 

@@ -1,6 +1,6 @@
 /**
  * Structural guard: pipeline scene-duration clamp boundaries have ONE source
- * (defect 08ae, partial closure).
+ * (defect 08ae, full closure).
  *
  * Before 08ae, main-pipeline's `optimizeSceneTiming` hardcoded 2000/15000 as
  * bare literals while scene-render-spec-generator carried its own 2000/30000
@@ -11,17 +11,18 @@
  *
  * This guard pins:
  *   1. The canonical module exports the three boundaries and their ordering.
- *   2. Both known consumers import the canonical module — neither carries a
+ *   2. All known consumers import the canonical module — none carries a
  *      bare clamp literal of its own (the literal `= <number>;` shapes are
  *      banned in the timing functions).
  *   3. Behavioral pin: generateRenderPlan actually clamps to the shared floor
  *      and the renderer ceiling.
+ *   4. Behavioral pin: video-generator's scene conversion clamps to the same
+ *      shared floor + editorial cap (the former legacy [3000, 10000] clamp
+ *      truncated every 10–15 s simple-pipeline scene to 10 s, desyncing
+ *      rendered video from its audio).
  *
  * Source anchors use import.meta.url, NOT process.cwd() — cwd-relative reads
  * flake under --maxWorkers>1 (TC-302/313, AGENTS.md テスト規約).
- *
- * Documented divergence (NOT pinned here): video-generator's legacy
- * [3000, 10000] conversion clamp — see scene-duration-limits.ts header.
  */
 
 import { readFileSync } from 'fs';
@@ -34,6 +35,7 @@ import {
   MAX_RENDERABLE_SCENE_DURATION_MS,
 } from '@/pipeline/scene-duration-limits';
 import { generateRenderPlan } from '@/pipeline/scene-render-spec-generator';
+import { VideoGenerator } from '@/pipeline/video-generator';
 import type { SceneGraph } from '@/types/diagram';
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -41,6 +43,7 @@ const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const CONSUMERS = [
   'src/pipeline/main-pipeline.ts',
   'src/pipeline/scene-render-spec-generator.ts',
+  'src/pipeline/video-generator.ts',
 ];
 
 function readSource(rel: string): string {
@@ -103,5 +106,49 @@ describe('scene-duration limits single source (08ae)', () => {
 
     const long = generateRenderPlan([makeScene(120000)]);
     expect(long.scenes[0].durationMs).toBe(MAX_RENDERABLE_SCENE_DURATION_MS);
+  });
+});
+
+describe('video-generator scene conversion uses the shared boundaries (08ae closure)', () => {
+  /**
+   * AC for closing the last 08ae divergence:
+   *   - A scene whose real span is 2–15 s keeps its FULL duration — no
+   *     truncation to a 10 s legacy ceiling (that made 10–15 s simple-pipeline
+   *     scenes end before their audio segment did).
+   *   - A scene shorter than the shared floor is raised to MIN_SCENE_DURATION_MS
+   *     (same floor the main-pipeline timing optimizer applies).
+   *   - A scene longer than the editorial cap is shortened to
+   *     MAX_EDITORIAL_SCENE_DURATION_MS.
+   *   - A zero/NaN span still falls back to the 5 s default.
+   */
+  type Convert = (scene: SceneGraph, index: number) => { durationMs: number };
+
+  const convert = (() => {
+    const vg = new VideoGenerator({});
+    return (vg as unknown as { convertSceneToRemotionFormat: Convert })
+      .convertSceneToRemotionFormat.bind(vg);
+  })();
+
+  it.each([
+    [12000, 12000], // in-range 12 s span: NOT truncated to the legacy 10 000
+    [15000, 15000], // editorial cap boundary: preserved exactly
+    [1500, 2000],   // sub-floor span raised to the shared floor
+    [20000, 15000], // over-cap span shortened to the editorial cap
+    [5000, 5000],   // in-range span preserved
+  ])('span %d ms → durationMs %d', (spanMs, expected) => {
+    expect(convert(makeScene(spanMs), 0).durationMs).toBe(expected);
+  });
+
+  it('zero/NaN span falls back to the 5 s default, not the floor', () => {
+    expect(convert(makeScene(0), 0).durationMs).toBe(5000);
+    const nan = { ...makeScene(5000), endTime: Number.NaN };
+    expect(convert(nan as SceneGraph, 0).durationMs).toBe(5000);
+  });
+
+  it('carries no legacy [3000, 10000] conversion clamp literal', () => {
+    const src = readSource('src/pipeline/video-generator.ts');
+    // The old shape: Math.min(10000, ...) / Math.max(3000, ...) inline clamp.
+    expect(src).not.toMatch(/Math\.min\(10000,/);
+    expect(src).not.toMatch(/Math\.max\(3000,/);
   });
 });
