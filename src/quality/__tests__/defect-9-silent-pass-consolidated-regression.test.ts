@@ -25,10 +25,28 @@
  *      lt/lte/eq; (b) empty→PERFECT `1.0`/`100`/`true` satisfies gte/gt. Both
  *      are "absent data manufactures a value that satisfies the gate".)
  *
- * Extending the sweep beyond quality-GATE evaluators (this iteration) added two
- * more CLOSED sites the gate-only sweep had missed — both live:
+ * Extending the sweep beyond quality-GATE evaluators added two more CLOSED sites
+ * the gate-only sweep had missed — both live:
  *   - pipeline/quality-monitor.generateReport ... absent quality metrics → 100/'excellent'
  *   - continuous-learner.assessCustomInstructionsCompliance ... empty history → 0 < 30000
+ *
+ * This iteration hardened the COMPLETENESS GUARD itself. The discovery markers
+ * matched a file by its VERDICT shape (a returned passed/isRegression object, a
+ * status/compliance tier) OR a named-evaluator export (evaluate/assess/check/
+ * score). That left a blind spot: a quality-SIGNAL RESOLVER - a file whose
+ * exported functions take a PipelineResult and return the number that FEEDS a
+ * gate, but are named with estimate- or count- prefixes and return no verdict
+ * object. The canonical case (src/pipeline/quality-estimators.ts, the single
+ * source of the framework's transcription/segmentation/entity/relation gate
+ * inputs) sailed past both markers and shipped UNCLASSIFIED. A
+ * PipelineResult-to-number clause was added to EXPORT_MARKER; discovery now
+ * finds it (17 to 18) and it is classified as ruled-out (the module exists to
+ * CLOSE a defect-9 sibling: it replaced never-populated fields whose
+ * undefined-to-0.85/0.75/0 fallbacks equaled the thresholds; its own
+ * derivations are real signals, not absent-data literals). The lesson: a
+ * completeness guard is only as authoritative as the shape it keys on; the file
+ * most likely to re-open the class is the one whose naming differs from the
+ * markers' assumption.
  */
 
 const { QualityGateEvaluator } = await import('../quality-gate');
@@ -84,9 +102,17 @@ const HOST_DIRS = [
 // mapping / a metric-or-polarity registry.
 const VERDICT_MARKER =
   /return\s*\{[^}]*(?:passed|isRegression|shouldBlock|allMet|isWithin)|determineStatus|status:\s*'(?:excellent|good|acceptable|needs_improvement|critical)'|compliance:\s*'(?:excellent|good|needs_improvement|critical)'|METRIC_EXTRACTORS|CRITERION_KEY_MAP|LOWER_IS_BETTER/;
-// Score/verdict entry-point exports.
+// Score/verdict entry-point exports. The final alternation catches a distinct
+// shape the named-evaluator clause misses: a quality-SIGNAL RESOLVER — a file
+// whose exported functions take a PipelineResult and return a number that FEEDS
+// a gate threshold (src/pipeline/quality-estimators.ts is the canonical case: 8
+// estimate*/count* functions named with neither evaluate/assess/check/score nor
+// a verdict object, so the gate-only markers sailed past it even though it is
+// the single source of the framework's transcription/segmentation/entity/
+// relation gate inputs). Without this clause the completeness guard's blind
+// spot is exactly the file most likely to re-open the class.
 const EXPORT_MARKER =
-  /export (?:async )?function (?:evaluate|assess|check|score|isWithin|isRegression|compareWith|passes|meets)[A-Za-z]*\s*\(|export function scoreCost|export class (?:QualityMonitor|QualityGateEvaluator|LayoutEvaluator|VisualBalanceScorer)/;
+  /export (?:async )?function (?:evaluate|assess|check|score|isWithin|isRegression|compareWith|passes|meets)[A-Za-z]*\s*\(|export function scoreCost|export class (?:QualityMonitor|QualityGateEvaluator|LayoutEvaluator|VisualBalanceScorer)|export (?:async )?function [A-Za-z]+\([^)]*PipelineResult[^)]*\):\s*number/;
 
 function walkTs(dir: string, out: string[] = []): string[] {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -509,6 +535,21 @@ const DEFECT9_SURFACE: ReadonlyArray<SurfaceEntry> = [
       'Infinity/NaN/non-date via exhaustive finiteness guards — no absent input reaches a comparison.',
   },
   { file: 'src/pipeline/quality-monitor.ts', family: 'pipeline-quality-monitor' },
+  {
+    file: 'src/pipeline/quality-estimators.ts',
+    ruledOut:
+      'A quality-SIGNAL RESOLVER (8 estimate*/count* exports named with neither ' +
+      'evaluate/assess/check/score nor a verdict object — hence invisible to the gate-only ' +
+      'markers until the PipelineResult→number clause was added). NOT a silent-pass: every ' +
+      'estimator derives from a REAL PipelineResult signal (scene presence, node/edge density, ' +
+      'label-fit via sizeLabel), and the defect-COUNTERS (countLayoutOverlaps/countNodeOverflow/' +
+      'countDanglingLayoutEdges) + estimateLabelReadability return 0 on absent data (FAIL, ' +
+      'polarity a), never a manufactured passing value. The module EXISTS to CLOSE a defect-9 ' +
+      'sibling: MainPipeline previously read never-populated fields whose undefined→sanitizeFinite ' +
+      'fallbacks (0.85/0.75/0) equaled the framework quality thresholds, pinning 3/4 gates ' +
+      'permanently green; it replaces that with real-signal derivation. Classified so a future ' +
+      'edit that re-introduces an absent-data literal here cannot ship unclassified.',
+  },
   { file: 'src/pipeline/performance-baseline.ts', family: 'score-resolver' },
   { file: 'src/pipeline/performance-regression-detector.ts', family: 'score-resolver' },
   { file: 'src/pipeline/pipeline-health-score.ts', family: 'score-resolver' },
