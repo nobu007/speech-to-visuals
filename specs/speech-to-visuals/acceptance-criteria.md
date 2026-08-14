@@ -5679,6 +5679,9 @@
   - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs tests/guards/frozen-literal-registry.test.ts tests/guards/analysis-retry-defaults-single-source.test.ts`
 - [x] **TC-304-03**: 値 pin + 消費 import pin + behavioral pin を `tests/guards/analysis-retry-defaults-single-source.test.ts` に配置、既存 8 suite（llm-service/gemini-analyzer/fallback-chain/retry-strategy）157 test GREEN + tsc 0 error 🔵
   - **信頼性**: 🔵 *パイプライン層 retry（src/pipeline/retry.ts、500ms base、ErrorClassifier 駆動）は別概念として scope 外と明示。main-pipeline `retryConfig = {maxRetries: 3, backoffMs: 1000}` は backoffMs=1000 が既定 500 と異なる意図的 tuning のため同一ファミリー外と判定*
+- [x] **TC-304-04**: `??` 修正の振る舞い pin — 明示的 `maxRetries: 0` が 3 に強制されないこと（API call 0 回・即時失敗・retryCount 0）と、省略時は `DEFAULT_RETRY_OPTIONS.maxRetries`（3 primary + 3 fallback = 6 call）にフォールバックすることを `tests/analysis/llm-service-max-retries-zero.test.ts` で assert 🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs tests/analysis/llm-service-max-retries-zero.test.ts`
+  - **信頼性**: 🔵 *mutation-verified: `??` を `||` に一時退行させると zero-passthrough test のみ RED（default-3 test は両セマンティクスで GREEN であることも確認済み）。round 9 の judge 指摘「`??` セマンティクス pin の欠如により L3 未達」を解消*
 
 ---
 
@@ -5718,8 +5721,8 @@
 | REQ-301: timestamp guard mutation-verified CI | 2 | 🟡 |
 | REQ-302: AutoImprovementEngine.LOWER_IS_BETTER_METRICS 命名統一 | 2 | 🔵 |
 | REQ-303: Number.isFinite 共通 sanitizer 集約提案 | 2 | 🟡 |
-| REQ-304: 分析系 LLM リトライ既定値シングルソース化 | 3 | 🔵 |
-| **合計** | **86** | **🔵 96.5% / 🟡 3.5%** |
+| REQ-304: 分析系 LLM リトライ既定値シングルソース化 | 4 | 🔵 |
+| **合計** | **87** | **🔵 96.6% / 🟡 3.4%** |
 
 
 <!-- spine:references:begin -->

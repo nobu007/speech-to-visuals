@@ -4101,6 +4101,34 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A133: Phase 133 — `??` 振る舞い pin TC-304-04 追加・cross-repo steering 記録（2026-08-15 第214回検証）
+
+**分析日時**: 2026-08-15
+**カテゴリ**: フィードバック実装・振る舞いテスト追加・cross-repo feedback contamination 記録
+**背景**: AI Hub steering（round 9 = bc73ebde への judge 評価）は4項目を提示。項目1は実在（本 repo の REQ-304 = 分析系 LLM リトライ既定値）。項目2・3は `phase-222` / `no-inline-type-axis-sum` / `typeAxisSum` / `RevenueMetrics` を名指しするが、これらは本 repo に存在しない。
+
+**判断**:
+
+1. **項目1（`??` 修正の振る舞いテスト）→ 採用・実装**: `tests/analysis/llm-service-max-retries-zero.test.ts` を追加。明示的 `maxRetries: 0` で API call 0 回・即時失敗（retryCount 0）、省略時は `DEFAULT_RETRY_OPTIONS.maxRetries`（3 primary + 3 fallback = 6 call）にフォールバックすることを assert。mutation-verified: フォールバックサイトの `??` を `||` に一時退行させると zero-passthrough test のみ RED。REQ-304 に TC-304-04 として追記（judge 指摘の「`??` pin 欠如により L3 未達」を解消）。
+
+2. **項目2（phase-222 `no-inline-type-axis-sum` の registry 移行で engine 実証）→ cross-repo contamination として不採用**: `find /home/jinno` 全チェックアウト検索で `typeAxisSum.ts` / `RevenueMetrics` / `specs/phase-222-type-axis-sum-single-source/` は trans_parency_os_private（本体 + worktree 877375）にのみ存在。本 repo への適用は fabrication になるため不採用。META-intent（registry への新 family 追加で engine を実証）は本 repo では既に達成済み — round 9（bc73ebde、registry entry 追加による初の新 family）と round 11（874c2b8f、layout-spacing family）が該当。残る候補（MAX_HISTORY_SIZE、damping 等）は round 100 以降 NOT-clean 判定済みで別概念のため、無理な新 family は作らない。
+
+3. **項目3（RevenueMetrics への total フィールド追加）→ 同一 contamination として不採用**: RevenueMetrics 型は trans_parency_os_private のみに存在。本 repo に同等の「producer canonical 合計の直接消費」ギャップは型レベルで存在しない。
+
+4. **cross-repo feedback contamination（92, 96/97/98 と同型・3回連続以上）**: judge が他 hub repo（trans_parency_os_private）の specs/ファイル名を本 repo へ混入。memory 内「CROSS-REPO feedback contamination」lesson に従い `find` 横断検証を行い、phantom と確定してから不採用を記録した。
+
+**根拠**:
+- `find /home/jinno -path '*/node_modules' -prune -o -type f \( -name '*typeAxis*' -o -name '*RevenueMetrics*' \) -print` → hits はすべて `/home/jinno/trans_parency_os_private/` と `/home/jinno/ai-hub/worktrees/trans_parency_os_private-instruction-20260814-223256-877375/` 配下（本 repo は 0 hits）
+- `grep -rln "phase-222" /home/jinno/ai-hub` → prompt.md / runs 以外はすべて trans_parency_os_private worktree 配下
+- RED 検証ログ: `||` 退行時 `Tests: 1 failed, 1 passed`（zero-passthrough のみ失敗）、復帰後 4 suite 59 test GREEN
+
+**信頼性への影響**:
+- REQ-304 に TC-304-04 を追加（🔵、テストケース数 3→4、合計 86→87）
+- 項目2・3による REQ 新規作成なし（phantom）
+- 信頼性レベル分布: 🔵 +1 / 🟡 🔴 変動なし
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)
