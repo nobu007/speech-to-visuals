@@ -7,7 +7,7 @@
  */
 
 import { PositionedNode, LayoutEdge, DiagramType, NodeDatum, EdgeDatum } from '@/types/diagram';
-import { scoreLayout, CompositeScoreResult } from './layout-quality-composite';
+import { scoreLayout, CompositeScoreResult, DEFAULT_LAYOUT_QUALITY_THRESHOLD } from './layout-quality-composite';
 import { minimizeEdgeCrossings } from './edge-crossing-minimizer';
 import { StrategySelector } from './strategy-selector';
 import { LayoutStrategy, StrategyLayoutResult } from './types';
@@ -45,7 +45,7 @@ export interface OptimizationConfig {
 }
 
 const DEFAULT_CONFIG: Required<OptimizationConfig> = {
-  threshold: 0.7,
+  threshold: DEFAULT_LAYOUT_QUALITY_THRESHOLD,
   maxAttempts: 3,
   canvasWidth: 1920,
   canvasHeight: 1080,
@@ -159,7 +159,7 @@ const DEFAULT_PARAMS: LayoutParams = {
   nodeHeightScale: 1.0,
 };
 
-const DEFAULT_THRESHOLD = 0.7;
+const DEFAULT_THRESHOLD = DEFAULT_LAYOUT_QUALITY_THRESHOLD;
 const DEFAULT_MAX_ITERATIONS = 3;
 
 /**

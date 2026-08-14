@@ -66,7 +66,16 @@ const DEFAULT_WEIGHTS: CompositeQualityWeights = {
   density: 0.2,
 };
 
-const DEFAULT_THRESHOLD = 0.7;
+/**
+ * Default pass bar for the composite layout quality score — the single source.
+ *
+ * `LayoutAutoOptimizer` iterates on this module's `scoreLayout()` output and
+ * uses the SAME bar as its stop condition; previously it carried its own
+ * `0.7` copies (guarded by
+ * tests/guards/layout-quality-threshold-single-source.test.ts).
+ */
+export const DEFAULT_LAYOUT_QUALITY_THRESHOLD = 0.7;
+const DEFAULT_THRESHOLD = DEFAULT_LAYOUT_QUALITY_THRESHOLD;
 
 /**
  * Calculate composite layout quality score from individual metrics.
