@@ -134,27 +134,32 @@ export class RegressionDetector {
    * pipeline; this method is the matching guard for the regression baseline.
    */
   async loadBaseline(): Promise<BaselineData | null> {
-    const removeBadBaseline = (reason: string): void => {
+    // Quarantine is AWAITED before loadBaseline resolves: a fire-and-forget
+    // `void fs.promises.unlink` let the method return while the poisoned file
+    // was still on disk (a caller re-reading the baseline could re-ingest it),
+    // and the floating promise's ENOENT rejection surfaced as an unhandled
+    // rejection attributed to unrelated code running at the time.
+    const removeBadBaseline = async (reason: string): Promise<void> => {
       logger.warn(
         `Removing poisoned baseline at ${this.baselinePath}: ${reason}`,
       );
       try {
         if (fs.existsSync(this.baselinePath)) {
-          void fs.promises.unlink(this.baselinePath);
+          await fs.promises.unlink(this.baselinePath);
         }
       } catch (removeErr) {
         logger.warn(`Failed to remove poisoned baseline ${this.baselinePath}: ${String(removeErr)}`);
       }
     };
 
-    const coerceFiniteDate = (raw: unknown, label: string): Date | null => {
+    const coerceFiniteDate = async (raw: unknown, label: string): Promise<Date | null> => {
       if (raw === null || raw === undefined) {
-        removeBadBaseline(`${label} is ${raw}`);
+        await removeBadBaseline(`${label} is ${raw}`);
         return null;
       }
       const d = raw instanceof Date ? raw : new Date(raw as number | string);
       if (!Number.isFinite(d.getTime())) {
-        removeBadBaseline(`${label} is not a valid date (got ${JSON.stringify(raw)})`);
+        await removeBadBaseline(`${label} is not a valid date (got ${JSON.stringify(raw)})`);
         return null;
       }
       return d;
@@ -167,21 +172,21 @@ export class RegressionDetector {
       try {
         parsed = JSON.parse(data);
       } catch (parseErr) {
-        removeBadBaseline(`JSON parse failure: ${String(parseErr)}`);
+        await removeBadBaseline(`JSON parse failure: ${String(parseErr)}`);
         return null;
       }
       if (!parsed || typeof parsed !== 'object') {
-        removeBadBaseline('payload is not a JSON object');
+        await removeBadBaseline('payload is not a JSON object');
         return null;
       }
       const obj = parsed as Record<string, unknown>;
 
-      const tsTop = coerceFiniteDate(obj.timestamp, 'timestamp');
+      const tsTop = await coerceFiniteDate(obj.timestamp, 'timestamp');
       if (tsTop === null) return null;
 
       const metricsObj = obj.metrics;
       if (!metricsObj || typeof metricsObj !== 'object') {
-        removeBadBaseline('metrics is missing or not an object');
+        await removeBadBaseline('metrics is missing or not an object');
         return null;
       }
 
@@ -203,12 +208,12 @@ export class RegressionDetector {
       const metricsRecord = metricsObj as Record<string, unknown>;
       for (const [key, value] of Object.entries(metricsRecord)) {
         if (typeof value === 'number' && !Number.isFinite(value)) {
-          removeBadBaseline(`metric "${key}" is non-finite (got ${value})`);
+          await removeBadBaseline(`metric "${key}" is non-finite (got ${value})`);
           return null;
         }
       }
 
-      const tsMetrics = coerceFiniteDate(
+      const tsMetrics = await coerceFiniteDate(
         (metricsObj as Record<string, unknown>).timestamp,
         'metrics.timestamp',
       );
