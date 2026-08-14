@@ -223,6 +223,26 @@ describe('RecursiveCustomInstructionsFramework', () => {
       const report = framework.generateProgressReport();
       expect(report.metrics.sceneSegmentationF1).toBe(0);
     });
+
+    // Regression (defect-9 sibling): an ABSENT accuracy — the caller omits the
+    // field entirely — must NOT manufacture the 0.85/0.75 quality-threshold value.
+    // The `??` guard above only protects an EXPLICIT 0; `?? 0.85`/`?? 0.75` still
+    // fell back to exactly the gate bar for an unmeasured stage, so `>= 0.85`/
+    // `>= 0.75` silently passed. `?? 0` (fail-loud, matching buildQualityMetrics'
+    // sanitizeFinite(_, 0)) puts absent below every threshold. The live caller
+    // (main-pipeline executeStageWithFramework) always supplies accuracy today,
+    // so this pins the contract against a future caller that omits it.
+    it('does not inflate an ABSENT transcription accuracy to the 0.85 threshold', async () => {
+      await framework.recordStageSuccess('transcription', { duration: 1500 });
+      const report = framework.generateProgressReport();
+      expect(report.metrics.transcriptionAccuracy).toBe(0);
+    });
+
+    it('does not inflate an ABSENT analysis accuracy to the 0.75 threshold', async () => {
+      await framework.recordStageSuccess('analysis', { duration: 2000 });
+      const report = framework.generateProgressReport();
+      expect(report.metrics.sceneSegmentationF1).toBe(0);
+    });
   });
 
   describe('recordStageFailure', () => {

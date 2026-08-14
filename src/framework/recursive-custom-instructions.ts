@@ -642,13 +642,19 @@ export class RecursiveCustomInstructionsFramework {
     // Update relevant metrics based on stage
     switch (stageName) {
       case 'transcription':
-        // `??` not `||`: accuracy 0 (complete transcription failure) is a legitimate
-        // value that must be recorded, not masked to the 0.85 default — otherwise a
-        // 0%-accuracy run passes the quality threshold (see buildQualityMetrics fix).
-        this.currentState.metrics.transcriptionAccuracy = metrics.accuracy ?? 0.85;
+        // Fail-loud on ABSENT accuracy, mirroring buildQualityMetrics'
+        // sanitizeFinite(_, 0) contract. The previous `?? 0.85` only looked safe:
+        // `??` (not `||`) does preserve an EXPLICIT accuracy of 0 (a real 0% run),
+        // but an ABSENT accuracy fell back to 0.85 — exactly the
+        // `qualityThresholds.transcriptionAccuracy` bar — so `>= 0.85` silently
+        // passed an unmeasured stage. `?? 0` puts absent below every threshold so
+        // the gate fails loudly and forces iteration, exactly like buildQualityMetrics.
+        this.currentState.metrics.transcriptionAccuracy = metrics.accuracy ?? 0;
         break;
       case 'analysis':
-        this.currentState.metrics.sceneSegmentationF1 = metrics.accuracy ?? 0.75;
+        // Same fail-loud contract: absent accuracy → 0 (below the 0.75 threshold),
+        // never the 0.75 default that would satisfy `>= 0.75` for an unmeasured stage.
+        this.currentState.metrics.sceneSegmentationF1 = metrics.accuracy ?? 0;
         break;
       case 'layout':
         this.currentState.metrics.layoutOverlap = 0; // Success means no overlap
