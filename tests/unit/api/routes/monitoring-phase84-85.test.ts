@@ -388,6 +388,31 @@ describe('REQ-214: Prometheus export E2E completeness', () => {
       expect(line).toMatch(/^\w[\w]*(\{[^}]*\})?\s+[\d.e+-]+$/);
     }
   });
+
+  test('TC-214-02: /prometheus honors ?prefix= like /dashboard and /alerts do', async () => {
+    await request(app).get('/api/v1/monitoring/health');
+    const response = await request(app).get('/api/v1/monitoring/prometheus?prefix=s2v');
+
+    expect(response.status).toBe(200);
+    const body = response.text;
+    // Every sample line Prometheus scrapes carries the prefix — previously the
+    // route dropped the param entirely, so ?prefix=s2v returned unprefixed
+    // output while /dashboard?prefix=s2v and /alerts?prefix=s2v emitted
+    // s2v_-prefixed queries that could never match these metric names.
+    expect(body).toMatch(/^# HELP s2v_http_requests_total /m);
+    expect(body).toMatch(/^# TYPE s2v_http_requests_total counter/m);
+    for (const line of body.split('\n')) {
+      if (line.startsWith('#') || line.trim() === '') continue;
+      expect(line.startsWith('s2v_')).toBe(true);
+    }
+  });
+
+  test('TC-214-03: /prometheus rejects an invalid prefix with 400', async () => {
+    const response = await request(app).get('/api/v1/monitoring/prometheus?prefix=bad!char');
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error.code).toBe('VALIDATION_ERROR');
+  });
 });
 
 // ===========================================================================

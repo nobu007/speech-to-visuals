@@ -30,8 +30,10 @@
 
 import {
   httpMetricsCollector,
+  statusCodeClass,
   type HttpMetricsSnapshot,
   type RouteMetricsSnapshot,
+  type HttpStatusClass,
 } from './http-metrics-collector';
 import {
   pipelineMetricsCollector,
@@ -82,13 +84,14 @@ function pathToMetricSuffix(path: string): string {
     || 'root';
 }
 
-function statusCodeClass(code: number): string {
-  if (code < 200) return '1xx';
-  if (code < 300) return '2xx';
-  if (code < 400) return '3xx';
-  if (code < 500) return '4xx';
-  return '5xx';
-}
+// The status-code → class classifier (`statusCodeClass`) is owned by
+// http-metrics-collector — the same ONE definition that buckets each request
+// into the per-route `statusClassCounts` these samples read. Re-deriving
+// classes here from count/errorCount arithmetic is what misfiled 404s as
+// `status_class="5xx"` and 3xx as "2xx".
+
+/** Fixed emission order for status-class samples. */
+const STATUS_CLASSES: HttpStatusClass[] = ['1xx', '2xx', '3xx', '4xx', '5xx'];
 
 function formatLabels(labels: Record<string, string>): string {
   const entries = Object.entries(labels);
@@ -105,14 +108,14 @@ function buildRequestTotal(routes: RouteMetricsSnapshot[]): PrometheusMetric {
   const samples: PrometheusMetric['samples'] = [];
   for (const r of routes) {
     const labels = { method: r.method, path: r.path };
-    samples.push({
-      labels: { ...labels, status_class: '2xx' },
-      value: r.count - r.errorCount,
-    });
-    if (r.errorCount > 0) {
+    for (const cls of STATUS_CLASSES) {
+      const value = r.statusClassCounts[cls];
+      // Always keep the 2xx series present (stable dashboard continuity);
+      // every other class is emitted only when it has traffic.
+      if (cls !== '2xx' && value === 0) continue;
       samples.push({
-        labels: { ...labels, status_class: '5xx' },
-        value: r.errorCount,
+        labels: { ...labels, status_class: cls },
+        value,
       });
     }
   }
@@ -174,10 +177,16 @@ function buildUptime(snapshot: HttpMetricsSnapshot): PrometheusMetric {
 // Format renderer
 // ---------------------------------------------------------------------------
 
-function renderMetric(metric: PrometheusMetric): string {
+function renderMetric(metric: PrometheusMetric, prefix: string): string {
+  // The prefix is applied ONCE to the family name here, so HELP/TYPE comments
+  // and every sample line agree. The previous implementation prefixed only the
+  // comment lines after rendering, leaving the scraped samples unprefixed —
+  // HELP declared s2v_http_requests_total while the sample emitted
+  // http_requests_total.
+  const name = `${prefix}${metric.name}`;
   const lines: string[] = [];
-  lines.push(`# HELP ${metric.name} ${metric.help}`);
-  lines.push(`# TYPE ${metric.name} ${metric.type}`);
+  lines.push(`# HELP ${name} ${metric.help}`);
+  lines.push(`# TYPE ${name} ${metric.type}`);
 
   for (const sample of metric.samples) {
     const suffix = sample.suffix ?? '';
@@ -196,7 +205,7 @@ function renderMetric(metric: PrometheusMetric): string {
     // summary stays structurally complete. The security collector appends its
     // own counter-only text, which is inherently finite integer arithmetic.
     const value = Number.isFinite(sample.value) ? sample.value : 0;
-    lines.push(`${metric.name}${suffix}${labelStr} ${value}`);
+    lines.push(`${name}${suffix}${labelStr} ${value}`);
   }
 
   return lines.join('\n');
@@ -442,7 +451,11 @@ export function exportPrometheusMetrics(options?: PrometheusExportOptions): stri
   const snapshot = options?.snapshot ?? httpMetricsCollector.getSnapshot();
   const pipelineSnap = options?.pipelineSnapshot ?? pipelineMetricsCollector.getSnapshot();
   const exportSnap = options?.exportSnapshot ?? exportMetricsCollector.getSnapshot();
-  const prefix = options?.prefix ?? '';
+  // Same namespace-join contract as grafana-dashboard-model and alert-rules
+  // (`metricPrefix ? \`${metricPrefix}_\` : ''`): ?prefix=s2v yields
+  // s2v_http_requests_total on ALL three surfaces, so a dashboard generated
+  // with a prefix queries names this endpoint actually emits.
+  const prefix = options?.prefix ? `${options.prefix}_` : '';
 
   const metrics: PrometheusMetric[] = [
     buildRequestTotal(snapshot.routes),
@@ -506,24 +519,31 @@ export function exportPrometheusMetrics(options?: PrometheusExportOptions): stri
     metrics.push(buildExportQueueReplayTotal(exportSnap.queue));
   }
 
-  const output = metrics.map(renderMetric).join('\n\n');
+  const output = metrics.map(m => renderMetric(m, prefix)).join('\n\n');
 
-  // Append security guard rejection metrics when data exists
+  // Append security guard rejection metrics when data exists. The security
+  // collector renders its own text; a prefix must rewrite its SAMPLE lines
+  // (leading identifier on non-comment lines), not just its comments.
   const securitySnap = securityMetricsCollector.getSnapshot();
   if (securitySnap.totalRejections > 0) {
-    const securityText = securityMetricsCollector.toPrometheusText();
-    const combined = output + '\n\n' + securityText;
-    if (prefix) {
-      return combined.replace(/^(# (?:HELP|TYPE) )(\w)/gm, `$1${prefix}${'$2'}`) + '\n';
-    }
-    return combined + '\n';
-  }
-
-  if (prefix) {
-    return output.replace(/^(# (?:HELP|TYPE) )(\w)/gm, `$1${prefix}${'$2'}`);
+    const securityText = applyPrefixToSamples(
+      securityMetricsCollector.toPrometheusText(),
+      prefix,
+    );
+    return output + '\n\n' + securityText + '\n';
   }
 
   return output + '\n';
+}
+
+/**
+ * Prefix the metric-name token at the start of every SAMPLE line. Comment
+ * lines (`# …`) and blank lines are left alone — only sample lines name a
+ * metric at column 0.
+ */
+function applyPrefixToSamples(text: string, prefix: string): string {
+  if (!prefix) return text;
+  return text.replace(/^([a-zA-Z_][a-zA-Z0-9_]*)/gm, `${prefix}$1`);
 }
 
 /** Content type for Prometheus exposition format. */

@@ -60,6 +60,11 @@ const AlertsQuerySchema = z.object({
     .optional(),
 });
 
+// Same prefix contract as /dashboard and /alerts: the three export surfaces
+// share ONE namespace parameter, because dashboard panels and alert rules
+// generated with ?prefix=X query metric names the /prometheus endpoint emits.
+const PrometheusQuerySchema = AlertsQuerySchema;
+
 // ---------------------------------------------------------------------------
 // Error helper
 // ---------------------------------------------------------------------------
@@ -240,9 +245,18 @@ export function createMonitoringRouter(dashboard?: PerformanceDashboard): Router
   });
 
   // GET /prometheus - Prometheus exposition format metrics (REQ-206)
-  router.get('/prometheus', (_req: Request, res: Response) => {
+  router.get('/prometheus', (req: Request, res: Response) => {
+    const parsed = PrometheusQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      const details = parsed.error.issues.map(i => ({ path: i.path.join('.'), message: i.message, code: i.code }));
+      const msg = details[0]?.message ?? 'Invalid query parameters';
+      return sendError(res, 400, 'VALIDATION_ERROR', msg, details);
+    }
+
     try {
-      const body = exportPrometheusMetrics();
+      const body = exportPrometheusMetrics(
+        parsed.data.prefix ? { prefix: parsed.data.prefix } : undefined,
+      );
       res.setHeader('Content-Type', PROMETHEUS_CONTENT_TYPE);
       return res.status(200).send(body);
     } catch (error) {

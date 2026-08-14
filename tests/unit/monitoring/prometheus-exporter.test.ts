@@ -37,6 +37,11 @@ function makeSnapshot(overrides: Partial<HttpMetricsSnapshot> = {}): HttpMetrics
   };
 }
 
+/** Zeroed per-class counts, so fixtures only state the classes they mean. */
+function classes(overrides: Record<string, number> = {}): Record<string, number> {
+  return { '1xx': 0, '2xx': 0, '3xx': 0, '4xx': 0, '5xx': 0, ...overrides };
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -72,15 +77,69 @@ describe('PrometheusExporter', () => {
           minMs: 10,
           maxMs: 100,
           percentiles: { p50: 50, p95: 90, p99: 100 },
+          // 7×200 + 1×301 + 2×404 — the two errors are CLIENT (4xx) errors
+          statusClassCounts: classes({ '2xx': 7, '3xx': 1, '4xx': 2 }),
         },
       ],
     });
 
     const output = exportPrometheusMetrics({ snapshot });
-    // 2xx: 10 - 2 = 8
-    expect(output).toMatch(/http_requests_total\{method="GET",path="\/api\/v1\/test",status_class="2xx"\} 8/);
-    // 5xx: 2
-    expect(output).toMatch(/http_requests_total\{method="GET",path="\/api\/v1\/test",status_class="5xx"\} 2/);
+    // Per-class counts come from the recorded breakdown, NOT "count minus errors"
+    expect(output).toMatch(/http_requests_total\{method="GET",path="\/api\/v1\/test",status_class="2xx"\} 7/);
+    expect(output).toMatch(/http_requests_total\{method="GET",path="\/api\/v1\/test",status_class="3xx"\} 1/);
+    expect(output).toMatch(/http_requests_total\{method="GET",path="\/api\/v1\/test",status_class="4xx"\} 2/);
+  });
+
+  it('never exports 4xx client errors as status_class="5xx"', () => {
+    // A 404-storm on a bad path must not surface as 5xx "server" errors on a
+    // Grafana panel or an error-budget alert — the two-bucket
+    // (count − errorCount vs errorCount) rendering did exactly that.
+    const snapshot = makeSnapshot({
+      totalRequests: 1000,
+      totalErrors: 1000,
+      routes: [
+        {
+          method: 'GET',
+          path: '/api/v1/nonexistent',
+          count: 1000,
+          errorCount: 1000,
+          errorRate: 1,
+          avgMs: 5,
+          minMs: 1,
+          maxMs: 10,
+          percentiles: { p50: 5, p95: 8, p99: 10 },
+          statusClassCounts: classes({ '4xx': 1000 }),
+        },
+      ],
+    });
+
+    const output = exportPrometheusMetrics({ snapshot });
+    expect(output).toMatch(/status_class="4xx"\} 1000/);
+    expect(output).not.toMatch(/status_class="5xx"/);
+  });
+
+  it('does not fold 3xx redirects into the 2xx bucket', () => {
+    const snapshot = makeSnapshot({
+      totalRequests: 5,
+      routes: [
+        {
+          method: 'GET',
+          path: '/redirector',
+          count: 5,
+          errorCount: 0,
+          errorRate: 0,
+          avgMs: 10,
+          minMs: 5,
+          maxMs: 20,
+          percentiles: { p50: 10, p95: 20, p99: 20 },
+          statusClassCounts: classes({ '2xx': 2, '3xx': 3 }),
+        },
+      ],
+    });
+
+    const output = exportPrometheusMetrics({ snapshot });
+    expect(output).toMatch(/status_class="2xx"\} 2/);
+    expect(output).toMatch(/status_class="3xx"\} 3/);
   });
 
   // ---- Error counts ----
@@ -100,6 +159,7 @@ describe('PrometheusExporter', () => {
           minMs: 5,
           maxMs: 15,
           percentiles: { p50: 10, p95: 15, p99: 15 },
+          statusClassCounts: classes({ '2xx': 4 }),
         },
         {
           method: 'POST',
@@ -111,6 +171,7 @@ describe('PrometheusExporter', () => {
           minMs: 200,
           maxMs: 200,
           percentiles: { p50: 200, p95: 200, p99: 200 },
+          statusClassCounts: classes({ '5xx': 1 }),
         },
       ],
     });
@@ -137,6 +198,7 @@ describe('PrometheusExporter', () => {
           minMs: 5,
           maxMs: 500,
           percentiles: { p50: 38, p95: 120, p99: 350 },
+          statusClassCounts: classes({ '2xx': 100 }),
         },
       ],
     });
@@ -194,6 +256,7 @@ describe('PrometheusExporter', () => {
           minMs: 10,
           maxMs: 10,
           percentiles: { p50: 10, p95: 10, p99: 10 },
+          statusClassCounts: classes({ '2xx': 1 }),
         },
       ],
     });
@@ -222,6 +285,7 @@ describe('PrometheusExporter', () => {
           minMs: 5,
           maxMs: 50,
           percentiles: { p50: 12, p95: 40, p99: 50 },
+          statusClassCounts: classes({ '2xx': 20 }),
         },
         {
           method: 'POST',
@@ -233,6 +297,7 @@ describe('PrometheusExporter', () => {
           minMs: 20,
           maxMs: 500,
           percentiles: { p50: 80, p95: 400, p99: 500 },
+          statusClassCounts: classes({ '2xx': 8, '4xx': 2 }),
         },
       ],
     });
@@ -286,6 +351,7 @@ describe('PrometheusExporter', () => {
           minMs: 10,
           maxMs: 10,
           percentiles: { p50: 10, p95: 10, p99: 10 },
+          statusClassCounts: classes({ '2xx': 1 }),
         },
         {
           method: 'GET',
@@ -297,6 +363,7 @@ describe('PrometheusExporter', () => {
           minMs: 10,
           maxMs: 10,
           percentiles: { p50: 10, p95: 10, p99: 10 },
+          statusClassCounts: classes({ '2xx': 1 }),
         },
       ],
     });
@@ -514,6 +581,56 @@ describe('PrometheusExporter', () => {
       expect(output).not.toContain('export_queue_dlq_size');
       expect(output).not.toContain('export_queue_retry_total');
       expect(output).not.toContain('export_queue_dead_letter_total');
+    });
+  });
+
+  // ---- Prefix support (metric namespace) ----
+
+  describe('prefix support', () => {
+    const snapshot = makeSnapshot({
+      totalRequests: 3,
+      routes: [
+        {
+          method: 'GET',
+          path: '/api/v1/test',
+          count: 3,
+          errorCount: 1,
+          errorRate: 1 / 3,
+          avgMs: 20,
+          minMs: 10,
+          maxMs: 30,
+          percentiles: { p50: 20, p95: 30, p99: 30 },
+          statusClassCounts: classes({ '2xx': 2, '5xx': 1 }),
+        },
+      ],
+    });
+
+    it('prefixes sample lines, not just HELP/TYPE comments', () => {
+      const output = exportPrometheusMetrics({ snapshot, prefix: 's2v' });
+      // The samples Prometheus actually scrapes must carry the prefix —
+      // previously only `# HELP`/`# TYPE` comment lines were rewritten, so
+      // HELP declared s2v_http_requests_total while the sample line emitted
+      // http_requests_total (name mismatch inside one exposition).
+      expect(output).toMatch(/^s2v_http_requests_total\{method="GET",path="\/api\/v1\/test",status_class="2xx"\} 2$/m);
+      expect(output).toMatch(/^# HELP s2v_http_requests_total /m);
+      expect(output).toMatch(/^# TYPE s2v_http_requests_total counter/m);
+      expect(output).toMatch(/^s2v_http_active_requests 0$/m);
+    });
+
+    it('leaves no unprefixed metric name behind when a prefix is set', () => {
+      const output = exportPrometheusMetrics({ snapshot, prefix: 's2v' });
+      // Any line that starts a sample with the unprefixed family name means
+      // dashboard/alert queries (which DO honor ?prefix=) can never match it.
+      for (const line of output.split('\n')) {
+        if (line.startsWith('#') || line.trim() === '') continue;
+        expect(line.startsWith('s2v_')).toBe(true);
+      }
+    });
+
+    it('leaves the exposition unprefixed when no prefix is given', () => {
+      const output = exportPrometheusMetrics({ snapshot });
+      expect(output).toMatch(/^# HELP http_requests_total /m);
+      expect(output).not.toContain('s2v_');
     });
   });
 });

@@ -23,11 +23,39 @@ export type { Percentiles };
 // Types
 // ---------------------------------------------------------------------------
 
+/** Prometheus-style HTTP status class ('1xx' … '5xx'). */
+export type HttpStatusClass = '1xx' | '2xx' | '3xx' | '4xx' | '5xx';
+
+/**
+ * Canonical status-code → status-class classifier.
+ *
+ * Single source of truth for the class boundaries: the collector uses it to
+ * bucket each request into `statusClassCounts`, and the Prometheus exporter
+ * labels its samples from those counts. Before this existed as ONE def, the
+ * exporter re-derived classes from `count`/`errorCount` arithmetic — a 404
+ * storm rendered as `status_class="5xx"` (client errors indistinguishable
+ * from server errors) and 3xx redirects folded into "2xx".
+ */
+export function statusCodeClass(code: number): HttpStatusClass {
+  if (code < 200) return '1xx';
+  if (code < 300) return '2xx';
+  if (code < 400) return '3xx';
+  if (code < 500) return '4xx';
+  return '5xx';
+}
+
+/** Zeroed per-class counter, so every class key is always present. */
+function zeroClassCounts(): Record<HttpStatusClass, number> {
+  return { '1xx': 0, '2xx': 0, '3xx': 0, '4xx': 0, '5xx': 0 };
+}
+
 export interface RouteMetrics {
   method: string;
   path: string;
   count: number;
   errorCount: number;
+  /** Per-status-class request counts (4xx and 5xx kept distinct). */
+  statusClassCounts: Record<HttpStatusClass, number>;
   lastStatusCode: number;
   latencies: number[]; // bounded circular buffer
   minMs: number;
@@ -49,6 +77,8 @@ export interface RouteMetricsSnapshot {
   path: string;
   count: number;
   errorCount: number;
+  /** Per-status-class request counts (4xx and 5xx kept distinct). */
+  statusClassCounts: Record<HttpStatusClass, number>;
   errorRate: number;
   avgMs: number;
   minMs: number;
@@ -168,6 +198,7 @@ export class HttpMetricsCollector {
         path,
         count: 0,
         errorCount: 0,
+        statusClassCounts: zeroClassCounts(),
         lastStatusCode: 0,
         latencies: [],
         minMs: Infinity,
@@ -178,6 +209,7 @@ export class HttpMetricsCollector {
     }
 
     route.count++;
+    route.statusClassCounts[statusCodeClass(statusCode)]++;
     route.lastStatusCode = statusCode;
     route.sumMs += durationMs;
     if (isError) route.errorCount++;
@@ -220,6 +252,7 @@ export class HttpMetricsCollector {
         path: r.path,
         count: r.count,
         errorCount: r.errorCount,
+        statusClassCounts: { ...r.statusClassCounts },
         errorRate: r.count > 0 ? r.errorCount / r.count : 0,
         avgMs: r.count > 0 ? Math.round(r.sumMs / r.count) : 0,
         minMs: r.minMs === Infinity ? 0 : r.minMs,

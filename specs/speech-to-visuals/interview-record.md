@@ -4129,6 +4129,33 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A134: Phase 134 — Prometheus status_class 誤分類と ?prefix= 不備の修正（2026-08-15 第215回検証）
+
+**分析日時**: 2026-08-15
+**カテゴリ**: 監視データの正当性バグ修正（wrong-field mapping between parallel producer/consumer）+ パラメタ配線忘れ
+**背景**: steering 4項目は前回（A133）で全て処理済みまたは cross-repo contamination と確定済み（項目1は 90666703 で実装、項目2・3は trans_parency_os_private 専存）。stale な steering を再実装せず、未監査領域（src/monitoring, src/api, src/optimization 等）の新規バグハントを実施。読み込み検証で3件の実在バグを確認、うち2件（同一モジュール連鎖）を本轮で修正。
+
+**判断**:
+
+1. **TC-206-04（status_class 誤分類）→ 修正**: `buildRequestTotal` は `count − errorCount` を 2xx、`errorCount` を 5xx に出力していた。HttpMetricsCollector は `statusCode >= 400` しか保持しないため、404ストーム1000件が `status_class="5xx" 1000` として Grafana Request Volume パネル（legend `{{status_class}}`）に表示され、4xx（client）と5xx（server）は区別不能、3xx は 2xx に折り込まれていた。モジュールヘッダーは「Error rates by status code class (4xx, 5xx)」を約束していたが実装は単一 errorCount。修正: `RouteMetrics`/`RouteMetricsSnapshot` に `statusClassCounts: Record<HttpStatusClass, number>` を追加し、クラス境界の単一定義 `statusCodeClass()` を collector 側に新設（exporter のみにあった dead な同名 helper を削除し import に切替 — invariant-split 解消）。
+
+2. **TC-206-05 / TC-214-02・03（prefix 二重不備）→ 修正**: (a) `GET /api/v1/monitoring/prometheus` は `?prefix=` を完全無視（sibling の /dashboard・/alerts は両方受理）。(b) エクスポーター自体も prefix 適用を `# HELP/# TYPE` コメント行のみの regex で行い、スクレープ対象のサンプル行は無接頭のまま — 同一 exposition 内で HELP は `s2v_http_requests_total` を宣言しながらサンプルは `http_requests_total` を吐く状態で、prefix 付き dashboard/alert クエリは恒久 no-data。修正: `renderMetric` が family 名に prefix を一度適用（HELP/TYPE/サンプルが構造的に一致）、security collector 追加テキストには `applyPrefixToSamples()`、ルートには `PrometheusQuerySchema`（/alerts と同一契約）を新設。namespace 結合（`prefix + '_'`）も dashboard/alert-rules と同じ1行契約に統一。
+
+3. **テストは RED-first + mutation-verified**: 修正前に13 test RED（collector 2 / exporter classification 3 / prefix 4 / route 2 ほか）。修正後に `statusCodeClass` の `<500`→`<600` 退行で TC-205-04 のみ RED、ルートの prefix 传递除去で TC-214-02 のみ RED を確認して復帰。影響受ける全 consumer 10 suite 194 test + 6 suite 58 test GREEN、tsc 0、eslint 0。
+
+**根拠**:
+- src/monitoring/prometheus-exporter.ts buildRequestTotal（旧: `value: r.count - r.errorCount` / `'5xx': errorCount`）
+- src/monitoring/http-metrics-collector.ts recordRequest（`statusCode >= 400` のみ、クラス内訳なし）
+- src/api/routes/monitoring.ts 旧 `/prometheus` handler（`_req` — query 未読）
+- src/monitoring/grafana-dashboard-model.ts:369 legend `{{status_class}}`、alert-rules.ts:255 `metricPrefix ? \`${metricPrefix}_\` : ''`
+
+**信頼性への影響**:
+- REQ-205 に TC-205-04、REQ-206 に TC-206-04/TC-206-05 を追加（いずれも 🔵、mutation-verified）
+- 既有テスト2件が誤分類を pin していた（"2xx = total minus errors"）→ 正しい per-class 理に書き換え
+- 信頼性レベル分布: 🔵 +3 / 🟡 🔴 変動なし
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)

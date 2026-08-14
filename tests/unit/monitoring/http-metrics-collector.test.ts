@@ -55,6 +55,44 @@ describe('HttpMetricsCollector', () => {
     expect(snap.routes).toHaveLength(3);
   });
 
+  // ---- Status-class tracking (TC-205-04) ----
+
+  it('records per-route status-class counts, keeping 4xx distinct from 5xx', () => {
+    // The module header promises "error rates by status code class (4xx, 5xx)"
+    // but a single errorCount cannot answer it. The collector must retain the
+    // per-class breakdown the Prometheus exporter needs — otherwise 404s are
+    // exported as status_class="5xx" and 3xx as "2xx" (count minus errors).
+    collector.recordRequest('GET', '/mixed', 200, 10); // 2xx
+    collector.recordRequest('GET', '/mixed', 200, 10); // 2xx
+    collector.recordRequest('GET', '/mixed', 301, 10); // 3xx (NOT an error)
+    collector.recordRequest('GET', '/mixed', 404, 10); // 4xx client error
+    collector.recordRequest('GET', '/mixed', 404, 10); // 4xx client error
+    collector.recordRequest('GET', '/mixed', 503, 10); // 5xx server error
+
+    const snap = collector.getSnapshot();
+    const route = snap.routes.find(r => r.path === '/mixed')!;
+    expect(route.count).toBe(6);
+    expect(route.errorCount).toBe(3); // 4xx + 5xx (unchanged >=400 semantics)
+    expect(route.statusClassCounts).toEqual({
+      '1xx': 0,
+      '2xx': 2,
+      '3xx': 1,
+      '4xx': 2,
+      '5xx': 1,
+    });
+  });
+
+  it('sums status-class counts to the route count across every class boundary', () => {
+    for (const code of [100, 204, 302, 400, 404, 451, 500, 503, 599]) {
+      collector.recordRequest('GET', '/all-classes', code, 5);
+    }
+    const snap = collector.getSnapshot();
+    const route = snap.routes.find(r => r.path === '/all-classes')!;
+    expect(route.count).toBe(9);
+    const total = Object.values(route.statusClassCounts).reduce((a, b) => a + b, 0);
+    expect(total).toBe(route.count);
+  });
+
   // ---- Error tracking ----
 
   it('counts 4xx and 5xx as errors', () => {

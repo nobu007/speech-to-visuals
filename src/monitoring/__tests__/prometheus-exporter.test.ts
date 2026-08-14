@@ -39,6 +39,8 @@ function makeHttpSnapshot(overrides?: Partial<HttpMetricsSnapshot>): HttpMetrics
         minMs: 10,
         maxMs: 200,
         percentiles: { p50: 40, p95: 150, p99: 190 },
+        // 78×200 + 2×404 — both errors are CLIENT errors (4xx)
+        statusClassCounts: { '1xx': 0, '2xx': 78, '3xx': 0, '4xx': 2, '5xx': 0 },
       },
       {
         method: 'POST',
@@ -49,6 +51,7 @@ function makeHttpSnapshot(overrides?: Partial<HttpMetricsSnapshot>): HttpMetrics
         minMs: 1000,
         maxMs: 15000,
         percentiles: { p50: 4000, p95: 12000, p99: 14000 },
+        statusClassCounts: { '1xx': 0, '2xx': 17, '3xx': 0, '4xx': 0, '5xx': 3 },
       },
     ],
     ...overrides,
@@ -167,13 +170,19 @@ describe('prometheus-exporter', () => {
     it('should export request totals with status_class labels', () => {
       const output = exportPrometheusMetrics(options);
       expect(output).toContain('http_requests_total{method="GET",path="/api/v1/health",status_class="2xx"}');
-      expect(output).toContain('http_requests_total{method="GET",path="/api/v1/health",status_class="5xx"}');
+      // The 2 errors on /health are 404s — client errors, class "4xx"
+      expect(output).toContain('http_requests_total{method="GET",path="/api/v1/health",status_class="4xx"} 2');
+      expect(output).not.toContain('http_requests_total{method="GET",path="/api/v1/health",status_class="5xx"}');
     });
 
-    it('should calculate 2xx count as total minus errors', () => {
+    it('should derive each class from the recorded status-class counts, not total minus errors', () => {
       const output = exportPrometheusMetrics(options);
-      // GET /api/v1/health: 80 total - 2 errors = 78 success
-      expect(output).toMatch(/http_requests_total.*status_class="2xx".* 78/);
+      // GET /api/v1/health: 78×200 + 2×404 → 2xx=78, 4xx=2 (NOT 2xx=78 via
+      // 80-2 with the two errors folded into a fake 5xx bucket)
+      expect(output).toMatch(/http_requests_total.*path="\/api\/v1\/health".*status_class="2xx".* 78/);
+      expect(output).toMatch(/http_requests_total.*path="\/api\/v1\/health".*status_class="4xx".* 2/);
+      // POST /api/v1/pipeline: 17×200 + 3×503 → 5xx=3
+      expect(output).toMatch(/http_requests_total.*path="\/api\/v1\/pipeline".*status_class="5xx".* 3/);
     });
 
     it('should export error totals', () => {
@@ -432,6 +441,7 @@ describe('prometheus-exporter', () => {
             minMs: 5,
             maxMs: 20,
             percentiles: { p50: 8, p95: 18, p99: 20 },
+            statusClassCounts: { '1xx': 0, '2xx': 10, '3xx': 0, '4xx': 0, '5xx': 0 },
           }],
         }),
         pipelineSnapshot: makePipelineSnapshot({ stages: [], totalRuns: 0, successfulRuns: 0, failedRuns: 0 }),
@@ -499,6 +509,7 @@ describe('prometheus-exporter', () => {
             minMs: 5,
             maxMs: 20,
             percentiles: { p50: 8, p95: 18, p99: 20 },
+            statusClassCounts: { '1xx': 0, '2xx': 1, '3xx': 0, '4xx': 0, '5xx': 0 },
           }],
         }),
         pipelineSnapshot: makePipelineSnapshot({ stages: [], totalRuns: 0, successfulRuns: 0, failedRuns: 0 }),
@@ -526,6 +537,7 @@ describe('prometheus-exporter', () => {
             minMs: 5,
             maxMs: 20,
             percentiles: { p50: 8, p95: 18, p99: 20 },
+            statusClassCounts: { '1xx': 0, '2xx': 1, '3xx': 0, '4xx': 0, '5xx': 0 },
           }],
         }),
         pipelineSnapshot: makePipelineSnapshot({ stages: [], totalRuns: 0, successfulRuns: 0, failedRuns: 0 }),
@@ -588,6 +600,37 @@ describe('prometheus-exporter', () => {
       expect(output).toMatch(/pipeline_stage_duration_ms\{stage="transcription",quantile="0.95"\} 8000/);
       expect(output).not.toMatch(/NaN/);
       expect(output).not.toMatch(/Infinity/);
+    });
+  });
+
+  describe('exportPrometheusMetrics - prefix support', () => {
+    const emptyQueue = {
+      queueSize: 0, dequeueCount: 0, avgWaitTimeMs: 0, dequeueByPriority: {},
+      dlqSize: 0, totalRetries: 0, totalDeadLettered: 0, totalReplayed: 0,
+    };
+    const options: PrometheusExportOptions = {
+      snapshot: makeHttpSnapshot(),
+      pipelineSnapshot: makePipelineSnapshot({ stages: [], totalRuns: 0, successfulRuns: 0, failedRuns: 0, batchJobs: { activeJobs: 0, jobsByStatus: { created: 0, running: 0, completed: 0, failed: 0, cancelled: 0, 'dead-lettered': 0 } } }),
+      exportSnapshot: makeExportSnapshot({ formats: [], stages: [], queue: emptyQueue }),
+      prefix: 's2v',
+    };
+
+    it('prefixes HELP/TYPE comments and the samples Prometheus scrapes', () => {
+      const output = exportPrometheusMetrics(options);
+      expect(output).toMatch(/^# HELP s2v_http_requests_total /m);
+      expect(output).toMatch(/^# TYPE s2v_http_requests_total counter/m);
+      // Sample lines too — previously ONLY the comment lines were rewritten,
+      // so every dashboard/alert query with the same prefix matched nothing.
+      expect(output).toMatch(/^s2v_http_requests_total\{method="GET",path="\/api\/v1\/health",status_class="2xx"\} 78/m);
+      expect(output).toMatch(/^s2v_http_active_requests 5/m);
+    });
+
+    it('leaves no unprefixed sample line when a prefix is set', () => {
+      const output = exportPrometheusMetrics(options);
+      for (const line of output.split('\n')) {
+        if (line.startsWith('#') || line.trim() === '') continue;
+        expect(line.startsWith('s2v_')).toBe(true);
+      }
     });
   });
 });

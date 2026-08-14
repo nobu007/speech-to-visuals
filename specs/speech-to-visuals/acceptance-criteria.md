@@ -3299,6 +3299,11 @@
   - **期待結果**: 最新1000サンプルのみ保持される
   - **信頼性**: 🔵 *http-metrics-collector.ts MAX_SAMPLES_PER_ROUTE=1000 より*
 
+- [x] **TC-205-04**: ステータスクラス別（1xx〜5xx）カウントが記録され 4xx/5xx が区別される 🔵
+  - **入力**: 同一ルートに 200×2, 301, 404×2, 503
+  - **期待結果**: `statusClassCounts` = {2xx:2, 3xx:1, 4xx:2, 5xx:1}（errorCount=3 は従来どおり ≥400）。クラス境界は単一定義 `statusCodeClass()` が唯一決定
+  - **信頼性**: 🔵 *http-metrics-collector.ts statusCodeClass/statusClassCounts より。mutation-verified: 境界 `<500` を `<600` に退行させると TC-205-04 のみ RED*
+
 ---
 
 ## REQ-206: Prometheus互換メトリクスエクスポート 🔵 ✅実装済
@@ -3325,6 +3330,16 @@
   - **入力**: メトリクス収集済み状態
   - **期待結果**: http_requests_total, http_request_duration_ms, http_errors_total, http_active_requests, http_slow_requests_total, process_uptime_ms が出力される
   - **信頼性**: 🔵 *prometheus-exporter.ts METRIC_DEFINITIONS より*
+
+- [x] **TC-206-04**: status_class が記録されたクラス別カウントから導出され、4xx が偽の 5xx に出ない 🔵
+  - **入力**: 404のみ1000件のルート（statusClassCounts={4xx:1000}）
+  - **期待結果**: `status_class="4xx" 1000` が出力され `status_class="5xx"` は一切出力されない（従来は errorCount をそのまま 5xx バケットに流し、404ストームがサーバーエラーとして表示されていた）。3xx も 2xx（count−errorCount）に折り込まれない
+  - **信頼性**: 🔵 *prometheus-exporter.ts buildRequestTotal()・tests/unit/monitoring/prometheus-exporter.test.ts より*
+
+- [x] **TC-206-05**: `?prefix=` がサンプル行と HELP/TYPE 行の両方に適用される 🔵
+  - **入力**: `exportPrometheusMetrics({prefix:'s2v'})` と `GET /api/v1/monitoring/prometheus?prefix=s2v`
+  - **期待結果**: 全サンプル行とコメント行が `s2v_http_requests_total` 等（namespace + `_` の結合は /dashboard・/alerts と同一契約）。従来は (a) ルートが prefix を無視、(b) エクスポーターはコメント行のみ書き換えサンプル行は無接頭のまま、だったため prefix 付き dashboard/alert クエリが恒久的 no-data になっていた
+  - **信頼性**: 🔵 *prometheus-exporter.ts renderMetric/applyPrefixToSamples・routes/monitoring.ts PrometheusQuerySchema より。mutation-verified: ルートの prefix 传递を外すと TC-214-02 のみ RED*
 
 ---
 
