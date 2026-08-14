@@ -307,6 +307,32 @@ function rectsOverlap(
 }
 
 /**
+ * (defect 9 — silent-pass class) Resolve a numeric metric, distinguishing
+ * ABSENT (unmeasured) from a real value. Returns null when the field is missing
+ * or non-finite, so the caller can FAIL LOUD instead of passing on a
+ * manufactured default.
+ *
+ * The closed instance: `Math.abs((data.captionSyncOffsetMs as number) ?? 0)`
+ * turned an ABSENT caption-sync offset into a perfect 0 ms, and `0 <= 50`
+ * PASSED — an uncaptioned render silently satisfied its own caption-sync SLO.
+ * The same shape affected audio-sync. A lower-is-better (`lt`/`lte`) or equality
+ * (`eq`) gate whose threshold the default 0 SATISFIES (threshold > 0 for
+ * `<`/`<=`, threshold >= 0 for `eq`) is a silent-pass; a gate whose threshold 0
+ * does NOT satisfy (e.g. `noiseLevel < -30`, or any higher-is-better `>= n` with
+ * n > 0) is safe by accident. Routing absent → null → fail closes the class for
+ * EVERY operator/threshold, so it cannot re-open under a new typo or polarity.
+ */
+function resolveMeasuredMetric(
+  data: Record<string, unknown>,
+  key: string,
+): number | null {
+  const raw = data[key];
+  if (raw === undefined || raw === null) return null;
+  const value = typeof raw === 'number' ? raw : Number(raw);
+  return Number.isFinite(value) ? value : null;
+}
+
+/**
  * Stage 1 criteria - Transcription quality
  */
 function createTranscriptionCriteria(): QualityCriterion[] {
@@ -588,7 +614,21 @@ function createRenderPrepCriteria(): QualityCriterion[] {
       threshold: 50,
       evaluate: (input: unknown): QualityResult => {
         const data = input as Record<string, unknown>;
-        const offset = Math.abs((data.captionSyncOffsetMs as number) ?? 0);
+        // (defect 9) An ABSENT captionSyncOffsetMs must NOT silently pass. The
+        // legacy `?? 0` manufactured a 0ms offset from missing data, and
+        // `0 <= 50` passed — an uncaptioned render silently satisfied its own
+        // caption-sync SLO. An unmeasured SLO fails loud instead (defect-9
+        // silent-pass class: lower-is-better `lte` satisfied by the default 0).
+        const raw = resolveMeasuredMetric(data, 'captionSyncOffsetMs');
+        if (raw === null) {
+          return {
+            passed: false,
+            score: 0,
+            threshold: 50,
+            details: 'Caption sync offset not provided — SLO unverifiable, failing instead of assuming 0ms (defect 9)',
+          };
+        }
+        const offset = Math.abs(raw);
         return {
           passed: offset <= 50,
           score: offset,
@@ -655,7 +695,20 @@ function createRenderFinalCriteria(): QualityCriterion[] {
       threshold: 50,
       evaluate: (input: unknown): QualityResult => {
         const data = input as Record<string, unknown>;
-        const offset = Math.abs((data.audioSyncOffsetMs as number) ?? 0);
+        // (defect 9) Same silent-pass as captionSync: an ABSENT
+        // audioSyncOffsetMs manufactured a 0ms offset (`?? 0`) that passed
+        // `<= 50`, so an audio whose sync was never measured silently satisfied
+        // its own audio-sync SLO. An unmeasured SLO fails loud instead.
+        const raw = resolveMeasuredMetric(data, 'audioSyncOffsetMs');
+        if (raw === null) {
+          return {
+            passed: false,
+            score: 0,
+            threshold: 50,
+            details: 'Audio sync offset not provided — SLO unverifiable, failing instead of assuming 0ms (defect 9)',
+          };
+        }
+        const offset = Math.abs(raw);
         return {
           passed: offset <= 50,
           score: offset,
