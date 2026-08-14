@@ -9,26 +9,19 @@
  * no longer match the render plan's floor, and the reported video length
  * would diverge from the clamped scene data).
  *
- * This guard pins:
- *   1. The canonical module exports the three boundaries and their ordering.
- *   2. All known consumers import the canonical module — none carries a
- *      bare clamp literal of its own (the literal `= <number>;` shapes are
- *      banned in the timing functions).
- *   3. Behavioral pin: generateRenderPlan actually clamps to the shared floor
- *      and the renderer ceiling.
- *   4. Behavioral pin: video-generator's scene conversion clamps to the same
- *      shared floor + editorial cap (the former legacy [3000, 10000] clamp
- *      truncated every 10–15 s simple-pipeline scene to 10 s, desyncing
- *      rendered video from its audio).
- *
- * Source anchors use import.meta.url, NOT process.cwd() — cwd-relative reads
- * flake under --maxWorkers>1 (TC-302/313, AGENTS.md テスト規約).
+ * This file pins VALUES and BEHAVIOR (generateRenderPlan and
+ * video-generator's scene conversion actually clamp to the shared
+ * boundaries). The literal-shape discovery sweeps live in the shared
+ * registry since round 8 — tests/guards/frozen-literal-registry.test.ts:
+ *   - rule 'scene-duration clamp literals banned in the three consumers'
+ *     (local min/max consts, legacy DEFAULT_MIN/MAX redefinitions, the
+ *     [3000, 10000] inline conversion clamp),
+ *   - rule 'default scene duration (5000ms) …' (any src/pipeline file
+ *     re-freezing the 5000ms default under either local name).
  */
 
-import { readFileSync, readdirSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { join, dirname } from 'path';
 import { describe, it, expect } from '@jest/globals';
+import { readSource } from './freeze-guard';
 import {
   MIN_SCENE_DURATION_MS,
   MAX_EDITORIAL_SCENE_DURATION_MS,
@@ -39,17 +32,17 @@ import { generateRenderPlan } from '@/pipeline/scene-render-spec-generator';
 import { VideoGenerator } from '@/pipeline/video-generator';
 import type { SceneGraph } from '@/types/diagram';
 
-const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-
 const CONSUMERS = [
   'src/pipeline/main-pipeline.ts',
   'src/pipeline/scene-render-spec-generator.ts',
   'src/pipeline/video-generator.ts',
 ];
 
-function readSource(rel: string): string {
-  return readFileSync(join(REPO_ROOT, rel), 'utf8');
-}
+const DEFAULT_CONSUMERS = [
+  'src/pipeline/pipeline-orchestrator.ts',
+  'src/pipeline/smoke-orchestrator.ts',
+  'src/pipeline/video-generator.ts',
+];
 
 function makeScene(durationMs: number): SceneGraph {
   return {
@@ -80,23 +73,8 @@ describe('scene-duration limits single source (08ae)', () => {
 
   it('every consumer imports the canonical module', () => {
     for (const rel of CONSUMERS) {
-      const src = readSource(rel);
-      expect(src).toMatch(/from '\.\/scene-duration-limits'/);
+      expect(readSource(rel)).toMatch(/from '\.\/scene-duration-limits'/);
     }
-  });
-
-  it('main-pipeline timing optimizer carries no bare clamp literal', () => {
-    const src = readSource('src/pipeline/main-pipeline.ts');
-    // The next-line shape of the old drift: local constants assigned from
-    // numeric literals inside optimizeSceneTiming.
-    expect(src).not.toMatch(/const minDuration = \d+;/);
-    expect(src).not.toMatch(/const maxDuration = \d+;/);
-  });
-
-  it('render-spec defaults carry no bare clamp literal', () => {
-    const src = readSource('src/pipeline/scene-render-spec-generator.ts');
-    expect(src).not.toMatch(/DEFAULT_MIN_SCENE_DURATION_MS = \d+;/);
-    expect(src).not.toMatch(/DEFAULT_MAX_SCENE_DURATION_MS = \d+;/);
   });
 
   it('generateRenderPlan clamps to the shared floor and renderer ceiling', () => {
@@ -145,13 +123,6 @@ describe('video-generator scene conversion uses the shared boundaries (08ae clos
     const nan = { ...makeScene(5000), endTime: Number.NaN };
     expect(convert(nan as SceneGraph, 0).durationMs).toBe(5000);
   });
-
-  it('carries no legacy [3000, 10000] conversion clamp literal', () => {
-    const src = readSource('src/pipeline/video-generator.ts');
-    // The old shape: Math.min(10000, ...) / Math.max(3000, ...) inline clamp.
-    expect(src).not.toMatch(/Math\.min\(10000,/);
-    expect(src).not.toMatch(/Math\.max\(3000,/);
-  });
 });
 
 /**
@@ -161,21 +132,11 @@ describe('video-generator scene conversion uses the shared boundaries (08ae clos
  * non-positive durationMs), smoke-orchestrator (same local const, diagram
  * durationMs fallback), and video-generator (`const defaultDuration = 5000`,
  * zero/NaN span fallback in scene conversion). The 08ae closure guard above
- * already pins the 5 s fallback BEHAVIOR; this block pins the VALUE's single
- * source so the smoke path, the orchestrator path, and the render path can
- * never disagree on what an untimed scene lasts.
+ * already pins the 5 s fallback BEHAVIOR; this block pins that all three
+ * consumers import the canonical value — the registry sweep pins that none of
+ * them (or any NEW src/pipeline file) re-freezes it under a local name.
  */
 describe('default scene duration single source (08ae follow-up)', () => {
-  const DEFAULT_CONSUMERS = [
-    'src/pipeline/pipeline-orchestrator.ts',
-    'src/pipeline/smoke-orchestrator.ts',
-    'src/pipeline/video-generator.ts',
-  ];
-
-  /** Local re-definitions of the 5000ms default under any name. */
-  const LOCAL_DEFAULT =
-    /DEFAULT_SCENE_DURATION_MS\s*=\s*5000\b|\bdefaultDuration\s*=\s*5000\b/;
-
   it('canonical module exports the 5000ms default, in-range of the clamps', () => {
     expect(DEFAULT_SCENE_DURATION_MS).toBe(5000);
     expect(MIN_SCENE_DURATION_MS).toBeLessThan(DEFAULT_SCENE_DURATION_MS);
@@ -188,20 +149,5 @@ describe('default scene duration single source (08ae follow-up)', () => {
     const src = readSource(rel);
     expect(src).toMatch(/from '\.\/scene-duration-limits'/);
     expect(src).toMatch(/DEFAULT_SCENE_DURATION_MS/);
-    expect(src.split('\n').filter((l) => LOCAL_DEFAULT.test(l))).toEqual([]);
-  });
-
-  it('discovery sweep: no src/pipeline file re-freezes the 5000ms default', () => {
-    const offenders: string[] = [];
-    for (const entry of readdirSync(join(REPO_ROOT, 'src/pipeline'))) {
-      if (!/\.ts$/.test(entry) || /\.(test|spec)\./.test(entry)) continue;
-      const rel = `src/pipeline/${entry}`;
-      if (rel === 'src/pipeline/scene-duration-limits.ts') continue;
-      const hits = readSource(rel)
-        .split('\n')
-        .filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l) && LOCAL_DEFAULT.test(l));
-      if (hits.length > 0) offenders.push(`${rel}: ${hits[0].trim()}`);
-    }
-    expect(offenders).toEqual([]);
   });
 });
