@@ -265,8 +265,9 @@ describe('DiagramVideo: rendered scene matches frame→duration mapping', () => 
  * scene's absolute audio startMs.
  *
  * Scenes reach the composition in mixed units: startMs = the ABSOLUTE audio
- * timestamp, durationMs = the (clamped) length. simple-pipeline clamps every
- * segment to [3000, 10000] ms, so a 1 s utterance becomes a 3000 ms scene while
+ * timestamp, durationMs = the (clamped) length. video-generator's
+ * convertSceneToRemotionFormat clamps every segment to [3000, 10000] ms, so a
+ * 1 s utterance becomes a 3000 ms scene while
  * its startMs keeps the original audio position. Playback concatenates scenes by
  * cumulative durationMs (findSceneAtTime), so a later scene's cumulative
  * playback start diverges from its absolute startMs whenever any earlier scene

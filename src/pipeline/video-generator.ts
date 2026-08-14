@@ -227,10 +227,14 @@ export class VideoGenerator {
   private convertSceneToRemotionFormat(scene: SceneGraph, index: number): RemotionSceneData {
     // シーン持続時間（デフォルト5秒、最小3秒、最大10秒）
     // scene.startTime/endTime are in SECONDS (see simple-pipeline.ts:
-    // `startTime: segStartMs / 1000`), so convert to ms before clamping to the
-    // [3000, 10000] ms range. Without the * 1000, a 5 s segment evaluates to
-    // (5 - 0) = 5 and collapses to the 3000 ms floor, making every scene a
-    // uniform 3 s regardless of real length.
+    // `startTime: segStartMs / 1000`), so convert to ms before clamping.
+    // Without the * 1000, a 5 s segment evaluates to (5 - 0) = 5 and collapses
+    // to the 3000 ms floor, making every scene a uniform 3 s regardless of
+    // real length.
+    // NOTE: this [3000, 10000] clamp is a legacy normalization LOCAL to the
+    // VideoGenerator conversion path. It intentionally differs from the
+    // pipeline-level clamps in scene-duration-limits.ts (single source) —
+    // see that module for the boundary inventory.
     const defaultDuration = 5000;
     const sceneDuration = Math.max(3000, Math.min(10000,
       (scene.endTime - scene.startTime) * 1000 || defaultDuration
@@ -561,7 +565,8 @@ export class VideoGenerator {
    * Each scene's absolute `startMs` (the original audio timestamp) is IGNORED by
    * playback, so it cannot define the video's end point. Using max(startMs+dur)
    * diverged from the real video length whenever scenes were duration-clamped
-   * (simple-pipeline clamps durationMs to [3000, 10000] ms) or non-contiguous,
+   * (main-pipeline re-clamps durationMs to [2000, 15000] ms — see
+   * scene-duration-limits.ts) or non-contiguous,
    * making the reported `duration`, `durationInFrames`, and file-size estimate
    * disagree with what actually rendered.
    */
@@ -569,7 +574,8 @@ export class VideoGenerator {
     let total = 0;
     for (const scene of scenes) {
       // Match calculateTotalFrames: clamp negatives to 0 (production scenes are
-      // always in [3000, 10000] ms, but defend against malformed input).
+      // always in [2000, 15000] ms after optimizeSceneTiming, but defend
+      // against malformed input).
       const dur = Number.isFinite(scene.durationMs) ? Math.max(0, scene.durationMs) : 0;
       const next = total + dur;
       // Overflow guard: if the running sum overflows to Infinity, freeze it so

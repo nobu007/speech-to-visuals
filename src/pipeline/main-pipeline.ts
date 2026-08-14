@@ -23,6 +23,10 @@ import {
 } from './types';
 import { retryWithBackoff } from './retry';
 import { buildSceneGraph } from './scene-graph-builder';
+import {
+  MIN_SCENE_DURATION_MS,
+  MAX_EDITORIAL_SCENE_DURATION_MS,
+} from './scene-duration-limits';
 import { applyConfigToCollaborators } from './config-sync';
 import { TranscriptionError, SegmentationError } from './pipeline-errors';
 import {
@@ -783,9 +787,13 @@ export class MainPipeline {
    * Optimize scene timing for better video flow
    */
   private optimizeSceneTiming(scenes: SceneGraph[]): void {
-    // Ensure minimum scene duration
-    const minDuration = 2000; // 2 seconds minimum
-    const maxDuration = 15000; // 15 seconds maximum
+    // Clamp boundaries come from the single source (defect 08ae). The floor is
+    // shared with the render-spec generator (a lower/upper mismatch here would
+    // make the reported video length diverge from the rendered scenes); the
+    // editorial pacing cap is intentionally tighter than the renderer's own
+    // 30000ms hard ceiling — see scene-duration-limits.ts.
+    const minDuration = MIN_SCENE_DURATION_MS;
+    const maxDuration = MAX_EDITORIAL_SCENE_DURATION_MS;
 
     scenes.forEach(scene => {
       if (scene.durationMs < minDuration) {

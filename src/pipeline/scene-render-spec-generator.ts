@@ -12,6 +12,10 @@ import { safeArray } from '../lib/safe-array';
 import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
 import { STAGGER_DELAY, NODE_FADE_DURATION_FRAMES } from '@/remotion/animation-strategies';
 import { RenderingError } from './pipeline-errors';
+import {
+  MIN_SCENE_DURATION_MS,
+  MAX_RENDERABLE_SCENE_DURATION_MS,
+} from './scene-duration-limits';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -76,8 +80,11 @@ export interface RenderSpecConfig {
 // ---------------------------------------------------------------------------
 
 const DEFAULT_TRANSITION_FRAMES = 8;
-const DEFAULT_MIN_SCENE_DURATION_MS = 2000;
-const DEFAULT_MAX_SCENE_DURATION_MS = 30000;
+// Scene-duration clamp boundaries come from the single source (defect 08ae):
+// the floor is shared with main-pipeline's timing optimizer, the ceiling is
+// the renderer's own hard cap (distinct from the editorial pacing cap).
+const DEFAULT_MIN_SCENE_DURATION_MS = MIN_SCENE_DURATION_MS;
+const DEFAULT_MAX_SCENE_DURATION_MS = MAX_RENDERABLE_SCENE_DURATION_MS;
 
 // ---------------------------------------------------------------------------
 // Implementation

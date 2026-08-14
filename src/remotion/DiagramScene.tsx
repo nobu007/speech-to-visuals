@@ -22,7 +22,8 @@ interface DiagramSceneProps {
    * playback time and NOT scene.startMs. scene.startMs is the scene's ABSOLUTE
    * audio timestamp; playback instead concatenates scenes at cumulative
    * durationMs offsets, so the two diverge whenever a scene's duration is
-   * clamped (simple-pipeline clamps to [3000, 10000] ms) or segments are
+   * clamped (video-generator's convertSceneToRemotionFormat clamps to
+   * [3000, 10000] ms) or segments are
    * non-contiguous. Deriving the offset from startMs previously made every
    * scene after the first begin its intro animations already-completed.
    */
