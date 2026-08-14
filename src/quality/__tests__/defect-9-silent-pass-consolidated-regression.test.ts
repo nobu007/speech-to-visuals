@@ -47,6 +47,20 @@
  * completeness guard is only as authoritative as the shape it keys on; the file
  * most likely to re-open the class is the one whose naming differs from the
  * markers' assumption.
+ *
+ * This iteration found a THIRD marker blind spot while extending the sweep to
+ * the manufactured-default-vs-threshold class beyond quality gates: the markers
+ * keyed on the QUALITY tier vocabulary (excellent/good/...) and gate-evaluator
+ * naming, so the entire error-recovery HEALTH family — a second status
+ * vocabulary ('healthy'/'degraded'/'unhealthy') with overall*-resolver naming —
+ * shipped unclassified. Discovery now also matches that vocabulary plus
+ * overallResilience/overallSuccessRate/alertLevel (18 to 24 files). One LIVE
+ * closure came out of the classification (health-tracker's `?? 1` perfect-score
+ * fallback → 0); the rest of the family is classified fail-open-for-robustness
+ * (the same pinned symmetry as isWithinBaseline/compareWithBaseline), and
+ * health-check-service / production-monitor are ruled out because their
+ * absent-input paths already fail loud ('degraded' / 'unknown' — never a
+ * manufactured healthy tier).
  */
 
 const { QualityGateEvaluator } = await import('../quality-gate');
@@ -58,6 +72,9 @@ const { VisualBalanceScorer } = await import('../../visualization/visual-balance
 const { scoreCost } = await import('../../pipeline/pipeline-health-score');
 const { isWithinBaseline } = await import('../../pipeline/performance-baseline');
 const { compareWithBaseline } = await import('../../pipeline/performance-regression-detector');
+const { EnhancedErrorRecovery } = await import('../enhanced-error-recovery');
+const { ErrorRecoveryHealthTracker } = await import('../error-recovery-health-tracker');
+const { RecoveryTelemetryAggregator } = await import('../recovery-telemetry-aggregator');
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -100,8 +117,17 @@ const HOST_DIRS = [
 
 // Verdict-producing shapes: a returned verdict object / a status|compliance tier
 // mapping / a metric-or-polarity registry.
+// The final three alternations close the THIRD blind-spot shape (found while
+// extending the sweep beyond quality gates): the error-recovery HEALTH family —
+// a second status-tier vocabulary the excellent/good clause never matched
+// ('healthy'/'degraded'/'unhealthy' — health checks, not quality tiers),
+// alertLevel tiering, and overall*-resolver naming (overallResilience/
+// overallSuccessRate) — the same resolver-naming shape the PipelineResult→
+// number clause caught for estimate*/count*, in a different prefix family.
+// Until these clauses, all four error-recovery health files sat in walked host
+// directories yet shipped unclassified.
 const VERDICT_MARKER =
-  /return\s*\{[^}]*(?:passed|isRegression|shouldBlock|allMet|isWithin)|determineStatus|status:\s*'(?:excellent|good|acceptable|needs_improvement|critical)'|compliance:\s*'(?:excellent|good|needs_improvement|critical)'|METRIC_EXTRACTORS|CRITERION_KEY_MAP|LOWER_IS_BETTER/;
+  /return\s*\{[^}]*(?:passed|isRegression|shouldBlock|allMet|isWithin)|determineStatus|status:\s*'(?:excellent|good|acceptable|needs_improvement|critical)'|compliance:\s*'(?:excellent|good|needs_improvement|critical)'|METRIC_EXTRACTORS|CRITERION_KEY_MAP|LOWER_IS_BETTER|overallResilience|overallSuccessRate|alertLevel|status\s*[:=]\s*'(?:healthy|degraded|unhealthy)'/;
 // Score/verdict entry-point exports. The final alternation catches a distinct
 // shape the named-evaluator clause misses: a quality-SIGNAL RESOLVER — a file
 // whose exported functions take a PipelineResult and return a number that FEEDS
@@ -250,6 +276,36 @@ function continuousLearnerEmptyHistoryScore(): number {
   ).score;
 }
 
+/**
+ * overallScore for a tracker with NO stage scores and NO samples. PERFECT (1)
+ * before the defect-9 fix. Reached directly because sample() always pushes a
+ * sample before computing — the double-empty path IS the fallback branch.
+ */
+function trackerEmptyOverallScore(): number {
+  const tracker = new ErrorRecoveryHealthTracker(new EnhancedErrorRecovery());
+  const proto = ErrorRecoveryHealthTracker.prototype as unknown as {
+    // computeOverallScore is private; asserted directly so the no-data fallback
+    // is exercised without wiring a full sample() run.
+    computeOverallScore: (stageScores: []) => number;
+  };
+  return proto.computeOverallScore.call(tracker, []);
+}
+
+/** overallResilience for a NEVER-EXERCISED recovery system (no load, no circuits). */
+function freshSystemResilience(): number {
+  return new EnhancedErrorRecovery().getResilienceMetrics().overallResilience;
+}
+
+/** Telemetry snapshot for a sliding window with ZERO recovery attempts. */
+function emptyTelemetrySnapshot(): { overallSuccessRate: number; degraded: boolean } {
+  const agg = new RecoveryTelemetryAggregator();
+  try {
+    return agg.getSnapshot();
+  } finally {
+    agg.destroy();
+  }
+}
+
 // ---------------------------------------------------------------------------
 // THE ROSTER — the single map of every defect-9 silent-pass site.
 // ---------------------------------------------------------------------------
@@ -362,6 +418,24 @@ const ROSTER: Row[] = [
       'manufactured a PERFECT 100 → `determineStatus` ≥ 90 → "excellent". Now capped below the ' +
       '"good" tier (≤ 59) when no quality metric is measured, so absent data cannot satisfy the ' +
       'excellence gate.',
+  },
+
+  {
+    id: 'error-recovery-health-tracker/overallScoreFallback',
+    family: 'error-recovery-health',
+    polarity: 'b',
+    verdict: 'CLOSED',
+    sourceFiles: ['src/quality/error-recovery-health-tracker.ts'],
+    gateFailsOnAbsent: () => trackerEmptyOverallScore() < 0.5,
+    reason:
+      'Found by extending the discovery markers to the error-recovery health family (a THIRD ' +
+      'marker blind spot: a second status-tier vocabulary plus overall*-resolver naming — neither ' +
+      'matched until this iteration, so all four family files shipped unclassified). ' +
+      'computeOverallScore with no stage scores and no samples fell back to `?? 1` — a PERFECT ' +
+      'overall score from nothing, feeding the monitor\'s `overallScore < 0.4` degrade gate and ' +
+      'its consecutive-degraded alerting. The branch is unreachable through sample() (a sample is ' +
+      'pushed before the call), but the fallback literal is exactly the recordStageSuccess ' +
+      '`?? 0.85` shape (iteration 87): a perfect-score fallback must be the FAIL value. Now `?? 0`.',
   },
 
   // ── BY-DESIGN (polarity b: empty→PERFECT that is legitimately vacuous, or
@@ -507,6 +581,40 @@ const ROSTER: Row[] = [
       'unknown stage (baselineMs 0) is reported as no-regression rather than a false alarm. ' +
       'Pinned here so the symmetry with isWithinBaseline is explicit.',
   },
+  {
+    id: 'enhanced-error-recovery/errorRecoverySpeed',
+    family: 'error-recovery-health',
+    polarity: 'b',
+    verdict: 'BY-DESIGN',
+    sourceFiles: ['src/quality/enhanced-error-recovery.ts'],
+    gateFailsOnAbsent: () => freshSystemResilience() < 0.4,
+    reason:
+      'A never-exercised system reports overallResilience ≈ 0.97 (errorRecoverySpeed 1.0 from an ' +
+      'empty metrics sample, circuitBreakerEffectiveness 1.0 with no breakers configured, ' +
+      'successRate 0.5 neutral). Pinned BY-DESIGN fail-open-for-robustness (running-average suite: ' +
+      '"all entries corrupted → recovery speed = 1"): the score feeds the `< 0.4` DEGRADE gate, and ' +
+      'a fresh/idle system must not instantly alert — the same pinned symmetry as ' +
+      'isWithinBaseline/compareWithBaseline/detectRegression. The gate is lower-is-bad, so ' +
+      'absent→high reads "not degraded", not "excellent". Classified so a future reweighting that ' +
+      'turns this into an excellence gate forces a conscious decision.',
+  },
+  {
+    id: 'recovery-telemetry-aggregator/overallSuccessRate',
+    family: 'error-recovery-health',
+    polarity: 'b',
+    verdict: 'BY-DESIGN',
+    sourceFiles: ['src/quality/recovery-telemetry-aggregator.ts'],
+    gateFailsOnAbsent: () => {
+      const s = emptyTelemetrySnapshot();
+      return s.overallSuccessRate < 1 || s.degraded;
+    },
+    reason:
+      'An empty window reports overallSuccessRate 1 — a documented, test-pinned sentinel ' +
+      '("default when no data"), surfaced on the REST monitoring endpoint only. The `degraded` ' +
+      'flag derives from INTER-window rate deltas (never the absolute rate), so the sentinel ' +
+      'cannot satisfy any gate. Pinned so a future consumer that gates on the absolute rate must ' +
+      'first revisit this row.',
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -587,6 +695,28 @@ const DEFECT9_SURFACE: ReadonlyArray<SurfaceEntry> = [
     ruledOut:
       'sanitizeFinite→0 FAILS (not satisfies) the >= alert comparisons; the getSnapshot ' +
       'defaults (:1/:0) flow into the emitted snapshot and are never gated within the file.',
+  },
+  { file: 'src/quality/enhanced-error-recovery.ts', family: 'error-recovery-health' },
+  { file: 'src/quality/error-recovery-health-tracker.ts', family: 'error-recovery-health' },
+  { file: 'src/quality/error-recovery-monitor.ts', family: 'error-recovery-health' },
+  { file: 'src/quality/recovery-telemetry-aggregator.ts', family: 'error-recovery-health' },
+  {
+    file: 'src/monitoring/health-check-service.ts',
+    ruledOut:
+      'Discovered via the health-status vocabulary clause. Every component check measures a ' +
+      'real signal and fails in the FAIL direction on absent input: a throwing probe returns ' +
+      'status "degraded", the snapshot fallback manufactures zeros (which fail thresholds, not ' +
+      'satisfy them), and calculateOverallStatus is worst-of. No absent-input path can ' +
+      'manufacture a passing tier.',
+  },
+  {
+    file: 'src/monitoring/production-monitor.ts',
+    ruledOut:
+      'Discovered via the health-status vocabulary clause. checkComponentHealth maps ' +
+      'metrics.requests === 0 to status "unknown" — NOT "healthy" — so absent data cannot ' +
+      'manufacture a passing tier (the defect-9 discipline, already built in). The hardcoded ' +
+      '0.05/0.15 alert thresholds are the separate, documented alerting-vs-readiness ' +
+      'threshold-drift concern (09a), not an absent-data silent-pass.',
   },
 ];
 

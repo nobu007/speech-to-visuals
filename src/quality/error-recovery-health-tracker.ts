@@ -252,9 +252,12 @@ export class ErrorRecoveryHealthTracker {
 
   private computeOverallScore(stageScores: StageHealthScore[]): number {
     if (stageScores.length === 0) {
-      // No stage data → use resilience directly from latest sample
+      // No stage data → use resilience directly from latest sample.
+      // No sample either → 0, NOT a perfect 1: this score feeds the monitor's
+      // `overallScore < degradedScoreThreshold` degrade gate, so a missing-data
+      // fallback must be the FAIL value (defect-9 silent-pass class).
       const latest = this.samples[this.samples.length - 1];
-      return latest?.overallResilience ?? 1;
+      return latest?.overallResilience ?? 0;
     }
 
     const avg = stageScores.reduce((a, s) => a + (Number.isFinite(s.score) ? s.score : 0), 0) / stageScores.length;
