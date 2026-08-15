@@ -5734,6 +5734,14 @@
 
 ---
 
+#### REQ-309: force-directed 収束述語変更のレイアウトアウトカム検証 🔵
+
+**信頼性**: 🔵 *0531aa4f（round 15）の follow-up。iteration-count pin は述語の「いつ抜けるか」しか検証せず「抜けた結果の品質」を検証しない、という steering 指摘への対応*
+
+- [x] **TC-309-01**: `src/visualization/__tests__/force-directed-convergence-outcome.test.ts` に 12 トポロジー（sparse 7: chain/ring/star/complete/hubs/chain-20/ring-24 + dense 5: chain-40/ring-40/grid-64/star-50/rand-100）× 3 述語 arm（canonical=本物の `runForceDirectedPhases`、old=`&& i > 0` 再現、full=予算全域）のアウトカムパリティ表を配置。sparse: canonical は 3 step で旧 33 step と同一の overlap=0・bounds 内結果に到達。dense: 予算枯渇で 3 arm が値一致 🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns force-directed-convergence-outcome`
+- [x] **TC-309-02**: E2E（public `generateLayout`）で sparse 全トポロジーの幾何学 overlap 0・BOUNDS_MARGIN 内・座標有限・インスタンス再生成で位置一致（seeding r17 の回帰でもある）。mutation 検証: (1) 述語を旧形に戻す → sparse 1-step/phase assertion が RED、(2) bounds clamp 除去 → 5 件 RED、(3) jitter ×20 → 3 件 RED。repulsion 符号反転はアウトカム観測不能（damped・velocity-capped で分離済み配置はほぼ動かない）であり round-15 の physics 値 pin 側で担保と明記 🔵
+
 ### Phase 111+ 受け入れ基準サマリー
 
 | 要件 | テストケース数 | 信頼性 |
@@ -5773,7 +5781,8 @@
 | REQ-304: 分析系 LLM リトライ既定値シングルソース化 | 4 | 🔵 |
 | REQ-306: API 層 UUID v4 検証 regex シングルソース化 | 3 | 🔵 |
 | REQ-308: 図解タイプ日本語タイトル map シングルソース化 | 3 | 🔵 |
-| **合計** | **90** | **🔵 96.7% / 🟡 3.3%** |
+| REQ-309: force-directed 収束述語アウトカム検証 | 2 | 🔵 |
+| **合計** | **92** | **🔵 96.8% / 🟡 3.2%** |
 
 
 <!-- spine:references:begin -->
