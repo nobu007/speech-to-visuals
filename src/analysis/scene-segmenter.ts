@@ -1,6 +1,7 @@
 import { TranscriptionSegment } from '@/transcription/types';
 import { ContentSegment, AnalysisConfig } from './types';
 import { sanitizeFinite } from '@/utils/guards';
+import { safeMean } from '@/lib/metrics-utils';
 
 /**
  * Default segment-length bounds (milliseconds). Single source of truth — every
@@ -789,7 +790,10 @@ export class SceneSegmenter {
 
   private async testSegmentLengthDistribution(segments: ContentSegment[]): Promise<{ passed: boolean; score: number; name: string }> {
     if (segments.length === 0) return { passed: false, score: 0, name: 'Segment Length Distribution' };
-    const avgLength = segments.reduce((sum, seg) => sum + (seg.endMs - seg.startMs), 0) / segments.length;
+    // Finite-safe mean (wave 4): transcription-origin timestamps — a non-finite
+    // boundary excludes that segment instead of making avgLength NaN, which
+    // silently failed BOTH TEST_SEGMENT_LENGTH range comparisons.
+    const avgLength = safeMean(segments.map((seg) => seg.endMs - seg.startMs));
     const passed = avgLength >= this.TEST_SEGMENT_LENGTH_MIN_MS && avgLength <= this.TEST_SEGMENT_LENGTH_MAX_MS;
     const score = passed ? this.TEST_SEGMENT_LENGTH_SCORE_PASS : this.TEST_SEGMENT_LENGTH_SCORE_FAIL;
     return { passed, score, name: 'Segment Length Distribution' };
