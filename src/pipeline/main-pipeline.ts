@@ -271,14 +271,14 @@ export class MainPipeline {
       const transcriptionResult = await this.executeStageWithFramework(
         'transcription',
         () => this.transcribeAudioEnhanced(input),
-        { minAccuracy: 0.85, maxTime: 30000 }
+        { minAccuracy: DEFAULT_TRANSCRIPTION_ACCURACY_THRESHOLD, maxTime: 30000 }
       );
 
       // Stage 2: Content Analysis with iterative improvement
       const analysisResult = await this.executeStageWithFramework(
         'analysis',
         () => this.analyzeContentEnhanced(transcriptionResult),
-        { minAccuracy: 0.75, maxTime: 15000 }
+        { minAccuracy: DEFAULT_SCENE_SEGMENTATION_F1_THRESHOLD, maxTime: 15000 }
       );
 
       // Stage 3: Layout Generation with quality gates

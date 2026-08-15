@@ -307,7 +307,7 @@ export class RecursiveCustomInstructionsFramework {
   private generateSuggestions(testResults: QualityCheckResults): string[] {
     const suggestions: string[] = [];
 
-    if (testResults.transcription?.accuracy < 0.85) {
+    if (testResults.transcription?.accuracy < DEFAULT_TRANSCRIPTION_ACCURACY_THRESHOLD) {
       suggestions.push("Improve audio preprocessing for better transcription accuracy");
     }
 

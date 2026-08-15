@@ -8,6 +8,7 @@
 import { randomUUID } from 'crypto';
 import { logger } from '@/utils/logger';
 import { safeMean } from '@/lib/metrics-utils';
+import { DEFAULT_RENDER_TIME_THRESHOLD_MS } from './quality-thresholds';
 
 interface LearningData {
   id: string;
@@ -860,7 +861,7 @@ export class ContinuousLearner {
 
   private async detectPerformanceAnomaly(data: LearningData): Promise<string | null> {
     // 簡略化された異常検出
-    if (data.processingTime > 30000) { // 30秒以上
+    if (data.processingTime > DEFAULT_RENDER_TIME_THRESHOLD_MS) { // 30秒以上
       return 'excessive_processing_time';
     }
     return null;

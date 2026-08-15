@@ -9,6 +9,13 @@
 
 import { QualityMonitor, getQualityMonitor } from './quality-monitor';
 import { safeArray } from '../lib/safe-array';
+import {
+  DEFAULT_RENDER_TIME_THRESHOLD_MS,
+  DEFAULT_MEMORY_USAGE_THRESHOLD_MB,
+  DEFAULT_EDGE_COMPLETENESS_THRESHOLD,
+  DEFAULT_RELATION_ACCURACY_THRESHOLD,
+  DEFAULT_LAYOUT_OVERLAP_THRESHOLD,
+} from '../framework/quality-thresholds';
 
 export interface ImprovementOpportunity {
   area: string;
@@ -89,7 +96,7 @@ export class ImprovementDetector {
     }
 
     // Check processing time
-    if (latestMetrics.processingTime > 30000) {
+    if (latestMetrics.processingTime > DEFAULT_RENDER_TIME_THRESHOLD_MS) {
       const severity = latestMetrics.processingTime > 60000 ? 'high' : 'medium';
       opportunities.push({
         area: 'Processing Speed',
@@ -107,18 +114,18 @@ export class ImprovementDetector {
         estimatedEffort: 'moderate',
         evidence: [
           `Last processing time: ${latestMetrics.processingTime}ms`,
-          'Target: <30000ms (ideally <25000ms)',
+          `Target: <${DEFAULT_RENDER_TIME_THRESHOLD_MS}ms (ideally <25000ms)`,
         ],
       });
     }
 
     // Check memory usage
-    if (latestMetrics.memoryUsage > 512) {
+    if (latestMetrics.memoryUsage > DEFAULT_MEMORY_USAGE_THRESHOLD_MB) {
       opportunities.push({
         area: 'Memory Optimization',
         priority: latestMetrics.memoryUsage > 1024 ? 'high' : 'medium',
         currentValue: latestMetrics.memoryUsage,
-        targetValue: 512,
+        targetValue: DEFAULT_MEMORY_USAGE_THRESHOLD_MB,
         confidence: 0.85,
         impact: `High memory usage (${latestMetrics.memoryUsage.toFixed(0)}MB) may affect scalability`,
         suggestedActions: [
@@ -130,13 +137,13 @@ export class ImprovementDetector {
         estimatedEffort: 'moderate',
         evidence: [
           `Current memory: ${latestMetrics.memoryUsage.toFixed(0)}MB`,
-          'Target: <512MB',
+          `Target: <${DEFAULT_MEMORY_USAGE_THRESHOLD_MB}MB`,
         ],
       });
     }
 
     // Check edge completeness (Phase 26 metric)
-    if (latestMetrics.edgeCompleteness !== undefined && latestMetrics.edgeCompleteness < 0.7) {
+    if (latestMetrics.edgeCompleteness !== undefined && latestMetrics.edgeCompleteness < DEFAULT_EDGE_COMPLETENESS_THRESHOLD) {
       opportunities.push({
         area: 'Relationship Extraction',
         priority: latestMetrics.edgeCompleteness < 0.5 ? 'critical' : 'high',
@@ -159,7 +166,7 @@ export class ImprovementDetector {
     }
 
     // Check relationship accuracy (Phase 26)
-    if (latestMetrics.relationshipAccuracy !== undefined && latestMetrics.relationshipAccuracy < 0.85) {
+    if (latestMetrics.relationshipAccuracy !== undefined && latestMetrics.relationshipAccuracy < DEFAULT_RELATION_ACCURACY_THRESHOLD) {
       opportunities.push({
         area: 'Relationship Accuracy',
         priority: 'medium',
@@ -175,13 +182,13 @@ export class ImprovementDetector {
         estimatedEffort: 'moderate',
         evidence: [
           `Current accuracy: ${(latestMetrics.relationshipAccuracy * 100).toFixed(0)}%`,
-          'Target: >85%',
+          `Target: >${(DEFAULT_RELATION_ACCURACY_THRESHOLD * 100).toFixed(0)}%`,
         ],
       });
     }
 
     // Check layout overlap (critical metric)
-    if (latestMetrics.layoutOverlap > 0) {
+    if (latestMetrics.layoutOverlap > DEFAULT_LAYOUT_OVERLAP_THRESHOLD) {
       opportunities.push({
         area: 'Layout Quality',
         priority: 'critical',

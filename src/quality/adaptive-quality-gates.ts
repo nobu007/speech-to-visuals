@@ -7,6 +7,7 @@
  */
 
 import { realTimeMonitor, PerformanceSnapshot } from '@/monitoring/real-time-performance-monitor';
+import { DEFAULT_TRANSCRIPTION_ACCURACY_THRESHOLD } from '@/framework/quality-thresholds';
 
 export interface QualityGate {
   name: string;
@@ -139,7 +140,7 @@ class AdaptiveQualityGatesSystem {
     this.addGate({
       name: 'Transcription Accuracy',
       metric: 'transcriptionAccuracy',
-      threshold: 0.85, // 85%
+      threshold: DEFAULT_TRANSCRIPTION_ACCURACY_THRESHOLD,
       operator: 'gte',
       severity: 'blocker',
       adaptable: true
