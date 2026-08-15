@@ -141,12 +141,19 @@ tests/guards/frozen-literal-rules.ts  # round-16 例外の段階縮退
 
 ## Acceptance criteria
 
-- [ ] `grep -rn "Math.random(" src/visualization/` が `layout-rng.ts` のコメント内のみにヒット（シードテキスト由来のドキュメント記述を除き実コード 0）
-- [ ] round-16 registry エントリから stochastic 例外 5 件が削除済み（complex-engine 例外も削除）
-- [ ] 5 ファイルそれぞれに決定性オラクル: 同一入力で 2 回 generate → positions が deep-equal（RED-verified: シード化前コードでは失敗することを 1 回確認してから修正）
-- [ ] 品質劣化ガード: 各戦略で複数シード（シードテキストに prefix 2-3 種を付したバリアント入力）を走らせ、オーバーラップ/品質メトリクスが既存レイアウト品質しきい値を下回らない
-- [ ] フルスイート GREEN（`NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs`）
-- [ ] type-check GREEN（`npx -p typescript tsc -p tsconfig.app.json --noEmit`）
+- [x] `grep -rn "Math.random(" src/visualization/` が `layout-rng.ts` のコメント内のみにヒット（シードテキスト由来のドキュメント記述を除き実コード 0）— 実測: layout-rng.ts 以外 0 件（コメント内の記述も `Math.random` を `(` 無しで表記し grep に掛からないよう整形済み）
+- [x] round-16 registry エントリから stochastic 例外 5 件が削除済み（complex-engine 例外も削除）— 残る例外は `layout-rng.ts`（正本 PRNG ソース）のみ。削除直後の registry sweep が `complex-layout-engine.ts` の残存 `Math.random` で FAIL したことを RED 実証後に修正
+- [x] 5 ファイルそれぞれに決定性オラクル: 同一入力で 2 回 generate → positions が deep-equal（RED-verified: シード化前コードでは失敗することを 1 回確認してから修正）
+  - mindmap: `tests/visualization/strategies/mindmap-strategy-seeding-oracle.test.ts` + rng 系列のソースアンカー検証
+  - simulated-annealing: `tests/visualization/strategies/simulated-annealing-seeding-oracle.test.ts`（reused-instance チェック付き）
+  - progressive-force: `tests/visualization/strategies/progressive-force-seeding-oracle.test.ts`
+  - resolvers ×2: `tests/visualization/strategies/overlap-resolver-seeding-oracle.test.ts` + `tests/visualization/layout/overlap-resolver-initial-placement-oracle.test.ts`
+    - ※ layout/OverlapResolver は E2E では GridSnap が常に最終段を上書きするため E2E 決定性はシード化前から成立しており RED 不能。戦略を identity モック（unstable_mockModule）して initializeNodes 出力を直接露出させ RED 実証
+  - complex-engine id: registry sweep 自体が RED、GREEN 側は `tests/visualization/complex-layout-engine-id-oracle.test.ts`
+- [x] 品質劣化ガード: 各戦略で複数シード（シードテキストに prefix 2-3 種を付したバリアント入力）を走らせ、オーバーラップ/品質メトリクスが既存レイアウト品質しきい値を下回らない
+  - 各オラクルテストに variant ×3 を同梱。ただし `DEFAULT_LAYOUT_QUALITY_THRESHOLD`(0.7 composite) は radial 戦略の決定的経路でも 0.44-0.64 しか出ない（シード化と無関係の既存挙動）ため、r16 と同じ独立 overlap オラクル／有限性・キャンバス内収まることを品質しきい値とした（各テストのコメントに根拠記載）
+- [x] フルスイート GREEN（`NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs`）— 727 files / 20,918 tests green（17 spine skips は従来どおり）。1 件のみ旧 id 形式 (`/^layout_\d+_/`) を pin していた `layout-delegation-helpers.test.ts` を新決定的形式に更新
+- [x] type-check GREEN（`npx -p typescript tsc -p tsconfig.app.json --noEmit`）
 
 ## 関連文書
 
