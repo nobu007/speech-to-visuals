@@ -10,7 +10,7 @@ import { DiagramType } from '@/types/diagram';
 import { globalCache } from '../performance/intelligent-cache';
 import { logger } from '@/utils/logger';
 import { getMemoryUsage } from '@/utils/memory-usage';
-import { heapUsageRatio } from '@/lib/metrics-utils';
+import { heapUsageRatio, safeMax, safeMin } from '@/lib/metrics-utils';
 import { errorRecoveryEventBus } from './error-recovery-event-bus';
 import { QualityGateError, PipelineConfigError } from '@/pipeline/pipeline-errors';
 
@@ -1448,8 +1448,9 @@ export class EnhancedErrorRecovery {
 
     const pattern = `${context.stage}:${context.component}:${context.error.name}`;
     const frequency = similarErrors.length;
-    const lastOccurrence = similarErrors.length > 0 ?
-      Math.max(...similarErrors.map(e => e.timestamp)) : 0;
+    // Finite-safe max (wave 5): a non-finite recorded timestamp is excluded
+    // instead of poisoning lastOccurrence; also drops the spread (EDGE-102).
+    const lastOccurrence = safeMax(similarErrors.map(e => e.timestamp));
 
     const commonCauses = this.extractCommonCauses(similarErrors);
 
@@ -1894,10 +1895,14 @@ export class EnhancedErrorRecovery {
     const totalAttempts = allStats.reduce((s, r) => s + r.successes + r.failures, 0);
     const recoverySuccessRate = totalAttempts > 0 ? totalSuccesses / totalAttempts : 1;
 
+    // Finite-safe range (wave 5): timestamps are Date.now()-origin, but a
+    // non-finite one entering the array previously collapsed BOTH bounds to
+    // NaN; exclusion keeps the range over the valid samples. Spreads dropped
+    // (EDGE-102).
     const timeRange = allErrors.length > 0
       ? {
-          start: Math.min(...allErrors.map(e => e.timestamp)),
-          end: Math.max(...allErrors.map(e => e.timestamp)),
+          start: safeMin(allErrors.map(e => e.timestamp), now),
+          end: safeMax(allErrors.map(e => e.timestamp), now),
         }
       : { start: now, end: now };
 
