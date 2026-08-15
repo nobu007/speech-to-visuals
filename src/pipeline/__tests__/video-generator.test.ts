@@ -14,7 +14,7 @@ jest.unstable_mockModule('@/lib/actualVideoRenderer', () => ({
       onProgress?.({ progress: 100, message: 'Rendered' });
     }),
   },
-}), { virtual: true });
+}));
 
 const {
   VideoGenerator,

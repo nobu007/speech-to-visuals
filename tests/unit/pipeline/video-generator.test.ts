@@ -9,7 +9,7 @@ jest.unstable_mockModule('@/lib/actualVideoRenderer', () => ({
       return Promise.resolve();
     }),
   },
-}), { virtual: true });
+}));
 
 // Create mock scenes with all properties video-generator actually accesses
 function makeMockScene(overrides: Record<string, unknown> = {}) {
