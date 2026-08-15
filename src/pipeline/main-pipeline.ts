@@ -21,6 +21,7 @@ import {
   DEFAULT_RENDER_TIME_THRESHOLD_MS,
   DEFAULT_MEMORY_USAGE_THRESHOLD_BYTES,
 } from '@/framework/quality-thresholds';
+import { DEVELOPMENT_PHASE_ORDER } from '@/framework/iteration-manager';
 import {
   PipelineInput,
   PipelineConfig,
@@ -431,9 +432,14 @@ export class MainPipeline {
 
   /**
    * 🔄 Get next development phase per custom instructions
+   *
+   * Single source (round 24): the sequence is the canonical
+   * DEVELOPMENT_PHASE_ORDER. The previously local array had drifted — it
+   * carried a phantom global-expansion phase (defined nowhere else in the
+   * repo) and skipped the canonical E2E統合.
    */
   private getNextPhase(): string {
-    const phases = ["MVP構築", "内容分析", "図解生成", "品質向上", "グローバル展開"];
+    const phases = DEVELOPMENT_PHASE_ORDER;
     const currentIndex = phases.indexOf(this.currentPhase);
     return currentIndex < phases.length - 1 ? phases[currentIndex + 1] : phases[phases.length - 1];
   }

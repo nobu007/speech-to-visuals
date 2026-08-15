@@ -14,6 +14,7 @@
 
 import { logger } from '../utils/logger';
 import { safeMean } from '../lib/metrics-utils';
+import { DEVELOPMENT_CYCLES } from './iteration-manager';
 import {
   DEFAULT_TRANSCRIPTION_ACCURACY_THRESHOLD,
   DEFAULT_SCENE_SEGMENTATION_F1_THRESHOLD,
@@ -98,29 +99,13 @@ export class RecursiveCustomInstructionsFramework {
 
   constructor(config: Record<string, unknown> = {}) {
     this.config = config;
-    this.developmentCycles = [
-      {
-        phase: "MVP構築",
-        maxIterations: 3,
-        successCriteria: ["音声入力→字幕付き動画出力が動作"],
-        failureRecovery: "最小構成に戻って再構築",
-        commitTrigger: "on_success"
-      },
-      {
-        phase: "内容分析",
-        maxIterations: 5,
-        successCriteria: ["シーン分割精度80%", "図解タイプ判定70%"],
-        failureRecovery: "ルールベースにフォールバック",
-        commitTrigger: "on_checkpoint"
-      },
-      {
-        phase: "図解生成",
-        maxIterations: 4,
-        successCriteria: ["レイアウト破綻0", "ラベル可読性100%"],
-        failureRecovery: "手動レイアウトテンプレート使用",
-        commitTrigger: "on_review"
-      }
-    ];
+    // Single source (round 24): derive from the canonical DEVELOPMENT_CYCLES
+    // record. The previously inlined 3-phase copy had drifted from it —
+    // 内容分析's successCriteria lost the entity/relation bars and gained an
+    // alien 図解タイプ判定70%, and E2E統合/品質向上 were missing entirely, so
+    // `evaluateIteration`'s `.find()` missed those phases and fell through to
+    // the "partial success" commit on iteration 1 instead of iterating.
+    this.developmentCycles = Object.values(DEVELOPMENT_CYCLES);
 
     this.qualityThresholds = {
       transcriptionAccuracy: DEFAULT_TRANSCRIPTION_ACCURACY_THRESHOLD,

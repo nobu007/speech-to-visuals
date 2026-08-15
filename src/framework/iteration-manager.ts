@@ -818,6 +818,17 @@ export const DEVELOPMENT_CYCLES: Record<string, Omit<DevelopmentCycle, 'currentI
 };
 
 /**
+ * The canonical phase SEQUENCE of the 段階的開発フロー, derived from the
+ * record above — never re-declared (round 24: main-pipeline's local
+ * `getNextPhase` order had already diverged into a phantom グローバル展開
+ * phase and dropped the canonical E2E統合).
+ *
+ * Object.keys on a string-keyed record iterates in insertion order (no
+ * integer-like keys here), so this cannot drift from the record's own order.
+ */
+export const DEVELOPMENT_PHASE_ORDER: readonly string[] = Object.keys(DEVELOPMENT_CYCLES);
+
+/**
  * Create iteration manager for specific phase
  */
 export function createIterationManager(

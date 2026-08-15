@@ -40,6 +40,7 @@ import {
 import { logger } from '@/utils/logger';
 import { parseUntrustedJson } from '@/analysis/llm-utils';
 import { QualityRecommendation } from '@/framework/auto-improvement-engine';
+import { DEVELOPMENT_CYCLES } from '@/framework/iteration-manager';
 
 /**
  * Phase information from DEVELOPMENT_CYCLES
@@ -122,29 +123,19 @@ export const FrameworkDashboard: React.FC<FrameworkDashboardProps> = ({
     breakdown: { performance: 0, accuracy: 0, stability: 0 }
   });
 
-  const [phases] = useState<PhaseInfo[]>([
-    {
-      name: 'MVP構築',
-      maxIterations: 3,
-      successCriteria: ['音声入力→字幕付き動画出力が動作'],
+  // Single source (round 24): derive the table from the canonical
+  // DEVELOPMENT_CYCLES record — the hand-copied array here had only 3 of the
+  // 5 phases and could silently drift again. All phases start pending; live
+  // per-phase progress arrives via iterationHistory/executionStatus.
+  const [phases] = useState<PhaseInfo[]>(() =>
+    Object.values(DEVELOPMENT_CYCLES).map(cycle => ({
+      name: cycle.phase,
+      maxIterations: cycle.maxIterations,
+      successCriteria: cycle.successCriteria,
       currentIteration: 0,
-      status: 'pending'
-    },
-    {
-      name: '内容分析',
-      maxIterations: 5,
-      successCriteria: ['シーン分割精度80%', '主要エンティティ抽出率90%', '関係性の正確性85%'],
-      currentIteration: 0,
-      status: 'pending'
-    },
-    {
-      name: '図解生成',
-      maxIterations: 4,
-      successCriteria: ['レイアウト破綻0', 'ラベル可読性100%'],
-      currentIteration: 0,
-      status: 'pending'
-    }
-  ]);
+      status: 'pending' as const
+    }))
+  );
 
   const [selectedPhase, setSelectedPhase] = useState('MVP構築');
 
