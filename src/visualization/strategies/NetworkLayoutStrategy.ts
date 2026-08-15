@@ -21,6 +21,10 @@ import { nodesOverlap, distance, calculateNodeWidth as calculateNodeWidthUtil, D
 import { logger } from '../../utils/logger';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { DEFAULT_NODE_SEPARATION, DEFAULT_EDGE_SEPARATION } from '../layout-spacing';
+import {
+  FORCE_DIRECTED_PHYSICS,
+  runForceDirectedPhases
+} from '../force-directed-params';
 
 export class NetworkLayoutStrategy implements ILayoutStrategy {
   readonly name = 'network';
@@ -118,27 +122,12 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
     config: LayoutConfig,
     optimalSpacing: number
   ): Promise<void> {
-    // Multi-phase optimization for better convergence
-    const phases = [
-      { iterations: 20, strength: 2.0, description: 'Initial separation' },
-      { iterations: 30, strength: 1.0, description: 'Structure formation' },
-      { iterations: 25, strength: 0.5, description: 'Fine adjustment' }
-    ];
-
-    for (const phase of phases) {
-
-      for (let i = 0; i < phase.iterations; i++) {
-        this.applyForceStep(nodes, edges, phase.strength, optimalSpacing, config);
-
-        // Check convergence every 10 iterations
-        if (i % 10 === 0 && i > 0) {
-          const overlaps = this.countOverlaps(nodes, optimalSpacing);
-          if (overlaps === 0) {
-            break;
-          }
-        }
-      }
-    }
+    // Multi-phase optimization for better convergence (shared schedule +
+    // canonical convergence predicate — see force-directed-params.ts)
+    runForceDirectedPhases(
+      (strength) => this.applyForceStep(nodes, edges, strength, optimalSpacing, config),
+      () => this.countOverlaps(nodes, optimalSpacing) === 0
+    );
   }
 
   /**
@@ -174,10 +163,10 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
 
           if (dist < idealDistance) {
             // Strong repulsion when too close
-            repulsion = strength * (idealDistance - dist) / dist * 100;
-          } else if (dist < idealDistance * 2) {
+            repulsion = strength * (idealDistance - dist) / dist * FORCE_DIRECTED_PHYSICS.STRONG_REPULSION_FACTOR;
+          } else if (dist < idealDistance * FORCE_DIRECTED_PHYSICS.REPULSION_RANGE_MULTIPLIER) {
             // Moderate repulsion in intermediate range
-            repulsion = strength * idealDistance / (dist * dist) * 50;
+            repulsion = strength * idealDistance / (dist * dist) * FORCE_DIRECTED_PHYSICS.MODERATE_REPULSION_FACTOR;
           }
 
           if (repulsion > 0) {
@@ -207,8 +196,8 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
         const dist = distance(dx, dy);
 
         if (dist > 0) {
-          const idealEdgeLength = optimalSpacing * 2;
-          const attraction = strength * (dist - idealEdgeLength) * 0.1;
+          const idealEdgeLength = optimalSpacing * FORCE_DIRECTED_PHYSICS.IDEAL_EDGE_LENGTH_MULTIPLIER;
+          const attraction = strength * (dist - idealEdgeLength) * FORCE_DIRECTED_PHYSICS.ATTRACTION_FACTOR;
 
           const fx = (dx / dist) * attraction;
           const fy = (dy / dist) * attraction;
@@ -227,10 +216,10 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
     // Apply forces with damping and bounds checking
     nodes.forEach(node => {
       const force = forces.get(node.id) ?? { x: 0, y: 0 };
-      const damping = 0.1;
+      const damping = FORCE_DIRECTED_PHYSICS.DAMPING;
 
       // Limit maximum velocity
-      const maxVelocity = optimalSpacing / 4;
+      const maxVelocity = optimalSpacing / FORCE_DIRECTED_PHYSICS.MAX_VELOCITY_DIVISOR;
       const velocity = distance(force.x, force.y);
 
       if (velocity > maxVelocity) {
@@ -243,7 +232,7 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
       node.y += force.y * damping;
 
       // Constrain to canvas bounds
-      const margin = 20;
+      const margin = FORCE_DIRECTED_PHYSICS.BOUNDS_MARGIN;
       node.x = Math.max(margin, Math.min(config.width - getNodeWidth(node) - margin, node.x));
       node.y = Math.max(margin, Math.min(config.height - getNodeHeight(node) - margin, node.y));
     });
