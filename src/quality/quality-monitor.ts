@@ -775,7 +775,10 @@ export class QualityMonitor {
       commitPhase: 1.0 // Assuming proper commit strategy
     };
 
-    const averageCompliance = Object.values(compliance).reduce((a, b) => a + b, 0) / 5;
+    // Denominator derives from the averaged keyset itself — a hardcoded `/ 5`
+    // silently mis-averages the moment a sixth compliance phase is added.
+    const complianceValues = Object.values(compliance);
+    const averageCompliance = complianceValues.reduce((a, b) => a + b, 0) / complianceValues.length;
 
     assessment.recommendations.push(
       `🔄 Recursive Development Compliance: ${(averageCompliance * 100).toFixed(1)}%`
@@ -802,7 +805,9 @@ export class QualityMonitor {
       integration: result.stages.every(stage => stage.success) ? 1.0 : 0.0
     };
 
-    const criteriaScore = Object.values(criteria).reduce((a, b) => a + b, 0) / 5;
+    // Same keyset-derived denominator rule as averageCompliance above.
+    const criteriaValues = Object.values(criteria);
+    const criteriaScore = criteriaValues.reduce((a, b) => a + b, 0) / criteriaValues.length;
 
     assessment.improvements.push(
       `🎯 Phase Success Criteria: ${(criteriaScore * 100).toFixed(1)}%`
@@ -835,7 +840,9 @@ export class QualityMonitor {
       documentation: 1.0 // Assuming proper documentation
     };
 
-    const qualityScore = Object.values(iterationMetrics).reduce((a, b) => a + b, 0) / 5;
+    // Same keyset-derived denominator rule as averageCompliance above.
+    const iterationValues = Object.values(iterationMetrics);
+    const qualityScore = iterationValues.reduce((a, b) => a + b, 0) / iterationValues.length;
 
     assessment.improvements.push(
       `📊 Iteration Quality Score: ${(qualityScore * 100).toFixed(1)}%`
