@@ -10,6 +10,7 @@
  */
 
 import { logger } from '@/utils/logger';
+import { SENTENCE_BOUNDARY_REGEX } from './sentence-boundaries';
 
 /** Browser-safe env accessor — returns undefined when process is unavailable (ISS-021) */
 function safeEnv(key: string): string | undefined {
@@ -139,9 +140,12 @@ export class ComplexityDetector {
    * Factors: sentence length, nesting, punctuation variety
    */
   private analyzeStructuralComplexity(text: string): number {
-    // decimal-safe: a bare '.' would tear "2.5" → "2"+"5", inflating the
-    // sentence count and skewing avgSentenceLength. Mirrors daebbc45; TC-309.
-    const sentences = text.split(/[。!?]+|\.(?:\s+|$)/).filter(s => s.trim().length > 0);
+    // Sentence boundaries come from sentence-boundaries.ts (round 21). This
+    // factor previously hand-rolled [。!?] — no \n (its own sibling
+    // computeSentenceComplexity below DID split on \n) and no full-width ！？,
+    // so multi-line/unpunctuated transcription was "1 sentence" here and N
+    // sentences there, contradicting the score-driving factor.
+    const sentences = text.split(SENTENCE_BOUNDARY_REGEX).filter(s => s.trim().length > 0);
     if (sentences.length === 0) return 0;
 
     // Average sentence length (longer = more complex)
@@ -443,9 +447,10 @@ export class ComplexityDetector {
   }
 
   private computeSentenceComplexity(text: string): number {
-    // Split on sentence-ending punctuation. decimal-safe: a bare '.' would tear
-    // "2.5" → "2"+"5" and skew avgLen. Mirrors daebbc45; pinned TC-309.
-    const sentences = text.split(/[。!?\n]+|\.(?:\s+|$)/).filter(s => s.trim().length > 0);
+    // Sentence boundaries come from sentence-boundaries.ts (round 21) — the
+    // same definition the structural factor above now uses. decimal-safe '.'
+    // arm preserved (TC-309); full-width ！？ added (was ASCII-only).
+    const sentences = text.split(SENTENCE_BOUNDARY_REGEX).filter(s => s.trim().length > 0);
     if (sentences.length === 0) return 0;
 
     // Average sentence length

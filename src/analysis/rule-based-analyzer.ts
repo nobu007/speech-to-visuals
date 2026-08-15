@@ -8,6 +8,7 @@
 
 import type { NodeDatum, EdgeDatum, DiagramType } from '@/types/diagram';
 import { logger } from '@/utils/logger';
+import { SENTENCE_BOUNDARY_REGEX } from './sentence-boundaries';
 
 /**
  * Scene segment for input
@@ -39,9 +40,13 @@ const DEFAULT_CONFIDENCE = 0.5;
  * Removes empty and very short sentences (< 3 chars)
  */
 export function splitSentences(text: string): string[] {
-  // Split on: 。 | . followed by whitespace | ! !？ | newlines
+  // Sentence boundaries come from sentence-boundaries.ts (round 21) — same
+  // membership this function already had (it was the fullest of the seven
+  // hand-rolled shapes), now spelled once. Outcome-equivalent for every
+  // input: 。 singly vs in a run, and `\.\s+|\.$` vs `\.(?:\s+|$)` give the
+  // same fragments after trim/filter.
   return text
-    .split(/。|\.\s+|\.$|[!！?？\n]+/)
+    .split(SENTENCE_BOUNDARY_REGEX)
     .map((s) => s.trim())
     .filter((s) => s.length >= MIN_SENTENCE_LENGTH);
 }

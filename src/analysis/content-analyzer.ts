@@ -2,6 +2,7 @@ import { DiagramData } from "./types";
 import { LLMService, llmService } from "./llm-service";
 import { getContentAnalyzerPrompt, type Language } from "./prompt-templates";
 import { buildContentCacheKey } from "./cache-key";
+import { SENTENCE_BOUNDARY_REGEX } from "./sentence-boundaries";
 import { logger } from '../utils/logger';
 
 /**
@@ -46,12 +47,12 @@ export class ContentAnalyzer {
 
   // Iteration 1: simple rule-based baseline using sentence splitting
   analyzeV1(text: string): DiagramData {
-    // A bare '.' in the class would split on EVERY dot and tear the decimal in
-    // "1.5"/"2.0"/"192.168.1.1" across node labels — this method decides the
-    // rule-based diagram's NODE LABELS. An English '.' is a boundary only via
-    // `\.(?:\s+|$)`. Mirrors daebbc45; pinned by TC-309.
+    // Sentence boundaries come from sentence-boundaries.ts (round 21): the
+    // decimal-safe '.' arm (TC-309) plus the canonical terminator membership
+    // — full-width ！？ included, which this site used to omit, so Japanese
+    // exclamatory text reached node labels as ONE truncated label.
     const sentences = text
-      .split(/[。!?\n]+|\.(?:\s+|$)/)
+      .split(SENTENCE_BOUNDARY_REGEX)
       .map((s) => s.trim())
       .filter(Boolean)
       .slice(0, 10);

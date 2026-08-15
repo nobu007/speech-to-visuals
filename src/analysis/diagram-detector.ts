@@ -1,5 +1,6 @@
 import { DiagramType, NodeDatum, EdgeDatum, isDiagramType, DIAGRAM_TYPES } from '@/types/diagram';
 import { ContentSegment, DiagramAnalysis, KeywordAnalysis, SemanticRelation } from './types';
+import { SENTENCE_BOUNDARY_REGEX, PHRASE_BOUNDARY_REGEX } from './sentence-boundaries';
 import { GeminiAnalyzer } from './gemini-analyzer';
 import { escapeRegex } from '@/utils/regex-escape';
 import { logger } from '../utils/logger';
@@ -566,16 +567,12 @@ export class DiagramDetector {
     const trimmed = text.trim();
     if (!trimmed) return [];
 
-    // Split into sentences using Japanese and English delimiters. A CJK
-    // sentence ender (。！？), newline, !, ?, or ; is always a boundary. An
-    // English '.' is a boundary ONLY when it ends a sentence — followed by
-    // whitespace or end-of-string — NOT inside a token, so the decimal in
-    // "1.5"/"3.14", a version "2.0", or an IP "192.168.1.1" is preserved.
-    // (Bare '.' in the class below split on EVERY dot and tore decimals across
-    // node labels.) Mirrors the sibling fix in scene-segmenter's
-    // splitTextAtSentenceBoundaries, pinned by scene-segmenter.test.ts.
+    // Phrase boundaries come from sentence-boundaries.ts (round 21): the
+    // canonical membership (。！？!?\n + decimal-safe '.', TC-309) plus ';' —
+    // key-phrase extraction breaks on clause separators too. Same membership
+    // this site already had; now spelled once.
     const sentences = trimmed
-      .split(/[。！？\n!?;]+|\.(?:\s+|$)/)
+      .split(PHRASE_BOUNDARY_REGEX)
       .map(s => s.trim())
       .filter(s => s.length > 0);
 
@@ -842,9 +839,11 @@ export class DiagramDetector {
   }
 
   private extractContext(text: string, term: string): string[] {
-    // `\.(?:\s+|$)`, not a bare class '.', so a decimal/version/IP inside a
-    // context snippet stays intact. Mirrors daebbc45 (same file); pinned TC-309.
-    const sentences = text.split(/[!?]+|\.(?:\s+|$)/);
+    // Sentence boundaries come from sentence-boundaries.ts (round 21). This
+    // context extractor previously hand-rolled [!?] — no 。, no full-width
+    // ！？, no \n — so Japanese context never split and the "context" was the
+    // whole text. Decimal-safe '.' arm preserved (TC-309).
+    const sentences = text.split(SENTENCE_BOUNDARY_REGEX);
     return sentences.filter(sentence =>
       sentence.toLowerCase().includes(term.toLowerCase())
     ).map(s => s.trim()).slice(0, 2);
