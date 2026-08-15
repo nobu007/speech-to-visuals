@@ -409,4 +409,74 @@ export const FROZEN_LITERAL_RULES: FrozenLiteralRule[] = [
     patterns: [/Math\.random\s*\(/],
     minSweptFiles: 40,
   },
+
+  /**
+   * Round 18 (specs/finite-safe-aggregation): external-origin aggregations
+   * (LLM scores, response times, transcription timestamps, job times) MUST
+   * delegate to safeSum/safeMean/safeMax/safeMin in src/lib/metrics-utils.ts.
+   * Two rules below — (1) a files-pinned regression rule banning the EXACT
+   * legacy expressions removed in waves 2-6 (so the same line cannot be
+   * pasted back), and (2) a roots-swept discovery rule catching NEW files in
+   * the migrated module families that grow a raw `(a,b)=>a+b` mean or a
+   * Math.min/max spread. Per REQ-402 the discovery rule deliberately does NOT
+   * ban `reduce((sum,` / count aggregations — keyphrase-length, match-count
+   * and `.length` sums are structurally finite and stay inline.
+   */
+  {
+    id: 'finite-safe aggregation: exact legacy expressions stay migrated (waves 2-6 site pins)',
+    files: [
+      'src/analysis/llm-service.ts',
+      'src/analysis/diagram-detector.ts',
+      'src/analysis/scene-segmenter.ts',
+      'src/quality/enhanced-error-recovery.ts',
+      'src/export/production-exporter.ts',
+    ],
+    patterns: [
+      // llm-service wave 2 (response-time means).
+      /flashResponseTimes\.reduce\(\(a, b\) => a \+ b, 0\)/,
+      /proResponseTimes\.reduce\(\(a, b\) => a \+ b, 0\)/,
+      /responseTimeHistory\.reduce\(\(a, b\) => a \+ b, 0\)/,
+      // diagram-detector wave 3 (pattern max + test-score mean).
+      /Math\.max\(\.\.\.patternScores\)/,
+      /reduce\(\(sum, result\) => sum \+ result\.score, 0\)/,
+      // scene-segmenter wave 4 (duration mean).
+      /sum \+ \(seg\.endMs - seg\.startMs\), 0\)/,
+      // enhanced-error-recovery wave 5 (timestamp spreads).
+      /Math\.max\(\.\.\.similarErrors\.map\(e => e\.timestamp\)\)/,
+      /Math\.min\(\.\.\.allErrors\.map\(e => e\.timestamp\)\)/,
+      /Math\.max\(\.\.\.allErrors\.map\(e => e\.timestamp\)\)/,
+      // production-exporter wave 6 (duration sum + processing-time mean).
+      /sum \+ Math\.max\(0, scene\.durationMs \|\| 0\), 0\)/,
+      /sum \+ \(job\.endTime! - job\.startTime!\)/,
+    ],
+    minSweptFiles: 5,
+  },
+  {
+    id: 'finite-safe aggregation: no NEW raw (a,b)=>a+b mean or min/max spread in migrated module families',
+    roots: ['src/analysis', 'src/quality', 'src/export'],
+    exclude: {
+      // T2-deferred sites, verified finite-by-construction or internally
+      // generated — full line-level inventory in
+      // specs/finite-safe-aggregation/tasks/sweep-20260815.md. When a future
+      // wave migrates a file below, shrink its exclusion (or drop it).
+      'src/analysis/diagram-detector.ts':
+        'T2-deferred: internal qualityFactors raw mean (1386) + statistical-enable threshold spread (1451, internal qualityScores)',
+      'src/analysis/scene-segmenter.ts':
+        'T2-deferred: sanitizeFinite-guarded confidence spread (595), semantic-enable threshold spread (783), factorValues raw mean (719)',
+      'src/quality/quality-monitor.ts':
+        'T2-deferred: internally generated raw means (310/781/810/845) + layout-origin coordinate-range spreads (448-449)',
+      'src/quality/error-recovery-health-tracker.ts':
+        'T2-deferred: raw means over internally generated deltas (203/243/245)',
+      'src/quality/recovery-telemetry-aggregator.ts':
+        'T2-deferred: raw means over internally generated recovery times (155/180)',
+      'src/quality/adaptive-quality-gates.ts':
+        'T2-deferred: raw means over internally generated half-samples (547-548)',
+    },
+    patterns: [
+      /\.reduce\(\(a, b\) => a \+ b, 0\)\s*\//,
+      /Math\.max\(\.\.\./,
+      /Math\.min\(\.\.\./,
+    ],
+    minSweptFiles: 40,
+  },
 ];
