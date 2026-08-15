@@ -1,5 +1,14 @@
 # finite-safe-aggregation 要件定義書（軽量版）
 
+
+<!-- spine:anchor:begin -->
+> **Spine anchor**: [speech-to-visuals アーキテクチャ設計](../speech-to-visuals/architecture.md)
+>
+> - parent: `speech-to-visuals/architecture.md`
+> - role: `detailed`
+> - status: `canonical_child`
+<!-- spine:anchor:end -->
+
 **作成日**: 2026-08-15
 **feature_id**: finite-safe-aggregation
 **作業規模**: 軽量開発（機能追加が限定的・参照文書は実コードと steering のみ）

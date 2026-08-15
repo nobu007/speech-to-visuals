@@ -1,5 +1,14 @@
 # finite-safe-aggregation 設計自動分析記録
 
+
+<!-- spine:anchor:begin -->
+> **Spine anchor**: [speech-to-visuals 設計自動分析記録](../speech-to-visuals/design-interview.md)
+>
+> - parent: `speech-to-visuals/design-interview.md`
+> - role: `system`
+> - status: `canonical_child`
+<!-- spine:anchor:end -->
+
 **作成日**: 2026-08-15
 **分析実施**: step4 既存情報ベースの差分分析と自動統合（設計フェーズ）
 **前提**: requirements.md / interview-record.md（要件フェーズ）の分析を引き継ぎ、

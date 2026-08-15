@@ -1,5 +1,14 @@
 # finite-safe-aggregation アーキテクチャ設計
 
+
+<!-- spine:anchor:begin -->
+> **Spine anchor**: [speech-to-visuals アーキテクチャ設計](../speech-to-visuals/architecture.md)
+>
+> - parent: `speech-to-visuals/architecture.md`
+> - role: `system`
+> - status: `canonical_child`
+<!-- spine:anchor:end -->
+
 **作成日**: 2026-08-15
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [design-interview.md](design-interview.md)
