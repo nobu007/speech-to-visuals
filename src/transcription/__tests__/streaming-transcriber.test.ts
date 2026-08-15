@@ -337,7 +337,9 @@ describe('StreamingTranscriber', () => {
       expect(result).toHaveProperty('segments');
       expect(result).toHaveProperty('text');
       expect(result).toHaveProperty('duration');
-      expect(result).toHaveProperty('language', 'ja');
+      // Round 22: language is content-derived — this path's chunk-mock text
+      // is English, so 'en'. The old pin was on the removed hardcoded 'ja'.
+      expect(result).toHaveProperty('language', 'en');
       expect(result.success).toBe(true);
       expect(result.segments.length).toBeGreaterThan(0);
     });

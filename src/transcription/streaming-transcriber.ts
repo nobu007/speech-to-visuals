@@ -5,6 +5,7 @@
  */
 
 import { TranscriptionSegment, TranscriptionResult, TranscriptionConfig, TranscriptionError } from './types';
+import { detectTranscriptionLanguage } from './language-detection';
 import { logger } from '../utils/logger';
 import {
   StreamingQualityMonitor,
@@ -221,7 +222,10 @@ export class StreamingTranscriber {
         segments: mergedSegments,
         text: mergedSegments.map(s => s.text).join(' '),
         duration: audioDuration * 1000,
-        language: 'ja',
+        // Content-derived (round 22): was a hardcoded 'ja', which labeled this
+        // path's own English chunk-mock output as Japanese. Delegates to the
+        // shared detector like the other TranscriptionResult producers.
+        language: detectTranscriptionLanguage(mergedSegments),
         processingTime: performance.now() - startTime,
         success: true,
         qualitySummary: this.qualityMonitor?.getSummary(),

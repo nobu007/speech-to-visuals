@@ -12,6 +12,7 @@ import {
   MAX_FILE_SIZE,
 } from './types';
 import { formatTimestamp } from './srt-generator';
+import { detectTranscriptionLanguage } from './language-detection';
 import { Caption } from '@remotion/captions';
 import { logger } from '../utils/logger';
 import { validateAudioFile } from '@/utils/audio-validation';
@@ -361,17 +362,15 @@ export class WhisperTranscriber {
 
   /**
    * Detect language from transcription segments
+   *
+   * Delegates to ./language-detection (round 22). The hand-rolled
+   * [kana|kanji] class this method used to carry labeled Chinese-only
+   * transcripts 'ja' (kanji matches the class) and collapsed es/fr/de to
+   * 'en' (no diacritical scoring) — the same concept analysis'
+   * detectLanguage already decides with the full classifier.
    */
   private detectLanguageFromSegments(segments: TranscriptionSegment[]): string {
-    const text = segments.map(s => s.text).join(' ');
-
-    // Japanese character ranges: Hiragana, Katakana, Kanji
-    const japanesePattern = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/;
-    if (japanesePattern.test(text)) {
-      return 'ja';
-    }
-
-    return 'en';
+    return detectTranscriptionLanguage(segments);
   }
 
   /**

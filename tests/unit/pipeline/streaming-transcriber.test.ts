@@ -107,7 +107,10 @@ describe('StreamingTranscriber', () => {
       expect(result.segments.length).toBeGreaterThan(0);
       expect(result.text).toBeDefined();
       expect(result.duration).toBeGreaterThan(0);
-      expect(result.language).toBe('ja');
+      // Round 22: language is content-derived now. This path's chunk-mock
+      // text is English ('Processed segment N from chunk ...'), so 'en' —
+      // the previous pin was on the hardcoded 'ja' the fix removed.
+      expect(result.language).toBe('en');
     }, 30000);
 
     it('should call progress callback for each chunk', async () => {

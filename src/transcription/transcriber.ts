@@ -2,7 +2,7 @@ import { TranscriptionResult, TranscriptionConfig, TranscriptionSegment, Transcr
 import { BrowserTranscriber } from './browser-transcriber';
 import { WhisperTranscriber, type WhisperConfig } from './whisper-transcriber';
 import { Caption } from '@remotion/captions';
-import { detectLanguage, type Language } from '@/analysis/language-detector';
+import { detectTranscriptionLanguage } from './language-detection';
 import { logger } from '../utils/logger';
 
 /**
@@ -263,36 +263,13 @@ export class TranscriptionPipeline {
   /**
    * Phase 33: Auto-detect language from transcription segments
    * Uses character-based detection from Phase 32 language detector
+   *
+   * Round 22: the sampling + mapping moved to ./language-detection so every
+   * TranscriptionResult producer shares ONE detection contract. This site was
+   * already the canonical shape — the move is a pure extraction.
    */
   private detectLanguageFromSegments(segments: TranscriptionSegment[]): string {
-    if (segments.length === 0) {
-      return 'unknown';
-    }
-
-    // Combine first few segments for language detection (up to 500 chars for performance)
-    const sampleText = segments
-      .slice(0, Math.min(3, segments.length))
-      .map(seg => seg.text)
-      .join(' ')
-      .substring(0, 500);
-
-    const detection = detectLanguage(sampleText);
-
-    // Map Language type to full language codes
-    const languageMap: Record<Language, string> = {
-      'ja': 'ja',
-      'en': 'en',
-      'zh': 'zh',
-      'es': 'es',
-      'fr': 'fr',
-      'de': 'de',
-      'auto': 'unknown'
-    };
-
-    const detectedLang = languageMap[detection.language] ?? 'unknown';
-
-
-    return detectedLang;
+    return detectTranscriptionLanguage(segments);
   }
 
   /**
