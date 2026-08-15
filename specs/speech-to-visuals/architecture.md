@@ -745,6 +745,16 @@ spec整合性の自動検証システム:
 - **不正設定時動作**: 全エラー一括返却、不正設定時は即座にエラーで終了
 - **検証ルール**: complexityThreshold/similarityThreshold (0-1)、port (1024-65535)、cacheSize (1-10000)、cacheTtlMinutes (1-10080)
 
+### freeze-guard レジストリ運用方針（単一ファイル維持） 🔵
+
+**信頼性**: 🔵 *tests/guards/frozen-literal-rules.ts（round 16 時点 16 エントリ・423 行）・frozen-literal-registry.test.ts より*
+
+- **決定**: `tests/guards/frozen-literal-rules.ts` は**単一ファイル方針を維持**する。family 分割は行わない
+- **根拠**: レジストリはデータのみ（`FrozenLiteralRule[]` リテラル）。走査エンジンは `freeze-guard.ts` に独立しており、エントリ追加は「1エントリ ≒ 15〜40 行の追記」で完結する。分割によるエンジン変更（readFileSync 動的ロード等）は検証コストのみを追加し、現規模で得られる可読性は限定的
+- **家族追加の規約**: 新 family = レジストリ1エントリ + 値ピン・挙動ピンは family 個別テスト側に置く（既存の使い分けを維持）
+- **分割再検討の閾値**: 800 行超、または「エントリが独自の走査セマンティクス（新規 roots 探索・述語ウォーク）を必要とする」に到達した場合
+- **分割する場合の必須条件**: freeze-guard 全スイート（`frozen-literal-registry` + 全 `<family>-single-source` テスト）の GREEN を実行証拠としてコミットに残すこと（検証なき分割は R3）
+
 ## Acceptance criteria
 
 - [x] ディレクトリ構造のファイル数が実際の `src/` レイアウトと一致する（386ファイル）
