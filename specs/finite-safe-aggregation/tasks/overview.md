@@ -31,13 +31,13 @@
 
 ## 全体進捗
 
-- [ ] Phase 1: 基盤（sweep + helper）
+- [x] Phase 1: 基盤（sweep + helper）— 2026-08-15 完了（TASK-0001 sweep メモ + TASK-0002 commit 6fa7d591、36/36 GREEN）
 - [ ] Phase 2: サイト移行（ウェーブ 2-6）
 - [ ] Phase 3: ガードと総合検証（ウェーブ 7 + criteria クローズ）
 
 ## マイルストーン
 
-- **M1: helper 完成** (8/18): safeSum/mean/max/min + オラクル GREEN（移行前でも価値ある単独コミット）
+- **M1: helper 完成** (8/18): safeSum/mean/max/min + オラクル GREEN（移行前でも価値ある単独コミット）✅ 2026-08-15 達成（6fa7d591）
 - **M2: T1 移行完了** (8/19): 外部起因 NaN 伝播の遮断（llm-service / diagram-detector / scene-segmenter / error-recovery）
 - **M3: feature 完了** (8/20): registry ガード + 全 suite GREEN + criteria [x]
 
@@ -51,8 +51,8 @@
 
 ### タスク一覧
 
-- [ ] [TASK-0001: 移行対象サイトの sweep 再確定](TASK-0001.md) - 2h (DIRECT) 🔵
-- [ ] [TASK-0002: finite-safe helper 4 関数の実装と仕様・fuzz オラクル](TASK-0002.md) - 4h (TDD) 🔵
+- [x] [TASK-0001: 移行対象サイトの sweep 再確定](TASK-0001.md) - 2h (DIRECT) 🔵 — 正本リスト: [sweep-20260815.md](sweep-20260815.md)
+- [x] [TASK-0002: finite-safe helper 4 関数の実装と仕様・fuzz オラクル](TASK-0002.md) - 4h (TDD) 🔵 — commit 6fa7d591
 
 ### 依存関係
 
