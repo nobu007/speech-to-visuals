@@ -97,6 +97,7 @@
 - **多言語検出**: 6言語対応（日本語・英語・中国語・スペイン語・フランス語・ドイツ語）・文字種別スコアリング・ダイアクリティカルマーク分析 🔵 *Phase 44 REQ-303・src/analysis/language-detector.ts より*
 - **SimpleDiagramDetector**: ルールベース図解タイプ検出（flow/tree/timeline/cycle/network の5種類）・キーワードマッチングによる信頼度スコアリング・自己テスト機能（testDetector() が pass/fail 構造化結果を返す）・認識不可テキストのデフォルト要素生成フォールバック 🔵 *src/analysis/simple-diagram-detector.ts・436行のテスト追加*
 - **文境界の単一ソース**: `src/analysis/sentence-boundaries.ts` が文終端の正規表現メンバーシップ（`[。！？!?\n]` + decimal-safe `.` アーム `\.(?:\s+|$)`）を唯一定義。round 21 以前は7サイトが各自ハンドロールし、メンバーシップが4通りに drift（`\n` 欠落・全角 `！？` 欠落・`。` なしの context 抽出）— 同一 detector 内の2因子が異なる文定義を持つ状態だった。`SENTENCE_BOUNDARY_REGEX`（文単位）と `PHRASE_BOUNDARY_REGEX`（`;` 追加・キーフレーズ抽出用）の2形状のみ。frozen-literal registry の 'sentence-boundary terminators single-sourced' エントリが src/analysis 内の手書き終端クラスを禁止 🔵 *src/analysis/sentence-boundaries.ts・tests/analysis/sentence-boundary-migration.test.ts・src/analysis/__tests__/sentence-boundary-consistency.test.ts より*
+- **文字起こし言語判定の単一ソース**: `src/transcription/language-detection.ts` が `TranscriptionResult.language` の導出（先頭3セグメント・500文字サンプリング → analysis の `detectLanguage()` 委譲 → `Language`→コード写像）を唯一定義。round 22 以前は3 producer が3通りの挙動に drift していた — whisper-transcriber は hand-rolled `[仮名|漢字]` クラスで**漢字のみ（中国語）の書き起こしを `ja` と誤ラベル**（下流の LLM プロンプトが日本語用に選択される）、es/fr/de は `en` に潰れ（ダイアクリティカル判定不在）、streaming-transcriber は英語モック出力を含む全結果をハードコード `ja`。browser-transcriber の `en` は除外（Web Speech 認識を `lang='en-US'` に固定しているため言語は事前設定であり検出ではない）。frozen-literal registry の 'transcription language detection single-sourced' エントリが src/transcription 内の手書き文字クラス（エスケープ・リテラル両形状）と結果リテラルへの言語コード直書きを禁止 🔵 *src/transcription/language-detection.ts・tests/transcription/language-detection-migration.test.ts より*
 
 ### データベース 🔵
 
@@ -748,7 +749,7 @@ spec整合性の自動検証システム:
 
 ### freeze-guard レジストリ運用方針（単一ファイル維持） 🔵
 
-**信頼性**: 🔵 *tests/guards/frozen-literal-rules.ts（round 21 時点 20 エントリ・572 行。round 20 は 19 エントリ・544 行、方針確立時 round 16 は 16 エントリ・423 行。round 21 は新 family 1 件: sentence-boundary terminators）・frozen-literal-registry.test.ts より*
+**信頼性**: 🔵 *tests/guards/frozen-literal-rules.ts（round 22 時点 21 エントリ・607 行。round 21 は 20 エントリ・572 行、方針確立時 round 16 は 16 エントリ・423 行。round 22 は新 family 1 件: transcription language detection）・frozen-literal-registry.test.ts より*
 
 - **決定**: `tests/guards/frozen-literal-rules.ts` は**単一ファイル方針を維持**する。family 分割は行わない
 - **根拠**: レジストリはデータのみ（`FrozenLiteralRule[]` リテラル）。走査エンジンは `freeze-guard.ts` に独立しており、エントリ追加は「1エントリ ≒ 15〜40 行の追記」で完結する。分割によるエンジン変更（readFileSync 動的ロード等）は検証コストのみを追加し、現規模で得られる可読性は限定的
