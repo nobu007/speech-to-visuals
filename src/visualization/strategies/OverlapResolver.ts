@@ -1,5 +1,6 @@
 import { DiagramLayout, PositionedNode, DiagramType } from '@/types/diagram';
 import { LayoutConfig } from '../types';
+import { createLayoutRng } from '../layout-rng';
 import { nodesOverlap, distance } from '../layout-utils';
 import { logger } from '../../utils/logger';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
@@ -98,6 +99,13 @@ export class OverlapResolver {
     if (nodes.length === 0) {
       return { ...layout, nodes: [] };
     }
+    // Seeded per-call (round 17): the identical-position default-branch
+    // displacement angle draws from createLayoutRng keyed by this call's node
+    // ids instead of Math.random. flow/flowchart/timeline/tree branches were
+    // already deterministic. Local variable — a stored rng would leak the
+    // previous call's sequence.
+    const rng = createLayoutRng(nodes.map(n => n.id).join('|'));
+
     // Scale max iterations down for large datasets to maintain performance
     const maxIterations = Math.min(50, Math.max(10, Math.floor(2000 / nodes.length)));
     let overlapCount = 0;
@@ -122,7 +130,7 @@ export class OverlapResolver {
 
       // Resolve all detected overlaps
       for (const [a, b] of overlappingPairs) {
-        await this.resolveSpecificOverlap(a, b, diagramType);
+        await this.resolveSpecificOverlap(a, b, diagramType, rng);
       }
 
       iteration++;
@@ -166,7 +174,7 @@ export class OverlapResolver {
   /**
    * Resolve specific overlap between two nodes with diagram-type awareness
    */
-  private async resolveSpecificOverlap(node1: PositionedNode, node2: PositionedNode, diagramType: DiagramType): Promise<void> {
+  private async resolveSpecificOverlap(node1: PositionedNode, node2: PositionedNode, diagramType: DiagramType, rng: () => number): Promise<void> {
     const separation = this.getMinimumSeparationForType(diagramType);
 
     const w1 = getNodeWidth(node1), h1 = getNodeHeight(node1);
@@ -182,7 +190,7 @@ export class OverlapResolver {
 
     if (dist === 0) {
       // Handle identical positions with type-specific logic
-      await this.handleIdenticalPositions(node1, node2, diagramType);
+      await this.handleIdenticalPositions(node1, node2, diagramType, rng);
       return;
     }
 
@@ -220,7 +228,7 @@ export class OverlapResolver {
   /**
    * Handle nodes at identical positions
    */
-  private async handleIdenticalPositions(node1: PositionedNode, node2: PositionedNode, diagramType: DiagramType): Promise<void> {
+  private async handleIdenticalPositions(node1: PositionedNode, node2: PositionedNode, diagramType: DiagramType, rng: () => number): Promise<void> {
     const separation = this.getMinimumSeparationForType(diagramType);
 
     switch (diagramType) {
@@ -243,8 +251,8 @@ export class OverlapResolver {
         node2.y += separation;
         break;
       default: {
-        // Random displacement for other types
-        const angle = Math.random() * 2 * Math.PI;
+        // Seeded displacement for other types (round 17; was Math.random)
+        const angle = rng() * 2 * Math.PI;
         node1.x += Math.cos(angle) * separation;
         node1.y += Math.sin(angle) * separation;
         node2.x -= Math.cos(angle) * separation;

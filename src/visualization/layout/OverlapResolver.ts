@@ -4,6 +4,7 @@ import ProgressiveForceStrategy from './strategies/ProgressiveForceStrategy';
 import SimulatedAnnealingStrategy from './strategies/SimulatedAnnealingStrategy';
 import GridSnapStrategy from './strategies/GridSnapStrategy';
 import { LayoutConfig, LayoutResult, LayoutMetrics } from '../types';
+import { createLayoutRng } from '../layout-rng';
 import { logger } from '../../utils/logger';
 import { VisualizationError } from '@/pipeline/pipeline-errors';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
@@ -54,8 +55,14 @@ export class OverlapResolver {
       };
     }
 
+    // Seeded per-resolve (round 17): the missing/absent-position fallback in
+    // initializeNodes draws from createLayoutRng instead of Math.random, so
+    // the same graph resolves identically every run. Local variable — a
+    // stored rng would leak the previous resolve's sequence.
+    const rng = createLayoutRng(nodes.map(n => n.id).join('|'));
+
     // If we have an existing layout with nodes, use it as a starting point
-    let currentNodes = this.initializeNodes(nodes, existingLayout);
+    let currentNodes = this.initializeNodes(nodes, existingLayout, rng);
     let currentEdges = this.initializeEdges(edges, currentNodes);
     
     let bestResult: LayoutResult | null = null;
@@ -186,27 +193,31 @@ export class OverlapResolver {
   /**
    * Initialize nodes with positions from existing layout if available
    */
-  private initializeNodes(nodes: NodeDatum[], existingLayout?: DiagramLayout): PositionedNode[] {
+  private initializeNodes(
+    nodes: NodeDatum[],
+    existingLayout: DiagramLayout | undefined,
+    rng: () => number
+  ): PositionedNode[] {
     if (!existingLayout?.nodes?.length) {
       return nodes.map(node => ({
         ...node,
-        x: Math.random() * 1000 - 500,
-        y: Math.random() * 1000 - 500,
+        x: rng() * 1000 - 500,
+        y: rng() * 1000 - 500,
         width: getNodeWidth(node, 100),
         height: getNodeHeight(node, 50)
       }));
     }
-    
+
     // Create a map of existing node positions
     const nodeMap = new Map(existingLayout.nodes.map(n => [n.id, n]));
-    
+
     return nodes.map(node => {
       const existingNode = nodeMap.get(node.id);
-      
+
       return {
         ...node,
-        x: existingNode?.x ?? Math.random() * 1000 - 500,
-        y: existingNode?.y ?? Math.random() * 1000 - 500,
+        x: existingNode?.x ?? rng() * 1000 - 500,
+        y: existingNode?.y ?? rng() * 1000 - 500,
         width: getNodeWidth(node, getNodeWidth(existingNode ?? {}, 100)),
         height: getNodeHeight(node, getNodeHeight(existingNode ?? {}, 50))
       };
