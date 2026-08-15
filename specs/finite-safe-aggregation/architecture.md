@@ -224,10 +224,10 @@ tests/guards/frozen-literal-rules.ts   # family エントリ追加（分割せ�
 
 ## Acceptance criteria（設計完了条件）
 
-- [ ] architecture.md / dataflow.md / design-interview.md が要件の全 Must-req（REQ-001〜005）の実装方針を空欄なく決定している（EDGE-001 の「除外 vs 0 置換」を含む）
-- [ ] helper API 仕様（4 関数のシグネチャ・fallback・mean 分母）が一意に定まっている
-- [ ] 移行ウェーブ構成と各ウェーブの検証方法（デルタ + fuzz）がコミット単位で記述されている
-- [ ] registry family の追加方式が単一ファイル方針と整合している
+- [x] architecture.md / dataflow.md / design-interview.md が要件の全 Must-req（REQ-001〜005）の実装方針を空欄なく決定している（EDGE-001 の「除外 vs 0 置換」を含む）— 設計時に完備。実装でも D2 どおり（0 置換サイトは未移行・共存）
+- [x] helper API 仕様（4 関数のシグネチャ・fallback・mean 分母）が一意に定まっている — D1 どおり実装（6fa7d591）。実装追加事項: Math.max/min のゼロ符号規約（max(-0,+0)=+0）を比較ループで再現しないと bitwise 等価が崩れる
+- [x] 移行ウェーブ構成と各ウェーブの検証方法（デルタ + fuzz）がコミット単位で記述されている — ウェーブ 2-6 を 5 コミットで完了、各コミットに per-site オラクル同梱
+- [x] registry family の追加方式が単一ファイル方針と整合している — 0adc147a: files-pin + roots-sweep の 2 エントリ、分割なし（505 行）
 
 ## 関連文書
 

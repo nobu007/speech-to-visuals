@@ -32,14 +32,14 @@
 ## 全体進捗
 
 - [x] Phase 1: 基盤（sweep + helper）— 2026-08-15 完了（TASK-0001 sweep メモ + TASK-0002 commit 6fa7d591、36/36 GREEN）
-- [ ] Phase 2: サイト移行（ウェーブ 2-6）
-- [ ] Phase 3: ガードと総合検証（ウェーブ 7 + criteria クローズ）
+- [x] Phase 2: サイト移行（ウェーブ 2-6）— 2026-08-15 完了（cef513cd / d2fff302 / a37db62d / 4a3c2da3 / fe4af157、全ウェーブ per-site オラクル付き）
+- [x] Phase 3: ガードと総合検証（ウェーブ 7 + criteria クローズ）— registry 0adc147a（RED 検証済み）、criteria [x] 化
 
 ## マイルストーン
 
 - **M1: helper 完成** (8/18): safeSum/mean/max/min + オラクル GREEN（移行前でも価値ある単独コミット）✅ 2026-08-15 達成（6fa7d591）
-- **M2: T1 移行完了** (8/19): 外部起因 NaN 伝播の遮断（llm-service / diagram-detector / scene-segmenter / error-recovery）
-- **M3: feature 完了** (8/20): registry ガード + 全 suite GREEN + criteria [x]
+- **M2: T1 移行完了** (8/19): 外部起因 NaN 伝播の遮断（llm-service / diagram-detector / scene-segmenter / error-recovery）✅ 2026-08-15 達成（cef513cd〜4a3c2da3）
+- **M3: feature 完了** (8/20): registry ガード + 全 suite GREEN + criteria [x] ✅ 2026-08-15 達成（0adc147a + criteria クローズ）
 
 ---
 
@@ -72,11 +72,11 @@ TASK-0002 → TASK-0003〜0007
 
 ### タスク一覧
 
-- [ ] [TASK-0003: llm-service 応答時間 mean の safeMean 移行](TASK-0003.md) - 3h (TDD) 🔵
-- [ ] [TASK-0004: diagram-detector score mean + pattern max の移行](TASK-0004.md) - 3h (TDD) 🔵
-- [ ] [TASK-0005: scene-segmenter duration mean の移行](TASK-0005.md) - 3h (TDD) 🔵
-- [ ] [TASK-0006: enhanced-error-recovery timestamp min/max spread の移行](TASK-0006.md) - 3h (TDD) 🔵
-- [ ] [TASK-0007: T2/T3 確定分（export / performance / visualization）の移行](TASK-0007.md) - 4h (TDD) 🟡
+- [x] [TASK-0003: llm-service 応答時間 mean の safeMean 移行](TASK-0003.md) - 3h (TDD) 🔵 — cef513cd
+- [x] [TASK-0004: diagram-detector score mean + pattern max の移行](TASK-0004.md) - 3h (TDD) 🔵 — d2fff302
+- [x] [TASK-0005: scene-segmenter duration mean の移行](TASK-0005.md) - 3h (TDD) 🔵 — a37db62d
+- [x] [TASK-0006: enhanced-error-recovery timestamp min/max spread の移行](TASK-0006.md) - 3h (TDD) 🔵 — 4a3c2da3
+- [x] [TASK-0007: T2/T3 確定分（export / performance / visualization）の移行](TASK-0007.md) - 4h (TDD) 🟡 — fe4af157（exporter 687/780 のみ。performance/visualization は sweep で対象外確定）
 
 ### 依存関係
 
@@ -95,8 +95,8 @@ TASK-0001 → TASK-0007（sweep 判定が前提）
 
 ### タスク一覧
 
-- [ ] [TASK-0008: frozen-literal registry family の追加](TASK-0008.md) - 3h (TDD) 🟡
-- [ ] [TASK-0009: 総合検証と acceptance criteria のクローズ](TASK-0009.md) - 2h (DIRECT) 🔵
+- [x] [TASK-0008: frozen-literal registry family の追加](TASK-0008.md) - 3h (TDD) 🟡 — 0adc147a（RED 検証済み、20/20 GREEN）
+- [x] [TASK-0009: 総合検証と acceptance criteria のクローズ](TASK-0009.md) - 2h (DIRECT) 🔵 — criteria 全 [x]、実行証拠は各タスクファイルに記載
 
 ### 依存関係
 

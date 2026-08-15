@@ -111,9 +111,9 @@ pipeline 層 2 サイトのみを対象としており、**集計演算の横展
 
 **テストケース**:
 
-- [ ] 正常系: 有限値のみ配列で既存 inline 実装と数値デルタ 0 🔵
-- [ ] 主要な異常系: NaN / +Infinity / -Infinity 混入で要素除外 🔵
-- [ ] 境界値: 空配列・全要素非有限 → 0 🔵
+- [x] 正常系: 有限値のみ配列で既存 inline 実装と数値デルタ 0 🔵 — wave-1 fuzz 300 ケース ×4 関数、`Object.is` bitwise（-0 含む）。6fa7d591
+- [x] 主要な異常系: NaN / +Infinity / -Infinity 混入で要素除外 🔵 — spec matrix + fuzz 非有限混入 300 ケース ×4（helper = legacy over finite subset）
+- [x] 境界値: 空配列・全要素非有限 → 0 🔵 — spec matrix 5 系 ×4 + fallback 指定ケース
 
 ### REQ-003/004/005: 移行と等価性
 
@@ -123,8 +123,8 @@ pipeline 層 2 サイトのみを対象としており、**集計演算の横展
 
 **テストケース**:
 
-- [ ] 正常系: 各移行サイトの数値デルタ比較 🔵
-- [ ] 主要な異常系: fuzz による非有限混入ケース 🔵
+- [x] 正常系: 各移行サイトの数値デルタ比較 🔵 — llm-service（getStats 経由）/ diagram-detector / scene-segmenter / error-recovery / production-exporter 各 200 seeded ケース + source anchor（cef513cd/d2fff302/a37db62d/4a3c2da3/fe4af157）
+- [x] 主要な異常系: fuzz による非有限混入ケース 🔵 — 各サイトオラクルに非有限混入 case + wave-1 汎用 fuzz
 
 **検証コマンド**:
 
