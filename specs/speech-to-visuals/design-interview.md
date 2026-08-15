@@ -4522,5 +4522,7 @@ interfaces.ts には既にこれらの主要型が反映済み。
 
 - [Pipeline Metrics NaN Leak Fix — 自動分析記録](../pipeline-metrics-nan-leak-fix/interview-record.md)
 - [stochastic-layout-seeding 設計自動分析記録](../stochastic-layout-seeding/design-interview.md)
+- [finite-safe-aggregation 設計自動分析記録](../finite-safe-aggregation/design-interview.md)
+- [finite-safe-aggregation 自動分析記録](../finite-safe-aggregation/interview-record.md)
 
 <!-- spine:children:end -->

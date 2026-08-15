@@ -853,6 +853,10 @@ spec整合性の自動検証システム:
 - [speech-to-visuals タスク概要](tasks/overview.md)
 - [Speech-to-Visuals ユーザストーリー](user-stories.md)
 - [stochastic-layout-seeding アーキテクチャ設計](../stochastic-layout-seeding/architecture.md)
+- [finite-safe-aggregation アーキテクチャ設計](../finite-safe-aggregation/architecture.md)
+- [finite-safe-aggregation データフロー図](../finite-safe-aggregation/dataflow.md)
+- [finite-safe-aggregation 要件定義書（軽量版）](../finite-safe-aggregation/requirements.md)
+- [finite-safe-aggregation タスク概要](../finite-safe-aggregation/tasks/overview.md)
 
 <!-- spine:children:end -->
 
