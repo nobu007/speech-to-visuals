@@ -18,6 +18,7 @@ import { logger } from '../utils/logger';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from './node-dimensions';
 import { TARGET_ASPECT_RATIO } from './canvas-dimensions';
 import { FORCE_DIRECTED_PHYSICS, runForceDirectedPhases } from './force-directed-params';
+import { createLayoutRng } from './layout-rng';
 
 export interface ZeroOverlapConfig {
   // Canvas configuration
@@ -167,7 +168,25 @@ export class ZeroOverlapLayoutEngine {
 
     try {
       // Step 1: Generate initial layout using appropriate algorithm
-      const initialLayout = await this.generateInitialLayout(diagramType, nodes, edges);
+      const rawInitialLayout = await this.generateInitialLayout(diagramType, nodes, edges);
+
+      // Step 1b: Dagre-based initial layouts are NOT canvas-aware — a deep
+      // flowchart (8 ranks × node+ranksep) overflows 1080px and used to render
+      // clipped. Scale the initial layout into the canvas BEFORE overlap
+      // resolution; nothing downstream grows the bounding box.
+      const fittedNodes = this.fitNodesToCanvas(rawInitialLayout.nodes);
+      const initialLayout = {
+        nodes: fittedNodes,
+        // Edge anchor points were computed from the pre-scale positions —
+        // re-derive them so edges follow the fitted nodes.
+        edges: rawInitialLayout.edges.map(edge => {
+          const source = fittedNodes.find(n => n.id === edge.from);
+          const target = fittedNodes.find(n => n.id === edge.to);
+          return source && target
+            ? { ...edge, points: generateEdgePoints(source, target) }
+            : edge;
+        }),
+      };
 
       // Step 2: Detect and resolve all overlaps
       const overlapFreeLayout = await this.resolveAllOverlaps(initialLayout);
@@ -226,6 +245,55 @@ export class ZeroOverlapLayoutEngine {
       default:
         return this.generateConceptMapLayout(nodes, edges);
     }
+  }
+
+  /**
+   * Scale a node set into the canvas (uniformly, about its bounding-box
+   * top-left) when the initial layout overflows. Node SIZES are unchanged —
+   * only positions compress, so any collision the compression introduces is
+   * resolved by the subsequent overlap-resolution step. Idempotent when the
+   * layout already fits (scale clamped to 1, pure translation to the margin).
+   */
+  private fitNodesToCanvas(nodes: PositionedNode[]): PositionedNode[] {
+    if (nodes.length === 0) {
+      return nodes;
+    }
+
+    const margin = FORCE_DIRECTED_PHYSICS.BOUNDS_MARGIN;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const node of nodes) {
+      const w = getNodeWidth(node);
+      const h = getNodeHeight(node);
+      minX = Math.min(minX, node.x);
+      minY = Math.min(minY, node.y);
+      maxX = Math.max(maxX, node.x + w);
+      maxY = Math.max(maxY, node.y + h);
+    }
+
+    const bboxWidth = maxX - minX;
+    const bboxHeight = maxY - minY;
+    const availableWidth = this.config.canvasWidth - margin * 2;
+    const availableHeight = this.config.canvasHeight - margin * 2;
+    const scale = Math.min(
+      1,
+      bboxWidth > 0 ? availableWidth / bboxWidth : 1,
+      bboxHeight > 0 ? availableHeight / bboxHeight : 1
+    );
+
+    // Degenerate bbox / non-finite input: leave positions untouched (NaN
+    // guards downstream handle malformed nodes).
+    if (!Number.isFinite(scale) || scale <= 0 || !Number.isFinite(minX) || !Number.isFinite(minY)) {
+      return nodes;
+    }
+
+    return nodes.map(node => ({
+      ...node,
+      x: margin + (node.x - minX) * scale,
+      y: margin + (node.y - minY) * scale,
+    }));
   }
 
   /**
@@ -524,6 +592,10 @@ export class ZeroOverlapLayoutEngine {
     const cellWidth = this.config.canvasWidth / gridSize;
     const cellHeight = this.config.canvasHeight / gridSize;
 
+    // Seeded jitter: same node set → same initial positions → reproducible
+    // layout output (single source: layout-rng).
+    const rand = createLayoutRng(nodes.map(n => n.id).join('|'));
+
     return nodes.map((node, index) => {
       const width = calculateNodeWidth(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
       const height = calculateNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
@@ -536,8 +608,8 @@ export class ZeroOverlapLayoutEngine {
       const gridY = row * cellHeight + cellHeight / 2 - height / 2;
 
       // Add some randomization while maintaining distribution
-      const jitterX = (Math.random() - 0.5) * spacing;
-      const jitterY = (Math.random() - 0.5) * spacing;
+      const jitterX = (rand() - 0.5) * spacing;
+      const jitterY = (rand() - 0.5) * spacing;
 
       return {
         ...node,
@@ -1039,13 +1111,23 @@ export class ZeroOverlapLayoutEngine {
   private applyAestheticOptimization(
     layout: { nodes: PositionedNode[]; edges: LayoutEdge[] }
   ): { nodes: PositionedNode[]; edges: LayoutEdge[] } {
-    // For simplicity, apply small random adjustments
-    // In a real implementation, this would use sophisticated algorithms
-    const adjustedNodes = layout.nodes.map(node => ({
-      ...node,
-      x: node.x + (Math.random() - 0.5) * 10,
-      y: node.y + (Math.random() - 0.5) * 10
-    }));
+    // Seeded candidate perturbation: accepted candidates accumulate across
+    // iterations, so unseeded jitter made the FINAL layout irreproducible and
+    // (since nothing clamped the perturbed positions) could drift nodes
+    // off-canvas — both caught by the layout-outcome oracle test.
+    // Candidates are clamped to the canvas exactly like every other move in
+    // this engine (bottom/right edge inclusive).
+    const rand = createLayoutRng(layout.nodes.map(n => n.id).join('|'));
+
+    const adjustedNodes = layout.nodes.map(node => {
+      const width = getNodeWidth(node);
+      const height = getNodeHeight(node);
+      return {
+        ...node,
+        x: Math.max(0, Math.min(this.config.canvasWidth - width, node.x + (rand() - 0.5) * 10)),
+        y: Math.max(0, Math.min(this.config.canvasHeight - height, node.y + (rand() - 0.5) * 10))
+      };
+    });
 
     const adjustedEdges = layout.edges
       .flatMap(edge => {

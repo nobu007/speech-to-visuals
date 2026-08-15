@@ -381,4 +381,43 @@ export const FROZEN_LITERAL_RULES: FrozenLiteralRule[] = [
     ],
     minSweptFiles: 20,
   },
+
+  /**
+   * Round 16: layout jitter must come from the seeded PRNG in layout-rng.ts,
+   * never bare `Math.random()`. Unseeded jitter made the SAME diagram render
+   * at different node positions on every run — caught by the layout-outcome
+   * oracle (tests/visualization/force-directed-layout-outcome-oracle.test.ts,
+   * determinism case) after round 15's convergence change prompted an
+   * outcome-level (not iteration-count) check. Fixed sites: the zero-overlap
+   * engine's network grid jitter + aesthetic candidate perturbation, and
+   * NetworkLayoutStrategy's grid jitter.
+   *
+   * Exclusions are stochastic algorithms that have NOT been migrated to the
+   * seeded PRNG yet (seeding simulated annealing / progressive force / the
+   * overlap-resolver fallback displacement is a separate round — each needs
+   * its own oracle, not a mechanical rewrite), plus the complex engine's
+   * opaque layout-instance id (identity field, not geometry; its positions
+   * already draw from layout-rng).
+   */
+  {
+    id: 'layout jitter drawn from seeded PRNG (layout-rng), not Math.random',
+    roots: ['src/visualization'],
+    exclude: {
+      'src/visualization/layout-rng.ts': 'the canonical PRNG source itself',
+      'src/visualization/complex-layout-engine.ts':
+        'layout-instance id suffix only (identity, not geometry); positions already seeded via layout-rng',
+      'src/visualization/layout/OverlapResolver.ts':
+        'missing-node fallback displacement — stochastic family, seeding is a separate round',
+      'src/visualization/layout/strategies/SimulatedAnnealingStrategy.ts':
+        'annealing is inherently stochastic — seeding is a separate round',
+      'src/visualization/layout/strategies/ProgressiveForceStrategy.ts':
+        'jitter/scramble steps — stochastic family, seeding is a separate round',
+      'src/visualization/strategies/OverlapResolver.ts':
+        'identical-position default-branch displacement — stochastic family, seeding is a separate round',
+      'src/visualization/strategies/mindmap-strategy.ts':
+        'initial radial placement jitter — stochastic family, seeding is a separate round',
+    },
+    patterns: [/Math\.random\s*\(/],
+    minSweptFiles: 40,
+  },
 ];

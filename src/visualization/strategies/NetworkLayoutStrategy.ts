@@ -21,6 +21,7 @@ import { nodesOverlap, distance, calculateNodeWidth as calculateNodeWidthUtil, D
 import { logger } from '../../utils/logger';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { DEFAULT_NODE_SEPARATION, DEFAULT_EDGE_SEPARATION } from '../layout-spacing';
+import { createLayoutRng } from '../layout-rng';
 import {
   FORCE_DIRECTED_PHYSICS,
   runForceDirectedPhases
@@ -88,6 +89,10 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
     const cellWidth = config.width / gridSize;
     const cellHeight = config.height / gridSize;
 
+    // Seeded jitter: same node set → same initial positions → reproducible
+    // layout output (single source: layout-rng).
+    const rand = createLayoutRng(nodes.map(n => n.id).join('|'));
+
     return nodes.map((node, index) => {
       const width = this.calculateNodeWidth(node, config);
       const height = config.nodeHeight || DEFAULT_NODE_HEIGHT;
@@ -100,8 +105,8 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
       const gridY = row * cellHeight + cellHeight / 2 - height / 2;
 
       // Add randomization to avoid perfect grid (helps force-directed converge)
-      const jitterX = (Math.random() - 0.5) * spacing;
-      const jitterY = (Math.random() - 0.5) * spacing;
+      const jitterX = (rand() - 0.5) * spacing;
+      const jitterY = (rand() - 0.5) * spacing;
 
       return {
         ...node,

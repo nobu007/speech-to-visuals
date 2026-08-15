@@ -17,6 +17,7 @@ import {
   DEFAULT_MARGIN,
 } from './layout-spacing';
 import { nodesOverlap, distance } from './layout-utils';
+import { mulberry32, seedFromString } from './layout-rng';
 import { OverlapResolver } from './strategies/OverlapResolver';
 import { LayoutOptimizer } from './strategies/LayoutOptimizer';
 import { DagreLayoutStrategy } from './strategies/DagreLayoutStrategy';
@@ -35,31 +36,12 @@ import type {
 } from '../workers';
 
 /**
- * Deterministic seed for force-directed initialization: same graph (node IDs)
- * → same initial positions → reproducible layout output and reproducible
+ * Deterministic seeding for force-directed initialization: same graph (node
+ * IDs) → same initial positions → reproducible layout output and reproducible
  * tests. Random seeding made the simulation's converged quality vary
  * run-to-run (flake class: layout-quality assertions on a random seed).
+ * The PRNG itself is the shared single source in ./layout-rng.
  */
-function seedFromString(s: string): number {
-  let h = 2166136261; // FNV-1a
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
-/** mulberry32 PRNG — tiny, deterministic, adequate for initial placement. */
-function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 export interface ComplexLayoutConfig extends LayoutConfig {
   // Node clustering settings
