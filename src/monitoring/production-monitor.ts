@@ -15,6 +15,7 @@
 
 import { QualityMonitor, QualityMetrics, QualityReport } from '../pipeline/quality-monitor';
 import { ERROR_RATE_WARNING_THRESHOLD, ERROR_RATE_CRITICAL_THRESHOLD } from './error-rate-thresholds';
+import { computePercentiles, safeMean } from '@/lib/metrics-utils';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -93,6 +94,17 @@ export class ProductionMonitor {
   private healthHistory: HealthCheckResult[] = [];
   private processingTimes: number[] = [];
   private maxHistorySize = 1000;
+  /**
+   * Per-component count of latencies actually folded into
+   * `componentMetrics.averageLatency`. The incremental mean must NOT divide
+   * by `successes`: `recordSuccess` is a public API taking a caller-supplied
+   * number, and a non-finite latency is excluded from the mean (D2) while the
+   * request still counts as a success. It also cannot reuse the running mean
+   * after a non-finite sample — `NaN * n = NaN` poisons the accumulator
+   * PERMANENTLY (the rolling mean never recovers, even after later finite
+   * samples), so exclusion is tracked by an explicit per-component count.
+   */
+  private readonly componentLatencyCounts = new Map<string, number>();
 
   // Thresholds from Custom Instructions Section 5.1
   private readonly thresholds = {
@@ -160,8 +172,12 @@ export class ProductionMonitor {
     const compMetrics = this.metrics.componentMetrics[component];
     compMetrics.requests++;
     compMetrics.successes++;
-    compMetrics.averageLatency =
-      (compMetrics.averageLatency * (compMetrics.successes - 1) + latency) / compMetrics.successes;
+    if (Number.isFinite(latency)) {
+      const latencyCount = (this.componentLatencyCounts.get(component) ?? 0) + 1;
+      this.componentLatencyCounts.set(component, latencyCount);
+      compMetrics.averageLatency =
+        (compMetrics.averageLatency * (latencyCount - 1) + latency) / latencyCount;
+    }
 
     // Keep processing times bounded
     if (this.processingTimes.length > this.maxHistorySize) {
@@ -220,16 +236,26 @@ export class ProductionMonitor {
   private updateAggregateMetrics(): void {
     if (this.processingTimes.length === 0) return;
 
-    // Calculate average
-    const sum = this.processingTimes.reduce((a, b) => a + b, 0);
-    this.metrics.averageProcessingTime = sum / this.processingTimes.length;
+    // safeMean (D2 exclusion): a non-finite latency leaves the population
+    // instead of poisoning the mean. The raw fold divided by array length —
+    // one NaN made averageProcessingTime NaN, which then flowed into the
+    // health-check comparisons as false-y (silently "healthy").
+    this.metrics.averageProcessingTime = safeMean(this.processingTimes);
 
-    // Calculate percentiles
-    const sorted = [...this.processingTimes].sort((a, b) => a - b);
-    const p95Index = Math.floor(sorted.length * 0.95);
-    const p99Index = Math.floor(sorted.length * 0.99);
-    this.metrics.p95ProcessingTime = sorted[p95Index] || 0;
-    this.metrics.p99ProcessingTime = sorted[p99Index] || 0;
+    // Canonical floor-rank percentiles — the same computePercentiles the
+    // pipeline/http/export collectors already delegate to. This was the last
+    // hand-rolled floor-rank twin, and the inline shape had silently drifted
+    // from the canonical one (no index clamp, `|| 0` falsy fallback that
+    // coerced a NaN percentile to a fast-looking 0). Non-finite samples are
+    // excluded before ranking; value-identical to the old form on finite
+    // samples (floor(n·f) ≤ n−1 for every fraction < 1, so the canonical
+    // clamp never binds).
+    const sorted = this.processingTimes
+      .filter((t) => Number.isFinite(t))
+      .sort((a, b) => a - b);
+    const { p95, p99 } = computePercentiles(sorted);
+    this.metrics.p95ProcessingTime = p95;
+    this.metrics.p99ProcessingTime = p99;
   }
 
   /**
@@ -504,6 +530,9 @@ export class ProductionMonitor {
     this.metrics = this.initializeMetrics();
     this.healthHistory = [];
     this.processingTimes = [];
+    // Without this the incremental component means would divide by stale
+    // counts against the zeroed accumulators after a reset.
+    this.componentLatencyCounts.clear();
   }
 }
 
