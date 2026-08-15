@@ -6,6 +6,7 @@ import { logger } from '../utils/logger';
 import { sanitizeFinite, sanitizeDiagramType } from '@/utils/guards';
 import { safeMap } from '../lib/safe-array';
 import { MAX_DIAGRAM_CONFIDENCE, GOOD_DETECTION_CONFIDENCE_THRESHOLD } from './diagram-detection-constants';
+import { safeMax, safeMean } from '@/lib/metrics-utils';
 
 // ========================================
 // TASK-0021: Diagram Detection Result Types
@@ -433,7 +434,9 @@ export class DiagramDetector {
     const SKW = 4;  // SECONDARY_KEYPHRASE_WEIGHT
     const CKW = 2;  // CONTEXT_KEYPHRASE_WEIGHT
     const patternScores = Object.values(patterns).map((p) => p.primary.length * PKW + p.secondary.length * SKW + p.context.length * CKW);
-    const maxPossibleScore = patternScores.length > 0 ? Math.max(...patternScores) : 1;
+    // Finite-safe max, empty-pattern fallback 1 (wave 3; also drops the
+    // Math.max spread — EDGE-102).
+    const maxPossibleScore = safeMax(patternScores, 1);
     const CONFIDENCE_DENOMINATOR_FACTOR = 0.3;
     const MAX_CONFIDENCE = 1;
     const ORG_CHART_BOOST_FACTOR = 1.3;
@@ -1340,9 +1343,11 @@ export class DiagramDetector {
     ];
 
     const testResults = await Promise.all(tests);
-    const overallScore = testResults.length > 0
-      ? testResults.reduce((sum, result) => sum + result.score, 0) / testResults.length
-      : 0;
+    // Finite-safe mean (wave 3): LLM-derived scores are external-origin — a
+    // non-finite one is excluded rather than poisoning overallScore (which
+    // feeds the TEST_QUALITY_THRESHOLD pass gate; every NaN comparison on the
+    // old NaN result silently evaluated false).
+    const overallScore = safeMean(testResults.map((result) => result.score));
     const passed = overallScore > this.TEST_QUALITY_THRESHOLD; // 75% threshold
 
     return { passed, testResults, overallScore };
