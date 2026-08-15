@@ -38,19 +38,24 @@
 import { describe, it, expect } from '@jest/globals';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { REPO_ROOT } from './freeze-guard';
 
 // The safe boundary — every sentence splitter that needs to honor a '.' must
-// spell it this way, NOT as a bare member of its `[...]` class.
+// spell it this way, NOT as a bare member of its `[...]` class. Since round 21
+// the literal lives ONLY in src/analysis/sentence-boundaries.ts; the four
+// former hand-rollers import the compiled regex from there.
 const SAFE_DOT_BOUNDARY = '\\.(?:\\s+|$)';
 
 // The 4 src/analysis files that held the bare-'.' defect (6 split sites total —
-// diagram-detector and complexity-detector each carry two).
-const ANALYSIS_SPLIT_FILES = [
-  'src/analysis/content-analyzer.ts',
-  'src/analysis/scene-segmenter.ts',
-  'src/analysis/complexity-detector.ts',
-  'src/analysis/diagram-detector.ts',
-];
+// diagram-detector and complexity-detector each carry two). Round 21 migrated
+// their split regexes to the canonical module; the anchor below pins the
+// DELEGATION (import), and the canonical module carries the literal.
+const ANALYSIS_SPLIT_FILES: Record<string, string> = {
+  'src/analysis/content-analyzer.ts': 'SENTENCE_BOUNDARY_REGEX',
+  'src/analysis/scene-segmenter.ts': 'SENTENCE_BOUNDARY_REGEX',
+  'src/analysis/complexity-detector.ts': 'SENTENCE_BOUNDARY_REGEX',
+  'src/analysis/diagram-detector.ts': 'SENTENCE_BOUNDARY_REGEX',
+};
 
 /**
  * Extract the regex-LITERAL bodies passed to `.split(/.../)` in `source`.
@@ -120,12 +125,17 @@ function collectTs(dir: string, acc: string[] = []): string[] {
 // --- (TC-309-01) source anchors: the safe dot-boundary is present ---------------
 
 describe('decimal-safe splitter — safe form pinned per file (TC-309-01)', () => {
-  it.each(ANALYSIS_SPLIT_FILES)('%s uses the decimal-safe dot boundary', (file) => {
-    // Each file that split on a bare '.' now spells the boundary as
-    // `\.(?:\s+|$)`. A drift that reverts to a bare class-member '.' drops
-    // this anchor → RED (caught again by the sweep in TC-309-02).
-    const src = readFileSync(file, 'utf8');
-    expect(src).toContain(SAFE_DOT_BOUNDARY);
+  it.each(Object.entries(ANALYSIS_SPLIT_FILES))('%s delegates to %s', (file, imported) => {
+    // Each file that split on a bare '.' now imports the canonical boundary
+    // from sentence-boundaries.ts (round 21). A drift that re-inlines a
+    // hand-rolled class drops this anchor → RED (caught again by the sweep in
+    // TC-309-02 and the registry's sentence-boundary entry).
+    const src = readFileSync(join(REPO_ROOT, file), 'utf8');
+    expect(src).toMatch(new RegExp(`import\\s*\\{[^}]*\\b${imported}\\b[^}]*\\}\\s*from\\s*['"]\\./sentence-boundaries['"]`));
+    // And the canonical module itself still carries the decimal-safe arm —
+    // spelled inside a TS string literal, so the backslashes are doubled.
+    expect(readFileSync(join(REPO_ROOT, 'src/analysis/sentence-boundaries.ts'), 'utf8'))
+      .toContain('\\\\.(?:\\\\s+|$)');
   });
 });
 
@@ -136,8 +146,7 @@ describe('decimal-safe splitter — structural class sweep (TC-309-02)', () => {
     // THE CLASS-CLOSING INVARIANT. Any splitter in src/analysis that puts a
     // bare '.' in its `[...]` class tears decimals. A future splitter added
     // with the bare-'.' defect lands here → RED, independent of behavioral tests.
-    const repoRoot = process.cwd(); // jest runs from the repo root
-    const files = collectTs(join(repoRoot, 'src/analysis'));
+    const files = collectTs(join(REPO_ROOT, 'src/analysis')); // import.meta.url-anchored (TC-302)
     expect(files.length).toBeGreaterThan(0);
 
     const offenders: string[] = [];
@@ -145,7 +154,7 @@ describe('decimal-safe splitter — structural class sweep (TC-309-02)', () => {
       const src = readFileSync(f, 'utf8');
       for (const body of extractSplitRegexBodies(src)) {
         for (const cls of bareDotClasses(body)) {
-          offenders.push(`${f.replace(repoRoot + '/', '')}  split(/${body}/)  class ${cls}`);
+          offenders.push(`${f.replace(REPO_ROOT + '/', '')}  split(/${body}/)  class ${cls}`);
         }
       }
     }
