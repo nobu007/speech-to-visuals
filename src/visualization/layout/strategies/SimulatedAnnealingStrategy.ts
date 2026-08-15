@@ -1,6 +1,7 @@
 import { PositionedNode, LayoutEdge, DiagramLayout } from '@/types/diagram';
 import { BaseLayoutStrategy } from './LayoutStrategy';
 import { LayoutConfig, LayoutResult, BoundingBox } from '../../types';
+import { createLayoutRng } from '../../layout-rng';
 import { getNodeWidth, getNodeHeight } from '../../node-dimensions';
 import { distance } from '../../layout-utils';
 
@@ -48,16 +49,25 @@ export class SimulatedAnnealingStrategy extends BaseLayoutStrategy {
     config: LayoutConfig,
     existingLayout?: DiagramLayout
   ): Promise<{ nodes: PositionedNode[]; edges: LayoutEdge[] }> {
+    // Seeded per-generate (round 17): ALL stochastic draws in this strategy —
+    // initial placement, node selection, perturbation and the Metropolis
+    // acceptance draw — share ONE stream. Partial seeding is forbidden: the
+    // acceptance draw feeds updateNodeTemperatures (the cooling schedule), so
+    // a mixed stream breaks reproducibility. The rng lives in a local, never
+    // on `this`: strategy instances are reused across diagrams and a stored
+    // rng would leak the previous diagram's sequence.
+    const rng = createLayoutRng(nodes.map(n => n.id).join('|'));
+
     // Initialize nodes with positions from existing layout or input nodes
-    const annealingNodes = this.initializeNodes(nodes, existingLayout);
-    
+    const annealingNodes = this.initializeNodes(nodes, existingLayout, rng);
+
     // Store the initial best solution
     this.bestSolution = this.cloneNodes(annealingNodes);
     this.bestEnergy = this.calculateTotalEnergy(annealingNodes, edges, config);
     this.currentEnergy = this.bestEnergy;
-    
+
     // Run the simulated annealing algorithm
-    await this.runAnnealing(annealingNodes, edges, config);
+    await this.runAnnealing(annealingNodes, edges, config, rng);
     
     // Update edge points based on final node positions
     const finalNodes = this.bestSolution.length > 0 ? this.bestSolution : annealingNodes;
@@ -73,7 +83,11 @@ export class SimulatedAnnealingStrategy extends BaseLayoutStrategy {
     return this.maxIterations * this.iterationsPerTemp * (nodeCount + edgeCount) * 0.5;
   }
   
-  private initializeNodes(nodes: PositionedNode[], existingLayout?: DiagramLayout): AnnealingNode[] {
+  private initializeNodes(
+    nodes: PositionedNode[],
+    existingLayout: DiagramLayout | undefined,
+    rng: () => number
+  ): AnnealingNode[] {
     if (existingLayout?.nodes?.length) {
       // Use existing node positions if available
       const nodeMap = new Map<string, PositionedNode>(existingLayout.nodes.map(n => [n.id, n]));
@@ -88,8 +102,8 @@ export class SimulatedAnnealingStrategy extends BaseLayoutStrategy {
     // Initialize with positions from input nodes or random positions
     return nodes.map(node => ({
       ...node,
-      x: node.x ?? (Math.random() * 1000 - 500),
-      y: node.y ?? (Math.random() * 1000 - 500),
+      x: node.x ?? (rng() * 1000 - 500),
+      y: node.y ?? (rng() * 1000 - 500),
       initialX: node.x ?? 0,
       initialY: node.y ?? 0,
       temperature: this.initialTemperature
@@ -99,7 +113,8 @@ export class SimulatedAnnealingStrategy extends BaseLayoutStrategy {
   private async runAnnealing(
     nodes: AnnealingNode[],
     edges: LayoutEdge[],
-    config: LayoutConfig
+    config: LayoutConfig,
+    rng: () => number
   ): Promise<void> {
     let temperature = this.initialTemperature;
     let iteration = 0;
@@ -109,7 +124,7 @@ export class SimulatedAnnealingStrategy extends BaseLayoutStrategy {
       let accepted = 0;
       
       for (let i = 0; i < this.iterationsPerTemp; i++) {
-        const nodeIndex = Math.floor(Math.random() * nodes.length);
+        const nodeIndex = Math.floor(rng() * nodes.length);
         const node = nodes[nodeIndex];
         
         // Store original position
@@ -117,14 +132,14 @@ export class SimulatedAnnealingStrategy extends BaseLayoutStrategy {
         const originalY = node.y;
         
         // Perturb position
-        this.perturbNode(node, temperature, config);
+        this.perturbNode(node, temperature, config, rng);
         
         // Calculate new energy
         const newEnergy = this.calculateTotalEnergy(nodes, edges, config);
         const energyDelta = newEnergy - this.currentEnergy;
         
         // Accept or reject the move
-        if (this.shouldAccept(energyDelta, temperature)) {
+        if (this.shouldAccept(energyDelta, temperature, rng)) {
           this.currentEnergy = newEnergy;
           accepted++;
           
@@ -166,15 +181,20 @@ export class SimulatedAnnealingStrategy extends BaseLayoutStrategy {
     }
   }
   
-  private perturbNode(node: AnnealingNode, temperature: number, config: LayoutConfig): void {
+  private perturbNode(
+    node: AnnealingNode,
+    temperature: number,
+    config: LayoutConfig,
+    rng: () => number
+  ): void {
     // Scale perturbation by temperature and node's individual temperature
     const scale = temperature * node.temperature;
     
     // Generate random delta within bounds (guard against zero dimensions)
     const minDim = Math.min(config.width, config.height);
     const maxDelta = Math.max(1, minDim) * 0.1 * scale;
-    const dx = (Math.random() * 2 - 1) * maxDelta;
-    const dy = (Math.random() * 2 - 1) * maxDelta;
+    const dx = (rng() * 2 - 1) * maxDelta;
+    const dy = (rng() * 2 - 1) * maxDelta;
     
     // Apply perturbation
     node.x += dx;
@@ -325,13 +345,13 @@ export class SimulatedAnnealingStrategy extends BaseLayoutStrategy {
     return (normDx * normDx + normDy * normDy) * 100;
   }
   
-  private shouldAccept(energyDelta: number, temperature: number): boolean {
+  private shouldAccept(energyDelta: number, temperature: number, rng: () => number): boolean {
     // Always accept improvements
     if (energyDelta <= 0) return true;
-    
+
     // Accept worse solutions with a probability that decreases with temperature
     const probability = Math.exp(-energyDelta / temperature);
-    return Math.random() < probability;
+    return rng() < probability;
   }
   
   private updateNodeTemperatures(nodes: AnnealingNode[], acceptanceRate: number): void {
