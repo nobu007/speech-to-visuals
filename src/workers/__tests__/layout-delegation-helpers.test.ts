@@ -287,10 +287,20 @@ describe('computeLayoutViaWorker (private)', () => {
       [{ id: 'a', label: 'Test' }],
       [],
     );
+    // Round 17: the message id is DETERMINISTIC per node set (was
+    // `layout_<Date.now()>_<random suffix>`, which leaked a timestamp +
+    // entropy into output JSON). Same nodes → same id on every call.
+    await testInternals(engine).computeLayoutViaWorker(
+      [{ id: 'a', label: 'Test' }],
+      [],
+    );
 
-    const sentMessage = poolMock.execute.mock.calls[0][0] as Record<string, unknown>;
-    expect(sentMessage.type).toBe('LAYOUT_COMPUTE');
-    expect(sentMessage.id).toMatch(/^layout_\d+_/);
+    const first = poolMock.execute.mock.calls[0][0] as Record<string, unknown>;
+    const second = poolMock.execute.mock.calls[1][0] as Record<string, unknown>;
+    expect(first.type).toBe('LAYOUT_COMPUTE');
+    expect(first.id).toMatch(/^layout_[0-9a-z]{1,7}$/);
+    expect(second.id).toBe(first.id);
+    const sentMessage = first;
     const payload = sentMessage.payload as Record<string, unknown>;
     expect((payload.nodes as Array<Record<string, unknown>>)[0]).toEqual({
       id: 'a',
