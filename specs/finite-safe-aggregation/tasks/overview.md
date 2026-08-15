@@ -35,14 +35,15 @@
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0009
-**次回開始番号**: TASK-0010
+**使用済みタスク番号**: TASK-0001 ~ TASK-0010
+**次回開始番号**: TASK-0011
 
 ## 全体進捗
 
 - [x] Phase 1: 基盤（sweep + helper）— 2026-08-15 完了（TASK-0001 sweep メモ + TASK-0002 commit 6fa7d591、36/36 GREEN）
 - [x] Phase 2: サイト移行（ウェーブ 2-6）— 2026-08-15 完了（cef513cd / d2fff302 / a37db62d / 4a3c2da3 / fe4af157、全ウェーブ per-site オラクル付き）
 - [x] Phase 3: ガードと総合検証（ウェーブ 7 + criteria クローズ）— registry 0adc147a（RED 検証済み）、criteria [x] 化
+- [x] 拡張ラウンド 19（2026-08-16, TASK-0010）: sweep 宣言済み未実行の enhanced-error-recovery interface mean 6 サイト + 未 triage の src/monitoring 大陸（production-monitor: raw mean / hand-rolled floor-rank percentile 最後の twin / incremental mean 永久 NaN）+ health-tracker avgRecovery。registry round 19（site pins・monitoring root・percentile index 禁止 rule）。round 20 候補（framework/api 大陸）は TASK-0010 対象外表に理由付きで正本化
 
 ## マイルストーン
 
