@@ -135,6 +135,7 @@ pipeline 層 2 サイトのみを対象としており、**集計演算の横展
 - [x] 正常系: 各移行サイトの数値デルタ比較 🔵 — llm-service（getStats 経由）/ diagram-detector / scene-segmenter / error-recovery / production-exporter 各 200 seeded ケース + source anchor（cef513cd/d2fff302/a37db62d/4a3c2da3/fe4af157）
 - [x] 主要な異常系: fuzz による非有限混入ケース 🔵 — 各サイトオラクルに非有限混入 case + wave-1 汎用 fuzz
 - [x] round 19 拡張: sweep 宣言済み未実行サイト + monitoring 大陸 🔵 — enhanced-error-recovery 6 サイト（loadMetrics interface mean。in-file invariant-split 解消）+ production-monitor（raw mean・hand-rolled floor-rank percentile 最後の twin・incremental mean の永久 NaN 化）+ error-recovery-health-tracker avgRecovery（interface 値、r18 除外理由の記載漏れ）。各 300 seeded ケース・毒入り挙動テスト・RED 検証 5 変異付き（TASK-0010 参照）
+- [x] round 20 拡張: framework/api 大陸 🔵 — batch-processing-api summary（`SimplePipelineResult.qualityScore` interface フィールド。`??` は非有限を素通し）+ recursive-custom-instructions module score（`typeof v === 'number'` filter が NaN/±Infinity を通す誤述語。NaN は `passed` gate の silent fail・+Infinity は常時 pass）+ continuous-learner userFeedback mean ×2（未検証 public `learnFromUserFeedback` 境界、`|| 0` の 0 置換が 3.0 許容線母集団で偽 low-satisfaction insight）。各 300 seeded ケース・毒入り挙動テスト・RED 検証 5 変異 + registry probe ×2 付き（TASK-0011 参照）
 
 **検証コマンド**:
 

@@ -747,7 +747,7 @@ spec整合性の自動検証システム:
 
 ### freeze-guard レジストリ運用方針（単一ファイル維持） 🔵
 
-**信頼性**: 🔵 *tests/guards/frozen-literal-rules.ts（round 19 時点 19 エントリ・521 行。方針確立時 round 16 は 16 エントリ・423 行）・frozen-literal-registry.test.ts より*
+**信頼性**: 🔵 *tests/guards/frozen-literal-rules.ts（round 20 時点 19 エントリ・544 行。round 19 は 19 エントリ・521 行、方針確立時 round 16 は 16 エントリ・423 行。round 20 は新 rule 無し・既存 2 rule の拡張: site pins +3・discovery roots に src/framework と src/api 追加）・frozen-literal-registry.test.ts より*
 
 - **決定**: `tests/guards/frozen-literal-rules.ts` は**単一ファイル方針を維持**する。family 分割は行わない
 - **根拠**: レジストリはデータのみ（`FrozenLiteralRule[]` リテラル）。走査エンジンは `freeze-guard.ts` に独立しており、エントリ追加は「1エントリ ≒ 15〜40 行の追記」で完結する。分割によるエンジン変更（readFileSync 動的ロード等）は検証コストのみを追加し、現規模で得られる可読性は限定的
