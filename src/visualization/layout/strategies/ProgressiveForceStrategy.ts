@@ -1,6 +1,7 @@
 import { PositionedNode, LayoutEdge, DiagramLayout } from '@/types/diagram';
 import { BaseLayoutStrategy, LayoutStrategy } from './LayoutStrategy';
 import { LayoutConfig, LayoutResult } from '../../types';
+import { createLayoutRng } from '../../layout-rng';
 import { distance } from '../../layout-utils';
 
 interface ForceNode extends PositionedNode {
@@ -45,14 +46,21 @@ export class ProgressiveForceStrategy extends BaseLayoutStrategy {
     config: LayoutConfig,
     existingLayout?: DiagramLayout
   ): Promise<{ nodes: PositionedNode[]; edges: LayoutEdge[] }> {
+    // Seeded per-generate (round 17): the missing-node placement fallback,
+    // zero-distance escape jitter and escapeLocalMinimum all share ONE stream
+    // from createLayoutRng. Held in a local, never on `this` — instances are
+    // reused across diagrams and a stored rng would leak the previous
+    // diagram's sequence.
+    const rng = createLayoutRng(nodes.map(n => n.id).join('|'));
+
     // Initialize nodes with positions from existing layout or random positions
-    const forceNodes: ForceNode[] = this.initializeNodes(nodes, existingLayout);
-    
+    const forceNodes: ForceNode[] = this.initializeNodes(nodes, existingLayout, rng);
+
     // Set up the simulation
     this.initializeParameters(forceNodes.length, edges.length, config);
-    
+
     // Run the force-directed layout
-    await this.runSimulation(forceNodes, edges, config);
+    await this.runSimulation(forceNodes, edges, config, rng);
     
     // Convert back to PositionedNode
     const positionedNodes: PositionedNode[] = forceNodes.map(node => ({
@@ -75,7 +83,11 @@ export class ProgressiveForceStrategy extends BaseLayoutStrategy {
     return nodeCount * nodeCount * 0.7 + edgeCount * 0.3;
   }
   
-  private initializeNodes(nodes: PositionedNode[], existingLayout?: DiagramLayout): ForceNode[] {
+  private initializeNodes(
+    nodes: PositionedNode[],
+    existingLayout: DiagramLayout | undefined,
+    rng: () => number
+  ): ForceNode[] {
     if (existingLayout?.nodes?.length) {
       // Use existing node positions if available
       const nodeMap = new Map<string, PositionedNode>(existingLayout.nodes.map(n => [n.id, n]));
@@ -83,8 +95,8 @@ export class ProgressiveForceStrategy extends BaseLayoutStrategy {
         const existingNode = nodeMap.get(node.id);
         return {
           ...node,
-          x: existingNode?.x ?? (Math.random() * 1000 - 500),
-          y: existingNode?.y ?? (Math.random() * 1000 - 500),
+          x: existingNode?.x ?? (rng() * 1000 - 500),
+          y: existingNode?.y ?? (rng() * 1000 - 500),
           vx: 0,
           vy: 0,
           fx: null,
@@ -131,7 +143,12 @@ export class ProgressiveForceStrategy extends BaseLayoutStrategy {
     this.maxIterations = Math.min(500, Math.max(100, nodeCount * 5));
   }
   
-  private async runSimulation(nodes: ForceNode[], edges: LayoutEdge[], config: LayoutConfig): Promise<void> {
+  private async runSimulation(
+    nodes: ForceNode[],
+    edges: LayoutEdge[],
+    config: LayoutConfig,
+    rng: () => number
+  ): Promise<void> {
     let lastEnergy = Infinity;
     let stableCount = 0;
     
@@ -146,7 +163,7 @@ export class ProgressiveForceStrategy extends BaseLayoutStrategy {
       const prevY = nodes.map(n => n.y);
       
       // Apply forces
-      this.applyForces(nodes, edges, config);
+      this.applyForces(nodes, edges, config, rng);
       
       // Update positions
       this.updatePositions(nodes);
@@ -160,7 +177,7 @@ export class ProgressiveForceStrategy extends BaseLayoutStrategy {
         
         // If we've been stable for a while, try to escape local minimum
         if (stableCount > 10) {
-          this.escapeLocalMinimum(nodes);
+          this.escapeLocalMinimum(nodes, rng);
           stableCount = 0;
         }
       } else {
@@ -176,7 +193,7 @@ export class ProgressiveForceStrategy extends BaseLayoutStrategy {
     }
   }
   
-  private applyForces(nodes: ForceNode[], edges: LayoutEdge[], config: LayoutConfig): void {
+  private applyForces(nodes: ForceNode[], edges: LayoutEdge[], config: LayoutConfig, rng: () => number): void {
     // Reset forces
     for (const node of nodes) {
       node.fx = null;
@@ -185,9 +202,9 @@ export class ProgressiveForceStrategy extends BaseLayoutStrategy {
     
     // Apply repulsion (all pairs, with spatial hashing for large graphs)
     if (this.useSpatialHash) {
-      this.applyRepulsionSpatial(nodes);
+      this.applyRepulsionSpatial(nodes, rng);
     } else {
-      this.applyRepulsionAllPairs(nodes);
+      this.applyRepulsionAllPairs(nodes, rng);
     }
     
     // Apply link forces
@@ -200,7 +217,7 @@ export class ProgressiveForceStrategy extends BaseLayoutStrategy {
     this.applyBoundaryConstraints(nodes, config);
   }
   
-  private applyRepulsionAllPairs(nodes: ForceNode[]): void {
+  private applyRepulsionAllPairs(nodes: ForceNode[], rng: () => number): void {
     const k = this.repulsionStrength / nodes.length;
     
     for (let i = 0; i < nodes.length; i++) {
@@ -214,8 +231,8 @@ export class ProgressiveForceStrategy extends BaseLayoutStrategy {
         
         // Skip if nodes are at the same position
         if (distSq < 1e-6) {
-          node1.x += (Math.random() - 0.5) * 10;
-          node1.y += (Math.random() - 0.5) * 10;
+          node1.x += (rng() - 0.5) * 10;
+          node1.y += (rng() - 0.5) * 10;
           continue;
         }
         
@@ -233,7 +250,7 @@ export class ProgressiveForceStrategy extends BaseLayoutStrategy {
     }
   }
   
-  private applyRepulsionSpatial(nodes: ForceNode[]): void {
+  private applyRepulsionSpatial(nodes: ForceNode[], rng: () => number): void {
     // Clear the spatial grid
     this.spatialGrid.clear();
     
@@ -274,8 +291,8 @@ export class ProgressiveForceStrategy extends BaseLayoutStrategy {
 
             // Guard against zero-distance (identical positions) — mirrors applyRepulsionAllPairs
             if (distSq < 1e-6) {
-              node.x += (Math.random() - 0.5) * 10;
-              node.y += (Math.random() - 0.5) * 10;
+              node.x += (rng() - 0.5) * 10;
+              node.y += (rng() - 0.5) * 10;
               continue;
             }
 
@@ -438,7 +455,7 @@ export class ProgressiveForceStrategy extends BaseLayoutStrategy {
     );
   }
   
-  private escapeLocalMinimum(nodes: ForceNode[]): void {
+  private escapeLocalMinimum(nodes: ForceNode[], rng: () => number): void {
     // If we're stuck, try to escape by adding some noise
     const scale = this.temperature * Math.exp(-this.iterationCount / 100);
     
@@ -447,8 +464,8 @@ export class ProgressiveForceStrategy extends BaseLayoutStrategy {
       if (node.fx !== null && node.fy !== null) continue;
       
       // Add random jitter
-      node.x += (Math.random() - 0.5) * scale;
-      node.y += (Math.random() - 0.5) * scale;
+      node.x += (rng() - 0.5) * scale;
+      node.y += (rng() - 0.5) * scale;
     }
     
     // Increase temperature for next time
