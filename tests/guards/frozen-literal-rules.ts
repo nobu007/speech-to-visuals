@@ -430,6 +430,9 @@ export const FROZEN_LITERAL_RULES: FrozenLiteralRule[] = [
       'src/analysis/scene-segmenter.ts',
       'src/quality/enhanced-error-recovery.ts',
       'src/export/production-exporter.ts',
+      // round 19 (TASK-0010): monitoring continent + interface-value means.
+      'src/monitoring/production-monitor.ts',
+      'src/quality/error-recovery-health-tracker.ts',
     ],
     patterns: [
       // llm-service wave 2 (response-time means).
@@ -448,12 +451,26 @@ export const FROZEN_LITERAL_RULES: FrozenLiteralRule[] = [
       // production-exporter wave 6 (duration sum + processing-time mean).
       /sum \+ Math\.max\(0, scene\.durationMs \|\| 0\), 0\)/,
       /sum \+ \(job\.endTime! - job\.startTime!\)/,
+      // enhanced-error-recovery round 19 (loadMetrics interface means
+      // 355-357/420 + the pre-filtered 471/821 folds).
+      /currentMetrics\.reduce\(\(sum, m\) => sum \+ m\.(averageResponseTime|errorRate|memoryPressure), 0\)/,
+      /recentMetrics\.reduce\(\(sum, m\) => sum \+ m\.averageResponseTime, 0\)/,
+      /requestStats\.avgResponseTime = recentMetrics\.reduce/,
+      // production-monitor round 19 (raw mean + hand-rolled floor-rank p95/p99
+      // + component incremental mean over raw latency).
+      /processingTimes\.reduce\(\(a, b\) => a \+ b, 0\)/,
+      /Math\.floor\(sorted\.length \* 0\.9[0-9]*\)/,
+      /sorted\[p9[59]Index\] \|\| 0/,
+      /compMetrics\.averageLatency \* \(compMetrics\.successes - 1\)/,
+      // error-recovery-health-tracker round 19 (interface-value mean over
+      // report.summary.recoverySuccessRate).
+      /this\.samples\.reduce\(\(a, s\) => a \+ s\.recoverySuccessRate, 0\)/,
     ],
-    minSweptFiles: 5,
+    minSweptFiles: 7,
   },
   {
     id: 'finite-safe aggregation: no NEW raw (a,b)=>a+b mean or min/max spread in migrated module families',
-    roots: ['src/analysis', 'src/quality', 'src/export'],
+    roots: ['src/analysis', 'src/quality', 'src/export', 'src/monitoring'],
     exclude: {
       // T2-deferred sites, verified finite-by-construction or internally
       // generated — full line-level inventory in
@@ -466,17 +483,39 @@ export const FROZEN_LITERAL_RULES: FrozenLiteralRule[] = [
       'src/quality/quality-monitor.ts':
         'T2-deferred: internally generated raw means (310/781/810/845) + layout-origin coordinate-range spreads (448-449)',
       'src/quality/error-recovery-health-tracker.ts':
-        'T2-deferred: raw means over internally generated deltas (203/243/245)',
+        'T2-deferred: raw means over internally generated deltas (203/243/245) — avgRecovery migrated in round 19 (TASK-0010)',
       'src/quality/recovery-telemetry-aggregator.ts':
         'T2-deferred: raw means over internally generated recovery times (155/180)',
       'src/quality/adaptive-quality-gates.ts':
         'T2-deferred: raw means over internally generated half-samples (547-548)',
+      'src/monitoring/real-time-performance-monitor.ts':
+        'T2-deferred: raw means over process.memoryUsage()-derived samples, guarded length>0 (587/590); percentiles already delegate to percentileCeil',
     },
     patterns: [
       /\.reduce\(\(a, b\) => a \+ b, 0\)\s*\//,
       /Math\.max\(\.\.\./,
       /Math\.min\(\.\.\./,
     ],
-    minSweptFiles: 40,
+    minSweptFiles: 65,
+  },
+
+  /**
+   * Round 19 (TASK-0010): floor/ceil-rank percentile INDEX ARITHMETIC must
+   * delegate to computePercentiles / percentileCeil in src/lib/metrics-utils.
+   * production-monitor carried the last hand-rolled floor-rank twin
+   * (`sorted[Math.floor(sorted.length * 0.95)] || 0`), whose inline shape had
+   * drifted from the canonical helper (no index clamp, `|| 0` falsy fallback
+   * that coerced a NaN percentile to a fast-looking 0). adaptive-quality-gates
+   * is NOT an offender: its `Math.floor((n - 1) * p)` linear-interpolation
+   * rank is a deliberately distinct method (documented in-source) and this
+   * pattern does not match it.
+   */
+  {
+    id: 'percentile family: no hand-rolled floor/ceil-rank index arithmetic outside metrics-utils',
+    roots: ['src/analysis', 'src/quality', 'src/monitoring', 'src/export'],
+    patterns: [
+      /Math\.(floor|ceil)\([a-zA-Z]+\.length \* 0\.9[0-9]*\)/,
+    ],
+    minSweptFiles: 65,
   },
 ];
