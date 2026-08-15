@@ -24,7 +24,7 @@ import { ComplexityDetector, ComplexityAnalysis } from "./complexity-detector";
 import { parseJsonFromLLMText } from "./llm-utils";
 import { DEFAULT_RETRY_OPTIONS } from "./retry-strategy";
 import { logger } from '../utils/logger';
-import { percentileCeil, roundTo } from '@/lib/metrics-utils';
+import { percentileCeil, roundTo, safeMean } from '@/lib/metrics-utils';
 import { CappedArray } from '@/lib/capped-array';
 import { clamp01 } from '@/utils/guards';
 import { TokenUsageTracker, type ModelType, type StageType, type TokenUsageSummary } from './token-usage-tracker';
@@ -720,17 +720,14 @@ export class LLMService {
       ? (cacheStats.totalHits / (cacheStats.totalHits + cacheStats.semantic.misses)) * 100
       : 0;
 
-    const avgFlashTime = this.modelMetrics.flashResponseTimes.length > 0
-      ? this.modelMetrics.flashResponseTimes.reduce((a, b) => a + b, 0) / this.modelMetrics.flashResponseTimes.length
-      : 0;
+    // Finite-safe means (specs/finite-safe-aggregation wave 2): identical to
+    // the previous `length > 0 ? reduce/length : 0` for finite inputs; a
+    // non-finite recorded time is excluded instead of poisoning the average.
+    const avgFlashTime = safeMean(this.modelMetrics.flashResponseTimes);
 
-    const avgProTime = this.modelMetrics.proResponseTimes.length > 0
-      ? this.modelMetrics.proResponseTimes.reduce((a, b) => a + b, 0) / this.modelMetrics.proResponseTimes.length
-      : 0;
+    const avgProTime = safeMean(this.modelMetrics.proResponseTimes);
 
-    const avgResponseTime = this.responseTimeHistory.length > 0
-      ? this.responseTimeHistory.reduce((a, b) => a + b, 0) / this.responseTimeHistory.length
-      : 0;
+    const avgResponseTime = safeMean(this.responseTimeHistory);
 
     // Calculate percentiles
     let p50 = 0, p95 = 0, p99 = 0;
@@ -792,8 +789,9 @@ export class LLMService {
       return '0s (insufficient data)';
     }
 
-    const avgFlash = flashResponseTimes.reduce((a, b) => a + b, 0) / flashResponseTimes.length;
-    const avgPro = proResponseTimes.reduce((a, b) => a + b, 0) / proResponseTimes.length;
+    // Finite-safe means — see getStats (wave 2 migration note).
+    const avgFlash = safeMean(flashResponseTimes);
+    const avgPro = safeMean(proResponseTimes);
 
     // Calculate time saved by using Flash instead of Pro for simple content
     const timeSavedMs = flashRequests * (avgPro - avgFlash);
