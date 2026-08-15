@@ -1,5 +1,6 @@
 import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult } from '../types';
+import { createLayoutRng } from '../layout-rng';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
 import { getImportance, importanceSizeScale } from '../importance-scaler';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
@@ -54,7 +55,11 @@ export class MindMapStrategy implements LayoutStrategy {
     const root = this.findRoot(nodes, edges);
     const adjacency = this.buildAdjacency(nodes, edges);
     const tree = this.buildTree(root, adjacency);
-    const positionedNodes = this.positionRadially(tree, nodes);
+    // Seeded per-generate (round 17): rng lives in a local, never on `this` —
+    // strategy instances are reused across diagrams and a stored rng would
+    // leak the previous diagram's sequence.
+    const rng = createLayoutRng(nodes.map(n => n.id).join('|'));
+    const positionedNodes = this.positionRadially(tree, nodes, rng);
     const layoutEdges = this.generateEdges(edges, positionedNodes);
 
     const canvas = calculateCanvasSize(positionedNodes);
@@ -128,7 +133,11 @@ export class MindMapStrategy implements LayoutStrategy {
   }
 
   /** Position nodes radially around the root. */
-  private positionRadially(tree: Map<string, string[]>, nodes: NodeDatum[]): PositionedNode[] {
+  private positionRadially(
+    tree: Map<string, string[]>,
+    nodes: NodeDatum[],
+    rng: () => number,
+  ): PositionedNode[] {
     const positions = new Map<string, { x: number; y: number }>();
     const nodeMap = new Map(nodes.map(n => [n.id, n]));
     const root = this.findRootFromTree(tree, nodes);
@@ -175,8 +184,8 @@ export class MindMapStrategy implements LayoutStrategy {
     for (const node of nodes) {
       if (!positions.has(node.id)) {
         positions.set(node.id, {
-          x: center.x + (Math.random() - 0.5) * 400,
-          y: center.y + (Math.random() - 0.5) * 400,
+          x: center.x + (rng() - 0.5) * 400,
+          y: center.y + (rng() - 0.5) * 400,
         });
       }
     }
