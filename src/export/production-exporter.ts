@@ -10,6 +10,7 @@ import { SceneGraph } from '@/types/diagram';
 import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
 import { BATCH_LIMITS } from '@/config/limits';
 import { logger } from '../utils/logger';
+import { safeMean, safeSum } from '@/lib/metrics-utils';
 import { PipelineConfigError } from '@/pipeline/pipeline-errors';
 import type { ExportArtifactStore } from './export-artifact-store';
 import {
@@ -684,7 +685,11 @@ export class ProductionExporter {
    * Guards against negative durationMs to prevent negative size estimates.
    */
   private estimateFileSize(scenes: EnhancedSceneGraph[], options: RenderOptions): number {
-    const totalDuration = scenes.reduce((sum, scene) => sum + Math.max(0, scene.durationMs || 0), 0) / 1000;
+    // Finite-safe (wave 6): the per-scene `Math.max(0, durationMs || 0)` guard
+    // made every element finite already — safeSum is identical there, and an
+    // empty scene list still totals 0. This is a SUM in ms converted to
+    // seconds, deliberately NOT safeMean.
+    const totalDuration = safeSum(scenes.map((scene) => Math.max(0, scene.durationMs || 0))) / 1000;
     const bitrate = this.calculateBitrate(options);
 
     return Math.round((bitrate * totalDuration * 1000) / 8); // Size in bytes
@@ -776,9 +781,11 @@ export class ProductionExporter {
       failed: failed.length,
       active: this.activeJobs.size,
       queued: jobs.filter(j => j.status === 'queued').length,
-      averageProcessingTime: completed.length > 0
-        ? completed.reduce((sum, job) => sum + (job.endTime! - job.startTime!), 0) / completed.length
-        : 0,
+      // Finite-safe mean (wave 6): endTime/startTime are Date.now()-origin;
+      // a non-finite pair is excluded instead of making the average NaN. The
+      // non-null assertions remain the caller's contract (jobs in `completed`
+      // have both fields set).
+      averageProcessingTime: safeMean(completed.map((job) => job.endTime! - job.startTime!)),
       totalExportedSize: completed.reduce((sum, job) => sum + (job.metadata.estimatedSize || 0), 0),
       iteration: this.iteration
     };
