@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { PipelineConfigError } from '../../pipeline/pipeline-errors';
+import { requireJwtSecret } from '../jwt-secret';
 import { logger } from '../../utils/logger';
 
 export interface AuthenticatedRequest extends Request {
@@ -9,14 +9,6 @@ export interface AuthenticatedRequest extends Request {
     email: string;
     role: string;
   };
-}
-
-function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET;
-  if (!secret) {
-    throw new PipelineConfigError('jwtSecret', 'JWT_SECRET or SUPABASE_JWT_SECRET environment variable is required');
-  }
-  return secret;
 }
 
 export function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
@@ -33,7 +25,7 @@ export function authMiddleware(req: AuthenticatedRequest, res: Response, next: N
   const token = authHeader.substring(7);
 
   try {
-    const decoded = jwt.verify(token, getJwtSecret()) as { sub?: string; email?: string; role?: string };
+    const decoded = jwt.verify(token, requireJwtSecret()) as { sub?: string; email?: string; role?: string };
     if (!decoded || !decoded.sub) {
       res.status(401).json({
         success: false,

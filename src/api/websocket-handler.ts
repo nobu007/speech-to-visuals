@@ -13,7 +13,7 @@
 
 import type { Server as SocketServer, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
-import { PipelineConfigError } from '../pipeline/pipeline-errors';
+import { requireJwtSecret } from './jwt-secret';
 import { UUID_V4_RE } from './uuid-validation';
 
 // ---------------------------------------------------------------------------
@@ -116,14 +116,6 @@ interface AuthenticatedSocket extends Socket {
   };
 }
 
-function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET;
-  if (!secret) {
-    throw new PipelineConfigError('jwtSecret', 'JWT_SECRET or SUPABASE_JWT_SECRET environment variable is required');
-  }
-  return secret;
-}
-
 export function createWsAuthMiddleware() {
   return (socket: AuthenticatedSocket, next: (err?: Error) => void) => {
     const token = socket.handshake.auth.token;
@@ -133,7 +125,7 @@ export function createWsAuthMiddleware() {
     }
 
     try {
-      const decoded = jwt.verify(token, getJwtSecret()) as {
+      const decoded = jwt.verify(token, requireJwtSecret()) as {
         sub?: string;
         email?: string;
         role?: string;
