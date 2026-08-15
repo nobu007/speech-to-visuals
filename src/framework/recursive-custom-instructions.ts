@@ -102,9 +102,10 @@ export class RecursiveCustomInstructionsFramework {
     // Single source (round 24): derive from the canonical DEVELOPMENT_CYCLES
     // record. The previously inlined 3-phase copy had drifted from it —
     // 内容分析's successCriteria lost the entity/relation bars and gained an
-    // alien 図解タイプ判定70%, and E2E統合/品質向上 were missing entirely, so
-    // `evaluateIteration`'s `.find()` missed those phases and fell through to
-    // the "partial success" commit on iteration 1 instead of iterating.
+    // alien diagram-type-accuracy criterion the canonical plan does not
+    // carry, and E2E統合/品質向上 were missing entirely, so `evaluateIteration`'s
+    // `.find()` missed those phases and fell through to the "partial success"
+    // commit on iteration 1 instead of iterating.
     this.developmentCycles = Object.values(DEVELOPMENT_CYCLES);
 
     this.qualityThresholds = {
