@@ -13,6 +13,7 @@
  */
 
 import { logger } from '../utils/logger';
+import { safeMean } from '../lib/metrics-utils';
 import {
   DEFAULT_TRANSCRIPTION_ACCURACY_THRESHOLD,
   DEFAULT_SCENE_SEGMENTATION_F1_THRESHOLD,
@@ -293,10 +294,18 @@ export class RecursiveCustomInstructionsFramework {
   }
 
   private calculateModuleScore(moduleResults: Record<string, unknown>): number {
-    const metrics = Object.values(moduleResults).filter(v => typeof v === 'number');
-    return metrics.length > 0
-      ? metrics.reduce((sum: number, val: number) => sum + val, 0) / metrics.length
-      : 0;
+    // Finite-safe aggregation (round 20): the previous validity filter used
+    // `typeof v === 'number'`, which ADMITS NaN and ±Infinity — exactly the
+    // samples a "valid metrics only" filter exists to reject. A single
+    // non-finite metric made the module mean NaN, which propagated through
+    // calculateOverallScore into the `passed = overallScore >= 0.8` gate (NaN
+    // comparison → always false → silently failing evaluation). safeMean
+    // applies `Number.isFinite` per element: non-numbers are excluded exactly
+    // as before (Number.isFinite never coerces), and non-finite numbers are now
+    // excluded too. Value-identical for all-finite metrics. The `as number[]`
+    // is compiler-only: safeMean re-checks `Number.isFinite` per element at
+    // runtime, which excludes every non-number exactly like the old filter.
+    return safeMean(Object.values(moduleResults) as number[]);
   }
 
   private extractIssues(testResults: QualityCheckResults): string[] {

@@ -7,6 +7,7 @@
 
 import { randomUUID } from 'crypto';
 import { logger } from '@/utils/logger';
+import { safeMean } from '@/lib/metrics-utils';
 
 interface LearningData {
   id: string;
@@ -494,12 +495,21 @@ export class ContinuousLearner {
 
     if (feedbackData.length < 10) return; // データ不足
 
-    const averageRating = feedbackData.reduce((sum, d) => sum + (d.userFeedback || 0), 0) / feedbackData.length;
+    // Finite-safe aggregation (round 20): `userFeedback` enters through the
+    // unvalidated public `learnFromUserFeedback(rating)` boundary (no 1-5
+    // clamp), and the `|| 0` falsy-guard ZERO-SUBSTITUTED a non-finite rating
+    // into the mean — the substitution bias D2 rejects (a NaN "5-star" dragged
+    // averageRating toward 0, spuriously satisfying the `< 3.0` low-satisfaction
+    // insight). safeMean excludes non-finite ratings instead. The population is
+    // unchanged (pre-filter keeps `userFeedback !== undefined`); `?? NaN` never
+    // fires on this population, it only satisfies the number[] type without an
+    // assertion. Behavior change: only when a non-finite rating is present.
+    const averageRating = safeMean(feedbackData.map(d => d.userFeedback ?? NaN));
     const componentRatings = this.groupByComponent(feedbackData);
 
     // 満足度の低いコンポーネント特定
     for (const [component, data] of componentRatings.entries()) {
-      const avgRating = data.reduce((sum, d) => sum + (d.userFeedback || 0), 0) / data.length;
+      const avgRating = safeMean(data.map(d => d.userFeedback ?? NaN));
 
       if (avgRating < 3.0) { // 3.0未満は改善が必要
         const insight: SystemInsight = {
