@@ -14,6 +14,7 @@
 
 import { clamp01 } from '@/utils/guards';
 import { CappedArray } from '@/lib/capped-array';
+import { buildCharClassRegex, CJK_TOKEN_RANGES } from '@/lib/unicode-script-ranges';
 
 /** Maximum number of similarity scores kept in memory */
 const MAX_SCORE_HISTORY = 1000;
@@ -22,12 +23,20 @@ const MAX_SCORE_HISTORY = 1000;
  * Tokenize text into normalized tokens.
  * Handles both Latin (space-delimited words) and CJK (character-level) text.
  */
+/**
+ * Per-character meaningful script class (round 23 single source).
+ * Behavior change vs the pre-round-23 hand-rolled class: CJK Compatibility
+ * Ideographs and Katakana Phonetic Extensions now tokenize as CJK chars
+ * instead of falling through to the Latin path and being stripped.
+ */
+const CJK_TOKEN_CLASS = buildCharClassRegex(CJK_TOKEN_RANGES, 'g');
+
 function tokenize(text: string): Set<string> {
   const tokens = new Set<string>();
   const lower = text.toLowerCase();
 
   // Extract CJK characters as individual tokens (each character is meaningful)
-  const cjkChars = lower.match(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF\u3400-\u4DBF]/g);
+  const cjkChars = lower.match(CJK_TOKEN_CLASS);
   if (cjkChars) {
     for (const ch of cjkChars) {
       tokens.add(ch);
@@ -36,7 +45,7 @@ function tokenize(text: string): Set<string> {
 
   // Extract Latin/alphanumeric tokens (space-delimited words)
   const latinTokens = lower
-    .replace(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF\u3400-\u4DBF]/g, ' ') // Remove CJK
+    .replace(CJK_TOKEN_CLASS, ' ') // Remove CJK
     .replace(/[^\w\s]/g, ' ') // Remove punctuation
     .split(/\s+/)
     .filter(token => token.length > 1); // Remove single chars for Latin only

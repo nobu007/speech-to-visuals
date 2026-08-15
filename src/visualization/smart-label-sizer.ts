@@ -9,12 +9,19 @@
 
 import { PositionedNode } from '@/types/diagram';
 import { getNodeWidth, getNodeHeight } from './node-dimensions';
+import { buildCharClassRegex, WIDE_DISPLAY_RANGES } from '@/lib/unicode-script-ranges';
 
 /**
  * Unicode ranges for CJK characters that are typically rendered at ~2x the
  * width of a Latin character in monospace and most proportional fonts.
+ *
+ * Round 23 single source: composed from lib/unicode-script-ranges. Behavior
+ * change vs the pre-round-23 hand-rolled class — CJK Extension A and
+ * Compatibility Ideographs now count 2 units (they render wide; before they
+ * were undercounted at 1), and halfwidth katakana (FF61-FF9D) now counts
+ * 1 unit (it renders narrow; before the whole FF00-FFEF block was 2).
  */
-const CJK_RANGES = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF\uFF00-\uFFEF]/;
+const CJK_RANGES = buildCharClassRegex(WIDE_DISPLAY_RANGES);
 
 export function isCJKChar(ch: string): boolean {
   return CJK_RANGES.test(ch);

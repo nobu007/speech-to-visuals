@@ -17,6 +17,7 @@
 
 import { AnalyzerInitError } from "./analysis-errors";
 import { logger } from '../utils/logger';
+import { charInRanges, KANA_RANGES, CJK_IDEOGRAPH_RANGES } from '@/lib/unicode-script-ranges';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -71,21 +72,13 @@ enum CharClass {
 function classifyChar(char: string): CharClass {
   const code = char.charCodeAt(0);
 
-  // Japanese kana (hiragana, katakana)
-  if (
-    (code >= 0x3040 && code <= 0x309F) || // Hiragana
-    (code >= 0x30A0 && code <= 0x30FF) || // Katakana
-    (code >= 0x31F0 && code <= 0x31FF)    // Katakana Phonetic Extensions
-  ) {
+  // Japanese kana (hiragana, katakana, phonetic extensions)
+  if (charInRanges(code, KANA_RANGES)) {
     return CharClass.JapaneseKana;
   }
 
-  // CJK Ideographs (kanji/hanzi)
-  if (
-    (code >= 0x4E00 && code <= 0x9FFF) || // CJK Unified Ideographs
-    (code >= 0x3400 && code <= 0x4DBF) || // CJK Extension A
-    (code >= 0xF900 && code <= 0xFAFF)    // CJK Compatibility Ideographs
-  ) {
+  // CJK Ideographs (kanji/hanzi: unified + extension A + compatibility)
+  if (charInRanges(code, CJK_IDEOGRAPH_RANGES)) {
     return CharClass.CJK;
   }
 
@@ -107,12 +100,7 @@ function classifyChar(char: string): CharClass {
 /** Check if text contains Japanese kana (hiragana or katakana) */
 function hasKana(text: string): boolean {
   for (const char of text) {
-    const code = char.charCodeAt(0);
-    if (
-      (code >= 0x3040 && code <= 0x309F) ||
-      (code >= 0x30A0 && code <= 0x30FF) ||
-      (code >= 0x31F0 && code <= 0x31FF)
-    ) {
+    if (charInRanges(char.charCodeAt(0), KANA_RANGES)) {
       return true;
     }
   }

@@ -3,6 +3,27 @@ import { ContentSegment, AnalysisConfig } from './types';
 import { sanitizeFinite } from '@/utils/guards';
 import { safeMean } from '@/lib/metrics-utils';
 import { SENTENCE_BOUNDARY_REGEX } from './sentence-boundaries';
+import {
+  buildCharClassRegex,
+  charClassSource,
+  JAPANESE_TEXT_RANGES,
+  CJK_IDEOGRAPH_RANGES,
+  KATAKANA,
+} from '@/lib/unicode-script-ranges';
+
+// ── Japanese keyword patterns (round 23 single source) ──────────
+// Behavior change vs the pre-round-23 hand-rolled classes: the gate and the
+// kanji/第N patterns now cover the full canonical ideograph set (unified +
+// extension A + compatibility), so Ext-A/Compat-only text is no longer
+// diverted to the English keyword fallback.
+const JAPANESE_TEXT_CLASS = buildCharClassRegex(JAPANESE_TEXT_RANGES);
+const KANJI_WORD_CLASS_SOURCE = charClassSource([...CJK_IDEOGRAPH_RANGES, KATAKANA]);
+const KANJI_COMPOUND_REGEX = new RegExp(`[${KANJI_WORD_CLASS_SOURCE}\\d]+[${KANJI_WORD_CLASS_SOURCE}]+`, 'g');
+const KATAKANA_RUN_REGEX = new RegExp(`[${charClassSource([KATAKANA])}]{2,}`, 'g');
+const NUM_KANJI_REGEX = new RegExp(
+  `第[${charClassSource(CJK_IDEOGRAPH_RANGES)}\\d]+[${charClassSource(CJK_IDEOGRAPH_RANGES)}]+`,
+  'g',
+);
 
 /**
  * Default segment-length bounds (milliseconds). Single source of truth — every
@@ -346,16 +367,15 @@ export class SceneSegmenter {
    */
   private extractJapaneseKeywords(text: string): string[] {
     // Check if text contains Japanese characters
-    const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/.test(text);
-    if (!hasJapanese) return [];
+    if (!JAPANESE_TEXT_CLASS.test(text)) return [];
 
     const phrases: string[] = [];
 
     // Pattern 1: Extract compounds of Kanji characters (2+ consecutive kanji)
     // e.g., データベース設計, 正規化, 第三正規形
-    const kanjiCompoundRegex = /[\u4E00-\u9FFF\u30A0-\u30FF\d]+[\u4E00-\u9FFF\u30A0-\u30FF]+/g;
     let match: RegExpExecArray | null;
-    while ((match = kanjiCompoundRegex.exec(text)) !== null) {
+    KANJI_COMPOUND_REGEX.lastIndex = 0;
+    while ((match = KANJI_COMPOUND_REGEX.exec(text)) !== null) {
       const phrase = match[0];
       if (phrase.length >= 2 && !this.JA_STOP_WORDS.has(phrase)) {
         phrases.push(phrase);
@@ -363,8 +383,8 @@ export class SceneSegmenter {
     }
 
     // Pattern 2: Katakana words (technical terms)
-    const katakanaRegex = /[\u30A0-\u30FF]{2,}/g;
-    while ((match = katakanaRegex.exec(text)) !== null) {
+    KATAKANA_RUN_REGEX.lastIndex = 0;
+    while ((match = KATAKANA_RUN_REGEX.exec(text)) !== null) {
       const phrase = match[0];
       if (!this.JA_STOP_WORDS.has(phrase)) {
         phrases.push(phrase);
@@ -372,8 +392,8 @@ export class SceneSegmenter {
     }
 
     // Pattern 3: Number + Kanji compounds like 第三正規形
-    const numKanjiRegex = /第[\u4E00-\u9FFF\d]+[\u4E00-\u9FFF]+/g;
-    while ((match = numKanjiRegex.exec(text)) !== null) {
+    NUM_KANJI_REGEX.lastIndex = 0;
+    while ((match = NUM_KANJI_REGEX.exec(text)) !== null) {
       const phrase = match[0];
       if (!this.JA_STOP_WORDS.has(phrase)) {
         phrases.push(phrase);
