@@ -26,6 +26,7 @@ import { logger } from '../utils/logger';
 import { pipelineMetricsCollector } from '@/monitoring/pipeline-metrics-collector';
 import { validateAudioFile } from '@/utils/audio-validation';
 import { sanitizeFilename } from '@/utils/sanitize';
+import { safeMean, safeSum } from '@/lib/metrics-utils';
 
 export interface BatchJobRequest {
   files: File[];
@@ -408,8 +409,14 @@ export class BatchProcessingAPI {
     const qualityScores = results
       .filter((r) => r.success && r.result)
       .map((r) => r.result!.qualityScore ?? this.calculateQualityScore(r.result!));
-    const totalQualityScore = qualityScores.reduce((sum, score) => sum + score, 0);
-    const averageQualityScore = qualityScores.length > 0 ? totalQualityScore / qualityScores.length : 0;
+    // Finite-safe aggregation (round 20): `qualityScore` is an interface field
+    // on SimplePipelineResult crossing the pipeline→REST boundary — `??` only
+    // replaces null/undefined, so a non-finite value would previously poison
+    // BOTH the summary total and the average with NaN. safeSum/safeMean exclude
+    // non-finite samples (D2); finite inputs are value-identical to the raw
+    // reduce forms. Behavior change: only when a non-finite score is present.
+    const totalQualityScore = safeSum(qualityScores);
+    const averageQualityScore = safeMean(qualityScores);
 
     // Create final result
     const jobResult: BatchJobResult = {
