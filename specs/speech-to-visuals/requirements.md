@@ -541,7 +541,7 @@
 
 #### アーティファクト管理REST API（Phase 103） ✅完了
 
-- REQ-238: システムはエクスポートアーティファクト一覧API（GET /api/v1/export/artifacts）を提供し、フォーマットフィルタ・ページネーション（limit/offset、最大200件/ページ）をサポートしなければならない 🔵 ✅実装済 *src/api/routes/export.ts GET /artifacts・TC-238テスト通過・コミットa628416*
+- REQ-238: システムはエクスポートアーティファクト一覧API（GET /api/v1/export/artifacts）を提供し、フォーマットフィルタ・ページネーション（limit/offset、最大200件/ページ）をサポートしなければならない 🔵 ✅実装済 *src/api/routes/export.ts GET /artifacts・TC-238テスト通過・コミットa628416。上限は明示?limit=とデフォルト経路の両方に適用（TC-238-B01）、format検証はプロトタイプ継承キーを拒否（TC-238-E01）*
 - REQ-239: システムはエクスポートアーティファクトのメタデータ取得API（GET /api/v1/export/artifacts/:artifactId）と削除API（DELETE /api/v1/export/artifacts/:artifactId）を提供し、UUID v4形式検証と404エラーレスポンスを実装しなければならない 🔵 ✅実装済 *src/api/routes/export.ts GET/DELETE /artifacts/:id・UUID_V4_RE形式検証・TC-239テスト通過・コミットa628416*
 - REQ-240: システムはエクスポートアーティファクト使用量統計API（GET /api/v1/export/artifacts/usage）を提供し、アーティファクト数・総バイト数・フォーマット別分布を返さなければならない 🔵 ✅実装済 *src/api/routes/export.ts GET /artifacts/usage・ExportArtifactStore.getUsage()・TC-240テスト通過・コミットa628416*
 

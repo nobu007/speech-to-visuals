@@ -55,6 +55,24 @@ const FORMAT_MIME: Record<ArtifactFormat, string> = {
 const DEFAULT_LIST_LIMIT = parseInt(process.env['EXPORT_LIST_DEFAULT_LIMIT'] ?? '', 10) || 50;
 const MAX_LIST_LIMIT = parseInt(process.env['EXPORT_LIST_MAX_LIMIT'] ?? '', 10) || 200;
 
+/**
+ * Effective list limit for GET /artifacts.
+ *
+ * Both paths — the no-`?limit` default AND an explicit `?limit=` — MUST be
+ * clamped by `maxLimit`. Previously only the explicit path was clamped, so a
+ * misconfigured env pair (`EXPORT_LIST_DEFAULT_LIMIT=1000` with
+ * `EXPORT_LIST_MAX_LIMIT=200`) made cap-less default responses while every
+ * explicit request stayed capped at 200.
+ */
+export function resolveListLimit(
+  rawLimit: number,
+  defaultLimit: number,
+  maxLimit: number,
+): number {
+  const base = Number.isNaN(rawLimit) ? defaultLimit : rawLimit;
+  return Math.min(base, maxLimit);
+}
+
 export function createExportRouter(artifactStore: ExportArtifactStore): Router {
   const router = Router();
 
@@ -65,8 +83,10 @@ export function createExportRouter(artifactStore: ExportArtifactStore): Router {
     const rawLimit = parseInt(req.query.limit as string, 10);
     const rawOffset = parseInt(req.query.offset as string, 10);
 
-    // Validate format parameter if provided
-    if (format !== undefined && !(format in FORMAT_MIME)) {
+    // Validate format parameter if provided. hasOwnProperty, NOT `in`: `in`
+    // walks the prototype chain, so `?format=constructor` / `?format=toString`
+    // previously passed validation and returned a silent empty 200.
+    if (format !== undefined && !Object.prototype.hasOwnProperty.call(FORMAT_MIME, format)) {
       res.status(400).json({
         success: false,
         error: {
@@ -100,7 +120,7 @@ export function createExportRouter(artifactStore: ExportArtifactStore): Router {
       return;
     }
 
-    const limit = Number.isNaN(rawLimit) ? DEFAULT_LIST_LIMIT : Math.min(rawLimit, MAX_LIST_LIMIT);
+    const limit = resolveListLimit(rawLimit, DEFAULT_LIST_LIMIT, MAX_LIST_LIMIT);
     const offset = Number.isNaN(rawOffset) ? 0 : rawOffset;
 
     const result = artifactStore.list({ format, limit, offset });

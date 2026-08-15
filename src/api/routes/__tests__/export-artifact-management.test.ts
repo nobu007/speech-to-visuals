@@ -10,7 +10,7 @@
 
 import express from 'express';
 import request from 'supertest';
-import { createExportRouter } from '../export';
+import { createExportRouter, resolveListLimit } from '../export';
 import { ExportArtifactStore } from '../../../export/export-artifact-store';
 
 function createApp() {
@@ -132,6 +132,46 @@ describe('Export Artifact Management API (REQ-238~240)', () => {
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('rejects inherited Object.prototype keys as format with 400 (not silent empty 200)', async () => {
+      // `in` walks the prototype chain, so `?format=constructor` previously
+      // passed validation and returned an empty 200 instead of a 400.
+      const res = await request(app).get('/api/v1/export/artifacts?format=constructor');
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('rejects toString as format with 400', async () => {
+      const res = await request(app).get('/api/v1/export/artifacts?format=toString');
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+  });
+
+  // -- resolveListLimit: default-path clamp (REQ-238 boundary) -------------
+
+  describe('resolveListLimit', () => {
+    it('clamps the DEFAULT limit by the max cap too (misconfigured env must not bypass the cap)', () => {
+      // EXPORT_LIST_DEFAULT_LIMIT > EXPORT_LIST_MAX_LIMIT: the no-?limit path
+      // must honor the same cap that explicit ?limit= values are clamped by.
+      expect(resolveListLimit(Number.NaN, 1000, 200)).toBe(200);
+    });
+
+    it('keeps a default within the cap unchanged', () => {
+      expect(resolveListLimit(Number.NaN, 50, 200)).toBe(50);
+    });
+
+    it('clamps an explicit limit above the cap', () => {
+      expect(resolveListLimit(500, 50, 200)).toBe(200);
+    });
+
+    it('keeps an explicit limit within the cap unchanged', () => {
+      expect(resolveListLimit(10, 50, 200)).toBe(10);
     });
   });
 
