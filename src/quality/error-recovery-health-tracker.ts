@@ -12,7 +12,7 @@ import {
   ErrorReport,
   ErrorSnapshot,
 } from './enhanced-error-recovery';
-import { roundTo } from '../lib/metrics-utils';
+import { roundTo, safeMean } from '../lib/metrics-utils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -210,10 +210,16 @@ export class ErrorRecoveryHealthTracker {
       ).length;
       const cbScore = 1 - openCount / this.samples.length;
 
-      // 3) Recovery success rate (global, since per-stage is not available)
-      const avgRecovery =
-        this.samples.reduce((a, s) => a + s.recoverySuccessRate, 0) /
-        this.samples.length;
+      // 3) Recovery success rate (global, since per-stage is not available).
+      // safeMean: recoverySuccessRate crosses a module boundary (it is
+      // report.summary.recoverySuccessRate from the recovery system, an
+      // interface value — unlike the deltas in the sub-scores above, which
+      // this tracker derives itself). A single non-finite entry used to make
+      // the score NaN, and `NaN * 0.3` then silently passed every downstream
+      // score threshold as false-y.
+      const avgRecovery = safeMean(
+        this.samples.map((s) => s.recoverySuccessRate),
+      );
       const recoveryScore = avgRecovery;
 
       const score = errorScore * 0.4 + cbScore * 0.3 + recoveryScore * 0.3;

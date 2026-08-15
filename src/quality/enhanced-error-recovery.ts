@@ -10,7 +10,7 @@ import { DiagramType } from '@/types/diagram';
 import { globalCache } from '../performance/intelligent-cache';
 import { logger } from '@/utils/logger';
 import { getMemoryUsage } from '@/utils/memory-usage';
-import { heapUsageRatio, safeMax, safeMin } from '@/lib/metrics-utils';
+import { heapUsageRatio, safeMax, safeMean, safeMin } from '@/lib/metrics-utils';
 import { errorRecoveryEventBus } from './error-recovery-event-bus';
 import { QualityGateError, PipelineConfigError } from '@/pipeline/pipeline-errors';
 
@@ -352,9 +352,15 @@ export class EnhancedErrorRecovery {
     const currentMetrics = this.loadMetrics.slice(-5); // Last 5 measurements
     if (currentMetrics.length < 3) return;
 
-    const avgResponseTime = currentMetrics.reduce((sum, m) => sum + m.averageResponseTime, 0) / currentMetrics.length;
-    const avgErrorRate = currentMetrics.reduce((sum, m) => sum + m.errorRate, 0) / currentMetrics.length;
-    const avgMemoryPressure = currentMetrics.reduce((sum, m) => sum + m.memoryPressure, 0) / currentMetrics.length;
+    // safeMean (D2 exclusion semantics): loadMetrics entries are historically
+    // NOT trusted — calculateAverageResponseTime() and the errorRecoverySpeed
+    // block below both pre-filter the SAME loadMetrics.averageResponseTime
+    // field against non-finite values. These three means read the sibling
+    // fields of the same records, so they get the same exclusion instead of
+    // the raw fold that a single corrupted entry would poison.
+    const avgResponseTime = safeMean(currentMetrics.map((m) => m.averageResponseTime));
+    const avgErrorRate = safeMean(currentMetrics.map((m) => m.errorRate));
+    const avgMemoryPressure = safeMean(currentMetrics.map((m) => m.memoryPressure));
 
     // Calculate system health score
     const healthScore = (
@@ -417,7 +423,7 @@ export class EnhancedErrorRecovery {
     const recentMetrics = this.loadMetrics.slice(-10);
     if (recentMetrics.length === 0) return;
 
-    this.requestStats.avgResponseTime = recentMetrics.reduce((sum, m) => sum + m.averageResponseTime, 0) / recentMetrics.length;
+    this.requestStats.avgResponseTime = safeMean(recentMetrics.map((m) => m.averageResponseTime));
 
     // Update completion statistics (would be enhanced with actual tracking)
     const currentLoad = this.activeRequests.size;
@@ -468,7 +474,10 @@ export class EnhancedErrorRecovery {
       .slice(-10)
       .filter(m => Number.isFinite(m.averageResponseTime) && m.averageResponseTime >= 0);
     if (recentMetrics.length === 0) return 0;
-    return recentMetrics.reduce((sum, m) => sum + m.averageResponseTime, 0) / recentMetrics.length;
+    // safeMean over the already-filtered valid entries — value-identical to
+    // the fold below on the finite path, and defensive if the `>= 0` filter
+    // ever loosens.
+    return safeMean(recentMetrics.map((m) => m.averageResponseTime));
   }
 
   /**
@@ -817,8 +826,7 @@ export class EnhancedErrorRecovery {
     const recentMetrics = this.loadMetrics
       .slice(-10)
       .filter(m => Number.isFinite(m.averageResponseTime) && m.averageResponseTime >= 0);
-    const avgResponseTime = recentMetrics.length > 0 ?
-      recentMetrics.reduce((sum, m) => sum + m.averageResponseTime, 0) / recentMetrics.length : 0;
+    const avgResponseTime = safeMean(recentMetrics.map((m) => m.averageResponseTime));
 
     const targetResponseTime = 3000; // 3 second target for optimized system
     const errorRecoverySpeed = Number.isFinite(avgResponseTime)
