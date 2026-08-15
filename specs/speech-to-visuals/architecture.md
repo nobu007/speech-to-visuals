@@ -852,6 +852,7 @@ spec整合性の自動検証システム:
 - [Speech-to-Visuals 要件定義書](requirements.md)
 - [speech-to-visuals タスク概要](tasks/overview.md)
 - [Speech-to-Visuals ユーザストーリー](user-stories.md)
+- [stochastic-layout-seeding アーキテクチャ設計](../stochastic-layout-seeding/architecture.md)
 
 <!-- spine:children:end -->
 
