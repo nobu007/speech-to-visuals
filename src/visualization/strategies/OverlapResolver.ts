@@ -233,7 +233,7 @@ export class OverlapResolver {
 
     switch (diagramType) {
       // 'flowchart' shares flow's deterministic y-axis separation; previously it
-      // hit the default branch's Math.random() displacement, giving a flowchart
+      // hit the default branch's unseeded random displacement, giving a flowchart
       // non-deterministic jitter on the identical-position edge case.
       case 'flow':
       case 'flowchart':

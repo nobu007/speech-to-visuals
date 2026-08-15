@@ -113,6 +113,20 @@ export interface ForceDirectedState {
 import { CulturalLayoutAdapter } from './strategies/CulturalLayoutAdapter';
 import { logger } from '../utils/logger';
 
+/**
+ * Deterministic worker-message id (round 17). Was
+ * `layout_${Date.now()}_${Math.random …}` — the id appears in output JSON,
+ * so it silently made whole-JSON golden comparisons non-deterministic. The id
+ * is identity-only (no consumer references it; verified by grep), so keying
+ * it to the node-id set is safe: regenerating the same diagram yields the
+ * same id, which is exactly the determinism this engine's positions already
+ * guarantee via initializeForceDirectedState.
+ */
+export function makeLayoutWorkerMessageId(nodes: NodeDatum[]): string {
+  const rand = mulberry32(seedFromString(nodes.map(n => n.id).join('|')));
+  return `layout_${rand().toString(36).slice(2, 9)}`;
+}
+
 export class ComplexLayoutEngine {
   private config: ComplexLayoutConfig;
   private culturalLayoutAdapter: CulturalLayoutAdapter;
@@ -844,7 +858,7 @@ export class ComplexLayoutEngine {
     };
 
     const message: WorkerMessage<LayoutWorkerPayload> = {
-      id: `layout_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      id: makeLayoutWorkerMessageId(nodes),
       type: 'LAYOUT_COMPUTE',
       payload,
     };
