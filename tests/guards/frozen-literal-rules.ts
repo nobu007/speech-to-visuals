@@ -433,6 +433,10 @@ export const FROZEN_LITERAL_RULES: FrozenLiteralRule[] = [
       // round 19 (TASK-0010): monitoring continent + interface-value means.
       'src/monitoring/production-monitor.ts',
       'src/quality/error-recovery-health-tracker.ts',
+      // round 20 (TASK-0011): framework + api continents.
+      'src/api/batch-processing-api.ts',
+      'src/framework/recursive-custom-instructions.ts',
+      'src/framework/continuous-learner.ts',
     ],
     patterns: [
       // llm-service wave 2 (response-time means).
@@ -465,12 +469,22 @@ export const FROZEN_LITERAL_RULES: FrozenLiteralRule[] = [
       // error-recovery-health-tracker round 19 (interface-value mean over
       // report.summary.recoverySuccessRate).
       /this\.samples\.reduce\(\(a, s\) => a \+ s\.recoverySuccessRate, 0\)/,
+      // batch-processing-api round 20 (interface-field quality summary:
+      // SimplePipelineResult.qualityScore crosses the pipeline→REST boundary).
+      /qualityScores\.reduce\(\(sum, score\) => sum \+ score, 0\)/,
+      // recursive-custom-instructions round 20 (module-score validity filter
+      // that ADMITTED NaN/±Infinity — `typeof v === 'number'` is exactly the
+      // wrong predicate for "valid metric").
+      /filter\(v => typeof v === 'number'\)/,
+      // continuous-learner round 20 (userFeedback interface means over the
+      // unvalidated learnFromUserFeedback boundary; `|| 0` zero-substituted).
+      /sum \+ \(d\.userFeedback \|\| 0\), 0\)/,
     ],
-    minSweptFiles: 7,
+    minSweptFiles: 10,
   },
   {
     id: 'finite-safe aggregation: no NEW raw (a,b)=>a+b mean or min/max spread in migrated module families',
-    roots: ['src/analysis', 'src/quality', 'src/export', 'src/monitoring'],
+    roots: ['src/analysis', 'src/quality', 'src/export', 'src/monitoring', 'src/framework', 'src/api'],
     exclude: {
       // T2-deferred sites, verified finite-by-construction or internally
       // generated — full line-level inventory in
@@ -490,13 +504,22 @@ export const FROZEN_LITERAL_RULES: FrozenLiteralRule[] = [
         'T2-deferred: raw means over internally generated half-samples (547-548)',
       'src/monitoring/real-time-performance-monitor.ts':
         'T2-deferred: raw means over process.memoryUsage()-derived samples, guarded length>0 (587/590); percentiles already delegate to percentileCeil',
+      // Round 20 (TASK-0011): the framework continent's remaining raw means
+      // are over learningDatabase fields with a SINGLE internal producer —
+      // simple-pipeline passes Date.now()-diff processingTime and
+      // literal/clamped qualityScore at every one of its 8 call sites
+      // (recovery-telemetry exclusion precedent). Population guards present
+      // (length===0 continue / <2 return / <10 return / Math.max(len,1)).
+      // The userFeedback interface means (was 497/502) migrated in round 20.
+      'src/framework/continuous-learner.ts':
+        'T2-deferred: internally generated processingTime/qualityScore means (381, 760-761) + pearson folds over isFinite-pre-filtered pairs — single finite producer (simple-pipeline), population-guarded',
     },
     patterns: [
       /\.reduce\(\(a, b\) => a \+ b, 0\)\s*\//,
       /Math\.max\(\.\.\./,
       /Math\.min\(\.\.\./,
     ],
-    minSweptFiles: 65,
+    minSweptFiles: 90,
   },
 
   /**
