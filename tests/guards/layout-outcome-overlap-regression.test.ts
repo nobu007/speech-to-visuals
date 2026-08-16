@@ -40,15 +40,8 @@
  *     since r17; dagre is deterministic) — without this, before/after
  *     outcome comparisons are meaningless.
  *
- * Findings probed at creation (round 36) — FIXED IN ROUND 37:
- *   - ezo's qualityMetrics.overlapCount conflates geometric overlap with
- *     violations of minimumSpacing.nodeToNode (40px): the engine returns
- *     success=false on final layouts that are geometrically overlap-free
- *     (mixed-extent + dense-hub shapes). The success flag flows into the
- *     simple pipeline's layout result. The guard pins the GEOMETRIC contract
- *     plus the flag's internal consistency. STILL the semantics as of round
- *     37 — a deliberate, separately-tracked decision, not a sizing bug.
- *   - ezo emitted GENUINE geometric overlaps on 4 of the 40 type × topology
+ * Findings probed at creation (round 36) — both FIXED:
+ *   - FIXED IN ROUND 37: ezo emitted GENUINE geometric overlaps on 4 of the 40 type × topology
  *     combos (tree/mixed-extents and dense-hub under flowchart/tree/timeline),
  *     despite the class's "zero overlap guaranteed" contract. Two root
  *     causes, both closed in round 37: (a) sizing-source divergence — the ezo
@@ -64,6 +57,19 @@
  *     geometric-clean) inside resolveAllOverlaps. The ezo block below
  *     therefore asserts the SAME zero-overlap contract as the executeLayout
  *     block; a reintroduced gap fails red instead of being pinned.
+ *   - FIXED IN ROUND 38: ezo's qualityMetrics.overlapCount conflated
+ *     geometric overlap with violations of minimumSpacing.nodeToNode (40px)
+ *     — the engine returned success=false on final layouts that were
+ *     geometrically overlap-free (mixed-extent + dense-hub shapes), and the
+ *     flag flowed into the simple pipeline as 'layout_generation_failed'
+ *     with the scene skipped. overlapCount is now the GEOMETRIC count — the
+ *     same predicate every other engine reports (layout-engine-v2's
+ *     calculateMetrics, quality-gate, OverlapResolver) — and the 40px
+ *     separation target is reported separately as spacingViolationCount
+ *     (warning-only; it can never fail the layout). The ezo block below now
+ *     asserts success===true on every combo and pins spacingViolationCount
+ *     against the production spacing predicate, so a re-conflation from
+ *     either side fails red.
  *
  * Both probes were RUN at creation (not asserted from reading):
  *   - RED probe: disabling the OverlapResolver branch in executeLayout (the
@@ -173,6 +179,28 @@ function independentOverlapPairs(nodes: Array<{ id: string; x: number; y: number
   return offenders;
 }
 
+/**
+ * Pair count violating the engine's minimumSpacing.nodeToNode separation
+ * target, via the production predicate (`nodesOverlap(a, b, spacing)` —
+ * each AABB inflated by spacing/2). This is the metric ezo reports as
+ * spacingViolationCount: same predicate, so the engine's spatial-grid and
+ * brute-force paths are cross-checked against an independent loop.
+ */
+function countSpacingViolations(
+  nodes: Array<{ id: string; x: number; y: number }>,
+  spacing: number,
+): number {
+  let count = 0;
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      if (nodesOverlap(nodes[i], nodes[j], spacing)) {
+        count++;
+      }
+    }
+  }
+  return count;
+}
+
 describe('layout outcome regression — overlap-free, finite, deterministic (steering post-0531aa4f)', () => {
   describe.each(ALL_TYPES)('executeLayout [%s]', (diagramType) => {
     for (const [caseName, nodes, edges] of CORPUS) {
@@ -232,15 +260,16 @@ describe('layout outcome regression — overlap-free, finite, deterministic (ste
     // reintroduced gap — sizing regression, resolver strand, canvas clamp
     // re-overlap — fails RED instead of matching a stale expected list.
 
-    // KNOWN CURRENT SEMANTICS (unchanged by round 37, deliberately): ezo's
-    // detectAllOverlaps counts a pair as "overlapping" when it violates
-    // minimumSpacing.nodeToNode (40px), so qualityMetrics.overlapCount can be
-    // > 0 — and success false — while the FINAL GEOMETRY is overlap-free in
-    // the plain sense (independent AABB: zero pairs). Empirically the
-    // separation target is missed on the mixed-extent and dense-hub shapes
-    // for the dagre/timeline initial layouts. The renderer-consumed contract
-    // this guard pins is the geometric one; the success flag is pinned only
-    // for internal consistency (it is defined as overlapCount === 0).
+    // ROUND 38 SEMANTICS: success and qualityMetrics.overlapCount are the
+    // GEOMETRIC zero-overlap contract (success === overlapCount === 0 for
+    // every combo here — all are geometrically clean since round 37, and a
+    // geometrically-clean layout must NOT report failure). The 40px
+    // minimumSpacing.nodeToNode separation target (default engine = the
+    // simple-pipeline configuration, which does not override it) is a
+    // SEPARATE warning-only signal: spacingViolationCount must equal the
+    // production spacing predicate's own pair count on the emitted nodes.
+    // Empirically the target is missed on mixed-extent/dense-hub shapes —
+    // those combos are exactly the RED witness for the round-38 fix.
     for (const diagramType of EZO_TYPES) {
       for (const [caseName, nodes, edges] of CORPUS) {
         const key = `${diagramType} / ${caseName}`;
@@ -253,7 +282,13 @@ describe('layout outcome regression — overlap-free, finite, deterministic (ste
 
           expect(independentOverlapPairs(result.nodes)).toEqual([]);
           finiteNodeOutcomes(result);
-          expect(result.success).toBe(result.qualityMetrics.overlapCount === 0);
+          expect(result.success).toBe(true);
+          expect(result.qualityMetrics.overlapCount).toBe(0);
+          // spacingViolationCount: the 40px separation target, reported but
+          // never a failure — pinned against the production predicate so the
+          // grid and brute-force detection paths can't drift apart either.
+          expect(result.qualityMetrics.spacingViolationCount).toBe(
+            countSpacingViolations(result.nodes, 40));
           expect(result.nodes.map(n => n.id).sort()).toEqual(nodes.map(n => n.id).sort());
         });
       }

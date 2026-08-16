@@ -77,8 +77,9 @@ export interface CollisionBox {
 }
 
 export interface LayoutQualityMetrics {
-  overlapCount: number;              // Number of overlapping elements
-  overlapArea: number;               // Total overlapping area
+  overlapCount: number;              // GEOMETRIC overlaps (plain AABB, spacing 0) — the zero-overlap contract `success` derives from; same predicate every other engine reports
+  spacingViolationCount: number;     // Pairs closer than minimumSpacing.nodeToNode — warning-only separation-target signal, can never fail the layout (round 38)
+  overlapArea: number;               // Total overlapping area (geometric overlaps)
   edgeCrossings: number;             // Number of edge crossings
   totalEdgeLength: number;           // Sum of all edge lengths
   canvasUtilization: number;         // Percentage of canvas used
@@ -848,13 +849,26 @@ export class ZeroOverlapLayoutEngine {
   }
 
   /**
-   * Detect all overlapping elements in the layout
-   * Includes minimum spacing requirement
-   * Uses spatial grid when spatialIndexing is enabled for O(n) average case
+   * Detect pairs of nodes violating the given separation in the layout.
+   *
+   * Round 38: the spacing is a PARAMETER, not an implicit constant — the two
+   * callers mean different contracts:
+   *   - `detectAllOverlaps(nodes)` (default) → minimumSpacing.nodeToNode
+   *     (40px): the engine's spacing-optimization target, used by the
+   *     force-resolution loop and reported as spacingViolationCount;
+   *   - `detectAllOverlaps(nodes, 0)` → plain geometric overlap, the
+   *     zero-overlap GUARANTEE reported as overlapCount and the value
+   *     `success` derives from.
+   * Before round 38 the final quality metrics counted with the 40px-inflated
+   * predicate, so a geometrically-clean-but-dense layout reported
+   * overlapCount > 0 and success=false.
+   *
+   * Uses spatial grid when spatialIndexing is enabled for O(n) average case.
    */
-  private detectAllOverlaps(nodes: PositionedNode[]): { node1: PositionedNode; node2: PositionedNode }[] {
-    const minSpacing = this.config.minimumSpacing.nodeToNode;
-
+  private detectAllOverlaps(
+    nodes: PositionedNode[],
+    minSpacing: number = this.config.minimumSpacing.nodeToNode
+  ): { node1: PositionedNode; node2: PositionedNode }[] {
     if (this.config.spatialIndexing && nodes.length > 4) {
       return this.detectOverlapsWithSpatialGrid(nodes, minSpacing);
     }
@@ -1187,6 +1201,14 @@ export class ZeroOverlapLayoutEngine {
       warnings.push(`${qualityMetrics.overlapCount} overlaps detected (target: 0)`);
     }
 
+    // Separation-target shortfall: dense canvas, not a failure (round 38).
+    if (qualityMetrics.spacingViolationCount > 0) {
+      warnings.push(
+        `${qualityMetrics.spacingViolationCount} pairs closer than ` +
+        `${this.config.minimumSpacing.nodeToNode}px minimum spacing (aesthetic; not overlaps)`
+      );
+    }
+
     if (qualityMetrics.canvasUtilization > 0.9) {
       warnings.push('High canvas utilization may affect readability');
     }
@@ -1206,15 +1228,27 @@ export class ZeroOverlapLayoutEngine {
   }
 
   /**
-   * Calculate comprehensive quality metrics
+   * Calculate comprehensive quality metrics.
+   *
+   * Round 38 — the two overlap concepts are reported SEPARATELY:
+   *   - overlapCount / overlapArea: GEOMETRIC overlap (spacing 0) — the
+   *     zero-overlap contract and the success flag's basis, matching what
+   *     every other engine reports (layout-engine-v2 calculateMetrics,
+   *     quality-gate, OverlapResolver);
+   *   - spacingViolationCount: pairs closer than minimumSpacing.nodeToNode
+   *     (40px) — the separation TARGET the force loop optimizes for. Warning
+   *     material only: a dense but overlap-free canvas is a success with a
+   *     spacing warning, never a layout failure.
    */
   private calculateQualityMetrics(
     layout: { nodes: PositionedNode[]; edges: LayoutEdge[] }
   ): LayoutQualityMetrics {
-    const overlaps = this.detectAllOverlaps(layout.nodes);
+    const overlaps = this.detectAllOverlaps(layout.nodes, 0);
+    const spacingViolations = this.detectAllOverlaps(layout.nodes);
 
     return {
       overlapCount: overlaps.length,
+      spacingViolationCount: spacingViolations.length,
       overlapArea: this.calculateOverlapArea(overlaps),
       edgeCrossings: this.calculateEdgeCrossings(layout.edges),
       totalEdgeLength: this.calculateTotalEdgeLength(layout.edges),
@@ -1393,6 +1427,7 @@ export class ZeroOverlapLayoutEngine {
   private getDefaultMetrics(): LayoutQualityMetrics {
     return {
       overlapCount: 0,
+      spacingViolationCount: 0,
       overlapArea: 0,
       edgeCrossings: 0,
       totalEdgeLength: 0,
