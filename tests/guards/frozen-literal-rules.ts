@@ -933,4 +933,24 @@ export const FROZEN_LITERAL_RULES: FrozenLiteralRule[] = [
     ],
     minSweptFiles: 20,
   },
+  {
+    id: 'v1 strategy shared members single-sourced in strategy-common (round 31)',
+    roots: ['src/visualization'],
+    exclude: {
+      'src/visualization/strategy-common.ts': 'the canonical source itself',
+    },
+    patterns: [
+      // validateInputs re-rolled: the log literals are the family's only
+      // stable anchor (everything else is generic control flow).
+      /Duplicate node IDs detected/,
+      /No nodes to layout/,
+      // the label-width tail re-wired outside the canonical delegation
+      // (round 10 froze the constants; round 31 froze the call shape).
+      /charWidth:\s*DEFAULT_CHAR_WIDTH/,
+      // the explicit-dimension-first preamble re-rolled at a strategy. Tree's
+      // resolveNodeHeight keeps a HEIGHT twin — different field, allowed.
+      /explicitWidth\s*=\s*node\.width/,
+    ],
+    minSweptFiles: 20,
+  },
 ];
