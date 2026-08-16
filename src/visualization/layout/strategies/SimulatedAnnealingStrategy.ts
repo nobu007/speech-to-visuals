@@ -423,13 +423,6 @@ export class SimulatedAnnealingStrategy extends BaseLayoutStrategy {
     node.y = Math.max(padding + halfHeight, Math.min(config.height - padding - halfHeight, node.y));
   }
   
-  private cloneNodes<T extends PositionedNode>(nodes: T[]): T[] {
-    return nodes.map(node => ({
-      ...node,
-      // Create a shallow copy of the node
-    } as T));
-  }
-  
   private updateEdgePoints(
     nodes: PositionedNode[],
     edges: LayoutEdge[],

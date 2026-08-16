@@ -362,6 +362,19 @@ export abstract class BaseLayoutStrategy implements LayoutStrategy {
     };
   }
   
+  /**
+   * Shallow-copy a node array so placement physics never mutates caller-owned
+   * nodes (round 35 single source — was a byte-identical private twin in
+   * GridSnapStrategy and SimulatedAnnealingStrategy). Body is the verbatim
+   * move; only the visibility changed (private → protected on the base).
+   */
+  protected cloneNodes<T extends PositionedNode>(nodes: T[]): T[] {
+    return nodes.map(node => ({
+      ...node,
+      // Create a shallow copy of the node
+    } as T));
+  }
+
   protected areNodesOverlapping(a: PositionedNode, b: PositionedNode, padding: number = 0): boolean {
     const aw = getNodeWidth(a, 0);
     const ah = getNodeHeight(a, 0);

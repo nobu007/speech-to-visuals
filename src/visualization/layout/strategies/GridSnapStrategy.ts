@@ -271,13 +271,6 @@ export class GridSnapStrategy extends BaseLayoutStrategy {
     }
   }
   
-  private cloneNodes<T extends PositionedNode>(nodes: T[]): T[] {
-    return nodes.map(node => ({
-      ...node,
-      // Create a shallow copy of the node
-    } as T));
-  }
-  
   private updateEdgePoints(
     nodes: PositionedNode[],
     edges: LayoutEdge[],
