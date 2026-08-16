@@ -116,8 +116,16 @@ const DELEGATION_SITES: [string, RegExp][] = [
   ['src/visualization/strategies/flowchart-strategy.ts', /return emptyLayoutResult\(\);/],
   ['src/visualization/strategies/comparison-strategy.ts', /return emptyLayoutResult\(\);/],
   ['src/visualization/strategies/general-strategy.ts', /return emptyLayoutResult\(\);/],
-  ['src/visualization/strategies/mindmap-strategy.ts', /metrics: emptyStrategyLayoutMetrics\(\)/],
-  ['src/visualization/strategies/conceptmap-strategy.ts', /metrics: emptyStrategyLayoutMetrics\(\)/],
+  // Round 42 conscious update: the single-node epilogue — the only mindmap/
+  // conceptmap site that wrote `metrics: emptyStrategyLayoutMetrics()` — moved
+  // one hop. Both strategies now delegate the whole epilogue to
+  // strategy-graph.singleNodeCenteredLayout, which holds the metrics line, so
+  // the anchor follows the moved writer and the strategies anchor their new
+  // delegation shape instead. Intent unchanged: the metrics triple is still
+  // written exactly once, in the empty-layout-result canonical chain.
+  ['src/visualization/strategies/mindmap-strategy.ts', /singleNodeCenteredLayout\(nodes\)/],
+  ['src/visualization/strategies/conceptmap-strategy.ts', /singleNodeCenteredLayout\(nodes\)/],
+  ['src/visualization/strategy-graph.ts', /metrics: emptyStrategyLayoutMetrics\(\)/],
 ];
 
 describe('round 29: empty layout result single source', () => {

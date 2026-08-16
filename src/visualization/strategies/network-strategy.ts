@@ -14,7 +14,8 @@
 import { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
-import { getImportance, importanceSizeScale } from '../importance-scaler';
+import { getImportance } from '../importance-scaler';
+import { scaledNodeExtent } from '../strategy-graph';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
 import { emptyLayoutResult } from '../empty-layout-result';
@@ -64,9 +65,9 @@ export class NetworkStrategy implements LayoutStrategy {
       // Important nodes get a smaller radius (closer to center)
       const imp = getImportance(node);
       const radius = maxRadius * (1.2 - imp * 0.5); // 0.7–1.2 multiplier
-      const scale = importanceSizeScale(node);
-      const w = Math.round(getNodeWidth(node, DEFAULT_NODE_WIDTH) * scale);
-      const h = Math.round(getNodeHeight(node, DEFAULT_NODE_HEIGHT) * scale);
+      // Shared importance-scaled extent (round 42) — identical Math.round(
+      // extent * importanceSizeScale) both axes, via strategy-graph.
+      const { width: w, height: h } = scaledNodeExtent(node);
       return {
         ...node,
         x: cx + radius * Math.cos(angle) - w / 2,

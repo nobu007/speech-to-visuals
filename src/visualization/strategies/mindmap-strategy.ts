@@ -2,11 +2,17 @@ import { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult } from '../types';
 import { createLayoutRng } from '../layout-rng';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
-import { getImportance, importanceSizeScale } from '../importance-scaler';
+import { importanceSizeScale } from '../importance-scaler';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
-import { emptyLayoutResult, emptyStrategyLayoutMetrics } from '../empty-layout-result';
+import { emptyLayoutResult } from '../empty-layout-result';
 import { buildAnchoredLayoutEdges, centerToCenterAnchors } from '../strategy-edges';
+import {
+  buildUndirectedAdjacency,
+  findImportanceRoot,
+  scaledNodeExtent,
+  singleNodeCenteredLayout,
+} from '../strategy-graph';
 
 const CENTER_MARGIN = 200;
 const BRANCH_SPACING = 160;
@@ -35,22 +41,13 @@ export class MindMapStrategy implements LayoutStrategy {
     }
 
     if (nodes.length === 1) {
-      const scale = importanceSizeScale(nodes[0]);
-      const w = Math.round(getNodeWidth(nodes[0], DEFAULT_NODE_WIDTH) * scale);
-      const h = Math.round(getNodeHeight(nodes[0], DEFAULT_NODE_HEIGHT) * scale);
-      const positioned: PositionedNode[] = [{
-        ...nodes[0],
-        x: (DEFAULT_CANVAS_WIDTH - w) / 2,
-        y: (DEFAULT_CANVAS_HEIGHT - h) / 2,
-        width: w,
-        height: h,
-      }];
-      const canvas = calculateCanvasSize(positioned);
-      return { nodes: positioned, edges: [], canvas, metrics: emptyStrategyLayoutMetrics() };
+      // Shared single-node epilogue (round 42): importance-scaled extent,
+      // centered on the default canvas, no edges, empty metrics.
+      return singleNodeCenteredLayout(nodes);
     }
 
-    const root = this.findRoot(nodes, edges);
-    const adjacency = this.buildAdjacency(nodes, edges);
+    const root = findImportanceRoot(nodes, edges);
+    const adjacency = buildUndirectedAdjacency(nodes, edges);
     const tree = this.buildTree(root, adjacency);
     // Seeded per-generate (round 17): rng lives in a local, never on `this` —
     // strategy instances are reused across diagrams and a stored rng would
@@ -69,42 +66,10 @@ export class MindMapStrategy implements LayoutStrategy {
     return nodes.length * Math.log2(Math.max(nodes.length, 2));
   }
 
-  /** Find the root node: highest combined degree + importance score, or first node. */
-  private findRoot(nodes: NodeDatum[], edges: EdgeDatum[]): string {
-    const degree = new Map<string, number>();
-    for (const node of nodes) {
-      degree.set(node.id, 0);
-    }
-    for (const edge of edges) {
-      degree.set(edge.from, (degree.get(edge.from) ?? 0) + 1);
-      degree.set(edge.to, (degree.get(edge.to) ?? 0) + 1);
-    }
-
-    // Combined score: degree * importance weight (importance range 0.5-1.0 acts as multiplier)
-    let best = nodes[0].id;
-    let bestScore = -1;
-    const nodeMap = new Map(nodes.map(n => [n.id, n]));
-    for (const [id, d] of degree) {
-      const node = nodeMap.get(id);
-      const imp = node ? getImportance(node) : 0.5;
-      const score = d * (0.5 + imp); // importance boosts degree
-      if (score > bestScore) { bestScore = score; best = id; }
-    }
-    return best;
-  }
-
-  /** Build undirected adjacency list from edges. */
-  private buildAdjacency(nodes: NodeDatum[], edges: EdgeDatum[]): Map<string, string[]> {
-    const adj = new Map<string, string[]>();
-    for (const node of nodes) {
-      adj.set(node.id, []);
-    }
-    for (const edge of edges) {
-      adj.get(edge.from)?.push(edge.to);
-      adj.get(edge.to)?.push(edge.from);
-    }
-    return adj;
-  }
+  // Root selection + undirected adjacency are shared single sources since
+  // round 42 (strategy-graph findImportanceRoot / buildUndirectedAdjacency)
+  // — the conceptmap strategy uses the same two, byte-identical before the
+  // extraction.
 
   /** Build a tree via BFS from root; returns children map. */
   private buildTree(root: string, adjacency: Map<string, string[]>): Map<string, string[]> {
@@ -189,9 +154,9 @@ export class MindMapStrategy implements LayoutStrategy {
 
     return nodes.map(node => {
       const pos = positions.get(node.id)!;
-      const scale = importanceSizeScale(node);
-      const w = Math.round(getNodeWidth(node, DEFAULT_NODE_WIDTH) * scale);
-      const h = Math.round(getNodeHeight(node, DEFAULT_NODE_HEIGHT) * scale);
+      // Shared importance-scaled extent (round 42) — identical Math.round(
+      // extent * importanceSizeScale) both axes, via strategy-graph.
+      const { width: w, height: h } = scaledNodeExtent(node);
       return { ...node, x: pos.x - w / 2, y: pos.y - h / 2, width: w, height: h };
     });
   }
