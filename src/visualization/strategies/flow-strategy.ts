@@ -4,7 +4,7 @@ import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagra
 import { LayoutStrategy, StrategyLayoutResult, CanvasSize, StrategyLayoutMetrics } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
-import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, TARGET_ASPECT_RATIO } from '../canvas-dimensions';
+import { emptyLayoutResult } from '../empty-layout-result';
 
 const NODE_SEP = 50;
 const RANK_SEP = 80;
@@ -15,12 +15,7 @@ export class FlowStrategy implements LayoutStrategy {
 
   apply(nodes: NodeDatum[], edges: EdgeDatum[]): StrategyLayoutResult {
     if (nodes.length === 0) {
-      return {
-        nodes: [],
-        edges: [],
-        canvas: { width: DEFAULT_CANVAS_WIDTH, height: DEFAULT_CANVAS_HEIGHT },
-        metrics: { overlapCount: 0, edgeCrossings: 0, aspectRatio: TARGET_ASPECT_RATIO },
-      };
+      return emptyLayoutResult();
     }
 
     const g = new dagre.graphlib.Graph();

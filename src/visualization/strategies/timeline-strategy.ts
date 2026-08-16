@@ -14,7 +14,8 @@ import {
 } from '@/visualization/types';
 import { calculateCanvasSize, calculateMetrics } from '@/visualization/layout-engine-v2';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
-import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, TARGET_ASPECT_RATIO } from '../canvas-dimensions';
+import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
+import { emptyLayoutResult } from '../empty-layout-result';
 // Canonical overlap predicate — single source of truth (see layout-utils.ts).
 import { nodesOverlap } from '../layout-utils';
 
@@ -212,12 +213,7 @@ export class TimelineStrategy implements LayoutStrategy {
   apply(nodes: NodeDatum[], edges: EdgeDatum[]): StrategyLayoutResult {
     // Empty graph case
     if (nodes.length === 0) {
-      return {
-        nodes: [],
-        edges: [],
-        canvas: { width: DEFAULT_CANVAS_WIDTH, height: DEFAULT_CANVAS_HEIGHT },
-        metrics: { overlapCount: 0, edgeCrossings: 0, aspectRatio: TARGET_ASPECT_RATIO },
-      };
+      return emptyLayoutResult();
     }
 
     // Step 1: Determine node order (by edge topology or fallback to index)

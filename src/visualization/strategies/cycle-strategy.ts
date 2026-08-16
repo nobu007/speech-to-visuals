@@ -20,6 +20,7 @@ import {
 import { calculateCanvasSize, calculateMetrics } from '@/visualization/layout-engine-v2';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
+import { emptyLayoutResult } from '../empty-layout-result';
 // Canonical overlap predicate — single source of truth (see layout-utils.ts).
 import { nodesOverlap, distance } from '../layout-utils';
 
@@ -40,12 +41,7 @@ export class CycleLayoutStrategy implements LayoutStrategy {
 
   apply(nodes: NodeDatum[], edges: EdgeDatum[]): StrategyLayoutResult {
     if (nodes.length === 0) {
-      return {
-        nodes: [],
-        edges: [],
-        canvas: { width: DEFAULT_CANVAS_WIDTH, height: DEFAULT_CANVAS_HEIGHT },
-        metrics: { overlapCount: 0, edgeCrossings: 0, aspectRatio: DEFAULT_CANVAS_WIDTH / DEFAULT_CANVAS_HEIGHT },
-      };
+      return emptyLayoutResult();
     }
 
     const positioned = this.positionNodesOnCircle(nodes);

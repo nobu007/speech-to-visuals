@@ -3,6 +3,7 @@ import { LayoutStrategy, StrategyLayoutResult, StrategyLayoutMetrics, CanvasSize
 import { DefaultStrategyRegistry } from './strategies/base-strategy';
 import { getNodeWidth, getNodeHeight } from './node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, TARGET_ASPECT_RATIO } from './canvas-dimensions';
+import { emptyLayoutResult } from './empty-layout-result';
 // Canonical overlap predicate — single source of truth (see layout-utils.ts).
 // A local byte-identical copy previously lived here; any future edit to the
 // shared predicate MUST propagate through this import, not a re-inlined copy.
@@ -101,12 +102,7 @@ export class LayoutEngineV2 {
 
   layout(diagramType: DiagramType, nodes: NodeDatum[], edges: EdgeDatum[]): StrategyLayoutResult {
     if (nodes.length === 0) {
-      return {
-        nodes: [],
-        edges: [],
-        canvas: { width: DEFAULT_CANVAS_WIDTH, height: DEFAULT_CANVAS_HEIGHT },
-        metrics: { overlapCount: 0, edgeCrossings: 0, aspectRatio: TARGET_ASPECT_RATIO },
-      };
+      return emptyLayoutResult();
     }
 
     const strategy = this.registry.getStrategy(diagramType);

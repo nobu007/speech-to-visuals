@@ -4,7 +4,8 @@ import { createLayoutRng } from '../layout-rng';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
 import { getImportance, importanceSizeScale } from '../importance-scaler';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
-import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, TARGET_ASPECT_RATIO } from '../canvas-dimensions';
+import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
+import { emptyLayoutResult, emptyStrategyLayoutMetrics } from '../empty-layout-result';
 
 const CENTER_MARGIN = 200;
 const BRANCH_SPACING = 160;
@@ -29,12 +30,7 @@ export class MindMapStrategy implements LayoutStrategy {
 
   apply(nodes: NodeDatum[], edges: EdgeDatum[]): StrategyLayoutResult {
     if (nodes.length === 0) {
-      return {
-        nodes: [],
-        edges: [],
-        canvas: { width: DEFAULT_CANVAS_WIDTH, height: DEFAULT_CANVAS_HEIGHT },
-        metrics: { overlapCount: 0, edgeCrossings: 0, aspectRatio: TARGET_ASPECT_RATIO },
-      };
+      return emptyLayoutResult();
     }
 
     if (nodes.length === 1) {
@@ -49,7 +45,7 @@ export class MindMapStrategy implements LayoutStrategy {
         height: h,
       }];
       const canvas = calculateCanvasSize(positioned);
-      return { nodes: positioned, edges: [], canvas, metrics: { overlapCount: 0, edgeCrossings: 0, aspectRatio: TARGET_ASPECT_RATIO } };
+      return { nodes: positioned, edges: [], canvas, metrics: emptyStrategyLayoutMetrics() };
     }
 
     const root = this.findRoot(nodes, edges);
