@@ -3,6 +3,7 @@ import { BaseLayoutStrategy, LayoutStrategy } from './LayoutStrategy';
 import { LayoutConfig, LayoutResult } from '../../types';
 import { createLayoutRng } from '../../layout-rng';
 import { distance } from '../../layout-utils';
+import { repointEdgesStraightLine } from '../../edge-repointing';
 
 interface ForceNode extends PositionedNode {
   fx?: number | null;
@@ -477,25 +478,7 @@ export class ProgressiveForceStrategy extends BaseLayoutStrategy {
     edges: LayoutEdge[],
     config: LayoutConfig
   ): LayoutEdge[] {
-    const nodeMap = new Map(nodes.map(n => [n.id, n]));
-    
-    return edges.map(edge => {
-      const source = nodeMap.get(edge.source);
-      const target = nodeMap.get(edge.target);
-      
-      if (!source || !target) {
-        return { ...edge, points: [] };
-      }
-      
-      // Simple straight line for now
-      return {
-        ...edge,
-        points: [
-          { x: source.x, y: source.y },
-          { x: target.x, y: target.y }
-        ]
-      };
-    });
+    return repointEdgesStraightLine(nodes, edges);
   }
 }
 

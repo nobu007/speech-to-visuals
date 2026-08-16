@@ -4,6 +4,7 @@ import { LayoutConfig, LayoutResult, BoundingBox } from '../../types';
 import { createLayoutRng } from '../../layout-rng';
 import { getNodeWidth, getNodeHeight } from '../../node-dimensions';
 import { distance } from '../../layout-utils';
+import { repointEdgesStraightLine } from '../../edge-repointing';
 
 /** Get effective node width (handles both `w` and `width` properties, consistent with other layout modules) */
 function effWidth(node: PositionedNode): number {
@@ -434,25 +435,7 @@ export class SimulatedAnnealingStrategy extends BaseLayoutStrategy {
     edges: LayoutEdge[],
     config: LayoutConfig
   ): LayoutEdge[] {
-    const nodeMap = new Map(nodes.map(n => [n.id, n]));
-    
-    return edges.map(edge => {
-      const source = nodeMap.get(edge.source);
-      const target = nodeMap.get(edge.target);
-      
-      if (!source || !target) {
-        return { ...edge, points: [] };
-      }
-      
-      // Simple straight line for now
-      return {
-        ...edge,
-        points: [
-          { x: source.x, y: source.y },
-          { x: target.x, y: target.y }
-        ]
-      };
-    });
+    return repointEdgesStraightLine(nodes, edges);
   }
 }
 

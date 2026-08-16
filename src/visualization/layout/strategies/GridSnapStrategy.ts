@@ -2,6 +2,7 @@ import { PositionedNode, LayoutEdge, DiagramLayout } from '@/types/diagram';
 import { BaseLayoutStrategy } from './LayoutStrategy';
 import { LayoutConfig } from '../../types';
 import { getNodeWidth, getNodeHeight } from '../../node-dimensions';
+import { repointEdgesStraightLine } from '../../edge-repointing';
 
 interface GridCell {
   x: number;
@@ -282,25 +283,7 @@ export class GridSnapStrategy extends BaseLayoutStrategy {
     edges: LayoutEdge[],
     config: LayoutConfig
   ): LayoutEdge[] {
-    const nodeMap = new Map(nodes.map(n => [n.id, n]));
-    
-    return edges.map(edge => {
-      const source = nodeMap.get(edge.source);
-      const target = nodeMap.get(edge.target);
-      
-      if (!source || !target) {
-        return { ...edge, points: [] };
-      }
-      
-      // Simple straight line for now
-      return {
-        ...edge,
-        points: [
-          { x: source.x, y: source.y },
-          { x: target.x, y: target.y }
-        ]
-      };
-    });
+    return repointEdgesStraightLine(nodes, edges);
   }
   
   // Override the default overlap detection since we guarantee no overlaps
