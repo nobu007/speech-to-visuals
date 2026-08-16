@@ -1,37 +1,33 @@
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult, StrategyLayoutMetrics, CanvasSize, StrategyRegistry } from './types';
 import { DefaultStrategyRegistry } from './strategies/base-strategy';
-import { getNodeWidth, getNodeHeight } from './node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, TARGET_ASPECT_RATIO } from './canvas-dimensions';
 import { emptyLayoutResult } from './empty-layout-result';
-// Canonical overlap predicate + pairwise scan — single source of truth (see
-// layout-utils.ts). Local byte-identical copies previously lived here; any
-// future edit MUST propagate through this import, not a re-inlined copy.
-import { countOverlapPairs } from './layout-utils';
+// Canonical overlap predicate + pairwise scan + extent scan — single sources
+// of truth (see layout-utils.ts). Local byte-identical copies previously
+// lived here; any future edit MUST propagate through this import, not a
+// re-inlined copy.
+import { countOverlapPairs, nodeExtentEdges, foldNodeExtents } from './layout-utils';
 
 const CANVAS_PADDING_RATIO = 0.05;
 
 export { DefaultStrategyRegistry } from './strategies/base-strategy';
 
 export function calculateCanvasSize(nodes: PositionedNode[]): CanvasSize {
-  if (nodes.length === 0) {
+  // Extent scan delegates to foldNodeExtents (round 41 single source); the
+  // 0 fallbacks preserve this fitter's "never invent a dimension" policy.
+  // Behavior change on out-of-contract input only: a NaN coordinate used to
+  // be silently SKIPPED by the retired comparison loop; the canonical
+  // Math.min/max fold propagates it into the box (fail-loud, the same NaN
+  // policy the spread-form bounds sites always had). In-contract inputs —
+  // positioned nodes from the strategies — have finite x/y.
+  const extents = foldNodeExtents(nodes, (n) => nodeExtentEdges(n, 0, 0));
+  if (extents === null) {
     return { width: DEFAULT_CANVAS_WIDTH, height: DEFAULT_CANVAS_HEIGHT };
   }
 
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  for (const node of nodes) {
-    const left = node.x;
-    const right = node.x + getNodeWidth(node, 0);
-    const top = node.y;
-    const bottom = node.y + getNodeHeight(node, 0);
-    if (left < minX) minX = left;
-    if (top < minY) minY = top;
-    if (right > maxX) maxX = right;
-    if (bottom > maxY) maxY = bottom;
-  }
-
-  const bboxWidth = maxX - minX;
-  const bboxHeight = maxY - minY;
+  const bboxWidth = extents.maxX - extents.minX;
+  const bboxHeight = extents.maxY - extents.minY;
   const padding = Math.max(bboxWidth, bboxHeight) * CANVAS_PADDING_RATIO;
   const minPadding = 40;
   const effectivePadding = Math.max(padding, minPadding);

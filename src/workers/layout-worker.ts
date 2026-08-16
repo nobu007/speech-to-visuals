@@ -16,6 +16,7 @@ import {
   DEFAULT_NODE_SEPARATION,
   DEFAULT_RANK_SEPARATION,
 } from '../visualization/layout-spacing';
+import { nodeExtentEdges, foldNodeExtents } from '../visualization/layout-utils';
 
 /**
  * Compute graph layout using a simplified force-directed / grid algorithm.
@@ -140,9 +141,16 @@ export function computeLayout(
     target: edge.target,
   }));
 
-  // Compute final bounds
-  const maxX = Math.max(...positionedNodes.map((n) => n.x + n.width), config.width);
-  const maxY = Math.max(...positionedNodes.map((n) => n.y + n.height), config.height);
+  // Compute final bounds. The node-extent scan delegates to foldNodeExtents
+  // (round 41 single source); the canvas-width/height SEEDS stay here — this
+  // site's box is "content extents floored at the requested canvas", a
+  // different contract from the pure content box every other site computes.
+  // Worker nodes always carry finite width/height (the `|| 120` / `|| 60`
+  // defaults above), so the canonical read is value-identical to the retired
+  // raw `n.x + n.width`.
+  const extents = foldNodeExtents(positionedNodes, (n) => nodeExtentEdges(n, 0, 0));
+  const maxX = Math.max(extents?.maxX ?? config.width, config.width);
+  const maxY = Math.max(extents?.maxY ?? config.height, config.height);
 
   return {
     nodes: positionedNodes,

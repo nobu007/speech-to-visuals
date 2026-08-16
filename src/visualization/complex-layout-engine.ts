@@ -16,7 +16,7 @@ import {
   DEFAULT_RANK_SEPARATION,
   DEFAULT_MARGIN,
 } from './layout-spacing';
-import { nodesOverlap, distance } from './layout-utils';
+import { nodesOverlap, distance, nodeExtentEdges, foldNodeExtents } from './layout-utils';
 import { mulberry32, seedFromString } from './layout-rng';
 import { OverlapResolver } from './strategies/OverlapResolver';
 import { LayoutOptimizer } from './strategies/LayoutOptimizer';
@@ -550,19 +550,18 @@ export class ComplexLayoutEngine {
 
   // Helper methods...
   private calculateBounds(layout: DiagramLayout) {
-    const safeNodes = layout.nodes || [];
-    if (safeNodes.length === 0) {
+    // Extent scan delegates to foldNodeExtents (round 41 single source).
+    // Behavior change on degenerate input only: the retired both-corner flat
+    // scan (`min/max` over `[x, x + width]` pairs) resolved a node with a
+    // NEGATIVE explicit width to a zero-width box; the canonical direct-corner
+    // read resolves it to a reversed (negative-width) box. Every non-negative
+    // width — all reachable layouts — is bit-identical.
+    const extents = foldNodeExtents(layout.nodes || [], nodeExtentEdges);
+    if (extents === null) {
       return { width: 0, height: 0, minX: 0, minY: 0, maxX: 0, maxY: 0 };
     }
 
-    const xs = safeNodes.map(n => [n.x, n.x + getNodeWidth(n)]).flat();
-    const ys = safeNodes.map(n => [n.y, n.y + getNodeHeight(n)]).flat();
-
-    const minX = Math.min(...xs);
-    const maxX = Math.max(...xs);
-    const minY = Math.min(...ys);
-    const maxY = Math.max(...ys);
-
+    const { minX, minY, maxX, maxY } = extents;
     return { width: maxX - minX, height: maxY - minY, minX, minY, maxX, maxY };
   }
 
@@ -971,14 +970,21 @@ export class ComplexLayoutEngine {
   }
 
   private calculateClusterBounds(nodes: NodeDatum[]): { width: number; height: number } {
-    if (nodes.length === 0) {
+    // Extent scan delegates to foldNodeExtents (round 41 single source). The
+    // read keeps this site's `|| 0` policy: cluster members arrive as raw
+    // NodeDatum whose x/y may be missing pre-positioning, and a falsy
+    // coordinate contributes 0 rather than poisoning the cluster box with NaN.
+    const extents = foldNodeExtents(nodes as unknown as PositionedNode[], (node) => ({
+      left: node.x || 0,
+      top: node.y || 0,
+      right: (node.x || 0) + getNodeWidth(node),
+      bottom: (node.y || 0) + getNodeHeight(node),
+    }));
+    if (extents === null) {
       return { width: 0, height: 0 };
     }
-    const minX = Math.min(...nodes.map(node => (node as unknown as PositionedNode).x || 0));
-    const maxX = Math.max(...nodes.map(node => ((node as unknown as PositionedNode).x || 0) + getNodeWidth(node as unknown as Record<string, unknown>)));
-    const minY = Math.min(...nodes.map(node => (node as unknown as PositionedNode).y || 0));
-    const maxY = Math.max(...nodes.map(node => ((node as unknown as PositionedNode).y || 0) + getNodeHeight(node as unknown as Record<string, unknown>)));
 
+    const { minX, minY, maxX, maxY } = extents;
     return { width: maxX - minX, height: maxY - minY };
   }
 

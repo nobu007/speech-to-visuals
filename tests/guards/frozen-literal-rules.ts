@@ -61,6 +61,7 @@ import { RULES as dagreNodeExtraction } from './frozen-literal-families/dagre-no
 import { RULES as explicitDimensionSizing } from './frozen-literal-families/explicit-dimension-sizing';
 import { RULES as overlapPairScan } from './frozen-literal-families/overlap-pair-scan';
 import { RULES as forceDirectedStep } from './frozen-literal-families/force-directed-step';
+import { RULES as nodeExtentScan } from './frozen-literal-families/node-extent-scan';
 
 /**
  * The ordered registry: families in the round order that closed them, entries
@@ -103,4 +104,5 @@ export const FROZEN_LITERAL_RULES: FrozenLiteralRule[] = [
   ...explicitDimensionSizing,
   ...overlapPairScan,
   ...forceDirectedStep,
+  ...nodeExtentScan,
 ];

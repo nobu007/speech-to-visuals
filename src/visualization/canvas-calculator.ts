@@ -9,10 +9,31 @@
 import { PositionedNode } from '@/types/diagram';
 import { sanitizeFinite } from '@/utils/guards';
 import { getNodeWidth, getNodeHeight } from './node-dimensions';
+import { nodeExtentEdges, foldNodeExtents, NodeExtentEdges } from './layout-utils';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, TARGET_ASPECT_RATIO } from './canvas-dimensions';
 
 const PADDING_RATIO = 0.05;
 const MIN_PADDING = 40;
+
+/**
+ * This module's extent READ policy (round 41): every coordinate and dimension
+ * is sanitized (`NaN → 0`) BEFORE entering the fold, so a corrupted node can
+ * never poison the canvas box. The fold itself delegates to
+ * `foldNodeExtents`; only the read stays local, because sanitization is this
+ * module's contract (pinned by
+ * tests/guards/canvas-calculator-sanitizeFinite-migration-pinning.test.ts),
+ * not the scan's.
+ */
+function sanitizedExtentEdges(node: PositionedNode): NodeExtentEdges {
+  const left = sanitizeFinite(node.x, 0);
+  const top = sanitizeFinite(node.y, 0);
+  return {
+    left,
+    top,
+    right: left + sanitizeFinite(getNodeWidth(node, 0), 0),
+    bottom: top + sanitizeFinite(getNodeHeight(node, 0), 0),
+  };
+}
 
 export interface CanvasCalcResult {
   width: number;
@@ -31,7 +52,10 @@ export class CanvasCalculator {
    * 5. Return result with scale factor
    */
   calculate(nodes: PositionedNode[]): CanvasCalcResult {
-    if (nodes.length === 0) {
+    // Compute bounding box (extent scan delegates to foldNodeExtents —
+    // round 41 single source; the sanitized read is this module's policy).
+    const extents = foldNodeExtents(nodes, sanitizedExtentEdges);
+    if (extents === null) {
       return {
         width: DEFAULT_CANVAS_WIDTH,
         height: DEFAULT_CANVAS_HEIGHT,
@@ -40,24 +64,7 @@ export class CanvasCalculator {
       };
     }
 
-    // Compute bounding box
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-
-    for (const node of nodes) {
-      const left = sanitizeFinite(node.x, 0);
-      const w = getNodeWidth(node, 0);
-      const h = getNodeHeight(node, 0);
-      const right = left + sanitizeFinite(w, 0);
-      const top = sanitizeFinite(node.y, 0);
-      const bottom = top + sanitizeFinite(h, 0);
-      if (left < minX) minX = left;
-      if (top < minY) minY = top;
-      if (right > maxX) maxX = right;
-      if (bottom > maxY) maxY = bottom;
-    }
+    const { minX, minY, maxX, maxY } = extents;
 
     // Guard against degenerate (all-zero or all-NaN) bounding boxes
     const bboxWidth = Math.max(1, maxX - minX);
@@ -111,31 +118,16 @@ export class CanvasCalculator {
    * 4. Return repositioned nodes
    */
   center(nodes: PositionedNode[], canvas: CanvasCalcResult): PositionedNode[] {
-    if (nodes.length === 0) {
+    // Compute bounding box (extent scan delegates to foldNodeExtents —
+    // round 41 single source; the sanitized read is this module's policy).
+    const extents = foldNodeExtents(nodes, sanitizedExtentEdges);
+    if (extents === null) {
       return [];
     }
 
-    // Compute bounding box
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-
-    for (const node of nodes) {
-      const left = sanitizeFinite(node.x, 0);
-      const w = getNodeWidth(node, 0);
-      const h = getNodeHeight(node, 0);
-      const right = left + sanitizeFinite(w, 0);
-      const top = sanitizeFinite(node.y, 0);
-      const bottom = top + sanitizeFinite(h, 0);
-      if (left < minX) minX = left;
-      if (top < minY) minY = top;
-      if (right > maxX) maxX = right;
-      if (bottom > maxY) maxY = bottom;
-    }
-
-    const bboxWidth = Math.max(1, maxX - minX);
-    const bboxHeight = Math.max(1, maxY - minY);
+    const { minX, minY } = extents;
+    const bboxWidth = Math.max(1, extents.maxX - minX);
+    const bboxHeight = Math.max(1, extents.maxY - minY);
     const bboxCenterX = minX + bboxWidth / 2;
     const bboxCenterY = minY + bboxHeight / 2;
 

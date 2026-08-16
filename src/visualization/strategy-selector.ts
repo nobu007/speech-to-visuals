@@ -4,6 +4,7 @@ import { LayoutStrategy, StrategyLayoutResult, CanvasSize, StrategyRegistry } fr
 import { DefaultStrategyRegistry } from './strategies/base-strategy';
 import { OverlapResolver } from './overlap-resolver';
 import { calculateCanvasSize, calculateMetrics } from './layout-engine-v2';
+import { nodeExtentEdges, foldNodeExtents } from './layout-utils';
 import { FlowStrategy } from './strategies/flow-strategy';
 import { TreeStrategy } from './strategies/tree-strategy';
 import { TimelineStrategy } from './strategies/timeline-strategy';
@@ -145,14 +146,15 @@ export async function executeLayout(
 }
 
 function calculateBoundingBox(nodes: PositionedNode[]) {
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  for (const n of nodes) {
-    const w = getNodeWidth(n, 0);
-    const h = getNodeHeight(n, 0);
-    if (n.x < minX) minX = n.x;
-    if (n.y < minY) minY = n.y;
-    if (n.x + w > maxX) maxX = n.x + w;
-    if (n.y + h > maxY) maxY = n.y + h;
+  // Extent scan delegates to foldNodeExtents (round 41 single source); the
+  // 0 fallbacks preserve the "never invent a dimension" policy. Callers only
+  // reach this with a non-empty node set (length guard at the call site), so
+  // the null arm replaces the retired loop's unreachable ±Infinity box on
+  // empty input with a zero box.
+  const extents = foldNodeExtents(nodes, (n) => nodeExtentEdges(n, 0, 0));
+  if (extents === null) {
+    return { minX: 0, minY: 0, maxX: 0, maxY: 0, width: 0, height: 0 };
   }
+  const { minX, minY, maxX, maxY } = extents;
   return { minX, minY, maxX, maxY, width: maxX - minX, height: maxY - minY };
 }

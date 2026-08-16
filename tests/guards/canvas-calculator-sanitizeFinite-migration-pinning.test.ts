@@ -58,12 +58,28 @@ describe('canvas-calculator sanitizeFinite — source anchors pinned', () => {
     expect(src()).toMatch(/import\s*\{\s*sanitizeFinite\s*\}\s*from\s*['"]@\/utils\/guards['"]/);
   });
 
-  it('calls sanitizeFinite at the migrated sites (≥ 10 invocations)', () => {
-    // 5 sites per bounding-box loop (calculate + center) + 2 map-reproject
-    // sites in center() = 10 minimum. Drop any one → match count < 10 → RED.
+  it('calls sanitizeFinite at the migrated sites (≥ 6 invocations)', () => {
+    // Round 41 update (was ≥ 10): the two structurally identical bbox loops
+    // in calculate()/center() were deduplicated into the ONE
+    // `sanitizedExtentEdges` read helper (4 chokepoint reads: x, y, width,
+    // height), with the extent FOLD delegated to `foldNodeExtents` in
+    // layout-utils. 4 reads + 2 map-reproject sites in center() = 6 minimum.
+    // Drop any one → match count < 6 → RED.
     const matches = src().match(/sanitizeFinite\(/g);
     expect(matches).not.toBeNull();
-    expect(matches!.length).toBeGreaterThanOrEqual(10);
+    expect(matches!.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it('routes both extent scans through the sanitized read (round 41)', () => {
+    // The r41 delegation seam: calculate() and center() must BOTH pass the
+    // local sanitized read to the canonical fold — a site that swaps in the
+    // raw `nodeExtentEdges` read silently drops the NaN chokepoint → RED.
+    const occurrences = src().match(/foldNodeExtents\(nodes, sanitizedExtentEdges\)/g);
+    expect(occurrences?.length).toBe(2);
+    // ...and the read helper itself carries the four chokepoint calls.
+    expect(src()).toMatch(
+      /function sanitizedExtentEdges[\s\S]*?sanitizeFinite\(node\.x, 0\)[\s\S]*?sanitizeFinite\(getNodeWidth\(node, 0\), 0\)/,
+    );
   });
 });
 

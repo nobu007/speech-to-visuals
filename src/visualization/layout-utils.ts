@@ -1,6 +1,6 @@
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig, Point, NodeDimensionsConfig, OverlapPair } from './types';
-import { getNodeWidth, getNodeHeight, DEFAULT_NODE_HEIGHT } from './node-dimensions';
+import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from './node-dimensions';
 
 /**
  * px-per-character estimate for the label-driven node width (round 10
@@ -239,6 +239,122 @@ export function hasOverlapPairs(
   }
 
   return false;
+}
+
+/**
+ * Minimal structural input for extent scanning: a position plus the optional
+ * dimension fields `getNodeWidth`/`getNodeHeight` read. Positioned nodes
+ * satisfy it structurally, and so do leaner node shapes (e.g. the layout
+ * worker's `{id, x, y, width, height}` result nodes) — the scan only needs
+ * where a node sits and how big it is, never its identity.
+ */
+export type ExtentNode = Pick<PositionedNode, 'x' | 'y' | 'width' | 'w' | 'height' | 'h'>;
+
+/**
+ * One node's four box edges in the TOP-LEFT CORNER convention every v1/ezo
+ * engine uses: `left = x`, `top = y`, `right = x + width`, `bottom = y + height`.
+ */
+export interface NodeExtentEdges {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/**
+ * Min/max extents over a node set — the content bounding box in the same
+ * corner convention. `width`/`height` are deliberately NOT included: sites
+ * derive them with site-specific guards (`Math.max(1, …)` canvas floors,
+ * plain `maxX - minX`), which are their contracts, not the scan's.
+ */
+export interface NodeExtents {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+}
+
+/**
+ * Read one node's four edges — round 41 single source for "where does this
+ * node's box sit".
+ *
+ * The `x + getNodeWidth(node, fallback)` right-edge (and its top-left sibling)
+ * was previously re-derived inline at 11 extent-scan sites (see
+ * {@link foldNodeExtents}); a copy that drops the `+ width` term, swaps the
+ * fallback, or reads the deprecated `w` alias directly silently shrinks or
+ * inflates the box every canvas-fit / centering / utilization decision is
+ * made from. Delegating the read here keeps the width term and its
+ * `getNodeWidth` fallback chain (width → w → fallback) in exactly one place.
+ *
+ * The fallback args make the two legitimate historical policies explicit
+ * instead of drifting apart silently: measurement sites that must not invent
+ * dimensions for a dimension-less node pass `0` (BaseLayoutEngine bounds,
+ * canvas fitting); utilization/bounds sites that assume a default-sized node
+ * pass nothing (`DEFAULT_NODE_WIDTH` / `DEFAULT_NODE_HEIGHT`).
+ */
+export function nodeExtentEdges(
+  node: ExtentNode,
+  fallbackWidth: number = DEFAULT_NODE_WIDTH,
+  fallbackHeight: number = DEFAULT_NODE_HEIGHT
+): NodeExtentEdges {
+  return {
+    left: node.x,
+    top: node.y,
+    right: node.x + getNodeWidth(node, fallbackWidth),
+    bottom: node.y + getNodeHeight(node, fallbackHeight),
+  };
+}
+
+/**
+ * Fold per-node edges into min/max extents — round 41 single source for the
+ * extent scan itself.
+ *
+ * The fold body was previously inlined at 11 sites in two idioms — the spread
+ * form `Math.min(...nodes.map(n => n.x))` (BaseLayoutEngine bounds, ezo
+ * canvas-utilization, complex-layout-engine bounds ×2, CulturalLayoutAdapter
+ * bounds, layout-worker result size) and the seeded-accumulator loop
+ * `let minX = Infinity … if (right > maxX) maxX = right` (canvas-calculator
+ * calculate/center, layout-engine-v2 canvas size, strategy-selector bounding
+ * box, ezo fitNodesToCanvas) — each an independent copy where a flipped
+ * comparison, a swapped ±Infinity seed, or a dropped width term could not
+ * propagate to the others. The duplicate-formula / invariant-split hazard,
+ * on the box every canvas-fit and centering decision reads.
+ *
+ * Semantics frozen by the migrating sites:
+ * - accumulation is `Math.min`/`Math.max` pairwise-in-order, so the fold is
+ *   bit-identical to the spread form (NaN propagates, `-0` resolves per spec)
+ *   and value-identical to the comparison loops on their finite reads;
+ * - an EMPTY (or all-filtered) input returns `null`, never a ±Infinity box —
+ *   every migrated site carries its own empty policy (zero box / default
+ *   canvas / early return) and now branches on `null` instead of a length
+ *   check that the scan body no longer shares.
+ *
+ * The `read` seam keeps each site's coordinate policy AT the site (the
+ * contract difference between them): raw `node.x` (`nodeExtentEdges` bare or
+ * with explicit fallbacks), `sanitizeFinite(node.x, 0)` (canvas-calculator),
+ * `node.x || 0` (complex-layout-engine cluster bounds over NodeDatum). The
+ * fold — seeds, comparisons, width term — is what must never diverge again.
+ */
+export function foldNodeExtents(
+  nodes: readonly ExtentNode[],
+  read: (node: ExtentNode) => NodeExtentEdges
+): NodeExtents | null {
+  if (nodes.length === 0) return null;
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  for (const node of nodes) {
+    const edges = read(node);
+    minX = Math.min(minX, edges.left);
+    minY = Math.min(minY, edges.top);
+    maxX = Math.max(maxX, edges.right);
+    maxY = Math.max(maxY, edges.bottom);
+  }
+
+  return { minX, minY, maxX, maxY };
 }
 
 /**

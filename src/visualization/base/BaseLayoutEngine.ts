@@ -14,7 +14,7 @@
 
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig, LayoutResult, LayoutMetrics, Point, BoundingBox, OverlapPair } from '../types';
-import { calculateNodeCenter, calculateDistance, calculateNodeDistance, generateEdgePoints, detectOverlapPairs, resolveNodeHeight } from '../layout-utils';
+import { calculateNodeCenter, calculateDistance, calculateNodeDistance, generateEdgePoints, detectOverlapPairs, resolveNodeHeight, nodeExtentEdges, foldNodeExtents } from '../layout-utils';
 import { strategyNodeWidth } from '../strategy-common';
 import { buildWarnedAnchoredEdges } from '../strategy-edges';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
@@ -129,7 +129,10 @@ export abstract class BaseLayoutEngine {
    * Single source of truth for bounds calculation
    */
   protected calculateBounds(nodes: PositionedNode[]): BoundingBox {
-    if (nodes.length === 0) {
+    // Extent scan delegates to foldNodeExtents (round 41 single source); the
+    // 0 fallbacks preserve this engine's "never invent a dimension" policy.
+    const extents = foldNodeExtents(nodes, (n) => nodeExtentEdges(n, 0, 0));
+    if (extents === null) {
       return {
         minX: 0,
         minY: 0,
@@ -140,10 +143,7 @@ export abstract class BaseLayoutEngine {
       };
     }
 
-    const minX = Math.min(...nodes.map(n => n.x));
-    const maxX = Math.max(...nodes.map(n => n.x + getNodeWidth(n, 0)));
-    const minY = Math.min(...nodes.map(n => n.y));
-    const maxY = Math.max(...nodes.map(n => n.y + getNodeHeight(n, 0)));
+    const { minX, minY, maxX, maxY } = extents;
 
     return {
       minX,

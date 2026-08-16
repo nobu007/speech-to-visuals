@@ -13,7 +13,7 @@ import dagre from '@dagrejs/dagre';
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { positionedFromDagre } from './dagre-node-extraction';
 import { OverlapResolver } from './overlap-resolver';
-import { calculateNodeCenter, calculateDistance, calculateNodeDistance, distance, generateEdgePoints, nodesOverlap, detectOverlapPairs, resolveNodeWidth, resolveNodeHeight } from './layout-utils';
+import { calculateNodeCenter, calculateDistance, calculateNodeDistance, distance, generateEdgePoints, nodesOverlap, detectOverlapPairs, resolveNodeWidth, resolveNodeHeight, nodeExtentEdges, foldNodeExtents } from './layout-utils';
 import { clamp01 } from '@/utils/guards';
 import { Point } from './types';
 import { logger } from '../utils/logger';
@@ -263,18 +263,14 @@ export class ZeroOverlapLayoutEngine {
     }
 
     const margin = FORCE_DIRECTED_PHYSICS.BOUNDS_MARGIN;
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-    for (const node of nodes) {
-      const w = getNodeWidth(node);
-      const h = getNodeHeight(node);
-      minX = Math.min(minX, node.x);
-      minY = Math.min(minY, node.y);
-      maxX = Math.max(maxX, node.x + w);
-      maxY = Math.max(maxY, node.y + h);
-    }
+    // Extent scan delegates to foldNodeExtents (round 41 single source);
+    // default-size fallbacks and the Math.min/max accumulation are this
+    // site's frozen policy, kept verbatim by the delegation. `nodes` is
+    // non-empty (guard above), so the NaN arm is unreachable — kept so a
+    // future refactor that drops the length guard still takes the
+    // leave-positions-untouched branch below, not a NaN scale.
+    const { minX, minY, maxX, maxY } =
+      foldNodeExtents(nodes, nodeExtentEdges) ?? { minX: NaN, minY: NaN, maxX: NaN, maxY: NaN };
 
     const bboxWidth = maxX - minX;
     const bboxHeight = maxY - minY;
@@ -1224,13 +1220,13 @@ export class ZeroOverlapLayoutEngine {
   }
 
   private calculateCanvasUtilization(nodes: PositionedNode[]): number {
-    if (nodes.length === 0) return 0;
+    // Extent scan delegates to foldNodeExtents (round 41 single source); the
+    // default-size fallbacks (no explicit 0) preserve this metric's assumption
+    // that a dimension-less node still occupies its default box.
+    const extents = foldNodeExtents(nodes, nodeExtentEdges);
+    if (extents === null) return 0;
 
-    const minX = Math.min(...nodes.map(n => n.x));
-    const maxX = Math.max(...nodes.map(n => n.x + getNodeWidth(n)));
-    const minY = Math.min(...nodes.map(n => n.y));
-    const maxY = Math.max(...nodes.map(n => n.y + getNodeHeight(n)));
-
+    const { minX, maxX, minY, maxY } = extents;
     const usedArea = (maxX - minX) * (maxY - minY);
     const totalArea = this.config.canvasWidth * this.config.canvasHeight;
 

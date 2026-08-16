@@ -55,6 +55,28 @@ jest.unstable_mockModule('@/visualization/layout-utils', () => ({
   getGraphConfig: jest.fn(() => ({})),
   calculateNodeWidth: jest.fn(() => 120),
   distance: jest.fn((dx: number, dy: number) => Math.sqrt(dx * dx + dy * dy)),
+  // round 41: complex-layout-engine's bounds now import these — the ESM
+  // mock must provide every named export the importer reads (link error
+  // otherwise, jest-esm-mock-pattern). Faithful minimal shapes; defaults
+  // are DEFAULT_NODE_WIDTH/HEIGHT (120/60).
+  nodeExtentEdges: jest.fn((node: { x: number; y: number; width?: number; w?: number; height?: number; h?: number }, fallbackWidth = 120, fallbackHeight = 60) => ({
+    left: node.x,
+    top: node.y,
+    right: node.x + (node.width ?? node.w ?? fallbackWidth),
+    bottom: node.y + (node.height ?? node.h ?? fallbackHeight),
+  })),
+  foldNodeExtents: jest.fn((nodes: Array<Record<string, unknown>>, read: (n: Record<string, unknown>) => { left: number; top: number; right: number; bottom: number }) => {
+    if (nodes.length === 0) return null;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const node of nodes) {
+      const edges = read(node);
+      minX = Math.min(minX, edges.left);
+      minY = Math.min(minY, edges.top);
+      maxX = Math.max(maxX, edges.right);
+      maxY = Math.max(maxY, edges.bottom);
+    }
+    return { minX, minY, maxX, maxY };
+  }),
 }));
 
 const { ComplexLayoutEngine } = await import('../../visualization/complex-layout-engine');

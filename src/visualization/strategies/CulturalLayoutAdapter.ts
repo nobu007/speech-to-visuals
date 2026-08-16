@@ -1,6 +1,7 @@
 import { DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { ComplexLayoutConfig } from '../complex-layout-engine'; // Assuming this path is correct
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
+import { nodeExtentEdges, foldNodeExtents } from '../layout-utils';
 
 export class CulturalLayoutAdapter {
   private config: ComplexLayoutConfig;
@@ -160,18 +161,15 @@ export class CulturalLayoutAdapter {
   }
 
   private calculateBounds(layout: DiagramLayout) {
-    if (layout.nodes.length === 0) {
+    // Extent scan delegates to foldNodeExtents (round 41 single source).
+    // Behavior change on degenerate input only (negative explicit width),
+    // identical to complex-layout-engine.calculateBounds — see that site.
+    const extents = foldNodeExtents(layout.nodes, nodeExtentEdges);
+    if (extents === null) {
       return { width: 0, height: 0, minX: 0, minY: 0, maxX: 0, maxY: 0 };
     }
 
-    const xs = layout.nodes.map(n => [n.x, n.x + getNodeWidth(n)]).flat();
-    const ys = layout.nodes.map(n => [n.y, n.y + getNodeHeight(n)]).flat();
-
-    const minX = Math.min(...xs);
-    const maxX = Math.max(...xs);
-    const minY = Math.min(...ys);
-    const maxY = Math.max(...ys);
-
+    const { minX, minY, maxX, maxY } = extents;
     return { width: maxX - minX, height: maxY - minY, minX, minY, maxX, maxY };
   }
 }
