@@ -18,9 +18,11 @@
  *   const nodeIds = new Set(nodes.map(n => n.id));
  *   const safeEdges = edges.filter(e => nodeIds.has(e.from) && nodeIds.has(e.to));
  *
- * This guard exists at 6 sites across 5 files (count verified below). It is a
- * CLASS, not a single guard: each new dagre strategy that forgets the filter
- * re-opens the class. The behavioral tests
+ * This guard exists inline at 3 files (4 sites — enhanced-zero-overlap-layout.ts
+ * has the flowchart AND tree paths) plus canonically once in the shared
+ * dagre-pipeline (round 30), which the flow/tree/flowchart strategies delegate
+ * to. It is a CLASS, not a single guard: each new dagre strategy that forgets
+ * the filter re-opens the class. The behavioral tests
  * (`src/visualization/strategies/__tests__/dagre-dangling-edges.test.ts` for
  * DagreLayoutStrategy, `dagre-strategies-dangling-edges.test.ts` for the
  * flow/tree/flowchart strategies) prove the filter WORKS today — but they are
@@ -28,7 +30,8 @@
  * without a filter would not be covered by either, and a "cleanup" that drops
  * the filter from one site passes its own behavioral test only if co-edited.
  *
- * WHY A STRUCTURAL SWEEP. Layer 1 pins the filter at each of the 5 known files.
+ * WHY A STRUCTURAL SWEEP. Layer 1 pins the filter at every inline-dagre file
+ * and the delegation hop at the pipeline-delegating strategies.
  * Layer 2 is the class-closing invariant: it scans the WHOLE visualization tree
  * for any `.ts` file that calls dagre `setEdge` and asserts that file ALSO
  * contains the `.has(.from) && .has(.to)` filter — so a future dagre strategy
@@ -56,14 +59,25 @@ const NODE_SET_ANCHOR = /new Set\(\s*\w+\.map\(/;
 // dagre edge insertion — marks a file as a dagre-calling site.
 const SETEDGE_ANCHOR = /\.setEdge\(/;
 
-// The 5 files known to call dagre setEdge today (6 filter sites —
-// enhanced-zero-overlap-layout.ts has the flowchart AND tree paths).
+// Files that still roll their OWN dagre graph (setEdge inline) and therefore
+// must carry the filter inline. Since round 30 the flow/tree/flowchart
+// strategies no longer touch dagre directly — they delegate the whole
+// pipeline to src/visualization/dagre-pipeline.ts, which holds the filter —
+// so they moved from this list to DAGRE_DELEGATING_FILES below.
 const DAGRE_FILES = [
   'src/visualization/strategies/DagreLayoutStrategy.ts',
+  'src/visualization/enhanced-zero-overlap-layout.ts',
+  'src/visualization/dagre-pipeline.ts',
+];
+
+// Files whose dagre access is the shared pipeline only: they must CALL the
+// canonical pipeline (so their edges still pass the filter inside it) and
+// must NOT re-roll a private dagre graph (a re-rolled graph without the
+// filter would escape every anchor below).
+const DAGRE_DELEGATING_FILES = [
   'src/visualization/strategies/flow-strategy.ts',
   'src/visualization/strategies/tree-strategy.ts',
   'src/visualization/strategies/flowchart-strategy.ts',
-  'src/visualization/enhanced-zero-overlap-layout.ts',
 ];
 
 // --- (TC-307-01) source anchors: pin the filter at every known dagre site -------
@@ -74,6 +88,18 @@ describe('dagre dangling-edge filter — source anchors pinned per site (TC-307-
     expect(src).toMatch(NODE_SET_ANCHOR);
     expect(src).toMatch(FILTER_ANCHOR);
     expect(src).toMatch(SETEDGE_ANCHOR);
+  });
+
+  it.each(DAGRE_DELEGATING_FILES)('%s delegates to the canonical dagre pipeline and rolls no private graph', (file) => {
+    const src = readFileSync(join(REPO_ROOT, file), 'utf8');
+    // The delegation hop: without this, the strategy is not using the shared
+    // pipeline and its edges bypass the filter inside it.
+    expect(src).toMatch(/runDagrePipeline\(/);
+    // No re-rolled dagre graph: setEdge/graphlib/dagre.layout inline would be
+    // an unfiltered private pipeline.
+    expect(src).not.toMatch(SETEDGE_ANCHOR);
+    expect(src).not.toMatch(/graphlib/);
+    expect(src).not.toMatch(/dagre\.layout\(/);
   });
 
   it('enhanced-zero-overlap-layout.ts has the filter at BOTH the flowchart and tree paths', () => {
