@@ -953,4 +953,73 @@ export const FROZEN_LITERAL_RULES: FrozenLiteralRule[] = [
     ],
     minSweptFiles: 20,
   },
+  /**
+   * Round 32 (v2 strategy edge builders): the edge-construction skeleton —
+   * nodeMap over positioned nodes, dangling-endpoint fallback, LayoutEdge
+   * assembly — lives only in src/visualization/strategy-edges.ts
+   * (buildAnchoredLayoutEdges + centerToCenterAnchors). The eight
+   * non-dagre registered strategies (matrix/general/cycle/conceptmap/
+   * network/mindmap/timeline/comparison) delegate; timeline and comparison
+   * keep only their anchor GEOMETRY as local anchor functions. The sweep
+   * engine is LINE-based, so the patterns pin the three single-line shapes
+   * every re-roll of the skeleton must emit somewhere: the fallback points
+   * line, its `as`-cast single-line variant, and the PHANTOM-anchor variant
+   * (no fallback branch — the mindmap drift this round killed).
+   *
+   * Excluded with reasons: the v1 CamelCase family (fallback WITHOUT the id
+   * line — a different contract with its own round if ever migrated); the
+   * separate layout/ engine family (LayoutStrategy.ts normalizes edges with
+   * source/target mirrors then blanks points; OverlapResolver.ts blanks the
+   * spread copy — both inside the round-11-precedent separate system); the
+   * flow/tree grid-snap fallbacks (phantom-anchor lines over TC-307
+   * pre-filtered safeEdges, so the `?? 0` is dead there — round 30 left the
+   * fallback algorithm per-strategy); GridSnapFallbackStrategy
+   * (strategy-selector.ts — deliberately emits NO geometry for ANY edge).
+   * The single-line spread fallbacks (`{ ...edge, points: [] }` in
+   * GridSnap/ProgressiveForce/SimulatedAnnealing/enhanced-zero-overlap)
+   * match NO pattern: the anchored points-line cannot see them and no
+   * label echo shares their line.
+   */
+  {
+    id: 'v2 strategy edge builder single-sourced in strategy-edges (round 32)',
+    roots: ['src/visualization'],
+    exclude: {
+      'src/visualization/strategy-edges.ts': 'the canonical source itself',
+      'src/visualization/strategies/TreeLayoutStrategy.ts':
+        'v1 CamelCase family: fallback block has no id line — different contract, own round if migrated',
+      'src/visualization/strategies/TimelineLayoutStrategy.ts':
+        'v1 CamelCase family: fallback block has no id line — different contract, own round if migrated',
+      'src/visualization/strategies/NetworkLayoutStrategy.ts':
+        'v1 CamelCase family: fallback block has no id line — different contract, own round if migrated',
+      'src/visualization/strategies/ConceptMapLayoutStrategy.ts':
+        'v1 CamelCase family: fallback block has no id line — different contract, own round if migrated',
+      'src/visualization/strategies/ComparisonLayoutStrategy.ts':
+        'v1 CamelCase family: fallback block has no id line — different contract, own round if migrated',
+      'src/visualization/base/BaseLayoutEngine.ts':
+        'v1 engine base: fallback block has no id line — different contract, own round if migrated',
+      'src/visualization/layout/strategies/LayoutStrategy.ts':
+        'separate layout/ engine family (round-11 precedent): normalizes edges with source/target mirrors, then blanks points — different contract',
+      'src/visualization/layout/OverlapResolver.ts':
+        'separate layout/ engine family: blanks the spread copy of a TC-style pre-filtered edge — different contract',
+      'src/visualization/strategy-selector.ts':
+        'GridSnapFallbackStrategy deliberately emits NO geometry for any edge (as-cast points line is its whole contract)',
+      'src/visualization/strategies/flow-strategy.ts':
+        'grid-snap fallback anchor lines over TC-307-pre-filtered safeEdges — ?? 0 dead there (round 30 kept the fallback per-strategy)',
+      'src/visualization/strategies/tree-strategy.ts':
+        'grid-snap fallback anchor lines over TC-307-pre-filtered safeEdges — ?? 0 dead there (round 30 kept the fallback per-strategy)',
+    },
+    patterns: [
+      // the dangling-fallback points line on its own (multi-line block).
+      /^\s*points:\s*\[\],?\s*$/,
+      // single-line re-roll, any member order and any loop-var name: the
+      // empty-points emit and the label echo sharing ONE line.
+      (line) => /points:\s*\[\]/.test(line) && /label:\s*\w+\.label\b/.test(line),
+      // the as-cast variant of the fallback points on its own line.
+      /^\s*points:\s*\[\]\s*as\b/,
+      // the PHANTOM-anchor variant: no fallback branch, missing endpoint
+      // anchored near the origin instead (name-agnostic — any `X?.x ?? 0)`).
+      /\?\.\s*x\s*\?\?\s*0\s*\)\s*\+\s*\(/,
+    ],
+    minSweptFiles: 20,
+  },
 ];
