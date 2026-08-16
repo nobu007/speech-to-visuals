@@ -1,5 +1,5 @@
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
-import { LayoutConfig, Point, NodeDimensionsConfig } from './types';
+import { LayoutConfig, Point, NodeDimensionsConfig, OverlapPair } from './types';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_HEIGHT } from './node-dimensions';
 
 /**
@@ -174,6 +174,71 @@ export function nodesOverlap(
     bottom1 <= top2 ||
     top1 >= bottom2
   );
+}
+
+/**
+ * Full pairwise overlap scan — round 39 single source.
+ *
+ * The `for i / for j = i+1 / nodesOverlap / accumulate` double loop was
+ * independently inlined at 9 sites (quality-estimators, layout-engine-v2,
+ * NetworkLayoutStrategy, cycle-strategy, timeline-strategy, quality-monitor,
+ * LayoutEvaluator, BaseLayoutEngine, enhanced-zero-overlap-layout), so a scan
+ * written for one engine could silently diverge from the judge's scan (the
+ * invariant-split / hardcoded-constant-desync class). Every site now delegates
+ * here; the pair predicate stays `nodesOverlap` above — the ONE definition.
+ *
+ * Semantics frozen by the migrating sites:
+ * - pairs are visited in i<j index order, node1 = nodes[i], node2 = nodes[j]
+ * - `minSpacing` defaults to 0 (plain geometric overlap; touching edges are
+ *   NOT an overlap) and expands each box by spacing/2 exactly like the predicate
+ * - sites that need a nonzero default pass it explicitly (e.g. BaseLayoutEngine
+ *   passes `this.config.nodeSeparation`, ezo its `minimumSpacing.nodeToNode`)
+ */
+export function detectOverlapPairs(
+  nodes: PositionedNode[],
+  minSpacing: number = 0
+): OverlapPair[] {
+  const pairs: OverlapPair[] = [];
+
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      if (nodesOverlap(nodes[i], nodes[j], minSpacing)) {
+        pairs.push({ node1: nodes[i], node2: nodes[j] });
+      }
+    }
+  }
+
+  return pairs;
+}
+
+/**
+ * Count overlapping pairs — `detectOverlapPairs(nodes, minSpacing).length`
+ * (round 39 single source; see above).
+ */
+export function countOverlapPairs(
+  nodes: PositionedNode[],
+  minSpacing: number = 0
+): number {
+  return detectOverlapPairs(nodes, minSpacing).length;
+}
+
+/**
+ * Early-exit "any overlapping pair?" probe — same predicate and pair order as
+ * `detectOverlapPairs` but returns at the first hit (round 39 single source).
+ */
+export function hasOverlapPairs(
+  nodes: PositionedNode[],
+  minSpacing: number = 0
+): boolean {
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      if (nodesOverlap(nodes[i], nodes[j], minSpacing)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 /**

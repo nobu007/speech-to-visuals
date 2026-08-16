@@ -14,7 +14,7 @@
 
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig, LayoutResult, LayoutMetrics, Point, BoundingBox, OverlapPair } from '../types';
-import { calculateNodeCenter, calculateDistance, calculateNodeDistance, generateEdgePoints, nodesOverlap, resolveNodeHeight } from '../layout-utils';
+import { calculateNodeCenter, calculateDistance, calculateNodeDistance, generateEdgePoints, detectOverlapPairs, resolveNodeHeight } from '../layout-utils';
 import { strategyNodeWidth } from '../strategy-common';
 import { buildWarnedAnchoredEdges } from '../strategy-edges';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
@@ -172,20 +172,13 @@ export abstract class BaseLayoutEngine {
   /**
    * Detect all overlapping node pairs
    * Custom Instructions: Zero overlap tolerance
+   *
+   * Round 39 single source — the pairwise scan itself lives in layout-utils
+   * `detectOverlapPairs`; only this engine's spacing default
+   * (`config.nodeSeparation`) is decided here.
    */
   protected detectAllOverlaps(nodes: PositionedNode[], spacing?: number): OverlapPair[] {
-    const overlaps: OverlapPair[] = [];
-    const minSpacing = spacing ?? this.config.nodeSeparation;
-
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        if (nodesOverlap(nodes[i], nodes[j], minSpacing)) {
-          overlaps.push({ node1: nodes[i], node2: nodes[j] });
-        }
-      }
-    }
-
-    return overlaps;
+    return detectOverlapPairs(nodes, spacing ?? this.config.nodeSeparation);
   }
 
 

@@ -23,7 +23,7 @@ import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimension
 import { emptyLayoutResult } from '../empty-layout-result';
 import { buildAnchoredLayoutEdges, centerToCenterAnchors } from '../strategy-edges';
 // Canonical overlap predicate — single source of truth (see layout-utils.ts).
-import { nodesOverlap, distance } from '../layout-utils';
+import { nodesOverlap, hasOverlapPairs, distance } from '../layout-utils';
 
 const MIN_RADIUS = 200;
 const OVERLAP_SPACING_FACTOR = 1.2;
@@ -118,14 +118,7 @@ export class CycleLayoutStrategy implements LayoutStrategy {
   }
 
   private detectOverlaps(nodes: PositionedNode[]): boolean {
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        if (nodesOverlap(nodes[i], nodes[j])) {
-          return true;
-        }
-      }
-    }
-    return false;
+    return hasOverlapPairs(nodes);
   }
 
   private applyForceDirectedFallback(nodes: PositionedNode[]): PositionedNode[] {

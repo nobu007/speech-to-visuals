@@ -4,10 +4,10 @@ import { DefaultStrategyRegistry } from './strategies/base-strategy';
 import { getNodeWidth, getNodeHeight } from './node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, TARGET_ASPECT_RATIO } from './canvas-dimensions';
 import { emptyLayoutResult } from './empty-layout-result';
-// Canonical overlap predicate — single source of truth (see layout-utils.ts).
-// A local byte-identical copy previously lived here; any future edit to the
-// shared predicate MUST propagate through this import, not a re-inlined copy.
-import { nodesOverlap } from './layout-utils';
+// Canonical overlap predicate + pairwise scan — single source of truth (see
+// layout-utils.ts). Local byte-identical copies previously lived here; any
+// future edit MUST propagate through this import, not a re-inlined copy.
+import { countOverlapPairs } from './layout-utils';
 
 const CANVAS_PADDING_RATIO = 0.05;
 
@@ -69,16 +69,8 @@ export function calculateMetrics(
   nodes: PositionedNode[],
   _edges: LayoutEdge[],
 ): StrategyLayoutMetrics {
-  let overlapCount = 0;
+  const overlapCount = countOverlapPairs(nodes);
   let edgeCrossings = 0;
-
-  for (let i = 0; i < nodes.length; i++) {
-    for (let j = i + 1; j < nodes.length; j++) {
-      if (nodesOverlap(nodes[i], nodes[j])) {
-        overlapCount++;
-      }
-    }
-  }
 
   // Edge crossing detection is simplified for performance
   edgeCrossings = 0;

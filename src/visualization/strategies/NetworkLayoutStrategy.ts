@@ -17,7 +17,7 @@
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
-import { nodesOverlap, distance } from '../layout-utils';
+import { countOverlapPairs, distance } from '../layout-utils';
 import { logger } from '../../utils/logger';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { strategyNodeWidth, validateStrategyInputs } from '../strategy-common';
@@ -249,17 +249,7 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
    * Count overlapping nodes
    */
   private countOverlaps(nodes: PositionedNode[], spacing: number): number {
-    let count = 0;
-
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        if (nodesOverlap(nodes[i], nodes[j], spacing)) {
-          count++;
-        }
-      }
-    }
-
-    return count;
+    return countOverlapPairs(nodes, spacing);
   }
 
 

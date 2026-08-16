@@ -59,6 +59,7 @@ import { RULES as strategyEdgeRepointing } from './frozen-literal-families/strat
 import { RULES as strategyNodeClone } from './frozen-literal-families/strategy-node-clone';
 import { RULES as dagreNodeExtraction } from './frozen-literal-families/dagre-node-extraction';
 import { RULES as explicitDimensionSizing } from './frozen-literal-families/explicit-dimension-sizing';
+import { RULES as overlapPairScan } from './frozen-literal-families/overlap-pair-scan';
 
 /**
  * The ordered registry: families in the round order that closed them, entries
@@ -99,4 +100,5 @@ export const FROZEN_LITERAL_RULES: FrozenLiteralRule[] = [
   ...strategyNodeClone,
   ...dagreNodeExtraction,
   ...explicitDimensionSizing,
+  ...overlapPairScan,
 ];

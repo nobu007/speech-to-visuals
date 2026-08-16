@@ -2,7 +2,7 @@ import { PipelineResult, PipelineStage } from '@/pipeline/types';
 import { SceneGraph, PositionedNode, isDiagramType } from '@/types/diagram';
 import { clamp01 } from '@/utils/guards';
 import { logger } from '../utils/logger';
-import { nodesOverlap as producerNodesOverlap } from '@/visualization/layout-utils';
+import { hasOverlapPairs } from '@/visualization/layout-utils';
 import { safeArray } from '../lib/safe-array';
 
 /**
@@ -381,31 +381,14 @@ export class QualityMonitor {
   }
 
   /**
-   * Detect overlapping nodes in layout
-   */
-  private detectOverlaps(nodes: unknown[]): boolean {
-    const nodeArray = nodes as Record<string, unknown>[];
-    for (let i = 0; i < nodeArray.length; i++) {
-      for (let j = i + 1; j < nodeArray.length; j++) {
-        const node1 = nodes[i];
-        const node2 = nodes[j];
-
-        if (this.nodesOverlap(node1, node2)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  /**
-   * Check if two nodes overlap.
+   * Detect overlapping nodes in layout.
    *
-   * Delegates to the layout engine's canonical predicate
-   * (`nodesOverlap` from layout-utils, spacing 0) so the quality monitor can
-   * never disagree with the producer's own definition of "overlap". The layout
-   * resolver advances nodes until that predicate reports no overlap — i.e. it
-   * guarantees strict zero-overlap (gap ≥ 0; touching edges are NOT an overlap).
+   * Delegates the pairwise scan to the layout engine's canonical
+   * `hasOverlapPairs` (predicate `nodesOverlap` from layout-utils, spacing 0)
+   * so the quality monitor can never disagree with the producer's own
+   * definition of "overlap". The layout resolver advances nodes until that
+   * predicate reports no overlap — i.e. it guarantees strict zero-overlap
+   * (gap ≥ 0; touching edges are NOT an overlap).
    *
    * Previously this inlined a hardcoded `margin = 10` with strict `<`, so a
    * legitimately zero-overlap layout left with a 0–10 px gap (the resolver
@@ -416,16 +399,16 @@ export class QualityMonitor {
    * quality-gate.ts zero-overlap margin; pinned here against re-divergence by
    * quality-monitor-overlap-cross-invariant-fuzz.test.ts.
    */
-  private nodesOverlap(node1: unknown, node2: unknown): boolean {
-    const a = node1 as Record<string, unknown>;
-    const b = node2 as Record<string, unknown>;
+  private detectOverlaps(nodes: unknown[]): boolean {
+    const nodeArray = nodes as Record<string, unknown>[];
     // Coerce defensively (missing coords default to 0, matching the prior
     // `|| 0` behavior) before delegating. The canonical predicate reads .x/.y
     // as the top-left corner — the convention the producer and every layout
     // strategy use — and extracts dimensions via the same getNodeWidth/Height.
-    const na = { ...(a as object), x: Number(a.x) || 0, y: Number(a.y) || 0 } as PositionedNode;
-    const nb = { ...(b as object), x: Number(b.x) || 0, y: Number(b.y) || 0 } as PositionedNode;
-    return producerNodesOverlap(na, nb, 0);
+    const safeNodes = nodeArray.map(
+      (n) => ({ ...(n as object), x: Number(n.x) || 0, y: Number(n.y) || 0 }) as PositionedNode
+    );
+    return hasOverlapPairs(safeNodes);
   }
 
   /**

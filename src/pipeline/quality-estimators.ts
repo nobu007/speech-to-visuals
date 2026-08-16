@@ -21,7 +21,7 @@
  */
 
 import { PipelineResult } from './types';
-import { nodesOverlap } from '@/visualization/layout-utils';
+import { countOverlapPairs } from '@/visualization/layout-utils';
 import { getNodeWidth, getNodeHeight } from '@/visualization/node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '@/visualization/canvas-dimensions';
 import { sizeLabel } from '@/visualization/smart-label-sizer';
@@ -105,10 +105,11 @@ export function estimateRelationAccuracy(result: PipelineResult): number {
 /**
  * Count overlapping node pairs across all scenes.
  *
- * Delegates to the canonical layout-engine predicate `nodesOverlap` (spacing 0)
- * — the same source of truth used by `OverlapResolver` and the layout quality
- * gate — so this count can NEVER drift from the producer's own overlap
- * definition. Touching nodes (right edge == left edge) are NOT overlaps.
+ * Delegates to the canonical pairwise scan `countOverlapPairs` (predicate
+ * `nodesOverlap`, spacing 0) — the same source of truth used by
+ * `OverlapResolver` and the layout quality gate — so this count can NEVER drift
+ * from the producer's own overlap definition. Touching nodes (right edge ==
+ * left edge) are NOT overlaps.
  */
 export function countLayoutOverlaps(result: PipelineResult): number {
   let totalOverlaps = 0;
@@ -116,12 +117,7 @@ export function countLayoutOverlaps(result: PipelineResult): number {
   for (const scene of result.scenes || []) {
     if (!scene.layout?.nodes) continue;
 
-    const nodes = scene.layout.nodes;
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        if (nodesOverlap(nodes[i], nodes[j], 0)) totalOverlaps++;
-      }
-    }
+    totalOverlaps += countOverlapPairs(scene.layout.nodes, 0);
   }
 
   return totalOverlaps;

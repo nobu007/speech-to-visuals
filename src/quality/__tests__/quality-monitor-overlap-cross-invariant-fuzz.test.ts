@@ -1,7 +1,7 @@
 /**
  * Cross-invariant (intersection) fuzz: pins the LIVE quality-monitor overlap
- * CHECKER (QualityMonitor.nodesOverlap, reached via assessPipelineQuality on the
- * main-pipeline hot path) against the layout engine's canonical overlap
+ * CHECKER (QualityMonitor.detectOverlaps, reached via assessPipelineQuality on
+ * the main-pipeline hot path) against the layout engine's canonical overlap
  * PREDICATE (nodesOverlap from layout-utils, spacing 0).
  *
  * This mirrors zero-overlap-cross-invariant-fuzz.test.ts, which pins the
@@ -37,14 +37,19 @@ function node(id: string, x: number, y: number, width: number, height: number): 
 }
 
 /**
- * White-box access to the monitor's private overlap predicate. assessPipelineQuality
+ * White-box access to the monitor's private overlap scan. assessPipelineQuality
  * entangles the overlap verdict with a positioning score, so the only way to
  * pin the predicate precisely is to read it directly — exactly the invariant we
  * need: the monitor's "do these overlap?" must equal the producer's.
+ *
+ * Round 39: the pair-level private predicate was folded into `detectOverlaps`
+ * (defensive coordinate coercion + `hasOverlapPairs` from layout-utils), so the
+ * scan itself is now the live white-box handle — for a 2-node array its verdict
+ * IS the pair verdict, including the coercion boundary.
  */
-type WithOverlapPredicate = { nodesOverlap: (a: unknown, b: unknown) => boolean };
-const monitor = new QualityMonitor() as unknown as WithOverlapPredicate;
-const monitorOverlap = (a: PositionedNode, b: PositionedNode): boolean => monitor.nodesOverlap(a, b);
+type WithOverlapScan = { detectOverlaps: (nodes: unknown[]) => boolean };
+const monitor = new QualityMonitor() as unknown as WithOverlapScan;
+const monitorOverlap = (a: PositionedNode, b: PositionedNode): boolean => monitor.detectOverlaps([a, b]);
 
 // ---------------------------------------------------------------------------
 // Helpers for the public-path behavioral anchor (exercises the LIVE scoring

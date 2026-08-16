@@ -1,7 +1,7 @@
 import { DiagramLayout, DiagramType, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig, LayoutResult, LayoutMetrics, LayoutComplianceResult, Point, OverlapPair, BoundingBox } from '../types';
 import { clamp01 } from '@/utils/guards';
-import { nodesOverlap, calculateNodeCenter, calculateNodeDistance } from '../layout-utils';
+import { detectOverlapPairs, calculateNodeCenter, calculateNodeDistance } from '../layout-utils';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
 export class LayoutEvaluator {
@@ -173,18 +173,10 @@ export class LayoutEvaluator {
    * overlap-delegate c34f5f12). An explicit `spacing` may still be passed.
    */
   protected detectAllOverlaps(nodes: PositionedNode[], spacing?: number): OverlapPair[] {
-    const overlaps: OverlapPair[] = [];
-    const minSpacing = spacing ?? 0;
-
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        if (nodesOverlap(nodes[i], nodes[j], minSpacing)) {
-          overlaps.push({ node1: nodes[i], node2: nodes[j] });
-        }
-      }
-    }
-
-    return overlaps;
+    // Round 39 single source — the pairwise scan itself lives in layout-utils
+    // `detectOverlapPairs`; only this judge's spacing default (0 = plain
+    // geometric overlap) is decided here.
+    return detectOverlapPairs(nodes, spacing ?? 0);
   }
 
   /**

@@ -13,7 +13,7 @@ import dagre from '@dagrejs/dagre';
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { positionedFromDagre } from './dagre-node-extraction';
 import { OverlapResolver } from './overlap-resolver';
-import { calculateNodeCenter, calculateDistance, calculateNodeDistance, distance, generateEdgePoints, nodesOverlap, resolveNodeWidth, resolveNodeHeight } from './layout-utils';
+import { calculateNodeCenter, calculateDistance, calculateNodeDistance, distance, generateEdgePoints, nodesOverlap, detectOverlapPairs, resolveNodeWidth, resolveNodeHeight } from './layout-utils';
 import { clamp01 } from '@/utils/guards';
 import { Point } from './types';
 import { logger } from '../utils/logger';
@@ -873,16 +873,9 @@ export class ZeroOverlapLayoutEngine {
       return this.detectOverlapsWithSpatialGrid(nodes, minSpacing);
     }
 
-    // Brute-force fallback for small node counts or when spatial indexing is disabled
-    const overlaps: { node1: PositionedNode; node2: PositionedNode }[] = [];
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        if (nodesOverlap(nodes[i], nodes[j], minSpacing)) {
-          overlaps.push({ node1: nodes[i], node2: nodes[j] });
-        }
-      }
-    }
-    return overlaps;
+    // Brute-force fallback for small node counts or when spatial indexing is
+    // disabled — round 39 single source (layout-utils `detectOverlapPairs`)
+    return detectOverlapPairs(nodes, minSpacing);
   }
 
   /**

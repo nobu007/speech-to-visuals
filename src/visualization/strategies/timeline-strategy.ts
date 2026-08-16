@@ -18,7 +18,7 @@ import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimension
 import { emptyLayoutResult } from '../empty-layout-result';
 import { buildAnchoredLayoutEdges, EdgeAnchorPair } from '../strategy-edges';
 // Canonical overlap predicate — single source of truth (see layout-utils.ts).
-import { nodesOverlap } from '../layout-utils';
+import { nodesOverlap, hasOverlapPairs } from '../layout-utils';
 
 const CANVAS_PADDING = 80;
 const GRID_SNAP_SIZE = 20;
@@ -248,15 +248,8 @@ export class TimelineStrategy implements LayoutStrategy {
     let optimizedNodes = forceDirectedX(positionedNodes, DEFAULT_CANVAS_WIDTH);
 
     // Step 5: Check for remaining overlaps and apply grid-snap fallback
-    let hasOverlaps = false;
-    for (let i = 0; i < optimizedNodes.length && !hasOverlaps; i++) {
-      for (let j = i + 1; j < optimizedNodes.length; j++) {
-        if (nodesOverlap(optimizedNodes[i], optimizedNodes[j])) {
-          hasOverlaps = true;
-          break;
-        }
-      }
-    }
+    // (round 39 single source — layout-utils `hasOverlapPairs`, early exit)
+    const hasOverlaps = hasOverlapPairs(optimizedNodes);
 
     if (hasOverlaps) {
       optimizedNodes = gridSnapResolve(optimizedNodes, GRID_SNAP_SIZE, DEFAULT_CANVAS_WIDTH);
