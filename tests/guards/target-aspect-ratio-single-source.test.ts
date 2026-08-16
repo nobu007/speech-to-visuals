@@ -32,13 +32,26 @@ import {
   DEFAULT_CANVAS_HEIGHT,
 } from '@/visualization/canvas-dimensions';
 
-/** Files that must consume the canonical constant (all 14 former dup sites). */
-const CONSUMERS = [
+/**
+ * Files that must consume the canonical constant (all 14 former dup sites).
+ *
+ * Round 29 split the list by consumption SHAPE: eight strategies no longer
+ * name TARGET_ASPECT_RATIO directly — their only direct use was the empty
+ * guard / metrics triple, which now lives in empty-layout-result (itself a
+ * canvas-dimensions consumer). They consume the canonical constant
+ * TRANSITIVELY, so pinning the delegation hop keeps them tied to the source.
+ */
+const DIRECT_CONSUMERS = [
   'src/visualization/canvas-calculator.ts',
   'src/visualization/layout-engine-v2.ts',
   'src/visualization/overlap-resolver.ts',
   'src/visualization/enhanced-zero-overlap-layout.ts',
   'src/visualization/strategies/general-strategy.ts',
+  'src/visualization/strategies/matrix-strategy.ts',
+];
+
+/** Former dup sites whose aspect-ratio use moved into empty-layout-result. */
+const DELEGATING_CONSUMERS = [
   'src/visualization/strategies/flowchart-strategy.ts',
   'src/visualization/strategies/tree-strategy.ts',
   'src/visualization/strategies/conceptmap-strategy.ts',
@@ -46,8 +59,8 @@ const CONSUMERS = [
   'src/visualization/strategies/mindmap-strategy.ts',
   'src/visualization/strategies/network-strategy.ts',
   'src/visualization/strategies/comparison-strategy.ts',
-  'src/visualization/strategies/matrix-strategy.ts',
   'src/visualization/strategies/timeline-strategy.ts',
+  'src/visualization/strategies/cycle-strategy.ts',
 ];
 
 describe('target-aspect-ratio single source (layout module)', () => {
@@ -59,11 +72,22 @@ describe('target-aspect-ratio single source (layout module)', () => {
     expect(TARGET_ASPECT_RATIO).toBeCloseTo(16 / 9, 12);
   });
 
-  it('every known consumer imports the canonical constant', () => {
-    for (const rel of CONSUMERS) {
+  it('every direct consumer imports the canonical constant', () => {
+    for (const rel of DIRECT_CONSUMERS) {
       const src = readSource(rel);
       expect(src).toContain('TARGET_ASPECT_RATIO');
       expect(src).toMatch(/from ['"](\.\.?\/|@\/visualization\/)canvas-dimensions['"]/);
+    }
+  });
+
+  it('every delegating consumer stays tied via empty-layout-result (round 29)', () => {
+    for (const rel of DELEGATING_CONSUMERS) {
+      const src = readSource(rel);
+      // The delegation hop: emptyLayoutResult/emptyStrategyLayoutMetrics
+      // read TARGET_ASPECT_RATIO from canvas-dimensions on these files'
+      // behalf — and must NOT re-freeze the ratio themselves.
+      expect(src).toMatch(/from ['"](\.\.?\/|@\/visualization\/)empty-layout-result['"]/);
+      expect(src).not.toContain('aspectRatio: DEFAULT_CANVAS_WIDTH');
     }
   });
 });
