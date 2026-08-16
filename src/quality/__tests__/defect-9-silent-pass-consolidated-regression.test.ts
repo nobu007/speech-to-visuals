@@ -1102,6 +1102,16 @@ const DEFECT9_SURFACE: ReadonlyArray<SurfaceEntry> = [
       'continuous-learner compliance) stay in their own roster rows above.',
   },
   {
+    file: 'src/visualization/strategy-common.ts',
+    ruledOut:
+      'Round 31 single-source module (v1 strategy shared members), matched via the validate* ' +
+      'export clause. validateStrategyInputs is a pure input PRECONDITION over required arrays — ' +
+      'every degenerate input (empty nodes, duplicate IDs, dangling edge endpoints) returns ' +
+      'false with a logger call, so the absent-input direction IS the fail direction; there is ' +
+      'no threshold, no tier, and no gate consumes a manufactured value. strategyNodeWidth is ' +
+      'width arithmetic (explicit finite width → label estimate), never a verdict.',
+  },
+  {
     file: 'supabase/functions/_shared/auth.ts',
     ruledOut:
       'Discovered by the walk over the edge runtime. extractToken returns null for an absent ' +
