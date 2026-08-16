@@ -35,7 +35,7 @@ export interface RetryConfig {
   jitterMaxMs: number;
 }
 import { logger } from '../utils/logger';
-import { validateExportPayload, isStrictValidationEnabled } from './export-content-validator';
+import { validateExportPayload, isStrictValidationEnabled, evaluateExportBlock } from './export-content-validator';
 
 export interface ExportConfiguration {
   format: ExportFormat;
@@ -566,14 +566,9 @@ export class EnhancedExportEngine {
       job.sceneData, `job=${job.id}`,
       { strict: isStrictValidationEnabled() },
     );
-    if (!validation.passed) {
-      const highFindings = validation.findings.filter((f) => f.severity === 'high');
-      throw new FormatValidationError(
-        `Export blocked: ${highFindings.length} high-severity injection pattern(s) detected` +
-        ` (${highFindings.map((f) => f.pattern).join(', ')})`,
-        job.config.format,
-        { findings: highFindings.map((f) => ({ field: f.field, pattern: f.pattern })) },
-      );
+    const block = evaluateExportBlock(validation);
+    if (block.blocked) {
+      throw new FormatValidationError(block.message, job.config.format, block.details);
     }
 
     // Calculate optimal settings

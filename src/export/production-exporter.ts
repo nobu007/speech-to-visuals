@@ -16,6 +16,7 @@ import type { ExportArtifactStore } from './export-artifact-store';
 import {
   validateExportPayload,
   isStrictValidationEnabled,
+  evaluateExportBlock,
 } from './export-content-validator';
 
 export interface ExportJob {
@@ -233,13 +234,9 @@ export class ProductionExporter {
       scenes, `productionExporter:${name}`,
       { strict: isStrictValidationEnabled() },
     );
-    if (!validation.passed) {
-      const highFindings = validation.findings.filter((f) => f.severity === 'high');
-      throw new PipelineConfigError(
-        'scenes',
-        `Export blocked: ${highFindings.length} high-severity injection pattern(s) detected` +
-        ` (${highFindings.map((f) => f.pattern).join(', ')})`,
-      );
+    const block = evaluateExportBlock(validation);
+    if (block.blocked) {
+      throw new PipelineConfigError('scenes', block.message);
     }
 
     const jobId = `export-${Date.now()}-${randomUUID().split('-')[0]}`;

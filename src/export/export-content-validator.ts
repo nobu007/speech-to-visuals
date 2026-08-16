@@ -280,6 +280,41 @@ export function isStrictValidationEnabled(): boolean {
 }
 
 /**
+ * Canonical export-block decision (round 28 single source).
+ *
+ * Before this helper, all three export entry points (MultiFormatExporter.export,
+ * EnhancedExportEngine.prepareExport, ProductionExporter.createExportJob)
+ * hand-rolled the same block gate after their validate* call: filter the
+ * high-severity findings, throw when `validation.passed` is false, and format
+ * the block reason. A drifted filter or message at one site would make the
+ * export paths block on different findings or report different reasons for
+ * the SAME payload — invariant-split on a security chokepoint.
+ *
+ * `blocked` delegates to `!validation.passed` (the verdict the validator above
+ * already owns) rather than re-deriving it from the findings, so a future
+ * validator change to what blocks propagates to every path at once. The
+ * caller chooses the error type; message and findings payload are canonical.
+ */
+export interface ExportBlockDecision {
+  blocked: boolean;
+  highFindings: ContentFinding[];
+  message: string;
+  details: { findings: Array<{ field: string; pattern: string }> };
+}
+
+export function evaluateExportBlock(validation: ValidationResult): ExportBlockDecision {
+  const highFindings = validation.findings.filter((f) => f.severity === 'high');
+  return {
+    blocked: !validation.passed,
+    highFindings,
+    message:
+      `Export blocked: ${highFindings.length} high-severity injection pattern(s) detected` +
+      ` (${highFindings.map((f) => f.pattern).join(', ')})`,
+    details: { findings: highFindings.map((f) => ({ field: f.field, pattern: f.pattern })) },
+  };
+}
+
+/**
  * Validate an arbitrary export payload (e.g. SceneData in EnhancedExportEngine)
  * for dangerous content patterns. This is a generalized defense-in-depth scan
  * that recursively checks all string values in the payload object.

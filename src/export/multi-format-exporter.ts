@@ -19,7 +19,7 @@ import { roundTo } from '@/lib/metrics-utils';
 import type { NodeDatum, EdgeDatum } from '@/types/diagram';
 import { logger } from '../utils/logger';
 import { sanitizeFilename } from '../utils/sanitize';
-import { validateSceneGraphForExport, isStrictValidationEnabled } from './export-content-validator';
+import { validateSceneGraphForExport, isStrictValidationEnabled, evaluateExportBlock } from './export-content-validator';
 import { escapeXml } from './xml-escape';
 import { securityMetricsCollector } from './security-metrics-collector';
 import { getNodeWidth, getNodeHeight } from '../visualization/node-dimensions';
@@ -89,14 +89,9 @@ export class MultiFormatExporter {
     const validation = validateSceneGraphForExport(
       scene, { strict: isStrictValidationEnabled() },
     );
-    if (!validation.passed) {
-      const highFindings = validation.findings.filter((f) => f.severity === 'high');
-      throw new FormatValidationError(
-        `Export blocked: ${highFindings.length} high-severity injection pattern(s) detected` +
-        ` (${highFindings.map((f) => f.pattern).join(', ')})`,
-        options.format,
-        { findings: highFindings.map((f) => ({ field: f.field, pattern: f.pattern })) },
-      );
+    const block = evaluateExportBlock(validation);
+    if (block.blocked) {
+      throw new FormatValidationError(block.message, options.format, block.details);
     }
 
     // Defense-in-depth observability: when validation found dangerous content but
