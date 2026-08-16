@@ -11,6 +11,7 @@
 
 import dagre from '@dagrejs/dagre';
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { positionedFromDagre } from './dagre-node-extraction';
 import { calculateNodeWidth, calculateNodeHeight, calculateNodeCenter, calculateDistance, calculateNodeDistance, distance, generateEdgePoints, nodesOverlap } from './layout-utils';
 import { clamp01 } from '@/utils/guards';
 import { Point } from './types';
@@ -343,17 +344,10 @@ export class ZeroOverlapLayoutEngine {
     // Generate layout
     dagre.layout(g);
 
-    // Extract positioned nodes (using w/h as per PositionedNode type convention)
-    const positionedNodes: PositionedNode[] = nodes.map(node => {
-      const dagreNode = g.node(node.id);
-      return {
-        ...node,
-        x: dagreNode.x - dagreNode.width / 2,
-        y: dagreNode.y - dagreNode.height / 2,
-        w: dagreNode.width,
-        h: dagreNode.height
-      };
-    });
+    // Extract positioned nodes (using w/h as per PositionedNode type convention).
+    // Round 36 single-source — the v1 center→top-left extraction lives in
+    // dagre-node-extraction.ts; verbatim move, zero delta.
+    const positionedNodes = positionedFromDagre(g, nodes);
 
     // Extract layout edges — skip edges whose source/target node is missing
     const layoutEdges: LayoutEdge[] = edges
@@ -415,17 +409,10 @@ export class ZeroOverlapLayoutEngine {
     // Generate layout
     dagre.layout(g);
 
-    // Extract positioned nodes
-    const positionedNodes: PositionedNode[] = nodes.map(node => {
-      const dagreNode = g.node(node.id);
-      return {
-        ...node,
-        x: dagreNode.x - dagreNode.width / 2,
-        y: dagreNode.y - dagreNode.height / 2,
-        w: dagreNode.width,
-        h: dagreNode.height
-      };
-    });
+    // Extract positioned nodes.
+    // Round 36 single-source — the v1 center→top-left extraction lives in
+    // dagre-node-extraction.ts; verbatim move, zero delta.
+    const positionedNodes = positionedFromDagre(g, nodes);
 
     // Extract layout edges — skip edges whose source/target node is missing
     const layoutEdges: LayoutEdge[] = edges

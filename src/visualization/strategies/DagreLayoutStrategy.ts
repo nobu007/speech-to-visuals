@@ -1,7 +1,8 @@
 import dagre from '@dagrejs/dagre';
-import { DiagramType, NodeDatum, EdgeDatum, DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { DiagramType, NodeDatum, EdgeDatum, DiagramLayout, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { getGraphConfig } from '../layout-utils';
+import { positionedFromDagre } from '../dagre-node-extraction';
 import { strategyNodeWidth } from '../strategy-common';
 import { FallbackLayoutStrategy } from './FallbackLayoutStrategy';
 import { logger } from '@/utils/logger';
@@ -57,16 +58,10 @@ export class DagreLayoutStrategy {
 
       dagre.layout(g);
 
-      const positionedNodes: PositionedNode[] = nodes.map(node => {
-        const dagreNode = g.node(node.id);
-        return {
-          ...node,
-          x: dagreNode.x - dagreNode.width / 2,
-          y: dagreNode.y - dagreNode.height / 2,
-          w: dagreNode.width,
-          h: dagreNode.height
-        };
-      });
+      // Round 36 single-source — the v1 center→top-left extraction
+      // (extents echoed from dagre, deprecated w/h) lives in
+      // dagre-node-extraction.ts; verbatim move, zero delta.
+      const positionedNodes = positionedFromDagre(g, nodes);
 
       const layoutEdges: LayoutEdge[] = safeEdges.map(edge => {
         const dagreEdge = g.edge(edge.from, edge.to);

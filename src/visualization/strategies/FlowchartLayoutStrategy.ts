@@ -15,9 +15,10 @@
  */
 
 import dagre from '@dagrejs/dagre';
-import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { DiagramType, NodeDatum, EdgeDatum, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { positionedFromDagre } from '../dagre-node-extraction';
 import { strategyNodeWidth, validateStrategyInputs } from '../strategy-common';
 import {
   DEFAULT_NODE_SEPARATION,
@@ -91,19 +92,11 @@ export class FlowchartLayoutStrategy implements ILayoutStrategy {
       // Run Dagre layout algorithm
       dagre.layout(g);
 
-      // Extract positioned nodes from Dagre
-      const positionedNodes: PositionedNode[] = nodes.map(node => {
-        const dagreNode = g.node(node.id);
-
-        // Dagre returns center coordinates, convert to top-left
-        return {
-          ...node,
-          x: dagreNode.x - dagreNode.width / 2,
-          y: dagreNode.y - dagreNode.height / 2,
-          w: dagreNode.width,
-          h: dagreNode.height
-        };
-      });
+      // Extract positioned nodes from Dagre.
+      // Round 36 single-source — the v1 center→top-left extraction
+      // (extents echoed from dagre, deprecated w/h) lives in
+      // dagre-node-extraction.ts; verbatim move, zero delta.
+      const positionedNodes = positionedFromDagre(g, nodes);
 
       // Extract layout edges with points from Dagre (only the filtered edges
       // were added to the graph; `g.edge`/`g.node` would be undefined for a
