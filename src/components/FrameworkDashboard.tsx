@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { getQualityColorClass } from '@/lib/quality-display-tiers';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -239,16 +240,6 @@ export const FrameworkDashboard: React.FC<FrameworkDashboardProps> = ({
   };
 
   /**
-   * Get quality color
-   */
-  const getQualityColor = (score: number) => {
-    if (score >= 90) return 'text-green-600 dark:text-green-400';
-    if (score >= 70) return 'text-blue-600 dark:text-blue-400';
-    if (score >= 50) return 'text-yellow-600 dark:text-yellow-400';
-    return 'text-red-600 dark:text-red-400';
-  };
-
-  /**
    * Execution Control Panel
    */
   const ExecutionControlPanel = () => (
@@ -399,7 +390,7 @@ export const FrameworkDashboard: React.FC<FrameworkDashboardProps> = ({
             toFixed(0) number, so 89.6 shown as "90" is green not blue
             (rounded-display-vs-raw-threshold reconciliation). */}
         <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 rounded-lg">
-          <div className={`text-5xl font-bold ${getQualityColor(Math.round(qualityAnalysis.overallScore))}`}>
+          <div className={`text-5xl font-bold ${getQualityColorClass(Math.round(qualityAnalysis.overallScore))}`}>
             {qualityAnalysis.overallScore.toFixed(0)}
           </div>
           <div className="text-sm text-muted-foreground mt-2">総合品質スコア / 100</div>

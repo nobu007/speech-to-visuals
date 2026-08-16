@@ -11,6 +11,11 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import {
+  getQualityColorClass,
+  getQualityBadgeVariant,
+  getQualityTierLabel,
+} from '@/lib/quality-display-tiers';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -74,22 +79,6 @@ export const PerformanceMetricsVisualization: React.FC<PerformanceMetricsVisuali
     .filter(s => s.duration !== undefined)
     .reduce((acc, s) => acc + (s.duration || 0), 0) / Math.max(1, completedStages);
 
-  // Quality indicator color
-  const getQualityColor = (score: number) => {
-    if (score >= 90) return 'text-green-600 dark:text-green-400';
-    if (score >= 70) return 'text-blue-600 dark:text-blue-400';
-    if (score >= 50) return 'text-yellow-600 dark:text-yellow-400';
-    return 'text-red-600 dark:text-red-400';
-  };
-
-  // Quality indicator badge variant
-  const getQualityBadge = (score: number) => {
-    if (score >= 90) return 'default';
-    if (score >= 70) return 'secondary';
-    if (score >= 50) return 'outline';
-    return 'destructive';
-  };
-
   // Stage status icon
   const StageStatusIcon = ({ status }: { status: ProcessingStage['status'] }) => {
     switch (status) {
@@ -120,11 +109,11 @@ export const PerformanceMetricsVisualization: React.FC<PerformanceMetricsVisuali
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <Activity className="w-5 h-5 text-blue-600" />
-              <Badge variant={getQualityBadge(displayScore)}>
-                {displayScore >= 90 ? 'Excellent' : displayScore >= 70 ? 'Good' : 'Fair'}
+              <Badge variant={getQualityBadgeVariant(displayScore)}>
+                {getQualityTierLabel(displayScore)}
               </Badge>
             </div>
-            <div className={`text-2xl font-bold ${getQualityColor(displayScore)}`}>
+            <div className={`text-2xl font-bold ${getQualityColorClass(displayScore)}`}>
               {displayScore.toFixed(0)}
             </div>
             <p className="text-xs text-muted-foreground">品質スコア / 100</p>

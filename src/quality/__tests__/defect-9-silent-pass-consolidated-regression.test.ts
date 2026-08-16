@@ -1089,6 +1089,19 @@ const DEFECT9_SURFACE: ReadonlyArray<SurfaceEntry> = [
       'valid:false — the guard the CLOSED row mirrors.',
   },
   {
+    file: 'src/lib/quality-display-tiers.ts',
+    ruledOut:
+      'Round 27 single-source module (quality DISPLAY tiers). Matched only via its scope-note ' +
+      'comment quoting determineStatus — and it genuinely exports a score→tier vocabulary ' +
+      '(excellent/good/fair/poor), so keeping it rostered is the honest boundary pin: every ' +
+      'export is a pure DISPLAY mapping (tailwind class string, badge variant, label) over an ' +
+      'already-computed 0–100 score, never a pass/fail verdict, never a gate threshold input, ' +
+      'and there is no absent-data path — any input (NaN included) deterministically falls to ' +
+      'one display tier; there is nothing to silently satisfy. The GATE-side tier graders ' +
+      '(pipeline-health-score scoreToGrade, pipeline quality-monitor determineStatus, ' +
+      'continuous-learner compliance) stay in their own roster rows above.',
+  },
+  {
     file: 'supabase/functions/_shared/auth.ts',
     ruledOut:
       'Discovered by the walk over the edge runtime. extractToken returns null for an absent ' +
