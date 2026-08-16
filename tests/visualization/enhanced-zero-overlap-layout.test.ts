@@ -28,7 +28,9 @@ type EnginePrivateMethods = {
   resolveCollisionHierarchicalRespect: (node1: PositionedNode, node2: PositionedNode) => { node1: PositionedNode; node2: PositionedNode };
   detectCollisionsQuadtree: (nodes: PositionedNode[]) => { node1: PositionedNode; node2: PositionedNode }[];
   applyEnhancedForceDirectedAlgorithm: (nodes: PositionedNode[], edges: EdgeDatum[], spacing: number) => Promise<void>;
-  applyForceDirectedStep: (nodes: PositionedNode[], edges: EdgeDatum[], spacing: number) => void;
+  // applyForceDirectedStep (round-40 retirement): dead v1-era copy with zero
+  // production callers — removed with its method; the live step is
+  // applyEnhancedForceStep, pinned in tests/guards/force-directed-step-single-source.test.ts.
   calculateMoveVector: (node1: PositionedNode, node2: PositionedNode, distance: number) => { x: number; y: number };
   calculateOptimalSeparation: (node1: PositionedNode, node2: PositionedNode) => number;
   findRootNode: (nodes: NodeDatum[], edges: EdgeDatum[]) => string;
@@ -703,44 +705,11 @@ describe('ZeroOverlapLayoutEngine', () => {
     });
   });
 
-  describe('applyForceDirectedStep (private)', () => {
-    test('should adjust node positions based on repulsive forces', () => {
-      const pm = privateMethods(engine);
-      const nodes: PositionedNode[] = [
-        { id: 'a', label: 'A', x: 100, y: 100, w: 100, h: 50 },
-        { id: 'b', label: 'B', x: 110, y: 100, w: 100, h: 50 },
-      ];
-      const edges: EdgeDatum[] = [];
-      const originalX = nodes[0].x;
-      pm.applyForceDirectedStep(nodes, edges, 40);
-      // Nodes should have moved apart
-      expect(nodes[0].x).not.toBe(originalX);
-    });
-
-    test('should handle nodes with edges applying attractive forces', () => {
-      const pm = privateMethods(engine);
-      const nodes: PositionedNode[] = [
-        { id: 'a', label: 'A', x: 100, y: 100, w: 100, h: 50 },
-        { id: 'b', label: 'B', x: 800, y: 800, w: 100, h: 50 },
-      ];
-      const edges: EdgeDatum[] = [{ from: 'a', to: 'b' }];
-      pm.applyForceDirectedStep(nodes, edges, 40);
-      // Both nodes should still have valid coordinates
-      nodes.forEach(n => {
-        expect(n.x).toBeGreaterThanOrEqual(0);
-        expect(n.y).toBeGreaterThanOrEqual(0);
-      });
-    });
-
-    test('should handle empty edges', () => {
-      const pm = privateMethods(engine);
-      const nodes: PositionedNode[] = [
-        { id: 'a', label: 'A', x: 400, y: 400, w: 100, h: 50 },
-      ];
-      pm.applyForceDirectedStep(nodes, [], 40);
-      expect(nodes[0].x).toBeGreaterThanOrEqual(0);
-    });
-  });
+  // applyForceDirectedStep (private) — retired round 40: dead v1-era copy
+  // (zero production callers). Its three smoke tests were removed with the
+  // method; the LIVE step (applyEnhancedForceStep) is pinned — verbatim
+  // oracle + fuzz + source anchors — in
+  // tests/guards/force-directed-step-single-source.test.ts.
 
   describe('tree helper methods (private)', () => {
     test('findRootNode should return first node without incoming edges', () => {

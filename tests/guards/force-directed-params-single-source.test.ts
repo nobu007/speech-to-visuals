@@ -74,7 +74,11 @@ describe('force-directed params single source (guard)', () => {
       const src = readSource(rel);
       expect({
         file: rel,
-        wiredPhysics: /FORCE_DIRECTED_PHYSICS/.test(src),
+        // Round 40 conscious update: NetworkLayoutStrategy no longer names
+        // FORCE_DIRECTED_PHYSICS — its step body moved to the canonical
+        // `applyForceDirectedStep`, so the constants now reach it THROUGH
+        // that delegation. Wiring = constants reference OR step delegation.
+        wiredPhysics: /FORCE_DIRECTED_PHYSICS|applyForceDirectedStep/.test(src),
         wiredRunner: /runForceDirectedPhases\(/.test(src),
       }).toEqual({ file: rel, wiredPhysics: true, wiredRunner: true });
     }
