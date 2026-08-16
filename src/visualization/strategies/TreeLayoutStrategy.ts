@@ -19,8 +19,9 @@ import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { logger } from '../../utils/logger';
 import { VisualizationError } from '@/pipeline/pipeline-errors';
-import { getNodeWidth, getNodeHeight, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 import { strategyNodeWidth, validateStrategyInputs } from '../strategy-common';
+import { resolveNodeHeight as resolveNodeHeightUtil } from '../layout-utils';
 import { buildWarnedAnchoredEdges } from '../strategy-edges';
 import { DEFAULT_EDGE_SEPARATION, DEFAULT_MARGIN } from '../layout-spacing';
 
@@ -95,13 +96,12 @@ export class TreeLayoutStrategy implements ILayoutStrategy {
 
   /**
    * Resolve effective node height, respecting explicit overrides.
+   * Round 37 single-source — the explicit-first branch lives in
+   * layout-utils.ts `resolveNodeHeight` (shared with the ezo engine); the
+   * `|| DEFAULT_NODE_HEIGHT` tail was already this strategy's shape.
    */
   private resolveNodeHeight(node: NodeDatum, config: LayoutConfig): number {
-    const explicit = node.height ?? (node as NodeDatum & { h?: number }).h;
-    if (typeof explicit === 'number' && isFinite(explicit) && explicit > 0) {
-      return explicit;
-    }
-    return config.nodeHeight || DEFAULT_NODE_HEIGHT;
+    return resolveNodeHeightUtil(node, config);
   }
 
   /**

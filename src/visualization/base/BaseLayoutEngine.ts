@@ -14,7 +14,7 @@
 
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig, LayoutResult, LayoutMetrics, Point, BoundingBox, OverlapPair } from '../types';
-import { calculateNodeHeight, calculateNodeCenter, calculateDistance, calculateNodeDistance, generateEdgePoints, nodesOverlap } from '../layout-utils';
+import { calculateNodeCenter, calculateDistance, calculateNodeDistance, generateEdgePoints, nodesOverlap, resolveNodeHeight } from '../layout-utils';
 import { strategyNodeWidth } from '../strategy-common';
 import { buildWarnedAnchoredEdges } from '../strategy-edges';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
@@ -77,11 +77,14 @@ export abstract class BaseLayoutEngine {
   }
 
   /**
-   * Calculate node width based on label and config
-   * Single source of truth for node width calculation
+   * Calculate node height, respecting explicit dimension overrides.
+   * Round 37 single-source — delegates to layout-utils.ts resolveNodeHeight
+   * (the same explicit-first branch the width sibling gained in round 31 via
+   * strategyNodeWidth, plus the `|| DEFAULT_NODE_HEIGHT` NaN-guard under a
+   * `{}` config cast; engine constructors default the field).
    */
   protected calculateNodeHeight(node: NodeDatum): number {
-    return calculateNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
+    return resolveNodeHeight(node, this.config);
   }
 
   /**

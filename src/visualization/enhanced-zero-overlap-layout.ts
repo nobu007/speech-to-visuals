@@ -12,7 +12,8 @@
 import dagre from '@dagrejs/dagre';
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { positionedFromDagre } from './dagre-node-extraction';
-import { calculateNodeWidth, calculateNodeHeight, calculateNodeCenter, calculateDistance, calculateNodeDistance, distance, generateEdgePoints, nodesOverlap } from './layout-utils';
+import { OverlapResolver } from './overlap-resolver';
+import { calculateNodeCenter, calculateDistance, calculateNodeDistance, distance, generateEdgePoints, nodesOverlap, resolveNodeWidth, resolveNodeHeight } from './layout-utils';
 import { clamp01 } from '@/utils/guards';
 import { Point } from './types';
 import { logger } from '../utils/logger';
@@ -320,8 +321,8 @@ export class ZeroOverlapLayoutEngine {
 
     // Add nodes with proper sizing
     nodes.forEach(node => {
-      const width = calculateNodeWidth(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
-      const height = calculateNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
+      const width = resolveNodeWidth(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
+      const height = resolveNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
 
       g.setNode(node.id, {
         width,
@@ -388,8 +389,8 @@ export class ZeroOverlapLayoutEngine {
 
     // Add nodes
     nodes.forEach(node => {
-      const width = calculateNodeWidth(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
-      const height = calculateNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
+      const width = resolveNodeWidth(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
+      const height = resolveNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
 
       g.setNode(node.id, {
         width,
@@ -442,8 +443,8 @@ export class ZeroOverlapLayoutEngine {
     const baseY = this.config.canvasHeight / 2;
 
     const positionedNodes: PositionedNode[] = sortedNodes.map((node, index) => {
-      const width = calculateNodeWidth(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
-      const height = calculateNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
+      const width = resolveNodeWidth(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
+      const height = resolveNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
 
       return {
         ...node,
@@ -489,8 +490,8 @@ export class ZeroOverlapLayoutEngine {
 
     // Position left side nodes
     leftNodes.forEach((node, index) => {
-      const width = calculateNodeWidth(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
-      const height = calculateNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
+      const width = resolveNodeWidth(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
+      const height = resolveNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
       const y = (this.config.canvasHeight / (leftNodes.length + 1)) * (index + 1) - height / 2;
 
       positionedNodes.push({
@@ -504,8 +505,8 @@ export class ZeroOverlapLayoutEngine {
 
     // Position right side nodes
     rightNodes.forEach((node, index) => {
-      const width = calculateNodeWidth(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
-      const height = calculateNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
+      const width = resolveNodeWidth(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
+      const height = resolveNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
       const y = (this.config.canvasHeight / (rightNodes.length + 1)) * (index + 1) - height / 2;
 
       positionedNodes.push({
@@ -584,8 +585,8 @@ export class ZeroOverlapLayoutEngine {
     const rand = createLayoutRng(nodes.map(n => n.id).join('|'));
 
     return nodes.map((node, index) => {
-      const width = calculateNodeWidth(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
-      const height = calculateNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
+      const width = resolveNodeWidth(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
+      const height = resolveNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
 
       // Start with grid positions to avoid initial clustering
       const row = Math.floor(index / gridSize);
@@ -749,8 +750,8 @@ export class ZeroOverlapLayoutEngine {
       const row = Math.floor(index / cols);
       const col = index % cols;
 
-      const width = calculateNodeWidth(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
-      const height = calculateNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
+      const width = resolveNodeWidth(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
+      const height = resolveNodeHeight(node, { nodeWidth: this.config.nodeWidth, nodeHeight: this.config.nodeHeight });
 
       return {
         ...node,
@@ -808,6 +809,30 @@ export class ZeroOverlapLayoutEngine {
       logger.warn(`[ZeroOverlap] Max iterations reached, may have remaining overlaps`);
     }
 
+    // Round 37 — final geometric-overlap guarantee. The force loop above
+    // targets the STRICTER minimumSpacing contract and its no-progress guard
+    // can strand a residual GEOMETRIC overlap when a displacement trades one
+    // pair for another (mixed-extent shapes: the push that clears a
+    // tall/wide pair drives the node into its upstream neighbor). The
+    // production OverlapResolver — the same last-mile component executeLayout
+    // runs for the v1 strategies — resolves exactly the plain-AABB contract
+    // via minimal-axis repulsion with a grid-snap fallback. It is
+    // canvas-agnostic, so the result is clamped to the fixed canvas and kept
+    // only when the geometric contract still holds: a capacity-overflow
+    // shape (a node row wider than the canvas) re-overlaps under the clamp
+    // and keeps its previous state rather than rendering off-canvas.
+    const finalResolver = new OverlapResolver(100);
+    if (finalResolver.detectOverlaps(currentNodes).length > 0) {
+      const clamped = finalResolver.resolve(currentNodes).map(node => ({
+        ...node,
+        x: Math.max(0, Math.min(this.config.canvasWidth - getNodeWidth(node, this.config.nodeWidth), node.x)),
+        y: Math.max(0, Math.min(this.config.canvasHeight - getNodeHeight(node, this.config.nodeHeight), node.y))
+      }));
+      if (finalResolver.detectOverlaps(clamped).length === 0) {
+        currentNodes = clamped;
+      }
+    }
+
     // Regenerate edges for new positions — skip edges whose node was removed
     const updatedEdges = layout.edges
       .flatMap(edge => {
@@ -857,7 +882,7 @@ export class ZeroOverlapLayoutEngine {
    * A prior version registered a node only in the single cell containing its
    * top-left corner and probed ±1 neighbor cells. That missed a pair whenever a
    * node was wider than `cellSize` (real node widths reach 2× the configured
-   * nodeWidth via calculateNodeWidth), because the far cells it spanned were
+   * nodeWidth via resolveNodeWidth), because the far cells it spanned were
    * neither registered nor probed — silently breaking the zero-overlap
    * guarantee.
    */

@@ -1,6 +1,6 @@
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig, Point, NodeDimensionsConfig } from './types';
-import { getNodeWidth, getNodeHeight } from './node-dimensions';
+import { getNodeWidth, getNodeHeight, DEFAULT_NODE_HEIGHT } from './node-dimensions';
 
 /**
  * px-per-character estimate for the label-driven node width (round 10
@@ -34,6 +34,53 @@ export function calculateNodeWidth(node: NodeDatum, config: NodeDimensionsConfig
  */
 export function calculateNodeHeight(node: NodeDatum, config: NodeDimensionsConfig): number {
   return config.nodeHeight;
+}
+
+/**
+ * Resolve a node's effective LAYOUT-TIME width (round 37 single source).
+ *
+ * Explicit finite positive `width` (or the layout-time `w` alias) wins;
+ * otherwise fall through to the label-driven estimate. This is the
+ * placement-side counterpart of `getNodeWidth()` (node-dimensions.ts), which
+ * every measurement site (overlap predicates, edge anchoring, canvas
+ * fitting) uses to read a positioned node's size. Round 31 adopted the
+ * explicit-first branch for the v1 strategy family (`strategyNodeWidth`);
+ * round 37 makes it the one canonical decision and closes the engine-level
+ * missed sibling: `EnhancedZeroOverlapLayoutEngine` sized dagre boxes with
+ * the raw label-driven estimate while everything downstream measured
+ * width-first — a `width: 400` node was PLACED ≤ 240px but MEASURED 400px,
+ * a genuine geometric overlap emitted by the "zero overlap guaranteed"
+ * engine (pinned in tests/guards/layout-outcome-overlap-regression.test.ts
+ * before this fix).
+ *
+ * Zero-delta contract for nodes WITHOUT explicit dimensions: the tail is
+ * exactly `calculateNodeWidth(node, config)` — same omitted-padding (16)
+ * packing, byte-identical result.
+ */
+export function resolveNodeWidth(node: NodeDatum, config: NodeDimensionsConfig): number {
+  const explicit = node.width ?? (node as NodeDatum & { w?: number }).w;
+  if (typeof explicit === 'number' && Number.isFinite(explicit) && explicit > 0) {
+    return explicit;
+  }
+  return calculateNodeWidth(node, config);
+}
+
+/**
+ * Resolve a node's effective LAYOUT-TIME height (round 37 single source).
+ *
+ * Same shape as {@link resolveNodeWidth}: explicit finite positive
+ * `height`/`h` wins, else the configured height. The `|| DEFAULT_NODE_HEIGHT`
+ * tail is the NaN-guard the round-31 strategy tail gained (a `{}`-cast
+ * config would otherwise make the raw `config.nodeHeight` pass return
+ * `undefined`); real configs always carry a finite height, so this is
+ * delta-free for every actual caller.
+ */
+export function resolveNodeHeight(node: NodeDatum, config: NodeDimensionsConfig): number {
+  const explicit = node.height ?? (node as NodeDatum & { h?: number }).h;
+  if (typeof explicit === 'number' && Number.isFinite(explicit) && explicit > 0) {
+    return explicit;
+  }
+  return config.nodeHeight || DEFAULT_NODE_HEIGHT;
 }
 
 /**

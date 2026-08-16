@@ -22,8 +22,10 @@
  *     default it).
  *
  * The label-width constants still single-source through `layout-utils.ts`
- * (round 10); this module only owns the explicit-dimension branch and the
- * delegation wiring. Guard: tests/guards/v1-strategy-shared-members-single-source.test.ts.
+ * (round 10); since round 37 the explicit-dimension-first branch ALSO lives
+ * there (`resolveNodeWidth`/`resolveNodeHeight`, shared with the ezo engine),
+ * and this module only owns the strategy-family delegation wiring.
+ * Guard: tests/guards/v1-strategy-shared-members-single-source.test.ts.
  */
 
 import type { NodeDatum, EdgeDatum } from '@/types/diagram';
@@ -31,7 +33,7 @@ import type { LayoutConfig } from './types';
 import { logger } from '../utils/logger';
 import { DEFAULT_NODE_WIDTH } from './node-dimensions';
 import {
-  calculateNodeWidth as calculateNodeWidthUtil,
+  resolveNodeWidth,
   DEFAULT_CHAR_WIDTH,
   DEFAULT_LABEL_PADDING,
 } from './layout-utils';
@@ -75,22 +77,21 @@ export function validateStrategyInputs(
  * Shared node-width estimate of the v1 strategy family: explicit finite
  * dimension first (Tree's semantics — see the module header), then the
  * label-driven `layout-utils` estimate clamped to [base, 2 × base].
+ *
+ * Round 37: the explicit-dimension-first branch moved into
+ * `resolveNodeWidth` (layout-utils.ts) so the ezo engine shares the SAME
+ * canonical decision — this wrapper now only carries the strategy family's
+ * padding-20 label-tail wiring. Output is byte-identical to the inline form
+ * (pinned by tests/guards/ezo-explicit-dimension-sizing.test.ts).
  */
 export function strategyNodeWidth(
   node: NodeDatum,
   config: Pick<LayoutConfig, 'nodeWidth' | 'nodeHeight'>
 ): number {
-  // Respect explicit dimension if provided on the node
-  const explicitWidth = node.width ?? (node as NodeDatum & { w?: number }).w;
-  if (typeof explicitWidth === 'number' && isFinite(explicitWidth) && explicitWidth > 0) {
-    return explicitWidth;
-  }
-
-  // Label-driven width delegates to the shared util (round 10 single-source
-  // of charWidth 8 / padding 20 — see layout-utils.ts).
-  const baseWidth = config.nodeWidth || DEFAULT_NODE_WIDTH;
-  return calculateNodeWidthUtil(node, {
-    nodeWidth: baseWidth,
+  return resolveNodeWidth(node, {
+    // Label-driven tail wiring: `|| DEFAULT_NODE_WIDTH` fallback + the
+    // round-10 single-sourced charWidth 8 / padding 20 (layout-utils.ts).
+    nodeWidth: config.nodeWidth || DEFAULT_NODE_WIDTH,
     nodeHeight: config.nodeHeight,
     charWidth: DEFAULT_CHAR_WIDTH,
     padding: DEFAULT_LABEL_PADDING,
