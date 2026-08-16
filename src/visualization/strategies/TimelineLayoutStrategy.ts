@@ -20,6 +20,7 @@ import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { logger } from '../../utils/logger';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { strategyNodeWidth, validateStrategyInputs } from '../strategy-common';
+import { buildWarnedAnchoredEdges } from '../strategy-edges';
 import { DEFAULT_EDGE_SEPARATION, DEFAULT_MARGIN } from '../layout-spacing';
 
 export class TimelineLayoutStrategy implements ILayoutStrategy {
@@ -100,38 +101,24 @@ export class TimelineLayoutStrategy implements ILayoutStrategy {
     edges: EdgeDatum[],
     nodes: PositionedNode[]
   ): LayoutEdge[] {
-    return edges.map(edge => {
-      const source = nodes.find(n => n.id === edge.from);
-      const target = nodes.find(n => n.id === edge.to);
-
-      if (!source || !target) {
-        logger.warn(`[Timeline] Edge ${edge.from} -> ${edge.to} missing nodes`);
-        return {
-          from: edge.from,
-          to: edge.to,
-          points: [],
-          label: edge.label
-        };
-      }
-
-      // Create horizontal arrow from source right-center to target left-center
-      const sourcePoint = {
-        x: source.x + getNodeWidth(source),      // Right edge of source
-        y: source.y + getNodeHeight(source) / 2   // Vertical center
-      };
-
-      const targetPoint = {
-        x: target.x,                 // Left edge of target
-        y: target.y + getNodeHeight(target) / 2   // Vertical center
-      };
-
-      return {
-        from: edge.from,
-        to: edge.to,
-        points: [sourcePoint, targetPoint],
-        label: edge.label
-      };
-    });
+    // Round 33 single-source — warn-on-dangling skeleton in strategy-edges.ts.
+    // Timeline-specific geometry: horizontal arrow from the source's
+    // right-center to the target's left-center.
+    return buildWarnedAnchoredEdges(
+      edges,
+      nodes,
+      (source, target) => [
+        {
+          x: source.x + getNodeWidth(source),      // Right edge of source
+          y: source.y + getNodeHeight(source) / 2   // Vertical center
+        },
+        {
+          x: target.x,                 // Left edge of target
+          y: target.y + getNodeHeight(target) / 2   // Vertical center
+        }
+      ],
+      '[Timeline] '
+    );
   }
 
   /**

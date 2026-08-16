@@ -18,8 +18,9 @@ import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@
 import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { logger } from '../../utils/logger';
-import { getNodeWidth, getNodeHeight, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { strategyNodeWidth, validateStrategyInputs } from '../strategy-common';
+import { buildWarnedAnchoredEdges, centerToCenterAnchors } from '../strategy-edges';
 import {
   DEFAULT_NODE_SEPARATION,
   DEFAULT_EDGE_SEPARATION,
@@ -98,38 +99,14 @@ export class ConceptMapLayoutStrategy implements ILayoutStrategy {
     edges: EdgeDatum[],
     nodes: PositionedNode[]
   ): LayoutEdge[] {
-    return edges.map(edge => {
-      const source = nodes.find(n => n.id === edge.from);
-      const target = nodes.find(n => n.id === edge.to);
-
-      if (!source || !target) {
-        logger.warn(`[ConceptMap] Edge ${edge.from} -> ${edge.to} missing nodes`);
-        return {
-          from: edge.from,
-          to: edge.to,
-          points: [],
-          label: edge.label
-        };
-      }
-
-      // Simple straight line from center to center
-      const sourcePoint = {
-        x: source.x + getNodeWidth(source) / 2,
-        y: source.y + getNodeHeight(source) / 2
-      };
-
-      const targetPoint = {
-        x: target.x + getNodeWidth(target) / 2,
-        y: target.y + getNodeHeight(target) / 2
-      };
-
-      return {
-        from: edge.from,
-        to: edge.to,
-        points: [sourcePoint, targetPoint],
-        label: edge.label
-      };
-    });
+    // Round 33 single-source — warn-on-dangling skeleton in strategy-edges.ts;
+    // this strategy's geometry is the shared center→center anchor pair.
+    return buildWarnedAnchoredEdges(
+      edges,
+      nodes,
+      (source, target) => [...centerToCenterAnchors(source, target)],
+      '[ConceptMap] '
+    );
   }
 
   /**

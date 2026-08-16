@@ -20,6 +20,7 @@ import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { logger } from '../../utils/logger';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { strategyNodeWidth, validateStrategyInputs } from '../strategy-common';
+import { buildWarnedAnchoredEdges } from '../strategy-edges';
 import { DEFAULT_EDGE_SEPARATION, DEFAULT_MARGIN } from '../layout-spacing';
 
 export class ComparisonLayoutStrategy implements ILayoutStrategy {
@@ -125,40 +126,29 @@ export class ComparisonLayoutStrategy implements ILayoutStrategy {
     edges: EdgeDatum[],
     nodes: PositionedNode[]
   ): LayoutEdge[] {
-    return edges.map(edge => {
-      const source = nodes.find(n => n.id === edge.from);
-      const target = nodes.find(n => n.id === edge.to);
+    // Round 33 single-source — warn-on-dangling skeleton in strategy-edges.ts.
+    // Comparison-specific geometry: pair-dependent side anchors (arrow leaves
+    // whichever flank faces the partner).
+    return buildWarnedAnchoredEdges(
+      edges,
+      nodes,
+      (source, target) => {
+        // Determine edge direction
+        const sourceIsLeft = source.x < target.x;
 
-      if (!source || !target) {
-        logger.warn(`[Comparison] Edge ${edge.from} -> ${edge.to} missing nodes`);
-        return {
-          from: edge.from,
-          to: edge.to,
-          points: [],
-          label: edge.label
-        };
-      }
-
-      // Determine edge direction
-      const sourceIsLeft = source.x < target.x;
-
-      const sourcePoint = {
-        x: sourceIsLeft ? source.x + getNodeWidth(source) : source.x,  // Right or left edge
-        y: source.y + getNodeHeight(source) / 2                          // Vertical center
-      };
-
-      const targetPoint = {
-        x: sourceIsLeft ? target.x : target.x + getNodeWidth(target),   // Left or right edge
-        y: target.y + getNodeHeight(target) / 2                           // Vertical center
-      };
-
-      return {
-        from: edge.from,
-        to: edge.to,
-        points: [sourcePoint, targetPoint],
-        label: edge.label
-      };
-    });
+        return [
+          {
+            x: sourceIsLeft ? source.x + getNodeWidth(source) : source.x,  // Right or left edge
+            y: source.y + getNodeHeight(source) / 2                          // Vertical center
+          },
+          {
+            x: sourceIsLeft ? target.x : target.x + getNodeWidth(target),   // Left or right edge
+            y: target.y + getNodeHeight(target) / 2                           // Vertical center
+          }
+        ];
+      },
+      '[Comparison] '
+    );
   }
 
   /**

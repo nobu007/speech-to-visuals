@@ -16,6 +16,7 @@ import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@
 import { LayoutConfig, LayoutResult, LayoutMetrics, Point, BoundingBox, OverlapPair } from '../types';
 import { calculateNodeHeight, calculateNodeCenter, calculateDistance, calculateNodeDistance, generateEdgePoints, nodesOverlap } from '../layout-utils';
 import { strategyNodeWidth } from '../strategy-common';
+import { buildWarnedAnchoredEdges } from '../strategy-edges';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 import { logger } from '@/utils/logger';
 
@@ -215,27 +216,16 @@ export abstract class BaseLayoutEngine {
     edges: EdgeDatum[],
     nodes: PositionedNode[]
   ): LayoutEdge[] {
-    return edges.map(edge => {
-      const source = nodes.find(n => n.id === edge.from);
-      const target = nodes.find(n => n.id === edge.to);
-
-      if (!source || !target) {
-        this.logger.warn(`Edge ${edge.from} -> ${edge.to} missing nodes`);
-        return {
-          from: edge.from,
-          to: edge.to,
-          points: [],
-          label: edge.label
-        };
-      }
-
-      return {
-        from: edge.from,
-        to: edge.to,
-        points: this.generateEdgePoints(source, target),
-        label: edge.label
-      };
-    });
+    // Round 33 single-source — warn-on-dangling skeleton in strategy-edges.ts.
+    // The anchor closure keeps the virtual `this.generateEdgePoints` dispatch
+    // (LayoutEngine subclass overrides still take effect) and this site keeps
+    // its unprefixed warn message ('' prefix).
+    return buildWarnedAnchoredEdges(
+      edges,
+      nodes,
+      (source, target) => this.generateEdgePoints(source, target),
+      ''
+    );
   }
 
   // ============================================================
