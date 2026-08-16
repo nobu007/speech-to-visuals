@@ -6,12 +6,13 @@
  * centered, isolated nodes go to the periphery.
  */
 
-import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, TARGET_ASPECT_RATIO } from '../canvas-dimensions';
 import { emptyLayoutResult } from '../empty-layout-result';
+import { buildAnchoredLayoutEdges, centerToCenterAnchors } from '../strategy-edges';
 
 const NODE_SEP = 40;
 
@@ -57,28 +58,7 @@ export class GeneralStrategy implements LayoutStrategy {
       offsetY,
     );
 
-    const nodeMap = new Map(positionedNodes.map((n) => [n.id, n]));
-    const layoutEdges: LayoutEdge[] = edges.map((edge) => {
-      const source = nodeMap.get(edge.from);
-      const target = nodeMap.get(edge.to);
-      if (!source || !target) {
-        return { from: edge.from, to: edge.to, points: [], label: edge.label, id: edge.id };
-      }
-      const sw = getNodeWidth(source, DEFAULT_NODE_WIDTH);
-      const sh = getNodeHeight(source, DEFAULT_NODE_HEIGHT);
-      const tw = getNodeWidth(target, DEFAULT_NODE_WIDTH);
-      const th = getNodeHeight(target, DEFAULT_NODE_HEIGHT);
-      return {
-        from: edge.from,
-        to: edge.to,
-        points: [
-          { x: source.x + sw / 2, y: source.y + sh / 2 },
-          { x: target.x + tw / 2, y: target.y + th / 2 },
-        ],
-        label: edge.label,
-        id: edge.id,
-      };
-    });
+    const layoutEdges = buildAnchoredLayoutEdges(edges, positionedNodes, centerToCenterAnchors);
 
     const canvas = calculateCanvasSize(positionedNodes);
     const metrics = calculateMetrics(positionedNodes, layoutEdges);

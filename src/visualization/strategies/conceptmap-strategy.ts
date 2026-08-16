@@ -13,13 +13,14 @@
  * 5. Importance-aware node sizing and horizontal spacing
  */
 
-import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
 import { getImportance, importanceSizeScale } from '../importance-scaler';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
 import { emptyLayoutResult, emptyStrategyLayoutMetrics } from '../empty-layout-result';
+import { buildAnchoredLayoutEdges, centerToCenterAnchors } from '../strategy-edges';
 
 
 const LEVEL_SPACING = 160;
@@ -59,7 +60,7 @@ export class ConceptMapStrategy implements LayoutStrategy {
     const adjacency = this.buildAdjacency(nodes, edges);
     const { parentMap, levelMap } = this.buildHierarchy(root, adjacency, nodes);
     const positionedNodes = this.positionHierarchical(nodes, levelMap);
-    const layoutEdges = this.buildEdges(edges, positionedNodes);
+    const layoutEdges = buildAnchoredLayoutEdges(edges, positionedNodes, centerToCenterAnchors);
 
     const canvas = calculateCanvasSize(positionedNodes);
     const metrics = calculateMetrics(positionedNodes, layoutEdges);
@@ -199,28 +200,6 @@ export class ConceptMapStrategy implements LayoutStrategy {
       const w = Math.round(getNodeWidth(node, DEFAULT_NODE_WIDTH) * scale);
       const h = Math.round(getNodeHeight(node, DEFAULT_NODE_HEIGHT) * scale);
       return { ...node, x: pos.x, y: pos.y, width: w, height: h };
-    });
-  }
-
-  /** Build layout edges with center-to-center points, preserving labels. */
-  private buildEdges(edges: EdgeDatum[], nodes: PositionedNode[]): LayoutEdge[] {
-    const nodeMap = new Map(nodes.map(n => [n.id, n]));
-    return edges.map(edge => {
-      const src = nodeMap.get(edge.from);
-      const tgt = nodeMap.get(edge.to);
-      if (!src || !tgt) {
-        return { from: edge.from, to: edge.to, points: [] as { x: number; y: number }[], label: edge.label };
-      }
-      return {
-        from: edge.from,
-        to: edge.to,
-        points: [
-          { x: src.x + getNodeWidth(src, DEFAULT_NODE_WIDTH) / 2, y: src.y + getNodeHeight(src, DEFAULT_NODE_HEIGHT) / 2 },
-          { x: tgt.x + getNodeWidth(tgt, DEFAULT_NODE_WIDTH) / 2, y: tgt.y + getNodeHeight(tgt, DEFAULT_NODE_HEIGHT) / 2 },
-        ],
-        label: edge.label,
-        id: edge.id,
-      };
     });
   }
 }

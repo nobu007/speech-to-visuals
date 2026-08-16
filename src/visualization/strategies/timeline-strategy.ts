@@ -5,7 +5,7 @@
  * with X-axis optimized via force-directed method and grid-snap fallback.
  */
 
-import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
 import {
   LayoutStrategy,
   StrategyLayoutResult,
@@ -16,6 +16,7 @@ import { calculateCanvasSize, calculateMetrics } from '@/visualization/layout-en
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
 import { emptyLayoutResult } from '../empty-layout-result';
+import { buildAnchoredLayoutEdges, EdgeAnchorPair } from '../strategy-edges';
 // Canonical overlap predicate — single source of truth (see layout-utils.ts).
 import { nodesOverlap } from '../layout-utils';
 
@@ -238,7 +239,7 @@ export class TimelineStrategy implements LayoutStrategy {
     // Single node: no need for force-directed or grid-snap
     if (nodes.length === 1) {
       const canvas = calculateCanvasSize(positionedNodes);
-      const layoutEdges = this.buildLayoutEdges(edges, positionedNodes);
+      const layoutEdges = buildAnchoredLayoutEdges(edges, positionedNodes, verticalFlowAnchors);
       const metrics = calculateMetrics(positionedNodes, layoutEdges);
       return { nodes: positionedNodes, edges: layoutEdges, canvas, metrics };
     }
@@ -262,7 +263,7 @@ export class TimelineStrategy implements LayoutStrategy {
     }
 
     // Step 6: Build edges and calculate final metrics
-    const layoutEdges = this.buildLayoutEdges(edges, optimizedNodes);
+    const layoutEdges = buildAnchoredLayoutEdges(edges, optimizedNodes, verticalFlowAnchors);
     const canvas = calculateCanvasSize(optimizedNodes);
     const metrics = calculateMetrics(optimizedNodes, layoutEdges);
 
@@ -274,47 +275,23 @@ export class TimelineStrategy implements LayoutStrategy {
     // Force-directed iterations * node interactions + topological sort
     return FORCE_ITERATIONS * n * n + n;
   }
+}
 
-  private buildLayoutEdges(
-    edges: EdgeDatum[],
-    nodes: PositionedNode[],
-  ): LayoutEdge[] {
-    const nodeMap = new Map(nodes.map((n) => [n.id, n]));
-
-    return edges.map((edge) => {
-      const source = nodeMap.get(edge.from);
-      const target = nodeMap.get(edge.to);
-
-      if (!source || !target) {
-        return {
-          from: edge.from,
-          to: edge.to,
-          points: [],
-          label: edge.label,
-          id: edge.id,
-        };
-      }
-
-      // Vertical connection: source bottom-center to target top-center
-      const sw = getNodeWidth(source, DEFAULT_NODE_WIDTH);
-      const sh = getNodeHeight(source, DEFAULT_NODE_HEIGHT);
-      const tw = getNodeWidth(target, DEFAULT_NODE_WIDTH);
-      const sourcePoint = {
-        x: source.x + sw / 2,
-        y: source.y + sh,
-      };
-      const targetPoint = {
-        x: target.x + tw / 2,
-        y: target.y,
-      };
-
-      return {
-        from: edge.from,
-        to: edge.to,
-        points: [sourcePoint, targetPoint],
-        label: edge.label,
-        id: edge.id,
-      };
-    });
-  }
+/**
+ * Vertical-flow anchors, timeline-specific geometry: source bottom-center to
+ * target top-center, so edges read as top→bottom time flow. The edge
+ * skeleton (nodeMap, dangling fallback, LayoutEdge assembly) single-sources
+ * through strategy-edges.ts (round 32).
+ */
+function verticalFlowAnchors(
+  source: PositionedNode,
+  target: PositionedNode,
+): EdgeAnchorPair {
+  const sw = getNodeWidth(source, DEFAULT_NODE_WIDTH);
+  const sh = getNodeHeight(source, DEFAULT_NODE_HEIGHT);
+  const tw = getNodeWidth(target, DEFAULT_NODE_WIDTH);
+  return [
+    { x: source.x + sw / 2, y: source.y + sh },
+    { x: target.x + tw / 2, y: target.y },
+  ];
 }

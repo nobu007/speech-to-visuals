@@ -10,7 +10,7 @@
  * 3. If overlaps persist, apply Force-Directed repulsion to resolve them
  */
 
-import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
 import {
   LayoutStrategy,
   StrategyLayoutResult,
@@ -21,6 +21,7 @@ import { calculateCanvasSize, calculateMetrics } from '@/visualization/layout-en
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
 import { emptyLayoutResult } from '../empty-layout-result';
+import { buildAnchoredLayoutEdges, centerToCenterAnchors } from '../strategy-edges';
 // Canonical overlap predicate — single source of truth (see layout-utils.ts).
 import { nodesOverlap, distance } from '../layout-utils';
 
@@ -54,7 +55,7 @@ export class CycleLayoutStrategy implements LayoutStrategy {
       finalNodes = positioned;
     }
 
-    const layoutEdges = this.generateEdges(edges, finalNodes);
+    const layoutEdges = buildAnchoredLayoutEdges(edges, finalNodes, centerToCenterAnchors);
     const canvas = calculateCanvasSize(finalNodes);
     const metrics = calculateMetrics(finalNodes, layoutEdges);
 
@@ -197,46 +198,6 @@ export class CycleLayoutStrategy implements LayoutStrategy {
     }
 
     return forceNodes.map((fn) => fn.positioned);
-  }
-
-  private generateEdges(edges: EdgeDatum[], nodes: PositionedNode[]): LayoutEdge[] {
-    const nodeMap = new Map<string, PositionedNode>();
-    for (const node of nodes) {
-      nodeMap.set(node.id, node);
-    }
-
-    return edges.map((edge) => {
-      const source = nodeMap.get(edge.from);
-      const target = nodeMap.get(edge.to);
-
-      if (!source || !target) {
-        return {
-          from: edge.from,
-          to: edge.to,
-          points: [],
-          label: edge.label,
-          id: edge.id,
-        };
-      }
-
-      const sourcePoint = {
-        x: source.x + getNodeWidth(source, 0) / 2,
-        y: source.y + getNodeHeight(source, 0) / 2,
-      };
-
-      const targetPoint = {
-        x: target.x + getNodeWidth(target, 0) / 2,
-        y: target.y + getNodeHeight(target, 0) / 2,
-      };
-
-      return {
-        from: edge.from,
-        to: edge.to,
-        points: [sourcePoint, targetPoint],
-        label: edge.label,
-        id: edge.id,
-      };
-    });
   }
 }
 

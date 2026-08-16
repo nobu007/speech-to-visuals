@@ -11,13 +11,14 @@
  * - Multi-phase convergence
  */
 
-import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
 import { getImportance, importanceSizeScale } from '../importance-scaler';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
 import { emptyLayoutResult } from '../empty-layout-result';
+import { buildAnchoredLayoutEdges, centerToCenterAnchors } from '../strategy-edges';
 import { distance } from '../layout-utils';
 
 const NODE_SEP = 80;
@@ -40,7 +41,7 @@ export class NetworkStrategy implements LayoutStrategy {
     const positioned = this.initializeCircle(nodes);
     this.runForceDirected(positioned, edges);
 
-    const layoutEdges = this.buildEdges(edges, positioned);
+    const layoutEdges = buildAnchoredLayoutEdges(edges, positioned, centerToCenterAnchors);
     const canvas = calculateCanvasSize(positioned);
     const metrics = calculateMetrics(positioned, layoutEdges);
 
@@ -165,27 +166,6 @@ export class NetworkStrategy implements LayoutStrategy {
       node.x = Math.max(20, Math.min(DEFAULT_CANVAS_WIDTH - w - 20, node.x));
       node.y = Math.max(20, Math.min(DEFAULT_CANVAS_HEIGHT - h - 20, node.y));
     }
-  }
-
-  private buildEdges(edges: EdgeDatum[], nodes: PositionedNode[]): LayoutEdge[] {
-    const nodeMap = new Map(nodes.map(n => [n.id, n]));
-    return edges.map(edge => {
-      const src = nodeMap.get(edge.from);
-      const tgt = nodeMap.get(edge.to);
-      if (!src || !tgt) {
-        return { from: edge.from, to: edge.to, points: [] as { x: number; y: number }[], label: edge.label };
-      }
-      return {
-        from: edge.from,
-        to: edge.to,
-        points: [
-          { x: src.x + getNodeWidth(src, DEFAULT_NODE_WIDTH) / 2, y: src.y + getNodeHeight(src, DEFAULT_NODE_HEIGHT) / 2 },
-          { x: tgt.x + getNodeWidth(tgt, DEFAULT_NODE_WIDTH) / 2, y: tgt.y + getNodeHeight(tgt, DEFAULT_NODE_HEIGHT) / 2 },
-        ],
-        label: edge.label,
-        id: edge.id,
-      };
-    });
   }
 }
 

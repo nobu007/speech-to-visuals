@@ -1,4 +1,4 @@
-import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult } from '../types';
 import { createLayoutRng } from '../layout-rng';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
@@ -6,6 +6,7 @@ import { getImportance, importanceSizeScale } from '../importance-scaler';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
 import { emptyLayoutResult, emptyStrategyLayoutMetrics } from '../empty-layout-result';
+import { buildAnchoredLayoutEdges, centerToCenterAnchors } from '../strategy-edges';
 
 const CENTER_MARGIN = 200;
 const BRANCH_SPACING = 160;
@@ -56,7 +57,7 @@ export class MindMapStrategy implements LayoutStrategy {
     // leak the previous diagram's sequence.
     const rng = createLayoutRng(nodes.map(n => n.id).join('|'));
     const positionedNodes = this.positionRadially(tree, nodes, rng);
-    const layoutEdges = this.generateEdges(edges, positionedNodes);
+    const layoutEdges = buildAnchoredLayoutEdges(edges, positionedNodes, centerToCenterAnchors);
 
     const canvas = calculateCanvasSize(positionedNodes);
     const metrics = calculateMetrics(positionedNodes, layoutEdges);
@@ -275,25 +276,6 @@ export class MindMapStrategy implements LayoutStrategy {
         y: cy + Math.sin(angle) * radius - h / 2,
         width: w,
         height: h,
-      };
-    });
-  }
-
-  /** Generate layout edges with straight-line points. */
-  private generateEdges(edges: EdgeDatum[], nodes: PositionedNode[]): LayoutEdge[] {
-    const nodeMap = new Map(nodes.map(n => [n.id, n]));
-    return edges.map(edge => {
-      const source = nodeMap.get(edge.from);
-      const target = nodeMap.get(edge.to);
-      return {
-        from: edge.from,
-        to: edge.to,
-        points: [
-          { x: (source?.x ?? 0) + (source?.width ?? DEFAULT_NODE_WIDTH) / 2, y: (source?.y ?? 0) + (source?.height ?? DEFAULT_NODE_HEIGHT) / 2 },
-          { x: (target?.x ?? 0) + (target?.width ?? DEFAULT_NODE_WIDTH) / 2, y: (target?.y ?? 0) + (target?.height ?? DEFAULT_NODE_HEIGHT) / 2 },
-        ],
-        label: edge.label,
-        id: edge.id,
       };
     });
   }

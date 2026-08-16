@@ -5,7 +5,7 @@
  * Grid placement guarantees zero overlaps -- no fallback needed.
  */
 
-import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
 import {
   LayoutStrategy,
   StrategyLayoutResult,
@@ -16,6 +16,7 @@ import { calculateCanvasSize, calculateMetrics } from '@/visualization/layout-en
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, TARGET_ASPECT_RATIO } from '../canvas-dimensions';
 import { emptyLayoutResult } from '../empty-layout-result';
+import { buildAnchoredLayoutEdges, centerToCenterAnchors } from '../strategy-edges';
 
 const CANVAS_PADDING = 80;
 
@@ -64,7 +65,7 @@ export class MatrixStrategy implements LayoutStrategy {
     });
 
     // Step 4: Build edges as straight lines between grid positions
-    const layoutEdges = this.buildLayoutEdges(edges, positionedNodes);
+    const layoutEdges = buildAnchoredLayoutEdges(edges, positionedNodes, centerToCenterAnchors);
 
     // Step 5: Calculate canvas and metrics
     const canvas = calculateCanvasSize(positionedNodes);
@@ -76,49 +77,5 @@ export class MatrixStrategy implements LayoutStrategy {
   estimateComplexity(nodes: NodeDatum[]): number {
     // Grid placement is O(n) -- trivial assignment
     return nodes.length;
-  }
-
-  private buildLayoutEdges(
-    edges: EdgeDatum[],
-    nodes: PositionedNode[],
-  ): LayoutEdge[] {
-    const nodeMap = new Map(nodes.map((n) => [n.id, n]));
-
-    return edges.map((edge) => {
-      const source = nodeMap.get(edge.from);
-      const target = nodeMap.get(edge.to);
-
-      if (!source || !target) {
-        return {
-          from: edge.from,
-          to: edge.to,
-          points: [],
-          label: edge.label,
-          id: edge.id,
-        };
-      }
-
-      // Straight line from source center to target center
-      const sw = getNodeWidth(source, DEFAULT_NODE_WIDTH);
-      const sh = getNodeHeight(source, DEFAULT_NODE_HEIGHT);
-      const tw = getNodeWidth(target, DEFAULT_NODE_WIDTH);
-      const th = getNodeHeight(target, DEFAULT_NODE_HEIGHT);
-      const sourcePoint = {
-        x: source.x + sw / 2,
-        y: source.y + sh / 2,
-      };
-      const targetPoint = {
-        x: target.x + tw / 2,
-        y: target.y + th / 2,
-      };
-
-      return {
-        from: edge.from,
-        to: edge.to,
-        points: [sourcePoint, targetPoint],
-        label: edge.label,
-        id: edge.id,
-      };
-    });
   }
 }
