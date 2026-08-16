@@ -17,9 +17,10 @@
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
-import { nodesOverlap, distance, calculateNodeWidth as calculateNodeWidthUtil, DEFAULT_CHAR_WIDTH, DEFAULT_LABEL_PADDING } from '../layout-utils';
+import { nodesOverlap, distance } from '../layout-utils';
 import { logger } from '../../utils/logger';
-import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { getNodeWidth, getNodeHeight, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { strategyNodeWidth, validateStrategyInputs } from '../strategy-common';
 import { DEFAULT_NODE_SEPARATION, DEFAULT_EDGE_SEPARATION } from '../layout-spacing';
 import { createLayoutRng } from '../layout-rng';
 import {
@@ -307,42 +308,17 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
    * Calculate node width based on label
    */
   private calculateNodeWidth(node: NodeDatum, config: LayoutConfig): number {
-    // Label-driven width delegates to the shared util (round 10 single-source
-    // of charWidth 8 / padding 20 — see layout-utils.ts).
-    const baseWidth = config.nodeWidth || DEFAULT_NODE_WIDTH;
-    return calculateNodeWidthUtil(node, {
-      nodeWidth: baseWidth,
-      nodeHeight: config.nodeHeight,
-      charWidth: DEFAULT_CHAR_WIDTH,
-      padding: DEFAULT_LABEL_PADDING,
-    });
+    // Round 31 single-source — explicit-dimension-first + label-driven width
+    // live in strategy-common.ts.
+    return strategyNodeWidth(node, config);
   }
 
   /**
    * Validate inputs before layout generation
    */
   validateInputs(nodes: NodeDatum[], edges: EdgeDatum[]): boolean {
-    if (nodes.length === 0) {
-      logger.warn('[Network] No nodes to layout');
-      return false;
-    }
-
-    const nodeIds = new Set(nodes.map(n => n.id));
-    if (nodeIds.size !== nodes.length) {
-      logger.error('[Network] Duplicate node IDs detected');
-      return false;
-    }
-
-    const invalidEdges = edges.filter(
-      edge => !nodeIds.has(edge.from) || !nodeIds.has(edge.to)
-    );
-
-    if (invalidEdges.length > 0) {
-      logger.error('[Network] Invalid edges detected:', invalidEdges);
-      return false;
-    }
-
-    return true;
+    // Round 31 single-source — log messages keep the '[Network]' prefix.
+    return validateStrategyInputs(nodes, edges, '[Network]');
   }
 
   /**

@@ -29,8 +29,17 @@ import {
   DEFAULT_LABEL_PADDING,
 } from '@/visualization/layout-utils';
 
-/** Every consumer that sizes nodes from the label must wire the constants. */
-const DELEGATING_CONSUMERS = [
+/**
+ * Round 31: every strategy/engine that sized nodes from the label now
+ * delegates through `strategyNodeWidth` (visualization/strategy-common.ts),
+ * which is the only remaining direct wiring site of the constants.
+ */
+const DIRECT_CONSUMERS = [
+  'src/visualization/strategy-common.ts',
+];
+
+/** Sites whose width path reaches the constants transitively (round 31). */
+const TRANSITIVE_CONSUMERS = [
   'src/visualization/base/BaseLayoutEngine.ts',
   'src/visualization/strategies/DagreLayoutStrategy.ts',
   'src/visualization/strategies/TreeLayoutStrategy.ts',
@@ -47,9 +56,13 @@ describe('label-width constants single source (round 10)', () => {
     expect(DEFAULT_LABEL_PADDING).toBe(20);
   });
 
-  it.each(DELEGATING_CONSUMERS)('%s wires the canonical constants', (file) => {
+  it.each(DIRECT_CONSUMERS)('%s wires the canonical constants', (file) => {
     expect(readSource(file)).toMatch(/DEFAULT_CHAR_WIDTH/);
     expect(readSource(file)).toMatch(/DEFAULT_LABEL_PADDING/);
+  });
+
+  it.each(TRANSITIVE_CONSUMERS)('%s delegates node width to strategy-common', (file) => {
+    expect(readSource(file)).toMatch(/strategyNodeWidth\(/);
   });
 
   it('widen/cap behavior is unchanged by the delegation (8px/char, +20, clamp [base, 2*base])', () => {

@@ -14,7 +14,8 @@
 
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig, LayoutResult, LayoutMetrics, Point, BoundingBox, OverlapPair } from '../types';
-import { calculateNodeWidth, calculateNodeHeight, calculateNodeCenter, calculateDistance, calculateNodeDistance, generateEdgePoints, nodesOverlap, DEFAULT_CHAR_WIDTH, DEFAULT_LABEL_PADDING } from '../layout-utils';
+import { calculateNodeHeight, calculateNodeCenter, calculateDistance, calculateNodeDistance, generateEdgePoints, nodesOverlap } from '../layout-utils';
+import { strategyNodeWidth } from '../strategy-common';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 import { logger } from '@/utils/logger';
 
@@ -87,13 +88,11 @@ export abstract class BaseLayoutEngine {
    * Single source of truth for node width calculation
    */
   protected calculateNodeWidth(node: NodeDatum): number {
-    // Provide default values for charWidth and padding, as they are not in LayoutConfig
-    return calculateNodeWidth(node, {
-      nodeWidth: this.config.nodeWidth,
-      nodeHeight: this.config.nodeHeight, // nodeHeight is also part of NodeDimensionsConfig
-      charWidth: DEFAULT_CHAR_WIDTH,
-      padding: DEFAULT_LABEL_PADDING,
-    });
+    // Round 31 single-source — delegates to strategy-common.ts, gaining the
+    // explicit-dimension-first branch and the `|| DEFAULT_NODE_WIDTH`
+    // fallback the raw `this.config.nodeWidth` pass lacked (NaN-producing
+    // only under a `{}` config cast; engine constructors default the field).
+    return strategyNodeWidth(node, this.config);
   }
 
   /**

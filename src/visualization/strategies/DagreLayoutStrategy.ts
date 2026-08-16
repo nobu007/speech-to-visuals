@@ -1,7 +1,8 @@
 import dagre from '@dagrejs/dagre';
 import { DiagramType, NodeDatum, EdgeDatum, DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
-import { getGraphConfig, calculateNodeWidth as calculateNodeWidthUtil, DEFAULT_CHAR_WIDTH, DEFAULT_LABEL_PADDING } from '../layout-utils';
+import { getGraphConfig } from '../layout-utils';
+import { strategyNodeWidth } from '../strategy-common';
 import { FallbackLayoutStrategy } from './FallbackLayoutStrategy';
 import { logger } from '@/utils/logger';
 
@@ -96,12 +97,11 @@ export class DagreLayoutStrategy {
    * Uses the utility function from layout-utils.
    */
   private calculateNodeWidth(node: NodeDatum): number {
-    // Provide default values for charWidth and padding, as they are not in LayoutConfig
-    return calculateNodeWidthUtil(node, {
-      nodeWidth: this.config.nodeWidth,
-      nodeHeight: this.config.nodeHeight, // nodeHeight is also part of NodeDimensionsConfig
-      charWidth: DEFAULT_CHAR_WIDTH,
-      padding: DEFAULT_LABEL_PADDING,
-    });
+    // Round 31 single-source — delegates to strategy-common.ts, gaining the
+    // explicit-dimension-first branch and the `|| DEFAULT_NODE_WIDTH`
+    // fallback the raw `this.config.nodeWidth` pass lacked (NaN-producing
+    // only under a `{}` config cast; LayoutConfig.nodeWidth is typed required
+    // and engine constructors default it).
+    return strategyNodeWidth(node, this.config);
   }
 }
