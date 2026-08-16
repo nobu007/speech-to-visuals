@@ -57,6 +57,7 @@ import { RULES as strategySharedMembers } from './frozen-literal-families/strate
 import { RULES as strategyEdgeBuilders } from './frozen-literal-families/strategy-edge-builders';
 import { RULES as strategyEdgeRepointing } from './frozen-literal-families/strategy-edge-repointing';
 import { RULES as strategyNodeClone } from './frozen-literal-families/strategy-node-clone';
+import { RULES as dagreNodeExtraction } from './frozen-literal-families/dagre-node-extraction';
 
 /**
  * The ordered registry: families in the round order that closed them, entries
@@ -95,4 +96,5 @@ export const FROZEN_LITERAL_RULES: FrozenLiteralRule[] = [
   ...strategyEdgeBuilders,
   ...strategyEdgeRepointing,
   ...strategyNodeClone,
+  ...dagreNodeExtraction,
 ];

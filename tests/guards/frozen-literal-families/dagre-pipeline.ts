@@ -29,7 +29,9 @@ export const RULES: FrozenLiteralRule[] = [
    * fallback, and `edge.label || ''` for setEdge labels, so none of the
    * patterns below can match them; and test files (the walk skips
    * __tests__ and *.test.*, which is where the frozen verbatim oracle
-   * lives).
+   * lives). (Round 36 update: the v1 sites now DELEGATE that extraction to
+   * dagre-node-extraction.ts — the shape note above documents why the v1
+   * operand never matched, and the v1 re-roll ban is the round-36 family.)
    */
   {
     id: 'dagre pipeline extraction single-sourced in dagre-pipeline (round 30)',
