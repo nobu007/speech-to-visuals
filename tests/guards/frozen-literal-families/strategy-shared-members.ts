@@ -20,8 +20,10 @@ export const RULES: FrozenLiteralRule[] = [
       // the label-width tail re-wired outside the canonical delegation
       // (round 10 froze the constants; round 31 froze the call shape).
       /charWidth:\s*DEFAULT_CHAR_WIDTH/,
-      // the explicit-dimension-first preamble re-rolled at a strategy. Tree's
-      // resolveNodeHeight keeps a HEIGHT twin — different field, allowed.
+      // the explicit-dimension-first preamble re-rolled at a strategy.
+      // (Tree's height twin delegated to layout-utils resolveNodeHeight in
+      // round 37 — see the explicit-dimension-sizing family for the
+      // height-variant pattern.)
       /explicitWidth\s*=\s*node\.width/,
     ],
     minSweptFiles: 20,

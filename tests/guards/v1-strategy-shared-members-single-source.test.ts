@@ -402,7 +402,13 @@ describe('v1 strategy shared members single source (round 31)', () => {
 
     it('the shared module holds both frozen shapes', () => {
       const src = readSource('src/visualization/strategy-common.ts');
-      expect(src).toMatch(/node\.width \?\? \(node as NodeDatum & \{ w\?: number \}\)\.w/);
+      // Round 37: the explicit-width preamble moved verbatim into
+      // layout-utils.ts `resolveNodeWidth` (the ezo engine shares the same
+      // canonical branch); the anchor follows the shape, the delegation
+      // wiring stays here.
+      const canonical = readSource('src/visualization/layout-utils.ts');
+      expect(canonical).toMatch(/node\.width \?\? \(node as NodeDatum & \{ w\?: number \}\)\.w/);
+      expect(src).toMatch(/resolveNodeWidth\(node, \{/);
       expect(src).toMatch(/charWidth: DEFAULT_CHAR_WIDTH/);
       expect(src).toMatch(/Duplicate node IDs detected/);
     });

@@ -83,7 +83,7 @@ import {
   DEFAULT_MARGIN,
 } from '@/visualization/layout-spacing';
 import { strategyNodeWidth } from '@/visualization/strategy-common';
-import { getGraphConfig, calculateNodeWidth, calculateNodeHeight, generateEdgePoints } from '@/visualization/layout-utils';
+import { getGraphConfig, calculateNodeWidth, calculateNodeHeight, resolveNodeWidth, resolveNodeHeight, generateEdgePoints } from '@/visualization/layout-utils';
 import { positionedFromDagre } from '@/visualization/dagre-node-extraction';
 import type { LayoutConfig } from '@/visualization/types';
 import { DagreLayoutStrategy } from '@/visualization/strategies/DagreLayoutStrategy';
@@ -143,7 +143,7 @@ const CORPUS: ReadonlyArray<readonly [string, NodeDatum[], EdgeDatum[]]> = [
   ['long CJK labels widen extents',
     [{ id: 'wide', label: '音声から図解動画を自動生成するシステムの構成要素' }, { id: 'narrow', label: 'x' }],
     [{ from: 'wide', to: 'narrow' }]],
-  ['explicit dims (witness: ezo calc ignores them)',
+  ['explicit dims (round 37: ezo sizes explicit-first like every consumer)',
     [{ id: 'e1', label: 'E', width: 260, height: 90 }, { id: 'e2', label: 'F' }],
     [{ from: 'e1', to: 'e2' }]],
   ['dangling edges filtered before dagre (TC-307)',
@@ -271,8 +271,13 @@ function legacyEzoDagrePath(
   });
   g.setDefaultEdgeLabel(() => ({}));
   nodes.forEach(node => {
-    const width = calculateNodeWidth(node, ezoDimsConfig);
-    const height = calculateNodeHeight(node, ezoDimsConfig);
+    // Round 37: the live ezo sites moved from the raw label-driven estimate
+    // to the canonical explicit-first resolveNodeWidth/resolveNodeHeight
+    // (layout-utils). This replica pins the dagre EXTRACTION contract, not
+    // the sizing decision (that has its own family guard,
+    // ezo-explicit-dimension-sizing.test.ts), so it follows the migration.
+    const width = resolveNodeWidth(node, ezoDimsConfig);
+    const height = resolveNodeHeight(node, ezoDimsConfig);
     g.setNode(node.id, { width, height, label: node.label });
   });
   const nodeIds = new Set(nodes.map(n => n.id));

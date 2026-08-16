@@ -40,26 +40,30 @@
  *     since r17; dagre is deterministic) — without this, before/after
  *     outcome comparisons are meaningless.
  *
- * Findings probed at creation (documented in the round-36 spec record, NOT
- * fixed here — both are design-heavy semantics changes on the live render
- * path, each deserving its own round with delta oracles):
+ * Findings probed at creation (round 36) — FIXED IN ROUND 37:
  *   - ezo's qualityMetrics.overlapCount conflates geometric overlap with
  *     violations of minimumSpacing.nodeToNode (40px): the engine returns
  *     success=false on final layouts that are geometrically overlap-free
  *     (mixed-extent + dense-hub shapes). The success flag flows into the
  *     simple pipeline's layout result. The guard pins the GEOMETRIC contract
- *     plus the flag's internal consistency.
- *   - ezo emits GENUINE geometric overlaps on 4 of the 40 type × topology
+ *     plus the flag's internal consistency. STILL the semantics as of round
+ *     37 — a deliberate, separately-tracked decision, not a sizing bug.
+ *   - ezo emitted GENUINE geometric overlaps on 4 of the 40 type × topology
  *     combos (tree/mixed-extents and dense-hub under flowchart/tree/timeline),
  *     despite the class's "zero overlap guaranteed" contract. Two root
- *     causes: (a) sizing-source divergence — the ezo dagre paths size boxes
- *     with the label-driven calculateNodeWidth (clamped to [base, 2×base],
- *     NEVER reads node.width) while every downstream measurement
- *     (getNodeWidth) honors the explicit width field first, so a width-400
- *     input node is PLACED as a ≤240px box but MEASURED as 400px; (b) the
- *     overlap resolver does not fully separate 16-spoke hubs. These are
- *     pinned as exact expected pair lists below (KNOWN_EZO_GAPS): an
- *     improvement OR a worsening forces a conscious update to this file.
+ *     causes, both closed in round 37: (a) sizing-source divergence — the ezo
+ *     paths sized boxes with the label-driven calculateNodeWidth (clamped to
+ *     [base, 2×base], NEVER reads node.width) while every downstream
+ *     measurement (getNodeWidth) honors the explicit width field first, so a
+ *     width-400 input node was PLACED as a ≤240px box but MEASURED as 400px —
+ *     closed by resolveNodeWidth/resolveNodeHeight (layout-utils.ts, the
+ *     round-31 explicit-first branch made engine-wide); (b) the force loop's
+ *     no-progress exit stranded residual overlaps when a displacement traded
+ *     one pair for another — closed by a final production-OverlapResolver
+ *     last-mile pass (clamped to the fixed canvas, kept only when still
+ *     geometric-clean) inside resolveAllOverlaps. The ezo block below
+ *     therefore asserts the SAME zero-overlap contract as the executeLayout
+ *     block; a reintroduced gap fails red instead of being pinned.
  *
  * Both probes were RUN at creation (not asserted from reading):
  *   - RED probe: disabling the OverlapResolver branch in executeLayout (the
@@ -221,27 +225,15 @@ describe('layout outcome regression — overlap-free, finite, deterministic (ste
     const engine = new EnhancedZeroOverlapLayoutEngine();
     const EZO_TYPES: DiagramType[] = ['flowchart', 'tree', 'timeline', 'comparison', 'network'];
 
-    // KNOWN GAPS, pinned exactly (probed at guard creation, NOT fixed here —
-    // see the file header for both root causes). These 4 of 40 combos emit
-    // GENUINE geometric overlaps from the "zero overlap guaranteed" engine.
-    // The values are the exact pair lists the independent AABB produces, so a
-    // fix (list shrinks/empties) or a regression (grows/new combo) both turn
-    // this suite RED and force a conscious decision here.
-    const KNOWN_EZO_GAPS: Record<string, string[]> = {
-      'flowchart / dense hub (16 spokes, physics stress)':
-        ['s1×s2', 's2×s3', 's3×s4', 's4×s5', 's5×s6', 's6×s7', 's7×s8', 's8×s9',
-         's9×s10', 's10×s11', 's11×s12', 's12×s13', 's13×s14', 's14×s15'],
-      'tree / dense hub (16 spokes, physics stress)':
-        ['hub×s0', 's0×s3', 's12×s13', 's14×s15'],
-      'timeline / dense hub (16 spokes, physics stress)':
-        ['hub×s0', 's1×s2', 's2×s3', 's3×s4', 's4×s5', 's5×s6', 's6×s7', 's7×s8',
-         's8×s9', 's9×s10', 's10×s11', 's11×s12', 's12×s13', 's14×s15'],
-      'tree / mixed extents (r30 shape: dagre LR overlap is real here)':
-        ['m0×m1', 'm2×m3'],
-    };
+    // Round 36 found 4 of these 40 combos emitting GENUINE geometric overlaps
+    // and pinned them as KNOWN_EZO_GAPS; round 37 fixed both root causes (see
+    // the file header). The pins are GONE on purpose: every ezo combo now
+    // asserts the same zero-overlap contract as the executeLayout block, so a
+    // reintroduced gap — sizing regression, resolver strand, canvas clamp
+    // re-overlap — fails RED instead of matching a stale expected list.
 
-    // KNOWN CURRENT SEMANTICS (probed at guard creation, NOT a bug fix here):
-    // ezo's detectAllOverlaps counts a pair as "overlapping" when it violates
+    // KNOWN CURRENT SEMANTICS (unchanged by round 37, deliberately): ezo's
+    // detectAllOverlaps counts a pair as "overlapping" when it violates
     // minimumSpacing.nodeToNode (40px), so qualityMetrics.overlapCount can be
     // > 0 — and success false — while the FINAL GEOMETRY is overlap-free in
     // the plain sense (independent AABB: zero pairs). Empirically the
@@ -252,18 +244,14 @@ describe('layout outcome regression — overlap-free, finite, deterministic (ste
     for (const diagramType of EZO_TYPES) {
       for (const [caseName, nodes, edges] of CORPUS) {
         const key = `${diagramType} / ${caseName}`;
-        const expectedPairs = KNOWN_EZO_GAPS[key] ?? [];
-        const expectation = expectedPairs.length === 0
-          ? 'geometrically overlap-free'
-          : `exactly the pinned known-gap pairs (${expectedPairs.length})`;
-        it(`outcome: ${expectation} + finite — ${key}`, async () => {
+        it(`outcome: geometrically overlap-free + finite — ${key}`, async () => {
           const result = await engine.generateZeroOverlapLayout(
             diagramType,
             [...nodes],
             [...edges] as EdgeDatum[],
           );
 
-          expect(independentOverlapPairs(result.nodes)).toEqual(expectedPairs);
+          expect(independentOverlapPairs(result.nodes)).toEqual([]);
           finiteNodeOutcomes(result);
           expect(result.success).toBe(result.qualityMetrics.overlapCount === 0);
           expect(result.nodes.map(n => n.id).sort()).toEqual(nodes.map(n => n.id).sort());
