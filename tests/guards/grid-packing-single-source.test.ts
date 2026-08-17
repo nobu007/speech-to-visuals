@@ -2,7 +2,8 @@
  * @jest-environment node
  */
 /**
- * grid-packing-single-source.test.ts — round 50.
+ * grid-packing-single-source.test.ts — round 50 (round 51: migrated to the
+ * table-driven harness).
  *
  * Family: the square-grid packing skeleton + the cell-centered stamp —
  *   columns: `Math.max(1, Math.ceil(Math.sqrt(count)))`      (10 sites)
@@ -33,22 +34,31 @@
  *      LayoutOptimizer.improveMatrixGrid, matrix, general)
  * The canonical is B (the strategy layer's majority form). Layer 1 pins
  * BOTH retired forms: B sites are Object.is-identical to the canonical;
- * A sites may differ by last-ulp regrouping, pinned ≤ 1e-12 px (measured
- * max 9.1e-13 over the full canvas sweep — 8 orders below render precision,
- * unable to flip an overlap predicate at real node sizes).
+ * A sites may differ by last-ulp regrouping, pinned ≤ 1e-12 px on canvas
+ * domains (measured max 9.1e-13 over the full canvas sweep — 8 orders below
+ * render precision, unable to flip an overlap predicate at real node sizes)
+ * and ≤ 1e-9 on the fuzz tail (measured max 5.8e-11).
  *
- * Layers:
- *   1. VERBATIM ORACLE — every retired expression frozen below (columns,
- *      rows, aspect, stamp A, stamp B, matrix's two-step B variant),
- *      equated to the canonicals over seeded corpora.
+ * Layers (round 51: the MECHANICAL layers 1 and 3 are data rows on the
+ * shared harness — see single-source-harness.ts; Layer 2 stays handwritten):
+ *   1. VERBATIM ORACLE rows — every retired expression frozen below
+ *      (columns, rows, aspect, stamp A, stamp B, matrix's two-step B
+ *      variant), equated to the canonicals over seeded corpora. The delta
+ *      rows carry the mandatory > 0 witness (a vacuous bound would hide the
+ *      behavior change this round shipped).
  *   2. SEMANTIC PINS — the live-clamp witnesses (0 → 1 column/row), NaN
- *      contracts, stamp arithmetic, and live strategy witnesses (matrix
+ *      contracts, stamp arithmetic, live strategy witnesses (matrix
  *      integer-exact stamp; general spiral stamp recomposed from
- *      primitives).
- *   3. SOURCE ANCHORS — every migrated file delegates with its shape, the
- *      raw expressions live in exactly one module, and the scope-outs
+ *      primitives), and the aspect compose-exact witness (moved here from
+ *      layer 1 in round 51: it is a canonical-vs-canonical delegation
+ *      check, not a retired-vs-canonical oracle — see the fingerprint
+ *      ledger in harness-fingerprint.test.ts).
+ *   3. SOURCE ANCHOR rows — every migrated file delegates with its shape,
+ *      the raw expressions live in exactly one module, and the scope-outs
  *      (origin-only snap stamp, multi-cell span stamp, fixed-pitch grid)
- *      keep their inline forms.
+ *      keep their inline forms. Scope 'source' preserves the retired
+ *      whole-file `src.match(/…/g)` counts; scope 'code' (default) excludes
+ *      comment lines.
  *
  * The "no site re-inlines the family" discovery sweep lives in the shared
  * registry (frozen-literal-families/grid-packing.ts); this file holds the
@@ -57,7 +67,7 @@
 
 import { describe, it, expect } from '@jest/globals';
 import { mulberry32 } from '@tests/helpers/fuzz';
-import { readSource } from '@tests/guards/freeze-guard';
+import { oracleRow, anchorRow, describeSingleSource } from '@tests/guards/single-source-harness';
 import {
   squareGridColumns,
   squareGridRows,
@@ -156,98 +166,280 @@ function buildFuzzStampCorpus(): Array<[number, number, number, number]> {
   return cases;
 }
 
+/** (count, columns) tuples — the retired rows sites' seeded inputs: the
+ *  2000-case fuzz plus the hand-built count × canonical-columns grid. */
+function buildRowsCorpus(): Array<[number, number]> {
+  const rng = mulberry32(5022);
+  const cases: Array<[number, number]> = [];
+  for (let k = 0; k < 2000; k++) {
+    const count = COUNTS[Math.floor(rng() * COUNTS.length)];
+    const columns = squareGridColumns(Math.floor(rng() * 500));
+    cases.push([count, columns]);
+  }
+  for (const count of COUNTS) {
+    for (const columns of [1, 2, 3, 7, 13, 100]) {
+      cases.push([count, columns]);
+    }
+  }
+  return cases;
+}
+
+/** (count, ratio) tuples — the retired aspect sites' inputs (NaN/0/negative
+ *  ratios included: the max(1, …) clamp and the NaN passthrough both pin). */
+function buildAspectCorpus(): Array<[number, number]> {
+  const ratios = [TARGET_ASPECT_RATIO, 1, 0.5, 0.75, 9 / 16, 2, 4 / 3, NaN, 0, -1.5];
+  const cases: Array<[number, number]> = [];
+  for (const count of COUNTS) {
+    for (const ratio of ratios) {
+      cases.push([count, ratio]);
+    }
+  }
+  return cases;
+}
+
+/** Integer-friendly grids — every layout test's domain: integer cell with
+ *  even (cell − extent) has no rounding at all, both with the default
+ *  origin (3-tuple → optional param) and with origin 80. */
+function buildIntegerExactCorpus(): Array<[number, number, number] | [number, number, number, number]> {
+  const cases: Array<[number, number, number] | [number, number, number, number]> = [];
+  for (let i = 0; i < 10; i++) {
+    for (const cell of [100, 240, 480, 880]) {
+      for (const extent of [60, 120, 140]) {
+        cases.push([i, cell, extent]);
+        cases.push([i, cell, extent, 80]);
+      }
+    }
+  }
+  return cases;
+}
+
 const CANVAS_STAMP_CORPUS = buildCanvasStampCorpus();
 const FUZZ_STAMP_CORPUS = buildFuzzStampCorpus();
 
-describe('round 50: grid packing single source — layer 1 verbatim oracle', () => {
-  it('the columns derivation is byte-identical at every retired count', () => {
-    for (const count of COUNTS) {
-      expect(Object.is(squareGridColumns(count), legacyColumns(count))).toBe(true);
-    }
-    // NaN/negative contract: sqrt(NaN) and sqrt(negative) are NaN, and
-    // max(1, NaN) is NaN — the retired forms did exactly this.
-    for (const count of [NaN, -1, -4, Infinity, 2.5, 0.000001]) {
-      expect(Object.is(squareGridColumns(count), legacyColumns(count))).toBe(true);
-    }
-  });
+// ---------------------------------------------------------------------------
+// Layer 3 material: delegation shapes + bans.
+// ---------------------------------------------------------------------------
 
-  it('the rows derivation is byte-identical over counts × canonical columns', () => {
-    const rng = mulberry32(5022);
-    for (let k = 0; k < 2000; k++) {
-      const count = COUNTS[Math.floor(rng() * COUNTS.length)];
-      const columns = squareGridColumns(Math.floor(rng() * 500));
-      expect(Object.is(squareGridRows(count, columns), legacyRows(count, columns))).toBe(true);
-    }
-    for (const count of COUNTS) {
-      for (const columns of [1, 2, 3, 7, 13, 100]) {
-        expect(Object.is(squareGridRows(count, columns), legacyRows(count, columns))).toBe(true);
-      }
-    }
-  });
+const LAYOUT_UTILS = 'src/visualization/layout-utils.ts';
+const EZO = 'src/visualization/enhanced-zero-overlap-layout.ts';
+const NETWORK = 'src/visualization/strategies/NetworkLayoutStrategy.ts';
+const CONCEPTMAP = 'src/visualization/strategies/ConceptMapLayoutStrategy.ts';
+const OPTIMIZER = 'src/visualization/strategies/LayoutOptimizer.ts';
+const FALLBACK = 'src/visualization/strategies/FallbackLayoutStrategy.ts';
+const ADVANCED = 'src/visualization/advanced-layouts.ts';
+const GRIDSNAP = 'src/visualization/layout/strategies/GridSnapStrategy.ts';
+const FLOW = 'src/visualization/strategies/flow-strategy.ts';
+const MATRIX = 'src/visualization/strategies/matrix-strategy.ts';
+const GENERAL = 'src/visualization/strategies/general-strategy.ts';
+const OVERLAP = 'src/visualization/overlap-resolver.ts';
 
-  it('the aspect derivation preserves the retired operand order (count · ratio)', () => {
-    const ratios = [TARGET_ASPECT_RATIO, 1, 0.5, 0.75, 9 / 16, 2, 4 / 3, NaN, 0, -1.5];
-    for (const count of COUNTS) {
-      for (const ratio of ratios) {
-        expect(Object.is(aspectGridColumns(count, ratio), legacyAspectColumns(count, ratio))).toBe(true);
-      }
-    }
-    // the compose is exact: aspectGridColumns delegates the SAME product to
-    // squareGridColumns — no re-grouped sqrt of a re-associated multiply.
-    expect(aspectGridColumns(12, TARGET_ASPECT_RATIO)).toBe(squareGridColumns(12 * TARGET_ASPECT_RATIO));
-  });
+const RAW_COLUMNS = /Math\.max\(1,\s*Math\.ceil\(Math\.sqrt\(/;
+const RAW_ROWS = /Math\.max\(1,\s*Math\.ceil\([^\n()]*\/\s*[^\n()]*\)\)/;
 
-  it('stamp B sites are Object.is-identical to the canonical (zero delta)', () => {
-    // ConceptMap / Fallback / improveMatrixGrid / general were ALREADY the
-    // canonical grouping; delegating them cannot move a single bit.
-    for (const [i, cell, extent, origin] of [...CANVAS_STAMP_CORPUS, ...FUZZ_STAMP_CORPUS]) {
-      expect(Object.is(centerInCell(i, cell, extent, origin), legacyStampB(i, cell, extent, origin))).toBe(true);
-    }
-  });
+/** Files whose rows-divisor ban is checked individually (the retired
+ *  'no swept file re-inlines the rows divisor' loop). */
+const ROWS_BAN_FILES: ReadonlyArray<[string, string]> = [
+  [EZO, 'ezo'],
+  [CONCEPTMAP, 'conceptmap'],
+  [OPTIMIZER, 'optimizer'],
+  [FALLBACK, 'fallback'],
+  [MATRIX, 'matrix'],
+  [GENERAL, 'general'],
+  [OVERLAP, 'overlap-resolver'],
+];
 
-  it("matrix's two-step B variant folds to the same canonical call", () => {
-    for (const [i, cell, extent, origin] of [...CANVAS_STAMP_CORPUS, ...FUZZ_STAMP_CORPUS]) {
-      expect(Object.is(centerInCell(i, cell, extent, origin), legacyStampMatrix(i, cell, extent, origin))).toBe(true);
-    }
-  });
+// ---------------------------------------------------------------------------
+// The rows — Layer 1 oracles + Layer 3 anchors (round 51 migration).
+// ---------------------------------------------------------------------------
 
-  it('stamp A sites (ezo ×2, Network, optimizeMatrixLayout) shift by ≤ 1e-12 px on canvas domains — and the witness PROVES the shift is real', () => {
-    // The regrouping (a + b) − c → a + (b − c) rounds at different points;
-    // last-ulp differences exist and MUST be pinned as existing (a vacuous
-    // bound would hide the behavior change this round ships).
-    let deltas = 0;
-    for (const [i, cell, extent, origin] of CANVAS_STAMP_CORPUS) {
-      const got = centerInCell(i, cell, extent, origin);
-      const legacy = legacyStampA(i, cell, extent, origin);
-      if (!Object.is(got, legacy)) {
-        deltas++;
-        expect(Math.abs(got - legacy)).toBeLessThanOrEqual(1e-12);
-      }
-    }
-    expect(deltas).toBeGreaterThan(0); // the bound is exercised, not vacuous
-    // Integer-friendly grids — every layout test's domain — stay EXACT:
-    // integer cell with even (cell − extent) has no rounding at all.
-    for (let i = 0; i < 10; i++) {
-      for (const cell of [100, 240, 480, 880]) {
-        for (const extent of [60, 120, 140]) {
-          expect(Object.is(centerInCell(i, cell, extent), legacyStampA(i, cell, extent))).toBe(true);
-          expect(Object.is(centerInCell(i, cell, extent, 80), legacyStampA(i, cell, extent, 80))).toBe(true);
-        }
-      }
-    }
-  });
+const GRID_PACKING_ROWS = [
+  // ---- Layer 1: verbatim oracles -----------------------------------------
+  oracleRow({
+    id: 'columns-verbatim',
+    canonical: (count: number) => squareGridColumns(count),
+    retired: legacyColumns,
+    corpus: [...COUNTS, NaN, -1, -4, Infinity, 2.5, 0.000001].map((c) => [c] as [number]),
+    mode: { kind: 'object-is' },
+  }),
+  oracleRow({
+    id: 'rows-verbatim',
+    canonical: (count: number, columns: number) => squareGridRows(count, columns),
+    retired: legacyRows,
+    corpus: buildRowsCorpus(),
+    mode: { kind: 'object-is' },
+  }),
+  oracleRow({
+    id: 'aspect-verbatim',
+    canonical: (count: number, ratio: number) => aspectGridColumns(count, ratio),
+    retired: legacyAspectColumns,
+    corpus: buildAspectCorpus(),
+    mode: { kind: 'object-is' },
+  }),
+  oracleRow({
+    id: 'stamp-b-object-is',
+    canonical: (i: number, cell: number, extent: number, origin: number) => centerInCell(i, cell, extent, origin),
+    retired: legacyStampB,
+    corpus: [...CANVAS_STAMP_CORPUS, ...FUZZ_STAMP_CORPUS],
+    mode: { kind: 'object-is' },
+  }),
+  oracleRow({
+    id: 'stamp-matrix-object-is',
+    canonical: (i: number, cell: number, extent: number, origin: number) => centerInCell(i, cell, extent, origin),
+    retired: legacyStampMatrix,
+    corpus: [...CANVAS_STAMP_CORPUS, ...FUZZ_STAMP_CORPUS],
+    mode: { kind: 'object-is' },
+  }),
+  oracleRow({
+    id: 'stamp-a-canvas-delta',
+    // the regrouping (a + b) − c → a + (b − c) rounds at different points;
+    // last-ulp differences exist and MUST be pinned as existing.
+    canonical: (i: number, cell: number, extent: number, origin: number) => centerInCell(i, cell, extent, origin),
+    retired: legacyStampA,
+    corpus: CANVAS_STAMP_CORPUS,
+    mode: { kind: 'delta', maxDelta: 1e-12 },
+  }),
+  oracleRow({
+    id: 'stamp-a-integer-exact',
+    canonical: (i: number, cell: number, extent: number, origin: number) => centerInCell(i, cell, extent, origin),
+    retired: legacyStampA,
+    corpus: buildIntegerExactCorpus(),
+    mode: { kind: 'object-is' },
+  }),
+  oracleRow({
+    id: 'stamp-a-fuzz-delta',
+    // measured max 5.8e-11 at i·cell up to ~5e5 — still ~7 result-ulps
+    canonical: (i: number, cell: number, extent: number, origin: number) => centerInCell(i, cell, extent, origin),
+    retired: legacyStampA,
+    corpus: FUZZ_STAMP_CORPUS,
+    mode: { kind: 'delta', maxDelta: 1e-9 },
+  }),
+  // ---- Layer 3: source anchors -------------------------------------------
+  // layout-utils holds each raw expression exactly once (the canonicals).
+  anchorRow({ kind: 'occurs', id: 'utils-raw-columns-once', file: LAYOUT_UTILS, pattern: RAW_COLUMNS, exactly: 1 }),
+  anchorRow({ kind: 'occurs', id: 'utils-raw-rows-divisor-once', file: LAYOUT_UTILS, pattern: /Math\.ceil\(count \/ columns\)/, exactly: 1 }),
+  anchorRow({ kind: 'occurs', id: 'utils-raw-stamp-b-once', file: LAYOUT_UTILS, pattern: /return origin \+ index \* cell \+ \(cell - extent\) \/ 2;/, exactly: 1 }),
+  anchorRow({ kind: 'occurs', id: 'utils-aspect-composes-columns-once', file: LAYOUT_UTILS, pattern: /return squareGridColumns\(count \* aspectRatio\);/, exactly: 1 }),
+  // ezo delegates both grid sites (network init + basic grid, 4 stamps).
+  anchorRow({ kind: 'occurs', id: 'ezo-columns-delegates', file: EZO, pattern: /squareGridColumns\(nodes\.length\)/, exactly: 2, scope: 'source' }),
+  anchorRow({ kind: 'occurs', id: 'ezo-rows-delegates', file: EZO, pattern: /squareGridRows\(nodes\.length, cols\)/, exactly: 1, scope: 'source' }),
+  anchorRow({ kind: 'occurs', id: 'ezo-stamps-delegate', file: EZO, pattern: /centerInCell\((?:col|row), cell(?:Width|Height), (?:width|height)\)/, exactly: 4, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'ezo-no-raw-columns', file: EZO, pattern: RAW_COLUMNS }),
+  // NetworkLayoutStrategy delegates the init grid + both stamps.
+  anchorRow({ kind: 'occurs-at-least', id: 'network-grid-delegates', file: NETWORK, pattern: /const gridSize = squareGridColumns\(nodes\.length\);/, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'occurs', id: 'network-stamps-delegate', file: NETWORK, pattern: /const grid[XY] = centerInCell\(/, exactly: 2, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'network-no-raw-columns', file: NETWORK, pattern: RAW_COLUMNS }),
+  // ConceptMapLayoutStrategy delegates packing + both stamps.
+  anchorRow({ kind: 'occurs-at-least', id: 'conceptmap-columns-delegates', file: CONCEPTMAP, pattern: /const cols = squareGridColumns\(nodes\.length\);/, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'occurs-at-least', id: 'conceptmap-rows-delegates', file: CONCEPTMAP, pattern: /const rows = squareGridRows\(nodes\.length, cols\);/, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'occurs', id: 'conceptmap-stamps-delegate', file: CONCEPTMAP, pattern: /centerInCell\((?:col|row), cell(?:Width|Height), (?:width|height)\)/, exactly: 2, scope: 'source' }),
+  // LayoutOptimizer delegates both matrix grids (2 packings + 4 stamps).
+  anchorRow({ kind: 'occurs', id: 'optimizer-columns-delegates', file: OPTIMIZER, pattern: /squareGridColumns\(nodes\.length\)/, exactly: 2, scope: 'source' }),
+  anchorRow({ kind: 'occurs', id: 'optimizer-rows-delegates', file: OPTIMIZER, pattern: /squareGridRows\(nodes\.length, cols\)/, exactly: 1, scope: 'source' }),
+  anchorRow({ kind: 'occurs', id: 'optimizer-stamps-delegate', file: OPTIMIZER, pattern: /centerInCell\(/, exactly: 4, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'optimizer-no-raw-columns', file: OPTIMIZER, pattern: RAW_COLUMNS }),
+  // FallbackLayoutStrategy delegates packing (inline rows divisor
+  // included) + both stamps.
+  anchorRow({ kind: 'occurs-at-least', id: 'fallback-columns-delegates', file: FALLBACK, pattern: /const cols = squareGridColumns\(nodes\.length\);/, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'occurs-at-least', id: 'fallback-rows-delegates', file: FALLBACK, pattern: /squareGridRows\(nodes\.length, cols\)/, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'occurs', id: 'fallback-stamps-delegate', file: FALLBACK, pattern: /centerInCell\((?:col|row), spacing[XY], node(?:Width|Height)\)/, exactly: 2, scope: 'source' }),
+  // advanced-layouts delegates columns and RETIRES the dead unclamped rows
+  // copy (comment lines excluded so the ban matches CODE, not the
+  // retirement note itself).
+  anchorRow({ kind: 'occurs-at-least', id: 'advanced-columns-delegates', file: ADVANCED, pattern: /const cols = squareGridColumns\(nodes\.length\);/, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'advanced-dead-rows-copy-retired', file: ADVANCED, pattern: /Math\.ceil\(nodes\.length \/ cols\)/ }),
+  anchorRow({ kind: 'occurs-at-least', id: 'advanced-fixed-pitch-stamp-stays', file: ADVANCED, pattern: /200 \+ \(index % cols\) \* 200/, atLeast: 1, scope: 'source' }),
+  // GridSnapStrategy delegates the cell-bound columns and keeps its
+  // multi-cell span-center stamp (scope-out: span center is a different
+  // concept, not remaining-space center).
+  anchorRow({ kind: 'occurs-at-least', id: 'gridsnap-columns-delegates', file: GRIDSNAP, pattern: /const sqrtNodes = squareGridColumns\(nodes\.length\);/, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'occurs-at-least', id: 'gridsnap-span-stamp-stays', file: GRIDSNAP, pattern: /\(this\.cellSize \* cellsWide\) \/ 2/, atLeast: 1, scope: 'source' }),
+  // flow-strategy delegates the row-capacity columns.
+  anchorRow({ kind: 'occurs-at-least', id: 'flow-columns-delegates', file: FLOW, pattern: /const maxPerRow = squareGridColumns\(originalNodes\.length\);/, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'flow-no-raw-columns', file: FLOW, pattern: RAW_COLUMNS }),
+  // matrix-strategy delegates aspect packing + rows + the padded stamp.
+  anchorRow({ kind: 'occurs-at-least', id: 'matrix-aspect-delegates', file: MATRIX, pattern: /aspectGridColumns\(nodeCount, TARGET_ASPECT_RATIO\)/, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'occurs-at-least', id: 'matrix-rows-delegates', file: MATRIX, pattern: /squareGridRows\(nodeCount, columns\)/, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'occurs', id: 'matrix-stamps-delegate', file: MATRIX, pattern: /centerInCell\((?:col|row), cell(?:Width|Height), node(?:Width|Height), CANVAS_PADDING\)/, exactly: 2, scope: 'source' }),
+  // general-strategy delegates aspect packing + rows + the spiral stamps.
+  anchorRow({ kind: 'occurs-at-least', id: 'general-aspect-delegates', file: GENERAL, pattern: /aspectGridColumns\(sortedNodes\.length, TARGET_ASPECT_RATIO\)/, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'occurs-at-least', id: 'general-rows-delegates', file: GENERAL, pattern: /squareGridRows\(sortedNodes\.length, columns\)/, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'occurs', id: 'general-stamps-delegate', file: GENERAL, pattern: /centerInCell\(pos\.(?:col|row), cell(?:Width|Height), [wh], offset[XY]\)/, exactly: 2, scope: 'source' }),
+  // overlap-resolver delegates aspect packing and KEEPS the origin-only
+  // snap stamp (`col · cellWidth + 40` has no centering term — folding it
+  // into centerInCell would CHANGE the resolver's snap semantics).
+  anchorRow({ kind: 'occurs-at-least', id: 'overlap-aspect-delegates', file: OVERLAP, pattern: /aspectGridColumns\(nodes\.length, aspectRatio\)/, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'occurs-at-least', id: 'overlap-rows-delegates', file: OVERLAP, pattern: /squareGridRows\(nodes\.length, columns\)/, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'occurs', id: 'overlap-snap-stamp-x-stays', file: OVERLAP, pattern: /x: col \* cellWidth \+ 40,/, exactly: 1, scope: 'source' }),
+  anchorRow({ kind: 'occurs', id: 'overlap-snap-stamp-y-stays', file: OVERLAP, pattern: /y: row \* cellHeight \+ 40,/, exactly: 1, scope: 'source' }),
+  // No swept file re-inlines the rows divisor shape outside the canonical.
+  ...ROWS_BAN_FILES.map(([file, label]) =>
+    anchorRow({ kind: 'ban', id: `${label}-no-raw-rows-divisor`, file, pattern: RAW_ROWS }),
+  ),
+];
 
-  it('stamp A fuzz tail: deltas stay last-ulp class beyond canvas domains too', () => {
-    for (const [i, cell, extent, origin] of FUZZ_STAMP_CORPUS) {
-      const got = centerInCell(i, cell, extent, origin);
-      const legacy = legacyStampA(i, cell, extent, origin);
-      if (!Object.is(got, legacy)) {
-        // measured max 5.8e-11 at i·cell up to ~5e5 — still ~7 result-ulps
-        expect(Math.abs(got - legacy)).toBeLessThanOrEqual(1e-9);
-      }
-    }
-  });
-});
+/** The pinned row enumeration — corpus shrink / row delete / ban delete
+ *  flips the generated fingerprint it RED (TC-004-E01, permanently).
+ *  Every count is a STATIC LITERAL (846,000 canvas cases + 4,000 fuzz):
+ *  interpolating corpus .length here makes the pin track the shrink and
+ *  the ratchet degenerate (caught by the M3 corpus-shrink mutation — the
+ *  pin must not be self-referential). */
+const GRID_PACKING_FINGERPRINT = [
+  'grid-packing:columns-verbatim:28',
+  'grid-packing:rows-verbatim:2132',
+  'grid-packing:aspect-verbatim:220',
+  'grid-packing:stamp-b-object-is:850000',
+  'grid-packing:stamp-matrix-object-is:850000',
+  'grid-packing:stamp-a-canvas-delta:846001',
+  'grid-packing:stamp-a-integer-exact:240',
+  'grid-packing:stamp-a-fuzz-delta:4001',
+  'grid-packing:utils-raw-columns-once:1',
+  'grid-packing:utils-raw-rows-divisor-once:1',
+  'grid-packing:utils-raw-stamp-b-once:1',
+  'grid-packing:utils-aspect-composes-columns-once:1',
+  'grid-packing:ezo-columns-delegates:1',
+  'grid-packing:ezo-rows-delegates:1',
+  'grid-packing:ezo-stamps-delegate:1',
+  'grid-packing:ezo-no-raw-columns:1',
+  'grid-packing:network-grid-delegates:1',
+  'grid-packing:network-stamps-delegate:1',
+  'grid-packing:network-no-raw-columns:1',
+  'grid-packing:conceptmap-columns-delegates:1',
+  'grid-packing:conceptmap-rows-delegates:1',
+  'grid-packing:conceptmap-stamps-delegate:1',
+  'grid-packing:optimizer-columns-delegates:1',
+  'grid-packing:optimizer-rows-delegates:1',
+  'grid-packing:optimizer-stamps-delegate:1',
+  'grid-packing:optimizer-no-raw-columns:1',
+  'grid-packing:fallback-columns-delegates:1',
+  'grid-packing:fallback-rows-delegates:1',
+  'grid-packing:fallback-stamps-delegate:1',
+  'grid-packing:advanced-columns-delegates:1',
+  'grid-packing:advanced-dead-rows-copy-retired:1',
+  'grid-packing:advanced-fixed-pitch-stamp-stays:1',
+  'grid-packing:gridsnap-columns-delegates:1',
+  'grid-packing:gridsnap-span-stamp-stays:1',
+  'grid-packing:flow-columns-delegates:1',
+  'grid-packing:flow-no-raw-columns:1',
+  'grid-packing:matrix-aspect-delegates:1',
+  'grid-packing:matrix-rows-delegates:1',
+  'grid-packing:matrix-stamps-delegate:1',
+  'grid-packing:general-aspect-delegates:1',
+  'grid-packing:general-rows-delegates:1',
+  'grid-packing:general-stamps-delegate:1',
+  'grid-packing:overlap-aspect-delegates:1',
+  'grid-packing:overlap-rows-delegates:1',
+  'grid-packing:overlap-snap-stamp-x-stays:1',
+  'grid-packing:overlap-snap-stamp-y-stays:1',
+  'grid-packing:ezo-no-raw-rows-divisor:1',
+  'grid-packing:conceptmap-no-raw-rows-divisor:1',
+  'grid-packing:optimizer-no-raw-rows-divisor:1',
+  'grid-packing:fallback-no-raw-rows-divisor:1',
+  'grid-packing:matrix-no-raw-rows-divisor:1',
+  'grid-packing:general-no-raw-rows-divisor:1',
+  'grid-packing:overlap-resolver-no-raw-rows-divisor:1',
+].join('\n');
+
+describeSingleSource('grid-packing', GRID_PACKING_ROWS, { fingerprint: GRID_PACKING_FINGERPRINT });
 
 // ---------------------------------------------------------------------------
 // Layer 2: semantic pins — live clamps, contracts, and live strategies.
@@ -278,6 +470,10 @@ describe('round 50: grid packing — layer 2 semantic pins', () => {
     expect(TARGET_ASPECT_RATIO).toBe(16 / 9);
     expect(aspectGridColumns(9, TARGET_ASPECT_RATIO)).toBe(4); // ceil(√16)
     expect(aspectGridColumns(9, TARGET_ASPECT_RATIO)).toBeGreaterThan(squareGridColumns(9));
+  });
+
+  it('aspect compose is exact: aspectGridColumns delegates the SAME product to squareGridColumns — no re-grouped sqrt of a re-associated multiply (moved from layer 1 in round 51)', () => {
+    expect(aspectGridColumns(12, TARGET_ASPECT_RATIO)).toBe(squareGridColumns(12 * TARGET_ASPECT_RATIO));
   });
 
   it('stamp arithmetic: half the remaining space, per axis, after the origin', () => {
@@ -311,130 +507,5 @@ describe('round 50: grid packing — layer 2 semantic pins', () => {
     const expectedY = centerInCell(0, cellH, 60, offsetY);
     expect(result.nodes[0].x).toBe(expectedX);
     expect(result.nodes[0].y).toBe(expectedY);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Layer 3: source anchors — delegation shapes at every migrated site, the
-// raw expressions exactly once, the scope-outs documented.
-// ---------------------------------------------------------------------------
-
-const RAW_COLUMNS = /Math\.max\(1,\s*Math\.ceil\(Math\.sqrt\(/;
-const RAW_ROWS = /Math\.max\(1,\s*Math\.ceil\([^\n()]*\/\s*[^\n()]*\)\)/;
-
-function codeLines(rel: string): string[] {
-  return readSource(rel)
-    .split('\n')
-    .filter((line) => !/^\s*(\/\/|\/\*|\*)/.test(line));
-}
-
-describe('round 50: grid packing — layer 3 source anchors', () => {
-  it('layout-utils holds each raw expression exactly once (the canonicals)', () => {
-    const lines = codeLines('src/visualization/layout-utils.ts');
-    expect(lines.filter((l) => RAW_COLUMNS.test(l)).length).toBe(1);
-    expect(lines.filter((l) => /Math\.ceil\(count \/ columns\)/.test(l)).length).toBe(1);
-    expect(lines.filter((l) => /return origin \+ index \* cell \+ \(cell - extent\) \/ 2;/.test(l)).length).toBe(1);
-    // aspect composes the columns canonical — no second sqrt fold
-    expect(lines.filter((l) => /return squareGridColumns\(count \* aspectRatio\);/.test(l)).length).toBe(1);
-  });
-
-  it('ezo delegates both grid sites (network init + basic grid, 4 stamps)', () => {
-    const src = readSource('src/visualization/enhanced-zero-overlap-layout.ts');
-    expect((src.match(/squareGridColumns\(nodes\.length\)/g) ?? []).length).toBe(2);
-    expect((src.match(/squareGridRows\(nodes\.length, cols\)/g) ?? []).length).toBe(1);
-    expect((src.match(/centerInCell\((?:col|row), cell(?:Width|Height), (?:width|height)\)/g) ?? []).length).toBe(4);
-    expect(codeLines('src/visualization/enhanced-zero-overlap-layout.ts').some((l) => RAW_COLUMNS.test(l))).toBe(false);
-  });
-
-  it('NetworkLayoutStrategy delegates the init grid + both stamps', () => {
-    const src = readSource('src/visualization/strategies/NetworkLayoutStrategy.ts');
-    expect(src).toMatch(/const gridSize = squareGridColumns\(nodes\.length\);/);
-    expect((src.match(/const grid[XY] = centerInCell\(/g) ?? []).length).toBe(2);
-    expect(codeLines('src/visualization/strategies/NetworkLayoutStrategy.ts').some((l) => RAW_COLUMNS.test(l))).toBe(false);
-  });
-
-  it('ConceptMapLayoutStrategy delegates packing + both stamps', () => {
-    const src = readSource('src/visualization/strategies/ConceptMapLayoutStrategy.ts');
-    expect(src).toMatch(/const cols = squareGridColumns\(nodes\.length\);/);
-    expect(src).toMatch(/const rows = squareGridRows\(nodes\.length, cols\);/);
-    expect((src.match(/centerInCell\((?:col|row), cell(?:Width|Height), (?:width|height)\)/g) ?? []).length).toBe(2);
-  });
-
-  it('LayoutOptimizer delegates both matrix grids (2 packings + 4 stamps)', () => {
-    const src = readSource('src/visualization/strategies/LayoutOptimizer.ts');
-    expect((src.match(/squareGridColumns\(nodes\.length\)/g) ?? []).length).toBe(2);
-    expect((src.match(/squareGridRows\(nodes\.length, cols\)/g) ?? []).length).toBe(1);
-    expect((src.match(/centerInCell\(/g) ?? []).length).toBe(4);
-    expect(codeLines('src/visualization/strategies/LayoutOptimizer.ts').some((l) => RAW_COLUMNS.test(l))).toBe(false);
-  });
-
-  it('FallbackLayoutStrategy delegates packing (inline rows divisor included) + both stamps', () => {
-    const src = readSource('src/visualization/strategies/FallbackLayoutStrategy.ts');
-    expect(src).toMatch(/const cols = squareGridColumns\(nodes\.length\);/);
-    expect(src).toMatch(/squareGridRows\(nodes\.length, cols\)/);
-    expect((src.match(/centerInCell\((?:col|row), spacing[XY], node(?:Width|Height)\)/g) ?? []).length).toBe(2);
-  });
-
-  it('advanced-layouts delegates columns and RETIRES the dead unclamped rows copy', () => {
-    const src = readSource('src/visualization/advanced-layouts.ts');
-    expect(src).toMatch(/const cols = squareGridColumns\(nodes\.length\);/);
-    // the drift this round found: rows without the family clamp, computed
-    // and never read — gone, not delegated (comment lines excluded so this
-    // ban matches CODE, not the retirement note itself).
-    expect(codeLines('src/visualization/advanced-layouts.ts').some((l) => /Math\.ceil\(nodes\.length \/ cols\)/.test(l))).toBe(false);
-    // its fixed-pitch stamp (200/150, no extent term) is a scope-out:
-    expect(src).toMatch(/200 \+ \(index % cols\) \* 200/);
-  });
-
-  it('GridSnapStrategy delegates the cell-bound columns and keeps its span-center stamp', () => {
-    const src = readSource('src/visualization/layout/strategies/GridSnapStrategy.ts');
-    expect(src).toMatch(/const sqrtNodes = squareGridColumns\(nodes\.length\);/);
-    // scope-out: multi-cell span center `(cellSize · cellsWide) / 2` is a
-    // different concept (span center, not remaining-space center).
-    expect(src).toMatch(/\(this\.cellSize \* cellsWide\) \/ 2/);
-  });
-
-  it('flow-strategy delegates the row-capacity columns', () => {
-    const src = readSource('src/visualization/strategies/flow-strategy.ts');
-    expect(src).toMatch(/const maxPerRow = squareGridColumns\(originalNodes\.length\);/);
-    expect(codeLines('src/visualization/strategies/flow-strategy.ts').some((l) => RAW_COLUMNS.test(l))).toBe(false);
-  });
-
-  it('matrix-strategy delegates aspect packing + rows + the padded stamp', () => {
-    const src = readSource('src/visualization/strategies/matrix-strategy.ts');
-    expect(src).toMatch(/aspectGridColumns\(nodeCount, TARGET_ASPECT_RATIO\)/);
-    expect(src).toMatch(/squareGridRows\(nodeCount, columns\)/);
-    expect((src.match(/centerInCell\((?:col|row), cell(?:Width|Height), node(?:Width|Height), CANVAS_PADDING\)/g) ?? []).length).toBe(2);
-  });
-
-  it('general-strategy delegates aspect packing + rows + the spiral stamps', () => {
-    const src = readSource('src/visualization/strategies/general-strategy.ts');
-    expect(src).toMatch(/aspectGridColumns\(sortedNodes\.length, TARGET_ASPECT_RATIO\)/);
-    expect(src).toMatch(/squareGridRows\(sortedNodes\.length, columns\)/);
-    expect((src.match(/centerInCell\(pos\.(?:col|row), cell(?:Width|Height), [wh], offset[XY]\)/g) ?? []).length).toBe(2);
-  });
-
-  it('overlap-resolver delegates aspect packing and KEEPS the origin-only snap stamp', () => {
-    const src = readSource('src/visualization/overlap-resolver.ts');
-    expect(src).toMatch(/aspectGridColumns\(nodes\.length, aspectRatio\)/);
-    expect(src).toMatch(/squareGridRows\(nodes\.length, columns\)/);
-    // scope-out: `col · cellWidth + 40` has no centering term — folding it
-    // into centerInCell would CHANGE the resolver's snap semantics.
-    expect((src.match(/x: col \* cellWidth \+ 40,/g) ?? []).length).toBe(1);
-    expect((src.match(/y: row \* cellHeight \+ 40,/g) ?? []).length).toBe(1);
-  });
-
-  it('no swept file re-inlines the rows divisor shape outside the canonical', () => {
-    for (const rel of [
-      'src/visualization/enhanced-zero-overlap-layout.ts',
-      'src/visualization/strategies/ConceptMapLayoutStrategy.ts',
-      'src/visualization/strategies/LayoutOptimizer.ts',
-      'src/visualization/strategies/FallbackLayoutStrategy.ts',
-      'src/visualization/strategies/matrix-strategy.ts',
-      'src/visualization/strategies/general-strategy.ts',
-      'src/visualization/overlap-resolver.ts',
-    ]) {
-      expect(codeLines(rel).some((l) => RAW_ROWS.test(l))).toBe(false);
-    }
   });
 });

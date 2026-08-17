@@ -2,19 +2,20 @@
  * @jest-environment node
  */
 /**
- * default-node-extent-single-source.test.ts — round 49.
+ * default-node-extent-single-source.test.ts — round 49 (round 51: migrated
+ * to the table-driven harness).
  *
  * Family: the DEFAULT-fallback dimension-resolution pair
  * `const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
  *  const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT)` — was re-inlined at
- * 16 sites across 11 files (dagre-pipeline ×2 — g.setNode sizing + the
- * positioned-node stamp; strategy-selector fallback-grid inline property
- * reads; comparison / general / flow / matrix / tree / timeline strategy
- * stamps; cycle-strategy ×4 — single-node stamp, ring stamp, and both
- * radius maxima; network-strategy clamp sizing; mindmap-strategy ×2 stamp
- * branches), plus the raw pair inside strategy-graph's `scaledNodeExtent`
- * (the scaled twin of the same resolution). Canonical since round 49:
- * `defaultNodeExtent` in src/visualization/node-dimensions.ts.
+ *  16 sites across 11 files (dagre-pipeline ×2 — g.setNode sizing + the
+ *  positioned-node stamp; strategy-selector fallback-grid inline property
+ *  reads; comparison / general / flow / matrix / tree / timeline strategy
+ *  stamps; cycle-strategy ×4 — single-node stamp, ring stamp, and both
+ *  radius maxima; network-strategy clamp sizing; mindmap-strategy ×2 stamp
+ *  branches), plus the raw pair inside strategy-graph's `scaledNodeExtent`
+ *  (the scaled twin of the same resolution). Canonical since round 49:
+ *  `defaultNodeExtent` in src/visualization/node-dimensions.ts.
  *
  * DRIFT SCENARIO this guard defends against: the width and height defaults
  * are DIFFERENT numbers (120 and 60) — a copy that swaps the axes' fallback
@@ -23,8 +24,9 @@
  * of the same shape agrees. The per-axis seam is the whole point (round 47's
  * lesson: a single shared fallback number is the bug, not the cleanup).
  *
- * Layers:
- *   1. VERBATIM ORACLE — every retired idiom (two-const pair, inline
+ * Layers (round 51: the MECHANICAL layers 1 and 3 are data rows on the
+ * shared harness — see single-source-harness.ts; Layer 2 stays handwritten):
+ *   1. VERBATIM ORACLE rows — every retired idiom (two-const pair, inline
  *      property reads, the `Math.max(...nodes.map(...))` maxima, and the
  *      scaledNodeExtent pre-round-49 body) frozen below, Object.is-identical
  *      to the canonical over a seeded corpus of dimension shapes
@@ -35,10 +37,12 @@
  *      implicit-default idiom equivalence (the scope-out that STAYS legal),
  *      and live strategy witnesses through real stamps (cycle single-node,
  *      timeline block-form stamp).
- *   3. SOURCE ANCHORS — every migrated file delegates with its idiom's
+ *   3. SOURCE ANCHOR rows — every migrated file delegates with its idiom's
  *      shape, the raw pair lives in exactly one module, and the scope-outs
  *      (0-fallback measured reads, `?? DEFAULT_*` optional-chained edge
- *      reads) keep their inline forms.
+ *      reads) keep their inline forms. Scope 'source' preserves the retired
+ *      whole-file `src.match(/…/g)` / `not.toMatch(…)` semantics; scope
+ *      'code' (default) preserves the retired `codeLines()` filters.
  *
  * The "no site re-inlines the resolution pair" discovery sweep lives in the
  * shared registry (frozen-literal-families/default-node-extent.ts); this
@@ -51,7 +55,7 @@
 
 import { describe, it, expect } from '@jest/globals';
 import { mulberry32 } from '@tests/helpers/fuzz';
-import { readSource } from '@tests/guards/freeze-guard';
+import { oracleRow, anchorRow, describeSingleSource } from '@tests/guards/single-source-harness';
 import {
   defaultNodeExtent,
   getNodeWidth,
@@ -109,7 +113,7 @@ function legacyScaledExtent(node: NodeDatum): { width: number; height: number } 
 }
 
 // ---------------------------------------------------------------------------
-// Corpus: seeded node shapes spanning the retired sites' dimension inputs.
+// Corpora: seeded node shapes spanning the retired sites' dimension inputs.
 // ---------------------------------------------------------------------------
 
 const DIM_VALUES = [undefined, 0, -3.5, NaN, Infinity, -Infinity, 60, 120, 1e15];
@@ -142,50 +146,280 @@ function buildNodeCorpus(): ExtentNodeShape[] {
 
 const NODE_CORPUS = buildNodeCorpus();
 
-describe('round 49: default node extent single source — layer 1 verbatim oracle', () => {
-  it.each(NODE_CORPUS)('the two-const preamble equals the canonical pair %#', (node) => {
-    const got = defaultNodeExtent(node);
-    expect(Object.is(got.width, legacyPairW(node))).toBe(true);
-    expect(Object.is(got.height, legacyPairH(node))).toBe(true);
-    // width resolves BEFORE height in the retired preamble; the canonical
-    // object literal preserves that evaluation order (both reads are pure,
-    // so this is a shape witness, not a value one).
-    expect(Object.is(got.width, legacyInlineW(node))).toBe(true);
-    expect(Object.is(got.height, legacyInlineH(node))).toBe(true);
-  });
+/** The retired maxima sites' inputs (seed 4948, same consumption order as
+ *  the retired loop): groups of 0–5 corpus nodes, empty groups included —
+ *  `Math.max()` of nothing is -Infinity at BOTH forms. */
+function buildMaximaCorpus(): ExtentNodeShape[][] {
+  const rng = mulberry32(4948);
+  const groups: ExtentNodeShape[][] = [];
+  for (let k = 0; k < 120; k++) {
+    const n = Math.floor(rng() * 6);
+    groups.push(Array.from({ length: n }, () => NODE_CORPUS[Math.floor(rng() * NODE_CORPUS.length)]));
+  }
+  return groups;
+}
 
-  it('the cycle maxima equal the canonical per-node resolution', () => {
-    const rng = mulberry32(4948);
-    for (let k = 0; k < 120; k++) {
-      const n = Math.floor(rng() * 6);
-      const nodes = Array.from({ length: n }, () => NODE_CORPUS[Math.floor(rng() * NODE_CORPUS.length)]);
-      if (nodes.length === 0) {
-        // Math.max() of nothing is -Infinity at BOTH forms — same policy.
-        expect(Object.is(Math.max(...nodes.map((x) => defaultNodeExtent(x).width)), legacyMaxW(nodes))).toBe(true);
-        continue;
-      }
-      expect(Object.is(Math.max(...nodes.map((x) => defaultNodeExtent(x).width)), legacyMaxW(nodes))).toBe(true);
-      expect(Object.is(Math.max(...nodes.map((x) => defaultNodeExtent(x).height)), legacyMaxH(nodes))).toBe(true);
-    }
-  });
+/** The retired scaledNodeExtent site's inputs (seed 4960): corpus shapes
+ *  with an importance meta layered on top. */
+function buildScaledCorpus(): NodeDatum[] {
+  const rng = mulberry32(4960);
+  const nodes: NodeDatum[] = [];
+  for (let k = 0; k < 200; k++) {
+    const base = NODE_CORPUS[Math.floor(rng() * NODE_CORPUS.length)];
+    const importance = [undefined, 0, 0.5, 1, 1.5, -0.5, NaN][Math.floor(rng() * 7)];
+    nodes.push({
+      id: `n${k}`,
+      label: `n${k}`,
+      ...(importance === undefined ? {} : { meta: { importance } }),
+      ...base,
+    } as unknown as NodeDatum);
+  }
+  return nodes;
+}
 
-  it('the pre-round-49 scaledNodeExtent body still equals the composed canonical', () => {
-    const rng = mulberry32(4960);
-    for (let k = 0; k < 200; k++) {
-      const base = NODE_CORPUS[Math.floor(rng() * NODE_CORPUS.length)];
-      const importance = [undefined, 0, 0.5, 1, 1.5, -0.5, NaN][Math.floor(rng() * 7)];
-      const node = {
-        id: `n${k}`,
-        label: `n${k}`,
-        ...(importance === undefined ? {} : { meta: { importance } }),
-        ...base,
-      } as unknown as NodeDatum;
-      const got = scaledNodeExtent(node);
-      const legacy = legacyScaledExtent(node);
-      expect(Object.is(got.width, legacy.width)).toBe(true);
-      expect(Object.is(got.height, legacy.height)).toBe(true);
-    }
-  });
+// ---------------------------------------------------------------------------
+// Layer 3 material: delegation shapes + bans.
+// ---------------------------------------------------------------------------
+
+const NODE_DIMENSIONS = 'src/visualization/node-dimensions.ts';
+const DAGRE = 'src/visualization/dagre-pipeline.ts';
+const SELECTOR = 'src/visualization/strategy-selector.ts';
+const STRATEGY_GRAPH = 'src/visualization/strategy-graph.ts';
+const COMPARISON = 'src/visualization/strategies/comparison-strategy.ts';
+const GENERAL = 'src/visualization/strategies/general-strategy.ts';
+const FLOW = 'src/visualization/strategies/flow-strategy.ts';
+const MATRIX = 'src/visualization/strategies/matrix-strategy.ts';
+const TREE = 'src/visualization/strategies/tree-strategy.ts';
+const CYCLE = 'src/visualization/strategies/cycle-strategy.ts';
+const NETWORK = 'src/visualization/strategies/network-strategy.ts';
+const MINDMAP = 'src/visualization/strategies/mindmap-strategy.ts';
+const CONCEPTMAP = 'src/visualization/strategies/conceptmap-strategy.ts';
+const TIMELINE = 'src/visualization/strategies/timeline-strategy.ts';
+const LAYOUT_UTILS = 'src/visualization/layout-utils.ts';
+
+const RAW_PAIR_W = /getNodeWidth\(\w+(?:\[\w+\])?,\s*DEFAULT_NODE_WIDTH\)/;
+const RAW_PAIR_H = /getNodeHeight\(\w+(?:\[\w+\])?,\s*DEFAULT_NODE_HEIGHT\)/;
+const PAIR_SHAPE = /const \{ width: w, height: h \} = defaultNodeExtent\(node\);/;
+const MATRIX_SHAPE = /const \{ width: nodeWidth, height: nodeHeight \} = defaultNodeExtent\(node\);/;
+
+// ---------------------------------------------------------------------------
+// The rows — Layer 1 oracles + Layer 3 anchors (round 51 migration).
+// ---------------------------------------------------------------------------
+
+const DEFAULT_NODE_EXTENT_ROWS = [
+  // ---- Layer 1: verbatim oracles -----------------------------------------
+  // width resolves BEFORE height in the retired preamble; the canonical
+  // object literal preserves that evaluation order (both reads are pure,
+  // so this is a shape witness, not a value one).
+  oracleRow({
+    id: 'pair-w-verbatim',
+    canonical: (node: ExtentNodeShape) => defaultNodeExtent(node).width,
+    retired: legacyPairW,
+    corpus: NODE_CORPUS.map((node) => [node] as [ExtentNodeShape]),
+    mode: { kind: 'object-is' },
+  }),
+  oracleRow({
+    id: 'pair-h-verbatim',
+    canonical: (node: ExtentNodeShape) => defaultNodeExtent(node).height,
+    retired: legacyPairH,
+    corpus: NODE_CORPUS.map((node) => [node] as [ExtentNodeShape]),
+    mode: { kind: 'object-is' },
+  }),
+  oracleRow({
+    id: 'inline-w-verbatim',
+    canonical: (node: ExtentNodeShape) => defaultNodeExtent(node).width,
+    retired: legacyInlineW,
+    corpus: NODE_CORPUS.map((node) => [node] as [ExtentNodeShape]),
+    mode: { kind: 'object-is' },
+  }),
+  oracleRow({
+    id: 'inline-h-verbatim',
+    canonical: (node: ExtentNodeShape) => defaultNodeExtent(node).height,
+    retired: legacyInlineH,
+    corpus: NODE_CORPUS.map((node) => [node] as [ExtentNodeShape]),
+    mode: { kind: 'object-is' },
+  }),
+  oracleRow({
+    id: 'cycle-maxima-w',
+    canonical: (nodes: ExtentNodeShape[]) => Math.max(...nodes.map((x) => defaultNodeExtent(x).width)),
+    retired: legacyMaxW,
+    corpus: buildMaximaCorpus().map((nodes) => [nodes] as [ExtentNodeShape[]]),
+    mode: { kind: 'object-is' },
+  }),
+  oracleRow({
+    id: 'cycle-maxima-h',
+    canonical: (nodes: ExtentNodeShape[]) => Math.max(...nodes.map((x) => defaultNodeExtent(x).height)),
+    retired: legacyMaxH,
+    corpus: buildMaximaCorpus().map((nodes) => [nodes] as [ExtentNodeShape[]]),
+    mode: { kind: 'object-is' },
+  }),
+  oracleRow({
+    id: 'scaled-extent-w',
+    canonical: (node: NodeDatum) => scaledNodeExtent(node).width,
+    retired: (node: NodeDatum) => legacyScaledExtent(node).width,
+    corpus: buildScaledCorpus().map((node) => [node] as [NodeDatum]),
+    mode: { kind: 'object-is' },
+  }),
+  oracleRow({
+    id: 'scaled-extent-h',
+    canonical: (node: NodeDatum) => scaledNodeExtent(node).height,
+    retired: (node: NodeDatum) => legacyScaledExtent(node).height,
+    corpus: buildScaledCorpus().map((node) => [node] as [NodeDatum]),
+    mode: { kind: 'object-is' },
+  }),
+  // ---- Layer 3: source anchors -------------------------------------------
+  // node-dimensions holds the raw pair exactly once (the canonical itself).
+  anchorRow({ kind: 'occurs', id: 'node-dimensions-raw-pair-w-once', file: NODE_DIMENSIONS, pattern: RAW_PAIR_W, exactly: 1 }),
+  anchorRow({ kind: 'occurs', id: 'node-dimensions-raw-pair-h-once', file: NODE_DIMENSIONS, pattern: RAW_PAIR_H, exactly: 1 }),
+  anchorRow({ kind: 'occurs', id: 'node-dimensions-default-extent-export-once', file: NODE_DIMENSIONS, pattern: /export function defaultNodeExtent\(/, exactly: 1 }),
+  // dagre-pipeline delegates both sites (g.setNode sizing + the stamp); the
+  // center→top-left conversion locals stay (round-30 guard depends on them).
+  anchorRow({ kind: 'occurs', id: 'dagre-pair-delegates', file: DAGRE, pattern: PAIR_SHAPE, exactly: 2, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'dagre-no-raw-pair-w', file: DAGRE, pattern: RAW_PAIR_W, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'dagre-no-raw-pair-h', file: DAGRE, pattern: RAW_PAIR_H, scope: 'source' }),
+  anchorRow({ kind: 'occurs-at-least', id: 'dagre-center-conversion-stays', file: DAGRE, pattern: /dagreNode\.x - w \/ 2/, atLeast: 1, scope: 'source' }),
+  // strategy-selector delegates the fallback-grid inline property reads.
+  anchorRow({ kind: 'occurs', id: 'selector-inline-delegates', file: SELECTOR, pattern: /const \{ width, height \} = defaultNodeExtent\(n\);/, exactly: 1, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'selector-no-raw-pair-w', file: SELECTOR, pattern: RAW_PAIR_W, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'selector-no-raw-pair-h', file: SELECTOR, pattern: RAW_PAIR_H, scope: 'source' }),
+  // strategy-graph composes the canonical (scaledNodeExtent no longer
+  // resolves the raw pair); the round-42 guard's own ban still holds: the
+  // retired 3-line scaled idiom must not reappear inline.
+  anchorRow({ kind: 'occurs-at-least', id: 'strategy-graph-extent-delegates', file: STRATEGY_GRAPH, pattern: /const extent = defaultNodeExtent\(node\);/, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'occurs-at-least', id: 'strategy-graph-scaled-composes', file: STRATEGY_GRAPH, pattern: /scaledDimensions\(node, extent\.width, extent\.height\)/, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'strategy-graph-no-raw-pair-w', file: STRATEGY_GRAPH, pattern: RAW_PAIR_W }),
+  anchorRow({ kind: 'ban', id: 'strategy-graph-retired-scaled-idiom-banned', file: STRATEGY_GRAPH, pattern: /Math\.round\(getNodeWidth\(node, DEFAULT_NODE_WIDTH\) \* scale\)/, scope: 'source' }),
+  // the five pair-const strategy stamps delegate.
+  anchorRow({ kind: 'occurs-at-least', id: 'comparison-stamp-delegates', file: COMPARISON, pattern: PAIR_SHAPE, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'comparison-no-raw-pair-w', file: COMPARISON, pattern: RAW_PAIR_W, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'comparison-no-raw-pair-h', file: COMPARISON, pattern: RAW_PAIR_H, scope: 'source' }),
+  anchorRow({ kind: 'occurs-at-least', id: 'general-stamp-delegates', file: GENERAL, pattern: PAIR_SHAPE, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'general-no-raw-pair-w', file: GENERAL, pattern: RAW_PAIR_W, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'general-no-raw-pair-h', file: GENERAL, pattern: RAW_PAIR_H, scope: 'source' }),
+  anchorRow({ kind: 'occurs-at-least', id: 'flow-stamp-delegates', file: FLOW, pattern: PAIR_SHAPE, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'flow-no-raw-pair-w', file: FLOW, pattern: RAW_PAIR_W, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'flow-no-raw-pair-h', file: FLOW, pattern: RAW_PAIR_H, scope: 'source' }),
+  anchorRow({ kind: 'occurs-at-least', id: 'matrix-stamp-delegates', file: MATRIX, pattern: MATRIX_SHAPE, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'matrix-no-raw-pair-w', file: MATRIX, pattern: RAW_PAIR_W, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'matrix-no-raw-pair-h', file: MATRIX, pattern: RAW_PAIR_H, scope: 'source' }),
+  anchorRow({ kind: 'occurs-at-least', id: 'tree-stamp-delegates', file: TREE, pattern: PAIR_SHAPE, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'tree-no-raw-pair-w', file: TREE, pattern: RAW_PAIR_W, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'tree-no-raw-pair-h', file: TREE, pattern: RAW_PAIR_H, scope: 'source' }),
+  // flow/tree keep the `?? DEFAULT_*` optional-chained EDGE reads (r46
+  // scope-out, untouched).
+  anchorRow({ kind: 'occurs', id: 'flow-edge-reads-stay-w', file: FLOW, pattern: /\?\.width \?\? DEFAULT_NODE_WIDTH/, exactly: 2, scope: 'source' }),
+  anchorRow({ kind: 'occurs', id: 'flow-edge-reads-stay-h', file: FLOW, pattern: /\?\.height \?\? DEFAULT_NODE_HEIGHT/, exactly: 2, scope: 'source' }),
+  anchorRow({ kind: 'occurs', id: 'tree-edge-reads-stay-w', file: TREE, pattern: /\?\.width \?\? DEFAULT_NODE_WIDTH/, exactly: 2, scope: 'source' }),
+  anchorRow({ kind: 'occurs', id: 'tree-edge-reads-stay-h', file: TREE, pattern: /\?\.height \?\? DEFAULT_NODE_HEIGHT/, exactly: 2, scope: 'source' }),
+  // cycle-strategy delegates all four sites (2 stamps + 2 maxima).
+  anchorRow({ kind: 'occurs', id: 'cycle-stamps-delegate', file: CYCLE, pattern: PAIR_SHAPE, exactly: 2, scope: 'source' }),
+  anchorRow({ kind: 'occurs', id: 'cycle-maxima-delegate-w', file: CYCLE, pattern: /defaultNodeExtent\((?:n|nd)\)\.width/, exactly: 2, scope: 'source' }),
+  anchorRow({ kind: 'occurs', id: 'cycle-maxima-delegate-h', file: CYCLE, pattern: /defaultNodeExtent\((?:n|nd)\)\.height/, exactly: 2, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'cycle-no-raw-pair-w', file: CYCLE, pattern: RAW_PAIR_W, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'cycle-no-raw-pair-h', file: CYCLE, pattern: RAW_PAIR_H, scope: 'source' }),
+  // network-strategy delegates the clamp sizing.
+  anchorRow({ kind: 'occurs-at-least', id: 'network-stamp-delegates', file: NETWORK, pattern: PAIR_SHAPE, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'network-no-raw-pair-w', file: NETWORK, pattern: RAW_PAIR_W, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'network-no-raw-pair-h', file: NETWORK, pattern: RAW_PAIR_H, scope: 'source' }),
+  // mindmap-strategy delegates both stamp branches.
+  anchorRow({ kind: 'occurs', id: 'mindmap-stamps-delegate', file: MINDMAP, pattern: PAIR_SHAPE, exactly: 2, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'mindmap-no-raw-pair-w', file: MINDMAP, pattern: RAW_PAIR_W, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'mindmap-no-raw-pair-h', file: MINDMAP, pattern: RAW_PAIR_H, scope: 'source' }),
+  // conceptmap-strategy delegates the width-only level-width read
+  // (registry-sweep discovery: this site passes an EXPRESSION arg
+  // (`node ?? { width: 0, w: 0 }`) — the first sweep's identifier-only grep
+  // missed it; the registry's shape-level pattern caught it. The defensive
+  // nullish guard and the importance scale stay at the site).
+  anchorRow({ kind: 'occurs-at-least', id: 'conceptmap-level-width-delegates', file: CONCEPTMAP, pattern: /defaultNodeExtent\(node \?\? \{ width: 0, w: 0 \}\)\.width/, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'conceptmap-no-raw-pair-w', file: CONCEPTMAP, pattern: RAW_PAIR_W, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'conceptmap-no-raw-pair-h', file: CONCEPTMAP, pattern: RAW_PAIR_H, scope: 'source' }),
+  // timeline-strategy delegates the stamp and KEEPS the 0-fallback measured
+  // reads (round 41's measured-policy reads (fallback 0) are a DIFFERENT
+  // policy and must not be converged onto the render-default box).
+  anchorRow({ kind: 'occurs-at-least', id: 'timeline-stamp-delegates', file: TIMELINE, pattern: /const \{ width, height \} = defaultNodeExtent\(node\);/, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'timeline-no-raw-pair-w', file: TIMELINE, pattern: RAW_PAIR_W }),
+  anchorRow({ kind: 'occurs', id: 'timeline-measured-reads-stay-w', file: TIMELINE, pattern: /getNodeWidth\(result\[(?:i|j)\], 0\)/, exactly: 2, scope: 'source' }),
+  anchorRow({ kind: 'occurs', id: 'timeline-measured-reads-stay-h', file: TIMELINE, pattern: /getNodeHeight\(result\[i\], 0\)/, exactly: 1, scope: 'source' }),
+  // layout-utils keeps its fallback-PARAMETER signature (r41 seam,
+  // untouched): it calls getNodeWidth with the VARIABLE fallback, not the
+  // literal — the registry ban must never fire on the r41 canonical.
+  anchorRow({ kind: 'occurs-at-least', id: 'layout-utils-fallback-param-w-stays', file: LAYOUT_UTILS, pattern: /fallbackWidth: number = DEFAULT_NODE_WIDTH/, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'occurs-at-least', id: 'layout-utils-fallback-param-h-stays', file: LAYOUT_UTILS, pattern: /fallbackHeight: number = DEFAULT_NODE_HEIGHT/, atLeast: 1, scope: 'source' }),
+  anchorRow({ kind: 'ban', id: 'layout-utils-no-raw-pair-w', file: LAYOUT_UTILS, pattern: RAW_PAIR_W }),
+];
+
+/** The pinned row enumeration — corpus shrink / row delete / ban delete
+ *  flips the generated fingerprint it RED (TC-004-E01, permanently).
+ *  Every count is a STATIC LITERAL: interpolating `NODE_CORPUS.length`
+ *  here makes the pin track the shrink and the ratchet degenerate (caught
+ *  by the M3 corpus-shrink mutation — the pin must not be self-referential). */
+const DEFAULT_NODE_EXTENT_FINGERPRINT = [
+  'default-node-extent:pair-w-verbatim:249',
+  'default-node-extent:pair-h-verbatim:249',
+  'default-node-extent:inline-w-verbatim:249',
+  'default-node-extent:inline-h-verbatim:249',
+  'default-node-extent:cycle-maxima-w:120',
+  'default-node-extent:cycle-maxima-h:120',
+  'default-node-extent:scaled-extent-w:200',
+  'default-node-extent:scaled-extent-h:200',
+  'default-node-extent:node-dimensions-raw-pair-w-once:1',
+  'default-node-extent:node-dimensions-raw-pair-h-once:1',
+  'default-node-extent:node-dimensions-default-extent-export-once:1',
+  'default-node-extent:dagre-pair-delegates:1',
+  'default-node-extent:dagre-no-raw-pair-w:1',
+  'default-node-extent:dagre-no-raw-pair-h:1',
+  'default-node-extent:dagre-center-conversion-stays:1',
+  'default-node-extent:selector-inline-delegates:1',
+  'default-node-extent:selector-no-raw-pair-w:1',
+  'default-node-extent:selector-no-raw-pair-h:1',
+  'default-node-extent:strategy-graph-extent-delegates:1',
+  'default-node-extent:strategy-graph-scaled-composes:1',
+  'default-node-extent:strategy-graph-no-raw-pair-w:1',
+  'default-node-extent:strategy-graph-retired-scaled-idiom-banned:1',
+  'default-node-extent:comparison-stamp-delegates:1',
+  'default-node-extent:comparison-no-raw-pair-w:1',
+  'default-node-extent:comparison-no-raw-pair-h:1',
+  'default-node-extent:general-stamp-delegates:1',
+  'default-node-extent:general-no-raw-pair-w:1',
+  'default-node-extent:general-no-raw-pair-h:1',
+  'default-node-extent:flow-stamp-delegates:1',
+  'default-node-extent:flow-no-raw-pair-w:1',
+  'default-node-extent:flow-no-raw-pair-h:1',
+  'default-node-extent:matrix-stamp-delegates:1',
+  'default-node-extent:matrix-no-raw-pair-w:1',
+  'default-node-extent:matrix-no-raw-pair-h:1',
+  'default-node-extent:tree-stamp-delegates:1',
+  'default-node-extent:tree-no-raw-pair-w:1',
+  'default-node-extent:tree-no-raw-pair-h:1',
+  'default-node-extent:flow-edge-reads-stay-w:1',
+  'default-node-extent:flow-edge-reads-stay-h:1',
+  'default-node-extent:tree-edge-reads-stay-w:1',
+  'default-node-extent:tree-edge-reads-stay-h:1',
+  'default-node-extent:cycle-stamps-delegate:1',
+  'default-node-extent:cycle-maxima-delegate-w:1',
+  'default-node-extent:cycle-maxima-delegate-h:1',
+  'default-node-extent:cycle-no-raw-pair-w:1',
+  'default-node-extent:cycle-no-raw-pair-h:1',
+  'default-node-extent:network-stamp-delegates:1',
+  'default-node-extent:network-no-raw-pair-w:1',
+  'default-node-extent:network-no-raw-pair-h:1',
+  'default-node-extent:mindmap-stamps-delegate:1',
+  'default-node-extent:mindmap-no-raw-pair-w:1',
+  'default-node-extent:mindmap-no-raw-pair-h:1',
+  'default-node-extent:conceptmap-level-width-delegates:1',
+  'default-node-extent:conceptmap-no-raw-pair-w:1',
+  'default-node-extent:conceptmap-no-raw-pair-h:1',
+  'default-node-extent:timeline-stamp-delegates:1',
+  'default-node-extent:timeline-no-raw-pair-w:1',
+  'default-node-extent:timeline-measured-reads-stay-w:1',
+  'default-node-extent:timeline-measured-reads-stay-h:1',
+  'default-node-extent:layout-utils-fallback-param-w-stays:1',
+  'default-node-extent:layout-utils-fallback-param-h-stays:1',
+  'default-node-extent:layout-utils-no-raw-pair-w:1',
+].join('\n');
+
+describeSingleSource('default-node-extent', DEFAULT_NODE_EXTENT_ROWS, {
+  fingerprint: DEFAULT_NODE_EXTENT_FINGERPRINT,
 });
 
 // ---------------------------------------------------------------------------
@@ -235,131 +469,5 @@ describe('round 49: default node extent — layer 2 semantic pins', () => {
     const result = strategy.apply([{ id: 'only', label: 'only' }], []);
     // x = DEFAULT_CANVAS_WIDTH/2 − DEFAULT_NODE_WIDTH/2; y = CANVAS_PADDING (80).
     expect(result.nodes[0]).toMatchObject({ x: 960 - 120 / 2, y: 80, width: 120, height: 60 });
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Layer 3: source anchors — delegation shapes at every migrated site, the
-// raw pair exactly once, the scope-outs documented.
-// ---------------------------------------------------------------------------
-
-const RAW_PAIR_W = /getNodeWidth\(\w+(?:\[\w+\])?,\s*DEFAULT_NODE_WIDTH\)/;
-const RAW_PAIR_H = /getNodeHeight\(\w+(?:\[\w+\])?,\s*DEFAULT_NODE_HEIGHT\)/;
-
-function codeLines(rel: string): string[] {
-  return readSource(rel)
-    .split('\n')
-    .filter((line) => !/^\s*(\/\/|\/\*|\*)/.test(line));
-}
-
-describe('round 49: default node extent — layer 3 source anchors', () => {
-  it('node-dimensions holds the raw pair exactly once (the canonical itself)', () => {
-    const lines = codeLines('src/visualization/node-dimensions.ts');
-    expect(lines.filter((l) => RAW_PAIR_W.test(l)).length).toBe(1);
-    expect(lines.filter((l) => RAW_PAIR_H.test(l)).length).toBe(1);
-    expect(lines.filter((l) => /export function defaultNodeExtent\(/.test(l)).length).toBe(1);
-  });
-
-  it('dagre-pipeline delegates both sites (g.setNode sizing + the stamp)', () => {
-    const src = readSource('src/visualization/dagre-pipeline.ts');
-    expect((src.match(/const \{ width: w, height: h \} = defaultNodeExtent\(node\);/g) ?? []).length).toBe(2);
-    expect(src).not.toMatch(RAW_PAIR_W);
-    expect(src).not.toMatch(RAW_PAIR_H);
-    // the center→top-left conversion locals stay (round-30 guard depends on them)
-    expect(src).toMatch(/dagreNode\.x - w \/ 2/);
-  });
-
-  it('strategy-selector delegates the fallback-grid inline property reads', () => {
-    const src = readSource('src/visualization/strategy-selector.ts');
-    expect((src.match(/const \{ width, height \} = defaultNodeExtent\(n\);/g) ?? []).length).toBe(1);
-    expect(src).not.toMatch(RAW_PAIR_W);
-    expect(src).not.toMatch(RAW_PAIR_H);
-  });
-
-  it('strategy-graph composes the canonical (scaledNodeExtent no longer resolves the raw pair)', () => {
-    const src = readSource('src/visualization/strategy-graph.ts');
-    expect(src).toMatch(/const extent = defaultNodeExtent\(node\);/);
-    expect(src).toMatch(/scaledDimensions\(node, extent\.width, extent\.height\)/);
-    expect(codeLines('src/visualization/strategy-graph.ts').some((l) => RAW_PAIR_W.test(l))).toBe(false);
-    // the round-42 guard's own ban still holds: the retired 3-line scaled
-    // idiom must not reappear inline.
-    expect(src).not.toMatch(/Math\.round\(getNodeWidth\(node, DEFAULT_NODE_WIDTH\) \* scale\)/);
-  });
-
-  it('the five pair-const strategy stamps delegate (comparison/general/flow/matrix/tree)', () => {
-    const shapes: Record<string, RegExp> = {
-      'src/visualization/strategies/comparison-strategy.ts': /const \{ width: w, height: h \} = defaultNodeExtent\(node\);/,
-      'src/visualization/strategies/general-strategy.ts': /const \{ width: w, height: h \} = defaultNodeExtent\(node\);/,
-      'src/visualization/strategies/flow-strategy.ts': /const \{ width: w, height: h \} = defaultNodeExtent\(node\);/,
-      'src/visualization/strategies/matrix-strategy.ts': /const \{ width: nodeWidth, height: nodeHeight \} = defaultNodeExtent\(node\);/,
-      'src/visualization/strategies/tree-strategy.ts': /const \{ width: w, height: h \} = defaultNodeExtent\(node\);/,
-    };
-    for (const [file, shape] of Object.entries(shapes)) {
-      const src = readSource(file);
-      expect(src).toMatch(shape);
-      expect(src).not.toMatch(RAW_PAIR_W);
-      expect(src).not.toMatch(RAW_PAIR_H);
-    }
-  });
-
-  it('flow/tree keep the `?? DEFAULT_*` optional-chained EDGE reads (r46 scope-out, untouched)', () => {
-    for (const file of ['src/visualization/strategies/flow-strategy.ts', 'src/visualization/strategies/tree-strategy.ts']) {
-      const src = readSource(file);
-      expect((src.match(/\?\.width \?\? DEFAULT_NODE_WIDTH/g) ?? []).length).toBe(2);
-      expect((src.match(/\?\.height \?\? DEFAULT_NODE_HEIGHT/g) ?? []).length).toBe(2);
-    }
-  });
-
-  it('cycle-strategy delegates all four sites (2 stamps + 2 maxima)', () => {
-    const src = readSource('src/visualization/strategies/cycle-strategy.ts');
-    expect((src.match(/const \{ width: w, height: h \} = defaultNodeExtent\(node\);/g) ?? []).length).toBe(2);
-    expect((src.match(/defaultNodeExtent\((?:n|nd)\)\.width/g) ?? []).length).toBe(2);
-    expect((src.match(/defaultNodeExtent\((?:n|nd)\)\.height/g) ?? []).length).toBe(2);
-    expect(src).not.toMatch(RAW_PAIR_W);
-    expect(src).not.toMatch(RAW_PAIR_H);
-  });
-
-  it('network-strategy delegates the clamp sizing', () => {
-    const src = readSource('src/visualization/strategies/network-strategy.ts');
-    expect(src).toMatch(/const \{ width: w, height: h \} = defaultNodeExtent\(node\);/);
-    expect(src).not.toMatch(RAW_PAIR_W);
-    expect(src).not.toMatch(RAW_PAIR_H);
-  });
-
-  it('mindmap-strategy delegates both stamp branches', () => {
-    const src = readSource('src/visualization/strategies/mindmap-strategy.ts');
-    expect((src.match(/const \{ width: w, height: h \} = defaultNodeExtent\(node\);/g) ?? []).length).toBe(2);
-    expect(src).not.toMatch(RAW_PAIR_W);
-    expect(src).not.toMatch(RAW_PAIR_H);
-  });
-
-  it('conceptmap-strategy delegates the width-only level-width read (registry-sweep discovery)', () => {
-    // This site passes an EXPRESSION arg (`node ?? { width: 0, w: 0 }`) — the
-    // first sweep's identifier-only grep missed it; the registry's
-    // shape-level pattern caught it. The defensive nullish guard and the
-    // importance scale stay at the site; only the resolution delegates.
-    const src = readSource('src/visualization/strategies/conceptmap-strategy.ts');
-    expect(src).toMatch(/defaultNodeExtent\(node \?\? \{ width: 0, w: 0 \}\)\.width/);
-    expect(src).not.toMatch(RAW_PAIR_W);
-    expect(src).not.toMatch(RAW_PAIR_H);
-  });
-
-  it('timeline-strategy delegates the stamp and KEEPS the 0-fallback measured reads', () => {
-    const src = readSource('src/visualization/strategies/timeline-strategy.ts');
-    expect(src).toMatch(/const \{ width, height \} = defaultNodeExtent\(node\);/);
-    expect(codeLines('src/visualization/strategies/timeline-strategy.ts').some((l) => RAW_PAIR_W.test(l))).toBe(false);
-    // round 41's measured-policy reads (fallback 0) are a DIFFERENT policy
-    // and must not be converged onto the render-default box.
-    expect((src.match(/getNodeWidth\(result\[(?:i|j)\], 0\)/g) ?? []).length).toBe(2);
-    expect((src.match(/getNodeHeight\(result\[i\], 0\)/g) ?? []).length).toBe(1);
-  });
-
-  it('layout-utils keeps its fallback-PARAMETER signature (r41 seam, untouched)', () => {
-    const src = readSource('src/visualization/layout-utils.ts');
-    expect(src).toMatch(/fallbackWidth: number = DEFAULT_NODE_WIDTH/);
-    expect(src).toMatch(/fallbackHeight: number = DEFAULT_NODE_HEIGHT/);
-    // it calls getNodeWidth with the VARIABLE fallback, not the literal —
-    // the registry ban must never fire on the r41 canonical.
-    expect(codeLines('src/visualization/layout-utils.ts').some((l) => RAW_PAIR_W.test(l))).toBe(false);
   });
 });
