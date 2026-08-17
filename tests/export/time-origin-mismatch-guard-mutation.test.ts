@@ -69,7 +69,7 @@ describe('Layer 1 — static scan: 3 recordExport sites all use Date.now()', () 
     // "clean up" the Date.now() as if it were accidental.
     const src = source();
     expect(src).toMatch(/job\.startTime is a `Date` \(epoch-ms/);
-    expect(src).toMatch(/~\-1\.7e12 negative duration/);
+    expect(src).toMatch(/~-1\.7e12 negative duration/);
   });
 });
 

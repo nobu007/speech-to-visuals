@@ -190,6 +190,7 @@ function legacyV1Comparison(source: PositionedNode, target: PositionedNode): [Pt
 
 const SPECIAL_COORDS = [0, -0, NaN, Infinity, -Infinity, 0.5, -137.25, 1920, 2500];
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- intentional: "any partial node" corpus type, the empty extension IS the corpus contract
 interface CorpusNode extends Partial<PositionedNode> {}
 type CorpusCase = { name: string; a: CorpusNode; b: CorpusNode };
 
