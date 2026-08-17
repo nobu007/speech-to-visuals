@@ -9,6 +9,7 @@ import { logger } from '../../utils/logger';
 import { VisualizationError } from '@/pipeline/pipeline-errors';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 import { distance } from '../layout-utils';
+import { countEdgeCrossings } from './edge-crossings';
 
 export class OverlapResolver {
   private strategies: LayoutStrategy[] = [];
@@ -247,8 +248,10 @@ export class OverlapResolver {
     // Calculate overlap count
     const overlapCount = this.countOverlaps(nodes);
     
-    // Calculate edge crossings
-    const edgeCrossings = this.countEdgeCrossings(nodes, edges);
+    // Calculate edge crossings (round 43 single source — the scan and the
+    // strict ccw predicate live in ./edge-crossings, shared verbatim with
+    // SimulatedAnnealingStrategy's crossing energy)
+    const edgeCrossings = countEdgeCrossings(nodes, edges);
     
     // Calculate total area
     const totalArea = this.calculateTotalArea(nodes);
@@ -305,67 +308,11 @@ export class OverlapResolver {
     );
   }
   
-  /**
-   * Count the number of edge crossings
-   */
-  private countEdgeCrossings(nodes: PositionedNode[], edges: LayoutEdge[]): number {
-    const nodeMap = new Map(nodes.map(n => [n.id, n]));
-    let crossings = 0;
-    
-    // Convert edges to line segments
-    const segments = edges
-      .map(edge => {
-        const source = nodeMap.get(edge.source);
-        const target = nodeMap.get(edge.target);
-        return source && target ? { source, target } : null;
-      })
-      .filter((segment): segment is { source: PositionedNode; target: PositionedNode } => segment !== null);
-    
-    // Check all pairs of edges for crossings
-    for (let i = 0; i < segments.length; i++) {
-      const a = segments[i];
-      
-      for (let j = i + 1; j < segments.length; j++) {
-        const b = segments[j];
-        
-        // Skip if edges share a node
-        if (a.source === b.source || a.source === b.target ||
-            a.target === b.source || a.target === b.target) {
-          continue;
-        }
-        
-        // Check for intersection
-        if (this.segmentsIntersect(a, b)) {
-          crossings++;
-        }
-      }
-    }
-    
-    return crossings;
-  }
-  
-  /**
-   * Check if two line segments intersect
-   */
-  private segmentsIntersect(
-    a: { source: PositionedNode; target: PositionedNode },
-    b: { source: PositionedNode; target: PositionedNode }
-  ): boolean {
-    const ccw = (A: PositionedNode, B: PositionedNode, C: PositionedNode): number => {
-      return (C.y - A.y) * (B.x - A.x) - (B.y - A.y) * (C.x - A.x);
-    };
-    
-    const A = a.source;
-    const B = a.target;
-    const C = b.source;
-    const D = b.target;
-    
-    return (
-      (ccw(A, C, D) * ccw(B, C, D) < 0) &&
-      (ccw(C, A, B) * ccw(D, A, B) < 0)
-    );
-  }
-  
+  // Round 43 retired `countEdgeCrossings` + `segmentsIntersect` (private):
+  // a byte-identical copy of the pair the annealing strategy carried —
+  // both now delegate to ./edge-crossings (strict ccw predicate,
+  // endpoint-object skip, raw x/y endpoints).
+
   /**
    * Calculate the total area covered by nodes
    */

@@ -63,6 +63,7 @@ import { RULES as overlapPairScan } from './frozen-literal-families/overlap-pair
 import { RULES as forceDirectedStep } from './frozen-literal-families/force-directed-step';
 import { RULES as nodeExtentScan } from './frozen-literal-families/node-extent-scan';
 import { RULES as strategyGraphPreamble } from './frozen-literal-families/strategy-graph-preamble';
+import { RULES as edgeCrossingScan } from './frozen-literal-families/edge-crossing-scan';
 
 /**
  * The ordered registry: families in the round order that closed them, entries
@@ -107,4 +108,5 @@ export const FROZEN_LITERAL_RULES: FrozenLiteralRule[] = [
   ...forceDirectedStep,
   ...nodeExtentScan,
   ...strategyGraphPreamble,
+  ...edgeCrossingScan,
 ];
