@@ -40,6 +40,9 @@ export default tseslint.config(
       "@typescript-eslint/no-explicit-any": "off",
       // Tests use dynamic require() for conditional module loading
       "@typescript-eslint/no-require-imports": "off",
+      // Test corpora intentionally use precision-losing literals (1e400 etc.)
+      // as overflow / Infinity vectors for sanitizer behavior
+      "no-loss-of-precision": "off",
     },
   },
 );

@@ -240,6 +240,7 @@ interface Offender {
  */
 function analyzeHandler(file: string, name: string, body: string): Offender[] {
   const offenders: Offender[] = [];
+  // eslint-disable-next-line react-hooks/rules-of-hooks -- false positive: `useStateVars` is a plain static-analysis helper named for the state vars it collects, not a React hook
   const vars = useStateVars(/* file-scoped */ readCode(file));
   if (vars.size === 0) return offenders;
 
