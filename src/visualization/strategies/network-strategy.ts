@@ -20,7 +20,7 @@ import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } 
 import { clampNodeCoordinate } from '../layout-utils';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
 import { emptyLayoutResult } from '../empty-layout-result';
-import { buildAnchoredLayoutEdges, centerToCenterAnchors } from '../strategy-edges';
+import { buildAnchoredLayoutEdges, centerToCenterAnchors, centerAnchor } from '../strategy-edges';
 import { distance } from '../layout-utils';
 
 const NODE_SEP = 80;
@@ -103,12 +103,12 @@ export class NetworkStrategy implements LayoutStrategy {
       for (let j = i + 1; j < nodes.length; j++) {
         const a = nodes[i];
         const b = nodes[j];
-        const ax = a.x + getNodeWidth(a, DEFAULT_NODE_WIDTH) / 2;
-        const ay = a.y + getNodeHeight(a, DEFAULT_NODE_HEIGHT) / 2;
-        const bx = b.x + getNodeWidth(b, DEFAULT_NODE_WIDTH) / 2;
-        const by = b.y + getNodeHeight(b, DEFAULT_NODE_HEIGHT) / 2;
-        const dx = bx - ax;
-        const dy = by - ay;
+        // Round 46 single-source — node centers via strategy-edges
+        // centerAnchor (explicit-DEFAULT reads ≡ the canonical bare reads).
+        const centerA = centerAnchor(a);
+        const centerB = centerAnchor(b);
+        const dx = centerB.x - centerA.x;
+        const dy = centerB.y - centerA.y;
         const dist = Math.max(1, distance(dx, dy));
         // Important nodes repel more strongly
         const impScale = 0.7 + 0.6 * (getImportance(a) + getImportance(b)) / 2;
@@ -128,12 +128,10 @@ export class NetworkStrategy implements LayoutStrategy {
       const src = nodeMap.get(edge.from);
       const tgt = nodeMap.get(edge.to);
       if (!src || !tgt) continue;
-      const sx = src.x + getNodeWidth(src, DEFAULT_NODE_WIDTH) / 2;
-      const sy = src.y + getNodeHeight(src, DEFAULT_NODE_HEIGHT) / 2;
-      const tx = tgt.x + getNodeWidth(tgt, DEFAULT_NODE_WIDTH) / 2;
-      const ty = tgt.y + getNodeHeight(tgt, DEFAULT_NODE_HEIGHT) / 2;
-      const dx = tx - sx;
-      const dy = ty - sy;
+      const sourceCenter = centerAnchor(src);
+      const targetCenter = centerAnchor(tgt);
+      const dx = targetCenter.x - sourceCenter.x;
+      const dy = targetCenter.y - sourceCenter.y;
       const dist = Math.max(1, distance(dx, dy));
       // Edges involving important nodes attract more strongly
       const impScale = 0.8 + 0.4 * Math.max(getImportance(src), getImportance(tgt));

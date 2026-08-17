@@ -761,9 +761,13 @@ describe('v2 strategy edge builder — source anchors (round-32-4)', () => {
     expect(src).toMatch(/points:\s*\[sourcePoint,\s*targetPoint\]/);
     // the anchor seam.
     expect(src).toMatch(/anchorPair\(source,\s*target\)/);
-    // NaN-safe center anchors via node-dimensions with DEFAULT extents.
-    expect(src).toMatch(/getNodeWidth\(source,\s*DEFAULT_NODE_WIDTH\)/);
-    expect(src).toMatch(/getNodeHeight\(target,\s*DEFAULT_NODE_HEIGHT\)/);
+    // Round 46 conscious update: centerToCenterAnchors now COMPOSES the
+    // centerAnchor point helper instead of re-deriving the half-extent
+    // inline with explicit DEFAULT args (getNodeWidth's default IS
+    // DEFAULT_NODE_WIDTH — bit-identical). The anchor helpers live here
+    // exactly once; the retired inline half-extent shapes are banned by the
+    // round-46 registry family (frozen-literal-families/edge-anchor-geometry).
+    expect(src).toMatch(/return \[centerAnchor\(source\),\s*centerAnchor\(target\)\];/);
   });
 
   it.each(STRATEGY_FILES)('%s delegates and re-rolls neither fallback nor assembly', (file) => {
@@ -778,17 +782,25 @@ describe('v2 strategy edge builder — source anchors (round-32-4)', () => {
     expect(src).not.toMatch(/id:\s*edge\.id/);
   });
 
-  it('timeline keeps its vertical-flow anchor geometry in place', () => {
+  // Round 46 conscious update: the two single-site anchor geometries this
+  // section used to pin "in place" (timeline's verticalFlowAnchors body,
+  // comparison's sideAnchorPair body) were PROMOTED to canonical pair helpers
+  // in strategy-edges.ts (verticalFlowAnchors / flankAnchors) once each had
+  // multiple sites (v1 tree + Fallback flow; v1 comparison). The strategies
+  // now import the canonical pair; the geometry pins moved with the code to
+  // edge-anchor-geometry-single-source.test.ts (round 46), which pins the
+  // canonical bodies and each delegation site.
+  it('timeline imports the canonical verticalFlowAnchors pair (round 46)', () => {
     const src = readSource('src/visualization/strategies/timeline-strategy.ts');
-    // source bottom-center (bare source.y + sh), target top-center (bare target.y).
-    expect(src).toMatch(/\{\s*x:\s*source\.x\s*\+\s*sw\s*\/\s*2,\s*y:\s*source\.y\s*\+\s*sh\s*\}/);
-    expect(src).toMatch(/\{\s*x:\s*target\.x\s*\+\s*tw\s*\/\s*2,\s*y:\s*target\.y\s*\}/);
+    expect(src).toMatch(/import \{ buildAnchoredLayoutEdges, verticalFlowAnchors \} from '\.\.\/strategy-edges';/);
+    expect(src).not.toMatch(/function verticalFlowAnchors/);
   });
 
-  it('comparison keeps its side-anchor geometry in place', () => {
+  it('comparison imports the canonical flankAnchors pair (round 46)', () => {
     const src = readSource('src/visualization/strategies/comparison-strategy.ts');
-    expect(src).toMatch(/sourceIsLeft\s*\?\s*source\.x\s*\+\s*sw\s*:\s*source\.x/);
-    expect(src).toMatch(/sourceIsLeft\s*\?\s*target\.x\s*:\s*target\.x\s*\+\s*tw/);
+    expect(src).toMatch(/import \{ buildAnchoredLayoutEdges, flankAnchors \} from '\.\.\/strategy-edges';/);
+    expect(src).toMatch(/buildAnchoredLayoutEdges\(edges, positionedNodes, flankAnchors\)/);
+    expect(src).not.toMatch(/function sideAnchorPair/);
   });
 
   it('the dagre trio and the engine family are NOT swept into this family (scope pin)', () => {

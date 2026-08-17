@@ -16,7 +16,7 @@ import { calculateCanvasSize, calculateMetrics } from '@/visualization/layout-en
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
 import { emptyLayoutResult } from '../empty-layout-result';
-import { buildAnchoredLayoutEdges, EdgeAnchorPair } from '../strategy-edges';
+import { buildAnchoredLayoutEdges, verticalFlowAnchors } from '../strategy-edges';
 // Canonical overlap predicate — single source of truth (see layout-utils.ts).
 import { nodesOverlap, hasOverlapPairs } from '../layout-utils';
 
@@ -271,20 +271,10 @@ export class TimelineStrategy implements LayoutStrategy {
 }
 
 /**
- * Vertical-flow anchors, timeline-specific geometry: source bottom-center to
- * target top-center, so edges read as top→bottom time flow. The edge
- * skeleton (nodeMap, dangling fallback, LayoutEdge assembly) single-sources
- * through strategy-edges.ts (round 32).
+ * Vertical-flow anchors (bottom-center → top-center) moved to
+ * strategy-edges.ts in round 46 — shared with v1 tree and the
+ * FallbackLayoutStrategy flow block. The local definition is retired; the
+ * import above supplies the canonical pair. The edge skeleton (nodeMap,
+ * dangling fallback, LayoutEdge assembly) single-sources through
+ * strategy-edges.ts since round 32.
  */
-function verticalFlowAnchors(
-  source: PositionedNode,
-  target: PositionedNode,
-): EdgeAnchorPair {
-  const sw = getNodeWidth(source, DEFAULT_NODE_WIDTH);
-  const sh = getNodeHeight(source, DEFAULT_NODE_HEIGHT);
-  const tw = getNodeWidth(target, DEFAULT_NODE_WIDTH);
-  return [
-    { x: source.x + sw / 2, y: source.y + sh },
-    { x: target.x + tw / 2, y: target.y },
-  ];
-}

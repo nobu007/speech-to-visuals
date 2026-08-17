@@ -1,6 +1,11 @@
-import { DiagramLayout, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge, DiagramType } from '@/types/diagram';
+import { DiagramLayout, NodeDatum, EdgeDatum, LayoutEdge, DiagramType } from '@/types/diagram';
 import { LayoutConfig } from '../types';
-import { getNodeWidth, getNodeHeight, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import {
+  centerToCenterAnchors,
+  horizontalFlowAnchors,
+  verticalFlowAnchors,
+} from '../strategy-edges';
 
 export class FallbackLayoutStrategy {
   private config: LayoutConfig;
@@ -75,10 +80,9 @@ export class FallbackLayoutStrategy {
       return {
         from: edge.from,
         to: edge.to,
-        points: [
-          { x: fromNode.x + getNodeWidth(fromNode) / 2, y: fromNode.y + getNodeHeight(fromNode) },
-          { x: toNode.x + getNodeWidth(toNode) / 2, y: toNode.y }
-        ],
+        // Round 46 single-source — anchor geometry in strategy-edges.ts. The
+        // skeleton (find lookup + zero-points dangling fallback) stays here.
+        points: [...verticalFlowAnchors(fromNode, toNode)],
         label: edge.label
       };
     });
@@ -131,10 +135,8 @@ export class FallbackLayoutStrategy {
       return {
         from: edge.from,
         to: edge.to,
-        points: [
-          { x: fromNode.x + getNodeWidth(fromNode), y: fromNode.y + getNodeHeight(fromNode) / 2 },
-          { x: toNode.x, y: toNode.y + getNodeHeight(toNode) / 2 }
-        ],
+        // Round 46 single-source — anchor geometry in strategy-edges.ts.
+        points: [...horizontalFlowAnchors(fromNode, toNode)],
         label: edge.label
       };
     });
@@ -181,10 +183,8 @@ export class FallbackLayoutStrategy {
       return {
         from: edge.from,
         to: edge.to,
-        points: [
-          { x: fromNode.x + getNodeWidth(fromNode) / 2, y: fromNode.y + getNodeHeight(fromNode) / 2 },
-          { x: toNode.x + getNodeWidth(toNode) / 2, y: toNode.y + getNodeHeight(toNode) / 2 }
-        ],
+        // Round 46 single-source — anchor geometry in strategy-edges.ts.
+        points: [...centerToCenterAnchors(fromNode, toNode)],
         label: edge.label
       };
     });
@@ -232,10 +232,8 @@ export class FallbackLayoutStrategy {
       return {
         from: edge.from,
         to: edge.to,
-        points: [
-          { x: fromNode.x + getNodeWidth(fromNode) / 2, y: fromNode.y + getNodeHeight(fromNode) / 2 },
-          { x: toNode.x + getNodeWidth(toNode) / 2, y: toNode.y + getNodeHeight(toNode) / 2 }
-        ],
+        // Round 46 single-source — anchor geometry in strategy-edges.ts.
+        points: [...centerToCenterAnchors(fromNode, toNode)],
         label: edge.label
       };
     });

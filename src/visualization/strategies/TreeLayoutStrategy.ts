@@ -19,10 +19,9 @@ import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { logger } from '../../utils/logger';
 import { VisualizationError } from '@/pipeline/pipeline-errors';
-import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 import { strategyNodeWidth, validateStrategyInputs } from '../strategy-common';
 import { resolveNodeHeight as resolveNodeHeightUtil } from '../layout-utils';
-import { buildWarnedAnchoredEdges } from '../strategy-edges';
+import { buildWarnedAnchoredEdges, verticalFlowAnchors } from '../strategy-edges';
 import { DEFAULT_EDGE_SEPARATION, DEFAULT_MARGIN } from '../layout-spacing';
 
 interface TreeNode {
@@ -254,21 +253,13 @@ export class TreeLayoutStrategy implements ILayoutStrategy {
     nodes: PositionedNode[]
   ): LayoutEdge[] {
     // Round 33 single-source — warn-on-dangling skeleton in strategy-edges.ts.
-    // Tree-specific geometry: straight line from the source's center-bottom
-    // to the target's center-top.
+    // Round 46 — the bottom→top geometry delegates to the canonical
+    // verticalFlowAnchors pair (shared with v2 timeline + the Fallback flow
+    // block); only the '[Tree] ' prefix is site-specific.
     return buildWarnedAnchoredEdges(
       edges,
       nodes,
-      (source, target) => [
-        {
-          x: source.x + getNodeWidth(source) / 2,
-          y: source.y + getNodeHeight(source)  // Bottom of source
-        },
-        {
-          x: target.x + getNodeWidth(target) / 2,
-          y: target.y  // Top of target
-        }
-      ],
+      verticalFlowAnchors,
       '[Tree] '
     );
   }

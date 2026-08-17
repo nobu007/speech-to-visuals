@@ -17,6 +17,7 @@ import {
   DEFAULT_MARGIN,
 } from './layout-spacing';
 import { nodesOverlap, distance, nodeExtentEdges, foldNodeExtents, clampNodeCoordinate } from './layout-utils';
+import { centerToCenterAnchors } from './strategy-edges';
 import { mulberry32, seedFromString } from './layout-rng';
 import { OverlapResolver } from './strategies/OverlapResolver';
 import { LayoutOptimizer } from './strategies/LayoutOptimizer';
@@ -508,10 +509,9 @@ export class ComplexLayoutEngine {
         allEdges.push({
           from: edge.from,
           to: edge.to,
-          points: [
-            { x: fromNode.x + getNodeWidth(fromNode) / 2, y: fromNode.y + getNodeHeight(fromNode) / 2 },
-            { x: toNode.x + getNodeWidth(toNode) / 2, y: toNode.y + getNodeHeight(toNode) / 2 }
-          ],
+          // Round 46 single-source — center anchors in strategy-edges.ts. The
+          // drop-dangling policy (this `if` guard) stays at this site.
+          points: [...centerToCenterAnchors(fromNode, toNode)],
           label: edge.label
         });
       }

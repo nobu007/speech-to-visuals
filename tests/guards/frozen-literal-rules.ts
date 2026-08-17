@@ -65,6 +65,7 @@ import { RULES as nodeExtentScan } from './frozen-literal-families/node-extent-s
 import { RULES as strategyGraphPreamble } from './frozen-literal-families/strategy-graph-preamble';
 import { RULES as edgeCrossingScan } from './frozen-literal-families/edge-crossing-scan';
 import { RULES as nodeCanvasClamp } from './frozen-literal-families/node-canvas-clamp';
+import { RULES as edgeAnchorGeometry } from './frozen-literal-families/edge-anchor-geometry';
 
 /**
  * The ordered registry: families in the round order that closed them, entries
@@ -111,4 +112,5 @@ export const FROZEN_LITERAL_RULES: FrozenLiteralRule[] = [
   ...strategyGraphPreamble,
   ...edgeCrossingScan,
   ...nodeCanvasClamp,
+  ...edgeAnchorGeometry,
 ];

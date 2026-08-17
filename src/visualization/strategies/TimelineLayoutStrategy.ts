@@ -18,9 +18,9 @@ import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@
 import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { logger } from '../../utils/logger';
-import { getNodeWidth, getNodeHeight, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { strategyNodeWidth, validateStrategyInputs } from '../strategy-common';
-import { buildWarnedAnchoredEdges } from '../strategy-edges';
+import { buildWarnedAnchoredEdges, horizontalFlowAnchors } from '../strategy-edges';
 import { DEFAULT_EDGE_SEPARATION, DEFAULT_MARGIN } from '../layout-spacing';
 
 export class TimelineLayoutStrategy implements ILayoutStrategy {
@@ -102,21 +102,13 @@ export class TimelineLayoutStrategy implements ILayoutStrategy {
     nodes: PositionedNode[]
   ): LayoutEdge[] {
     // Round 33 single-source — warn-on-dangling skeleton in strategy-edges.ts.
-    // Timeline-specific geometry: horizontal arrow from the source's
-    // right-center to the target's left-center.
+    // Round 46 — the right→left geometry delegates to the canonical
+    // horizontalFlowAnchors pair (shared with the Fallback timeline block);
+    // only the '[Timeline] ' prefix is site-specific.
     return buildWarnedAnchoredEdges(
       edges,
       nodes,
-      (source, target) => [
-        {
-          x: source.x + getNodeWidth(source),      // Right edge of source
-          y: source.y + getNodeHeight(source) / 2   // Vertical center
-        },
-        {
-          x: target.x,                 // Left edge of target
-          y: target.y + getNodeHeight(target) / 2   // Vertical center
-        }
-      ],
+      horizontalFlowAnchors,
       '[Timeline] '
     );
   }

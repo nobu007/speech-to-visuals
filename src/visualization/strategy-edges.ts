@@ -56,21 +56,32 @@
  *   - GridSnapFallbackStrategy (strategy-selector.ts) — deliberately emits
  *     NO geometry at all (every edge `points: []`, no anchors), not a
  *     per-pair anchored builder.
- *   - The anchor geometry itself when it is strategy-specific: timeline's
- *     vertical anchors and comparison's side anchors stay in their strategy
- *     files as anchor functions; only the repeated center→center anchor
- *     (6 sites) lives here.
+ *
+ * Round 46 promoted the ANCHOR GEOMETRY itself into this module. At round 32
+ * each side-anchor policy had a single site, so the geometry stayed in the
+ * strategy files by design; by round 46 the bottom→top pair lived at three
+ * sites (v2 timeline, v1 tree, FallbackLayoutStrategy flow), the right→left
+ * pair at two (v1 timeline, FallbackLayoutStrategy timeline), and the
+ * pair-dependent flanks at two (v1 + v2 comparison) — plus the Fallback
+ * cycle/matrix, complex-layout-engine cluster, ezo edge/balance sites, and
+ * the network-strategy force-math center reads re-deriving the center. The
+ * point helpers (centerAnchor + four side anchors) and pair helpers
+ * (verticalFlowAnchors, horizontalFlowAnchors, flankAnchors,
+ * centerToCenterAnchors) below are now the single geometry; sites keep only
+ * their edge-assembly skeleton (lookup + dangling policy).
  *
  * Guarded by tests/guards/v2-strategy-edge-builder-single-source.test.ts
  * (verbatim legacy-inline oracles, dangling-shape pins, source anchors) and
  * the round-32 entry in tests/guards/frozen-literal-rules.ts (no site
  * re-rolls the skeleton). The round-33 v1 flavor is guarded by
  * tests/guards/v1-engine-edge-builder-single-source.test.ts and the round-33
+ * registry entry. The round-46 anchor geometry is guarded by
+ * tests/guards/edge-anchor-geometry-single-source.test.ts and the round-46
  * registry entry.
  */
 
 import { EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
-import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from './node-dimensions';
+import { getNodeWidth, getNodeHeight } from './node-dimensions';
 import { logger } from '@/utils/logger';
 
 /** One endpoint of an edge polyline; anchored geometry is caller-supplied. */
@@ -121,24 +132,121 @@ export function buildAnchoredLayoutEdges(
 }
 
 /**
+ * CENTER anchor of a positioned node — top-left corner plus half the extent:
+ * `{x: node.x + getNodeWidth(node) / 2, y: node.y + getNodeHeight(node) / 2}`.
+ *
+ * Round 46: this half-extent expression was re-derived inline at every site
+ * that needs "where is this node" for an edge endpoint or a balance metric —
+ * the two v1 strategy anchor functions, the FallbackLayoutStrategy cycle and
+ * matrix blocks, the complex-layout-engine cluster edges, the ezo timeline
+ * edges and collision-balance centers — while only the v2 strategies received
+ * it via `centerToCenterAnchors` above. Each independent copy could drop the
+ * `+ node.x` origin term, halve the wrong axis, or read the extent off raw
+ * `.width` (NaN-unsafe), and the edge endpoints of one engine would silently
+ * disagree with another's about the same node. The anchor POINT helpers below
+ * (center + the four side anchors) are the single geometry; the anchor PAIR
+ * helpers compose them for the repeated endpoint policies.
+ *
+ * Extents are read through node-dimensions with its DEFAULT fallback (120/60)
+ * — bit-identical to the retired bare `getNodeWidth(node)` calls, whose
+ * default argument IS `DEFAULT_NODE_WIDTH`. Raw coordinates propagate NaN by
+ * design (the retired forms did); callers that must not feed NaN keep their
+ * pre-call guard at the site.
+ */
+export function centerAnchor(node: PositionedNode): EdgeAnchor {
+  return {
+    x: node.x + getNodeWidth(node) / 2,
+    y: node.y + getNodeHeight(node) / 2,
+  };
+}
+
+/** Bottom-center anchor: `{x + w/2, y + h}` — where a downward edge leaves. */
+export function bottomCenterAnchor(node: PositionedNode): EdgeAnchor {
+  return {
+    x: node.x + getNodeWidth(node) / 2,
+    y: node.y + getNodeHeight(node),
+  };
+}
+
+/** Top-center anchor: `{x + w/2, y}` — where an upward edge arrives. */
+export function topCenterAnchor(node: PositionedNode): EdgeAnchor {
+  return {
+    x: node.x + getNodeWidth(node) / 2,
+    y: node.y,
+  };
+}
+
+/** Right-center anchor: `{x + w, y + h/2}` — where a rightward edge leaves. */
+export function rightCenterAnchor(node: PositionedNode): EdgeAnchor {
+  return {
+    x: node.x + getNodeWidth(node),
+    y: node.y + getNodeHeight(node) / 2,
+  };
+}
+
+/** Left-center anchor: `{x, y + h/2}` — where a leftward edge arrives. */
+export function leftCenterAnchor(node: PositionedNode): EdgeAnchor {
+  return {
+    x: node.x,
+    y: node.y + getNodeHeight(node) / 2,
+  };
+}
+
+/**
  * Center-to-center anchors — the geometry shared by the grid/matrix,
- * general, cycle, conceptmap, network, and mindmap strategies. Extents are
- * read through node-dimensions (NaN-safe), never off raw `.width`.
+ * general, cycle, conceptmap, network, and mindmap strategies (v2), the
+ * FallbackLayoutStrategy cycle/matrix blocks, the complex-layout-engine
+ * cluster edges, and the ezo timeline edges. Extents are read through
+ * node-dimensions (NaN-safe), never off raw `.width`; composed from
+ * {@link centerAnchor} since round 46 so the half-extent arithmetic exists
+ * exactly once.
  */
 export function centerToCenterAnchors(
   source: PositionedNode,
   target: PositionedNode,
 ): EdgeAnchorPair {
-  return [
-    {
-      x: source.x + getNodeWidth(source, DEFAULT_NODE_WIDTH) / 2,
-      y: source.y + getNodeHeight(source, DEFAULT_NODE_HEIGHT) / 2,
-    },
-    {
-      x: target.x + getNodeWidth(target, DEFAULT_NODE_WIDTH) / 2,
-      y: target.y + getNodeHeight(target, DEFAULT_NODE_HEIGHT) / 2,
-    },
-  ];
+  return [centerAnchor(source), centerAnchor(target)];
+}
+
+/**
+ * Vertical-flow anchors — source BOTTOM-center to target TOP-center, so the
+ * edge reads as top→bottom flow. Shared by the v2 timeline strategy
+ * (verticalFlowAnchors), the v1 tree strategy, and the FallbackLayoutStrategy
+ * flow block. Verbatim lift of the three retired inline copies (round 46).
+ */
+export function verticalFlowAnchors(
+  source: PositionedNode,
+  target: PositionedNode,
+): EdgeAnchorPair {
+  return [bottomCenterAnchor(source), topCenterAnchor(target)];
+}
+
+/**
+ * Horizontal-flow anchors — source RIGHT-center to target LEFT-center, so the
+ * edge reads as left→right flow. Shared by the v1 timeline strategy and the
+ * FallbackLayoutStrategy timeline block. Verbatim lift (round 46).
+ */
+export function horizontalFlowAnchors(
+  source: PositionedNode,
+  target: PositionedNode,
+): EdgeAnchorPair {
+  return [rightCenterAnchor(source), leftCenterAnchor(target)];
+}
+
+/**
+ * Flank anchors — pair-dependent sides: the edge leaves whichever flank of
+ * the source faces the target and arrives on the facing flank of the target
+ * (`source.x < target.x` → right→left, else left→right; a tie takes the
+ * else-branch exactly like the retired inline `sourceIsLeft` forms). Shared
+ * by the v1 and v2 comparison strategies. Verbatim lift (round 46).
+ */
+export function flankAnchors(
+  source: PositionedNode,
+  target: PositionedNode,
+): EdgeAnchorPair {
+  return source.x < target.x
+    ? [rightCenterAnchor(source), leftCenterAnchor(target)]
+    : [leftCenterAnchor(source), rightCenterAnchor(target)];
 }
 
 /**
@@ -163,7 +271,12 @@ export function centerToCenterAnchors(
 export function buildWarnedAnchoredEdges(
   edges: EdgeDatum[],
   nodes: PositionedNode[],
-  pointsOf: (source: PositionedNode, target: PositionedNode) => EdgeAnchor[],
+  // Round 46: accepts BOTH the round-46 anchor pairs (the readonly
+  // EdgeAnchorPair tuple) and legacy point-array anchors — the BaseLayoutEngine
+  // seam keeps its overridable `generateEdgePoints`, whose historical contract
+  // is a plain Point[]. The assembly spreads either into the mutable points
+  // array LayoutEdge requires, so a pair helper slots in without an adapter.
+  pointsOf: (source: PositionedNode, target: PositionedNode) => EdgeAnchor[] | EdgeAnchorPair,
   warnPrefix: string,
 ): LayoutEdge[] {
   // First-match-wins map: preserves `nodes.find(n => n.id === ...)` for
@@ -193,7 +306,11 @@ export function buildWarnedAnchoredEdges(
     return {
       from: edge.from,
       to: edge.to,
-      points: pointsOf(source, target),
+      // Round 46: pointsOf now returns the readonly EdgeAnchorPair (same
+      // "exactly two anchors" contract as the v2 builder); spread into the
+      // mutable points array LayoutEdge requires. Same two elements, fresh
+      // array — bit-identical to the previous direct assignment.
+      points: [...pointsOf(source, target)],
       label: edge.label,
     };
   });

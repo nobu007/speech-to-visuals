@@ -18,6 +18,7 @@ import { clamp01 } from '@/utils/guards';
 import { Point } from './types';
 import { logger } from '../utils/logger';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from './node-dimensions';
+import { centerToCenterAnchors, centerAnchor } from './strategy-edges';
 import { TARGET_ASPECT_RATIO } from './canvas-dimensions';
 import { FORCE_DIRECTED_PHYSICS, runForceDirectedPhases, applyForceDirectedStep } from './force-directed-params';
 import { createLayoutRng } from './layout-rng';
@@ -463,10 +464,9 @@ export class ZeroOverlapLayoutEngine {
 
       return {
         ...edge,
-        points: [
-          { x: sourceNode.x + getNodeWidth(sourceNode) / 2, y: sourceNode.y + getNodeHeight(sourceNode) / 2 },
-          { x: targetNode.x + getNodeWidth(targetNode) / 2, y: targetNode.y + getNodeHeight(targetNode) / 2 }
-        ]
+        // Round 46 single-source — center anchors in strategy-edges.ts. The
+        // warn + `{...edge, points: []}` dangling fallback stays at this site.
+        points: [...centerToCenterAnchors(sourceNode, targetNode)]
       };
     }).filter(edge => edge.points && edge.points.length > 0);
 
@@ -1327,16 +1327,15 @@ export class ZeroOverlapLayoutEngine {
     const centerX = this.config.canvasWidth / 2;
     const centerY = this.config.canvasHeight / 2;
 
-    const node1CenterX = node1.x + getNodeWidth(node1) / 2;
-    const node1CenterY = node1.y + getNodeHeight(node1) / 2;
-    const node2CenterX = node2.x + getNodeWidth(node2) / 2;
-    const node2CenterY = node2.y + getNodeHeight(node2) / 2;
+    // Round 46 single-source — node centers via centerAnchor (strategy-edges).
+    const node1Center = centerAnchor(node1);
+    const node2Center = centerAnchor(node2);
 
     // Move nodes away from center to maintain balance — compare each node's
     // center-to-canvas-center distance via the canonical `distance(dx, dy)`.
     const moveNode1TowardCenter =
-      distance(node1CenterX - centerX, node1CenterY - centerY) >
-      distance(node2CenterX - centerX, node2CenterY - centerY);
+      distance(node1Center.x - centerX, node1Center.y - centerY) >
+      distance(node2Center.x - centerX, node2Center.y - centerY);
 
     const separation = this.calculateOptimalSeparation(node1, node2);
     const moveVector = this.calculateMoveVector(node1, node2, separation);
