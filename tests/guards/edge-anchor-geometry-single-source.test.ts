@@ -573,15 +573,19 @@ describe('round 46: edge anchor geometry — layer 3 source anchors', () => {
     expect((src.match(/points: \[\{ x: 0, y: 0 \}, \{ x: 0, y: 0 \}\]/g) ?? []).length).toBe(4);
   });
 
-  it('complex-layout-engine cluster block delegates; the worker/fallback ?? 0 reads stay OUT of the family (scope pin)', () => {
+  it('complex-layout-engine cluster block delegates; the worker/fallback ?? 0 reads delegate with a pre-guard (round 47)', () => {
     const src = readSource('src/visualization/complex-layout-engine.ts');
     expect(src).toMatch(/points: \[\.\.\.centerToCenterAnchors\(fromNode, toNode\)\]/);
     expect(src).not.toMatch(/\{ x: fromNode\.x \+ getNodeWidth\(fromNode\) \/ 2,/);
-    // Scope-out: the worker/fallback blocks keep their defensive `?? 0`
-    // coordinate reads (a MISSING-NODE policy, not this raw-read family).
-    // Converging them onto the canonical is a behavior change and must be a
-    // conscious round, not a silent drift of this pin.
-    expect((src.match(/\(fromNode\?\.x \?\? 0\) \+ getNodeWidth\(fromNode \?\? \{\}\) \/ 2/g) ?? []).length).toBe(2);
+    // Round 47 conscious update of the round-46 scope pin: the worker/
+    // fallback blocks now delegate to layout-utils `calculateNodeCenter`,
+    // keeping their MISSING-NODE policy as a `?? { x: 0, y: 0 }` pre-guard
+    // and their DEFAULT dimension policy as explicit fallback args —
+    // bit-identical to the retired `(fromNode?.x ?? 0) + getNodeWidth(fromNode ?? {}) / 2`
+    // forms. The retired raw-read shape must not come back.
+    expect((src.match(/calculateNodeCenter\(\(fromNode \?\? \{ x: 0, y: 0 \}\) as PositionedNode, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT\)/g) ?? []).length).toBe(2);
+    expect((src.match(/calculateNodeCenter\(\(toNode \?\? \{ x: 0, y: 0 \}\) as PositionedNode, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT\)/g) ?? []).length).toBe(2);
+    expect(src).not.toMatch(/\{ x: \(fromNode\?\.x \?\? 0\) \+ getNodeWidth/);
   });
 
   it('ezo delegates the edge anchors and the balance centers', () => {
@@ -616,15 +620,28 @@ describe('round 46: edge anchor geometry — layer 3 source anchors', () => {
     expect(comparison).not.toMatch(/function sideAnchorPair/);
   });
 
-  it('scope pin: force-directed-params center diffs and export || 0 reads stay outside the family', () => {
-    // force-directed-params: the center-to-center DIFFS live inside the
-    // round-40 frozen step body — migrating them means a conscious r40 guard
-    // update, not this family's sweep.
+  it('scope pin (round 47 update): force-directed-params center diffs and export || 0 reads now delegate to calculateNodeCenter', () => {
+    // Round 47 conscious update of the round-46 scope pins. The r46 sweep
+    // left these out: the force-step diffs live inside the round-40 frozen
+    // body, and the exporter's `|| 0` reads are falsy-coercion pre-guards.
+    // Round 47's per-axis fallback seam makes both delegations
+    // bit-identical (grouped pair form preserved; `|| 0` kept as a site
+    // pre-guard on the spread clone), so the convergence r46 demanded as "a
+    // conscious round" is this one — guarded by
+    // tests/guards/node-box-center-single-source.test.ts. The r40 verbatim
+    // oracle in force-directed-step-single-source.test.ts still passes
+    // unchanged (behavior-identical).
     const fdp = readSource('src/visualization/force-directed-params.ts');
-    expect(fdp).toMatch(/getNodeWidth\(node2\) \/ 2/);
-    // multi-format-exporter: `|| 0` defensive coordinate reads (PDF path).
+    expect((fdp.match(/calculateNodeCenter\(node1, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT\)/g) ?? []).length).toBe(1);
+    expect((fdp.match(/calculateNodeCenter\(node2, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT\)/g) ?? []).length).toBe(1);
+    expect((fdp.match(/calculateNodeCenter\(source, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT\)/g) ?? []).length).toBe(1);
+    expect((fdp.match(/calculateNodeCenter\(target, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT\)/g) ?? []).length).toBe(1);
+    expect(fdp).not.toMatch(/const dx = \(node2\.x \+ getNodeWidth\(node2\) \/ 2/);
+    // multi-format-exporter: `|| 0` defensive coordinate reads (PDF path)
+    // preserved as the pre-guard on the delegated call.
     const mfe = readSource('src/export/multi-format-exporter.ts');
-    expect(mfe).toMatch(/\(from\.x \|\| 0\) \+ getNodeWidth\(from\) \/ 2/);
+    expect(mfe).toMatch(/calculateNodeCenter\(\{ \.\.\.from, x: from\.x \|\| 0, y: from\.y \|\| 0 \}, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT\)/);
+    expect(mfe).not.toMatch(/const fx = \(from\.x \|\| 0\) \+ getNodeWidth\(from\) \/ 2/);
   });
 
   it('network-strategy force math reads centers through centerAnchor (sibling-site completion)', () => {
@@ -641,11 +658,15 @@ describe('round 46: edge anchor geometry — layer 3 source anchors', () => {
     expect(src).not.toMatch(/\.x \+ getNodeWidth\((a|b|src|tgt), DEFAULT_NODE_WIDTH\) \/ 2/);
     // its edge anchors already delegate since round 32 (centerToCenterAnchors)
     expect(src).toMatch(/buildAnchoredLayoutEdges\(edges, positioned, centerToCenterAnchors\)/);
-    // Scope-out: LayoutOptimizer's circular edge anchors read extents with
-    // `this.config.nodeWidth` fallback — a CONFIG-driven policy, not the
-    // DEFAULT fallback family. Converging it changes behavior for
-    // config.nodeWidth ≠ 120; a conscious round, not this sweep.
+    // Scope-out RESOLVED by round 47: LayoutOptimizer's circular edge
+    // anchors and importance centroid now delegate to layout-utils
+    // `calculateNodeCenter` / `nodesCentroid` with the config fallbacks
+    // threaded per axis — bit-identical for ANY config.nodeWidth, which the
+    // r46 pin had demanded as "a conscious round, not this sweep".
     const lo = readSource('src/visualization/strategies/LayoutOptimizer.ts');
-    expect(lo).toMatch(/getNodeWidth\(fromNode, this\.config\.nodeWidth\) \/ 2/);
+    expect((lo.match(/calculateNodeCenter\(fromNode, this\.config\.nodeWidth, this\.config\.nodeHeight\)/g) ?? []).length).toBe(1);
+    expect((lo.match(/calculateNodeCenter\(toNode, this\.config\.nodeWidth, this\.config\.nodeHeight\)/g) ?? []).length).toBe(1);
+    expect(lo).toMatch(/nodesCentroid\(layout\.nodes, this\.config\.nodeWidth, this\.config\.nodeHeight\)/);
+    expect(lo).not.toMatch(/x: fromNode\.x \+ getNodeWidth\(fromNode, this\.config\.nodeWidth\) \/ 2/);
   });
 });

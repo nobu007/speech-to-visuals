@@ -82,6 +82,13 @@ jest.unstable_mockModule('@/visualization/layout-utils', () => ({
   // (link error otherwise, jest-esm-mock-pattern). Faithful shape.
   clampNodeCoordinate: jest.fn((value: number, canvasSize: number, nodeSize: number, margin = 0) =>
     Math.max(margin, Math.min(canvasSize - nodeSize - margin, value))),
+  // round 47: complex-layout-engine's fallback edge points now read the
+  // node box-center through this — faithful shape (per-axis fallbacks,
+  // same defaults as the real calculateNodeCenter: 0/0).
+  calculateNodeCenter: jest.fn((node: { x: number; y: number; width?: number; w?: number; height?: number; h?: number }, widthFallback = 0, heightFallback = 0) => ({
+    x: node.x + ((node.width ?? node.w) ?? widthFallback) / 2,
+    y: node.y + ((node.height ?? node.h) ?? heightFallback) / 2,
+  })),
 }));
 
 const { ComplexLayoutEngine } = await import('../../visualization/complex-layout-engine');

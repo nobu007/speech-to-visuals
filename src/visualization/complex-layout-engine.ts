@@ -16,7 +16,7 @@ import {
   DEFAULT_RANK_SEPARATION,
   DEFAULT_MARGIN,
 } from './layout-spacing';
-import { nodesOverlap, distance, nodeExtentEdges, foldNodeExtents, clampNodeCoordinate } from './layout-utils';
+import { nodesOverlap, distance, nodeExtentEdges, foldNodeExtents, clampNodeCoordinate, calculateNodeCenter } from './layout-utils';
 import { centerToCenterAnchors } from './strategy-edges';
 import { mulberry32, seedFromString } from './layout-rng';
 import { OverlapResolver } from './strategies/OverlapResolver';
@@ -894,8 +894,13 @@ export class ComplexLayoutEngine {
           from: e.from,
           to: e.to,
           points: [
-            { x: (fromNode?.x ?? 0) + getNodeWidth(fromNode ?? {}) / 2, y: (fromNode?.y ?? 0) + getNodeHeight(fromNode ?? {}) / 2 },
-            { x: (toNode?.x ?? 0) + getNodeWidth(toNode ?? {}) / 2, y: (toNode?.y ?? 0) + getNodeHeight(toNode ?? {}) / 2 },
+            // Round 47 single source — node box-centers via layout-utils
+            // `calculateNodeCenter`. The `?? {x:0,y:0}` pre-guard reproduces
+            // the retired `(fromNode?.x ?? 0)` phantom read, and the explicit
+            // DEFAULT fallbacks reproduce the retired `getNodeWidth(x ?? {})`
+            // defaults.
+            calculateNodeCenter((fromNode ?? { x: 0, y: 0 }) as PositionedNode, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT),
+            calculateNodeCenter((toNode ?? { x: 0, y: 0 }) as PositionedNode, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT),
           ],
           label: e.label,
         };
@@ -951,8 +956,11 @@ export class ComplexLayoutEngine {
         from: e.from,
         to: e.to,
         points: [
-          { x: (fromNode?.x ?? 0) + getNodeWidth(fromNode ?? {}) / 2, y: (fromNode?.y ?? 0) + getNodeHeight(fromNode ?? {}) / 2 },
-          { x: (toNode?.x ?? 0) + getNodeWidth(toNode ?? {}) / 2, y: (toNode?.y ?? 0) + getNodeHeight(toNode ?? {}) / 2 },
+          // Round 47 single source — node box-centers via layout-utils
+          // `calculateNodeCenter` (`?? {x:0,y:0}` phantom-read pre-guard and
+          // explicit DEFAULT fallbacks reproduce the retired form).
+          calculateNodeCenter((fromNode ?? { x: 0, y: 0 }) as PositionedNode, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT),
+          calculateNodeCenter((toNode ?? { x: 0, y: 0 }) as PositionedNode, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT),
         ],
         label: e.label,
       };

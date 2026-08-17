@@ -32,8 +32,8 @@
  */
 
 import type { PositionedNode, EdgeDatum } from '@/types/diagram';
-import { getNodeWidth, getNodeHeight } from './node-dimensions';
-import { distance, clampNodeCoordinate } from './layout-utils';
+import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from './node-dimensions';
+import { distance, clampNodeCoordinate, calculateNodeCenter } from './layout-utils';
 
 /** One optimization phase of the multi-phase force-directed loop. */
 export interface ForceDirectedPhase {
@@ -156,8 +156,13 @@ export function applyForceDirectedStep(
       const node1 = nodes[i];
       const node2 = nodes[j];
 
-      const dx = (node2.x + getNodeWidth(node2) / 2) - (node1.x + getNodeWidth(node1) / 2);
-      const dy = (node2.y + getNodeHeight(node2) / 2) - (node1.y + getNodeHeight(node1) / 2);
+      // Round 47 single source — node box-centers via layout-utils
+      // `calculateNodeCenter` (DEFAULT fallbacks passed explicitly, identical
+      // to the retired bare `getNodeWidth(node2) / 2` forms).
+      const c1 = calculateNodeCenter(node1, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT);
+      const c2 = calculateNodeCenter(node2, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT);
+      const dx = c2.x - c1.x;
+      const dy = c2.y - c1.y;
       const dist = distance(dx, dy);
 
       if (dist > 0) {
@@ -194,8 +199,12 @@ export function applyForceDirectedStep(
     const target = nodes.find(n => n.id === edge.to);
 
     if (source && target) {
-      const dx = (target.x + getNodeWidth(target) / 2) - (source.x + getNodeWidth(source) / 2);
-      const dy = (target.y + getNodeHeight(target) / 2) - (source.y + getNodeHeight(source) / 2);
+      // Round 47 single source — node box-centers via layout-utils
+      // `calculateNodeCenter` (DEFAULT fallbacks passed explicitly).
+      const s = calculateNodeCenter(source, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT);
+      const t = calculateNodeCenter(target, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT);
+      const dx = t.x - s.x;
+      const dy = t.y - s.y;
       const dist = distance(dx, dy);
 
       if (dist > 0) {

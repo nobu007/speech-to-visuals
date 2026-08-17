@@ -23,7 +23,7 @@ import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimension
 import { emptyLayoutResult } from '../empty-layout-result';
 import { buildAnchoredLayoutEdges, centerToCenterAnchors } from '../strategy-edges';
 // Canonical overlap predicate — single source of truth (see layout-utils.ts).
-import { nodesOverlap, hasOverlapPairs, distance } from '../layout-utils';
+import { nodesOverlap, hasOverlapPairs, distance, calculateNodeCenter } from '../layout-utils';
 
 const MIN_RADIUS = 200;
 const OVERLAP_SPACING_FACTOR = 1.2;
@@ -139,13 +139,14 @@ export class CycleLayoutStrategy implements LayoutStrategy {
           const b = forceNodes[j].positioned;
 
           if (nodesOverlap(a, b)) {
-            const aCx = a.x + getNodeWidth(a, 0) / 2;
-            const aCy = a.y + getNodeHeight(a, 0) / 2;
-            const bCx = b.x + getNodeWidth(b, 0) / 2;
-            const bCy = b.y + getNodeHeight(b, 0) / 2;
+            // Round 47 single source — node box-centers via layout-utils
+            // `calculateNodeCenter` (fallback 0, bit-identical to the retired
+            // `a.x + getNodeWidth(a, 0) / 2` locals).
+            const aCenter = calculateNodeCenter(a);
+            const bCenter = calculateNodeCenter(b);
 
-            let dx = bCx - aCx;
-            let dy = bCy - aCy;
+            let dx = bCenter.x - aCenter.x;
+            let dy = bCenter.y - aCenter.y;
             const dist = distance(dx, dy) || 1;
 
             dx = dx / dist;
@@ -164,8 +165,10 @@ export class CycleLayoutStrategy implements LayoutStrategy {
       // Apply light attraction toward circle position to keep circular shape
       for (let i = 0; i < forceNodes.length; i++) {
         const n = forceNodes[i].positioned;
-        const ncx = n.x + getNodeWidth(n, 0) / 2;
-        const ncy = n.y + getNodeHeight(n, 0) / 2;
+        // Round 47 single source — node box-center via layout-utils.
+        const nCenter = calculateNodeCenter(n);
+        const ncx = nCenter.x;
+        const ncy = nCenter.y;
 
         const angle = (2 * Math.PI * i) / forceNodes.length;
         const maxNodeWidth = Math.max(...nodes.map((nd) => getNodeWidth(nd, DEFAULT_NODE_WIDTH)));

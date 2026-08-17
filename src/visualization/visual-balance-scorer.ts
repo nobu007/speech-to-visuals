@@ -10,8 +10,7 @@
 
 import { PositionedNode } from '@/types/diagram';
 import { sanitizeFinite } from '@/utils/guards';
-import { distance } from './layout-utils';
-import { getNodeWidth as nodeWidth, getNodeHeight as nodeHeight } from './node-dimensions';
+import { distance, calculateNodeCenter } from './layout-utils';
 
 export interface VisualBalanceResult {
   /** Composite balance score 0.0~1.0, higher = more balanced */
@@ -42,10 +41,16 @@ export interface VisualBalanceResult {
  * `getNodeWidth`/`getNodeHeight`.
  */
 function nodeCenter(node: PositionedNode): { x: number; y: number } {
-  return {
-    x: sanitizeFinite(node.x, 0) + nodeWidth(node, 0) / 2,
-    y: sanitizeFinite(node.y, 0) + nodeHeight(node, 0) / 2,
-  };
+  // Round 47 single source — box-center geometry delegated to layout-utils
+  // `calculateNodeCenter` (fallback 0, identical to the retired
+  // `nodeWidth(node, 0) / 2` reads). This call site stays the ingestion
+  // chokepoint: the spread pre-sanitizes x/y BEFORE the geometry, so the
+  // NaN guard the doc comment above describes is preserved bit-for-bit.
+  return calculateNodeCenter({
+    ...node,
+    x: sanitizeFinite(node.x, 0),
+    y: sanitizeFinite(node.y, 0),
+  });
 }
 
 function clamp(value: number, min = 0, max = 1): number {

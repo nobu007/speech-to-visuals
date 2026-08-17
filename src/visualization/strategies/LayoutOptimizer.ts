@@ -1,6 +1,7 @@
 import { DiagramLayout, PositionedNode, DiagramType, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
+import { calculateNodeCenter, nodesCentroid } from '../layout-utils';
 import { getImportance } from '../importance-scaler';
 
 export class LayoutOptimizer {
@@ -118,9 +119,13 @@ export class LayoutOptimizer {
       return edge.points;
     }
 
+    // Round 47 single source — node box-centers via layout-utils
+    // `calculateNodeCenter`, config fallbacks threaded per axis (identical to
+    // the retired inline `getNodeWidth(fromNode, this.config.nodeWidth) / 2`
+    // forms; r46 had scoped this site out for lack of a fallback seam).
     return [
-      { x: fromNode.x + getNodeWidth(fromNode, this.config.nodeWidth) / 2, y: fromNode.y + getNodeHeight(fromNode, this.config.nodeHeight) / 2 },
-      { x: toNode.x + getNodeWidth(toNode, this.config.nodeWidth) / 2, y: toNode.y + getNodeHeight(toNode, this.config.nodeHeight) / 2 }
+      calculateNodeCenter(fromNode, this.config.nodeWidth, this.config.nodeHeight),
+      calculateNodeCenter(toNode, this.config.nodeWidth, this.config.nodeHeight)
     ];
   }
 
@@ -155,9 +160,12 @@ export class LayoutOptimizer {
   private async adjustSpacingByImportance(layout: DiagramLayout): Promise<DiagramLayout> {
     if (layout.nodes.length === 0) return layout;
 
-    // Calculate centroid to scale relative to center, not origin
-    const centerX = layout.nodes.reduce((sum, n) => sum + (n.x + getNodeWidth(n, this.config.nodeWidth) / 2), 0) / layout.nodes.length;
-    const centerY = layout.nodes.reduce((sum, n) => sum + (n.y + getNodeHeight(n, this.config.nodeHeight) / 2), 0) / layout.nodes.length;
+    // Calculate centroid to scale relative to center, not origin — round 47
+    // single source: layout-utils `nodesCentroid` (config fallbacks per axis,
+    // same accumulation order as the retired twin reduces).
+    const centroid = nodesCentroid(layout.nodes, this.config.nodeWidth, this.config.nodeHeight);
+    const centerX = centroid.x;
+    const centerY = centroid.y;
 
     const nodes = layout.nodes.map(node => {
       // Use the canonical helper: it treats importance 0 as a legitimate "lowest"

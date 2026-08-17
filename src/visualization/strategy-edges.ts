@@ -81,7 +81,8 @@
  */
 
 import { EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
-import { getNodeWidth, getNodeHeight } from './node-dimensions';
+import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from './node-dimensions';
+import { calculateNodeCenter } from './layout-utils';
 import { logger } from '@/utils/logger';
 
 /** One endpoint of an edge polyline; anchored geometry is caller-supplied. */
@@ -154,10 +155,11 @@ export function buildAnchoredLayoutEdges(
  * pre-call guard at the site.
  */
 export function centerAnchor(node: PositionedNode): EdgeAnchor {
-  return {
-    x: node.x + getNodeWidth(node) / 2,
-    y: node.y + getNodeHeight(node) / 2,
-  };
+  // Round 47: composed over layout-utils `calculateNodeCenter` with the
+  // DEFAULT fallbacks passed explicitly (bit-identical to the retired bare
+  // `getNodeWidth(node) / 2` / `getNodeHeight(node) / 2`, whose default
+  // arguments ARE DEFAULT_NODE_WIDTH / DEFAULT_NODE_HEIGHT).
+  return calculateNodeCenter(node, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT);
 }
 
 /** Bottom-center anchor: `{x + w/2, y + h}` — where a downward edge leaves. */

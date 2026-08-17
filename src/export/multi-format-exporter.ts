@@ -22,7 +22,8 @@ import { sanitizeFilename } from '../utils/sanitize';
 import { validateSceneGraphForExport, isStrictValidationEnabled, evaluateExportBlock } from './export-content-validator';
 import { escapeXml } from './xml-escape';
 import { securityMetricsCollector } from './security-metrics-collector';
-import { getNodeWidth, getNodeHeight } from '../visualization/node-dimensions';
+import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../visualization/node-dimensions';
+import { calculateNodeCenter } from '../visualization/layout-utils';
 import { textWidth } from '../visualization/smart-label-sizer';
 
 export type ExportFormat = 'svg' | 'png' | 'pdf' | 'json';
@@ -494,10 +495,16 @@ export class MultiFormatExporter {
         // size. The previous form used the raw corner as the endpoint, which
         // only matched a CENTER convention — shifting every edge endpoint
         // up-left by half a node relative to the other formats.
-        const fx = (from.x || 0) + getNodeWidth(from) / 2;
-        const fy = (from.y || 0) + getNodeHeight(from) / 2;
-        const tx = (to.x || 0) + getNodeWidth(to) / 2;
-        const ty = (to.y || 0) + getNodeHeight(to) / 2;
+        // Round 47 single source — box-center geometry via layout-utils
+        // `calculateNodeCenter` (DEFAULT fallbacks passed explicitly, and the
+        // `|| 0` falsy-coercion pre-guard preserved at the site; r46 had
+        // scoped this `|| 0` read out for lack of a pre-guard seam).
+        const fromCenter = calculateNodeCenter({ ...from, x: from.x || 0, y: from.y || 0 }, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT);
+        const toCenter = calculateNodeCenter({ ...to, x: to.x || 0, y: to.y || 0 }, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT);
+        const fx = fromCenter.x;
+        const fy = fromCenter.y;
+        const tx = toCenter.x;
+        const ty = toCenter.y;
         parts.push(`${fx} ${pageHeight - fy} m ${tx} ${pageHeight - ty} l S`);
         if (edge.label) {
           const midX = (fx + tx) / 2;

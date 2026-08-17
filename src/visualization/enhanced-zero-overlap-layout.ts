@@ -949,6 +949,13 @@ export class ZeroOverlapLayoutEngine {
     // Center-to-center distance via the canonical `distance(dx, dy)` (the same
     // sqrt(dx²+dy²) arithmetic used by the 9 other call sites in this file);
     // `distance` uses `dx*dx`, bit-equivalent to the prior `Math.pow(dx, 2)`.
+    // Round 47: this delta stays INLINE (not layout-utils
+    // `calculateNodeCenter`) because the fold is UNGROUPED —
+    // `a + b/2 - c - d/2` evaluates as ((a+b/2)−c)−d/2, whereas the canonical
+    // pair form is (a+b/2)−(c+d/2); the two groupings disagree on exotic
+    // floats (e.g. 1e16-scale coordinates), so delegation would NOT be
+    // Object.is-identical. The grouped sibling in calculateMoveVector
+    // delegates.
     const centerDx = node1.x + n1w / 2 - node2.x - n2w / 2;
     const centerDy = node1.y + n1h / 2 - node2.y - n2h / 2;
     const centerDistance = distance(centerDx, centerDy);
@@ -975,13 +982,16 @@ export class ZeroOverlapLayoutEngine {
     node2: PositionedNode,
     moveDistance: number
   ): { x: number; y: number } {
-    const n1w = getNodeWidth(node1, 0);
-    const n1h = getNodeHeight(node1, 0);
-    const n2w = getNodeWidth(node2, 0);
-    const n2h = getNodeHeight(node2, 0);
-
-    const dx = (node1.x + n1w / 2) - (node2.x + n2w / 2);
-    const dy = (node1.y + n1h / 2) - (node2.y + n2h / 2);
+    // Round 47 single source — node box-centers via layout-utils
+    // `calculateNodeCenter` (fallback 0; the retired form was the grouped
+    // `(node1.x + n1w / 2) - (node2.x + n2w / 2)`, so delegation is
+    // bit-identical — see the ungrouped sibling in
+    // calculateMinimumSeparation, which stays inline for exactly that
+    // regrouping hazard).
+    const c1 = calculateNodeCenter(node1);
+    const c2 = calculateNodeCenter(node2);
+    const dx = c1.x - c2.x;
+    const dy = c1.y - c2.y;
 
     const length = distance(dx, dy);
 

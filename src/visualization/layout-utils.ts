@@ -84,13 +84,67 @@ export function resolveNodeHeight(node: NodeDatum, config: NodeDimensionsConfig)
 }
 
 /**
- * Calculate center point of a node
+ * Calculate center point of a node.
+ *
+ * Round 47 single source for the node box-center geometry
+ * (`{x: node.x + width/2, y: node.y + height/2}`, `node.x/y` being the
+ * top-LEFT corner): previously the same fold was re-derived inline at ~19
+ * sites across edge-crossing-minimizer, cycle-strategy, layout-auto-optimizer,
+ * LayoutOptimizer, force-directed-params, complex-layout-engine,
+ * visual-balance-scorer, ezo and multi-format-exporter — each copy free to
+ * drop the origin term, halve the wrong axis, or drift its dimension
+ * fallback. `strategy-edges.ts#centerAnchor` (round 46) composes this
+ * helper instead of carrying a second center definition.
+ *
+ * `widthFallback` / `heightFallback` are the per-site policy seam (round 45
+ * pattern): the dimension assumed per axis when the node carries NO finite
+ * dimension. `0` (the default, and the original behavior of this helper) is
+ * the geometry-neutral read — a dimensionless node's center is its corner;
+ * `DEFAULT_NODE_WIDTH`/`DEFAULT_NODE_HEIGHT` is the render-default read;
+ * callers with configured sizes pass their config values. The seam is
+ * PER-AXIS because the retired sites were: e.g. the render-default forms
+ * read `getNodeWidth(node)` (fallback 120) for x but `getNodeHeight(node)`
+ * (fallback 60) for y — one shared number would shift the y axis by 30.
+ * Passing explicit fallbacks is bit-identical to the retired site-local
+ * `getNodeWidth(node, F) / 2` forms.
+ *
+ * Raw coordinates propagate NaN by design (the retired forms did); callers
+ * that must not feed NaN keep their pre-call guard at the site
+ * (visual-balance-scorer's `sanitizeFinite` chokepoint).
  */
-export function calculateNodeCenter(node: PositionedNode): Point {
+export function calculateNodeCenter(node: PositionedNode, widthFallback: number = 0, heightFallback: number = 0): Point {
   return {
-    x: node.x + getNodeWidth(node, 0) / 2,
-    y: node.y + getNodeHeight(node, 0) / 2
+    x: node.x + getNodeWidth(node, widthFallback) / 2,
+    y: node.y + getNodeHeight(node, heightFallback) / 2
   };
+}
+
+/**
+ * Centroid (arithmetic mean) of the node box-centers — round 47 single
+ * source for the "sum every `node.x + width/2`, divide by count" scan that
+ * layout-auto-optimizer (x3: applyParams / recenter / module recenter) and
+ * LayoutOptimizer (adjustSpacingByImportance) each re-implemented inline.
+ * Same accumulation order as the retired folds (`sum += center.x` starting
+ * from 0), so delegation is bit-identical, and the same per-axis fallback
+ * seam as {@link calculateNodeCenter}.
+ *
+ * Empty input returns `{x: 0, y: 0}` (the `calculateClusterCentroid`
+ * precedent) — every migrated call site early-returns on empty BEFORE the
+ * fold, so the branch is unreachable for them and exists only to keep the
+ * helper from synthesizing NaN.
+ */
+export function nodesCentroid(nodes: readonly PositionedNode[], widthFallback: number = 0, heightFallback: number = 0): Point {
+  if (nodes.length === 0) {
+    return { x: 0, y: 0 };
+  }
+  let sumX = 0;
+  let sumY = 0;
+  for (const node of nodes) {
+    const center = calculateNodeCenter(node, widthFallback, heightFallback);
+    sumX += center.x;
+    sumY += center.y;
+  }
+  return { x: sumX / nodes.length, y: sumY / nodes.length };
 }
 
 /**

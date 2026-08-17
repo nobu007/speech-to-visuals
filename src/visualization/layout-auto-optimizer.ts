@@ -11,8 +11,8 @@ import { scoreLayout, CompositeScoreResult, DEFAULT_LAYOUT_QUALITY_THRESHOLD } f
 import { minimizeEdgeCrossings } from './edge-crossing-minimizer';
 import { StrategySelector } from './strategy-selector';
 import { LayoutStrategy, StrategyLayoutResult } from './types';
-import { getNodeWidth, getNodeHeight } from './node-dimensions';
-import { distance } from './layout-utils';
+import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from './node-dimensions';
+import { distance, calculateNodeCenter, nodesCentroid } from './layout-utils';
 
 // ── Legacy function-based API (kept for backward compat) ──
 
@@ -408,22 +408,23 @@ export class LayoutAutoOptimizer {
   ): PositionedNode[] {
     if (nodes.length === 0) return nodes;
 
-    // Compute bounding box center
-    let cx = 0, cy = 0;
-    for (const n of nodes) {
-      const w = getNodeWidth(n, 0);
-      const h = getNodeHeight(n, 0);
-      cx += n.x + w / 2;
-      cy += n.y + h / 2;
-    }
-    cx /= nodes.length;
-    cy /= nodes.length;
+    // Compute bounding box center — round 47 single source: the mean of node
+    // box-centers (fallback 0) via layout-utils `nodesCentroid`, the same
+    // accumulation the inline loop performed. NOTE the deliberate per-site
+    // fallback divergence kept verbatim below: this centroid reads missing
+    // dimensions as 0, while the per-node scaling map reads them as
+    // DEFAULT_NODE_WIDTH (pre-existing split, pinned by the round-47 guard).
+    const { x: cx, y: cy } = nodesCentroid(nodes);
 
     return nodes.map(n => {
       const w = getNodeWidth(n);
       const h = getNodeHeight(n);
-      const ncx = n.x + w / 2;
-      const ncy = n.y + h / 2;
+      // Round 47 single source — DEFAULT-fallback box-center (the retired
+      // `getNodeWidth(n)` / `getNodeHeight(n)` defaults ARE
+      // DEFAULT_NODE_WIDTH / DEFAULT_NODE_HEIGHT, passed explicitly).
+      const nCenter = calculateNodeCenter(n, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT);
+      const ncx = nCenter.x;
+      const ncy = nCenter.y;
 
       // Scale distance from centroid by spacing factor
       const dx = ncx - cx;
@@ -459,15 +460,11 @@ export class LayoutAutoOptimizer {
     const cxTarget = bounds.width / 2;
     const cyTarget = bounds.height / 2;
 
-    let sumX = 0, sumY = 0;
-    for (const n of optNodes) {
-      const w = getNodeWidth(n, 0);
-      const h = getNodeHeight(n, 0);
-      sumX += n.x + w / 2;
-      sumY += n.y + h / 2;
-    }
-    const centroidX = sumX / optNodes.length;
-    const centroidY = sumY / optNodes.length;
+    // Round 47 single source — mean of node box-centers (fallback 0) via
+    // layout-utils `nodesCentroid`.
+    const centroid = nodesCentroid(optNodes);
+    const centroidX = centroid.x;
+    const centroidY = centroid.y;
 
     const dx = cxTarget - centroidX;
     const dy = cyTarget - centroidY;
@@ -519,16 +516,11 @@ function strategyRecenter(
   const cx = cfg.canvasWidth / 2;
   const cy = cfg.canvasHeight / 2;
 
-  let sumX = 0;
-  let sumY = 0;
-  for (const n of nodes) {
-    const w = getNodeWidth(n, 0);
-    const h = getNodeHeight(n, 0);
-    sumX += n.x + w / 2;
-    sumY += n.y + h / 2;
-  }
-  const centroidX = sumX / nodes.length;
-  const centroidY = sumY / nodes.length;
+  // Round 47 single source — mean of node box-centers (fallback 0) via
+  // layout-utils `nodesCentroid`.
+  const centroid = nodesCentroid(nodes);
+  const centroidX = centroid.x;
+  const centroidY = centroid.y;
 
   const dx = cx - centroidX;
   const dy = cy - centroidY;
