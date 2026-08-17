@@ -126,8 +126,10 @@ github.com/nobu007/speech-to-visuals）:
 |---|---|---|---|---|
 | [32045615156](https://github.com/nobu007/speech-to-visuals/actions/runs/32045615156) | infra/ci-repair（PR #3・commit 2fcbd4f0） | CI | ✅ **success（11/11 job）** | 18m9s |
 | [32047074800](https://github.com/nobu007/speech-to-visuals/actions/runs/32047074800) | main merge PR #3（e53ccde3） | CI | ✅ success | 15m39s |
-| [32047436015](https://github.com/nobu007/speech-to-visuals/actions/runs/32047436015) | PR #1（docs review） | CI | ✅ success | 15m48s |
+| [32047436015](https://github.com/nobu007/speech-to-visuals/actions/runs/32047436015) | PR #1（docs review・870ec25f） | CI | ✅ success | 15m48s |
 | [32051182417](https://github.com/nobu007/speech-to-visuals/actions/runs/32051182417) | main merge PR #1（**c7fe762d = 本 worktree HEAD**） | CI | ✅ **success（11/11 job・test 含む）** — 2026-08-18 再採取で完了確認 | 16m02s（17:37:54→17:53:56Z） |
+| [32056466707](https://github.com/nobu007/speech-to-visuals/actions/runs/32056466707) | PR #4 head（**8e884ba3 = round 51 実装 HEAD**） | CI | ✅ **success（11/11 job・test 含む）** — 2026-08-18 採取 | 17m52s（18:44:55→19:02:47Z・test 16m31s） |
+| [32056466640](https://github.com/nobu007/speech-to-visuals/actions/runs/32056466640) | PR #4 head（8e884ba3） | Infrastructure CI/CD | ✅ success（validate ✓・**monitoring-schema-validate = node 24 で ✓**・deploy skipped†） | 約1m |
 
 run 32045615156 の job 構成（全 ✓）:
 `monitoring-config-validate` 36s / `type-check` 36s / `spine-validate` 32s /
@@ -157,9 +159,34 @@ push/merge 後の運用追記とする）:
 - `9892df5a` docs(specs): タスク分割
 - `137695b5` test(guards): harness 抽出 + 2 family 移行 + fingerprint 台帳
 - `39bd9517` test(guards): fold census 機械化
-- （本 commit）infra: infrastructure.yml node 24 統一 + registry ヘッダ手順
+- `8e884ba3` infra+docs(guards): infrastructure.yml node 24 統一 + registry ヘッダ手順
 
-push 後に `gh run list --head <branch>` で green run URL を本表へ追記する。
+**追記第 2 弾（2026-08-18・green run 採取完了・TASK-0004 完了条件充足）**:
+PR #4（branch `ai/instruction-speech-to-visuals-20260817-184232-061067`・
+head `8e884ba3`）で両 workflow が green — 上記表の 32056466707（CI・11/11 job）/
+32056466640（Infrastructure）が本 feature 実装 commit の green run 証拠
+（REQ-405: run URL + commit SHA 付き）。job 構成（32056466707・全 ✓）:
+`test` 16m31s / `lint` 40s / `build` 29s / `security-fuzz` 38s / `type-check` 36s /
+fast job 6 種 ✓ / `all-checks-pass` ✓。
+
+monitoring-schema-validate の job-log 抜粋（run 32056466640・node 24 実行の
+直接証拠 = REQ-301/TC-104-02）:
+
+```
+monitoring-schema-validate	Run actions/setup-node@v4	with:
+monitoring-schema-validate	Run actions/setup-node@v4	  node-version: 24
+monitoring-schema-validate	Run actions/setup-node@v4	  cache: npm
+```
+
+ローカル再現（node v24.11.1・HEAD 8e884ba3・worktree）: guards 69 suite /
+3103 test GREEN（80.8s）・type-check ✓・lint ✓。
+
+**残留発見（2026-08-18・run 32056466640 採取時）**: † deploy job は
+`if: github.event_name == 'push' && github.ref == 'refs/heads/master'`
+（infrastructure.yml:47）だが workflow の push トリガーは `[main, develop]`
+のみで `master` ref は存在しない = **実質 unreachable**（常に skipped）。
+中身は echo プレースホルダのため実害なし。`master`→`main` 修正は
+PR run では検証不能（PR では常に skip）のため次回以降の判断候補として記録。
 
 ---
 

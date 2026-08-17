@@ -171,7 +171,12 @@ jest 実行は `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=409
   [32047074800](https://github.com/nobu007/speech-to-visuals/actions/runs/32047074800)（main PR #3 ✓）、
   [32047436015](https://github.com/nobu007/speech-to-visuals/actions/runs/32047436015)（PR #1 ✓）
 - ci.yml 全 10 job が node 24。infrastructure.yml:37 のみ node 18 残留
+- （2026-08-18 追採取）round 51 実装 HEAD `8e884ba3`（PR #4）でも両 workflow green:
+  [32056466707](https://github.com/nobu007/speech-to-visuals/actions/runs/32056466707)（CI 11/11 job ✓・test 16m31s）・
+  [32056466640](https://github.com/nobu007/speech-to-visuals/actions/runs/32056466640)（monitoring-schema-validate = **node 24** で ✓・job-log 抜粋は interview-record A3）
+- node-version は全 workflow で 24 に統一済み（ci.yml×10 + infrastructure.yml:37・2026-08-18 grep 実測）
 - ローカル（node v24.11.1・HEAD c7fe762d）: tsc exit 0・eslint exit 0・registry sweep 49 test GREEN
+- ローカル（node v24.11.1・HEAD 8e884ba3）: guards 69 suite / 3103 test GREEN・tsc ✓・eslint ✓
 
 ### When（実行条件）
 
@@ -186,14 +191,19 @@ jest 実行は `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=409
 
 #### 正常系
 
-- [ ] **TC-104-01**: 記録 invariants 🔵
+- [x] **TC-104-01**: 記録 invariants 🔵
   - **入力**: interview-record A3
   - **期待結果**: 全 run エントリが URL と SHA/branch を含む
+  - **実測**: 2026-08-18 — A3 表の全 6 エントリが URL + SHA/branch を含む
+    （32047436015 に head SHA 870ec25f を補記して充足）
   - **信頼性**: 🔵 *本記録の実測形式*
-- [ ] **TC-104-02**: node-version 統一（REQ-301 対応時） 🔵
+- [x] **TC-104-02**: node-version 統一（REQ-301 対応時） 🔵
   - **入力**: `grep -n 'node-version' .github/workflows/*.yml`
   - **期待結果**: 24 のみ（または 18 残留理由のコメント付き）
-  - **信頼性**: 🔵 *2026-08-18 実測（ci.yml×10 = 24・infrastructure.yml:37 = 18）*
+  - **実測**: 2026-08-18 — 11 箇所（ci.yml×10 + infrastructure.yml:37）すべて
+    `24`。monitoring-schema-validate が node 24 で green
+    （[run 32056466640](https://github.com/nobu007/speech-to-visuals/actions/runs/32056466640)・job-log 抜粋は interview-record A3）
+  - **信頼性**: 🔵 *2026-08-18 実測（grep + green run job-log）*
 
 #### 境界値
 
