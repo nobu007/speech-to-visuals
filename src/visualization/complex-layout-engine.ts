@@ -16,7 +16,7 @@ import {
   DEFAULT_RANK_SEPARATION,
   DEFAULT_MARGIN,
 } from './layout-spacing';
-import { nodesOverlap, distance, nodeExtentEdges, foldNodeExtents } from './layout-utils';
+import { nodesOverlap, distance, nodeExtentEdges, foldNodeExtents, clampNodeCoordinate } from './layout-utils';
 import { mulberry32, seedFromString } from './layout-rng';
 import { OverlapResolver } from './strategies/OverlapResolver';
 import { LayoutOptimizer } from './strategies/LayoutOptimizer';
@@ -788,9 +788,10 @@ export class ComplexLayoutEngine {
         pos.vy = (pos.vy / disp) * maxDisplacement;
       }
 
-      // Update position, keep within bounds
-      pos.x = Math.max(0, Math.min(this.config.width, pos.x + pos.vx));
-      pos.y = Math.max(0, Math.min(this.config.height, pos.y + pos.vy));
+      // Update position, keep within bounds (point clamp: this velocity
+      // integration ignores the node extent by design — size 0)
+      pos.x = clampNodeCoordinate(pos.x + pos.vx, this.config.width, 0);
+      pos.y = clampNodeCoordinate(pos.y + pos.vy, this.config.height, 0);
 
       totalEnergy += pos.vx * pos.vx + pos.vy * pos.vy;
     }

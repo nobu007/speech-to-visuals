@@ -358,6 +358,55 @@ export function foldNodeExtents(
 }
 
 /**
+ * Clamp one node coordinate so the node's extent stays inside the canvas
+ * band `[margin, canvasSize - nodeSize - margin]` — round 45 single source
+ * for the canvas clamp of a positioned node's top-left coordinate.
+ *
+ * The clamp was previously inlined — verbatim — at 17 x/y coordinate-pair
+ * sites in three margin policies: the zero-margin form
+ * `Math.max(0, Math.min(canvas - size, v))` (ezo grid+jitter placement,
+ * post-resolver clamp, NaN-guarded force application, jitter candidates,
+ * and the eight collision-resolution moves; NetworkLayoutStrategy grid
+ * placement), the margin form `Math.max(m, Math.min(canvas - size - m, v))`
+ * (force-directed-params keepInView, network-strategy keep-within-bounds
+ * at literal 20, strategies/OverlapResolver constrainNodeToBounds at
+ * default-10 margin via a double-guarded maxX), and the point-clamp
+ * degenerate `size = 0` (complex-layout-engine velocity integration, which
+ * clamps the point and ignores the node extent by design). Each copy could
+ * drop the `- nodeSize` term (the node's right/bottom edge slides off
+ * canvas), swap the margin into the wrong side, or diverge on the
+ * oversized-node case — one engine pulling nodes to `margin`, another
+ * returning the inverted `hi < lo` band. That is the duplicate-formula /
+ * invariant-split class, on every "keep the node on the canvas" decision.
+ *
+ * Semantics frozen by the migrating sites (bit-identical delegation, no
+ * behavior change — zero-delta round like 30/34):
+ * - `Math.max`/`Math.min` composition is the retired expression itself, so
+ *   NaN propagates to NaN exactly as the inline copies did. Sites that must
+ *   not propagate NaN guard BEFORE the call (ezo force application's
+ *   `Number.isFinite` ternary is the precedent — the guard stays at the site
+ *   because it is a site policy, not part of the clamp);
+ * - an oversized node (`canvasSize - nodeSize - margin < margin`, i.e. the
+ *   node cannot fit in the band) resolves to the LOWER bound `margin`: the
+ *   `Math.max(margin, …)` outer wrap guarantees it, matching what both
+ *   retired margin idioms produced (the direct form collapses the same way;
+ *   constrainNodeToBounds's pre-clamped `maxX` did the identical collapse);
+ * - the size argument is read AT the site (`getNodeWidth(node, fallback)`
+ *   vs a precomputed local vs a literal `0`) — the dimension fallback chain
+ *   is a site policy, exactly like the `read` seam of
+ *   {@link foldNodeExtents}. What must never diverge again is the band
+ *   itself: lower bound, upper bound, and the outer-lower wrap.
+ */
+export function clampNodeCoordinate(
+  value: number,
+  canvasSize: number,
+  nodeSize: number,
+  margin: number = 0
+): number {
+  return Math.max(margin, Math.min(canvasSize - nodeSize - margin, value));
+}
+
+/**
  * Get Dagre configuration based on diagram type
  */
 export function getGraphConfig(diagramType: DiagramType, config: LayoutConfig) {

@@ -33,7 +33,7 @@
 
 import type { PositionedNode, EdgeDatum } from '@/types/diagram';
 import { getNodeWidth, getNodeHeight } from './node-dimensions';
-import { distance } from './layout-utils';
+import { distance, clampNodeCoordinate } from './layout-utils';
 
 /** One optimization phase of the multi-phase force-directed loop. */
 export interface ForceDirectedPhase {
@@ -236,7 +236,7 @@ export function applyForceDirectedStep(
 
     // Constrain to canvas bounds
     const margin = FORCE_DIRECTED_PHYSICS.BOUNDS_MARGIN;
-    node.x = Math.max(margin, Math.min(bounds.width - getNodeWidth(node) - margin, node.x));
-    node.y = Math.max(margin, Math.min(bounds.height - getNodeHeight(node) - margin, node.y));
+    node.x = clampNodeCoordinate(node.x, bounds.width, getNodeWidth(node), margin);
+    node.y = clampNodeCoordinate(node.y, bounds.height, getNodeHeight(node), margin);
   });
 }

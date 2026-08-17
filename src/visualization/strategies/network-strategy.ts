@@ -17,6 +17,7 @@ import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
 import { getImportance } from '../importance-scaler';
 import { scaledNodeExtent } from '../strategy-graph';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { clampNodeCoordinate } from '../layout-utils';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
 import { emptyLayoutResult } from '../empty-layout-result';
 import { buildAnchoredLayoutEdges, centerToCenterAnchors } from '../strategy-edges';
@@ -164,8 +165,8 @@ export class NetworkStrategy implements LayoutStrategy {
       // Keep within bounds
       const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
       const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
-      node.x = Math.max(20, Math.min(DEFAULT_CANVAS_WIDTH - w - 20, node.x));
-      node.y = Math.max(20, Math.min(DEFAULT_CANVAS_HEIGHT - h - 20, node.y));
+      node.x = clampNodeCoordinate(node.x, DEFAULT_CANVAS_WIDTH, w, 20);
+      node.y = clampNodeCoordinate(node.y, DEFAULT_CANVAS_HEIGHT, h, 20);
     }
   }
 }

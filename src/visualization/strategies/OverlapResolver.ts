@@ -1,7 +1,7 @@
 import { DiagramLayout, PositionedNode, DiagramType } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { createLayoutRng } from '../layout-rng';
-import { nodesOverlap, distance } from '../layout-utils';
+import { nodesOverlap, distance, clampNodeCoordinate } from '../layout-utils';
 import { logger } from '../../utils/logger';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
@@ -19,10 +19,11 @@ export class OverlapResolver {
    * Ensures nodes don't go off-canvas
    */
   private constrainNodeToBounds(node: PositionedNode, margin: number = 10): void {
-    const maxX = Math.max(margin, this.config.width - getNodeWidth(node) - margin);
-    const maxY = Math.max(margin, this.config.height - getNodeHeight(node) - margin);
-    node.x = Math.max(margin, Math.min(node.x, maxX));
-    node.y = Math.max(margin, Math.min(node.y, maxY));
+    // round 45: the double-guarded `maxX` collapse (pre-clamped upper bound,
+    // then clamp) resolves identically to the canonical single expression —
+    // oversized nodes land on the margin either way.
+    node.x = clampNodeCoordinate(node.x, this.config.width, getNodeWidth(node), margin);
+    node.y = clampNodeCoordinate(node.y, this.config.height, getNodeHeight(node), margin);
   }
 
   /**

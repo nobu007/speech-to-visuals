@@ -17,7 +17,7 @@
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
-import { countOverlapPairs } from '../layout-utils';
+import { countOverlapPairs, clampNodeCoordinate } from '../layout-utils';
 import { logger } from '../../utils/logger';
 import { DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { strategyNodeWidth, validateStrategyInputs } from '../strategy-common';
@@ -112,8 +112,8 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
 
       return {
         ...node,
-        x: Math.max(0, Math.min(config.width - width, gridX + jitterX)),
-        y: Math.max(0, Math.min(config.height - height, gridY + jitterY)),
+        x: clampNodeCoordinate(gridX + jitterX, config.width, width),
+        y: clampNodeCoordinate(gridY + jitterY, config.height, height),
         w: width,
         h: height
       };

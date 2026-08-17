@@ -13,7 +13,7 @@ import dagre from '@dagrejs/dagre';
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { positionedFromDagre } from './dagre-node-extraction';
 import { OverlapResolver } from './overlap-resolver';
-import { calculateNodeCenter, calculateDistance, calculateNodeDistance, distance, generateEdgePoints, nodesOverlap, detectOverlapPairs, resolveNodeWidth, resolveNodeHeight, nodeExtentEdges, foldNodeExtents } from './layout-utils';
+import { calculateNodeCenter, calculateDistance, calculateNodeDistance, distance, generateEdgePoints, nodesOverlap, detectOverlapPairs, resolveNodeWidth, resolveNodeHeight, nodeExtentEdges, foldNodeExtents, clampNodeCoordinate } from './layout-utils';
 import { clamp01 } from '@/utils/guards';
 import { Point } from './types';
 import { logger } from '../utils/logger';
@@ -598,8 +598,8 @@ export class ZeroOverlapLayoutEngine {
 
       return {
         ...node,
-        x: Math.max(0, Math.min(this.config.canvasWidth - width, gridX + jitterX)),
-        y: Math.max(0, Math.min(this.config.canvasHeight - height, gridY + jitterY)),
+        x: clampNodeCoordinate(gridX + jitterX, this.config.canvasWidth, width),
+        y: clampNodeCoordinate(gridY + jitterY, this.config.canvasHeight, height),
         w: width,
         h: height
       };
@@ -732,8 +732,8 @@ export class ZeroOverlapLayoutEngine {
     if (finalResolver.detectOverlaps(currentNodes).length > 0) {
       const clamped = finalResolver.resolve(currentNodes).map(node => ({
         ...node,
-        x: Math.max(0, Math.min(this.config.canvasWidth - getNodeWidth(node, this.config.nodeWidth), node.x)),
-        y: Math.max(0, Math.min(this.config.canvasHeight - getNodeHeight(node, this.config.nodeHeight), node.y))
+        x: clampNodeCoordinate(node.x, this.config.canvasWidth, getNodeWidth(node, this.config.nodeWidth)),
+        y: clampNodeCoordinate(node.y, this.config.canvasHeight, getNodeHeight(node, this.config.nodeHeight))
       }));
       if (finalResolver.detectOverlaps(clamped).length === 0) {
         currentNodes = clamped;
@@ -915,8 +915,8 @@ export class ZeroOverlapLayoutEngine {
       const nh = getNodeHeight(node, this.config.nodeHeight);
 
       // Guard against NaN propagation from invalid forces
-      const safeX = Number.isFinite(adjustedX) ? Math.max(0, Math.min(this.config.canvasWidth - nw, adjustedX)) : node.x;
-      const safeY = Number.isFinite(adjustedY) ? Math.max(0, Math.min(this.config.canvasHeight - nh, adjustedY)) : node.y;
+      const safeX = Number.isFinite(adjustedX) ? clampNodeCoordinate(adjustedX, this.config.canvasWidth, nw) : node.x;
+      const safeY = Number.isFinite(adjustedY) ? clampNodeCoordinate(adjustedY, this.config.canvasHeight, nh) : node.y;
 
       adjustedNodes[index] = {
         ...node,
@@ -1049,8 +1049,8 @@ export class ZeroOverlapLayoutEngine {
       const height = getNodeHeight(node);
       return {
         ...node,
-        x: Math.max(0, Math.min(this.config.canvasWidth - width, node.x + (rand() - 0.5) * 10)),
-        y: Math.max(0, Math.min(this.config.canvasHeight - height, node.y + (rand() - 0.5) * 10))
+        x: clampNodeCoordinate(node.x + (rand() - 0.5) * 10, this.config.canvasWidth, width),
+        y: clampNodeCoordinate(node.y + (rand() - 0.5) * 10, this.config.canvasHeight, height)
       };
     });
 
@@ -1304,13 +1304,13 @@ export class ZeroOverlapLayoutEngine {
     return {
       node1: {
         ...node1,
-        x: Math.max(0, Math.min(this.config.canvasWidth - getNodeWidth(node1), node1.x - moveVector.x)),
-        y: Math.max(0, Math.min(this.config.canvasHeight - getNodeHeight(node1), node1.y - moveVector.y))
+        x: clampNodeCoordinate(node1.x - moveVector.x, this.config.canvasWidth, getNodeWidth(node1)),
+        y: clampNodeCoordinate(node1.y - moveVector.y, this.config.canvasHeight, getNodeHeight(node1))
       },
       node2: {
         ...node2,
-        x: Math.max(0, Math.min(this.config.canvasWidth - getNodeWidth(node2), node2.x + moveVector.x)),
-        y: Math.max(0, Math.min(this.config.canvasHeight - getNodeHeight(node2), node2.y + moveVector.y))
+        x: clampNodeCoordinate(node2.x + moveVector.x, this.config.canvasWidth, getNodeWidth(node2)),
+        y: clampNodeCoordinate(node2.y + moveVector.y, this.config.canvasHeight, getNodeHeight(node2))
       }
     };
   }
@@ -1345,26 +1345,26 @@ export class ZeroOverlapLayoutEngine {
       return {
         node1: {
           ...node1,
-          x: Math.max(0, Math.min(this.config.canvasWidth - getNodeWidth(node1), node1.x - moveVector.x * 0.3)),
-          y: Math.max(0, Math.min(this.config.canvasHeight - getNodeHeight(node1), node1.y - moveVector.y * 0.3))
+          x: clampNodeCoordinate(node1.x - moveVector.x * 0.3, this.config.canvasWidth, getNodeWidth(node1)),
+          y: clampNodeCoordinate(node1.y - moveVector.y * 0.3, this.config.canvasHeight, getNodeHeight(node1))
         },
         node2: {
           ...node2,
-          x: Math.max(0, Math.min(this.config.canvasWidth - getNodeWidth(node2), node2.x + moveVector.x * 0.7)),
-          y: Math.max(0, Math.min(this.config.canvasHeight - getNodeHeight(node2), node2.y + moveVector.y * 0.7))
+          x: clampNodeCoordinate(node2.x + moveVector.x * 0.7, this.config.canvasWidth, getNodeWidth(node2)),
+          y: clampNodeCoordinate(node2.y + moveVector.y * 0.7, this.config.canvasHeight, getNodeHeight(node2))
         }
       };
     } else {
       return {
         node1: {
           ...node1,
-          x: Math.max(0, Math.min(this.config.canvasWidth - getNodeWidth(node1), node1.x - moveVector.x * 0.7)),
-          y: Math.max(0, Math.min(this.config.canvasHeight - getNodeHeight(node1), node1.y - moveVector.y * 0.7))
+          x: clampNodeCoordinate(node1.x - moveVector.x * 0.7, this.config.canvasWidth, getNodeWidth(node1)),
+          y: clampNodeCoordinate(node1.y - moveVector.y * 0.7, this.config.canvasHeight, getNodeHeight(node1))
         },
         node2: {
           ...node2,
-          x: Math.max(0, Math.min(this.config.canvasWidth - getNodeWidth(node2), node2.x + moveVector.x * 0.3)),
-          y: Math.max(0, Math.min(this.config.canvasHeight - getNodeHeight(node2), node2.y + moveVector.y * 0.3))
+          x: clampNodeCoordinate(node2.x + moveVector.x * 0.3, this.config.canvasWidth, getNodeWidth(node2)),
+          y: clampNodeCoordinate(node2.y + moveVector.y * 0.3, this.config.canvasHeight, getNodeHeight(node2))
         }
       };
     }
@@ -1389,13 +1389,13 @@ export class ZeroOverlapLayoutEngine {
     return {
       node1: {
         ...node1,
-        x: Math.max(0, Math.min(this.config.canvasWidth - getNodeWidth(node1), node1.x - moveVector.x * 0.2)),
-        y: Math.max(0, Math.min(this.config.canvasHeight - getNodeHeight(node1), node1.y - moveVector.y * 0.2))
+        x: clampNodeCoordinate(node1.x - moveVector.x * 0.2, this.config.canvasWidth, getNodeWidth(node1)),
+        y: clampNodeCoordinate(node1.y - moveVector.y * 0.2, this.config.canvasHeight, getNodeHeight(node1))
       },
       node2: {
         ...node2,
-        x: Math.max(0, Math.min(this.config.canvasWidth - getNodeWidth(node2), node2.x + moveVector.x * 0.8)),
-        y: Math.max(0, Math.min(this.config.canvasHeight - getNodeHeight(node2), node2.y + moveVector.y * 0.8))
+        x: clampNodeCoordinate(node2.x + moveVector.x * 0.8, this.config.canvasWidth, getNodeWidth(node2)),
+        y: clampNodeCoordinate(node2.y + moveVector.y * 0.8, this.config.canvasHeight, getNodeHeight(node2))
       }
     };
   }

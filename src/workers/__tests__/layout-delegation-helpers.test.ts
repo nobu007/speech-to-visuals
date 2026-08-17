@@ -76,6 +76,11 @@ jest.unstable_mockModule('@/visualization/layout-utils', () => ({
     }
     return { minX, minY, maxX, maxY };
   }),
+  // round 45: complex-layout-engine's velocity clamp now imports this —
+  // the ESM mock must provide every named export the importer reads
+  // (link error otherwise, jest-esm-mock-pattern). Faithful shape.
+  clampNodeCoordinate: jest.fn((value: number, canvasSize: number, nodeSize: number, margin = 0) =>
+    Math.max(margin, Math.min(canvasSize - nodeSize - margin, value))),
 }));
 
 const { ComplexLayoutEngine } = await import('../../visualization/complex-layout-engine');
