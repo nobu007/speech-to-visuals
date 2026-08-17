@@ -334,9 +334,9 @@ LLM統合は商用利用可能なレベルで完成
 
 ## 📚 関連ドキュメント
 
-- [システムアーキテクチャ](../SYSTEM_CORE.md)
-- [パイプライン仕様](../PIPELINE_FLOW.md)
-- [品質評価基準](../QUALITY_METRICS.md)
+- [システムアーキテクチャ](./architecture/SYSTEM_CORE.md)
+- [パイプライン仕様](./architecture/PIPELINE_FLOW.md)
+- [品質評価基準](./architecture/QUALITY_METRICS.md)
 - [Phase 13 完了報告](./PHASE_13_ITERATION_1_REPORT.md)
 
 ---

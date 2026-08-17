@@ -144,7 +144,7 @@ IterationManager
   ├─ Measure Quality Metrics
   ├─ Detect Regressions
   ├─ Apply Improvements
-  ├─ Log to .module/ITERATION_LOG.md
+  ├─ Log to docs/architecture/ITERATION_LOG.md
   └─ Loop until success criteria met
 ```
 
