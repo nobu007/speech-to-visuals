@@ -324,8 +324,11 @@ describe('round 48: ring placement — layer 3 source anchors', () => {
     const src = readSource('src/visualization/strategies/LayoutOptimizer.ts');
     expect((src.match(/pointOnCircle\(centerX, centerY, ringAngle\(index, nodes\.length\), radius\)/g) ?? []).length).toBe(2);
     expect(src).not.toMatch(/\(2 \* Math\.PI \* index\) \/ Math\.max\(1, nodes\.length\)/);
-    // the OTHER Math.max(1, …) uses (grid/cols/rows floors) are untouched
-    expect((src.match(/Math\.max\(1, Math\.ceil/g) ?? []).length).toBeGreaterThanOrEqual(2);
+    // the OTHER Math.max(1, …) uses were the grid/cols/rows floors — round 50
+    // delegated them to squareGridColumns (grid-packing-single-source.test.ts
+    // layer 3 + registry ban the retired inline shape). The positive pin follows
+    // the delegation chain (r42 precedent).
+    expect((src.match(/squareGridColumns\(nodes\.length\)/g) ?? []).length).toBe(2);
   });
 
   it('advanced-layouts delegates the center-coordinate ring (no top-left conversion)', () => {

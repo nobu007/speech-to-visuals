@@ -193,6 +193,100 @@ export function pointOnCircle(centerX: number, centerY: number, angle: number, r
 }
 
 /**
+ * Column count of the near-square packing grid for `count` nodes:
+ * `max(1, ceil(√count))`. Round 50 single source for the square-grid
+ * column derivation — previously re-inlined at 10 sites across 8 files
+ * (ezo ×2 — network-node init + basic grid; NetworkLayoutStrategy init;
+ * ConceptMapLayoutStrategy; LayoutOptimizer ×2 — optimizeMatrixLayout +
+ * improveMatrixGrid; FallbackLayoutStrategy matrix; advanced-layouts grid;
+ * GridSnapStrategy cell bound; flow-strategy row capacity), every copy the
+ * identical expression, so delegation is bit-identical by construction.
+ *
+ * Unlike {@link ringAngle} (whose retired `max(1, …)` guard was dead inside
+ * per-element loops), the clamp here is LIVE: `count = 0` reaches several
+ * migrated sites (ezo's basic grid, Fallback's matrix) and would otherwise
+ * divide the canvas by zero columns. `count: NaN`/negative stays NaN/NaN by
+ * contract (the retired forms did the same — `sqrt(negative)` is NaN and
+ * `max(1, NaN)` is NaN).
+ */
+export function squareGridColumns(count: number): number {
+  return Math.max(1, Math.ceil(Math.sqrt(count)));
+}
+
+/**
+ * Row count of the near-square packing grid: `max(1, ceil(count / columns))`.
+ * Round 50 single source — the rows twin of {@link squareGridColumns},
+ * re-inlined at 7 sites (ezo, ConceptMapLayoutStrategy, LayoutOptimizer's
+ * improveMatrixGrid, FallbackLayoutStrategy's inline spacingY divisor,
+ * matrix-strategy, general-strategy, overlap-resolver's gridSnapFallback).
+ *
+ * The clamp is live for the same reason as the columns one (`count = 0`
+ * → `ceil(0 / columns) = 0` → would divide the cell height by zero rows).
+ * Pass columns from {@link squareGridColumns} (or
+ * {@link aspectGridColumns}); a columns of 0 makes this NaN by contract.
+ *
+ * DRIFT this closes: advanced-layouts re-derived rows WITHOUT the clamp
+ * (`Math.ceil(nodes.length / cols)`) — and never read the result. That dead
+ * unclamped copy is retired outright in round 50 rather than delegated: a
+ * live re-introduction of the unclamped shape is what the registry sweep
+ * now catches.
+ */
+export function squareGridRows(count: number, columns: number): number {
+  return Math.max(1, Math.ceil(count / columns));
+}
+
+/**
+ * Column count of an ASPECT-corrected packing grid:
+ * `squareGridColumns(count · aspectRatio)` — for a 16:9 canvas the columns
+ * should outnumber the rows by the width/height ratio so cells stay square.
+ * Round 50 single source for the aspect variant — matrix-strategy,
+ * general-strategy and overlap-resolver each inlined
+ * `max(1, ceil(sqrt(count * RATIO)))`. Composing the canonical preserves
+ * the retired operand order exactly (`count * ratio` evaluated before the
+ * sqrt; multiplication order per site was `n * ratio` at all three).
+ */
+export function aspectGridColumns(count: number, aspectRatio: number): number {
+  return squareGridColumns(count * aspectRatio);
+}
+
+/**
+ * Top-left coordinate that centers an `extent`-sized node inside grid cell
+ * `index` of pitch `cell`, offset by `origin` (canvas margin / padding;
+ * `0` default):
+ * `origin + index·cell + (cell − extent)/2`.
+ *
+ * Round 50 single source for the cell-centered stamp — re-inlined at 9
+ * sites × 2 axes (ezo ×2, NetworkLayoutStrategy, ConceptMapLayoutStrategy,
+ * LayoutOptimizer ×2, FallbackLayoutStrategy, matrix-strategy,
+ * general-strategy's spiral stamp). The retired sites used TWO
+ * algebraically equal groupings, and they are NOT bit-identical:
+ *
+ *   A (ezo ×2, Network, LayoutOptimizer.optimizeMatrixLayout):
+ *     `(index·cell + cell/2) − extent/2`
+ *   B (ConceptMap, Fallback, LayoutOptimizer.improveMatrixGrid, matrix,
+ *     general): `index·cell + (cell − extent)/2`
+ *
+ * Floating-point regrouping (`(a + b) − c` vs `a + (b − c)`) rounds at
+ * different points, so the canonical (B — the strategy layer's majority
+ * form and the "half of the remaining space" intent) shifts the four A-form
+ * sites by at most ~9·2⁻⁵² of the operand scale — measured max 9.1e-13 px
+ * over the full canvas domain sweep (1920×1080-class canvases, 1–80
+ * columns, extents 0–480, margins 0/40/80; ~7.6% of samples differ, always
+ * last-ulp class). That is 8 orders of magnitude below rendering precision
+ * and cannot flip an overlap predicate at real node sizes. The guard test
+ * pins BOTH retired forms and this bound.
+ *
+ * `origin = 0` is bit-identity for the no-margin sites (`0 + x = x`; the
+ * sum `index·cell + (cell−extent)/2` cannot be −0 because IEEE exact-zero
+ * sums of mixed signs round to +0). Evaluation order inside the canonical
+ * is origin → index·cell → (cell − extent)/2, matching the retired
+ * left-to-right reading.
+ */
+export function centerInCell(index: number, cell: number, extent: number, origin: number = 0): number {
+  return origin + index * cell + (cell - extent) / 2;
+}
+
+/**
  * Euclidean length of a (dx, dy) delta: `sqrt(dx² + dy²)`.
  *
  * This is the single source of truth for the 2-D distance arithmetic.

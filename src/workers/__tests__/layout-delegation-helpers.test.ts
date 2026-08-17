@@ -64,6 +64,13 @@ jest.unstable_mockModule('@/visualization/layout-utils', () => ({
     right: node.x + (node.width ?? node.w ?? fallbackWidth),
     bottom: node.y + (node.height ?? node.h ?? fallbackHeight),
   })),
+  // round 50: grid packing + cell-centered stamp exports — faithful copies
+  // of the layout-utils canonicals (no worker asserts their call shape yet;
+  // these exist so any future importer in this graph links).
+  squareGridColumns: jest.fn((count: number) => Math.max(1, Math.ceil(Math.sqrt(count)))),
+  squareGridRows: jest.fn((count: number, columns: number) => Math.max(1, Math.ceil(count / columns))),
+  aspectGridColumns: jest.fn((count: number, ratio: number) => Math.max(1, Math.ceil(Math.sqrt(count * ratio)))),
+  centerInCell: jest.fn((index: number, cell: number, extent: number, origin = 0) => origin + index * cell + (cell - extent) / 2),
   foldNodeExtents: jest.fn((nodes: Array<Record<string, unknown>>, read: (n: Record<string, unknown>) => { left: number; top: number; right: number; bottom: number }) => {
     if (nodes.length === 0) return null;
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;

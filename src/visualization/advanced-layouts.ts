@@ -5,7 +5,7 @@
  */
 
 import type { NodeDatum, EdgeDatum } from '@/types/diagram';
-import { ringAngle, pointOnCircle } from './layout-utils';
+import { ringAngle, pointOnCircle, squareGridColumns } from './layout-utils';
 
 export interface AdvancedLayoutOptions {
   theme: 'dark' | 'light' | 'auto';
@@ -447,8 +447,11 @@ export class AdvancedLayoutEngine {
    * Grid layout for matrix-style diagrams
    */
   private calculateGridLayout(nodes: LayoutNode[], edges: LayoutEdgeDatum[]): { nodes: LayoutNode[]; edges: LayoutEdgeDatum[] } {
-    const cols = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
-    const rows = Math.ceil(nodes.length / cols);
+    // Round 50 single source — square-grid column derivation. The old
+    // `const rows = Math.ceil(nodes.length / cols)` here was computed and
+    // never read (sole occurrence in the file) AND dropped the family's
+    // max(1, …) clamp — retired as dead rather than delegated.
+    const cols = squareGridColumns(nodes.length);
 
     const layoutNodes = nodes.map((node, index) => ({
       ...node,

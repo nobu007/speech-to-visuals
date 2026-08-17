@@ -1,7 +1,7 @@
 import { DiagramLayout, NodeDatum, EdgeDatum, LayoutEdge, DiagramType } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { DEFAULT_NODE_HEIGHT } from '../node-dimensions';
-import { ringAngle, pointOnCircle } from '../layout-utils';
+import { ringAngle, pointOnCircle, squareGridColumns, squareGridRows, centerInCell } from '../layout-utils';
 import {
   centerToCenterAnchors,
   horizontalFlowAnchors,
@@ -199,19 +199,20 @@ export class FallbackLayoutStrategy {
    * Create a matrix layout (grid)
    */
   private createMatrixLayout(nodes: NodeDatum[], edges: EdgeDatum[]): DiagramLayout {
-    const cols = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
+    // Round 50 single source — square-grid packing + cell-centered stamp.
+    const cols = squareGridColumns(nodes.length);
     const nodeWidth = 140;
     const nodeHeight = DEFAULT_NODE_HEIGHT;
     const spacingX = this.config.width / cols;
-    const spacingY = this.config.height / Math.max(1, Math.ceil(nodes.length / cols));
+    const spacingY = this.config.height / squareGridRows(nodes.length, cols);
 
     const positionedNodes = nodes.map((node, index) => {
       const row = Math.floor(index / cols);
       const col = index % cols;
       return {
         ...node,
-        x: col * spacingX + (spacingX - nodeWidth) / 2,
-        y: row * spacingY + (spacingY - nodeHeight) / 2,
+        x: centerInCell(col, spacingX, nodeWidth),
+        y: centerInCell(row, spacingY, nodeHeight),
         w: nodeWidth,
         h: nodeHeight,
         width: nodeWidth,

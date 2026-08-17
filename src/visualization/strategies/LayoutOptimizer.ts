@@ -1,7 +1,7 @@
 import { DiagramLayout, PositionedNode, DiagramType, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
-import { calculateNodeCenter, nodesCentroid, ringAngle, pointOnCircle } from '../layout-utils';
+import { calculateNodeCenter, nodesCentroid, ringAngle, pointOnCircle, squareGridColumns, squareGridRows, centerInCell } from '../layout-utils';
 import { getImportance } from '../importance-scaler';
 
 export class LayoutOptimizer {
@@ -92,7 +92,8 @@ export class LayoutOptimizer {
     const nodes = [...layout.nodes];
     if (nodes.length === 0) return { nodes, edges: layout.edges };
 
-    const gridSize = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
+    // Round 50 single source — square-grid packing + cell-centered stamp.
+    const gridSize = squareGridColumns(nodes.length);
     const cellWidth = (this.config.width - 2 * this.config.marginX) / gridSize;
     const cellHeight = (this.config.height - 2 * this.config.marginY) / gridSize;
 
@@ -101,8 +102,8 @@ export class LayoutOptimizer {
       const col = index % gridSize;
       return {
         ...node,
-        x: this.config.marginX + col * cellWidth + cellWidth / 2 - getNodeWidth(node, this.config.nodeWidth) / 2,
-        y: this.config.marginY + row * cellHeight + cellHeight / 2 - getNodeHeight(node, this.config.nodeHeight) / 2,
+        x: centerInCell(col, cellWidth, getNodeWidth(node, this.config.nodeWidth), this.config.marginX),
+        y: centerInCell(row, cellHeight, getNodeHeight(node, this.config.nodeHeight), this.config.marginY),
       };
     });
 
@@ -301,8 +302,8 @@ export class LayoutOptimizer {
   private improveMatrixGrid(nodes: PositionedNode[]): PositionedNode[] {
     if (nodes.length === 0) return nodes;
 
-    const cols = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
-    const rows = Math.max(1, Math.ceil(nodes.length / cols));
+    const cols = squareGridColumns(nodes.length);
+    const rows = squareGridRows(nodes.length, cols);
 
     const cellWidth = (this.config.width - 2 * this.config.marginX) / cols;
     const cellHeight = (this.config.height - 2 * this.config.marginY) / rows;
@@ -315,8 +316,8 @@ export class LayoutOptimizer {
 
       return {
         ...node,
-        x: this.config.marginX + col * cellWidth + (cellWidth - nw) / 2,
-        y: this.config.marginY + row * cellHeight + (cellHeight - nh) / 2
+        x: centerInCell(col, cellWidth, nw, this.config.marginX),
+        y: centerInCell(row, cellHeight, nh, this.config.marginY)
       };
     });
   }

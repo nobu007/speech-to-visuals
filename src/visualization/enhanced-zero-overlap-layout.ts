@@ -13,7 +13,7 @@ import dagre from '@dagrejs/dagre';
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { positionedFromDagre } from './dagre-node-extraction';
 import { OverlapResolver } from './overlap-resolver';
-import { calculateNodeCenter, calculateDistance, calculateNodeDistance, distance, generateEdgePoints, nodesOverlap, detectOverlapPairs, resolveNodeWidth, resolveNodeHeight, nodeExtentEdges, foldNodeExtents, clampNodeCoordinate } from './layout-utils';
+import { calculateNodeCenter, calculateDistance, calculateNodeDistance, distance, generateEdgePoints, nodesOverlap, detectOverlapPairs, resolveNodeWidth, resolveNodeHeight, nodeExtentEdges, foldNodeExtents, clampNodeCoordinate, squareGridColumns, squareGridRows, centerInCell } from './layout-utils';
 import { clamp01 } from '@/utils/guards';
 import { Point } from './types';
 import { logger } from '../utils/logger';
@@ -573,7 +573,8 @@ export class ZeroOverlapLayoutEngine {
    * Initialize network nodes with better distribution
    */
   private initializeNetworkNodes(nodes: NodeDatum[], spacing: number): PositionedNode[] {
-    const gridSize = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
+    // Round 50 single source — square-grid packing + cell-centered stamp.
+    const gridSize = squareGridColumns(nodes.length);
     const cellWidth = this.config.canvasWidth / gridSize;
     const cellHeight = this.config.canvasHeight / gridSize;
 
@@ -589,8 +590,8 @@ export class ZeroOverlapLayoutEngine {
       const row = Math.floor(index / gridSize);
       const col = index % gridSize;
 
-      const gridX = col * cellWidth + cellWidth / 2 - width / 2;
-      const gridY = row * cellHeight + cellHeight / 2 - height / 2;
+      const gridX = centerInCell(col, cellWidth, width);
+      const gridY = centerInCell(row, cellHeight, height);
 
       // Add some randomization while maintaining distribution
       const jitterX = (rand() - 0.5) * spacing;
@@ -647,8 +648,8 @@ export class ZeroOverlapLayoutEngine {
     edges: EdgeDatum[]
   ): Promise<{ nodes: PositionedNode[]; edges: LayoutEdge[] }> {
     // Use a simple grid layout for concept maps
-    const cols = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
-    const rows = Math.max(1, Math.ceil(nodes.length / cols));
+    const cols = squareGridColumns(nodes.length);
+    const rows = squareGridRows(nodes.length, cols);
 
     const cellWidth = this.config.canvasWidth / cols;
     const cellHeight = this.config.canvasHeight / rows;
@@ -662,8 +663,8 @@ export class ZeroOverlapLayoutEngine {
 
       return {
         ...node,
-        x: col * cellWidth + cellWidth / 2 - width / 2,
-        y: row * cellHeight + cellHeight / 2 - height / 2,
+        x: centerInCell(col, cellWidth, width),
+        y: centerInCell(row, cellHeight, height),
         w: width,
         h: height
       };

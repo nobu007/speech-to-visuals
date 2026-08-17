@@ -69,6 +69,7 @@ import { RULES as edgeAnchorGeometry } from './frozen-literal-families/edge-anch
 import { RULES as nodeBoxCenter } from './frozen-literal-families/node-box-center';
 import { RULES as ringPlacement } from './frozen-literal-families/ring-placement';
 import { RULES as defaultNodeExtent } from './frozen-literal-families/default-node-extent';
+import { RULES as gridPacking } from './frozen-literal-families/grid-packing';
 
 /**
  * The ordered registry: families in the round order that closed them, entries
@@ -118,5 +119,6 @@ export const FROZEN_LITERAL_RULES: FrozenLiteralRule[] = [
   ...edgeAnchorGeometry,
   ...nodeBoxCenter,
   ...ringPlacement,
+  ...gridPacking,
   ...defaultNodeExtent,
 ];

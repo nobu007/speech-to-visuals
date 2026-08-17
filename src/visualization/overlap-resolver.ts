@@ -2,7 +2,7 @@ import { PositionedNode, LayoutEdge } from '@/types/diagram';
 import { SpatialHash, GridSpatialHash } from './spatial-hash';
 import { getNodeWidth as effWidth, getNodeHeight as effHeight } from './node-dimensions';
 // Canonical overlap predicate — single source of truth (see layout-utils.ts).
-import { nodesOverlap } from './layout-utils';
+import { nodesOverlap, aspectGridColumns, squareGridRows } from './layout-utils';
 import { TARGET_ASPECT_RATIO } from './canvas-dimensions';
 
 export interface OverlapPair {
@@ -145,9 +145,12 @@ export class OverlapResolver {
     const cellWidth = maxNodeWidth + 20;
     const cellHeight = maxNodeHeight + 20;
 
+    // Round 50 single source — aspect-corrected packing + rows twin. The
+    // snap stamp below (`col * cellWidth + 40`) is origin-only, NOT the
+    // cell-centered family — it stays inline.
     const aspectRatio = TARGET_ASPECT_RATIO;
-    const columns = Math.max(1, Math.ceil(Math.sqrt(nodes.length * aspectRatio)));
-    const rows = Math.max(1, Math.ceil(nodes.length / columns));
+    const columns = aspectGridColumns(nodes.length, aspectRatio);
+    const rows = squareGridRows(nodes.length, columns);
 
     const sortedNodes = [...nodes].sort((a, b) => {
       if (Math.abs(a.y - b.y) > 10) return a.y - b.y;

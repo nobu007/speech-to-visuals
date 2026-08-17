@@ -13,6 +13,7 @@ import { defaultNodeExtent, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../n
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, TARGET_ASPECT_RATIO } from '../canvas-dimensions';
 import { emptyLayoutResult } from '../empty-layout-result';
 import { buildAnchoredLayoutEdges, centerToCenterAnchors } from '../strategy-edges';
+import { aspectGridColumns, squareGridRows, centerInCell } from '../layout-utils';
 
 const NODE_SEP = 40;
 
@@ -37,8 +38,9 @@ export class GeneralStrategy implements LayoutStrategy {
       (a, b) => (degreeMap.get(b.id) ?? 0) - (degreeMap.get(a.id) ?? 0),
     );
 
-    const columns = Math.max(1, Math.ceil(Math.sqrt(sortedNodes.length * TARGET_ASPECT_RATIO)));
-    const rows = Math.max(1, Math.ceil(sortedNodes.length / columns));
+    // Round 50 single source — aspect-corrected packing + rows twin.
+    const columns = aspectGridColumns(sortedNodes.length, TARGET_ASPECT_RATIO);
+    const rows = squareGridRows(sortedNodes.length, columns);
 
     const cellWidth = DEFAULT_NODE_WIDTH + NODE_SEP;
     const cellHeight = DEFAULT_NODE_HEIGHT + NODE_SEP;
@@ -102,8 +104,9 @@ export class GeneralStrategy implements LayoutStrategy {
       const { width: w, height: h } = defaultNodeExtent(node);
       return {
         ...node,
-        x: offsetX + pos.col * cellWidth + (cellWidth - w) / 2,
-        y: offsetY + pos.row * cellHeight + (cellHeight - h) / 2,
+        // Round 50 single source — cell-centered stamp (spiral cell + offset origin).
+        x: centerInCell(pos.col, cellWidth, w, offsetX),
+        y: centerInCell(pos.row, cellHeight, h, offsetY),
         width: w,
         height: h,
       };
