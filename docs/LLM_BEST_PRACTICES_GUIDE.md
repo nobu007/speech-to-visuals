@@ -791,7 +791,7 @@ No manual intervention needed!
 **Documentation**:
 - [LLM Integration Report](./architecture/LLM_INTEGRATION_REPORT.md)
 - [Custom Instructions Compliance](./CUSTOM_INSTRUCTIONS_COMPLIANCE_2025.md)
-- [Phase Completion Reports](../PHASE_*_COMPLETION_REPORT.md)
+- [Phase Completion Report (Phase 13 Iteration 1)](./PHASE_13_ITERATION_1_REPORT.md)
 
 **Scripts**:
 - `tests/validate-llm-accuracy.ts` - Accuracy validation

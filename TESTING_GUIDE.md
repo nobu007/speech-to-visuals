@@ -13,18 +13,20 @@
    - **Simple Pipeline**: http://localhost:8080/simple (Recommended)
    - **Standard Interface**: http://localhost:8080/
 
-3. Upload test audio file from `test-audio/` directory
+3. Upload a test audio file (see [Test Audio Files](#test-audio-files) below)
 
 4. Monitor processing in real-time
 
 ## Test Audio Files
 
-Available in `test-audio/` directory:
-- `test-audio-3sec.wav` - 3 second sample
-- `test-explanation-10sec.wav` - 10 second explanation sample
-- `sample-english.txt` - Sample English text
-- `sample-japanese.txt` - Sample Japanese text
-- `test-metadata.json` - Metadata configuration
+Repository-bundled test assets (all paths exist in the repo):
+
+- `public/jfk.wav` - Short English speech sample (used by `npm run transcribe` and the Phase 29 E2E validation)
+- `public/srt/jfk.srt` / `public/srt/jfk.captions.json` - Captions matching `jfk.wav`
+- `public/audio/test-audio.txt` - Japanese sample transcript for text-based pipeline tests
+- `public/audio/sample-info.json` - Metadata describing a sample diagram-explanation audio
+
+For additional audio, prepare your own MP3/WAV/OGG/M4A file (max 50MB) or generate one from the sample texts above with the TTS of your choice.
 
 ## Testing Workflow
 
@@ -40,11 +42,11 @@ Available in `test-audio/` directory:
 - MP3, WAV, OGG, M4A (up to 50MB)
 
 ### Diagram Types
-- Mind Map (概念関係性)
-- Flowchart (プロセス説明)
-- Tree Structure (階層関係)
-- Timeline (時系列)
-- Concept Diagram (一般的関係)
+
+11 types (canonical set defined by `DIAGRAM_TYPES` in `src/types/diagram.ts`):
+- flow (プロセスフロー) / flowchart (フローチャート)
+- tree (階層構造) / timeline (タイムライン) / matrix (比較表) / cycle (循環プロセス)
+- comparison (比較) / network (ネットワーク) / conceptmap (コンセプトマップ) / mindmap (マインドマップ) / general (一般)
 
 ### Output Formats
 - JSON (diagram data and metadata)
@@ -83,10 +85,22 @@ npm run build
 npm run type-check
 ```
 
+### Test Script Variants
+
+All variants are defined in `package.json` and run Jest with `jest.config.cjs`.
+
+| Command | Purpose | Preconditions / Notes |
+|---|---|---|
+| `npm run test:coverage` | Runs the full Jest suite with coverage collection | Statements coverage target is >= 75% (`CLAUDE.md`) |
+| `npm run test:memory` | Runs the suite with heap usage logging per test (`--expose-gc`, `JEST_MEMORY_LOG=1`) | Use to hunt memory leaks / regressions; compare heap logs across runs |
+| `npm run test:fuzz` | Runs only the security fuzz suites (mutation-fuzz, content-validator fuzz, sanitize-fuzz, property-based XSS, guard fuzz, guard red-phase verification) | Fast local pass over the fuzz suite |
+| `npm run test:fuzz:multi-seed` | Same fuzz suites with `FUZZ_SEEDS=3` (multiple random seeds per generator) | Also what CI's `security-fuzz` job runs (`.github/workflows/ci.yml`) |
+| `npm run test:mutation` | Runs the mutation tests under `tests/mutation/` | Verifies monitoring/optimization logic against mutated inputs |
+
 ## Resources
 
 - **Main Documentation**: `README.md`
-- **Test Audio**: `test-audio/` directory
+- **Test Audio**: `public/jfk.wav`, `public/audio/` (see [Test Audio Files](#test-audio-files))
 
 ---
 

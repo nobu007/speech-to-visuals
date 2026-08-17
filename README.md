@@ -19,7 +19,7 @@
   ↓
 2. シーン分割 → 意味単位でセグメント化
   ↓
-3. 図解タイプ判定 → flow/tree/timeline/matrix/cycle
+3. 図解タイプ判定 → flow/flowchart/tree/timeline/matrix/cycle/comparison/network/conceptmap/mindmap/general
   ↓
 4. レイアウト生成 → オーバーラップゼロ保証
   ↓
@@ -124,13 +124,21 @@ npm run render:video -- public/scenes/scene-data.json public/diagram-output.mp4
 - **音声**: MP3, WAV, OGG, M4A (最大50MB)
 - **出力**: JSON (図解データ), MP4 (動画)
 
-## 図解タイプ (全5種類対応)
+## 図解タイプ (全11種類対応)
 
-- **flow** (フローチャート): プロセス、手順、ワークフロー
-- **tree** (ツリー構造): 階層、組織図、分類
+正規の型集合は `src/types/diagram.ts` の `DIAGRAM_TYPES` が単一ソースです。
+
+- **flow** (プロセスフロー): プロセス、手順、ワークフロー
+- **flowchart** (フローチャート): 条件分岐を含む処理フロー
+- **tree** (階層構造): 階層、組織図、分類
 - **timeline** (タイムライン): 時系列、歴史、ロードマップ
-- **matrix** (マトリックス): 比較、対比表、評価軸 ✨
-- **cycle** (サイクル図): 循環プロセス、繰り返し、フィードバックループ ✨
+- **matrix** (比較表): 比較、対比表、評価軸
+- **cycle** (循環プロセス): 循環プロセス、繰り返し、フィードバックループ
+- **comparison** (比較): 複数項目の並列比較
+- **network** (ネットワーク): 要素間の接続・依存関係
+- **conceptmap** (コンセプトマップ): 概念間の関係性
+- **mindmap** (マインドマップ): 中心テーマからの発想展開
+- **general** (一般): 特定レイアウトに限定しない図解
 
 ## 開発コマンド
 
@@ -146,6 +154,13 @@ npm run type-check
 
 # Remotion Studio
 npm run remotion:studio
+
+# テスト派生スクリプト（目的・前提条件は TESTING_GUIDE.md を参照）
+npm run test:coverage
+npm run test:memory
+npm run test:fuzz
+npm run test:fuzz:multi-seed
+npm run test:mutation
 
 # バッチ処理 (複数音声ファイル一括処理)
 npx tsx scripts/batch-audio-pipeline.ts <input-dir> <output-dir> [options]
@@ -173,19 +188,25 @@ npx tsx scripts/batch-audio-pipeline.ts <input-dir> <output-dir> [options]
 モジュール別品質:
   音声認識:     100/100 (Excellent - Whisper統合完了)
   内容分析:     100/100 (Excellent - LLM統合完了、ゼロ重複) ✨Phase 22-23
-  図解生成:     100/100 (Excellent - ゼロオーバーラップ、5種類対応)
+  図解生成:     100/100 (Excellent - ゼロオーバーラップ、11種類対応)
   動画生成:     100/100 (Excellent - 1080p 30fps)
   バッチ処理:   100/100 (Excellent - 並列処理対応)
   統一アーキテクチャ: 100/100 (Excellent - LLMService統一) ✨Phase 22-23
   品質フレームワーク: 100/100 (Excellent - 再帰的改善) ✨Phase 27
   ドキュメント: 100/100 (Excellent - 完全体系化)
 
-対応図解タイプ (Phase 10確認): ✨NEW!
+対応図解タイプ (Phase 10時点は5種類、現在は11種類):
   flow:         ✅ 完全実装 (検出・レイアウト・レンダリング)
+  flowchart:    ✅ 完全実装 (検出・レイアウト・レンダリング)
   tree:         ✅ 完全実装 (検出・レイアウト・レンダリング)
   timeline:     ✅ 完全実装 (検出・レイアウト・レンダリング)
   matrix:       ✅ 完全実装 (検出・レイアウト・レンダリング)
   cycle:        ✅ 完全実装 (検出・レイアウト・レンダリング)
+  comparison:   ✅ 完全実装 (検出・レイアウト・レンダリング)
+  network:      ✅ 完全実装 (検出・レイアウト・レンダリング)
+  conceptmap:   ✅ 完全実装 (検出・レイアウト・レンダリング)
+  mindmap:      ✅ 完全実装 (検出・レイアウト・レンダリング)
+  general:      ✅ 完全実装 (検出・レイアウト・レンダリング)
 
 エンドツーエンドパフォーマンス (Phase 29実音声ファイルテスト):
   音声ファイル:     344 KB (jfk.wav)
@@ -214,7 +235,6 @@ npx tsx scripts/batch-audio-pipeline.ts <input-dir> <output-dir> [options]
   PIPELINE_FLOW.md:     ✅ バッチ処理・エラーハンドリング追加
   QUALITY_METRICS.md:   ✅ 実測値反映、100/100達成記録
   ITERATION_LOG.md:     ✅ Phase 1-9完全記録
-  .module/              ✅ シンボリックリンク整備
 
 統合状況:
   SimplePipeline統合:         100% (完了)

@@ -193,7 +193,7 @@ Output: LayoutData
 **Input**: LayoutData + SRT captions
 **Output**: Remotion composition
 
-**Implementation**: `src/remotion/*`, `src/animation/*`
+**Implementation**: `src/remotion/*` — compositions (`Root.tsx`, `Video.tsx`, `DiagramVideo.tsx`), scene rendering (`DiagramScene.tsx`), animations (`NodeAnimation.tsx`, `EdgeAnimation.tsx`, `animation-strategies.ts`), overlays (`CaptionOverlay.tsx`, `KeyphraseOverlay.tsx`), sync/captions (`scene-synchronizer.ts`, `srt-parser.ts`), rendering (`renderer.ts`)
 
 **Process Flow**:
 ```
