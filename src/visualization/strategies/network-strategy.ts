@@ -16,11 +16,12 @@ import { LayoutStrategy, StrategyLayoutResult } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
 import { getImportance } from '../importance-scaler';
 import { scaledNodeExtent } from '../strategy-graph';
-import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { defaultNodeExtent } from '../node-dimensions';
+import { clampNodeCoordinate } from '../layout-utils';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
 import { emptyLayoutResult } from '../empty-layout-result';
-import { buildAnchoredLayoutEdges, centerToCenterAnchors } from '../strategy-edges';
-import { distance } from '../layout-utils';
+import { buildAnchoredLayoutEdges, centerToCenterAnchors, centerAnchor } from '../strategy-edges';
+import { distance, ringAngle, pointOnCircle } from '../layout-utils';
 
 const NODE_SEP = 80;
 
@@ -61,17 +62,20 @@ export class NetworkStrategy implements LayoutStrategy {
     const maxRadius = Math.min(cx, cy) * 0.6;
 
     return nodes.map((node, i) => {
-      const angle = (2 * Math.PI * i) / nodes.length;
       // Important nodes get a smaller radius (closer to center)
       const imp = getImportance(node);
       const radius = maxRadius * (1.2 - imp * 0.5); // 0.7–1.2 multiplier
+      // Round 48 single-source — ring step + circle point in layout-utils
+      // (per-node radius threads through the seam); the `- w / 2` top-left
+      // conversion stays here.
+      const p = pointOnCircle(cx, cy, ringAngle(i, nodes.length), radius);
       // Shared importance-scaled extent (round 42) — identical Math.round(
       // extent * importanceSizeScale) both axes, via strategy-graph.
       const { width: w, height: h } = scaledNodeExtent(node);
       return {
         ...node,
-        x: cx + radius * Math.cos(angle) - w / 2,
-        y: cy + radius * Math.sin(angle) - h / 2,
+        x: p.x - w / 2,
+        y: p.y - h / 2,
         width: w,
         height: h,
       };
@@ -102,12 +106,12 @@ export class NetworkStrategy implements LayoutStrategy {
       for (let j = i + 1; j < nodes.length; j++) {
         const a = nodes[i];
         const b = nodes[j];
-        const ax = a.x + getNodeWidth(a, DEFAULT_NODE_WIDTH) / 2;
-        const ay = a.y + getNodeHeight(a, DEFAULT_NODE_HEIGHT) / 2;
-        const bx = b.x + getNodeWidth(b, DEFAULT_NODE_WIDTH) / 2;
-        const by = b.y + getNodeHeight(b, DEFAULT_NODE_HEIGHT) / 2;
-        const dx = bx - ax;
-        const dy = by - ay;
+        // Round 46 single-source — node centers via strategy-edges
+        // centerAnchor (explicit-DEFAULT reads ≡ the canonical bare reads).
+        const centerA = centerAnchor(a);
+        const centerB = centerAnchor(b);
+        const dx = centerB.x - centerA.x;
+        const dy = centerB.y - centerA.y;
         const dist = Math.max(1, distance(dx, dy));
         // Important nodes repel more strongly
         const impScale = 0.7 + 0.6 * (getImportance(a) + getImportance(b)) / 2;
@@ -127,12 +131,10 @@ export class NetworkStrategy implements LayoutStrategy {
       const src = nodeMap.get(edge.from);
       const tgt = nodeMap.get(edge.to);
       if (!src || !tgt) continue;
-      const sx = src.x + getNodeWidth(src, DEFAULT_NODE_WIDTH) / 2;
-      const sy = src.y + getNodeHeight(src, DEFAULT_NODE_HEIGHT) / 2;
-      const tx = tgt.x + getNodeWidth(tgt, DEFAULT_NODE_WIDTH) / 2;
-      const ty = tgt.y + getNodeHeight(tgt, DEFAULT_NODE_HEIGHT) / 2;
-      const dx = tx - sx;
-      const dy = ty - sy;
+      const sourceCenter = centerAnchor(src);
+      const targetCenter = centerAnchor(tgt);
+      const dx = targetCenter.x - sourceCenter.x;
+      const dy = targetCenter.y - sourceCenter.y;
       const dist = Math.max(1, distance(dx, dy));
       // Edges involving important nodes attract more strongly
       const impScale = 0.8 + 0.4 * Math.max(getImportance(src), getImportance(tgt));
@@ -162,10 +164,10 @@ export class NetworkStrategy implements LayoutStrategy {
       node.x += f.x * damping * scale;
       node.y += f.y * damping * scale;
       // Keep within bounds
-      const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
-      const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
-      node.x = Math.max(20, Math.min(DEFAULT_CANVAS_WIDTH - w - 20, node.x));
-      node.y = Math.max(20, Math.min(DEFAULT_CANVAS_HEIGHT - h - 20, node.y));
+      // Round 49 single source — the DEFAULT-fallback box resolution pair.
+      const { width: w, height: h } = defaultNodeExtent(node);
+      node.x = clampNodeCoordinate(node.x, DEFAULT_CANVAS_WIDTH, w, 20);
+      node.y = clampNodeCoordinate(node.y, DEFAULT_CANVAS_HEIGHT, h, 20);
     }
   }
 }

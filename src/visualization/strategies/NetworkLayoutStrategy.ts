@@ -17,7 +17,7 @@
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
-import { countOverlapPairs } from '../layout-utils';
+import { countOverlapPairs, clampNodeCoordinate, squareGridColumns, centerInCell } from '../layout-utils';
 import { logger } from '../../utils/logger';
 import { DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { strategyNodeWidth, validateStrategyInputs } from '../strategy-common';
@@ -87,7 +87,8 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
     config: LayoutConfig,
     spacing: number
   ): PositionedNode[] {
-    const gridSize = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
+    // Round 50 single source — square-grid packing + cell-centered stamp.
+    const gridSize = squareGridColumns(nodes.length);
     const cellWidth = config.width / gridSize;
     const cellHeight = config.height / gridSize;
 
@@ -103,8 +104,8 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
       const row = Math.floor(index / gridSize);
       const col = index % gridSize;
 
-      const gridX = col * cellWidth + cellWidth / 2 - width / 2;
-      const gridY = row * cellHeight + cellHeight / 2 - height / 2;
+      const gridX = centerInCell(col, cellWidth, width);
+      const gridY = centerInCell(row, cellHeight, height);
 
       // Add randomization to avoid perfect grid (helps force-directed converge)
       const jitterX = (rand() - 0.5) * spacing;
@@ -112,8 +113,8 @@ export class NetworkLayoutStrategy implements ILayoutStrategy {
 
       return {
         ...node,
-        x: Math.max(0, Math.min(config.width - width, gridX + jitterX)),
-        y: Math.max(0, Math.min(config.height - height, gridY + jitterY)),
+        x: clampNodeCoordinate(gridX + jitterX, config.width, width),
+        y: clampNodeCoordinate(gridY + jitterY, config.height, height),
         w: width,
         h: height
       };

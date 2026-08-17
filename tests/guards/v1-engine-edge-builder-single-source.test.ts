@@ -686,8 +686,12 @@ describe('v1 engine edge builder — source anchors (round-33-4)', () => {
     expect(src).toMatch(/logger\.warn\(`\$\{warnPrefix\}Edge \$\{edge\.from\} -> \$\{edge\.to\} missing nodes`\)/);
     // the dangling fallback: empty points + label echo, NO id line between them.
     expect(src).toMatch(/points:\s*\[\],\s*\n\s*label:\s*edge\.label,\s*\n\s*\};/);
-    // anchored return passes the caller's points through verbatim.
-    expect(src).toMatch(/points:\s*pointsOf\(source,\s*target\),/);
+    // Round 46 conscious update: pointsOf now accepts BOTH the round-46
+    // anchor pairs (readonly EdgeAnchorPair tuple) and legacy point-array
+    // anchors (BaseLayoutEngine's overridable generateEdgePoints returns a
+    // plain Point[]); the assembly spreads either into the mutable points
+    // array — same two elements, fresh array, bit-identical output.
+    expect(src).toMatch(/points:\s*\[\.\.\.pointsOf\(source,\s*target\)\],/);
   });
 
   it.each(ENGINE_FILES)('%s delegates to buildWarnedAnchoredEdges and re-rolls no skeleton shape', (file) => {
@@ -720,22 +724,23 @@ describe('v1 engine edge builder — source anchors (round-33-4)', () => {
     }
   });
 
-  it('comparison keeps its side-anchor geometry in place', () => {
-    const src = readSource('src/visualization/strategies/ComparisonLayoutStrategy.ts');
-    expect(src).toMatch(/sourceIsLeft\s*\?\s*source\.x\s*\+\s*getNodeWidth\(source\)\s*:\s*source\.x/);
-    expect(src).toMatch(/sourceIsLeft\s*\?\s*target\.x\s*:\s*target\.x\s*\+\s*getNodeWidth\(target\)/);
-  });
-
-  it('timeline keeps its right→left anchor geometry in place', () => {
-    const src = readSource('src/visualization/strategies/TimelineLayoutStrategy.ts');
-    expect(src).toMatch(/x:\s*source\.x\s*\+\s*getNodeWidth\(source\),/);
-    expect(src).toMatch(/x:\s*target\.x,/);
-  });
-
-  it('tree keeps its bottom→top anchor geometry in place', () => {
-    const src = readSource('src/visualization/strategies/TreeLayoutStrategy.ts');
-    expect(src).toMatch(/y:\s*source\.y\s*\+\s*getNodeHeight\(source\)/);
-    expect(src).toMatch(/x:\s*target\.x\s*\+\s*getNodeWidth\(target\)\s*\/\s*2,/);
+  // Round 46 conscious update: the three strategy-specific anchor geometries
+  // this section used to pin "in place" were PROMOTED to canonical pair
+  // helpers in strategy-edges.ts — comparison's flanks and timeline's
+  // right→left and tree's bottom→top each had a second/third site by round 46
+  // (v2 comparison / Fallback timeline / v2 timeline + Fallback flow). The
+  // strategies now pass the canonical pair; the geometry pins moved with the
+  // code to edge-anchor-geometry-single-source.test.ts (round 46).
+  it('comparison/timeline/tree pass the canonical round-46 anchor pairs', () => {
+    const srcC = readSource('src/visualization/strategies/ComparisonLayoutStrategy.ts');
+    expect(srcC).toMatch(/buildWarnedAnchoredEdges,\s*flankAnchors\s*\}\s*from\s*'\.\.\/strategy-edges';/);
+    expect(srcC).not.toMatch(/sourceIsLeft/);
+    const srcT = readSource('src/visualization/strategies/TimelineLayoutStrategy.ts');
+    expect(srcT).toMatch(/buildWarnedAnchoredEdges,\s*horizontalFlowAnchors\s*\}\s*from\s*'\.\.\/strategy-edges';/);
+    expect(srcT).not.toMatch(/x:\s*source\.x\s*\+\s*getNodeWidth\(source\),/);
+    const srcTr = readSource('src/visualization/strategies/TreeLayoutStrategy.ts');
+    expect(srcTr).toMatch(/buildWarnedAnchoredEdges,\s*verticalFlowAnchors\s*\}\s*from\s*'\.\.\/strategy-edges';/);
+    expect(srcTr).not.toMatch(/y:\s*source\.y\s*\+\s*getNodeHeight\(source\)/);
   });
 
   it('conceptmap/network delegate with the shared center anchors', () => {

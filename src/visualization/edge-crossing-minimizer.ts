@@ -6,8 +6,7 @@
  */
 
 import { DiagramType, PositionedNode, LayoutEdge } from '@/types/diagram';
-import { getNodeWidth, getNodeHeight } from './node-dimensions';
-import { distance } from './layout-utils';
+import { distance, calculateNodeCenter } from './layout-utils';
 import { safeArray } from '../lib/safe-array';
 import { roundTo } from '../lib/metrics-utils';
 
@@ -65,9 +64,10 @@ export function detectEdgeCrossings(
 
   const positions = new Map<string, Point>();
   for (const n of safeNodes) {
-    const w = getNodeWidth(n, 0);
-    const h = getNodeHeight(n, 0);
-    positions.set(n.id, { x: n.x + w / 2, y: n.y + h / 2 });
+    // Round 47 single source — node box-center via layout-utils
+    // `calculateNodeCenter` (fallback 0, identical to the retired
+    // `getNodeWidth(n, 0) / 2` form).
+    positions.set(n.id, calculateNodeCenter(n));
   }
 
   interface Segment {
@@ -372,11 +372,11 @@ export class EdgeCrossingMinimizer {
         const mag = distance(d.x, d.y);
         if (mag > 0) {
           const capped = Math.min(mag, temperature);
-          const w = getNodeWidth(n, 0);
-          const h = getNodeHeight(n, 0);
           n.x += (d.x / mag) * capped * damping;
           n.y += (d.y / mag) * capped * damping;
-          positions.set(n.id, { x: n.x + w / 2, y: n.y + h / 2 });
+          // Round 47 single source — reads the MUTATED x/y (the displacement
+          // above lands first), same order as the retired inline form.
+          positions.set(n.id, calculateNodeCenter(n));
         }
       }
     }
@@ -449,9 +449,8 @@ export class EdgeCrossingMinimizer {
 function buildPositionMap(nodes: PositionedNode[]): Map<string, Point> {
   const map = new Map<string, Point>();
   for (const n of nodes) {
-    const w = getNodeWidth(n, 0);
-    const h = getNodeHeight(n, 0);
-    map.set(n.id, { x: n.x + w / 2, y: n.y + h / 2 });
+    // Round 47 single source — node box-center via layout-utils.
+    map.set(n.id, calculateNodeCenter(n));
   }
   return map;
 }

@@ -9,10 +9,11 @@
 import { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
-import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { defaultNodeExtent, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, TARGET_ASPECT_RATIO } from '../canvas-dimensions';
 import { emptyLayoutResult } from '../empty-layout-result';
 import { buildAnchoredLayoutEdges, centerToCenterAnchors } from '../strategy-edges';
+import { aspectGridColumns, squareGridRows, centerInCell } from '../layout-utils';
 
 const NODE_SEP = 40;
 
@@ -37,8 +38,9 @@ export class GeneralStrategy implements LayoutStrategy {
       (a, b) => (degreeMap.get(b.id) ?? 0) - (degreeMap.get(a.id) ?? 0),
     );
 
-    const columns = Math.max(1, Math.ceil(Math.sqrt(sortedNodes.length * TARGET_ASPECT_RATIO)));
-    const rows = Math.max(1, Math.ceil(sortedNodes.length / columns));
+    // Round 50 single source — aspect-corrected packing + rows twin.
+    const columns = aspectGridColumns(sortedNodes.length, TARGET_ASPECT_RATIO);
+    const rows = squareGridRows(sortedNodes.length, columns);
 
     const cellWidth = DEFAULT_NODE_WIDTH + NODE_SEP;
     const cellHeight = DEFAULT_NODE_HEIGHT + NODE_SEP;
@@ -98,12 +100,13 @@ export class GeneralStrategy implements LayoutStrategy {
 
     return nodes.map((node, i) => {
       const pos = positions[i] ?? { col: i % columns, row: Math.floor(i / columns) };
-      const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
-      const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
+      // Round 49 single source — the DEFAULT-fallback box resolution pair.
+      const { width: w, height: h } = defaultNodeExtent(node);
       return {
         ...node,
-        x: offsetX + pos.col * cellWidth + (cellWidth - w) / 2,
-        y: offsetY + pos.row * cellHeight + (cellHeight - h) / 2,
+        // Round 50 single source — cell-centered stamp (spiral cell + offset origin).
+        x: centerInCell(pos.col, cellWidth, w, offsetX),
+        y: centerInCell(pos.row, cellHeight, h, offsetY),
         width: w,
         height: h,
       };

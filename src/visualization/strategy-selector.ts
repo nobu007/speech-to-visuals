@@ -1,5 +1,5 @@
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
-import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from './node-dimensions';
+import { defaultNodeExtent } from './node-dimensions';
 import { LayoutStrategy, StrategyLayoutResult, CanvasSize, StrategyRegistry } from './types';
 import { DefaultStrategyRegistry } from './strategies/base-strategy';
 import { OverlapResolver } from './overlap-resolver';
@@ -80,13 +80,18 @@ class GridSnapFallbackStrategy implements LayoutStrategy {
   readonly canEscapeLocalMinimum = false;
 
   apply(nodes: NodeDatum[], edges: EdgeDatum[]): StrategyLayoutResult {
-    const positioned = nodes.map((n, i) => ({
-      ...n,
-      x: (i % 5) * 160 + 40,
-      y: Math.floor(i / 5) * 100 + 40,
-      width: getNodeWidth(n, DEFAULT_NODE_WIDTH),
-      height: getNodeHeight(n, DEFAULT_NODE_HEIGHT),
-    }));
+    const positioned = nodes.map((n, i) => {
+      // Round 49 single source — the DEFAULT-fallback box resolution pair
+      // (formerly inline DEFAULT-literal property reads in the stamp).
+      const { width, height } = defaultNodeExtent(n);
+      return {
+        ...n,
+        x: (i % 5) * 160 + 40,
+        y: Math.floor(i / 5) * 100 + 40,
+        width,
+        height,
+      };
+    });
 
     const layoutEdges = edges.map(e => ({
       from: e.from,

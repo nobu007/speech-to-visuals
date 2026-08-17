@@ -5,6 +5,7 @@ import { createLayoutRng } from '../../layout-rng';
 import { getNodeWidth, getNodeHeight } from '../../node-dimensions';
 import { distance } from '../../layout-utils';
 import { repointEdgesStraightLine } from '../../edge-repointing';
+import { countEdgeCrossings } from '../edge-crossings';
 
 /** Get effective node width (handles both `w` and `width` properties, consistent with other layout modules) */
 function effWidth(node: PositionedNode): number {
@@ -280,39 +281,11 @@ export class SimulatedAnnealingStrategy extends BaseLayoutStrategy {
   }
   
   private calculateCrossingEnergy(nodes: PositionedNode[], edges: LayoutEdge[]): number {
-    let crossings = 0;
-    const edgeArray = Array.from(edges);
-    const nodeMap = new Map(nodes.map(n => [n.id, n]));
-    
-    // Convert edges to line segments
-    const segments = edgeArray
-      .map(edge => {
-        const source = nodeMap.get(edge.source);
-        const target = nodeMap.get(edge.target);
-        return source && target ? { source, target } : null;
-      })
-      .filter((segment): segment is { source: PositionedNode; target: PositionedNode } => segment !== null);
-    
-    // Check all pairs of edges for crossings
-    for (let i = 0; i < segments.length; i++) {
-      const a = segments[i];
-      
-      for (let j = i + 1; j < segments.length; j++) {
-        const b = segments[j];
-        
-        // Skip if edges share a node
-        if (a.source === b.source || a.source === b.target ||
-            a.target === b.source || a.target === b.target) {
-          continue;
-        }
-        
-        // Check for intersection
-        if (this.segmentsIntersect(a, b)) {
-          crossings++;
-        }
-      }
-    }
-    
+    // Round 43: the pair scan + strict ccw predicate were a byte-identical
+    // copy of OverlapResolver's — both delegate to ../edge-crossings now.
+    // (The dropped `Array.from` copy was inert: `edges` is an array.)
+    const crossings = countEdgeCrossings(nodes, edges);
+
     // Quadratic penalty for crossings
     return crossings * crossings;
   }
@@ -392,27 +365,10 @@ export class SimulatedAnnealingStrategy extends BaseLayoutStrategy {
     
     return xOverlap * yOverlap;
   }
-  
-  private segmentsIntersect(
-    a: { source: PositionedNode; target: PositionedNode },
-    b: { source: PositionedNode; target: PositionedNode }
-  ): boolean {
-    const ccw = (A: PositionedNode, B: PositionedNode, C: PositionedNode): number => {
-      return (C.y - A.y) * (B.x - A.x) - (B.y - A.y) * (C.x - A.x);
-    };
-    
-    const A = a.source;
-    const B = a.target;
-    const C = b.source;
-    const D = b.target;
-    
-    // Check if line segments AB and CD intersect
-    return (
-      (ccw(A, C, D) * ccw(B, C, D) < 0) &&
-      (ccw(C, A, B) * ccw(D, A, B) < 0)
-    );
-  }
-  
+
+  // Round 43 retired `segmentsIntersect` (private): byte-identical to
+  // OverlapResolver's strict ccw predicate — both live in ../edge-crossings.
+
   private applyBoundaryConstraints(node: PositionedNode, config: LayoutConfig): void {
     const padding = 10;
     const halfWidth = effWidth(node) / 2;

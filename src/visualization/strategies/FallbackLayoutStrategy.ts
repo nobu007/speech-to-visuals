@@ -1,6 +1,12 @@
-import { DiagramLayout, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge, DiagramType } from '@/types/diagram';
+import { DiagramLayout, NodeDatum, EdgeDatum, LayoutEdge, DiagramType } from '@/types/diagram';
 import { LayoutConfig } from '../types';
-import { getNodeWidth, getNodeHeight, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { ringAngle, pointOnCircle, squareGridColumns, squareGridRows, centerInCell } from '../layout-utils';
+import {
+  centerToCenterAnchors,
+  horizontalFlowAnchors,
+  verticalFlowAnchors,
+} from '../strategy-edges';
 
 export class FallbackLayoutStrategy {
   private config: LayoutConfig;
@@ -75,10 +81,9 @@ export class FallbackLayoutStrategy {
       return {
         from: edge.from,
         to: edge.to,
-        points: [
-          { x: fromNode.x + getNodeWidth(fromNode) / 2, y: fromNode.y + getNodeHeight(fromNode) },
-          { x: toNode.x + getNodeWidth(toNode) / 2, y: toNode.y }
-        ],
+        // Round 46 single-source — anchor geometry in strategy-edges.ts. The
+        // skeleton (find lookup + zero-points dangling fallback) stays here.
+        points: [...verticalFlowAnchors(fromNode, toNode)],
         label: edge.label
       };
     });
@@ -131,10 +136,8 @@ export class FallbackLayoutStrategy {
       return {
         from: edge.from,
         to: edge.to,
-        points: [
-          { x: fromNode.x + getNodeWidth(fromNode), y: fromNode.y + getNodeHeight(fromNode) / 2 },
-          { x: toNode.x, y: toNode.y + getNodeHeight(toNode) / 2 }
-        ],
+        // Round 46 single-source — anchor geometry in strategy-edges.ts.
+        points: [...horizontalFlowAnchors(fromNode, toNode)],
         label: edge.label
       };
     });
@@ -153,11 +156,13 @@ export class FallbackLayoutStrategy {
     const nodeHeight = DEFAULT_NODE_HEIGHT;
 
     const positionedNodes = nodes.map((node, index) => {
-      const angle = (2 * Math.PI * index) / nodes.length;
+      // Round 48 single-source — ring step + circle point in layout-utils;
+      // the `- nodeWidth / 2` top-left conversion stays here.
+      const p = pointOnCircle(centerX, centerY, ringAngle(index, nodes.length), radius);
       return {
         ...node,
-        x: centerX + radius * Math.cos(angle) - nodeWidth / 2,
-        y: centerY + radius * Math.sin(angle) - nodeHeight / 2,
+        x: p.x - nodeWidth / 2,
+        y: p.y - nodeHeight / 2,
         w: nodeWidth,
         h: nodeHeight,
         width: nodeWidth,
@@ -181,10 +186,8 @@ export class FallbackLayoutStrategy {
       return {
         from: edge.from,
         to: edge.to,
-        points: [
-          { x: fromNode.x + getNodeWidth(fromNode) / 2, y: fromNode.y + getNodeHeight(fromNode) / 2 },
-          { x: toNode.x + getNodeWidth(toNode) / 2, y: toNode.y + getNodeHeight(toNode) / 2 }
-        ],
+        // Round 46 single-source — anchor geometry in strategy-edges.ts.
+        points: [...centerToCenterAnchors(fromNode, toNode)],
         label: edge.label
       };
     });
@@ -196,19 +199,20 @@ export class FallbackLayoutStrategy {
    * Create a matrix layout (grid)
    */
   private createMatrixLayout(nodes: NodeDatum[], edges: EdgeDatum[]): DiagramLayout {
-    const cols = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
+    // Round 50 single source — square-grid packing + cell-centered stamp.
+    const cols = squareGridColumns(nodes.length);
     const nodeWidth = 140;
     const nodeHeight = DEFAULT_NODE_HEIGHT;
     const spacingX = this.config.width / cols;
-    const spacingY = this.config.height / Math.max(1, Math.ceil(nodes.length / cols));
+    const spacingY = this.config.height / squareGridRows(nodes.length, cols);
 
     const positionedNodes = nodes.map((node, index) => {
       const row = Math.floor(index / cols);
       const col = index % cols;
       return {
         ...node,
-        x: col * spacingX + (spacingX - nodeWidth) / 2,
-        y: row * spacingY + (spacingY - nodeHeight) / 2,
+        x: centerInCell(col, spacingX, nodeWidth),
+        y: centerInCell(row, spacingY, nodeHeight),
         w: nodeWidth,
         h: nodeHeight,
         width: nodeWidth,
@@ -232,10 +236,8 @@ export class FallbackLayoutStrategy {
       return {
         from: edge.from,
         to: edge.to,
-        points: [
-          { x: fromNode.x + getNodeWidth(fromNode) / 2, y: fromNode.y + getNodeHeight(fromNode) / 2 },
-          { x: toNode.x + getNodeWidth(toNode) / 2, y: toNode.y + getNodeHeight(toNode) / 2 }
-        ],
+        // Round 46 single-source — anchor geometry in strategy-edges.ts.
+        points: [...centerToCenterAnchors(fromNode, toNode)],
         label: edge.label
       };
     });

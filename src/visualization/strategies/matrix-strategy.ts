@@ -13,10 +13,11 @@ import {
   StrategyLayoutMetrics,
 } from '@/visualization/types';
 import { calculateCanvasSize, calculateMetrics } from '@/visualization/layout-engine-v2';
-import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { defaultNodeExtent } from '../node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, TARGET_ASPECT_RATIO } from '../canvas-dimensions';
 import { emptyLayoutResult } from '../empty-layout-result';
 import { buildAnchoredLayoutEdges, centerToCenterAnchors } from '../strategy-edges';
+import { aspectGridColumns, squareGridRows, centerInCell } from '../layout-utils';
 
 const CANVAS_PADDING = 80;
 
@@ -31,9 +32,10 @@ export class MatrixStrategy implements LayoutStrategy {
     }
 
     // Step 1: Calculate optimal grid dimensions
+    // Round 50 single source — aspect-corrected packing + rows twin.
     const nodeCount = nodes.length;
-    const columns = Math.max(1, Math.ceil(Math.sqrt(nodeCount * TARGET_ASPECT_RATIO)));
-    const rows = Math.max(1, Math.ceil(nodeCount / columns));
+    const columns = aspectGridColumns(nodeCount, TARGET_ASPECT_RATIO);
+    const rows = squareGridRows(nodeCount, columns);
 
     // Step 2: Calculate cell sizing
     const usableWidth = DEFAULT_CANVAS_WIDTH - 2 * CANVAS_PADDING;
@@ -46,14 +48,13 @@ export class MatrixStrategy implements LayoutStrategy {
       const col = index % columns;
       const row = Math.floor(index / columns);
 
-      const nodeWidth = getNodeWidth(node, DEFAULT_NODE_WIDTH);
-      const nodeHeight = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
+      // Round 49 single source — the DEFAULT-fallback box resolution pair.
+      const { width: nodeWidth, height: nodeHeight } = defaultNodeExtent(node);
 
-      // Center the node within its cell
-      const cellX = CANVAS_PADDING + col * cellWidth;
-      const cellY = CANVAS_PADDING + row * cellHeight;
-      const x = cellX + (cellWidth - nodeWidth) / 2;
-      const y = cellY + (cellHeight - nodeHeight) / 2;
+      // Center the node within its cell (round 50 single source — the
+      // cell-centered stamp with the canvas-padding origin folded in).
+      const x = centerInCell(col, cellWidth, nodeWidth, CANVAS_PADDING);
+      const y = centerInCell(row, cellHeight, nodeHeight, CANVAS_PADDING);
 
       return {
         ...node,

@@ -1,9 +1,10 @@
 import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult, CanvasSize, StrategyLayoutMetrics } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
-import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { defaultNodeExtent, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { emptyLayoutResult } from '../empty-layout-result';
 import { runDagrePipeline } from '../dagre-pipeline';
+import { squareGridColumns } from '../layout-utils';
 
 const NODE_SEP = 50;
 const RANK_SEP = 80;
@@ -108,15 +109,16 @@ export class FlowStrategy implements LayoutStrategy {
 
     const cellWidth = DEFAULT_NODE_WIDTH + NODE_SEP;
     const cellHeight = DEFAULT_NODE_HEIGHT + NODE_SEP;
-    const maxPerRow = Math.max(1, Math.ceil(Math.sqrt(originalNodes.length)));
+    // Round 50 single source — square-grid column derivation (row capacity).
+    const maxPerRow = squareGridColumns(originalNodes.length);
 
     const positionedNodes: PositionedNode[] = originalNodes.map((node, index) => {
       const orderIndex = sorted.indexOf(node.id);
       const idx = orderIndex >= 0 ? orderIndex : index;
       const row = Math.floor(idx / maxPerRow);
       const col = idx % maxPerRow;
-      const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
-      const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
+      // Round 49 single source — the DEFAULT-fallback box resolution pair.
+      const { width: w, height: h } = defaultNodeExtent(node);
       return {
         ...node,
         x: col * cellWidth,

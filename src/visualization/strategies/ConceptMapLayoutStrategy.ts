@@ -16,6 +16,7 @@
 
 import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
+import { squareGridColumns, squareGridRows, centerInCell } from '../layout-utils';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { logger } from '../../utils/logger';
 import { DEFAULT_NODE_HEIGHT } from '../node-dimensions';
@@ -48,8 +49,9 @@ export class ConceptMapLayoutStrategy implements ILayoutStrategy {
       }
 
       // Calculate grid dimensions (square-ish grid)
-      const cols = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
-      const rows = Math.max(1, Math.ceil(nodes.length / cols));
+      // Round 50 single source — square-grid packing derivation.
+      const cols = squareGridColumns(nodes.length);
+      const rows = squareGridRows(nodes.length, cols);
 
 
       // Calculate cell dimensions
@@ -64,9 +66,9 @@ export class ConceptMapLayoutStrategy implements ILayoutStrategy {
         const width = this.calculateNodeWidth(node, config);
         const height = config.nodeHeight || DEFAULT_NODE_HEIGHT;
 
-        // Center node in cell
-        const x = col * cellWidth + (cellWidth - width) / 2;
-        const y = row * cellHeight + (cellHeight - height) / 2;
+        // Center node in cell (round 50 single source — cell-centered stamp)
+        const x = centerInCell(col, cellWidth, width);
+        const y = centerInCell(row, cellHeight, height);
 
         return {
           ...node,

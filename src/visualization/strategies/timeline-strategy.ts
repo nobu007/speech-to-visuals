@@ -13,10 +13,10 @@ import {
   StrategyLayoutMetrics,
 } from '@/visualization/types';
 import { calculateCanvasSize, calculateMetrics } from '@/visualization/layout-engine-v2';
-import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { getNodeWidth, getNodeHeight, defaultNodeExtent, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
 import { emptyLayoutResult } from '../empty-layout-result';
-import { buildAnchoredLayoutEdges, EdgeAnchorPair } from '../strategy-edges';
+import { buildAnchoredLayoutEdges, verticalFlowAnchors } from '../strategy-edges';
 // Canonical overlap predicate — single source of truth (see layout-utils.ts).
 import { nodesOverlap, hasOverlapPairs } from '../layout-utils';
 
@@ -228,13 +228,18 @@ export class TimelineStrategy implements LayoutStrategy {
     // Step 3: Initial X positions centered
     const centerX = DEFAULT_CANVAS_WIDTH / 2 - DEFAULT_NODE_WIDTH / 2;
 
-    const positionedNodes: PositionedNode[] = orderedNodes.map((node, index) => ({
-      ...node,
-      x: centerX,
-      y: startY + index * ySpacing,
-      width: getNodeWidth(node, DEFAULT_NODE_WIDTH),
-      height: getNodeHeight(node, DEFAULT_NODE_HEIGHT),
-    }));
+    const positionedNodes: PositionedNode[] = orderedNodes.map((node, index) => {
+      // Round 49 single source — the DEFAULT-fallback box resolution pair
+      // (formerly inline property reads in the stamp literal).
+      const { width, height } = defaultNodeExtent(node);
+      return {
+        ...node,
+        x: centerX,
+        y: startY + index * ySpacing,
+        width,
+        height,
+      };
+    });
 
     // Single node: no need for force-directed or grid-snap
     if (nodes.length === 1) {
@@ -271,20 +276,10 @@ export class TimelineStrategy implements LayoutStrategy {
 }
 
 /**
- * Vertical-flow anchors, timeline-specific geometry: source bottom-center to
- * target top-center, so edges read as top→bottom time flow. The edge
- * skeleton (nodeMap, dangling fallback, LayoutEdge assembly) single-sources
- * through strategy-edges.ts (round 32).
+ * Vertical-flow anchors (bottom-center → top-center) moved to
+ * strategy-edges.ts in round 46 — shared with v1 tree and the
+ * FallbackLayoutStrategy flow block. The local definition is retired; the
+ * import above supplies the canonical pair. The edge skeleton (nodeMap,
+ * dangling fallback, LayoutEdge assembly) single-sources through
+ * strategy-edges.ts since round 32.
  */
-function verticalFlowAnchors(
-  source: PositionedNode,
-  target: PositionedNode,
-): EdgeAnchorPair {
-  const sw = getNodeWidth(source, DEFAULT_NODE_WIDTH);
-  const sh = getNodeHeight(source, DEFAULT_NODE_HEIGHT);
-  const tw = getNodeWidth(target, DEFAULT_NODE_WIDTH);
-  return [
-    { x: source.x + sw / 2, y: source.y + sh },
-    { x: target.x + tw / 2, y: target.y },
-  ];
-}

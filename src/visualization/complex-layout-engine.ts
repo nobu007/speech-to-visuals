@@ -16,7 +16,8 @@ import {
   DEFAULT_RANK_SEPARATION,
   DEFAULT_MARGIN,
 } from './layout-spacing';
-import { nodesOverlap, distance, nodeExtentEdges, foldNodeExtents } from './layout-utils';
+import { nodesOverlap, distance, nodeExtentEdges, foldNodeExtents, clampNodeCoordinate, calculateNodeCenter, ringAngle, pointOnCircle } from './layout-utils';
+import { centerToCenterAnchors } from './strategy-edges';
 import { mulberry32, seedFromString } from './layout-rng';
 import { OverlapResolver } from './strategies/OverlapResolver';
 import { LayoutOptimizer } from './strategies/LayoutOptimizer';
@@ -472,11 +473,9 @@ export class ComplexLayoutEngine {
     const radius = Math.min(this.config.width, this.config.height) * 0.3;
 
     clusters.forEach((cluster, index) => {
-      const angle = (2 * Math.PI * index) / clusters.length;
-      clusterPositions.set(cluster.id, {
-        x: centerX + radius * Math.cos(angle),
-        y: centerY + radius * Math.sin(angle)
-      });
+      // Round 48 single-source — ring step + circle point in layout-utils;
+      // cluster anchors are CENTER points (no top-left conversion).
+      clusterPositions.set(cluster.id, pointOnCircle(centerX, centerY, ringAngle(index, clusters.length), radius));
     });
 
     return clusterPositions;
@@ -508,10 +507,9 @@ export class ComplexLayoutEngine {
         allEdges.push({
           from: edge.from,
           to: edge.to,
-          points: [
-            { x: fromNode.x + getNodeWidth(fromNode) / 2, y: fromNode.y + getNodeHeight(fromNode) / 2 },
-            { x: toNode.x + getNodeWidth(toNode) / 2, y: toNode.y + getNodeHeight(toNode) / 2 }
-          ],
+          // Round 46 single-source — center anchors in strategy-edges.ts. The
+          // drop-dangling policy (this `if` guard) stays at this site.
+          points: [...centerToCenterAnchors(fromNode, toNode)],
           label: edge.label
         });
       }
@@ -531,11 +529,13 @@ export class ComplexLayoutEngine {
     const nodeSize = { width: 100, height: 50 };
 
     return nodes.map((node, index) => {
-      const angle = (2 * Math.PI * index) / nodes.length;
+      // Round 48 single-source — ring step + circle point in layout-utils;
+      // the `- nodeSize.width / 2` top-left conversion stays here.
+      const p = pointOnCircle(clusterCenter.x, clusterCenter.y, ringAngle(index, nodes.length), clusterRadius);
       return {
         ...node,
-        x: clusterCenter.x + clusterRadius * Math.cos(angle) - nodeSize.width / 2,
-        y: clusterCenter.y + clusterRadius * Math.sin(angle) - nodeSize.height / 2,
+        x: p.x - nodeSize.width / 2,
+        y: p.y - nodeSize.height / 2,
         w: nodeSize.width,
         h: nodeSize.height
       };
@@ -788,9 +788,10 @@ export class ComplexLayoutEngine {
         pos.vy = (pos.vy / disp) * maxDisplacement;
       }
 
-      // Update position, keep within bounds
-      pos.x = Math.max(0, Math.min(this.config.width, pos.x + pos.vx));
-      pos.y = Math.max(0, Math.min(this.config.height, pos.y + pos.vy));
+      // Update position, keep within bounds (point clamp: this velocity
+      // integration ignores the node extent by design — size 0)
+      pos.x = clampNodeCoordinate(pos.x + pos.vx, this.config.width, 0);
+      pos.y = clampNodeCoordinate(pos.y + pos.vy, this.config.height, 0);
 
       totalEnergy += pos.vx * pos.vx + pos.vy * pos.vy;
     }
@@ -893,8 +894,13 @@ export class ComplexLayoutEngine {
           from: e.from,
           to: e.to,
           points: [
-            { x: (fromNode?.x ?? 0) + getNodeWidth(fromNode ?? {}) / 2, y: (fromNode?.y ?? 0) + getNodeHeight(fromNode ?? {}) / 2 },
-            { x: (toNode?.x ?? 0) + getNodeWidth(toNode ?? {}) / 2, y: (toNode?.y ?? 0) + getNodeHeight(toNode ?? {}) / 2 },
+            // Round 47 single source — node box-centers via layout-utils
+            // `calculateNodeCenter`. The `?? {x:0,y:0}` pre-guard reproduces
+            // the retired `(fromNode?.x ?? 0)` phantom read, and the explicit
+            // DEFAULT fallbacks reproduce the retired `getNodeWidth(x ?? {})`
+            // defaults.
+            calculateNodeCenter((fromNode ?? { x: 0, y: 0 }) as PositionedNode, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT),
+            calculateNodeCenter((toNode ?? { x: 0, y: 0 }) as PositionedNode, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT),
           ],
           label: e.label,
         };
@@ -950,8 +956,11 @@ export class ComplexLayoutEngine {
         from: e.from,
         to: e.to,
         points: [
-          { x: (fromNode?.x ?? 0) + getNodeWidth(fromNode ?? {}) / 2, y: (fromNode?.y ?? 0) + getNodeHeight(fromNode ?? {}) / 2 },
-          { x: (toNode?.x ?? 0) + getNodeWidth(toNode ?? {}) / 2, y: (toNode?.y ?? 0) + getNodeHeight(toNode ?? {}) / 2 },
+          // Round 47 single source — node box-centers via layout-utils
+          // `calculateNodeCenter` (`?? {x:0,y:0}` phantom-read pre-guard and
+          // explicit DEFAULT fallbacks reproduce the retired form).
+          calculateNodeCenter((fromNode ?? { x: 0, y: 0 }) as PositionedNode, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT),
+          calculateNodeCenter((toNode ?? { x: 0, y: 0 }) as PositionedNode, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT),
         ],
         label: e.label,
       };

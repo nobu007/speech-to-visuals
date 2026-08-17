@@ -3,6 +3,7 @@ import { BaseLayoutStrategy } from './LayoutStrategy';
 import { LayoutConfig } from '../../types';
 import { getNodeWidth, getNodeHeight } from '../../node-dimensions';
 import { repointEdgesStraightLine } from '../../edge-repointing';
+import { squareGridColumns } from '../../layout-utils';
 
 interface GridCell {
   x: number;
@@ -79,7 +80,8 @@ export class GridSnapStrategy extends BaseLayoutStrategy {
     this.cellSize = Math.max(maxWidth, maxHeight) + this.padding * 2;
     
     // Adjust based on available space
-    const sqrtNodes = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
+    // Round 50 single source — square-grid column derivation.
+    const sqrtNodes = squareGridColumns(nodes.length);
     const maxCellSize = Math.min(
       (config.width * 0.8) / sqrtNodes,
       (config.height * 0.8) / sqrtNodes

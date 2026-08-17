@@ -63,6 +63,13 @@ import { RULES as overlapPairScan } from './frozen-literal-families/overlap-pair
 import { RULES as forceDirectedStep } from './frozen-literal-families/force-directed-step';
 import { RULES as nodeExtentScan } from './frozen-literal-families/node-extent-scan';
 import { RULES as strategyGraphPreamble } from './frozen-literal-families/strategy-graph-preamble';
+import { RULES as edgeCrossingScan } from './frozen-literal-families/edge-crossing-scan';
+import { RULES as nodeCanvasClamp } from './frozen-literal-families/node-canvas-clamp';
+import { RULES as edgeAnchorGeometry } from './frozen-literal-families/edge-anchor-geometry';
+import { RULES as nodeBoxCenter } from './frozen-literal-families/node-box-center';
+import { RULES as ringPlacement } from './frozen-literal-families/ring-placement';
+import { RULES as defaultNodeExtent } from './frozen-literal-families/default-node-extent';
+import { RULES as gridPacking } from './frozen-literal-families/grid-packing';
 
 /**
  * The ordered registry: families in the round order that closed them, entries
@@ -107,4 +114,11 @@ export const FROZEN_LITERAL_RULES: FrozenLiteralRule[] = [
   ...forceDirectedStep,
   ...nodeExtentScan,
   ...strategyGraphPreamble,
+  ...edgeCrossingScan,
+  ...nodeCanvasClamp,
+  ...edgeAnchorGeometry,
+  ...nodeBoxCenter,
+  ...ringPlacement,
+  ...gridPacking,
+  ...defaultNodeExtent,
 ];

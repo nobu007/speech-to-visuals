@@ -84,13 +84,206 @@ export function resolveNodeHeight(node: NodeDatum, config: NodeDimensionsConfig)
 }
 
 /**
- * Calculate center point of a node
+ * Calculate center point of a node.
+ *
+ * Round 47 single source for the node box-center geometry
+ * (`{x: node.x + width/2, y: node.y + height/2}`, `node.x/y` being the
+ * top-LEFT corner): previously the same fold was re-derived inline at ~19
+ * sites across edge-crossing-minimizer, cycle-strategy, layout-auto-optimizer,
+ * LayoutOptimizer, force-directed-params, complex-layout-engine,
+ * visual-balance-scorer, ezo and multi-format-exporter — each copy free to
+ * drop the origin term, halve the wrong axis, or drift its dimension
+ * fallback. `strategy-edges.ts#centerAnchor` (round 46) composes this
+ * helper instead of carrying a second center definition.
+ *
+ * `widthFallback` / `heightFallback` are the per-site policy seam (round 45
+ * pattern): the dimension assumed per axis when the node carries NO finite
+ * dimension. `0` (the default, and the original behavior of this helper) is
+ * the geometry-neutral read — a dimensionless node's center is its corner;
+ * `DEFAULT_NODE_WIDTH`/`DEFAULT_NODE_HEIGHT` is the render-default read;
+ * callers with configured sizes pass their config values. The seam is
+ * PER-AXIS because the retired sites were: e.g. the render-default forms
+ * read `getNodeWidth(node)` (fallback 120) for x but `getNodeHeight(node)`
+ * (fallback 60) for y — one shared number would shift the y axis by 30.
+ * Passing explicit fallbacks is bit-identical to the retired site-local
+ * `getNodeWidth(node, F) / 2` forms.
+ *
+ * Raw coordinates propagate NaN by design (the retired forms did); callers
+ * that must not feed NaN keep their pre-call guard at the site
+ * (visual-balance-scorer's `sanitizeFinite` chokepoint).
  */
-export function calculateNodeCenter(node: PositionedNode): Point {
+export function calculateNodeCenter(node: PositionedNode, widthFallback: number = 0, heightFallback: number = 0): Point {
   return {
-    x: node.x + getNodeWidth(node, 0) / 2,
-    y: node.y + getNodeHeight(node, 0) / 2
+    x: node.x + getNodeWidth(node, widthFallback) / 2,
+    y: node.y + getNodeHeight(node, heightFallback) / 2
   };
+}
+
+/**
+ * Centroid (arithmetic mean) of the node box-centers — round 47 single
+ * source for the "sum every `node.x + width/2`, divide by count" scan that
+ * layout-auto-optimizer (x3: applyParams / recenter / module recenter) and
+ * LayoutOptimizer (adjustSpacingByImportance) each re-implemented inline.
+ * Same accumulation order as the retired folds (`sum += center.x` starting
+ * from 0), so delegation is bit-identical, and the same per-axis fallback
+ * seam as {@link calculateNodeCenter}.
+ *
+ * Empty input returns `{x: 0, y: 0}` (the `calculateClusterCentroid`
+ * precedent) — every migrated call site early-returns on empty BEFORE the
+ * fold, so the branch is unreachable for them and exists only to keep the
+ * helper from synthesizing NaN.
+ */
+export function nodesCentroid(nodes: readonly PositionedNode[], widthFallback: number = 0, heightFallback: number = 0): Point {
+  if (nodes.length === 0) {
+    return { x: 0, y: 0 };
+  }
+  let sumX = 0;
+  let sumY = 0;
+  for (const node of nodes) {
+    const center = calculateNodeCenter(node, widthFallback, heightFallback);
+    sumX += center.x;
+    sumY += center.y;
+  }
+  return { x: sumX / nodes.length, y: sumY / nodes.length };
+}
+
+/**
+ * Angle of the i-th of `count` evenly spaced points on a ring, measured from
+ * the +x axis: `(2π · index) / count`. Round 48 single source for the ring
+ * step — cycle-strategy, network-strategy, mindmap-strategy (fallback ring),
+ * FallbackLayoutStrategy, LayoutOptimizer (×2), advanced-layouts,
+ * complex-layout-engine (clusters + within-cluster) and
+ * ProgressiveForceStrategy each re-derived it inline, three text forms
+ * (`(2 * Math.PI * i) / n`, `(i * 2 * Math.PI) / nodes.length`, and
+ * LayoutOptimizer's `/ Math.max(1, nodes.length)`).
+ *
+ * The `Math.max(1, …)` guard is retired as DEAD: every retired site computed
+ * the angle inside a per-element iteration (`map`/`forEach`/index-loop), where
+ * `index < count` implies `count >= 1` — the clamp only ever saw counts it
+ * did not change. `count: 0` produces NaN by contract (matches the retired
+ * in-loop forms); callers that early-return on empty keep that guard at the
+ * site.
+ */
+export function ringAngle(index: number, count: number): number {
+  return (2 * Math.PI * index) / count;
+}
+
+/**
+ * Point on a circle of `radius` around (`centerX`, `centerY`) at `angle`
+ * (radians, from the +x axis): `{x: cx + r·cos, y: cy + r·sin}`. Round 48
+ * single source — compose with {@link ringAngle} for even ring placement.
+ * Covers the fixed-radius rings (cycle/fallback/cluster layouts), the
+ * per-node-radius rings (network importance scaling, mindmap spiral
+ * fallback), and the polar-tree reads (mindmap positionSubtree's
+ * `center.x + cos(angle) · childRadius`). The commuted operand order some
+ * retired sites used (`Math.cos(angle) * radius`) is bit-identical (IEEE
+ * multiplication is commutative), and `centerX = 0` is the identity on every
+ * value except a `-0` x-flip that ring angles cannot produce.
+ *
+ * The returned point is a CENTER point; sites whose node x/y is the top-LEFT
+ * corner keep their own `- width / 2` conversion applied to the result
+ * (left-associative in every retired site: `(cx + r·cos) - w/2` — the
+ * delegation preserves that grouping exactly).
+ */
+export function pointOnCircle(centerX: number, centerY: number, angle: number, radius: number): Point {
+  return {
+    x: centerX + radius * Math.cos(angle),
+    y: centerY + radius * Math.sin(angle)
+  };
+}
+
+/**
+ * Column count of the near-square packing grid for `count` nodes:
+ * `max(1, ceil(√count))`. Round 50 single source for the square-grid
+ * column derivation — previously re-inlined at 10 sites across 8 files
+ * (ezo ×2 — network-node init + basic grid; NetworkLayoutStrategy init;
+ * ConceptMapLayoutStrategy; LayoutOptimizer ×2 — optimizeMatrixLayout +
+ * improveMatrixGrid; FallbackLayoutStrategy matrix; advanced-layouts grid;
+ * GridSnapStrategy cell bound; flow-strategy row capacity), every copy the
+ * identical expression, so delegation is bit-identical by construction.
+ *
+ * Unlike {@link ringAngle} (whose retired `max(1, …)` guard was dead inside
+ * per-element loops), the clamp here is LIVE: `count = 0` reaches several
+ * migrated sites (ezo's basic grid, Fallback's matrix) and would otherwise
+ * divide the canvas by zero columns. `count: NaN`/negative stays NaN/NaN by
+ * contract (the retired forms did the same — `sqrt(negative)` is NaN and
+ * `max(1, NaN)` is NaN).
+ */
+export function squareGridColumns(count: number): number {
+  return Math.max(1, Math.ceil(Math.sqrt(count)));
+}
+
+/**
+ * Row count of the near-square packing grid: `max(1, ceil(count / columns))`.
+ * Round 50 single source — the rows twin of {@link squareGridColumns},
+ * re-inlined at 7 sites (ezo, ConceptMapLayoutStrategy, LayoutOptimizer's
+ * improveMatrixGrid, FallbackLayoutStrategy's inline spacingY divisor,
+ * matrix-strategy, general-strategy, overlap-resolver's gridSnapFallback).
+ *
+ * The clamp is live for the same reason as the columns one (`count = 0`
+ * → `ceil(0 / columns) = 0` → would divide the cell height by zero rows).
+ * Pass columns from {@link squareGridColumns} (or
+ * {@link aspectGridColumns}); a columns of 0 makes this NaN by contract.
+ *
+ * DRIFT this closes: advanced-layouts re-derived rows WITHOUT the clamp
+ * (`Math.ceil(nodes.length / cols)`) — and never read the result. That dead
+ * unclamped copy is retired outright in round 50 rather than delegated: a
+ * live re-introduction of the unclamped shape is what the registry sweep
+ * now catches.
+ */
+export function squareGridRows(count: number, columns: number): number {
+  return Math.max(1, Math.ceil(count / columns));
+}
+
+/**
+ * Column count of an ASPECT-corrected packing grid:
+ * `squareGridColumns(count · aspectRatio)` — for a 16:9 canvas the columns
+ * should outnumber the rows by the width/height ratio so cells stay square.
+ * Round 50 single source for the aspect variant — matrix-strategy,
+ * general-strategy and overlap-resolver each inlined
+ * `max(1, ceil(sqrt(count * RATIO)))`. Composing the canonical preserves
+ * the retired operand order exactly (`count * ratio` evaluated before the
+ * sqrt; multiplication order per site was `n * ratio` at all three).
+ */
+export function aspectGridColumns(count: number, aspectRatio: number): number {
+  return squareGridColumns(count * aspectRatio);
+}
+
+/**
+ * Top-left coordinate that centers an `extent`-sized node inside grid cell
+ * `index` of pitch `cell`, offset by `origin` (canvas margin / padding;
+ * `0` default):
+ * `origin + index·cell + (cell − extent)/2`.
+ *
+ * Round 50 single source for the cell-centered stamp — re-inlined at 9
+ * sites × 2 axes (ezo ×2, NetworkLayoutStrategy, ConceptMapLayoutStrategy,
+ * LayoutOptimizer ×2, FallbackLayoutStrategy, matrix-strategy,
+ * general-strategy's spiral stamp). The retired sites used TWO
+ * algebraically equal groupings, and they are NOT bit-identical:
+ *
+ *   A (ezo ×2, Network, LayoutOptimizer.optimizeMatrixLayout):
+ *     `(index·cell + cell/2) − extent/2`
+ *   B (ConceptMap, Fallback, LayoutOptimizer.improveMatrixGrid, matrix,
+ *     general): `index·cell + (cell − extent)/2`
+ *
+ * Floating-point regrouping (`(a + b) − c` vs `a + (b − c)`) rounds at
+ * different points, so the canonical (B — the strategy layer's majority
+ * form and the "half of the remaining space" intent) shifts the four A-form
+ * sites by at most ~9·2⁻⁵² of the operand scale — measured max 9.1e-13 px
+ * over the full canvas domain sweep (1920×1080-class canvases, 1–80
+ * columns, extents 0–480, margins 0/40/80; ~7.6% of samples differ, always
+ * last-ulp class). That is 8 orders of magnitude below rendering precision
+ * and cannot flip an overlap predicate at real node sizes. The guard test
+ * pins BOTH retired forms and this bound.
+ *
+ * `origin = 0` is bit-identity for the no-margin sites (`0 + x = x`; the
+ * sum `index·cell + (cell−extent)/2` cannot be −0 because IEEE exact-zero
+ * sums of mixed signs round to +0). Evaluation order inside the canonical
+ * is origin → index·cell → (cell − extent)/2, matching the retired
+ * left-to-right reading.
+ */
+export function centerInCell(index: number, cell: number, extent: number, origin: number = 0): number {
+  return origin + index * cell + (cell - extent) / 2;
 }
 
 /**
@@ -355,6 +548,55 @@ export function foldNodeExtents(
   }
 
   return { minX, minY, maxX, maxY };
+}
+
+/**
+ * Clamp one node coordinate so the node's extent stays inside the canvas
+ * band `[margin, canvasSize - nodeSize - margin]` — round 45 single source
+ * for the canvas clamp of a positioned node's top-left coordinate.
+ *
+ * The clamp was previously inlined — verbatim — at 17 x/y coordinate-pair
+ * sites in three margin policies: the zero-margin form
+ * `Math.max(0, Math.min(canvas - size, v))` (ezo grid+jitter placement,
+ * post-resolver clamp, NaN-guarded force application, jitter candidates,
+ * and the eight collision-resolution moves; NetworkLayoutStrategy grid
+ * placement), the margin form `Math.max(m, Math.min(canvas - size - m, v))`
+ * (force-directed-params keepInView, network-strategy keep-within-bounds
+ * at literal 20, strategies/OverlapResolver constrainNodeToBounds at
+ * default-10 margin via a double-guarded maxX), and the point-clamp
+ * degenerate `size = 0` (complex-layout-engine velocity integration, which
+ * clamps the point and ignores the node extent by design). Each copy could
+ * drop the `- nodeSize` term (the node's right/bottom edge slides off
+ * canvas), swap the margin into the wrong side, or diverge on the
+ * oversized-node case — one engine pulling nodes to `margin`, another
+ * returning the inverted `hi < lo` band. That is the duplicate-formula /
+ * invariant-split class, on every "keep the node on the canvas" decision.
+ *
+ * Semantics frozen by the migrating sites (bit-identical delegation, no
+ * behavior change — zero-delta round like 30/34):
+ * - `Math.max`/`Math.min` composition is the retired expression itself, so
+ *   NaN propagates to NaN exactly as the inline copies did. Sites that must
+ *   not propagate NaN guard BEFORE the call (ezo force application's
+ *   `Number.isFinite` ternary is the precedent — the guard stays at the site
+ *   because it is a site policy, not part of the clamp);
+ * - an oversized node (`canvasSize - nodeSize - margin < margin`, i.e. the
+ *   node cannot fit in the band) resolves to the LOWER bound `margin`: the
+ *   `Math.max(margin, …)` outer wrap guarantees it, matching what both
+ *   retired margin idioms produced (the direct form collapses the same way;
+ *   constrainNodeToBounds's pre-clamped `maxX` did the identical collapse);
+ * - the size argument is read AT the site (`getNodeWidth(node, fallback)`
+ *   vs a precomputed local vs a literal `0`) — the dimension fallback chain
+ *   is a site policy, exactly like the `read` seam of
+ *   {@link foldNodeExtents}. What must never diverge again is the band
+ *   itself: lower bound, upper bound, and the outer-lower wrap.
+ */
+export function clampNodeCoordinate(
+  value: number,
+  canvasSize: number,
+  nodeSize: number,
+  margin: number = 0
+): number {
+  return Math.max(margin, Math.min(canvasSize - nodeSize - margin, value));
 }
 
 /**

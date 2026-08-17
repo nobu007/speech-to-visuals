@@ -18,9 +18,9 @@ import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@
 import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
 import { logger } from '../../utils/logger';
-import { getNodeWidth, getNodeHeight, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { strategyNodeWidth, validateStrategyInputs } from '../strategy-common';
-import { buildWarnedAnchoredEdges } from '../strategy-edges';
+import { buildWarnedAnchoredEdges, flankAnchors } from '../strategy-edges';
 import { DEFAULT_EDGE_SEPARATION, DEFAULT_MARGIN } from '../layout-spacing';
 
 export class ComparisonLayoutStrategy implements ILayoutStrategy {
@@ -127,26 +127,13 @@ export class ComparisonLayoutStrategy implements ILayoutStrategy {
     nodes: PositionedNode[]
   ): LayoutEdge[] {
     // Round 33 single-source — warn-on-dangling skeleton in strategy-edges.ts.
-    // Comparison-specific geometry: pair-dependent side anchors (arrow leaves
-    // whichever flank faces the partner).
+    // Round 46 — the pair-dependent flank geometry delegates to the canonical
+    // flankAnchors pair (shared with v2 comparison); only the '[Comparison] '
+    // prefix is site-specific.
     return buildWarnedAnchoredEdges(
       edges,
       nodes,
-      (source, target) => {
-        // Determine edge direction
-        const sourceIsLeft = source.x < target.x;
-
-        return [
-          {
-            x: sourceIsLeft ? source.x + getNodeWidth(source) : source.x,  // Right or left edge
-            y: source.y + getNodeHeight(source) / 2                          // Vertical center
-          },
-          {
-            x: sourceIsLeft ? target.x : target.x + getNodeWidth(target),   // Left or right edge
-            y: target.y + getNodeHeight(target) / 2                           // Vertical center
-          }
-        ];
-      },
+      flankAnchors,
       '[Comparison] '
     );
   }

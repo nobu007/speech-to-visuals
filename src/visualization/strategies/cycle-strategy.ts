@@ -18,12 +18,12 @@ import {
   StrategyLayoutMetrics,
 } from '@/visualization/types';
 import { calculateCanvasSize, calculateMetrics } from '@/visualization/layout-engine-v2';
-import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { defaultNodeExtent } from '../node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
 import { emptyLayoutResult } from '../empty-layout-result';
 import { buildAnchoredLayoutEdges, centerToCenterAnchors } from '../strategy-edges';
 // Canonical overlap predicate — single source of truth (see layout-utils.ts).
-import { nodesOverlap, hasOverlapPairs, distance } from '../layout-utils';
+import { nodesOverlap, hasOverlapPairs, distance, calculateNodeCenter, ringAngle, pointOnCircle } from '../layout-utils';
 
 const MIN_RADIUS = 200;
 const OVERLAP_SPACING_FACTOR = 1.2;
@@ -73,8 +73,8 @@ export class CycleLayoutStrategy implements LayoutStrategy {
 
     if (n === 1) {
       const node = nodes[0];
-      const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
-      const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
+      // Round 49 single source — the DEFAULT-fallback box resolution pair.
+      const { width: w, height: h } = defaultNodeExtent(node);
       return [
         {
           ...node,
@@ -86,8 +86,10 @@ export class CycleLayoutStrategy implements LayoutStrategy {
       ];
     }
 
-    const maxNodeWidth = Math.max(...nodes.map((n) => getNodeWidth(n, DEFAULT_NODE_WIDTH)));
-    const maxNodeHeight = Math.max(...nodes.map((n) => getNodeHeight(n, DEFAULT_NODE_HEIGHT)));
+    // Round 49 single source — both maxima resolve per node through the
+    // canonical pair (the max-of-set fold itself stays here: 2 sites).
+    const maxNodeWidth = Math.max(...nodes.map((n) => defaultNodeExtent(n).width));
+    const maxNodeHeight = Math.max(...nodes.map((n) => defaultNodeExtent(n).height));
     const circumferenceNeeded = n * Math.max(maxNodeWidth, maxNodeHeight) * OVERLAP_SPACING_FACTOR;
     const minRadius = circumferenceNeeded / (2 * Math.PI);
     const radius = Math.max(minRadius, MIN_RADIUS);
@@ -98,12 +100,15 @@ export class CycleLayoutStrategy implements LayoutStrategy {
     const positioned: PositionedNode[] = [];
     for (let i = 0; i < n; i++) {
       const node = nodes[i];
-      const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
-      const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
-      const angle = (2 * Math.PI * i) / n;
+      // Round 49 single source — the DEFAULT-fallback box resolution pair.
+      const { width: w, height: h } = defaultNodeExtent(node);
 
-      const x = centerX + radius * Math.cos(angle) - w / 2;
-      const y = centerY + radius * Math.sin(angle) - h / 2;
+      // Round 48 single-source — ring step + circle point in layout-utils;
+      // the `- w / 2` top-left conversion stays here (grouping preserved).
+      const p = pointOnCircle(centerX, centerY, ringAngle(i, n), radius);
+
+      const x = p.x - w / 2;
+      const y = p.y - h / 2;
 
       positioned.push({
         ...node,
@@ -139,13 +144,14 @@ export class CycleLayoutStrategy implements LayoutStrategy {
           const b = forceNodes[j].positioned;
 
           if (nodesOverlap(a, b)) {
-            const aCx = a.x + getNodeWidth(a, 0) / 2;
-            const aCy = a.y + getNodeHeight(a, 0) / 2;
-            const bCx = b.x + getNodeWidth(b, 0) / 2;
-            const bCy = b.y + getNodeHeight(b, 0) / 2;
+            // Round 47 single source — node box-centers via layout-utils
+            // `calculateNodeCenter` (fallback 0, bit-identical to the retired
+            // `a.x + getNodeWidth(a, 0) / 2` locals).
+            const aCenter = calculateNodeCenter(a);
+            const bCenter = calculateNodeCenter(b);
 
-            let dx = bCx - aCx;
-            let dy = bCy - aCy;
+            let dx = bCenter.x - aCenter.x;
+            let dy = bCenter.y - aCenter.y;
             const dist = distance(dx, dy) || 1;
 
             dx = dx / dist;
@@ -164,21 +170,23 @@ export class CycleLayoutStrategy implements LayoutStrategy {
       // Apply light attraction toward circle position to keep circular shape
       for (let i = 0; i < forceNodes.length; i++) {
         const n = forceNodes[i].positioned;
-        const ncx = n.x + getNodeWidth(n, 0) / 2;
-        const ncy = n.y + getNodeHeight(n, 0) / 2;
+        // Round 47 single source — node box-center via layout-utils.
+        const nCenter = calculateNodeCenter(n);
+        const ncx = nCenter.x;
+        const ncy = nCenter.y;
 
-        const angle = (2 * Math.PI * i) / forceNodes.length;
-        const maxNodeWidth = Math.max(...nodes.map((nd) => getNodeWidth(nd, DEFAULT_NODE_WIDTH)));
-        const maxNodeHeight = Math.max(...nodes.map((nd) => getNodeHeight(nd, DEFAULT_NODE_HEIGHT)));
+        const maxNodeWidth = Math.max(...nodes.map((nd) => defaultNodeExtent(nd).width));
+        const maxNodeHeight = Math.max(...nodes.map((nd) => defaultNodeExtent(nd).height));
         const circumferenceNeeded = forceNodes.length * Math.max(maxNodeWidth, maxNodeHeight) * OVERLAP_SPACING_FACTOR;
-        const minRadius = circumferenceNeeded / (2 * Math.PI);
+        const minRadius = circumferenceNeeded / (2 * Math.PI); // inverse concept: circumference → radius
         const radius = Math.max(minRadius, MIN_RADIUS);
 
-        const targetX = centerX + radius * Math.cos(angle);
-        const targetY = centerY + radius * Math.sin(angle);
+        // Round 48 single-source — the attraction target is a CENTER-space
+        // ring point (no top-left conversion).
+        const target = pointOnCircle(centerX, centerY, ringAngle(i, forceNodes.length), radius);
 
-        forceNodes[i].vx += (targetX - ncx) * 0.01;
-        forceNodes[i].vy += (targetY - ncy) * 0.01;
+        forceNodes[i].vx += (target.x - ncx) * 0.01;
+        forceNodes[i].vy += (target.y - ncy) * 0.01;
       }
 
       // Apply velocities

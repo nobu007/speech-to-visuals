@@ -54,6 +54,40 @@ export function getNodeHeight(node: Pick<PositionedNode, 'height' | 'h'>, fallba
   return fallback;
 }
 
+/**
+ * Resolve a node's box as `{ width, height }` at the render-default
+ * per-axis fallbacks — round 49 single source for the DEFAULT-fallback
+ * dimension-resolution pair.
+ *
+ * The two-line preamble `const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
+ * const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT)` was re-inlined at 16
+ * sites across 11 files (every v2 strategy stamp, the dagre pipeline's
+ * g.setNode sizing + positioned-node stamp, the strategy-selector fallback
+ * grid, cycle's ring sizing + radius maxima, mindmap's stamp branches,
+ * network's clamp sizing — see
+ * tests/guards/default-node-extent-single-source.test.ts). A copy that
+ * swaps the axes' fallbacks (`DEFAULT_NODE_WIDTH` for height — the defaults
+ * are 120 and 60, NOT one shared number), drops one axis, or reads the
+ * deprecated alias directly silently mis-sizes every stamp, canvas fit, and
+ * overlap decision downstream of it.
+ *
+ * The per-axis fallback is the seam (round 47's lesson): width and height
+ * defaults differ, so the resolution stays a pair, never one number. Sites
+ * with a DIFFERENT fallback policy keep calling `getNodeWidth(node, 0)` /
+ * `getNodeHeight(node, 100)` directly (round 41's measured-vs-render split);
+ * sites that want this exact box call this function. The implicit-default
+ * idiom `getNodeWidth(node)` is value-identical and legal — getNodeWidth's
+ * own default parameter is the single source for it.
+ */
+export function defaultNodeExtent(
+  node: Pick<PositionedNode, 'width' | 'w' | 'height' | 'h'>,
+): { width: number; height: number } {
+  return {
+    width: getNodeWidth(node, DEFAULT_NODE_WIDTH),
+    height: getNodeHeight(node, DEFAULT_NODE_HEIGHT),
+  };
+}
+
 // ─── Branded type for compile-time dimension safety ──────────────
 
 /**

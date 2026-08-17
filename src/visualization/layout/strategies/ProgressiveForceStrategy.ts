@@ -2,7 +2,7 @@ import { PositionedNode, LayoutEdge, DiagramLayout } from '@/types/diagram';
 import { BaseLayoutStrategy, LayoutStrategy } from './LayoutStrategy';
 import { LayoutConfig, LayoutResult } from '../../types';
 import { createLayoutRng } from '../../layout-rng';
-import { distance } from '../../layout-utils';
+import { distance, ringAngle, pointOnCircle } from '../../layout-utils';
 import { repointEdgesStraightLine } from '../../edge-repointing';
 
 interface ForceNode extends PositionedNode {
@@ -109,11 +109,14 @@ export class ProgressiveForceStrategy extends BaseLayoutStrategy {
     // Initialize with random positions in a circle
     const radius = Math.sqrt(nodes.length) * 50;
     return nodes.map((node, i) => {
-      const angle = (i * 2 * Math.PI) / nodes.length;
+      // Round 48 single-source — ring step + circle point in layout-utils.
+      // The retired `(i * 2 * Math.PI)` operand order is bit-identical
+      // (IEEE multiplication commutes); center (0, 0) is the identity.
+      const p = pointOnCircle(0, 0, ringAngle(i, nodes.length), radius);
       return {
         ...node,
-        x: Math.cos(angle) * radius,
-        y: Math.sin(angle) * radius,
+        x: p.x,
+        y: p.y,
         vx: 0,
         vy: 0,
         fx: null,

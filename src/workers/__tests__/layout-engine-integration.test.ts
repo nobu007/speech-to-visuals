@@ -65,6 +65,13 @@ jest.unstable_mockModule('@/visualization/layout-utils', () => ({
     right: node.x + (node.width ?? node.w ?? fallbackWidth),
     bottom: node.y + (node.height ?? node.h ?? fallbackHeight),
   })),
+  // round 50: grid packing + cell-centered stamp exports — faithful copies
+  // of the layout-utils canonicals (no worker asserts their call shape yet;
+  // these exist so any future importer in this graph links).
+  squareGridColumns: jest.fn((count: number) => Math.max(1, Math.ceil(Math.sqrt(count)))),
+  squareGridRows: jest.fn((count: number, columns: number) => Math.max(1, Math.ceil(count / columns))),
+  aspectGridColumns: jest.fn((count: number, ratio: number) => Math.max(1, Math.ceil(Math.sqrt(count * ratio)))),
+  centerInCell: jest.fn((index: number, cell: number, extent: number, origin = 0) => origin + index * cell + (cell - extent) / 2),
   foldNodeExtents: jest.fn((nodes: Array<Record<string, unknown>>, read: (n: Record<string, unknown>) => { left: number; top: number; right: number; bottom: number }) => {
     if (nodes.length === 0) return null;
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -77,6 +84,25 @@ jest.unstable_mockModule('@/visualization/layout-utils', () => ({
     }
     return { minX, minY, maxX, maxY };
   }),
+  // round 45: complex-layout-engine's velocity clamp now imports this —
+  // the ESM mock must provide every named export the importer reads
+  // (link error otherwise, jest-esm-mock-pattern). Faithful shape.
+  clampNodeCoordinate: jest.fn((value: number, canvasSize: number, nodeSize: number, margin = 0) =>
+    Math.max(margin, Math.min(canvasSize - nodeSize - margin, value))),
+  // round 47: complex-layout-engine's fallback edge points now read the
+  // node box-center through this — faithful shape (per-axis fallbacks,
+  // same defaults as the real calculateNodeCenter: 0/0).
+  calculateNodeCenter: jest.fn((node: { x: number; y: number; width?: number; w?: number; height?: number; h?: number }, widthFallback = 0, heightFallback = 0) => ({
+    x: node.x + ((node.width ?? node.w) ?? widthFallback) / 2,
+    y: node.y + ((node.height ?? node.h) ?? heightFallback) / 2,
+  })),
+  // round 48: complex-layout-engine's cluster/ring placements now import
+  // these — faithful shapes (the retired inline forms).
+  ringAngle: jest.fn((index: number, count: number) => (2 * Math.PI * index) / count),
+  pointOnCircle: jest.fn((centerX: number, centerY: number, angle: number, radius: number) => ({
+    x: centerX + radius * Math.cos(angle),
+    y: centerY + radius * Math.sin(angle),
+  })),
 }));
 
 const { ComplexLayoutEngine } = await import('../../visualization/complex-layout-engine');

@@ -3,9 +3,10 @@ import { LayoutStrategy, StrategyLayoutResult } from '../types';
 import { createLayoutRng } from '../layout-rng';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
 import { importanceSizeScale } from '../importance-scaler';
-import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { defaultNodeExtent } from '../node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
 import { emptyLayoutResult } from '../empty-layout-result';
+import { ringAngle, pointOnCircle } from '../layout-utils';
 import { buildAnchoredLayoutEdges, centerToCenterAnchors } from '../strategy-edges';
 import {
   buildUndirectedAdjacency,
@@ -133,10 +134,8 @@ export class MindMapStrategy implements LayoutStrategy {
       const branchDescendants = this.countDescendants(branchRoot, tree);
       const branchRadius = CENTER_MARGIN + Math.sqrt(branchDescendants + 1) * BRANCH_SPACING;
 
-      // Position branch root
-      const bx = center.x + Math.cos(baseAngle) * branchRadius;
-      const by = center.y + Math.sin(baseAngle) * branchRadius;
-      positions.set(branchRoot, { x: bx, y: by });
+      // Position branch root — round 48 single-source circle point.
+      positions.set(branchRoot, pointOnCircle(center.x, center.y, baseAngle, branchRadius));
 
       // Position sub-children
       this.positionSubtree(branchRoot, tree, positions, center, baseAngle, branchRadius, 1, sectorAngle * 0.4);
@@ -183,9 +182,10 @@ export class MindMapStrategy implements LayoutStrategy {
       const angleOffset = (i - (children.length - 1) / 2) * childSpread;
       const angle = parentAngle + angleOffset;
 
-      const cx = center.x + Math.cos(angle) * childRadius;
-      const cy = center.y + Math.sin(angle) * childRadius;
-      positions.set(child, { x: cx, y: cy });
+      // Round 48 single-source — circle point in layout-utils (polar tree:
+      // arbitrary parent-relative angle, per-level radius).
+      const pos = pointOnCircle(center.x, center.y, angle, childRadius);
+      positions.set(child, pos);
 
       this.positionSubtree(child, tree, positions, center, angle, childRadius, level + 1, childSpread);
     }
@@ -227,18 +227,21 @@ export class MindMapStrategy implements LayoutStrategy {
     return nodes.map((node, i) => {
       if (positions.has(node.id)) {
         const pos = positions.get(node.id)!;
-        const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
-        const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
+        // Round 49 single source — the DEFAULT-fallback box resolution pair.
+        const { width: w, height: h } = defaultNodeExtent(node);
         return { ...node, x: pos.x - w / 2, y: pos.y - h / 2, width: w, height: h };
       }
-      const angle = (2 * Math.PI * i) / nodes.length;
       const radius = CENTER_MARGIN + i * 20;
-      const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
-      const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
+      // Round 49 single source — the DEFAULT-fallback box resolution pair.
+      const { width: w, height: h } = defaultNodeExtent(node);
+      // Round 48 single-source — ring step + circle point in layout-utils
+      // (per-index spiral radius threads through the seam); the `- w / 2`
+      // top-left conversion stays here.
+      const p = pointOnCircle(cx, cy, ringAngle(i, nodes.length), radius);
       return {
         ...node,
-        x: cx + Math.cos(angle) * radius - w / 2,
-        y: cy + Math.sin(angle) * radius - h / 2,
+        x: p.x - w / 2,
+        y: p.y - h / 2,
         width: w,
         height: h,
       };

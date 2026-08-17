@@ -20,7 +20,11 @@ jobs:
 
     - name: Validate JSON files
       run: |
-        find . -name "*.json" | xargs -I {} sh -c 'echo "Validating {}" && python -c "import json; json.load(open(\"{}\"))"'
+        # tsconfig*.json are JSONC by TypeScript design (comments + trailing
+        # commas) — strict json.load rejects them. Their syntax is validated by
+        # the type-check job (tsc) instead, so they are excluded here.
+        find . -name "*.json" -not -path "./node_modules/*" -not -path "./.git/*" -not -name "tsconfig*.json" \
+          | xargs -I {} sh -c 'echo "Validating {}" && python -c "import json; json.load(open(\"{}\"))"'
 
   monitoring-schema-validate:
     runs-on: ubuntu-latest

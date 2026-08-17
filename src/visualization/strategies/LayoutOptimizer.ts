@@ -1,6 +1,7 @@
 import { DiagramLayout, PositionedNode, DiagramType, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
+import { calculateNodeCenter, nodesCentroid, ringAngle, pointOnCircle, squareGridColumns, squareGridRows, centerInCell } from '../layout-utils';
 import { getImportance } from '../importance-scaler';
 
 export class LayoutOptimizer {
@@ -42,11 +43,15 @@ export class LayoutOptimizer {
     const radius = Math.min(this.config.width, this.config.height) * 0.3;
 
     const repositioned = nodes.map((node, index) => {
-      const angle = (2 * Math.PI * index) / Math.max(1, nodes.length);
+      // Round 48 single-source — ring step + circle point in layout-utils.
+      // The retired `Math.max(1, nodes.length)` guard was DEAD (index <
+      // length implies length >= 1 inside this map) — ringAngle divides by
+      // the raw count, bit-identical at every reachable evaluation.
+      const p = pointOnCircle(centerX, centerY, ringAngle(index, nodes.length), radius);
       return {
         ...node,
-        x: centerX + radius * Math.cos(angle) - getNodeWidth(node, this.config.nodeWidth) / 2,
-        y: centerY + radius * Math.sin(angle) - getNodeHeight(node, this.config.nodeHeight) / 2,
+        x: p.x - getNodeWidth(node, this.config.nodeWidth) / 2,
+        y: p.y - getNodeHeight(node, this.config.nodeHeight) / 2,
       };
     });
 
@@ -87,7 +92,8 @@ export class LayoutOptimizer {
     const nodes = [...layout.nodes];
     if (nodes.length === 0) return { nodes, edges: layout.edges };
 
-    const gridSize = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
+    // Round 50 single source — square-grid packing + cell-centered stamp.
+    const gridSize = squareGridColumns(nodes.length);
     const cellWidth = (this.config.width - 2 * this.config.marginX) / gridSize;
     const cellHeight = (this.config.height - 2 * this.config.marginY) / gridSize;
 
@@ -96,8 +102,8 @@ export class LayoutOptimizer {
       const col = index % gridSize;
       return {
         ...node,
-        x: this.config.marginX + col * cellWidth + cellWidth / 2 - getNodeWidth(node, this.config.nodeWidth) / 2,
-        y: this.config.marginY + row * cellHeight + cellHeight / 2 - getNodeHeight(node, this.config.nodeHeight) / 2,
+        x: centerInCell(col, cellWidth, getNodeWidth(node, this.config.nodeWidth), this.config.marginX),
+        y: centerInCell(row, cellHeight, getNodeHeight(node, this.config.nodeHeight), this.config.marginY),
       };
     });
 
@@ -118,9 +124,13 @@ export class LayoutOptimizer {
       return edge.points;
     }
 
+    // Round 47 single source — node box-centers via layout-utils
+    // `calculateNodeCenter`, config fallbacks threaded per axis (identical to
+    // the retired inline `getNodeWidth(fromNode, this.config.nodeWidth) / 2`
+    // forms; r46 had scoped this site out for lack of a fallback seam).
     return [
-      { x: fromNode.x + getNodeWidth(fromNode, this.config.nodeWidth) / 2, y: fromNode.y + getNodeHeight(fromNode, this.config.nodeHeight) / 2 },
-      { x: toNode.x + getNodeWidth(toNode, this.config.nodeWidth) / 2, y: toNode.y + getNodeHeight(toNode, this.config.nodeHeight) / 2 }
+      calculateNodeCenter(fromNode, this.config.nodeWidth, this.config.nodeHeight),
+      calculateNodeCenter(toNode, this.config.nodeWidth, this.config.nodeHeight)
     ];
   }
 
@@ -155,9 +165,12 @@ export class LayoutOptimizer {
   private async adjustSpacingByImportance(layout: DiagramLayout): Promise<DiagramLayout> {
     if (layout.nodes.length === 0) return layout;
 
-    // Calculate centroid to scale relative to center, not origin
-    const centerX = layout.nodes.reduce((sum, n) => sum + (n.x + getNodeWidth(n, this.config.nodeWidth) / 2), 0) / layout.nodes.length;
-    const centerY = layout.nodes.reduce((sum, n) => sum + (n.y + getNodeHeight(n, this.config.nodeHeight) / 2), 0) / layout.nodes.length;
+    // Calculate centroid to scale relative to center, not origin — round 47
+    // single source: layout-utils `nodesCentroid` (config fallbacks per axis,
+    // same accumulation order as the retired twin reduces).
+    const centroid = nodesCentroid(layout.nodes, this.config.nodeWidth, this.config.nodeHeight);
+    const centerX = centroid.x;
+    const centerY = centroid.y;
 
     const nodes = layout.nodes.map(node => {
       // Use the canonical helper: it treats importance 0 as a legitimate "lowest"
@@ -254,11 +267,13 @@ export class LayoutOptimizer {
     const radius = Math.min(this.config.width, this.config.height) * 0.35;
 
     return nodes.map((node, index) => {
-      const angle = (2 * Math.PI * index) / Math.max(1, nodes.length);
+      // Round 48 single-source — same delegation as optimizeCycleLayout (the
+      // retired `Math.max(1, …)` guard was dead here too).
+      const p = pointOnCircle(centerX, centerY, ringAngle(index, nodes.length), radius);
       return {
         ...node,
-        x: centerX + radius * Math.cos(angle) - getNodeWidth(node, this.config.nodeWidth) / 2,
-        y: centerY + radius * Math.sin(angle) - getNodeHeight(node, this.config.nodeHeight) / 2
+        x: p.x - getNodeWidth(node, this.config.nodeWidth) / 2,
+        y: p.y - getNodeHeight(node, this.config.nodeHeight) / 2
       };
     });
   }
@@ -287,8 +302,8 @@ export class LayoutOptimizer {
   private improveMatrixGrid(nodes: PositionedNode[]): PositionedNode[] {
     if (nodes.length === 0) return nodes;
 
-    const cols = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
-    const rows = Math.max(1, Math.ceil(nodes.length / cols));
+    const cols = squareGridColumns(nodes.length);
+    const rows = squareGridRows(nodes.length, cols);
 
     const cellWidth = (this.config.width - 2 * this.config.marginX) / cols;
     const cellHeight = (this.config.height - 2 * this.config.marginY) / rows;
@@ -301,8 +316,8 @@ export class LayoutOptimizer {
 
       return {
         ...node,
-        x: this.config.marginX + col * cellWidth + (cellWidth - nw) / 2,
-        y: this.config.marginY + row * cellHeight + (cellHeight - nh) / 2
+        x: centerInCell(col, cellWidth, nw, this.config.marginX),
+        y: centerInCell(row, cellHeight, nh, this.config.marginY)
       };
     });
   }

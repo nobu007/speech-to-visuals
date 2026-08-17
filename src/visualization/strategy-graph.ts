@@ -68,7 +68,7 @@
 
 import { NodeDatum, EdgeDatum } from '@/types/diagram';
 import { StrategyLayoutResult } from './types';
-import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from './node-dimensions';
+import { defaultNodeExtent } from './node-dimensions';
 import { getImportance, scaledDimensions } from './importance-scaler';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from './canvas-dimensions';
 import { emptyStrategyLayoutMetrics } from './empty-layout-result';
@@ -145,11 +145,11 @@ export function findImportanceRoot(nodes: NodeDatum[], edges: EdgeDatum[]): stri
  * retired inline sites.
  */
 export function scaledNodeExtent(node: NodeDatum): { width: number; height: number } {
-  return scaledDimensions(
-    node,
-    getNodeWidth(node, DEFAULT_NODE_WIDTH),
-    getNodeHeight(node, DEFAULT_NODE_HEIGHT),
-  );
+  // Round 49 — the DEFAULT-fallback extents resolve through node-dimensions'
+  // `defaultNodeExtent` (the unscaled twin of this scaled read), so the raw
+  // resolution pair exists in exactly one module.
+  const extent = defaultNodeExtent(node);
+  return scaledDimensions(node, extent.width, extent.height);
 }
 
 /**
