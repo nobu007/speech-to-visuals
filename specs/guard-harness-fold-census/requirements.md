@@ -189,16 +189,22 @@ single-source test（365〜673 行・3 層構造）」の後者が round 46〜50
 
 ## census（2026-08-18 実測・ REQ-005 / REQ-201 のベースライン）
 
-計測コマンドと生ログは interview-record A2 を参照。集計:
+計測コマンドと生ログは interview-record A2 を参照。集計
+（round 51 で REQ-404 準拠の engine 実測値に再ベースライン —
+`tests/guards/fold-census-guard.test.ts` が marker = data pin = engine 実測の
+3 者一致を検証する。A2 素朴 grep 値との差: C1 はコメント行除外で
+32→30・file 20→17、C2 は精密 pattern（config object 既定 `width: 1920` 形・
+resolution preset 行除外）で 8→16/4→8、C5 は engine 全走査が A2 の
+ファイル限定 grep の見逃し 2 site を発見し 1→3/1→3）:
 
-| 区分 | family / 項目 | 正典 | 残存 inline site | 分類 |
+| 区分 | family / 項目 | 正典 | 残存 inline site（engine 実測） | 分類 |
 |---|---|---|---|---|
 | 既fold（執行済） | registry 42 family / 47 rule | layout-utils / node-dimensions / strategy-* へ委譲 | **違反 0**（sweep 49 test GREEN） | 収束済み |
-| C1 | 汎用 clamp `max(min,max(v))` 系 | `src/utils/guards.ts` clampFinite/clamp01 | 32 match / 20 file | **実挙動変更必要**（bare 形は NaN 透過、clampFinite は NaN→min へ sanitize = 契約差） |
-| C2 | layout 既定 1920/1080 直書き | DEFAULT_CANVAS_WIDTH/HEIGHT | 8 出現（4 config object）/ 4 file | **設計判断必要**（同一値の別 config・RED 不能） |
-| C3 | 半径方向 push `cos/sin(angle)·sep` | pointOnCircle は絶対位置で別概念 | 4 site / 1 file（strategies/OverlapResolver.ts:257-260） | 異概念 / 閾値未満（1 file） |
-| C4 | 文字幅見積 `text.length * 8 + 40` | DEFAULT_CHAR_WIDTH=8（layout-utils） | 1 site / 1 file（advanced-layouts.ts:537） | 閾値未満（1 file） |
-| C5 | 反二乗反発 `(k·w)/dist²` | force-directed-params は regime 型で別公式 | 1 site / 1 file（edge-crossing-minimizer.ts:336） | 異概念 |
+| C1 | 汎用 clamp `max(min,max(v))` 系 | `src/utils/guards.ts` clampFinite/clamp01 | 30 site / 17 file <!-- census-pin:C1:sites=30:files=17 --> | **実挙動変更必要**（bare 形は NaN 透過、clampFinite は NaN→min へ sanitize = 契約差） |
+| C2 | layout 既定 1920/1080 直書き | DEFAULT_CANVAS_WIDTH/HEIGHT | 16 site / 8 file <!-- census-pin:C2:sites=16:files=8 --> | **設計判断必要**（同一値の別 config・RED 不能） |
+| C3 | 半径方向 push `cos/sin(angle)·sep` | pointOnCircle は絶対位置で別概念 | 4 site / 1 file（strategies/OverlapResolver.ts:257-260）<!-- census-pin:C3:sites=4:files=1 --> | 異概念 / 閾値未満（1 file） |
+| C4 | 文字幅見積 `text.length * 8 + 40` | DEFAULT_CHAR_WIDTH=8（layout-utils） | 1 site / 1 file（advanced-layouts.ts:537）<!-- census-pin:C4:sites=1:files=1 --> | 閾値未満（1 file） |
+| C5 | 反二乗反発 `(k·w)/dist²` | force-directed-params は regime 型で別公式 | 3 site / 3 file（edge-crossing-minimizer.ts:336・complex-layout-engine.ts:742・network-strategy.ts:118）<!-- census-pin:C5:sites=3:files=3 --> | 異概念 |
 
 **収束判定**: value-neutral な fold 候補（同一概念・2 file 以上・委譲で
 ビット等価）= **0 family**。fold 系列は value-neutral 作業について収束
