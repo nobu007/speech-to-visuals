@@ -39,7 +39,7 @@
 import * as dagreLib from '@dagrejs/dagre';
 const dagre = (dagreLib as unknown as { default?: typeof dagreLib }).default ?? dagreLib;
 import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
-import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from './node-dimensions';
+import { defaultNodeExtent } from './node-dimensions';
 
 /** Per-diagram graph tuning; each strategy supplies its own values. */
 export interface DagrePipelineConfig {
@@ -76,8 +76,8 @@ export function runDagrePipeline(
   g.setDefaultEdgeLabel(() => ({}));
 
   for (const node of nodes) {
-    const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
-    const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
+    // Round 49 single source — the DEFAULT-fallback box resolution pair.
+    const { width: w, height: h } = defaultNodeExtent(node);
     g.setNode(node.id, { width: w, height: h, label: node.label });
   }
 
@@ -99,8 +99,8 @@ export function runDagrePipeline(
 
   const positionedNodes: PositionedNode[] = nodes.map((node) => {
     const dagreNode = g.node(node.id);
-    const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
-    const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
+    // Round 49 single source — the DEFAULT-fallback box resolution pair.
+    const { width: w, height: h } = defaultNodeExtent(node);
     return {
       ...node,
       x: dagreNode.x - w / 2,

@@ -404,8 +404,15 @@ describe('round 47: node box-center — layer 3 source anchors', () => {
     expect((src.match(/const nCenter = calculateNodeCenter\(n\);/g) ?? []).length).toBe(1);
     expect(src).not.toMatch(/const aCx = a\.x \+ getNodeWidth\(a, 0\) \/ 2;/);
     expect(src).not.toMatch(/const ncx = n\.x \+ getNodeWidth\(n, 0\) \/ 2;/);
-    // the DEFAULT reads that REMAIN are the sizing reads (different concept)
-    expect(src).toMatch(/getNodeWidth\(nd, DEFAULT_NODE_WIDTH\)/);
+    // the sizing reads that REMAIN delegate to the round-49 canonical
+    // `defaultNodeExtent` — r47 scoped them out as a different concept
+    // (sizing, not a center-fold); round 49 single-sourced exactly this
+    // DEFAULT-fallback pair. Tracking update per the r42 precedent
+    // (delegation chains move anchors; the intent — center folds stay
+    // delegated, sizing reads stay visible — is unchanged).
+    expect((src.match(/defaultNodeExtent\((?:n|nd)\)\.width/g) ?? []).length).toBe(2);
+    expect((src.match(/defaultNodeExtent\((?:n|nd)\)\.height/g) ?? []).length).toBe(2);
+    expect(src).not.toMatch(/getNodeWidth\(nd, DEFAULT_NODE_WIDTH\)/);
   });
 
   it('layout-auto-optimizer delegates 4 sites with the divergence documented', () => {

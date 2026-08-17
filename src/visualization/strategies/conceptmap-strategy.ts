@@ -17,7 +17,7 @@ import { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
 import { getImportance, importanceSizeScale } from '../importance-scaler';
-import { getNodeWidth, DEFAULT_NODE_WIDTH } from '../node-dimensions';
+import { defaultNodeExtent } from '../node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
 import { emptyLayoutResult } from '../empty-layout-result';
 import { buildAnchoredLayoutEdges, centerToCenterAnchors } from '../strategy-edges';
@@ -143,7 +143,10 @@ export class ConceptMapStrategy implements LayoutStrategy {
       const widths = ids.map(id => {
         const node = nodeMap.get(id);
         const scale = node ? importanceSizeScale(node) : 1;
-        return Math.round(getNodeWidth(node ?? { width: 0, w: 0 }, DEFAULT_NODE_WIDTH) * scale);
+        // Round 49 single source — the DEFAULT-fallback width resolution
+        // (width axis only here; the `?? {width:0,w:0}` defensive guard and
+        // the importance scale stay at the site).
+        return Math.round(defaultNodeExtent(node ?? { width: 0, w: 0 }).width * scale);
       });
 
       const totalWidth = widths.reduce((sum, w) => sum + w, 0) + (ids.length - 1) * NODE_SEP_X;

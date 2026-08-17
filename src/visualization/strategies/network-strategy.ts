@@ -16,7 +16,7 @@ import { LayoutStrategy, StrategyLayoutResult } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
 import { getImportance } from '../importance-scaler';
 import { scaledNodeExtent } from '../strategy-graph';
-import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { defaultNodeExtent } from '../node-dimensions';
 import { clampNodeCoordinate } from '../layout-utils';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
 import { emptyLayoutResult } from '../empty-layout-result';
@@ -164,8 +164,8 @@ export class NetworkStrategy implements LayoutStrategy {
       node.x += f.x * damping * scale;
       node.y += f.y * damping * scale;
       // Keep within bounds
-      const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
-      const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
+      // Round 49 single source — the DEFAULT-fallback box resolution pair.
+      const { width: w, height: h } = defaultNodeExtent(node);
       node.x = clampNodeCoordinate(node.x, DEFAULT_CANVAS_WIDTH, w, 20);
       node.y = clampNodeCoordinate(node.y, DEFAULT_CANVAS_HEIGHT, h, 20);
     }

@@ -18,7 +18,7 @@ import {
   StrategyLayoutMetrics,
 } from '@/visualization/types';
 import { calculateCanvasSize, calculateMetrics } from '@/visualization/layout-engine-v2';
-import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { defaultNodeExtent } from '../node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
 import { emptyLayoutResult } from '../empty-layout-result';
 import { buildAnchoredLayoutEdges, centerToCenterAnchors } from '../strategy-edges';
@@ -73,8 +73,8 @@ export class CycleLayoutStrategy implements LayoutStrategy {
 
     if (n === 1) {
       const node = nodes[0];
-      const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
-      const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
+      // Round 49 single source — the DEFAULT-fallback box resolution pair.
+      const { width: w, height: h } = defaultNodeExtent(node);
       return [
         {
           ...node,
@@ -86,8 +86,10 @@ export class CycleLayoutStrategy implements LayoutStrategy {
       ];
     }
 
-    const maxNodeWidth = Math.max(...nodes.map((n) => getNodeWidth(n, DEFAULT_NODE_WIDTH)));
-    const maxNodeHeight = Math.max(...nodes.map((n) => getNodeHeight(n, DEFAULT_NODE_HEIGHT)));
+    // Round 49 single source — both maxima resolve per node through the
+    // canonical pair (the max-of-set fold itself stays here: 2 sites).
+    const maxNodeWidth = Math.max(...nodes.map((n) => defaultNodeExtent(n).width));
+    const maxNodeHeight = Math.max(...nodes.map((n) => defaultNodeExtent(n).height));
     const circumferenceNeeded = n * Math.max(maxNodeWidth, maxNodeHeight) * OVERLAP_SPACING_FACTOR;
     const minRadius = circumferenceNeeded / (2 * Math.PI);
     const radius = Math.max(minRadius, MIN_RADIUS);
@@ -98,8 +100,8 @@ export class CycleLayoutStrategy implements LayoutStrategy {
     const positioned: PositionedNode[] = [];
     for (let i = 0; i < n; i++) {
       const node = nodes[i];
-      const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
-      const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
+      // Round 49 single source — the DEFAULT-fallback box resolution pair.
+      const { width: w, height: h } = defaultNodeExtent(node);
 
       // Round 48 single-source — ring step + circle point in layout-utils;
       // the `- w / 2` top-left conversion stays here (grouping preserved).
@@ -173,8 +175,8 @@ export class CycleLayoutStrategy implements LayoutStrategy {
         const ncx = nCenter.x;
         const ncy = nCenter.y;
 
-        const maxNodeWidth = Math.max(...nodes.map((nd) => getNodeWidth(nd, DEFAULT_NODE_WIDTH)));
-        const maxNodeHeight = Math.max(...nodes.map((nd) => getNodeHeight(nd, DEFAULT_NODE_HEIGHT)));
+        const maxNodeWidth = Math.max(...nodes.map((nd) => defaultNodeExtent(nd).width));
+        const maxNodeHeight = Math.max(...nodes.map((nd) => defaultNodeExtent(nd).height));
         const circumferenceNeeded = forceNodes.length * Math.max(maxNodeWidth, maxNodeHeight) * OVERLAP_SPACING_FACTOR;
         const minRadius = circumferenceNeeded / (2 * Math.PI); // inverse concept: circumference → radius
         const radius = Math.max(minRadius, MIN_RADIUS);

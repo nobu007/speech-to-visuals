@@ -13,7 +13,7 @@ import {
   StrategyLayoutMetrics,
 } from '@/visualization/types';
 import { calculateCanvasSize, calculateMetrics } from '@/visualization/layout-engine-v2';
-import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { getNodeWidth, getNodeHeight, defaultNodeExtent, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
 import { emptyLayoutResult } from '../empty-layout-result';
 import { buildAnchoredLayoutEdges, verticalFlowAnchors } from '../strategy-edges';
@@ -228,13 +228,18 @@ export class TimelineStrategy implements LayoutStrategy {
     // Step 3: Initial X positions centered
     const centerX = DEFAULT_CANVAS_WIDTH / 2 - DEFAULT_NODE_WIDTH / 2;
 
-    const positionedNodes: PositionedNode[] = orderedNodes.map((node, index) => ({
-      ...node,
-      x: centerX,
-      y: startY + index * ySpacing,
-      width: getNodeWidth(node, DEFAULT_NODE_WIDTH),
-      height: getNodeHeight(node, DEFAULT_NODE_HEIGHT),
-    }));
+    const positionedNodes: PositionedNode[] = orderedNodes.map((node, index) => {
+      // Round 49 single source — the DEFAULT-fallback box resolution pair
+      // (formerly inline property reads in the stamp literal).
+      const { width, height } = defaultNodeExtent(node);
+      return {
+        ...node,
+        x: centerX,
+        y: startY + index * ySpacing,
+        width,
+        height,
+      };
+    });
 
     // Single node: no need for force-directed or grid-snap
     if (nodes.length === 1) {

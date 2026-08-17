@@ -9,7 +9,7 @@
 import { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
-import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { defaultNodeExtent, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, TARGET_ASPECT_RATIO } from '../canvas-dimensions';
 import { emptyLayoutResult } from '../empty-layout-result';
 import { buildAnchoredLayoutEdges, centerToCenterAnchors } from '../strategy-edges';
@@ -98,8 +98,8 @@ export class GeneralStrategy implements LayoutStrategy {
 
     return nodes.map((node, i) => {
       const pos = positions[i] ?? { col: i % columns, row: Math.floor(i / columns) };
-      const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
-      const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
+      // Round 49 single source — the DEFAULT-fallback box resolution pair.
+      const { width: w, height: h } = defaultNodeExtent(node);
       return {
         ...node,
         x: offsetX + pos.col * cellWidth + (cellWidth - w) / 2,
