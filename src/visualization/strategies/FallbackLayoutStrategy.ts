@@ -1,6 +1,7 @@
 import { DiagramLayout, NodeDatum, EdgeDatum, LayoutEdge, DiagramType } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { DEFAULT_NODE_HEIGHT } from '../node-dimensions';
+import { ringAngle, pointOnCircle } from '../layout-utils';
 import {
   centerToCenterAnchors,
   horizontalFlowAnchors,
@@ -155,11 +156,13 @@ export class FallbackLayoutStrategy {
     const nodeHeight = DEFAULT_NODE_HEIGHT;
 
     const positionedNodes = nodes.map((node, index) => {
-      const angle = (2 * Math.PI * index) / nodes.length;
+      // Round 48 single-source — ring step + circle point in layout-utils;
+      // the `- nodeWidth / 2` top-left conversion stays here.
+      const p = pointOnCircle(centerX, centerY, ringAngle(index, nodes.length), radius);
       return {
         ...node,
-        x: centerX + radius * Math.cos(angle) - nodeWidth / 2,
-        y: centerY + radius * Math.sin(angle) - nodeHeight / 2,
+        x: p.x - nodeWidth / 2,
+        y: p.y - nodeHeight / 2,
         w: nodeWidth,
         h: nodeHeight,
         width: nodeWidth,

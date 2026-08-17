@@ -5,6 +5,7 @@
  */
 
 import type { NodeDatum, EdgeDatum } from '@/types/diagram';
+import { ringAngle, pointOnCircle } from './layout-utils';
 
 export interface AdvancedLayoutOptions {
   theme: 'dark' | 'light' | 'auto';
@@ -420,11 +421,13 @@ export class AdvancedLayoutEngine {
     const radius = 250;
 
     const layoutNodes = nodes.map((node, index) => {
-      const angle = (2 * Math.PI * index) / nodes.length;
+      // Round 48 single-source — ring step + circle point in layout-utils;
+      // this layout stores CENTER coordinates (no top-left conversion).
+      const p = pointOnCircle(centerX, centerY, ringAngle(index, nodes.length), radius);
       return {
         ...node,
-        x: centerX + radius * Math.cos(angle),
-        y: centerY + radius * Math.sin(angle)
+        x: p.x,
+        y: p.y
       };
     });
 

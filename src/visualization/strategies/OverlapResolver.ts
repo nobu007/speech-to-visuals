@@ -1,7 +1,7 @@
 import { DiagramLayout, PositionedNode, DiagramType } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { createLayoutRng } from '../layout-rng';
-import { nodesOverlap, distance, clampNodeCoordinate } from '../layout-utils';
+import { nodesOverlap, distance, clampNodeCoordinate, ringAngle, pointOnCircle } from '../layout-utils';
 import { logger } from '../../utils/logger';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
@@ -283,11 +283,15 @@ export class OverlapResolver {
     // Find safe positions
     const attempts = 20;
     for (let attempt = 0; attempt < attempts; attempt++) {
-      const angle = (Math.PI * 2 * attempt) / attempts;
       const distance = minDistance + attempt * 10;
 
-      const newX = node1.x + Math.cos(angle) * distance;
-      const newY = node1.y + Math.sin(angle) * distance;
+      // Round 48 single-source — the probe walks a ring of candidate
+      // positions around node1 (the retired `(Math.PI * 2 * attempt)` operand
+      // order is bit-identical, IEEE multiplication commutes).
+      const probe = pointOnCircle(node1.x, node1.y, ringAngle(attempt, attempts), distance);
+
+      const newX = probe.x;
+      const newY = probe.y;
 
       // Check if this position is safe
       if (this.isPositionSafe({ ...node2, x: newX, y: newY }, [node1])) {

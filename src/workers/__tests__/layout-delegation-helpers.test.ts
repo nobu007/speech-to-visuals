@@ -88,6 +88,13 @@ jest.unstable_mockModule('@/visualization/layout-utils', () => ({
     x: node.x + ((node.width ?? node.w) ?? widthFallback) / 2,
     y: node.y + ((node.height ?? node.h) ?? heightFallback) / 2,
   })),
+  // round 48: complex-layout-engine's cluster/ring placements now import
+  // these — faithful shapes (the retired inline forms).
+  ringAngle: jest.fn((index: number, count: number) => (2 * Math.PI * index) / count),
+  pointOnCircle: jest.fn((centerX: number, centerY: number, angle: number, radius: number) => ({
+    x: centerX + radius * Math.cos(angle),
+    y: centerY + radius * Math.sin(angle),
+  })),
 }));
 
 const { ComplexLayoutEngine } = await import('../../visualization/complex-layout-engine');

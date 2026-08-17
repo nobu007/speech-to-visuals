@@ -21,7 +21,7 @@ import { clampNodeCoordinate } from '../layout-utils';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimensions';
 import { emptyLayoutResult } from '../empty-layout-result';
 import { buildAnchoredLayoutEdges, centerToCenterAnchors, centerAnchor } from '../strategy-edges';
-import { distance } from '../layout-utils';
+import { distance, ringAngle, pointOnCircle } from '../layout-utils';
 
 const NODE_SEP = 80;
 
@@ -62,17 +62,20 @@ export class NetworkStrategy implements LayoutStrategy {
     const maxRadius = Math.min(cx, cy) * 0.6;
 
     return nodes.map((node, i) => {
-      const angle = (2 * Math.PI * i) / nodes.length;
       // Important nodes get a smaller radius (closer to center)
       const imp = getImportance(node);
       const radius = maxRadius * (1.2 - imp * 0.5); // 0.7–1.2 multiplier
+      // Round 48 single-source — ring step + circle point in layout-utils
+      // (per-node radius threads through the seam); the `- w / 2` top-left
+      // conversion stays here.
+      const p = pointOnCircle(cx, cy, ringAngle(i, nodes.length), radius);
       // Shared importance-scaled extent (round 42) — identical Math.round(
       // extent * importanceSizeScale) both axes, via strategy-graph.
       const { width: w, height: h } = scaledNodeExtent(node);
       return {
         ...node,
-        x: cx + radius * Math.cos(angle) - w / 2,
-        y: cy + radius * Math.sin(angle) - h / 2,
+        x: p.x - w / 2,
+        y: p.y - h / 2,
         width: w,
         height: h,
       };

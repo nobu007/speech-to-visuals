@@ -23,7 +23,7 @@ import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../canvas-dimension
 import { emptyLayoutResult } from '../empty-layout-result';
 import { buildAnchoredLayoutEdges, centerToCenterAnchors } from '../strategy-edges';
 // Canonical overlap predicate — single source of truth (see layout-utils.ts).
-import { nodesOverlap, hasOverlapPairs, distance, calculateNodeCenter } from '../layout-utils';
+import { nodesOverlap, hasOverlapPairs, distance, calculateNodeCenter, ringAngle, pointOnCircle } from '../layout-utils';
 
 const MIN_RADIUS = 200;
 const OVERLAP_SPACING_FACTOR = 1.2;
@@ -100,10 +100,13 @@ export class CycleLayoutStrategy implements LayoutStrategy {
       const node = nodes[i];
       const w = getNodeWidth(node, DEFAULT_NODE_WIDTH);
       const h = getNodeHeight(node, DEFAULT_NODE_HEIGHT);
-      const angle = (2 * Math.PI * i) / n;
 
-      const x = centerX + radius * Math.cos(angle) - w / 2;
-      const y = centerY + radius * Math.sin(angle) - h / 2;
+      // Round 48 single-source — ring step + circle point in layout-utils;
+      // the `- w / 2` top-left conversion stays here (grouping preserved).
+      const p = pointOnCircle(centerX, centerY, ringAngle(i, n), radius);
+
+      const x = p.x - w / 2;
+      const y = p.y - h / 2;
 
       positioned.push({
         ...node,
@@ -170,18 +173,18 @@ export class CycleLayoutStrategy implements LayoutStrategy {
         const ncx = nCenter.x;
         const ncy = nCenter.y;
 
-        const angle = (2 * Math.PI * i) / forceNodes.length;
         const maxNodeWidth = Math.max(...nodes.map((nd) => getNodeWidth(nd, DEFAULT_NODE_WIDTH)));
         const maxNodeHeight = Math.max(...nodes.map((nd) => getNodeHeight(nd, DEFAULT_NODE_HEIGHT)));
         const circumferenceNeeded = forceNodes.length * Math.max(maxNodeWidth, maxNodeHeight) * OVERLAP_SPACING_FACTOR;
-        const minRadius = circumferenceNeeded / (2 * Math.PI);
+        const minRadius = circumferenceNeeded / (2 * Math.PI); // inverse concept: circumference → radius
         const radius = Math.max(minRadius, MIN_RADIUS);
 
-        const targetX = centerX + radius * Math.cos(angle);
-        const targetY = centerY + radius * Math.sin(angle);
+        // Round 48 single-source — the attraction target is a CENTER-space
+        // ring point (no top-left conversion).
+        const target = pointOnCircle(centerX, centerY, ringAngle(i, forceNodes.length), radius);
 
-        forceNodes[i].vx += (targetX - ncx) * 0.01;
-        forceNodes[i].vy += (targetY - ncy) * 0.01;
+        forceNodes[i].vx += (target.x - ncx) * 0.01;
+        forceNodes[i].vy += (target.y - ncy) * 0.01;
       }
 
       // Apply velocities

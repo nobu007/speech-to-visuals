@@ -148,6 +148,51 @@ export function nodesCentroid(nodes: readonly PositionedNode[], widthFallback: n
 }
 
 /**
+ * Angle of the i-th of `count` evenly spaced points on a ring, measured from
+ * the +x axis: `(2π · index) / count`. Round 48 single source for the ring
+ * step — cycle-strategy, network-strategy, mindmap-strategy (fallback ring),
+ * FallbackLayoutStrategy, LayoutOptimizer (×2), advanced-layouts,
+ * complex-layout-engine (clusters + within-cluster) and
+ * ProgressiveForceStrategy each re-derived it inline, three text forms
+ * (`(2 * Math.PI * i) / n`, `(i * 2 * Math.PI) / nodes.length`, and
+ * LayoutOptimizer's `/ Math.max(1, nodes.length)`).
+ *
+ * The `Math.max(1, …)` guard is retired as DEAD: every retired site computed
+ * the angle inside a per-element iteration (`map`/`forEach`/index-loop), where
+ * `index < count` implies `count >= 1` — the clamp only ever saw counts it
+ * did not change. `count: 0` produces NaN by contract (matches the retired
+ * in-loop forms); callers that early-return on empty keep that guard at the
+ * site.
+ */
+export function ringAngle(index: number, count: number): number {
+  return (2 * Math.PI * index) / count;
+}
+
+/**
+ * Point on a circle of `radius` around (`centerX`, `centerY`) at `angle`
+ * (radians, from the +x axis): `{x: cx + r·cos, y: cy + r·sin}`. Round 48
+ * single source — compose with {@link ringAngle} for even ring placement.
+ * Covers the fixed-radius rings (cycle/fallback/cluster layouts), the
+ * per-node-radius rings (network importance scaling, mindmap spiral
+ * fallback), and the polar-tree reads (mindmap positionSubtree's
+ * `center.x + cos(angle) · childRadius`). The commuted operand order some
+ * retired sites used (`Math.cos(angle) * radius`) is bit-identical (IEEE
+ * multiplication is commutative), and `centerX = 0` is the identity on every
+ * value except a `-0` x-flip that ring angles cannot produce.
+ *
+ * The returned point is a CENTER point; sites whose node x/y is the top-LEFT
+ * corner keep their own `- width / 2` conversion applied to the result
+ * (left-associative in every retired site: `(cx + r·cos) - w/2` — the
+ * delegation preserves that grouping exactly).
+ */
+export function pointOnCircle(centerX: number, centerY: number, angle: number, radius: number): Point {
+  return {
+    x: centerX + radius * Math.cos(angle),
+    y: centerY + radius * Math.sin(angle)
+  };
+}
+
+/**
  * Euclidean length of a (dx, dy) delta: `sqrt(dx² + dy²)`.
  *
  * This is the single source of truth for the 2-D distance arithmetic.

@@ -1,7 +1,7 @@
 import { DiagramLayout, PositionedNode, DiagramType, LayoutEdge } from '@/types/diagram';
 import { LayoutConfig } from '../types';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
-import { calculateNodeCenter, nodesCentroid } from '../layout-utils';
+import { calculateNodeCenter, nodesCentroid, ringAngle, pointOnCircle } from '../layout-utils';
 import { getImportance } from '../importance-scaler';
 
 export class LayoutOptimizer {
@@ -43,11 +43,15 @@ export class LayoutOptimizer {
     const radius = Math.min(this.config.width, this.config.height) * 0.3;
 
     const repositioned = nodes.map((node, index) => {
-      const angle = (2 * Math.PI * index) / Math.max(1, nodes.length);
+      // Round 48 single-source — ring step + circle point in layout-utils.
+      // The retired `Math.max(1, nodes.length)` guard was DEAD (index <
+      // length implies length >= 1 inside this map) — ringAngle divides by
+      // the raw count, bit-identical at every reachable evaluation.
+      const p = pointOnCircle(centerX, centerY, ringAngle(index, nodes.length), radius);
       return {
         ...node,
-        x: centerX + radius * Math.cos(angle) - getNodeWidth(node, this.config.nodeWidth) / 2,
-        y: centerY + radius * Math.sin(angle) - getNodeHeight(node, this.config.nodeHeight) / 2,
+        x: p.x - getNodeWidth(node, this.config.nodeWidth) / 2,
+        y: p.y - getNodeHeight(node, this.config.nodeHeight) / 2,
       };
     });
 
@@ -262,11 +266,13 @@ export class LayoutOptimizer {
     const radius = Math.min(this.config.width, this.config.height) * 0.35;
 
     return nodes.map((node, index) => {
-      const angle = (2 * Math.PI * index) / Math.max(1, nodes.length);
+      // Round 48 single-source — same delegation as optimizeCycleLayout (the
+      // retired `Math.max(1, …)` guard was dead here too).
+      const p = pointOnCircle(centerX, centerY, ringAngle(index, nodes.length), radius);
       return {
         ...node,
-        x: centerX + radius * Math.cos(angle) - getNodeWidth(node, this.config.nodeWidth) / 2,
-        y: centerY + radius * Math.sin(angle) - getNodeHeight(node, this.config.nodeHeight) / 2
+        x: p.x - getNodeWidth(node, this.config.nodeWidth) / 2,
+        y: p.y - getNodeHeight(node, this.config.nodeHeight) / 2
       };
     });
   }

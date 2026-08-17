@@ -16,7 +16,7 @@ import {
   DEFAULT_RANK_SEPARATION,
   DEFAULT_MARGIN,
 } from './layout-spacing';
-import { nodesOverlap, distance, nodeExtentEdges, foldNodeExtents, clampNodeCoordinate, calculateNodeCenter } from './layout-utils';
+import { nodesOverlap, distance, nodeExtentEdges, foldNodeExtents, clampNodeCoordinate, calculateNodeCenter, ringAngle, pointOnCircle } from './layout-utils';
 import { centerToCenterAnchors } from './strategy-edges';
 import { mulberry32, seedFromString } from './layout-rng';
 import { OverlapResolver } from './strategies/OverlapResolver';
@@ -473,11 +473,9 @@ export class ComplexLayoutEngine {
     const radius = Math.min(this.config.width, this.config.height) * 0.3;
 
     clusters.forEach((cluster, index) => {
-      const angle = (2 * Math.PI * index) / clusters.length;
-      clusterPositions.set(cluster.id, {
-        x: centerX + radius * Math.cos(angle),
-        y: centerY + radius * Math.sin(angle)
-      });
+      // Round 48 single-source — ring step + circle point in layout-utils;
+      // cluster anchors are CENTER points (no top-left conversion).
+      clusterPositions.set(cluster.id, pointOnCircle(centerX, centerY, ringAngle(index, clusters.length), radius));
     });
 
     return clusterPositions;
@@ -531,11 +529,13 @@ export class ComplexLayoutEngine {
     const nodeSize = { width: 100, height: 50 };
 
     return nodes.map((node, index) => {
-      const angle = (2 * Math.PI * index) / nodes.length;
+      // Round 48 single-source — ring step + circle point in layout-utils;
+      // the `- nodeSize.width / 2` top-left conversion stays here.
+      const p = pointOnCircle(clusterCenter.x, clusterCenter.y, ringAngle(index, nodes.length), clusterRadius);
       return {
         ...node,
-        x: clusterCenter.x + clusterRadius * Math.cos(angle) - nodeSize.width / 2,
-        y: clusterCenter.y + clusterRadius * Math.sin(angle) - nodeSize.height / 2,
+        x: p.x - nodeSize.width / 2,
+        y: p.y - nodeSize.height / 2,
         w: nodeSize.width,
         h: nodeSize.height
       };
