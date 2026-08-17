@@ -150,6 +150,17 @@ run 32045615156 の job 構成（全 ✓）:
 - REQ-104 / REQ-405 を 🔵 で要件化。CI 修復は「plausible」→「run URL 付き
   verified」に格上げされた
 
+**追記（2026-08-18・round 51 実装 commit・REQ-405 運用）**: 本 feature の
+実装 commit 群（TASK-0004 完了条件の「実装 commit の green run URL 追記」は
+push/merge 後の運用追記とする）:
+
+- `9892df5a` docs(specs): タスク分割
+- `137695b5` test(guards): harness 抽出 + 2 family 移行 + fingerprint 台帳
+- `39bd9517` test(guards): fold census 機械化
+- （本 commit）infra: infrastructure.yml node 24 統一 + registry ヘッダ手順
+
+push 後に `gh run list --head <branch>` で green run URL を本表へ追記する。
+
 ---
 
 ### A4: 既存要件との統合判断

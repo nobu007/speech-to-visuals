@@ -32,9 +32,9 @@ Phase 1 と Phase 2 は独立（並行可）。production `src/` は変更ゼロ
 
 ## 全体進捗
 
-- [ ] Phase 1: harness 抽出
-- [ ] Phase 2: census 機械化
-- [ ] Phase 3: CI 証拠残件
+- [x] Phase 1: harness 抽出
+- [x] Phase 2: census 機械化
+- [x] Phase 3: CI 証拠残件
 
 ## マイルストーン
 
@@ -52,8 +52,8 @@ Phase 1 と Phase 2 は独立（並行可）。production `src/` は変更ゼロ
 
 ### タスク一覧
 
-- [ ] [TASK-0001: table-driven single-source harness の実装](TASK-0001.md) - 4h (TDD) 🔵
-- [ ] [TASK-0002: 2 family 移行と fingerprint 等価証明](TASK-0002.md) - 5h (TDD) 🔵
+- [x] [TASK-0001: table-driven single-source harness の実装](TASK-0001.md) - 4h (TDD) 🔵
+- [x] [TASK-0002: 2 family 移行と fingerprint 等価証明](TASK-0002.md) - 5h (TDD) 🔵
 
 ### 依存関係
 
@@ -71,7 +71,7 @@ TASK-0001 → TASK-0002
 
 ### タスク一覧
 
-- [ ] [TASK-0003: fold 収束 census の機械化](TASK-0003.md) - 4h (TDD) 🔵🟡
+- [x] [TASK-0003: fold 収束 census の機械化](TASK-0003.md) - 4h (TDD) 🔵🟡
 
 ### 依存関係
 
@@ -89,7 +89,7 @@ TASK-0001 → TASK-0002
 
 ### タスク一覧
 
-- [ ] [TASK-0004: node 24 統一・新規 family 手順の文書化・CI 証拠運用](TASK-0004.md) - 1h (DIRECT) 🔵
+- [x] [TASK-0004: node 24 統一・新規 family 手順の文書化・CI 証拠運用](TASK-0004.md) - 1h (DIRECT) 🔵
 
 ### 依存関係
 

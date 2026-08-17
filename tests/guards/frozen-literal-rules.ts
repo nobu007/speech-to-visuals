@@ -24,6 +24,24 @@
  *
  * Keep every exclusion reason inline — the registry test fails an exclusion
  * that lost its reason.
+ *
+ * Round 51 — the complete "add one fold family" checklist (NFR-201 of
+ * specs/guard-harness-fold-census; the mechanical layers are data rows now,
+ * so the list is short):
+ *   1. registry family module — 1 file in frozen-literal-families/ (the
+ *      discovery sweep: patterns + reasoned excludes);
+ *   2. registry aggregator — 2 lines here (import + spread, round order);
+ *   3. harness data rows — oracleRow/anchorRow rows in the family's
+ *      *-single-source.test.ts via describeSingleSource(..., { fingerprint })
+ *      (Layer 1 verbatim oracle + Layer 3 source anchors; the fingerprint
+ *      literal is STATIC — never `${corpus.length}`, which self-tracks a
+ *      shrink — and the row enumeration must be copied into
+ *      harness-fingerprint.test.ts, whose adopter sweep fails until it is);
+ *   4. Layer 2 pins — family-specific LIVE/semantic witnesses stay
+ *      handwritten in the same test file;
+ *   5. fold-census — if the family was a census row (C1-C5), re-baseline
+ *      fold-census-families.ts pin + the requirements.md census-pin marker
+ *      in the same change (the 3-way guard fails otherwise).
  */
 
 import type { FrozenLiteralRule } from './freeze-guard';

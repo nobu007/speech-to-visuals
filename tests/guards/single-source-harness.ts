@@ -92,7 +92,6 @@ export type SingleSourceRow<Args extends unknown[] = unknown[]> = OracleRow<Args
  * Generics-erased row: one family mixes corpus arities (grid-packing has
  * 1-arg and 4-arg oracles), so the runner's row list is heterogeneous.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnySingleSourceRow = SingleSourceRow<any>;
 
 /** Options for describeSingleSource. */
