@@ -27,11 +27,17 @@ import {
  * 298 impl files / 86,328 impl lines / 106 deps / largest 2,829 lines
  * (src/quality/enhanced-error-recovery.ts — debt, ceiling set to 3,000).
  * Headroom: +22 files / +3,672 lines (~4%).
+ *
+ * 2026-08 split: enhanced-error-recovery.ts (2,828 lines) decomposed into
+ * error-recovery/{types,circuit-breaker,load-balanced-executor,
+ * recovery-strategies,notifications}.ts + a 1,646-line orchestrator; the
+ * largest impl file is now that orchestrator, so the per-file ceiling drops
+ * from 3,000 to 2,000 to keep the debt from re-forming.
  */
 const CONSTITUTION_V2_8_LIMITS: CodeSizeLimits = {
   maxFiles: 320,
   maxLines: 90_000,
-  maxLinesPerFile: 3_000,
+  maxLinesPerFile: 2_000,
   maxDependencies: 110,
 };
 

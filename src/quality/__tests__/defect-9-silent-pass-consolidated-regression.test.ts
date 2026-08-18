@@ -899,6 +899,15 @@ const DEFECT9_SURFACE: ReadonlyArray<SurfaceEntry> = [
       'defaults (:1/:0) flow into the emitted snapshot and are never gated within the file.',
   },
   { file: 'src/quality/enhanced-error-recovery.ts', family: 'error-recovery-health' },
+  {
+    file: 'src/quality/error-recovery/load-balanced-executor.ts',
+    ruledOut:
+      'Moved verbatim from enhanced-error-recovery.ts in the 2026-08 split. ' +
+      'getResilienceMetrics produces bounded [0,1] OBSERVABILITY scores over internally ' +
+      'measured load data (queue length, response times, breaker states) for snapshots ' +
+      'and reports; no verdict/status tier is returned and no gate consumes these values, ' +
+      'so absent data cannot manufacture a passing classification.',
+  },
   { file: 'src/quality/error-recovery-health-tracker.ts', family: 'error-recovery-health' },
   { file: 'src/quality/error-recovery-monitor.ts', family: 'error-recovery-health' },
   { file: 'src/quality/recovery-telemetry-aggregator.ts', family: 'error-recovery-health' },

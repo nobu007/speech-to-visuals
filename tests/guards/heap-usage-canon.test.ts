@@ -44,8 +44,10 @@ const monitorSrc = readFileSync(
   resolve(REPO_ROOT, 'src/monitoring/real-time-performance-monitor.ts'),
   'utf8',
 );
+// Split 2026-08: the memoryPressure computation moved verbatim from
+// enhanced-error-recovery.ts into error-recovery/load-balanced-executor.ts.
 const errorRecoverySrc = readFileSync(
-  resolve(REPO_ROOT, 'src/quality/enhanced-error-recovery.ts'),
+  resolve(REPO_ROOT, 'src/quality/error-recovery/load-balanced-executor.ts'),
   'utf8',
 );
 
@@ -89,7 +91,7 @@ describe('heap-ratio division — no re-derivation at the known call sites', () 
     expect(stripComments(monitorSrc)).not.toMatch(HEAP_DIVISION);
   });
 
-  it('enhanced-error-recovery delegates memoryPressure to heapUsageRatio (fraction, not percent)', () => {
+  it('load-balanced-executor (ex enhanced-error-recovery) delegates memoryPressure to heapUsageRatio (fraction, not percent)', () => {
     expect(stripComments(errorRecoverySrc)).toMatch(/import\s*\{[^}]*\bheapUsageRatio\b[^}]*\}\s*from\s*['"]@stv\/core\/lib\/metrics-utils['"]/);
     expect(stripComments(errorRecoverySrc)).toMatch(/memoryPressure:\s*heapUsageRatio\s*\(/);
     expect(stripComments(errorRecoverySrc)).not.toMatch(HEAP_DIVISION);

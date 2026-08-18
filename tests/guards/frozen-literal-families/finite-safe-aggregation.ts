@@ -25,6 +25,8 @@ export const RULES: FrozenLiteralRule[] = [
       'src/analysis/diagram-detector.ts',
       'src/analysis/scene-segmenter.ts',
       'src/quality/enhanced-error-recovery.ts',
+      // Split 2026-08: the loadMetrics means/timestamp sites below moved here.
+      'src/quality/error-recovery/load-balanced-executor.ts',
       'src/export/production-exporter.ts',
       // round 19 (TASK-0010): monitoring continent + interface-value means.
       'src/monitoring/production-monitor.ts',
