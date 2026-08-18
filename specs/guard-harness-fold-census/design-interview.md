@@ -5,6 +5,7 @@
 > **Spine anchor**: [speech-to-visuals 設計自動分析記録](../speech-to-visuals/design-interview.md)
 >
 > - parent: `speech-to-visuals/design-interview.md`
+> - role: `system`
 > - status: `canonical_child`
 <!-- spine:anchor:end -->
 

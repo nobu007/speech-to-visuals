@@ -5,6 +5,7 @@
 > **Spine anchor**: [speech-to-visuals アーキテクチャ設計](../../speech-to-visuals/architecture.md)
 >
 > - parent: `speech-to-visuals/architecture.md`
+> - role: `detailed`
 > - status: `canonical_child`
 <!-- spine:anchor:end -->
 
