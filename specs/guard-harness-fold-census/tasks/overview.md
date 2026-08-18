@@ -1,5 +1,13 @@
 # guard-harness-fold-census タスク概要
 
+
+<!-- spine:anchor:begin -->
+> **Spine anchor**: [speech-to-visuals アーキテクチャ設計](../../speech-to-visuals/architecture.md)
+>
+> - parent: `speech-to-visuals/architecture.md`
+> - status: `canonical_child`
+<!-- spine:anchor:end -->
+
 **作成日**: 2026-08-18
 **プロジェクト期間**: 2026-08-18 - 2026-08-19（2日）
 **推定工数**: 14時間

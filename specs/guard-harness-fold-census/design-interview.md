@@ -1,5 +1,13 @@
 # guard-harness-fold-census 設計自動分析記録
 
+
+<!-- spine:anchor:begin -->
+> **Spine anchor**: [speech-to-visuals 設計自動分析記録](../speech-to-visuals/design-interview.md)
+>
+> - parent: `speech-to-visuals/design-interview.md`
+> - status: `canonical_child`
+<!-- spine:anchor:end -->
+
 **作成日**: 2026-08-18
 **分析実施**: kairo-design step4 既存情報ベースの差分分析と自動統合
 **対象**: [requirements.md](requirements.md)（commit 16cb18aa で確定済み）

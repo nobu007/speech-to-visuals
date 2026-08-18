@@ -1,6 +1,14 @@
 # table-driven ガードハーネス抽出と fold 収束 census データフロー設計
 
 
+
+<!-- spine:anchor:begin -->
+> **Spine anchor**: [speech-to-visuals アーキテクチャ設計](../speech-to-visuals/architecture.md)
+>
+> - parent: `speech-to-visuals/architecture.md`
+> - status: `canonical_child`
+<!-- spine:anchor:end -->
+
 **作成日**: 2026-08-18
 **関連アーキテクチャ**: [architecture.md](architecture.md)
 **関連要件定義**: [requirements.md](requirements.md)

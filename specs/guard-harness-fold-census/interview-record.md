@@ -1,5 +1,13 @@
 # table-driven ガードハーネス抽出と fold 収束 census 自動分析記録
 
+
+<!-- spine:anchor:begin -->
+> **Spine anchor**: [speech-to-visuals 設計自動分析記録](../speech-to-visuals/design-interview.md)
+>
+> - parent: `speech-to-visuals/design-interview.md`
+> - status: `canonical_child`
+<!-- spine:anchor:end -->
+
 **作成日**: 2026-08-18
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 **対象 worktree**: /home/jinno/ai-hub/worktrees/speech-to-visuals-instruction-20260817-174502-751388（HEAD = c7fe762d）
