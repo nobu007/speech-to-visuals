@@ -303,7 +303,7 @@ npm run pipeline:test:audio
 ```
 **Output**: Detailed timing breakdown by stage
 
-> Note: `npm run pipeline:test:e2e` is currently **not runnable** — its target `scripts/test-e2e-with-audio.ts` does not exist in the tree. Use `pipeline:test:audio` or `npx tsx scripts/phase29-system-validation.ts` (real-audio validation with `public/jfk.wav`) until it is restored.
+> Note: the `pipeline:test:e2e` script was **removed** on 2026-08-18 — its target `scripts/test-e2e-with-audio.ts` never existed in the tree. Use `pipeline:test:audio` or `npx tsx scripts/phase29-system-validation.ts` (real-audio validation with `public/jfk.wav`) instead.
 
 ---
 
@@ -322,7 +322,7 @@ npm run test:phase44   # end-to-end validation
 ```
 **Output**: Phase-specific success criteria validation
 
-> Note: `npm run test:phase43` is currently **not runnable** — its target `scripts/test-phase43.ts` does not exist in the tree (same for `test:phase33` → `scripts/test-phase33.ts`).
+> Note: the `test:phase43` and `test:phase33` scripts were **removed** on 2026-08-18 — their target files (`scripts/test-phase43.ts`, `scripts/test-phase33.ts`) never existed in the tree.
 
 ---
 

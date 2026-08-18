@@ -191,17 +191,16 @@ npx tsx scripts/batch-audio-pipeline.ts <input-dir> <output-dir> [options]
 | `npm run pipeline:run` | 単一音声の E2E パイプライン実行 | 入力: `npx tsx scripts/run-pipeline.ts <audioPath> [--no-video] [--out <dir>]` / 出力: 図解 JSON・動画 | CLI での全段階検証 |
 | `npm run pipeline:batch` | `./public/audio` 一括処理（動画なし） | 入力: `public/audio` / 出力: `test-batch-output` | バッチ経路の回帰確認 |
 | `npm run pipeline:test:audio` | 実音声ファイルによる E2E 完全テスト (Phase 7) | 音声ファイルのパスを引数指定 / 出力: 各段階の成否とメトリクス | パイプライン健全性の検証 |
-| `npm run pipeline:test:e2e` | パイプライン E2E テスト | ⚠️ 参照先 `scripts/test-e2e-with-audio.ts` が現行ツリーに存在せず実行不可（要修復） | — |
 | `npm run quality:check` | 品質集計の smoke check | 固定モックを投入する集計経路の確認のみ（実測ではない。[QUALITY_METRICS.md](docs/architecture/QUALITY_METRICS.md) §5.1 参照） | 品質モニタの改動後確認 |
 | `npm run validate:llm` | LLM 統合の検証 (Phase 31) | `GOOGLE_API_KEY` 設定 / 出力: LLM 系メトリクス | LLM 経路の改動後確認 |
-| `npm run audit:code-size` | コードサイズ監査 (`--ci` 付き) | SYSTEM_CONSTITUTION V2.4 の上限と照合 / 警告は exit 0 | サイズ上限の維持確認 |
+| `npm run audit:code-size` | コードサイズ監査 (`--ci` 付き) | SYSTEM_CONSTITUTION V2.7 の上限と照合 / 警告は exit 0 | サイズ上限の維持確認 |
 | `npm run spine:validate` | docs スパイン manifest の検証 | `specs/_doc_spine.yml`（自動生成・gitignore 済み）があれば検証、不在なら skip | CI (`spine-validate` job) |
 | `npm run monitoring:validate` | 監視設定のプリデプロイ検証 | 入力: `deploy/monitoring/` 配下 / 出力: 検証レポート | CI (`monitoring-config-validate` job) |
 | `npm run sync:edge` / `npm run verify:edge` | Supabase Edge sanitizer の生成 / ドリフト検出 | 単一ソース `src/analysis/untrusted-json-core.ts` から生成 | git hook・CI (`edge-sanitizer-sync`) |
 | `npm run transcribe` | 文字起こし実行 (`public/jfk.wav`) | ⚠️ 現行は固定文生成経路を通る（[音声認識の現状](#音声認識の現状)参照） | 文字起こし配線の確認 |
 | `npm run cache:warmup` | セマンティックキャッシュの事前投入 (Phase 43) | 出力: キャッシュエントリ | キャッシュヒット率改善 |
 
-内部専用スクリプト: `phase1:verify`、`test:phase33`〜`test:phase44`（Phase 33/43 は参照先 `scripts/test-phase33.ts` / `scripts/test-phase43.ts` が不在のため実行不可）、`test:llm-parsing`、`test:multilingual`、`setup:hooks` はフェーズ検証・開発環境向けであり、通常の開発・運用では使いません。
+内部専用スクリプト: `phase1:verify`、`test:phase34`〜`test:phase44`、`test:llm-parsing`、`test:multilingual`、`setup:hooks` はフェーズ検証・開発環境向けであり、通常の開発・運用では使いません。参照先スクリプトが歴史上一度も存在しなかった `pipeline:test:e2e`・`test:phase33`・`test:phase43` は 2026-08-18 に削除済み（E2E 検証は `pipeline:test:audio` を使用）。
 
 ## ドキュメント
 
