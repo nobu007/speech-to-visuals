@@ -4524,5 +4524,7 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - [stochastic-layout-seeding 設計自動分析記録](../stochastic-layout-seeding/design-interview.md)
 - [finite-safe-aggregation 設計自動分析記録](../finite-safe-aggregation/design-interview.md)
 - [finite-safe-aggregation 自動分析記録](../finite-safe-aggregation/interview-record.md)
+- [guard-harness-fold-census 設計自動分析記録](../guard-harness-fold-census/design-interview.md)
+- [table-driven ガードハーネス抽出と fold 収束 census 自動分析記録](../guard-harness-fold-census/interview-record.md)
 
 <!-- spine:children:end -->
