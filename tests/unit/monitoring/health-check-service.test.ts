@@ -188,7 +188,7 @@ describe('HealthCheckService (REQ-122)', () => {
         expect(check).toHaveProperty('message');
         expect(check).toHaveProperty('latency');
         expect(check).toHaveProperty('lastChecked');
-        expect(['healthy', 'degraded', 'unhealthy']).toContain(check.status);
+        expect(['healthy', 'degraded', 'unhealthy']).toContain((check as { status: string }).status);
       }
     });
 

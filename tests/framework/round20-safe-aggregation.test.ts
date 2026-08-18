@@ -103,12 +103,12 @@ describe('module score: finite metrics are value-identical, non-numbers still ex
         else if (kind < 0.9) module[`metric${k}`] = true;
         else module[`metric${k}`] = null;
       }
-      expect(safeMean(Object.values(module))).toBe(legacyModuleScore(module));
+      expect(safeMean(Object.values(module) as unknown as readonly number[])).toBe(legacyModuleScore(module));
     }
   });
 
   test('a module of ONLY non-numbers scores 0 (legacy else-branch preserved)', () => {
-    expect(safeMean(Object.values({ issues: [], note: 'x' }))).toBe(0);
+    expect(safeMean(Object.values({ issues: [], note: 'x' }) as unknown as readonly number[])).toBe(0);
     expect(legacyModuleScore({ issues: [], note: 'x' })).toBe(0);
   });
 });

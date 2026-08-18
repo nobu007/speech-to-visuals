@@ -56,13 +56,13 @@ function createMockService(
 
   switch (warmupResult) {
     case 'resolve-true':
-      (service.warmupCache as jest.Mock).mockResolvedValue(true);
+      (service.warmupCache as jest.Mock<any>).mockResolvedValue(true);
       break;
     case 'resolve-false':
-      (service.warmupCache as jest.Mock).mockResolvedValue(false);
+      (service.warmupCache as jest.Mock<any>).mockResolvedValue(false);
       break;
     case 'reject-error':
-      (service.warmupCache as jest.Mock).mockRejectedValue(new Error('test error'));
+      (service.warmupCache as jest.Mock<any>).mockRejectedValue(new Error('test error'));
       break;
   }
 

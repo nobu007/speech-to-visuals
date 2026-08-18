@@ -197,7 +197,6 @@ describe('round 34: strategy edge repointing single source', () => {
         for (const [caseName, nodes, edges] of CORPUS) {
           expect(strategy.updateEdgePoints(nodes, edges, config)).toEqual(
             repointEdgesStraightLine(nodes, edges),
-            `case: ${caseName}`,
           );
         }
       });

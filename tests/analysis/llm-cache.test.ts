@@ -8,15 +8,16 @@ import { jest } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import type { LLMCache } from '@/analysis/llm-cache';
 
 // Mock semantic-similarity module
-const mockCalculateSemanticSimilarity = jest.fn().mockReturnValue(0);
+const mockCalculateSemanticSimilarity = jest.fn<(...args: unknown[]) => unknown>().mockReturnValue(0);
 const mockSemanticMetricsTracker = {
   recordExactHit: jest.fn(),
   recordSemanticHit: jest.fn(),
   recordMiss: jest.fn(),
   recordComparison: jest.fn(),
-  getMetrics: jest.fn().mockReturnValue({
+  getMetrics: jest.fn<() => unknown>().mockReturnValue({
     exactHits: 0,
     semanticHits: 0,
     misses: 0,
@@ -28,10 +29,11 @@ const mockSemanticMetricsTracker = {
 
 jest.unstable_mockModule('@/analysis/semantic-similarity', () => ({
   calculateSemanticSimilarity: (...args: unknown[]) => mockCalculateSemanticSimilarity(...args),
-  SemanticMetricsTracker: jest.fn().mockImplementation(() => mockSemanticMetricsTracker),
+  SemanticMetricsTracker: jest.fn<(...args: unknown[]) => unknown>().mockImplementation(() => mockSemanticMetricsTracker),
 }));
 
-const { LLMCache } = await import('@/analysis/llm-cache');
+// Renamed: the type-only import above keeps the name for annotations.
+const { LLMCache: LLMCacheClass } = await import('@/analysis/llm-cache');
 
 describe('LLMCache', () => {
   let cache: LLMCache<string>;
@@ -54,7 +56,7 @@ describe('LLMCache', () => {
       totalComparisons: 0,
     });
 
-    cache = new LLMCache<string>();
+    cache = new LLMCacheClass<string>();
   });
 
   afterEach(() => {
@@ -67,7 +69,7 @@ describe('LLMCache', () => {
   // ========================================
   describe('constructor', () => {
     test('should create cache with default options', () => {
-      const c = new LLMCache<string>();
+      const c = new LLMCacheClass<string>();
       const stats = c.getStats();
 
       expect(stats.size).toBe(0);
@@ -75,7 +77,7 @@ describe('LLMCache', () => {
     });
 
     test('should accept custom maxSize', () => {
-      const c = new LLMCache<string>({ maxSize: 5 });
+      const c = new LLMCacheClass<string>({ maxSize: 5 });
       // Fill beyond maxSize
       for (let i = 0; i < 10; i++) {
         c.set(`key ${i}`, `value ${i}`);
@@ -84,7 +86,7 @@ describe('LLMCache', () => {
     });
 
     test('should accept custom ttlMinutes', () => {
-      const c = new LLMCache<string>({ ttlMinutes: 0 }); // 0 minutes = instant expiry
+      const c = new LLMCacheClass<string>({ ttlMinutes: 0 }); // 0 minutes = instant expiry
       c.set('key', 'value');
 
       // Entry should already be expired since ttlMinutes is 0
@@ -98,7 +100,7 @@ describe('LLMCache', () => {
     });
 
     test('should disable semantic when enableSemantic is false', () => {
-      const c = new LLMCache<string>({ enableSemantic: false });
+      const c = new LLMCacheClass<string>({ enableSemantic: false });
       const stats = c.getStats();
       expect(stats.semantic.enabled).toBe(false);
     });
@@ -109,7 +111,7 @@ describe('LLMCache', () => {
     });
 
     test('should accept custom semanticThreshold', () => {
-      const c = new LLMCache<string>({ semanticThreshold: 0.9 });
+      const c = new LLMCacheClass<string>({ semanticThreshold: 0.9 });
       expect(c.getStats().semantic.threshold).toBe(0.9);
     });
   });
@@ -164,14 +166,14 @@ describe('LLMCache', () => {
   // ========================================
   describe('TTL handling', () => {
     test('should return null for expired entries', () => {
-      const c = new LLMCache<string>({ ttlMinutes: 0 });
+      const c = new LLMCacheClass<string>({ ttlMinutes: 0 });
       c.set('key', 'value');
 
       expect(c.get('key')).toBeNull();
     });
 
     test('should clean up expired entries on get', () => {
-      const c = new LLMCache<string>({ ttlMinutes: 0 });
+      const c = new LLMCacheClass<string>({ ttlMinutes: 0 });
       c.set('key', 'value');
       c.get('key');
 
@@ -180,7 +182,7 @@ describe('LLMCache', () => {
     });
 
     test('should include only valid entries in stats', () => {
-      const c = new LLMCache<string>({ ttlMinutes: 0 });
+      const c = new LLMCacheClass<string>({ ttlMinutes: 0 });
       c.set('key1', 'value1');
       c.set('key2', 'value2');
 
@@ -195,7 +197,7 @@ describe('LLMCache', () => {
   // ========================================
   describe('eviction', () => {
     test('should evict oldest entry when cache is full', () => {
-      const c = new LLMCache<string>({ maxSize: 2 });
+      const c = new LLMCacheClass<string>({ maxSize: 2 });
 
       c.set('first', 'val1');
       c.set('second', 'val2');
@@ -281,7 +283,7 @@ describe('LLMCache', () => {
   // ========================================
   describe('clearExpired', () => {
     test('should remove expired entries', () => {
-      const c = new LLMCache<string>({ ttlMinutes: 0 });
+      const c = new LLMCacheClass<string>({ ttlMinutes: 0 });
       c.set('expired', 'val');
 
       expect(c.getStats().size).toBe(1);
@@ -292,7 +294,7 @@ describe('LLMCache', () => {
     });
 
     test('should keep valid entries', () => {
-      const c = new LLMCache<string>({ ttlMinutes: 60 });
+      const c = new LLMCacheClass<string>({ ttlMinutes: 60 });
       c.set('valid', 'val');
 
       c.clearExpired();
@@ -342,7 +344,7 @@ describe('LLMCache', () => {
 
     test('should skip entries without originalText', () => {
       // When semantic is disabled, originalText is undefined
-      const c = new LLMCache<string>({ enableSemantic: false });
+      const c = new LLMCacheClass<string>({ enableSemantic: false });
       c.set('key', 'value');
 
       // Even though exact match won't work, semantic is disabled
@@ -350,7 +352,7 @@ describe('LLMCache', () => {
     });
 
     test('should not try semantic matching when disabled', () => {
-      const c = new LLMCache<string>({ enableSemantic: false });
+      const c = new LLMCacheClass<string>({ enableSemantic: false });
       c.set('hello world', 'result');
 
       // Exact match still works
@@ -394,7 +396,7 @@ describe('LLMCache', () => {
     });
 
     test('should persist cache to disk on set', () => {
-      const c = new LLMCache<string>({ persistPath: testCachePath });
+      const c = new LLMCacheClass<string>({ persistPath: testCachePath });
       c.set('persist-key', 'persist-value');
       c.persist();
 
@@ -430,12 +432,12 @@ describe('LLMCache', () => {
       };
       fs.writeFileSync(testCachePath, JSON.stringify(cacheData), 'utf8');
 
-      const c = new LLMCache<string>({ persistPath: testCachePath });
+      const c = new LLMCacheClass<string>({ persistPath: testCachePath });
       expect(c.get('loaded-key')).toBe('loaded-value');
     });
 
     test('should handle missing persist file gracefully', () => {
-      const c = new LLMCache<string>({ persistPath: '/tmp/nonexistent/path/cache.json' });
+      const c = new LLMCacheClass<string>({ persistPath: '/tmp/nonexistent/path/cache.json' });
       expect(c.getStats().size).toBe(0);
     });
 
@@ -446,7 +448,7 @@ describe('LLMCache', () => {
       }
       fs.writeFileSync(testCachePath, 'not valid json{{{', 'utf8');
 
-      const c = new LLMCache<string>({ persistPath: testCachePath });
+      const c = new LLMCacheClass<string>({ persistPath: testCachePath });
       expect(c.getStats().size).toBe(0);
     });
 
@@ -461,7 +463,7 @@ describe('LLMCache', () => {
         entries: [],
       }), 'utf8');
 
-      const c = new LLMCache<string>({ persistPath: testCachePath });
+      const c = new LLMCacheClass<string>({ persistPath: testCachePath });
       expect(c.getStats().size).toBe(0);
     });
 
@@ -487,7 +489,7 @@ describe('LLMCache', () => {
       };
       fs.writeFileSync(testCachePath, JSON.stringify(cacheData), 'utf8');
 
-      const c = new LLMCache<string>({ persistPath: testCachePath });
+      const c = new LLMCacheClass<string>({ persistPath: testCachePath });
       expect(c.get('v1-key')).toBe('v1-value');
     });
 
@@ -510,12 +512,12 @@ describe('LLMCache', () => {
       };
       fs.writeFileSync(testCachePath, JSON.stringify(cacheData), 'utf8');
 
-      const c = new LLMCache<string>({ persistPath: testCachePath, ttlMinutes: 60 });
+      const c = new LLMCacheClass<string>({ persistPath: testCachePath, ttlMinutes: 60 });
       expect(c.getStats().size).toBe(0);
     });
 
     test('persist() should save to disk when persist is enabled', () => {
-      const c = new LLMCache<string>({ persistPath: testCachePath });
+      const c = new LLMCacheClass<string>({ persistPath: testCachePath });
       c.set('manual-key', 'manual-value');
       c.persist();
 
@@ -523,12 +525,12 @@ describe('LLMCache', () => {
     });
 
     test('persist() should be no-op when persist is disabled', () => {
-      const c = new LLMCache<string>();
+      const c = new LLMCacheClass<string>();
       expect(() => c.persist()).not.toThrow();
     });
 
     test('clearExpired should persist when enabled', () => {
-      const c = new LLMCache<string>({ persistPath: testCachePath, ttlMinutes: 0 });
+      const c = new LLMCacheClass<string>({ persistPath: testCachePath, ttlMinutes: 0 });
       c.set('expired', 'value');
       c.persist();
 
@@ -541,7 +543,7 @@ describe('LLMCache', () => {
 
     test('should create cache directory if it does not exist', () => {
       const deepPath = path.join('/tmp', `test-deep-${Date.now()}`, 'sub', 'cache.json');
-      const c = new LLMCache<string>({ persistPath: deepPath });
+      const c = new LLMCacheClass<string>({ persistPath: deepPath });
       c.set('key', 'value');
       c.persist();
 
@@ -616,7 +618,7 @@ describe('LLMCache', () => {
     });
 
     test('should skip expired entries during semantic search', () => {
-      const c = new LLMCache<string>({ ttlMinutes: 0 });
+      const c = new LLMCacheClass<string>({ ttlMinutes: 0 });
       c.set('expired entry', 'expired-result');
 
       // The entry is expired, so semantic search should skip it
@@ -631,7 +633,7 @@ describe('LLMCache', () => {
   // ========================================
   describe('eviction at exact boundary', () => {
     test('should evict when cache reaches exactly maxSize', () => {
-      const c = new LLMCache<string>({ maxSize: 3 });
+      const c = new LLMCacheClass<string>({ maxSize: 3 });
 
       c.set('first', 'val1');
       c.set('second', 'val2');
@@ -647,7 +649,7 @@ describe('LLMCache', () => {
     });
 
     test('should evict oldest entry specifically', () => {
-      const c = new LLMCache<string>({ maxSize: 2 });
+      const c = new LLMCacheClass<string>({ maxSize: 2 });
 
       c.set('oldest', 'val1');
       c.set('middle', 'val2');
@@ -662,7 +664,7 @@ describe('LLMCache', () => {
     });
 
     test('should not evict when below maxSize', () => {
-      const c = new LLMCache<string>({ maxSize: 5 });
+      const c = new LLMCacheClass<string>({ maxSize: 5 });
 
       c.set('a', '1');
       c.set('b', '2');
@@ -682,14 +684,14 @@ describe('LLMCache', () => {
     test('should handle write failure gracefully', () => {
       // Use a read-only location that will fail on write
       // persistDebounceMs: 0 ensures immediate synchronous write so the error path is tested
-      const c = new LLMCache<string>({ persistPath: '/tmp/nonexistent-dead-end/impossible/path/cache.json', persistDebounceMs: 0 });
+      const c = new LLMCacheClass<string>({ persistPath: '/tmp/nonexistent-dead-end/impossible/path/cache.json', persistDebounceMs: 0 });
 
       // Should not throw despite write failure
       expect(() => c.set('key', 'value')).not.toThrow();
     });
 
     test('should handle clearExpired persist failure gracefully', () => {
-      const c = new LLMCache<string>({ persistPath: '/tmp/nonexistent-dead-end/impossible/cache.json', ttlMinutes: 0, persistDebounceMs: 0 });
+      const c = new LLMCacheClass<string>({ persistPath: '/tmp/nonexistent-dead-end/impossible/cache.json', ttlMinutes: 0, persistDebounceMs: 0 });
       c.set('expired', 'value');
 
       // Should not throw even though persist will fail
@@ -702,7 +704,7 @@ describe('LLMCache', () => {
   // ========================================
   describe('concurrent get/set operations', () => {
     test('should handle interleaved get and set operations', async () => {
-      const c = new LLMCache<string>();
+      const c = new LLMCacheClass<string>();
 
       // Interleave sets and gets
       c.set('key1', 'value1');
@@ -718,7 +720,7 @@ describe('LLMCache', () => {
     });
 
     test('should handle set overwriting during concurrent access pattern', () => {
-      const c = new LLMCache<string>();
+      const c = new LLMCacheClass<string>();
 
       c.set('shared', 'first');
       expect(c.get('shared')).toBe('first');
@@ -728,7 +730,7 @@ describe('LLMCache', () => {
     });
 
     test('should handle multiple rapid sets', () => {
-      const c = new LLMCache<string>();
+      const c = new LLMCacheClass<string>();
 
       for (let i = 0; i < 50; i++) {
         c.set(`key-${i}`, `value-${i}`);
@@ -766,7 +768,7 @@ describe('LLMCache', () => {
     });
 
     test('should track validEntries accurately with expired entries', () => {
-      const c = new LLMCache<string>({ ttlMinutes: 0 });
+      const c = new LLMCacheClass<string>({ ttlMinutes: 0 });
       c.set('expired1', 'val1');
       c.set('expired2', 'val2');
       c.set('expired3', 'val3');

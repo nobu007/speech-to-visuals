@@ -57,12 +57,12 @@ describe('memory-usage (REQ-138)', () => {
 
       // Temporarily remove process.memoryUsage
       const origMemUsage = process.memoryUsage;
-      // @ts-expect-error -- intentionally removing for test
-      delete process.memoryUsage;
+      // Intentionally removing for test
+      delete (process as NodeJS.Process & { memoryUsage?: typeof process.memoryUsage }).memoryUsage;
 
       // Remove performance.memory if present
-      const perfMem = (performance as Record<string, unknown>).memory;
-      delete (performance as Record<string, unknown>).memory;
+      const perfMem = (performance as Performance & { memory?: unknown }).memory;
+      delete (performance as Performance & { memory?: unknown }).memory;
 
       try {
         // Need fresh import to pick up the changed environment
@@ -78,7 +78,7 @@ describe('memory-usage (REQ-138)', () => {
         // Restore
         Object.defineProperty(process, 'memoryUsage', { value: origMemUsage, writable: true });
         if (perfMem !== undefined) {
-          (performance as Record<string, unknown>).memory = perfMem;
+          (performance as Performance & { memory?: unknown }).memory = perfMem;
         }
         jest.resetModules();
       }

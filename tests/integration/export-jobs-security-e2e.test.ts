@@ -28,7 +28,6 @@ function createApp() {
     maxConcurrent: 2,
     maxQueueSize: 50,
     maxRetries: 0,
-    jobTimeoutMs: 5_000,
   });
 
   const app = express();

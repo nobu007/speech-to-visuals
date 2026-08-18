@@ -477,7 +477,7 @@ describe('round 46: edge anchor geometry — layer 2b live delegation witnesses'
 
     assertPair(tree.edges, tree.nodes, (a, b) => [bottomCenterAnchor(a), topCenterAnchor(b)]);
     assertPair(timeline.edges, timeline.nodes, (a, b) => [rightCenterAnchor(a), leftCenterAnchor(b)]);
-    assertPair(comparison.edges, comparison.nodes, flankAnchors);
+    assertPair(comparison.edges, comparison.nodes, (a, b) => flankAnchors(a, b) as [Pt, Pt]);
   });
 
   it('v2 timeline/comparison emit their canonical pairs over their own nodes', () => {
@@ -500,7 +500,7 @@ describe('round 46: edge anchor geometry — layer 2b live delegation witnesses'
     };
 
     assertPair(timeline.edges, timeline.nodes, (a, b) => [bottomCenterAnchor(a), topCenterAnchor(b)]);
-    assertPair(comparison.edges, comparison.nodes, flankAnchors);
+    assertPair(comparison.edges, comparison.nodes, (a, b) => flankAnchors(a, b) as [Pt, Pt]);
   });
 
   it('ezo timeline edges emit center anchors over its own positioned nodes', async () => {

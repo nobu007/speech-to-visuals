@@ -14,6 +14,7 @@ import {
   LayoutAutoOptimizer,
 } from '@/visualization';
 import type { LabelSizingConfig, LabelSizingResult } from '@/visualization';
+import { StrategySelector } from '@/visualization/strategy-selector';
 
 describe('TC-086-01: Phase 31 module exports', () => {
   it('exports VisualBalanceScorer class', () => {
@@ -47,7 +48,8 @@ describe('TC-086-01: Phase 31 module exports', () => {
   it('exports LayoutAutoOptimizer class', () => {
     expect(LayoutAutoOptimizer).toBeDefined();
     expect(typeof LayoutAutoOptimizer).toBe('function');
-    const instance = new LayoutAutoOptimizer();
+    const selector = new StrategySelector();
+    const instance = new LayoutAutoOptimizer(selector);
     expect(instance).toBeInstanceOf(LayoutAutoOptimizer);
   });
 

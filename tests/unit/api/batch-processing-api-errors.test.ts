@@ -10,7 +10,7 @@ import { jest } from '@jest/globals';
 // Mock pipeline dependencies so we don't need real implementations
 jest.unstable_mockModule('@/pipeline/simple-pipeline', () => ({
   simplePipeline: {
-    process: jest.fn().mockResolvedValue({ success: true, transcript: 'test' }),
+    process: jest.fn<any>().mockResolvedValue({ success: true, transcript: 'test' }),
   },
 }));
 
@@ -33,7 +33,7 @@ const { BatchValidationError, JobNotFoundError } = await import('@/api/routes/ba
 // ===========================================================================
 
 describe('ISS-028: BatchProcessingAPI custom error classes', () => {
-  let api: BatchProcessingAPI;
+  let api: InstanceType<typeof BatchProcessingAPI>;
 
   beforeEach(() => {
     api = new BatchProcessingAPI();
@@ -64,8 +64,8 @@ describe('ISS-028: BatchProcessingAPI custom error classes', () => {
         fail('Expected BatchValidationError');
       } catch (err) {
         expect(err).toBeInstanceOf(BatchValidationError);
-        expect((err as BatchValidationError).statusCode).toBe(400);
-        expect((err as BatchValidationError).code).toBe('VALIDATION_ERROR');
+        expect((err as InstanceType<typeof BatchValidationError>).statusCode).toBe(400);
+        expect((err as InstanceType<typeof BatchValidationError>).code).toBe('VALIDATION_ERROR');
       }
     });
   });
@@ -85,8 +85,8 @@ describe('ISS-028: BatchProcessingAPI custom error classes', () => {
         fail('Expected JobNotFoundError');
       } catch (err) {
         expect(err).toBeInstanceOf(JobNotFoundError);
-        expect((err as JobNotFoundError).statusCode).toBe(404);
-        expect((err as JobNotFoundError).code).toBe('JOB_NOT_FOUND');
+        expect((err as InstanceType<typeof JobNotFoundError>).statusCode).toBe(404);
+        expect((err as InstanceType<typeof JobNotFoundError>).code).toBe('JOB_NOT_FOUND');
       }
     });
   });

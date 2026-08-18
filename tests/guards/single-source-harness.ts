@@ -252,7 +252,7 @@ export function runOracleRow(row: OracleRow): void {
     const legacy = row.retired(...args);
     if (!Object.is(got, legacy)) {
       deltas++;
-      expect(Math.abs(got - legacy)).toBeLessThanOrEqual(maxDelta);
+      expect(Math.abs((got as unknown as number) - (legacy as unknown as number))).toBeLessThanOrEqual(maxDelta);
     }
   }
   expect(deltas).toBeGreaterThan(0); // witness — a never-diverging delta row is RED

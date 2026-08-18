@@ -191,20 +191,20 @@ describe('ISS-C: BatchProcessingAPI sequential dedup', () => {
     // Mock simple-pipeline to prevent real processing
     jest.doMock('@/pipeline/simple-pipeline', () => ({
       simplePipeline: {
-        process: jest.fn().mockResolvedValue({
+        process: jest.fn<() => Promise<unknown>>().mockResolvedValue({
           success: true,
           transcript: 'test',
           scenes: [],
           diagramData: { type: 'flow', nodes: [], edges: [] },
           metadata: { duration: 0 },
-        }),
+        }) as any,
       },
     }));
 
     jest.doMock('@/pipeline/adaptive-quality-presets', () => ({
       adaptiveQualityPresets: {
         setPreset: jest.fn(),
-        toPipelineOptions: jest.fn().mockReturnValue({ options: {} }),
+        toPipelineOptions: jest.fn<() => unknown>().mockReturnValue({ options: {} }),
       },
     }));
 
@@ -259,14 +259,14 @@ describe('ISS-C: BatchProcessingAPI sequential dedup', () => {
   it('should propagate hash computation errors without unhandled rejections', async () => {
     jest.doMock('@/pipeline/simple-pipeline', () => ({
       simplePipeline: {
-        process: jest.fn().mockResolvedValue({ success: true }),
+        process: jest.fn<() => Promise<unknown>>().mockResolvedValue({ success: true }) as any,
       },
     }));
 
     jest.doMock('@/pipeline/adaptive-quality-presets', () => ({
       adaptiveQualityPresets: {
         setPreset: jest.fn(),
-        toPipelineOptions: jest.fn().mockReturnValue({ options: {} }),
+        toPipelineOptions: jest.fn<() => unknown>().mockReturnValue({ options: {} }),
       },
     }));
 

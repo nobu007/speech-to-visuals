@@ -8,7 +8,7 @@ import type { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 import { ringAngle, pointOnCircle, squareGridColumns } from './layout-utils';
 
 export interface AdvancedLayoutOptions {
-  theme: 'dark' | 'light' | 'auto';
+  theme: 'dark' | 'light' | 'auto' | 'professional' | 'vibrant';
   animationStyle: 'smooth' | 'bouncy' | 'minimal';
   colorScheme: 'professional' | 'vibrant' | 'monochrome';
   nodeShape: 'rectangle' | 'rounded' | 'circle' | 'hexagon';

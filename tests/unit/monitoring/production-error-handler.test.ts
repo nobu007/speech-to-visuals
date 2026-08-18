@@ -56,12 +56,24 @@ jest.unstable_mockModule('@stv/core/utils/logger', () => ({
 // Helpers
 // ---------------------------------------------------------------------------
 
-// Use a loose type to avoid complex conditional types
+// Structural mirror of the real class's public surface (the class itself is
+// imported lazily in beforeAll for ESM mocking; type-only imports stay erased
+// and safe). RecoveryStrategy is not exported from the source, so the
+// alert shape inlines the fields the tests actually touch.
+import type { ErrorAlert, ErrorMetrics } from '../../../src/monitoring/production-error-handler';
+
+type RecoveryStrategy = { name: string; execute: () => Promise<boolean> };
+type ErrorContext = { component?: string; [key: string]: unknown };
+
 interface ProductionErrorHandler {
-  handleError(...args: unknown[]): Promise<unknown>;
+  handleError(error: Error, context?: Partial<ErrorContext>): Promise<ErrorAlert & { recoveryOptions: RecoveryStrategy[] }>;
+  getErrorQueue(): ErrorAlert[];
+  getMetrics(): ErrorMetrics;
+  executeRecoveryStrategy(errorId: string, strategyName: string): Promise<boolean>;
+  clearResolvedErrors(): void;
+  onError(component: string, callback: (alert: ErrorAlert) => void): () => void;
   exportErrorReport(): string;
   destroy(): void;
-  [key: string]: unknown;
 }
 
 let ProductionErrorHandlerClass: new () => ProductionErrorHandler;

@@ -280,14 +280,14 @@ describe('async-state-after-unmount guard — production code absorbs unmount (T
   // unmount-before-async-completes vector so the production code completes
   // without React emitting the "setState on unmounted component" warning.
 
-  let consoleErrorSpy: jest.SpyInstance;
+  let consoleErrorSpy: ReturnType<typeof jest.spyOn>;
 
   beforeEach(() => {
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    consoleErrorSpy.mockRestore();
+    (consoleErrorSpy as ReturnType<typeof jest.spyOn>).mockRestore();
   });
 
   it('mount → unmount before await resolves → no React setState-on-unmounted warning', async () => {

@@ -17,20 +17,20 @@ import { jest } from '@jest/globals';
 // because under native ESM `jest.mock()` is a no-op and static imports are
 // hoisted above the mock registration. See [[jest-esm-mock-pattern]].
 
-const mockGenerateContent = jest.fn();
+const mockGenerateContent = jest.fn<() => Promise<unknown>>();
 const mockGetGenerativeModel = jest.fn(() => ({
   generateContent: mockGenerateContent,
   generateContentStream: jest.fn(),
 }));
 
 jest.unstable_mockModule('@google/generative-ai', () => ({
-  GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
+  GoogleGenerativeAI: jest.fn<(...args: unknown[]) => unknown>().mockImplementation(() => ({
     getGenerativeModel: mockGetGenerativeModel,
   })),
 }));
 
 jest.unstable_mockModule('@/analysis/llm-cache', () => ({
-  LLMCache: jest.fn().mockImplementation(() => {
+  LLMCache: jest.fn<(...args: unknown[]) => unknown>().mockImplementation(() => {
     const store = new Map<string, unknown>();
     return {
       get: jest.fn(() => store.get('k') ?? null),

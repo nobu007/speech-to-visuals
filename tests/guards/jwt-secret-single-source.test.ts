@@ -37,6 +37,12 @@ import { PipelineConfigError } from '@/pipeline/pipeline-errors';
 import jwt from 'jsonwebtoken';
 import type { AuthenticatedRequest } from '@/api/middleware/auth';
 
+// Local type for socket with user data
+interface TestSocket {
+  handshake: { auth: { token: string } };
+  data: { user?: { id: string; email: string; role: string } };
+}
+
 // ---------------------------------------------------------------------------
 // Env fixture: both vars saved/restored around every test
 // ---------------------------------------------------------------------------
@@ -151,7 +157,7 @@ describe('REST and WS auth resolve the SAME secret (round 26 drift oracle)', () 
     expect(restNext).toHaveBeenCalledTimes(1);
 
     // WS path (real createWsAuthMiddleware).
-    const socket = { handshake: { auth: { token } }, data: {} };
+    const socket: TestSocket = { handshake: { auth: { token } }, data: {} };
     const wsNext = jest.fn();
     createWsAuthMiddleware()(socket as never, wsNext);
     expect(socket.data.user).toEqual({ id: 'user-1', email: 'u@example.com', role: 'authenticated' });
@@ -171,7 +177,7 @@ describe('REST and WS auth resolve the SAME secret (round 26 drift oracle)', () 
     expect(restReq.user).toBeUndefined();
     expect(restRes.status).toHaveBeenCalledWith(401);
 
-    const socket = { handshake: { auth: { token: forged } }, data: {} };
+    const socket: TestSocket = { handshake: { auth: { token: forged } }, data: {} };
     const wsNext = jest.fn();
     createWsAuthMiddleware()(socket as never, wsNext);
     expect(socket.data.user).toBeUndefined();

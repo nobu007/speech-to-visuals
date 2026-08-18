@@ -6,6 +6,7 @@ import {
   calculateLayout,
   GENERATE_TIMEOUT_MS,
 } from '../../../supabase/functions/generate-scenes/index';
+import type { GenerateScenesRequest } from '../../../supabase/functions/generate-scenes/index';
 
 const USER_ID = 'user-test-002';
 
@@ -244,7 +245,7 @@ describe('handleGenerateScenes', () => {
 
   it('should throw validation error when transcript is missing', async () => {
     await expect(
-      handleGenerateScenes({} as Record<string, unknown>, USER_ID)
+      handleGenerateScenes({} as GenerateScenesRequest, USER_ID)
     ).rejects.toThrow('transcript is required');
   });
 

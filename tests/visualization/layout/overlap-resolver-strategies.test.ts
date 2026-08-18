@@ -101,8 +101,7 @@ jest.unstable_mockModule(
 // Lazy-loaded module under test
 // ---------------------------------------------------------------------------
 
-type OverlapResolverClass = import('@/visualization/layout/OverlapResolver').OverlapResolver;
-let OverlapResolver: typeof OverlapResolverClass;
+let OverlapResolver: typeof import('@/visualization/layout/OverlapResolver').OverlapResolver;
 
 beforeAll(async () => {
   const mod = await import('@/visualization/layout/OverlapResolver');
@@ -118,7 +117,7 @@ describe('OverlapResolver (layout/) — strategy-based orchestrator', () => {
     mockResults.clear();
   });
 
-  function resolver(): InstanceType<typeof OverlapResolverClass> {
+  function resolver() {
     return new OverlapResolver();
   }
 

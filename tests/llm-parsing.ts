@@ -5,6 +5,13 @@
  */
 import { parseJsonFromLLMText } from '@/analysis/llm-utils';
 
+interface ParsedDiagram {
+  type?: string;
+  nodes?: unknown[];
+  edges?: unknown[];
+  title?: string;
+}
+
 async function main() {
   const samples = [
     `{"title":"T","type":"flowchart","nodes":[{"id":"n1","label":"A"}],"edges":[]}`,
@@ -14,7 +21,7 @@ async function main() {
 
   for (const [i, s] of samples.entries()) {
     try {
-      const parsed = parseJsonFromLLMText(s);
+      const parsed = parseJsonFromLLMText<ParsedDiagram>(s);
       if (!parsed || typeof parsed !== 'object') {
         throw new Error('Parsed value is not an object');
       }

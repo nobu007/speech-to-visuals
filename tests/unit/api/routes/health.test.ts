@@ -66,9 +66,15 @@ describe('Health Route', () => {
         uptime: 60000,
         checks: {
           memory: { status: 'healthy', message: 'ok', latency: 1, lastChecked: Date.now() },
+          cache: { status: 'healthy', message: 'ok', latency: 1, lastChecked: Date.now() },
+          pipeline: { status: 'healthy', message: 'ok', latency: 1, lastChecked: Date.now() },
+          llm: { status: 'healthy', message: 'ok', latency: 1, lastChecked: Date.now() },
+          errorRecovery: { status: 'healthy', message: 'ok', latency: 1, lastChecked: Date.now() },
+          performance: { status: 'healthy', message: 'ok', latency: 1, lastChecked: Date.now() },
         },
         metrics: {
           timestamp: Date.now(),
+          uptime: 60000,
           system: { cpuUsagePercent: 0, memoryUsageMB: 0, memoryUsagePercent: 0, heapUsedMB: 0, heapTotalMB: 0 },
           pipeline: { totalRequests: 0, successRate: 0, avgProcessingTime: 0, p95ProcessingTime: 0, p99ProcessingTime: 0, activeRequests: 0 },
           llm: { totalRequests: 0, cacheHitRate: 0, flashUsagePercent: 0, proUsagePercent: 0, avgFlashResponseTime: 0, avgProResponseTime: 0, estimatedCostSavings: 0 },
@@ -76,7 +82,7 @@ describe('Health Route', () => {
           quality: { transcriptionAccuracy: 0, layoutOverlapRate: 0, avgSceneQuality: 0 },
         },
         recommendations: ['System is operating optimally'],
-      });
+      } as any);
 
       const res = await request(app).get('/api/v1/health');
 
@@ -96,9 +102,15 @@ describe('Health Route', () => {
         uptime: 60000,
         checks: {
           memory: { status: 'degraded', message: 'elevated', latency: 1, lastChecked: Date.now() },
+          cache: { status: 'healthy', message: 'ok', latency: 1, lastChecked: Date.now() },
+          pipeline: { status: 'healthy', message: 'ok', latency: 1, lastChecked: Date.now() },
+          llm: { status: 'healthy', message: 'ok', latency: 1, lastChecked: Date.now() },
+          errorRecovery: { status: 'healthy', message: 'ok', latency: 1, lastChecked: Date.now() },
+          performance: { status: 'healthy', message: 'ok', latency: 1, lastChecked: Date.now() },
         },
         metrics: {
           timestamp: Date.now(),
+          uptime: 60000,
           system: { cpuUsagePercent: 0, memoryUsageMB: 0, memoryUsagePercent: 0, heapUsedMB: 0, heapTotalMB: 0 },
           pipeline: { totalRequests: 0, successRate: 0, avgProcessingTime: 0, p95ProcessingTime: 0, p99ProcessingTime: 0, activeRequests: 0 },
           llm: { totalRequests: 0, cacheHitRate: 0, flashUsagePercent: 0, proUsagePercent: 0, avgFlashResponseTime: 0, avgProResponseTime: 0, estimatedCostSavings: 0 },
@@ -106,7 +118,7 @@ describe('Health Route', () => {
           quality: { transcriptionAccuracy: 0, layoutOverlapRate: 0, avgSceneQuality: 0 },
         },
         recommendations: ['Consider increasing memory allocation'],
-      });
+      } as any);
 
       const res = await request(app).get('/api/v1/health');
 
@@ -122,9 +134,15 @@ describe('Health Route', () => {
         uptime: 60000,
         checks: {
           memory: { status: 'unhealthy', message: 'critical', latency: 1, lastChecked: Date.now() },
+          cache: { status: 'healthy', message: 'ok', latency: 1, lastChecked: Date.now() },
+          pipeline: { status: 'healthy', message: 'ok', latency: 1, lastChecked: Date.now() },
+          llm: { status: 'healthy', message: 'ok', latency: 1, lastChecked: Date.now() },
+          errorRecovery: { status: 'healthy', message: 'ok', latency: 1, lastChecked: Date.now() },
+          performance: { status: 'healthy', message: 'ok', latency: 1, lastChecked: Date.now() },
         },
         metrics: {
           timestamp: Date.now(),
+          uptime: 60000,
           system: { cpuUsagePercent: 0, memoryUsageMB: 0, memoryUsagePercent: 0, heapUsedMB: 0, heapTotalMB: 0 },
           pipeline: { totalRequests: 0, successRate: 0, avgProcessingTime: 0, p95ProcessingTime: 0, p99ProcessingTime: 0, activeRequests: 0 },
           llm: { totalRequests: 0, cacheHitRate: 0, flashUsagePercent: 0, proUsagePercent: 0, avgFlashResponseTime: 0, avgProResponseTime: 0, estimatedCostSavings: 0 },
@@ -132,7 +150,7 @@ describe('Health Route', () => {
           quality: { transcriptionAccuracy: 0, layoutOverlapRate: 0, avgSceneQuality: 0 },
         },
         recommendations: ['CRITICAL: Memory usage is very high'],
-      });
+      } as any);
 
       const res = await request(app).get('/api/v1/health');
 

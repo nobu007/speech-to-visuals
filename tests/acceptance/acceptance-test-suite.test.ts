@@ -131,6 +131,8 @@ describe('REQ-006: LLM Content Analysis', () => {
   test('TC-006-01: DiagramDetector detects flow type', async () => {
     const detector = new DiagramDetector();
     const result = await detector.analyze({
+      startMs: 0,
+      endMs: 5000,
       text: 'The process workflow starts with input data, then goes through processing pipeline, and finally produces output.',
       summary: 'Process workflow',
       keyphrases: ['process', 'workflow', 'pipeline'],
@@ -144,6 +146,8 @@ describe('REQ-006: LLM Content Analysis', () => {
   test('TC-006-02: DiagramDetector detects tree type', async () => {
     const detector = new DiagramDetector();
     const result = await detector.analyze({
+      startMs: 0,
+      endMs: 5000,
       text: 'The organization hierarchy has a CEO at the top. Under the CEO there are directors. Each director manages teams with employees.',
       summary: 'Organization hierarchy',
       keyphrases: ['hierarchy', 'organization', 'CEO', 'director', 'teams'],
@@ -341,6 +345,7 @@ describe('REQ-015: Auto-Improvement Framework', () => {
       layoutOverlap: 0,
       nodeOverflow: 0,
       danglingLayoutEdges: 0,
+      labelReadability: 0.85,
       errorRate: 0.01,
       successRate: 0.99,
       crashCount: 0,
@@ -621,7 +626,7 @@ describe('REQ-038: Configuration Schema Validation', () => {
       supabaseAnonKey: '',
       complexityThreshold: 5.0, // out of range
       port: 80, // out of range
-      nodeEnv: 'invalid' as unknown as string,
+      nodeEnv: 'invalid' as any,
     });
     expect(errors.length).toBeGreaterThan(0);
     const fields = errors.map((e: ConfigValidationError) => e.field);

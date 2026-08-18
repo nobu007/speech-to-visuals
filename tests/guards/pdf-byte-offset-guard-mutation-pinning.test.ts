@@ -120,7 +120,7 @@ function makeAccentedLatinScene(): SceneGraph {
     keyphrases: [],
     layout: {
       nodes: [n('n1', 'Café', 100), n('n2', 'Résumé Über', 500)],
-      edges: [{ from: 'n1', to: 'n2', label: 'Nächste' }],
+      edges: [{ from: 'n1', to: 'n2', label: 'Nächste', points: [] }],
     },
   };
 }

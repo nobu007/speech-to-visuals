@@ -356,7 +356,7 @@ describe('v1 engine edge builder — verbatim legacy oracle (round-33-1)', () =>
 // --- (round-33-1b) warn pins: the exact legacy dangling-edge diagnostics ---
 
 describe('v1 engine edge builder — warn-message pins (round-33-1b)', () => {
-  let warnSpy: jest.SpyInstance;
+  let warnSpy: ReturnType<typeof jest.spyOn>;
 
   beforeEach(() => {
     warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => undefined);
@@ -606,7 +606,7 @@ describe('v1 engine edge builder — engine delegation equality (round-33-2)', (
 // --- (round-33-3) contract witnesses: no-id shape + first-match lookup ---
 
 describe('v1 engine edge builder — contract witnesses (round-33-3)', () => {
-  let warnSpy: jest.SpyInstance;
+  let warnSpy: ReturnType<typeof jest.spyOn>;
   beforeEach(() => {
     warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => undefined);
   });

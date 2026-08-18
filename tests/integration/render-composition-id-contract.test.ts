@@ -28,34 +28,34 @@ import { COMPOSITION_ID } from '@/remotion/composition-id';
 
 // ESM mocking: unstable_mockModule + dynamic import (see jest-esm-mock-pattern).
 jest.unstable_mockModule('@remotion/bundler', () => ({
-  bundle: jest.fn().mockResolvedValue('/tmp/mock-bundle'),
+  bundle: jest.fn<() => Promise<unknown>>().mockResolvedValue('/tmp/mock-bundle'),
 }));
 
 jest.unstable_mockModule('@remotion/renderer', () => ({
-  selectComposition: jest.fn().mockResolvedValue({
+  selectComposition: jest.fn<() => Promise<unknown>>().mockResolvedValue({
     durationInFrames: 0, // overwritten by getComposition from scene durations
     fps: 30,
     width: 1920,
     height: 1080,
     id: COMPOSITION_ID,
   }),
-  renderMedia: jest.fn().mockResolvedValue(undefined),
+  renderMedia: jest.fn<() => Promise<unknown>>().mockResolvedValue(undefined),
 }));
 
 jest.unstable_mockModule('fs', () => ({
   default: {
-    existsSync: jest.fn().mockReturnValue(true),
+    existsSync: jest.fn<() => unknown>().mockReturnValue(true),
     mkdirSync: jest.fn(),
     promises: {
-      access: jest.fn().mockResolvedValue(undefined),
-      writeFile: jest.fn().mockResolvedValue(undefined),
-      readFile: jest.fn().mockResolvedValue('{}'),
+      access: jest.fn<() => Promise<unknown>>().mockResolvedValue(undefined),
+      writeFile: jest.fn<() => Promise<unknown>>().mockResolvedValue(undefined),
+      readFile: jest.fn<() => Promise<unknown>>().mockResolvedValue('{}'),
     },
   },
 }));
 
 const { ActualVideoRenderer } = await import('@/pipeline/actual-video-renderer');
-const { selectComposition } = await import('@remotion/renderer');
+const { selectComposition } = await import('@remotion/renderer') as typeof import('@remotion/renderer');
 
 interface CompositionArg {
   serveUrl: string;
@@ -65,14 +65,14 @@ interface CompositionArg {
 
 /** Read the args selectComposition was called with (the render-path query). */
 function lastSelectCall(): CompositionArg {
-  const calls = (selectComposition as jest.Mock).mock.calls;
+  const calls = (selectComposition as unknown as jest.Mock).mock.calls;
   return calls[calls.length - 1][0] as CompositionArg;
 }
 
 /** Read the composition object getComposition returned (durationInFrames set). */
 async function lastComposition(): Promise<{ durationInFrames: number; id: string }> {
-  const results = (selectComposition as jest.Mock).mock.results;
-  return results[results.length - 1].value;
+  const results = (selectComposition as unknown as jest.Mock).mock.results;
+  return results[results.length - 1].value as Promise<{ durationInFrames: number; id: string }>;
 }
 
 function makeScene(id: string, durationMs: number, startMs: number): SceneGraph {
@@ -84,16 +84,13 @@ function makeScene(id: string, durationMs: number, startMs: number): SceneGraph 
     durationMs,
     keyphrases: [],
     layout: {
-      type: 'flow',
       nodes: [
         { id: `${id}-n1`, label: 'A', x: 100, y: 100, width: 120, height: 60 },
         { id: `${id}-n2`, label: 'B', x: 300, y: 100, width: 120, height: 60 },
       ],
-      edges: [{ id: `${id}-e1`, source: `${id}-n1`, target: `${id}-n2` }],
-      width: 1920,
-      height: 1080,
+      edges: [{ from: `${id}-n1`, to: `${id}-n2` }],
     },
-  } as unknown as SceneGraph;
+  } as SceneGraph;
 }
 
 describe('Render-path composition-id contract + frame-count invariant', () => {

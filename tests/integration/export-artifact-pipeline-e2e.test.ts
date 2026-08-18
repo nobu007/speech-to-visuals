@@ -27,7 +27,15 @@ function makeData(size: number): Uint8Array {
   return new Uint8Array(size);
 }
 
-function createSink(): ArtifactMetricsSink & Record<string, number> {
+// Local interface for the test sink that includes both metrics methods and counter properties
+interface TestArtifactMetricsSink extends ArtifactMetricsSink {
+  artifactStoredCount: number;
+  artifactStorageBytes: number;
+  artifactExpiredCount: number;
+  artifactDownloadCount: number;
+}
+
+function createSink(): TestArtifactMetricsSink {
   return {
     artifactStoredCount: 0,
     artifactStorageBytes: 0,

@@ -14,7 +14,7 @@ import { BatchValidationError } from '@/api/routes/batch';
 // Prevent actual pipeline execution during tests
 jest.mock('@/pipeline/simple-pipeline', () => ({
   simplePipeline: {
-    process: jest.fn().mockResolvedValue({
+    process: jest.fn<any>().mockResolvedValue({
       scenes: [],
       diagramData: { type: 'flow', nodes: [], edges: [] },
       metadata: { duration: 0 },

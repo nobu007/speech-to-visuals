@@ -38,6 +38,7 @@
  */
 
 import { describe, it, expect } from '@jest/globals';
+import type { PositionedNode } from '@stv/core/types/diagram';
 import { readSource } from '@tests/guards/freeze-guard';
 import {
   emptyLayoutResult,
@@ -179,7 +180,7 @@ describe('round 29: empty layout result single source', () => {
   });
 
   describe('metrics-only twins on the single-node path', () => {
-    const singleNode: NodeDatum[] = [{ id: 'n1', label: 'only' }];
+    const singleNode = [{ id: 'n1', label: 'only', x: 0, y: 0, width: 0, height: 0 }] as PositionedNode[];
 
     it('mindmap single-node early return reports the canonical metrics', () => {
       const result: StrategyLayoutResult = new MindMapStrategy().apply(singleNode, []);
@@ -203,7 +204,7 @@ describe('round 29: empty layout result single source', () => {
 
       // Mutating one result must not corrupt future calls.
       a.metrics.overlapCount = 99;
-      a.nodes.push({ id: 'poison', label: 'poison' });
+      a.nodes.push({ id: 'poison', label: 'poison' } as PositionedNode);
       expect(emptyLayoutResult()).toEqual(PRE_MIGRATION_INLINE_RESULT);
     });
   });

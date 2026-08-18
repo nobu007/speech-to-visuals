@@ -290,11 +290,15 @@ function isValidationError(err: unknown): boolean {
  * Throws a validation error if any field is missing.
  */
 export function validateRequired(
-  body: Record<string, unknown>,
+  // `object` (not Record<string, unknown>): callers pass typed request
+  // interfaces without an index signature, so a Record param would force a
+  // cast at every edge function call site.
+  body: object,
   fields: string[]
 ): void {
+  const record = body as Record<string, unknown>;
   for (const field of fields) {
-    if (body[field] === undefined || body[field] === null || body[field] === '') {
+    if (record[field] === undefined || record[field] === null || record[field] === '') {
       throw new Error(`${field} is required`);
     }
   }

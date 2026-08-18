@@ -71,7 +71,7 @@ function injectMockQualityMonitor(detector: RegressionDetectorType) {
     writable: true,
     configurable: true,
   });
-  (detector as Record<string, unknown>).baseline = null;
+  (detector as unknown as Record<string, unknown>).baseline = null;
 }
 
 // --- Tests ---

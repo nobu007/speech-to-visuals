@@ -8,9 +8,9 @@ async function main() {
   console.log('🧪 Running quality checks...');
 
   const mockStages: PipelineStage[] = [
-    { name: 'transcription', success: true, processingTime: 1200, retries: 0 },
-    { name: 'analysis', success: true, processingTime: 800, retries: 0 },
-    { name: 'layout', success: true, processingTime: 600, retries: 0 },
+    { name: 'transcription', success: true, status: 'complete' as const },
+    { name: 'analysis', success: true, status: 'complete' as const },
+    { name: 'layout', success: true, status: 'complete' as const },
   ];
 
   const mockResult: PipelineResult = {

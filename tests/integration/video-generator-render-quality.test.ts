@@ -21,7 +21,7 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { jest } from '@jest/globals';
 
-const renderVideoMock = jest.fn();
+const renderVideoMock = jest.fn<any>();
 
 jest.unstable_mockModule('@/pipeline/actual-video-renderer', () => ({
   actualVideoRenderer: { renderVideo: renderVideoMock },

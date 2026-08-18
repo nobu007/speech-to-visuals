@@ -15,6 +15,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, beforeAll, jest } from '@jest/globals';
+import type { PerformanceMetric, PerformanceAlert, TrendAnalysis } from '../../../src/monitoring/real-time-performance-monitor';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -82,7 +83,7 @@ describe('RealTimePerformanceMonitor', () => {
       monitor.recordMetric('processingTime', 500, 'ms');
 
       expect(listener).toHaveBeenCalledTimes(1);
-      const emitted = listener.mock.calls[0][0];
+      const emitted = listener.mock.calls[0][0] as PerformanceMetric;
       expect(emitted.metric).toBe('processingTime');
       expect(emitted.value).toBe(500);
       expect(emitted.unit).toBe('ms');
@@ -95,7 +96,7 @@ describe('RealTimePerformanceMonitor', () => {
 
       monitor.recordMetric('testMetric', 42, 'units', { env: 'test' });
 
-      const emitted = listener.mock.calls[0][0];
+      const emitted = listener.mock.calls[0][0] as PerformanceMetric;
       expect(emitted.tags).toEqual({ env: 'test' });
     });
 
@@ -128,7 +129,7 @@ describe('RealTimePerformanceMonitor', () => {
 
       monitor.recordMetric('unknownMetric', 99999, 'ms');
 
-      expect(listener.mock.calls[0][0].severity).toBe('info');
+      expect((listener.mock.calls[0][0] as PerformanceMetric).severity).toBe('info');
     });
 
     it('should return "info" for value below warning threshold', () => {
@@ -138,7 +139,7 @@ describe('RealTimePerformanceMonitor', () => {
       // processingTime: warning=60000, critical=120000
       monitor.recordMetric('processingTime', 30000, 'ms');
 
-      expect(listener.mock.calls[0][0].severity).toBe('info');
+      expect((listener.mock.calls[0][0] as PerformanceMetric).severity).toBe('info');
     });
 
     it('should return "warning" for value at/above warning threshold', () => {
@@ -147,7 +148,7 @@ describe('RealTimePerformanceMonitor', () => {
 
       monitor.recordMetric('processingTime', 60000, 'ms');
 
-      expect(listener.mock.calls[0][0].severity).toBe('warning');
+      expect((listener.mock.calls[0][0] as PerformanceMetric).severity).toBe('warning');
     });
 
     it('should return "critical" for value at/above critical threshold', () => {
@@ -156,7 +157,7 @@ describe('RealTimePerformanceMonitor', () => {
 
       monitor.recordMetric('processingTime', 120000, 'ms');
 
-      expect(listener.mock.calls[0][0].severity).toBe('critical');
+      expect((listener.mock.calls[0][0] as PerformanceMetric).severity).toBe('critical');
     });
   });
 
@@ -171,7 +172,7 @@ describe('RealTimePerformanceMonitor', () => {
       // cacheHitRate = 0.5 (50%) → above warning=0.3 → should be info
       monitor.recordMetric('cacheHitRate', 0.5, 'percent');
 
-      expect(listener.mock.calls[0][0].severity).toBe('info');
+      expect((listener.mock.calls[0][0] as PerformanceMetric).severity).toBe('info');
     });
 
     it('should return "warning" for cacheHitRate between critical and warning', () => {
@@ -181,7 +182,7 @@ describe('RealTimePerformanceMonitor', () => {
       // cacheHitRate = 0.2 (20%) → below warning=0.3, above critical=0.1 → warning
       monitor.recordMetric('cacheHitRate', 0.2, 'percent');
 
-      expect(listener.mock.calls[0][0].severity).toBe('warning');
+      expect((listener.mock.calls[0][0] as PerformanceMetric).severity).toBe('warning');
     });
 
     it('should return "critical" for cacheHitRate at/below critical threshold', () => {
@@ -191,7 +192,7 @@ describe('RealTimePerformanceMonitor', () => {
       // cacheHitRate = 0.05 (5%) → below critical=0.1 → critical
       monitor.recordMetric('cacheHitRate', 0.05, 'percent');
 
-      expect(listener.mock.calls[0][0].severity).toBe('critical');
+      expect((listener.mock.calls[0][0] as PerformanceMetric).severity).toBe('critical');
     });
   });
 
@@ -206,7 +207,7 @@ describe('RealTimePerformanceMonitor', () => {
       monitor.recordMetric('processingTime', 130000, 'ms');
 
       expect(alertListener).toHaveBeenCalledTimes(1);
-      const alert = alertListener.mock.calls[0][0];
+      const alert = alertListener.mock.calls[0][0] as PerformanceAlert;
       expect(alert.severity).toBe('critical');
       expect(alert.metric).toBe('processingTime');
       expect(alert.type).toBe('threshold');
@@ -222,7 +223,7 @@ describe('RealTimePerformanceMonitor', () => {
       monitor.recordMetric('errorRate', 0.07, 'percent');
 
       expect(alertListener).toHaveBeenCalledTimes(1);
-      const alert = alertListener.mock.calls[0][0];
+      const alert = alertListener.mock.calls[0][0] as PerformanceAlert;
       expect(alert.severity).toBe('warning');
     });
 
@@ -241,7 +242,7 @@ describe('RealTimePerformanceMonitor', () => {
 
       monitor.recordMetric('memoryUsage', 600, 'MB');
 
-      const alert = alertListener.mock.calls[0][0];
+      const alert = alertListener.mock.calls[0][0] as PerformanceAlert;
       expect(alert.recommendation).toContain('memory');
     });
 
@@ -253,7 +254,7 @@ describe('RealTimePerformanceMonitor', () => {
       monitor.recordMetric('cacheHitRate', 0.05, 'percent');
 
       expect(alertListener).toHaveBeenCalledTimes(1);
-      const alert = alertListener.mock.calls[0][0];
+      const alert = alertListener.mock.calls[0][0] as PerformanceAlert;
       expect(alert.severity).toBe('critical');
       expect(alert.metric).toBe('cacheHitRate');
     });
@@ -469,7 +470,7 @@ describe('RealTimePerformanceMonitor', () => {
       }
 
       const trends = monitor.analyzeTrends();
-      const processingTrend = trends.find((t: any) => t.metric === 'processingTime');
+      const processingTrend = trends.find((t: TrendAnalysis) => t.metric === 'processingTime');
       expect(processingTrend).toBeDefined();
       expect(processingTrend!.trend).toBe('stable');
     });
@@ -480,7 +481,7 @@ describe('RealTimePerformanceMonitor', () => {
       }
 
       const trends = monitor.analyzeTrends();
-      const processingTrend = trends.find((t: any) => t.metric === 'processingTime');
+      const processingTrend = trends.find((t: TrendAnalysis) => t.metric === 'processingTime');
       expect(processingTrend).toBeDefined();
       expect(processingTrend!.trend).toBe('degrading');
     });
@@ -497,7 +498,7 @@ describe('RealTimePerformanceMonitor', () => {
       }
 
       const trends = monitor.analyzeTrends();
-      const memoryTrend = trends.find((t: any) => t.metric === 'memoryUsage');
+      const memoryTrend = trends.find((t: TrendAnalysis) => t.metric === 'memoryUsage');
       expect(memoryTrend).toBeDefined();
       expect(memoryTrend!.trend).toBe('degrading');
     });
@@ -508,7 +509,7 @@ describe('RealTimePerformanceMonitor', () => {
       }
 
       const trends = monitor.analyzeTrends();
-      const memoryTrend = trends.find((t: any) => t.metric === 'memoryUsage');
+      const memoryTrend = trends.find((t: TrendAnalysis) => t.metric === 'memoryUsage');
       expect(memoryTrend).toBeDefined();
       expect(memoryTrend!.trend).toBe('improving');
     });
@@ -542,7 +543,7 @@ describe('RealTimePerformanceMonitor', () => {
         for (let i = 0; i < 40; i++) {
           monitor.recordMetric(metric, base + i * step, unit);
         }
-        const trend = monitor.analyzeTrends().find((t: any) => t.metric === metric);
+        const trend = monitor.analyzeTrends().find((t: TrendAnalysis) => t.metric === metric);
         expect(trend).toBeDefined();
         expect(trend!.trend).toBe('degrading');
       }
@@ -555,7 +556,7 @@ describe('RealTimePerformanceMonitor', () => {
         for (let i = 0; i < 40; i++) {
           monitor.recordMetric(metric, start - i * step, unit);
         }
-        const trend = monitor.analyzeTrends().find((t: any) => t.metric === metric);
+        const trend = monitor.analyzeTrends().find((t: TrendAnalysis) => t.metric === metric);
         expect(trend).toBeDefined();
         expect(trend!.trend).toBe('improving');
       }
@@ -570,10 +571,10 @@ describe('RealTimePerformanceMonitor', () => {
       const trends = monitor.analyzeTrends();
       // Drift guard: adding a metric to analyzeTrends/updateTrendData without
       // declaring its polarity breaks this count, forcing a conscious update.
-      expect(trends.map((t: any) => t.metric).sort()).toEqual(
+      expect(trends.map((t: TrendAnalysis) => t.metric).sort()).toEqual(
         ANALYZED_METRICS.map((m) => m.metric).sort()
       );
-      expect(trends.every((t: any) => t.trend === 'degrading')).toBe(true);
+      expect(trends.every((t: TrendAnalysis) => t.trend === 'degrading')).toBe(true);
     });
 
     it('should include predictions', () => {
@@ -582,7 +583,7 @@ describe('RealTimePerformanceMonitor', () => {
       }
 
       const trends = monitor.analyzeTrends();
-      const processingTrend = trends.find((t: any) => t.metric === 'processingTime');
+      const processingTrend = trends.find((t: TrendAnalysis) => t.metric === 'processingTime');
       expect(processingTrend!.prediction).toBeDefined();
       expect(processingTrend!.prediction.next5min).toBeGreaterThanOrEqual(0);
       expect(processingTrend!.prediction.next15min).toBeGreaterThanOrEqual(0);
@@ -595,7 +596,7 @@ describe('RealTimePerformanceMonitor', () => {
       }
 
       const trends = monitor.analyzeTrends();
-      const processingTrend = trends.find((t: any) => t.metric === 'processingTime');
+      const processingTrend = trends.find((t: TrendAnalysis) => t.metric === 'processingTime');
       expect(processingTrend!.confidence).toBe(0.85); // >= 20 samples
     });
 
@@ -651,7 +652,7 @@ describe('RealTimePerformanceMonitor', () => {
       monitor.recordMetric('customMetric', 60, 'ms');
 
       expect(alertListener).toHaveBeenCalledTimes(1);
-      expect(alertListener.mock.calls[0][0].severity).toBe('warning');
+      expect((alertListener.mock.calls[0][0] as PerformanceAlert).severity).toBe('warning');
     });
   });
 
@@ -685,13 +686,13 @@ describe('RealTimePerformanceMonitor', () => {
       monitor.on('alert', alertListener);
 
       monitor.recordMetric('errorRate', 0.12, 'percent');
-      expect(alertListener.mock.calls[0][0].recommendation).toBeTruthy();
+      expect((alertListener.mock.calls[0][0] as PerformanceAlert).recommendation).toBeTruthy();
 
       monitor.recordMetric('memoryUsage', 1200, 'MB');
-      expect(alertListener.mock.calls[1][0].recommendation).toContain('Memory');
+      expect((alertListener.mock.calls[1][0] as PerformanceAlert).recommendation).toContain('Memory');
 
       monitor.recordMetric('llmResponseTime', 35000, 'ms');
-      expect(alertListener.mock.calls[2][0].recommendation).toContain('LLM');
+      expect((alertListener.mock.calls[2][0] as PerformanceAlert).recommendation).toContain('LLM');
     });
 
     it('should return fallback recommendation for unknown metric', () => {
@@ -700,7 +701,7 @@ describe('RealTimePerformanceMonitor', () => {
       monitor.on('alert', alertListener);
 
       monitor.recordMetric('unknownAlert', 25, 'ms');
-      expect(alertListener.mock.calls[0][0].recommendation).toBe(
+      expect((alertListener.mock.calls[0][0] as PerformanceAlert).recommendation).toBe(
         'Monitor situation and investigate if persists'
       );
     });

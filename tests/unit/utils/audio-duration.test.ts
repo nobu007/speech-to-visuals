@@ -43,14 +43,14 @@ jest.mock('@stv/core/utils/audio-duration', () => {
 const OriginalAudio = global.Audio;
 
 beforeAll(() => {
-  (globalThis as typeof globalThis & { Audio?: unknown }).Audio = jest.fn(() => {
+  (globalThis as typeof globalThis & { Audio?: unknown }).Audio = jest.fn().mockImplementation(() => {
     capturedListeners = {};
     mockAudioInstance.addEventListener = jest.fn((event: string, handler: (...args: unknown[]) => void) => {
       if (!capturedListeners[event]) capturedListeners[event] = [];
       capturedListeners[event].push(handler);
     });
     return mockAudioInstance;
-  });
+  }) as unknown as typeof Audio;
 });
 
 afterAll(() => {

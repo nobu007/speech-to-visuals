@@ -19,6 +19,7 @@ import { OverlapResolver } from '@/visualization/strategies/OverlapResolver';
 import { LayoutOptimizer } from '@/visualization/strategies/LayoutOptimizer';
 import { DagreLayoutStrategy } from '@/visualization/strategies/DagreLayoutStrategy';
 import { FallbackLayoutStrategy } from '@/visualization/strategies/FallbackLayoutStrategy';
+import type { LayoutConfig } from '@/visualization/types';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -45,13 +46,13 @@ function createMultiLevelEngine(
     ...extraConfig,
   };
 
-  const fallback = new FallbackLayoutStrategy(baseConfig);
-  const dagreStrategy = new DagreLayoutStrategy(baseConfig, fallback);
-  const overlapResolver = new OverlapResolver(baseConfig);
-  const layoutOptimizer = new LayoutOptimizer(baseConfig);
+  const fallback = new FallbackLayoutStrategy(baseConfig as LayoutConfig);
+  const dagreStrategy = new DagreLayoutStrategy(baseConfig as LayoutConfig, fallback);
+  const overlapResolver = new OverlapResolver(baseConfig as LayoutConfig);
+  const layoutOptimizer = new LayoutOptimizer(baseConfig as LayoutConfig);
 
   return new ComplexLayoutEngine(
-    baseConfig,
+    baseConfig as ComplexLayoutConfig,
     overlapResolver,
     layoutOptimizer,
     dagreStrategy

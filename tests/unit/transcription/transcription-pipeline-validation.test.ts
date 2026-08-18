@@ -7,7 +7,7 @@ import os from 'os';
 jest.unstable_mockModule('@/transcription/whisper-transcriber', () => {
   return {
     WhisperTranscriber: class {
-      transcribe = jest.fn().mockResolvedValue({
+      transcribe = jest.fn<any>().mockResolvedValue({
         success: true,
         segments: [{ text: 'mock segment', start: 0, end: 1 }],
       });

@@ -157,8 +157,8 @@ describe('MainPipeline – calculateIterativeImprovements zero-duration guard', 
   });
 
   it('calculates improvement correctly when previousDuration is non-zero', () => {
-    const previousDuration = 200;
-    const currentDuration = 150;
+    const previousDuration: number = 200;
+    const currentDuration: number = 150;
 
     const improvement =
       previousDuration !== 0

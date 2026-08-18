@@ -34,20 +34,20 @@ const mockHandleIterationFailure: MockFn = jest.fn();
 const mockRecordStageFailure: MockFn = jest.fn();
 
 jest.unstable_mockModule('@/transcription', () => ({
-  TranscriptionPipeline: jest.fn().mockImplementation(() => ({
+  TranscriptionPipeline: jest.fn<any>().mockImplementation(() => ({
     transcribe: mockTranscribe,
-    nextIteration: jest.fn(),
+    nextIteration: jest.fn<any>(),
   })),
 }));
 
 jest.unstable_mockModule('@/analysis', () => ({
-  SceneSegmenter: jest.fn().mockImplementation(() => ({
+  SceneSegmenter: jest.fn<any>().mockImplementation(() => ({
     segment: mockSegment,
-    nextIteration: jest.fn(),
+    nextIteration: jest.fn<any>(),
   })),
-  DiagramDetector: jest.fn().mockImplementation(() => ({
+  DiagramDetector: jest.fn<any>().mockImplementation(() => ({
     analyze: mockAnalyze,
-    nextIteration: jest.fn(),
+    nextIteration: jest.fn<any>(),
   })),
   // main-pipeline imports these segment-length defaults from the barrel to
   // build its analysis config. Without them the ESM mock throws
@@ -59,15 +59,15 @@ jest.unstable_mockModule('@/analysis', () => ({
 }));
 
 jest.unstable_mockModule('@/visualization', () => ({
-  LayoutEngine: jest.fn().mockImplementation(() => ({
-    generateLayout: jest.fn(),
+  LayoutEngine: jest.fn<any>().mockImplementation(() => ({
+    generateLayout: jest.fn<any>(),
   })),
 }));
 
 jest.unstable_mockModule('@/quality', () => ({
   qualityMonitor: {
-    assessPipelineQuality: jest.fn().mockResolvedValue({ overallScore: 0.8 }),
-    nextIteration: jest.fn(),
+    assessPipelineQuality: jest.fn<any>().mockResolvedValue({ overallScore: 0.8 }),
+    nextIteration: jest.fn<any>(),
   },
 }));
 
@@ -80,14 +80,14 @@ jest.unstable_mockModule('@/quality/enhanced-error-recovery', () => ({
 
 jest.unstable_mockModule('@/performance/intelligent-cache', () => ({
   globalCache: {
-    get: jest.fn().mockResolvedValue(null),
-    store: jest.fn().mockResolvedValue(undefined),
+    get: jest.fn<any>().mockResolvedValue(null),
+    store: jest.fn<any>().mockResolvedValue(undefined),
   },
 }));
 
 jest.unstable_mockModule('@/optimization/smart-parameter-tuner', () => ({
   __esModule: true,
-  default: jest.fn().mockImplementation(() => ({})),
+  default: jest.fn<any>().mockImplementation(() => ({})),
 }));
 
 jest.unstable_mockModule('@/optimization/adaptive-content-processor', () => ({
@@ -95,43 +95,43 @@ jest.unstable_mockModule('@/optimization/adaptive-content-processor', () => ({
 }));
 
 jest.unstable_mockModule('@/framework/recursive-custom-instructions', () => ({
-  RecursiveCustomInstructionsFramework: jest.fn().mockImplementation(() => ({
-    startCycle: jest.fn().mockResolvedValue(undefined),
-    evaluateIteration: jest.fn().mockResolvedValue({
+  RecursiveCustomInstructionsFramework: jest.fn<any>().mockImplementation(() => ({
+    startCycle: jest.fn<any>().mockResolvedValue(undefined),
+    evaluateIteration: jest.fn<any>().mockResolvedValue({
       shouldIterate: false,
       shouldAdvancePhase: false,
       shouldCommit: false,
     }),
     handleIterationFailure: mockHandleIterationFailure.mockResolvedValue(undefined),
-    recordStageSuccess: jest.fn().mockResolvedValue(undefined),
+    recordStageSuccess: jest.fn<any>().mockResolvedValue(undefined),
     recordStageFailure: mockRecordStageFailure.mockResolvedValue(undefined),
-    recordQualityIssue: jest.fn().mockResolvedValue(undefined),
-    prepareNextIteration: jest.fn().mockResolvedValue(undefined),
-    advanceToPhase: jest.fn().mockResolvedValue(undefined),
-    commitIteration: jest.fn().mockResolvedValue(undefined),
+    recordQualityIssue: jest.fn<any>().mockResolvedValue(undefined),
+    prepareNextIteration: jest.fn<any>().mockResolvedValue(undefined),
+    advanceToPhase: jest.fn<any>().mockResolvedValue(undefined),
+    commitIteration: jest.fn<any>().mockResolvedValue(undefined),
   })),
 }));
 
 jest.unstable_mockModule('@/framework/iteration-logger', () => ({
   globalIterationLogger: {
-    appendIteration: jest.fn().mockResolvedValue(undefined),
+    appendIteration: jest.fn<any>().mockResolvedValue(undefined),
     calculateImprovementTrends: jest
-      .fn()
+      .fn<any>()
       .mockResolvedValue({ recommendations: [] }),
   },
 }));
 
 jest.unstable_mockModule('@stv/core/utils/memory-usage', () => ({
-  getHeapUsed: jest.fn().mockReturnValue(0),
-  getMemoryUsage: jest.fn().mockReturnValue({ heapUsed: 0, heapTotal: 0 }),
+  getHeapUsed: jest.fn<any>().mockReturnValue(0),
+  getMemoryUsage: jest.fn<any>().mockReturnValue({ heapUsed: 0, heapTotal: 0 }),
 }));
 
 jest.unstable_mockModule('@stv/core/utils/logger', () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: jest.fn<any>(),
+    warn: jest.fn<any>(),
+    error: jest.fn<any>(),
+    debug: jest.fn<any>(),
   },
 }));
 

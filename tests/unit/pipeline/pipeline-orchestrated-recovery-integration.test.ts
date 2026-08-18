@@ -19,6 +19,7 @@ import { errorRecoveryEventBus } from '@/quality/error-recovery-event-bus';
 import type {
   RecoveryAttemptEvent,
   RecoverySuccessEvent,
+  ErrorRecoveryEventMap,
 } from '@/quality/error-recovery-event-bus';
 import { TranscriptionError, RenderingError } from '@/pipeline/pipeline-errors';
 
@@ -43,9 +44,11 @@ function makeValidPipelineInput(): PipelineInput {
 }
 
 /** Collect events of a specific type from the global event bus. */
-function collectEvents<T>(event: string): T[] {
-  const events: T[] = [];
-  errorRecoveryEventBus.on(event, (e: T) => events.push(e));
+function collectEvents<K extends keyof ErrorRecoveryEventMap>(
+  event: K,
+): ErrorRecoveryEventMap[K][] {
+  const events: ErrorRecoveryEventMap[K][] = [];
+  errorRecoveryEventBus.on(event, (e) => events.push(e as ErrorRecoveryEventMap[K]));
   return events;
 }
 
@@ -163,8 +166,8 @@ describe('Pipeline Orchestrated Recovery Integration (Phase 57)', () => {
   describe('Event bus observability', () => {
     it('emits lifecycle events during pipeline execution', async () => {
       errorRecoveryEventBus.mute();
-      const attemptEvents = collectEvents<RecoveryAttemptEvent>('recovery:attempt');
-      const successEvents = collectEvents<RecoverySuccessEvent>('recovery:success');
+      const attemptEvents = collectEvents('recovery:attempt');
+      const successEvents = collectEvents('recovery:success');
 
       const orchestrator = new PipelineOrchestrator();
       await orchestrator.execute(makeValidPipelineInput());

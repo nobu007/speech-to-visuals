@@ -90,7 +90,7 @@
  */
 
 import { describe, it, expect } from '@jest/globals';
-import type { NodeDatum, EdgeDatum, DiagramType } from '@stv/core/types/diagram';
+import type { NodeDatum, EdgeDatum, DiagramType, PositionedNode } from '@stv/core/types/diagram';
 import { executeLayout } from '@/visualization/strategy-selector';
 import { nodesOverlap } from '@/visualization/layout-utils';
 import { getNodeWidth, getNodeHeight } from '@/visualization/node-dimensions';
@@ -150,7 +150,7 @@ const ALL_TYPES: DiagramType[] = [
 // certify its own decisions.
 // ---------------------------------------------------------------------------
 
-function finiteNodeOutcomes(layout: { nodes: Array<{ id: string; x: number; y: number }> }): void {
+function finiteNodeOutcomes(layout: { nodes: PositionedNode[] }): void {
   for (const node of layout.nodes) {
     expect(Number.isFinite(node.x)).toBe(true);
     expect(Number.isFinite(node.y)).toBe(true);
@@ -159,7 +159,7 @@ function finiteNodeOutcomes(layout: { nodes: Array<{ id: string; x: number; y: n
   }
 }
 
-function independentOverlapPairs(nodes: Array<{ id: string; x: number; y: number }>): string[] {
+function independentOverlapPairs(nodes: PositionedNode[]): string[] {
   const offenders: string[] = [];
   for (let i = 0; i < nodes.length; i++) {
     for (let j = i + 1; j < nodes.length; j++) {
@@ -187,7 +187,7 @@ function independentOverlapPairs(nodes: Array<{ id: string; x: number; y: number
  * brute-force paths are cross-checked against an independent loop.
  */
 function countSpacingViolations(
-  nodes: Array<{ id: string; x: number; y: number }>,
+  nodes: PositionedNode[],
   spacing: number,
 ): number {
   let count = 0;

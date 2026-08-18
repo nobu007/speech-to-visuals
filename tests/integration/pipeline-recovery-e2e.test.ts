@@ -14,14 +14,15 @@
 
 import { jest } from '@jest/globals';
 import type { RunRecoveryReport } from '@/quality/pipeline-run-recovery-tracker';
+import type { PipelineInput } from '@/pipeline/types';
 
 // ---------- Mocks ----------
 
 jest.unstable_mockModule('@/transcription', () => ({
-  TranscriptionPipeline: jest.fn().mockImplementation(() => ({
+  TranscriptionPipeline: jest.fn<(...args: unknown[]) => unknown>().mockImplementation(() => ({
     // REQ-045/046: runTranscription syncs config via updateConfig before transcribing.
     updateConfig: jest.fn(),
-    transcribe: jest.fn().mockResolvedValue({
+    transcribe: jest.fn<() => Promise<unknown>>().mockResolvedValue({
       success: true,
       segments: [
         { id: 0, start: 0, end: 5, text: 'Test segment one.', confidence: 0.9 },
@@ -40,15 +41,15 @@ jest.unstable_mockModule('@/analysis', () => ({
   // export named 'DEFAULT_MAX_SEGMENT_LENGTH_MS'". Canonical: 3000/15000 ms.
   DEFAULT_MIN_SEGMENT_LENGTH_MS: 3000,
   DEFAULT_MAX_SEGMENT_LENGTH_MS: 15000,
-  SceneSegmenter: jest.fn().mockImplementation(() => ({
+  SceneSegmenter: jest.fn<(...args: unknown[]) => unknown>().mockImplementation(() => ({
     updateConfig: jest.fn(),
-    segment: jest.fn().mockResolvedValue([
+    segment: jest.fn<() => Promise<unknown>>().mockResolvedValue([
       { id: 's1', start: 0, end: 5, text: 'Test segment one.' },
       { id: 's2', start: 5, end: 10, text: 'Test segment two.' },
     ]),
   })),
-  DiagramDetector: jest.fn().mockImplementation(() => ({
-    detect: jest.fn().mockResolvedValue({
+  DiagramDetector: jest.fn<(...args: unknown[]) => unknown>().mockImplementation(() => ({
+    detect: jest.fn<() => Promise<unknown>>().mockResolvedValue({
       diagramType: 'flow',
       confidence: 0.9,
       nodes: [
@@ -61,9 +62,9 @@ jest.unstable_mockModule('@/analysis', () => ({
 }));
 
 jest.unstable_mockModule('@/visualization', () => ({
-  LayoutEngine: jest.fn().mockImplementation(() => ({
+  LayoutEngine: jest.fn<(...args: unknown[]) => unknown>().mockImplementation(() => ({
     updateConfig: jest.fn(),
-    calculate: jest.fn().mockResolvedValue({
+    calculate: jest.fn<() => Promise<unknown>>().mockResolvedValue({
       scenes: [{
         id: 'scene-1',
         elements: [],
@@ -88,14 +89,30 @@ jest.unstable_mockModule('@stv/core/config', () => ({
 
 // ---------- Helpers ----------
 
-function createValidInput() {
+function createValidInput(): PipelineInput {
   return {
     audioFile: '/test/audio.wav',
     config: {
-      language: 'en',
-      qualityLevel: 'standard' as const,
-      enableCaptions: true,
-      outputFormat: 'mp4' as const,
+      transcription: {
+        model: 'base',
+        language: 'en',
+      },
+      analysis: {
+        minSegmentLengthMs: 3000,
+        maxSegmentLengthMs: 15000,
+        confidenceThreshold: 0.7,
+      },
+      layout: {
+        width: 1920,
+        height: 1080,
+        nodeWidth: 100,
+        nodeHeight: 50,
+      },
+      output: {
+        fps: 30,
+        videoDuration: 10,
+        includeAudio: true,
+      },
     },
   };
 }
@@ -198,7 +215,12 @@ describe('E2E: PipelineOrchestrator with ErrorRecovery Integration', () => {
       o1.execute(createValidInput()),
       o2.execute({
         audioFile: '/test/second-audio.wav',
-        config: { language: 'en' },
+        config: {
+          transcription: { model: 'base', language: 'en' },
+          analysis: { minSegmentLengthMs: 3000, maxSegmentLengthMs: 15000, confidenceThreshold: 0.7 },
+          layout: { width: 1920, height: 1080, nodeWidth: 100, nodeHeight: 50 },
+          output: { fps: 30, videoDuration: 10, includeAudio: true },
+        },
       }),
     ]);
 

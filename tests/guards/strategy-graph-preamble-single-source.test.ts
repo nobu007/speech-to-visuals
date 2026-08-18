@@ -392,9 +392,9 @@ describe('strategy-graph preamble: semantic pins', () => {
       .toEqual({ width: 90, height: 45 });
     // Dimension reads go through node-dimensions: explicit `width` beats the
     // `w` alias; both axes independently.
-    expect(scaledNodeExtent({ id: 'a', label: 'a', meta: { importance: 1.0 }, width: 177, w: 210 }))
+    expect(scaledNodeExtent({ id: 'a', label: 'a', meta: { importance: 1.0 }, width: 177 } as any))
       .toEqual({ width: 266, height: 90 });
-    expect(scaledNodeExtent({ id: 'a', label: 'a', meta: { importance: 1.0 }, w: 140, h: 70 }))
+    expect(scaledNodeExtent({ id: 'a', label: 'a', meta: { importance: 1.0 }, width: 140, height: 70 }))
       .toEqual({ width: 210, height: 105 });
   });
 

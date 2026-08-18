@@ -15,6 +15,7 @@ import {
   PipelineMetricsCollector,
   pipelineMetricsCollector,
   type PipelineMetricsSnapshot,
+  type PipelineMetricsConfig,
 } from '@/monitoring/pipeline-metrics-collector';
 import { exportPrometheusMetrics } from '@/monitoring/prometheus-exporter';
 
@@ -22,8 +23,8 @@ import { exportPrometheusMetrics } from '@/monitoring/prometheus-exporter';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function freshCollector(): PipelineMetricsCollector {
-  return new PipelineMetricsCollector();
+function freshCollector(config?: Partial<PipelineMetricsConfig>): PipelineMetricsCollector {
+  return new PipelineMetricsCollector(config);
 }
 
 // ---------------------------------------------------------------------------

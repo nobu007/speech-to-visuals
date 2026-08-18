@@ -194,9 +194,9 @@ describe('raw-localStorage remove chokepoint — production code wires through (
   // path is the only reliable override.
 
   // We track the spy so each test can restore it independently.
-  let removeItemSpy: jest.SpyInstance | null = null;
+  let removeItemSpy: ReturnType<typeof jest.spyOn> | null = null;
 
-  function installThrowingRemoveItem(): jest.SpyInstance {
+  function installThrowingRemoveItem(): ReturnType<typeof jest.spyOn> {
     removeItemSpy = jest
       .spyOn(Storage.prototype, 'removeItem')
       .mockImplementation((key: string) => {
@@ -260,7 +260,6 @@ describe('raw-localStorage remove chokepoint — production code wires through (
     // guard would no longer absorb — this is the vector the chokepoint
     // exists to close.
     const unguarded = (key: string): boolean => {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       localStorage.removeItem(key); // <-- unguarded: no try/catch
       return true;
     };

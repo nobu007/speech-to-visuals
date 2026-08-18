@@ -24,6 +24,7 @@
 import { describe, it, expect } from '@jest/globals';
 import { FROZEN_LITERAL_RULES } from './frozen-literal-rules';
 import { sweepFrozenLiteralRule, sweptFileCount } from './freeze-guard';
+import type { FrozenLiteralRule } from './freeze-guard';
 
 describe('frozen-literal registry (shared discovery sweep)', () => {
   it('registry is non-empty and every rule id is unique', () => {
@@ -54,7 +55,7 @@ describe('frozen-literal registry (shared discovery sweep)', () => {
 
   it.each(FROZEN_LITERAL_RULES.map((r) => [r.id, r]))(
     'sweep: %s',
-    (_id, rule) => {
+    (_id: string, rule: FrozenLiteralRule) => {
       const offenders = sweepFrozenLiteralRule(rule);
       expect(offenders).toEqual([]);
 

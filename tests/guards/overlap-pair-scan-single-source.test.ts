@@ -63,7 +63,7 @@ import {
 // behavior, not good behavior.
 // ---------------------------------------------------------------------------
 
-function inlineDetectAllOverlaps(nodes: PositionedNode[], minSpacing: number): PositionedNode[][] {
+function inlineDetectAllOverlaps(nodes: PositionedNode[], minSpacing: number): { node1: PositionedNode; node2: PositionedNode }[] {
   const overlaps: { node1: PositionedNode; node2: PositionedNode }[] = [];
 
   for (let i = 0; i < nodes.length; i++) {

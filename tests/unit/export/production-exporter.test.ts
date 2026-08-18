@@ -15,12 +15,14 @@ import { jest } from '@jest/globals';
 import { ProductionExporter } from '@/export/production-exporter';
 import type { ExportPreset } from '@/export/production-exporter';
 import { PipelineConfigError } from '@/pipeline/pipeline-errors';
+import type { SceneGraph } from '@stv/core/types/diagram';
+import type { EnhancedSceneGraph } from '@/visualization/advanced-visual-engine';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeEnhancedScene(overrides: Record<string, unknown> = {}) {
+function makeEnhancedScene(overrides: Record<string, unknown> = {}): EnhancedSceneGraph {
   return {
     id: 'scene-001',
     type: 'flow' as const,
@@ -42,7 +44,8 @@ function makeEnhancedScene(overrides: Record<string, unknown> = {}) {
     ],
     background: { type: 'solid' as const, primary: '#ffffff', opacity: 1 },
     ...overrides,
-  };
+  // visualStyle is a partial VisualStyle; SUT reads only these fields.
+  } as unknown as EnhancedSceneGraph;
 }
 
 function makeRenderOptions(overrides: Record<string, unknown> = {}) {

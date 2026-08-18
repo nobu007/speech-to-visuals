@@ -56,7 +56,7 @@ function partialLayout(prefix: string, count: number): DiagramLayout {
   return { nodes, edges: [] };
 }
 
-async function runOnce(prefix: string): Promise<PositionedNode[]> {
+async function runOnce(prefix: string): Promise<Array<{ id: string; x: number; y: number }>> {
   const { nodes, edges } = makeTopology(prefix);
   const strategy = new ProgressiveForceStrategy();
   const result = await strategy.apply(nodes, edges, CONFIG, partialLayout(prefix, 8));

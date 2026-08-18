@@ -256,9 +256,9 @@ describe('inline MM:SS formatter guard — mutation witness (TC-314-03)', () => 
     // does NOT reject NaN or Infinity because both comparisons return false.
     // This is the exact "the clause is redundant" trap the witness closes.
     const mutatedGuard = (frame: number, fps: number): boolean => fps <= 0;
-    expect(mutatedGuard(NaN)).toBe(false);          // NaN <= 0 is false → not rejected
-    expect(mutatedGuard(Infinity)).toBe(false);     // Infinity <= 0 is false → not rejected
-    expect(mutatedGuard(-Infinity)).toBe(false);    // -Infinity <= 0 IS true (the only one caught)
+    expect(mutatedGuard(NaN, 30)).toBe(false);          // NaN <= 0 is false → not rejected
+    expect(mutatedGuard(Infinity, 30)).toBe(false);     // Infinity <= 0 is false → not rejected
+    expect(mutatedGuard(-Infinity, 30)).toBe(false);    // -Infinity <= 0 IS true (the only one caught)
 
     // The combined form catches all three; the witness flips RED if the
     // `!Number.isFinite` clause is ever dropped.

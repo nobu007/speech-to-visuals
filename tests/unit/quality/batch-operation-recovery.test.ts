@@ -80,7 +80,7 @@ describe('BatchOperationRecovery', () => {
 
     it('returns 100% success rate for concurrent processing', async () => {
       const items = [1, 2, 3, 4, 5];
-      const processor = successProcessor((item) => item * 10);
+      const processor = successProcessor<number, number>((item) => item * 10);
 
       const result = await recovery.process(items, processor, undefined, {
         stage: 'rendering',

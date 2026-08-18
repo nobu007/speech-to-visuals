@@ -22,14 +22,14 @@ import { renderHook, act } from '@testing-library/react';
 // Mocks (ESM-compatible)
 // ---------------------------------------------------------------------------
 
-const mockSetPhase = jest.fn();
-const mockExecute = jest.fn();
-const mockGenerateReport = jest.fn().mockReturnValue('# Report');
-const mockGetIterationSummary = jest.fn().mockReturnValue({ iterations: 0 });
-const mockGetImprovementHistory = jest.fn().mockReturnValue([]);
+const mockSetPhase = jest.fn<any>();
+const mockExecute = jest.fn<any>();
+const mockGenerateReport = jest.fn<any>().mockReturnValue('# Report');
+const mockGetIterationSummary = jest.fn<any>().mockReturnValue({ iterations: 0 });
+const mockGetImprovementHistory = jest.fn<any>().mockReturnValue([]);
 
 jest.unstable_mockModule('@/pipeline/framework-integrated-pipeline', () => ({
-  FrameworkIntegratedPipeline: jest.fn().mockImplementation(() => ({
+  FrameworkIntegratedPipeline: jest.fn<any>().mockImplementation(() => ({
     setPhase: mockSetPhase,
     execute: mockExecute,
     generateReport: mockGenerateReport,
@@ -40,9 +40,9 @@ jest.unstable_mockModule('@/pipeline/framework-integrated-pipeline', () => ({
 
 jest.unstable_mockModule('@stv/core/utils/logger', () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
+    info: jest.fn<any>(),
+    warn: jest.fn<any>(),
+    error: jest.fn<any>(),
   },
 }));
 
@@ -56,11 +56,11 @@ jest.unstable_mockModule('@/framework/iteration-manager', () => ({
 }));
 
 // Fetch mock for auto-commit
-global.fetch = jest.fn().mockResolvedValue({
+global.fetch = jest.fn<any>().mockResolvedValue({
   ok: true,
   status: 200,
   statusText: 'OK',
-});
+}) as unknown as typeof fetch;
 
 // ---------------------------------------------------------------------------
 // Dynamic imports (ESM-compatible)
@@ -454,11 +454,11 @@ describe('useFrameworkPipeline (REQ-137)', () => {
 
 describe('useIterationLog', () => {
   test('should capture error message when fetch returns non-ok response', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as unknown as { mockResolvedValueOnce: (value: Response) => unknown }).mockResolvedValueOnce({
       ok: false,
       status: 500,
       statusText: 'Internal Server Error',
-    });
+    } as Response);
 
     const { result } = renderHook(() => useIterationLog());
 
@@ -472,11 +472,11 @@ describe('useIterationLog', () => {
   });
 
   test('should set log text on successful fetch', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as unknown as { mockResolvedValueOnce: (value: Response) => unknown }).mockResolvedValueOnce({
       ok: true,
       status: 200,
-      text: jest.fn().mockResolvedValue('log line 1\nlog line 2'),
-    });
+      text: jest.fn<() => Promise<string>>().mockResolvedValue('log line 1\nlog line 2'),
+    } as unknown as Response);
 
     const { result } = renderHook(() => useIterationLog());
 
@@ -493,7 +493,7 @@ describe('useIterationLog', () => {
     const origFetch = global.fetch;
 
     // Intercept the MonitoringError by temporarily patching fetch
-    global.fetch = jest.fn().mockImplementation(async () => {
+    global.fetch = jest.fn<(...args: unknown[]) => Promise<Response>>().mockImplementation(async () => {
       throw new MonitoringError('Failed to fetch iteration log');
     });
 

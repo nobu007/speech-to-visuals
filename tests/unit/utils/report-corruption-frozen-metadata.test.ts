@@ -254,7 +254,7 @@ describe('reportCorruption frozen-metadata robustness', () => {
 
       // structuredClone is available in Node.js 17+
       if (typeof structuredClone === 'function') {
-        const cloned = structuredClone(frozen);
+        const cloned = structuredClone(frozen) as CorruptionReport & { extra?: string };
         expect(cloned.source).toBe('Clone');
         expect(cloned.detail).toBe('clone test');
         expect(cloned.recovered).toBe(true);

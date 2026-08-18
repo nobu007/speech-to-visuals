@@ -58,11 +58,11 @@ function createWiredService(
   }
 
   const service = {
-    isEnabled: jest.fn().mockReturnValue(enabled),
-    warmupCache: jest.fn().mockImplementation(async () => {
+    isEnabled: jest.fn<() => unknown>().mockReturnValue(enabled),
+    warmupCache: jest.fn<(...args: unknown[]) => unknown>().mockImplementation(async () => {
       return warmupManager.warmupIfCold(resolver);
     }),
-    getCacheWarmupStats: jest.fn().mockImplementation(() => warmupManager.getWarmupStats()),
+    getCacheWarmupStats: jest.fn<(...args: unknown[]) => unknown>().mockImplementation(() => warmupManager.getWarmupStats()),
   } as unknown as LLMService;
 
   return { service, cache, warmupManager };
@@ -239,9 +239,9 @@ describe('Phase 47 — REQ-120: Concurrent health requests during warmup transit
 
   test('TC-120-01: multiple concurrent health requests during pending warmup all return valid responses', async () => {
     const service = {
-      isEnabled: jest.fn().mockReturnValue(true),
-      warmupCache: jest.fn().mockReturnValue(new Promise(() => {})), // hangs forever
-      getCacheWarmupStats: jest.fn().mockReturnValue({ totalPatternsProcessed: 0 }),
+      isEnabled: jest.fn<() => unknown>().mockReturnValue(true),
+      warmupCache: jest.fn<() => unknown>().mockReturnValue(new Promise(() => {})), // hangs forever
+      getCacheWarmupStats: jest.fn<() => unknown>().mockReturnValue({ totalPatternsProcessed: 0 }),
     } as unknown as LLMService;
 
     triggerStartupWarmup(service);
@@ -275,9 +275,9 @@ describe('Phase 47 — REQ-120: Concurrent health requests during warmup transit
 
     // Trigger warmup that resolves quickly
     const service = {
-      isEnabled: jest.fn().mockReturnValue(true),
-      warmupCache: jest.fn().mockResolvedValue(true),
-      getCacheWarmupStats: jest.fn().mockReturnValue({ totalPatternsProcessed: 5 }),
+      isEnabled: jest.fn<() => unknown>().mockReturnValue(true),
+      warmupCache: jest.fn<() => Promise<unknown>>().mockResolvedValue(true),
+      getCacheWarmupStats: jest.fn<() => unknown>().mockReturnValue({ totalPatternsProcessed: 5 }),
     } as unknown as LLMService;
 
     triggerStartupWarmup(service);
@@ -315,9 +315,9 @@ describe('Phase 47 — REQ-120: Concurrent health requests during warmup transit
       resetWarmupStatus();
 
       const service = {
-        isEnabled: jest.fn().mockReturnValue(true),
-        warmupCache: jest.fn().mockResolvedValue(i % 2 === 0),
-        getCacheWarmupStats: jest.fn().mockReturnValue({ totalPatternsProcessed: i }),
+        isEnabled: jest.fn<() => unknown>().mockReturnValue(true),
+        warmupCache: jest.fn<() => Promise<unknown>>().mockResolvedValue(i % 2 === 0),
+        getCacheWarmupStats: jest.fn<() => unknown>().mockReturnValue({ totalPatternsProcessed: i }),
       } as unknown as LLMService;
 
       triggerStartupWarmup(service);
@@ -368,11 +368,11 @@ describe('Phase 47 — REQ-121: Warmup retry after zero-success completion', () 
 
     // Second attempt: succeeds
     const successService = {
-      isEnabled: jest.fn().mockReturnValue(true),
-      warmupCache: jest.fn().mockImplementation(async () => {
+      isEnabled: jest.fn<() => unknown>().mockReturnValue(true),
+      warmupCache: jest.fn<(...args: unknown[]) => unknown>().mockImplementation(async () => {
         return warmupManager.warmupIfCold(async (text: string) => `result: ${text}`);
       }),
-      getCacheWarmupStats: jest.fn().mockImplementation(() => warmupManager.getWarmupStats()),
+      getCacheWarmupStats: jest.fn<(...args: unknown[]) => unknown>().mockImplementation(() => warmupManager.getWarmupStats()),
     } as unknown as LLMService;
 
     triggerStartupWarmup(successService);
@@ -416,11 +416,11 @@ describe('Phase 47 — REQ-121: Warmup retry after zero-success completion', () 
     // Reset and retry with success
     resetWarmupStatus();
     const successService = {
-      isEnabled: jest.fn().mockReturnValue(true),
-      warmupCache: jest.fn().mockImplementation(async () => {
+      isEnabled: jest.fn<() => unknown>().mockReturnValue(true),
+      warmupCache: jest.fn<(...args: unknown[]) => unknown>().mockImplementation(async () => {
         return warmupManager.warmupIfCold(async (text: string) => `result: ${text}`);
       }),
-      getCacheWarmupStats: jest.fn().mockImplementation(() => warmupManager.getWarmupStats()),
+      getCacheWarmupStats: jest.fn<(...args: unknown[]) => unknown>().mockImplementation(() => warmupManager.getWarmupStats()),
     } as unknown as LLMService;
 
     triggerStartupWarmup(successService);
