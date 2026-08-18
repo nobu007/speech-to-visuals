@@ -12,8 +12,8 @@
  * while VideoGenerationOptions.quality adds an 'ultra' tier, so 'ultra' must map
  * down to the renderer's highest real tier ('high').
  *
- * This test mocks @/lib/actualVideoRenderer and drives the REAL executeRemotionRender
- * (node env → non-browser branch → the dynamic import('@/lib/actualVideoRenderer')
+ * This test mocks @/pipeline/actual-video-renderer and drives the REAL executeRemotionRender
+ * (node env → non-browser branch → the dynamic import('@/pipeline/actual-video-renderer')
  * is intercepted by unstable_mockModule), asserting the quality handed to renderVideo
  * reflects VideoGenerator's options.
  */
@@ -23,7 +23,7 @@ import { jest } from '@jest/globals';
 
 const renderVideoMock = jest.fn();
 
-jest.unstable_mockModule('@/lib/actualVideoRenderer', () => ({
+jest.unstable_mockModule('@/pipeline/actual-video-renderer', () => ({
   actualVideoRenderer: { renderVideo: renderVideoMock },
 }));
 

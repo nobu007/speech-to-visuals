@@ -7,7 +7,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { SimplePipeline } from '@/pipeline/simple-pipeline';
 import { llmService, type LLMServiceStats } from '@/analysis/llm-service';
-import { globalIterationLogger } from '@/utils/iteration-logger';
+import { globalIterationLogger } from '@/framework/iteration-logger';
 import { getMemoryUsage } from '@/utils/memory-usage';
 import type { DiagramType } from '@/types/diagram';
 

@@ -112,7 +112,7 @@ jest.unstable_mockModule('@/framework/recursive-custom-instructions', () => ({
   })),
 }));
 
-jest.unstable_mockModule('@/utils/iteration-logger', () => ({
+jest.unstable_mockModule('@/framework/iteration-logger', () => ({
   globalIterationLogger: {
     appendIteration: jest.fn().mockResolvedValue(undefined),
     calculateImprovementTrends: jest

@@ -20,7 +20,7 @@ jest.unstable_mockModule('sonner', () => ({
   toast: { info: jest.fn(), success: jest.fn(), error: jest.fn() },
 }));
 
-jest.unstable_mockModule('@/lib/videoRenderer', () => ({
+jest.unstable_mockModule('@/components/videoRenderer', () => ({
   __esModule: true,
   videoRenderer: {
     renderVideo: jest.fn(),
@@ -34,7 +34,7 @@ jest.unstable_mockModule('@/utils/logger', () => ({
 }));
 
 const { VideoRenderer } = await import('../VideoRenderer');
-const { videoRenderer } = await import('@/lib/videoRenderer');
+const { videoRenderer } = await import('@/components/videoRenderer');
 import type { SceneGraph } from '@/types/diagram';
 
 function makeScenes(count = 2): SceneGraph[] {

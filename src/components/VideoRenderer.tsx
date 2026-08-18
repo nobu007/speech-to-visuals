@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Play, Download, ExternalLink, Settings } from 'lucide-react';
 import { SceneGraph } from '@/types/diagram';
-import { videoRenderer, VideoRenderProgress } from '@/lib/videoRenderer';
+import { videoRenderer, VideoRenderProgress } from '@/components/videoRenderer';
 import { Player } from '@remotion/player';
 import { logger } from '@/utils/logger';
 import { toast } from 'sonner';

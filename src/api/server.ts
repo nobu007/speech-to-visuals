@@ -21,7 +21,7 @@ import { correlationId } from './middleware/correlation-id';
 import { requestLogger } from './middleware/request-logger';
 import { requestMetrics } from './middleware/request-metrics';
 import { RATE_LIMITS, SERVER_LIMITS, EXPORT_QUEUE_LIMITS } from '../config/limits';
-import { validateSecurityEnv } from '../config/validate';
+import { validateSecurityEnv } from './security-env';
 import { logger } from '../utils/logger';
 import { PipelineConfigError } from '../pipeline/pipeline-errors';
 

@@ -6,7 +6,7 @@ import {
   validateJwtSecret,
   validateCorsOrigins,
   validateSecurityEnv,
-} from '../../../src/config/validate';
+} from '@/api/security-env';
 
 describe('ISS-045: Security environment variable validation', () => {
   const originalEnv = process.env;

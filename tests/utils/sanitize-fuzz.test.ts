@@ -17,8 +17,8 @@
  * NO unescaped `<` or `>` survives that could form a real tag.
  */
 
-import { escapeXml } from '../../export/animated-scene-renderer';
-import { sanitizeFilename } from '../sanitize';
+import { escapeXml } from '@/export/animated-scene-renderer.ts';
+import { sanitizeFilename } from '@/utils/sanitize.ts';
 import { mulberry32 } from '@tests/helpers/fuzz';
 
 // ---------------------------------------------------------------------------

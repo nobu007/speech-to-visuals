@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { IterationLogger, type IterationLogEntry } from '../iteration-logger';
+import { IterationLogger, type IterationLogEntry } from '@/framework/iteration-logger';
 
 describe('IterationLogger', () => {
   let tmpDir: string;

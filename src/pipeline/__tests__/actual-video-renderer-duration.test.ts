@@ -36,7 +36,7 @@ jest.unstable_mockModule('fs', () => ({
   },
 }));
 
-const { ActualVideoRenderer } = await import('../actualVideoRenderer');
+const { ActualVideoRenderer } = await import('@/pipeline/actual-video-renderer');
 const { selectComposition } = await import('@remotion/renderer');
 
 function makeScene(id: string, durationMs: number, startTime?: number, endTime?: number): SceneGraph {

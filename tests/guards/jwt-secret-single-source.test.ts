@@ -201,9 +201,11 @@ describe('jwt-secret source anchors (round 26)', () => {
     expect(src).not.toMatch(/JWT_SECRET\s*\|\|\s*process\.env\.SUPABASE_JWT_SECRET/);
   });
 
-  it('config validator resolves through the canonical chain, not a re-typed copy', () => {
-    const src = readSource('src/config/validate.ts');
-    expect(src).toMatch(/import\s*\{[^}]*getJwtSecretFromEnv[^}]*\}\s*from\s*'..\/api\/jwt-secret'/);
+  it('security-env validator resolves through the canonical chain, not a re-typed copy', () => {
+    // Moved from config/validate.ts to api/security-env.ts with the core
+    // extraction (config layer must stay free of API dependencies).
+    const src = readSource('src/api/security-env.ts');
+    expect(src).toMatch(/import\s*\{[^}]*getJwtSecretFromEnv[^}]*\}\s*from\s*'\.\/jwt-secret'/);
     expect(src).toMatch(/getJwtSecretFromEnv\(\)/);
     expect(src).not.toMatch(/JWT_SECRET\s*\|\|\s*process\.env\.SUPABASE_JWT_SECRET/);
   });

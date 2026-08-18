@@ -54,7 +54,7 @@ jest.unstable_mockModule('fs', () => ({
   },
 }));
 
-const { ActualVideoRenderer } = await import('@/lib/actualVideoRenderer');
+const { ActualVideoRenderer } = await import('@/pipeline/actual-video-renderer');
 const { selectComposition } = await import('@remotion/renderer');
 
 interface CompositionArg {

@@ -118,7 +118,7 @@ jest.mock('@/framework/recursive-custom-instructions', () => ({
   })),
 }));
 
-jest.mock('@/utils/iteration-logger', () => ({
+jest.mock('@/framework/iteration-logger', () => ({
   globalIterationLogger: {
     appendIteration: jest.fn().mockResolvedValue(undefined),
     calculateImprovementTrends: jest

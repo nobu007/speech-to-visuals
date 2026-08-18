@@ -244,7 +244,7 @@ class CompleteAudioPipelineTest {
       if (pipelineResult.scenes && pipelineResult.scenes.length > 0) {
         const stage5 = this.startStage('Stage 5: Video Generation (Remotion)');
         try {
-          const { actualVideoRenderer } = await import('../src/lib/actualVideoRenderer');
+          const { actualVideoRenderer } = await import('@/pipeline/actual-video-renderer');
 
           const videoOutputPath = path.join(this.outputDir, 'output-video.mp4');
 

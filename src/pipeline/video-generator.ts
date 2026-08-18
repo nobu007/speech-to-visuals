@@ -402,7 +402,7 @@ export class VideoGenerator {
       }
 
       // 実際のレンダリング（サーバーサイド）
-      const { actualVideoRenderer } = await import('@/lib/actualVideoRenderer');
+      const { actualVideoRenderer } = await import('@/pipeline/actual-video-renderer');
 
       const outputPath = cfg.outputLocation as string;
 

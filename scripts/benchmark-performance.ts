@@ -4,7 +4,7 @@
  * パフォーマンスベースライン測定とボトルネック特定
  */
 
-import { actualVideoRenderer } from '../src/lib/actualVideoRenderer';
+import { actualVideoRenderer } from '@/pipeline/actual-video-renderer';
 import { SceneGraph } from '../src/types/diagram';
 import fs from 'fs';
 import path from 'path';

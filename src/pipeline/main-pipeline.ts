@@ -44,7 +44,7 @@ import {
   countLayoutOverlaps,
 } from './quality-estimators';
 // Phase 34: Persistent iteration logging system
-import { globalIterationLogger } from '@/utils/iteration-logger';
+import { globalIterationLogger } from '@/framework/iteration-logger';
 import { getHeapUsed, getMemoryUsage } from '@/utils/memory-usage';
 import { logger } from '../utils/logger';
 

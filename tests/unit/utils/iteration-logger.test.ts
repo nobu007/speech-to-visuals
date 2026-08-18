@@ -5,7 +5,7 @@
  * generatePhaseSummary, MAX_LOG_ENTRIES enforcement, ISS-024 regex escaping,
  * error handling.
  */
-import { IterationLogger, type IterationLogEntry } from '@/utils/iteration-logger';
+import { IterationLogger, type IterationLogEntry } from '@/framework/iteration-logger';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';

@@ -8,8 +8,8 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { logger } from './logger';
-import { escapeRegex } from './regex-escape';
+import { logger } from '@/utils/logger.ts';
+import { escapeRegex } from '@/utils/regex-escape.ts';
 import { bytesToMb } from '@/lib/metrics-utils';
 import { DEFAULT_MIN_SEGMENT_LENGTH_MS, DEFAULT_MAX_SEGMENT_LENGTH_MS } from '@/analysis';
 
