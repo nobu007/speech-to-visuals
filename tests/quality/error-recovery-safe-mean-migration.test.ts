@@ -36,6 +36,12 @@ const recoverySource = readFileSync(
   path.join(here, '../../src/quality/enhanced-error-recovery.ts'),
   'utf8',
 );
+// Split 2026-08: the loadMetrics means (sites 355-357/420/471/821) moved
+// verbatim into error-recovery/load-balanced-executor.ts.
+const executorSource = readFileSync(
+  path.join(here, '../../src/quality/error-recovery/load-balanced-executor.ts'),
+  'utf8',
+);
 const trackerSource = readFileSync(
   path.join(here, '../../src/quality/error-recovery-health-tracker.ts'),
   'utf8',
@@ -160,28 +166,32 @@ describe('health-tracker site 215: avgRecovery over report.summary.recoverySucce
 // ---------------------------------------------------------------------------
 
 describe('source anchor: legacy folds are gone, safeMean delegates remain', () => {
-  test('enhanced-error-recovery.ts', () => {
-    expect(recoverySource).not.toMatch(
-      /currentMetrics\.reduce\(\(sum, m\) => sum \+ m\.(averageResponseTime|errorRate|memoryPressure), 0\)/,
-    );
-    expect(recoverySource).not.toMatch(
-      /requestStats\.avgResponseTime = recentMetrics\.reduce/,
-    );
-    expect(recoverySource).not.toMatch(
-      /recentMetrics\.reduce\(\(sum, m\) => sum \+ m\.averageResponseTime, 0\)/,
-    );
-    expect(recoverySource).toMatch(
+  test('enhanced-error-recovery.ts (loadMetrics means now in load-balanced-executor.ts)', () => {
+    // Neither file may re-introduce the raw folds.
+    for (const source of [recoverySource, executorSource]) {
+      expect(source).not.toMatch(
+        /currentMetrics\.reduce\(\(sum, m\) => sum \+ m\.(averageResponseTime|errorRate|memoryPressure), 0\)/,
+      );
+      expect(source).not.toMatch(
+        /requestStats\.avgResponseTime = recentMetrics\.reduce/,
+      );
+      expect(source).not.toMatch(
+        /recentMetrics\.reduce\(\(sum, m\) => sum \+ m\.averageResponseTime, 0\)/,
+      );
+    }
+    // The safeMean delegates moved with the code — anchor them in the executor.
+    expect(executorSource).toMatch(
       /safeMean\(currentMetrics\.map\(\(m\) => m\.averageResponseTime\)\)/,
     );
-    expect(recoverySource).toMatch(
+    expect(executorSource).toMatch(
       /safeMean\(currentMetrics\.map\(\(m\) => m\.errorRate\)\)/,
     );
-    expect(recoverySource).toMatch(
+    expect(executorSource).toMatch(
       /safeMean\(currentMetrics\.map\(\(m\) => m\.memoryPressure\)\)/,
     );
     // Sites 420, 471 and 821 all delegate through the same map expression
     // (calculateAverageResponseTime also names its slice `recentMetrics`).
-    expect(recoverySource.match(/safeMean\(recentMetrics\.map\(\(m\) => m\.averageResponseTime\)\)/g)?.length).toBe(3);
+    expect(executorSource.match(/safeMean\(recentMetrics\.map\(\(m\) => m\.averageResponseTime\)\)/g)?.length).toBe(3);
   });
 
   test('error-recovery-health-tracker.ts', () => {
