@@ -12,6 +12,8 @@ status: generated
 ---
 # Module tmp
 
+> **履歴スナップショット**: このページは生成時点の記録です。列挙パス `tmp/kairo-loop/speech-to-visuals-phase5-20260429111523.md`（および `tmp/` ルート自体）は現行ツリーに存在しません。このモジュールは現行構成には含まれません。
+
 ## Role
 
 - Rationale: Files under tmp form a shared path-level boundary.

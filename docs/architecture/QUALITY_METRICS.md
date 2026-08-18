@@ -299,9 +299,11 @@ npm run quality:check
 
 ### 8.2 Performance Profiling
 ```bash
-npm run pipeline:test:e2e -- --profile
+npm run pipeline:test:audio
 ```
 **Output**: Detailed timing breakdown by stage
+
+> Note: `npm run pipeline:test:e2e` is currently **not runnable** — its target `scripts/test-e2e-with-audio.ts` does not exist in the tree. Use `pipeline:test:audio` or `npx tsx scripts/phase29-system-validation.ts` (real-audio validation with `public/jfk.wav`) until it is restored.
 
 ---
 
@@ -315,9 +317,12 @@ npm run validate:llm
 
 ### 8.4 Phase Validation
 ```bash
-npm run test:phase43
+npm run test:phase38   # custom instructions compliance validation
+npm run test:phase44   # end-to-end validation
 ```
 **Output**: Phase-specific success criteria validation
+
+> Note: `npm run test:phase43` is currently **not runnable** — its target `scripts/test-phase43.ts` does not exist in the tree (same for `test:phase33` → `scripts/test-phase33.ts`).
 
 ---
 

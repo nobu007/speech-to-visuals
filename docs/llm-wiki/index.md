@@ -14,6 +14,8 @@ status: generated
 ---
 # Repository Wiki Index
 
+> **履歴スナップショット（生成時点の記録）**: この Wiki はリポジトリ解析の生成時点におけるスナップショットです。各ページが列挙するパス・行数・集計には、現行ツリーに存在しないものを含みます（例: `.audit/purpose_driven_plan.yml`、`specs/_doc_spine.yml`、`_state/progress.json`、`tmp/` 配下、`src/visualization/__tests__/advanced-visual-engine.test.ts`）。再生成用のジェネレータは本リポジトリに含まれないため、現行の構成・モジュール境界・リスク記録の確認には実ファイルを直接参照してください。この Wiki を現在のリポジトリ状態の真実源として扱わないでください。
+
 ## Overview
 
 - Repository: `speech-to-visuals`
