@@ -12,7 +12,10 @@ class TestableLayoutEngine extends BaseLayoutEngine {
       nodeHeight: 60,
       marginX: 40,
       marginY: 40,
+      rankDirection: 'TB',
       nodeSeparation: 20,
+      edgeSeparation: 20,
+      rankSeparation: 50,
       ...override,
     };
   }
@@ -40,7 +43,6 @@ class TestableLayoutEngine extends BaseLayoutEngine {
       bounds: this.calculateBounds(positioned),
       processingTime: 10,
       confidence: 1,
-      iteration: iteration ?? 1,
     };
   }
 

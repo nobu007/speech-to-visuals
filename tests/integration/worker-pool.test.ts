@@ -36,11 +36,13 @@ function createMockWorkerPool() {
           listeners[event] = listeners[event].filter((h) => h !== handler);
         }
       }),
-    };
+    } as unknown as Worker;
 
-    workers.push({ instance, listeners });
+    workers.push({ instance: instance as unknown as (typeof workers)[number]['instance'], listeners });
     return instance;
-  });
+    // The factory replaces the real Worker with a listener-recording stub;
+    // cast keeps the worker-pool Worker constructor contract.
+  }) as unknown as () => Worker;
 
   const dispatchToLastWorker = (data: WorkerResponse) => {
     const lastWorker = workers[workers.length - 1];

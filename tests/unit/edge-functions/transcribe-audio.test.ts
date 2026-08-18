@@ -25,7 +25,7 @@ jest.unstable_mockModule('#supabase/functions/_shared/error-handler.ts', () => (
 }));
 
 const { handleTranscribe, TRANSCRIBE_TIMEOUT_MS } = await import('#supabase/functions/transcribe-audio/index');
-const fetchWithTimeout = (await import('#supabase/functions/_shared/error-handler.ts')).fetchWithTimeout as jest.Mock;
+const fetchWithTimeout = (await import('#supabase/functions/_shared/error-handler.ts')).fetchWithTimeout as jest.MockedFunction<any>;
 
 const VALID_ENV = { LOVABLE_API_KEY: 'test-api-key' };
 const USER_ID = 'user-test-001';
@@ -34,7 +34,7 @@ function mockAudioResponse(buffer: ArrayBuffer) {
   return {
     ok: true,
     blob: async () => new Blob([buffer]),
-  };
+  } as Response;
 }
 
 function mockTranscriptionResponse(data: Record<string, unknown>) {
@@ -42,14 +42,22 @@ function mockTranscriptionResponse(data: Record<string, unknown>) {
     ok: true,
     text: async () => JSON.stringify(data),
     json: async () => data,
-  };
+  } as Response;
+}
+
+function mockErrorResponse(status: number, text?: string) {
+  return {
+    ok: false,
+    status,
+    text: async () => text || 'Error',
+  } as Response;
 }
 
 // ─── handleTranscribe Tests ──────────────────────────────────────────────────
 
 describe('handleTranscribe', () => {
   beforeEach(() => {
-    (fetchWithTimeout as jest.Mock).mockReset();
+    fetchWithTimeout.mockReset();
   });
 
   it('should return transcript with segments on success', async () => {
@@ -65,9 +73,9 @@ describe('handleTranscribe', () => {
     };
 
     // First call: audio download
-    (fetchWithTimeout as jest.Mock).mockResolvedValueOnce(mockAudioResponse(audioBuffer));
+    fetchWithTimeout.mockResolvedValueOnce(mockAudioResponse(audioBuffer));
     // Second call: Whisper API
-    (fetchWithTimeout as jest.Mock).mockResolvedValueOnce(mockTranscriptionResponse(transcriptionData));
+    fetchWithTimeout.mockResolvedValueOnce(mockTranscriptionResponse(transcriptionData));
 
     const result = await handleTranscribe(
       { audioUrl: 'https://example.com/audio.mp3' },
@@ -85,8 +93,8 @@ describe('handleTranscribe', () => {
 
   it('should pass language parameter to the API', async () => {
     const audioBuffer = new ArrayBuffer(512);
-    (fetchWithTimeout as jest.Mock).mockResolvedValueOnce(mockAudioResponse(audioBuffer));
-    (fetchWithTimeout as jest.Mock).mockResolvedValueOnce(
+    fetchWithTimeout.mockResolvedValueOnce(mockAudioResponse(audioBuffer));
+    fetchWithTimeout.mockResolvedValueOnce(
       mockTranscriptionResponse({ text: 'テスト', duration: 1, segments: [] })
     );
 
@@ -97,7 +105,7 @@ describe('handleTranscribe', () => {
     );
 
     // The second call should be the Whisper API call
-    const whisperCall = (fetchWithTimeout as jest.Mock).mock.calls[1];
+    const whisperCall = fetchWithTimeout.mock.calls[1];
     expect(whisperCall[0]).toContain('transcriptions');
   });
 
@@ -114,10 +122,7 @@ describe('handleTranscribe', () => {
   });
 
   it('should throw when audio download fails', async () => {
-    (fetchWithTimeout as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      status: 404,
-    });
+    fetchWithTimeout.mockResolvedValueOnce(mockErrorResponse(404));
 
     await expect(
       handleTranscribe({ audioUrl: 'https://example.com/notfound.mp3' }, USER_ID, VALID_ENV)
@@ -125,7 +130,7 @@ describe('handleTranscribe', () => {
   });
 
   it('should throw when audio file is empty', async () => {
-    (fetchWithTimeout as jest.Mock).mockResolvedValueOnce(mockAudioResponse(new ArrayBuffer(0)));
+    fetchWithTimeout.mockResolvedValueOnce(mockAudioResponse(new ArrayBuffer(0)));
 
     await expect(
       handleTranscribe({ audioUrl: 'https://example.com/empty.mp3' }, USER_ID, VALID_ENV)
@@ -133,7 +138,7 @@ describe('handleTranscribe', () => {
   });
 
   it('should throw when LOVABLE_API_KEY is not configured', async () => {
-    (fetchWithTimeout as jest.Mock).mockResolvedValueOnce(mockAudioResponse(new ArrayBuffer(100)));
+    fetchWithTimeout.mockResolvedValueOnce(mockAudioResponse(new ArrayBuffer(100)));
 
     await expect(
       handleTranscribe({ audioUrl: 'https://example.com/audio.mp3' }, USER_ID, { LOVABLE_API_KEY: '' })
@@ -141,12 +146,8 @@ describe('handleTranscribe', () => {
   });
 
   it('should throw when Whisper API returns error', async () => {
-    (fetchWithTimeout as jest.Mock).mockResolvedValueOnce(mockAudioResponse(new ArrayBuffer(100)));
-    (fetchWithTimeout as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      text: async () => 'Internal Server Error',
-    });
+    fetchWithTimeout.mockResolvedValueOnce(mockAudioResponse(new ArrayBuffer(100)));
+    fetchWithTimeout.mockResolvedValueOnce(mockErrorResponse(500, 'Internal Server Error'));
 
     await expect(
       handleTranscribe({ audioUrl: 'https://example.com/audio.mp3' }, USER_ID, VALID_ENV)
@@ -158,8 +159,8 @@ describe('handleTranscribe', () => {
   });
 
   it('should handle segments without avg_logprob', async () => {
-    (fetchWithTimeout as jest.Mock).mockResolvedValueOnce(mockAudioResponse(new ArrayBuffer(100)));
-    (fetchWithTimeout as jest.Mock).mockResolvedValueOnce(
+    fetchWithTimeout.mockResolvedValueOnce(mockAudioResponse(new ArrayBuffer(100)));
+    fetchWithTimeout.mockResolvedValueOnce(
       mockTranscriptionResponse({
         text: 'Simple text',
         duration: 2,
@@ -177,8 +178,8 @@ describe('handleTranscribe', () => {
   });
 
   it('should handle missing segments gracefully', async () => {
-    (fetchWithTimeout as jest.Mock).mockResolvedValueOnce(mockAudioResponse(new ArrayBuffer(100)));
-    (fetchWithTimeout as jest.Mock).mockResolvedValueOnce(
+    fetchWithTimeout.mockResolvedValueOnce(mockAudioResponse(new ArrayBuffer(100)));
+    fetchWithTimeout.mockResolvedValueOnce(
       mockTranscriptionResponse({ text: 'No segments here', duration: 3 })
     );
 
@@ -204,8 +205,8 @@ describe('handleTranscribe', () => {
       '{"text":"hi","duration":1e400,"language":"en","__proto__":{"polluted":true},"segments":[]}'
     );
 
-    (fetchWithTimeout as jest.Mock).mockResolvedValueOnce(mockAudioResponse(new ArrayBuffer(100)));
-    (fetchWithTimeout as jest.Mock).mockResolvedValueOnce(mockTranscriptionResponse(adversarial));
+    fetchWithTimeout.mockResolvedValueOnce(mockAudioResponse(new ArrayBuffer(100)));
+    fetchWithTimeout.mockResolvedValueOnce(mockTranscriptionResponse(adversarial));
 
     const result = await handleTranscribe(
       { audioUrl: 'https://example.com/audio.mp3' },

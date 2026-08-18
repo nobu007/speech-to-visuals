@@ -71,11 +71,11 @@ function createWiredService(
   }
 
   const service = {
-    isEnabled: jest.fn().mockReturnValue(enabled),
-    warmupCache: jest.fn().mockImplementation(async () => {
+    isEnabled: jest.fn<() => unknown>().mockReturnValue(enabled),
+    warmupCache: jest.fn<(...args: unknown[]) => unknown>().mockImplementation(async () => {
       return warmupManager.warmupIfCold(resolver);
     }),
-    getCacheWarmupStats: jest.fn().mockImplementation(() => warmupManager.getWarmupStats()),
+    getCacheWarmupStats: jest.fn<(...args: unknown[]) => unknown>().mockImplementation(() => warmupManager.getWarmupStats()),
   } as unknown as LLMService;
 
   return { service, cache, warmupManager };
@@ -322,7 +322,7 @@ describe('Phase 50 — REQ-130: Warmup stats immutability and consistency', () =
   });
 
   test('TC-130-02: stats are consistent across multiple warmup cycles with failures', async () => {
-    const patterns = [
+    const patterns: import('@/optimization/cache-warmup').WarmupPattern[] = [
       { text: 'cycle query a', category: 'test', language: 'en' },
       { text: 'cycle query b', category: 'test', language: 'en' },
       { text: 'サイクルクエリ', category: 'test', language: 'ja' },
@@ -390,7 +390,7 @@ describe('Phase 50 — REQ-130: Warmup stats immutability and consistency', () =
     expect(s1).not.toBe(s2);
 
     // Mutating one doesn't affect the other
-    (s1 as Record<string, unknown>).status = 'mutated';
+    (s1 as unknown as Record<string, unknown>).status = 'mutated';
     expect(getWarmupStatus().status).toBe('completed');
   });
 });

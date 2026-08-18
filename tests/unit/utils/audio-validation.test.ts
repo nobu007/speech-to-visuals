@@ -66,7 +66,7 @@ describe('validateAudioFile', () => {
   it('rejects file exceeding 50MB limit', () => {
     const oversized = AUDIO_LIMITS.MAX_FILE_SIZE_BYTES + 1;
     const file = new File(
-      [{ /* mock large file */ }],
+      ['mock audio content'],
       'huge.mp3',
       { type: 'audio/mpeg' },
     );

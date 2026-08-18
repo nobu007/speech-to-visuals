@@ -61,13 +61,13 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..
 // --- Pre-import mocks (mirror tests/unit/hooks/use-framework-pipeline.test.ts)
 
 const mockSetPhase = jest.fn();
-const mockExecute = jest.fn();
-const mockGenerateReport = jest.fn().mockReturnValue('# Report');
-const mockGetIterationSummary = jest.fn().mockReturnValue({ iterations: 0 });
-const mockGetImprovementHistory = jest.fn().mockReturnValue([]);
+const mockExecute = jest.fn<() => Promise<unknown>>();
+const mockGenerateReport = jest.fn<() => unknown>().mockReturnValue('# Report');
+const mockGetIterationSummary = jest.fn<() => unknown>().mockReturnValue({ iterations: 0 });
+const mockGetImprovementHistory = jest.fn<() => unknown>().mockReturnValue([]);
 
 jest.unstable_mockModule('@/pipeline/framework-integrated-pipeline', () => ({
-  FrameworkIntegratedPipeline: jest.fn().mockImplementation(() => ({
+  FrameworkIntegratedPipeline: jest.fn<(...args: unknown[]) => unknown>().mockImplementation(() => ({
     setPhase: mockSetPhase,
     execute: mockExecute,
     generateReport: mockGenerateReport,
@@ -95,7 +95,7 @@ jest.unstable_mockModule('@/framework/iteration-manager', () => ({
 
 // Controllable fetch spy — defaults to an ok response. Per-test, either let it
 // resolve (positive control) or assert it was never called (hazard witness).
-const fetchMock = jest.fn().mockResolvedValue({
+const fetchMock = jest.fn<any>().mockResolvedValue({
   ok: true,
   status: 200,
   statusText: 'OK',

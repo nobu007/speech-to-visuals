@@ -34,6 +34,7 @@ import type {
   RecoverySuccessEvent,
   RecoveryFailureEvent,
   StageDegradedEvent,
+  ErrorRecoveryEventMap,
 } from '@/quality/error-recovery-event-bus';
 import { ErrorClassifier } from '@/quality/error-classifier';
 import {
@@ -47,9 +48,9 @@ import {
 // ---------------------------------------------------------------------------
 
 /** Collect events of a specific type from the global event bus. */
-function collectEvents<T>(event: string): T[] {
+function collectEvents<T>(event: keyof ErrorRecoveryEventMap): T[] {
   const events: T[] = [];
-  errorRecoveryEventBus.on(event, (e: T) => events.push(e));
+  errorRecoveryEventBus.on(event, ((e: unknown) => events.push(e as T)) as any);
   return events;
 }
 

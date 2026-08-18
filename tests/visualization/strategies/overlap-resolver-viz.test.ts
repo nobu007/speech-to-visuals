@@ -9,6 +9,9 @@ const defaultConfig = {
   marginX: 40,
   marginY: 40,
   nodeSeparation: 20,
+  rankDirection: 'TB' as const,
+  edgeSeparation: 10,
+  rankSeparation: 50,
 };
 
 function makeOverlappingNodes(): PositionedNode[] {
@@ -111,6 +114,8 @@ describe('OverlapResolver (visualization/strategies)', () => {
 
   describe('constrainNodeToBounds — small canvas edge case', () => {
     it('should not produce NaN when node is larger than canvas', async () => {
+      // constrainNodeToBounds reads only the size fields; the remaining
+      // LayoutConfig members are irrelevant to this edge case.
       const tinyConfig = {
         width: 80,
         height: 40,
@@ -119,7 +124,7 @@ describe('OverlapResolver (visualization/strategies)', () => {
         marginX: 10,
         marginY: 10,
         nodeSeparation: 5,
-      };
+      } as unknown as import('@/visualization/types').LayoutConfig;
       const tinyResolver = new OverlapResolver(tinyConfig);
 
       const nodes: PositionedNode[] = [

@@ -11,6 +11,7 @@
  */
 
 import { jest } from '@jest/globals';
+import type { PipelineInput } from '@/pipeline/types';
 import type { RunRecoveryReport } from '@/quality/pipeline-run-recovery-tracker';
 
 // ---------- Mocks ----------
@@ -19,7 +20,12 @@ jest.unstable_mockModule('@/transcription', () => ({
   TranscriptionPipeline: jest.fn().mockImplementation(() => ({
     // REQ-045/046: runTranscription syncs config via updateConfig before transcribing.
     updateConfig: jest.fn(),
-    transcribe: jest.fn().mockResolvedValue({
+    transcribe: jest.fn<() => Promise<{
+      success: boolean;
+      segments: Array<{ id: number; start: number; end: number; text: string; confidence: number }>;
+      language: string;
+      duration: number;
+    }>>().mockResolvedValue({
       success: true,
       segments: [
         { id: 0, start: 0, end: 5, text: 'Test segment one.', confidence: 0.9 },
@@ -40,13 +46,18 @@ jest.unstable_mockModule('@/analysis', () => ({
   DEFAULT_MAX_SEGMENT_LENGTH_MS: 15000,
   SceneSegmenter: jest.fn().mockImplementation(() => ({
     updateConfig: jest.fn(),
-    segment: jest.fn().mockResolvedValue([
+    segment: jest.fn<() => Promise<Array<{ id: string; start: number; end: number; text: string }>>>().mockResolvedValue([
       { id: 's1', start: 0, end: 5, text: 'Test segment one.' },
       { id: 's2', start: 5, end: 10, text: 'Test segment two.' },
     ]),
   })),
   DiagramDetector: jest.fn().mockImplementation(() => ({
-    detect: jest.fn().mockResolvedValue({
+    detect: jest.fn<() => Promise<{
+      diagramType: string;
+      confidence: number;
+      nodes: Array<{ id: string; label: string }>;
+      edges: Array<{ from: string; to: string; label: string }>;
+    }>>().mockResolvedValue({
       diagramType: 'flow',
       confidence: 0.9,
       nodes: [
@@ -61,7 +72,14 @@ jest.unstable_mockModule('@/analysis', () => ({
 jest.unstable_mockModule('@/visualization', () => ({
   LayoutEngine: jest.fn().mockImplementation(() => ({
     updateConfig: jest.fn(),
-    calculate: jest.fn().mockResolvedValue({
+    calculate: jest.fn<() => Promise<{
+      scenes: Array<{
+        id: string;
+        elements: unknown[];
+        bounds: { width: number; height: number };
+        durationMs: number;
+      }>;
+    }>>().mockResolvedValue({
       scenes: [{
         id: 'scene-1',
         elements: [],
@@ -86,7 +104,10 @@ jest.unstable_mockModule('@stv/core/config', () => ({
 
 // ---------- Helpers ----------
 
-function createValidInput() {
+function createValidInput(): PipelineInput {
+  // Every stage is unstable_mockModule'd above, so the config object is opaque
+  // to the orchestrator under test — only its presence matters at runtime.
+  // The shape below is the historical fixture; cast rather than rebuild it.
   return {
     audioFile: '/test/audio.wav',
     config: {
@@ -95,7 +116,7 @@ function createValidInput() {
       enableCaptions: true,
       outputFormat: 'mp4' as const,
     },
-  };
+  } as unknown as PipelineInput;
 }
 
 // ---------- Tests ----------

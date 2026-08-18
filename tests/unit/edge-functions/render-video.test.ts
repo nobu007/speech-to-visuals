@@ -2,6 +2,7 @@ import {
   handleRenderVideo,
   validateRenderRequest,
   RENDER_TIMEOUT_MS,
+  type RenderVideoRequest,
 } from '../../../supabase/functions/render-video/index';
 
 const USER_ID = 'user-test-003';
@@ -21,7 +22,7 @@ describe('validateRenderRequest', () => {
 
   it('should throw when scenes is missing', () => {
     expect(() =>
-      validateRenderRequest({} as Record<string, unknown>)
+      validateRenderRequest({} as unknown as RenderVideoRequest)
     ).toThrow('scenes is required');
   });
 

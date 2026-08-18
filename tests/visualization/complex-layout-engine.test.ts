@@ -4,7 +4,7 @@ import { OverlapResolver } from '@/visualization/strategies/OverlapResolver';
 import { LayoutOptimizer } from '@/visualization/strategies/LayoutOptimizer';
 import { DagreLayoutStrategy } from '@/visualization/strategies/DagreLayoutStrategy';
 import { FallbackLayoutStrategy } from '@/visualization/strategies/FallbackLayoutStrategy';
-import { LayoutResult } from '@/visualization/types';
+import { LayoutResult, LayoutConfig } from '@/visualization/types';
 import { VisualizationError } from '@/pipeline/pipeline-errors';
 
 // ---------------------------------------------------------------------------
@@ -79,13 +79,14 @@ function createEngine(
     ...extraConfig,
   };
 
-  const fallback = new FallbackLayoutStrategy(baseConfig);
-  const dagreStrategy = new DagreLayoutStrategy(baseConfig, fallback);
-  const overlapResolver = new OverlapResolver(baseConfig);
-  const layoutOptimizer = new LayoutOptimizer(baseConfig);
+  const config = baseConfig as unknown as LayoutConfig;
+  const fallback = new FallbackLayoutStrategy(config);
+  const dagreStrategy = new DagreLayoutStrategy(config, fallback);
+  const overlapResolver = new OverlapResolver(config);
+  const layoutOptimizer = new LayoutOptimizer(config);
 
   return new ComplexLayoutEngine(
-    baseConfig,
+    config,
     overlapResolver,
     layoutOptimizer,
     dagreStrategy
@@ -522,8 +523,10 @@ describe('ComplexLayoutEngine (TASK-0063)', () => {
         height: 1080,
         enableOverlapResolution: false,
       };
-      const fallback = new FallbackLayoutStrategy(baseConfig);
-      const dagreStrategy = new DagreLayoutStrategy(baseConfig, fallback);
+      // Strategies declare full LayoutConfig but only read width/height here.
+      const fullConfig = baseConfig as unknown as import('@/visualization/types').LayoutConfig;
+      const fallback = new FallbackLayoutStrategy(fullConfig);
+      const dagreStrategy = new DagreLayoutStrategy(fullConfig, fallback);
       // Pass undefined overlapResolver
       const engine = new ComplexLayoutEngine(
         baseConfig,

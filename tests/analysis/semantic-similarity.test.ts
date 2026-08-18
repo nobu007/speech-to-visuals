@@ -292,7 +292,6 @@ describe('SemanticMetricsTracker', () => {
 
   it('filters out NaN scores in getMetrics', () => {
     const tracker = new SemanticMetricsTracker();
-    // @ts-expect-error -- intentionally passing NaN to test runtime guard
     tracker.recordSemanticHit(NaN);
     tracker.recordSemanticHit(0.8);
     tracker.recordSemanticHit(0.9);
@@ -304,9 +303,7 @@ describe('SemanticMetricsTracker', () => {
 
   it('returns 0 avgSimilarity when all scores are NaN', () => {
     const tracker = new SemanticMetricsTracker();
-    // @ts-expect-error -- intentionally passing NaN to test runtime guard
     tracker.recordSemanticHit(NaN);
-    // @ts-expect-error -- intentionally passing NaN to test runtime guard
     tracker.recordSemanticHit(NaN);
     const metrics = tracker.getMetrics();
     expect(metrics.avgSimilarityScore).toBe(0);

@@ -30,6 +30,10 @@ function makeConfig(overrides: Partial<LayoutConfig> = {}): LayoutConfig {
     marginY: 60,
     nodeWidth: 200,
     nodeHeight: 100,
+    rankDirection: 'TB',
+    nodeSeparation: 50,
+    edgeSeparation: 10,
+    rankSeparation: 50,
     ...overrides,
   };
 }
@@ -336,6 +340,9 @@ describe('IterationManager – empty history guard', () => {
       maxIterations: 5,
       currentIteration: 0,
       status: 'in_progress',
+      successCriteria: [],
+      failureRecovery: 'retry',
+      commitTrigger: 'on_checkpoint',
     };
     manager = new IterationManager(cycle);
   });
@@ -651,8 +658,8 @@ describe('AutoImprovementEngine – beforeValue=0 guard', () => {
   });
 
   it('improvement is calculated correctly when beforeValue is non-zero', () => {
-    const beforeValue = 50;
-    const afterValue = 75;
+    const beforeValue: number = 50;
+    const afterValue: number = 75;
     const improvement = beforeValue !== 0
       ? ((afterValue - beforeValue) / beforeValue) * 100
       : 0;

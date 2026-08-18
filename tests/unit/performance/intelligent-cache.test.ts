@@ -1,4 +1,5 @@
 import { IntelligentCache, globalCache, cached } from '@/performance/intelligent-cache';
+import { DiagramType } from '@stv/core/types/diagram';
 
 describe('IntelligentCache', () => {
   let cache: IntelligentCache;
@@ -300,8 +301,8 @@ describe('IntelligentCache', () => {
       ];
 
       for (const { content, type } of extendedCases) {
-        await cache.store(content, { type }, {
-          contentType: type,
+        await cache.store(content, { type: type as DiagramType }, {
+          contentType: type as DiagramType,
           duration: 5000,
           complexity: 0.5,
           performanceScore: 0.8,

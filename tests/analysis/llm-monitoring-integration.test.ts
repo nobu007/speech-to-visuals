@@ -25,22 +25,34 @@ import { jest } from '@jest/globals';
 // See [[jest-esm-mock-pattern]].
 // ---------------------------------------------------------------------------
 
-const mockGenerateContent = jest.fn();
-const mockGenerateContentStream = jest.fn();
+type MockGeminiResponse = {
+  response: {
+    text: () => string;
+    usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number; };
+  };
+};
+
+type MockStreamResponse = {
+  stream: AsyncIterable<{ text: () => string }>;
+  response: Promise<MockGeminiResponse['response']>;
+};
+
+const mockGenerateContent = jest.fn<() => Promise<MockGeminiResponse>>();
+const mockGenerateContentStream = jest.fn<() => MockStreamResponse>();
 const mockGetGenerativeModel = jest.fn(() => ({
   generateContent: mockGenerateContent,
   generateContentStream: mockGenerateContentStream,
 }));
 
 jest.unstable_mockModule('@google/generative-ai', () => ({
-  GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
+  GoogleGenerativeAI: jest.fn<(...args: unknown[]) => unknown>().mockImplementation(() => ({
     getGenerativeModel: mockGetGenerativeModel,
   })),
 }));
 
 jest.unstable_mockModule('@/analysis/llm-cache', () => {
   return {
-    LLMCache: jest.fn().mockImplementation(() => {
+    LLMCache: jest.fn<(...args: unknown[]) => unknown>().mockImplementation(() => {
       const store = new Map<string, unknown>();
       return {
         get: jest.fn((key: string) => store.get(key) ?? null),

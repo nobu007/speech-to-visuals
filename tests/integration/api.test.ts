@@ -8,13 +8,43 @@
 
 import { jest } from '@jest/globals';
 import type { BatchJobRequest, BatchJobStatus, BatchJobResult } from '@/api/batch-processing-api';
-import type {
-  JobProgress,
-  JobComplete,
-  JobError,
-  WebSocketEvents,
-} from '@stv/core/types/api';
 import type { Request, Response, NextFunction } from 'express';
+
+// Local type definitions for WebSocket events (not exported from @stv/core)
+interface JobProgress {
+  jobId: string;
+  stage: string;
+  progress: number;
+  estimatedTimeRemaining: number;
+  currentOperation: string;
+}
+
+interface JobComplete {
+  jobId: string;
+  result: {
+    jobId: string;
+    text: string;
+    captions: unknown[];
+    metadata: {
+      duration: number;
+      language: string;
+      confidence: number;
+    };
+    processingTime: number;
+  };
+}
+
+interface JobError {
+  jobId: string;
+  error: {
+    code: string;
+    message: string;
+    statusCode: number;
+    timestamp: string;
+  };
+}
+
+type WebSocketEvents = JobProgress | JobComplete | JobError;
 
 // ---------------------------------------------------------------------------
 // Mocks for heavy pipeline dependencies
@@ -22,19 +52,24 @@ import type { Request, Response, NextFunction } from 'express';
 
 jest.unstable_mockModule('@/pipeline/simple-pipeline', () => ({
   simplePipeline: {
-    process: jest.fn().mockResolvedValue({
+    process: jest.fn<() => Promise<unknown>>().mockResolvedValue({
       success: true,
       transcript: 'test transcript',
       scenes: [],
       processingTime: 100,
-    }),
+    }) as unknown as jest.MockedFunction<() => Promise<{
+      success: boolean;
+      transcript: string;
+      scenes: unknown[];
+      processingTime: number;
+    }>>,
   },
 }));
 
 jest.unstable_mockModule('@/pipeline/adaptive-quality-presets', () => ({
   adaptiveQualityPresets: {
     setPreset: jest.fn(),
-    toPipelineOptions: jest.fn().mockReturnValue({
+    toPipelineOptions: jest.fn<() => unknown>().mockReturnValue({
       audioFile: new File(['audio'], 'test.wav', { type: 'audio/wav' }),
       options: {},
     }),
@@ -47,7 +82,7 @@ const { AppError, errorHandler } = await import('@/api/middleware/error-handler'
 
 // Suppress console.log from BatchProcessingAPI async processing to prevent
 // "Cannot log after tests are done" warnings
-let consoleLogSpy: jest.SpyInstance;
+let consoleLogSpy: ReturnType<typeof jest.spyOn>;
 beforeAll(() => {
   consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 });
@@ -80,7 +115,7 @@ function buildRequest(fileCount: number, overrides?: Partial<BatchJobRequest>): 
 // ===========================================================================
 
 describe('BatchProcessingAPI - Batch Job CRUD', () => {
-  let api: BatchProcessingAPI;
+  let api: InstanceType<typeof BatchProcessingAPI>;
 
   beforeEach(() => {
     api = new BatchProcessingAPI();
@@ -197,7 +232,7 @@ describe('BatchProcessingAPI - Batch Job CRUD', () => {
 // ===========================================================================
 
 describe('BatchProcessingAPI - Job Lifecycle', () => {
-  let api: BatchProcessingAPI;
+  let api: InstanceType<typeof BatchProcessingAPI>;
 
   beforeEach(() => {
     api = new BatchProcessingAPI();
@@ -276,7 +311,7 @@ describe('BatchProcessingAPI - Job Lifecycle', () => {
 // ===========================================================================
 
 describe('Error Response Format', () => {
-  let api: BatchProcessingAPI;
+  let api: InstanceType<typeof BatchProcessingAPI>;
 
   beforeEach(() => {
     api = new BatchProcessingAPI();
@@ -437,7 +472,7 @@ describe('Security Middleware', () => {
 // ===========================================================================
 
 describe('Batch Routes - Express Router', () => {
-  let manager: BatchJobManager;
+  let manager: InstanceType<typeof BatchJobManager>;
 
   beforeEach(() => {
     manager = new BatchJobManager();

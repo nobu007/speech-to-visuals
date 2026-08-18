@@ -490,7 +490,7 @@ describe('round 43 layer 2: delegation pins', () => {
   });
 
   it('SimulatedAnnealing crossing energy = count² (quadratic penalty at its site)', () => {
-    const sa = new SimulatedAnnealingStrategy({} as never) as unknown as {
+    const sa = new SimulatedAnnealingStrategy() as unknown as {
       calculateCrossingEnergy(nodes: PositionedNode[], edges: LayoutEdge[]): number;
     };
     for (const [name, c] of Object.entries(V2_CASES)) {

@@ -41,7 +41,7 @@ function makeEdges(pairs: [string, string][], labels?: string[]): EdgeDatum[] {
 }
 
 describe('CycleLayoutStrategy', () => {
-  let strategy: CycleLayoutStrategy;
+  let strategy: InstanceType<typeof CycleLayoutStrategy>;
 
   beforeEach(() => {
     jest.spyOn(console, 'log').mockImplementation(() => {});

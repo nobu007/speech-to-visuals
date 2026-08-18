@@ -28,6 +28,7 @@ type EnginePrivateMethods = {
   resolveCollisionHierarchicalRespect: (node1: PositionedNode, node2: PositionedNode) => { node1: PositionedNode; node2: PositionedNode };
   detectCollisionsQuadtree: (nodes: PositionedNode[]) => { node1: PositionedNode; node2: PositionedNode }[];
   applyEnhancedForceDirectedAlgorithm: (nodes: PositionedNode[], edges: EdgeDatum[], spacing: number) => Promise<void>;
+  applyEnhancedForceStep: (nodes: PositionedNode[], edges: EdgeDatum[], repulsionStrength: number, optimalSpacing: number) => void;
   // applyForceDirectedStep (round-40 retirement): dead v1-era copy with zero
   // production callers — removed with its method; the live step is
   // applyEnhancedForceStep, pinned in tests/guards/force-directed-step-single-source.test.ts.

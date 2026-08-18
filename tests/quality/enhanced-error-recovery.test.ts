@@ -10,9 +10,9 @@ import { jest } from '@jest/globals';
 // Mock the intelligent-cache module
 jest.unstable_mockModule('@/performance/intelligent-cache', () => ({
   globalCache: {
-    findSimilar: jest.fn().mockResolvedValue(null),
-    clear: jest.fn().mockResolvedValue(undefined),
-    getStats: jest.fn().mockReturnValue({ hitRate: 0.5 }),
+    findSimilar: jest.fn<() => Promise<unknown>>().mockResolvedValue(null) as any,
+    clear: jest.fn<() => Promise<unknown>>().mockResolvedValue(undefined) as any,
+    getStats: jest.fn().mockReturnValue({ hitRate: 0.5 }) as any,
   },
 }));
 
@@ -26,7 +26,7 @@ beforeAll(async () => {
 });
 
 describe('EnhancedErrorRecovery', () => {
-  let recovery: EnhancedErrorRecovery;
+  let recovery: InstanceType<typeof EnhancedErrorRecovery>;
 
   beforeEach(() => {
     jest.spyOn(console, 'log').mockImplementation(() => {});
@@ -44,7 +44,7 @@ describe('EnhancedErrorRecovery', () => {
   // ========================================
   describe('retryWithBackoff', () => {
     test('should succeed on first attempt', async () => {
-      const operation = jest.fn().mockResolvedValue('success');
+      const operation = jest.fn<() => Promise<unknown>>().mockResolvedValue('success');
       const result = await recovery.retryWithBackoff(operation);
 
       expect(result.success).toBe(true);
@@ -54,7 +54,7 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     test('should retry on failure and eventually succeed', async () => {
-      const operation = jest.fn()
+      const operation = jest.fn<() => Promise<unknown>>()
         .mockRejectedValueOnce(new Error('fail 1'))
         .mockRejectedValueOnce(new Error('fail 2'))
         .mockResolvedValue('recovered');
@@ -73,7 +73,7 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     test('should fail after exhausting all retries', async () => {
-      const operation = jest.fn().mockRejectedValue(new Error('always fails'));
+      const operation = jest.fn<() => Promise<unknown>>().mockRejectedValue(new Error('always fails'));
 
       const result = await recovery.retryWithBackoff(operation, {
         maxRetries: 2,
@@ -88,7 +88,7 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     test('should use default options when none provided', async () => {
-      const operation = jest.fn().mockResolvedValue('ok');
+      const operation = jest.fn<() => Promise<unknown>>().mockResolvedValue('ok');
       const result = await recovery.retryWithBackoff(operation);
 
       expect(result.success).toBe(true);
@@ -96,7 +96,7 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     test('should handle non-Error thrown values', async () => {
-      const operation = jest.fn()
+      const operation = jest.fn<() => Promise<unknown>>()
         .mockRejectedValueOnce('string error')
         .mockResolvedValue('ok');
 
@@ -109,7 +109,7 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     test('should cap delay at maxDelayMs', async () => {
-      const operation = jest.fn().mockRejectedValue(new Error('fail'));
+      const operation = jest.fn<() => Promise<unknown>>().mockRejectedValue(new Error('fail'));
       const start = Date.now();
 
       await recovery.retryWithBackoff(operation, {
@@ -130,8 +130,8 @@ describe('EnhancedErrorRecovery', () => {
   // ========================================
   describe('executeWithFallback', () => {
     test('should return primary result when primary succeeds', async () => {
-      const primary = jest.fn().mockResolvedValue('primary result');
-      const fallback = jest.fn().mockResolvedValue('fallback result');
+      const primary = jest.fn<() => Promise<unknown>>().mockResolvedValue('primary result');
+      const fallback = jest.fn<() => Promise<unknown>>().mockResolvedValue('fallback result');
 
       const result = await recovery.executeWithFallback(primary, fallback);
 
@@ -142,8 +142,8 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     test('should use fallback when primary fails', async () => {
-      const primary = jest.fn().mockRejectedValue(new Error('primary failed'));
-      const fallback = jest.fn().mockResolvedValue('fallback result');
+      const primary = jest.fn<() => Promise<unknown>>().mockRejectedValue(new Error('primary failed'));
+      const fallback = jest.fn<() => Promise<unknown>>().mockResolvedValue('fallback result');
 
       const result = await recovery.executeWithFallback(primary, fallback, {
         stage: 'analysis',
@@ -156,8 +156,8 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     test('should return failure when both primary and fallback fail', async () => {
-      const primary = jest.fn().mockRejectedValue(new Error('primary failed'));
-      const fallback = jest.fn().mockRejectedValue(new Error('fallback failed'));
+      const primary = jest.fn<() => Promise<unknown>>().mockRejectedValue(new Error('primary failed'));
+      const fallback = jest.fn<() => Promise<unknown>>().mockRejectedValue(new Error('fallback failed'));
 
       const result = await recovery.executeWithFallback(primary, fallback);
 
@@ -167,8 +167,8 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     test('should handle non-Error primary exception', async () => {
-      const primary = jest.fn().mockRejectedValue('string error');
-      const fallback = jest.fn().mockResolvedValue('ok');
+      const primary = jest.fn<() => Promise<unknown>>().mockRejectedValue('string error');
+      const fallback = jest.fn<() => Promise<unknown>>().mockResolvedValue('ok');
 
       const result = await recovery.executeWithFallback(primary, fallback);
 
@@ -177,8 +177,8 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     test('should handle non-Error fallback exception', async () => {
-      const primary = jest.fn().mockRejectedValue(new Error('primary'));
-      const fallback = jest.fn().mockRejectedValue('string fallback error');
+      const primary = jest.fn<() => Promise<unknown>>().mockRejectedValue(new Error('primary'));
+      const fallback = jest.fn<() => Promise<unknown>>().mockRejectedValue('string fallback error');
 
       const result = await recovery.executeWithFallback(primary, fallback);
 
@@ -186,8 +186,8 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     test('should use default empty context when none provided', async () => {
-      const primary = jest.fn().mockResolvedValue('ok');
-      const fallback = jest.fn().mockResolvedValue('fallback');
+      const primary = jest.fn<() => Promise<unknown>>().mockResolvedValue('ok');
+      const fallback = jest.fn<() => Promise<unknown>>().mockResolvedValue('fallback');
 
       const result = await recovery.executeWithFallback(primary, fallback);
 
@@ -412,7 +412,7 @@ describe('EnhancedErrorRecovery', () => {
   // ========================================
   describe('executeWithLoadBalancing', () => {
     test('should execute operation successfully', async () => {
-      const operation = jest.fn().mockResolvedValue('result');
+      const operation = jest.fn<() => Promise<unknown>>().mockResolvedValue('result');
 
       const result = await recovery.executeWithLoadBalancing(
         'test-req-1',
@@ -452,7 +452,7 @@ describe('EnhancedErrorRecovery', () => {
     test('should handle operation timeout', async () => {
       // Create a very slow operation with a short timeout scenario
       // The default timeout is 45000ms, so we test normal fast operations
-      const operation = jest.fn().mockResolvedValue('fast result');
+      const operation = jest.fn<() => Promise<string>>().mockResolvedValue('fast result');
 
       const result = await recovery.executeWithLoadBalancing(
         'fast-req',
@@ -465,7 +465,7 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     test('should record failures for circuit breaker on error', async () => {
-      const operation = jest.fn().mockRejectedValue(new Error('operation failed'));
+      const operation = jest.fn<() => Promise<never>>().mockRejectedValue(new Error('operation failed'));
 
       await expect(
         recovery.executeWithLoadBalancing('fail-req', operation, 'rendering', 3)
@@ -473,7 +473,7 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     test('should execute without stage', async () => {
-      const operation = jest.fn().mockResolvedValue('no stage result');
+      const operation = jest.fn<() => Promise<unknown>>().mockResolvedValue('no stage result');
 
       const result = await recovery.executeWithLoadBalancing(
         'no-stage-req',
@@ -484,7 +484,7 @@ describe('EnhancedErrorRecovery', () => {
     });
 
     test('should use default priority when not specified', async () => {
-      const operation = jest.fn().mockResolvedValue('default priority');
+      const operation = jest.fn<() => Promise<unknown>>().mockResolvedValue('default priority');
 
       const result = await recovery.executeWithLoadBalancing(
         'default-prio-req',

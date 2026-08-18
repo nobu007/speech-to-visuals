@@ -184,7 +184,7 @@ describe('PipelineErrorGuidanceBridge', () => {
       // Override to simulate non-recoverable
       const result = await bridge.attemptRecovery(
         { ...guidance, recoverable: false },
-        jest.fn().mockResolvedValue('should not run'),
+        jest.fn<any>().mockResolvedValue('should not run'),
       );
 
       expect(result.success).toBe(false);
@@ -194,7 +194,7 @@ describe('PipelineErrorGuidanceBridge', () => {
       const error = new TranscriptionError('Transient Whisper failure');
       const guidance = bridge.provideGuidance(error);
 
-      const retryFn = jest.fn().mockResolvedValue({ text: 'recovered' });
+      const retryFn = jest.fn<any>().mockResolvedValue({ text: 'recovered' });
       const result = await bridge.attemptRecovery(guidance, retryFn);
 
       expect(result.success).toBe(true);

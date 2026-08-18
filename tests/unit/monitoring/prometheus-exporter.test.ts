@@ -394,6 +394,7 @@ describe('PrometheusExporter', () => {
           dlqSize: 0,
           totalRetries: 0,
           totalDeadLettered: 0,
+          totalReplayed: 0,
         },
         ...overrides,
       };
@@ -407,6 +408,10 @@ describe('PrometheusExporter', () => {
           dequeueByPriority: { high: 1, normal: 1, low: 1 },
           avgWaitTimeMs: 200,
           priorityDistribution: { high: 2, normal: 2, low: 1 },
+          dlqSize: 0,
+          totalRetries: 0,
+          totalDeadLettered: 0,
+          totalReplayed: 0,
         },
       });
 
@@ -428,6 +433,10 @@ describe('PrometheusExporter', () => {
           dequeueByPriority: { high: 4, normal: 5, low: 1 },
           avgWaitTimeMs: 0,
           priorityDistribution: { high: 1, normal: 1, low: 1 },
+          dlqSize: 0,
+          totalRetries: 0,
+          totalDeadLettered: 0,
+          totalReplayed: 0,
         },
       });
 
@@ -451,6 +460,10 @@ describe('PrometheusExporter', () => {
           dequeueByPriority: { high: 0, normal: 5, low: 0 },
           avgWaitTimeMs: 750,
           priorityDistribution: { high: 0, normal: 1, low: 0 },
+          dlqSize: 0,
+          totalRetries: 0,
+          totalDeadLettered: 0,
+          totalReplayed: 0,
         },
       });
 
@@ -485,6 +498,10 @@ describe('PrometheusExporter', () => {
           dequeueByPriority: { high: 0, normal: 1, low: 0 },
           avgWaitTimeMs: 0,
           priorityDistribution: { high: 0, normal: 2, low: 0 },
+          dlqSize: 0,
+          totalRetries: 0,
+          totalDeadLettered: 0,
+          totalReplayed: 0,
         },
       });
 
@@ -509,6 +526,7 @@ describe('PrometheusExporter', () => {
           dlqSize: 3,
           totalRetries: 0,
           totalDeadLettered: 0,
+          totalReplayed: 0,
         },
       });
 
@@ -533,6 +551,7 @@ describe('PrometheusExporter', () => {
           dlqSize: 0,
           totalRetries: 7,
           totalDeadLettered: 0,
+          totalReplayed: 0,
         },
       });
 
@@ -557,6 +576,7 @@ describe('PrometheusExporter', () => {
           dlqSize: 0,
           totalRetries: 0,
           totalDeadLettered: 2,
+          totalReplayed: 0,
         },
       });
 

@@ -11,7 +11,7 @@ import { jest } from '@jest/globals';
 // Mocks (ESM-compatible)
 // ---------------------------------------------------------------------------
 
-const mockMainPipelineCtor = jest.fn().mockImplementation(() => ({
+const mockMainPipelineCtor = jest.fn<(...args: unknown[]) => unknown>().mockImplementation(() => ({
   execute: jest.fn(),
   nextIteration: jest.fn(),
 }));
@@ -20,24 +20,28 @@ jest.unstable_mockModule('@/pipeline/main-pipeline', () => ({
   MainPipeline: mockMainPipelineCtor,
 }));
 
-jest.unstable_mockModule('@/pipeline/types', () => ({}));
+jest.unstable_mockModule('@/pipeline/types', () => ({
+  SceneGraph: {},
+  ProcessingStatus: {},
+  PipelineResult: {},
+}));
 
 jest.unstable_mockModule('@stv/core/utils/memory-usage', () => ({
-  getHeapUsed: jest.fn().mockReturnValue(0),
+  getHeapUsed: jest.fn<() => unknown>().mockReturnValue(0),
 }));
 
 jest.unstable_mockModule('@stv/core/utils/logger', () => ({
   logger: { error: jest.fn(), warn: jest.fn(), info: jest.fn(), debug: jest.fn() },
 }));
 
-const mockCreateIterationManager = jest.fn().mockReturnValue({
-  startIteration: jest.fn().mockResolvedValue(undefined),
-  completeIteration: jest.fn().mockResolvedValue({}),
-  evaluateSuccessCriteria: jest.fn().mockReturnValue({ allMet: true, criteria: [] }),
-  shouldCommit: jest.fn().mockReturnValue(false),
-  generateCommitMessage: jest.fn().mockReturnValue(''),
-  determineRecoveryStrategy: jest.fn().mockReturnValue('retry'),
-  getSummary: jest.fn().mockReturnValue({
+const mockCreateIterationManager = jest.fn<() => unknown>().mockReturnValue({
+  startIteration: jest.fn<() => Promise<unknown>>().mockResolvedValue(undefined),
+  completeIteration: jest.fn<() => Promise<unknown>>().mockResolvedValue({}),
+  evaluateSuccessCriteria: jest.fn<() => unknown>().mockReturnValue({ allMet: true, criteria: [] }),
+  shouldCommit: jest.fn<() => unknown>().mockReturnValue(false),
+  generateCommitMessage: jest.fn<() => unknown>().mockReturnValue(''),
+  determineRecoveryStrategy: jest.fn<() => unknown>().mockReturnValue('retry'),
+  getSummary: jest.fn<() => unknown>().mockReturnValue({
     totalIterations: 0,
     successfulIterations: 0,
     failedIterations: 0,
@@ -47,14 +51,14 @@ const mockCreateIterationManager = jest.fn().mockReturnValue({
 });
 
 jest.unstable_mockModule('@/framework/iteration-manager', () => ({
-  IterationManager: jest.fn().mockImplementation(() => ({
-    startIteration: jest.fn().mockResolvedValue(undefined),
-    completeIteration: jest.fn().mockResolvedValue({}),
-    evaluateSuccessCriteria: jest.fn().mockReturnValue({ allMet: true, criteria: [] }),
-    shouldCommit: jest.fn().mockReturnValue(false),
-    generateCommitMessage: jest.fn().mockReturnValue(''),
-    determineRecoveryStrategy: jest.fn().mockReturnValue('retry'),
-    getSummary: jest.fn().mockReturnValue({
+  IterationManager: jest.fn<(...args: unknown[]) => unknown>().mockImplementation(() => ({
+    startIteration: jest.fn<() => Promise<unknown>>().mockResolvedValue(undefined),
+    completeIteration: jest.fn<() => Promise<unknown>>().mockResolvedValue({}),
+    evaluateSuccessCriteria: jest.fn<() => unknown>().mockReturnValue({ allMet: true, criteria: [] }),
+    shouldCommit: jest.fn<() => unknown>().mockReturnValue(false),
+    generateCommitMessage: jest.fn<() => unknown>().mockReturnValue(''),
+    determineRecoveryStrategy: jest.fn<() => unknown>().mockReturnValue('retry'),
+    getSummary: jest.fn<() => unknown>().mockReturnValue({
       totalIterations: 0,
       successfulIterations: 0,
       failedIterations: 0,
@@ -65,30 +69,30 @@ jest.unstable_mockModule('@/framework/iteration-manager', () => ({
   })),
   createIterationManager: mockCreateIterationManager,
   DEVELOPMENT_CYCLES: {
-    'MVP構築': { phase: 'MVP構築', maxIterations: 3 },
-    '内容分析': { phase: '内容分析', maxIterations: 5 },
-    '図解生成': { phase: '図解生成', maxIterations: 4 },
-    '品質向上': { phase: '品質向上', maxIterations: 5 },
+    'MVP構築': { phase: 'MVP構築', maxIterations: 3, currentIteration: 0, status: 'in_progress' as const },
+    '内容分析': { phase: '内容分析', maxIterations: 5, currentIteration: 0, status: 'in_progress' as const },
+    '図解生成': { phase: '図解生成', maxIterations: 4, currentIteration: 0, status: 'in_progress' as const },
+    '品質向上': { phase: '品質向上', maxIterations: 5, currentIteration: 0, status: 'in_progress' as const },
   },
 }));
 
-const mockCreateAutoImprovementEngine = jest.fn().mockReturnValue({
-  analyzeMetrics: jest.fn().mockReturnValue({ needsImprovement: false }),
-  calculateQualityScore: jest.fn().mockReturnValue(80),
+const mockCreateAutoImprovementEngine = jest.fn<() => unknown>().mockReturnValue({
+  analyzeMetrics: jest.fn<() => unknown>().mockReturnValue({ needsImprovement: false }),
+  calculateQualityScore: jest.fn<() => unknown>().mockReturnValue(80),
   linkIterationManager: jest.fn(),
-  runImprovementCycle: jest.fn().mockResolvedValue({ improved: false }),
-  getImprovementHistory: jest.fn().mockReturnValue([]),
-  generateReport: jest.fn().mockReturnValue(''),
+  runImprovementCycle: jest.fn<() => Promise<unknown>>().mockResolvedValue({ improved: false }),
+  getImprovementHistory: jest.fn<() => unknown>().mockReturnValue([]),
+  generateReport: jest.fn<() => unknown>().mockReturnValue(''),
 });
 
 jest.unstable_mockModule('@/framework/auto-improvement-engine', () => ({
-  AutoImprovementEngine: jest.fn().mockImplementation(() => ({
-    analyzeMetrics: jest.fn().mockReturnValue({ needsImprovement: false }),
-    calculateQualityScore: jest.fn().mockReturnValue(80),
+  AutoImprovementEngine: jest.fn<(...args: unknown[]) => unknown>().mockImplementation(() => ({
+    analyzeMetrics: jest.fn<() => unknown>().mockReturnValue({ needsImprovement: false }),
+    calculateQualityScore: jest.fn<() => unknown>().mockReturnValue(80),
     linkIterationManager: jest.fn(),
-    runImprovementCycle: jest.fn().mockResolvedValue({ improved: false }),
-    getImprovementHistory: jest.fn().mockReturnValue([]),
-    generateReport: jest.fn().mockReturnValue(''),
+    runImprovementCycle: jest.fn<() => Promise<unknown>>().mockResolvedValue({ improved: false }),
+    getImprovementHistory: jest.fn<() => unknown>().mockReturnValue([]),
+    generateReport: jest.fn<() => unknown>().mockReturnValue(''),
   })),
   createAutoImprovementEngine: mockCreateAutoImprovementEngine,
   // A124 added toQualityRecommendations + QualityRecommendation at the
@@ -117,6 +121,7 @@ beforeAll(async () => {
 });
 
 import type { PipelineResult } from '@/pipeline/types';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 /** Exposes the private estimation methods for testing. */
 type PipelinePrivateMethods = {
@@ -127,9 +132,9 @@ type PipelinePrivateMethods = {
   detectLayoutOverlaps: (result: PipelineResult) => number;
 };
 
-function makeScene(overrides: Record<string, unknown> = {}) {
+function makeScene(overrides: Record<string, unknown> = {}): SceneGraph {
   return {
-    type: 'diagram',
+    type: 'flow',
     nodes: [],
     edges: [],
     startMs: 0,
@@ -137,7 +142,7 @@ function makeScene(overrides: Record<string, unknown> = {}) {
     summary: '',
     keyphrases: [],
     ...overrides,
-  };
+  } as SceneGraph;
 }
 
 function makeResult(overrides: Partial<PipelineResult> = {}): PipelineResult {
@@ -203,7 +208,7 @@ describe('FrameworkIntegratedPipeline', () => {
     it('should pass config to MainPipeline', () => {
       const config = { maxRetries: 5 };
       const thresholds = { minScore: 90 };
-      const p = new FrameworkIntegratedPipeline(config, thresholds);
+      const p = new FrameworkIntegratedPipeline(config as any, thresholds as any);
       expect(mockMainPipelineCtor).toHaveBeenCalledWith(config);
       expect(mockCreateAutoImprovementEngine).toHaveBeenCalledWith(thresholds);
     });

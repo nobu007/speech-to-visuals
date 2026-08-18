@@ -65,11 +65,19 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..
 // path runs in jsdom without pulling in the real pipeline / export stack.
 // ---------------------------------------------------------------------------
 
-const executeMock = jest.fn();
+type PipelineResult = {
+  success: boolean;
+  scenes: unknown[];
+  stages: Array<{ name: string; status: string }>;
+  duration: number;
+  processingTime: number;
+};
+
+const executeMock = jest.fn<() => Promise<PipelineResult>>();
 
 jest.unstable_mockModule('@/pipeline', () => ({
   __esModule: true,
-  MainPipeline: jest.fn().mockImplementation(() => ({ execute: executeMock })),
+  MainPipeline: jest.fn<(...args: unknown[]) => unknown>().mockImplementation(() => ({ execute: executeMock })),
 }));
 
 jest.unstable_mockModule('@/analysis/llm-utils', () => ({
@@ -149,7 +157,13 @@ const { PipelineInterface } = await import('@/components/pipeline-interface');
 // Helpers
 // ---------------------------------------------------------------------------
 
-const fetchMock = jest.fn();
+type FetchResponse = {
+  ok: boolean;
+  status: number;
+  text: () => Promise<string>;
+};
+
+const fetchMock = jest.fn<() => Promise<FetchResponse>>();
 
 /** Attach a fake audio File to the hidden <input type="file"> and fire onChange. */
 function attachFakeFile(container: HTMLElement, filename = 'audio.wav'): void {

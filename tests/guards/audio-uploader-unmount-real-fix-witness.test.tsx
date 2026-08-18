@@ -120,7 +120,7 @@ function setupControllableAudio(duration: number): void {
   mockDuration = duration;
   metadataCallback = null;
   const g = globalThis as typeof globalThis & { Audio?: unknown };
-  g.Audio = jest.fn().mockImplementation(() => {
+  g.Audio = jest.fn<any>().mockImplementation(() => {
     const instance: AudioLike = {};
     Object.defineProperty(instance, 'onloadedmetadata', {
       get: () => metadataCallback,

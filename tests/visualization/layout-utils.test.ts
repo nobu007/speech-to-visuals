@@ -239,25 +239,25 @@ describe('getGraphConfig', () => {
   });
 
   it('uses TB for flow diagrams', () => {
-    expect(getGraphConfig('flow', defaultLayoutConfig).rankdir).toBe('TB');
+    expect((getGraphConfig('flow', defaultLayoutConfig) as { rankdir: string }).rankdir).toBe('TB');
   });
 
   it('uses TB with longest-path ranker for tree diagrams', () => {
-    const cfg = getGraphConfig('tree', defaultLayoutConfig);
+    const cfg = getGraphConfig('tree', defaultLayoutConfig) as { rankdir: string; ranker: string };
     expect(cfg.rankdir).toBe('TB');
     expect(cfg.ranker).toBe('longest-path');
   });
 
   it('uses LR for timeline diagrams', () => {
-    expect(getGraphConfig('timeline', defaultLayoutConfig).rankdir).toBe('LR');
+    expect((getGraphConfig('timeline', defaultLayoutConfig) as { rankdir: string }).rankdir).toBe('LR');
   });
 
   it('uses network-simplex for matrix diagrams', () => {
-    expect(getGraphConfig('matrix', defaultLayoutConfig).ranker).toBe('network-simplex');
+    expect((getGraphConfig('matrix', defaultLayoutConfig) as { ranker: string }).ranker).toBe('network-simplex');
   });
 
   it('uses longest-path for cycle diagrams', () => {
-    expect(getGraphConfig('cycle', defaultLayoutConfig).ranker).toBe('longest-path');
+    expect((getGraphConfig('cycle', defaultLayoutConfig) as { ranker: string }).ranker).toBe('longest-path');
   });
 
   it('returns base config for unknown diagram type', () => {

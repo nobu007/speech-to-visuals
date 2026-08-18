@@ -33,7 +33,7 @@ import {
 // ---------------------------------------------------------------------------
 
 jest.unstable_mockModule('@/transcription', () => {
-  const mockTranscribe = jest.fn().mockResolvedValue({
+  const mockTranscribe = jest.fn<any>().mockResolvedValue({
     success: true,
     segments: [
       { id: 0, start: 0, end: 5, text: 'Hello world', confidence: 0.9 },
@@ -44,7 +44,7 @@ jest.unstable_mockModule('@/transcription', () => {
   });
 
   return {
-    TranscriptionPipeline: jest.fn().mockImplementation(() => ({
+    TranscriptionPipeline: jest.fn<any>().mockImplementation(() => ({
       transcribe: mockTranscribe,
     })),
     __mockTranscribe: mockTranscribe,
@@ -52,7 +52,7 @@ jest.unstable_mockModule('@/transcription', () => {
 });
 
 jest.unstable_mockModule('@/analysis', () => {
-  const mockSegment = jest.fn().mockResolvedValue([
+  const mockSegment = jest.fn<any>().mockResolvedValue([
     {
       startMs: 0,
       endMs: 5000,
@@ -71,7 +71,7 @@ jest.unstable_mockModule('@/analysis', () => {
     },
   ]);
 
-  const mockAnalyze = jest.fn().mockResolvedValue({
+  const mockAnalyze = jest.fn<any>().mockResolvedValue({
     type: 'flow',
     confidence: 0.9,
     nodes: [
@@ -83,10 +83,10 @@ jest.unstable_mockModule('@/analysis', () => {
   });
 
   return {
-    SceneSegmenter: jest.fn().mockImplementation(() => ({
+    SceneSegmenter: jest.fn<any>().mockImplementation(() => ({
       segment: mockSegment,
     })),
-    DiagramDetector: jest.fn().mockImplementation(() => ({
+    DiagramDetector: jest.fn<any>().mockImplementation(() => ({
       analyze: mockAnalyze,
     })),
     __mockSegment: mockSegment,
@@ -95,7 +95,7 @@ jest.unstable_mockModule('@/analysis', () => {
 });
 
 jest.unstable_mockModule('@/visualization', () => {
-  const mockGenerateLayout = jest.fn().mockResolvedValue({
+  const mockGenerateLayout = jest.fn<any>().mockResolvedValue({
     success: true,
     layout: {
       nodes: [
@@ -109,7 +109,7 @@ jest.unstable_mockModule('@/visualization', () => {
   });
 
   return {
-    LayoutEngine: jest.fn().mockImplementation(() => ({
+    LayoutEngine: jest.fn<any>().mockImplementation(() => ({
       generateLayout: mockGenerateLayout,
     })),
     __mockGenerateLayout: mockGenerateLayout,
@@ -118,8 +118,8 @@ jest.unstable_mockModule('@/visualization', () => {
 
 jest.unstable_mockModule('@/optimization/smart-parameter-tuner', () => {
   return {
-    default: jest.fn().mockImplementation(() => ({
-      analyzeContent: jest.fn().mockResolvedValue({
+    default: jest.fn<any>().mockImplementation(() => ({
+      analyzeContent: jest.fn<any>().mockResolvedValue({
         speechRate: 120,
         complexity: 'medium',
         domain: 'general',
@@ -127,7 +127,7 @@ jest.unstable_mockModule('@/optimization/smart-parameter-tuner', () => {
         keywordDensity: 0.3,
         diagramLikelihood: 0.5,
       }),
-      optimizeParameters: jest.fn().mockResolvedValue({
+      optimizeParameters: jest.fn<any>().mockResolvedValue({
         parameters: {
           confidenceThreshold: 0.75,
           segmentMinLength: 3000,
@@ -144,7 +144,7 @@ jest.unstable_mockModule('@/optimization/smart-parameter-tuner', () => {
 });
 
 jest.unstable_mockModule('@stv/core/config/validate', () => ({
-  validateConfig: jest.fn().mockReturnValue([]),
+  validateConfig: jest.fn<any>().mockReturnValue([]),
   ValidationError: class extends Error {
     field: string;
     constructor(field: string, message: string) {
@@ -157,9 +157,9 @@ jest.unstable_mockModule('@stv/core/config/validate', () => ({
 // Mock the performance/intelligent-cache used by EnhancedErrorRecovery
 jest.unstable_mockModule('@/performance/intelligent-cache', () => ({
   globalCache: {
-    findSimilar: jest.fn().mockResolvedValue(null),
-    clear: jest.fn().mockResolvedValue(undefined),
-    getStats: jest.fn().mockReturnValue({ hitRate: 0.5 }),
+    findSimilar: jest.fn<any>().mockResolvedValue(null),
+    clear: jest.fn<any>().mockResolvedValue(undefined),
+    getStats: jest.fn<any>().mockReturnValue({ hitRate: 0.5 }),
   },
 }));
 
@@ -794,7 +794,7 @@ describe('PipelineOrchestrator Integration', () => {
       originalSetInterval = global.setInterval;
     });
 
-    let consoleSpy: jest.SpyInstance;
+    let consoleSpy: any;
 
     beforeEach(() => {
       consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});

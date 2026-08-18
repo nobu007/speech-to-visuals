@@ -41,30 +41,30 @@ import type { SceneGraph } from '@stv/core/types/diagram';
 
 // ESM mocking: unstable_mockModule + dynamic import (jest-esm-mock-pattern).
 jest.unstable_mockModule('@remotion/bundler', () => ({
-  bundle: jest.fn().mockResolvedValue('/tmp/mock-bundle'),
+  bundle: jest.fn<any>().mockResolvedValue('/tmp/mock-bundle'),
 }));
 
 jest.unstable_mockModule('@remotion/renderer', () => ({
   // durationInFrames is overwritten by getComposition from scene durations, so
   // the seed value here is irrelevant — the test reads the post-override value.
-  selectComposition: jest.fn().mockResolvedValue({
+  selectComposition: jest.fn<any>().mockResolvedValue({
     durationInFrames: 0,
     fps: 30,
     width: 1920,
     height: 1080,
     id: 'SpeechToVisualsVideo',
   }),
-  renderMedia: jest.fn().mockResolvedValue(undefined),
+  renderMedia: jest.fn<any>().mockResolvedValue(undefined),
 }));
 
 jest.unstable_mockModule('fs', () => ({
   default: {
-    existsSync: jest.fn().mockReturnValue(true),
-    mkdirSync: jest.fn(),
+    existsSync: jest.fn<any>().mockReturnValue(true),
+    mkdirSync: jest.fn<any>(),
     promises: {
-      access: jest.fn().mockResolvedValue(undefined),
-      writeFile: jest.fn().mockResolvedValue(undefined),
-      readFile: jest.fn().mockResolvedValue('{}'),
+      access: jest.fn<any>().mockResolvedValue(undefined),
+      writeFile: jest.fn<any>().mockResolvedValue(undefined),
+      readFile: jest.fn<any>().mockResolvedValue('{}'),
     },
   },
 }));

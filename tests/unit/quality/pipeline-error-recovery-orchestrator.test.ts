@@ -27,6 +27,7 @@ import {
 import type {
   RecoveryAttemptEvent,
   RecoverySuccessEvent,
+  ErrorRecoveryEventMap,
 } from '@/quality/error-recovery-event-bus';
 import {
   TranscriptionError,
@@ -51,9 +52,9 @@ function cleanupOrchestrator(orch: PipelineErrorRecoveryOrchestrator) {
 }
 
 /** Collect events of a specific type from the global event bus. */
-function collectEvents<T>(event: string): T[] {
+function collectEvents<T>(event: keyof ErrorRecoveryEventMap): T[] {
   const events: T[] = [];
-  errorRecoveryEventBus.on(event, (e: T) => events.push(e));
+  errorRecoveryEventBus.on(event, ((e: unknown) => events.push(e as T)) as any);
   return events;
 }
 
@@ -117,15 +118,15 @@ describe('PipelineErrorRecoveryOrchestrator', () => {
       orchestrator.startRun('full-happy-001');
 
       const stages = [
-        { stage: 'transcription' as const, fn: async () => 'text' },
-        { stage: 'analysis' as const, fn: async () => ({ type: 'flow', nodes: [] }) },
-        { stage: 'layout_generation' as const, fn: async () => ({ layout: 'computed' }) },
-        { stage: 'rendering' as const, fn: async () => 'video.mp4' },
+        { stage: 'transcription' as const, fn: async () => 'text' as unknown },
+        { stage: 'analysis' as const, fn: async () => ({ type: 'flow', nodes: [] }) as unknown },
+        { stage: 'layout_generation' as const, fn: async () => ({ layout: 'computed' }) as unknown },
+        { stage: 'rendering' as const, fn: async () => 'video.mp4' as unknown },
       ];
 
       const results: OrchestratedStageResult<unknown>[] = [];
       for (const { stage, fn } of stages) {
-        results.push(await orchestrator.executeStage(stage, fn));
+        results.push(await orchestrator.executeStage(stage, fn as () => Promise<unknown>));
       }
 
       // All stages should succeed with primary path

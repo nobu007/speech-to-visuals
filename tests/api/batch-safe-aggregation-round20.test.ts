@@ -20,6 +20,16 @@
  */
 
 import { jest } from '@jest/globals';
+
+// Payload shape of the mocked simplePipeline.process result (see factory below).
+type ProcessPayload = {
+  success: boolean;
+  transcript: string;
+  scenes: Array<{ confidence: number }>;
+  processingTime: number;
+  videoUrl?: string;
+  qualityScore?: number;
+};
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -33,7 +43,7 @@ const apiSource = readFileSync(
 );
 
 jest.unstable_mockModule('@/pipeline/simple-pipeline', () => {
-  const mockProcess = jest.fn();
+  const mockProcess = jest.fn<() => Promise<ProcessPayload>>();
   return {
     simplePipeline: { process: mockProcess },
     __mockProcess: mockProcess,
@@ -78,8 +88,11 @@ describe('summary aggregation: finite scores are value-identical', () => {
 describe('job summary with a poisoned qualityScore', () => {
   it('excludes the non-finite score instead of NaN-ing both summary fields', async () => {
     const { BatchProcessingAPI } = await import('../../src/api/batch-processing-api');
-    const { __mockProcess } = (await import('@/pipeline/simple-pipeline')) as {
-      __mockProcess: jest.Mock;
+    const { __mockProcess } = (await import('@/pipeline/simple-pipeline')) as unknown as {
+      // Same payload shape as mockProcess above — typed so the NaN boundary
+      // fixtures below type-check.
+      // Chained twice below — the return type must keep the chain alive.
+      __mockProcess: { mockResolvedValueOnce(value: ProcessPayload): { mockResolvedValueOnce(value: ProcessPayload): unknown } };
     };
 
     // Two files: the first surfaces a NaN qualityScore (the boundary field the

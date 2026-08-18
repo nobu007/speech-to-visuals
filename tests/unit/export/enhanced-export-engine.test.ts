@@ -94,8 +94,7 @@ describe('REQ-167: EnhancedExportEngine', () => {
   describe('TC-167-01: Export configuration validation', () => {
     it('rejects config missing format', async () => {
       const config = makeConfig();
-      // @ts-expect-error intentionally breaking config
-      delete config.format;
+      delete (config as ExportConfiguration & { format?: string }).format;
 
       const result = await engine.exportVideo(makeSceneData(), config as ExportConfiguration);
 
@@ -105,8 +104,7 @@ describe('REQ-167: EnhancedExportEngine', () => {
 
     it('rejects config missing quality', async () => {
       const config = makeConfig();
-      // @ts-expect-error intentionally breaking config
-      delete config.quality;
+      delete (config as ExportConfiguration & { quality?: VideoQuality }).quality;
 
       const result = await engine.exportVideo(makeSceneData(), config as ExportConfiguration);
 
@@ -116,8 +114,7 @@ describe('REQ-167: EnhancedExportEngine', () => {
 
     it('rejects config missing settings', async () => {
       const config = makeConfig();
-      // @ts-expect-error intentionally breaking config
-      delete config.settings;
+      delete (config as ExportConfiguration & { settings?: ExportSettings }).settings;
 
       const result = await engine.exportVideo(makeSceneData(), config as ExportConfiguration);
 
@@ -352,8 +349,7 @@ describe('REQ-167: EnhancedExportEngine', () => {
   describe('TC-167-11: Invalid scene data handling', () => {
     it('returns error for null scene data', async () => {
       const config = makeConfig();
-      // @ts-expect-error intentionally passing null
-      const result = await engine.exportVideo(null, config);
+      const result = await engine.exportVideo(null as any, config);
 
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
@@ -361,8 +357,7 @@ describe('REQ-167: EnhancedExportEngine', () => {
 
     it('returns error for scene data without scenes array', async () => {
       const config = makeConfig();
-      // @ts-expect-error intentionally passing invalid data
-      const result = await engine.exportVideo({}, config);
+      const result = await engine.exportVideo({} as any, config);
 
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();

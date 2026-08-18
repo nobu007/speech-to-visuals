@@ -33,7 +33,7 @@ function makeScene(overrides: Partial<SceneGraph> = {}): SceneGraph {
       { id: 'n1', label: 'Node 1' },
       { id: 'n2', label: 'Node 2' },
     ],
-    edges: [{ source: 'n1', target: 'n2' }],
+    edges: [{ from: 'n1', to: 'n2' }],
     summary: 'A test scene with sufficient length for assessment',
     keyphrases: ['test', 'scene'],
     startMs: 0,

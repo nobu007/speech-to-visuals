@@ -69,7 +69,6 @@ afterAll(() => {
 });
 
 let StreamingTranscriber: typeof import('../../src/transcription/streaming-transcriber').StreamingTranscriber;
-let StreamingTranscriptionConfig: typeof import('../../src/transcription/streaming-transcriber').StreamingTranscriptionConfig;
 
 beforeAll(async () => {
   const mod = await import('../../src/transcription/streaming-transcriber');

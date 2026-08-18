@@ -6,14 +6,16 @@
  */
 
 import { jest } from '@jest/globals';
+import type { PipelineInput, PipelineConfig } from '@/pipeline/types';
+import type { PipelineProgress, FallbackStrategy } from '@/pipeline/pipeline-orchestrator';
 
 // ---------- Mocks ----------
 
 jest.unstable_mockModule('@/transcription', () => ({
-  TranscriptionPipeline: jest.fn().mockImplementation(() => ({
+  TranscriptionPipeline: jest.fn<any>().mockImplementation(() => ({
     // REQ-045/046: runTranscription syncs config via updateConfig before transcribing.
     updateConfig: jest.fn(),
-    transcribe: jest.fn().mockResolvedValue({
+    transcribe: jest.fn<any>().mockResolvedValue({
       text: 'テスト文字起こし結果',
       segments: [{ start: 0, end: 2, text: 'テスト' }],
       language: 'ja',
@@ -29,19 +31,19 @@ jest.unstable_mockModule('@/analysis', () => ({
   // export named 'DEFAULT_MAX_SEGMENT_LENGTH_MS'". Canonical: 3000/15000 ms.
   DEFAULT_MIN_SEGMENT_LENGTH_MS: 3000,
   DEFAULT_MAX_SEGMENT_LENGTH_MS: 15000,
-  SceneSegmenter: jest.fn().mockImplementation(() => ({
+  SceneSegmenter: jest.fn<any>().mockImplementation(() => ({
     updateConfig: jest.fn(),
-    segment: jest.fn().mockResolvedValue([{ id: 's1', start: 0, end: 2, text: 'テスト' }]),
+    segment: jest.fn<any>().mockResolvedValue([{ id: 's1', start: 0, end: 2, text: 'テスト' }]),
   })),
-  DiagramDetector: jest.fn().mockImplementation(() => ({
-    detect: jest.fn().mockResolvedValue({ diagramType: 'flow', confidence: 0.95 }),
+  DiagramDetector: jest.fn<any>().mockImplementation(() => ({
+    detect: jest.fn<any>().mockResolvedValue({ diagramType: 'flow', confidence: 0.95 }),
   })),
 }));
 
 jest.unstable_mockModule('@/visualization', () => ({
-  LayoutEngine: jest.fn().mockImplementation(() => ({
+  LayoutEngine: jest.fn<any>().mockImplementation(() => ({
     updateConfig: jest.fn(),
-    calculate: jest.fn().mockResolvedValue({
+    calculate: jest.fn<any>().mockResolvedValue({
       scenes: [{ id: 'scene-1', elements: [], bounds: { width: 1920, height: 1080 } }],
     }),
   })),
@@ -61,14 +63,30 @@ jest.unstable_mockModule('@stv/core/config', () => ({
 
 // ---------- Helpers ----------
 
-function createValidInput() {
+function createValidInput(): PipelineInput {
   return {
     audioFile: '/test/audio.wav',
     config: {
-      language: 'ja',
-      qualityLevel: 'standard',
-      enableCaptions: true,
-      outputFormat: 'mp4' as const,
+      transcription: {
+        model: 'base',
+        language: 'ja',
+      },
+      analysis: {
+        minSegmentLengthMs: 3000,
+        maxSegmentLengthMs: 15000,
+        confidenceThreshold: 0.7,
+      },
+      layout: {
+        width: 1920,
+        height: 1080,
+        nodeWidth: 100,
+        nodeHeight: 60,
+      },
+      output: {
+        fps: 30,
+        videoDuration: 60,
+        includeAudio: true,
+      },
     },
   };
 }
@@ -78,10 +96,10 @@ function createValidInput() {
 describe('E2E: Main Pipeline Flow', () => {
   it('ファイルアップロード→音声処理→シーン生成→結果取得の全フロー', async () => {
     const { PipelineOrchestrator } = await import('@/pipeline/pipeline-orchestrator');
-    const progressUpdates: Array<Record<string, unknown>> = [];
+    const progressUpdates: PipelineProgress[] = [];
 
     const orchestrator = new PipelineOrchestrator({
-      progressCallback: (p: Record<string, unknown>) => progressUpdates.push(p),
+      progressCallback: (p: PipelineProgress) => progressUpdates.push(p),
     });
 
     const result = await orchestrator.execute(createValidInput());
@@ -96,7 +114,7 @@ describe('E2E: Main Pipeline Flow', () => {
     const stages: number[] = [];
 
     const orchestrator = new PipelineOrchestrator({
-      progressCallback: (p: { stage: number }) => stages.push(p.stage),
+      progressCallback: (p: PipelineProgress) => stages.push(p.stage),
     });
 
     await orchestrator.execute(createValidInput());
@@ -110,7 +128,7 @@ describe('E2E: Error Recovery', () => {
     const orchestrator = new PipelineOrchestrator();
 
     try {
-      await orchestrator.execute({ audioFile: '', config: {} });
+      await orchestrator.execute({ audioFile: '', config: undefined });
     } catch (error) {
       expect(error).toBeDefined();
     }
@@ -118,8 +136,13 @@ describe('E2E: Error Recovery', () => {
 
   it('フォールバック戦略付きでパイプラインが実行される', async () => {
     const { PipelineOrchestrator } = await import('@/pipeline/pipeline-orchestrator');
+    const fallbackStrategy: FallbackStrategy = {
+      stageIndex: 2,
+      name: 'rule-based-fallback',
+      execute: async (input, error) => ({ fallback: true }),
+    };
     const orchestrator = new PipelineOrchestrator({
-      fallbackStrategies: [{ stage: 2, strategy: 'rule-based' }],
+      fallbackStrategies: [fallbackStrategy],
     });
 
     const result = await orchestrator.execute(createValidInput());
@@ -147,9 +170,22 @@ describe('E2E: Multi-device Pipeline', () => {
     const o1 = new PipelineOrchestrator();
     const o2 = new PipelineOrchestrator();
 
+    const config1: PipelineConfig = {
+      transcription: { model: 'base', language: 'ja' },
+      analysis: { minSegmentLengthMs: 3000, maxSegmentLengthMs: 15000, confidenceThreshold: 0.7 },
+      layout: { width: 1920, height: 1080, nodeWidth: 100, nodeHeight: 60 },
+      output: { fps: 30, videoDuration: 60, includeAudio: true },
+    };
+    const config2: PipelineConfig = {
+      transcription: { model: 'base', language: 'en' },
+      analysis: { minSegmentLengthMs: 3000, maxSegmentLengthMs: 15000, confidenceThreshold: 0.7 },
+      layout: { width: 1920, height: 1080, nodeWidth: 100, nodeHeight: 60 },
+      output: { fps: 30, videoDuration: 60, includeAudio: true },
+    };
+
     const [r1, r2] = await Promise.all([
-      o1.execute({ audioFile: '/test/ja.wav', config: { language: 'ja' } }),
-      o2.execute({ audioFile: '/test/en.wav', config: { language: 'en' } }),
+      o1.execute({ audioFile: '/test/ja.wav', config: config1 }),
+      o2.execute({ audioFile: '/test/en.wav', config: config2 }),
     ]);
 
     expect(r1).toBeDefined();

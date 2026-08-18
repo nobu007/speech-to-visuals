@@ -13,7 +13,7 @@ import type { SceneGraph } from '@stv/core/types/diagram';
 /**
  * Typed interface for accessing MainPipeline private members in tests.
  * Mirrors the private field and method signatures from main-pipeline.ts
- * so that `(pipeline as PrivatePipelineAccess)` is fully typed without `any`.
+ * so that `(pipeline as unknown as PrivatePipelineAccess)` is fully typed without `any`.
  */
 interface PrivatePipelineAccess {
   // Private fields
@@ -166,8 +166,8 @@ function makeScene(
 ) {
   return {
     type: 'flow' as const,
-    nodes: [],
-    edges: [],
+    nodes: [] as unknown[],
+    edges: [] as unknown[],
     summary: 'test scene',
     keyphrases: [],
     startMs: 0,
@@ -229,11 +229,11 @@ describe('MainPipeline', () => {
     it('increments iteration counter', () => {
       const pipeline = new MainPipeline();
       // Access private iteration field via typed interface
-      const iterBefore = (pipeline as PrivatePipelineAccess).iteration;
+      const iterBefore = (pipeline as unknown as PrivatePipelineAccess).iteration;
 
       pipeline.nextIteration();
 
-      const iterAfter = (pipeline as PrivatePipelineAccess).iteration;
+      const iterAfter = (pipeline as unknown as PrivatePipelineAccess).iteration;
       expect(iterAfter).toBe(iterBefore + 1);
     });
 
@@ -279,18 +279,18 @@ describe('MainPipeline', () => {
   describe('optimizeSceneTiming', () => {
     it('enforces minimum duration of 2000ms', () => {
       const pipeline = new MainPipeline();
-      const scenes = [makeScene({ durationMs: 500 })];
+      const scenes = [makeScene({ durationMs: 500 })] as SceneGraph[];
 
-      (pipeline as PrivatePipelineAccess).optimizeSceneTiming(scenes);
+      (pipeline as unknown as PrivatePipelineAccess).optimizeSceneTiming(scenes);
 
       expect(scenes[0].durationMs).toBe(2000);
     });
 
     it('enforces maximum duration of 15000ms', () => {
       const pipeline = new MainPipeline();
-      const scenes = [makeScene({ durationMs: 30000 })];
+      const scenes = [makeScene({ durationMs: 30000 })] as SceneGraph[];
 
-      (pipeline as PrivatePipelineAccess).optimizeSceneTiming(scenes);
+      (pipeline as unknown as PrivatePipelineAccess).optimizeSceneTiming(scenes);
 
       expect(scenes[0].durationMs).toBe(15000);
     });
@@ -300,9 +300,9 @@ describe('MainPipeline', () => {
       const scenes = [
         makeScene({ startMs: 0, durationMs: 5000 }),
         makeScene({ startMs: 3000, durationMs: 5000 }), // overlaps with first
-      ];
+      ] as SceneGraph[];
 
-      (pipeline as PrivatePipelineAccess).optimizeSceneTiming(scenes);
+      (pipeline as unknown as PrivatePipelineAccess).optimizeSceneTiming(scenes);
 
       // Second scene should be pushed to start after first ends
       expect(scenes[1].startMs).toBeGreaterThanOrEqual(
@@ -314,14 +314,14 @@ describe('MainPipeline', () => {
       const pipeline = new MainPipeline();
       const scenes: SceneGraph[] = [];
 
-      expect(() => (pipeline as PrivatePipelineAccess).optimizeSceneTiming(scenes)).not.toThrow();
+      expect(() => (pipeline as unknown as PrivatePipelineAccess).optimizeSceneTiming(scenes)).not.toThrow();
     });
 
     it('handles single scene without modification (when within bounds)', () => {
       const pipeline = new MainPipeline();
-      const scenes = [makeScene({ startMs: 0, durationMs: 5000 })];
+      const scenes = [makeScene({ startMs: 0, durationMs: 5000 })] as SceneGraph[];
 
-      (pipeline as PrivatePipelineAccess).optimizeSceneTiming(scenes);
+      (pipeline as unknown as PrivatePipelineAccess).optimizeSceneTiming(scenes);
 
       expect(scenes[0].durationMs).toBe(5000);
       expect(scenes[0].startMs).toBe(0);
@@ -343,7 +343,7 @@ describe('MainPipeline', () => {
       ];
       const edges = [{ from: 'a', to: 'b' }];
 
-      const layout = (pipeline as PrivatePipelineAccess).createFallbackLayout(nodes, edges);
+      const layout = (pipeline as unknown as PrivatePipelineAccess).createFallbackLayout(nodes, edges);
 
       // 2x2 grid: first row indices 0,1 → column offsets; second row 2,3
       expect(layout.nodes).toHaveLength(4);
@@ -369,7 +369,7 @@ describe('MainPipeline', () => {
         { from: 'b', to: 'c' },
       ];
 
-      const layout = (pipeline as PrivatePipelineAccess).createFallbackLayout(nodes, edges);
+      const layout = (pipeline as unknown as PrivatePipelineAccess).createFallbackLayout(nodes, edges);
 
       expect(layout.edges).toHaveLength(2);
       for (const edge of layout.edges) {
@@ -380,7 +380,7 @@ describe('MainPipeline', () => {
 
     it('handles empty arrays', () => {
       const pipeline = new MainPipeline();
-      const layout = (pipeline as PrivatePipelineAccess).createFallbackLayout([], []);
+      const layout = (pipeline as unknown as PrivatePipelineAccess).createFallbackLayout([], []);
 
       expect(layout.nodes).toEqual([]);
       expect(layout.edges).toEqual([]);
@@ -394,7 +394,7 @@ describe('MainPipeline', () => {
   describe('analyzeErrorPattern', () => {
     it('detects timeout pattern', () => {
       const pipeline = new MainPipeline();
-      const result = (pipeline as PrivatePipelineAccess).analyzeErrorPattern(
+      const result = (pipeline as unknown as PrivatePipelineAccess).analyzeErrorPattern(
         new Error('operation timeout exceeded'),
         'transcription',
       );
@@ -403,7 +403,7 @@ describe('MainPipeline', () => {
 
     it('detects memory pattern', () => {
       const pipeline = new MainPipeline();
-      const result = (pipeline as PrivatePipelineAccess).analyzeErrorPattern(
+      const result = (pipeline as unknown as PrivatePipelineAccess).analyzeErrorPattern(
         new Error('out of memory during processing'),
         'analysis',
       );
@@ -412,7 +412,7 @@ describe('MainPipeline', () => {
 
     it('detects network pattern', () => {
       const pipeline = new MainPipeline();
-      const result = (pipeline as PrivatePipelineAccess).analyzeErrorPattern(
+      const result = (pipeline as unknown as PrivatePipelineAccess).analyzeErrorPattern(
         new Error('connection refused by server'),
         'layout',
       );
@@ -421,7 +421,7 @@ describe('MainPipeline', () => {
 
     it('detects format pattern', () => {
       const pipeline = new MainPipeline();
-      const result = (pipeline as PrivatePipelineAccess).analyzeErrorPattern(
+      const result = (pipeline as unknown as PrivatePipelineAccess).analyzeErrorPattern(
         new Error('invalid format in input data'),
         'preparation',
       );
@@ -430,7 +430,7 @@ describe('MainPipeline', () => {
 
     it('returns unknown for unrecognized patterns', () => {
       const pipeline = new MainPipeline();
-      const result = (pipeline as PrivatePipelineAccess).analyzeErrorPattern(
+      const result = (pipeline as unknown as PrivatePipelineAccess).analyzeErrorPattern(
         new Error('something completely unexpected'),
         'transcription',
       );
@@ -446,35 +446,35 @@ describe('MainPipeline', () => {
     it('maps timeout to increase_timeout', () => {
       const pipeline = new MainPipeline();
       expect(
-        (pipeline as PrivatePipelineAccess).selectRecoveryStrategy('timeout', 'transcription'),
+        (pipeline as unknown as PrivatePipelineAccess).selectRecoveryStrategy('timeout', 'transcription'),
       ).toBe('increase_timeout');
     });
 
     it('maps memory to optimize_memory', () => {
       const pipeline = new MainPipeline();
       expect(
-        (pipeline as PrivatePipelineAccess).selectRecoveryStrategy('memory', 'analysis'),
+        (pipeline as unknown as PrivatePipelineAccess).selectRecoveryStrategy('memory', 'analysis'),
       ).toBe('optimize_memory');
     });
 
     it('maps network to retry_with_backoff', () => {
       const pipeline = new MainPipeline();
       expect(
-        (pipeline as PrivatePipelineAccess).selectRecoveryStrategy('network', 'layout'),
+        (pipeline as unknown as PrivatePipelineAccess).selectRecoveryStrategy('network', 'layout'),
       ).toBe('retry_with_backoff');
     });
 
     it('maps format to fallback_processing', () => {
       const pipeline = new MainPipeline();
       expect(
-        (pipeline as PrivatePipelineAccess).selectRecoveryStrategy('format', 'preparation'),
+        (pipeline as unknown as PrivatePipelineAccess).selectRecoveryStrategy('format', 'preparation'),
       ).toBe('fallback_processing');
     });
 
     it('defaults to generic_retry for unknown pattern', () => {
       const pipeline = new MainPipeline();
       expect(
-        (pipeline as PrivatePipelineAccess).selectRecoveryStrategy('bizarre_error', 'any'),
+        (pipeline as unknown as PrivatePipelineAccess).selectRecoveryStrategy('bizarre_error', 'any'),
       ).toBe('generic_retry');
     });
   });
@@ -508,7 +508,7 @@ describe('MainPipeline', () => {
         .digest('hex')
         .slice(0, 16);
 
-      const key = await (pipeline as PrivatePipelineAccess).generateCacheKey({
+      const key = await (pipeline as unknown as PrivatePipelineAccess).generateCacheKey({
         audioFile: mockAudioFile('audio.wav', contents),
       });
 
@@ -518,7 +518,7 @@ describe('MainPipeline', () => {
     it('generates a path-derived key for string input', async () => {
       const pipeline = new MainPipeline();
 
-      const key = await (pipeline as PrivatePipelineAccess).generateCacheKey({
+      const key = await (pipeline as unknown as PrivatePipelineAccess).generateCacheKey({
         audioFile: '/path/to/recording.mp3',
       });
 
@@ -537,10 +537,10 @@ describe('MainPipeline', () => {
     it('distinct-content File objects with identical name+size get DISTINCT keys', async () => {
       const pipeline = new MainPipeline();
       // Same name, same byte-length, DIFFERENT bytes.
-      const keyA = await (pipeline as PrivatePipelineAccess).generateCacheKey({
+      const keyA = await (pipeline as unknown as PrivatePipelineAccess).generateCacheKey({
         audioFile: mockAudioFile('clip.wav', 'AAAAAAAAAA'),
       });
-      const keyB = await (pipeline as PrivatePipelineAccess).generateCacheKey({
+      const keyB = await (pipeline as unknown as PrivatePipelineAccess).generateCacheKey({
         audioFile: mockAudioFile('clip.wav', 'BBBBBBBBBB'),
       });
       expect(keyA).not.toBe(keyB);
@@ -548,10 +548,10 @@ describe('MainPipeline', () => {
 
     it('same-content File objects (different names) share a key (correct cache hit)', async () => {
       const pipeline = new MainPipeline();
-      const keyA = await (pipeline as PrivatePipelineAccess).generateCacheKey({
+      const keyA = await (pipeline as unknown as PrivatePipelineAccess).generateCacheKey({
         audioFile: mockAudioFile('take-1.wav', 'identical-audio'),
       });
-      const keyB = await (pipeline as PrivatePipelineAccess).generateCacheKey({
+      const keyB = await (pipeline as unknown as PrivatePipelineAccess).generateCacheKey({
         audioFile: mockAudioFile('take-2.wav', 'identical-audio'),
       });
       expect(keyA).toBe(keyB);
@@ -605,7 +605,7 @@ describe('MainPipeline', () => {
       // return real values that differ from those stale, threshold-equaling
       // defaults.
       const pipeline = new MainPipeline();
-      const metrics = (pipeline as PrivatePipelineAccess).buildQualityMetrics(
+      const metrics = (pipeline as unknown as PrivatePipelineAccess).buildQualityMetrics(
         result({ scenes: [scene(), scene(), scene()] }),
         1000,
       );
@@ -619,7 +619,7 @@ describe('MainPipeline', () => {
 
     it('a FAILED run yields transcriptionAccuracy 0 — gate now FIRES (old: 0.85, silently passed)', () => {
       const pipeline = new MainPipeline();
-      const metrics = (pipeline as PrivatePipelineAccess).buildQualityMetrics(
+      const metrics = (pipeline as unknown as PrivatePipelineAccess).buildQualityMetrics(
         result({ success: false, scenes: [scene()] }),
         1000,
       );
@@ -629,7 +629,7 @@ describe('MainPipeline', () => {
 
     it('a successful run with NO scenes yields transcriptionAccuracy 0.50', () => {
       const pipeline = new MainPipeline();
-      const metrics = (pipeline as PrivatePipelineAccess).buildQualityMetrics(
+      const metrics = (pipeline as unknown as PrivatePipelineAccess).buildQualityMetrics(
         result({ scenes: [] }),
         1000,
       );
@@ -638,7 +638,7 @@ describe('MainPipeline', () => {
 
     it('real layout overlaps are COUNTED — gate now FIRES (old: always 0)', () => {
       const pipeline = new MainPipeline();
-      const metrics = (pipeline as PrivatePipelineAccess).buildQualityMetrics(
+      const metrics = (pipeline as unknown as PrivatePipelineAccess).buildQualityMetrics(
         result({
           scenes: [
             scene({
@@ -661,7 +661,7 @@ describe('MainPipeline', () => {
 
     it('keeps a legit worst-case 0 and passes through renderTime/memoryUsage/timestamp', () => {
       const pipeline = new MainPipeline();
-      const metrics = (pipeline as PrivatePipelineAccess).buildQualityMetrics(
+      const metrics = (pipeline as unknown as PrivatePipelineAccess).buildQualityMetrics(
         result({ success: false, scenes: [] }),
         4242,
       );

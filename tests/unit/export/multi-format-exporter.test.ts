@@ -14,7 +14,7 @@
 import { jest } from '@jest/globals';
 import { MultiFormatExporter } from '@/export/multi-format-exporter';
 import type { ExportOptions, ExportFormat, ExportResult as MFExportResult } from '@/export/multi-format-exporter';
-import type { SceneGraph } from '@stv/core/types/diagram';
+import type { SceneGraph, NodeDatum, LayoutEdge, EdgeDatum } from '@stv/core/types/diagram';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -25,11 +25,11 @@ function makeScene(overrides: Partial<SceneGraph> = {}): SceneGraph {
     id: 'test-scene-001',
     type: 'flow',
     nodes: [
-      { id: 'n1', label: 'Start', x: 100, y: 100, width: 120, height: 60 },
-      { id: 'n2', label: 'End', x: 400, y: 100, width: 120, height: 60 },
+      { id: 'n1', label: 'Start', x: 100, y: 100, width: 120, height: 60 } as NodeDatum & { x: number; y: number; width: number; height: number },
+      { id: 'n2', label: 'End', x: 400, y: 100, width: 120, height: 60 } as NodeDatum & { x: number; y: number; width: number; height: number },
     ],
     edges: [
-      { from: 'n1', to: 'n2', label: 'next' },
+      { from: 'n1', to: 'n2', label: 'next', points: [] } as EdgeDatum,
     ],
     startMs: 0,
     durationMs: 5000,
@@ -37,11 +37,11 @@ function makeScene(overrides: Partial<SceneGraph> = {}): SceneGraph {
     keyphrases: ['test', 'scene'],
     layout: {
       nodes: [
-        { id: 'n1', label: 'Start', x: 100, y: 100, width: 120, height: 60 },
-        { id: 'n2', label: 'End', x: 400, y: 100, width: 120, height: 60 },
+        { id: 'n1', label: 'Start', x: 100, y: 100, width: 120, height: 60 } as NodeDatum & { x: number; y: number; width: number; height: number },
+        { id: 'n2', label: 'End', x: 400, y: 100, width: 120, height: 60 } as NodeDatum & { x: number; y: number; width: number; height: number },
       ],
       edges: [
-        { from: 'n1', to: 'n2', label: 'next' },
+        { from: 'n1', to: 'n2', label: 'next', points: [] } as LayoutEdge,
       ],
     },
     ...overrides,
@@ -153,7 +153,7 @@ describe('REQ-168: MultiFormatExporter', () => {
             { id: 'n1', label: 'A', x: 100, y: 100, width: 120, height: 60 },
           ],
           edges: [
-            { from: 'n1', to: 'nonexistent', label: 'broken' },
+            { from: 'n1', to: 'nonexistent', label: 'broken', points: [] },
           ],
         },
       });
@@ -365,7 +365,7 @@ describe('REQ-168: MultiFormatExporter', () => {
             { id: 'n2', label: 'B', x: 400, y: 100, width: 120, height: 60 },
           ],
           edges: [
-            { from: 'n1', to: 'n2' },
+            { from: 'n1', to: 'n2', points: [] },
           ],
         },
       });

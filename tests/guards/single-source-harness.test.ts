@@ -86,7 +86,7 @@ describe('single-source-harness — declaration-time validation (EDGE-001)', () 
       oracleRow({ id: 'x', canonical, retired: canonical, corpus: [], mode: { kind: 'object-is' } }),
     ).toThrow(/'x'.*corpus must be a non-empty array/);
     expect(() =>
-      oracleRow({ id: 'x', canonical, retired: canonical, corpus: [[1]], mode: { kind: 'delta' } }),
+      oracleRow({ id: 'x', canonical, retired: canonical, corpus: [[1]], mode: { kind: 'delta', maxDelta: undefined } }),
     ).toThrow(/'x'.*finite maxDelta > 0/);
     for (const bad of [0, -1, NaN, Infinity, '1e-12']) {
       expect(() =>

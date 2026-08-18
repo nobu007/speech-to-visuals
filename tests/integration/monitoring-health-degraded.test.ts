@@ -69,20 +69,20 @@ function createMockService(
   errorMessage = 'error',
 ) {
   const service = {
-    isEnabled: jest.fn().mockReturnValue(enabled),
+    isEnabled: jest.fn<() => unknown>().mockReturnValue(enabled),
     warmupCache: jest.fn(),
-    getCacheWarmupStats: jest.fn().mockReturnValue({ totalPatternsProcessed: 8 }),
+    getCacheWarmupStats: jest.fn<() => unknown>().mockReturnValue({ totalPatternsProcessed: 8 }),
   } as unknown as LLMService;
 
   switch (warmupResult) {
     case 'resolve-true':
-      (service.warmupCache as jest.Mock).mockResolvedValue(true);
+      (service.warmupCache as jest.MockedFunction<() => Promise<unknown>>).mockResolvedValue(true);
       break;
     case 'resolve-false':
-      (service.warmupCache as jest.Mock).mockResolvedValue(false);
+      (service.warmupCache as jest.MockedFunction<() => Promise<unknown>>).mockResolvedValue(false);
       break;
     case 'reject-error':
-      (service.warmupCache as jest.Mock).mockRejectedValue(new Error(errorMessage));
+      (service.warmupCache as jest.MockedFunction<() => Promise<unknown>>).mockRejectedValue(new Error(errorMessage));
       break;
     case 'hang':
       (service.warmupCache as jest.Mock).mockReturnValue(new Promise(() => {}));

@@ -12,6 +12,7 @@
  */
 
 import { jest } from '@jest/globals';
+import type { PipelineInput } from '@/pipeline/types';
 import type { PipelineProgress } from '@/pipeline/pipeline-orchestrator';
 import type { ClassifiedError } from '@/quality/error-classifier';
 import type { RunRecoveryReport } from '@/quality/pipeline-run-recovery-tracker';
@@ -23,7 +24,7 @@ jest.unstable_mockModule('@/transcription', () => ({
   TranscriptionPipeline: jest.fn().mockImplementation(() => ({
     // REQ-045/046: runTranscription syncs config via updateConfig before transcribing.
     updateConfig: jest.fn(),
-    transcribe: jest.fn().mockResolvedValue({
+    transcribe: jest.fn<() => Promise<unknown>>().mockResolvedValue({
       success: true,
       segments: [
         { id: 0, start: 0, end: 5, text: 'Test segment one.', confidence: 0.9 },
@@ -44,13 +45,13 @@ jest.unstable_mockModule('@/analysis', () => ({
   DEFAULT_MAX_SEGMENT_LENGTH_MS: 15000,
   SceneSegmenter: jest.fn().mockImplementation(() => ({
     updateConfig: jest.fn(),
-    segment: jest.fn().mockResolvedValue([
+    segment: jest.fn<() => Promise<unknown>>().mockResolvedValue([
       { id: 's1', start: 0, end: 5, text: 'Test segment one.' },
       { id: 's2', start: 5, end: 10, text: 'Test segment two.' },
     ]),
   })),
   DiagramDetector: jest.fn().mockImplementation(() => ({
-    detect: jest.fn().mockResolvedValue({
+    detect: jest.fn<() => Promise<unknown>>().mockResolvedValue({
       diagramType: 'flow',
       confidence: 0.9,
       nodes: [
@@ -59,7 +60,7 @@ jest.unstable_mockModule('@/analysis', () => ({
       ],
       edges: [{ from: 'n1', to: 'n2', label: 'next' }],
     }),
-    analyze: jest.fn().mockResolvedValue({
+    analyze: jest.fn<() => Promise<unknown>>().mockResolvedValue({
       type: 'flow',
       confidence: 0.9,
       nodes: [
@@ -74,7 +75,7 @@ jest.unstable_mockModule('@/analysis', () => ({
 jest.unstable_mockModule('@/visualization', () => ({
   LayoutEngine: jest.fn().mockImplementation(() => ({
     updateConfig: jest.fn(),
-    calculate: jest.fn().mockResolvedValue({
+    calculate: jest.fn<() => Promise<unknown>>().mockResolvedValue({
       scenes: [{
         id: 'scene-1',
         elements: [],
@@ -82,7 +83,7 @@ jest.unstable_mockModule('@/visualization', () => ({
         durationMs: 10000,
       }],
     }),
-    generateLayout: jest.fn().mockResolvedValue({
+    generateLayout: jest.fn<() => Promise<unknown>>().mockResolvedValue({
       success: true,
       layout: {
         nodes: [
@@ -109,7 +110,7 @@ jest.unstable_mockModule('@stv/core/config', () => ({
 
 // ---------- Helpers ----------
 
-function createValidInput() {
+function createValidInput(): PipelineInput {
   return {
     audioFile: '/test/audio.wav',
     config: {

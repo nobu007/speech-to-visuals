@@ -50,7 +50,7 @@ async function runOnce(prefix: string): Promise<PositionedNode[]> {
   return result.layout.nodes
     .slice()
     .sort((a, b) => a.id.localeCompare(b.id))
-    .map((n) => ({ id: n.id, x: n.x, y: n.y }));
+    .map((n) => ({ id: n.id, label: n.label, x: n.x, y: n.y })) as PositionedNode[];
 }
 
 describe('SimulatedAnnealingStrategy — fully seeded (round 17)', () => {

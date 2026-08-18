@@ -99,7 +99,7 @@ function makeCjkScene(): SceneGraph {
     keyphrases: [],
     layout: {
       nodes: [n('n1', '処理', 100), n('n2', '結果', 500)],
-      edges: [{ from: 'n1', to: 'n2', label: '次へ' }],
+      edges: [{ from: 'n1', to: 'n2', label: '次へ', points: [{ x: 100, y: 100 }, { x: 500, y: 100 }] }],
     },
   };
 }
@@ -119,7 +119,7 @@ function makeLatinScene(): SceneGraph {
     keyphrases: [],
     layout: {
       nodes: [n('n1', 'Start', 100), n('n2', 'End', 500)],
-      edges: [{ from: 'n1', to: 'n2', label: 'next' }],
+      edges: [{ from: 'n1', to: 'n2', label: 'next', points: [{ x: 100, y: 100 }, { x: 500, y: 100 }] }],
     },
   };
 }

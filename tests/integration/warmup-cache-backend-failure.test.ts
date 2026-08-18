@@ -61,11 +61,11 @@ function createWiredService(
   }
 
   const service = {
-    isEnabled: jest.fn().mockReturnValue(enabled),
-    warmupCache: jest.fn().mockImplementation(async () => {
+    isEnabled: jest.fn<() => unknown>().mockReturnValue(enabled),
+    warmupCache: jest.fn<(...args: unknown[]) => unknown>().mockImplementation(async () => {
       return warmupManager.warmupIfCold(resolver);
     }),
-    getCacheWarmupStats: jest.fn().mockImplementation(() => warmupManager.getWarmupStats()),
+    getCacheWarmupStats: jest.fn<(...args: unknown[]) => unknown>().mockImplementation(() => warmupManager.getWarmupStats()),
   } as unknown as LLMService;
 
   return { service, cache, warmupManager };
@@ -363,9 +363,9 @@ describe('Phase 46 — REQ-118: Cascading failure resilience in health endpoint'
   test('TC-118-01: getCacheWarmupStats throws after warmupCache resolves', async () => {
     // Simulate warmup succeeding but stats call throwing
     const service = {
-      isEnabled: jest.fn().mockReturnValue(true),
-      warmupCache: jest.fn().mockResolvedValue(true),
-      getCacheWarmupStats: jest.fn().mockImplementation(() => {
+      isEnabled: jest.fn<() => unknown>().mockReturnValue(true),
+      warmupCache: jest.fn<() => Promise<unknown>>().mockResolvedValue(true),
+      getCacheWarmupStats: jest.fn<(...args: unknown[]) => unknown>().mockImplementation(() => {
         throw new Error('stats backend unreachable');
       }),
     } as unknown as LLMService;
@@ -383,9 +383,9 @@ describe('Phase 46 — REQ-118: Cascading failure resilience in health endpoint'
 
   test('TC-118-02: health endpoint remains stable when warmup status is failed', async () => {
     const service = {
-      isEnabled: jest.fn().mockReturnValue(true),
-      warmupCache: jest.fn().mockRejectedValue(new Error('total backend failure')),
-      getCacheWarmupStats: jest.fn().mockReturnValue({ totalPatternsProcessed: 0 }),
+      isEnabled: jest.fn<() => unknown>().mockReturnValue(true),
+      warmupCache: jest.fn<() => Promise<unknown>>().mockRejectedValue(new Error('total backend failure')),
+      getCacheWarmupStats: jest.fn<() => unknown>().mockReturnValue({ totalPatternsProcessed: 0 }),
     } as unknown as LLMService;
 
     triggerStartupWarmup(service);
@@ -416,9 +416,9 @@ describe('Phase 46 — REQ-118: Cascading failure resilience in health endpoint'
   test('TC-118-03: multiple sequential warmup triggers — last result wins', async () => {
     // First: fail
     const failingService = {
-      isEnabled: jest.fn().mockReturnValue(true),
-      warmupCache: jest.fn().mockRejectedValue(new Error('first attempt failed')),
-      getCacheWarmupStats: jest.fn().mockReturnValue({ totalPatternsProcessed: 0 }),
+      isEnabled: jest.fn<() => unknown>().mockReturnValue(true),
+      warmupCache: jest.fn<() => Promise<unknown>>().mockRejectedValue(new Error('first attempt failed')),
+      getCacheWarmupStats: jest.fn<() => unknown>().mockReturnValue({ totalPatternsProcessed: 0 }),
     } as unknown as LLMService;
 
     triggerStartupWarmup(failingService);
@@ -428,9 +428,9 @@ describe('Phase 46 — REQ-118: Cascading failure resilience in health endpoint'
     // Second: succeed (reset status first)
     resetWarmupStatus();
     const successService = {
-      isEnabled: jest.fn().mockReturnValue(true),
-      warmupCache: jest.fn().mockResolvedValue(true),
-      getCacheWarmupStats: jest.fn().mockReturnValue({ totalPatternsProcessed: 5 }),
+      isEnabled: jest.fn<() => unknown>().mockReturnValue(true),
+      warmupCache: jest.fn<() => Promise<unknown>>().mockResolvedValue(true),
+      getCacheWarmupStats: jest.fn<() => unknown>().mockReturnValue({ totalPatternsProcessed: 5 }),
     } as unknown as LLMService;
 
     triggerStartupWarmup(successService);
@@ -452,9 +452,9 @@ describe('Phase 46 — REQ-118: Cascading failure resilience in health endpoint'
 
     // Fire multiple warmup triggers rapidly
     const services = [
-      { isEnabled: jest.fn().mockReturnValue(true), warmupCache: jest.fn().mockResolvedValue(true), getCacheWarmupStats: jest.fn().mockReturnValue({ totalPatternsProcessed: 3 }) },
-      { isEnabled: jest.fn().mockReturnValue(false), warmupCache: jest.fn(), getCacheWarmupStats: jest.fn().mockReturnValue({ totalPatternsProcessed: 0 }) },
-      { isEnabled: jest.fn().mockReturnValue(true), warmupCache: jest.fn().mockRejectedValue(new Error('boom')), getCacheWarmupStats: jest.fn().mockReturnValue({ totalPatternsProcessed: 0 }) },
+      { isEnabled: jest.fn<() => unknown>().mockReturnValue(true), warmupCache: jest.fn<() => Promise<unknown>>().mockResolvedValue(true), getCacheWarmupStats: jest.fn<() => unknown>().mockReturnValue({ totalPatternsProcessed: 3 }) },
+      { isEnabled: jest.fn<() => unknown>().mockReturnValue(false), warmupCache: jest.fn(), getCacheWarmupStats: jest.fn<() => unknown>().mockReturnValue({ totalPatternsProcessed: 0 }) },
+      { isEnabled: jest.fn<() => unknown>().mockReturnValue(true), warmupCache: jest.fn<() => Promise<unknown>>().mockRejectedValue(new Error('boom')), getCacheWarmupStats: jest.fn<() => unknown>().mockReturnValue({ totalPatternsProcessed: 0 }) },
     ] as unknown as LLMService[];
 
     for (const svc of services) {

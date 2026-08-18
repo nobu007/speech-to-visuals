@@ -38,7 +38,7 @@ let observerInstances: TrackingObserver[] = [];
 
 class TrackingObserver {
   readonly cb: ResizeObserverCallback;
-  readonly observed: Element[] = [];
+  observed: Element[] = [];
   disconnected = false;
   constructor(cb: ResizeObserverCallback) {
     this.cb = cb;

@@ -51,25 +51,25 @@ function createMockService(
 ) {
   const service = {
     isEnabled: jest.fn().mockReturnValue(enabled),
-    warmupCache: jest.fn(),
+    warmupCache: jest.fn<any>(),
     getCacheWarmupStats: jest.fn().mockReturnValue({ totalPatternsProcessed: 8 }),
   } as unknown as LLMService;
 
   switch (warmupResult) {
     case 'resolve-true':
-      (service.warmupCache as jest.Mock).mockResolvedValue(true);
+      (service.warmupCache as jest.Mock<any>).mockResolvedValue(true);
       break;
     case 'resolve-false':
-      (service.warmupCache as jest.Mock).mockResolvedValue(false);
+      (service.warmupCache as jest.Mock<any>).mockResolvedValue(false);
       break;
     case 'reject-error':
-      (service.warmupCache as jest.Mock).mockRejectedValue(new Error(errorMessage));
+      (service.warmupCache as jest.Mock<any>).mockRejectedValue(new Error(errorMessage));
       break;
     case 'reject-string':
-      (service.warmupCache as jest.Mock).mockRejectedValue(errorMessage);
+      (service.warmupCache as jest.Mock<any>).mockRejectedValue(errorMessage);
       break;
     case 'hang':
-      (service.warmupCache as jest.Mock).mockReturnValue(new Promise(() => {}));
+      (service.warmupCache as jest.Mock<any>).mockReturnValue(new Promise(() => {}));
       break;
   }
 

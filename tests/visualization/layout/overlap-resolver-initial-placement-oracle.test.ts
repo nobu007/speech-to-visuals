@@ -64,8 +64,7 @@ jest.unstable_mockModule(
   () => ({ __esModule: true, default: createIdentityStrategy('grid-snap') }),
 );
 
-type OverlapResolverClass = import('@/visualization/layout/OverlapResolver').OverlapResolver;
-let OverlapResolver: typeof OverlapResolverClass;
+let OverlapResolver: typeof import('@/visualization/layout/OverlapResolver').OverlapResolver;
 
 beforeAll(async () => {
   const mod = await import('@/visualization/layout/OverlapResolver');
@@ -97,7 +96,9 @@ function graph(prefix: string, count = 6): { nodes: NodeDatum[]; edges: EdgeDatu
   return { nodes, edges };
 }
 
-async function resolveOnce(prefix: string): Promise<PositionedNode[]> {
+async function resolveOnce(
+  prefix: string,
+): Promise<Array<{ id: string; x: number; y: number }>> {
   const { nodes, edges } = graph(prefix);
   const result = await new OverlapResolver().resolve(
     nodes as unknown as NodeDatum[],

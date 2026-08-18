@@ -218,8 +218,8 @@ async function runAllTests() {
   console.log('█' + ' '.repeat(78) + '█');
   console.log('█'.repeat(80) + '\n');
 
-  const totalTests = Object.values(results).filter(r => !r.skipped).length;
-  const passedTests = Object.values(results).filter(r => r.passed && !r.skipped).length;
+  const totalTests = Object.values(results).filter(r => 'skipped' in r ? !r.skipped : true).length;
+  const passedTests = Object.values(results).filter(r => r.passed && ('skipped' in r ? !r.skipped : true)).length;
 
   console.log(`Test 1 (Complexity Detection): ${results.test1.passed ? '✅ PASSED' : '❌ FAILED'} (${results.test1.accuracy.toFixed(1)}% accuracy)`);
   console.log(`Test 2 (Model Distribution): ${results.test2.passed ? '✅ PASSED' : '❌ FAILED'} (${results.test2.flashPercent.toFixed(1)}% Flash usage)`);

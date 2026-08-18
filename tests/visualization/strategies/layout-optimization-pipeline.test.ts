@@ -10,6 +10,9 @@ const defaultConfig = {
   marginX: 40,
   marginY: 40,
   nodeSeparation: 20,
+  rankDirection: 'TB' as const,
+  edgeSeparation: 10,
+  rankSeparation: 30,
 };
 
 function makeNodes(count: number): PositionedNode[] {

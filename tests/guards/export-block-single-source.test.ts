@@ -45,7 +45,8 @@ import { MultiFormatExporter } from '@/export/multi-format-exporter';
 import { EnhancedExportEngine } from '@/export/enhanced-export-engine';
 import { ProductionExporter } from '@/export/production-exporter';
 import { FormatValidationError, PipelineConfigError } from '@/pipeline/pipeline-errors';
-import type { SceneGraph } from '@stv/core/types/diagram';
+import type { SceneGraph, NodeDatum } from '@stv/core/types/diagram';
+import type { EnhancedSceneGraph } from '@/visualization/advanced-visual-engine';
 
 // ---------------------------------------------------------------------------
 // Env fixture: EXPORT_STRICT_VALIDATION saved/restored around every test
@@ -184,8 +185,8 @@ function makeScene(summary: string): SceneGraph {
     id: 'round-28-scene',
     type: 'flow',
     nodes: [
-      { id: 'n1', label: 'Start', x: 100, y: 100, width: 120, height: 60 },
-      { id: 'n2', label: 'End', x: 400, y: 100, width: 120, height: 60 },
+      { id: 'n1', label: 'Start', x: 100, y: 100, width: 120, height: 60 } as NodeDatum & { x: number; y: number },
+      { id: 'n2', label: 'End', x: 400, y: 100, width: 120, height: 60 } as NodeDatum & { x: number; y: number },
     ],
     edges: [{ from: 'n1', to: 'n2', label: 'next' }],
     startMs: 0,
@@ -196,13 +197,15 @@ function makeScene(summary: string): SceneGraph {
   };
 }
 
-function makeEnhancedScene(summary: string) {
+function makeEnhancedScene(summary: string): EnhancedSceneGraph {
   return {
     ...makeScene(summary),
     visualStyle: { theme: 'default', colorScheme: 'blue' },
     animations: [],
     background: { type: 'solid' as const, primary: '#ffffff', opacity: 1 },
-  };
+    // visualStyle below is only a partial of VisualStyle; the exporter reads
+  // just these two fields in tests, so assert the full SUT type here.
+  } as unknown as EnhancedSceneGraph;
 }
 
 // ---------------------------------------------------------------------------

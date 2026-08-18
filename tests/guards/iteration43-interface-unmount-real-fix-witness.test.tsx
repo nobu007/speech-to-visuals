@@ -40,7 +40,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import '@testing-library/jest-dom';
+// jest-globals entry: extends the @jest/globals expect AND types the matchers
+import '@testing-library/jest-dom/jest-globals';
 
 const CHOKEPOINT_FILE = 'src/components/Iteration43Interface.tsx';
 
@@ -181,7 +182,7 @@ describe('Iteration43Interface unmount guard — positive control (TC-320-02)', 
 // --- (TC-320-03) runtime hazard witness --------------------------------------
 
 describe('Iteration43Interface unmount guard — absorbs unmount-during-await (TC-320-03)', () => {
-  let consoleErrorSpy: jest.SpyInstance;
+  let consoleErrorSpy: ReturnType<typeof jest.spyOn>;
 
   beforeEach(() => {
     jest.useFakeTimers();

@@ -10,6 +10,9 @@ const defaultConfig = {
   marginX: 40,
   marginY: 40,
   nodeSeparation: 20,
+  rankDirection: 'TB' as const,
+  edgeSeparation: 10,
+  rankSeparation: 30,
 };
 
 function makePositionedNodes(): PositionedNode[] {
@@ -142,6 +145,9 @@ describe('LayoutEvaluator', () => {
       marginX: 50,
       marginY: 50,
       nodeSeparation: 50,
+      rankDirection: 'TB' as const,
+      edgeSeparation: 10,
+      rankSeparation: 50,
     };
     const productionEvaluator = new LayoutEvaluator(productionConfig);
 
@@ -194,7 +200,6 @@ describe('LayoutEvaluator', () => {
         bounds: { minX: 100, minY: 100, maxX: 520, maxY: 360, width: 420, height: 260 },
         processingTime: 100,
         confidence: 0.95,
-        iteration: 1,
       };
 
       // Should not throw
@@ -211,7 +216,6 @@ describe('LayoutEvaluator', () => {
         bounds: { minX: 0, minY: 0, maxX: 2000, maxY: 1200, width: 2000, height: 1200 },
         processingTime: 100,
         confidence: 0.5,
-        iteration: 1,
       };
 
       await expect(evaluator.evaluateLayout(result, 'flow')).resolves.toBeUndefined();
@@ -228,7 +232,6 @@ describe('LayoutEvaluator', () => {
         bounds: { minX: 100, minY: 100, maxX: 520, maxY: 360, width: 420, height: 260 },
         processingTime: 100,
         confidence: 0.95,
-        iteration: 1,
       };
 
       // REQ-289: the evaluator must RETURN the compliance it computes (previously
@@ -250,7 +253,6 @@ describe('LayoutEvaluator', () => {
         bounds: { minX: 100, minY: 100, maxX: 230, maxY: 170, width: 130, height: 70 },
         processingTime: 6000,
         confidence: 0.3,
-        iteration: 1,
       };
 
       // REQ-289: the test name promises failures are REPORTED. Previously the

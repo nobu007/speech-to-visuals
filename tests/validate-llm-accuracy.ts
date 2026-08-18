@@ -289,7 +289,7 @@ async function runValidation(): Promise<void> {
   console.log('\n📈 Performance Statistics:');
   const cacheStats = geminiAnalyzer.getCacheStats();
   console.log(`  Total Requests: ${cacheStats.totalRequests}`);
-  console.log(`  Cache Hits: ${cacheStats.totalHits}`);
+  console.log(`  Cache Hits: ${cacheStats.hits}`);
   console.log(`  Cache Size: ${cacheStats.size}`);
   console.log(`  Adaptive Timeout: ${cacheStats.adaptiveTimeout.currentTimeoutMs}ms`);
   console.log(`  Avg Response Time: ${cacheStats.adaptiveTimeout.avgResponseTimeMs}ms`);

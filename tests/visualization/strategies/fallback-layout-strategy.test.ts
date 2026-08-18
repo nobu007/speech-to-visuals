@@ -6,6 +6,12 @@ const defaultConfig = {
   height: 1080,
   nodeWidth: 120,
   nodeHeight: 60,
+  marginX: 40,
+  marginY: 40,
+  rankDirection: 'TB' as const,
+  nodeSeparation: 20,
+  edgeSeparation: 10,
+  rankSeparation: 50,
 };
 
 function makeNodes(count: number): NodeDatum[] {

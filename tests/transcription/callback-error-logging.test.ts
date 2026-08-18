@@ -56,7 +56,8 @@ const originalRevokeObjectURL = globalThis.URL?.revokeObjectURL;
 beforeAll(() => {
   (globalThis as Record<string, unknown>).window = {};
   (globalThis as Record<string, unknown>).Audio = MockAudio as unknown as typeof Audio;
-  (globalThis as Record<string, unknown>).navigator = { ...(globalThis as Record<string, unknown>).navigator };
+  const currentNavigator = (globalThis as { navigator?: unknown }).navigator;
+  (globalThis as Record<string, unknown>).navigator = currentNavigator ? { ...(currentNavigator as Record<string, unknown>) } : {};
   globalThis.URL = {
     ...(globalThis.URL || {}),
     createObjectURL: mockCreateObjectURL as unknown as typeof URL.createObjectURL,
@@ -159,7 +160,7 @@ describe('Transcription non-finite audio duration handling', () => {
 });
 
 describe('Transcription callback error logging observability', () => {
-  let warnSpy: jest.SpyInstance;
+  let warnSpy: ReturnType<typeof jest.spyOn>;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -168,7 +169,7 @@ describe('Transcription callback error logging observability', () => {
   });
 
   afterEach(() => {
-    warnSpy.mockRestore();
+    (warnSpy as ReturnType<typeof jest.spyOn>).mockRestore();
   });
 
   it('logs onProgress callback errors via console.warn for observability', async () => {

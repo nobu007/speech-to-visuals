@@ -79,9 +79,16 @@ const FIXTURE_CAPTIONS = [
 // Stage 1: parseJsonFromLLMText
 // ===========================================================================
 
+interface DiagramJsonShape {
+  type: string;
+  nodes: unknown[];
+  edges: unknown[];
+  summary?: string;
+}
+
 describe('Stage 1: parseJsonFromLLMText', () => {
   it('extracts valid diagram JSON from markdown-wrapped LLM text', () => {
-    const result = parseJsonFromLLMText(FIXTURE_LLM_TEXT);
+    const result = parseJsonFromLLMText<DiagramJsonShape>(FIXTURE_LLM_TEXT);
 
     expect(result).toBeDefined();
     expect(result.type).toBe('flow');
@@ -92,7 +99,7 @@ describe('Stage 1: parseJsonFromLLMText', () => {
 
   it('handles JSON surrounded by preamble text without code fences', () => {
     const raw = 'Sure! Here is your diagram: {"type":"tree","nodes":[{"id":"a","label":"Root"}],"edges":[]}';
-    const result = parseJsonFromLLMText(raw);
+    const result = parseJsonFromLLMText<DiagramJsonShape>(raw);
 
     expect(result.type).toBe('tree');
     expect(result.nodes).toHaveLength(1);
@@ -100,7 +107,7 @@ describe('Stage 1: parseJsonFromLLMText', () => {
 
   it('handles trailing commas in JSON objects', () => {
     const raw = '{"type":"flow","nodes":[{"id":"n1","label":"A"},],"edges":[],}';
-    const result = parseJsonFromLLMText(raw);
+    const result = parseJsonFromLLMText<DiagramJsonShape>(raw);
 
     expect(result.type).toBe('flow');
     expect(result.nodes).toHaveLength(1);
@@ -116,7 +123,7 @@ describe('Stage 1: parseJsonFromLLMText', () => {
 
   it('handles array JSON output', () => {
     const raw = '[{"type":"flow","nodes":[],"edges":[]}]';
-    const result = parseJsonFromLLMText(FIXTURE_LLM_TEXT);
+    const result = parseJsonFromLLMText<DiagramJsonShape>(FIXTURE_LLM_TEXT);
     // Array variant
     const arr = parseJsonFromLLMText<Array<unknown>>(raw);
     expect(Array.isArray(arr)).toBe(true);
@@ -417,8 +424,9 @@ describe('End-to-end: runSmokePipeline', () => {
 
     // Stage 1: parsed diagram
     expect(result.parsed).toBeDefined();
-    expect(result.parsed.type).toBe('flow');
-    expect(result.parsed.nodes).toHaveLength(4);
+    const parsed = result.parsed as DiagramJsonShape;
+    expect(parsed.type).toBe('flow');
+    expect(parsed.nodes).toHaveLength(4);
 
     // Stage 2: scenes and sync
     expect(result.scenes).toHaveLength(1);
@@ -455,7 +463,7 @@ describe('End-to-end: runSmokePipeline', () => {
       rawLlmText: '{"type":"general","nodes":[{"id":"solo","label":"Standalone"}],"edges":[]}',
     });
 
-    expect(result.parsed.nodes).toHaveLength(1);
+    expect((result.parsed as DiagramJsonShape).nodes).toHaveLength(1);
     expect(result.scenes[0].edges).toHaveLength(0);
     expect(result.exportResults[0].success).toBe(true);
   });
@@ -521,7 +529,7 @@ describe('Public API: pipeline/index re-exports', () => {
       captions: FIXTURE_CAPTIONS,
     });
 
-    expect(result.parsed.type).toBe('flow');
+    expect((result.parsed as DiagramJsonShape).type).toBe('flow');
     expect(result.renderPlan.sceneCount).toBe(1);
     expect(result.exportResults[0].success).toBe(true);
   });

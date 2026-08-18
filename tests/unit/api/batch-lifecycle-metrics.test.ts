@@ -12,7 +12,7 @@ import { PipelineMetricsCollector, pipelineMetricsCollector } from '@/monitoring
 // Mock pipeline dependencies
 jest.unstable_mockModule('@/pipeline/simple-pipeline', () => ({
   simplePipeline: {
-    process: jest.fn().mockResolvedValue({ success: true, transcript: 'test', scenes: [] }),
+    process: jest.fn<any>().mockResolvedValue({ success: true, transcript: 'test', scenes: [] }),
   },
 }));
 
@@ -102,7 +102,7 @@ describe('REQ-213: BatchProcessingAPI lifecycle metrics integration', () => {
     // Individual file failures are caught inside processFile;
     // the job still reaches 'completed' status.
     const { simplePipeline } = await import('@/pipeline/simple-pipeline');
-    (simplePipeline.process as jest.Mock).mockRejectedValueOnce(new Error('boom'));
+    (simplePipeline.process as jest.Mock<any>).mockRejectedValueOnce(new Error('boom'));
 
     const { jobId } = await api.submitJob({ files: [stubFile('fail.wav'), stubFile('ok.wav')] });
     const status = await api.waitForJob(jobId, { timeoutMs: 5000 });

@@ -49,7 +49,7 @@ function coincidentPair(prefix: string): DiagramLayout {
   return { nodes: [node(`${prefix}a`), node(`${prefix}b`)], edges: [] };
 }
 
-async function resolveCoincident(prefix: string): Promise<PositionedNode[]> {
+async function resolveCoincident(prefix: string): Promise<Array<{ id: string; x: number; y: number }>> {
   const resolver = new VizOverlapResolver(CONFIG);
   const layout = await resolver.ensureZeroOverlaps(coincidentPair(prefix), 'network');
   return layout.nodes
@@ -70,7 +70,7 @@ function unpositionedGraph(prefix = '', count = 8): { nodes: NodeDatum[]; edges:
   return { nodes, edges };
 }
 
-async function resolveGraph(prefix: string): Promise<PositionedNode[]> {
+async function resolveGraph(prefix: string): Promise<Array<{ id: string; x: number; y: number }>> {
   const resolver = new LayoutOverlapResolver();
   const { nodes, edges } = unpositionedGraph(prefix);
   const result = await resolver.resolve(nodes, edges, CONFIG);

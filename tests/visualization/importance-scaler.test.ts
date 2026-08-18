@@ -7,7 +7,7 @@ import {
   isLowImportance,
   pickHighestImportance,
 } from '@/visualization/importance-scaler';
-import { NodeDatum } from '@stv/core/types/diagram';
+import { NodeDatum, PositionedNode } from '@stv/core/types/diagram';
 
 const node = (id: string, importance?: number): NodeDatum => ({
   id,
@@ -220,7 +220,7 @@ describe('NetworkStrategy importance-aware layout', () => {
     ];
 
     // Access private method via initializeCircle
-    const positioned = (strategy as unknown as { initializeCircle(n: LayoutNode[]): LayoutNode[] }).initializeCircle(nodes);
+    const positioned = (strategy as unknown as { initializeCircle(n: PositionedNode[]): PositionedNode[] }).initializeCircle(nodes as unknown as PositionedNode[]);
     const cx = 1920 / 2;
     const cy = 1080 / 2;
 
