@@ -401,7 +401,7 @@
 
 ## REQ-038: 設定スキーマバリデーション 🔵
 
-**信頼性**: 🔵 *src/config/validate.ts・src/config/schema.ts より*
+**信頼性**: 🔵 *@stv/core/config/validate・@stv/core/config/schema より*
 
 
 > Given: システムが起動し、環境変数・設定値を読み込む | When: Zod スキーマによる設定バリデーションが実行される | Then: 全設定値がスキーマに照合され、不正値は即座にエラーとして報告される; バリデーション通過時のみシステムが正常起動する
@@ -720,7 +720,7 @@
 
 ## REQ-051: 型ガード・型安全性 🔵
 
-**信頼性**: 🔵 *src/types/diagram.ts isDiagramType() より*
+**信頼性**: 🔵 *@stv/core/types/diagram isDiagramType() より*
 
 
 > Given: 不明な値が DiagramType として使用される可能性がある | When: `isDiagramType()` 関数に値を渡す | Then: 有効な DiagramType 値（11種）の場合は true を返す; 無効な値の場合は false を返す
@@ -1015,7 +1015,7 @@
 
 ## REQ-066: ブラウザセーフ環境変数アクセス 🔵
 
-**信頼性**: 🔵 *ISS-012 MEDIUM・src/config/production-config.ts lines 80, 284, 291・.audit/purpose_driven_plan.yml より*
+**信頼性**: 🔵 *ISS-012 MEDIUM・@stv/core/config/production-config lines 80, 284, 291・.audit/purpose_driven_plan.yml より*
 
 
 > Given: production-config.ts がブラウザ環境で動作している; process.env が undefined の可能性がある（Vite ビルド時の静的置換が行われない場合） | When: getEnvironmentConfig() または loadConfigOverrides() が呼び出される | Then: process.env が undefined の場合でもエラーが発生しない; 適切なデフォルト値が使用される
@@ -1315,7 +1315,7 @@
   - **信頼性**: 🔵 *直接コード確認*
 
 - [x] **TC-090-03**: 設定モジュールの console.log 除去 🔵
-  - **条件**: src/config/production-config.ts
+  - **条件**: @stv/core/config/production-config
   - **期待結果**: console 出力が設定バリデーションエラーに置換される
   - **信頼性**: 🔵 *直接コード確認*
 
@@ -1679,10 +1679,10 @@
 
 ### REQ-132: sanitizeFilename エッジケーステスト 🔵
 
-**信頼性**: 🔵 *src/utils/sanitize.ts 実装・ISS-044 パストラバーサル防止要件より*
+**信頼性**: 🔵 *@stv/core/utils/sanitize 実装・ISS-044 パストラバーサル防止要件より*
 
 
-> Given: sanitizeFilename 関数が src/utils/sanitize.ts に定義されている; 関数はパストラバーサル防止・ヌルバイト除去・制御文字除去・ディレクトリセパレータ置換を実装 | When: 各エッジケース入力を sanitizeFilename() に渡す | Then: 入力に応じた安全なファイル名が出力される
+> Given: sanitizeFilename 関数が @stv/core/utils/sanitize に定義されている; 関数はパストラバーサル防止・ヌルバイト除去・制御文字除去・ディレクトリセパレータ置換を実装 | When: 各エッジケース入力を sanitizeFilename() に渡す | Then: 入力に応じた安全なファイル名が出力される
 
 ### テストケース
 
@@ -1748,7 +1748,7 @@
 
 ### REQ-133: limits.ts 定数検証テスト 🔵
 
-**信頼性**: 🔵 *src/config/limits.ts 集約化完了・REQ-071/REQ-073 要件より*
+**信頼性**: 🔵 *@stv/core/config/limits 集約化完了・REQ-071/REQ-073 要件より*
 
 
 > Given: limits.ts に RATE_LIMITS・BATCH_LIMITS・SERVER_LIMITS・PIPELINE_LIMITS・SECURITY_LIMITS が定義されている; 各モジュールがこれらの定数を正しく参照している | When: limits.ts の各定数値を検証; 参照元モジュールでの使用箇所を確認 | Then: 定数値が期待値と一致する; マジックナンバーの漏れがない
@@ -1966,7 +1966,7 @@
 
 ## REQ-138: logger.ts・memory-usage.ts ユーティリティテスト 🔵
 
-**信頼性**: 🔵 *src/utils/logger.ts (32行)・src/utils/memory-usage.ts (44行) 既存実装・テストファイルなし より*
+**信頼性**: 🔵 *@stv/core/utils/logger (32行)・@stv/core/utils/memory-usage (44行) 既存実装・テストファイルなし より*
 
 ### Given（前提条件）
 
@@ -2008,7 +2008,7 @@
 
 ## REQ-144: AudioUploader centralized validation 統合 🔵
 
-**信頼性**: 🔵 *src/components/AudioUploader.tsx 32-38行インライン検証・src/utils/audio-validation.ts 統合パターン・EnhancedFileUploader.tsx 統合例 より*
+**信頼性**: 🔵 *src/components/AudioUploader.tsx 32-38行インライン検証・@stv/core/utils/audio-validation 統合パターン・EnhancedFileUploader.tsx 統合例 より*
 
 ### Given（前提条件）
 
@@ -2060,7 +2060,7 @@
 
 ## REQ-145: 音声制限定数統合 🔵
 
-**信頼性**: 🔵 *src/transcription/types.ts MAX_FILE_SIZE vs src/config/limits.ts AUDIO_LIMITS の重複定義 より*
+**信頼性**: 🔵 *src/transcription/types.ts MAX_FILE_SIZE vs @stv/core/config/limits AUDIO_LIMITS の重複定義 より*
 
 ### Given（前提条件）
 
@@ -3178,7 +3178,7 @@
 - [x] **TC-197-B01**: 50MB 境界値ファイル 🔵
   - **入力**: ちょうど50MB の File オブジェクト
   - **期待結果**: 正常受入（境界値未満チェック: file.size > MAX_FILE_SIZE_BYTES）
-  - **信頼性**: 🔵 *src/config/limits.ts AUDIO_LIMITS.MAX_FILE_SIZE_BYTES*
+  - **信頼性**: 🔵 *@stv/core/config/limits AUDIO_LIMITS.MAX_FILE_SIZE_BYTES*
 
 ---
 
@@ -3877,7 +3877,7 @@
 
 ## REQ-222: エラーリカバリREST API堅牢化 🔵
 
-**信頼性**: 🔵 *Phase 92 実装・src/api/routes/errors.ts・src/config/limits.ts より*
+**信頼性**: 🔵 *Phase 92 実装・src/api/routes/errors.ts・@stv/core/config/limits より*
 
 ### Given（前提条件）
 
@@ -3999,7 +3999,7 @@
 
 ## REQ-224: エクスポートレート制限・レンダーエンドポイント検証強化 🔵
 
-**信頼性**: 🔵 *Phase 94 実装・src/api/middleware/rate-limit.ts・src/api/routes/pipeline.ts・src/config/limits.ts より*
+**信頼性**: 🔵 *Phase 94 実装・src/api/middleware/rate-limit.ts・src/api/routes/pipeline.ts・@stv/core/config/limits より*
 
 ### Given（前提条件）
 
@@ -5203,7 +5203,7 @@
 
 - [x] **TC-EDGE-011-01**: 全プロダクションコードの catch ブロックが logger.error を使用 🔵
   - **対象**: src/optimization/memory-cache.ts, src/analysis/budget-alert.ts, src/monitoring/production-monitoring-excellence.ts, src/quality/error-recovery-event-bus.ts, src/monitoring/performance-dashboard.ts, src/monitoring/real-time-performance-monitor.ts
-  - **期待結果**: console.error が src/utils/logger.ts の logger.error に置換される（logger.ts 自身を除く）
+  - **期待結果**: console.error が @stv/core/utils/logger の logger.error に置換される（logger.ts 自身を除く）
   - **信頼性**: 🔵 *ソースコード検証済*
 
 ### 第198~199回検証サマリー
@@ -5324,7 +5324,7 @@
 ### Given（前提条件）
 
 - ESLint 9 設定（eslint.config.js）が利用可能
-- src/utils/logger.ts が console.error の唯一の正当な使用
+- @stv/core/utils/logger が console.error の唯一の正当な使用
 
 ### When（実行条件）
 
@@ -5442,7 +5442,7 @@
 
 ### REQ-259: Recovery path silent catch修正 🔵
 
-**信頼性**: 🔵 *src/quality/enhanced-error-recovery.ts・src/pipeline/pipeline-error-recovery-orchestrator.ts より*
+**信頼性**: 🔵 *src/quality/enhanced-error-recovery.ts・src/quality/pipeline-error-recovery-orchestrator.ts より*
 
 #### Given（前提条件）
 - エラー回復戦略の実行中に例外が発生する
@@ -5664,7 +5664,7 @@
 
 **信頼性**: 🟡 *AI Hub steering feedback A から妥当な推測（提案）*
 
-- [x] **TC-298-01**: `src/types/diagram.ts` に `'sequence' vs 'timeline'` 等の同義語 alias があるか再評価 🟡
+- [x] **TC-298-01**: `@stv/core/types/diagram` に `'sequence' vs 'timeline'` 等の同義語 alias があるか再評価 🟡
   - **信頼性**: 🟡 *canonical DiagramType = 11 メンバー（flow/flowchart/tree/timeline/matrix/cycle/comparison/network/conceptmap/mindmap/general）、同義語 pair は `flow`/`flowchart` のみ（1 件）。`sequence` は canonical type に存在せず、`hierarchy` は `tree` 検出キーワードであって DiagramType メンバーではない*
   - **信頼性**: 🟡 *`diagram-type-switch-parity-guard.test.ts` 内に `EQUIVALENCE_PAIRS` インベントリ + 戦略コメントを co-locate。新ペア追加時は新ガードファイル（命名規約 `diagram-type-switch-parity-<canonical>-guard.test.ts`）を必須化する構造的 pinning を追加*
 #### REQ-299: storageParser JSON.parse vs JSON.stringify 非対称監査 🟡
@@ -5725,7 +5725,7 @@
 
 **信頼性**: 🔵 *single-source round 13（freeze-guard registry の 4 件目の新規エントリ）*
 
-- [x] **TC-308-01**: `DIAGRAM_TYPE_TITLES` を `src/types/diagram.ts`（`DIAGRAM_TYPES` と同居）から export し、`video-generator.generateSceneTitle` と `DiagramScene` のレンダリングタイトルの 2 消費サイトをローカル map から import に切替 🔵
+- [x] **TC-308-01**: `DIAGRAM_TYPE_TITLES` を `@stv/core/types/diagram`（`DIAGRAM_TYPES` と同居）から export し、`video-generator.generateSceneTitle` と `DiagramScene` のレンダリングタイトルの 2 消費サイトをローカル map から import に切替 🔵
   - **信頼性**: 🔵 *両 map は drift 済みだった（flowchart「プロセスフロー」vs「フローチャート」、general「ダイアグラム」vs「一般」）ため値変更を伴う実挙動修正 — シーンリストと動画フレームのタイトル不一致を解消。DiagramPreview の badge wording（ツリー構造/マトリクス/…）は別 surface の UI 略称として理由付き除外*
 - [x] **TC-308-02**: frozen-literal registry に当該ファミリーのエントリを 1 件追加（`roots: ['src']`、minSweptFiles 200、object-literal member 形 pattern で canonical 値 + 変異文言の両方を捕捉）し、RED-first で 22 offender を検出 → 修正後に GREEN。mutation 検証: 別ファイルへの rename copy（`LOCAL_TITLE_COPY`）も sweep が捕捉 🔵
   - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs tests/guards/frozen-literal-registry.test.ts tests/guards/diagram-type-titles-single-source.test.ts`
@@ -5741,6 +5741,29 @@
 - [x] **TC-309-01**: `src/visualization/__tests__/force-directed-convergence-outcome.test.ts` に 12 トポロジー（sparse 7: chain/ring/star/complete/hubs/chain-20/ring-24 + dense 5: chain-40/ring-40/grid-64/star-50/rand-100）× 3 述語 arm（canonical=本物の `runForceDirectedPhases`、old=`&& i > 0` 再現、full=予算全域）のアウトカムパリティ表を配置。sparse: canonical は 3 step で旧 33 step と同一の overlap=0・bounds 内結果に到達。dense: 予算枯渇で 3 arm が値一致 🔵
   - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns force-directed-convergence-outcome`
 - [x] **TC-309-02**: E2E（public `generateLayout`）で sparse 全トポロジーの幾何学 overlap 0・BOUNDS_MARGIN 内・座標有限・インスタンス再生成で位置一致（seeding r17 の回帰でもある）。mutation 検証: (1) 述語を旧形に戻す → sparse 1-step/phase assertion が RED、(2) bounds clamp 除去 → 5 件 RED、(3) jitter ×20 → 3 件 RED。repulsion 符号反転はアウトカム観測不能（damped・velocity-capped で分離済み配置はほぼ動かない）であり round-15 の physics 値 pin 側で担保と明記 🔵
+
+#### REQ-310: @stv/core コア分割後の単一ソース維持 🔵
+
+**信頼性**: 🔵 *PR #7（stv-core split・2026-08-18 マージ）に追随する Phase 137 要件。移管モジュール群のプロダクトリポジトリ内重複実装禁止と要件文書の出典パス同期を機械検証で担保*
+
+- [x] **TC-310-01**: プロダクトリポジトリ src/ 配下に @stv/core 移管対象ディレクトリ（src/types・src/config・src/lib）の重複実装が存在せず、移管モジュールは 317 ファイルが `@stv/core` から import する単一ソースである（2026-08-19 実測）🔵
+  - **再検証コマンド**: `test ! -d src/types && test ! -d src/config && test ! -d src/lib && echo NO-DUP-DIRS` / `grep -rl "from '@stv/core" src | wc -l`（→ 317）
+- [x] **TC-310-02**: 要件文書の dead citation 監査 — requirements.md と acceptance-criteria.md に引用される src/ パスが全て実在する（stv-core split 前の旧パス引用 27件を 2026-08-19 に解消済み）🔵
+  - **再検証コマンド**: `grep -o 'src/[A-Za-z0-9_/.-]*\.\(ts\|tsx\)' specs/speech-to-visuals/requirements.md | sort -u | while read p; do [ -f "$p" ] || echo "DEAD: $p"; done`（出力 0 行が合格・acceptance-criteria.md 同様）
+
+#### REQ-311: @stv/core バージョン pin の固定 🔵
+
+**信頼性**: 🔵 *PR #7 の statusCheckRollup 13/14 SUCCESS + deploy SKIPPED（gh pr view 7 実測）が分割時点の品質証拠。依存解決の再現性はタグ pin でのみ保証されるため形状を pin する*
+
+- [x] **TC-311-01**: package.json の @stv/core 依存が GitHub タグへの完全 pin（`github:nobu007/stv-core#v1.0.7`）であり、浮動 ref（branch 名・semver range）でない。浮動 ref 化はビルド再現性を喪失させる拒否変更とする 🔵
+  - **再検証コマンド**: `grep -n '"@stv/core"' package.json`（→ `"@stv/core": "github:nobu007/stv-core#v1.0.7",`）
+
+#### REQ-312: tests/guards による分割境界の構造ピン維持 🔵
+
+**信頼性**: 🔵 *tests/guards は72テストファイル（2026-08-19 実測）の構造ガード群で、ガードテスト自体が @stv/core import 形状を pin しているかを検証する*
+
+- [x] **TC-312-01**: tests/guards 配下のガードテストが @stv/core への import 形状を正として pin している（例: tests/guards/clamp01-single-source.test.ts は `from '@stv/core/utils/guards'` を検証対象ソースに要求）。旧 src/utils パスへの回帰はガードが RED 化する構造 🔵
+  - **再検証コマンド**: `find tests/guards -name '*.test.ts' | wc -l`（→ 72）/ `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns tests/guards/clamp01-single-source`
 
 ### Phase 111+ 受け入れ基準サマリー
 
@@ -5782,7 +5805,10 @@
 | REQ-306: API 層 UUID v4 検証 regex シングルソース化 | 3 | 🔵 |
 | REQ-308: 図解タイプ日本語タイトル map シングルソース化 | 3 | 🔵 |
 | REQ-309: force-directed 収束述語アウトカム検証 | 2 | 🔵 |
-| **合計** | **92** | **🔵 96.8% / 🟡 3.2%** |
+| REQ-310: @stv/core 単一ソース・dead citation 監査 | 2 | 🔵 |
+| REQ-311: @stv/core タグ pin 固定 | 1 | 🔵 |
+| REQ-312: tests/guards 分割境界ピン | 1 | 🔵 |
+| **合計** | **99** | **🔵 89.9% / 🟡 10.1%** |
 
 
 <!-- spine:references:begin -->

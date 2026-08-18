@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-08-11（第211回検証・Phase 131+ 提案 REQ-298~300 具体化・AI Hub steering feedback A〜C を REQ 化・feedback D「timestamp guard」は REQ-301 codec option 占有のため別経路で段階実装・要件定義書ヘッダ「Phase 114 完了」→「Phase 131+ 提案段階」整合化・信頼性レベル分布 🟡6件/🔵302件/🔴0件 に整合化・interview-record A129 追加）
+**最終更新**: 2026-08-19（第218回検証・Phase 137 stv-core コア分割後の要件同期 — PR #7 で src/types・src/config・src/lib・src/utils が外部パッケージ `@stv/core` に移管されたことに追随し技術スタック・ディレクトリ構造を更新・REQ-310~312 要件化・要件文書 dead citation 27件解消・interview-record A137 参照）
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム
 
 ## 技術スタック
@@ -31,6 +31,11 @@
 - Express 5.2.1（API サーバー）
 - Supabase 2.105（DB・Edge Functions・ストレージ）
 - Socket.IO 4.8（リアルタイム通信）
+
+### コアパッケージ（stv-core 分割・PR #7・2026-08-18）
+- @stv/core v1.0.7 — 共有型（types/diagram 等）・ユーティリティ（logger/guards/sanitize 等）・設定（limits/schema/validate/production-config 等）の20モジュールパスを外部化したコアパッケージ
+- 依存は GitHub タグ完全 pin: `github:nobu007/stv-core#v1.0.7`（浮動 ref 禁止・REQ-311）
+- プロダクトリポジトリの317ファイルが `@stv/core` から import（2026-08-19 実測・REQ-310/312）
 
 ### AI・ML
 - Google Gemini AI @google/generative-ai 0.24（LLM）
@@ -56,15 +61,14 @@
 ### 主要ディレクトリ構造
 ```
 src/
+├── __tests__/       # src 直下テスト
 ├── analysis/        # 内容分析（LLM、Gemini、図解検出、言語検出、複雑度）
 ├── api/             # REST API（バッチ処理、WebSocket、ミドルウェア）
 ├── components/      # React UI（20+コンポーネント）
-├── config/          # 設定（プロダクション設定、Zod バリデーション）
 ├── export/          # エクスポート（SVG/PNG/PDF/JSON）
 ├── framework/       # 再帰的改善フレームワーク
 ├── hooks/           # React Hooks
 ├── integrations/    # Supabase 統合
-├── lib/             # 共有ライブラリ（shadcn/ui primitives 等）
 ├── monitoring/      # プロダクション監視
 ├── optimization/    # パラメータチューニング、キャッシュ、遅延ロード
 ├── pages/           # React Router ページ
@@ -74,10 +78,11 @@ src/
 ├── remotion/        # Remotion 動画コンポーネント
 ├── test/            # テストユーティリティ
 ├── transcription/   # 音声認識（Whisper/Streaming/Browser）
-├── types/           # TypeScript 型定義
-├── utils/           # ユーティリティ
-└── visualization/   # 図解レイアウト（14+戦略）
+├── visualization/   # 図解レイアウト（14+戦略）
+└── workers/         # Web Worker
 ```
+
+※ 旧 `src/config`・`src/lib`・`src/types`・`src/utils` は @stv/core 移管で消滅（PR #7・2026-08-18）。`src/` 直下は2026-08-19 時点で19ディレクトリ + エントリファイル（App.tsx/main.tsx 等）。
 
 ### Supabase 構成
 - ストレージバケット: `audio`（公開読み取り、認証済み書き込み）
@@ -97,7 +102,7 @@ src/
 - [x] バックエンド・処理技術スタックのバージョンが package.json dependencies と一致する（Express 5.2.1, Supabase 2.105, Socket.IO 4.8）
 - [x] AI・ML技術スタックのバージョンが package.json dependencies と一致する（@google/generative-ai 0.24, @remotion/install-whisper-cpp, Kuromoji 0.1, @dagrejs/dagre 3.0）
 - [x] 開発ツールのバージョンが package.json devDependencies と一致する（ESLint 9, Jest 30.3, ts-jest 29, tsx 4.21）
-- [x] 主要ディレクトリ構造の記述が実際の src/ 配下と一致する（24ディレクトリ）
+- [x] 主要ディレクトリ構造の記述が実際の src/ 配下と一致する（19ディレクトリ + エントリファイル・2026-08-19 実測。旧 config/lib/types/utils は @stv/core 移管で消滅）
 - [x] 開発コマンド（dev, api:dev, remotion:studio, type-check, test）が package.json scripts と一致する
 - [x] Phase 75 テストスイート安定化が完了（ESM互換性・エラー型伝播・アサーション修正・26+テスト障害解消）
 - [x] Phase 76 バッチ処理プログレス正確性要件（REQ-196）が追加済み（コミット8edf876実装に基づく）
@@ -142,6 +147,7 @@ src/
 - [x] 第210回検証: Phase 130 stale-closure/async-setState クラス GUARDED-STRUCTURAL（REQ-297・async-state-stale-closure-guard.test.ts + 既知修正ピン 2 件 + handler-BODY 粒度 + JSX 除外 + ${...} 保持・0 live bugs・4/4+tsc 0）
 - [x] 第210回検証: Phase 131+ パターン横展開提案（REQ-298~301・AI Hub steering feedback A〜D・diagram-type-switch-parity 他同値クラス展開 / storageParser validators JSON.parse vs JSON.stringify 非対称監査 / async-setState positive-case fixture / timestamp guard mutation-verified CI ピン留め）
 - [x] 第211回検証: Phase 131+ 提案具体化（REQ-298/299/300 追加・feedback A/B/C 統合・feedback D「timestamp guard」は REQ-301 codec option 占有のため除外し別経路で段階実装・interview-record A129 参照）
+- [x] 第218回検証: Phase 137 stv-core コア分割後の要件同期（REQ-310~312 — @stv/core 単一ソース/重複実装禁止・GitHub タグ pin 固定・tests/guards 境界 structural pin・requirements.md dead citation 17件 + acceptance-criteria.md 10件解消・Phase 111+ サマリー表 stale 合計是正・interview-record A137 参照）
 
 ## 注意事項
 

@@ -3122,6 +3122,7 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ### 確認できた事項
 
+- **stv-core コア分割後の要件同期完了**: PR #7（@stv/core v1.0.7 移管・src/types・config・lib 消滅）に追随し requirements.md の dead citation 17件 + acceptance-criteria.md の 10件を解消・stats 再実測（src 非テスト298・テスト738・依存106・@stv/core import 317ファイル/20パス）・REQ-310~312 要件化 + TC 4件追加・Phase 111+ サマリー表の stale 合計（92→99）是正【2026-08-19 第218回更新・A137】
 - **Phase 1-34 全完了**: TASK-0001~0139全完了（139/139タスク）【2026-05-09 第141回更新】
 - **Phase 35 要件定義済**: REQ-094~096（フォースダイレクトシミュレーション正式化・グラフ粗視化正式化・E2E品質統合テスト）3タスク未着手【2026-05-09 第141回更新】
 - **134要件中131件実装済**: REQ-001~093 + NFR-001~501 + EDGE-001~103・Phase 35の3件未実装【2026-05-09 第141回更新】
@@ -4071,7 +4072,7 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 **信頼性への影響**:
 - REQ-303 を新規追加（信頼性レベル: 🟡）— 55ファイル段階集約の **提案**、Phase 132 内の実装は保留
-- 信頼性レベル分布: 🔵 303件（変動なし）、� 6件 → 🟡 7件（+1）、🔴 0件
+- 信頼性レベル分布: 🔵 303件（変動なし）、🟡 6件 → 🟡 7件（+1）、🔴 0件
 
 ---
 
@@ -4201,6 +4202,39 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 **信頼性への影響**:
 - REQ-308 として TC-308-01~03 を追加（🔵 ×3、合計 90→93）
 - 信頼性レベル分布: 🔵 +3 / 🟡 🔴 変動なし
+
+---
+
+### A137: Phase 137 — stv-core コア分割後の要件同期・dead citation 監査（2026-08-19 第218回検証）
+
+**分析日時**: 2026-08-19
+**カテゴリ**: 既存設計確認（実装と要件定義の未同期解消）+ make-run judge outage 再検証
+**背景**: (1) AI Hub make-run feedback により前回 iteration は judge 不通で未評価と通知 — 再検証の結果、直前 commit `e3957059` は specs/guard-harness-fold-census 4ファイルへの spine anchor role 行 1行ずつ追加のみの trivial diff であり substantive でないことを確認した。実質的な前回成果は session-157 相当の `66a447ef`（guard-harness acceptance 18/18）で PR #7 チェーンで main 到達済み。(2) PR #7（stv-core コア分割・commits a88c878f/5229846c/e2b81954/d6651084・2026-08-18 マージ）で共有モジュール群が外部パッケージ `@stv/core` に移管されたが、specs/speech-to-visuals 配下は A136（2026-08-15・分割前前提）以降一切更新されておらず、要件出典パスと実装状況 stats が実態と未同期のまま残っていた。kairo-requirements の「実装や task から見て未同期のまま残っている」統合対象の典型。
+
+**判断**:
+
+1. **dead citation 監査（17件解消）**: `grep -o 'src/…\.\(ts\|tsx\)' requirements.md | while ! -f` の機械監査で、出典として引用したソースパスのうち分割で消滅した17件を検出し、移管先へ書き換えた。マッピング: `src/types/diagram.ts`→`@stv/core/types/diagram`（REQ-007/051/285/290 等）・`src/config/limits.ts`→`@stv/core/config/limits`（REQ-133/140/145/222/224/227/228/229/230/235/294/295）・`src/config/{validate,schema}.ts`→`@stv/core/config/*`（REQ-038）・`src/config/production-config.ts`→`@stv/core/config/production-config`（REQ-066）・`src/config/code-size-audit.ts`→`@stv/core/config/code-size-audit`（REQ-102/104）・`src/config/env.ts`→`@stv/core/config 側`（REQ-170・旧 config/env は validate 側へ統合）・`src/utils/{logger,memory-usage,sanitize,audio-validation,audio-duration,guards}.ts`→`@stv/core/utils/*`（REQ-090/132/138/141/142/143/255/272/303・EDGE-011）・`src/utils/iteration-logger.ts`→`src/framework/iteration-logger.ts`（REQ-067）・`src/lib/actualVideoRenderer.ts`→`src/pipeline/actual-video-renderer.ts`（REQ-286）・`src/lib/__tests__/actualVideoRenderer-duration.test.ts`→`src/pipeline/__tests__/actual-video-renderer-duration-integration.test.ts`・`src/framework/__tests__/continuous-learner-numeric-safety.test.ts`→`tests/unit/framework/…`（REQ-272）。書き換え後に同一監査が 0 件になることを機械検証済み。**監査スコープは現行要件文書（requirements.md・acceptance-criteria.md）に限定** — 本ファイル interview-record.md の旧エントリ（A1~A136）内 src/ パスは検証時点の実在パスとしての歴史的記録であり、書き換えると当時の検証記録を改竄するため監査対象外と明示する（A137 内マッピング表中の旧パス表記も移行記録として意図的なものである）。
+
+2. **実装状況 stats 再実測**: 旧記載「384ソースファイル・254テストファイル・107パッケージ」を 2026-08-19 実測で更新 — `find src \( -name '*.ts' -o -name '*.tsx' \) ! -path '*__tests__*' ! -name '*.test.*' | wc -l` = **298**（分割で src/types・src/config・src/lib 消滅・utils 大半移管の効果）、`find src tests -name '*.test.ts*' | wc -l` = **738**、`dependencies+devDependencies` = **106件**（`@stv/core` github pin 1件増を含む）。@stv/core import 実測: `grep -rl "from '@stv/core" src` = **317ファイル**・import 先 **20モジュールパス**（types/diagram 167・utils/logger 106・lib/metrics-utils 30・utils/guards 27・config/limits 23 等）。
+
+3. **REQ-310~312 として境界を要件化**: 分割のアーキテクチャ契約（重複実装禁止・GitHub タグ pin・tests/guards による境界 structural pin）は従来要件として存在しなかった。REQ-310（@stv/core 単一ソース）・REQ-311（タグ pin・浮動 ref 禁止）・REQ-312（cross-boundary ガード）を追加。PR #7 statusCheckRollup は `gh pr view 7` で 13/14 SUCCESS + deploy SKIPPEDを確認（monitoring-schema-validate は SKIPPED した deploy 依存）。
+
+4. **副次修復 — 仕様書の文字化け（U+FFFD）3件**: requirements.md:768（Phase 132 セクション見出しの「🔵実装済」）・requirements.md AC-10（🟡7件）・interview-record.md:4074（🟡 6件）の置換文字バイトを修復。`grep -c $'\xef\xbf\xbd'` で 0 件を確認。
+
+5. **acceptance-criteria.md 同期（dead citation 10件解消 + TC-310~312 追加 + サマリー表整合）**: 同一機械監査で acceptance-criteria.md からも10件を検出・解消 — 9件は requirements.md と同一の @stv/core 移管マッピング（types/diagram・config/{limits,production-config,schema,validate}・utils/{audio-validation,logger,memory-usage,sanitize}）+ 1件は分割と無関係な所在移動 `src/pipeline/pipeline-error-recovery-orchestrator.ts`→`src/quality/pipeline-error-recovery-orchestrator.ts`（`find src tests -name '*error-recovery-orchestrator*'` で実所在確認）。REQ-309 ブロック直後に REQ-310（TC-310-01 単一ソース/重複ディレクトリ不在 pin・TC-310-02 両文書 dead citation 0）・REQ-311（TC-311-01 タグ pin 形状）・REQ-312（TC-312-01 tests/guards 72ファイルの import 形状 pin）の TC ブロックを追加（TC 4件・全 🔵・再検証コマンド付き）。**Phase 111+ サマリー表の合計行が stale だった**: 宣言「合計 92・🔵 96.8% / 🟡 3.2%」に対し実列合計は 95（🔵85/🟡10）— 行追加時に合計行が更新されていない hardcoded-constant desync。TC 4件追加後の実測値（rows=39・sum=99・🔵89/🟡10 = 89.9%/10.1%）で修正し `awk` 列合計との一致を機械検証済み。
+
+**根拠**:
+- `git show --stat e3957059`（4ファイル・+4行のみ）・`git show --stat e2b81954`（653 files・+1120/−11665 — 分割規模）
+- `package.json:86` = `"@stv/core": "github:nobu007/stv-core#v1.0.7"`
+- `ls src/`（types・config・lib の不在を確認）・`grep -rn "from '@stv/core" src -h | sed …| sort -u`（20モジュールパス）
+- dead citation 監査スクリプトの実行結果（修正前: requirements.md 17件・acceptance-criteria.md 10件 → 修正後 両方 0件）
+- Phase 111+ 表の列合計実測: `sed -n '<table range>' | awk -F'|' '/^\| REQ-/ …'`（rows=39・sum=99・blue=89・yellow=10）
+
+**信頼性への影響**:
+- REQ-310~312 を追加（🔵 ×3）— 信頼性レベル分布: 🔵 303件 → 306件 / 🟡 7件・🔴 0件 変動なし
+- 既存 REQ-007/038/051/066/067/090/102/104/132/133/138/140/141/142/143/145/170/222/224/227/228/229/230/235/255/272/285/286/290/294/295/303・EDGE-011 の出典が実在パスへ復帰（AC-4 トレーサビリティ回復）
+- acceptance-criteria.md: Phase 111+ サマリー表の合計・信頼性比率が実列合計と一致（stale 合計 92/96.8% を 99/89.9% に是正）
+- 残課題: (a) requirements.md と acceptance-criteria.md の REQ 番号帯が分裂（acceptance-criteria 側 REQ-304=LLM リトライ既定値・306=UUID・308=タイトル map・309=force-directed に対し、requirements.md の REQ-304=モバイルレスポンシブ。Phase 133 以降の TC 追加が requirements 側本文を経由しなかったため）— 次回ラウンドで番号帯の再整合または相互参照表が必要。(b) architecture.md・dataflow.md 等設計系ドキュメントの分割同期は kairo-design 段階の対象。(c) node_modules 未解決環境（本 worktree）では tsc/jest 実行不可 — CI（PR #7 green）を品質証拠として代用。(d) REQ-312 の jest 再検証コマンドは CI/本体リポジトリ側での実行を前提とする。
 
 ---
 

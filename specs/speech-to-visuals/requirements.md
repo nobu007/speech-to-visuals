@@ -13,7 +13,7 @@
 
 音声ファイル（MP3/WAV/OGG/M4A）を入力として、Whisper による文字起こし、Gemini LLM による内容分析、図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）、ゼロオーバーラップレイアウト生成、Remotion によるアニメーション動画（1080p 30fps MP4）を自動生成するエンドツーエンドパイプラインシステム。
 
-**実装状況**: Phase 131+ 提案段階まで進行・384ソースファイル・254テストファイル・107パッケージ・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・192タスク全完了・テストスイート安定化完了・Phase 112 エラー回復可観測性・未テストモジュールカバレッジ完了・Phase 113 NaN/Type Safetyコンソリデーション完完了（w/h直接アクセス完全排除・diagram-detector/scene-segmenterサニタイゼーションガード・32新規テスト・REQ-263~266）・Phase 114 ルールベースフォールバック品質改善・継続的学習安全性完了（ハードコードテンプレート→テキストベースコンテンツ抽出・continuous-learner destroy()/pearson NaNガード・20新規テスト・REQ-267~269）・Phase 115 テストスイート安定化・Lint完全修正（REQ-270~273・234エラー→0解消・ESM互換性修正・validateAudioFile クラッシュ修正・CJKトークン化テスト・キリル文字混入修正）・Phase 116 Record<UnionType,T>完全性強制・Prometheus export・SecurityMetrics TTL（REQ-274~279・8辞書リテラル Record<DiagramType,T> 置換・11 DiagramType ruleBasedDetection 完全対応・/metrics エンドポイント公開・METRIC_TTL_HOURS 環境変数）・Phase 117 フレームワーク境界型安全性・Constant-desync 解消（REQ-280~284・QualityRecommendation 投影型・overallScore wiring・HEALTH_CHECK single-source・node-dimension default・async-resource-cleanup ESM）・Phase 118~130 構造的ガード強化（REQ-285~297・diagram-type パリティ・fps 伝搬・循環 confidence・overlap 閾値プロデューサ一致・LayoutComplianceResult 伝搬・DIAGRAM_TYPES export・node-dimension 単一ソース化・stageDegraded/cascade イベント伝搬・canvas-dimension 単一ソース化・ExportJobQueue ETA オフバイワン・simple-pipeline 音声形式正典参照・performance SCALARS ガード完結・stale-closure クラス GUARDED-STRUCTURAL）・Phase 131+ AI Hub steering feedback A-D を REQ-298~300 提案として具体化（diagram-type-switch-parity 他同値クラス展開 / storageParser JSON.parse⇔JSON.stringify 非対称監査 / async-setState positive-case fixture）
+**実装状況**: Phase 137（コア分割後要件同期）まで進行・src/ 非テスト .ts/.tsx 298ファイル・テストファイル738ファイル・依存パッケージ106件（dependencies+devDependencies・2026-08-19実測・計数コマンドはinterview-record A137）・型エラー0件・ESLintエラー0件・console.log 0件（CLAUDE.md基準達成）・npm audit 0件・図解タイプ完全対応（11種全て専用戦略）・SYSTEM_CONSTITUTION V2.6 制定・Web Workers 並列化基盤・セキュリティ・堅牢性修正完了（ISS-003~045）・PipelineErrorRecoveryOrchestrator E2E統合テスト完了・CI煙テスト完了・PipelineAbortError構造化エラー・ErrorClassifier→orchestrator統合完了・パイプライン型付きエラー完全化・KeyphraseOverlay・CaptionOverlay統合完了・importance-aware視覚階層完了・11図解タイプ専用レイアウト戦略完了・StreamingTranscriber入力堅牢性完了・文字起こしモジュールテストカバレッジ拡充完了・192タスク全完了・テストスイート安定化完了・Phase 112 エラー回復可観測性・未テストモジュールカバレッジ完了・Phase 113 NaN/Type Safetyコンソリデーション完完了（w/h直接アクセス完全排除・diagram-detector/scene-segmenterサニタイゼーションガード・32新規テスト・REQ-263~266）・Phase 114 ルールベースフォールバック品質改善・継続的学習安全性完了（ハードコードテンプレート→テキストベースコンテンツ抽出・continuous-learner destroy()/pearson NaNガード・20新規テスト・REQ-267~269）・Phase 115 テストスイート安定化・Lint完全修正（REQ-270~273・234エラー→0解消・ESM互換性修正・validateAudioFile クラッシュ修正・CJKトークン化テスト・キリル文字混入修正）・Phase 116 Record<UnionType,T>完全性強制・Prometheus export・SecurityMetrics TTL（REQ-274~279・8辞書リテラル Record<DiagramType,T> 置換・11 DiagramType ruleBasedDetection 完全対応・/metrics エンドポイント公開・METRIC_TTL_HOURS 環境変数）・Phase 117 フレームワーク境界型安全性・Constant-desync 解消（REQ-280~284・QualityRecommendation 投影型・overallScore wiring・HEALTH_CHECK single-source・node-dimension default・async-resource-cleanup ESM）・Phase 118~130 構造的ガード強化（REQ-285~297・diagram-type パリティ・fps 伝搬・循環 confidence・overlap 閾値プロデューサ一致・LayoutComplianceResult 伝搬・DIAGRAM_TYPES export・node-dimension 単一ソース化・stageDegraded/cascade イベント伝搬・canvas-dimension 単一ソース化・ExportJobQueue ETA オフバイワン・simple-pipeline 音声形式正典参照・performance SCALARS ガード完結・stale-closure クラス GUARDED-STRUCTURAL）・Phase 131+ AI Hub steering feedback A-D を REQ-298~300 提案として具体化（diagram-type-switch-parity 他同値クラス展開 / storageParser JSON.parse⇔JSON.stringify 非対称監査 / async-setState positive-case fixture）・Phase 132 3レジストリ命名一貫性（REQ-302 ✅・REQ-303 提案）・Phase 133~136 `??` 振る舞い pin TC-304-04・Prometheus status_class/prefix 修正（TC-205-04/TC-206-04/05）・UUID_V4_RE single-source r12（REQ-306）・DIAGRAM_TYPE_TITLES single-source r13（REQ-308）に続き・**stv-core コア分割（PR #7・commits a88c878f~d6651084）**: 共有型・ユーティリティ・設定モジュール群（types/diagram・utils/{logger,guards,sanitize,memory-usage,audio-validation,audio-duration,regex-escape,prometheus-label-escape,report-corruption}・config/{limits,production-config,schema,validate,code-size-audit}・lib/{metrics-utils,safe-array,capped-array,capped-map,unicode-script-ranges}・types/pipeline の20モジュールパス）を外部パッケージ `@stv/core`（github:nobu007/stv-core#v1.0.7）へ移管・プロダクトリポジトリの src/ 直下 src/types・src/config・src/lib ディレクトリは消滅・317ファイルが @stv/core から import（Phase 137 で REQ-310~312 として要件化・出典パス同期）
 
 **移行元**: `docs/spec/speech-to-visuals/requirements.md`（第20回検証済、2026-04-30）
 
@@ -47,7 +47,7 @@
 
 - REQ-005: システムは文字起こしテキストを意味単位のセグメント（3-15秒）に分割しなければならない。セマンティックセグメンテーション（Jaccard係数によるキーワード類似度マージ）およびトピックベースセグメンテーション（コサイン類似度によるトピックベクトルクラスタリング）をサポートし、日本語・英語のトピック遷移パターンを検出すること 🔵 *PIPELINE_FLOW.md Stage 2・src/analysis/scene-segmenter.ts より*
 - REQ-006: システムは Gemini LLM（gemini-2.5-flash / gemini-2.5-pro）を用いて内容分析を行い、エンティティ抽出・関係性抽出・図解タイプ検出を実行しなければならない 🔵 *SYSTEM_CORE.md §4.1・src/analysis/gemini-analyzer.ts より*
-- REQ-007: システムは図解タイプとして flow/tree/timeline/matrix/cycle の5種類に加え、flowchart/comparison/network/conceptmap/mindmap/general の6種類（計11種類）を検出・判定しなければならない 🔵 *README.md 図解タイプ・src/analysis/diagram-detector.ts・src/types/diagram.ts より*
+- REQ-007: システムは図解タイプとして flow/tree/timeline/matrix/cycle の5種類に加え、flowchart/comparison/network/conceptmap/mindmap/general の6種類（計11種類）を検出・判定しなければならない 🔵 *README.md 図解タイプ・src/analysis/diagram-detector.ts・@stv/core/types/diagram より*
 - REQ-008: システムはコンテンツの複雑さをスコアリングし、スコア20%未満は Flash、20%以上は Pro を自動選択しなければならない 🔵 *PIPELINE_FLOW.md §5.3・src/analysis/complexity-detector.ts より*
 
 #### フォールバック・耐障害性 ✅実装済
@@ -102,7 +102,7 @@
 
 - REQ-036: システムはストリーミング音声文字起こしをサポートし、音声データをチャンク単位で逐次処理してリアルタイムにテキストを出力しなければならない 🔵 *src/transcription/streaming-transcriber.ts より*
 - REQ-037: システムはエラー発生時にユーザーが回復方法を選択できる対話型エラー回復を提供し、REST API エンドポイント（POST /api/v1/errors/register でエラー登録、GET /api/v1/errors/:errorId/options で回復オプション取得、POST /api/v1/errors/:errorId/recover で回復実行）を通じて外部からのプログラム的アクセスを可能にしなければならない。11エラーカテゴリ（file_format/file_size/transcription/analysis/layout/rendering/api/network/memory/timeout/unknown）・4重要度（low/medium/high/critical）・Zod バリデーション付きリクエスト検証を含むこと 🔵 ✅実装済 *src/quality/user-guided-error-recovery.ts・src/api/routes/errors.ts・commit 441eb68・21テスト追加*
-- REQ-038: システムは Zod スキーマを用いて環境変数・設定値の起動時バリデーションを実行し、不正設定時は即座にエラーで終了しなければならない 🔵 *src/config/validate.ts・src/config/schema.ts より*
+- REQ-038: システムは Zod スキーマを用いて環境変数・設定値の起動時バリデーションを実行し、不正設定時は即座にエラーで終了しなければならない 🔵 *@stv/core/config/validate・@stv/core/config/schema より*
 - REQ-039: システムは処理結果のメトリクスに基づいてパイプラインパラメータを自動チューニングし、最適な品質・性能バランスを維持しなければならない 🔵 *src/optimization/smart-parameter-tuner.ts・src/optimization/adaptive-content-processor.ts より*
 
 #### エラー分類・品質ゲート 🔵実装済
@@ -144,7 +144,7 @@
 
 #### 型ガード・型安全性 🔵実装済
 
-- REQ-051: システムは図解タイプ（DiagramType）の型ガード関数（isDiagramType）を提供し、実行時に不正な図解タイプ値を検出・排除しなければならない 🔵 *src/types/diagram.ts より*
+- REQ-051: システムは図解タイプ（DiagramType）の型ガード関数（isDiagramType）を提供し、実行時に不正な図解タイプ値を検出・排除しなければならない 🔵 *@stv/core/types/diagram より*
 
 #### 追加 UI 機能 🔵実装済
 
@@ -174,11 +174,11 @@
 
 - REQ-064: システムはバッチ API の jobId パラメータ（req.params.jobId）を UUID v4 形式で検証し、不正な形式の場合は 400 エラーを返さなければならない。検証はジョブステータス取得（GET /jobs/:jobId）とキャンセル（POST /jobs/:jobId/cancel）の両ルートで実行すること ✅実装済 *ISS-010 HIGH・src/api/routes/batch.ts より*
 - REQ-065: システムは適応型品質ゲートの gates 配列に対して上限値（最大50ゲート）を設定し、上限超過時は追加を拒否しなければならない ✅実装済 *ISS-011 MEDIUM・src/quality/adaptive-quality-gates.ts より*
-- REQ-066: システムはブラウザコンテキストで動作するコード（production-config.ts）において process.env へのアクセスを安全にガードし、Vite ビルド時の静的置換に依存しない場合はランタイム参照を避けなければならない ✅実装済 *ISS-012 MEDIUM・src/config/production-config.ts より*
+- REQ-066: システムはブラウザコンテキストで動作するコード（production-config.ts）において process.env へのアクセスを安全にガードし、Vite ビルド時の静的置換に依存しない場合はランタイム参照を避けなければならない ✅実装済 *ISS-012 MEDIUM・@stv/core/config/production-config より*
 
 #### セキュリティ・堅牢性継続改善（Phase 27-30） 🔵実装済
 
-- REQ-067: システムはユーザー入力を正規表現パターンに埋め込む前に特殊文字をエスケープし、ReDoS（Regular Expression Denial of Service）攻撃を防止しなければならない 🔵 *ISS-018 MEDIUM・src/analysis/diagram-detector.ts・src/utils/iteration-logger.ts より*
+- REQ-067: システムはユーザー入力を正規表現パターンに埋め込む前に特殊文字をエスケープし、ReDoS（Regular Expression Denial of Service）攻撃を防止しなければならない 🔵 *ISS-018 MEDIUM・src/analysis/diagram-detector.ts・src/framework/iteration-logger.ts より*
 - REQ-068: システムはインテリジェントキャッシュのJSON復元時にtry-catchでエラーを捕捉し、破損データをキャッシュミスとして扱いシステムクラッシュを防止しなければならない 🔵 *ISS-019 MEDIUM・src/performance/intelligent-cache.ts より*
 - REQ-069: システムはパイプライン状態管理の反復記録配列にエントリ上限（500件）を設定し、スライディングウィンドウでメモリリークを防止しなければならない 🔵 *ISS-020 MEDIUM・src/pipeline/main-pipeline.ts より*
 - REQ-070: システムはブラウザコンテキストで動作するコード（complexity-detector, rule-based-analyzer, supabase/client）で process.env へのアクセスを safeEnv() ヘルパーでガードし、ランタイムエラーを防止しなければならない 🔵 *ISS-021~023 MEDIUM・src/analysis/complexity-detector.ts・src/analysis/rule-based-analyzer.ts・src/integrations/supabase/client.ts より*
@@ -210,7 +210,7 @@
 
 - REQ-088: システムはパイプラインオーケストレーターの各ステージ完了時に QualityMonitor を呼び出し、ステージ別品質スコア（文字起こし精度・分析精度・レイアウト品質・レンダリング品質）を記録しなければならない 🔵 *src/pipeline/pipeline-orchestrator.ts:26,107,147-152,736-790 QualityMonitor統合済・TASK-0134完了*
 - REQ-089: システムは Phase 31 品質モジュール（SmartLabelSizer・VisualBalanceScorer・EdgeCrossingMinimizer・LayoutQualityCompositeScorer・LayoutAutoOptimizer）の各コア機能に対する専用ユニットテストファイルを提供しなければならない 🔵 *tests/visualization/visual-balance-scorer.test.ts・edge-crossing-minimizer.test.ts・smart-label-sizer.test.ts・layout-quality-composite.test.ts・layout-auto-optimizer.test.ts（計1,661行）・TASK-0135完了*
-- REQ-090: システムはプロダクションコード内の console.log/console.error/console.warn を構造化ログまたは適切なエラー回復パターンに置換しなければならない 🔵 *src/utils/logger.ts 構造化ログ基盤・54ファイル90件のconsole呼び出しを置換済・TASK-0136完了*
+- REQ-090: システムはプロダクションコード内の console.log/console.error/console.warn を構造化ログまたは適切なエラー回復パターンに置換しなければならない 🔵 *@stv/core/utils/logger 構造化ログ基盤・54ファイル90件のconsole呼び出しを置換済・TASK-0136完了*
 
 #### ストリーミング品質・音声前処理・エクスポート検証（Phase 34） ✅完了
 
@@ -234,12 +234,12 @@
 #### 監視API本組込み・コード規模監査（Phase 37） ✅完了
 
 - REQ-101_placeholder: （REQ-101~104は条件付き要件で使用済み。Phase 37新規要件は REQ-102~ を使用予定）
-- REQ-102: システムは SYSTEM_CONSTITUTION で定められたコード規模制限（ファイル数・行数）を自動監査し、制限超過時にビルド時に警告を出力しなければならない 🔵 *src/config/code-size-audit.ts・scripts/code-size-audit.ts・tests/config/code-size-audit.test.ts（27テスト通過）・TASK-0146完了*
+- REQ-102: システムは SYSTEM_CONSTITUTION で定められたコード規模制限（ファイル数・行数）を自動監査し、制限超過時にビルド時に警告を出力しなければならない 🔵 *@stv/core/config/code-size-audit・scripts/code-size-audit.ts・tests/config/code-size-audit.test.ts（27テスト通過）・TASK-0146完了*
 - REQ-103: システムは監視REST APIエンドポイントの本番動作検証として、サーバー起動時にルート登録完了をログ出力し、各エンドポイントの統合テストが全て通過することを確認しなければならない 🔵 *src/api/routes/monitoring.ts・src/api/__tests__/server.test.ts・tests/analysis/budget-alert-boundary.test.ts（29テスト通過）・TASK-0147完了*
 
 #### コード規模監査スコープ修正・ドキュメント整合性（Phase 38） ✅完了
 
-- REQ-104: システムはコード規模監査（code-size-audit）の対象を src/ ディレクトリに限定し、テストコード（tests/）、スクリプト（scripts/）、Supabase Edge Functions（supabase/）、設定ファイル等を監査対象外としなければならない。監査結果は src/ 内のプロダクションコードのみをカウントし、SYSTEM_CONSTITUTION V2.4 の制限値と比較すること 🔵 *src/config/code-size-audit.ts collectMetrics() が SKIP_DIRS で src/ 外も走査している実装より*
+- REQ-104: システムはコード規模監査（code-size-audit）の対象を src/ ディレクトリに限定し、テストコード（tests/）、スクリプト（scripts/）、Supabase Edge Functions（supabase/）、設定ファイル等を監査対象外としなければならない。監査結果は src/ 内のプロダクションコードのみをカウントし、SYSTEM_CONSTITUTION V2.4 の制限値と比較すること 🔵 *@stv/core/config/code-size-audit collectMetrics() が SKIP_DIRS で src/ 外も走査している実装より*
 - REQ-105: システムはコード規模監査スクリプト（npm run audit:code-size）の実行結果が COMPLIANT となることを確認しなければならない。src/ ディレクトリ単位で測定した場合、ファイル数380以下・行数115,000以下であること 🔵 *現状実測値: src/ 353ファイル/104,098行（共にSYSTEM_CONSTITUTION V2.6制限内）・Phase 58完了時点より*
 - REQ-106: システムはタスク概要ドキュメント（overview.md）のフェーズステータス・タスク完了状況が git ログと一致することを確認しなければならない 🔵 *overview.md Phase 36 ヘッダー「🔲未着手」に対し実際は完了・TASK-0143~0147 未反映より*
 
@@ -300,8 +300,8 @@
 
 #### ファイル名サニタイズ・テスト検証（Phase 52） ✅完了
 
-- REQ-132: システムは `sanitizeFilename()` 関数（`src/utils/sanitize.ts`）に対して、パストラバーサル（`../`, `..\\`）・ヌルバイト注入（`\\0`）・制御文字（0x00-0x1F, 0x7F）・ディレクトリセパレータ（`/`, `\\`）・先頭ドット（隠しファイル）・空文字列入力・空白のみ入力・Unicode文字列・最大長入力の各エッジケースを検証する専用テストを提供しなければならない 🔵 ✅実装済 *src/utils/sanitize.ts sanitizeFilename() 実装・ISS-044 パストラバーサル防止要件・11テスト通過*
-- REQ-133: システムは集約化されたパイプライン制限定数（`src/config/limits.ts` RATE_LIMITS・BATCH_LIMITS・SERVER_LIMITS・PIPELINE_LIMITS・SECURITY_LIMITS）が各モジュール（api/routes/pipeline.ts・api/routes/batch.ts・api/server.ts）で正しく参照され、マジックナンバーの漏れがないことを検証するテストを提供しなければならない 🔵 ✅実装済 *src/config/limits.ts 集約化完了・6テスト通過*
+- REQ-132: システムは `sanitizeFilename()` 関数（`@stv/core/utils/sanitize`）に対して、パストラバーサル（`../`, `..\\`）・ヌルバイト注入（`\\0`）・制御文字（0x00-0x1F, 0x7F）・ディレクトリセパレータ（`/`, `\\`）・先頭ドット（隠しファイル）・空文字列入力・空白のみ入力・Unicode文字列・最大長入力の各エッジケースを検証する専用テストを提供しなければならない 🔵 ✅実装済 *@stv/core/utils/sanitize sanitizeFilename() 実装・ISS-044 パストラバーサル防止要件・11テスト通過*
+- REQ-133: システムは集約化されたパイプライン制限定数（`@stv/core/config/limits` RATE_LIMITS・BATCH_LIMITS・SERVER_LIMITS・PIPELINE_LIMITS・SECURITY_LIMITS）が各モジュール（api/routes/pipeline.ts・api/routes/batch.ts・api/server.ts）で正しく参照され、マジックナンバーの漏れがないことを検証するテストを提供しなければならない 🔵 ✅実装済 *@stv/core/config/limits 集約化完了・6テスト通過*
 - REQ-134: システムは HealthCheckService の各コンポーネントチェックが依存バックエンド例外時に個別に "degraded" を返すことを検証する専用テストを提供しなければならない。各コンポーネント（checkCacheHealth・checkPipelineHealth・checkLLMHealth・checkErrorRecoveryHealth・checkPerformanceHealth）ごとにバックエンド例外を注入し、他のコンポーネントに影響しないことを確認すること 🔵 ✅実装済 *REQ-131 本番コード堅牢化のテスト補完・6テスト通過*
 
 #### 仕様最適化・テストカバレッジ拡充（Phase 53） ✅完了
@@ -309,20 +309,20 @@
 - REQ-135: システムは仕様ドキュメント（acceptance-criteria.md・interview-record.md）の完了済みフェーズ（Phase 44~52）の重複セクション（信頼性レベル分布・テストケースサマリー表・実施計画）を簡潔な完了ステータスに集約し、acceptance-criteria.md の全体行数を15%以上削減しなければならない。テストケース定義（TC-xxx-xx）自体は保持し、重複するサマリー情報のみを削除すること 🔵 ✅実装済 *AI Hub iteration feedback: spec doc hotspot files grew 370 lines・Phase 44-52 content = 54.2% of acceptance-criteria.md より・コミット9a390e9で34.8%削減達成*
 - REQ-136: システムは React hooks（use-toast.ts: 186行）に対する専用ユニットテスト（トースト状態管理・reducer全パターン・キュー上限・自動非表示・タイマークリーンアップ）を提供しなければならない 🔵 ✅実装済 *src/hooks/use-toast.ts 既存実装・tests/unit/hooks/use-toast.test.ts（256行・22テスト）・コミット7333d26*
 - REQ-137: システムは React hooks（useFrameworkPipeline.ts: 385行）に対する専用ユニットテスト（パイプライン実行状態・イテレーション管理・品質メトリクス追跡・エラー回復）を提供しなければならない 🔵 ✅実装済 *src/hooks/useFrameworkPipeline.ts 既存実装・tests/unit/hooks/use-framework-pipeline.test.ts（429行・25テスト）・コミット7333d26*
-- REQ-138: システムはコアユーティリティ（logger.ts: ログレベルフィルタリング・構造化プレフィックス、memory-usage.ts: クロスプラットフォームメモリ取得・Node.js/Chrome/フォールバック）に対する専用ユニットテストを提供しなければならない 🔵 ✅実装済 *src/utils/logger.ts・src/utils/memory-usage.ts 既存実装・tests/unit/utils/logger.test.ts（166行・13テスト）・tests/unit/utils/memory-usage.test.ts（148行・16テスト）・コミット7333d26*
+- REQ-138: システムはコアユーティリティ（logger.ts: ログレベルフィルタリング・構造化プレフィックス、memory-usage.ts: クロスプラットフォームメモリ取得・Node.js/Chrome/フォールバック）に対する専用ユニットテストを提供しなければならない 🔵 ✅実装済 *@stv/core/utils/logger・@stv/core/utils/memory-usage 既存実装・tests/unit/utils/logger.test.ts（166行・13テスト）・tests/unit/utils/memory-usage.test.ts（148行・16テスト）・コミット7333d26*
 
 #### コンポーネント・ユーティリティテスト拡充（Phase 54） ✅完了
 
 - REQ-139: システムは StageIndicator コンポーネントの純粋ヘルパー関数（calcElapsed: 経過時間計算・null開始時の0返却・負値クランプ、formatElapsed: 秒/分/時間フォーマット、STAGE_CONFIG/STATUS_LABEL/STATUS_BADGE_VARIANT: 全ステータスカバー）に対するユニットテストを提供しなければならない 🔵 ✅実装済 *src/components/StageIndicator.tsx 純粋ヘルパー・src/components/__tests__/StageIndicator.test.ts（20テスト）・コミットb492b78*
-- REQ-140: システムは AUDIO_LIMITS 設定値（MAX_FILE_SIZE_BYTES: 50MB、DURATION_WARNING_SECONDS: 3600秒）の妥当性検証とas constリテラル型テストを centralized-limits テストスイートに追加しなければならない 🔵 ✅実装済 *src/config/limits.ts 既存実装・tests/unit/config/centralized-limits.test.ts（4テスト追加・AUDIO_LIMITS as const テスト1テスト追加）・コミットb492b78*
-- REQ-141: システムは getAudioDuration 関数（HTMLAudioElement loadedmetadata/error イベント・ObjectURL生成/解放・preload='metadata'設定）に対するブラウザAPIモックテストを提供しなければならない 🔵 ✅実装済 *src/utils/audio-duration.ts 既存実装・tests/unit/utils/audio-duration.test.ts（5テスト追加・loadedmetadata/error/preload/URL revoke検証）・コミットb492b78*
-- REQ-142: システムは validateAudioFile 関数を提供し、File オブジェクトのサイズ上限（EDGE-101: 50MB）・空ファイル検出（EDGE-001）・対応形式検証を一元化し、UI コンポーネントから呼び出し可能にしなければならない 🔵 ✅実装済 *src/utils/audio-validation.ts（validateAudioFile 関数・AUDIO_LIMITS 参照）・SimplePipelineInterface.tsx 検証統合・tests/unit/utils/audio-validation.test.ts（15テスト）*
-- REQ-143: システムは validateAudioDuration 関数を提供し、音声再生時間の下限（EDGE-102: 1秒未満拒否）・長時間警告（EDGE-103: 1時間超過警告）・無効値（NaN/Infinity/負数）検出を一元化し、UI コンポーネントの非同期チェックから呼び出し可能にしなければならない 🔵 ✅実装済 *src/utils/audio-validation.ts（validateAudioDuration 関数）・SimplePipelineInterface.tsx 非同期検証統合・tests/unit/utils/audio-validation.test.ts（12テスト）*
+- REQ-140: システムは AUDIO_LIMITS 設定値（MAX_FILE_SIZE_BYTES: 50MB、DURATION_WARNING_SECONDS: 3600秒）の妥当性検証とas constリテラル型テストを centralized-limits テストスイートに追加しなければならない 🔵 ✅実装済 *@stv/core/config/limits 既存実装・tests/unit/config/centralized-limits.test.ts（4テスト追加・AUDIO_LIMITS as const テスト1テスト追加）・コミットb492b78*
+- REQ-141: システムは getAudioDuration 関数（HTMLAudioElement loadedmetadata/error イベント・ObjectURL生成/解放・preload='metadata'設定）に対するブラウザAPIモックテストを提供しなければならない 🔵 ✅実装済 *@stv/core/utils/audio-duration 既存実装・tests/unit/utils/audio-duration.test.ts（5テスト追加・loadedmetadata/error/preload/URL revoke検証）・コミットb492b78*
+- REQ-142: システムは validateAudioFile 関数を提供し、File オブジェクトのサイズ上限（EDGE-101: 50MB）・空ファイル検出（EDGE-001）・対応形式検証を一元化し、UI コンポーネントから呼び出し可能にしなければならない 🔵 ✅実装済 *@stv/core/utils/audio-validation（validateAudioFile 関数・AUDIO_LIMITS 参照）・SimplePipelineInterface.tsx 検証統合・tests/unit/utils/audio-validation.test.ts（15テスト）*
+- REQ-143: システムは validateAudioDuration 関数を提供し、音声再生時間の下限（EDGE-102: 1秒未満拒否）・長時間警告（EDGE-103: 1時間超過警告）・無効値（NaN/Infinity/負数）検出を一元化し、UI コンポーネントの非同期チェックから呼び出し可能にしなければならない 🔵 ✅実装済 *@stv/core/utils/audio-validation（validateAudioDuration 関数）・SimplePipelineInterface.tsx 非同期検証統合・tests/unit/utils/audio-validation.test.ts（12テスト）*
 
 #### 音声検証完全統合・コンポーネントテスト（Phase 56） ✅完了
 
 - REQ-144: システムは AudioUploader コンポーネントのインライン検証（`audio/*` MIME type チェックのみ）を centralized audio-validation.ts の validateAudioFile() + validateAudioDuration() に置換し、EDGE-001（空ファイル）・EDGE-101（50MB超過）・EDGE-102（1秒未満）・EDGE-103（1時間超過警告）の全検証を適用しなければならない 🔵 ✅実装済 *TASK-0157完了・コミットee4a8bc・src/components/AudioUploader.tsx centralized validation統合済*
-- REQ-145: システムは重複する音声制限定数（src/transcription/types.ts の MAX_FILE_SIZE・SUPPORTED_AUDIO_FORMATS と src/config/limits.ts の AUDIO_LIMITS・src/utils/audio-validation.ts の形式リスト）を単一出処に統合し、types.ts から AUDIO_LIMITS を再エクスポートして既存インポートの互換性を維持しなければならない 🔵 ✅実装済 *TASK-0156完了・コミット6b5bb09・src/transcription/types.ts 再エクスポート統合済*
+- REQ-145: システムは重複する音声制限定数（src/transcription/types.ts の MAX_FILE_SIZE・SUPPORTED_AUDIO_FORMATS と @stv/core/config/limits の AUDIO_LIMITS・@stv/core/utils/audio-validation の形式リスト）を単一出処に統合し、types.ts から AUDIO_LIMITS を再エクスポートして既存インポートの互換性を維持しなければならない 🔵 ✅実装済 *TASK-0156完了・コミット6b5bb09・src/transcription/types.ts 再エクスポート統合済*
 - REQ-146: システムは whisper-transcriber.ts の validateAudioInput() メソッドの基本ファイル検証（形式チェック・サイズチェック）を centralized audio-validation.ts の validateAudioFile() に委譲し、同モジュール固有の高度検証（破損検出 magic byte check）は追加レイヤーとして維持しなければならない 🔵 ✅実装済 *TASK-0158完了・コミットbd8794d・File入力→validateAudioFile()委譲・magic byte check維持*
 - REQ-147: システムは AudioUploader コンポーネントに対する専用ユニットテスト（ファイル選択・バリデーションエラー表示・継続警告表示・空ファイルリジェクト・形式チェック・サイズ上限チェック）を提供し、centralized validation 統合後の動作を検証しなければならない 🔵 ✅実装済 *TASK-0159完了・コミットddb4167・36テスト全通過*
 
@@ -374,7 +374,7 @@
 
 #### 残存モジュール型付きエラー移行（Phase 65） ✅完了
 
-- REQ-170: システムは monitoring・config・integrations・framework モジュール内の残存する7箇所の raw Error throw を型付きエラークラスに置換しなければならない。対象: performance-dashboard.ts（1箇所: メトリクス平均計算時の空データ検証）、config/env.ts（1箇所: 設定検証失敗）、integrations/supabase/client.ts（1箇所: Supabase接続情報不足）、framework/iteration-manager.ts（1箇所: 不明フェーズ名）、pages/Index.tsx（3箇所: アップロード失敗・文字起こし失敗・シーン生成失敗） 🔵 ✅実装済 *src/monitoring/performance-dashboard.ts・src/config/env.ts・src/integrations/supabase/client.ts・src/framework/iteration-manager.ts・src/pages/Index.tsx・7箇所置換完了*
+- REQ-170: システムは monitoring・config・integrations・framework モジュール内の残存する7箇所の raw Error throw を型付きエラークラスに置換しなければならない。対象: performance-dashboard.ts（1箇所: メトリクス平均計算時の空データ検証）、config/env.ts（1箇所: 設定検証失敗）、integrations/supabase/client.ts（1箇所: Supabase接続情報不足）、framework/iteration-manager.ts（1箇所: 不明フェーズ名）、pages/Index.tsx（3箇所: アップロード失敗・文字起こし失敗・シーン生成失敗） 🔵 ✅実装済 *src/monitoring/performance-dashboard.ts・@stv/core/config 側（分割移管・旧 config/env）・src/integrations/supabase/client.ts・src/framework/iteration-manager.ts・src/pages/Index.tsx・7箇所置換完了*
 - REQ-171: システムは上記モジュールの raw Error 置換後、ErrorClassifier が新しい型付きエラーを正確に分類できることを検証する回帰テストを提供しなければならない 🔵 ✅実装済 *tests/integration/cross-module-typed-errors.test.ts（12テスト）*
 
 #### モニタリングモジュールテストカバレッジ拡充（Phase 66） ✅完了
@@ -495,12 +495,12 @@
 
 #### エラーリカバリREST API堅牢化（Phase 92） ✅完了
 
-- REQ-222: システムはエラーリカバリREST API（REQ-037）の入力検証を強化し、POST /register のリクエストボディを RegisterBodySchema（Zod）で検証（errorId: 英数字/ハイフン/アンダースコア/ドットのみ・最大128文字、errorMessage: 最大2000文字）し、GET /:errorId/options・POST /:errorId/recover のパスパラメータ errorId を同形式で検証し、不正値には 400 INVALID_ERROR_ID を返さなければならない。errorMessage に含まれるHTMLタグを sanitizeMessage() で除去し stored XSS を防止し、エラーレジストリが MAX_STORED_ERRORS（1000件）に達した際は最古エントリから10%を退去（LRU eviction）してメモリリークを防止すること 🔵 ✅実装済 *src/api/routes/errors.ts RegisterBodySchema・sanitizeMessage()・isValidErrorId()・storeError() eviction・src/config/limits.ts ERROR_REGISTRY_LIMITS・commit 71a3a8c・94テスト追加*
+- REQ-222: システムはエラーリカバリREST API（REQ-037）の入力検証を強化し、POST /register のリクエストボディを RegisterBodySchema（Zod）で検証（errorId: 英数字/ハイフン/アンダースコア/ドットのみ・最大128文字、errorMessage: 最大2000文字）し、GET /:errorId/options・POST /:errorId/recover のパスパラメータ errorId を同形式で検証し、不正値には 400 INVALID_ERROR_ID を返さなければならない。errorMessage に含まれるHTMLタグを sanitizeMessage() で除去し stored XSS を防止し、エラーレジストリが MAX_STORED_ERRORS（1000件）に達した際は最古エントリから10%を退去（LRU eviction）してメモリリークを防止すること 🔵 ✅実装済 *src/api/routes/errors.ts RegisterBodySchema・sanitizeMessage()・isValidErrorId()・storeError() eviction・@stv/core/config/limits ERROR_REGISTRY_LIMITS・commit 71a3a8c・94テスト追加*
 
 #### エクスポート検証拡張（Phase 93） ✅完了
 
 - REQ-223: システムはエクスポート検証（REQ-093）を拡張し、APNG形式についてはPNG署名に加えてacTL（Animation Control）チャンクの存在・フレーム数正値・fcTL（Frame Control）チャンク数との整合性を検証し、Lottie JSON形式については必須ルートフィールド（v・fr・ip・op・w・h・layers）の存在・fr正値・op>ip・w/h正値・layers配列の各要素ty型フィールドを検証しなければならない 🔵 ✅実装済 *src/export/export-verifier.ts verifyApngChunks()・verifyLottie()・readU32BE()・tests/export/export-verifier.test.ts 27テスト追加・tests/integration/renderer-engine-integration.test.ts renderer→verifier round-trip 4テスト追加*
-- REQ-224: システムは POST /api/render エンドポイントにエクスポートレート制限（10リクエスト/15分/IP）を適用し、CPU集約的なレンダリング操作を保護しなければならない。また codec パラメータを列挙型（h264/h265/vp9/av1）で検証し、resolution パラメータを WIDTHxHEIGHT 形式（例: 1920x1080）の正規表現で検証し、不正値には 400 VALIDATION_ERROR を返さなければならない 🔵 ✅実装済 *src/api/middleware/rate-limit.ts exportRateLimiter・src/api/routes/pipeline.ts VALID_CODECS・RESOLUTION_REGEX・src/config/limits.ts RATE_LIMITS.EXPORT・2テスト追加*
+- REQ-224: システムは POST /api/render エンドポイントにエクスポートレート制限（10リクエスト/15分/IP）を適用し、CPU集約的なレンダリング操作を保護しなければならない。また codec パラメータを列挙型（h264/h265/vp9/av1）で検証し、resolution パラメータを WIDTHxHEIGHT 形式（例: 1920x1080）の正規表現で検証し、不正値には 400 VALIDATION_ERROR を返さなければならない 🔵 ✅実装済 *src/api/middleware/rate-limit.ts exportRateLimiter・src/api/routes/pipeline.ts VALID_CODECS・RESOLUTION_REGEX・@stv/core/config/limits RATE_LIMITS.EXPORT・2テスト追加*
 
 #### エクスポートエンジン検証統合（Phase 95） ✅完了
 
@@ -512,19 +512,19 @@
 
 #### エクスポートリトライとフェイルセーフ（Phase 97） ✅完了
 
-- REQ-227: システムはエクスポートパイプラインのエンコーディング段階（Stage 3）で一時的エラーが発生した場合、指数バックオフリトライを実行しなければならない。リトライ条件は (1) メモリ不足エラー（OOM）、(2) エンコーダータイムアウト、(3) Worker プロセスクラッシュの3種とし、検証エラー・フォーマット不正・データ欠損などの非一時的エラーはリトライ対象外とすること。最大リトライ回数は3回、初期待機時間は1秒、最大待機時間は30秒、ジッター（0〜500ms）を各試行に付加すること。リトライ試行ごとに ExportMetricsCollector へ retry_attempt ラベル付きでイベントを記録し、全リトライ失敗時は最後のエラーを ExportResult.error に格納すること 🔵 ✅実装済 *src/export/enhanced-export-engine.ts encodeVideoWithRetry()・isTransientExportError()・src/config/limits.ts EXPORT_RETRY_LIMITS・15テスト追加*
+- REQ-227: システムはエクスポートパイプラインのエンコーディング段階（Stage 3）で一時的エラーが発生した場合、指数バックオフリトライを実行しなければならない。リトライ条件は (1) メモリ不足エラー（OOM）、(2) エンコーダータイムアウト、(3) Worker プロセスクラッシュの3種とし、検証エラー・フォーマット不正・データ欠損などの非一時的エラーはリトライ対象外とすること。最大リトライ回数は3回、初期待機時間は1秒、最大待機時間は30秒、ジッター（0〜500ms）を各試行に付加すること。リトライ試行ごとに ExportMetricsCollector へ retry_attempt ラベル付きでイベントを記録し、全リトライ失敗時は最後のエラーを ExportResult.error に格納すること 🔵 ✅実装済 *src/export/enhanced-export-engine.ts encodeVideoWithRetry()・isTransientExportError()・@stv/core/config/limits EXPORT_RETRY_LIMITS・15テスト追加*
 
 #### エクスポートジョブライフサイクル管理（Phase 98） ✅完了
 
-- REQ-228: システムは実行中のエクスポートジョブをキャンセル可能にし、各ステージにタイムアウトを適用しなければならない。(1) キャンセル: EnhancedExportEngine に cancelExport(jobId: string) メソッドを追加し、呼び出し時に該当ジョブの AbortController を abort して Stage 2（rendering）のフレームループと Stage 3（encoding）を中断し、ExportResult.success = false・error = 'Cancelled' で即時返却すること。(2) ステージタイムアウト: 各ステージに設定可能なタイムアウト（preparing: 30s, rendering: 600s, encoding: 300s, finalizing: 60s）を適用し、超過時は自動的にキャンセル扱いとすること。タイムアウト値は src/config/limits.ts EXPORT_STAGE_TIMEOUTS で集中管理すること 🔵 ✅実装済 *src/export/enhanced-export-engine.ts cancelExport()・runStageWithTimeout()・src/config/limits.ts EXPORT_STAGE_TIMEOUTS・15テスト追加*
+- REQ-228: システムは実行中のエクスポートジョブをキャンセル可能にし、各ステージにタイムアウトを適用しなければならない。(1) キャンセル: EnhancedExportEngine に cancelExport(jobId: string) メソッドを追加し、呼び出し時に該当ジョブの AbortController を abort して Stage 2（rendering）のフレームループと Stage 3（encoding）を中断し、ExportResult.success = false・error = 'Cancelled' で即時返却すること。(2) ステージタイムアウト: 各ステージに設定可能なタイムアウト（preparing: 30s, rendering: 600s, encoding: 300s, finalizing: 60s）を適用し、超過時は自動的にキャンセル扱いとすること。タイムアウト値は @stv/core/config/limits EXPORT_STAGE_TIMEOUTS で集中管理すること 🔵 ✅実装済 *src/export/enhanced-export-engine.ts cancelExport()・runStageWithTimeout()・@stv/core/config/limits EXPORT_STAGE_TIMEOUTS・15テスト追加*
 
 #### エクスポートジョブキューサービス（Phase 99） ✅完了
 
-- REQ-229: システムはエクスポートジョブの優先度ベースキューサービスを提供しなければならない。(1) 優先度スケジューリング: high/normal/low の3段階優先度でジョブをキューイングし、同優先度内ではFIFO順で処理すること。(2) 同時実行制御: 設定可能な最大同時実行数（デフォルト3）をセマフォパターンで管理し、上限到達時はキューで待機させること。(3) キュー位置追跡: 各ジョブのキュー内位置とETA（平均処理時間×前方ジョブ数）をリアルタイムで提供すること。(4) フェアスケジューリング: 設定可能な間隔（デフォルト30秒）で最も古い低優先度ジョブを昇格させ、飽和を防止すること。(5) ExportMetricsCollector統合: queue_size・queue_wait_time_ms・queue_dequeue_count・queue_priority_distribution の4メトリクスを記録すること 🔵 ✅実装済 *src/export/export-job-queue.ts ExportJobQueue・src/export/__tests__/export-job-queue.test.ts（491行・32テスト）・src/config/limits.ts EXPORT_QUEUE_LIMITS・コミットa949644*
+- REQ-229: システムはエクスポートジョブの優先度ベースキューサービスを提供しなければならない。(1) 優先度スケジューリング: high/normal/low の3段階優先度でジョブをキューイングし、同優先度内ではFIFO順で処理すること。(2) 同時実行制御: 設定可能な最大同時実行数（デフォルト3）をセマフォパターンで管理し、上限到達時はキューで待機させること。(3) キュー位置追跡: 各ジョブのキュー内位置とETA（平均処理時間×前方ジョブ数）をリアルタイムで提供すること。(4) フェアスケジューリング: 設定可能な間隔（デフォルト30秒）で最も古い低優先度ジョブを昇格させ、飽和を防止すること。(5) ExportMetricsCollector統合: queue_size・queue_wait_time_ms・queue_dequeue_count・queue_priority_distribution の4メトリクスを記録すること 🔵 ✅実装済 *src/export/export-job-queue.ts ExportJobQueue・src/export/__tests__/export-job-queue.test.ts（491行・32テスト）・@stv/core/config/limits EXPORT_QUEUE_LIMITS・コミットa949644*
 
 #### エクスポートアーティファクト管理（Phase 100） ✅完了
 
-- REQ-230: システムはエクスポート成果物のストレージ管理と自動クリーンアップを提供しなければならない。(1) アーティファクト管理: エクスポート成果物をメタデータ付きで保存し、一意のartifactIdで識別すること。(2) TTLベース自動クリーンアップ: 設定可能なTTL（デフォルト1時間）で期限切れアーティファクトを定期削除すること。ストレージクォータ（デフォルト1GB・1000件）超過時はLRU退去すること。(3) ダウンロードURL生成: 有効期限付き（デフォルト5分）のダウンロードURLを生成すること。(4) 使用量追跡: 総バイト数・アーティファクト数・フォーマット別分布をリアルタイムで提供すること。(5) ExportMetricsCollector統合: artifact_stored_count・artifact_storage_bytes・artifact_expired_count・artifact_download_count の4メトリクスを記録すること 🔵 ✅実装済 *src/export/export-artifact-store.ts・src/config/limits.ts ARTIFACT_STORE_LIMITS・26テスト・コミットREQ-230*
+- REQ-230: システムはエクスポート成果物のストレージ管理と自動クリーンアップを提供しなければならない。(1) アーティファクト管理: エクスポート成果物をメタデータ付きで保存し、一意のartifactIdで識別すること。(2) TTLベース自動クリーンアップ: 設定可能なTTL（デフォルト1時間）で期限切れアーティファクトを定期削除すること。ストレージクォータ（デフォルト1GB・1000件）超過時はLRU退去すること。(3) ダウンロードURL生成: 有効期限付き（デフォルト5分）のダウンロードURLを生成すること。(4) 使用量追跡: 総バイト数・アーティファクト数・フォーマット別分布をリアルタイムで提供すること。(5) ExportMetricsCollector統合: artifact_stored_count・artifact_storage_bytes・artifact_expired_count・artifact_download_count の4メトリクスを記録すること 🔵 ✅実装済 *src/export/export-artifact-store.ts・@stv/core/config/limits ARTIFACT_STORE_LIMITS・26テスト・コミットREQ-230*
 
 #### エクスポートアーティファクトパイプライン統合（Phase 101） ✅完了
 
@@ -535,7 +535,7 @@
 
 #### エクスポートアーティファクトE2E検証（Phase 102） ✅完了
 
-- REQ-235: システムは ExportArtifactStore に TTL とクォータ制限（ARTIFACT_STORE_LIMITS）を設定した上で、ストレージクォータに達した際に LRU 退去が正しく発火することを検証するエンドツーエンドテストを提供しなければならない。テストは以下を証明すること: (1) クォータ到達前に最も古い未使用アーティファクトが退去される、(2) 退去後の新規保存が成功する、(3) ExportMetricsCollector に artifact_expired_count が記録される 🔵 ✅実装済 *src/export/export-artifact-store.ts evictLRU()・src/config/limits.ts ARTIFACT_STORE_LIMITS・TC-235-01/02/03テスト通過・コミット5d76c31*
+- REQ-235: システムは ExportArtifactStore に TTL とクォータ制限（ARTIFACT_STORE_LIMITS）を設定した上で、ストレージクォータに達した際に LRU 退去が正しく発火することを検証するエンドツーエンドテストを提供しなければならない。テストは以下を証明すること: (1) クォータ到達前に最も古い未使用アーティファクトが退去される、(2) 退去後の新規保存が成功する、(3) ExportMetricsCollector に artifact_expired_count が記録される 🔵 ✅実装済 *src/export/export-artifact-store.ts evictLRU()・@stv/core/config/limits ARTIFACT_STORE_LIMITS・TC-235-01/02/03テスト通過・コミット5d76c31*
 - REQ-236: システムは TTL 期限切れアーティファクトが定期クリーンアップ（CLEANUP_INTERVAL_MS）で正しく削除されることを検証する統合テストを提供しなければならない。タイマー駆動のクリーンアップが発火し、期限切れアーティファクトが getUsage() の統計から除外されることを確認すること 🔵 ✅実装済 *src/export/export-artifact-store.ts cleanup()・startAutoCleanup()・ARTIFACT_STORE_LIMITS.DEFAULT_TTL_MS・コミット5d76c31*
 - REQ-237: システムは EnhedExportEngine → ExportArtifactStore → download API の完全なエクスポート成果物ライフサイクル（エクスポート実行→アーティファクト保存→ダウンロードURL生成→取得）を検証するエンドツーエンドテストを提供しなければならない 🔵 ✅実装済 *src/export/enhanced-export-engine.ts・src/export/export-artifact-store.ts・TC-237-01テスト通過・コミット5d76c31*
 
@@ -650,7 +650,7 @@
 - EDGE-008: ErrorAlertSystem コンポーネントの auto-hide setTimeout は useRef Set で追跡され、useEffect クリーンアップで全て clearTimeout されなければならない。setTimeout を state updater 関数内で呼び出してはならない（React anti-pattern） 🔵 ✅実装済 *src/components/ErrorAlertSystem.tsx・コミットc3254a3・7テスト追加*
 - EDGE-009: OverlapResolver の applyStrategyWithTimeout は Promise.race 完了後に clearTimeout を呼び出し、戦略がタイムアウト前に完了した場合でもタイマー参照を解放しなければならない 🔵 ✅実装済 *src/visualization/layout/OverlapResolver.ts・コミットc3254a3・2テスト追加*
 - EDGE-010: EnhancedExportEngine の encodeVideoWithRetry リトライ遅延中、タイマーが正常に完了した場合（abort よりタイマーが勝った場合）、AbortSignal から abort リスナーを removeEventListener で削除しなければならない。リスナーを削除しない場合、リトライごとにリスナーが蓄積しメモリリークが発生する 🔵 ✅実装済 *src/export/enhanced-export-engine.ts・src/export/__tests__/export-abort-listener-cleanup.test.ts・3テスト追加*
-- EDGE-011: 全プロダクションコードパスの catch ブロックは console.error ではなく構造化 logger.error を使用しなければならない。エラーメッセージフォーマットは `[ERROR] [ComponentName] message` となる（logger がレベルプレフィックスを付与）。console.error が残存している場合、ログレベルフィルタリングがバイパスされる 🔵 ✅実装済 *src/utils/logger.ts logger.error()・src/optimization/memory-cache.ts・src/analysis/budget-alert.ts・src/monitoring/production-monitoring-excellence.ts・src/quality/error-recovery-event-bus.ts・コミット78efa1b で performance-dashboard.ts・real-time-performance-monitor.ts 修正済*
+- EDGE-011: 全プロダクションコードパスの catch ブロックは console.error ではなく構造化 logger.error を使用しなければならない。エラーメッセージフォーマットは `[ERROR] [ComponentName] message` となる（logger がレベルプレフィックスを付与）。console.error が残存している場合、ログレベルフィルタリングがバイパスされる 🔵 ✅実装済 *@stv/core/utils/logger logger.error()・src/optimization/memory-cache.ts・src/analysis/budget-alert.ts・src/monitoring/production-monitoring-excellence.ts・src/quality/error-recovery-event-bus.ts・コミット78efa1b で performance-dashboard.ts・real-time-performance-monitor.ts 修正済*
 
 ### 境界値
 
@@ -662,7 +662,7 @@
 
 - REQ-253: システムはエクスポートリトライパイプラインの統合テストとして、5回以上のリトライサイクルでAbortSignalリスナー数が安定（リークしない）ことを検証しなければならない 🔵 *AI Hub make-runフィードバック・EDGE-010修正の統合検証・src/export/enhanced-export-engine.ts encodeVideoWithRetry より*
 - REQ-254: CIワークフロー（.github/workflows/ci.yml）の全ジョブに timeout-minutes を設定し、ELAPSED時間が警告閾値を超えた際にサマリージョブで非ゼロ終了または失敗フラグを設定しなければならない 🔵 *AI Hub make-runフィードバック・_bmad/bmm/workflows/testarch/ci/github-actions-template.yaml参照・.github/workflows/ci.yml現状（timeout-minutes未設定）より*
-- REQ-255: ESLintルール（no-console）を src/ ディレクトリに適用し、logger.ts以外のconsole.error使用をCIで検出・ブロックしなければならない 🔵 *AI Hub make-runフィードバック・EDGE-011 console.error→logger.error正規化完了の回帰防止・src/utils/logger.ts:29が唯一の正当なconsole.error使用より*
+- REQ-255: ESLintルール（no-console）を src/ ディレクトリに適用し、logger.ts以外のconsole.error使用をCIで検出・ブロックしなければならない 🔵 *AI Hub make-runフィードバック・EDGE-011 console.error→logger.error正規化完了の回帰防止・@stv/core/utils/logger:29が唯一の正当なconsole.error使用より*
 - REQ-256: EnhancedExportEngine はリトライ設定（maxRetries等）をコンストラクタまたはオプション経由で外部から指定可能にし、テスト時に5回以上のリトライサイクルを再現できるようにしなければならない 🔵 *AI Hub make-runフィードバック・EXPORT_RETRY_LIMITS.MAX_RETRIES=3のハードコードが高リトライ回数テストを妨げている現状より*
 - REQ-257: シーンデュレーション計算修正（actualVideoRenderer.ts）の統合テストとして、既知のタイムスタンプを持つ複数シーンの動画レンダリングで累積デュレーションが正確であることを検証しなければならない 🔵 *AI Hub make-runフィードバック・コミット2ea5a98のactualVideoRenderer.ts修正はユニットテストのみ・統合検証が必要より*
 
@@ -691,7 +691,7 @@
 
 - REQ-270: プロジェクト全体のESLintエラーを0件にしなければならない。eslint.config.js の設定調整・テストファイル・ソースファイルのlint修正を含む。修正後は `npm run lint` がエラー0件で完了すること 🔵 ✅実装済 *コミット 73b7aea: ESLint 234エラー→0解消・16ファイル修正（eslint.config.js・corruption-recovery-integration・diagram-detector-llm-boundary・multi-format-exporter・config-validator・batch-operation-recovery・streaming-transcriber・sanitize-fuzz・layout-pipeline-deep-integration・monitoring-optimization-mutation・ci-timeout-guard・no-console-regression・pipeline-enhanced-layout-null-item-guard）*
 - REQ-271: ESM環境でのテストモックは、非推奨の `jest.unstable_mockModule` ではなく標準の `jest.mock` を使用しなければならない。これによりテストランナーの安定性と保守性を確保すること 🔵 ✅実装済 *コミット 558398d: gemini-analyzer-comprehensive.test.ts・llm-service-comprehensive.test.ts の unstable_mockModule → jest.mock 置換*
-- REQ-272: 音声ファイル検証（validateAudioFile）は、File オブジェクトの size プロパティへの安全でないアクセスによりクラッシュしてはならない。また、テスト環境でのFile グローバルの不在に対してグレースフルに処理しなければならない 🔵 ✅実装済 *コミット 3fd2f0e: src/utils/audio-validation.ts の file.size 安全アクセス修正・tests/unit/async-resource-cleanup.test.ts・src/framework/__tests__/continuous-learner-numeric-safety.test.ts のテスト環境修正*
+- REQ-272: 音声ファイル検証（validateAudioFile）は、File オブジェクトの size プロパティへの安全でないアクセスによりクラッシュしてはならない。また、テスト環境でのFile グローバルの不在に対してグレースフルに処理しなければならない 🔵 ✅実装済 *コミット 3fd2f0e: @stv/core/utils/audio-validation の file.size 安全アクセス修正・tests/unit/async-resource-cleanup.test.ts・tests/unit/framework/continuous-learner-numeric-safety.test.ts のテスト環境修正*
 - REQ-273: セマンティック類似度計算（semantic-similarity.ts）は、CJK（中国語・日本語・韓国語）テキストの文字レベルトークン化をサポートし、空文字・単一文字・長文のエッジケースで正しい類似度スコアを返さなければならない。また、コード内に非ASCIIメソッド名（キリル文字等）が混入していてはならない 🔵 ✅実装済 *コミット 137cb82: CJKトークン化エッジケーステスト追加・コミット 9a3cefe: testTypeAppropriateность → testTypeAppropriateness メソッド名修正（キリル文字混入解消）*
 
 ### Record<UnionType,T>完全性強制・Prometheus export・SecurityMetrics TTL（Phase 116） ✅実装済
@@ -713,11 +713,11 @@
 
 ### 品質モニタ diagram-type パリティ（Phase 118） ✅実装済
 
-- REQ-285: システムの品質モニタ（src/quality/quality-monitor.ts）のコンテンツ妥当性スコアリング（assessContentRelevance）は、有効な図解タイプ判定をハードコードされた5種リスト（flow/tree/timeline/matrix/cycle）ではなく、正典ガード `isDiagramType`（src/types/diagram.ts・11種 DiagramType 単一ソース）に委譲しなければならない。LLM 分析器（content-analyzer.ts / prompt-templates.ts）が主要タイプとして 'flowchart'（'flow' ではなく）を排出し、ルールベース検出が mindmap/comparison 等を排出するため、ハードコードリストは flowchart/comparison/network/conceptmap/mindmap/general の6正典タイプを見逃し、それらのシーンが accuracyScore/overallScore で不当なペナルティ（同一シーンで約0.036点低下・checkDeploymentReadiness ≥0.7 帯への影響）を受けていた。'flow' vs 'flowchart' 名前空間バグ（f178cbf）と同クラス、overlap margin バグ（6923806）と同「correct output への誤ペナルティ」系。実装とテストを同一コミットに co-locate 🔵 ✅実装済 *本コミット: src/quality/quality-monitor.ts validTypes ハードコード → isDiagramType 委譇・src/quality/__tests__/quality-monitor-diagram-type-parity.test.ts で11タイプ完全パリティ + 非正典タイプ拒否の RED→GREEN 検証（flowchart 0.836→0.872 修正確認）*
+- REQ-285: システムの品質モニタ（src/quality/quality-monitor.ts）のコンテンツ妥当性スコアリング（assessContentRelevance）は、有効な図解タイプ判定をハードコードされた5種リスト（flow/tree/timeline/matrix/cycle）ではなく、正典ガード `isDiagramType`（@stv/core/types/diagram・11種 DiagramType 単一ソース）に委譲しなければならない。LLM 分析器（content-analyzer.ts / prompt-templates.ts）が主要タイプとして 'flowchart'（'flow' ではなく）を排出し、ルールベース検出が mindmap/comparison 等を排出するため、ハードコードリストは flowchart/comparison/network/conceptmap/mindmap/general の6正典タイプを見逃し、それらのシーンが accuracyScore/overallScore で不当なペナルティ（同一シーンで約0.036点低下・checkDeploymentReadiness ≥0.7 帯への影響）を受けていた。'flow' vs 'flowchart' 名前空間バグ（f178cbf）と同クラス、overlap margin バグ（6923806）と同「correct output への誤ペナルティ」系。実装とテストを同一コミットに co-locate 🔵 ✅実装済 *本コミット: src/quality/quality-monitor.ts validTypes ハードコード → isDiagramType 委譇・src/quality/__tests__/quality-monitor-diagram-type-parity.test.ts で11タイプ完全パリティ + 非正典タイプ拒否の RED→GREEN 検証（flowchart 0.836→0.872 修正確認）*
 
 ### 動画レンダリング fps 伝搬（Phase 119） ✅実装済
 
-- REQ-286: システムの動画生成（`VideoGenerator.options.fps` = 24|30|60）は、要求されたフレームレートを実際のレンダラ（`ActualVideoRenderer`）まで伝搬し、レンダリングされるコンポジションの `fps` および `durationInFrames` に反映しなければならない。従来 `executeRemotionRender`（src/pipeline/video-generator.ts）は `actualVideoRenderer.renderVideo(...)` 呼び出しで `fps` を渡さず、`ActualVideoRenderer.getComposition`（src/lib/actualVideoRenderer.ts）が `const fps = 30` を固定値としていたため、60fps（高品質プリセット）や24fps（高速プリセット）の要求が暗黙に30fpsでレンダリングされ、`durationInFrames` も常に30fps換算（10s=300フレーム）となって frame↔duration が乖離していた。これは `prepareRenderConfiguration` が `config.fps = this.options.fps || 30` で正しく計算した値を、すぐ次の境界（renderVideo 呼び出し）で破棄する「producer-computes-but-boundary-drops」クラスであり、同一ファイル内の quality 伝搬修正（6937b8b）の直前境界で修正済みのバグの mirror。実装とテストを同一コミットに co-locate 🔵 ✅実装済 *本コミット: `ActualVideoRenderOptions.fps?` 追加・`video-generator.ts` executeRemotionRender が `fps: this.options.fps || 30` を renderVideo に渡すよう修正・`actualVideoRenderer.ts` getComposition が `resolvedFps = fps ?? 30` で `composition.fps` と `durationInFrames`（min-floor も fps にスケール）を上書き・src/lib/__tests__/actualVideoRenderer-duration.test.ts に fps honoring（60/24fps・min-floor・後方互換）テスト追加・tests/integration/video-generator-render-quality.test.ts に fps 伝搬テスト追加。ガード検証: 修正無効化で3テストが RED → 復元で GREEN*
+- REQ-286: システムの動画生成（`VideoGenerator.options.fps` = 24|30|60）は、要求されたフレームレートを実際のレンダラ（`ActualVideoRenderer`）まで伝搬し、レンダリングされるコンポジションの `fps` および `durationInFrames` に反映しなければならない。従来 `executeRemotionRender`（src/pipeline/video-generator.ts）は `actualVideoRenderer.renderVideo(...)` 呼び出しで `fps` を渡さず、`ActualVideoRenderer.getComposition`（src/pipeline/actual-video-renderer.ts）が `const fps = 30` を固定値としていたため、60fps（高品質プリセット）や24fps（高速プリセット）の要求が暗黙に30fpsでレンダリングされ、`durationInFrames` も常に30fps換算（10s=300フレーム）となって frame↔duration が乖離していた。これは `prepareRenderConfiguration` が `config.fps = this.options.fps || 30` で正しく計算した値を、すぐ次の境界（renderVideo 呼び出し）で破棄する「producer-computes-but-boundary-drops」クラスであり、同一ファイル内の quality 伝搬修正（6937b8b）の直前境界で修正済みのバグの mirror。実装とテストを同一コミットに co-locate 🔵 ✅実装済 *本コミット: `ActualVideoRenderOptions.fps?` 追加・`video-generator.ts` executeRemotionRender が `fps: this.options.fps || 30` を renderVideo に渡すよう修正・`actualVideoRenderer.ts` getComposition が `resolvedFps = fps ?? 30` で `composition.fps` と `durationInFrames`（min-floor も fps にスケール）を上書き・src/pipeline/__tests__/actual-video-renderer-duration-integration.test.ts に fps honoring（60/24fps・min-floor・後方互換）テスト追加・tests/integration/video-generator-render-quality.test.ts に fps 伝搬テスト追加。ガード検証: 修正無効化で3テストが RED → 復元で GREEN*
 
 ### 解析器の循環検出 confidence 反映（Phase 120） ✅実装済
 
@@ -733,7 +733,7 @@
 
 ### 図解タイプ正典リストの単一ソース委譲（Phase 123） ✅実装済
 
-- REQ-290: システムの図解タイプ正典リスト `DIAGRAM_TYPES`（src/types/diagram.ts）は、DiagramType 11種単一ソースとして `export` され、`isDiagramType` と全消費者がこれを共有しなければならない。従来 `DIAGRAM_TYPES` は `const`（非 export）であったため外部から参照できず、図解検出器（src/analysis/diagram-detector.ts:1029 detect()）は11種リテラル `['flow','flowchart',...,'general'] as DiagramType[]` を再字面化していた。`as DiagramType[]` キャストが型チェッカーを無効化するため、DiagramType ユニオンに12種目を追加してもこのスコアリングループは新タイプを暗黙にスキップし（スコア未割当）ドリフトが検出されなかった。これは「hardcoded-constant desync」クラス（HEALTH_CHECK single-source b5c6b71b / node-dimension 5bfeb709 と同系）であり、正典配列が非 export であることが根本原因であった。修正は `DIAGRAM_TYPES` を `readonly DiagramType[]` として export し（isDiagramType は内部で `as readonly string[]` キャストで `.includes` を維持）、diagram-detector を正典への委譲に変更する。実装とテストを同一コミットに co-locate 🔵 ✅実装済 *本コミット: src/types/diagram.ts の DIAGRAM_TYPES を export + readonly DiagramType[] 型化・isDiagramType を内部キャスト保持・src/analysis/diagram-detector.ts detect() のリテラル+キャスト → DIAGRAM_TYPES.map 委譲・tests/unit/analysis/diagram-detector-type-parity.test.ts に「全正典タイプを過不足なくスコア付け（primary+alternatives が DIAGRAM_TYPES と完全一致）・非正典タイプの混入拒否」ロックイン検証を追加。検証: diagram-detector 32テスト + tsc green。本修正は潜伏的（現状で値は一致）のため振舞い RED は不可、正典への構造的結合ロックインで将来ドリフトを検出する（b5c6b71b/5bfeb709 と同パターン）*
+- REQ-290: システムの図解タイプ正典リスト `DIAGRAM_TYPES`（@stv/core/types/diagram）は、DiagramType 11種単一ソースとして `export` され、`isDiagramType` と全消費者がこれを共有しなければならない。従来 `DIAGRAM_TYPES` は `const`（非 export）であったため外部から参照できず、図解検出器（src/analysis/diagram-detector.ts:1029 detect()）は11種リテラル `['flow','flowchart',...,'general'] as DiagramType[]` を再字面化していた。`as DiagramType[]` キャストが型チェッカーを無効化するため、DiagramType ユニオンに12種目を追加してもこのスコアリングループは新タイプを暗黙にスキップし（スコア未割当）ドリフトが検出されなかった。これは「hardcoded-constant desync」クラス（HEALTH_CHECK single-source b5c6b71b / node-dimension 5bfeb709 と同系）であり、正典配列が非 export であることが根本原因であった。修正は `DIAGRAM_TYPES` を `readonly DiagramType[]` として export し（isDiagramType は内部で `as readonly string[]` キャストで `.includes` を維持）、diagram-detector を正典への委譲に変更する。実装とテストを同一コミットに co-locate 🔵 ✅実装済 *本コミット: @stv/core/types/diagram の DIAGRAM_TYPES を export + readonly DiagramType[] 型化・isDiagramType を内部キャスト保持・src/analysis/diagram-detector.ts detect() のリテラル+キャスト → DIAGRAM_TYPES.map 委譲・tests/unit/analysis/diagram-detector-type-parity.test.ts に「全正典タイプを過不足なくスコア付け（primary+alternatives が DIAGRAM_TYPES と完全一致）・非正典タイプの混入拒否」ロックイン検証を追加。検証: diagram-detector 32テスト + tsc green。本修正は潜伏的（現状で値は一致）のため振舞い RED は不可、正典への構造的結合ロックインで将来ドリフトを検出する（b5c6b71b/5bfeb709 と同パターン）*
 
 ### ノード寸法デフォルトの単一ソース化（Phase 124） ✅実装済
 
@@ -749,11 +749,11 @@
 
 ### サーバーエクスポートキュー設定の単一ソース化（Phase 127） ✅実装済
 
-- REQ-294: 本番サーバー（src/api/server.ts:107）が `new ExportJobQueue({ maxConcurrent: 3, maxQueueSize: 100 }, ...)` とキュー同時実行数/キューサイズをベアリテラル `3`/`100` でハードコードしていた。これらは `EXPORT_QUEUE_LIMITS.MAX_CONCURRENT`/`MAX_QUEUE_SIZE`（src/config/limits.ts）と偶然一致するが結合なし — 正典を変更しても本番ルートは古いリテラルに留まり、DEFAULT_OPTIONS 経由で正典に従う他全コンシューマとの暗黙ドリフトを生む latent-coincident の constant-desync シード（T2-B）。修正は EXPORT_QUEUE_LIMITS をインポートし同構成で参照。振る舞い RED→GREEN 不可能（同値）のためソース結合ガード（`__tests__/server-queue-config-coupling.test.ts`）がリテラル再インライン化と非インポートを検出する。実装とテストを同一コミットに co-locate 🔵 ✅実装済 *本コミット: server.ts インポート追加+正典参照化 + ガード。検証: RED→GREEN（server.ts 戻しで3テスト失敗→復元で成功）・export-job-queue+server 5スイート78テスト green・tsc green*
+- REQ-294: 本番サーバー（src/api/server.ts:107）が `new ExportJobQueue({ maxConcurrent: 3, maxQueueSize: 100 }, ...)` とキュー同時実行数/キューサイズをベアリテラル `3`/`100` でハードコードしていた。これらは `EXPORT_QUEUE_LIMITS.MAX_CONCURRENT`/`MAX_QUEUE_SIZE`（@stv/core/config/limits）と偶然一致するが結合なし — 正典を変更しても本番ルートは古いリテラルに留まり、DEFAULT_OPTIONS 経由で正典に従う他全コンシューマとの暗黙ドリフトを生む latent-coincident の constant-desync シード（T2-B）。修正は EXPORT_QUEUE_LIMITS をインポートし同構成で参照。振る舞い RED→GREEN 不可能（同値）のためソース結合ガード（`__tests__/server-queue-config-coupling.test.ts`）がリテラル再インライン化と非インポートを検出する。実装とテストを同一コミットに co-locate 🔵 ✅実装済 *本コミット: server.ts インポート追加+正典参照化 + ガード。検証: RED→GREEN（server.ts 戻しで3テスト失敗→復元で成功）・export-job-queue+server 5スイート78テスト green・tsc green*
 
 ### simple-pipeline 対応音声形式の単一ソース化（Phase 128） ✅実装済
 
-- REQ-295: `SimplePipeline.getCapabilities()`（src/pipeline/simple-pipeline.ts:774）が `supportedFormats: ['mp3','wav','ogg','m4a']` を正典 `SUPPORTED_AUDIO_FORMATS`（src/config/limits.ts）と一致するが結合なしでハードコード重複していた。新形式追加で正典だけ更新しても simple-pipeline は古いセットを広告し続ける latent-coincident の constant-desync シード（兄弟 whisper-transcriber.ts:413 は正しく `[...SUPPORTED_AUDIO_FORMATS]` を使用）。修正は SUPPORTED_AUDIO_FORMATS をインポートしスプレッド。振る舞い RED→GREEN 不可能（同値）のためソース結合ガード（`__tests__/simple-pipeline-audio-formats-coupling.test.ts`）がリテラル再インライン化と非インポートを検出する。実装とテストを同一コミットに co-locate 🔵 ✅実装済 *本コミット: simple-pipeline.ts インポート+スプレッド化 + ガード。検証: RED→GREEN（戻しで2テスト失敗→復元で成功）・simple-pipeline 2スイート29テスト green・tsc green*
+- REQ-295: `SimplePipeline.getCapabilities()`（src/pipeline/simple-pipeline.ts:774）が `supportedFormats: ['mp3','wav','ogg','m4a']` を正典 `SUPPORTED_AUDIO_FORMATS`（@stv/core/config/limits）と一致するが結合なしでハードコード重複していた。新形式追加で正典だけ更新しても simple-pipeline は古いセットを広告し続ける latent-coincident の constant-desync シード（兄弟 whisper-transcriber.ts:413 は正しく `[...SUPPORTED_AUDIO_FORMATS]` を使用）。修正は SUPPORTED_AUDIO_FORMATS をインポートしスプレッド。振る舞い RED→GREEN 不可能（同値）のためソース結合ガード（`__tests__/simple-pipeline-audio-formats-coupling.test.ts`）がリテラル再インライン化と非インポートを検出する。実装とテストを同一コミットに co-locate 🔵 ✅実装済 *本コミット: simple-pipeline.ts インポート+スプレッド化 + ガード。検証: RED→GREEN（戻しで2テスト失敗→復元で成功）・simple-pipeline 2スイート29テスト green・tsc green*
 
 ### パターン横展開（Phase 131+ 提案） 🟡未着手
 
@@ -765,7 +765,7 @@
 
 - REQ-300: 非同期ハンドラ内で `useState` の setter を呼び出すコードに対し、stale-closure 防御の positive-case フィクスチャを追加しなければならない。Phase 130（REQ-297）の async-state-stale-closure-guard.test.ts は既知修正ピン中心の「negative guard」だが、本要件は「async ハンドラ内で post-await 呼び出しの setter が最新の state を読む」positive ケース（React の useEvent / functional updater / call-time ref mirror のいずれか）を fixture として固定し、回帰だけでなく「正しい書き方」の標準パターンをテストで残す 🟡 *AI Hub steering feedback C・async-state-stale-closure-guard.test.ts に positive フィクスチャ追加・REQ-297 兄弟*
 
-#### 3レジストリ命名一貫性（Phase 132 提案） �実装済
+#### 3レジストリ命名一貫性（Phase 132 提案） 🔵実装済
 
 > **NOTE**: 本セクションは AI Hub `make run` フィードバック（`Continue building on this progress`）の実在性検証結果に基づき、`LOWER_IS_BETTER_*` 名前空間の3レジストリ横断一貫性を具体化する。レジストリ統合（consolidation）は禁止設計（REQ-296/298/299 兄弟エントリの OWN-type アンカー維持）を維持しつつ、命名のみ統一する。検証で実在を確認できた提案のみ採用し、PHANTOM 提案（`supabaseIntakeSanitize.test.ts` / `nonStringTruthy` shared fixtures / `corruptionHelpers.test.ts` 抽出）は `interview-record.md` A132 に分析記録として記載。
 
@@ -773,7 +773,7 @@
 
 #### Number.isFinite 共通 sanitizer 集約（Phase 132 提案） 🟡提案
 
-- REQ-303: prod コードに残存する value-clamp 系の `Number.isFinite(value)` インラインパターン（55ファイル: src/analysis/ ・src/api/ ・src/quality/ ・src/monitoring/ ・src/pipeline/ ・src/utils/ ・src/transcription/ ・src/visualization/ ・src/export/ ・src/framework/ ・src/remotion/ ・src/config/ ・src/lib/ ・src/components/ など）を `src/utils/guards.ts` に既に存在する `sanitizeFinite(value, defaultValue)` （REQ-296 兄弟・NaN/±Infinity → defaultValue 単一責任ポイント）に段階的に集約する計画を立てなければならない。`Number.isFinite(x) && x > 0` のような条件分岐ガード（`Number.isFinite` を真理値として使う用法）は本要件の対象外とし、`(typeof value === 'number' && Number.isFinite(value)) ? value : defaultValue` 形の「値を変換する用法」のみを移行対象とする。新設ヘルパー（例: `toFiniteOr(value, fallback)`）が必要な場合は `src/utils/guards.ts` に追加し、REQ-296 と同じ partition/closed-set テスト方針に従うこと 🟡 *AI Hub make-run feedback・grep -rn 'Number.isFinite' src/ = 55 files（test 除く）・既存 sanitizeFinite/clampFinite/clamp01/safeToLocaleString の対象拡大*
+- REQ-303: prod コードに残存する value-clamp 系の `Number.isFinite(value)` インラインパターン（55ファイル: src/analysis/ ・src/api/ ・src/quality/ ・src/monitoring/ ・src/pipeline/ ・src/utils/ ・src/transcription/ ・src/visualization/ ・src/export/ ・src/framework/ ・src/remotion/ ・src/config/ ・src/lib/ ・src/components/ など）を `@stv/core/utils/guards` に既に存在する `sanitizeFinite(value, defaultValue)` （REQ-296 兄弟・NaN/±Infinity → defaultValue 単一責任ポイント）に段階的に集約する計画を立てなければならない。`Number.isFinite(x) && x > 0` のような条件分岐ガード（`Number.isFinite` を真理値として使う用法）は本要件の対象外とし、`(typeof value === 'number' && Number.isFinite(value)) ? value : defaultValue` 形の「値を変換する用法」のみを移行対象とする。新設ヘルパー（例: `toFiniteOr(value, fallback)`）が必要な場合は `@stv/core/utils/guards` に追加し、REQ-296 と同じ partition/closed-set テスト方針に従うこと 🟡 *AI Hub make-run feedback・grep -rn 'Number.isFinite' src/ = 55 files（test 除く）・既存 sanitizeFinite/clampFinite/clamp01/safeToLocaleString の対象拡大*
 
 #### Phantom feedback 記録（Phase 132 提案） 🔴記録のみ
 
@@ -782,7 +782,15 @@
 > 2. `supabaseIntakeSanitize.test.ts` (245行) → `corruptionHelpers.test.ts` 抽出 + `expectCorruptionBlocked(input, expectedOutput)` アサーションラッパ — `find . -name 'supabaseIntakeSanitize*'` / `'*corruptionHelpers*'` 0 hits  
 > `supabase/*` 配下の実在ファイルは auth-scaffold (`client.ts` / `auth.ts`) のみで、production-config.ts 同様に process.env ガードの受益はあるが、本 feedback が指す corruption event テストは実在せず、real lever = REQ-302/303 適用。
 
-## 実装進捗サマリー
+#### コア分割境界（@stv/core 依存）（Phase 137） ✅実装済
+
+> **NOTE**: 本セクションは stv-core コア分割（PR #7・commits a88c878f~d6651084・2026-08-18 マージ）後の実態を要件化する。分割で src/types・src/config・src/lib ディレクトリと src/utils の大半がプロダクトリポジトリから消滅し、20モジュールパスが外部パッケージ `@stv/core` に移管された。移管マッピングと計数コマンドは interview-record A137 に記録。本要件群と既存REQの出典パス書き換え（17 dead citation 解消）を同一ラウンドで同期した。
+
+- REQ-310: システムの共有型・ユーティリティ・設定モジュール（types/diagram・types/pipeline・utils/{logger,guards,sanitize,memory-usage,audio-validation,audio-duration,regex-escape,prometheus-label-escape,report-corruption}・config/{limits,production-config,schema,validate,code-size-audit}・lib/{metrics-utils,safe-array,capped-array,capped-map,unicode-script-ranges}）は外部パッケージ `@stv/core` から import しなければならない。プロダクトリポジトリ（src/）にこれらの重複実装を再設置してはならない 🔵 *package.json `"@stv/core": "github:nobu007/stv-core#v1.0.7"`・`grep -rl "from '@stv/core" src` = 317ファイル・import 先は20モジュールパス（interview-record A137 計数）・split commits a88c878f/5229846c/e2b81954/d6651084*
+- REQ-311: `@stv/core` 依存は GitHub タグに pin されなければならない（現行 `github:nobu007/stv-core#v1.0.7`）。ブランチ ref や範囲のような浮動指定を使用してはならない。コアモジュールの変更は stv-core リポジトリ側でのバージョンタグ発行 → 本リポジトリの pin 更新の順で行うこと 🔵 *package.json:86・PR #7 statusCheckRollup 13/14 SUCCESS + deploy SKIPPED（2026-08-18 マージ・gh pr view 7 実測）*
+- REQ-312: コア分割境界の回帰（プロダクトリポジトリへのコアモジュール再実装・正典の @stv/core import を逸脱したフォーク）は tests/guards 配下の cross-boundary guard テストが検出しなければならない。ガードは正典モジュールの import 元（`from '@stv/core/...'`）を structural pin する 🔵 *commit 5229846c（cross-boundary guard tests を tests/guards へ park）・tests/guards/clamp01-single-source.test.ts:35 が `from '@stv/core/utils/guards'` を pin する実例・tests/guards/ 配下72ガードテストファイル（2026-08-19 実測）*
+
+
 
 | フェーズ | ステータス | タスク範囲 | 完了率 |
 |---------|-----------|-----------|--------|
@@ -919,11 +927,16 @@
 | Phase 130: stale-closure/async-setState クラス GUARDED-STRUCTURAL | ✅完了 | REQ-297 | 1/1（既知修正ピン + 広範囲 async-handler-body sweep → async-state-stale-closure-guard.test.ts・handler-BODY 粒度・JSX 除外・${...} 保持・0 live bugs・4/4+tsc 0・構文契約が薄いバグクラスは構造ガードで「コード形を制約」する方針を確定・実装+テスト同一コミット co-locate） |
 | Phase 131+: パターン横展開（提案） | 🟡提案 | REQ-298~300 | 3/3（REQ-298 diagram-type-switch-parity を他 DiagramType 同値クラスへ展開・REQ-299 storageParser JSON.parse⇔JSON.stringify 非対称監査・REQ-300 async-setState positive-case fixture — AI Hub steering feedback A〜C。feedback D「timestamp guard」は REQ-301 codec option 占有のため別経路で段階実装、interview-record A129 参照） |
 | Phase 132: 3レジストリ命名一貫性・sanitizer 集約提案 | 🔵+🟡 | REQ-302~303 | 2/2（REQ-302 LOWER_IS_BETTER_METRICS 命名統一 ✅実装済・2 suites 54 tests green・REQ-303 prod Number.isFinite 55ファイルを sanitizeFinite に段階集約 🟡提案。AI Hub make-run feedback の実在性検証結果より実在確認できた提案のみ採用、PHANTOM feedback は interview-record A132 に記録） |
+| Phase 133: `??` 振る舞い pin | ✅完了 | TC-304-04 | 1/1（LLM リトライ maxRetries:0 の `??` 振る舞いを TC-304-04 で pin・commit 90666703・interview-record A133。※TC-304-04 は acceptance-criteria.md 側 REQ-304（LLM リトライ既定値）配下 — 本書の REQ-304（モバイルレスポンシブ）とは別物・番号帯の分裂は A137 残課題） |
+| Phase 134: Prometheus status_class・prefix 修正 | ✅完了 | REQ-205/206 TC追加 | 2/2（buildRequestTotal の 2xx/5xx 折り込み誤分類を statusClassCounts + statusCodeClass 単一定義で解消・?prefix= のサンプル行無視を renderMetric 構造的適用で解消・TC-205-04/TC-206-04/05 mutation-verified・interview-record A134） |
+| Phase 135: UUID_V4_RE single-source r12 | ✅完了 | REQ-306 | 1/1（API 層4サイトの凍結 regex を src/api/uuid-validation.ts 正典へ・registry entry round 12・tests/guards/uuid-validation-single-source.test.ts・interview-record A135） |
+| Phase 136: DIAGRAM_TYPE_TITLES single-source r13 | ✅完了 | REQ-308 | 1/1（video-generator と DiagramScene の日本語タイトル map drift（flowchart/general 不一致）を正典 map で解消・registry entry round 13・stale clamp pin 再pin・interview-record A136） |
+| Phase 137: コア分割後要件同期 | ✅完了 | REQ-310~312 | 3/3（stv-core 分割（PR #7）で @stv/core 移管後の要件出典同期・17 dead citation 解消・実装状況 stats 再実測・@stv/core 境界を REQ-310~312 として要件化・interview-record A137） |
 
 ## 信頼性レベル分布
 
-- 🔵 青信号: 303件 (97.4%)
-- 🟡 黄信号: 7件 (2.3%) — NFR-203, REQ-303, EDGE-103, REQ-298, REQ-299, REQ-300, REQ-303 [Phase 132 sanitizeFinite 集約提案]
+- 🔵 青信号: 306件 (97.8%)
+- 🟡 黄信号: 7件 (2.2%) — NFR-203, REQ-303, EDGE-103, REQ-298, REQ-299, REQ-300, REQ-303 [Phase 132 sanitizeFinite 集約提案]
 - 🔴 赤信号: 0件 (0%)
 
 **品質評価**: ✅ 高品質 - 全要件が既存の設計文書・実測値・実装に基づいている。Phase 115要件追加・REQ-001~273（テストスイート安定化: ESLint 0エラー・jest.mock ESM修正・validateAudioFile クラッシュ修正・CJKトークン化テスト・キリル文字混入修正） / Phase 116 追加・REQ-274~279（Record<UnionType,T>完全性強制・Prometheus export・SecurityMetrics TTL）/ Phase 117 追加・REQ-280~284（フレームワーク境界型安全性・Constant-desync 解消・recommendations overallScore wiring・HEALTH_CHECK single-source-of-truth・node-dimension default・async-resource-cleanup ESM）/ Phase 118 追加・REQ-285（品質モニタ assessContentRelevance の diagram-type ハードコード → isDiagramType 委譇・実装+テスト同一コミット co-locate）/ Phase 119 追加・REQ-286（動画レンダリング VideoGenerator.options.fps → ActualVideoRenderer 境界での fps 破棄修正・composition.fps/durationInFrames 反映・実装+テスト同一コミット co-locate）/ Phase 120 追加・REQ-287（解析器 gemini-analyzer の hasCycles producer-computes-but-DROPS 修正・非-cycle 型のみ循環ペナルティ・cycle 型免除・stale trap テスト修正 + cycle 型免除テスト・実装+テスト同一コミット co-locate）/ Phase 121 追加・REQ-288（レイアウト評価 LayoutEvaluator.detectAllOverlaps の overlap 既定バッファを nodeSeparation(50) → 0 実重なりに変更し OverlapResolver プロデューサ保証と一致・合法 gap 20-40px の偽重なり検出解消・実装+テスト同一コミット co-locate）/ Phase 122 追加・REQ-289（レイアウト評価 LayoutEvaluator.evaluateLayoutWithCustomInstructions の producer-computes-but-DROPS 修正・void → LayoutComplianceResult 返却・layout-engine が !passed を warn ログで表面化・実装+テスト同一コミット co-locate）/ Phase 123 追加・REQ-290（図解タイプ正典リスト DIAGRAM_TYPES を export + readonly DiagramType[] 型化・diagram-detector detect() のリテラル+as DiagramType[] キャスト → 正典委譲・新タイプ追加時の無言スキップ解消・正典パリティ ロックインテスト・実装+テスト同一コミット co-locate） / Phase 124 追加・REQ-291（ノード寸法デフォルト単一ソース化・11戦略 import 化＋4ファイル インライン fallback 委譲・node-dimension-default-coupling 構造ガード・実装+テスト同一コミット co-locate）/ Phase 125 追加・REQ-292（legacy 視覚化 flow/flowchart スイッチパリティ CLOSED・diagram-type-switch-parity-guard 構造ガード・実装+テスト同一コミット co-locate）/ Phase 126 追加・REQ-293（config-restore 有限性 LAST tail CLOSED・export.qualityPresets[].{w,h,fps,q} 配列内オブジェクト・実装+テスト同一コミット co-locate）/ Phase 127 追加・REQ-294（ExportJobQueue ETA オフバイワン・position+1-availableSlots・新規 queue/ETA ordering バグクラス記録・実装+テスト同一コミット co-locate）/ Phase 128 追加・REQ-295（config-restore 有限性 monitoring/export/memoryLimit SCALARS・実装+テスト同一コミット co-locate）/ Phase 129 追加・REQ-296（config-restore 有限性 performance SCALARS・これで safe-storage 全 scalar/array numeric chokepoint 完結・実装+テスト同一コミット co-locate）/ Phase 130 追加・REQ-297（stale-closure/async-setState クラス GUARDED-STRUCTURAL・async-state-stale-closure-guard 構造ガード・構文契約が薄いバグクラスは構造ガードで「コード形を制約」する方針確定・実装+テスト同一コミット co-locate）/ Phase 131+ 追加・REQ-298~300 提案（diagram-type-switch-parity 他同値クラス展開 / storageParser JSON.parse⇔JSON.stringify 非対称監査 / async-setState positive-case fixture — AI Hub steering feedback A〜C。feedback D「timestamp guard」は REQ-301 codec option 占有のため別経路で段階実装、interview-record A129 参照）
@@ -937,9 +950,9 @@
 - [x] AC-5: 非機能要件がパフォーマンス（NFR-001~004）・セキュリティ（101~103）・ユーザビリティ（201~203）・信頼性（301~304）・監視性（401~403）・コスト効率（501）の6属性をカバーしている
 - [x] AC-6: Edgeケースがエラー処理（EDGE-001~005）と境界値（101~103）の両方をカバーしている
 - [x] AC-7: EARS 分類に従い条件付き要件（REQ-101~104）・状態要件（201~203）・オプション要件（301~305）・制約要件（401~405）が文書化されている
-- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 132 を網羅し、Phase 115（テストスイート安定化・Lint完全修正・REQ-270~273）, Phase 116（Record<UnionType,T>完全性強制・Prometheus export・SecurityMetrics TTL・REQ-274~279）, Phase 117（フレームワーク境界型安全性・Constant-desync 解消・REQ-280~284）, Phase 118（品質モニタ diagram-type パリティ・REQ-285）, Phase 119（動画レンダリング fps 伝搬・REQ-286）, Phase 120（解析器循環検出 confidence 反映・REQ-287）, Phase 121（レイアウト評価 overlap 閾値のプロデューサ一致・REQ-288）, Phase 122（レイアウト評価コンプライアンス結果の伝搬・REQ-289）, Phase 123（図解タイプ正典リストの単一ソース委譲・REQ-290）, Phase 124（ノード寸法デフォルトの単一ソース化・REQ-291）, Phase 125（視覚化 flow/flowchart スイッチパリティ・REQ-292）, Phase 126（config-restore 有限性 LAST tail・REQ-293）, Phase 127（ExportJobQueue ETA オフバイワン・REQ-294）, Phase 128（config-restore 有限性 monitoring/export/memoryLimit SCALARS・REQ-295）, Phase 129（config-restore 有限性 performance SCALARS・REQ-296）, Phase 130（stale-closure/async-setState クラス GUARDED-STRUCTURAL・REQ-297）, Phase 131+（パターン横展開提案・REQ-298~300）, Phase 132（3レジストリ命名一貫性 + Number.isFinite 共通 sanitizer 集約提案・REQ-302~303）を反映
+- [x] AC-8: 実装進捗サマリーが Phase 1 ~ Phase 137 を網羅し、Phase 115（テストスイート安定化・Lint完全修正・REQ-270~273）, Phase 116（Record<UnionType,T>完全性強制・Prometheus export・SecurityMetrics TTL・REQ-274~279）, Phase 117（フレームワーク境界型安全性・Constant-desync 解消・REQ-280~284）, Phase 118（品質モニタ diagram-type パリティ・REQ-285）, Phase 119（動画レンダリング fps 伝搬・REQ-286）, Phase 120（解析器循環検出 confidence 反映・REQ-287）, Phase 121（レイアウト評価 overlap 閾値のプロデューサ一致・REQ-288）, Phase 122（レイアウト評価コンプライアンス結果の伝搬・REQ-289）, Phase 123（図解タイプ正典リストの単一ソース委譲・REQ-290）, Phase 124（ノード寸法デフォルトの単一ソース化・REQ-291）, Phase 125（視覚化 flow/flowchart スイッチパリティ・REQ-292）, Phase 126（config-restore 有限性 LAST tail・REQ-293）, Phase 127（ExportJobQueue ETA オフバイワン・REQ-294）, Phase 128（config-restore 有限性 monitoring/export/memoryLimit SCALARS・REQ-295）, Phase 129（config-restore 有限性 performance SCALARS・REQ-296）, Phase 130（stale-closure/async-setState クラス GUARDED-STRUCTURAL・REQ-297）, Phase 131+（パターン横展開提案・REQ-298~300）, Phase 132（3レジストリ命名一貫性 + Number.isFinite 共通 sanitizer 集約提案・REQ-302~303）, Phase 133~136（`??` pin TC-304-04・Prometheus status_class/prefix 修正・UUID_V4_RE r12・DIAGRAM_TYPE_TITLES r13 — 詳細は interview-record A133~A136）, Phase 137（コア分割境界要件化・REQ-310~312・出典パス同期）を反映
 - [x] AC-9: 全要件が SYSTEM_CONSTITUTION.md の許可カテゴリ（コアパイプライン・パイプライン支援・API/通信・フロントエンドUI・監視/運用）に収まり、禁止カテキュリティに違反していない
-- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（Phase 115要件追加・REQ-001~273 / Phase 116・REQ-274~279 / Phase 117・REQ-280~284 / Phase 118・REQ-285 / Phase 119・REQ-286 / Phase 120・REQ-287 / Phase 121・REQ-288 / Phase 122・REQ-289 / Phase 123・REQ-290 / Phase 124・REQ-291 / Phase 125・REQ-292 / Phase 126・REQ-293 / Phase 127・REQ-294 / Phase 128・REQ-295 / Phase 129・REQ-296 / Phase 130・REQ-297 / Phase 131+・REQ-298~300 / Phase 132・REQ-302~303 を追加・🔵303件/�7件/🔴0件）
+- [x] AC-10: 信頼性レベル分布（🔵/🟡/🔴の件数と割合）が文書化され、品質評価が付与されている（Phase 115要件追加・REQ-001~273 / Phase 116・REQ-274~279 / Phase 117・REQ-280~284 / Phase 118・REQ-285 / Phase 119・REQ-286 / Phase 120・REQ-287 / Phase 121・REQ-288 / Phase 122・REQ-289 / Phase 123・REQ-290 / Phase 124・REQ-291 / Phase 125・REQ-292 / Phase 126・REQ-293 / Phase 127・REQ-294 / Phase 128・REQ-295 / Phase 129・REQ-296 / Phase 130・REQ-297 / Phase 131+・REQ-298~300 / Phase 132・REQ-302~303 / Phase 137・REQ-310~312 を追加・🔵306件/🟡7件/🔴0件）
 
 
 <!-- spine:references:begin -->
