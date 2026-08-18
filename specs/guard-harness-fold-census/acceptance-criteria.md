@@ -42,27 +42,38 @@ jest 実行は `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=409
 
 #### 正常系
 
-- [ ] **TC-001-01**: harness 単体テスト — 各 mode の row が期待する it を生成する 🔵
+- [x] **TC-001-01**: harness 単体テスト — 各 mode の row が期待する it を生成する 🔵
   - **入力**: 最小 oracle row 2 件（object-is / delta）+ anchor row 2 件（allow / ban）
   - **期待結果**: 生成 it が全 GREEN・test 名に row id が含まれる
+  - **実測**: 2026-08-18 — `single-source-harness.test.ts` 22 test GREEN。
+    fixture describe が oracle 2 種 + anchor 2 種 + fingerprint it を生成、
+    test 名は `<row id> [oracle-object-is|oracle-delta|anchor-occurs|…]`
   - **信頼性**: 🔵 *既存 3 層構造からの直接写像*
-- [ ] **TC-001-02**: readSource が `import.meta.url` 起点で動作する 🔵
+- [x] **TC-001-02**: readSource が `import.meta.url` 起点で動作する 🔵
   - **入力**: worker cwd が移動する既知条件（whisper-node chdir）
   - **期待結果**: census/anchor の読み取りが影響を受けない（NFR-101）
+  - **実測**: 2026-08-18 — harness 自己テストの chdir it（`process.chdir(tmpdir())` 下で
+    anchor read GREEN）+ `source-anchor-cwd-discipline` 2 test GREEN
   - **信頼性**: 🔵 *source-anchor-cwd-discipline.test.ts の既存規律*
 
 #### 異常系
 
-- [ ] **TC-001-E01**: 不正 row の fail-loud 🔵
+- [x] **TC-001-E01**: 不正 row の fail-loud 🔵
   - **入力**: 出現回数 -1・delta mode で ε 未指定
   - **期待結果**: 実行時に明示的 validation error（silent skip しない）
+  - **実測**: 2026-08-18 — 不正 row 8 種（空 id・空 corpus・ε 未指定/0/負/NaN/Infinity・
+    exactly -1・atLeast 0・`\n` pattern・stateful flag・未知 scope・空 file・
+    重複 id・空 rows・生 row 再検証）が宣言時に row id 入り error で throw
   - **信頼性**: 🔵 *fail-loud defaults の既存原則*
 
 #### 境界値
 
-- [ ] **TC-001-B01**: delta bound の vacuum 検出 🔵
+- [x] **TC-001-B01**: delta bound の vacuum 検出 🔵
   - **入力**: corpus 上一度も delta が発生しない delta row（witness なし）
   - **期待結果**: RED（witness あり row は deltas > 0 を要求して通る）
+  - **実測**: 2026-08-18 — vacuum row が toThrow で GREEN 検証。さらに witness 除去
+    変異（harness 本体から `expect(deltas).toBeGreaterThan(0)` 削除）で
+    当該 it が RED（1 failed / 21 passed）= witness が常在であることを変異で確認
   - **信頼性**: 🔵 *grid-packing `expect(deltas).toBeGreaterThan(0)` の実績*
 
 ---
@@ -90,23 +101,41 @@ jest 実行は `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=409
 
 #### 正常系
 
-- [ ] **TC-004-01**: fingerprint 一致 🔵
+- [x] **TC-004-01**: fingerprint 一致 🔵
   - **入力**: 移行前後の test 列挙
   - **期待結果**: assertion 欠落 0
+  - **実測**: 2026-08-18 — 移行前 (9892df5a) からの独立再導出で assertion 欠落 0。
+    grid: L1 = 28 / 2132 / 220（+1 compose は L2 へ移動） / 850000×2 /
+    (846001+240・4001 = 移行前の「不一致時のみ assert」の全件化 = 厳密上位)・
+    L3 = 45 = 45（1:1）・L2 = 23+1。dne: L1 = 996 = 996（249×4）・
+    maxima ≤240→240（空 group 高さ軸の厳密上位）・400 = 400・L3 = 54 = 54・
+    L2 = 13 = 13。差分 4 件はすべて ledger D6 記載の理由付き
   - **信頼性**: 🔵 *round 35 before/after fingerprint の再利用*
 
 #### 異常系
 
-- [ ] **TC-004-E01**: mutation RED（最低 5 種） 🔵
+- [x] **TC-004-E01**: mutation RED（最低 5 種） 🔵
   - **入力**: ban 削除 / 回数 ±1 / oracle ε 緩和 / corpus 縮小 / witness 除去
   - **期待結果**: 各変異で対応生成 test が RED
+  - **実測**: 2026-08-18 — 6 変異すべて RED 検証（各変異後復元）:
+    ①ban 行削除 → 生成 fingerprint it RED（1/60） ②exactly 1→2 → 生成 anchor it RED
+    （1/68） ③ε 1e-12→1e-3 → 変異前状態では 65 test 全 GREEN の false-pass を実証 →
+    ledger に F04（maxDelta literal pin）を追加し RED 成立（1/5） ④corpus 22→21 →
+    生成 fingerprint it RED（1/61） ⑤witness 除去 → harness 自己テスト RED（1/22）
+    ⑥src 3 件目出現（本番側 +1） → 生成 anchor it RED（1/68）
   - **信頼性**: 🔵 *round 43〜50 の mutation-RED 規律（5 種以上が慣行）*
 
 #### 境界値
 
-- [ ] **TC-004-B01**: 実行時間 ±20% 以内（REQ-403） 🔵
+- [x] **TC-004-B01**: 実行時間 ±20% 以内（REQ-403） 🔵
   - **入力**: `--testPathPatterns 'default-node-extent|grid-packing'` の移行前後所要時間
   - **期待結果**: 合計時間が移行前の ±20% 以内
+  - **実測**: 2026-08-18 — r51 記録の「131.2s→59-63s」は cold-cache artifact
+    （暖機後の移行前 baseline は 55〜69s）。暖機状態の移行直後は 85〜87s =
+    **+32〜55% 違反**（delta 行の恒真 expect ≈850k no-op が原因）。恒真 expect を
+    除去（移行前の「不一致時のみ assert + witness」へ復帰・enumeration pin は不変）
+    した後、交互 3 ペア CPU 時間で **−7.9% / +8.9% / −14.4%（平均 −4.4%）** =
+    ±20% 以内。全 129 test GREEN
   - **信頼性**: 🔵 *registry sweep 2.0s・CI test job 16m44s からの予算設定*
 
 ---
@@ -135,27 +164,41 @@ jest 実行は `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=409
 
 #### 正常系
 
-- [ ] **TC-005-01**: ベースライン pin GREEN 🔵
+- [x] **TC-005-01**: ベースライン pin GREEN 🔵
   - **入力**: census guard 実行
   - **期待結果**: C1〜C5 の pin 数値が現況と一致（C1 = 20+12 match 等）
+  - **実測**: 2026-08-18 — `fold-census-guard` 9 test GREEN。
+    C1 = 30/17・C2 = 16/8・C3 = 4/1・C4 = 1/1・C5 = 3/3 が engine 実測 ==
+    data pin == requirements.md marker の 3 者一致・走査 331 file
   - **信頼性**: 🔵 *2026-08-18 実測値*
-- [ ] **TC-005-02**: コード行フィルタの安定性 🔵
+- [x] **TC-005-02**: コード行フィルタの安定性 🔵
   - **入力**: コメントに ban 形状を含む行（例: ezo clamp01 コメント）
   - **期待結果**: コメント行は計測対象外（EDGE-002）
+  - **実測**: 2026-08-18 — 独立 script（engine と同一走査規律）で C1 は全行
+    33 match 中 3 件がコメント専用行（ezo の `clamp01` コメント・layout-utils の
+    doc コメントを含む）= code-line 30 が pin と一致。C3 = 4・C4 = 1・C5 = 3 も
+    code-line 数 == pin。harness の scope 'code'/'source' 分離 it も GREEN
   - **信頼性**: 🔵 *codeLines() の既存実績*
 
 #### 異常系
 
-- [ ] **TC-005-E01**: ratchet 🔵
+- [x] **TC-005-E01**: ratchet 🔵
   - **入力**: C1 に新たな inline clamp を 1 site 追加した状態
   - **期待結果**: census guard RED
+  - **実測**: 2026-08-18 — 非除外 file（production-config.ts）へ C1 形状 1 site 追加で
+    ratchet it + doc-pin it の 2 件 RED（2 failed / 7 passed）。負対照: 除外 file
+    （正典 guards.ts）への追加は GREEN = 除外設計が正しく機能
   - **信頼性**: 🔵 *pin+ratchet の既存手法（frozen-literal registry と同型）*
 
 #### 境界値
 
-- [ ] **TC-005-B01**: 0 site 化 🔵
+- [x] **TC-005-B01**: 0 site 化 🔵
   - **入力**: 家族の site 数が 0 になった状態
   - **期待結果**: pin 更新要求（0 へ）・family 行は残置
+  - **実測**: 2026-08-18 — C4 で 3 ステップ検証: ①pin のみ 0/0（実測 1/1）→
+    ratchet it + doc-pin it RED = pin 更新要求 ②真 0（pattern 不一致化 + pin 0 +
+    marker 0）→ 9 test GREEN・C4 行は残置（「0（収束）」状態で family id 列挙 pin
+    も GREEN）③C4 行を削除 → enumeration pin + doc-pin が RED = 無声削除防止
   - **信頼性**: 🔵 *EDGE-102 設計*
 
 ---
@@ -220,16 +263,21 @@ jest 実行は `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=409
 
 **信頼性**: 🟡 *registry 2.0s 実測からの新設予算*
 
-- [ ] **TC-NFR-001-01**: harness + census guard の合計 10 秒以内
-  - **測定項目**: `--testPathPatterns 'frozen-literal-registry|guard-harness|fold-census'` 所要時間
+- [x] **TC-NFR-001-01**: harness + census guard の合計 10 秒以内
+  - **測定項目**: `--testPathPatterns 'frozen-literal-registry|single-source-harness|harness-fingerprint|fold-census'` 所要時間
+    （旧記載の `guard-harness` 腕はいずれの file にもマッチせず 2 file しか選択しない
+    実測のため、harness 自己テスト + 台帳を実際に含む pattern へ修正）
   - **目標値**: ≤ 10 秒
   - **測定条件**: node 24・CI test job と同一コマンド
+  - **実測**: 2026-08-18 — 4 suite / 84 test GREEN・jest 2.884s・wall 4.11s ≤ 10s
 
 ### NFR-101: セキュリティ（走査規律） 🔵
 
-- [ ] **TC-NFR-101-01**: cwd 非依存
+- [x] **TC-NFR-101-01**: cwd 非依存
   - **検証内容**: worker cwd 移動下で census/anchor readSource が正しいファイルを読む
   - **期待結果**: 全 read が `import.meta.url` 起点（既知 FLAKE 回帰 0）
+  - **実測**: 2026-08-18 — `single-source-harness` の chdir it GREEN
+    （tmpdir 移動下で anchor 計測不変）+ `source-anchor-cwd-discipline` 2 test GREEN
 
 ---
 
@@ -237,15 +285,18 @@ jest 実行は `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=409
 
 ### EDGE-001 / EDGE-101: harness 入力の境界 🟡
 
-- [ ] **TC-EDGE-001-01**: fail-loud row 検証（TC-001-E01 と同梱）
+- [x] **TC-EDGE-001-01**: fail-loud row 検証（TC-001-E01 と同梱）
   - **条件**: 不正 row 値
   - **期待結果**: 明示 error（silent skip なし）
+  - **実測**: 2026-08-18 — TC-001-E01 と同一の変異検証（宣言時 throw・自己テスト GREEN）
 
 ### EDGE-102: census 0 site 化 🟡
 
-- [ ] **TC-EDGE-102-01**: family 行の無声削除防止
+- [x] **TC-EDGE-102-01**: family 行の無声削除防止
   - **条件**: census で 0 になった家族
   - **期待結果**: 「0（収束）」として行が残る
+  - **実測**: 2026-08-18 — TC-005-B01 ②③と同一の変異検証（真 0 で行残置 GREEN・
+    行削除で enumeration pin RED）
 
 ---
 

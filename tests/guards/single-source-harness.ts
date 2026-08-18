@@ -33,9 +33,10 @@
  *     `delta` (|canonical − retired| ≤ maxDelta, with a MANDATORY witness:
  *     a delta row whose corpus never diverges is RED — a vacuous bound
  *     would hide the behavior change the round shipped, EDGE-101);
- *   - every corpus case consumes exactly one expectation so the count is
- *     analytically computable (countExpectations, D6) and a shrunk corpus
- *     flips the fingerprint pin;
+ *   - every corpus case is one ENUMERATION unit, so the count is analytically
+ *     computable (countExpectations, D6) and a shrunk corpus flips the
+ *     fingerprint pin — object-is rows also assert once per case, delta
+ *     rows assert only the divergences + the witness (see runOracleRow);
  *   - anchor counting is LINE-based (REQ-402: one match per line; a
  *     pattern containing `\n` is rejected at declaration), and `src.match(/…/g)`
  *     counts from the retired tests map onto `scope: 'source'` (whole file)
@@ -224,11 +225,17 @@ export function fingerprintKind(row: AnySingleSourceRow): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Layer 1 runner. Per corpus case exactly ONE expectation:
- * Object.is-identical cases assert the identity (trivially green, but it
- * keeps the count analytic); diverging cases assert the delta bound. Delta
- * rows then require `deltas > 0` — the witness that proves the bound is
- * exercised and not vacuous (EDGE-101).
+ * Layer 1 runner. Object-is rows assert the identity once per corpus case
+ * (every case is load-bearing — a divergence REDs the row). Delta rows
+ * assert ONLY the divergences (|canonical − retired| ≤ maxDelta) plus the
+ * mandatory `deltas > 0` witness that proves the bound is exercised and not
+ * vacuous (EDGE-101) — the retired tests' assert-on-mismatch semantics.
+ * A tautological `expect(Object.is(…)).toBe(true)` on the MATCHING branch
+ * (round 51's first cut, kept for a uniform per-case count) cost ~850k
+ * no-op expectations on grid-packing's stamp corpora and broke REQ-403
+ * (+35% over the retired suite — measured 2026-08-18, 3 alternating pairs);
+ * countExpectations keeps counting corpus+1 as the ENUMERATION unit (the
+ * fingerprint pin), independent of how many cases physically diverge.
  */
 export function runOracleRow(row: OracleRow): void {
   validateOracleRow(row);
@@ -243,9 +250,7 @@ export function runOracleRow(row: OracleRow): void {
   for (const args of row.corpus) {
     const got = row.canonical(...args);
     const legacy = row.retired(...args);
-    if (Object.is(got, legacy)) {
-      expect(Object.is(got, legacy)).toBe(true);
-    } else {
+    if (!Object.is(got, legacy)) {
       deltas++;
       expect(Math.abs(got - legacy)).toBeLessThanOrEqual(maxDelta);
     }

@@ -33,10 +33,14 @@
  *     retired it.each(249) × 4-expect fold became 4 rows; the retired
  *     maxima it skipped the height axis on EMPTY groups (both policies
  *     agree at -Infinity, now asserted on both axes for all 120 groups).
- *   - Timing (REQ-403): baseline 131.2s → migrated 59-63s. The ±20%
- *     window is overshot in the FASTER direction (the it.each dispatch of
- *     249 named cases per family is gone); the requirement's intent — no
- *     per-expectation overhead regression — holds.
+ *   - Timing (REQ-403): the round-51 note "baseline 131.2s → migrated
+ *     59-63s" was a COLD-CACHE artifact (the warm pre-migration baseline is
+ *     55-69s). Warm, round 51's first cut ran +32-55% OVER baseline (85-87s
+ *     — the delta rows' tautological matching-case expect, ~850k no-ops);
+ *     removing it (assert divergences only + the witness, i.e. the retired
+ *     semantics; enumeration pins unchanged) re-measured over 3 alternating
+ *     CPU-time pairs at -7.9% / +8.9% / -14.4% — inside the ±20% window
+ *     (2026-08-18, TC-004-B01).
  *
  * STATIC-PIN LESSON (from the M3 corpus-shrink mutation, RED-verified):
  * interpolating `CORPUS.length` into a fingerprint literal makes the pin
@@ -68,6 +72,22 @@ function extractPinLines(file: string): string[] {
     .flatMap((line) => {
       const m = PIN_LINE.exec(line);
       return m ? [m[1]] : [];
+    });
+}
+
+/**
+ * Extract `rowId:maxDelta-literal` pairs — one per delta-mode oracle row —
+ * by chunking the source at each `oracleRow(` (everything from one call to
+ * the next is that row's declaration, so the id and its maxDelta pair up).
+ */
+function extractDeltaBounds(file: string): string[] {
+  return readSource(file)
+    .split(/\boracleRow\(/)
+    .slice(1)
+    .flatMap((chunk) => {
+      const id = /id:\s*'([^']+)'/.exec(chunk)?.[1];
+      const delta = /maxDelta:\s*([^\s,}]+)/.exec(chunk)?.[1];
+      return id !== undefined && delta !== undefined ? [`${id}:${delta}`] : [];
     });
 }
 
@@ -226,5 +246,21 @@ describe('harness fingerprint ledger (TC-004-F)', () => {
       const block = src.slice(start, end);
       expect(block.includes('${')).toBe(false);
     }
+  });
+
+  it('F04: every delta bound (maxDelta) is pinned — relaxing ε flips this (TC-004-E01 ε mutation)', () => {
+    // The generated delta its only prove |canonical − retired| ≤ ε; ε itself
+    // is data, so relaxing it stays execution-GREEN (verified 2026-08-18:
+    // 1e-12 → 1e-3 passed all 65 grid+ledger tests before this pin existed).
+    // The ledger therefore pins each row's maxDelta LITERAL, extracted from
+    // the family test source next to its row id — the same two-party
+    // ratchet as F01 (relax in the row → RED here until this copy moves).
+    expect(extractDeltaBounds(FAMILY_TESTS['grid-packing'])).toEqual([
+      'stamp-a-canvas-delta:1e-12',
+      'stamp-a-fuzz-delta:1e-9',
+    ]);
+    // default-node-extent has no delta rows — the empty pin is load-bearing:
+    // adding one without registering it here is RED.
+    expect(extractDeltaBounds(FAMILY_TESTS['default-node-extent'])).toEqual([]);
   });
 });
