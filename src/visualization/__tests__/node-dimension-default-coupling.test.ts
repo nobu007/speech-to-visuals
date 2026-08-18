@@ -21,7 +21,7 @@ import {
   DEFAULT_NODE_WIDTH,
   DEFAULT_NODE_HEIGHT,
 } from '../node-dimensions';
-import type { PositionedNode } from '@/types/diagram';
+import type { PositionedNode } from '@stv/core/types/diagram';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 

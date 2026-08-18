@@ -18,7 +18,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { safeMean } from '@/lib/metrics-utils';
+import { safeMean } from '@stv/core/lib/metrics-utils';
 import { createLayoutRng } from '@/visualization/layout-rng';
 
 const segmenterSource = readFileSync(

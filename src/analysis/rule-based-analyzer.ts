@@ -6,8 +6,8 @@
  * Guarantees 100% success rate - never throws, always returns a result.
  */
 
-import type { NodeDatum, EdgeDatum, DiagramType } from '@/types/diagram';
-import { logger } from '@/utils/logger';
+import type { NodeDatum, EdgeDatum, DiagramType } from '@stv/core/types/diagram';
+import { logger } from '@stv/core/utils/logger';
 import { SENTENCE_BOUNDARY_REGEX } from './sentence-boundaries';
 
 /**

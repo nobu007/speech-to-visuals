@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getQualityColorClass } from '@/lib/quality-display-tiers';
+import { getQualityColorClass } from '@stv/core/lib/quality-display-tiers';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -38,7 +38,7 @@ import {
   Pause,
   FastForward
 } from 'lucide-react';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import { parseUntrustedJson } from '@/analysis/llm-utils';
 import { QualityRecommendation } from '@/framework/auto-improvement-engine';
 import { DEVELOPMENT_CYCLES } from '@/framework/iteration-manager';

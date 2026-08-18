@@ -1,6 +1,6 @@
 import { TimelineStrategy } from '@/visualization/strategies/timeline-strategy';
 import { LayoutStrategy, StrategyLayoutResult } from '@/visualization/types';
-import { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, PositionedNode } from '@stv/core/types/diagram';
 
 function makeNodes(count: number): NodeDatum[] {
   return Array.from({ length: count }, (_, i) => ({

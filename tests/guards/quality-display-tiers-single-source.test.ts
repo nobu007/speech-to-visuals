@@ -36,7 +36,7 @@ import {
   getQualityColorClass,
   getQualityBadgeVariant,
   getQualityTierLabel,
-} from '@/lib/quality-display-tiers';
+} from '@stv/core/lib/quality-display-tiers';
 
 // ---------------------------------------------------------------------------
 // Legacy oracles — the EXACT pre-round-27 consumer literals, kept verbatim.
@@ -115,14 +115,14 @@ describe('quality display tiers: behavioral equivalence vs legacy consumers', ()
 describe('quality display tiers: consumer source anchors (round 27)', () => {
   it('FrameworkDashboard delegates to the canonical module and drops the local twin', () => {
     const src = readSource('src/components/FrameworkDashboard.tsx');
-    expect(src).toContain("from '@/lib/quality-display-tiers'");
+    expect(src).toContain("from '@stv/core/lib/quality-display-tiers'");
     expect(src).toContain('getQualityColorClass');
     expect(src).not.toMatch(/const getQualityColor\b/);
   });
 
   it('PerformanceMetricsVisualization delegates all three display shapes', () => {
     const src = readSource('src/components/PerformanceMetricsVisualization.tsx');
-    expect(src).toContain("from '@/lib/quality-display-tiers'");
+    expect(src).toContain("from '@stv/core/lib/quality-display-tiers'");
     expect(src).toContain('getQualityColorClass');
     expect(src).toContain('getQualityBadgeVariant');
     expect(src).toContain('getQualityTierLabel');

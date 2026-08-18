@@ -1,5 +1,5 @@
 import { ZeroOverlapLayoutEngine, EnhancedZeroOverlapLayoutEngine } from '@/visualization/enhanced-zero-overlap-layout';
-import { NodeDatum, EdgeDatum, DiagramType, PositionedNode } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, DiagramType, PositionedNode } from '@stv/core/types/diagram';
 import dagre from '@dagrejs/dagre';
 
 function makeNodes(count: number): NodeDatum[] {
@@ -38,11 +38,11 @@ type EnginePrivateMethods = {
   calculateTreeHeight: (tree: unknown) => number;
   calculateTreeWidth: (tree: unknown) => number;
   positionTreeNodes: (tree: unknown, width: number, height: number) => PositionedNode[];
-  generateTreeEdges: (edges: EdgeDatum[], nodes: PositionedNode[]) => import('@/types/diagram').LayoutEdge[];
+  generateTreeEdges: (edges: EdgeDatum[], nodes: PositionedNode[]) => import('@stv/core/types/diagram').LayoutEdge[];
   getDefaultMetrics: () => import('@/visualization/enhanced-zero-overlap-layout').LayoutQualityMetrics;
   calculateOverlapArea: (overlaps: { node1: PositionedNode; node2: PositionedNode }[]) => number;
-  calculateEdgeCrossings: (edges: import('@/types/diagram').LayoutEdge[]) => number;
-  calculateTotalEdgeLength: (edges: import('@/types/diagram').LayoutEdge[]) => number;
+  calculateEdgeCrossings: (edges: import('@stv/core/types/diagram').LayoutEdge[]) => number;
+  calculateTotalEdgeLength: (edges: import('@stv/core/types/diagram').LayoutEdge[]) => number;
   calculateCanvasUtilization: (nodes: PositionedNode[]) => number;
   calculateSymmetryScore: (nodes: PositionedNode[]) => number;
 };

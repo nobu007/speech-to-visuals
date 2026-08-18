@@ -1,4 +1,4 @@
-import { PositionedNode, LayoutEdge, DiagramLayout } from '@/types/diagram';
+import { PositionedNode, LayoutEdge, DiagramLayout } from '@stv/core/types/diagram';
 import { BaseLayoutStrategy } from './LayoutStrategy';
 import { LayoutConfig } from '../../types';
 import { getNodeWidth, getNodeHeight } from '../../node-dimensions';

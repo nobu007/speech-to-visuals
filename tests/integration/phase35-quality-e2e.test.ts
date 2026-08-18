@@ -22,7 +22,7 @@ import { detectEdgeCrossings, minimizeEdgeCrossings } from '@/visualization/edge
 import { sizeAllLabels, sizeLabel } from '@/visualization/smart-label-sizer';
 import { runAutoOptimization } from '@/visualization/layout-auto-optimizer';
 import { QualityMonitor, qualityMonitor } from '@/quality/quality-monitor';
-import { PositionedNode, LayoutEdge } from '@/types/diagram';
+import { PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 
 // ---------------------------------------------------------------------------
 // Test Fixtures

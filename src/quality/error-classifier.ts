@@ -5,7 +5,7 @@
  * recoverability, stage context, and suggested actions.
  */
 
-import { CappedArray } from '@/lib/capped-array';
+import { CappedArray } from '@stv/core/lib/capped-array';
 
 // Forward declaration — avoid circular import by using dynamic check
 type PipelineErrorLike = { errorType: ErrorType; stage: string };

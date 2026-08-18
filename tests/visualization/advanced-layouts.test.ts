@@ -1,5 +1,5 @@
 import { AdvancedLayoutEngine, type AdvancedLayoutOptions, type VisualTheme } from '@/visualization/advanced-layouts';
-import type { NodeDatum, EdgeDatum } from '@/types/diagram';
+import type { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 
 // ---------------------------------------------------------------------------
 // Helpers

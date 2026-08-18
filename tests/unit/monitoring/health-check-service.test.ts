@@ -106,7 +106,7 @@ const getMemoryUsage = mockGetMemoryUsage;
 // realTimeMonitor/globalCache below still work — they are exported OBJECTS, so
 // their method properties are mutable). Mock the whole module instead, BEFORE
 // importing the SUT. See [[jest-esm-mock-pattern]].
-jest.unstable_mockModule('@/utils/memory-usage', () => ({
+jest.unstable_mockModule('@stv/core/utils/memory-usage', () => ({
   __esModule: true,
   getMemoryUsage: mockGetMemoryUsage,
 }));

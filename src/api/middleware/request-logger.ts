@@ -11,7 +11,7 @@
  */
 
 import { type Request, type Response, type NextFunction } from 'express';
-import { logger } from '../../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 const HEADER_NAME = 'x-request-id';
 

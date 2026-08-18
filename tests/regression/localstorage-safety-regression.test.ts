@@ -18,6 +18,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import { resolveSource } from '@tests/guards/freeze-guard';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
@@ -98,7 +99,7 @@ describe('Regression: localStorage safety — all access must use safe wrappers'
         .join('\n');
       console.error(
         `Found ${violations.length} unsafe localStorage reads (JSON.parse(localStorage.getItem(...))) in production code.\n` +
-        `Use safeLoadFromStorage() from '@/utils/safe-storage' instead.\n${formatted}`,
+        `Use safeLoadFromStorage() from '@stv/core/utils/safe-storage' instead.\n${formatted}`,
       );
     }
 
@@ -192,7 +193,7 @@ describe('Regression: localStorage safety — all access must use safe wrappers'
         .join('\n');
       console.error(
         `Found ${violations.length} raw localStorage.setItem calls in production code.\n` +
-        `Use safeSaveToStorage() from '@/utils/safe-storage' instead.\n${formatted}`,
+        `Use safeSaveToStorage() from '@stv/core/utils/safe-storage' instead.\n${formatted}`,
       );
     }
 
@@ -228,7 +229,7 @@ describe('Regression: localStorage safety — all access must use safe wrappers'
 
   test('safe-storage.ts exports both safeLoadFromStorage and safeSaveToStorage', () => {
     const projectRoot = path.resolve(__dirname, '../../');
-    const safeStoragePath = path.join(projectRoot, 'src', 'utils', 'safe-storage.ts');
+    const safeStoragePath = resolveSource('src/utils/safe-storage.ts');
     const content = fs.readFileSync(safeStoragePath, 'utf-8');
 
     expect(content).toContain('export function safeLoadFromStorage');

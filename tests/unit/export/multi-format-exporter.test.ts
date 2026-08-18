@@ -14,7 +14,7 @@
 import { jest } from '@jest/globals';
 import { MultiFormatExporter } from '@/export/multi-format-exporter';
 import type { ExportOptions, ExportFormat, ExportResult as MFExportResult } from '@/export/multi-format-exporter';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 // ---------------------------------------------------------------------------
 // Helpers

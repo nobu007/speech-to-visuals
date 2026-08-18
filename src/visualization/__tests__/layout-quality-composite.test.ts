@@ -9,7 +9,7 @@ import {
   scoreLayout,
   LayoutQualityCompositeScorer,
 } from '../layout-quality-composite';
-import { PositionedNode, LayoutEdge } from '@/types/diagram';
+import { PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 
 // ---------------------------------------------------------------------------
 // Helpers

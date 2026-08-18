@@ -12,13 +12,13 @@
  * - Section 9.2: Continuous Improvement - UX enhancements
  */
 
-import type { SceneGraph } from '@/types/diagram';
-import { safeArray } from '../lib/safe-array';
+import type { SceneGraph } from '@stv/core/types/diagram';
+import { safeArray } from '@stv/core/lib/safe-array';
 import { ExportError, FormatValidationError } from '@/pipeline/pipeline-errors';
-import { roundTo } from '@/lib/metrics-utils';
-import type { NodeDatum, EdgeDatum } from '@/types/diagram';
-import { logger } from '../utils/logger';
-import { sanitizeFilename } from '../utils/sanitize';
+import { roundTo } from '@stv/core/lib/metrics-utils';
+import type { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
+import { logger } from '@stv/core/utils/logger';
+import { sanitizeFilename } from '@stv/core/utils/sanitize';
 import { validateSceneGraphForExport, isStrictValidationEnabled, evaluateExportBlock } from './export-content-validator';
 import { escapeXml } from './xml-escape';
 import { securityMetricsCollector } from './security-metrics-collector';

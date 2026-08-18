@@ -19,7 +19,7 @@ import {
   SYSTEM_CONSTITUTION_LIMITS,
   type CodeSizeMetrics,
   type CodeSizeLimits,
-} from '@/config/code-size-audit';
+} from '@stv/core/config/code-size-audit';
 
 // ---------------------------------------------------------------------------
 // evaluateAudit — pure function tests
@@ -340,6 +340,55 @@ describe('collectMetrics', () => {
   it('sets dependencyCount to 0 (filled by runAudit)', () => {
     const metrics = collectMetrics(tmpDir);
     expect(metrics.dependencyCount).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// V2.8 contract — implementation-only accounting (teeth: CI-fatal breach)
+// ---------------------------------------------------------------------------
+
+describe('V2.8 implementation-only accounting', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'audit-v28-'));
+    fs.mkdirSync(path.join(tmpDir, 'src', '__tests__'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'src', 'a.ts'), 'l1\nl2\nl3');
+    fs.writeFileSync(path.join(tmpDir, 'src', 'b.test.ts'), 'x\n');
+    fs.writeFileSync(path.join(tmpDir, 'src', '__tests__', 'c.ts'), 'x\n');
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('implOnly counts implementation files only (tests cannot eat the budget)', () => {
+    const metrics = collectMetrics(tmpDir, { implOnly: true });
+    expect(metrics.fileCount).toBe(1);
+    expect(metrics.lineCount).toBe(3);
+  });
+
+  it('runAudit applies caller-supplied V2.8 limits to impl-only metrics', () => {
+    fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({}));
+    // Ceiling set BELOW the impl baseline (1 file): must be non-compliant —
+    // this is the mechanism that makes the V2.8 audit CI-fatal.
+    const result = runAudit(tmpDir, path.join(tmpDir, 'package.json'), { maxFiles: 0 }, { implOnly: true });
+    expect(result.isCompliant).toBe(false);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([expect.stringContaining('File count 1 exceeds limit of 0')]),
+    );
+  });
+
+  it('a test-only addition never flips compliance under implOnly accounting', () => {
+    fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({}));
+    fs.writeFileSync(path.join(tmpDir, 'src', 'more.test.ts'), 'x\n'.repeat(10_000));
+    const result = runAudit(
+      tmpDir,
+      path.join(tmpDir, 'package.json'),
+      { maxFiles: 2, maxLines: 10 },
+      { implOnly: true },
+    );
+    expect(result.isCompliant).toBe(true);
   });
 });
 

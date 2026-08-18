@@ -8,8 +8,8 @@
  * - Composite balance score (0.0 ~ 1.0)
  */
 
-import { PositionedNode } from '@/types/diagram';
-import { sanitizeFinite } from '@/utils/guards';
+import { PositionedNode } from '@stv/core/types/diagram';
+import { sanitizeFinite } from '@stv/core/utils/guards';
 import { distance, calculateNodeCenter } from './layout-utils';
 
 export interface VisualBalanceResult {

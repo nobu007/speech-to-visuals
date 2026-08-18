@@ -7,7 +7,7 @@
 // ESM: jest.mock is a no-op — must use unstable_mockModule and obtain the
 // mocked logger via dynamic import so the production modules under test share
 // the same mocked instance. See [[jest-esm-mock-pattern]].
-jest.unstable_mockModule('@/utils/logger', () => ({
+jest.unstable_mockModule('@stv/core/utils/logger', () => ({
   logger: {
     warn: jest.fn(),
     error: jest.fn(),
@@ -18,7 +18,7 @@ jest.unstable_mockModule('@/utils/logger', () => ({
   LogLevel: { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3, SILENT: 4 },
 }));
 
-const { logger } = await import('@/utils/logger');
+const { logger } = await import('@stv/core/utils/logger');
 
 describe('Silent catch blocks now log errors', () => {
   beforeEach(() => {
@@ -77,7 +77,7 @@ describe('Silent catch blocks now log errors', () => {
   // -----------------------------------------------------------------------
   describe('code-size-audit collectMetrics', () => {
     it('logs warning when directory read fails', async () => {
-      const { collectMetrics } = await import('@/config/code-size-audit');
+      const { collectMetrics } = await import('@stv/core/config/code-size-audit');
 
       // Use a non-existent directory to trigger the catch block
       const metrics = collectMetrics('/nonexistent/path/that/does/not/exist', {
@@ -99,7 +99,7 @@ describe('Silent catch blocks now log errors', () => {
   // -----------------------------------------------------------------------
   describe('ProductionConfigManager getSystemInfo', () => {
     it('logs warning when system info gathering fails', async () => {
-      const mod = await import('@/config/production-config');
+      const mod = await import('@stv/core/config/production-config');
 
       // Access the ProductionConfigManager class
       const { ProductionConfigManager } = mod as any;

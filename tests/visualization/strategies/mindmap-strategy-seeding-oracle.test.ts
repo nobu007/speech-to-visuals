@@ -15,7 +15,7 @@
 import { MindMapStrategy } from '@/visualization/strategies/mindmap-strategy';
 import { createLayoutRng } from '@/visualization/layout-rng';
 import { nodesOverlap } from '@/visualization/layout-utils';
-import { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, PositionedNode } from '@stv/core/types/diagram';
 
 /**
  * Root + 3 branch children, optionally + 3 orphans (not edge-connected → the

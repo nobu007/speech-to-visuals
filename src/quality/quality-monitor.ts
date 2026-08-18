@@ -1,9 +1,9 @@
 import { PipelineResult, PipelineStage } from '@/pipeline/types';
-import { SceneGraph, PositionedNode, isDiagramType } from '@/types/diagram';
-import { clamp01 } from '@/utils/guards';
-import { logger } from '../utils/logger';
+import { SceneGraph, PositionedNode, isDiagramType } from '@stv/core/types/diagram';
+import { clamp01 } from '@stv/core/utils/guards';
+import { logger } from '@stv/core/utils/logger';
 import { hasOverlapPairs } from '@/visualization/layout-utils';
-import { safeArray } from '../lib/safe-array';
+import { safeArray } from '@stv/core/lib/safe-array';
 
 /**
  * FIFO cap for `iterationHistory`. This module-level singleton (the

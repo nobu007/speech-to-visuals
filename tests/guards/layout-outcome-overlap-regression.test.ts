@@ -90,7 +90,7 @@
  */
 
 import { describe, it, expect } from '@jest/globals';
-import type { NodeDatum, EdgeDatum, DiagramType } from '@/types/diagram';
+import type { NodeDatum, EdgeDatum, DiagramType } from '@stv/core/types/diagram';
 import { executeLayout } from '@/visualization/strategy-selector';
 import { nodesOverlap } from '@/visualization/layout-utils';
 import { getNodeWidth, getNodeHeight } from '@/visualization/node-dimensions';

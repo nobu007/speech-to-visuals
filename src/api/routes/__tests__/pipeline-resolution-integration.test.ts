@@ -9,7 +9,7 @@
 import express from 'express';
 import request from 'supertest';
 import { createPipelineRouter, PipelineStateManager } from '../pipeline';
-import { PIPELINE_LIMITS } from '../../../config/limits';
+import { PIPELINE_LIMITS } from '@stv/core/config/limits';
 
 function createApp() {
   const app = express();

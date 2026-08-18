@@ -10,7 +10,7 @@
  * use endMs === 5000 (coincident with the fallback).
  */
 import { PipelineOrchestrator } from '@/pipeline/pipeline-orchestrator';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 type PrepArgs = [unknown, number, unknown[], unknown[]];
 

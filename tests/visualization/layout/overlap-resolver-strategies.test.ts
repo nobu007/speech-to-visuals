@@ -9,7 +9,7 @@
  */
 import { jest } from '@jest/globals';
 import type { LayoutResult, LayoutMetrics } from '@/visualization/types';
-import type { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge, DiagramLayout } from '@/types/diagram';
+import type { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge, DiagramLayout } from '@stv/core/types/diagram';
 
 // ---------------------------------------------------------------------------
 // Helpers

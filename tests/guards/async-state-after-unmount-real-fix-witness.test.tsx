@@ -77,7 +77,7 @@ jest.unstable_mockModule('sonner', () => ({
   __esModule: true,
   toast: { info: jest.fn(), success: jest.fn(), error: jest.fn(), warning: jest.fn() },
 }));
-jest.unstable_mockModule('@/utils/logger', () => ({
+jest.unstable_mockModule('@stv/core/utils/logger', () => ({
   __esModule: true,
   logger: { error: jest.fn(), warn: jest.fn(), info: jest.fn() },
 }));

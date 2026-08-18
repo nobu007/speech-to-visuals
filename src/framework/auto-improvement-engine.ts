@@ -12,8 +12,8 @@
  */
 
 import { IterationManager, createIterationManager } from './iteration-manager';
-import { logger } from '../utils/logger';
-import { CappedArray } from '@/lib/capped-array';
+import { logger } from '@stv/core/utils/logger';
+import { CappedArray } from '@stv/core/lib/capped-array';
 import {
   DEFAULT_TRANSCRIPTION_ACCURACY_THRESHOLD,
   DEFAULT_SCENE_SEGMENTATION_F1_THRESHOLD,

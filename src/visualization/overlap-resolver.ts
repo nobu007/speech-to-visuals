@@ -1,4 +1,4 @@
-import { PositionedNode, LayoutEdge } from '@/types/diagram';
+import { PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { SpatialHash, GridSpatialHash } from './spatial-hash';
 import { getNodeWidth as effWidth, getNodeHeight as effHeight } from './node-dimensions';
 // Canonical overlap predicate — single source of truth (see layout-utils.ts).

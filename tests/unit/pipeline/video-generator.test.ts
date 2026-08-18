@@ -2,7 +2,7 @@ import { jest } from '@jest/globals';
 import type { SimplePipelineResult } from '@/pipeline/simple-pipeline';
 
 // Mock the dynamic import of actualVideoRenderer
-jest.unstable_mockModule('@/lib/actualVideoRenderer', () => ({
+jest.unstable_mockModule('@/pipeline/actual-video-renderer', () => ({
   actualVideoRenderer: {
     renderVideo: jest.fn((_config: unknown, onProgress: (p: { progress: number; message: string }) => void) => {
       onProgress({ progress: 50, message: 'Rendering...' });

@@ -6,7 +6,7 @@
 
 import { jest } from '@jest/globals';
 import { RecursiveCustomInstructionsFramework } from '../recursive-custom-instructions';
-import * as loggerModule from '../../utils/logger';
+import * as loggerModule from '@stv/core/utils/logger';
 
 // Spy on the actual logger methods so ESM module resolution works correctly
 const infoSpy = jest.spyOn(loggerModule.logger, 'info');

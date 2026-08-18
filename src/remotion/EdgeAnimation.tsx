@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { useCurrentFrame, useVideoConfig, interpolate } from 'remotion';
-import { LayoutEdge } from '@/types/diagram';
+import { LayoutEdge } from '@stv/core/types/diagram';
 import { EDGE_DRAW_DURATION_FRAMES } from './animation-strategies';
 import { distance } from '@/visualization/layout-utils';
 

@@ -12,7 +12,7 @@
  *
  *   RENDER path — ActualVideoRenderer.getComposition computes its own
  *     durationInFrames from SUM(scene.durationMs) and OVERWRITES the value
- *     returned by `selectComposition` (src/lib/actualVideoRenderer.ts). This is
+ *     returned by `selectComposition` (src/pipeline/actual-video-renderer.ts). This is
  *     the duration the actual MP4 render uses.
  *
  * These two paths use *different* code (different sum expressions, different
@@ -37,7 +37,7 @@
  */
 
 import { jest } from '@jest/globals';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 // ESM mocking: unstable_mockModule + dynamic import (jest-esm-mock-pattern).
 jest.unstable_mockModule('@remotion/bundler', () => ({
@@ -70,7 +70,7 @@ jest.unstable_mockModule('fs', () => ({
 }));
 
 const { calculateTotalFrames, DEFAULT_FPS } = await import('@/remotion/Video');
-const { ActualVideoRenderer } = await import('@/lib/actualVideoRenderer');
+const { ActualVideoRenderer } = await import('@/pipeline/actual-video-renderer');
 const { selectComposition } = await import('@remotion/renderer');
 
 const FPS = DEFAULT_FPS; // 30

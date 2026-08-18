@@ -105,7 +105,7 @@ const getMemoryUsage = mockGetMemoryUsage;
 // service's `import { getMemoryUsage }` resolves to our mock. The factory is
 // lazy (runs on first import, i.e. during the service import in beforeAll), by
 // which point the module-scope jest.fn() above is initialized.
-jest.unstable_mockModule('@/utils/memory-usage', () => ({
+jest.unstable_mockModule('@stv/core/utils/memory-usage', () => ({
   __esModule: true,
   getMemoryUsage: mockGetMemoryUsage,
 }));

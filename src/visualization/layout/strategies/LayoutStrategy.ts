@@ -1,6 +1,6 @@
-import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge, DiagramLayout } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge, DiagramLayout } from '@stv/core/types/diagram';
 import { BoundingBox, LayoutConfig, LayoutResult, LayoutMetrics, OverlapPair } from '../../types';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_HEIGHT } from '../../node-dimensions';
 import { distance } from '../../layout-utils';
 

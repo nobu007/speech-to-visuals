@@ -1,4 +1,4 @@
-import { DiagramType, NodeDatum, EdgeDatum } from '@/types/diagram';
+import { DiagramType, NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 import { TranscriptionSegment } from '@/transcription/types';
 
 export interface ContentSegment {

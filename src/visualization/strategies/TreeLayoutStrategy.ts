@@ -14,10 +14,10 @@
  * - <5s processing for standard trees
  */
 
-import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
-import { logger } from '../../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import { VisualizationError } from '@/pipeline/pipeline-errors';
 import { strategyNodeWidth, validateStrategyInputs } from '../strategy-common';
 import { resolveNodeHeight as resolveNodeHeightUtil } from '../layout-utils';

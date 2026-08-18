@@ -34,7 +34,7 @@ const HEALTHY_MEMORY = {
 
 const mockGetMemoryUsage = jest.fn(() => ({ ...HEALTHY_MEMORY }));
 
-jest.unstable_mockModule('@/utils/memory-usage', () => ({
+jest.unstable_mockModule('@stv/core/utils/memory-usage', () => ({
   __esModule: true,
   getMemoryUsage: mockGetMemoryUsage,
 }));

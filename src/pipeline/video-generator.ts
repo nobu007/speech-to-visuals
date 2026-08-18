@@ -5,17 +5,17 @@
  */
 
 import { SimplePipelineResult } from './simple-pipeline';
-import { SceneGraph, DiagramType, DIAGRAM_TYPE_TITLES } from '@/types/diagram';
+import { SceneGraph, DiagramType, DIAGRAM_TYPE_TITLES } from '@stv/core/types/diagram';
 import { COMPOSITION_ID } from '@/remotion/composition-id';
 import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
-import { logger } from '../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import { QualityGateError, RenderingError } from './pipeline-errors';
 import {
   MIN_SCENE_DURATION_MS,
   MAX_EDITORIAL_SCENE_DURATION_MS,
   DEFAULT_SCENE_DURATION_MS,
 } from './scene-duration-limits';
-import { safeArray } from '../lib/safe-array';
+import { safeArray } from '@stv/core/lib/safe-array';
 
 export interface VideoGenerationOptions {
   outputFormat: 'mp4' | 'webm' | 'gif';
@@ -402,7 +402,7 @@ export class VideoGenerator {
       }
 
       // 実際のレンダリング（サーバーサイド）
-      const { actualVideoRenderer } = await import('@/lib/actualVideoRenderer');
+      const { actualVideoRenderer } = await import('@/pipeline/actual-video-renderer');
 
       const outputPath = cfg.outputLocation as string;
 

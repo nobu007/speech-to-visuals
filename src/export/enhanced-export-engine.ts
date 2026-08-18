@@ -24,7 +24,7 @@ import { generateAnimatedSVG, generateLottieAnimation, sceneDurationSeconds } fr
 import { ExportVerifier, type VerificationFormat, type VerificationResult } from './export-verifier';
 import { exportMetricsCollector, type ExportStatus } from './export-metrics-collector';
 import type { ExportArtifactStore } from './export-artifact-store';
-import { EXPORT_RETRY_LIMITS, EXPORT_STAGE_TIMEOUTS } from '@/config/limits';
+import { EXPORT_RETRY_LIMITS, EXPORT_STAGE_TIMEOUTS } from '@stv/core/config/limits';
 import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
 
 /** Retry configuration for export encoding (REQ-256). */
@@ -34,7 +34,7 @@ export interface RetryConfig {
   maxDelayMs: number;
   jitterMaxMs: number;
 }
-import { logger } from '../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import { validateExportPayload, isStrictValidationEnabled, evaluateExportBlock } from './export-content-validator';
 
 export interface ExportConfiguration {

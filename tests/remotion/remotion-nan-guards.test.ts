@@ -14,7 +14,7 @@ import {
   calculateTotalFrames,
   scenesToKeyphraseScenes,
 } from '@/remotion/Video';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 import {
   splitCaptionAtSceneBoundary,
   validateSceneCaptionSync,

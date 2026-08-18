@@ -15,10 +15,13 @@ import { fileURLToPath } from 'url';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
-/** Files that are allowed to use console methods directly. */
-const ALLOWED_FILES = new Set([
-  'src/utils/logger.ts',
-]);
+/**
+ * Files allowed to use console methods directly. The canonical logger moved
+ * to @stv/core in the stv-core split — outside this repo's lint/walk scope —
+ * so no product source here is exempt anymore. (Console discipline inside the
+ * core package is stv-core's own CI's job.)
+ */
+const ALLOWED_FILES = new Set<string>([]);
 
 /** Pattern that matches console.error, console.warn, console.log, console.info, console.debug calls. */
 const CONSOLE_CALL_PATTERN = /console\.(error|warn|log|info|debug)\s*\(/g;
@@ -105,12 +108,4 @@ describe('REQ-255: No console.* calls in production source code', () => {
     expect(content).toContain('"error"');
   });
 
-  test('ESLint config exempts logger.ts from no-console', () => {
-    const projectRoot = path.resolve(__dirname, '../../');
-    const eslintConfigPath = path.join(projectRoot, 'eslint.config.js');
-    const content = fs.readFileSync(eslintConfigPath, 'utf-8');
-
-    expect(content).toContain('src/utils/logger.ts');
-    expect(content).toContain('"no-console": "off"');
-  });
 });

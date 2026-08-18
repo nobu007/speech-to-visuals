@@ -7,8 +7,8 @@
  * This replaces the previous no-op placeholder in PipelineOrchestrator.runRendering.
  */
 
-import type { SceneGraph, DiagramType } from '@/types/diagram';
-import { safeArray } from '../lib/safe-array';
+import type { SceneGraph, DiagramType } from '@stv/core/types/diagram';
+import { safeArray } from '@stv/core/lib/safe-array';
 import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
 import { STAGGER_DELAY, NODE_FADE_DURATION_FRAMES } from '@/remotion/animation-strategies';
 import { RenderingError } from './pipeline-errors';

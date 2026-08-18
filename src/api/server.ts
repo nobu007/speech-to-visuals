@@ -20,9 +20,9 @@ import { authMiddleware, AuthenticatedRequest } from './middleware/auth';
 import { correlationId } from './middleware/correlation-id';
 import { requestLogger } from './middleware/request-logger';
 import { requestMetrics } from './middleware/request-metrics';
-import { RATE_LIMITS, SERVER_LIMITS, EXPORT_QUEUE_LIMITS } from '../config/limits';
-import { validateSecurityEnv } from '../config/validate';
-import { logger } from '../utils/logger';
+import { RATE_LIMITS, SERVER_LIMITS, EXPORT_QUEUE_LIMITS } from '@stv/core/config/limits';
+import { validateSecurityEnv } from './security-env';
+import { logger } from '@stv/core/utils/logger';
 import { PipelineConfigError } from '../pipeline/pipeline-errors';
 
 // ISS-045: Validate security-critical env vars at startup

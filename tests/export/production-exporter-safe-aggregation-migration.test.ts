@@ -22,7 +22,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { safeSum, safeMean } from '@/lib/metrics-utils';
+import { safeSum, safeMean } from '@stv/core/lib/metrics-utils';
 import { createLayoutRng } from '@/visualization/layout-rng';
 
 const exporterSource = readFileSync(

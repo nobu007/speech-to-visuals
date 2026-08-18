@@ -11,7 +11,7 @@
 
 import { DiagramDetector } from '@/analysis/diagram-detector';
 import type { ContentSegment } from '@/analysis/types';
-import { DIAGRAM_TYPES, isDiagramType } from '@/types/diagram';
+import { DIAGRAM_TYPES, isDiagramType } from '@stv/core/types/diagram';
 
 function makeSegment(text: string): ContentSegment {
   return {

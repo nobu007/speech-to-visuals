@@ -9,7 +9,7 @@
  * Uses Web Audio API (AudioContext) for analysis in browser environments.
  */
 
-import { logger } from '../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 // ---------------------------------------------------------------------------
 // Types

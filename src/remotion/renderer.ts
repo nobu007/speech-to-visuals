@@ -8,7 +8,7 @@
  */
 
 import type { RenderMediaOnProgress } from '@remotion/renderer';
-import { sanitizeFinite, clampFinite } from '@/utils/guards';
+import { sanitizeFinite, clampFinite } from '@stv/core/utils/guards';
 
 // ----------------------------------------------------------------
 // Types

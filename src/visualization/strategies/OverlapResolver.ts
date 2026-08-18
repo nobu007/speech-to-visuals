@@ -1,8 +1,8 @@
-import { DiagramLayout, PositionedNode, DiagramType } from '@/types/diagram';
+import { DiagramLayout, PositionedNode, DiagramType } from '@stv/core/types/diagram';
 import { LayoutConfig } from '../types';
 import { createLayoutRng } from '../layout-rng';
 import { nodesOverlap, distance, clampNodeCoordinate, ringAngle, pointOnCircle } from '../layout-utils';
-import { logger } from '../../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 
 export class OverlapResolver {

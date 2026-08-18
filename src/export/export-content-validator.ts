@@ -11,8 +11,8 @@
  * 3. Monitoring — security teams can alert on repeated findings
  */
 
-import type { SceneGraph, NodeDatum, EdgeDatum } from '../types/diagram';
-import { logger } from '../utils/logger';
+import type { SceneGraph, NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
+import { logger } from '@stv/core/utils/logger';
 import { securityMetricsCollector } from './security-metrics-collector';
 
 export interface ContentFinding {

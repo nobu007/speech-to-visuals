@@ -20,7 +20,7 @@ import {
   type StageDegradedEvent,
   type CascadeDetectedEvent,
 } from './error-recovery-event-bus';
-import { percentileCeil } from '@/lib/metrics-utils';
+import { percentileCeil } from '@stv/core/lib/metrics-utils';
 
 // ---------------------------------------------------------------------------
 // Public types

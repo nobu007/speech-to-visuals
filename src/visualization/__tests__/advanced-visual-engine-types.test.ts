@@ -22,7 +22,7 @@ import type {
   WatermarkConfig,
   RenderOptions,
 } from '../advanced-visual-engine';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 import * as visualization from '../index';
 
 describe('advanced-visual-engine: types-only module contract', () => {

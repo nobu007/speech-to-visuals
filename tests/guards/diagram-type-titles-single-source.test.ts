@@ -21,9 +21,9 @@
 
 import { describe, it, expect } from '@jest/globals';
 import { readSource } from '@tests/guards/freeze-guard';
-import { DIAGRAM_TYPE_TITLES, DIAGRAM_TYPES, type DiagramType } from '@/types/diagram';
+import { DIAGRAM_TYPE_TITLES, DIAGRAM_TYPES, type DiagramType } from '@stv/core/types/diagram';
 import { VideoGenerator } from '@/pipeline/video-generator';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 /** Locking the canonical values makes any future re-freeze detectable as a
  *  value divergence instead of silently coinciding. */
@@ -96,13 +96,13 @@ describe('round 13: diagram-type titles single source (REQ-308)', () => {
 
   it('DiagramScene consumes DIAGRAM_TYPE_TITLES (no local title map)', () => {
     const src = readSource('src/remotion/DiagramScene.tsx');
-    expect(src).toMatch(/import\s*\{[^}]*DIAGRAM_TYPE_TITLES[^}]*\}\s*from\s*'@\/types\/diagram'/);
+    expect(src).toMatch(/import\s*\{[^}]*DIAGRAM_TYPE_TITLES[^}]*\}\s*from\s*'@stv\/core\/types\/diagram'/);
     expect(src).not.toMatch(/const\s+DIAGRAM_TITLES\s*:/);
   });
 
   it('video-generator consumes DIAGRAM_TYPE_TITLES (no local title map)', () => {
     const src = readSource('src/pipeline/video-generator.ts');
-    expect(src).toMatch(/import\s*\{[^}]*DIAGRAM_TYPE_TITLES[^}]*\}\s*from\s*'@\/types\/diagram'/);
+    expect(src).toMatch(/import\s*\{[^}]*DIAGRAM_TYPE_TITLES[^}]*\}\s*from\s*'@stv\/core\/types\/diagram'/);
     expect(src).not.toMatch(/const\s+typeLabels\s*:\s*Record<DiagramType,\s*string>/);
   });
 });

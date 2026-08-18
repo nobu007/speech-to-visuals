@@ -12,12 +12,12 @@
  *
  * Usable with BOTH jest mock APIs — but mind the hoisting difference:
  *
- *   - `jest.unstable_mockModule('@/utils/logger', () => mockLogger());`
+ *   - `jest.unstable_mockModule('@stv/core/utils/logger', () => mockLogger());`
  *     PREFERRED for ESM. `unstable_mockModule` is NOT hoisted, so the imported
  *     `mockLogger` binding is in scope when the factory runs. (This is the only
  *     form used by the migration so far.)
  *
- *   - `jest.mock('@/utils/logger', () => mockLogger());`
+ *   - `jest.mock('@stv/core/utils/logger', () => mockLogger());`
  *     CAUTION: `jest.mock` factories ARE hoisted above imports, so an imported
  *     `mockLogger` is NOT in scope at factory-eval time and this throws. For
  *     `jest.mock` files, either keep the inline literal or define a same-file

@@ -1,4 +1,4 @@
-import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult, StrategyLayoutMetrics, CanvasSize, StrategyRegistry } from './types';
 import { DefaultStrategyRegistry } from './strategies/base-strategy';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, TARGET_ASPECT_RATIO } from './canvas-dimensions';

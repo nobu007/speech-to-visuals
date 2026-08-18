@@ -47,14 +47,14 @@ jest.unstable_mockModule('@/visualization', () => ({
   })),
 }));
 
-jest.unstable_mockModule('@/config/validate', () => ({
+jest.unstable_mockModule('@stv/core/config/validate', () => ({
   validateConfig: jest.fn(),
   ValidationError: class extends Error { constructor(m: string) { super(m); } },
 }));
 
-jest.unstable_mockModule('@/config/schema', () => ({ ConfigSchema: {} }));
+jest.unstable_mockModule('@stv/core/config/schema', () => ({ ConfigSchema: {} }));
 
-jest.unstable_mockModule('@/config', () => ({
+jest.unstable_mockModule('@stv/core/config', () => ({
   config: { geminiApiKey: 'test-key', supabaseUrl: 'http://localhost:54321', supabaseAnonKey: 'test-key' },
 }));
 

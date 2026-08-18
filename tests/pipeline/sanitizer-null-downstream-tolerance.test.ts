@@ -35,7 +35,7 @@
 import { describe, it, expect } from '@jest/globals';
 import { generateRenderPlan } from '@/pipeline/scene-render-spec-generator';
 import { sanitizeUntrustedJsonValue } from '@/analysis/llm-utils';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 // A scene payload AS IT WOULD ARRIVE from an LLM / API boundary, before the
 // sanitizer runs — every numeric that an attacker or a buggy model could push

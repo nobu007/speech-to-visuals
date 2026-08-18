@@ -11,7 +11,7 @@ import {
   sanitizeFinite,
   clampFinite,
   safeToLocaleString,
-} from '@/utils/guards';
+} from '@stv/core/utils/guards';
 import {
   createTimingRecord,
   aggregateTimingReport,

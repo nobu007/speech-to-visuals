@@ -16,7 +16,7 @@
  */
 import { SimulatedAnnealingStrategy } from '@/visualization/layout/strategies/SimulatedAnnealingStrategy';
 import { LayoutConfig } from '@/visualization/types';
-import { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, PositionedNode } from '@stv/core/types/diagram';
 
 const CONFIG: LayoutConfig = {
   width: 1920,

@@ -23,7 +23,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Progress } from '@/components/ui/progress';
-import { cn } from '@/lib/utils';
+import { cn } from '@stv/core/lib/utils';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 

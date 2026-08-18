@@ -2,16 +2,16 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { bytesToMb } from '@/lib/metrics-utils';
+import { bytesToMb } from '@stv/core/lib/metrics-utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Upload, Play, Download, Settings, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MainPipeline } from '@/pipeline';
 import { PipelineResult, PipelineStage } from '@/pipeline/types';
-import { ProcessingStatus } from '@/types/diagram';
+import { ProcessingStatus } from '@stv/core/types/diagram';
 import { parseUntrustedJson } from '@/analysis/llm-utils';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 interface PipelineInterfaceProps {
   className?: string;

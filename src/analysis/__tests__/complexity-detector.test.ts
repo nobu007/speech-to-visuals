@@ -18,7 +18,7 @@ import {
   type ComplexityAnalysis,
   type ComplexityFactor,
 } from '../complexity-detector';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 describe('TASK-0016: ComplexityDetector', () => {
   let detector: ComplexityDetector;

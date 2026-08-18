@@ -6,11 +6,11 @@
  * maximum system stability under stress conditions.
  */
 
-import { DiagramType } from '@/types/diagram';
+import { DiagramType } from '@stv/core/types/diagram';
 import { globalCache } from '../performance/intelligent-cache';
-import { logger } from '@/utils/logger';
-import { getMemoryUsage } from '@/utils/memory-usage';
-import { heapUsageRatio, safeMax, safeMean, safeMin } from '@/lib/metrics-utils';
+import { logger } from '@stv/core/utils/logger';
+import { getMemoryUsage } from '@stv/core/utils/memory-usage';
+import { heapUsageRatio, safeMax, safeMean, safeMin } from '@stv/core/lib/metrics-utils';
 import { errorRecoveryEventBus } from './error-recovery-event-bus';
 import { QualityGateError, PipelineConfigError } from '@/pipeline/pipeline-errors';
 

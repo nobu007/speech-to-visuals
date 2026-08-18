@@ -10,13 +10,13 @@
  */
 
 import dagre from '@dagrejs/dagre';
-import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { positionedFromDagre } from './dagre-node-extraction';
 import { OverlapResolver } from './overlap-resolver';
 import { calculateNodeCenter, calculateDistance, calculateNodeDistance, distance, generateEdgePoints, nodesOverlap, detectOverlapPairs, resolveNodeWidth, resolveNodeHeight, nodeExtentEdges, foldNodeExtents, clampNodeCoordinate, squareGridColumns, squareGridRows, centerInCell } from './layout-utils';
-import { clamp01 } from '@/utils/guards';
+import { clamp01 } from '@stv/core/utils/guards';
 import { Point } from './types';
-import { logger } from '../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from './node-dimensions';
 import { centerToCenterAnchors, centerAnchor } from './strategy-edges';
 import { TARGET_ASPECT_RATIO } from './canvas-dimensions';

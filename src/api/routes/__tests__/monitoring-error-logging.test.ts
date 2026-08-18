@@ -13,7 +13,7 @@ import express from 'express';
 import request from 'supertest';
 import { createMonitoringRouter } from '../monitoring';
 import { PerformanceDashboard } from '../../../monitoring/performance-dashboard';
-import { logger } from '../../../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 describe('Monitoring API Error Logging', () => {
   let errorSpy: jest.SpiedFunction<typeof logger.error>;

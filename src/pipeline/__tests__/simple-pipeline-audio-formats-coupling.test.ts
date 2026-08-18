@@ -15,7 +15,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { SUPPORTED_AUDIO_FORMATS } from '@/config/limits';
+import { SUPPORTED_AUDIO_FORMATS } from '@stv/core/config/limits';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const PIPELINE_FILE = path.resolve(__dirname, '../simple-pipeline.ts');

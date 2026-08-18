@@ -1,5 +1,5 @@
 import { LayoutEngine } from '@/visualization/layout-engine';
-import { NodeDatum } from '@/types/diagram';
+import { NodeDatum } from '@stv/core/types/diagram';
 
 /**
  * REQ-051: LayoutEngine construction-once sub-strategies must re-read runtime

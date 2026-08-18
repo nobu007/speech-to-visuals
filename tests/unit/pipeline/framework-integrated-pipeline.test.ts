@@ -22,11 +22,11 @@ jest.unstable_mockModule('@/pipeline/main-pipeline', () => ({
 
 jest.unstable_mockModule('@/pipeline/types', () => ({}));
 
-jest.unstable_mockModule('@/utils/memory-usage', () => ({
+jest.unstable_mockModule('@stv/core/utils/memory-usage', () => ({
   getHeapUsed: jest.fn().mockReturnValue(0),
 }));
 
-jest.unstable_mockModule('@/utils/logger', () => ({
+jest.unstable_mockModule('@stv/core/utils/logger', () => ({
   logger: { error: jest.fn(), warn: jest.fn(), info: jest.fn(), debug: jest.fn() },
 }));
 

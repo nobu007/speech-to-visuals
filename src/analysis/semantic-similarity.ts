@@ -12,9 +12,9 @@
  * 5. CJK (Chinese/Japanese/Korean) character-level tokenization
  */
 
-import { clamp01 } from '@/utils/guards';
-import { CappedArray } from '@/lib/capped-array';
-import { buildCharClassRegex, CJK_TOKEN_RANGES } from '@/lib/unicode-script-ranges';
+import { clamp01 } from '@stv/core/utils/guards';
+import { CappedArray } from '@stv/core/lib/capped-array';
+import { buildCharClassRegex, CJK_TOKEN_RANGES } from '@stv/core/lib/unicode-script-ranges';
 
 /** Maximum number of similarity scores kept in memory */
 const MAX_SCORE_HISTORY = 1000;

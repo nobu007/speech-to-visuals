@@ -54,7 +54,7 @@ import {
   runForceDirectedPhases,
 } from '@/visualization/force-directed-params';
 import { nodesOverlap } from '@/visualization/layout-utils';
-import type { NodeDatum, EdgeDatum } from '@/types/diagram';
+import type { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 import type { LayoutConfig } from '@/visualization/types';
 
 const CANVAS: LayoutConfig = {

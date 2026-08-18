@@ -8,7 +8,7 @@
 
 import { LayoutOptimizer } from '@/visualization/strategies/LayoutOptimizer';
 import { calculateCompositeScore } from '@/visualization/layout-quality-composite';
-import type { DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
+import type { DiagramLayout, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import type { LayoutConfig } from '@/visualization/types';
 import SmartParameterTuner from '@/optimization/smart-parameter-tuner';
 import { AdaptiveQualityGatesSystem } from '@/quality/adaptive-quality-gates';

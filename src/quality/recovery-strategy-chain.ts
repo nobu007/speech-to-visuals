@@ -13,7 +13,7 @@
  */
 
 import { errorRecoveryEventBus } from './error-recovery-event-bus';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 // ---------------------------------------------------------------------------
 // Public types

@@ -16,7 +16,7 @@
  */
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { DiagramDetector, meetsGoodDetectionConfidence } from '../diagram-detector';
-import { sanitizeFinite } from '@/utils/guards';
+import { sanitizeFinite } from '@stv/core/utils/guards';
 import type { ContentSegment, DiagramAnalysis } from '../types';
 
 function makeSegment(text: string): ContentSegment {

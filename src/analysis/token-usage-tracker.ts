@@ -5,7 +5,7 @@
  * grouped by stage (analysis, fallback, cache-warmup).
  */
 
-import { CappedArray } from '@/lib/capped-array';
+import { CappedArray } from '@stv/core/lib/capped-array';
 
 export type ModelType = 'gemini-2.5-flash' | 'gemini-2.5-pro';
 

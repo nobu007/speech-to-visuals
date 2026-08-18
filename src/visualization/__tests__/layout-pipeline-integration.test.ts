@@ -17,7 +17,7 @@ import { TreeLayoutStrategy } from '../strategies/TreeLayoutStrategy';
 import { TimelineLayoutStrategy } from '../strategies/TimelineLayoutStrategy';
 import { FallbackLayoutStrategy } from '../strategies/FallbackLayoutStrategy';
 import { nodesOverlap } from '../layout-utils';
-import type { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
+import type { NodeDatum, EdgeDatum, PositionedNode } from '@stv/core/types/diagram';
 import type { LayoutConfig } from '../types';
 
 // ---------------------------------------------------------------------------

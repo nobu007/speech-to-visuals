@@ -26,7 +26,7 @@ import {
   type LearningStatus,
   type LearningReportEntry,
 } from '@/framework/continuous-learner';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 export interface UseAdminAnalyticsOptions {
   /** Polling interval in milliseconds (default: 10000) */

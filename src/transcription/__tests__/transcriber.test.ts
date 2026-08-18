@@ -50,7 +50,7 @@ jest.mock('@/analysis/language-detector', () => ({
   detectLanguage: (...args: unknown[]) => _detectLangHolder.impl(...args),
 }));
 
-jest.mock('@/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     info: () => {},
     warn: () => {},

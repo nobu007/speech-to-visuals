@@ -1,8 +1,8 @@
 import { jest } from '@jest/globals';
 import {
   validateAudioFileMetadata,
-} from '@/utils/audio-validation';
-import { AUDIO_LIMITS } from '@/config/limits';
+} from '@stv/core/utils/audio-validation';
+import { AUDIO_LIMITS } from '@stv/core/config/limits';
 
 // ---------------------------------------------------------------------------
 // validateAudioFileMetadata (REQ-148 — server-side, no File object)

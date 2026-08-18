@@ -22,7 +22,7 @@ import {
 import { ProductionExporter } from '../production-exporter';
 import { EnhancedExportEngine } from '../enhanced-export-engine';
 import { securityMetricsCollector } from '../security-metrics-collector';
-import type { SceneGraph } from '../../types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 import type { EnhancedSceneGraph } from '../../visualization/advanced-visual-engine';
 
 // ---------------------------------------------------------------------------

@@ -10,7 +10,7 @@ import {
   analyzeEdgeCrossings,
   EdgeCrossingMinimizer,
 } from '../edge-crossing-minimizer';
-import { PositionedNode, LayoutEdge } from '@/types/diagram';
+import { PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 
 function makeNode(id: string, x: number, y: number, w = 100, h = 100): PositionedNode {
   return { id, label: id, x, y, w, h };

@@ -59,7 +59,7 @@
 import { describe, it, expect } from '@jest/globals';
 import { mulberry32 } from '@tests/helpers/fuzz';
 import { readSource } from '@tests/guards/freeze-guard';
-import type { PositionedNode, EdgeDatum, NodeDatum } from '@/types/diagram';
+import type { PositionedNode, EdgeDatum, NodeDatum } from '@stv/core/types/diagram';
 import type { LayoutConfig } from '@/visualization/types';
 import { NetworkLayoutStrategy } from '@/visualization/strategies/NetworkLayoutStrategy';
 import { ZeroOverlapLayoutEngine } from '@/visualization/enhanced-zero-overlap-layout';

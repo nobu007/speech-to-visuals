@@ -14,8 +14,8 @@ import {
 import { formatTimestamp } from './srt-generator';
 import { detectTranscriptionLanguage } from './language-detection';
 import { Caption } from '@remotion/captions';
-import { logger } from '../utils/logger';
-import { validateAudioFile } from '@/utils/audio-validation';
+import { logger } from '@stv/core/utils/logger';
+import { validateAudioFile } from '@stv/core/utils/audio-validation';
 
 export interface WhisperConfig {
   model: 'tiny' | 'base' | 'small' | 'medium' | 'large';

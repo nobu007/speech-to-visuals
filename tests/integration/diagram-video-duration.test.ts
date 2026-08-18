@@ -18,7 +18,7 @@ import {
   findSceneAtTime,
   DEFAULT_FPS,
 } from '@/remotion/Video';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 function makeScene(durationMs: number, title: string): SceneGraph {
   return {

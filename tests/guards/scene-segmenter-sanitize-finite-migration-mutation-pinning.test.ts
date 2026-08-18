@@ -38,19 +38,20 @@
 import { describe, it, expect } from '@jest/globals';
 import { readFileSync } from 'node:fs';
 
+import { resolveSource } from '@tests/guards/freeze-guard';
 const GUARD_FILE = 'src/analysis/scene-segmenter.ts';
 
 // --- Source anchors: pin the sanitizeFinite adoption -----------------------------
 
 describe('scene-segmenter sanitizeFinite migration — source anchors pinned', () => {
-  const src = (): string => readFileSync(GUARD_FILE, 'utf8');
+  const src = (): string => readFileSync(resolveSource(GUARD_FILE), 'utf8');
 
-  it('imports sanitizeFinite from @/utils/guards (the canonical chokepoint)', () => {
+  it('imports sanitizeFinite from @stv/core/utils/guards (the canonical chokepoint)', () => {
     // The helper is the single source of truth for value-coercion sentinels;
     // a removal of this import (e.g. "we don't need it anymore") drops the
     // matches below the floor → RED.
     expect(src()).toMatch(
-      /import \{ sanitizeFinite \} from '@\/utils\/guards'/,
+      /import \{ sanitizeFinite \} from '@stv\/core\/utils\/guards'/,
     );
   });
 
@@ -149,7 +150,7 @@ describe('scene-segmenter sanitizeFinite migration — mutation witness', () => 
 });
 
 // --- Local mirror of `sanitizeFinite` to keep this test independent of imports --
-// (The real helper lives at `@/utils/guards.ts:28`. Mirroring here makes the
+// (The real helper lives at `@stv/core/utils/guards.ts:28`. Mirroring here makes the
 // behavioral / mutation witnesses self-contained — no jest mock module race
 // conditions, no transitive import surface. If the real helper ever drifts,
 // the witness above will diverge from the source-anchored call sites and the

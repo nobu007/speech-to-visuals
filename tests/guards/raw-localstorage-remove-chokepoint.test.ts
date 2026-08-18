@@ -52,9 +52,10 @@ import { describe, it, expect, jest, afterEach } from '@jest/globals';
 import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { safeRemoveFromStorage } from '@/utils/safe-storage';
-import { productionConfig } from '@/config/production-config';
+import { safeRemoveFromStorage } from '@stv/core/utils/safe-storage';
+import { productionConfig } from '@stv/core/config/production-config';
 
+import { resolveSource } from '@tests/guards/freeze-guard';
 const CHOKEPOINT_FILE = 'src/utils/safe-storage.ts';
 const PRODUCTION_FILE = 'src/config/production-config.ts';
 
@@ -67,7 +68,7 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..
 // --- (TC-315-01) source anchor: pin the chokepoint helper signature ------
 
 describe('raw-localStorage remove chokepoint — source anchor pinned (TC-315-01)', () => {
-  const src = (): string => readFileSync(path.join(REPO_ROOT, CHOKEPOINT_FILE), 'utf8');
+  const src = (): string => readFileSync(resolveSource(CHOKEPOINT_FILE), 'utf8');
 
   it('safeRemoveFromStorage is exported from src/utils/safe-storage.ts', () => {
     // The chokepoint must be a public export. Dropping `export` (turning it
@@ -87,7 +88,7 @@ describe('raw-localStorage remove chokepoint — source anchor pinned (TC-315-01
     // The actual production-side fix: `resetConfig` must NOT contain a raw
     // `localStorage.removeItem` call. Re-introducing one (e.g. "simplify
     // back to the original try/catch") is drift.
-    const prodSrc = readFileSync(path.join(REPO_ROOT, PRODUCTION_FILE), 'utf8');
+    const prodSrc = readFileSync(resolveSource(PRODUCTION_FILE), 'utf8');
 
     // Locate the resetConfig method body and assert it does not contain the
     // raw call. We use a non-greedy match across the resetConfig method.

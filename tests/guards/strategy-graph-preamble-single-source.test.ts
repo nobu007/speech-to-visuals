@@ -55,7 +55,7 @@
 import { describe, it, expect } from '@jest/globals';
 import { mulberry32 } from '@tests/helpers/fuzz';
 import { readSource } from '@tests/guards/freeze-guard';
-import type { NodeDatum, EdgeDatum } from '@/types/diagram';
+import type { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '@/visualization/node-dimensions';
 import { getImportance, importanceSizeScale } from '@/visualization/importance-scaler';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '@/visualization/canvas-dimensions';

@@ -76,7 +76,7 @@ jest.unstable_mockModule('@/components/ui/tabs', () => ({
     React.createElement('div', null, children),
 }));
 
-jest.unstable_mockModule('@/lib/metrics-utils', () => ({
+jest.unstable_mockModule('@stv/core/lib/metrics-utils', () => ({
   bytesToMb: (bytes: number) => bytes / (1024 * 1024),
 }));
 

@@ -1,6 +1,6 @@
 import { DefaultStrategyRegistry } from '@/visualization/strategies/base-strategy';
 import { LayoutStrategy, StrategyLayoutResult } from '@/visualization/types';
-import { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, PositionedNode } from '@stv/core/types/diagram';
 import { calculateCanvasSize, calculateMetrics } from '@/visualization/layout-engine-v2';
 
 class MockStrategy implements LayoutStrategy {

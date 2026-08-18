@@ -1,5 +1,5 @@
 import { GeneralStrategy } from '@/visualization/strategies/general-strategy';
-import { NodeDatum, EdgeDatum } from '@/types/diagram';
+import { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 
 function makeNodes(count: number): NodeDatum[] {
   return Array.from({ length: count }, (_, i) => ({

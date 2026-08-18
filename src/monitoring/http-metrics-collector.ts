@@ -11,10 +11,10 @@
  * Designed as a lightweight in-memory collector with bounded memory usage.
  */
 
-import { logger } from '@/utils/logger';
-import { computePercentiles, type Percentiles } from '@/lib/metrics-utils';
-import { CappedMap } from '@/lib/capped-map';
-import { sanitizeFinite } from '@/utils/guards';
+import { logger } from '@stv/core/utils/logger';
+import { computePercentiles, type Percentiles } from '@stv/core/lib/metrics-utils';
+import { CappedMap } from '@stv/core/lib/capped-map';
+import { sanitizeFinite } from '@stv/core/utils/guards';
 
 // Re-exported so the previously-local `Percentiles` type keeps its public path.
 export type { Percentiles };

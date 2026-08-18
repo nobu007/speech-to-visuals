@@ -1,5 +1,5 @@
 import { BaseLayoutStrategy } from '../../visualization/layout/strategies/LayoutStrategy';
-import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge, DiagramLayout } from '../../types/diagram';
+import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge, DiagramLayout } from '@stv/core/types/diagram';
 import { LayoutConfig, LayoutResult } from '../../visualization/types';
 import { createTestConfig, createTestNode, createLayoutEdge } from './test-utils';
 

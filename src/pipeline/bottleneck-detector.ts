@@ -6,7 +6,7 @@
  */
 
 import { StageTimingRecord } from './stage-timing-metrics';
-import { sanitizeFinite } from '@/utils/guards';
+import { sanitizeFinite } from '@stv/core/utils/guards';
 
 /** Severity of a detected bottleneck */
 export type BottleneckSeverity = 'none' | 'warning' | 'critical';

@@ -1,5 +1,5 @@
 import { VisualBalanceScorer, VisualBalanceResult } from '@/visualization/visual-balance-scorer';
-import { PositionedNode } from '@/types/diagram';
+import { PositionedNode } from '@stv/core/types/diagram';
 
 function makeNode(id: string, x: number, y: number, w = 100, h = 60): PositionedNode {
   return { id, label: id, x, y, width: w, height: h, w, h };

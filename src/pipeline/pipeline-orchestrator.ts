@@ -25,12 +25,12 @@ import {
 } from './types';
 import { QualityMonitor } from './quality-monitor';
 import { TranscriptionPipeline, TranscriptionSegment, TranscriptionResult } from '@/transcription';
-import { bytesToMb } from '@/lib/metrics-utils';
+import { bytesToMb } from '@stv/core/lib/metrics-utils';
 import { SceneSegmenter, DiagramDetector, DEFAULT_MIN_SEGMENT_LENGTH_MS, DEFAULT_MAX_SEGMENT_LENGTH_MS } from '@/analysis';
 import { LayoutEngine } from '@/visualization';
-import { SceneGraph, ProcessingStatus, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
-import { validateConfig, ValidationError } from '@/config/validate';
-import type { ConfigSchema } from '@/config/schema';
+import { SceneGraph, ProcessingStatus, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
+import { validateConfig, ValidationError } from '@stv/core/config/validate';
+import type { ConfigSchema } from '@stv/core/config/schema';
 import SmartParameterTuner from '@/optimization/smart-parameter-tuner';
 import { scoreLayout } from '@/visualization/layout-quality-composite';
 import { runAutoOptimization } from '@/visualization/layout-auto-optimizer';
@@ -39,7 +39,7 @@ import { executeLayoutsInParallel, executeScenePreparationInParallel } from './p
 import { timeStage, StageTimingRecord, aggregateTimingReport, StageTimingReport } from './stage-timing-metrics';
 import { detectBottlenecks, BottleneckReport } from './bottleneck-detector';
 import { PipelineConfigError, RenderingError, QualityGateError, PipelineAbortError, AudioValidationError } from './pipeline-errors';
-import { SUPPORTED_AUDIO_FORMATS, AUDIO_LIMITS } from '@/config/limits';
+import { SUPPORTED_AUDIO_FORMATS, AUDIO_LIMITS } from '@stv/core/config/limits';
 import { generateRenderPlan, validateRenderPlan, type RenderPlan } from './scene-render-spec-generator';
 import { DEFAULT_SCENE_DURATION_MS } from './scene-duration-limits';
 import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
@@ -49,8 +49,8 @@ import {
 import { ErrorClassifier } from '@/quality/error-classifier';
 import type { ClassifiedError } from '@/quality/error-classifier';
 import type { RecoveryStage, RunRecoveryReport } from '@/quality/pipeline-run-recovery-tracker';
-import { logger } from '@/utils/logger';
-import { sanitizeDiagramType } from '@/utils/guards';
+import { logger } from '@stv/core/utils/logger';
+import { sanitizeDiagramType } from '@stv/core/utils/guards';
 import { buildSceneGraph } from './scene-graph-builder';
 import { applyConfigToCollaborators } from './config-sync';
 

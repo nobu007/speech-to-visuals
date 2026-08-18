@@ -14,11 +14,11 @@
  * - <5s processing for standard concept maps
  */
 
-import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { LayoutConfig } from '../types';
 import { squareGridColumns, squareGridRows, centerInCell } from '../layout-utils';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
-import { logger } from '../../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import { DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { strategyNodeWidth, validateStrategyInputs } from '../strategy-common';
 import { buildWarnedAnchoredEdges, centerToCenterAnchors } from '../strategy-edges';

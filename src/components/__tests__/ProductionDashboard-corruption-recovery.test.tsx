@@ -22,7 +22,7 @@ import '@testing-library/jest-dom';
 
 // ── Mocks ──
 
-jest.mock('@/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -35,7 +35,7 @@ jest.mock('@/utils/logger', () => ({
  * Mock the production-config singleton with values that match the real
  * ProductionConfigManager's post-recovery defaults for NODE_ENV=development.
  */
-jest.mock('@/config/production-config', () => {
+jest.mock('@stv/core/config/production-config', () => {
   const defaultConfig = {
     name: 'development' as const,
     apiBaseUrl: 'http://localhost:3000/api',
@@ -140,13 +140,13 @@ jest.mock('@/components/ui/select', () => ({
     React.createElement('span', null, children),
 }));
 
-jest.mock('@/lib/utils', () => ({
+jest.mock('@stv/core/lib/utils', () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
 }));
 
 // ── Imports (resolved after mocks are registered) ──
 
-import { productionConfig } from '@/config/production-config';
+import { productionConfig } from '@stv/core/config/production-config';
 import { ProductionDashboard } from '../ProductionDashboard';
 
 // ── Tests ──

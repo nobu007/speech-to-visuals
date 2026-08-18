@@ -23,7 +23,7 @@
 import { jest } from '@jest/globals';
 import * as React from 'react';
 import { render, screen, cleanup } from '@testing-library/react';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 // --- Controllable remotion mock -------------------------------------------------
 // `currentFrame` / `currentDuration` are mutated per render so we can sweep

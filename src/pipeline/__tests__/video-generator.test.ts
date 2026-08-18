@@ -8,7 +8,7 @@ import { jest } from '@jest/globals';
 import type { SimplePipelineResult } from '../simple-pipeline';
 
 // Mock the actualVideoRenderer to prevent import errors
-jest.unstable_mockModule('@/lib/actualVideoRenderer', () => ({
+jest.unstable_mockModule('@/pipeline/actual-video-renderer', () => ({
   actualVideoRenderer: {
     renderVideo: jest.fn().mockImplementation(async (config: unknown, onProgress: (p: { progress: number; message: string }) => void) => {
       onProgress?.({ progress: 100, message: 'Rendered' });

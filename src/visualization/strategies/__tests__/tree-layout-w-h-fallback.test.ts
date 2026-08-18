@@ -7,7 +7,7 @@
 import { jest } from '@jest/globals';
 
 const { TreeLayoutStrategy } = await import('../TreeLayoutStrategy');
-import type { NodeDatum, EdgeDatum } from '@/types/diagram';
+import type { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 import type { LayoutConfig } from '../../types';
 
 describe('TreeLayoutStrategy w/h property fallback', () => {

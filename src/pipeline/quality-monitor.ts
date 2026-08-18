@@ -7,7 +7,7 @@
  * Based on Custom Instructions: development_philosophy.recursive
  */
 
-import { percentChange } from '@/lib/metrics-utils';
+import { percentChange } from '@stv/core/lib/metrics-utils';
 import {
   DEFAULT_TRANSCRIPTION_ACCURACY_THRESHOLD,
   DEFAULT_SCENE_SEGMENTATION_F1_THRESHOLD,

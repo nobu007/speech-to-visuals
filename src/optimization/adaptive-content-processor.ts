@@ -6,8 +6,8 @@
 
 import { performance } from 'perf_hooks';
 import type { AudioCharacteristics, ParameterSet as OptimalParameters } from './smart-parameter-tuner';
-import { logger } from '../utils/logger';
-import { roundTo } from '../lib/metrics-utils';
+import { logger } from '@stv/core/utils/logger';
+import { roundTo } from '@stv/core/lib/metrics-utils';
 
 export interface ProcessingStrategy {
   name: string;

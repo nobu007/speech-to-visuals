@@ -67,7 +67,7 @@ import { scaledNodeExtent } from '@/visualization/strategy-graph';
 import { scaledDimensions } from '@/visualization/importance-scaler';
 import { CycleLayoutStrategy } from '@/visualization/strategies/cycle-strategy';
 import { TimelineStrategy } from '@/visualization/strategies/timeline-strategy';
-import type { NodeDatum } from '@/types/diagram';
+import type { NodeDatum } from '@stv/core/types/diagram';
 
 // ---------------------------------------------------------------------------
 // Layer 1 material: the VERBATIM pre-round-49 expressions, frozen from the

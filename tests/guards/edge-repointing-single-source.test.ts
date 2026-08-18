@@ -66,14 +66,14 @@
 
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import { readSource } from '@tests/guards/freeze-guard';
-import type { PositionedNode, LayoutEdge } from '@/types/diagram';
+import type { PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import type { LayoutConfig } from '@/visualization/types';
 import { repointEdgesStraightLine } from '@/visualization/edge-repointing';
 import { centerToCenterAnchors } from '@/visualization/strategy-edges';
 import { GridSnapStrategy } from '@/visualization/layout/strategies/GridSnapStrategy';
 import { ProgressiveForceStrategy } from '@/visualization/layout/strategies/ProgressiveForceStrategy';
 import { SimulatedAnnealingStrategy } from '@/visualization/layout/strategies/SimulatedAnnealingStrategy';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 const CANONICAL = 'src/visualization/edge-repointing.ts';
 const DELEGATING_FILES = [

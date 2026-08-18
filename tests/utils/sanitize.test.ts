@@ -2,7 +2,7 @@
  * Tests for filename sanitization (src/utils/sanitize.ts)
  */
 
-import { sanitizeFilename } from '@/utils/sanitize';
+import { sanitizeFilename } from '@stv/core/utils/sanitize';
 
 describe('sanitizeFilename', () => {
   test('returns clean filenames unchanged', () => {

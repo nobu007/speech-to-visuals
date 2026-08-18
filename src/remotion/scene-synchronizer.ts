@@ -8,7 +8,7 @@
  */
 
 import type { SrtCaption } from './srt-parser';
-import { sanitizeFinite } from '@/utils/guards';
+import { sanitizeFinite } from '@stv/core/utils/guards';
 
 /**
  * Default FPS used throughout the project — the single source of truth.

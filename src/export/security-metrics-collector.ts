@@ -1,8 +1,8 @@
 // Prometheus label-value sanitization is consolidated in the shared helper —
 // see src/utils/prometheus-label-escape.ts (formerly a private copy here that
 // drifted from the sibling copy in prometheus-exporter.ts).
-import { sanitizePrometheusLabel } from '@/utils/prometheus-label-escape';
-import { CappedMap } from '@/lib/capped-map';
+import { sanitizePrometheusLabel } from '@stv/core/utils/prometheus-label-escape';
+import { CappedMap } from '@stv/core/lib/capped-map';
 
 /**
  * Security Guard Rejection Metrics Collector

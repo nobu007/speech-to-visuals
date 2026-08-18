@@ -35,14 +35,15 @@
  */
 import { describe, it, expect } from '@jest/globals';
 import { readFileSync } from 'node:fs';
-import { validateAudioFileMetadata } from '@/utils/audio-validation';
+import { validateAudioFileMetadata } from '@stv/core/utils/audio-validation';
 
+import { resolveSource } from '@tests/guards/freeze-guard';
 const GUARD_FILE = 'src/utils/audio-validation.ts';
 
 // --- (TC-304-01) source anchors: pin the two finiteness branches ---------------
 
 describe('Audio file-size finiteness guard — source anchors pinned (TC-304-01)', () => {
-  const src = (): string => readFileSync(GUARD_FILE, 'utf8');
+  const src = (): string => readFileSync(resolveSource(GUARD_FILE), 'utf8');
 
   it('validateAudioFileMetadata rejects non-finite OR negative size', () => {
     // Dropping `!Number.isFinite(...)` (leaving only `meta.size < 0`), or

@@ -5,7 +5,7 @@
  * Philosophy: 実装→テスト→評価→改善→コミット (Custom Instructions Compliant)
  */
 
-import { globalIterationLogger, IterationLogEntry } from '../src/utils/iteration-logger';
+import { globalIterationLogger, IterationLogEntry } from '@/framework/iteration-logger';
 import * as fs from 'fs';
 import * as path from 'path';
 

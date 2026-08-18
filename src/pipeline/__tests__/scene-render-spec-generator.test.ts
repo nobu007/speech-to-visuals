@@ -16,7 +16,7 @@ import {
   type RenderPlan,
   type SceneRenderSpec,
 } from '../scene-render-spec-generator';
-import type { SceneGraph, DiagramType } from '@/types/diagram';
+import type { SceneGraph, DiagramType } from '@stv/core/types/diagram';
 import { STAGGER_DELAY, NODE_FADE_DURATION_FRAMES } from '@/remotion/animation-strategies';
 
 // ---------- Helpers ----------

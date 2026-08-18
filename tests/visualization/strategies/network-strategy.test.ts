@@ -1,5 +1,5 @@
 import { NetworkLayoutStrategy } from '@/visualization/strategies/NetworkLayoutStrategy';
-import { NodeDatum, EdgeDatum } from '@/types/diagram';
+import { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 import { LayoutConfig } from '@/visualization/types';
 
 describe('NetworkLayoutStrategy', () => {

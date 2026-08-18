@@ -12,13 +12,13 @@
  * - Iterative improvement approach
  */
 
-import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { LayoutConfig, LayoutResult, LayoutMetrics, Point, BoundingBox, OverlapPair } from '../types';
 import { calculateNodeCenter, calculateDistance, calculateNodeDistance, generateEdgePoints, detectOverlapPairs, resolveNodeHeight, nodeExtentEdges, foldNodeExtents } from '../layout-utils';
 import { strategyNodeWidth } from '../strategy-common';
 import { buildWarnedAnchoredEdges } from '../strategy-edges';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 /**
  * Abstract base class for all layout engines

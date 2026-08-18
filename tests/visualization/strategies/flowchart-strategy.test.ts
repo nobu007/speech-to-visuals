@@ -1,5 +1,5 @@
 import { FlowchartLayoutStrategy } from '@/visualization/strategies/FlowchartLayoutStrategy';
-import { NodeDatum, EdgeDatum } from '@/types/diagram';
+import { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 import { LayoutConfig } from '@/visualization/types';
 
 describe('FlowchartLayoutStrategy', () => {

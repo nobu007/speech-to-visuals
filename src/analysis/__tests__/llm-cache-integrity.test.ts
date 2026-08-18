@@ -28,7 +28,7 @@
  */
 import { LLMCache } from '../llm-cache';
 
-jest.mock('@/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

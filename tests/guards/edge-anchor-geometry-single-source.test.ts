@@ -78,7 +78,7 @@ import {
   flankAnchors,
 } from '@/visualization/strategy-edges';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '@/visualization/node-dimensions';
-import type { PositionedNode, NodeDatum, EdgeDatum, LayoutEdge } from '@/types/diagram';
+import type { PositionedNode, NodeDatum, EdgeDatum, LayoutEdge } from '@stv/core/types/diagram';
 import type { LayoutConfig } from '@/visualization/types';
 import { FallbackLayoutStrategy } from '@/visualization/strategies/FallbackLayoutStrategy';
 import { TreeLayoutStrategy } from '@/visualization/strategies/TreeLayoutStrategy';

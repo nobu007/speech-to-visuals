@@ -26,7 +26,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { safeMean } from '@/lib/metrics-utils';
+import { safeMean } from '@stv/core/lib/metrics-utils';
 import { createLayoutRng } from '@/visualization/layout-rng';
 import { EnhancedErrorRecovery } from '@/quality/enhanced-error-recovery';
 import { ErrorRecoveryHealthTracker } from '@/quality/error-recovery-health-tracker';

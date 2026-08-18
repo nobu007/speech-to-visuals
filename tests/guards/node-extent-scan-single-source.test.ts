@@ -55,9 +55,9 @@
 import { describe, it, expect } from '@jest/globals';
 import { mulberry32 } from '@tests/helpers/fuzz';
 import { readSource } from '@tests/guards/freeze-guard';
-import type { PositionedNode } from '@/types/diagram';
+import type { PositionedNode } from '@stv/core/types/diagram';
 import { getNodeWidth, getNodeHeight } from '@/visualization/node-dimensions';
-import { sanitizeFinite } from '@/utils/guards';
+import { sanitizeFinite } from '@stv/core/utils/guards';
 import {
   nodeExtentEdges,
   foldNodeExtents,

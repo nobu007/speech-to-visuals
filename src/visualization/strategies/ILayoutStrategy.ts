@@ -12,9 +12,9 @@
  * - Interface Segregation: Minimal interface, maximum flexibility
  */
 
-import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { LayoutConfig } from '../types';
-import { logger } from '../../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import { VisualizationError } from '@/pipeline/pipeline-errors';
 
 /**

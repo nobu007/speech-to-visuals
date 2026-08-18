@@ -5,7 +5,7 @@
  * budget thresholds and fires alerts when thresholds are exceeded.
  */
 
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 export interface BudgetConfig {
   sessionBudget: number;   // e.g. 1.00 = $1.00 per session

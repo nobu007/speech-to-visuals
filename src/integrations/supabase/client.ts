@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { PipelineConfigError } from '@/pipeline/pipeline-errors';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import type { Database } from './types';
 
 let supabaseInstance: SupabaseClient<Database> | null = null;

@@ -54,7 +54,7 @@ import { readSource } from '@tests/guards/freeze-guard';
 import { ringAngle, pointOnCircle } from '@/visualization/layout-utils';
 import { CycleLayoutStrategy } from '@/visualization/strategies/cycle-strategy';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '@/visualization/canvas-dimensions';
-import type { NodeDatum } from '@/types/diagram';
+import type { NodeDatum } from '@stv/core/types/diagram';
 
 // ---------------------------------------------------------------------------
 // Layer 1 material: the VERBATIM pre-round-48 expressions, frozen from the

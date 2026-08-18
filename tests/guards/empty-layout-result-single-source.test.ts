@@ -62,7 +62,7 @@ import { FlowchartStrategy } from '@/visualization/strategies/flowchart-strategy
 import { ComparisonStrategy } from '@/visualization/strategies/comparison-strategy';
 import { GeneralStrategy } from '@/visualization/strategies/general-strategy';
 import type { LayoutStrategy, StrategyLayoutResult } from '@/visualization/types';
-import type { DiagramType, NodeDatum, EdgeDatum } from '@/types/diagram';
+import type { DiagramType, NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 
 /** The pre-migration inline literal, replicated verbatim as the oracle. */
 const PRE_MIGRATION_INLINE_RESULT = {

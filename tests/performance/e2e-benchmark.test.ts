@@ -18,9 +18,9 @@
  */
 
 import { LayoutEngine } from '@/visualization/layout-engine';
-import { NodeDatum, EdgeDatum, DiagramType } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, DiagramType } from '@stv/core/types/diagram';
 import { LLMService, LLMRequest, LLMResponse } from '@/analysis/llm-service';
-import { getMemoryUsage } from '@/utils/memory-usage';
+import { getMemoryUsage } from '@stv/core/utils/memory-usage';
 
 // =========================================================================
 // NFR Thresholds

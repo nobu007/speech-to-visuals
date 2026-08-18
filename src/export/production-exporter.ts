@@ -6,11 +6,11 @@
 
 import { randomUUID } from 'crypto';
 import { EnhancedSceneGraph, RenderOptions } from '@/visualization/advanced-visual-engine';
-import { SceneGraph } from '@/types/diagram';
+import { SceneGraph } from '@stv/core/types/diagram';
 import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
-import { BATCH_LIMITS } from '@/config/limits';
-import { logger } from '../utils/logger';
-import { safeMean, safeSum } from '@/lib/metrics-utils';
+import { BATCH_LIMITS } from '@stv/core/config/limits';
+import { logger } from '@stv/core/utils/logger';
+import { safeMean, safeSum } from '@stv/core/lib/metrics-utils';
 import { PipelineConfigError } from '@/pipeline/pipeline-errors';
 import type { ExportArtifactStore } from './export-artifact-store';
 import {

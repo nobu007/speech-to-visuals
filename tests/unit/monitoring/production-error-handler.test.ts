@@ -41,7 +41,7 @@ Object.defineProperty(globalThis, 'navigator', {
   writable: true,
 });
 
-jest.unstable_mockModule('../../../src/utils/logger', () => ({
+jest.unstable_mockModule('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

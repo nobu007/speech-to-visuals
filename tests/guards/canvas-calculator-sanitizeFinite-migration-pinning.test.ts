@@ -6,7 +6,7 @@
  *
  * Pins the consolidation of inline `Number.isFinite(x) ? x : 0` patterns in
  * `src/visualization/canvas-calculator.ts` to the canonical `sanitizeFinite(x, 0)`
- * helper from `@/utils/guards`. Ten inline sites migrated across the `calculate()`
+ * helper from `@stv/core/utils/guards`. Ten inline sites migrated across the `calculate()`
  * bounding-box loop (5 sites: x, w, y, h), the `center()` bounding-box loop
  * (5 sites: x, w, y, h), and the `center()` map-reprojection (2 sites for
  * the offset-applied x/y). The 10-site count groups the migration at the
@@ -36,7 +36,7 @@
 import { describe, it, expect } from '@jest/globals';
 import { readFileSync } from 'node:fs';
 import { CanvasCalculator } from '@/visualization/canvas-calculator';
-import type { PositionedNode } from '@/types/diagram';
+import type { PositionedNode } from '@stv/core/types/diagram';
 
 const GUARD_FILE = 'src/visualization/canvas-calculator.ts';
 
@@ -51,11 +51,11 @@ describe('canvas-calculator sanitizeFinite — source anchors pinned', () => {
     expect(src()).not.toMatch(/Number\.isFinite\([^)]*\)\s*\?\s*[^)]*\s*:\s*0/);
   });
 
-  it('imports sanitizeFinite from @/utils/guards', () => {
+  it('imports sanitizeFinite from @stv/core/utils/guards', () => {
     // The migration contract: canvas-calculator depends on the canonical
     // helper. Removing the import (and rolling back to inline ternaries)
     // breaks this anchor → RED.
-    expect(src()).toMatch(/import\s*\{\s*sanitizeFinite\s*\}\s*from\s*['"]@\/utils\/guards['"]/);
+    expect(src()).toMatch(/import\s*\{\s*sanitizeFinite\s*\}\s*from\s*['"]@stv\/core\/utils\/guards['"]/);
   });
 
   it('calls sanitizeFinite at the migrated sites (≥ 6 invocations)', () => {

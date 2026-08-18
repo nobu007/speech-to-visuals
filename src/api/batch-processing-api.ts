@@ -21,12 +21,12 @@ import { adaptiveQualityPresets } from '@/pipeline/adaptive-quality-presets';
 import { randomUUID } from 'crypto';
 import { createHash } from 'crypto';
 import { BatchValidationError, JobNotFoundError } from './routes/batch';
-import { BATCH_LIMITS } from '../config/limits';
-import { logger } from '../utils/logger';
+import { BATCH_LIMITS } from '@stv/core/config/limits';
+import { logger } from '@stv/core/utils/logger';
 import { pipelineMetricsCollector } from '@/monitoring/pipeline-metrics-collector';
-import { validateAudioFile } from '@/utils/audio-validation';
-import { sanitizeFilename } from '@/utils/sanitize';
-import { safeMean, safeSum } from '@/lib/metrics-utils';
+import { validateAudioFile } from '@stv/core/utils/audio-validation';
+import { sanitizeFilename } from '@stv/core/utils/sanitize';
+import { safeMean, safeSum } from '@stv/core/lib/metrics-utils';
 
 export interface BatchJobRequest {
   files: File[];

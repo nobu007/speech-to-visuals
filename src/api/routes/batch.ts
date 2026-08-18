@@ -17,8 +17,8 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { UUID_V4_RE } from '../uuid-validation';
-import { BATCH_LIMITS } from '../../config/limits';
-import { validateAudioFileMetadata } from '../../utils/audio-validation';
+import { BATCH_LIMITS } from '@stv/core/config/limits';
+import { validateAudioFileMetadata } from '@stv/core/utils/audio-validation';
 
 // Allowed preset values (ISS-027)
 const VALID_PRESETS = new Set(['fast', 'balanced', 'quality', 'custom']);

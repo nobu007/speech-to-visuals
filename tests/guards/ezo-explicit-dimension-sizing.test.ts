@@ -79,7 +79,7 @@
 
 import { describe, it, expect } from '@jest/globals';
 import { readSource } from '@tests/guards/freeze-guard';
-import type { NodeDatum, EdgeDatum, DiagramType, PositionedNode } from '@/types/diagram';
+import type { NodeDatum, EdgeDatum, DiagramType, PositionedNode } from '@stv/core/types/diagram';
 import {
   calculateNodeWidth,
   resolveNodeWidth,

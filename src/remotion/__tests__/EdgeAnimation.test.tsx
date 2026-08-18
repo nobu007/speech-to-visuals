@@ -6,7 +6,7 @@
 
 import { jest } from '@jest/globals';
 import * as React from 'react';
-import { LayoutEdge, PositionedNode } from '@/types/diagram';
+import { LayoutEdge, PositionedNode } from '@stv/core/types/diagram';
 import { EDGE_DRAW_DURATION_FRAMES } from '../animation-strategies';
 
 // Mock remotion hooks - return controlled values via module-level variables.

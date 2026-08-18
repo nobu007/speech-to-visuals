@@ -21,8 +21,8 @@ import {
   safeArray,
   safeMap,
   safeJoin,
-} from '../lib/safe-array';
-import type { PositionedNode, LayoutEdge } from '@/types/diagram';
+} from '@stv/core/lib/safe-array';
+import type { PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 
 // -- Utility tests (direct) --------------------------------------------------
 

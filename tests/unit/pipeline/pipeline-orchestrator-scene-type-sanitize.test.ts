@@ -17,7 +17,7 @@
  * field-assignment shape escaped that sweep. The guard prevents re-drift.
  */
 import { PipelineOrchestrator } from '@/pipeline/pipeline-orchestrator';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 type PrepArgs = [unknown, number, unknown[], unknown[]];
 

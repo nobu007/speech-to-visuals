@@ -5,9 +5,9 @@
  */
 
 import { randomUUID } from 'crypto';
-import { getMemoryUsage } from '@/utils/memory-usage';
-import { percentileCeil } from '@/lib/metrics-utils';
-import { logger } from '@/utils/logger';
+import { getMemoryUsage } from '@stv/core/utils/memory-usage';
+import { percentileCeil } from '@stv/core/lib/metrics-utils';
+import { logger } from '@stv/core/utils/logger';
 import { MonitoringError } from '@/pipeline/pipeline-errors';
 import { TokenUsageTracker, type StageType } from '@/analysis/token-usage-tracker';
 import { estimateCost, type CostEstimate } from '@/analysis/cost-estimator';

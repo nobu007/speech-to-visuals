@@ -17,7 +17,7 @@
  * from every full-suite run.
  *
  * `virtual: true` was also pointless at every historical site: it exists to
- * mock modules that CANNOT be resolved, and `@/lib/actualVideoRenderer`
+ * mock modules that CANNOT be resolved, and `@/pipeline/actual-video-renderer`
  * exists on disk. The correct spelling is the plain two-argument call.
  *
  * The ban covers the option spelling `virtual: true` anywhere in a test

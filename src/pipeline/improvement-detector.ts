@@ -8,7 +8,7 @@
  */
 
 import { QualityMonitor, getQualityMonitor } from './quality-monitor';
-import { safeArray } from '../lib/safe-array';
+import { safeArray } from '@stv/core/lib/safe-array';
 import {
   DEFAULT_RENDER_TIME_THRESHOLD_MS,
   DEFAULT_MEMORY_USAGE_THRESHOLD_MB,

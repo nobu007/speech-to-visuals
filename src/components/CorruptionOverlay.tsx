@@ -10,12 +10,12 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import {
   setCorruptionHandler,
   type CorruptionReport,
   type CorruptionHandler,
-} from '@/utils/report-corruption';
+} from '@stv/core/utils/report-corruption';
 
 interface CorruptionOverlayProps {
   className?: string;

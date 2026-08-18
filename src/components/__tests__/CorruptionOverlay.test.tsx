@@ -18,15 +18,15 @@ import { mockLogger } from '@tests/helpers/logger-mock';
 
 // Mock logger via the shared factory (unstable_mockModule is not hoisted, so
 // the imported binding is safe to reference here).
-jest.unstable_mockModule('@/utils/logger', () => mockLogger());
+jest.unstable_mockModule('@stv/core/utils/logger', () => mockLogger());
 
 let CorruptionOverlay: typeof import('../CorruptionOverlay').CorruptionOverlay;
-let reportCorruption: typeof import('@/utils/report-corruption').reportCorruption;
-let setCorruptionHandler: typeof import('@/utils/report-corruption').setCorruptionHandler;
+let reportCorruption: typeof import('@stv/core/utils/report-corruption').reportCorruption;
+let setCorruptionHandler: typeof import('@stv/core/utils/report-corruption').setCorruptionHandler;
 
 beforeAll(async () => {
   const overlayMod = await import('../CorruptionOverlay');
-  const corruptionMod = await import('@/utils/report-corruption');
+  const corruptionMod = await import('@stv/core/utils/report-corruption');
   CorruptionOverlay = overlayMod.CorruptionOverlay;
   reportCorruption = corruptionMod.reportCorruption;
   setCorruptionHandler = corruptionMod.setCorruptionHandler;

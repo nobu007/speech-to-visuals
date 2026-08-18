@@ -14,9 +14,9 @@ import {
   UserGuidedErrorRecovery,
   type ErrorGuidance,
 } from '../../quality/user-guided-error-recovery';
-import { logger } from '../../utils/logger';
-import { ERROR_REGISTRY_LIMITS } from '../../config/limits';
-import { safeArray } from '../../lib/safe-array';
+import { logger } from '@stv/core/utils/logger';
+import { ERROR_REGISTRY_LIMITS } from '@stv/core/config/limits';
+import { safeArray } from '@stv/core/lib/safe-array';
 
 // ---------------------------------------------------------------------------
 // Zod validation schemas

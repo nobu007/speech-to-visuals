@@ -47,9 +47,9 @@ export interface TranscriptionMetrics {
  * REQ-145: Re-export centralized audio constants from @/config/limits
  * so existing imports from this module continue to work unchanged.
  */
-import { AUDIO_LIMITS } from '@/config/limits';
-export { AUDIO_LIMITS, SUPPORTED_AUDIO_FORMATS } from '@/config/limits';
-export type { SupportedAudioFormat } from '@/config/limits';
+import { AUDIO_LIMITS } from '@stv/core/config/limits';
+export { AUDIO_LIMITS, SUPPORTED_AUDIO_FORMATS } from '@stv/core/config/limits';
+export type { SupportedAudioFormat } from '@stv/core/config/limits';
 
 /**
  * Maximum file size in bytes (50MB) — re-exported from centralized AUDIO_LIMITS.

@@ -103,7 +103,7 @@ jest.unstable_mockModule('@/api/server', () => ({
   jobQueue: { stop: jest.fn().mockResolvedValue(undefined) },
 }));
 
-jest.unstable_mockModule('@/utils/logger', () => ({
+jest.unstable_mockModule('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     error: jest.fn(),

@@ -19,7 +19,11 @@ echo "Running guard-red-phase-verification test suite..."
 # Run the red-phase verification tests
 # Exit code 0 = all canaries detected (pass)
 # Exit code non-0 = at least one canary slipped through (FAIL)
-npx jest --config jest.config.cjs \
+# NODE_OPTIONS matches package.json test scripts: the suite imports
+# @stv/core (type:module ESM in node_modules), which needs the VM modules
+# runtime — without it jest parses the package's dist as CJS and dies on
+# `export` before a single test loads.
+NODE_OPTIONS='--experimental-vm-modules' npx jest --config jest.config.cjs \
   --testPathPatterns='guard-red-phase-verification' \
   --verbose \
   --no-coverage

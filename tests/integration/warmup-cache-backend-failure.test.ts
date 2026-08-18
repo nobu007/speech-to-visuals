@@ -27,7 +27,7 @@ import {
 import type { LLMService } from '../../src/analysis/llm-service';
 
 // Suppress logger noise during tests
-jest.mock('../../src/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

@@ -1,4 +1,4 @@
-import { DiagramLayout, DiagramType } from '@/types/diagram';
+import { DiagramLayout, DiagramType } from '@stv/core/types/diagram';
 import { LayoutOptimizer } from './LayoutOptimizer';
 
 export class LayoutOptimizationPipeline {

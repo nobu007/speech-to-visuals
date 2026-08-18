@@ -1,5 +1,5 @@
 import { TreeStrategy, treeStrategy } from '@/visualization/strategies/tree-strategy';
-import { NodeDatum, EdgeDatum } from '@/types/diagram';
+import { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult } from '@/visualization/types';
 
 describe('TreeStrategy', () => {

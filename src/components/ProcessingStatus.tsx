@@ -1,9 +1,9 @@
 import { memo, useMemo } from 'react';
-import { ProcessingStatus as Status } from '@/types/diagram';
+import { ProcessingStatus as Status } from '@stv/core/types/diagram';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Loader2, FileAudio, Brain, Sparkles, CheckCircle2, XCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@stv/core/lib/utils';
 
 type ProcessingStatusProps = {
   status: Status;

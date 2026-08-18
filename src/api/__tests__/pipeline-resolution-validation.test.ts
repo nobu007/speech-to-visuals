@@ -5,7 +5,7 @@
  * resource exhaustion (e.g., 99999x99999 would allocate huge buffers).
  */
 import { describe, it, expect } from '@jest/globals';
-import { PIPELINE_LIMITS } from '../../config/limits';
+import { PIPELINE_LIMITS } from '@stv/core/config/limits';
 
 // Replicate the Zod schema from pipeline.ts to test validation in isolation
 import { z } from 'zod';

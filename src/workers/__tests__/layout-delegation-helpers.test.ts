@@ -9,7 +9,7 @@ import { jest } from '@jest/globals';
 import type { LayoutConfig } from '../../visualization/types';
 import type { FallbackLayoutStrategy } from '../../visualization/strategies/FallbackLayoutStrategy';
 import type { WorkerResponse, LayoutWorkerResult } from '../types';
-import type { DiagramType } from '../../types/diagram';
+import type { DiagramType } from '@stv/core/types/diagram';
 
 // Mock workers module
 jest.unstable_mockModule('@/workers', () => ({

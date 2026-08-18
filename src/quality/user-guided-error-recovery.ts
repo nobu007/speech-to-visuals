@@ -13,8 +13,8 @@
  * - Section 9.2: Continuous Improvement - User experience
  */
 
-import { logger } from '@/utils/logger';
-import { CappedArray } from '@/lib/capped-array';
+import { logger } from '@stv/core/utils/logger';
+import { CappedArray } from '@stv/core/lib/capped-array';
 import type { ErrorSeverity } from './error-classifier';
 
 export type ErrorCategory =

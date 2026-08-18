@@ -28,7 +28,7 @@
 import { describe, it, expect } from '@jest/globals';
 import { mulberry32 } from '@tests/helpers/fuzz';
 import { nodesOverlap } from '@/visualization/layout-utils';
-import type { PositionedNode } from '@/types/diagram';
+import type { PositionedNode } from '@stv/core/types/diagram';
 
 const { QualityGateEvaluator } = await import('../quality-gate');
 

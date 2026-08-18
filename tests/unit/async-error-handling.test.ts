@@ -8,7 +8,7 @@
 
 import { EnhancedExportEngine } from '@/export/enhanced-export-engine';
 import type { ExportConfiguration } from '@/export/enhanced-export-engine';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 // ---------------------------------------------------------------------------
 // Helpers

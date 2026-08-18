@@ -16,7 +16,7 @@ import {
   SyncDriftResult,
 } from '../scene-synchronizer';
 import { SrtCaption } from '../srt-parser';
-import { SceneGraph } from '@/types/diagram';
+import { SceneGraph } from '@stv/core/types/diagram';
 
 // Default FPS constant
 const FPS = 30;

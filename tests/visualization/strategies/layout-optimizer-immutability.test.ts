@@ -8,7 +8,7 @@
  * Fix: Each method now returns new node objects via `.map(spread)`.
  */
 import { LayoutOptimizer } from '@/visualization/strategies/LayoutOptimizer';
-import type { PositionedNode, DiagramLayout, LayoutEdge } from '@/types/diagram';
+import type { PositionedNode, DiagramLayout, LayoutEdge } from '@stv/core/types/diagram';
 
 const config = {
   width: 1000,

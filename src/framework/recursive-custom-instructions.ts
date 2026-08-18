@@ -12,8 +12,8 @@
  * as specified in your comprehensive custom instructions document.
  */
 
-import { logger } from '../utils/logger';
-import { safeMean } from '../lib/metrics-utils';
+import { logger } from '@stv/core/utils/logger';
+import { safeMean } from '@stv/core/lib/metrics-utils';
 import { DEVELOPMENT_CYCLES } from './iteration-manager';
 import {
   DEFAULT_TRANSCRIPTION_ACCURACY_THRESHOLD,

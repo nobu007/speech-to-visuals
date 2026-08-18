@@ -27,7 +27,7 @@ const mockGetMemoryUsage = jest.fn(() => ({
   external: 10 * 1024 * 1024,
 }));
 
-jest.mock('../../../src/utils/memory-usage', () => ({
+jest.mock('@stv/core/utils/memory-usage', () => ({
   getMemoryUsage: mockGetMemoryUsage,
 }));
 

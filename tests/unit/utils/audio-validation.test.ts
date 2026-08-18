@@ -3,8 +3,8 @@ import {
   validateAudioFile,
   validateAudioDuration,
   MIN_AUDIO_DURATION_SECONDS,
-} from '@/utils/audio-validation';
-import { AUDIO_LIMITS } from '@/config/limits';
+} from '@stv/core/utils/audio-validation';
+import { AUDIO_LIMITS } from '@stv/core/config/limits';
 
 // ---------------------------------------------------------------------------
 // validateAudioFile

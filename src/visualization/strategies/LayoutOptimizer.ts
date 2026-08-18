@@ -1,4 +1,4 @@
-import { DiagramLayout, PositionedNode, DiagramType, LayoutEdge } from '@/types/diagram';
+import { DiagramLayout, PositionedNode, DiagramType, LayoutEdge } from '@stv/core/types/diagram';
 import { LayoutConfig } from '../types';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 import { calculateNodeCenter, nodesCentroid, ringAngle, pointOnCircle, squareGridColumns, squareGridRows, centerInCell } from '../layout-utils';

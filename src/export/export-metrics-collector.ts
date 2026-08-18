@@ -12,7 +12,7 @@
  * - export_stage_duration_ms(summary with quantiles per stage)
  */
 
-import { computePercentiles } from '@/lib/metrics-utils';
+import { computePercentiles } from '@stv/core/lib/metrics-utils';
 import type { JobPriority } from './export-job-queue';
 
 // Re-export so existing type-only consumers can keep importing JobPriority from

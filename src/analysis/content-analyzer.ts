@@ -3,7 +3,7 @@ import { LLMService, llmService } from "./llm-service";
 import { getContentAnalyzerPrompt, type Language } from "./prompt-templates";
 import { buildContentCacheKey } from "./cache-key";
 import { SENTENCE_BOUNDARY_REGEX } from "./sentence-boundaries";
-import { logger } from '../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 /**
  * Cache-key version tag for ContentAnalyzer results. Bump when the analyzer

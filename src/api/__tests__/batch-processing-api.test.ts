@@ -5,7 +5,7 @@
 
 import { BatchProcessingAPI } from '../batch-processing-api';
 import { BatchValidationError, JobNotFoundError } from '../routes/batch';
-import { AUDIO_LIMITS } from '@/config/limits';
+import { AUDIO_LIMITS } from '@stv/core/config/limits';
 
 // Mock simplePipeline to avoid real processing
 jest.mock('@/pipeline/simple-pipeline', () => ({

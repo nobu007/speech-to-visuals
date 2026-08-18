@@ -15,7 +15,7 @@ import {
   pickHighestImportance,
 } from '../importance-scaler';
 import { VisualizationError } from '@/pipeline/pipeline-errors';
-import type { NodeDatum } from '@/types/diagram';
+import type { NodeDatum } from '@stv/core/types/diagram';
 
 function makeNode(id: string, importance?: number): NodeDatum {
   return { id, label: id, meta: importance !== undefined ? { importance } : undefined };

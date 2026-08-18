@@ -5,7 +5,7 @@ import {
 } from '@jest/globals';
 
 import { VisualBalanceScorer } from '../visual-balance-scorer';
-import { PositionedNode } from '@/types/diagram';
+import { PositionedNode } from '@stv/core/types/diagram';
 
 describe('VisualBalanceScorer', () => {
   const scorer = new VisualBalanceScorer();

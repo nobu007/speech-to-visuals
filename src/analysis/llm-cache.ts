@@ -11,8 +11,8 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { calculateSemanticSimilarity, SemanticMetricsTracker } from './semantic-similarity';
-import { logger } from '../utils/logger';
-import { reportCorruption } from '../utils/report-corruption';
+import { logger } from '@stv/core/utils/logger';
+import { reportCorruption } from '@stv/core/utils/report-corruption';
 import { sanitizeUntrustedJsonValue } from './llm-utils';
 
 interface CacheEntry<T> {

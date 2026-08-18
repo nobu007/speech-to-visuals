@@ -22,7 +22,7 @@ import { OverlapResolver as VizOverlapResolver } from '@/visualization/strategie
 import { OverlapResolver as LayoutOverlapResolver } from '@/visualization/layout/OverlapResolver';
 import { nodesOverlap } from '@/visualization/layout-utils';
 import { LayoutConfig } from '@/visualization/types';
-import { NodeDatum, EdgeDatum, DiagramLayout, PositionedNode } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, DiagramLayout, PositionedNode } from '@stv/core/types/diagram';
 
 const CONFIG: LayoutConfig = {
   width: 1920,

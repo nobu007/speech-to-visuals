@@ -10,7 +10,7 @@ import type {
   EdgeDatum,
   SceneGraph,
   DiagramType,
-} from '@/types';
+} from '@stv/core/types';
 
 /**
  * Generate a random short id suitable for tests.

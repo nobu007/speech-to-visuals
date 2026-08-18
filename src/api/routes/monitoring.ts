@@ -21,7 +21,7 @@ import { httpMetricsCollector, type HttpMetricsSnapshot } from '../../monitoring
 import { exportPrometheusMetrics, PROMETHEUS_CONTENT_TYPE } from '../../monitoring/prometheus-exporter';
 import { exportDashboardJson, type DashboardGenerateOptions } from '../../monitoring/grafana-dashboard-model';
 import { exportAlertRulesYaml, type AlertRulesOptions } from '../../monitoring/alert-rules';
-import { logger } from '../../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 // ---------------------------------------------------------------------------
 // Zod validation schemas

@@ -16,7 +16,7 @@
 
 import { DiagramDetector, DiagramDetectionResult, TextFeatures } from '../diagram-detector';
 import type { ContentSegment, DiagramAnalysis } from '../types';
-import type { DiagramType } from '@/types/diagram';
+import type { DiagramType } from '@stv/core/types/diagram';
 
 // Helper: create a ContentSegment from text
 function makeSegment(text: string, keyphrases: string[] = []): ContentSegment {

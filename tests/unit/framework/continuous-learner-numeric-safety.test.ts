@@ -8,7 +8,7 @@
 import { jest } from '@jest/globals';
 
 // Mock logger to avoid side effects
-jest.mock('../../../src/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

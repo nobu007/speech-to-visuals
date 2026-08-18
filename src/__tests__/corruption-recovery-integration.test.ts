@@ -7,7 +7,7 @@
  */
 
 // Mock logger
-jest.mock('@/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -18,8 +18,8 @@ jest.mock('@/utils/logger', () => ({
   LogLevel: { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3, SILENT: 4 },
 }));
 
-import { ProductionConfigManager } from '@/config/production-config';
-import { setCorruptionHandler, type CorruptionReport } from '@/utils/report-corruption';
+import { ProductionConfigManager } from '@stv/core/config/production-config';
+import { setCorruptionHandler, type CorruptionReport } from '@stv/core/utils/report-corruption';
 
 // ── localStorage mock ──
 const mockStorage: Record<string, string> = {};

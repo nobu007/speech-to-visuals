@@ -12,8 +12,8 @@
 
 import { Router, Request, Response } from 'express';
 import { ExportJobQueue, type JobPriority } from '../../export/export-job-queue';
-import { logger } from '../../utils/logger';
-import { roundTo } from '../../lib/metrics-utils';
+import { logger } from '@stv/core/utils/logger';
+import { roundTo } from '@stv/core/lib/metrics-utils';
 import { UUID_V4_RE } from '../uuid-validation';
 
 const VALID_PRIORITIES: JobPriority[] = ['high', 'normal', 'low'];

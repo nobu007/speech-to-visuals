@@ -10,7 +10,7 @@
 import { DiagramDetector } from '@/analysis/diagram-detector';
 import type { DiagramDetectionResult, TextFeatures } from '@/analysis/diagram-detector';
 import type { ContentSegment } from '@/analysis/types';
-import type { DiagramType } from '@/types/diagram';
+import type { DiagramType } from '@stv/core/types/diagram';
 
 // ---------------------------------------------------------------------------
 // Helpers

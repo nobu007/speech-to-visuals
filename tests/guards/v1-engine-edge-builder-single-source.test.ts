@@ -63,7 +63,7 @@
 
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import { readSource } from '@tests/guards/freeze-guard';
-import type { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import type { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import type { LayoutConfig } from '@/visualization/types';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '@/visualization/node-dimensions';
 import { generateEdgePoints } from '@/visualization/layout-utils';
@@ -74,7 +74,7 @@ import { ConceptMapLayoutStrategy } from '@/visualization/strategies/ConceptMapL
 import { NetworkLayoutStrategy } from '@/visualization/strategies/NetworkLayoutStrategy';
 import { TimelineLayoutStrategy } from '@/visualization/strategies/TimelineLayoutStrategy';
 import { TreeLayoutStrategy } from '@/visualization/strategies/TreeLayoutStrategy';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 // ---------------------------------------------------------------------------
 // Layer 1 material: the VERBATIM pre-round-33 bodies, frozen from

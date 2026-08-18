@@ -17,8 +17,8 @@ import {
   MATRIX_STRATEGY,
   CYCLE_STRATEGY,
 } from '../animation-strategies';
-import { DiagramType } from '@/types/diagram';
-import { PositionedNode, LayoutEdge } from '@/types/diagram';
+import { DiagramType } from '@stv/core/types/diagram';
+import { PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 
 // Helper factories
 function makeNode(overrides: Partial<PositionedNode> = {}): PositionedNode {

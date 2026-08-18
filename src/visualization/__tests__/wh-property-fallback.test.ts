@@ -14,7 +14,7 @@ import { GeneralStrategy } from '../strategies/general-strategy';
 import { TimelineStrategy } from '../strategies/timeline-strategy';
 import { CanvasCalculator } from '../canvas-calculator';
 import { nodesOverlap } from '../layout-utils';
-import type { PositionedNode, NodeDatum, EdgeDatum } from '@/types/diagram';
+import type { PositionedNode, NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 
 // Lazy-loaded modules (may not exist or have different export patterns)
 let OverlapResolver: any;
@@ -199,7 +199,7 @@ describe('w/h property fallback — BaseLayoutStrategy metrics & bounding box', 
       readonly canEscapeLocalMinimum = false;
       protected async performLayout(
         nodes: PositionedNode[],
-        edges: import('@/types/diagram').LayoutEdge[],
+        edges: import('@stv/core/types/diagram').LayoutEdge[],
       ) { return { nodes, edges }; }
     })();
     const nodes: PositionedNode[] = [
@@ -218,7 +218,7 @@ describe('w/h property fallback — BaseLayoutStrategy metrics & bounding box', 
       readonly canEscapeLocalMinimum = false;
       protected async performLayout(
         nodes: PositionedNode[],
-        edges: import('@/types/diagram').LayoutEdge[],
+        edges: import('@stv/core/types/diagram').LayoutEdge[],
       ) { return { nodes, edges }; }
     })();
     const nodes: PositionedNode[] = [
@@ -239,7 +239,7 @@ describe('w/h property fallback — BaseLayoutStrategy metrics & bounding box', 
       readonly canEscapeLocalMinimum = false;
       protected async performLayout(
         nodes: PositionedNode[],
-        edges: import('@/types/diagram').LayoutEdge[],
+        edges: import('@stv/core/types/diagram').LayoutEdge[],
       ) { return { nodes, edges }; }
     })();
     const nodes: PositionedNode[] = [
@@ -257,7 +257,7 @@ describe('w/h property fallback — BaseLayoutStrategy metrics & bounding box', 
       readonly canEscapeLocalMinimum = false;
       protected async performLayout(
         nodes: PositionedNode[],
-        edges: import('@/types/diagram').LayoutEdge[],
+        edges: import('@stv/core/types/diagram').LayoutEdge[],
       ) { return { nodes, edges }; }
     })();
     const nodes: PositionedNode[] = [

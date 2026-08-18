@@ -14,8 +14,8 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { PipelineConfigError } from '@/pipeline/pipeline-errors';
-import { logger } from '../utils/logger';
-import { safeArray } from '../lib/safe-array';
+import { logger } from '@stv/core/utils/logger';
+import { safeArray } from '@stv/core/lib/safe-array';
 
 export type IterationStatus = 'in_progress' | 'success' | 'failure';
 export type CommitTrigger = 'on_success' | 'on_checkpoint' | 'on_review';

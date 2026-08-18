@@ -15,7 +15,7 @@ import {
   getQualityColorClass,
   getQualityBadgeVariant,
   getQualityTierLabel,
-} from '@/lib/quality-display-tiers';
+} from '@stv/core/lib/quality-display-tiers';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';

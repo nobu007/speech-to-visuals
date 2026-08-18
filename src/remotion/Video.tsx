@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, Audio } from 'remotion';
-import { SceneGraph } from '@/types/diagram';
+import { SceneGraph } from '@stv/core/types/diagram';
 import { DiagramScene } from './DiagramScene';
 import { KeyphraseOverlay, type KeyphraseScene } from './KeyphraseOverlay';
 import { CaptionOverlay } from './CaptionOverlay';

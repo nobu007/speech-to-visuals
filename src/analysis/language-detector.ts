@@ -16,8 +16,8 @@
  */
 
 import { AnalyzerInitError } from "./analysis-errors";
-import { logger } from '../utils/logger';
-import { charInRanges, KANA_RANGES, CJK_IDEOGRAPH_RANGES } from '@/lib/unicode-script-ranges';
+import { logger } from '@stv/core/utils/logger';
+import { charInRanges, KANA_RANGES, CJK_IDEOGRAPH_RANGES } from '@stv/core/lib/unicode-script-ranges';
 
 // ---------------------------------------------------------------------------
 // Public types

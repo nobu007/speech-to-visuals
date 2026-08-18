@@ -71,7 +71,7 @@ export interface PrometheusMetric {
 // Prometheus label-value sanitization is consolidated in the shared helper —
 // see src/utils/prometheus-label-escape.ts (formerly a private copy here that
 // drifted from the sibling copy in security-metrics-collector.ts).
-import { sanitizePrometheusLabel as sanitizeLabelValue } from '@/utils/prometheus-label-escape';
+import { sanitizePrometheusLabel as sanitizeLabelValue } from '@stv/core/utils/prometheus-label-escape';
 
 /** Convert a path like /api/v1/monitoring/health to api_v1_monitoring_health. */
 function pathToMetricSuffix(path: string): string {

@@ -9,7 +9,7 @@
 // ---------- Mock setup for browser APIs ----------
 
 import type { TranscriptionSegment } from '../types';
-import { fireAudioMetadata, fireAudioError } from '@/utils/__tests__/audio-mock-helpers';
+import { fireAudioMetadata, fireAudioError } from './audio-mock-helpers';
 
 type MockSpeechRecognitionInstance = {
   continuous: boolean;

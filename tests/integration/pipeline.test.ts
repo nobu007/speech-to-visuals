@@ -143,7 +143,7 @@ jest.unstable_mockModule('@/optimization/smart-parameter-tuner', () => {
   };
 });
 
-jest.unstable_mockModule('@/config/validate', () => ({
+jest.unstable_mockModule('@stv/core/config/validate', () => ({
   validateConfig: jest.fn().mockReturnValue([]),
   ValidationError: class extends Error {
     field: string;

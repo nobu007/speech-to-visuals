@@ -6,7 +6,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Player, type PlayerRef } from '@remotion/player';
 import { SpeechToVisualsVideo, calculateTotalFrames, DEFAULT_FPS } from '@/remotion/Video';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import {

@@ -13,7 +13,7 @@ import { PipelineInput, PipelineResult } from '@/pipeline/types';
 import { DEVELOPMENT_CYCLES } from '@/framework/iteration-manager';
 import { QualityRecommendation } from '@/framework/auto-improvement-engine';
 import { MonitoringError } from '@/pipeline/pipeline-errors';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 /**
  * Execution state

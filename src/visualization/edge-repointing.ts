@@ -52,7 +52,7 @@
  * (no strategy file re-rolls the spread skeleton).
  */
 
-import { PositionedNode, LayoutEdge } from '@/types/diagram';
+import { PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 
 /**
  * Re-point already-built LayoutEdges at positioned nodes.

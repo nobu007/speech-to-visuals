@@ -12,7 +12,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { formatPlaybackTime as formatTime } from '@/utils/playback-time';
+import { formatPlaybackTime as formatTime } from '@stv/core/utils/playback-time';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -31,9 +31,9 @@ import {
   Eye,
   Layers
 } from 'lucide-react';
-import { SceneGraph } from '@/types/diagram';
+import { SceneGraph } from '@stv/core/types/diagram';
 import { toast } from 'sonner';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 interface EnhancedVideoPreviewProps {
   videoUrl?: string;

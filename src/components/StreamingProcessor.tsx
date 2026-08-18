@@ -8,8 +8,8 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { logger } from '@/utils/logger';
-import { formatPlaybackTime as formatTime } from '@/utils/playback-time';
+import { logger } from '@stv/core/utils/logger';
+import { formatPlaybackTime as formatTime } from '@stv/core/utils/playback-time';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -32,7 +32,7 @@ import {
   validateStreamingSupport
 } from '@/transcription/streaming-transcriber';
 import { TranscriptionSegment } from '@/transcription/types';
-import { SceneGraph, DiagramType, isDiagramType, EdgeDatum } from '@/types/diagram';
+import { SceneGraph, DiagramType, isDiagramType, EdgeDatum } from '@stv/core/types/diagram';
 
 export interface StreamingProcessorProps {
   onSceneGenerated?: (scene: SceneGraph) => void;

@@ -12,7 +12,7 @@
 
 import { jest } from '@jest/globals';
 
-jest.mock('../../../src/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

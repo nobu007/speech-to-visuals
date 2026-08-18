@@ -13,7 +13,7 @@
  * enableForceDirected: false, enableClustering: false).
  */
 
-import { NodeDatum, EdgeDatum, DiagramType } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, DiagramType } from '@stv/core/types/diagram';
 import { ComplexLayoutEngine, ComplexLayoutConfig } from '@/visualization/complex-layout-engine';
 import { OverlapResolver } from '@/visualization/strategies/OverlapResolver';
 import { LayoutOptimizer } from '@/visualization/strategies/LayoutOptimizer';

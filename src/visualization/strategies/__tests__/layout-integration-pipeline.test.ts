@@ -16,7 +16,7 @@
 import { TreeLayoutStrategy } from '../TreeLayoutStrategy';
 import { TimelineLayoutStrategy } from '../TimelineLayoutStrategy';
 import { FallbackLayoutStrategy } from '../FallbackLayoutStrategy';
-import { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, PositionedNode } from '@stv/core/types/diagram';
 import { LayoutConfig } from '../../types';
 
 // ---------------------------------------------------------------------------

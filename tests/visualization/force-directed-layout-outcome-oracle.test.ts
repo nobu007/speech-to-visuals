@@ -22,7 +22,7 @@ import { ZeroOverlapLayoutEngine } from '@/visualization/enhanced-zero-overlap-l
 import { NetworkLayoutStrategy } from '@/visualization/strategies/NetworkLayoutStrategy';
 import { nodesOverlap } from '@/visualization/layout-utils';
 import { getNodeWidth, getNodeHeight } from '@/visualization/node-dimensions';
-import { NodeDatum, EdgeDatum, DiagramType, PositionedNode } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, DiagramType, PositionedNode } from '@stv/core/types/diagram';
 import { LayoutConfig } from '@/visualization/types';
 
 const CANVAS_WIDTH = 1920;

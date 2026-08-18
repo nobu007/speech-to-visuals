@@ -23,7 +23,7 @@ import { DiagramDetector } from '@/analysis';
 import { EnhancedZeroOverlapLayoutEngine } from '@/visualization/enhanced-zero-overlap-layout';
 import { getQualityMonitor } from '@/pipeline/quality-monitor';
 import { llmService } from '@/analysis/llm-service';
-import { getMemoryUsage } from '@/utils/memory-usage';
+import { getMemoryUsage } from '@stv/core/utils/memory-usage';
 
 interface ValidationResult {
   category: string;

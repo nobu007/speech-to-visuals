@@ -1,4 +1,4 @@
-import { DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { DiagramLayout, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { ComplexLayoutConfig } from '../complex-layout-engine'; // Assuming this path is correct
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 import { nodeExtentEdges, foldNodeExtents } from '../layout-utils';

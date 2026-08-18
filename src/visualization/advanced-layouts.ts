@@ -4,7 +4,7 @@
  * Following iterative improvement philosophy
  */
 
-import type { NodeDatum, EdgeDatum } from '@/types/diagram';
+import type { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 import { ringAngle, pointOnCircle, squareGridColumns } from './layout-utils';
 
 export interface AdvancedLayoutOptions {

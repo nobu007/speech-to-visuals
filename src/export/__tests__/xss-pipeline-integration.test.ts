@@ -26,7 +26,7 @@ import type { TranscriptionSegment } from '@/transcription/types';
 import { MultiFormatExporter } from '../multi-format-exporter';
 import { generateAnimatedSVG, generateLottieAnimation } from '../animated-scene-renderer';
 import { EnhancedExportEngine } from '../enhanced-export-engine';
-import type { SceneGraph, NodeDatum, EdgeDatum } from '@/types/diagram';
+import type { SceneGraph, NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 
 beforeEach(() => {
   jest.spyOn(console, 'log').mockImplementation(() => {});

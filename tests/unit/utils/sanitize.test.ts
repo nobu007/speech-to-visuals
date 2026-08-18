@@ -6,7 +6,7 @@
  * and other edge cases.
  */
 
-import { sanitizeFilename } from '../../../src/utils/sanitize';
+import { sanitizeFilename } from '@stv/core/utils/sanitize';
 
 describe('sanitizeFilename (REQ-132)', () => {
   // =========================================================================

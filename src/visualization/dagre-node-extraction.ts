@@ -33,7 +33,7 @@
  * tests/guards/frozen-literal-families/dagre-node-extraction.ts.
  */
 
-import { NodeDatum, PositionedNode } from '@/types/diagram';
+import { NodeDatum, PositionedNode } from '@stv/core/types/diagram';
 
 /**
  * The slice of a laid-out dagre graph that the extraction reads. Structural

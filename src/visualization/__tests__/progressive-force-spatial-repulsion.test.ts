@@ -5,7 +5,7 @@ import {
 } from '@jest/globals';
 
 import { ProgressiveForceStrategy } from '../layout/strategies/ProgressiveForceStrategy';
-import { PositionedNode, LayoutEdge } from '@/types/diagram';
+import { PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 
 // ---------------------------------------------------------------------------
 // Helpers

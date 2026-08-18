@@ -13,7 +13,7 @@
  */
 
 import { SimplePipeline } from '../src/pipeline/simple-pipeline';
-import { getHeapUsed } from '../src/utils/memory-usage';
+import { getHeapUsed } from '@stv/core/utils/memory-usage';
 import { getQualityMonitor, formatQualityReport } from '../src/pipeline/quality-monitor';
 import { ImprovementDetector } from '../src/pipeline/improvement-detector';
 import * as fs from 'fs';

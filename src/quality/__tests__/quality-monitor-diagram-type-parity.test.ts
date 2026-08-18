@@ -28,8 +28,8 @@
  */
 
 import { describe, it, expect } from '@jest/globals';
-import { isDiagramType } from '@/types/diagram';
-import type { PositionedNode, SceneGraph, DiagramType } from '@/types/diagram';
+import { isDiagramType } from '@stv/core/types/diagram';
+import type { PositionedNode, SceneGraph, DiagramType } from '@stv/core/types/diagram';
 import type { PipelineResult } from '@/pipeline/types';
 
 const { QualityMonitor } = await import('../quality-monitor');

@@ -74,7 +74,7 @@ import { describe, it, expect } from '@jest/globals';
 import { readSource } from '@tests/guards/freeze-guard';
 import * as dagreLib from '@dagrejs/dagre';
 const dagre = (dagreLib as unknown as { default?: typeof dagreLib }).default ?? dagreLib;
-import type { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import type { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '@/visualization/node-dimensions';
 import {
   DEFAULT_NODE_SEPARATION,

@@ -16,7 +16,7 @@ import {
 import {
   EXPORT_RETRY_LIMITS,
   EXPORT_STAGE_TIMEOUTS,
-} from '../../../src/config/limits';
+} from '@stv/core/config/limits';
 
 // ---------------------------------------------------------------------------
 // Helpers

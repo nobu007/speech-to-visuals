@@ -16,7 +16,7 @@
  */
 import { jest } from '@jest/globals';
 import type { LayoutResult } from '@/visualization/types';
-import type { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import type { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 
 /** Identity strategy: echo input nodes, claim a perfect zero-overlap result. */
 function createIdentityStrategy(name: string) {

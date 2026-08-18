@@ -22,7 +22,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { safeMax, safeMean } from '@/lib/metrics-utils';
+import { safeMax, safeMean } from '@stv/core/lib/metrics-utils';
 import { createLayoutRng } from '@/visualization/layout-rng';
 
 const detectorSource = readFileSync(

@@ -14,7 +14,7 @@ import express from 'express';
 import request from 'supertest';
 import { healthCheckService } from '@/monitoring/health-check-service';
 
-jest.mock('@/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

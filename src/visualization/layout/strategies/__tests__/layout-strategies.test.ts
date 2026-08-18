@@ -45,7 +45,7 @@ const { GridSnapStrategy } = await import('../GridSnapStrategy');
 const { BaseLayoutStrategy } = await import('../LayoutStrategy');
 
 // Import types
-import type { NodeDatum, EdgeDatum } from '@/types/diagram';
+import type { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 
 // ─── ProgressiveForceStrategy ──────────────────────────────────────
 

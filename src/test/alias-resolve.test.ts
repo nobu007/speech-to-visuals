@@ -1,4 +1,4 @@
-import { DiagramType, NodeDatum, EdgeDatum } from '@/types/diagram';
+import { DiagramType, NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 
 describe('TASK-0001: Path Alias Resolution', () => {
   test('@/types/diagram resolves correctly', () => {

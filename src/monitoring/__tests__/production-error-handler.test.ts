@@ -27,7 +27,7 @@ Object.defineProperty(globalThis, 'navigator', {
 import { ProductionErrorHandler } from '../production-error-handler';
 import type { ErrorAlert, ErrorMetrics } from '../production-error-handler';
 
-jest.mock('@/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

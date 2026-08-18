@@ -16,9 +16,9 @@
 import { LOWER_IS_BETTER_QUALITY_METRICS, QualityMetrics, QualityMonitor } from '../pipeline/quality-monitor';
 import * as fs from 'fs';
 import * as path from 'path';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import { QualityGateError } from '@/pipeline/pipeline-errors';
-import { percentChange } from '@/lib/metrics-utils';
+import { percentChange } from '@stv/core/lib/metrics-utils';
 
 export interface RegressionReport {
   timestamp: Date;

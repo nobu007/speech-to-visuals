@@ -1,7 +1,7 @@
 import { DagreLayoutStrategy } from '@/visualization/strategies/DagreLayoutStrategy';
 import { FallbackLayoutStrategy } from '@/visualization/strategies/FallbackLayoutStrategy';
 import { LayoutConfig } from '@/visualization/types';
-import { NodeDatum, EdgeDatum, DiagramType } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, DiagramType } from '@stv/core/types/diagram';
 
 const defaultConfig: LayoutConfig = {
   width: 1920,

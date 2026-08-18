@@ -18,7 +18,7 @@
  */
 
 import { describe, it, expect } from '@jest/globals';
-import type { NodeDatum, EdgeDatum, PositionedNode, DiagramType } from '@/types/diagram';
+import type { NodeDatum, EdgeDatum, PositionedNode, DiagramType } from '@stv/core/types/diagram';
 
 // ---------------------------------------------------------------------------
 // Helpers

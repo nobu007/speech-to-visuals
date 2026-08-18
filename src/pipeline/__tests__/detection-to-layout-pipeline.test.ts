@@ -21,7 +21,7 @@ import { describe, it, expect } from '@jest/globals';
 import { SimpleDiagramDetector } from '@/analysis/simple-diagram-detector';
 import type { SimpleNode, SimpleEdge } from '@/analysis/simple-diagram-detector';
 import { LayoutEngine } from '@/visualization';
-import type { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
+import type { NodeDatum, EdgeDatum, PositionedNode } from '@stv/core/types/diagram';
 
 // ---------------------------------------------------------------------------
 // Helpers

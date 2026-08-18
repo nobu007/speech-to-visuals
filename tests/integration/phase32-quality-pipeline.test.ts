@@ -20,7 +20,7 @@ import {
   QualityGate,
 } from '@/pipeline/pipeline-orchestrator';
 import { PipelineInput } from '@/pipeline/types';
-import { PositionedNode, LayoutEdge } from '@/types/diagram';
+import { PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { scoreLayout } from '@/visualization/layout-quality-composite';
 import { runAutoOptimization } from '@/visualization/layout-auto-optimizer';
 import { sizeAllLabels } from '@/visualization/smart-label-sizer';

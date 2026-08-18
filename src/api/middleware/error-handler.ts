@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import { logger } from '../../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import { PipelineError } from '../../pipeline/pipeline-errors';
 import { pipelineErrorGuidance, type PipelineErrorGuidance } from '../../quality/pipeline-error-guidance';
 import type { ErrorType } from '../../quality/error-classifier';
-import { safeArray } from '../../lib/safe-array';
+import { safeArray } from '@stv/core/lib/safe-array';
 
 export class AppError extends Error {
   public readonly statusCode: number;

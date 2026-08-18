@@ -16,7 +16,7 @@ const infoSpy = jest.spyOn(console, 'info').mockImplementation(() => {});
 const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-import { LogLevel, logger } from '../../../src/utils/logger';
+import { LogLevel, logger } from '@stv/core/utils/logger';
 
 // ---------------------------------------------------------------------------
 // Tests

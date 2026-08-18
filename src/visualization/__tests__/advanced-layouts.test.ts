@@ -1,5 +1,5 @@
 import { AdvancedLayoutEngine } from '../advanced-layouts';
-import type { NodeDatum, EdgeDatum } from '@/types/diagram';
+import type { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 
 describe('AdvancedLayoutEngine', () => {
   let engine: AdvancedLayoutEngine;

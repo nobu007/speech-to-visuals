@@ -20,7 +20,7 @@
  */
 
 import { describe, it, expect } from '@jest/globals';
-import type { PositionedNode } from '@/types/diagram';
+import type { PositionedNode } from '@stv/core/types/diagram';
 import { mulberry32 } from '@tests/helpers/fuzz';
 import { nodesOverlap as canonical } from '../layout-utils';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';

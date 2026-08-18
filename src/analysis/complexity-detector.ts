@@ -9,7 +9,7 @@
  * Target: 60-75% processing time reduction for simple content
  */
 
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import { SENTENCE_BOUNDARY_REGEX } from './sentence-boundaries';
 
 /** Browser-safe env accessor — returns undefined when process is unavailable (ISS-021) */

@@ -6,8 +6,8 @@
  * and scales down if nodes exceed 1920x1080.
  */
 
-import { PositionedNode } from '@/types/diagram';
-import { sanitizeFinite } from '@/utils/guards';
+import { PositionedNode } from '@stv/core/types/diagram';
+import { sanitizeFinite } from '@stv/core/utils/guards';
 import { getNodeWidth, getNodeHeight } from './node-dimensions';
 import { nodeExtentEdges, foldNodeExtents, NodeExtentEdges } from './layout-utils';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, TARGET_ASPECT_RATIO } from './canvas-dimensions';

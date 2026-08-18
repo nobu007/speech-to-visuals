@@ -1,6 +1,6 @@
 import { LayoutOptimizationPipeline } from '@/visualization/strategies/LayoutOptimizationPipeline';
 import { LayoutOptimizer } from '@/visualization/strategies/LayoutOptimizer';
-import { DiagramLayout, PositionedNode } from '@/types/diagram';
+import { DiagramLayout, PositionedNode } from '@stv/core/types/diagram';
 
 const defaultConfig = {
   width: 1920,

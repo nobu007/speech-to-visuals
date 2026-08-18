@@ -30,7 +30,7 @@ import {
 } from '@/pipeline/scene-duration-limits';
 import { generateRenderPlan } from '@/pipeline/scene-render-spec-generator';
 import { VideoGenerator } from '@/pipeline/video-generator';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 const CONSUMERS = [
   'src/pipeline/main-pipeline.ts',

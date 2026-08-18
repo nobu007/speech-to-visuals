@@ -17,7 +17,7 @@
  */
 import { RealTimePerformanceMonitor } from '../real-time-performance-monitor';
 
-jest.mock('@/utils/memory-usage', () => ({
+jest.mock('@stv/core/utils/memory-usage', () => ({
   getMemoryUsage: jest.fn(() => ({
     heapUsed: 100 * 1024 * 1024,
     heapTotal: 200 * 1024 * 1024,

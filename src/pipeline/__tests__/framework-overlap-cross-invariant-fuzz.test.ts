@@ -24,7 +24,7 @@
 import { describe, it, expect } from '@jest/globals';
 import { mulberry32 } from '@tests/helpers/fuzz';
 import { nodesOverlap as producerNodesOverlap } from '@/visualization/layout-utils';
-import type { PositionedNode, SceneGraph } from '@/types/diagram';
+import type { PositionedNode, SceneGraph } from '@stv/core/types/diagram';
 import type { PipelineResult } from '@/pipeline/types';
 
 const { FrameworkIntegratedPipeline } = await import('../framework-integrated-pipeline');

@@ -6,7 +6,7 @@
  * decision trees, and sequential diagrams with vertical flow.
  */
 
-import { NodeDatum, EdgeDatum } from '@/types/diagram';
+import { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult } from '../types';
 import { calculateCanvasSize, calculateMetrics } from '../layout-engine-v2';
 import { emptyLayoutResult } from '../empty-layout-result';

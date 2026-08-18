@@ -1,5 +1,5 @@
-import { SceneGraph } from '@/types/diagram';
-import { sanitizeFinite, sanitizeDiagramType } from '@/utils/guards';
+import { SceneGraph } from '@stv/core/types/diagram';
+import { sanitizeFinite, sanitizeDiagramType } from '@stv/core/utils/guards';
 
 /**
  * Build a {@link SceneGraph} from the three stage outputs every scene-build

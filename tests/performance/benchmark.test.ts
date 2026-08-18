@@ -14,7 +14,7 @@ import { BatchOptimizer } from '@/optimization/batch-optimizer';
 import { ComputationCache } from '@/optimization/computation-cache';
 import { MemoryCache } from '@/optimization/memory-cache';
 import { LazyLoader } from '@/optimization/lazy-loader';
-import { getMemoryUsage } from '@/utils/memory-usage';
+import { getMemoryUsage } from '@stv/core/utils/memory-usage';
 
 // ---------- Performance Requirements ----------
 

@@ -13,7 +13,7 @@ import {
   expect,
 } from '@jest/globals';
 
-import { evaluateAudit } from '../config/code-size-audit';
+import { evaluateAudit } from '@stv/core/config/code-size-audit';
 import { ImprovementDetector } from '../pipeline/improvement-detector';
 
 // ============================================================

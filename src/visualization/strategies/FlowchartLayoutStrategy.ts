@@ -15,7 +15,7 @@
  */
 
 import dagre from '@dagrejs/dagre';
-import { DiagramType, NodeDatum, EdgeDatum, LayoutEdge } from '@/types/diagram';
+import { DiagramType, NodeDatum, EdgeDatum, LayoutEdge } from '@stv/core/types/diagram';
 import { LayoutConfig } from '../types';
 import { DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { positionedFromDagre } from '../dagre-node-extraction';
@@ -27,7 +27,7 @@ import {
   DEFAULT_MARGIN,
 } from '../layout-spacing';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
-import { logger } from '../../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 export class FlowchartLayoutStrategy implements ILayoutStrategy {
   readonly name = 'flowchart';

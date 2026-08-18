@@ -9,7 +9,7 @@
 import { describe, it, expect } from '@jest/globals';
 import { ZeroOverlapLayoutEngine } from '../enhanced-zero-overlap-layout';
 import { nodesOverlap } from '../layout-utils';
-import type { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
+import type { NodeDatum, EdgeDatum, PositionedNode } from '@stv/core/types/diagram';
 
 /* ---------- helpers ---------- */
 
@@ -17,8 +17,8 @@ import type { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
 function getPrivateMethods(engine: ZeroOverlapLayoutEngine) {
   const obj = engine as unknown as {
     calculateOptimalSeparation: (n1: PositionedNode, n2: PositionedNode) => number;
-    resolveAllOverlaps: (layout: { nodes: PositionedNode[]; edges: import('@/types/diagram').LayoutEdge[] }) =>
-      Promise<{ nodes: PositionedNode[]; edges: import('@/types/diagram').LayoutEdge[] }>;
+    resolveAllOverlaps: (layout: { nodes: PositionedNode[]; edges: import('@stv/core/types/diagram').LayoutEdge[] }) =>
+      Promise<{ nodes: PositionedNode[]; edges: import('@stv/core/types/diagram').LayoutEdge[] }>;
     config: {
       minimumSpacing: { nodeToNode: number };
       optimization: { maxIterations: number };

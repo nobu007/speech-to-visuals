@@ -4,8 +4,8 @@
  * 使い方: tsx scripts/render-video.ts <input-json> [output-path]
  */
 
-import { actualVideoRenderer } from '../src/lib/actualVideoRenderer';
-import { SceneGraph } from '../src/types/diagram';
+import { actualVideoRenderer } from '@/pipeline/actual-video-renderer';
+import { SceneGraph } from '@stv/core/types/diagram';
 import fs from 'fs';
 import path from 'path';
 

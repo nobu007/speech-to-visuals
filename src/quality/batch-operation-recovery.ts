@@ -9,7 +9,7 @@
  */
 
 import { ErrorClassifier, type ClassifiedError } from './error-classifier';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 // ---------------------------------------------------------------------------
 // Public types

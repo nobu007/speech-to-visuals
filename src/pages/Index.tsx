@@ -5,14 +5,14 @@ import { DiagramPreview } from '@/components/DiagramPreview';
 import { VideoRenderer } from '@/components/VideoRenderer';
 import { PipelineInterface } from '@/components/pipeline-interface';
 import { StreamingProcessor } from '@/components/StreamingProcessor';
-import { ProcessingStatus as StatusType, ProcessingResult } from '@/types/diagram';
+import { ProcessingStatus as StatusType, ProcessingResult } from '@stv/core/types/diagram';
 import { MainPipeline } from '@/pipeline';
 import { PipelineError } from '@/pipeline/pipeline-errors';
 import { getSupabaseClient } from '@/integrations/supabase/client';
 import { parseUntrustedJson } from '@/analysis/llm-utils';
 import { toast } from 'sonner';
 import { Sparkles } from 'lucide-react';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 const Index = () => {
   const [status, setStatus] = useState<StatusType>('idle');

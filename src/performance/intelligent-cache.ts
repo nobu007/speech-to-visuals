@@ -6,10 +6,10 @@
  * Includes LRU eviction, compression, and predictive preloading.
  */
 
-import { DiagramType } from '@/types/diagram';
-import { clamp01 } from '@/utils/guards';
+import { DiagramType } from '@stv/core/types/diagram';
+import { clamp01 } from '@stv/core/utils/guards';
 
-import { reportCorruption } from '../utils/report-corruption';
+import { reportCorruption } from '@stv/core/utils/report-corruption';
 
 interface CacheEntry {
   id: string;

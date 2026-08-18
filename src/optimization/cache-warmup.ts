@@ -13,7 +13,7 @@
  */
 
 import { LLMCache } from '@/analysis/llm-cache';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 /**
  * Represents a query pattern used for cache warmup

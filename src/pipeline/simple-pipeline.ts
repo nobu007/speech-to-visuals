@@ -8,7 +8,7 @@ import { TranscriptionPipeline } from '@/transcription';
 import { SceneSegmenter, DiagramDetector, ContentSegment, DEFAULT_MIN_SEGMENT_LENGTH_MS, DEFAULT_MAX_SEGMENT_LENGTH_MS, meetsGoodDetectionConfidence } from '@/analysis';
 import { LayoutEngine } from '@/visualization';
 import { EnhancedZeroOverlapLayoutEngine } from '@/visualization/enhanced-zero-overlap-layout';
-import { SceneGraph } from '@/types/diagram';
+import { SceneGraph } from '@stv/core/types/diagram';
 import { VideoGenerator, VideoGenerationOptions } from './video-generator';
 import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
 import { buildSceneGraph } from './scene-graph-builder';
@@ -16,14 +16,14 @@ import { applyConfigToCollaborators } from './config-sync';
 import { calculatePipelineQualityScore } from './quality-score';
 import { continuousLearner } from '@/framework/continuous-learner';
 import { getQualityMonitor, formatQualityReport } from './quality-monitor';
-import { getHeapUsed } from '@/utils/memory-usage';
-import { sanitizeFinite, sanitizeDiagramType } from '@/utils/guards';
+import { getHeapUsed } from '@stv/core/utils/memory-usage';
+import { sanitizeFinite, sanitizeDiagramType } from '@stv/core/utils/guards';
 import { ErrorClassifier } from '@/quality/error-classifier';
 import { TranscriptionError, SegmentationError, PipelineError } from './pipeline-errors';
-import { SUPPORTED_AUDIO_FORMATS } from '@/config/limits';
+import { SUPPORTED_AUDIO_FORMATS } from '@stv/core/config/limits';
 import type { ErrorType } from '../quality/error-classifier';
 import { retryWithBackoff } from './retry';
-import { logger } from '../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 const errorClassifier = new ErrorClassifier();
 

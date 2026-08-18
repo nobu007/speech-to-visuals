@@ -52,10 +52,10 @@
  */
 
 import { describe, it, expect, jest } from '@jest/globals';
-import { readSource, walkProductionFiles } from '@tests/guards/freeze-guard';
-import type { NodeDatum, EdgeDatum } from '@/types/diagram';
+import { readSource, walkProductionSurface } from '@tests/guards/freeze-guard';
+import type { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 import type { LayoutConfig } from '@/visualization/types';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import { DEFAULT_NODE_WIDTH } from '@/visualization/node-dimensions';
 import {
   calculateNodeWidth as calculateNodeWidthUtil,
@@ -414,7 +414,7 @@ describe('v1 strategy shared members single source (round 31)', () => {
     });
 
     it('no production file re-rolls the shapes (validate log literal / width tail / preamble)', () => {
-      const files = walkProductionFiles('src');
+      const files = walkProductionSurface();
       const offenders: string[] = [];
       for (const rel of files) {
         if (rel === 'src/visualization/strategy-common.ts') continue;
@@ -425,7 +425,7 @@ describe('v1 strategy shared members single source (round 31)', () => {
           if (/explicitWidth\s*=\s*node\.width/.test(line)) offenders.push(`${rel}:${i + 1}: preamble`);
         });
       }
-      expect(files.length).toBeGreaterThan(300); // the walk actually traversed src/
+      expect(files.length).toBeGreaterThan(300); // the walk traversed the production surface (src/ + @stv/core)
       expect(offenders).toEqual([]);
     });
   });

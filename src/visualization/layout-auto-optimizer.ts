@@ -6,7 +6,7 @@
  * Maximum 3 retries. Each retry re-evaluates the score.
  */
 
-import { PositionedNode, LayoutEdge, DiagramType, NodeDatum, EdgeDatum } from '@/types/diagram';
+import { PositionedNode, LayoutEdge, DiagramType, NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 import { scoreLayout, CompositeScoreResult, DEFAULT_LAYOUT_QUALITY_THRESHOLD } from './layout-quality-composite';
 import { minimizeEdgeCrossings } from './edge-crossing-minimizer';
 import { StrategySelector } from './strategy-selector';

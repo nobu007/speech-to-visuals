@@ -1,7 +1,7 @@
 import { describe, it, expect } from '@jest/globals';
 import { PipelineOrchestrator } from '../pipeline-orchestrator';
 import { VideoGenerator } from '../video-generator';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 /**
  * Regression: PipelineOrchestrator.prepareSingleScene assembled SceneGraph scenes

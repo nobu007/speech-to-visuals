@@ -66,7 +66,7 @@
  * (no site re-rolls the four retired inline shapes).
  */
 
-import { NodeDatum, EdgeDatum } from '@/types/diagram';
+import { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 import { StrategyLayoutResult } from './types';
 import { defaultNodeExtent } from './node-dimensions';
 import { getImportance, scaledDimensions } from './importance-scaler';

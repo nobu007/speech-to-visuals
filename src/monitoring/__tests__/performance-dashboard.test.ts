@@ -7,7 +7,7 @@ import { PerformanceDashboard } from '../performance-dashboard';
 import { MonitoringError } from '@/pipeline/pipeline-errors';
 
 // Mock dependencies
-jest.mock('@/utils/memory-usage', () => ({
+jest.mock('@stv/core/utils/memory-usage', () => ({
   getMemoryUsage: jest.fn(() => ({
     heapUsed: 100 * 1024 * 1024, // 100MB
     heapTotal: 200 * 1024 * 1024,
@@ -60,7 +60,7 @@ jest.mock('@/performance/intelligent-cache', () => ({
   },
 }));
 
-jest.mock('@/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

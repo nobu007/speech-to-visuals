@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { healthCheckService, type HealthCheckResult } from '../../monitoring/health-check-service';
-import { logger } from '../../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 export const healthRouter = Router();
 

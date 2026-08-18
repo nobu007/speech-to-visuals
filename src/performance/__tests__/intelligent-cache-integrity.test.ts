@@ -26,7 +26,7 @@
  *        transparent), so originalSize must be restored exactly.
  */
 import { IntelligentCache } from '@/performance/intelligent-cache';
-import type { DiagramType } from '@/types/diagram';
+import type { DiagramType } from '@stv/core/types/diagram';
 
 // ---------------------------------------------------------------------------
 // Helpers

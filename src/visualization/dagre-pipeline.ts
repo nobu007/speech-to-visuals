@@ -38,7 +38,7 @@
 
 import * as dagreLib from '@dagrejs/dagre';
 const dagre = (dagreLib as unknown as { default?: typeof dagreLib }).default ?? dagreLib;
-import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { defaultNodeExtent } from './node-dimensions';
 
 /** Per-diagram graph tuning; each strategy supplies its own values. */

@@ -21,7 +21,7 @@ import {
   type StageName,
   type StageStatus,
 } from '@/components/StageIndicator';
-import { cn } from '@/lib/utils';
+import { cn } from '@stv/core/lib/utils';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 

@@ -23,7 +23,7 @@ import { jest } from '@jest/globals';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { safeMean, safeSum } from '@/lib/metrics-utils';
+import { safeMean, safeSum } from '@stv/core/lib/metrics-utils';
 import { createLayoutRng } from '@/visualization/layout-rng';
 
 const here = path.dirname(fileURLToPath(import.meta.url));

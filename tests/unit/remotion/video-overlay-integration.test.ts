@@ -5,7 +5,7 @@
  */
 
 import { scenesToKeyphraseScenes, calculateTotalFrames } from '@/remotion/Video';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 function makeScene(overrides: Partial<SceneGraph> & { durationMs: number }): SceneGraph {
   return {

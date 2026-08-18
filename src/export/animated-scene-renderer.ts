@@ -10,7 +10,7 @@
  */
 
 import { escapeXml } from './xml-escape';
-import { roundTo } from '../lib/metrics-utils';
+import { roundTo } from '@stv/core/lib/metrics-utils';
 import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
 
 // ---------------------------------------------------------------------------

@@ -1,11 +1,11 @@
 import dagre from '@dagrejs/dagre';
-import { DiagramType, NodeDatum, EdgeDatum, DiagramLayout, LayoutEdge } from '@/types/diagram';
+import { DiagramType, NodeDatum, EdgeDatum, DiagramLayout, LayoutEdge } from '@stv/core/types/diagram';
 import { LayoutConfig } from '../types';
 import { getGraphConfig } from '../layout-utils';
 import { positionedFromDagre } from '../dagre-node-extraction';
 import { strategyNodeWidth } from '../strategy-common';
 import { FallbackLayoutStrategy } from './FallbackLayoutStrategy';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 export class DagreLayoutStrategy {
   private config: LayoutConfig;

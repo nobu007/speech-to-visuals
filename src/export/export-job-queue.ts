@@ -11,9 +11,9 @@
  */
 
 import { randomUUID } from 'crypto';
-import { EXPORT_QUEUE_LIMITS } from '@/config/limits';
+import { EXPORT_QUEUE_LIMITS } from '@stv/core/config/limits';
 import type { ExportArtifactStore } from './export-artifact-store';
-import { logger } from '../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 // ---------------------------------------------------------------------------
 // Types

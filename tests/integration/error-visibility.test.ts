@@ -16,7 +16,7 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 
 // Mock logger to avoid console noise during tests
-jest.mock('@/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

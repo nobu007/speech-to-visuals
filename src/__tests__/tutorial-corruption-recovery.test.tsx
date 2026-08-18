@@ -12,7 +12,7 @@
  */
 
 // Mock logger so reportCorruption's logger.warn doesn't spam test output
-jest.mock('@/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -25,8 +25,8 @@ jest.mock('@/utils/logger', () => ({
 
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { logger } from '@/utils/logger';
-import { setCorruptionHandler, type CorruptionReport } from '@/utils/report-corruption';
+import { logger } from '@stv/core/utils/logger';
+import { setCorruptionHandler, type CorruptionReport } from '@stv/core/utils/report-corruption';
 
 // ── localStorage mock ──
 const mockStorage: Record<string, string> = {};
