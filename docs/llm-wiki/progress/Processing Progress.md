@@ -12,6 +12,8 @@ status: generated
 ---
 # Processing Progress
 
+> **履歴スナップショット**: このページは Wiki 生成ツールの実行時記録です。「State File」が参照する `_state/progress.json`・`_state/progress_shards/`・`_state/progress_events.jsonl` は本リポジトリには存在せず、「New Sources」にも現行ツリーにないパス（例: `.audit/purpose_driven_plan.yml`）が含まれます。再開手順・現行構成の判断にこのページを使わないでください。
+
 ## Summary
 
 - Run index: stable

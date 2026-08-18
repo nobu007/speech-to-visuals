@@ -12,6 +12,8 @@ status: generated
 ---
 # Module src-visualization
 
+> **履歴スナップショット**: このページは生成時点の記録です。列挙パスのうち `src/visualization/__tests__/advanced-visual-engine.test.ts` は現行ツリーに存在しません（現行は `advanced-visual-engine-types.test.ts` 等）。行数・リスク証拠も生成時点のものです。現行の確認には実ファイルを参照してください。
+
 ## Role
 
 - Rationale: Files under src form a shared path-level boundary.

@@ -12,6 +12,8 @@ status: generated
 ---
 # Module audit
 
+> **履歴スナップショット**: このページは生成時点の記録です。列挙パスのうち `.audit/purpose_driven_plan.yml`（および `.audit/` ルート自体）は現行ツリーに存在せず、リスク記述も生成時点のものです。現行の確認には実ファイルを参照してください。
+
 ## Role
 
 - Rationale: Files under .audit form a shared path-level boundary.

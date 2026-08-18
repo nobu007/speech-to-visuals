@@ -12,6 +12,8 @@ status: generated
 ---
 # Module specs
 
+> **履歴スナップショット**: このページは生成時点の記録です。列挙パスのうち `specs/_doc_spine.yml` は現行ツリーには存在しません（同ファイルは自動生成・gitignore 対象であり、生成時のみ存在した可能性があります）。現行の構成確認には実ファイルを参照してください。
+
 ## Role
 
 - Rationale: Files under specs form a shared path-level boundary.

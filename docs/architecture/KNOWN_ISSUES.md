@@ -120,4 +120,4 @@ This document follows the custom instructions principle:
 
 ---
 
-**Ref**: PHASE_29_COMPLETION_REPORT.md - Section "Technical Discoveries"
+**Ref**: PHASE_29_COMPLETION_REPORT.md - Section "Technical Discoveries" (report file has since been removed and is not present in the current tree)

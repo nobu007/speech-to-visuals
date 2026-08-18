@@ -557,9 +557,10 @@ If you encounter persistent issues:
    grep "ERROR\|❌\|⚠️" diagnostics.log
    ```
 
-3. **Review Phase 31 compliance report:**
+3. **Review custom-instructions compliance materials** (note: `PHASE_31_CUSTOM_INSTRUCTIONS_VALIDATION_REPORT.md` was removed and is not present in the current tree):
    ```bash
-   cat PHASE_31_CUSTOM_INSTRUCTIONS_VALIDATION_REPORT.md
+   cat docs/CUSTOM_INSTRUCTIONS_COMPLIANCE_2025.md
+   npm run test:phase38   # custom-instructions validation script (successor check)
    ```
 
 4. **Create GitHub issue** with:
@@ -572,7 +573,7 @@ If you encounter persistent issues:
 - **Architecture Documentation:** `docs/architecture/SYSTEM_CORE.md`
 - **Quality Metrics:** `docs/architecture/QUALITY_METRICS.md`
 - **Iteration Log:** `docs/architecture/ITERATION_LOG.md`
-- **Phase 31 Report:** `PHASE_31_CUSTOM_INSTRUCTIONS_VALIDATION_REPORT.md`
+- **Phase 31 Report:** removed from the tree; see `docs/CUSTOM_INSTRUCTIONS_COMPLIANCE_2025.md` and `docs/LLM_INTEGRATION_VALIDATION_REPORT.md` instead
 
 ---
 

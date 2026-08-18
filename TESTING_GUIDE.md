@@ -97,6 +97,8 @@ All variants are defined in `package.json` and run Jest with `jest.config.cjs`.
 | `npm run test:fuzz:multi-seed` | Same fuzz suites with `FUZZ_SEEDS=3` (multiple random seeds per generator) | Also what CI's `security-fuzz` job runs (`.github/workflows/ci.yml`) |
 | `npm run test:mutation` | Runs the mutation tests under `tests/mutation/` | Verifies monitoring/optimization logic against mutated inputs |
 
+For non-test npm scripts (lint, build, preview, Remotion, API server, pipeline runners, quality/audit/validation commands), see the "主要スクリプト一覧" table in `README.md`. Note that `npm run pipeline:test:e2e`, `test:phase33`, and `test:phase43` reference script files that are absent from the current tree and are not runnable as-is.
+
 ## Resources
 
 - **Main Documentation**: `README.md`

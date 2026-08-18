@@ -105,15 +105,15 @@ src/
 
 **Requirement**: 各段階で検証可能な出力
 
-**Implemented Tests**:
+**Implemented Tests** (as of the 2025 review; current availability noted):
 1. ✅ `tests/llm-parsing.ts` - JSON parsing validation
-2. ✅ `tests/test-llm-improvements.ts` - Comprehensive improvement tests
+2. ~~✅ `tests/test-llm-improvements.ts` - Comprehensive improvement tests~~ — removed; not present in the current tree
 3. ✅ `tests/validate-llm-accuracy.ts` - Accuracy metrics validation
 4. ✅ `scripts/benchmark-llm-performance.ts` - Performance benchmarking
 
-**Test Coverage**:
+**Test Coverage** (values recorded at review time):
 - JSON parsing: 100% (5/5 test cases passed)
-- LLM improvements: 100% (all components verified)
+- LLM improvements: 100% (all components verified — per the since-removed `tests/test-llm-improvements.ts`)
 - Cache performance: 100% (hit/miss/eviction tested)
 - Accuracy metrics: 88.3% entity F1, 95% structural completeness
 
@@ -306,7 +306,7 @@ ebea7b8 docs: Add Phase 13 completion report
 
 **Additional Documentation Created**:
 - ✅ `docs/architecture/LLM_INTEGRATION_REPORT.md` - Comprehensive LLM report
-- ✅ `LLM_IMPROVEMENTS_SUMMARY.md` - Enhancement tracking
+- ~~✅ `LLM_IMPROVEMENTS_SUMMARY.md` - Enhancement tracking~~ — removed; not present in the current tree
 - ✅ Multiple phase completion reports (Phase 13, 14, 15)
 
 **Compliance**: ✅ **EXCEEDS**

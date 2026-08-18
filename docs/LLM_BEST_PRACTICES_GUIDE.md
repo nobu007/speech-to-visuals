@@ -796,7 +796,7 @@ No manual intervention needed!
 **Scripts**:
 - `tests/validate-llm-accuracy.ts` - Accuracy validation
 - `scripts/benchmark-llm-performance.ts` - Performance benchmarking
-- `tests/test-llm-improvements.ts` - Feature testing
+- ~~`tests/test-llm-improvements.ts` - Feature testing~~ — removed; not present in the current tree
 
 **External Links**:
 - [Google Gemini API Docs](https://ai.google.dev/docs)
