@@ -45,7 +45,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import React from 'react';
-import { render, fireEvent, act, waitFor, screen } from '@testing-library/react';
+import { render, fireEvent, act, screen } from '@testing-library/react';
 import { FrameworkDashboard } from '@/components/FrameworkDashboard';
 
 const CHOKEPOINT_FILE = 'src/components/FrameworkDashboard.tsx';
@@ -116,12 +116,21 @@ describe('FrameworkDashboard unmount guard — source anchor pinned (TC-322-01)'
 });
 
 // --- (TC-322-02) L3 runtime: real production code absorbs a late resolution --
+//
+// Determinism note: these tests drive the auto-refresh interval with FAKE
+// timers. A previous revision let the real 5ms interval free-run inside a
+// 30ms `act` window — locally fast machines quiesced, but CI's slower
+// scheduling let the continuously-rearming interval updates interleave with
+// act's flush loop until the 30s test timeout (PR #9 attempt 2). Advancing
+// the clock explicitly fires exactly one interval tick inside act: no
+// wall-clock dependence, no live interval during flush.
 
 describe('FrameworkDashboard unmount guard — production code absorbs a late fetch resolution (TC-322-02)', () => {
   let consoleErrorSpy: jest.SpyInstance;
   let originalFetch: typeof globalThis.fetch | undefined;
 
   beforeEach(() => {
+    jest.useFakeTimers();
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     originalFetch = globalThis.fetch;
   });
@@ -131,6 +140,7 @@ describe('FrameworkDashboard unmount guard — production code absorbs a late fe
       globalThis.fetch = originalFetch;
     }
     consoleErrorSpy.mockRestore();
+    jest.useRealTimers();
   });
 
   it('start → fetch pending → unmount → resolve: no unmounted-update warning, no throw', async () => {
@@ -151,14 +161,26 @@ describe('FrameworkDashboard unmount guard — production code absorbs a late fe
     // Start execution so executionStatus.isRunning flips true and the
     // auto-refresh effect arms the interval that calls fetchIterationData.
     fireEvent.click(screen.getByText('実行開始'));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    // Fire exactly one interval tick: fetchIterationData starts and suspends
+    // on the (never-resolving-yet) fetch promise.
+    await act(async () => {
+      jest.advanceTimersByTime(6);
+      await Promise.resolve();
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
 
     unmount();
 
+    // Resolve the in-flight fetch after the unmount, flush the microtask
+    // chain (guard #1 must short-circuit before any setX), then advance the
+    // clock past further interval slots to prove the cleared interval plus
+    // the guard absorb every straggler.
     await act(async () => {
       resolveFetch({ ok: false, text: async () => '' });
       await Promise.resolve();
-      await new Promise((r) => setTimeout(r, 10));
+    });
+    act(() => {
+      jest.advanceTimersByTime(50);
     });
 
     const unmountedWarnings = consoleErrorSpy.mock.calls
@@ -206,13 +228,15 @@ describe('FrameworkDashboard unmount guard — production code absorbs a late fe
     render(<FrameworkDashboard autoRefresh={true} refreshInterval={5} />);
     fireEvent.click(screen.getByText('実行開始'));
 
-    // Let the interval fire at least one full fetch→text→setX cycle inside
-    // act so the state updates land in an act-wrapped window.
+    // One interval tick, then flush the fetch→text→parse→setX microtask
+    // chain — a complete ok-branch cycle while mounted, with no live timer
+    // left running into the assertion window.
     await act(async () => {
-      await new Promise((r) => setTimeout(r, 30));
+      jest.advanceTimersByTime(6);
+      await Promise.resolve();
     });
 
-    expect(fetchMock).toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     const warnings = consoleErrorSpy.mock.calls
       .map((c) => String(c[0] ?? ''))
       .filter((m) => /unmounted component/i.test(m));
