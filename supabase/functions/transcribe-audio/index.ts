@@ -46,7 +46,7 @@ export async function handleTranscribe(
   env: { LOVABLE_API_KEY: string },
   timeoutMs: number = TRANSCRIBE_TIMEOUT_MS
 ): Promise<TranscribeResponse> {
-  validateRequired(body as Record<string, unknown>, ['audioUrl']);
+  validateRequired(body, ['audioUrl']);
 
   const { audioUrl, language } = body;
 
@@ -154,7 +154,7 @@ serve(async (req) => {
     // Auth check
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-    const supabaseClient: SupabaseAuthClient = createClient(supabaseUrl, supabaseAnonKey);
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey) as SupabaseAuthClient;
     const { userId } = await authenticateRequest(req, supabaseClient);
 
     // Parse body (sanitize at the trust boundary — no-op on valid JSON)

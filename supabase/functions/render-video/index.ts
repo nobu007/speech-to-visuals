@@ -48,7 +48,7 @@ export interface RenderVideoResponse {
 // ─── Validation ──────────────────────────────────────────────────────────────
 
 export function validateRenderRequest(body: RenderVideoRequest): void {
-  validateRequired(body as Record<string, unknown>, ['scenes']);
+  validateRequired(body, ['scenes']);
 
   if (!Array.isArray(body.scenes)) {
     throw new Error('scenes must be an array');
@@ -133,7 +133,7 @@ serve(async (req) => {
     // Auth check
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-    const supabaseClient: SupabaseAuthClient = createClient(supabaseUrl, supabaseAnonKey);
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey) as SupabaseAuthClient;
     const { userId } = await authenticateRequest(req, supabaseClient);
 
     // Parse body (sanitize at the trust boundary — no-op on valid JSON)

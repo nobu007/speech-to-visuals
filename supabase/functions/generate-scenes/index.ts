@@ -262,7 +262,7 @@ export async function handleGenerateScenes(
   body: GenerateScenesRequest,
   userId: string
 ): Promise<GenerateScenesResponse> {
-  validateRequired(body as Record<string, unknown>, ['transcript']);
+  validateRequired(body, ['transcript']);
 
   const { transcript, segments: _segments } = body;
 
@@ -339,7 +339,7 @@ serve(async (req) => {
     // Auth check
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-    const supabaseClient: SupabaseAuthClient = createClient(supabaseUrl, supabaseAnonKey);
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey) as SupabaseAuthClient;
     const { userId } = await authenticateRequest(req, supabaseClient);
 
     // Parse body (sanitize at the trust boundary — no-op on valid JSON)

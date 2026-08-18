@@ -9,7 +9,8 @@
     "types": ["jest", "node"],
     "paths": {
       "@/*": ["./src/*"],
-      "@tests/*": ["./tests/*"]
+      "@tests/*": ["./tests/*"],
+      "#supabase/*": ["./supabase/*"]
     },
     "baseUrl": ".",
     "noImplicitAny": false,
