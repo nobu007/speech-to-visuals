@@ -13,7 +13,7 @@ import {
   sizeLabel,
   sizeAllLabels,
 } from '../smart-label-sizer';
-import type { PositionedNode } from '@/types/diagram';
+import type { PositionedNode } from '@stv/core/types/diagram';
 
 // ---------------------------------------------------------------------------
 // CJK Utilities

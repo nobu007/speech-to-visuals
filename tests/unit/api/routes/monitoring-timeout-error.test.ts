@@ -17,7 +17,7 @@ import { createMonitoringRouter } from '@/api/routes/monitoring';
 import { PerformanceDashboard } from '@/monitoring/performance-dashboard';
 
 // Suppress logger noise during tests
-jest.mock('@/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

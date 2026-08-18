@@ -25,7 +25,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { computePercentiles, safeMean } from '@/lib/metrics-utils';
+import { computePercentiles, safeMean } from '@stv/core/lib/metrics-utils';
 import { createLayoutRng } from '@/visualization/layout-rng';
 import { ProductionMonitor } from '@/monitoring/production-monitor';
 

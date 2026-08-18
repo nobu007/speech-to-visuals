@@ -6,7 +6,7 @@
  * quality drops below configurable thresholds.
  */
 
-import { logger } from '../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 // ---------------------------------------------------------------------------
 // Types

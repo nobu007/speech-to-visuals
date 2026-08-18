@@ -1,4 +1,4 @@
-import { PositionedNode } from '@/types/diagram';
+import { PositionedNode } from '@stv/core/types/diagram';
 import { getNodeWidth as nodeW, getNodeHeight as nodeH } from './node-dimensions';
 
 export interface Rect {

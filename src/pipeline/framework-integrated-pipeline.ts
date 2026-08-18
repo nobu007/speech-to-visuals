@@ -16,10 +16,10 @@
 
 import { MainPipeline } from './main-pipeline';
 import { PipelineInput, PipelineResult, PipelineConfig } from './types';
-import { getHeapUsed } from '@/utils/memory-usage';
-import { logger } from '../utils/logger';
+import { getHeapUsed } from '@stv/core/utils/memory-usage';
+import { logger } from '@stv/core/utils/logger';
 import * as qualityEstimators from './quality-estimators';
-import { CappedArray } from '@/lib/capped-array';
+import { CappedArray } from '@stv/core/lib/capped-array';
 import {
   IterationManager,
   createIterationManager,

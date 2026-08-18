@@ -12,7 +12,7 @@
 
 import { ProductionExporter } from '../production-exporter';
 import { PipelineConfigError } from '@/pipeline/pipeline-errors';
-import { BATCH_LIMITS } from '@/config/limits';
+import { BATCH_LIMITS } from '@stv/core/config/limits';
 import type { EnhancedSceneGraph } from '@/visualization/advanced-visual-engine';
 
 // Minimal valid scene for testing

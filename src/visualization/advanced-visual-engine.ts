@@ -12,7 +12,7 @@
  * helpers were never wired into any pipeline.
  */
 
-import { SceneGraph } from '@/types/diagram';
+import { SceneGraph } from '@stv/core/types/diagram';
 
 export interface VisualStyle {
   theme: 'modern' | 'classic' | 'minimal' | 'corporate' | 'creative';

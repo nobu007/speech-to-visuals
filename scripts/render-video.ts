@@ -5,7 +5,7 @@
  */
 
 import { actualVideoRenderer } from '@/pipeline/actual-video-renderer';
-import { SceneGraph } from '../src/types/diagram';
+import { SceneGraph } from '@stv/core/types/diagram';
 import fs from 'fs';
 import path from 'path';
 

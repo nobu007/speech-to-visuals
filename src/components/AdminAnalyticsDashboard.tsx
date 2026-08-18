@@ -18,7 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useAdminAnalytics } from '@/hooks/useAdminAnalytics';
-import { safeToLocaleString } from '@/utils/guards';
+import { safeToLocaleString } from '@stv/core/utils/guards';
 import {
   Activity,
   AlertCircle,

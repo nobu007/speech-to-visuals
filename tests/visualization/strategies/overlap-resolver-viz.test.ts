@@ -1,5 +1,5 @@
 import { OverlapResolver } from '@/visualization/strategies/OverlapResolver';
-import { DiagramLayout, PositionedNode, DiagramType } from '@/types/diagram';
+import { DiagramLayout, PositionedNode, DiagramType } from '@stv/core/types/diagram';
 
 const defaultConfig = {
   width: 1920,

@@ -6,7 +6,7 @@
 
 import { TranscriptionSegment, TranscriptionResult, TranscriptionConfig, TranscriptionError } from './types';
 import { detectTranscriptionLanguage } from './language-detection';
-import { logger } from '../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import {
   StreamingQualityMonitor,
   StreamingQualitySummary,

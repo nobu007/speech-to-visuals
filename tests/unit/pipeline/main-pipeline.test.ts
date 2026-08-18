@@ -8,7 +8,7 @@
 import { createHash } from 'crypto';
 import { MainPipeline } from '@/pipeline/main-pipeline';
 import { PipelineConfig, PipelineInput, PipelineResult } from '@/pipeline/types';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 /**
  * Typed interface for accessing MainPipeline private members in tests.
@@ -127,12 +127,12 @@ jest.mock('@/framework/iteration-logger', () => ({
   },
 }));
 
-jest.mock('@/utils/memory-usage', () => ({
+jest.mock('@stv/core/utils/memory-usage', () => ({
   getHeapUsed: jest.fn().mockReturnValue(0),
   getMemoryUsage: jest.fn().mockReturnValue({ heapUsed: 0, heapTotal: 0 }),
 }));
 
-jest.mock('@/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

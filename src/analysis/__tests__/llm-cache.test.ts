@@ -7,10 +7,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { LLMCache } from '../llm-cache';
-import { setCorruptionHandler, type CorruptionReport } from '../../utils/report-corruption';
+import { setCorruptionHandler, type CorruptionReport } from '@stv/core/utils/report-corruption';
 
 // Mock logger
-jest.mock('@/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

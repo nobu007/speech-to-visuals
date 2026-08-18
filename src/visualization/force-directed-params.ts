@@ -31,7 +31,7 @@
  * formulas appear.
  */
 
-import type { PositionedNode, EdgeDatum } from '@/types/diagram';
+import type { PositionedNode, EdgeDatum } from '@stv/core/types/diagram';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from './node-dimensions';
 import { distance, clampNodeCoordinate, calculateNodeCenter } from './layout-utils';
 

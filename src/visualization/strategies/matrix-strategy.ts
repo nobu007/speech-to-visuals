@@ -5,7 +5,7 @@
  * Grid placement guarantees zero overlaps -- no fallback needed.
  */
 
-import { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, PositionedNode } from '@stv/core/types/diagram';
 import {
   LayoutStrategy,
   StrategyLayoutResult,

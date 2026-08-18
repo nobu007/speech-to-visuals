@@ -1,11 +1,11 @@
-import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge, DiagramLayout } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge, DiagramLayout } from '@stv/core/types/diagram';
 import { LayoutStrategy, BaseLayoutStrategy } from './strategies/LayoutStrategy';
 import ProgressiveForceStrategy from './strategies/ProgressiveForceStrategy';
 import SimulatedAnnealingStrategy from './strategies/SimulatedAnnealingStrategy';
 import GridSnapStrategy from './strategies/GridSnapStrategy';
 import { LayoutConfig, LayoutResult, LayoutMetrics } from '../types';
 import { createLayoutRng } from '../layout-rng';
-import { logger } from '../../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import { VisualizationError } from '@/pipeline/pipeline-errors';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
 import { distance } from '../layout-utils';

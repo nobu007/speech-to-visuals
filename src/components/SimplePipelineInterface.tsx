@@ -2,7 +2,7 @@ import React, { useReducer, useRef, useCallback, useEffect, useState } from 'rea
 import { Upload, Play, Download, AlertCircle, CheckCircle, Loader2, Video, HelpCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { bytesToMb } from '@/lib/metrics-utils';
+import { bytesToMb } from '@stv/core/lib/metrics-utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -16,10 +16,10 @@ import {
   initialPipelineState,
   SimplePipelineResult,
 } from './SimplePipelineStateMachine';
-import { getAudioDuration, formatDuration } from '@/utils/audio-duration';
-import { validateAudioFile, validateAudioDuration } from '@/utils/audio-validation';
-import { AUDIO_LIMITS } from '@/config/limits';
-import { logger } from '@/utils/logger';
+import { getAudioDuration, formatDuration } from '@stv/core/utils/audio-duration';
+import { validateAudioFile, validateAudioDuration } from '@stv/core/utils/audio-validation';
+import { AUDIO_LIMITS } from '@stv/core/config/limits';
+import { logger } from '@stv/core/utils/logger';
 
 // ========================================
 // Pipeline Stage Configuration

@@ -38,7 +38,7 @@ import {
   charInRanges,
   charClassSource,
   buildCharClassRegex,
-} from '@/lib/unicode-script-ranges';
+} from '@stv/core/lib/unicode-script-ranges';
 import { calculateSemanticSimilarity } from '@/analysis/semantic-similarity';
 import { SceneSegmenter } from '@/analysis/scene-segmenter';
 import { detectLanguage } from '@/analysis/language-detector';

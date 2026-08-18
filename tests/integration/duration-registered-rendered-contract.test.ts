@@ -37,7 +37,7 @@
  */
 
 import { jest } from '@jest/globals';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 // ESM mocking: unstable_mockModule + dynamic import (jest-esm-mock-pattern).
 jest.unstable_mockModule('@remotion/bundler', () => ({

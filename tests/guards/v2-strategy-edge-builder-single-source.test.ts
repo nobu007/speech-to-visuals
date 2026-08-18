@@ -54,7 +54,7 @@
 
 import { describe, it, expect } from '@jest/globals';
 import { readSource } from '@tests/guards/freeze-guard';
-import type { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import type { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '@/visualization/node-dimensions';
 import {
   buildAnchoredLayoutEdges,

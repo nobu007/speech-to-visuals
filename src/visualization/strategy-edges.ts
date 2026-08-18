@@ -80,10 +80,10 @@
  * registry entry.
  */
 
-import { EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { EdgeDatum, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from './node-dimensions';
 import { calculateNodeCenter } from './layout-utils';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 /** One endpoint of an edge polyline; anchored geometry is caller-supplied. */
 export type EdgeAnchor = { x: number; y: number };

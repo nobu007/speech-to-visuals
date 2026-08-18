@@ -89,7 +89,7 @@ import { describe, it, expect } from '@jest/globals';
 import { LayoutEngine } from '@/visualization';
 import { applyConfigToCollaborators } from '@/pipeline/config-sync';
 import type { ConfigurableCollaborators } from '@/pipeline/config-sync';
-import type { NodeDatum, EdgeDatum } from '@/types/diagram';
+import type { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 import type { AnalysisConfig } from '@/analysis/types';
 
 /** No-op collaborators for the sections a given test does not exercise. */

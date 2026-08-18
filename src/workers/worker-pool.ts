@@ -10,7 +10,7 @@
  */
 
 import type { WorkerMessage, WorkerResponse } from './types';
-import { logger } from '../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 interface PendingTask<T = unknown> {
   message: WorkerMessage<T>;

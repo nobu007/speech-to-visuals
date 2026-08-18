@@ -7,7 +7,7 @@
  */
 
 import { PerformanceBaseline, StageMeasurement, DEFAULT_BASELINES } from './performance-baseline';
-import { percentChange } from '@/lib/metrics-utils';
+import { percentChange } from '@stv/core/lib/metrics-utils';
 
 /** Result of comparing one stage's actual timing against its baseline */
 export interface RegressionResult {

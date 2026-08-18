@@ -1,4 +1,4 @@
-import { DiagramType, NodeDatum, EdgeDatum, DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { DiagramType, NodeDatum, EdgeDatum, DiagramLayout, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 
 export interface Point {
   x: number;

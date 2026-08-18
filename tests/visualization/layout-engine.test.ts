@@ -1,4 +1,4 @@
-import { DiagramType, NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
+import { DiagramType, NodeDatum, EdgeDatum, PositionedNode } from '@stv/core/types/diagram';
 import { LayoutEngineV2, calculateCanvasSize, calculateMetrics } from '@/visualization/layout-engine-v2';
 import { DefaultStrategyRegistry } from '@/visualization/strategies/base-strategy';
 import { LayoutStrategy, StrategyLayoutResult } from '@/visualization/types';

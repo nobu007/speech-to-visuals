@@ -7,7 +7,7 @@
  */
 import { calculateNodeCenter, nodesOverlap } from '../layout-utils';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';
-import type { PositionedNode } from '@/types/diagram';
+import type { PositionedNode } from '@stv/core/types/diagram';
 
 function makeNode(overrides: Partial<PositionedNode> = {}): PositionedNode {
   return {

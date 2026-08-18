@@ -31,8 +31,9 @@ import { globSync } from 'node:fs';
 // (TC-302/313); cwd-relative source reads then flake with ENOENT.
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
+import { resolveSource } from '@tests/guards/freeze-guard';
 const metricsUtilsSrc = readFileSync(
-  resolve(REPO_ROOT, 'src/lib/metrics-utils.ts'),
+  resolveSource('src/lib/metrics-utils.ts'),
   'utf8',
 );
 const healthCheckSrc = readFileSync(
@@ -77,19 +78,19 @@ describe('heapUsageRatio / heapUsagePercent — canonical heap-ratio builders', 
 
 describe('heap-ratio division — no re-derivation at the known call sites', () => {
   it('health-check-service delegates usagePercent to heapUsagePercent', () => {
-    expect(stripComments(healthCheckSrc)).toMatch(/import\s*\{[^}]*\bheapUsagePercent\b[^}]*\}\s*from\s*['"]@\/lib\/metrics-utils['"]/);
+    expect(stripComments(healthCheckSrc)).toMatch(/import\s*\{[^}]*\bheapUsagePercent\b[^}]*\}\s*from\s*['"]@stv\/core\/lib\/metrics-utils['"]/);
     expect(stripComments(healthCheckSrc)).toMatch(/heapUsagePercent\s*\(\s*memoryUsage\.heapUsed\s*,\s*memoryUsage\.heapTotal\s*\)/);
     expect(stripComments(healthCheckSrc)).not.toMatch(HEAP_DIVISION);
   });
 
   it('real-time-performance-monitor delegates memoryUsagePercent to heapUsagePercent', () => {
-    expect(stripComments(monitorSrc)).toMatch(/import\s*\{[^}]*\bheapUsagePercent\b[^}]*\}\s*from\s*['"]@\/lib\/metrics-utils['"]/);
+    expect(stripComments(monitorSrc)).toMatch(/import\s*\{[^}]*\bheapUsagePercent\b[^}]*\}\s*from\s*['"]@stv\/core\/lib\/metrics-utils['"]/);
     expect(stripComments(monitorSrc)).toMatch(/heapUsagePercent\s*\(\s*memoryUsage\.heapUsed\s*,\s*memoryUsage\.heapTotal\s*\)/);
     expect(stripComments(monitorSrc)).not.toMatch(HEAP_DIVISION);
   });
 
   it('enhanced-error-recovery delegates memoryPressure to heapUsageRatio (fraction, not percent)', () => {
-    expect(stripComments(errorRecoverySrc)).toMatch(/import\s*\{[^}]*\bheapUsageRatio\b[^}]*\}\s*from\s*['"]@\/lib\/metrics-utils['"]/);
+    expect(stripComments(errorRecoverySrc)).toMatch(/import\s*\{[^}]*\bheapUsageRatio\b[^}]*\}\s*from\s*['"]@stv\/core\/lib\/metrics-utils['"]/);
     expect(stripComments(errorRecoverySrc)).toMatch(/memoryPressure:\s*heapUsageRatio\s*\(/);
     expect(stripComments(errorRecoverySrc)).not.toMatch(HEAP_DIVISION);
   });

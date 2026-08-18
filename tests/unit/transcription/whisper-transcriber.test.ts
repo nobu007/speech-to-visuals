@@ -16,7 +16,7 @@ import type { TranscriptionResult } from '@/transcription/types';
 // ---------- Mock setup ----------
 
 // Mock validateAudioFile for File inputs
-jest.mock('@/utils/audio-validation', () => ({
+jest.mock('@stv/core/utils/audio-validation', () => ({
   validateAudioFile: jest.fn((file: File) => {
     const ext = file.name.split('.').pop()?.toLowerCase();
     const validFormats = ['mp3', 'wav', 'ogg', 'm4a'];

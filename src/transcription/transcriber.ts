@@ -3,7 +3,7 @@ import { BrowserTranscriber } from './browser-transcriber';
 import { WhisperTranscriber, type WhisperConfig } from './whisper-transcriber';
 import { Caption } from '@remotion/captions';
 import { detectTranscriptionLanguage } from './language-detection';
-import { logger } from '../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 /**
  * Whisper-based transcription service with iterative improvement capabilities

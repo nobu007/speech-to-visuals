@@ -13,8 +13,8 @@
  * - Error cascade detection
  */
 
-import { logger } from '@/utils/logger';
-import { CappedArray } from '@/lib/capped-array';
+import { logger } from '@stv/core/utils/logger';
+import { CappedArray } from '@stv/core/lib/capped-array';
 
 // ---------------------------------------------------------------------------
 // Event types

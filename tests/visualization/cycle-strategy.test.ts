@@ -6,7 +6,7 @@
  */
 
 import { jest } from '@jest/globals';
-import { NodeDatum, EdgeDatum } from '@/types/diagram';
+import { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 
 // Mock layout-engine-v2 functions
 const mockCalculateCanvasSize = jest.fn().mockReturnValue({ width: 1920, height: 1080 });

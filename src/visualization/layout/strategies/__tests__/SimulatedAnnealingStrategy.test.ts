@@ -1,5 +1,5 @@
 import { SimulatedAnnealingStrategy } from '../SimulatedAnnealingStrategy';
-import { PositionedNode, LayoutEdge, NodeDatum, EdgeDatum, DiagramLayout } from '@/types/diagram';
+import { PositionedNode, LayoutEdge, NodeDatum, EdgeDatum, DiagramLayout } from '@stv/core/types/diagram';
 import { LayoutConfig } from '../../../types';
 
 describe('SimulatedAnnealingStrategy', () => {

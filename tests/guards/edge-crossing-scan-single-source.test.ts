@@ -60,7 +60,7 @@
 import { describe, it, expect } from '@jest/globals';
 import { mulberry32 } from '@tests/helpers/fuzz';
 import { readSource, isCommentLine } from '@tests/guards/freeze-guard';
-import type { PositionedNode, LayoutEdge } from '@/types/diagram';
+import type { PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { segmentsIntersect, countEdgeCrossings } from '@/visualization/layout/edge-crossings';
 import { detectEdgeCrossings as detectEdgeCrossingsV1 } from '@/visualization/edge-crossing-minimizer';
 import { LayoutEvaluator } from '@/visualization/strategies/LayoutEvaluator';

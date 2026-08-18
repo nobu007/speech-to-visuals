@@ -9,7 +9,7 @@
  * - TC-083-01: Quality-based auto-optimization loop
  */
 
-import { PositionedNode, LayoutEdge } from '@/types/diagram';
+import { PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { VisualBalanceScorer } from '@/visualization/visual-balance-scorer';
 import {
   detectEdgeCrossings,

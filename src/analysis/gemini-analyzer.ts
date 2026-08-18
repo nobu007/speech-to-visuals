@@ -28,7 +28,7 @@
  */
 
 import 'dotenv/config';
-import type { DiagramType, NodeDatum, EdgeDatum } from "@/types/diagram";
+import type { DiagramType, NodeDatum, EdgeDatum } from "@stv/core/types/diagram";
 import type { DiagramAnalysis, DiagramData } from "./types";
 import { parseJsonFromLLMText } from "./llm-utils";
 import { DEFAULT_RETRY_OPTIONS } from "./retry-strategy";
@@ -37,7 +37,7 @@ import { getQualityMonitor } from "@/pipeline/quality-monitor";
 import { getGeminiAnalyzerPrompt, type Language } from "./prompt-templates";
 import { DiagramStructureError } from "./analysis-errors";
 import { buildContentCacheKey } from "./cache-key";
-import { logger } from '../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 type GeminiDiagramType = DiagramData['type'];
 

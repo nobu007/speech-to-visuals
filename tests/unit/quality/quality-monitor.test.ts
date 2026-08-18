@@ -1,6 +1,6 @@
 import { QualityMonitor, QualityAssessment } from '@/quality/quality-monitor';
 import { PipelineResult } from '@/pipeline/types';
-import { SceneGraph } from '@/types/diagram';
+import { SceneGraph } from '@stv/core/types/diagram';
 
 function makeSuccessResult(overrides?: Partial<PipelineResult>): PipelineResult {
   return {

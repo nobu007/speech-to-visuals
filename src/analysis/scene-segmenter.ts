@@ -1,7 +1,7 @@
 import { TranscriptionSegment } from '@/transcription/types';
 import { ContentSegment, AnalysisConfig } from './types';
-import { sanitizeFinite } from '@/utils/guards';
-import { safeMean } from '@/lib/metrics-utils';
+import { sanitizeFinite } from '@stv/core/utils/guards';
+import { safeMean } from '@stv/core/lib/metrics-utils';
 import { SENTENCE_BOUNDARY_REGEX } from './sentence-boundaries';
 import {
   buildCharClassRegex,
@@ -9,7 +9,7 @@ import {
   JAPANESE_TEXT_RANGES,
   CJK_IDEOGRAPH_RANGES,
   KATAKANA,
-} from '@/lib/unicode-script-ranges';
+} from '@stv/core/lib/unicode-script-ranges';
 
 // ── Japanese keyword patterns (round 23 single source) ──────────
 // Behavior change vs the pre-round-23 hand-rolled classes: the gate and the

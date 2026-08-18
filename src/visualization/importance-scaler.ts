@@ -11,9 +11,9 @@
  * - Nodes without importance default to 0.5
  */
 
-import { NodeDatum } from '@/types/diagram';
+import { NodeDatum } from '@stv/core/types/diagram';
 import { VisualizationError } from '@/pipeline/pipeline-errors';
-import { clamp01 } from '@/utils/guards';
+import { clamp01 } from '@stv/core/utils/guards';
 
 /** Minimum importance value (assigned when no importance is specified) */
 const DEFAULT_IMPORTANCE = 0.5;

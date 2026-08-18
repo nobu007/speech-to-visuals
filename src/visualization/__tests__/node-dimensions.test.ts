@@ -7,7 +7,7 @@ import {
   hasSafeDimensions,
   withSafeDimensions,
 } from '../node-dimensions';
-import type { PositionedNode } from '@/types/diagram';
+import type { PositionedNode } from '@stv/core/types/diagram';
 
 describe('node-dimensions', () => {
   // ---------- getNodeWidth ----------

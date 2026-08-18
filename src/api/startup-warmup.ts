@@ -10,7 +10,7 @@
  */
 
 import type { LLMService } from '../analysis/llm-service';
-import { logger } from '../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 export type WarmupStatus = 'pending' | 'completed' | 'failed' | 'skipped';
 

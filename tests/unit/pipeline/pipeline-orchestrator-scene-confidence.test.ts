@@ -9,7 +9,7 @@
  * test prevents the orchestrator sibling from drifting again.
  */
 import { PipelineOrchestrator } from '@/pipeline/pipeline-orchestrator';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 type PrepArgs = [unknown, number, unknown[], unknown[]];
 

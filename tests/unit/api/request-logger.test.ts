@@ -10,7 +10,7 @@
 
 import express, { type Request, type Response, type NextFunction } from 'express';
 import supertest from 'supertest';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import { requestLogger } from '@/api/middleware/request-logger';
 
 function createApp() {

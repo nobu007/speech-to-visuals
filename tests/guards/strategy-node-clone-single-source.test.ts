@@ -48,7 +48,7 @@
 
 import { describe, it, expect } from '@jest/globals';
 import { readSource } from '@tests/guards/freeze-guard';
-import type { PositionedNode } from '@/types/diagram';
+import type { PositionedNode } from '@stv/core/types/diagram';
 import { BaseLayoutStrategy } from '@/visualization/layout/strategies/LayoutStrategy';
 import { GridSnapStrategy } from '@/visualization/layout/strategies/GridSnapStrategy';
 import { SimulatedAnnealingStrategy } from '@/visualization/layout/strategies/SimulatedAnnealingStrategy';

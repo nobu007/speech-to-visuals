@@ -1,5 +1,5 @@
 import { LayoutEvaluator } from '@/visualization/strategies/LayoutEvaluator';
-import { PositionedNode, LayoutEdge } from '@/types/diagram';
+import { PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { LayoutResult } from '@/visualization/types';
 
 const defaultConfig = {

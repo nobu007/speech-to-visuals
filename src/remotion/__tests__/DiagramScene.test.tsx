@@ -5,7 +5,7 @@
 
 import { jest } from '@jest/globals';
 import * as React from 'react';
-import { SceneGraph, DiagramType, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { SceneGraph, DiagramType, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { getAnimationStrategy } from '../animation-strategies';
 
 // Mock remotion hooks

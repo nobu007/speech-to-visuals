@@ -18,7 +18,7 @@ import {
   LayoutParams,
 } from '@/visualization/layout-auto-optimizer';
 import { StrategySelector } from '@/visualization/strategy-selector';
-import { PositionedNode, LayoutEdge, DiagramType, NodeDatum, EdgeDatum } from '@/types/diagram';
+import { PositionedNode, LayoutEdge, DiagramType, NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult } from '@/visualization/types';
 import { scoreLayout } from '@/visualization/layout-quality-composite';
 

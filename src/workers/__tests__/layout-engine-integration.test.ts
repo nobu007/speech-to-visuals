@@ -7,7 +7,7 @@
  */
 
 import { jest } from '@jest/globals';
-import type { DiagramType } from '../../types/diagram';
+import type { DiagramType } from '@stv/core/types/diagram';
 import type { LayoutConfig } from '../../visualization/types';
 import type { FallbackLayoutStrategy } from '../../visualization/strategies/FallbackLayoutStrategy';
 

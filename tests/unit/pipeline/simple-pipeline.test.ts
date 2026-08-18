@@ -6,7 +6,7 @@
  */
 
 import { SimplePipeline, simplePipeline } from '@/pipeline/simple-pipeline';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 // ---------------------------------------------------------------------------
 // Mocks – must come before the import above is evaluated by ts-jest
@@ -63,7 +63,7 @@ jest.mock('@/pipeline/quality-monitor', () => ({
   formatQualityReport: jest.fn().mockReturnValue(''),
 }));
 
-jest.mock('@/utils/memory-usage', () => ({
+jest.mock('@stv/core/utils/memory-usage', () => ({
   getHeapUsed: jest.fn().mockReturnValue(0),
 }));
 
@@ -100,7 +100,7 @@ jest.mock('@/pipeline/retry', () => ({
   ),
 }));
 
-jest.mock('@/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     error: jest.fn(),
     warn: jest.fn(),

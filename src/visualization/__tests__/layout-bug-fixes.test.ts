@@ -9,7 +9,7 @@ import { calculateNodeWidth, calculateNodeHeight, getGraphConfig } from '../layo
 import { ZeroOverlapLayoutEngine } from '../enhanced-zero-overlap-layout';
 import { LayoutOptimizer } from '../strategies/LayoutOptimizer';
 import { FallbackLayoutStrategy } from '../strategies/FallbackLayoutStrategy';
-import type { NodeDatum, EdgeDatum } from '@/types/diagram';
+import type { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 import type { LayoutConfig } from '../types';
 
 function makeNodes(count: number): NodeDatum[] {

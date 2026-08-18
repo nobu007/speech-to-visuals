@@ -1,5 +1,5 @@
 import { LayoutEngine } from '../../visualization/layout-engine';
-import { NodeDatum, EdgeDatum, DiagramType, DiagramLayout } from '../../types/diagram';
+import { NodeDatum, EdgeDatum, DiagramType, DiagramLayout } from '@stv/core/types/diagram';
 
 describe('LayoutEngine', () => {
   // ---------- Constructor and simple mode ----------

@@ -19,11 +19,11 @@ import {
   DEFAULT_FPS,
 } from '../remotion/scene-synchronizer';
 import type { SrtCaption } from '../remotion/srt-parser';
-import type { SceneGraph, DiagramType, NodeDatum, EdgeDatum, DiagramLayout } from '../types/diagram';
+import type { SceneGraph, DiagramType, NodeDatum, EdgeDatum, DiagramLayout } from '@stv/core/types/diagram';
 import { MultiFormatExporter, type ExportFormat, type ExportResult } from '../export/multi-format-exporter';
 import { generateRenderPlan, validateRenderPlan, type RenderPlan } from './scene-render-spec-generator';
 import { DEFAULT_SCENE_DURATION_MS } from './scene-duration-limits';
-import { sanitizeFinite } from '@/utils/guards';
+import { sanitizeFinite } from '@stv/core/utils/guards';
 import { timeStage, aggregateTimingReport, type StageTimingRecord, type StageTimingReport } from './stage-timing-metrics';
 import { computePipelineHealth, type PipelineHealthReport } from './pipeline-health-score';
 import type { CostData } from './cost-efficiency-metrics';

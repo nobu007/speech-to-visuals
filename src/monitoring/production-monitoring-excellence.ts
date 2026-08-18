@@ -5,7 +5,7 @@
  * and comprehensive real-time system health optimization.
  */
 
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 export interface MonitoringEnhancement {
   aiAnomalyDetection: AnomalyDetectionConfig;

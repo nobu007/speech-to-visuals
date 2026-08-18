@@ -1,5 +1,5 @@
 import { CanvasCalculator, CanvasCalcResult } from '@/visualization/canvas-calculator';
-import { PositionedNode } from '@/types/diagram';
+import { PositionedNode } from '@stv/core/types/diagram';
 
 function makeNodes(positions: Array<{ x: number; y: number; w?: number; h?: number }>): PositionedNode[] {
   return positions.map((p, i) => ({

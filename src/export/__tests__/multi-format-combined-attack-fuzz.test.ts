@@ -33,7 +33,7 @@
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { MultiFormatExporter } from '../multi-format-exporter';
 import { validateSceneGraphForExport } from '../export-content-validator';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 import { mulberry32, pick } from '@tests/helpers/fuzz';
 
 // The detector logs a WARN per malicious scene (expected — that IS the

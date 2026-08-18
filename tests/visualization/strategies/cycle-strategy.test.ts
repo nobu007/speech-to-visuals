@@ -1,5 +1,5 @@
 import { CycleLayoutStrategy } from '@/visualization/strategies/cycle-strategy';
-import { NodeDatum, EdgeDatum } from '@/types/diagram';
+import { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 import { LayoutStrategy } from '@/visualization/types';
 
 function makeNodes(count: number, overrides?: Partial<NodeDatum>[]): NodeDatum[] {

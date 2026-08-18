@@ -7,10 +7,10 @@
  */
 
 import { EventEmitter } from 'events';
-import { getMemoryUsage } from '@/utils/memory-usage';
-import { percentileCeil, roundTo, heapUsagePercent, bytesToMb } from '@/lib/metrics-utils';
-import { logger } from '@/utils/logger';
-import { sanitizeFinite } from '@/utils/guards';
+import { getMemoryUsage } from '@stv/core/utils/memory-usage';
+import { percentileCeil, roundTo, heapUsagePercent, bytesToMb } from '@stv/core/lib/metrics-utils';
+import { logger } from '@stv/core/utils/logger';
+import { sanitizeFinite } from '@stv/core/utils/guards';
 import { ERROR_RATE_WARNING_THRESHOLD, ERROR_RATE_CRITICAL_THRESHOLD } from './error-rate-thresholds';
 
 /**

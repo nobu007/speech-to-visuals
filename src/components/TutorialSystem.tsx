@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { safeLoadFromStorage, safeSaveToStorage } from '@/utils/safe-storage';
+import { safeLoadFromStorage, safeSaveToStorage } from '@stv/core/utils/safe-storage';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

@@ -1,5 +1,5 @@
 import { TranscriptionResult, TranscriptionSegment, TranscriptionError as TranscriptionErrorClass } from './types';
-import { logger } from '../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 /**
  * Transcription state type

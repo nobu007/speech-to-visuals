@@ -8,8 +8,8 @@
  * product/API concern, not a config-schema concern.
  */
 
-import type { ValidationError } from '@/config/validate';
-import { SECURITY_LIMITS } from '@/config/limits';
+import type { ValidationError } from '@stv/core/config/validate';
+import { SECURITY_LIMITS } from '@stv/core/config/limits';
 import { getJwtSecretFromEnv } from './jwt-secret';
 
 /**

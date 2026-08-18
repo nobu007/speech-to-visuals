@@ -32,7 +32,7 @@ describe('clamp01 — no former site re-inlines the formula', () => {
     it(`${rel} imports clamp01 and does not re-inline Math.max(0, Math.min(1, …))`, () => {
       const src = fs.readFileSync(path.join(REPO_ROOT, rel), 'utf-8');
       // NOTE: this Jest build's `expect(value, message)` takes 1 arg only.
-      expect(src).toContain("from '@/utils/guards'");
+      expect(src).toContain("from '@stv/core/utils/guards'");
       expect(src).toMatch(/\bclamp01\b/);
       // A re-inlined bare copy must not remain — in EITHER operand order. The
       // canonical clamps `value` to [0,1]; `Math.max(0, Math.min(1, x))` and

@@ -4,8 +4,8 @@
  * REQ-141: getAudioDuration with browser API mock
  */
 
-import { formatDuration, getAudioDuration } from '@/utils/audio-duration';
-import { AUDIO_LIMITS } from '@/config/limits';
+import { formatDuration, getAudioDuration } from '@stv/core/utils/audio-duration';
+import { AUDIO_LIMITS } from '@stv/core/config/limits';
 
 // Mock browser Audio element for getAudioDuration tests
 const mockAudioInstance = {
@@ -32,8 +32,8 @@ afterEach(() => {
 // Capture the Audio constructor so tests can trigger events
 let capturedListeners: Record<string, Array<(...args: unknown[]) => void>> = {};
 
-jest.mock('@/utils/audio-duration', () => {
-  const originalModule = jest.requireActual('@/utils/audio-duration');
+jest.mock('@stv/core/utils/audio-duration', () => {
+  const originalModule = jest.requireActual('@stv/core/utils/audio-duration');
   return {
     ...originalModule,
   };

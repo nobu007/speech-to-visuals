@@ -8,7 +8,7 @@
  * - Valid segments with nodes but no edges are still processed
  */
 
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 // Type helper to access private methods
 type PipelineLike = {

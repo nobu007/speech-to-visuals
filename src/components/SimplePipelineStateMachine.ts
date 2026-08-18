@@ -4,7 +4,7 @@
  * Any state can transition to error, error -> idle for retry/reset
  */
 
-import { ProcessingStatus } from '@/types/pipeline';
+import { ProcessingStatus } from '@stv/core/types/pipeline';
 
 // ========================================
 // State Machine Types

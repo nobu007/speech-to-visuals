@@ -79,12 +79,12 @@ jest.unstable_mockModule('@/analysis/llm-utils', () => ({
   parseUntrustedJson: (s: string) => JSON.parse(s),
 }));
 
-jest.unstable_mockModule('@/lib/metrics-utils', () => ({
+jest.unstable_mockModule('@stv/core/lib/metrics-utils', () => ({
   __esModule: true,
   bytesToMb: (b: number) => b / (1024 * 1024),
 }));
 
-jest.unstable_mockModule('@/utils/logger', () => ({
+jest.unstable_mockModule('@stv/core/utils/logger', () => ({
   __esModule: true,
   logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() },
 }));

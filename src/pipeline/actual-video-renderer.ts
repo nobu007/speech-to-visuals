@@ -6,14 +6,14 @@
 import { bundle } from '@remotion/bundler';
 import { renderMedia, selectComposition } from '@remotion/renderer';
 import type { VideoConfig } from 'remotion';
-import { SceneGraph } from '@/types/diagram';
+import { SceneGraph } from '@stv/core/types/diagram';
 import { COMPOSITION_ID } from '@/remotion/composition-id';
 import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
 import { RenderingError } from '@/pipeline/pipeline-errors';
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 export interface ActualVideoRenderOptions {
   scenes: SceneGraph[];

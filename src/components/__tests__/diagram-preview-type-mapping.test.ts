@@ -7,7 +7,7 @@
  * human-readable label and a color class — never undefined.
  */
 import { describe, it, expect } from '@jest/globals';
-import type { DiagramType } from '@/types/diagram';
+import type { DiagramType } from '@stv/core/types/diagram';
 
 // Inline copies of the maps from DiagramPreview.tsx.
 // If the component's maps change, this test will fail until updated,

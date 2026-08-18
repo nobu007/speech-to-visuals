@@ -9,10 +9,10 @@
  * Guarantees 100% success rate.
  */
 
-import { DiagramType } from '@/types/diagram';
+import { DiagramType } from '@stv/core/types/diagram';
 import { RuleBasedAnalysisResult, SceneSegment, isDisabledGemini } from './rule-based-analyzer';
 import { executeWithRetry, isRetryable, DEFAULT_RETRY_OPTIONS, type RetryOptions } from './retry-strategy';
-import { logger } from '../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 /**
  * Analysis request for the fallback chain

@@ -49,7 +49,7 @@ import { describe, it, expect } from '@jest/globals';
 import { readFileSync } from 'node:fs';
 import { MultiFormatExporter } from '@/export/multi-format-exporter';
 import type { ExportOptions } from '@/export/multi-format-exporter';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 const GUARD_FILE = 'src/export/multi-format-exporter.ts';
 

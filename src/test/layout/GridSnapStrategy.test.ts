@@ -1,5 +1,5 @@
 import GridSnapStrategy from '../../visualization/layout/strategies/GridSnapStrategy';
-import { PositionedNode, LayoutEdge, NodeDatum, EdgeDatum } from '../../types/diagram';
+import { PositionedNode, LayoutEdge, NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 import { createTestConfig, createTestNode, createLayoutEdge, hasAnyOverlap } from './test-utils';
 
 const toLayoutEdges = (pairs: Array<[string, string]>): LayoutEdge[] =>

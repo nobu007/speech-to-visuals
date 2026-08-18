@@ -1,5 +1,5 @@
 import { LayoutOptimizer } from '@/visualization/strategies/LayoutOptimizer';
-import { DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { DiagramLayout, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 
 const defaultConfig = {
   width: 1920,

@@ -10,7 +10,7 @@ import { LayoutEngine } from '@/visualization/layout-engine';
 import { LayoutOptimizer } from '@/visualization/strategies/LayoutOptimizer';
 import { OverlapResolver } from '@/visualization/strategies/OverlapResolver';
 import { LayoutOptimizationPipeline } from '@/visualization/strategies/LayoutOptimizationPipeline';
-import type { NodeDatum, EdgeDatum, PositionedNode, DiagramLayout, LayoutEdge } from '@/types/diagram';
+import type { NodeDatum, EdgeDatum, PositionedNode, DiagramLayout, LayoutEdge } from '@stv/core/types/diagram';
 
 // ─── helpers ──────────────────────────────────────────────
 const config = {

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { bytesToMb } from '@/lib/metrics-utils';
+import { bytesToMb } from '@stv/core/lib/metrics-utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Upload, Play, Download, Settings, Activity, CheckCircle, AlertCircle, Info } from 'lucide-react';

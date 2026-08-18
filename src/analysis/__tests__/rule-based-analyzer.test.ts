@@ -10,7 +10,7 @@ import {
   RuleBasedAnalyzer,
   type SceneSegment,
 } from '../rule-based-analyzer';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 describe('RuleBasedAnalyzer', () => {
   // === Test Case 1: Always returns a result ===

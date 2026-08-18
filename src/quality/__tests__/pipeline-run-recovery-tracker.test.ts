@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 
 // Mock logger to suppress console noise
-jest.mock('@/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

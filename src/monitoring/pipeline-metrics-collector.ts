@@ -11,8 +11,8 @@
  * - batch_jobs_active (gauge: currently running jobs)
  */
 
-import { computePercentiles } from '@/lib/metrics-utils';
-import { sanitizeFinite } from '@/utils/guards';
+import { computePercentiles } from '@stv/core/lib/metrics-utils';
+import { sanitizeFinite } from '@stv/core/utils/guards';
 
 // ---------------------------------------------------------------------------
 // Types

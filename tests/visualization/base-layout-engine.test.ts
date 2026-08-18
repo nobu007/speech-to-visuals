@@ -1,5 +1,5 @@
 import { BaseLayoutEngine } from '@/visualization/base/BaseLayoutEngine';
-import { NodeDatum, EdgeDatum, DiagramType, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, DiagramType, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { LayoutConfig, LayoutResult } from '@/visualization/types';
 
 // Concrete implementation for testing abstract class

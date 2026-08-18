@@ -4,7 +4,7 @@
  * Tests for the LayoutQualityCompositeScorer class and quality gate integration.
  */
 
-import { PositionedNode, LayoutEdge } from '@/types/diagram';
+import { PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import {
   LayoutQualityCompositeScorer,
   CompositeQualityResult,

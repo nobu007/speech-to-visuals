@@ -11,7 +11,7 @@
 
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { logger } from '../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 // ---------------------------------------------------------------------------
 // Types

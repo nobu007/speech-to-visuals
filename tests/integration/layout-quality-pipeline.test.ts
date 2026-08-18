@@ -12,7 +12,7 @@
  * when fed realistic diagram layouts.
  */
 
-import { PositionedNode, LayoutEdge } from '@/types/diagram';
+import { PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { VisualBalanceScorer } from '@/visualization/visual-balance-scorer';
 import { detectEdgeCrossings, minimizeEdgeCrossings } from '@/visualization/edge-crossing-minimizer';
 import { sizeLabel, sizeAllLabels } from '@/visualization/smart-label-sizer';

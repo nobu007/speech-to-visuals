@@ -23,7 +23,7 @@
  */
 
 import { jest } from '@jest/globals';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 import { COMPOSITION_ID } from '@/remotion/composition-id';
 
 // ESM mocking: unstable_mockModule + dynamic import (see jest-esm-mock-pattern).

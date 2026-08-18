@@ -8,7 +8,7 @@
  * guard so NaN values can never leak through.
  */
 
-import type { PositionedNode } from '@/types/diagram';
+import type { PositionedNode } from '@stv/core/types/diagram';
 
 /** Default fallback width when neither `width` nor `w` is a finite number. */
 export const DEFAULT_NODE_WIDTH = 120;

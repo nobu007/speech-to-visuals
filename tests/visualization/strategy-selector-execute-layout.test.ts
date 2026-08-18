@@ -1,5 +1,5 @@
 import { executeLayout, StrategySelector } from '@/visualization/strategy-selector';
-import { NodeDatum, EdgeDatum, DiagramType } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, DiagramType } from '@stv/core/types/diagram';
 
 describe('executeLayout', () => {
   it('should execute layout for flow diagrams', async () => {

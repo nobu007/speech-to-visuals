@@ -32,7 +32,7 @@ import { PipelineRunRecoveryTracker, type RecoveryStage, type RunRecoveryReport,
 import { ErrorRecoveryHealthTracker, type HealthAssessment } from './error-recovery-health-tracker';
 import { ErrorRecoveryMonitor } from './error-recovery-monitor';
 import { errorRecoveryEventBus } from './error-recovery-event-bus';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 // ---------------------------------------------------------------------------
 // Public types

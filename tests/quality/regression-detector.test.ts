@@ -12,7 +12,7 @@ import type { RegressionDetector as RegressionDetectorType } from '@/quality/reg
 // --- Mocks ---
 const mockGetLatestMetrics = jest.fn();
 
-jest.mock('@/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: { warn: jest.fn(), error: jest.fn(), info: jest.fn() },
 }));
 

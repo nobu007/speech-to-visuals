@@ -7,9 +7,9 @@
  * where characters can break between any character without requiring spaces.
  */
 
-import { PositionedNode } from '@/types/diagram';
+import { PositionedNode } from '@stv/core/types/diagram';
 import { getNodeWidth, getNodeHeight } from './node-dimensions';
-import { buildCharClassRegex, WIDE_DISPLAY_RANGES } from '@/lib/unicode-script-ranges';
+import { buildCharClassRegex, WIDE_DISPLAY_RANGES } from '@stv/core/lib/unicode-script-ranges';
 
 /**
  * Unicode ranges for CJK characters that are typically rendered at ~2x the

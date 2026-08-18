@@ -23,15 +23,15 @@ import { LLMCache } from "./llm-cache";
 import { ComplexityDetector, ComplexityAnalysis } from "./complexity-detector";
 import { parseJsonFromLLMText } from "./llm-utils";
 import { DEFAULT_RETRY_OPTIONS } from "./retry-strategy";
-import { logger } from '../utils/logger';
-import { percentileCeil, roundTo, safeMean } from '@/lib/metrics-utils';
-import { CappedArray } from '@/lib/capped-array';
-import { clamp01 } from '@/utils/guards';
+import { logger } from '@stv/core/utils/logger';
+import { percentileCeil, roundTo, safeMean } from '@stv/core/lib/metrics-utils';
+import { CappedArray } from '@stv/core/lib/capped-array';
+import { clamp01 } from '@stv/core/utils/guards';
 import { TokenUsageTracker, type ModelType, type StageType, type TokenUsageSummary } from './token-usage-tracker';
 import { calculateModelCost, estimateCost, type CostBreakdown, type CostEstimate } from './cost-estimator';
 import { BudgetAlertSystem, type BudgetAlert } from './budget-alert';
 import { CacheWarmupManager, type WarmupStats, type HitRateReport } from '@/optimization/cache-warmup';
-import { isDiagramType } from '@/types/diagram';
+import { isDiagramType } from '@stv/core/types/diagram';
 
 /**
  * Phase 33: Streaming progress callback

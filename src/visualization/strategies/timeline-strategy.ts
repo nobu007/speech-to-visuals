@@ -5,7 +5,7 @@
  * with X-axis optimized via force-directed method and grid-snap fallback.
  */
 
-import { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, PositionedNode } from '@stv/core/types/diagram';
 import {
   LayoutStrategy,
   StrategyLayoutResult,

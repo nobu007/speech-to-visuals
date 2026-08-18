@@ -10,7 +10,7 @@
  * - PDF: %PDF- header + page count validation
  */
 
-import { logger } from '../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 // ---------------------------------------------------------------------------
 // Types

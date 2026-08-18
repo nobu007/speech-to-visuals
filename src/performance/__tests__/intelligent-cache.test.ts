@@ -8,7 +8,7 @@
  */
 
 import { IntelligentCache, globalCache, cached } from '@/performance/intelligent-cache';
-import type { DiagramType } from '@/types/diagram';
+import type { DiagramType } from '@stv/core/types/diagram';
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -19,7 +19,7 @@
 import { MultiFormatExporter } from '../multi-format-exporter';
 import { generateAnimatedSVG, generateLottieAnimation, escapeXml } from '../animated-scene-renderer';
 import { EnhancedExportEngine, escapeJsonForScript } from '../enhanced-export-engine';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 beforeEach(() => {
   jest.spyOn(console, 'log').mockImplementation(() => {});

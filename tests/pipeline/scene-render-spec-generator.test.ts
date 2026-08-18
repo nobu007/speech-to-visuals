@@ -12,7 +12,7 @@ import {
   type SceneRenderSpec,
   type RenderPlan,
 } from '@/pipeline/scene-render-spec-generator';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 // ---------------------------------------------------------------------------
 // Fixtures

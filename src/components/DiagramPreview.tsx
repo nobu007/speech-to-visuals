@@ -1,4 +1,4 @@
-import { SceneGraph, DiagramType } from '@/types/diagram';
+import { SceneGraph, DiagramType } from '@stv/core/types/diagram';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

@@ -7,7 +7,7 @@ import {
   validateAudioDuration,
   validateAudioFileMetadata,
   MIN_AUDIO_DURATION_SECONDS,
-} from '@/utils/audio-validation';
+} from '@stv/core/utils/audio-validation';
 
 // Mock File for Node.js environment
 class MockFile {

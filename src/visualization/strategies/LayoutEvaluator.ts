@@ -1,6 +1,6 @@
-import { DiagramLayout, DiagramType, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { DiagramLayout, DiagramType, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { LayoutConfig, LayoutResult, LayoutMetrics, LayoutComplianceResult, Point, OverlapPair, BoundingBox } from '../types';
-import { clamp01 } from '@/utils/guards';
+import { clamp01 } from '@stv/core/utils/guards';
 import { detectOverlapPairs, calculateNodeCenter, calculateNodeDistance } from '../layout-utils';
 import { detectEdgeCrossings } from '../edge-crossing-minimizer';
 import { getNodeWidth, getNodeHeight } from '../node-dimensions';

@@ -12,7 +12,7 @@ import {
   ErrorReport,
   ErrorSnapshot,
 } from './enhanced-error-recovery';
-import { roundTo, safeMean } from '../lib/metrics-utils';
+import { roundTo, safeMean } from '@stv/core/lib/metrics-utils';
 
 // ---------------------------------------------------------------------------
 // Types

@@ -11,7 +11,7 @@
 
 import { Router, Request, Response } from 'express';
 import { ExportArtifactStore } from '../../export/export-artifact-store';
-import { logger } from '../../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import { UUID_V4_RE } from '../uuid-validation';
 
 // Characters that must be stripped from Content-Disposition header values

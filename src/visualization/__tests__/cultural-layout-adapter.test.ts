@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import type { DiagramLayout, PositionedNode } from '@/types/diagram';
+import type { DiagramLayout, PositionedNode } from '@stv/core/types/diagram';
 import type { ComplexLayoutConfig } from '../complex-layout-engine';
 import { CulturalLayoutAdapter } from '../strategies/CulturalLayoutAdapter';
 

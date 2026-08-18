@@ -1,6 +1,6 @@
 import { randomUUID, createHash } from 'crypto';
-import { SceneGraph, DiagramType, NodeDatum, EdgeDatum } from '@/types/diagram';
-import { sanitizeFinite, sanitizeDiagramType } from '@/utils/guards';
+import { SceneGraph, DiagramType, NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
+import { sanitizeFinite, sanitizeDiagramType } from '@stv/core/utils/guards';
 import { TranscriptionPipeline, TranscriptionSegment } from '@/transcription';
 import { SceneSegmenter, DiagramDetector, DEFAULT_MIN_SEGMENT_LENGTH_MS, DEFAULT_MAX_SEGMENT_LENGTH_MS } from '@/analysis';
 import { LayoutEngine } from '@/visualization';
@@ -45,8 +45,8 @@ import {
 } from './quality-estimators';
 // Phase 34: Persistent iteration logging system
 import { globalIterationLogger } from '@/framework/iteration-logger';
-import { getHeapUsed, getMemoryUsage } from '@/utils/memory-usage';
-import { logger } from '../utils/logger';
+import { getHeapUsed, getMemoryUsage } from '@stv/core/utils/memory-usage';
+import { logger } from '@stv/core/utils/logger';
 
 /**
  * Main Audio-to-Diagram Video Generation Pipeline

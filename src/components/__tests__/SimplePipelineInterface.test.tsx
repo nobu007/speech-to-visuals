@@ -10,7 +10,7 @@ import {
   PipelineState,
   PipelineAction,
 } from '../SimplePipelineStateMachine';
-import { ProcessingStatus } from '@/types/pipeline';
+import { ProcessingStatus } from '@stv/core/types/pipeline';
 
 // Helper to create a mock File
 function createMockFile(name = 'test.mp3', size = 1024 * 1024, type = 'audio/mp3'): File {

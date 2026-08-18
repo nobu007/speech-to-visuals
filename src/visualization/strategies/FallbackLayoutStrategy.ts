@@ -1,4 +1,4 @@
-import { DiagramLayout, NodeDatum, EdgeDatum, LayoutEdge, DiagramType } from '@/types/diagram';
+import { DiagramLayout, NodeDatum, EdgeDatum, LayoutEdge, DiagramType } from '@stv/core/types/diagram';
 import { LayoutConfig } from '../types';
 import { DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { ringAngle, pointOnCircle, squareGridColumns, squareGridRows, centerInCell } from '../layout-utils';

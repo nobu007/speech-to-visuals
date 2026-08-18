@@ -2,7 +2,7 @@
  * Tests for src/test/generators.ts
  */
 
-import type { NodeDatum, EdgeDatum, SceneGraph } from '@/types';
+import type { NodeDatum, EdgeDatum, SceneGraph } from '@stv/core/types';
 import {
   createTestNode,
   createTestEdge,

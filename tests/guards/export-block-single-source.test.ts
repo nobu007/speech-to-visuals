@@ -45,7 +45,7 @@ import { MultiFormatExporter } from '@/export/multi-format-exporter';
 import { EnhancedExportEngine } from '@/export/enhanced-export-engine';
 import { ProductionExporter } from '@/export/production-exporter';
 import { FormatValidationError, PipelineConfigError } from '@/pipeline/pipeline-errors';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 // ---------------------------------------------------------------------------
 // Env fixture: EXPORT_STRICT_VALIDATION saved/restored around every test

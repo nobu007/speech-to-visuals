@@ -112,7 +112,7 @@ describe('Batch parallel file processing', () => {
 
     it('should limit concurrency to MAX_CONCURRENT_JOBS', async () => {
       // Verify the concurrency constant is used correctly
-      const { BATCH_LIMITS } = await import('@/config/limits');
+      const { BATCH_LIMITS } = await import('@stv/core/config/limits');
       expect(BATCH_LIMITS.MAX_CONCURRENT_JOBS).toBe(3);
     });
 

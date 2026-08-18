@@ -2,7 +2,7 @@ import {
   UserGuidedErrorRecovery,
   type ErrorGuidance,
 } from '../user-guided-error-recovery';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 describe('UserGuidedErrorRecovery', () => {
   let recovery: UserGuidedErrorRecovery;

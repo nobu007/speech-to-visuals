@@ -2,11 +2,11 @@ import { useState, useRef, useCallback, useEffect, memo } from 'react';
 import { Upload, FileAudio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { bytesToMb } from '@/lib/metrics-utils';
-import { cn } from '@/lib/utils';
+import { bytesToMb } from '@stv/core/lib/metrics-utils';
+import { cn } from '@stv/core/lib/utils';
 import { toast } from 'sonner';
-import { validateAudioFile, validateAudioDuration } from '@/utils/audio-validation';
-import { logger } from '@/utils/logger';
+import { validateAudioFile, validateAudioDuration } from '@stv/core/utils/audio-validation';
+import { logger } from '@stv/core/utils/logger';
 
 type AudioUploaderProps = {
   onUpload: (file: File) => void;

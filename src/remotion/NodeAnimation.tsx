@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { useCurrentFrame, useVideoConfig, interpolate } from 'remotion';
-import { PositionedNode } from '@/types/diagram';
+import { PositionedNode } from '@stv/core/types/diagram';
 import { NODE_FADE_DURATION_FRAMES } from './animation-strategies';
 
 /** Node fade-in duration in seconds */

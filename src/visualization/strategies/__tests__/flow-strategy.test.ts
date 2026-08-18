@@ -18,7 +18,7 @@ jest.unstable_mockModule('@/visualization/layout-engine-v2', () => ({
 }));
 
 const { FlowStrategy, flowStrategy } = await import('../flow-strategy');
-const { NodeDatum, EdgeDatum } = await import('@/types/diagram');
+const { NodeDatum, EdgeDatum } = await import('@stv/core/types/diagram');
 const layoutEngineV2 = await import('@/visualization/layout-engine-v2');
 
 // ---------------------------------------------------------------------------

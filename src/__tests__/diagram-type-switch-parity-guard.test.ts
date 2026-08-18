@@ -56,6 +56,7 @@ import { fileURLToPath } from 'node:url';
 // Anchored to import.meta.url, not process.cwd(): jest workers can run with a
 // cwd that is not the repo root, which flaked the bare relative form under
 // --maxWorkers>1 (same as TC-302/313).
+import { resolveSource } from '@tests/guards/freeze-guard';
 const REPO_ROOT = join(fileURLToPath(import.meta.url), '..', '..', '..');
 
 // --- comment stripping (string literals PRESERVED so 'flow' tokens survive) ---
@@ -247,7 +248,7 @@ describe('diagram-type equivalence pair inventory — pinned canonical set (REQ-
     // Importing from the source-of-truth: see `DIAGRAM_TYPES` in
     // src/types/diagram.ts. We re-read it rather than import to keep this
     // test pure-string (the guard is an AST sweep — no runtime deps).
-    const src = readFileSync(join(REPO_ROOT, 'src/types/diagram.ts'), 'utf8');
+    const src = readFileSync(resolveSource('src/types/diagram.ts'), 'utf8');
     const m = src.match(/DIAGRAM_TYPES:\s*readonly DiagramType\[\]\s*=\s*\[([^\]]+)\]/);
     expect(m).not.toBeNull();
     const members = (m![1].match(/'[^']+'/g) ?? []).map((s) => s.slice(1, -1));

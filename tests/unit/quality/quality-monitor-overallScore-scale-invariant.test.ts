@@ -20,7 +20,7 @@ import { describe, expect, it } from '@jest/globals';
 import { QualityMonitor as FractionalQualityMonitor } from '@/quality';
 import { getQualityMonitor } from '@/pipeline/quality-monitor';
 import type { PipelineResult, PipelineStage } from '@/pipeline/types';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 function makeStage(name: string): PipelineStage {
   return { name, status: 'complete', success: true, startTime: 0, endTime: 100 };

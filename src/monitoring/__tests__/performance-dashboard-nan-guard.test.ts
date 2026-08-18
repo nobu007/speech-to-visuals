@@ -7,7 +7,7 @@
  * 3. Alerts still fire correctly when some (but not all) metrics have NaN
  */
 
-jest.mock('@/utils/memory-usage', () => ({
+jest.mock('@stv/core/utils/memory-usage', () => ({
   getMemoryUsage: jest.fn(() => ({
     heapUsed: 100 * 1024 * 1024,
     heapTotal: 200 * 1024 * 1024,
@@ -53,7 +53,7 @@ jest.mock('@/performance/intelligent-cache', () => ({
   },
 }));
 
-jest.mock('@/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

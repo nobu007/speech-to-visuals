@@ -25,7 +25,7 @@ describe('REQ-066: Browser-Safe Environment Variable Access (ISS-012)', () => {
     Reflect.deleteProperty(globalThis, 'process');
 
     // Re-import to trigger fresh constructor
-    const { productionConfig } = await import('@/config/production-config');
+    const { productionConfig } = await import('@stv/core/config/production-config');
 
     const config = productionConfig.getConfig();
     expect(config.name).toBe('development');
@@ -37,7 +37,7 @@ describe('REQ-066: Browser-Safe Environment Variable Access (ISS-012)', () => {
     Reflect.deleteProperty(globalThis, 'process');
 
     // Re-import to trigger fresh constructor (including loadConfigOverrides)
-    const { productionConfig } = await import('@/config/production-config');
+    const { productionConfig } = await import('@stv/core/config/production-config');
 
     // Should still produce a valid config (no crash)
     const config = productionConfig.getConfig();

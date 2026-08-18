@@ -10,7 +10,7 @@ import {
   AUDIO_LIMITS,
   SECURITY_LIMITS,
   SUPPORTED_AUDIO_FORMATS,
-} from '../../../src/config/limits';
+} from '@stv/core/config/limits';
 
 // Import re-exports from types.ts to verify backward compatibility
 import {

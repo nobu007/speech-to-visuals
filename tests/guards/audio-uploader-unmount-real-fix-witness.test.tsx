@@ -53,7 +53,7 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..
 const mockValidateAudioFile = jest.fn();
 const mockValidateAudioDuration = jest.fn();
 
-jest.unstable_mockModule('@/utils/audio-validation', () => ({
+jest.unstable_mockModule('@stv/core/utils/audio-validation', () => ({
   validateAudioFile: mockValidateAudioFile,
   validateAudioDuration: mockValidateAudioDuration,
   MIN_AUDIO_DURATION_SECONDS: 1,
@@ -72,7 +72,7 @@ jest.unstable_mockModule('@/components/ui/card', () => ({
     React.createElement('div', props, children),
 }));
 
-jest.unstable_mockModule('@/lib/utils', () => ({
+jest.unstable_mockModule('@stv/core/lib/utils', () => ({
   cn: (...args: (string | undefined | false)[]) => args.filter(Boolean).join(' '),
 }));
 
@@ -93,7 +93,7 @@ jest.unstable_mockModule('lucide-react', () => ({
   FileAudio: () => React.createElement('svg', { 'data-testid': 'icon-file-audio' }),
 }));
 
-jest.unstable_mockModule('@/utils/logger', () => ({
+jest.unstable_mockModule('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

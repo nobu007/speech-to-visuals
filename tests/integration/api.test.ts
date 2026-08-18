@@ -13,7 +13,7 @@ import type {
   JobComplete,
   JobError,
   WebSocketEvents,
-} from '@/types/api/index';
+} from '@stv/core/types/api';
 import type { Request, Response, NextFunction } from 'express';
 
 // ---------------------------------------------------------------------------

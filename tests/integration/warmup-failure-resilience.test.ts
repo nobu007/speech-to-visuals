@@ -24,7 +24,7 @@ import {
 } from '../../src/api/startup-warmup';
 
 // Suppress logger noise during tests
-jest.mock('../../src/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

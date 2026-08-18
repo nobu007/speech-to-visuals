@@ -1,4 +1,4 @@
-import { DiagramLayout, PositionedNode } from '@/types/diagram';
+import { DiagramLayout, PositionedNode } from '@stv/core/types/diagram';
 import { CulturalLayoutAdapter } from '@/visualization/strategies/CulturalLayoutAdapter';
 import { ComplexLayoutConfig } from '@/visualization/complex-layout-engine';
 

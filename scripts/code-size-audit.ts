@@ -2,18 +2,38 @@
 /**
  * REQ-102: Code Size Audit CLI
  *
- * Runs the code-size audit against SYSTEM_CONSTITUTION V2.4 limits
- * and prints a report. Warnings do not block the build (exit 0).
+ * Runs the code-size audit against SYSTEM_CONSTITUTION V2.8 limits and
+ * prints a report. Accounting is implementation-only (tests excluded —
+ * V2.8), and a breach FAILS the build (exit 1): the limit has teeth.
  *
  * Usage:
- *   npx tsx scripts/code-size-audit.ts [--ci]
+ *   npx tsx scripts/code-size-audit.ts [--ci] [--all]
  *   npm run audit:code-size
  *
- * --ci  Additionally emit GitHub Actions annotation format.
+ * --ci   Additionally emit GitHub Actions annotation format.
+ * --all  Audit the full repository instead of src/ only.
  */
 
 import * as path from 'path';
-import { runAudit, type CodeSizeAuditResult } from '../src/config/code-size-audit';
+import {
+  runAudit,
+  type CodeSizeAuditResult,
+  type CodeSizeLimits,
+} from '@stv/core/config/code-size-audit';
+
+/**
+ * SYSTEM_CONSTITUTION V2.8 limits — implementation-only accounting
+ * (implOnly: __tests__/ and *.test.* excluded). Baseline at V2.8:
+ * 298 impl files / 86,328 impl lines / 106 deps / largest 2,829 lines
+ * (src/quality/enhanced-error-recovery.ts — debt, ceiling set to 3,000).
+ * Headroom: +22 files / +3,672 lines (~4%).
+ */
+const CONSTITUTION_V2_8_LIMITS: CodeSizeLimits = {
+  maxFiles: 320,
+  maxLines: 90_000,
+  maxLinesPerFile: 3_000,
+  maxDependencies: 110,
+};
 
 const ROOT_DIR = path.resolve(import.meta.dirname, '..');
 const PACKAGE_JSON = path.join(ROOT_DIR, 'package.json');
@@ -23,7 +43,7 @@ const auditAll = process.argv.includes('--all');
 function formatResult(result: CodeSizeAuditResult): void {
   const { metrics, limits, warnings, isCompliant } = result;
 
-  console.log('\n=== Code Size Audit (SYSTEM_CONSTITUTION V2.4) ===\n');
+  console.log('\n=== Code Size Audit (SYSTEM_CONSTITUTION V2.8 — implementation-only, CI-fatal) ===\n');
 
   console.log(`  Files:        ${metrics.fileCount} / ${limits.maxFiles}`);
   console.log(`  Lines:        ${metrics.lineCount.toLocaleString()} / ${limits.maxLines.toLocaleString()}`);
@@ -38,15 +58,15 @@ function formatResult(result: CodeSizeAuditResult): void {
   if (isCompliant) {
     console.log('  Status: COMPLIANT — all metrics within limits.\n');
   } else {
-    console.log('  Status: NON-COMPLIANT — warnings below (build continues).\n');
+    console.log('  Status: NON-COMPLIANT — limit breach fails the build (V2.8 teeth).\n');
     for (const w of warnings) {
-      console.log(`  WARNING: ${w}`);
+      console.log(`  VIOLATION: ${w}`);
     }
     console.log();
 
     if (ciMode) {
       for (const w of warnings) {
-        console.log(`::warning::${w}`);
+        console.log(`::error::${w}`);
       }
     }
   }
@@ -54,10 +74,14 @@ function formatResult(result: CodeSizeAuditResult): void {
 
 // --- Main ---
 
-const result = runAudit(ROOT_DIR, PACKAGE_JSON, undefined, { srcOnly: !auditAll });
+const result = runAudit(ROOT_DIR, PACKAGE_JSON, CONSTITUTION_V2_8_LIMITS, {
+  srcOnly: !auditAll,
+  implOnly: true,
+});
 formatResult(result);
 
 if (!auditAll) {
-  console.log('  Scope: src/ only (use --all to audit full repository)\n');
+  console.log('  Scope: src/ implementation files only (tests excluded; use --all for full repository)\n');
 }
-process.exit(0); // Warnings never block the build
+// V2.8 teeth: a limit breach fails the audit job instead of warning.
+process.exit(result.isCompliant ? 0 : 1);

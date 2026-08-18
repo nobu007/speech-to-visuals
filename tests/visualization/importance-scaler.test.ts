@@ -7,7 +7,7 @@ import {
   isLowImportance,
   pickHighestImportance,
 } from '@/visualization/importance-scaler';
-import { NodeDatum } from '@/types/diagram';
+import { NodeDatum } from '@stv/core/types/diagram';
 
 const node = (id: string, importance?: number): NodeDatum => ({
   id,

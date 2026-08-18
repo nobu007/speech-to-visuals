@@ -9,7 +9,7 @@
  * - Non-retryable: 400, 401, 403, 404
  */
 
-import { logger } from '../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 export interface RetryOptions {
   maxRetries?: number;   // default: 3

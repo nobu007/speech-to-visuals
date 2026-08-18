@@ -9,7 +9,7 @@
  * a configurable threshold above the baseline.
  */
 
-import { percentChange } from '@/lib/metrics-utils';
+import { percentChange } from '@stv/core/lib/metrics-utils';
 
 /** Raw cost data for a single run */
 export interface CostData {

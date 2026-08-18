@@ -13,7 +13,7 @@ import {
   securityMetricsCollector,
   type SecurityRejectionSnapshot,
 } from '../../export/security-metrics-collector';
-import { logger } from '../../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 /**
  * Admin token for destructive operations (metrics reset).

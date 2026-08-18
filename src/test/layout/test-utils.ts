@@ -1,4 +1,4 @@
-import { NodeDatum, PositionedNode, LayoutEdge, EdgeDatum } from '../../types/diagram';
+import { NodeDatum, PositionedNode, LayoutEdge, EdgeDatum } from '@stv/core/types/diagram';
 import { LayoutConfig } from '../../visualization/types';
 
 export const createTestNode = (id: string, x = 0, y = 0, width = 100, height = 50): PositionedNode => ({

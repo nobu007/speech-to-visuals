@@ -11,10 +11,10 @@
 import { Router, Request, Response, RequestHandler } from 'express';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
-import { PIPELINE_LIMITS } from '../../config/limits';
-import { sanitizeFilename } from '../../utils/sanitize';
+import { PIPELINE_LIMITS } from '@stv/core/config/limits';
+import { sanitizeFilename } from '@stv/core/utils/sanitize';
 import { exportRateLimiter } from '../middleware/rate-limit';
-import { logger } from '../../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 /** Supported codecs for rendering */
 const VALID_CODECS = ['h264', 'h265', 'vp9', 'av1'] as const;

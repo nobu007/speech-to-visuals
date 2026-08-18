@@ -18,7 +18,7 @@
  */
 
 import { escapeXml } from '@/export/animated-scene-renderer.ts';
-import { sanitizeFilename } from '@/utils/sanitize.ts';
+import { sanitizeFilename } from '@stv/core/utils/sanitize';
 import { mulberry32 } from '@tests/helpers/fuzz';
 
 // ---------------------------------------------------------------------------

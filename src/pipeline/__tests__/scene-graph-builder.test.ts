@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@jest/globals';
 import { buildSceneGraph } from '../scene-graph-builder';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 /**
  * Unit contract for the shared SceneGraph assembler.

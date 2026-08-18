@@ -5,7 +5,7 @@
 
 import { jest } from '@jest/globals';
 import * as React from 'react';
-import { PositionedNode } from '@/types/diagram';
+import { PositionedNode } from '@stv/core/types/diagram';
 import { NODE_FADE_DURATION_FRAMES } from '../animation-strategies';
 
 // Mock remotion hooks - return controlled values via module-level variables

@@ -28,9 +28,9 @@
  * Guard: tests/guards/v1-strategy-shared-members-single-source.test.ts.
  */
 
-import type { NodeDatum, EdgeDatum } from '@/types/diagram';
+import type { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 import type { LayoutConfig } from './types';
-import { logger } from '../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import { DEFAULT_NODE_WIDTH } from './node-dimensions';
 import {
   resolveNodeWidth,

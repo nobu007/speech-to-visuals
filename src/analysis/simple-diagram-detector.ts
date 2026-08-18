@@ -4,8 +4,8 @@
  * 🔄 Focus: 小さく作り、確実に動作確認
  */
 
-import type { DiagramType } from '@/types/diagram';
-import { escapeRegex } from '@/utils/regex-escape';
+import type { DiagramType } from '@stv/core/types/diagram';
+import { escapeRegex } from '@stv/core/utils/regex-escape';
 import { MAX_DIAGRAM_CONFIDENCE } from './diagram-detection-constants';
 
 export type { DiagramType };

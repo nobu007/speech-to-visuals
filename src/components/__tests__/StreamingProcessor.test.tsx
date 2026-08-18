@@ -91,7 +91,7 @@ jest.unstable_mockModule('@/components/ui/separator', () => ({
   Separator: (p: Record<string, unknown>) => React.createElement('hr', p),
 }));
 
-jest.unstable_mockModule('@/utils/logger', () => ({
+jest.unstable_mockModule('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

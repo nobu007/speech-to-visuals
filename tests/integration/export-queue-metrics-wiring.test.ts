@@ -14,7 +14,7 @@ import { ExportMetricsCollector } from '@/export/export-metrics-collector';
 import { exportPrometheusMetrics } from '@/monitoring/prometheus-exporter';
 import type { HttpMetricsSnapshot } from '@/monitoring/http-metrics-collector';
 
-jest.mock('@/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

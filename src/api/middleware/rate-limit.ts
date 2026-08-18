@@ -1,5 +1,5 @@
 import rateLimit from 'express-rate-limit';
-import { RATE_LIMITS } from '../../config/limits';
+import { RATE_LIMITS } from '@stv/core/config/limits';
 
 export const apiRateLimiter = rateLimit({
   windowMs: RATE_LIMITS.API.WINDOW_MS,

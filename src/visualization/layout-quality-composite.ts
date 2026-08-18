@@ -5,8 +5,8 @@
  * a weighted composite score (0.0~1.0) with per-metric contribution reporting.
  */
 
-import { PositionedNode, LayoutEdge, DiagramType } from '@/types/diagram';
-import { clamp01 } from '@/utils/guards';
+import { PositionedNode, LayoutEdge, DiagramType } from '@stv/core/types/diagram';
+import { clamp01 } from '@stv/core/utils/guards';
 import { VisualBalanceScorer } from './visual-balance-scorer';
 import { detectEdgeCrossings } from './edge-crossing-minimizer';
 import { getNodeWidth, getNodeHeight } from './node-dimensions';

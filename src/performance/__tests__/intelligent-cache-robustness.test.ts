@@ -3,8 +3,8 @@
  * Verifies that corrupted cache data returns null instead of throwing.
  */
 import { IntelligentCache } from '@/performance/intelligent-cache';
-import { logger } from '@/utils/logger';
-import type { DiagramType } from '@/types/diagram';
+import { logger } from '@stv/core/utils/logger';
+import type { DiagramType } from '@stv/core/types/diagram';
 
 function makeMetadata(overrides: Partial<{
   contentType: DiagramType;

@@ -7,7 +7,7 @@ import {
   OptimizationConfig,
 } from '@/visualization/layout-auto-optimizer';
 import { StrategySelector } from '@/visualization/strategy-selector';
-import { PositionedNode, LayoutEdge, DiagramType } from '@/types/diagram';
+import { PositionedNode, LayoutEdge, DiagramType } from '@stv/core/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult } from '@/visualization/types';
 
 // ── Helpers ──

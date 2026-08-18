@@ -9,9 +9,9 @@
 import { realTimeMonitor, PerformanceSnapshot } from './real-time-performance-monitor';
 import { ERROR_RATE_WARNING_THRESHOLD, ERROR_RATE_CRITICAL_THRESHOLD } from './error-rate-thresholds';
 import { globalCache } from '@/performance/intelligent-cache';
-import { roundTo, heapUsagePercent, bytesToMb } from '@/lib/metrics-utils';
-import { getMemoryUsage } from '@/utils/memory-usage';
-import { logger } from '../utils/logger';
+import { roundTo, heapUsagePercent, bytesToMb } from '@stv/core/lib/metrics-utils';
+import { getMemoryUsage } from '@stv/core/utils/memory-usage';
+import { logger } from '@stv/core/utils/logger';
 
 /**
  * Interval at which {@link HealthCheckService} refreshes its cached health

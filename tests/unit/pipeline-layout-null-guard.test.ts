@@ -7,7 +7,7 @@
  * - Valid segments with nodes are returned correctly
  */
 
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 // Type helper to access private method
 type PipelineLike = {

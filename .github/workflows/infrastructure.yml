@@ -6,6 +6,14 @@ on:
   pull_request:
     branches: [ main ]
 
+# @stv/core is a git dependency; the lockfile may record it as git+ssh://
+# (developer machines rewrite https→ssh via insteadOf). CI has no SSH keys,
+# so rewrite ssh→https for anonymous clones of the public repo instead.
+env:
+  GIT_CONFIG_COUNT: 1
+  GIT_CONFIG_KEY_0: url.https://github.com/.insteadOf
+  GIT_CONFIG_VALUE_0: ssh://git@github.com/
+
 jobs:
   validate:
     runs-on: ubuntu-latest

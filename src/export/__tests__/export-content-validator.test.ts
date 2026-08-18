@@ -3,7 +3,7 @@
  */
 
 import { validateSceneGraphForExport, validateExportPayload, isStrictValidationEnabled } from '../export-content-validator';
-import type { SceneGraph } from '../../types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 function makeCleanScene(): SceneGraph {
   return {

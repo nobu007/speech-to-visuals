@@ -1,5 +1,5 @@
 import ProgressiveForceStrategy from '../../visualization/layout/strategies/ProgressiveForceStrategy';
-import { PositionedNode, LayoutEdge, DiagramLayout, NodeDatum, EdgeDatum } from '../../types/diagram';
+import { PositionedNode, LayoutEdge, DiagramLayout, NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 import { createTestConfig, createTestNode, createLayoutEdge } from './test-utils';
 
 describe('ProgressiveForceStrategy', () => {

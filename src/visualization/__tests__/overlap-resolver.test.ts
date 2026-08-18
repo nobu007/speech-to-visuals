@@ -1,5 +1,5 @@
 import { OverlapResolver } from '../overlap-resolver';
-import type { PositionedNode } from '@/types/diagram';
+import type { PositionedNode } from '@stv/core/types/diagram';
 
 // Helper to create nodes with `width`/`height` properties
 function makeNodeW(id: string, x: number, y: number, width: number, height: number): PositionedNode {

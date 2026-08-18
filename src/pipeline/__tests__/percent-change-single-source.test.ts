@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 
-import { percentChange } from '@/lib/metrics-utils';
+import { percentChange } from '@stv/core/lib/metrics-utils';
 import { compareWithBaseline } from '@/pipeline/performance-regression-detector';
 import { compareCostEfficiency } from '@/pipeline/cost-efficiency-metrics';
 
@@ -93,7 +93,7 @@ describe('percentChange — no consumer re-inlines the formula', () => {
       // NOTE: this Jest build's `expect(value, message)` takes 1 arg only, so
       // messages are plain comments rather than the 2nd expect argument.
       // 1. must import the canonical helper
-      expect(src).toContain("from '@/lib/metrics-utils'");
+      expect(src).toContain("from '@stv/core/lib/metrics-utils'");
       // 2. must reference percentChange (not just import it unused)
       expect(src).toMatch(/percentChange/);
       // 3. must NOT re-inline the abs-denominator form `/ Math.abs(...) ) * 100`

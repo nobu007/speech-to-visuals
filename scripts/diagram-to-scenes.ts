@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { LayoutEngine } from '@/visualization/layout-engine';
-import type { DiagramType, NodeDatum, EdgeDatum, SceneGraph } from '@/types/diagram';
+import type { DiagramType, NodeDatum, EdgeDatum, SceneGraph } from '@stv/core/types/diagram';
 
 type DiagramData = {
   metadata?: { type?: string; title?: string };

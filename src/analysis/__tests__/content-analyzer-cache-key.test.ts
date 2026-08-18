@@ -22,7 +22,7 @@ import { LLMCache } from '../llm-cache';
 import { buildContentCacheKey } from '../cache-key';
 import { CONTENT_ANALYZER_CACHE_VERSION } from '../content-analyzer';
 
-jest.mock('@/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

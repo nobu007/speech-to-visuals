@@ -8,7 +8,7 @@ import {
   minimizeEdgeCrossings,
   analyzeEdgeCrossings,
 } from '@/visualization/edge-crossing-minimizer';
-import { PositionedNode, LayoutEdge } from '@/types/diagram';
+import { PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 
 // --- Fixtures ---
 

@@ -128,7 +128,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { fileURLToPath } from 'url';
 import type { PipelineResult } from '../../pipeline/types';
-import type { SceneGraph } from '../../types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 // Anchor filesystem reads to THIS file, not process.cwd(). The discovery walk
 // and the REFERENCED-row guard both read repo-relative paths; under
@@ -172,6 +172,14 @@ const REPO_ROOT = path.resolve(
 // forces a DEFECT9_SURFACE row (ruledOut is fine) instead of shipping unseen.
 const HOST_DIRS = ['src', 'scripts', 'supabase/functions'];
 
+// The core-four (types/utils/lib/config) moved to the @stv/core package in the
+// stv-core split; four DEFECT9_SURFACE entries live there now. Discovery and
+// existence checks follow them into the package so the surface stays covered.
+const CORE_SRC = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..', '..', '..', 'node_modules', '@stv', 'core', 'src',
+);
+
 // Verdict-producing shapes: a returned verdict object / a status|compliance tier
 // mapping / a metric-or-polarity registry.
 // The final three alternations close the THIRD blind-spot shape (found while
@@ -194,6 +202,8 @@ const VERDICT_MARKER =
 // the single source of the framework's transcription/segmentation/entity/
 // relation gate inputs). Without this clause the completeness guard's blind
 // spot is exactly the file most likely to re-open the class.
+import { resolveSource } from '@tests/guards/freeze-guard';
+
 const EXPORT_MARKER =
   /export (?:async )?function (?:evaluate|assess|check|score|isWithin|isRegression|compareWith|passes|meets)[A-Za-z]*\s*\(|export function scoreCost|export class (?:QualityMonitor|QualityGateEvaluator|LayoutEvaluator|VisualBalanceScorer)|export (?:async )?function [A-Za-z]+\([^)]*PipelineResult[^)]*\):\s*number|export (?:async )?function (?:validate|verify|audit)[A-Za-z]*\s*\(|export const (?:evaluate|assess|check|score|validate|verify|audit|passes|meets)[A-Za-z]*\s*=|export class [A-Za-z]*(?:Validator|Verifier|Auditor|Checker)/;
 
@@ -223,6 +233,15 @@ function discoverEvaluatorFiles(): string[] {
       const src = fs.readFileSync(f, 'utf8');
       if (VERDICT_MARKER.test(src) || EXPORT_MARKER.test(src)) {
         found.push(path.relative(REPO_ROOT, f));
+      }
+    }
+  }
+  // @stv/core sources, reported under their historical 'src/<core-four>/...' paths
+  if (fs.existsSync(CORE_SRC)) {
+    for (const f of walkTs(CORE_SRC)) {
+      const src = fs.readFileSync(f, 'utf8');
+      if (VERDICT_MARKER.test(src) || EXPORT_MARKER.test(src)) {
+        found.push('src/' + path.relative(CORE_SRC, f));
       }
     }
   }
@@ -1017,6 +1036,14 @@ const DEFECT9_SURFACE: ReadonlyArray<SurfaceEntry> = [
       'is false → exit 1. Absent input fails loud in every reachable path.',
   },
   {
+    file: 'src/api/security-env.ts',
+    ruledOut:
+      'Split out of config/validate.ts in Phase 1a (ISS-045). validateSecurityEnv ' +
+      'aggregates explicit warning/error entries, and server startup THROWS on any ' +
+      'error — absent or malformed security env fails loud in every reachable path; ' +
+      'non-production merely downgrades to logged warnings.',
+  },
+  {
     file: 'src/api/websocket-handler.ts',
     ruledOut:
       'Discovered via the valid: verdict-key clause. validateEventPayload rejects null/ ' +
@@ -1214,7 +1241,7 @@ describe('defect-9 silent-pass class — consolidated cross-evaluator regression
   // ruled-out entry must carry a non-empty reason (catches a lazy skip).
   it('every DEFECT9_SURFACE file exists and every ruled-out entry has a reason', () => {
     for (const entry of DEFECT9_SURFACE) {
-      expect({ file: entry.file, exists: fs.existsSync(path.join(REPO_ROOT, entry.file)) }).toEqual({
+      expect({ file: entry.file, exists: fs.existsSync(resolveSource(entry.file)) }).toEqual({
         file: entry.file,
         exists: true,
       });
@@ -1251,7 +1278,7 @@ describe('defect-9 silent-pass class — consolidated cross-evaluator regression
     const referenced = ROSTER.filter((r) => r.verdict === 'REFERENCED');
     expect(referenced.length).toBeGreaterThanOrEqual(1);
     for (const row of referenced) {
-      expect({ id: row.id, exists: fs.existsSync(path.join(REPO_ROOT, row.verifiedBy!)) }).toEqual({
+      expect({ id: row.id, exists: fs.existsSync(resolveSource(row.verifiedBy!)) }).toEqual({
         id: row.id,
         exists: true,
       });

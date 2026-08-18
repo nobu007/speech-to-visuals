@@ -1,5 +1,5 @@
 import { GridSpatialHash, Rect } from '@/visualization/spatial-hash';
-import { PositionedNode } from '@/types/diagram';
+import { PositionedNode } from '@stv/core/types/diagram';
 
 function makeNode(id: string, x: number, y: number, w = 40, h = 30): PositionedNode {
   return { id, label: id, x, y, width: w, height: h };

@@ -32,7 +32,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { globSync } from 'node:fs';
 
-import { bytesToMb } from '@/lib/metrics-utils';
+import { bytesToMb } from '@stv/core/lib/metrics-utils';
 
 // Anchored to import.meta.url, not process.cwd(): a jest worker's cwd can be
 // moved by a module-load side effect (whisper-node chdir — see
@@ -40,8 +40,9 @@ import { bytesToMb } from '@/lib/metrics-utils';
 // (TC-302/313); cwd-relative source reads then flake with ENOENT.
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
+import { resolveSource } from '@tests/guards/freeze-guard';
 const metricsUtilsSrc = readFileSync(
-  resolve(REPO_ROOT, 'src/lib/metrics-utils.ts'),
+  resolveSource('src/lib/metrics-utils.ts'),
   'utf8',
 );
 const healthCheckSrc = readFileSync(
@@ -97,7 +98,7 @@ describe('bytesToMb — canonical binary-megabyte builder', () => {
 
 describe('bytes→MB division — no re-derivation at the known call sites', () => {
   it('health-check-service delegates heap/rss/external MB to bytesToMb', () => {
-    expect(stripComments(healthCheckSrc)).toMatch(/import\s*\{[^}]*\bbytesToMb\b[^}]*\}\s*from\s*['"]@\/lib\/metrics-utils['"]/);
+    expect(stripComments(healthCheckSrc)).toMatch(/import\s*\{[^}]*\bbytesToMb\b[^}]*\}\s*from\s*['"]@stv\/core\/lib\/metrics-utils['"]/);
     expect(stripComments(healthCheckSrc)).toMatch(/bytesToMb\s*\(\s*memoryUsage\.heapUsed\s*\)/);
     expect(stripComments(healthCheckSrc)).toMatch(/bytesToMb\s*\(\s*memoryUsage\.rss\s*\)/);
     expect(stripComments(healthCheckSrc)).not.toMatch(BYTES_DIVISION);
@@ -105,7 +106,7 @@ describe('bytes→MB division — no re-derivation at the known call sites', () 
   });
 
   it('real-time-performance-monitor delegates heap MB to bytesToMb', () => {
-    expect(stripComments(monitorSrc)).toMatch(/import\s*\{[^}]*\bbytesToMb\b[^}]*\}\s*from\s*['"]@\/lib\/metrics-utils['"]/);
+    expect(stripComments(monitorSrc)).toMatch(/import\s*\{[^}]*\bbytesToMb\b[^}]*\}\s*from\s*['"]@stv\/core\/lib\/metrics-utils['"]/);
     expect(stripComments(monitorSrc)).toMatch(/bytesToMb\s*\(\s*memoryUsage\.heapUsed\s*\)/);
     expect(stripComments(monitorSrc)).not.toMatch(BYTES_DIVISION);
     expect(stripComments(monitorSrc)).not.toMatch(BYTES_LITERAL);

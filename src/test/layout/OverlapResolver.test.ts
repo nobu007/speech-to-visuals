@@ -1,7 +1,7 @@
 import OverlapResolver from '../../visualization/layout/OverlapResolver';
 import { LayoutStrategy } from '../../visualization/layout/strategies/LayoutStrategy';
 import { createTestConfig, createEdgeDatum, createDatumNode, createOverlappingPositioned, toDataNodes } from './test-utils';
-import { DiagramLayout } from '../../types/diagram';
+import { DiagramLayout } from '@stv/core/types/diagram';
 
 /** Type helper to access OverlapResolver private members in tests */
 type OverlapResolverInternals = {

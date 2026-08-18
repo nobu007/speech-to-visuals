@@ -1,13 +1,13 @@
-import { DiagramType, NodeDatum, EdgeDatum, isDiagramType, DIAGRAM_TYPES } from '@/types/diagram';
+import { DiagramType, NodeDatum, EdgeDatum, isDiagramType, DIAGRAM_TYPES } from '@stv/core/types/diagram';
 import { ContentSegment, DiagramAnalysis, KeywordAnalysis, SemanticRelation } from './types';
 import { SENTENCE_BOUNDARY_REGEX, PHRASE_BOUNDARY_REGEX } from './sentence-boundaries';
 import { GeminiAnalyzer } from './gemini-analyzer';
-import { escapeRegex } from '@/utils/regex-escape';
-import { logger } from '../utils/logger';
-import { sanitizeFinite, sanitizeDiagramType } from '@/utils/guards';
-import { safeMap } from '../lib/safe-array';
+import { escapeRegex } from '@stv/core/utils/regex-escape';
+import { logger } from '@stv/core/utils/logger';
+import { sanitizeFinite, sanitizeDiagramType } from '@stv/core/utils/guards';
+import { safeMap } from '@stv/core/lib/safe-array';
 import { MAX_DIAGRAM_CONFIDENCE, GOOD_DETECTION_CONFIDENCE_THRESHOLD } from './diagram-detection-constants';
-import { safeMax, safeMean } from '@/lib/metrics-utils';
+import { safeMax, safeMean } from '@stv/core/lib/metrics-utils';
 
 // ========================================
 // TASK-0021: Diagram Detection Result Types

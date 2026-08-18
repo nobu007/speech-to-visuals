@@ -31,7 +31,7 @@ const { VisualBalanceScorer } = await import('../../visualization/visual-balance
 const { scoreCost } = await import('../../pipeline/pipeline-health-score');
 const { isWithinBaseline } = await import('../../pipeline/performance-baseline');
 import type { PipelineResult } from '../../pipeline/types';
-import type { SceneGraph } from '../../types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 /** A scene with top-level content but a DEGENERATE (empty) placed-node set. */
 function nodelessLayoutScene(): SceneGraph {

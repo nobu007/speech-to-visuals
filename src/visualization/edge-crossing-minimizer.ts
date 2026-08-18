@@ -5,10 +5,10 @@
  * heuristic-based minimization to reduce crossing count.
  */
 
-import { DiagramType, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { DiagramType, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { distance, calculateNodeCenter } from './layout-utils';
-import { safeArray } from '../lib/safe-array';
-import { roundTo } from '../lib/metrics-utils';
+import { safeArray } from '@stv/core/lib/safe-array';
+import { roundTo } from '@stv/core/lib/metrics-utils';
 
 export interface Point {
   x: number;

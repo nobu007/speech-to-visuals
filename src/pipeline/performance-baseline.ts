@@ -6,7 +6,7 @@
  * Based on measured E2E time of ~25.2s with 10% margin.
  */
 
-import { sanitizeFinite } from '@/utils/guards';
+import { sanitizeFinite } from '@stv/core/utils/guards';
 
 /** Per-stage performance baseline with current ceiling and Phase 36 target */
 export interface PerformanceBaseline {

@@ -9,7 +9,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { bytesToMb } from '@/lib/metrics-utils';
+import { bytesToMb } from '@stv/core/lib/metrics-utils';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -31,7 +31,7 @@ import {
   Zap
 } from 'lucide-react';
 
-import { logger } from '../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import {
   EnhancedExportEngine,
   ExportConfiguration,

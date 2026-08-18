@@ -10,7 +10,7 @@ import {
   ZeroOverlapLayoutEngine,
   type ZeroOverlapConfig,
 } from '@/visualization/enhanced-zero-overlap-layout';
-import type { NodeDatum, EdgeDatum } from '@/types/diagram';
+import type { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 
 // ─── helpers ──────────────────────────────────────────────
 

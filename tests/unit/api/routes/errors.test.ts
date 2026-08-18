@@ -13,7 +13,7 @@ import request from 'supertest';
 import { createErrorsRouter, errorRegistry } from '@/api/routes/errors';
 
 // Suppress logger noise during tests
-jest.mock('@/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

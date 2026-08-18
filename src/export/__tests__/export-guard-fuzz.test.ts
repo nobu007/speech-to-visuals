@@ -13,8 +13,8 @@ import {
   validateExportPayload,
   validateSceneGraphForExport,
 } from '../export-content-validator';
-import { sanitizeFilename } from '../../utils/sanitize';
-import type { SceneGraph } from '../../types/diagram';
+import { sanitizeFilename } from '@stv/core/utils/sanitize';
+import type { SceneGraph } from '@stv/core/types/diagram';
 import { mulberry32 } from '@tests/helpers/fuzz';
 
 // ---------------------------------------------------------------------------

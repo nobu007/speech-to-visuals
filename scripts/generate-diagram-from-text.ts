@@ -13,7 +13,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { GeminiAnalyzer } from '@/analysis/gemini-analyzer';
-import type { DiagramData, DiagramNode, DiagramEdge } from '@/types/api';
+import type { DiagramData, DiagramNode, DiagramEdge } from '@stv/core/types/api';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

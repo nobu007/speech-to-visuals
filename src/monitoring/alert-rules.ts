@@ -17,7 +17,7 @@
  * 10. ExportDLQReplayRate: DLQ replay rate > 0.1/s → warning
  */
 
-import { safeArray } from '../lib/safe-array';
+import { safeArray } from '@stv/core/lib/safe-array';
 import { ERROR_RATE_WARNING_THRESHOLD } from './error-rate-thresholds';
 
 // ---------------------------------------------------------------------------

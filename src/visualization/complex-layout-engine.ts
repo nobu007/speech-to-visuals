@@ -7,7 +7,7 @@
  */
 
 import dagre from '@dagrejs/dagre';
-import { DiagramType, NodeDatum, EdgeDatum, DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { DiagramType, NodeDatum, EdgeDatum, DiagramLayout, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from './node-dimensions';
 import { LayoutConfig, LayoutResult } from './types';
 import {
@@ -112,7 +112,7 @@ export interface ForceDirectedState {
 }
 
 import { CulturalLayoutAdapter } from './strategies/CulturalLayoutAdapter';
-import { logger } from '../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 /**
  * Deterministic worker-message id (round 17). Was

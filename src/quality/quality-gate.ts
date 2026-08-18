@@ -1,6 +1,6 @@
 import { LayoutQualityCompositeScorer } from '@/visualization/layout-quality-composite';
 import { getNodeWidth, getNodeHeight } from '@/visualization/node-dimensions';
-import { safeArray } from '../lib/safe-array';
+import { safeArray } from '@stv/core/lib/safe-array';
 
 /**
  * TASK-0044: Quality Gate and Quality Monitoring Module

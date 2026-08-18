@@ -21,7 +21,7 @@ import {
 } from '@/pipeline/pipeline-orchestrator';
 import { PipelineInput } from '@/pipeline/types';
 import { sizeLabel, sizeAllLabels, LabelSizingResult } from '@/visualization/smart-label-sizer';
-import { PositionedNode } from '@/types/diagram';
+import { PositionedNode } from '@stv/core/types/diagram';
 
 // --- Test fixtures ---
 

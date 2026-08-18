@@ -32,7 +32,7 @@
 
 import { ErrorClassifier, type ClassifiedError, type ErrorType } from './error-classifier';
 import { errorRecoveryEventBus } from './error-recovery-event-bus';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import { PipelineConfigError } from '@/pipeline/pipeline-errors';
 
 // ---------------------------------------------------------------------------

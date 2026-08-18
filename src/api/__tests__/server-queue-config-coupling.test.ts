@@ -15,7 +15,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { EXPORT_QUEUE_LIMITS } from '@/config/limits';
+import { EXPORT_QUEUE_LIMITS } from '@stv/core/config/limits';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const SERVER_FILE = path.resolve(__dirname, '../server.ts');

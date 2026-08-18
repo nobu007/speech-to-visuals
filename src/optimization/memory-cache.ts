@@ -3,7 +3,7 @@
  * Provides generic in-memory caching with configurable size limits and expiration
  */
 
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 export interface CacheEntry<V> {
   value: V;

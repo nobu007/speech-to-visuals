@@ -90,7 +90,7 @@ jest.unstable_mockModule('@/monitoring/real-time-performance-monitor', () => ({
   realTimeMonitor: { getSnapshot: mockedGetSnapshot, analyzeTrends: mockAnalyzeTrends },
 }));
 
-jest.unstable_mockModule('@/utils/logger', () => ({
+jest.unstable_mockModule('@stv/core/utils/logger', () => ({
   __esModule: true,
   logger,
 }));

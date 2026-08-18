@@ -5,11 +5,11 @@
  */
 
 import { actualVideoRenderer } from '@/pipeline/actual-video-renderer';
-import { SceneGraph } from '../src/types/diagram';
+import { SceneGraph } from '@stv/core/types/diagram';
 import fs from 'fs';
 import path from 'path';
 import { performance } from 'perf_hooks';
-import { getMemoryUsage } from '../src/utils/memory-usage';
+import { getMemoryUsage } from '@stv/core/utils/memory-usage';
 
 interface BenchmarkResult {
   stage: string;

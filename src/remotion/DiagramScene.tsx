@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { AbsoluteFill, useVideoConfig, interpolate } from 'remotion';
-import { SceneGraph, DIAGRAM_TYPE_TITLES } from '@/types/diagram';
+import { SceneGraph, DIAGRAM_TYPE_TITLES } from '@stv/core/types/diagram';
 import { getAnimationStrategy } from './animation-strategies';
 import { NodeAnimation } from './NodeAnimation';
 import { EdgeAnimation } from './EdgeAnimation';

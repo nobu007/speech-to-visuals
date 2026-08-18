@@ -6,7 +6,7 @@
 import express from 'express';
 import request from 'supertest';
 import { createPipelineRouter, PipelineStateManager } from '../pipeline';
-import { logger } from '../../../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 // Spy on logger.error before any test runs
 const loggerSpy = jest.spyOn(logger, 'error').mockImplementation(() => {});

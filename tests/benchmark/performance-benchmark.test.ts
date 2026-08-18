@@ -13,7 +13,7 @@ import {
 import { detectPerformanceRegressions } from '@/pipeline/performance-regression-detector';
 import { generateParallelReport, ExecutionTiming } from '@/pipeline/parallel-benchmark';
 import { generateCostReport } from '@/pipeline/cost-efficiency-metrics';
-import { getMemoryUsage } from '@/utils/memory-usage';
+import { getMemoryUsage } from '@stv/core/utils/memory-usage';
 
 function measureMemoryMB(): number {
   const usage = getMemoryUsage();

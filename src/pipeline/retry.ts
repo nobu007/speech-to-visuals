@@ -7,7 +7,7 @@
  */
 
 import { ErrorClassifier } from '@/quality/error-classifier';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 export interface RetryWithBackoffOptions {
   /** Maximum retry attempts (default: 3) */

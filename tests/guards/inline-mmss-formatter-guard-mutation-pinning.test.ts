@@ -55,7 +55,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { formatTime } from '@/components/VideoPreview';
-import { formatPlaybackTime } from '@/utils/playback-time';
+import { formatPlaybackTime } from '@stv/core/utils/playback-time';
 
 // Resolve repo root from this test file's own location so a jest ESM worker
 // whose cwd is not the repo root still finds the source files (TC-302/TC-313
@@ -65,6 +65,7 @@ const REPO_ROOT = join(
   '..', '..', '..',
 );
 
+import { resolveSource } from '@tests/guards/freeze-guard';
 const CANONICAL_FILE = 'src/utils/playback-time.ts';
 const VIDEO_PREVIEW_FILE = 'src/components/VideoPreview.tsx';
 
@@ -84,7 +85,7 @@ describe('inline MM:SS formatter guard — source anchors pinned (TC-314-01)', (
     // The chokepoint is `src/utils/playback-time.ts:14`. Dropping
     // `!Number.isFinite` (leaving only `seconds < 0`) admits Infinity/NaN and
     // re-opens the class.
-    const src = readFileSync(join(REPO_ROOT, CANONICAL_FILE), 'utf8');
+    const src = readFileSync(resolveSource(CANONICAL_FILE), 'utf8');
     expect(src).toMatch(CANONICAL_GUARD_ANCHOR);
   });
 

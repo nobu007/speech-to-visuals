@@ -5,7 +5,7 @@
  * Each strategy defines how nodes and edges animate based on diagram type.
  */
 
-import { DiagramType, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { DiagramType, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { distance } from '@/visualization/layout-utils';
 
 /** Node fade-in duration: 0.3s = 9 frames at 30fps */

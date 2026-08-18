@@ -1,4 +1,4 @@
-import { PositionedNode, LayoutEdge } from '@/types/diagram';
+import { PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 
 /**
  * Edge-crossing pair scan for the v2 `layout/` cluster (round 43 single

@@ -23,7 +23,7 @@ import {
   safeMean,
   safeMax,
   safeMin,
-} from '@/lib/metrics-utils';
+} from '@stv/core/lib/metrics-utils';
 import { createLayoutRng } from '@/visualization/layout-rng';
 
 // ---------------------------------------------------------------------------

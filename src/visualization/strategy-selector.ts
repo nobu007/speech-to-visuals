@@ -1,4 +1,4 @@
-import { DiagramType, NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
+import { DiagramType, NodeDatum, EdgeDatum, PositionedNode } from '@stv/core/types/diagram';
 import { defaultNodeExtent } from './node-dimensions';
 import { LayoutStrategy, StrategyLayoutResult, CanvasSize, StrategyRegistry } from './types';
 import { DefaultStrategyRegistry } from './strategies/base-strategy';
@@ -16,7 +16,7 @@ import { ConceptMapStrategy } from './strategies/conceptmap-strategy';
 import { FlowchartStrategy } from './strategies/flowchart-strategy';
 import { ComparisonStrategy } from './strategies/comparison-strategy';
 import { GeneralStrategy } from './strategies/general-strategy';
-import { logger } from '../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 export class StrategySelector {
   private registry: StrategyRegistry;

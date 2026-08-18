@@ -15,7 +15,7 @@
 
 import { QualityMonitor, QualityMetrics, QualityReport } from '../pipeline/quality-monitor';
 import { ERROR_RATE_WARNING_THRESHOLD, ERROR_RATE_CRITICAL_THRESHOLD } from './error-rate-thresholds';
-import { computePercentiles, safeMean } from '@/lib/metrics-utils';
+import { computePercentiles, safeMean } from '@stv/core/lib/metrics-utils';
 import * as fs from 'fs';
 import * as path from 'path';
 

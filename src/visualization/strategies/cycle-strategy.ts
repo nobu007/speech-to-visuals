@@ -10,7 +10,7 @@
  * 3. If overlaps persist, apply Force-Directed repulsion to resolve them
  */
 
-import { NodeDatum, EdgeDatum, PositionedNode } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, PositionedNode } from '@stv/core/types/diagram';
 import {
   LayoutStrategy,
   StrategyLayoutResult,

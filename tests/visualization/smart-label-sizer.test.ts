@@ -6,7 +6,7 @@
  */
 
 import { sizeLabel, sizeAllLabels, LabelSizingConfig } from '@/visualization/smart-label-sizer';
-import type { PositionedNode } from '@/types/diagram';
+import type { PositionedNode } from '@stv/core/types/diagram';
 
 describe('SmartLabelSizer: sizeLabel', () => {
   // --- Default config behavior ---

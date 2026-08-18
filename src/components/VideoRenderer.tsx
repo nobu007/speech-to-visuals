@@ -5,10 +5,10 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Play, Download, ExternalLink, Settings } from 'lucide-react';
-import { SceneGraph } from '@/types/diagram';
+import { SceneGraph } from '@stv/core/types/diagram';
 import { videoRenderer, VideoRenderProgress } from '@/components/videoRenderer';
 import { Player } from '@remotion/player';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import { toast } from 'sonner';
 
 type VideoQuality = 'low' | 'medium' | 'high';

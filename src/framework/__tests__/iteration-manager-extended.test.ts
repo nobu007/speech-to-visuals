@@ -28,7 +28,7 @@ import {
   type IterationStatus,
 } from '../iteration-manager';
 
-jest.mock('@/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -37,7 +37,7 @@ jest.mock('@/utils/logger', () => ({
   },
 }));
 
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 function makeCycle(overrides: Partial<DevelopmentCycle> = {}): DevelopmentCycle {
   return {

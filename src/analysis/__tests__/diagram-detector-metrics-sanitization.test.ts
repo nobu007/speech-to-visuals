@@ -5,7 +5,7 @@
  * REQ-264: Unguarded result.type/confidence/score access sanitized
  */
 import { describe, it, expect } from '@jest/globals';
-import { sanitizeFinite, sanitizeDiagramType } from '@/utils/guards';
+import { sanitizeFinite, sanitizeDiagramType } from '@stv/core/utils/guards';
 
 describe('diagram-detector metric sanitization guards', () => {
 

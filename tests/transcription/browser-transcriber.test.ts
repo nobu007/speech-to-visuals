@@ -27,7 +27,7 @@ let mockRecognitionInstance: {
 };
 
 // Mock logger
-jest.unstable_mockModule('@/utils/logger', () => ({
+jest.unstable_mockModule('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

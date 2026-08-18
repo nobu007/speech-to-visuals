@@ -1,5 +1,5 @@
 import dagre from '@dagrejs/dagre';
-import { DiagramType, NodeDatum, EdgeDatum, DiagramLayout, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { DiagramType, NodeDatum, EdgeDatum, DiagramLayout, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { LayoutConfig, LayoutResult, LayoutMetrics } from './types';
 import ComplexLayoutEngine from './complex-layout-engine';
 import { BaseLayoutEngine } from './base/BaseLayoutEngine';

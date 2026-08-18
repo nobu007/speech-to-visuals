@@ -8,7 +8,7 @@ import {
   nodesOverlap,
   getGraphConfig,
 } from '@/visualization/layout-utils';
-import { NodeDatum, PositionedNode } from '@/types/diagram';
+import { NodeDatum, PositionedNode } from '@stv/core/types/diagram';
 import { LayoutConfig, NodeDimensionsConfig } from '@/visualization/types';
 
 // ---------------------------------------------------------------------------

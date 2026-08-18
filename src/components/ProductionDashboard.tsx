@@ -8,7 +8,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { bytesToMb } from '@/lib/metrics-utils';
+import { bytesToMb } from '@stv/core/lib/metrics-utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -29,7 +29,7 @@ import {
   FileText,
   RefreshCw
 } from 'lucide-react';
-import { productionConfig, ProductionEnvironment } from '@/config/production-config';
+import { productionConfig, ProductionEnvironment } from '@stv/core/config/production-config';
 
 export const ProductionDashboard: React.FC = () => {
   const [config, setConfig] = useState<ProductionEnvironment>(productionConfig.getConfig());

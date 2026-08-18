@@ -1,4 +1,4 @@
-import { DiagramType } from '@/types/diagram';
+import { DiagramType } from '@stv/core/types/diagram';
 import { LayoutStrategy, StrategyRegistry } from '../types';
 import { VisualizationError } from '@/pipeline/pipeline-errors';
 

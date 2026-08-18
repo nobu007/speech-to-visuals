@@ -16,7 +16,7 @@
 import express from 'express';
 import http from 'http';
 import { createExportJobRouter } from '../export-jobs';
-import { logger } from '../../../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import type { ExportJobQueue, QueuedExportJob, JobPriority, QueueStats } from '../../../export/export-job-queue';
 
 // ---------------------------------------------------------------------------

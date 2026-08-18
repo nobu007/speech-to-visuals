@@ -43,11 +43,12 @@ import { fileURLToPath } from 'url';
  * migration.
  */
 
+import { resolveSource } from '@tests/guards/freeze-guard';
 const REPO_ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..', '..');
 
 // CLOSED-SET (REQ-203): every former inline value-coercion site that has been
 // migrated to the canonical sanitizeFinite helper. Each entry is asserted to:
-//   (a) import sanitizeFinite from '@/utils/guards'
+//   (a) import sanitizeFinite from '@stv/core/utils/guards'
 //   (b) NOT contain a leftover `Number.isFinite(x) ? x : default` ternary.
 // Future batches MUST extend this list (see MAINTENANCE NOTE above).
 const SITES = [
@@ -87,8 +88,8 @@ function stripComments(src: string): string {
 describe('sanitizeFinite — every migrated site uses the canonical helper and does not re-inline', () => {
   for (const rel of SITES) {
     it(`${rel} imports sanitizeFinite and does not re-inline the coercion ternary`, () => {
-      const src = fs.readFileSync(path.join(REPO_ROOT, rel), 'utf-8');
-      expect(src).toContain("from '@/utils/guards'");
+      const src = fs.readFileSync(resolveSource(rel), 'utf-8');
+      expect(src).toContain("from '@stv/core/utils/guards'");
       expect(src).toMatch(/\bsanitizeFinite\b/);
       const code = stripComments(src);
       expect(code).not.toMatch(COERCION_PATTERN);
@@ -98,7 +99,7 @@ describe('sanitizeFinite — every migrated site uses the canonical helper and d
 
 describe('sanitizeFinite — guards.ts remains the single source of truth', () => {
   it('guards.ts is the only file allowed to define sanitizeFinite', () => {
-    const guardsSrc = fs.readFileSync(path.join(REPO_ROOT, 'src/utils/guards.ts'), 'utf-8');
+    const guardsSrc = fs.readFileSync(resolveSource('src/utils/guards.ts'), 'utf-8');
     expect(guardsSrc).toMatch(/export function sanitizeFinite\b/);
     expect(guardsSrc).toMatch(/Number\.isFinite/);
   });

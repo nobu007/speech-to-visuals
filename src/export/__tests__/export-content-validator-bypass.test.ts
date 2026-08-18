@@ -14,7 +14,7 @@ import {
   validateExportPayload,
   validateSceneGraphForExport,
 } from '../export-content-validator';
-import type { SceneGraph } from '../../types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 function hasHighFinding(findings: Array<{ severity: string }>): boolean {
   return findings.some((f) => f.severity === 'high');

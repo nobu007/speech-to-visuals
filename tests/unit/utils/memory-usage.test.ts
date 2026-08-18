@@ -26,7 +26,7 @@ describe('memory-usage (REQ-138)', () => {
   describe('Node.js path', () => {
     test('should use process.memoryUsage when available', async () => {
       // In the test environment, process.memoryUsage is available
-      const { getMemoryUsage } = await import('../../../src/utils/memory-usage');
+      const { getMemoryUsage } = await import('@stv/core/utils/memory-usage');
       const result = getMemoryUsage();
 
       expect(result.heapUsed).toBeGreaterThan(0);
@@ -35,7 +35,7 @@ describe('memory-usage (REQ-138)', () => {
     });
 
     test('should include rss and external fields', async () => {
-      const { getMemoryUsage } = await import('../../../src/utils/memory-usage');
+      const { getMemoryUsage } = await import('@stv/core/utils/memory-usage');
       const result = getMemoryUsage();
 
       expect(result).toHaveProperty('rss');
@@ -67,7 +67,7 @@ describe('memory-usage (REQ-138)', () => {
       try {
         // Need fresh import to pick up the changed environment
         jest.resetModules();
-        const { getMemoryUsage } = await import('../../../src/utils/memory-usage');
+        const { getMemoryUsage } = await import('@stv/core/utils/memory-usage');
         const result = getMemoryUsage();
 
         expect(result.heapUsed).toBe(0);
@@ -91,7 +91,7 @@ describe('memory-usage (REQ-138)', () => {
 
   describe('MemoryMetrics interface', () => {
     test('result has correct shape', async () => {
-      const { getMemoryUsage } = await import('../../../src/utils/memory-usage');
+      const { getMemoryUsage } = await import('@stv/core/utils/memory-usage');
       const result = getMemoryUsage();
 
       expect(result).toHaveProperty('heapUsed');
@@ -101,7 +101,7 @@ describe('memory-usage (REQ-138)', () => {
     });
 
     test('heapUsed should not exceed heapTotal', async () => {
-      const { getMemoryUsage } = await import('../../../src/utils/memory-usage');
+      const { getMemoryUsage } = await import('@stv/core/utils/memory-usage');
       const result = getMemoryUsage();
       expect(result.heapUsed).toBeLessThanOrEqual(result.heapTotal);
     });
@@ -113,14 +113,14 @@ describe('memory-usage (REQ-138)', () => {
 
   describe('getHeapUsed', () => {
     test('should return a positive number', async () => {
-      const { getHeapUsed } = await import('../../../src/utils/memory-usage');
+      const { getHeapUsed } = await import('@stv/core/utils/memory-usage');
       const heapUsed = getHeapUsed();
       expect(typeof heapUsed).toBe('number');
       expect(heapUsed).toBeGreaterThan(0);
     });
 
     test('should be close to getMemoryUsage().heapUsed', async () => {
-      const { getMemoryUsage, getHeapUsed } = await import('../../../src/utils/memory-usage');
+      const { getMemoryUsage, getHeapUsed } = await import('@stv/core/utils/memory-usage');
       // heap fluctuates between calls; just verify they're in the same ballpark
       const direct = getMemoryUsage().heapUsed;
       const via = getHeapUsed();
@@ -134,14 +134,14 @@ describe('memory-usage (REQ-138)', () => {
 
   describe('REQ-138 acceptance criteria', () => {
     test('TC-138-M01: Node.js path returns non-zero metrics', async () => {
-      const { getMemoryUsage } = await import('../../../src/utils/memory-usage');
+      const { getMemoryUsage } = await import('@stv/core/utils/memory-usage');
       const result = getMemoryUsage();
       expect(result.heapUsed).toBeGreaterThan(0);
       expect(result.heapTotal).toBeGreaterThanOrEqual(result.heapUsed);
     });
 
     test('TC-138-M02: getHeapUsed returns a number', async () => {
-      const { getHeapUsed } = await import('../../../src/utils/memory-usage');
+      const { getHeapUsed } = await import('@stv/core/utils/memory-usage');
       expect(typeof getHeapUsed()).toBe('number');
     });
   });

@@ -1,5 +1,5 @@
 import { FallbackLayoutStrategy } from '@/visualization/strategies/FallbackLayoutStrategy';
-import { NodeDatum, EdgeDatum, DiagramType } from '@/types/diagram';
+import { NodeDatum, EdgeDatum, DiagramType } from '@stv/core/types/diagram';
 
 const defaultConfig = {
   width: 1920,

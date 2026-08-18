@@ -77,7 +77,7 @@ import {
 import { TARGET_ASPECT_RATIO } from '@/visualization/canvas-dimensions';
 import { MatrixStrategy } from '@/visualization/strategies/matrix-strategy';
 import { GeneralStrategy } from '@/visualization/strategies/general-strategy';
-import type { NodeDatum } from '@/types/diagram';
+import type { NodeDatum } from '@stv/core/types/diagram';
 
 // ---------------------------------------------------------------------------
 // Layer 1 material: the VERBATIM pre-round-50 expressions, frozen from the

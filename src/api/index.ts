@@ -1,6 +1,6 @@
 import { Server } from 'http';
 import { app, artifactStore, jobQueue } from './server';
-import { logger } from '../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import { llmService } from '../analysis/llm-service';
 import { triggerStartupWarmup } from './startup-warmup';
 import { globalErrorRecovery } from '../quality/enhanced-error-recovery';

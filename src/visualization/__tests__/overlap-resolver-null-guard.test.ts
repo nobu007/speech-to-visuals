@@ -1,5 +1,5 @@
 import { OverlapResolver } from '../strategies/OverlapResolver';
-import type { DiagramLayout, DiagramType } from '@/types/diagram';
+import type { DiagramLayout, DiagramType } from '@stv/core/types/diagram';
 import type { LayoutConfig } from '../types';
 
 function makeConfig(): LayoutConfig {

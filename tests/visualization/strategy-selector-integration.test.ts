@@ -5,7 +5,7 @@
  * to the correct LayoutStrategy and produces valid, overlap-free layouts through
  * the full executeLayout pipeline.
  */
-import { DiagramType, NodeDatum, EdgeDatum, SceneGraph } from '@/types/diagram';
+import { DiagramType, NodeDatum, EdgeDatum, SceneGraph } from '@stv/core/types/diagram';
 import { StrategySelector, executeLayout } from '@/visualization/strategy-selector';
 
 // ---------------------------------------------------------------------------

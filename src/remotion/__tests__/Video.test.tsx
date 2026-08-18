@@ -8,7 +8,7 @@
 import { jest } from '@jest/globals';
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
-import { SceneGraph, PositionedNode } from '@/types/diagram';
+import { SceneGraph, PositionedNode } from '@stv/core/types/diagram';
 
 // Mock remotion hooks for component tests
 let mockFrame = 0;

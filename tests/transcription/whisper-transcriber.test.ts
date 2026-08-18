@@ -10,12 +10,12 @@ import { jest } from '@jest/globals';
 import type { TranscriptionResult, TranscriptionSegment } from '../../src/transcription/types';
 
 // Mock validateAudioFile to avoid real file system access
-jest.unstable_mockModule('@/utils/audio-validation', () => ({
+jest.unstable_mockModule('@stv/core/utils/audio-validation', () => ({
   validateAudioFile: jest.fn().mockReturnValue({ valid: true, errors: [] }),
 }));
 
 // Mock logger
-jest.unstable_mockModule('@/utils/logger', () => ({
+jest.unstable_mockModule('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

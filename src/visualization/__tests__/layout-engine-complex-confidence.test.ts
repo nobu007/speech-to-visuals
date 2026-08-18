@@ -16,7 +16,7 @@
  * result, isolating the LayoutEngine dispatch-layer responsibility.
  */
 import { jest } from '@jest/globals';
-import type { DiagramType } from '../../types/diagram';
+import type { DiagramType } from '@stv/core/types/diagram';
 
 const mockGenerateComplexLayout = jest.fn();
 

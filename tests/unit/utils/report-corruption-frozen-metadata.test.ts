@@ -22,7 +22,7 @@ import {
   reportCorruption,
   setCorruptionHandler,
   type CorruptionReport,
-} from '@/utils/report-corruption';
+} from '@stv/core/utils/report-corruption';
 
 describe('reportCorruption frozen-metadata robustness', () => {
   beforeEach(() => {

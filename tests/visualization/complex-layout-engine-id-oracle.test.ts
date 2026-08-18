@@ -14,7 +14,7 @@
  * which this commit deletes.
  */
 import { makeLayoutWorkerMessageId } from '@/visualization/complex-layout-engine';
-import { NodeDatum } from '@/types/diagram';
+import { NodeDatum } from '@stv/core/types/diagram';
 
 function makeNodes(ids: string[]): NodeDatum[] {
   return ids.map((id) => ({ id, label: id }));

@@ -121,12 +121,12 @@ jest.unstable_mockModule('@/framework/iteration-logger', () => ({
   },
 }));
 
-jest.unstable_mockModule('@/utils/memory-usage', () => ({
+jest.unstable_mockModule('@stv/core/utils/memory-usage', () => ({
   getHeapUsed: jest.fn().mockReturnValue(0),
   getMemoryUsage: jest.fn().mockReturnValue({ heapUsed: 0, heapTotal: 0 }),
 }));
 
-jest.unstable_mockModule('@/utils/logger', () => ({
+jest.unstable_mockModule('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

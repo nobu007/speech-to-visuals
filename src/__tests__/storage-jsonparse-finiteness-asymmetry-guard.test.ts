@@ -37,6 +37,7 @@
  *     (LLM-output JSON parsing is a different bug class — schema
  *     validation, not finiteness).
  */
+import { resolveSource } from '@tests/guards/freeze-guard';
 import { describe, it, expect } from '@jest/globals';
 import { readFileSync } from 'node:fs';
 import { globSync } from 'node:fs';
@@ -182,7 +183,7 @@ const SRC_FILES = (): string[] => {
 // --- the known-safe sites pinned (safe-storage chokepoint or explicit guard) -
 
 describe('storage JSON.parse finiteness — known-safe chokepoints pinned', () => {
-  const cases: Array<{
+const cases: Array<{
     file: string;
     anchor: RegExp;
     label: string;
@@ -211,7 +212,7 @@ describe('storage JSON.parse finiteness — known-safe chokepoints pinned', () =
 
   for (const { file, anchor, label } of cases) {
     it(label, () => {
-      const src = readFileSync(file, 'utf8');
+      const src = readFileSync(resolveSource(file), 'utf8');
       expect(src).toMatch(anchor);
     });
   }

@@ -10,7 +10,7 @@
  * larger than canvas, and conflicting config combinations.
  */
 import { LayoutOptimizer } from '@/visualization/strategies/LayoutOptimizer';
-import type { PositionedNode, DiagramLayout, LayoutEdge } from '@/types/diagram';
+import type { PositionedNode, DiagramLayout, LayoutEdge } from '@stv/core/types/diagram';
 import type { LayoutConfig } from '@/visualization/types';
 
 // ─── helpers ──────────────────────────────────────────────

@@ -3,7 +3,7 @@
  * Defers loading of heavy modules until they are actually needed
  */
 
-import { logger } from '../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 export interface LazyModule<T> {
   module: T;

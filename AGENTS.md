@@ -32,12 +32,10 @@ src/
 ├── analysis/          # 音声分析・内容分析・図解検出
 ├── api/               # REST API・WebSocket・バッチ処理
 ├── components/        # React UIコンポーネント
-├── config/            # 設定管理・バリデーション
 ├── export/            # エクスポート機能 (SVG/PNG/PDF/JSON)
 ├── framework/         # 自動改善・学習フレームワーク
 ├── hooks/             # Reactカスタムフック
 ├── integrations/      # 外部サービス統合
-├── lib/               # 共通ユーティリティ
 ├── monitoring/        # プロダクション監視
 ├── optimization/      # キャッシュ・最適化ユーティリティ
 ├── pages/             # ページコンポーネント
@@ -46,10 +44,13 @@ src/
 ├── quality/           # 品質保証・エラー管理
 ├── remotion/          # Remotion動画生成コンポーネント
 ├── transcription/     # 音声文字起こし
-├── types/             # TypeScript型定義
-├── utils/             # ユーティリティ関数
 └── visualization/     # レイアウトエンジン・戦略
 ```
+
+**コア層は外部パッケージ**: `types/` `utils/` `lib/` `config/` は
+`@stv/core` (github:nobu007/stv-core, git 依存) に分離済み。import は
+`@stv/core/<dir>/<module>`。同リポジトリ側に独自の境界検査とサイズラチェット
+（実装 6,000 行 / 90 ファイル上限）がある。
 
 **正規ドキュメント**: `specs/speech-to-visuals/` に要件・設計・タスクを配置。
 **憲法**: `SYSTEM_CONSTITUTION.md` がプロジェクト境界を定義。
@@ -136,7 +137,7 @@ describe('ModuleName', () => {
 grep -r "実装予定機能" src/ --include="*.ts" --include="*.tsx"
 
 # 2. 型定義の確認
-grep -r "interface.*Target" src/types/
+grep -r "interface.*Target" node_modules/@stv/core/src/types/
 
 # 3. テストの確認
 find tests/ -name "*target*" -o -name "*module*"

@@ -20,7 +20,7 @@ import { toast } from 'sonner';
 import type { SimplePipelineResult as ProcessingResult } from '@/pipeline/simple-pipeline';
 import type { ExportConfiguration, ExportFormat, VideoQuality } from '@/export/enhanced-export-engine';
 import { EnhancedExportEngine } from '@/export/enhanced-export-engine';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 export interface InteractiveResultViewerProps {
   result: ProcessingResult;

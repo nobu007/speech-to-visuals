@@ -25,7 +25,7 @@ import type { HttpMetricsSnapshot } from '@/monitoring/http-metrics-collector';
 import type { PipelineMetricsSnapshot } from '@/monitoring/pipeline-metrics-collector';
 
 // Suppress logger noise during tests
-jest.mock('@/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

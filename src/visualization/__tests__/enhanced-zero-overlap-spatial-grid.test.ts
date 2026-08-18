@@ -16,7 +16,7 @@
  */
 import { describe, it, expect } from '@jest/globals';
 import { ZeroOverlapLayoutEngine } from '../enhanced-zero-overlap-layout';
-import type { PositionedNode } from '@/types/diagram';
+import type { PositionedNode } from '@stv/core/types/diagram';
 
 function makeNode(overrides: Partial<PositionedNode>): PositionedNode {
   return { id: 'x', label: 'N', x: 0, y: 0, w: 120, h: 60, ...overrides };

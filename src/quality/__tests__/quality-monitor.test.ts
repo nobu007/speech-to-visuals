@@ -8,9 +8,9 @@
 import { jest } from '@jest/globals';
 
 const { QualityMonitor } = await import('../quality-monitor');
-const { logger } = await import('../../utils/logger');
+const { logger } = await import('@stv/core/utils/logger');
 import type { PipelineResult, PipelineStage } from '../../pipeline/types';
-import type { SceneGraph } from '../../types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 // ---------------------------------------------------------------------------
 // Helpers

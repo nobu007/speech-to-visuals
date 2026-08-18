@@ -1,5 +1,5 @@
-import { SceneGraph } from '@/types/diagram';
-import { logger } from '@/utils/logger';
+import { SceneGraph } from '@stv/core/types/diagram';
+import { logger } from '@stv/core/utils/logger';
 import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
 
 export interface VideoRenderOptions {

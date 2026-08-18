@@ -17,11 +17,11 @@ import React, { useState, useCallback, useRef, DragEvent } from 'react';
 import { Upload, FileAudio, CheckCircle, AlertCircle, Loader2, X } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { bytesToMb } from '@/lib/metrics-utils';
+import { bytesToMb } from '@stv/core/lib/metrics-utils';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { validateAudioFile } from '@/utils/audio-validation';
+import { validateAudioFile } from '@stv/core/utils/audio-validation';
 
 // Default accepted MIME types per specification (for <input accept> attribute)
 export const DEFAULT_ACCEPTED_FORMATS = [

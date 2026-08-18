@@ -1,4 +1,4 @@
-import { DiagramType, NodeDatum, EdgeDatum } from '@/types/diagram';
+import { DiagramType, NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
 import { StrategySelector, executeLayout } from '@/visualization/strategy-selector';
 
 function makeDiagram(type: DiagramType, nodeCount: number): { nodes: NodeDatum[]; edges: EdgeDatum[] } {

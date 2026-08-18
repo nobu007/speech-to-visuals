@@ -18,7 +18,7 @@ import {
   createBatchRouter,
   type JobState,
 } from '../batch';
-import { BATCH_LIMITS } from '../../../config/limits';
+import { BATCH_LIMITS } from '@stv/core/config/limits';
 import http from 'http';
 
 // ---------------------------------------------------------------------------

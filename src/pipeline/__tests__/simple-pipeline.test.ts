@@ -1,6 +1,6 @@
 
 import { jest } from '@jest/globals';
-import { sanitizeFinite } from '@/utils/guards';
+import { sanitizeFinite } from '@stv/core/utils/guards';
 import { GOOD_DETECTION_CONFIDENCE_THRESHOLD } from '@/analysis/diagram-detection-constants';
 
 // Mock all dependencies - define mocks inside factory to avoid hoisting issues

@@ -1,4 +1,4 @@
-import { SceneGraph, ProcessingStatus } from '@/types/diagram';
+import { SceneGraph, ProcessingStatus } from '@stv/core/types/diagram';
 import { TranscriptionResult } from '@/transcription/types';
 import { ContentSegment, DiagramAnalysis } from '@/analysis/types';
 import { LayoutResult } from '@/visualization/types';

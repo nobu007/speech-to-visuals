@@ -11,7 +11,7 @@
  */
 
 import { jest } from '@jest/globals';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 import { COMPOSITION_ID } from '@/remotion/composition-id';
 
 // Mock Remotion dependencies (ESM mode requires unstable_mockModule)

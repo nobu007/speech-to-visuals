@@ -21,7 +21,7 @@
  *   Performance           20    max(0, 20 - processingTime/1000)
  *   Video generated       20    flat bonus when videoUrl is present
  */
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 export interface QualityScoreInput {
   transcript?: string;

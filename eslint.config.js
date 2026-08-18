@@ -27,10 +27,6 @@ export default tseslint.config(
     },
   },
   {
-    files: ["src/utils/logger.ts"],
-    rules: { "no-console": "off" },
-  },
-  {
     files: ["src/test/**", "**/__tests__/**", "tests/**", "scripts/**", "supabase/**"],
     rules: {
       "no-console": "off",

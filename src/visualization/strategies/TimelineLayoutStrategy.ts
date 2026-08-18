@@ -14,10 +14,10 @@
  * - <5s processing for standard timelines
  */
 
-import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@/types/diagram';
+import { DiagramType, NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { LayoutConfig } from '../types';
 import { ILayoutStrategy, LayoutStrategyOutput } from './ILayoutStrategy';
-import { logger } from '../../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 import { DEFAULT_NODE_HEIGHT } from '../node-dimensions';
 import { strategyNodeWidth, validateStrategyInputs } from '../strategy-common';
 import { buildWarnedAnchoredEdges, horizontalFlowAnchors } from '../strategy-edges';

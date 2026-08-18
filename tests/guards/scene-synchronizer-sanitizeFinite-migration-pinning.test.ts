@@ -7,7 +7,7 @@
  * Pins the consolidation of inline `Number.isFinite(scene.durationMs) ?
  * scene.durationMs : 0` patterns in `src/remotion/scene-synchronizer.ts` to
  * the canonical `sanitizeFinite(scene.durationMs)` helper from
- * `@/utils/guards`. Four call sites migrated: `getSceneBoundaries` (elapsed
+ * `@stv/core/utils/guards`. Four call sites migrated: `getSceneBoundaries` (elapsed
  * accumulator), `getSceneStartTimes` (elapsed accumulator), `splitCaptionAtSceneBoundary`
  * (cumulative boundary builder), and `validateSceneCaptionSync`
  * (`reduce((sum, s) => sum + ...)` for total scene ms).
@@ -18,7 +18,7 @@
  *   duplicating the same guard).
  * - Any future contributor copy-pasting a snippet from this file would
  *   bypass the centralized helper. A `sanitizeFinite` chokepoint in
- *   `@/utils/guards` makes the helper the single source of truth for
+ *   `@stv/core/utils/guards` makes the helper the single source of truth for
  *   "coerce a possibly-non-finite number to a finite default" semantics.
  * - The helper already exists with EXACT semantics (default 0 fallback,
  *   NaN/Infinity/non-number all guarded). No new helper is introduced —
@@ -53,11 +53,11 @@ describe('scene-synchronizer durationMs sanitization — source anchors pinned',
     expect(src()).not.toMatch(/Number\.isFinite\([^)]*\.durationMs\)\s*\?\s*[^)]*\.durationMs\s*:\s*0/);
   });
 
-  it('imports sanitizeFinite from @/utils/guards', () => {
+  it('imports sanitizeFinite from @stv/core/utils/guards', () => {
     // The migration contract: scene-synchronizer depends on the canonical
     // helper. Removing the import (and rolling back to inline ternaries)
     // breaks this anchor → RED.
-    expect(src()).toMatch(/import\s*\{\s*sanitizeFinite\s*\}\s*from\s*['"]@\/utils\/guards['"]/);
+    expect(src()).toMatch(/import\s*\{\s*sanitizeFinite\s*\}\s*from\s*['"]@stv\/core\/utils\/guards['"]/);
   });
 
   it('uses sanitizeFinite(scene.durationMs) at all four migrated sites', () => {

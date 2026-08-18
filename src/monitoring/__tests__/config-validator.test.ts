@@ -6,7 +6,7 @@ import {
   ValidationResult,
 } from '../config-validator';
 
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 // ---------------------------------------------------------------------------
 // validateAlertRules

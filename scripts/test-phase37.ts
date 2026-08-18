@@ -13,7 +13,7 @@ import { multiFormatExporter } from '../src/export/multi-format-exporter';
 import { adaptiveQualityPresets, QUALITY_PRESETS } from '../src/pipeline/adaptive-quality-presets';
 import { batchProcessingAPI } from '../src/api/batch-processing-api';
 import { userGuidedErrorRecovery } from '../src/quality/user-guided-error-recovery';
-import type { SceneGraph } from '../src/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 console.log('🚀 Phase 37: Starting Comprehensive Validation Test\n');
 

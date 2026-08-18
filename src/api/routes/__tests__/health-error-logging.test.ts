@@ -7,7 +7,7 @@ import express from 'express';
 import request from 'supertest';
 import { healthRouter } from '../health';
 import { healthCheckService } from '@/monitoring/health-check-service';
-import { logger } from '@/utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 jest.mock('@/monitoring/health-check-service');
 

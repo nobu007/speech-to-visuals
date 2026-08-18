@@ -69,7 +69,7 @@ import { calculateNodeCenter, nodesCentroid } from '@/visualization/layout-utils
 import { centerAnchor } from '@/visualization/strategy-edges';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from '@/visualization/node-dimensions';
 import { VisualBalanceScorer } from '@/visualization/visual-balance-scorer';
-import type { PositionedNode } from '@/types/diagram';
+import type { PositionedNode } from '@stv/core/types/diagram';
 
 // ---------------------------------------------------------------------------
 // Layer 1 material: the VERBATIM pre-round-47 expressions, frozen from the

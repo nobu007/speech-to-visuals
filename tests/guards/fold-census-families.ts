@@ -30,7 +30,7 @@
  * requirements table must be re-baselined in the same change (REQ-202).
  */
 
-import { readSource, isCommentLine, walkProductionFiles } from '@tests/guards/freeze-guard';
+import { readSource, isCommentLine, walkProductionSurface } from '@tests/guards/freeze-guard';
 
 // ---------------------------------------------------------------------------
 // Types (specs/guard-harness-fold-census/interfaces.ts §3).
@@ -172,7 +172,7 @@ export function parseCensusPinMarkers(doc: string): Map<string, { sites: number;
 // ---------------------------------------------------------------------------
 
 export function buildCensusSnapshot(): CensusSnapshot {
-  const files = walkProductionFiles('src');
+  const files = walkProductionSurface();
   const family: Record<string, CensusMeasurement> = {};
   for (const fam of CENSUS_FAMILIES) {
     const excludeLine =

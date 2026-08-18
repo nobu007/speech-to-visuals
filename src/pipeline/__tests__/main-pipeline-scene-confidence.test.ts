@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@jest/globals';
 import { MainPipeline } from '../main-pipeline';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 /**
  * Regression: DiagramDetector.analyze() computes a per-scene detection

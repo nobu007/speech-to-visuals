@@ -30,7 +30,7 @@ import { describe, it, expect } from '@jest/globals';
 import { VideoGenerator } from '@/pipeline/video-generator';
 import type { RemotionSceneData } from '@/pipeline/video-generator';
 import { calculateTotalFrames, DEFAULT_FPS } from '@/remotion/Video';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 // Clamp boundaries are pinned to the single source (defect 08ae), not
 // re-literalized here — the original [3000, 10000] pins went stale when the
 // clamp moved to scene-duration-limits.ts and kept failing at 2000/15000.

@@ -7,8 +7,8 @@
  */
 
 import { randomUUID } from 'crypto';
-import { ARTIFACT_STORE_LIMITS } from '@/config/limits';
-import { logger } from '../utils/logger';
+import { ARTIFACT_STORE_LIMITS } from '@stv/core/config/limits';
+import { logger } from '@stv/core/utils/logger';
 
 // ---------------------------------------------------------------------------
 // Types

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { requireJwtSecret } from '../jwt-secret';
-import { logger } from '../../utils/logger';
+import { logger } from '@stv/core/utils/logger';
 
 export interface AuthenticatedRequest extends Request {
   user?: {

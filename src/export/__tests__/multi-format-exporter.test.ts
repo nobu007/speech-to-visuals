@@ -3,7 +3,7 @@
  */
 
 import { MultiFormatExporter } from '../multi-format-exporter';
-import type { SceneGraph } from '@/types/diagram';
+import type { SceneGraph } from '@stv/core/types/diagram';
 
 /** First byte-index of `needle` within `haystack`, or -1 (naive, byte-exact). */
 function indexOfBytes(haystack: Uint8Array, needle: Uint8Array): number {

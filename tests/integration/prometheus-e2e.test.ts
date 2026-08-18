@@ -21,7 +21,7 @@ import {
 } from '../../src/monitoring/http-metrics-collector';
 
 // Suppress logger noise
-jest.mock('../../src/utils/logger', () => ({
+jest.mock('@stv/core/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
