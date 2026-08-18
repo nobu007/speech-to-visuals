@@ -93,12 +93,14 @@ const ALLOW_MISSING_MOUNT_GUARD: string[] = [
   // Files with pre-existing setState-in-.then() without mount guards.
   // These are tracked as tech-debt. Do NOT add new files here.
   'src/components/SimplePipelineInterface.tsx',
-  'src/components/FrameworkDashboard.tsx',
   'src/hooks/useFrameworkPipeline.ts',
   'src/components/ErrorAlertSystem.tsx',
   // src/components/StreamingProcessor.tsx — GRADUATED: handleFileProcessing now
   // gates its post-await onComplete/onStatus side effects on `mountedRef`
   // (TC-319). Removed from the allow-list so the sweep re-tightens.
+  // src/components/FrameworkDashboard.tsx — GRADUATED: fetchIterationData and
+  // handleExecute now gate every post-await side effect on `mountedRef`
+  // (TC-322). Removed from the allow-list so the sweep re-tightens.
   'src/components/EnhancedFileUploader.tsx',
 ];
 

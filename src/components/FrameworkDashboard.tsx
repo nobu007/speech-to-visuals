@@ -11,7 +11,7 @@
  * Based on: Custom Instructions (音声→図解動画自動生成システム)
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -140,6 +140,29 @@ export const FrameworkDashboard: React.FC<FrameworkDashboardProps> = ({
 
   const [selectedPhase, setSelectedPhase] = useState('MVP構築');
 
+  // `mountedRef` gates every post-await side effect in this component (the
+  // last KNOWN LATENT site from the TC-316-02 sweep; see TC-322). Two hazards:
+  //  (a) `fetchIterationData` runs on the auto-refresh setInterval AND awaits
+  //      `fetch('/api/framework/status')` + `response.text()` before its setX
+  //      group — an in-flight request at tab-switch time is the common case,
+  //      so the interval's clearInterval cleanup alone cannot close the race.
+  //  (b) `handleExecute` awaits the `onExecute` prop; its catch branch resets
+  //      isRunning via setExecutionStatus after the await.
+  // Mirrors TC-316–321. Deliberately a dedicated empty-deps effect: folding
+  // the flip into the auto-refresh effect below would falsely report
+  // "unmounted" whenever its deps re-arm on a state change while still
+  // mounted.
+  const mountedRef = useRef(true);
+
+  // Flip the mounted flag on true unmount only. Empty deps => never re-runs
+  // on state changes, so `mountedRef.current` stays `true` for the whole
+  // mounted lifetime and only flips in the final teardown.
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   // Auto-refresh iteration data
   useEffect(() => {
     if (!autoRefresh || !executionStatus.isRunning) return;
@@ -158,6 +181,10 @@ export const FrameworkDashboard: React.FC<FrameworkDashboardProps> = ({
   const fetchIterationData = async () => {
     try {
       const response = await fetch('/api/framework/status');
+      // The component may have unmounted while the fetch was in flight (the
+      // interval cleanup clears the NEXT tick, not the pending request), so
+      // gate every post-await side effect below.
+      if (!mountedRef.current) return;
       if (response.ok) {
         // Route the trust-boundary JSON body through the sanitized chokepoint
         // (parseUntrustedJson) rather than the raw `response.json()`, so an
@@ -168,6 +195,10 @@ export const FrameworkDashboard: React.FC<FrameworkDashboardProps> = ({
           iterationHistory?: IterationMetrics[];
           qualityAnalysis?: QualityAnalysis;
         };
+        // `response.text()` is a second await — the component can unmount
+        // while the body read is in flight, so re-check before the
+        // data-driven setState group (call-time ref mirror).
+        if (!mountedRef.current) return;
         if (data.executionStatus) {
           setExecutionStatus(data.executionStatus);
         }
@@ -188,12 +219,16 @@ export const FrameworkDashboard: React.FC<FrameworkDashboardProps> = ({
       }
     } catch (error) {
       logger.warn('[FrameworkDashboard] API unreachable, falling back to simulated progress:', error);
-      setExecutionStatus(prev => ({
-        ...prev,
-        progress: Math.min(100, prev.progress + 2),
-        timeElapsed: prev.timeElapsed + refreshInterval,
-        estimatedRemaining: Math.max(0, prev.estimatedRemaining - refreshInterval)
-      }));
+      // Guard the unmount race on the rejection path too: a request that
+      // rejects after unmount must not setState on the gone component.
+      if (mountedRef.current) {
+        setExecutionStatus(prev => ({
+          ...prev,
+          progress: Math.min(100, prev.progress + 2),
+          timeElapsed: prev.timeElapsed + refreshInterval,
+          estimatedRemaining: Math.max(0, prev.estimatedRemaining - refreshInterval)
+        }));
+      }
     }
   };
 
@@ -214,7 +249,11 @@ export const FrameworkDashboard: React.FC<FrameworkDashboardProps> = ({
         await onExecute(selectedPhase);
       } catch (error) {
         logger.error('[FrameworkDashboard] Execution failed:', error);
-        setExecutionStatus(prev => ({ ...prev, isRunning: false }));
+        // The awaited execution can outlive the component (dashboard tab
+        // switched away mid-run) — do not setState on the gone component.
+        if (mountedRef.current) {
+          setExecutionStatus(prev => ({ ...prev, isRunning: false }));
+        }
       }
     }
   };
