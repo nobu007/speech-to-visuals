@@ -13,7 +13,7 @@
 
 import { jest } from '@jest/globals';
 import { ProductionExporter } from '@/export/production-exporter';
-import type { ExportPreset } from '@/export/production-exporter';
+import type { ExportJob, ExportPreset } from '@/export/production-exporter';
 import { PipelineConfigError } from '@/pipeline/pipeline-errors';
 import type { SceneGraph } from '@stv/core/types/diagram';
 import type { EnhancedSceneGraph } from '@/visualization/advanced-visual-engine';
@@ -61,6 +61,29 @@ function makeRenderOptions(overrides: Record<string, unknown> = {}) {
   };
 }
 
+/**
+ * Fail-loud preset/job lookups (Phase 149 / TASK-0236). Replace the old
+ * `presets.find(...)!` / `getJobStatus(...)!` checker suppressions: an
+ * absent preset used to surface as a bare `expect(x).toBeDefined()`
+ * failure, an absent job as `null.field` TypeError — the helpers keep the
+ * RED verdict with the missing preset name / job id.
+ */
+function requirePreset(exporter: ProductionExporter, name: string): ExportPreset {
+  const preset = exporter.getExportPresets().find(p => p.name === name);
+  if (preset === undefined) {
+    throw new Error(`export preset not found: ${name}`);
+  }
+  return preset;
+}
+
+function requireJobStatus(exporter: ProductionExporter, jobId: string): ExportJob {
+  const job = exporter.getJobStatus(jobId);
+  if (job === null) {
+    throw new Error(`job status not found: ${jobId}`);
+  }
+  return job;
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -81,50 +104,35 @@ describe('REQ-169: ProductionExporter', () => {
     });
 
     it('includes YouTube HD preset', () => {
-      const presets = exporter.getExportPresets();
-      const yt = presets.find(p => p.name === 'YouTube HD');
-
-      expect(yt).toBeDefined();
-      expect(yt!.options.width).toBe(1920);
-      expect(yt!.options.height).toBe(1080);
-      expect(yt!.options.fps).toBe(30);
-      expect(yt!.options.quality).toBe('high');
+      const yt = requirePreset(exporter, 'YouTube HD');
+      expect(yt.options.width).toBe(1920);
+      expect(yt.options.height).toBe(1080);
+      expect(yt.options.fps).toBe(30);
+      expect(yt.options.quality).toBe('high');
     });
 
     it('includes Professional 4K preset', () => {
-      const presets = exporter.getExportPresets();
-      const pro4k = presets.find(p => p.name === 'Professional 4K');
-
-      expect(pro4k).toBeDefined();
-      expect(pro4k!.options.width).toBe(3840);
-      expect(pro4k!.options.height).toBe(2160);
-      expect(pro4k!.options.quality).toBe('ultra');
+      const pro4k = requirePreset(exporter, 'Professional 4K');
+      expect(pro4k.options.width).toBe(3840);
+      expect(pro4k.options.height).toBe(2160);
+      expect(pro4k.options.quality).toBe('ultra');
     });
 
     it('includes Web Optimized preset', () => {
-      const presets = exporter.getExportPresets();
-      const web = presets.find(p => p.name === 'Web Optimized');
-
-      expect(web).toBeDefined();
-      expect(web!.options.format).toBe('webm');
-      expect(web!.options.width).toBe(1280);
+      const web = requirePreset(exporter, 'Web Optimized');
+      expect(web.options.format).toBe('webm');
+      expect(web.options.width).toBe(1280);
     });
 
     it('includes Mobile Friendly preset', () => {
-      const presets = exporter.getExportPresets();
-      const mobile = presets.find(p => p.name === 'Mobile Friendly');
-
-      expect(mobile).toBeDefined();
-      expect(mobile!.options.width).toBe(1280);
+      const mobile = requirePreset(exporter, 'Mobile Friendly');
+      expect(mobile.options.width).toBe(1280);
     });
 
     it('includes GIF Animation preset', () => {
-      const presets = exporter.getExportPresets();
-      const gif = presets.find(p => p.name === 'GIF Animation');
-
-      expect(gif).toBeDefined();
-      expect(gif!.options.format).toBe('gif');
-      expect(gif!.options.fps).toBe(15);
+      const gif = requirePreset(exporter, 'GIF Animation');
+      expect(gif.options.format).toBe('gif');
+      expect(gif.options.fps).toBe(15);
     });
 
     it('returns a copy of presets (not mutable reference)', () => {
@@ -159,11 +167,10 @@ describe('REQ-169: ProductionExporter', () => {
       expect(jobId).toBeDefined();
       expect(jobId).toContain('export-');
 
-      const job = exporter.getJobStatus(jobId);
-      expect(job).toBeDefined();
-      expect(job!.name).toBe('Test Video');
-      expect(job!.options.width).toBe(1920);
-      expect(job!.options.height).toBe(1080);
+      const job = requireJobStatus(exporter, jobId);
+      expect(job.name).toBe('Test Video');
+      expect(job.options.width).toBe(1920);
+      expect(job.options.height).toBe(1080);
     });
 
     it('throws PipelineConfigError for unknown preset', async () => {
@@ -191,11 +198,10 @@ describe('REQ-169: ProductionExporter', () => {
       const options = makeRenderOptions();
       const jobId = await exporter.createExportJob('Test Job', scenes, options);
 
-      const job = exporter.getJobStatus(jobId);
-      expect(job).toBeDefined();
-      expect(job!.name).toBe('Test Job');
-      expect(job!.options).toEqual(options);
-      expect(['queued', 'processing', 'complete']).toContain(job!.status);
+      const job = requireJobStatus(exporter, jobId);
+      expect(job.name).toBe('Test Job');
+      expect(job.options).toEqual(options);
+      expect(['queued', 'processing', 'complete']).toContain(job.status);
     });
 
     it('calculates total frames correctly', async () => {
@@ -206,10 +212,10 @@ describe('REQ-169: ProductionExporter', () => {
       const options = makeRenderOptions({ fps: 30 });
 
       const jobId = await exporter.createExportJob('Test', scenes, options);
-      const job = exporter.getJobStatus(jobId);
+      const job = requireJobStatus(exporter, jobId);
 
       // 5s * 30fps = 150 frames + 3s * 30fps = 90 frames = 240
-      expect(job!.metadata.totalFrames).toBe(240);
+      expect(job.metadata.totalFrames).toBe(240);
     });
 
     it('returns null for non-existent job', () => {
@@ -253,9 +259,9 @@ describe('REQ-169: ProductionExporter', () => {
       const cancelled = exporter1.cancelJob(jobId);
       expect(cancelled).toBe(true);
 
-      const job = exporter1.getJobStatus(jobId);
-      expect(job!.status).toBe('error');
-      expect(job!.error).toContain('Cancelled');
+      const job = requireJobStatus(exporter1, jobId);
+      expect(job.status).toBe('error');
+      expect(job.error).toContain('Cancelled');
     });
 
     it('returns false when cancelling non-existent job', () => {
@@ -271,8 +277,8 @@ describe('REQ-169: ProductionExporter', () => {
       // Wait for processing to complete
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      const job = exporter.getJobStatus(jobId);
-      if (job!.status === 'complete') {
+      const job = requireJobStatus(exporter, jobId);
+      if (job.status === 'complete') {
         expect(exporter.cancelJob(jobId)).toBe(false);
       }
     });
@@ -288,9 +294,9 @@ describe('REQ-169: ProductionExporter', () => {
       for (const quality of qualityLevels) {
         const options = makeRenderOptions({ quality });
         const jobId = await exporter.createExportJob(`Quality ${quality}`, scenes, options);
-        const job = exporter.getJobStatus(jobId);
+        const job = requireJobStatus(exporter, jobId);
 
-        expect(job!.metadata.quality).toBe(quality);
+        expect(job.metadata.quality).toBe(quality);
       }
     });
   });
@@ -367,9 +373,9 @@ describe('REQ-169: ProductionExporter', () => {
       const options = makeRenderOptions();
 
       const jobId = await exporter.createExportJob('Size Test', scenes, options);
-      const job = exporter.getJobStatus(jobId);
+      const job = requireJobStatus(exporter, jobId);
 
-      expect(job!.metadata.estimatedSize).toBeGreaterThan(0);
+      expect(job.metadata.estimatedSize).toBeGreaterThan(0);
     });
   });
 
@@ -405,8 +411,7 @@ describe('REQ-169: ProductionExporter', () => {
       const options = makeRenderOptions({ fps: 60 });
       const jobId = await exporter.createExportJob('FPS Normalized', scenes, options);
 
-      const job = exporter.getJobStatus(jobId);
-      expect(job).toBeDefined();
+      const job = requireJobStatus(exporter, jobId);
     });
   });
 });

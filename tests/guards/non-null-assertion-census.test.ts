@@ -112,6 +112,23 @@
  *     tests/unit/export/export-job-queue-dlq.test.ts (39 nodes over
  *     `findJob()` / `replayDeadLetterJob()` / `dequeue()` results).
  *     Both suites stayed green through the rewrite (48/48, 26/26).
+ *     Phase 149 (REQ-339 / TASK-0236) continued it with the next four
+ *     largest files (guard-first survey, 103 nodes → 0):
+ *     `requireCriterionResult(evaluation, name)` in
+ *     tests/unit/quality/quality-gate.test.ts (29 nodes over
+ *     `results.find(r => r.criterionName === …)`), `requirePanel(dashboard,
+ *     title)` + an inline `templating` narrowing in
+ *     tests/unit/monitoring/grafana-dashboard-model.test.ts (25 nodes),
+ *     `requireDefined(value, label)` plus a factory return type narrowed
+ *     past `config?` (`PipelineInput & { config: PipelineConfig }` — the
+ *     factory provably always assigns it) in
+ *     tests/unit/pipeline/pipeline-orchestrator.test.ts (25 nodes over
+ *     `result.metrics!` / `input.config!`), and
+ *     `requirePreset(exporter, name)` / `requireJobStatus(exporter, jobId)`
+ *     in tests/unit/export/production-exporter.test.ts (24 nodes; note
+ *     `getJobStatus` returns `ExportJob | null`, so the helper guards
+ *     `null`, not `undefined`). All four suites stayed green through the
+ *     rewrite (42/42, 24/24, 48/48, 31/31).
  *
  * Matching rule (AST since Phase 147 — SUPERSEDES the line-regex rule
  * documented in specs/speech-to-visuals/tasks/TASK-0226.md, which this
@@ -169,6 +186,12 @@
  * in tests/unit/monitoring/alert-rules.test.ts — turns BOTH the
  * tests/unit directory ratchet (377 → 378) and the tests-total ratchet
  * (1002 → 1003) RED: the monotone decrease is enforced, not aspirational.
+ * Mutation-verified (Phase 149, MW-015): re-injecting ONE `!` into the
+ * Phase-149 rewrite — `expect(metrics.layoutQualityScore)` back to
+ * `expect(result.metrics!.layoutQualityScore)` in
+ * tests/unit/pipeline/pipeline-orchestrator.test.ts — turns BOTH the
+ * tests/unit directory ratchet (274 → 275) and the tests-total ratchet
+ * (899 → 900) RED.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -197,6 +220,10 @@ const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url));
  * and 2026-08-20 (Phase 148 / REQ-338: monotone decrease round 1 —
  * tests/unit 471 − 55 (alert-rules) − 39 (export-job-queue-dlq) = 377;
  * tests total 1096 − 94 = 1002).
+ * and 2026-08-20 (Phase 149 / REQ-339: monotone decrease round 2 —
+ * tests/unit 377 − 29 (quality-gate) − 25 (grafana-dashboard-model) −
+ * 25 (pipeline-orchestrator) − 24 (production-exporter) = 274;
+ * tests total 1002 − 103 = 899).
  */
 const PINNED = {
   'src/visualization (production)': 0,
@@ -206,7 +233,7 @@ const PINNED = {
   'src/monitoring (production)': 0,
   'src/analysis (production)': 0,
   'src (production, excl. __tests__/__mocks__)': 0,
-  'tests (excl. __mocks__)': 1002,
+  'tests (excl. __mocks__)': 899,
 } as const;
 
 /**
@@ -216,7 +243,7 @@ const PINNED = {
  * ratchet consciously, never silently.
  */
 const TESTS_DIR_PINS: Record<string, number> = {
-  unit: 377,
+  unit: 274,
   integration: 245,
   visualization: 184,
   guards: 72,
@@ -359,9 +386,9 @@ describe('non-null assertion census ratchet (REQ-328 / REQ-336 / REQ-337)', () =
     // 170 (pre-Phase-141 src total) − 67 − 29 − 17 − 10 − 7 − 6 (Phases
     // 141–146) − 22 (Phase 147, incl. the AST-only export node) = 0; the
     // liveness check below only guards against a scanner regression that
-    // would silently count nothing. The tests tree is still real: 1002
-    // node hits over 14 pinned directories (1096 before Phase 148's
-    // first −94 decrease).
+    // would silently count nothing. The tests tree is still real: 899
+    // node hits over 14 pinned directories (1096 before Phase 148/149's
+    // −94 / −103 decreases).
     expect(testsTotal.count).toBeGreaterThan(0);
   });
 });

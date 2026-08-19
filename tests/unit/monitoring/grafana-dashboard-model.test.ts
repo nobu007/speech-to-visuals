@@ -13,6 +13,20 @@ import {
   type GrafanaPanel,
 } from '@/monitoring/grafana-dashboard-model';
 
+/**
+ * Fail-loud panel lookup (Phase 149 / TASK-0236). Replaces the old
+ * `dashboard.panels.find(...)!` checker suppression: an absent panel used
+ * to surface as a bare `expect(panel).toBeDefined()` failure, the helper
+ * keeps the RED verdict with the missing panel title.
+ */
+function requirePanel(dashboard: GrafanaDashboardConfig, title: string): GrafanaPanel {
+  const panel = dashboard.panels.find(p => p.title === title);
+  if (panel === undefined) {
+    throw new Error(`panel not found: ${title}`);
+  }
+  return panel;
+}
+
 describe('Grafana Dashboard Model (REQ-208)', () => {
   describe('generateGrafanaDashboard', () => {
     it('should generate a dashboard with required metadata', () => {
@@ -49,20 +63,17 @@ describe('Grafana Dashboard Model (REQ-208)', () => {
 
     it('should include latency panel with P50/P95/P99 targets', () => {
       const dashboard = generateGrafanaDashboard();
-      const latencyPanel = dashboard.panels.find(
-        p => p.title === 'HTTP Latency Distribution',
-      );
-      expect(latencyPanel).toBeDefined();
-      expect(latencyPanel!.type).toBe('timeseries');
-      expect(latencyPanel!.targets).toHaveLength(3);
+      const latencyPanel = requirePanel(dashboard, 'HTTP Latency Distribution');
+      expect(latencyPanel.type).toBe('timeseries');
+      expect(latencyPanel.targets).toHaveLength(3);
 
-      const exprs = latencyPanel!.targets.map(t => t.expr);
+      const exprs = latencyPanel.targets.map(t => t.expr);
       expect(exprs.some(e => e.includes('quantile="0.5"'))).toBe(true);
       expect(exprs.some(e => e.includes('quantile="0.95"'))).toBe(true);
       expect(exprs.some(e => e.includes('quantile="0.99"'))).toBe(true);
 
       // Check latency thresholds
-      const thresholds = (latencyPanel!.fieldConfig as Record<string, Record<string, Record<string, unknown>>>)
+      const thresholds = (latencyPanel.fieldConfig as Record<string, Record<string, Record<string, unknown>>>)
         ?.defaults?.thresholds?.steps as Array<{ value: number; color: string }>;
       expect(thresholds).toBeDefined();
       expect(thresholds.find((t: { value: number }) => t.value === 20000)?.color).toBe('red');
@@ -70,87 +81,71 @@ describe('Grafana Dashboard Model (REQ-208)', () => {
 
     it('should include error rate panel with rate expression', () => {
       const dashboard = generateGrafanaDashboard();
-      const errorPanel = dashboard.panels.find(
-        p => p.title === 'Error Rate Trends',
-      );
-      expect(errorPanel).toBeDefined();
-      expect(errorPanel!.targets[0].expr).toContain('http_errors_total');
-      expect(errorPanel!.targets[0].expr).toContain('http_requests_total');
-      expect(errorPanel!.targets[0].expr).toContain('rate(');
+      const errorPanel = requirePanel(dashboard, 'Error Rate Trends');
+      expect(errorPanel.targets[0].expr).toContain('http_errors_total');
+      expect(errorPanel.targets[0].expr).toContain('http_requests_total');
+      expect(errorPanel.targets[0].expr).toContain('rate(');
     });
 
     it('should include success rate stat panel', () => {
       const dashboard = generateGrafanaDashboard();
-      const panel = dashboard.panels.find(
-        p => p.title === 'Pipeline Success Rate',
-      );
-      expect(panel).toBeDefined();
-      expect(panel!.type).toBe('stat');
-      expect(panel!.gridPos.w).toBeLessThanOrEqual(24);
+      const panel = requirePanel(dashboard, 'Pipeline Success Rate');
+      expect(panel.type).toBe('stat');
+      expect(panel.gridPos.w).toBeLessThanOrEqual(24);
     });
 
     it('should include slow requests stat panel', () => {
       const dashboard = generateGrafanaDashboard();
-      const panel = dashboard.panels.find(p => p.title === 'Slow Requests');
-      expect(panel).toBeDefined();
-      expect(panel!.type).toBe('stat');
-      expect(panel!.targets[0].expr).toContain('http_slow_requests_total');
+      const panel = requirePanel(dashboard, 'Slow Requests');
+      expect(panel.type).toBe('stat');
+      expect(panel.targets[0].expr).toContain('http_slow_requests_total');
     });
 
     it('should include active requests panel', () => {
       const dashboard = generateGrafanaDashboard();
-      const panel = dashboard.panels.find(p => p.title === 'Active Requests');
-      expect(panel).toBeDefined();
-      expect(panel!.targets[0].expr).toContain('http_active_requests');
+      const panel = requirePanel(dashboard, 'Active Requests');
+      expect(panel.targets[0].expr).toContain('http_active_requests');
     });
 
     it('should include uptime panel', () => {
       const dashboard = generateGrafanaDashboard();
-      const panel = dashboard.panels.find(p => p.title === 'Process Uptime');
-      expect(panel).toBeDefined();
-      expect(panel!.targets[0].expr).toContain('process_uptime_ms');
+      const panel = requirePanel(dashboard, 'Process Uptime');
+      expect(panel.targets[0].expr).toContain('process_uptime_ms');
     });
 
     it('should include request volume panel', () => {
       const dashboard = generateGrafanaDashboard();
-      const panel = dashboard.panels.find(p => p.title === 'Request Volume');
-      expect(panel).toBeDefined();
-      expect(panel!.targets[0].expr).toContain('rate(');
-      expect(panel!.targets[0].expr).toContain('http_requests_total');
+      const panel = requirePanel(dashboard, 'Request Volume');
+      expect(panel.targets[0].expr).toContain('rate(');
+      expect(panel.targets[0].expr).toContain('http_requests_total');
     });
 
     it('should include errors by route panel', () => {
       const dashboard = generateGrafanaDashboard();
-      const panel = dashboard.panels.find(p => p.title === 'Errors by Route');
-      expect(panel).toBeDefined();
-      expect(panel!.targets[0].expr).toContain('http_errors_total');
+      const panel = requirePanel(dashboard, 'Errors by Route');
+      expect(panel.targets[0].expr).toContain('http_errors_total');
     });
 
     it('should include export queue size stat panel', () => {
       const dashboard = generateGrafanaDashboard();
-      const panel = dashboard.panels.find(p => p.title === 'Export Queue Size');
-      expect(panel).toBeDefined();
-      expect(panel!.type).toBe('stat');
-      expect(panel!.targets[0].expr).toContain('export_queue_size');
+      const panel = requirePanel(dashboard, 'Export Queue Size');
+      expect(panel.type).toBe('stat');
+      expect(panel.targets[0].expr).toContain('export_queue_size');
     });
 
     it('should include export queue wait time stat panel', () => {
       const dashboard = generateGrafanaDashboard();
-      const panel = dashboard.panels.find(p => p.title === 'Export Queue Wait Time');
-      expect(panel).toBeDefined();
-      expect(panel!.type).toBe('stat');
-      expect(panel!.targets[0].expr).toContain('export_queue_wait_time_ms');
+      const panel = requirePanel(dashboard, 'Export Queue Wait Time');
+      expect(panel.type).toBe('stat');
+      expect(panel.targets[0].expr).toContain('export_queue_wait_time_ms');
     });
 
     it('should include export queue dequeue rate timeseries panel', () => {
       const dashboard = generateGrafanaDashboard();
-      const panel = dashboard.panels.find(
-        p => p.title === 'Export Queue Dequeue Rate by Priority',
-      );
-      expect(panel).toBeDefined();
-      expect(panel!.type).toBe('timeseries');
-      expect(panel!.targets[0].expr).toContain('rate(');
-      expect(panel!.targets[0].expr).toContain('export_queue_dequeue_total');
+      const panel = requirePanel(dashboard, 'Export Queue Dequeue Rate by Priority');
+      expect(panel.type).toBe('timeseries');
+      expect(panel.targets[0].expr).toContain('rate(');
+      expect(panel.targets[0].expr).toContain('export_queue_dequeue_total');
     });
 
     it('should have all panels within 24-column grid width', () => {
@@ -186,9 +181,12 @@ describe('Grafana Dashboard Model (REQ-208)', () => {
 
     it('should include templating variables', () => {
       const dashboard = generateGrafanaDashboard();
-      expect(dashboard.templating).toBeDefined();
-      expect(dashboard.templating!.list).toHaveLength(1);
-      expect(dashboard.templating!.list[0].name).toBe('datasource');
+      const templating = dashboard.templating;
+      if (templating === undefined) {
+        throw new Error('dashboard.templating is undefined');
+      }
+      expect(templating.list).toHaveLength(1);
+      expect(templating.list[0].name).toBe('datasource');
     });
   });
 

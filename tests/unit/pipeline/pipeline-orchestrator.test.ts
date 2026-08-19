@@ -79,7 +79,25 @@ function makeMockLayoutResult() {
   };
 }
 
-function makeValidPipelineInput(): PipelineInput {
+/**
+ * Fail-loud optional lookup (Phase 149 / TASK-0236). Replaces the old
+ * `result.metrics!` checker suppression: an absent value used to surface as
+ * a bare `expect(...).toBeDefined()` failure (or a TypeError on the next
+ * line), the helper keeps the RED verdict with the missing field's label.
+ */
+function requireDefined<T>(value: T | undefined, label: string): T {
+  if (value === undefined) {
+    throw new Error(`${label} is undefined`);
+  }
+  return value;
+}
+
+/**
+ * Return type narrowed past `config?`: the factory always assigns a full
+ * `config`, so wiring tests below can mutate `input.config.analysis` etc.
+ * without a non-null assertion (Phase 149 / TASK-0236).
+ */
+function makeValidPipelineInput(): PipelineInput & { config: PipelineConfig } {
   return {
     audioFile: 'test-audio.wav',
     config: {
@@ -667,11 +685,11 @@ describe('PipelineOrchestrator', () => {
       const result = await orchestrator.execute(input);
 
       expect(result.success).toBe(true);
-      expect(result.metrics).toBeDefined();
-      expect(result.metrics!.layoutQualityScore).toBeDefined();
-      expect(typeof result.metrics!.layoutQualityScore).toBe('number');
-      expect(result.metrics!.layoutQualityScore).toBeGreaterThanOrEqual(0);
-      expect(result.metrics!.layoutQualityScore).toBeLessThanOrEqual(1);
+      const metrics = requireDefined(result.metrics, 'result.metrics');
+      expect(metrics.layoutQualityScore).toBeDefined();
+      expect(typeof metrics.layoutQualityScore).toBe('number');
+      expect(metrics.layoutQualityScore).toBeGreaterThanOrEqual(0);
+      expect(metrics.layoutQualityScore).toBeLessThanOrEqual(1);
     });
 
     it('should record optimization attempts in metrics', async () => {
@@ -679,10 +697,10 @@ describe('PipelineOrchestrator', () => {
       const result = await orchestrator.execute(input);
 
       expect(result.success).toBe(true);
-      expect(result.metrics).toBeDefined();
-      expect(result.metrics!.optimizationAttempts).toBeDefined();
-      expect(typeof result.metrics!.optimizationAttempts).toBe('number');
-      expect(result.metrics!.optimizationAttempts).toBeGreaterThanOrEqual(0);
+      const metrics = requireDefined(result.metrics, 'result.metrics');
+      expect(metrics.optimizationAttempts).toBeDefined();
+      expect(typeof metrics.optimizationAttempts).toBe('number');
+      expect(metrics.optimizationAttempts).toBeGreaterThanOrEqual(0);
     });
 
     it('should record optimization improvement flag in metrics', async () => {
@@ -690,9 +708,9 @@ describe('PipelineOrchestrator', () => {
       const result = await orchestrator.execute(input);
 
       expect(result.success).toBe(true);
-      expect(result.metrics).toBeDefined();
-      expect(result.metrics!.optimizationImproved).toBeDefined();
-      expect(typeof result.metrics!.optimizationImproved).toBe('boolean');
+      const metrics = requireDefined(result.metrics, 'result.metrics');
+      expect(metrics.optimizationImproved).toBeDefined();
+      expect(typeof metrics.optimizationImproved).toBe('boolean');
     });
 
     it('should evaluate quality score for layouts with nodes', async () => {
@@ -702,7 +720,7 @@ describe('PipelineOrchestrator', () => {
       expect(result.success).toBe(true);
       // The default pipeline produces at least 1 layout with nodes,
       // so the quality score should be > 0
-      expect(result.metrics!.layoutQualityScore).toBeGreaterThan(0);
+      expect(requireDefined(result.metrics, 'result.metrics').layoutQualityScore).toBeGreaterThan(0);
     });
 
     it('should still succeed when layout quality is evaluated', async () => {
@@ -738,8 +756,7 @@ describe('PipelineOrchestrator', () => {
 
       // Should still produce a result with quality metrics
       expect(result).toBeDefined();
-      expect(result.metrics).toBeDefined();
-      expect(typeof result.metrics!.layoutQualityScore).toBe('number');
+      expect(typeof requireDefined(result.metrics, 'result.metrics').layoutQualityScore).toBe('number');
     });
 
     it('should produce a valid PipelineResult with quality metrics on all code paths', async () => {
@@ -747,12 +764,12 @@ describe('PipelineOrchestrator', () => {
       const result = await orchestrator.execute(input);
 
       expect(result.success).toBe(true);
-      expect(result.metrics).toBeDefined();
-      expect(result.metrics!.layoutQualityScore).toBeDefined();
-      expect(result.metrics!.optimizationAttempts).toBeDefined();
-      expect(result.metrics!.optimizationImproved).toBeDefined();
+      const metrics = requireDefined(result.metrics, 'result.metrics');
+      expect(metrics.layoutQualityScore).toBeDefined();
+      expect(metrics.optimizationAttempts).toBeDefined();
+      expect(metrics.optimizationImproved).toBeDefined();
       // Quality score should be a valid number in 0..1 range
-      const score = result.metrics!.layoutQualityScore!;
+      const score = requireDefined(metrics.layoutQualityScore, 'metrics.layoutQualityScore');
       expect(score).toBeGreaterThanOrEqual(0);
       expect(score).toBeLessThanOrEqual(1);
     });
@@ -818,9 +835,9 @@ describe('PipelineOrchestrator', () => {
       const updateSpy = jest.spyOn(segmenter, 'updateConfig');
 
       const input = makeValidPipelineInput();
-      input.config!.analysis.minSegmentLengthMs = 7000;
-      input.config!.analysis.maxSegmentLengthMs = 25000;
-      input.config!.analysis.confidenceThreshold = 0.66;
+      input.config.analysis.minSegmentLengthMs = 7000;
+      input.config.analysis.maxSegmentLengthMs = 25000;
+      input.config.analysis.confidenceThreshold = 0.66;
 
       await orchestrator.execute(input);
 
@@ -851,8 +868,8 @@ describe('PipelineOrchestrator', () => {
       const updateSpy = jest.spyOn(transcriber, 'updateConfig');
 
       const input = makeValidPipelineInput();
-      input.config!.transcription.model = 'small';
-      input.config!.transcription.language = 'ja';
+      input.config.transcription.model = 'small';
+      input.config.transcription.language = 'ja';
 
       await orchestrator.execute(input);
 
@@ -904,10 +921,10 @@ describe('PipelineOrchestrator', () => {
       const updateSpy = jest.spyOn(layoutEngine, 'updateConfig');
 
       const input = makeValidPipelineInput();
-      input.config!.layout.width = 1280;
-      input.config!.layout.height = 720;
-      input.config!.layout.nodeWidth = 200;
-      input.config!.layout.nodeHeight = 90;
+      input.config.layout.width = 1280;
+      input.config.layout.height = 720;
+      input.config.layout.nodeWidth = 200;
+      input.config.layout.nodeHeight = 90;
 
       await orchestrator.execute(input);
 

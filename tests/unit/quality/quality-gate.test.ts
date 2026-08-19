@@ -20,11 +20,30 @@ import type {
   QualityCriterion,
   QualityResult,
   RegressionResult,
+  StageCriterionResult,
+  StageEvaluationResult,
 } from '@/quality/quality-gate';
 
 // ---------------------------------------------------------------------------
 // Helper factories
 // ---------------------------------------------------------------------------
+
+/**
+ * Fail-loud criterion lookup (Phase 149 / TASK-0236). Replaces the old
+ * `result.results.find(...)!` checker suppression: an absent criterion used
+ * to surface as a bare `expect(x).toBeDefined()` failure, the helper keeps
+ * the RED verdict with the missing criterion name.
+ */
+function requireCriterionResult(
+  evaluation: StageEvaluationResult,
+  criterionName: string,
+): StageCriterionResult {
+  const found = evaluation.results.find(r => r.criterionName === criterionName);
+  if (found === undefined) {
+    throw new Error(`criterion result not found: ${criterionName}`);
+  }
+  return found;
+}
 
 function makeTranscriptionInput(overrides: Record<string, unknown> = {}) {
   return {
@@ -104,62 +123,44 @@ describe('QualityGateEvaluator - Stage 1 (Transcription)', () => {
   test('passes when audio duration >= 1s', () => {
     const input = makeTranscriptionInput({ audioDuration: 5.0 });
     const result = evaluator.evaluateStage(1, input);
-    const durationResult = result.results.find(
-      (r) => r.criterionName === 'audioDuration'
-    );
-    expect(durationResult).toBeDefined();
-    expect(durationResult!.passed).toBe(true);
-    expect(durationResult!.score).toBeGreaterThanOrEqual(1.0);
+    const durationResult = requireCriterionResult(result, 'audioDuration');
+    expect(durationResult.passed).toBe(true);
+    expect(durationResult.score).toBeGreaterThanOrEqual(1.0);
   });
 
   test('fails when audio duration < 1s', () => {
     const input = makeTranscriptionInput({ audioDuration: 0.5 });
     const result = evaluator.evaluateStage(1, input);
-    const durationResult = result.results.find(
-      (r) => r.criterionName === 'audioDuration'
-    );
-    expect(durationResult).toBeDefined();
-    expect(durationResult!.passed).toBe(false);
+    const durationResult = requireCriterionResult(result, 'audioDuration');
+    expect(durationResult.passed).toBe(false);
   });
 
   test('passes when sample rate >= 16kHz', () => {
     const input = makeTranscriptionInput({ sampleRate: 44100 });
     const result = evaluator.evaluateStage(1, input);
-    const srResult = result.results.find(
-      (r) => r.criterionName === 'sampleRate'
-    );
-    expect(srResult).toBeDefined();
-    expect(srResult!.passed).toBe(true);
+    const srResult = requireCriterionResult(result, 'sampleRate');
+    expect(srResult.passed).toBe(true);
   });
 
   test('fails when sample rate < 16kHz', () => {
     const input = makeTranscriptionInput({ sampleRate: 8000 });
     const result = evaluator.evaluateStage(1, input);
-    const srResult = result.results.find(
-      (r) => r.criterionName === 'sampleRate'
-    );
-    expect(srResult).toBeDefined();
-    expect(srResult!.passed).toBe(false);
+    const srResult = requireCriterionResult(result, 'sampleRate');
+    expect(srResult.passed).toBe(false);
   });
 
   test('passes when noise level < -30dB', () => {
     const input = makeTranscriptionInput({ noiseLevelDb: -40 });
     const result = evaluator.evaluateStage(1, input);
-    const noiseResult = result.results.find(
-      (r) => r.criterionName === 'noiseLevel'
-    );
-    expect(noiseResult).toBeDefined();
-    expect(noiseResult!.passed).toBe(true);
+    const noiseResult = requireCriterionResult(result, 'noiseLevel');
+    expect(noiseResult.passed).toBe(true);
   });
 
   test('fails when noise level >= -30dB', () => {
     const input = makeTranscriptionInput({ noiseLevelDb: -20 });
     const result = evaluator.evaluateStage(1, input);
-    const noiseResult = result.results.find(
-      (r) => r.criterionName === 'noiseLevel'
-    );
-    expect(noiseResult).toBeDefined();
-    expect(noiseResult!.passed).toBe(false);
+    const noiseResult = requireCriterionResult(result, 'noiseLevel');
+    expect(noiseResult.passed).toBe(false);
   });
 
   test('overall stage passes when all criteria pass', () => {
@@ -190,11 +191,8 @@ describe('QualityGateEvaluator - Stage 2 (Analysis)', () => {
     // 5/5 = 100%
     const input = makeAnalysisInput();
     const result = evaluator.evaluateStage(2, input);
-    const entityResult = result.results.find(
-      (r) => r.criterionName === 'entityExtractionRate'
-    );
-    expect(entityResult).toBeDefined();
-    expect(entityResult!.passed).toBe(true);
+    const entityResult = requireCriterionResult(result, 'entityExtractionRate');
+    expect(entityResult.passed).toBe(true);
   });
 
   test('fails when entity extraction rate < 80%', () => {
@@ -207,22 +205,16 @@ describe('QualityGateEvaluator - Stage 2 (Analysis)', () => {
       ],
     });
     const result = evaluator.evaluateStage(2, input);
-    const entityResult = result.results.find(
-      (r) => r.criterionName === 'entityExtractionRate'
-    );
-    expect(entityResult).toBeDefined();
-    expect(entityResult!.passed).toBe(false);
+    const entityResult = requireCriterionResult(result, 'entityExtractionRate');
+    expect(entityResult.passed).toBe(false);
   });
 
   test('passes when relation completeness >= 70%', () => {
     // 3/4 = 75%
     const input = makeAnalysisInput();
     const result = evaluator.evaluateStage(2, input);
-    const relationResult = result.results.find(
-      (r) => r.criterionName === 'relationCompleteness'
-    );
-    expect(relationResult).toBeDefined();
-    expect(relationResult!.passed).toBe(true);
+    const relationResult = requireCriterionResult(result, 'relationCompleteness');
+    expect(relationResult.passed).toBe(true);
   });
 
   test('fails when relation completeness < 70%', () => {
@@ -231,31 +223,22 @@ describe('QualityGateEvaluator - Stage 2 (Analysis)', () => {
       relations: [{ from: 'e1', to: 'e2', label: 'relates_to' }],
     });
     const result = evaluator.evaluateStage(2, input);
-    const relationResult = result.results.find(
-      (r) => r.criterionName === 'relationCompleteness'
-    );
-    expect(relationResult).toBeDefined();
-    expect(relationResult!.passed).toBe(false);
+    const relationResult = requireCriterionResult(result, 'relationCompleteness');
+    expect(relationResult.passed).toBe(false);
   });
 
   test('passes when JSON schema is valid', () => {
     const input = makeAnalysisInput({ schemaValid: true });
     const result = evaluator.evaluateStage(2, input);
-    const schemaResult = result.results.find(
-      (r) => r.criterionName === 'schemaConformance'
-    );
-    expect(schemaResult).toBeDefined();
-    expect(schemaResult!.passed).toBe(true);
+    const schemaResult = requireCriterionResult(result, 'schemaConformance');
+    expect(schemaResult.passed).toBe(true);
   });
 
   test('fails when JSON schema is invalid', () => {
     const input = makeAnalysisInput({ schemaValid: false });
     const result = evaluator.evaluateStage(2, input);
-    const schemaResult = result.results.find(
-      (r) => r.criterionName === 'schemaConformance'
-    );
-    expect(schemaResult).toBeDefined();
-    expect(schemaResult!.passed).toBe(false);
+    const schemaResult = requireCriterionResult(result, 'schemaConformance');
+    expect(schemaResult.passed).toBe(false);
   });
 
   test('overall stage passes when all criteria pass', () => {
@@ -279,11 +262,8 @@ describe('QualityGateEvaluator - Stage 3 (Layout)', () => {
   test('passes when no nodes overlap', () => {
     const input = makeLayoutInput();
     const result = evaluator.evaluateStage(3, input);
-    const overlapResult = result.results.find(
-      (r) => r.criterionName === 'zeroOverlap'
-    );
-    expect(overlapResult).toBeDefined();
-    expect(overlapResult!.passed).toBe(true);
+    const overlapResult = requireCriterionResult(result, 'zeroOverlap');
+    expect(overlapResult.passed).toBe(true);
   });
 
   test('fails when nodes overlap', () => {
@@ -295,21 +275,15 @@ describe('QualityGateEvaluator - Stage 3 (Layout)', () => {
       ],
     });
     const result = evaluator.evaluateStage(3, input);
-    const overlapResult = result.results.find(
-      (r) => r.criterionName === 'zeroOverlap'
-    );
-    expect(overlapResult).toBeDefined();
-    expect(overlapResult!.passed).toBe(false);
+    const overlapResult = requireCriterionResult(result, 'zeroOverlap');
+    expect(overlapResult.passed).toBe(false);
   });
 
   test('passes when timeline has continuity', () => {
     const input = makeLayoutInput();
     const result = evaluator.evaluateStage(3, input);
-    const timelineResult = result.results.find(
-      (r) => r.criterionName === 'timelineContinuity'
-    );
-    expect(timelineResult).toBeDefined();
-    expect(timelineResult!.passed).toBe(true);
+    const timelineResult = requireCriterionResult(result, 'timelineContinuity');
+    expect(timelineResult.passed).toBe(true);
   });
 
   test('fails when timeline has a gap', () => {
@@ -320,21 +294,15 @@ describe('QualityGateEvaluator - Stage 3 (Layout)', () => {
       ],
     });
     const result = evaluator.evaluateStage(3, input);
-    const timelineResult = result.results.find(
-      (r) => r.criterionName === 'timelineContinuity'
-    );
-    expect(timelineResult).toBeDefined();
-    expect(timelineResult!.passed).toBe(false);
+    const timelineResult = requireCriterionResult(result, 'timelineContinuity');
+    expect(timelineResult.passed).toBe(false);
   });
 
   test('passes when segments are normalized', () => {
     const input = makeLayoutInput();
     const result = evaluator.evaluateStage(3, input);
-    const normResult = result.results.find(
-      (r) => r.criterionName === 'segmentNormalization'
-    );
-    expect(normResult).toBeDefined();
-    expect(normResult!.passed).toBe(true);
+    const normResult = requireCriterionResult(result, 'segmentNormalization');
+    expect(normResult.passed).toBe(true);
   });
 
   test('fails when segments have zero or negative duration', () => {
@@ -345,11 +313,8 @@ describe('QualityGateEvaluator - Stage 3 (Layout)', () => {
       ],
     });
     const result = evaluator.evaluateStage(3, input);
-    const normResult = result.results.find(
-      (r) => r.criterionName === 'segmentNormalization'
-    );
-    expect(normResult).toBeDefined();
-    expect(normResult!.passed).toBe(false);
+    const normResult = requireCriterionResult(result, 'segmentNormalization');
+    expect(normResult.passed).toBe(false);
   });
 });
 
@@ -367,97 +332,71 @@ describe('QualityGateEvaluator - Stage 4-5 (Render)', () => {
   test('passes when caption sync within +/-50ms', () => {
     const input = makeRenderInput({ captionSyncOffsetMs: 30 });
     const result = evaluator.evaluateStage(4, input);
-    const syncResult = result.results.find(
-      (r) => r.criterionName === 'captionSync'
-    );
-    expect(syncResult).toBeDefined();
-    expect(syncResult!.passed).toBe(true);
+    const syncResult = requireCriterionResult(result, 'captionSync');
+    expect(syncResult.passed).toBe(true);
   });
 
   test('fails when caption sync exceeds +/-50ms', () => {
     const input = makeRenderInput({ captionSyncOffsetMs: 80 });
     const result = evaluator.evaluateStage(4, input);
-    const syncResult = result.results.find(
-      (r) => r.criterionName === 'captionSync'
-    );
-    expect(syncResult).toBeDefined();
-    expect(syncResult!.passed).toBe(false);
+    const syncResult = requireCriterionResult(result, 'captionSync');
+    expect(syncResult.passed).toBe(false);
   });
 
   test('passes when layout consistency is high', () => {
     const input = makeRenderInput({ layoutConsistencyScore: 0.95 });
     const result = evaluator.evaluateStage(4, input);
-    const consistencyResult = result.results.find(
-      (r) => r.criterionName === 'layoutConsistency'
-    );
-    expect(consistencyResult).toBeDefined();
-    expect(consistencyResult!.passed).toBe(true);
+    const consistencyResult = requireCriterionResult(result, 'layoutConsistency');
+    expect(consistencyResult.passed).toBe(true);
   });
 
   test('fails when layout consistency is low', () => {
     const input = makeRenderInput({ layoutConsistencyScore: 0.5 });
     const result = evaluator.evaluateStage(4, input);
-    const consistencyResult = result.results.find(
-      (r) => r.criterionName === 'layoutConsistency'
-    );
-    expect(consistencyResult).toBeDefined();
-    expect(consistencyResult!.passed).toBe(false);
+    const consistencyResult = requireCriterionResult(result, 'layoutConsistency');
+    expect(consistencyResult.passed).toBe(false);
   });
 
   test('passes when resolution >= 720p', () => {
     const input = makeRenderInput({ resolution: { width: 1920, height: 1080 } });
     const result = evaluator.evaluateStage(5, input);
-    const resResult = result.results.find(
-      (r) => r.criterionName === 'resolution'
-    );
-    expect(resResult).toBeDefined();
-    expect(resResult!.passed).toBe(true);
+    const resResult = requireCriterionResult(result, 'resolution');
+    expect(resResult.passed).toBe(true);
   });
 
   test('fails when resolution < 720p', () => {
     const input = makeRenderInput({ resolution: { width: 640, height: 480 } });
     const result = evaluator.evaluateStage(5, input);
-    const resResult = result.results.find(
-      (r) => r.criterionName === 'resolution'
-    );
-    expect(resResult).toBeDefined();
-    expect(resResult!.passed).toBe(false);
+    const resResult = requireCriterionResult(result, 'resolution');
+    expect(resResult.passed).toBe(false);
   });
 
   test('passes when fps = 30', () => {
     const input = makeRenderInput({ fps: 30 });
     const result = evaluator.evaluateStage(5, input);
-    const fpsResult = result.results.find((r) => r.criterionName === 'fps');
-    expect(fpsResult).toBeDefined();
-    expect(fpsResult!.passed).toBe(true);
+    const fpsResult = requireCriterionResult(result, 'fps');
+    expect(fpsResult.passed).toBe(true);
   });
 
   test('fails when fps != 30', () => {
     const input = makeRenderInput({ fps: 24 });
     const result = evaluator.evaluateStage(5, input);
-    const fpsResult = result.results.find((r) => r.criterionName === 'fps');
-    expect(fpsResult).toBeDefined();
-    expect(fpsResult!.passed).toBe(false);
+    const fpsResult = requireCriterionResult(result, 'fps');
+    expect(fpsResult.passed).toBe(false);
   });
 
   test('passes when audio sync within +/-50ms', () => {
     const input = makeRenderInput({ audioSyncOffsetMs: 40 });
     const result = evaluator.evaluateStage(5, input);
-    const audioResult = result.results.find(
-      (r) => r.criterionName === 'audioSync'
-    );
-    expect(audioResult).toBeDefined();
-    expect(audioResult!.passed).toBe(true);
+    const audioResult = requireCriterionResult(result, 'audioSync');
+    expect(audioResult.passed).toBe(true);
   });
 
   test('fails when audio sync exceeds +/-50ms', () => {
     const input = makeRenderInput({ audioSyncOffsetMs: 70 });
     const result = evaluator.evaluateStage(5, input);
-    const audioResult = result.results.find(
-      (r) => r.criterionName === 'audioSync'
-    );
-    expect(audioResult).toBeDefined();
-    expect(audioResult!.passed).toBe(false);
+    const audioResult = requireCriterionResult(result, 'audioSync');
+    expect(audioResult.passed).toBe(false);
   });
 });
 
