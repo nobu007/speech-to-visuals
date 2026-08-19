@@ -8,11 +8,13 @@ on:
 
 # Documented timeout targets (minutes):
 #   Fast jobs (lint, type-check, code-size-audit): 10
-#   Standard jobs (test, build): 30
+#   Test shards: 15 (per shard; 4 shards run in parallel)
+#   Standard jobs (build): 30
 #   Heavy jobs (security-fuzz): 45
 #   Gate job: 3
 # REQ-254: timeout-minutes is set on every job, and ELAPSED is tracked
-# with an assertion that fails the gate job if any job exceeds its budget.
+# with an assertion that fails the gate job if any job exceeds its budget
+# (test shards enforce their budget in-job with a hard fail).
 
 # @stv/core is a git dependency; the lockfile may record it as git+ssh://
 # (developer machines rewrite https→ssh via insteadOf). CI has no SSH keys,
@@ -115,9 +117,22 @@ jobs:
             echo "budget_exceeded=false" >> $GITHUB_OUTPUT
           fi
 
+  # Test sharding: 4 parallel shard jobs each run ~1/4 of the suite. This is
+  # the merge-loop critical path for autonomous development — wall-clock
+  # feedback drops from ~12min (single job, maxWorkers-limited) to ~4-5min.
+  # Coverage instrumentation is dropped here: no coverageThreshold is
+  # configured anywhere, so --coverage never gated anything — it was pure
+  # overhead. Run `npm run test:coverage` locally when numbers are needed.
+  # REQ-254 budgets: each shard hard-fails its own 600s jest budget (simpler
+  # and stronger than the old soft-warning + gate-assert pair; the aggregated
+  # needs.test.result carries any shard failure into the gate job).
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -125,26 +140,19 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - name: Run tests with coverage
+      - name: Run tests (shard ${{ matrix.shard }}/4)
         id: test
         run: |
           START=$(date +%s)
-          npm test -- --coverage
+          npm test -- --shard=${{ matrix.shard }}/4
           END=$(date +%s)
           ELAPSED=$((END - START))
           echo "elapsed_seconds=$ELAPSED" >> $GITHUB_OUTPUT
-          THRESHOLD=1740
+          THRESHOLD=600
           if [ "$ELAPSED" -gt "$THRESHOLD" ]; then
-            echo "::warning::test exceeded ${THRESHOLD}s (ELAPSED=${ELAPSED}s)"
-            echo "budget_exceeded=true" >> $GITHUB_OUTPUT
-          else
-            echo "budget_exceeded=false" >> $GITHUB_OUTPUT
+            echo "::error::test shard ${{ matrix.shard }} exceeded ${THRESHOLD}s (ELAPSED=${ELAPSED}s)"
+            exit 1
           fi
-      - name: Upload coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: coverage/
 
   monitoring-config-validate:
     runs-on: ubuntu-latest
@@ -269,10 +277,13 @@ jobs:
             echo "budget_exceeded=false" >> $GITHUB_OUTPUT
           fi
 
+  # No `needs` below: ordering test→build→fuzz bought nothing (same runner
+  # pool, free parallel jobs on public repos) and put build+fuzz behind the
+  # slowest job on the critical path. The all-checks-pass gate still requires
+  # every job to pass before merge.
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: [lint, type-check, test, monitoring-config-validate, monitoring-drift-check, spine-validate, edge-sanitizer-sync]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -299,7 +310,6 @@ jobs:
   security-fuzz:
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    needs: [test, build]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -366,7 +376,7 @@ jobs:
           check_budget "code-size-audit" "${{ needs.code-size-audit.outputs.budget_exceeded }}"
           check_budget "lint" "${{ needs.lint.outputs.budget_exceeded }}"
           check_budget "type-check" "${{ needs.type-check.outputs.budget_exceeded }}"
-          check_budget "test" "${{ needs.test.outputs.budget_exceeded }}"
+          # test budget is enforced per-shard (hard fail) — see the test job.
           check_budget "monitoring-config-validate" "${{ needs.monitoring-config-validate.outputs.budget_exceeded }}"
           check_budget "monitoring-drift-check" "${{ needs.monitoring-drift-check.outputs.budget_exceeded }}"
           check_budget "spine-validate" "${{ needs.spine-validate.outputs.budget_exceeded }}"

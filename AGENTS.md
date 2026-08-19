@@ -178,3 +178,70 @@ find tests/ -name "*target*" -o -name "*module*"
 ## LLM Wiki
 
 Read `docs/llm-wiki/index.md` for high-level repository memory. Treat purpose, specs, and source files as canonical.
+
+---
+
+# 全自動開発ループ運用 (Autonomous Loop Ops)
+
+大目的は「AIによる全自動開発、人間より圧倒的に効率的に」。
+すべての判断基準はこれ: 無人で回るループのスループット/検証可能性/並列性。
+一時的な破損より速度を取る。守るべきは現状コードではなくループの持続性。
+
+## マージフロー (push → main 反映まで)
+
+```bash
+git checkout -b <type>/<slug>
+# ...変更...
+npm run verify:all            # CI と同一構成のローカルゲート (push 前に必ず)
+git add -A && git commit -m "..."
+git push -u origin <branch>
+gh pr create --base main
+gh pr merge --auto --merge --delete-branch   # checks green の瞬間に自動 merge。polling 不要
+git checkout main && git pull
+```
+
+- branch protection は設定されていない。ただし `all-checks-pass` gate job が
+  全ジョブの成否を集約するので、実質全ジョブ green でないと merge 相当にならない。
+- CI 失敗時: `gh pr checks` → 最初に赤いジョブのログ (`gh run view <id> --log-failed`)
+  から直接修正。ローカルで verify:all を通してから push すれば往復はほぼ消える。
+
+## 検証コマンドの使い分け
+
+- `npm run verify:all` — push 前のフルゲート (CI 同構成、安い順に fail-fast)
+- 部分検証: `npm run type-check` / `npm run lint` / `npm run audit:code-size`
+- 対象テストのみ: `npm test -- "<path-regex>"` 例: `"quality|error-recovery"` (coverage は既定で off)
+- カバレッジ数値が必要なときだけ `npm run test:coverage` (CI の通常ランには含めない)
+
+## CI 構成 (2026-08 時点)
+
+- `test` は 4 シャードの matrix 並列 (`--shard=n/4`)。各シャード 600s budget 超過で
+  hard-fail。シャードの偏りで遅いのが出たらシャード数 or 分割方法を再検討。
+- `build` / `security-fuzz` に直列 `needs` はない — 並列で回し、`all-checks-pass` が集約。
+- タイムバジェット (REQ-254) は各ジョブが自负する。test 以外は gate job が
+  `budget_exceeded` 出力を assert する形。
+
+## jest 並列と既知の flake 源
+
+- `maxWorkers: '75%'`。コアを遊ばせない (ローカル 12 core → 9 worker、CI 4 vCPU → 3)。
+- **`detectOpenHandles` を設定に戻すな** (2026-08 の実測教訓)。jest はこれが立っていると
+  worker を 1 本も spawn せず全スイートを in-band 直列実行する (maxWorkers は黙って無視)。
+  実害: 全実行 79秒→11.5分。リーク診断が欲しいときは一部サブセットに
+  `--detectOpenHandles` を CLI で付ける。
+- cwd 相対のソース読みは禁止 (冒頭の source-anchor 規約 + 構造ガードが強制)。
+  これを破ると `maxWorkers>1` で非決定的に赤になる。
+
+## ガード文化 (リファクタ時の契約)
+
+- リファクタは verbatim 移動が原則。配線 (DI/callback) のみ書き換える。
+- コードを別ファイルへ移動したら、そのファイルを readSource している guard の
+  アンカーを新征程に再指向する。消し忘れは guard 自身が fail するので必ず気づく。
+- 「ガード以外のテストを一つも直さずに全部通る」ことが挙動保存の証明。
+- internals テストは private メンバへの bracket/cast アクセス (`rec['loadMetrics']` 等)
+  を使う。クラス分割時はファサードに delegate/accessor を残して互換を保つ
+  (前例: enhanced-error-recovery.ts 分割、PR #10)。
+
+## 行数バジェット
+
+- `audit:code-size` が impl の総行数/ファイル数/1ファイル上限を憲法制限で ratchet する。
+- 上限に近づいたら新規追加より削除 (デッドコード掃除) で余裕を作る。
+- 1 ファイル上限 2,000 行。god-file を作ったら分割して CI が落ちる前に潰す。
