@@ -4238,6 +4238,45 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A138: Phase 140 — エビデンス出典 runner・収束駆動タスク生成・steering 実在性検証（2026-08-19 第219回検証）
+
+**分析日時**: 2026-08-19
+**カテゴリ**: kairo-tasks タスクセット同期（AI Hub `make run` steering feedback 対応）+ 実装 1 件 co-locate
+**背景**: AI Hub steering は前回 iteration（並列化・strict・規模削減・spec 同期）を VALUABLE と判定し、(1) 性能主張に実行出力エビデンスを残すこと、(2) 共有 harness の registry からの data-driven 生成拡張、(3) phase 要件書への残り fold 数明記と family 完結検知による per-phase 生成停止、(4) value-neutral fold を独立 phase にしない価値密度、を推奨した。
+
+**判断**:
+
+1. **steering 固有名の実在性検証（cross-repo 汚染の再発）**: feedback が指す `tests/helpers/foldGuardOracles.ts`・`no-inline-*-display.test.ts`×4・`ActionPlanPanel`・`fold-display-census` を本リポジトリで grep/find — **全て 0 hits**（`grep -rln foldGuardOracles tests/ src/` 0・`find . -name 'no-inline-*-display.test.ts'` 0・`grep -rln ActionPlanPanel src/ tests/` 0・`grep -rln fold-display-census specs/ docs/` 0）。phantom-feedback trap（MEMORY.md）の典型。META-intent のみ採用し、実体に映射した:
+   - **(1) エビデンス出典** → 未達。REQ-326 + scripts/collect-evidence.ts として本ラウンドで実装（下記 2）。
+   - **(2) registry からの data-driven 生成** → 本リポジトリでは**達成済み**。tests/guards/frozen-literal-registry.test.ts のヘッダコメントが既に「per-family guard テストの手書き ~120 行 sweep は registry entry に折りたたまれ、次の family はテストファイルではなく entry 1件で済む」を宣言・round 4〜7 の抽出済み。新規実装不要・REQ-326 NOTE に出典記録のみ。
+   - **(3) 残り数明記+完結検知+停止** → census 側は**達成済み**（tests/guards/fold-census-families.ts FOLD_SERIES_STATUS converged ratchet・engine==data pin==doc census-pin の 3 者一致・specs/guard-harness-fold-census/requirements.md:203-207 の C1〜C5 残り計測表）。ただし**タスク生成側（overview）に停止条件が無かった**ため、REQ-327 + overview Phase 140「series CLOSED」注記として新設。per-fold phase の生成を census 出典で停止する。
+   - **(4) 価値密度** → REQ-327 に統合（coincidence twin は独立 phase 禁止・発散兄弟と同 phase）。
+
+2. **エビデンス runner 実装（REQ-326・TC-323・TASK-0223）**: `scripts/collect-evidence.ts` + `npm run evidence -- [--label=x] <command>`。任意コマンドを wrap し `[EVIDENCE] started=<local-ISO> ended=<local-ISO> exit=<int> elapsed_s=<小数2桁> [label=] cmd=<shell引用> commit= branch=` の 1 行を発行・子 exit を伝搬（spawn 失敗は exit=127 で黙示成功しない）。tests/scripts/collect-evidence.test.ts（14 tests）で行形状・失敗経路・計測範囲を pin。**mutation RED 検証**: prefix `[EVIDENCE] `→`[EVIDENCE -] ` 改変で 5 tests RED・`SPAWN_FAILURE_EXIT 127→0` 改変で 1 test RED・復元で 14/14 GREEN。実装中に発見した副次 fix: `String.replaceAll` は tsconfig.test.json target（ES2020 lib）に無く strict チェックで 1 error → 正規表現 `replace` に変更（本ファイルが strict 計測対象に新規参入したことで即検出された=REQ-324 チェックの実効性の実証例）。
+
+3. **「650 → 0」主張の検証（REQ-324・TASK-0224 化）**: commit 688acbed「tsconfig.test.json strict errors 650 → 0」を計測コマンドごと再検証 — **再現しない**:
+   - 688acbed ワークツリー実測: `tsc -p tsconfig.test.json --noEmit --strict --noImplicitAny` = **206 error**・`--strict` 単体 = **28 error**
+   - HEAD（97fa0c24）実測: 同コマンド = **188 error / 58 ファイル**（上位: nullable-access-null-guard 18・monitoring-health-degraded 14・test_pipeline_smoke 12・ProgressiveForceStrategy 8）
+   - 現行 config（strict:false）では 0 error — つまり「650→0」は厳格 flag では成立しておらず、計測コマンドが commit に記録されていないため再現不能。HEAD が 188 で 688acbed の 206 からは改善しており、回帰ではなく主張の計測条件が未記録だったことが本体。REQ-324 は src 側（afcf099c・tsconfig.app.json strict: true・124→0・flag 反転まで完了）を要件化し、test 側 188→0→flag 反転を TASK-0224（8h）として未達タスク化。
+
+4. **タスクセット同期**: Phase 140 として REQ-323〜327 を追加（311 REQ・🔵311/🟡7/🔴0）・TC-323-01〜03 を acceptance-criteria に追加（Phase 111+ サマリー表 rows=40・sum=102・🔵92/🟡10 = 90.2%/9.8% を awk 列合計で機械検証）・TASK-0223〜0225 を作成（0223/0225 は本ラウンドで完了・0224 は baseline 実測付き未着手）・overview に Phase 140 セクション + series CLOSED 停止条件 + 次回開始番号 TASK-0226。**REQ-313〜322 は TC 帯として予約**（TC-313〜321 実在・TC-322 は未 merge PR #9 の提案中と衝突回避・REQ/TC 二重意味防止）。
+
+**根拠（[EVIDENCE] 行 — REQ-326 の適用例そのもの）**:
+- `[EVIDENCE] started=2026-08-19T13:52:04+09:00 ended=2026-08-19T13:52:33+09:00 exit=0 elapsed_s=29.35 cmd=bash -c 'node_modules/.bin/tsc -p tsconfig.test.json --noEmit --strict --noImplicitAny 2>&1 | grep -c '\''error TS'\''' commit=97fa0c24 branch=ai/instruction-speech-to-visuals-20260819-043842-960638` → 出力 188
+- `[EVIDENCE] started=2026-08-19T13:53:57+09:00 ended=2026-08-19T13:56:25+09:00 exit=0 elapsed_s=148.71 cmd=npm test -- --testPathPatterns=tests/guards/ …` → 72 suites / 3122 tests 全 GREEN（本ラウンド変更を含む検証）
+- `[EVIDENCE] started=2026-08-19T13:52:35+09:00 ended=2026-08-19T13:52:37+09:00 exit=0 elapsed_s=2.80 cmd=npm test -- --testPathPatterns=tests/scripts/collect-evidence …` → 14/14 passed
+- `[EVIDENCE] started=2026-08-19T13:48:13+09:00 ended=2026-08-19T13:48:15+09:00 exit=0 elapsed_s=1.58 cmd=npm test -- --testPathPatterns=fold-census …` → 1 suite 9 tests passed（census ratchet 現役確認）
+- 688acbed 計測: /tmp/stv-688a worktree（git worktree add 688acbed・node_modules symlink）で同コマンド 206/28 error
+- phantom 検証: 上記 1 の grep/find 4 種とも 0 hits
+
+**信頼性への影響**:
+- REQ-323〜327 追加（🔵5）— 🔵 306→311 / 🟡 7・🔴 0 変動なし。TC-323 ×3 追加。
+- 数量主張の出典引用が 正典ツール + TC で強制可能になった（REQ-326）。本エントリの根拠節が最初の適用例。
+- per-fold phase の無限生成が census 出典で停止可能になった（REQ-327・overview series CLOSED）。
+- 残課題: (a) TASK-0224（test 側 strict 188→0→反転）は未着手・baseline は本エントリに出典済み。(b) Phase 132 の TASK-0218〜0222 は未着手のまま（次候補）。(c) requirements.md と acceptance-criteria.md の REQ 番号帯分裂（A137 残課題を引継ぎ・Phase 140 の番号帯予約で新規分裂は防止済み）。(d) 両文書に PR #12（12ファイル削除）由来の dead citation が残存（src/ パス参照の実在不在を機械監査: requirements.md 20 件・acceptance-criteria.md 15 件 — HEAD と同一・本ラウンドの追加分 0。kairo-requirements 次回の同期対象）。
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)

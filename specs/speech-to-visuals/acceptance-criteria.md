@@ -5765,6 +5765,15 @@
 - [x] **TC-312-01**: tests/guards 配下のガードテストが @stv/core への import 形状を正として pin している（例: tests/guards/clamp01-single-source.test.ts は `from '@stv/core/utils/guards'` を検証対象ソースに要求）。旧 src/utils パスへの回帰はガードが RED 化する構造 🔵
   - **再検証コマンド**: `find tests/guards -name '*.test.ts' | wc -l`（→ 72）/ `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns tests/guards/clamp01-single-source`
 
+#### REQ-326: エビデンス出典（Phase 140）
+
+- [x] **TC-323-01**: `formatEvidenceLine` が出力する `[EVIDENCE]` 行が固定形状（`started=<local-ISO>` / `ended=<local-ISO>` / `exit=<int>` / `elapsed_s=<小数2桁>` / 任意 `label=` / `cmd=<shell引用>` / `commit=` / `branch=`）に一致し、`EVIDENCE_LINE_RE` を満たすこと。ラベル無しの場合 `label=` スロットを出力しないこと。コマンド内の空白・引用符は shell-copyable に引用されること 🔵
+- [x] **TC-323-02**: 失敗経路が黙示成功しないこと — spawn 失敗（存在しないコマンド）は `exit=127` を報告、未知オプション・コマンド未指定は usage エラー（exit 2）となり、中途パースされたコマンドを実行しないこと。子プロセスの非零 exit は行と process exit の両方に伝搬すること 🔵
+- [x] **TC-323-03**: `elapsed_s` が子プロセス実行のみを囲む計測であること（120ms sleep を 0.12s 以上として報告）・タイムスタンプが numeric offset 付き local-ISO で round-trip 可能なこと 🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules' npx jest --config jest.config.cjs --testPathPatterns tests/scripts/collect-evidence`（14 tests）
+  - **mutation RED 検証済み**: `[EVIDENCE]` prefix 改変で 5 tests RED・`SPAWN_FAILURE_EXIT=127→0` 改変で 1 test RED（interview-record A138）
+
+
 ### Phase 111+ 受け入れ基準サマリー
 
 | 要件 | テストケース数 | 信頼性 |
@@ -5808,7 +5817,8 @@
 | REQ-310: @stv/core 単一ソース・dead citation 監査 | 2 | 🔵 |
 | REQ-311: @stv/core タグ pin 固定 | 1 | 🔵 |
 | REQ-312: tests/guards 分割境界ピン | 1 | 🔵 |
-| **合計** | **99** | **🔵 89.9% / 🟡 10.1%** |
+| REQ-326: エビデンス出典 [EVIDENCE] 行 pin | 3 | 🔵 |
+| **合計** | **102** | **🔵 90.2% / 🟡 9.8%** |
 
 
 <!-- spine:references:begin -->
