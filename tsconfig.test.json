@@ -12,10 +12,7 @@
       "@tests/*": ["./tests/*"],
       "#supabase/*": ["./supabase/*"]
     },
-    "baseUrl": ".",
-    "noImplicitAny": false,
-    "strict": false,
-    "strictNullChecks": false
+    "baseUrl": "."
   },
   "include": ["src", "tests", "supabase"]
 }
