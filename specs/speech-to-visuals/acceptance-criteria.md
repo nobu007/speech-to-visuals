@@ -5824,6 +5824,14 @@
   - **mutation RED 検証済み（MW-010）**: real-time-performance-monitor.ts:209 `let history = this.metrics.get(metric);` → `let history = this.metrics.get(metric)!;` で monitoring exact pin と src ratchet（Expected <= 30 / Received 31）の 2 tests RED（revert 後 8 tests GREEN）
   - **source-anchor guard 更新**: tests/guards/bytes-to-mb-canon.test.ts の rss 肯定 pin を `bytesToMb(memoryUsage.rss ?? Number.NaN)` 要求形に更新（旧 `rss!?` 許容形 pin は Phase 145 置換で陳腐化 — source 変更と同コミット・site-780 と同一手順）
 
+#### REQ-335: non-null assertion 撲滅・analysis 編（Phase 146）
+
+- [x] **TC-331-01**: src/analysis プロダクションコード（`__tests__` 除く）に postfix non-null assertion が 0 件であることが exact pin で検証されること。src 本体（`__tests__`/`__mocks__` 除外）ratchet が 30 から **24** に縮小されること（2026-08-20 実測・30 − 6） 🔵
+- [x] **TC-331-02**: 挙動保存置換であること — 置換対象 2 ファイルを含む analysis+guards suite が GREEN（135 suites/7057 tests）・`tsc -p tsconfig.app.json --noEmit` exit=0・fail-loud captured guard は `execute()` の `isEnabled()` = `Boolean(this.genAI)` ゲートで到達不能な undefined 分岐を同ゲートのメッセージで throw すること（mock 到達可能性 grep 済み・テストは `new LLMService('test-key')` 生成のみ到達）・`else if (currentSegment)` narrowing は `!currentSegment` が shouldStartNew を true する以上 else 到達時点で非 null 自明・closure 内 `let` narrowing 失効は const capture で構造解・`has()/get()!` → captured `get()` compare は buildTopicVector（値は常に number・undefined 格納なし）で厳密等価・`pop()!` → unreachable-undefined `break` は while guard `result.length > 0` で到達不能を明示すること 🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules' npx jest --config jest.config.cjs --testPathPatterns tests/guards/non-null-assertion-census`（9 tests）
+  - **mutation RED 検証済み（MW-011）**: scene-segmenter.ts:939 `const prev = result.pop();` → `const prev = result.pop()!;` で analysis exact pin と src ratchet（Expected <= 24 / Received 25）の 2 tests RED（revert 後 9 tests GREEN）
+  - **source-anchor guard 影響**: なし — scene-segmenter/llm-service の既存 anchor（sanitizeFinite ×3 系・SENTENCE_BOUNDARY_REGEX・retry defaults）は全て編集箇所と無関係（事前 grep で確認・陳腐化 pin なし）
+
 
 ### Phase 111+ 受け入れ基準サマリー
 
@@ -5876,7 +5884,8 @@
 | REQ-332: non-null assertion 撲滅・transcription 編 | 2 | 🔵 |
 | REQ-333: non-null assertion 撲滅・export 編 | 2 | 🔵 |
 | REQ-334: non-null assertion 撲滅・monitoring 編 | 2 | 🔵 |
-| **合計** | **114** | **🔵 91.2% / 🟡 8.8%** |
+| REQ-335: non-null assertion 撲滅・analysis 編 | 2 | 🔵 |
+| **合計** | **116** | **🔵 91.4% / 🟡 8.6%** |
 
 
 <!-- spine:references:begin -->

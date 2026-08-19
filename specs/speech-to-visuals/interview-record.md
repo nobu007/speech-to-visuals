@@ -4432,6 +4432,30 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A146: Phase 146 — non-null assertion 撲滅・analysis 編（2026-08-20 第227回検証）
+
+- **判断**（clean-tree instruction run における作業選択 → 対象選択 → 置換パターン判定）:
+
+1. **本 run の instruction は auto-commit-remaining であったが working tree は完全 clean**（modified 0・untracked 非 ignore 0）— commit 対象なし。hub の MANDATORY Commit Protocol（substantive commit 必須・value gate は commit range 判定）と「repo 実態を調査し real product behavior を進める作業を選択」要件により、**task registry が明示する次の DIRECT 作業 TASK-0233 / Phase 146 を選択**（前5 run と同一運用・A145 判断1 と同根拠）。
+2. **対象選択**: Phase 145 引継ぎの残 src `!` 分布を再実測（analysis 6・framework 5・api 4・test 4・components 3・quality 3・remotion 2・main.tsx 1・pages 1・workers 1 = 30）し、**最大バケット src/analysis（6 件・llm-service 1 行・scene-segmenter 5 行）を Phase 146 に選択**。
+3. **置換は 4 パターン**（TASK-0233）: (a) **fail-loud captured guard**（llm-service `executeRequest` の `this.genAI!`）— `execute()` は `isEnabled()` = `Boolean(this.genAI)` ゲートを通ってからのみ当該 private メソッドを呼ぶため undefined 分岐は公開 API 経由で到達不能。**A144 教訓の mock 到達可能性 grep を先に実施**（`executeRequest` 直接呼び出し・`isEnabled` spy ともに無く、実 LLMService を使うテストは全て `new LLMService('test-api-key')` + `@google/generative-ai` mock）→ 到達不能を確認の上、旧 `!` の bare TypeError の代わりにゲート自身のメッセージで throw。(b) **narrowing `else if` + const capture**（scene-segmenter `currentSegment!` ×3）— `shouldStartNew = !currentSegment || …` の else 到達時点で非 null が自明（null は `!currentSegment` で shouldStartNew を true にする）だが boolean 中介変数が TS narrowing を隠すため `else if (currentSegment)` で明示化。**初回 tsc で forEach closure 内 `let` narrowing 失効（TS18047）が発覚** → `const segment = currentSegment` 捕捉で構造解（Phase 142 const capture と同型・closure 内は別途捕捉が要る点が Phase 142 の教訓の再実証）。(c) **captured `get()` compare**（`cosineSimilarity` の `has()/get()!`）— 呼び出し元は両方 `buildTopicVector` 出力で値は常に number（undefined を格納しない Map）なので `has(key)` ⟺ `get(key) !== undefined` が厳密に成立・完全等価。(d) **`pop()` + unreachable-undefined `break`**（`mergeShortSegments`）— while 条件 `result.length > 0` が pop() の非 undefined を保証。assertion を loop contract の明示形に置換（Phase 141 `queue.shift()`+break と同型）。
+4. **source-anchor 陳腐化 pin はなし**: scene-segmenter/llm-service の既存 anchor（sanitizeFinite 3 系・SENTENCE_BOUNDARY_REGEX・analysis-retry-defaults）は全て編集箇所と無関係を事前 grep で確認（Phase 144/145 と異なり今回は更新不要）。
+5. **挙動保存の実証**: analysis+guards pattern 135 suites / 7057 tests GREEN・`tsc -p tsconfig.app.json --noEmit` exit=0・eslint（変更 4 ファイル）0・census 実測 src/analysis=0・src=24。
+6. **MW-011 を台帳に追加**（REQ-330 の運用6回目）: mutant `const prev = result.pop()!;`（scene-segmenter.ts:939）で census guard 2 tests RED（analysis exact pin + src ratchet `Expected: <= 24 / Received: 25`）→ revert 後 9 tests GREEN。ledger 監査 pin ≥10 → ≥11（台帳 .md と guard pin は同一コミット）。
+
+- **根拠**: TASK-0233・census/ledger guard 実行出力・MW-011 再実行プロトコル（台帳本文）。
+
+- **最終フルスイート**（Phase 146 全変更後・working tree HEAD=bd87c1f3 時点の実測）:
+  `[EVIDENCE] started=2026-08-20T05:39:13+09:00 ended=2026-08-20T05:42:48+09:00 exit=0 elapsed_s=215.46 cmd=npm test commit=bd87c1f3 branch=ai/instruction-speech-to-visuals-instruction-20260819-202431-486421` → **742 suites / 742 passed・23,143 passed / 0 failed / 17 skipped**（直前 Phase 145 完了時 23,140 から +3 = census guard analysis exact pin +1・ledger 監査 it.each 2 block × MW-011 追加分 +2）。※最初の full 実行（elapsed_s=352.34・高負荷）は `src/test/layout/OverlapResolver.test.ts` の `duration < 500ms` タイミング要件だけが 1 fail — 単体再実行で GREEN（15 tests・1.8s）・src/analysis 変更と無関係な機械負荷 flake として切り分け済み。
+
+- **信頼性への影響**:
+
+- REQ-335 追加（🔵・実装+guard+MW-011 に出典）。🔵 318 → 319 件。
+- strict mode の実検証範囲が src/visualization + src/pipeline + src/transcription + src/export + src/monitoring + src/analysis に拡大（計 136 件の `!` を 0 化・CI が常時強制）。残 src 24 件・tests 960 件は ratchet で増加防止のみ。
+- 残課題（引継ぎ）: src/framework 5・src/api 4 が次候補（同一パターンセット・fail-loud は mock 到達可能性を先に確認）。Phase 132 TASK-0218〜0222 未着手・requirements.md の PR #12 由来 dead citation 残存（A137 引継ぎ）。
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)

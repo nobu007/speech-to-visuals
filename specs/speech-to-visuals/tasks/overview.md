@@ -107,8 +107,8 @@
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0231（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231）
-**次回開始番号**: TASK-0232
+**使用済みタスク番号**: TASK-0001 ~ TASK-0233（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233）
+**次回開始番号**: TASK-0234
 
 > **REQ 番号帯（Phase 140 決定）**: REQ-313〜322 は acceptance-criteria の TC 帯（TC-313〜321 実在・TC-322 は未 merge PR #9 提案中）との番号衝突回避のため予約（未使用）。機能要件は REQ-323 から、TC は TC-323 から採番する（REQ-326/TC-323 が適用例）。
 
@@ -1910,9 +1910,32 @@ source-anchor pin 更新: tests/guards/bytes-to-mb-canon.test.ts（rss 肯定 pi
 - 全 1 タスク 🔵（steering META-intent 継続 + 実測（monitoring+guards 45 suites/1068 tests GREEN・tsc 0）に出典）
 - 推定工数: 4 時間
 
+## Phase 146: non-null assertion 撲滅・analysis 編
+
+**ステータス**: ✅完了（2026-08-20・TASK-0233 完了）
+
+**背景**: REQ-334（Phase 145）の直接継続。Phase 145 引継ぎの残 src `!` 分布（2026-08-20 実測: analysis 6・framework 5・api 4・test 4・components 3・quality 3・remotion 2・main.tsx 1・pages 1・workers 1 = 30）の最大バケット src/analysis（6 件・llm-service 1 行・scene-segmenter 5 行）を対象に選択。LLM クライアントの optional 初期化（`genAI?`）とセグメント集約ループという内部境界から `!` を排除し strict mode の実検証範囲を拡大。
+
+### タスク一覧
+
+- [x] [TASK-0233: src/analysis non-null assertion 撲滅 + census ratchet 縮小](TASK-0233.md) - 4h (DIRECT) 🔵 ✅2026-08-20（6→0・src ratchet 30→24・MW-011）
+
+### 依存関係
+
+```
+TASK-0233 は REQ-328 の census guard（TASK-0226）と MW 台帳（TASK-0228）を再利用
+source-anchor 陳腐化 pin なし（scene-segmenter/llm-service の既存 anchor は編集箇所と無関係）
+次候補: src/framework（5）→ src/api（4）— 同一パターンセットで残 24 を段階的に 0 へ
+```
+
+### 信頼性レベルサマリー（Phase 146 追加分）
+
+- 全 1 タスク 🔵（steering META-intent 継続 + 実測（analysis+guards 135 suites/7057 tests GREEN・tsc 0）に出典）
+- 推定工数: 4 時間
+
 ### 次フェーズ開始番号
 
-**次回開始番号**: TASK-0233
+**次回開始番号**: TASK-0234
 
 ## Spine: external references
 
