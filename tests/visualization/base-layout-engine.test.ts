@@ -223,7 +223,7 @@ describe('BaseLayoutEngine', () => {
         { id: 'a', label: 'A', x: 1900, y: 500, w: 120, h: 60 },
       ];
       engine.testConstrainAllNodesToBounds(nodes);
-      expect(nodes[0].x + nodes[0].w / 2).toBeLessThanOrEqual(1920);
+      expect(nodes[0].x + nodes[0].w! / 2).toBeLessThanOrEqual(1920);
     });
   });
 

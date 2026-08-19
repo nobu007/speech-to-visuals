@@ -51,7 +51,7 @@ describe('FlowchartStrategy (LayoutStrategy)', () => {
     const startNode = result.nodes.find((n) => n.id === 'start')!;
     const endNode = result.nodes.find((n) => n.id === 'end')!;
 
-    expect(startNode.y + startNode.height / 2).toBeLessThan(endNode.y + endNode.height / 2);
+    expect(startNode.y + startNode.height! / 2).toBeLessThan(endNode.y + endNode.height! / 2);
   });
 
   it('should generate edge points for connected nodes', () => {

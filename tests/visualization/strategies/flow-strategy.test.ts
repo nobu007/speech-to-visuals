@@ -84,9 +84,9 @@ describe('FlowStrategy', () => {
 
       // In LR layout, node A should be to the left of B, which should be to the left of C
       // Using center coordinates (x + width/2)
-      const centerA = nodeA.x + nodeA.width / 2;
-      const centerB = nodeB.x + nodeB.width / 2;
-      const centerC = nodeC.x + nodeC.width / 2;
+      const centerA = nodeA.x + nodeA.width! / 2;
+      const centerB = nodeB.x + nodeB.width! / 2;
+      const centerC = nodeC.x + nodeC.width! / 2;
 
       expect(centerA).toBeLessThan(centerB);
       expect(centerB).toBeLessThan(centerC);
@@ -129,9 +129,9 @@ describe('FlowStrategy', () => {
       const processNode = result.nodes.find((n) => n.id === 'process')!;
       const endNode = result.nodes.find((n) => n.id === 'end')!;
 
-      const startCenter = startNode.x + startNode.width / 2;
-      const processCenter = processNode.x + processNode.width / 2;
-      const endCenter = endNode.x + endNode.width / 2;
+      const startCenter = startNode.x + startNode.width! / 2;
+      const processCenter = processNode.x + processNode.width! / 2;
+      const endCenter = endNode.x + endNode.width! / 2;
 
       // Start node should be leftmost
       expect(startCenter).toBeLessThan(processCenter);
@@ -155,9 +155,9 @@ describe('FlowStrategy', () => {
       const s2 = result.nodes.find((n) => n.id === 's2')!;
       const merge = result.nodes.find((n) => n.id === 'merge')!;
 
-      const s1Center = s1.x + s1.width / 2;
-      const s2Center = s2.x + s2.width / 2;
-      const mergeCenter = merge.x + merge.width / 2;
+      const s1Center = s1.x + s1.width! / 2;
+      const s2Center = s2.x + s2.width! / 2;
+      const mergeCenter = merge.x + merge.width! / 2;
 
       expect(s1Center).toBeLessThan(mergeCenter);
       expect(s2Center).toBeLessThan(mergeCenter);

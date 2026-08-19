@@ -83,9 +83,9 @@ describe('TreeStrategy', () => {
       const child2 = result.nodes.find((n) => n.id === 'child2')!;
 
       // Root should be above children (using center coordinates)
-      const rootCenterY = root.y + root.height / 2;
-      const child1CenterY = child1.y + child1.height / 2;
-      const child2CenterY = child2.y + child2.height / 2;
+      const rootCenterY = root.y + root.height! / 2;
+      const child1CenterY = child1.y + child1.height! / 2;
+      const child2CenterY = child2.y + child2.height! / 2;
 
       expect(rootCenterY).toBeLessThan(child1CenterY);
       expect(rootCenterY).toBeLessThan(child2CenterY);
@@ -110,8 +110,8 @@ describe('TreeStrategy', () => {
       const right = result.nodes.find((n) => n.id === 'right')!;
 
       // Siblings should be at the same Y level (using center coordinates)
-      const leftCenterY = left.y + left.height / 2;
-      const rightCenterY = right.y + right.height / 2;
+      const leftCenterY = left.y + left.height! / 2;
+      const rightCenterY = right.y + right.height! / 2;
 
       expect(leftCenterY).toBeCloseTo(rightCenterY, 0);
     });
@@ -135,9 +135,9 @@ describe('TreeStrategy', () => {
       const child = result.nodes.find((n) => n.id === 'child')!;
       const grandchild = result.nodes.find((n) => n.id === 'grandchild')!;
 
-      const rootCenterY = root.y + root.height / 2;
-      const childCenterY = child.y + child.height / 2;
-      const grandchildCenterY = grandchild.y + grandchild.height / 2;
+      const rootCenterY = root.y + root.height! / 2;
+      const childCenterY = child.y + child.height! / 2;
+      const grandchildCenterY = grandchild.y + grandchild.height! / 2;
 
       expect(rootCenterY).toBeLessThan(childCenterY);
       expect(childCenterY).toBeLessThan(grandchildCenterY);

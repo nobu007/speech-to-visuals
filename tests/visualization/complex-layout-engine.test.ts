@@ -358,8 +358,8 @@ describe('ComplexLayoutEngine (TASK-0063)', () => {
         for (let j = i + 1; j < result.layout.nodes.length; j++) {
           const ni = result.layout.nodes[i];
           const nj = result.layout.nodes[j];
-          const dx = (ni.x + ni.w / 2) - (nj.x + nj.w / 2);
-          const dy = (ni.y + ni.h / 2) - (nj.y + nj.h / 2);
+          const dx = (ni.x + ni.w! / 2) - (nj.x + nj.w! / 2);
+          const dy = (ni.y + ni.h! / 2) - (nj.y + nj.h! / 2);
           const dist = Math.sqrt(dx * dx + dy * dy);
           expect(dist).toBeGreaterThan(0);
         }
@@ -396,8 +396,8 @@ describe('ComplexLayoutEngine (TASK-0063)', () => {
       for (let i = 1; i <= 6; i++) {
         const ni = result.layout.nodes.find(n => n.id === `n${i}`)!;
         connectedTotal += Math.sqrt(
-          Math.pow(n0.x + n0.w / 2 - (ni.x + ni.w / 2), 2) +
-          Math.pow(n0.y + n0.h / 2 - (ni.y + ni.h / 2), 2)
+          Math.pow(n0.x + n0.w! / 2 - (ni.x + ni.w! / 2), 2) +
+          Math.pow(n0.y + n0.h! / 2 - (ni.y + ni.h! / 2), 2)
         );
       }
       const avgConnectedDist = connectedTotal / 6;
@@ -409,8 +409,8 @@ describe('ComplexLayoutEngine (TASK-0063)', () => {
         const na = result.layout.nodes.find(n => n.id === a)!;
         const nb = result.layout.nodes.find(n => n.id === b)!;
         nonConnectedTotal += Math.sqrt(
-          Math.pow(na.x + na.w / 2 - (nb.x + nb.w / 2), 2) +
-          Math.pow(na.y + na.h / 2 - (nb.y + nb.h / 2), 2)
+          Math.pow(na.x + na.w! / 2 - (nb.x + nb.w! / 2), 2) +
+          Math.pow(na.y + na.h! / 2 - (nb.y + nb.h! / 2), 2)
         );
       }
       const avgNonConnectedDist = nonConnectedTotal / nonConnectedPairs.length;
@@ -440,8 +440,8 @@ describe('ComplexLayoutEngine (TASK-0063)', () => {
         // Nodes should be within canvas (with tolerance for node offset in layout conversion)
         expect(node.x).toBeGreaterThanOrEqual(-100);
         expect(node.y).toBeGreaterThanOrEqual(-50);
-        expect(node.x + node.w).toBeLessThanOrEqual(1000);
-        expect(node.y + node.h).toBeLessThanOrEqual(750);
+        expect(node.x + node.w!).toBeLessThanOrEqual(1000);
+        expect(node.y + node.h!).toBeLessThanOrEqual(750);
       }
     });
 

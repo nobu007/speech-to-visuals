@@ -134,10 +134,10 @@ describe('CycleLayoutStrategy', () => {
       const centerY = 1080 / 2;
 
       // Two nodes should be roughly 180 degrees apart
-      const n0Cx = result.nodes[0].x + result.nodes[0].width / 2;
-      const n0Cy = result.nodes[0].y + result.nodes[0].height / 2;
-      const n1Cx = result.nodes[1].x + result.nodes[1].width / 2;
-      const n1Cy = result.nodes[1].y + result.nodes[1].height / 2;
+      const n0Cx = result.nodes[0].x + result.nodes[0].width! / 2;
+      const n0Cy = result.nodes[0].y + result.nodes[0].height! / 2;
+      const n1Cx = result.nodes[1].x + result.nodes[1].width! / 2;
+      const n1Cy = result.nodes[1].y + result.nodes[1].height! / 2;
 
       const dx0 = n0Cx - centerX;
       const dy0 = n0Cy - centerY;
@@ -276,11 +276,11 @@ describe('CycleLayoutStrategy', () => {
       const edge = result.edges[0];
 
       // Source point should be at center of n0
-      expect(edge.points[0].x).toBeCloseTo(n0.x + n0.width / 2, 1);
-      expect(edge.points[0].y).toBeCloseTo(n0.y + n0.height / 2, 1);
+      expect(edge.points[0].x).toBeCloseTo(n0.x + n0.width! / 2, 1);
+      expect(edge.points[0].y).toBeCloseTo(n0.y + n0.height! / 2, 1);
       // Target point should be at center of n1
-      expect(edge.points[1].x).toBeCloseTo(n1.x + n1.width / 2, 1);
-      expect(edge.points[1].y).toBeCloseTo(n1.y + n1.height / 2, 1);
+      expect(edge.points[1].x).toBeCloseTo(n1.x + n1.width! / 2, 1);
+      expect(edge.points[1].y).toBeCloseTo(n1.y + n1.height! / 2, 1);
     });
   });
 
@@ -462,8 +462,8 @@ describe('CycleLayoutStrategy', () => {
 
       // After force-directed, nodes should still be roughly around the center area
       for (const node of result.nodes) {
-        const nodeCx = node.x + node.width / 2;
-        const nodeCy = node.y + node.height / 2;
+        const nodeCx = node.x + node.width! / 2;
+        const nodeCy = node.y + node.height! / 2;
         const distFromCenter = Math.sqrt(
           Math.pow(nodeCx - centerX, 2) + Math.pow(nodeCy - centerY, 2)
         );
@@ -523,8 +523,8 @@ describe('CycleLayoutStrategy', () => {
       const n1 = result.nodes[1];
 
       // No overlap expected
-      const overlapX = n0.x < n1.x + n1.width && n0.x + n0.width > n1.x;
-      const overlapY = n0.y < n1.y + n1.height && n0.y + n0.height > n1.y;
+      const overlapX = n0.x < n1.x + n1.width! && n0.x + n0.width! > n1.x;
+      const overlapY = n0.y < n1.y + n1.height! && n0.y + n0.height! > n1.y;
       expect(overlapX && overlapY).toBe(false);
     });
   });
@@ -568,8 +568,8 @@ describe('CycleLayoutStrategy', () => {
 
       // Check that nodes are spread around the center
       const distances = result.nodes.map(node => {
-        const cx = node.x + node.width / 2;
-        const cy = node.y + node.height / 2;
+        const cx = node.x + node.width! / 2;
+        const cy = node.y + node.height! / 2;
         return Math.sqrt(Math.pow(cx - centerX, 2) + Math.pow(cy - centerY, 2));
       });
 

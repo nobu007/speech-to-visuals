@@ -126,7 +126,7 @@ describe('importance-scaler', () => {
 
 describe('MindMapStrategy importance-aware layout', () => {
   // Use dynamic import to get the module after modifications
-  let MindMapStrategy: typeof import('@/visualization/strategies/mindmap-strategy').MindMapStrategy | undefined;
+  let MindMapStrategy!: typeof import('@/visualization/strategies/mindmap-strategy').MindMapStrategy;
   beforeAll(async () => {
     const mod = await import('@/visualization/strategies/mindmap-strategy');
     MindMapStrategy = mod.MindMapStrategy;
@@ -186,7 +186,7 @@ describe('MindMapStrategy importance-aware layout', () => {
 });
 
 describe('NetworkStrategy importance-aware layout', () => {
-  let NetworkStrategy: typeof import('@/visualization/strategies/network-strategy').NetworkStrategy | undefined;
+  let NetworkStrategy!: typeof import('@/visualization/strategies/network-strategy').NetworkStrategy;
   beforeAll(async () => {
     const mod = await import('@/visualization/strategies/network-strategy');
     NetworkStrategy = mod.NetworkStrategy;
@@ -225,12 +225,12 @@ describe('NetworkStrategy importance-aware layout', () => {
     const cy = 1080 / 2;
 
     const distA = Math.sqrt(
-      (positioned[0].x + positioned[0].width / 2 - cx) ** 2 +
-      (positioned[0].y + positioned[0].height / 2 - cy) ** 2,
+      (positioned[0].x + positioned[0].width! / 2 - cx) ** 2 +
+      (positioned[0].y + positioned[0].height! / 2 - cy) ** 2,
     );
     const distB = Math.sqrt(
-      (positioned[1].x + positioned[1].width / 2 - cx) ** 2 +
-      (positioned[1].y + positioned[1].height / 2 - cy) ** 2,
+      (positioned[1].x + positioned[1].width! / 2 - cx) ** 2 +
+      (positioned[1].y + positioned[1].height! / 2 - cy) ** 2,
     );
 
     // Node 'a' (importance 1.0) should start closer to center than 'b' (0.0)

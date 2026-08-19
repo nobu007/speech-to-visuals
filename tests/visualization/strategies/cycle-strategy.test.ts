@@ -49,8 +49,8 @@ describe('CycleLayoutStrategy', () => {
 
     const angles: number[] = [];
     for (const node of result.nodes) {
-      const dx = (node.x + node.width / 2) - centerX;
-      const dy = (node.y + node.height / 2) - centerY;
+      const dx = (node.x + node.width! / 2) - centerX;
+      const dy = (node.y + node.height! / 2) - centerY;
       let angle = Math.atan2(dy, dx);
       if (angle < 0) angle += 2 * Math.PI;
       angles.push(angle);
@@ -66,8 +66,8 @@ describe('CycleLayoutStrategy', () => {
 
     // Verify nodes are approximately on circle
     for (const node of result.nodes) {
-      const dx = (node.x + node.width / 2) - centerX;
-      const dy = (node.y + node.height / 2) - centerY;
+      const dx = (node.x + node.width! / 2) - centerX;
+      const dy = (node.y + node.height! / 2) - centerY;
       const dist = Math.sqrt(dx * dx + dy * dy);
       expect(dist).toBeCloseTo(radius, -1);
     }
@@ -85,8 +85,8 @@ describe('CycleLayoutStrategy', () => {
       const expectedAngleStep = (2 * Math.PI) / count;
 
       const angles: number[] = result.nodes.map((node) => {
-        const dx = (node.x + node.width / 2) - centerX;
-        const dy = (node.y + node.height / 2) - centerY;
+        const dx = (node.x + node.width! / 2) - centerX;
+        const dy = (node.y + node.height! / 2) - centerY;
         let angle = Math.atan2(dy, dx);
         if (angle < 0) angle += 2 * Math.PI;
         return angle;
@@ -124,10 +124,10 @@ describe('CycleLayoutStrategy', () => {
     const n0 = result.nodes.find((n) => n.id === 'n0')!;
     const n1 = result.nodes.find((n) => n.id === 'n1')!;
     const firstEdge = result.edges.find((e) => e.from === 'n0' && e.to === 'n1')!;
-    expect(firstEdge.points[0].x).toBeCloseTo(n0.x + n0.width / 2, 1);
-    expect(firstEdge.points[0].y).toBeCloseTo(n0.y + n0.height / 2, 1);
-    expect(firstEdge.points[1].x).toBeCloseTo(n1.x + n1.width / 2, 1);
-    expect(firstEdge.points[1].y).toBeCloseTo(n1.y + n1.height / 2, 1);
+    expect(firstEdge.points[0].x).toBeCloseTo(n0.x + n0.width! / 2, 1);
+    expect(firstEdge.points[0].y).toBeCloseTo(n0.y + n0.height! / 2, 1);
+    expect(firstEdge.points[1].x).toBeCloseTo(n1.x + n1.width! / 2, 1);
+    expect(firstEdge.points[1].y).toBeCloseTo(n1.y + n1.height! / 2, 1);
   });
 
   it('should apply force-directed fallback for overlapping large nodes', () => {
