@@ -17,7 +17,15 @@
  *     `Number()` for NaN-preserving arithmetic, `?? ''` normalization at
  *     validator boundaries; pipeline + guards + acceptance suites stayed
  *     green through the rewrite).
- *   - the rest of `src` (64) and the `tests` tree (960) are pinned as
+ *   - `src/transcription` production code is pinned at ZERO assertions
+ *     (Phase 143 replaced all 17 with `sanitizeFinite` delegation for the
+ *     `Number.isFinite(v!) ? v! : k` sums, `?? Number.NaN` for the
+ *     threshold compare (undefined must stay below the bar), a const
+ *     capture for the locally-built segment confidence, and
+ *     `!== undefined` guards mirroring the constructor's own validation
+ *     in `updateConfig`; the 25 transcription/streaming suites (603
+ *     tests) stayed green through the rewrite).
+ *   - the rest of `src` (47) and the `tests` tree (960) are pinned as
  *     UPPER BOUNDS: decreases are welcome, any new `!` fails the ratchet.
  *     New code must narrow (`if (x === undefined) …`), guard
  *     (`require…()` accessors), or use a typed helper instead.
@@ -37,6 +45,11 @@
  * `const sceneCount = scenes.length;` in src/pipeline/quality-estimators.ts
  * with `(scenes as unknown as { length: number })!.length` turns BOTH the
  * pipeline exact pin and the src ratchet (64 → 65) RED.
+ * Mutation-verified (Phase 143, MW-008): replacing
+ * `sum + sanitizeFinite(segment.confidence), 0);` in
+ * src/transcription/streaming-transcriber.ts with
+ * `sum + ((segment as { confidence: number })!.confidence), 0);` turns
+ * BOTH the transcription exact pin and the src ratchet (47 → 48) RED.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -48,12 +61,14 @@ const ASSERTION_RE = /[\w)\]]!(?!=)(?=[\s.,;:)\]}+*/?=<>&|{]|$)/;
 
 /**
  * Baselines: 2026-08-19 (Phase 141, after src/visualization → 0) and
- * 2026-08-20 (Phase 142, after src/pipeline → 0; src remainder 93 − 29 = 64).
+ * 2026-08-20 (Phase 142, after src/pipeline → 0; src remainder 93 − 29 = 64)
+ * and 2026-08-20 (Phase 143, after src/transcription → 0; 64 − 17 = 47).
  */
 const PINNED = {
   'src/visualization (production)': 0,
   'src/pipeline (production)': 0,
-  'src (production, excl. __tests__/__mocks__)': 64,
+  'src/transcription (production)': 0,
+  'src (production, excl. __tests__/__mocks__)': 47,
   'tests (excl. __mocks__)': 960,
 } as const;
 
@@ -90,6 +105,7 @@ function countAssertions(rootRel: string): { count: number; hits: string[] } {
 describe('non-null assertion census ratchet (REQ-328)', () => {
   const visualization = countAssertions('src/visualization');
   const pipeline = countAssertions('src/pipeline');
+  const transcription = countAssertions('src/transcription');
   const srcTotal = countAssertions('src');
   const testsTotal = countAssertions('tests');
 
@@ -99,6 +115,10 @@ describe('non-null assertion census ratchet (REQ-328)', () => {
 
   it('src/pipeline production code holds ZERO non-null assertions (exact)', () => {
     expect(pipeline.hits).toEqual([]);
+  });
+
+  it('src/transcription production code holds ZERO non-null assertions (exact)', () => {
+    expect(transcription.hits).toEqual([]);
   });
 
   it('src production total (excl. __tests__/__mocks__) is at or below the ratchet', () => {
@@ -111,10 +131,10 @@ describe('non-null assertion census ratchet (REQ-328)', () => {
 
   it('census is not vacuous: the src remainder is real (visualization cleanup moved the needle)', () => {
     // 170 (pre-Phase-141 src total) − 67 (visualization, Phase 141) −
-    // 29 (pipeline, Phase 142) = 64; if a future refactor drives the
-    // remainder down the ratchet pins above loosen only
-    // by editing PINNED, so this liveness check just guards against a
-    // scanner regression that would silently count nothing.
+    // 29 (pipeline, Phase 142) − 17 (transcription, Phase 143) = 47; if a
+    // future refactor drives the remainder down the ratchet pins above
+    // loosen only by editing PINNED, so this liveness check just guards
+    // against a scanner regression that would silently count nothing.
     expect(srcTotal.count).toBeGreaterThan(0);
     expect(testsTotal.count).toBeGreaterThan(0);
   });

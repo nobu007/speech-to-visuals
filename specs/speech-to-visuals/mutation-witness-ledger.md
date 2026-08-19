@@ -75,6 +75,14 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 - **command**: `npx jest --config jest.config.cjs tests/guards/non-null-assertion-census.test.ts`
 - **observed** (2026-08-20): `Tests: 2 failed, 3 passed, 5 total` — RED は pipeline exact pin（hits 3 行検出）と src ratchet（`Expected: <= 64 / Received: 65`）の 2 件。revert 後 `5 passed`
 
+## MW-008 — non-null assertion census ratchet・src/transcription pin（REQ-332・Phase 143 新設 exact pin）
+
+- **claim**: tests/guards/non-null-assertion-census.test.ts ヘッダ「replacing `sum + sanitizeFinite(segment.confidence), 0);` in src/transcription/streaming-transcriber.ts … turns BOTH the transcription exact pin and the src ratchet (47 → 48) RED」
+- **target**: `src/transcription/streaming-transcriber.ts:506`
+- **mutation**: `sum + sanitizeFinite(segment.confidence), 0);` → `sum + ((segment as { confidence: number })!.confidence), 0);`
+- **command**: `npx jest --config jest.config.cjs tests/guards/non-null-assertion-census.test.ts`
+- **observed** (2026-08-20): `Tests: 2 failed, 4 passed, 6 total` — RED は transcription exact pin（`streaming-transcriber.ts:506` の mutant 行を hits として検出）と src ratchet（`Expected: <= 47 / Received: 48`）の 2 件。revert 後 `6 passed`
+
 ---
 
 ## 恒久 mutation test（ledger 対象外・常時 CI で走るもの）
