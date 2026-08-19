@@ -11,7 +11,13 @@
  *     accessors, or captured get-or-create — every replacement is
  *     behavior-preserving and the full visualization + guards suites stayed
  *     green through the rewrite).
- *   - the rest of `src` (93) and the `tests` tree (960) are pinned as
+ *   - `src/pipeline` production code is pinned at ZERO assertions as well
+ *     (Phase 142 replaced all 29 with the same pattern set: const-captured
+ *     stage results, fail-loud accessors, get-or-create Map branches,
+ *     `Number()` for NaN-preserving arithmetic, `?? ''` normalization at
+ *     validator boundaries; pipeline + guards + acceptance suites stayed
+ *     green through the rewrite).
+ *   - the rest of `src` (64) and the `tests` tree (960) are pinned as
  *     UPPER BOUNDS: decreases are welcome, any new `!` fails the ratchet.
  *     New code must narrow (`if (x === undefined) …`), guard
  *     (`require…()` accessors), or use a typed helper instead.
@@ -27,6 +33,10 @@
  * Mutation-verified (Phase 141): injecting `const v = queue.shift()!;` into
  * src/visualization/advanced-layouts.ts turns the visualization pin RED;
  * adding one `!` line anywhere else in src/tests turns the ratchet RED.
+ * Mutation-verified (Phase 142, MW-007): replacing
+ * `const sceneCount = scenes.length;` in src/pipeline/quality-estimators.ts
+ * with `(scenes as unknown as { length: number })!.length` turns BOTH the
+ * pipeline exact pin and the src ratchet (64 → 65) RED.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -36,10 +46,14 @@ const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
 const ASSERTION_RE = /[\w)\]]!(?!=)(?=[\s.,;:)\]}+*/?=<>&|{]|$)/;
 
-/** Baseline measured 2026-08-19 (Phase 141, after src/visualization → 0). */
+/**
+ * Baselines: 2026-08-19 (Phase 141, after src/visualization → 0) and
+ * 2026-08-20 (Phase 142, after src/pipeline → 0; src remainder 93 − 29 = 64).
+ */
 const PINNED = {
   'src/visualization (production)': 0,
-  'src (production, excl. __tests__/__mocks__)': 93,
+  'src/pipeline (production)': 0,
+  'src (production, excl. __tests__/__mocks__)': 64,
   'tests (excl. __mocks__)': 960,
 } as const;
 
@@ -75,11 +89,16 @@ function countAssertions(rootRel: string): { count: number; hits: string[] } {
 
 describe('non-null assertion census ratchet (REQ-328)', () => {
   const visualization = countAssertions('src/visualization');
+  const pipeline = countAssertions('src/pipeline');
   const srcTotal = countAssertions('src');
   const testsTotal = countAssertions('tests');
 
   it('src/visualization production code holds ZERO non-null assertions (exact)', () => {
     expect(visualization.hits).toEqual([]);
+  });
+
+  it('src/pipeline production code holds ZERO non-null assertions (exact)', () => {
+    expect(pipeline.hits).toEqual([]);
   });
 
   it('src production total (excl. __tests__/__mocks__) is at or below the ratchet', () => {
@@ -91,8 +110,9 @@ describe('non-null assertion census ratchet (REQ-328)', () => {
   });
 
   it('census is not vacuous: the src remainder is real (visualization cleanup moved the needle)', () => {
-    // 170 (pre-Phase-141 src total) − 67 (visualization) = 93; if a future
-    // refactor drives the remainder down the ratchet pins above loosen only
+    // 170 (pre-Phase-141 src total) − 67 (visualization, Phase 141) −
+    // 29 (pipeline, Phase 142) = 64; if a future refactor drives the
+    // remainder down the ratchet pins above loosen only
     // by editing PINNED, so this liveness check just guards against a
     // scanner regression that would silently count nothing.
     expect(srcTotal.count).toBeGreaterThan(0);

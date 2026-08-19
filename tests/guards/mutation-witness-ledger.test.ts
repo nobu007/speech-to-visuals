@@ -22,8 +22,8 @@ import { join } from 'node:path';
 const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const LEDGER = join(REPO_ROOT, 'specs/speech-to-visuals/mutation-witness-ledger.md');
 
-/** Ledger entries shipped with Phase 141. Increases are fine; decreases fail. */
-const PINNED_MIN_ENTRIES = 6;
+/** Ledger entries shipped with Phase 141 (6) + Phase 142 (MW-007). Increases are fine; decreases fail. */
+const PINNED_MIN_ENTRIES = 7;
 const REQUIRED_CLAIMS = ['TC-205-04', 'TC-214-02', 'TC-304-04'];
 
 interface Entry {
