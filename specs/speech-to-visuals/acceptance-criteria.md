@@ -5846,6 +5846,12 @@
 - [x] **TC-333-02**: ratchet の失敗形が機能すること — (a) pin 済みディレクトリへの `!` 追加は当該 dir pin と合計 pin を RED にすること・(b) **pin に存在しない新規トップレベルディレクトリ**への `!` 追加は `tests/<dir> has no TESTS_DIR_PINS entry` の throw で fail すること（新テストディレクトリは意識的な pin 追加を強制）・(c) pin 済みディレクトリの消滅は pin 対応チェックが RED にすること（ratchet の無言の空洞化を防止）・(d) checker が空振りしていないことの liveness（tests total > 0） 🔵
   - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns tests/guards/non-null-assertion-census`（11 tests）
 
+#### REQ-338: tests ツリー non-null assertion ratchet 単調減少ラウンド 1（Phase 148）
+
+- [x] **TC-334-01**: REQ-337 の ratchet が単調減少していること — Phase 148 実施後、tests/unit ディレクトリ pin が **471 → 377**（monitoring/alert-rules.test.ts 55 node → 0・export/export-job-queue-dlq.test.ts 39 node → 0・挙動保存の fail-loud helper 置換）に・tests 合計 pin が **1096 → 1002** に縮小され、guard が縮小後の pin で GREEN であること・置換対象 2 suite（48 + 26 = 74 tests）が GREEN であること 🔵
+- [x] **TC-334-02**: 減少の強制が実証されていること — Phase 148 rewrite への `!` 1 node 再注入（`expect(rule.expr)` → `expect(rule!.expr)`・alert-rules.test.ts）が tests/unit ディレクトリ ratchet（377 → 378 超過）と tests 合計 ratchet（1002 → 1003 超過）の **2 tests RED** を生むこと（MW-014・revert 後 GREEN）。置換は verdict 保存であること — helper は不在時に欠落対象名を含む Error を throw し（旧: `TypeError: Cannot read properties of undefined` または bare `toBeDefined()` 失敗 = いずれも RED）、存在時は同一 assertion を narrow された値に対して実行する 🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'tests/guards/non-null-assertion-census|tests/unit/monitoring/alert-rules|tests/unit/export/export-job-queue-dlq'`（3 suites / 85 tests）
+
 
 ### Phase 111+ 受け入れ基準サマリー
 
@@ -5901,7 +5907,8 @@
 | REQ-335: non-null assertion 撲滅・analysis 編 | 2 | 🔵 |
 | REQ-336: non-null assertion 撲滅・src 全体 exact-0 + checker AST 化 | 2 | 🔵 |
 | REQ-337: tests ツリー non-null assertion ディレクトリ別 ratchet | 2 | 🔵 |
-| **合計** | **120** | **🔵 91.7% / 🟡 8.3%** |
+| REQ-338: tests ツリー non-null assertion ratchet 単調減少ラウンド 1 | 2 | 🔵 |
+| **合計** | **122** | **🔵 91.8% / 🟡 8.2%** |
 
 
 <!-- spine:references:begin -->

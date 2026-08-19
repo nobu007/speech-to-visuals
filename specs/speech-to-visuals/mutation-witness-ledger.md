@@ -125,6 +125,16 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 
 ---
 
+## MW-014 — tests/unit ratchet の単調減少強制（REQ-338・Phase 148・Phase 148 rewrite への `!` 再注入）
+
+- **claim**: tests/guards/non-null-assertion-census.test.ts ヘッダ「re-injecting ONE `!` into the Phase-148 rewrite — `expect(rule.expr)` back to `expect(rule!.expr)` in tests/unit/monitoring/alert-rules.test.ts — turns BOTH the tests/unit directory ratchet (377 → 378) and the tests-total ratchet (1002 → 1003) RED: the monotone decrease is enforced, not aspirational」
+- **target**: `tests/unit/monitoring/alert-rules.test.ts`（Phase 148 置換後の `expect(rule.expr).toContain('> 0.05');` 行）
+- **mutation**: `expect(rule.expr).toContain('> 0.05');` → `expect(rule!.expr).toContain('> 0.05');`（Phase 148 が fail-loud helper `requireAlertRule` で除去した checker 抑制の 1 node 再注入）
+- **command**: `npx jest --config jest.config.cjs tests/guards/non-null-assertion-census.test.ts`
+- **observed** (2026-08-20): `Tests: 2 failed, 9 passed, 11 total` — RED は tests/unit ディレクトリ ratchet（378 > 377）と tests 合計 ratchet（1003 > 1002）の 2 件。Phase 148 の減少（unit 471 → 377・総 1096 → 1002）が ratchet で強制されている実証。revert 後 `11 passed`
+
+---
+
 ## 恒久 mutation test（ledger 対象外・常時 CI で走るもの）
 
 以下は「一時 mutant → RED 確認 → revert」ではなく mutant を恒久テスト化したもので、

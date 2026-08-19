@@ -107,8 +107,8 @@
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0234（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234）
-**次回開始番号**: TASK-0235
+**使用済みタスク番号**: TASK-0001 ~ TASK-0235（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235）
+**次回開始番号**: TASK-0236
 
 > **REQ 番号帯（Phase 140 決定）**: REQ-313〜322 は acceptance-criteria の TC 帯（TC-313〜321 実在・TC-322 は未 merge PR #9 提案中）との番号衝突回避のため予約（未使用）。機能要件は REQ-323 から、TC は TC-323 から採番する（REQ-326/TC-323 が適用例）。
 
@@ -1960,6 +1960,34 @@ source-anchor 陳腐化 pin なし（編集 12 ファイルに肯定 pin なし�
 ### 次フェーズ開始番号
 
 **次回開始番号**: TASK-0235
+
+## Phase 148: tests ツリー non-null assertion ratchet 単調減少ラウンド 1（tests/unit 471 → 377）
+
+**ステータス**: ✅完了（2026-08-20・TASK-0235 完了）
+
+**背景**: REQ-337（Phase 147）が「後続フェーズは ratchet を段階的に縮小し単調減少を維持せよ」と規定した最初の実施ラウンド。AI Hub steering 指示「到達後は tests バケットをディレクトリ別 ratchet に分割して単調減少を開始せよ」の減少側。対象は guard-first 実測（AST census per-file 集計）で機械的に決定 — tests/unit の上位 2 ファイル: monitoring/alert-rules.test.ts（55 node・unit の 12%）と export/export-job-queue-dlq.test.ts（39 node・同 8%）。両ファイルとも同一根本クラス（`find()` / `findJob()` / `replayDeadLetterJob()` / `dequeue()` の optional 戻り値の checker 抑制）。fail-loud local helper 2 種（`requireAlertRule`・`requireDefined`）で挙動保存置換し 94 node → 0・**tests/unit pin 471 → 377・tests 合計 pin 1096 → 1002**。MW-014（rewrite への `!` 1 node 再注入で dir ratchet + 合計 ratchet の 2 RED）で減少の機械強制を実証。
+
+### タスク一覧
+
+- [x] [TASK-0235: tests ツリー non-null assertion ratchet 単調減少ラウンド 1（tests/unit 471 → 377）](TASK-0235.md) - 3h (DIRECT) 🔵 ✅2026-08-20（94 node→0・pin 377/1002・MW-014）
+
+### 依存関係
+
+```
+TASK-0235 は REQ-337 の TESTS_DIR_PINS（TASK-0234）を縮小側に更新
+fail-loud helper は Phase 144 requireSceneId パターンの tests 適用
+MW 台帳（TASK-0228）に MW-014 追加・監査 pin ≥13 → ≥14
+次候補: tests/unit 残 377 の継続縮小（grafana-dashboard-model 25・pipeline-orchestrator 25・production-exporter 24 が次点）
+```
+
+### 信頼性レベルサマリー（Phase 148 追加分）
+
+- 全 1 タスク 🔵（steering 直接指示（減少開始）+ 実測（census guard 11 tests・対象 2 suite 74 tests GREEN・tsc 0・MW-014 mutant RED）に出典）
+- 推定工数: 3 時間
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0236
 
 ## Spine: external references
 

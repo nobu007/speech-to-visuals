@@ -4479,6 +4479,30 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A148: Phase 148 — tests ツリー non-null assertion ratchet 単調減少ラウンド 1（tests/unit 471 → 377）（2026-08-20 第229回検証）
+
+- **判断**（steering bullet の仕分け → guard-first 対象選択 → tests 向け fail-loud helper の挙動保存基準）:
+
+1. **steering 4 bullet の仕分け**: (1)(4)（重複）「src 残り 24 件を exact-0 へ・到達後 tests をディレクトリ別 ratchet に分割して単調減少を開始」は **Phase 147（TASK-0234）で前半・分割まで完了済み** — 残る実務は「単調減少の開始」のみ。(2) guard-first survey（Phase 299 教訓の機械的表面生成）も Phase 147 の checker AST 化として実装済み。(3)「phase-298 が指摘した template-literal 動的 i18n prefix key の repo 全域 census」は **本 repo では phantom**: src に i18n モジュール・prefix key 機構は存在せず（grep 実測 0 件）・phase-298/299 は本 repo の系譜（Phase 147 まで）に存在しない他 hub repo の番号 — 既知の CROSS-REPO contamination クラス。META-intent（クラス先の census による一括閉包）は Phase 147 の AST census が既に体現済み。よって本 run の実仕事は「tests ratchet 単調減少ラウンド 1」と判定（task registry TASK-0235 と一致）。
+2. **対象は機械的に決定**: Phase 147 の AST census と同一ロジックで per-file 集計し、最大バケット tests/unit（471 node）の上位 2 ファイル — monitoring/alert-rules.test.ts（55 node = unit の 12%）と export/export-job-queue-dlq.test.ts（39 node = 8%）— を対象化。両ファイルとも同一根本クラス（`find()` / `findJob()` / `replayDeadLetterJob()` / `dequeue()` の optional 戻り値に対する checker 抑制 `x!.field`・TASK-0226 判定の典型）。
+3. **tests 向けの挙動保存基準 = verdict 保存**: src 置換と違い tests の `!` は「不在時の挙動」が test の失敗そのもの。旧: `rule!.expr` は `TypeError: Cannot read properties of undefined`（または bare `expect(x).toBeDefined()` 失敗）= RED。新: helper が欠落対象名（`alert rule not found: <name>` / `<label> returned undefined`）を含む Error を throw = **同一 RED verdict・メッセージは診断可能に向上**。存在時は assertion を narrow された値で同一実行。`expect(x).toBeDefined()` 行は helper が同保証を担うため削除（テスト意図は保持）。Phase 144 `requireSceneId` の fail-loud accessor パターンの tests 適用。複数回参照の `replayed` は 1 回捕捉に集約。
+4. **減少の機械強制（MW-014）**: pin 更新だけでは減少は志向に留まる。Phase 148 rewrite への `!` 1 node 再注入（`expect(rule.expr)` → `expect(rule!.expr)`・alert-rules.test.ts）で **tests/unit dir ratchet（377→378 超過）と tests 合計 ratchet（1002→1003 超過）の 2 tests RED** を実測（revert 後 11 passed）— 単調減少が ratchet で強制されていることの witness。台帳監査 pin ≥13 → ≥14。
+5. **監査 guard の意識的拡張**: ledger 監査の target 形状 regex は `src/` 前提だったが、MW-014 の target は ratchet-decrease witness として設計上 tests ファイル。`(src|tests)` に拡張（初回 full run の 1 fail はこの regex 由来 — 修正後 guard 2 suite 41 tests GREEN で切分け・fixed run で 742/742 を確認）。
+6. **tsconfig.test.json の既知 3 error は本 run 起因ではない**: census guard の `ts` namespace 型参照（Phase 147 コード）が tsc test 時に 3 error — HEAD（bc955361）でも同一 error を実測済み（行シフトのみ）・CI gate は `tsc -p tsconfig.app.json`（exit=0）であり非 gate。スコープ外として記録のみ。
+
+- **根拠**: TASK-0235・census/ledger guard 実行出力・MW-014 再実行プロトコル（台帳本文）・steering instruction（.task-prompt.md 由来）・per-file census 実測（377/1002）。
+
+- **最終フルスイート**（Phase 148 全変更後・ledger 監査 regex 拡張 fix 済み）:
+  `[EVIDENCE] started=2026-08-20T06:59:21+09:00 ended=2026-08-20T07:03:54+09:00 exit=0 elapsed_s=273.47 cmd=npm test commit=bc955361 branch=ai/instruction-speech-to-visuals-instruction-20260819-213206-594999` → **742 suites / 742 passed・23,151 passed / 0 failed / 17 skipped**（直前 Phase 147 完了時 23,149 から +2 = ledger 監査 pin ≥14 化に伴う it.each 増分）。※run履歴: 初回 full run（296.84s）は ledger 監査 regex の 1 fail（上記 5. の fix で解消・fix 後 200.83s run exit=0）のみ → 高負荷時（537.49s）の再々実行で tests/unit/optimization/batch-optimizer.test.ts の sliding-window timing 1 fail（elapsed 194.8ms vs `< 150ms` 閾値）— 単体再実行 GREEN ×3 + HEAD 単体 GREEN から**機械負荷 flake と切り分け**（session 171 の OverlapResolver timing flake と同クラス・Phase 148 変更ファイルと依存関係なし）。上記 273.47s run が全 GREEN の実測。
+
+- **信頼性への影響**:
+
+- REQ-338 追加（🔵・実装+guard pin+MW-014 に出典）。🔵 321 → 322 件。
+- **tests ツリーの `!` が初めて減少方向に動いた**（1096 → 1002・unit 471 → 377）。ratchet は増加防止に加え減少 pin の固定と MW-014 による強制を獲得。94 node の checker 抑制（実行時存在を何も証明しない `!`）が verdict 保存の fail-loud helper に置換され、失敗時の診断可能性が向上。
+- 残課題（引継ぎ）: tests/unit 残 377 の継続縮小（次点: grafana-dashboard-model 25・pipeline-orchestrator 25・production-exporter 24）。Phase 132 TASK-0218〜0222 未着手・requirements.md の PR #12 由来 dead citation 残存（A137 引継ぎ）。
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)
