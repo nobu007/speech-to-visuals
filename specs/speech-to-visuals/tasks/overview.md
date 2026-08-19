@@ -107,8 +107,8 @@
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0225（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225）
-**次回開始番号**: TASK-0226
+**使用済みタスク番号**: TASK-0001 ~ TASK-0230（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230）
+**次回開始番号**: TASK-0231
 
 > **REQ 番号帯（Phase 140 決定）**: REQ-313〜322 は acceptance-criteria の TC 帯（TC-313〜321 実在・TC-322 は未 merge PR #9 提案中）との番号衝突回避のため予約（未使用）。機能要件は REQ-323 から、TC は TC-323 から採番する（REQ-326/TC-323 が適用例）。
 
@@ -1837,6 +1837,32 @@ TASK-0229 は REQ-328 の census guard（TASK-0226）と MW 台帳（TASK-0228�
 ### 次フェーズ開始番号
 
 **次回開始番号**: TASK-0230
+
+## Phase 143: non-null assertion 撲滅・transcription 編
+
+**ステータス**: ✅完了（2026-08-20・TASK-0230 完了）
+
+**背景**: REQ-331（Phase 142）の直接継続。Phase 142 引継ぎの残 src `!` 分布（2026-08-20 実測: transcription 17・export 10・monitoring 7・analysis 6・framework 5・api 4・test 4・components 3・quality 3・remotion 2・main.tsx 1・pages 1・workers 1 = 64）の次点バケット src/transcription（17 件・streaming-transcriber 14 行・whisper-transcriber 3 行）を対象に選択。入力境界モジュールから `!` を排除し strict mode の実検証範囲を拡大。
+
+### タスク一覧
+
+- [x] [TASK-0230: src/transcription non-null assertion 撲滅 + census ratchet 縮小](TASK-0230.md) - 4h (DIRECT) 🔵 ✅2026-08-20（17→0・src ratchet 64→47・MW-008）
+
+### 依存関係
+
+```
+TASK-0230 は REQ-328 の census guard（TASK-0226）と MW 台帳（TASK-0228）を再利用
+次候補: src/export（10）→ src/monitoring（7）— 同一パターンセットで残 47 を段階的に 0 へ
+```
+
+### 信頼性レベルサマリー（Phase 143 追加分）
+
+- 全 1 タスク 🔵（steering META-intent 継続 + 前後実測（25 suites/603 tests 同一 GREEN・tsc 0）に出典）
+- 推定工数: 4 時間
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0231
 
 ## Spine: external references
 

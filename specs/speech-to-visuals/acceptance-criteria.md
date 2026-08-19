@@ -5801,6 +5801,13 @@
   - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules' npx jest --config jest.config.cjs --testPathPatterns tests/guards/non-null-assertion-census`（5 tests）
   - **mutation RED 検証済み（MW-007）**: quality-estimators.ts `scenes.length` → `(scenes as unknown as { length: number })!.length` で pipeline exact pin と src ratchet（Expected <= 64 / Received 65）の 2 tests RED（revert 後 5 tests GREEN）
 
+#### REQ-332: non-null assertion 撲滅・transcription 編（Phase 143）
+
+- [x] **TC-328-01**: src/transcription プロダクションコード（`__tests__` 除く）に postfix non-null assertion が 0 件であることが exact pin で検証されること。src 本体（`__tests__`/`__mocks__` 除外）ratchet が 64 から **47** に縮小されること（2026-08-20 実測・64 − 17） 🔵
+- [x] **TC-328-02**: 挙動保存置換であること — 置換対象 2 ファイルを含む transcription|streaming 系 suite が置換前後で同一 GREEN（25 suites/603 tests）・`tsc -p tsconfig.app.json --noEmit` exit=0・`sanitizeFinite(v, k)` ≡ `Number.isFinite(v) ? v : k`（正典実装は typeof number && isFinite → value・他は default で値選択述語が完全一致）・confidence フィルタの `?? Number.NaN` は undefined/NaN が常に閾値未満（`undefined >= x` = false）・Infinity は受理という旧 `!` 比較の全状態を保存すること（0 fallback は `minConfidence: 0` 合法値で非等価） 🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules' npx jest --config jest.config.cjs --testPathPatterns tests/guards/non-null-assertion-census`（6 tests）
+  - **mutation RED 検証済み（MW-008）**: streaming-transcriber.ts:506 `sum + sanitizeFinite(segment.confidence), 0);` → `sum + ((segment as { confidence: number })!.confidence), 0);` で transcription exact pin（mutant 行を hits として検出）と src ratchet（Expected <= 47 / Received 48）の 2 tests RED（revert 後 6 tests GREEN）
+
 
 ### Phase 111+ 受け入れ基準サマリー
 
@@ -5850,7 +5857,8 @@
 | REQ-329: storage key parity | 2 | 🔵 |
 | REQ-330: mutation witness 台帳 | 2 | 🔵 |
 | REQ-331: non-null assertion 撲滅・pipeline 編 | 2 | 🔵 |
-| **合計** | **110** | **🔵 90.9% / 🟡 9.1%** |
+| REQ-332: non-null assertion 撲滅・transcription 編 | 2 | 🔵 |
+| **合計** | **112** | **🔵 91.1% / 🟡 8.9%** |
 
 
 <!-- spine:references:begin -->

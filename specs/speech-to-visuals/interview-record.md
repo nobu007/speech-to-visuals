@@ -4362,6 +4362,28 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A143: Phase 143 — non-null assertion 撲滅・transcription 編（2026-08-20 第224回検証）
+
+**判断**（steering 系譜の継続判定 → 対象選択）:
+
+1. **本 run の steering 本文も Phase 141/142 が消費した系譜と同一**（bullet 1「src と主要テストパスの残 `!` を census し（TASK-0226 以降に ratchet TASK を追加）」の継続）。bullet 2〜4（divergence-first 選別・`STORAGE_KEYS` スイープ・mutation witness の盤査可能性）は Phase 141/142 で REQ-327/329/330 として実装済みのため再実装せず、**bullet 1 の第3弾**として Phase 142 引継ぎの残 src `!` 分布を再実測（transcription 17・export 10・monitoring 7・analysis 6・framework 5・api 4・test 4・components 3・quality 3・remotion 2・main.tsx 1・pages 1・workers 1 = 64）し、次点バケット **src/transcription（17 件）を Phase 143 に選択**。入力境界モジュール（README『音声認識の現状』が固定文生成と明記）からの排除として strict mode 実検証範囲を拡大。
+2. **置換は 5 パターンに整理**（TASK-0230）: (a) **`sanitizeFinite` 委譲** — 正典実装 `typeof value === 'number' && Number.isFinite(value) ? value : defaultValue` は旧 `Number.isFinite(v!) ? v! : k` と値選択述語が完全一致（5 サイト）。Phase 132 REQ-303（sanitizeFinite 集約提案・🟡）の実地適用でもある。(b) **`?? Number.NaN` しきい値比較** — confidence フィルタは `undefined >= x` = false（除外）・NaN 除外・Infinity 受理を全保存。**0 fallback は `minConfidence: 0` 合法値で非等価**と実証的に判断（falsy-legit-0 クラス・`?? 0.7` と対称の議論を confidence 側に適用）。(c) const capture（Phase 142 pipeline-orchestrator と同型・optional property 読み戻しの narrowing 喪失を構造解消）。(d) **ctor 同型 `!== undefined` guard** — updateConfig の旧 `candidate.x!` 検証は明示的 undefined が全検査 pass-through（`undefined <= 0` = false）する挙動を保存しつつ constructor 自身の検証形に統一。(e) **dead assertion 除去**（`segment.id! ?? index` — `!` の直後の `??` が undefined を処理するため無意味）。
+3. **挙動保存の実証**: 置換前後で `transcription|streaming` 25 suites / 603 tests 同一 GREEN・`tsc -p tsconfig.app.json --noEmit` exit=0・census 実測 src/transcription=0・src=47。
+4. **MW-008 を台帳に追加**（REQ-330 の運用3回目）: mutant `sum + ((segment as { confidence: number })!.confidence), 0);`（streaming-transcriber.ts:506）で census guard 2 tests RED（transcription exact pin が mutant 行を検出 + src ratchet `Expected: <= 47 / Received: 48`）→ revert 後 6 tests GREEN。ledger 監査 pin ≥7 → ≥8。**台帳 .md と guard pin を同一コミットにして中間 commit の ledger 不整合を回避**（Phase 142 の 482650f4→bf07db0b 間に存在した不整合の是正）。
+
+**根拠**: TASK-0230・census/ledger guard 実行出力・MW-008 再実行プロトコル（台帳本文）。
+
+**最終フルスイート**（Phase 143 全変更後・commit 6efb60aa 時点）:
+`[EVIDENCE] started=2026-08-20T01:13:55+09:00 ended=2026-08-20T01:18:24+09:00 exit=0 elapsed_s=269.56 cmd=npm test commit=6efb60aa branch=ai/instruction-speech-to-visuals-instruction-20260819-155916-156044` → **742 suites / 742 passed・23,134 passed / 0 failed / 17 skipped**（直前 Phase 142 完了時 23,131 から +3 = census guard transcription exact pin +1・ledger 監査 it.each 2 block × MW-008 追加分 +2。265-270s 台は外部負荷による変動・A142 の 160.13s と同じ clean run）。
+
+**信頼性への影響**:
+
+- REQ-332 追加（🔵・実装+guard+MW-008 に出典）。🔵 315 → 316 件（requirements.md 冒頭分布行も 314 のまま滞留していたのを 316 に訂正 — A142 で AC-10 のみ更新され分布行が未更新だった）。
+- strict mode の実検証範囲が src/visualization + src/pipeline + src/transcription に拡大（計 113 件の `!` を 0 化・CI が常時強制）。残 src 47 件・tests 960 件は ratchet で増加防止のみ。
+- 残課題（引継ぎ）: src/export 10・src/monitoring 7 が次候補（同一パターンセット）。Phase 132 TASK-0218〜0222 未着手・requirements.md の PR #12 由来 dead citation 残存（A137 引継ぎ）。
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)
