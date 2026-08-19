@@ -4277,6 +4277,39 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A140: Phase 140 — テストツリー strict flag lock-in 完了・188 計測の方法論訂正（2026-08-19 第221回検証）
+
+**分析日時**: 2026-08-19
+**カテゴリ**: kairo-tasks TASK-0224 実装（AI Hub instruction run・前回 A138 で未達タスク化した件の完了）
+**背景**: A138 は commit 688acbed「650 → 0」の非再現を実測 3 点で示し、test ツリー strict 化（188 error → 0 → tsconfig.test.json の 3 override 削除）を TASK-0224 として未達タスク化した。本ラウンドでこれを実行した。
+
+**判断**:
+
+1. **A138 baseline 188 の計測方法論訂正**: `tsc -p tsconfig.test.json --noEmit --strict --noImplicitAny` は config 内の明示的 `strictNullChecks: false` を CLI shorthand `--strict` が打ち消せない（shorthand は未指定フラグにのみ既定値を与える）。つまり A138 の 188 は「strictNullChecks 無効 + noImplicitAny 有効」の混在モードの产物で、src 側 TS7018 系エラー（ProgressiveForceStrategy 8 等）が混入していた。**反転後の真の開始状態**は「3 override を削除した同一 config」の probe（`.tsconfig.probe4.json`・計測後削除）で計測し **156 error**（src は tsconfig.app.json strict で既に 0 のため全て tests ツリー）— こちらを修正対象とした。反転後は CLI flag 有無で両コマンドとも 0 で一致するため、A138 の「188」を出発点に戻す必要性はなく、完了条件のコマンド自体はそのまま 0 で通る。
+
+2. **修正（45 test ファイル・141 insertions / 141 deletions・行数対称 = 実行時挙動変更ゼロ）**: 主なパターン — (a) optional `width`/`height`/`w`/`h` への non-null assertion（tests/visualization 約 20 ファイル・レイアウト計算の意図的前提を型で表明）(b) `OracleRow` を `Args extends unknown[]` の generic にして `OracleRow<[n,n]>` → `OracleRow<unknown[]>` の contravariance 違反を解消（single-source-harness.ts）(c) `jest.Mock` 型の名目的不一致 → `ReturnType<typeof jest.fn>`（VideoPreview ×10）(d) `delete process.env.X` 後の CFA narrow（`never` 化）→ capture 時 `as string | undefined`（cors-config）(e) 最小 fixture の `as unknown as SceneGraph` 二重キャスト（実行時値不変・simple-pipeline ×8 等）(f) `??` 系は使わず `!` / annotation / 二重キャストで通す選択（テストの期待値構造を変えないため）。
+
+3. **lock-in と実証**: tsconfig.test.json から `strict: false` / `strictNullChecks: false` / `noImplicitAny: false` を削除（extends 元 tsconfig.app.json の strict: true が効く）。ts-jest が config に従い全テストを型検査するため、**フルスイート GREEN がそのまま strict コンパイル実証**となる（739 suites / 0 failed）。CI type-check job が回帰 pin。TASK-0224 完了条件 4/4 達成・Phase 140 完結（TASK-0223/0224/0225 全完了）。
+
+4. **番号帳**: A139/第220回は main 未到達の孤立 commit a1723639（phase 139 task sync）が使用済みのため、本エントリは **A140/第221回** として衝突を回避した（a1723639 が将来 rescue されても番号は共存可能）。
+
+**根拠（[EVIDENCE] 行・baseline 2 点は commit=7716d407・完了系は作業ブランチ同一 commit 上の未コミット変更）**:
+
+- baseline（A138 同一コマンド・188 error）: `[EVIDENCE] started=2026-08-19T14:04:08+09:00 ended=2026-08-19T14:04:19+09:00 exit=2 elapsed_s=10.81 cmd=node_modules/.bin/tsc -p tsconfig.test.json --noEmit --strict --noImplicitAny commit=7716d407 branch=ai/instruction-speech-to-visuals-20260819-045849-347835`
+- baseline（反転状態 probe・156 error）: `[EVIDENCE] started=2026-08-19T14:04:19+09:00 ended=2026-08-19T14:04:31+09:00 exit=2 elapsed_s=11.79 cmd=node_modules/.bin/tsc -p .tsconfig.probe4.json --noEmit commit=7716d407 branch=ai/instruction-speech-to-visuals-20260819-045849-347835`
+- 完了（反転 config・0 error）: `[EVIDENCE] started=2026-08-19T14:24:22+09:00 ended=2026-08-19T14:26:11+09:00 exit=0 elapsed_s=109.62 cmd=node_modules/.bin/tsc -p tsconfig.test.json --noEmit commit=7716d407 branch=ai/instruction-speech-to-visuals-20260819-045849-347835`
+- 完了（完了条件コマンド・0 error）: `[EVIDENCE] started=2026-08-19T14:26:14+09:00 ended=2026-08-19T14:27:40+09:00 exit=0 elapsed_s=86.18 cmd=node_modules/.bin/tsc -p tsconfig.test.json --noEmit --strict --noImplicitAny commit=7716d407 branch=ai/instruction-speech-to-visuals-20260819-045849-347835`
+- フルスイート（strict コンパイル下・初回）: 739 suites / 23,106 passed / 17 skipped / 0 failed / 250.392s / exit 0（生実行・タスク出力）
+- フルスイート（runner 出典）: `[EVIDENCE] started=2026-08-19T14:30:24+09:00 ended=2026-08-19T14:32:10+09:00 exit=0 elapsed_s=105.36 cmd=npx jest --config jest.config.cjs commit=7716d407 branch=ai/instruction-speech-to-visuals-20260819-045849-347835` → 739 suites / 23,106 passed / 17 skipped / 0 failed / 103.608s
+- src 側回帰なし: `tsc -p tsconfig.app.json --noEmit` exit=0（別途実行・REQ-324 src 側は維持）
+
+**信頼性への影響**:
+- REQ-324 が test ツリー含め完全達成（🟡 帯記事を解消・外側信号は 🔵 のまま）。TASK-0224 完了・Phase 140 完結。
+- strict チェックが jest 実行時に常時効くため、今後のテスト追加は strict 違反を CI で即検出（A138 の `String.replaceAll` 検出例と同じ経路が全テストに拡大）。
+- 残課題: (a) Phase 132 TASK-0218〜0222 は未着手のまま（次候補）(b) requirements.md / acceptance-criteria.md の PR #12 由来 dead citation 残存（A137 引継ぎ・kairo-requirements 次回）(c) REQ 番号帯分裂も引継ぎ。
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)

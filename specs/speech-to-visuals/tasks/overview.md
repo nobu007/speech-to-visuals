@@ -1751,15 +1751,15 @@ TASK-0221 → TASK-0222（commit policy 確定後に overview 更新）
 
 **期間**: 2026-08-19 〜
 **目標**: AI Hub steering feedback（前回 iteration VALUABLE 判定の後続）の META-intent を本リポジトリの実体に映射する — (1) 数量・性能主張のエビデンス出典を正典ツールで強制、(2) PR #8/#11/#12/#13 の実装済み変更（並列 CI・型 strict・規模予算）を出典付きで要件化、(3) single-source/fold family の phase 生成停止条件と価値密度ルールを overview に固定
-**成果物**: scripts/collect-evidence.ts（[EVIDENCE] 行 runner）・tests/scripts/collect-evidence.test.ts（TC-323・14 tests）・REQ-323〜327・TASK-0223〜0225・688acbed「650→0」非再現の 3 点実測記録
-**ステータス**: 🔵進行中（TASK-0223/0225 完了・TASK-0224 未着手）
+**成果物**: scripts/collect-evidence.ts（[EVIDENCE] 行 runner）・tests/scripts/collect-evidence.test.ts（TC-323・14 tests）・REQ-323〜327・TASK-0223〜0225・688acbed「650→0」非再現の 3 点実測記録・tsconfig.test.json strict 化（156→0→override 削除・A140）
+**ステータス**: ✅完了（2026-08-19・TASK-0223/0224/0225 全完了 — Phase 140 完結）
 
 **背景**: steering feedback の固有名（`foldGuardOracles` / `no-inline-*-display.test.ts` / `ActionPlanPanel` / `fold-display-census`）は grep 実測で本リポジトリに存在しない cross-repo 汚染（interview-record A138）。一方で META-intent は実体があり、うち 2 件（registry からの data-driven テスト生成・census による残り数計測）は本リポジトリで既に達成済み（tests/guards/frozen-literal-registry.test.ts・fold-census-families.ts）。未達だった 2 件 — 出典の強制とタスク生成側の停止条件 — を本フェーズで実装した。
 
 ### タスク一覧
 
 - [x] [TASK-0223: エビデンス runner（[EVIDENCE] 行）の実装と TC-323 pin](TASK-0223.md) - 4h (TDD) 🔵
-- [ ] [TASK-0224: テストツリー strict flag lock-in（188 error → 0 → tsconfig 反転）](TASK-0224.md) - 8h (DIRECT) 🔵
+- [x] [TASK-0224: テストツリー strict flag lock-in（188 error → 0 → tsconfig 反転）](TASK-0224.md) - 8h (DIRECT) 🔵 ✅2026-08-19（実開始状態は 156・A140 出典）
 - [x] [TASK-0225: Phase 140 overview 同期と per-fold series CLOSED 明記](TASK-0225.md) - 1h (DIRECT) 🔵
 
 ### 依存関係
@@ -1773,12 +1773,12 @@ TASK-0223 → TASK-0225（overview の成果物記載に TC-323 結果を使用�
 
 - **series CLOSED**: fold 系列（round 41〜50 の value-neutral fold 対象）は census 上 converged（value-neutral 候補 0・tests/guards/fold-census-families.ts FOLD_SERIES_STATUS ratchet + specs/guard-harness-fold-census/requirements.md census-pin）。**本 series に対して per-fold phase を新規生成しないこと**。残存 C1〜C5 は実挙動変更または設計判断が必要な別案件（census 表参照）。
 - **価値密度**: 値が偶然一致しているだけの coincidence twin（value-neutral fold）は独立 phase にしない。発散が確認された兄弟 fold と同一 phase に巻き込む。per-phase 作業の連続生成は自律ループの価値評価で漸減するため、発散 family・未到達 backlog へ移行する。
-- 次の候補は Phase 132 の未着手 TASK-0218〜0222（storageParser 非対称監査・async-setState positive fixture・real fix ペア・commit 粒度）と TASK-0224（strict lock-in・baseline 実測済み）。
+- 次の候補は Phase 132 の未着手 TASK-0218〜0222（storageParser 非対称監査・async-setState positive fixture・real fix ペア・commit 粒度）。TASK-0224（strict lock-in）は 2026-08-19 完了。
 
 ### 信頼性レベルサマリー（Phase 140 追加分）
 
 - 全 3 タスク 🔵（steering META-intent + 実測 baseline に出典）
-- 推定工数: 13 時間（うち 5h は本ラウンドで完了済み）
+- 推定工数: 13 時間（TASK-0223/0225 は第219回・TASK-0224 は第221回で完了）
 
 ### 次フェーズ開始番号
 
