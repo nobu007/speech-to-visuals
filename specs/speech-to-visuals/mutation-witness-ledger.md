@@ -99,6 +99,14 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 - **command**: `npx jest --config jest.config.cjs tests/guards/non-null-assertion-census.test.ts`
 - **observed** (2026-08-20): `Tests: 2 failed, 6 passed, 8 total` — RED は monitoring exact pin（`real-time-performance-monitor.ts:209` の mutant 行を hits として検出）と src ratchet（`Expected: <= 30 / Received: 31`）の 2 件。revert 後 `8 passed`
 
+## MW-011 — non-null assertion census ratchet・src/analysis pin（REQ-335・Phase 146 新設 exact pin）
+
+- **claim**: tests/guards/non-null-assertion-census.test.ts ヘッダ「replacing `const prev = result.pop();` in src/analysis/scene-segmenter.ts with `const prev = result.pop()!;` (the exact pre-Phase-146 shape) turns BOTH the analysis exact pin and the src ratchet (24 → 25) RED」
+- **target**: `src/analysis/scene-segmenter.ts:939`
+- **mutation**: `const prev = result.pop();` → `const prev = result.pop()!;`（Phase 146 が除去した while-guard 前提の presence assertion の再注入）
+- **command**: `npx jest --config jest.config.cjs tests/guards/non-null-assertion-census.test.ts`
+- **observed** (2026-08-20): `Tests: 2 failed, 7 passed, 9 total` — RED は analysis exact pin（`scene-segmenter.ts:939` の mutant 行を hits として検出）と src ratchet（`Expected: <= 24 / Received: 25`）の 2 件。revert 後 `9 passed`
+
 ---
 
 ## 恒久 mutation test（ledger 対象外・常時 CI で走るもの）

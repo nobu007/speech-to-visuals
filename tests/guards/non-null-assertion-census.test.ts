@@ -50,7 +50,24 @@
  *     provably-dead definite-assignment on `routes` (the ctor assigns
  *     unconditionally); the monitoring + guards suites (45 suites /
  *     1068 tests) stayed green through the rewrite).
- *   - the rest of `src` (30) and the `tests` tree (960) are pinned as
+ *   - `src/analysis` production code is pinned at ZERO assertions
+ *     (Phase 146 replaced all 6: a fail-loud captured guard for
+ *     `this.genAI` — `execute()` gates every `executeRequest` caller
+ *     behind `isEnabled()` = `Boolean(this.genAI)`, so the undefined
+ *     branch is unreachable through the public API and the accessor
+ *     keeps the gate's own message instead of a bare TypeError — a
+ *     narrowing `else if (currentSegment)` with a const capture for the
+ *     three extend-mutation reads (reaching the else already implies the
+ *     segment is set: a null segment forces `shouldStartNew` through its
+ *     `!currentSegment` term; the capture keeps the narrowing inside the
+ *     forEach closure), a captured `b.get(key)` compare replacing the
+ *     `has()/get()!` pair in `cosineSimilarity` (both callers pass
+ *     `buildTopicVector` maps whose values are always numbers, so the
+ *     two checks agree exactly), and `pop()` with an unreachable-
+ *     undefined `break` for the merge loop (the while guard requires
+ *     `result.length > 0`); the analysis + guards suites (135 suites /
+ *     7057 tests) stayed green through the rewrite).
+ *   - the rest of `src` (24) and the `tests` tree (960) are pinned as
  *     UPPER BOUNDS: decreases are welcome, any new `!` fails the ratchet.
  *     New code must narrow (`if (x === undefined) …`), guard
  *     (`require…()` accessors), or use a typed helper instead.
@@ -85,6 +102,10 @@
  * src/monitoring/real-time-performance-monitor.ts with
  * `let history = this.metrics.get(metric)!;` turns BOTH the monitoring
  * exact pin and the src ratchet (30 → 31) RED.
+ * Mutation-verified (Phase 146, MW-011): replacing
+ * `const prev = result.pop();` in src/analysis/scene-segmenter.ts with
+ * `const prev = result.pop()!;` (the exact pre-Phase-146 shape) turns
+ * BOTH the analysis exact pin and the src ratchet (24 → 25) RED.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -99,7 +120,8 @@ const ASSERTION_RE = /[\w)\]]!(?!=)(?=[\s.,;:)\]}+*/?=<>&|{]|$)/;
  * 2026-08-20 (Phase 142, after src/pipeline → 0; src remainder 93 − 29 = 64)
  * and 2026-08-20 (Phase 143, after src/transcription → 0; 64 − 17 = 47)
  * and 2026-08-20 (Phase 144, after src/export → 0; 47 − 10 = 37)
- * and 2026-08-20 (Phase 145, after src/monitoring → 0; 37 − 7 = 30).
+ * and 2026-08-20 (Phase 145, after src/monitoring → 0; 37 − 7 = 30)
+ * and 2026-08-20 (Phase 146, after src/analysis → 0; 30 − 6 = 24).
  */
 const PINNED = {
   'src/visualization (production)': 0,
@@ -107,7 +129,8 @@ const PINNED = {
   'src/transcription (production)': 0,
   'src/export (production)': 0,
   'src/monitoring (production)': 0,
-  'src (production, excl. __tests__/__mocks__)': 30,
+  'src/analysis (production)': 0,
+  'src (production, excl. __tests__/__mocks__)': 24,
   'tests (excl. __mocks__)': 960,
 } as const;
 
@@ -147,6 +170,7 @@ describe('non-null assertion census ratchet (REQ-328)', () => {
   const transcription = countAssertions('src/transcription');
   const exportDir = countAssertions('src/export');
   const monitoring = countAssertions('src/monitoring');
+  const analysis = countAssertions('src/analysis');
   const srcTotal = countAssertions('src');
   const testsTotal = countAssertions('tests');
 
@@ -170,6 +194,10 @@ describe('non-null assertion census ratchet (REQ-328)', () => {
     expect(monitoring.hits).toEqual([]);
   });
 
+  it('src/analysis production code holds ZERO non-null assertions (exact)', () => {
+    expect(analysis.hits).toEqual([]);
+  });
+
   it('src production total (excl. __tests__/__mocks__) is at or below the ratchet', () => {
     expect(srcTotal.count).toBeLessThanOrEqual(PINNED['src (production, excl. __tests__/__mocks__)']);
   });
@@ -181,7 +209,8 @@ describe('non-null assertion census ratchet (REQ-328)', () => {
   it('census is not vacuous: the src remainder is real (visualization cleanup moved the needle)', () => {
     // 170 (pre-Phase-141 src total) − 67 (visualization, Phase 141) −
     // 29 (pipeline, Phase 142) − 17 (transcription, Phase 143) −
-    // 10 (export, Phase 144) − 7 (monitoring, Phase 145) = 30; if a
+    // 10 (export, Phase 144) − 7 (monitoring, Phase 145) −
+    // 6 (analysis, Phase 146) = 24; if a
     // future refactor drives the remainder down the ratchet pins above
     // loosen only by editing PINNED, so this liveness check just guards
     // against a scanner regression that would silently count nothing.
