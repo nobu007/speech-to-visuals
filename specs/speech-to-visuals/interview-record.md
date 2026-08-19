@@ -4340,6 +4340,28 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A142: Phase 142 — non-null assertion 撲滅・pipeline 編（2026-08-20 第223回検証）
+
+**判断**（steering 系譜の継続判定 → 対象選択）:
+
+1. **本 run の steering 本文は Phase 141 が消費したものと同一**（Phase 140 VALUABLE 判定への follow-up 4 指摘・`02fa054a`/`b86ddeb6`/`fold-display-census` 固有名を含む）。4 指摘の対応は HEAD 時点で全て完了済み（REQ-328/329/330・第222回）のため再実装せず、**steering bullet 1 の『TASK-0226 以降に ratchet TASK を追加』継続**を本 run の実体とした: 残 src `!` 分布を実測（pipeline 29・transcription 17・export 10・他 38）し、最大かつオーケストレーション核心の **src/pipeline（29 件）を Phase 142 に選択**。
+2. **置換は Phase 141 の 7 パターンを再利用しつつ pipeline 特有の 6 パターンに整理**（TASK-0229）: (a) 単一代入 `let` の **const capture**（pipeline-orchestrator `preparedScenes` — closure 内で TS が narrowing を失効させる問題への構造的解）・(b) fail-loud accessor（`requireIterationManager()`）・(c) get-or-create Map 分岐・(d) **`Number()` NaN 保存算術**（`Number(undefined)`=NaN により旧 `!` 算術と全状態で同一 — `?? 0` は mixed-defined 状態で値が変わるため不採用と実証的に判断）・(e) 検証器境界の正規化（`id ?? ''` は falsy を保ち `validateRemotionData` の `!scene.id` が同一 ERROR を出すことを出典に正当化）・(f) guard 前置き narrowing。
+3. **挙動保存の実証**: 置換前 baseline（`src/pipeline|tests/guards/non-null` = 38 suites / 657 tests GREEN）→ 置換後（`pipeline|tests/guards|acceptance|nullable-access` = 201 suites / 5479 tests GREEN・70.4s）・`tsc -p tsconfig.app.json --noEmit` exit=0・census 実測 src/pipeline=0・src=64。
+4. **MW-007 を台帳に追加**（REQ-330 の運用2回目）: mutant `const sceneCount = (scenes as unknown as { length: number })!.length;`（quality-estimators.ts:57）で census guard 2 tests RED（pipeline exact pin + src ratchet `Expected: <= 64 / Received: 65`）→ revert 後 5 tests GREEN。ledger 監査 pin ≥6 → ≥7。
+
+**根拠**: TASK-0229・census/ledger guard 実行出力・MW-007 再実行プロトコル（台帳本文）。
+
+**最終フルスイート**（Phase 142 全変更後・commit 482650f4 時点）:
+`[EVIDENCE] started=2026-08-20T00:46:13+09:00 ended=2026-08-20T00:48:54+09:00 exit=0 elapsed_s=160.13 cmd=npm test commit=482650f4 branch=ai/instruction-speech-to-visuals-20260819-152424-574374` → **742 suites / 742 passed・23,131 passed / 0 failed / 17 skipped**（直前 Phase 141 完了時 23,128 から +3 = census guard の pipeline exact pin +1・ledger 監査の it.each 2 block × MW-007 追加分 +2。前回と同じく編集競合なしの clean run）。
+
+**信頼性への影響**:
+
+- REQ-331 追加（🔵・実装+guard+MW-007 に出典）。🔵 314 → 315 件。
+- strict mode の実検証範囲が src/visualization + src/pipeline に拡大（計 96 件の `!` を 0 化・CI が常時強制）。残 src 64 件・tests 960 件は ratchet で増加防止のみ。
+- 残課題（引継ぎ）: src/transcription 17・src/export 10 が次候補（同一パターンセット）。Phase 132 TASK-0218〜0222 未着手・requirements.md の PR #12 由来 dead citation 残存（A137 引継ぎ）。
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)

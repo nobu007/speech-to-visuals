@@ -5794,6 +5794,13 @@
 - [x] **TC-326-02**: 台帳が specs が mutation-verified として引用する TC id（TC-205-04 / TC-214-02 / TC-304-04）を網羅すること。過去主張 3 件は 2026-08-19 の再実行で確認済み（各 [EVIDENCE] 行: MW-001 = 1 failed/16・MW-002 = 1 failed/39・MW-004 = 1 failed/2 — いずれも主張どおり該当 test のみ RED） 🔵
   - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules' npx jest --config jest.config.cjs --testPathPatterns tests/guards/mutation-witness-ledger`（14 tests）
 
+#### REQ-331: non-null assertion 撲滅・pipeline 編（Phase 142）
+
+- [x] **TC-327-01**: src/pipeline プロダクションコード（`__tests__` 除く）に postfix non-null assertion が 0 件であることが exact pin で検証されること。src 本体（`__tests__`/`__mocks__` 除外）ratchet が 93 から **64** に縮小されること（2026-08-20 実測・93 − 29） 🔵
+- [x] **TC-327-02**: 挙動保存置換であること — 置換対象 9 ファイルを含む pipeline 系・guards・acceptance suite が全て GREEN（38 suites/657 tests baseline → post-edit 201 suites/5479 tests）・`tsc -p tsconfig.app.json --noEmit` exit=0・NaN 保存算術（`Number(undefined)` = NaN で `|| defaultDuration` fallback が同一挙動）であること 🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules' npx jest --config jest.config.cjs --testPathPatterns tests/guards/non-null-assertion-census`（5 tests）
+  - **mutation RED 検証済み（MW-007）**: quality-estimators.ts `scenes.length` → `(scenes as unknown as { length: number })!.length` で pipeline exact pin と src ratchet（Expected <= 64 / Received 65）の 2 tests RED（revert 後 5 tests GREEN）
+
 
 ### Phase 111+ 受け入れ基準サマリー
 
@@ -5839,7 +5846,11 @@
 | REQ-311: @stv/core タグ pin 固定 | 1 | 🔵 |
 | REQ-312: tests/guards 分割境界ピン | 1 | 🔵 |
 | REQ-326: エビデンス出典 [EVIDENCE] 行 pin | 3 | 🔵 |
-| **合計** | **102** | **🔵 90.2% / 🟡 9.8%** |
+| REQ-328: non-null assertion census ratchet | 2 | 🔵 |
+| REQ-329: storage key parity | 2 | 🔵 |
+| REQ-330: mutation witness 台帳 | 2 | 🔵 |
+| REQ-331: non-null assertion 撲滅・pipeline 編 | 2 | 🔵 |
+| **合計** | **110** | **🔵 90.9% / 🟡 9.1%** |
 
 
 <!-- spine:references:begin -->

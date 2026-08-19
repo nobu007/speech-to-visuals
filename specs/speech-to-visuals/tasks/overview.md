@@ -1812,6 +1812,32 @@ TASK-0226/0227/0228 は相互独立（同一 phase で並行実施可）
 
 **次回開始番号**: TASK-0229
 
+## Phase 142: non-null assertion 撲滅・pipeline 編
+
+**ステータス**: ✅完了（2026-08-20・TASK-0229 完了）
+
+**背景**: REQ-328（Phase 141）の直接継続。steering bullet 1「src と主要テストパスの残 `!` を census し（TASK-0226 以降に ratchet TASK を追加）」の『TASK-0226 以降』第2弾として、残 src 最大バケット src/pipeline（29 件・オーケストレーション核心）を対象に選択（2026-08-20 実測分布: pipeline 29・transcription 17・export 10・他 38）。
+
+### タスク一覧
+
+- [x] [TASK-0229: src/pipeline non-null assertion 撲滅 + census ratchet 縮小](TASK-0229.md) - 4h (DIRECT) 🔵 ✅2026-08-20（29→0・src ratchet 93→64・MW-007）
+
+### 依存関係
+
+```
+TASK-0229 は REQ-328 の census guard（TASK-0226）と MW 台帳（TASK-0228）を再利用
+次候補: src/transcription（17）→ src/export（10）— 同一パターンセットで残 64 を段階的に 0 へ
+```
+
+### 信頼性レベルサマリー（Phase 142 追加分）
+
+- 全 1 タスク 🔵（steering META-intent 継続 + 前後実測（38→201 suites GREEN・tsc 0）に出典）
+- 推定工数: 4 時間
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0230
+
 ## Spine: external references
 
 - [speech-to-visuals API エンドポイント仕様](/home/jinno/speech-to-visuals/specs/speech-to-visuals/api-endpoints.md)

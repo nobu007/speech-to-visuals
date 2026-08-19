@@ -67,6 +67,14 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 - **command**: `npx jest --config jest.config.cjs tests/guards/storage-key-parity.test.ts`
 - **observed** (2026-08-19): `Tests: 3 failed, 1 passed, 4 total` — RED は dead-read 検出・pinned loaded set・pinned saved set の 3 件。revert 後 `4 passed`
 
+## MW-007 — non-null assertion census ratchet・src/pipeline pin（REQ-331・Phase 142 新設 exact pin）
+
+- **claim**: tests/guards/non-null-assertion-census.test.ts ヘッダ「replacing `const sceneCount = scenes.length;` in src/pipeline/quality-estimators.ts … turns BOTH the pipeline exact pin and the src ratchet (64 → 65) RED」
+- **target**: `src/pipeline/quality-estimators.ts:57`
+- **mutation**: `const sceneCount = scenes.length;` → `const sceneCount = (scenes as unknown as { length: number })!.length;`
+- **command**: `npx jest --config jest.config.cjs tests/guards/non-null-assertion-census.test.ts`
+- **observed** (2026-08-20): `Tests: 2 failed, 3 passed, 5 total` — RED は pipeline exact pin（hits 3 行検出）と src ratchet（`Expected: <= 64 / Received: 65`）の 2 件。revert 後 `5 passed`
+
 ---
 
 ## 恒久 mutation test（ledger 対象外・常時 CI で走るもの）
