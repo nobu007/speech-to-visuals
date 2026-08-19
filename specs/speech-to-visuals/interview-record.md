@@ -4526,6 +4526,28 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A150: Phase 150 — tests ツリー non-null assertion ratchet 単調減少ラウンド 3（tests/unit 274 → 169）（2026-08-20 第231回検証）
+
+- **判断**（A149 残課題の実行 → steering 指令への初準拠としての guard-first survey → 6 helper パターンの使い分け）:
+
+1. **実仕事は A149 残課題の直接実行**: steering が Phase 149 を VALUABLE と評価しつつ **guard-first survey への切り替え**（パターン/checker を先に走らせ検出された全 hit から面リストを機械的に生成する手順）を明示指示したため、本 run はラウンド 3 を同手順で実行（task registry TASK-0237 と一致）。Phase 147 の AST census checker と同一ロジックの per-file 集計（`/tmp/survey-nonnull.mjs`・降順ソート）を tests/unit に先に走らせ、上位 7 ファイル 105 node（websocket-handler 21 + 14 node ファイル ×6）を機械的に対象化 — A149 が挙載した「次点 3 ファイル」はすべて上位に含まれることを確認（手動リスト ⊂ 機械リスト）。
+2. **6 helper パターンの使い分け（すべて verdict 保存）**: (a) `requireEventHandler(calls, event)`（websocket-handler 21 node・mock `.on().mock.calls.find()?.[1]` キャプチャの `connectionCb!` 等 — 旧不在時挙動は `undefined(…)` TypeError = RED を、未登録 event 名入りの throw で同一 verdict に保存）・(b) `requireDefined` で **null も guard**（batch-processing-api 14 node・`getJobStatus()` が `BatchJobStatus | null` を返すため src/api/routes/batch.ts:115 に出典）・(c) `requireAlertRule` の REQ-338 同型再利用（monitoring-phase84-85 14 node）・(d) `requireFirstHandler` + `requireEmitted`（websocket-payload-validation 14 node・直前の `toBeDefined()` 7 対は helper の throw が同保証を担うため折りたため）・(e) `requirePlayer()`（VideoPreview 14 node・module-level `let … | null` への `NonNullable<typeof capturedPlayerRef>` 戻り型 — クロージャ semantics 保存）・(f) `requireShape(items, ty)`（animated-svg-lottie-export 14 node・Lottie `find(ty)`）。error-recovery-boundary-grouping 14 node は (b) 同型の `requireDefined`。
+3. **減少の機械強制（MW-016）**: Phase 150 rewrite への `!` 1 node 再注入（VideoPreview.test.tsx・`requirePlayer().play` → `capturedPlayerRef!.play`）で **tests 合計 ratchet（`Expected: <= 794 / Received: 795`）と tests/unit dir ratchet（`Expected: <= 169 / Received: 170`）の 2 tests RED** を実測（`Tests: 2 failed, 9 passed, 11 total`）→ revert で census GREEN・ledger 監査 pin ≥15 → ≥16 GREEN。
+4. **フルスイート初回 2 fail は machine-load flake**: 初回 full run（281.80s・バックグラウンド）は src/export/**tests**/export-abort-listener-cleanup.test.ts:131 の 15s timeout と tests/benchmark/worker-performance.test.ts:152 の `ratio 116.99 < 100` が 2 fail — いずれも wall-clock/timing assertion で本 run 変更 7 ファイル（tests/unit/{api,api/routes,components,export,quality}）と依存なし・**2 suite 単体再実行 10/10 GREEN** で切り分け（A149 の OverlapResolver flake と同クラス。full run のバックグラウンド実行中に guards suite を並走させた負荷が一因）。並走なしの 2 回目 run で全 GREEN（下記 EVIDENCE）。
+
+- **根拠**: TASK-0237・census/ledger guard 実行出力・MW-016 再実行プロトコル（台帳本文）・guard-first per-file census 実測（274→169 / 899→794）・flake 2 suite の単体再実行 GREEN。
+
+- **最終フルスイート**（Phase 150 全変更後・2 回目 run で全 GREEN）:
+  `[EVIDENCE] started≈2026-08-20T07:46:34+09:00 ended≈2026-08-20T07:54:19+09:00 exit=0 elapsed_s=465 (jest Time: 465.48s) cmd=npm test commit=4c7f2a7a+phase150-worktree branch=ai/instruction-speech-to-visuals-instruction-20260819-222525-573986` → **742 suites / 742 passed・23,155 passed / 0 failed / 17 skipped**（Phase 149 完了時 23,153 から +2 = ledger 監査 pin ≥16 化に伴う it.each 増分。run 履歴: 初回 full run（281.80s）は上記 4. の timing flake 2 fail のみ → 単体再実行 10/10 GREEN・並走なし 2 回目 run 全 GREEN）。
+
+- **信頼性への影響**:
+
+- REQ-340 追加（🔵・実装+guard pin+MW-016 に出典）。🔵 323 → 324 件。
+- tests ツリーの `!` が 3 ラウンド連続で減少（1096 → 1002 → 899 → **794**・unit 471 → 377 → 274 → **169**）。105 node の checker 抑制が verdict 保存置換で除去され、unit 内の `!` は残 169（census 次点: pipeline/pipeline-quality-monitor 13・monitoring/real-time-performance-monitor 11・pipeline/pipeline-orchestrated-recovery-integration 10）。
+- 残課題（引継ぎ）: tests/unit 残 169 の継続縮小・Phase 132 TASK-0218〜0222 未着手・requirements.md の PR #12 由来 dead citation 残存（A137 引継ぎ）。
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)

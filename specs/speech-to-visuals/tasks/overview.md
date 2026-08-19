@@ -107,8 +107,8 @@
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0236（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236）
-**次回開始番号**: TASK-0236
+**使用済みタスク番号**: TASK-0001 ~ TASK-0237（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237）
+**次回開始番号**: TASK-0238
 
 > **REQ 番号帯（Phase 140 決定）**: REQ-313〜322 は acceptance-criteria の TC 帯（TC-313〜321 実在・TC-322 は未 merge PR #9 提案中）との番号衝突回避のため予約（未使用）。機能要件は REQ-323 から、TC は TC-323 から採番する（REQ-326/TC-323 が適用例）。
 
@@ -2016,6 +2016,34 @@ MW 台帳（TASK-0228）に MW-015 追加・監査 pin ≥14 → ≥15
 ### 次フェーズ開始番号
 
 **次回開始番号**: TASK-0237
+
+## Phase 150: tests ツリー non-null assertion ratchet 単調減少ラウンド 3（tests/unit 274 → 169）
+
+**ステータス**: ✅完了（2026-08-20・TASK-0237 完了）
+
+**背景**: REQ-337 の単調減少維持指令のラウンド 3。steering の **guard-first survey** 指令（パターンを先に走らせ検出全 hit から面リストを機械的に生成）に初準拠し、Phase 147 の AST census checker と同一ロジックの per-file 集計降順上位 7 ファイル 105 node（websocket-handler 21・batch-processing-api 14・monitoring-phase84-85 14・websocket-payload-validation 14・VideoPreview 14・animated-svg-lottie-export 14・error-recovery-boundary-grouping 14）を対象。同一根本クラス（optional 戻り値 / mock キャプチャ / optional フィールドへの checker 抑制）を fail-loud helper 6 種（`requireEventHandler`・`requireDefined`(null 対応)・`requireAlertRule` 再利用・`requireFirstHandler`+`requireEmitted`・`requirePlayer`・`requireShape`）で挙動保存・verdict 保存置換し 105 node → 0・**tests/unit pin 274 → 169・tests 合計 pin 899 → 794**。MW-016（rewrite への `!` 1 node 再注入で合計 ratchet 795 > 794 と dir ratchet 170 > 169 の 2 RED）で減少の機械強制を継続実証。
+
+### タスク一覧
+
+- [x] [TASK-0237: tests ツリー non-null assertion ratchet 単調減少ラウンド 3（tests/unit 274 → 169）](TASK-0237.md) - 3h (DIRECT) 🔵 ✅2026-08-20（105 node→0・pin 169/794・MW-016）
+
+### 依存関係
+
+```
+TASK-0237 は REQ-337 の TESTS_DIR_PINS（TASK-0234）を Phase 148/149 に続き縮小側に更新
+requireAlertRule は REQ-338 alert-rules.test.ts と同型・requireEventHandler/requirePlayer/requireShape は新規
+MW 台帳（TASK-0228）に MW-016 追加・監査 pin ≥15 → ≥16
+次候補: tests/unit 残 169 の継続縮小（census 次点: pipeline/pipeline-quality-monitor 13・monitoring/real-time-performance-monitor 11・pipeline/pipeline-orchestrated-recovery-integration 10）
+```
+
+### 信頼性レベルサマリー（Phase 150 追加分）
+
+- 全 1 タスク 🔵（A149 残課題 + steering の guard-first survey 指示 + 実測（census guard 11 tests・対象パターン 8 suites 315 tests GREEN・tsc 0・MW-016 mutant RED 2 failed）に出典）
+- 推定工数: 3 時間
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0238
 
 ## Spine: external references
 

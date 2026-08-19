@@ -5858,6 +5858,12 @@
 - [x] **TC-335-02**: 減少の強制が継続実証されていること — Phase 149 rewrite への `!` 1 node 再注入（`expect(requireDefined(result.metrics, 'result.metrics').layoutQualityScore)` → `expect(result.metrics!.layoutQualityScore)`・pipeline-orchestrator.test.ts:723）が tests/unit ディレクトリ ratchet（275 > 274 超過）と tests 合計 ratchet（900 > 899 超過）の **2 tests RED** を生むこと（MW-015・revert 後 GREEN）。置換は verdict 保存であること — (c) の `input.config!` は factory 戻り型 `PipelineInput & { config: PipelineConfig }` による**正型経路の mutate** に置換され（factory は常に config を代入するため挙動同一）・(d) の `getJobStatus()` は `ExportJob | null` を返すため helper `requireJobStatus` は **null を guard** すること（旧: `null.field` TypeError = RED・新: throw Error = 同一 RED verdict）🔵
   - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'tests/guards/non-null-assertion-census|tests/unit/quality/quality-gate|tests/unit/monitoring/grafana-dashboard-model|tests/unit/pipeline/pipeline-orchestrator\.test|tests/unit/export/production-exporter'`（5 suites / 156 tests）
 
+#### REQ-340: tests ツリー non-null assertion ratchet 単調減少ラウンド 3（Phase 150）
+
+- [x] **TC-336-01**: REQ-337 の ratchet が Phase 149 に引き続き単調減少していること — Phase 150 実施後、tests/unit ディレクトリ pin が **274 → 169**（api/websocket-handler.test.ts 21 node → 0・api/batch-processing-api.test.ts 14 node → 0・api/routes/monitoring-phase84-85.test.ts 14 node → 0・api/websocket-payload-validation.test.ts 14 node → 0・components/VideoPreview.test.tsx 14 node → 0・export/animated-svg-lottie-export.test.ts 14 node → 0・quality/error-recovery-boundary-grouping.test.ts 14 node → 0・計 105 node）に・tests 合計 pin が **899 → 794** に縮小され、guard が縮小後の pin で GREEN であること・対象が **guard-first survey**（AST census per-file 集計降順の上位 7 ファイル・手動列挙なし）で機械的に選定されていること・置換対象 7 suite を含むパターン一致 **8 suites / 315 tests** が GREEN であること 🔵
+- [x] **TC-336-02**: 減少の強制が継続実証されていること — Phase 150 rewrite への `!` 1 node 再注入（`expect(requirePlayer().play)` → `expect(capturedPlayerRef!.play)`・VideoPreview.test.tsx）が tests/unit ディレクトリ ratchet（170 > 169 超過）と tests 合計 ratchet（795 > 794 超過）の **2 tests RED** を生むこと（MW-016・revert 後 GREEN）。置換は verdict 保存であること — (a) の mock handler 呼び出しは不在時の旧挙動 `undefined is not a function`（= RED）に対し helper は未登録 event 名を含む Error を throw し・(b) の `getJobStatus()` は `BatchJobStatus | null` を返すため helper は **null を guard** すること（旧: `null.status` TypeError = RED・新: throw Error = 同一 RED verdict）・(d) の直前 `toBeDefined()` 対は helper の throw が同保証を担うため折りたたまれていること 🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'tests/guards/non-null-assertion-census|tests/unit/api/websocket-handler|tests/unit/api/batch-processing-api|tests/unit/api/routes/monitoring-phase84-85|tests/unit/api/websocket-payload-validation|tests/unit/components/VideoPreview|tests/unit/export/animated-svg-lottie-export|tests/unit/quality/error-recovery-boundary-grouping'`（9 suites / 326 tests）
+
 
 ### Phase 111+ 受け入れ基準サマリー
 
@@ -5915,7 +5921,8 @@
 | REQ-337: tests ツリー non-null assertion ディレクトリ別 ratchet | 2 | 🔵 |
 | REQ-338: tests ツリー non-null assertion ratchet 単調減少ラウンド 1 | 2 | 🔵 |
 | REQ-339: tests ツリー non-null assertion ratchet 単調減少ラウンド 2 | 2 | 🔵 |
-| **合計** | **122** | **🔵 91.8% / 🟡 8.2%** |
+| REQ-340: tests ツリー non-null assertion ratchet 単調減少ラウンド 3 | 2 | 🔵 |
+| **合計** | **124** | **🔵 91.8% / 🟡 8.2%** |
 
 
 <!-- spine:references:begin -->
