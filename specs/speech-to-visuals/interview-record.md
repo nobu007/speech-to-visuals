@@ -4384,6 +4384,30 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A144: Phase 144 — non-null assertion 撲滅・export 編（2026-08-20 第225回検証）
+
+**判断**（steering 系譜の継続判定 → 対象選択 → mid-flight REFUTED 判定）:
+
+1. **本 run の steering も Phase 141〜143 が消費した系譜と同一**（bullet 1「TASK-0226 以降に ratchet TASK を追加」の継続第4弾）。Phase 143 引継ぎの残 src `!` 分布を再実測（export 10・monitoring 7・analysis 6・framework 5・api 4・test 4・components 3・quality 3・remotion 2・main.tsx 1・pages 1・workers 1 = 47）し、**最大バケット src/export（10 件・5 ファイル）を Phase 144 に選択**。XSS 検証・成果物命名・job 生命周期という外部境界からの排除。
+2. **置換は 5 パターン**（TASK-0231）: (a) **fail-loud accessor `requireSceneId`**（5 サイト）— id 無し scene の旧ランタイムは `undefined.replace` TypeError → `export()` catch → `{success:false}`。accessor の ExportError も同一 catch 経路（メッセージが診断可能に）。**`?? ''` → `unnamed.svg` で成功は非等価**と判断。(b) `!== undefined` guard（`codePointAt(0)` — `for…of` で常に in-range だが `undefined > 0xff` = false pass-through を保存）。(c) **provably-dead definite-assignment 除去**（`byCompoundKey!:` — ctor 無条件代入を strictPropertyInitialization が証明）。(d) **`Number()` NaN 保存算術 ×2**（Phase 142 video-generator と同型・safeMean 除外と metrics 経路で NaN 素通し保存）。(e) **truth-telling pass-through 署名** — 後述の REFUTED 判定で確定。
+3. **mid-flight REFUTED**: enhanced-export-engine `job.outputPath!` にまず fail-loud accessor（`requireOutputPath`）を実装したところ、**REQ-228 の zero/negative timeout テストが `prepareExport` を丸ごと stub し `outputPath` 未設定のまま実 `finalizeExport` に到達**するため 2 件が `result.success` true pin で RED。「stage 1 が常に代入するので unreachable」の静的推論は mock 経路で反証された。`?? ''`・経路再生成も値が変わるため非等価 → **`writeOutputFile`/`getFileSize` の引数と戻り値を `string | undefined` にして値を旧 `!` と同一に素通し**させる署名修正で解決（ExportResult.outputPath は optional で下流は全て undefined 受容）。**「unreachable と思しき状態もテストが到達させるならそれは到達可能」**を Phase 145 以降の置換判断に登録。
+4. **source-anchor guard の陳腐化 pin 更新**: `tests/export/production-exporter-safe-aggregation-migration.test.ts` の site-780 肯定 pin が旧 `endTime! - startTime!` 形を要求し RED → post-Phase-144 形に更新（session 152「旧肯定 pin は委譲で陳腐化」と同一手順・legacy forbidden pin は影響なしことを確認）。
+5. **挙動保存の実証**: 置換前後で `export` pattern 73 suites / 4144 tests 同一 GREEN・`tsc -p tsconfig.app.json --noEmit` exit=0・census 実測 src/export=0・src=37。
+6. **MW-009 を台帳に追加**（REQ-330 の運用4回目）: mutant `(job as { startedAt: number }).startedAt! - job.enqueuedAt`（export-job-queue.ts:220）で census guard 2 tests RED（export exact pin + src ratchet `Expected: <= 37 / Received: 38`）→ revert 後 7 tests GREEN。ledger 監査 pin ≥8 → ≥9（台帳 .md と guard pin は同一コミット）。
+
+**根拠**: TASK-0231・census/ledger guard 実行出力・MW-009 再実行プロトコル（台帳本文）。
+
+**最終フルスイート**（Phase 144 全変更後・working tree HEAD=ca9b1bb7 時点の実測）:
+`[EVIDENCE] started=2026-08-20T01:39:09+09:00 ended=2026-08-20T01:42:56+09:00 exit=0 elapsed_s=227.40 cmd=npm test commit=ca9b1bb7 branch=ai/instruction-speech-to-visuals-instruction-20260819-162156-287043` → **742 suites / 742 passed・23,137 passed / 0 failed / 17 skipped**（直前 Phase 143 完了時 23,134 から +3 = census guard export exact pin +1・ledger 監査 it.each 2 block × MW-009 追加分 +2）。
+
+**信頼性への影響**:
+
+- REQ-333 追加（🔵・実装+guard+MW-009 に出典）。🔵 316 → 317 件。
+- strict mode の実検証範囲が src/visualization + src/pipeline + src/transcription + src/export に拡大（計 123 件の `!` を 0 化・CI が常時強制）。残 src 37 件・tests 960 件は ratchet で増加防止のみ。
+- 残課題（引継ぎ）: src/monitoring 7・src/analysis 6 が次候補（同一パターンセット・pass-through 署名パターンは mock 経路の到達可能性を先に確認）。Phase 132 TASK-0218〜0222 未着手・requirements.md の PR #12 由来 dead citation 残存（A137 引継ぎ）。
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)

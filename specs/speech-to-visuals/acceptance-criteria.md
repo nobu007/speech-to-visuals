@@ -5808,6 +5808,14 @@
   - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules' npx jest --config jest.config.cjs --testPathPatterns tests/guards/non-null-assertion-census`（6 tests）
   - **mutation RED 検証済み（MW-008）**: streaming-transcriber.ts:506 `sum + sanitizeFinite(segment.confidence), 0);` → `sum + ((segment as { confidence: number })!.confidence), 0);` で transcription exact pin（mutant 行を hits として検出）と src ratchet（Expected <= 47 / Received 48）の 2 tests RED（revert 後 6 tests GREEN）
 
+#### REQ-333: non-null assertion 撲滅・export 編（Phase 144）
+
+- [x] **TC-329-01**: src/export プロダクションコード（`__tests__` 除く）に postfix non-null assertion が 0 件であることが exact pin で検証されること。src 本体（`__tests__`/`__mocks__` 除外）ratchet が 47 から **37** に縮小されること（2026-08-20 実測・47 − 10） 🔵
+- [x] **TC-329-02**: 挙動保存置換であること — 置換対象 5 ファイルを含む export pattern suite が置換前後で同一 GREEN（73 suites/4144 tests）・`tsc -p tsconfig.app.json --noEmit` exit=0・`requireSceneId` は id 無し scene の caught `{success:false}` 契約を保存（`?? ''`→`unnamed` 成功は非等価）・`Number()` は `undefined - x` ≡ `Number(undefined) - x` = NaN を safeMean/metrics 経路で同一保存・`writeOutputFile`/`getFileSize` の `string | undefined` pass-through 署名は REQ-228 の `prepareExport` 丸ごと stub テストが到達する outputPath 未設定状態を旧 `!` と同一に素通しすること（fail-loud accessor は同テスト 2 件 RED で REFUTED・`?? ''`/再生成も非等価） 🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules' npx jest --config jest.config.cjs --testPathPatterns tests/guards/non-null-assertion-census`（7 tests）
+  - **mutation RED 検証済み（MW-009）**: export-job-queue.ts:220 `Number(job.startedAt) - job.enqueuedAt` → `(job as { startedAt: number }).startedAt! - job.enqueuedAt` で export exact pin と src ratchet（Expected <= 37 / Received 38）の 2 tests RED（revert 後 7 tests GREEN）
+  - **source-anchor guard 更新**: tests/export/production-exporter-safe-aggregation-migration.test.ts の site-780 肯定 pin を `safeMean(completed.map((job) => Number(job.endTime) - Number(job.startTime)))` 形に更新（旧 `endTime! - startTime!` pin は Phase 144 置換で陳腐化 — 委譲で陳腐化した旧肯定 pin の先例と同一手順）
+
 
 ### Phase 111+ 受け入れ基準サマリー
 
@@ -5858,7 +5866,8 @@
 | REQ-330: mutation witness 台帳 | 2 | 🔵 |
 | REQ-331: non-null assertion 撲滅・pipeline 編 | 2 | 🔵 |
 | REQ-332: non-null assertion 撲滅・transcription 編 | 2 | 🔵 |
-| **合計** | **112** | **🔵 91.1% / 🟡 8.9%** |
+| REQ-333: non-null assertion 撲滅・export 編 | 2 | 🔵 |
+| **合計** | **114** | **🔵 91.2% / 🟡 8.8%** |
 
 
 <!-- spine:references:begin -->

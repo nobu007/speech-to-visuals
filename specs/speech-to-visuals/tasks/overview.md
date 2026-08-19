@@ -107,8 +107,8 @@
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0230（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230）
-**次回開始番号**: TASK-0231
+**使用済みタスク番号**: TASK-0001 ~ TASK-0231（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231）
+**次回開始番号**: TASK-0232
 
 > **REQ 番号帯（Phase 140 決定）**: REQ-313〜322 は acceptance-criteria の TC 帯（TC-313〜321 実在・TC-322 は未 merge PR #9 提案中）との番号衝突回避のため予約（未使用）。機能要件は REQ-323 から、TC は TC-323 から採番する（REQ-326/TC-323 が適用例）。
 
@@ -1863,6 +1863,33 @@ TASK-0230 は REQ-328 の census guard（TASK-0226）と MW 台帳（TASK-0228�
 ### 次フェーズ開始番号
 
 **次回開始番号**: TASK-0231
+
+## Phase 144: non-null assertion 撲滅・export 編
+
+**ステータス**: ✅完了（2026-08-20・TASK-0231 完了）
+
+**背景**: REQ-332（Phase 143）の直接継続。Phase 143 引継ぎの残 src `!` 分布（2026-08-20 実測: export 10・monitoring 7・analysis 6・framework 5・api 4・test 4・components 3・quality 3・remotion 2・main.tsx 1・pages 1・workers 1 = 47）の最大バケット src/export（10 件・multi-format-exporter 6 行・security-metrics-collector 1 行・production-exporter 1 行・export-job-queue 1 行・enhanced-export-engine 1 行）を対象に選択。XSS 検証・成果物命名・job 生命周期という外部境界から `!` を排除し strict mode の実検証範囲を拡大。
+
+### タスク一覧
+
+- [x] [TASK-0231: src/export non-null assertion 撲滅 + census ratchet 縮小](TASK-0231.md) - 4h (DIRECT) 🔵 ✅2026-08-20（10→0・src ratchet 47→37・MW-009・fail-loud accessor は REQ-228 mock 経路で REFUTED を記録し pass-through 署名で解決）
+
+### 依存関係
+
+```
+TASK-0231 は REQ-328 の census guard（TASK-0226）と MW 台帳（TASK-0228）を再利用
+source-anchor pin 更新: tests/export/production-exporter-safe-aggregation-migration.test.ts（site-780 肯定 pin を post-Phase-144 形に）
+次候補: src/monitoring（7）→ src/analysis（6）— 同一パターンセットで残 37 を段階的に 0 へ
+```
+
+### 信頼性レベルサマリー（Phase 144 追加分）
+
+- 全 1 タスク 🔵（steering META-intent 継続 + 前後実測（73 suites/4144 tests 同一 GREEN・tsc 0）に出典）
+- 推定工数: 4 時間
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0232
 
 ## Spine: external references
 
