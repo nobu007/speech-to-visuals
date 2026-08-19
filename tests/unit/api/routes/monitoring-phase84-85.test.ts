@@ -20,6 +20,7 @@ import { exportPrometheusMetrics } from '@/monitoring/prometheus-exporter';
 import {
   generateAlertRules,
   type AlertingConfig,
+  type AlertRule,
 } from '@/monitoring/alert-rules';
 import type { HttpMetricsSnapshot } from '@/monitoring/http-metrics-collector';
 import type { PipelineMetricsSnapshot } from '@/monitoring/pipeline-metrics-collector';
@@ -36,6 +37,22 @@ jest.mock('@stv/core/utils/logger', () => ({
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Fail-loud rule lookup (Phase 150 / TASK-0237, same idiom as the REQ-338
+ * helper in tests/unit/monitoring/alert-rules.test.ts): replaces the 14
+ * `rule!` non-null assertions this file used to postfix `.find()` results
+ * with. An absent rule previously surfaced as an opaque `TypeError: Cannot
+ * read properties of undefined` inside the first `expect`; the helper
+ * keeps the exact same RED verdict with the missing alert name.
+ */
+function requireAlertRule(config: AlertingConfig, alert: string): AlertRule {
+  const rule = config.groups[0].rules.find(r => r.alert === alert);
+  if (rule === undefined) {
+    throw new Error(`alert rule not found: ${alert}`);
+  }
+  return rule;
+}
 
 function createApp(dashboard?: PerformanceDashboard) {
   const app = express();
@@ -433,9 +450,7 @@ describe('REQ-215: Alert rule threshold boundary tests', () => {
   describe('TC-215-01: HighErrorRate 5% threshold', () => {
     it('fires at exactly 5.0% error rate', () => {
       const config = generateAlertRules({ errorRateThreshold: 0.05 });
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsHighErrorRate',
-      )!;
+      const rule = requireAlertRule(config, 'SpeechToVisualsHighErrorRate');
       // The expression should use > 0.05
       expect(rule.expr).toContain('> 0.05');
     });
@@ -443,17 +458,13 @@ describe('REQ-215: Alert rule threshold boundary tests', () => {
     it('does not fire below 5% with custom threshold', () => {
       // With threshold at 0.051, 0.05 should not trigger
       const config = generateAlertRules({ errorRateThreshold: 0.051 });
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsHighErrorRate',
-      )!;
+      const rule = requireAlertRule(config, 'SpeechToVisualsHighErrorRate');
       expect(rule.expr).toContain('> 0.051');
     });
 
     it('uses strict greater-than comparison', () => {
       const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsHighErrorRate',
-      )!;
+      const rule = requireAlertRule(config, 'SpeechToVisualsHighErrorRate');
       // Verify the operator is > (strictly greater than)
       expect(rule.expr).toMatch(/> 0\.05/);
       expect(rule.expr).not.toContain('>= 0.05');
@@ -466,9 +477,7 @@ describe('REQ-215: Alert rule threshold boundary tests', () => {
       // At 5.0% (0.05): rate(...) > 0.05 → false (strict >)
       // At 5.1% (0.051): rate(...) > 0.05 → true
       const config = generateAlertRules({ errorRateThreshold: 0.05 });
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsHighErrorRate',
-      )!;
+      const rule = requireAlertRule(config, 'SpeechToVisualsHighErrorRate');
       // Expression: rate(http_errors_total[5m]) / rate(http_requests_total[5m]) > 0.05
       // This means at exactly 0.05 the alert does NOT fire (strict >)
       expect(rule.expr).toMatch(/rate\([^)]+\)\s*\/\s*rate\([^)]+\)\s*>\s*0\.05/);
@@ -478,27 +487,21 @@ describe('REQ-215: Alert rule threshold boundary tests', () => {
   describe('TC-215-02: HighLatencyP95 20s threshold', () => {
     it('fires at exactly 20s (20000ms)', () => {
       const config = generateAlertRules({ latencyP95ThresholdMs: 20000 });
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsHighLatencyP95',
-      )!;
+      const rule = requireAlertRule(config, 'SpeechToVisualsHighLatencyP95');
       expect(rule.expr).toContain('> 20000');
     });
 
     it('does not fire at 19.9s with strict >', () => {
       // Expression uses > 20000, so 19999 does not trigger
       const config = generateAlertRules({ latencyP95ThresholdMs: 20000 });
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsHighLatencyP95',
-      )!;
+      const rule = requireAlertRule(config, 'SpeechToVisualsHighLatencyP95');
       // Strict > means 20000 itself does not fire
       expect(rule.expr).toMatch(/http_request_duration_ms\{quantile="0\.95"\}\s*>\s*20000/);
     });
 
     it('uses correct quantile label', () => {
       const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsHighLatencyP95',
-      )!;
+      const rule = requireAlertRule(config, 'SpeechToVisualsHighLatencyP95');
       expect(rule.expr).toContain('quantile="0.95"');
     });
 
@@ -508,9 +511,7 @@ describe('REQ-215: Alert rule threshold boundary tests', () => {
       // 20000ms: > 20000 → false (strict >)
       // 20100ms: > 20000 → true
       const config = generateAlertRules({ latencyP95ThresholdMs: 20000 });
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsHighLatencyP95',
-      )!;
+      const rule = requireAlertRule(config, 'SpeechToVisualsHighLatencyP95');
       expect(rule.expr).toContain('> 20000');
       expect(rule.severity).toBe('warning');
     });
@@ -519,18 +520,14 @@ describe('REQ-215: Alert rule threshold boundary tests', () => {
   describe('TC-215-03: HealthCheckFailures 3x consecutive threshold', () => {
     it('fires at >= 3 consecutive failures', () => {
       const config = generateAlertRules({ healthCheckFailureThreshold: 3 });
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsHealthCheckFailures',
-      )!;
+      const rule = requireAlertRule(config, 'SpeechToVisualsHealthCheckFailures');
       // The expression uses >= 3
       expect(rule.expr).toContain('>= 3');
     });
 
     it('does not fire at 2 failures', () => {
       const config = generateAlertRules({ healthCheckFailureThreshold: 3 });
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsHealthCheckFailures',
-      )!;
+      const rule = requireAlertRule(config, 'SpeechToVisualsHealthCheckFailures');
       // Expression: sum(increase(http_errors_total{path=~"/health.*"}[10m])) >= 3
       // 2 failures: 2 >= 3 → false
       expect(rule.expr).toContain('>= 3');
@@ -539,18 +536,14 @@ describe('REQ-215: Alert rule threshold boundary tests', () => {
     it('fires at 4 failures', () => {
       // With >= 3, 4 also triggers
       const config = generateAlertRules({ healthCheckFailureThreshold: 3 });
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsHealthCheckFailures',
-      )!;
+      const rule = requireAlertRule(config, 'SpeechToVisualsHealthCheckFailures');
       expect(rule.expr).toContain('>= 3');
       expect(rule.severity).toBe('critical');
     });
 
     it('uses correct health path pattern', () => {
       const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsHealthCheckFailures',
-      )!;
+      const rule = requireAlertRule(config, 'SpeechToVisualsHealthCheckFailures');
       expect(rule.expr).toContain('/health');
       expect(rule.expr).toContain('http_errors_total');
     });
@@ -561,9 +554,7 @@ describe('REQ-215: Alert rule threshold boundary tests', () => {
       // 3: 3 >= 3 → true
       // 4: 4 >= 3 → true
       const config = generateAlertRules({ healthCheckFailureThreshold: 3 });
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsHealthCheckFailures',
-      )!;
+      const rule = requireAlertRule(config, 'SpeechToVisualsHealthCheckFailures');
       // >= operator ensures 3 and above trigger
       expect(rule.expr).toMatch(/>=\s*3/);
       expect(rule.severity).toBe('critical');
@@ -571,9 +562,7 @@ describe('REQ-215: Alert rule threshold boundary tests', () => {
 
     it('allows custom failure threshold', () => {
       const config = generateAlertRules({ healthCheckFailureThreshold: 5 });
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsHealthCheckFailures',
-      )!;
+      const rule = requireAlertRule(config, 'SpeechToVisualsHealthCheckFailures');
       expect(rule.expr).toContain('>= 5');
     });
   });

@@ -53,6 +53,35 @@ function createMockIo(sockets: ReturnType<typeof createMockSocket>[] = []) {
 }
 
 // ---------------------------------------------------------------------------
+// Fail-loud lookups (Phase 150 / TASK-0237): replace the `handlers![0]` /
+// `errorEmit!` postfix assertions. A missing registration or emission used
+// to surface as `undefined is not a function` / an opaque `undefined.data`
+// TypeError; the helpers keep the RED verdict naming what was absent.
+// ---------------------------------------------------------------------------
+
+function requireFirstHandler(
+  events: Record<string, Array<(...args: unknown[]) => void>>,
+  event: string,
+): (...args: unknown[]) => void {
+  const handler = events[event]?.[0];
+  if (handler === undefined) {
+    throw new Error(`no handler registered for "${event}"`);
+  }
+  return handler;
+}
+
+function requireEmitted(
+  emitted: Array<{ event: string; data: unknown }>,
+  event: string,
+): { event: string; data: unknown } {
+  const found = emitted.find(e => e.event === event);
+  if (found === undefined) {
+    throw new Error(`expected a "${event}" emission, found none`);
+  }
+  return found;
+}
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
@@ -77,39 +106,30 @@ describe('ISS-042: WebSocket payload validation', () => {
 
   describe('join:job payload validation', () => {
     it('should reject null payload', () => {
-      const handlers = mockSocket._events['join:job'];
-      expect(handlers).toBeDefined();
-      handlers![0](null);
+      requireFirstHandler(mockSocket._events, 'join:job')(null);
 
-      const errorEmit = mockSocket._emitted.find(e => e.event === 'error');
-      expect(errorEmit).toBeDefined();
-      expect((errorEmit!.data as { message: string }).message).toContain('non-null object');
+      const errorEmit = requireEmitted(mockSocket._emitted, 'error');
+      expect((errorEmit.data as { message: string }).message).toContain('non-null object');
     });
 
     it('should reject undefined payload', () => {
-      const handlers = mockSocket._events['join:job'];
-      handlers![0](undefined);
+      requireFirstHandler(mockSocket._events, 'join:job')(undefined);
 
-      const errorEmit = mockSocket._emitted.find(e => e.event === 'error');
-      expect(errorEmit).toBeDefined();
+      requireEmitted(mockSocket._emitted, 'error');
     });
 
     it('should reject array payload', () => {
-      const handlers = mockSocket._events['join:job'];
-      handlers![0]([{ jobId: 'valid' }]);
+      requireFirstHandler(mockSocket._events, 'join:job')([{ jobId: 'valid' }]);
 
-      const errorEmit = mockSocket._emitted.find(e => e.event === 'error');
-      expect(errorEmit).toBeDefined();
-      expect((errorEmit!.data as { message: string }).message).toContain('non-null object');
+      const errorEmit = requireEmitted(mockSocket._emitted, 'error');
+      expect((errorEmit.data as { message: string }).message).toContain('non-null object');
     });
 
     it('should reject payload with missing jobId', () => {
-      const handlers = mockSocket._events['join:job'];
-      handlers![0]({ notJobId: 'foo' });
+      requireFirstHandler(mockSocket._events, 'join:job')({ notJobId: 'foo' });
 
-      const errorEmit = mockSocket._emitted.find(e => e.event === 'error');
-      expect(errorEmit).toBeDefined();
-      expect((errorEmit!.data as { message: string }).message).toContain('Missing required field: jobId');
+      const errorEmit = requireEmitted(mockSocket._emitted, 'error');
+      expect((errorEmit.data as { message: string }).message).toContain('Missing required field: jobId');
     });
 
     it('should reject payload with too many fields (max 20)', () => {
@@ -118,17 +138,14 @@ describe('ISS-042: WebSocket payload validation', () => {
         oversizedPayload[`extra${i}`] = `value${i}`;
       }
 
-      const handlers = mockSocket._events['join:job'];
-      handlers![0](oversizedPayload);
+      requireFirstHandler(mockSocket._events, 'join:job')(oversizedPayload);
 
-      const errorEmit = mockSocket._emitted.find(e => e.event === 'error');
-      expect(errorEmit).toBeDefined();
-      expect((errorEmit!.data as { message: string }).message).toContain('too many fields');
+      const errorEmit = requireEmitted(mockSocket._emitted, 'error');
+      expect((errorEmit.data as { message: string }).message).toContain('too many fields');
     });
 
     it('should accept valid payload and join room', () => {
-      const handlers = mockSocket._events['join:job'];
-      handlers![0]({ jobId: '550e8400-e29b-41d4-a716-446655440000' });
+      requireFirstHandler(mockSocket._events, 'join:job')({ jobId: '550e8400-e29b-41d4-a716-446655440000' });
 
       expect(mockSocket._joinedRooms).toContain('job:550e8400-e29b-41d4-a716-446655440000');
       const joinedEmit = mockSocket._emitted.find(e => e.event === 'job:joined');
@@ -140,26 +157,20 @@ describe('ISS-042: WebSocket payload validation', () => {
 
   describe('leave:job payload validation', () => {
     it('should reject non-object payload for leave:job', () => {
-      const handlers = mockSocket._events['leave:job'];
-      expect(handlers).toBeDefined();
-      handlers![0]('string-payload');
+      requireFirstHandler(mockSocket._events, 'leave:job')('string-payload');
 
-      const errorEmit = mockSocket._emitted.find(e => e.event === 'error');
-      expect(errorEmit).toBeDefined();
-      expect((errorEmit!.data as { message: string }).message).toContain('non-null object');
+      const errorEmit = requireEmitted(mockSocket._emitted, 'error');
+      expect((errorEmit.data as { message: string }).message).toContain('non-null object');
     });
 
     it('should reject number payload for leave:job', () => {
-      const handlers = mockSocket._events['leave:job'];
-      handlers![0](12345);
+      requireFirstHandler(mockSocket._events, 'leave:job')(12345);
 
-      const errorEmit = mockSocket._emitted.find(e => e.event === 'error');
-      expect(errorEmit).toBeDefined();
+      requireEmitted(mockSocket._emitted, 'error');
     });
 
     it('should accept valid payload and leave room', () => {
-      const handlers = mockSocket._events['leave:job'];
-      handlers![0]({ jobId: '550e8400-e29b-41d4-a716-446655440000' });
+      requireFirstHandler(mockSocket._events, 'leave:job')({ jobId: '550e8400-e29b-41d4-a716-446655440000' });
 
       expect(mockSocket._leftRooms).toContain('job:550e8400-e29b-41d4-a716-446655440000');
       const leftEmit = mockSocket._emitted.find(e => e.event === 'job:left');

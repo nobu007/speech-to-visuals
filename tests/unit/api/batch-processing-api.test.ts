@@ -34,6 +34,20 @@ function createTestApp(): { app: express.Express; jobManager: BatchJobManager } 
   return { app, jobManager };
 }
 
+/**
+ * Fail-loud presence check (Phase 150 / TASK-0237). Replaces the `…!`
+ * non-null assertions this file used to postfix `jobs.get(…)` /
+ * `getJobStatus(…)` results with: an absent job used to surface as an
+ * opaque `Cannot read properties of undefined` inside the mutation or
+ * expect, the helper keeps the RED verdict naming the missing job.
+ */
+function requireDefined<T>(value: T | undefined | null, label: string): T {
+  if (value === undefined || value === null) {
+    throw new Error(`${label} not found`);
+  }
+  return value;
+}
+
 // ---------------------------------------------------------------------------
 // Test Suites
 // ---------------------------------------------------------------------------
@@ -380,7 +394,7 @@ describe('Batch Processing API', () => {
       const jobId = createRes.body.data.jobId;
 
       // Manually mark as completed
-      jobManager['jobs'].get(jobId)!.status.status = 'completed';
+      requireDefined(jobManager['jobs'].get(jobId), `job ${jobId}`).status.status = 'completed';
 
       // Try to cancel
       const res = await request(app).post(`/api/v1/batch/jobs/${jobId}/cancel`);
@@ -403,7 +417,7 @@ describe('Batch Processing API', () => {
       const jobId = createRes.body.data.jobId;
 
       // Manually mark as failed
-      jobManager['jobs'].get(jobId)!.status.status = 'failed';
+      requireDefined(jobManager['jobs'].get(jobId), `job ${jobId}`).status.status = 'failed';
 
       // Try to cancel
       const res = await request(app).post(`/api/v1/batch/jobs/${jobId}/cancel`);
@@ -454,12 +468,12 @@ describe('Batch Processing API', () => {
 
       // Manually set 3 jobs to "processing" to simulate them running
       for (let i = 0; i < 3; i++) {
-        jobManager['jobs'].get(jobIds[i])!.status.status = 'processing';
+        requireDefined(jobManager['jobs'].get(jobIds[i]), `job ${jobIds[i]}`).status.status = 'processing';
       }
 
       // The 4th job should still be "queued" because max 3 are processing
       const fourthJobStatus = jobManager.getJobStatus(jobIds[3]);
-      expect(fourthJobStatus!.status).toBe('queued');
+      expect(requireDefined(fourthJobStatus, 'fourth job status').status).toBe('queued');
     });
 
     it('should start queued job when a processing job completes', async () => {
@@ -478,18 +492,18 @@ describe('Batch Processing API', () => {
 
       // Set 3 to processing
       for (let i = 0; i < 3; i++) {
-        jobManager['jobs'].get(jobIds[i])!.status.status = 'processing';
+        requireDefined(jobManager['jobs'].get(jobIds[i]), `job ${jobIds[i]}`).status.status = 'processing';
       }
 
       // Complete one job
-      jobManager['jobs'].get(jobIds[0])!.status.status = 'completed';
+      requireDefined(jobManager['jobs'].get(jobIds[0]), `job ${jobIds[0]}`).status.status = 'completed';
 
       // Simulate the queue starting the next job
       jobManager.startNextQueuedJob();
 
       // The 4th job should now be processing
       const fourthJobStatus = jobManager.getJobStatus(jobIds[3]);
-      expect(fourthJobStatus!.status).toBe('processing');
+      expect(requireDefined(fourthJobStatus, 'fourth job status').status).toBe('processing');
     });
 
     it('should track running and queued job counts correctly', () => {
@@ -504,7 +518,7 @@ describe('Batch Processing API', () => {
 
       // Set first 3 to processing
       for (let i = 0; i < 3; i++) {
-        jobManager['jobs'].get(ids[i])!.status.status = 'processing';
+        requireDefined(jobManager['jobs'].get(ids[i]), `job ${ids[i]}`).status.status = 'processing';
       }
 
       expect(jobManager.getRunningCount()).toBe(3);
@@ -519,8 +533,8 @@ describe('Batch Processing API', () => {
         const id = jobManager.createJob([{ name: `file${i}.wav`, path: `/audio/file${i}.wav` }]);
         // Mark older jobs as completed so they can be pruned
         if (i < 200) {
-          jobManager['jobs'].get(id)!.status.status = 'completed';
-          jobManager['jobs'].get(id)!.status.completedAt = new Date().toISOString();
+          requireDefined(jobManager['jobs'].get(id), `job ${id}`).status.status = 'completed';
+          requireDefined(jobManager['jobs'].get(id), `job ${id}`).status.completedAt = new Date().toISOString();
         }
       }
 
@@ -550,7 +564,7 @@ describe('Batch Processing API', () => {
       const jobId = createRes.body.data.jobId;
 
       // Simulate partial progress
-      const job = jobManager['jobs'].get(jobId)!;
+      const job = requireDefined(jobManager['jobs'].get(jobId), `job ${jobId}`);
       job.status.progress = {
         total: 3,
         completed: 1,
@@ -611,13 +625,13 @@ describe('Batch Processing API', () => {
       expect(statusRes.body.data.status).toBe('queued');
 
       // Move to processing
-      jobManager['jobs'].get(jobId)!.status.status = 'processing';
+      requireDefined(jobManager['jobs'].get(jobId), `job ${jobId}`).status.status = 'processing';
       statusRes = await request(app).get(`/api/v1/batch/jobs/${jobId}`);
       expect(statusRes.body.data.status).toBe('processing');
 
       // Move to completed
-      jobManager['jobs'].get(jobId)!.status.status = 'completed';
-      jobManager['jobs'].get(jobId)!.status.progress = {
+      requireDefined(jobManager['jobs'].get(jobId), `job ${jobId}`).status.status = 'completed';
+      requireDefined(jobManager['jobs'].get(jobId), `job ${jobId}`).status.progress = {
         total: 1,
         completed: 1,
         failed: 0,

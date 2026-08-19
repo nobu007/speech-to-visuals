@@ -28,6 +28,20 @@ let capturedPlayerRef: {
   removeEventListener: ReturnType<typeof jest.fn>;
 } | null = null;
 
+/**
+ * Fail-loud read of the captured mock player (Phase 150 / TASK-0237).
+ * Replaces the `capturedPlayerRef!` postfix assertions: a player that was
+ * never captured (MockPlayer did not render) used to surface as an opaque
+ * `Cannot read properties of null`; the helper keeps the RED verdict with
+ * a message naming the capture failure.
+ */
+function requirePlayer(): NonNullable<typeof capturedPlayerRef> {
+  if (capturedPlayerRef === null) {
+    throw new Error('mock player ref was not captured (MockPlayer did not render)');
+  }
+  return capturedPlayerRef;
+}
+
 // Track registered event listeners by the VideoPreview useEffect
 let registeredListeners: Record<string, Array<(...args: unknown[]) => void>> = {}; // eslint-disable-line prefer-const -- reassigned in beforeEach
 
@@ -749,7 +763,7 @@ describe('VideoPreview', () => {
       const playPauseBtn = screen.getByTestId('btn-play-pause');
       fireEvent.click(playPauseBtn);
 
-      expect(capturedPlayerRef!.play).toHaveBeenCalled();
+      expect(requirePlayer().play).toHaveBeenCalled();
     });
 
     test('should call player.pause() when pause button clicked while playing', () => {
@@ -766,7 +780,7 @@ describe('VideoPreview', () => {
 
       // Click pause
       fireEvent.click(playPauseBtn);
-      expect(capturedPlayerRef!.pause).toHaveBeenCalled();
+      expect(requirePlayer().pause).toHaveBeenCalled();
     });
   });
 
@@ -782,7 +796,7 @@ describe('VideoPreview', () => {
       const forwardBtn = screen.getByTestId('btn-frame-forward');
       fireEvent.click(forwardBtn);
 
-      expect(capturedPlayerRef!.seekTo).toHaveBeenCalledWith(1);
+      expect(requirePlayer().seekTo).toHaveBeenCalledWith(1);
     });
 
     test('should update time display after frame forward', () => {
@@ -824,7 +838,7 @@ describe('VideoPreview', () => {
       expect(backwardBtn).toHaveProperty('disabled', false);
 
       fireEvent.click(backwardBtn);
-      expect(capturedPlayerRef!.seekTo).toHaveBeenCalledWith(0);
+      expect(requirePlayer().seekTo).toHaveBeenCalledWith(0);
     });
   });
 
@@ -864,11 +878,11 @@ describe('VideoPreview', () => {
     test('should register event listeners on mount', () => {
       render(React.createElement(VideoPreview, createDefaultProps()));
       expect(capturedPlayerRef).toBeTruthy();
-      expect(capturedPlayerRef!.addEventListener).toHaveBeenCalledWith('play', expect.any(Function));
-      expect(capturedPlayerRef!.addEventListener).toHaveBeenCalledWith('pause', expect.any(Function));
-      expect(capturedPlayerRef!.addEventListener).toHaveBeenCalledWith('frameupdate', expect.any(Function));
-      expect(capturedPlayerRef!.addEventListener).toHaveBeenCalledWith('seeked', expect.any(Function));
-      expect(capturedPlayerRef!.addEventListener).toHaveBeenCalledWith('ended', expect.any(Function));
+      expect(requirePlayer().addEventListener).toHaveBeenCalledWith('play', expect.any(Function));
+      expect(requirePlayer().addEventListener).toHaveBeenCalledWith('pause', expect.any(Function));
+      expect(requirePlayer().addEventListener).toHaveBeenCalledWith('frameupdate', expect.any(Function));
+      expect(requirePlayer().addEventListener).toHaveBeenCalledWith('seeked', expect.any(Function));
+      expect(requirePlayer().addEventListener).toHaveBeenCalledWith('ended', expect.any(Function));
     });
 
     test('should remove event listeners on unmount', () => {
@@ -877,11 +891,11 @@ describe('VideoPreview', () => {
 
       unmount();
 
-      expect(capturedPlayerRef!.removeEventListener).toHaveBeenCalledWith('play', expect.any(Function));
-      expect(capturedPlayerRef!.removeEventListener).toHaveBeenCalledWith('pause', expect.any(Function));
-      expect(capturedPlayerRef!.removeEventListener).toHaveBeenCalledWith('frameupdate', expect.any(Function));
-      expect(capturedPlayerRef!.removeEventListener).toHaveBeenCalledWith('seeked', expect.any(Function));
-      expect(capturedPlayerRef!.removeEventListener).toHaveBeenCalledWith('ended', expect.any(Function));
+      expect(requirePlayer().removeEventListener).toHaveBeenCalledWith('play', expect.any(Function));
+      expect(requirePlayer().removeEventListener).toHaveBeenCalledWith('pause', expect.any(Function));
+      expect(requirePlayer().removeEventListener).toHaveBeenCalledWith('frameupdate', expect.any(Function));
+      expect(requirePlayer().removeEventListener).toHaveBeenCalledWith('seeked', expect.any(Function));
+      expect(requirePlayer().removeEventListener).toHaveBeenCalledWith('ended', expect.any(Function));
     });
   });
 });

@@ -129,6 +129,32 @@
  *     `getJobStatus` returns `ExportJob | null`, so the helper guards
  *     `null`, not `undefined`). All four suites stayed green through the
  *     rewrite (42/42, 24/24, 48/48, 31/31).
+ *     Phase 150 (REQ-340 / TASK-0237) continued it with the next seven
+ *     largest files — selected by re-running THIS census first and taking
+ *     the mechanically-sorted top of the list (the guard-first survey the
+ *     steering asked for after Phase 149's manual shortlist missed
+ *     nothing but could have) — 105 nodes → 0:
+ *     `requireEventHandler(calls, event)` in
+ *     tests/unit/api/websocket-handler.test.ts (21 nodes over the mock
+ *     `.on()` `.find()?.[1]` captures), `requireDefined(value, label)`
+ *     in tests/unit/api/batch-processing-api.test.ts (14 nodes over
+ *     `jobs.get(…)` / `getJobStatus(…)`; the helper guards `null` too),
+ *     `requireAlertRule(config, alert)` — the same idiom as the REQ-338
+ *     helper — in tests/unit/api/routes/monitoring-phase84-85.test.ts
+ *     (14 nodes), `requireFirstHandler(events, event)` /
+ *     `requireEmitted(emitted, event)` in
+ *     tests/unit/api/websocket-payload-validation.test.ts (9 + 5 nodes;
+ *     the redundant preceding `toBeDefined()` pairs were folded into the
+ *     helpers' throws), `requirePlayer()` reading the captured
+ *     `capturedPlayerRef` in tests/unit/components/VideoPreview.test.tsx
+ *     (14 nodes), `requireShape(items, ty)` over the Lottie `find(…)`
+ *     sites in tests/unit/export/animated-svg-lottie-export.test.ts
+ *     (14 nodes), and `requireDefined(value, label)` in
+ *     tests/unit/quality/error-recovery-boundary-grouping.test.ts
+ *     (14 nodes over `.find()` / `.get()` results and optional
+ *     `result.notification` / `result.error` fields). All seven suites
+ *     stayed green through the rewrite (8 suites / 315 tests, the pattern
+ *     also matching one extra file).
  *
  * Matching rule (AST since Phase 147 — SUPERSEDES the line-regex rule
  * documented in specs/speech-to-visuals/tasks/TASK-0226.md, which this
@@ -192,6 +218,12 @@
  * tests/unit/pipeline/pipeline-orchestrator.test.ts — turns BOTH the
  * tests/unit directory ratchet (274 → 275) and the tests-total ratchet
  * (899 → 900) RED.
+ * Mutation-verified (Phase 150, MW-016): re-injecting ONE `!` into the
+ * Phase-150 rewrite — `expect(requirePlayer().play)` back to
+ * `expect(capturedPlayerRef!.play)` in
+ * tests/unit/components/VideoPreview.test.tsx — turns BOTH the
+ * tests/unit directory ratchet (169 → 170) and the tests-total ratchet
+ * (794 → 795) RED.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -224,6 +256,12 @@ const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url));
  * tests/unit 377 − 29 (quality-gate) − 25 (grafana-dashboard-model) −
  * 25 (pipeline-orchestrator) − 24 (production-exporter) = 274;
  * tests total 1002 − 103 = 899).
+ * and 2026-08-20 (Phase 150 / REQ-340: monotone decrease round 3 —
+ * tests/unit 274 − 21 (websocket-handler) − 14 (batch-processing-api) −
+ * 14 (monitoring-phase84-85) − 14 (websocket-payload-validation) −
+ * 14 (VideoPreview) − 14 (animated-svg-lottie-export) −
+ * 14 (error-recovery-boundary-grouping) = 169;
+ * tests total 899 − 105 = 794).
  */
 const PINNED = {
   'src/visualization (production)': 0,
@@ -233,7 +271,7 @@ const PINNED = {
   'src/monitoring (production)': 0,
   'src/analysis (production)': 0,
   'src (production, excl. __tests__/__mocks__)': 0,
-  'tests (excl. __mocks__)': 899,
+  'tests (excl. __mocks__)': 794,
 } as const;
 
 /**
@@ -243,7 +281,7 @@ const PINNED = {
  * ratchet consciously, never silently.
  */
 const TESTS_DIR_PINS: Record<string, number> = {
-  unit: 274,
+  unit: 169,
   integration: 245,
   visualization: 184,
   guards: 72,
@@ -386,9 +424,9 @@ describe('non-null assertion census ratchet (REQ-328 / REQ-336 / REQ-337)', () =
     // 170 (pre-Phase-141 src total) − 67 − 29 − 17 − 10 − 7 − 6 (Phases
     // 141–146) − 22 (Phase 147, incl. the AST-only export node) = 0; the
     // liveness check below only guards against a scanner regression that
-    // would silently count nothing. The tests tree is still real: 899
-    // node hits over 14 pinned directories (1096 before Phase 148/149's
-    // −94 / −103 decreases).
+    // would silently count nothing. The tests tree is still real: 794
+    // node hits over 14 pinned directories (1096 before Phase 148/149/150's
+    // −94 / −103 / −105 decreases).
     expect(testsTotal.count).toBeGreaterThan(0);
   });
 });

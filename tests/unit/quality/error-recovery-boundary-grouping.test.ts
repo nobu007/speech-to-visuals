@@ -13,6 +13,21 @@ import type { StageBoundaryResult } from '@/quality/enhanced-error-recovery';
 
 type ProcessingStage = 'transcription' | 'segmentation' | 'analysis' | 'diagram_detection' | 'layout_generation' | 'animation' | 'rendering' | 'export';
 
+/**
+ * Fail-loud presence check (Phase 150 / TASK-0237). Replaces the `…!`
+ * non-null assertions this file used to postfix `.find()` / `.get()`
+ * results and optional `result` fields with: an absent group, breaker or
+ * notification used to surface as an opaque `Cannot read properties of
+ * undefined` inside the first expect; the helper keeps the RED verdict
+ * naming what was missing.
+ */
+function requireDefined<T>(value: T | undefined, label: string): T {
+  if (value === undefined) {
+    throw new Error(`${label} not found`);
+  }
+  return value;
+}
+
 function makeContext(overrides: Partial<{
   stage: ProcessingStage;
   retryCount: number;
@@ -86,13 +101,11 @@ describe('EnhancedErrorRecovery - Error Grouping', () => {
     const groups = recovery.getErrorGroups();
     expect(groups.length).toBe(2);
 
-    const timeoutGroup = groups.find(g => g.errorMessage === 'LLM timeout');
-    expect(timeoutGroup).toBeDefined();
-    expect(timeoutGroup!.count).toBe(2);
+    const timeoutGroup = requireDefined(groups.find(g => g.errorMessage === 'LLM timeout'), 'LLM timeout group');
+    expect(timeoutGroup.count).toBe(2);
 
-    const parseGroup = groups.find(g => g.errorMessage === 'JSON parse error');
-    expect(parseGroup).toBeDefined();
-    expect(parseGroup!.count).toBe(1);
+    const parseGroup = requireDefined(groups.find(g => g.errorMessage === 'JSON parse error'), 'JSON parse error group');
+    expect(parseGroup.count).toBe(1);
   });
 
   it('should separate errors with different stages into different groups', () => {
@@ -248,8 +261,7 @@ describe('EnhancedErrorRecovery - createStageErrorBoundary', () => {
     // Recovery should be attempted (strategy-based recovery from the class)
     expect(result.recoveryAttempted).toBe(true);
     // The result depends on whether recovery succeeds for 'analysis' stage
-    expect(result.notification).toBeDefined();
-    expect(result.notification!.stage).toBe('analysis');
+    expect(requireDefined(result.notification, 'result.notification').stage).toBe('analysis');
     expect(result.timeSpentMs).toBeGreaterThanOrEqual(0);
   });
 
@@ -260,7 +272,7 @@ describe('EnhancedErrorRecovery - createStageErrorBoundary', () => {
     };
 
     // Open the circuit breaker for this stage to force recovery failure
-    const breaker = recovery['circuitBreakers'].get('rendering')!;
+    const breaker = requireDefined(recovery['circuitBreakers'].get('rendering'), `breaker for rendering`);
     for (let i = 0; i < 10; i++) {
       breaker.recordFailure();
     }
@@ -282,7 +294,7 @@ describe('EnhancedErrorRecovery - createStageErrorBoundary', () => {
     };
 
     // Open the circuit breaker to prevent recovery
-    const breaker = recovery['circuitBreakers'].get('export')!;
+    const breaker = requireDefined(recovery['circuitBreakers'].get('export'), `breaker for export`);
     for (let i = 0; i < 10; i++) {
       breaker.recordFailure();
     }
@@ -292,11 +304,9 @@ describe('EnhancedErrorRecovery - createStageErrorBoundary', () => {
     });
 
     expect(result.success).toBe(false);
-    expect(result.error).toBeDefined();
-    expect(result.error!.message).toBe('Unrecoverable');
+    expect(requireDefined(result.error, 'result.error').message).toBe('Unrecoverable');
     expect(result.recoveryAttempted).toBe(true);
-    expect(result.notification).toBeDefined();
-    expect(result.notification!.severity).toBe('high');
+    expect(requireDefined(result.notification, 'result.notification').severity).toBe('high');
   });
 
   it('should fail when fallback also throws', async () => {
@@ -305,7 +315,7 @@ describe('EnhancedErrorRecovery - createStageErrorBoundary', () => {
     };
 
     // Open circuit breaker to prevent recovery
-    const breaker = recovery['circuitBreakers'].get('transcription')!;
+    const breaker = requireDefined(recovery['circuitBreakers'].get('transcription'), `breaker for transcription`);
     for (let i = 0; i < 10; i++) {
       breaker.recordFailure();
     }
@@ -331,9 +341,8 @@ describe('EnhancedErrorRecovery - createStageErrorBoundary', () => {
     });
 
     // Since analysis has recovery strategies, a notification should be generated
-    expect(result.notification).toBeDefined();
-    expect(result.notification!.severity).toBe('high');
-    expect(result.notification!.stage).toBe('analysis');
+    expect(requireDefined(result.notification, 'result.notification').severity).toBe('high');
+    expect(requireDefined(result.notification, 'result.notification').stage).toBe('analysis');
   });
 
   it('should pass component and sessionId to error context', async () => {
@@ -348,11 +357,10 @@ describe('EnhancedErrorRecovery - createStageErrorBoundary', () => {
     });
 
     // Verify the error was recorded with the right component
-    const errors = recovery['errorHistory'].get('transcription');
-    expect(errors).toBeDefined();
-    expect(errors!.length).toBeGreaterThan(0);
-    expect(errors![0].component).toBe('whisper-v2');
-    expect(errors![0].userContext.sessionId).toBe('session-123');
+    const errors = requireDefined(recovery['errorHistory'].get('transcription'), 'transcription error history');
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0].component).toBe('whisper-v2');
+    expect(errors[0].userContext.sessionId).toBe('session-123');
   });
 });
 
@@ -438,7 +446,7 @@ describe('EnhancedErrorRecovery - recoverBatch', () => {
 
   it('should handle mixed success and failure results', async () => {
     // Open circuit breaker for one stage to force failure
-    const breaker = recovery['circuitBreakers'].get('export')!;
+    const breaker = requireDefined(recovery['circuitBreakers'].get('export'), `breaker for export`);
     for (let i = 0; i < 10; i++) {
       breaker.recordFailure();
     }

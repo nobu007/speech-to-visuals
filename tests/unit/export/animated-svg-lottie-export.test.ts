@@ -31,6 +31,21 @@ import type { SceneDataset, FrameInfo } from '@/export/animated-scene-renderer';
 const HD: FrameInfo = { width: 1920, height: 1080 };
 const CUSTOM: FrameInfo = { width: 800, height: 600 };
 
+/**
+ * Fail-loud shape lookup (Phase 150 / TASK-0237). Replaces the `find(…)!`
+ * postfix assertions over Lottie shape/item arrays: a missing `ty` item
+ * used to surface as an opaque `Cannot read properties of undefined` in
+ * the first field read; the helper keeps the RED verdict naming the
+ * missing shape type.
+ */
+function requireShape<T>(items: T[], ty: string): T {
+  const found = items.find((it) => (it as Record<string, unknown>).ty === ty);
+  if (found === undefined) {
+    throw new Error(`shape with ty=${ty} not found`);
+  }
+  return found;
+}
+
 // ---------------------------------------------------------------------------
 // escapeXml
 // ---------------------------------------------------------------------------
@@ -613,9 +628,8 @@ describe('REQ-219: Lottie layer shapes', () => {
     const layer = (lottie.layers as Record<string, unknown>[])[0];
     const shapes = layer.shapes as Record<string, unknown>[];
 
-    const group = shapes.find((s) => s.ty === 'gr');
-    expect(group).toBeDefined();
-    expect(group!.nm).toBe('Background Group');
+    const group = requireShape(shapes, 'gr');
+    expect(group.nm).toBe('Background Group');
   });
 
   it('background group contains a rectangle shape (ty=rc)', () => {
@@ -625,12 +639,11 @@ describe('REQ-219: Lottie layer shapes', () => {
     );
     const layer = (lottie.layers as Record<string, unknown>[])[0];
     const shapes = layer.shapes as Record<string, unknown>[];
-    const group = shapes.find((s) => s.ty === 'gr')!;
+    const group = requireShape(shapes, 'gr');
     const items = group.it as Record<string, unknown>[];
 
-    const rect = items.find((it) => it.ty === 'rc');
-    expect(rect).toBeDefined();
-    expect(rect!.nm).toBe('Background Rect');
+    const rect = requireShape(items, 'rc');
+    expect(rect.nm).toBe('Background Rect');
   });
 
   it('rectangle size matches frame dimensions', () => {
@@ -640,9 +653,9 @@ describe('REQ-219: Lottie layer shapes', () => {
     );
     const layer = (lottie.layers as Record<string, unknown>[])[0];
     const shapes = layer.shapes as Record<string, unknown>[];
-    const group = shapes.find((s) => s.ty === 'gr')!;
+    const group = requireShape(shapes, 'gr');
     const items = group.it as Record<string, unknown>[];
-    const rect = items.find((it) => it.ty === 'rc')!;
+    const rect = requireShape(items, 'rc');
 
     const size = rect.s as Record<string, unknown>;
     expect(size.k).toEqual([800, 600]);
@@ -655,9 +668,9 @@ describe('REQ-219: Lottie layer shapes', () => {
     );
     const layer = (lottie.layers as Record<string, unknown>[])[0];
     const shapes = layer.shapes as Record<string, unknown>[];
-    const group = shapes.find((s) => s.ty === 'gr')!;
+    const group = requireShape(shapes, 'gr');
     const items = group.it as Record<string, unknown>[];
-    const fill = items.find((it) => it.ty === 'fl')!;
+    const fill = requireShape(items, 'fl');
 
     const color = fill.c as Record<string, unknown>;
     expect(color.k).toEqual(sceneTypeToFillColor('intro'));
@@ -670,9 +683,9 @@ describe('REQ-219: Lottie layer shapes', () => {
     );
     const layer = (lottie.layers as Record<string, unknown>[])[0];
     const shapes = layer.shapes as Record<string, unknown>[];
-    const group = shapes.find((s) => s.ty === 'gr')!;
+    const group = requireShape(shapes, 'gr');
     const items = group.it as Record<string, unknown>[];
-    const fill = items.find((it) => it.ty === 'fl')!;
+    const fill = requireShape(items, 'fl');
 
     const color = fill.c as Record<string, unknown>;
     expect(color.k).toEqual(sceneTypeToFillColor('outro'));
@@ -685,9 +698,9 @@ describe('REQ-219: Lottie layer shapes', () => {
     );
     const layer = (lottie.layers as Record<string, unknown>[])[0];
     const shapes = layer.shapes as Record<string, unknown>[];
-    const group = shapes.find((s) => s.ty === 'gr')!;
+    const group = requireShape(shapes, 'gr');
     const items = group.it as Record<string, unknown>[];
-    const fill = items.find((it) => it.ty === 'fl')!;
+    const fill = requireShape(items, 'fl');
 
     const color = fill.c as Record<string, unknown>;
     expect(color.k).toEqual(sceneTypeToFillColor('content'));
@@ -700,12 +713,11 @@ describe('REQ-219: Lottie layer shapes', () => {
     );
     const layer = (lottie.layers as Record<string, unknown>[])[0];
     const shapes = layer.shapes as Record<string, unknown>[];
-    const group = shapes.find((s) => s.ty === 'gr')!;
+    const group = requireShape(shapes, 'gr');
     const items = group.it as Record<string, unknown>[];
 
-    const transform = items.find((it) => it.ty === 'tr');
-    expect(transform).toBeDefined();
-    expect((transform!.o as Record<string, unknown>).k).toBe(100);
+    const transform = requireShape(items, 'tr');
+    expect((transform.o as Record<string, unknown>).k).toBe(100);
   });
 
   it('all layers in multi-scene animation have shapes', () => {
@@ -798,7 +810,7 @@ describe('buildLayerShapes', () => {
   it('rectangle has rounded corners (r=8)', () => {
     const shapes = buildLayerShapes({ duration: 2 }, 800, 600);
     const items = shapes[0].it as Record<string, unknown>[];
-    const rect = items.find((it) => it.ty === 'rc')!;
+    const rect = requireShape(items, 'rc');
 
     const roundness = rect.r as Record<string, unknown>;
     expect(roundness.k).toBe(8);
