@@ -519,7 +519,17 @@ export class LLMService {
     // Apply exponential backoff if retry
     await this.waitForBackoff(attempt);
 
-    const model = this.genAI!.getGenerativeModel({
+    // `execute()` gates every caller of this private method behind
+    // `isEnabled()` = `Boolean(this.genAI)`, so the undefined branch is
+    // unreachable through the public API. Fail loud with the gate's own
+    // message instead of asserting presence (which would surface as a bare
+    // TypeError from `undefined.getGenerativeModel` and be retried away).
+    const genAI = this.genAI;
+    if (genAI === undefined) {
+      throw new LLMResponseError('LLM service not enabled (API key missing or disabled)');
+    }
+
+    const model = genAI.getGenerativeModel({
       model: modelName,
       generationConfig: {
         ...generationConfig,

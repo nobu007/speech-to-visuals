@@ -223,11 +223,18 @@ export class SceneSegmenter {
             texts: [part.text],
             keyphrases: new Set(keywords),
           };
-        } else {
-          // Extend current segment
-          currentSegment!.endMs = part.endMs;
-          currentSegment!.texts.push(part.text);
-          keywords.forEach(kw => currentSegment!.keyphrases.add(kw));
+        } else if (currentSegment) {
+          // Extend current segment. Reaching the else already implies
+          // currentSegment is set — a null currentSegment forces
+          // shouldStartNew through its `!currentSegment` term — so this
+          // guard only lets TypeScript narrow the `let` that the boolean
+          // intermediary hides. The const capture below keeps that
+          // narrowing inside the forEach closure (a captured `let` loses
+          // it).
+          const segment = currentSegment;
+          segment.endMs = part.endMs;
+          segment.texts.push(part.text);
+          keywords.forEach(kw => segment.keyphrases.add(kw));
         }
       }
     }
@@ -584,8 +591,13 @@ export class SceneSegmenter {
 
     for (const [key, val] of a) {
       magA += val * val;
-      if (b.has(key)) {
-        dot += val * b.get(key)!;
+      // Captured get() mirrors the old `has(key)` guard for every input this
+      // private method sees: both callers pass buildTopicVector maps, whose
+      // values are always numbers, so `has(key)` and `get(key) !== undefined`
+      // agree exactly.
+      const bVal = b.get(key);
+      if (bVal !== undefined) {
+        dot += val * bVal;
       }
     }
     for (const val of b.values()) {
@@ -924,7 +936,11 @@ export class SceneSegmenter {
         result.length > 0
       ) {
         // Merge with previous segment
-        const prev = result.pop()!;
+        const prev = result.pop();
+        // Unreachable: the while guard requires result.length > 0, so pop()
+        // never yields undefined; break keeps the loop contract explicit
+        // instead of asserting presence.
+        if (prev === undefined) break;
         current = {
           startMs: prev.startMs,
           endMs: current.endMs,
