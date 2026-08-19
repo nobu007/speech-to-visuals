@@ -15,6 +15,7 @@ import { formatTimestamp } from './srt-generator';
 import { detectTranscriptionLanguage } from './language-detection';
 import { Caption } from '@remotion/captions';
 import { logger } from '@stv/core/utils/logger';
+import { sanitizeFinite } from '@stv/core/utils/guards';
 import { validateAudioFile } from '@stv/core/utils/audio-validation';
 
 export interface WhisperConfig {
@@ -336,8 +337,11 @@ export class WhisperTranscriber {
 
     return segments.map((segment, index) => ({
       ...segment,
-      id: segment.id! ?? index,
-      confidence: Math.max(Number.isFinite(segment.confidence) ? segment.confidence! : 0.8, 0.8),
+      // `!` before `??` asserted non-undefined and then handled undefined
+      // anyway — the plain `??` is the same expression minus the dead
+      // assertion. sanitizeFinite(v, 0.8) ≡ Number.isFinite(v) ? v : 0.8.
+      id: segment.id ?? index,
+      confidence: Math.max(sanitizeFinite(segment.confidence, 0.8), 0.8),
       text: segment.text.trim().replace(/\s+/g, ' ')
     })).filter(segment =>
       segment.text.length > 0 &&
@@ -403,7 +407,7 @@ export class WhisperTranscriber {
     if (result.segments.length === 0) return;
 
     const avgConfidence = result.segments.reduce((sum, s) =>
-      sum + (Number.isFinite(s.confidence!) ? s.confidence! : 0), 0) / result.segments.length;
+      sum + sanitizeFinite(s.confidence), 0) / result.segments.length;
   }
 
   /**

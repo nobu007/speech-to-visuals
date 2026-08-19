@@ -7,6 +7,7 @@
 import { TranscriptionSegment, TranscriptionResult, TranscriptionConfig, TranscriptionError } from './types';
 import { detectTranscriptionLanguage } from './language-detection';
 import { logger } from '@stv/core/utils/logger';
+import { sanitizeFinite } from '@stv/core/utils/guards';
 import {
   StreamingQualityMonitor,
   StreamingQualitySummary,
@@ -161,8 +162,12 @@ export class StreamingTranscriber {
           // Add segments with confidence filtering
           // minConfidence can legitimately be 0 (accept all); use ?? so only
           // undefined falls back to the 0.7 default, not an explicit 0.
+          // `?? NaN` on the segment side for the same reason: an undefined or
+          // NaN confidence must stay BELOW the threshold (`undefined >= x` was
+          // always false); a 0 fallback would flip the minConfidence: 0 case
+          // from filtered to accepted.
           const validSegments = chunkSegments.filter(
-            segment => segment.confidence! >= (this.config.minConfidence ?? 0.7)
+            segment => (segment.confidence ?? Number.NaN) >= (this.config.minConfidence ?? 0.7)
           );
 
           // Collect segments BEFORE quality monitoring so that a quality
@@ -172,7 +177,7 @@ export class StreamingTranscriber {
           // REQ-091: Record per-chunk quality with StreamingQualityMonitor
           if (this.qualityMonitor) {
             const chunkAvgConfidence = chunkSegments.length > 0
-              ? chunkSegments.reduce((s, seg) => s + (Number.isFinite(seg.confidence!) ? seg.confidence! : 0), 0) / chunkSegments.length
+              ? chunkSegments.reduce((s, seg) => s + sanitizeFinite(seg.confidence), 0) / chunkSegments.length
               : 0;
             this.qualityMonitor.evaluateChunk(i, chunkAvgConfidence);
           }
@@ -280,15 +285,20 @@ export class StreamingTranscriber {
 
             // Create segment for completed phrase — timestamps in MILLISECONDS,
             // recording-relative (see TranscriptionSegment contract).
+            // The confidence is captured in a const because the literal types it
+            // optional (TranscriptionSegment.confidence?): reading it back for
+            // the threshold compare would need a non-null assertion, while the
+            // local const is the exact number just computed.
+            const segmentConfidence = Number.isFinite(confidence) && confidence > 0 ? confidence : 0.8;
             const segment: TranscriptionSegment = {
               start: segmentStartTime - recordingStartTime,
               end: performance.now() - recordingStartTime,
               text: transcript.trim(),
-              confidence: Number.isFinite(confidence) && confidence > 0 ? confidence : 0.8,
+              confidence: segmentConfidence,
               speaker: 'unknown'
             };
 
-            if (segment.confidence! >= (this.config.minConfidence ?? 0.7)) {
+            if (segmentConfidence >= (this.config.minConfidence ?? 0.7)) {
               this.segments.push(segment);
               this.accumulatedText += segment.text + ' ';
 
@@ -476,8 +486,8 @@ export class StreamingTranscriber {
         // Merge segments
         lastMerged.end = Math.max(lastMerged.end, current.end);
         lastMerged.text += ' ' + current.text;
-        lastMerged.confidence = ((Number.isFinite(lastMerged.confidence!) ? lastMerged.confidence! : 0) +
-          (Number.isFinite(current.confidence!) ? current.confidence! : 0)) / 2;
+        lastMerged.confidence = (sanitizeFinite(lastMerged.confidence) +
+          sanitizeFinite(current.confidence)) / 2;
       } else {
         merged.push(current);
       }
@@ -493,7 +503,7 @@ export class StreamingTranscriber {
     if (segments.length === 0) return 0;
 
     const totalConfidence = segments.reduce((sum, segment) =>
-      sum + (Number.isFinite(segment.confidence!) ? segment.confidence! : 0), 0);
+      sum + sanitizeFinite(segment.confidence), 0);
     return totalConfidence / segments.length;
   }
 
@@ -521,26 +531,31 @@ export class StreamingTranscriber {
    */
   updateConfig(newConfig: Partial<StreamingTranscriptionConfig>): void {
     const candidate: StreamingTranscriptionConfig = { ...this.config, ...newConfig };
+    // The merged fields can hold explicit `undefined` (a spread override), and
+    // the old `candidate.x!` compares let `undefined` pass every check
+    // (`undefined <= 0` is false). The `!== undefined` guards below preserve
+    // that and mirror the constructor's own validation shape.
+    const { chunkSizeMs, minConfidence, overlapMs } = candidate;
 
-    if (candidate.chunkSizeMs! <= 0 || candidate.chunkSizeMs! > 60000) {
+    if (chunkSizeMs !== undefined && (chunkSizeMs <= 0 || chunkSizeMs > 60000)) {
       throw new TranscriptionError(
-        `chunkSizeMs must be > 0 and <= 60000, got ${candidate.chunkSizeMs!}`
+        `chunkSizeMs must be > 0 and <= 60000, got ${chunkSizeMs}`
       );
     }
-    if (candidate.minConfidence! < 0 || candidate.minConfidence! > 1) {
+    if (minConfidence !== undefined && (minConfidence < 0 || minConfidence > 1)) {
       throw new TranscriptionError(
-        `minConfidence must be between 0 and 1, got ${candidate.minConfidence!}`
+        `minConfidence must be between 0 and 1, got ${minConfidence}`
       );
     }
-    if (candidate.overlapMs! < 0) {
-      throw new TranscriptionError(`overlapMs must be >= 0, got ${candidate.overlapMs!}`);
+    if (overlapMs !== undefined && overlapMs < 0) {
+      throw new TranscriptionError(`overlapMs must be >= 0, got ${overlapMs}`);
     }
     // Validate against the EFFECTIVE (merged) chunkSizeMs so a combined update
     // such as { chunkSizeMs: 100, overlapMs: 500 } is rejected — otherwise
     // createAudioChunks would loop forever.
-    if (candidate.overlapMs! >= candidate.chunkSizeMs!) {
+    if (overlapMs !== undefined && chunkSizeMs !== undefined && overlapMs >= chunkSizeMs) {
       throw new TranscriptionError(
-        `overlapMs (${candidate.overlapMs!}) must be less than chunkSizeMs (${candidate.chunkSizeMs!})`
+        `overlapMs (${overlapMs}) must be less than chunkSizeMs (${chunkSizeMs})`
       );
     }
 
