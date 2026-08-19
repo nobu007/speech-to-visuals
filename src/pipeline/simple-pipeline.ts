@@ -181,6 +181,10 @@ export class SimplePipeline {
 
       const transcriptionProcessingTime = Date.now() - transcriptionStartTime;
       const transcriptionQuality = transcriptionResult.success && transcriptionResult.segments?.length > 0 ? 0.9 : 0.3;
+      // `=== true` matches the truthiness reads below/after (undefined and
+      // false both mean "failed" for the learner AND the guard right after
+      // this call), without asserting an optional field is always present.
+      const transcriptionSucceeded = transcriptionResult.success === true;
 
       // Custom Instructions: Learn from transcription results
       await continuousLearner.learnFromProcessingResult(
@@ -189,8 +193,8 @@ export class SimplePipeline {
         transcriptionResult,
         transcriptionProcessingTime,
         transcriptionQuality,
-        transcriptionResult.success!,
-        transcriptionResult.success ? [] : ['transcription_failed'],
+        transcriptionSucceeded,
+        transcriptionSucceeded ? [] : ['transcription_failed'],
         {
           audioFileType: input.audioFile.type,
           audioFileName: input.audioFile.name,
@@ -549,12 +553,19 @@ export class SimplePipeline {
       const qualityReport = qualityMonitor.generateReport();
 
       // Log iteration for development tracking
+      // getLatestMetrics() cannot be null here: recordMetrics() (above)
+      // unconditionally pushes into the history — narrow once instead of
+      // asserting, so a future refactor of recordMetrics fails loudly.
+      const successMetrics = qualityMonitor.getLatestMetrics();
+      if (!successMetrics) {
+        throw new Error('SimplePipeline: quality metrics missing immediately after recordMetrics()');
+      }
       qualityMonitor.logIteration({
         phaseId: 'phase-27',
         iterationNumber: this.iterationCount,
         action: 'Complete pipeline execution',
         result: 'success',
-        metrics: qualityMonitor.getLatestMetrics()!,
+        metrics: successMetrics,
         improvements: [
           `Processed ${scenes.length} scenes successfully`,
           `Quality score: ${qualityScore.toFixed(1)}/100`,
@@ -657,12 +668,17 @@ export class SimplePipeline {
       });
 
       // Log failure iteration with classified error context
+      // Same recordMetrics()-just-ran guarantee as the success path above.
+      const failureMetrics = qualityMonitor.getLatestMetrics();
+      if (!failureMetrics) {
+        throw new Error('SimplePipeline: quality metrics missing immediately after recordMetrics()');
+      }
       qualityMonitor.logIteration({
         phaseId: 'phase-27',
         iterationNumber: this.iterationCount,
         action: `Pipeline execution failed: ${classified.type}`,
         result: 'failure',
-        metrics: qualityMonitor.getLatestMetrics()!,
+        metrics: failureMetrics,
         improvements: [],
         nextSteps: [
           classified.suggestedAction,

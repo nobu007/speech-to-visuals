@@ -242,9 +242,13 @@ export class VideoGenerator {
     // [3000, 10000] clamp truncated every 10–15 s scene to 10 s, ending the
     // rendered scene before its audio segment ended.
     const defaultDuration = DEFAULT_SCENE_DURATION_MS;
+    // `Number(undefined)` is NaN — identical to the former `endTime! -
+    // startTime!` arithmetic — so an untimed scene still falls through to
+    // `|| defaultDuration` exactly as before (behavior-preserving
+    // non-null-assertion removal, Phase 142).
     const sceneDuration = Math.max(MIN_SCENE_DURATION_MS, Math.min(
       MAX_EDITORIAL_SCENE_DURATION_MS,
-      (scene.endTime! - scene.startTime!) * 1000 || defaultDuration
+      (Number(scene.endTime) - Number(scene.startTime)) * 1000 || defaultDuration
     ));
 
     // レイアウトからRemotionノード変換
@@ -259,21 +263,32 @@ export class VideoGenerator {
 
     // エッジ変換
     const edges = scene.layout?.edges?.map(edge => ({
-      from: edge.from!,
-      to: edge.to!,
-      label: edge.label! || '',
+      // LayoutEdge marks from/to/label optional, but the canonical edge
+      // builders (buildAnchoredLayoutEdges / buildWarnedAnchoredEdges)
+      // always assign endpoints; `?? ''` mirrors the label normalization on
+      // the next line. Nothing downstream branches on these metadata fields
+      // (rendering reads scene.layout.edges, not this projection).
+      from: edge.from ?? '',
+      to: edge.to ?? '',
+      label: edge.label || '',
       type: 'arrow'
     })) || [];
 
     return {
-      id: scene.id!,
-      startMs: scene.startTime! * 1000, // 秒をミリ秒に変換
+      // `id: ''` stays falsy, so validateRemotionData's `!scene.id` check
+      // reports "Missing ID" exactly as an undefined id did before.
+      id: scene.id ?? '',
+      // Number(undefined) → NaN, preserving the former `startTime! * 1000`
+      // behavior for malformed scenes instead of silently rebasing to 0.
+      startMs: Number(scene.startTime) * 1000, // 秒をミリ秒に変換
       durationMs: sceneDuration,
       diagramType: scene.type,
       title: this.generateSceneTitle(scene),
       nodes,
       edges,
-      transcript: scene.content!,
+      // buildSceneGraph always sets content (`segment.text ?? ''`); the
+      // normalization only guards scenes from producers bypassing it.
+      transcript: scene.content ?? '',
       // 0.0 is a legitimate "layout/detection broke down" signal; use ?? so it
       // is not masked to 0.8 (which would also silence the low-confidence
       // warning in validateRemotionData: confidence < 0.5).
@@ -548,7 +563,10 @@ export class VideoGenerator {
     // local copy here had already drifted from DiagramScene's rendered titles
     // (flowchart/general), so the scene list and the video frame disagreed.
     const typeLabel = DIAGRAM_TYPE_TITLES[scene.type];
-    return `${typeLabel} - ${scene.content!.substring(0, 30)}...`;
+    // buildSceneGraph always sets content; the `?? ''` replaces the former
+    // crash on undefined (`undefined.substring` TypeError) with an empty
+    // title tail on an unreachable path.
+    return `${typeLabel} - ${(scene.content ?? '').substring(0, 30)}...`;
   }
 
   /**

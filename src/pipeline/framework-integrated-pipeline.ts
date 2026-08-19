@@ -90,6 +90,24 @@ export class FrameworkIntegratedPipeline {
   }
 
   /**
+   * Fail-loud accessor for the lazily initialized iteration manager
+   * (Phase 142 non-null-assertion eradication).
+   *
+   * `execute()` seeds the manager via `setPhase()` before any use, so this
+   * throw is unreachable through the public API — it exists so the TYPE
+   * SYSTEM (not a `!`) proves the manager is present at each use site, and
+   * so a future entry point that forgets the seed fails with a named error
+   * instead of an `undefined` TypeError deep in the iteration flow.
+   */
+  private requireIterationManager(): IterationManager {
+    const manager = this.iterationManager;
+    if (!manager) {
+      throw new Error('FrameworkIntegratedPipeline: iterationManager is not initialized — call setPhase() first');
+    }
+    return manager;
+  }
+
+  /**
    * Execute pipeline with full framework support
    */
   async execute(input: PipelineInput): Promise<{
@@ -104,9 +122,10 @@ export class FrameworkIntegratedPipeline {
       this.setPhase(this.currentPhase);
     }
 
+    const iterationManager = this.requireIterationManager();
 
     // Start iteration
-    await this.iterationManager!.startIteration();
+    await iterationManager.startIteration();
 
     try {
       // Execute main pipeline
@@ -138,18 +157,18 @@ export class FrameworkIntegratedPipeline {
         ...qualityMetrics
       };
 
-      const evaluation = this.iterationManager!.evaluateSuccessCriteria(metricsForEvaluation);
+      const evaluation = iterationManager.evaluateSuccessCriteria(metricsForEvaluation);
 
       // Complete iteration
-      const iterationMetrics = await this.iterationManager!.completeIteration(
+      const iterationMetrics = await iterationManager.completeIteration(
         evaluation.allMet ? 'success' : 'failure',
         metricsForEvaluation,
         result.error
       );
 
       // Determine if commit should be triggered
-      const shouldCommit = this.iterationManager!.shouldCommit();
-      const commitMessage = shouldCommit ? this.iterationManager!.generateCommitMessage() : undefined;
+      const shouldCommit = iterationManager.shouldCommit();
+      const commitMessage = shouldCommit ? iterationManager.generateCommitMessage() : undefined;
 
       // Display results
       this.displayExecutionSummary(result, qualityMetrics, evaluation, shouldCommit);
@@ -166,13 +185,13 @@ export class FrameworkIntegratedPipeline {
       // Handle failure
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-      await this.iterationManager!.completeIteration('failure', {
+      await iterationManager.completeIteration('failure', {
         error: errorMessage,
         success: false
       }, errorMessage);
 
       // Determine recovery strategy
-      const recoveryStrategy = this.iterationManager!.determineRecoveryStrategy();
+      const recoveryStrategy = iterationManager.determineRecoveryStrategy();
 
       throw error;
     }
@@ -242,8 +261,9 @@ export class FrameworkIntegratedPipeline {
       } catch (error) {
         logger.error(`Cycle ${cycle} failed:`, error);
 
-        // Apply recovery strategy
-        const strategy = this.iterationManager!.determineRecoveryStrategy();
+        // Apply recovery strategy — the manager is guaranteed here because
+        // this loop's `this.execute()` call seeds it before any cycle runs.
+        const strategy = this.requireIterationManager().determineRecoveryStrategy();
         await this.applyRecoveryStrategy(strategy);
       }
     }

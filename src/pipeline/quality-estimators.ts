@@ -49,9 +49,12 @@ export function estimateTranscriptionAccuracy(result: PipelineResult): number {
  * - clamped to [0, 1]
  */
 export function estimateSegmentationQuality(result: PipelineResult): number {
-  if (!result.success || (result.scenes?.length ?? 0) === 0) return 0;
+  // `!scenes || scenes.length === 0` is exactly `(scenes?.length ?? 0) === 0`
+  // (nullish scenes OR empty array), but narrows `scenes` for the reads below.
+  const scenes = result.scenes;
+  if (!result.success || !scenes || scenes.length === 0) return 0;
 
-  const sceneCount = result.scenes!.length;
+  const sceneCount = scenes.length;
   const avgDuration = result.duration / sceneCount;
 
   let score = 0.7; // Base score
@@ -72,9 +75,10 @@ export function estimateSegmentationQuality(result: PipelineResult): number {
  * - 2–10 nodes/scene → 0.90; 1 (singleton) → 0.70; otherwise 0.50
  */
 export function estimateEntityExtractionQuality(result: PipelineResult): number {
-  if (!result.success || (result.scenes?.length ?? 0) === 0) return 0;
+  const scenes = result.scenes;
+  if (!result.success || !scenes || scenes.length === 0) return 0;
 
-  const scenesWithNodes = result.scenes!.filter(s => (s.nodes || []).length > 0);
+  const scenesWithNodes = scenes.filter(s => (s.nodes || []).length > 0);
   const avgNodesPerScene =
     scenesWithNodes.reduce((sum, s) => sum + (s.nodes || []).length, 0) /
     Math.max(scenesWithNodes.length, 1);
@@ -91,9 +95,10 @@ export function estimateEntityExtractionQuality(result: PipelineResult): number 
  * - ≥1 edge/scene → 0.85; otherwise 0.60
  */
 export function estimateRelationAccuracy(result: PipelineResult): number {
-  if (!result.success || (result.scenes?.length ?? 0) === 0) return 0;
+  const scenes = result.scenes;
+  if (!result.success || !scenes || scenes.length === 0) return 0;
 
-  const scenesWithEdges = result.scenes!.filter(s => (s.edges || []).length > 0);
+  const scenesWithEdges = scenes.filter(s => (s.edges || []).length > 0);
   const avgEdgesPerScene =
     scenesWithEdges.reduce((sum, s) => sum + (s.edges || []).length, 0) /
     Math.max(scenesWithEdges.length, 1);

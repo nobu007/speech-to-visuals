@@ -79,8 +79,12 @@ export function detectBottlenecks(stages: StageTimingRecord[]): BottleneckReport
 
   const hasBottleneck = bottlenecks.length > 0;
 
-  const summary = hasBottleneck
-    ? `Bottleneck detected: ${worstBottleneck!.stageName} at ${(worstBottleneck!.percentOfTotal * 100).toFixed(1)}% (${worstBottleneck!.severity})`
+  // `worstBottleneck` is non-null exactly when `bottlenecks.length > 0` (the
+  // reduce only runs in that case), i.e. whenever `hasBottleneck` is true —
+  // narrowing on the value itself keeps the two in lockstep without an
+  // assertion (Phase 142 non-null-assertion eradication).
+  const summary = worstBottleneck
+    ? `Bottleneck detected: ${worstBottleneck.stageName} at ${(worstBottleneck.percentOfTotal * 100).toFixed(1)}% (${worstBottleneck.severity})`
     : 'No bottleneck detected — all stages within acceptable thresholds';
 
   return {

@@ -436,6 +436,11 @@ export class PipelineOrchestrator {
         ),
       );
       scenes = stage4.result as SceneGraph[];
+      // `scenes` is a wide `let` (assigned once per run), so TypeScript
+      // invalidates its narrowing inside the closures below. Capture the
+      // value in a `const` — the closures then see the narrowed type and no
+      // assertion is needed (same value, same single assignment).
+      const preparedScenes = scenes;
       stage4.timing.retryAttempts = this.lastStageRetryAttempts;
       stageTimings.push(stage4.timing);
 
@@ -445,8 +450,8 @@ export class PipelineOrchestrator {
       // ===== Stage 5: Video Rendering =====
       this.emitProgress(cb, 5, 'rendering', 0, 'running');
 
-      const stage5 = await timeStage('rendering', scenes!.length, () =>
-        this.executeStageWithGates(4, () => this.runRendering(scenes!, pipelineConfig), cb),
+      const stage5 = await timeStage('rendering', preparedScenes.length, () =>
+        this.executeStageWithGates(4, () => this.runRendering(preparedScenes, pipelineConfig), cb),
       );
       stage5.timing.retryAttempts = this.lastStageRetryAttempts;
       stageTimings.push(stage5.timing);
@@ -468,9 +473,9 @@ export class PipelineOrchestrator {
 
       return {
         success: true,
-        scenes: scenes!,
+        scenes: preparedScenes,
         audioUrl,
-        duration: scenes!.reduce((sum, s) => sum + (s.durationMs || 0), 0),
+        duration: preparedScenes.reduce((sum, s) => sum + (s.durationMs || 0), 0),
         processingTime: totalTime,
         stages,
         metrics: {
@@ -737,7 +742,11 @@ export class PipelineOrchestrator {
     // (buildSceneGraph defaults startMs to 0); only the span/endTime move.
     if (!(scene.durationMs > 0)) {
       scene.durationMs = DEFAULT_SCENE_DURATION_MS;
-      scene.endTime = scene.startTime! + DEFAULT_SCENE_DURATION_MS / 1000;
+      // `Number(undefined)` is NaN — exactly what the former `startTime!`
+      // arithmetic produced — so a malformed scene keeps its NaN endTime
+      // instead of silently rebasing to 0. (buildSceneGraph always sets
+      // startTime, so this is defense in depth, not a reachable path.)
+      scene.endTime = Number(scene.startTime) + DEFAULT_SCENE_DURATION_MS / 1000;
     }
     return scene;
   }

@@ -1271,11 +1271,15 @@ export class MainPipeline {
    * 🔄 Track Stage Performance (Iterative Improvement)
    */
   private trackStagePerformance(stageName: string, duration: number): void {
-    // Store stage timing for analysis
-    if (!this.performanceTracker.stageTimings.has(stageName)) {
-      this.performanceTracker.stageTimings.set(stageName, []);
+    // Store stage timing for analysis (get-or-create: identical to the
+    // former `has → set → get()!` dance, but the array flows through a
+    // narrowed local instead of an asserted Map lookup).
+    const stageTiming = this.performanceTracker.stageTimings.get(stageName);
+    if (stageTiming) {
+      stageTiming.push(duration);
+    } else {
+      this.performanceTracker.stageTimings.set(stageName, [duration]);
     }
-    this.performanceTracker.stageTimings.get(stageName)!.push(duration);
 
     // Detect bottlenecks (if stage takes >50% of total time)
     const totalTime = performance.now() - this.performanceTracker.startTime;
