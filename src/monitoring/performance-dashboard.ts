@@ -200,8 +200,11 @@ export class PerformanceDashboard {
       memory: {
         heapUsed: memoryUsage.heapUsed,
         heapTotal: memoryUsage.heapTotal,
-        external: memoryUsage.external!,
-        rss: memoryUsage.rss!
+        // Optional on MemoryMetrics (browser path omits them); `?? NaN`
+        // preserves the old `!` outcome — NaN propagates through the
+        // sum/avg aggregation below instead of a fabricated 0 (Phase 145).
+        external: memoryUsage.external ?? Number.NaN,
+        rss: memoryUsage.rss ?? Number.NaN
       },
       processing: {
         transcriptionTime: 0, // Will be updated by pipeline

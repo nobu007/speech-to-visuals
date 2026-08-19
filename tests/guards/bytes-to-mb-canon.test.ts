@@ -100,7 +100,10 @@ describe('bytes→MB division — no re-derivation at the known call sites', () 
   it('health-check-service delegates heap/rss/external MB to bytesToMb', () => {
     expect(stripComments(healthCheckSrc)).toMatch(/import\s*\{[^}]*\bbytesToMb\b[^}]*\}\s*from\s*['"]@stv\/core\/lib\/metrics-utils['"]/);
     expect(stripComments(healthCheckSrc)).toMatch(/bytesToMb\s*\(\s*memoryUsage\.heapUsed\s*\)/);
-    expect(stripComments(healthCheckSrc)).toMatch(/bytesToMb\s*\(\s*memoryUsage\.rss!?\s*\)/); // '!': strict-mode non-null on the optional Node.MemoryUsage field
+    // Phase 145 (REQ-334): the non-null `!` on the optional MemoryMetrics.rss
+    // became `?? Number.NaN` (absent metric → the NaN `undefined / 1MiB`
+    // already produced, never a fabricated 0).
+    expect(stripComments(healthCheckSrc)).toMatch(/bytesToMb\s*\(\s*memoryUsage\.rss\s*\?\?\s*Number\.NaN\s*\)/);
     expect(stripComments(healthCheckSrc)).not.toMatch(BYTES_DIVISION);
     expect(stripComments(healthCheckSrc)).not.toMatch(BYTES_LITERAL);
   });

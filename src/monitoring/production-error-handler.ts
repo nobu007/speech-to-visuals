@@ -599,10 +599,15 @@ export class ProductionErrorHandler {
    * unsubscribes are required to fully release it.
    */
   onError(component: string, callback: (alert: ErrorAlert) => void): () => void {
-    if (!this.errorCallbacks.has(component)) {
-      this.errorCallbacks.set(component, []);
+    // Get-or-create (Phase 145, REQ-334): same shape as the metric-history
+    // branch in real-time-performance-monitor — the absent branch stores the
+    // array it returns, so no post-hoc presence assertion is needed.
+    let callbacks = this.errorCallbacks.get(component);
+    if (callbacks === undefined) {
+      callbacks = [];
+      this.errorCallbacks.set(component, callbacks);
     }
-    this.errorCallbacks.get(component)!.push(callback as (...args: unknown[]) => unknown);
+    callbacks.push(callback as (...args: unknown[]) => unknown);
     return () => {
       const arr = this.errorCallbacks.get(component);
       if (!arr) return;

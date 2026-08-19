@@ -178,8 +178,13 @@ class HealthCheckService {
         heapUsedMB: roundTo(heapUsedMB, 2),
         heapTotalMB: roundTo(heapTotalMB, 2),
         usagePercent: roundTo(usagePercent, 2),
-        rss: roundTo(bytesToMb(memoryUsage.rss!), 2),
-        external: roundTo(bytesToMb(memoryUsage.external!), 2)
+        // rss/external are optional on MemoryMetrics (the browser path omits
+        // them). The old `!` fed `undefined` straight into bytesToMb where
+        // `undefined / (1024 * 1024)` is already NaN — `?? Number.NaN`
+        // formalizes that identical outcome; `?? 0` would fabricate a
+        // healthy-looking "0 MiB" reading (Phase 145, REQ-334).
+        rss: roundTo(bytesToMb(memoryUsage.rss ?? Number.NaN), 2),
+        external: roundTo(bytesToMb(memoryUsage.external ?? Number.NaN), 2)
       }
     };
   }

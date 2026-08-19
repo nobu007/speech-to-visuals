@@ -148,7 +148,7 @@ export class HttpMetricsCollector {
    * on every new-key insert — the sibling arrays (`latencies`, `slowRequests`)
    * were always capped; the map itself was the missing-cap sibling.
    */
-  private routes!: CappedMap<string, RouteMetrics>;
+  private routes: CappedMap<string, RouteMetrics>;
   private slowRequests: SlowRequest[] = [];
   private activeRequests = 0;
   private totalRequests = 0;

@@ -203,11 +203,14 @@ class RealTimePerformanceMonitor extends EventEmitter {
       severity: this.calculateSeverity(metric, value)
     };
 
-    if (!this.metrics.has(metric)) {
-      this.metrics.set(metric, []);
+    // Get-or-create: capture the array from get() so the absent branch
+    // assigns the SAME instance it stores — a has()/set()/get()! triple
+    // asserts presence instead of proving it (Phase 145, REQ-334).
+    let history = this.metrics.get(metric);
+    if (history === undefined) {
+      history = [];
+      this.metrics.set(metric, history);
     }
-
-    const history = this.metrics.get(metric)!;
     history.push(performanceMetric);
 
     // Limit history size
