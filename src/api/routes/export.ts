@@ -205,7 +205,7 @@ export function createExportRouter(artifactStore: ExportArtifactStore): Router {
 
     // Determine content type — validate format is in the known set to prevent
     // spoofed MIME types from stored artifacts
-    const contentType = FORMAT_MIME[artifact.format] || 'application/octet-stream';
+    const contentType = FORMAT_MIME[artifact.format as ArtifactFormat] || 'application/octet-stream';
     // Sanitize format for filename — strip any chars that aren't alphanumeric or hyphen
     const safeFormat = sanitizeHeaderValue(artifact.format);
     const filename = `export-${artifactId}.${safeFormat}`;

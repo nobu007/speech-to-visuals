@@ -602,11 +602,11 @@ export class ProductionErrorHandler {
     if (!this.errorCallbacks.has(component)) {
       this.errorCallbacks.set(component, []);
     }
-    this.errorCallbacks.get(component)!.push(callback);
+    this.errorCallbacks.get(component)!.push(callback as (...args: unknown[]) => unknown);
     return () => {
       const arr = this.errorCallbacks.get(component);
       if (!arr) return;
-      const idx = arr.indexOf(callback);
+      const idx = arr.indexOf(callback as (...args: unknown[]) => unknown);
       if (idx !== -1) arr.splice(idx, 1);
       if (arr.length === 0) this.errorCallbacks.delete(component);
     };

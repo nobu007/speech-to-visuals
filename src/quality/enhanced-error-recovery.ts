@@ -55,7 +55,7 @@ export type {
 export class EnhancedErrorRecovery {
   private recoveryStrategies: RecoveryStrategy[] = [];
   private errorHistory: Map<string, ErrorContext[]> = new Map();
-  private healthMetrics: SystemHealth;
+  private healthMetrics!: SystemHealth;
   private preventiveActions: Map<string, () => Promise<void>> = new Map();
   private strategyEffectiveness: Map<string, StrategyEffectivenessRecord> = new Map();
   private healthMonitoringTimer: NodeJS.Timeout | null = null;
@@ -742,7 +742,7 @@ export class EnhancedErrorRecovery {
    */
   detectErrorCascades(windowMs: number = 5000): CascadeChain[] {
     const allErrors = Array.from(this.errorHistory.entries())
-      .flatMap(([stage, errors]) => errors.map(e => ({ stage: stage as ProcessingStage, ...e })))
+      .flatMap(([stage, errors]) => errors.map(e => ({ ...e, stage: stage as ProcessingStage })))
       .sort((a, b) => a.timestamp - b.timestamp);
 
     if (allErrors.length < 2) return [];
@@ -826,7 +826,7 @@ export class EnhancedErrorRecovery {
   getErrorAnalytics(): ErrorAnalytics {
     const now = Date.now();
     const allErrors = Array.from(this.errorHistory.entries())
-      .flatMap(([stage, errors]) => errors.map(e => ({ stage, ...e })));
+      .flatMap(([stage, errors]) => errors.map(e => ({ ...e, stage })));
 
     const errorsByStage: Record<string, number> = {};
     for (const stage of EnhancedErrorRecovery.STAGE_ORDER) {

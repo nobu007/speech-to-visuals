@@ -1022,17 +1022,17 @@ export class ComplexLayoutEngine {
     let optimizedLayout = layout;
 
     // Adaptive quality based on performance
-    if (performanceMetrics.currentFPS < this.config.performanceTargets.targetFPS) {
+    if (performanceMetrics.currentFPS < this.config.performanceTargets!.targetFPS) {
       optimizedLayout = await this.reduceLayoutComplexity(optimizedLayout);
     }
 
     // Memory optimization
-    if (performanceMetrics.memoryUsage > this.config.performanceTargets.memoryLimit) {
+    if (performanceMetrics.memoryUsage > this.config.performanceTargets!.memoryLimit) {
       optimizedLayout = await this.optimizeMemoryUsage(optimizedLayout);
     }
 
     // Time optimization
-    if (performanceMetrics.layoutTime > this.config.performanceTargets.maxLayoutTime) {
+    if (performanceMetrics.layoutTime > this.config.performanceTargets!.maxLayoutTime) {
       optimizedLayout = await this.optimizeLayoutTime(optimizedLayout);
     }
 
@@ -1091,9 +1091,9 @@ export class ComplexLayoutEngine {
 
     // Adjust thresholds based on current system performance
     if (currentPerformance.fps < 30) {
-      this.config.performanceTargets.targetFPS = Math.max(20, this.config.performanceTargets.targetFPS - 5);
+      this.config.performanceTargets!.targetFPS = Math.max(20, this.config.performanceTargets!.targetFPS - 5);
     } else if (currentPerformance.fps > 50) {
-      this.config.performanceTargets.targetFPS = Math.min(60, this.config.performanceTargets.targetFPS + 2);
+      this.config.performanceTargets!.targetFPS = Math.min(60, this.config.performanceTargets!.targetFPS + 2);
     }
 
   }

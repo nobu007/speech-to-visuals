@@ -443,7 +443,7 @@ export const ProductionDashboard: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-2">
-              {validation.errors.map((error, index) => (
+              {validation.errors.map((error: string, index: number) => (
                 <Alert key={index} variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>{error}</AlertDescription>

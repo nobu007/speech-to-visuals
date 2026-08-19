@@ -88,13 +88,13 @@ export class SimpleDiagramDetector {
     const text = segment.text.toLowerCase();
 
     // Calculate keyword scores
-    const scores = {
+    const scores: Record<DiagramType, number> = {
       flow: this.calculateScore(text, this.flowKeywords),
       tree: this.calculateScore(text, this.treeKeywords),
       timeline: this.calculateScore(text, this.timelineKeywords),
       cycle: this.calculateScore(text, this.cycleKeywords),
       network: this.calculateScore(text, this.networkKeywords)
-    };
+    } as Record<DiagramType, number>;
 
     // Find best match
     const bestType = Object.entries(scores).reduce((best, current) =>

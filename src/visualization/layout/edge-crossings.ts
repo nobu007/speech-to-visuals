@@ -54,8 +54,8 @@ export function countEdgeCrossings(nodes: PositionedNode[], edges: LayoutEdge[])
   // Convert edges to line segments
   const segments = edges
     .map(edge => {
-      const source = nodeMap.get(edge.source);
-      const target = nodeMap.get(edge.target);
+      const source = nodeMap.get(edge.source!);
+      const target = nodeMap.get(edge.target!);
       return source && target ? { source, target } : null;
     })
     .filter((segment): segment is CrossingSegment => segment !== null);

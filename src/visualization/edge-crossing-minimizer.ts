@@ -81,10 +81,10 @@ export function detectEdgeCrossings(
   for (const e of safeEdges) {
     const fromId = e.from ?? e.source;
     const toId = e.to ?? e.target;
-    const start = positions.get(fromId);
-    const end = positions.get(toId);
+    const start = positions.get(fromId!);
+    const end = positions.get(toId!);
     if (start && end) {
-      segments.push({ from: fromId, to: toId, start, end });
+      segments.push({ from: fromId!, to: toId!, start, end });
     }
   }
 
@@ -415,8 +415,8 @@ export class EdgeCrossingMinimizer {
 
       const fromId = e.from ?? e.source;
       const toId = e.to ?? e.target;
-      const pf = positions.get(fromId);
-      const pt = positions.get(toId);
+      const pf = positions.get(fromId!);
+      const pt = positions.get(toId!);
       if (!pf || !pt) return e;
 
       // Offset control point perpendicular to the edge direction
@@ -494,8 +494,8 @@ function buildSegments(
   for (const e of edges) {
     const fromId = e.from ?? e.source;
     const toId = e.to ?? e.target;
-    const start = positions.get(fromId);
-    const end = positions.get(toId);
+    const start = positions.get(fromId!);
+    const end = positions.get(toId!);
     if (start && end && fromId && toId) {
       segments.push({
         id: e.id ?? `${fromId}-${toId}`,

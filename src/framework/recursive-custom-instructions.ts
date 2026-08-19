@@ -269,9 +269,9 @@ export class RecursiveCustomInstructionsFramework {
 
     let totalScore = 0;
     Object.entries(weights).forEach(([module, weight]) => {
-      const moduleResults = testResults[module];
+      const moduleResults = testResults[module as keyof QualityCheckResults];
       if (moduleResults) {
-        const moduleScore = this.calculateModuleScore(moduleResults);
+        const moduleScore = this.calculateModuleScore(moduleResults as unknown as Record<string, unknown>);
         totalScore += moduleScore * weight;
       }
     });

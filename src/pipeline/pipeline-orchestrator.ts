@@ -320,7 +320,7 @@ export class PipelineOrchestrator {
     let contentSegments: unknown[];
     let diagramAnalyses: unknown[];
     let layoutResults: unknown[];
-    let scenes: SceneGraph[];
+    let scenes: SceneGraph[] | undefined;
 
     // Quality metrics from layout optimization (REQ-084)
     let qualityMetrics: Partial<ExtendedPipelineMetrics> = {};
@@ -737,7 +737,7 @@ export class PipelineOrchestrator {
     // (buildSceneGraph defaults startMs to 0); only the span/endTime move.
     if (!(scene.durationMs > 0)) {
       scene.durationMs = DEFAULT_SCENE_DURATION_MS;
-      scene.endTime = scene.startTime + DEFAULT_SCENE_DURATION_MS / 1000;
+      scene.endTime = scene.startTime! + DEFAULT_SCENE_DURATION_MS / 1000;
     }
     return scene;
   }
@@ -977,7 +977,7 @@ export class PipelineOrchestrator {
   }
 
   private createFallbackLayout(nodes: unknown[], edges: unknown[]): unknown {
-    const layoutNodes = (nodes ?? []).map((node: Record<string, unknown>, index: number) => ({
+    const layoutNodes = ((nodes ?? []) as Record<string, unknown>[]).map((node: Record<string, unknown>, index: number): { x: number; y: number; w: number; h: number } => ({
       ...node,
       x: 100 + (index % 3) * 250,
       y: 100 + Math.floor(index / 3) * 150,
@@ -985,7 +985,7 @@ export class PipelineOrchestrator {
       h: 60,
     }));
 
-    const layoutEdges = (edges ?? []).map((edge: Record<string, unknown>) => ({
+    const layoutEdges = ((edges ?? []) as Record<string, unknown>[]).map((edge: Record<string, unknown>): { points: { x: number; y: number }[] } => ({
       ...edge,
       points: [{ x: 200, y: 150 }, { x: 350, y: 150 }],
     }));
