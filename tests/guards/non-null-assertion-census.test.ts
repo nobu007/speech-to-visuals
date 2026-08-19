@@ -38,7 +38,19 @@
  *     the two timestamp deltas, and a fail-loud `requireOutputPath` for
  *     the stage-1-seeded `job.outputPath`; the 73 export-pattern suites
  *     (4144 tests) stayed green through the rewrite).
- *   - the rest of `src` (37) and the `tests` tree (960) are pinned as
+ *   - `src/monitoring` production code is pinned at ZERO assertions
+ *     (Phase 145 replaced all 7: `?? Number.NaN` for the four optional
+ *     `MemoryMetrics.rss/external` reads — the browser branch of
+ *     `getMemoryUsage` omits both fields and the old `!` fed `undefined`
+ *     into `bytesToMb` where `undefined / (1024 * 1024)` is already NaN,
+ *     so NaN (never a fabricated 0) is the behavior being preserved —
+ *     captured get-or-create for the two `has()/set()/get()!` map
+ *     triples (metric history + error callbacks: the absent branch
+ *     stores the array it hands back), and removal of the
+ *     provably-dead definite-assignment on `routes` (the ctor assigns
+ *     unconditionally); the monitoring + guards suites (45 suites /
+ *     1068 tests) stayed green through the rewrite).
+ *   - the rest of `src` (30) and the `tests` tree (960) are pinned as
  *     UPPER BOUNDS: decreases are welcome, any new `!` fails the ratchet.
  *     New code must narrow (`if (x === undefined) …`), guard
  *     (`require…()` accessors), or use a typed helper instead.
@@ -68,6 +80,11 @@
  * src/export/export-job-queue.ts with
  * `(job as { startedAt: number }).startedAt! - job.enqueuedAt;` turns
  * BOTH the export exact pin and the src ratchet (37 → 38) RED.
+ * Mutation-verified (Phase 145, MW-010): replacing
+ * `let history = this.metrics.get(metric);` in
+ * src/monitoring/real-time-performance-monitor.ts with
+ * `let history = this.metrics.get(metric)!;` turns BOTH the monitoring
+ * exact pin and the src ratchet (30 → 31) RED.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -81,14 +98,16 @@ const ASSERTION_RE = /[\w)\]]!(?!=)(?=[\s.,;:)\]}+*/?=<>&|{]|$)/;
  * Baselines: 2026-08-19 (Phase 141, after src/visualization → 0) and
  * 2026-08-20 (Phase 142, after src/pipeline → 0; src remainder 93 − 29 = 64)
  * and 2026-08-20 (Phase 143, after src/transcription → 0; 64 − 17 = 47)
- * and 2026-08-20 (Phase 144, after src/export → 0; 47 − 10 = 37).
+ * and 2026-08-20 (Phase 144, after src/export → 0; 47 − 10 = 37)
+ * and 2026-08-20 (Phase 145, after src/monitoring → 0; 37 − 7 = 30).
  */
 const PINNED = {
   'src/visualization (production)': 0,
   'src/pipeline (production)': 0,
   'src/transcription (production)': 0,
   'src/export (production)': 0,
-  'src (production, excl. __tests__/__mocks__)': 37,
+  'src/monitoring (production)': 0,
+  'src (production, excl. __tests__/__mocks__)': 30,
   'tests (excl. __mocks__)': 960,
 } as const;
 
@@ -127,6 +146,7 @@ describe('non-null assertion census ratchet (REQ-328)', () => {
   const pipeline = countAssertions('src/pipeline');
   const transcription = countAssertions('src/transcription');
   const exportDir = countAssertions('src/export');
+  const monitoring = countAssertions('src/monitoring');
   const srcTotal = countAssertions('src');
   const testsTotal = countAssertions('tests');
 
@@ -146,6 +166,10 @@ describe('non-null assertion census ratchet (REQ-328)', () => {
     expect(exportDir.hits).toEqual([]);
   });
 
+  it('src/monitoring production code holds ZERO non-null assertions (exact)', () => {
+    expect(monitoring.hits).toEqual([]);
+  });
+
   it('src production total (excl. __tests__/__mocks__) is at or below the ratchet', () => {
     expect(srcTotal.count).toBeLessThanOrEqual(PINNED['src (production, excl. __tests__/__mocks__)']);
   });
@@ -157,7 +181,7 @@ describe('non-null assertion census ratchet (REQ-328)', () => {
   it('census is not vacuous: the src remainder is real (visualization cleanup moved the needle)', () => {
     // 170 (pre-Phase-141 src total) − 67 (visualization, Phase 141) −
     // 29 (pipeline, Phase 142) − 17 (transcription, Phase 143) −
-    // 10 (export, Phase 144) = 37; if a
+    // 10 (export, Phase 144) − 7 (monitoring, Phase 145) = 30; if a
     // future refactor drives the remainder down the ratchet pins above
     // loosen only by editing PINNED, so this liveness check just guards
     // against a scanner regression that would silently count nothing.
