@@ -4454,6 +4454,29 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 - strict mode の実検証範囲が src/visualization + src/pipeline + src/transcription + src/export + src/monitoring + src/analysis に拡大（計 136 件の `!` を 0 化・CI が常時強制）。残 src 24 件・tests 960 件は ratchet で増加防止のみ。
 - 残課題（引継ぎ）: src/framework 5・src/api 4 が次候補（同一パターンセット・fail-loud は mock 到達可能性を先に確認）。Phase 132 TASK-0218〜0222 未着手・requirements.md の PR #12 由来 dead citation 残存（A137 引継ぎ）。
 
+### A147: Phase 147 — non-null assertion 撲滅・src 全体 exact-0 + checker AST 化 + tests ディレクトリ別 ratchet（2026-08-20 第228回検証）
+
+- **判断**（clean-tree instruction run における作業選択 → guard-first survey 実行順 → checker 置換の正当化 → 置換パターン判定）:
+
+1. **本 run の instruction は steering が撲滅プログラムの完結を直接指定**: 「src バケットの残り 24 件に同一の exact-0 パターンを適用して src 全体を exact-0 まで到達させよ。到達後は tests バケット 960 をディレクトリ別 ratchet に分割して単調減少を開始せよ」+「手動の表面列挙の前に検出パターンを先に実行し、hits 全体から機械的に対象リストを生成せよ（Phase 299 missed-surface 教訓）」。task registry の TASK-0234 / Phase 147 と一致（前6 run と同一運用）。
+2. **guard-first survey の実行が checker の盲点を露出させた**: 旧 line-regex の hits を「24 行」と信用せず検出器自体を先に審査した結果、(a) **`!` 直後が `(` の呼び出し形を continuation class が見落とす**ことを突き止め、Phase 144 で src/export を「10 件 → 0」とした際に `nextJob.resolve!({`（enhanced-export-engine.ts:1185）が未検出のまま残っていたことを発見・(b) 逆に文字列リテラル・JSX text 内の `!` 3 件を偽カウントしていたことを確認。**checker を TypeScript AST（`createSourceFile` + `isNonNullExpression` + declaration `exclamationToken`）に置換**してから残対象を機械生成 — 24 行（regex）は 22 node（AST）に確定（偽陽性 −3・盲点 +1）。手動列挙を先にしていれば (a) の見落としサイトは再度見落とされていた。
+3. **checker 置換は SUPERSEDE として文書化**: TASK-0226 の line-regex rule は spine 整合のため Phase 146 まで意識的に維持してきたが、Phase 147 の guard ヘッダに SUPERSEDE を明記。**MW-012**（旧 MW-011 mutant の AST checker 下再適用 — analysis pin + whole-src pin の 2 RED）で検出力の連続性を、**MW-013**（旧 regex が 0 hit・新 checker が 2 RED する `resolve!(` 再注入）で実検出ギャップ解消を、それぞれ実証し台帳化（監査 pin ≥11 → ≥13）。
+4. **置換は Phase 141〜146 の 6 パターンセット + 8 派生形**（22 node・12 ファイル）: captured `flatMap` narrowing（filter+map 一本化・null は配列に混入しない）・fail-loud producer-contract guard（`toPipelineOptions()` 戻り値契約）・GET-route null-check idiom ×2（`getJobStatus(): … | null` の 404 慣用形）・`?? Number.NaN` ×6（confidence/startTime/PositionedNode dims ×4 — NaN が旧 `!` の正確な outcome・`?? 0` は 0 の偽計測を捏造）・**captured destructured resolver**（🔴 regex 見落としサイト — `const { resolve } = nextJob` で closure 内 narrowing を分割代入で構造解）・timestamp parameter（`lastAnalysisAt!` フィールド読み取りを `recordReportEntry(success, timestamp)` 引数型に置換）・captured get-or-create ×4（Phase 145 と同型）・`?? 0` substring coercion（`match.index` の 2 使用箇所とも `substring()` が `undefined` を 0 に coercion するため厳密等価）・module-level factory（definite-assignment `healthMetrics!:` を `createInitialHealthMetrics()` 初期化に置換・ctor の遅延呼び出しと同 private メソッドを削除）・`?? ''` lockstep 正規化（`assertActive()` ⟺ runId・同ファイル generateSnapshot と対称化）・fail-loud `#root` lookup（Vite 慣用形）・`continue` guard（matchAll 契約の明示形）。
+5. **source-anchor 陳腐化 pin はなし**: 編集 12 ファイルに肯定 pin なし（事前 grep で確認）。
+6. **挙動保存の実証**: 対象 67 suite pattern 1575 tests GREEN・`tsc -p tsconfig.app.json --noEmit` exit=0・eslint（変更 15 ファイル）0・census 実測 src = **0（whole-src exact）**・tests = 1096（14 ディレクトリ）。**tests ディレクトリ別 ratchet**（REQ-337）は TESTS_DIR_PINS 14 エントリ（unit 471・integration 245・visualization 184・guards 72・pipeline 45・analysis 44・quality 17・transcription 8・api 2・lib 2・remotion 2・(root) 2・acceptance 1・config 1 = 1096）で未 pin ディレクトリ throw・pin 消滅検出つき。旧 line-based 960 → node-based 1096 は行→node の計数器昇格（1 行 2 node を正しく数えるようになった）であって回帰ではない。
+
+- **根拠**: TASK-0234・census/ledger guard 実行出力・MW-012/013 再実行プロトコル（台帳本文）・steering instruction（.task-prompt.md 由来）。
+
+- **最終フルスイート**（Phase 147 全変更後・working tree HEAD=8a6691ec 時点の実測）:
+  `[EVIDENCE] started=2026-08-20T06:22:48+09:00 ended=2026-08-20T06:30:08+09:00 exit=0 elapsed_s=439.44 cmd=npm test commit=8a6691ec branch=ai/instruction-speech-to-visuals-instruction-20260819-210301-505575` → **742 suites / 742 passed・23,149 passed / 0 failed / 17 skipped**（直前 Phase 146 完了時 23,143 から +6 = census guard +2（whole-src exact pin・dir ratchet 系）・ledger 監査 it.each 2 block × MW-012/013 追加分 +4）。flake なし。
+
+- **信頼性への影響**:
+
+- REQ-336・REQ-337 追加（🔵・実装+guard+MW-012/013 に出典）。🔵 319 → 321 件。
+- **strict mode の実検証範囲が src 全体に拡大**（Phase 141〜147 で計 158 node = 67+29+17+10+7+6+22 を 0 化・whole-src exact pin が CI で常時強制）。src の新規 `!` はモジュールを問わず即 RED。checker は AST のため文字列偽陽性で稀釈されない。
+- tests ツリーは 14 ディレクトリ別 ratchet で増加防止（1096 node 上限）。
+- 残課題（引継ぎ）: tests ratchet の単調減少フェーズ（最大バケット tests/unit 471 から段階的に縮小 — TASK-0226 の checker 抑制判定に基づく tests ツリー `!` の narrowing 置換）。Phase 132 TASK-0218〜0222 未着手・requirements.md の PR #12 由来 dead citation 残存（A137 引継ぎ）。
+
 ---
 
 ## 関連文書

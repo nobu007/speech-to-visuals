@@ -5832,6 +5832,20 @@
   - **mutation RED 検証済み（MW-011）**: scene-segmenter.ts:939 `const prev = result.pop();` → `const prev = result.pop()!;` で analysis exact pin と src ratchet（Expected <= 24 / Received 25）の 2 tests RED（revert 後 9 tests GREEN）
   - **source-anchor guard 影響**: なし — scene-segmenter/llm-service の既存 anchor（sanitizeFinite ×3 系・SENTENCE_BOUNDARY_REGEX・retry defaults）は全て編集箇所と無関係（事前 grep で確認・陳腐化 pin なし）
 
+#### REQ-336: non-null assertion 撲滅・src 全体 exact-0 + checker AST 化（Phase 147）
+
+- [x] **TC-332-01**: src 全体のプロダクションコード（`__tests__`/`__mocks__` 除外・api/components/framework/quality/remotion/workers/src/test/main.tsx を含む）に postfix non-null assertion と definite-assignment assertion が **AST node として 0 件**であることが whole-src exact pin（`expect(srcTotal.hits).toEqual([])`）で検証されること。checker は TypeScript AST（`isNonNullExpression` + declaration `exclamationToken`）であり、文字列/コメント/JSX text の `!` をカウントせず（旧 regex 偽陽性 3 件の構造的除去）・`f!(…)` 形状を検出すること（Phase 146 終了時 line-regex 分布 24 行 = 偽陽性 3 + 実 node 21 + regex 盲点 1 → 置換対象 22 AST node・12 ファイル） 🔵
+- [x] **TC-332-02**: 挙動保存置換であること — 置換対象 12 ファイルを含む 67 suite pattern が GREEN（1575 tests）・`tsc -p tsconfig.app.json --noEmit` exit=0・eslint 0・`?? Number.NaN` は optional confidence/startTime/PositionedNode dims の旧 `undefined` 演算 outcome（NaN = `toFixed` の "NaN"・`formatPlaybackTime` の `!Number.isFinite → '0:00'`・NaN 比較で overlap 検出）を正確に保存すること（`?? 0` は 0 の偽計測を捏造するため非等価）・captured destructured resolver（`const { resolve } = nextJob`）は closure 内 narrowing 問題の構造解で旧 `!` と同一 reference を渡すこと・timestamp parameter は呼び出し時点で代入済みの `lastAnalysisAt` を引数型に置換すること・module-level factory は ctor の `initializeHealthMetrics()` 呼び出しと同一初期状態を生成すること（呼び出し削除済み）・`?? ''` は `assertActive()` ⟺ runId lockstep 下の同ファイル既存正規化と対称であること 🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns tests/guards/non-null-assertion-census`（11 tests）
+  - **mutation RED 検証済み（MW-012）**: MW-011 同一 mutant（scene-segmenter.ts:939 `const prev = result.pop();` → `const prev = result.pop()!;`）を AST checker 下で再適用し analysis exact pin + **whole-src exact pin** の 2 tests RED（revert 後 11 tests GREEN）— checker 置換後も検出力が連続
+  - **mutation RED 検証済み（MW-013）**: enhanced-export-engine.ts:1185 `resolve({` → `nextJob.resolve!({`（旧 regex が Phase 144 で見落とした形状の再注入）で export exact pin + whole-src exact pin の 2 tests RED・**さらに旧 line-regex checker は同 mutant ファイルに 0 hits**（`!(` が continuation class 外）— checker upgrade が計量の言い換えでなく実検出ギャップを閉じたことの実証（revert 後 11 tests GREEN）
+
+#### REQ-337: tests ツリー non-null assertion ディレクトリ別 ratchet（Phase 147）
+
+- [x] **TC-333-01**: tests ツリー（`__mocks__` 除外）の non-null assertion 総数が AST node ベース上限 **1096** 以下であること（旧 line-based 960 からの再ベースライン — 行→node 計数器昇格で回帰ではない）・かつトップレベル 14 ディレクトリ（unit 471・integration 245・visualization 184・guards 72・pipeline 45・analysis 44・quality 17・transcription 8・api 2・lib 2・remotion 2・(root) 2・acceptance 1・config 1 = 合計 1096）それぞれが上限 pin 以下であることが guard で検証されること 🔵
+- [x] **TC-333-02**: ratchet の失敗形が機能すること — (a) pin 済みディレクトリへの `!` 追加は当該 dir pin と合計 pin を RED にすること・(b) **pin に存在しない新規トップレベルディレクトリ**への `!` 追加は `tests/<dir> has no TESTS_DIR_PINS entry` の throw で fail すること（新テストディレクトリは意識的な pin 追加を強制）・(c) pin 済みディレクトリの消滅は pin 対応チェックが RED にすること（ratchet の無言の空洞化を防止）・(d) checker が空振りしていないことの liveness（tests total > 0） 🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns tests/guards/non-null-assertion-census`（11 tests）
+
 
 ### Phase 111+ 受け入れ基準サマリー
 
@@ -5885,7 +5899,9 @@
 | REQ-333: non-null assertion 撲滅・export 編 | 2 | 🔵 |
 | REQ-334: non-null assertion 撲滅・monitoring 編 | 2 | 🔵 |
 | REQ-335: non-null assertion 撲滅・analysis 編 | 2 | 🔵 |
-| **合計** | **116** | **🔵 91.4% / 🟡 8.6%** |
+| REQ-336: non-null assertion 撲滅・src 全体 exact-0 + checker AST 化 | 2 | 🔵 |
+| REQ-337: tests ツリー non-null assertion ディレクトリ別 ratchet | 2 | 🔵 |
+| **合計** | **120** | **🔵 91.7% / 🟡 8.3%** |
 
 
 <!-- spine:references:begin -->

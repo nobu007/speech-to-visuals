@@ -107,8 +107,8 @@
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0233（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233）
-**次回開始番号**: TASK-0234
+**使用済みタスク番号**: TASK-0001 ~ TASK-0234（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234）
+**次回開始番号**: TASK-0235
 
 > **REQ 番号帯（Phase 140 決定）**: REQ-313〜322 は acceptance-criteria の TC 帯（TC-313〜321 実在・TC-322 は未 merge PR #9 提案中）との番号衝突回避のため予約（未使用）。機能要件は REQ-323 から、TC は TC-323 から採番する（REQ-326/TC-323 が適用例）。
 
@@ -1933,9 +1933,33 @@ source-anchor 陳腐化 pin なし（scene-segmenter/llm-service の既存 ancho
 - 全 1 タスク 🔵（steering META-intent 継続 + 実測（analysis+guards 135 suites/7057 tests GREEN・tsc 0）に出典）
 - 推定工数: 4 時間
 
+## Phase 147: non-null assertion 撲滅・src 全体 exact-0 + checker AST 化 + tests ディレクトリ別 ratchet
+
+**ステータス**: ✅完了（2026-08-20・TASK-0234 完了）
+
+**背景**: REQ-335（Phase 146）の直接継続で撲滅プログラム（Phase 141〜・計 136 件）の完結編。AI Hub steering 指示「src バケットの残り 24 件に同一の exact-0 パターンを適用して src 全体を exact-0 まで到達させよ。到達後は tests バケット 960 をディレクトリ別 ratchet に分割して単調減少を開始せよ」+「手動の表面列挙の前に検出パターンを先に実行し、hits 全体から機械的に対象リストを生成せよ（Phase 299 missed-surface 教訓）」。guard-first survey として census checker を先に line-regex → TypeScript AST に置換した結果、旧 regex の盲点が露出: `!(` 呼び出し形（Phase 144 の src/export「10→0」時の見落とし `nextJob.resolve!({`）を検出し、逆に文字列/JSX text 偽陽性 3 件を不可視化。残り 22 AST node（12 ファイル）を Phase 141〜146 パターン + 8 派生形で挙動保存置換し **src 全体を exact-0** に到達。あわせて tests ツリー 1096 node を 14 ディレクトリ別 ratchet に分割。
+
+### タスク一覧
+
+- [x] [TASK-0234: src 全体 non-null assertion exact-0 + census checker AST 化 + tests ディレクトリ別 ratchet](TASK-0234.md) - 5h (DIRECT) 🔵 ✅2026-08-20（22 node→0・whole-src exact pin・TESTS_DIR_PINS 14・MW-012/013）
+
+### 依存関係
+
+```
+TASK-0234 は REQ-328 の census guard（TASK-0226）と MW 台帳（TASK-0228）を再利用
+checker の AST 化は TASK-0226 の line-regex rule を SUPERSEDE（spine 整合のため Phase 146 まで同一 regex を維持）
+source-anchor 陳腐化 pin なし（編集 12 ファイルに肯定 pin なし・事前 grep で確認）
+次候補: tests ツリーのディレクトリ別 ratchet 縮小（unit 471 が最大バケット）— REQ-337 の単調減少フェーズ
+```
+
+### 信頼性レベルサマリー（Phase 147 追加分）
+
+- 全 1 タスク 🔵（steering 直接指示 + 実測（census guard 11 tests・対象 67 suite 1575 tests GREEN・tsc 0・MW-012/013 mutant RED）に出典）
+- 推定工数: 5 時間
+
 ### 次フェーズ開始番号
 
-**次回開始番号**: TASK-0234
+**次回開始番号**: TASK-0235
 
 ## Spine: external references
 
