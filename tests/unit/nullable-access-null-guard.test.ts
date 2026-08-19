@@ -24,11 +24,11 @@ describe('production-exporter: nullable layout/animations guard', () => {
   }) {
     return {
       background: scene.background,
-      nodes: (scene.layout?.nodes || []).map((node: Record<string, unknown>) => ({
+      nodes: ((scene.layout?.nodes || []) as Record<string, unknown>[]).map((node) => ({
         ...node,
         renderStyle: {},
       })),
-      edges: (scene.layout?.edges || []).map((edge: Record<string, unknown>) => ({
+      edges: ((scene.layout?.edges || []) as Record<string, unknown>[]).map((edge) => ({
         ...edge,
         renderStyle: {},
       })),
@@ -40,7 +40,7 @@ describe('production-exporter: nullable layout/animations guard', () => {
     animations?: unknown[] | null;
   }>) {
     return scenes.map(scene => ({
-      animations: (scene.animations || []).map((anim: { timing: { duration: number } }) => ({
+      animations: ((scene.animations || []) as Array<{ timing: { duration: number } }>).map((anim) => ({
         ...anim,
         timing: { ...anim.timing, duration: anim.timing.duration },
       })),

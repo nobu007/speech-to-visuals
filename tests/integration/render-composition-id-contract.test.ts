@@ -90,7 +90,7 @@ function makeScene(id: string, durationMs: number, startMs: number): SceneGraph 
       ],
       edges: [{ from: `${id}-n1`, to: `${id}-n2` }],
     },
-  } as SceneGraph;
+  } as unknown as SceneGraph;
 }
 
 describe('Render-path composition-id contract + frame-count invariant', () => {

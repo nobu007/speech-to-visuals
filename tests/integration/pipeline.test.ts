@@ -167,7 +167,7 @@ jest.unstable_mockModule('@/performance/intelligent-cache', () => ({
 // Helpers
 // ---------------------------------------------------------------------------
 
-function createValidInput(): PipelineInput {
+function createValidInput(): PipelineInput & { config: PipelineConfig } {
   return {
     audioFile: '/test/audio.wav',
     config: {

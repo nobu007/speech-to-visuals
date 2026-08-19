@@ -43,7 +43,7 @@ function createMockMonitor(metrics: QualityMetrics | null, opts?: {
       violations: (opts?.violations ?? []).map(s => ({ severity: s.severity })),
       recommendations: [],
       improvementPotential: 10,
-    } as QualityReport),
+    } as unknown as QualityReport),
     compareToBaseline: jest.fn().mockReturnValue({
       improved: opts?.improved ?? [],
       regressed: opts?.regressed ?? [],

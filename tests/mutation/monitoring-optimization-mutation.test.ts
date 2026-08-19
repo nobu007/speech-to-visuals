@@ -70,7 +70,7 @@ describe('Mutation Testing: BatchOptimizer', () => {
     proto.process = async function (this: BatchOptimizer, items: unknown[], processor: (item: unknown, index: number) => Promise<unknown>) {
       const result = await (original as (...args: unknown[]) => Promise<unknown>).call(this, items, processor);
       return {
-        ...result,
+        ...(result as Record<string, unknown>),
         successCount: (result as { failureCount: number }).failureCount,
         failureCount: (result as { successCount: number }).successCount,
       };

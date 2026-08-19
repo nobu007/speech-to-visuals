@@ -327,7 +327,7 @@ describe('REQ-098: LLM Monitoring Integration', () => {
       const service = new LLMService('test-key');
 
       const receivedAlerts: unknown[] = [];
-      service.onBudgetAlert((alert) => receivedAlerts.push(alert));
+      service.onBudgetAlert((alert: unknown) => receivedAlerts.push(alert));
 
       // Make enough calls to exceed the default $1.00 session budget at 80% = $0.80
       // Pro: 1M input / 400K output = $1.25 + $2.00 = $3.25 per call

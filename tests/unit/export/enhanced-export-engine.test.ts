@@ -94,7 +94,7 @@ describe('REQ-167: EnhancedExportEngine', () => {
   describe('TC-167-01: Export configuration validation', () => {
     it('rejects config missing format', async () => {
       const config = makeConfig();
-      delete (config as ExportConfiguration & { format?: string }).format;
+      delete (config as Partial<ExportConfiguration>).format;
 
       const result = await engine.exportVideo(makeSceneData(), config as ExportConfiguration);
 
@@ -104,7 +104,7 @@ describe('REQ-167: EnhancedExportEngine', () => {
 
     it('rejects config missing quality', async () => {
       const config = makeConfig();
-      delete (config as ExportConfiguration & { quality?: VideoQuality }).quality;
+      delete (config as Partial<ExportConfiguration>).quality;
 
       const result = await engine.exportVideo(makeSceneData(), config as ExportConfiguration);
 
@@ -114,7 +114,7 @@ describe('REQ-167: EnhancedExportEngine', () => {
 
     it('rejects config missing settings', async () => {
       const config = makeConfig();
-      delete (config as ExportConfiguration & { settings?: ExportSettings }).settings;
+      delete (config as Partial<ExportConfiguration>).settings;
 
       const result = await engine.exportVideo(makeSceneData(), config as ExportConfiguration);
 

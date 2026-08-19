@@ -706,7 +706,7 @@ describe('ComplexLayoutEngine – edge.points empty array guard', () => {
 describe('PerformanceRegressionDetector – worst nullable guard', () => {
   it('summary uses fallback when worst is undefined', () => {
     // Guard: worst?.stage ?? 'unknown' and (worst?.regressionPercent ?? 0)
-    const worst: { stage: string; regressionPercent: number } | undefined = undefined;
+    const worst = undefined as { stage: string; regressionPercent: number } | undefined;
     const stage = worst?.stage ?? 'unknown';
     const percent = (worst?.regressionPercent ?? 0).toFixed(1);
     expect(stage).toBe('unknown');

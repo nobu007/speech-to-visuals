@@ -23,8 +23,9 @@ describe('CORS configuration (ISS-017)', () => {
     delete process.env.CORS_ORIGINS;
 
     // Replicate the CORS logic from server.ts
-    const allowedOrigins = process.env.CORS_ORIGINS
-      ? process.env.CORS_ORIGINS!.split(',').map(o => o.trim())
+    const corsEnv = process.env.CORS_ORIGINS as string | undefined;
+    const allowedOrigins = corsEnv
+      ? corsEnv.split(',').map(o => o.trim())
       : process.env.NODE_ENV === 'production'
         ? []
         : ['http://localhost:8080', 'http://localhost:5173'];
@@ -36,8 +37,9 @@ describe('CORS configuration (ISS-017)', () => {
     process.env.NODE_ENV = 'production';
     delete process.env.CORS_ORIGINS;
 
-    const allowedOrigins = process.env.CORS_ORIGINS
-      ? process.env.CORS_ORIGINS!.split(',').map(o => o.trim())
+    const corsEnv = process.env.CORS_ORIGINS as string | undefined;
+    const allowedOrigins = corsEnv
+      ? corsEnv.split(',').map(o => o.trim())
       : process.env.NODE_ENV === 'production'
         ? []
         : ['http://localhost:8080', 'http://localhost:5173'];

@@ -109,7 +109,7 @@ describe('Full retry → exhaustion → DLQ → Prometheus metrics', () => {
     let dequeued = queue.dequeue()!;
     for (let i = 0; i < errors.length; i++) {
       queue.completeJob(dequeued.jobId, false, undefined, errors[i]);
-      dequeued = queue.dequeue();
+      dequeued = queue.dequeue()!;
       if (i < errors.length - 1) {
         expect(dequeued).toBeDefined();
       }

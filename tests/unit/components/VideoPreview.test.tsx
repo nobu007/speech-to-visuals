@@ -21,11 +21,11 @@ import type { SceneGraph } from '@stv/core/types/diagram';
 // Store captured player ref for testing event handlers
 // We need a stable mock player object that persists across renders
 let capturedPlayerRef: {
-  play: jest.Mock;
-  pause: jest.Mock;
-  seekTo: jest.Mock;
-  addEventListener: jest.Mock;
-  removeEventListener: jest.Mock;
+  play: ReturnType<typeof jest.fn>;
+  pause: ReturnType<typeof jest.fn>;
+  seekTo: ReturnType<typeof jest.fn>;
+  addEventListener: ReturnType<typeof jest.fn>;
+  removeEventListener: ReturnType<typeof jest.fn>;
 } | null = null;
 
 // Track registered event listeners by the VideoPreview useEffect
@@ -34,7 +34,7 @@ let registeredListeners: Record<string, Array<(...args: unknown[]) => void>> = {
 // Mock @remotion/player - Player component can't render in Jest
 jest.unstable_mockModule('@remotion/player', () => {
   const MockPlayer = React.forwardRef<
-    { play: jest.Mock; pause: jest.Mock; seekTo: jest.Mock; addEventListener: jest.Mock; removeEventListener: jest.Mock },
+    { play: ReturnType<typeof jest.fn>; pause: ReturnType<typeof jest.fn>; seekTo: ReturnType<typeof jest.fn>; addEventListener: ReturnType<typeof jest.fn>; removeEventListener: ReturnType<typeof jest.fn> },
     Record<string, unknown>
   >((_props, ref) => {
     // Use useMemo to create a stable mock player that persists across renders

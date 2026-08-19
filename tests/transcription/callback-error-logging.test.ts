@@ -229,8 +229,8 @@ describe('Transcription callback error logging observability', () => {
     expect(result.success).toBe(true);
 
     const warnCalls = warnSpy.mock.calls;
-    const progressErrors = warnCalls.filter(c => c[0]?.includes?.('onProgress'));
-    const segmentErrors = warnCalls.filter(c => c[0]?.includes?.('onSegment'));
+    const progressErrors = warnCalls.filter((c: string[]) => c[0]?.includes?.('onProgress'));
+    const segmentErrors = warnCalls.filter((c: string[]) => c[0]?.includes?.('onSegment'));
     expect(progressErrors.length).toBeGreaterThan(0);
     expect(segmentErrors.length).toBeGreaterThan(0);
   });

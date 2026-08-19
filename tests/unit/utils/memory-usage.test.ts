@@ -58,7 +58,7 @@ describe('memory-usage (REQ-138)', () => {
       // Temporarily remove process.memoryUsage
       const origMemUsage = process.memoryUsage;
       // Intentionally removing for test
-      delete (process as NodeJS.Process & { memoryUsage?: typeof process.memoryUsage }).memoryUsage;
+      delete (process as { memoryUsage?: typeof process.memoryUsage }).memoryUsage;
 
       // Remove performance.memory if present
       const perfMem = (performance as Performance & { memory?: unknown }).memory;

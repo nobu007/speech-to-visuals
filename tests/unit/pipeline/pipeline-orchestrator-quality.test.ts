@@ -72,7 +72,7 @@ describe('PipelineOrchestrator QualityMonitor Integration (REQ-088)', () => {
 
     // Find the transcription quality recording
     const transcriptionCall = recordMetricsSpy.mock.calls.find(
-      (call) => call[0].transcriptionAccuracy !== undefined,
+      (call: Parameters<QualityMonitor['recordMetrics']>) => call[0].transcriptionAccuracy !== undefined,
     );
 
     expect(transcriptionCall).toBeDefined();
@@ -86,7 +86,7 @@ describe('PipelineOrchestrator QualityMonitor Integration (REQ-088)', () => {
 
     // Find the analysis quality recording
     const analysisCall = recordMetricsSpy.mock.calls.find(
-      (call) => call[0].entityExtractionF1 !== undefined,
+      (call: Parameters<QualityMonitor['recordMetrics']>) => call[0].entityExtractionF1 !== undefined,
     );
 
     expect(analysisCall).toBeDefined();
@@ -100,7 +100,7 @@ describe('PipelineOrchestrator QualityMonitor Integration (REQ-088)', () => {
 
     // Find the layout quality recording
     const layoutCall = recordMetricsSpy.mock.calls.find(
-      (call) => call[0].edgeCompleteness !== undefined,
+      (call: Parameters<QualityMonitor['recordMetrics']>) => call[0].edgeCompleteness !== undefined,
     );
 
     // Layout quality should be recorded if layoutQualityScore was computed
@@ -116,7 +116,7 @@ describe('PipelineOrchestrator QualityMonitor Integration (REQ-088)', () => {
 
     // Find the rendering quality recording
     const renderingCall = recordMetricsSpy.mock.calls.find(
-      (call) => call[0].processingTime !== undefined && call[0].processingTime > 0,
+      (call: Parameters<QualityMonitor['recordMetrics']>) => call[0].processingTime !== undefined && call[0].processingTime > 0,
     );
 
     expect(renderingCall).toBeDefined();

@@ -282,7 +282,7 @@ describe('SimplePipeline', () => {
           nodes: [],
           edges: [],
           confidence: 0.8,
-        } as SceneGraph,
+        } as unknown as SceneGraph,
       ];
       const score = internals(pipeline).calculateQualityScore({
         scenes,
@@ -318,8 +318,8 @@ describe('SimplePipeline', () => {
 
     it('caps total at 100', () => {
       const scenes: SceneGraph[] = [
-        { type: 'flow', nodes: [], edges: [], confidence: 1.0 } as SceneGraph,
-        { type: 'flow', nodes: [], edges: [], confidence: 1.0 } as SceneGraph,
+        { type: 'flow', nodes: [], edges: [], confidence: 1.0 } as unknown as SceneGraph,
+        { type: 'flow', nodes: [], edges: [], confidence: 1.0 } as unknown as SceneGraph,
       ];
       const score = internals(pipeline).calculateQualityScore({
         transcript: 'a'.repeat(200),          // 30
@@ -333,7 +333,7 @@ describe('SimplePipeline', () => {
 
     it('handles missing scene confidence (defaults to 0)', () => {
       const scenes: SceneGraph[] = [
-        { type: 'flow', nodes: [], edges: [] } as SceneGraph,
+        { type: 'flow', nodes: [], edges: [] } as unknown as SceneGraph,
       ];
       const score = internals(pipeline).calculateQualityScore({
         scenes,
@@ -345,9 +345,9 @@ describe('SimplePipeline', () => {
 
     it('calculates average confidence correctly for multiple scenes', () => {
       const scenes: SceneGraph[] = [
-        { type: 'flow', nodes: [], edges: [], confidence: 0.6 } as SceneGraph,
-        { type: 'flow', nodes: [], edges: [], confidence: 0.8 } as SceneGraph,
-        { type: 'flow', nodes: [], edges: [], confidence: 1.0 } as SceneGraph,
+        { type: 'flow', nodes: [], edges: [], confidence: 0.6 } as unknown as SceneGraph,
+        { type: 'flow', nodes: [], edges: [], confidence: 0.8 } as unknown as SceneGraph,
+        { type: 'flow', nodes: [], edges: [], confidence: 1.0 } as unknown as SceneGraph,
       ];
       const score = internals(pipeline).calculateQualityScore({
         scenes,
@@ -359,7 +359,7 @@ describe('SimplePipeline', () => {
 
     it('with all components gives high score', () => {
       const scenes: SceneGraph[] = [
-        { type: 'flow', nodes: [], edges: [], confidence: 0.9 } as SceneGraph,
+        { type: 'flow', nodes: [], edges: [], confidence: 0.9 } as unknown as SceneGraph,
       ];
       const score = internals(pipeline).calculateQualityScore({
         transcript: 'a'.repeat(150),            // 30 (capped)

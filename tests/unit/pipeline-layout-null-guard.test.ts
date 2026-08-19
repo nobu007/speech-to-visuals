@@ -46,10 +46,10 @@ function makeStubPipeline(
             if ((layoutResult as { success: boolean }).success) {
               return { segment, analysis, layout: (layoutResult as { layout: unknown }).layout };
             }
-            return { segment, analysis, layout: this.createFallbackLayout(nodes, analysis.edges) };
+            return { segment, analysis, layout: this.createFallbackLayout(nodes, analysis.edges as unknown[]) };
           } catch (error) {
             logger.warn(`Layout generation failed for segment: ${(segment as { summary?: string }).summary ?? 'unknown'}`, error);
-            return { segment, analysis, layout: this.createFallbackLayout(nodes, analysis.edges) };
+            return { segment, analysis, layout: this.createFallbackLayout(nodes, analysis.edges as unknown[]) };
           }
         }
         return null;

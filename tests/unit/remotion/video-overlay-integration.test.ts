@@ -14,7 +14,6 @@ function makeScene(overrides: Partial<SceneGraph> & { durationMs: number }): Sce
     nodes: [],
     edges: [],
     startMs: 0,
-    durationMs: overrides.durationMs,
     summary: '',
     keyphrases: [],
     ...overrides,

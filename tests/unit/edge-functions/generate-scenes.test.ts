@@ -154,7 +154,7 @@ describe('calculateLayout', () => {
 
     const root = positioned.find((n) => n.id === 'root');
     const child = positioned.find((n) => n.id === 'c0');
-    expect(root!.y).toBeLessThan(child!.y);
+    expect(root!.y).toBeLessThan(child!.y!);
   });
 
   it('should position cycle nodes in circle', () => {
