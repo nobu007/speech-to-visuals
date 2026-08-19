@@ -244,7 +244,7 @@ export class VideoGenerator {
     const defaultDuration = DEFAULT_SCENE_DURATION_MS;
     const sceneDuration = Math.max(MIN_SCENE_DURATION_MS, Math.min(
       MAX_EDITORIAL_SCENE_DURATION_MS,
-      (scene.endTime - scene.startTime) * 1000 || defaultDuration
+      (scene.endTime! - scene.startTime!) * 1000 || defaultDuration
     ));
 
     // レイアウトからRemotionノード変換
@@ -259,21 +259,21 @@ export class VideoGenerator {
 
     // エッジ変換
     const edges = scene.layout?.edges?.map(edge => ({
-      from: edge.from,
-      to: edge.to,
-      label: edge.label || '',
+      from: edge.from!,
+      to: edge.to!,
+      label: edge.label! || '',
       type: 'arrow'
     })) || [];
 
     return {
-      id: scene.id,
-      startMs: scene.startTime * 1000, // 秒をミリ秒に変換
+      id: scene.id!,
+      startMs: scene.startTime! * 1000, // 秒をミリ秒に変換
       durationMs: sceneDuration,
       diagramType: scene.type,
       title: this.generateSceneTitle(scene),
       nodes,
       edges,
-      transcript: scene.content,
+      transcript: scene.content!,
       // 0.0 is a legitimate "layout/detection broke down" signal; use ?? so it
       // is not masked to 0.8 (which would also silence the low-confidence
       // warning in validateRemotionData: confidence < 0.5).
@@ -548,7 +548,7 @@ export class VideoGenerator {
     // local copy here had already drifted from DiagramScene's rendered titles
     // (flowchart/general), so the scene list and the video frame disagreed.
     const typeLabel = DIAGRAM_TYPE_TITLES[scene.type];
-    return `${typeLabel} - ${scene.content.substring(0, 30)}...`;
+    return `${typeLabel} - ${scene.content!.substring(0, 30)}...`;
   }
 
   /**

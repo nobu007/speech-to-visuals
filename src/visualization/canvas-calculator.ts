@@ -9,7 +9,7 @@
 import { PositionedNode } from '@stv/core/types/diagram';
 import { sanitizeFinite } from '@stv/core/utils/guards';
 import { getNodeWidth, getNodeHeight } from './node-dimensions';
-import { nodeExtentEdges, foldNodeExtents, NodeExtentEdges } from './layout-utils';
+import { nodeExtentEdges, foldNodeExtents, NodeExtentEdges, ExtentNode } from './layout-utils';
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, TARGET_ASPECT_RATIO } from './canvas-dimensions';
 
 const PADDING_RATIO = 0.05;
@@ -24,7 +24,7 @@ const MIN_PADDING = 40;
  * tests/guards/canvas-calculator-sanitizeFinite-migration-pinning.test.ts),
  * not the scan's.
  */
-function sanitizedExtentEdges(node: PositionedNode): NodeExtentEdges {
+function sanitizedExtentEdges(node: ExtentNode): NodeExtentEdges {
   const left = sanitizeFinite(node.x, 0);
   const top = sanitizeFinite(node.y, 0);
   return {

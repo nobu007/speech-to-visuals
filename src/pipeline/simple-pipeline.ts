@@ -189,7 +189,7 @@ export class SimplePipeline {
         transcriptionResult,
         transcriptionProcessingTime,
         transcriptionQuality,
-        transcriptionResult.success,
+        transcriptionResult.success!,
         transcriptionResult.success ? [] : ['transcription_failed'],
         {
           audioFileType: input.audioFile.type,
@@ -384,7 +384,7 @@ export class SimplePipeline {
             // breakdown signal, matching the prior inline computation. See
             // src/pipeline/scene-graph-builder.ts for the divergence history.
             return buildSceneGraph({
-              segment,
+              segment: segment as { startMs?: unknown; endMs?: unknown; text?: unknown; summary?: unknown; keyphrases?: unknown; },
               analysis: diagramAnalysis,
               layout: lr.layout,
               index,

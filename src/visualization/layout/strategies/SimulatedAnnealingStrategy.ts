@@ -263,8 +263,8 @@ export class SimulatedAnnealingStrategy extends BaseLayoutStrategy {
     const targetLength = 150; // Ideal edge length
     
     for (const edge of edges) {
-      const source = nodeMap.get(edge.source);
-      const target = nodeMap.get(edge.target);
+      const source = nodeMap.get(edge.source!);
+      const target = nodeMap.get(edge.target!);
       
       if (source && target) {
         const dx = target.x - source.x;

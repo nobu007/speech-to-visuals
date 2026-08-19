@@ -215,7 +215,7 @@ export class OverlapResolver {
    * Get minimum separation distance based on diagram type
    */
   private getMinimumSeparationForType(diagramType: DiagramType): number {
-    const separations = {
+    const separations: Record<string, number> = {
       flow: 30,      // Flow diagrams need clear paths
       flowchart: 30, // Flowchart is a flow diagram (canonical distinct DiagramType)
       tree: 40,      // Hierarchy needs breathing room

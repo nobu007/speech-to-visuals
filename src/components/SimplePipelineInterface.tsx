@@ -437,14 +437,14 @@ export const SimplePipelineInterface: React.FC = () => {
                   {result.scenes.map((scene: Record<string, unknown>, index: number) => (
                     <div key={(scene.id as React.Key) || index} className="p-3 border rounded-lg">
                       <div className="flex justify-between items-start mb-1">
-                        <span className="font-medium">シーン {index + 1}: {scene.type as React.ReactNode}</span>
-                        {scene.confidence && (
+                        <span className="font-medium">シーン {index + 1}: {String(scene.type)}</span>
+                        {(scene.confidence as number | undefined) && (
                           <span className="text-sm text-muted-foreground">
                             信頼度: {Math.round(scene.confidence as number * 100)}%
                           </span>
                         )}
                       </div>
-                      {scene.content && (
+                      {(scene.content as string | undefined) && (
                         <p className="text-sm text-muted-foreground">
                           {(scene.content as string).substring(0, 100)}
                         </p>

@@ -76,10 +76,10 @@ export const hasAnyOverlap = (nodes: PositionedNode[], padding = 0): boolean => 
     for (let j = i + 1; j < nodes.length; j++) {
       const b = nodes[j];
       const overlap = !(
-        a.x + a.width / 2 + padding < b.x - b.width / 2 ||
-        a.x - a.width / 2 - padding > b.x + b.width / 2 ||
-        a.y + a.height / 2 + padding < b.y - b.height / 2 ||
-        a.y - a.height / 2 - padding > b.y + b.height / 2
+        a.x + a.width! / 2 + padding < b.x - b.width! / 2 ||
+        a.x - a.width! / 2 - padding > b.x + b.width! / 2 ||
+        a.y + a.height! / 2 + padding < b.y - b.height! / 2 ||
+        a.y - a.height! / 2 - padding > b.y + b.height! / 2
       );
       if (overlap) return true;
     }

@@ -135,11 +135,9 @@ function main(): void {
   if (checkMode) {
     const { ok, missing } = verifyEdgeUntrustedJson();
     if (ok) {
-      // eslint-disable-next-line no-console
       console.log(`✓ Edge sanitizer in sync with ${REL_CORE}.`);
       return;
     }
-    // eslint-disable-next-line no-console
     console.error(
       missing
         ? `✗ Edge sanitizer missing — run \`npm run sync:edge\` to generate it.`
@@ -150,8 +148,6 @@ function main(): void {
   }
 
   const outPath = writeEdgeUntrustedJson();
-  // eslint-disable-next-line no-console
-  console.log(`Generated ${path.relative(process.cwd(), outPath)} from ${REL_CORE}`);
 }
 
 // Run only when invoked directly (tsx/`node`), not when imported by the test.

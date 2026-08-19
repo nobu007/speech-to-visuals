@@ -225,8 +225,8 @@ export class SceneSegmenter {
           };
         } else {
           // Extend current segment
-          currentSegment.endMs = part.endMs;
-          currentSegment.texts.push(part.text);
+          currentSegment!.endMs = part.endMs;
+          currentSegment!.texts.push(part.text);
           keywords.forEach(kw => currentSegment!.keyphrases.add(kw));
         }
       }

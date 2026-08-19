@@ -162,7 +162,7 @@ export class StreamingTranscriber {
           // minConfidence can legitimately be 0 (accept all); use ?? so only
           // undefined falls back to the 0.7 default, not an explicit 0.
           const validSegments = chunkSegments.filter(
-            segment => segment.confidence >= (this.config.minConfidence ?? 0.7)
+            segment => segment.confidence! >= (this.config.minConfidence ?? 0.7)
           );
 
           // Collect segments BEFORE quality monitoring so that a quality
@@ -172,7 +172,7 @@ export class StreamingTranscriber {
           // REQ-091: Record per-chunk quality with StreamingQualityMonitor
           if (this.qualityMonitor) {
             const chunkAvgConfidence = chunkSegments.length > 0
-              ? chunkSegments.reduce((s, seg) => s + (Number.isFinite(seg.confidence) ? seg.confidence : 0), 0) / chunkSegments.length
+              ? chunkSegments.reduce((s, seg) => s + (Number.isFinite(seg.confidence!) ? seg.confidence! : 0), 0) / chunkSegments.length
               : 0;
             this.qualityMonitor.evaluateChunk(i, chunkAvgConfidence);
           }
@@ -288,7 +288,7 @@ export class StreamingTranscriber {
               speaker: 'unknown'
             };
 
-            if (segment.confidence >= (this.config.minConfidence ?? 0.7)) {
+            if (segment.confidence! >= (this.config.minConfidence ?? 0.7)) {
               this.segments.push(segment);
               this.accumulatedText += segment.text + ' ';
 
@@ -476,8 +476,8 @@ export class StreamingTranscriber {
         // Merge segments
         lastMerged.end = Math.max(lastMerged.end, current.end);
         lastMerged.text += ' ' + current.text;
-        lastMerged.confidence = ((Number.isFinite(lastMerged.confidence) ? lastMerged.confidence : 0) +
-          (Number.isFinite(current.confidence) ? current.confidence : 0)) / 2;
+        lastMerged.confidence = ((Number.isFinite(lastMerged.confidence!) ? lastMerged.confidence! : 0) +
+          (Number.isFinite(current.confidence!) ? current.confidence! : 0)) / 2;
       } else {
         merged.push(current);
       }
@@ -493,7 +493,7 @@ export class StreamingTranscriber {
     if (segments.length === 0) return 0;
 
     const totalConfidence = segments.reduce((sum, segment) =>
-      sum + (Number.isFinite(segment.confidence) ? segment.confidence : 0), 0);
+      sum + (Number.isFinite(segment.confidence!) ? segment.confidence! : 0), 0);
     return totalConfidence / segments.length;
   }
 
@@ -522,25 +522,25 @@ export class StreamingTranscriber {
   updateConfig(newConfig: Partial<StreamingTranscriptionConfig>): void {
     const candidate: StreamingTranscriptionConfig = { ...this.config, ...newConfig };
 
-    if (candidate.chunkSizeMs <= 0 || candidate.chunkSizeMs > 60000) {
+    if (candidate.chunkSizeMs! <= 0 || candidate.chunkSizeMs! > 60000) {
       throw new TranscriptionError(
-        `chunkSizeMs must be > 0 and <= 60000, got ${candidate.chunkSizeMs}`
+        `chunkSizeMs must be > 0 and <= 60000, got ${candidate.chunkSizeMs!}`
       );
     }
-    if (candidate.minConfidence < 0 || candidate.minConfidence > 1) {
+    if (candidate.minConfidence! < 0 || candidate.minConfidence! > 1) {
       throw new TranscriptionError(
-        `minConfidence must be between 0 and 1, got ${candidate.minConfidence}`
+        `minConfidence must be between 0 and 1, got ${candidate.minConfidence!}`
       );
     }
-    if (candidate.overlapMs < 0) {
-      throw new TranscriptionError(`overlapMs must be >= 0, got ${candidate.overlapMs}`);
+    if (candidate.overlapMs! < 0) {
+      throw new TranscriptionError(`overlapMs must be >= 0, got ${candidate.overlapMs!}`);
     }
     // Validate against the EFFECTIVE (merged) chunkSizeMs so a combined update
     // such as { chunkSizeMs: 100, overlapMs: 500 } is rejected — otherwise
     // createAudioChunks would loop forever.
-    if (candidate.overlapMs >= candidate.chunkSizeMs) {
+    if (candidate.overlapMs! >= candidate.chunkSizeMs!) {
       throw new TranscriptionError(
-        `overlapMs (${candidate.overlapMs}) must be less than chunkSizeMs (${candidate.chunkSizeMs})`
+        `overlapMs (${candidate.overlapMs!}) must be less than chunkSizeMs (${candidate.chunkSizeMs!})`
       );
     }
 

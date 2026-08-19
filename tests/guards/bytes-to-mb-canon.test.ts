@@ -100,7 +100,7 @@ describe('bytes→MB division — no re-derivation at the known call sites', () 
   it('health-check-service delegates heap/rss/external MB to bytesToMb', () => {
     expect(stripComments(healthCheckSrc)).toMatch(/import\s*\{[^}]*\bbytesToMb\b[^}]*\}\s*from\s*['"]@stv\/core\/lib\/metrics-utils['"]/);
     expect(stripComments(healthCheckSrc)).toMatch(/bytesToMb\s*\(\s*memoryUsage\.heapUsed\s*\)/);
-    expect(stripComments(healthCheckSrc)).toMatch(/bytesToMb\s*\(\s*memoryUsage\.rss\s*\)/);
+    expect(stripComments(healthCheckSrc)).toMatch(/bytesToMb\s*\(\s*memoryUsage\.rss!?\s*\)/); // '!': strict-mode non-null on the optional Node.MemoryUsage field
     expect(stripComments(healthCheckSrc)).not.toMatch(BYTES_DIVISION);
     expect(stripComments(healthCheckSrc)).not.toMatch(BYTES_LITERAL);
   });

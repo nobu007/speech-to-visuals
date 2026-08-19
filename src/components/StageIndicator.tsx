@@ -165,9 +165,10 @@ export const StageIndicator: FC<StageIndicatorProps> = memo(
                 stage.status === 'error' && 'text-destructive',
               )}
             />
-            {stage.status === 'active' && (
-              <StatusIcon className="absolute -right-1 -top-1 h-2.5 w-2.5 sm:h-3 sm:w-3 text-primary animate-spin" />
-            )}
+            {(() => {
+              const ActiveIcon = STATUS_ICON_MAP.active;
+              return ActiveIcon ? <ActiveIcon className="absolute -right-1 -top-1 h-2.5 w-2.5 sm:h-3 sm:w-3 text-primary animate-spin" /> : null;
+            })()}
           </div>
 
           {/* Stage info */}

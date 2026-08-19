@@ -969,8 +969,8 @@ export class DiagramDetector {
       });
 
       // Find consensus winner
-      const consensusType = Object.entries(typeScores).reduce((best, [type, data]) =>
-        data.score > best.score ? { type: type as DiagramType, score: data.score, methods: data.methods } : best,
+      const consensusType = Object.entries(typeScores).reduce<{ type: DiagramType; score: number; methods: string[] }>(
+        (best, [type, data]) => (data.score > best.score ? { type: type as DiagramType, score: data.score, methods: data.methods } : best),
         { type: 'flow' as DiagramType, score: 0, methods: [] }
       );
 

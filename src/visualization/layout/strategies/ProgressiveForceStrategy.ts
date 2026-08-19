@@ -318,8 +318,8 @@ export class ProgressiveForceStrategy extends BaseLayoutStrategy {
     const nodeMap = new Map(nodes.map(n => [n.id, n]));
     
     for (const edge of edges) {
-      const source = nodeMap.get(edge.source);
-      const target = nodeMap.get(edge.target);
+      const source = nodeMap.get(edge.source!);
+      const target = nodeMap.get(edge.target!);
       
       if (!source || !target) continue;
       
@@ -426,8 +426,8 @@ export class ProgressiveForceStrategy extends BaseLayoutStrategy {
     const nodeMap = new Map(nodes.map((n, i) => [n.id, { node: n, index: i }]));
     
     for (const edge of edges) {
-      const source = nodeMap.get(edge.source);
-      const target = nodeMap.get(edge.target);
+      const source = nodeMap.get(edge.source!);
+      const target = nodeMap.get(edge.target!);
       
       if (source && target) {
         const dx = target.node.x - source.node.x;

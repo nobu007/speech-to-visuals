@@ -200,8 +200,8 @@ export class PerformanceDashboard {
       memory: {
         heapUsed: memoryUsage.heapUsed,
         heapTotal: memoryUsage.heapTotal,
-        external: memoryUsage.external,
-        rss: memoryUsage.rss
+        external: memoryUsage.external!,
+        rss: memoryUsage.rss!
       },
       processing: {
         transcriptionTime: 0, // Will be updated by pipeline

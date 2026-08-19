@@ -1361,7 +1361,7 @@ export class MainPipeline {
       unknown: 'generic_retry'
     };
 
-    return strategies[errorPattern] || 'generic_retry';
+    return strategies[errorPattern as keyof typeof strategies] || 'generic_retry';
   }
 
   /**

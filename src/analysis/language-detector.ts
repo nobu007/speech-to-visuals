@@ -290,7 +290,7 @@ export class LanguageDetector {
         builder = this.kuromojiBuilderFactory;
       } else {
         // Dynamic import -- may be mocked by jest.mock('kuromoji')
-        const kuromoji = await import('kuromoji');
+        const kuromoji = await import('kuromoji') as Record<string, unknown>;
         // Handle both ESM default export and CJS-style export
         const mod = (kuromoji as Record<string, unknown>).default ?? kuromoji;
         builder = (mod as Record<string, KuromojiBuilder>).builder;

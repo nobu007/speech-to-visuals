@@ -147,7 +147,7 @@ export class MultiFormatExporter {
       success: true,
       data: blob,
       mimeType: 'image/svg+xml',
-      filename: `${sanitizeFilename(scene.id)}.svg`,
+      filename: `${sanitizeFilename(scene.id!)}.svg`,
       metadata: {
         format: 'svg',
         sizeBytes: blob.size,
@@ -191,7 +191,7 @@ export class MultiFormatExporter {
       success: true,
       data: blob,
       mimeType: 'image/png',
-      filename: `${sanitizeFilename(scene.id)}.png`,
+      filename: `${sanitizeFilename(scene.id!)}.png`,
       metadata: {
         format: 'png',
         sizeBytes: blob.size,
@@ -218,7 +218,7 @@ export class MultiFormatExporter {
       success: true,
       data: pdfData,
       mimeType: 'application/pdf',
-      filename: `${sanitizeFilename(scene.id)}.pdf`,
+      filename: `${sanitizeFilename(scene.id!)}.pdf`,
       metadata: {
         format: 'pdf',
         sizeBytes: pdfData.size,
@@ -261,7 +261,7 @@ export class MultiFormatExporter {
       success: true,
       data: blob,
       mimeType: 'application/json',
-      filename: `${sanitizeFilename(scene.id)}.json`,
+      filename: `${sanitizeFilename(scene.id!)}.json`,
       metadata: {
         format: 'json',
         sizeBytes: blob.size,
@@ -285,7 +285,7 @@ export class MultiFormatExporter {
 
     let svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-  <title>${escapeXml(scene.id)}</title>
+  <title>${escapeXml(scene.id!)}</title>
   <rect width="${width}" height="${height}" fill="${bgColor}"/>
   <g id="diagram">
 `;

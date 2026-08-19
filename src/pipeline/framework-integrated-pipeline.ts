@@ -134,9 +134,7 @@ export class FrameworkIntegratedPipeline {
       // Evaluate success criteria
       const metricsForEvaluation = {
         success: result.success,
-        processingTime: result.processingTime,
         sceneCount: result.scenes?.length ?? 0,
-        overallScore: qualityMetrics.overallScore,
         ...qualityMetrics
       };
 

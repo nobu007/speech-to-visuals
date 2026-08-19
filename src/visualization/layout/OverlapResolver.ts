@@ -232,7 +232,7 @@ export class OverlapResolver {
     const nodeIds = new Set(nodes.map(n => n.id));
     
     return edges
-      .filter(edge => nodeIds.has(edge.source) && nodeIds.has(edge.target))
+      .filter(edge => nodeIds.has(edge.source!) && nodeIds.has(edge.target!))
       .map(edge => ({
         ...edge,
         points: []

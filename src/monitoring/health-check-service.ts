@@ -178,8 +178,8 @@ class HealthCheckService {
         heapUsedMB: roundTo(heapUsedMB, 2),
         heapTotalMB: roundTo(heapTotalMB, 2),
         usagePercent: roundTo(usagePercent, 2),
-        rss: roundTo(bytesToMb(memoryUsage.rss), 2),
-        external: roundTo(bytesToMb(memoryUsage.external), 2)
+        rss: roundTo(bytesToMb(memoryUsage.rss!), 2),
+        external: roundTo(bytesToMb(memoryUsage.external!), 2)
       }
     };
   }
