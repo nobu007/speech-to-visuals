@@ -40,6 +40,8 @@
     "sync:edge": "tsx scripts/generate-edge-untrusted-json.ts",
     "verify:edge": "tsx scripts/generate-edge-untrusted-json.ts --check",
     "monitoring:validate": "tsx scripts/validate-monitoring-configs.ts",
+    "monitoring:drift": "tsx scripts/check-monitoring-drift.ts",
+    "verify:all": "npm run audit:code-size && npm run spine:validate && npm run verify:edge && npm run monitoring:validate && npm run monitoring:drift && npm run type-check && npm run lint && npm run build && npm test",
     "test": "NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' jest --config jest.config.cjs",
     "test:memory": "NODE_OPTIONS='--experimental-vm-modules --expose-gc' JEST_MEMORY_LOG=1 jest --config jest.config.cjs --logHeapUsage",
     "test:coverage": "jest --config jest.config.cjs --coverage",

@@ -2,7 +2,13 @@ module.exports = {
   preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
   testTimeout: 30000,
-  maxWorkers: 2,
+  // 2026-08: was `maxWorkers: 2` with `detectOpenHandles: true` — the latter
+  // forced jest to run the ENTIRE suite in-band (single process, zero workers;
+  // jest skips worker spawning entirely when detectOpenHandles is set), so this
+  // number was silently ignored and every full run was serial (~11.5 min, CI
+  // and local). Workers now actually spawn; leak diagnosis, when needed, is a
+  // targeted run with --detectOpenHandles on a subset.
+  maxWorkers: '75%',
   globalTeardown: '<rootDir>/tests/globalTeardown.ts',
   setupFiles: ['<rootDir>/tests/setupJestGlobals.ts'],
   testMatch: ['**/src/**/*.test.ts', '**/src/**/*.test.tsx', '**/tests/**/*.test.ts', '**/tests/**/*.test.tsx'],
@@ -23,7 +29,6 @@ module.exports = {
   transformIgnorePatterns: [
     'node_modules/(?!(uuid|express|cors|helmet|express-rate-limit|supertest)/)',
   ],
-  detectOpenHandles: true,
   transform: {
     '^.+\\.(ts|tsx)$': [
       'ts-jest',

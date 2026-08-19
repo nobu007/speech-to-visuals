@@ -182,13 +182,27 @@ describe('REQ-254: CI timeout-minutes configuration', () => {
     // Must have an exit 1 path when budget is exceeded
     expect(gateJobSection).toContain('exit 1');
 
-    // Must reference the outputs from individual jobs
+    // Must reference the outputs from individual jobs.
+    // NOTE: `test` is deliberately ABSENT here — since the 4-shard matrix
+    // (2026-08), shards enforce their own 600s jest budget with a hard
+    // `exit 1` inside the job (matrix legs can't reliably merge outputs into
+    // the gate). The assertions below pin that replacement mechanism.
     expect(gateJobSection).toContain('needs.code-size-audit.outputs.budget_exceeded');
     expect(gateJobSection).toContain('needs.lint.outputs.budget_exceeded');
-    expect(gateJobSection).toContain('needs.test.outputs.budget_exceeded');
     expect(gateJobSection).toContain('needs.build.outputs.budget_exceeded');
     expect(gateJobSection).toContain('needs.security-fuzz.outputs.budget_exceeded');
     expect(gateJobSection).toContain('needs.spine-validate.outputs.budget_exceeded');
+
+    // Test shards: budget enforced in-job, hard-fail (REQ-254, shard era)
+    const testJobStart = content.indexOf('\n  test:');
+    expect(testJobStart).toBeGreaterThan(-1);
+    const testJobSection = content.slice(testJobStart, content.indexOf('\n  monitoring-config-validate:'));
+    expect(testJobSection).toContain('matrix:');
+    expect(testJobSection).toContain('shard: [1, 2, 3, 4]');
+    expect(testJobSection).toContain('--shard=${{ matrix.shard }}/4');
+    expect(testJobSection).toContain('THRESHOLD=600');
+    // budget breach must fail the shard itself, not just warn
+    expect(testJobSection).toContain('exit 1');
 
     // Must NOT be a passive "just print success" step (the old behavior)
     // If the step body contains only echo lines without conditional logic, it's passive.
