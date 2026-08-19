@@ -52,10 +52,67 @@ export type {
   StageBoundaryResult,
 } from './error-recovery/types';
 
+/**
+ * Initial health-metrics snapshot. Formerly the `initializeHealthMetrics()`
+ * private method called once from the constructor — hoisted to a module
+ * factory so the field is definitely assigned at its declaration, replacing
+ * the `healthMetrics!:` definite-assignment assertion. The constructor was
+ * (and remains) the only caller, and nothing reads the field before the
+ * constructor body runs, so the initialization point is observably the same
+ * (Phase 147 / REQ-336).
+ */
+function createInitialHealthMetrics(): SystemHealth {
+  return {
+    overall: 1.0,
+    stages: {
+      transcription: 1.0,
+      segmentation: 1.0,
+      analysis: 1.0,
+      diagram_detection: 1.0,
+      layout_generation: 1.0,
+      animation: 1.0,
+      rendering: 1.0,
+      export: 1.0
+    },
+    indicators: [
+      {
+        name: 'Memory Usage',
+        threshold: 0.8,
+        currentValue: 0.3,
+        trend: 'stable',
+        riskLevel: 'low'
+      },
+      {
+        name: 'Processing Speed',
+        threshold: 2000,
+        currentValue: 1200,
+        trend: 'improving',
+        riskLevel: 'low'
+      },
+      {
+        name: 'Error Rate',
+        threshold: 0.05,
+        currentValue: 0.02,
+        trend: 'stable',
+        riskLevel: 'low'
+      },
+      {
+        name: 'Cache Hit Rate',
+        threshold: 0.3,
+        currentValue: 0.45,
+        trend: 'improving',
+        riskLevel: 'low'
+      }
+    ],
+    recommendations: [],
+    lastUpdated: Date.now()
+  };
+}
+
 export class EnhancedErrorRecovery {
   private recoveryStrategies: RecoveryStrategy[] = [];
   private errorHistory: Map<string, ErrorContext[]> = new Map();
-  private healthMetrics!: SystemHealth;
+  private healthMetrics: SystemHealth = createInitialHealthMetrics();
   private preventiveActions: Map<string, () => Promise<void>> = new Map();
   private strategyEffectiveness: Map<string, StrategyEffectivenessRecord> = new Map();
   private healthMonitoringTimer: NodeJS.Timeout | null = null;
@@ -95,7 +152,8 @@ export class EnhancedErrorRecovery {
     );
 
     this.recoveryStrategies = createRecoveryStrategies(this.buildStrategyHost());
-    this.initializeHealthMetrics();
+    // healthMetrics initializes at its field declaration
+    // (createInitialHealthMetrics above).
     this.initializePreventiveActions();
     // Skip background timers in test environment to prevent Jest worker leaks.
     // JEST_WORKER_ID is set by Jest regardless of NODE_ENV overrides in tests.
@@ -215,57 +273,6 @@ export class EnhancedErrorRecovery {
   }
   private evaluateCircuitBreakers(): void {
     this.breakers.evaluate();
-  }
-
-  /**
-   * Initialize health metrics monitoring
-   */
-  private initializeHealthMetrics(): void {
-    this.healthMetrics = {
-      overall: 1.0,
-      stages: {
-        transcription: 1.0,
-        segmentation: 1.0,
-        analysis: 1.0,
-        diagram_detection: 1.0,
-        layout_generation: 1.0,
-        animation: 1.0,
-        rendering: 1.0,
-        export: 1.0
-      },
-      indicators: [
-        {
-          name: 'Memory Usage',
-          threshold: 0.8,
-          currentValue: 0.3,
-          trend: 'stable',
-          riskLevel: 'low'
-        },
-        {
-          name: 'Processing Speed',
-          threshold: 2000,
-          currentValue: 1200,
-          trend: 'improving',
-          riskLevel: 'low'
-        },
-        {
-          name: 'Error Rate',
-          threshold: 0.05,
-          currentValue: 0.02,
-          trend: 'stable',
-          riskLevel: 'low'
-        },
-        {
-          name: 'Cache Hit Rate',
-          threshold: 0.3,
-          currentValue: 0.45,
-          trend: 'improving',
-          riskLevel: 'low'
-        }
-      ],
-      recommendations: [],
-      lastUpdated: Date.now()
-    };
   }
 
   /**

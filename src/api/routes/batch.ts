@@ -302,7 +302,13 @@ export function createBatchRouter(jobManager?: BatchJobManager): Router {
     }
 
     const jobId = manager.createJob(body.files, body.preset, body.options);
-    const status = manager.getJobStatus(jobId)!;
+    const status = manager.getJobStatus(jobId);
+    // createJob just registered the job in the same in-memory manager, so a
+    // missing status is unreachable; guard with the GET /jobs/:jobId idiom
+    // instead of asserting presence (Phase 147 / REQ-336).
+    if (!status) {
+      return sendBatchError(res, 404, 'JOB_NOT_FOUND', `Job not found: ${jobId}`);
+    }
 
     return res.status(202).json({
       success: true,
@@ -353,7 +359,13 @@ export function createBatchRouter(jobManager?: BatchJobManager): Router {
       return sendBatchError(res, 409, 'JOB_ALREADY_COMPLETED', `Job ${jobId} is already completed and cannot be cancelled`);
     }
 
-    const status = manager.getJobStatus(jobId)!;
+    const status = manager.getJobStatus(jobId);
+    // cancelJob() returned success, so the job existed a statement ago; the
+    // guard mirrors the GET /jobs/:jobId idiom instead of asserting presence
+    // (Phase 147 / REQ-336).
+    if (!status) {
+      return sendBatchError(res, 404, 'JOB_NOT_FOUND', `Job not found: ${jobId}`);
+    }
     return res.status(200).json({
       success: true,
       data: {

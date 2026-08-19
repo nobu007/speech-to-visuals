@@ -75,11 +75,19 @@ export const hasAnyOverlap = (nodes: PositionedNode[], padding = 0): boolean => 
     const a = nodes[i];
     for (let j = i + 1; j < nodes.length; j++) {
       const b = nodes[j];
+      // PositionedNode.width/height are optional upstream; an absent dim must
+      // keep producing NaN comparisons (overlap reported) exactly like the
+      // old `!`, so normalize to NaN rather than a fabricated 0
+      // (Phase 147 / REQ-336).
+      const aWidth = a.width ?? Number.NaN;
+      const aHeight = a.height ?? Number.NaN;
+      const bWidth = b.width ?? Number.NaN;
+      const bHeight = b.height ?? Number.NaN;
       const overlap = !(
-        a.x + a.width! / 2 + padding < b.x - b.width! / 2 ||
-        a.x - a.width! / 2 - padding > b.x + b.width! / 2 ||
-        a.y + a.height! / 2 + padding < b.y - b.height! / 2 ||
-        a.y - a.height! / 2 - padding > b.y + b.height! / 2
+        a.x + aWidth / 2 + padding < b.x - bWidth / 2 ||
+        a.x - aWidth / 2 - padding > b.x + bWidth / 2 ||
+        a.y + aHeight / 2 + padding < b.y - bHeight / 2 ||
+        a.y - aHeight / 2 - padding > b.y + bHeight / 2
       );
       if (overlap) return true;
     }

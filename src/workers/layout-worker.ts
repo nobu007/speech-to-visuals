@@ -98,8 +98,14 @@ export function computeLayout(
   // Group nodes by level
   const levelGroups = new Map<number, string[]>();
   for (const [nodeId, level] of levels) {
-    if (!levelGroups.has(level)) levelGroups.set(level, []);
-    levelGroups.get(level)!.push(nodeId);
+    // Captured get-or-create: the absent branch stores the array it hands
+    // back, replacing the has()/set()/get()! triple (Phase 147 / REQ-336).
+    let group = levelGroups.get(level);
+    if (group === undefined) {
+      group = [];
+      levelGroups.set(level, group);
+    }
+    group.push(nodeId);
   }
 
   // Position nodes using rank direction

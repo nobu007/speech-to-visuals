@@ -406,9 +406,15 @@ export class BatchProcessingAPI {
     // unconditional recompute was a divergent copy of SimplePipeline's formula
     // (falsy-guarded on processingTime), so the batch summary could silently
     // disagree with the pipeline's own recorded metric. (REQ-299)
-    const qualityScores = results
-      .filter((r) => r.success && r.result)
-      .map((r) => r.result!.qualityScore ?? this.calculateQualityScore(r.result!));
+    const qualityScores = results.flatMap((r) => {
+      const result = r.result;
+      // Same predicate as the previous filter()+map(): the captured `result`
+      // keeps the narrowing that `r.result!` used to assert (Phase 147 /
+      // REQ-336).
+      return r.success && result
+        ? [result.qualityScore ?? this.calculateQualityScore(result)]
+        : [];
+    });
     // Finite-safe aggregation (round 20): `qualityScore` is an interface field
     // on SimplePipelineResult crossing the pipeline→REST boundary — `??` only
     // replaces null/undefined, so a non-finite value would previously poison
@@ -484,7 +490,17 @@ export class BatchProcessingAPI {
         const pipelineInput = adaptiveQualityPresets.toPipelineOptions(file);
 
         if (request.options?.generateVideo !== undefined) {
-          pipelineInput.options!.includeVideoGeneration = request.options.generateVideo;
+          if (pipelineInput.options === undefined) {
+            // Unreachable through the preset producer — toPipelineOptions()
+            // always returns an options object. The old assertion surfaced a
+            // breach as an opaque TypeError into the catch below; keep the
+            // branch fail-loud with a diagnosable message instead
+            // (Phase 147 / REQ-336).
+            throw new Error(
+              'adaptiveQualityPresets.toPipelineOptions() must return pipeline options'
+            );
+          }
+          pipelineInput.options.includeVideoGeneration = request.options.generateVideo;
         }
 
         const result = await simplePipeline.process(pipelineInput);

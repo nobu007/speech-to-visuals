@@ -204,11 +204,19 @@ This log tracks iterative improvements following the custom instructions philoso
     // Work backwards from the end (oldest entries) so indices stay valid
     for (let i = 0; i < toRemove; i++) {
       const match = allEntries[allEntries.length - 1 - i];
-      const start = match.index!;
+      // matchAll results always carry an index; for the type-level optional,
+      // `?? 0` is runtime-identical to the old `match.index!` — both uses
+      // feed String.prototype.substring, which coerces `undefined` and `0`
+      // to the same position (Phase 147 / REQ-336).
+      const start = match.index ?? 0;
       // Find the end of this entry block: next "---" or "### Iteration" or "## " or EOF
       const afterStart = content.substring(start);
       const endMatch = afterStart.match(/\n---\n|\n### Iteration \d+|\n## /);
-      const endIdx = endMatch ? endMatch.index! + 1 : afterStart.length; // +1 to include the \n before delimiter
+      // A `.match()` hit always sets index; the captured guard keeps the
+      // impossible undefined out of the `+ 1` arithmetic instead of
+      // asserting it away.
+      const endIndex = endMatch?.index;
+      const endIdx = endIndex !== undefined ? endIndex + 1 : afterStart.length; // +1 to include the \n before delimiter
       content = content.substring(0, start) + content.substring(start + endIdx);
     }
     return content;
@@ -242,12 +250,15 @@ This log tracks iterative improvements following the custom instructions philoso
         const iterMatches = [...section.matchAll(iterRegex)];
 
         for (const match of iterMatches) {
+          // matchAll always sets index; skip the impossible absent case the
+          // way the `phaseMatch` check above does (Phase 147 / REQ-336).
+          if (match.index === undefined) continue;
           const iteration = parseInt(match[1], 10);
           const success = match[2] === 'success';
           const timestamp = match[3];
 
           // Extract metrics from the section around this match
-          const afterEntry = section.substring(match.index! + match[0].length);
+          const afterEntry = section.substring(match.index + match[0].length);
           const nextEntryIdx = afterEntry.search(/### Iteration \d+|^---$/m);
           const entryContent = nextEntryIdx > 0 ? afterEntry.substring(0, nextEntryIdx) : afterEntry;
 

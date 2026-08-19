@@ -595,7 +595,10 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium">Current Segment</span>
                   <Badge variant="outline">
-                    {(stats.currentSegment.confidence! * 100).toFixed(0)}% confidence
+                    {/* confidence is optional on TranscriptionSegment; NaN keeps
+                        the old `undefined * 100` → "NaN%" render exactly
+                        (Phase 147 / REQ-336). */}
+                    {((stats.currentSegment.confidence ?? Number.NaN) * 100).toFixed(0)}% confidence
                   </Badge>
                 </div>
                 <p className="text-sm">{stats.currentSegment.text}</p>
@@ -633,7 +636,11 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
                     <Badge variant="outline">{scene.type}</Badge>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Clock className="h-3 w-3" />
-                      {formatTime(scene.startTime!)}
+                      {/* formatPlaybackTime maps both undefined and NaN to
+                          '0:00' via its !Number.isFinite guard, so the
+                          normalization is render-identical (Phase 147 /
+                          REQ-336). */}
+                      {formatTime(scene.startTime ?? Number.NaN)}
                     </div>
                   </div>
                   <p className="text-sm">{scene.summary}</p>

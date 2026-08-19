@@ -249,11 +249,11 @@ export class ContinuousLearner {
         await this.applyAutomaticOptimizations();
         this.lastAnalysisAt = Date.now();
         this.lastAnalysisSuccess = true;
-        this.recordReportEntry(true);
+        this.recordReportEntry(true, this.lastAnalysisAt);
       } catch (error) {
         this.lastAnalysisAt = Date.now();
         this.lastAnalysisSuccess = false;
-        this.recordReportEntry(false);
+        this.recordReportEntry(false, this.lastAnalysisAt);
         logger.warn('ContinuousLearner: learning cycle failed', { error: String(error), iteration: this.iterationCount });
       }
     }, this.LEARNING_CONFIG.patternAnalysisInterval);
@@ -263,9 +263,12 @@ export class ContinuousLearner {
    * Record a snapshot of key metrics after each analysis cycle.
    * Maintains a ring buffer for dashboard history visualization.
    */
-  private recordReportEntry(success: boolean): void {
+  // `timestamp` is passed by both callers right after assigning
+  // `this.lastAnalysisAt` — the parameter makes that invariant explicit
+  // instead of asserting it (Phase 147 / REQ-336).
+  private recordReportEntry(success: boolean, timestamp: number): void {
     this.reportHistory.push({
-      timestamp: this.lastAnalysisAt!,
+      timestamp,
       iteration: this.iterationCount,
       dataPoints: this.learningDatabase.length,
       detectedPatterns: this.detectedPatterns.length,
@@ -680,10 +683,14 @@ export class ContinuousLearner {
 
     data.forEach(item => {
       const component = item.component;
-      if (!groups.has(component)) {
-        groups.set(component, []);
+      // Captured get-or-create: the absent branch stores the array it hands
+      // back, replacing the has()/set()/get()! triple (Phase 147 / REQ-336).
+      let componentGroup = groups.get(component);
+      if (componentGroup === undefined) {
+        componentGroup = [];
+        groups.set(component, componentGroup);
       }
-      groups.get(component)!.push(item);
+      componentGroup.push(item);
     });
 
     return groups;

@@ -1173,9 +1173,16 @@ export class EnhancedExportEngine {
     if (this.exportQueue.length > 0 && this.activeExports.size < this.maxConcurrentExports) {
       const nextJob = this.exportQueue.shift();
       if (nextJob && nextJob.resolve) {
-        this.processExportJob(nextJob).then(nextJob.resolve).catch((error) => {
+        // Capture the guarded resolver: the `.catch` closure below loses the
+        // property narrowing, which the old `resolve!` re-asserted there.
+        // The job assigns `resolve` once at enqueue time and nothing
+        // reassigns it, so the captured reference is the same function the
+        // assertion read (Phase 147 / REQ-336 — a call-paren `!` that the
+        // pre-Phase-147 line-regex census never saw; the AST census does).
+        const { resolve } = nextJob;
+        this.processExportJob(nextJob).then(resolve).catch((error) => {
           logger.error('[EnhancedExportEngine] Queued export job failed:', error);
-          nextJob.resolve!({
+          resolve({
             success: false,
             format: nextJob.config.format,
             quality: nextJob.config.quality,

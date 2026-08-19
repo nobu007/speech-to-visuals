@@ -330,13 +330,19 @@ export class PipelineRunRecoveryTracker {
   finalizeRun(success: boolean): RunRecoveryReport {
     this.assertActive();
 
+    // assertActive() gates on `active`, which startRun()/finalizeRun() keep
+    // in lockstep with runId (set together at 178/180, cleared together at
+    // 358/360); the `?? ''` mirrors generateSnapshot()'s own normalization
+    // instead of asserting presence (Phase 147 / REQ-336).
+    const runId = this.runId ?? '';
+
     const endTime = Date.now();
     const degradation = this.getDegradationLevel();
     const degradedStages = this.getDegradedStages();
     const correlations = this.detectCrossStageCorrelations();
 
     const report: RunRecoveryReport = {
-      runId: this.runId!,
+      runId,
       startTime: this.startTime,
       endTime,
       totalDurationMs: endTime - this.startTime,

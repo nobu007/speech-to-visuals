@@ -108,10 +108,14 @@ export const TREE_STRATEGY: AnimationStrategy = {
     const levelMap = new Map<number, PositionedNode[]>();
     for (const node of nodes) {
       const level = Math.round(node.y / 50) * 50;
-      if (!levelMap.has(level)) {
-        levelMap.set(level, []);
+      // Captured get-or-create: the absent branch stores the array it hands
+      // back, replacing the has()/set()/get()! triple (Phase 147 / REQ-336).
+      let nodesInLevel = levelMap.get(level);
+      if (nodesInLevel === undefined) {
+        nodesInLevel = [];
+        levelMap.set(level, nodesInLevel);
       }
-      levelMap.get(level)!.push(node);
+      nodesInLevel.push(node);
     }
 
     // Sort levels by y position
@@ -194,10 +198,14 @@ export const MATRIX_STRATEGY: AnimationStrategy = {
     const rowMap = new Map<number, PositionedNode[]>();
     for (const node of nodes) {
       const row = Math.round(node.y / 50) * 50;
-      if (!rowMap.has(row)) {
-        rowMap.set(row, []);
+      // Captured get-or-create, same shape as the TREE level grouping above
+      // (Phase 147 / REQ-336).
+      let nodesInRow = rowMap.get(row);
+      if (nodesInRow === undefined) {
+        nodesInRow = [];
+        rowMap.set(row, nodesInRow);
       }
-      rowMap.get(row)!.push(node);
+      nodesInRow.push(node);
     }
 
     // Sort rows by y position
