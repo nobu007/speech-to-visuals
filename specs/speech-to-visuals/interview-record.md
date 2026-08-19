@@ -4408,6 +4408,30 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A145: Phase 145 — non-null assertion 撲滅・monitoring 編（2026-08-20 第226回検証）
+
+- **判断**（clean-tree instruction run における作業選択 → 対象選択 → 置換パターン判定）:
+
+1. **本 run の instruction は commit-local-clean であったが working tree は完全 clean**（modified 0・untracked 非 ignore 0・stash 0・指示列挙の一時/実行時パスは .gitignore が全て網羅）— cleanup 本体は検証のみで完結。hub の MANDATORY Commit Protocol（substantive commit 必須・value gate は commit range 判定）と「repo 実態を調査し real product behavior を進める作業を選択」要件により、**task registry が明示する次の DIRECT 作業 TASK-0232 / Phase 145 を選択**（前4 run と同一運用）。
+2. **対象選択**: Phase 144 引継ぎの残 src `!` 分布を再実測（monitoring 7・analysis 6・framework 5・api 4・test 4・components 3・quality 3・remotion 2・main.tsx 1・pages 1・workers 1 = 37）し、**最大バケット src/monitoring（7 件・5 ファイル）を Phase 145 に選択**。optional なランタイムメトリックと register/listener マップという内部境界からの排除。
+3. **置換は 3 パターン**（TASK-0232）: (a) **`?? Number.NaN` NaN 保存 ×4**（health-check-service ×2・performance-dashboard ×2）— `MemoryMetrics`（@stv/core/utils/memory-usage）の rss/external は optional で browser 経路は省略・Node 経路は常に存在。旧 `!` は不在時 `undefined` を `bytesToMb` へ直送し `undefined / (1024*1024)` は既に NaN。**`?? 0` は健康に見える偽計測を捏造するため非等価**と判断（Phase 143 `?? Number.NaN` しきい値と同一判断）。(b) **captured get-or-create ×2**（real-time-performance-monitor の metric history と production-error-handler `onError` の `has()/set()/get()!` 三段）— 不在分岐が格納する配列と同一 instance を返す形で事後 assertion を構造的に不要化。(c) **provably-dead definite-assignment 除去**（`routes!:` — ctor の `new CappedMap(...)` 無条件代入を strictPropertyInitialization が証明・Phase 144 `byCompoundKey` と同型）。**fail-loud accessor は不要と判断** — 今回の 7 site は全て「不在値の NaN/配列素直し」または「ctor 保証」であり throw すべき契約違反が存在しない（A144 教訓の mock 到達可能性確認も実施: 該当なし）。
+4. **source-anchor guard の陳腐化 pin 更新**: `tests/guards/bytes-to-mb-canon.test.ts` の rss 肯定 pin が旧 `rss!?` 許容形で Phase 145 形にマッチしなくなる → `?? Number.NaN` 要求形に更新（source 変更と同一コミット・site-780 と同一手順）。
+5. **挙動保存の実証**: monitoring+guards pattern 45 suites / 1068 tests GREEN・`tsc -p tsconfig.app.json --noEmit` exit=0・census 実測 src/monitoring=0・src=30。
+6. **MW-010 を台帳に追加**（REQ-330 の運用5回目）: mutant `let history = this.metrics.get(metric)!;`（real-time-performance-monitor.ts:209）で census guard 2 tests RED（monitoring exact pin + src ratchet `Expected: <= 30 / Received: 31`）→ revert 後 8 tests GREEN。ledger 監査 pin ≥9 → ≥10（台帳 .md と guard pin は同一コミット）。
+
+- **根拠**: TASK-0232・census/ledger guard 実行出力・MW-010 再実行プロトコル（台帳本文）。
+
+- **最終フルスイート**（Phase 145 全変更後・working tree HEAD=0b839524 時点の実測）:
+  `[EVIDENCE] started=2026-08-20T04:49:39+09:00 ended=2026-08-20T04:52:17+09:00 exit=0 elapsed_s=158.19 cmd=npm test commit=0b839524 branch=ai/instruction-speech-to-visuals-instruction-20260819-193543-706573` → **742 suites / 742 passed・23,140 passed / 0 failed / 17 skipped**（直前 Phase 144 完了時 23,137 から +3 = census guard monitoring exact pin +1・ledger 監査 it.each 2 block × MW-010 追加分 +2）。
+
+- **信頼性への影響**:
+
+- REQ-334 追加（🔵・実装+guard+MW-010 に出典）。🔵 317 → 318 件。
+- strict mode の実検証範囲が src/visualization + src/pipeline + src/transcription + src/export + src/monitoring に拡大（計 130 件の `!` を 0 化・CI が常時強制）。残 src 30 件・tests 960 件は ratchet で増加防止のみ。
+- 残課題（引継ぎ）: src/analysis 6・src/framework 5 が次候補（同一パターンセット・pass-through 署名パターンは mock 経路の到達可能性を先に確認）。Phase 132 TASK-0218〜0222 未着手・requirements.md の PR #12 由来 dead citation 残存（A137 引継ぎ）。
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)

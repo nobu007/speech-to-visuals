@@ -1887,9 +1887,32 @@ source-anchor pin 更新: tests/export/production-exporter-safe-aggregation-migr
 - 全 1 タスク 🔵（steering META-intent 継続 + 前後実測（73 suites/4144 tests 同一 GREEN・tsc 0）に出典）
 - 推定工数: 4 時間
 
+## Phase 145: non-null assertion 撲滅・monitoring 編
+
+**ステータス**: ✅完了（2026-08-20・TASK-0232 完了）
+
+**背景**: REQ-333（Phase 144）の直接継続。Phase 144 引継ぎの残 src `!` 分布（2026-08-20 実測: monitoring 7・analysis 6・framework 5・api 4・test 4・components 3・quality 3・remotion 2・main.tsx 1・pages 1・workers 1 = 37）の最大バケット src/monitoring（7 件・health-check-service 2 行・performance-dashboard 2 行・real-time-performance-monitor 1 行・production-error-handler 1 行・http-metrics-collector 1 行）を対象に選択。optional なランタイムメトリック（rss/external）と register/listener マップという内部境界から `!` を排除し strict mode の実検証範囲を拡大。
+
+### タスク一覧
+
+- [x] [TASK-0232: src/monitoring non-null assertion 撲滅 + census ratchet 縮小](TASK-0232.md) - 4h (DIRECT) 🔵 ✅2026-08-20（7→0・src ratchet 37→30・MW-010・bytes-to-mb-canon pin 更新）
+
+### 依存関係
+
+```
+TASK-0232 は REQ-328 の census guard（TASK-0226）と MW 台帳（TASK-0228）を再利用
+source-anchor pin 更新: tests/guards/bytes-to-mb-canon.test.ts（rss 肯定 pin を ?? Number.NaN 要求形に）
+次候補: src/analysis（6）→ src/framework（5）— 同一パターンセットで残 30 を段階的に 0 へ
+```
+
+### 信頼性レベルサマリー（Phase 145 追加分）
+
+- 全 1 タスク 🔵（steering META-intent 継続 + 実測（monitoring+guards 45 suites/1068 tests GREEN・tsc 0）に出典）
+- 推定工数: 4 時間
+
 ### 次フェーズ開始番号
 
-**次回開始番号**: TASK-0232
+**次回開始番号**: TASK-0233
 
 ## Spine: external references
 

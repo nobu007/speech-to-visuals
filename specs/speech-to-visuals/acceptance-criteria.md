@@ -5816,6 +5816,14 @@
   - **mutation RED 検証済み（MW-009）**: export-job-queue.ts:220 `Number(job.startedAt) - job.enqueuedAt` → `(job as { startedAt: number }).startedAt! - job.enqueuedAt` で export exact pin と src ratchet（Expected <= 37 / Received 38）の 2 tests RED（revert 後 7 tests GREEN）
   - **source-anchor guard 更新**: tests/export/production-exporter-safe-aggregation-migration.test.ts の site-780 肯定 pin を `safeMean(completed.map((job) => Number(job.endTime) - Number(job.startTime)))` 形に更新（旧 `endTime! - startTime!` pin は Phase 144 置換で陳腐化 — 委譲で陳腐化した旧肯定 pin の先例と同一手順）
 
+#### REQ-334: non-null assertion 撲滅・monitoring 編（Phase 145）
+
+- [x] **TC-330-01**: src/monitoring プロダクションコード（`__tests__` 除く）に postfix non-null assertion が 0 件であることが exact pin で検証されること。src 本体（`__tests__`/`__mocks__` 除外）ratchet が 37 から **30** に縮小されること（2026-08-20 実測・37 − 7） 🔵
+- [x] **TC-330-02**: 挙動保存置換であること — 置換対象 5 ファイルを含む monitoring+guards suite が GREEN（45 suites/1068 tests）・`tsc -p tsconfig.app.json --noEmit` exit=0・`?? Number.NaN` は optional な `MemoryMetrics.rss/external` 不在時の旧 `undefined / (1024*1024)` = NaN outcome を保存（`?? 0` は健康に見える偽計測を捏造するため非等価）・get-or-create は不在分岐が格納する配列と同一 instance を返す旧 `has()/set()/get()!` 三段と等価・`routes!:` 除去は ctor 無条件代入を strictPropertyInitialization が証明すること 🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules' npx jest --config jest.config.cjs --testPathPatterns tests/guards/non-null-assertion-census`（8 tests）
+  - **mutation RED 検証済み（MW-010）**: real-time-performance-monitor.ts:209 `let history = this.metrics.get(metric);` → `let history = this.metrics.get(metric)!;` で monitoring exact pin と src ratchet（Expected <= 30 / Received 31）の 2 tests RED（revert 後 8 tests GREEN）
+  - **source-anchor guard 更新**: tests/guards/bytes-to-mb-canon.test.ts の rss 肯定 pin を `bytesToMb(memoryUsage.rss ?? Number.NaN)` 要求形に更新（旧 `rss!?` 許容形 pin は Phase 145 置換で陳腐化 — source 変更と同コミット・site-780 と同一手順）
+
 
 ### Phase 111+ 受け入れ基準サマリー
 
@@ -5867,6 +5875,7 @@
 | REQ-331: non-null assertion 撲滅・pipeline 編 | 2 | 🔵 |
 | REQ-332: non-null assertion 撲滅・transcription 編 | 2 | 🔵 |
 | REQ-333: non-null assertion 撲滅・export 編 | 2 | 🔵 |
+| REQ-334: non-null assertion 撲滅・monitoring 編 | 2 | 🔵 |
 | **合計** | **114** | **🔵 91.2% / 🟡 8.8%** |
 
 
