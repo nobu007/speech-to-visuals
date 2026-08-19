@@ -101,6 +101,17 @@
  *     `!` (or any new unpinned top-level directory) fails the ratchet.
  *     New code must narrow (`if (x === undefined) …`), guard
  *     (`require…()` accessors), or use a typed helper instead.
+ *     Phase 148 (REQ-338 / TASK-0235) started the monotone decrease the
+ *     ratchet exists for: tests/unit 471 → 377 by replacing every `!` in
+ *     the two largest files with fail-loud local helpers —
+ *     `requireAlertRule(config, alert)` in
+ *     tests/unit/monitoring/alert-rules.test.ts (55 nodes; an absent
+ *     rule used to surface as `rule!.expr` TypeError or a bare
+ *     `toBeDefined()` failure, the helper keeps the RED verdict with the
+ *     missing alert name) and `requireDefined(value, label)` in
+ *     tests/unit/export/export-job-queue-dlq.test.ts (39 nodes over
+ *     `findJob()` / `replayDeadLetterJob()` / `dequeue()` results).
+ *     Both suites stayed green through the rewrite (48/48, 26/26).
  *
  * Matching rule (AST since Phase 147 — SUPERSEDES the line-regex rule
  * documented in specs/speech-to-visuals/tasks/TASK-0226.md, which this
@@ -153,6 +164,11 @@
  * pre-Phase-147 line regex reports ZERO hits on the same mutant (the
  * `!(` shape was outside its continuation class): proof the checker
  * upgrade closed a real detection gap, not just a metric restatement.
+ * Mutation-verified (Phase 148, MW-014): re-injecting ONE `!` into the
+ * Phase-148 rewrite — `expect(rule.expr)` back to `expect(rule!.expr)`
+ * in tests/unit/monitoring/alert-rules.test.ts — turns BOTH the
+ * tests/unit directory ratchet (377 → 378) and the tests-total ratchet
+ * (1002 → 1003) RED: the monotone decrease is enforced, not aspirational.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -178,6 +194,9 @@ const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url));
  * the regex had missed — went to 0, so ALL of src is exact-0; the tests
  * tree re-baselined from the line-based 960 to the node-based 1096 with
  * per-directory pins).
+ * and 2026-08-20 (Phase 148 / REQ-338: monotone decrease round 1 —
+ * tests/unit 471 − 55 (alert-rules) − 39 (export-job-queue-dlq) = 377;
+ * tests total 1096 − 94 = 1002).
  */
 const PINNED = {
   'src/visualization (production)': 0,
@@ -187,7 +206,7 @@ const PINNED = {
   'src/monitoring (production)': 0,
   'src/analysis (production)': 0,
   'src (production, excl. __tests__/__mocks__)': 0,
-  'tests (excl. __mocks__)': 1096,
+  'tests (excl. __mocks__)': 1002,
 } as const;
 
 /**
@@ -197,7 +216,7 @@ const PINNED = {
  * ratchet consciously, never silently.
  */
 const TESTS_DIR_PINS: Record<string, number> = {
-  unit: 471,
+  unit: 377,
   integration: 245,
   visualization: 184,
   guards: 72,
@@ -340,8 +359,9 @@ describe('non-null assertion census ratchet (REQ-328 / REQ-336 / REQ-337)', () =
     // 170 (pre-Phase-141 src total) − 67 − 29 − 17 − 10 − 7 − 6 (Phases
     // 141–146) − 22 (Phase 147, incl. the AST-only export node) = 0; the
     // liveness check below only guards against a scanner regression that
-    // would silently count nothing. The tests tree is still real: 1096
-    // node hits over 14 pinned directories.
+    // would silently count nothing. The tests tree is still real: 1002
+    // node hits over 14 pinned directories (1096 before Phase 148's
+    // first −94 decrease).
     expect(testsTotal.count).toBeGreaterThan(0);
   });
 });

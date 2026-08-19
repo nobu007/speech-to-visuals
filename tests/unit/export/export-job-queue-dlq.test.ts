@@ -8,6 +8,22 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { ExportJobQueue, type QueuedExportJob } from '@/export/export-job-queue';
 
+/**
+ * Fail-loud lookup (Phase 148 / REQ-338): replaces the 39 `!` non-null
+ * assertions this file used to postfix `findJob()` / `replayDeadLetterJob()`
+ * / `dequeue()` results with. An absent result previously surfaced as an
+ * opaque `TypeError: Cannot read properties of undefined` inside the first
+ * `expect` (or a bare `expect(x).toBeDefined()` failure); the helper keeps
+ * the exact same RED verdict with the source of the undefined in the
+ * message, and hands back the narrowed job.
+ */
+function requireDefined<T>(value: T | undefined, label: string): T {
+  if (value === undefined) {
+    throw new Error(`${label} returned undefined`);
+  }
+  return value;
+}
+
 describe('ExportJobQueue — retry and dead letter queue', () => {
   let queue: ExportJobQueue;
 
@@ -44,11 +60,10 @@ describe('ExportJobQueue — retry and dead letter queue', () => {
       expect(stats.queued).toBe(1);
       expect(stats.running).toBe(0);
 
-      const found = queue.findJob(job.jobId);
-      expect(found).toBeDefined();
-      expect(found!.status).toBe('queued');
-      expect(found!.retryCount).toBe(1);
-      expect(found!.lastError).toBe('render failed');
+      const found = requireDefined(queue.findJob(job.jobId), `findJob(${job.jobId})`);
+      expect(found.status).toBe('queued');
+      expect(found.retryCount).toBe(1);
+      expect(found.lastError).toBe('render failed');
     });
 
     it('increments retryCount on each failure', () => {
@@ -61,17 +76,17 @@ describe('ExportJobQueue — retry and dead letter queue', () => {
       // First failure → retry 1
       queue.dequeue();
       queue.completeJob(job.jobId, false, undefined, 'error 1');
-      expect(queue.findJob(job.jobId)!.retryCount).toBe(1);
+      expect(requireDefined(queue.findJob(job.jobId), `findJob(${job.jobId})`).retryCount).toBe(1);
 
       // Second failure → retry 2
       queue.dequeue();
       queue.completeJob(job.jobId, false, undefined, 'error 2');
-      expect(queue.findJob(job.jobId)!.retryCount).toBe(2);
+      expect(requireDefined(queue.findJob(job.jobId), `findJob(${job.jobId})`).retryCount).toBe(2);
 
       // Third failure → retry 3
       queue.dequeue();
       queue.completeJob(job.jobId, false, undefined, 'error 3');
-      expect(queue.findJob(job.jobId)!.retryCount).toBe(3);
+      expect(requireDefined(queue.findJob(job.jobId), `findJob(${job.jobId})`).retryCount).toBe(3);
     });
 
     it('moves job to DLQ after exhausting maxRetries', () => {
@@ -91,12 +106,11 @@ describe('ExportJobQueue — retry and dead letter queue', () => {
       expect(stats.queued).toBe(0);
       expect(stats.deadLettered).toBe(1);
 
-      const dlqJob = queue.findJob(job.jobId);
-      expect(dlqJob).toBeDefined();
-      expect(dlqJob!.status).toBe('dead-lettered');
-      expect(dlqJob!.retryCount).toBe(3);
-      expect(dlqJob!.deadLetteredAt).toBeDefined();
-      expect(dlqJob!.lastError).toBe('failure 4');
+      const dlqJob = requireDefined(queue.findJob(job.jobId), `findJob(${job.jobId})`);
+      expect(dlqJob.status).toBe('dead-lettered');
+      expect(dlqJob.retryCount).toBe(3);
+      expect(dlqJob.deadLetteredAt).toBeDefined();
+      expect(dlqJob.lastError).toBe('failure 4');
     });
 
     it('resets startedAt when re-queuing for retry', () => {
@@ -107,12 +121,12 @@ describe('ExportJobQueue — retry and dead letter queue', () => {
       });
 
       queue.dequeue();
-      expect(queue.findJob(job.jobId)!.startedAt).toBeDefined();
+      expect(requireDefined(queue.findJob(job.jobId), `findJob(${job.jobId})`).startedAt).toBeDefined();
 
       queue.completeJob(job.jobId, false, undefined, 'fail');
-      const found = queue.findJob(job.jobId);
-      expect(found!.startedAt).toBeUndefined();
-      expect(found!.completedAt).toBeUndefined();
+      const found = requireDefined(queue.findJob(job.jobId), `findJob(${job.jobId})`);
+      expect(found.startedAt).toBeUndefined();
+      expect(found.completedAt).toBeUndefined();
     });
   });
 
@@ -157,9 +171,9 @@ describe('ExportJobQueue — retry and dead letter queue', () => {
       expect(stats.deadLettered).toBe(1);
       expect(stats.queued).toBe(2); // Still B and C, no overflow
 
-      const found = smallQueue.findJob(jobA.jobId);
-      expect(found!.status).toBe('dead-lettered');
-      expect(found!.lastError).toBe('transient error');
+      const found = requireDefined(smallQueue.findJob(jobA.jobId), `findJob(${jobA.jobId})`);
+      expect(found.status).toBe('dead-lettered');
+      expect(found.lastError).toBe('transient error');
     });
 
     it('does not exceed maxQueueSize when multiple jobs fail simultaneously', () => {
@@ -266,13 +280,15 @@ describe('ExportJobQueue — retry and dead letter queue', () => {
       expect(queue.getQueueStats().deadLettered).toBe(1);
       expect(queue.getQueueStats().queued).toBe(0);
 
-      const replayed = queue.replayDeadLetterJob(job.jobId);
-      expect(replayed).toBeDefined();
-      expect(replayed!.jobId).not.toBe(job.jobId);
-      expect(replayed!.status).toBe('queued');
-      expect(replayed!.retryCount).toBe(0);
-      expect(replayed!.lastError).toBeUndefined();
-      expect(replayed!.deadLetteredAt).toBeUndefined();
+      const replayed = requireDefined(
+        queue.replayDeadLetterJob(job.jobId),
+        `replayDeadLetterJob(${job.jobId})`,
+      );
+      expect(replayed.jobId).not.toBe(job.jobId);
+      expect(replayed.status).toBe('queued');
+      expect(replayed.retryCount).toBe(0);
+      expect(replayed.lastError).toBeUndefined();
+      expect(replayed.deadLetteredAt).toBeUndefined();
 
       // DLQ should be empty, queue should have 1
       expect(queue.getQueueStats().deadLettered).toBe(0);
@@ -295,8 +311,11 @@ describe('ExportJobQueue — retry and dead letter queue', () => {
         queue.completeJob(job.jobId, false, undefined, 'fail');
       }
 
-      const replayed = queue.replayDeadLetterJob(job.jobId);
-      expect(replayed!.priority).toBe('low');
+      const replayed = requireDefined(
+        queue.replayDeadLetterJob(job.jobId),
+        `replayDeadLetterJob(${job.jobId})`,
+      );
+      expect(replayed.priority).toBe('low');
     });
 
     it('can succeed after replay', () => {
@@ -313,12 +332,15 @@ describe('ExportJobQueue — retry and dead letter queue', () => {
       }
 
       // Replay and succeed
-      const replayed = queue.replayDeadLetterJob(job.jobId);
+      const replayed = requireDefined(
+        queue.replayDeadLetterJob(job.jobId),
+        `replayDeadLetterJob(${job.jobId})`,
+      );
       queue.dequeue();
-      queue.completeJob(replayed!.jobId, true);
+      queue.completeJob(replayed.jobId, true);
 
-      const found = queue.findJob(replayed!.jobId);
-      expect(found!.status).toBe('completed');
+      const found = requireDefined(queue.findJob(replayed.jobId), `findJob(${replayed.jobId})`);
+      expect(found.status).toBe('completed');
     });
 
     it('throws and preserves the DLQ job when the queue is at capacity (no cap bypass)', () => {
@@ -457,9 +479,8 @@ describe('ExportJobQueue — retry and dead letter queue', () => {
         queue.completeJob(job.jobId, false, undefined, 'fail');
       }
 
-      const found = queue.findJob(job.jobId);
-      expect(found).toBeDefined();
-      expect(found!.status).toBe('dead-lettered');
+      const found = requireDefined(queue.findJob(job.jobId), `findJob(${job.jobId})`);
+      expect(found.status).toBe('dead-lettered');
     });
   });
 
@@ -478,15 +499,15 @@ describe('ExportJobQueue — retry and dead letter queue', () => {
       // First attempt fails
       queue.dequeue();
       queue.completeJob(job.jobId, false, undefined, 'transient error');
-      expect(queue.findJob(job.jobId)!.retryCount).toBe(1);
+      expect(requireDefined(queue.findJob(job.jobId), `findJob(${job.jobId})`).retryCount).toBe(1);
 
       // Second attempt succeeds
       queue.dequeue();
       queue.completeJob(job.jobId, true, { data: new Uint8Array([1, 2, 3]), sizeBytes: 3 });
 
-      const found = queue.findJob(job.jobId);
-      expect(found!.status).toBe('completed');
-      expect(found!.retryCount).toBe(1); // Retry count preserved
+      const found = requireDefined(queue.findJob(job.jobId), `findJob(${job.jobId})`);
+      expect(found.status).toBe('completed');
+      expect(found.retryCount).toBe(1); // Retry count preserved
     });
   });
 
@@ -508,7 +529,7 @@ describe('ExportJobQueue — retry and dead letter queue', () => {
         queue.completeJob(job.jobId, false, undefined, 'fail');
       }
 
-      expect(queue.findJob(job.jobId)!.status).toBe('dead-lettered');
+      expect(requireDefined(queue.findJob(job.jobId), `findJob(${job.jobId})`).status).toBe('dead-lettered');
       expect(queue.cancel(job.jobId)).toBe(false);
       // Job should still be in DLQ
       expect(queue.getQueueStats().deadLettered).toBe(1);
@@ -524,7 +545,7 @@ describe('ExportJobQueue — retry and dead letter queue', () => {
       queue.dequeue();
       queue.completeJob(job.jobId, true, { data: new Uint8Array([1]), sizeBytes: 1 });
 
-      expect(queue.findJob(job.jobId)!.status).toBe('completed');
+      expect(requireDefined(queue.findJob(job.jobId), `findJob(${job.jobId})`).status).toBe('completed');
       expect(queue.cancel(job.jobId)).toBe(false);
     });
   });
@@ -555,10 +576,9 @@ describe('ExportJobQueue — retry and dead letter queue', () => {
       noRetryQueue.dequeue();
       noRetryQueue.completeJob(job.jobId, false, undefined, 'immediate fail');
 
-      const found = noRetryQueue.findJob(job.jobId);
-      expect(found).toBeDefined();
-      expect(found!.status).toBe('dead-lettered');
-      expect(found!.deadLetteredAt).toBeDefined();
+      const found = requireDefined(noRetryQueue.findJob(job.jobId), `findJob(${job.jobId})`);
+      expect(found.status).toBe('dead-lettered');
+      expect(found.deadLetteredAt).toBeDefined();
       expect(noRetryQueue.getQueueStats().deadLettered).toBe(1);
     });
   });
@@ -585,8 +605,8 @@ describe('ExportJobQueue — retry and dead letter queue', () => {
 
       // Dequeue both (existing first since it was enqueued first but high has priority...)
       // Actually, high priority should be dequeued first
-      const firstDequeued = queue.dequeue();
-      expect(firstDequeued!.jobId).toBe(highJob.jobId); // high priority first
+      const firstDequeued = requireDefined(queue.dequeue(), 'dequeue()');
+      expect(firstDequeued.jobId).toBe(highJob.jobId); // high priority first
 
       // Fail the high job to DLQ
       queue.completeJob(highJob.jobId, false, undefined, 'fail');
@@ -599,18 +619,20 @@ describe('ExportJobQueue — retry and dead letter queue', () => {
       expect(queue.getQueueStats().queued).toBe(1); // existingJob still queued
 
       // Replay the high-priority DLQ job
-      const replayed = queue.replayDeadLetterJob(highJob.jobId);
-      expect(replayed).toBeDefined();
-      expect(replayed!.priority).toBe('high');
+      const replayed = requireDefined(
+        queue.replayDeadLetterJob(highJob.jobId),
+        `replayDeadLetterJob(${highJob.jobId})`,
+      );
+      expect(replayed.priority).toBe('high');
 
       // The replayed high-priority job should be dequeued before the normal job
-      const next = queue.dequeue();
-      expect(next!.jobId).toBe(replayed!.jobId);
-      expect(next!.priority).toBe('high');
+      const next = requireDefined(queue.dequeue(), 'dequeue()');
+      expect(next.jobId).toBe(replayed.jobId);
+      expect(next.priority).toBe('high');
 
-      const after = queue.dequeue();
-      expect(after!.jobId).toBe(existingJob.jobId);
-      expect(after!.priority).toBe('normal');
+      const after = requireDefined(queue.dequeue(), 'dequeue()');
+      expect(after.jobId).toBe(existingJob.jobId);
+      expect(after.priority).toBe('normal');
     });
   });
 });

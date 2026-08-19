@@ -14,6 +14,23 @@ import {
   type AlertRule,
 } from '@/monitoring/alert-rules';
 
+/**
+ * Fail-loud rule lookup (Phase 148 / REQ-338): replaces the 55 `rule!`
+ * non-null assertions this file used to postfix `.find()` results with.
+ * An absent rule previously surfaced as an opaque `TypeError: Cannot read
+ * properties of undefined` inside the first `expect` (or a bare
+ * `expect(rule).toBeDefined()` failure); the helper keeps the exact same
+ * RED verdict with the missing alert name in the message, and lets the
+ * assertions read the narrowed rule without asserting presence away.
+ */
+function requireAlertRule(config: AlertingConfig, alert: string): AlertRule {
+  const rule = config.groups[0].rules.find(r => r.alert === alert);
+  if (rule === undefined) {
+    throw new Error(`alert rule not found: ${alert}`);
+  }
+  return rule;
+}
+
 describe('Alert Rules (REQ-209)', () => {
   describe('generateAlertRules', () => {
     it('should generate exactly one rule group', () => {
@@ -49,290 +66,227 @@ describe('Alert Rules (REQ-209)', () => {
 
   describe('HighErrorRate alert', () => {
     it('should use 5% error rate threshold by default', () => {
-      const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsHighErrorRate',
-      );
-      expect(rule).toBeDefined();
-      expect(rule!.expr).toContain('> 0.05');
-      expect(rule!.severity).toBe('critical');
-      expect(rule!.for).toBe('2m');
+      const rule = requireAlertRule(generateAlertRules(), 'SpeechToVisualsHighErrorRate');
+      expect(rule.expr).toContain('> 0.05');
+      expect(rule.severity).toBe('critical');
+      expect(rule.for).toBe('2m');
     });
 
     it('should reference error and request metrics', () => {
-      const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsHighErrorRate',
-      );
-      expect(rule!.expr).toContain('http_errors_total');
-      expect(rule!.expr).toContain('http_requests_total');
-      expect(rule!.expr).toContain('rate(');
+      const rule = requireAlertRule(generateAlertRules(), 'SpeechToVisualsHighErrorRate');
+      expect(rule.expr).toContain('http_errors_total');
+      expect(rule.expr).toContain('http_requests_total');
+      expect(rule.expr).toContain('rate(');
     });
 
     it('should respect custom error rate threshold', () => {
-      const config = generateAlertRules({ errorRateThreshold: 0.1 });
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsHighErrorRate',
+      const rule = requireAlertRule(
+        generateAlertRules({ errorRateThreshold: 0.1 }),
+        'SpeechToVisualsHighErrorRate',
       );
-      expect(rule!.expr).toContain('> 0.1');
+      expect(rule.expr).toContain('> 0.1');
     });
   });
 
   describe('HighLatencyP95 alert', () => {
     it('should use 20s (20000ms) threshold by default', () => {
-      const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsHighLatencyP95',
-      );
-      expect(rule).toBeDefined();
-      expect(rule!.expr).toContain('> 20000');
-      expect(rule!.severity).toBe('warning');
-      expect(rule!.for).toBe('5m');
+      const rule = requireAlertRule(generateAlertRules(), 'SpeechToVisualsHighLatencyP95');
+      expect(rule.expr).toContain('> 20000');
+      expect(rule.severity).toBe('warning');
+      expect(rule.for).toBe('5m');
     });
 
     it('should reference P95 quantile', () => {
-      const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsHighLatencyP95',
-      );
-      expect(rule!.expr).toContain('quantile="0.95"');
-      expect(rule!.expr).toContain('http_request_duration_ms');
+      const rule = requireAlertRule(generateAlertRules(), 'SpeechToVisualsHighLatencyP95');
+      expect(rule.expr).toContain('quantile="0.95"');
+      expect(rule.expr).toContain('http_request_duration_ms');
     });
 
     it('should respect custom latency threshold', () => {
-      const config = generateAlertRules({ latencyP95ThresholdMs: 30000 });
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsHighLatencyP95',
+      const rule = requireAlertRule(
+        generateAlertRules({ latencyP95ThresholdMs: 30000 }),
+        'SpeechToVisualsHighLatencyP95',
       );
-      expect(rule!.expr).toContain('> 30000');
+      expect(rule.expr).toContain('> 30000');
     });
   });
 
   describe('HealthCheckFailures alert', () => {
     it('should use critical severity', () => {
-      const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsHealthCheckFailures',
-      );
-      expect(rule).toBeDefined();
-      expect(rule!.severity).toBe('critical');
+      const rule = requireAlertRule(generateAlertRules(), 'SpeechToVisualsHealthCheckFailures');
+      expect(rule.severity).toBe('critical');
     });
 
     it('should reference health check paths', () => {
-      const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsHealthCheckFailures',
-      );
-      expect(rule!.expr).toContain('/health');
-      expect(rule!.expr).toContain('http_errors_total');
+      const rule = requireAlertRule(generateAlertRules(), 'SpeechToVisualsHealthCheckFailures');
+      expect(rule.expr).toContain('/health');
+      expect(rule.expr).toContain('http_errors_total');
     });
 
     it('should have minimum hold duration', () => {
-      const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsHealthCheckFailures',
-      );
-      expect(rule!.for).toBe('1m');
+      const rule = requireAlertRule(generateAlertRules(), 'SpeechToVisualsHealthCheckFailures');
+      expect(rule.for).toBe('1m');
     });
   });
 
   describe('LLMBudgetOverage alert', () => {
     it('should use warning severity', () => {
-      const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsLLMBudgetOverage',
-      );
-      expect(rule).toBeDefined();
-      expect(rule!.severity).toBe('warning');
+      const rule = requireAlertRule(generateAlertRules(), 'SpeechToVisualsLLMBudgetOverage');
+      expect(rule.severity).toBe('warning');
     });
 
     it('should reference monitoring API in description', () => {
-      const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsLLMBudgetOverage',
-      );
-      expect(rule!.description).toContain('/api/v1/monitoring/cost');
+      const rule = requireAlertRule(generateAlertRules(), 'SpeechToVisualsLLMBudgetOverage');
+      expect(rule.description).toContain('/api/v1/monitoring/cost');
     });
   });
 
   describe('ExportQueueBacklog alert', () => {
     it('should use warning severity', () => {
-      const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsExportQueueBacklog',
-      );
-      expect(rule).toBeDefined();
-      expect(rule!.severity).toBe('warning');
-      expect(rule!.for).toBe('3m');
+      const rule = requireAlertRule(generateAlertRules(), 'SpeechToVisualsExportQueueBacklog');
+      expect(rule.severity).toBe('warning');
+      expect(rule.for).toBe('3m');
     });
 
     it('should use 50 as default queue size threshold', () => {
-      const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsExportQueueBacklog',
-      );
-      expect(rule!.expr).toContain('export_queue_size');
-      expect(rule!.expr).toContain('> 50');
+      const rule = requireAlertRule(generateAlertRules(), 'SpeechToVisualsExportQueueBacklog');
+      expect(rule.expr).toContain('export_queue_size');
+      expect(rule.expr).toContain('> 50');
     });
 
     it('should reference export API in description', () => {
-      const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsExportQueueBacklog',
-      );
-      expect(rule!.description).toContain('/api/v1/export/jobs');
+      const rule = requireAlertRule(generateAlertRules(), 'SpeechToVisualsExportQueueBacklog');
+      expect(rule.description).toContain('/api/v1/export/jobs');
     });
 
     it('should respect custom queue size threshold', () => {
-      const config = generateAlertRules({ exportQueueSizeThreshold: 75 });
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsExportQueueBacklog',
+      const rule = requireAlertRule(
+        generateAlertRules({ exportQueueSizeThreshold: 75 }),
+        'SpeechToVisualsExportQueueBacklog',
       );
-      expect(rule!.expr).toContain('> 75');
+      expect(rule.expr).toContain('> 75');
     });
   });
 
   describe('ExportQueueSlowWait alert', () => {
     it('should use warning severity', () => {
-      const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsExportQueueSlowWait',
-      );
-      expect(rule).toBeDefined();
-      expect(rule!.severity).toBe('warning');
-      expect(rule!.for).toBe('5m');
+      const rule = requireAlertRule(generateAlertRules(), 'SpeechToVisualsExportQueueSlowWait');
+      expect(rule.severity).toBe('warning');
+      expect(rule.for).toBe('5m');
     });
 
     it('should use 10000ms as default wait time threshold', () => {
-      const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsExportQueueSlowWait',
-      );
-      expect(rule!.expr).toContain('export_queue_wait_time_ms');
-      expect(rule!.expr).toContain('> 10000');
+      const rule = requireAlertRule(generateAlertRules(), 'SpeechToVisualsExportQueueSlowWait');
+      expect(rule.expr).toContain('export_queue_wait_time_ms');
+      expect(rule.expr).toContain('> 10000');
     });
 
     it('should respect custom wait time threshold', () => {
-      const config = generateAlertRules({ exportQueueWaitTimeThresholdMs: 30000 });
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsExportQueueSlowWait',
+      const rule = requireAlertRule(
+        generateAlertRules({ exportQueueWaitTimeThresholdMs: 30000 }),
+        'SpeechToVisualsExportQueueSlowWait',
       );
-      expect(rule!.expr).toContain('> 30000');
+      expect(rule.expr).toContain('> 30000');
     });
   });
 
   describe('ExportQueueCriticalBacklog alert', () => {
     it('should use critical severity', () => {
-      const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsExportQueueCriticalBacklog',
+      const rule = requireAlertRule(
+        generateAlertRules(),
+        'SpeechToVisualsExportQueueCriticalBacklog',
       );
-      expect(rule).toBeDefined();
-      expect(rule!.severity).toBe('critical');
-      expect(rule!.for).toBe('1m');
+      expect(rule.severity).toBe('critical');
+      expect(rule.for).toBe('1m');
     });
 
     it('should use 100 as default critical queue size threshold', () => {
-      const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsExportQueueCriticalBacklog',
+      const rule = requireAlertRule(
+        generateAlertRules(),
+        'SpeechToVisualsExportQueueCriticalBacklog',
       );
-      expect(rule!.expr).toContain('export_queue_size');
-      expect(rule!.expr).toContain('> 100');
+      expect(rule.expr).toContain('export_queue_size');
+      expect(rule.expr).toContain('> 100');
     });
 
     it('should have shorter hold than warning backlog alert', () => {
-      const config = generateAlertRules();
-      const criticalRule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsExportQueueCriticalBacklog',
+      const criticalRule = requireAlertRule(
+        generateAlertRules(),
+        'SpeechToVisualsExportQueueCriticalBacklog',
       );
-      const warningRule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsExportQueueBacklog',
-      );
-      expect(criticalRule!.for).toBe('1m');
-      expect(warningRule!.for).toBe('3m');
+      const warningRule = requireAlertRule(generateAlertRules(), 'SpeechToVisualsExportQueueBacklog');
+      expect(criticalRule.for).toBe('1m');
+      expect(warningRule.for).toBe('3m');
     });
 
     it('should reference export API in description', () => {
-      const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsExportQueueCriticalBacklog',
+      const rule = requireAlertRule(
+        generateAlertRules(),
+        'SpeechToVisualsExportQueueCriticalBacklog',
       );
-      expect(rule!.description).toContain('/api/v1/export/jobs');
+      expect(rule.description).toContain('/api/v1/export/jobs');
     });
 
     it('should respect custom critical queue size threshold', () => {
-      const config = generateAlertRules({ exportQueueCriticalSizeThreshold: 150 });
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsExportQueueCriticalBacklog',
+      const rule = requireAlertRule(
+        generateAlertRules({ exportQueueCriticalSizeThreshold: 150 }),
+        'SpeechToVisualsExportQueueCriticalBacklog',
       );
-      expect(rule!.expr).toContain('> 150');
+      expect(rule.expr).toContain('> 150');
     });
 
     it('should reference the backlog runbook', () => {
-      const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsExportQueueCriticalBacklog',
+      const rule = requireAlertRule(
+        generateAlertRules(),
+        'SpeechToVisualsExportQueueCriticalBacklog',
       );
-      expect(rule!.runbookUrl).toBe('docs/runbooks/export-queue-backlog.md');
+      expect(rule.runbookUrl).toBe('docs/runbooks/export-queue-backlog.md');
     });
   });
 
   describe('ExportDeadLetterQueueGrowth alert', () => {
     it('should use dlq_size > 0 as threshold', () => {
-      const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsExportDeadLetterQueueGrowth',
+      const rule = requireAlertRule(
+        generateAlertRules(),
+        'SpeechToVisualsExportDeadLetterQueueGrowth',
       );
-      expect(rule).toBeDefined();
-      expect(rule!.expr).toContain('export_queue_dlq_size > 0');
-      expect(rule!.severity).toBe('warning');
-      expect(rule!.for).toBe('5m');
+      expect(rule.expr).toContain('export_queue_dlq_size > 0');
+      expect(rule.severity).toBe('warning');
+      expect(rule.for).toBe('5m');
     });
 
     it('should reference DLQ API endpoint in description', () => {
-      const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsExportDeadLetterQueueGrowth',
+      const rule = requireAlertRule(
+        generateAlertRules(),
+        'SpeechToVisualsExportDeadLetterQueueGrowth',
       );
-      expect(rule!.description).toContain('/api/v1/export/jobs/dead-letter');
+      expect(rule.description).toContain('/api/v1/export/jobs/dead-letter');
     });
   });
 
   describe('ExportHighRetryRate alert', () => {
     it('should use rate-based expression on retry_total', () => {
-      const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsExportHighRetryRate',
-      );
-      expect(rule).toBeDefined();
-      expect(rule!.expr).toContain('rate(');
-      expect(rule!.expr).toContain('export_queue_retry_total');
-      expect(rule!.severity).toBe('warning');
-      expect(rule!.for).toBe('5m');
+      const rule = requireAlertRule(generateAlertRules(), 'SpeechToVisualsExportHighRetryRate');
+      expect(rule.expr).toContain('rate(');
+      expect(rule.expr).toContain('export_queue_retry_total');
+      expect(rule.severity).toBe('warning');
+      expect(rule.for).toBe('5m');
     });
   });
 
   describe('ExportDLQReplayRate alert', () => {
     it('should use rate-based expression on dlq_replay_total', () => {
-      const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsExportDLQReplayRate',
-      );
-      expect(rule).toBeDefined();
-      expect(rule!.expr).toContain('rate(');
-      expect(rule!.expr).toContain('export_queue_dlq_replay_total');
-      expect(rule!.expr).toContain('> 0.1');
-      expect(rule!.severity).toBe('warning');
-      expect(rule!.for).toBe('5m');
+      const rule = requireAlertRule(generateAlertRules(), 'SpeechToVisualsExportDLQReplayRate');
+      expect(rule.expr).toContain('rate(');
+      expect(rule.expr).toContain('export_queue_dlq_replay_total');
+      expect(rule.expr).toContain('> 0.1');
+      expect(rule.severity).toBe('warning');
+      expect(rule.for).toBe('5m');
     });
 
     it('should reference DLQ API endpoint in description', () => {
-      const config = generateAlertRules();
-      const rule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsExportDLQReplayRate',
-      );
-      expect(rule!.description).toContain('/api/v1/export/jobs/dead-letter');
+      const rule = requireAlertRule(generateAlertRules(), 'SpeechToVisualsExportDLQReplayRate');
+      expect(rule.description).toContain('/api/v1/export/jobs/dead-letter');
     });
   });
 
@@ -382,13 +336,13 @@ describe('Alert Rules (REQ-209)', () => {
     });
 
     it('should not add prefix when empty', () => {
-      const config = generateAlertRules({ metricPrefix: '' });
-      const highErrorRule = config.groups[0].rules.find(
-        r => r.alert === 'SpeechToVisualsHighErrorRate',
+      const highErrorRule = requireAlertRule(
+        generateAlertRules({ metricPrefix: '' }),
+        'SpeechToVisualsHighErrorRate',
       );
       // Should start with rate(http_ directly
-      expect(highErrorRule!.expr).toContain('rate(http_errors_total');
-      expect(highErrorRule!.expr).not.toContain('undefined_');
+      expect(highErrorRule.expr).toContain('rate(http_errors_total');
+      expect(highErrorRule.expr).not.toContain('undefined_');
     });
   });
 
