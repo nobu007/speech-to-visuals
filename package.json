@@ -47,7 +47,8 @@
     "test:coverage": "jest --config jest.config.cjs --coverage",
     "test:fuzz": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.config.cjs --testPathPatterns='(mutation-fuzz|content-validator-fuzz|content-validator-advanced-fuzz|sanitize-fuzz|property-based-xss|guard-red-phase-verification|guard-fuzz)'",
     "test:fuzz:multi-seed": "FUZZ_SEEDS=3 NODE_OPTIONS='--experimental-vm-modules' jest --config jest.config.cjs --testPathPatterns='(mutation-fuzz|content-validator-fuzz|content-validator-advanced-fuzz|sanitize-fuzz|property-based-xss|guard-red-phase-verification|guard-fuzz)'",
-    "test:mutation": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.config.cjs --testPathPatterns='tests/mutation/'"
+    "test:mutation": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.config.cjs --testPathPatterns='tests/mutation/'",
+    "evidence": "tsx scripts/collect-evidence.ts"
   },
   "dependencies": {
     "@dagrejs/dagre": "^3.0.0",
