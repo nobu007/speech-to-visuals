@@ -200,8 +200,10 @@ gh pr merge --auto --merge --delete-branch   # checks green の瞬間に自動 m
 git checkout main && git pull
 ```
 
-- branch protection は設定されていない。ただし `all-checks-pass` gate job が
-  全ジョブの成否を集約するので、実質全ジョブ green でないと merge 相当にならない。
+- branch protection: `all-checks-pass` のみ required status check に指定済み
+  (2026-08)。`gh pr merge --auto` が使える — checks green の瞬間に自動 merge され、
+  polling も手動 merge も不要。ジョブをリネーム/追加しても gate が集約するので
+  protection 側の更新は不要。enforce_admins は off (緊急時の直接 push を塞がない)。
 - CI 失敗時: `gh pr checks` → 最初に赤いジョブのログ (`gh run view <id> --log-failed`)
   から直接修正。ローカルで verify:all を通してから push すれば往復はほぼ消える。
 
