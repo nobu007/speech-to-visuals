@@ -1,1 +1,0 @@
-export { IntelligentCache, globalCache } from './intelligent-cache';
