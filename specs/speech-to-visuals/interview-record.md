@@ -4503,6 +4503,29 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A149: Phase 149 — tests ツリー non-null assertion ratchet 単調減少ラウンド 2（tests/unit 377 → 274）（2026-08-20 第230回検証）
+
+- **判断**（A148 残課題の実行 → guard-first 対象確定 → 4 パターンの使い分け）:
+
+1. **実仕事は A148 残課題の直接実行**: steering の「単調減少を開始せよ」は Phase 148 で開始済み・A148 が残課題として次点 3 ファイル（grafana-dashboard-model 25・pipeline-orchestrator 25・production-exporter 24）を明記済みのため、本 run はラウンド 2 としてその縮小を実行（task registry TASK-0236 と一致）。
+2. **対象は機械的に確定（手動列挙の再検証も兼務）**: Phase 147 の AST census と同一ロジックで per-file 集計したところ、A148 挙載の 3 ファイルに加えて **quality-gate.test.ts（29 node・unit 残 377 の最大ファイル）** が上位に現れた — A148 の「次点」リストは手動引用であり最大ファイルを見逃していた。guard-first survey が再度価値を証明した形。4 ファイル計 103 node を対象化。
+3. **4 パターンの使い分け（すべて verdict 保存）**: (a) `requireCriterionResult(evaluation, name)`（quality-gate 29 node・`results.find()` 系）・(b) `requirePanel(dashboard, title)` + `templating` の inline narrowing（grafana 25 node・optional **フィールド**は helper でなく narrowing）・(c) `requireDefined(value, label)`（Phase 148 と同型）+ **factory 戻り型 narrowing** `PipelineInput & { config: PipelineConfig }`（orchestrator 25 node・`input.config!` は factory が常に config を代入することを型で表明し mutate を正型経路化。二重 assertion `result.metrics!.layoutQualityScore!` も helper 2 段で解消）・(d) `requirePreset` / `requireJobStatus`（exporter 24 node・**`getJobStatus()` は `ExportJob | null` を返す**ため helper は undefined でなく **null を guard** — 隣接する `toBeNull()` assertion が出典）。
+4. **減少の機械強制（MW-015）**: Phase 149 rewrite への `!` 1 node 再注入（pipeline-orchestrator.test.ts:723）で **tests 合計 ratchet（`Expected: <= 899 / Received: 900`）と tests/unit dir ratchet（`Expected: <= 274 / Received: 275`）の 2 tests RED** を実測（`Tests: 2 failed, 9 passed, 11 total`）→ revert で census + ledger 監査 2 suite 41 tests GREEN。台帳監査 pin ≥14 → ≥15。
+5. **フルスイート 1 fail は既知 flake**: 初回 full run（186.45s）は src/test/layout/OverlapResolver.test.ts:64 の `expect(duration).toBeLessThan(500)`（wall-clock timing assertion）が機械負荷で 1 fail — **A148 が session 171 と同クラスの machine-load flake として記載済みの同一 suite・同一 assertion**。本 run 変更 4 ファイル（tests/unit/{quality,monitoring,pipeline,export}）と依存なし・単体再実行 **15/15 GREEN** で切り分け。
+
+- **根拠**: TASK-0236・census/ledger guard 実行出力・MW-015 再実行プロトコル（台帳本文）・per-file census 実測（377→274 / 1002→899）・OverlapResolver 単体再実行 GREEN。
+
+- **最終フルスイート**（Phase 149 全変更後・2 回目 run で全 GREEN）:
+  `[EVIDENCE] started≈2026-08-20T07:22:16+09:00 ended≈2026-08-20T07:23:49+09:00 exit=0 elapsed_s=93 (jest Time: 91.41s) cmd=npm test commit=49794809+phase149-worktree branch=ai/instruction-speech-to-visuals-instruction-20260819-220803-612397` → **742 suites / 742 passed・23,153 passed / 0 failed / 17 skipped**（Phase 148 完了時 23,151 から +2 = ledger 監査 pin ≥15 化に伴う it.each 増分。run 履歴: 初回 full run（186.45s）は上記 5. の OverlapResolver timing flake 1 fail のみ → 単体再実行 15/15 GREEN・2 回目 run 全 GREEN）。
+
+- **信頼性への影響**:
+
+- REQ-339 追加（🔵・実装+guard pin+MW-015 に出典）。🔵 322 → 323 件。
+- tests ツリーの `!` が 2 ラウンド連続で減少（1096 → 1002 → **899**・unit 471 → 377 → **274**）。103 node の checker 抑制が verdict 保存置換で除去され、unit 内の `!` は残 274（次点: api/websocket-handler 21・api/batch-processing-api 14・api/routes/monitoring-phase84-85 14）。
+- 残課題（引継ぎ）: tests/unit 残 274 の継続縮小・Phase 132 TASK-0218〜0222 未着手・requirements.md の PR #12 由来 dead citation 残存（A137 引継ぎ）。
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)

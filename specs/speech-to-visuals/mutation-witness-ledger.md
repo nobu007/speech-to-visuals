@@ -135,6 +135,16 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 
 ---
 
+## MW-015 — tests/unit ratchet の単調減少強制ラウンド 2（REQ-339・Phase 149・Phase 149 rewrite への `!` 再注入）
+
+- **claim**: tests/guards/non-null-assertion-census.test.ts ヘッダ「re-injecting ONE `!` into the Phase-149 rewrite — `expect(metrics.layoutQualityScore)` back to `expect(result.metrics!.layoutQualityScore)` in tests/unit/pipeline/pipeline-orchestrator.test.ts — turns BOTH the tests/unit directory ratchet (274 → 275) and the tests-total ratchet (899 → 900) RED」
+- **target**: `tests/unit/pipeline/pipeline-orchestrator.test.ts:723`（Phase 149 置換後の `expect(requireDefined(result.metrics, 'result.metrics').layoutQualityScore).toBeGreaterThan(0);` 行）
+- **mutation**: `expect(requireDefined(result.metrics, 'result.metrics').layoutQualityScore).toBeGreaterThan(0);` → `expect(result.metrics!.layoutQualityScore).toBeGreaterThan(0);`（Phase 149 が fail-loud helper `requireDefined` で除去した checker 抑制の 1 node 再注入）
+- **command**: `npx jest --config jest.config.cjs tests/guards/non-null-assertion-census.test.ts`
+- **observed** (2026-08-20): `Tests: 2 failed, 9 passed, 11 total` — RED は tests 合計 ratchet（`Expected: <= 899 / Received: 900`）と tests/unit ディレクトリ ratchet（`Expected: <= 274 / Received: 275`）の 2 件。Phase 149 の減少（unit 377 → 274・総 1002 → 899）が ratchet で強制されている実証。revert 後 census + ledger 監査 2 suite 41 tests GREEN
+
+---
+
 ## 恒久 mutation test（ledger 対象外・常時 CI で走るもの）
 
 以下は「一時 mutant → RED 確認 → revert」ではなく mutant を恒久テスト化したもので、

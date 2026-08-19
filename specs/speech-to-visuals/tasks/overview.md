@@ -107,7 +107,7 @@
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0235（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235）
+**使用済みタスク番号**: TASK-0001 ~ TASK-0236（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236）
 **次回開始番号**: TASK-0236
 
 > **REQ 番号帯（Phase 140 決定）**: REQ-313〜322 は acceptance-criteria の TC 帯（TC-313〜321 実在・TC-322 は未 merge PR #9 提案中）との番号衝突回避のため予約（未使用）。機能要件は REQ-323 から、TC は TC-323 から採番する（REQ-326/TC-323 が適用例）。
@@ -1988,6 +1988,34 @@ MW 台帳（TASK-0228）に MW-014 追加・監査 pin ≥13 → ≥14
 ### 次フェーズ開始番号
 
 **次回開始番号**: TASK-0236
+
+## Phase 149: tests ツリー non-null assertion ratchet 単調減少ラウンド 2（tests/unit 377 → 274）
+
+**ステータス**: ✅完了（2026-08-20・TASK-0236 完了）
+
+**背景**: REQ-337 の単調減少維持指令のラウンド 2。A148 残課題の次点 3 ファイル（grafana-dashboard-model 25・pipeline-orchestrator 25・production-exporter 24）に guard-first per-file census で上位に現れた quality-gate.test.ts（29 node・unit 残 377 の最大ファイル）を加えた 4 ファイル 103 node を対象。同一根本クラス（optional 戻り値 / optional フィールドへの checker 抑制）を fail-loud helper 4 種（`requireCriterionResult`・`requirePanel`・`requireDefined`・`requirePreset`/`requireJobStatus`）+ factory 戻り型 narrowing（`PipelineInput & { config: PipelineConfig }`）+ inline narrowing（`templating`）で挙動保存置換し 103 node → 0・**tests/unit pin 377 → 274・tests 合計 pin 1002 → 899**。MW-015（rewrite への `!` 1 node 再注入で合計 ratchet 900 > 899 と dir ratchet 275 > 274 の 2 RED）で減少の機械強制を継続実証。
+
+### タスク一覧
+
+- [x] [TASK-0236: tests ツリー non-null assertion ratchet 単調減少ラウンド 2（tests/unit 377 → 274）](TASK-0236.md) - 3h (DIRECT) 🔵 ✅2026-08-20（103 node→0・pin 274/899・MW-015）
+
+### 依存関係
+
+```
+TASK-0236 は REQ-337 の TESTS_DIR_PINS（TASK-0234）を Phase 148（TASK-0235）に続き縮小側に更新
+requireDefined は Phase 148 export-job-queue-dlq と同型・factory 戻り型 narrowing は新規
+MW 台帳（TASK-0228）に MW-015 追加・監査 pin ≥14 → ≥15
+次候補: tests/unit 残 274 の継続縮小（phase32 系 integration 38 は別ディレクトリ・unit 内次点: api/websocket-handler 21・api/batch-processing-api 14・api/routes/monitoring-phase84-85 14）
+```
+
+### 信頼性レベルサマリー（Phase 149 追加分）
+
+- 全 1 タスク 🔵（A148 残課題 + steering の単調減少指示 + 実測（census guard 11 tests・対象 4 suite 145 tests GREEN・tsc 0・MW-015 mutant RED）に出典）
+- 推定工数: 3 時間
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0237
 
 ## Spine: external references
 

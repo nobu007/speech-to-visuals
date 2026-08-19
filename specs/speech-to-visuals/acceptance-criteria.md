@@ -5852,6 +5852,12 @@
 - [x] **TC-334-02**: 減少の強制が実証されていること — Phase 148 rewrite への `!` 1 node 再注入（`expect(rule.expr)` → `expect(rule!.expr)`・alert-rules.test.ts）が tests/unit ディレクトリ ratchet（377 → 378 超過）と tests 合計 ratchet（1002 → 1003 超過）の **2 tests RED** を生むこと（MW-014・revert 後 GREEN）。置換は verdict 保存であること — helper は不在時に欠落対象名を含む Error を throw し（旧: `TypeError: Cannot read properties of undefined` または bare `toBeDefined()` 失敗 = いずれも RED）、存在時は同一 assertion を narrow された値に対して実行する 🔵
   - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'tests/guards/non-null-assertion-census|tests/unit/monitoring/alert-rules|tests/unit/export/export-job-queue-dlq'`（3 suites / 85 tests）
 
+#### REQ-339: tests ツリー non-null assertion ratchet 単調減少ラウンド 2（Phase 149）
+
+- [x] **TC-335-01**: REQ-337 の ratchet が Phase 148 に引き続き単調減少していること — Phase 149 実施後、tests/unit ディレクトリ pin が **377 → 274**（quality/quality-gate.test.ts 29 node → 0・monitoring/grafana-dashboard-model.test.ts 25 node → 0・pipeline/pipeline-orchestrator.test.ts 25 node → 0・export/production-exporter.test.ts 24 node → 0・計 103 node）に・tests 合計 pin が **1002 → 899** に縮小され、guard が縮小後の pin で GREEN であること・置換対象 4 suite（42 + 24 + 48 + 31 = 145 tests）が GREEN であること 🔵
+- [x] **TC-335-02**: 減少の強制が継続実証されていること — Phase 149 rewrite への `!` 1 node 再注入（`expect(requireDefined(result.metrics, 'result.metrics').layoutQualityScore)` → `expect(result.metrics!.layoutQualityScore)`・pipeline-orchestrator.test.ts:723）が tests/unit ディレクトリ ratchet（275 > 274 超過）と tests 合計 ratchet（900 > 899 超過）の **2 tests RED** を生むこと（MW-015・revert 後 GREEN）。置換は verdict 保存であること — (c) の `input.config!` は factory 戻り型 `PipelineInput & { config: PipelineConfig }` による**正型経路の mutate** に置換され（factory は常に config を代入するため挙動同一）・(d) の `getJobStatus()` は `ExportJob | null` を返すため helper `requireJobStatus` は **null を guard** すること（旧: `null.field` TypeError = RED・新: throw Error = 同一 RED verdict）🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'tests/guards/non-null-assertion-census|tests/unit/quality/quality-gate|tests/unit/monitoring/grafana-dashboard-model|tests/unit/pipeline/pipeline-orchestrator\.test|tests/unit/export/production-exporter'`（5 suites / 156 tests）
+
 
 ### Phase 111+ 受け入れ基準サマリー
 
@@ -5908,6 +5914,7 @@
 | REQ-336: non-null assertion 撲滅・src 全体 exact-0 + checker AST 化 | 2 | 🔵 |
 | REQ-337: tests ツリー non-null assertion ディレクトリ別 ratchet | 2 | 🔵 |
 | REQ-338: tests ツリー non-null assertion ratchet 単調減少ラウンド 1 | 2 | 🔵 |
+| REQ-339: tests ツリー non-null assertion ratchet 単調減少ラウンド 2 | 2 | 🔵 |
 | **合計** | **122** | **🔵 91.8% / 🟡 8.2%** |
 
 
