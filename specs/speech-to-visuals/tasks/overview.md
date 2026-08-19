@@ -1784,6 +1784,34 @@ TASK-0223 → TASK-0225（overview の成果物記載に TC-323 結果を使用�
 
 **次回開始番号**: TASK-0226
 
+## Phase 141: non-null assertion 撲滅・storage parity・mutation witness 台帳
+
+**ステータス**: ✅完了（2026-08-20・TASK-0226/0227/0228 全完了）
+
+**背景**: 前 iteration（Phase 140）の VALUABLE 判定に続く steering 4 指摘のうち、固有名（`fold-display-census` REMAINING-WORK pin・`STORAGE_KEYS`・`b86ddeb6`）は本リポジトリに存在しない cross-repo 汚染（6 件目・interview-record A141）。META-intent 3 件を実体に映射: (1) `!` の census と可視化ツリー置換、(2) storage reader/writer パリティの機械検証、(3) mutation witness の盤査可能性。divergence-first 選別ルールは Phase 140 REQ-327 として既存。
+
+### タスク一覧
+
+- [x] [TASK-0226: src/visualization non-null assertion 撲滅 + 全ツリー census ratchet](TASK-0226.md) - 6h (DIRECT) 🔵 ✅2026-08-20（67→0・128+34 suites GREEN）
+- [x] [TASK-0227: storage key read/write parity sweep + 常設 guard](TASK-0227.md) - 2h (DIRECT) 🔵 ✅2026-08-20（LIVE-dead なし・parity guard 4 tests）
+- [x] [TASK-0228: mutation witness 台帳（mutant 一覧 + red 数の committed log）](TASK-0228.md) - 3h (DIRECT) 🔵 ✅2026-08-20（MW-001〜006・過去主張 3 件を [EVIDENCE] 付き再実行）
+
+### 依存関係
+
+```
+TASK-0228 は REQ-326 evidence runner（TASK-0223）の出典形式を再利用
+TASK-0226/0227/0228 は相互独立（同一 phase で並行実施可）
+```
+
+### 信頼性レベルサマリー（Phase 141 追加分）
+
+- 全 3 タスク 🔵（steering META-intent + grep/再実行実測に出典）
+- 推定工数: 11 時間
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0229
+
 ## Spine: external references
 
 - [speech-to-visuals API エンドポイント仕様](/home/jinno/speech-to-visuals/specs/speech-to-visuals/api-endpoints.md)

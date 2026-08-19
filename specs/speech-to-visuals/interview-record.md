@@ -4310,6 +4310,36 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A141: Phase 141 — non-null assertion 撲滅・storage parity・mutation witness 台帳（2026-08-20 第222回検証）
+
+**分析日時**: 2026-08-20
+**カテゴリ**: 追加要件（AI Hub steering follow-up）
+**背景**: Phase 140 が VALUABLE 判定された後の steering 4 指摘。前回同様、固有名の実在性を grep で検証してから採用を決めた。
+
+**判断**（実在性検証 → META-intent 採用）:
+
+1. **`!` census 指摘は実体あり**（固有名なし・直接採用）: 実測 src/visualization 本体 67 件（20 ファイル）・src 全体 170 件。REQ-328 として census ratchet（tests/guards/non-null-assertion-census.test.ts・4 tests）+ 置換を実装。置換は 7 パターン（no-op 除去 / narrowing / `lookupEndpoint` 型付き helper / fail-loud accessor / get-or-create 変数キャプチャ / `queue.shift()` ガード / 明示 throw）に分類し、**全て挙動保存**（tests/(visualization|guards) 128 suites/4319 tests・src/visualization/__tests__ 34 suites/658 tests が書き換え前後で GREEN・tsc tsconfig.app.json exit=0）。旧 `!` 形状を pin していた source anchor 2 件（edge-repointing:275・overlap-pair-scan:329）は新形状に更新。**67 → 0**。
+2. **fold-display-census REMAINING-WORK pin（MACHINE_ISO_TIMESTAMP ×2・CURRENT_YEAR_RENDER ×1・SIGN_TERNARY_GENERIC ×3）は grep 0 hits — cross-repo 汚染（A138 から数えて 6 件目）**。divergence-first 選別ルールは Phase 140 REQ-327 として要件済みのため重複要件化せず。
+3. **storage sweep 指摘は META-intent のみ実体あり**: `STORAGE_KEYS` 0 hits・`b86ddeb6` は git 履歴に存在せず（cross-repo 汚染）。本リポジトリの永続化 surface は `@stv/core/utils/safe-storage` の 2 key（`first-visit`・`tutorial-progress`）のみで、**LIVE-dead な read は 0 件**（sweep 実測）。単発 sweep でなく常設 parity guard（REQ-329・storage-key-parity.test.ts 4 tests・mutant RED 検証済み）として恒久化。
+4. **mutation witness の監査可能性は直接採用**: 台帳 specs/speech-to-visuals/mutation-witness-ledger.md（MW-001〜006）+ 監査 guard 14 tests（REQ-330）。**過去主張 3 件を本日再実行**:
+   - MW-001（TC-205-04・statusCodeClass `<500`→`<600`）: `[EVIDENCE] started=2026-08-19T23:59:15+09:00 ended=2026-08-19T23:59:24+09:00 exit=1 elapsed_s=8.77 cmd=npm test -- --testPathPatterns tests/unit/monitoring/http-metrics-collector.test.ts commit=c2381ad9 branch=ai/instruction-speech-to-visuals-20260819-144044-214853` → 1 failed / 16 total — 主張どおり TC-205-04 のみ RED
+   - MW-002（TC-214-02・Prometheus prefix 传递除去）: `[EVIDENCE] started=2026-08-19T23:59:37+09:00 ended=2026-08-19T23:59:52+09:00 exit=1 elapsed_s=15.24 cmd=npx jest --config jest.config.cjs tests/unit/api/routes/monitoring-phase84-85.test.ts commit=c2381ad9 branch=ai/instruction-speech-to-visuals-20260819-144044-214853` → 1 failed / 39 total — RED テスト名が `TC-214-02: /prometheus honors ?prefix=` そのもので主張どおり
+   - MW-004（TC-304-04・maxRetries `??`→`||`）: `[EVIDENCE] started=2026-08-19T23:59:56+09:00 ended=2026-08-20T00:00:20+09:00 exit=1 elapsed_s=24.59 cmd=npx jest --config jest.config.cjs tests/analysis/llm-service-max-retries-zero.test.ts commit=c2381ad9 branch=ai/instruction-speech-to-visuals-20260819-144044-214853` → 1 failed / 2 total — 主張どおり zero-passthrough test のみ RED
+   - 補助（MW-003）: 誤って /alerts 側（monitoring.ts:311）を mutant にしたところ 2 failed / 39（REQ-211 prefix + REQ-216 validation）— /alerts 側にも pin が alive である新規知見として台帳に記録。
+
+**根拠**: TASK-0226/0227/0228・上記 [EVIDENCE] 行・census/parity/ledger 各 guard の実行出力。
+
+**最終フルスイート**（Phase 141 全変更後・編集競合なしの clean run）:
+`[EVIDENCE] started=2026-08-20T00:18:00+09:00 ended=2026-08-20T00:20:36+09:00 exit=0 elapsed_s=156.59 cmd=npm test commit=2b021608 branch=ai/instruction-speech-to-visuals-20260819-144044-214853` → **742 suites / 742 passed・23,128 passed / 0 failed / 17 skipped**（739+3 新 guard suite・23,125+3=23,128 で直前 run の 3 failed が全て実行中編集由来の一過性だったことを確定）。
+
+**信頼性への影響**:
+
+- REQ-328/329/330 追加（いずれも 🔵・実装+guard+mutant RED 検証に出典）。🔵 311 → 314 件。
+- strict mode が「checker を黙らせる」だけでなく src/visualization では実検証として機能（`!` 0 件を CI が常時強制）。
+- 残課題: src 本体残り 93 件・tests 960 件の `!` は ratchet で増加のみ防止（個別置換は発散 witness があるもの順に別 phase）。Phase 132 TASK-0218〜0222 未着手・requirements.md の PR #12 由来 dead citation 残存（A137 引継ぎ）。
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)

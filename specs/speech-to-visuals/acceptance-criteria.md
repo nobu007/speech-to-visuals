@@ -5774,6 +5774,27 @@
   - **mutation RED 検証済み**: `[EVIDENCE]` prefix 改変で 5 tests RED・`SPAWN_FAILURE_EXIT=127→0` 改変で 1 test RED（interview-record A138）
 
 
+#### REQ-328: non-null assertion census ratchet（Phase 141）
+
+- [x] **TC-324-01**: src/visualization プロダクションコード（`__tests__` 除く）に postfix non-null assertion が 0 件であることが exact pin で検証されること。src 本体（`__tests__`/`__mocks__` 除外）= 93 以下・tests ツリー（`__mocks__` 除外）= 960 以下の ratchet が同時に検証されること（2026-08-19 実測開始値） 🔵
+- [x] **TC-324-02**: census が空振りしないこと（残存 src/tests 両バケットが > 0 を検出する liveness check）・マッチング規則が文字列内 bang（`'visuals!'` 等）を計上しないこと 🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules' npx jest --config jest.config.cjs --testPathPatterns tests/guards/non-null-assertion-census`（4 tests）
+  - **mutation RED 検証済み（MW-005）**: advanced-layouts.ts 末尾への `!` 注入で visualization exact pin と src ratchet の 2 tests RED（revert 後 GREEN）
+
+#### REQ-329: storage key parity（Phase 141）
+
+- [x] **TC-325-01**: LOADED key リテラルが全て SAVED されており（dead-read 0）・SAVED key が全て LOADED されていること（dead-write 0）。key セットは `{first-visit, tutorial-progress}` に exact pin されること 🔵
+- [x] **TC-325-02**: 非 literal storage access が CorruptionOverlay のみに存在し（動的 key は corruption event 由来）・`extractStorageKey` の存在が pin されること 🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules' npx jest --config jest.config.cjs --testPathPatterns tests/guards/storage-key-parity`（4 tests）
+  - **mutation RED 検証済み（MW-006）**: TutorialSystem の save key rename で 3 tests RED（dead-read 検出・pinned loaded/saved set）
+
+#### REQ-330: mutation witness 台帳（Phase 141）
+
+- [x] **TC-326-01**: 台帳（specs/speech-to-visuals/mutation-witness-ledger.md）の全 MW エントリが claim / target / mutation / command / observed を持ち、target ファイルが実在すること。エントリ数が pin（≥6）を下回らないこと 🔵
+- [x] **TC-326-02**: 台帳が specs が mutation-verified として引用する TC id（TC-205-04 / TC-214-02 / TC-304-04）を網羅すること。過去主張 3 件は 2026-08-19 の再実行で確認済み（各 [EVIDENCE] 行: MW-001 = 1 failed/16・MW-002 = 1 failed/39・MW-004 = 1 failed/2 — いずれも主張どおり該当 test のみ RED） 🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules' npx jest --config jest.config.cjs --testPathPatterns tests/guards/mutation-witness-ledger`（14 tests）
+
+
 ### Phase 111+ 受け入れ基準サマリー
 
 | 要件 | テストケース数 | 信頼性 |
