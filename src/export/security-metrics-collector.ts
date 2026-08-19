@@ -86,8 +86,12 @@ export class SecurityMetricsCollector {
    * (`totalRejections`/`byLayer`/`bySeverity`/`matrix`), so whenever a cap
    * eviction occurs on insert the aggregates are rebuilt by
    * `recomputeAggregates()`.
+   *
+   * No definite-assignment assertion: the constructor assigns this field
+   * unconditionally (`new CappedMap(this.maxEntries)`), which strict-mode
+   * property-initialization analysis already proves.
    */
-  private byCompoundKey!: CappedMap<string, CompoundRejectionEntry>;
+  private byCompoundKey: CappedMap<string, CompoundRejectionEntry>;
   private matrix: Record<SecurityLayer, Record<Severity, number>> = {
     'content-validator': { high: 0, medium: 0 },
     'strict-mode-block': { high: 0, medium: 0 },

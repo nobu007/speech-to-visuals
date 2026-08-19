@@ -130,6 +130,22 @@ export class MultiFormatExporter {
   }
 
   /**
+   * `SceneGraph.id` is optional on the wire type, but every format's artifact
+   * filename (and the SVG `<title>`) is derived from it. The single-source
+   * producer (`buildSceneGraph`) always writes `scene-${index}`; a hand-built
+   * scene without an id previously crashed inside `sanitizeFilename` /
+   * `escapeXml` (`undefined.replace`) and surfaced from `export()` as an
+   * opaque `{ success: false }` TypeError — fail loud with an explicit
+   * message instead (same caught-failure contract, diagnosable cause).
+   */
+  private requireSceneId(scene: SceneGraph, format: ExportFormat): string {
+    if (scene.id === undefined) {
+      throw new ExportError('SceneGraph.id is required to name the export artifact', format);
+    }
+    return scene.id;
+  }
+
+  /**
    * Export as SVG (vector graphics)
    */
   private async exportSVG(
@@ -147,7 +163,7 @@ export class MultiFormatExporter {
       success: true,
       data: blob,
       mimeType: 'image/svg+xml',
-      filename: `${sanitizeFilename(scene.id!)}.svg`,
+      filename: `${sanitizeFilename(this.requireSceneId(scene, options.format))}.svg`,
       metadata: {
         format: 'svg',
         sizeBytes: blob.size,
@@ -191,7 +207,7 @@ export class MultiFormatExporter {
       success: true,
       data: blob,
       mimeType: 'image/png',
-      filename: `${sanitizeFilename(scene.id!)}.png`,
+      filename: `${sanitizeFilename(this.requireSceneId(scene, options.format))}.png`,
       metadata: {
         format: 'png',
         sizeBytes: blob.size,
@@ -218,7 +234,7 @@ export class MultiFormatExporter {
       success: true,
       data: pdfData,
       mimeType: 'application/pdf',
-      filename: `${sanitizeFilename(scene.id!)}.pdf`,
+      filename: `${sanitizeFilename(this.requireSceneId(scene, options.format))}.pdf`,
       metadata: {
         format: 'pdf',
         sizeBytes: pdfData.size,
@@ -261,7 +277,7 @@ export class MultiFormatExporter {
       success: true,
       data: blob,
       mimeType: 'application/json',
-      filename: `${sanitizeFilename(scene.id!)}.json`,
+      filename: `${sanitizeFilename(this.requireSceneId(scene, options.format))}.json`,
       metadata: {
         format: 'json',
         sizeBytes: blob.size,
@@ -285,7 +301,7 @@ export class MultiFormatExporter {
 
     let svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-  <title>${escapeXml(scene.id!)}</title>
+  <title>${escapeXml(this.requireSceneId(scene, 'svg'))}</title>
   <rect width="${width}" height="${height}" fill="${bgColor}"/>
   <g id="diagram">
 `;
@@ -785,7 +801,13 @@ export class MultiFormatExporter {
    */
   private hasNonWinAnsiChar(text: string): boolean {
     for (const ch of text) {
-      if (ch.codePointAt(0)! > 0xff) return true;
+      // `for…of` on a string yields whole code points, so index 0 is always in
+      // range; the `!== undefined` guard (not a fallback) preserves the old
+      // assertion's `undefined > 0xff === false` pass-through for a hypothetical
+      // empty chunk — a `?? 0` fallback would behave identically here, but the
+      // guard form keeps the "never fabricate a code point" rule explicit.
+      const codePoint = ch.codePointAt(0);
+      if (codePoint !== undefined && codePoint > 0xff) return true;
     }
     return false;
   }

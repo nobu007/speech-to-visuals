@@ -17,6 +17,12 @@
  *   → safeMean(completed.map(j => j.endTime! - j.startTime!))
  * behavior change (non-finite timestamp pair only): the poisoned job is
  * excluded instead of making the average NaN.
+ *
+ * Phase 144 (2026-08-20): the inner expression lost its non-null assertions —
+ * `j.endTime! - j.startTime!` → `Number(j.endTime) - Number(j.startTime)` —
+ * which is value-identical for defined timestamps and keeps the missing-field
+ * case NaN (excluded by safeMean) instead of fabricating a 0. The source
+ * anchor below pins the post-Phase-144 shape.
  */
 
 import { readFileSync } from 'node:fs';
@@ -120,7 +126,7 @@ describe('source anchor: legacy shapes are gone from production-exporter.ts', ()
       /safeSum\(scenes\.map\(\(scene\) => Math\.max\(0, scene\.durationMs \|\| 0\)\)\) \/ 1000/,
     );
     expect(exporterSource).toMatch(
-      /safeMean\(completed\.map\(\(job\) => job\.endTime! - job\.startTime!\)\)/,
+      /safeMean\(completed\.map\(\(job\) => Number\(job\.endTime\) - Number\(job\.startTime\)\)\)/,
     );
   });
 });

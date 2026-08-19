@@ -779,10 +779,11 @@ export class ProductionExporter {
       active: this.activeJobs.size,
       queued: jobs.filter(j => j.status === 'queued').length,
       // Finite-safe mean (wave 6): endTime/startTime are Date.now()-origin;
-      // a non-finite pair is excluded instead of making the average NaN. The
-      // non-null assertions remain the caller's contract (jobs in `completed`
-      // have both fields set).
-      averageProcessingTime: safeMean(completed.map((job) => job.endTime! - job.startTime!)),
+      // a non-finite pair is excluded instead of making the average NaN.
+      // `Number()` preserves the old assertion's arithmetic exactly: a missing
+      // timestamp becomes NaN (`undefined - x` ≡ `Number(undefined) - x`) and
+      // safeMean then excludes the entry — no fabricated 0 shifts the mean.
+      averageProcessingTime: safeMean(completed.map((job) => Number(job.endTime) - Number(job.startTime))),
       totalExportedSize: completed.reduce((sum, job) => sum + (job.metadata.estimatedSize || 0), 0),
       iteration: this.iteration
     };

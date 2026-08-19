@@ -756,8 +756,13 @@ export class EnhancedExportEngine {
   private async finalizeExport(job: ExportJob, video: ProcessedVideo): Promise<ExportResult> {
     this.updateProgress(job, 'finalizing', 98, 'Finalizing export...');
 
-    // Write final file
-    const outputPath = await this.writeOutputFile(video, job.outputPath!);
+    // Write final file. `job.outputPath` is optional: stage 1
+    // (`prepareExport` → `generateOutputPath`) always assigns it on the real
+    // staged path, but REQ-228 tests stub `prepareExport` wholesale and reach
+    // this stage with it unset — the previous `!` let that `undefined` flow
+    // through silently, so the pass-through signatures below (not a fabricated
+    // fallback) preserve exactly that behavior.
+    const outputPath = await this.writeOutputFile(video, job.outputPath);
     job.fileWritten = true;
 
     // Generate metadata
@@ -1154,12 +1159,12 @@ export class EnhancedExportEngine {
     return data.slice(0, Math.floor(data.length * compressionRatio));
   }
 
-  private async writeOutputFile(video: ProcessedVideo, outputPath: string): Promise<string> {
+  private async writeOutputFile(video: ProcessedVideo, outputPath: string | undefined): Promise<string | undefined> {
     // Write final video file
     return outputPath;
   }
 
-  private async getFileSize(path: string): Promise<number> {
+  private async getFileSize(path: string | undefined): Promise<number> {
     // Get file size
     return 1024 * 1024; // Mock 1MB file
   }

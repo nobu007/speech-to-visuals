@@ -213,7 +213,11 @@ export class ExportJobQueue {
     if (success) {
       job.status = 'completed';
       job.completedAt = Date.now();
-      this.metrics?.recordQueueWaitTimeMs(job.startedAt! - job.enqueuedAt);
+      // `Number()` preserves the old assertion's arithmetic: a job that
+      // somehow reaches completion without `startedAt` yields
+      // `Number(undefined) - enqueuedAt` = NaN, exactly like the old
+      // `undefined - enqueuedAt`, instead of fabricating a 0 wait time.
+      this.metrics?.recordQueueWaitTimeMs(Number(job.startedAt) - job.enqueuedAt);
 
       // REQ-233: Auto-save artifact on successful completion
       if (this.artifactStore && artifactData) {
