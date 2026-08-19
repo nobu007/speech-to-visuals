@@ -116,7 +116,16 @@ interface AdvancedLayoutOutput {
  * Iteration 3: Advanced animations
  */
 export class AdvancedLayoutEngine {
-  private themes: Map<string, VisualTheme> = new Map();
+  /** The 'dark' theme — single literal, seeded into the theme map so
+   *  getTheme's fallback is typed without a non-null assertion. */
+  private defaultTheme: VisualTheme = {
+    background: '#0f0f23',
+    nodeColors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
+    edgeColor: '#6b7280',
+    textColor: '#f9fafb',
+    accentColor: '#06b6d4'
+  };
+  private themes: Map<string, VisualTheme> = new Map([['dark', this.defaultTheme]]);
   private iteration = 1;
 
   constructor() {
@@ -180,14 +189,6 @@ export class AdvancedLayoutEngine {
    * Initialize predefined themes
    */
   private initializeThemes(): void {
-    this.themes.set('dark', {
-      background: '#0f0f23',
-      nodeColors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
-      edgeColor: '#6b7280',
-      textColor: '#f9fafb',
-      accentColor: '#06b6d4'
-    });
-
     this.themes.set('light', {
       background: '#ffffff',
       nodeColors: ['#2563eb', '#059669', '#d97706', '#dc2626', '#7c3aed'],
@@ -236,7 +237,7 @@ export class AdvancedLayoutEngine {
       themeName = (hour >= 6 && hour < 18) ? 'light' : 'dark';
     }
 
-    return this.themes.get(themeName) || this.themes.get('dark')!;
+    return this.themes.get(themeName) ?? this.defaultTheme;
   }
 
   /**
@@ -605,7 +606,9 @@ export class AdvancedLayoutEngine {
     const queue = roots.map(r => ({ id: r.id, level: 0 }));
 
     while (queue.length > 0) {
-      const { id, level } = queue.shift()!;
+      const next = queue.shift();
+      if (next === undefined) break; // unreachable while the length guard holds
+      const { id, level } = next;
       if (processed.has(id)) continue;
 
       levels.set(id, level);

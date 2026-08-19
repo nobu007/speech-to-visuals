@@ -47,7 +47,8 @@ function determineNodeOrder(nodes: NodeDatum[], edges: EdgeDatum[]): NodeDatum[]
 
   for (const edge of edges) {
     if (nodeMap.has(edge.from) && nodeMap.has(edge.to)) {
-      adjacency.get(edge.from)!.push(edge.to);
+      const targets = adjacency.get(edge.from);
+      if (targets) targets.push(edge.to);
       inDegree.set(edge.to, (inDegree.get(edge.to) ?? 0) + 1);
     }
   }
@@ -62,7 +63,8 @@ function determineNodeOrder(nodes: NodeDatum[], edges: EdgeDatum[]): NodeDatum[]
 
   const ordered: string[] = [];
   while (queue.length > 0) {
-    const current = queue.shift()!;
+    const current = queue.shift();
+    if (current === undefined) break; // unreachable while the length guard holds
     ordered.push(current);
     for (const neighbor of adjacency.get(current) ?? []) {
       const newDeg = (inDegree.get(neighbor) ?? 1) - 1;
@@ -80,7 +82,9 @@ function determineNodeOrder(nodes: NodeDatum[], edges: EdgeDatum[]): NodeDatum[]
     }
   }
 
-  return ordered.map((id) => nodeMap.get(id)!);
+  return ordered
+    .map((id) => nodeMap.get(id))
+    .filter((n): n is PositionedNode => n !== undefined);
 }
 
 /**

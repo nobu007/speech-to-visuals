@@ -272,7 +272,7 @@ describe('round 34: strategy edge repointing single source', () => {
       const src = readSource(CANONICAL);
       expect(src).toContain('export function repointEdgesStraightLine');
       expect(src).toContain('const nodeMap = new Map(nodes.map(n => [n.id, n]));');
-      expect(src).toContain('nodeMap.get(edge.source!)'); // '!': strict-mode non-null on optional edge.source
+      expect(src).toContain('lookupEndpoint(nodeMap, edge.source)'); // Phase 141: typed undefined-safe lookup replaced the `!` (see edge-endpoints.ts)
       expect(src).toContain('return { ...edge, points: [] };');
       expect(src).toContain('{ x: source.x, y: source.y }');
     });

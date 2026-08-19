@@ -130,6 +130,18 @@ export function makeLayoutWorkerMessageId(nodes: NodeDatum[]): string {
 
 export class ComplexLayoutEngine {
   private config: ComplexLayoutConfig;
+
+  /**
+   * Fail-loud config-sub-object accessor (Phase 141 non-null-assertion
+   * eradication): `performanceTargets` is constructor-defaulted but the
+   * Partial spread can override it with undefined, so reads narrow instead
+   * of asserting `!`.
+   */
+  private requirePerformanceTargets(): Required<ComplexLayoutConfig>['performanceTargets'] {
+    const targets = this.config.performanceTargets;
+    if (!targets) throw new Error('ComplexLayoutEngine: config.performanceTargets is required');
+    return targets;
+  }
   private culturalLayoutAdapter: CulturalLayoutAdapter;
   private layoutWorkerPool: WorkerPool | null = null;
   private disposed = false;
@@ -438,7 +450,8 @@ export class ComplexLayoutEngine {
     const inCluster = new Set<string>();
 
     while (queue.length > 0 && cluster.length < this.config.maxClusterSize) {
-      const node = queue.shift()!;
+      const node = queue.shift();
+      if (node === undefined) break; // unreachable while the length guard holds
 
       if (visited.has(node.id) || inCluster.has(node.id)) continue;
 
@@ -1021,18 +1034,20 @@ export class ComplexLayoutEngine {
 
     let optimizedLayout = layout;
 
+    const targets = this.requirePerformanceTargets();
+
     // Adaptive quality based on performance
-    if (performanceMetrics.currentFPS < this.config.performanceTargets!.targetFPS) {
+    if (performanceMetrics.currentFPS < targets.targetFPS) {
       optimizedLayout = await this.reduceLayoutComplexity(optimizedLayout);
     }
 
     // Memory optimization
-    if (performanceMetrics.memoryUsage > this.config.performanceTargets!.memoryLimit) {
+    if (performanceMetrics.memoryUsage > targets.memoryLimit) {
       optimizedLayout = await this.optimizeMemoryUsage(optimizedLayout);
     }
 
     // Time optimization
-    if (performanceMetrics.layoutTime > this.config.performanceTargets!.maxLayoutTime) {
+    if (performanceMetrics.layoutTime > targets.maxLayoutTime) {
       optimizedLayout = await this.optimizeLayoutTime(optimizedLayout);
     }
 
@@ -1089,11 +1104,13 @@ export class ComplexLayoutEngine {
   ): void {
     if (!this.config.adaptiveThresholds) return;
 
-    // Adjust thresholds based on current system performance
+    // Adjust thresholds based on current system performance (the accessor
+    // returns the config's own object, so these mutations land in config)
+    const targets = this.requirePerformanceTargets();
     if (currentPerformance.fps < 30) {
-      this.config.performanceTargets!.targetFPS = Math.max(20, this.config.performanceTargets!.targetFPS - 5);
+      targets.targetFPS = Math.max(20, targets.targetFPS - 5);
     } else if (currentPerformance.fps > 50) {
-      this.config.performanceTargets!.targetFPS = Math.min(60, this.config.performanceTargets!.targetFPS + 2);
+      targets.targetFPS = Math.min(60, targets.targetFPS + 2);
     }
 
   }

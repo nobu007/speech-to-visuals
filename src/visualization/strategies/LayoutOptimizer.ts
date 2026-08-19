@@ -231,10 +231,12 @@ export class LayoutOptimizer {
 
     nodes.forEach(node => {
       const level = Math.round(node.y / 100); // Group by approximate level
-      if (!levels.has(level)) {
-        levels.set(level, []);
+      let levelNodes = levels.get(level);
+      if (!levelNodes) {
+        levelNodes = [];
+        levels.set(level, levelNodes);
       }
-      levels.get(level)!.push(node);
+      levelNodes.push(node);
     });
 
     // Center each level — map over all nodes to avoid mutating inputs

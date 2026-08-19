@@ -109,6 +109,25 @@ export class ZeroOverlapLayoutEngine {
   private collisionGrid: Map<string, CollisionBox[]> = new Map();
   private optimizationHistory: LayoutQualityMetrics[] = [];
 
+  /**
+   * Fail-loud config-sub-object accessors (Phase 141 non-null-assertion
+   * eradication). The constructor defaults `minimumSpacing` / `optimization`,
+   * but the `...config` spread can still override either with an explicit
+   * `undefined`, so reads NARROW instead of asserting `!` — the accessor
+   * replaces the bare `undefined.nodeToNode` TypeError with a named error.
+   */
+  private requireMinimumSpacing(): Required<ZeroOverlapConfig>['minimumSpacing'] {
+    const spacing = this.config.minimumSpacing;
+    if (!spacing) throw new Error('ZeroOverlapLayoutEngine: config.minimumSpacing is required');
+    return spacing;
+  }
+
+  private requireOptimization(): Required<ZeroOverlapConfig>['optimization'] {
+    const optimization = this.config.optimization;
+    if (!optimization) throw new Error('ZeroOverlapLayoutEngine: config.optimization is required');
+    return optimization;
+  }
+
   constructor(config: Partial<ZeroOverlapConfig> = {}) {
     this.config = {
       canvasWidth: 1920,
@@ -308,9 +327,9 @@ export class ZeroOverlapLayoutEngine {
     // Configure graph for optimal flowchart layout
     g.setGraph({
       rankdir: 'TB',      // Top to bottom
-      ranksep: this.config.minimumSpacing!.nodeToNode * 2,
-      nodesep: this.config.minimumSpacing!.nodeToNode,
-      edgesep: this.config.minimumSpacing!.nodeToEdge,
+      ranksep: this.requireMinimumSpacing().nodeToNode * 2,
+      nodesep: this.requireMinimumSpacing().nodeToNode,
+      edgesep: this.requireMinimumSpacing().nodeToEdge,
       marginx: 20,
       marginy: 20
     });
@@ -376,9 +395,9 @@ export class ZeroOverlapLayoutEngine {
     // Configure graph for tree layout (Left-to-Right for better tree visualization)
     g.setGraph({
       rankdir: 'LR',      // Left to right for tree structure
-      ranksep: this.config.minimumSpacing!.nodeToNode * 3, // More spacing for tree levels
-      nodesep: this.config.minimumSpacing!.nodeToNode * 2,
-      edgesep: this.config.minimumSpacing!.nodeToEdge,
+      ranksep: this.requireMinimumSpacing().nodeToNode * 3, // More spacing for tree levels
+      nodesep: this.requireMinimumSpacing().nodeToNode * 2,
+      edgesep: this.requireMinimumSpacing().nodeToEdge,
       marginx: 30,
       marginy: 30
     });
@@ -564,7 +583,7 @@ export class ZeroOverlapLayoutEngine {
    * Calculate optimal spacing for network layouts based on node density
    */
   private calculateOptimalNetworkSpacing(nodeCount: number): number {
-    const baseSpacing = this.config.minimumSpacing!.nodeToNode;
+    const baseSpacing = this.requireMinimumSpacing().nodeToNode;
     const densityFactor = Math.sqrt(nodeCount / 10); // Scale with square root of density
     return Math.max(baseSpacing, baseSpacing * densityFactor);
   }
@@ -693,7 +712,7 @@ export class ZeroOverlapLayoutEngine {
     let currentNodes = [...layout.nodes];
     let iteration = 0;
     let prevOverlapCount = Infinity;
-    const maxIterations = this.config.optimization!.maxIterations;
+    const maxIterations = this.requireOptimization().maxIterations;
 
     while (iteration < maxIterations) {
       const overlaps = this.detectAllOverlaps(currentNodes);
@@ -774,7 +793,7 @@ export class ZeroOverlapLayoutEngine {
    */
   private detectAllOverlaps(
     nodes: PositionedNode[],
-    minSpacing: number = this.config.minimumSpacing!.nodeToNode
+    minSpacing: number = this.requireMinimumSpacing().nodeToNode
   ): { node1: PositionedNode; node2: PositionedNode }[] {
     if (this.config.spatialIndexing && nodes.length > 4) {
       return this.detectOverlapsWithSpatialGrid(nodes, minSpacing);
@@ -836,8 +855,12 @@ export class ZeroOverlapLayoutEngine {
     const grid = new Map<string, PositionedNode[]>();
     for (const node of nodes) {
       for (const key of cellsFor(node)) {
-        if (!grid.has(key)) grid.set(key, []);
-        grid.get(key)!.push(node);
+        let cell = grid.get(key);
+        if (!cell) {
+          cell = [];
+          grid.set(key, cell);
+        }
+        cell.push(node);
       }
     }
 
@@ -944,7 +967,7 @@ export class ZeroOverlapLayoutEngine {
         !Number.isFinite(n2w) || !Number.isFinite(n2h) ||
         !Number.isFinite(node1.x) || !Number.isFinite(node1.y) ||
         !Number.isFinite(node2.x) || !Number.isFinite(node2.y)) {
-      return this.config.minimumSpacing!.nodeToNode;
+      return this.requireMinimumSpacing().nodeToNode;
     }
 
     // Center-to-center distance via the canonical `distance(dx, dy)` (the same
@@ -970,7 +993,7 @@ export class ZeroOverlapLayoutEngine {
     // overlap stuck. This keeps the resolver's "needs more separation"
     // threshold consistent with the AABB overlap predicate it converges toward.
     const requiredDistance = Math.max((n1w + n2w) / 2, (n1h + n2h) / 2) +
-                            this.config.minimumSpacing!.nodeToNode;
+                            this.requireMinimumSpacing().nodeToNode;
 
     return Math.max(0, requiredDistance - centerDistance);
   }
@@ -1021,17 +1044,17 @@ export class ZeroOverlapLayoutEngine {
     let bestScore = this.calculateAestheticScore(currentLayout);
     let iteration = 0;
 
-    while (iteration < this.config.optimization!.maxIterations) {
+    while (iteration < this.requireOptimization().maxIterations) {
       const candidate = this.applyAestheticOptimization(currentLayout);
       const candidateScore = this.calculateAestheticScore(candidate);
 
       // Only accept improvements that maintain zero overlaps
       const hasOverlaps = this.detectAllOverlaps(candidate.nodes).length > 0;
 
-      if (!hasOverlaps && candidateScore > bestScore + this.config.optimization!.convergenceThreshold) {
+      if (!hasOverlaps && candidateScore > bestScore + this.requireOptimization().convergenceThreshold) {
         currentLayout = candidate;
         bestScore = candidateScore;
-      } else if (candidateScore < bestScore - this.config.optimization!.convergenceThreshold) {
+      } else if (candidateScore < bestScore - this.requireOptimization().convergenceThreshold) {
         break; // Converged
       }
 
@@ -1115,7 +1138,7 @@ export class ZeroOverlapLayoutEngine {
     if (qualityMetrics.spacingViolationCount > 0) {
       warnings.push(
         `${qualityMetrics.spacingViolationCount} pairs closer than ` +
-        `${this.config.minimumSpacing!.nodeToNode}px minimum spacing (aesthetic; not overlaps)`
+        `${this.requireMinimumSpacing().nodeToNode}px minimum spacing (aesthetic; not overlaps)`
       );
     }
 

@@ -63,10 +63,12 @@ export class GridSpatialHash implements SpatialHash {
   insert(node: PositionedNode): void {
     const keys = this.getNodeCells(node);
     for (const key of keys) {
-      if (!this.grid.has(key)) {
-        this.grid.set(key, new Set());
+      let cell = this.grid.get(key);
+      if (!cell) {
+        cell = new Set();
+        this.grid.set(key, cell);
       }
-      this.grid.get(key)!.add(node);
+      cell.add(node);
     }
   }
 

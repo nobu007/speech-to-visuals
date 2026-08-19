@@ -29,9 +29,9 @@ export const DEFAULT_NODE_HEIGHT = 60;
  */
 export function getNodeWidth(node: Pick<PositionedNode, 'width' | 'w'>, fallback: number = DEFAULT_NODE_WIDTH): number {
   const v = node.width;
-  if (Number.isFinite(v)) return v!;
+  if (v !== undefined && Number.isFinite(v)) return v;
   const w = node.w;
-  if (Number.isFinite(w)) return w!;
+  if (w !== undefined && Number.isFinite(w)) return w;
   return fallback;
 }
 
@@ -48,9 +48,9 @@ export function getNodeWidth(node: Pick<PositionedNode, 'width' | 'w'>, fallback
  */
 export function getNodeHeight(node: Pick<PositionedNode, 'height' | 'h'>, fallback: number = DEFAULT_NODE_HEIGHT): number {
   const v = node.height;
-  if (Number.isFinite(v)) return v!;
+  if (v !== undefined && Number.isFinite(v)) return v;
   const h = node.h;
-  if (Number.isFinite(h)) return h!;
+  if (h !== undefined && Number.isFinite(h)) return h;
   return fallback;
 }
 

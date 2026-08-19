@@ -117,7 +117,10 @@ export class TreeLayoutStrategy implements ILayoutStrategy {
     // Prevent infinite loops
     if (visited.has(nodeId)) {
       logger.warn(`[Tree] Cycle detected at node ${nodeId}`);
-      const node = nodes.find(n => n.id === nodeId)!;
+      const node = nodes.find(n => n.id === nodeId);
+      if (node === undefined) {
+        throw new Error(`[Tree] cycle guard could not resolve node ${nodeId}`);
+      }
       return {
         id: nodeId,
         node,

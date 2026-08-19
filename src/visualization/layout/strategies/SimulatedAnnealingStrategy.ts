@@ -6,6 +6,7 @@ import { getNodeWidth, getNodeHeight } from '../../node-dimensions';
 import { distance } from '../../layout-utils';
 import { repointEdgesStraightLine } from '../../edge-repointing';
 import { countEdgeCrossings } from '../edge-crossings';
+import { lookupEndpoint } from '../../edge-endpoints';
 
 /** Get effective node width (handles both `w` and `width` properties, consistent with other layout modules) */
 function effWidth(node: PositionedNode): number {
@@ -263,8 +264,8 @@ export class SimulatedAnnealingStrategy extends BaseLayoutStrategy {
     const targetLength = 150; // Ideal edge length
     
     for (const edge of edges) {
-      const source = nodeMap.get(edge.source!);
-      const target = nodeMap.get(edge.target!);
+      const source = lookupEndpoint(nodeMap, edge.source);
+      const target = lookupEndpoint(nodeMap, edge.target);
       
       if (source && target) {
         const dx = target.x - source.x;

@@ -187,7 +187,7 @@ export class OverlapResolver {
       strategy.apply(nodes as unknown as NodeDatum[], edges as unknown as EdgeDatum[], config, existingLayout),
       timeoutPromise
     ]).finally(() => {
-      clearTimeout(timer!);
+      clearTimeout(timer);
     });
   }
   
@@ -232,7 +232,7 @@ export class OverlapResolver {
     const nodeIds = new Set(nodes.map(n => n.id));
     
     return edges
-      .filter(edge => nodeIds.has(edge.source!) && nodeIds.has(edge.target!))
+      .filter(edge => edge.source !== undefined && edge.target !== undefined && nodeIds.has(edge.source) && nodeIds.has(edge.target))
       .map(edge => ({
         ...edge,
         points: []

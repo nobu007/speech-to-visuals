@@ -1,4 +1,5 @@
 import { PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
+import { lookupEndpoint } from '../edge-endpoints';
 
 /**
  * Edge-crossing pair scan for the v2 `layout/` cluster (round 43 single
@@ -54,8 +55,8 @@ export function countEdgeCrossings(nodes: PositionedNode[], edges: LayoutEdge[])
   // Convert edges to line segments
   const segments = edges
     .map(edge => {
-      const source = nodeMap.get(edge.source!);
-      const target = nodeMap.get(edge.target!);
+      const source = lookupEndpoint(nodeMap, edge.source);
+      const target = lookupEndpoint(nodeMap, edge.target);
       return source && target ? { source, target } : null;
     })
     .filter((segment): segment is CrossingSegment => segment !== null);

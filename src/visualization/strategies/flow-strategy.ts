@@ -83,7 +83,8 @@ export class FlowStrategy implements LayoutStrategy {
     });
 
     while (queue.length > 0) {
-      const current = queue.shift()!;
+      const current = queue.shift();
+      if (current === undefined) break; // unreachable while the length guard holds
       sorted.push(current);
       const neighbors = adjacency.get(current) ?? [];
       for (const neighbor of neighbors) {

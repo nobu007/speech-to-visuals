@@ -81,7 +81,9 @@ export class TreeStrategy implements LayoutStrategy {
     }
 
     while (queue.length > 0) {
-      const { id, level } = queue.shift()!;
+      const next = queue.shift();
+      if (next === undefined) break; // unreachable while the length guard holds
+      const { id, level } = next;
       levels.set(id, level);
       const neighbors = adjacency.get(id) ?? [];
       for (const neighbor of neighbors) {
@@ -102,10 +104,12 @@ export class TreeStrategy implements LayoutStrategy {
     // Group by level and maintain horizontal order within each level
     const levelGroups = new Map<number, string[]>();
     for (const [id, level] of levels) {
-      if (!levelGroups.has(level)) {
-        levelGroups.set(level, []);
+      let group = levelGroups.get(level);
+      if (!group) {
+        group = [];
+        levelGroups.set(level, group);
       }
-      levelGroups.get(level)!.push(id);
+      group.push(id);
     }
 
     // Sort within each level by dagre x

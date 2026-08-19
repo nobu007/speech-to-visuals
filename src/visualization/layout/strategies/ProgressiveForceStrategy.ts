@@ -4,6 +4,7 @@ import { LayoutConfig, LayoutResult } from '../../types';
 import { createLayoutRng } from '../../layout-rng';
 import { distance, ringAngle, pointOnCircle } from '../../layout-utils';
 import { repointEdgesStraightLine } from '../../edge-repointing';
+import { lookupEndpoint } from '../../edge-endpoints';
 
 interface ForceNode extends PositionedNode {
   fx?: number | null;
@@ -318,8 +319,8 @@ export class ProgressiveForceStrategy extends BaseLayoutStrategy {
     const nodeMap = new Map(nodes.map(n => [n.id, n]));
     
     for (const edge of edges) {
-      const source = nodeMap.get(edge.source!);
-      const target = nodeMap.get(edge.target!);
+      const source = lookupEndpoint(nodeMap, edge.source);
+      const target = lookupEndpoint(nodeMap, edge.target);
       
       if (!source || !target) continue;
       
@@ -426,8 +427,8 @@ export class ProgressiveForceStrategy extends BaseLayoutStrategy {
     const nodeMap = new Map(nodes.map((n, i) => [n.id, { node: n, index: i }]));
     
     for (const edge of edges) {
-      const source = nodeMap.get(edge.source!);
-      const target = nodeMap.get(edge.target!);
+      const source = lookupEndpoint(nodeMap, edge.source);
+      const target = lookupEndpoint(nodeMap, edge.target);
       
       if (source && target) {
         const dx = target.node.x - source.node.x;

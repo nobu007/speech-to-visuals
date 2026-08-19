@@ -80,7 +80,8 @@ export class MindMapStrategy implements LayoutStrategy {
     visited.add(root);
 
     while (queue.length > 0) {
-      const current = queue.shift()!;
+      const current = queue.shift();
+      if (current === undefined) break; // unreachable while the length guard holds
       const kids: string[] = [];
       for (const neighbor of adjacency.get(current) ?? []) {
         if (!visited.has(neighbor)) {
@@ -152,7 +153,10 @@ export class MindMapStrategy implements LayoutStrategy {
     }
 
     return nodes.map(node => {
-      const pos = positions.get(node.id)!;
+      const pos = positions.get(node.id);
+      if (pos === undefined) {
+        throw new Error(`[MindMap] radial placement missing node ${node.id}`);
+      }
       // Shared importance-scaled extent (round 42) — identical Math.round(
       // extent * importanceSizeScale) both axes, via strategy-graph.
       const { width: w, height: h } = scaledNodeExtent(node);
@@ -225,8 +229,8 @@ export class MindMapStrategy implements LayoutStrategy {
     const cx = DEFAULT_CANVAS_WIDTH / 2;
     const cy = DEFAULT_CANVAS_HEIGHT / 2;
     return nodes.map((node, i) => {
-      if (positions.has(node.id)) {
-        const pos = positions.get(node.id)!;
+      const pos = positions.get(node.id);
+      if (pos !== undefined) {
         // Round 49 single source — the DEFAULT-fallback box resolution pair.
         const { width: w, height: h } = defaultNodeExtent(node);
         return { ...node, x: pos.x - w / 2, y: pos.y - h / 2, width: w, height: h };

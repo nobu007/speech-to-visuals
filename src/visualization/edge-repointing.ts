@@ -53,6 +53,7 @@
  */
 
 import { PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
+import { lookupEndpoint } from './edge-endpoints';
 
 /**
  * Re-point already-built LayoutEdges at positioned nodes.
@@ -69,8 +70,8 @@ export function repointEdgesStraightLine(
   const nodeMap = new Map(nodes.map(n => [n.id, n]));
 
   return edges.map(edge => {
-    const source = nodeMap.get(edge.source!);
-    const target = nodeMap.get(edge.target!);
+    const source = lookupEndpoint(nodeMap, edge.source);
+    const target = lookupEndpoint(nodeMap, edge.target);
 
     if (!source || !target) {
       return { ...edge, points: [] };

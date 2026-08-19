@@ -85,7 +85,9 @@ export class ConceptMapStrategy implements LayoutStrategy {
     visited.add(root);
 
     while (queue.length > 0) {
-      const { id, level, parent } = queue.shift()!;
+      const next = queue.shift();
+      if (next === undefined) break; // unreachable while the length guard holds
+      const { id, level, parent } = next;
       parentMap.set(id, parent);
       levelMap.set(id, level);
 
@@ -163,7 +165,10 @@ export class ConceptMapStrategy implements LayoutStrategy {
     // Build positioned nodes
     const nodeMap = new Map(nodes.map(n => [n.id, n]));
     return nodes.map(node => {
-      const pos = positions.get(node.id)!;
+      const pos = positions.get(node.id);
+      if (pos === undefined) {
+        throw new Error(`[ConceptMap] radial placement missing node ${node.id}`);
+      }
       // Shared importance-scaled extent (round 42) — identical Math.round(
       // extent * importanceSizeScale) both axes, via strategy-graph.
       const { width: w, height: h } = scaledNodeExtent(node);

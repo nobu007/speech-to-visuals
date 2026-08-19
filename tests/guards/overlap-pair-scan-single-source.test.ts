@@ -326,7 +326,8 @@ describe('overlap-pair scan: every migrated site delegates to layout-utils', () 
       /if \(this\.config\.spatialIndexing && nodes\.length > 4\) \{\s*\n\s*return this\.detectOverlapsWithSpatialGrid\(nodes, minSpacing\)/,
     );
     // Default stays the 40 px spacing target (NOT a geometric default).
-    expect(src).toMatch(/minSpacing: number = this\.config\.minimumSpacing!?\.nodeToNode/); // '!' since strict
+    // Phase 141: the `!` became the fail-loud `requireMinimumSpacing()` accessor.
+    expect(src).toMatch(/minSpacing: number = this\.requireMinimumSpacing\(\)\.nodeToNode/);
     // r38 metric split stays on the two explicit spacings.
     expect(src).toMatch(/this\.detectAllOverlaps\(layout\.nodes, 0\)/);
     expect(src).toMatch(/const spacingViolations = this\.detectAllOverlaps\(layout\.nodes\);/);
