@@ -141,7 +141,7 @@ function assertLinePattern(pattern: RegExp, where: string): void {
 }
 
 /** Validate an oracle row; throws with the row id in the message. */
-export function validateOracleRow(row: OracleRow): void {
+export function validateOracleRow<Args extends unknown[]>(row: OracleRow<Args>): void {
   assertId(row.id, `oracle row '${row.id}'`);
   if (typeof row.canonical !== 'function' || typeof row.retired !== 'function') {
     throw new Error(`[single-source-harness] oracle row '${row.id}': canonical and retired must be functions`);
@@ -237,7 +237,7 @@ export function fingerprintKind(row: AnySingleSourceRow): string {
  * countExpectations keeps counting corpus+1 as the ENUMERATION unit (the
  * fingerprint pin), independent of how many cases physically diverge.
  */
-export function runOracleRow(row: OracleRow): void {
+export function runOracleRow<Args extends unknown[]>(row: OracleRow<Args>): void {
   validateOracleRow(row);
   if (row.mode.kind === 'object-is') {
     for (const args of row.corpus) {

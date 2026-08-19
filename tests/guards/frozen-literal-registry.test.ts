@@ -53,7 +53,7 @@ describe('frozen-literal registry (shared discovery sweep)', () => {
     }
   });
 
-  it.each(FROZEN_LITERAL_RULES.map((r) => [r.id, r]))(
+  it.each(FROZEN_LITERAL_RULES.map((r): [string, FrozenLiteralRule] => [r.id, r]))(
     'sweep: %s',
     (_id: string, rule: FrozenLiteralRule) => {
       const offenders = sweepFrozenLiteralRule(rule);

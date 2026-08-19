@@ -318,8 +318,8 @@ describe('async-state-after-unmount guard — production code absorbs unmount (T
     });
 
     const unmountedWarnings = consoleErrorSpy.mock.calls
-      .map((c) => String(c[0] ?? ''))
-      .filter((msg) => /setState.*unmounted|Can.*not.*perform.*state.*update.*unmounted|Warning.*unmounted component/i.test(msg));
+      .map((c: unknown[]) => String(c[0] ?? ''))
+      .filter((msg: string) => /setState.*unmounted|Can.*not.*perform.*state.*update.*unmounted|Warning.*unmounted component/i.test(msg));
 
     // The guard is load-bearing only if removing it lets the warning through.
     // Here we prove the positive: with the guard present, no such warning
@@ -359,8 +359,8 @@ describe('async-state-after-unmount guard — production code absorbs unmount (T
       await new Promise((r) => setTimeout(r, 30));
     });
     const warnings = consoleErrorSpy.mock.calls
-      .map((c) => String(c[0] ?? ''))
-      .filter((m) => /unmounted component/i.test(m));
+      .map((c: unknown[]) => String(c[0] ?? ''))
+      .filter((m: string) => /unmounted component/i.test(m));
     expect(warnings).toEqual([]);
   });
 });

@@ -239,7 +239,8 @@ describe('StreamingProcessor unmount guard — positive control (TC-319-02)', ()
     // onComplete branch while the component is still mounted.
     const emittedSegment = { start: 0, end: 1500, text: 'first run process A then process B step by step' };
     transcribeStreamMock.mockImplementation(
-      async (_file: unknown, _onProgress: unknown, onSegment: SegmentHandler) => {
+      async (...args: unknown[]) => {
+        const onSegment = args[2] as SegmentHandler;
         onSegment(emittedSegment);
         return { segments: [emittedSegment] };
       },

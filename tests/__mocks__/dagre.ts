@@ -73,7 +73,7 @@ class MockGraph {
 
     // If all nodes have incoming edges (cycle), treat first node as root
     if (roots.length === 0 && this._nodes.size > 0) {
-      roots.push(this._nodes.keys().next().value);
+      roots.push(this._nodes.keys().next().value!);
     }
 
     // BFS to assign levels

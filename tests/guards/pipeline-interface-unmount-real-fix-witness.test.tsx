@@ -344,7 +344,7 @@ describe('PipelineInterface unmount guard — absorbs unmount-during-await (TC-3
     let resolveFetch!: (value: unknown) => void;
     fetchMock.mockReturnValue(
       new Promise((r) => {
-        resolveFetch = r;
+        resolveFetch = r as (value: unknown) => void;
       }),
     );
 

@@ -226,8 +226,8 @@ describe('Iteration43Interface unmount guard — absorbs unmount-during-await (T
     });
 
     const unmountedWarnings = consoleErrorSpy.mock.calls
-      .map((c) => String(c[0] ?? ''))
-      .filter((msg) =>
+      .map((c: unknown[]) => String(c[0] ?? ''))
+      .filter((msg: string) =>
         /setState.*unmounted|Can.*not.*perform.*state.*update.*unmounted|Warning.*unmounted component/i.test(
           msg,
         ),

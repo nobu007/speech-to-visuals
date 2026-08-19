@@ -300,7 +300,7 @@ const GRID_PACKING_ROWS = [
   }),
   oracleRow({
     id: 'stamp-a-integer-exact',
-    canonical: (i: number, cell: number, extent: number, origin: number) => centerInCell(i, cell, extent, origin),
+    canonical: (i: number, cell: number, extent: number, origin = 0) => centerInCell(i, cell, extent, origin),
     retired: legacyStampA,
     corpus: buildIntegerExactCorpus(),
     mode: { kind: 'object-is' },

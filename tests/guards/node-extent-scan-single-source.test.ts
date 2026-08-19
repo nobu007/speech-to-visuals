@@ -63,6 +63,7 @@ import {
   foldNodeExtents,
   type NodeExtents,
   type NodeExtentEdges,
+  type ExtentNode,
 } from '@/visualization/layout-utils';
 
 // ---------------------------------------------------------------------------
@@ -115,7 +116,7 @@ function oldClusterBounds(nodes: PositionedNode[]): NodeExtents | null {
 }
 
 /** The cluster read, as the migrated site passes it to the canonical fold. */
-function orZeroExtentEdges(node: PositionedNode): NodeExtentEdges {
+function orZeroExtentEdges(node: ExtentNode): NodeExtentEdges {
   return {
     left: node.x || 0,
     top: node.y || 0,
@@ -147,7 +148,7 @@ function oldSanitizedLoopBounds(nodes: PositionedNode[]): NodeExtents | null {
 }
 
 /** The sanitized read, as the migrated canvas-calculator passes it. */
-function sanitizedExtentEdges(node: PositionedNode): NodeExtentEdges {
+function sanitizedExtentEdges(node: ExtentNode): NodeExtentEdges {
   const left = sanitizeFinite(node.x, 0);
   const top = sanitizeFinite(node.y, 0);
   return {
@@ -261,7 +262,7 @@ describe('node-extent scan: canonical fold ≡ pre-round-41 inline scans', () =>
   const READS: Array<{
     name: string;
     old: (nodes: PositionedNode[]) => NodeExtents | null;
-    read: (node: PositionedNode) => NodeExtentEdges;
+    read: (node: ExtentNode) => NodeExtentEdges;
   }> = [
     {
       name: 'spread form, fallback 0 (BaseLayoutEngine bounds)',
