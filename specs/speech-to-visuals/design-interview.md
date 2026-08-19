@@ -2,7 +2,7 @@
 
 
 <!-- spine:anchor:begin -->
-> **Spine anchor**: [Speech-to-Visuals システム憲法 V2.7](../../SYSTEM_CONSTITUTION.md)
+> **Spine anchor**: [Speech-to-Visuals システム憲法 V2.8](../../SYSTEM_CONSTITUTION.md)
 >
 > - parent: `SYSTEM_CONSTITUTION.md`
 > - role: `feature_root`
