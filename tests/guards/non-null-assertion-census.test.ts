@@ -1,5 +1,6 @@
 /**
- * Non-null-assertion census ratchet (Phase 141 / REQ-328).
+ * Non-null-assertion census ratchet (Phase 141 / REQ-328; AST since
+ * Phase 147 / REQ-336).
  *
  * `02fa054a` silenced the strict-mode checker in the test tree by postfixing
  * `!` on optional fields — an assertion proves nothing about runtime presence,
@@ -38,6 +39,11 @@
  *     the two timestamp deltas, and a fail-loud `requireOutputPath` for
  *     the stage-1-seeded `job.outputPath`; the 73 export-pattern suites
  *     (4144 tests) stayed green through the rewrite).
+ *     Phase 147 then found ONE more the line-regex census had been blind
+ *     to all along — `nextJob.resolve!(...)` in `processNextInQueue`
+ *     (`!` followed by `(` was outside the regex's continuation class) —
+ *     and replaced it with a captured `const { resolve } = nextJob`, so
+ *     the export pin now holds under the stronger AST checker too.
  *   - `src/monitoring` production code is pinned at ZERO assertions
  *     (Phase 145 replaced all 7: `?? Number.NaN` for the four optional
  *     `MemoryMetrics.rss/external` reads — the browser branch of
@@ -67,17 +73,48 @@
  *     undefined `break` for the merge loop (the while guard requires
  *     `result.length > 0`); the analysis + guards suites (135 suites /
  *     7057 tests) stayed green through the rewrite).
- *   - the rest of `src` (24) and the `tests` tree (960) are pinned as
- *     UPPER BOUNDS: decreases are welcome, any new `!` fails the ratchet.
+ *   - the REST of `src` — api, components, framework, quality, remotion,
+ *     workers, src/test helpers, main.tsx — is pinned at ZERO assertions
+ *     too (Phase 147 replaced the remaining 22 AST nodes / 21 regex
+ *     lines: captured `flatMap` narrowing for the batch quality scores,
+ *     a fail-loud options-presence guard for the preset producer, the
+ *     GET-route null-check idiom for the two just-created-job status
+ *     reads, `?? Number.NaN` for the two StreamingProcessor optional
+ *     reads (NaN is exactly what `undefined` produced in the old
+ *     arithmetic / in `formatPlaybackTime`'s `!Number.isFinite` guard),
+ *     the `const { resolve } = nextJob` capture above, a timestamp
+ *     parameter replacing the read of a field both callers assign one
+ *     statement earlier, captured get-or-create ×4
+ *     (continuous-learner groupByComponent, TREE/MATRIX level grouping,
+ *     layout-worker level grouping), `?? 0` for a `match.index` whose
+ *     two uses both flow through `substring`'s undefined→0 coercion, a
+ *     captured `endMatch?.index` compare, a `continue` guard for the
+ *     matchAll contract, a fail-loud `#root` lookup in main.tsx, a
+ *     module-level `createInitialHealthMetrics()` factory replacing the
+ *     definite-assignment the ctor populated via a helper call, `?? ''`
+ *     mirroring the file's own runId normalization, and `?? Number.NaN`
+ *     for the optional PositionedNode dims in the overlap helper).
+ *     **The whole of `src` is now exact-0: any new `!` anywhere in src
+ *     production code fails this guard.**
+ *   - the `tests` tree is pinned as UPPER BOUNDS, per top-level
+ *     directory (Phase 147 / REQ-337): decreases are welcome, any new
+ *     `!` (or any new unpinned top-level directory) fails the ratchet.
  *     New code must narrow (`if (x === undefined) …`), guard
  *     (`require…()` accessors), or use a typed helper instead.
  *
- * Matching rule (must stay identical to the one documented in
- * specs/speech-to-visuals/tasks/TASK-0226.md): a `!` immediately after an
- * identifier / `)` / `]`, NOT followed by `=`, and followed by a
- * code-continuation character (whitespace, punctuation, or EOL — this
- * excludes string-content bangs like `'visuals!'`). Comment-only lines are
- * skipped. `__tests__` / `__mocks__` directories are excluded from the src
+ * Matching rule (AST since Phase 147 — SUPERSEDES the line-regex rule
+ * documented in specs/speech-to-visuals/tasks/TASK-0226.md, which this
+ * guard had to stay identical to until now): a hit is a TypeScript
+ * `NonNullExpression` node (`x!`) OR a definite-assignment
+ * `exclamationToken` on a property / variable / parameter declaration
+ * (`x!: T`). Parsing instead of line-matching removes the two blind
+ * spots the regex had: string-content bangs (`'Oops! Page…'`,
+ * `Generator! 🎉` JSX text) no longer count, and assertion shapes the
+ * continuation class missed — `f!(…)`, `x![0]`, `` `${x!}` `` — now do.
+ * Counting is per AST node, not per line (a line with two `!`s counts
+ * twice; the pre-Phase-147 `tests` baseline of 960 was line-based, the
+ * AST baseline is 1096 — a counter upgrade, not a regression).
+ * `__tests__` / `__mocks__` directories are excluded from the src
  * bucket; the tests bucket is `tests/**` minus `__mocks__`.
  *
  * Mutation-verified (Phase 141): injecting `const v = queue.shift()!;` into
@@ -106,14 +143,28 @@
  * `const prev = result.pop();` in src/analysis/scene-segmenter.ts with
  * `const prev = result.pop()!;` (the exact pre-Phase-146 shape) turns
  * BOTH the analysis exact pin and the src ratchet (24 → 25) RED.
+ * Mutation-verified (Phase 147, MW-012): re-applying the MW-011 mutation
+ * under the AST checker still turns BOTH the analysis exact pin and the
+ * new whole-src exact pin RED.
+ * Mutation-verified (Phase 147, MW-013): re-injecting the historical
+ * miss — `nextJob.resolve!({` in
+ * src/export/enhanced-export-engine.ts `processNextInQueue` — turns
+ * BOTH the export exact pin and the whole-src exact pin RED, while the
+ * pre-Phase-147 line regex reports ZERO hits on the same mutant (the
+ * `!(` shape was outside its continuation class): proof the checker
+ * upgrade closed a real detection gap, not just a metric restatement.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { join } from 'node:path';
+import { join, relative, sep } from 'node:path';
+
+const require = createRequire(import.meta.url);
+// `typescript` ships CJS; createRequire keeps the import ESM-safe under
+// jest --experimental-vm-modules.
+const ts = require('typescript') as typeof import('typescript');
 
 const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url));
-
-const ASSERTION_RE = /[\w)\]]!(?!=)(?=[\s.,;:)\]}+*/?=<>&|{]|$)/;
 
 /**
  * Baselines: 2026-08-19 (Phase 141, after src/visualization → 0) and
@@ -121,7 +172,12 @@ const ASSERTION_RE = /[\w)\]]!(?!=)(?=[\s.,;:)\]}+*/?=<>&|{]|$)/;
  * and 2026-08-20 (Phase 143, after src/transcription → 0; 64 − 17 = 47)
  * and 2026-08-20 (Phase 144, after src/export → 0; 47 − 10 = 37)
  * and 2026-08-20 (Phase 145, after src/monitoring → 0; 37 − 7 = 30)
- * and 2026-08-20 (Phase 146, after src/analysis → 0; 30 − 6 = 24).
+ * and 2026-08-20 (Phase 146, after src/analysis → 0; 30 − 6 = 24)
+ * and 2026-08-20 (Phase 147: checker upgraded line-regex → AST node
+ * counting; the remaining 22 src nodes — including the export `resolve!(`
+ * the regex had missed — went to 0, so ALL of src is exact-0; the tests
+ * tree re-baselined from the line-based 960 to the node-based 1096 with
+ * per-directory pins).
  */
 const PINNED = {
   'src/visualization (production)': 0,
@@ -130,9 +186,32 @@ const PINNED = {
   'src/export (production)': 0,
   'src/monitoring (production)': 0,
   'src/analysis (production)': 0,
-  'src (production, excl. __tests__/__mocks__)': 24,
-  'tests (excl. __mocks__)': 960,
+  'src (production, excl. __tests__/__mocks__)': 0,
+  'tests (excl. __mocks__)': 1096,
 } as const;
+
+/**
+ * Per-top-level-directory ratchets for the tests tree (Phase 147 / REQ-337).
+ * `(root)` = test files sitting directly in tests/. A directory that is not
+ * pinned here fails the guard — extending the test tree means extending the
+ * ratchet consciously, never silently.
+ */
+const TESTS_DIR_PINS: Record<string, number> = {
+  unit: 471,
+  integration: 245,
+  visualization: 184,
+  guards: 72,
+  pipeline: 45,
+  analysis: 44,
+  quality: 17,
+  transcription: 8,
+  api: 2,
+  lib: 2,
+  remotion: 2,
+  '(root)': 2,
+  acceptance: 1,
+  config: 1,
+};
 
 function walk(dir: string, files: string[] = []): string[] {
   for (const entry of readdirSync(dir).sort()) {
@@ -148,23 +227,55 @@ function walk(dir: string, files: string[] = []): string[] {
   return files;
 }
 
+/**
+ * AST-based assertion census: every `NonNullExpression` (`x!`) plus every
+ * definite-assignment `!:` on a property / variable / parameter declaration.
+ * Comments, string content and JSX text are invisible to the parser, so the
+ * historical regex false positives are gone by construction.
+ */
 function countAssertions(rootRel: string): { count: number; hits: string[] } {
   const files = walk(join(REPO_ROOT, rootRel));
   const hits: string[] = [];
   for (const file of files) {
-    const lines = readFileSync(file, 'utf-8').split('\n');
-    lines.forEach((line, idx) => {
-      const stripped = line.trim();
-      if (stripped.startsWith('//') || stripped.startsWith('*') || stripped.startsWith('/*')) return;
-      if (ASSERTION_RE.test(line)) {
-        hits.push(`${file.replace(REPO_ROOT, '')}:${idx + 1}: ${stripped.slice(0, 80)}`);
+    const text = readFileSync(file, 'utf-8');
+    const scriptKind = file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+    const sourceFile = ts.createSourceFile(file, text, ts.ScriptTarget.ES2022, /*setParentNodes*/ false, scriptKind);
+    const record = (node: ts.Node, kind: string): void => {
+      const { line } = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
+      const textOfLine = text.split('\n')[line]?.trim() ?? '';
+      hits.push(`${file.replace(REPO_ROOT, '')}:${line + 1} [${kind}]: ${textOfLine.slice(0, 80)}`);
+    };
+    const visit = (node: ts.Node): void => {
+      if (ts.isNonNullExpression(node)) {
+        record(node, 'x!');
+      } else if (
+        (ts.isPropertyDeclaration(node) || ts.isVariableDeclaration(node) || ts.isParameter(node)) &&
+        node.exclamationToken !== undefined
+      ) {
+        record(node, 'x!:');
       }
-    });
+      node.forEachChild(visit);
+    };
+    visit(sourceFile);
   }
   return { count: hits.length, hits };
 }
 
-describe('non-null assertion census ratchet (REQ-328)', () => {
+/** Tests-tree hits bucketed by top-level directory (files in tests/ → '(root)'). */
+function bucketTestsHits(hits: string[]): Map<string, string[]> {
+  const byDir = new Map<string, string[]>();
+  for (const hit of hits) {
+    const rel = hit.slice(0, hit.indexOf(':'));
+    const withoutPrefix = rel.split(sep).slice(1).join(sep);
+    const top = withoutPrefix.includes(sep) ? withoutPrefix.split(sep)[0] : '(root)';
+    const bucket = byDir.get(top) ?? [];
+    bucket.push(hit);
+    byDir.set(top, bucket);
+  }
+  return byDir;
+}
+
+describe('non-null assertion census ratchet (REQ-328 / REQ-336 / REQ-337)', () => {
   const visualization = countAssertions('src/visualization');
   const pipeline = countAssertions('src/pipeline');
   const transcription = countAssertions('src/transcription');
@@ -173,6 +284,7 @@ describe('non-null assertion census ratchet (REQ-328)', () => {
   const analysis = countAssertions('src/analysis');
   const srcTotal = countAssertions('src');
   const testsTotal = countAssertions('tests');
+  const testsByDir = bucketTestsHits(testsTotal.hits);
 
   it('src/visualization production code holds ZERO non-null assertions (exact)', () => {
     expect(visualization.hits).toEqual([]);
@@ -186,7 +298,7 @@ describe('non-null assertion census ratchet (REQ-328)', () => {
     expect(transcription.hits).toEqual([]);
   });
 
-  it('src/export production code holds ZERO non-null assertions (exact)', () => {
+  it('src/export production code holds ZERO non-null assertions (exact, incl. AST-only shapes)', () => {
     expect(exportDir.hits).toEqual([]);
   });
 
@@ -198,23 +310,38 @@ describe('non-null assertion census ratchet (REQ-328)', () => {
     expect(analysis.hits).toEqual([]);
   });
 
-  it('src production total (excl. __tests__/__mocks__) is at or below the ratchet', () => {
-    expect(srcTotal.count).toBeLessThanOrEqual(PINNED['src (production, excl. __tests__/__mocks__)']);
+  it('ALL of src production code (excl. __tests__/__mocks__) holds ZERO non-null assertions (exact, Phase 147)', () => {
+    expect(srcTotal.hits).toEqual([]);
   });
 
   it('tests tree total (excl. __mocks__) is at or below the ratchet', () => {
     expect(testsTotal.count).toBeLessThanOrEqual(PINNED['tests (excl. __mocks__)']);
   });
 
-  it('census is not vacuous: the src remainder is real (visualization cleanup moved the needle)', () => {
-    // 170 (pre-Phase-141 src total) − 67 (visualization, Phase 141) −
-    // 29 (pipeline, Phase 142) − 17 (transcription, Phase 143) −
-    // 10 (export, Phase 144) − 7 (monitoring, Phase 145) −
-    // 6 (analysis, Phase 146) = 24; if a
-    // future refactor drives the remainder down the ratchet pins above
-    // loosen only by editing PINNED, so this liveness check just guards
-    // against a scanner regression that would silently count nothing.
-    expect(srcTotal.count).toBeGreaterThan(0);
+  it('every tests-tree top-level directory is pinned and at or below its ratchet (Phase 147 / REQ-337)', () => {
+    for (const [dir, hits] of [...testsByDir.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+      const pin = TESTS_DIR_PINS[dir];
+      if (pin === undefined) {
+        throw new Error(
+          `tests/${dir} has no TESTS_DIR_PINS entry (add one when adding a new top-level tests directory) — ${hits.length} assertion(s) found`
+        );
+      }
+      expect(hits.length).toBeLessThanOrEqual(pin);
+    }
+  });
+
+  it('no pinned tests directory silently disappears (each pin must still correspond to a real directory)', () => {
+    for (const dir of Object.keys(TESTS_DIR_PINS)) {
+      expect(testsByDir.has(dir)).toBe(true);
+    }
+  });
+
+  it('census is not vacuous: the tests remainder is real (src moved to exact-0 in Phase 147)', () => {
+    // 170 (pre-Phase-141 src total) − 67 − 29 − 17 − 10 − 7 − 6 (Phases
+    // 141–146) − 22 (Phase 147, incl. the AST-only export node) = 0; the
+    // liveness check below only guards against a scanner regression that
+    // would silently count nothing. The tests tree is still real: 1096
+    // node hits over 14 pinned directories.
     expect(testsTotal.count).toBeGreaterThan(0);
   });
 });

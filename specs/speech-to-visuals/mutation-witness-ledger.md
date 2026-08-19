@@ -107,6 +107,22 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 - **command**: `npx jest --config jest.config.cjs tests/guards/non-null-assertion-census.test.ts`
 - **observed** (2026-08-20): `Tests: 2 failed, 7 passed, 9 total` — RED は analysis exact pin（`scene-segmenter.ts:939` の mutant 行を hits として検出）と src ratchet（`Expected: <= 24 / Received: 25`）の 2 件。revert 後 `9 passed`
 
+## MW-012 — non-null assertion census ratchet・AST checker での analysis pin 連続性（REQ-336・Phase 147 checker 置換後の再検証）
+
+- **claim**: tests/guards/non-null-assertion-census.test.ts ヘッダ「re-applying the MW-011 mutation under the AST checker still turns BOTH the analysis exact pin and the new whole-src exact pin RED」
+- **target**: `src/analysis/scene-segmenter.ts:939`
+- **mutation**: `const prev = result.pop();` → `const prev = result.pop()!;`（MW-011 と同一 mutant を checker 置換（line-regex → TypeScript AST）後の guard に適用）
+- **command**: `npx jest --config jest.config.cjs tests/guards/non-null-assertion-census.test.ts`
+- **observed** (2026-08-20): `Tests: 2 failed, 9 passed, 11 total` — RED は analysis exact pin と新設の src 全体 exact pin の 2 件（両方が `scene-segmenter.ts:939 [x!]` の mutant 行を hits として検出）。revert 後 `11 passed`。checker を AST に置換しても検出力が連続していることの実証
+
+## MW-013 — AST checker が旧 line-regex の検出不能形状（`!(`）を閉じた実証（REQ-336・Phase 147・Phase 144 の見落としの再注入）
+
+- **claim**: tests/guards/non-null-assertion-census.test.ts ヘッダ「re-injecting the historical miss — `nextJob.resolve!({` in src/export/enhanced-export-engine.ts `processNextInQueue` — turns BOTH the export exact pin and the whole-src exact pin RED, while the pre-Phase-147 line regex reports ZERO hits on the same mutant (the `!(` shape was outside its continuation class): proof the checker upgrade closed a real detection gap, not just a metric restatement」
+- **target**: `src/export/enhanced-export-engine.ts:1185`
+- **mutation**: `resolve({` → `nextJob.resolve!({`（Phase 147 が除去した `.catch` closure 内 presence assertion の再注入。Phase 144 は src/export を「10 件 → 0」としたが、この `!(` 形状は当時の line-regex の continuation class `[\s.,;:)\]}+*/?=<>&|{]` に `(` が無いたず検出されず、AST checker 化で初めて発見・除去された）
+- **command**: `npx jest --config jest.config.cjs tests/guards/non-null-assertion-census.test.ts`
+- **observed** (2026-08-20): `Tests: 2 failed, 9 passed, 11 total` — RED は export exact pin と src 全体 exact pin の 2 件（両方が `enhanced-export-engine.ts:1185 [x!]` を検出）。**さらに旧 line-regex checker を同じ mutant ファイルに適用すると 0 hits**（`!(` が continuation class 外のため）— checker upgrade が計量の言い換えでなく実検出ギャップを閉じたことの実証。revert 後 `11 passed`
+
 ---
 
 ## 恒久 mutation test（ledger 対象外・常時 CI で走るもの）
