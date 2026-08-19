@@ -25,7 +25,20 @@
  *     `!== undefined` guards mirroring the constructor's own validation
  *     in `updateConfig`; the 25 transcription/streaming suites (603
  *     tests) stayed green through the rewrite).
- *   - the rest of `src` (47) and the `tests` tree (960) are pinned as
+ *   - `src/export` production code is pinned at ZERO assertions
+ *     (Phase 144 replaced all 10: a fail-loud `requireSceneId` accessor
+ *     for the five filename/`<title>` derivations — an id-less scene
+ *     previously crashed inside `sanitizeFilename` (`undefined.replace`)
+ *     and surfaced from `export()` as an opaque TypeError, the accessor
+ *     keeps the caught `{ success: false }` contract with a diagnosable
+ *     message — a `!== undefined` guard for `codePointAt(0)` preserving
+ *     the `undefined > 0xff === false` pass-through, removal of the
+ *     provably-dead definite-assignment on `byCompoundKey` (the ctor
+ *     assigns unconditionally), `Number()` NaN-preserving arithmetic for
+ *     the two timestamp deltas, and a fail-loud `requireOutputPath` for
+ *     the stage-1-seeded `job.outputPath`; the 73 export-pattern suites
+ *     (4144 tests) stayed green through the rewrite).
+ *   - the rest of `src` (37) and the `tests` tree (960) are pinned as
  *     UPPER BOUNDS: decreases are welcome, any new `!` fails the ratchet.
  *     New code must narrow (`if (x === undefined) …`), guard
  *     (`require…()` accessors), or use a typed helper instead.
@@ -50,6 +63,11 @@
  * src/transcription/streaming-transcriber.ts with
  * `sum + ((segment as { confidence: number })!.confidence), 0);` turns
  * BOTH the transcription exact pin and the src ratchet (47 → 48) RED.
+ * Mutation-verified (Phase 144, MW-009): replacing
+ * `Number(job.startedAt) - job.enqueuedAt;` in
+ * src/export/export-job-queue.ts with
+ * `(job as { startedAt: number }).startedAt! - job.enqueuedAt;` turns
+ * BOTH the export exact pin and the src ratchet (37 → 38) RED.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -62,13 +80,15 @@ const ASSERTION_RE = /[\w)\]]!(?!=)(?=[\s.,;:)\]}+*/?=<>&|{]|$)/;
 /**
  * Baselines: 2026-08-19 (Phase 141, after src/visualization → 0) and
  * 2026-08-20 (Phase 142, after src/pipeline → 0; src remainder 93 − 29 = 64)
- * and 2026-08-20 (Phase 143, after src/transcription → 0; 64 − 17 = 47).
+ * and 2026-08-20 (Phase 143, after src/transcription → 0; 64 − 17 = 47)
+ * and 2026-08-20 (Phase 144, after src/export → 0; 47 − 10 = 37).
  */
 const PINNED = {
   'src/visualization (production)': 0,
   'src/pipeline (production)': 0,
   'src/transcription (production)': 0,
-  'src (production, excl. __tests__/__mocks__)': 47,
+  'src/export (production)': 0,
+  'src (production, excl. __tests__/__mocks__)': 37,
   'tests (excl. __mocks__)': 960,
 } as const;
 
@@ -106,6 +126,7 @@ describe('non-null assertion census ratchet (REQ-328)', () => {
   const visualization = countAssertions('src/visualization');
   const pipeline = countAssertions('src/pipeline');
   const transcription = countAssertions('src/transcription');
+  const exportDir = countAssertions('src/export');
   const srcTotal = countAssertions('src');
   const testsTotal = countAssertions('tests');
 
@@ -121,6 +142,10 @@ describe('non-null assertion census ratchet (REQ-328)', () => {
     expect(transcription.hits).toEqual([]);
   });
 
+  it('src/export production code holds ZERO non-null assertions (exact)', () => {
+    expect(exportDir.hits).toEqual([]);
+  });
+
   it('src production total (excl. __tests__/__mocks__) is at or below the ratchet', () => {
     expect(srcTotal.count).toBeLessThanOrEqual(PINNED['src (production, excl. __tests__/__mocks__)']);
   });
@@ -131,7 +156,8 @@ describe('non-null assertion census ratchet (REQ-328)', () => {
 
   it('census is not vacuous: the src remainder is real (visualization cleanup moved the needle)', () => {
     // 170 (pre-Phase-141 src total) − 67 (visualization, Phase 141) −
-    // 29 (pipeline, Phase 142) − 17 (transcription, Phase 143) = 47; if a
+    // 29 (pipeline, Phase 142) − 17 (transcription, Phase 143) −
+    // 10 (export, Phase 144) = 37; if a
     // future refactor drives the remainder down the ratchet pins above
     // loosen only by editing PINNED, so this liveness check just guards
     // against a scanner regression that would silently count nothing.

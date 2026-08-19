@@ -83,6 +83,14 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 - **command**: `npx jest --config jest.config.cjs tests/guards/non-null-assertion-census.test.ts`
 - **observed** (2026-08-20): `Tests: 2 failed, 4 passed, 6 total` — RED は transcription exact pin（`streaming-transcriber.ts:506` の mutant 行を hits として検出）と src ratchet（`Expected: <= 47 / Received: 48`）の 2 件。revert 後 `6 passed`
 
+## MW-009 — non-null assertion census ratchet・src/export pin（REQ-333・Phase 144 新設 exact pin）
+
+- **claim**: tests/guards/non-null-assertion-census.test.ts ヘッダ「replacing `Number(job.startedAt) - job.enqueuedAt;` in src/export/export-job-queue.ts … turns BOTH the export exact pin and the src ratchet (37 → 38) RED」
+- **target**: `src/export/export-job-queue.ts:220`
+- **mutation**: `Number(job.startedAt) - job.enqueuedAt` → `(job as { startedAt: number }).startedAt! - job.enqueuedAt`
+- **command**: `npx jest --config jest.config.cjs tests/guards/non-null-assertion-census.test.ts`
+- **observed** (2026-08-20): `Tests: 2 failed, 5 passed, 7 total` — RED は export exact pin と src ratchet（37 → 38）の 2 件。revert 後 `7 passed`
+
 ---
 
 ## 恒久 mutation test（ledger 対象外・常時 CI で走るもの）
