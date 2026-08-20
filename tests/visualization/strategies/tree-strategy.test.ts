@@ -1,6 +1,24 @@
 import { TreeStrategy, treeStrategy } from '@/visualization/strategies/tree-strategy';
-import { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
+import { NodeDatum, EdgeDatum, PositionedNode } from '@stv/core/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult } from '@/visualization/types';
+
+/**
+ * Fail-loud accessors replacing the old `!` postfixes (which only silenced
+ * the compiler): a missing layout node keeps the RED verdict with its id.
+ * `centerYOf` preserves the old arithmetic's undefined→NaN propagation for
+ * an unset height instead of asserting it away.
+ */
+function findNode(result: { nodes: PositionedNode[] }, id: string): PositionedNode {
+  const found = result.nodes.find((n) => n.id === id);
+  if (found === undefined) {
+    throw new Error(`node '${id}' not found in layout result`);
+  }
+  return found;
+}
+
+function centerYOf(node: PositionedNode): number {
+  return node.y + (node.height ?? Number.NaN) / 2;
+}
 
 describe('TreeStrategy', () => {
   describe('LayoutStrategy interface compliance', () => {
@@ -78,14 +96,14 @@ describe('TreeStrategy', () => {
 
       const result = treeStrategy.apply(nodes, edges);
 
-      const root = result.nodes.find((n) => n.id === 'root')!;
-      const child1 = result.nodes.find((n) => n.id === 'child1')!;
-      const child2 = result.nodes.find((n) => n.id === 'child2')!;
+      const root = findNode(result, 'root');
+      const child1 = findNode(result, 'child1');
+      const child2 = findNode(result, 'child2');
 
       // Root should be above children (using center coordinates)
-      const rootCenterY = root.y + root.height! / 2;
-      const child1CenterY = child1.y + child1.height! / 2;
-      const child2CenterY = child2.y + child2.height! / 2;
+      const rootCenterY = centerYOf(root);
+      const child1CenterY = centerYOf(child1);
+      const child2CenterY = centerYOf(child2);
 
       expect(rootCenterY).toBeLessThan(child1CenterY);
       expect(rootCenterY).toBeLessThan(child2CenterY);
@@ -106,12 +124,12 @@ describe('TreeStrategy', () => {
 
       const result = treeStrategy.apply(nodes, edges);
 
-      const left = result.nodes.find((n) => n.id === 'left')!;
-      const right = result.nodes.find((n) => n.id === 'right')!;
+      const left = findNode(result, 'left');
+      const right = findNode(result, 'right');
 
       // Siblings should be at the same Y level (using center coordinates)
-      const leftCenterY = left.y + left.height! / 2;
-      const rightCenterY = right.y + right.height! / 2;
+      const leftCenterY = centerYOf(left);
+      const rightCenterY = centerYOf(right);
 
       expect(leftCenterY).toBeCloseTo(rightCenterY, 0);
     });
@@ -131,13 +149,13 @@ describe('TreeStrategy', () => {
 
       const result = treeStrategy.apply(nodes, edges);
 
-      const root = result.nodes.find((n) => n.id === 'root')!;
-      const child = result.nodes.find((n) => n.id === 'child')!;
-      const grandchild = result.nodes.find((n) => n.id === 'grandchild')!;
+      const root = findNode(result, 'root');
+      const child = findNode(result, 'child');
+      const grandchild = findNode(result, 'grandchild');
 
-      const rootCenterY = root.y + root.height! / 2;
-      const childCenterY = child.y + child.height! / 2;
-      const grandchildCenterY = grandchild.y + grandchild.height! / 2;
+      const rootCenterY = centerYOf(root);
+      const childCenterY = centerYOf(child);
+      const grandchildCenterY = centerYOf(grandchild);
 
       expect(rootCenterY).toBeLessThan(childCenterY);
       expect(childCenterY).toBeLessThan(grandchildCenterY);
@@ -196,8 +214,8 @@ describe('TreeStrategy', () => {
 
       const result = treeStrategy.apply(nodes, edges);
 
-      const nodeA = result.nodes.find((n) => n.id === 'a')!;
-      const nodeB = result.nodes.find((n) => n.id === 'b')!;
+      const nodeA = findNode(result, 'a');
+      const nodeB = findNode(result, 'b');
 
       expect(nodeA.width).toBe(200);
       expect(nodeA.height).toBe(100);

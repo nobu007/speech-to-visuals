@@ -1,4 +1,4 @@
-import { NodeDatum, EdgeDatum, DiagramType } from '@stv/core/types/diagram';
+import { NodeDatum, EdgeDatum, DiagramType, DiagramLayout } from '@stv/core/types/diagram';
 import { ComplexLayoutEngine, ComplexLayoutConfig } from '@/visualization/complex-layout-engine';
 import { OverlapResolver } from '@/visualization/strategies/OverlapResolver';
 import { LayoutOptimizer } from '@/visualization/strategies/LayoutOptimizer';
@@ -10,6 +10,26 @@ import { VisualizationError } from '@/pipeline/pipeline-errors';
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+type DiagramLayoutNode = DiagramLayout['nodes'][number];
+
+/**
+ * Fail-loud accessors replacing the old `!` postfixes (which only silenced
+ * the compiler): a missing layout node keeps the RED verdict with its id.
+ * `centerOf` preserves the old arithmetic's undefined→NaN propagation for
+ * unset `w`/`h` instead of asserting them away.
+ */
+function findLayoutNode(layout: DiagramLayout, id: string): DiagramLayoutNode {
+  const found = layout.nodes.find((n) => n.id === id);
+  if (found === undefined) {
+    throw new Error(`node '${id}' not found in layout result`);
+  }
+  return found;
+}
+
+function centerOf(node: DiagramLayoutNode): { x: number; y: number } {
+  return { x: node.x + (node.w ?? Number.NaN) / 2, y: node.y + (node.h ?? Number.NaN) / 2 };
+}
 
 /** Build a chain graph: n0 -> n1 -> ... -> n{count-1} */
 function makeChainGraph(count: number): { nodes: NodeDatum[]; edges: EdgeDatum[] } {
@@ -356,10 +376,10 @@ describe('ComplexLayoutEngine (TASK-0063)', () => {
       // After simulation, no two nodes should overlap at the same position
       for (let i = 0; i < result.layout.nodes.length; i++) {
         for (let j = i + 1; j < result.layout.nodes.length; j++) {
-          const ni = result.layout.nodes[i];
-          const nj = result.layout.nodes[j];
-          const dx = (ni.x + ni.w! / 2) - (nj.x + nj.w! / 2);
-          const dy = (ni.y + ni.h! / 2) - (nj.y + nj.h! / 2);
+          const ci = centerOf(result.layout.nodes[i]);
+          const cj = centerOf(result.layout.nodes[j]);
+          const dx = ci.x - cj.x;
+          const dy = ci.y - cj.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           expect(dist).toBeGreaterThan(0);
         }
@@ -391,13 +411,13 @@ describe('ComplexLayoutEngine (TASK-0063)', () => {
       expect(result.success).toBe(true);
 
       // Average distance from center (n0) to connected neighbors (n1-n6)
-      const n0 = result.layout.nodes.find(n => n.id === 'n0')!;
+      const n0c = centerOf(findLayoutNode(result.layout, 'n0'));
       let connectedTotal = 0;
       for (let i = 1; i <= 6; i++) {
-        const ni = result.layout.nodes.find(n => n.id === `n${i}`)!;
+        const nic = centerOf(findLayoutNode(result.layout, `n${i}`));
         connectedTotal += Math.sqrt(
-          Math.pow(n0.x + n0.w! / 2 - (ni.x + ni.w! / 2), 2) +
-          Math.pow(n0.y + n0.h! / 2 - (ni.y + ni.h! / 2), 2)
+          Math.pow(n0c.x - nic.x, 2) +
+          Math.pow(n0c.y - nic.y, 2)
         );
       }
       const avgConnectedDist = connectedTotal / 6;
@@ -406,11 +426,11 @@ describe('ComplexLayoutEngine (TASK-0063)', () => {
       const nonConnectedPairs: [string, string][] = [['n1', 'n2'], ['n3', 'n4'], ['n5', 'n6']];
       let nonConnectedTotal = 0;
       for (const [a, b] of nonConnectedPairs) {
-        const na = result.layout.nodes.find(n => n.id === a)!;
-        const nb = result.layout.nodes.find(n => n.id === b)!;
+        const nac = centerOf(findLayoutNode(result.layout, a));
+        const nbc = centerOf(findLayoutNode(result.layout, b));
         nonConnectedTotal += Math.sqrt(
-          Math.pow(na.x + na.w! / 2 - (nb.x + nb.w! / 2), 2) +
-          Math.pow(na.y + na.h! / 2 - (nb.y + nb.h! / 2), 2)
+          Math.pow(nac.x - nbc.x, 2) +
+          Math.pow(nac.y - nbc.y, 2)
         );
       }
       const avgNonConnectedDist = nonConnectedTotal / nonConnectedPairs.length;
@@ -440,8 +460,8 @@ describe('ComplexLayoutEngine (TASK-0063)', () => {
         // Nodes should be within canvas (with tolerance for node offset in layout conversion)
         expect(node.x).toBeGreaterThanOrEqual(-100);
         expect(node.y).toBeGreaterThanOrEqual(-50);
-        expect(node.x + node.w!).toBeLessThanOrEqual(1000);
-        expect(node.y + node.h!).toBeLessThanOrEqual(750);
+        expect(node.x + (node.w ?? Number.NaN)).toBeLessThanOrEqual(1000);
+        expect(node.y + (node.h ?? Number.NaN)).toBeLessThanOrEqual(750);
       }
     });
 

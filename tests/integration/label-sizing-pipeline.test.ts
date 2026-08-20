@@ -19,11 +19,23 @@ import {
   PipelineOrchestratorConfig,
   QualityGate,
 } from '@/pipeline/pipeline-orchestrator';
-import { PipelineInput } from '@/pipeline/types';
+import { PipelineInput, PipelineResult } from '@/pipeline/types';
 import { sizeLabel, sizeAllLabels, LabelSizingResult } from '@/visualization/smart-label-sizer';
 import { PositionedNode } from '@stv/core/types/diagram';
 
 // --- Test fixtures ---
+
+/**
+ * Fail-loud metrics accessor: `PipelineResult.metrics` is optional, so every
+ * read used to postfix `!` — which only silences the compiler. On a missing
+ * metrics object the helper keeps the RED verdict with the field name.
+ */
+function requireMetrics(result: PipelineResult): NonNullable<PipelineResult['metrics']> {
+  if (result.metrics === undefined) {
+    throw new Error('result.metrics is undefined');
+  }
+  return result.metrics;
+}
 
 function makeValidPipelineInput(): PipelineInput {
   return {
@@ -65,11 +77,11 @@ describe('TASK-0131: Smart Label Sizing Pipeline Integration', () => {
     const result = await orchestrator.execute(input);
 
     expect(result.success).toBe(true);
-    expect(result.metrics).toBeDefined();
-    expect(result.metrics!.labelOverflowScore).toBeDefined();
-    expect(typeof result.metrics!.labelOverflowScore).toBe('number');
-    expect(result.metrics!.labelOverflowScore).toBeGreaterThanOrEqual(0);
-    expect(result.metrics!.labelOverflowScore).toBeLessThanOrEqual(1);
+    const metrics = requireMetrics(result);
+    expect(metrics.labelOverflowScore).toBeDefined();
+    expect(typeof metrics.labelOverflowScore).toBe('number');
+    expect(metrics.labelOverflowScore).toBeGreaterThanOrEqual(0);
+    expect(metrics.labelOverflowScore).toBeLessThanOrEqual(1);
   });
 
   it('should record label truncation count in metrics', async () => {
@@ -77,10 +89,10 @@ describe('TASK-0131: Smart Label Sizing Pipeline Integration', () => {
     const result = await orchestrator.execute(input);
 
     expect(result.success).toBe(true);
-    expect(result.metrics).toBeDefined();
-    expect(result.metrics!.labelTruncationCount).toBeDefined();
-    expect(typeof result.metrics!.labelTruncationCount).toBe('number');
-    expect(result.metrics!.labelTruncationCount).toBeGreaterThanOrEqual(0);
+    const metrics = requireMetrics(result);
+    expect(metrics.labelTruncationCount).toBeDefined();
+    expect(typeof metrics.labelTruncationCount).toBe('number');
+    expect(metrics.labelTruncationCount).toBeGreaterThanOrEqual(0);
   });
 
   // ====== Criterion 3: All nodes have overflow scores recorded ======
@@ -92,7 +104,7 @@ describe('TASK-0131: Smart Label Sizing Pipeline Integration', () => {
     expect(result.success).toBe(true);
     // The default pipeline produces scenes with nodes
     // Each node should have gone through label sizing
-    expect(result.metrics!.labelOverflowScore).toBeDefined();
+    expect(requireMetrics(result).labelOverflowScore).toBeDefined();
   });
 
   // ====== Criterion 4: Overflow scores reflected in quality gate ======
@@ -103,8 +115,9 @@ describe('TASK-0131: Smart Label Sizing Pipeline Integration', () => {
 
     expect(result.success).toBe(true);
     // Both quality metrics should be present
-    expect(result.metrics!.layoutQualityScore).toBeDefined();
-    expect(result.metrics!.labelOverflowScore).toBeDefined();
+    const metrics = requireMetrics(result);
+    expect(metrics.layoutQualityScore).toBeDefined();
+    expect(metrics.labelOverflowScore).toBeDefined();
   });
 
   it('should allow quality gates to access label overflow metrics', async () => {
@@ -167,10 +180,10 @@ describe('TASK-0131: Smart Label Sizing Pipeline Integration', () => {
     const result = await orchestrator.execute(input);
 
     expect(result).toBeDefined();
-    expect(result.metrics).toBeDefined();
-    expect(typeof result.metrics!.labelOverflowScore).toBe('number');
-    expect(result.metrics!.labelOverflowScore).toBe(1); // No labels = no overflow
-    expect(result.metrics!.labelTruncationCount).toBe(0);
+    const metrics = requireMetrics(result);
+    expect(typeof metrics.labelOverflowScore).toBe('number');
+    expect(metrics.labelOverflowScore).toBe(1); // No labels = no overflow
+    expect(metrics.labelTruncationCount).toBe(0);
   });
 });
 
@@ -189,9 +202,11 @@ describe('SmartLabelSizer: label sizing behavior verification', () => {
     expect(results.size).toBe(3);
     for (const node of nodes) {
       const sizing = results.get(node.id);
-      expect(sizing).toBeDefined();
-      expect(sizing!.fontSize).toBeGreaterThanOrEqual(8);
-      expect(sizing!.lines.length).toBeGreaterThanOrEqual(1);
+      if (sizing === undefined) {
+        throw new Error(`label sizing for ${node.id} is undefined`);
+      }
+      expect(sizing.fontSize).toBeGreaterThanOrEqual(8);
+      expect(sizing.lines.length).toBeGreaterThanOrEqual(1);
     }
   });
 

@@ -45,6 +45,19 @@ interface PipelineResult {
 }
 
 /**
+ * Fail-loud accessor for the nullable pipeline stages / store returns: the
+ * old `!` postfixes only silenced the compiler, so an absent stage used to
+ * surface as `Cannot read properties of null` mid-assertion. The helper
+ * keeps the RED verdict and names the missing stage instead.
+ */
+function requireDefined<T>(value: T | null | undefined, label: string): T {
+  if (value === null || value === undefined) {
+    throw new Error(`${label} is null`);
+  }
+  return value;
+}
+
+/**
  * Run the full pipeline: validate → store → generate URL → HTTP download.
  * Returns each stage's result for assertion.
  */
@@ -137,26 +150,27 @@ describe('Secure Download Pipeline: clean content', () => {
     expect(result.validationFindings).toHaveLength(0);
 
     // Artifact stored
-    expect(result.stored).not.toBeNull();
-    expect(result.stored!.artifactId).toMatch(
+    const stored = requireDefined(result.stored, 'result.stored');
+    expect(stored.artifactId).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
     );
 
     // Download URL generated
-    expect(result.downloadUrl).not.toBeNull();
-    expect(result.downloadUrl!.expiresAt).toBeGreaterThan(Date.now());
+    expect(requireDefined(result.downloadUrl, 'result.downloadUrl').expiresAt).toBeGreaterThan(
+      Date.now(),
+    );
 
     // HTTP response: 200 with sanitized headers
-    expect(result.httpResponse).not.toBeNull();
-    expect(result.httpResponse!.status).toBe(200);
+    const httpResponse = requireDefined(result.httpResponse, 'result.httpResponse');
+    expect(httpResponse.status).toBe(200);
 
-    const cd = result.httpResponse!.headers['content-disposition'] as string;
+    const cd = httpResponse.headers['content-disposition'] as string;
     expect(cd).toMatch(/^attachment; filename="[^"]+"$/);
     expect(cd).not.toContain('\r');
     expect(cd).not.toContain('\n');
 
-    expect(result.httpResponse!.headers['content-type']).toBe('image/svg+xml');
-    expect(result.httpResponse!.headers['x-artifact-id']).toBe(result.stored!.artifactId);
+    expect(httpResponse.headers['content-type']).toBe('image/svg+xml');
+    expect(httpResponse.headers['x-artifact-id']).toBe(stored.artifactId);
   });
 
   test('clean content with special but safe characters passes', async () => {
@@ -168,7 +182,7 @@ describe('Secure Download Pipeline: clean content', () => {
 
     const result = await runSecureDownloadPipeline(payload);
     expect(result.validationFindings).toHaveLength(0);
-    expect(result.httpResponse!.status).toBe(200);
+    expect(requireDefined(result.httpResponse, 'result.httpResponse').status).toBe(200);
   });
 });
 
@@ -192,7 +206,7 @@ describe('Secure Download Pipeline: injection content (non-strict mode)', () => 
 
     // But export still proceeds (non-strict mode)
     expect(result.stored).not.toBeNull();
-    expect(result.httpResponse!.status).toBe(200);
+    expect(requireDefined(result.httpResponse, 'result.httpResponse').status).toBe(200);
   });
 
   test('CSS expression in payload is detected as high severity', async () => {
@@ -204,7 +218,7 @@ describe('Secure Download Pipeline: injection content (non-strict mode)', () => 
 
     const result = await runSecureDownloadPipeline(payload, 'svg', false);
     expect(result.validationFindings.some((f) => f.pattern === 'css-expression')).toBe(true);
-    expect(result.httpResponse!.status).toBe(200);
+    expect(requireDefined(result.httpResponse, 'result.httpResponse').status).toBe(200);
   });
 });
 
@@ -267,7 +281,7 @@ describe('Secure Download Pipeline: strict mode blocks injection', () => {
     expect(result.validationFindings.some((f) => f.severity === 'medium')).toBe(true);
     // Medium does not block
     expect(result.stored).not.toBeNull();
-    expect(result.httpResponse!.status).toBe(200);
+    expect(requireDefined(result.httpResponse, 'result.httpResponse').status).toBe(200);
   });
 });
 
@@ -279,7 +293,9 @@ describe('Secure Download Pipeline: header sanitization', () => {
   test('Content-Disposition has no CRLF injection vectors', async () => {
     const result = await runSecureDownloadPipeline({ data: 'safe content' });
 
-    const cd = result.httpResponse!.headers['content-disposition'] as string;
+    const cd = requireDefined(result.httpResponse, 'result.httpResponse').headers[
+      'content-disposition'
+    ] as string;
     // Must not contain CR or LF
     expect(cd).not.toMatch(/[\r\n]/);
     // Must match the expected format
@@ -289,7 +305,9 @@ describe('Secure Download Pipeline: header sanitization', () => {
   test('X-Artifact-Id is a clean UUID', async () => {
     const result = await runSecureDownloadPipeline({ data: 'safe content' });
 
-    const artifactId = result.httpResponse!.headers['x-artifact-id'] as string;
+    const artifactId = requireDefined(result.httpResponse, 'result.httpResponse').headers[
+      'x-artifact-id'
+    ] as string;
     expect(artifactId).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
     );
@@ -301,7 +319,9 @@ describe('Secure Download Pipeline: header sanitization', () => {
   test('Content-Type is from the whitelist (no injection)', async () => {
     const result = await runSecureDownloadPipeline({ data: 'safe content' }, 'pdf');
 
-    const ct = result.httpResponse!.headers['content-type'] as string;
+    const ct = requireDefined(result.httpResponse, 'result.httpResponse').headers[
+      'content-type'
+    ] as string;
     expect(ct).toBe('application/pdf');
     expect(ct).not.toMatch(/[\r\n]/);
   });
@@ -309,7 +329,10 @@ describe('Secure Download Pipeline: header sanitization', () => {
   test('Content-Length matches artifact size', async () => {
     const result = await runSecureDownloadPipeline({ data: 'safe content' });
 
-    const cl = parseInt(result.httpResponse!.headers['content-length'] as string, 10);
+    const cl = parseInt(
+      requireDefined(result.httpResponse, 'result.httpResponse').headers['content-length'] as string,
+      10,
+    );
     expect(cl).toBe(6); // we store 6 bytes in the helper
   });
 });
@@ -341,8 +364,7 @@ describe('Secure Download Pipeline: token lifecycle', () => {
 
     // Generate download URL
     const dl = store.generateDownloadUrl(stored.artifactId);
-    expect(dl).toBeDefined();
-    const token = dl!.url.split('token=')[1];
+    const token = requireDefined(dl, 'generateDownloadUrl result').url.split('token=')[1];
 
     // First download
     const res1 = await request(app).get(
@@ -377,7 +399,7 @@ describe('Secure Download Pipeline: token lifecycle', () => {
     });
 
     const dl = store.generateDownloadUrl(stored.artifactId);
-    const token = dl!.url.split('token=')[1];
+    const token = requireDefined(dl, 'generateDownloadUrl result').url.split('token=')[1];
 
     // Download works before deletion
     const res1 = await request(app).get(
@@ -414,8 +436,8 @@ describe('Secure Download Pipeline: token lifecycle', () => {
     const dl1 = store.generateDownloadUrl(stored1.artifactId);
     const dl2 = store.generateDownloadUrl(stored2.artifactId);
 
-    const token1 = dl1!.url.split('token=')[1];
-    const token2 = dl2!.url.split('token=')[1];
+    const token1 = requireDefined(dl1, 'generateDownloadUrl result').url.split('token=')[1];
+    const token2 = requireDefined(dl2, 'generateDownloadUrl result').url.split('token=')[1];
 
     expect(token1).not.toBe(token2);
   });
@@ -472,7 +494,7 @@ describe('Secure Download Pipeline: TTL expiration', () => {
     });
 
     const dl = store.generateDownloadUrl(stored.artifactId);
-    const token = dl!.url.split('token=')[1];
+    const token = requireDefined(dl, 'generateDownloadUrl result').url.split('token=')[1];
 
     // Wait for token to expire
     await new Promise((resolve) => setTimeout(resolve, 10));

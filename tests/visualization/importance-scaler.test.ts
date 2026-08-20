@@ -15,6 +15,27 @@ const node = (id: string, importance?: number): NodeDatum => ({
   ...(importance !== undefined ? { meta: { importance } } : {}),
 });
 
+/**
+ * Fail-loud accessors replacing the old `!` postfixes (which only silenced
+ * the compiler): a missing layout node keeps the RED verdict with its id,
+ * and an unset dynamically-imported module names itself instead of
+ * surfacing `new undefined()` mid-test.
+ */
+function findNode(result: { nodes: PositionedNode[] }, id: string): PositionedNode {
+  const found = result.nodes.find((n) => n.id === id);
+  if (found === undefined) {
+    throw new Error(`node '${id}' not found in layout result`);
+  }
+  return found;
+}
+
+function requireModule<T>(mod: T | undefined, name: string): T {
+  if (mod === undefined) {
+    throw new Error(`${name} module not loaded (beforeAll failed)`);
+  }
+  return mod;
+}
+
 describe('importance-scaler', () => {
   describe('getImportance', () => {
     it('returns the node importance when set', () => {
@@ -126,13 +147,13 @@ describe('importance-scaler', () => {
 
 describe('MindMapStrategy importance-aware layout', () => {
   // Use dynamic import to get the module after modifications
-  let MindMapStrategy!: typeof import('@/visualization/strategies/mindmap-strategy').MindMapStrategy;
+  let mindmapMod: typeof import('@/visualization/strategies/mindmap-strategy') | undefined;
   beforeAll(async () => {
-    const mod = await import('@/visualization/strategies/mindmap-strategy');
-    MindMapStrategy = mod.MindMapStrategy;
+    mindmapMod = await import('@/visualization/strategies/mindmap-strategy');
   });
 
   it('scales high-importance nodes larger', () => {
+    const { MindMapStrategy } = requireModule(mindmapMod, 'mindmap-strategy');
     const strategy = new MindMapStrategy();
     const nodes: NodeDatum[] = [
       node('root', 1.0),
@@ -145,15 +166,16 @@ describe('MindMapStrategy importance-aware layout', () => {
     ];
 
     const result = strategy.apply(nodes, edges);
-    const root = result.nodes.find(n => n.id === 'root')!;
-    const child1 = result.nodes.find(n => n.id === 'child1')!;
+    const root = findNode(result, 'root');
+    const child1 = findNode(result, 'child1');
 
     // Root (importance 1.0) should be larger than child1 (importance 0.3)
-    expect(root.width!).toBeGreaterThan(child1.width!);
-    expect(root.height!).toBeGreaterThan(child1.height!);
+    expect(root.width ?? Number.NaN).toBeGreaterThan(child1.width ?? Number.NaN);
+    expect(root.height ?? Number.NaN).toBeGreaterThan(child1.height ?? Number.NaN);
   });
 
   it('selects high-importance node as root over low-importance high-degree node', () => {
+    const { MindMapStrategy } = requireModule(mindmapMod, 'mindmap-strategy');
     const strategy = new MindMapStrategy();
     const nodes: NodeDatum[] = [
       node('a', 0.1),  // low importance
@@ -173,12 +195,12 @@ describe('MindMapStrategy importance-aware layout', () => {
     const result = strategy.apply(nodes, edges);
 
     // The 'b' node should be at center (it's the root due to high importance)
-    const bNode = result.nodes.find(n => n.id === 'b')!;
+    const bNode = findNode(result, 'b');
     const cx = 1920 / 2;
     const cy = 1080 / 2;
     const distB = Math.sqrt(
-      (bNode.x + bNode.width! / 2 - cx) ** 2 +
-      (bNode.y + bNode.height! / 2 - cy) ** 2,
+      (bNode.x + (bNode.width ?? Number.NaN) / 2 - cx) ** 2 +
+      (bNode.y + (bNode.height ?? Number.NaN) / 2 - cy) ** 2,
     );
     // Root should be at center
     expect(distB).toBeLessThan(100);
@@ -186,13 +208,13 @@ describe('MindMapStrategy importance-aware layout', () => {
 });
 
 describe('NetworkStrategy importance-aware layout', () => {
-  let NetworkStrategy!: typeof import('@/visualization/strategies/network-strategy').NetworkStrategy;
+  let networkMod: typeof import('@/visualization/strategies/network-strategy') | undefined;
   beforeAll(async () => {
-    const mod = await import('@/visualization/strategies/network-strategy');
-    NetworkStrategy = mod.NetworkStrategy;
+    networkMod = await import('@/visualization/strategies/network-strategy');
   });
 
   it('scales high-importance nodes larger than low-importance nodes', () => {
+    const { NetworkStrategy } = requireModule(networkMod, 'network-strategy');
     const strategy = new NetworkStrategy();
     const nodes: NodeDatum[] = [
       node('important', 1.0),
@@ -205,14 +227,15 @@ describe('NetworkStrategy importance-aware layout', () => {
     ];
 
     const result = strategy.apply(nodes, edges);
-    const important = result.nodes.find(n => n.id === 'important')!;
-    const minor = result.nodes.find(n => n.id === 'minor')!;
+    const important = findNode(result, 'important');
+    const minor = findNode(result, 'minor');
 
-    expect(important.width!).toBeGreaterThan(minor.width!);
-    expect(important.height!).toBeGreaterThan(minor.height!);
+    expect(important.width ?? Number.NaN).toBeGreaterThan(minor.width ?? Number.NaN);
+    expect(important.height ?? Number.NaN).toBeGreaterThan(minor.height ?? Number.NaN);
   });
 
   it('places high-importance nodes closer to center initially', () => {
+    const { NetworkStrategy } = requireModule(networkMod, 'network-strategy');
     const strategy = new NetworkStrategy();
     const nodes: NodeDatum[] = [
       node('a', 1.0),
@@ -225,12 +248,12 @@ describe('NetworkStrategy importance-aware layout', () => {
     const cy = 1080 / 2;
 
     const distA = Math.sqrt(
-      (positioned[0].x + positioned[0].width! / 2 - cx) ** 2 +
-      (positioned[0].y + positioned[0].height! / 2 - cy) ** 2,
+      (positioned[0].x + (positioned[0].width ?? Number.NaN) / 2 - cx) ** 2 +
+      (positioned[0].y + (positioned[0].height ?? Number.NaN) / 2 - cy) ** 2,
     );
     const distB = Math.sqrt(
-      (positioned[1].x + positioned[1].width! / 2 - cx) ** 2 +
-      (positioned[1].y + positioned[1].height! / 2 - cy) ** 2,
+      (positioned[1].x + (positioned[1].width ?? Number.NaN) / 2 - cx) ** 2 +
+      (positioned[1].y + (positioned[1].height ?? Number.NaN) / 2 - cy) ** 2,
     );
 
     // Node 'a' (importance 1.0) should start closer to center than 'b' (0.0)
@@ -238,6 +261,7 @@ describe('NetworkStrategy importance-aware layout', () => {
   });
 
   it('maintains zero overlap for simple graph', () => {
+    const { NetworkStrategy } = requireModule(networkMod, 'network-strategy');
     const strategy = new NetworkStrategy();
     const nodes: NodeDatum[] = Array.from({ length: 6 }, (_, i) =>
       node(`n${i}`, 0.3 + i * 0.12),

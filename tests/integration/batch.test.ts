@@ -26,6 +26,35 @@ function makeFiles(count: number) {
   return Array.from({ length: count }, (_, i) => makeFile(i));
 }
 
+/**
+ * Fail-loud accessors over the `| null` returns of BatchJobManager: the
+ * old `!` postfixes only silenced the compiler, so an absent job used to
+ * surface as `Cannot read properties of null` mid-assertion. The helpers
+ * keep the RED verdict and name the jobId instead.
+ */
+function requireJobStatus(manager: BatchJobManager, jobId: string): BatchJobStatus {
+  const status = manager.getJobStatus(jobId);
+  if (status === null) {
+    throw new Error(`job ${jobId} has no status`);
+  }
+  return status;
+}
+
+function requireCancelToken(manager: BatchJobManager, jobId: string): { cancelled: boolean } {
+  const token = manager.getCancelToken(jobId);
+  if (token === null) {
+    throw new Error(`job ${jobId} has no cancel token`);
+  }
+  return token;
+}
+
+function requireStartedId(startedId: string | null): string {
+  if (startedId === null) {
+    throw new Error('startNextQueuedJob() returned null');
+  }
+  return startedId;
+}
+
 // ===========================================================================
 // TEST SUITES
 // ===========================================================================
@@ -50,17 +79,13 @@ describe('Batch Processing Integration', () => {
 
     // All should start in "queued" state
     for (const jobId of jobIds) {
-      const status = manager.getJobStatus(jobId);
-      expect(status).not.toBeNull();
-      expect(status!.status).toBe('queued');
+      expect(requireJobStatus(manager, jobId).status).toBe('queued');
     }
 
     // Start all 3 -- they should all transition to "processing"
     const started: string[] = [];
     for (let i = 0; i < 3; i++) {
-      const startedId = manager.startNextQueuedJob();
-      expect(startedId).not.toBeNull();
-      started.push(startedId!);
+      started.push(requireStartedId(manager.startNextQueuedJob()));
     }
 
     expect(started).toHaveLength(3);
@@ -69,9 +94,9 @@ describe('Batch Processing Integration', () => {
 
     // Verify each job is in the correct state with startedAt timestamp
     for (const jobId of started) {
-      const status = manager.getJobStatus(jobId);
-      expect(status!.status).toBe('processing');
-      expect(status!.startedAt).toBeDefined();
+      const status = requireJobStatus(manager, jobId);
+      expect(status.status).toBe('processing');
+      expect(status.startedAt).toBeDefined();
     }
   });
 
@@ -98,9 +123,9 @@ describe('Batch Processing Integration', () => {
     expect(manager.getRunningCount()).toBe(3);
     expect(manager.getQueuedCount()).toBe(1);
 
-    const fourthJobStatus = manager.getJobStatus(jobIds[3]);
-    expect(fourthJobStatus!.status).toBe('queued');
-    expect(fourthJobStatus!.startedAt).toBeUndefined();
+    const fourthJobStatus = requireJobStatus(manager, jobIds[3]);
+    expect(fourthJobStatus.status).toBe('queued');
+    expect(fourthJobStatus.startedAt).toBeUndefined();
   });
 
   // -------------------------------------------------------------------------
@@ -134,9 +159,9 @@ describe('Batch Processing Integration', () => {
     const startedId = manager.startNextQueuedJob();
     expect(startedId).toBe(jobIds[3]);
 
-    const fourthStatus = manager.getJobStatus(jobIds[3]);
-    expect(fourthStatus!.status).toBe('processing');
-    expect(fourthStatus!.startedAt).toBeDefined();
+    const fourthStatus = requireJobStatus(manager, jobIds[3]);
+    expect(fourthStatus.status).toBe('processing');
+    expect(fourthStatus.startedAt).toBeDefined();
 
     expect(manager.getRunningCount()).toBe(3);
     expect(manager.getQueuedCount()).toBe(0);
@@ -150,7 +175,7 @@ describe('Batch Processing Integration', () => {
     const jobId = manager.createJob(files);
 
     // Initial progress
-    const initialStatus = manager.getJobStatus(jobId)!;
+    const initialStatus = requireJobStatus(manager, jobId);
     expect(initialStatus.progress.total).toBe(10);
     expect(initialStatus.progress.completed).toBe(0);
     expect(initialStatus.progress.failed).toBe(0);
@@ -158,14 +183,14 @@ describe('Batch Processing Integration', () => {
 
     // Start the job
     manager.startNextQueuedJob();
-    expect(manager.getJobStatus(jobId)!.status).toBe('processing');
+    expect(requireJobStatus(manager, jobId).status).toBe('processing');
 
     // Simulate partial progress: 5 completed, 1 failed
     manager.updateJobStatus(jobId, {
       progress: { total: 10, completed: 5, failed: 1, percentage: 50 },
     });
 
-    const midStatus = manager.getJobStatus(jobId)!;
+    const midStatus = requireJobStatus(manager, jobId);
     expect(midStatus.progress.completed).toBe(5);
     expect(midStatus.progress.failed).toBe(1);
     expect(midStatus.progress.percentage).toBe(50);
@@ -177,7 +202,7 @@ describe('Batch Processing Integration', () => {
       progress: { total: 10, completed: 9, failed: 1, percentage: 100 },
     });
 
-    const finalStatus = manager.getJobStatus(jobId)!;
+    const finalStatus = requireJobStatus(manager, jobId);
     expect(finalStatus.status).toBe('completed');
     expect(finalStatus.progress.completed).toBe(9);
     expect(finalStatus.progress.failed).toBe(1);
@@ -205,24 +230,22 @@ describe('Batch Processing Integration', () => {
     expect(cancelResult).toBe(true);
 
     // Verify the cancelled job state
-    const cancelledStatus = manager.getJobStatus(jobIds[1])!;
+    const cancelledStatus = requireJobStatus(manager, jobIds[1]);
     expect(cancelledStatus.status).toBe('cancelled');
     expect(cancelledStatus.completedAt).toBeDefined();
 
     // Verify cancel token is set
-    const cancelToken = manager.getCancelToken(jobIds[1]);
-    expect(cancelToken).not.toBeNull();
-    expect(cancelToken!.cancelled).toBe(true);
+    expect(requireCancelToken(manager, jobIds[1]).cancelled).toBe(true);
 
     // The other two jobs should remain unaffected
-    const job0Status = manager.getJobStatus(jobIds[0])!;
-    const job2Status = manager.getJobStatus(jobIds[2])!;
+    const job0Status = requireJobStatus(manager, jobIds[0]);
+    const job2Status = requireJobStatus(manager, jobIds[2]);
     expect(job0Status.status).toBe('processing');
     expect(job2Status.status).toBe('processing');
 
     // Cancel tokens for other jobs should not be set
-    expect(manager.getCancelToken(jobIds[0])!.cancelled).toBe(false);
-    expect(manager.getCancelToken(jobIds[2])!.cancelled).toBe(false);
+    expect(requireCancelToken(manager, jobIds[0]).cancelled).toBe(false);
+    expect(requireCancelToken(manager, jobIds[2]).cancelled).toBe(false);
 
     // Running count should decrease by 1
     expect(manager.getRunningCount()).toBe(2);
@@ -243,7 +266,7 @@ describe('Batch Processing Integration', () => {
     expect(manager.getRunningCount()).toBe(0);
 
     // Verify preset and options are stored
-    const job1Initial = manager.getJobStatus(job1Id)!;
+    const job1Initial = requireJobStatus(manager, job1Id);
     expect(job1Initial.preset).toBe('presentation');
     expect(job1Initial.options).toEqual({ lang: 'ja' });
     expect(job1Initial.progress.total).toBe(4);
@@ -281,8 +304,8 @@ describe('Batch Processing Integration', () => {
       completedAt: new Date().toISOString(),
       progress: { total: 4, completed: 3, failed: 1, percentage: 100 },
     });
-    expect(manager.getJobStatus(job1Id)!.status).toBe('completed');
-    expect(manager.getJobStatus(job1Id)!.progress.failed).toBe(1);
+    expect(requireJobStatus(manager, job1Id).status).toBe('completed');
+    expect(requireJobStatus(manager, job1Id).progress.failed).toBe(1);
     expect(manager.getRunningCount()).toBe(2);
 
     // --- Phase 6: Fail job3 ---
@@ -290,7 +313,7 @@ describe('Batch Processing Integration', () => {
       status: 'failed',
       completedAt: new Date().toISOString(),
     });
-    expect(manager.getJobStatus(job3Id)!.status).toBe('failed');
+    expect(requireJobStatus(manager, job3Id).status).toBe('failed');
     expect(manager.getRunningCount()).toBe(1);
 
     // Cannot cancel a failed job
@@ -315,9 +338,7 @@ describe('Batch Processing Integration', () => {
     // All 4 jobs should still be tracked in the manager
     const allStatuses: BatchJobStatus[] = [];
     for (const id of [job1Id, job2Id, job3Id, job4Id]) {
-      const s = manager.getJobStatus(id);
-      expect(s).not.toBeNull();
-      allStatuses.push(s!);
+      allStatuses.push(requireJobStatus(manager, id));
     }
 
     const states = allStatuses.map((s) => s.status);

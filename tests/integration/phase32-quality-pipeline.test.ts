@@ -19,13 +19,27 @@ import {
   PipelineOrchestratorConfig,
   QualityGate,
 } from '@/pipeline/pipeline-orchestrator';
-import { PipelineInput } from '@/pipeline/types';
+import { PipelineInput, PipelineResult, ExtendedPipelineMetrics } from '@/pipeline/types';
 import { PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { scoreLayout } from '@/visualization/layout-quality-composite';
 import { runAutoOptimization } from '@/visualization/layout-auto-optimizer';
 import { sizeAllLabels } from '@/visualization/smart-label-sizer';
 
 // --- Test fixtures ---
+
+/**
+ * Fail-loud metrics accessor: `PipelineResult.metrics` is optional
+ * (`metrics?: Partial<ExtendedPipelineMetrics>`), so every read used to
+ * postfix `!` — which only silences the compiler. On a missing metrics
+ * object the helper keeps the RED verdict and names the field instead of
+ * surfacing an opaque TypeError further down the assertion chain.
+ */
+function requireMetrics(result: PipelineResult): Partial<ExtendedPipelineMetrics> {
+  if (result.metrics === undefined) {
+    throw new Error('result.metrics is undefined');
+  }
+  return result.metrics;
+}
 
 function makeValidPipelineInput(): PipelineInput {
   return {
@@ -108,11 +122,11 @@ describe('TASK-0133: E2E Quality Pipeline Integration', () => {
       const result = await orchestrator.execute(input);
 
       expect(result.success).toBe(true);
-      expect(result.metrics).toBeDefined();
-      expect(result.metrics!.layoutQualityScore).toBeDefined();
-      expect(typeof result.metrics!.layoutQualityScore).toBe('number');
-      expect(result.metrics!.layoutQualityScore!).toBeGreaterThanOrEqual(0);
-      expect(result.metrics!.layoutQualityScore!).toBeLessThanOrEqual(1);
+      const metrics = requireMetrics(result);
+      expect(metrics.layoutQualityScore).toBeDefined();
+      expect(typeof metrics.layoutQualityScore).toBe('number');
+      expect(metrics.layoutQualityScore).toBeGreaterThanOrEqual(0);
+      expect(metrics.layoutQualityScore).toBeLessThanOrEqual(1);
     });
 
     it('should record composite quality score after layout stage', async () => {
@@ -139,10 +153,10 @@ describe('TASK-0133: E2E Quality Pipeline Integration', () => {
       const result = await orchestrator.execute(input);
 
       expect(result.success).toBe(true);
-      expect(result.metrics).toBeDefined();
-      expect(result.metrics!.optimizationAttempts).toBeDefined();
-      expect(typeof result.metrics!.optimizationAttempts).toBe('number');
-      expect(result.metrics!.optimizationAttempts!).toBeGreaterThanOrEqual(0);
+      const metrics = requireMetrics(result);
+      expect(metrics.optimizationAttempts).toBeDefined();
+      expect(typeof metrics.optimizationAttempts).toBe('number');
+      expect(metrics.optimizationAttempts).toBeGreaterThanOrEqual(0);
     });
 
     it('should track whether optimization improved quality', async () => {
@@ -150,8 +164,8 @@ describe('TASK-0133: E2E Quality Pipeline Integration', () => {
       const result = await orchestrator.execute(input);
 
       expect(result.success).toBe(true);
-      expect(result.metrics!.optimizationImproved).toBeDefined();
-      expect(typeof result.metrics!.optimizationImproved).toBe('boolean');
+      expect(requireMetrics(result).optimizationImproved).toBeDefined();
+      expect(typeof requireMetrics(result).optimizationImproved).toBe('boolean');
     });
   });
 
@@ -163,10 +177,11 @@ describe('TASK-0133: E2E Quality Pipeline Integration', () => {
       const result = await orchestrator.execute(input);
 
       expect(result.success).toBe(true);
-      expect(result.metrics!.labelOverflowScore).toBeDefined();
-      expect(typeof result.metrics!.labelOverflowScore).toBe('number');
-      expect(result.metrics!.labelOverflowScore!).toBeGreaterThanOrEqual(0);
-      expect(result.metrics!.labelOverflowScore!).toBeLessThanOrEqual(1);
+      const metrics = requireMetrics(result);
+      expect(metrics.labelOverflowScore).toBeDefined();
+      expect(typeof metrics.labelOverflowScore).toBe('number');
+      expect(metrics.labelOverflowScore).toBeGreaterThanOrEqual(0);
+      expect(metrics.labelOverflowScore).toBeLessThanOrEqual(1);
     });
 
     it('should record label truncation count', async () => {
@@ -174,9 +189,10 @@ describe('TASK-0133: E2E Quality Pipeline Integration', () => {
       const result = await orchestrator.execute(input);
 
       expect(result.success).toBe(true);
-      expect(result.metrics!.labelTruncationCount).toBeDefined();
-      expect(typeof result.metrics!.labelTruncationCount).toBe('number');
-      expect(result.metrics!.labelTruncationCount!).toBeGreaterThanOrEqual(0);
+      const metrics = requireMetrics(result);
+      expect(metrics.labelTruncationCount).toBeDefined();
+      expect(typeof metrics.labelTruncationCount).toBe('number');
+      expect(metrics.labelTruncationCount).toBeGreaterThanOrEqual(0);
     });
 
     it('should include both quality and label metrics in result', async () => {
@@ -185,11 +201,12 @@ describe('TASK-0133: E2E Quality Pipeline Integration', () => {
 
       expect(result.success).toBe(true);
       // Verify all quality-related metrics are present
-      expect(result.metrics!.layoutQualityScore).toBeDefined();
-      expect(result.metrics!.optimizationAttempts).toBeDefined();
-      expect(result.metrics!.optimizationImproved).toBeDefined();
-      expect(result.metrics!.labelOverflowScore).toBeDefined();
-      expect(result.metrics!.labelTruncationCount).toBeDefined();
+      const metrics = requireMetrics(result);
+      expect(metrics.layoutQualityScore).toBeDefined();
+      expect(metrics.optimizationAttempts).toBeDefined();
+      expect(metrics.optimizationImproved).toBeDefined();
+      expect(metrics.labelOverflowScore).toBeDefined();
+      expect(metrics.labelTruncationCount).toBeDefined();
     });
   });
 
@@ -300,9 +317,9 @@ describe('TASK-0133: E2E Quality Pipeline Integration', () => {
       const result = await orchestrator.execute(input);
 
       expect(result).toBeDefined();
-      expect(result.metrics).toBeDefined();
-      expect(typeof result.metrics!.layoutQualityScore).toBe('number');
-      expect(typeof result.metrics!.labelOverflowScore).toBe('number');
+      const metrics = requireMetrics(result);
+      expect(typeof metrics.layoutQualityScore).toBe('number');
+      expect(typeof metrics.labelOverflowScore).toBe('number');
     });
 
     it('should handle 100+ nodes in quality evaluation', () => {
@@ -378,9 +395,11 @@ describe('TASK-0133: E2E Quality Pipeline Integration', () => {
       expect(labelMap.size).toBe(4);
       for (const node of nodes) {
         const sizing = labelMap.get(node.id);
-        expect(sizing).toBeDefined();
-        expect(sizing!.fontSize).toBeGreaterThanOrEqual(8);
-        expect(sizing!.lines.length).toBeGreaterThanOrEqual(1);
+        if (sizing === undefined) {
+          throw new Error(`label sizing for ${node.id} is undefined`);
+        }
+        expect(sizing.fontSize).toBeGreaterThanOrEqual(8);
+        expect(sizing.lines.length).toBeGreaterThanOrEqual(1);
       }
     });
   });
@@ -406,11 +425,11 @@ describe('TASK-0133: E2E Quality Pipeline Integration', () => {
       }
 
       // Quality metrics present
-      expect(result.metrics).toBeDefined();
-      expect(result.metrics!.layoutQualityScore).toBeDefined();
-      expect(result.metrics!.optimizationAttempts).toBeDefined();
-      expect(result.metrics!.labelOverflowScore).toBeDefined();
-      expect(result.metrics!.labelTruncationCount).toBeDefined();
+      const metrics = requireMetrics(result);
+      expect(metrics.layoutQualityScore).toBeDefined();
+      expect(metrics.optimizationAttempts).toBeDefined();
+      expect(metrics.labelOverflowScore).toBeDefined();
+      expect(metrics.labelTruncationCount).toBeDefined();
 
       // Progress was tracked
       expect(progressCalls.length).toBeGreaterThan(0);
@@ -448,16 +467,16 @@ describe('TASK-0133: E2E Quality Pipeline Integration', () => {
 
       // All metric values should be valid numbers
       const { layoutQualityScore, optimizationAttempts, labelOverflowScore, labelTruncationCount } =
-        result.metrics!;
+        requireMetrics(result);
 
       expect(layoutQualityScore).toBeGreaterThanOrEqual(0);
       expect(layoutQualityScore).toBeLessThanOrEqual(1);
-      expect(optimizationAttempts!).toBeGreaterThanOrEqual(0);
+      expect(optimizationAttempts).toBeGreaterThanOrEqual(0);
       // Total attempts across multiple layouts can exceed per-layout max of 3
       expect(typeof optimizationAttempts).toBe('number');
       expect(labelOverflowScore).toBeGreaterThanOrEqual(0);
       expect(labelOverflowScore).toBeLessThanOrEqual(1);
-      expect(labelTruncationCount!).toBeGreaterThanOrEqual(0);
+      expect(labelTruncationCount).toBeGreaterThanOrEqual(0);
     });
   });
 });

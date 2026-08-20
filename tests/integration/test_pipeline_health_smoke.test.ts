@@ -20,6 +20,39 @@ import type {
 } from '@/pipeline';
 
 // ---------------------------------------------------------------------------
+// Fail-loud accessors
+// ---------------------------------------------------------------------------
+
+/**
+ * `SmokeOrchestratorResult.timingReport` / `healthReport` are optional and
+ * `PipelineHealthReport.costComparison` is `| null`; the old `!` postfixes
+ * only silenced the compiler. These helpers keep the RED verdict and name
+ * the missing field instead of a mid-assertion TypeError.
+ */
+function requireTimingReport(result: SmokeOrchestratorResult): NonNullable<SmokeOrchestratorResult['timingReport']> {
+  if (result.timingReport === undefined) {
+    throw new Error('result.timingReport is undefined');
+  }
+  return result.timingReport;
+}
+
+function requireHealthReport(result: SmokeOrchestratorResult): PipelineHealthReport {
+  if (result.healthReport === undefined) {
+    throw new Error('result.healthReport is undefined');
+  }
+  return result.healthReport;
+}
+
+function requireCostComparison(
+  report: PipelineHealthReport,
+): NonNullable<PipelineHealthReport['costComparison']> {
+  if (report.costComparison === null) {
+    throw new Error('report.costComparison is null');
+  }
+  return report.costComparison;
+}
+
+// ---------------------------------------------------------------------------
 // Fixtures
 // ---------------------------------------------------------------------------
 
@@ -71,8 +104,9 @@ describe('Smoke pipeline timing collection', () => {
     });
 
     expect(result.timingReport).toBeDefined();
-    expect(result.timingReport!.stages).toHaveLength(4);
-    expect(result.timingReport!.stages.map((s) => s.stageName)).toEqual([
+    const timingReport = requireTimingReport(result);
+    expect(timingReport.stages).toHaveLength(4);
+    expect(timingReport.stages.map((s) => s.stageName)).toEqual([
       'parse',
       'scene-sync',
       'render-plan',
@@ -85,7 +119,7 @@ describe('Smoke pipeline timing collection', () => {
       rawLlmText: FIXTURE_LLM_TEXT,
     });
 
-    for (const stage of result.timingReport!.stages) {
+    for (const stage of requireTimingReport(result).stages) {
       expect(stage.durationMs).toBeGreaterThanOrEqual(0);
       expect(stage.startTime).toBeLessThanOrEqual(stage.endTime);
       expect(stage.itemsProcessed).toBeGreaterThan(0);
@@ -97,11 +131,12 @@ describe('Smoke pipeline timing collection', () => {
       rawLlmText: FIXTURE_LLM_TEXT,
     });
 
-    const sumOfDurations = result.timingReport!.stages.reduce(
+    const timingReport = requireTimingReport(result);
+    const sumOfDurations = timingReport.stages.reduce(
       (sum, s) => sum + s.durationMs,
       0,
     );
-    expect(result.timingReport!.totalDurationMs).toBe(sumOfDurations);
+    expect(timingReport.totalDurationMs).toBe(sumOfDurations);
   });
 
   it('timing records items processed match pipeline stages', async () => {
@@ -109,7 +144,7 @@ describe('Smoke pipeline timing collection', () => {
       rawLlmText: FIXTURE_MULTI_SCENE_LLM_TEXT,
     });
 
-    const stages = result.timingReport!.stages;
+    const stages = requireTimingReport(result).stages;
     // parse: 1 (the raw text)
     expect(stages[0].itemsProcessed).toBe(1);
     // scene-sync: 2 diagrams
@@ -146,7 +181,7 @@ describe('Health report from smoke pipeline', () => {
     });
 
     expect(result.healthReport).toBeDefined();
-    const report = result.healthReport!;
+    const report = requireHealthReport(result);
 
     // Overall score is 0–100
     expect(report.overallScore).toBeGreaterThanOrEqual(0);
@@ -179,7 +214,7 @@ describe('Health report from smoke pipeline', () => {
       },
     });
 
-    const report = result.healthReport!;
+    const report = requireHealthReport(result);
     // Smoke pipeline stages run fast; overall score should be healthy
     expect(report.overallScore).toBeGreaterThanOrEqual(50);
     // Bottleneck/regression detection is timing-sensitive in CI; check that
@@ -187,8 +222,9 @@ describe('Health report from smoke pipeline', () => {
     expect(typeof report.bottleneckReport.hasBottleneck).toBe('boolean');
     expect(typeof report.regressionReport.hasRegression).toBe('boolean');
     // Cost below baseline → no regression
-    expect(report.costComparison!.costRegression).toBe(false);
-    expect(report.costComparison!.tokenRegression).toBe(false);
+    const costComparison = requireCostComparison(report);
+    expect(costComparison.costRegression).toBe(false);
+    expect(costComparison.tokenRegression).toBe(false);
   });
 
   it('detects cost regression when cost exceeds baseline', async () => {
@@ -202,10 +238,11 @@ describe('Health report from smoke pipeline', () => {
       },
     });
 
-    const report = result.healthReport!;
+    const report = requireHealthReport(result);
     // $0.10/video >> $0.03 baseline, 5000 tokens >> 2000 baseline
-    expect(report.costComparison!.costRegression).toBe(true);
-    expect(report.costComparison!.tokenRegression).toBe(true);
+    const costComparison = requireCostComparison(report);
+    expect(costComparison.costRegression).toBe(true);
+    expect(costComparison.tokenRegression).toBe(true);
 
     // Should have at least one cost-related recommendation
     const costRecs = report.recommendations.filter(
@@ -225,7 +262,7 @@ describe('Health report from smoke pipeline', () => {
       },
     });
 
-    expect(result.healthReport!.summary.length).toBeGreaterThan(0);
+    expect(requireHealthReport(result).summary.length).toBeGreaterThan(0);
   });
 
   it('timestamp is recent', async () => {
@@ -241,8 +278,9 @@ describe('Health report from smoke pipeline', () => {
     });
     const after = Date.now();
 
-    expect(result.healthReport!.timestamp).toBeGreaterThanOrEqual(before);
-    expect(result.healthReport!.timestamp).toBeLessThanOrEqual(after);
+    const timestamp = requireHealthReport(result).timestamp;
+    expect(timestamp).toBeGreaterThanOrEqual(before);
+    expect(timestamp).toBeLessThanOrEqual(after);
   });
 });
 
@@ -267,7 +305,7 @@ describe('Health monitoring across export formats', () => {
       });
 
       expect(result.healthReport).toBeDefined();
-      expect(result.healthReport!.overallScore).toBeGreaterThanOrEqual(0);
+      expect(requireHealthReport(result).overallScore).toBeGreaterThanOrEqual(0);
       expect(result.exportResults[0].success).toBe(true);
     }
   });

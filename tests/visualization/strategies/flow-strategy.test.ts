@@ -1,6 +1,24 @@
 import { FlowStrategy, flowStrategy } from '@/visualization/strategies/flow-strategy';
-import { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
+import { NodeDatum, EdgeDatum, PositionedNode } from '@stv/core/types/diagram';
 import { LayoutStrategy, StrategyLayoutResult } from '@/visualization/types';
+
+/**
+ * Fail-loud accessors replacing the old `!` postfixes (which only silenced
+ * the compiler): a missing layout node keeps the RED verdict with its id.
+ * `centerXOf` preserves the old arithmetic's undefined→NaN propagation for
+ * an unset width instead of asserting it away.
+ */
+function findNode(result: { nodes: PositionedNode[] }, id: string): PositionedNode {
+  const found = result.nodes.find((n) => n.id === id);
+  if (found === undefined) {
+    throw new Error(`node '${id}' not found in layout result`);
+  }
+  return found;
+}
+
+function centerXOf(node: PositionedNode): number {
+  return node.x + (node.width ?? Number.NaN) / 2;
+}
 
 describe('FlowStrategy', () => {
   describe('LayoutStrategy interface compliance', () => {
@@ -78,15 +96,15 @@ describe('FlowStrategy', () => {
 
       const result = flowStrategy.apply(nodes, edges);
 
-      const nodeA = result.nodes.find((n) => n.id === 'a')!;
-      const nodeB = result.nodes.find((n) => n.id === 'b')!;
-      const nodeC = result.nodes.find((n) => n.id === 'c')!;
+      const nodeA = findNode(result, 'a');
+      const nodeB = findNode(result, 'b');
+      const nodeC = findNode(result, 'c');
 
       // In LR layout, node A should be to the left of B, which should be to the left of C
       // Using center coordinates (x + width/2)
-      const centerA = nodeA.x + nodeA.width! / 2;
-      const centerB = nodeB.x + nodeB.width! / 2;
-      const centerC = nodeC.x + nodeC.width! / 2;
+      const centerA = centerXOf(nodeA);
+      const centerB = centerXOf(nodeB);
+      const centerC = centerXOf(nodeC);
 
       expect(centerA).toBeLessThan(centerB);
       expect(centerB).toBeLessThan(centerC);
@@ -125,13 +143,13 @@ describe('FlowStrategy', () => {
 
       const result = flowStrategy.apply(nodes, edges);
 
-      const startNode = result.nodes.find((n) => n.id === 'start')!;
-      const processNode = result.nodes.find((n) => n.id === 'process')!;
-      const endNode = result.nodes.find((n) => n.id === 'end')!;
+      const startNode = findNode(result, 'start');
+      const processNode = findNode(result, 'process');
+      const endNode = findNode(result, 'end');
 
-      const startCenter = startNode.x + startNode.width! / 2;
-      const processCenter = processNode.x + processNode.width! / 2;
-      const endCenter = endNode.x + endNode.width! / 2;
+      const startCenter = centerXOf(startNode);
+      const processCenter = centerXOf(processNode);
+      const endCenter = centerXOf(endNode);
 
       // Start node should be leftmost
       expect(startCenter).toBeLessThan(processCenter);
@@ -151,13 +169,13 @@ describe('FlowStrategy', () => {
 
       const result = flowStrategy.apply(nodes, edges);
 
-      const s1 = result.nodes.find((n) => n.id === 's1')!;
-      const s2 = result.nodes.find((n) => n.id === 's2')!;
-      const merge = result.nodes.find((n) => n.id === 'merge')!;
+      const s1 = findNode(result, 's1');
+      const s2 = findNode(result, 's2');
+      const merge = findNode(result, 'merge');
 
-      const s1Center = s1.x + s1.width! / 2;
-      const s2Center = s2.x + s2.width! / 2;
-      const mergeCenter = merge.x + merge.width! / 2;
+      const s1Center = centerXOf(s1);
+      const s2Center = centerXOf(s2);
+      const mergeCenter = centerXOf(merge);
 
       expect(s1Center).toBeLessThan(mergeCenter);
       expect(s2Center).toBeLessThan(mergeCenter);
@@ -190,8 +208,8 @@ describe('FlowStrategy', () => {
 
       const result = flowStrategy.apply(nodes, edges);
 
-      const nodeA = result.nodes.find((n) => n.id === 'a')!;
-      const nodeB = result.nodes.find((n) => n.id === 'b')!;
+      const nodeA = findNode(result, 'a');
+      const nodeB = findNode(result, 'b');
 
       expect(nodeA.width).toBe(200);
       expect(nodeA.height).toBe(100);
