@@ -5864,6 +5864,12 @@
 - [x] **TC-336-02**: 減少の強制が継続実証されていること — Phase 150 rewrite への `!` 1 node 再注入（`expect(requirePlayer().play)` → `expect(capturedPlayerRef!.play)`・VideoPreview.test.tsx）が tests/unit ディレクトリ ratchet（170 > 169 超過）と tests 合計 ratchet（795 > 794 超過）の **2 tests RED** を生むこと（MW-016・revert 後 GREEN）。置換は verdict 保存であること — (a) の mock handler 呼び出しは不在時の旧挙動 `undefined is not a function`（= RED）に対し helper は未登録 event 名を含む Error を throw し・(b) の `getJobStatus()` は `BatchJobStatus | null` を返すため helper は **null を guard** すること（旧: `null.status` TypeError = RED・新: throw Error = 同一 RED verdict）・(d) の直前 `toBeDefined()` 対は helper の throw が同保証を担うため折りたたまれていること 🔵
   - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'tests/guards/non-null-assertion-census|tests/unit/api/websocket-handler|tests/unit/api/batch-processing-api|tests/unit/api/routes/monitoring-phase84-85|tests/unit/api/websocket-payload-validation|tests/unit/components/VideoPreview|tests/unit/export/animated-svg-lottie-export|tests/unit/quality/error-recovery-boundary-grouping'`（9 suites / 326 tests）
 
+#### REQ-341: tests ツリー non-null assertion ratchet 単調減少ラウンド 4（Phase 151）
+
+- [x] **TC-337-01**: REQ-337 の ratchet が Phase 150 に引き続き単調減少していること — Phase 151 実施後、tests/unit ディレクトリ pin が **169 → 103**（pipeline/pipeline-quality-monitor.test.ts 13 node → 0・monitoring/real-time-performance-monitor.test.ts 11 node → 0・pipeline/pipeline-orchestrated-recovery-integration.test.ts 10 node → 0・pipeline/bottleneck-detector.test.ts 8 node → 0・pipeline/pipeline-run-recovery-integration.test.ts 8 node → 0・quality/enhanced-error-recovery-extended.test.ts 8 node → 0・quality/recovery-strategy-chain.test.ts 8 node → 0・計 66 node）に・tests 合計 pin が **794 → 728** に縮小され、guard が縮小後の pin で GREEN であること・対象が **guard-first survey**（AST census per-file 集計降順の上位 7 ファイル・手動列挙なし）で機械的に選定されていること・置換対象 7 suite **193 tests**（44+59+14+12+6+36+22）が GREEN であること 🔵
+- [x] **TC-337-02**: 減少の強制が継続実証されていること — Phase 151 rewrite への `!` 1 node 再注入（`expect(latest.processingTime)` → `expect(latest!.processingTime)`・pipeline-quality-monitor.test.ts）が tests/unit ディレクトリ ratchet（104 > 103 超過）と tests 合計 ratchet（729 > 728 超過）の **2 tests RED** を生むこと（MW-017・revert 後 GREEN）。置換は verdict 保存であること — (c) の `getStats()` は `ChainStats | null` を・`worstBottleneck` は `BottleneckInfo | null` を返すため helper は **null を guard** すること（旧: `null.totalRuns` TypeError = RED・新: throw Error = 同一 RED verdict）・(d) は `metrics?.recoveryReport` の narrowing で旧 `as RunRecoveryReport` cast をも解消していること（field は ExtendedPipelineMetrics で既に `RunRecoveryReport` 型）・直前の `toBeDefined()` / `not.toBeNull()` 対は helper の throw が同保証を担うため折りたたまれていること 🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'tests/guards/non-null-assertion-census|tests/unit/pipeline/pipeline-quality-monitor|tests/unit/monitoring/real-time-performance-monitor|tests/unit/pipeline/pipeline-orchestrated-recovery-integration|tests/unit/pipeline/bottleneck-detector|tests/unit/pipeline/pipeline-run-recovery-integration|tests/unit/quality/enhanced-error-recovery-extended|tests/unit/quality/recovery-strategy-chain'`（8 suites / 204 tests）
+
 
 ### Phase 111+ 受け入れ基準サマリー
 
@@ -5922,7 +5928,8 @@
 | REQ-338: tests ツリー non-null assertion ratchet 単調減少ラウンド 1 | 2 | 🔵 |
 | REQ-339: tests ツリー non-null assertion ratchet 単調減少ラウンド 2 | 2 | 🔵 |
 | REQ-340: tests ツリー non-null assertion ratchet 単調減少ラウンド 3 | 2 | 🔵 |
-| **合計** | **124** | **🔵 91.8% / 🟡 8.2%** |
+| REQ-341: tests ツリー non-null assertion ratchet 単調減少ラウンド 4 | 2 | 🔵 |
+| **合計** | **130** | **🔵 92.3% / 🟡 7.7%** |
 
 
 <!-- spine:references:begin -->

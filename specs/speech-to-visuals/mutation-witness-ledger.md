@@ -155,6 +155,16 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 
 ---
 
+## MW-017 — tests/unit ratchet の単調減少強制ラウンド 4（REQ-341・Phase 151・Phase 151 rewrite への `!` 再注入）
+
+- **claim**: tests/guards/non-null-assertion-census.test.ts ヘッダ「re-injecting ONE `!` into the Phase-151 rewrite — `expect(latest.processingTime)` back to `expect(latest!.processingTime)` in tests/unit/pipeline/pipeline-quality-monitor.test.ts — turns BOTH the tests/unit directory ratchet (103 → 104) and the tests-total ratchet (728 → 729) RED」
+- **target**: `tests/unit/pipeline/pipeline-quality-monitor.test.ts`（Phase 151 置換後の `expect(latest.processingTime).toBe(5000);` 行）
+- **mutation**: `expect(latest.processingTime).toBe(5000);` → `expect(latest!.processingTime).toBe(5000);`（Phase 151 が fail-loud helper `requireDefined` で除去した checker 抑制の 1 node 再注入）
+- **command**: `npx jest --config jest.config.cjs tests/guards/non-null-assertion-census.test.ts`
+- **observed** (2026-08-20): `Tests: 2 failed, 9 passed, 11 total` — RED は tests 合計 ratchet（`Expected: <= 728 / Received: 729`）と tests/unit ディレクトリ ratchet（`Expected: <= 103 / Received: 104`）の 2 件。Phase 151 の減少（unit 169 → 103・総 794 → 728）が ratchet で強制されている実証。revert 後 `11 passed`
+
+---
+
 ## 恒久 mutation test（ledger 対象外・常時 CI で走るもの）
 
 以下は「一時 mutant → RED 確認 → revert」ではなく mutant を恒久テスト化したもので、

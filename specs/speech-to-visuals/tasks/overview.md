@@ -2045,6 +2045,34 @@ MW 台帳（TASK-0228）に MW-016 追加・監査 pin ≥15 → ≥16
 
 **次回開始番号**: TASK-0238
 
+## Phase 151: tests ツリー non-null assertion ratchet 単調減少ラウンド 4（tests/unit 169 → 103）
+
+**ステータス**: ✅完了（2026-08-20・TASK-0238 完了）
+
+**背景**: REQ-337 の単調減少維持指令のラウンド 4。Phase 150 と同じ **guard-first survey**（AST census per-file 集計降順・手動列挙なし）の上位 7 ファイル 66 node（pipeline-quality-monitor 13・real-time-performance-monitor 11・pipeline-orchestrated-recovery-integration 10・bottleneck-detector 8・pipeline-run-recovery-integration 8・enhanced-error-recovery-extended 8・recovery-strategy-chain 8）を対象。同一根本クラス（optional 戻り値 `QualityMetrics | null`/`ChainStats | null`/`BottleneckInfo | null`・optional フィールド `metrics?.recoveryReport`・`.find()` キャプチャへの checker 抑制）を fail-loud helper 5 種（`requireDefined` ×3 ファイル・`requireTrend`・`requireWorstBottleneck`・`requireRecoveryReport`（cast 除去込み）・`requireStats`）で挙動保存・verdict 保存置換し 66 node → 0・**tests/unit pin 169 → 103・tests 合計 pin 794 → 728**。MW-017（rewrite への `!` 1 node 再注入で合計 ratchet 729 > 728 と dir ratchet 104 > 103 の 2 RED）で減少の機械強制を継続実証。
+
+### タスク一覧
+
+- [x] [TASK-0238: tests ツリー non-null assertion ratchet 単調減少ラウンド 4（tests/unit 169 → 103）](TASK-0238.md) - 3h (DIRECT) 🔵 ✅2026-08-20（66 node→0・pin 103/728・MW-017）
+
+### 依存関係
+
+```
+TASK-0238 は REQ-337 の TESTS_DIR_PINS（TASK-0234）を Phase 148/149/150 に続き縮小側に更新
+requireDefined は REQ-338/REQ-340 と同型・requireTrend/requireWorstBottleneck/requireRecoveryReport/requireStats は新規
+MW 台帳（TASK-0228）に MW-017 追加・監査 pin ≥16 → ≥17
+次候補: tests/unit 残 103 の継続縮小（census 次点: export/apng-encoder 7・monitoring/pipeline-metrics-collector 7・pipeline/pipeline-orchestrator-quality 7・quality/batch-operation-recovery 7・quality/error-recovery-health-tracker 7・quality/error-recovery-state-management 7）
+```
+
+### 信頼性レベルサマリー（Phase 151 追加分）
+
+- 全 1 タスク 🔵（A150 残課題（unit 残 169 の継続縮小・census 次点 3 ファイル）+ REQ-337 の単調減少維持指令 + 実測（census guard 11 tests・対象 7 suite 193 tests GREEN・guards 全 75 suites 3171 tests GREEN・tsc 0・MW-017 mutant RED 2 failed）に出典）
+- 推定工数: 3 時間
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0239
+
 ## Spine: external references
 
 - [speech-to-visuals API エンドポイント仕様](/home/jinno/speech-to-visuals/specs/speech-to-visuals/api-endpoints.md)

@@ -4546,6 +4546,25 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 - tests ツリーの `!` が 3 ラウンド連続で減少（1096 → 1002 → 899 → **794**・unit 471 → 377 → 274 → **169**）。105 node の checker 抑制が verdict 保存置換で除去され、unit 内の `!` は残 169（census 次点: pipeline/pipeline-quality-monitor 13・monitoring/real-time-performance-monitor 11・pipeline/pipeline-orchestrated-recovery-integration 10）。
 - 残課題（引継ぎ）: tests/unit 残 169 の継続縮小・Phase 132 TASK-0218〜0222 未着手・requirements.md の PR #12 由来 dead citation 残存（A137 引継ぎ）。
 
+### A151: Phase 151 — tests ツリー non-null assertion ratchet 単調減少ラウンド 4（tests/unit 169 → 103）（2026-08-20 第232回検証）
+
+- **判断**（A150 残課題の直接実行 → guard-first survey の継続適用 → 5 helper パターンの使い分けと cast 除去）:
+
+1. **実仕事は A150 残課題の直接実行**: task registry TASK-0238 と一致。Phase 150 で確立した guard-first survey（Phase 147 の AST census checker と同一ロジックの per-file 集計・降順ソート・手動列挙なし）をそのまま適用し、tests/unit 上位 7 ファイル 66 node（pipeline-quality-monitor 13・real-time-performance-monitor 11・pipeline-orchestrated-recovery-integration 10・bottleneck-detector 8・pipeline-run-recovery-integration 8・enhanced-error-recovery-extended 8・recovery-strategy-chain 8）を機械的に対象化 — A150 が挙載した census 次点 3 ファイルはすべて上位に含まれることを確認（手動リスト ⊂ 機械リスト・ラウンド 3 と同一の包含検証）。
+2. **5 helper パターンの使い分け（すべて verdict 保存）**: (a) `requireDefined(value, label)` ×3 ファイル（pipeline-quality-monitor 13 node・`getLatestMetrics(): QualityMetrics | null` と `violations.find(…)`／pipeline-orchestrated-recovery-integration 10 node・`metrics?.recoveryReport` と progress `.find(…)`／enhanced-error-recovery-extended 8 node・cascade chain と `analytics.trends.find(…)` — 旧不在時挙動は `undefined.field` TypeError = RED を、label 入りの throw で同一 verdict に保存）・(b) `requireTrend(trends, metric)`（real-time-performance-monitor 11 node・`analyzeTrends().find(t => t.metric === …)` 専用・it.each 極性契約テスト（7ae31177 回帰ネット）2 件も含む）・(c) null を guard する専用 helper 2 種（bottleneck-detector `requireWorstBottleneck` 8 node・`worstBottleneck: BottleneckInfo | null` ／ recovery-strategy-chain `requireStats(stats, chainName)` 8 node・`getStats(): ChainStats | null`・src/quality/recovery-strategy-chain.ts:377 に出典）・(d) `requireRecoveryReport(result)`（pipeline-run-recovery-integration 8 node・`result.metrics!.recoveryReport as RunRecoveryReport` を `metrics?.` optional-chain + narrowing で解消 — 当該 field は src/pipeline/types.ts:108 で既に `RunRecoveryReport` 型のため **cast 除去** も同時に達成）。直前の `toBeDefined()` / `not.toBeNull()` 対は helper の throw が同保証を担うため折りたたみ（Phase 149/150 と同一判断）。
+3. **減少の機械強制（MW-017）**: Phase 151 rewrite への `!` 1 node 再注入（pipeline-quality-monitor.test.ts・`latest.processingTime` → `latest!.processingTime`）で **tests 合計 ratchet（`Expected: <= 728 / Received: 729`）と tests/unit dir ratchet（`Expected: <= 103 / Received: 104`）の 2 tests RED** を実測（`Tests: 2 failed, 9 passed, 11 total`）→ revert で census GREEN・ledger 監査 pin ≥16 → ≥17 GREEN（36 tests）。
+
+- **根拠**: TASK-0238・census/ledger guard 実行出力・MW-017 再実行プロトコル（台帳本文）・guard-first per-file census 実測（169→103 / 794→728）・tsc tsconfig.app.json exit=0・guards 全 75 suites / 3171 tests GREEN・TC-337 再検証コマンド 8 suites / 204 tests GREEN。
+
+- **最終フルスイート**（Phase 151 全変更後・初回 run で全 GREEN・並走なし）:
+  `[EVIDENCE] started≈2026-08-20T10:51:06+09:00 ended≈2026-08-20T10:53:23+09:00 exit=0 elapsed_s=137 (jest Time: 136.735s) cmd=npm test 相当（jest 全指定） commit=47d9b1e2+phase151-worktree branch=ai/instruction-speech-to-visuals-instruction-20260820-013331-412171` → **742 suites / 742 passed・23,157 passed / 0 failed / 17 skipped**（Phase 150 完了時 23,155 から +2 = ledger 監査 pin ≥17 化に伴う it.each 増分（MW-017 エントリ 1 件 × fields/file-exists 2 tests）。A150 とは異なり今回の full run は初回から全 GREEN — 並走なし単独実行）
+
+- **信頼性への影響**:
+
+- REQ-341 追加（🔵・実装+guard pin+MW-017 に出典）。🔵 324 → 325 件。
+- tests ツリーの `!` が 4 ラウンド連続で減少（1096 → 1002 → 899 → 794 → **728**・unit 471 → 377 → 274 → 169 → **103**）。66 node の checker 抑制が verdict 保存置換で除去され、unit 内の `!` は残 103（census 次点: export/apng-encoder 7・monitoring/pipeline-metrics-collector 7・pipeline/pipeline-orchestrator-quality 7・quality/batch-operation-recovery 7・quality/error-recovery-health-tracker 7・quality/error-recovery-state-management 7）。
+- 残課題（引継ぎ）: tests/unit 残 103 の継続縮小・Phase 132 TASK-0218〜0222 未着手・requirements.md の PR #12 由来 dead citation 残存（A137 引継ぎ）。
+
 ---
 
 ## 関連文書
