@@ -107,7 +107,7 @@
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0249（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239、Phase 153: TASK-0240、Phase 154: TASK-0241、Phase 155: TASK-0242、Phase 156: TASK-0243、Phase 157〜159: TASK-0244〜0246、Phase 161: TASK-0247、Phase 162: TASK-0248、Phase 163: TASK-0249、Phase 164: TASK-0250、Phase 165: TASK-0251）
+**使用済みタスク番号**: TASK-0001 ~ TASK-0249（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239、Phase 153: TASK-0240、Phase 154: TASK-0241、Phase 155: TASK-0242、Phase 156: TASK-0243、Phase 157〜159: TASK-0244〜0246、Phase 161: TASK-0247、Phase 162: TASK-0248、Phase 163: TASK-0249、Phase 164: TASK-0250、Phase 165: TASK-0251、Phase 166: TASK-0252）
 **次回開始番号**: TASK-0252
 
 > **REQ 番号帯（Phase 140 決定）**: REQ-313〜322 は acceptance-criteria の TC 帯（TC-313〜321 実在・TC-322 は未 merge PR #9 提案中）との番号衝突回避のため予約（未使用）。機能要件は REQ-323 から、TC は TC-323 から採番する（REQ-326/TC-323 が適用例）。
@@ -2484,6 +2484,40 @@ steering の getSnapshot consumer 横展開指示は Phase 162（e9fb26fb）で�
 ### 次フェーズ開始番号
 
 **次回開始番号**: TASK-0252
+
+
+## Phase 166: memory-backend 出力契約（finite or null）— getSnapshot 欠損シグナルの根源集約（REQ-358〜360・MW-034）
+
+**ステータス**: ✅完了（2026-08-21・TASK-0252 完了・実装 + specs を単一 commit に同梱）
+
+**背景**: steering 主要指示（強調のため prompt に二重記載）—「NaN 対策を各消費側 3 層で個別 routing した状態から、根源の getSnapshot/メモリバックエンドに『常に有限値 or 明示 null』の出力契約を設け、消費側の isFiniteMetric ガードを 1 箇所の契約検証に集約せよ。多層 fail-loud は一時的に正しいが、同じ欠損シグナルの再発を防ぐには source 側契約とその検証テストが要る」。Phase 157〜162 の消費側個別 guard は実際に再発を許した（adaptive-quality-gates の `null < 85` silent-pass・`null.toFixed(2)` crash = TASK-0248 残存 obligation）。
+
+**実装**:
+
+- 新設 `src/monitoring/memory-backend.ts`: `MemoryBackendReading` 全フィールド「有限数 or 明示 null」（undefined/NaN/±Infinity 禁止・`finiteOrNull` マッパー）+ 派生 helper（heapUsagePercentOrNull/Rounded・mbRoundedOrNull — canonical 委譲を集中し canon guard pin もここに移動）
+- getSnapshot system メモリ派生 4 field を `number | null` に（欠損は field 単位 null 伝播・zero-fallback 実測は 0 保存）
+- 消費側集約: adaptive-quality-gates（null → gate FAIL + METRIC UNAVAILABLE・baseline seeding skip）・health-check-service（`=== null` + pin 済み message・rss/external NaN marker → null）・main-pipeline 2 site・load-balanced-executor（zero-fallback 0 ドキュメント済み）・performance-dashboard（Phase 145 pin の null→NaN 写像は唯一の例外として明示維持）
+- 契約検証集約: memory-backend-contract 10 tests（7 shape アドバーサル sweep 含む）+ null 伝播 6 tests + gate UNAVAILABLE 4 tests・canon 2 suite pin 更新
+- MW-034: 3 独立 mutation（`?? 0` 戻し → 3 failed/6・finiteOrNull 素通し → 7 failed/10・gate `=== null`→`=== undefined` → 3 failed/47）各 revert GREEN 復元・監査 pin ≥33 → ≥34
+
+**タスク**:
+
+- [x] [TASK-0252: memory-backend 出力契約（finite or null）— getSnapshot 欠損シグナルの根源集約（REQ-358〜360・MW-034）](TASK-0252.md) - 3h (DIRECT) 🔵 ✅2026-08-21（触 18 suites/367 tests + sibling 15/308 + guards 76/3230 GREEN・tsc 0・MW-034 3 mutation RED 実測 + pin ≥33→≥34 + REQ/TC/TASK/MW/overview を同一 commit 同梱）
+
+```
+source 側契約なしの消費側 guard は再発を防がない — 実証: adaptive-quality-gates は無ガード読みで null<85 silent-pass していた
+null 強制変換の 2 毒: null < 85 → true（silent gate PASS）と null.toFixed(2) → TypeError crash — 契約は両方を `=== null` 分岐で塞ぐ
+zero-fallback {0,0} は実測（null と区別）・isFiniteMetric は defense-in-depth として維持（isFiniteMetric(null)===false で null は正しく unavailable 経路）
+残存: 義務 C 第2ゲート tests total ≤ 100（191・guards 51/visualization 54/integration 50）・snapshot 型変更の test ツリー追従
+```
+
+### 信頼性レベルサマリー（Phase 166 追加分）
+
+- 全 1 タスク 🔵（契約テスト 10 + null 伝播 6 + gate 4 tests GREEN + MW-034 3 独立 mutation RED 実測）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0253
 
 
 ## Spine: external references

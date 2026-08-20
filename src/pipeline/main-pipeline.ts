@@ -45,7 +45,8 @@ import {
 } from './quality-estimators';
 // Phase 34: Persistent iteration logging system
 import { globalIterationLogger } from '@/framework/iteration-logger';
-import { getHeapUsed, getMemoryUsage } from '@stv/core/utils/memory-usage';
+import { getHeapUsed } from '@stv/core/utils/memory-usage';
+import { readMemoryBackend } from '@/monitoring/memory-backend';
 import { logger } from '@stv/core/utils/logger';
 
 /**
@@ -1258,9 +1259,11 @@ export class MainPipeline {
     this.performanceTracker.errorRecoveryAttempts = 0;
     this.performanceTracker.bottleneckDetection.clear();
 
-    // Take initial memory snapshot
-    const mem = getMemoryUsage();
-    if (mem.heapUsed > 0) {
+    // Take initial memory snapshot through the memory-backend boundary
+    // (REQ-358): explicit null when the backend supplies no reading, so the
+    // truthy check cannot be satisfied by a coerced value.
+    const mem = readMemoryBackend();
+    if (mem.heapUsed !== null && mem.heapUsed > 0) {
       this.performanceTracker.memorySnapshots.set('initial', mem.heapUsed);
     }
 
@@ -1287,9 +1290,9 @@ export class MainPipeline {
       this.performanceTracker.bottleneckDetection.set(stageName, duration);
     }
 
-    // Take memory snapshot
-    const mem = getMemoryUsage();
-    if (mem.heapUsed > 0) {
+    // Take memory snapshot (memory-backend boundary, REQ-358 — null-aware)
+    const mem = readMemoryBackend();
+    if (mem.heapUsed !== null && mem.heapUsed > 0) {
       this.performanceTracker.memorySnapshots.set(stageName, mem.heapUsed);
     }
 

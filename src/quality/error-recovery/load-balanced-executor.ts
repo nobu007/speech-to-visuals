@@ -9,8 +9,8 @@
  */
 
 import { logger } from '@stv/core/utils/logger';
-import { getMemoryUsage } from '@stv/core/utils/memory-usage';
 import { heapUsageRatio, safeMean } from '@stv/core/lib/metrics-utils';
+import { readMemoryBackend } from '@/monitoring/memory-backend';
 import { errorRecoveryEventBus } from '../error-recovery-event-bus';
 import { QualityGateError } from '@/pipeline/pipeline-errors';
 import type { CircuitBreaker, CircuitBreakerRegistry } from './circuit-breaker';
@@ -190,14 +190,24 @@ export class LoadBalancedExecutor {
    */
   updateLoadMetrics(): void {
     const now = Date.now();
-    const memoryUsage = getMemoryUsage();
+    // Memory-backend boundary (REQ-358): finite-or-null per field. LoadMetrics
+    // .memoryPressure is a plain number feeding safeMean aggregation, so an
+    // unavailable reading maps to 0 — the SAME value the backend's own
+    // zero-fallback ({heapUsed: 0, heapTotal: 0}) yields through
+    // heapUsageRatio's heapTotal<=0 guard. (A null here would poison
+    // safeMean; 0 is the documented "no pressure signal" parity, not a
+    // fabricated measurement of the ratio itself.)
+    const memory = readMemoryBackend();
 
     const currentMetrics: LoadMetrics = {
       concurrentRequests: this.activeRequests.size,
       averageResponseTime: this.calculateAverageResponseTime(),
       responseTimeCount: 0,
       errorRate: this.calculateRecentErrorRate(),
-      memoryPressure: heapUsageRatio(memoryUsage.heapUsed, memoryUsage.heapTotal),
+      memoryPressure:
+        memory.heapUsed !== null && memory.heapTotal !== null
+          ? heapUsageRatio(memory.heapUsed, memory.heapTotal)
+          : 0,
       cpuUtilization: this.estimateCpuUsage(),
       timestamp: now
     };

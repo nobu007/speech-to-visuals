@@ -10,7 +10,7 @@ import { realTimeMonitor, PerformanceSnapshot } from './real-time-performance-mo
 import { ERROR_RATE_WARNING_THRESHOLD, ERROR_RATE_CRITICAL_THRESHOLD } from './error-rate-thresholds';
 import { globalCache } from '@/performance/intelligent-cache';
 import { roundTo, heapUsagePercent, bytesToMb } from '@stv/core/lib/metrics-utils';
-import { getMemoryUsage } from '@stv/core/utils/memory-usage';
+import { readMemoryBackend, mbRoundedOrNull, MemoryBackendReading } from './memory-backend';
 import { logger } from '@stv/core/utils/logger';
 
 /**
@@ -39,12 +39,14 @@ export const HEALTH_CHECK_INTERVAL_MS = 10_000;
  * can be used in compound conditions (`!isFiniteMetric(a) || !isFiniteMetric(b)`)
  * without re-checking the type before the arithmetic.
  *
- * NOTE: `checkMemoryHealth` intentionally uses `typeof !== 'number'` alone
- * (no `Number.isFinite`) because its backend contract is "either BOTH heapUsed
- * and heapTotal are present numbers, or treat as unavailable" — the browser
- * path omits BOTH fields wholesale (memory-usage.test.ts:73), so the NaN case
- * is unreachable through that channel. Adding the finite check here would
- * widen the contract beyond what the existing tests pin.
+ * NOTE: `checkMemoryHealth` and `checkLiveness` no longer need this predicate
+ * for memory fields — REQ-358 (Phase 166) moved the availability question
+ * into the memory-backend contract, where it is a single `=== null` check.
+ * The predicate remains for the NON-memory backends whose output types do
+ * not carry the null marker (globalCache.getStats, pipelineMetricsCollector)
+ * and as defense-in-depth on snapshot fields against contract-violating
+ * inputs (isFiniteMetric(null) is false, so the null marker routes to the
+ * unavailable branch too).
  */
 function isFiniteMetric(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
@@ -165,9 +167,13 @@ class HealthCheckService {
   private async checkMemoryHealth(): Promise<ComponentHealth> {
     const startTime = Date.now();
 
-    let memoryUsage;
+    let memory: MemoryBackendReading;
     try {
-      memoryUsage = getMemoryUsage();
+      // REQ-358 (Phase 166): the single memory-backend boundary. Its contract
+      // (finite-or-null per field) folds the omission AND non-finite cases
+      // the Phase-145/157 guards each handled by hand into one `=== null`
+      // check below.
+      memory = readMemoryBackend();
     } catch (err) {
       logger?.warn?.(`[HealthCheck] Memory health check failed: ${(err as Error).message}`, err as Error);
       return {
@@ -180,22 +186,19 @@ class HealthCheckService {
     // Phase-145 (REQ-334) only guarded rss/external (`?? Number.NaN`) and
     // left heapUsed/heapTotal as plain reads. The browser path of
     // @stv/core/utils/memory-usage is documented to omit ALL fields
-    // (memory-usage.test.ts line 73), so an omitted backend now feeds
-    // `undefined` straight into bytesToMb / heapUsagePercent — the result
-    // is NaN, and `NaN < 70` is FALSE, which accidentally routes every
-    // missing-field case through the `else` branch and reports "unhealthy"
-    // ("Memory usage is critical (NaN%)"). Mirror the catch block's
-    // fail-loud contract so consumers see the real reason instead of a
-    // fabricated critical state (REQ-347, see specs/speech-to-visuals/
-    // tasks/TASK-0243.md §義務 A).
-    if (typeof memoryUsage.heapUsed !== 'number' || typeof memoryUsage.heapTotal !== 'number') {
-      const heapUsedType =
-        memoryUsage.heapUsed === undefined ? 'undefined' : typeof memoryUsage.heapUsed;
-      const heapTotalType =
-        memoryUsage.heapTotal === undefined ? 'undefined' : typeof memoryUsage.heapTotal;
+    // (memory-usage.test.ts line 73), so an omitted backend fed `undefined`
+    // straight into bytesToMb / heapUsagePercent — the result was NaN, and
+    // `NaN < 70` is FALSE, which accidentally routed every missing-field
+    // case through the `else` branch and reported "unhealthy" ("Memory usage
+    // is critical (NaN%)"). REQ-347 (TASK-0243 §義務 A) answered with a
+    // typeof-omission guard here; REQ-358 moves that guard INTO the backend
+    // boundary — the consumer now branches on the explicit null marker and
+    // keeps the same fail-loud message.
+    if (memory.heapUsed === null || memory.heapTotal === null) {
       logger?.warn?.(
-        `[HealthCheck] Memory health check unavailable: backend omitted fields ` +
-          `(heapUsed=${heapUsedType}, heapTotal=${heapTotalType})`
+        `[HealthCheck] Memory health check unavailable: backend supplied no reading ` +
+          `(heapUsed=${memory.heapUsed === null ? 'unavailable' : 'finite'}, ` +
+          `heapTotal=${memory.heapTotal === null ? 'unavailable' : 'finite'})`
       );
       return {
         status: 'degraded',
@@ -204,9 +207,9 @@ class HealthCheckService {
         lastChecked: Date.now(),
       };
     }
-    const heapUsedMB = bytesToMb(memoryUsage.heapUsed);
-    const heapTotalMB = bytesToMb(memoryUsage.heapTotal);
-    const usagePercent = heapUsagePercent(memoryUsage.heapUsed, memoryUsage.heapTotal);
+    const heapUsedMB = bytesToMb(memory.heapUsed);
+    const heapTotalMB = bytesToMb(memory.heapTotal);
+    const usagePercent = heapUsagePercent(memory.heapUsed, memory.heapTotal);
 
     let status: 'healthy' | 'degraded' | 'unhealthy';
     let message: string;
@@ -231,13 +234,13 @@ class HealthCheckService {
         heapUsedMB: roundTo(heapUsedMB, 2),
         heapTotalMB: roundTo(heapTotalMB, 2),
         usagePercent: roundTo(usagePercent, 2),
-        // rss/external are optional on MemoryMetrics (the browser path omits
-        // them). The old `!` fed `undefined` straight into bytesToMb where
-        // `undefined / (1024 * 1024)` is already NaN — `?? Number.NaN`
-        // formalizes that identical outcome; `?? 0` would fabricate a
-        // healthy-looking "0 MiB" reading (Phase 145, REQ-334).
-        rss: roundTo(bytesToMb(memoryUsage.rss ?? Number.NaN), 2),
-        external: roundTo(bytesToMb(memoryUsage.external ?? Number.NaN), 2)
+        // rss/external are optional on the backend's raw shape (the browser
+        // path omits them). Under the REQ-358 contract the omission surfaces
+        // as an EXPLICIT null here — the marker the `?? Number.NaN` dance of
+        // Phase 145 (REQ-334) approximated; a fabricated 0 MiB reading would
+        // look healthy.
+        rss: mbRoundedOrNull(memory.rss, 2),
+        external: mbRoundedOrNull(memory.external, 2)
       }
     };
   }
@@ -646,12 +649,15 @@ class HealthCheckService {
       // REQ-352 (MW-028, Phase 162): the checkXxxHealth guards (REQ-347~351)
       // close the *verdict* path, but this recommendation gate reads the SAME
       // snapshot that carries the browser-path omission REQ-347 documented:
-      // `getSnapshot().system.memoryUsagePercent` is NaN when the memory
-      // backend omits heapUsed/heapTotal, and `NaN > 85` is FALSE — the
-      // CRITICAL escalation is then silently suppressed, indistinguishable
+      // `getSnapshot().system.memoryUsagePercent` was NaN when the memory
+      // backend omitted heapUsed/heapTotal, and `NaN > 85` is FALSE — the
+      // CRITICAL escalation was then silently suppressed, indistinguishable
       // from "not high". Surface an explicit unavailable note instead so the
       // operator sees that criticality was NOT assessed (same fail-loud
-      // contract, applied to the recommendation layer).
+      // contract, applied to the recommendation layer). REQ-359 (Phase 166)
+      // types the unavailability as an explicit `null` (isFiniteMetric(null)
+      // is false, so the same branch handles the typed marker AND any
+      // out-of-contract non-finite input).
       if (isFiniteMetric(metrics.system.memoryUsagePercent)) {
         if (metrics.system.memoryUsagePercent > 85) {
           recommendations.push('CRITICAL: Memory usage is very high - immediate action required');
@@ -659,7 +665,7 @@ class HealthCheckService {
       } else {
         logger?.warn?.(
           `[HealthCheck] memoryUsagePercent is non-finite ` +
-            `(${typeof metrics.system.memoryUsagePercent === 'number' ? metrics.system.memoryUsagePercent : 'undefined'})` +
+            `(${typeof metrics.system.memoryUsagePercent === 'number' ? metrics.system.memoryUsagePercent : String(metrics.system.memoryUsagePercent)})` +
             ` - memory criticality could not be assessed`
         );
         recommendations.push(
@@ -765,7 +771,7 @@ class HealthCheckService {
     try {
       // Check if basic system functions are responsive
       const startTime = Date.now();
-      const memoryUsage = getMemoryUsage();
+      const memory = readMemoryBackend();
       const latency = Date.now() - startTime;
 
       // REQ-354 (MW-030, Phase 162): the memory sanity conjunct
@@ -776,9 +782,13 @@ class HealthCheckService {
       // trigger for GET /health/live) out of a missing metric. Treat an
       // unavailable memory metric as "sanity check skipped" (latency remains
       // the responsiveness signal) and name the real condition in the reason.
-      const memoryMetricAvailable =
-        typeof memoryUsage.heapUsed === 'number' && Number.isFinite(memoryUsage.heapUsed);
-      const alive = latency < 1000 && (!memoryMetricAvailable || memoryUsage.heapUsed > 0);
+      // REQ-358 (Phase 166): the availability question is now a single
+      // `=== null` check on the memory-backend contract — the wrapper already
+      // folded omission AND non-finite drift into that marker.
+      const memoryMetricAvailable = memory.heapUsed !== null;
+      // Inline `=== null` (not the boolean alias) so TS narrows the second
+      // conjunct — an unavailable reading skips the sanity check entirely.
+      const alive = latency < 1000 && (memory.heapUsed === null || memory.heapUsed > 0);
 
       return {
         alive,
@@ -788,7 +798,7 @@ class HealthCheckService {
             : 'System is responsive (memory metric unavailable: backend omitted/non-finite heapUsed)'
           : latency >= 1000
             ? `System responsiveness issue (latency: ${latency}ms)`
-            : `Memory sanity check failed (heapUsed=${memoryUsage.heapUsed})`
+            : `Memory sanity check failed (heapUsed=${memory.heapUsed === null ? 'unavailable' : memory.heapUsed})`
       };
     } catch (error) {
       return {

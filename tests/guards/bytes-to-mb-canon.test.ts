@@ -53,6 +53,13 @@ const monitorSrc = readFileSync(
   resolve(REPO_ROOT, 'src/monitoring/real-time-performance-monitor.ts'),
   'utf8',
 );
+// Phase 166 (REQ-358): raw-byte heap fields now enter through ONE boundary —
+// src/monitoring/memory-backend.ts — whose mbRoundedOrNull is the canonical
+// bytesToMb call site for monitoring consumers.
+const memoryBackendSrc = readFileSync(
+  resolve(REPO_ROOT, 'src/monitoring/memory-backend.ts'),
+  'utf8',
+);
 
 /** Strip comments (block + line) so doc references to the old formula don't match. */
 function stripComments(src: string): string {
@@ -97,20 +104,29 @@ describe('bytesToMb — canonical binary-megabyte builder', () => {
 });
 
 describe('bytes→MB division — no re-derivation at the known call sites', () => {
-  it('health-check-service delegates heap/rss/external MB to bytesToMb', () => {
+  it('memory-backend is the monitoring boundary delegating to bytesToMb (Phase 166 / REQ-358)', () => {
+    expect(stripComments(memoryBackendSrc)).toMatch(/import\s*\{[^}]*\bbytesToMb\b[^}]*\}\s*from\s*['"]@stv\/core\/lib\/metrics-utils['"]/);
+    expect(stripComments(memoryBackendSrc)).toMatch(/bytesToMb\s*\(\s*bytes\s*\)/);
+    expect(stripComments(memoryBackendSrc)).not.toMatch(BYTES_DIVISION);
+    expect(stripComments(memoryBackendSrc)).not.toMatch(BYTES_LITERAL);
+  });
+
+  it('health-check-service delegates heap MB to bytesToMb and rss/external to the null-contract helper', () => {
     expect(stripComments(healthCheckSrc)).toMatch(/import\s*\{[^}]*\bbytesToMb\b[^}]*\}\s*from\s*['"]@stv\/core\/lib\/metrics-utils['"]/);
-    expect(stripComments(healthCheckSrc)).toMatch(/bytesToMb\s*\(\s*memoryUsage\.heapUsed\s*\)/);
-    // Phase 145 (REQ-334): the non-null `!` on the optional MemoryMetrics.rss
-    // became `?? Number.NaN` (absent metric → the NaN `undefined / 1MiB`
-    // already produced, never a fabricated 0).
-    expect(stripComments(healthCheckSrc)).toMatch(/bytesToMb\s*\(\s*memoryUsage\.rss\s*\?\?\s*Number\.NaN\s*\)/);
+    expect(stripComments(healthCheckSrc)).toMatch(/bytesToMb\s*\(\s*memory\.heapUsed\s*\)/);
+    // Phase 145 (REQ-334) marked the optional rss/external with `?? Number.NaN`
+    // (absent metric → the NaN `undefined / 1MiB` already produced, never a
+    // fabricated 0). Phase 166 (REQ-358/359) replaces the NaN marker with the
+    // EXPLICIT null of the memory-backend contract.
+    expect(stripComments(healthCheckSrc)).toMatch(/import\s*\{[^}]*\bmbRoundedOrNull\b[^}]*\}\s*from\s*['"]\.\/memory-backend['"]/);
+    expect(stripComments(healthCheckSrc)).toMatch(/rss:\s*mbRoundedOrNull\s*\(\s*memory\.rss\s*,\s*2\s*\)/);
     expect(stripComments(healthCheckSrc)).not.toMatch(BYTES_DIVISION);
     expect(stripComments(healthCheckSrc)).not.toMatch(BYTES_LITERAL);
   });
 
-  it('real-time-performance-monitor delegates heap MB to bytesToMb', () => {
-    expect(stripComments(monitorSrc)).toMatch(/import\s*\{[^}]*\bbytesToMb\b[^}]*\}\s*from\s*['"]@stv\/core\/lib\/metrics-utils['"]/);
-    expect(stripComments(monitorSrc)).toMatch(/bytesToMb\s*\(\s*memoryUsage\.heapUsed\s*\)/);
+  it('real-time-performance-monitor delegates heap MB to the memory-backend helper', () => {
+    expect(stripComments(monitorSrc)).toMatch(/import\s*\{[^}]*\bmbRoundedOrNull\b[^}]*\}\s*from\s*['"]\.\/memory-backend['"]/);
+    expect(stripComments(monitorSrc)).toMatch(/mbRoundedOrNull\s*\(\s*memory\.heapUsed\s*,\s*2\s*\)/);
     expect(stripComments(monitorSrc)).not.toMatch(BYTES_DIVISION);
     expect(stripComments(monitorSrc)).not.toMatch(BYTES_LITERAL);
   });

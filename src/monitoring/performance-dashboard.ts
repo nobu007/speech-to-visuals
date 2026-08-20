@@ -5,8 +5,8 @@
  */
 
 import { randomUUID } from 'crypto';
-import { getMemoryUsage } from '@stv/core/utils/memory-usage';
 import { percentileCeil } from '@stv/core/lib/metrics-utils';
+import { readMemoryBackend } from './memory-backend';
 import { logger } from '@stv/core/utils/logger';
 import { MonitoringError } from '@/pipeline/pipeline-errors';
 import { TokenUsageTracker, type StageType } from '@/analysis/token-usage-tracker';
@@ -186,8 +186,13 @@ export class PerformanceDashboard {
     const now = Date.now();
     const uptime = now - this.startTime;
 
-    // Memory metrics
-    const memoryUsage = getMemoryUsage();
+    // Memory metrics — memory-backend boundary (REQ-358): finite-or-null per
+    // field. This dashboard's sum/avg aggregation has a PINNED
+    // NaN-propagation contract (an absent sample leaves the aggregate NaN
+    // rather than a fabricated 0 — Phase 145), so the explicit null marker
+    // maps back to NaN at THIS boundary only; everywhere else null
+    // propagates as the availability signal.
+    const memoryUsage = readMemoryBackend();
 
     // Calculate throughput
     const requestsPerSecond = uptime > 0 ? this.totalRequests / (uptime / 1000) : 0;
@@ -198,11 +203,11 @@ export class PerformanceDashboard {
     const metrics: PerformanceMetrics = {
       timestamp: now,
       memory: {
-        heapUsed: memoryUsage.heapUsed,
-        heapTotal: memoryUsage.heapTotal,
-        // Optional on MemoryMetrics (browser path omits them); `?? NaN`
-        // preserves the old `!` outcome — NaN propagates through the
-        // sum/avg aggregation below instead of a fabricated 0 (Phase 145).
+        heapUsed: memoryUsage.heapUsed ?? Number.NaN,
+        heapTotal: memoryUsage.heapTotal ?? Number.NaN,
+        // Optional on the backend's raw shape (browser path omits them); the
+        // `?? NaN` preserves the pinned Phase-145 outcome — NaN propagates
+        // through the sum/avg aggregation below instead of a fabricated 0.
         external: memoryUsage.external ?? Number.NaN,
         rss: memoryUsage.rss ?? Number.NaN
       },

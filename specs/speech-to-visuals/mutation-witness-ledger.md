@@ -299,6 +299,14 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 - **command**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'non-null-assertion-census'`
 - **observed** (2026-08-20・Phase 165 実施時): mutation 適用後 `Tests: 2 failed, 9 passed, 11 total` — (1) tests/unit directory ratchet が **RED**（`expect(hits.length).toBeLessThanOrEqual(pin)`・`Received: 1`・expected ≤ 0）・(2) tests-total ratchet が **RED**（`Received: 192`・expected ≤ 191）の同時発火 = exact-0 pin が単発ノードでも検出する実 teeth。revert（`cached!` → `cached` 復元）で census + health-check-service 系 3 suites / 76 tests GREEN 復元。監査 pin **≥32 → ≥33** に引き上げ（MW-033 追加で 32 → 33 エントリ）。
 
+## MW-034 — memory-backend 出力契約（finite or null）の3層実 teeth（REQ-358〜360・Phase 166・TASK-0252）
+
+- **claim**: メモリ欠損シグナル（backend が heap フィールドを省略/非有限 drift）を消費側 3 層の個別 isFiniteMetric guard から、source 側出力契約「全フィールド = 有限数 or 明示 null・undefined/NaN/±Infinity なし」を持つ唯一の境界 `src/monitoring/memory-backend.ts`（REQ-358）+ getSnapshot null 伝播（REQ-359）+ 消費側 `=== null` 分岐集約（REQ-360）に根源修正する。契約の **3 層それぞれ**（境界マッパー・snapshot 伝播・gate fail-loud 分岐）が単独で無効化された場合に検証 test が RED になることを3種の独立 mutation で実証する。
+- **target**: `src/monitoring/memory-backend.ts`（`finiteOrNull` マッパー）+ `src/monitoring/real-time-performance-monitor.ts`（getSnapshot null 伝播）+ `src/quality/adaptive-quality-gates.ts`（UNAVAILABLE branch の `=== null` 検査）
+- **mutation**: (a) getSnapshot の null 伝播 helper を `?? 0` フォールバックに戻す（欠損 → 捏造 0 = silent-healthy）・(b) `finiteOrNull` を素通し（`return value as number | null` — 契約が undefined/NaN/Infinity を通す）・(c) gate の UNAVAILABLE 分岐 `currentValue === null` を `currentValue === undefined` に弱体化（null 実測が分岐を素通りし `null < threshold` 強制変換に戻る）
+- **command**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'real-time-performance-monitor-null-propagation'` / `'memory-backend-contract'` / `'adaptive-quality-gates'`
+- **observed** (2026-08-21・Phase 166 実施時): (a) `Tests: 3 failed, 3 passed, 6 total` — zero-fallback 保存・省略→null・NaN drift→null が RED（`?? 0` で欠損が 0 に捏造される）→ revert 6/6 GREEN。(b) `Tests: 7 failed, 3 passed, 10 total` — 契約テストの undefined 検出・非有限検出・sweep 7 shape 中 7 が RED → revert 10/10 GREEN。(c) `Tests: 3 failed, 44 passed, 47 total` — UNAVAILABLE gate FAIL・baseline 非記録・crash せず FAIL の 3 test が RED → revert 47/47 GREEN。3 mutation とも境界・伝播・分岐の独立 teeth を実証。監査 pin **≥33 → ≥34** に引き上げ（MW-034 追加で 33 → 34 エントリ）。
+
 ---
 
 ## 恒久 mutation test（ledger 対象外・常時 CI で走るもの）

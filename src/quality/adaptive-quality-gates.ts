@@ -16,7 +16,14 @@ export interface QualityGate {
   operator: 'gt' | 'lt' | 'gte' | 'lte' | 'eq';
   severity: 'blocker' | 'critical' | 'major' | 'minor';
   adaptable: boolean;
-  currentValue?: number;
+  /**
+   * The measured value the gate was evaluated against. `null` when the
+   * snapshot field that supplies this metric supplied NO reading (the
+   * REQ-359 memory-backend contract: browser-path omission / non-finite
+   * drift) — an unmeasured SLO is not 0, and a `null` here must fail the
+   * gate LOUD, never coerce through `null < threshold` into a silent pass.
+   */
+  currentValue?: number | null;
   passed?: boolean;
   message?: string;
 }
@@ -269,6 +276,20 @@ class AdaptiveQualityGatesSystem {
     if (!this.isKnownMetric(gate.metric)) {
       passed = false;
       message = `${gate.metric}: UNMAPPED METRIC — no snapshot field supplies this value; gate cannot be verified`;
+    } else if (currentValue === null) {
+      // (REQ-360, sibling of the defect-9 UNMAPPED closure) A KNOWN metric
+      // whose snapshot field is the memory-backend "no reading" marker (null,
+      // REQ-359) is UNAVAILABLE: there is no measured value to compare. A
+      // `null` operand does not merely fail the comparison — it COERCES
+      // (`null < 85` → true, silently passing the critical Memory Usage gate
+      // on an unmeasured SLO) and crashes the message builder
+      // (`null.toFixed(2)` TypeError, rejecting the whole evaluateGates call).
+      // An unassessed SLO must NOT silently pass: fail it LOUD, naming the
+      // unavailable metric.
+      passed = false;
+      message =
+        `${gate.metric}: METRIC UNAVAILABLE — the memory backend supplied no reading ` +
+        `(browser-path omission / non-finite drift); gate was not assessed`;
     } else {
       switch (gate.operator) {
         case 'gt':
@@ -309,9 +330,16 @@ class AdaptiveQualityGatesSystem {
    * has no snapshot field to evaluate against, so it must NOT silently pass (the
    * defect-9 silent-pass class). `extractMetricValue` and `isKnownMetric` both
    * read this map so the two can never drift apart.
+   *
+   * Memory-derived system fields return `number | null` (REQ-359): null = the
+   * memory backend supplied no reading, and `evaluateGate` FAILS such a gate
+   * LOUD (UNAVAILABLE) instead of letting `null` coerce through relational
+   * comparison (`null < 85` → true → a critical gate silently passing on a
+   * value that was never measured) or crash the message builder
+   * (`null.toFixed(2)` TypeError).
    */
   private static readonly METRIC_EXTRACTORS: Readonly<
-    Record<string, (snapshot: PerformanceSnapshot) => number>
+    Record<string, (snapshot: PerformanceSnapshot) => number | null>
   > = {
     // Pipeline metrics
     avgProcessingTime: s => s.pipeline.avgProcessingTime,
@@ -324,7 +352,7 @@ class AdaptiveQualityGatesSystem {
     avgFlashResponseTime: s => s.llm.avgFlashResponseTime,
     avgProResponseTime: s => s.llm.avgProResponseTime,
     flashUsagePercent: s => s.llm.flashUsagePercent,
-    // System metrics
+    // System metrics (memory fields: finite-or-null, REQ-359)
     memoryUsagePercent: s => s.system.memoryUsagePercent,
     memoryUsageMB: s => s.system.memoryUsageMB,
     cpuUsagePercent: s => s.system.cpuUsagePercent,
@@ -343,12 +371,13 @@ class AdaptiveQualityGatesSystem {
    * metric name (so `currentValue` stays a finite number for display) — but
    * `evaluateGate` consults `isKnownMetric` and FAILS such a gate LOUD instead
    * of letting the 0 silently pass a lower-is-better / equality threshold
-   * (defect-9 sibling closure).
+   * (defect-9 sibling closure). Returns null for a KNOWN metric whose snapshot
+   * field carries the memory-backend "no reading" marker (REQ-359/360).
    *
    * `hasOwnProperty` (not `in`) so a stray 'constructor'/'toString' or a
    * proto-polluted key is NOT mistaken for a known metric and invoked.
    */
-  private extractMetricValue(metric: string, snapshot: PerformanceSnapshot): number {
+  private extractMetricValue(metric: string, snapshot: PerformanceSnapshot): number | null {
     const extractors = AdaptiveQualityGatesSystem.METRIC_EXTRACTORS;
     const fn = Object.prototype.hasOwnProperty.call(extractors, metric)
       ? extractors[metric]
@@ -384,6 +413,15 @@ class AdaptiveQualityGatesSystem {
 
     for (const gate of adaptableGates) {
       const currentValue = this.extractMetricValue(gate.metric, snapshot);
+
+      // (REQ-360) An unavailable reading (null) carries NO information about
+      // this metric — seeding it as `baselineValue: 0`-equivalent (or pushing
+      // it into historicalValues) would poison every later adaptation of the
+      // threshold toward a value that was never measured. Skip the round.
+      if (currentValue === null) {
+        continue;
+      }
+
       let adaptive = this.adaptiveThresholds.get(gate.metric);
 
       if (!adaptive) {

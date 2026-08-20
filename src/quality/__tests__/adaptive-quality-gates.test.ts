@@ -640,4 +640,82 @@ describe('AdaptiveQualityGatesSystem', () => {
       expect(info!.adaptedThreshold).toBe(60000); // base threshold for Processing Time SLA
     });
   });
+
+  // ─── memory-backend null contract (REQ-359/360) ────────────────
+  // PerformanceSnapshot.system memory fields are `number | null` where null =
+  // "memory backend supplied no reading" (browser-path omission / non-finite
+  // drift — see tests/unit/monitoring/memory-backend-contract.test.ts). An
+  // UNMEASURED memory SLO must NOT silently pass — the same fail-loud contract
+  // as the defect-9 UNMAPPED closure. Before this fix, `null < 85` coerced to
+  // `0 < 85` → TRUE, so the default critical 'Memory Usage' gate PASSED on a
+  // reading that was never taken (and deployment readiness stayed green).
+  describe('memory metric unavailable (null) — fail loud, never silently pass (REQ-360)', () => {
+    test('default Memory Usage gate FAILS with an UNAVAILABLE verdict when memoryUsagePercent is null', async () => {
+      mockGetSnapshot.mockReturnValue(makeSnapshot({
+        system: { memoryUsagePercent: null as unknown as number },
+      }));
+
+      const result = await gates.evaluateGates();
+      const memoryGate = result.gates.find(g => g.name === 'Memory Usage');
+
+      expect(memoryGate).toBeDefined();
+      // Legacy: `null < 85` → true → silent PASS of a critical gate.
+      expect(memoryGate!.passed).toBe(false);
+      expect(memoryGate!.message).toContain('UNAVAILABLE');
+    });
+
+    test('a null memoryUsageMB fails its gate instead of crashing on null.toFixed', async () => {
+      gates.getGates().forEach(g => gates.removeGate(g.name));
+      gates.addGate({
+        name: 'memory-budget',
+        metric: 'memoryUsageMB',
+        threshold: 0,
+        operator: 'gt',
+        severity: 'blocker',
+        adaptable: false,
+      });
+      mockGetSnapshot.mockReturnValue(makeSnapshot({
+        system: { memoryUsageMB: null as unknown as number },
+      }));
+
+      // Legacy: `null.toFixed(2)` in the message builder threw a TypeError,
+      // rejecting the whole evaluateGates() promise.
+      const result = await gates.evaluateGates();
+      expect(result.gates[0].passed).toBe(false);
+      expect(result.gates[0].message).toContain('UNAVAILABLE');
+    });
+
+    test('an unavailable adaptable metric records NO adaptive baseline (null never enters history)', async () => {
+      gates.getGates().forEach(g => gates.removeGate(g.name));
+      gates.addGate({
+        name: 'adaptive-memory',
+        metric: 'memoryUsagePercent',
+        threshold: 85,
+        operator: 'lt',
+        severity: 'critical',
+        adaptable: true,
+      });
+      mockGetSnapshot.mockReturnValue(makeSnapshot({
+        system: { memoryUsagePercent: null as unknown as number },
+      }));
+
+      await gates.evaluateGates();
+
+      // Legacy: updateAdaptiveThresholds seeded baselineValue: null from the
+      // unmeasured reading, poisoning every later adaptation of this metric.
+      expect(gates.getAdaptiveThresholdInfo('memoryUsagePercent')).toBeNull();
+    });
+
+    test('finite memory readings still evaluate normally (null contract changes nothing else)', async () => {
+      mockGetSnapshot.mockReturnValue(makeSnapshot({
+        system: { memoryUsagePercent: 50 },
+      }));
+
+      const result = await gates.evaluateGates();
+      const memoryGate = result.gates.find(g => g.name === 'Memory Usage');
+
+      expect(memoryGate!.passed).toBe(true);
+      expect(memoryGate!.message).not.toContain('UNAVAILABLE');
+    });
+  });
 });

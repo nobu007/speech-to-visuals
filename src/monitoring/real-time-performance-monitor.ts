@@ -7,10 +7,10 @@
  */
 
 import { EventEmitter } from 'events';
-import { getMemoryUsage } from '@stv/core/utils/memory-usage';
-import { percentileCeil, roundTo, heapUsagePercent, bytesToMb } from '@stv/core/lib/metrics-utils';
+import { percentileCeil, roundTo } from '@stv/core/lib/metrics-utils';
 import { logger } from '@stv/core/utils/logger';
 import { sanitizeFinite } from '@stv/core/utils/guards';
+import { readMemoryBackend, heapUsagePercentRoundedOrNull, mbRoundedOrNull } from './memory-backend';
 import { ERROR_RATE_WARNING_THRESHOLD, ERROR_RATE_CRITICAL_THRESHOLD } from './error-rate-thresholds';
 
 /**
@@ -82,10 +82,19 @@ export interface PerformanceSnapshot {
   };
   system: {
     cpuUsagePercent: number;
-    memoryUsageMB: number;
-    memoryUsagePercent: number;
-    heapUsedMB: number;
-    heapTotalMB: number;
+    /**
+     * Memory-derived fields carry the REQ-359 finite-or-null contract: they
+     * are finite numbers when the memory backend supplied a reading, and
+     * EXPLICIT null when it did not (browser-path omission / non-finite
+     * drift — see src/monitoring/memory-backend.ts). Never NaN, never a
+     * fabricated 0: a fabricated 0 would read as "healthy" to the 70/90
+     * health thresholds and silently pass the 85% Memory Usage quality gate.
+     * `cpuUsagePercent` has no backend (hardcoded 0) and stays `number`.
+     */
+    memoryUsageMB: number | null;
+    memoryUsagePercent: number | null;
+    heapUsedMB: number | null;
+    heapTotalMB: number | null;
   };
   errors: {
     totalErrors: number;
@@ -477,11 +486,12 @@ class RealTimePerformanceMonitor extends EventEmitter {
     const p95 = this.calculatePercentile(processingTimes, 0.95);
     const p99 = this.calculatePercentile(processingTimes, 0.99);
 
-    // Get system metrics
-    const memoryUsage = getMemoryUsage();
-    const memoryUsageMB = bytesToMb(memoryUsage.heapUsed);
-    const memoryTotalMB = bytesToMb(memoryUsage.heapTotal);
-    const memoryUsagePercent = heapUsagePercent(memoryUsage.heapUsed, memoryUsage.heapTotal);
+    // Get system metrics through the memory-backend boundary (REQ-358/359):
+    // finite-or-null per field. Null = "backend supplied no reading" and
+    // PROPAGATES — the pre-boundary code fed raw backend fields into
+    // bytesToMb/heapUsagePercent, so an omitted heapUsed became NaN in all
+    // four system fields, silently FALSE-ifying every downstream comparison.
+    const memory = readMemoryBackend();
 
     return {
       timestamp: now,
@@ -510,10 +520,10 @@ class RealTimePerformanceMonitor extends EventEmitter {
       },
       system: {
         cpuUsagePercent: 0, // Would require external library
-        memoryUsageMB: roundTo(memoryUsageMB, 2),
-        memoryUsagePercent: roundTo(memoryUsagePercent, 2),
-        heapUsedMB: roundTo(bytesToMb(memoryUsage.heapUsed), 2),
-        heapTotalMB: roundTo(bytesToMb(memoryUsage.heapTotal), 2)
+        memoryUsageMB: mbRoundedOrNull(memory.heapUsed, 2),
+        memoryUsagePercent: heapUsagePercentRoundedOrNull(memory, 2),
+        heapUsedMB: mbRoundedOrNull(memory.heapUsed, 2),
+        heapTotalMB: mbRoundedOrNull(memory.heapTotal, 2)
       },
       errors: {
         totalErrors: this.counters.totalErrors,

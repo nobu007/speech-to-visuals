@@ -50,6 +50,14 @@ const errorRecoverySrc = readFileSync(
   resolve(REPO_ROOT, 'src/quality/error-recovery/load-balanced-executor.ts'),
   'utf8',
 );
+// Phase 166 (REQ-358): the raw-backend heap fields now enter through ONE
+// boundary — src/monitoring/memory-backend.ts — whose helpers are the
+// canonical heapUsagePercent/heapUsageRatio call sites for monitoring
+// consumers.
+const memoryBackendSrc = readFileSync(
+  resolve(REPO_ROOT, 'src/monitoring/memory-backend.ts'),
+  'utf8',
+);
 
 /** Strip comments (block + line) so doc references to the formula don't match. */
 function stripComments(src: string): string {
@@ -79,21 +87,27 @@ describe('heapUsageRatio / heapUsagePercent — canonical heap-ratio builders', 
 });
 
 describe('heap-ratio division — no re-derivation at the known call sites', () => {
-  it('health-check-service delegates usagePercent to heapUsagePercent', () => {
-    expect(stripComments(healthCheckSrc)).toMatch(/import\s*\{[^}]*\bheapUsagePercent\b[^}]*\}\s*from\s*['"]@stv\/core\/lib\/metrics-utils['"]/);
-    expect(stripComments(healthCheckSrc)).toMatch(/heapUsagePercent\s*\(\s*memoryUsage\.heapUsed\s*,\s*memoryUsage\.heapTotal\s*\)/);
+  it('memory-backend is the monitoring boundary delegating to heapUsagePercent (Phase 166 / REQ-358)', () => {
+    expect(stripComments(memoryBackendSrc)).toMatch(/import\s*\{[^}]*\bheapUsagePercent\b[^}]*\}\s*from\s*['"]@stv\/core\/lib\/metrics-utils['"]/);
+    expect(stripComments(memoryBackendSrc)).toMatch(/heapUsagePercent\s*\(\s*reading\.heapUsed\s*,\s*reading\.heapTotal\s*\)/);
+    expect(stripComments(memoryBackendSrc)).not.toMatch(HEAP_DIVISION);
+  });
+
+  it('health-check-service reads the backend through the memory-backend boundary', () => {
+    expect(stripComments(healthCheckSrc)).toMatch(/import\s*\{[^}]*\breadMemoryBackend\b[^}]*\}\s*from\s*['"]\.\/memory-backend['"]/);
+    expect(stripComments(healthCheckSrc)).toMatch(/heapUsagePercent\s*\(\s*memory\.heapUsed\s*,\s*memory\.heapTotal\s*\)/);
     expect(stripComments(healthCheckSrc)).not.toMatch(HEAP_DIVISION);
   });
 
-  it('real-time-performance-monitor delegates memoryUsagePercent to heapUsagePercent', () => {
-    expect(stripComments(monitorSrc)).toMatch(/import\s*\{[^}]*\bheapUsagePercent\b[^}]*\}\s*from\s*['"]@stv\/core\/lib\/metrics-utils['"]/);
-    expect(stripComments(monitorSrc)).toMatch(/heapUsagePercent\s*\(\s*memoryUsage\.heapUsed\s*,\s*memoryUsage\.heapTotal\s*\)/);
+  it('real-time-performance-monitor delegates system percent/MB to the memory-backend helpers', () => {
+    expect(stripComments(monitorSrc)).toMatch(/import\s*\{[^}]*\breadMemoryBackend\b[^}]*\}\s*from\s*['"]\.\/memory-backend['"]/);
+    expect(stripComments(monitorSrc)).toMatch(/heapUsagePercentRoundedOrNull\s*\(\s*memory\s*,\s*2\s*\)/);
     expect(stripComments(monitorSrc)).not.toMatch(HEAP_DIVISION);
   });
 
   it('load-balanced-executor (ex enhanced-error-recovery) delegates memoryPressure to heapUsageRatio (fraction, not percent)', () => {
     expect(stripComments(errorRecoverySrc)).toMatch(/import\s*\{[^}]*\bheapUsageRatio\b[^}]*\}\s*from\s*['"]@stv\/core\/lib\/metrics-utils['"]/);
-    expect(stripComments(errorRecoverySrc)).toMatch(/memoryPressure:\s*heapUsageRatio\s*\(/);
+    expect(stripComments(errorRecoverySrc)).toMatch(/memoryPressure:\s*\n?\s*memory\.heapUsed !== null && memory\.heapTotal !== null\s*\?\s*\n?\s*heapUsageRatio\s*\(/);
     expect(stripComments(errorRecoverySrc)).not.toMatch(HEAP_DIVISION);
   });
 });
