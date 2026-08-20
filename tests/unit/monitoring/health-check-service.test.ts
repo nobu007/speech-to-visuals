@@ -401,6 +401,51 @@ describe('HealthCheckService (REQ-122)', () => {
       const result = await healthCheckService.performHealthCheck();
       expect(result.checks.pipeline.status).toBe('unhealthy');
     });
+
+    // MW-024 (REQ-349, Phase 158): the pipeline snapshot reader exposes the
+    // same fail-loud contract violation that checkMemoryHealth (REQ-347) and
+    // checkCacheHealth (REQ-348) had. `successRate` and `avgProcessingTime`
+    // are read straight off the snapshot without a number-ness guard, so a
+    // backend that omits either field feeds `undefined` into `> 0.95` / `<
+    // 60000` — both predicates return `false`, and the else branch fabricates
+    // a "Pipeline is experiencing issues (NaN% success rate)" unhealthy
+    // verdict for an UNKNOWN observation window. Mirror the catch block's
+    // degraded contract so the upstream dashboard sees the real reason.
+    test('should report degraded with the omit-fields message when pipeline.successRate is missing (REQ-349)', async () => {
+      realTimeMonitor.getSnapshot.mockReturnValue({
+        ...defaultSnapshot,
+        pipeline: {
+          ...defaultSnapshot.pipeline,
+          // successRate omitted by backend (browser-shape fields can be undefined)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          successRate: undefined as any,
+        },
+      });
+
+      const result = await healthCheckService.performHealthCheck();
+      expect(result.checks.pipeline.status).toBe('degraded');
+      expect(result.checks.pipeline.message).toBe(
+        'Pipeline monitoring unavailable: backend omitted successRate/avgProcessingTime'
+      );
+    });
+
+    test('should report degraded when pipeline.avgProcessingTime is non-finite (NaN) (REQ-349)', async () => {
+      realTimeMonitor.getSnapshot.mockReturnValue({
+        ...defaultSnapshot,
+        pipeline: {
+          ...defaultSnapshot.pipeline,
+          // NaN propagates from the backend when its internal clock trips;
+          // `NaN < 60000` is `false`, routing the same fabricated unhealthy.
+          avgProcessingTime: Number.NaN,
+        },
+      });
+
+      const result = await healthCheckService.performHealthCheck();
+      expect(result.checks.pipeline.status).toBe('degraded');
+      expect(result.checks.pipeline.message).toBe(
+        'Pipeline monitoring unavailable: backend omitted successRate/avgProcessingTime'
+      );
+    });
   });
 
   // =========================================================================

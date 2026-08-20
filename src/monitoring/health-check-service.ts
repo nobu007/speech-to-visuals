@@ -327,6 +327,39 @@ class HealthCheckService {
     const activeRequests = snapshot.pipeline.activeRequests;
     const avgProcessingTime = snapshot.pipeline.avgProcessingTime;
 
+    // REQ-349 (MW-024, Phase 158): `realTimeMonitor.getSnapshot()` may omit
+    // `successRate` / `avgProcessingTime` (browser-shape fields can be
+    // undefined) or return non-finite values when the pipeline backend's
+    // internal state trips. Without this guard, undefined fed into
+    // `successRate > 0.95` is `false` AND `NaN < 60000` is `false`, routing
+    // every missing-field case to the `else` branch and the fabricated
+    // "Pipeline is experiencing issues (NaN% success rate)" verdict that
+    // `generateRecommendations` escalates to a CRITICAL recommendation for an
+    // UNKNOWN observation window. Mirror `checkMemoryHealth`'s (REQ-347) and
+    // `checkCacheHealth`'s (REQ-348) fail-loud contract so the upstream
+    // dashboard sees the real reason instead of a fabricated unhealthy.
+    if (
+      typeof successRate !== 'number' ||
+      typeof avgProcessingTime !== 'number' ||
+      !Number.isFinite(successRate) ||
+      !Number.isFinite(avgProcessingTime)
+    ) {
+      const successRateType =
+        successRate === undefined ? 'undefined' : typeof successRate;
+      const avgProcessingTimeType =
+        avgProcessingTime === undefined ? 'undefined' : typeof avgProcessingTime;
+      logger?.warn?.(
+        `[HealthCheck] Pipeline health check unavailable: backend omitted fields ` +
+          `(successRate=${successRateType}, avgProcessingTime=${avgProcessingTimeType})`
+      );
+      return {
+        status: 'degraded',
+        message: 'Pipeline monitoring unavailable: backend omitted successRate/avgProcessingTime',
+        latency: Date.now() - startTime,
+        lastChecked: Date.now(),
+      };
+    }
+
     let status: 'healthy' | 'degraded' | 'unhealthy';
     let message: string;
 
