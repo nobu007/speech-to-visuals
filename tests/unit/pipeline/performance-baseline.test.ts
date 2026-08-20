@@ -16,15 +16,21 @@ import {
   StageMeasurement,
 } from '@/pipeline/performance-baseline';
 
+function requireDefined<T>(value: T | undefined, label: string): T {
+  if (value === undefined) {
+    throw new Error(`${label} returned undefined`);
+  }
+  return value;
+}
+
 // ---------- getBaseline ----------
 
 describe('getBaseline', () => {
   it('finds a known stage by name', () => {
-    const result = getBaseline('transcription');
-    expect(result).toBeDefined();
-    expect(result!.stage).toBe('transcription');
-    expect(result!.maxDurationMs).toBe(8000);
-    expect(result!.maxMemoryMB).toBe(50);
+    const result = requireDefined(getBaseline('transcription'), "getBaseline('transcription')");
+    expect(result.stage).toBe('transcription');
+    expect(result.maxDurationMs).toBe(8000);
+    expect(result.maxMemoryMB).toBe(50);
   });
 
   it('returns undefined for unknown stage', () => {
@@ -36,7 +42,7 @@ describe('getBaseline', () => {
       { stage: 'custom', maxDurationMs: 9999, maxMemoryMB: 42, targetDurationMs: 5000 },
     ];
     expect(getBaseline('custom', custom)).toBeDefined();
-    expect(getBaseline('custom', custom)!.maxDurationMs).toBe(9999);
+    expect(requireDefined(getBaseline('custom', custom), "getBaseline('custom', custom)").maxDurationMs).toBe(9999);
     expect(getBaseline('transcription', custom)).toBeUndefined();
   });
 

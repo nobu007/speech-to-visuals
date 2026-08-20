@@ -22,6 +22,19 @@ import {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Fires a Promise resolver captured inside a `new Promise(...)` executor.
+ * The executor runs synchronously, so the resolver is always assigned by the
+ * time a test calls this — the guard keeps an unreachable-undefined call from
+ * being silenced by a non-null assertion.
+ */
+function fireCapturedResolver(fn: (() => void) | undefined, label: string): void {
+  if (fn === undefined) {
+    throw new Error(`${label} was not captured by the Promise executor`);
+  }
+  fn();
+}
+
 const createSceneData = () => ({
   scenes: [
     { duration: 2, type: 'intro' },
@@ -299,7 +312,7 @@ describe('REQ-228: Export job lifecycle management', () => {
     const engine = new EnhancedExportEngine(2);
 
     // Make rendering block so we can cancel it
-    let resolveRender: () => void;
+    let resolveRender: (() => void) | undefined;
     const renderPromise = new Promise<void>((resolve) => { resolveRender = resolve; });
 
     const spy = jest.spyOn(engine as any, 'renderFrames').mockImplementation(async () => {
@@ -320,7 +333,7 @@ describe('REQ-228: Export job lifecycle management', () => {
     expect(cancelled).toBe(true);
 
     // Resolve render so the pipeline can proceed and detect abort
-    resolveRender!();
+    fireCapturedResolver(resolveRender, 'resolveRender');
 
     const result = await exportPromise;
     expect(result.success).toBe(false);
@@ -333,7 +346,7 @@ describe('REQ-228: Export job lifecycle management', () => {
   test('dispose cancels queued exports', async () => {
     const engine = new EnhancedExportEngine(1); // Only 1 concurrent
 
-    let resolveRender: () => void;
+    let resolveRender: (() => void) | undefined;
     const renderPromise = new Promise<void>((resolve) => { resolveRender = resolve; });
 
     const spy = jest.spyOn(engine as any, 'renderFrames').mockImplementation(async () => {
@@ -353,7 +366,7 @@ describe('REQ-228: Export job lifecycle management', () => {
     expect(result2.error).toContain('disposed');
 
     // Let first resolve
-    resolveRender!();
+    fireCapturedResolver(resolveRender, 'resolveRender');
     await promise1.catch(() => {});
 
     spy.mockRestore();
@@ -413,7 +426,7 @@ describe('REQ-228: Export job lifecycle management', () => {
     const engine = new EnhancedExportEngine(1); // 1 concurrent to test queue
 
     // Make first job block so it can be cancelled
-    let resolveRender: () => void;
+    let resolveRender: (() => void) | undefined;
     const renderPromise = new Promise<void>((resolve) => { resolveRender = resolve; });
 
     const spy = jest.spyOn(engine as any, 'renderFrames').mockImplementation(async () => {
@@ -437,7 +450,7 @@ describe('REQ-228: Export job lifecycle management', () => {
     engine.cancelExport(jobId);
 
     // Resolve render so the pipeline can detect the abort
-    resolveRender!();
+    fireCapturedResolver(resolveRender, 'resolveRender');
 
     const result1 = await promise1;
     expect(result1.success).toBe(false);
@@ -535,11 +548,11 @@ describe('REQ-228: Export job lifecycle management', () => {
     });
 
     // Also mock renderFrames to block so we can get the jobId
-    let resolveRender: () => void;
+    let resolveRender: (() => void) | undefined;
     const renderPromise = new Promise<void>((resolve) => { resolveRender = resolve; });
     const renderSpy = jest.spyOn(engine as any, 'renderFrames').mockImplementation(async () => {
       // First call: let it proceed (need to unblock)
-      resolveRender!();
+      fireCapturedResolver(resolveRender, 'resolveRender');
       return [];
     });
 
@@ -556,7 +569,7 @@ describe('REQ-228: Export job lifecycle management', () => {
     const postSpy = jest.spyOn(engine as any, 'postProcess').mockImplementation(async (_job: any, video: any) => video);
 
     // Mock finalizeExport to write file then hang
-    let resolveFinalize: () => void;
+    let resolveFinalize: (() => void) | undefined;
     const finalizePromise = new Promise<void>((resolve) => { resolveFinalize = resolve; });
     const finSpy = jest.spyOn(engine as any, 'finalizeExport').mockImplementation(async function (this: any, job: any, video: any) {
       // Simulate file write
@@ -578,7 +591,7 @@ describe('REQ-228: Export job lifecycle management', () => {
     engine.cancelExport(jobId);
 
     // Resolve finalize so it can detect abort
-    resolveFinalize!();
+    fireCapturedResolver(resolveFinalize, 'resolveFinalize');
 
     const result = await exportPromise;
     // Since fileWritten was true, should return success
@@ -604,7 +617,7 @@ describe('REQ-228: Export job lifecycle management', () => {
     const postSpy = jest.spyOn(engine as any, 'postProcess').mockImplementation(async (_job: any, video: any) => video);
 
     // Mock finalizeExport to hang without writing file
-    let resolveFinalize: () => void;
+    let resolveFinalize: (() => void) | undefined;
     const finalizePromise = new Promise<void>((resolve) => { resolveFinalize = resolve; });
     const finSpy = jest.spyOn(engine as any, 'finalizeExport').mockImplementation(async () => {
       // Do NOT set fileWritten — hang
@@ -620,7 +633,7 @@ describe('REQ-228: Export job lifecycle management', () => {
     const jobId = activeJobs.keys().next().value as string;
     engine.cancelExport(jobId);
 
-    resolveFinalize!();
+    fireCapturedResolver(resolveFinalize, 'resolveFinalize');
 
     const result = await exportPromise;
     // File not written yet, should be cancelled

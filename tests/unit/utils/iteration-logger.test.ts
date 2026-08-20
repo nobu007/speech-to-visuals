@@ -10,6 +10,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
+function requireDefined<T>(value: T | undefined, label: string): T {
+  if (value === undefined) {
+    throw new Error(`${label} returned undefined`);
+  }
+  return value;
+}
+
 function makeTempDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'iter-log-test-'));
 }
@@ -201,12 +208,10 @@ describe('IterationLogger', () => {
 
       expect(history).toHaveLength(2);
       // Newer entries are prepended, so iteration 6 appears first
-      const iter5 = history.find(e => e.iteration === 5);
-      const iter6 = history.find(e => e.iteration === 6);
-      expect(iter5).toBeDefined();
-      expect(iter5!.success).toBe(true);
-      expect(iter6).toBeDefined();
-      expect(iter6!.success).toBe(false);
+      const iter5 = requireDefined(history.find(e => e.iteration === 5), 'iteration 5 entry');
+      const iter6 = requireDefined(history.find(e => e.iteration === 6), 'iteration 6 entry');
+      expect(iter5.success).toBe(true);
+      expect(iter6.success).toBe(false);
     });
 
     it('parses phase name correctly (not "Unknown")', async () => {

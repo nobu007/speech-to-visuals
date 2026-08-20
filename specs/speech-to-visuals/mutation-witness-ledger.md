@@ -291,6 +291,14 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 - **command**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'specs-mirror-contract'`
 - **observed** (2026-08-20・Phase 164 実施時): mutation 適用後 `Tests: 1 failed, 22 passed, 23 total` — real specs tree の zero-viololation test が **target RED**（`STALE_SYNC_STAMP` 1 violation・`TOKEN_MISSING_*` なし = 非 token 編集を stamp だけが検出したことの実証・detail は `stamp=56cab125a152・現 digest=b92633966624` を名指し）。同期して `npm run specs:mirror:check` が exit 1（violation 1）、`npm run specs:mirror:sync` が stamp を `b92633966624` に機械再生成して post-sync violations 0・exit 0 を返す（generator による修復経路の実証）。revert（requirements.md 復元 + sync 再実行で stamp を `56cab125a152` に復元）で 23/23 + census 11/11 GREEN 復元。監査 pin **≥31 → ≥32** に引き上げ（MW-032 追加で 31 → 32 エントリ）。
 
+## MW-033 — 義務 C 第1ゲート tests/unit exact-0 pin の実 teeth（REQ-357・Phase 165・TASK-0251）
+
+- **claim**: TASK-0243 が定義した義務 C の第1ゲート「tests/unit exact-0」を、ratchet 単調減少ラウンド 9 として残存全数（21 ファイル / 61 ノード）を fail-loud idiom（`requireDefined(value, label)` ファイル内 helper ×14 ファイル・`fireCapturedResolver` ×6 ノード・env const capture・`act()` 内 guard・`(scenes?.length ?? 0)` と等価な null/undefined 明示 guard）で撲滅し、`TESTS_DIR_PINS.unit` を 61 → 0 に引き下げる。0 pin は `toBeLessThanOrEqual` なので「1 個くらい戻っても気づかない」懸念に対し、単発 `!` の再注入が dir ratchet と total ratchet の **両方** を同時 RED にすることを単発 mutation で実証する（transcription（MW-020・Phase 154）に次ぐ 2 番目の dir exact-0）。
+- **target**: `tests/guards/non-null-assertion-census.test.ts`（`TESTS_DIR_PINS.unit: 0`・`PINNED['tests (excl. __mocks__)']: 191`）+ tests/unit 21 ファイルの Phase-165 rewrite
+- **mutation**: `tests/unit/monitoring/health-check-service.test.ts:761` の `expect(cached.status).toBeDefined();` を `expect(cached!.status).toBeDefined();` に戻す（Phase-165 rewrite `requireDefined(getCachedHealth(), 'getCachedHealth()')` 経由の値読みへの単発 `!` 再注入）
+- **command**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'non-null-assertion-census'`
+- **observed** (2026-08-20・Phase 165 実施時): mutation 適用後 `Tests: 2 failed, 9 passed, 11 total` — (1) tests/unit directory ratchet が **RED**（`expect(hits.length).toBeLessThanOrEqual(pin)`・`Received: 1`・expected ≤ 0）・(2) tests-total ratchet が **RED**（`Received: 192`・expected ≤ 191）の同時発火 = exact-0 pin が単発ノードでも検出する実 teeth。revert（`cached!` → `cached` 復元）で census + health-check-service 系 3 suites / 76 tests GREEN 復元。監査 pin **≥32 → ≥33** に引き上げ（MW-033 追加で 32 → 33 エントリ）。
+
 ---
 
 ## 恒久 mutation test（ledger 対象外・常時 CI で走るもの）

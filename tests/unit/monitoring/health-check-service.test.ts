@@ -127,6 +127,13 @@ function resetMocks() {
   getMemoryUsage.mockReturnValue(defaultMemory);
 }
 
+function requireDefined<T>(value: T | null | undefined, label: string): T {
+  if (value === null || value === undefined) {
+    throw new Error(`${label} was null/undefined`);
+  }
+  return value;
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -750,10 +757,9 @@ describe('HealthCheckService (REQ-122)', () => {
     test('should return last health check result after performHealthCheck', async () => {
       await healthCheckService.performHealthCheck();
 
-      const cached = healthCheckService.getCachedHealth();
-      expect(cached).not.toBeNull();
-      expect(cached!.status).toBeDefined();
-      expect(cached!.timestamp).toBeDefined();
+      const cached = requireDefined(healthCheckService.getCachedHealth(), 'getCachedHealth()');
+      expect(cached.status).toBeDefined();
+      expect(cached.timestamp).toBeDefined();
     });
   });
 

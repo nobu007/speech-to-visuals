@@ -13,6 +13,13 @@ import {
   PipelineConfigError,
 } from '@/pipeline/pipeline-errors';
 
+function requireDefined<T>(value: T | undefined, label: string): T {
+  if (value === undefined) {
+    throw new Error(`${label} was undefined`);
+  }
+  return value;
+}
+
 describe('REQ-161: Quality module typed error classification', () => {
   let classifier: ErrorClassifier;
 
@@ -139,7 +146,7 @@ describe('REQ-161: Quality module typed error classification', () => {
       }
 
       expect(caught).toBeDefined();
-      const classified = classifier.classify(caught!);
+      const classified = classifier.classify(requireDefined(caught, 'caught'));
 
       expect(classified.type).toBe('QUALITY_GATE_FAILED');
       expect(classified.stage).toBe('quality_gate');
@@ -178,7 +185,7 @@ describe('REQ-161: Quality module typed error classification', () => {
         caught = err as Error;
       }
 
-      const classified = classifier.classify(caught!);
+      const classified = classifier.classify(requireDefined(caught, 'caught'));
       const original = classified.originalError as QualityGateError;
 
       expect(original.gateName).toBe('regression-baseline');
@@ -196,7 +203,7 @@ describe('REQ-161: Quality module typed error classification', () => {
         caught = err as Error;
       }
 
-      const classified = classifier.classify(caught!);
+      const classified = classifier.classify(requireDefined(caught, 'caught'));
       const original = classified.originalError as PipelineConfigError;
 
       expect(original.parameter).toBe('runId');

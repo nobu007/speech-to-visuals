@@ -19,6 +19,13 @@ import {
   type CorruptionReport,
 } from '@stv/core/utils/report-corruption';
 
+function requireDefined<T>(value: T | null | undefined, label: string): T {
+  if (value === null || value === undefined) {
+    throw new Error(`${label} was null/undefined`);
+  }
+  return value;
+}
+
 describe('reportCorruption frozen-object robustness', () => {
   beforeEach(() => {
     setCorruptionHandler(null);
@@ -42,11 +49,11 @@ describe('reportCorruption frozen-object robustness', () => {
 
     reportCorruption('FrozenTest', 'frozen metadata case', true);
 
-    expect(captured).not.toBeNull();
-    expect(captured!.source).toBe('FrozenTest');
-    expect(captured!.detail).toBe('frozen metadata case');
-    expect(captured!.recovered).toBe(true);
-    expect(typeof captured!.timestamp).toBe('string');
+    const received = requireDefined(captured, 'captured CorruptionReport');
+    expect(received.source).toBe('FrozenTest');
+    expect(received.detail).toBe('frozen metadata case');
+    expect(received.recovered).toBe(true);
+    expect(typeof received.timestamp).toBe('string');
   });
 
   it('does not throw when handler itself throws', () => {

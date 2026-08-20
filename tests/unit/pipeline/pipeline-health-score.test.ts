@@ -25,6 +25,13 @@ import { CostEfficiencyResult } from '@/pipeline/cost-efficiency-metrics';
 
 // ── Helpers ────────────────────────────────────────────────────
 
+function requireDefined<T>(value: T | undefined, label: string): T {
+  if (value === undefined) {
+    throw new Error(`${label} returned undefined`);
+  }
+  return value;
+}
+
 function makeBottleneckInfo(overrides: Partial<BottleneckInfo> = {}): BottleneckInfo {
   return {
     stageName: 'test-stage',
@@ -266,10 +273,9 @@ describe('generateRecommendations', () => {
 
     const recs = generateRecommendations(bn, rr, cc);
     expect(recs.length).toBeGreaterThanOrEqual(1);
-    const costRec = recs.find(r => r.category === 'cost');
-    expect(costRec).toBeDefined();
-    expect(costRec!.priority).toBe('high');
-    expect(costRec!.message).toContain('Cost per video');
+    const costRec = requireDefined(recs.find(r => r.category === 'cost'), 'cost recommendation');
+    expect(costRec.priority).toBe('high');
+    expect(costRec.message).toContain('Cost per video');
   });
 
   it('generates token recommendation for token regression', () => {
@@ -282,9 +288,11 @@ describe('generateRecommendations', () => {
     });
 
     const recs = generateRecommendations(bn, rr, cc);
-    const tokenRec = recs.find(r => r.category === 'cost' && r.message.includes('Token'));
-    expect(tokenRec).toBeDefined();
-    expect(tokenRec!.priority).toBe('medium');
+    const tokenRec = requireDefined(
+      recs.find(r => r.category === 'cost' && r.message.includes('Token')),
+      'token recommendation',
+    );
+    expect(tokenRec.priority).toBe('medium');
   });
 
   it('generates multiple recommendations when multiple issues exist', () => {
@@ -424,7 +432,8 @@ describe('computePipelineHealth', () => {
     });
 
     // costPerVideo=0.50, baseline=0.40 → (0.50-0.40)/0.40*100 = 25% > 10% → regression
-    expect(report.costComparison!.costRegression).toBe(true);
-    expect(report.costComparison!.baselineCostPerVideo).toBe(0.40);
+    const costComparison = requireDefined(report.costComparison, 'report.costComparison');
+    expect(costComparison.costRegression).toBe(true);
+    expect(costComparison.baselineCostPerVideo).toBe(0.40);
   });
 });

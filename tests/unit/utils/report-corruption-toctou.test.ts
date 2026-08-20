@@ -17,6 +17,13 @@ import {
   type CorruptionReport,
 } from '@stv/core/utils/report-corruption';
 
+function requireDefined<T>(value: T | null | undefined, label: string): T {
+  if (value === null || value === undefined) {
+    throw new Error(`${label} was null/undefined`);
+  }
+  return value;
+}
+
 describe('reportCorruption TOCTOU boundary tests', () => {
   beforeEach(() => {
     setCorruptionHandler(null);
@@ -243,9 +250,9 @@ describe('reportCorruption TOCTOU boundary tests', () => {
 
       reportCorruption('HandlerBoundary', 'day boundary test');
 
-      expect(receivedReport).not.toBeNull();
-      expect(receivedReport!.timestamp).toMatch(/^2026-01-01/);
-      expect(receivedReport!.source).toBe('HandlerBoundary');
+      const received = requireDefined(receivedReport, 'receivedReport');
+      expect(received.timestamp).toMatch(/^2026-01-01/);
+      expect(received.source).toBe('HandlerBoundary');
     });
   });
 

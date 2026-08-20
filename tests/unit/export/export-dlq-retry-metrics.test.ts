@@ -7,6 +7,13 @@ import { describe, it, expect, beforeEach } from '@jest/globals';
 import { ExportMetricsCollector } from '@/export/export-metrics-collector';
 import { ExportJobQueue, type QueueMetricsSink } from '@/export/export-job-queue';
 
+function requireDefined<T>(value: T | undefined, label: string): T {
+  if (value === undefined) {
+    throw new Error(`${label} returned undefined`);
+  }
+  return value;
+}
+
 // ---------------------------------------------------------------------------
 // Mock metrics sink for ExportJobQueue integration tests
 // ---------------------------------------------------------------------------
@@ -229,15 +236,15 @@ describe('ExportJobQueue DLQ/retry metrics integration', () => {
 
     // First attempt fails → retry
     const job = queue.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'h1' });
-    let dequeued = queue.dequeue()!;
+    let dequeued = requireDefined(queue.dequeue(), 'dequeue() #1');
     queue.completeJob(dequeued.jobId, false, undefined, 'fail 1');
 
     // Second attempt fails → retry
-    dequeued = queue.dequeue()!;
+    dequeued = requireDefined(queue.dequeue(), 'dequeue() #2');
     queue.completeJob(dequeued.jobId, false, undefined, 'fail 2');
 
     // Third attempt fails → dead-letter (retries exhausted)
-    dequeued = queue.dequeue()!;
+    dequeued = requireDefined(queue.dequeue(), 'dequeue() #3');
     queue.completeJob(dequeued.jobId, false, undefined, 'fail 3');
 
     const retryCalls = sink.calls.filter((c) => c.method === 'recordRetry');

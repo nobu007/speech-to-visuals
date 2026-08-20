@@ -50,8 +50,9 @@ describe('CORS configuration (ISS-017)', () => {
   test('should parse CORS_ORIGINS env var as comma-separated list', () => {
     process.env.CORS_ORIGINS = 'https://app.example.com, https://admin.example.com';
 
-    const allowedOrigins = process.env.CORS_ORIGINS
-      ? process.env.CORS_ORIGINS!.split(',').map(o => o.trim())
+    const corsEnv = process.env.CORS_ORIGINS;
+    const allowedOrigins = corsEnv
+      ? corsEnv.split(',').map(o => o.trim())
       : [];
 
     expect(allowedOrigins).toEqual(['https://app.example.com', 'https://admin.example.com']);
@@ -60,8 +61,9 @@ describe('CORS configuration (ISS-017)', () => {
   test('should handle single CORS_ORIGINS entry', () => {
     process.env.CORS_ORIGINS = 'https://app.example.com';
 
-    const allowedOrigins = process.env.CORS_ORIGINS
-      ? process.env.CORS_ORIGINS!.split(',').map(o => o.trim())
+    const corsEnv = process.env.CORS_ORIGINS;
+    const allowedOrigins = corsEnv
+      ? corsEnv.split(',').map(o => o.trim())
       : [];
 
     expect(allowedOrigins).toEqual(['https://app.example.com']);

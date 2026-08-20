@@ -107,8 +107,8 @@
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0249（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239、Phase 153: TASK-0240、Phase 154: TASK-0241、Phase 155: TASK-0242、Phase 156: TASK-0243、Phase 157〜159: TASK-0244〜0246、Phase 161: TASK-0247、Phase 162: TASK-0248、Phase 163: TASK-0249、Phase 164: TASK-0250）
-**次回開始番号**: TASK-0250
+**使用済みタスク番号**: TASK-0001 ~ TASK-0249（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239、Phase 153: TASK-0240、Phase 154: TASK-0241、Phase 155: TASK-0242、Phase 156: TASK-0243、Phase 157〜159: TASK-0244〜0246、Phase 161: TASK-0247、Phase 162: TASK-0248、Phase 163: TASK-0249、Phase 164: TASK-0250、Phase 165: TASK-0251）
+**次回開始番号**: TASK-0252
 
 > **REQ 番号帯（Phase 140 決定）**: REQ-313〜322 は acceptance-criteria の TC 帯（TC-313〜321 実在・TC-322 は未 merge PR #9 提案中）との番号衝突回避のため予約（未使用）。機能要件は REQ-323 から、TC は TC-323 から採番する（REQ-326/TC-323 が適用例）。
 
@@ -2452,6 +2452,38 @@ TASK-0250 は TASK-0249 契約（REQ-355）の上に立つ後半 — 契約モ�
 ### 次フェーズ開始番号
 
 **次回開始番号**: TASK-0251
+
+
+## Phase 165: 義務 C 第1ゲート tests/unit exact-0 — 残存全 21 ファイル 61 ノード一括撲滅（REQ-357・MW-033）
+
+**ステータス**: ✅完了（2026-08-20・TASK-0251 完了・実装 + specs を単一 commit に同梱）
+
+**背景**: TASK-0243 定義の義務 C（`tests/unit exact-0` + `tests total ≤ 100` の 2 gate）のうち第1ゲート。ratchet ラウンド 1〜8（Phase 148〜155）で tests/unit 471 → 61 まで減り、閾値選別（≥10 → ≥7）は枯渇 — 本ラウンドは guard-first survey で残存 **全数**（21 ファイル / 61 ノード）を一括撲滅する。
+
+**実装**:
+
+- 置換は Phase 148/149 確立の fail-loud idiom: `requireDefined(value, label)` ×14 ファイル（find/dequeue/getBaseline/optional field/null 戻り・label 付き throw で RED verdict が欠損名を名指し）・`fireCapturedResolver(fn, label)`（export-retry-lifecycle の Promise executor 捕捉 resolver 6 宣言を `(() => void) | undefined` 型に widen）・`act()` コールバック内 definite-assignment の `| undefined` 型 + 即 guard（use-framework-pipeline）・env truthy-ternary の const capture（cors-config）・`expect(x).toHaveLength(1)`（async-resource-cleanup）
+- **挙動保存の実証（GOTCHA）**: nullable-access-null-guard の `(scenes?.length ?? 0) === 0` は null も拾う — `=== undefined` のみの等価置換は null 入力 3 RED（`Cannot read properties of null`）。`=== null || === undefined` 両チェックで原本挙動（null → return 0）を保存し 31/31 GREEN
+- census pin: `TESTS_DIR_PINS.unit` 61 → **0**（transcription に次ぐ 2 番目の dir exact-0・files-based 空洞化チェックで pin 有効）・tests total 252 → **191**・履歴 comment に round 9 エントリ
+- MW-033: mutation（`expect(cached.status)` → `expect(cached!.status)`・health-check-service.test.ts:761）で **unit ratchet（Received: 1・expected ≤ 0）と total ratchet（Received: 192・expected ≤ 191）の同時 RED** `2 failed / 9 passed / 11 total` 実測 → revert GREEN 復元・監査 pin ≥32 → ≥33
+
+**タスク**:
+
+- [x] [TASK-0251: 義務 C 第1ゲート tests/unit exact-0 — 残存全 21 ファイル 61 ノード一括撲滅（REQ-357・MW-033）](TASK-0251.md) - 2h (DIRECT) 🔵 ✅2026-08-20（触 21 suite 826 tests + census 11/11 + guards 76/3226 GREEN・tsc 0・MW-033 同時 RED 実測 + pin ≥32→≥33 + REQ/TC/TASK/MW/overview を同一 commit 同梱）
+
+```
+義務 C は第1ゲート（tests/unit exact-0）を通過 — 残り第2ゲート tests total ≤ 100（現状 191・guards 51/visualization 54/integration 50 が次の層）
+`?.`/`??` → guard 置換は null と undefined の両方を見る（片側だけだと原本より検出力が落ちる）
+steering の getSnapshot consumer 横展開指示は Phase 162（e9fb26fb）で実施済み — 本 Phase は TASK-0250 §残存 obligation の指定どおり義務 C に着手
+```
+
+### 信頼性レベルサマリー（Phase 165 追加分）
+
+- 全 1 タスク 🔵（fail-loud 置換後の全 suite GREEN + census pin 引き下げ + MW-033 同時 RED 実測）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0252
 
 
 ## Spine: external references

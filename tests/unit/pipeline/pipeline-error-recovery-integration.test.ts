@@ -23,6 +23,13 @@ import {
 
 // ---------- Helpers ----------
 
+function requireDefined<T>(value: T | undefined, label: string): T {
+  if (value === undefined) {
+    throw new Error(`${label} returned undefined`);
+  }
+  return value;
+}
+
 function makeValidPipelineInput(): PipelineInput {
   return {
     audioFile: 'test-audio.wav',
@@ -116,7 +123,7 @@ describe('Pipeline Error Recovery Integration (TASK-0045)', () => {
       expect(result.success).toBe(true);
       // The orchestrator exposes totalRetryAttempts in metrics
       expect(result.metrics).toHaveProperty('totalRetryAttempts');
-      expect(typeof result.metrics!.totalRetryAttempts).toBe('number');
+      expect(typeof requireDefined(result.metrics, 'result.metrics').totalRetryAttempts).toBe('number');
     });
 
     it('emits failed progress when stage error boundary reports failure', async () => {
@@ -156,9 +163,11 @@ describe('Pipeline Error Recovery Integration (TASK-0045)', () => {
       // Fallback should have been invoked, allowing pipeline to proceed
       // The pipeline should still complete (fallback used)
       // At minimum, a 'failed' progress should have been emitted
-      const failedProgress = progressMessages.find((m) => m.status === 'failed');
-      expect(failedProgress).toBeDefined();
-      expect(failedProgress!.stageName).toBe('transcription');
+      const failedProgress = requireDefined(
+        progressMessages.find((m) => m.status === 'failed'),
+        'failed progress message',
+      );
+      expect(failedProgress.stageName).toBe('transcription');
     });
   });
 

@@ -13,6 +13,13 @@
 
 import { HttpMetricsCollector } from '@/monitoring/http-metrics-collector';
 
+function requireDefined<T>(value: T | undefined, label: string): T {
+  if (value === undefined) {
+    throw new Error(`${label} returned undefined`);
+  }
+  return value;
+}
+
 describe('HttpMetricsCollector', () => {
   let collector: HttpMetricsCollector;
 
@@ -70,7 +77,7 @@ describe('HttpMetricsCollector', () => {
     collector.recordRequest('GET', '/mixed', 503, 10); // 5xx server error
 
     const snap = collector.getSnapshot();
-    const route = snap.routes.find(r => r.path === '/mixed')!;
+    const route = requireDefined(snap.routes.find(r => r.path === '/mixed'), "route '/mixed'");
     expect(route.count).toBe(6);
     expect(route.errorCount).toBe(3); // 4xx + 5xx (unchanged >=400 semantics)
     expect(route.statusClassCounts).toEqual({
@@ -87,7 +94,7 @@ describe('HttpMetricsCollector', () => {
       collector.recordRequest('GET', '/all-classes', code, 5);
     }
     const snap = collector.getSnapshot();
-    const route = snap.routes.find(r => r.path === '/all-classes')!;
+    const route = requireDefined(snap.routes.find(r => r.path === '/all-classes'), "route '/all-classes'");
     expect(route.count).toBe(9);
     const total = Object.values(route.statusClassCounts).reduce((a, b) => a + b, 0);
     expect(total).toBe(route.count);
@@ -113,7 +120,7 @@ describe('HttpMetricsCollector', () => {
     collector.recordRequest('GET', '/flaky', 200, 10);
 
     const snap = collector.getSnapshot();
-    const flaky = snap.routes.find(r => r.path === '/flaky')!;
+    const flaky = requireDefined(snap.routes.find(r => r.path === '/flaky'), "route '/flaky'");
     expect(flaky.count).toBe(4);
     expect(flaky.errorCount).toBe(2);
     expect(flaky.errorRate).toBe(0.5);

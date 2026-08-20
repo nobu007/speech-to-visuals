@@ -10,6 +10,13 @@ import type { GenerateScenesRequest } from '../../../supabase/functions/generate
 
 const USER_ID = 'user-test-002';
 
+function requireDefined<T>(value: T | undefined, label: string): T {
+  if (value === undefined) {
+    throw new Error(`${label} was undefined`);
+  }
+  return value;
+}
+
 // ─── decideType Tests ────────────────────────────────────────────────────────
 
 describe('decideType', () => {
@@ -139,7 +146,7 @@ describe('calculateLayout', () => {
     expect(positioned[0].x).toBeDefined();
     expect(positioned[0].y).toBeDefined();
     expect(positioned[0].w).toBeDefined();
-    expect(positioned[1].x).toBeGreaterThan(positioned[0].x!);
+    expect(positioned[1].x).toBeGreaterThan(requireDefined(positioned[0].x, 'positioned[0].x'));
     expect(laidEdges.length).toBe(1);
     expect(laidEdges[0].points).toBeDefined();
   });
@@ -152,9 +159,9 @@ describe('calculateLayout', () => {
     const edges = [{ from: 'root', to: 'c0' }];
     const { nodes: positioned } = calculateLayout(nodes, edges, 'tree');
 
-    const root = positioned.find((n) => n.id === 'root');
-    const child = positioned.find((n) => n.id === 'c0');
-    expect(root!.y).toBeLessThan(child!.y!);
+    const root = requireDefined(positioned.find((n) => n.id === 'root'), 'root node');
+    const child = requireDefined(positioned.find((n) => n.id === 'c0'), 'c0 node');
+    expect(root.y).toBeLessThan(requireDefined(child.y, 'child.y'));
   });
 
   it('should position cycle nodes in circle', () => {
@@ -188,7 +195,7 @@ describe('calculateLayout', () => {
 
     expect(positioned.length).toBe(4);
     // Grid: first row has smaller y than second row
-    expect(positioned[0].y).toBeLessThan(positioned[2].y!);
+    expect(positioned[0].y).toBeLessThan(requireDefined(positioned[2].y, 'positioned[2].y'));
   });
 });
 

@@ -159,21 +159,27 @@ describe('useFrameworkPipeline (REQ-137)', () => {
 
   describe('execute', () => {
     test('should set isRunning=true during execution', async () => {
-      let resolveExecution!: (value: unknown) => void;
+      let resolveExecution: ((value: unknown) => void) | undefined;
       mockExecute.mockReturnValue(new Promise(r => { resolveExecution = r; }));
 
       const { result } = renderHook(() => useFrameworkPipeline());
 
       // Start execution in a suspended state
-      let execPromise: Promise<void>;
+      let execPromise: Promise<void> | undefined;
       act(() => {
         execPromise = result.current.execute(defaultPipelineInput);
       });
 
       // Resolve and await completion
       await act(async () => {
+        if (resolveExecution === undefined) {
+          throw new Error('resolveExecution was not captured by the mock Promise executor');
+        }
+        if (execPromise === undefined) {
+          throw new Error('execPromise was not assigned by act()');
+        }
         resolveExecution(successExecution);
-        await execPromise!;
+        await execPromise;
       });
 
       // After completion, isRunning should be false again

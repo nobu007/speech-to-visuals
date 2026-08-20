@@ -13,6 +13,13 @@ import {
 // Helpers
 // ---------------------------------------------------------------------------
 
+function requireDefined<T>(value: T | undefined, label: string): T {
+  if (value === undefined) {
+    throw new Error(`${label} returned undefined`);
+  }
+  return value;
+}
+
 function makeTracker(): PipelineRunRecoveryTracker {
   return new PipelineRunRecoveryTracker();
 }
@@ -588,12 +595,13 @@ describe('PipelineRunRecoveryTracker', () => {
       });
 
       const report = tracker.finalizeRun(true);
-      const transcriptionRecord = report.stages.find((s) => s.stage === 'transcription');
-
-      expect(transcriptionRecord).toBeDefined();
-      expect(transcriptionRecord!.attemptCount).toBe(2);
-      expect(transcriptionRecord!.recoveryStrategy).toBe('intelligent_retry');
-      expect(transcriptionRecord!.fallbackUsed).toBe(false);
+      const transcriptionRecord = requireDefined(
+        report.stages.find((s) => s.stage === 'transcription'),
+        'transcription stage record',
+      );
+      expect(transcriptionRecord.attemptCount).toBe(2);
+      expect(transcriptionRecord.recoveryStrategy).toBe('intelligent_retry');
+      expect(transcriptionRecord.fallbackUsed).toBe(false);
     });
 
     it('generates meaningful recommendation for nominal runs', () => {

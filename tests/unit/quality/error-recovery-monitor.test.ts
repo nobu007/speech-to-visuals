@@ -14,6 +14,13 @@ import { errorRecoveryEventBus } from '@/quality/error-recovery-event-bus';
 // Helpers
 // ---------------------------------------------------------------------------
 
+function requireDefined<T>(value: T | null | undefined, label: string): T {
+  if (value === null || value === undefined) {
+    throw new Error(`${label} was null/undefined`);
+  }
+  return value;
+}
+
 function injectErrorsDirectly(
   recovery: EnhancedErrorRecovery,
   stage: string,
@@ -150,8 +157,7 @@ describe('ErrorRecoveryMonitor', () => {
       const after = Date.now();
 
       const status = monitor.getHealthStatus();
-      expect(status.lastSampledAt).not.toBeNull();
-      const sampledAt = new Date(status.lastSampledAt!).getTime();
+      const sampledAt = new Date(requireDefined(status.lastSampledAt, 'status.lastSampledAt')).getTime();
       expect(sampledAt).toBeGreaterThanOrEqual(before);
       expect(sampledAt).toBeLessThanOrEqual(after);
       monitor.stop();
@@ -161,8 +167,7 @@ describe('ErrorRecoveryMonitor', () => {
       const monitor = new ErrorRecoveryMonitor(recovery);
       monitor.sampleNow();
       const status = monitor.getHealthStatus();
-      expect(status.assessment).not.toBeNull();
-      expect(status.assessment!.overallScore).toBeGreaterThanOrEqual(0);
+      expect(requireDefined(status.assessment, 'status.assessment').overallScore).toBeGreaterThanOrEqual(0);
       monitor.stop();
     });
   });

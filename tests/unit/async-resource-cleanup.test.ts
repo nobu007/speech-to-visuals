@@ -251,8 +251,7 @@ describe('ISS-C: BatchProcessingAPI sequential dedup', () => {
     });
 
     // a.wav and b.wav have the same hash and size → one is skipped
-    expect(result.skippedFiles).toBeDefined();
-    expect(result.skippedFiles!.length).toBe(1);
+    expect(result.skippedFiles).toHaveLength(1);
     expect(result.jobId).toBeDefined();
   });
 

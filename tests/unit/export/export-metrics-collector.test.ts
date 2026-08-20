@@ -10,6 +10,13 @@ import {
   type ExportMetricsSnapshot,
 } from '@/export/export-metrics-collector';
 
+function requireDefined<T>(value: T | undefined, label: string): T {
+  if (value === undefined) {
+    throw new Error(`${label} returned undefined`);
+  }
+  return value;
+}
+
 describe('ExportMetricsCollector', () => {
   let collector: ExportMetricsCollector;
 
@@ -141,12 +148,12 @@ describe('ExportMetricsCollector', () => {
       const snap = collector.getSnapshot();
       expect(snap.stages).toHaveLength(2);
 
-      const rendering = snap.stages.find(s => s.stage === 'rendering')!;
+      const rendering = requireDefined(snap.stages.find(s => s.stage === 'rendering'), "stage 'rendering'");
       expect(rendering.count).toBe(2);
       expect(rendering.sumMs).toBe(1200);
       expect(rendering.avgMs).toBe(600);
 
-      const encoding = snap.stages.find(s => s.stage === 'encoding')!;
+      const encoding = requireDefined(snap.stages.find(s => s.stage === 'encoding'), "stage 'encoding'");
       expect(encoding.count).toBe(1);
       expect(encoding.sumMs).toBe(200);
     });

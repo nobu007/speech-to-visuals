@@ -420,6 +420,13 @@
  * tests/visualization/strategies/dagre-layout-strategy.test.ts — turns
  * BOTH the tests/visualization directory ratchet (54 → 55) and the
  * tests-total ratchet (252 → 253) RED.
+ * Mutation-verified (Phase 165, MW-033): re-injecting ONE `!` into the
+ * Phase-165 rewrite — `expect(cached.status)` back to
+ * `expect(cached!.status)` in
+ * tests/unit/monitoring/health-check-service.test.ts — turns BOTH the
+ * tests/unit exact-0 directory ratchet (0 → 1) and the tests-total
+ * ratchet (191 → 192) RED: the second exact-0 directory pin (and the
+ * first of 義務 C's two gates) is enforced, not aspirational.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -507,6 +514,16 @@ const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url));
  * tests/guards 60 − 9 (node-extent-scan-single-source) = 51;
  * tests/analysis 13 − 7 (llm-cache-stats-paths) = 6;
  * tests total 338 − 86 = 252).
+ * and 2026-08-20 (Phase 165 / REQ-357: monotone decrease round 9 — the
+ * 義務 C first gate: EVERY remaining file in tests/unit, 21 files / 61
+ * nodes → 0 via fail-loud `requireDefined(value, label)` accessors
+ * (find/dequeue/getBaseline/optional-field reads), captured env
+ * narrowing (cors-config), `fireCapturedResolver` for the six
+ * Promise-executor resolvers in export-retry-lifecycle, act()-callback
+ * guards in use-framework-pipeline, and const-captured scene narrowing
+ * in nullable-access-null-guard: tests/unit 61 − 61 = 0 — the SECOND
+ * directory pinned at exact-0 (transcription was first, Phase 154);
+ * tests total 252 − 61 = 191).
  */
 const PINNED = {
   'src/visualization (production)': 0,
@@ -516,7 +533,7 @@ const PINNED = {
   'src/monitoring (production)': 0,
   'src/analysis (production)': 0,
   'src (production, excl. __tests__/__mocks__)': 0,
-  'tests (excl. __mocks__)': 252,
+  'tests (excl. __mocks__)': 191,
 } as const;
 
 /**
@@ -526,7 +543,7 @@ const PINNED = {
  * ratchet consciously, never silently.
  */
 const TESTS_DIR_PINS: Record<string, number> = {
-  unit: 61,
+  unit: 0,
   integration: 50,
   visualization: 54,
   guards: 51,
@@ -689,10 +706,10 @@ describe('non-null assertion census ratchet (REQ-328 / REQ-336 / REQ-337)', () =
     // 170 (pre-Phase-141 src total) − 67 − 29 − 17 − 10 − 7 − 6 (Phases
     // 141–146) − 22 (Phase 147, incl. the AST-only export node) = 0; the
     // liveness check below only guards against a scanner regression that
-    // would silently count nothing. The tests tree is still real: 252
+    // would silently count nothing. The tests tree is still real: 191
     // node hits over 14 pinned directories (1096 before Phase
-    // 148/149/150/151/152/153/154/155's −94 / −103 / −105 / −66 / −190 /
-    // −110 / −90 / −86 decreases).
+    // 148/149/150/151/152/153/154/155/165's −94 / −103 / −105 / −66 /
+    // −190 / −110 / −90 / −86 / −61 decreases).
     expect(testsTotal.count).toBeGreaterThan(0);
   });
 });

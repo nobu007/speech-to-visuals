@@ -149,20 +149,23 @@ describe('framework-integrated-pipeline: nullable result.scenes guard', () => {
   }
 
   function estimateSegmentationQualitySafe(result: FakeResult): number {
-    if (!result.success || (result.scenes?.length ?? 0) === 0) return 0;
-    const sceneCount = result.scenes!.length;
+    const scenes = result.scenes;
+    if (!result.success || scenes === null || scenes === undefined || scenes.length === 0) return 0;
+    const sceneCount = scenes.length;
     return sceneCount >= 2 && sceneCount <= 10 ? 0.90 : 0.60;
   }
 
   function estimateEntityExtractionQualitySafe(result: FakeResult): number {
-    if (!result.success || (result.scenes?.length ?? 0) === 0) return 0;
-    const scenesWithNodes = result.scenes!.filter(s => s.nodes.length > 0);
+    const scenes = result.scenes;
+    if (!result.success || scenes === null || scenes === undefined || scenes.length === 0) return 0;
+    const scenesWithNodes = scenes.filter(s => s.nodes.length > 0);
     return scenesWithNodes.length > 0 ? 0.85 : 0.50;
   }
 
   function estimateRelationAccuracySafe(result: FakeResult): number {
-    if (!result.success || (result.scenes?.length ?? 0) === 0) return 0;
-    const scenesWithEdges = result.scenes!.filter(s => s.edges.length > 0);
+    const scenes = result.scenes;
+    if (!result.success || scenes === null || scenes === undefined || scenes.length === 0) return 0;
+    const scenesWithEdges = scenes.filter(s => s.edges.length > 0);
     return scenesWithEdges.length > 0 ? 0.80 : 0.60;
   }
 

@@ -78,6 +78,13 @@ interface ProductionErrorHandler {
 
 let ProductionErrorHandlerClass: new () => ProductionErrorHandler;
 
+function requireDefined<T>(value: T | undefined, label: string): T {
+  if (value === undefined) {
+    throw new Error(`${label} returned undefined`);
+  }
+  return value;
+}
+
 function createHandler(): ProductionErrorHandler {
   return new ProductionErrorHandlerClass();
 }
@@ -471,11 +478,10 @@ describe('ProductionErrorHandler (REQ-173)', () => {
       const alert = await handler.handleError(new Error('test'));
       // Find a strategy and override its execute to throw
       const queue = handler.getErrorQueue();
-      const queued = queue.find(e => e.id === alert.id);
-      expect(queued).toBeDefined();
-      queued!.recoveryOptions[0].execute = async () => { throw new Error('boom'); };
+      const queued = requireDefined(queue.find(e => e.id === alert.id), `queued alert ${alert.id}`);
+      queued.recoveryOptions[0].execute = async () => { throw new Error('boom'); };
 
-      const result = await handler.executeRecoveryStrategy(alert.id, queued!.recoveryOptions[0].name);
+      const result = await handler.executeRecoveryStrategy(alert.id, queued.recoveryOptions[0].name);
       expect(result).toBe(false);
     });
   });

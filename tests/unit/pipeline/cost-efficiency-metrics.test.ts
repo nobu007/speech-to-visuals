@@ -15,6 +15,13 @@ import {
   CostEfficiency,
 } from '@/pipeline/cost-efficiency-metrics';
 
+function requireDefined<T>(value: T | undefined | null, label: string): T {
+  if (value === undefined || value === null) {
+    throw new Error(`${label} was undefined/null`);
+  }
+  return value;
+}
+
 // ---------- calculateCostEfficiency ----------
 
 describe('calculateCostEfficiency', () => {
@@ -163,8 +170,7 @@ describe('generateCostReport', () => {
     expect(report.timestamp).toBeGreaterThan(0);
     expect(report.efficiency.costPerVideo).toBeCloseTo(0.03);
     expect(report.efficiency.tokensPerAnalysis).toBeCloseTo(2000);
-    expect(report.comparison).not.toBeNull();
-    expect(report.comparison!.costRegression).toBe(false);
+    expect(requireDefined(report.comparison, 'report.comparison').costRegression).toBe(false);
   });
 
   it('generates report detecting regression with custom baselines', () => {
@@ -175,7 +181,7 @@ describe('generateCostReport', () => {
       analysisCount: 5,
     };
     const report = generateCostReport(data, 0.05, 5000);
-    expect(report.comparison!.costRegression).toBe(true);
-    expect(report.comparison!.tokenRegression).toBe(true);
+    expect(requireDefined(report.comparison, 'report.comparison').costRegression).toBe(true);
+    expect(requireDefined(report.comparison, 'report.comparison').tokenRegression).toBe(true);
   });
 });
