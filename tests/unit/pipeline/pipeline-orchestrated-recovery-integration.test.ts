@@ -27,6 +27,19 @@ import { TranscriptionError, RenderingError } from '@/pipeline/pipeline-errors';
 // Helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Fail-loud accessor for the `metrics?.recoveryReport` / `find()` captures:
+ * absence used to surface as `report!.runId` TypeError (or a bare
+ * `toBeDefined()` failure) — the helper keeps the RED verdict with the
+ * missing label named.
+ */
+function requireDefined<T>(value: T | null | undefined, label: string): T {
+  if (value === null || value === undefined) {
+    throw new Error(`${label} was not defined`);
+  }
+  return value;
+}
+
 function makeValidPipelineInput(): PipelineInput {
   return {
     audioFile: 'test-audio.wav',
@@ -78,11 +91,10 @@ describe('Pipeline Orchestrated Recovery Integration (Phase 57)', () => {
       expect(result.stages).toHaveLength(5);
 
       // The orchestrator should have produced a recovery report in metrics
-      const report = result.metrics?.recoveryReport;
-      expect(report).toBeDefined();
-      expect(report!.runId).toMatch(/^run-/);
-      expect(report!.success).toBe(true);
-      expect(report!.degradationLevel).toBe('nominal');
+      const report = requireDefined(result.metrics?.recoveryReport, 'recovery report');
+      expect(report.runId).toMatch(/^run-/);
+      expect(report.success).toBe(true);
+      expect(report.degradationLevel).toBe('nominal');
     });
 
     it('exposes the orchestrator via recoveryOrchestrator getter', () => {
@@ -255,13 +267,12 @@ describe('Pipeline Orchestrated Recovery Integration (Phase 57)', () => {
       const orchestrator = new PipelineOrchestrator();
       const result = await orchestrator.execute(makeValidPipelineInput());
 
-      const report = result.metrics?.recoveryReport;
-      expect(report).toBeDefined();
-      expect(report!.success).toBe(true);
-      expect(report!.degradationLevel).toBe('nominal');
-      expect(report!.totalRetries).toBe(0);
-      expect(report!.totalFallbacks).toBe(0);
-      expect(report!.stages).toBeDefined();
+      const report = requireDefined(result.metrics?.recoveryReport, 'recovery report');
+      expect(report.success).toBe(true);
+      expect(report.degradationLevel).toBe('nominal');
+      expect(report.totalRetries).toBe(0);
+      expect(report.totalFallbacks).toBe(0);
+      expect(report.stages).toBeDefined();
     });
 
     it('includes recovery report on failure', async () => {
@@ -323,13 +334,17 @@ describe('Pipeline Orchestrated Recovery Integration (Phase 57)', () => {
       const result = await orchestrator.execute(makeValidPipelineInput());
 
       expect(result.success).toBe(true);
-      const failedProgress = progressMessages.find((m) => m.status === 'failed');
-      expect(failedProgress).toBeDefined();
-      expect(failedProgress!.stageName).toBe('transcription');
+      const failedProgress = requireDefined(
+        progressMessages.find((m) => m.status === 'failed'),
+        'failed progress message',
+      );
+      expect(failedProgress.stageName).toBe('transcription');
 
-      const fallbackProgress = progressMessages.find((m) => m.status === 'fallback');
-      expect(fallbackProgress).toBeDefined();
-      expect(fallbackProgress!.message).toContain('test-fallback');
+      const fallbackProgress = requireDefined(
+        progressMessages.find((m) => m.status === 'fallback'),
+        'fallback progress message',
+      );
+      expect(fallbackProgress.message).toContain('test-fallback');
     });
   });
 

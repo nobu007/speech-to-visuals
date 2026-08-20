@@ -12,11 +12,25 @@ import type {
   ChainOutcome,
   ChainStepResult,
   ChainConfig,
+  ChainStats,
 } from '@/quality/recovery-strategy-chain';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Fail-loud accessor for `getStats(name): ChainStats | null` — a missing
+ * chain used to surface as `stats!.totalRuns` TypeError (or a bare
+ * `not.toBeNull()` failure); the helper keeps the RED verdict with the
+ * missing chain named.
+ */
+function requireStats(stats: ChainStats | null, chainName: string): ChainStats {
+  if (stats === null) {
+    throw new Error(`stats for chain "${chainName}" were not collected`);
+  }
+  return stats;
+}
 
 /** A step that always succeeds with the given confidence. */
 function successStep(id: string, value: string, confidence = 0.9) {
@@ -300,13 +314,12 @@ describe('RecoveryStrategyChain', () => {
       await chain.execute('analysis', defaultConfig('analysis'));
       await chain.execute('analysis', defaultConfig('analysis'));
 
-      const stats = chain.getStats('stats-chain');
-      expect(stats).not.toBeNull();
-      expect(stats!.totalRuns).toBe(2);
-      expect(stats!.successes).toBe(2);
-      expect(stats!.avgStepsToSuccess).toBe(1);
-      expect(stats!.topWinningStep).toBe('retry');
-      expect(stats!.lastRunAt).toBeGreaterThan(0);
+      const stats = requireStats(chain.getStats('stats-chain'), 'stats-chain');
+      expect(stats.totalRuns).toBe(2);
+      expect(stats.successes).toBe(2);
+      expect(stats.avgStepsToSuccess).toBe(1);
+      expect(stats.topWinningStep).toBe('retry');
+      expect(stats.lastRunAt).toBeGreaterThan(0);
     });
 
     it('tracks failures in stats', async () => {
@@ -317,10 +330,10 @@ describe('RecoveryStrategyChain', () => {
 
       await chain.execute('rendering', defaultConfig('rendering'));
 
-      const stats = chain.getStats('fail-chain');
-      expect(stats!.totalRuns).toBe(1);
-      expect(stats!.successes).toBe(0);
-      expect(stats!.topWinningStep).toBeNull();
+      const stats = requireStats(chain.getStats('fail-chain'), 'fail-chain');
+      expect(stats.totalRuns).toBe(1);
+      expect(stats.successes).toBe(0);
+      expect(stats.topWinningStep).toBeNull();
     });
 
     it('getAllStats returns stats for all chains', async () => {

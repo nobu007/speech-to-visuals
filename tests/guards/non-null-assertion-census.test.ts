@@ -155,6 +155,29 @@
  *     `result.notification` / `result.error` fields). All seven suites
  *     stayed green through the rewrite (8 suites / 315 tests, the pattern
  *     also matching one extra file).
+ *     Phase 151 (REQ-341 / TASK-0238) continued it with the next seven
+ *     largest files from the same guard-first survey — 66 nodes → 0:
+ *     `requireDefined(value, label)` in
+ *     tests/unit/pipeline/pipeline-quality-monitor.test.ts (13 nodes over
+ *     `getLatestMetrics(): QualityMetrics | null` and the
+ *     `violations.find(…)` captures), `requireTrend(trends, metric)` in
+ *     tests/unit/monitoring/real-time-performance-monitor.test.ts (11 nodes
+ *     over `analyzeTrends().find(t => t.metric === …)`), `requireDefined`
+ *     in tests/unit/pipeline/pipeline-orchestrated-recovery-integration
+ *     .test.ts (10 nodes over `metrics?.recoveryReport` and the
+ *     progress-message `.find(…)` captures), `requireWorstBottleneck(report)`
+ *     in tests/unit/pipeline/bottleneck-detector.test.ts (8 nodes over
+ *     `worstBottleneck: BottleneckInfo | null`), `requireRecoveryReport(result)`
+ *     in tests/unit/pipeline/pipeline-run-recovery-integration.test.ts
+ *     (8 nodes over `result.metrics!.recoveryReport as RunRecoveryReport` —
+ *     the field is typed `RunRecoveryReport` on ExtendedPipelineMetrics, so
+ *     the narrowing removed the cast too), `requireDefined` in
+ *     tests/unit/quality/enhanced-error-recovery-extended.test.ts (8 nodes
+ *     over the cascade-chain and `analytics.trends.find(…)` captures), and
+ *     `requireStats(stats, chainName)` in
+ *     tests/unit/quality/recovery-strategy-chain.test.ts (8 nodes over
+ *     `getStats(name): ChainStats | null`). All seven suites stayed green
+ *     through the rewrite (44/59/14/12/6/36/22 tests).
  *
  * Matching rule (AST since Phase 147 — SUPERSEDES the line-regex rule
  * documented in specs/speech-to-visuals/tasks/TASK-0226.md, which this
@@ -224,6 +247,12 @@
  * tests/unit/components/VideoPreview.test.tsx — turns BOTH the
  * tests/unit directory ratchet (169 → 170) and the tests-total ratchet
  * (794 → 795) RED.
+ * Mutation-verified (Phase 151, MW-017): re-injecting ONE `!` into the
+ * Phase-151 rewrite — `expect(latest.processingTime)` back to
+ * `expect(latest!.processingTime)` in
+ * tests/unit/pipeline/pipeline-quality-monitor.test.ts — turns BOTH the
+ * tests/unit directory ratchet (103 → 104) and the tests-total ratchet
+ * (728 → 729) RED.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -262,6 +291,13 @@ const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url));
  * 14 (VideoPreview) − 14 (animated-svg-lottie-export) −
  * 14 (error-recovery-boundary-grouping) = 169;
  * tests total 899 − 105 = 794).
+ * and 2026-08-20 (Phase 151 / REQ-341: monotone decrease round 4 —
+ * tests/unit 169 − 13 (pipeline-quality-monitor) − 11
+ * (real-time-performance-monitor) − 10 (pipeline-orchestrated-recovery-
+ * integration) − 8 (bottleneck-detector) − 8 (pipeline-run-recovery-
+ * integration) − 8 (enhanced-error-recovery-extended) − 8
+ * (recovery-strategy-chain) = 103;
+ * tests total 794 − 66 = 728).
  */
 const PINNED = {
   'src/visualization (production)': 0,
@@ -271,7 +307,7 @@ const PINNED = {
   'src/monitoring (production)': 0,
   'src/analysis (production)': 0,
   'src (production, excl. __tests__/__mocks__)': 0,
-  'tests (excl. __mocks__)': 794,
+  'tests (excl. __mocks__)': 728,
 } as const;
 
 /**
@@ -281,7 +317,7 @@ const PINNED = {
  * ratchet consciously, never silently.
  */
 const TESTS_DIR_PINS: Record<string, number> = {
-  unit: 169,
+  unit: 103,
   integration: 245,
   visualization: 184,
   guards: 72,
@@ -424,9 +460,9 @@ describe('non-null assertion census ratchet (REQ-328 / REQ-336 / REQ-337)', () =
     // 170 (pre-Phase-141 src total) − 67 − 29 − 17 − 10 − 7 − 6 (Phases
     // 141–146) − 22 (Phase 147, incl. the AST-only export node) = 0; the
     // liveness check below only guards against a scanner regression that
-    // would silently count nothing. The tests tree is still real: 794
-    // node hits over 14 pinned directories (1096 before Phase 148/149/150's
-    // −94 / −103 / −105 decreases).
+    // would silently count nothing. The tests tree is still real: 728
+    // node hits over 14 pinned directories (1096 before Phase 148/149/150/151's
+    // −94 / −103 / −105 / −66 decreases).
     expect(testsTotal.count).toBeGreaterThan(0);
   });
 });

@@ -6,6 +6,19 @@ import {
   QualityThresholds,
 } from '@/pipeline/quality-monitor';
 
+/**
+ * Fail-loud accessor for optional results (getLatestMetrics(): QualityMetrics
+ * | null, Array.find(): T | undefined). The old `x!` suppressed the checker
+ * and crashed as `undefined.field` TypeError on absence; the helper keeps the
+ * same RED verdict with the missing label named.
+ */
+function requireDefined<T>(value: T | null | undefined, label: string): T {
+  if (value === null || value === undefined) {
+    throw new Error(`${label} was not defined`);
+  }
+  return value;
+}
+
 describe('QualityMonitor (pipeline)', () => {
   let monitor: QualityMonitor;
 
@@ -45,20 +58,19 @@ describe('QualityMonitor (pipeline)', () => {
         fallbackTriggered: false,
       });
 
-      const latest = monitor.getLatestMetrics();
-      expect(latest).not.toBeNull();
-      expect(latest!.processingTime).toBe(5000);
-      expect(latest!.memoryUsage).toBe(256);
-      expect(latest!.errorCount).toBe(0);
+      const latest = requireDefined(monitor.getLatestMetrics(), 'latest metrics');
+      expect(latest.processingTime).toBe(5000);
+      expect(latest.memoryUsage).toBe(256);
+      expect(latest.errorCount).toBe(0);
     });
 
     it('should fill in default values for missing fields', () => {
       monitor.recordMetrics({ processingTime: 1000 });
 
-      const latest = monitor.getLatestMetrics();
-      expect(latest!.memoryUsage).toBe(0);
-      expect(latest!.layoutOverlap).toBe(0);
-      expect(latest!.fallbackTriggered).toBe(false);
+      const latest = requireDefined(monitor.getLatestMetrics(), 'latest metrics');
+      expect(latest.memoryUsage).toBe(0);
+      expect(latest.layoutOverlap).toBe(0);
+      expect(latest.fallbackTriggered).toBe(false);
     });
 
     it('should keep only last 100 entries', () => {
@@ -67,8 +79,8 @@ describe('QualityMonitor (pipeline)', () => {
       }
 
       // Should have trimmed to around 100
-      const latest = monitor.getLatestMetrics();
-      expect(latest!.processingTime).toBe(109);
+      const latest = requireDefined(monitor.getLatestMetrics(), 'latest metrics');
+      expect(latest.processingTime).toBe(109);
     });
   });
 
@@ -115,9 +127,11 @@ describe('QualityMonitor (pipeline)', () => {
 
       const report = monitor.generateReport();
       expect(report.violations.length).toBeGreaterThan(0);
-      const criticalViolation = report.violations.find(v => v.severity === 'critical');
-      expect(criticalViolation).toBeDefined();
-      expect(criticalViolation!.metric).toBe('transcriptionAccuracy');
+      const criticalViolation = requireDefined(
+        report.violations.find(v => v.severity === 'critical'),
+        'critical violation',
+      );
+      expect(criticalViolation.metric).toBe('transcriptionAccuracy');
     });
 
     it('should detect warning violations', () => {
@@ -132,9 +146,11 @@ describe('QualityMonitor (pipeline)', () => {
       });
 
       const report = monitor.generateReport();
-      const warning = report.violations.find(v => v.metric === 'sceneSegmentationF1');
-      expect(warning).toBeDefined();
-      expect(warning!.severity).toBe('warning');
+      const warning = requireDefined(
+        report.violations.find(v => v.metric === 'sceneSegmentationF1'),
+        'sceneSegmentationF1 violation',
+      );
+      expect(warning.severity).toBe('warning');
     });
 
     it('should detect memory usage violation', () => {
@@ -163,9 +179,11 @@ describe('QualityMonitor (pipeline)', () => {
       });
 
       const report = monitor.generateReport();
-      const timeViolation = report.violations.find(v => v.metric === 'processingTime');
-      expect(timeViolation).toBeDefined();
-      expect(timeViolation!.severity).toBe('info');
+      const timeViolation = requireDefined(
+        report.violations.find(v => v.metric === 'processingTime'),
+        'processingTime violation',
+      );
+      expect(timeViolation.severity).toBe('info');
     });
 
     it('should calculate improvement potential', () => {
@@ -261,8 +279,8 @@ describe('QualityMonitor (pipeline)', () => {
       monitor.recordMetrics({ processingTime: 1000 });
       monitor.recordMetrics({ processingTime: 2000 });
 
-      const latest = monitor.getLatestMetrics();
-      expect(latest!.processingTime).toBe(2000);
+      const latest = requireDefined(monitor.getLatestMetrics(), 'latest metrics');
+      expect(latest.processingTime).toBe(2000);
     });
   });
 
@@ -445,9 +463,9 @@ describe('QualityMonitor (pipeline)', () => {
     it('should update phase and iteration', () => {
       monitor.setPhaseIteration('phase-28', 3);
       monitor.recordMetrics({ processingTime: 1000 });
-      const latest = monitor.getLatestMetrics();
-      expect(latest!.phase).toBe('phase-28');
-      expect(latest!.iteration).toBe(3);
+      const latest = requireDefined(monitor.getLatestMetrics(), 'latest metrics');
+      expect(latest.phase).toBe('phase-28');
+      expect(latest.iteration).toBe(3);
     });
   });
 

@@ -17,6 +17,20 @@
 import { describe, it, expect, beforeEach, afterEach, beforeAll, jest } from '@jest/globals';
 import type { PerformanceMetric, PerformanceAlert, TrendAnalysis } from '../../../src/monitoring/real-time-performance-monitor';
 
+/**
+ * Fail-loud accessor for the `trends.find(...)` captures: an unanalyzed
+ * metric used to surface as `trend!.trend` TypeError (or a bare
+ * `toBeDefined()` failure) — the helper keeps the RED verdict with the
+ * missing metric named.
+ */
+function requireTrend(trends: TrendAnalysis[], metric: string): TrendAnalysis {
+  const trend = trends.find((t: TrendAnalysis) => t.metric === metric);
+  if (trend === undefined) {
+    throw new Error(`trend for "${metric}" was not analyzed`);
+  }
+  return trend;
+}
+
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
@@ -470,9 +484,8 @@ describe('RealTimePerformanceMonitor', () => {
       }
 
       const trends = monitor.analyzeTrends();
-      const processingTrend = trends.find((t: TrendAnalysis) => t.metric === 'processingTime');
-      expect(processingTrend).toBeDefined();
-      expect(processingTrend!.trend).toBe('stable');
+      const processingTrend = requireTrend(trends, 'processingTime');
+      expect(processingTrend.trend).toBe('stable');
     });
 
     it('should detect "degrading" trend for increasing processing time', () => {
@@ -481,9 +494,8 @@ describe('RealTimePerformanceMonitor', () => {
       }
 
       const trends = monitor.analyzeTrends();
-      const processingTrend = trends.find((t: TrendAnalysis) => t.metric === 'processingTime');
-      expect(processingTrend).toBeDefined();
-      expect(processingTrend!.trend).toBe('degrading');
+      const processingTrend = requireTrend(trends, 'processingTime');
+      expect(processingTrend.trend).toBe('degrading');
     });
 
     // memoryUsage is lower-is-better (rising memory = degradation / OOM risk),
@@ -498,9 +510,8 @@ describe('RealTimePerformanceMonitor', () => {
       }
 
       const trends = monitor.analyzeTrends();
-      const memoryTrend = trends.find((t: TrendAnalysis) => t.metric === 'memoryUsage');
-      expect(memoryTrend).toBeDefined();
-      expect(memoryTrend!.trend).toBe('degrading');
+      const memoryTrend = requireTrend(trends, 'memoryUsage');
+      expect(memoryTrend.trend).toBe('degrading');
     });
 
     it('should detect "improving" trend for decreasing memory usage', () => {
@@ -509,9 +520,8 @@ describe('RealTimePerformanceMonitor', () => {
       }
 
       const trends = monitor.analyzeTrends();
-      const memoryTrend = trends.find((t: TrendAnalysis) => t.metric === 'memoryUsage');
-      expect(memoryTrend).toBeDefined();
-      expect(memoryTrend!.trend).toBe('improving');
+      const memoryTrend = requireTrend(trends, 'memoryUsage');
+      expect(memoryTrend.trend).toBe('improving');
     });
 
     // -------------------------------------------------------------------------
@@ -543,9 +553,8 @@ describe('RealTimePerformanceMonitor', () => {
         for (let i = 0; i < 40; i++) {
           monitor.recordMetric(metric, base + i * step, unit);
         }
-        const trend = monitor.analyzeTrends().find((t: TrendAnalysis) => t.metric === metric);
-        expect(trend).toBeDefined();
-        expect(trend!.trend).toBe('degrading');
+        const trend = requireTrend(monitor.analyzeTrends(), metric);
+        expect(trend.trend).toBe('degrading');
       }
     );
 
@@ -556,9 +565,8 @@ describe('RealTimePerformanceMonitor', () => {
         for (let i = 0; i < 40; i++) {
           monitor.recordMetric(metric, start - i * step, unit);
         }
-        const trend = monitor.analyzeTrends().find((t: TrendAnalysis) => t.metric === metric);
-        expect(trend).toBeDefined();
-        expect(trend!.trend).toBe('improving');
+        const trend = requireTrend(monitor.analyzeTrends(), metric);
+        expect(trend.trend).toBe('improving');
       }
     );
 
@@ -583,11 +591,11 @@ describe('RealTimePerformanceMonitor', () => {
       }
 
       const trends = monitor.analyzeTrends();
-      const processingTrend = trends.find((t: TrendAnalysis) => t.metric === 'processingTime');
-      expect(processingTrend!.prediction).toBeDefined();
-      expect(processingTrend!.prediction.next5min).toBeGreaterThanOrEqual(0);
-      expect(processingTrend!.prediction.next15min).toBeGreaterThanOrEqual(0);
-      expect(processingTrend!.prediction.next1hour).toBeGreaterThanOrEqual(0);
+      const processingTrend = requireTrend(trends, 'processingTime');
+      expect(processingTrend.prediction).toBeDefined();
+      expect(processingTrend.prediction.next5min).toBeGreaterThanOrEqual(0);
+      expect(processingTrend.prediction.next15min).toBeGreaterThanOrEqual(0);
+      expect(processingTrend.prediction.next1hour).toBeGreaterThanOrEqual(0);
     });
 
     it('should include confidence level', () => {
@@ -596,8 +604,8 @@ describe('RealTimePerformanceMonitor', () => {
       }
 
       const trends = monitor.analyzeTrends();
-      const processingTrend = trends.find((t: TrendAnalysis) => t.metric === 'processingTime');
-      expect(processingTrend!.confidence).toBe(0.85); // >= 20 samples
+      const processingTrend = requireTrend(trends, 'processingTime');
+      expect(processingTrend.confidence).toBe(0.85); // >= 20 samples
     });
 
     it('should analyze all four tracked metric types', () => {

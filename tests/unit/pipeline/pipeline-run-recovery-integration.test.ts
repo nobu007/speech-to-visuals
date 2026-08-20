@@ -9,10 +9,25 @@
  */
 
 import { PipelineOrchestrator } from '@/pipeline/pipeline-orchestrator';
-import { PipelineInput } from '@/pipeline/types';
+import { PipelineInput, PipelineResult } from '@/pipeline/types';
 import type { RunRecoveryReport } from '@/quality/pipeline-run-recovery-tracker';
 
 // ---------- Helpers ----------
+
+/**
+ * Fail-loud accessor for the orchestrator's `metrics?.recoveryReport` — an
+ * absent report used to surface as `result.metrics!.recoveryReport` TypeError
+ * (or a bare `toBeDefined()` failure); the helper keeps the RED verdict with
+ * a diagnosable message. The field is typed `RunRecoveryReport` on
+ * ExtendedPipelineMetrics, so narrowing removes the old cast too.
+ */
+function requireRecoveryReport(result: PipelineResult): RunRecoveryReport {
+  const report = result.metrics?.recoveryReport;
+  if (report === undefined) {
+    throw new Error('recovery report was not produced in pipeline metrics');
+  }
+  return report;
+}
 
 function makeValidPipelineInput(): PipelineInput {
   return {
@@ -40,9 +55,8 @@ describe('PipelineRunRecoveryTracker Integration', () => {
 
     expect(result.success).toBe(true);
     expect(result.metrics).toBeDefined();
-    expect(result.metrics!.recoveryReport).toBeDefined();
 
-    const report = result.metrics!.recoveryReport as RunRecoveryReport;
+    const report = requireRecoveryReport(result);
     expect(report.runId).toMatch(/^run-\d+$/);
     expect(report.success).toBe(true);
     expect(report.totalDurationMs).toBeGreaterThanOrEqual(0);
@@ -54,7 +68,7 @@ describe('PipelineRunRecoveryTracker Integration', () => {
     const input = makeValidPipelineInput();
     const result = await orchestrator.execute(input);
 
-    const report = result.metrics!.recoveryReport as RunRecoveryReport;
+    const report = requireRecoveryReport(result);
     // The orchestrator runs 5 stages: transcription, analysis, layout_generation, animation, rendering
     expect(report.stages.length).toBeGreaterThanOrEqual(1);
 
@@ -69,7 +83,7 @@ describe('PipelineRunRecoveryTracker Integration', () => {
     const input = makeValidPipelineInput();
     const result = await orchestrator.execute(input);
 
-    const report = result.metrics!.recoveryReport as RunRecoveryReport;
+    const report = requireRecoveryReport(result);
 
     for (const stageRecord of report.stages) {
       expect(stageRecord.attemptCount).toBeGreaterThanOrEqual(1);
@@ -100,7 +114,7 @@ describe('PipelineRunRecoveryTracker Integration', () => {
     const result = await orchestrator.execute(input);
 
     expect(result.metrics?.recoveryReport).toBeDefined();
-    const report = result.metrics!.recoveryReport as RunRecoveryReport;
+    const report = requireRecoveryReport(result);
     expect(report.stages.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -111,7 +125,7 @@ describe('PipelineRunRecoveryTracker Integration', () => {
     const result = await orchestrator.execute(input);
     const after = Date.now();
 
-    const report = result.metrics!.recoveryReport as RunRecoveryReport;
+    const report = requireRecoveryReport(result);
 
     expect(report.startTime).toBeGreaterThanOrEqual(before);
     expect(report.startTime).toBeLessThanOrEqual(after);
@@ -124,10 +138,10 @@ describe('PipelineRunRecoveryTracker Integration', () => {
     const input = makeValidPipelineInput();
 
     const result1 = await orchestrator.execute(input);
-    const report1 = result1.metrics!.recoveryReport as RunRecoveryReport;
+    const report1 = requireRecoveryReport(result1);
 
     const result2 = await orchestrator.execute(input);
-    const report2 = result2.metrics!.recoveryReport as RunRecoveryReport;
+    const report2 = requireRecoveryReport(result2);
 
     // Each run should have a unique ID
     expect(report1.runId).not.toBe(report2.runId);

@@ -10,8 +10,24 @@ import {
   classifyBottleneck,
   detectBottlenecks,
   BottleneckSeverity,
+  BottleneckInfo,
+  BottleneckReport,
 } from '@/pipeline/bottleneck-detector';
 import { StageTimingRecord } from '@/pipeline/stage-timing-metrics';
+
+/**
+ * Fail-loud accessor for `report.worstBottleneck` (`BottleneckInfo | null` —
+ * non-null exactly when `hasBottleneck`): a null used to surface as
+ * `worstBottleneck!.stageName` TypeError, the helper keeps the RED verdict
+ * with a diagnosable message.
+ */
+function requireWorstBottleneck(report: BottleneckReport): BottleneckInfo {
+  const worst = report.worstBottleneck;
+  if (worst === null) {
+    throw new Error('worstBottleneck was null (no bottleneck detected)');
+  }
+  return worst;
+}
 
 // ---------- classifyBottleneck ----------
 
@@ -75,9 +91,9 @@ describe('detectBottlenecks', () => {
     ];
     const report = detectBottlenecks(stages);
     expect(report.hasBottleneck).toBe(true);
-    expect(report.worstBottleneck).not.toBeNull();
-    expect(report.worstBottleneck!.stageName).toBe('transcription');
-    expect(report.worstBottleneck!.severity).toBe('warning');
+    const worst = requireWorstBottleneck(report);
+    expect(worst.stageName).toBe('transcription');
+    expect(worst.severity).toBe('warning');
     expect(report.stages).toHaveLength(3);
   });
 
@@ -89,8 +105,9 @@ describe('detectBottlenecks', () => {
     ];
     const report = detectBottlenecks(stages);
     expect(report.hasBottleneck).toBe(true);
-    expect(report.worstBottleneck!.severity).toBe('critical');
-    expect(report.worstBottleneck!.percentOfTotal).toBeCloseTo(0.8);
+    const worst = requireWorstBottleneck(report);
+    expect(worst.severity).toBe('critical');
+    expect(worst.percentOfTotal).toBeCloseTo(0.8);
     expect(report.summary).toContain('critical');
   });
 
@@ -101,8 +118,9 @@ describe('detectBottlenecks', () => {
       makeStage('layout', 150),          // 15%
     ];
     const report = detectBottlenecks(stages);
-    expect(report.worstBottleneck!.stageName).toBe('transcription');
-    expect(report.worstBottleneck!.percentOfTotal).toBeGreaterThan(
+    const worst = requireWorstBottleneck(report);
+    expect(worst.stageName).toBe('transcription');
+    expect(worst.percentOfTotal).toBeGreaterThan(
       report.stages[1].percentOfTotal,
     );
   });
@@ -118,8 +136,9 @@ describe('detectBottlenecks', () => {
     const stages = [makeStage('solo', 1000)];
     const report = detectBottlenecks(stages);
     expect(report.hasBottleneck).toBe(true);
-    expect(report.worstBottleneck!.severity).toBe('critical');
-    expect(report.worstBottleneck!.percentOfTotal).toBe(1);
+    const worst = requireWorstBottleneck(report);
+    expect(worst.severity).toBe('critical');
+    expect(worst.percentOfTotal).toBe(1);
   });
 
   it('generates non-bottleneck message for stages under threshold', () => {

@@ -23,6 +23,18 @@ function makeContext(overrides: Partial<{ stage: ProcessingStage; retryCount: nu
   };
 }
 
+/**
+ * Fail-loud accessor for the cascade/`trends.find(…)` captures: absence used
+ * to surface as `x!.field` TypeError (or a bare `toBeDefined()` failure) —
+ * the helper keeps the RED verdict with the missing label named.
+ */
+function requireDefined<T>(value: T | null | undefined, label: string): T {
+  if (value === null || value === undefined) {
+    throw new Error(`${label} was not defined`);
+  }
+  return value;
+}
+
 describe('EnhancedErrorRecovery - Export stage recovery', () => {
   let recovery: EnhancedErrorRecovery;
 
@@ -212,10 +224,12 @@ describe('EnhancedErrorRecovery - Error Cascade Detection', () => {
     const chains = recovery.detectErrorCascades(5000);
 
     expect(chains.length).toBeGreaterThan(0);
-    const transChain = chains.find(c => c.triggerStage === 'transcription');
-    expect(transChain).toBeDefined();
-    expect(transChain!.affectedStages).toContain('analysis');
-    expect(transChain!.affectedStages).toContain('layout_generation');
+    const transChain = requireDefined(
+      chains.find(c => c.triggerStage === 'transcription'),
+      'transcription cascade chain',
+    );
+    expect(transChain.affectedStages).toContain('analysis');
+    expect(transChain.affectedStages).toContain('layout_generation');
   });
 
   it('should NOT detect cascade when errors are outside time window', () => {
@@ -288,11 +302,13 @@ describe('EnhancedErrorRecovery - Error Cascade Detection', () => {
     }
 
     const chains = recovery.detectErrorCascades(5000);
-    const pattern = chains.find(c =>
-      c.triggerStage === 'transcription' && c.affectedStages.includes('analysis')
+    const pattern = requireDefined(
+      chains.find(c =>
+        c.triggerStage === 'transcription' && c.affectedStages.includes('analysis')
+      ),
+      'transcription→analysis cascade pattern',
     );
-    expect(pattern).toBeDefined();
-    expect(pattern!.frequency).toBeGreaterThanOrEqual(2);
+    expect(pattern.frequency).toBeGreaterThanOrEqual(2);
   });
 });
 
@@ -384,10 +400,12 @@ describe('EnhancedErrorRecovery - Error Analytics', () => {
     recovery['errorHistory'].set('analysis', errors);
 
     const analytics = recovery.getErrorAnalytics();
-    const analysisTrend = analytics.trends.find(t => t.stage === 'analysis');
-    expect(analysisTrend).toBeDefined();
-    expect(analysisTrend!.trend).toBe('increasing');
-    expect(analysisTrend!.errorCount).toBe(8);
+    const analysisTrend = requireDefined(
+      analytics.trends.find(t => t.stage === 'analysis'),
+      'analysis trend',
+    );
+    expect(analysisTrend.trend).toBe('increasing');
+    expect(analysisTrend.errorCount).toBe(8);
   });
 
   it('should calculate decreasing trend', () => {
@@ -411,9 +429,11 @@ describe('EnhancedErrorRecovery - Error Analytics', () => {
     recovery['errorHistory'].set('rendering', errors);
 
     const analytics = recovery.getErrorAnalytics();
-    const renderTrend = analytics.trends.find(t => t.stage === 'rendering');
-    expect(renderTrend).toBeDefined();
-    expect(renderTrend!.trend).toBe('decreasing');
+    const renderTrend = requireDefined(
+      analytics.trends.find(t => t.stage === 'rendering'),
+      'rendering trend',
+    );
+    expect(renderTrend.trend).toBe('decreasing');
   });
 
   it('should report stable trend for uniform error distribution', () => {
@@ -433,9 +453,11 @@ describe('EnhancedErrorRecovery - Error Analytics', () => {
     recovery['errorHistory'].set('export', errors);
 
     const analytics = recovery.getErrorAnalytics();
-    const exportTrend = analytics.trends.find(t => t.stage === 'export');
-    expect(exportTrend).toBeDefined();
-    expect(exportTrend!.trend).toBe('stable');
+    const exportTrend = requireDefined(
+      analytics.trends.find(t => t.stage === 'export'),
+      'export trend',
+    );
+    expect(exportTrend.trend).toBe('stable');
   });
 
   it('should report top error types per stage', () => {
@@ -455,9 +477,11 @@ describe('EnhancedErrorRecovery - Error Analytics', () => {
     recovery['errorHistory'].set('transcription', errors);
 
     const analytics = recovery.getErrorAnalytics();
-    const transTrend = analytics.trends.find(t => t.stage === 'transcription');
-    expect(transTrend).toBeDefined();
-    expect(transTrend!.topErrorTypes[0]).toBe('TimeoutError');
+    const transTrend = requireDefined(
+      analytics.trends.find(t => t.stage === 'transcription'),
+      'transcription trend',
+    );
+    expect(transTrend.topErrorTypes[0]).toBe('TimeoutError');
   });
 
   it('should compute recovery success rate from strategy stats', async () => {
