@@ -4567,6 +4567,27 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A152: Phase 152 — tests ツリー non-null assertion ratchet 単調減少ラウンド 5・tests/unit 外初回（integration 245 → 132・visualization 184 → 107）（2026-08-20 第233回検証）
+
+- **判断**（steering の unit 外対象指令の実行 → ディレクトリ別 2 根本クラスの切り分け → `?? Number.NaN` による旧 NaN 伝播の明示保存）:
+
+1. **実仕事は steering 指令の直接実行**: task registry TASK-0239 と一致。steering は前回 iteration を VALUABLE 判定し「残 pin 728 の最大プールである **tests/integration(245) と tests/visualization(184)** を対象に単調減少を継続」を指令 — unit（残 103）が最小ディレクトリになったため対象を最大プール 2 ディレクトリに移した初回ラウンド。guard-first survey（AST census per-file 集計・降順・手動列挙なし）で上位 9 ファイル 190 node（phase32-quality-pipeline 38・batch 23・importance-scaler 21・secure-download-pipeline 20・flow-strategy 20・tree-strategy 18・complex-layout-engine 18・test_pipeline_health_smoke 17・label-sizing-pipeline 15）を機械的に対象化。
+2. **ディレクトリ別 2 根本クラスの使い分け（すべて verdict 保存）**: integration 側 — (a) `requireMetrics(result)` ×2（phase32 38 node・戻り型 `Partial<ExtendedPipelineMetrics>` ／ label-sizing 15 node・`NonNullable<PipelineResult['metrics']>` 版。destructure 抑制 `optimizationAttempts!` 等も通常 field 読みに）・(b) null 戻り lookup 3 種（batch 23 node・`getJobStatus(): BatchJobStatus | null` 等を jobId/label 付きで guard。`not.toBeNull()` 対は折りたたみ）・(c) `requireDefined<T>`（secure-download 20 node・null と undefined の両方を guard）・(d) optional-field helper 3 種（health_smoke 17 node・未 export 型は `NonNullable<SmokeOrchestratorResult['timingReport']>` 導出で回避）。visualization 側 — (e) `findNode(result, id)` + `centerXOf`/`centerYOf`/`centerOf`（flow 20・tree 18・complex-layout 18 node。`@stv/core` の `PositionedNode.width|height` と `DiagramLayout` node の `w|h` は optional ため算術は `(node.width ?? Number.NaN)` とする）・(f) `requireModule(mod, name)`（importance-scaler 21 node・definite-assignment `let MindMapStrategy!: typeof import(…)` を `let mod: typeof import(…) | undefined` holder + 各テスト destructure に変換）。
+3. **`?? Number.NaN` の等価性根拠（本ラウンドの新規パターン）**: 旧 `node.x + node.width! / 2` の `!` は compile-time only で runtime 値を変えないため `width === undefined` なら旧コードは `NaN` を算出し比較 matcher は fail（= RED）。`?? Number.NaN` は同一の undefined→NaN 伝播を明示保存するため **runtime 等価**。加えて jest matcher（`toBeGreaterThan` 等）が `number | undefined` を拒む型エラー（tsconfig.test.json・4 件）を解消 — `!` より型健全。MW-018: Phase 152 rewrite への `!` 1 node 再注入（flow-strategy・`centerXOf(nodeA)` → `nodeA.x + nodeA.width! / 2`）で **tests 合計 ratchet（`Expected: <= 538 / Received: 539`）と tests/visualization dir ratchet（`Expected: <= 107 / Received: 108`）の 2 tests RED** を実測 → revert で GREEN・ledger 監査 pin ≥17 → ≥18。
+
+- **根拠**: TASK-0239・census + ledger guard 実行出力（2 suites / 49 tests GREEN）・MW-018 再実行プロトコル（台帳本文）・guard-first per-file census 実測（integration 245→132 / visualization 184→107 / 総 728→538・120 files）・tsc tsconfig.app.json exit=0（tsconfig.test.json は Phase 147 からの既知 3 error のみ）・TC-338 再検証コマンド 13 suites / 228 tests GREEN。
+
+- **最終フルスイート**（Phase 152 全変更後・初回 run で全 GREEN・並走なし）:
+  `[EVIDENCE] started≈2026-08-20T13:20:05+09:00 ended≈2026-08-20T13:22:20+09:00 exit=0 (jest Time: 135.488s) cmd=NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=6144' npx jest --config jest.config.cjs commit=3ace218a+phase152-worktree branch=ai/instruction-speech-to-visuals-20260820-035455-642220` → **742 suites / 742 passed・23,157 passed / 0 failed / 17 skipped**（Phase 151 完了時と同数 — 本ラウンドはテスト追加なしの置換のみ。時刻は完了時出力ファイル mtime 13:22 から jest Time 135.488s を差し引いた導出値）
+
+- **信頼性への影響**:
+
+- REQ-342 追加（🔵・実装+guard pin+MW-018 に出典）。🔵 325 → 326 件。
+- tests ツリーの `!` が 5 ラウンド連続で減少（1096 → 1002 → 899 → 794 → 728 → **538**・integration 245 → **132**・visualization 184 → **107**・unit 103 不変）。190 node の checker 抑制が verdict 保存置換で除去された。残 538（census 次点: analysis/llm-cache-debounce 20・visualization/cycle-strategy 16・pipeline/improvement-detector 15・integration/pipeline-orchestrator-recovery 13・integration/export-artifact-pipeline-e2e 12）。
+- 残課題（引継ぎ）: tests 残 538 の継続縮小（tests 全体 0 到達時に 14 ディレクトリ個別 pin を tests 全体 exact-0 pin へ集約する steering 指令を未実施）・Phase 132 TASK-0218〜0222 未着手・requirements.md の PR #12 由来 dead citation 残存（A137 引継ぎ）。
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)

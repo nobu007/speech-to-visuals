@@ -107,8 +107,8 @@
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0237（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237）
-**次回開始番号**: TASK-0238
+**使用済みタスク番号**: TASK-0001 ~ TASK-0238（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238）
+**次回開始番号**: TASK-0239
 
 > **REQ 番号帯（Phase 140 決定）**: REQ-313〜322 は acceptance-criteria の TC 帯（TC-313〜321 実在・TC-322 は未 merge PR #9 提案中）との番号衝突回避のため予約（未使用）。機能要件は REQ-323 から、TC は TC-323 から採番する（REQ-326/TC-323 が適用例）。
 
@@ -2072,6 +2072,34 @@ MW 台帳（TASK-0228）に MW-017 追加・監査 pin ≥16 → ≥17
 ### 次フェーズ開始番号
 
 **次回開始番号**: TASK-0239
+
+## Phase 152: tests ツリー non-null assertion ratchet 単調減少ラウンド 5・tests/unit 外初回（integration 245 → 132・visualization 184 → 107）
+
+**ステータス**: ✅完了（2026-08-20・TASK-0239 完了）
+
+**背景**: steering が前回 iteration を VALUABLE 判定し「残 pin 728 の最大プールである tests/integration(245) と tests/visualization(184) を対象に単調減少を継続」を指令 — **unit 外ディレクトリ初回**。**guard-first survey**（AST census per-file 集計降順・手動列挙なし）上位 9 ファイル 190 node（phase32-quality-pipeline 38・batch 23・importance-scaler 21・secure-download-pipeline 20・flow-strategy 20・tree-strategy 18・complex-layout-engine 18・test_pipeline_health_smoke 17・label-sizing-pipeline 15）を対象。integration 側（optional `result.metrics`・null 戻り `getJobStatus(): BatchJobStatus | null`・download stage チェーン）と visualization 側（optional `PositionedNode.width|height` への算術・動的 import の definite-assignment `!:`）の 2 根本クラスを fail-loud helper 群（`requireMetrics` ×2・`requireJobStatus`/`requireCancelToken`/`requireStartedId`・`requireDefined<T>`・`requireTimingReport`/`requireHealthReport`/`requireCostComparison`（`NonNullable<T['field']>` で未 export 型を回避）・`findNode`/`findLayoutNode`・`requireModule`・`centerXOf`/`centerYOf`/`centerOf`（`?? Number.NaN` で旧 `width!` 算術の undefined→NaN 伝播を保存し matcher 型エラーも解消））で挙動保存・verdict 保存置換し 190 node → 0・**tests/integration pin 245 → 132・tests/visualization pin 184 → 107・tests 合計 pin 728 → 538**。MW-018（rewrite への `!` 1 node 再注入で合計 ratchet 539 > 538 と visualization dir ratchet 108 > 107 の 2 RED）で減少の機械強制を継続実証。
+
+### タスク一覧
+
+- [x] [TASK-0239: tests ツリー non-null assertion ratchet 単調減少ラウンド 5・tests/unit 外初回（integration 245 → 132・visualization 184 → 107）](TASK-0239.md) - 3h (DIRECT) 🔵 ✅2026-08-20（190 node→0・pin 132/107/538・MW-018）
+
+### 依存関係
+
+```
+TASK-0239 は REQ-337 の TESTS_DIR_PINS（TASK-0234）を Phase 148〜151 に続き縮小側に更新（integration/visualization は初回縮小）
+requireDefined/requireJobStatus は REQ-340/REQ-341 と同型・requireMetrics/requireCancelToken/requireStartedId/requireTimingReport/requireHealthReport/requireCostComparison/findNode/requireModule/centerXOf 系は新規
+MW 台帳（TASK-0228）に MW-018 追加・監査 pin ≥17 → ≥18
+次候補: tests 残 538 の継続縮小（census 次点: analysis/llm-cache-debounce 20・visualization/cycle-strategy 16・pipeline/improvement-detector 15・integration/pipeline-orchestrator-recovery 13・integration/export-artifact-pipeline-e2e 12）
+```
+
+### 信頼性レベルサマリー（Phase 152 追加分）
+
+- 全 1 タスク 🔵（A151 残課題（unit 残 103）+ steering の integration/visualization 対象指令 + 実測（census + ledger guard 49 tests・対象パターン 13 suites 228 tests GREEN・tsc 0・full 742 suites 23,157 passed 0 failed・MW-018 mutant RED 2 failed）に出典）
+- 推定工数: 3 時間
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0240
 
 ## Spine: external references
 

@@ -5870,6 +5870,12 @@
 - [x] **TC-337-02**: 減少の強制が継続実証されていること — Phase 151 rewrite への `!` 1 node 再注入（`expect(latest.processingTime)` → `expect(latest!.processingTime)`・pipeline-quality-monitor.test.ts）が tests/unit ディレクトリ ratchet（104 > 103 超過）と tests 合計 ratchet（729 > 728 超過）の **2 tests RED** を生むこと（MW-017・revert 後 GREEN）。置換は verdict 保存であること — (c) の `getStats()` は `ChainStats | null` を・`worstBottleneck` は `BottleneckInfo | null` を返すため helper は **null を guard** すること（旧: `null.totalRuns` TypeError = RED・新: throw Error = 同一 RED verdict）・(d) は `metrics?.recoveryReport` の narrowing で旧 `as RunRecoveryReport` cast をも解消していること（field は ExtendedPipelineMetrics で既に `RunRecoveryReport` 型）・直前の `toBeDefined()` / `not.toBeNull()` 対は helper の throw が同保証を担うため折りたたまれていること 🔵
   - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'tests/guards/non-null-assertion-census|tests/unit/pipeline/pipeline-quality-monitor|tests/unit/monitoring/real-time-performance-monitor|tests/unit/pipeline/pipeline-orchestrated-recovery-integration|tests/unit/pipeline/bottleneck-detector|tests/unit/pipeline/pipeline-run-recovery-integration|tests/unit/quality/enhanced-error-recovery-extended|tests/unit/quality/recovery-strategy-chain'`（8 suites / 204 tests）
 
+#### REQ-342: tests ツリー non-null assertion ratchet 単調減少ラウンド 5・tests/unit 外初回（Phase 152）
+
+- [x] **TC-338-01**: REQ-337 の ratchet が Phase 151 に引き続き・steering 指令の **tests/unit 外初回**として単調減少していること — Phase 152 実施後、tests/integration ディレクトリ pin が **245 → 132**（phase32-quality-pipeline.test.ts 38 node → 0・batch.test.ts 23 node → 0・secure-download-pipeline.test.ts 20 node → 0・test_pipeline_health_smoke.test.ts 17 node → 0・label-sizing-pipeline.test.ts 15 node → 0・計 113 node）に・tests/visualization ディレクトリ pin が **184 → 107**（importance-scaler.test.ts 21 node → 0・strategies/flow-strategy.test.ts 20 node → 0・strategies/tree-strategy.test.ts 18 node → 0・complex-layout-engine.test.ts 18 node → 0・計 77 node）に・tests 合計 pin が **728 → 538** に縮小され、guard が縮小後の pin で GREEN であること・対象が **guard-first survey**（AST census per-file 集計降順・手動列挙なし）で両ディレクトリの上位ファイルを機械的に選定していること・置換対象 9 suite を含むパターン一致 **13 suites / 228 tests** が GREEN であること 🔵
+- [x] **TC-338-02**: 減少の強制が継続実証されていること — Phase 152 rewrite への `!` 1 node 再注入（`const centerA = centerXOf(nodeA);` → `const centerA = nodeA.x + nodeA.width! / 2;`・flow-strategy.test.ts）が tests/visualization ディレクトリ ratchet（108 > 107 超過）と tests 合計 ratchet（539 > 538 超過）の **2 tests RED** を生むこと（MW-018・revert 後 GREEN）。置換は verdict 保存であること — (b) の `getJobStatus()` は `BatchJobStatus | null` を返すため helper は **null を guard** すること（旧: `null.status` TypeError = RED・新: throw Error = 同一 RED verdict）・(e) の `centerXOf` は旧 `node.width!` 算術の undefined→NaN 伝播を `?? Number.NaN` で**保存**すること（`!` は runtime 値を変えないので NaN 挙動が旧と同一）・(f) の definite-assignment `let MindMapStrategy!: typeof import(…)` は `let mod: typeof import(…) | undefined` holder + 各テストの `requireModule` destructure に置換され・beforeAll import 失敗時は module 名入り Error で RED であること・ledger 監査 pin が **≥17 → ≥18** に引き上げられ MW-018 エントリで GREEN であること 🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'tests/guards/non-null-assertion-census|tests/guards/mutation-witness-ledger|tests/integration/phase32-quality-pipeline|tests/integration/batch|tests/integration/secure-download-pipeline|tests/integration/test_pipeline_health_smoke|tests/integration/label-sizing-pipeline|tests/visualization/importance-scaler|tests/visualization/strategies/flow-strategy|tests/visualization/strategies/tree-strategy|tests/visualization/complex-layout-engine'`（13 suites / 228 tests）
+
 
 ### Phase 111+ 受け入れ基準サマリー
 
@@ -5929,7 +5935,8 @@
 | REQ-339: tests ツリー non-null assertion ratchet 単調減少ラウンド 2 | 2 | 🔵 |
 | REQ-340: tests ツリー non-null assertion ratchet 単調減少ラウンド 3 | 2 | 🔵 |
 | REQ-341: tests ツリー non-null assertion ratchet 単調減少ラウンド 4 | 2 | 🔵 |
-| **合計** | **130** | **🔵 92.3% / 🟡 7.7%** |
+| REQ-342: tests ツリー non-null assertion ratchet 単調減少ラウンド 5・tests/unit 外初回 | 2 | 🔵 |
+| **合計** | **132** | **🔵 92.4% / 🟡 7.6%** |
 
 
 <!-- spine:references:begin -->

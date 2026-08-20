@@ -165,6 +165,16 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 
 ---
 
+## MW-018 — tests ratchet の単調減少強制ラウンド 5（REQ-342・Phase 152・Phase 152 rewrite への `!` 再注入）
+
+- **claim**: tests/guards/non-null-assertion-census.test.ts ヘッダ「re-injecting ONE `!` into the Phase-152 rewrite — `const centerA = centerXOf(nodeA);` back to `const centerA = nodeA.x + nodeA.width! / 2;` in tests/visualization/strategies/flow-strategy.test.ts — turns BOTH the tests/visualization directory ratchet (107 → 108) and the tests-total ratchet (538 → 539) RED」
+- **target**: `tests/visualization/strategies/flow-strategy.test.ts`（Phase 152 置換後の `const centerA = centerXOf(nodeA);` 行）
+- **mutation**: `const centerA = centerXOf(nodeA);` → `const centerA = nodeA.x + nodeA.width! / 2;`（Phase 152 が helper `centerXOf`（`?? Number.NaN` 保存）で除去した checker 抑制の 1 node 再注入）
+- **command**: `npx jest --config jest.config.cjs tests/guards/non-null-assertion-census.test.ts`
+- **observed** (2026-08-20): `Tests: 2 failed, 9 passed, 11 total` — RED は tests 合計 ratchet（`Expected: <= 538 / Received: 539`）と tests/visualization ディレクトリ ratchet（`Expected: <= 107 / Received: 108`）の 2 件。Phase 152 の減少（visualization 184 → 107・総 728 → 538）が ratchet で強制されている実証。revert 後 census guard `11 passed`
+
+---
+
 ## 恒久 mutation test（ledger 対象外・常時 CI で走るもの）
 
 以下は「一時 mutant → RED 確認 → revert」ではなく mutant を恒久テスト化したもので、
