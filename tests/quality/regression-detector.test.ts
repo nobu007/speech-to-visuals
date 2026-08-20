@@ -29,6 +29,27 @@ beforeAll(async () => {
 });
 
 // --- Helpers ---
+
+type LoadedBaseline = Awaited<ReturnType<RegressionDetectorType['loadBaseline']>>;
+
+/** Fail-loud baseline read — `loadBaseline()` returns `BaselineData | null`
+ *  and the sites below read it right after writing the file, so null is a
+ *  load drift the test must report, not a TypeError on `loaded!.sampleSize`.
+ *  The redundant preceding `expect(loaded).not.toBeNull()` pairs are folded
+ *  into the throw. */
+function requireLoadedBaseline(loaded: LoadedBaseline): NonNullable<LoadedBaseline> {
+  if (loaded === null) throw new Error('loadBaseline() returned null for a file that was just written');
+  return loaded;
+}
+
+/** Fail-loud regression/improvement capture over the
+ *  `.find(x => x.metric === …)` sites (same fold for `toBeDefined()`). */
+function requireByMetric<T extends { metric: string }>(entries: T[], metric: string): T {
+  const found = entries.find((x) => x.metric === metric);
+  if (found === undefined) throw new Error(`no entry for metric ${metric}`);
+  return found;
+}
+
 let testCounter = 0;
 
 function uniqueTestPath(): string {
@@ -142,10 +163,9 @@ describe('RegressionDetector', () => {
 
       const d = RegressionDetector.getInstance(currentTestPath);
       injectMockQualityMonitor(d);
-      const loaded = await d.loadBaseline();
-      expect(loaded).not.toBeNull();
-      expect(loaded!.sampleSize).toBe(10);
-      expect(loaded!.timestamp).toBeInstanceOf(Date);
+      const loaded = requireLoadedBaseline(await d.loadBaseline());
+      expect(loaded.sampleSize).toBe(10);
+      expect(loaded.timestamp).toBeInstanceOf(Date);
     });
 
     test('returns null on parse error', async () => {
@@ -310,10 +330,9 @@ describe('RegressionDetector', () => {
 
       const d = RegressionDetector.getInstance(currentTestPath);
       injectMockQualityMonitor(d);
-      const loaded = await d.loadBaseline();
-      expect(loaded).not.toBeNull();
-      expect(loaded!.timestamp).toBeInstanceOf(Date);
-      expect(loaded!.timestamp.getTime()).toBe(new Date('2025-01-01T00:00:00.000Z').getTime());
+      const loaded = requireLoadedBaseline(await d.loadBaseline());
+      expect(loaded.timestamp).toBeInstanceOf(Date);
+      expect(loaded.timestamp.getTime()).toBe(new Date('2025-01-01T00:00:00.000Z').getTime());
     });
   });
 
@@ -344,9 +363,8 @@ describe('RegressionDetector', () => {
       await d.establishBaseline();
       const report = await d.detectRegressions();
 
-      const r = report.regressions.find(x => x.metric === 'processingTime');
-      expect(r).toBeDefined();
-      expect(r!.severity).toBe('severe');
+      const r = requireByMetric(report.regressions, 'processingTime');
+      expect(r.severity).toBe('severe');
     });
 
     test('detects regression for higher-is-better metric (accuracy -20%)', async () => {
@@ -358,9 +376,8 @@ describe('RegressionDetector', () => {
       await d.establishBaseline();
       const report = await d.detectRegressions();
 
-      const r = report.regressions.find(x => x.metric === 'transcriptionAccuracy');
-      expect(r).toBeDefined();
-      expect(r!.severity).toBe('moderate');
+      const r = requireByMetric(report.regressions, 'transcriptionAccuracy');
+      expect(r.severity).toBe('moderate');
     });
 
     test('detects improvement when processingTime decreases', async () => {
@@ -372,9 +389,8 @@ describe('RegressionDetector', () => {
       await d.establishBaseline();
       const report = await d.detectRegressions();
 
-      const imp = report.improvements.find(x => x.metric === 'processingTime');
-      expect(imp).toBeDefined();
-      expect(imp!.changePercent).toBeLessThan(0);
+      const imp = requireByMetric(report.improvements, 'processingTime');
+      expect(imp.changePercent).toBeLessThan(0);
     });
 
     // Polarity pin for the count/health metrics that distinguish the complete
@@ -395,9 +411,8 @@ describe('RegressionDetector', () => {
       await d.establishBaseline();
       const report = await d.detectRegressions();
 
-      const regression = report.regressions.find(x => x.metric === metric);
-      expect(regression).toBeDefined();
-      expect(regression!.changePercent).toBeGreaterThan(0);
+      const regression = requireByMetric(report.regressions, metric);
+      expect(regression.changePercent).toBeGreaterThan(0);
       // And it must NOT be mis-bucketed as an improvement.
       expect(report.improvements.find(x => x.metric === metric)).toBeUndefined();
     });

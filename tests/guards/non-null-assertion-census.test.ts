@@ -238,6 +238,47 @@
  *     tests/pipeline/bottleneck-detector.test.ts (10 nodes over
  *     `worstBottleneck: BottleneckInfo | null` and the `stages.find(…)`
  *     captures). All eight suites stayed green through the rewrite.
+ *     Phase 154 (REQ-344 / TASK-0241) continued it with the next
+ *     descending top-ten batch (the ≥10 threshold is exhausted — the
+ *     largest remainder file holds 12 nodes), 90 nodes → 0 across six
+ *     directories: `requireNode` / `requirePoints` in
+ *     tests/guards/edge-anchor-geometry-single-source.test.ts (12 nodes
+ *     over the expected-side `byId.get(edge.from)!` lookups and the
+ *     `got.get('from->to')!` points reads), `requireJobStatus(manager,
+ *     jobId)` in tests/integration/api.test.ts (9 nodes over the
+ *     `BatchJobStatus | null` returns of `getJobStatus`), `requireDequeued`
+ *     plus a const-captured render resolver in
+ *     tests/integration/export-error-recovery-integration.test.ts (9 nodes
+ *     over `dequeue(): QueuedExportJob | undefined` and `resolveRender!()`),
+ *     `requireDequeued` / `requireReplayed` in
+ *     tests/integration/export-retry-dlq-metrics-integration.test.ts (9
+ *     nodes — NOTE the error-message test's final `dequeue()` legitimately
+ *     returns undefined when the job moves to the DLQ, so that one holder
+ *     stays `QueuedExportJob | undefined` with a guard only protecting the
+ *     reads), `requireMetrics` / `requireRecoveryReport` /
+ *     `requireStageTimings` in
+ *     tests/integration/pipeline-recovery-e2e.test.ts (9 nodes; the
+ *     narrowing dropped the `as RunRecoveryReport` casts — the field is
+ *     already typed as one), `requireMetrics` / `requireStageTimings` in
+ *     tests/pipeline/retry-observability-surface.test.ts (9 nodes over the
+ *     optional `PipelineResult.metrics` and its `stageTimings!`), and the
+ *     same two + `requireCriterionResult` / `requireStage3Gate` in
+ *     tests/visualization/layout-quality-composite.test.ts (9 nodes over
+ *     the `results.find(r => r.criterionName === …)` captures and the
+ *     `gates.find(g => g.stage === 3)!` read), `requireLoadedBaseline` /
+ *     `requireByMetric` in tests/quality/regression-detector.test.ts (8
+ *     nodes over `loadBaseline(): BaselineData | null` and the
+ *     `.find(x => x.metric === …)` captures), `fireHandler` in
+ *     tests/transcription/browser-transcriber.test.ts (8 nodes firing the
+ *     `| null` recognition handlers), and `findNode` plus dropping the
+ *     provably-superfluous method assertions in
+ *     tests/visualization/strategies/flowchart-strategy.test.ts (8 nodes —
+ *     `validateInputs` / `getStrategyDefaults` are optional on
+ *     ILayoutStrategy but concrete members of the class, so plain calls
+ *     compile). tests/transcription is now the FIRST directory pinned at
+ *     exact-0, which is why the hollow-pin check keys on directories that
+ *     still hold test files rather than directories that still hold hits.
+ *     All ten suites stayed green through the rewrite.
  *
  * Matching rule (AST since Phase 147 — SUPERSEDES the line-regex rule
  * documented in specs/speech-to-visuals/tasks/TASK-0226.md, which this
@@ -325,6 +366,13 @@
  * tests/pipeline/improvement-detector.test.ts — turns BOTH the
  * tests/pipeline directory ratchet (20 → 21) and the tests-total ratchet
  * (428 → 429) RED.
+ * Mutation-verified (Phase 154, MW-020): re-injecting ONE `!` into the
+ * Phase-154 rewrite — `fireHandler(mockRecognitionInstance.onerror, …)`
+ * back to `mockRecognitionInstance.onerror!({ error: 'network', … })` in
+ * tests/transcription/browser-transcriber.test.ts — turns BOTH the
+ * tests/transcription exact-0 directory ratchet (0 → 1) and the
+ * tests-total ratchet (338 → 339) RED: the first exact-0 directory pin is
+ * enforced, not aspirational.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -387,6 +435,20 @@ const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url));
  * (bottleneck-detector) = 20; tests/integration 132 − 13
  * (pipeline-orchestrator-recovery) − 12 (export-artifact-pipeline-e2e) =
  * 107; tests total 538 − 110 = 428).
+ * and 2026-08-20 (Phase 154 / REQ-344: monotone decrease round 7 — the
+ * ≥10 threshold is exhausted, back to the descending top-of-list
+ * selection the guard-first survey ranks: the top ten files / 90 nodes → 0:
+ * tests/guards 72 − 12 (edge-anchor-geometry-single-source) = 60;
+ * tests/integration 107 − 9 (api) − 9 (export-error-recovery-integration)
+ * − 9 (export-retry-dlq-metrics-integration) − 9 (pipeline-recovery-e2e)
+ * = 71; tests/pipeline 20 − 9 (retry-observability-surface) = 11;
+ * tests/visualization 78 − 9 (layout-quality-composite) − 8
+ * (strategies/flowchart-strategy) = 61; tests/quality 17 − 8
+ * (regression-detector) = 9; tests/transcription 8 − 8
+ * (browser-transcriber) = 0 — the FIRST directory pinned at exact-0,
+ * which is why the hollow-pin check below now keys on directories that
+ * still hold test FILES rather than directories that still hold hits;
+ * tests total 428 − 90 = 338).
  */
 const PINNED = {
   'src/visualization (production)': 0,
@@ -396,7 +458,7 @@ const PINNED = {
   'src/monitoring (production)': 0,
   'src/analysis (production)': 0,
   'src (production, excl. __tests__/__mocks__)': 0,
-  'tests (excl. __mocks__)': 428,
+  'tests (excl. __mocks__)': 338,
 } as const;
 
 /**
@@ -407,13 +469,13 @@ const PINNED = {
  */
 const TESTS_DIR_PINS: Record<string, number> = {
   unit: 103,
-  integration: 107,
-  visualization: 78,
-  guards: 72,
-  pipeline: 20,
+  integration: 71,
+  visualization: 61,
+  guards: 60,
+  pipeline: 11,
   analysis: 13,
-  quality: 17,
-  transcription: 8,
+  quality: 9,
+  transcription: 0,
   api: 2,
   lib: 2,
   remotion: 2,
@@ -442,7 +504,7 @@ function walk(dir: string, files: string[] = []): string[] {
  * Comments, string content and JSX text are invisible to the parser, so the
  * historical regex false positives are gone by construction.
  */
-function countAssertions(rootRel: string): { count: number; hits: string[] } {
+function countAssertions(rootRel: string): { count: number; hits: string[]; files: string[] } {
   const files = walk(join(REPO_ROOT, rootRel));
   const hits: string[] = [];
   for (const file of files) {
@@ -467,7 +529,7 @@ function countAssertions(rootRel: string): { count: number; hits: string[] } {
     };
     visit(sourceFile);
   }
-  return { count: hits.length, hits };
+  return { count: hits.length, hits, files };
 }
 
 /** Tests-tree hits bucketed by top-level directory (files in tests/ → '(root)'). */
@@ -482,6 +544,22 @@ function bucketTestsHits(hits: string[]): Map<string, string[]> {
     byDir.set(top, bucket);
   }
   return byDir;
+}
+
+/**
+ * Top-level directories that still hold at least one test FILE (files in
+ * tests/ → '(root)'). Presence is keyed on files, not hits, so a directory
+ * cleaned to ZERO assertions (tests/transcription since Phase 154) still
+ * counts as present — its pin is an exact-0 pin — while a pinned directory
+ * whose files were all deleted or moved still fails the check.
+ */
+function testsDirsByFiles(files: string[]): Set<string> {
+  const dirs = new Set<string>();
+  for (const file of files) {
+    const withoutPrefix = file.replace(REPO_ROOT, '').split(sep).slice(1).join(sep);
+    dirs.add(withoutPrefix.includes(sep) ? withoutPrefix.split(sep)[0] : '(root)');
+  }
+  return dirs;
 }
 
 describe('non-null assertion census ratchet (REQ-328 / REQ-336 / REQ-337)', () => {
@@ -539,9 +617,13 @@ describe('non-null assertion census ratchet (REQ-328 / REQ-336 / REQ-337)', () =
     }
   });
 
-  it('no pinned tests directory silently disappears (each pin must still correspond to a real directory)', () => {
+  it('no pinned tests directory silently disappears (each pin must still correspond to a directory holding test files)', () => {
+    // Keyed on FILES, not hits: tests/transcription is pinned at exact-0
+    // since Phase 154 and must stay a valid pin as long as its test files
+    // exist — a hits-based presence check would force every 0-pin back to
+    // a nonzero floor or delete the pin.
     for (const dir of Object.keys(TESTS_DIR_PINS)) {
-      expect(testsByDir.has(dir)).toBe(true);
+      expect(testsDirsByFiles(testsTotal.files).has(dir)).toBe(true);
     }
   });
 
@@ -549,10 +631,10 @@ describe('non-null assertion census ratchet (REQ-328 / REQ-336 / REQ-337)', () =
     // 170 (pre-Phase-141 src total) − 67 − 29 − 17 − 10 − 7 − 6 (Phases
     // 141–146) − 22 (Phase 147, incl. the AST-only export node) = 0; the
     // liveness check below only guards against a scanner regression that
-    // would silently count nothing. The tests tree is still real: 428
+    // would silently count nothing. The tests tree is still real: 338
     // node hits over 14 pinned directories (1096 before Phase
-    // 148/149/150/151/152/153's −94 / −103 / −105 / −66 / −190 / −110
-    // decreases).
+    // 148/149/150/151/152/153/154's −94 / −103 / −105 / −66 / −190 / −110
+    // / −90 decreases).
     expect(testsTotal.count).toBeGreaterThan(0);
   });
 });

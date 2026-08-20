@@ -84,6 +84,16 @@ function mockVideoData(format: 'mp4' | 'webm' | 'gif'): Uint8Array {
   return data;
 }
 
+/** Fail-loud dequeue: `dequeue()` returns `QueuedExportJob | undefined` and
+ *  every call site here just enqueued the job it expects back, so an
+ *  undefined return is a queue drift the test must report by name, not a
+ *  TypeError on `dequeued.jobId`. */
+function requireDequeued(queue: ExportJobQueue): QueuedExportJob {
+  const job = queue.dequeue();
+  if (job === undefined) throw new Error('queue.dequeue() returned undefined right after enqueue');
+  return job;
+}
+
 beforeEach(() => {
   jest.spyOn(console, 'log').mockImplementation(() => {});
   jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -263,7 +273,7 @@ describe('ExportJobQueue + Engine lifecycle', () => {
     expect(queue.getQueueStats().queued).toBe(1);
 
     // Dequeue and process
-    const dequeued = queue.dequeue()!;
+    const dequeued = requireDequeued(queue);
     expect(dequeued.jobId).toBe(job.jobId);
     expect(dequeued.status).toBe('running');
     expect(queue.hasCapacity()).toBe(false); // slot is now occupied by running job
@@ -305,7 +315,7 @@ describe('ExportJobQueue + Engine lifecycle', () => {
 
     // Enqueue and process
     const job = queue.enqueue({ priority: 'normal', format: 'mp4', inputHash: 'fail1' });
-    const dequeued = queue.dequeue()!;
+    const dequeued = requireDequeued(queue);
 
     const result = await engine.exportVideo(createSceneData(), createConfig());
     expect(result.success).toBe(false);
@@ -334,13 +344,13 @@ describe('ExportJobQueue + Engine lifecycle', () => {
     const high = queue.enqueue({ priority: 'high', format: 'webm', inputHash: 'high1' });
 
     // Dequeue should get high first
-    const first = queue.dequeue()!;
+    const first = requireDequeued(queue);
     expect(first.jobId).toBe(high.jobId);
 
-    const second = queue.dequeue()!;
+    const second = requireDequeued(queue);
     expect(second.jobId).toBe(normal.jobId);
 
-    const third = queue.dequeue()!;
+    const third = requireDequeued(queue);
     expect(third.jobId).toBe(low.jobId);
 
     // Verify metrics
@@ -370,10 +380,10 @@ describe('ExportJobQueue + Engine lifecycle', () => {
     expect(queue.getQueuePosition(job2.jobId)).toBeUndefined();
 
     // Dequeue should still work: job1 then job3
-    const first = queue.dequeue()!;
+    const first = requireDequeued(queue);
     expect(first.jobId).toBe(job1.jobId);
 
-    const second = queue.dequeue()!;
+    const second = requireDequeued(queue);
     expect(second.jobId).toBe(job3.jobId);
 
     const stats = queue.getQueueStats();
@@ -488,8 +498,12 @@ describe('Engine internal queue + cancel integration', () => {
   test('cancelling first of two concurrent-limit-1 jobs allows second to proceed', async () => {
     const engine = new EnhancedExportEngine(1); // Only 1 concurrent
 
-    let resolveRender: () => void;
+    let resolveRender: (() => void) | undefined;
     const renderPromise = new Promise<void>((resolve) => { resolveRender = resolve; });
+    // The Promise executor runs synchronously, so the resolver is already
+    // captured here — the narrowing replaces the old `resolveRender!()` call.
+    const finishRender = resolveRender;
+    if (finishRender === undefined) throw new Error('render promise executor did not run');
 
     const spy = jest.spyOn(engine as any, 'renderFrames').mockImplementation(async () => {
       await renderPromise;
@@ -509,7 +523,7 @@ describe('Engine internal queue + cancel integration', () => {
     engine.cancelExport(jobId);
 
     // Resolve render so cancellation is detected
-    resolveRender!();
+    finishRender();
 
     const result1 = await promise1;
     expect(result1.success).toBe(false);
@@ -555,7 +569,7 @@ describe('Queue position and ETA tracking', () => {
     expect(eta2).toBeLessThanOrEqual(eta3);
 
     // Dequeue first job
-    const dequeued = queue.dequeue()!;
+    const dequeued = requireDequeued(queue);
     expect(dequeued.jobId).toBe(job1.jobId);
 
     // Positions shift

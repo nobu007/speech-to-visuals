@@ -414,6 +414,21 @@ function lastById(nodes: PositionedNode[]): Map<string, PositionedNode> {
   return new Map(nodes.map((n) => [n.id, n]));
 }
 
+/** Fail-loud expected-side lookups: a missing node or points entry is a
+ *  layout drift the witness must report by name, not a TypeError five
+ *  frames deep inside the anchor formulas. */
+function requireNode(byId: Map<string, PositionedNode>, id: string): PositionedNode {
+  const node = byId.get(id);
+  if (node === undefined) throw new Error(`node ${id} is missing from the emitted layout`);
+  return node;
+}
+
+function requirePoints(got: Map<string, LayoutEdge['points']>, key: string): LayoutEdge['points'] {
+  const points = got.get(key);
+  if (points === undefined) throw new Error(`edge ${key} emitted no points`);
+  return points;
+}
+
 describe('round 46: edge anchor geometry — layer 2b live delegation witnesses', () => {
   describe('FallbackLayoutStrategy (all five diagram types + grid default)', () => {
     const fallback = new FallbackLayoutStrategy(V1_CONFIG);
@@ -431,8 +446,8 @@ describe('round 46: edge anchor geometry — layer 2b live delegation witnesses'
       const byId = firstById(layout.nodes); // site skeleton: nodes.find = first-match
       const got = pointsByEdge(layout.edges);
       for (const edge of TOPO_EDGES) {
-        const expected = pair(byId.get(edge.from)!, byId.get(edge.to)!);
-        const actual = got.get(`${edge.from}->${edge.to}`)!;
+        const expected = pair(requireNode(byId, edge.from), requireNode(byId, edge.to));
+        const actual = requirePoints(got, `${edge.from}->${edge.to}`);
         expect(actual).toHaveLength(2);
         expect(Object.is(actual[0].x, expected[0].x)).toBe(true);
         expect(Object.is(actual[0].y, expected[0].y)).toBe(true);
@@ -465,8 +480,8 @@ describe('round 46: edge anchor geometry — layer 2b live delegation witnesses'
       const byId = firstById(nodes);
       const got = pointsByEdge(edges);
       for (const edge of TOPO_EDGES) {
-        const expected = pair(byId.get(edge.from)!, byId.get(edge.to)!);
-        const actual = got.get(`${edge.from}->${edge.to}`)!;
+        const expected = pair(requireNode(byId, edge.from), requireNode(byId, edge.to));
+        const actual = requirePoints(got, `${edge.from}->${edge.to}`);
         expect(actual).toHaveLength(2);
         for (let i = 0; i < 2; i++) {
           expect(Object.is(actual[i].x, expected[i].x)).toBe(true);
@@ -489,8 +504,8 @@ describe('round 46: edge anchor geometry — layer 2b live delegation witnesses'
       const byId = lastById(nodes);
       const got = pointsByEdge(edges);
       for (const edge of TOPO_EDGES) {
-        const expected = pair(byId.get(edge.from)!, byId.get(edge.to)!);
-        const actual = got.get(`${edge.from}->${edge.to}`)!;
+        const expected = pair(requireNode(byId, edge.from), requireNode(byId, edge.to));
+        const actual = requirePoints(got, `${edge.from}->${edge.to}`);
         expect(actual).toHaveLength(2);
         for (let i = 0; i < 2; i++) {
           expect(Object.is(actual[i].x, expected[i].x)).toBe(true);
@@ -513,8 +528,8 @@ describe('round 46: edge anchor geometry — layer 2b live delegation witnesses'
     const byId = firstById(result.nodes); // ezo site skeleton: nodes.find = first-match
     const got = pointsByEdge(result.edges);
     for (const edge of TOPO_EDGES) {
-      const expected = [centerAnchor(byId.get(edge.from)!), centerAnchor(byId.get(edge.to)!)];
-      const actual = got.get(`${edge.from}->${edge.to}`)!;
+      const expected = [centerAnchor(requireNode(byId, edge.from)), centerAnchor(requireNode(byId, edge.to))];
+      const actual = requirePoints(got, `${edge.from}->${edge.to}`);
       expect(actual).toHaveLength(2);
       for (let i = 0; i < 2; i++) {
         expect(Object.is(actual[i].x, expected[i].x)).toBe(true);

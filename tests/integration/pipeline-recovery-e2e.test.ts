@@ -14,7 +14,7 @@
 
 import { jest } from '@jest/globals';
 import type { RunRecoveryReport } from '@/quality/pipeline-run-recovery-tracker';
-import type { PipelineInput } from '@/pipeline/types';
+import type { PipelineInput, PipelineResult } from '@/pipeline/types';
 
 // ---------- Mocks ----------
 
@@ -89,6 +89,30 @@ jest.unstable_mockModule('@stv/core/config', () => ({
 
 // ---------- Helpers ----------
 
+type PipelineMetrics = NonNullable<PipelineResult['metrics']>;
+
+/** Fail-loud metrics reads: `metrics` is optional on PipelineResult and the
+ *  e2e runs under test always populate it, so an absent metrics object (or
+ *  recoveryReport / stageTimings inside it) is a pipeline drift the test
+ *  must report by name, not a TypeError. The narrowing also retires the
+ *  `as RunRecoveryReport` casts — the field is already typed as one. */
+function requireMetrics(result: PipelineResult): PipelineMetrics {
+  if (result.metrics === undefined) throw new Error('pipeline result has no metrics object');
+  return result.metrics;
+}
+
+function requireRecoveryReport(result: PipelineResult): RunRecoveryReport {
+  const report = requireMetrics(result).recoveryReport;
+  if (report === undefined) throw new Error('pipeline metrics carry no recoveryReport');
+  return report;
+}
+
+function requireStageTimings(result: PipelineResult): NonNullable<PipelineMetrics['stageTimings']> {
+  const timings = requireMetrics(result).stageTimings;
+  if (timings === undefined) throw new Error('pipeline metrics carry no stageTimings');
+  return timings;
+}
+
 function createValidInput(): PipelineInput {
   return {
     audioFile: '/test/audio.wav',
@@ -133,10 +157,7 @@ describe('E2E: PipelineOrchestrator with ErrorRecovery Integration', () => {
     const result = await orchestrator.execute(createValidInput());
 
     expect(result.success).toBe(true);
-    expect(result.metrics).toBeDefined();
-    expect(result.metrics!.recoveryReport).toBeDefined();
-
-    const report = result.metrics!.recoveryReport as RunRecoveryReport;
+    const report = requireRecoveryReport(result);
     expect(report.success).toBe(true);
     expect(report.runId).toMatch(/^run-\d+$/);
     expect(typeof report.totalRetries).toBe('number');
@@ -151,7 +172,7 @@ describe('E2E: PipelineOrchestrator with ErrorRecovery Integration', () => {
     const result = await orchestrator.execute(createValidInput());
 
     expect(result.success).toBe(true);
-    const report = result.metrics!.recoveryReport as RunRecoveryReport;
+    const report = requireRecoveryReport(result);
 
     expect(report.runId).toBeDefined();
     expect(report.stages).toBeDefined();
@@ -227,11 +248,8 @@ describe('E2E: PipelineOrchestrator with ErrorRecovery Integration', () => {
     expect(r1.success).toBe(true);
     expect(r2.success).toBe(true);
 
-    expect(r1.metrics?.recoveryReport).toBeDefined();
-    expect(r2.metrics?.recoveryReport).toBeDefined();
-
-    const report1 = r1.metrics!.recoveryReport as RunRecoveryReport;
-    const report2 = r2.metrics!.recoveryReport as RunRecoveryReport;
+    const report1 = requireRecoveryReport(r1);
+    const report2 = requireRecoveryReport(r2);
     expect(report1.runId).not.toBe(report2.runId);
 
     o1.recoveryOrchestrator.destroy();
@@ -371,10 +389,10 @@ describe('E2E: Pipeline metrics include retry attempts', () => {
 
     const result = await orchestrator.execute(createValidInput());
 
-    expect(result.metrics).toBeDefined();
-    expect(typeof result.metrics!.totalRetryAttempts).toBe('number');
+    const metrics = requireMetrics(result);
+    expect(typeof metrics.totalRetryAttempts).toBe('number');
     // Happy path should have 0 retries
-    expect(result.metrics!.totalRetryAttempts).toBe(0);
+    expect(metrics.totalRetryAttempts).toBe(0);
 
     orchestrator.recoveryOrchestrator.destroy();
   });
@@ -384,8 +402,7 @@ describe('E2E: Pipeline metrics include retry attempts', () => {
 
     const result = await orchestrator.execute(createValidInput());
 
-    expect(result.metrics?.stageTimings).toBeDefined();
-    const timings = result.metrics!.stageTimings!;
+    const timings = requireStageTimings(result);
     expect(Array.isArray(timings)).toBe(true);
     expect(timings.length).toBeGreaterThan(0);
 

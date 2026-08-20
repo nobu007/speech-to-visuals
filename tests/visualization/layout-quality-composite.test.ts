@@ -14,7 +14,33 @@ import {
 import {
   QualityGateEvaluator,
   createDefaultQualityGates,
+  type StageEvaluationResult,
+  type StageCriterionResult,
 } from '@/quality/quality-gate';
+
+// ---------------------------------------------------------------------------
+// Fail-loud gate/criterion reads (the redundant preceding
+// `expect(…).toBeDefined()` pairs are folded into the throws): an absent
+// stage-3 gate or criterion result is a quality-gate drift the test must
+// report by name, not a TypeError on `composite!.passed`.
+// ---------------------------------------------------------------------------
+
+function requireStage3Gate(): ReturnType<typeof createDefaultQualityGates>[number] {
+  const gate = createDefaultQualityGates().find((g) => g.stage === 3);
+  if (gate === undefined) throw new Error('stage 3 gate not found in createDefaultQualityGates()');
+  return gate;
+}
+
+function requireCriterionResult(
+  evaluation: StageEvaluationResult,
+  criterionName: string,
+): StageCriterionResult {
+  const found = evaluation.results.find((r) => r.criterionName === criterionName);
+  if (found === undefined) {
+    throw new Error(`criterion result not found: ${criterionName}`);
+  }
+  return found;
+}
 
 // ---------------------------------------------------------------------------
 // Helper factories
@@ -305,12 +331,9 @@ describe('scoreLayout — convenience function', () => {
 
 describe('Quality Gate Integration — Stage 3 composite score', () => {
   it('layoutQualityComposite criterion exists in Stage 3', () => {
-    const gates = createDefaultQualityGates();
-    const stage3 = gates.find((g) => g.stage === 3);
-    expect(stage3).toBeDefined();
-    const criterion = stage3!.criteria.find((c) => c.name === 'layoutQualityComposite');
-    expect(criterion).toBeDefined();
-    expect(criterion!.threshold).toBe(0.7);
+    const criterion = requireStage3Gate().criteria.find((c) => c.name === 'layoutQualityComposite');
+    if (criterion === undefined) throw new Error('layoutQualityComposite criterion not defined on the stage-3 gate');
+    expect(criterion.threshold).toBe(0.7);
   });
 
   it('passes when layoutQualityCompositeScore >= 0.7', () => {
@@ -329,9 +352,8 @@ describe('Quality Gate Integration — Stage 3 composite score', () => {
       layoutQualityCompositeScore: 0.85,
     };
     const result = evaluator.evaluateStage(3, input);
-    const composite = result.results.find((r) => r.criterionName === 'layoutQualityComposite');
-    expect(composite).toBeDefined();
-    expect(composite!.passed).toBe(true);
+    const composite = requireCriterionResult(result, 'layoutQualityComposite');
+    expect(composite.passed).toBe(true);
   });
 
   it('fails when layoutQualityCompositeScore < 0.7', () => {
@@ -348,9 +370,8 @@ describe('Quality Gate Integration — Stage 3 composite score', () => {
       layoutQualityCompositeScore: 0.5,
     };
     const result = evaluator.evaluateStage(3, input);
-    const composite = result.results.find((r) => r.criterionName === 'layoutQualityComposite');
-    expect(composite).toBeDefined();
-    expect(composite!.passed).toBe(false);
+    const composite = requireCriterionResult(result, 'layoutQualityComposite');
+    expect(composite.passed).toBe(false);
   });
 
   it('coexists with zeroOverlap criterion', () => {
@@ -367,12 +388,10 @@ describe('Quality Gate Integration — Stage 3 composite score', () => {
       layoutQualityCompositeScore: 0.8,
     };
     const result = evaluator.evaluateStage(3, input);
-    const overlap = result.results.find((r) => r.criterionName === 'zeroOverlap');
-    const composite = result.results.find((r) => r.criterionName === 'layoutQualityComposite');
-    expect(overlap).toBeDefined();
-    expect(overlap!.passed).toBe(true);
-    expect(composite).toBeDefined();
-    expect(composite!.passed).toBe(true);
+    const overlap = requireCriterionResult(result, 'zeroOverlap');
+    const composite = requireCriterionResult(result, 'layoutQualityComposite');
+    expect(overlap.passed).toBe(true);
+    expect(composite.passed).toBe(true);
   });
 
   it('skips composite when no layout data provided', () => {
@@ -385,9 +404,8 @@ describe('Quality Gate Integration — Stage 3 composite score', () => {
       ],
     };
     const result = evaluator.evaluateStage(3, input);
-    const composite = result.results.find((r) => r.criterionName === 'layoutQualityComposite');
-    expect(composite).toBeDefined();
-    expect(composite!.passed).toBe(true); // skips gracefully
+    const composite = requireCriterionResult(result, 'layoutQualityComposite');
+    expect(composite.passed).toBe(true); // skips gracefully
   });
 
   it('computes composite from nodes/edges/bounds when score not provided', () => {
@@ -408,9 +426,8 @@ describe('Quality Gate Integration — Stage 3 composite score', () => {
       ],
     };
     const result = evaluator.evaluateStage(3, input);
-    const composite = result.results.find((r) => r.criterionName === 'layoutQualityComposite');
-    expect(composite).toBeDefined();
-    expect(composite!.passed).toBe(true);
-    expect(composite!.score).toBeGreaterThanOrEqual(0.7);
+    const composite = requireCriterionResult(result, 'layoutQualityComposite');
+    expect(composite.passed).toBe(true);
+    expect(composite.score).toBeGreaterThanOrEqual(0.7);
   });
 });

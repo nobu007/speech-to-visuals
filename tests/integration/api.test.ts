@@ -471,6 +471,16 @@ describe('Security Middleware', () => {
 // 6. Batch Routes (Express Router Integration)
 // ===========================================================================
 
+/** Fail-loud status read: `getJobStatus` returns `BatchJobStatus | null`
+ *  right after the job was created/transitioned, so the null branch is a
+ *  manager drift the test must report by job id, not a TypeError on
+ *  `status!.status`. */
+function requireJobStatus(manager: InstanceType<typeof BatchJobManager>, jobId: string): BatchJobStatus {
+  const status = manager.getJobStatus(jobId);
+  if (status === null) throw new Error(`job ${jobId} has no status`);
+  return status;
+}
+
 describe('Batch Routes - Express Router', () => {
   let manager: InstanceType<typeof BatchJobManager>;
 
@@ -497,11 +507,10 @@ describe('Batch Routes - Express Router', () => {
     const files = [{ name: 'a.wav', path: '/a' }, { name: 'b.wav', path: '/b' }];
     const jobId = manager.createJob(files);
 
-    const status = manager.getJobStatus(jobId);
-    expect(status).not.toBeNull();
-    expect(status!.status).toBe('queued');
-    expect(status!.progress.total).toBe(2);
-    expect(status!.progress.percentage).toBe(0);
+    const status = requireJobStatus(manager, jobId);
+    expect(status.status).toBe('queued');
+    expect(status.progress.total).toBe(2);
+    expect(status.progress.percentage).toBe(0);
   });
 
   test('BatchJobManager cancelJob returns not_found for missing job', () => {
@@ -515,9 +524,9 @@ describe('Batch Routes - Express Router', () => {
     const result = manager.cancelJob(jobId);
     expect(result).toBe(true);
 
-    const status = manager.getJobStatus(jobId);
-    expect(status!.status).toBe('cancelled');
-    expect(status!.completedAt).toBeDefined();
+    const status = requireJobStatus(manager, jobId);
+    expect(status.status).toBe('cancelled');
+    expect(status.completedAt).toBeDefined();
   });
 
   test('BatchJobManager cancelJob on already terminal job returns already_terminal', () => {
@@ -537,9 +546,9 @@ describe('Batch Routes - Express Router', () => {
     const startedId = manager.startNextQueuedJob();
     expect(startedId).toBe(jobId);
 
-    const status = manager.getJobStatus(jobId);
-    expect(status!.status).toBe('processing');
-    expect(status!.startedAt).toBeDefined();
+    const status = requireJobStatus(manager, jobId);
+    expect(status.status).toBe('processing');
+    expect(status.startedAt).toBeDefined();
   });
 
   test('BatchJobManager enforces max 3 concurrent jobs', () => {
@@ -567,9 +576,9 @@ describe('Batch Routes - Express Router', () => {
       progress: { total: 1, completed: 1, failed: 0, percentage: 100 },
     });
 
-    const status = manager.getJobStatus(jobId);
-    expect(status!.progress.percentage).toBe(100);
-    expect(status!.jobId).toBe(jobId); // unchanged fields preserved
+    const status = requireJobStatus(manager, jobId);
+    expect(status.progress.percentage).toBe(100);
+    expect(status.jobId).toBe(jobId); // unchanged fields preserved
   });
 });
 

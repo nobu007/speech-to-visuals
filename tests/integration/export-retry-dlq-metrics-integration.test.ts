@@ -13,7 +13,7 @@
  */
 
 import { jest } from '@jest/globals';
-import { ExportJobQueue } from '@/export/export-job-queue';
+import { ExportJobQueue, type QueuedExportJob } from '@/export/export-job-queue';
 import { ExportMetricsCollector } from '@/export/export-metrics-collector';
 import { exportPrometheusMetrics } from '@/monitoring/prometheus-exporter';
 import type { HttpMetricsSnapshot } from '@/monitoring/http-metrics-collector';
@@ -35,6 +35,24 @@ const EMPTY_HTTP: HttpMetricsSnapshot = {
   slowRequests: [],
   uptime: 1000,
 };
+
+/** Fail-loud dequeue for the sites where the job MUST come back (it was
+ *  just enqueued or retried back into the queue). The error-message test
+ *  below intentionally keeps its FINAL dequeue unasserted — that one stays
+ *  `| undefined` because exhaustion legitimately drains the queue. */
+function requireDequeued(queue: ExportJobQueue): QueuedExportJob {
+  const job = queue.dequeue();
+  if (job === undefined) throw new Error('queue.dequeue() returned undefined for a job that must be queued');
+  return job;
+}
+
+/** Fail-loud replay read (the redundant preceding
+ *  `expect(replayed).toBeDefined()` is folded into the throw). */
+function requireReplayed(queue: ExportJobQueue, jobId: string): QueuedExportJob {
+  const replayed = queue.replayDeadLetterJob(jobId);
+  if (replayed === undefined) throw new Error(`dead-letter job ${jobId} could not be replayed`);
+  return replayed;
+}
 
 describe('Full retry → exhaustion → DLQ → Prometheus metrics', () => {
   let collector: ExportMetricsCollector;
@@ -69,28 +87,28 @@ describe('Full retry → exhaustion → DLQ → Prometheus metrics', () => {
     });
 
     // Attempt 1: fail → retry (retryCount 0→1)
-    let dequeued = queue.dequeue()!;
+    let dequeued = requireDequeued(queue);
     expect(dequeued.jobId).toBe(job.jobId);
     queue.completeJob(dequeued.jobId, false, undefined, 'transient-error-1');
     expect(collector.getSnapshot().queue.totalRetries).toBe(1);
     expect(collector.getSnapshot().queue.totalDeadLettered).toBe(0);
 
     // Attempt 2: fail → retry (retryCount 1→2)
-    dequeued = queue.dequeue()!;
+    dequeued = requireDequeued(queue);
     expect(dequeued.retryCount).toBe(1);
     queue.completeJob(dequeued.jobId, false, undefined, 'transient-error-2');
     expect(collector.getSnapshot().queue.totalRetries).toBe(2);
     expect(collector.getSnapshot().queue.totalDeadLettered).toBe(0);
 
     // Attempt 3: fail → retry (retryCount 2→3)
-    dequeued = queue.dequeue()!;
+    dequeued = requireDequeued(queue);
     expect(dequeued.retryCount).toBe(2);
     queue.completeJob(dequeued.jobId, false, undefined, 'transient-error-3');
     expect(collector.getSnapshot().queue.totalRetries).toBe(3);
     expect(collector.getSnapshot().queue.totalDeadLettered).toBe(0);
 
     // Attempt 4: fail → retries exhausted (retryCount=3, not < maxRetries=3) → DLQ
-    dequeued = queue.dequeue()!;
+    dequeued = requireDequeued(queue);
     expect(dequeued.retryCount).toBe(3);
     queue.completeJob(dequeued.jobId, false, undefined, 'permanent-failure');
     expect(collector.getSnapshot().queue.totalRetries).toBe(3);
@@ -106,10 +124,14 @@ describe('Full retry → exhaustion → DLQ → Prometheus metrics', () => {
     });
 
     const errors = ['fail-a', 'fail-b', 'fail-c', 'fail-d'];
-    let dequeued = queue.dequeue()!;
+    // The final dequeue legitimately returns undefined (the job moved to the
+    // DLQ), so this holder stays `| undefined` — the guard below only protects
+    // the reads of a job that must still be queued.
+    let dequeued: QueuedExportJob | undefined = queue.dequeue();
     for (let i = 0; i < errors.length; i++) {
+      if (dequeued === undefined) throw new Error(`attempt ${i + 1}: job left the queue before its failure was recorded`);
       queue.completeJob(dequeued.jobId, false, undefined, errors[i]);
-      dequeued = queue.dequeue()!;
+      dequeued = queue.dequeue();
       if (i < errors.length - 1) {
         expect(dequeued).toBeDefined();
       }
@@ -135,7 +157,7 @@ describe('Full retry → exhaustion → DLQ → Prometheus metrics', () => {
     });
 
     for (let i = 0; i < 4; i++) {
-      const dequeued = queue.dequeue()!;
+      const dequeued = requireDequeued(queue);
       queue.completeJob(dequeued.jobId, false, undefined, `error-${i}`);
     }
 
@@ -243,10 +265,9 @@ describe('Full retry → exhaustion → DLQ → Prometheus metrics', () => {
     expect(replayCollector.getSnapshot().queue.dlqSize).toBe(1);
 
     // Replay the DLQ job
-    const replayed = replayQueue.replayDeadLetterJob(job.jobId);
-    expect(replayed).toBeDefined();
-    expect(replayed!.retryCount).toBe(0);
-    expect(replayed!.status).toBe('queued');
+    const replayed = requireReplayed(replayQueue, job.jobId);
+    expect(replayed.retryCount).toBe(0);
+    expect(replayed.status).toBe('queued');
 
     // DLQ size gauge should be 0 after replay
     expect(replayCollector.getSnapshot().queue.dlqSize).toBe(0);

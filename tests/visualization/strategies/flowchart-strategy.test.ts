@@ -1,6 +1,17 @@
 import { FlowchartLayoutStrategy } from '@/visualization/strategies/FlowchartLayoutStrategy';
-import { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
+import { NodeDatum, EdgeDatum, PositionedNode } from '@stv/core/types/diagram';
 import { LayoutConfig } from '@/visualization/types';
+
+/** Fail-loud node capture (same idiom as the flow/tree/cycle strategy
+ *  suites): a missing node is a layout drift the test must report by id,
+ *  not a TypeError on `startNode.y`. */
+function findNode(result: { nodes: PositionedNode[] }, id: string): PositionedNode {
+  const found = result.nodes.find((n) => n.id === id);
+  if (found === undefined) {
+    throw new Error(`node '${id}' not found in layout result`);
+  }
+  return found;
+}
 
 describe('FlowchartLayoutStrategy', () => {
   let strategy: FlowchartLayoutStrategy;
@@ -178,9 +189,9 @@ describe('FlowchartLayoutStrategy', () => {
 
       const result = await strategy.generateLayout(nodes, edges, defaultConfig);
 
-      const startNode = result.nodes.find((n) => n.id === 'start')!;
-      const processNode = result.nodes.find((n) => n.id === 'process')!;
-      const endNode = result.nodes.find((n) => n.id === 'end')!;
+      const startNode = findNode(result, 'start');
+      const processNode = findNode(result, 'process');
+      const endNode = findNode(result, 'end');
 
       // In TB layout, start node center-y should be above (less than) end node
       const startY = startNode.y + (startNode.h || 60) / 2;
@@ -208,7 +219,7 @@ describe('FlowchartLayoutStrategy', () => {
 
   describe('validateInputs()', () => {
     it('should return false for empty nodes', () => {
-      expect(strategy.validateInputs!([], [])).toBe(false);
+      expect(strategy.validateInputs([], [])).toBe(false);
     });
 
     it('should return true for valid nodes and edges', () => {
@@ -217,7 +228,7 @@ describe('FlowchartLayoutStrategy', () => {
         { id: 'b', label: 'B' },
       ];
       const edges: EdgeDatum[] = [{ from: 'a', to: 'b' }];
-      expect(strategy.validateInputs!(nodes, edges)).toBe(true);
+      expect(strategy.validateInputs(nodes, edges)).toBe(true);
     });
 
     it('should return false for duplicate node IDs', () => {
@@ -225,13 +236,13 @@ describe('FlowchartLayoutStrategy', () => {
         { id: 'a', label: 'A' },
         { id: 'a', label: 'A2' },
       ];
-      expect(strategy.validateInputs!(nodes, [])).toBe(false);
+      expect(strategy.validateInputs(nodes, [])).toBe(false);
     });
 
     it('should return false for edges referencing non-existent nodes', () => {
       const nodes: NodeDatum[] = [{ id: 'a', label: 'A' }];
       const edges: EdgeDatum[] = [{ from: 'a', to: 'z' }];
-      expect(strategy.validateInputs!(nodes, edges)).toBe(false);
+      expect(strategy.validateInputs(nodes, edges)).toBe(false);
     });
   });
 
@@ -272,7 +283,7 @@ describe('FlowchartLayoutStrategy', () => {
 
   describe('getStrategyDefaults()', () => {
     it('should return flowchart-specific defaults', () => {
-      const defaults = strategy.getStrategyDefaults!();
+      const defaults = strategy.getStrategyDefaults();
 
       expect(defaults.rankDirection).toBe('TB');
       expect(defaults.rankSeparation).toBe(70);

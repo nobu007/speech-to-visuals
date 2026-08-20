@@ -26,6 +26,15 @@ let mockRecognitionInstance: {
   abort: jest.Mock;
 };
 
+/** Fail-loud event dispatch: the production transcriber assigns these
+ *  handlers in start()/on*Result(), so firing an unassigned handler is a
+ *  wiring drift the test must report by name — the old `handler!(ev)`
+ *  surfaced it as an opaque "not a function" TypeError instead. */
+function fireHandler<T>(handler: ((ev: T) => void) | null, ev: T): void {
+  if (handler === null) throw new Error('recognition handler was not assigned by the transcriber');
+  handler(ev);
+}
+
 // Mock logger
 jest.unstable_mockModule('@stv/core/utils/logger', () => ({
   logger: {
@@ -195,7 +204,7 @@ describe('BrowserTranscriber', () => {
           0: { transcript: 'hello', confidence: 0.5 },
         }],
       };
-      mockRecognitionInstance.onresult!(event as never);
+      fireHandler(mockRecognitionInstance.onresult, event as never);
       expect(callback).toHaveBeenCalledWith('hello');
     });
   });
@@ -214,7 +223,7 @@ describe('BrowserTranscriber', () => {
           0: { transcript: '  hello world  ', confidence: 0.9 },
         }],
       };
-      mockRecognitionInstance.onresult!(event as never);
+      fireHandler(mockRecognitionInstance.onresult, event as never);
       expect(callback).toHaveBeenCalledWith('hello world');
     });
 
@@ -231,7 +240,7 @@ describe('BrowserTranscriber', () => {
           0: { transcript: '   ', confidence: 0.9 },
         }],
       };
-      mockRecognitionInstance.onresult!(event as never);
+      fireHandler(mockRecognitionInstance.onresult, event as never);
       expect(callback).not.toHaveBeenCalled();
     });
   });
@@ -242,7 +251,7 @@ describe('BrowserTranscriber', () => {
       const callback = jest.fn();
       transcriber.onError(callback);
 
-      mockRecognitionInstance.onerror!({ error: 'network', message: 'Network error' });
+      fireHandler(mockRecognitionInstance.onerror, { error: 'network', message: 'Network error' });
       expect(callback).toHaveBeenCalledWith({
         error: 'network',
         message: 'Network error',
@@ -253,7 +262,7 @@ describe('BrowserTranscriber', () => {
       const transcriber = new BrowserTranscriber();
       transcriber.start();
 
-      mockRecognitionInstance.onerror!({ error: 'not-allowed', message: 'Permission denied' });
+      fireHandler(mockRecognitionInstance.onerror, { error: 'not-allowed', message: 'Permission denied' });
       expect(transcriber.getState()).toBe('error');
     });
 
@@ -261,7 +270,7 @@ describe('BrowserTranscriber', () => {
       const transcriber = new BrowserTranscriber();
       transcriber.start();
 
-      mockRecognitionInstance.onerror!({ error: 'audio-capture', message: 'No microphone' });
+      fireHandler(mockRecognitionInstance.onerror, { error: 'audio-capture', message: 'No microphone' });
       expect(transcriber.getState()).toBe('error');
     });
   });
@@ -272,7 +281,7 @@ describe('BrowserTranscriber', () => {
       transcriber.start();
       mockRecognitionInstance.start.mockClear();
 
-      mockRecognitionInstance.onend!(new Event('end'));
+      fireHandler(mockRecognitionInstance.onend, new Event('end'));
       expect(mockRecognitionInstance.start).toHaveBeenCalled();
     });
 
@@ -282,7 +291,7 @@ describe('BrowserTranscriber', () => {
       transcriber.stop();
       mockRecognitionInstance.start.mockClear();
 
-      mockRecognitionInstance.onend!(new Event('end'));
+      fireHandler(mockRecognitionInstance.onend, new Event('end'));
       expect(mockRecognitionInstance.start).not.toHaveBeenCalled();
     });
   });

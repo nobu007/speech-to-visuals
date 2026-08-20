@@ -18,6 +18,23 @@ import type { StageTimingRecord } from '@/pipeline/stage-timing-metrics';
 
 // ---------- Helpers ----------
 
+type PipelineMetrics = NonNullable<PipelineResult['metrics']>;
+
+/** Fail-loud metrics reads: `metrics` is optional on PipelineResult and a
+ *  successful orchestrator run always populates it, so an absent metrics
+ *  object (or stageTimings inside it) is a pipeline drift the test must
+ *  report by name, not a TypeError on `result.metrics!`. */
+function requireMetrics(result: PipelineResult): PipelineMetrics {
+  if (result.metrics === undefined) throw new Error('pipeline result has no metrics object');
+  return result.metrics;
+}
+
+function requireStageTimings(result: PipelineResult): StageTimingRecord[] {
+  const timings = requireMetrics(result).stageTimings;
+  if (timings === undefined) throw new Error('pipeline metrics carry no stageTimings');
+  return timings;
+}
+
 function makeValidPipelineInput(): PipelineInput {
   return {
     audioFile: 'test-audio.wav',
@@ -44,9 +61,9 @@ describe('PipelineOrchestrator retry observability surfacing', () => {
     const result = await orchestrator.execute(input);
 
     expect(result.success).toBe(true);
-    expect(result.metrics).toBeDefined();
-    expect(result.metrics!.totalRetryAttempts).toBeDefined();
-    expect(typeof result.metrics!.totalRetryAttempts).toBe('number');
+    const metrics = requireMetrics(result);
+    expect(metrics.totalRetryAttempts).toBeDefined();
+    expect(typeof metrics.totalRetryAttempts).toBe('number');
   });
 
   it('exposes per-stage retryAttempts in stageTimings', async () => {
@@ -56,10 +73,10 @@ describe('PipelineOrchestrator retry observability surfacing', () => {
     const result = await orchestrator.execute(input);
 
     expect(result.success).toBe(true);
-    expect(result.metrics!.stageTimings).toBeDefined();
-    expect(result.metrics!.stageTimings!.length).toBe(5);
+    const timings = requireStageTimings(result);
+    expect(timings.length).toBe(5);
 
-    for (const timing of result.metrics!.stageTimings!) {
+    for (const timing of timings) {
       expect(timing.retryAttempts).toBeDefined();
       expect(typeof timing.retryAttempts).toBe('number');
       expect(timing.retryAttempts).toBeGreaterThanOrEqual(0);
@@ -74,7 +91,7 @@ describe('PipelineOrchestrator retry observability surfacing', () => {
 
     expect(result.success).toBe(true);
     // In a normal run without flaky stages, no retries should occur
-    expect(result.metrics!.totalRetryAttempts).toBe(0);
+    expect(requireMetrics(result).totalRetryAttempts).toBe(0);
   });
 
   it('includes totalRetryAttempts even on pipeline failure', async () => {
@@ -112,7 +129,7 @@ describe('MainPipeline retry observability surfacing', () => {
       },
     };
 
-    expect(result.metrics!.totalRetryAttempts).toBe(3);
+    expect(result.metrics?.totalRetryAttempts).toBe(3);
   });
 
   it('PipelineResult.metrics.totalRetryAttempts defaults to undefined when omitted', () => {
