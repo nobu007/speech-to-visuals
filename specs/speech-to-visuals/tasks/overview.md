@@ -2246,6 +2246,113 @@ MW-023 は MW ledger（MW-014〜022）の逆引きで intelligent-cache.ts getSt
 
 **次回開始番号**: TASK-0245
 
+## Phase 158: HealthCheckService.checkPipelineHealth の欠損/non-finite successRate/avgProcessingTime NaN-routing 修正（義務 A 3 件目・MW-024）
+
+**ステータス**: ✅完了（2026-08-20・TASK-0245 完了・specs 同期は Phase 161 に補填）
+
+**背景**: TASK-0244 §残存 obligation の隣接 live silent-corruption 候補 3 件のうち最重要経路。`checkPipelineHealth()` は `realTimeMonitor.getSnapshot().pipeline` の `successRate` / `avgProcessingTime` を素読きし、`undefined > 0.95` / `NaN < 60000` がともに FALSE に化けて else 枝で "Pipeline is experiencing issues (NaN.0% success rate)" の fabricated unhealthy を `generateRecommendations` の CRITICAL 相当まで伝播させる silent corruption だった。typeof + Number.isFinite ガードで `'Pipeline monitoring unavailable: backend omitted successRate/avgProcessingTime'` を返す degraded path に fail-loud 化（commit 2ae7719a）。
+
+### タスク一覧
+
+- [x] [TASK-0245: HealthCheckService.checkPipelineHealth の欠損/non-finite successRate/avgProcessingTime NaN-routing 修正（REQ-349）+ MW-024](TASK-0245.md) - 1h (DIRECT) 🔵 ✅2026-08-20（src diff 1 site + 新規 test 2 件 + mutation RED 2/44 実測 + green 復元。MW-024 台帳登録は Phase 161 に補填）
+
+### 依存関係
+
+```
+TASK-0245 は TASK-0244（Phase 157）の義務 A 3 件目として履行
+MW-024 は MW-022/023 と同一 contract（realTimeMonitor.getSnapshot() 戻り値の素読み）の隣接 instance
+義務 B（architecture.md mirror 同期の spec build hook 化）は次サイクル obligation として残置
+```
+
+### 信頼性レベルサマリー（Phase 158 追加分）
+
+- 全 1 タスク 🔵（MW-022/023 と同型手法・mutation 反転で target RED 2 のみ・cascade なし = 2 メトリクス独立経路の実証）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0246
+
+## Phase 159: HealthCheckService.checkLLMHealth の欠損/non-finite cacheHitRate NaN-routing 修正（義務 A 4 件目・MW-025・REQ-350）
+
+**ステータス**: ✅完了（2026-08-20・commit 6d7a34e5・TASK-0246 ファイルは Phase 161 に補填）
+
+**背景**: TASK-0244 §残存 obligation の 2 件目。`checkLLMHealth()` は `snapshot.llm.cacheHitRate` を素読みし、`cacheHitRate > 0.4` / `> 0.2` がともに FALSE に化け else 枝で "Llm integration may have issues (NaN% cache hit rate)" の fabricated unhealthy を CRITICAL recommendation まで伝播させる silent corruption だった。typeof + Number.isFinite ガードで `'LLM integration unavailable: backend omitted/non-finite cacheHitRate'` を返す degraded path に fail-loud 化。検証: 48/48 GREEN・mutation 反転で 2 tests RED cascade → revert 復元・guards 75 suites / 3185 tests・tsc 0 error。
+
+### タスク一覧
+
+- [x] [TASK-0246: HealthCheckService.checkLLMHealth の欠損/non-finite cacheHitRate NaN-routing 修正（REQ-350）+ MW-025](TASK-0246.md) - 1h (DIRECT) 🔵 ✅2026-08-20（src diff 1 site + 新規 test 2 件 + mutation RED 確認。TASK ファイル・REQ-350・TC-345・MW-025 台帳は Phase 161 に補填）
+
+### 依存関係
+
+```
+TASK-0246 は TASK-0244（Phase 157）の義務 A 4 件目として履行
+残候補は checkErrorRecoveryHealth のみ（Phase 161 / TASK-0247 で閉じる）
+```
+
+### 信頼性レベルサマリー（Phase 159 追加分）
+
+- 全 1 タスク 🔵（MW-022〜024 と同型手法・mutation-verified）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0247（Phase 160 は refactor のため TASK 消費なし）
+
+## Phase 160: HealthCheckService 4 checkXxxHealth ガード重複の isFiniteMetric<T> 述語への統合（MW-026・pure refactor）
+
+**ステータス**: ✅完了（2026-08-20・commit f441e8d3・MW-026 台帳登録は Phase 161 に補填）
+
+**背景**: REQ-347〜350（Phase 156〜159）で 3 サイトに投入した `typeof x !== 'number' || !Number.isFinite(x)` ガードの重複を、共通述語 `isFiniteMetric(value: unknown): value is number` に統合（`value is number` narrowing で arithmetic 直前の型再検査を除去）。`checkMemoryHealth` は backend 契約上 NaN 到達経路が無く `typeof !== 'number'` 単発を意図的に維持し helper docstring NOTE で意図差を明示。あわせて AI_HUB_MAKE_RUN_FEEDBACK への応答として EXECUTE gates（sync:edge --check exit 0・spine:validate SKIPPED gitignored・monitoring:validate exit 0・tsc exit 0）と "6 deleted no-inline tests" phantom-feedback の commit-trail note（cross-repo 汚染・isFiniteMetric が composite guard として同 surface を集約）を記録。
+
+### タスク一覧
+
+- （TASK 消費なし — pure refactor・Phase 161 の MW-026 台帳補填で述語反転 mutation `20 failed / 38 passed / 58 total` の一斉 RED を実測し chokepoint 保証）
+
+### 依存関係
+
+```
+Phase 160 refactor は REQ-347〜350 のガード形状に依存（後方互換・pure refactor）
+残義務 B（make sync:mirror-from-requirements）は Phase 161 / TASK-0247 §残存 obligation で DoD を concrete 化
+```
+
+### 信頼性レベルサマリー（Phase 160 追加分）
+
+- pure refactor（48/48 + 397/397 monitoring unit + tsc 0 error・MW-026 は Phase 161 補填時に mutation-verified）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0247
+
+## Phase 161: HealthCheckService.checkErrorRecoveryHealth の欠損/non-finite errorRate/recoverySuccessRate NaN-routing 修正（義務 A 5 件目・MW-027）+ Phase 158〜160 specs 債務の一括解消
+
+**ステータス**: ✅完了（2026-08-20・TASK-0247 完了）
+
+**背景**: TASK-0244 §残存 obligation の最後の 1 件。`checkErrorRecoveryHealth()` は `snapshot.errors` の `errorRate` / `recoverySuccessRate` を素読きし、閾値チェーンの NaN/undefined オペランド比較が FALSE に化けて fabricated verdict（実測: "Error recovery is degraded (NaN% error rate, 90.0% recovery rate)" / "(2.0% error rate, NaN% recovery rate)"）を伝播させる silent corruption だった。`isFiniteMetric` ガードで fail-loud 化し **checkXxxHealth 系の未ガード metric read を全完**。本ラウンドは **3 つの deliverable**:
+1. **実 production 修正（TC-346 / REQ-351 / MW-027）**: 修正前 RED 実測（fabricated message 2 種）→ guard → 58/58 GREEN・mutation 反転で `7 failed / 51 passed / 58 total`（MW-022/023 と同一 signature）→ revert 復元（commit 136e5f65）
+2. **Phase 158〜160 specs 債務の一括解消**: REQ-346〜350 の requirements.md 未登録・TC-344/345 の AC 未登録・TASK-0246.md 未作成・MW-024/025/026 の台帳未登録・overview Phase 158〜160 未記載を一括補填。MW-024〜026 は再実行で observed を取得（11 / 8 / 20 failed @ 58-test baseline）
+3. **ledger 監査 pin ≥21 → ≥27**: MW-024〜027 補填で ledger 23 → 27 エントリ・`tests/guards/mutation-witness-ledger.test.ts` pin 引き上げ（56/56 GREEN）
+
+### タスク一覧
+
+- [x] [TASK-0247: HealthCheckService.checkErrorRecoveryHealth の欠損/non-finite errorRate/recoverySuccessRate NaN-routing 修正（REQ-351）+ MW-027 + Phase 158〜160 specs 補填](TASK-0247.md) - 1.5h (DIRECT) 🔵 ✅2026-08-20（src diff 1 site + 新規 test 2 件 + mutation RED 7/51 実測 + ledger 4 エントリ + 監査 pin 引き上げ + specs 一括補填）
+- [x] [TASK-0246: HealthCheckService.checkLLMHealth の NaN-routing 修正（REQ-350・Phase 159 実装分）の TASK 化補填](TASK-0246.md) - 0.5h (DOCS) 🔵 ✅2026-08-20（TASK-0246.md 新設 + REQ-350 / TC-345 / MW-025 補填）
+
+### 依存関係
+
+```
+TASK-0247 は TASK-0244（Phase 157）の義務 A 5 件目として履行 — これで checkXxxHealth 系は全完
+MW-024〜026 補填は Phase 158〜160 commit が台帳登録を怠っていた債務の解消（ledger 更新ルール 1 の遡及適用）
+義務 B（make sync:mirror-from-requirements）は TASK-0247 §残存 obligation で DoD を concrete 化
+  （Makefile 不在・_doc_spine.yml は auto-gen gitignored・architecture.md は手書き prose → marker 契約先行の設計順序を明記）
+```
+
+### 信頼性レベルサマリー（Phase 161 追加分）
+
+- 全 2 タスク 🔵（修正前 RED 実測 + mutation signature 一致 + 監査 pin 引き上げ実測 + 債務補填の全範囲を table 化）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0248
+
 ## Spine: external references
 
 - [speech-to-visuals API エンドポイント仕様](/home/jinno/speech-to-visuals/specs/speech-to-visuals/api-endpoints.md)
